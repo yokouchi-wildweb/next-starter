@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 // 指令メールボックスの補助スクリプト（/order・/inbox 共通）
 // 置き場: $TEAM_ORDERS（既定 ~/.team/orders）
-//   <root>/<repo-id>/*.md      = そのリポ宛ての未対応の指令
-//   <root>/<repo-id>/done/*.md = 対応済み
+//   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
+//   <root>/<fork-id>/done/*.md = 対応済み
+//   fork-id = 各 checkout の .claude/rules/project.md の `fork_id: <短い名前>`（小文字・数字・ハイフン。下記 forkIdOf）
 //   council の legate は council 自身のフォルダ（~/.team/_council/legates/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
 // 使い方:
-//   node mailbox.mjs self    自リポの repo-id と受信箱
+//   node mailbox.mjs self    自リポの fork-id と受信箱
 //   node mailbox.mjs from    起票する指令の from: 行（チームのタブなら発行元はそのチーム。下記 fromLine）
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
 //   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）
+//   node mailbox.mjs name-check <名前>   その名前を自リポの fork_id: にしてよいか（形・fleet.conf・手元のリポ・既存の受信箱と
+//                            重ならないか。/fork-init が名前を決めるときに使う。重なれば理由を出して exit 1）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
 //                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>]
 //                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す
 //                            （/inbox 手順 4 と guild close の共通の書き手）
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const ROOT = process.env.TEAM_ORDERS || join(homedir(), ".team", "orders");
@@ -29,7 +32,7 @@ function git(cwd, args) {
   }
 }
 
-// flux の fork-id 導出と同じ規則: ホスト以降のパスから .git を除き、/ を -- に、小文字化
+// 旧い導き方（移行中の戻り先と、旧い受信箱の名前）: ホスト以降のパスから .git を除き、/ を -- に、小文字化
 export function forkIdFromUrl(url) {
   if (!url) return "";
   let path;
@@ -45,13 +48,124 @@ export function forkIdFromUrl(url) {
   return path.replace(/^\/+/, "").replace(/\.git$/, "").replace(/\/+$/, "").split("/").join("--").toLowerCase();
 }
 
+export const FORK_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+// 宣言された fork_id: の値（行が無ければ ""。旧い `-` もそのまま返す）
+export function declaredForkId(top) {
+  const file = join(top, ".claude", "rules", "project.md");
+  if (!existsSync(file)) return "";
+  const m = readFileSync(file, "utf8").match(/^fork_id:[ \t]*(\S*)/m);
+  return m ? m[1] : "";
+}
+
+// リポの名前（受信箱の名前）= project.md の fork_id:（council 20261030-104205 D27。~/.team/_bin の tk_fork_id_of と同じ規則）。
+// 形が違えば throw。未宣言（行なし・旧い `-`）は移行中だけ旧い導き方に戻る（declared: false）。
+// env TK_FORK_ID_STRICT=1 なら未宣言も throw（移行の終わり）
+export function forkIdOf(top, origin, env = process.env) {
+  const v = declaredForkId(top);
+  if (v && v !== "-") {
+    if (!FORK_ID_RE.test(v)) throw new Error(`fork_id: の形が違います（${v}: 小文字・数字・ハイフン）: ${top}/.claude/rules/project.md`);
+    return { id: v, declared: true };
+  }
+  if (env.TK_FORK_ID_STRICT === "1") throw new Error(`fork_id: が宣言されていません: ${top}/.claude/rules/project.md`);
+  return { id: origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`, declared: false };
+}
+
 function repoInfo(dir) {
   const top = git(dir, ["rev-parse", "--show-toplevel"]);
   if (!top) return null;
   const origin = git(top, ["remote", "get-url", "origin"]);
   const upstream = git(top, ["remote", "get-url", "upstream"]);
-  const repoId = origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`;
-  return { top, origin, upstream, repoId };
+  const { id: repoId, declared } = forkIdOf(top, origin);
+  const oldId = origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`;
+  if (declared) settleBox(repoId, oldId);
+  return { top, origin, upstream, repoId, declared, oldId };
+}
+
+// 宣言済みのリポの受信箱を fork-id の名前へ移す（~/.team/_bin の tk_box_settle と同じ規則。名前を読むたびに呼ぶ）:
+// 旧い箱だけ → 改名 / 両方（古い送り手が旧い箱を作り直した分裂）→ 旧い方の指令（open と done/）を移す。同名は上書きせず残して言う /
+// どちらもない → 新しく作る。最後に旧い名前を新しい箱へのリンクにする（旧い名前で書く送り手も同じ箱に入る）。旧い名前がリンクなら何もしない
+export function settleBox(id, oldId, root = ROOT) {
+  if (!oldId || oldId === id || !existsSync(root)) return;
+  const n = join(root, id);
+  const o = join(root, oldId);
+  let st = null;
+  try {
+    st = lstatSync(o);
+  } catch {
+    st = null;
+  }
+  if (st && st.isSymbolicLink()) return;
+  if (st && st.isDirectory() && !existsSync(n)) {
+    try {
+      renameSync(o, n);
+    } catch {
+      return; // 別の処理が先に移した
+    }
+  } else if (st && st.isDirectory()) {
+    let left = false;
+    for (const sub of ["", "done"]) {
+      const from = join(o, sub);
+      if (!existsSync(from)) continue;
+      mkdirSync(join(n, sub), { recursive: true });
+      for (const f of readdirSync(from)) {
+        if (!f.endsWith(".md")) continue;
+        if (existsSync(join(n, sub, f))) left = true;
+        else renameSync(join(from, f), join(n, sub, f));
+      }
+    }
+    try {
+      if (existsSync(join(o, "done"))) rmdirSync(join(o, "done"));
+      rmdirSync(o);
+    } catch {
+      left = true;
+    }
+    if (left) {
+      console.error(`注意: 受信箱 ${o} に移せなかったファイルが残っています（${n} と同じ名前）`);
+      return;
+    }
+  } else {
+    mkdirSync(n, { recursive: true });
+  }
+  try {
+    symlinkSync(id, o);
+  } catch {
+    // 別の処理が先に張った
+  }
+}
+
+// fleet.conf の `<名前> <パス>` の行（~ 可、# はコメント）
+function fleetConf(env = process.env) {
+  const file = env.FLEET_CONF || join(homedir(), ".team", "fleet.conf");
+  if (!existsSync(file)) return [];
+  return readFileSync(file, "utf8")
+    .split("\n")
+    .map((l) => l.trim().split(/\s+/))
+    .filter(([n, p]) => n && p && !n.startsWith("#"))
+    .map(([n, p]) => ({ name: n, path: resolve(p.replace(/^~(?=\/)/, homedir())) }));
+}
+
+// その名前を self の fork_id: にしてよいか: 重なる理由の一覧（空 = よい）。
+// fleet.conf の別のパスの名前・手元の別のリポの名前・持ち主が self でない既存の受信箱と重なれば不可（D30 K3）
+export function nameProblems(name, self, others, conf, root = ROOT) {
+  const out = [];
+  if (!FORK_ID_RE.test(name)) out.push(`形が違います（${name}: 小文字・数字・ハイフン）`);
+  for (const c of conf) if (c.name === name && c.path !== resolve(self.top)) out.push(`fleet.conf で ${c.path} の名前です`);
+  for (const r of others) if (r.top !== self.top && r.repoId === name) out.push(`手元の別のリポ ${r.top} の名前です`);
+  const box = join(root, name);
+  if (existsSync(box)) {
+    const mine = self.repoId === name || self.oldId === name || linkTo(join(root, self.oldId)) === name;
+    if (!mine) out.push(`受信箱 ${box} がすでにあります（持ち主が別）`);
+  }
+  return out;
+}
+
+function linkTo(p) {
+  try {
+    return readlinkSync(p);
+  } catch {
+    return "";
+  }
 }
 
 function rulesPath(top) {
@@ -76,7 +190,13 @@ function localRepos(self) {
     if (!e.isDirectory()) continue;
     const dir = join(dirname(self.top), e.name);
     if (!existsSync(join(dir, ".git"))) continue;
-    const info = repoInfo(dir);
+    let info;
+    try {
+      info = repoInfo(dir);
+    } catch (e) {
+      console.error(`注意: ${e.message}`);
+      continue;
+    }
     if (!info || info.top !== dir) continue;
     if (!byId.has(info.repoId)) byId.set(info.repoId, { ...info, paths: [] });
     byId.get(info.repoId).paths.push(dir);
@@ -222,15 +342,22 @@ function opt(args, name) {
 }
 
 function main() {
-  const self = repoInfo(process.cwd());
+  let self;
+  try {
+    self = repoInfo(process.cwd());
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
   if (!self) {
     console.error("not inside a git repository");
     process.exit(1);
   }
   const cmd = process.argv[2];
+  if (!self.declared && cmd !== "name-check") console.error(`注意: このリポは fork_id: が未宣言です（移行中は旧い名前 ${self.repoId} を使う）`);
 
   if (cmd === "self") {
-    console.log(`self: ${self.repoId}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
+    console.log(`self: ${self.repoId}\ndeclared: ${self.declared ? "yes" : "no (old name)"}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
   } else if (cmd === "from") {
     const branch = git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]);
     console.log(`from: ${fromLine(process.env, { origin: self.origin, repoId: self.repoId, branch, cwd: process.cwd() })}`);
@@ -239,6 +366,18 @@ function main() {
       const mark = r.repoId === self.repoId ? " (self)" : "";
       console.log(`repo: ${r.repoId}${mark}\n  url: ${r.origin || "-"}\n  path: ${r.paths.join(", ")}\n  rules: ${rulesPath(r.paths[0])}\n  box: ${boxOf(r.repoId)}`);
     }
+  } else if (cmd === "name-check") {
+    const name = process.argv[3];
+    if (!name) {
+      console.error("usage: node mailbox.mjs name-check <名前>");
+      process.exit(1);
+    }
+    const probs = nameProblems(name, self, localRepos(self), fleetConf());
+    if (probs.length) {
+      for (const p of probs) console.log(`name-check: ${name} — ${p}`);
+      process.exit(1);
+    }
+    console.log(`name-check: ${name} — ok`);
   } else if (cmd === "inbox") {
     console.log(`box: ${boxOf(self.repoId)}`);
     for (const p of mdFiles(boxOf(self.repoId))) printOrder(p);
@@ -261,7 +400,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.error("usage: node mailbox.mjs self | from | repos | inbox | resolve <指令ファイル> --status=… --body=<ファイル>");
+    console.error("usage: node mailbox.mjs self | from | repos | inbox | name-check <名前> | resolve <指令ファイル> --status=… --body=<ファイル>");
     process.exit(1);
   }
 }

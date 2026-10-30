@@ -7,7 +7,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 あなたは今、自リポ宛てに届いた **ORDER**（`/order` で起票された単発の指令。評議会の legate が出したものも同じ形）を捌きます。誰から来たかは指令書の `from:` の先頭で分かる（リポ = origin URL、自リポ = 自分宛ての予約、チームの役職 = `<team> <instance> | role:<役職名> | repo:…`（fleet の提督・guild のアーキテクトなど。発行元はそのチームで、repo: は動いていたリポ）、評議会 = `council <議題id>`。書き方は `.claude/skills/order/SKILL.md` 手順 3）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
 
 メールボックス: `~/.team/orders/`（共有フォルダ。実際の場所は `mailbox.mjs self` の `root:`。git 管理外。構成の説明は `.claude/skills/order/SKILL.md`）
-- **自リポの受信箱** = `<置き場>/<自リポの repo-id>/`。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない
+- **自リポの受信箱** = `<置き場>/<自リポの fork-id>/`（fork-id = `.claude/rules/project.md` の `fork_id:`）。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない
 - 未対応 = 受信箱直下の `*.md` | 対応済み = 受信箱の `done/` に移動
 - 未対応のうち `waiting_on:` 行がある指令 = 自リポが別のリポに依頼して結果を待っているもの（下記「中継」の依頼して待つ）。mailbox.mjs は待ちの先が開いていれば `waiting`、すべて対応済みなら `resumable` と出す
 - 指令の `to:` が自リポでない（宛先違いで入った）ときは、着手せず下記「中継 / 差し戻す / 取り下げる」に従う
@@ -63,12 +63,12 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
       ```
    c. **答える**（RESOLUTION の追記と `done/` への移動を 1 回で行う。リポのルートで実行）:
       `node .claude/skills/order/mailbox.mjs resolve <該当ファイル> --status=done --pushed=<yes | no と理由 | -> --body=<b のファイル>`
-      - `by:` の repo-id・url・branch・commit は実行したリポから取る（commit は a で確定した HEAD）。commit しなかった指令は `--commit=-`、別のリポで commit したときは `--commit=<sha と場所>` で渡す。評議会からの指令の一部で止めたときは `--status=partial`
+      - `by:` の fork-id・url・branch・commit は実行したリポから取る（commit は a で確定した HEAD）。commit しなかった指令は `--commit=-`、別のリポで commit したときは `--commit=<sha と場所>` で渡す。評議会からの指令の一部で止めたときは `--status=partial`
       - 足りない行があれば何も書かずに止まる（エラーの指す行を本文に足して打ち直す）。書かれた形:
         ```
         ## RESOLUTION
         resolved: <ISO8601>   status: done
-        by: <self repo-id> | <self repo url> | branch:<branch> | commit:<short sha or -> | pushed:<yes|no|->
+        by: <self fork-id> | <self repo url> | branch:<branch> | commit:<short sha or -> | pushed:<yes|no|->
         implemented: … （本文がそのまま続く）
         ```
    d. 日本語で報告（**冒頭に downstream 取り込み判定（実測）を 1 行**: 見込みと同じ書式で、実際の差分から判定し直す。見込みから変わったら理由を添える）: コミット sha / プッシュ先ブランチ / RESOLUTION 追記済み・done/ 移動済みであることを伝える。push できなかった場合はその旨も明示する。評議会からの指令のときは findings の要点、`output: commit` なら保留中のブランチ名（push していないこと）と、「評議会の議長タブで `check` と打つと結果を取り込んで検証します（議長タブを閉じていれば別ターミナルで `council <議題id>` を実行して再開し、`check`）」と伝え、次の歩を自分で先取りしない。
@@ -77,8 +77,8 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 - **中継する場面**: 自リポ以外の作業が前提になる、または別のリポに引き継いだ方がよい（上流・下流・兄弟を問わない）。宛先は、自リポの役目と相手の役目（`node .claude/skills/order/mailbox.mjs repos` の `rules:` の project.md）から自分で決める
 - **どちらで中継するか**（提案のときに、どちらかと理由を添える）: 元の指令の `done_when` を中継先の作業だけで満たせる → **引き渡し** | 中継先の結果を受けて自リポにも続きの作業がある → **依頼して待つ**
 - **引き渡し**（元の指令を閉じる）:
-  a. 元の指令をもとに、新しい指令を宛先の受信箱に書く: 新しい id（`date +%Y%m%d-%H%M%S`）、`from:` は元の依頼元のまま、`to:` は宛先に合わせて書き直し、`relayed_from: <元の id> | via:<自リポの repo-id>` の行を `to:` の次に足す。他の欄は元のまま（自リポで分かったことは `notes:` に足す）。
-  b. 元の指令に答える: 本文（`relayed_to: <宛先の repo-id>/<新しい id>.md` と `notes: <なぜ宛先の持ち物と判断したか>`）を一時ファイルに書き、`node .claude/skills/order/mailbox.mjs resolve <元の指令> --status=relayed --body=<ファイル>`（`by: <self repo-id> | commit:- | pushed:-` を書いて `done/` へ移す）
+  a. 元の指令をもとに、新しい指令を宛先の受信箱に書く: 新しい id（`date +%Y%m%d-%H%M%S`）、`from:` は元の依頼元のまま、`to:` は宛先に合わせて書き直し、`relayed_from: <元の id> | via:<自リポの fork-id>` の行を `to:` の次に足す。他の欄は元のまま（自リポで分かったことは `notes:` に足す）。
+  b. 元の指令に答える: 本文（`relayed_to: <宛先の fork-id>/<新しい id>.md` と `notes: <なぜ宛先の持ち物と判断したか>`）を一時ファイルに書き、`node .claude/skills/order/mailbox.mjs resolve <元の指令> --status=relayed --body=<ファイル>`（`by: <self fork-id> | commit:- | pushed:-` を書いて `done/` へ移す）
   c. 日本語で報告: 引き渡した先と新しい指令のパス。
 - **依頼して待つ**（元の指令は開いたまま）:
   a. `.claude/skills/order/SKILL.md` の手順で、宛先の受信箱に新しい指令を書く。`from:` は `mailbox.mjs from` の値（自リポ。チームのタブならそのチーム）、`need:` は宛先にやってほしい部分だけ、`refs:` に元の指令のパスを入れる。

@@ -8,10 +8,10 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
 
 ## メールボックスの構成
 - 置き場: `~/.team/orders/`(このマシン上の共有フォルダ。git 管理外。実際の場所は `mailbox.mjs self` の `root:`)
-- **受信箱はリポごと**: `<置き場>/<repo-id>/`(未対応)と `<repo-id>/done/`(対応済み)。repo-id は `/flux` の fork-id と同じ導出(origin URL のホスト以降から `.git` を除き `/` → `--`、小文字。origin が無ければ `local--<ディレクトリ名>`)
+- **受信箱はリポごと**: `<置き場>/<fork-id>/`(未対応)と `<fork-id>/done/`(対応済み)。fork-id = そのリポの `.claude/rules/project.md` の `fork_id: <短い名前>`(小文字・数字・ハイフン)。未宣言(行なし・旧い `-`)のリポは移行中だけ旧い名前(origin URL のホスト以降から `.git` を除き `/` → `--`、小文字。origin が無ければ `local--<ディレクトリ名>`)。宣言済みのリポの受信箱は、mailbox.mjs が名前を読んだときに旧い名前の箱から移り、旧い名前は新しい箱へのリンクとして残る
 - 受信箱に入るのは単発の指令だけ。連続した・グループ化された指令は council の legate の中で扱う
 - 宛先リポは自分の受信箱を `/inbox` で読む。起票したセッションは `/wen` で状況を確かめる
-- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | repos | inbox | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。手順は `.claude/skills/inbox/SKILL.md` の 4)
+- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | repos | inbox | name-check <名前> | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`name-check` = その名前を自リポの fork_id: にしてよいか(fleet.conf・手元のリポ・既存の受信箱と重ならないか。/fork-init が使う)。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。手順は `.claude/skills/inbox/SKILL.md` の 4)
 
 ## 使う材料
 - ここまでの会話の文脈(=何をしてほしいかは既に議論済みのはず)
@@ -23,14 +23,14 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
    - id 用タイムスタンプ: `date +%Y%m%d-%H%M%S`
 2. **宛先の受信箱を決める**:
    - `self`(または「自分」): `node .claude/skills/order/mailbox.mjs self` の `box:`
-   - リポ名: `node .claude/skills/order/mailbox.mjs repos` の `repo:`(repo-id)か `path:` のディレクトリ名で照合し、その `box:`
+   - リポ名: `node .claude/skills/order/mailbox.mjs repos` の `repo:`(fork-id)か `path:` のディレクトリ名で照合し、その `box:`
    - 省略: 会話の文脈から宛先を決め、`repos` で受信箱を引く
    - 見つからない・複数当たる・会話から決めきれない: 候補を示して AskUserQuestion で聞く(推測で送らない)
 3. 会話内容と補足から、指令を**次のスキーマちょうど**に合成する(**機械間ファイルなので英語・簡潔。散文や表は使わない**):
    ```
    # ORDER id:<ts>-<slug>
    from: <mailbox.mjs from の値>
-   to: <target origin url> | box:<target repo-id>
+   to: <target origin url> | box:<target fork-id>
    date: <ISO8601>
    status: open
    need: <one line — the work or check requested>

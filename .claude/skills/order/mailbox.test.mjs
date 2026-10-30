@@ -3,12 +3,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { fromLine, requester, resolveOrder } from "./mailbox.mjs";
+import { forkIdOf, fromLine, nameProblems, requester, resolveOrder, settleBox } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -144,4 +144,70 @@ test("CLI: from はチームの環境変数を読み、inbox の一覧は発行�
   const { dir } = box("fleet f1 | role:Admiral | repo:git@github.com:Acme/App.git | branch:main | cwd:/w/app");
   const out = cli({ TEAM_ORDERS: dirname(dir) }, "inbox");
   assert.match(out, /\n  from: fleet f1 Admiral\n  need: do x\n/);
+});
+
+// リポの名前 = project.md の fork_id:（~/.team/_bin の tk_fork_id_of と同じ規則）。未宣言は移行中だけ旧い導き方
+function checkout(forkId) {
+  const top = mkdtempSync(join(tmpdir(), "mailbox-fid-"));
+  if (forkId !== undefined) {
+    mkdirSync(join(top, ".claude", "rules"), { recursive: true });
+    writeFileSync(join(top, ".claude", "rules", "project.md"), `# project\nfork_id: ${forkId}\n`);
+  }
+  return top;
+}
+
+test("forkIdOf: 宣言があればそれ、未宣言（行なし・旧い -）は旧い名前、形の違い・strict の未宣言は throw", () => {
+  const url = "git@github.com:Acme/Some-App.git";
+  assert.deepEqual(forkIdOf(checkout("some-app"), url, {}), { id: "some-app", declared: true });
+  assert.deepEqual(forkIdOf(checkout(), url, {}), { id: "acme--some-app", declared: false });
+  assert.deepEqual(forkIdOf(checkout("-"), url, {}), { id: "acme--some-app", declared: false });
+  assert.throws(() => forkIdOf(checkout("Some_App"), url, {}), /形が違います/);
+  assert.throws(() => forkIdOf(checkout(), url, { TK_FORK_ID_STRICT: "1" }), /宣言されていません/);
+  assert.deepEqual(forkIdOf(checkout("some-app"), url, { TK_FORK_ID_STRICT: "1" }), { id: "some-app", declared: true });
+});
+
+test("settleBox: 旧い箱を fork-id の名前へ移し、旧い名前は新しい箱へのリンクに（分裂のマージ・同名は上書きしない・どちらもない）", () => {
+  const root = mkdtempSync(join(tmpdir(), "mailbox-settle-"));
+  mkdirSync(join(root, "acme--app", "done"), { recursive: true });
+  writeFileSync(join(root, "acme--app", "o1.md"), "o");
+  writeFileSync(join(root, "acme--app", "done", "d1.md"), "d");
+  settleBox("app", "acme--app", root);
+  assert.equal(readFileSync(join(root, "app", "o1.md"), "utf8"), "o");
+  assert.equal(readFileSync(join(root, "app", "done", "d1.md"), "utf8"), "d");
+  assert.equal(readlinkSync(join(root, "acme--app")), "app");
+  settleBox("app", "acme--app", root);
+  assert.deepEqual(readdirSync(root).sort(), ["acme--app", "app"]);
+  // 古い送り手が旧い箱を作り直した（分裂）→ 指令を移す。同名は上書きせず残る
+  unlinkSync(join(root, "acme--app"));
+  mkdirSync(join(root, "acme--app"));
+  writeFileSync(join(root, "acme--app", "o2.md"), "n");
+  settleBox("app", "acme--app", root);
+  assert.equal(readFileSync(join(root, "app", "o2.md"), "utf8"), "n");
+  assert.ok(lstatSync(join(root, "acme--app")).isSymbolicLink());
+  unlinkSync(join(root, "acme--app"));
+  mkdirSync(join(root, "acme--app"));
+  writeFileSync(join(root, "acme--app", "o1.md"), "x");
+  settleBox("app", "acme--app", root);
+  assert.ok(lstatSync(join(root, "acme--app")).isDirectory());
+  assert.equal(readFileSync(join(root, "app", "o1.md"), "utf8"), "o");
+  // どちらもない → 新しい箱と旧い名前のリンク
+  const r2 = mkdtempSync(join(tmpdir(), "mailbox-settle-"));
+  settleBox("app", "acme--app", r2);
+  assert.ok(existsSync(join(r2, "app")) && readlinkSync(join(r2, "acme--app")) === "app");
+});
+
+test("nameProblems: 形・fleet.conf の別のパス・手元の別のリポ・持ち主が別の既存の受信箱と重なれば不可", () => {
+  const root = mkdtempSync(join(tmpdir(), "mailbox-names-"));
+  const self = { top: "/w/app", repoId: "acme--app", oldId: "acme--app" };
+  assert.deepEqual(nameProblems("app", self, [], [], root), []);
+  assert.match(nameProblems("App_1", self, [], [], root)[0], /形が違います/);
+  assert.match(nameProblems("shop", self, [], [{ name: "shop", path: "/w/shop" }], root)[0], /fleet.conf で \/w\/shop の名前/);
+  assert.deepEqual(nameProblems("app", self, [], [{ name: "app", path: "/w/app" }], root), []);
+  assert.match(nameProblems("shop", self, [{ top: "/w/shop", repoId: "shop" }], [], root)[0], /手元の別のリポ/);
+  mkdirSync(join(root, "shop"));
+  assert.match(nameProblems("shop", self, [], [], root)[0], /受信箱 .* がすでにあります/);
+  // 自分の旧い名前のリンクが指す箱は自分のもの
+  mkdirSync(join(root, "app"));
+  symlinkSync("app", join(root, "acme--app"));
+  assert.deepEqual(nameProblems("app", { ...self, repoId: "acme--app" }, [], [], root), []);
 });
