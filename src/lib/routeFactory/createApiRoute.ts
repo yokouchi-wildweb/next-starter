@@ -390,15 +390,34 @@ export function makeRouteCore(deps: RouteUserDeps) {
 export type RouteCore = ReturnType<typeof makeRouteCore>;
 
 /**
+ * access が RouteAccess の形か（実行時の確認）。
+ * 型必須だが、JS の呼び出し・as any で形の外の値（undefined・null・未知の文字列・配列）が届きうる。
+ */
+export function isRouteAccess(value: unknown): value is RouteAccess {
+  if (value === "public" || value === "authenticated") return true;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** 形の外の access の拒否（利用者の権限不足ではなくルートの書き誤りなので 500） */
+function invalidAccessResponse(): Response {
+  return NextResponse.json(
+    { message: "このルートのアクセス設定が不正です。", code: "route_access_invalid" },
+    { status: 500 },
+  );
+}
+
+/**
  * Factory が 1 回だけ利用者を解き、access で認可する。許可なら ctx.user に渡す利用者を返す。
  * - "public": 認可しない。利用可能な status（または allowStatuses）のときだけ利用者、他は null
  * - それ以外: 評価して拒否なら 401 / 403（code 付き）
+ * - 形の外の access: 利用者を解かずに 500（fail-closed、code: "route_access_invalid"）
  */
 export function authorizeRouteUser(
   deps: RouteUserDeps,
   access: RouteAccess,
   allowStatuses: readonly UserStatus[] | undefined,
 ): () => Promise<Response | { user: SessionUser | null }> {
+  if (!isRouteAccess(access)) return async () => invalidAccessResponse();
   return async () => {
     const resolved = await deps.resolveUser();
     if (access === "public") {
@@ -430,6 +449,12 @@ export function makeCreateApiRoute(deps: RouteUserDeps, runRoute: RouteCore) {
     handler: ApiRouteHandler<TParams, TResult, ApiRouteUser<A>>,
   ): NextRouteHandler<TParams> {
     const { access, allowStatuses, ...baseConfig } = config;
+    if (!isRouteAccess(access)) {
+      // build は止めない（fork の route 1 本で全体が落ちないように）。実行時は毎回 500 で拒否する
+      console.error(
+        `${baseConfig.operation}: access が不正です（${access === null ? "null" : Array.isArray(access) ? "array" : typeof access === "string" ? JSON.stringify(access) : typeof access}）。全リクエストを 500 で拒否します`,
+      );
+    }
     const authorize = authorizeRouteUser(deps, access, allowStatuses);
     return runRoute<TParams, { user: SessionUser | null }>(baseConfig, () => authorize(), (req, base, grant) =>
       handler(req, { ...base, user: grant.user as ApiRouteUser<A> }),

@@ -1,7 +1,7 @@
 // src/lib/routeFactory/createApiRoute.test.mts
 // 汎用 Factory の契約の回帰テスト（利用者の束を差し込んで実際のファクトリーを動かす。DB は使わない）。
 // - 主体はリクエストごとに 1 回だけ解き、全 access で ctx.user に渡す（public は利用可能な status のときだけ）
-// - allowStatuses（fail-closed）・拒否の body の code と {domain, operation}・素の Response の素通し・DomainError の code/details
+// - allowStatuses（fail-closed）・拒否の body の code と {domain, operation}・素の Response の素通し・DomainError の code/details・形の外の access は 500
 // 実行: pnpm test:route-factory
 
 import assert from "node:assert/strict";
@@ -112,6 +112,37 @@ test("createMeRoute: 認証済みの利用者を渡し、allowStatuses を受け
   assert.deepEqual(await (await call(route)).json(), { userId: "u3" });
   currentUser = null;
   assert.equal((await call(route)).status, 401);
+});
+
+test("形の外の access（JS・as any）は利用者を解かずに 500 route_access_invalid（fail-closed）", async () => {
+  const originalError = console.error;
+  const logged: string[] = [];
+  console.error = (message: string) => logged.push(message);
+  try {
+    for (const access of [undefined, null, "custom", [], 1]) {
+      let reached = false;
+      const route = createApiRoute(
+        { operation: "GET /api/invalid", operationType: "read", access: access as never },
+        async () => {
+          reached = true;
+          return { ok: true };
+        },
+      );
+      for (const user of [null, active]) {
+        currentUser = user;
+        resolveCount = 0;
+        const res = await call(route);
+        assert.equal(res.status, 500, `${String(access)} / ${user ? "ログイン済み" : "未ログイン"}`);
+        assert.equal((await res.json()).code, "route_access_invalid");
+        assert.equal(resolveCount, 0, "利用者を解かない");
+      }
+      assert.equal(reached, false, "handler に届かない");
+    }
+    assert.equal(logged.length, 5, "組み立て時に 1 本 1 回だけ記録する");
+    assert.match(logged[2], /"custom"/);
+  } finally {
+    console.error = originalError;
+  }
 });
 
 test("主体はリクエストごとに 1 回だけ解く", async () => {
