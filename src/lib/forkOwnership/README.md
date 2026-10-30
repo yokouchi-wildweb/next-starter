@@ -145,6 +145,16 @@ pnpm ownership:check --parent=upstream --branch=main
 - 取り込み済み(基準にある)なのに自分の台帳(`.notices/applied/<fork-id>.md`)に記録の無い notice がある。fork を作った時点のツリーにあった notice は継承済みとして除く(`/flux` と同じ求め方)。`/flux` で記録してから検査し直す
 - lint の厳しさは手元の情報だけで決める(確かめられなければ今のパスでの判定)。この検査とは別
 
+## fork ID の宣言
+
+fork のドット名のファイル(`src/wiring/<名前>[.client].<fork ID>.ts(x)` 等)の検査が「どの fork ID を受けるか」を読む口。読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。
+
+- 自分の ID: `.claude/rules/project.md` の `fork_id: <id>` の 1 行。値は自分の台帳 `.notices/applied/<fork-id>.md` の名前と同じ。upstream(Tier1)は `fork_id: -`
+- 親(上の Tier)の ID: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれるので、孫の fork は親の fork のドット名のファイルも受けられる)。fork が書くのは自分の `fork_id:` の 1 行だけ
+- 使える形: 英数字・`_`・`-`(ドット名の区切りとぶつかるので `.` は不可)。2 行以上・不正な形は検査が止める
+- API: `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)`
+- 今の所有者 ID の求め方(`folderCatalog` の `resolveOwnerId` = origin の URL)とは別の口。食い違いの扱いは決めていない
+
 ## folderCatalog との分担
 
 - [`folderCatalog`](../folderCatalog/README.md): 目録(`CATALOG.md`)と実在のディレクトリの整合、lib 単位の所有(目録の節)による lint の厳しさ

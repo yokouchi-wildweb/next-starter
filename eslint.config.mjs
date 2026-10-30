@@ -6,7 +6,8 @@ import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
-import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
+import importBoundariesPlugin from "./eslint-rules/import-boundaries.mjs";
+import routeHttpExportPlugin from "./eslint-rules/route-http-export.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
 import { loadCatalogOwnership } from "./src/lib/folderCatalog/catalog.mjs";
 import forkConfig from "./eslint.config.fork.mjs";
@@ -61,15 +62,35 @@ const config = [
       "audit/subject-required": "warn",
     },
   },
-  // カスタム API ルート（createApiRoute 直接利用）の認可漏れ検出。
-  // 汎用ルート（createDomainRoute）は domain.json の apiAccess で守られるが、
-  // 手書きルートは fail-open なため、認可・session 参照の痕跡が無ければ警告する。
-  // 未認証で公開するのが正当なルートは理由付き eslint-disable で明示する。
+  // route.ts の HTTP の export は wiring の Factory か lib/cron の作り手の呼び出し結果だけ(D8 K7)。
+  // 主体と access は Factory が持ち、route は宣言だけを書く。api の外の route.ts も対象。
+  // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/route-http-export.mjs
   {
-    files: ["src/app/api/**/route.{ts,tsx}"],
-    plugins: { "route-authz": routeAuthzPlugin },
+    files: ["src/app/**/route.{ts,tsx}"],
+    plugins: { "route-http-export": routeHttpExportPlugin },
     rules: {
-      "route-authz/require-authz": "warn",
+      "route-http-export/http-export": "error",
+    },
+  },
+  // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。
+  // - route-factory-via-wiring: @/lib/routeFactory の値 import は src/wiring/** だけ(D5 K1。型だけは可)
+  // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3)。今の違反は縮むだけの一覧
+  //   (eslint-rules/import-boundaries.exceptions.mjs、upstream の物で fork は足せない)
+  // 詳細: eslint-rules/import-boundaries.mjs
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/route-factory-via-wiring": "error",
+    },
+  },
+  {
+    files: ["src/lib/**/*.{ts,tsx,mts,mjs}"],
+    // テストは実行時のコードでなく、登録表の中身を読んで確かめる検査なので対象外
+    ignores: ["src/lib/**/*.test.{ts,tsx,mts,mjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/lib-no-registry": "error",
     },
   },
   // 見出しの直下の <Span> に size / weight を書かせる(Span の既定 text-base font-normal が見出しを上書きするため。
@@ -212,7 +233,8 @@ const config = [
     },
   },
   // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)を呼べる場所を役割で限る(M3)。
-  // 対象 = src/app(api を除く)と UI 側。許可 = layout・_layout/(組み立てと guard.ts)・loader.ts(下の ignores)。
+  // 対象 = src/app(src/app/api/** を含む)と UI 側。許可 = layout・_layout/(組み立てと guard.ts)・loader.ts(下の ignores)。
+  // API には許可の場所が無い(主体は Factory の ctx.user。token だけのセッション・Cookie の解析も不可。D8 K4)。
   // AuthSessionProvider は認証基盤の名前付き例外(Cookie からセッションを解決して client に渡す root layout の Provider)。
   // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
   {
@@ -224,7 +246,6 @@ const config = [
       "src/hooks/**/*.{ts,tsx}",
     ],
     ignores: [
-      "src/app/api/**",
       "src/app/**/layout.{ts,tsx}",
       "src/app/**/_layout/**",
       "src/app/**/loader.ts",

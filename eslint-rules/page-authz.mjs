@@ -19,9 +19,12 @@
 //   components のパスなのでこの規則には掛からない(import を許す特例の実装は無い)。
 //
 // ── session-api-callsite(M3: セッション・ガード API を呼べる場所を役割で限る) ──
-// 対象: src/app(api を除く)と UI 側(src/components・src/features/**/components・src/features/**/hooks・src/hooks)。
+// 対象: src/app(src/app/api/** の route と補助ファイルを含む)と UI 側(src/components・src/features/**/components・
+//   src/features/**/hooks・src/hooks)。
 // 許可(eslint.config.mjs の ignores): layout・_layout/(組み立てと guard.ts)・loader.ts(_screen/・_components/ とも)。
-//   共有 admin loader(features/core/admin/services/server/loaders)・API・proxy・services/server・lib/routeFactory は
+//   API には許可の場所が無い: 主体は API の Factory(@/wiring/apiRoute)が 1 回だけ DB 同期で解いて ctx.user で渡す(D8 K4)。
+//   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
+//   共有 admin loader(features/core/admin/services/server/loaders)・proxy・services/server・lib/routeFactory は
 //   対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外として ignores に入れる。
 // 禁止する import:
 //   - SESSION_API_NAMES の名前の値 import(どのパスからでも。barrel・re-export 経由も名前で捕まえる)
@@ -174,17 +177,22 @@ const sessionApiCallsite = {
         "{{names}} はセッション・ガード API です。呼べるのは layout・_layout/・loader.ts だけ(page.tsx・Screen・部品・hooks では呼ばない。詳細: src/features/core/auth/README.md)",
       module:
         '"{{source}}" はセッション API のモジュールです。呼べるのは layout・_layout/・loader.ts だけ(詳細: src/features/core/auth/README.md)',
+      namedApi:
+        "{{names}} はセッション・ガード API です。API(src/app/api/**)では呼ばない。主体は Factory が解いた ctx.user を使い、門は access の宣言で書く(詳細: src/lib/routeFactory/README.md)",
+      moduleApi:
+        '"{{source}}" はセッション API のモジュールです。API(src/app/api/**)では import しない。主体は ctx.user(詳細: src/lib/routeFactory/README.md)',
     },
     schema: [],
   },
   create(context) {
+    const inApi = /(^|[\\/])src[\\/]app[\\/]api[\\/]/.test(context.filename);
     return moduleVisitors((sourceNode, specifiers, typeOnly) => {
       const names = classifySessionImport(sourceNode.value, specifiers, typeOnly);
       if (names.length === 0) return;
       if (names[0] === "*") {
-        context.report({ node: sourceNode, messageId: "module", data: { source: sourceNode.value } });
+        context.report({ node: sourceNode, messageId: inApi ? "moduleApi" : "module", data: { source: sourceNode.value } });
       } else {
-        context.report({ node: sourceNode, messageId: "named", data: { names: names.join(", ") } });
+        context.report({ node: sourceNode, messageId: inApi ? "namedApi" : "named", data: { names: names.join(", ") } });
       }
     });
   },

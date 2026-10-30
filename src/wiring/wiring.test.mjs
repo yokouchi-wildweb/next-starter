@@ -2,7 +2,9 @@
 // 実行: pnpm test:wiring (node:test。テキストで import を読むだけなので plain node)
 //
 // 守りたい契約(設計: src/wiring/README.md):
-// 1. 目録: src/wiring に置けるファイルは WIRING_FILES に書いたものだけ（勝手に増やさない。増やすなら README と一緒に）
+// 1. 目録: src/wiring に置けるファイルは WIRING_FILES に書いたものと、fork のドット名 `<名前>[.client].<fork ID>.ts(x)`
+//    （fork ID = 宣言済みの ID: 自分の project.md の fork_id: + 親の台帳名。src/lib/forkOwnership/forkIds.mjs）だけ
+//    （upstream のファイルは勝手に増やさない。増やすなら README と一緒に）。2〜4 は fork のファイルにも同じに掛かる
 // 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
 //    task.ts だけ（fork 所有の override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
@@ -13,6 +15,8 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const srcDir = join(repoRoot, "src");
@@ -76,9 +80,48 @@ function isAllowedImporter(relPath) {
   return true;
 }
 
-test("目録: src/wiring にあるファイルは WIRING_FILES だけ", () => {
+/** fork のドット名 `<名前>[.client].<fork ID>.ts(x)` なら fork ID、違えば null */
+export function forkIdOfWiringFile(name) {
+  const m = /^[A-Za-z][A-Za-z0-9]*(?:\.client)?\.([A-Za-z0-9_-]+)\.tsx?$/.exec(name);
+  return m ? m[1] : null;
+}
+
+/**
+ * 目録の判定。置いてはいけないファイルの一覧を返す（空 = 問題なし）
+ * @param {string[]} files src/wiring 直下のファイル名
+ * @param {string[]} forkIds 宣言済みの fork ID
+ */
+export function catalogProblems(files, forkIds) {
+  const problems = [];
+  for (const name of files) {
+    if (WIRING_FILES.includes(name)) continue;
+    const forkId = forkIdOfWiringFile(name);
+    if (forkId && forkIds.includes(forkId)) continue;
+    problems.push(
+      forkId
+        ? `${name}（fork ID "${forkId}" は宣言されていない。.claude/rules/project.md の fork_id: か .notices/applied/<fork-id>.md の台帳名）`
+        : `${name}（置けるのは WIRING_FILES と fork のドット名 <名前>[.client].<fork ID>.ts(x) だけ）`,
+    );
+  }
+  for (const name of WIRING_FILES) if (!files.includes(name)) problems.push(`${name}（WIRING_FILES にあるのに無い）`);
+  return problems;
+}
+
+test("目録の判定: upstream のファイルと宣言済み fork ID のドット名だけを受ける", () => {
+  const base = [...WIRING_FILES];
+  assert.deepEqual(catalogProblems([...base, "dbAgent.acme.ts", "AppProviders.client.acme.tsx", "apiRoute.parent.ts"], ["acme", "parent"]), []);
+  assert.equal(catalogProblems([...base, "dbAgent.other.ts"], ["acme"]).length, 1, "宣言に無い ID は不可");
+  assert.equal(catalogProblems([...base, "extra.ts"], ["acme"]).length, 1, "ドット名でない新しいファイルは不可");
+  assert.equal(catalogProblems([...base, "dbAgent.a.b.ts"], ["a", "b"]).length, 1, "fork ID にドットは使えない");
+  assert.equal(catalogProblems(base.filter((n) => n !== "apiRoute.ts"), []).length, 1, "upstream のファイルが消えたら不可");
+});
+
+test("目録: src/wiring にあるファイルは WIRING_FILES と宣言済み fork ID のドット名だけ", () => {
+  const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
+  assert.deepEqual(errors, [], errors.join("\n"));
   const files = readdirSync(wiringDir).sort();
-  assert.deepEqual(files, [...WIRING_FILES].sort(), "src/wiring に置けるのは README・結び先ごとの 1 ファイル・このテストだけ（増やすなら README と WIRING_FILES に書く）");
+  const problems = catalogProblems(files, forkIds);
+  assert.deepEqual(problems, [], problems.join("\n"));
 });
 
 test("向き: wiring を import するのは src/app・src/proxies・src/proxy.ts だけ（cron は task.ts のみ）、wiring どうしは import しない", () => {
@@ -126,7 +169,7 @@ test("データに届く wiring: domains.ts は registry → domainEntry.ts → 
   assert.ok(result.path.some((rel) => rel.endsWith("/domainEntry.ts")), `鎖が domainEntry.ts を通らない: ${result.path.join(" → ")}`);
 });
 
-test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts 全部を判定して記録する）", () => {
+test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
   const dataReaching = WIRING_FILES.filter((name) => name.endsWith(".ts") && reachesServicesServer(join(wiringDir, name)).reached);
   assert.deepEqual(dataReaching, ["apiRoute.ts", "domains.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
 });

@@ -120,6 +120,16 @@ test("rule session-api-callsite: セッション API の名前・モジュール
         code: `export { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";`,
         errors: [{ messageId: "named" }],
       },
+      {
+        code: `import { requireAdmin } from "@/features/core/auth/services/server/requireRole";`,
+        filename: "src/app/api/foo/route.ts",
+        errors: [{ messageId: "namedApi" }],
+      },
+      {
+        code: `import * as jwt from "@/lib/jwt";`,
+        filename: "src/app/api/foo/_shared/helper.ts",
+        errors: [{ messageId: "moduleApi" }],
+      },
     ],
   });
 });
@@ -142,7 +152,7 @@ test("config: M4 は layout と _layout/ の組み立てで error、guard.ts は
   assert.deepEqual(await lintAt("src/app/foo/_screen/loader.ts", USER_SERVICE), []);
 });
 
-test("config: M3 は page・Screen・部品・hooks で error、layout・_layout・loader・api・AuthSessionProvider は許可", async () => {
+test("config: M3 は page・Screen・部品・hooks・API(route と補助ファイル)で error、layout・_layout・loader・AuthSessionProvider は許可", async () => {
   const err = ["page-authz/session-api-callsite:2"];
   assert.deepEqual(await lintAt("src/app/debug/playtest/page.tsx", SESSION), err);
   assert.deepEqual(await lintAt("src/app/foo/_screen/FooScreen.tsx", SESSION), err);
@@ -158,7 +168,19 @@ test("config: M3 は page・Screen・部品・hooks で error、layout・_layout
   assert.deepEqual(await lintAt("src/app/foo/_layout/guard.ts", SESSION), []);
   assert.deepEqual(await lintAt("src/app/foo/_screen/loader.ts", SESSION), []);
   assert.deepEqual(await lintAt("src/app/foo/_components/loader.ts", SESSION), []);
-  assert.deepEqual(await lintAt("src/app/api/foo/route.ts", SESSION), []);
+  // API: 主体は Factory の ctx.user。token だけのセッション・Cookie の解析も止める(D8 K4)
+  assert.deepEqual(await lintAt("src/app/api/foo/route.ts", SESSION), err);
+  assert.deepEqual(await lintAt("src/app/api/foo/_shared/helper.ts", SESSION), err);
+  assert.deepEqual(
+    await lintAt("src/app/api/foo/route.ts", `import { getTokenOnlySession } from "@/features/core/auth/services/server/session/getTokenOnlySession";\nexport const x = getTokenOnlySession;\n`),
+    err,
+  );
+  assert.deepEqual(await lintAt("src/app/api/foo/route.ts", `import { parseSessionCookie } from "@/lib/jwt";\nexport const x = parseSessionCookie;\n`), err);
+  assert.deepEqual(
+    await lintAt("src/app/api/foo/route.ts", `import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";\nexport const x = clearSessionCookie;\n`),
+    [],
+    "Cookie の消去・発行はセッションの取得ではないので通す",
+  );
   assert.deepEqual(await lintAt("src/features/core/auth/components/AuthSessionProvider.tsx", SESSION), []);
   assert.deepEqual(await lintAt("src/features/sample/services/server/fooService.ts", SESSION), []);
 });

@@ -16,6 +16,8 @@ downstream: many derivative projects depend on this as their base
 
 ## TIER (multi-tier hierarchy)
 this_repo: Tier1 (canonical upstream). Hierarchy: Tier1 → Tier2 → Tier3.
+fork_id: -
+- fork_id = this repo's fork ID (same value as its .notices/applied/<fork-id>.md ledger name; upstream = -) | chars [A-Za-z0-9_-] | fork dot-named files (src/wiring/<name>.<fork-id>.ts …) accept it + parent IDs from the ledger names | reader: src/lib/forkOwnership/forkIds.mjs
 note: downstream forks maintain their OWN project.md and overwrite this declaration per-fork.
 rule: generic/foundational capabilities live HERE (Tier1); downstream must not hardcode them locally — escalate instead.
 request_protocol (shared mailbox: ~/.team/orders/ — never under ~/.claude/: Claude Code always prompts for Write/Edit there, allow rules cannot suppress it):
