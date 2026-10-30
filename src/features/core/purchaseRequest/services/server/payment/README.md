@@ -81,7 +81,7 @@ redirect 型の 1〜6 に加えて以下を行う。
 - `load()`: SDK スクリプトの動的読み込み（複数回呼ばれても 1 回だけ）
 - `launch(config)` → `SdkLaunchOutcome`: `authorized`（`providerPaymentId`）| `rejected`（`reason`）| `closed`（ユーザーが閉じた）
 
-**C. 確定 API ルート**: `src/app/api/wallet/purchase/[id]/<sdkName>/confirm/route.ts`。`clientSdkHandler` が `` `/api/wallet/purchase/${id}/${sdkName}/confirm` `` を組み立てるため、**ディレクトリ名は `sdkName` と一致させる**。`createApiRoute` + `access: "custom"` + ハンドラ内のセッション確認 + Zod でボディ検証をして確定サービスに委譲する（paidy / paypal の route が手本）。
+**C. 確定 API ルート**: `src/app/api/wallet/purchase/[id]/<sdkName>/confirm/route.ts`。`clientSdkHandler` が `` `/api/wallet/purchase/${id}/${sdkName}/confirm` `` を組み立てるため、**ディレクトリ名は `sdkName` と一致させる**。`createApiRoute`（`@/wiring/apiRoute`）+ `access: "authenticated"` + `ctx.user.userId` + Zod でボディ検証をして確定サービスに委譲する（paidy / paypal の route が手本）。
 
 **D. 確定サービス** `payment/<name>/confirm<Name>Payment.ts`:
 

@@ -13,8 +13,8 @@
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
-  { operation: "GET /api/example", operationType: "read" },
-  async (req, { session }) => { ... }
+  { operation: "GET /api/example", operationType: "read", access: "authenticated" },
+  async (req, { user }) => { ... } // 主体は Factory が解いた ctx.user（route でセッションを引かない）
 );
 
 // ❌ 禁止例

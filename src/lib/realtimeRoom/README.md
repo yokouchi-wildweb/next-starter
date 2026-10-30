@@ -66,15 +66,15 @@ const RaidScreen = ({ machineId }: { machineId: string }) => {
 ## callback (PG 永続化エスケープハッチ) を受ける
 
 reducer の `{ type: "callback", path, payload }` effect はアプリ API に署名付き POST される。
-受け口は `access: "custom"` + `verifyRoomCallback` で作る:
+受け口は `access: "public"`（呼び手は利用者でなくルームサーバー）+ ハンドラで `verifyRoomCallback` で作る:
 
 ```ts
 // src/app/api/<domain>/room-snapshot/route.ts
 import { verifyRoomCallback } from "@/lib/realtimeRoom/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const POST = createApiRoute(
-  { operation: "POST /api/<domain>/room-snapshot", operationType: "write", access: "custom" },
+  { operation: "POST /api/<domain>/room-snapshot", operationType: "write", access: "public", skipForDemo: false },
   async (req) => {
     const { ns, roomId } = await verifyRoomCallback(req); // 無署名は 401 (fail-closed)
     const { payload } = await req.json();

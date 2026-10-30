@@ -73,7 +73,7 @@ await counterService.bumpDaily(userId, `npc.talk.${npcId}`);
 
 ```ts
 // src/app/api/me/secret-shop/dialogs/route.ts
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { counterService } from "@/features/userCounter/services/server/counterService";
 import { SECRET_SHOP_DIALOGS } from "@/features/secretShop/constants"; // tier2 のカタログ
 

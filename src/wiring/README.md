@@ -2,12 +2,9 @@
 
 `src/lib` の汎用関数は登録表（`src/registry/*`）を引数で受ける。登録表を引数に渡して結んだ「印なし版」（server 用のそのまま使える関数）を置くのがこのフォルダ。業務コード（features）・部品（components）・lib は wiring を知らない。
 
-**lib から新しく登録表を import しない**（lib → registry の依存を増やさない。引きたい lib は引数・注入で受ける）。既存の例外（今は直さない。全体の構造は別に扱う）:
+**lib は登録表を import しない**（値も型も。引きたい lib は引数・注入で受け、結ぶのはこのフォルダ）。検査は lint `import-boundaries/lib-no-registry`（全 Tier error）。今ある違反は縮むだけの一覧 `eslint-rules/import-boundaries.exceptions.mjs`（upstream の物。fork は足せない。直した出荷で行を消す）。
 
-- `src/lib/drizzle/index.ts` → `schemaRegistry`（DB クライアントに全表を渡す）
-- `src/lib/domain/junction/getTable.ts` → `schemaRegistry`（中間表の名前 → 表）
-- `src/lib/domain/config/getDomainConfig.ts` → `domainConfigRegistry`
-- `src/lib/dbAgent/{prompt.ts,service.ts,tools/index.ts}` → `dbAgentPromptRegistry` / `dbAgentToolRegistry`
+汎用 Factory（`src/lib/routeFactory`）も同じ形: 値 import できるのはこのフォルダだけ（lint `import-boundaries/route-factory-via-wiring`）。route とその補助ファイルは `apiRoute.ts` の設定済み版を使う。
 
 ## 目録（置いてよいファイル）
 
@@ -18,6 +15,14 @@
 
 増やすときは、このテーブルと `wiring.test.mjs` の `WIRING_FILES` に足す。将来の API 用・管理画面用の wiring は自分で登録表を結ぶ（wiring どうしは import しない。共有するのは lib の汎用版と登録表だけ）。
 
+## fork の wiring（ドット名）
+
+- fork は `src/wiring/<名前>[.client].<fork ID>.ts(x)` を足せる（fork の物）。例: fork 独自の主体（店舗の会員など）の API の Factory を、`lib/routeFactory` の汎用版から自分の束で作る
+- fork ID = `.claude/rules/project.md` の `fork_id:`（自分）+ `.notices/applied/*.md` の台帳名（親の fork）。宣言に無い ID のドット名は `pnpm test:wiring` が止める（読み手: `src/lib/forkOwnership/forkIds.mjs`）
+- 向き・データ到達・wiring どうし不可は fork のファイルにも同じに掛かる
+- 上流の wiring のファイルを置き換える口（`<対象>.override.ts`）は無い。上流の結び方を変えたいときは `/order <upstream>`
+- 差し込む値の束は持ち主のドメインが 1 つ export する（利用者 = `features/core/auth` の `apiRouteUserDeps` 等）。全項目必須
+
 ## 向き（import してよい場所）
 
 - `src/app/**`（API ルート・Screen・loader）、`src/proxies/**`、`src/proxy.ts`
@@ -26,4 +31,6 @@
 
 「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。今は同じ場所からだけ import できる。
 
-検査: `pnpm test:wiring`（目録・向き・鎖）。設計の全体は `src/lib/domain/README.md`。
+- `src/app/api/**` の補助ファイル（例 `data-migration/_shared/`）もデータに届く wiring を import してよい
+
+検査: `pnpm test:wiring`（目録・fork のドット名・向き・鎖）。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。

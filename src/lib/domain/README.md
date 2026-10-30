@@ -68,7 +68,7 @@ export const domainEntries = {
 
 `access`（`DomainApiAccessConfig`）= `read` / `write` / `operations`。CRUD 操作は `operations[op]` → `read` / `write` → グローバル既定（admin カテゴリのみ、fail-closed）の順に解決する（`resolveAccessRule`）。
 
-**管理データ操作** `truncateAll` / `export` / `import`（`DOMAIN_DATA_OPERATIONS`）は `operations` に明示したときだけ開く。未指定・不正なら `"none"` で、read / write / 既定には倒れない。登録しただけで全件削除やデータ移行の対象にならないようにするため。管理の各ルートは自分の門（admin + 本人パスワード / `requireAdmin`）に加えて、この規則を同じ評価器で AND で掛ける（1 つでも拒否なら要求全体を拒否）。
+**管理データ操作** `truncateAll` / `export` / `import`（`DOMAIN_DATA_OPERATIONS`）は `operations` に明示したときだけ開く。未指定・不正なら `"none"` で、read / write / 既定には倒れない。登録しただけで全件削除やデータ移行の対象にならないようにするため。管理の各ルートは自分の門（access `{ roleCategories: ["admin"] }`、全件削除は + 本人パスワード）に加えて、この規則を同じ評価器で AND で掛ける（1 つでも拒否なら要求全体を拒否）。
 
 プリセット（`src/config/app/domain-api-access.config.ts`）:
 

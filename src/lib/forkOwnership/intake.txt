@@ -33,6 +33,11 @@ edit src/app/**/_layout/**/*.*.tsx  # 枠のドット区切り名のカスタム
 edit src/app/**/_screen/**/*.*.tsx  # Screen の隣のドット区切り名
 !src/app/**/*.test.tsx  # テストはドット区切り名のカスタムではない
 
+# 結線(fork のドット名の wiring。上流の wiring の置き換えは無い。検査: pnpm test:wiring が fork_id: と台帳名で ID を確かめる)
+edit src/wiring/*.*.ts  # src/wiring/README.md「fork の wiring」(D5 K5)
+edit src/wiring/*.*.tsx  # 同上(client 用 <名前>.client.<fork ID>.tsx)
+!src/wiring/*.test.*  # テストはドット区切り名のカスタムではない
+
 # ドメインと定期タスクの上書き
 edit src/app/api/cron/*/override.ts  # cron の時刻変更・停止
 edit src/features/**/services/server/domainEntry.override.ts  # core の access の上書き

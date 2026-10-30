@@ -362,15 +362,14 @@ export type GachaDailyRecord = DailyRecord<{
 
 ```typescript
 // src/app/api/admin/analytics/gacha/daily/route.ts
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import { getGachaDaily } from "@/features/core/analytics/services/server/gachaAnalytics";
 
 export const GET = createApiRoute(
-  { operation: "GET /api/admin/analytics/gacha/daily", operationType: "read" },
-  async (req, { session }) => {
-    // 管理者チェック...
+  { operation: "GET /api/admin/analytics/gacha/daily", operationType: "read", access: { roleCategories: ["admin"] } },
+  async (req) => {
     const { searchParams } = new URL(req.url);
     return getGachaDaily({
       ...parseDateRangeParams(searchParams),

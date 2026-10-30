@@ -209,7 +209,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 
 | 定数 | 値 | 用途 |
 |------|-----|------|
-| `USER_AVAILABLE_STATUSES` | `active` | サービス利用可能 = ログイン済みとして扱うステータス。`authGuard` の `allowStatuses` 既定値、API の認可（`requireRole` / `apiAccess`）が参照 |
+| `USER_AVAILABLE_STATUSES` | `active` | サービス利用可能 = ログイン済みとして扱うステータス。`authGuard` の `allowStatuses` 既定値、API の Factory の認可（`apiAccess` の evaluateApiAccessRule、`allowStatuses` の既定値）が参照 |
 | `USER_REGISTERED_STATUSES` | `active` / `inactive` / `suspended` / `banned` / `security_locked` | 本登録済み = 再登録不可。サインアップ時の既存ユーザー判定（`auth/services/server/registration.ts`）が参照 |
 
 「利用不可」グループは `!USER_AVAILABLE_STATUSES.includes(status)` で表現できるため定義しない。

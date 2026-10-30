@@ -12,8 +12,8 @@ auth/
 │   ├── server/
 │   │   ├── session/             # getSessionUser / getTokenOnlySession / token.ts (resolveSessionUser) / issue・clearSessionCookie
 │   │   ├── authorization.ts     # authGuard (SSR layout / loader 用ガード)
-│   │   ├── requireRole.ts       # requireAuthenticated / requireAdmin (カスタム API ルート用ガード)
-│   │   ├── apiAccess.ts         # evaluateApiAccessRule (createDomainRoute のアクセス評価)
+│   │   ├── apiAccess.ts         # evaluateApiAccessRule (API の Factory のアクセス評価。allowStatuses を受ける)
+│   │   ├── apiRouteUserDeps.ts  # apiRouteUserDeps (API の Factory に差し込む利用者の束。結ぶのは src/wiring/apiRoute.ts)
 │   │   ├── sessionInvalidation.ts # invalidateSessionsForUser (全セッション強制失効)
 │   │   ├── preRegistration.ts / registration.ts   # 仮登録 / 本登録
 │   │   ├── localLogin.ts / firebaseSession.ts / demoLogin.ts / loginAudit.ts
@@ -110,14 +110,14 @@ const resolveXxxScreen = cache(async () => {
   - 理由: layout はページ・loader と並列に描かれ、ガードを置いた layout の内側の layout もそのガードで守られない。layout で取ったデータは「ガードを通った後のデータ」にならないので、取得は loader へ寄せる
   - 管理画面の初期セットアップ誘導（管理者 0 人なら `/admin/setup`）は `hasAdminUser(roles?)`（authorization.ts、真偽値だけ。省略時は admin カテゴリ全部、論理削除済みは数えない）を呼ぶ。`admin/insane` はロール `admin` だけを数える（`hasAdminUser(["admin"])`）
   - client 部品が hooks → API で取るのは対象外。名前付き例外は root layout の `AuthSessionProvider`（認証基盤）
-- **セッション・ガード API を呼べる場所を限る**（`page-authz/session-api-callsite`）: `authGuard`・`getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
-  - 対象: `src/app`（api を除く）と UI 側（`src/components`・`src/features/**/components`・`src/features/**/hooks`・`src/hooks`）
-  - 呼べる場所: layout・`_layout/`（組み立てと guard.ts）・`loader.ts`（`_screen/`・`_components/` とも）。共有 admin loader・API・proxy・services/server・lib/routeFactory は対象外（それぞれの契約で守る）。`AuthSessionProvider` は名前付き例外
+- **セッション・ガード API を呼べる場所を限る**（`page-authz/session-api-callsite`）: `authGuard`・`getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`（削除済み。fork の古い import を止めるため名前は残す）・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
+  - 対象: `src/app`（`src/app/api/**` の route と補助ファイルを含む）と UI 側（`src/components`・`src/features/**/components`・`src/features/**/hooks`・`src/hooks`）
+  - 呼べる場所: layout・`_layout/`（組み立てと guard.ts）・`loader.ts`（`_screen/`・`_components/` とも）。API には呼べる場所が無い（主体は Factory の `ctx.user`）。共有 admin loader・proxy・services/server・lib/routeFactory は対象外（それぞれの契約で守る）。`AuthSessionProvider` は名前付き例外
   - page.tsx・Screen・部品でセッションを読みたくなったら loader で読んで DTO に載せる
 - 不採用の案: 下流（fork）では warn にする案（セキュリティの検査は所有で強さを変えない、前例 hidden-columns）/ 「認証方針を持つ layout は見た目部品を import しない」で縛る案（枠とガードの同居を禁じる理由が無く、データ取得の禁止で目的を果たせる）
 - 限界: 直接の import だけを見る（layout が import した server component の中での取得は捕まえない）。仕様の本文と判定は `eslint-rules/page-authz.mjs`、テストは `pnpm test:page-authz-lint`
 
-API ルート側の認可はファクトリーが構造的に強制する（`createDomainRoute` は serviceRegistry の `access` → `evaluateApiAccessRule`、`createApiRoute` は `access` 必須、`access:"custom"` はハンドラ内で `requireAuthenticated` / `requireAdmin`、本人データは `createMeRoute`）→ [routeFactory README](../../../lib/routeFactory/README.md)。いずれも DB 同期の `getSessionUser` で判定する。
+API ルート側の認可はファクトリーが構造的に強制する（`createDomainRoute` は serviceRegistry の `access`、`createApiRoute` は `access` 必須（public / authenticated / { roles, roleCategories } + allowStatuses）、本人データは `createMeRoute`）→ [routeFactory README](../../../lib/routeFactory/README.md)。主体はリクエストごとに 1 回だけ DB 同期の `getSessionUser` で解き（`apiRouteUserDeps`）、ハンドラには `ctx.user` で渡す。セッションの確認と再発行（`GET /api/auth/session`）は `session/refreshSessionResponse.ts`。
 
 ## クライアント側
 

@@ -10,7 +10,7 @@
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
 
 ## CORE_FILES (ownership: who edits what)
-core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts
+core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (dot-named files = fork-owned)
 - routes and libs: src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned) | src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
 downstream_owned (upstream never edits after creation): root src/styles/*.css (entry global.css, palette / typography / overrides.css), src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, _components/** and dot-named files of upstream routes, src/registry fork regions, api/cron/*/override.ts, domainEntry.override.ts
 - full list of the places a fork may write in upstream files (intake points) = src/lib/forkOwnership/intake.txt (kinds: edit / region / marker / append / generated / debt) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
@@ -91,10 +91,10 @@ config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; cli
 inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 
 ## API_ROUTES
-required: every route uses one of createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute (each enforces authz structurally) | before writing a route → read src/lib/routeFactory/README.md
-generic: /api/[domain]/** = CRUD ops, access = the domain's domainEntry.ts { service, access } (TYPE-REQUIRED, not covered → fail-closed admin only; truncateAll / export / import open only when named) | access rules, presets, createApiRoute `access` / "custom" guards → .claude/rules/core/api-routes.md
+required: every route uses one of createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute (each enforces authz structurally), imported from @/wiring/apiRoute (value import of @/lib/routeFactory only in src/wiring/**) | before writing a route → read src/lib/routeFactory/README.md
+generic: /api/[domain]/** = CRUD ops, access = the domain's domainEntry.ts { service, access } (TYPE-REQUIRED, not covered → fail-closed admin only; truncateAll / export / import open only when named) | access rules, presets, createApiRoute `access` / allowStatuses → .claude/rules/core/api-routes.md
 ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scope by the passed `user.userId` server-side, never trust a client-supplied id | generic /api/[domain] cannot enforce ownership → keep it admin-only | shared kiosk / store device → pairedDevice (opt-in): createDeviceRoute / deviceGuard, scope from `device.scope` | ref: src/features/core/pairedDevice/README.md
-role checks always use the DB-synced getSessionUser
+principal: the Factory resolves the DB-synced user once per request → handlers use ctx.user only | access = public | authenticated | {roles, roleCategories} (+ allowStatuses), no self-guarded route | routes never read the session / requireRole / token-only session / jwt cookie (lint, all tiers) | HTTP exports = Factory calls only (lint route-http-export)
 
 ## ROLES & PAGE_GUARD
 roles: src/features/core/user/roles/*.role.json (core = `_` prefix) → pnpm role:generate → src/registry/roleRegistry.ts | category = admin or user | debugger role = user category, bypasses maintenance + opens /debug

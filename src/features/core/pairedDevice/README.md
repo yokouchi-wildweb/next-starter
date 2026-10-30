@@ -70,7 +70,7 @@ export const pairedDeviceKindRegistry = {
 
 ```ts
 // src/app/api/terminal/lending/route.ts
-import { createDeviceRoute } from "@/lib/routeFactory";
+import { createDeviceRoute } from "@/wiring/apiRoute";
 
 export const POST = createDeviceRoute(
   {

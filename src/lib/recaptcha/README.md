@@ -76,20 +76,25 @@ function MyForm() {
 ### サーバー側（routeFactory使用）
 
 ```ts
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
-export const POST = createApiRoute({
-  recaptcha: {
-    action: RECAPTCHA_ACTIONS.REGISTER,
-    threshold: APP_FEATURES.auth.signup.recaptchaThreshold,
+export const POST = createApiRoute(
+  {
+    operation: "POST /api/auth/register",
+    operationType: "write",
+    access: "public",
+    recaptcha: {
+      action: RECAPTCHA_ACTIONS.REGISTER,
+      threshold: APP_FEATURES.auth.signup.recaptchaThreshold,
+    },
   },
-  handler: async (req, ctx) => {
+  async (req) => {
     // reCAPTCHA検証はrouteFactoryが自動で実行
     // 検証失敗時は403エラーが返される
   },
-});
+);
 ```
 
 ### サーバー側（手動検証）
