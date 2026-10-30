@@ -37,7 +37,7 @@ export type ProxyResponseDecorator = (
  * - スキーマゲート(pnpm db:push / db:push:check、scripts/registry/schemaGate.ts): features のフォルダの表を push 対象から外す
  *   作る方向にしか働かない。false の間は作らず、既にあるテーブルも消さない(true にした次の push で作られる)
  *   表名は書かない: 生成器がフォルダの pgTable から導き(scripts/registry/tableScan.mjs)、生成一覧に文字列で書く(D16・D20)
- * 一覧は生成物 src/proxies/extensions/featureGateRules.ts(pnpm proxy:generate、ファイル名の順)。読み手はこの一覧だけを読む。
+ * 一覧は生成物 src/proxies/extensions/featureGateRules.ts(pnpm extensions:generate、ファイル名の順)。読み手はこの一覧だけを読む。
  * 住所の重なりは許す(OR)。行き先の違う重なりは、ファイル名の順で最初の無効な規則の redirectTo(L1.22)。詳細: src/proxies/README.md
  */
 export type FeatureGateRule = {

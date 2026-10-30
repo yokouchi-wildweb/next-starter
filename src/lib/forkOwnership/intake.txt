@@ -39,10 +39,13 @@ edit src/wiring/*.*.ts  # src/wiring/README.md「fork の wiring」(D5 K5)
 edit src/wiring/*.*.tsx  # 同上(client 用 <名前>.client.<fork ID>.tsx)
 !src/wiring/*.test.*  # テストはドット区切り名のカスタムではない
 
-# proxy の枠と機能を閉じる規則(fork のドット名。上流の index.ts・規則は編集しない。検査: pnpm proxy:check・test:feature-gate)
+# proxy の枠と機能を閉じる規則(fork のドット名。上流の index.ts・規則は編集しない。検査: pnpm extensions:check・test:feature-gate)
 edit src/proxies/*.*.ts  # src/proxies/README.md「骨組みと枠」(D11 K2)
 edit src/proxies/featureGateRules/*.*.ts  # src/proxies/README.md「規則の書き方」(D15)
+edit src/proxies/*.*/**  # 枠の項目のフォルダ形 <名前>.<fork の名前>/index.ts(scripts/extensions/README.md)
+edit src/proxies/featureGateRules/*.*/**  # 規則のフォルダ形
 edit scripts/proxies/alwaysOnExceptions.*.mjs  # src/proxies/README.md「常時実行の入口」の fork の口(L1.24)
+edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
 # ドメインと定期タスクの上書き
@@ -76,7 +79,7 @@ generated vercel.json  # pnpm cron:generate(upstream には無い)
 generated src/styles/_base/gradient.css  # scripts/styles/generate-gradient-css.ts
 generated src/features/core/mail/constants/colors.ts  # scripts/mail/generate-colors.ts
 generated src/features/core/userProfile/generated/**  # pnpm role:generate
-generated src/proxies/extensions/**  # pnpm proxy:generate(枠の項目と機能を閉じる規則の一覧)
+generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。proxy の枠の項目と機能を閉じる規則も)
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)

@@ -68,7 +68,7 @@ rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY 
 before touching servers/ or enabling room → MUST read servers/room/README.md + src/lib/realtimeRoom/README.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
-entry: src/proxy.ts | skeleton src/proxies/index.ts (maintenance → demoMode → featureGate → redirect) + frame of items src/proxies/\<name\>[.\<fork ID\>].ts (pnpm proxy:generate, forks never edit index.ts) | user = ctx.user() only | x-pathname header | chain, items, gate rules → .claude/rules/core/proxy.md
+entry: src/proxy.ts | skeleton src/proxies/index.ts (maintenance → demoMode → featureGate → redirect) + frame of items src/proxies/\<name\>[.\<fork ID\>].ts (pnpm extensions:generate, forks never edit index.ts) | user = ctx.user() only | x-pathname header | chain, items, gate rules → .claude/rules/core/proxy.md
 feature_gate (MANDATORY): rules = src/proxies/featureGateRules/\<name\>.ts, one per feature (enabled() false → pathPatterns 404, tables of its features folders skipped by pnpm db:push: never created, never dropped) | ref: src/proxies/README.md
 - new route of a gated domain → add it to its rule (tables follow the folder) | always-on entries (cron, cleanup, wiring) close themselves | test: FEATURE_GATE_CHECK=all pnpm test:feature-gate | push only via pnpm db:push
 

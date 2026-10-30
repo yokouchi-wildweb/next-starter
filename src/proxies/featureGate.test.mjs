@@ -36,7 +36,7 @@ import { isGenericApiClosed } from "../lib/domain/config/apiAccess.ts";
 import { APP_FEATURES } from "../config/app/app-features.config.ts";
 import { featureGateRules } from "./extensions/featureGateRules.ts";
 import { parseForkDotName, readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
-import { discoverGateRules } from "../../scripts/proxies/extensions.mjs";
+import { itemsOf, planExtensions } from "../../scripts/extensions/extensions.mjs";
 import { judgeAlwaysOnEntries, readForkAlwaysOn, FORK_ALWAYS_ON_PREFIX } from "../../scripts/proxies/alwaysOnEntries.mjs";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
 import { matchesPath, patternCoversRoute } from "./pathPattern.mjs";
@@ -122,7 +122,7 @@ test("upstream の画面を止めるスイッチ: 各規則のパターンが実
   assert.deepEqual(stale, [], `ページの無いパターン: ${stale.join(", ")}`);
 });
 
-test("features から導いた表名は schemaRegistry に実在する(導出は proxy:generate、走査の一致は test:schema-registry)", () => {
+test("features から導いた表名は schemaRegistry に実在する(導出は extensions:generate、走査の一致は test:schema-registry)", () => {
   const unknown = rulesWithTables.flatMap((rule) => rule.tables.filter((name) => !schemaTableNames.has(name)));
   assert.deepEqual(unknown, [], `schemaRegistry に無いテーブル名: ${unknown.join(", ")}`);
 });
@@ -231,18 +231,22 @@ test("payment だけ有効で wallet が無効な組み合わせは外部キー�
 const patternPath = (pattern) => (pattern.startsWith("=") ? pattern.slice(1) : pattern);
 const overlaps = (a, b) => matchesPath(patternPath(a), b) || matchesPath(patternPath(b), a);
 
-test("一覧は規則ファイルと同じ並び・同じ数(proxy:generate のずれは proxy:check でも止まる)", () => {
-  const { all } = readDeclaredForkIds(ROOT);
-  const { rules, problems } = discoverGateRules(ROOT, all);
+// 規則ファイルの走査(生成器と同じ。ファイル名の順、fork の名前つき)
+const gateRuleFiles = () => {
+  const plan = planExtensions(ROOT);
+  return { rules: itemsOf(plan, "src/proxies", "featureGateRules"), problems: plan.problems };
+};
+
+test("一覧は規則ファイルと同じ並び・同じ数(extensions:generate のずれは extensions:check でも止まる)", () => {
+  const { rules, problems } = gateRuleFiles();
   assert.deepEqual(problems, []);
   assert.equal(rules.length, featureGateRules.length);
   for (const rule of featureGateRules) assert.equal(typeof rule.enabled, "function");
 });
 
 test("行き先の違う規則の住所の重なり(L1.22): 上流どうしは不可、fork と上流は表示だけ", () => {
-  const { all } = readDeclaredForkIds(ROOT);
-  const { rules: files } = discoverGateRules(ROOT, all);
-  const entries = featureGateRules.map((rule, i) => ({ rule, file: files[i].file, fork: files[i].forkId !== null }));
+  const { rules: files } = gateRuleFiles();
+  const entries = featureGateRules.map((rule, i) => ({ rule, file: files[i].path.split("/").pop(), fork: files[i].forkId !== null }));
   const upstreamConflicts = [];
   for (let i = 0; i < entries.length; i += 1) {
     for (let j = i + 1; j < entries.length; j += 1) {

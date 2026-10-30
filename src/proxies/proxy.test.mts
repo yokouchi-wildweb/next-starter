@@ -44,7 +44,7 @@ const frameLog: string[] = [];
 let seenCtx: unknown = null;
 mock.module(srcUrl("proxies/extensions/handlers.ts"), {
   namedExports: {
-    extensionHandlers: [
+    handlers: [
       async (_request: unknown, ctx: ProxyContext) => {
         frameLog.push("extension-handler");
         seenCtx = ctx;
@@ -55,7 +55,7 @@ mock.module(srcUrl("proxies/extensions/handlers.ts"), {
 });
 mock.module(srcUrl("proxies/extensions/decorators.ts"), {
   namedExports: {
-    extensionDecorators: [
+    decorators: [
       (_request: unknown, _response: unknown, ctx: ProxyContext) => {
         frameLog.push("extension-decorator");
         assert.equal(ctx, seenCtx, "handler と decorator は同じ ctx を受ける");
