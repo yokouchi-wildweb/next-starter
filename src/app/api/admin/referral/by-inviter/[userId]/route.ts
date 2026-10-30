@@ -5,9 +5,7 @@ import { referralService } from "@/features/core/referral/services/server/referr
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
 import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/config";
 import { getRewardGroupKey } from "@/features/core/referralReward/utils/rewardDefinitionLookup";
-import { db } from "@/lib/drizzle";
-import { UserTable } from "@/features/core/user/entities/drizzle";
-import { inArray } from "drizzle-orm";
+import { userService } from "@/features/core/user/services/server/userService";
 
 type RouteParams = { userId: string };
 
@@ -28,10 +26,7 @@ export const GET = createApiRoute<RouteParams>(
     let signupIpMap = new Map<string, string | null>();
 
     if (inviteeIds.length > 0) {
-      const users = await db
-        .select({ id: UserTable.id, name: UserTable.name, signupIp: UserTable.signupIp })
-        .from(UserTable)
-        .where(inArray(UserTable.id, inviteeIds));
+      const users = await userService.findSignupSummariesByIds(inviteeIds);
       nameMap = new Map(users.map((u) => [u.id, u.name]));
       signupIpMap = new Map(users.map((u) => [u.id, u.signupIp]));
     }

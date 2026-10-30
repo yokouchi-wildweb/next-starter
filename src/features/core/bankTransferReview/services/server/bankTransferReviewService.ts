@@ -17,6 +17,9 @@ import {
   findActiveByUser,
   findByPurchaseRequest,
 } from "./wrappers/findHelpers";
+import { findActiveBankTransfer } from "./wrappers/findActiveBankTransfer";
+import { findDetailForAdmin } from "./wrappers/findDetailForAdmin";
+import { searchForAdmin } from "./wrappers/searchForAdmin";
 
 export const bankTransferReviewService = {
   ...base,
@@ -31,6 +34,9 @@ export const bankTransferReviewService = {
   bulkSendEmail,
   findActiveByUser,
   findByPurchaseRequest,
+  findActiveBankTransfer,
+  searchForAdmin,
+  findDetailForAdmin,
 };
 
 export type {

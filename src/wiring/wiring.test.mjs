@@ -23,7 +23,7 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["README.md", "apiRoute.ts", "domains.test.mts", "domains.ts", "pageGuard.ts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "README.md", "apiRoute.ts", "domains.test.mts", "domains.ts", "pageGuard.ts", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];
@@ -169,7 +169,7 @@ test("データに届く wiring: domains.ts は registry → domainEntry.ts → 
   assert.ok(result.path.some((rel) => rel.endsWith("/domainEntry.ts")), `鎖が domainEntry.ts を通らない: ${result.path.join(" → ")}`);
 });
 
-test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
-  const dataReaching = WIRING_FILES.filter((name) => name.endsWith(".ts") && reachesServicesServer(join(wiringDir, name)).reached);
-  assert.deepEqual(dataReaching, ["apiRoute.ts", "domains.ts", "pageGuard.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
+test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts / .tsx 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
+  const dataReaching = WIRING_FILES.filter((name) => /\.tsx?$/.test(name) && reachesServicesServer(join(wiringDir, name)).reached);
+  assert.deepEqual(dataReaching, ["AppProviders.tsx", "apiRoute.ts", "domains.ts", "pageGuard.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
 });

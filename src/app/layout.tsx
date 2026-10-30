@@ -14,16 +14,12 @@ import {
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
-import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
-import { TooltipProvider } from "@/components/Overlays/Tooltip";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { GoogleTag } from "@/lib/googleTag";
-import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
-import { AdminCommandProvider } from "src/features/core/adminCommand";
-import { RecaptchaProvider } from "@/components/Providers/RecaptchaProvider";
 import { seoConfig } from "@/config/seo.config";
+import { AppProviders } from "@/wiring/AppProviders";
 
 export const metadata: Metadata = {
   metadataBase: new URL(seoConfig.siteUrl),
@@ -100,18 +96,11 @@ export default async function RootLayout({
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
         <GlobalToast />
-        <TooltipProvider>
-          <RecaptchaProvider>
-            <AuthSessionProvider>
-              <AdminCommandProvider>
-                <ImageViewerProvider>
-                  <RouteTransitionOverlay />
-                  {children}
-                </ImageViewerProvider>
-              </AdminCommandProvider>
-            </AuthSessionProvider>
-          </RecaptchaProvider>
-        </TooltipProvider>
+        {/* Provider の入れ子は src/wiring/AppProviders.tsx(Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア) */}
+        <AppProviders>
+          <RouteTransitionOverlay />
+          {children}
+        </AppProviders>
         <RedirectToastProvider />
         {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
         <div id="phone-verification-recaptcha" />

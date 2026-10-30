@@ -25,6 +25,7 @@ import { markAsRead } from "./notification/markAsRead";
 import { markAllAsRead } from "./notification/markAllAsRead";
 import { getReadCounts } from "./notification/getReadCounts";
 import { getReadersWithUsers } from "./notification/getReadersWithUsers";
+import { searchAdminSent } from "./notification/searchAdminSent";
 
 export const notificationService = {
   ...base,
@@ -49,4 +50,5 @@ export const notificationService = {
   markAllAsRead,
   getReadCounts,
   getReadersWithUsers,
+  searchAdminSent,
 };

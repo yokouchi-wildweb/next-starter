@@ -5,6 +5,7 @@ import { checkAdminUserExists } from "./finders/checkAdminUserExists";
 import { findByIdWithSecrets } from "./finders/findByIdWithSecrets";
 import { findByLocalEmail } from "./finders/findByLocalEmail";
 import { findByProvider } from "./finders/findByProvider";
+import { findSignupSummariesByIds } from "./finders/findSignupSummariesByIds";
 import {
   createAdmin,
   createGeneralUser,
@@ -59,6 +60,7 @@ export const userService = {
   findByLocalEmail,
   findByIdWithSecrets,
   checkAdminUserExists,
+  findSignupSummariesByIds,
   // wrappers
   updateLastAuthenticated,
   changeStatus,

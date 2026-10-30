@@ -5,14 +5,9 @@
 // 申告ユーザー、レビュー実施管理者（reviewed_by）の表示用情報を JOIN して返す。
 
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { db } from "@/lib/drizzle";
-import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";
-import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
-import { UserTable } from "@/features/core/user/entities/drizzle";
+import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 
 type Params = { id: string };
 
@@ -31,41 +26,7 @@ export const GET = createApiRoute<Params>(
       );
     }
 
-    // reviewed_by 用の UserTable は申告ユーザー (user_id) と区別するためエイリアスで JOIN
-    const reviewerTable = alias(UserTable, "reviewer");
-
-    const rows = await db
-      .select({
-        review: BankTransferReviewTable,
-        purchaseRequest: PurchaseRequestTable,
-        user: {
-          id: UserTable.id,
-          name: UserTable.name,
-          email: UserTable.email,
-        },
-        reviewer: {
-          id: reviewerTable.id,
-          name: reviewerTable.name,
-          email: reviewerTable.email,
-        },
-      })
-      .from(BankTransferReviewTable)
-      .leftJoin(
-        PurchaseRequestTable,
-        eq(BankTransferReviewTable.purchase_request_id, PurchaseRequestTable.id),
-      )
-      .leftJoin(
-        UserTable,
-        eq(BankTransferReviewTable.user_id, UserTable.id),
-      )
-      .leftJoin(
-        reviewerTable,
-        eq(BankTransferReviewTable.reviewed_by, reviewerTable.id),
-      )
-      .where(eq(BankTransferReviewTable.id, id))
-      .limit(1);
-
-    const row = rows[0];
+    const row = await bankTransferReviewService.findDetailForAdmin(id);
     if (!row) {
       return NextResponse.json(
         { message: "レビューが見つかりません。" },

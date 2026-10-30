@@ -7,12 +7,10 @@
 // 認可は範囲 admin/(protected)/guard.ts の createLoader(access 管理者カテゴリ)。取得の前に評価する。
 
 import "server-only";
-import { sql } from "drizzle-orm";
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import type { Notification } from "@/features/core/notification/entities";
-import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { createLoader } from "@/app/admin/(protected)/guard";
@@ -36,12 +34,7 @@ export const loadAdminNotificationListScreen = createLoader({
   },
   load: async (_ctx, page, searchQuery): Promise<AdminNotificationListScreenData> => {
     const perPage = await settingService.getAdminListPerPage();
-    const { results: notifications, total } = await notificationService.search({
-      page,
-      limit: perPage,
-      searchQuery,
-      extraWhere: sql`${NotificationTable.sender_type} = 'admin'`,
-    });
+    const { results: notifications, total } = await notificationService.searchAdminSent({ page, limit: perPage, searchQuery });
     const readCounts = await notificationService.getReadCounts(notifications.map((n) => n.id));
     return { notifications, readCounts, page, perPage, total };
   },

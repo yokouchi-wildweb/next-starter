@@ -10,17 +10,10 @@
 // inhouseProvider.validateInitiation で同一ユーザーの未完了銀行振込は 1 件に制限しているため、
 // 結果は最大 1 件。confirmed / rejected の確定済みレビューは検出対象外（バナー表示不要）。
 
-import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { db } from "@/lib/drizzle";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
-import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
-import {
-  INHOUSE_BANK_TRANSFER_METHOD_ID,
-  INHOUSE_PROVIDER_NAME,
-} from "@/features/core/purchaseRequest/services/server/payment/inhouse";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import type {
   BankTransferReviewMode,
@@ -90,18 +83,15 @@ export const GET = createApiRoute(
     access: "authenticated",
   },
   async (_req, { user }): Promise<ActiveBankTransferResponse | NextResponse> => {
-    // 1. pending_review / needs_check レビューを優先して検出
-    const review = await bankTransferReviewService.findActiveByUser(user.userId);
-    if (review) {
-      const purchaseRequest = await db
-        .select({
-          wallet_type: PurchaseRequestTable.wallet_type,
-        })
-        .from(PurchaseRequestTable)
-        .where(eq(PurchaseRequestTable.id, review.purchase_request_id))
-        .limit(1);
-      const walletType = (purchaseRequest[0]?.wallet_type ?? null) as WalletType | null;
+    // 検出(レビュー優先 → 申告前の processing 中 purchase_request)は bankTransferReviewService.findActiveBankTransfer
+    const active = await bankTransferReviewService.findActiveBankTransfer(user.userId);
+    if (!active) {
+      return { active: null };
+    }
 
+    if (active.kind === "review") {
+      const { review } = active;
+      const walletType = active.walletType as WalletType | null;
       // findActiveByUser は pending_review / needs_check のみ返すため、この絞り込みで
       // ActiveStatus に安全に変換できる。
       const activeStatus: ActiveStatus =
@@ -124,36 +114,15 @@ export const GET = createApiRoute(
       };
     }
 
-    // 2. 申告前の processing 中 purchase_request を検出
-    //    inhouseProvider.validateInitiation の制限により最大 1 件。
-    const rows = await db
-      .select()
-      .from(PurchaseRequestTable)
-      .where(
-        and(
-          eq(PurchaseRequestTable.user_id, user.userId),
-          eq(PurchaseRequestTable.payment_provider, INHOUSE_PROVIDER_NAME),
-          eq(PurchaseRequestTable.payment_method, INHOUSE_BANK_TRANSFER_METHOD_ID),
-          eq(PurchaseRequestTable.status, "processing"),
-        ),
-      )
-      .orderBy(desc(PurchaseRequestTable.createdAt))
-      .limit(1);
-
-    const pr = rows[0];
-    if (!pr) {
-      return { active: null };
-    }
-
-    const walletType = pr.wallet_type as WalletType | null;
+    const walletType = active.walletType as WalletType | null;
     return {
       active: {
-        purchaseRequestId: pr.id,
+        purchaseRequestId: active.purchaseRequestId,
         reviewId: null,
         status: "pre_submit",
         mode: null,
         submittedAt: null,
-        redirectUrl: buildRedirectUrl(walletType, pr.id, "pre_submit", null),
+        redirectUrl: buildRedirectUrl(walletType, active.purchaseRequestId, "pre_submit", null),
       },
     };
   },
