@@ -8,7 +8,7 @@
 import "server-only";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
-import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
+import { importValueShape, isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";
 import type { DataMigrationMediaResolver } from "../media";
@@ -100,98 +100,82 @@ function extractErrorInfo(error: unknown): Record<string, unknown> {
   return info;
 }
 
-/**
- * fieldType に基づいてフィールドタイプを判定（export は単体テスト用）
- */
-export function getFieldTypes(fields: FieldTypeInfo[]): {
+/** CSV の値の読み方ごとの項目名（getFieldTypes の結果） */
+export type ImportFieldTypes = {
   arrayFields: Set<string>;
   dateFields: Set<string>;
+  timeFields: Set<string>;
   numberFields: Set<string>;
-} {
-  const arrayFields = new Set<string>();
-  const dateFields = new Set<string>();
-  const numberFields = new Set<string>();
+};
 
-  for (const field of fields) {
-    const { name, fieldType } = field;
-    const normalizedType = fieldType?.toLowerCase() || "";
+/**
+ * fieldType から CSV の値の読み方を決める（export は単体テスト用）。
+ * 配列は型の表の array 属性、日付・時刻・数値は表の importValue 属性（src/lib/domain/fields/fieldTypes.mjs）。
+ * 型名は小文字化せずに表のとおりに引く（表に無い型名は文字のまま取り込む）
+ */
+export function getFieldTypes(fields: FieldTypeInfo[]): ImportFieldTypes {
+  const types: ImportFieldTypes = {
+    arrayFields: new Set<string>(),
+    dateFields: new Set<string>(),
+    timeFields: new Set<string>(),
+    numberFields: new Set<string>(),
+  };
+  const byShape = { date: types.dateFields, time: types.timeFields, number: types.numberFields } as const;
 
-    // 配列型（型の表の array 属性 = array・stringArray。型名は小文字化せずに引く）
-    if (normalizedType === "array" || isArrayFieldType(fieldType)) {
-      arrayFields.add(name);
+  for (const { name, fieldType } of fields) {
+    if (isArrayFieldType(fieldType)) {
+      types.arrayFields.add(name);
       continue;
     }
-
-    // 日付/時間型
-    if (
-      normalizedType === "date" ||
-      normalizedType === "time" ||
-      normalizedType.includes("timestamp")
-    ) {
-      dateFields.add(name);
-      continue;
-    }
-
-    // 数値型
-    if (
-      normalizedType === "integer" ||
-      normalizedType === "number" ||
-      normalizedType === "float" ||
-      normalizedType === "decimal" ||
-      normalizedType === "bigint"
-    ) {
-      numberFields.add(name);
-      continue;
-    }
+    const shape = importValueShape(fieldType) as keyof typeof byShape | undefined;
+    if (shape) byShape[shape].add(name);
   }
 
-  return { arrayFields, dateFields, numberFields };
+  return types;
 }
+
+const isBlank = (value: unknown) => value === null || value === undefined || value === "";
 
 /**
  * レコードのフィールド値を適切な型に変換（export は単体テスト用）
  */
-export function convertRecordTypes(
-  record: Record<string, unknown>,
-  arrayFields: Set<string>,
-  dateFields: Set<string>,
-  numberFields: Set<string>
-): Record<string, unknown> {
+export function convertRecordTypes(record: Record<string, unknown>, types: ImportFieldTypes): Record<string, unknown> {
   const converted: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(record)) {
-    // 配列フィールドの変換
-    if (arrayFields.has(key)) {
-      if (value === null || value === undefined || value === "") {
+    // 配列: カンマ区切りの文字列を配列に、空欄は空配列
+    if (types.arrayFields.has(key)) {
+      if (isBlank(value)) {
         converted[key] = [];
       } else if (typeof value === "string") {
-        // カンマ区切り文字列を配列に変換
         converted[key] = value.split(",").map((v) => v.trim()).filter((v) => v !== "");
-      } else if (Array.isArray(value)) {
-        converted[key] = value;
       } else {
-        converted[key] = [value];
+        converted[key] = Array.isArray(value) ? value : [value];
       }
       continue;
     }
 
-    // 日付フィールドの変換
-    if (dateFields.has(key)) {
-      if (value === null || value === undefined || value === "") {
+    // 日付・日時: 文字列はそのまま（Zod が検証）、読めない値は null
+    if (types.dateFields.has(key)) {
+      if (isBlank(value)) {
         converted[key] = null;
       } else if (typeof value === "string") {
-        // ISO 8601 文字列はそのまま（Zodが検証）、ただし不正な値は null
-        const date = new Date(value);
-        converted[key] = isNaN(date.getTime()) ? null : value;
+        converted[key] = isNaN(new Date(value).getTime()) ? null : value;
       } else {
         converted[key] = value;
       }
       continue;
     }
 
-    // 数値フィールドの変換
-    if (numberFields.has(key)) {
-      if (value === null || value === undefined || value === "") {
+    // 時刻: 空欄だけ null、値はそのまま（"10:30" は日付として読めないので日付の扱いにしない。不正な値は DB への書き込みで行のエラー）
+    if (types.timeFields.has(key)) {
+      converted[key] = isBlank(value) ? null : value;
+      continue;
+    }
+
+    // 数値: 読めない値は null
+    if (types.numberFields.has(key)) {
+      if (isBlank(value)) {
         converted[key] = null;
       } else if (typeof value === "string") {
         const num = Number(value);
@@ -368,7 +352,7 @@ export async function importServiceChunk(
     const importedMediaFields = updateImages ? storageFields : [];
 
     // フィールド型情報を取得
-    const { arrayFields, dateFields, numberFields } = getFieldTypes(fields);
+    const fieldTypes = getFieldTypes(fields);
 
     // 型変換を適用してレコードを準備（メディア列は外す）
     // deletedAt は parseUpsert で削除されるが、drizzle-orm が DEFAULT を使用するのを防ぐため
@@ -376,7 +360,7 @@ export async function importServiceChunk(
     const deletedAtMap = new Map<number, string | null>(); // index -> deletedAt 値
     const recordsForUpsert = records.map((record, index) => {
       // まず型変換を適用
-      const typedRecord = convertRecordTypes(record, arrayFields, dateFields, numberFields);
+      const typedRecord = convertRecordTypes(record, fieldTypes);
 
       const cleanRecord: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(typedRecord)) {

@@ -1,7 +1,7 @@
 // src/lib/dataMigration/import/importChunk.test.ts
 //
-// import の型変換（getFieldTypes / convertRecordTypes）のテスト。配列は型の表の array 属性（array・stringArray）で判定し、
-// 主の集まり（mediaCollection）は配列にしない。日時・数値の判定は型名の比較のまま。
+// import の型変換（getFieldTypes / convertRecordTypes）のテスト。読み方は型の表（src/lib/domain/fields/fieldTypes.mjs）の
+// array 属性と importValue 属性で決まる（型名を小文字にして比べない）。行は人が承認した前後一覧（L1.25）のとおり。
 // 実行: pnpm test:data-migration
 
 import { describe, test } from "node:test";
@@ -14,35 +14,70 @@ const fields = [
   { name: "labels", fieldType: "stringArray" },
   { name: "images", fieldType: "mediaCollection" },
   { name: "name", fieldType: "string" },
+  { name: "flag", fieldType: "boolean" },
+  { name: "meta", fieldType: "jsonb" },
   { name: "count", fieldType: "integer" },
+  { name: "num", fieldType: "number" },
+  { name: "rate", fieldType: "float" },
+  { name: "big", fieldType: "bigint" },
   { name: "price", fieldType: "numeric(10,2)" },
   { name: "day", fieldType: "date" },
   { name: "at", fieldType: "timestamp With Time Zone" },
+  { name: "fsAt", fieldType: "timestamp" },
+  { name: "start", fieldType: "time" },
+  { name: "lower", fieldType: "timestamp with time zone" },
+  { name: "dec", fieldType: "decimal" },
 ];
 
+const types = getFieldTypes(fields);
+const convert = (record: Record<string, unknown>) => convertRecordTypes(record, types);
+
 describe("import の型変換", () => {
-  const { arrayFields, dateFields, numberFields } = getFieldTypes(fields);
-
-  test("配列は array・stringArray。mediaCollection は配列にしない", () => {
-    assert.deepEqual([...arrayFields].sort(), ["labels", "tags"]);
+  test("読み方の振り分け: 配列 = array・stringArray（mediaCollection は配列にしない）、日付・時刻・数値は表の importValue", () => {
+    assert.deepEqual([...types.arrayFields].sort(), ["labels", "tags"]);
+    assert.deepEqual([...types.dateFields].sort(), ["at", "day", "fsAt"]);
+    assert.deepEqual([...types.timeFields].sort(), ["start"]);
+    assert.deepEqual([...types.numberFields].sort(), ["big", "count", "num", "price", "rate"]);
   });
 
-  test("日時・数値の判定は今のまま（numeric(10,2) は数値にしない）", () => {
-    assert.deepEqual([...dateFields].sort(), ["at", "day"]);
-    assert.deepEqual([...numberFields].sort(), ["count"]);
+  test("1 date: 値はそのまま、読めない値は null（変化なし）", () => {
+    assert.deepEqual(convert({ day: "2026-01-02" }), { day: "2026-01-02" });
+    assert.deepEqual(convert({ day: "nope" }), { day: null });
   });
 
-  test("stringArray の \"a,b\" は配列で入る", () => {
-    const converted = convertRecordTypes(
-      { tags: "x, y", labels: "a,b", images: "p,q", name: "a,b", count: "3" },
-      arrayFields,
-      dateFields,
-      numberFields,
-    );
-    assert.deepEqual(converted, { tags: ["x", "y"], labels: ["a", "b"], images: "p,q", name: "a,b", count: 3 });
+  test("2 timestamp With Time Zone・timestamp: 値はそのまま、読めない値は null（変化なし）", () => {
+    assert.deepEqual(convert({ at: "2026-01-02T03:04:00Z", fsAt: "2026-01-02T03:04:00Z" }), { at: "2026-01-02T03:04:00Z", fsAt: "2026-01-02T03:04:00Z" });
+    assert.deepEqual(convert({ at: "nope" }), { at: null });
   });
 
-  test("stringArray の空欄は空配列", () => {
-    assert.deepEqual(convertRecordTypes({ labels: "" }, arrayFields, dateFields, numberFields), { labels: [] });
+  test("3 time: 空欄だけ null、値はそのまま（以前は日付として読めず null になり値が消えていた）", () => {
+    assert.deepEqual(convert({ start: "10:30" }), { start: "10:30" });
+    assert.deepEqual(convert({ start: "10:30:00" }), { start: "10:30:00" });
+    assert.deepEqual(convert({ start: "" }), { start: null });
+    assert.deepEqual(convert({ start: null }), { start: null });
+  });
+
+  test("4 integer・number・float・bigint: 数値に、読めない値は null（変化なし）", () => {
+    assert.deepEqual(convert({ count: "12", num: "3", rate: "1.5", big: "9007199254740991" }), { count: 12, num: 3, rate: 1.5, big: 9007199254740991 });
+    assert.deepEqual(convert({ count: "abc" }), { count: null });
+    assert.deepEqual(convert({ count: "" }), { count: null });
+  });
+
+  test("5 numeric(10,2): 数値に（以前は文字のまま）、読めない値は null", () => {
+    assert.deepEqual(convert({ price: "12.50" }), { price: 12.5 });
+    assert.deepEqual(convert({ price: "abc" }), { price: null });
+  });
+
+  test("6 array・stringArray: カンマ区切りを配列、空欄は空配列（変化なし）", () => {
+    assert.deepEqual(convert({ tags: "x, y", labels: "a,b" }), { tags: ["x", "y"], labels: ["a", "b"] });
+    assert.deepEqual(convert({ labels: "" }), { labels: [] });
+  });
+
+  test("7 表に無い型名（小文字の timestamp with time zone・decimal）は文字のまま（以前は日付・数値として読んでいた）", () => {
+    assert.deepEqual(convert({ lower: "nope", dec: "12.5" }), { lower: "nope", dec: "12.5" });
+  });
+
+  test("8 boolean・string・jsonb・mediaCollection・その他: そのまま（変化なし）", () => {
+    assert.deepEqual(convert({ name: "a,b", flag: "true", meta: '{"a":1}', images: "p,q", other: "z" }), { name: "a,b", flag: "true", meta: '{"a":1}', images: "p,q", other: "z" });
   });
 });

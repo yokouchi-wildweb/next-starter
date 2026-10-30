@@ -25,7 +25,6 @@ const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((
 // 閉じる段の名前は評議会 20261028-234023-field-type-single-interpretation の段階（src/lib/domain/README.md「番人」）
 const FIELD_TYPE_GUARD_ALLOWLIST = [
   "scripts/domain-config/render/entities/**", // S6 ほか: Zod・列の決め打ち（jsonb・email・password・enum・timestamp With Time Zone・mediaUploader）を表の属性へ
-  "src/lib/dataMigration/import/**", // S8: import の日時・数値の判定を表へ
   "scripts/domain-config/render/components/**", // 未割り当て: mediaUploader / string の比較を表の media 属性などへ（計画書 03 で段を決める）
   "scripts/domain-config/render/registry/**", // 未割り当て: mediaUploader の比較を isMediaFieldType へ（同上）
   "scripts/domain-config/checks/**", // 未割り当て: 集まりの従属の検査（mediaUploader / mediaCollection）を isMediaFieldType / isCollectionFieldType へ（同上）

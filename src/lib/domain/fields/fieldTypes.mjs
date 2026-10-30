@@ -28,6 +28,10 @@
 //   datetime  日時の型: Zod は required で requiredDatetime / nullableDatetime、編集フォームでは値を Date にする
 //   formDefault  フォームの初期値（domain.json の defaultValue が無いとき）。全行に書く（undefined も値）。配列は呼ぶたびに複製して返す
 //   formDefaultWithChoices  選択肢のある項目（formInput "radio" か options あり）での初期値。無ければ formDefault
+// 実行時だけが読む属性:
+//   importValue  CSV 取り込み（src/lib/dataMigration/import）で文字列をどう読むか: "date" = 日付・日時（読めない値は null）、
+//                "time" = 時刻（空欄だけ null、値はそのまま。不正な値は DB への書き込みで行のエラー）、"number" = 数値（読めない値は null）。
+//                無ければそのまま（配列は array 属性で別に扱う）
 
 export const FIELD_TYPES = {
   string: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
@@ -35,16 +39,16 @@ export const FIELD_TYPES = {
   password: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true, noDefault: true, formDefault: "" },
-  integer: { column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
-  number: { zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
-  float: { column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
-  bigint: { column: "bigint", columnMode: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, formDefault: undefined },
-  "numeric(10,2)": { column: "numeric", columnMode: "number", zod: "z.coerce.number()", ts: "number", numeric: true, formDefault: undefined },
+  integer: { importValue: "number", column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
+  number: { importValue: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
+  float: { importValue: "number", column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
+  bigint: { importValue: "number", column: "bigint", columnMode: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, formDefault: undefined },
+  "numeric(10,2)": { importValue: "number", column: "numeric", columnMode: "number", zod: "z.coerce.number()", ts: "number", numeric: true, formDefault: undefined },
   boolean: { column: "boolean", zod: "z.coerce.boolean()", ts: "boolean", presenter: "boolean", formDefault: false, formDefaultWithChoices: undefined },
-  date: { column: "date", zod: "z.string()", ts: "string", text: true, formDefault: "" },
-  time: { column: "time", zod: "z.string()", ts: "string", text: true, formDefault: "" },
-  timestamp: { datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
-  "timestamp With Time Zone": { column: "timestamp", datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
+  date: { importValue: "date", column: "date", zod: "z.string()", ts: "string", text: true, formDefault: "" },
+  time: { importValue: "time", column: "time", zod: "z.string()", ts: "string", text: true, formDefault: "" },
+  timestamp: { importValue: "date", datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
+  "timestamp With Time Zone": { importValue: "date", column: "timestamp", datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
   // jsonb / map は値なし。schema の .default() や DB の既定値に任せる（"" だと record / object の schema で落ちる）
   jsonb: { column: "jsonb", zod: "z.unknown()", ts: "any", noDefault: true, formDefault: undefined },
   array: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
@@ -120,6 +124,9 @@ export const isCollectionFieldType = (fieldType) => Boolean(spec(fieldType).coll
 export const allowsDefaultValue = (fieldType) => !spec(fieldType).noDefault;
 /** @param {string | undefined} fieldType */
 export const presenterKind = (fieldType) => spec(fieldType).presenter;
+
+/** CSV 取り込みの値の形（"date" | "time" | "number" | undefined = そのまま） */
+export const importValueShape = (fieldType) => spec(fieldType).importValue;
 
 /** formInput "checkbox" を複数選択（CheckGroupInput）にする型 = 値が文字列の配列の型（array 属性） @param {string | undefined} fieldType */
 export const isCheckGroupFieldType = (fieldType) => isArrayFieldType(fieldType);

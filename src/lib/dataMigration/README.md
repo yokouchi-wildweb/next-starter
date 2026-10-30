@@ -77,6 +77,10 @@
 - 型変換は **メインドメインのみ** `fieldType` を参考に実施
   - 関連ドメイン/中間テーブルは文字列のまま
   - 配列（型の表の array 属性 = `array`・`stringArray`）はカンマ区切りのセルを配列にする。主の集まり（`mediaCollection`）は取り込まない
+  - 日付・時刻・数値は型の表（`src/lib/domain/fields/fieldTypes.mjs`）の `importValue` 属性で読む（型名を小文字にして比べない。表に無い型名は文字のまま）
+    - `date`（date・timestamp・timestamp With Time Zone）: 値はそのまま、日付として読めない値は `null`
+    - `time`（time）: 空欄だけ `null`、値はそのまま（不正な値は DB への書き込みで行のエラー）
+    - `number`（integer・number・float・bigint・numeric(10,2)）: 数値に、読めない値は `null`
 - `maxRecordLimit` は export のみで制限
   - チャンク import では総件数の制限を行わない
 - システムフィールド（`createdAt` など）はそのまま渡すだけで、永続化はスキーマ次第
