@@ -51,7 +51,7 @@ export type RecordInteractionInput = {
  *
  * セキュリティ: 本メソッドはサーバー内部専用。クライアントからの経路は
  * 公開 ingest ルート（POST /api/interactions）のみとし、そこでは
- * interactionTargetRegistry による fail-closed 検証を必ず通すこと（カウント水増し防止）。
+ * 一覧 targetRules(extensions/)による fail-closed 検証を必ず通すこと（カウント水増し防止）。
  */
 export async function record(input: RecordInteractionInput): Promise<void> {
   const targetType = input.targetType?.trim();

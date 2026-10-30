@@ -7,7 +7,7 @@
 import { apiRouteUserDeps } from "@/features/core/auth/services/server/apiRouteUserDeps";
 import { apiRouteDeviceDeps } from "@/features/core/pairedDevice/services/server/apiRouteDeviceDeps";
 import { createRouteFactories } from "@/lib/routeFactory";
-import type { PairedDeviceKind } from "@/registry/pairedDeviceKindRegistry";
+import type { PairedDeviceKind } from "@/features/core/pairedDevice/types/kinds";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 
 const factories = createRouteFactories<PairedDeviceKind>({

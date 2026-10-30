@@ -1,27 +1,12 @@
-// src/registry/interactionTargetRegistry.ts
-//
-// 公開 ingest ルート（POST /api/interactions）が受け付ける計測対象の登録簿。
-// 特定ドメイン（interactionTracking）の拡張口。下流がここに追記する（サーバー専用）。
-// serviceRegistry（ドメインを作ると 1 行増える一覧。生成物）とは役割が違う。
-//
-// fail-closed: ここに登録されていない targetType は ingest で拒否される。
-// 存在しない対象・非公開対象へのカウント水増しを防ぐため、validate では
-// 「対象が実在し、かつ計測を受け付けてよい状態か」（例: 公開済みか）を必ず検証すること。
-//
-// 登録例（下流ドメイン）:
-//   bulletin: {
-//     allowedActions: ["click", "link_click"],
-//     validate: async (targetId) => {
-//       const bulletin = await bulletinService.get(targetId).catch(() => null);
-//       return !!bulletin?.is_published;
-//     },
-//   },
-
-// --- fork entries start (upstream never edits inside) ---
-// --- fork entries end ---
+// src/features/core/interactionTracking/types/targetRule.ts
+// 公開 ingest(POST /api/interactions)が受け付ける計測対象の規則の型。
+// fail-closed: 項目が無い targetType は拒否。validate では「対象が実在し、計測を受け付けてよい状態か」(例: 公開済みか)を必ず確かめる
+// (存在しない対象・非公開対象へのカウント水増しを防ぐ)。項目: ../targetRules/<名前>[.<fork の名前>].ts の export const rule
 
 /** 計測対象 1 種別ぶんの受け入れルール */
 export type InteractionTargetRule = {
+  /** 計測対象の種別(ingest の targetType。一覧の鍵。重複は読み込み時に例外) */
+  targetType: string;
   /**
    * 対象の実在・受け入れ可否の検証（サーバー側で必ず実行される）。
    * true を返した場合のみ記録される。例外は拒否として扱われる
@@ -47,10 +32,4 @@ export type InteractionTargetRule = {
    * バッチ経路は明細を書かない（常に集計のみ・userId も記録しない）
    */
   batchActions?: readonly string[];
-};
-
-export const interactionTargetRegistry: Record<string, InteractionTargetRule> = {
-  // ここに計測対象を登録する
-  // --- fork entries start (upstream never edits inside) ---
-  // --- fork entries end ---
 };

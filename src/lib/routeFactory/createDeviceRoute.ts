@@ -106,7 +106,7 @@ function toNextResponse(body: unknown): NextResponse {
 
 /**
  * 登録端末専用ルートのファクトリーを作る（利用者・端末の束と土台を結ぶ）。
- * K = 登録済みの端末の種類（wiring が pairedDeviceKindRegistry の型で結ぶ）。
+ * K = 登録済みの端末の種類（wiring が pairedDevice の一覧 kinds の型で結ぶ）。
  *
  * 作られる createDeviceRoute:
  * - 端末の認証を強制（Cookie なし・失効・期限切れ → 401 / kind 違い → 403）

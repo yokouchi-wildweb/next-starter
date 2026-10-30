@@ -112,7 +112,13 @@ function renderPoint(point, items) {
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
   if (spec.derive === "featureTables") lines.push("// tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)");
-  if (spec.key) {
+  if (spec.literalKeys) {
+    // 鍵の文字列を型に残す(項目の値の型が鍵を文字列リテラルで持つこと)
+    const list = `${point.name}List`;
+    lines.push(`const ${list} = ${array} as const satisfies readonly ${T}[];`);
+    lines.push(`export const ${point.name} = Object.fromEntries((${list} as readonly ${T}[]).map((item) => [String(item.${spec.key}), item])) as unknown as { readonly [I in (typeof ${list})[number] as I[${JSON.stringify(spec.key)}]]: I };`);
+    lines.push(`if (Object.keys(${point.name}).length !== ${list}.length) throw new Error(${JSON.stringify(`${point.name}: ${spec.key} が重複している項目がある`)});`);
+  } else if (spec.key) {
     const list = `${point.name}List`;
     lines.push(`const ${list}: ${T}[] = ${array};`);
     lines.push(`export const ${point.name}: Readonly<Record<string, ${T}>> = Object.fromEntries(${list}.map((item) => [String(item.${spec.key}), item]));`);

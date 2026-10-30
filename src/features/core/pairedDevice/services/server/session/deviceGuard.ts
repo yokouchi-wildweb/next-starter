@@ -6,7 +6,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
-import type { PairedDeviceKind, PairedDeviceScopeOf } from "@/registry/pairedDeviceKindRegistry";
+import type { PairedDeviceKind, PairedDeviceScopeOf } from "@/features/core/pairedDevice/types/kinds";
 
 import { getSessionDevice } from "./getSessionDevice";
 

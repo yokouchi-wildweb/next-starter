@@ -125,6 +125,19 @@ test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を�
   assert.match(readDeclaration("x/extensionPoints.ts", point(`  a: { dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", alwaysOn: "yes" },`)).problems[0], /alwaysOn は真偽/);
 });
 
+test("描画: literalKeys は鍵の文字列を型に残す。key なし・true 以外は失敗", () => {
+  const root = fixture({
+    "src/features/core/pairedDevice/extensionPoints.ts": point(`  kinds: { dir: "kinds", export: "kind", type: { from: "@/x", name: "K" }, side: "server", key: "kind", literalKeys: true },`),
+    "src/features/core/pairedDevice/kinds/terminal.ts": "export const kind = {};\n",
+  });
+  const out = planExtensions(root).outputs["src/features/core/pairedDevice/extensions/kinds.ts"];
+  assert.match(out, /const kindsList = \[\n  terminal,\n\] as const satisfies readonly K\[\];/);
+  assert.match(out, /as unknown as \{ readonly \[I in \(typeof kindsList\)\[number\] as I\["kind"\]\]: I \};/);
+  assert.match(out, /kind が重複/);
+  const bad = (body) => readDeclaration("x/extensionPoints.ts", point(body)).problems[0];
+  assert.match(bad(`  a: { dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", literalKeys: true },`), /literalKeys は key と一緒に/);
+});
+
 test("描画: key の Record・lazy の import・lib の target wiring は src/wiring/<lib>.ts に 1 本", () => {
   const root = fixture({
     "src/features/core/userLineProfile/extensionPoints.ts": point(

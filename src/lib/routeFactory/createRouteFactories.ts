@@ -14,7 +14,7 @@ import { makeEnforceAccessRule } from "./enforceAccess";
 
 /**
  * API ルートの Factory 群を作る。
- * - TDeviceKind: 登録済みの端末の種類（wiring が pairedDeviceKindRegistry の型を渡す）
+ * - TDeviceKind: 登録済みの端末の種類（wiring が pairedDevice の一覧 kinds の型を渡す）
  * - 主体はリクエストごとに 1 回だけ deps.user.resolveUser で解き、全 access で ctx.user に渡す
  */
 export function createRouteFactories<TDeviceKind extends string>(

@@ -5,7 +5,7 @@
  *
  * 店舗に置くタブレットやキオスクなどの共有端末を、ユーザーアカウントとは別の
  * 認証主体として登録し、長期の端末トークン（httpOnly Cookie）で動かす。
- * kind ごとの scope・管理権限・追加検証は src/registry/pairedDeviceKindRegistry.ts で宣言する。
+ * kind ごとの scope・管理権限・追加検証は src/features/core/pairedDevice/kinds/ の項目で宣言する。
  * 詳細: src/features/core/pairedDevice/README.md
  */
 export const PAIRED_DEVICE_CONFIG = {

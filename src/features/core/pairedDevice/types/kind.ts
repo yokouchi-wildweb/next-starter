@@ -1,7 +1,7 @@
 // src/features/core/pairedDevice/types/kind.ts
 //
-// 端末の種類（kind）の定義型。downstream は src/registry/pairedDeviceKindRegistry.ts に
-// definePairedDeviceKind で登録する。
+// 端末の種類（kind）の定義型。項目は kinds/<名前>[.<fork の名前>].ts に
+// export const kind = definePairedDeviceKind({ kind: "<名前>", ... }) で置く。
 
 import type { z } from "zod";
 
@@ -24,6 +24,8 @@ export type PairedDeviceManageableScopes = "all" | ReadonlyArray<Record<string, 
 
 /** 端末の種類 1 つぶんの定義 */
 export type PairedDeviceKindDefinition<TScope = unknown> = {
+  /** 端末の種類の名前（paired_devices.kind の値・一覧の鍵。重複は読み込み時に例外） */
+  kind: string;
   /** 管理画面などでの表示名（省略時は kind 名） */
   label?: string;
   /**
@@ -71,10 +73,25 @@ export type PairedDeviceKindDefinition<TScope = unknown> = {
  * kind 定義を書くためのヘルパー。scopeSchema から scope の型を推論し、
  * verify の引数に型を付ける。
  */
-export function definePairedDeviceKind<TSchema extends z.ZodTypeAny>(
-  definition: Omit<PairedDeviceKindDefinition<z.infer<TSchema>>, "scopeSchema"> & {
+export function definePairedDeviceKind<const TKind extends string, TSchema extends z.ZodTypeAny>(
+  definition: Omit<PairedDeviceKindDefinition<z.infer<TSchema>>, "scopeSchema" | "kind"> & {
+    kind: TKind;
     scopeSchema: TSchema;
   },
-): PairedDeviceKindDefinition<z.infer<TSchema>> & { scopeSchema: TSchema } {
+): PairedDeviceKindDefinition<z.infer<TSchema>> & { kind: TKind; scopeSchema: TSchema } {
   return definition;
 }
+
+/** 一覧の要素の型（scope の型は kind ごとに異なる） */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- scope は kind ごとの型で、一覧ではそろわない
+export type AnyPairedDeviceKindDefinition = PairedDeviceKindDefinition<any>;
+
+/** 種類の一覧の型から、kind 名の union を導く */
+export type PairedDeviceKindNamesOf<TKinds> = Extract<keyof TKinds, string>;
+
+/** 種類の一覧の型から、kind ごとの scope の型を導く（scopeSchema から推論） */
+export type PairedDeviceScopeIn<TKinds, K extends keyof TKinds> = TKinds[K] extends { scopeSchema: infer S }
+  ? S extends z.ZodTypeAny
+    ? z.infer<S>
+    : unknown
+  : unknown;

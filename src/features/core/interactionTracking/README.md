@@ -52,7 +52,7 @@
 
 1. **公開 ingest（主経路）**: `POST /api/interactions`
    - `access: "public"`（匿名可）+ IP / サブネットのハイブリッドレート制限
-   - `interactionTargetRegistry` 未登録の targetType は **fail-closed で拒否**
+   - 一覧 `targetRules` に無い targetType は **fail-closed で拒否**
    - ログイン中はセッションから userId を自動付与（クライアント申告は受け付けない）
    - デモユーザーの書き込みは自動スキップ（カウントに混入しない）
 2. **バッチ ingest（インプレッション等）**: `POST /api/interactions/batch`
@@ -70,22 +70,22 @@
 
 ### 1. 計測対象を登録（サーバー・fail-closed の解除）
 
-`src/registry/interactionTargetRegistry.ts`:
+`src/features/core/interactionTracking/targetRules/bulletin.<fork の名前>.ts` に置き `pnpm extensions:generate`:
 
 ```ts
 import { bulletinService } from "@/features/bulletin/services/server/bulletinService";
+import type { InteractionTargetRule } from "@/features/core/interactionTracking/types/targetRule";
 
-export const interactionTargetRegistry: Record<string, InteractionTargetRule> = {
-  bulletin: {
-    allowedActions: ["click", "link_click"],
-    batchActions: ["impression"], // バッチ経路で受けるのはインプレッションのみ（click は不可）
-    validate: async (targetId) => {
-      const bulletin = await bulletinService.get(targetId).catch(() => null);
-      return !!bulletin?.is_published; // 公開中のみ受け付ける（水増し防止）
-    },
-    // retentionDays: 730,   // 明細を長めに持ちたい対象はここで上書き
-    // recordDetail: false,  // 「誰が」が不要で流量の多い対象は明細オフ（集計のみ）
+export const rule: InteractionTargetRule = {
+  targetType: "bulletin",
+  allowedActions: ["click", "link_click"],
+  batchActions: ["impression"], // バッチ経路で受けるのはインプレッションのみ（click は不可）
+  validate: async (targetId) => {
+    const bulletin = await bulletinService.get(targetId).catch(() => null);
+    return !!bulletin?.is_published; // 公開中のみ受け付ける（水増し防止）
   },
+  // retentionDays: 730,   // 明細を長めに持ちたい対象はここで上書き
+  // recordDetail: false,  // 「誰が」が不要で流量の多い対象は明細オフ（集計のみ）
 };
 ```
 

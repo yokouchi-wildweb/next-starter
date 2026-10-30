@@ -29,6 +29,7 @@ export const extensionPoints = {
 - 点の名前 = 一覧のファイル名 = export する一覧の名前。項目の種類の複数形 camelCase(ドメイン名・Registry を付けない)
 - 省略できるキー:
   - `key: "<プロパティ>"` … 一覧を `Record<string, T>` にする(各項目の値のそのプロパティが鍵。重複は読み込み時に例外)
+  - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
   - `ignore: ["<ファイル名>", …]` … 受け口の直下にある、項目でないファイル(proxy の骨組みなど)

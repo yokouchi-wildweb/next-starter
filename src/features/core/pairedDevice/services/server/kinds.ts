@@ -1,6 +1,6 @@
 // src/features/core/pairedDevice/services/server/kinds.ts
 //
-// kind 定義（pairedDeviceKindRegistry）の解決、scope の検証、管理権限の判定。
+// kind 定義（一覧 kinds）の解決、scope の検証、管理権限の判定。
 
 import { and, eq, or, sql, type SQL } from "drizzle-orm";
 
@@ -18,7 +18,7 @@ import type {
 import { isValidScopePattern, scopeContains } from "@/features/core/pairedDevice/utils/scopeContains";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { DomainError } from "@/lib/errors";
-import { pairedDeviceKindRegistry } from "@/registry/pairedDeviceKindRegistry";
+import { kinds } from "@/features/core/pairedDevice/extensions/kinds";
 import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
 
 /**
@@ -45,7 +45,7 @@ export function assertPairedDeviceEnabled(): void {
   }
 }
 
-const registry = pairedDeviceKindRegistry as Record<string, PairedDeviceKindDefinition | undefined>;
+const registry = kinds as Record<string, PairedDeviceKindDefinition | undefined>;
 
 /** 登録済みの kind 定義。未登録は null */
 export function getPairedDeviceKind(kind: string): PairedDeviceKindDefinition | null {

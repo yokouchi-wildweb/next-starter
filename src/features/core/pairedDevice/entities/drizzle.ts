@@ -15,7 +15,7 @@ import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
  * → 失効（revoked_at）で即座に無効。再ペアリングでトークンを差し替える（古いトークンは無効）。
  *
  * 設計ポイント:
- * - kind / scope の語彙と形は downstream が src/registry/pairedDeviceKindRegistry.ts で決める。
+ * - kind / scope の語彙と形は downstream が kinds/<名前>.ts で決める。
  *   アップストリームは scope の中身を解釈しない（scopeSchema で検証するだけ）。
  * - 生トークンは DB に保存しない。token_hash（SHA-256）は hiddenColumns でサービス境界から出さない。
  *   未ペアリング・失効後は token_hash = null。
@@ -28,7 +28,7 @@ export const PairedDeviceTable = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     /** 管理用の表示名（例: "3番テーブル"） */
     label: text("label").notNull(),
-    /** 端末の種類（pairedDeviceKindRegistry のキー） */
+    /** 端末の種類（一覧 kinds の kind） */
     kind: text("kind").notNull(),
     /** 端末の所属（形は kind の scopeSchema。例: { storeId, tableId }） */
     scope: jsonb("scope").$type<unknown>().default({}).notNull(),

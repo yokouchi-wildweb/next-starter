@@ -14,7 +14,7 @@
 
 1. `src/config/app/paired-device.config.ts` の `enabled` を `true` にする
 2. `pnpm db:push`（`paired_devices` / `device_pairings` が作られる。無効の間は作られない）
-3. 端末の種類を `src/registry/pairedDeviceKindRegistry.ts` に登録する（下記）
+3. 端末の種類を `kinds/<名前>.<fork の名前>.ts` に置き `pnpm extensions:generate`（下記）
 
 無効の間は feature-gate が `/api/paired-device/**` `/api/paired-devices/**` を 404 にし、
 `getSessionDevice` は Cookie を読まずに常に null を返す。
@@ -25,33 +25,27 @@
 `scopeSchema` で検証するだけ。登録されていない kind の端末は作れず、認証にも失敗する（fail-closed）。
 
 ```ts
-// src/registry/pairedDeviceKindRegistry.ts
+// src/features/core/pairedDevice/kinds/tableTerminal.<fork の名前>.ts(1 種類 1 ファイル)
 import { z } from "zod";
-import {
-  definePairedDeviceKind,
-  type PairedDeviceKindDefinition,
-} from "@/features/core/pairedDevice/types/kind";
+import { definePairedDeviceKind } from "@/features/core/pairedDevice/types/kind";
 
-export const pairedDeviceKindRegistry = {
-  table_terminal: definePairedDeviceKind({
-    label: "テーブル端末",
-    scopeSchema: z.object({ storeId: z.string().uuid(), tableId: z.string().min(1) }),
-    // 店長は自分の店舗の端末だけ管理できる（省略時は admin カテゴリのロールだけ）
-    manageableScopes: async (user) =>
-      (await storeStaffService.managedStoreIds(user.userId)).map((storeId) => ({ storeId })),
-    // 店舗の回線からのアクセスだけ通す（任意）
-    verify: ({ ip, scope }) => storeNetworkService.isStoreIp(scope.storeId, ip),
-    // 客用端末は 30 日アクセスがなければ無効にする（任意。既定は config の値）
-    idleRevokeDays: 30,
-    // キーボードのない客用端末なので、端末から始めるペアリング（B）も許可する（既定は A だけ）
-    pairingFlows: ["admin_issued", "device_initiated"],
-  }),
-  staff_tablet: definePairedDeviceKind({
-    label: "スタッフ用タブレット",
-    scopeSchema: z.object({ storeId: z.string().uuid() }),
-  }),
-} satisfies Record<string, PairedDeviceKindDefinition<any>>;
+export const kind = definePairedDeviceKind({
+  kind: "table_terminal", // paired_devices.kind の値
+  label: "テーブル端末",
+  scopeSchema: z.object({ storeId: z.string().uuid(), tableId: z.string().min(1) }),
+  // 店長は自分の店舗の端末だけ管理できる（省略時は admin カテゴリのロールだけ）
+  manageableScopes: async (user) =>
+    (await storeStaffService.managedStoreIds(user.userId)).map((storeId) => ({ storeId })),
+  // 店舗の回線からのアクセスだけ通す（任意）
+  verify: ({ ip, scope }) => storeNetworkService.isStoreIp(scope.storeId, ip),
+  // 客用端末は 30 日アクセスがなければ無効にする（任意。既定は config の値）
+  idleRevokeDays: 30,
+  // キーボードのない客用端末なので、端末から始めるペアリング（B）も許可する（既定は A だけ）
+  pairingFlows: ["admin_issued", "device_initiated"],
+});
 ```
+
+`kind` の文字列は一覧の型に残り、`PairedDeviceKind`・`PairedDeviceScopeOf`（`types/kinds.ts`）が導かれる。
 
 | 項目 | 意味 |
 |---|---|

@@ -53,6 +53,10 @@ edit src/features/core/user/reservedNames/*.*.ts  # 表示名の予約名プロ�
 edit src/features/core/user/reservedNames/*.*/**  # フォルダ形
 edit src/features/core/user/cleanupHandlers/*.*.ts  # 退会の後片付け
 edit src/features/core/user/cleanupHandlers/*.*/**  # フォルダ形
+edit src/features/core/interactionTracking/targetRules/*.*.ts  # 計測対象の規則
+edit src/features/core/interactionTracking/targetRules/*.*/**  # フォルダ形
+edit src/features/core/pairedDevice/kinds/*.*.ts  # 登録端末の種類
+edit src/features/core/pairedDevice/kinds/*.*/**  # フォルダ形
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
