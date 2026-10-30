@@ -5,7 +5,7 @@
 > 普段はこれを直接打たず、`pnpm forge`（[`scripts/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
 
 - 対象: `domain.json` を持つドメインのフォルダ。business = `src/features/<domain>/`、core = `src/features/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。`domain.json` の無い core は対象外（手で保守）
-- core の生成の違い: 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）。`src/registry/` の追記（schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry）はしない（schemaRegistry の CORE DOMAINS などは手で。生成時に 1 行で知らせる）。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
+- core の生成の違い: 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）。`src/registry/` の追記（schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry）はしない（一覧は `pnpm registry:generate` が走査で作る。生成時に 1 行で知らせる。ファイルの用途は `src/features/core/storageObject/purposes/` に手で）。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
 - 今ある core の `domain.json` は `generate: false`（手で管理。生成器は何も書かない）
 - `domain.json` は手で書く（対話で組み立てる入口は無い）。書き方の規則は生成前の検査（`checks/`）が止める・警告する
 - 生成元テンプレート: `src/features/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）

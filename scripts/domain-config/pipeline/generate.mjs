@@ -66,7 +66,7 @@ export function narrowTargets(ctx, gen, only, io = console) {
   if (narrowed.registry && ctx.kind === "core") {
     io.log(
       `[${ctx.camel}] core のドメインなので src/registry/ には書きません（domainEntry.ts は書く）。` +
-        `テーブルがあれば src/registry/schemaRegistry.ts の CORE DOMAINS に export * from "@/features/${ctx.camel}/entities/drizzle"; を手で足してください`,
+        `テーブルや domain.json を足したら pnpm registry:generate で一覧を作り直してください`,
     );
   }
   return narrowed;
