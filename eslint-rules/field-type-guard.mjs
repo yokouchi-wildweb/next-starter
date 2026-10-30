@@ -12,8 +12,8 @@
 //       2 つ以上含む配列リテラル（Set の初期値を含む）・switch の case 列。変数名が fieldType でなくても拾う
 // 通すもの: typeof の比較、一般語だけの集合、入力種別（formInput）の名前の集合、表そのもの（src/lib/domain/fields/ は eslint.config.mjs の対象外）
 //
-// 正当な例外は理由付き eslint-disable で明示する。今ある決め打ちは eslint.config.mjs の許可リスト（フォルダ単位、
-// 閉じる条件つき）で通す。対象範囲と強さ（上流リポ = error、fork = warn）は eslint.config.mjs 側で決める。
+// 正当な例外は理由付き eslint-disable で明示する（フォルダ単位の許可リストは無い）。対象範囲と強さ（上流リポ = error、fork = warn）は
+// eslint.config.mjs 側で決める。
 
 import { FIELD_TYPES } from "../src/lib/domain/fields/fieldTypes.mjs";
 import { FORM_INPUT_VALUES } from "../scripts/domain-config/spec/domainJson.mjs";

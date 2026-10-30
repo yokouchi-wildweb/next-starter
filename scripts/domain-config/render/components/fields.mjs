@@ -3,7 +3,7 @@
 // 主の集まりの項目（mediaCollection）には、従属の file の用途・ファイルの条件と集まりの件数を付ける（従属の domain.json から。一方向）
 
 import { getFormRelations } from "../../../../src/lib/domain/relations/relationOptions.mjs";
-import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
+import { collectMediaFields, isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 const RELATION_IMPORTS = `import { useRelationOptions } from "@/lib/domain/hooks";
@@ -37,7 +37,7 @@ export function collectionFieldPatches(config, collectionChildren = new Map()) {
     .map((f) => {
       const child = collectionChildren.get(f.name);
       const childCamel = child?.camel ?? toCamelCase(f.collection.domain);
-      const file = (child?.config?.fields ?? []).find((field) => field.fieldType === "mediaUploader");
+      const file = (child?.config?.fields ?? []).find((field) => isMediaFieldType(field.fieldType));
       const validationRule = {
         ...(typeof file?.validationRule?.maxSizeBytes === "number" ? { maxSizeBytes: file.validationRule.maxSizeBytes } : {}),
         ...(typeof f.collection.maxItems === "number" ? { maxItems: f.collection.maxItems } : {}),

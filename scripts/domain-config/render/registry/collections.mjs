@@ -6,7 +6,7 @@ import path from "node:path";
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToRelations } from "../../domain/relations.mjs";
-import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
+import { isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
 import { resolveCollectionChildren } from "../collections/children.mjs";
 import { file } from "../output.mjs";
 
@@ -15,7 +15,7 @@ function childColumns(ownerConfig, child) {
   const ownerSnake = toSnakeCase(ownerConfig.singular);
   const config = child?.config;
   const toOwner = belongsToRelations(config).find((relation) => toSnakeCase(relation.domain ?? "") === ownerSnake);
-  const media = (config?.fields ?? []).find((field) => field.fieldType === "mediaUploader");
+  const media = (config?.fields ?? []).find((field) => isMediaFieldType(field.fieldType));
   return {
     parent: toOwner?.fieldName ?? `${ownerSnake}_id`,
     value: media?.name ?? "file",

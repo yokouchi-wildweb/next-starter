@@ -1,9 +1,20 @@
 // entities/schema.ts（Zod スキーマ: Base / Create / Update）。formInput: "none" の項目は含めない（"custom" は含める）。
-// 型 → Zod の対応は spec/fieldTypes.mjs の表。メディア列・配列・enum だけここで形を変える
+// 型 → Zod の対応は spec/fieldTypes.mjs の表（zod・text・emailFormat・requiredByRefine・hashOnWrite・datetime）。メディア列・配列・enum・集まりだけここで形を変える
 
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-import { isArrayFieldType, isCollectionFieldType, isTextFieldType, isTimestampFieldType, zodType } from "../../spec/fieldTypes.mjs";
+import {
+  isArrayFieldType,
+  isCollectionFieldType,
+  isEmailFieldType,
+  isEnumFieldType,
+  isHashOnWriteFieldType,
+  isMediaFieldType,
+  isRequiredByRefineFieldType,
+  isTextFieldType,
+  isTimestampFieldType,
+  zodType,
+} from "../../spec/fieldTypes.mjs";
 
 const formatSchemaDefault = (value) => (typeof value === "string" ? `"${value}"` : value);
 
@@ -35,7 +46,7 @@ function collectionLine(uses, { name, label, required, collection }) {
 /** 使った補助関数を記録しながら 1 項目の行を作る */
 function fieldLine(uses, { name, label, type, required, fieldType, defaultValue }) {
   const resolvedLabel = label || name;
-  if (fieldType === "mediaUploader") return mediaLine(uses, { name, label: resolvedLabel, required });
+  if (isMediaFieldType(fieldType)) return mediaLine(uses, { name, label: resolvedLabel, required });
   if (isArrayFieldType(fieldType)) {
     return required ? `  ${name}: ${type}.default([]),` : `  ${name}: ${type}.nullish(),`;
   }
@@ -51,12 +62,12 @@ function fieldLine(uses, { name, label, type, required, fieldType, defaultValue 
   if (required && type.startsWith("z.string()") && isText) {
     segments.push(`.min(1, { message: "${msgLabel}は必須です。" })`);
   }
-  // jsonb の required チェック（z.unknown() は undefined を許容するため refine で制御）
-  if (required && fieldType === "jsonb") {
+  // 必須を refine で確かめる型（jsonb: z.unknown() は undefined を許容する）
+  if (required && isRequiredByRefineFieldType(fieldType)) {
     segments.push(`.refine((v) => v != null, { message: "${msgLabel}は必須です。" })`);
   }
-  if (fieldType === "email") segments.push(".email()");
-  if (!required && fieldType === "email") segments.push(`.or(z.literal(''))`);
+  if (isEmailFieldType(fieldType)) segments.push(".email()");
+  if (!required && isEmailFieldType(fieldType)) segments.push(`.or(z.literal(''))`);
   if (!required) {
     segments.push(".nullish()");
     if (isText) {
@@ -64,7 +75,7 @@ function fieldLine(uses, { name, label, type, required, fieldType, defaultValue 
       segments.push(`\n    .transform((value) => emptyToNull(value))`);
     }
   }
-  if (fieldType === "password") {
+  if (isHashOnWriteFieldType(fieldType)) {
     uses.createHashPreservingNullish = true;
     segments.push(`\n    .transform(async (value) => await createHashPreservingNullish(value))`);
   }
@@ -115,7 +126,7 @@ export function renderSchema(ctx) {
     const fieldName = resolveFieldName(f.name, dbEngine);
     if (isCollectionFieldType(f.fieldType)) {
       lines.push(collectionLine(uses, { name: fieldName, label: f.label || f.name, required: f.required, collection: f.collection }));
-    } else if (f.fieldType === "enum") {
+    } else if (isEnumFieldType(f.fieldType)) {
       const values = (f.options || []).map((o) => `"${o.value}"`).join(", ");
       const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatSchemaDefault(f.defaultValue)})` : "";
       lines.push(`  ${fieldName}: z.enum([${values}])${f.required ? "" : ".nullish()"}${defaultSuffix},`);

@@ -3,7 +3,7 @@
 import path from "node:path";
 import { file } from "../output.mjs";
 import { replaceDomainTokens } from "../tokens.mjs";
-import { COMPONENT_SPECS, componentSpecsFor } from "./catalog.mjs";
+import { componentSpecsFor } from "./catalog.mjs";
 import { resolveCollectionChildren } from "../collections/children.mjs";
 import { generateFieldsFromConfig } from "./fields.mjs";
 import { applyAutoSave, applyDuplicateButton } from "./tweaks.mjs";
@@ -35,12 +35,8 @@ export function renderComponent(ctx, workspace, spec, warn = console.warn) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext} ctx
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
- * @param {string[]} [keys] 生成するコンポーネントの key（省略 = domain.json の設定どおり）
- * @returns {import("../output.mjs").Output[]}
+ * @returns {import("../output.mjs").Output[]} domain.json の設定どおりの部品
  */
-export function renderComponents(ctx, workspace, keys) {
-  const specs = keys
-    ? keys.map((key) => COMPONENT_SPECS.find((spec) => spec.key === key)).filter(Boolean)
-    : componentSpecsFor(ctx.config);
-  return specs.map((spec) => renderComponent(ctx, workspace, spec)).filter(Boolean);
+export function renderComponents(ctx, workspace) {
+  return componentSpecsFor(ctx.config).map((spec) => renderComponent(ctx, workspace, spec)).filter(Boolean);
 }

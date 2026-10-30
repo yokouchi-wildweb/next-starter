@@ -3,7 +3,7 @@
 import { toCamelCase, toPascalCase, toPlural } from "../../../../src/utils/stringCase.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-import { isCollectionFieldType, tsType } from "../../spec/fieldTypes.mjs";
+import { isCollectionFieldType, isEnumFieldType, tsType } from "../../spec/fieldTypes.mjs";
 
 const typeLine = (name, type, required) => `  ${name}: ${required ? type : `${type} | null`};`;
 
@@ -17,7 +17,7 @@ function bodyLines(config, dbEngine) {
   });
   (config.fields || []).forEach((f) => {
     const fieldName = resolveFieldName(f.name, dbEngine);
-    if (f.fieldType === "enum") {
+    if (isEnumFieldType(f.fieldType)) {
       const values = (f.options || []).map((o) => `'${o.value}'`).join(" | ");
       lines.push(typeLine(fieldName, values, f.required));
     } else if (isCollectionFieldType(f.fieldType)) {

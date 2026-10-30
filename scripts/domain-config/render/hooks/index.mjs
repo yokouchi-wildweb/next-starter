@@ -3,7 +3,7 @@
 import path from "node:path";
 import { file } from "../output.mjs";
 import { replaceDomainTokens } from "../tokens.mjs";
-import { HOOK_SPECS, hookSpecsFor } from "./catalog.mjs";
+import { hookSpecsFor } from "./catalog.mjs";
 import { injectViewModalRelations } from "./viewModal.mjs";
 
 /** 1 フック分の Output */
@@ -17,10 +17,8 @@ export function renderHook(ctx, workspace, spec) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext} ctx
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
- * @param {string[]} [keys] 生成するフックの key（省略 = domain.json の設定どおり）
- * @returns {import("../output.mjs").Output[]}
+ * @returns {import("../output.mjs").Output[]} domain.json の設定どおりのフック
  */
-export function renderHooks(ctx, workspace, keys) {
-  const specs = keys ? keys.map((key) => HOOK_SPECS.find((spec) => spec.key === key)).filter(Boolean) : hookSpecsFor(ctx.config);
-  return specs.map((spec) => renderHook(ctx, workspace, spec));
+export function renderHooks(ctx, workspace) {
+  return hookSpecsFor(ctx.config).map((spec) => renderHook(ctx, workspace, spec));
 }

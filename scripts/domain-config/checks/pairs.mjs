@@ -8,6 +8,7 @@ import { belongsToRelations, getOnDeleteBehavior } from "../domain/relations.mjs
 import { parentRule } from "../render/collections/childDomainConfig.mjs";
 import { resolveOperationRule, unionUploadRules } from "../render/registry/storagePurpose/rules.mjs";
 import { toCamelCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { isCollectionFieldType, isMediaFieldType } from "../spec/fieldTypes.mjs";
 import { describeRule, isBroader, isNarrower } from "./accessRules.mjs";
 
 /** 主の集まりの項目に書いてはいけないファイルの条件（従属の file の項目に書く） */
@@ -63,8 +64,8 @@ export function pairIssues({ owner, ownerConfig, field, child, childConfig, doma
   if (childConfig.useSoftDelete === true) errors.push(`${childAt}: useSoftDelete は false にしてください（論理削除の従属は扱いません）`);
 
   // e. メディア項目はちょうど 1 つ（複数・集まりは持たない）
-  const media = fields.filter((f) => f.fieldType === "mediaUploader");
-  const nested = fields.filter((f) => f.fieldType === "mediaCollection");
+  const media = fields.filter((f) => isMediaFieldType(f.fieldType));
+  const nested = fields.filter((f) => isCollectionFieldType(f.fieldType));
   if (media.length !== 1 || nested.length) {
     errors.push(`${childAt}: メディア項目（mediaUploader）はちょうど 1 つで、mediaCollection は持てません（今 mediaUploader ${media.length} / 集まり ${nested.length}）`);
   }

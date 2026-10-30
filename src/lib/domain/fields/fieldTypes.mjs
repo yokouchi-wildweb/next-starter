@@ -10,12 +10,15 @@
 // 型名は小文字化せずにそのまま引く（"timestamp with time zone" は未知型）。
 //
 // 生成器が読む属性:
-//   column    drizzle-orm/pg-core の列関数（無ければ型名そのまま。配列・enum・タイムゾーン付きは生成器が別扱い）
-//   columnMode 列関数の mode（"number" = 読み出しを number にする。DB の列型は変わらない）
+//   column    drizzle-orm/pg-core の列関数（無ければ型名そのまま。配列・enum は生成器が別扱い）
+//   columnOptions 列関数の第 2 引数（mode: "number" = 読み出しを number にする・DB の列型は変わらない | precision / scale = 桁数 |
+//             withTimezone = タイムゾーン付き）。無ければ第 2 引数なし
 //   zod       Zod の式（無ければ z.any()。datetime の型は datetime 属性で決まる）
 //   ts        TS の型（無ければ any）
 //   text      文字列系: Zod で .trim()、必須なら .min(1)、任意なら emptyToNull を通す
 //   emailFormat メールアドレスの形: Zod で .email()、任意なら "" も通す
+//   requiredByRefine Zod の式が値の無いこと（undefined）も通すので、必須は .refine で確かめる
+//   hashOnWrite 保存前にハッシュする（Zod の transform で createHashPreservingNullish）
 //   enumValues 値は項目の options のどれか（Zod は z.enum、TS は値の union、列は生成器が別扱い）
 //   numeric   数値系: 選択肢の値を数値で読む、デフォルト値を数値で読む
 //   media     メディア列（storage binding の対象。1 列 = 1 ファイル。複数は mediaCollection）
@@ -36,21 +39,21 @@
 export const FIELD_TYPES = {
   string: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   email: { column: "text", zod: "z.string()", ts: "string", text: true, emailFormat: true, formDefault: "" },
-  password: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
+  password: { column: "text", zod: "z.string()", ts: "string", text: true, hashOnWrite: true, formDefault: "" },
   uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true, noDefault: true, formDefault: "" },
   integer: { importValue: "number", column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   number: { importValue: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   float: { importValue: "number", column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
-  bigint: { importValue: "number", column: "bigint", columnMode: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, formDefault: undefined },
-  "numeric(10,2)": { importValue: "number", column: "numeric", columnMode: "number", zod: "z.coerce.number()", ts: "number", numeric: true, formDefault: undefined },
+  bigint: { importValue: "number", column: "bigint", columnOptions: { mode: "number" }, zod: "z.coerce.number().int()", ts: "number", numeric: true, formDefault: undefined },
+  "numeric(10,2)": { importValue: "number", column: "numeric", columnOptions: { precision: 10, scale: 2, mode: "number" }, zod: "z.coerce.number()", ts: "number", numeric: true, formDefault: undefined },
   boolean: { column: "boolean", zod: "z.coerce.boolean()", ts: "boolean", presenter: "boolean", formDefault: false, formDefaultWithChoices: undefined },
   date: { importValue: "date", column: "date", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   time: { importValue: "time", column: "time", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   timestamp: { importValue: "date", datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
-  "timestamp With Time Zone": { importValue: "date", column: "timestamp", datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
+  "timestamp With Time Zone": { importValue: "date", column: "timestamp", columnOptions: { withTimezone: true }, datetime: true, ts: "Date", noDefault: true, formDefault: undefined },
   // jsonb / map は値なし。schema の .default() や DB の既定値に任せる（"" だと record / object の schema で落ちる）
-  jsonb: { column: "jsonb", zod: "z.unknown()", ts: "any", noDefault: true, formDefault: undefined },
+  jsonb: { column: "jsonb", zod: "z.unknown()", ts: "any", requiredByRefine: true, noDefault: true, formDefault: undefined },
   array: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
   stringArray: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
   enum: { presenter: "enum", enumValues: true, formDefault: undefined },
@@ -88,9 +91,16 @@ export function columnFunction(fieldType) {
   return spec(fieldType).column ?? fieldType;
 }
 
-/** 列関数の mode（無ければ undefined） */
-export function columnMode(fieldType) {
-  return spec(fieldType).columnMode;
+/**
+ * 列関数の第 2 引数の式（例: `{ precision: 10, scale: 2, mode: "number" }`。無ければ undefined）
+ * @param {string | undefined} fieldType
+ * @returns {string | undefined}
+ */
+export function columnOptionsLiteral(fieldType) {
+  const options = spec(fieldType).columnOptions;
+  if (!options) return undefined;
+  const entries = Object.entries(options).map(([key, value]) => `${key}: ${typeof value === "string" ? `"${value}"` : value}`);
+  return `{ ${entries.join(", ")} }`;
 }
 
 /** Zod の式。datetime は required で分ける（未知の型は z.any()） */
@@ -110,6 +120,10 @@ export const isTextFieldType = (fieldType) => Boolean(spec(fieldType).text);
 export const isEnumFieldType = (fieldType) => Boolean(spec(fieldType).enumValues);
 /** @param {string | undefined} fieldType */
 export const isEmailFieldType = (fieldType) => Boolean(spec(fieldType).emailFormat);
+/** 必須を .refine で確かめる型（Zod の式が undefined も通す） @param {string | undefined} fieldType */
+export const isRequiredByRefineFieldType = (fieldType) => Boolean(spec(fieldType).requiredByRefine);
+/** 保存前にハッシュする型 @param {string | undefined} fieldType */
+export const isHashOnWriteFieldType = (fieldType) => Boolean(spec(fieldType).hashOnWrite);
 /** @param {string | undefined} fieldType */
 export const isNumericFieldType = (fieldType) => Boolean(spec(fieldType).numeric);
 /** @param {string | undefined} fieldType */

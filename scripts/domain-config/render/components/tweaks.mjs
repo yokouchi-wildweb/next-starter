@@ -1,5 +1,7 @@
 // components/ テンプレートのうち、domain.json の設定で本文が変わるもの: 編集フォームのオートセーブ、一覧テーブルの複製ボタン
 
+import { tsType } from "../../spec/fieldTypes.mjs";
+
 /** Edit__Domain__Form.tsx: useAutoSave なら import・フック・props を差し込む（トークン置換の前に行う） */
 export function applyAutoSave(content, config) {
   if (!(config?.useAutoSave ?? false)) return content;
@@ -20,9 +22,9 @@ export function applyDuplicateButton(content, config) {
   if (!(config?.useDuplicateButton ?? false)) {
     return content.replace(/__DUPLICATE_IMPORT__/g, "").replace(/__DUPLICATE_BUTTON__/g, "");
   }
-  // string 型の name フィールドを持つドメインでは、複製確認時に名前を編集できるよう currentName を渡す
+  // 値が文字列の型（表の ts が string）の name フィールドを持つドメインでは、複製確認時に名前を編集できるよう currentName を渡す
   // （name が無いドメインで d.name を参照すると型エラーになるため条件付き）。非必須の name は string | null なので undefined に変換する
-  const nameField = (config?.fields ?? []).find((f) => f.name === "name" && f.fieldType === "string");
+  const nameField = (config?.fields ?? []).find((f) => f.name === "name" && tsType(f.fieldType) === "string");
   const currentNameAttr = nameField ? (nameField.required ? " currentName={d.name}" : " currentName={d.name ?? undefined}") : "";
   const duplicateImport = `import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud/components";\n`;
   const duplicateButton = `<DuplicateButton domain={__domain__Display} id={d.id}${currentNameAttr} />\n        `;

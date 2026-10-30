@@ -1,14 +1,14 @@
 // entities/drizzle.ts の列定義（id と fields）。belongsTo の外部キー列は foreignKeys.mjs、中間テーブルは junction.mjs。
-// 型 → 列関数の対応は spec/fieldTypes.mjs の表（配列・enum・タイムゾーン付きだけここで形を変える）
+// 型 → 列関数と第 2 引数の対応は spec/fieldTypes.mjs の表（配列・enum だけここで形を変える）
 
 import { toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
 import { enumNames } from "../../../domain/names.mjs";
-import { columnFunction, columnMode, isArrayFieldType, isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
+import { columnFunction, columnOptionsLiteral, isArrayFieldType, isCollectionFieldType, isEnumFieldType } from "../../../spec/fieldTypes.mjs";
 
-/** 列関数の呼び出し。mode は型の表の columnMode（bigint・numeric(10,2) = number） */
+/** 列関数の呼び出し。第 2 引数は型の表の columnOptions（mode・precision / scale・withTimezone） */
 export function buildColumn(typeFn, columnName, fieldType) {
-  const mode = columnMode(fieldType);
-  if (mode) return `${typeFn}("${columnName}", { mode: "${mode}" })`;
+  const options = columnOptionsLiteral(fieldType);
+  if (options) return `${typeFn}("${columnName}", ${options})`;
   return `${typeFn}("${columnName}")`;
 }
 
@@ -57,7 +57,7 @@ export function fieldColumns(ctx, imports) {
     if (isCollectionFieldType(f.fieldType)) return;
     const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatValue(f.defaultValue)})` : "";
 
-    if (f.fieldType === "enum") {
+    if (isEnumFieldType(f.fieldType)) {
       imports.add("pgEnum");
       const names = enumNames(camel, pascal, f.name);
       const values = f.options ? f.options.map((o) => formatValue(o.value)).join(", ") : "";
@@ -67,11 +67,6 @@ export function fieldColumns(ctx, imports) {
     } else if (isArrayFieldType(f.fieldType)) {
       imports.add("text");
       lines.push(arrayColumn(f.name, f.required));
-    } else if (f.fieldType === "timestamp With Time Zone") {
-      imports.add("timestamp");
-      let column = `timestamp("${toSnakeCase(f.name)}", { withTimezone: true })`;
-      if (f.required) column += ".notNull()";
-      lines.push(`  ${f.name}: ${column},`);
     } else {
       const typeFn = columnFunction(f.fieldType);
       imports.add(typeFn);

@@ -1,7 +1,6 @@
 // 生成カテゴリ serverServices: services/server/{drizzleBase|firestoreBase}.ts（毎回）、<domain>Service.ts（write-once）、wrappers/.gitkeep
 //
-// <domain>Service.ts はラッパーや独自処理を組み込む手書きの場所なので再生成で上書きしない。
-// overwriteService のときだけ上書きする（それを渡していた dc:generate:service は廃止。作り直すときはファイルを消してから生成する）
+// <domain>Service.ts はラッパーや独自処理を組み込む手書きの場所なので再生成で上書きしない（作り直すときはファイルを消してから生成する）
 
 import path from "node:path";
 import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
@@ -35,13 +34,9 @@ function legacyDuplicateWarning(ctx, serviceFileName) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext} ctx
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
- * @param {{ targets?: { base?: boolean, service?: boolean }, overwriteService?: boolean }} [options] targets 未指定 = 両方
  * @returns {import("../output.mjs").Output[]}
  */
-export function renderServerServices(ctx, workspace, options = {}) {
-  const { targets, overwriteService = false } = options;
-  const generateBase = targets?.base ?? true;
-  const generateService = targets?.service ?? true;
+export function renderServerServices(ctx, workspace) {
   const { config, camel, pascal, dbEngine } = ctx;
 
   const composed = config ? composeServiceOptions(workspace, config, pascal, camel) : null;
@@ -73,28 +68,21 @@ export function renderServerServices(ctx, workspace, options = {}) {
   // wrappers/ が無ければ作って .gitkeep を置く（あれば中身に触らない）
   const outputs = [dir(path.join(outputDir, "wrappers"), { keepFile: ".gitkeep" })];
 
-  if (generateBase) {
-    let content = replaceTokens(workspace.readTemplate("services", "server", baseFile));
-    // 全フィールドが formInput: "none" の場合、parse / satisfies を除去
-    if (isEmptyCreateSchema) {
-      content = baseFile === "drizzleBase.ts" ? stripDrizzleBaseForEmptySchema(content) : stripFirestoreBaseForEmptySchema(content);
-    }
-    outputs.push(file(path.join(outputDir, baseFile), content, { label: "サーバーサービスを生成しました" }));
+  let baseContent = replaceTokens(workspace.readTemplate("services", "server", baseFile));
+  // 全フィールドが formInput: "none" の場合、parse / satisfies を除去
+  if (isEmptyCreateSchema) {
+    baseContent = baseFile === "drizzleBase.ts" ? stripDrizzleBaseForEmptySchema(baseContent) : stripFirestoreBaseForEmptySchema(baseContent);
   }
+  outputs.push(file(path.join(outputDir, baseFile), baseContent, { label: "サーバーサービスを生成しました" }));
 
-  if (generateService) {
-    const serviceFileName = `${camel}Service.ts`;
-    const content = replaceTokens(workspace.readTemplate("services", "server", "__domain__Service.ts"));
-    const servicePath = path.join(outputDir, serviceFileName);
-    outputs.push(
-      overwriteService
-        ? file(servicePath, content, { label: "サーバーサービスを生成しました" })
-        : writeOnce(servicePath, content, {
-            label: "サーバーサービスを生成しました",
-            keptLabel: "既存のため生成しません（書き捨て）",
-            warnOnKeep: mediaFields.length > 0 ? legacyDuplicateWarning(ctx, serviceFileName) : undefined,
-          }),
-    );
-  }
+  const serviceFileName = `${camel}Service.ts`;
+  const serviceContent = replaceTokens(workspace.readTemplate("services", "server", "__domain__Service.ts"));
+  outputs.push(
+    writeOnce(path.join(outputDir, serviceFileName), serviceContent, {
+      label: "サーバーサービスを生成しました",
+      keptLabel: "既存のため生成しません（書き捨て）",
+      warnOnKeep: mediaFields.length > 0 ? legacyDuplicateWarning(ctx, serviceFileName) : undefined,
+    }),
+  );
   return outputs;
 }
