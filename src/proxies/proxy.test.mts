@@ -4,6 +4,7 @@
 // - maintenance: メンテ中は bypass ロール(admin・debugger)だけ通す。停止中の管理者は ctx.user() が null なので入れない。許可パスは通す
 // - demoMode: 有効時はデモ利用者だけ通す
 // - redirect: guestOnly / authedOnly / allowRoles の判定。規則に当たらない住所では ctx.user() を呼ばない
+// - 枠: 生成一覧の handler・decorator は骨組みの後で同じ ctx を受けて走り、骨組みが Response を返したら走らない
 // 実行: pnpm test:proxy
 
 import assert from "node:assert/strict";
@@ -38,6 +39,31 @@ mock.module(srcUrl("config/app/redirect.config.ts"), {
   },
 });
 
+// 枠の生成一覧を stub に(項目 1 つずつ。走った順と受けた ctx を記録)
+const frameLog: string[] = [];
+let seenCtx: unknown = null;
+mock.module(srcUrl("proxies/extensions/handlers.ts"), {
+  namedExports: {
+    extensionHandlers: [
+      async (_request: unknown, ctx: ProxyContext) => {
+        frameLog.push("extension-handler");
+        seenCtx = ctx;
+        return undefined;
+      },
+    ],
+  },
+});
+mock.module(srcUrl("proxies/extensions/decorators.ts"), {
+  namedExports: {
+    extensionDecorators: [
+      (_request: unknown, _response: unknown, ctx: ProxyContext) => {
+        frameLog.push("extension-decorator");
+        assert.equal(ctx, seenCtx, "handler と decorator は同じ ctx を受ける");
+      },
+    ],
+  },
+});
+
 let createProxyUser: typeof import("@/features/core/auth/services/server/proxyUserDeps").createProxyUser;
 let maintenanceProxy: ProxyHandler;
 let demoModeProxy: ProxyHandler;
@@ -47,7 +73,9 @@ before(async () => {
   ({ maintenanceProxy } = await import("./maintenance"));
   ({ demoModeProxy } = await import("./demoMode"));
   ({ redirectProxy } = await import("./redirect"));
+  ({ default: proxy } = await import("../proxy"));
 });
+let proxy: (request: NextRequest) => Promise<Response>;
 
 const user = (role: string, extra: Partial<SessionUser> = {}): SessionUser =>
   ({ userId: `${role}-1`, role, status: "active", isDemo: false, providerType: "email", providerUid: "x", name: role, ...extra }) as SessionUser;
@@ -140,4 +168,21 @@ test("redirect: guestOnly・authedOnly・allowRoles の判定、規則に当た�
   const miss = ctxOf(user("admin"));
   assert.equal(location(await redirectProxy(req("/nothing-here"), miss.ctx)), "pass");
   assert.equal(miss.calls.count, 0);
+});
+
+test("枠: 生成一覧の項目は骨組みの後で走り、同じ ctx を受ける。骨組みが止めたら走らない", async () => {
+  maintenanceActive = false;
+  frameLog.length = 0;
+  // demoMode のモックは有効なので、その許可接頭(/api)の住所で骨組みを素通りさせる
+  const res = await proxy(req("/api/ping"));
+  assert.equal(res.status, 200);
+  assert.deepEqual(frameLog, ["extension-handler", "extension-decorator"]);
+  assert.equal(typeof (seenCtx as ProxyContext).user, "function");
+
+  // メンテ中・未ログイン → maintenance が redirect を返し、枠は走らない
+  maintenanceActive = true;
+  frameLog.length = 0;
+  const blocked = await proxy(req("/some/page"));
+  assert.equal(location(blocked), "/maintenance");
+  assert.deepEqual(frameLog, []);
 });

@@ -19,7 +19,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
+import { parseForkDotName, readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const srcDir = join(repoRoot, "src");
@@ -85,8 +85,7 @@ function isAllowedImporter(relPath) {
 
 /** fork のドット名 `<名前>[.client].<fork ID>.ts(x)` なら fork ID、違えば null */
 export function forkIdOfWiringFile(name) {
-  const m = /^[A-Za-z][A-Za-z0-9]*(?:\.client)?\.([A-Za-z0-9_-]+)\.tsx?$/.exec(name);
-  return m ? m[1] : null;
+  return parseForkDotName(name, { infixes: ["client"] })?.forkId ?? null;
 }
 
 /**

@@ -55,3 +55,18 @@ export function readDeclaredForkIds(repoRoot) {
   const all = [...(own ? [own] : []), ...inherited];
   return { own, inherited, all, errors };
 }
+
+/**
+ * fork のドット名 `<名前>[.<中置き>].<fork ID>.<拡張子>` を読む(src/wiring・src/proxies などの「fork はファイルを足すだけ」の置き場)。
+ * 名前は英字始まりの英数字、fork ID は FORK_ID_PATTERN(ドットなし)。印の無い `<名前>.<拡張子>` は fork のファイルではない(null)
+ * @param {string} fileName ファイル名(ディレクトリを含まない)
+ * @param {{ infixes?: string[], extensions?: string[] }} [options] infixes = 名前と fork ID の間に置ける語(例 "client")、extensions = 受ける拡張子
+ * @returns {{ name: string, infix: string | null, forkId: string } | null}
+ */
+export function parseForkDotName(fileName, { infixes = [], extensions = ["ts", "tsx"] } = {}) {
+  const ext = extensions.map((e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const infix = infixes.length > 0 ? `(?:\\.(${infixes.join("|")}))?` : "()";
+  const m = new RegExp(`^([A-Za-z][A-Za-z0-9]*)${infix}\\.([A-Za-z0-9_-]+)\\.(?:${ext})$`).exec(fileName);
+  if (!m) return null;
+  return { name: m[1], infix: m[2] || null, forkId: m[3] };
+}
