@@ -461,3 +461,294 @@ export function checkLoaderFile(source, options) {
   }
   return problems;
 }
+
+// ---------------------------------------------------------------------------
+// 守りの鎖の解析(ルート地図の verified と test:screens の D21 が共有する。字面だけを読む)
+// page.tsx → 採用 Screen → 同じルートの loader → 最寄りの guard.ts → extend の親 → root(defineRootGuard)
+// ---------------------------------------------------------------------------
+
+/**
+ * JS のリテラル(オブジェクト・配列・文字列・数値・真偽・null)を読む小さな解析器。
+ * 識別子・呼び出し・スプレッド等の字面で読めない値は `{ expr: "<元の字面>" }` として返す(呼び手が可否を決める)。
+ * @param {string} text
+ * @returns {unknown}
+ */
+export function parseLiteral(text) {
+  let i = 0;
+  const src = text;
+  const ws = () => {
+    while (i < src.length && /\s/.test(src[i])) i += 1;
+  };
+  const expr = (start) => {
+    // 値の終わり(同じ深さの , } ])まで読み、字面のまま返す
+    let depth = 0;
+    let quote = null;
+    for (; i < src.length; i += 1) {
+      const ch = src[i];
+      if (quote) {
+        if (ch === "\\") i += 1;
+        else if (ch === quote) quote = null;
+        continue;
+      }
+      if (ch === '"' || ch === "'" || ch === "`") quote = ch;
+      else if ("([{".includes(ch)) depth += 1;
+      else if (")]}".includes(ch)) {
+        if (depth === 0) break;
+        depth -= 1;
+      } else if (ch === "," && depth === 0) break;
+    }
+    return { expr: src.slice(start, i).trim() };
+  };
+  const value = () => {
+    ws();
+    const start = i;
+    const ch = src[i];
+    if (ch === "{") {
+      i += 1;
+      const obj = {};
+      for (;;) {
+        ws();
+        if (src[i] === "}") {
+          i += 1;
+          return obj;
+        }
+        if (src.startsWith("...", i)) return { expr: (i = start, expr(start)).expr };
+        const km = /^(?:"([^"]*)"|'([^']*)'|([A-Za-z_$][\w$]*))\s*:/.exec(src.slice(i));
+        if (!km) {
+          i = start;
+          return expr(start);
+        }
+        i += km[0].length;
+        obj[km[1] ?? km[2] ?? km[3]] = value();
+        ws();
+        if (src[i] === ",") i += 1;
+      }
+    }
+    if (ch === "[") {
+      i += 1;
+      const arr = [];
+      for (;;) {
+        ws();
+        if (src[i] === "]") {
+          i += 1;
+          return arr;
+        }
+        arr.push(value());
+        ws();
+        if (src[i] === ",") i += 1;
+      }
+    }
+    const sm = /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/.exec(src.slice(i));
+    if (sm) {
+      i += sm[0].length;
+      ws();
+      if (i < src.length && !",}]".includes(src[i])) {
+        i = start;
+        return expr(start);
+      }
+      return (sm[1] ?? sm[2]).replace(/\\(.)/g, "$1");
+    }
+    const lm = /^(true|false|null|-?\d+(?:\.\d+)?)(?![\w$])/.exec(src.slice(i));
+    if (lm) {
+      const save = i;
+      i += lm[0].length;
+      ws();
+      if (i >= src.length || ",}]".includes(src[i])) return JSON.parse(lm[1]);
+      i = save;
+    }
+    return expr(start);
+  };
+  const result = value();
+  return result;
+}
+
+/** parseLiteral の結果に字面で読めない値(`{ expr }`)が含まれるか */
+export function hasExpression(value) {
+  if (value && typeof value === "object") {
+    if (!Array.isArray(value) && Object.keys(value).length === 1 && typeof value.expr === "string") return true;
+    return Object.values(value).some(hasExpression);
+  }
+  return false;
+}
+
+/** `name(` の直後の最初の引数の字面(括弧の釣り合いで切る)。見つからなければ null */
+function firstCallArgument(src, name) {
+  const m = new RegExp(`\\b${name}\\s*(?:<[^()]*>)?\\(`).exec(src);
+  if (!m) return null;
+  const open = m.index + m[0].length - 1;
+  const end = findBalancedEnd(src, open, "(", ")");
+  if (end < 0) return null;
+  // 括弧の中の全文と、最初の引数をリテラルとして読んだ値
+  const inner = src.slice(open + 1, end);
+  return { text: inner.trim(), value: parseLiteral(inner) };
+}
+
+/** 名前付き import の import 元(`import { a, b as c } from "x"` の a / c)を探す。無ければ null */
+function namedImportSource(src, localName) {
+  for (const m of src.matchAll(/import\s+(?!type\b)\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)) {
+    const names = m[1].split(",").map((s) => s.trim()).filter(Boolean);
+    for (const n of names) {
+      const parts = n.replace(/^type\s+/, "").split(/\s+as\s+/);
+      const local = (parts[1] ?? parts[0]).trim();
+      if (local === localName && !/^type\s/.test(n)) return { source: m[2], imported: parts[0].trim() };
+    }
+  }
+  return null;
+}
+
+/** import 元(`@/...` / 相対)を repo 相対のファイルに解決する(fileSet で .ts / .tsx / index を探す)。見つからなければ null */
+export function resolveImportFile(fromFile, source, fileSet) {
+  let base;
+  if (source.startsWith("@/")) base = `src/${source.slice(2)}`;
+  else if (/^\.\.?\//.test(source)) base = resolveRelative(fromFile, source);
+  else return null;
+  return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find((c) => fileSet.has(c)) ?? null;
+}
+
+/** 管理画面の共通部品の組(src/wiring/domains.ts)と、それぞれが serviceRegistry から解く操作 */
+export const ADMIN_PARTS_OPERATIONS = {
+  adminListParts: "search",
+  adminEditParts: "get",
+  adminCreateParts: "create",
+  adminSortParts: "searchForSorting",
+};
+
+/**
+ * D21: Screen が同じルートの loader を import し、Screen 本体の最上位で await しているか。
+ * @param {string} source Screen ファイル
+ * @param {string} name Screen の名前(named export)
+ * @returns {{ problems: string[], loaderName: string | null, loaderImport: string | null }}
+ */
+export function checkScreenLoaderCall(source, name) {
+  const src = stripComments(source);
+  // 同じルートの loader: Screen と同じフォルダの ./loader か、_components の差し替え Screen から ../_screen/loader・../_components/loader
+  const imp = /import\s*\{([^}]*)\}\s*from\s*["'](\.\/loader|\.\.\/_screen\/loader|\.\.\/_components\/loader)["']/.exec(src);
+  const loaderNames = imp
+    ? imp[1].split(",").map((s) => s.trim()).filter((s) => /^load[A-Z]\w*$/.test(s))
+    : [];
+  if (loaderNames.length === 0) return { problems: ["同じルートの loader(./loader の load<Name>)を import していない"], loaderName: null, loaderImport: null };
+  const fm = new RegExp(`export\\s+(?:async\\s+)?function\\s+${name}\\s*\\(`).exec(src)
+    ?? new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(?:async\\s*)?\\(`).exec(src);
+  if (!fm) return { problems: [`${name} の関数本体が読めない(export function / export const = (…) => の形にする)`], loaderName: null, loaderImport: null };
+  const paramsEnd = findBalancedEnd(src, fm.index + fm[0].length - 1, "(", ")");
+  const bodyOpen = paramsEnd < 0 ? -1 : src.indexOf("{", paramsEnd);
+  if (bodyOpen < 0) return { problems: [`${name} の関数本体が読めない`], loaderName: null, loaderImport: null };
+  // 本体の最上位(深さ 0)の文を、最上位の最初の return まで集める(if / try / コールバックの中の await は数えない)。
+  // return 以降(JSX)は読まない: JSX のテキストの引用符で括弧の釣り合いが崩れるため。loader の await は return より前に置く
+  let depth = 0;
+  let top = "";
+  let quote = null;
+  for (let i = bodyOpen + 1; i < src.length; i += 1) {
+    const ch = src[i];
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = null;
+      if (depth === 0) top += " ";
+      continue;
+    }
+    if (depth === 0 && /^return\b/.test(src.slice(i, i + 7)) && /[\s;{}]/.test(src[i - 1])) break;
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      if (depth === 0) top += " ";
+      continue;
+    }
+    if ("({[".includes(ch)) {
+      if (depth === 0) top += ch;
+      depth += 1;
+      continue;
+    }
+    if (")}]".includes(ch)) {
+      if (depth === 0) break; // 本体の終わり
+      depth -= 1;
+      if (depth === 0) top += ch;
+      continue;
+    }
+    if (depth === 0) top += ch;
+  }
+  const called = loaderNames.find((loader) =>
+    new RegExp(`(^|[;\\n])\\s*(?:(?:const|let)\\s+[^=;]+=\\s*)?await\\s+${loader}\\s*\\(`).test(top),
+  );
+  if (!called) {
+    return { problems: [`${name} の本体の最上位で await ${loaderNames[0]}(props) を呼んでいない(条件分岐・try・コールバックの中は不可)`], loaderName: null, loaderImport: imp[2] };
+  }
+  return { problems: [], loaderName: called, loaderImport: imp[2] };
+}
+
+/**
+ * loader の createLoader の import 元と access を読む。
+ * access はオブジェクトの access の字面、または管理画面の共通部品の組(registry:<domain>.<operation>)。
+ * @returns {{ problems: string[], guardImport: string | null, access: unknown, allowStatuses: unknown }}
+ */
+export function parseLoaderGuard(source) {
+  const src = stripComments(source);
+  const imp = namedImportSource(src, "createLoader");
+  if (!imp || imp.imported !== "createLoader") {
+    return { problems: ["guard.ts の createLoader を import していない(loader は最寄りの guard.ts の createLoader で作る)"], guardImport: null, access: null, allowStatuses: null };
+  }
+  const arg = firstCallArgument(src, "createLoader");
+  if (!arg) return { problems: ["createLoader(…) の呼び出しが読めない"], guardImport: imp.source, access: null, allowStatuses: null };
+  const partsCall = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/.exec(arg.text);
+  if (partsCall) {
+    const parts = namedImportSource(src, partsCall[1]);
+    if (!parts || parts.source !== "@/wiring/domains") {
+      return { problems: [`${partsCall[1]} を @/wiring/domains から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
+    }
+    return {
+      problems: [],
+      guardImport: imp.source,
+      access: { registry: `${partsCall[2]}.${ADMIN_PARTS_OPERATIONS[partsCall[1]]}` },
+      allowStatuses: null,
+    };
+  }
+  const config = arg.value;
+  if (!config || typeof config !== "object" || Array.isArray(config) || "expr" in config) {
+    return { problems: ["createLoader の引数が字面のオブジェクトでない({ access, … } か管理画面の組 admin*Parts(…))"], guardImport: imp.source, access: null, allowStatuses: null };
+  }
+  if (!("access" in config)) return { problems: ["createLoader に access が無い"], guardImport: imp.source, access: null, allowStatuses: null };
+  if (hasExpression(config.access)) {
+    return { problems: [`access が字面で読めない(${JSON.stringify(config.access)})`], guardImport: imp.source, access: null, allowStatuses: null };
+  }
+  return { problems: [], guardImport: imp.source, access: config.access, allowStatuses: config.allowStatuses ?? null };
+}
+
+/** guard.ts の方針として地図に載せるキー(この順で出す) */
+export const GUARD_POLICY_KEYS = ["access", "allowStatuses", "redirectTo", "forbiddenRedirectTo", "returnBack", "statusRedirects", "setupRedirectTo"];
+
+/**
+ * guard.ts を読む: root(@/wiring/pageGuard の defineRootGuard)か、親の extend を import して呼ぶ子か。
+ * @returns {{ problems: string[], root: boolean, parentImport: string | null, policy: Record<string, unknown> | null }}
+ */
+export function parseGuardFile(source) {
+  const src = stripComments(source);
+  const exportsAll = /export\s+const\s*\{\s*guard\s*,\s*createLoader\s*,\s*extend\s*\}\s*=/.test(src);
+  const problems = exportsAll ? [] : ["guard.ts は `export const { guard, createLoader, extend } = …` の形にする"];
+  const root = namedImportSource(src, "defineRootGuard");
+  let parentImport = null;
+  let callee;
+  if (root) {
+    if (root.source !== "@/wiring/pageGuard") problems.push("defineRootGuard は @/wiring/pageGuard から import する");
+    callee = "defineRootGuard";
+  } else {
+    const ext = [...src.matchAll(/import\s*\{\s*extend(?:\s+as\s+([\w$]+))?\s*\}\s*from\s*["']([^"']+)["']/g)][0];
+    if (!ext) return { problems: [...problems, "親の guard.ts の extend を import していない(root 以外は親の extend で作る)"], root: false, parentImport: null, policy: null };
+    parentImport = ext[2];
+    callee = ext[1] ?? "extend";
+  }
+  const arg = firstCallArgument(src, callee);
+  const policy = arg?.value;
+  if (!policy || typeof policy !== "object" || Array.isArray(policy) || "expr" in policy) {
+    return { problems: [...problems, `${callee}(…) の方針が字面のオブジェクトでない`], root: Boolean(root), parentImport, policy: null };
+  }
+  if (hasExpression(policy)) problems.push(`方針に字面で読めない値がある(${JSON.stringify(policy)})`);
+  const ordered = {};
+  for (const key of GUARD_POLICY_KEYS) if (key in policy) ordered[key] = policy[key];
+  for (const key of Object.keys(policy)) if (!GUARD_POLICY_KEYS.includes(key)) problems.push(`方針の未知のキー ${key}`);
+  return { problems, root: Boolean(root), parentImport, policy: ordered };
+}
+
+/** layout(か 1 行スイッチ先)が `guard()` を呼んでいるか(`./guard` から import して await) */
+export function layoutCallsGuard(source) {
+  const src = stripComments(source);
+  const imp = namedImportSource(src, "guard");
+  return Boolean(imp && imp.source === "./guard" && /\bawait\s+guard\s*\(\s*\)/.test(src));
+}

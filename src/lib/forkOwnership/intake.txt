@@ -64,7 +64,7 @@ generated src/registry/serviceRegistry.ts  # pnpm registry:generate
 generated src/registry/profileBaseRegistry.ts  # pnpm role:generate
 generated src/registry/profileSchemaRegistry.ts  # pnpm role:generate
 generated src/registry/profileTableRegistry.ts  # pnpm role:generate
-generated src/app/route-map.txt  # pnpm routes:map
+generated src/app/route-map.jsonl  # pnpm routes:map
 generated vercel.json  # pnpm cron:generate(upstream には無い)
 generated src/styles/_base/gradient.css  # scripts/styles/generate-gradient-css.ts
 generated src/features/core/mail/constants/colors.ts  # scripts/mail/generate-colors.ts

@@ -1,4 +1,5 @@
-// ルート地図(M1)の生成器のテストと、コミットされた地図のずれ検査。
+// ルート地図(src/app/route-map.jsonl)の生成器のテストと、コミットされた地図のずれ検査。
+// 鎖(page → Screen → loader → 最寄りの guard.ts → 親 → root)を字面で辿れる行だけが verified、読めない鎖は problems(生成失敗)。
 // 実行: pnpm test:route-map (node:test)
 //
 // fixture はテストの中で仮想のファイル木として組み立てる(ディスクに page.tsx を置くと tsc・next・test:screens が拾うため)。
@@ -9,16 +10,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  ROUTE_MAP_FILE,
-  ROUTE_STATE_LEGACY,
-  argsHash,
-  buildRouteMap,
-  extractGuardCalls,
-  formatRouteMap,
-  formatSources,
-  normalizeArgs,
-} from "./routeMap.mjs";
+import { ROUTE_MAP_FILE, ROUTE_STATE_VERIFIED, buildRouteMap, findNearestGuard, formatRouteMap } from "./routeMap.mjs";
+import { parseLiteral } from "./checks.mjs";
 import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
 import { featureGateRules } from "../../config/app/feature-gate.config.ts";
 
@@ -30,12 +23,51 @@ function tree(entries) {
   return { files, read: (path) => entries[path] ?? "" };
 }
 
-const PAGE = `export { XScreen as default } from "./_screen/XScreen";`;
-const guardLayout = (args) => `import { authGuard } from "@/features/core/auth/services/server/authorization";
+// 正常な鎖の部品(仮想のファイル木)
+const page = (name) => `export { ${name} as default } from "./_screen/${name}";`;
+const screen = (name, loader) => `import type { ScreenProps } from "@/lib/screens/types";
+import { ${loader} } from "./loader";
+
+export async function ${name}(props: ScreenProps) {
+  const data = await ${loader}(props);
+  return <div>{"it's" + JSON.stringify(data)}</div>;
+}`;
+const loader = (name, guardPath, access) => `import "server-only";
+import { createLoader } from "${guardPath}";
+
+export const ${name} = createLoader({
+  access: ${access},
+  load: async () => ({}),
+});`;
+const ROOT_GUARD = `import "server-only";
+import { defineRootGuard } from "@/wiring/pageGuard";
+
+export const { guard, createLoader, extend } = defineRootGuard({ access: "public" });`;
+const childGuard = (parentPath, policy) => `import "server-only";
+import { extend as extendParent } from "${parentPath}";
+
+export const { guard, createLoader, extend } = extendParent(${policy});`;
+const GUARD_LAYOUT = `import { guard } from "./guard";
 export default async function L({ children }) {
-  await authGuard(${args});
+  await guard();
   return <>{children}</>;
 }`;
+
+/** /x(root の public)と /admin/y(admin 範囲)のページを持つ正常な木 */
+function healthyTree(overrides = {}) {
+  return tree({
+    "src/app/guard.ts": ROOT_GUARD,
+    "src/app/x/page.tsx": page("XScreen"),
+    "src/app/x/_screen/XScreen.tsx": screen("XScreen", "loadXScreen"),
+    "src/app/x/_screen/loader.ts": loader("loadXScreen", "@/app/guard", `"public"`),
+    "src/app/admin/guard.ts": childGuard("@/app/guard", `{ access: { roleCategories: ["admin"] }, redirectTo: "/admin/login" }`),
+    "src/app/admin/layout.tsx": GUARD_LAYOUT,
+    "src/app/admin/y/page.tsx": page("YScreen"),
+    "src/app/admin/y/_screen/YScreen.tsx": screen("YScreen", "loadYScreen"),
+    "src/app/admin/y/_screen/loader.ts": loader("loadYScreen", "../../guard", `{ roles: ["admin"] }`),
+    ...overrides,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // 発見(routeTree)
@@ -113,162 +145,143 @@ test("discoverRoutes: 別の group で同じ URL のページが 2 つあれば 
 // 方針の出どころ(routeMap)
 // ---------------------------------------------------------------------------
 
-test("extractGuardCalls: ガード関数の呼び出しを出現順に拾い、import・関数定義・コメントは数えない", () => {
-  const src = `import { authGuard } from "x";
-// authGuard({ allowRoles: ["nope"] })
-export async function authGuard(options) {}
-const u = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
-const s = await session.getSessionUser();
-await authGuard({ allowRoles: ["admin"], redirectTo: "/admin" });`;
-  const calls = extractGuardCalls(src);
-  assert.deepEqual(
-    calls.map((c) => [c.name, c.args]),
-    [
-      ["requireCurrentUser", '{behavior:"redirect",redirectTo:"/login"}'],
-      ["getSessionUser", ""],
-      ["authGuard", '{allowRoles:["admin"],redirectTo:"/admin"}'],
-    ],
-  );
-  assert.equal(calls[1].hash, "00000000", "引数なしは 00000000");
-});
-
-test("normalizeArgs / argsHash: 空白・改行・末尾カンマ・コメントの違いでは hash が変わらず、中身の変更では変わる", () => {
-  const a = extractGuardCalls(`await authGuard({ allowRoles: ["admin"], redirectTo: "/admin" });`)[0];
-  const b = extractGuardCalls(`await authGuard({
-    // editor は除外
-    allowRoles: [
-      "admin",
-    ],
-    redirectTo: "/admin",
-  });`)[0];
-  assert.equal(a.hash, b.hash);
-  const c = extractGuardCalls(`await authGuard({ allowRoles: ["admin", "editor"], redirectTo: "/admin" });`)[0];
-  assert.notEqual(a.hash, c.hash);
-  assert.equal(normalizeArgs(`{ a: "x  y" }`), `{a:"x  y"}`, "文字列の中の空白は残す");
-  assert.match(argsHash("{a:1}"), /^[0-9a-f]{8}$/);
-});
-
-test("buildRouteMap: 祖先の layout → loader の順に AND で並べ、ガードの無いページは none(public とは書かない)", () => {
-  const input = tree({
-    "src/app/layout.tsx": "export default function R({ children }) { return children; }",
-    "src/app/(user)/page.tsx": PAGE,
-    "src/app/(user)/(protected)/layout.tsx": guardLayout(`{ allowRoles: ["user"], redirectTo: "/login" }`),
-    "src/app/(user)/(protected)/mypage/page.tsx": PAGE,
-    "src/app/(user)/(protected)/mypage/_screen/loader.ts": `import "server-only";
-export const loadMypageScreen = cache(async () => requireCurrentUser({ behavior: "redirect", redirectTo: "/login" }));`,
-    "src/app/admin/(protected)/layout.tsx": guardLayout(`{ allowRoles: adminRoles, redirectTo: "/admin/login" }`),
-    "src/app/admin/(protected)/users/layout.tsx": guardLayout(`{ allowRoles: ["admin"], redirectTo: "/admin" }`),
-    "src/app/admin/(protected)/users/general/page.tsx": PAGE,
-    "src/app/admin/(protected)/users/general/_components/loader.ts": `export const loadX = cache(async () => authGuard({ allowRoles: ["admin"] }));`,
-  });
-  const { rows, problems } = buildRouteMap(input);
+test("buildRouteMap: 正常な鎖は verified で、段は page → screen → loader → 最寄りの guard → 親 → root の順", () => {
+  const { rows, problems } = buildRouteMap(healthyTree());
   assert.deepEqual(problems, []);
-  assert.ok(rows.every((r) => r.state === ROUTE_STATE_LEGACY));
-  const line = (key) => formatSources(rows.find((r) => r.key === key).sources);
-  assert.equal(line("/"), "none");
-  assert.match(line("/mypage"), /^layout:\(user\)\/\(protected\) authGuard#[0-9a-f]{8} > loader:_screen requireCurrentUser#[0-9a-f]{8}$/);
-  assert.match(
-    line("/admin/users/general"),
-    /^layout:admin\/\(protected\) authGuard#\w{8} > layout:admin\/\(protected\)\/users authGuard#\w{8} > loader:_components authGuard#\w{8}$/,
+  const y = rows.find((r) => r.path === "/admin/y");
+  assert.equal(y.state, ROUTE_STATE_VERIFIED);
+  assert.deepEqual(
+    y.chain.map((s) => [s.kind, s.file]),
+    [
+      ["page", "src/app/admin/y/page.tsx"],
+      ["screen", "src/app/admin/y/_screen/YScreen.tsx"],
+      ["loader", "src/app/admin/y/_screen/loader.ts"],
+      ["guard", "src/app/admin/guard.ts"],
+      ["guard", "src/app/guard.ts"],
+    ],
   );
-  const text = formatRouteMap(rows);
-  assert.equal(/\bpublic\b/.test(text.split("\n").filter((l) => !l.startsWith("#")).join("\n")), false, "行に public と書かない");
+  assert.deepEqual(y.chain[2].access, { roles: ["admin"] });
+  assert.deepEqual(y.chain[3].policy, { access: { roleCategories: ["admin"] }, redirectTo: "/admin/login" });
 });
 
-test("buildRouteMap: @slot の行は親ページと同じ祖先の layout の方針に従う", () => {
-  const { rows } = buildRouteMap(
-    tree({
-      "src/app/(protected)/layout.tsx": guardLayout(`{ allowRoles: ["user"] }`),
-      "src/app/(protected)/dashboard/page.tsx": PAGE,
-      "src/app/(protected)/dashboard/@stats/page.tsx": PAGE,
+test("buildRouteMap: 管理画面の共通部品の組の access は registry:<domain>.<操作>", () => {
+  const { rows, problems } = buildRouteMap(
+    healthyTree({
+      "src/app/admin/y/_screen/loader.ts": `import "server-only";
+import type { Sample } from "@/features/sample/entities/model";
+import { createLoader } from "@/app/admin/guard";
+import { adminListParts } from "@/wiring/domains";
+export const loadYScreen = createLoader(adminListParts<Sample>("sample"));`,
     }),
   );
-  const parent = formatSources(rows.find((r) => r.key === "/dashboard").sources);
-  const slot = formatSources(rows.find((r) => r.key === "/dashboard @stats").sources);
-  assert.notEqual(parent, "none");
-  assert.equal(slot, parent);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(rows.find((r) => r.path === "/admin/y").chain[2].access, { registry: "sample.search" });
 });
 
-test("buildRouteMap: layout のガードの引数を変えると、その配下の全ページの行が変わる(方針の変化が差分に出る)", () => {
-  const files = (args) =>
-    tree({
-      "src/app/debug/layout.tsx": guardLayout(args),
-      "src/app/debug/page.tsx": PAGE,
-      "src/app/debug/tools/page.tsx": PAGE,
-      "src/app/other/page.tsx": PAGE,
-    });
-  const before = formatRouteMap(buildRouteMap(files(`{ allowRoles: ["admin"] }`)).rows).split("\n");
-  const after = formatRouteMap(buildRouteMap(files(`{ allowRoles: ["admin", "debugger"] }`)).rows).split("\n");
-  const changed = before.filter((l, i) => l !== after[i]).map((l) => l.split("\t")[0]);
-  assert.deepEqual(changed, ["/debug", "/debug/tools"]);
-});
-
-test("buildRouteMap: 1 行スイッチの layout はスイッチ先の _layout/<X> のガードを同じ出どころとして拾う(1 段だけ)", () => {
-  const { rows } = buildRouteMap(
-    tree({
-      "src/app/(user)/layout.tsx": `export { AcmeLayout as default } from "./_layout/UserLayout.acme";`,
-      "src/app/(user)/_layout/UserLayout.acme.tsx": guardLayout(`{ allowRoles: ["user"] }`),
-      "src/app/(user)/page.tsx": PAGE,
-      "src/app/plain/layout.tsx": `export { PlainLayout as default } from "./_layout/PlainLayout";`,
-      "src/app/plain/_layout/PlainLayout.tsx": "export function PlainLayout({ children }) { return children; }",
-      "src/app/plain/page.tsx": PAGE,
-      "src/app/missing/layout.tsx": `export { Gone as default } from "./_layout/Gone";`,
-      "src/app/missing/page.tsx": PAGE,
+test("buildRouteMap: Screen が loader を呼ばない・最上位で await しないと生成失敗", () => {
+  const noCall = buildRouteMap(
+    healthyTree({ "src/app/x/_screen/XScreen.tsx": `export function XScreen() { return null; }` }),
+  );
+  assert.ok(noCall.problems.some((p) => p.includes("/x") && p.includes("loader")));
+  const nested = buildRouteMap(
+    healthyTree({
+      "src/app/x/_screen/XScreen.tsx": `import { loadXScreen } from "./loader";
+export async function XScreen(props) {
+  if (props.flag) {
+    await loadXScreen(props);
+  }
+  return null;
+}`,
     }),
   );
-  const line = (key) => formatSources(rows.find((r) => r.key === key).sources);
-  assert.match(line("/"), /^layout:\(user\) authGuard#[0-9a-f]{8}$/);
-  assert.equal(line("/plain"), "none");
-  assert.equal(line("/missing"), "none", "スイッチ先が無ければ layout.tsx の本文だけ");
-  const direct = buildRouteMap(
-    tree({ "src/app/(user)/layout.tsx": guardLayout(`{ allowRoles: ["user"] }`), "src/app/(user)/page.tsx": PAGE }),
-  ).rows;
-  assert.equal(line("/"), formatSources(direct[0].sources), "layout.tsx に直接書いたガードと同じ行になる");
+  assert.ok(nested.problems.some((p) => p.includes("最上位")));
+  assert.equal(nested.rows.some((r) => r.path === "/x"), false, "読めない行は地図に載せない");
 });
 
-test("formatRouteMap: ヘッダー + key 順の 1 ページ 1 行で、入力の順序に依らず同じ結果になる", () => {
-  const entries = {
-    "src/app/b/page.tsx": PAGE,
-    "src/app/a/page.tsx": PAGE,
-    "src/app/(g)/c/page.tsx": PAGE,
-  };
-  const forward = formatRouteMap(buildRouteMap(tree(entries)).rows);
-  const reversed = formatRouteMap(buildRouteMap(tree(Object.fromEntries(Object.entries(entries).reverse()))).rows);
+test("buildRouteMap: 最寄りでない guard.ts の createLoader は生成失敗", () => {
+  const { problems } = buildRouteMap(
+    healthyTree({ "src/app/admin/y/_screen/loader.ts": loader("loadYScreen", "@/app/guard", `{ roles: ["admin"] }`) }),
+  );
+  assert.ok(problems.some((p) => p.includes("最寄りの guard.ts") && p.includes("src/app/admin/guard.ts")));
+});
+
+test("buildRouteMap: 字面で読めない access・方針・extend の親は生成失敗", () => {
+  const variable = buildRouteMap(
+    healthyTree({ "src/app/x/_screen/loader.ts": loader("loadXScreen", "@/app/guard", "ACCESS") }),
+  );
+  assert.ok(variable.problems.some((p) => p.includes("access が字面で読めない")));
+  const policy = buildRouteMap(healthyTree({ "src/app/admin/guard.ts": childGuard("@/app/guard", "ADMIN_POLICY") }));
+  assert.ok(policy.problems.some((p) => p.includes("方針が字面のオブジェクトでない")));
+  const parent = buildRouteMap(healthyTree({ "src/app/admin/guard.ts": childGuard("@/app/nowhere", `{ access: "authenticated" }`) }));
+  assert.ok(parent.problems.some((p) => p.includes("extend の親")));
+});
+
+test("buildRouteMap: guard.ts の範囲の layout が guard() を呼ばない・旧ガードを直接呼ぶと生成失敗", () => {
+  const missing = buildRouteMap(
+    healthyTree({ "src/app/admin/layout.tsx": `export default function L({ children }) { return children; }` }),
+  );
+  assert.ok(missing.problems.some((p) => p.includes("guard() を呼んでいない")));
+  const legacy = buildRouteMap(
+    healthyTree({
+      "src/app/admin/layout.tsx": `import { guard } from "./guard";
+import { authGuard } from "@/features/core/auth/services/server/authorization";
+export default async function L({ children }) {
+  await guard();
+  await authGuard({ allowRoles: ["admin"] });
+  return children;
+}`,
+    }),
+  );
+  assert.ok(legacy.problems.some((p) => p.includes("authGuard")));
+});
+
+test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gatedOff に最初のパターン(鎖は verified 必須)", () => {
+  const { rows } = buildRouteMap({ ...healthyTree(), gateRules: [{ pathPatterns: ["/admin", "/api/admin"], enabled: false }] });
+  assert.equal(rows.find((r) => r.path === "/admin/y").gatedOff, "/admin");
+  assert.equal(rows.find((r) => r.path === "/x").gatedOff, null);
+});
+
+test("formatRouteMap: 1 行 1 JSON、キーの順は固定、行は path 順で入力の順序に依らない", () => {
+  const forward = formatRouteMap(buildRouteMap(healthyTree()).rows);
+  const entries = Object.entries({ ...healthyTree().files.reduce((acc, f) => ({ ...acc, [f]: healthyTree().read(f) }), {}) }).reverse();
+  const reversed = formatRouteMap(buildRouteMap(tree(Object.fromEntries(entries))).rows);
   assert.equal(forward, reversed);
-  const body = forward.split("\n").filter((l) => l && !l.startsWith("#"));
-  assert.deepEqual(body, [`/a\t${ROUTE_STATE_LEGACY}\tnone`, `/b\t${ROUTE_STATE_LEGACY}\tnone`, `/c\t${ROUTE_STATE_LEGACY}\tnone`]);
-  assert.ok(forward.startsWith("# route-map: generated by `pnpm routes:map`. DO NOT EDIT."));
+  const lines = forward.trim().split("\n");
+  assert.deepEqual(lines.map((l) => JSON.parse(l).path), ["/admin/y", "/x"]);
+  assert.deepEqual(Object.keys(JSON.parse(lines[0])), ["path", "slot", "state", "gatedOff", "chain"]);
   assert.ok(forward.endsWith("\n"));
 });
 
-test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gated-off。完全一致はその下の fork のページを含まない", () => {
-  const entries = {
-    "src/app/mypage/page.tsx": PAGE,
-    "src/app/mypage/mine/page.tsx": PAGE,
-    "src/app/demo/x/page.tsx": PAGE,
-    "src/app/wallet/[slug]/page.tsx": PAGE,
-  };
-  const gateRules = [
-    { pathPatterns: ["=/mypage"], enabled: false },
-    { pathPatterns: ["/demo"], enabled: false },
-    { pathPatterns: ["/wallet"], enabled: true },
-  ];
-  const { rows } = buildRouteMap({ ...tree(entries), gateRules });
-  const state = Object.fromEntries(rows.map((r) => [r.key, r.state]));
-  assert.equal(state["/mypage"], "gated-off(=/mypage)");
-  assert.equal(state["/mypage/mine"], ROUTE_STATE_LEGACY);
-  assert.equal(state["/demo/x"], "gated-off(/demo)");
-  assert.equal(state["/wallet/[slug]"], ROUTE_STATE_LEGACY);
+test("findNearestGuard: ページの dir から上へ最初の guard.ts", () => {
+  const files = new Set(["src/app/guard.ts", "src/app/admin/guard.ts"]);
+  assert.equal(findNearestGuard("src/app/admin/y/z", files), "src/app/admin/guard.ts");
+  assert.equal(findNearestGuard("src/app/x", files), "src/app/guard.ts");
+  assert.equal(findNearestGuard("src/app", files), "src/app/guard.ts");
+});
+
+test("parseLiteral: 字面のオブジェクト・配列・文字列を読み、識別子や呼び出しは expr にする", () => {
+  assert.deepEqual(parseLiteral(`{ access: { roles: ["admin"], }, returnBack: true, n: 1, s: 'x' }`), {
+    access: { roles: ["admin"] },
+    returnBack: true,
+    n: 1,
+    s: "x",
+  });
+  assert.deepEqual(parseLiteral(`{ allowStatuses: USER_STATUSES, load: async () => ({}) }`), {
+    allowStatuses: { expr: "USER_STATUSES" },
+    load: { expr: "async () => ({})" },
+  });
+  assert.deepEqual(parseLiteral(`{ ...base }`), { expr: "{ ...base }" });
 });
 
 // ---------------------------------------------------------------------------
 // ずれ検査(コミットされた地図 = src/app からの生成結果)
 // ---------------------------------------------------------------------------
 
-test(`${ROUTE_MAP_FILE} が src/app からの生成結果と一致する(ずれたら pnpm routes:map で作り直してコミットする)`, () => {
+test(`${ROUTE_MAP_FILE} が src/app からの生成結果と一致し、全行が verified(ずれたら pnpm routes:map で作り直してコミットする)`, () => {
   const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
   const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read, gateRules: featureGateRules });
-  assert.deepEqual(problems, []);
+  assert.deepEqual(problems, [], "鎖が読めないページがある(pnpm routes:map が行と理由を出す)");
+  assert.ok(rows.every((r) => r.state === ROUTE_STATE_VERIFIED));
   const file = join(repoRoot, ROUTE_MAP_FILE);
   assert.ok(existsSync(file), `${ROUTE_MAP_FILE} が無い。pnpm routes:map で生成してコミットする`);
   assert.equal(

@@ -4,7 +4,7 @@
 // 登録は不要。検査対象は自動検出する(M1):
 //   - src/app 全体のページ(./routeTree.mjs の discoverRoutes。`_` で始まるフォルダと src/app/api を除く、@slot は含む)から、
 //     SCAN_EXCLUDES と fork の FORK_SCAN_EXCLUDES(src/registry/screenRoutesRegistry.ts)の配下を除いたもの
-//     (除外は構造の検査だけ。ルート地図 src/app/route-map.txt には除外したページも載る)
+//     (除外は構造の検査だけ。ルート地図 src/app/route-map.jsonl には除外したページも載る)
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
@@ -33,6 +33,7 @@ import {
   ROUTE_LOADER_FILE,
   SCREEN_DIRS,
   barrelTarget,
+  checkScreenLoaderCall,
   checkLoaderFile,
   checkScreenFile,
   checkScreenImports,
@@ -217,6 +218,12 @@ for (const page of pages) {
       const source = read(file);
       const screenProblems = [...checkScreenFile(source, target.name), ...checkScreenImports(source, { isContainerDir })];
       assert.deepEqual(screenProblems, [], `${file}: ${screenProblems.join(" / ")}`);
+    });
+    test(`${dir}: ${target.name} が同じルートの loader を import し本体の最上位で await する(D21)`, () => {
+      const file = resolveScreenFile(dir, target);
+      if (!file) return;
+      const { problems: callProblems } = checkScreenLoaderCall(read(file), target.name);
+      assert.deepEqual(callProblems, [], `${file}: ${callProblems.join(" / ")}`);
     });
   }
 }
@@ -619,7 +626,7 @@ test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だ�
     "src/app/(user)/wallet/_screen/WalletScreen.custom.tsx",
     "src/app/(user)/wallet/_components/WalletScreen.custom.tsx",
     "src/app/(user)/wallet/page.tsx",
-    "src/app/route-map.txt",
+    "src/app/route-map.jsonl",
   ];
   assert.deepEqual(findDotNamedFiles(files), [
     "src/app/(user)/_layout/UserLayout.custom.tsx",
@@ -648,4 +655,19 @@ test("checkLayoutTarget: named export を要求し、default export を弾き、
   assert.deepEqual(checkLayoutTarget(`export const MyPageLayout = () => null;`, "MyPageLayout"), []);
   assert.ok(checkLayoutTarget(`export function Other() { return null; }`, "UserLayout").length > 0);
   assert.ok(checkLayoutTarget(`export function UserLayout() { return null; }\nexport default UserLayout;`, "UserLayout").length > 0);
+});
+
+test("checkScreenLoaderCall(D21): 同じルートの loader を import し本体の最上位で await する。差し替え Screen は ../_screen/loader も可", () => {
+  const ok = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  const data = await loadXScreen(props);\n  return <p>{"it's"}{data.a}</p>;\n}`;
+  assert.deepEqual(checkScreenLoaderCall(ok, "XScreen").problems, []);
+  const fork = `import { loadXScreen } from "../_screen/loader";\nexport async function AcmeXScreen(props) {\n  await loadXScreen(props);\n  return null;\n}`;
+  assert.deepEqual(checkScreenLoaderCall(fork, "AcmeXScreen").problems, []);
+  const none = `export function XScreen() { return null; }`;
+  assert.ok(checkScreenLoaderCall(none, "XScreen").problems[0].includes("import していない"));
+  const inIf = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  if (props.a) {\n    await loadXScreen(props);\n  }\n  return null;\n}`;
+  assert.ok(checkScreenLoaderCall(inIf, "XScreen").problems[0].includes("最上位"));
+  const afterReturn = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  return <Wrap data={await loadXScreen(props)} />;\n}`;
+  assert.ok(checkScreenLoaderCall(afterReturn, "XScreen").problems[0].includes("最上位"));
+  const other = `import { loadXScreen } from "@/app/y/_screen/loader";\nexport async function XScreen(props) {\n  await loadXScreen(props);\n  return null;\n}`;
+  assert.ok(checkScreenLoaderCall(other, "XScreen").problems.length > 0, "別ルートの loader は不可");
 });

@@ -147,7 +147,7 @@ detail (wrapper table, ui_layers, data_seam, forms, async_select, optimistic upd
 ## SCREENS (page layer that downstream replaces without editing core)
 before adding or replacing a page, frame layout, Screen or loader → read src/lib/screens/README.md
 route_groups: (user)/(protected) = login required | (user)/(public) = public pages | (user)/(auth) = login / signup flows | (user)/(legal) = legal pages | (marketing)/ = landing pages outside the user layout | admin/ | debug/ | ref: src/app/README.md
-route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default Screen) + _screen/loader.ts | 1 route = 1 Screen | fork replaces = copy to _components/\<X\>Screen.tsx, keep calling the upstream loader, point page.tsx at it, never edit upstream _screen/ | src/app/route-map.txt generated (pnpm routes:map)
+route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default Screen) + _screen/loader.ts | 1 route = 1 Screen | fork replaces = copy to _components/\<X\>Screen.tsx, keep calling the upstream loader, point page.tsx at it, never edit upstream _screen/ | src/app/route-map.jsonl generated (pnpm routes:map; 1 JSON per page = the guard chain, every row verified)
 detail (Screen / loader / session rules, contracts, downstream / upstream rules, tests, admin_generated) → .claude/rules/core/screens.md
 
 ## ERROR_HANDLING

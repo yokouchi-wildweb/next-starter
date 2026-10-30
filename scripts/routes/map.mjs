@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // scripts/routes/map.mjs
-// ルート地図(src/app/route-map.txt)を src/app から生成する。
+// ルート地図(src/app/route-map.jsonl。1 ページ 1 行の守りの鎖)を src/app から生成する。読めない鎖は生成失敗(行と理由、exit 1)。
 //
 // 使い方:
-//   pnpm routes:map            # 地図を書き出す(ページ・layout・loader のガードを変えたら実行してコミットする)
+//   pnpm routes:map            # 地図を書き出す(ページ・loader・guard.ts を変えたら実行してコミットする)
 //   pnpm routes:map --check    # 地図が生成結果と一致するか検査する(ずれていれば exit 1。pnpm test:route-map も同じ検査をする)
-//   pnpm routes:show [<URL>]   # コミットしない詳細(layout の列、ガードの引数の全文、loader、redirect 等)を表示する。URL 接頭辞で絞れる
+//   pnpm routes:show [<URL>]   # 人が読む形で鎖(page → Screen → loader の access → guard の段ごとの方針)を表示する。URL 接頭辞で絞れる
 //
 // fork の merge で地図が衝突したら、どちらの版も採らずに pnpm routes:map で作り直す。
 // 詳細: src/lib/screens/README.md §13
@@ -32,7 +32,7 @@ if (args[0] === "show") {
   const prefix = args[1];
   // URL のセグメント単位で絞る(/admin は /admin・/admin/**・/admin @slot に一致し、/administrator には一致しない)
   const base = prefix?.replace(/\/+$/, "");
-  const selected = base ? rows.filter((r) => r.key === base || r.key.startsWith(`${base}/`) || r.key.startsWith(`${base} `)) : rows;
+  const selected = base ? rows.filter((r) => r.path === base || r.path.startsWith(`${base}/`)) : rows;
   process.stdout.write(formatRouteDetails(selected));
   process.exit(0);
 }

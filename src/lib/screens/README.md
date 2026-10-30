@@ -11,12 +11,12 @@
 | ファイル | 役割 |
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形）。`LegacyRouteEntry` — 例外リストの型 |
-| `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
+| `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`・守りの鎖の解析 `checkScreenLoaderCall`（D21）/ `parseLoaderGuard` / `parseGuardFile` / `layoutCallsGuard` / `parseLiteral`（地図と共有）（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
 | `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
-| `routeMap.mjs` | ルート地図の生成（方針の出どころの抽出と整形。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
+| `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査。上流の未移行ルート一覧 `UPSTREAM_LEGACY_ROUTES` を持つ |
-| `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査（§13） |
-| `src/app/route-map.txt` | ルート地図（生成物。手で編集しない。§13） |
+| `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
+| `src/app/route-map.jsonl` | ルート地図（生成物。1 ページ 1 行の守りの鎖の JSON。手で編集しない。§13） |
 | `src/registry/screenRoutesRegistry.ts` | fork の未移行ルートの例外リスト `FORK_LEGACY_ROUTES` と構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9・§10） |
 
 ---
@@ -377,41 +377,42 @@ src/app/admin/(protected)/samples/
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
 - 生成ルートも `test:screens` が自動検出して検査する（domain.json から導出）
 
-## 13. ルート地図（`src/app/route-map.txt`）
+## 13. ルート地図（`src/app/route-map.jsonl`）
 
-全ページの「URL → 方針の出どころ + 要約」を 1 ページ 1 行で並べた生成物で、コミットする。ページ・layout・loader のガードを変えると、その差分がレビューで見える。発見は §9 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
+全ページの「守りの鎖」を 1 ページ 1 行の JSON（JSON Lines）にした生成物で、コミットする。主な読み手はエージェント（機械が読む構造化データ）。人が読む形は `pnpm routes:show`。発見は §9 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
 
 | コマンド | 用途 |
 |---|---|
-| `pnpm routes:map` | 地図を書き出す。ページの追加・削除、layout / loader のガードを変えたら実行してコミットする。feature-gate の config（.ts）を読むので tsx で動く |
+| `pnpm routes:map` | 地図を書き出す。ページ・Screen・loader・guard.ts を変えたら実行してコミットする。鎖が読めないページがあれば行と理由を出して exit 1（地図は書かない）。feature-gate の config（.ts）を読むので tsx で動く |
 | `pnpm routes:map --check` | 地図が生成結果と一致するか検査する（ずれていれば exit 1） |
-| `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 |
-| `pnpm routes:show [<URL 接頭辞>]` | コミットしない詳細を表示する: 祖先の layout の列、ガード呼び出しの引数の全文、ルート内 loader、ガード以外の redirect / notFound / `*Service.xxx` 呼び出し（管理者数 0 → `/admin/setup` 等） |
+| `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 + 全行 verified |
+| `pnpm routes:show [<URL 接頭辞>]` | 人が読む形で鎖を表示する（page → Screen → loader の access → guard.ts の段ごとの access と行き先） |
 
-行の形（区切りはタブ）:
+1 行（キーの順は固定、行は path 順。改行は入れない。ここでは読みやすく折り返す）:
 
 ```
-<URL>[ @slot]	<状態>	<方針の出どころ: 祖先 → 葉、AND>
-/admin/users/general	legacy-unverified	layout:admin/(protected) authGuard#011b5585 > layout:admin/(protected)/users authGuard#2fddae7c
-/mypage/account	legacy-unverified	layout:(user)/(protected) authGuard#aa610870 > loader:_screen requireCurrentUser#a6167f9f
-/login	legacy-unverified	loader:_screen getSessionUser#00000000
-/	legacy-unverified	none
+{"path":"/admin/users/general","slot":null,"state":"verified","gatedOff":null,"chain":[
+  {"kind":"page","file":"src/app/admin/(protected)/users/general/page.tsx"},
+  {"kind":"screen","file":"…/_screen/AdminGeneralUserListScreen.tsx","name":"AdminGeneralUserListScreen"},
+  {"kind":"loader","file":"…/_screen/loader.ts","access":{"roles":["admin"]}},
+  {"kind":"guard","file":"src/app/admin/(protected)/users/guard.ts","policy":{"access":{"roles":["admin"]},"redirectTo":"/admin","forbiddenRedirectTo":"/admin"}},
+  {"kind":"guard","file":"src/app/admin/(protected)/guard.ts","policy":{"access":{"roleCategories":["admin"]},…,"setupRedirectTo":"/admin/setup"}},
+  {"kind":"guard","file":"src/app/guard.ts","policy":{"access":"public"}}]}
 ```
 
-- 状態: `legacy-unverified`（下の方式で守っている、機械では未確認）/ `gated-off(<pattern>)` = feature-gate の無効な規則で止めている（proxy で 404。`<pattern>` は当たった規則の最初のパターン）。フラグを変えたら `pnpm routes:map` で作り直す
-- URL: route group `(x)` と `@slot` を落とす。動的セグメント（`[slug]`）と intercepting の印（`(.)x`）はそのまま残す。`@slot` の中のページは `<URL> @slot` の別の行になり、方針は親ページと同じ祖先の layout（+ slot 内の layout）から作る
-- 方針の出どころ（loader Factory の前の方式）: 祖先の `layout.*`（`./_layout/<X>` への 1 行スイッチなら、スイッチ先の組み立ての中の呼び出しも同じ `layout:<dir>` の出どころとして拾う。辿るのは 1 段だけ）と、ルート内 loader（`_screen/loader.ts` = `loader:_screen`、`_components/loader.ts` = `loader:_components`）の中のガード関数の呼び出しを拾う。対象は `authGuard`・`principalGuard`・`deviceGuard`・`requireCurrentUser`・`getSessionUser`・`requireAdmin`・`requireAuthenticated`
-  - 1 つの呼び出しは `関数名#hash` で表す。hash は引数の全文（文字列の外の空白・末尾カンマ・コメントを除いて正規化）の sha256 の先頭 8 桁で、引数なしなら `00000000`
-  - 引数が変われば hash が変わるので、配下の全ページの行が差分に出る
-  - 出どころは祖先 → 葉の順に ` > ` でつなぐ（親子は AND）。ガード呼び出しのない layout は行に出さない
-  - フォルダ名（`(protected)` 等）は読まない
-- 状態: 今は全行 `legacy-unverified`。layout のガードと loader で守っていても、機械が方針を検証していない、という意味。ガードが見つからない行は `none` と書き、`public` とは書かない（未検証のものを公開と誤読させない）。loader Factory（access の型必須）の導入後に、Factory の方針を読む状態を足し、未解決・旧方式の行を失敗にする予定（評議会 20261019-213253 §7「F2 の後」）
-- 既知の限界: hash は呼び出しの引数の字面だけを見る。`authGuard({ allowRoles: adminRoles })` の `adminRoles` の定義が変わっても、地図には出ない。layout から呼ばれる関数の中のガード（スイッチ先の組み立てがさらに import する先を含む）や、Screen・部品の中の呼び出しも拾わない（これらの置き場を 1 か所に寄せるのは loader Factory / guard.ts の仕事）
+- `path`: route group `(x)` と `@slot` を落とした URL。動的セグメント（`[slug]`）と intercepting の印（`(.)x`）はそのまま。`slot`: `@slot` の中のページは `"@x"`（親ページと別の行）、それ以外は null
+- `state`: `verified` だけ（鎖を字面で辿れた）。`gatedOff`: feature-gate の無効な規則に当たるなら最初のパターン（proxy で 404）、無ければ null。止めたページも鎖は verified 必須（フラグを戻せば即公開されるため）。フラグを変えたら作り直す
+- `chain`: 段の並び = page.tsx → 採用 Screen（1 行スイッチの先）→ 同じルートの loader → 最寄りの guard.ts → extend の親 → root（`defineRootGuard`）。親子は AND
+  - loader の `access` = `createLoader({ access })` の字面。管理画面の共通部品の組（`adminListParts("sample")` 等）は `{"registry":"sample.search"}`（serviceRegistry の entry から操作ごとに解く）。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
+  - guard の `policy` = `defineRootGuard({…})` / 親の `extend({…})` の字面（`access`・`allowStatuses`・`redirectTo`・`forbiddenRedirectTo`・`returnBack`・`statusRedirects`・`setupRedirectTo` の順）
+- 生成失敗（`pnpm routes:map` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（D21。`test:screens` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
+- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`parseLiteral`）で、地図と `test:screens` が共有する
+- 既知の限界: 字面だけを読む。import の別名（`createLoader as x`）・変数に入れた方針・スプレッドは読めない（生成失敗になる）。Screen の `return` の後（JSX の中）の await は数えない
 - fork の merge で地図が衝突したら、どちらの版も採らずに `pnpm routes:map` で作り直してコミットする（地図は生成物なので、手で解決しない）
 
-決定の経緯（評議会 20261019-213253 §4 M1・§7、legate order 01）:
+決定の経緯（評議会 20261019-213253 §4 M1・§7、親 D71 K1、legate L1.21）:
 
-- **採った形 = 認可だけの薄い地図をコミットし、詳細はコマンドで見る**: コミットする情報を「方針の出どころ + 引数の hash」に絞った。理由は 2 つある。layout の構成や見た目の変更でページの行が揺れないこと（方針が変わったときだけ差分が出る）、そして fork の merge で衝突する面を小さくすること
-- **不採用: 全情報（layout の列・引数の全文・loader のパス）をコミットする**: 行が長く、方針と関係のない変更（見た目の layout の追加等）で大量の差分が出て、レビューで方針の変化が埋もれる
-- **不採用: 地図をコミットしない（コマンドで見るだけ）**: ガードの付け外しがレビューの差分に出ず、ずれ検査（前例 `pnpm cron:check` と vercel.json）も作れない
+- **採った形 = 機械が読む構造化データ**: 主な読み手はエージェント。段ごとの access と方針の値を持ち、差分がページ単位・段単位で読める。人向けの図（ツリー・表など）は CLI（`routes:show`）が描く
+- **不採用: 1 行のテキスト（出どころ + 関数名#hash）**: 初版の形。hash は方針の中身を読めず、Factory の方針（guard.ts・createLoader）を辿れない
+- **不採用: 地図をコミットしない（コマンドで見るだけ）**: 方針の付け外しがレビューの差分に出ず、ずれ検査も作れない
 - **不採用: 固定リストの走査（`SCAN_ROOTS` 等）**: リストの外のページが黙って地図から抜ける（§11）

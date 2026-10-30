@@ -32,7 +32,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
      - `entities/drizzle.ts`・`src/registry/schemaRegistry.ts` → `pnpm test:schema-registry`。index を変えたら `pnpm db:push:check` が出す差分の説明を報告に書く(db:push 自体は実行しない)
      - `src/config/app/feature-gate.config.ts` → `pnpm test:feature-gate`
      - `src/config/ui/` → `pnpm test:config-module-load`
-     - ページ・ルートの追加・削除・移動 → `pnpm routes:map` で地図を作り直して範囲に含め、`pnpm test:route-map`
+     - ページ・ルートの追加・削除・移動、loader・guard.ts の変更 → `pnpm routes:map` で地図(`src/app/route-map.jsonl`)を作り直して範囲に含め、`pnpm test:route-map`
      - ロール定義(`*.role.json`)→ `pnpm role:generate` の出力を範囲に含める
      - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
      - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)

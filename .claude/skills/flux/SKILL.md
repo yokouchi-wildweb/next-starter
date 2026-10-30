@@ -182,7 +182,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    c. コンフリクトは自分で解消する(上流の意図と自 fork の改変の両立を判断。判断が本当に割れるものだけユーザーに確認)。プロジェクトごとのファイルの採り方:
       - `.claude/rules/project.md` と `behavior.md`: fork 側を採り、上流の追加はこの fork に当てはまるものだけ取り込む。
       - `.claude/rules/shortcuts.md` と `term-aliases.md`: `fork entries below` マーカーより上を上流側、下を fork 側で採る。
-      - 生成物 `src/app/route-map.txt`(ルート地図): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm routes:map` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。
+      - 生成物 `src/app/route-map.jsonl`(ルート地図。旧 `route-map.txt` が残っていれば消す): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm routes:map` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。
    d. **区間外変更の検査**(必須。c と移植の後、merge コミットの前。読み取りのみ):
       - 許可集合 = `git diff --name-only $(git merge-base <pre> <区間の merge 先>) <区間の merge 先>` + 区間の `moved:` の移動先(ディレクトリならその配下)。
       - 実際の変更 = `git diff --name-only <pre>`(ステージ済み・未ステージの両方)。

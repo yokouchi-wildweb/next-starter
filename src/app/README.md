@@ -38,7 +38,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test:screens` が `src/app` 全体のページ（`_` で始まるディレクトリと `api/` を除く）を自動検出して検査する（登録不要。fork の独自エリアや debug / admin に足したページも対象）。検査から外すディレクトリだけ `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_EXCLUDES` に書く。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
-- ルート地図 `route-map.txt`（このディレクトリ直下）は全ページの「URL → 方針の出どころ」の生成物。ページを足す・消す、layout / loader のガードを変えたら `pnpm routes:map` で作り直してコミットする（ずれは `pnpm test:route-map` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm routes:show`、仕様は src/lib/screens/README.md §13）
+- ルート地図 `route-map.jsonl`（このディレクトリ直下）は全ページの守りの鎖（page → Screen → loader の access → guard.ts の段）を 1 行 1 JSON にした生成物（機械が読む）。ページ・loader・guard.ts を変えたら `pnpm routes:map` で作り直してコミットする（ずれは `pnpm test:route-map` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm routes:show`、仕様は src/lib/screens/README.md §13）
 - 上流の core ルートは全て移行済み（wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップ / auth 16 / 手書きの管理画面 33）。`UPSTREAM_LEGACY_ROUTES` は空で、新しい core ルートはスイッチ形で作る
 - `_screen/` には Screen と loader のほかに、既定 Screen 専用の部品を置いてよい（直下でもサブディレクトリでも。例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`）。部品は契約外。`_components/` は下流の場所で、上流のルートでは上流が何も置かない
 
@@ -81,7 +81,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 必須(検査で落ちる):
 
-- ページは `src/app` 全体から自動で見つかる(`_` で始まるディレクトリと `api/` を除く)。登録は要らない。ページを足す・消す、layout / loader のガードを変えたら `pnpm routes:map` でルート地図 `route-map.txt` を作り直してコミットする(ずれは `pnpm test:route-map` が失敗にする)
+- ページは `src/app` 全体から自動で見つかる(`_` で始まるディレクトリと `api/` を除く)。登録は要らない。ページを足す・消す、loader・guard.ts を変えたら `pnpm routes:map` でルート地図 `route-map.jsonl` を作り直してコミットする(ずれは `pnpm test:route-map` が失敗にする)
 - layout のガードとセッション・ガード API を呼べる場所、layout がサーバー側でデータを取らないこと(services/server・DB・loader を import しない)は lint `page-authz` が全 Tier で error にする(下の「レイアウト継承」)
 - 画面の構造(page.tsx スイッチ + `_screen/` + loader)は `pnpm test:screens` が検査する(上の「画面の構造」)
 - (後で入る)すべての Screen の loader がアクセス方針を宣言し、公開ページも public と書く
