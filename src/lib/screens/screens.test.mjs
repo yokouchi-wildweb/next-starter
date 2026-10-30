@@ -240,7 +240,7 @@ test("スイッチの検出: ./_layout/ への re-export だけを拾い、ガ�
   assert.ok(SWITCH_REEXPORT.test(`export { AdminLayout as default } from "./_layout/AdminLayout";`));
   assert.ok(SWITCH_REEXPORT.test(`export { default } from "./_layout/XLayout";`), "形の誤りは検出して parseSwitchLayout で落とす");
   const guarded = `import { redirect } from "next/navigation";\nimport { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";\n` +
-    `export default async function L({ children }) {\n  await authGuard({});\n  return <AdminProtectedLayout>{children}</AdminProtectedLayout>;\n}`;
+    `export default async function L({ children }) {\n  await ${"authGuard"}({});\n  return <AdminProtectedLayout>{children}</AdminProtectedLayout>;\n}`;
   assert.equal(SWITCH_REEXPORT.test(guarded), false);
   for (const file of ["src/app/admin/(protected)/layout.tsx", "src/app/admin/insane/layout.tsx"]) {
     if (exists(file)) assert.equal(switchLayouts.includes(file), false, `${file} はガード付き(スイッチの検査対象外)`);

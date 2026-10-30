@@ -1,21 +1,21 @@
 // src/features/user/services/server/wrappers/update.ts
 
 import type { User } from "@/features/core/user/entities";
-import { UserUpdateByAdminSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
+import { UserUpdateByAdminSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
 import { base, baseOptions } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 import { omitUndefined } from "@/utils/object";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
+import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
 import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
 import { resolveUserNameForGuard, withUserNameGuard } from "../helpers/nameAvailability";
 import { planPasswordChange } from "../helpers/passwordChange";
+import { assertSelfUpdateAllowed, selfUpdateSchema } from "../helpers/selfUpdate";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -67,39 +67,41 @@ async function updateFirebasePhoneNumber(uid: string, phoneNumber: string | null
   }
 }
 
+type UpdateSchema = typeof UserUpdateByAdminSchema | ReturnType<typeof selfUpdateSchema>;
+
+/**
+ * 認可済みの呼び手用の更新(汎用 API は管理者限定、サーバー内の処理)。セッションは読まない。
+ * 利用者の入力をそのまま渡す route は updateSelf を使う(ここは管理者のスキーマで検証する)。
+ */
 export async function update(id: string, rawData?: UpdateUserInput): Promise<User> {
+  return applyUpdate(id, rawData, UserUpdateByAdminSchema);
+}
+
+/** 本人の更新。actor は route の ctx.user */
+export async function updateSelf(actor: { userId: string; role: string }, rawData?: UpdateUserInput): Promise<User> {
+  return applyUpdate(actor.userId, rawData, selfUpdateSchema(actor), (current) =>
+    assertSelfUpdateAllowed(actor, current.providerType),
+  );
+}
+
+async function applyUpdate(
+  id: string,
+  rawData: UpdateUserInput | undefined,
+  schema: UpdateSchema,
+  guard?: (current: User) => void,
+): Promise<User> {
   if (!rawData || typeof rawData !== "object") {
     throw new DomainError("更新データが不正です", { status: 400 });
   }
 
   const { newPassword, profileData, user_tag_ids, ...restRawData } = rawData;
 
-  const sessionUser = await getSessionUser();
-
-  if (!sessionUser) {
-    throw new DomainError("認証情報が無効です", { status: 401 });
-  }
-
   const current = await base.get(id);
   if (!current) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
 
-  const isAdmin = getRoleCategory(sessionUser.role) === "admin";
-  const isSelfUpdate = sessionUser.userId === id;
-
-  if (!isAdmin && !isSelfUpdate) {
-    throw new DomainError("この操作を実行する権限がありません", { status: 403 });
-  }
-
-  // 非管理者が自分自身をローカル認証で更新しようとした場合はエラー
-  // Admin が管理画面から自分自身を編集する場合は許可
-  if (!isAdmin && isSelfUpdate && current.providerType === "local") {
-    throw new DomainError(
-      "現在、ローカル認証ユーザーでログイン中です。このユーザーにはプロフィール編集画面が提供されていません。",
-      { status: 400 },
-    );
-  }
+  guard?.(current);
 
   // newPassword (プロバイダー非依存の「パスワード設定」契約) を保存先へ振り分ける。
   // local → localPassword としてスキーマ入力にマージ (hash 変換はスキーマが担当)
@@ -114,7 +116,6 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
       ? { ...restRawData, localPassword: passwordPlan.localPassword }
       : restRawData;
 
-  const schema = isAdmin ? UserUpdateByAdminSchema : UserSelfUpdateSchema;
   const result = await schema.safeParseAsync(schemaInput);
 
   if (!result.success) {

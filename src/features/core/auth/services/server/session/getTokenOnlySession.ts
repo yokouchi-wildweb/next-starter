@@ -11,7 +11,7 @@ import { resolveSessionUserFromTokenOnly } from "./token";
  *
  * 戻り値の status / role / isDemo / name 等は JWT 発行時点のスナップショットであり、
  * DB の現在値とは乖離し得る (stale)。**認可判定には絶対に使わないこと。**
- * 認可は必ず getSessionUser() / ページの守り(guard.ts)・API の Factory (= DB と同期される) 経由で行う。
+ * 認可は必ず DB と同期する getSessionUser / ページの守り(guard.ts)・API の Factory (= DB と同期される) 経由で行う。
  *
  * 想定する用途:
  * - 監査ログの actor_id (= userId) 抽出 — userId は JWT で十分

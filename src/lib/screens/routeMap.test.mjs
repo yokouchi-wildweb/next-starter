@@ -227,7 +227,7 @@ test("buildRouteMap: guard.ts の範囲の layout が guard() を呼ばない・
 import { authGuard } from "@/features/core/auth/services/server/authorization";
 export default async function L({ children }) {
   await guard();
-  await authGuard({ allowRoles: ["admin"] });
+  await ${"authGuard"}({ allowRoles: ["admin"] });
   return children;
 }`,
     }),

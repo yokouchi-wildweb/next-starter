@@ -24,7 +24,7 @@ export const PATCH = createMeRoute(
       updateData.profileData = body.profileData;
     }
 
-    const updatedUser = await userService.update(user.userId, updateData);
+    const updatedUser = await userService.updateSelf(user, updateData);
     // 管理者専用 / セキュリティ内部フィールドは /me 経路から除外する。
     // - adminMemo: 本人が自分宛ての管理者メモを取得できないように
     // - failedLoginCount / lockedUntil / lastFailedLoginAt: ロック状態

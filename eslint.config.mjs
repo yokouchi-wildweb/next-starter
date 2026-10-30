@@ -270,8 +270,15 @@ const config = [
       "src/features/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
       "src/proxies/**/*.{ts,tsx,mts,mjs}",
+      // core のサービスもセッションを読まない(主体は呼び手が引数で渡す)。主体を解く基盤だけ外す。
+      // fork のサービスは対象外: 自前のドメインで読んでいる fork があり、別の依頼で判断する
+      "src/features/core/**/services/server/**/*.{ts,tsx}",
     ],
-    ignores: ["src/features/core/auth/components/AuthSessionProvider.tsx"],
+    ignores: [
+      "src/features/core/auth/components/AuthSessionProvider.tsx",
+      "src/features/core/auth/services/server/**",
+      "src/features/core/pairedDevice/services/server/session/**",
+    ],
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
       "page-authz/session-api-callsite": "error",

@@ -22,7 +22,7 @@
 //   ページの主体は guard.ts の createLoader が解いて loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
 //   proxy の項目(src/proxies/**、上流・fork)も対象: 主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
-//   services/server・lib(pageGuard・routeFactory)は対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外。
+//   core の services/server も対象(主体を解く基盤の auth と pairedDevice の session は外す)。fork の services/server・lib(pageGuard・routeFactory)は対象範囲の外。AuthSessionProvider は名前付き例外。
 // 禁止する import:
 //   - SESSION_API_NAMES の名前の値 import(どのパスからでも。barrel・re-export 経由も名前で捕まえる)。削除済みの名前
 //     (authGuard・requireCurrentUser 等)も残す(fork に残った呼び出しを見つけるため)

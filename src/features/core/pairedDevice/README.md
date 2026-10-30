@@ -139,6 +139,8 @@ const device = await requireCurrentDevice({
 共有タブレットとスタッフ本人のスマホの両方から開くページ（店舗のスタッフ画面・POS 等）。
 API の `createDeviceRoute`（`kinds` + `orUser`）と同じ語彙で、端末を先に判定し、端末でなければユーザーをルールで判定する。
 
+この 2 つはセッションを自分で読む（「サービスはセッションを読まない」の例外）。業務の処理ではなく主体を解くこと自体が役目のページ側の守りで、`getSessionDevice` と同じ層にある。
+
 ```ts
 // src/app/store/(protected)/layout.tsx
 import { principalGuard } from "@/features/core/pairedDevice/services/server/session";

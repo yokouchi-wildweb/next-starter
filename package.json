@@ -83,6 +83,7 @@
     "test:order-mailbox": "node --test .claude/skills/order/mailbox.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:wallet-expiration": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/expiration.test.ts",
+    "test:user-self-update": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/selfUpdate.test.ts",
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "test:paired-device": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/pairedDevice/pairedDevice.test.ts",
     "test:collection-entries-route": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/lib/routeFactory/collectionEntriesRoute.test.mts",

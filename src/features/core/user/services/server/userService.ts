@@ -17,7 +17,7 @@ import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
 import { restore } from "./wrappers/restore";
-import { update } from "./wrappers/update";
+import { update, updateSelf } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
 import { changeRole } from "./wrappers/changeRole";
@@ -53,6 +53,7 @@ export const userService = {
   hardDelete,
   restore,
   update,
+  updateSelf,
   // finders
   findByProvider,
   findByLocalEmail,
