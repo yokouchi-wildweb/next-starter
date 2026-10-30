@@ -12,7 +12,7 @@
 //
 // 拡張方法:
 //  1. CoinIssuanceSource を満たす値を作る (sources/ 配下に追加)
-//  2. src/registry/coinIssuanceRegistry.ts の配列に追加する
+//  2. pnpm extensions:generate で一覧に入る(一覧の順 = ファイル名の順)
 //  3. (任意) labels.ts の registerCoinIssuanceLabels で表示名を登録する
 //
 // 集計の符号規約:
@@ -94,6 +94,9 @@ export type CoinIssuanceSource = {
    *                (クーポンボーナス / 紹介リワード等)
    */
   kind: "revenue" | "issuance";
+
+  /** 機能が無効ならテーブルが無い場合があるので、無効の間は走らせない(省略 = 常に走る) */
+  enabled?: () => boolean;
 
   /**
    * 期間集計を実行して当期と前期の合計値を返す。

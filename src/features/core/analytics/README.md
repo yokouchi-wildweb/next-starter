@@ -220,12 +220,10 @@ export const coinClosingBalanceMetric: RollupMetricConfig = {
 ```
 
 ```typescript
-// src/registry/analyticsRollupRegistry.ts に追加
+// src/features/core/analytics/rollupMetrics/coinClosingBalance.<fork の名前>.ts に置き pnpm extensions:generate
 import { coinClosingBalanceMetric } from "@/features/wallet/analytics/rollup/coinClosingBalance";
 
-export const analyticsRollupMetrics: RollupMetricConfig[] = [
-  coinClosingBalanceMetric,
-];
+export const metric = coinClosingBalanceMetric;
 ```
 
 ディメンション分割が必要な場合は `compute` が `[{ value, dims: { walletType: "coin" } }, ...]` のように複数行を返す
@@ -403,7 +401,8 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 ### ソース追加の手順 (downstream)
 
 1. `CoinIssuanceSource` を満たす値を作成する
-2. `src/registry/coinIssuanceRegistry.ts` の配列に追加する
+2. `services/server/coinIssuance/sources/<名前>.<fork の名前>.ts` に `export const source` を置き `pnpm extensions:generate`（閉じられる機能を読むソースは `enabled` が必須）
+   - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
 3. (任意) `services/server/coinIssuance/labels.ts` の `registerCoinIssuanceLabels` で表示名を登録する
 
 ### 実装テンプレート
@@ -447,21 +446,10 @@ export const gachaProfitSource: CoinIssuanceSource = {
 ```
 
 ```typescript
-// src/registry/coinIssuanceRegistry.ts に追加（import も配列も fork entries の印の対の中に書く）
-// --- fork entries start (upstream never edits inside) ---
+// src/features/core/analytics/services/server/coinIssuance/sources/gachaProfit.<fork の名前>.ts
 import { gachaProfitSource } from "@/features/gacha/analytics/coinIssuance/gachaProfitSource";
-// --- fork entries end ---
 
-export const coinIssuanceSources: CoinIssuanceSource[] = [
-  // upstream の登録
-  purchaseBonusGapSource,
-  referralRewardSource,
-
-  // --- fork entries start (upstream never edits inside) ---
-  gachaProfitSource,
-  // winningReportRewardSource, winningCommentRewardSource, ...
-  // --- fork entries end ---
-];
+export const source = gachaProfitSource;
 ```
 
 ```typescript
@@ -518,7 +506,7 @@ upstream の key と衝突しない snake_case を選ぶ。
 
 `referralReward` ソースは `metadata ->> 'amount'` で金額を抽出する規約に従う。
 規約が異なる downstream は、`aggregateReferralRewardCurrentVsPrev` を直接呼ぶカスタム source を実装するか、
-`referralRewardSource` を置き換える形で独自 source を登録する。
+上流のソースは消さず（`sources/referralReward.ts` は上流の物）、独自 key の source を足す。
 
 ```typescript
 import { sql } from "drizzle-orm";
@@ -557,7 +545,7 @@ upstream で組み込みソースの `key` をリネームした際の移行履�
 
 **ダウンストリーム移行手順**:
 
-1. `coinIssuanceRegistry.ts` の import 文を `purchaseBonusGap` 系シンボルに置換 (上記表参照)。
+1. (当時の登録表の) import 文を `purchaseBonusGap` 系シンボルに置換 (上記表参照)。
 2. 管理画面ダッシュボード等で `sources["coupon_bonus_gap"]` をハードコード参照している箇所を `sources["purchase_bonus_gap"]` に置換。
    - grep 推奨: `grep -rn "coupon_bonus_gap\|couponBonusGap" src/`
 3. ダウンストリーム独自に `registerCoinIssuanceLabels({ coupon_bonus_gap: "..." })` でラベルを上書きしていた場合は新 key に変更。

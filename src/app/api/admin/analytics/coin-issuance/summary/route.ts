@@ -2,7 +2,7 @@
 // 統合コイン創出サマリー API。
 //
 // 管理画面ダッシュボード向けに、期間内のコイン収支を 1 リクエストで返す。
-// 個別ソースの集計ロジックは src/registry/coinIssuanceRegistry.ts に登録された
+// 個別ソースの集計ロジックは src/features/core/analytics/extensions/coinIssuanceSources.ts に並ぶ
 // CoinIssuanceSource に委譲する。
 
 import { createApiRoute } from "@/wiring/apiRoute";

@@ -109,7 +109,8 @@ export const rule: FeatureGateRule = {
 | 入口 | 閉じ方 |
 |---|---|
 | cron の `src/app/api/cron/<name>/task.ts` | `cronTask` に `enabled`（config を読む同期関数。CLI の `pnpm task` は proxy を通らない） |
-| 後片付け・照合の登録表（`userCleanupRegistry`・`coinIssuanceRegistry`・`analyticsRollupRegistry`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
+| 宣言に `alwaysOn: true` の拡張点の項目（`cleanupHandlers`・`coinIssuanceSources`・`rollupMetrics`） | 項目に `enabled` |
+| fork の手書きの登録表（下の `registries`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
 | 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`） | import しない。避けられないものは理由付きの例外表 |
 
 - 上流の例外表はテスト内の `ALWAYS_ON_EXCEPTIONS`（縮む表。当たらなくなった行は失敗）

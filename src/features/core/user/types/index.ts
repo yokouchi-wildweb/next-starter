@@ -12,7 +12,7 @@ export type UserRoleType = (typeof USER_ROLES)[number];
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 /**
- * 表示名の「予約名」プロバイダ（src/registry/reservedUserNamesRegistry.ts で登録）。
+ * 表示名の「予約名」プロバイダ（src/features/core/user/reservedNames/<名前>.<fork の名前>.ts の export const provider）。
  * users テーブル外で表示名を占有する存在（ボット・NPC・合成ランキング・予約語等）を
  * 一意性チェック (services/server/helpers/nameAvailability.ts) に参加させる。
  *

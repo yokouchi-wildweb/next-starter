@@ -264,12 +264,7 @@ test("行き先の違う規則の住所の重なり(L1.22): 上流どうしは�
 });
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)
-// 後片付け・照合の登録表(定期実行・退会処理から常に読まれる)。それ以外の src/registry は画面・サービスから読まれるか表を読まない
-const ALWAYS_ON_REGISTRIES = [
-  "src/registry/userCleanupRegistry.ts", // 退会・ソフトデリートの後片付け(executeCleanup)
-  "src/registry/coinIssuanceRegistry.ts", // コイン創出の照合(管理の集計 API)
-  "src/registry/analyticsRollupRegistry.ts", // 日次の集計(cron analytics-rollup-daily)
-];
+// 後片付け・照合など常に読まれる項目は、宣言の alwaysOn: true の点(項目ごとに enabled で閉じる)。手書きの登録表は fork の口だけ
 // 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表。
 // fork の分は scripts/proxies/alwaysOnExceptions.<fork ID>.mjs に理由つきで(L1.24。ここは編集しない)
 const ALWAYS_ON_EXCEPTIONS = {
@@ -277,7 +272,7 @@ const ALWAYS_ON_EXCEPTIONS = {
     "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
 };
 
-test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は enabled、登録表は条件つき spread、結線は例外表)", async () => {
+test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron と alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
   const { all: forkIds } = readDeclaredForkIds(ROOT);
   const forkFiles = readdirSync(join(ROOT, "scripts/proxies"))
     .filter((name) => name.startsWith(`${FORK_ALWAYS_ON_PREFIX}.`))
@@ -286,9 +281,13 @@ test("常時実行の入口: 表を持つ規則の機能を import するなら�
   assert.deepEqual(fork.problems, [], fork.problems.join("\n"));
   const rel = (abs) => relative(ROOT, abs).split(sep).join("/");
   const code = (f) => /\.(ts|tsx|mts|mjs)$/.test(f) && !/\.test\./.test(f);
+  const plan = planExtensions(ROOT);
+  const alwaysOnItems = plan.points.filter((p) => p.spec.alwaysOn).flatMap((p) => plan.itemsByPoint.get(p).map((item) => item.itemFile));
+  assert.ok(alwaysOnItems.length > 0, "alwaysOn の点の項目が無い(宣言の読み取りを確認)");
   const entries = [
     ...walk(join(APP_DIR, "api/cron")).filter((f) => /[\\/]task\.ts$/.test(f)).map((f) => ({ path: rel(f), kind: "cron" })),
-    ...[...ALWAYS_ON_REGISTRIES, ...fork.registries].map((path) => ({ path, kind: "registry" })),
+    ...alwaysOnItems.map((path) => ({ path, kind: "cron" })),
+    ...fork.registries.map((path) => ({ path, kind: "registry" })),
     ...[join(APP_DIR, "layout.tsx"), ...walk(join(ROOT, "src/wiring")), ...walk(join(ROOT, "src/proxies"))]
       .filter(code)
       .map((f) => ({ path: rel(f), kind: "wiring" })),

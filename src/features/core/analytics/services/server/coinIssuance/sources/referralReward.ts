@@ -22,7 +22,7 @@
 import { aggregateReferralRewardCurrentVsPrev } from "../../referralAnalytics";
 import type { CoinIssuanceSource } from "../types";
 
-export const referralRewardSource: CoinIssuanceSource = {
+export const source: CoinIssuanceSource = {
   key: "referral_reward",
   kind: "issuance",
 

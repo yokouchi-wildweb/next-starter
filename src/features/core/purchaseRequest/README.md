@@ -45,7 +45,7 @@ pending ──(セッション作成)──→ processing ──(決済確定)�
 
 ```
 purchaseRequestService.ts      — base CRUD + 購入フロー関数を束ねた公開サービス
-cancelPending.ts               — ユーザー削除時に pending/processing を一括 expired（userCleanupRegistry から呼ばれる）
+cancelPending.ts               — ユーザー削除時に pending/processing を一括 expired（user の拡張点 cleanupHandlers から呼ばれる）
 completion/                    — 完了戦略レジストリ + ビルトイン walletTopupStrategy
 hooks/                         — 購入完了ポストフック（registerPurchaseCompleteHook、definitions/ に副作用 import で登録）
 payment/                       — 決済プロバイダ実装（→ payment/README.md）

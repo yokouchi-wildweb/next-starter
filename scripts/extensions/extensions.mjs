@@ -46,7 +46,8 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
   const abs = join(repoRoot, rel);
   const items = new Map(points.map((p) => [p.name, []]));
   const problems = [];
-  if (!existsSync(abs)) return { items, problems: [`${rel}: 受け口のフォルダが無い(${points.map((p) => p.declaredIn).join(", ")} の dir)`] };
+  // 受け口のフォルダが無い = 項目 0(git は空のフォルダを持てない。上流の項目が 0 の点はここを通る)
+  if (!existsSync(abs)) return { items, problems };
   const ignore = new Set(points.flatMap((p) => p.spec.ignore ?? []));
   const seen = new Map();
   for (const entry of readdirSync(abs, { withFileTypes: true }).sort((a, b) => byName(a.name, b.name))) {

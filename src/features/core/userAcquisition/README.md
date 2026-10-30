@@ -129,7 +129,7 @@ LIMIT 50;
 単発クエリなら上記で十分。管理画面に常設するなら（ANALYTICS_PERF 参照）:
 
 1. まず `withAnalyticsCache` でクエリ結果をキャッシュ
-2. 日次系列が必要になったら `analyticsRollupRegistry` に flow メトリクス（例: `signup_by_source`、dimensions=first_utm_source）を登録して事前集計に載せる
+2. 日次系列が必要になったら analytics の拡張点 `rollupMetrics` に flow メトリクス（例: `signup_by_source`、dimensions=first_utm_source）を登録して事前集計に載せる
 
 ## UI について
 

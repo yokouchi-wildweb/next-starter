@@ -37,7 +37,7 @@ export const UserDailyActivityTable = pgTable(
  * 日次メトリクス事前集計（ロールアップ）テーブル。
  *
  * ソーステーブルから再計算可能な「派生キャッシュ」であり、真実のソースではない。
- * 行は analyticsRollupRegistry に登録されたメトリクス計算機（compute）の出力を
+ * 行は 一覧 rollupMetrics(analytics/extensions/)のメトリクス計算機（compute）の出力を
  * 冪等 upsert（日単位で delete → insert）した結果。
  *
  * - metric_key: レジストリ上のメトリクス識別子（例: "wallet.closing_balance"）

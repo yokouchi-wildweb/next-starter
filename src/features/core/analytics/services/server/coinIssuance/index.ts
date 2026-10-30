@@ -11,10 +11,10 @@
 //  - aggregator は kind による符号反転と Σ 計算、レスポンス整形のみを行う
 //
 // downstream 拡張:
-//  - src/registry/coinIssuanceRegistry.ts に新 source を追加するだけで
+//  - sources/<名前>.<fork の名前>.ts に export const source を置き pnpm extensions:generate するだけで
 //    レスポンスの sources にそのキーが自動で追加される
 
-import { coinIssuanceSources } from "@/registry/coinIssuanceRegistry";
+import { coinIssuanceSources } from "@/features/core/analytics/extensions/coinIssuanceSources";
 
 import type {
   DateRangeParams,
@@ -22,6 +22,7 @@ import type {
 } from "@/features/core/analytics/types/common";
 import { resolveDateRange, formatDateRangeForResponse, derivePreviousRange } from "../utils/dateRange";
 import { changeRate } from "../utils/aggregation";
+import { activeCoinIssuanceSources } from "./activeSources";
 import type {
   CoinIssuanceSource,
   CoinIssuanceSourceEntry,
@@ -51,7 +52,7 @@ export async function getCoinIssuanceSummary(
 
   // 全ソースを並列実行
   const results = await Promise.all(
-    coinIssuanceSources.map(async (source) => ({
+    activeCoinIssuanceSources(coinIssuanceSources).map(async (source) => ({
       source,
       result: await source.aggregate({ range, prevRange, userFilter }),
     })),

@@ -287,12 +287,11 @@ CSV インポートも拒否される（`domain.json` も `useImportExport: fals
 
 ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、
 「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
-`src/registry/reservedUserNamesRegistry.ts` にプロバイダを登録する（上流は空 = 挙動変化なし）。
+`src/features/core/user/reservedNames/<名前>.<fork の名前>.ts` に `export const provider` を置き `pnpm extensions:generate`（上流は項目 0 = 挙動変化なし）。
 
 ```ts
 // 例: 静的な予約語リスト
-export const RESERVED_USER_NAME_PROVIDERS: readonly ReservedUserNameProvider[] = [
-  {
+export const provider: ReservedUserNameProvider = {
     key: "static-reserved-words",
     filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
   },
@@ -467,30 +466,33 @@ const result = await userClient.searchWithProfile("contributor", {
   - 残る: 他の業務行に紐付いたファイル、チャットの添付など他の人のデータが参照しうるファイル
   - 公開の用途の画像は、消してもブラウザ・CDN のキャッシュに残りうる
 
-### 退会時のクリーンアップハンドラ（userCleanupRegistry）
+### 退会時のクリーンアップハンドラ（拡張点 cleanupHandlers）
 
 退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。
 
 ```
-src/registry/userCleanupRegistry.ts           ← ハンドラの登録（UserCleanupHandler 型もここ）
-services/server/executeCleanup.ts             ← 実行エンジン
+cleanupHandlers/<名前>[.<fork の名前>].ts      ← 項目（export const handler: UserCleanupItem）
+extensions/cleanupHandlers.ts                 ← 一覧（生成物、pnpm extensions:generate）
+services/server/cleanup.ts                    ← 項目の型と実行（必須 → 任意）
+services/server/executeCleanup.ts             ← 呼び手の入口
 ```
 
 - `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
-- ステータス変更（`withdrawn` への更新）はレジストリの責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）
+- ステータス変更（`withdrawn` への更新）は項目の責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）
 
 | 種類 | 失敗時の挙動 | 上流の登録 |
 |------|-------------|-----------|
 | `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録） |
 | `optionalHandlers` | `console.error` に記録して続行 | `cancelPendingPurchaseRequests`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
 
-いずれも記載順に逐次実行され、required → optional の順。
+`required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は必須、`test:feature-gate`）。
 
 **ハンドラの追加手順**
 
 1. 対象ドメインの `services/server/` に `UserCleanupHandler` 型 `(userId: string, tx: DbTransaction) => Promise<void>` の関数を作る
    - DB 操作は必ず渡された `tx` で行う（独自にトランザクションを開始しない）
-2. `src/registry/userCleanupRegistry.ts` の `requiredHandlers` か `optionalHandlers` に追加する
+2. `src/features/core/user/cleanupHandlers/<名前>.<fork の名前>.ts` に項目を置き `pnpm extensions:generate`:
+   `export const handler: UserCleanupItem = { required: true, enabled: () => <フラグ>, run: cleanupOnWithdraw };`
 
 ```typescript
 // src/features/<domain>/services/server/cleanupOnWithdraw.ts

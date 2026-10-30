@@ -117,6 +117,14 @@ test("fork の宣言: extensionPoints.<fork の名前>.ts の点は同じ持ち�
   assert.match(plan.outputs["src/features/core/user/extensions/badges.ts"], /import \{ badge as gold_acme \} from "@\/features\/core\/user\/badges\/gold\.acme";/);
 });
 
+test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を出す)。alwaysOn は真偽だけ", () => {
+  const root = fixture({ "src/features/milestone/extensionPoints.ts": point(MILESTONES) });
+  const plan = planExtensions(root);
+  assert.deepEqual(plan.problems, []);
+  assert.match(plan.outputs["src/features/milestone/extensions/definitions.ts"], /export const definitions: MilestoneDefinition\[\] = \[\];/);
+  assert.match(readDeclaration("x/extensionPoints.ts", point(`  a: { dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", alwaysOn: "yes" },`)).problems[0], /alwaysOn は真偽/);
+});
+
 test("描画: key の Record・lazy の import・lib の target wiring は src/wiring/<lib>.ts に 1 本", () => {
   const root = fixture({
     "src/features/core/userLineProfile/extensionPoints.ts": point(

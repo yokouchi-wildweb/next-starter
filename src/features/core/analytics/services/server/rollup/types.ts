@@ -2,7 +2,7 @@
 // 日次ロールアップ（事前集計）フレームワークの型定義。
 //
 // downstream は RollupMetricConfig を満たす値を
-// src/registry/analyticsRollupRegistry.ts に登録するだけで、
+// src/features/core/analytics/rollupMetrics/<名前>.<fork の名前>.ts に export const metric を置くだけで、
 // 日次 cron / バックフィル / 読み取りヘルパーの対象になる。
 
 /**

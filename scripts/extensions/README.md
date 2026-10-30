@@ -32,6 +32,7 @@ export const extensionPoints = {
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
   - `ignore: ["<ファイル名>", …]` … 受け口の直下にある、項目でないファイル(proxy の骨組みなど)
+  - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test:feature-gate`)
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダから `tables` を導いて項目に付ける(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - fork が上流の持ち主のフォルダに自分の点を足すときは、隣に `extensionPoints.<fork の名前>.ts`(同じ書式)。上流の点と同じ名前は失敗(上流が後から同じ名前を足したら fork の点を改名する)。fork 自身のドメインは普通の `extensionPoints.ts`
 
@@ -42,7 +43,7 @@ export const extensionPoints = {
 - ファイル: `<名前>.ts(x)`(上流)/ `<名前>.<fork の名前>.ts(x)`(fork)
 - フォルダ: `<名前>[.<fork の名前>]/index.ts(x)`(中の index が項目、ほかのファイルは部品)
 
-印 = `export const <export>` の形(字面で見る。`export { x as <export> }` は拾わない)。項目のファイルは生成器から import しない。fork の名前は宣言済みのもの(`.claude/rules/project.md` の `fork_id:` と祖先の台帳名、`src/lib/forkOwnership/forkIds.mjs`)。
+受け口のフォルダが無い点は項目 0(一覧は空)。上流の項目が 0 の受け口は、intake の行が実在を見るので置き方を書いた README.md を置く(`.ts(x)` でないファイルは項目に数えない)。印 = `export const <export>` の形(字面で見る。`export { x as <export> }` は拾わない)。項目のファイルは生成器から import しない。fork の名前は宣言済みのもの(`.claude/rules/project.md` の `fork_id:` と祖先の台帳名、`src/lib/forkOwnership/forkIds.mjs`)。
 
 失敗(書き出さない): 宣言に無い fork の名前 / 印が無い(受け口に置くのは項目だけ。部品は責務のドメインへ)/ 同じ受け口の 2 つの点の印を両方持つ / index の無いフォルダ / 同じ名前のファイルとフォルダ / 名前の形。テスト(`*.test.*`)・`.d.ts`・`.ts(x)` 以外・`extensions/`・ほかの点の受け口のフォルダは見ない。
 

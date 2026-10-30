@@ -16,7 +16,7 @@ import { AnalyticsDailyRollupTable } from "@/features/core/analytics/entities/dr
 import { DEFAULT_TIMEZONE } from "@/features/core/analytics/constants";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
-import { analyticsRollupMetrics } from "@/registry/analyticsRollupRegistry";
+import { rollupMetrics } from "@/features/core/analytics/extensions/rollupMetrics";
 import { invalidateAnalyticsCache } from "../utils/analyticsCache";
 import { formatDateKeyTz, resolveDayBounds } from "../utils/dateRange";
 import type {
@@ -57,10 +57,10 @@ export function listRollupMetricConfigs(): RollupMetricConfig[] {
 
 function buildRegistryMap(): Map<string, RollupMetricConfig> {
   const map = new Map<string, RollupMetricConfig>();
-  for (const config of analyticsRollupMetrics) {
+  for (const config of rollupMetrics) {
     if (map.has(config.key)) {
       throw new DomainError(
-        `analyticsRollupRegistry に key "${config.key}" が重複登録されています。`,
+        `rollupMetrics に key "${config.key}" が重複登録されています。`,
         { status: 500 },
       );
     }

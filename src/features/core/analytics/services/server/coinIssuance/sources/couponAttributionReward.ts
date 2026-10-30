@@ -10,6 +10,7 @@
 
 import { and, between, eq, sql } from "drizzle-orm";
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { db } from "@/lib/drizzle";
 import { CouponAttributionRewardTable } from "@/features/core/couponAttributionReward/entities/drizzle";
 import { buildUserFilterConditions } from "../../utils/userFilter";
@@ -17,9 +18,10 @@ import type { CoinIssuanceSource } from "../types";
 
 const r = CouponAttributionRewardTable;
 
-export const couponAttributionRewardSource: CoinIssuanceSource = {
+export const source: CoinIssuanceSource = {
   key: "coupon_attribution_reward",
   kind: "issuance",
+  enabled: () => APP_FEATURES.marketing.coupon.enabled,
 
   async aggregate({ range, prevRange, userFilter }) {
     const isCurrent = sql`(${r.fulfilled_at} >= ${range.dateFrom.toISOString()} AND ${r.fulfilled_at} <= ${range.dateTo.toISOString()})`;

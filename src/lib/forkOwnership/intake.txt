@@ -45,6 +45,14 @@ edit src/proxies/featureGateRules/*.*.ts  # src/proxies/README.md「規則の書
 edit src/proxies/*.*/**  # 枠の項目のフォルダ形 <名前>.<fork の名前>/index.ts(scripts/extensions/README.md)
 edit src/proxies/featureGateRules/*.*/**  # 規則のフォルダ形
 edit scripts/proxies/alwaysOnExceptions.*.mjs  # src/proxies/README.md「常時実行の入口」の fork の口(L1.24)
+edit src/features/core/analytics/rollupMetrics/*.*.ts  # 日次ロールアップのメトリクス
+edit src/features/core/analytics/rollupMetrics/*.*/**  # フォルダ形
+edit src/features/core/analytics/services/server/coinIssuance/sources/*.*.ts  # コイン創出のソース
+edit src/features/core/analytics/services/server/coinIssuance/sources/*.*/**  # フォルダ形
+edit src/features/core/user/reservedNames/*.*.ts  # 表示名の予約名プロバイダ
+edit src/features/core/user/reservedNames/*.*/**  # フォルダ形
+edit src/features/core/user/cleanupHandlers/*.*.ts  # 退会の後片付け
+edit src/features/core/user/cleanupHandlers/*.*/**  # フォルダ形
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 

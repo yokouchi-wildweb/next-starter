@@ -3,8 +3,8 @@
 //
 // 機能を閉じる規則(features を持つもの)の機能が無効なら、その表は db:push で作られない。それでも常に動く処理が
 // その機能のフォルダを import していたら、無効なときに無い表を読む。そこで常時実行の入口ごとに「閉じられるか」を見る:
-// - cron の task.ts: cronTask に enabled(config を読む同期関数)がある(式の中身までは見ない)
-// - 後片付け・照合の登録表: import した名前の使い所(import 行以外)が全部 `...(<条件> ? [ ... ] : [])` の内側
+// - cron の task.ts と、宣言の alwaysOn: true の点の項目(後片付け・照合): enabled(config を読む同期関数)がある(式の中身までは見ない)
+// - fork の手書きの登録表: import した名前の使い所(import 行以外)が全部 `...(<条件> ? [ ... ] : [])` の内側
 // - それ以外(常に読み込まれる結線など): 理由付きの例外表にある
 // 限界: 直接の import だけを見る(別のモジュールを経由した到達は見ない)。型だけの import は数えない。
 // 使い手: src/proxies/featureGate.test.mjs(実リポ)、scripts/proxies/proxyFrame.test.mjs(fixture)
@@ -81,7 +81,7 @@ export function judgeAlwaysOnEntries(entries, folders, exceptions) {
     const sources = [...new Set(imports.map((i) => i.source))].join(", ");
     hits.push(`${entry.path}: ${entry.kind}`);
     if (entry.kind === "cron") {
-      if (!cronTaskHasEnabled(entry.text)) problems.push(`${entry.path}: ${sources} を import するのに cronTask に enabled が無い`);
+      if (!cronTaskHasEnabled(entry.text)) problems.push(`${entry.path}: ${sources} を import するのに enabled が無い(cron は cronTask、拡張点の項目は値に書く)`);
       continue;
     }
     if (entry.kind === "registry") {

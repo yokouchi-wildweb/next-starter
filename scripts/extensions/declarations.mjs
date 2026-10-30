@@ -21,7 +21,7 @@ const LOADS = ["eager", "lazy"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive"];
+const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -96,6 +96,7 @@ function checkPoint(name, point) {
   if (point.target !== undefined && !TARGETS.includes(point.target)) problems.push(`${name}: target は ${TARGETS.join(" | ")}`);
   if (point.ignore !== undefined && !(Array.isArray(point.ignore) && point.ignore.every(isString))) problems.push(`${name}: ignore はファイル名の配列`);
   if (point.derive !== undefined && !DERIVES.includes(point.derive)) problems.push(`${name}: derive は ${DERIVES.join(" | ")}(組み込みの変換だけ)`);
+  if (point.alwaysOn !== undefined && typeof point.alwaysOn !== "boolean") problems.push(`${name}: alwaysOn は真偽`);
   if (point.load === "lazy" && (point.key !== undefined || point.derive !== undefined)) problems.push(`${name}: load "lazy" は key・derive と一緒に使えない`);
   return problems;
 }
