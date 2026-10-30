@@ -6,10 +6,12 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { parseForkDotName, readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { parseForkDotName, readDeclaredForkIds, readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "./declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
+import { checkOverrides } from "./overrides.mjs";
+import { checkSwitches } from "./switches.mjs";
 
 export const COMMAND = "pnpm extensions:generate";
 /** 生成物の 1 行目(registry:generate と同じ形の目印) */
@@ -147,9 +149,9 @@ function renderFile(points, itemsByPoint) {
 }
 
 /**
- * 全拡張点を走査して、生成一覧の中身を組み立てる
+ * 全拡張点を走査して、生成一覧の中身を組み立てる。1 行スイッチと override の検査(./switches.mjs・./overrides.mjs)も同じ problems に
  * @param {string} repoRoot
- * @returns {{ points: object[], itemsByPoint: Map<object, object[]>, outputs: Record<string, string>, problems: string[] }}
+ * @returns {{ points: object[], itemsByPoint: Map<object, object[]>, outputs: Record<string, string>, switches: object[], overrides: object[], problems: string[] }}
  */
 export function planExtensions(repoRoot) {
   const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
@@ -192,7 +194,11 @@ export function planExtensions(repoRoot) {
     if (new Set(names).size !== names.length) problems.push(`${path}: 同じ名前の点が 1 つの wiring に重なる`);
     outputs[path] = renderFile(filePoints, itemsByPoint);
   }
-  return { points, itemsByPoint, outputs, problems };
+  const { isTier1 } = readForkIdentity(repoRoot);
+  const switchCheck = checkSwitches(repoRoot, { forkIds, isTier1 });
+  const overrideCheck = checkOverrides(repoRoot, { isTier1 });
+  problems.push(...switchCheck.problems, ...overrideCheck.problems);
+  return { points, itemsByPoint, outputs, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
 }
 
 /** 点の項目(テスト・検査用): 持ち主のフォルダと点の名前で引く */

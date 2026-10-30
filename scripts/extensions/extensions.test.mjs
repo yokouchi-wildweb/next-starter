@@ -5,6 +5,7 @@
 // - 失敗: 宣言に無い fork の名前 / 印が無い / 同じ名前のファイルとフォルダ / fork の点が上流と同名
 // - 描画: eager の配列・key の Record・lazy の import・wiring の 1 本・共通のヘッダ
 // - check: ずれ・extensions/ の手で置いたファイル(ヘッダ無し)・宣言の消えた古い一覧
+// - 1 行スイッチ(./switches.mjs)の形と、上流は override を出荷しない(./overrides.mjs)
 // 実行: pnpm test:extensions
 
 import assert from "node:assert/strict";
@@ -15,6 +16,8 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { readDeclaration } from "./declarations.mjs";
+import { checkOverrides } from "./overrides.mjs";
+import { checkSwitches } from "./switches.mjs";
 import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -170,9 +173,70 @@ test("check: 一覧のずれ・extensions/ に手で置いたファイル(受け
   assert.ok(existsSync(join(root, "src/features/milestone/extensions/definitions.ts")));
 });
 
+test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ、宣言済みの fork の名前・実在する先、Tier1 は .default", () => {
+  const D = "export function enrich() {}\n";
+  const root = fixture({
+    "src/features/core/payment/enricher.default.ts": D,
+    "src/features/core/payment/enricher.ts": '// 採用者所有のスイッチ\nexport { enrich } from "./enricher.default";\n',
+    "src/features/core/payment/enricher.acme.ts": D,
+    "src/features/core/a/x.default.ts": D,
+    "src/features/core/a/x.ts": 'export * from "./x.acme";\n',
+    "src/features/core/a/x.acme.ts": D,
+    "src/features/core/b/y.default.tsx": D,
+    "src/features/core/b/y.tsx": 'export { default } from "./y.default";\nexport const z = 1;\n',
+    "src/features/core/c/z.default.ts": D,
+    "src/features/core/c/z.ts": 'export * from "./z.other";\n',
+    "src/features/core/d/w.default.ts": D,
+    "src/features/core/d/w.ts": 'export * from "./w.parent";\n',
+    "src/features/core/e/v.default.ts": D,
+    "src/features/core/f/u.default.ts": D,
+    "src/features/core/f/u.ts": 'export * from "../g/u";\n',
+    "src/features/core/h/only.acme.ts": D,
+  });
+  const forkIds = ["acme", "parent"];
+  const fork = checkSwitches(root, { forkIds, isTier1: false });
+  assert.deepEqual(fork.switches.map((s) => `${s.path}>${s.target}`), ["src/features/core/a/x.ts>x.acme", "src/features/core/payment/enricher.ts>enricher.default"]);
+  const reason = (r, s) => r.problems.find((p) => p.includes(s)) ?? "";
+  assert.match(reason(fork, "b/y.tsx"), /re-export 1 文だけ/);
+  assert.match(reason(fork, "c/z.ts"), /宣言されていない/);
+  assert.match(reason(fork, "d/w.ts"), /w\.parent\.ts\(x\) が無い/);
+  assert.match(reason(fork, "e/v.default.ts"), /スイッチ v\.ts\(x\) が無い/);
+  assert.match(reason(fork, "f/u.ts"), /re-export 1 文だけ/);
+  assert.equal(fork.problems.length, 5, fork.problems.join("\n"));
+
+  const tier1 = checkSwitches(root, { forkIds, isTier1: true });
+  assert.match(reason(tier1, "a/x.ts"), /上流\(Tier1\)のスイッチは x\.default を指す/);
+  assert.deepEqual(tier1.switches.map((s) => s.path), ["src/features/core/payment/enricher.ts"]);
+});
+
+test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。素の override.ts は cron のタスクだけ", () => {
+  const root = fixture({
+    "src/app/api/cron/wallet-expire/override.ts": "export const cronOverride = { disabled: true };\n",
+    "src/app/api/cron/other/override.ts": "// 親の上書きを外す\n",
+    "src/features/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
+    "src/features/core/x/thing.override.tsx": "export const x = 1;\n",
+    "src/features/core/x/override.ts": "export const notAnOverride = 1;\n",
+  });
+  const fork = checkOverrides(root, { isTier1: false });
+  assert.deepEqual(fork.problems, []);
+  assert.deepEqual(
+    fork.overrides.map((o) => `${o.path}:${o.blank}`),
+    [
+      "src/app/api/cron/other/override.ts:true",
+      "src/app/api/cron/wallet-expire/override.ts:false",
+      "src/features/core/user/services/server/domainEntry.override.ts:false",
+      "src/features/core/x/thing.override.tsx:false",
+    ],
+  );
+  const tier1 = checkOverrides(root, { isTier1: true });
+  assert.equal(tier1.problems.length, 4, tier1.problems.join("\n"));
+  assert.ok(tier1.problems.every((p) => p.includes("上流(Tier1)は override を出荷しない")));
+});
+
 test("実リポ: 宣言・項目の問題が無く、生成一覧が一致し、extensions/ に手で置いたファイルが無い(ずれたら pnpm extensions:generate)", () => {
   const plan = planExtensions(repoRoot);
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   assert.deepEqual(staleOutputs(repoRoot, plan.outputs), []);
   assert.deepEqual(strayExtensionFiles(repoRoot, plan.outputs, plan.points), []);
+  assert.deepEqual(plan.overrides, [], "上流は override を出荷しない");
 });

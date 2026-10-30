@@ -151,7 +151,7 @@ pnpm ownership:check --parent=upstream --branch=main
 - 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
-- override: Tier1 は override(`src/app/api/cron/<name>/override.ts`・`domainEntry.override.ts`)を出荷しないので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
+- override: Tier1 は override(`src/app/api/cron/<name>/override.ts`・`<対象>.override.ts`)を出荷しない(`pnpm extensions:check` が検査、`scripts/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
 - 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork ファイル・featureGateRules・override・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替え・置き換えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
 

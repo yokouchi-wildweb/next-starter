@@ -5,7 +5,7 @@
 | コマンド | すること |
 |---|---|
 | `pnpm extensions:generate` | 全宣言を読み、全一覧を丸ごと書く(問題があれば書かずに止まる)。宣言の消えた古い一覧(目印のヘッダ付き)は消す |
-| `pnpm extensions:check` | 一覧が宣言・項目と一致するかだけを見る(build の冒頭で走る)。書かない |
+| `pnpm extensions:check` | 一覧が宣言・項目と一致するか、1 行スイッチの形、上流が override を持たないかを見る(build の冒頭で走る)。書かない |
 | `pnpm test:extensions` | 生成器の回帰テスト(fixture)と実リポの一致 |
 
 src/registry の α(serviceRegistry など)は `registry:generate` / `registry:check` の側で、ここでは扱わない。
@@ -54,6 +54,27 @@ export const extensionPoints = {
 - 生成物はコミットする。/flux で上流を取り込んだら作り直してコミットし、衝突はどちらかを採って作り直す
 - 所有: `src/**/extensions/**` は intake の generated 行、`src/**/extensionPoints.*.ts` は fork の受け口(`src/lib/forkOwnership/intake.txt`)
 
+## 1 行スイッチ(画面以外の、1 つだけの実装を差し替える口)
+
+一覧に並べるのでなく「どれか 1 つ」を使う実装(決済の enricher など)は、既定の隣に 1 行のスイッチを置く。
+
+| ファイル | 中身 | 持ち主 |
+|---|---|---|
+| `<名前>.ts(x)` | 呼び手が import する素の名前。`export … from "./<名前>.default";` の re-export 1 文だけ | 採用者(fork が `./<名前>.<fork の名前>` に書き換える) |
+| `<名前>.default.ts(x)` | 上流の既定の実装 | 上流 |
+| `<名前>.<fork の名前>.ts(x)` | fork の実装(既定と同じ export の形) | fork |
+
+- 検査(`extensions:check`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か宣言済みの `<名前>.<fork の名前>` で実在する / 上流(Tier1)のスイッチは `.default` を指す
+- 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
+- page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`test:screens`)
+
+## override(既定を変える隣のファイル)
+
+- 対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`)、cron は `src/app/api/cron/<name>/override.ts`。Tier 別・fork の名前付きのファイルは作らない
+- 足した Tier の物。下の Tier は同じファイルを書き換える: 受け継ぐ = 触らない / 既定へ戻す = キーを消すかファイルを消す / 全部を戻す = 空(空白とコメントだけ = 不在と同じ)。合成は git の merge だけ
+- **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `extensions:check`(`overrides.mjs`)
+- 生成器・検査は空のファイルと不在を同じに扱う(cron の `scripts/cron/discover.ts`・`scripts/registry/serviceRegistry/discover.mjs`)
+
 ## ファイル
 
 | ファイル | 中身 |
@@ -61,4 +82,5 @@ export const extensionPoints = {
 | `declarations.mjs` | 宣言の探索とリテラルの読み取り、fork の点の重なりの検査 |
 | `extensions.mjs` | 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables) |
+| `switches.mjs` / `overrides.mjs` | 1 行スイッチの形と、上流の override の検査 |
 | `generate.mjs` / `check.mjs` | コマンドの入口 |
