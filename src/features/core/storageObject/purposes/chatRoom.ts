@@ -3,6 +3,7 @@
 
 import "server-only";
 
+import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
 import {
   FILE_MAX_SIZE,
   IMAGE_MAX_SIZE,
@@ -12,9 +13,6 @@ import { isChatParticipant } from "@/features/core/chatRoom/services/server/isCh
 import type { StoragePurpose, StoragePurposeMap } from "@/lib/storage";
 
 const ADMIN = { roleCategories: ["admin"] };
-
-/** チャットの「その他ファイル」は種別を絞らない（表示は配信規則で attachment になる） */
-const ANY_FILE_TYPES = ["application/*", "text/*", "image/*", "video/*", "audio/*", "font/*", "model/*"];
 
 /** チャット添付の共通規則: 現参加者だけが上げられ、読める。削除は管理者のみ。業務行に紐付けない */
 const chatAttachment = {
@@ -27,8 +25,8 @@ const chatAttachment = {
 } satisfies Omit<StoragePurpose, "maxBytes" | "contentTypes">;
 
 export const purposes = {
-  "chatRoom.image": { ...chatAttachment, maxBytes: IMAGE_MAX_SIZE, contentTypes: ["image/*"], metadata: "strip" },
-  "chatRoom.video": { ...chatAttachment, maxBytes: VIDEO_MAX_SIZE, contentTypes: ["video/*"] },
+  "chatRoom.image": { ...chatAttachment, maxBytes: IMAGE_MAX_SIZE, contentTypes: [...CHAT_ATTACHMENT_CONTENT_TYPES.image], metadata: "strip" },
+  "chatRoom.video": { ...chatAttachment, maxBytes: VIDEO_MAX_SIZE, contentTypes: [...CHAT_ATTACHMENT_CONTENT_TYPES.video] },
   // 「ファイルとして送る」は原本のまま渡す用途（.heic・.svg も送れる）
-  "chatRoom.file": { ...chatAttachment, maxBytes: FILE_MAX_SIZE, contentTypes: ANY_FILE_TYPES, metadata: "keep" },
+  "chatRoom.file": { ...chatAttachment, maxBytes: FILE_MAX_SIZE, contentTypes: [...CHAT_ATTACHMENT_CONTENT_TYPES.file], metadata: "keep" },
 } satisfies StoragePurposeMap;

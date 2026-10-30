@@ -14,11 +14,8 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Trophy } from "lucide-react";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
-import { getMilestoneRenderer } from "./milestoneRendererRegistry";
+import { renderers } from "@/features/core/milestone/extensions/renderers";
 import { DefaultMilestoneNotification } from "./DefaultMilestoneNotification";
-
-// レンダラー定義の副作用インポート（登録を実行）
-import "./renderers";
 
 type MilestoneNotificationsProps = {
   results: PersistedMilestoneResult[];
@@ -34,7 +31,7 @@ export function MilestoneNotifications({ results }: MilestoneNotificationsProps)
   const modalResults: RendererEntry[] = [];
 
   for (const result of achieved) {
-    const renderer = getMilestoneRenderer(result.milestoneKey);
+    const renderer = renderers[result.milestoneKey];
     const displayMode = renderer?.displayMode ?? "inline";
     const Component = renderer?.component ?? DefaultMilestoneNotification;
 

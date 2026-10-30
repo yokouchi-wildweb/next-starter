@@ -63,7 +63,7 @@
 ## UI コンポーネント
 
 ### ユーザー向け
-- `components/InviteCode/index.tsx`: マイページ招待コードのセクションコンテナ(`/mypage/invite` の Screen が配置)。部品 `InviteBenefitsSection` は同ディレクトリ
+- `components/InviteCode/index.tsx`: マイページ招待コードのセクションコンテナ(`/mypage/invite` の Screen が配置)。部品 `InviteBenefitsSection` は同ディレクトリ。特典の説明を差し替える fork は Screen を `_components/` へ複製し(`src/lib/screens/README.md`)、`<InviteCode benefits={<自分の説明 />} />` と渡す
   - 招待コード表示/発行（coupon ドメインのフックを利用）
   - コピーボタン（clipboard API）
   - 招待実績（○人招待済み）表示

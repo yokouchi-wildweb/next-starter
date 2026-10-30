@@ -7,12 +7,12 @@ import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";
-import { plugins } from "../config/plugins";
 import { AdminCommandContext } from "./context";
 import { AdminCommandPalette } from "./AdminCommandPalette";
+import { type AdminCommandLists, loadForAdmin, type LoadedAdminCommand } from "./loadForAdmin";
 import type { AdminCommandContextValue } from "./types";
 
-type AdminCommandProviderProps = {
+type AdminCommandProviderProps = AdminCommandLists & {
   children: React.ReactNode;
 };
 
@@ -20,14 +20,27 @@ type AdminCommandProviderProps = {
  * 管理者コマンドパレットの Provider
  * - ショートカットキー監視
  * - パレット表示制御
- * - プラグインの自動適用
+ * - 管理者になってからカテゴリ・プラグインを読み込む
  */
-export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
+export function AdminCommandProvider({ children, categories, plugins }: AdminCommandProviderProps) {
   const { user } = useAuthSession();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const isAdmin = getRoleCategory(user?.role ?? "") === "admin";
+  const [loaded, setLoaded] = useState<LoadedAdminCommand | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadForAdmin(isAdmin, { categories, plugins })
+      .then((result) => {
+        if (!cancelled) setLoaded(result);
+      })
+      .catch((err) => console.error("[AdminCommand] 読み込みエラー:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, categories, plugins]);
 
   // ショートカットキーの監視
   useEffect(() => {
@@ -68,34 +81,31 @@ export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
     [openPalette, closePalette, togglePalette, isOpen]
   );
 
-  // コンテンツ: パレット + GlobalComponents
-  const content = (
+  // パレット + GlobalComponents。プラグインの Provider はここだけを包む（読み込み後に画面全体を作り直さないため）
+  const adminContent = loaded && (
     <>
-      {children}
-      {isAdmin && <AdminCommandPalette open={isOpen} onOpenChange={setIsOpen} />}
-      {/* プラグインの GlobalComponent を描画 */}
-      {isAdmin &&
-        plugins.map(
-          (plugin) =>
-            plugin.GlobalComponent && <plugin.GlobalComponent key={plugin.id} />
-        )}
+      <AdminCommandPalette categories={loaded.categories} open={isOpen} onOpenChange={setIsOpen} />
+      {loaded.plugins.map(
+        (plugin) =>
+          plugin.GlobalComponent && <plugin.GlobalComponent key={plugin.id} />
+      )}
     </>
   );
 
-  // プラグインの Provider でラップ
-  const wrappedContent = plugins
+  const wrappedAdminContent = loaded?.plugins
     .filter((plugin) => plugin.Provider)
     .reduceRight(
       (acc, plugin) => {
         const PluginProvider = plugin.Provider!;
         return <PluginProvider key={plugin.id}>{acc}</PluginProvider>;
       },
-      content
+      adminContent
     );
 
   return (
     <AdminCommandContext.Provider value={contextValue}>
-      {wrappedContent}
+      {children}
+      {wrappedAdminContent}
     </AdminCommandContext.Provider>
   );
 }

@@ -31,6 +31,9 @@ export type NavigationItem = {
   className?: string;
 };
 
+/** navigationItems の点の 1 項目(export const items) */
+export type NavigationItemGroup = NavigationItem[];
+
 /**
  * 設定項目の入力タイプ
  */

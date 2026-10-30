@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { CopyIcon, CheckIcon, UsersIcon } from "lucide-react";
 
 import { Section } from "@/components/Layout/Section";
@@ -19,7 +19,7 @@ import { useIssueMyInviteCode } from "@/features/core/coupon/hooks/useIssueMyInv
 import { useMyReferrals } from "@/features/core/referral/hooks/useMyReferrals";
 import { InviteBenefitsSection } from "./InviteBenefitsSection";
 
-export function InviteCode() {
+export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = 既定の InviteBenefitsSection) */ benefits?: ReactNode }) {
   const { inviteCode, isLoading: isLoadingCode } = useMyInviteCode();
   const { issue, isLoading: isIssuing } = useIssueMyInviteCode();
   const { count, isLoading: isLoadingReferrals } = useMyReferrals();
@@ -94,7 +94,7 @@ export function InviteCode() {
 
           {/* 招待特典 */}
           <div className="p-4 sm:p-6">
-            <InviteBenefitsSection />
+            {benefits ?? <InviteBenefitsSection />}
           </div>
 
           {/* 招待実績 */}

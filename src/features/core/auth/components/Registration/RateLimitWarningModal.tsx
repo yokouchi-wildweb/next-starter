@@ -4,10 +4,8 @@
 
 import Modal from "@/components/Overlays/Modal";
 import { Button } from "@/components/Form/Button/Button";
-import {
-  RateLimitWarningContent,
-  RATE_LIMIT_WARNING_TITLE,
-} from "./RateLimitWarningContent";
+import { RATE_LIMIT_WARNING } from "@/config/ui/rate-limit-warning.config";
+import { RateLimitWarningContent } from "./RateLimitWarningContent";
 
 type RateLimitWarningModalProps = {
   open: boolean;
@@ -16,7 +14,7 @@ type RateLimitWarningModalProps = {
 
 /**
  * レートリミット発動時の警告モーダル。
- * 文言を変更する場合は RateLimitWarningContent.tsx を編集してください。
+ * 文言は src/config/ui/rate-limit-warning.config.ts。
  */
 export function RateLimitWarningModal({
   open,
@@ -26,7 +24,7 @@ export function RateLimitWarningModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={RATE_LIMIT_WARNING_TITLE}
+      title={RATE_LIMIT_WARNING.title}
       maxWidth={480}
     >
       <div className="px-6 pb-6">

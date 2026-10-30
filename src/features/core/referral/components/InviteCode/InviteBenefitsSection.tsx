@@ -1,8 +1,6 @@
 // src/features/core/referral/components/InviteCode/InviteBenefitsSection.tsx
 // 招待特典の説明セクション
-//
-// 下流プロジェクトでこのコンポーネントを差し替えて、
-// 具体的な特典内容（ポイント付与、クーポン発行など）を記載する。
+// 差し替えは InviteCode の benefits prop(fork の Screen から渡す。README 参照)
 
 import { CheckCircleIcon, GiftIcon } from "lucide-react";
 
@@ -34,7 +32,7 @@ export function InviteBenefitsSection() {
           </Para>
         </Stack>
 
-        {/* 特典リスト（下流で差し替え） */}
+        {/* 特典リスト */}
         <Stack space={2} className="items-center">
           {PLACEHOLDER_BENEFITS.map((benefit) => (
             <Flex key={benefit} align="center" gap="xs">

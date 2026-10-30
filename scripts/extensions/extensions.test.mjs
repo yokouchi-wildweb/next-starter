@@ -9,7 +9,7 @@
 // 実行: pnpm test:extensions
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -260,4 +260,30 @@ test("実リポ: 宣言・項目の問題が無く、生成一覧が一致し、
   assert.deepEqual(staleOutputs(repoRoot, plan.outputs), []);
   assert.deepEqual(strayExtensionFiles(repoRoot, plan.outputs, plan.points), []);
   assert.deepEqual(plan.overrides, [], "上流は override を出荷しない");
+});
+
+test("files の点: 1 段下の決まった名前のファイルが項目、folder が付く、印が無ければ失敗", () => {
+  const root = mkdtempSync(join(tmpdir(), "ext-files-"));
+  const put = (path, text) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  try {
+    put(".claude/rules/project.md", "fork_id: next-starter\n");
+    put("src/lib/CATALOG.md", "## next-starter\n");
+    put("src/app/demo/extensionPoints.ts", 'export const extensionPoints = { pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" } };\n');
+    put("src/app/demo/b-page/_demo.ts", "export const demo = {};\n");
+    put("src/app/demo/a-page/_demo.ts", "export const demo = {};\n");
+    put("src/app/demo/no-entry/page.tsx", "");
+    let plan = planExtensions(root);
+    assert.deepEqual(plan.problems, []);
+    const out = plan.outputs["src/app/demo/extensions/pages.ts"];
+    assert.match(out, /import \{ demo as a_page \} from "@\/app\/demo\/a-page\/_demo";/);
+    assert.match(out, /\{ \.\.\.a_page, folder: "a-page" \},\n {2}\{ \.\.\.b_page, folder: "b-page" \}/);
+    put("src/app/demo/b-page/_demo.ts", "export const other = {};\n");
+    plan = planExtensions(root);
+    assert.ok(plan.problems.some((p) => p.includes("export const demo が無い")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

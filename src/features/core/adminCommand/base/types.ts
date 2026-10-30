@@ -3,6 +3,12 @@
 import type { ComponentType, ReactNode } from "react";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 
+/** 遅延読み込みの一覧の項目(生成物 src/app/_layout/adminCommand/extensions/) */
+export type LazyItem<T> = {
+  name: string;
+  load: () => Promise<T>;
+};
+
 /**
  * カテゴリレンダラーが受け取る共通Props
  */
@@ -42,7 +48,7 @@ export type CategoryConfig = {
  * プラグイン設定
  *
  * カテゴリに以下が必要な場合に使用:
- * - Provider: カテゴリ固有の状態管理（コンテキスト）
+ * - Provider: カテゴリ固有の状態管理（コンテキスト）。包むのはパレットと GlobalComponent だけ（管理者になってから読むので画面全体は包めない）
  * - GlobalComponent: パレット外で常時表示するUI（ダイアログなど）
  */
 export type AdminCommandPlugin = {

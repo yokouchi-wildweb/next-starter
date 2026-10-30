@@ -25,6 +25,15 @@ import { runCleanupItems } from "@/features/core/user/services/server/cleanup";
 import { webhookHandlers } from "@/features/core/userLineProfile/extensions/webhookHandlers";
 import { dispatchWebhookEvents } from "@/features/core/userLineProfile/services/server/dispatchWebhookEvents";
 
+import { categories } from "@/app/_layout/adminCommand/extensions/categories";
+import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
+import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
+import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
+import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
+import { loadForAdmin } from "@/features/core/adminCommand/base/loadForAdmin";
+import { navigationItems } from "@/features/core/adminCommand/definitions/navigation/items";
+import { validateChatFile } from "@/features/core/chatRoom/utils/validation";
+import { renderers } from "@/features/core/milestone/extensions/renderers";
 import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
@@ -95,7 +104,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   assert.equal(isCouponIssuerProgramEnabled(), false);
   assert.equal(await onDemoUserCreated("u1"), undefined);
   const plan = planExtensions(ROOT);
-  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
+  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["RateLimitWarningContent.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
 });
 
 test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", () => {
@@ -186,4 +195,47 @@ test("メール: テンプレートは送る側のドメインの mail/ にあ�
   for (const path of ["auth/mail/VerificationEmail.tsx", "user/mail/RegistrationCompleteEmail.tsx", "messaging/mail/AdminAnnouncementEmail.tsx"]) {
     assert.equal(existsSync(join(ROOT, "src/features/core", path)), true, path);
   }
+});
+
+test("管理者コマンド: 非管理者は読み込まない、管理者は上流の 3 カテゴリを今の順で、プラグイン 0", async () => {
+  let calls = 0;
+  const spy = [{ name: "x", load: async () => { calls += 1; return {} as never; } }];
+  assert.equal(await loadForAdmin(false, { categories: spy, plugins: spy }), null);
+  assert.equal(calls, 0);
+  assert.deepEqual(categories.map((c) => c.name), ["navigation", "settings", "userSession"]);
+  assert.deepEqual(plugins, []);
+  assert.deepEqual(navigationItems.map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings", "nav-admin-insane"]);
+});
+
+test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテゴリの中はフォルダ名の順、閉じたデモは除く", () => {
+  const expected = {
+    form: ["field-layout", "form-components", "media-input"],
+    overlay: ["async-picker-modal", "overlay", "popover"],
+    ui: ["block-appearance", "fade-slider", "scroll-slider", "sortable-list", "status-badge", "tables"],
+    media: ["seamless-av", "seamless-video"],
+    auth: ["fingerprint", "google-popup", "google-redirect"],
+    payment: ["bank-transfer-vision", "dummy-payment"],
+    dev: ["check-env"],
+  };
+  const groups = groupDemoPagesByCategory(demoPages);
+  assert.deepEqual(Object.fromEntries(groups.map((g) => [g.key, g.pages.map((p) => p.folder)])), expected);
+  assert.deepEqual(groups.map((g) => g.key), DEMO_CATEGORIES.map((c) => c.key));
+  const open = openDemoPages(demoPages, [{ enabled: () => false, pathPatterns: ["/demo/tables"] }, { enabled: () => true, pathPatterns: ["/demo/popover"] }]);
+  assert.equal(open.length, demoPages.length - 1);
+  assert.equal(open.some((p) => p.folder === "tables"), false);
+});
+
+test("マイルストーンのレンダラー: 上流の項目は 0", () => {
+  assert.deepEqual(renderers, {});
+});
+
+test("チャット添付: 既定の許可種別、種別が空は通す、サイズ上限は今までどおり", () => {
+  const file = (type: string, size = 1) => ({ type, size }) as File;
+  assert.equal(validateChatFile(file("image/png"), "image").valid, true);
+  assert.equal(validateChatFile(file("video/mp4"), "image").valid, false);
+  assert.equal(validateChatFile(file("video/mp4"), "video").valid, true);
+  assert.equal(validateChatFile(file("application/pdf"), "file").valid, true);
+  assert.equal(validateChatFile(file(""), "file").valid, true);
+  assert.equal(validateChatFile(file("image/png", 1024 ** 3), "image").valid, false);
+  assert.deepEqual(CHAT_ATTACHMENT_CONTENT_TYPES.image, ["image/*"]);
 });

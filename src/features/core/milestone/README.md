@@ -36,11 +36,10 @@ milestone/
 │   └── definitions/
 │       └── index.ts                 # 下流が副作用インポートを追加する場所
 ├── components/
-│   ├── milestoneRendererRegistry.ts # クライアント側レンダラー登録
 │   ├── MilestoneNotifications.tsx   # 達成通知リスト表示コンポーネント
 │   ├── DefaultMilestoneNotification.tsx # 未登録キーの汎用通知
 │   └── renderers/
-│       └── index.ts                 # 下流がレンダラーの副作用インポートを追加する場所
+│       └── <名前>.<fork の名前>.tsx  # 下流のレンダラーの項目(export const renderer)
 ├── entities/                        # 生成ファイル（user_milestones テーブル定義）
 └── hooks/                           # 生成ファイル（クライアント用フック）
 ```
@@ -228,11 +227,11 @@ type PersistedMilestoneResult = {
 #### 1. レンダラーコンポーネントを作成
 
 ```tsx
-// components/renderers/FirstPurchaseCelebration.tsx
+// src/features/myDomain/components/FirstPurchaseCelebration.tsx
 
 "use client";
 
-import type { MilestoneRendererProps } from "@/features/core/milestone/components/milestoneRendererRegistry";
+import type { MilestoneRendererProps } from "@/features/core/milestone/types/milestoneRenderer";
 
 export function FirstPurchaseCelebration({ result }: MilestoneRendererProps) {
   const bonus = result.metadata?.reward as string | undefined;
@@ -245,30 +244,23 @@ export function FirstPurchaseCelebration({ result }: MilestoneRendererProps) {
 }
 ```
 
-#### 2. レンダラーを登録
+#### 2. 受け口に項目を置く
 
 ```ts
-// components/renderers/firstPurchase.ts
+// components/renderers/firstPurchase.<fork の名前>.ts
 
-import { registerMilestoneRenderer } from "@/features/core/milestone/components/milestoneRendererRegistry";
-import { FirstPurchaseCelebration } from "./FirstPurchaseCelebration";
+import type { MilestoneRendererDefinition } from "@/features/core/milestone/types/milestoneRenderer";
+import { FirstPurchaseCelebration } from "@/features/myDomain/components/FirstPurchaseCelebration";
 
-registerMilestoneRenderer({
-  key: "first_purchase",          // マイルストーン定義の key と一致させる
+export const renderer: MilestoneRendererDefinition = {
+  key: "first_purchase",          // マイルストーン定義の key と一致させる(同じ key は読み込み時に例外)
   component: FirstPurchaseCelebration,
   priority: 10,                   // 小さいほど先に表示（デフォルト: 0）
   // displayMode: "modal",        // モーダル表示にする場合
-});
+};
 ```
 
-#### 3. renderers/index.ts に副作用インポートを追加
-
-```ts
-// components/renderers/index.ts
-
-import "./firstPurchase";
-import "./rankUp";
-```
+→ `pnpm extensions:generate`。受け口に置くのは項目だけ(部品は責務のドメインへ)。
 
 これだけで `PurchaseComplete` ページにマイルストーン達成通知が自動的に表示される。
 
@@ -284,21 +276,13 @@ import "./rankUp";
 モーダル型のレンダラーコンポーネントは、自身でモーダルUIの表示/非表示を管理する。
 
 ```ts
-registerMilestoneRenderer({
+export const renderer: MilestoneRendererDefinition = {
   key: "rank_up",
   component: RankUpModal,       // モーダルUI込みのコンポーネント
   displayMode: "modal",
   priority: 100,
-});
+};
 ```
-
-### レジストリ API
-
-| 関数 | 説明 |
-|---|---|
-| `registerMilestoneRenderer(def)` | レンダラーを登録（同じキーで再登録すると上書き） |
-| `getMilestoneRenderers()` | 全レンダラーを priority 昇順で取得 |
-| `getMilestoneRenderer(key)` | 指定キーのレンダラーを取得 |
 
 ---
 

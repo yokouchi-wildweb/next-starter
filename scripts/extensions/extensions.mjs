@@ -48,6 +48,7 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
   const problems = [];
   // 受け口のフォルダが無い = 項目 0(git は空のフォルダを持てない。上流の項目が 0 の点はここを通る)
   if (!existsSync(abs)) return { items, problems };
+  if (points[0].spec.files) return discoverFiles(repoRoot, rel, abs, points[0], items);
   const ignore = new Set(points.flatMap((p) => p.spec.ignore ?? []));
   const seen = new Map();
   for (const entry of readdirSync(abs, { withFileTypes: true }).sort((a, b) => byName(a.name, b.name))) {
@@ -91,6 +92,23 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
   return { items, problems };
 }
 
+/** files の点: 受け口の 1 段下の決まった名前のファイルが項目、項目名 = フォルダ名(ファイルが無いフォルダは項目でない) */
+function discoverFiles(repoRoot, rel, abs, point, items) {
+  const problems = [];
+  const fileName = point.spec.files.slice("*/".length);
+  for (const entry of readdirSync(abs, { withFileTypes: true }).sort((a, b) => byName(a.name, b.name))) {
+    if (!entry.isDirectory() || !existsSync(join(abs, entry.name, fileName))) continue;
+    const label = `${rel}/${entry.name}/${fileName}`;
+    const text = readFileSync(join(repoRoot, label), "utf8");
+    if (!markOf(point.spec.export).test(text)) {
+      problems.push(`${label}: export const ${point.spec.export} が無い`);
+      continue;
+    }
+    items.get(point.name).push({ name: entry.name, forkId: null, path: label, itemFile: label, text, folder: entry.name });
+  }
+  return { items, problems };
+}
+
 /** import の別名(名前の記号を _ に) */
 const aliasOf = (name) => name.replace(/[^A-Za-z0-9]/g, "_");
 /** 項目の import 元(@/ からの path、拡張子とフォルダの index を除く) */
@@ -108,7 +126,7 @@ function renderPoint(point, items) {
   }
   const imports = items.map((item) => `import { ${spec.export} as ${aliasOf(item.name)} } from ${JSON.stringify(specifierOf(item.path))};`);
   const values = items.map((item) =>
-    item.fields ? `  { ...${aliasOf(item.name)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(item.name)},`,
+    item.folder ? `  { ...${aliasOf(item.name)}, folder: ${JSON.stringify(item.folder)} },` : item.fields ? `  { ...${aliasOf(item.name)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(item.name)},`,
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
   if (spec.derive === "featureTables") lines.push("// tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)");
@@ -143,7 +161,7 @@ function renderFile(points, itemsByPoint) {
   }
   const out = [
     headerFor(sources),
-    ...points.map((p) => `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>[.<fork の名前>].ts(x) か <名前>[.<fork の名前>]/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
+    ...points.map((p) => p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順)` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>[.<fork の名前>].ts(x) か <名前>[.<fork の名前>]/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
     "",
     ...[...types.entries()].sort(([a], [b]) => byName(a, b)).map(([from, names]) => `import type { ${[...names].sort(byName).join(", ")} } from ${JSON.stringify(from)};`),
   ];

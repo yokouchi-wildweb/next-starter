@@ -4,32 +4,34 @@
 
 ---
 
-## 編集ルール（最重要）
+## 足し方
 
-| ディレクトリ | 編集 | 用途 |
-|-------------|:----:|------|
-| `core/` | ❌ | コア機能（編集禁止） |
-| `config/` | ✅ | カテゴリ・プラグインの登録 |
-| `definitions/` | ✅ | カテゴリの実装 |
+fork は上流のファイルを編集せず、受け口にファイルを置いて `pnpm extensions:generate`(仕組み: `scripts/extensions/README.md`)。
 
-**拡張時は `config/` と `definitions/` のみ編集してください。**
+| 足すもの | 置き場 |
+|---|---|
+| カテゴリ | `src/app/_layout/adminCommand/categories/<名前>[.<fork の名前>].tsx` の `export const category`(並びはファイル名の順) |
+| Provider・GlobalComponent | `src/app/_layout/adminCommand/plugins/<名前>[.<fork の名前>].tsx` の `export const plugin` |
+| ナビゲーション先 | `src/features/core/adminCommand/navigationItems/<名前>[.<fork の名前>].ts` の `export const items`(配列) |
+
+カテゴリとプラグインは管理者のときだけ読み込む(`load: lazy`)。一般の利用者には届かない。
 
 ---
 
 ## ディレクトリ構成
 
 ```
-src/lib/adminCommand/
-├── core/                     # 🔒 編集禁止
-│   └── ...
-│
-├── config/                   # ✏️ 登録ファイル
-│   ├── categories.ts         # カテゴリ登録
-│   └── plugins.ts            # プラグイン登録
-│
-└── definitions/              # ✏️ カテゴリ実装
-    ├── navigation/           # ナビゲーション（参考実装）
-    └── settings/             # 設定変更（参考実装）
+src/app/_layout/adminCommand/     # 画面側の点
+├── extensionPoints.ts
+├── categories/                   # カテゴリの項目
+├── plugins/                      # プラグインの項目
+└── extensions/                   # 生成物
+
+src/features/core/adminCommand/
+├── base/                         # Provider・パレット(上流)
+├── definitions/                  # 上流のカテゴリの実装
+├── navigationItems/              # ナビゲーション先の項目
+└── extensions/                   # 生成物
 ```
 
 ---
@@ -38,16 +40,20 @@ src/lib/adminCommand/
 
 ### ナビゲーション先を追加する
 
-`definitions/navigation/items.ts` に追記：
+`navigationItems/<名前>.<fork の名前>.ts`:
 
-```tsx
-{
-  id: "my-page",
-  label: "マイページ (mypage)",
-  description: "マイページに移動",
-  href: "/admin/my-page",
-  keywords: ["my", "page"],
-}
+```ts
+import type { NavigationItemGroup } from "@/features/core/adminCommand/types";
+
+export const items: NavigationItemGroup = [
+  {
+    id: "my-page",
+    label: "マイページ (mypage)",
+    description: "マイページに移動",
+    href: "/admin/my-page",
+    keywords: ["my", "page"],
+  },
+];
 ```
 
 ### 設定項目を追加する
@@ -70,7 +76,7 @@ src/lib/adminCommand/
 ### Step 1: フォルダ作成
 
 ```
-definitions/my-category/
+src/features/<ドメイン>/components/<カテゴリ>/
 ├── index.ts
 ├── MyCategoryRenderer.tsx
 └── items.ts（任意）
@@ -87,18 +93,18 @@ definitions/my-category/
 
 ### Step 3: 登録
 
-`config/categories.ts` に追記：
+`src/app/_layout/adminCommand/categories/myCategory.<fork の名前>.tsx`:
 
 ```tsx
-import { MyCategoryRenderer } from "../definitions/my-category";
+import type { CategoryConfig } from "@/features/core/adminCommand/base/types";
+import { MyCategoryRenderer } from "@/features/myDomain/components/MyCategoryRenderer";
 
-// categories 配列に追加
-{
+export const category: CategoryConfig = {
   id: "my-category",
   label: "マイカテゴリ (mycategory)",
   description: "カスタム機能",
   Renderer: MyCategoryRenderer,
-}
+};
 ```
 
 ---
@@ -109,22 +115,26 @@ import { MyCategoryRenderer } from "../definitions/my-category";
 
 ### 登録方法
 
-`config/plugins.ts` に追記：
+`src/app/_layout/adminCommand/plugins/myCategory.<fork の名前>.tsx`:
 
 ```tsx
-{
+import type { AdminCommandPlugin } from "@/features/core/adminCommand/base/types";
+
+export const plugin: AdminCommandPlugin = {
   id: "my-category",                    // カテゴリIDと一致推奨
   Provider: MyCategoryProvider,         // 状態管理が必要な場合
   GlobalComponent: MyCategoryDialog,    // パレット外UIが必要な場合
-}
+};
 ```
+
+Provider が包むのはパレットと GlobalComponent だけ(管理者になってから読み込むため、画面全体は包まない)。
 
 ### 使用例
 
 パレット内でアクションを選択 → 確認ダイアログを表示 → 実行
 
 ```
-definitions/my-category/
+src/features/<ドメイン>/components/<カテゴリ>/
 ├── MyCategoryRenderer.tsx    # パレット内UI
 ├── MyCategoryProvider.tsx    # 状態管理（Context）
 ├── MyCategoryDialog.tsx      # 確認ダイアログ
@@ -151,16 +161,16 @@ Providerでダイアログの開閉状態を管理し、GlobalComponentでダイ
 
 | 型 | インポート元 | 用途 |
 |----|-------------|------|
-| `CategoryRendererProps` | `../../core/types` | レンダラーのprops |
-| `CategoryConfig` | `../../core/types` | カテゴリ設定 |
-| `AdminCommandPlugin` | `../../core/types` | プラグイン設定 |
-| `NavigationItem` | `../../types` | ナビゲーション項目 |
-| `SettingFieldConfig` | `../../types` | 設定項目 |
+| `CategoryRendererProps` | `@/features/core/adminCommand/base/types` | レンダラーのprops |
+| `CategoryConfig` | `@/features/core/adminCommand/base/types` | カテゴリ設定 |
+| `AdminCommandPlugin` | `@/features/core/adminCommand/base/types` | プラグイン設定 |
+| `NavigationItem` | `@/features/core/adminCommand/types` | ナビゲーション項目 |
+| `SettingFieldConfig` | `@/features/core/adminCommand/types` | 設定項目 |
 
 ### ユーティリティ
 
 ```tsx
-import { filterSearchInput } from "../../utils";
+import { filterSearchInput } from "@/features/core/adminCommand/utils";
 
 // 検索入力を半角英数字のみにフィルタリング
 const handleSearchChange = (value: string) => {
@@ -171,7 +181,7 @@ const handleSearchChange = (value: string) => {
 ### プログラムからパレットを開く
 
 ```tsx
-import { useAdminCommand } from "@/lib/adminCommand";
+import { useAdminCommand } from "@/features/core/adminCommand";
 
 const { openPalette, closePalette, togglePalette, isOpen } = useAdminCommand();
 ```

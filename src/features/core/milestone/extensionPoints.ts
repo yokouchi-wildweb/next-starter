@@ -9,4 +9,12 @@ export const extensionPoints = {
     type: { from: "@/features/core/milestone/types/milestone", name: "MilestoneDefinition" },
     side: "server",
   },
+  // 達成通知のレンダラー: components/renderers/<名前>[.<fork の名前>].ts(x) の export const renderer(上流の項目は 0)
+  renderers: {
+    dir: "components/renderers",
+    export: "renderer",
+    type: { from: "@/features/core/milestone/types/milestoneRenderer", name: "MilestoneRendererDefinition" },
+    side: "client",
+    key: "key",
+  },
 };

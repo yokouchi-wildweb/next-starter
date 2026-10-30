@@ -42,7 +42,7 @@ import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 import { InviteCodeField } from "../InviteCodeField";
 import { RateLimitWarningModal } from "../RateLimitWarningModal";
-import { isSilentRateLimit } from "../RateLimitWarningContent";
+import { isSilentRateLimit } from "../isSilentRateLimit";
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {

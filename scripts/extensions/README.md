@@ -33,6 +33,7 @@ export const extensionPoints = {
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
   - `ignore: ["<ファイル名>", …]` … 受け口の直下にある、項目でないファイル(proxy の骨組みなど)
+  - `files: "*/<ファイル名>"` … 受け口の 1 段下の決まった名前のファイルが項目(デモの `*/_demo.ts`)。項目名 = フォルダ名で、一覧の各項目に `folder: "<フォルダ名>"` が付く(一覧の型は `folder` を持つ)。ファイルの無いフォルダは項目でない。フォルダは足した Tier の物なのでドット名を使わない
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test:feature-gate`)
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダから `tables` を導いて項目に付ける(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - fork が上流の持ち主のフォルダに自分の点を足すときは、隣に `extensionPoints.<fork の名前>.ts`(同じ書式)。上流の点と同じ名前は失敗(上流が後から同じ名前を足したら fork の点を改名する)。fork 自身のドメインは普通の `extensionPoints.ts`

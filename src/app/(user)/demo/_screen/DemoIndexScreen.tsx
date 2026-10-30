@@ -12,14 +12,14 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 
-import { demoHref, getDemoPagesByCategory, DEMO_PAGES } from "../_data/demoPages";
+import { demoHref, groupDemoPagesByCategory } from "../_data/demoPages";
 
 import { loadDemoIndexScreen } from "./loader";
 
 export async function DemoIndexScreen(props: ScreenProps) {
-  await loadDemoIndexScreen(props);
+  const { pages } = await loadDemoIndexScreen(props);
 
-  const groups = getDemoPagesByCategory();
+  const groups = groupDemoPagesByCategory(pages);
 
   return (
     <Main containerType="contentShell">
@@ -27,7 +27,7 @@ export async function DemoIndexScreen(props: ScreenProps) {
         <Section>
           <Stack space={3}>
             <Span size="xs" weight="medium" tone="muted" className="uppercase tracking-[0.2em]">
-              Demo · {DEMO_PAGES.length} pages
+              Demo · {pages.length} pages
             </Span>
             <PageTitle size="xxxl" className="font-semibold">
               デモ一覧
@@ -54,7 +54,7 @@ export async function DemoIndexScreen(props: ScreenProps) {
               <Grid gap="md" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {group.pages.map((page) => (
                   <Link
-                    key={page.path}
+                    key={page.folder}
                     href={demoHref(page)}
                     className="group block rounded-xl border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >

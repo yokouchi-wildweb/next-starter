@@ -21,7 +21,7 @@ const LOADS = ["eager", "lazy"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys"];
+const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -98,6 +98,7 @@ function checkPoint(name, point) {
   if (point.derive !== undefined && !DERIVES.includes(point.derive)) problems.push(`${name}: derive は ${DERIVES.join(" | ")}(組み込みの変換だけ)`);
   if (point.literalKeys !== undefined && (point.literalKeys !== true || point.key === undefined)) problems.push(`${name}: literalKeys は key と一緒に true だけ`);
   if (point.alwaysOn !== undefined && typeof point.alwaysOn !== "boolean") problems.push(`${name}: alwaysOn は真偽`);
+  if (point.files !== undefined && !(isString(point.files) && /^\*\/[A-Za-z_][A-Za-z0-9_.]*\.tsx?$/.test(point.files))) problems.push(`${name}: files は "*/<ファイル名>"(受け口の 1 段下の決まった名前のファイル)`);
   if (point.load === "lazy" && (point.key !== undefined || point.derive !== undefined)) problems.push(`${name}: load "lazy" は key・derive と一緒に使えない`);
   return problems;
 }

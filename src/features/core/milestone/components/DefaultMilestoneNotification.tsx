@@ -1,7 +1,7 @@
 // マイルストーン達成のデフォルト通知コンポーネント
 //
 // レンダラーレジストリに登録されていないマイルストーンに対して表示される汎用通知。
-// 下流プロジェクトが registerMilestoneRenderer で同じキーのレンダラーを登録すると、
+// 下流プロジェクトが components/renderers/ に同じキーのレンダラーを置くと、
 // そちらが優先される。
 
 "use client";
@@ -9,7 +9,7 @@
 import { Trophy } from "lucide-react";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import type { MilestoneRendererProps } from "./milestoneRendererRegistry";
+import type { MilestoneRendererProps } from "@/features/core/milestone/types/milestoneRenderer";
 
 export function DefaultMilestoneNotification({ result }: MilestoneRendererProps) {
   return (

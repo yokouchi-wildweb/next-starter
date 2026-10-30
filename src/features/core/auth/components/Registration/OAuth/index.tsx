@@ -41,7 +41,7 @@ import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 import { InviteCodeField } from "../InviteCodeField";
 import { RateLimitWarningModal } from "../RateLimitWarningModal";
-import { isSilentRateLimit } from "../RateLimitWarningContent";
+import { isSilentRateLimit } from "../isSilentRateLimit";
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {

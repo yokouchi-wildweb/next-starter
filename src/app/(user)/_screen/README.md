@@ -23,7 +23,7 @@ src/app/(user)/
 - **縦スクロールなし**: `<UserPage fill>` でヘッダー下〜フッター上の残り高さちょうどに収めています。内容が収まらない小さな画面では内側の Flex だけがスクロールします（縦中央寄せは `justify-center` ではなく `my-auto`。溢れたときに上端が切れないため）。
 - **背景は全画面**: `<FullScreen layer="background">` でビューポート全体に敷き、`UserPage` 側に `content-layer` を付けて前面に出しています。コンテナ幅に閉じ込めると境界が見えて平板になるため。
 - `/demo` の gate（`APP_FEATURES.demo.samplePages`）が OFF のときは「デモを見る」ボタンを出しません。
-- デモの一覧データは `src/app/(user)/demo/_data/demoPages.ts` が単一ソースです（`/demo` 一覧がカテゴリ別に描画）。デモを追加したらそこだけ更新してください。
+- デモの一覧は各デモの route の `_demo.ts` から生成します（`/demo` 一覧がカテゴリ別に描画、閉じた機能のデモは除く）。デモを足すときは `_demo.ts` を置いて `pnpm extensions:generate`。
 
 ## 下流プロジェクトでトップページを差し替える
 

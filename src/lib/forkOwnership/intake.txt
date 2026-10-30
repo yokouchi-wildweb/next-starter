@@ -29,6 +29,7 @@ edit src/app/(user)/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/admin/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/**/_components/**  # upstream のルートの fork の部品
+edit src/app/_layout/adminCommand/categories/*.*.tsx  # 管理者コマンドのカテゴリ
 edit src/app/**/_layout/**/*.*.tsx  # 枠のドット区切り名のカスタム(D41)
 edit src/app/**/_screen/**/*.*.tsx  # Screen の隣のドット区切り名
 edit src/app/_providers/ForkProviders.tsx  # AppProviders の fork の口(D30 K8。上流は空、多段は同じファイルを書き換える)
@@ -73,6 +74,17 @@ edit src/features/core/batchJob/jobHandlers/*.*/**  # フォルダ形
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(決済セッションのエンリッチャー)
 edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(クーポン発行者プログラム)
 edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(デモユーザー作成後のフック)
+edit src/features/core/milestone/components/renderers/*.*.ts  # マイルストーンのレンダラー
+edit src/features/core/milestone/components/renderers/*.*.tsx  # マイルストーンのレンダラー
+edit src/features/core/milestone/components/renderers/*.*/**  # フォルダ形
+edit src/features/core/adminCommand/navigationItems/*.*.ts  # 管理者コマンドのナビゲーション先
+edit src/features/core/adminCommand/navigationItems/*.*/**  # フォルダ形
+edit src/app/_layout/adminCommand/categories/*.*.ts  # 管理者コマンドのカテゴリ
+edit src/app/_layout/adminCommand/categories/*.*/**  # フォルダ形
+edit src/app/_layout/adminCommand/plugins/*.*.ts  # 管理者コマンドのプラグイン
+edit src/app/_layout/adminCommand/plugins/*.*.tsx  # 管理者コマンドのプラグイン
+edit src/app/_layout/adminCommand/plugins/*.*/**  # フォルダ形
+edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(重複登録の警告の本文)
 edit src/features/core/coupon/adminSectionTabs/*.*.ts  # クーポン管理画面のセクションタブ
 edit src/features/core/coupon/adminSectionTabs/*.*/**  # フォルダ形
 edit src/features/core/storageObject/purposes/*.*.ts  # ファイル用途
@@ -126,11 +138,5 @@ generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)
-debt src/features/core/milestone/components/renderers/index.ts  # renderers/index.ts:3 レンダラーを足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/adminCommand/config/categories.ts  # categories.ts「編集可能」カテゴリを登録 → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/adminCommand/config/plugins.ts  # plugins.ts「編集可能」プラグインを登録 → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/chatRoom/utils/validation.ts  # validation.ts:5 ファイル種別の制限を足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # RateLimitWarningContent.tsx:2 文言を編集 → upreq:20261029-200108-debt-intake-texts
-debt src/features/core/referral/components/InviteCode/InviteBenefitsSection.tsx  # InviteBenefitsSection.tsx:4 部品を差し替え → upreq:20261029-200108-debt-intake-texts
 debt src/features/core/setting/setting.extended.ts  # setting.extended.ts:4・CLAUDE.md DOMAINS setting フィールドを足す → upreq:20261029-200108-debt-intake-setting
 debt src/features/core/setting/setting.sections.tsx  # setting.sections.tsx:5 設定カテゴリを足す → upreq:20261029-200108-debt-intake-setting

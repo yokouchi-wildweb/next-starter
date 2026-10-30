@@ -5,12 +5,7 @@
  * 管理者コマンドパレット
  * ========================================
  *
- * 拡張する場合は以下のファイルを編集:
- * - config/categories.ts: カテゴリの追加
- * - config/plugins.ts: Provider/GlobalComponent の追加
- * - definitions/: カテゴリ実装の追加
- *
- * core/ 内のファイルは編集しないでください
+ * 拡張の仕方: ./README.md
  */
 
 // ========================================
@@ -30,15 +25,9 @@ export type {
 } from "./base";
 
 // ========================================
-// Config
-// ========================================
-export { categories } from "./config/categories";
-export { plugins } from "./config/plugins";
-
-// ========================================
 // Definition Types
 // ========================================
-export type { NavigationItem, SettingFieldConfig, SettingInputType } from "./types";
+export type { NavigationItem, NavigationItemGroup, SettingFieldConfig, SettingInputType } from "./types";
 
 // ========================================
 // Definitions

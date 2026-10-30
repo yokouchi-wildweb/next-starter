@@ -14,4 +14,5 @@ export type {
   CategoryConfig,
   AdminCommandPlugin,
   AdminCommandContextValue,
+  LazyItem,
 } from "./types";
