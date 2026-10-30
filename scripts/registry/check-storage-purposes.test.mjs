@@ -1,7 +1,7 @@
-// ファイル用途の登録表（src/registry/storagePurposeRegistry.ts）と生成器の検査。
-// - 登録表の全用途（手書きの CORE / fork の区画を含む）が ID の形式・型・規則に合う
+// ファイル用途（合成した全用途）と生成器の検査。
+// - 全用途（core・fork の項目とドメインの storagePurposes.ts）が ID の形式・型・規則に合う
 // - 全 domain.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
-// - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し・AUTO ブロックだけの upsert）
+// - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し）と生成した storagePurposes.ts の本文
 // - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
 // - storage オプションのメディア列は systemColumns・hiddenColumns にできない（登録済みの全サービスが作れることも確かめる）
 // 実行: pnpm test:storage-purposes
@@ -12,10 +12,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  applyStoragePurposeEntries,
   buildStoragePurposeEntries,
-  removeStoragePurposeEntries,
-  syncStorageConfigImport,
+  renderStoragePurposesContent,
 } from "../domain-config/render/registry/storagePurpose/index.mjs";
 import { MEDIA_FIELD_TYPES } from "../domain-config/spec/fieldTypes.mjs";
 
@@ -66,7 +64,7 @@ describe("登録表", () => {
         if (!(id in storagePurposeRegistry)) missing.push(id);
       }
     }
-    assert.deepEqual(missing, [], `未登録の用途: ${missing.join(", ")}（dc:generate を実行するか、core は storagePurposes/core.ts に書く）`);
+    assert.deepEqual(missing, [], `未登録の用途: ${missing.join(", ")}（dc:generate を実行するか、core の手書きは storageObject/purposes/ に書く）`);
   });
 
   test("core の手書き用途がそろっている", () => {
@@ -260,62 +258,30 @@ describe("生成器の metadata", () => {
   });
 });
 
-const REGISTRY_FIXTURE = `import "server-only";
+describe("ドメインの storagePurposes.ts", () => {
+  const ENTRIES = [
+    { id: "item.photo", value: '{ visibility: "public", maxBytes: STORAGE_CONFIG.defaultMaxBytesByPreset.images, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
+    { id: "item.cover", value: '{ visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
+  ];
 
-import type { StoragePurposeMap } from "@/lib/storage";
-
-import { CORE_STORAGE_PURPOSES } from "./storagePurposes/core";
-
-export const storagePurposeRegistry = {
-  ...CORE_STORAGE_PURPOSES,
-  // --- AUTO-GENERATED-START ---
-  "item.old_field": { visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } },
-  "other.photo": { visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } },
-  // --- AUTO-GENERATED-END ---
-  // --- fork entries start (upstream never edits inside) ---
-  "item.cover": { visibility: "private", maxBytes: 5, contentTypes: ["image/png"], upload: { allow: "authenticated" }, read: { allow: "authenticated" } },
-  // --- fork entries end ---
-} satisfies StoragePurposeMap;
-`;
-
-const ENTRIES = [
-  { id: "item.photo", value: '{ visibility: "public", maxBytes: STORAGE_CONFIG.defaultMaxBytesByPreset.images, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
-  { id: "item.cover", value: '{ visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
-];
-
-describe("登録表の書き換え（AUTO ブロックだけ）", () => {
-  test("AUTO に追加し、消えた項目を削除し、fork の区画と他ドメインと CORE は触らない", () => {
-    const { text, skipped } = applyStoragePurposeEntries(REGISTRY_FIXTURE, { camel: "item", entries: ENTRIES });
-    assert.deepEqual(skipped, ["item.cover"]);
-    assert.match(text, /\.\.\.CORE_STORAGE_PURPOSES,/);
-    assert.match(text, /"item\.photo": \{ visibility: "public"/);
-    assert.doesNotMatch(text, /item\.old_field/);
-    assert.match(text, /"other\.photo"/);
-    assert.match(text, /"item\.cover": \{ visibility: "private", maxBytes: 5/);
-    assert.match(text, /^import \{ STORAGE_CONFIG \} from "@\/config\/app\/storage\.config";$/m);
-    // 追加位置は AUTO ブロックの中
-    assert.ok(text.indexOf('"item.photo"') < text.indexOf("// --- AUTO-GENERATED-END ---"));
-
-    const again = applyStoragePurposeEntries(text, { camel: "item", entries: ENTRIES });
-    assert.equal(again.text, text, "再生成で重複・差分が出ない");
+  test("STORAGE_CONFIG を使うときだけ import する", () => {
+    assert.match(renderStoragePurposesContent("src/features/item", ENTRIES), /^import \{ STORAGE_CONFIG \} from "@\/config\/app\/storage\.config";$/m);
+    assert.doesNotMatch(renderStoragePurposesContent("src/features/item", ENTRIES.slice(1)), /STORAGE_CONFIG/);
   });
 
-  test("dc:delete は AUTO の <domain>.* だけを消し、不要になった import も外す", () => {
-    const { text } = applyStoragePurposeEntries(REGISTRY_FIXTURE, { camel: "item", entries: ENTRIES });
-    const removed = removeStoragePurposeEntries(text, { camel: "item" });
-    assert.doesNotMatch(removed, /"item\.photo"/);
-    assert.match(removed, /"item\.cover"/);
-    assert.match(removed, /"other\.photo"/);
-    assert.doesNotMatch(removed, /STORAGE_CONFIG/);
-    assert.equal(syncStorageConfigImport(removed), removed);
-  });
-
-  test("実際の登録表の AUTO ブロックは sample の domain.json から再生成しても変わらない", () => {
-    const registryText = fs.readFileSync(path.join(rootDir, "src", "registry", "storagePurposeRegistry.ts"), "utf8");
-    const config = JSON.parse(fs.readFileSync(path.join(rootDir, "src", "features", "sample", "domain.json"), "utf8"));
-    const { entries, errors } = buildStoragePurposeEntries({ camel: "sample", config, roleCategories: ROLE_CATEGORIES });
-    assert.deepEqual(errors, []);
-    assert.equal(applyStoragePurposeEntries(registryText, { camel: "sample", entries }).text, registryText);
+  test("上流の生成物は domain.json から作り直しても変わらず、値は移す前の 3 用途のまま", () => {
+    for (const domain of ["sample", "sampleImage"]) {
+      const rel = `src/features/${domain}`;
+      const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "domain.json"), "utf8"));
+      const { entries, errors } = buildStoragePurposeEntries({ camel: domain, config, roleCategories: ROLE_CATEGORIES });
+      assert.deepEqual(errors, []);
+      assert.equal(fs.readFileSync(path.join(rootDir, rel, "services/server/storagePurposes.ts"), "utf8"), renderStoragePurposesContent(rel, entries));
+    }
+    const upload = { allow: "authenticated" };
+    const media = { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload };
+    assert.deepEqual(storagePurposeRegistry["sample.main_image"], media);
+    assert.deepEqual(storagePurposeRegistry["sample.sub_image"], media);
+    assert.deepEqual(storagePurposeRegistry["sampleImage.file"], { visibility: "public", maxBytes: 10485760, contentTypes: ["image/*"], metadata: "strip", upload });
   });
 });
 

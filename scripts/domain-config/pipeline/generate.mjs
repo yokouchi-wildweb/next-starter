@@ -63,12 +63,6 @@ export function narrowTargets(ctx, gen, only, io = console) {
   if (skipped.length > 0) {
     io.log(`[${ctx.camel}] このドメインでは生成しないカテゴリのためスキップ: ${skipped.join(", ")}`);
   }
-  if (narrowed.registry && ctx.kind === "core") {
-    io.log(
-      `[${ctx.camel}] core のドメインなので src/registry/ には書きません（domainEntry.ts は書く）。` +
-        `テーブルや domain.json を足したら pnpm registry:generate で一覧を作り直してください`,
-    );
-  }
   return narrowed;
 }
 
@@ -114,6 +108,7 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
     regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   }
   if (!deferServiceRegistry) refreshFeatureMap(workspace, io);
+  if (gen.registry && !deferServiceRegistry) io.log("src/registry の一覧は pnpm registry:generate で作り直してください");
   return { registry: Boolean(gen.registry) };
 }
 
@@ -153,6 +148,7 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
   }
   if (registry && !dryRun) regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   if (!dryRun) refreshFeatureMap(workspace, io);
+  if (registry && !dryRun) io.log("src/registry の一覧は pnpm registry:generate で作り直してください");
   io.log("");
   for (const line of pairSummary(workspace, pairs, group, { registry, dryRun })) io.log(line);
   return { registry };

@@ -1,10 +1,7 @@
 // scripts/registry/alpha/index.mjs
-// src/registry の α 3 本(schemaRegistry・domainConfigRegistry・adminDataMenu)を走査から丸ごと組み立てる(親 D67)。
+// src/registry の α 4 本(schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry)を走査から丸ごと組み立てる(親 D67)。
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
-//
-// dc:generate は今もこの 3 本に行を足す(field-type の legate が外すまで)。足す行の字面と置き先
-// (`export {};` の前・`} as const` の前・最後の行の前)を壊さない形で出すが、並びは違うので registry:check が止める。
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -16,6 +13,7 @@ import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
 export const SCHEMA_REGISTRY_FILE = "src/registry/schemaRegistry.ts";
 export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts";
 export const ADMIN_DATA_MENU_FILE = "src/registry/adminDataMenu.ts";
+export const STORAGE_PURPOSE_REGISTRY_FILE = "src/registry/storagePurposeRegistry.ts";
 
 /** ロール・プロフィールの生成物は今の場所の一覧を通す(L1.10)。一覧の移設は field-type の legate */
 const PROFILE_GENERATED_PREFIX = `${FEATURES_DIR}/core/userProfile/generated/`;
@@ -116,8 +114,47 @@ function renderAdminDataMenu(domains) {
   ].join("\n");
 }
 
+/** src/features の全 services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き) */
+function readStoragePurposeFiles(repoRoot) {
+  const found = [];
+  const walk = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name === "storagePurposes.ts" && full.split(sep).slice(-3, -1).join("/") === "services/server") {
+        found.push(relative(repoRoot, full).split(sep).join("/"));
+      }
+    }
+  };
+  walk(join(repoRoot, FEATURES_DIR));
+  return found.sort(byString);
+}
+
+function renderStoragePurposeRegistry(repoRoot) {
+  const files = readStoragePurposeFiles(repoRoot);
+  const nameOf = (file) => `${file.split("/").at(-4)}Purposes`;
+  return [
+    headerOf(`${FEATURES_DIR}/**/services/server/storagePurposes.ts`),
+    `// ${STORAGE_PURPOSE_REGISTRY_FILE}`,
+    "//",
+    "// ドメインのファイル用途の一覧。core と fork の項目は features/core/storageObject/purposes/、合成は storageObject/services/server/purposeSource.ts。型と規則: src/lib/storage/README.md",
+    "",
+    'import "server-only";',
+    "",
+    'import type { StoragePurposeMap } from "@/lib/storage";',
+    "",
+    ...files.map((f) => `import { purposes as ${nameOf(f)} } from "@/${f.slice("src/".length).replace(/\.ts$/, "")}";`),
+    "",
+    "export const storagePurposeRegistry: StoragePurposeMap[] = [",
+    ...files.map((f) => `  ${nameOf(f)},`),
+    "];",
+    "",
+  ].join("\n");
+}
+
 /**
- * α 3 本の中身を組み立てる
+ * α 4 本の中身を組み立てる
  * @param {string} repoRoot
  * @returns {{ outputs: Record<string, string>, problems: string[] }}
  */
@@ -130,6 +167,7 @@ export function buildAlphaRegistries(repoRoot) {
       [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(domains),
       [ADMIN_DATA_MENU_FILE]: renderAdminDataMenu(domains),
       ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
+      [STORAGE_PURPOSE_REGISTRY_FILE]: renderStoragePurposeRegistry(repoRoot),
     },
     problems: [...domainProblems, ...schema.problems],
   };

@@ -124,7 +124,7 @@ append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき�
 
 # 生成物(fork の設定・ドメインから生成し直される)
 generated src/registry/serviceRegistry.ts  # pnpm registry:generate
-generated src/registry/storagePurposeRegistry.ts  # dc:generate の AUTO の区画だけ(一時の置き場)
+generated src/registry/storagePurposeRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/wiring/dbAgent.ts  # pnpm extensions:generate
 generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)

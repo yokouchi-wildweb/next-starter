@@ -7,9 +7,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "../text/objectEntry.mjs";
+import { renderRegistry } from "../render/registry/index.mjs";
 import { ACCESS_PRESETS, PRESET_RULES, serializeAccess, serializeRule } from "../render/registry/presetAccess.mjs";
 import { buildDomainEntryAccess, renderDomainEntry, renderDomainEntryOutput } from "../render/registry/domainEntry.mjs";
-import { renderDomainConfigRegistryPatch, renderSchemaRegistryPatch } from "../render/registry/lineRegistries.mjs";
 import { domainTableName } from "../domain/names.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { createDomainContext } from "../domain/context.mjs";
@@ -143,36 +143,16 @@ test("presetAccess: プリセットの写しが domain-api-access.config.ts と�
   }
 });
 
-test("schemaRegistry: 引用符違いの既存 export を登録済みとみなす", () => {
-  const original = `// --- AUTO-GENERATED-START ---
-export * from '@/features/sample/entities/drizzle';
-// --- AUTO-GENERATED-END ---
-`;
-  const root = makeRoot({ "src/registry/schemaRegistry.ts": original });
-  applyOutputs([renderSchemaRegistryPatch(createWorkspace(root), { camel: "sample", dbEngine: "Neon" })], silent);
-  assert.equal(read(root, "src/registry/schemaRegistry.ts"), original);
-});
-
-test("domainConfigRegistry: 引用符・空白違いの既存 import / エントリを登録済みとみなす", () => {
-  const original = `import sampleCategoryConfig from '@/features/sampleCategory/domain.json';
-
-export const domainConfigRegistry = {
-  // --- AUTO-GENERATED-START ---
-  "sample_category":   sampleCategoryConfig,
-  // --- AUTO-GENERATED-END ---
-} as const;
-`;
-  const root = makeRoot({ "src/registry/domainConfigRegistry.ts": original });
-  const logs = [];
-  applyOutputs([renderDomainConfigRegistryPatch(createWorkspace(root), { camel: "sampleCategory" })], { log: (m) => logs.push(m), warn: () => {} });
-  assert.equal(read(root, "src/registry/domainConfigRegistry.ts"), original);
-  assert.match(logs.join("\n"), /^スキップしました（既に存在）: /);
-  // 片方だけ無ければ足して「更新しました」
-  const root2 = makeRoot({ "src/registry/domainConfigRegistry.ts": original.replace("import sampleCategoryConfig from '@/features/sampleCategory/domain.json';\n", "") });
-  const logs2 = [];
-  applyOutputs([renderDomainConfigRegistryPatch(createWorkspace(root2), { camel: "sampleCategory" })], { log: (m) => logs2.push(m), warn: () => {} });
-  assert.match(read(root2, "src/registry/domainConfigRegistry.ts"), /^import sampleCategoryConfig from "@\/features\/sampleCategory\/domain\.json";/m);
-  assert.match(logs2.join("\n"), /^更新しました: /);
+test("registry カテゴリはドメインのフォルダの中だけを書く（core も business も）", () => {
+  const config = { singular: "album", plural: "albums", dbEngine: "Neon", idType: "uuid", fields: [{ name: "cover", label: "表紙", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "image/*", storage: { visibility: "public" } }] };
+  const root = makeRoot({});
+  for (const dir of ["src/features/album", "src/features/core/album"]) {
+    const outputs = renderRegistry({ camel: "album", config, dir: path.join(root, dir), rel: dir }, createWorkspace(root));
+    const paths = outputs.map((o) => o.path);
+    assert.ok(paths.length >= 2);
+    for (const p of paths) assert.ok(p.startsWith(path.join(root, dir) + path.sep), p);
+    assert.ok(paths.some((p) => p.endsWith("services/server/storagePurposes.ts")));
+  }
 });
 
 test("serializeRule / serializeAccess: 単一ルールは名前、read/write がプリセットなら spread、operations は 1 行ずつ", () => {

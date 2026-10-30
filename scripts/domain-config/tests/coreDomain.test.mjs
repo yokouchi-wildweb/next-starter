@@ -56,7 +56,6 @@ test("生成物: core のフォルダに書き、頭のコメントは src/featu
   const drizzle = outputs.find((o) => o.path.endsWith("entities/drizzle.ts"));
   assert.match(drizzle.content, /^\/\/ src\/features\/core\/memo\/entities\/drizzle\.ts/);
   assert.match(outputs.find((o) => o.path.endsWith("domainEntry.ts")).content, /^\/\/ src\/features\/core\/memo\/services\/server\/domainEntry\.ts/);
-  assert.ok(lines.log.some((m) => m.includes("core のドメインなので src/registry/ には書きません")));
 });
 
 test("core: tsconfig.json に @/features/<d>/* の別名が無ければ生成前に止める（手で管理なら検査しない）", () => {

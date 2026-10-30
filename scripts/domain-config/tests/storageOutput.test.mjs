@@ -72,7 +72,7 @@ test("Fields: メディア列に purpose `<domain>.<field>` を付けて FieldRe
   assert.match(plain, /const baseFields = domainDisplay\.fields as FieldConfig\[\];/);
 });
 
-// ---- ファイル用途のエントリ（storagePurposeRegistry の AUTO ブロックの値） ----
+// ---- ファイル用途のエントリ（storagePurposes.ts の値） ----
 
 const purposeOf = (storage, apiAccess = { read: "authenticated", write: { roleCategories: ["admin"] } }) => {
   const field = { name: "doc", label: "書類", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "application/pdf", validationRule: { maxSizeBytes: 1000 } };

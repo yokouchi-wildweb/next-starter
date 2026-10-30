@@ -64,5 +64,5 @@ export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, ex
   for (const dir of extras) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
-  return cleanupRegistries(workspace, { ...target, pluralKebab }, io);
+  return cleanupRegistries(workspace, io);
 }

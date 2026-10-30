@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/registry/generate.mjs
-// src/registry の α 4 本(serviceRegistry・schemaRegistry・domainConfigRegistry・adminDataMenu)を丸ごと生成する(pnpm registry:generate)。
+// src/registry の α 5 本(serviceRegistry・schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry)を丸ごと生成する(pnpm registry:generate)。
 // 問題があれば書かずに止まる。ほかの拡張点の一覧は pnpm extensions:generate。詳細: ./README.md
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -27,4 +27,4 @@ for (const path of stale) {
   mkdirSync(dirname(join(repoRoot, path)), { recursive: true });
   writeFileSync(join(repoRoot, path), outputs[path]);
 }
-console.log(stale.length > 0 ? `✓ 生成しました: ${stale.join(", ")}` : "✓ 変更なし: schemaRegistry・domainConfigRegistry・adminDataMenu");
+console.log(stale.length > 0 ? `✓ 生成しました: ${stale.join(", ")}` : "✓ 変更なし: schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry");

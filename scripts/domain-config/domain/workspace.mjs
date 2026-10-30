@@ -117,7 +117,6 @@ export function createWorkspace(rootDir = process.cwd()) {
     featurePath,
     locateDomain,
     configPath,
-    registryPath: (fileName) => path.join(rootDir, "src", "registry", fileName),
     templatePath: (...segments) => path.join(templateDir, ...segments),
     exists: (file) => fs.existsSync(file),
     readText: (file) => fs.readFileSync(file, "utf8"),

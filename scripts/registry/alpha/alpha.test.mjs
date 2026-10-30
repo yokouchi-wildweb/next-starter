@@ -7,12 +7,12 @@
 // 実行: pnpm test:schema-registry
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { ADMIN_DATA_MENU_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
+import { ADMIN_DATA_MENU_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, STORAGE_PURPOSE_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 
@@ -25,7 +25,7 @@ function fixture(files) {
   return root;
 }
 
-test("実リポ: 3 本が走査の生成結果と一致する(ずれたら pnpm registry:generate)", () => {
+test("実リポ: 4 本が走査の生成結果と一致する(ずれたら pnpm registry:generate)", () => {
   const { outputs, problems } = buildAlphaRegistries(ROOT);
   assert.deepEqual(problems, []);
   assert.deepEqual(staleAlphaRegistries(ROOT, outputs), []);
@@ -63,6 +63,19 @@ test("生成: 表の入口・ドメイン設定・メニュー", () => {
   assert.match(config, /\n  chat_room: chatRoomConfig,\n  sample: sampleConfig,\n  sample_category: sampleCategoryConfig,\n  sample_image: sampleImageConfig,\n\} as const;/);
   const menu = outputs[ADMIN_DATA_MENU_FILE];
   assert.match(menu, /= \[\n  \{ title: "サンプル", href: "\/admin\/samples" \},\n  \{ title: "カテゴリ", href: "\/admin\/sample-categories" \},\n\];\n$/);
+});
+
+test("生成: ファイル用途の一覧は services/server/storagePurposes.ts を path 順に並べる(core も同じ)", () => {
+  const root = mkdtempSync(join(tmpdir(), "alpha-purposes-"));
+  for (const dir of ["src/features/album", "src/features/core/coupon"]) {
+    mkdirSync(join(root, dir, "services/server"), { recursive: true });
+    writeFileSync(join(root, dir, "services/server/storagePurposes.ts"), "export const purposes = {};\n");
+  }
+  const text = buildAlphaRegistries(root).outputs[STORAGE_PURPOSE_REGISTRY_FILE];
+  rmSync(root, { recursive: true, force: true });
+  assert.match(text, /import \{ purposes as albumPurposes \} from "@\/features\/album\/services\/server\/storagePurposes";/);
+  assert.match(text, /import \{ purposes as couponPurposes \} from "@\/features\/core\/coupon\/services\/server\/storagePurposes";/);
+  assert.match(text, /storagePurposeRegistry: StoragePurposeMap\[\] = \[\n  albumPurposes,\n  couponPurposes,\n\];/);
 });
 
 test("problems: 字面で読めない pgTable・読めない domain.json・フォルダ名の重なり", () => {
