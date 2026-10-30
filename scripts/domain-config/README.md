@@ -4,7 +4,9 @@
 > `domain.json` のスキーマ（キー・型・リレーション・`generate` 等）は [`src/features/README.md`](../../src/features/README.md) が正です。
 > 普段はこれを直接打たず、`pnpm forge`（[`scripts/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
 
-- 対象: `src/features/` 直下で `domain.json` を持つディレクトリ（ビジネスドメイン）。core ドメイン（`src/features/core/`）は対象外で、手で保守する
+- 対象: `domain.json` を持つドメインのフォルダ。business = `src/features/<domain>/`、core = `src/features/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。`domain.json` の無い core は対象外（手で保守）
+- core の生成の違い: 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）。`src/registry/` の追記（schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry）はしない（schemaRegistry の CORE DOMAINS などは手で。生成時に 1 行で知らせる）。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
+- 今ある core の `domain.json` は `generate: false`（手で管理。生成器は何も書かない）
 - `domain.json` は手で書く（対話で組み立てる入口は無い）。書き方の規則は生成前の検査（`checks/`）が止める・警告する
 - 生成元テンプレート: `src/features/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
 - 実行はリポジトリのルートで行う
@@ -39,13 +41,14 @@
 
 - `true`: 下の「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
 - `false`: 手で管理。生成器は何も書かない（registry の追記・`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
+- `false` のドメインはどんな実行でも生成器を通さない: `dc:generate:all`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
 - 一覧: 生成の書き込みの最後と `dc:delete` の後に `src/features/feature-map.txt`（`src/features` と `src/features/core` の全フォルダ。`_` 始まりを除く。kind / domain.json の有無 / generate）を書き直す。`pnpm dc:feature-map --check` がフォルダの増減・旗の切り替えのずれで落ちる。merge で衝突したら `pnpm dc:feature-map` で作り直す
 
 ## カテゴリの名指し（`--only`）
 
 `pnpm dc:generate <Domain> --only registry` / `pnpm dc:generate:all --only registry,hooks` のように、今回はこのカテゴリだけ生成する（保存しない）。
 
-- `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインでも、名指しのカテゴリは今回だけ書く（手で直しているファイルのカテゴリを名指ししないこと）。集まりの従属は従属のカテゴリの内だけ
+- `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインは名指ししても何も書かない（上の「generate の旗」）。集まりの従属は従属のカテゴリの内だけ
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。追記された adminDataMenu は domain.json の `addToAdminDataMenu` と違えば `registry:check` が止める(`pnpm registry:generate` で domain.json の通りになる。fork が外すのは domain.json 側)。最後に `pnpm registry:generate` が `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）
@@ -144,7 +147,7 @@
 - **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` から渡す（[`src/components/Form/FieldRenderer/README.md`](../../src/components/Form/FieldRenderer/README.md)）
 - **管理画面のレイアウト** → `_screen/` を同じルートの `_components/` にコピーして `page.tsx` を向ける
 - **CRUD の振る舞い** → `services/server/wrappers/` に置き、write-once の `<domain>Service.ts` で組み込む
-- 生成ファイルを手で直す必要が出た・載せ替えが手間になった → そのドメインを `"generate": false` にする（以後は生成器が何も書かない。要るカテゴリだけ `--only` で名指しして作れる）
+- 生成ファイルを手で直す必要が出た・載せ替えが手間になった → そのドメインを `"generate": false` にする（以後は生成器が何も書かない。`--only` で名指ししても書かない）
 
 ---
 

@@ -68,6 +68,7 @@
     "test:presenter-for": "node --test src/lib/domain/fields/presenterFor.test.mjs",
     "test:dc-registry": "node --test scripts/domain-config/tests/registry.test.mjs",
     "test:dc-structure": "node --test scripts/domain-config/tests/structure.test.mjs",
+    "test:dc-core-domain": "node --test scripts/domain-config/tests/coreDomain.test.mjs",
     "test:dc-vocabulary": "node --test scripts/domain-config/tests/vocabulary.test.mjs",
     "test:dc-checks": "node --test scripts/domain-config/tests/checks.test.mjs",
     "test:dc-feature-map": "node --test scripts/domain-config/tests/featureMap.test.mjs",

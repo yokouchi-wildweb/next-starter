@@ -19,7 +19,9 @@ import { toCamelCase, toKebabCase, toPascalCase, toPlural, toSnakeCase } from ".
  * @property {string} pluralRaw  domain.json の plural そのまま（Firestore のコレクション名）
  * @property {string} dbEngine   "Neon" | "Firestore" | ""
  * @property {object | null} config domain.json（無ければ null）
- * @property {string} dir        src/features/<camel> の絶対パス
+ * @property {"business" | "core"} kind business = src/features/<camel>、core = src/features/core/<camel>（違いはフォルダだけ）
+ * @property {string} dir        ドメインのフォルダの絶対パス
+ * @property {string} rel        ドメインのフォルダのリポジトリ相対（生成物の頭のコメントのパス。例: src/features/core/user）
  * @property {string} configPath domain.json の絶対パス
  */
 
@@ -34,6 +36,7 @@ export function createDomainContext(workspace, domainInput, overrides = {}) {
   const snake = toSnakeCase(input) || input;
   const camel = toCamelCase(snake) || snake;
   const pascal = toPascalCase(snake) || snake;
+  const location = workspace.locateDomain(camel);
   const config = overrides.config !== undefined ? overrides.config : workspace.readConfig(camel);
 
   const pluralSource = overrides.plural || config?.plural || "";
@@ -53,8 +56,10 @@ export function createDomainContext(workspace, domainInput, overrides = {}) {
     pluralRaw: config?.plural || overrides.plural || `${snake}s`,
     dbEngine: overrides.dbEngine || config?.dbEngine || "",
     config,
-    dir: workspace.featurePath(camel),
-    configPath: workspace.configPath(camel),
+    kind: location.kind,
+    dir: location.dir,
+    rel: location.rel,
+    configPath: location.configPath,
   };
 }
 
@@ -65,3 +70,6 @@ export function requireConfig(ctx) {
   }
   return ctx.config;
 }
+
+/** 生成物の頭のコメントに書くドメインのフォルダ（リポジトリ相対）。rel を持たない ctx（テストの手組み）は business の位置 */
+export const featureRel = (ctx) => ctx.rel ?? `src/features/${ctx.camel}`;

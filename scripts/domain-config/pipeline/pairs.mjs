@@ -8,6 +8,7 @@ import { pairIssues } from "../checks/pairs.mjs";
 import { domainTableName } from "../domain/names.mjs";
 import { loadRoleCategories } from "../domain/roles.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
+import { isHandManaged } from "../spec/categories.mjs";
 import { isCollectionFieldType } from "../spec/fieldTypes.mjs";
 import { toCamelCase } from "../../../src/utils/stringCase.mjs";
 
@@ -54,7 +55,8 @@ export function resolvePairs(workspace) {
         ownerOf.set(child, owner);
         fieldOf.set(child, field.name);
         childrenOf.set(owner, [...(childrenOf.get(owner) ?? []), child]);
-        if (!workspace.exists(workspace.configPath(child))) pending.set(child, buildChildDomainConfig(config, field).config);
+        // 手で管理の主は従属の domain.json を書き出さない（生成器を通さない）
+        if (!isHandManaged(config) && !workspace.exists(workspace.configPath(child))) pending.set(child, buildChildDomainConfig(config, field).config);
       }
     }
   }
@@ -73,7 +75,9 @@ export function resolvePairs(workspace) {
     errors.push(...found.errors.map((message) => ({ domains: involved, message })));
     notices.push(...found.notices.map((message) => ({ domains: involved, message })));
   }
-  return { ownerOf, childrenOf, fieldOf, pending, errors, notices };
+  // 関わるドメインが全部手で管理（generate: false）の誤り・知らせは出さない（生成器を通さないので検査もしない）
+  const involvesGenerated = (entry) => entry.domains.some((domain) => !isHandManaged(pending.get(domain) ?? domains.get(domain)));
+  return { ownerOf, childrenOf, fieldOf, pending, errors: errors.filter(involvesGenerated), notices: notices.filter(involvesGenerated) };
 }
 
 /** 知らせるだけのもの（止めない）を出す。domains を渡すと、そのどれかに関わるものだけ */
@@ -152,7 +156,7 @@ export function pairSummary(workspace, pairs, domains, { registry, dryRun }) {
   const none = "なし";
   const paths = written.map((domain) => workspace.configPath(domain));
   const tables = written.map((domain) => domainTableName(domain, pairs.pending.get(domain)));
-  const commit = [...written.map((domain) => `${workspace.featurePath(domain)}/`), ...(registry ? ["src/registry/ の登録表"] : [])];
+  const commit = [...written.map((domain) => `${workspace.locateDomain(domain).dir}/`), ...(registry ? ["src/registry/ の登録表"] : [])];
   return [
     `${prefix}${dryRun ? "書き出す予定の" : "書き出した"} domain.json: ${paths.join(", ") || none}`,
     `${prefix}db:push が要る表: ${tables.length ? `${tables.join(", ")}（pnpm db:push を実行してください）` : none}`,

@@ -99,7 +99,11 @@ export function resolveDeleteTarget(workspace, domain) {
     featureCandidateSet.add(toPascalCase(singularCandidate));
     featureCandidateSet.add(toKebabCase(singularCandidate));
   }
-  const resolvedFeatureDir = resolveDir(workspace.featuresDir, ...featureCandidateSet);
+  // business（src/features/<d>）を先に、無ければ domain.json を持つ core（src/features/core/<d>）
+  const coreFeatureDir = resolveDir(path.join(workspace.featuresDir, "core"), ...featureCandidateSet);
+  const resolvedFeatureDir =
+    resolveDir(workspace.featuresDir, ...[...featureCandidateSet].filter((name) => name !== "core")) ??
+    (coreFeatureDir && fs.existsSync(path.join(coreFeatureDir, "domain.json")) ? coreFeatureDir : null);
   const canonicalSingular = (resolvedFeatureDir && path.basename(resolvedFeatureDir)) || singularCandidates[0] || camel;
   const featureDir = resolvedFeatureDir ?? path.join(workspace.featuresDir, canonicalSingular);
   const configPath = path.join(featureDir, "domain.json");

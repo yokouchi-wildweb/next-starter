@@ -1,5 +1,8 @@
 // 生成器が読み書きするリポジトリの場所。rootDir（既定 = カレントディレクトリ）からの全パスをここで組む。
 // ファイルを読むのはこのモジュールと pipeline/apply（書き込み）・pipeline/remove だけ。render/ と checks/ は読まない。
+//
+// ドメインの所在: business = src/features/<camel>、core = src/features/core/<camel>（domain.json を持つものだけが生成の対象）。
+// 違いはフォルダだけで、生成・検査・generate の旗は同じ扱い。両方に domain.json があれば止める（locateDomain）
 
 import fs from "node:fs";
 import path from "node:path";
@@ -13,8 +16,28 @@ export function createWorkspace(rootDir = process.cwd()) {
   const featuresDir = path.join(rootDir, "src", "features");
   const templateDir = path.join(featuresDir, "_template");
 
+  const coreDir = path.join(featuresDir, "core");
   const featurePath = (...segments) => path.join(featuresDir, ...segments);
-  const configPath = (camel) => featurePath(camel, "domain.json");
+  const hasConfig = (dir) => fs.existsSync(path.join(dir, "domain.json"));
+
+  /**
+   * ドメインの所在。domain.json のある方（両方にあれば例外）、どちらにも無ければ business の位置
+   * @param {string} camel フォルダ名
+   * @returns {{ kind: "business" | "core", dir: string, configPath: string, rel: string }} rel = リポジトリからの相対（例: src/features/core/user）
+   */
+  function locateDomain(camel) {
+    const business = featurePath(camel);
+    const core = path.join(coreDir, camel);
+    const inBusiness = hasConfig(business);
+    const inCore = camel !== "core" && hasConfig(core);
+    if (inBusiness && inCore) {
+      throw new Error(`ドメイン "${camel}" の domain.json が src/features/${camel}/ と src/features/core/${camel}/ の両方にあります。どちらかに 1 つだけにしてください`);
+    }
+    const kind = inCore ? "core" : "business";
+    const dir = inCore ? core : business;
+    return { kind, dir, configPath: path.join(dir, "domain.json"), rel: path.relative(rootDir, dir).split(path.sep).join("/") };
+  }
+  const configPath = (camel) => locateDomain(camel).configPath;
 
   /** domain.json を読む。無ければ null（壊れた JSON は例外） */
   function readConfig(camel) {
@@ -32,14 +55,18 @@ export function createWorkspace(rootDir = process.cwd()) {
     }
   }
 
-  /** src/features 直下で domain.json を持つフォルダ名（ソート済み。_template / core は除く） */
+  /** domain.json を持つドメインのフォルダ名（business = src/features 直下、core = src/features/core 直下。_template は除く。ソート済み）。名前が重なれば例外 */
   function listDomains() {
-    return fs
-      .readdirSync(featuresDir, { withFileTypes: true })
-      .filter((dirent) => dirent.isDirectory() && !NOT_DOMAIN_DIRS.has(dirent.name))
-      .map((dirent) => dirent.name)
-      .filter((name) => fs.existsSync(configPath(name)))
-      .sort();
+    const dirsIn = (dir) =>
+      fs.existsSync(dir)
+        ? fs
+            .readdirSync(dir, { withFileTypes: true })
+            .filter((dirent) => dirent.isDirectory() && !NOT_DOMAIN_DIRS.has(dirent.name) && hasConfig(path.join(dir, dirent.name)))
+            .map((dirent) => dirent.name)
+        : [];
+    const names = [...dirsIn(featuresDir), ...dirsIn(coreDir)];
+    for (const name of names) locateDomain(name); // 重なりを止める
+    return [...new Set(names)].sort();
   }
 
   /** フォルダ名（_ で始まるもの・ファイルは除く。ソート済み） */
@@ -52,14 +79,15 @@ export function createWorkspace(rootDir = process.cwd()) {
           .sort()
       : [];
 
-  /** ドメインの一覧（domain/featureMap.mjs）の材料: business のフォルダと generate（domain.json なし = null、壊れた JSON = "?"）、core のフォルダ */
+  /** ドメインの一覧（domain/featureMap.mjs）の材料: business・core のフォルダと generate（domain.json なし = null、壊れた JSON = "?"） */
   function featureListing() {
-    const business = foldersIn(featuresDir, new Set(["core"])).map((name) => {
-      if (!fs.existsSync(configPath(name))) return { name, generate: null };
-      const config = readConfigLenient(configPath(name));
+    const entry = (dir) => (name) => {
+      const file = path.join(dir, name, "domain.json");
+      if (!fs.existsSync(file)) return { name, generate: null };
+      const config = readConfigLenient(file);
       return { name, generate: config === null ? "?" : config.generate !== false };
-    });
-    return { business, core: foldersIn(path.join(featuresDir, "core")) };
+    };
+    return { business: foldersIn(featuresDir, new Set(["core"])).map(entry(featuresDir)), core: foldersIn(coreDir).map(entry(coreDir)) };
   }
 
   const featureMapPath = path.join(rootDir, "src", "features", "feature-map.txt");
@@ -85,8 +113,9 @@ export function createWorkspace(rootDir = process.cwd()) {
     templateDir,
     adminTemplateDir: path.join(rootDir, "src", "app", "admin", "_template"),
     adminProtectedDir: path.join(rootDir, "src", "app", "admin", "(protected)"),
-    rolesDir: path.join(featuresDir, "core", "user", "roles"),
+    rolesDir: path.join(coreDir, "user", "roles"),
     featurePath,
+    locateDomain,
     configPath,
     registryPath: (fileName) => path.join(rootDir, "src", "registry", fileName),
     templatePath: (...segments) => path.join(templateDir, ...segments),

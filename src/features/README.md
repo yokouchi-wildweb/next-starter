@@ -412,7 +412,7 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
 - private の用途には read.allow として読める人（`storage.read`、無ければ apiAccess の get の規則）を付ける。`storage.read` の `"public"` も書ける（visibility を private と明示した項目でもそのまま出す）
 - 同じ ID が項目(`src/features/core/storageObject/purposes/`)にもあると、用途表を合成するときに例外になる（`purposeSource.ts`）。AUTO から外したい用途は項目へ移す。手書きの定義（check 関数付きなど）が優先される
 - 項目を消して再生成すると、AUTO ブロックから消える。dc:delete はそのドメインの AUTO エントリを消す
-- core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/features/core/storageObject/purposes/` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
+- core ドメインの domain.json（notification / coupon など）は、生成しても `src/registry/` の AUTO ブロックに書かないので、`src/features/core/storageObject/purposes/` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
 ---
 
@@ -552,19 +552,19 @@ drizzle-kit は特定の書き方の index を DB から正しく読み戻せず
 
 ### core ドメインへの indexes 反映について
 
-core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンドの対象外** (ベースの設計上、`features/` 直下のみ対応)。core ドメインで `indexes` を追加・変更する場合は以下のいずれかで反映する:
+core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が business と同じに扱う（違いはフォルダだけ。`scripts/domain-config/README.md`）。今ある core の domain.json は `generate: false`（手で管理）なので、`indexes` を追加・変更する場合は以下のいずれかで反映する:
 
 1. **手書きで `entities/drizzle.ts` を直接編集** (推奨、変更が小さい場合)
    - `domain.json` の `indexes` 宣言も同時に更新する (将来の整合性のため)
-   - 手書きの形式は generator 出力と完全一致させる（一時的に features/ 直下に複製して `dc:generate` した出力をコピーすると確実）
-2. **features/ 直下に一時複製してから再生成 → core/ に戻す**
-   - 既存の運用フローと同じ手順
+   - 手書きの形式は generator 出力と完全一致させる
+2. **一時的に `generate` を true にして `pnpm dc:generate <domain> --only entities` で entities だけ書き、false に戻す**（false のままでは名指ししても書かない）
+   - 手で直していた entities/ の差分を git diff で確かめ、要る手書きを戻してからコミットする。true の間は生成前の検査が掛かる（落ちれば直してから）
 
 ---
 
 ### 生成カテゴリ（generate: true のとき作るもの）
 
-`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（registry の追記・domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/domain-config/README.md`）。
+`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（registry の追記・domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/domain-config/README.md`）。
 
 | カテゴリ | - | 説明 |
 |-----------|-----|------|

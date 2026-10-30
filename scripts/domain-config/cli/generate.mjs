@@ -1,7 +1,7 @@
 // dc:generate <Domain>: 生成方法の選択（domain.json どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
 
 import { pickCategories } from "./pickCategories.mjs";
-import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
+import { ALL_GENERATE_OPTIONS, isHandManaged } from "../spec/categories.mjs";
 import { configTargets, generateWithPairs, loadDomainForGenerate, narrowTargets } from "../pipeline/generate.mjs";
 import { assertPairs, groupOf, resolvePairs } from "../pipeline/pairs.mjs";
 import { confirm, prompt } from "./prompts.mjs";
@@ -46,6 +46,11 @@ async function resolveGenerateTargets(ctx, pairs, options) {
  */
 export async function runGenerate(workspace, domain, options = {}) {
   const ctx = loadDomainForGenerate(workspace, domain);
+  // 手で管理（generate: false）は -i でも生成方法を聞かずに終える（生成器を一切通さない）
+  if (isHandManaged(ctx.config)) {
+    console.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません（作り直すときは generate を true に戻す）`);
+    return { registry: false };
+  }
   // 組の誤り（従属の名前が無い・主が 2 つ）は生成方法の選択・上書き確認より前に出す
   const pairs = resolvePairs(workspace);
   assertPairs(pairs, groupOf(pairs, ctx.camel));

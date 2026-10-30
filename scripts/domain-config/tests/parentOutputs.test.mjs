@@ -148,10 +148,8 @@ test("drizzleBase: 集まりを持つ主だけ collections を import して opt
   assert.equal(ownerWithoutCollections.replace(/showcase/g, "x").replace(/Showcase/g, "X"), plain.replace(/plain_things|plainThing/g, "x").replace(/PlainThing/g, "X"));
 });
 
-test("主が generate: false（手で管理）なら何も書かない。カテゴリを名指ししても従属の domain.json は書かない", () => {
+test("主が generate: false（手で管理）なら何も書かない。カテゴリを名指ししても何も書かない（生成器を通さない）", () => {
   const { workspace, ctx } = ownerContext({ ...showcase, generate: false });
   assert.deepEqual(planDomain(ctx, workspace, generateTargets(ctx.config)), []);
-  const named = planDomain(ctx, workspace, { ...generateTargets(ctx.config), serverServices: true });
-  assert.ok(named.length > 0);
-  assert.ok(named.every((out) => !String(out.path ?? "").endsWith("domain.json")));
+  assert.deepEqual(planDomain(ctx, workspace, { ...generateTargets(ctx.config), serverServices: true }), []);
 });

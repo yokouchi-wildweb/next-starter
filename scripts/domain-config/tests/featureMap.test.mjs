@@ -1,4 +1,4 @@
-// ドメインの一覧（src/features/feature-map.txt）と、--only の名指し（generate: false でも書く）の契約テスト。
+// ドメインの一覧（src/features/feature-map.txt）と、--only の名指し（generate: false は名指ししても書かない）の契約テスト。
 // 実行: pnpm test:dc-feature-map
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -21,17 +21,22 @@ const writeFeatureMap = (root) => refreshFeatureMap(createWorkspace(root), SILEN
 const checkFeatureMap = (root) => featureMapDiff(mapOf(root), createWorkspace(root).readFeatureMap());
 
 function project() {
-  const root = makeProject({ configs: { alpha: { singular: "alpha" }, beta: { singular: "beta", generate: false } }, cleanup });
+  const root = makeProject({
+    configs: { alpha: { singular: "alpha" }, beta: { singular: "beta", generate: false }, "core/tag": { singular: "tag", generate: false }, "core/memo": { singular: "memo" } },
+    cleanup,
+  });
   for (const dir of ["src/features/handMade", "src/features/_template", "src/features/core/user", "src/features/core/_draft"]) fs.mkdirSync(path.join(root, dir), { recursive: true });
   return root;
 }
 
-test("一覧: business（domain.json の有無と generate）・core を 1 行ずつ、_ で始まるフォルダは数えない", () => {
+test("一覧: business・core とも domain.json の有無と generate を 1 行ずつ、_ で始まるフォルダは数えない", () => {
   assert.deepEqual(rows(mapOf(project())), [
     "alpha\tbusiness\tyes\ttrue",
     "beta\tbusiness\tyes\tfalse",
     "handMade\tbusiness\tno\t-",
-    "core/user\tcore\t-\t-",
+    "core/memo\tcore\tyes\ttrue",
+    "core/tag\tcore\tyes\tfalse",
+    "core/user\tcore\tno\t-",
   ]);
 });
 
@@ -50,13 +55,14 @@ test("このリポの一覧は今のフォルダ・generate と一致する", ()
   assert.deepEqual(checkFeatureMap(repoRoot), [], `${FEATURE_MAP_FILE} を pnpm dc:feature-map で作り直してください`);
 });
 
-test("--only = 今回はこのカテゴリだけ: generate: false でも名指しは書く、従属は従属のカテゴリの内、--only なしの false は何も無し", () => {
+test("--only = 今回はこのカテゴリだけ: generate: false は名指ししても何も無し、従属は従属のカテゴリの内", () => {
   const pairs = { ownerOf: new Map([["child", "owner"]]) };
   const ctx = (camel, config) => ({ camel, config });
   assert.deepEqual(onOf(configTargets(ctx("x", { generate: false }), pairs, null, SILENT)), []);
-  assert.deepEqual(onOf(configTargets(ctx("x", { generate: false }), pairs, ["entities", "registry"], SILENT)), ["entities", "registry"]);
+  assert.deepEqual(onOf(configTargets(ctx("x", { generate: false }), pairs, ["entities", "registry"], SILENT)), []);
   assert.deepEqual(onOf(configTargets(ctx("x", {}), pairs, ["hooks"], SILENT)), ["hooks"]);
-  assert.deepEqual(onOf(configTargets(ctx("child", { generate: false }), pairs, ["entities", "components"], SILENT)), ["entities"]);
+  assert.deepEqual(onOf(configTargets(ctx("child", {}), pairs, ["entities", "components"], SILENT)), ["entities"]);
+  assert.deepEqual(onOf(configTargets(ctx("child", { generate: false }), pairs, ["entities", "components"], SILENT)), []);
 });
 
 test("CLI: --generate の既定は対話なし（ドメイン名が無ければ止める）、-i はドメイン名の扱いを変えない", () => {

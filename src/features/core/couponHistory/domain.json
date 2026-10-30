@@ -1,5 +1,6 @@
 {
   "domainConfigVersion": "1.3",
+  "generate": false,
   "singular": "couponHistory",
   "plural": "couponHistories",
   "label": "クーポン使用履歴",

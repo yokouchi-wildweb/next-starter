@@ -1,5 +1,6 @@
 {
   "domainConfigVersion": "1.3",
+  "generate": false,
   "singular": "user",
   "plural": "users",
   "label": "ユーザー",

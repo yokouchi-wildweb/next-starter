@@ -4,6 +4,7 @@ import { toCamelCase, toPascalCase, toPlural } from "../../../../src/utils/strin
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType, isEnumFieldType, tsType } from "../../spec/fieldTypes.mjs";
+import { featureRel } from "../../domain/context.mjs";
 
 const typeLine = (name, type, required) => `  ${name}: ${required ? type : `${type} | null`};`;
 
@@ -93,7 +94,7 @@ export function renderModel(ctx) {
   const hasRelations = belongsTo.length > 0 || belongsToMany.length > 0;
   const hasCountable = belongsToMany.length > 0;
 
-  let content = `// src/features/${camel}/entities/model.ts\n\n`;
+  let content = `// ${featureRel(ctx)}/entities/model.ts\n\n`;
   const imports = relationTypeImports(belongsTo, belongsToMany);
   if (imports) content += imports + "\n\n";
   content += `export type ${pascal} = {\n${bodyLines(config, dbEngine).join("\n")}\n};\n`;

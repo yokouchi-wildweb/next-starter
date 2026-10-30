@@ -2,20 +2,34 @@
 // 主と従属の組（pairs.mjs）に属するドメインは組の全員を「従属 → 主」の順に生成する（generateWithPairs）。
 // 対話（-i の生成方法の選択・上書き確認）は cli/generate.mjs。ここは対話の有無によらず同じ
 
-import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
+import path from "node:path";
+import { preflightIssues, preflightWarnings } from "../checks/index.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { FEATURE_MAP_FILE, buildFeatureMap } from "../domain/featureMap.mjs";
 import { file } from "../render/output.mjs";
-import { generateTargets, narrowGenerateTargets } from "../spec/categories.mjs";
+import { generateTargets, isHandManaged, narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { assertPairs, collectionChildrenOf, groupOf, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
+/** core のドメインは生成物の import（@/features/<camel>/...）に tsconfig.json の paths の別名が要る。無ければエラー文 */
+function coreAliasIssue(workspace, ctx) {
+  if (ctx.kind !== "core") return null;
+  const tsconfig = path.join(workspace.rootDir, "tsconfig.json");
+  const alias = `"@/features/${ctx.camel}/*"`;
+  if (workspace.exists(tsconfig) && workspace.readText(tsconfig).includes(alias)) return null;
+  return (
+    `[${ctx.camel}] core のドメインの生成物は @/features/${ctx.camel}/... で import します。` +
+    `tsconfig.json の compilerOptions.paths に ${alias}: ["./src/features/core/${ctx.camel}/*"] を足してください（生成器は tsconfig.json を書きません）`
+  );
+}
+
 /**
- * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・廃止した型・Firestore のメディア列は何も書く前に止める。
- * 語彙のずれ（綴り違い・古いキー・その DB に無い型）は警告して続ける
+ * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・廃止した型・Firestore のメディア列などは何も書く前に止める。
+ * 語彙のずれ（綴り違い・古いキー・その DB に無い型）は警告して続ける。
+ * 手で管理（generate: false）のドメインは検査もしない（生成器を一切通さない。configTargets が何も書かないことを 1 行出す）
  * @returns {import("../domain/context.mjs").DomainContext}
  */
 export function loadDomainForGenerate(workspace, domainInput, io = console, overrides = {}) {
@@ -28,7 +42,9 @@ export function loadDomainForGenerate(workspace, domainInput, io = console, over
   if (!ctx.config) {
     throw new Error(`設定ファイルが見つかりません: ${ctx.configPath}`);
   }
-  assertPreflight(ctx);
+  if (isHandManaged(ctx.config)) return ctx;
+  const issues = [...preflightIssues(ctx), coreAliasIssue(workspace, ctx)].filter(Boolean);
+  if (issues.length > 0) throw new Error(issues.join("\n"));
   for (const warning of preflightWarnings(ctx)) io.warn(warning);
   return ctx;
 }
@@ -39,29 +55,29 @@ export function loadDomainForGenerate(workspace, domainInput, io = console, over
  * @param {string[] | null} only
  */
 export function narrowTargets(ctx, gen, only, io = console) {
+  if (isHandManaged(ctx.config)) {
+    io.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません（作り直すときは generate を true に戻す）`);
+    return generateTargets(ctx.config);
+  }
   const { gen: narrowed, skipped } = narrowGenerateTargets(gen, only ?? null);
   if (skipped.length > 0) {
     io.log(`[${ctx.camel}] このドメインでは生成しないカテゴリのためスキップ: ${skipped.join(", ")}`);
+  }
+  if (narrowed.registry && ctx.kind === "core") {
+    io.log(
+      `[${ctx.camel}] core のドメインなので src/registry/ には書きません（domainEntry.ts は書く）。` +
+        `テーブルがあれば src/registry/schemaRegistry.ts の CORE DOMAINS に export * from "@/features/${ctx.camel}/entities/drizzle"; を手で足してください`,
+    );
   }
   return narrowed;
 }
 
 /**
- * domain.json の generate（と集まりの従属か）で決まるカテゴリを `--only` で絞る。generate: false は何も生成しない
+ * domain.json の generate（と集まりの従属か）で決まるカテゴリを `--only` で絞る。generate: false は --only でも何も生成しない
  * @param {import("./pairs.mjs").PairIndex} pairs
  */
 export function configTargets(ctx, pairs, only, io = console) {
-  const child = pairs.ownerOf.has(ctx.camel);
-  if (ctx.config?.generate === false) {
-    if (!only) {
-      io.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません`);
-      return generateTargets(ctx.config, { child });
-    }
-    // --only の名指しは generate: false でも今回だけ書く（保存しない）
-    io.log(`[${ctx.camel}] generate: false（手で管理）ですが、--only で名指しのカテゴリだけ書きます: ${only.join(", ")}`);
-    return narrowTargets(ctx, generateTargets({}, { child }), only, io);
-  }
-  return narrowTargets(ctx, generateTargets(ctx.config, { child }), only, io);
+  return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel) }), only, io);
 }
 
 /** ドメインの一覧（src/features/feature-map.txt）を書き直し、変わったら知らせる（dc:generate の書き込みの最後） */

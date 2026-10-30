@@ -7,6 +7,7 @@ import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
 import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
 import { compositeUniqueIndexes, extraIndexes, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
+import { featureRel } from "../../../domain/context.mjs";
 
 /**
  * @param {import("../../../domain/context.mjs").DomainContext} ctx
@@ -42,7 +43,7 @@ export function renderDrizzleEntity(ctx, workspace) {
     imports.add("index");
   }
 
-  let content = `// src/features/${camel}/entities/drizzle.ts\n\n`;
+  let content = `// ${featureRel(ctx)}/entities/drizzle.ts\n\n`;
   content += `import { ${Array.from(imports).sort().join(", ")} } from "drizzle-orm/pg-core";\n`;
   // ソフトデリート + ユニーク制約、または非ユニークインデックスの where 句があるときは sql を import
   if (needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere(config)) {

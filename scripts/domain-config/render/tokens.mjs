@@ -6,8 +6,10 @@
  * @param {import("../domain/context.mjs").DomainContext} ctx
  */
 export function replaceDomainTokens(content, ctx) {
-  const { camel, pascal, camelPlural, pascalPlural, kebab, kebabPlural, label } = ctx;
+  const { camel, pascal, camelPlural, pascalPlural, kebab, kebabPlural, label, rel } = ctx;
   return content
+    // 頭のコメントのパス（core のドメインは src/features/core/<camel>/。import は @/features/<camel> の別名のまま）
+    .replace(/src\/features\/__domain__\//g, `${rel ?? `src/features/${camel}`}/`)
     .replace(/__domain__/g, camel)
     .replace(/__Domain__/g, pascal)
     .replace(/__domains__/g, camelPlural)

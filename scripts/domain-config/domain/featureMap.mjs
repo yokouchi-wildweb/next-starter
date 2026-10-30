@@ -1,7 +1,7 @@
 // src/features/feature-map.txt（ドメインの一覧）の中身を作る・比べる（純粋。フォルダの読み取りは workspace.featureListing、書き込みは apply）。
 // ルートの地図 src/app/route-map.txt と対。src/features と src/features/core の全フォルダ（_ で始まるものを除く）を 1 行ずつ:
 //   <domain>  <kind: business | core>  <domain.json: yes | no | ->  <generate: true | false | ->
-// business で domain.json あり = generate の値（省略 = true、壊れた JSON は ?）、domain.json なし = 手で管理（-）、core = 生成の対象外（-）。
+// domain.json あり = generate の値（省略 = true、壊れた JSON は ?）、domain.json なし = 手で管理（-）。business も core も同じ（違いはフォルダだけ）。
 // dc:generate が書き込みの最後に書き直し、pnpm dc:feature-map --check がフォルダの増減・generate の切り替えのずれを見つける。
 // fork の merge で衝突したら、どちらの版も採らずに pnpm dc:feature-map で作り直す
 
@@ -13,14 +13,15 @@ const HEADER = [
 ];
 
 /**
- * @param {{ business: { name: string, generate: boolean | null | "?" }[], core: string[] }} listing
+ * @param {{ business: { name: string, generate: boolean | null | "?" }[], core: { name: string, generate: boolean | null | "?" }[] }} listing
  *   generate = domain.json の generate（省略は true）、null = domain.json なし、"?" = 壊れた domain.json
  * @returns {string}
  */
 export function buildFeatureMap(listing) {
+  const row = (label, kind, generate) => (generate === null ? [label, kind, "no", "-"] : [label, kind, "yes", String(generate)]);
   const rows = [
-    ...listing.business.map(({ name, generate }) => (generate === null ? [name, "business", "no", "-"] : [name, "business", "yes", String(generate)])),
-    ...listing.core.map((name) => [`core/${name}`, "core", "-", "-"]),
+    ...listing.business.map(({ name, generate }) => row(name, "business", generate)),
+    ...listing.core.map(({ name, generate }) => row(`core/${name}`, "core", generate)),
   ];
   return `${[...HEADER, ...rows.map((row) => row.join("\t"))].join("\n")}\n`;
 }

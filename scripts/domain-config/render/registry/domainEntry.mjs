@@ -73,7 +73,7 @@ export function renderDomainEntryOutput(ctx, warn = console.warn) {
         `公開範囲を変えるには domain.json の apiAccess を宣言して再生成してください。`,
     );
   }
-  return file(path.join(ctx.dir, "services", "server", "domainEntry.ts"), renderDomainEntry({ camel, config }), {
+  return file(path.join(ctx.dir, "services", "server", "domainEntry.ts"), renderDomainEntry({ camel, config, isCore: ctx.kind === "core" }), {
     label: "更新しました",
     unchangedLabel: "変更なし",
   });

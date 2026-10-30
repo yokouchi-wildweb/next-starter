@@ -1,8 +1,9 @@
 // 生成カテゴリと、ドメインごとに生成するカテゴリの決め方（domain.json の generate）、`--only` による絞り込み。
 //
-// generate（省略 = true）: true = 全カテゴリ（集まりの従属は従属のカテゴリだけ）、false = 何も生成しない（手で管理）。
-// 区分ごとの generateFiles は廃止（checks/required.mjs が止める）。
-// `--only` = 今回はこのカテゴリだけ（保存しない）。generate: true は全カテゴリから絞る、generate: false でも名指しのカテゴリは書く、
+// generate（省略 = true）: true = 全カテゴリ（集まりの従属は従属のカテゴリだけ）、false = 手で管理。
+// 手で管理のドメインはどんな実行でも生成器を通さない（--all・forge・1 ドメインの名指し・--only・-i のどれでも何も書かず、生成前の検査もしない。人の決定）。
+// 一度だけ作り直すときは generate を true に戻して生成する。区分ごとの generateFiles は廃止（checks/required.mjs が止める）。
+// `--only` = 今回はこのカテゴリだけ（保存しない）。generate: true の全カテゴリから絞る。
 // 集まりの従属は従属のカテゴリの内だけ（従属に無いカテゴリは名指ししても書かない）。
 
 export const GENERATE_CATEGORIES = [
@@ -22,6 +23,9 @@ export const ALL_GENERATE_OPTIONS = Object.fromEntries(GENERATE_CATEGORIES.map((
 
 /** 集まりの従属（主の mediaCollection が持つ子）が生成するカテゴリ。管理画面・hooks・client は作らない（主の画面から扱う） */
 export const COLLECTION_CHILD_CATEGORIES = ["entities", "serverServices", "fieldConstants", "registry", "presenters"];
+
+/** 手で管理（domain.json の generate: false）。生成器を一切通さない @param {object | null | undefined} config */
+export const isHandManaged = (config) => config?.generate === false;
 
 /**
  * domain.json の generate から、そのドメインで生成するカテゴリを決める

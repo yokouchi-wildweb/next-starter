@@ -5,6 +5,7 @@
 import { assertDomainFolderNames } from "../checks/domainFolder.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
+import { isHandManaged } from "../spec/categories.mjs";
 import { configTargets, loadDomainForGenerate, narrowTargets, refreshFeatureMap } from "./generate.mjs";
 import { assertPairs, collectionChildrenOf, groupOf, involvesPairs, orderWithPairs, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
@@ -25,7 +26,8 @@ function bufferedIo(io) {
  */
 export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, { dryRun = false, io = console } = {}) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
-  assertDomainFolderNames(workspace, selectedDomains);
+  // 手で管理（generate: false）のドメインは検査もしない（生成器を一切通さない）
+  assertDomainFolderNames(workspace, selectedDomains.filter((domain) => !isHandManaged(workspace.readConfigLenient(workspace.configPath(domain)))));
   const pairs = resolvePairs(workspace);
   assertPairs(pairs);
   // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる
