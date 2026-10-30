@@ -158,7 +158,7 @@ test("描画: key の Record・lazy の import・lib の target wiring は src/w
   assert.deepEqual(plan.problems, []);
   const keyed = plan.outputs["src/features/core/userLineProfile/extensions/webhookHandlers.ts"];
   assert.match(keyed, /const webhookHandlersList: LineWebhookHandler\[\] = \[\n  follow,\n\];/);
-  assert.match(keyed, /export const webhookHandlers: Readonly<Record<string, LineWebhookHandler>> = Object\.fromEntries\(webhookHandlersList\.map\(\(item\) => \[String\(item\.eventType\), item\]\)\);/);
+  assert.match(keyed, /export const webhookHandlers: Readonly<Record<string, LineWebhookHandler>> = Object\.assign\(Object\.create\(null\), Object\.fromEntries\(webhookHandlersList\.map\(\(item\) => \[String\(item\.eventType\), item\]\)\)\);/);
   const lazy = plan.outputs["src/app/_layout/adminCommand/extensions/plugins.ts"];
   assert.match(lazy, /\{ name: "search", load: \(\) => import\("@\/app\/_layout\/adminCommand\/plugins\/search"\)\.then\(\(m\) => m\.plugin\) \},/);
   assert.doesNotMatch(lazy, /^import \{ plugin/m);
@@ -283,6 +283,30 @@ test("files の点: 1 段下の決まった名前のファイルが項目、fold
     put("src/app/demo/b-page/_demo.ts", "export const other = {};\n");
     plan = planExtensions(root);
     assert.ok(plan.problems.some((p) => p.includes("export const demo が無い")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("key の一覧: constructor・__proto__ で引いても何も当たらず、その名前の項目は引ける", async () => {
+  const root = mkdtempSync(join(tmpdir(), "ext-proto-"));
+  const put = (path, text) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  try {
+    put(".claude/rules/project.md", "fork_id: next-starter\n");
+    put("src/lib/CATALOG.md", "## next-starter\n");
+    put("src/features/x/extensionPoints.ts", 'export const extensionPoints = { rules: { dir: "rules", export: "rule", type: { from: "@/t", name: "T" }, side: "server", key: "k" } };\n');
+    put("src/features/x/rules/a.ts", 'export const rule = { k: "a" };\n');
+    const out = planExtensions(root).outputs["src/features/x/extensions/rules.ts"];
+    const body = out.slice(out.indexOf("export const rules")).replace(/^export const rules: [^=]*= /, "").split("\n")[0].replace(/;$/, "");
+    const rulesList = [{ k: "a" }, { k: "__proto__" }];
+    const rules = new Function("rulesList", `return ${body}`)(rulesList);
+    assert.equal(rules.constructor, undefined);
+    assert.equal(rules.toString, undefined);
+    assert.equal(Object.getPrototypeOf(rules), null);
+    assert.deepEqual(Object.keys(rules), ["a", "__proto__"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

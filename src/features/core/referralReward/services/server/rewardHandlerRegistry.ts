@@ -50,10 +50,16 @@ export type RewardHandlerItem = {
 
 let memo: Map<string, RewardHandler> | null = null;
 
-// 同じキーは後の項目(ファイル名の順)が勝つ。読み込みの途中で一覧を触らないよう初回に組み立てる
+// 同じキーは例外。読み込みの途中で一覧を触らないよう初回に組み立てる
 function handlers(): Map<string, RewardHandler> {
-  memo ??= new Map(rewardHandlers.map((item) => [item.rewardKey, item.handler]));
-  return memo;
+  if (memo) return memo;
+  const map = new Map<string, RewardHandler>();
+  for (const item of rewardHandlers) {
+    if (map.has(item.rewardKey)) throw new Error(`報酬ハンドラー "${item.rewardKey}" が複数あります`);
+    map.set(item.rewardKey, item.handler);
+  }
+  memo = map;
+  return map;
 }
 
 /**

@@ -4,5 +4,5 @@
 import type { InteractionTargetRule } from "@/features/core/interactionTracking/types/targetRule";
 
 const targetRulesList: InteractionTargetRule[] = [];
-export const targetRules: Readonly<Record<string, InteractionTargetRule>> = Object.fromEntries(targetRulesList.map((item) => [String(item.targetType), item]));
+export const targetRules: Readonly<Record<string, InteractionTargetRule>> = Object.assign(Object.create(null), Object.fromEntries(targetRulesList.map((item) => [String(item.targetType), item])));
 if (Object.keys(targetRules).length !== targetRulesList.length) throw new Error("targetRules: targetType が重複している項目がある");

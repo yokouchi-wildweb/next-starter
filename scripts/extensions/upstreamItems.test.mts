@@ -226,7 +226,8 @@ test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテ
 });
 
 test("マイルストーンのレンダラー: 上流の項目は 0", () => {
-  assert.deepEqual(renderers, {});
+  assert.deepEqual(Object.keys(renderers), []);
+  assert.equal(renderers["constructor"], undefined);
 });
 
 test("チャット添付: 既定の許可種別、種別が空は通す、サイズ上限は今までどおり", () => {
@@ -238,4 +239,11 @@ test("チャット添付: 既定の許可種別、種別が空は通す、サイ
   assert.equal(validateChatFile(file(""), "file").valid, true);
   assert.equal(validateChatFile(file("image/png", 1024 ** 3), "image").valid, false);
   assert.deepEqual(CHAT_ATTACHMENT_CONTENT_TYPES.image, ["image/*"]);
+});
+
+test("同じ鍵: コイン創出ソースと管理者コマンドは例外", async () => {
+  const source = { key: "a", aggregate: async () => ({ current: 0, previous: 0 }) } as unknown as CoinIssuanceSource;
+  assert.throws(() => activeCoinIssuanceSources([source, source]), /複数あります/);
+  const item = { name: "x", load: async () => ({ id: "same" }) as never };
+  await assert.rejects(loadForAdmin(true, { categories: [item, item], plugins: [] }), /複数あります/);
 });

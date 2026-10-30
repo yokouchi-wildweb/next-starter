@@ -73,7 +73,8 @@ Supabase への一本化を検討したうえで採らなかった理由と、�
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 3 つのファクトリーのどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
 | 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が guard() の 1 行、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/features/core/auth/README.md`、`src/lib/pageGuard/README.md` |
-| 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物か、core は手書き）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。特定ドメインの拡張口（下流が追記するもの）も同じフォルダにあるが、役割は別 | `src/lib/domain/README.md`、各 registry ファイルの冒頭コメント |
+| 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。下流の登録口ではない | `src/registry/README.md`、`src/lib/domain/README.md` |
+| 拡張点 | 機能ごとの差し込みは、持ち主のフォルダの受け口にファイルを置くと生成一覧に並ぶ。上流の既定の項目も fork の項目も同じ受け口に置く | `scripts/extensions/README.md` |
 | proxy | リクエストごとの前処理（メンテナンス・デモモード・機能ゲート・リダイレクト）を骨組みの handler の連鎖で行い、fork の項目はファイルを足すだけで後ろの枠に入る | `CLAUDE.md` PROXY、`src/proxies/` |
 | 監査ログ・定期処理・集計 | 監査ログ（`auditLog`）、cron とタスクランナー（`lib/cron`）、カウンタ・DAU・集計キャッシュ（`userCounter` / `interactionTracking` / `analytics`）など、運用に必要な基盤 | 各ドメインの README、`CLAUDE.md` の該当節 |
 
@@ -88,7 +89,7 @@ Supabase への一本化を検討したうえで採らなかった理由と、�
 | 画面 | 既定の画面（`_screen/`）、loader | `page.tsx` の向き先、差し替えた画面と専用部品（`_components/`） |
 | スタイル | トークンの構造（`theme.css`）と既定値（`*.defaults.css`） | 変えたい値だけ（`src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`。upstream の CSS は `src/styles/_base/`） |
 | UI の設定 | 部品の既定値とその型 | 上書きする値（`src/config/ui/*.config.ts`） |
-| 拡張 | 登録表の構造と生成器（`src/registry/*`）、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、特定ドメインの拡張口に登録する中身 |
+| 拡張 | 生成器（`scripts/registry`・`scripts/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く `<名前>.<fork の名前>.ts` |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |
 
 core ドメイン（`src/features/core/`）は画面部品を持たず、データレイヤーまでにとどめる（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。

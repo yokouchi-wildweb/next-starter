@@ -3,5 +3,12 @@
 
 import type { CoinIssuanceSource } from "./types";
 
-export const activeCoinIssuanceSources = (sources: readonly CoinIssuanceSource[]): CoinIssuanceSource[] =>
-  sources.filter((source) => source.enabled?.() ?? true);
+// key の重複は例外(レスポンスの JSON のキーになる)
+export const activeCoinIssuanceSources = (sources: readonly CoinIssuanceSource[]): CoinIssuanceSource[] => {
+  const seen = new Set<string>();
+  for (const { key } of sources) {
+    if (seen.has(key)) throw new Error(`コイン創出ソース "${key}" が複数あります`);
+    seen.add(key);
+  }
+  return sources.filter((source) => source.enabled?.() ?? true);
+};

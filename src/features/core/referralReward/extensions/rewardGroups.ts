@@ -4,5 +4,5 @@
 import type { ReferralRewardGroupItem } from "@/features/core/referralReward/types/rewardConfig";
 
 const rewardGroupsList: ReferralRewardGroupItem[] = [];
-export const rewardGroups: Readonly<Record<string, ReferralRewardGroupItem>> = Object.fromEntries(rewardGroupsList.map((item) => [String(item.key), item]));
+export const rewardGroups: Readonly<Record<string, ReferralRewardGroupItem>> = Object.assign(Object.create(null), Object.fromEntries(rewardGroupsList.map((item) => [String(item.key), item])));
 if (Object.keys(rewardGroups).length !== rewardGroupsList.length) throw new Error("rewardGroups: key が重複している項目がある");

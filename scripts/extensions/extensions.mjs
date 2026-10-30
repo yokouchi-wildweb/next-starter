@@ -119,6 +119,7 @@ function renderPoint(point, items) {
   const { spec } = point;
   const T = spec.type.name;
   const lines = [];
+  // key の一覧は null プロトタイプ(外から来た名前で引いても "constructor" などに当たらない)
   if (spec.load === "lazy") {
     const list = items.map((item) => `  { name: ${JSON.stringify(item.name)}, load: () => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export}) },`);
     lines.push(`export const ${point.name}: { name: string; load: () => Promise<${T}> }[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
@@ -134,12 +135,12 @@ function renderPoint(point, items) {
     // 鍵の文字列を型に残す(項目の値の型が鍵を文字列リテラルで持つこと)
     const list = `${point.name}List`;
     lines.push(`const ${list} = ${array} as const satisfies readonly ${T}[];`);
-    lines.push(`export const ${point.name} = Object.fromEntries((${list} as readonly ${T}[]).map((item) => [String(item.${spec.key}), item])) as unknown as { readonly [I in (typeof ${list})[number] as I[${JSON.stringify(spec.key)}]]: I };`);
+    lines.push(`export const ${point.name} = Object.assign(Object.create(null), Object.fromEntries((${list} as readonly ${T}[]).map((item) => [String(item.${spec.key}), item]))) as unknown as { readonly [I in (typeof ${list})[number] as I[${JSON.stringify(spec.key)}]]: I };`);
     lines.push(`if (Object.keys(${point.name}).length !== ${list}.length) throw new Error(${JSON.stringify(`${point.name}: ${spec.key} が重複している項目がある`)});`);
   } else if (spec.key) {
     const list = `${point.name}List`;
     lines.push(`const ${list}: ${T}[] = ${array};`);
-    lines.push(`export const ${point.name}: Readonly<Record<string, ${T}>> = Object.fromEntries(${list}.map((item) => [String(item.${spec.key}), item]));`);
+    lines.push(`export const ${point.name}: Readonly<Record<string, ${T}>> = Object.assign(Object.create(null), Object.fromEntries(${list}.map((item) => [String(item.${spec.key}), item])));`);
     lines.push(`if (Object.keys(${point.name}).length !== ${list}.length) throw new Error(${JSON.stringify(`${point.name}: ${spec.key} が重複している項目がある`)});`);
   } else {
     lines.push(`export const ${point.name}: ${T}[] = ${array};`);

@@ -28,7 +28,7 @@ export const extensionPoints = {
 - **リテラルだけ**で書く: 文字列・真偽・数・配列・object。変数・式・関数呼び出し・テンプレート・spread は失敗(生成器は TypeScript の構文木で字面を読み、実行しない)
 - 点の名前 = 一覧のファイル名 = export する一覧の名前。項目の種類の複数形 camelCase(ドメイン名・Registry を付けない)
 - 省略できるキー:
-  - `key: "<プロパティ>"` … 一覧を `Record<string, T>` にする(各項目の値のそのプロパティが鍵。重複は読み込み時に例外)
+  - `key: "<プロパティ>"` … 一覧を `Record<string, T>` にする(各項目の値のそのプロパティが鍵。重複は読み込み時に例外。null プロトタイプなので外から来た名前で引いても `constructor` などに当たらない)
   - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
@@ -48,6 +48,8 @@ export const extensionPoints = {
 受け口のフォルダが無い点は項目 0(一覧は空)。上流の項目が 0 の受け口は、intake の行が実在を見るので置き方を書いた README.md を置く(`.ts(x)` でないファイルは項目に数えない)。印 = `export const <export>` の形(字面で見る。`export { x as <export> }` は拾わない)。項目のファイルは生成器から import しない。fork の名前は宣言済みのもの(`.claude/rules/project.md` の `fork_id:` と祖先の台帳名、`src/lib/forkOwnership/forkIds.mjs`)。
 
 失敗(書き出さない): 宣言に無い fork の名前 / 印が無い(受け口に置くのは項目だけ。部品は責務のドメインへ)/ 同じ受け口の 2 つの点の印を両方持つ / index の無いフォルダ / 同じ名前のファイルとフォルダ / 名前の形。テスト(`*.test.*`)・`.d.ts`・`.ts(x)` 以外・`extensions/`・ほかの点の受け口のフォルダは見ない。
+
+鍵の重複: 項目の一意の名前(`key` の点のほか purchaseType・jobType・rewardKey・用途 ID など)が 2 つあれば読み手が例外を投げる。ファイル名の順で後が勝つ差し替えは無い。上流の組み込み項目を差し替えたい fork は、上流へ 1 行スイッチを依頼する(`/order`)。
 
 ## 一覧(生成物)
 

@@ -7,7 +7,7 @@
 | `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/registry/push.ts`） | 必要・書き込む |
 | `pnpm test:schema-registry` | 走査の表の集合 = schemaRegistry の全 pgTable、α 3 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
 | `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
-| `pnpm registry:generate` / `pnpm registry:check` | `src/registry` の α 4 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル + `profileTableRegistry`）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts` | 不要 |
+| `pnpm registry:generate` / `pnpm registry:check` | `src/registry` の α 4 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル + `profileTableRegistry`）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
 
 ## スキーマ変更を DB に反映する（push）
 

@@ -4,5 +4,5 @@
 import type { AnyPairedDeviceKindDefinition } from "@/features/core/pairedDevice/types/kind";
 
 const kindsList = [] as const satisfies readonly AnyPairedDeviceKindDefinition[];
-export const kinds = Object.fromEntries((kindsList as readonly AnyPairedDeviceKindDefinition[]).map((item) => [String(item.kind), item])) as unknown as { readonly [I in (typeof kindsList)[number] as I["kind"]]: I };
+export const kinds = Object.assign(Object.create(null), Object.fromEntries((kindsList as readonly AnyPairedDeviceKindDefinition[]).map((item) => [String(item.kind), item]))) as unknown as { readonly [I in (typeof kindsList)[number] as I["kind"]]: I };
 if (Object.keys(kinds).length !== kindsList.length) throw new Error("kinds: kind が重複している項目がある");

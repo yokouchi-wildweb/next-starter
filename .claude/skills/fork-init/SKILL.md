@@ -31,6 +31,7 @@ disable-model-invocation: true
 6. fork の名前(`fork_id:`)を決める: 既定 = 新しいリポ名 `<name>` の小文字(5 の質問にまとめて確認する)。形 = 小文字・数字・ハイフン(`src/lib/forkOwnership/forkIds.mjs` の `FORK_ID_PATTERN`)。origin の URL からは導かない。次のどれかと同じ名前なら止まり、別の名前を聞く(D30 K3):
    - フォーク元の `.claude/rules/project.md` の `fork_id:`・`.notices/applied/` の台帳名・`src/lib/CATALOG.md` の節の見出し(祖先の名前)
    - `~/.team/fleet.conf` の名前(大文字小文字を区別せず比べる)・`~/.team/orders/` の受信箱のフォルダ名(どちらも無ければ見ない)
+   - 名前を決めたら `node .claude/skills/order/mailbox.mjs name-check <名前>` を呼ぶ。重なりを報告されたら止まり、別の名前を人に確かめる
 7. フォーク元の版 = 今の HEAD の完全な sha(`git rev-parse HEAD`。台帳の最初の行の `upstream:` に書く)。
 
 ## 計画提示(承認を取る)

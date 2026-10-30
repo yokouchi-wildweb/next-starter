@@ -4,5 +4,5 @@
 import type { MilestoneRendererDefinition } from "@/features/core/milestone/types/milestoneRenderer";
 
 const renderersList: MilestoneRendererDefinition[] = [];
-export const renderers: Readonly<Record<string, MilestoneRendererDefinition>> = Object.fromEntries(renderersList.map((item) => [String(item.key), item]));
+export const renderers: Readonly<Record<string, MilestoneRendererDefinition>> = Object.assign(Object.create(null), Object.fromEntries(renderersList.map((item) => [String(item.key), item])));
 if (Object.keys(renderers).length !== renderersList.length) throw new Error("renderers: key が重複している項目がある");

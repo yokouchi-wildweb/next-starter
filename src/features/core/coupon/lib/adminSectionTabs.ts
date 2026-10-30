@@ -23,13 +23,13 @@ function buildCoreCouponAdminSectionTabs(): PageTabItem[] {
 /**
  * クーポン管理画面のセクションタブ一覧（core 3 タブ + downstream 登録分）
  *
- * value の重複は downstream 側の登録ミスとみなし、core 側を優先して後勝ちを捨てる。
+ * value の重複は例外(core のタブの差し替えは無い)。
  */
 export function buildCouponAdminSectionTabs(): PageTabItem[] {
   const tabs = buildCoreCouponAdminSectionTabs();
   const seen = new Set(tabs.map((tab) => tab.value));
   for (const tab of sectionTabs) {
-    if (seen.has(tab.value)) continue;
+    if (seen.has(tab.value)) throw new Error(`クーポンのセクションタブ "${tab.value}" が複数あります`);
     seen.add(tab.value);
     tabs.push(tab);
   }

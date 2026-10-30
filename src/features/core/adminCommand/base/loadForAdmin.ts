@@ -19,5 +19,9 @@ export async function loadForAdmin(isAdmin: boolean, lists: AdminCommandLists): 
     Promise.all(lists.categories.map((item) => item.load())),
     Promise.all(lists.plugins.map((item) => item.load())),
   ]);
+  for (const [label, ids] of [["カテゴリ", categories.map((c) => c.id)], ["プラグイン", plugins.map((p) => p.id)]] as const) {
+    const duplicate = ids.find((id, index) => ids.indexOf(id) !== index);
+    if (duplicate) throw new Error(`管理者コマンドの${label} "${duplicate}" が複数あります`);
+  }
   return { categories, plugins };
 }

@@ -29,7 +29,7 @@ import type { PendingMessage } from "@/features/chatRoom/stores/messageSending";
 import { validateChatFile, validateTextMessage } from "@/features/chatRoom/utils/validation";
 import type { ValidationResult } from "@/features/chatRoom/utils/validation";
 
-/** メッセージの種類 → ファイル用途（src/registry/storagePurposes/core.ts） */
+/** メッセージの種類 → ファイル用途（storageObject/purposes/chatRoom.ts） */
 const CHAT_STORAGE_PURPOSES = {
   image: "chatRoom.image",
   video: "chatRoom.video",

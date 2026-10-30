@@ -1,8 +1,7 @@
 // src/features/core/purchaseRequest/services/server/completion/strategyRegistry.ts
 // 購入完了戦略の読み手(項目: ./strategies/<名前>[.<fork の名前>].ts の export const strategy、一覧は生成物)
 //
-// 同じ type が複数あると後の項目(ファイル名の順)が勝つ(warn)。ビルトインを差し替えるなら
-// ファイル名が後ろに来る名前で置く(例: zWalletTopup.<fork の名前>.ts)。
+// 同じ type が複数あると例外。ビルトインを差し替えたい fork は上流へ 1 行スイッチを依頼する。
 
 import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import { completionStrategies } from "@/features/core/purchaseRequest/extensions/completionStrategies";
@@ -16,7 +15,7 @@ function strategyMap(): Map<PurchaseTypeKey, PurchaseCompletionStrategy> {
   const map = new Map<PurchaseTypeKey, PurchaseCompletionStrategy>();
   for (const strategy of completionStrategies) {
     if (map.has(strategy.type)) {
-      console.warn(`[PurchaseCompletionStrategy] type "${strategy.type}" が複数あります。後の項目で上書きします。`);
+      throw new Error(`[PurchaseCompletionStrategy] type "${strategy.type}" が複数あります`);
     }
     map.set(strategy.type, strategy);
   }
