@@ -61,7 +61,7 @@ src/app/(user)/
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 0 か 1（サーバー側ロジックの無いページは loader を持たない）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
-- 対象外: デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）、API。管理画面（`/admin/**`）は手書きのものも dc:generate 由来のものも対象
+- 対象外: API だけ。デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）も管理画面（`/admin/**`、手書きも dc:generate 由来も）も対象
 
 ## 2. 既存の UI レイヤーとの対応
 
@@ -295,7 +295,7 @@ import { BalanceCard } from "./BalanceCard";
 
 | 検出 | 範囲 |
 |---|---|
-| page.tsx | **`src/app` 全体**のページ（`page.tsx` / `.ts` / `.jsx` / `.js` / `.mdx`。`routeTree.mjs` の `discoverRoutes`、ルート地図と同じ発見）。外れるのは `_` で始まるディレクトリ（`admin/_template` 等）と `src/app/api` だけで、`@slot`（parallel routes）は含む。そこから構造の検査の除外（upstream の `SCAN_EXCLUDES` = `(user)/demo/**`・`admin/(protected)/tabs-demo/**`、fork の `FORK_SCAN_EXCLUDES`）の配下を外す。除外したページもルート地図には載る。fork の独自エリア（`store/`・`terminal/`・`m/` 等）も登録なしで検査される |
+| page.tsx | **`src/app` 全体**のページ（`page.tsx` / `.ts` / `.jsx` / `.js` / `.mdx`。`routeTree.mjs` の `discoverRoutes`、ルート地図と同じ発見）。外れるのは `_` で始まるディレクトリ（`admin/_template` 等）と `src/app/api` だけで、`@slot`（parallel routes）は含む。そこから構造の検査の除外（upstream の `SCAN_EXCLUDES` は空、fork の `FORK_SCAN_EXCLUDES`）の配下を外す。除外したページもルート地図には載る。fork の独自エリア（`store/`・`terminal/`・`m/` 等）も登録なしで検査される |
 | ルート内 loader | 検出した各ルートの `_screen/loader.ts` と `_components/loader.ts`（あるものだけ） |
 
 | 保護 | 検査 | 結果 |

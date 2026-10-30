@@ -82,10 +82,10 @@ const SWITCH_REEXPORT = /export\s*\{[^}]*\}\s*from\s*["']\.\/_layout\//;
 // ---------------------------------------------------------------------------
 
 /**
- * 構造の検査から外すディレクトリとその配下(repo 相対)。fork は registry の FORK_SCAN_EXCLUDES で足す。
- * デモは動く見本を優先して 1 ファイルに書いているので外す。ルート地図からは外さない(認可の一覧に例外を作らない)
+ * 構造の検査から外すディレクトリとその配下(repo 相対)。upstream は空(デモも 1 行スイッチ + _screen/ + loader の形)。
+ * fork は registry の FORK_SCAN_EXCLUDES で足す。ルート地図からは外さない(認可の一覧に例外を作らない)
  */
-export const SCAN_EXCLUDES = ["src/app/(user)/demo", "src/app/admin/(protected)/tabs-demo"];
+export const SCAN_EXCLUDES = [];
 
 // 形式違いの登録(文字列以外・ファイル)は鮮度テストだけが指摘する(走査で落ちてスイート全体が止まらないように)
 const isDir = (rel) => {
@@ -319,19 +319,19 @@ test("FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES: 不要になった FORK_SCAN_ROOTS �
 const walletDir = "src/app/(user)/(protected)/wallet";
 const hasWallet = exists(`${walletDir}/page.tsx`);
 
-test("検出範囲: src/app 全体(wallet(あれば)・管理画面・debug)が含まれ、demo と生成テンプレートは含まれない", () => {
+test("検出範囲: src/app 全体(wallet(あれば)・管理画面・debug・デモ)が含まれ、生成テンプレートは含まれない", () => {
   if (hasWallet) {
     assert.ok(pageDirs.has(walletDir));
     assert.ok(pageDirs.has(`${walletDir}/[slug]/history`));
   }
   assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_screen/StarterHomeScreen)が検出されていない");
   assert.ok([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/")), "生成された管理画面ルートが検出されていない");
-  assert.equal([...pageDirs].some((d) => d.startsWith("src/app/(user)/demo")), false);
-  // 手書きの管理画面(dc:generate 由来でない)も検出し、管理画面のデモと生成テンプレートは外す
+  assert.ok(pageDirs.has("src/app/(user)/demo"), "デモ(構造の検査の対象)が検出されていない");
+  // 手書きの管理画面(dc:generate 由来でない)と管理画面のデモも検出し、生成テンプレートは外す
   for (const dir of ["src/app/admin/(protected)", "src/app/admin/login", "src/app/admin/(protected)/users/general"]) {
     assert.ok(pageDirs.has(dir), `${dir} が検出されていない`);
   }
-  assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/tabs-demo")), false);
+  assert.ok(pageDirs.has("src/app/admin/(protected)/tabs-demo/overview"), "管理画面のデモが検出されていない");
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/_template")), false);
   // 固定の走査範囲の外だった区域も検出する(M1)
   assert.ok(pageDirs.has("src/app/debug"), "src/app/debug が検出されていない");

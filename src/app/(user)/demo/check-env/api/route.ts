@@ -9,8 +9,8 @@ export const GET = createApiRoute(
   {
     operation: "GET /demo/check-env/api",
     operationType: "read",
-    // 公開: /demo 配下のデモツール（本番では featureGate proxy が遮断する）
-    access: "public",
+    // 管理者だけ: 環境変数とサービスアカウントの要約を返すため(L1.19。/demo 自体も featureGate proxy が既定で遮断する)
+    access: { roleCategories: ["admin"] },
   },
   async () => {
     try {

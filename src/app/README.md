@@ -57,7 +57,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | `login/` | ログインページ | - |
 | `setup/` | 初期設定 | - |
 | `_template/` | コード生成テンプレート | - |
-| `(protected)/tabs-demo/` | タブのデモ（`test:screens` の対象外） | - |
+| `(protected)/tabs-demo/` | タブのデモ（他のページと同じ 1 行スイッチ + `_screen/` + loader） | - |
 
 ## api/ の構造
 

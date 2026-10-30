@@ -1,19 +1,5 @@
-// src/app/(user)/demo/seamless-av/play/page.tsx
-//
-// 公開再生ページ(認証不要)。固定キーの最新マニフェストを SSR で読み、各端末で連結再生する。
-
-import { getLatestManifest } from "@/lib/seamlessVideo/server/reelManifestStore";
-
-import { SeamlessAvPlayer } from "./_screen/SeamlessAvPlayer";
-
+// src/app/(user)/demo/seamless-av/play/page.tsx — 画面の切り替え(1 行スイッチ)。本体は _screen/DemoSeamlessAvPlayScreen.tsx
 // 常に最新の保存内容を読むためキャッシュしない
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Seamless A/V 再生",
-};
-
-export default async function PlaySeamlessAvPage() {
-  const manifest = await getLatestManifest();
-  return <SeamlessAvPlayer manifest={manifest} />;
-}
+export { DemoSeamlessAvPlayScreen as default, metadata } from "./_screen/DemoSeamlessAvPlayScreen";
