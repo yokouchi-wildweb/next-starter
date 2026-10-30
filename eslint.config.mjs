@@ -34,6 +34,8 @@ const config = [
       // 新しいテンプレートがパースエラーを出したらここに足す。
       "src/app/admin/_template/__domains__/[[]id]/edit/_screen/Admin__Domain__EditScreen.tsx",
       "src/app/admin/_template/__domains__/new/_screen/Admin__Domain__CreateScreen.tsx",
+      "src/app/admin/_template/__domains__/[[]id]/edit/_screen/loader.ts",
+      "src/app/admin/_template/__domains__/new/_screen/loader.ts",
       "src/features/_template/components/Admin__Domain__List/Table.tsx",
       "src/features/_template/components/Admin__Domain__List/Table.withDetailModal.tsx",
       "src/features/_template/services/server/drizzleBase.ts",

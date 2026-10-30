@@ -4,18 +4,18 @@
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
-import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
-import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 import Admin__Domain__List from "@/features/__domain__/components/Admin__Domain__List";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
+
+import { loadAdmin__Domain__ListScreen } from "./loader";
 
 export const metadata = {
   title: "__DomainLabel__一覧",
 };
 
 export async function Admin__Domain__ListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { results: __domains__, page, limit, total } = await loadAdminListScreen(__domain__Service, props);
+  const { results: __domains__, page, limit, total } = await loadAdmin__Domain__ListScreen(props);
 
   return (
     <AdminPage>

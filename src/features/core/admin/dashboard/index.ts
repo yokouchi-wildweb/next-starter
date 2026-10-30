@@ -6,5 +6,11 @@
 //   import { AdminDashboard } from "@/features/admin/dashboard";
 
 export { AdminDashboard } from "./components/AdminDashboard";
-export { adminDashboardSections } from "./registry";
-export type { AdminDashboardSection, AdminDashboardSectionComponent } from "./types";
+export { adminDashboardSections, defineDashboardSection } from "./registry";
+export type {
+  AdminDashboardData,
+  AdminDashboardSection,
+  AdminDashboardSectionComponent,
+  AdminDashboardSectionLoad,
+  AdminDashboardSectionProps,
+} from "./types";

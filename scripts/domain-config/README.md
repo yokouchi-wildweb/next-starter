@@ -152,7 +152,7 @@
 | 未登録なら追記 | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（引用符・空白違いの既存行も登録済みとみなす） |
 | 毎回上書き（生成物） | `services/server/domainEntry.ts`（domain.json の `apiAccess`（無ければ fail-closed = `...ADMIN_ONLY`、初回は警告）と `useImportExport`（偽なら `export` / `import` を `"none"`）から書く。read / write がプリセットと一致すれば `...PUBLIC_READ` のように spread で、一致しなければリテラルで書く。`table` = `domain/names.mjs` の `domainTableName`（表の定義の生成器 `render/entities/drizzle/` と共有。`plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。dc:generate の最後に自動で走り、手書き行が残っていれば失敗して移し先を出す。`scripts/registry/serviceRegistry/`、仕組みは `src/lib/domain/README.md`） |
 
-管理画面ルートの構造（`page.tsx` / `_screen/` / 共有 loader）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
+管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
 
 ### 生成物を変えたいとき（生成ファイルは編集しない）
 

@@ -2,18 +2,19 @@
 // このファイルは dc:generate が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import { loadAdminSortScreen } from "@/features/core/admin/services/server/loaders/adminSort";
-import { sampleService } from "@/features/sample/services/server/sampleService";
+import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleSort from "@/features/sample/components/AdminSampleSort";
 import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+
+import { loadAdminSampleSortScreen } from "./loader";
 
 export const metadata = {
   title: "サンプル並び替え",
 };
 
-export async function AdminSampleSortScreen() {
-  const { results: samples } = await loadAdminSortScreen(sampleService, "sort_order");
+export async function AdminSampleSortScreen(props: ScreenProps) {
+  const { results: samples } = await loadAdminSampleSortScreen(props);
 
   return (
     <AdminPage>

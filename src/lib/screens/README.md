@@ -40,7 +40,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。page 入口向けのサーバー側ロジック（ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
-| 共有 loader | `src/features/core/admin/services/server/loaders/` | 上流 | 多数のルートが同じ処理を使うときだけ（dc:generate の管理画面）。ルート 1 つのための loader をここに置かない |
+| 管理画面の取得本体 | `src/features/core/admin/services/server/screenData/` | 上流 | dc:generate の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/domains.ts` の共通部品の組を通して使う |
 | セクションコンテナ / 部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
 
@@ -89,7 +89,7 @@ src/app/(user)/
 - **非互換変更**（引数・返り値・必須 props）: 旧契約は残し、新名で追加する。旧を消す場合は改名と同じ手順
 - **挙動変更**（loader の redirect 先・notFound 条件）: `.notices` に明記
 - **セクションコンテナの子構成変更**（部品の追加・削除・並び替え）: 契約外だが、複製した fork が追随判断できるよう informational な `.notices` に含める
-- loader の仕様（ルート・返り値・redirect 条件・使う hook）はファイル先頭のコメントに書く。一覧 README は共有 loader のディレクトリにだけ置く
+- loader の仕様（ルート・返り値・redirect 条件・使う hook）はファイル先頭のコメントに書く。一覧 README は作らない
 
 ## 4. loader の書き方
 
@@ -135,7 +135,7 @@ export async function loadWalletBalanceScreen(props: ScreenProps<WalletBalanceSc
 - **どのセッション関数を使うかはルートグループで決まる（ページごとに判断しない）**: `(protected)` 配下（`(user)/(protected)`、`admin/(protected)`）でユーザーが要る loader は `requireCurrentUser({ behavior: "redirect", redirectTo })` のみ（ユーザーが要らない loader、例えば共有の管理画面 loader は何も呼ばない）。`redirectTo` はそのグループの layout の `authGuard` と同じリテラル（user 側 `/login`、admin 側 `/admin/login`）。`getSessionUser()`（nullable）は公開ルート専用: 「ログインしていれば出し分ける」任意パーソナライズと、`(protected)` の外にあるためログイン判定を loader 自身が行うルート（`(auth)` の `/login` のログイン済み redirect、`/restricted` / `/reactivate` の status 分岐。authGuard が通さない status のユーザーを案内する画面なので `(protected)` に置けない）の 2 つ。protected 配下で「セッションが無ければ既定値で描く」分岐を書かない（layout が既に redirect した後なので到達しない死にコード）。所有権や存在の秘匿（他人のリクエストは 404）はユーザーを取った後の判定として `notFound()` で行う。`checkLoaderFile` が `(protected)` を含むパスの loader の `getSessionUser` import を失敗にする
 - **セッション・ガード API を呼べるのは layout・`_layout/`・`loader.ts` だけ**（page.tsx・Screen・部品・hooks は不可。layout はサーバー側でデータを取らない）。lint `page-authz`（全 Tier で error）が検査する。仕様と理由: [auth README「置き場所の検査」](../../features/core/auth/README.md)
 - 新しいパスリテラルを増やさない。既存の定数・設定に寄せる
-- 複数ルートで共通する判定はドメインの `utils/` に置き、各ルートの loader が呼ぶ。多数のルートが丸ごと同じ loader を使う場合だけ共有 loader（§12）にする
+- 複数ルートで共通する判定はドメインの `utils/` に置き、各ルートの loader が呼ぶ。多数のルートが同じ取得を使う場合（管理画面、§12）は取得本体をドメインに置き、各ルートの loader.ts が組を渡す 1 行にする
 
 ## 5. Screen の書き方
 
@@ -297,14 +297,13 @@ import { BalanceCard } from "./BalanceCard";
 |---|---|
 | page.tsx | **`src/app` 全体**のページ（`page.tsx` / `.ts` / `.jsx` / `.js` / `.mdx`。`routeTree.mjs` の `discoverRoutes`、ルート地図と同じ発見）。外れるのは `_` で始まるディレクトリ（`admin/_template` 等）と `src/app/api` だけで、`@slot`（parallel routes）は含む。そこから構造の検査の除外（upstream の `SCAN_EXCLUDES` = `(user)/demo/**`・`admin/(protected)/tabs-demo/**`、fork の `FORK_SCAN_EXCLUDES`）の配下を外す。除外したページもルート地図には載る。fork の独自エリア（`store/`・`terminal/`・`m/` 等）も登録なしで検査される |
 | ルート内 loader | 検出した各ルートの `_screen/loader.ts` と `_components/loader.ts`（あるものだけ） |
-| 共有 loader | `src/features` 配下の `services/server/loaders/*.ts`（`index.ts` / `types.ts` / 再 export だけのファイルを除く） |
 
 | 保護 | 検査 | 結果 |
 |---|---|---|
-| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader` / 共有 loader）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
+| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
-| loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
+| loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(` か `createLoader(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。（補助関数は `utils/` へ） | 失敗 |
 | 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
@@ -371,12 +370,11 @@ src/app/admin/(protected)/samples/
 | 所有 | 対象 | 生成器の扱い |
 |---|---|---|
 | fork（write-once） | `page.tsx` | 無ければ生成。既存なら保持。旧形式（本体を直接持つ `export default`、`_screen/` も `_components/` も参照しない）なら一度だけ 1 行スイッチへ移行してログを出す |
-| 生成物（編集しない） | `_screen/<Name>Screen.tsx` | 毎回上書き |
+| 生成物（編集しない） | `_screen/<Name>Screen.tsx`・`_screen/loader.ts` | 毎回上書き |
 | fork | `_components/` | 触らない |
 
-- `_screen/` はルートごとの `loader.ts` を持たず、`src/features/core/admin/services/server/loaders/` の**共有 loader**（`loadAdminListScreen(service, props, options?)` / `loadAdminEditScreen(service, props, fallbackPath)` / `loadAdminSortScreen(service, sortOrderColumn)` / `loadAdminRelationOptions(domainConfig)`）を呼ぶ。多数のルートが丸ごと同じ処理を使う唯一の例で、一覧と規則は同ディレクトリの README
-- 共有 loader は `requireCurrentUser` を呼ばない（`admin/(protected)/layout.tsx` の `authGuard` が管理者を検査済み）。本人スコープのデータを取るユーザー向け loader との違い
-- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く
+- `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/wiring/domains.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/features/core/admin/services/server/screenData/README.md`
+- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
 - 生成ルートも `test:screens` が自動検出して検査する（domain.json から導出）
 
 ## 13. ルート地図（`src/app/route-map.txt`）

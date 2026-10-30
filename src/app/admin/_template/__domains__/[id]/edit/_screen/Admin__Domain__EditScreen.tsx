@@ -2,17 +2,14 @@
 // このファイルは dc:generate が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
+import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/features/core/admin/services/server/screenData/adminEdit";
 import type { ScreenProps } from "@/lib/screens/types";
-import {
-  loadAdminEditScreen,
-  type AdminEditScreenParams,
-  type AdminEditScreenSearchParams,
-} from "@/features/core/admin/services/server/loaders/adminEdit";
 __RELATION_IMPORTS__
-import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 import Admin__Domain__Edit from "@/features/__domain__/components/Admin__Domain__Edit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
+
+import { loadAdmin__Domain__EditScreen } from "./loader";
 
 export const metadata = {
   title: "__DomainLabel__編集",

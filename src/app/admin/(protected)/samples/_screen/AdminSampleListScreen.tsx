@@ -4,18 +4,18 @@
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
-import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
-import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleList from "@/features/sample/components/AdminSampleList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
+
+import { loadAdminSampleListScreen } from "./loader";
 
 export const metadata = {
   title: "サンプル一覧",
 };
 
 export async function AdminSampleListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { results: samples, page, limit, total } = await loadAdminListScreen(sampleService, props);
+  const { results: samples, page, limit, total } = await loadAdminSampleListScreen(props);
 
   return (
     <AdminPage>

@@ -109,7 +109,8 @@ function buildGuard<TUser extends PageGuardUser>(
       await enforcePageAccess(deps, levels, config.access, config.allowStatuses, user);
       const statuses =
         config.allowStatuses ?? [...levels].reverse().find((level) => level.allowStatuses)?.allowStatuses;
-      return config.load({ user: principalFor(deps, user, statuses) }, ...key);
+      const allows = (rule: PageAccess) => deps.evaluateAccess(rule, user, { allowStatuses: statuses }) === "granted";
+      return config.load({ user: principalFor(deps, user, statuses), allows }, ...key);
     });
     return async (props: TProps): Promise<TData> => {
       const key = config.key ? await config.key(props) : ([] as unknown as TKey);

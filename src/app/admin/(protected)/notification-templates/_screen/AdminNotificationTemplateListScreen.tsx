@@ -2,12 +2,11 @@
 // /admin/notification-templates の既定画面(page 層の本体)。上流所有。下流は編集・削除せず、
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。手順: src/lib/screens/README.md
 //
-// dc:generate の管理画面と同じ形(共有 loader を呼ぶ)。core ドメインは dc:generate の対象外なので手で保守する。
+// dc:generate の管理画面と同じ形(_screen/loader.ts が管理画面の共通部品の組を使う)。core ドメインは dc:generate の対象外なので手で保守する。
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
-import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
-import { notificationTemplateService } from "@/features/core/notificationTemplate/services/server/notificationTemplateService";
+import { loadAdminNotificationTemplateListScreen } from "./loader";
 import AdminNotificationTemplateList from "@/features/core/notificationTemplate/components/AdminNotificationTemplateList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
@@ -17,7 +16,7 @@ export const metadata = {
 };
 
 export async function AdminNotificationTemplateListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { results: notificationTemplates, page, limit, total } = await loadAdminListScreen(notificationTemplateService, props);
+  const { results: notificationTemplates, page, limit, total } = await loadAdminNotificationTemplateListScreen(props);
 
   return (
     <AdminPage>

@@ -17,6 +17,7 @@
     "test:service-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/serviceRegistry/serviceRegistry.test.mjs",
     "test:collection-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/collectionWiring/collectionWiring.test.mjs",
     "test:wiring": "node --test src/wiring/wiring.test.mjs",
+    "test:wiring-domains": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/wiring/domains.test.mts",
     "test:storage-purposes": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/check-storage-purposes.test.mjs",
     "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
     "test:cn": "node --test src/lib/cn/cn.test.mjs",

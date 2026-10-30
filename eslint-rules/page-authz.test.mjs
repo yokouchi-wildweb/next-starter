@@ -16,7 +16,7 @@ test("classifyLayoutImport: services/server・DB・loader を止め、authorizat
   assert.equal(classifyLayoutImport("@/features/core/user/services/server/userService"), "serverService");
   assert.equal(classifyLayoutImport("@/features/core/setting/services/server"), "serverService");
   assert.equal(classifyLayoutImport("../services/server/fooService"), "serverService");
-  assert.equal(classifyLayoutImport("@/features/core/admin/services/server/loaders/adminList"), "serverService");
+  assert.equal(classifyLayoutImport("@/features/core/admin/services/server/screenData/adminList"), "serverService");
   assert.equal(classifyLayoutImport("@/lib/drizzle"), "db");
   assert.equal(classifyLayoutImport("@/lib/drizzle/client"), "db");
   assert.equal(classifyLayoutImport("drizzle-orm"), "db");

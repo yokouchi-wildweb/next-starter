@@ -162,3 +162,16 @@ test("createLoader: key のプリミティブが load に渡る", async () => {
   currentUser = null;
   assert.equal(await load({ params: Promise.resolve({ slug: "coin", page: "1" }) }), "coin:2");
 });
+
+test("createLoader: allows は別の access を同じ利用者で評価する", async () => {
+  const load = root.createLoader({
+    access: "public",
+    load: async ({ allows }) => [allows({ roles: ["admin"] }), allows("authenticated"), allows("none")],
+  });
+  currentUser = admin;
+  assert.deepEqual(await load({}), [true, true, false]);
+  currentUser = active;
+  assert.deepEqual(await load({}), [false, true, false]);
+  currentUser = null;
+  assert.deepEqual(await load({}), [false, false, false]);
+});

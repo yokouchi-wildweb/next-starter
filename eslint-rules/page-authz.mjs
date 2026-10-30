@@ -7,7 +7,7 @@
 // ── layout-no-server-data(M4: layout はサーバー側でデータを取らない) ──
 // 対象: src/app/**/layout.tsx と src/app/**/_layout/**(layout の組み立て)。範囲の方針 guard.ts は layout の隣にあり対象外。
 // 禁止する import:
-//   - `services/server` を含むパス(絶対・相対。共有 admin loader の features/core/admin/services/server/loaders も含む)
+//   - `services/server` を含むパス(絶対・相対。管理画面の取得本体 features/core/admin/services/server/screenData も含む)
 //     例外: @/features/core/auth/services/server/authorization(authGuard・hasAdminUser 等の認可の関数)だけは許可
 //   - DB: @/lib/drizzle・drizzle-orm・@/lib/firebase/server・firebase-admin(それぞれ配下も)
 //   - loader: 末尾が /loader のパス(./_screen/loader 等)
@@ -25,7 +25,7 @@
 //   セッション API を import しない(root は @/wiring/pageGuard、子は親の extend で作る)。
 //   API には許可の場所が無い: 主体は API の Factory(@/wiring/apiRoute)が 1 回だけ DB 同期で解いて ctx.user で渡す(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
-//   共有 admin loader(features/core/admin/services/server/loaders)・proxy・services/server・lib/routeFactory は
+//   管理画面の取得本体(features/core/admin/services/server/screenData)・proxy・services/server・lib/routeFactory は
 //   対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外として ignores に入れる。
 // 禁止する import:
 //   - SESSION_API_NAMES の名前の値 import(どのパスからでも。barrel・re-export 経由も名前で捕まえる)

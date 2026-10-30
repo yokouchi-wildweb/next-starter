@@ -37,7 +37,7 @@ src/app/<範囲>/layout.tsx = await guard() の 1 行
 - `guard()`: layout が 1 行で呼ぶ。範囲の全段を評価し、利用者は返さない(表示用の利用者は root の AuthSessionProvider → client の useAuthSession)
 - `createLoader({ access, allowStatuses?, key?, load })`: 範囲の全段 → ページの `access` を単独で評価し、拒否なら `load` を呼ばない(layout と並列に描かれても取得は守られる)
   - ページの `access` の拒否: `none` → notFound、未認証 → 最寄りの段の `redirectTo`、権限不足 → 最寄りの段の `forbiddenRedirectTo`(無ければ notFound)
-  - `load({ user }, ...key)`: `user` は DB 同期の利用者(リクエスト内 1 回)。`access: "public"` では Cookie があり利用可能な status(ページか最寄りの段の `allowStatuses`、無ければ既定)のときだけ非 null
+  - `load({ user, allows }, ...key)`: `allows(rule)` は別の access を同じ利用者・status で評価する(取得前の追加の判定。例: 管理画面の関連先ごとの list の access)。`user` は DB 同期の利用者(リクエスト内 1 回)。`access: "public"` では Cookie があり利用可能な status(ページか最寄りの段の `allowStatuses`、無ければ既定)のときだけ非 null
   - `key(props)` は params / searchParams から cache のキーのプリミティブを取り出す(データは取らない)。Factory がそのプリミティブで React `cache()` を張る(Next は page と generateMetadata に別の props を渡すため)
 
 テスト: `pnpm test:page-guard`(stub の束で各分岐)。ページの書き方・地図・検査は `src/lib/screens/README.md`。

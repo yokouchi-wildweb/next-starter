@@ -1,17 +1,12 @@
 // src/features/core/admin/dashboard/components/sections/MainMetricsSection.tsx
 
-import dayjs from "dayjs";
-
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
-import { APP_FEATURES } from "@/config/app/app-features.config";
-import { userService } from "@/features/user/services/server/userService";
-import type { UserRoleType } from "@/features/user/types";
 
+import type { MainMetricsData } from "../../services/server/mainMetrics";
+import type { AdminDashboardSectionProps } from "../../types";
 import { MetricCard, type MetricCardDecoration } from "../parts/MetricCard";
-
-const ROLE_USER: UserRoleType = "user";
 
 const numberFormatter = new Intl.NumberFormat("ja-JP");
 
@@ -40,40 +35,18 @@ const chart1Decoration: MetricCardDecoration = {
 /**
  * サービスの稼働状況セクション。
  *
- * - ユーザー登録総数 / 本日のユーザー登録数を userService から並列取得
+ * - ユーザー登録総数 / 本日のユーザー登録数は data で受ける(取得は services/server/mainMetrics.ts。AdminHome の loader が実行)
  * - サンプル指標2つはダミー値 (テンプレート用)
  *
- * 機能フラグ `APP_FEATURES.adminConsole.dashboard.showMainMetrics` で表示制御。
- * 無効時は何も描画しない (registry から外したのと同等の見た目になる)。
- *
- * このコンポーネントは Server Component。データ取得は内部で完結するため、
- * page.tsx 側に変更を波及させない。
+ * 機能フラグ `APP_FEATURES.adminConsole.dashboard.showMainMetrics` が無効なら取得側が null を返し、何も描画しない
+ * (registry から外したのと同等の見た目になる)。
  */
-export async function MainMetricsSection() {
-  if (!APP_FEATURES.adminConsole.dashboard.showMainMetrics) {
+export function MainMetricsSection({ data }: AdminDashboardSectionProps<MainMetricsData | null>) {
+  if (!data) {
     return null;
   }
 
-  const now = dayjs();
-  const startOfToday = now.startOf("day");
-  const startOfTomorrow = startOfToday.add(1, "day");
-
-  const [{ total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
-    userService.search({
-      limit: 1,
-      where: { field: "role", op: "eq", value: ROLE_USER },
-    }),
-    userService.search({
-      limit: 1,
-      where: {
-        and: [
-          { field: "role", op: "eq", value: ROLE_USER },
-          { field: "createdAt", op: "gte", value: startOfToday.toDate() },
-          { field: "createdAt", op: "lt", value: startOfTomorrow.toDate() },
-        ],
-      },
-    }),
-  ]);
+  const { totalUserCount, todayUserCount } = data;
 
   return (
     <Section id="main-metrics">

@@ -11,5 +11,6 @@ export type {
   PageGuardPolicy,
   PageGuardUser,
   PageLoaderConfig,
+  PageLoaderContext,
   PageRangeAccess,
 } from "./types";

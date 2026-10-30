@@ -3,6 +3,7 @@
 // 出力の構造（SCREENS: src/lib/screens/README.md §12）:
 //   <domains>/page.tsx            1 行スイッチ。初回のみ生成（write-once）、以後上書きしない
 //   <domains>/_screen/<Name>.tsx  既定画面。毎回再生成（手で編集しない）
+//   <domains>/_screen/loader.ts   既定画面の loader（最寄りの guard.ts の createLoader に wiring/domains.ts の共通部品の組を渡す 1 行）。毎回再生成
 // 既存の page.tsx が旧形式（本体を直接持つ）なら一度だけ 1 行スイッチへ書き換える（移行）。_components/ には触らない（fork 所有）
 
 import path from "node:path";
@@ -10,15 +11,20 @@ import { file, writeOnce } from "../output.mjs";
 import { replaceDomainTokens } from "../tokens.mjs";
 import { buildRelationTokens } from "./relationTokens.mjs";
 
-/** ルートごとに page.tsx（write-once）と _screen/（毎回再生成）のテンプレート対 */
+/** ルートごとに page.tsx（write-once）と _screen/ の Screen・loader.ts（毎回再生成）のテンプレートの組 */
 function routesFor(config) {
+  const route = (dir, screenFile) => ({
+    page: [...dir, "page.tsx"],
+    screen: [...dir, "_screen", screenFile],
+    loader: [...dir, "_screen", "loader.ts"],
+  });
   const routes = [
-    { page: ["__domains__", "page.tsx"], screen: ["__domains__", "_screen", "Admin__Domain__ListScreen.tsx"] },
-    { page: ["__domains__", "new", "page.tsx"], screen: ["__domains__", "new", "_screen", "Admin__Domain__CreateScreen.tsx"] },
-    { page: ["__domains__", "[id]", "edit", "page.tsx"], screen: ["__domains__", "[id]", "edit", "_screen", "Admin__Domain__EditScreen.tsx"] },
+    route(["__domains__"], "Admin__Domain__ListScreen.tsx"),
+    route(["__domains__", "new"], "Admin__Domain__CreateScreen.tsx"),
+    route(["__domains__", "[id]", "edit"], "Admin__Domain__EditScreen.tsx"),
   ];
   if (config?.sortOrderField) {
-    routes.push({ page: ["__domains__", "sort", "page.tsx"], screen: ["__domains__", "sort", "_screen", "Admin__Domain__SortScreen.tsx"] });
+    routes.push(route(["__domains__", "sort"], "Admin__Domain__SortScreen.tsx"));
   }
   return routes;
 }
@@ -51,7 +57,9 @@ export function renderAdminRoutes(ctx, workspace) {
     // 行単位のトークン（改行込みで置換）は、空のとき行ごと消す（生成物に空行を残さない）。行末の空白は許容
     const rendered = content
       .replace(/__RELATION_IMPORTS__[ \t]*\n/g, relTokens.imports)
-      .replace(/__ASYNC__/g, relTokens.async)
+      .replace(/__LOADER_RELATION_IMPORT__[ \t]*\n/g, relTokens.loaderImport)
+      .replace(/__CREATE_RELATIONS_ARG__/g, relTokens.createRelationsArg)
+      .replace(/__EDIT_RELATIONS_ARG__/g, relTokens.editRelationsArg)
       .replace(/__RELATION_FETCH__[ \t]*\n/g, relTokens.relationFetchNew)
       .replace(/__EDIT_FETCH__[ \t]*\n/g, relTokens.editFetch)
       .replace(/__SWR_START__[ \t]*\n/g, relTokens.swrStart)
@@ -72,6 +80,7 @@ export function renderAdminRoutes(ctx, workspace) {
   const outputs = [];
   for (const route of routesFor(config)) {
     outputs.push(file(outputPath(route.screen), render(route.screen), { label: "管理画面(_screen)を生成しました" }));
+    outputs.push(file(outputPath(route.loader), render(route.loader), { label: "管理画面の loader(_screen/loader.ts)を生成しました" }));
     outputs.push(
       writeOnce(outputPath(route.page), render(route.page), {
         label: "管理画面ルートを生成しました",

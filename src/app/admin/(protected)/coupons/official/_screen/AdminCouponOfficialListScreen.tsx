@@ -3,15 +3,14 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。
 // 手順: src/lib/screens/README.md
 //
-// ルートの loader は無い。種別 official で絞った一覧を共有 loader(loadAdminListScreen)で取る。
+// 種別 official で絞った一覧(絞り込みは loader.ts の固定の検索条件)。
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
+import { loadAdminCouponOfficialListScreen } from "./loader";
 import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
-import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
-import { couponService } from "@/features/core/coupon/services/server/couponService";
 
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
 
@@ -20,9 +19,7 @@ export const metadata = {
 };
 
 export async function AdminCouponOfficialListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { results: coupons, page, limit, total } = await loadAdminListScreen(couponService, props, {
-    where: { field: "type", op: "eq", value: "official" },
-  });
+  const { results: coupons, page, limit, total } = await loadAdminCouponOfficialListScreen(props);
 
   return (
     <AdminPage>

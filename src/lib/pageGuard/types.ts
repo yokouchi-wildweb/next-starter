@@ -57,6 +57,17 @@ export type PageGuardPolicy = {
 /** loader の cache のキーに使える値(プリミティブ) */
 export type LoaderKeyValue = string | number | boolean | null | undefined;
 
+/** load に渡す文脈 */
+export type PageLoaderContext<TUser> = {
+  /** DB 同期の利用者。public で未ログイン・利用不可 status なら null */
+  user: TUser | null;
+  /**
+   * 別の access をこのリクエストの利用者で評価する(取得前の追加の判定。例: 管理画面の関連先ごとの list の access)。
+   * status はこのページで通す status で見る
+   */
+  allows: (rule: PageAccess) => boolean;
+};
+
 /** createLoader の設定 */
 export type PageLoaderConfig<TProps, TKey extends readonly LoaderKeyValue[], TData, TUser> = {
   /** このページの access(必須)。範囲の方針と AND */
@@ -65,8 +76,8 @@ export type PageLoaderConfig<TProps, TKey extends readonly LoaderKeyValue[], TDa
   allowStatuses?: readonly string[];
   /** props(params / searchParams)からキーのプリミティブを取り出す(省略 = キー無し)。ここではデータを取らない */
   key?: (props: TProps) => TKey | Promise<TKey>;
-  /** 許可されたときだけ呼ばれる取得本体。user は public で未ログイン・利用不可 status なら null */
-  load: (ctx: { user: TUser | null }, ...key: TKey) => Promise<TData>;
+  /** 許可されたときだけ呼ばれる取得本体 */
+  load: (ctx: PageLoaderContext<TUser>, ...key: TKey) => Promise<TData>;
 };
 
 /** 範囲の guard.ts が export する 3 つ */

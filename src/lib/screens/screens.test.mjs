@@ -6,13 +6,12 @@
 //     SCAN_EXCLUDES と fork の FORK_SCAN_EXCLUDES(src/registry/screenRoutesRegistry.ts)の配下を除いたもの
 //     (除外は構造の検査だけ。ルート地図 src/app/route-map.txt には除外したページも載る)
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
-//   - src/features/**/services/server/loaders/*.ts(多数のルートが共有する loader。再 export だけのファイルは除く)
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
 // 1. page.tsx は「./_screen/<X> または ./_components/<X> からの 1 行 re-export」+ 任意のページ設定
 //    (metadata / dynamic 等の export、generateMetadata、それらに必要な import)だけ。画面ロジックを page.tsx に置かない
 // 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
-// 3. loader は `import "server-only"` と React の cache() を使い load<Xxx> を export する(ルート内・共有とも同じ)
+// 3. loader は `import "server-only"` と、最寄りの guard.ts の createLoader(Factory が cache を張る)か React の cache() を使い load<Xxx> を export する
 // 4. まだスイッチ化していない page.tsx は、理由付きで例外リストに載せる(黙って古いままにしない):
 //    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5e で空になった。新しい core ルートはスイッチ形で作る)
 //    fork     = src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES
@@ -24,7 +23,7 @@
 // 検査関数の本体は ./checks.mjs(副作用なし)。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -141,7 +140,7 @@ export function staleScanEntries() {
 
 /**
  * ルート内 loader の一覧(検出した各ルートの _screen/loader.ts と _components/loader.ts のうち存在するもの)。
- * ルートの loader は必ずここに置く(README §4)。features 側は多数のルートが共有する loader だけ
+ * ルートの loader は必ずここに置く(README §4)。管理画面も各ルートに loader.ts を置き、共通の取得は wiring/domains.ts の組を渡す
  */
 export function discoverRouteLoaders(pageDirs) {
   const out = [];
@@ -153,39 +152,6 @@ export function discoverRouteLoaders(pageDirs) {
   }
   return out.sort();
 }
-
-/**
- * 共有 loader の一覧(src/features 配下の services/server/loaders/ にある .ts)。
- * 再 export だけのファイル(旧パス互換の shim、barrel)は本体が別にあるので対象外
- */
-export function discoverSharedLoaders() {
-  const out = [];
-  const walk = (dirRel) => {
-    const abs = resolve(repoRoot, dirRel);
-    for (const entry of readdirSync(abs)) {
-      const rel = join(dirRel, entry);
-      const full = resolve(repoRoot, rel);
-      if (statSync(full).isDirectory()) {
-        if (entry === "node_modules") continue;
-        walk(rel);
-      } else if (
-        /\/services\/server\/loaders\/[^/]+\.ts$/.test(`/${rel}`) &&
-        !/\.test\.ts$/.test(entry) &&
-        entry !== "index.ts" &&
-        entry !== "types.ts" &&
-        !isReexportOnlyFile(read(rel))
-      ) {
-        // loaders/ 直下の .ts は全て loader とみなす(index.ts / types.ts / 再 export だけのファイルを除く。補助関数は utils/ へ)
-        out.push(rel);
-      }
-    }
-  };
-  walk("src/features");
-  return out.sort();
-}
-
-/** 互換 API: 共有 loader の一覧 */
-export const discoverLoaders = discoverSharedLoaders;
 
 /**
  * page.tsx の参照先 Screen を実ファイルに解決する。
@@ -303,7 +269,7 @@ test("FRAME_LAYOUTS: upstream の枠の layout.tsx が検査対象に入って�
 });
 
 const routeLoaders = discoverRouteLoaders(pageDirs);
-for (const loader of [...routeLoaders, ...discoverSharedLoaders()]) {
+for (const loader of routeLoaders) {
   test(`${loader}: loader は server-only + cache() + load<Xxx>、_components / Screen を import しない、(protected) なら getSessionUser を使わない`, () => {
     const problems = checkLoaderFile(read(loader), { path: loader });
     assert.deepEqual(problems, [], `${loader}: ${problems.join(" / ")}`);
@@ -372,7 +338,7 @@ test("検出範囲: src/app 全体(wallet(あれば)・管理画面・debug)が�
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/api")), false);
 });
 
-test("検出範囲: ルート内 loader(wallet 配下 9 件、あれば)が検出され、共有 loader は admin のものが検出される", () => {
+test("検出範囲: ルート内 loader(wallet 配下 9 件、あれば)と管理画面の loader が検出される", () => {
   if (hasWallet) {
     for (const route of [
       "",
@@ -388,8 +354,7 @@ test("検出範囲: ルート内 loader(wallet 配下 9 件、あれば)が検�
       assert.ok(routeLoaders.includes(`${walletDir}${route}/_screen/loader.ts`), `${walletDir}${route} の loader が検出されていない`);
     }
   }
-  const shared = discoverSharedLoaders();
-  assert.ok(shared.some((l) => l.startsWith("src/features/core/admin/services/server/loaders/")), "管理画面の共有 loader が検出されていない");
+  assert.ok(routeLoaders.includes("src/app/admin/(protected)/_screen/loader.ts"), "管理画面の loader が検出されていない");
 });
 
 // ---------------------------------------------------------------------------
@@ -412,7 +377,6 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
     import type { Metadata } from "next";
     import { createMetadata } from "@/lib/metadata";
     import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./_screen/loader";
-    import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
     import type { ScreenProps } from "@/lib/screens/types";
 
     export const dynamic = "force-dynamic";
@@ -543,9 +507,11 @@ test("例外リストの鮮度: _components への差し替えは移行済み扱
   assert.equal(parseSwitchPage(upstreamMigrated).target.screenDir, "_screen");
 });
 
-test("checkLoaderFile: 共有 loader(load<Xxx>)も個別 loader(load<Name>Screen)も通る。void loader も純粋な解釈だけの loader も cache() は必須", () => {
-  const good = `import "server-only";\nimport { cache } from "react";\nconst r = cache(async () => 1);\nexport async function loadAdminRelationOptions() { return r(); }`;
+test("checkLoaderFile: createLoader 製(Factory が cache を張る)も cache() 直書きも通る。void loader も純粋な解釈だけの loader も cache() か createLoader は必須", () => {
+  const good = `import "server-only";\nimport { cache } from "react";\nconst r = cache(async () => 1);\nexport async function loadAdminHomeScreen() { return r(); }`;
   assert.deepEqual(checkLoaderFile(good), []);
+  const factory = `import "server-only";\nimport { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts } from "@/wiring/domains";\nexport const loadAdminSampleListScreen = createLoader(adminListParts("sample"));`;
+  assert.deepEqual(checkLoaderFile(factory), []);
   const voidLoader = `import "server-only";\nimport { cache } from "react";\nimport { redirect } from "next/navigation";\nexport const loadFriendCouponScreen = cache(async (): Promise<void> => { if (!enabled()) redirect("/mypage"); });`;
   assert.deepEqual(checkLoaderFile(voidLoader), []);
   const noCache = `import "server-only";\nexport async function loadItemListScreen(props) { const { status } = await props.params; return { status }; }`;

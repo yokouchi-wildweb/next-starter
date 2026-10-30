@@ -190,7 +190,7 @@ export const ROUTE_LOADER_FILE = "loader";
 
 /**
  * page.tsx が許される import 元か。
- * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ルート内 loader、共有 loader。
+ * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ルート内 loader。
  * 画面ロジックに当たるもの(セクションコンテナ・hook・next/navigation 等)は不可
  */
 function isAllowedImportSource(source) {
@@ -198,8 +198,6 @@ function isAllowedImportSource(source) {
   if (/^@\/lib\//.test(source)) return true;
   if (/^@\/config\//.test(source)) return true;
   if (SCREEN_DIRS.some((dir) => source === `./${dir}/${ROUTE_LOADER_FILE}`)) return true;
-  if (/^@\/features\/[^/]+\/services\/server\/loaders\//.test(source)) return true;
-  if (/^@\/features\/core\/[^/]+\/services\/server\/loaders\//.test(source)) return true;
   return false;
 }
 
@@ -450,7 +448,8 @@ export function checkLoaderFile(source, options) {
   const problems = [];
   const src = stripComments(source);
   if (!/import\s+["']server-only["']/.test(src)) problems.push('import "server-only" が無い');
-  if (!/\bcache\(/.test(src)) problems.push("React の cache() で包まれていない");
+  // createLoader(最寄りの guard.ts の設定済み Factory)は key のプリミティブで cache を張るので cache() と同じ扱い
+  if (!/\b(cache|createLoader)\(/.test(src)) problems.push("React の cache() か guard.ts の createLoader で包まれていない");
   if (!/export\s+(const|async\s+function|function)\s+load[A-Z]\w*/.test(src)) problems.push("load<Name> を export していない");
   for (const m of src.matchAll(/\b(?:import|export)\b[^"'`;]*?\bfrom\s*["']([^"']+)["']/g)) {
     if (isInvertedLoaderImport(m[1], path)) problems.push(`${m[1]} を import している(DTO 型は loader が定義し、部品・Screen 側が loader から import する)`);

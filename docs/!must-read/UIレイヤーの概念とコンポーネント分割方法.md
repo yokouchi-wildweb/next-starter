@@ -92,7 +92,7 @@ export async function WalletBalanceScreen(props: ScreenProps<{ slug: string }>) 
 page.tsx に書いていたサーバー側ロジック（params の解決、認可、取得、`redirect` / `notFound`）は
 **同じルートの `_screen/loader.ts`** の `load<Name>Screen(props)` にまとめます（ファイル名固定、1 ルート 1 loader）。
 ServerService（第 6 層）を呼んで画面用に組み立てるページ入口向けの関数で、既定の Screen も下流が差し替えた Screen も同じ loader を呼びます。
-どのドメインにも置きません。複数ドメインを組み合わせるページも、redirect だけのページも、ルートの中に閉じます（`features/<domain>/` に loader を置くのは、多数のルートが丸ごと同じ処理を使う共有 loader だけ）。
+どのドメインにも置きません。複数ドメインを組み合わせるページも、redirect だけのページも、ルートの中に閉じます（多数のルートが同じ取得を使う管理画面も、各ルートに loader.ts を置き取得本体だけをドメインに置く）。
 
 ```ts
 // src/app/(user)/(protected)/wallet/[slug]/_screen/loader.ts

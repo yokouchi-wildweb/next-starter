@@ -117,7 +117,7 @@ hasMany リレーションを定義すると、`dc:generate` 時に drizzleBase.
 - `custom`: UI は自分で実装。スキーマには含まれるが、自動 UI 描画なし
 
 `asyncCombobox` / `asyncMultiSelect` を指定した場合、リレーション先の `searchFields`（domain.json）が自動的に検索対象として使用される。
-全件取得する関連（`async*` と `custom` 以外。省略時の `select` / `checkbox` を含む）は、生成された管理画面（追加・編集）がサーバーで先読みして SWR の fallback に渡す。`async` / `custom` の関連と `includeRelationTable: false` の belongsToMany（逆側）は先読みしない。判定は `src/lib/domain/relations/relationOptions.mjs` に集約（`useRelationOptions` / `loadAdminRelationOptions` / 生成器が共有）。
+全件取得する関連（`async*` と `custom` 以外。省略時の `select` / `checkbox` を含む）は、生成された管理画面（追加・編集）がサーバーで先読みして SWR の fallback に渡す。`async` / `custom` の関連と `includeRelationTable: false` の belongsToMany（逆側）は先読みしない。判定は `src/lib/domain/relations/relationOptions.mjs` に集約（`useRelationOptions` / 管理画面の取得本体 `fetchAdminRelationOptions` / 生成器が共有）。
 
 `custom` を指定した場合、データ取得は行われず FieldConfig のみ生成される。
 `beforeField` / `afterField` で独自コンポーネントを注入する（通常フィールドの `custom` と同じ仕組み）。
@@ -567,7 +567,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 | hooks | boolean | CRUD フック |
 | clientServices | boolean | axios クライアント |
 | serverServices | boolean | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
-| adminRoutes | boolean | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/` + 共有 loader の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
+| adminRoutes | boolean | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
 | registry | boolean | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm registry:generate` が serviceRegistry.ts を作り直す） |
 | fieldConstants | boolean | options を持つフィールドの定数/型 |
 | presenters | boolean | テーブル表示用フォーマッタ |
