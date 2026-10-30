@@ -9,6 +9,8 @@ import { z } from "zod";
 
 import { COLUMN_EXISTS_SQL, COPY_SQL, VERIFY_SQL, task } from "../../../../../../scripts/tasks/setting-copy-list-per-page";
 import { fields } from "../../extensions/fields";
+import { sections } from "../../extensions/sections";
+import { publicSettingKeys, settingKeysFor } from "./access";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
 
@@ -77,4 +79,23 @@ test("写す task: 既にあるキーを書き換えない、一致の確かめ�
   assert.match(COPY_SQL, /WHERE NOT \(COALESCE\(extended, '\{\}'::jsonb\) \? 'adminListPerPage'\)/);
   assert.match(VERIFY_SQL, /IS DISTINCT FROM admin_list_per_page::text/);
   assert.match(COLUMN_EXISTS_SQL, /admin_list_per_page/);
+});
+
+test("権限: キーの allowRoles → セクションの allowRoles → 管理カテゴリ全員", () => {
+  const f = {
+    own: { schema: z.number().default(1), allowRoles: ["boss"] },
+    inSection: { schema: z.number().default(1), ui: { section: "s", field: {} } },
+    openSection: { schema: z.number().default(1), ui: { section: "t", field: {} } },
+    noUi: { schema: z.number().default(1) },
+    overrideSection: { schema: z.number().default(1), allowRoles: ["staff"], ui: { section: "s", field: {} } },
+  } as never;
+  const s = { s: { key: "s", label: "", order: 1, allowRoles: ["boss"] }, t: { key: "t", label: "", order: 2 } } as never;
+  assert.deepEqual(settingKeysFor("boss", f, s), ["own", "inSection", "openSection", "noUi"]);
+  assert.deepEqual(settingKeysFor("staff", f, s), ["openSection", "noUi", "overrideSection"]);
+});
+
+test("公開: public true のキーだけ。上流のキーは全部非公開", () => {
+  assert.deepEqual(publicSettingKeys({ a: { schema: z.number().default(1), public: true }, b: { schema: z.number().default(1) } }), ["a"]);
+  assert.deepEqual(publicSettingKeys(fields), []);
+  assert.deepEqual(settingKeysFor("admin", fields, sections).sort(), Object.keys(fields).sort());
 });

@@ -10,7 +10,7 @@ import { notFound, redirect } from "next/navigation";
 
 import type { ScreenProps } from "@/lib/screens/types";
 import type { Setting } from "@/features/core/setting/entities";
-import { settingService } from "@/features/core/setting/services/server/settingService";
+import { getSettingForActor } from "@/features/core/setting/services/server/settingActor";
 import { settingSections, type SettingSection } from "@/features/core/setting/setting.sections";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
@@ -30,7 +30,7 @@ export const loadAdminSettingSectionScreen = createLoader({
     const { section } = await props.params;
     return [section];
   },
-  load: async ({ allows }, sectionKey): Promise<AdminSettingSectionScreenData> => {
+  load: async ({ allows, user }, sectionKey): Promise<AdminSettingSectionScreenData> => {
     const section = settingSections[sectionKey];
     if (!section) notFound();
 
@@ -38,7 +38,7 @@ export const loadAdminSettingSectionScreen = createLoader({
       if (!allows({ roles: [...section.allowRoles] })) redirect("/admin");
     }
 
-    const setting = await settingService.getGlobalSetting();
+    const setting = (await getSettingForActor(user!)) as Setting; // 範囲の guard が管理者カテゴリを確かめ済み
     return { sectionKey, section, setting, redirectPath: `/admin/settings/${sectionKey}` };
   },
 });
