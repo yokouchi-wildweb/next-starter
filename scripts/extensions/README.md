@@ -34,7 +34,12 @@ export const extensionPoints = {
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
   - `ignore: ["<ファイル名>", …]` … 受け口の直下にある、項目でないファイル(proxy の骨組みなど)
   - `files: "*/<ファイル名>"` … 受け口の 1 段下の決まった名前のファイルが項目(デモの `*/_demo.ts`)。項目名 = フォルダ名で、一覧の各項目に `folder: "<フォルダ名>"` が付く(一覧の型は `folder` を持つ)。ファイルの無いフォルダは項目でない。フォルダは足した Tier の物なのでドット名を使わない
+  - `shape: "object"` … 一覧を `{ <項目の名前>: 項目 }` の null プロトタイプの object で出す(キーを型に残す。`key`・`load`・`files` とは併用不可)。上流と fork で同じ名前は失敗
+  - `pureImports: true` … 項目から値 import を推移的に辿り、`zod` と src の下の純関数・値以外(react・next・server-only・サービス・部品・DB の定義)へ届いたら失敗。型だけの import は辿らない(`pureImports.mjs`)
+  - `requireText: "<字面>"` … 項目のファイルにその字面が無ければ失敗(setting の `.default(`)
+  - `overrideOf: ["<属性>", …]` … 上流の項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる。書けるのは挙げた属性だけ。fork の項目には置けない(下の Tier が直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test:feature-gate`)
+  - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダから `tables` を導いて項目に付ける(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - fork が上流の持ち主のフォルダに自分の点を足すときは、隣に `extensionPoints.<fork の名前>.ts`(同じ書式)。上流の点と同じ名前は失敗(上流が後から同じ名前を足したら fork の点を改名する)。fork 自身のドメインは普通の `extensionPoints.ts`
 
@@ -87,5 +92,6 @@ export const extensionPoints = {
 | `declarations.mjs` | 宣言の探索とリテラルの読み取り、fork の点の重なりの検査 |
 | `extensions.mjs` | 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables) |
+| `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
 | `switches.mjs` / `overrides.mjs` | 1 行スイッチの形と、上流の override の検査 |
 | `generate.mjs` / `check.mjs` | コマンドの入口 |

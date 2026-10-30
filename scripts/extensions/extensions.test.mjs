@@ -314,3 +314,68 @@ test("key の一覧: constructor・__proto__ で引いても何も当たらず�
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+const SETTING_POINTS = point(`  fields: { dir: "fields", export: "field", type: { from: "@/t", name: "F" }, side: "shared", shape: "object", pureImports: true, requireText: ".default(", overrideOf: ["ui", "public"], derive: "settingSections" },
+  sections: { dir: "sections", export: "section", type: { from: "@/t", name: "S" }, side: "client", key: "key", overrideOf: ["label"] },`);
+const KEY = 'import { z } from "zod";\nexport const field = { schema: z.number().default(1), ui: { section: "general" } };\n';
+const SECTION = 'export const section = { key: "general", label: "x", order: 1 };\n';
+const settingPlan = (extra) =>
+  planExtensions(fixture({
+    "tsconfig.json": JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./src/*"] } } }),
+    "src/features/core/setting/extensionPoints.ts": SETTING_POINTS,
+    "src/features/core/setting/sections/general.ts": SECTION,
+    "src/features/core/setting/fields/a.ts": KEY,
+    ...extra,
+  }));
+const hasProblem = (plan, text) => assert.ok(plan.problems.some((p) => p.includes(text)), `${text} が無い: ${plan.problems.join(" / ")}`);
+
+test("setting の点: shape object はキーを型に残し、fork のキーも並び、null プロトタイプ", () => {
+  const plan = settingPlan({ "src/features/core/setting/fields/b.acme.ts": KEY });
+  assert.deepEqual(plan.problems, []);
+  const out = plan.outputs["src/features/core/setting/extensions/fields.ts"];
+  assert.match(out, /const fieldsMap = \{\n {2}a: a,\n {2}b: b_acme,\n\} as const satisfies Readonly<Record<string, F>>;/);
+  assert.match(out, /export const fields = Object\.assign\(Object\.create\(null\), fieldsMap\) as typeof fieldsMap;/);
+});
+
+test("setting の点: 失敗の形(.default なし・同名・無いセクション・セクションの重複)", () => {
+  hasProblem(settingPlan({ "src/features/core/setting/fields/n.ts": 'export const field = { schema: 1 };\n' }), ".default( が無い");
+  hasProblem(settingPlan({ "src/features/core/setting/fields/a.acme.ts": KEY }), "同じ名前の項目");
+  hasProblem(settingPlan({ "src/features/core/setting/fields/x.ts": KEY.replace("general", "nope") }), '無いセクション "nope"');
+  const dup = settingPlan({ "src/features/core/setting/sections/other.ts": SECTION });
+  const out = dup.outputs["src/features/core/setting/extensions/sections.ts"];
+  assert.match(out, /が重複している項目がある/);
+});
+
+test("setting の点: キーから推移的に届く値 import を止める、型だけと config と純関数は通す", () => {
+  const f = "src/features/core/setting/fields/";
+  const key = (imp) => `${imp}\nexport const field = { schema: z.number().default(1) };\n`;
+  hasProblem(settingPlan({ [`${f}r.ts`]: key('import React from "react";') }), "react");
+  hasProblem(settingPlan({ [`${f}s.ts`]: key('import "server-only";') }), "server-only");
+  hasProblem(settingPlan({ [`${f}d.ts`]: key('import { x } from "@/features/foo/services/server/x";'), "src/features/foo/services/server/x.ts": "export const x = 1;\n" }), "services/server/x.ts");
+  const deep = settingPlan({
+    [`${f}t.ts`]: key('import { y } from "@/config/app/y";'),
+    "src/config/app/y.ts": 'import { w } from "@/utils/w";\nexport const y = w;\n',
+    "src/utils/w.ts": 'import "server-only";\nexport const w = 1;\n',
+  });
+  hasProblem(deep, "server-only");
+  const fine = settingPlan({
+    [`${f}o.ts`]: key('import type { T } from "@/features/foo/services/server/t";\nimport { y } from "@/config/app/y";'),
+    "src/config/app/y.ts": "export const y = 1;\n",
+  });
+  assert.deepEqual(fine.problems, []);
+});
+
+test("setting の点: override は許す属性だけ、上流の項目だけ、一覧に重なる、空は不在", () => {
+  const f = "src/features/core/setting/fields/";
+  const ok = settingPlan({ [`${f}a.override.ts`]: 'export const override = { public: true };\n' });
+  assert.deepEqual(ok.problems, []);
+  assert.match(ok.outputs["src/features/core/setting/extensions/fields.ts"], /a: \{ \.\.\.a, \.\.\.a_override \},/);
+  hasProblem(settingPlan({ [`${f}a.override.ts`]: 'export const override = { schema: 1 };\n' }), "schema は上書きできない");
+  hasProblem(settingPlan({ [`${f}b.acme.ts`]: KEY, [`${f}b.acme.override.ts`]: 'export const override = { public: true };\n' }), "上流の項目");
+  const blank = settingPlan({ [`${f}a.override.ts`]: "// 空\n" });
+  assert.deepEqual(blank.problems, []);
+  assert.doesNotMatch(blank.outputs["src/features/core/setting/extensions/fields.ts"], /a_override/);
+  const sec = settingPlan({ "src/features/core/setting/sections/general.override.ts": 'export const override = { label: "y" };\n' });
+  assert.deepEqual(sec.problems, []);
+  assert.match(sec.outputs["src/features/core/setting/extensions/sections.ts"], /\{ \.\.\.general, \.\.\.general_override \},/);
+});

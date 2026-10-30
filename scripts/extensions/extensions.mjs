@@ -10,7 +10,8 @@ import { parseForkDotName, readDeclaredForkIds, readForkIdentity } from "../../s
 
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "./declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
-import { checkOverrides } from "./overrides.mjs";
+import { checkOverrides, isBlankSource } from "./overrides.mjs";
+import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { checkSwitches } from "./switches.mjs";
 
 export const COMMAND = "pnpm extensions:generate";
@@ -37,6 +38,9 @@ function placement(label, entry, isFolder, forkIds) {
   return { name, forkId: dotted?.forkId ?? null };
 }
 
+/** fork の印を除いた項目の名前 */
+const dotlessName = (place, entry) => (place.forkId ? place.name.slice(0, place.name.lastIndexOf(`.${place.forkId}`)) : entry.isDirectory() ? entry.name : place.name);
+
 /**
  * 同じフォルダを受け口にする点(proxy の handlers と decorators のように)をまとめて走査する
  * @returns {{ items: Map<string, object[]>, problems: string[] }} items = 点の名前 → 項目(ファイル名の順)
@@ -51,8 +55,13 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
   if (points[0].spec.files) return discoverFiles(repoRoot, rel, abs, points[0], items);
   const ignore = new Set(points.flatMap((p) => p.spec.ignore ?? []));
   const seen = new Map();
+  const pendingOverrides = [];
   for (const entry of readdirSync(abs, { withFileTypes: true }).sort((a, b) => byName(a.name, b.name))) {
     const label = `${rel}/${entry.name}`;
+    if (entry.isFile() && /\.override\.tsx?$/.test(entry.name) && points.some((p) => p.spec.overrideOf)) {
+      pendingOverrides.push({ label, target: entry.name.replace(/\.override\.tsx?$/, "") });
+      continue;
+    }
     let itemFile;
     if (entry.isDirectory()) {
       if (entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".") || otherDirs.has(posix.join(rel, entry.name))) continue;
@@ -87,7 +96,36 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
       problems.push(`${label}: ${hits.map((p) => p.spec.export).join(" と ")} の両方を export している(1 項目 1 つ。分けて置く)`);
       continue;
     }
-    items.get(hits[0].name).push({ name: place.name, forkId: place.forkId, path: label, itemFile, text });
+    const base = dotlessName(place, entry);
+    items.get(hits[0].name).push({ name: place.name, baseName: base, forkId: place.forkId, path: label, itemFile, text });
+    const spec = hits[0].spec;
+    if (spec.requireText && !text.includes(spec.requireText)) problems.push(`${label}: ${spec.requireText} が無い(この点の項目に必須)`);
+    if (spec.pureImports) problems.push(...checkPureImports(repoRoot, itemFile));
+  }
+  for (const point of points.filter((p) => p.spec.shape === "object")) {
+    const names = items.get(point.name).map((i) => i.baseName);
+    for (const name of new Set(names.filter((n, i) => names.indexOf(n) !== i))) problems.push(`${rel}/${name}: 同じ名前の項目が複数ある(上流と fork で同じキーは置けない)`);
+  }
+  // 隣の <名前>.override.ts(属性だけ)。上流の項目にだけ置ける
+  for (const { label, target } of pendingOverrides) {
+    const text = readFileSync(join(repoRoot, label), "utf8");
+    if (isBlankSource(text)) continue;
+    const point = points.find((p) => p.spec.overrideOf && items.get(p.name).some((i) => i.name === target && i.forkId === null));
+    if (!point) {
+      problems.push(`${label}: 上流の項目 ${target} が無い(override は上流の項目にだけ。fork の項目は下の Tier が直接書き換える)`);
+      continue;
+    }
+    const keys = overrideKeys(label, text);
+    if (keys === null) {
+      problems.push(`${label}: export const override = { … } の形で書く`);
+      continue;
+    }
+    const denied = keys.filter((k) => !point.spec.overrideOf.includes(k));
+    if (denied.length > 0) {
+      problems.push(`${label}: ${denied.join("・")} は上書きできない(できるのは ${point.spec.overrideOf.join("・")}。型と検証は変えられない)`);
+      continue;
+    }
+    items.get(point.name).find((i) => i.name === target).override = label;
   }
   return { items, problems };
 }
@@ -126,8 +164,16 @@ function renderPoint(point, items) {
     return { imports: [], lines };
   }
   const imports = items.map((item) => `import { ${spec.export} as ${aliasOf(item.name)} } from ${JSON.stringify(specifierOf(item.path))};`);
+  for (const item of items.filter((i) => i.override)) imports.push(`import { override as ${aliasOf(item.name)}_override } from ${JSON.stringify(specifierOf(item.override))};`);
+  if (spec.shape === "object") {
+    const list = `${point.name}Map`;
+    const entries = items.map((item) => `  ${item.baseName}: ${item.override ? `{ ...${aliasOf(item.name)}, ...${aliasOf(item.name)}_override }` : aliasOf(item.name)},`);
+    lines.push(`const ${list} = ${entries.length === 0 ? "{}" : `{\n${entries.join("\n")}\n}`} as const satisfies Readonly<Record<string, ${T}>>;`);
+    lines.push(`export const ${point.name} = Object.assign(Object.create(null), ${list}) as typeof ${list};`);
+    return { imports, lines };
+  }
   const values = items.map((item) =>
-    item.folder ? `  { ...${aliasOf(item.name)}, folder: ${JSON.stringify(item.folder)} },` : item.fields ? `  { ...${aliasOf(item.name)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(item.name)},`,
+    item.folder ? `  { ...${aliasOf(item.name)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(item.name)}, ...${aliasOf(item.name)}_override },` : item.fields ? `  { ...${aliasOf(item.name)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(item.name)},`,
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
   if (spec.derive === "featureTables") lines.push("// tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)");
@@ -146,6 +192,20 @@ function renderPoint(point, items) {
     lines.push(`export const ${point.name}: ${T}[] = ${array};`);
   }
   return { imports, lines };
+}
+
+/** derive "settingSections": 項目の section の字面が、同じ持ち主の sections の key にあるか */
+function checkSettingSections(points, itemsByPoint) {
+  const problems = [];
+  for (const point of points.filter((p) => p.spec.derive === "settingSections")) {
+    const sections = points.find((p) => p.owner === point.owner && p.name === "sections");
+    const keys = new Set((sections ? itemsByPoint.get(sections) : []).flatMap((i) => /\bkey:\s*["']([^"']+)["']/.exec(i.text)?.[1] ?? []));
+    for (const item of itemsByPoint.get(point)) {
+      const section = /\bsection:\s*["']([^"']+)["']/.exec(item.text)?.[1];
+      if (section && !keys.has(section)) problems.push(`${item.path}: 無いセクション "${section}" を指している`);
+    }
+  }
+  return problems;
 }
 
 /** 生成一覧の出力先 */
@@ -211,6 +271,7 @@ export function planExtensions(repoRoot) {
     }
   }
   if (featureTables) problems.unshift(...featureTables.problems);
+  problems.push(...checkSettingSections(points, itemsByPoint));
 
   const files = new Map();
   for (const p of points) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
