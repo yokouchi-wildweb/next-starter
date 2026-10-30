@@ -3,6 +3,7 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
@@ -11,8 +12,8 @@ import AdminSetupForm from "@/features/core/setting/components/AdminSetup";
 
 import { loadAdminSetupScreen } from "./loader";
 
-export async function AdminSetupScreen() {
-  await loadAdminSetupScreen();
+export async function AdminSetupScreen(props: ScreenProps) {
+  await loadAdminSetupScreen(props);
 
   return (
     <Main containerType="narrowStack">

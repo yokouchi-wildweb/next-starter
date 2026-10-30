@@ -3,9 +3,10 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける
 // (部品の import は ../_screen/DemoLoginSection に直す)。手順: src/lib/screens/README.md
 //
-// loader は無い。デモモード無効時の 404 は Proxy 層(demoModeProxy)が担う。
+// loader は access の評価だけ(public)。デモモード無効時の 404 は Proxy 層(demoModeProxy)が担う。
 // ログイン操作は client 部品 DemoLoginSection が hook で行う。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { HideBottomNav } from "@/components/AppFrames/User/controls/BottomNavControl";
 import { HideFooter } from "@/components/AppFrames/User/controls/FooterControl";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
@@ -14,10 +15,14 @@ import { Flex } from "@/components/Layout/Flex";
 
 import { DemoLoginSection } from "./DemoLoginSection";
 
+import { loadDemoLoginScreen } from "./loader";
+
 /** デモログイン後の遷移先 */
 const REDIRECT_AFTER_LOGIN = "/";
 
-export function DemoLoginScreen() {
+export async function DemoLoginScreen(props: ScreenProps) {
+  await loadDemoLoginScreen(props);
+
   return (
     <>
       <HideFooter />

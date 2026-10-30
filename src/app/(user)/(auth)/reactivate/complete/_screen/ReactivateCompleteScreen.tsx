@@ -2,8 +2,9 @@
 // /reactivate/complete の既定画面(page 層の本体)。上流所有。下流は編集・削除せず、
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。手順: src/lib/screens/README.md
 //
-// loader は無い(静的な完了案内のみ)。
+// loader は access の評価だけ(public。静的な完了案内のみ)。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import Link from "next/link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
@@ -12,7 +13,11 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks";
 
-export function ReactivateCompleteScreen() {
+import { loadReactivateCompleteScreen } from "./loader";
+
+export async function ReactivateCompleteScreen(props: ScreenProps) {
+  await loadReactivateCompleteScreen(props);
+
   return (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>復帰が完了しました</UserPageTitle>

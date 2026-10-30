@@ -7,6 +7,7 @@
 // ページ自体はスクロールしない。内容が収まらない小さな画面では内側だけがスクロールする。
 // 背景は FullScreen layer="background" でビューポート全体に敷く(コンテナ幅に閉じない)。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import Link from "next/link";
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
@@ -22,12 +23,16 @@ import { Backdrop } from "./StarterHome/Backdrop";
 import { Capabilities } from "./StarterHome/Capabilities";
 import { Hero } from "./StarterHome/Hero";
 
+import { loadStarterHomeScreen } from "./loader";
+
 const RESOURCE_LINKS = [
   { href: "https://nextjs.org/docs", label: "Next.js Docs" },
   { href: "https://wildweb.tokyo", label: "Wildweb Tokyo" },
 ] as const;
 
-export function StarterHomeScreen() {
+export async function StarterHomeScreen(props: ScreenProps) {
+  await loadStarterHomeScreen(props);
+
   const demoEnabled = APP_FEATURES.demo.samplePages;
 
   return (

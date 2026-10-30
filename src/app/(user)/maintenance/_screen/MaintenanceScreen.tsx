@@ -6,6 +6,7 @@
 // ヘッダー・フッター・ボトムナビを隠した 1 画面の案内。終了時刻は loader が設定から読み、
 // MaintenanceAutoRedirect(client 部品)が時刻到来で遷移する。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { HideHeaderNav, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
@@ -15,8 +16,8 @@ import { Para } from "@/components/TextBlocks";
 import { loadMaintenanceScreen } from "./loader";
 import { MaintenanceAutoRedirect } from "./MaintenanceAutoRedirect";
 
-export async function MaintenanceScreen() {
-  const { endTime, redirectTo } = await loadMaintenanceScreen();
+export async function MaintenanceScreen(props: ScreenProps) {
+  const { endTime, redirectTo } = await loadMaintenanceScreen(props);
 
   return (
     <>

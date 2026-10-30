@@ -2,8 +2,9 @@
 // /signup/email-sent(認証メール送信完了)の既定画面(page 層の本体)。上流所有。下流は編集・削除せず、
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。手順: src/lib/screens/README.md
 //
-// loader は無い(送信先の表示と再送はセクションコンテナ VerificationEmailSent が client 側で扱う)。
+// loader は access の評価だけ(public。送信先の表示と再送はセクションコンテナ VerificationEmailSent が client 側で扱う)。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import Link from "next/link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
@@ -11,7 +12,11 @@ import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks";
 import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
 
-export function SignupEmailSentScreen() {
+import { loadSignupEmailSentScreen } from "./loader";
+
+export async function SignupEmailSentScreen(props: ScreenProps) {
+  await loadSignupEmailSentScreen(props);
+
   return (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>メール送信完了</UserPageTitle>

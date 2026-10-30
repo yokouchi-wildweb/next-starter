@@ -2,17 +2,22 @@
 // /signup(ユーザー登録の入口)の既定画面(page 層の本体)。上流所有。下流は編集・削除せず、
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。手順: src/lib/screens/README.md
 //
-// loader は無い。事前登録モード時の /signup → /entry は Proxy 層(redirectProxy)が担う。
+// loader は access の評価だけ(public)。事前登録モード時の /signup → /entry は Proxy 層(redirectProxy)が担う。
 // メール送信後の遷移先はこの Screen の定数(差し替え Screen で変えられる)。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Signup } from "@/features/core/auth/components/Signup";
 
+import { loadSignupScreen } from "./loader";
+
 /** 認証メール送信後の遷移先 */
 const URL_AFTER_EMAIL_SENT = "/signup/email-sent";
 
-export function SignupScreen() {
+export async function SignupScreen(props: ScreenProps) {
+  await loadSignupScreen(props);
+
   return (
     <UserPage containerType="narrowStack">
       <UserPageTitle>ユーザー登録</UserPageTitle>
