@@ -52,6 +52,8 @@ notes: <anything else>
 - `covers` は中間 Tier が上流の notice を下流へ中継する notice(relay notice)でだけ書く(それ以外は欄ごと省略)。下記「中継(relay)」参照。
 - `fixes` は前に出荷した変更の不具合を直す notice でだけ書く(それ以外は欄ごと省略)。下記「修正(fixes)」参照。
 - `notes` で特定の fork に触れるときは、その fork で実際に差分を取った結果だけを書く(推測で書かない。調べていない fork は `not checked`)。
+- config のキーを足させる notice は、`required_actions` に「無ければ足す」だけでなく、fork が同じキーを既に持つ場合の手順も書く: fork の分を消して upstream の行に揃える(値を変えているなら upstream の行で値を持つ)、探し方は `git grep -n "<key>" -- <config のファイル>`。fork と upstream が別の位置に足すと、git は衝突なしに両方を取り込み、オブジェクトに同じキーが 2 つ残るので、衝突を手がかりにしない。
+- fork が upstream の行に入れた振る舞いの無い編集(コメントだけの変更など)は、upstream の文面に戻してよい(残して次の取り込みで衝突させ、`pnpm ownership:check` の違反にもなるより、戻す方が安い)。出荷済みの notice の手順に「残して台帳に挙げる」とあっても同じで、戻したことを台帳の行に一言書く。
 - 書式は `pnpm test:notices` で検査する(見出しの id とファイル名、必須の欄、checkpoint ラベルの重複、`fixes:` / `covers:` の参照先、出荷前の `moved:`)。`checkpoint:` と `manual_steps:` の必須は検査の導入以降の notice だけ(それより前は欄の無い旧 schema が残る)。
 - `checkpoint` は**原則ラベル必須**(既定 = 区切り)。「この notice まで適用すれば fork は整合した休憩点にある」の宣言で、`-` は「後続 notice なしでは半端」という例外宣言(理由を `notes:` に)。欄が無い旧 schema の notice は区切り扱い。下記「区切り(checkpoint)」参照。
 

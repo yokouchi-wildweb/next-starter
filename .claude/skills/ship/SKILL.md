@@ -99,6 +99,8 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
    - **required_actions は「下流の Claude が承認 1 回で止まらずに実行できる具体度」**で書く。DB マイグレーション・バックフィル・再生成・データ移行も全部ここ。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]`。ドメインの再生成は `pnpm dc:generate <Domain> --yes`(対話なし。`[user-run]` を付けない)で、必要なカテゴリだけ `--only` で指定する。
    - fork の既存コードが新しい仕様とずれる変更では、fork 側の対象コードを探せる目印(grep パターン等)と、新しい仕様へ揃える手順を書く。互換を残して放置させない。
    - 自動化できないことだけ `manual_steps` に分ける(fail-auto)。
+   - **config のキーを足させる notice では、fork が同じキーを既に持つ場合の手順も書く**: fork の分を消して upstream の行に揃える手順と、探す `git grep`。fork と upstream が別の位置に足すと git は衝突なしに両方を取り込むので、「衝突したら」「無ければ足す」だけでは足りない(`.notices/README.md`)。
+   - fork の振る舞いの無い編集(コメントだけなど)を「残す」と書かない。upstream の文面に戻してよいと書く(`.notices/README.md`)。
    - **移動・改名したら `moved:` を必ず書く**(リポジトリルートからの相対パス、ディレクトリ可、`;` 区切り)。`git diff --name-status -M <変更前> <変更後>`(未コミットなら `git diff --cached -M --name-status`)で漏れなく洗い出す。git が改名と認識しない「新規作成 + 旧パス shim」でも書く。移動先の無い削除は `notes:` に削除したパスと fork 独自の内容の移し先を書く。
    - **特定の fork への影響を書くときは推測しない**。その fork のリポジトリで、この変更が触るファイル(移動元を含む)について fork 側の編集を差分で取り、結果をそのまま書く: `git -C <fork> diff --name-only $(git -C <fork> merge-base HEAD <fork 内の upstream remote>/<branch>) HEAD -- <files>`。空なら「上流ファイルの編集なし」、空でなければファイル名と `--stat` の規模。調べていない fork は `not checked`。
    - **core のコンポーネント・hook・service の呼び出し側(`_screen/*` の Screen など)を足す・切り替える変更では、verify に次の標準行を入れる**: `pnpm typecheck passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen`
