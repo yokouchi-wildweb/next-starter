@@ -3,8 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import { parseCatalog, resolveOwnerId } from "../folderCatalog/catalog.mjs";
-
+import { readForkIdentity } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
@@ -27,13 +26,6 @@ const tryGit = (repoRoot, args) => {
 const show = (repoRoot, rev, path) => tryGit(repoRoot, ["show", `${rev}:${path}`]);
 
 const unverified = (reason, extra = {}) => ({ status: "unverified", reason, ...extra });
-
-/** 自分が Tier1(CATALOG.md の先頭の節の持ち主)か。所有者 ID が分からなければ null */
-function isTier1(repoRoot, ownerId) {
-  const catalog = show(repoRoot, "HEAD", "src/lib/CATALOG.md");
-  if (catalog === null || ownerId === null) return null;
-  return parseCatalog(catalog).sections[0]?.owner === ownerId;
-}
 
 /** 親の remote(/flux の「upstream の特定」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
 function resolveParentRemote(repoRoot, requested) {
@@ -115,10 +107,13 @@ function parseNameStatus(out) {
  * @returns {object} status: tier1 | unverified | pass | fail
  */
 export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
-  const ownerId = resolveOwnerId(repoRoot);
-  const tier1 = isTier1(repoRoot, ownerId);
-  if (tier1 === null) return unverified("自分の所有者 ID か src/lib/CATALOG.md が読めない(origin を確かめる)", { ownerId });
-  if (tier1) {
+  // 自分の名前と Tier1 の判定は forkIds.mjs だけが読む(project.md の fork_id:、CATALOG.md の先頭の節。origin は読まない、D27)
+  const identity = readForkIdentity(repoRoot);
+  const ownerId = identity.own;
+  if (identity.errors.length > 0) {
+    return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId });
+  }
+  if (identity.isTier1) {
     // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
     const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
     return { status: "tier1", ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };

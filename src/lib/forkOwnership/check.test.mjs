@@ -9,8 +9,8 @@ import { dirname, join, resolve } from "node:path";
 import { runCheck } from "./check.mjs";
 
 const CLI = resolve(import.meta.dirname, "cli.mjs");
-const PARENT_ID = "acme--parent";
-const FORK_ID = "acme--child";
+const PARENT_ID = "parent";
+const FORK_ID = "child";
 
 const ENV = {
   ...process.env,
@@ -45,25 +45,27 @@ function makeParent({ withIntake = true } = {}) {
   git(root, "init", "-q", "-b", "main");
   git(root, "remote", "add", "origin", `git@github.com:acme/parent.git`);
   write(root, "src/lib/CATALOG.md", `# 目録\n\n## ${PARENT_ID}\n- src/lib/crud — CRUD\n`);
+  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${PARENT_ID}\n`);
   write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
   write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
   write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
   write(root, ".notices/README.md", "# notices\n");
   write(root, ".notices/20260101-000000-inherited.md", "# DOWNSTREAM NOTICE id:20260101-000000-inherited\n");
   if (withIntake) {
-    write(root, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\n");
+    write(root, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\n");
   }
   commitAll(root, "base");
   return root;
 }
 
-/** 親を clone して fork を作る(親の remote = upstream、origin = acme/child) */
+/** 親を clone して fork を作る(親の remote = upstream、origin = acme/child、名前は project.md の fork_id: child) */
 function makeFork(parent) {
   const root = join(tmp, `fork-${(counter += 1)}`);
   git(tmp, "clone", "-q", parent, root);
   git(root, "remote", "rename", "origin", "upstream");
   git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
   write(root, "src/features/game/game.ts", "export const game = 1;\n");
+  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\n`);
   commitAll(root, "fork start");
   return root;
 }
@@ -86,6 +88,22 @@ describe("ownership:check", () => {
     assert.equal(cli(parent).status, 0);
   });
 
+  test("名前の宣言が無い・- ・形違い → 未検証(2)。Tier1 は origin でなく fork_id: と CATALOG の先頭の節で決まる", () => {
+    const fork = makeFork(makeParent());
+    write(fork, ".claude/rules/project.md", "## TIER\nfork_id: -\n");
+    commitAll(fork, "old mark");
+    const old = runCheck(fork);
+    assert.equal(old.status, "unverified");
+    assert.match(old.reason, /fork の名前/);
+    assert.equal(cli(fork).status, 2);
+
+    // origin が親と同じでも、名前が CATALOG の先頭の節と違えば Tier1 扱いにしない
+    const parent = makeParent();
+    write(parent, ".claude/rules/project.md", "## TIER\nfork_id: someone-else\n");
+    commitAll(parent, "rename");
+    assert.notEqual(runCheck(parent).status, "tier1");
+  });
+
   test("fork の追加と受け口の中の書き換えだけなら合格(0)", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/config/app.config.ts", "export const app = { name: 'child' };\n");
@@ -97,7 +115,7 @@ describe("ownership:check", () => {
     assert.equal(result.ownerId, FORK_ID);
     assert.equal(result.remote, "upstream");
     assert.equal(result.branch, "main");
-    assert.deepEqual(result.counts, { added: 2, intake: 1, append: 1 });
+    assert.deepEqual(result.counts, { added: 2, intake: 2, append: 1 });
     assert.equal(cli(fork).status, 0);
   });
 

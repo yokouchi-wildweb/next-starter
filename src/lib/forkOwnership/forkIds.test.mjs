@@ -5,31 +5,61 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseForkDotName, parseForkIdDeclaration, readDeclaredForkIds } from "./forkIds.mjs";
+import { parseForkDotName, parseForkIdDeclaration, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
 
-test("parseForkIdDeclaration: 行を読み、- と無しは null、不正な形は error", () => {
-  assert.deepEqual(parseForkIdDeclaration("## TIER\nfork_id: acme--shop\n"), { forkId: "acme--shop", error: null });
-  assert.deepEqual(parseForkIdDeclaration("fork_id: -\n"), { forkId: null, error: null });
-  assert.deepEqual(parseForkIdDeclaration("this_repo: Tier1\n"), { forkId: null, error: null });
-  assert.equal(parseForkIdDeclaration("fork_id: a.b\n").error?.includes("使えない形"), true);
-  assert.equal(parseForkIdDeclaration("fork_id: a\nfork_id: b\n").error?.includes("2 つ以上"), true);
+test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大文字・_・. ・-- の連続)は error", () => {
+  assert.deepEqual(parseForkIdDeclaration("## TIER\nfork_id: oripa-do\n"), { forkId: "oripa-do", error: null });
+  assert.deepEqual(parseForkIdDeclaration("fork_id: next-starter  # Tier1\n"), { forkId: "next-starter", error: null });
+  assert.match(parseForkIdDeclaration("this_repo: Tier1\n").error, /行が無い/);
+  assert.match(parseForkIdDeclaration("fork_id: -\n").error, /廃止/);
+  for (const bad of ["TriQ", "acme_shop", "a.b", "acme--shop", "-x", "x-"]) {
+    assert.match(parseForkIdDeclaration(`fork_id: ${bad}\n`).error ?? "", /使えない形/, bad);
+  }
+  assert.match(parseForkIdDeclaration("fork_id: a\nfork_id: b\n").error, /2 つ以上/);
 });
 
-test("readDeclaredForkIds: 自分の fork_id: と、台帳名から親の ID を集める", () => {
+/** project.md・台帳・CATALOG.md を置いた一時リポ */
+function repo({ forkId, ledgers = [], sections = [] }) {
   const root = mkdtempSync(join(tmpdir(), "fork-ids-"));
   mkdirSync(join(root, ".claude/rules"), { recursive: true });
   mkdirSync(join(root, ".notices/applied"), { recursive: true });
-  writeFileSync(join(root, ".claude/rules/project.md"), "## TIER\nfork_id: child\n");
-  writeFileSync(join(root, ".notices/applied/child.md"), "");
-  writeFileSync(join(root, ".notices/applied/parent.md"), "");
-  assert.deepEqual(readDeclaredForkIds(root), { own: "child", inherited: ["parent"], all: ["child", "parent"], errors: [] });
+  mkdirSync(join(root, "src/lib"), { recursive: true });
+  if (forkId !== undefined) writeFileSync(join(root, ".claude/rules/project.md"), `## TIER\nfork_id: ${forkId}\n`);
+  for (const name of ledgers) writeFileSync(join(root, `.notices/applied/${name}.md`), "");
+  writeFileSync(join(root, "src/lib/CATALOG.md"), `# 目録\n\n${sections.map((n) => `## ${n}\n- src/lib/x — x\n`).join("\n")}`);
+  return root;
+}
+
+test("readForkIdentity: 自分の名前・祖先(台帳名から自分を除く)・Tier1 = CATALOG の先頭の節", () => {
+  assert.deepEqual(readForkIdentity(repo({ forkId: "next-starter", sections: ["next-starter"] })), {
+    own: "next-starter",
+    ancestors: [],
+    isTier1: true,
+    errors: [],
+  });
+  assert.deepEqual(readForkIdentity(repo({ forkId: "pandora", ledgers: ["oripa-do", "pandora"], sections: ["next-starter", "oripa-do", "pandora"] })), {
+    own: "pandora",
+    ancestors: ["oripa-do"],
+    isTier1: false,
+    errors: [],
+  });
+  assert.deepEqual(readDeclaredForkIds(repo({ forkId: "child", ledgers: ["child", "parent"], sections: ["next-starter"] })), {
+    own: "child",
+    inherited: ["parent"],
+    all: ["child", "parent"],
+    errors: [],
+  });
 });
 
-test("readDeclaredForkIds: upstream(fork_id: -、台帳なし)は空", () => {
-  const root = mkdtempSync(join(tmpdir(), "fork-ids-"));
-  mkdirSync(join(root, ".claude/rules"), { recursive: true });
-  writeFileSync(join(root, ".claude/rules/project.md"), "fork_id: -\n");
-  assert.deepEqual(readDeclaredForkIds(root), { own: null, inherited: [], all: [], errors: [] });
+test("readForkIdentity: 宣言なし・形違いの台帳名・祖先と同名は errors", () => {
+  assert.match(readForkIdentity(repo({ sections: ["next-starter"] })).errors.join(), /無い/);
+  assert.match(readForkIdentity(repo({ forkId: "acme", ledgers: ["yokouchi-wildweb--triq"], sections: ["next-starter"] })).errors.join(), /台帳名/);
+  // Tier1 の名前を名乗る fork(自分の台帳がある)
+  const tier1Name = readForkIdentity(repo({ forkId: "next-starter", ledgers: ["next-starter"], sections: ["next-starter"] }));
+  assert.match(tier1Name.errors.join(), /Tier1/);
+  // 中間 Tier の名前を名乗る
+  const middle = readForkIdentity(repo({ forkId: "oripa-do", ledgers: ["oripa-do"], sections: ["next-starter", "oripa-do", "pandora"] }));
+  assert.match(middle.errors.join(), /途中の節/);
 });
 
 test("parseForkDotName: <名前>[.<中置き>].<fork ID>.<拡張子> を読み、印なし・ドット入りの ID・受けない拡張子は null", () => {
@@ -40,4 +70,6 @@ test("parseForkDotName: <名前>[.<中置き>].<fork ID>.<拡張子> を読み�
   assert.equal(parseForkDotName("x.acme.mjs"), null);
   assert.deepEqual(parseForkDotName("x.acme.mjs", { extensions: ["mjs"] })?.forkId, "acme");
   assert.equal(parseForkDotName("1x.acme.ts"), null);
+  assert.equal(parseForkDotName("x.Acme.ts"), null, "fork の名前は小文字");
+  assert.deepEqual(parseForkDotName("x.oripa-do.ts")?.forkId, "oripa-do");
 });

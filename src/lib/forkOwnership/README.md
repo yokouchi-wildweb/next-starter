@@ -125,7 +125,7 @@ pnpm ownership:check --parent=upstream --branch=main
 - 一時許可の依頼の出し方は `/order`「一時許可の依頼」、依頼の状況は `/wen permits`、放置と project.md の食い違いは `/flux` の最終報告(上流への所見 (e)(f))に出る
 - 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<fork-id>.permits.txt` に貼り、commit してから検査し直す
 - 手順(`check.mjs` の `runCheck`)
-  1. Tier1 の判定: 自分の所有者 ID(`folderCatalog` の `resolveOwnerId`)が `src/lib/CATALOG.md` の先頭の節の持ち主なら対象外。remote の有無では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
+  1. 名前と Tier1 の判定: `forkIds.mjs` の `readForkIdentity`(project.md の `fork_id:`。宣言なし・形違い・祖先と同名は未検証 = exit 2)。自分の名前が `src/lib/CATALOG.md` の先頭の節の見出しなら Tier1 で対象外。remote の有無・origin の URL では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
   2. 親の remote: `--parent` > 環境変数 `FORK_OWNERSHIP_PARENT` > origin 以外の remote が 1 つならそれ(`/flux` の「upstream の特定」と同じ)。ブランチ = `git ls-remote --symref <remote> HEAD`(`--branch` で上書き)
   3. 鮮度(下の節)
   4. 判定: `git diff --name-status -M <base> HEAD` を judge に、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む
@@ -149,11 +149,11 @@ pnpm ownership:check --parent=upstream --branch=main
 
 fork のドット名のファイル(`src/wiring/<名前>[.client].<fork ID>.ts(x)` 等)の検査が「どの fork ID を受けるか」を読む口。読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。
 
-- 自分の ID: `.claude/rules/project.md` の `fork_id: <id>` の 1 行。値は自分の台帳 `.notices/applied/<fork-id>.md` の名前と同じ。upstream(Tier1)は `fork_id: -`
+- 自分の名前: `.claude/rules/project.md` の `fork_id: <名前>` の 1 行。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前(`-` の印は廃止)
 - 親(上の Tier)の ID: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれるので、孫の fork は親の fork のドット名のファイルも受けられる)。fork が書くのは自分の `fork_id:` の 1 行だけ
-- 使える形: 英数字・`_`・`-`(ドット名の区切りとぶつかるので `.` は不可)。2 行以上・不正な形は検査が止める
-- API: `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)`
-- 今の所有者 ID の求め方(`folderCatalog` の `resolveOwnerId` = origin の URL)とは別の口。食い違いの扱いは決めていない
+- 使える形: 小文字・数字・ハイフン(ドット名の区切りとぶつかるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(ownership:check は exit 2)
+- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)` / `parseForkDotName(fileName, options)`
+- 名前の読み手はこれ 1 つ(所有の検査・目録・ドット名の検査が使う)。origin の URL から導く実装は持たない(D27)
 
 ## folderCatalog との分担
 

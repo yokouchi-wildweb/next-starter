@@ -4,68 +4,22 @@
 // 目録 = 「そのフォルダ直下のディレクトリ(ライブラリ等)を、どのリポジトリが作ったか」の一覧。
 // 所有者ごとの節(上流から順、先頭 = Tier1)に、1 行 1 ディレクトリで「パス — 一行説明」を書く。
 //
-//   ## yokouchi-wildweb--next-starter
+//   ## next-starter
 //   - src/lib/ai — 汎用 AI エージェント基盤
 //
-// 所有者 ID = origin URL のパス部分を `--` 連結・小文字化したもの(.notices の台帳 fork-id と同じ規則)。
+// 所有者 ID = 各リポの fork の名前(.claude/rules/project.md の fork_id:、読み手は forkOwnership/forkIds.mjs。D27)。
+// origin の URL からは導かない。
 // テスト(pnpm test:lib-catalog)と eslint.config.mjs(所有に応じた error / warn の振り分け)から使う。
 // Node 組み込みだけで動くこと(eslint 設定の読み込み時に実行される)。
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const OWNER_ID = /^[a-z0-9._-]+(?:--[a-z0-9._-]+)+$/;
+import { FORK_ID_PATTERN, readForkIdentity } from "../forkOwnership/forkIds.mjs";
+
+const OWNER_ID = FORK_ID_PATTERN;
 const SECTION_LINE = /^##\s+(.+?)\s*$/;
 const ENTRY_LINE = /^-\s+(\S+)\s+—\s+(.*)$/;
-
-/**
- * origin URL から所有者 ID を導出する(/flux の fork-id と同じ規則)。
- * `git@github.com:acme/shop.git` / `https://github.com/acme/shop.git` → `acme--shop`
- * @param {string} url
- * @returns {string | null}
- */
-export function ownerIdFromOriginUrl(url) {
-  if (typeof url !== "string") return null;
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-  let path;
-  const scp = /^[^@/\s]+@[^:/\s]+:(.+)$/.exec(trimmed); // git@host:org/repo
-  if (scp) {
-    path = scp[1];
-  } else {
-    try {
-      path = new URL(trimmed).pathname;
-    } catch {
-      return null;
-    }
-  }
-  const id = path
-    .replace(/^\/+|\/+$/g, "")
-    .replace(/\.git$/, "")
-    .split("/")
-    .filter(Boolean)
-    .join("--")
-    .toLowerCase();
-  return OWNER_ID.test(id) ? id : null;
-}
-
-/**
- * 作業ディレクトリの origin から自分の所有者 ID を求める。origin が無い・git が無い場合は null。
- * @param {string} repoRoot
- */
-export function resolveOwnerId(repoRoot) {
-  try {
-    const url = execFileSync("git", ["remote", "get-url", "origin"], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return ownerIdFromOriginUrl(url);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * 目録テキストを解析する。最初の `## ` 見出しより前は説明文として読み飛ばす。
@@ -83,7 +37,7 @@ export function parseCatalog(text) {
     if (section) {
       const owner = section[1];
       if (!OWNER_ID.test(owner)) {
-        errors.push(`${lineNo} 行目: 節の見出し "${owner}" が所有者 ID の形式(<org>--<repo>、小文字)ではありません`);
+        errors.push(`${lineNo} 行目: 節の見出し "${owner}" が fork の名前の形(小文字・数字・ハイフン。project.md の fork_id:)ではありません`);
       }
       current = { owner, line: lineNo, entries: [] };
       sections.push(current);
@@ -172,7 +126,7 @@ export function listDirs(repoRoot, folder) {
  * @returns {{ ownerId: string | null, isRoot: boolean, ownPaths: string[], upstreamPaths: string[] }}
  */
 export function loadCatalogOwnership({ repoRoot, folder, catalogFile = `${folder}/CATALOG.md`, ownerId }) {
-  const resolvedOwner = ownerId === undefined ? resolveOwnerId(repoRoot) : ownerId;
+  const resolvedOwner = ownerId === undefined ? readForkIdentity(repoRoot).own : ownerId;
   const empty = { ownerId: resolvedOwner, isRoot: false, ownPaths: [], upstreamPaths: [] };
   let text;
   try {

@@ -2,12 +2,12 @@
 
 `src/lib` 直下のライブラリを、どのリポジトリが作ったかの一覧。管理方法は [README.md](./README.md)。
 
-- 節 = 所有者(作ったリポジトリ)。見出しは所有者 ID(origin URL のパス部分を `--` 連結・小文字化。`.notices/applied/` の fork-id と同じ)。節は上流から順に並べる(先頭 = Tier1)
+- 節 = 所有者(作ったリポジトリ)。見出しはそのリポの fork の名前(`.claude/rules/project.md` の `fork_id:`。`.notices/applied/` の台帳名と同じ)。節は上流から順に並べる(先頭 = Tier1)
 - 1 行 = 1 ライブラリ: `- src/lib/<name> — <一行説明>`
 - ライブラリを足したら**自分の節に 1 行足す**(自分の節が無ければ末尾に作る)。他の節は編集しない
 - 検査: `pnpm test:lib-catalog`(実在との不一致・重複・説明の欠落で失敗する)
 
-## yokouchi-wildweb--next-starter
+## next-starter
 - src/lib/ai — Claude API を使う汎用エージェント基盤(runAgent のツール実行ループ、型付きイベント、SSE)
 - src/lib/aiVision — Claude Vision による画像の事前判定ユーティリティ
 - src/lib/audit — 監査ログ基盤(ALS コンテキスト・diff・denylist)
