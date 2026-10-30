@@ -22,6 +22,7 @@
 | `pnpm dc:delete <Domain> --confirm <snake_name>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
 | `pnpm dc:feature-map [--check]` | `feature-map.mjs` | ドメインの一覧 `src/features/feature-map.txt` を書き出す / 照らす |
 | `pnpm dc:parity <git-ref>` | `tests/parity.mjs` | 生成器の前後比較（下の「前後比較」） |
+| `pnpm dc:compare [<Domain>...] [--base <ref>] [--detail] [--json <file>]` | `compare.mjs` | fork が generate を true / false に決めるための比較（下の「generate の旗を決める」）。読むだけ |
 
 オプション:
 
@@ -43,6 +44,16 @@
 - `false`: 手で管理。生成器は何も書かない（registry の追記・`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
 - `false` のドメインはどんな実行でも生成器を通さない: `dc:generate:all`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
 - 一覧: 生成の書き込みの最後と `dc:delete` の後に `src/features/feature-map.txt`（`src/features` と `src/features/core` の全フォルダ。`_` 始まりを除く。kind / domain.json の有無 / generate）を書き直す。`pnpm dc:feature-map --check` がフォルダの増減・旗の切り替えのずれで落ちる。merge で衝突したら `pnpm dc:feature-map` で作り直す
+
+### generate の旗を決める（`pnpm dc:compare`）
+
+fork が各ドメインを生成に任せる（true）か手で管理する（false）かを、ファイルごとの証拠で決める道具。fork のリポのルートで回す（何も書かない。写しは一時ディレクトリ）。
+
+- 比べる 3 つ: 今のファイル ／ base（`upstream` の remote との merge-base、無ければ `--base <ref>`）の生成器の出力 ／ 今の生成器の出力。どちらの生成器も domain.json を「全部生成する」形にした写しで、ドメインを 1 つずつ回す（古い `generateFiles` の domain.json もそのまま読む）。生成器が扱うファイルは `--dry-run` の一覧で決める。base 側は base のテンプレートと src の部品も使う（`cli/compare/refGenerator.mjs`。dc:parity の旧側と同じ）
+- 欄: 未改変（base の出力と同じ。今の出力と違えば「上流の改良で変わる」）/ 手の変更の見込み（base の出力に行を挿した）/ 古い生成物の見込み（消した・置き換えただけ = base より前の生成器の出力のまま）/ 新しく作られる（管理画面の page.tsx・`_screen/`・`domainEntry.ts` は「新しい入口」）/ 残る（write-once）/ fork のファイル（生成器が作らない。wrappers/ は別に数える）/ 表の定義の書き直し（entities/drizzle.ts が変わる → `db:push:check` 0 を確かめる）
+- 見込み: `true にできる`（全部未改変）/ `確かめて true`（新しい入口・表の書き直し・古い生成物の見込みがある）/ `wrappers へ移すか false`（手の変更の見込みがある）/ `直してから`（今の生成器で止まる。理由を出す）
+- 手の変更と古い生成物は中身だけでは区別できない（挿した行 = 手の変更、と見なす）。`--detail` のファイルごとの行数と「最後の commit」の題で確かめてから決める
+- 決め方の手順は notice 20261030-150956-generate-decision-compare。決めた理由は domain.json ではなく移行の commit の本文に書く（記録は generate の旗だけ）
 
 ## カテゴリの名指し（`--only`）
 
@@ -211,7 +222,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - fixture: `samples`（このリポの src/ そのまま）、`synthetic` / `synthetic-bad`（`tests/fixtures/parity/<name>/<domain>/domain.json`。Firestore・hiddenColumns・63 字超の FK・空スキーマ・入れ子リレーション・メディア列・旧形式のキーと、検査で止まる失敗系。主の集まりの項目の組 = `showcase` と `atelier`）。`--repo <path>` で fork のリポを足せる
 - mode: `each`（1 ドメインずつ）、`all`、`all2`（2 回 = 冪等性）、`only-registry`、`only-entities-hooks`。`--modes` / `--variants` / `--fixtures` で絞る、`--keep` で作業ディレクトリを残す
 - 失敗系は両版が同じ exit code・同じエラー文で止まることを見る。差分の詳細は FAIL 行の report（JSON）に出る
-- 旧側の src 部品: 生成器は src の `.mjs`（型の表 `src/lib/domain/fields`、`src/lib/domain/relations`、`src/utils`）も import するので、旧側は ref の生成器の import を辿ってそのフォルダも ref から取り出して重ねる（表・`presenterFor` の変更も差分に出る）。ref に無いフォルダは作業ツリーのまま使い、起動時に重ねたフォルダとともに表示する。重ねたフォルダ（新側が import するフォルダも）は生成物ではないので比べない
+- 旧側の src 部品: テンプレート（`src/features/_template`・`src/app/admin/_template`）は ref のものを使う。生成器は src の `.mjs`（型の表 `src/lib/domain/fields`、`src/lib/domain/relations`、`src/utils`）も import するので、旧側は ref の生成器の import を辿ってそのフォルダも ref から取り出して重ねる（表・`presenterFor` の変更も差分に出る）。ref に無いフォルダは作業ツリーのまま使い、起動時に重ねたフォルダとともに表示する。重ねたフォルダ（新側が import するフォルダも）は生成物ではないので比べない
 - 対話（`-i`）の経路は対象外
 - 旧側は ref の生成器で動くので、ref より後に入った domain.json の形（`generate` の旗など）は旧側で読めない。そうした変更の前後は `--dry-run` の比較で確かめる
 - 新しい形の domain.json を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す

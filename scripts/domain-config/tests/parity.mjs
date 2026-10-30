@@ -18,8 +18,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { extractGeneratorAt, generatorImportDirs } from "../cli/compare/refGenerator.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..", "..");
@@ -48,53 +49,8 @@ const keep = args.includes("--keep");
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 const cp = (src, dest) => fs.cpSync(src, dest, { recursive: true, dereference: false });
 
-const GENERATOR_DIRS = ["scripts/domain-config", "scripts/registry"];
-const RELATIVE_IMPORT = /from\s+["']((?:\.\.?\/)+[^"']+)["']/g;
-
-/** dir 以下の .mjs（tests/ と *.test.mjs を除く）が相対 import する、root/src 配下のフォルダ（root 相対） */
-function srcImportDirs(root, dir) {
-  const out = new Set();
-  const walk = (d) => {
-    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-      const abs = path.join(d, e.name);
-      if (e.isDirectory()) {
-        if (e.name !== "tests" && e.name !== "node_modules") walk(abs);
-      } else if (e.name.endsWith(".mjs") && !e.name.endsWith(".test.mjs")) {
-        for (const m of fs.readFileSync(abs, "utf8").matchAll(RELATIVE_IMPORT)) {
-          const rel = path.relative(root, path.resolve(path.dirname(abs), m[1]));
-          if (rel.startsWith(`src${path.sep}`)) out.add(path.dirname(rel));
-        }
-      }
-    }
-  };
-  walk(dir);
-  return out;
-}
-
-const archive = (dir, paths) =>
-  execFileSync("sh", ["-c", `git archive ${JSON.stringify(ref)} ${paths.map((p) => JSON.stringify(p)).join(" ")} | tar -x -C ${JSON.stringify(dir)}`], { cwd: repoRoot });
-const inRef = (p) => execFileSync("git", ["ls-tree", ref, "--", p], { cwd: repoRoot, encoding: "utf8" }).trim() !== "";
-
-/**
- * <ref> の生成器（scripts/domain-config・scripts/registry）と、それが import する src のフォルダを取り出す。
- * import を辿り切るまで繰り返す（重ねた src の .mjs がさらに別のフォルダを import する場合）。
- */
-function extractOld() {
-  const root = tmp("dc-parity-old-");
-  archive(root, GENERATOR_DIRS);
-  const parts = new Set();
-  const missing = new Set();
-  let pending = GENERATOR_DIRS;
-  while (pending.length) {
-    const found = new Set(pending.flatMap((p) => [...srcImportDirs(root, path.join(root, p))]));
-    const fresh = [...found].filter((d) => !parts.has(d) && !missing.has(d));
-    const present = fresh.filter(inRef);
-    for (const d of fresh) (present.includes(d) ? parts : missing).add(d);
-    if (present.length) archive(root, present);
-    pending = present;
-  }
-  return { root, scripts: path.join(root, "scripts"), parts: [...parts].sort(), missing: [...missing].sort() };
-}
+/** <ref> の生成器と、それが import する src のフォルダ（cli/compare/refGenerator.mjs。dc:compare と共有） */
+const extractOld = () => extractGeneratorAt(repoRoot, ref, "dc-parity-old-");
 
 /** domain.json を持つドメインフォルダ（features ディレクトリ直下） */
 function listDomains(featuresDir) {
@@ -219,7 +175,7 @@ function compare(workOld, workNew, runsOld, runsNew, excluded) {
 
 const oldSide = extractOld();
 const newSide = { root: repoRoot, scripts: path.join(repoRoot, "scripts"), parts: [] };
-const newParts = GENERATOR_DIRS.flatMap((p) => [...srcImportDirs(repoRoot, path.join(repoRoot, p))]);
+const newParts = generatorImportDirs(repoRoot);
 const excluded = [...new Set([...oldSide.parts, ...newParts])].sort();
 console.log(`旧側の src 部品（${ref} から重ねる）: ${oldSide.parts.join("・") || "なし"}`);
 if (oldSide.missing.length) console.log(`  ${ref} に無いので作業ツリーの src を使う: ${oldSide.missing.join("・")}`);
