@@ -50,7 +50,7 @@ const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstre
  * 1 行スイッチ化の前(990ffb86)の旧 src/app/(user)/layout.tsx が描いていた物(背景 overlayColor="#000"・overlayOpacity=0、子 = CHILD)
  * を同じモックで描いた HTML。既定の DOM・id・順序の基準。
  * 背景(BEFORE_BACKGROUND)と枠(BEFORE_SWITCH)に分ける: 背景の中身は config の値と BackgroundLayer の実装で決まるので、
- * 期待値ではその場で描いた背景に差し替える(固定の背景は Tier1 の test だけが見る)
+ * 期待値ではその場で描いた背景に差し替える(固定の HTML は Tier1 の test だけが見る。全 Tier は印・属性を含むかで見る)
  */
 const BEFORE_BACKGROUND =
   '<div style="position:fixed;top:0;left:0;width:100vw;height:100lvh;z-index:-1;pointer-events:none;overflow:hidden" aria-hidden="true">' +
@@ -110,7 +110,23 @@ const configBackground = () =>
 /** props なしの UserLayout の期待値 */
 const defaultLayout = () => configBackground() + frameDims();
 
-test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・基本の印だけ)", () => {
+/** id の要素の開始タグ(属性の並びに依らず印・属性を見る) */
+const tagOf = (html: string, id: string) => html.match(new RegExp(`<[a-z][^>]*\\sid="${id}"[^>]*>`))?.[0] ?? "";
+
+test("props なしの UserLayout は印・高さ変数・部品の並びを持つ(ボトムナビの値は config から)", () => {
+  const html = render(<UserLayout>CHILD</UserLayout>);
+  const root = tagOf(html, "user-app-container");
+  assert.ok(root.includes('data-frame-root=""'), "外枠に data-frame-root が無い");
+  assert.equal(root.includes(`--app-bottom-nav-height:${bottomNavConfig.BOTTOM_NAV_HEIGHT}px`), bottomNavConfig.BOTTOM_NAV_ENABLED);
+  assert.ok(html.includes(baseMark()), "基本の印が無い");
+  assert.ok(html.includes(configBackground()), "config の値で描いた背景が無い");
+  const order = ['id="user-app-container"', "<x-header>", 'id="stretch-wrapper"', "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
+  const positions = order.map((part) => html.indexOf(part));
+  assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
+});
+
+test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・基本の印だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(withFrameRoot(BEFORE_SWITCH), BEFORE_SWITCH);
   assert.equal(render(<UserLayout>CHILD</UserLayout>), defaultLayout());
 });
@@ -147,14 +163,26 @@ test("slot に要素を渡すと既定の代わりにそれを同じ位置に描
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
 });
 
+const allNull = () => (
+  <UserLayout banner={null} header={null} footer={null} bottomNav={null} background={null} notificationModal={null}>
+    CHILD
+  </UserLayout>
+);
+
 test("slot に null を渡すとその部品を描かない(bottomNav はスペーサーごと、--app-bottom-nav-height も書かない)", () => {
-  const html = render(
-    <UserLayout banner={null} header={null} footer={null} bottomNav={null} background={null} notificationModal={null}>
-      CHILD
-    </UserLayout>,
-  );
+  const html = render(allNull());
+  for (const name of ["header", "footer", "spacer", "bottomnav", "modal"]) {
+    assert.equal(html.includes(`<x-${name}>`), false, `${name} が残っている`);
+  }
+  assert.equal(html.includes("100lvh"), false, "背景が残っている");
+  assert.equal(html.includes("--app-bottom-nav-height"), false);
+  assert.ok(tagOf(html, "user-app-container").includes('data-frame-root=""'));
+  assert.ok(html.includes("CHILD"));
+});
+
+test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, () => {
   assert.equal(
-    html,
+    render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
       'id="user-app-container" data-user-app-container="" data-frame-root="" style="--app-header-height:0px">' +
       '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div></div>',
@@ -163,7 +191,8 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
 
 test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、基本の印も描く(差し替えも BOTTOM_NAV_VISIBILITY に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
-  assert.ok(html.includes(`style="--app-header-height:0px${bottomNavVar(true)}">${baseMark(true)}`));
+  assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavConfig.BOTTOM_NAV_HEIGHT}px`));
+  assert.ok(html.includes(baseMark(true)), "基本の印が無い");
 });
 
 test("bottomNav={null} では基本の印を描かない(高さ変数も書かないので隠す物が無い)", () => {
@@ -171,26 +200,28 @@ test("bottomNav={null} では基本の印を描かない(高さ変数も書か�
 });
 
 test("banner の省略と null は同じ(既定なし): 帯・スペーサー・--app-banner-height を描かない", () => {
-  assert.equal(render(<UserLayout banner={null}>CHILD</UserLayout>), defaultLayout());
+  assert.equal(render(<UserLayout banner={null}>CHILD</UserLayout>), render(<UserLayout>CHILD</UserLayout>));
   assert.equal(render(<UserLayout>CHILD</UserLayout>).includes("app-banner"), false);
 });
+
+const BANNER_TAG = '<div id="app-banner" class="fixed inset-x-0 top-0 header-layer"><p id="promo">PROMO</p></div>';
+const BANNER_SPACER_TAG = '<div aria-hidden="true" class="shrink-0 h-[var(--app-banner-height,0px)]"></div>';
 
 test("banner に要素を渡すとヘッダーより前の固定の帯に描き、本文の前にその高さのスペーサーを置く", () => {
   const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);
   // 静的描画では実測前なので 0px(ブラウザでは ResizeObserver の実測値)
-  assert.ok(
-    html.includes(`style="--app-header-height:0px${bottomNavVar()};--app-banner-height:0px"`),
-    "外枠に --app-banner-height が無い",
-  );
-  const banner = '<div id="app-banner" class="fixed inset-x-0 top-0 header-layer"><p id="promo">PROMO</p></div>';
-  const spacer = '<div aria-hidden="true" class="shrink-0 h-[var(--app-banner-height,0px)]"></div>';
-  const order = ['id="user-app-container"', banner, "<x-header></x-header>", spacer, 'id="stretch-wrapper"'];
+  assert.ok(tagOf(html, "user-app-container").includes("--app-banner-height:0px"), "外枠に --app-banner-height が無い");
+  const order = ['id="user-app-container"', 'id="app-banner"', '<p id="promo">', "<x-header>", "h-[var(--app-banner-height,0px)]", 'id="stretch-wrapper"'];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が違う");
-  // banner なしの HTML に帯とスペーサーと変数を足しただけ(他は変わらない)
+});
+
+test("banner なしの HTML に帯とスペーサーと変数を足しただけ(固定の HTML、Tier1 のみ)", tier1Only, () => {
+  const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);
+  assert.ok(html.includes(`style="--app-header-height:0px${bottomNavVar()};--app-banner-height:0px"`));
   assert.equal(
-    html.replace(banner, "").replace(spacer, "").replace(";--app-banner-height:0px", ""),
+    html.replace(BANNER_TAG, "").replace(BANNER_SPACER_TAG, "").replace(";--app-banner-height:0px", ""),
     defaultLayout(),
   );
 });

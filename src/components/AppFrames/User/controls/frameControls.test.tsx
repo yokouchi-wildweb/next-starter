@@ -6,7 +6,7 @@
 // 2. Hide* は印 <span hidden data-frame-hide> を描くだけ(props 無し = 両方 / sp・pc = そちら / false = 何もしない)
 // 3. 部位一覧の狙う先(id と data-frame-part)が既定の枠部品に実在し、外枠に data-frame-root がある
 // 4. 生成 CSS は global.css から読まれ、目印の変数を持つ(styles:check-build がビルド出力の欠落を検出できる)
-// 5. upstream で Hide* を使う画面・layout の SSR HTML に印が出る
+// 5. upstream で Hide* を使う画面・layout の SSR HTML に印が出る(印を含むかで見る。fork が足した印や要素では落とさない)
 // 6. 隠している間は部位の寸法変数が 0 になり、表示制御の context を読む upstream の部品は無い(context は deprecated の互換だけ)
 // :has() の評価とメディアクエリはブラウザでしか確かめられないので見ない(生成 CSS の文字列と SSR の印だけ)。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
@@ -174,9 +174,14 @@ test("upstream で Hide* を使う画面・layout の SSR HTML に印が出る",
 
   const { default: SignupLayout } = await import(appUrl("(user)/(auth)/signup/layout.tsx"));
   const signup = render(<SignupLayout>CHILD</SignupLayout>);
-  assert.equal(signup, `${mark("bottom-nav-sp bottom-nav-pc")}${mark("footer-sp")}CHILD`);
+  for (const tokens of ["bottom-nav-sp bottom-nav-pc", "footer-sp"]) {
+    assert.ok(signup.includes(mark(tokens)), `signup に ${tokens} が無い`);
+  }
+  assert.ok(signup.includes("CHILD"));
 
   const { UserPage } = await import(appUrl("(user)/_layout/UserPage.tsx"));
   const immersive = render(<UserPage immersive>CHILD</UserPage>);
-  assert.ok(immersive.startsWith(mark("header-sp header-pc") + mark("footer-sp footer-pc") + mark("bottom-nav-sp bottom-nav-pc")));
+  for (const tokens of ["header-sp header-pc", "footer-sp footer-pc", "bottom-nav-sp bottom-nav-pc"]) {
+    assert.ok(immersive.includes(mark(tokens)), `immersive に ${tokens} が無い`);
+  }
 });

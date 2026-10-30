@@ -1,4 +1,5 @@
-// User 枠の部品(Header・BottomNav・UserPage・Layout/Main)の slot / props と、props なしの描画が部品 slot 化の前と同じことの検査。
+// User 枠の部品(Header・BottomNav・UserPage・Layout/Main)の slot / props と、守る印・属性(data-frame-part・寸法変数)の検査。
+// 全 Tier で見るのは印・属性を含むかの判定。fork の config の値や無害な追加で落とさない。固定の HTML は upstream(Tier1)でだけ見る。
 // 実行: pnpm test:user-layout(UserLayout.test.tsx と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // Header は useHeaderData・Brand・Pc / Sp のナビ部品を目印にモックし、HeaderShell と CTA の Button は本物を描く
@@ -61,7 +62,9 @@ let BottomNavSpacer: typeof import("./BottomNav/BottomNavSpacer").BottomNavSpace
 let UserPage: typeof import("./UserPage").UserPage;
 let Main: typeof import("@/components/Layout/Main").Main;
 let USER_PAGE_CONTAINER_TYPE: typeof import("@/config/ui/user-layout.config").USER_PAGE_CONTAINER_TYPE;
+let ACTIVE_COLOR_TYPE: typeof import("@/config/ui/user-bottom-menu.config").ACTIVE_COLOR_TYPE;
 before(async () => {
+  ({ ACTIVE_COLOR_TYPE } = await import("@/config/ui/user-bottom-menu.config"));
   ({ USER_PAGE_CONTAINER_TYPE } = await import("@/config/ui/user-layout.config"));
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ UserNavigation } = await import("./Header"));
@@ -72,13 +75,18 @@ before(async () => {
   ({ Main } = await import("@/components/Layout/Main"));
 });
 
+// upstream(Tier1)だけで見る検査の判定(screens.test と同じ)。Header・Main の固定の class は upstream の「DOM を変えない」保証で、
+// fork が部品を自分で変えていても fork の test は落とさない(UserPage が Main に正しく渡すことは全 Tier で見る)
+const { loadCatalogOwnership } = require("../../../lib/folderCatalog/catalog.mjs") as typeof import("../../../lib/folderCatalog/catalog.mjs");
+const isUpstreamRoot = loadCatalogOwnership({ repoRoot: join(__dirname, "../../../.."), folder: "src/lib" }).isRoot;
+const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstream の部品を自分で変えうるので、固定の class は見ない" };
+
 /**
- * 部品 slot 化の前(be9747fd)の部品を同じモックで描いた HTML。既定の DOM・id・class・順序の基準
- * header = <UserNavigation /> / bottomNav = リンク項目 2 つ(/items がカレント)/ userPage = <UserPage>CHILD</UserPage>(= <Main>CHILD</Main>)
+ * 部品 slot 化の前(be9747fd)の部品を同じモックで描いた HTML。既定の DOM・id・class・順序の基準(Tier1 のみ)
+ * header = <UserNavigation /> / userPage = <UserPage>CHILD</UserPage>(= <Main>CHILD</Main>)
  */
 const BEFORE = {
   header: "<header id=\"header\" class=\"fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground \"><div id=\"header-shell\" class=\"mx-auto flex w-full max-w-6xl items-stretch justify-between px-4 py-2 sm:py-4\"><div id=\"header-left\" class=\"flex items-center\"><x-brand></x-brand></div><div id=\"header-center\" class=\"flex items-stretch\"><x-pcnav></x-pcnav></div><div id=\"header-right\" class=\"flex items-center gap-2\"><button data-slot=\"button\" class=\"cursor-pointer items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive disabled:pointer-events-auto disabled:cursor-not-allowed bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-9 rounded-md gap-1.5 px-3 min-w-16 hidden sm:inline-flex\">お問い合わせ</button><x-spswitch></x-spswitch></div></div><x-spnav><button data-slot=\"button\" class=\"inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive disabled:pointer-events-auto disabled:cursor-not-allowed bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-10 px-4 py-2 min-w-20 w-full\">お問い合わせ</button></x-spnav></header>",
-  bottomNav: "<nav id=\"bottom-nav\" class=\"fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-border bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)] [&amp;&gt;*:not(:last-child)]:border-r-2 [&amp;&gt;*:not(:last-child)]:border-border/30 flex\" style=\"height:64px;padding-bottom:env(safe-area-inset-bottom)\"><a id=\"bottom-nav-item-game\" class=\"flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors text-muted-foreground\" href=\"/game\"><div class=\"relative\"><x-icon class=\"size-6\"></x-icon></div><span id=\"bottom-nav-label-game\" class=\"text-[10px] font-medium leading-tight\">ゲーム</span></a><a id=\"bottom-nav-item-items\" class=\"flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors text-accent\" href=\"/items\"><div class=\"relative\"><x-icon class=\"size-6\"></x-icon><span class=\"absolute -top-1 -right-1\"><i>1</i></span></div><span id=\"bottom-nav-label-items\" class=\"text-[10px] font-medium leading-tight\">商品</span></a></nav>",
   userPage: "<div data-component=\"Main:container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" id=\"main-layout\" class=\"my-auto mx-auto w-full max-w-screen overflow-clip\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" id=\"main\" class=\"mx-auto w-full p-3 sm:p-4\">CHILD</main></div></div>",
   userPageFill: "<main data-component=\"Main\" id=\"main\" class=\"max-w-screen mx-auto w-full p-0 flex min-h-0 flex-1 flex-col overflow-clip overscroll-none\" data-user-fill=\"\">CHILD</main>",
   mainSurface: "<div data-component=\"Main:container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" id=\"main-layout\" class=\"my-auto max-w-screen overflow-clip bg-surface mx-auto w-full p-3 sm:p-4\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" id=\"main\" class=\"mx-auto w-full\" style=\"max-width:var(--layout-width-narrow-stack)\">CHILD</main></div></div>",
@@ -87,6 +95,18 @@ const BEFORE = {
 
 const CTA = "お問い合わせ";
 const count = (html: string, part: string) => html.split(part).length - 1;
+/** id の要素の開始タグ(属性の並びに依らず印・属性を見る) */
+const tagOf = (html: string, id: string) => html.match(new RegExp(`<[a-z][^>]*\\sid="${id}"[^>]*>`))?.[0] ?? "";
+const hasClass = (tag: string, name: string) => (tag.match(/\sclass="([^"]*)"/)?.[1] ?? "").split(/\s+/).includes(name);
+/** parts がこの順で html に現れる(間に無害な要素があってもよい) */
+const assertInOrder = (html: string, parts: readonly string[]) => {
+  let from = 0;
+  for (const part of parts) {
+    const at = html.indexOf(part, from);
+    assert.ok(at >= 0, `順に現れない: ${part}`);
+    from = at + part.length;
+  }
+};
 
 /**
  * 寸法変数の区切り(notice frame-dims)で既定の Header に入った差分はこの 1 か所だけ:
@@ -101,9 +121,14 @@ const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-ban
 const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ')
   // 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims): context の表示クラス(既定 "")を外したので class の末尾の空白が無くなった
   .replace(' text-header-foreground ">', ' text-header-foreground">');
-const BEFORE_BOTTOM_NAV_MARKS = BEFORE.bottomNav.replace('<nav id="bottom-nav" ', '<nav id="bottom-nav" data-frame-part="bottom-nav" ');
 
-test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top と data-frame-part だけ)", () => {
+test("Header は data-frame-part の印と banner 分の top を持つ", () => {
+  const header = tagOf(render(<UserNavigation />), "header");
+  assert.ok(header.includes('data-frame-part="header"'));
+  assert.ok(hasClass(header, "top-[var(--app-banner-height,0px)]"));
+});
+
+test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top と data-frame-part だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(BEFORE_HEADER_DIMS, BEFORE.header);
   assert.notEqual(BEFORE_HEADER_MARKS, BEFORE_HEADER_DIMS);
   assert.equal(render(<UserNavigation />), BEFORE_HEADER_MARKS);
@@ -111,36 +136,55 @@ test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(�
 
 test("leading はブランドの前(#header-left の先頭)に描く", () => {
   const html = render(<UserNavigation leading={<i id="back" />} />);
-  assert.ok(html.includes('<div id="header-left" class="flex items-center"><i id="back"></i><x-brand></x-brand></div>'));
+  assertInOrder(html, ['id="header-left"', '<i id="back">', "<x-brand>", 'id="header-center"']);
   assert.equal(count(html, CTA), 2, "既定の CTA 2 つは残る");
 });
 
 test("actions はヘッダー右の CTA を置き換え、SP メニューの開閉ボタンの前に描く(SP メニュー下部は既定のまま)", () => {
   const html = render(<UserNavigation actions={<i id="bell" />} />);
-  assert.ok(html.includes('<div id="header-right" class="flex items-center gap-2"><i id="bell"></i><x-spswitch></x-spswitch></div>'));
+  assertInOrder(html, ['id="header-right"', '<i id="bell">', "<x-spswitch>"]);
   assert.equal(count(html, CTA), 1);
-  assert.match(html, /<x-spnav><button[^>]*w-full">お問い合わせ<\/button><\/x-spnav>/);
+  assertInOrder(html, ["<x-spnav>", CTA, "</x-spnav>"]);
 });
 
 test("menuActions は SP メニュー下部の CTA を置き換える(ヘッダー右は既定のまま)", () => {
   const html = render(<UserNavigation menuActions={<i id="settings" />} />);
-  assert.ok(html.includes('<x-spnav><i id="settings"></i></x-spnav>'));
+  assertInOrder(html, ["<x-spnav>", '<i id="settings">', "</x-spnav>"]);
   assert.equal(count(html, CTA), 1);
-  assert.match(html, /hidden sm:inline-flex">お問い合わせ<\/button><x-spswitch>/);
+  assertInOrder(html, ['id="header-right"', CTA, "<x-spswitch>"]);
 });
 
 test("actions / menuActions に null を渡すとその CTA を描かない", () => {
-  assert.ok(render(<UserNavigation actions={null} />).includes('<div id="header-right" class="flex items-center gap-2"><x-spswitch></x-spswitch></div>'));
-  assert.ok(render(<UserNavigation menuActions={null} />).includes("<x-spnav></x-spnav>"));
+  const noActions = render(<UserNavigation actions={null} />);
+  assert.equal(count(noActions, CTA), 1);
+  assertInOrder(noActions, ["<x-spswitch>", "<x-spnav>", CTA]);
+  const noMenuActions = render(<UserNavigation menuActions={null} />);
+  assert.equal(count(noMenuActions, CTA), 1);
+  assertInOrder(noMenuActions, [CTA, "<x-spswitch>", "<x-spnav>"]);
   assert.equal(count(render(<UserNavigation actions={null} menuActions={null} />), CTA), 0);
 });
 
-test("type 省略のリンク項目だけの BottomNav は slot 化の前と同じ DOM を描く(差分は data-frame-part だけ)", () => {
+/** リンク項目 2 つの BottomNav の契約: 印・項目の id / href / 並び、カレント(/items)だけが config の色 */
+const assertLinkItems = (html: string) => {
+  assert.ok(tagOf(html, "bottom-nav").includes('data-frame-part="bottom-nav"'));
+  assertInOrder(html, ['id="bottom-nav"', 'id="bottom-nav-item-game"', "ゲーム", 'id="bottom-nav-item-items"', "<i>1</i>", "商品"]);
+  const active = `text-${ACTIVE_COLOR_TYPE}`;
+  const game = tagOf(html, "bottom-nav-item-game");
+  assert.ok(game.includes('href="/game"'));
+  assert.ok(hasClass(game, "text-muted-foreground"));
+  assert.equal(hasClass(game, active), false);
+  const items = tagOf(html, "bottom-nav-item-items");
+  assert.ok(items.includes('href="/items"'));
+  assert.ok(hasClass(items, active), `カレントが ${active} でない(config の ACTIVE_COLOR_TYPE)`);
+  assert.equal(hasClass(items, "text-muted-foreground"), false);
+};
+
+test("type 省略のリンク項目だけの BottomNav は印と項目を描き、カレントは config の色(type: \"link\" の明示も同じ)", () => {
   navItems.current = LINK_ITEMS;
-  assert.notEqual(BEFORE_BOTTOM_NAV_MARKS, BEFORE.bottomNav);
-  assert.equal(render(<UserBottomNav />), BEFORE_BOTTOM_NAV_MARKS);
+  const html = render(<UserBottomNav />);
+  assertLinkItems(html);
   navItems.current = LINK_ITEMS.map((item) => ({ ...item, type: "link" as const }));
-  assert.equal(render(<UserBottomNav />), BEFORE_BOTTOM_NAV_MARKS, "type: \"link\" の明示も同じ");
+  assert.equal(render(<UserBottomNav />), html, "type: \"link\" の明示も同じ");
   navItems.current = LINK_ITEMS;
 });
 
@@ -151,10 +195,12 @@ test("type: \"menu\" の項目はボタン(メニューを開くトリガー)で
   ];
   const html = render(<UserBottomNav />);
   navItems.current = LINK_ITEMS;
-  assert.ok(html.startsWith(BEFORE_BOTTOM_NAV_MARKS.slice(0, -"</nav>".length)), "リンク項目は今のまま並ぶ");
-  assert.match(html, /<button[^>]*id="bottom-nav-item-create" type="button" aria-label="作成する"[^>]*>/);
-  assert.ok(html.includes('<span id="bottom-nav-label-create" class="text-[10px] font-medium leading-tight">作成</span>'));
-  assert.equal(/id="bottom-nav-item-create"[^>]*text-accent/.test(html), false, "メニュー項目はカレント色にならない");
+  assertLinkItems(html);
+  const create = tagOf(html, "bottom-nav-item-create");
+  assert.ok(create.startsWith("<button"), "メニュー項目はボタン");
+  assert.ok(create.includes('type="button"') && create.includes('aria-label="作成する"'));
+  assertInOrder(html, ['id="bottom-nav-item-items"', 'id="bottom-nav-item-create"', 'id="bottom-nav-label-create"', "作成"]);
+  assert.equal(hasClass(create, `text-${ACTIVE_COLOR_TYPE}`), false, "メニュー項目はカレント色にならない");
   assert.equal(html.includes('href="/items"', html.indexOf("bottom-nav-item-create")), false, "メニューの中身は閉じた状態では描かない");
 });
 
@@ -163,12 +209,6 @@ test("isBottomNavMenuItem は type で判別する(省略 = リンク)", () => {
   assert.equal(isBottomNavMenuItem({ type: "link", key: "a", label: "A", href: "/", icon: Icon }), false);
   assert.equal(isBottomNavMenuItem({ type: "menu", key: "a", label: "A", icon: Icon, menu: [] }), true);
 });
-
-// upstream(Tier1)だけで見る検査の判定(screens.test と同じ)。core の Main の固定の class は upstream の「DOM を変えない」保証で、
-// fork が Main を自分で変えていても fork の test は落とさない(UserPage が Main に正しく渡すことは全 Tier で見る)
-const { loadCatalogOwnership } = require("../../../lib/folderCatalog/catalog.mjs") as typeof import("../../../lib/folderCatalog/catalog.mjs");
-const isUpstreamRoot = loadCatalogOwnership({ repoRoot: join(__dirname, "../../../.."), folder: "src/lib" }).isRoot;
-const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は core の Main を自分で変えうるので、固定の class は見ない" };
 
 test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、fill は Main の上に充填の class と印を足す", () => {
   assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
@@ -206,8 +246,8 @@ test("UserPage は containerType の明示が既定より勝つ(fill の時も)"
 });
 
 test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は印の CSS が変数を 0 にする)", () => {
-  assert.equal(
-    render(<BottomNavSpacer />),
-    '<div id="bottom-nav-spacer" data-frame-part="bottom-nav" class="shrink-0 h-[var(--app-bottom-nav-height,0px)]" aria-hidden="true"></div>',
-  );
+  const spacer = tagOf(render(<BottomNavSpacer />), "bottom-nav-spacer");
+  assert.ok(spacer.includes('data-frame-part="bottom-nav"'));
+  assert.ok(hasClass(spacer, "h-[var(--app-bottom-nav-height,0px)]"));
+  assert.ok(spacer.includes('aria-hidden="true"'));
 });
