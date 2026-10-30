@@ -129,7 +129,7 @@
 
 ### 振込明細画像をどう守るか
 
-画像は非公開の用途 `purchaseRequest.bankProof`（src/registry/storagePurposes/core.ts）に置き、`proof_image_url` には storage ref を保存する。
+画像は非公開の用途 `purchaseRequest.bankProof`（storageObject/purposes/purchaseRequest.ts）に置き、`proof_image_url` には storage ref を保存する。
 
 1. アップロード（`useBankTransferProofUpload`）: `scopeId = requestId` で発行を求め、サーバーが「本人の・申告できる振込依頼か」を判定する（`isOwnPendingPurchaseRequest`）
 2. 申告（`submitReview`）: base の storage binding（`services/server/drizzleBase.ts`）が保存と同じ TX で台帳に紐付ける。通るのは「アップロードした本人」「scopeId = この行の purchase_request_id」「未紐付け」の ref だけで、外れたら 400 で TX ごと巻き戻る

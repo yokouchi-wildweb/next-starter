@@ -6,9 +6,8 @@
 
 import "server-only";
 
-import type { AgentChatMessage, AgentEvent } from "@/lib/ai";
+import type { AgentChatMessage, AgentEvent, AgentToolDefinition } from "@/lib/ai";
 import { runAgent } from "@/lib/ai/agent/runtime";
-import { dbAgentSystemSuffixProviders } from "@/registry/dbAgentPromptRegistry";
 
 import {
   DB_AGENT_AUDIT_ACTIONS,
@@ -16,12 +15,21 @@ import {
   type DbAgentAuditRecorder,
 } from "./audit";
 import { isDbAgentEnabled } from "./readonlyDb";
-import { buildDbAgentSystemPrompt } from "./prompt";
+import { buildDbAgentSystemPrompt, type DbAgentPromptFragment, type DbAgentSystemSuffixProvider } from "./prompt";
 import { buildDbAgentTools } from "./tools";
 
 export { isDbAgentEnabled };
 
+/** 拡張点の一覧(一覧は src/wiring/dbAgent.ts、route が渡す。lib は一覧を import しない) */
+export type DbAgentExtensions = {
+  extraTools: readonly AgentToolDefinition[];
+  promptFragments: readonly DbAgentPromptFragment[];
+  suffixProviders: readonly DbAgentSystemSuffixProvider[];
+};
+
 export type RunDbAgentOptions = {
+  /** 拡張点の一覧(省略 = 組み込みだけ) */
+  extensions?: DbAgentExtensions;
   /** 会話履歴 (最後は user メッセージ) */
   messages: AgentChatMessage[];
   /** クライアント切断時の中断シグナル */
@@ -33,23 +41,24 @@ export type RunDbAgentOptions = {
   auditRecorder?: DbAgentAuditRecorder;
   /**
    * システムプロンプト末尾に付加する実行時サフィックス (直接呼び出し用)。
-   * 通常経路 (管理画面の運営追加指示) は dbAgentSystemSuffixProviders レジストリを
+   * 通常経路 (管理画面の運営追加指示) は拡張点 suffixProviders を
    * 使うこと。両方ある場合はプロバイダ分の後ろに結合される。
    */
   systemSuffix?: string;
 };
 
 /**
- * レジストリ登録プロバイダから実行時サフィックスを解決する。
+ * プロバイダから実行時サフィックスを解決する。
  * プロバイダの throw はスキップ (追加指示の欠落は機能停止より軽微。
  * 最終防衛線は read-only ツール境界)。
  */
 async function resolveSystemSuffix(
+  providers: readonly DbAgentSystemSuffixProvider[],
   directSuffix?: string,
 ): Promise<string | undefined> {
   const parts: string[] = [];
 
-  for (const provider of dbAgentSystemSuffixProviders) {
+  for (const provider of providers) {
     try {
       const text = (await provider())?.trim();
       if (text) parts.push(text);
@@ -75,10 +84,11 @@ export async function* runDbAgent(
 ): AsyncGenerator<AgentEvent, void, undefined> {
   const generator = runAgent({
     system: buildDbAgentSystemPrompt(
-      await resolveSystemSuffix(options.systemSuffix),
+      await resolveSystemSuffix(options.extensions?.suffixProviders ?? [], options.systemSuffix),
+      options.extensions?.promptFragments ?? [],
     ),
     messages: options.messages,
-    tools: buildDbAgentTools(options.auditRecorder),
+    tools: buildDbAgentTools(options.auditRecorder, options.extensions?.extraTools ?? []),
     signal: options.signal,
   });
 

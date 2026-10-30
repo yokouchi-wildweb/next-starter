@@ -17,6 +17,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { createAgentSSEResponse } from "@/lib/ai/agent/sse";
 import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/service";
+import { extraTools, promptFragments, suffixProviders } from "@/wiring/dbAgent";
 
 // Vercel 等のサーバーレス環境ではストリーミング中も関数実行時間にカウントされる。
 // エージェントの1ターンは数分に及びうるため上限を引き上げる
@@ -68,6 +69,7 @@ export const POST = createApiRoute(
     req.signal.addEventListener("abort", () => abortController.abort());
 
     const generator = runDbAgent({
+      extensions: { extraTools, promptFragments, suffixProviders },
       messages: parsed.data.messages,
       signal: abortController.signal,
       auditRecorder: auditLogger,

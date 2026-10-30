@@ -11,7 +11,7 @@ UI (downstream)
             └─ runDbAgent (service.ts)
                  └─ runAgent (@/lib/ai — 汎用ループ)
                       ├─ list_tables / describe_table / run_query (組み込み)
-                      ├─ dbAgentToolRegistry (downstream 追加ツール)
+                      ├─ extraTools (downstream 追加ツール、wiring 経由)
                       └─ present_result (最終回答ブロック提出)
 ```
 
@@ -126,9 +126,9 @@ downstream がツールを追加する際はこの境界を壊さないこと (�
 
 ## downstream 拡張ポイント
 
-1. **ドメイン知識** — `src/registry/dbAgentPromptRegistry.ts` にプロンプト断片を登録
+1. **ドメイン知識** — `src/wiring/dbAgent/promptFragments/<名前>.<fork の名前>.ts` に `export const fragment` を置き `pnpm extensions:generate`
    (テーブルの意味・集計の定石。スキーマ全文は不要 — エージェントが自力で引ける)
-2. **ドメインツール** — `src/registry/dbAgentToolRegistry.ts` に `AgentToolDefinition` を登録
+2. **ドメインツール** — `src/wiring/dbAgent/extraTools/<名前>.<fork の名前>.ts` に `export const tool: AgentToolDefinition` を置き `pnpm extensions:generate`
    (読取専用の操作に限定すること)
 3. **実行時の運営追加指示** — `dbAgentSystemSuffixProviders` にプロバイダを登録 (次節)
 
@@ -137,7 +137,7 @@ downstream がツールを追加する際はこの境界を壊さないこと (�
 管理者が管理画面で編集できる「AIカスタム指示」(口調ルール・追加ポリシー等) を、
 コードデプロイなしでシステムプロンプトへ注入できる。
 
-- **経路**: `src/registry/dbAgentPromptRegistry.ts` の `dbAgentSystemSuffixProviders` に
+- **経路**: `src/wiring/dbAgent/suffixProviders/<名前>.<fork の名前>.ts` の `export const provider` に
   `() => Promise<string | null>` を登録する。リクエストごとに解決され、
   システムプロンプトの**最後** (基本プロンプト + レジストリ断片の後ろ) に
   `## 運営からの追加指示` として結合される。setting ドメインから読む実装例は

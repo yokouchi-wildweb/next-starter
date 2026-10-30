@@ -1,7 +1,7 @@
 // src/lib/storage/policy/types.ts
 //
 // アップロード用途（purpose）の型（client-safe）。
-// 用途の登録表は src/registry/storagePurposeRegistry.ts、判定の実装は features/core/storageObject が持つ。
+// 用途の項目は features/core/storageObject/purposes/(業務ドメインは src/registry/storagePurposeRegistry.ts の AUTO の区画)、判定の実装は features/core/storageObject が持つ。
 // lib は features に依存しないため、判定関数に渡す利用者は最小限の StorageActor で表す
 // （SessionUser からの変換は features/core/storageObject の policy.ts が行う）。
 

@@ -64,7 +64,7 @@ describe("実リポジトリの intake.txt", () => {
       ["src/app/(user)/_layout/UserLayout.acme.tsx", "edit"],
       ["src/app/(user)/_layout/UserLayout.test.tsx", null],
       ["src/app/(user)/_layout/UserLayout.tsx", null],
-      ["src/registry/storagePurposeRegistry.ts", "region"],
+      ["src/registry/storagePurposeRegistry.ts", "generated"],
       ["src/registry/serviceRegistry.ts", "generated"],
       [".claude/rules/shortcuts.md", "marker"],
       ["src/lib/CATALOG.md", "append"],

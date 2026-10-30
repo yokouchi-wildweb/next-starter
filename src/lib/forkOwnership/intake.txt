@@ -74,6 +74,14 @@ edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 �
 edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(デモユーザー作成後のフック)
 edit src/features/core/coupon/adminSectionTabs/*.*.ts  # クーポン管理画面のセクションタブ
 edit src/features/core/coupon/adminSectionTabs/*.*/**  # フォルダ形
+edit src/features/core/storageObject/purposes/*.*.ts  # ファイル用途
+edit src/features/core/storageObject/purposes/*.*/**  # フォルダ形
+edit src/wiring/dbAgent/extraTools/*.*.ts  # DB エージェントの追加ツール
+edit src/wiring/dbAgent/extraTools/*.*/**  # フォルダ形
+edit src/wiring/dbAgent/promptFragments/*.*.ts  # DB エージェントのプロンプト断片
+edit src/wiring/dbAgent/promptFragments/*.*/**  # フォルダ形
+edit src/wiring/dbAgent/suffixProviders/*.*.ts  # DB エージェントのサフィックスのプロバイダ
+edit src/wiring/dbAgent/suffixProviders/*.*/**  # フォルダ形
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
@@ -100,6 +108,8 @@ append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき�
 
 # 生成物(fork の設定・ドメインから生成し直される)
 generated src/registry/serviceRegistry.ts  # pnpm registry:generate
+generated src/registry/storagePurposeRegistry.ts  # dc:generate の AUTO の区画だけ(一時の置き場)
+generated src/wiring/dbAgent.ts  # pnpm extensions:generate
 generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/adminDataMenu.ts  # pnpm registry:generate(走査で丸ごと)

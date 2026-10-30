@@ -18,7 +18,7 @@
 
 ## 全体の流れ
 
-1. 用途を登録する（`src/registry/storagePurposeRegistry.ts`。未登録の用途は拒否）
+1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>[.<fork の名前>].ts` の `export const purposes`、業務ドメインは dc:generate が `src/registry/storagePurposeRegistry.ts` の AUTO の区画へ。無い用途は拒否）
 2. サーバーがアップロード権を発行する。台帳に pending の行を作り、上書き不可の署名 PUT か GCS の再開可能セッションを返す
    - **strip の用途の画像**は、本来の保存先ではなく非公開の受け取り領域（priv バケットの `incoming/`）への権利を返す
 3. ブラウザが GCS へ直接送る
@@ -165,7 +165,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - 画像と動画が混ざった用途（`image/*,video/*` など）は、宣言なし（strip）のまま同じ欄で、画像だけを描き直す
 - **`user.avatar` は常に strip**。登録表の fork の区画で keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test:storage-purposes` も keep を問題にする
 - domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/features/README.md](../../features/README.md)「ファイルの保存（storage）」）。dc:generate が登録表の AUTO に明示値で書き出す
-- core 用途の値（`src/registry/storagePurposes/core.ts`）
+- core 用途の値（`src/features/core/storageObject/purposes/`）
 
 | 用途 | metadata |
 |---|---|

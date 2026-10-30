@@ -10,7 +10,4 @@ export const LIB_REGISTRY_EXCEPTIONS = [
   { file: "src/lib/drizzle/index.ts", target: "src/registry/schemaRegistry", reason: "DB クライアントに全表を渡す" },
   { file: "src/lib/domain/junction/getTable.ts", target: "src/registry/schemaRegistry", reason: "中間表の名前 → 表(getJunctionTable の引数化で消す)" },
   { file: "src/lib/domain/config/getDomainConfig.ts", target: "src/registry/domainConfigRegistry", reason: "ドメイン名 → domain.json(表示用の写しで消す)" },
-  { file: "src/lib/dbAgent/prompt.ts", target: "src/registry/dbAgentPromptRegistry", reason: "プロンプトの断片の一覧(wiring の生成一覧で消す)" },
-  { file: "src/lib/dbAgent/service.ts", target: "src/registry/dbAgentPromptRegistry", reason: "システムプロンプトの末尾の一覧(wiring の生成一覧で消す)" },
-  { file: "src/lib/dbAgent/tools/index.ts", target: "src/registry/dbAgentToolRegistry", reason: "追加ツールの一覧(wiring の生成一覧で消す)" },
 ];

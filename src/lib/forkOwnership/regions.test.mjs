@@ -28,7 +28,7 @@ describe("受け口の一覧で region のファイル", () => {
 
   test("src/registry と room・seed の登録点が対象に入っている", () => {
     const paths = files.map((file) => relative(ROOT, file));
-    for (const expected of ["src/registry/storagePurposeRegistry.ts", "servers/room/src/registry.ts", "scripts/db/seed/data/registry.ts"]) {
+    for (const expected of ["servers/room/src/registry.ts", "scripts/db/seed/data/registry.ts"]) {
       assert.ok(paths.includes(expected), expected);
     }
   });

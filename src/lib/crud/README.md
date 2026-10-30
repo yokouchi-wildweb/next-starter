@@ -643,8 +643,8 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    SELECT count(*) FROM storage_objects WHERE status = 'ready' AND record_id IS NULL;
    ```
 
-1. 旧用途を登録表の fork の区画へ写し、アップロードを閉じる
-   - `src/registry/storagePurposeRegistry.ts` の AUTO ブロックにある `"<old_purpose>": { … }` を、AUTO ブロックの後の `// --- fork entries start (upstream never edits inside) ---` と `// --- fork entries end ---` の間へそのまま写し、`upload: { allow: "none" }` にする（private なら `read: { allow: … }` も写す）
+1. 旧用途を受け口 storageObject/purposes/ の項目へ写し、アップロードを閉じる
+   - `src/registry/storagePurposeRegistry.ts` の AUTO ブロックにある `"<old_purpose>": { … }` を、`src/features/core/storageObject/purposes/<名前>.<fork の名前>.ts` の `export const purposes` に移す（AUTO の区画からは消す）
    - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を domain.json から外して AUTO から消えても fork の区画の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
 2. 従属を作る（上の「中間の形」）。元の列は残す
 3. 書き込みを止め、主 1 行ずつ同じ TX で従属の行を作り、台帳を付け替え、作った行を記録する

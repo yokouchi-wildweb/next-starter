@@ -1,7 +1,7 @@
 // src/lib/storage/server/purposes.ts
 //
 // 用途表（StoragePurposeMap）からの用途の引き当てと、用途表の形式検査。
-// 未登録の用途は拒否する（fail-closed）。登録表 src/registry/storagePurposeRegistry.ts との結線は registry 側で行う。
+// 未登録の用途は拒否する（fail-closed）。用途の項目(storageObject/purposes/ と src/registry/storagePurposeRegistry.ts) との結線は registry 側で行う。
 
 import "server-only";
 

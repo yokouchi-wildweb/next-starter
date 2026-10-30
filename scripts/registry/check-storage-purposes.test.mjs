@@ -21,7 +21,8 @@ import { MEDIA_FIELD_TYPES } from "../domain-config/spec/fieldTypes.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const { storagePurposeRegistry } = await import("../../src/registry/storagePurposeRegistry.ts");
+const { allStoragePurposes, mergeStoragePurposes } = await import("../../src/features/core/storageObject/services/server/purposeSource.ts");
+const storagePurposeRegistry = allStoragePurposes();
 const { listStoragePurposeProblems } = await import("../../src/lib/storage/server/purposes.ts");
 const { isValidStoragePurposeId } = await import("../../src/lib/storage/ref.ts");
 const { FIXED_STRIP_PURPOSES } = await import("../../src/features/core/storageObject/services/server/purposeSource.ts");
@@ -38,6 +39,15 @@ function listDomainConfigs() {
   }
   return result;
 }
+
+test("用途の合成: ID の重複は例外。用途キーのドメインの段は serviceRegistry のキー(demo.media は持ち主が無いので除く、D61 U5)", async () => {
+  assert.throws(() => mergeStoragePurposes([{ "a.b": {} }, { "a.b": {} }]), /a\.b/);
+  const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
+  const unknown = Object.keys(storagePurposeRegistry)
+    .filter((id) => id !== "demo.media")
+    .filter((id) => !(id.split(".")[0] in serviceRegistry));
+  assert.deepEqual(unknown, [], "用途 ID の先頭がドメインのキーでない");
+});
 
 describe("登録表", () => {
   test("全用途が ID の形式・型・規則に合う", () => {

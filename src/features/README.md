@@ -406,9 +406,9 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
   - **一般利用者（admin 以外のカテゴリ）がアップロードできる項目 → 生成エラー**（公開か非公開かを人が決めるため）
   - 管理者だけがアップロードできる項目 → 読める人（`storage.read`、無ければ apiAccess の get）が `"public"` なら public、それ以外は private
 - private の用途には read.allow として読める人（`storage.read`、無ければ apiAccess の get の規則）を付ける。`storage.read` の `"public"` も書ける（visibility を private と明示した項目でもそのまま出す）
-- AUTO ブロックの外（fork entries の印の対の中の手書き）に同じ ID があれば上書きせず、警告だけを出す。手書きの定義（check 関数付きなど）が優先される
+- 同じ ID が項目(`src/features/core/storageObject/purposes/`)にもあると、用途表を合成するときに例外になる（`purposeSource.ts`）。AUTO から外したい用途は項目へ移す。手書きの定義（check 関数付きなど）が優先される
 - 項目を消して再生成すると、AUTO ブロックから消える。dc:delete はそのドメインの AUTO エントリを消す
-- core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/registry/storagePurposes/core.ts` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
+- core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/features/core/storageObject/purposes/` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
 ---
 

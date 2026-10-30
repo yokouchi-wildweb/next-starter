@@ -9,14 +9,13 @@
 // = 管理者が設定を編集した時のみキャッシュが無効化される)。
 
 import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
-import { dbAgentPromptFragments } from "@/registry/dbAgentPromptRegistry";
 
 /**
  * 実行時システムプロンプトサフィックスのプロバイダ契約。
  * リクエストごとに呼ばれ、運営が編集する追加指示テキスト (setting 由来等) を返す。
  * 空 (null / undefined / 空白のみ) は「追加指示なし」。
  *
- * 登録先: src/registry/dbAgentPromptRegistry.ts (dbAgentSystemSuffixProviders)
+ * 項目: src/wiring/dbAgent/suffixProviders/<名前>[.<fork の名前>].ts の export const provider
  *
  * 安全上の注意: 返すテキストは「運営 (管理者) が作成した信頼テキスト」に限定すること。
  * エンドユーザー生成テキストを流し込んではならない (プロンプトインジェクション経路になる)。
@@ -24,6 +23,9 @@ import { dbAgentPromptFragments } from "@/registry/dbAgentPromptRegistry";
 export type DbAgentSystemSuffixProvider = () => Promise<
   string | null | undefined
 >;
+
+/** ドメイン知識のプロンプト断片(項目: src/wiring/dbAgent/promptFragments/、ファイル名の順に結合) */
+export type DbAgentPromptFragment = string;
 
 const BASE_PROMPT = `あなたは管理者向けの「データベース調査アシスタント」です。管理画面から自然言語で質問する管理者に代わって PostgreSQL データベースを調査し、結果をわかりやすく報告します。
 
@@ -57,16 +59,17 @@ const BASE_PROMPT = `あなたは管理者向けの「データベース調査�
  *
  * 構成 (この順序を変えないこと — プレフィックスキャッシュの前提):
  *   1. 基本プロンプト (安定)
- *   2. レジストリ断片 = ドメイン知識 (安定)
+ *   2. 断片 = ドメイン知識 (安定)
  *   3. suffix = 実行時の運営追加指示 (準静的、末尾限定)
  *
+ * @param fragments ドメイン知識の断片
  * @param suffix 実行時サフィックス。空白のみなら無視。上限超過分は切り詰め
  */
-export function buildDbAgentSystemPrompt(suffix?: string): string {
+export function buildDbAgentSystemPrompt(suffix?: string, fragments: readonly DbAgentPromptFragment[] = []): string {
   const parts: string[] = [BASE_PROMPT];
 
-  if (dbAgentPromptFragments.length > 0) {
-    parts.push("## このサービス固有のドメイン知識", ...dbAgentPromptFragments);
+  if (fragments.length > 0) {
+    parts.push("## このサービス固有のドメイン知識", ...fragments);
   }
 
   const trimmedSuffix = suffix?.trim();

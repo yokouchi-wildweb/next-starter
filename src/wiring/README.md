@@ -39,3 +39,7 @@
 - Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
 検査: `pnpm test:wiring`（目録・fork のドット名・向き・鎖・データに届く wiring の import の場所）。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
+
+## dbAgent
+
+DB 調査エージェントの拡張点は `src/wiring/dbAgent/`(宣言と受け口。fork は祖先の lib の中にファイルを足せない)、一覧は生成物 `dbAgent.ts`。lib は一覧を import しないので、route(`src/app/api/admin/db-agent/route.ts`)が `extensions` で渡す。

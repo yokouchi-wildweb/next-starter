@@ -58,7 +58,7 @@ const { storageBinding: bankTransferReviewBinding } = await import(
 const { storageBinding: notificationBinding } = await import("@/features/core/notification/services/server/drizzleBase");
 const { runWithAuditContext } = await import("@/lib/audit");
 const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
-const { CORE_STORAGE_PURPOSES } = await import("@/registry/storagePurposes/core");
+const { purposes: PURPOSE_ITEMS } = await import("@/features/core/storageObject/extensions/purposes");
 const { storageBindingFor } = await import("./services/server/crudBinding");
 const { createMemoryLedger } = await import("./services/server/ledger/memoryLedger");
 const { createStorageObjectService } = await import("./services/server/storageObjectService");
@@ -77,7 +77,7 @@ const admin = user("33333333-3333-4333-8333-333333333333", "admin");
 const PUBLISHED: Record<string, boolean> = {};
 
 const PURPOSES: StoragePurposeMap = {
-  ...(CORE_STORAGE_PURPOSES as StoragePurposeMap),
+  ...(Object.assign({}, ...PURPOSE_ITEMS) as StoragePurposeMap),
   "item.photo": {
     visibility: "private",
     maxBytes: 10,
