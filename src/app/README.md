@@ -92,6 +92,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 - 方針(ログイン要否など)の違うページで枠を共有するなら、枠をガードの外に置く。その方針専用の枠ならガードと同居してよい
 - 枠を出したくないページは、枠の外の兄弟の枝に置く(例: `(marketing)/` は `(user)/` の枠の外)。元の group の `loading` / `error` / `not-found` も外れるので、要るなら兄弟側に置く。枠の一部を隠すだけなら印(Hide*、`src/app/(user)/_layout/README.md`「枠の部位を隠す」)
 - group の名前は今の語彙を使う: `(protected)` ログインが要る / `(public)` 公開 / `(auth)` ログイン・登録の流れ / `(legal)` 法的ページ / `(marketing)` 枠の外のランディング
+- root の `lang`・`viewport` は `src/config/seo.config.ts` の値。fork が全ページに足す client 部品(バナーなど)と Provider は `src/app/_providers/ForkProviders.tsx` の中に描く(`/entry` などの枠の外のページにも届く)。`layout.tsx` は編集しない
 - root layout は 1 つ(`src/app/layout.tsx`)。複数にすると root layout をまたぐ遷移が full reload になる
 
 自由: 段の数、名前、group か URL フォルダか、入れ子の順序、枠と認証の混在、ラベルだけの group(どれも禁止しない)。

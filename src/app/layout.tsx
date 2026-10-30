@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/styles/global.css";
 import { Suspense } from "react";
 import { headers } from "next/headers";
@@ -20,6 +20,8 @@ import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { GoogleTag } from "@/lib/googleTag";
 import { seoConfig } from "@/config/seo.config";
 import { AppProviders } from "@/wiring/AppProviders";
+
+export const viewport: Viewport = seoConfig.viewport;
 
 export const metadata: Metadata = {
   metadataBase: new URL(seoConfig.siteUrl),
@@ -75,7 +77,7 @@ export default async function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang={seoConfig.htmlLang}
       suppressHydrationWarning
       className={htmlClassName || undefined}
       {...{ [SITE_THEME_AREA_ATTRIBUTE]: area.key }}

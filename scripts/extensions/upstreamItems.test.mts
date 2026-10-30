@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -38,6 +38,7 @@ import { renderers } from "@/features/core/milestone/extensions/renderers";
 import { buildStrategyMap } from "@/features/core/purchaseRequest/services/server/completion/strategyRegistry";
 import { buildRewardHandlerMap } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
 import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
+import { seoConfig } from "@/config/seo.config";
 import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
@@ -270,4 +271,12 @@ test("残高調整の通知: 既定の組み立ては今までと同じ形", () 
   assert.equal(lines.length, 4);
   assert.ok(lines[1].endsWith(`+1,000 ${unit}`));
   assert.ok(lines[3].endsWith(": r"));
+});
+
+test("root の lang・viewport: 既定は今までと同じ、layout は config を読む", () => {
+  assert.equal(seoConfig.htmlLang, "en");
+  assert.deepEqual(seoConfig.viewport, { width: "device-width", initialScale: 1 });
+  const layout = readFileSync(join(ROOT, "src/app/layout.tsx"), "utf8");
+  assert.match(layout, /lang=\{seoConfig\.htmlLang\}/);
+  assert.match(layout, /export const viewport: Viewport = seoConfig\.viewport;/);
 });
