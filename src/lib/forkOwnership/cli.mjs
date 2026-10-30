@@ -23,6 +23,7 @@ const LABELS = {
   "above-marker": "印より上の書き換え",
   "not-append": "基準の中身の書き換え(追記でない)",
   debt: "upstream の負債の箇所(一時許可が要る)",
+  "middle-tier": "中間 Tier 以下の物の書き換え・削除・rename(参考)",
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
 };
@@ -65,10 +66,16 @@ function print(result, { verbose }) {
   const problems = violations.length + result.leftovers.length + result.permitErrors.length;
   lines.push(result.status === "pass" ? "合格" : `違反 ${problems} 件`);
   lines.push(`基準: ${result.remote}/${result.branch} ${result.base.slice(0, 10)}(fork: ${result.ownerId})`);
+  if (result.tier1) lines.push(`Tier1 の版: ${result.tier1.sha.slice(0, 10)}(台帳 ${result.tier1.ledger} の upstream:、親 ${result.tier1.parent})`);
   lines.push("");
   lines.push("件数:");
   for (const [key, count] of Object.entries(result.counts).sort(([a], [b]) => a.localeCompare(b))) {
     lines.push(`  ${LABELS[key] ?? key}(${key}): ${count}`);
+  }
+
+  if ((result.middleTier ?? []).length > 0 && verbose) {
+    lines.push("", "参考: 中間 Tier 以下の物の書き換え・削除・rename(Tier1 の版に無いファイル。合格、D29):");
+    for (const item of result.middleTier) lines.push(`  [${item.was}] ${item.from ? `${item.from} → ${item.path}` : item.path}`);
   }
 
   if (violations.length > 0) {

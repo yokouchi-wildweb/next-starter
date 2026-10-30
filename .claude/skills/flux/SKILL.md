@@ -183,6 +183,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
       - `.claude/rules/project.md` と `behavior.md`: fork 側を採り、上流の追加はこの fork に当てはまるものだけ取り込む。
       - `.claude/rules/shortcuts.md` と `term-aliases.md`: `fork entries below` マーカーより上を上流側、下を fork 側で採る。
       - 生成物 `src/app/route-map.jsonl`(ルート地図。旧 `route-map.txt` が残っていれば消す): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm routes:map` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。
+      - 中間 Tier の物(Tier1 の版に無いファイル。自分が下の Tier で、親の fork が足したもの)を自分が消した・書き換えた後に、親がそのファイルを変えて衝突した: 自分(下の Tier)の判断を保つ(消したものは消したまま、書き換えたものは自分の版)。上流の変更を取り込まなかったことを区間の報告と台帳の `notes:` に残す(D30 K7。所有の検査はこれらを合格の参考一覧に出す)
    d. **区間外変更の検査**(必須。c と移植の後、merge コミットの前。読み取りのみ):
       - 許可集合 = `git diff --name-only $(git merge-base <pre> <区間の merge 先>) <区間の merge 先>` + 区間の `moved:` の移動先(ディレクトリならその配下)。
       - 実際の変更 = `git diff --name-only <pre>`(ステージ済み・未ステージの両方)。
@@ -202,14 +203,14 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    a. 自 fork 台帳 `.notices/applied/<fork-id>.md` に追記(無ければヘッダごと作成。英語):
       ```
       # APPLIED LEDGER fork:<own origin url>
-      - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
+      - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | upstream:<区間の merge 先の完全な sha> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
       ```
-      `relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
+      `upstream:` 欄は全 fork が毎行書く(その区間で取り込んだ上流の版。過去の行は書き換えない)。`pnpm ownership:check` がこの欄で Tier1 の版を決める: 直接の親が Tier1 なら自分の台帳の最後の `upstream:`、親が中間 Tier なら親の台帳の最後の `upstream:`(多段の所有の判定、`src/lib/forkOwnership/README.md`)。`relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
    b. 差分(適用実装+台帳+この区間で下書きした中継 notice)をコミットする(push はまだしない)。メッセージ: 1行サマリ + 空行 + `downstream-notice: <id>`(区間内の全 id、1 行ずつ)+ 環境指定の Co-Authored-By トレーラー。ブランチ運用は自リポの方針に従う。
    c. **所有の検査**(その区間の merge 先に `src/lib/forkOwnership/intake.txt` があるときだけ。無ければ飛ばす): `pnpm ownership:check`。検査は commit 済みの HEAD だけを見る(台帳・一時許可・片付けも HEAD から読む)ので、b の commit の後・push の前に走らせる。下流を持つ中間 Tier も同じ
       - 0 → d へ
       - 1(違反)→ 停止条件。push せずに違反の一覧を示し、片付ける(受け口へ移す・元に戻す・一時許可。直し方は `src/lib/forkOwnership/README.md`「導入の段階」と、片付けの notice `fork-ownership-cleanup` の required_actions)。片付けは追加の commit で積み、検査し直して 0 になってから d へ。違反を残したまま push して区間を閉じない
-      - 2(未検証)→ 停止条件。push せずに理由を直す(台帳に無い notice = 台帳の追記漏れ・台帳が無い / 親の remote が無い・取得できない / shallow)。直したら commit して検査し直す
+      - 2(未検証)→ 停止条件。push せずに理由を直す(台帳に無い notice = 台帳の追記漏れ・台帳が無い / 台帳に `upstream:` の行が無い = この区間の行に書き足す・その sha が辿れない / 親の版に `fork_id:` が無い / 名前の宣言の問題 / 親の remote が無い・取得できない / shallow)。直したら commit して検査し直す
    d. push する。その区間の merge コミットも未 push なら一緒に push する。push できない場合は取り繕わず報告し、台帳の `notes:` に正直に反映する。
 8. **報告**(日本語。区間の終わりで止まるたび・最終報告の両方):
    - その区間: merge 結果(取り込みコミット数)/ 適用した notice と verify 結果 / 区間の検査(typecheck・lint)の結果 / 所有の検査(`pnpm ownership:check` の終了コードと件数。走らない区間は「対象外」)/ コミット sha / 既知の未修正の行(上記「修正(fixes)」の報告。当たるときだけ)。下流を持つ fork なら中継判定の報告行(→ relay.md)。

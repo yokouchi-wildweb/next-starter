@@ -2,7 +2,7 @@
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
@@ -66,9 +66,18 @@ function makeFork(parent) {
   git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
   write(root, "src/features/game/game.ts", "export const game = 1;\n");
   write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\n`);
+  // 台帳の初めの行: 取り込んだ上流(Tier1)の版を upstream: に(D29)
+  write(root, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
   commitAll(root, "fork start");
   return root;
 }
+
+/** 台帳に 1 行足す(upstream: = 今取り込んだ親の版) */
+const recordLedger = (fork, id, ledger = FORK_ID) => {
+  const path = `.notices/applied/${ledger}.md`;
+  const current = readFileSync(join(fork, path), "utf8");
+  write(fork, path, `${current}- id:${id} | date:x | commit:- | upstream:${git(fork, "rev-parse", "upstream/main").trim()} | notes:-\n`);
+};
 
 const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
 
@@ -115,7 +124,7 @@ describe("ownership:check", () => {
     assert.equal(result.ownerId, FORK_ID);
     assert.equal(result.remote, "upstream");
     assert.equal(result.branch, "main");
-    assert.deepEqual(result.counts, { added: 2, intake: 2, append: 1 });
+    assert.deepEqual(result.counts, { added: 3, intake: 2, append: 1 });
     assert.equal(cli(fork).status, 0);
   });
 
@@ -175,7 +184,7 @@ describe("ownership:check", () => {
     commitAll(parent, "resolve");
     git(fork, "fetch", "-q", "upstream");
     git(fork, "merge", "-q", "--no-edit", "upstream/main");
-    write(fork, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:20261029-130000-user-hook-intake | date:x | commit:- | notes:-\n`);
+    recordLedger(fork, "20261029-130000-user-hook-intake");
     commitAll(fork, "ledger");
     const result = runCheck(fork);
     assert.equal(result.status, "fail");
@@ -223,9 +232,58 @@ describe("ownership:check", () => {
     assert.equal(result.status, "unverified");
     assert.deepEqual(result.unrecorded, ["20261029-000000-new"]);
 
-    write(fork, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:20261029-000000-new | date:x | commit:- | notes:-\n`);
+    recordLedger(fork, "20261029-000000-new");
     commitAll(fork, "ledger");
     assert.equal(runCheck(fork).status, "pass");
+  });
+
+  test("多段(D29): Tier3 は親(中間 Tier)の台帳の upstream: で Tier1 の版を決め、中間 Tier の物の書き換え・削除・rename は合格(参考)", () => {
+    const tier1 = makeParent();
+    const tier2 = makeFork(tier1); // game.ts を足した中間 Tier(名前 child)
+    write(tier2, "src/features/game/rules.ts", "export const rules = 1;\n");
+    commitAll(tier2, "tier2 more");
+    const tier1Sha = git(tier2, "rev-parse", "upstream/main").trim();
+
+    const tier3 = join(tmp, `tier3-${(counter += 1)}`);
+    git(tmp, "clone", "-q", tier2, tier3);
+    git(tier3, "remote", "rename", "origin", "upstream");
+    git(tier3, "remote", "add", "origin", "git@github.com:acme/grandchild.git");
+    write(tier3, ".claude/rules/project.md", "## TIER\nfork_id: grandchild\n");
+    write(tier3, ".notices/applied/grandchild.md", `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(tier3, "rev-parse", "upstream/main").trim()} | notes:-\n`);
+    write(tier3, "src/features/game/game.ts", "export const game = 3;\n"); // 中間 Tier の物の書き換え
+    git(tier3, "rm", "-q", "src/features/game/rules.ts"); // 中間 Tier の物の削除
+    commitAll(tier3, "tier3");
+    const ok = runCheck(tier3);
+    assert.equal(ok.status, "pass", JSON.stringify(ok.entries?.filter((e) => e.verdict === "violation")));
+    assert.equal(ok.tier1.sha, tier1Sha);
+    assert.equal(ok.tier1.ledger, FORK_ID);
+    assert.deepEqual(ok.middleTier.map((m) => `${m.was}:${m.path}`).sort(), ["deleted:src/features/game/rules.ts", "outside-intake:src/features/game/game.ts"]);
+
+    // Tier1 の物は今どおり厳密
+    write(tier3, "src/features/core/user/user.ts", "export const user = 3;\n");
+    commitAll(tier3, "tier1 file");
+    const ng = runCheck(tier3);
+    assert.equal(ng.status, "fail");
+    assert.equal(ng.entries.find((e) => e.path === "src/features/core/user/user.ts").reason, "outside-intake");
+  });
+
+  test("多段: 台帳に upstream: が無い・その sha が辿れない・親の版に fork_id: が無い → 未検証(2)", () => {
+    const parent = makeParent();
+    const fork = makeFork(parent);
+    write(fork, `.notices/applied/${FORK_ID}.md`, "# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | notes:-\n");
+    commitAll(fork, "no field");
+    assert.match(runCheck(fork).reason, /upstream:<sha> の行が無い/);
+    assert.equal(cli(fork).status, 2);
+
+    write(fork, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${"0".repeat(40)} | notes:-\n`);
+    commitAll(fork, "bad sha");
+    assert.match(runCheck(fork).reason, /履歴に無い/);
+
+    const noName = makeParent();
+    const fork2 = makeFork(noName);
+    write(noName, ".claude/rules/project.md", "## TIER\n");
+    commitAll(noName, "drop name");
+    assert.match(runCheck(fork2).reason, /fork_id: が無い/);
   });
 
   test("--json は結果のオブジェクトをそのまま出す", () => {
