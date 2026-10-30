@@ -3,6 +3,7 @@
 // - 退会の後片付け: 必須 → 任意の順、必須の失敗は投げる、任意の失敗は続行、enabled false は走らない。上流の項目の組
 // - コイン創出のソース: enabled false は外す。上流の項目の組(一覧の順 = ファイル名の順)
 // - 読み込み: 項目と読み手が互いを読み合っても、どの入口から読んでも壊れない(入口ごとに別プロセス)
+// fork でも走る: 動きの検査は全 Tier、上流の項目の組と既定の値の厳密な比較は Tier1 だけ(fork は項目を足し、config を書き換え、スイッチの向きを変え、機能を閉じる)
 // 実行: pnpm test:extension-items
 
 import assert from "node:assert/strict";
@@ -39,12 +40,21 @@ import { buildStrategyMap } from "@/features/core/purchaseRequest/services/serve
 import { buildRewardHandlerMap } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
 import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
 import { seoConfig } from "@/config/seo.config";
-import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import { readDeclaredForkIds, readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const tx = {} as never;
+const { isTier1 } = readForkIdentity(ROOT);
+/** 上流の既定の値の検査(fork では飛ばす) */
+const tier1Only = { skip: isTier1 ? false : "上流の既定の値の検査(Tier1 だけ)" };
+/** Tier1 は完全一致、fork は上流の項目を含むこと */
+const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) => {
+  if (isTier1) assert.deepEqual([...actual], [...upstream]);
+  else for (const item of upstream) assert.ok(actual.includes(item), `上流の項目 ${item} が無い`);
+};
 
 test("後片付け: 必須 → 任意の順、無効は走らない、任意の失敗は続行", async () => {
   const log: string[] = [];
@@ -95,15 +105,15 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   const plan = planExtensions(ROOT);
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   const names = (owner: string, point: string) => itemsOf(plan, owner, point).map((i: { name: string }) => i.name);
-  assert.deepEqual(names("src/features/core/user", "cleanupHandlers"), ["purchaseRequest", "wallet"]);
-  assert.deepEqual(names("src/features/core/analytics", "coinIssuanceSources"), ["couponAttributionReward", "purchaseBonusGap", "referralReward"]);
-  assert.deepEqual(names("src/features/core/analytics", "rollupMetrics"), []);
-  assert.deepEqual(names("src/features/core/user", "reservedNames"), []);
-  assert.deepEqual(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
-  assert.deepEqual(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
+  assertUpstreamItems(names("src/features/core/user", "cleanupHandlers"), ["purchaseRequest", "wallet"]);
+  assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["couponAttributionReward", "purchaseBonusGap", "referralReward"]);
+  assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), []);
+  assertUpstreamItems(names("src/features/core/user", "reservedNames"), []);
+  assertUpstreamItems(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
+  assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
 });
 
-test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", async () => {
+test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", tier1Only, async () => {
   assert.equal(getPaymentSessionEnricher(), null);
   assert.equal(getCouponIssuerProgram(), null);
   assert.equal(isCouponIssuerProgramEnabled(), false);
@@ -112,7 +122,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["RateLimitWarningContent.default", "adjustmentNotificationTemplate.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
 });
 
-test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", () => {
+test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", tier1Only, () => {
   assert.equal(getCoinIssuanceLabel("purchase_bonus_gap"), "購入時ボーナス発行");
   assert.equal(getCoinIssuanceLabel("unknown_key"), "unknown_key");
   assert.deepEqual(Object.keys(getAllCoinIssuanceLabels()).sort(), ["coupon_attribution_reward", "purchase_bonus_gap", "referral_reward"]);
@@ -133,7 +143,9 @@ const ENTRIES = [
   ["src/features/core/referralReward/services/server/referralRewardService.ts", null, null],
 ] as const;
 
-for (const [entry, fn, arg] of ENTRIES) {
+for (const [entry, rawFn, arg] of ENTRIES) {
+  // ジョブのハンドラは wallet を閉じた fork では enabled で外れる
+  const fn = rawFn === "getHandler" && !APP_FEATURES.wallet.enabled ? null : rawFn;
   test(`読み込み: ${entry} から読んでも壊れない${fn ? `、${fn}("${arg}") が引ける` : ""}`, () => {
     const code = `const m = await import(${JSON.stringify(`${ROOT}/${entry}`)});${fn ? `const r = m.${fn}(${JSON.stringify(arg)}); if (!r) throw new Error("not found");` : ""}process.exit(0);`;
     const result = spawnSync("npx", ["tsx", "--import", "./scripts/test/serverOnlyStub.mjs", "--input-type=module", "-e", code], { cwd: ROOT, encoding: "utf8", env: { ...process.env, DATABASE_URL: "" } });
@@ -159,12 +171,12 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
     console.error = originalError;
   }
   assert.deepEqual(log, ["a", "b", "c"]);
-  assert.deepEqual(webhookHandlers, []);
+  if (isTier1) assert.deepEqual(webhookHandlers, []);
 });
 
 test("タスクの走査: 上流の 7 本、名前の一致と読み込み", async () => {
   const tasks = listOneShotTasks(ROOT, readDeclaredForkIds(ROOT).all);
-  assert.deepEqual(tasks.map((t) => t.name), [
+  assertUpstreamItems(tasks.map((t) => t.name), [
     "analytics-rollup-backfill",
     "paired-device-pair",
     "purchase-quota-cleanup",
@@ -207,9 +219,9 @@ test("管理者コマンド: 非管理者は読み込まない、管理者は上
   const spy = [{ name: "x", load: async () => { calls += 1; return {} as never; } }];
   assert.equal(await loadForAdmin(false, { categories: spy, plugins: spy }), null);
   assert.equal(calls, 0);
-  assert.deepEqual(categories.map((c) => c.name), ["navigation", "settings", "userSession"]);
-  assert.deepEqual(plugins, []);
-  assert.deepEqual(navigationItems.map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings", "nav-admin-insane"]);
+  assertUpstreamItems(categories.map((c) => c.name), ["navigation", "settings", "userSession"]);
+  if (isTier1) assert.deepEqual(plugins, []);
+  assertUpstreamItems(navigationItems.map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings", "nav-admin-insane"]);
 });
 
 test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテゴリの中はフォルダ名の順、閉じたデモは除く", () => {
@@ -223,19 +235,20 @@ test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテ
     dev: ["check-env"],
   };
   const groups = groupDemoPagesByCategory(demoPages);
-  assert.deepEqual(Object.fromEntries(groups.map((g) => [g.key, g.pages.map((p) => p.folder)])), expected);
-  assert.deepEqual(groups.map((g) => g.key), DEMO_CATEGORIES.map((c) => c.key));
+  const byKey = Object.fromEntries(groups.map((g) => [g.key, g.pages.map((p) => p.folder)]));
+  for (const [key, folders] of Object.entries(expected)) assertUpstreamItems(byKey[key] ?? [], folders);
+  if (isTier1) assert.deepEqual(groups.map((g) => g.key), DEMO_CATEGORIES.map((c) => c.key));
   const open = openDemoPages(demoPages, [{ enabled: () => false, pathPatterns: ["/demo/tables"] }, { enabled: () => true, pathPatterns: ["/demo/popover"] }]);
   assert.equal(open.length, demoPages.length - 1);
   assert.equal(open.some((p) => p.folder === "tables"), false);
 });
 
-test("マイルストーンのレンダラー: 上流の項目は 0", () => {
-  assert.deepEqual(Object.keys(renderers), []);
+test("マイルストーンのレンダラー: 上流の項目は 0、プロトタイプに当たらない", () => {
+  if (isTier1) assert.deepEqual(Object.keys(renderers), []);
   assert.equal(renderers["constructor"], undefined);
 });
 
-test("チャット添付: 既定の許可種別、種別が空は通す、サイズ上限は今までどおり", () => {
+test("チャット添付: 既定の許可種別、種別が空は通す、サイズ上限は今までどおり", tier1Only, () => {
   const file = (type: string, size = 1) => ({ type, size }) as File;
   assert.equal(validateChatFile(file("image/png"), "image").valid, true);
   assert.equal(validateChatFile(file("video/mp4"), "image").valid, false);
@@ -262,7 +275,7 @@ test("同じ鍵: 購入完了の strategy と紹介報酬の rewardHandler は�
   assert.throws(() => buildRewardHandlerMap([handler("a"), handler("a")]), /複数あります/);
 });
 
-test("残高調整の通知: 既定の組み立ては今までと同じ形", () => {
+test("残高調整の通知: 既定の組み立ては今までと同じ形", tier1Only, () => {
   const walletType = Object.keys(CURRENCY_CONFIG)[0] as WalletType;
   const { label, unit } = CURRENCY_CONFIG[walletType];
   const params = { walletType, changeMethod: "INCREMENT", amount: 1000, balanceBefore: 0, balanceAfter: 1000, reason: "r" };
@@ -273,9 +286,13 @@ test("残高調整の通知: 既定の組み立ては今までと同じ形", () 
   assert.ok(lines[3].endsWith(": r"));
 });
 
-test("root の lang・viewport: 既定は今までと同じ、layout は config を読む", () => {
-  assert.equal(seoConfig.htmlLang, "en");
+test("root の lang・viewport の既定: lang は ja で OGP の locale と揃う", tier1Only, () => {
+  assert.equal(seoConfig.htmlLang, "ja");
+  assert.equal(seoConfig.locale, "ja_JP");
   assert.deepEqual(seoConfig.viewport, { width: "device-width", initialScale: 1 });
+});
+
+test("root の lang・viewport: layout は config を読む", () => {
   const layout = readFileSync(join(ROOT, "src/app/layout.tsx"), "utf8");
   assert.match(layout, /lang=\{seoConfig\.htmlLang\}/);
   assert.match(layout, /export const viewport: Viewport = seoConfig\.viewport;/);

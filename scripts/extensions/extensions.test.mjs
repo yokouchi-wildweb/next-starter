@@ -15,6 +15,8 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
+
 import { readDeclaration } from "./declarations.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { checkSwitches } from "./switches.mjs";
@@ -259,7 +261,8 @@ test("実リポ: 宣言・項目の問題が無く、生成一覧が一致し、
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   assert.deepEqual(staleOutputs(repoRoot, plan.outputs), []);
   assert.deepEqual(strayExtensionFiles(repoRoot, plan.outputs, plan.points), []);
-  assert.deepEqual(plan.overrides, [], "上流は override を出荷しない");
+  // override は足した Tier の物(fork の cron の override.ts は受け口)。上流だけ 0 を見る
+  if (readForkIdentity(repoRoot).isTier1) assert.deepEqual(plan.overrides, [], "上流は override を出荷しない");
 });
 
 test("files の点: 1 段下の決まった名前のファイルが項目、folder が付く、印が無ければ失敗", () => {

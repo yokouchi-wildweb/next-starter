@@ -26,7 +26,7 @@ export const seoConfig = {
   locale: "ja_JP",
 
   /** <html lang> */
-  htmlLang: "en",
+  htmlLang: "ja",
 
   /**
    * root の viewport。省略した項目は Next の既定。
