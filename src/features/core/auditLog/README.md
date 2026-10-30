@@ -30,14 +30,14 @@ src/features/core/auditLog/
 ├── services/client/auditLogClient.ts  # search / searchByTarget / searchBySubjectUser / fetchMine
 ├── hooks/                         # useAuditLogSearch / useAuditLogsByTarget / useAuditLogsBySubjectUser
 ├── components/common/             # AuditTimeline / UserActivityTimeline
-├── presenters.ts                  # registerActionLabels / formatActionLabel 等
+├── presenters.ts                  # formatActionLabel 等(値は config/app/audit.config.ts)
 └── index.ts                       # client-safe バレル (server-only は非 export)
 ```
 
 import の使い分け:
 
 - **server（記録・参照）**: `import { auditLogger } from "@/features/core/auditLog/services/server";`
-- **client / 表示系**: `import { AuditTimeline, auditLogClient, registerActionLabels } from "@/features/core/auditLog";`
+- **client / 表示系**: `import { AuditTimeline, auditLogClient } from "@/features/core/auditLog";`
 - **context 操作**: `import { runAsSystem, runWithAuditContext } from "@/lib/audit";`
 
 `auditLogger` はバレル (`@/features/core/auditLog`) からは export されない。Client Component 経由で `node:async_hooks` / DB ドライバがクライアントバンドルに流入するのを防ぐため。
@@ -269,11 +269,11 @@ import { AuditTimeline, UserActivityTimeline } from "@/features/core/auditLog";
 ### ユーザー本人向け（`GET /api/me/audit-logs`、fail-closed）
 
 - 対象 = 「`target_type='user'` かつ `target_id`=本人」または「`actor_id`=本人」の行（**subject_user_id は見ない** = 本人のウォレット等が target の介入は返らない）
-- さらに `src/registry/userVisibleAuditActionsRegistry.ts` の `USER_VISIBLE_AUDIT_ACTIONS` に登録された action だけを返す。上流は空 = 常に空結果（DB も照会しない）
+- さらに `src/config/app/audit.config.ts` の `USER_VISIBLE_AUDIT_ACTIONS` に登録された action だけを返す。上流は空 = 常に空結果（DB も照会しない）
 - 理由: 監査ログには covert な管理操作（不正フラグ・強制介入・制限措置）が before / after 込みで残るため、本人に見せてよい action を明示オプトインさせる
 
 ```ts
-// src/registry/userVisibleAuditActionsRegistry.ts（下流で編集）
+// src/config/app/audit.config.ts（下流で編集）
 export const USER_VISIBLE_AUDIT_ACTIONS: readonly string[] = [
   "wallet.balance.charged", // 完全一致
   "user.profile.*",         // prefix（末尾 ".*" のみ。単独 "*" は無視される）
@@ -285,15 +285,13 @@ export const USER_VISIBLE_AUDIT_ACTIONS: readonly string[] = [
 
 ### action ラベル
 
-未登録の action は名前がそのまま表示される。表示名は `registerActionLabels` で追加する（AuditTimeline / 管理画面に反映）。
+未登録の action は名前がそのまま表示される。表示名は `src/config/app/audit.config.ts` の `AUDIT_ACTION_LABELS` に足す（AuditTimeline / 管理画面に反映）。
 
 ```ts
-import { registerActionLabels } from "@/features/core/auditLog";
-
-registerActionLabels({
+export const AUDIT_ACTION_LABELS: Readonly<Record<string, string>> = {
   "post.created": "投稿を作成",
   "post.status.changed": "投稿ステータス変更",
-});
+};
 ```
 
 ---

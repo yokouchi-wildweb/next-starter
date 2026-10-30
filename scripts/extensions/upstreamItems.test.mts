@@ -13,6 +13,9 @@ import { test } from "node:test";
 import { onDemoUserCreated } from "@/features/core/auth/services/server/onDemoUserCreated";
 import { getCouponIssuerProgram, isCouponIssuerProgramEnabled } from "@/features/core/couponIssuerGrant/services/server/program";
 import { getPaymentSessionEnricher } from "@/features/core/purchaseRequest/services/server/payment/getSessionEnricher";
+import { getAllCoinIssuanceLabels, getCoinIssuanceLabel } from "@/features/core/analytics/services/server/coinIssuance/labels";
+import { formatActionLabel } from "@/features/core/auditLog/presenters";
+import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
 import { activeCoinIssuanceSources } from "@/features/core/analytics/services/server/coinIssuance/activeSources";
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
 import { runCleanupItems } from "@/features/core/user/services/server/cleanup";
@@ -86,6 +89,15 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   assert.equal(await onDemoUserCreated("u1"), undefined);
   const plan = planExtensions(ROOT);
   assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
+});
+
+test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", () => {
+  assert.equal(getCoinIssuanceLabel("purchase_bonus_gap"), "購入時ボーナス発行");
+  assert.equal(getCoinIssuanceLabel("unknown_key"), "unknown_key");
+  assert.deepEqual(Object.keys(getAllCoinIssuanceLabels()).sort(), ["coupon_attribution_reward", "purchase_bonus_gap", "referral_reward"]);
+  assert.equal(formatActionLabel("wallet.balance.cleared"), "残高クリア");
+  assert.equal(formatActionLabel("unknown.action.done"), "unknown.action.done");
+  assert.deepEqual(buildCouponAdminSectionTabs().map((tab) => tab.value), ["official", "affiliate", "invite"]);
 });
 
 const ENTRIES = [

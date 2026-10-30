@@ -1,15 +1,16 @@
 // src/features/core/auditLog/presenters.ts
 //
 // action 名 → 表示ラベル変換と、ログ表示時のフォーマッタ群。
-// ドメイン側で追加 action を表示したい場合は registerActionLabels() で登録する。
+// ドメイン側で追加 action を表示したい場合は src/config/app/audit.config.ts の AUDIT_ACTION_LABELS に足す。
 
+import { AUDIT_ACTION_LABELS } from "@/config/app/audit.config";
 import type { AuditActorType } from "@/features/core/auditLog/constants";
 import { ACTOR_TYPE_LABELS } from "@/features/core/auditLog/constants";
 
 /**
  * 既定の action 名 → 日本語ラベル辞書。
  * テンプレートで提供している user 系 action のみ含む。
- * 他ドメインの action ラベルは registerActionLabels() で追加登録する。
+ * 他ドメインの action ラベルは src/config/app/audit.config.ts の AUDIT_ACTION_LABELS に足す。
  */
 const DEFAULT_ACTION_LABELS: Record<string, string> = {
   // user lifecycle
@@ -55,23 +56,11 @@ const DEFAULT_ACTION_LABELS: Record<string, string> = {
   "wallet.balance.cleared": "残高クリア",
 };
 
-const customActionLabels: Record<string, string> = {};
-
 /**
- * フォーク先のドメインで追加 action を登録する。
- * 例: registerActionLabels({ "post.published": "公開" })
- *
- * 登録した action は AuditTimeline / 管理画面で日本語表示される。
- */
-export function registerActionLabels(labels: Record<string, string>): void {
-  Object.assign(customActionLabels, labels);
-}
-
-/**
- * action 名 → 表示ラベル。未登録の action はそのまま返す。
+ * action 名 → 表示ラベル（config の値が既定に勝つ）。未登録の action はそのまま返す。
  */
 export function formatActionLabel(action: string): string {
-  return customActionLabels[action] ?? DEFAULT_ACTION_LABELS[action] ?? action;
+  return AUDIT_ACTION_LABELS[action] ?? DEFAULT_ACTION_LABELS[action] ?? action;
 }
 
 /**

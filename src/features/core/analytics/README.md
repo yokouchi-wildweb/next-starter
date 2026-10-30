@@ -403,7 +403,7 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 1. `CoinIssuanceSource` を満たす値を作成する
 2. `services/server/coinIssuance/sources/<名前>.<fork の名前>.ts` に `export const source` を置き `pnpm extensions:generate`（閉じられる機能を読むソースは `enabled` が必須）
    - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
-3. (任意) `services/server/coinIssuance/labels.ts` の `registerCoinIssuanceLabels` で表示名を登録する
+3. (任意) `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_LABELS` に表示名を足す
 
 ### 実装テンプレート
 
@@ -453,13 +453,8 @@ export const source = gachaProfitSource;
 ```
 
 ```typescript
-// (任意) ラベル登録 (downstream の任意の初期化箇所)
-import { registerCoinIssuanceLabels } from "@/features/core/analytics/services/server/coinIssuance/labels";
-
-registerCoinIssuanceLabels({
+// (任意) src/config/app/coin-issuance.config.ts の COIN_ISSUANCE_LABELS に足す
   gacha_profit: "ガチャ収支",
-  winning_report_reward: "当選報告特典",
-});
 ```
 
 ### 実装上のベストプラクティス
@@ -548,7 +543,7 @@ upstream で組み込みソースの `key` をリネームした際の移行履�
 1. (当時の登録表の) import 文を `purchaseBonusGap` 系シンボルに置換 (上記表参照)。
 2. 管理画面ダッシュボード等で `sources["coupon_bonus_gap"]` をハードコード参照している箇所を `sources["purchase_bonus_gap"]` に置換。
    - grep 推奨: `grep -rn "coupon_bonus_gap\|couponBonusGap" src/`
-3. ダウンストリーム独自に `registerCoinIssuanceLabels({ coupon_bonus_gap: "..." })` でラベルを上書きしていた場合は新 key に変更。
+3. ダウンストリーム独自に(当時の登録関数で) `coupon_bonus_gap` のラベルを上書きしていた場合は新 key に変更。
 4. 「コインボーナス」というラベル文字列を独自に表示していた場合は `getCoinIssuanceLabel("purchase_bonus_gap")` で取得する形に統一を推奨 (upstream で「購入時ボーナス発行」が登録済み)。
 
 **互換 alias 出力なし**: API レスポンスは新 key (`purchase_bonus_gap`) のみを返す。旧 key (`coupon_bonus_gap`) は出力されないため、本変更を pull したリリースで即時にダウンストリームを更新する必要がある。

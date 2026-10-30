@@ -1,19 +1,16 @@
 // src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts
 // 管理者による残高変更通知のテンプレート
-// ダウンストリームでの文言カスタマイズはこのファイルを編集する
+// 文言は src/config/app/wallet-notification.config.ts(このファイルは編集しない)
 
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { WALLET_ADJUSTMENT_NOTIFICATION } from "@/config/app/wallet-notification.config";
 
 // ---------------------------------------------------------------------------
 // ラベル定義
 // ---------------------------------------------------------------------------
 
 /** 操作方法の表示ラベル */
-export const CHANGE_METHOD_LABELS: Record<string, string> = {
-  INCREMENT: "増加",
-  DECREMENT: "減少",
-  SET: "残高設定",
-};
+export const CHANGE_METHOD_LABELS = WALLET_ADJUSTMENT_NOTIFICATION.changeMethodLabels;
 
 // ---------------------------------------------------------------------------
 // フォーマッタ
@@ -60,7 +57,7 @@ export type AdjustmentNotificationParams = {
 /** 通知タイトルを生成 */
 export function buildTitle(params: AdjustmentNotificationParams): string {
   const { label } = CURRENCY_CONFIG[params.walletType];
-  return `${label}残高が変更されました`;
+  return `${label}${WALLET_ADJUSTMENT_NOTIFICATION.titleSuffix}`;
 }
 
 /** 通知本文を生成 */
@@ -69,14 +66,15 @@ export function buildBody(params: AdjustmentNotificationParams): string {
   const delta = formatDelta(params.changeMethod, params.amount, params.walletType);
   const after = formatAmount(params.balanceAfter, params.walletType);
 
+  const labels = WALLET_ADJUSTMENT_NOTIFICATION.bodyLabels;
   const lines = [
-    `操作: ${methodLabel}`,
-    `金額: ${delta}`,
-    `残高: ${after}`,
+    `${labels.method}: ${methodLabel}`,
+    `${labels.amount}: ${delta}`,
+    `${labels.balance}: ${after}`,
   ];
 
   if (params.reason) {
-    lines.push(`理由: ${params.reason}`);
+    lines.push(`${labels.reason}: ${params.reason}`);
   }
 
   return lines.join("\n");

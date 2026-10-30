@@ -1,12 +1,12 @@
 // クーポン管理画面のセクションタブ一覧を組み立てる
 //
 // core 部分 = CouponTypeOptions（official / affiliate / invite）由来の 3 タブ。
-// downstream 追加分 = src/registry/couponAdminSectionTabsRegistry.ts の登録内容を末尾に連結する。
+// downstream 追加分 = adminSectionTabs/ の項目(一覧 extensions/sectionTabs)を末尾に連結する。
 // クーポン管理画面（core / downstream 問わず）はローカルでタブ配列を組まず、必ずこの関数を使う。
 
 import type { PageTabItem } from "@/components/Navigation";
 import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
-import { extraCouponAdminSectionTabs } from "@/registry/couponAdminSectionTabsRegistry";
+import { sectionTabs } from "@/features/core/coupon/extensions/sectionTabs";
 
 /** クーポン管理画面のベース URL */
 export const COUPON_ADMIN_BASE_PATH = "/admin/coupons";
@@ -28,7 +28,7 @@ function buildCoreCouponAdminSectionTabs(): PageTabItem[] {
 export function buildCouponAdminSectionTabs(): PageTabItem[] {
   const tabs = buildCoreCouponAdminSectionTabs();
   const seen = new Set(tabs.map((tab) => tab.value));
-  for (const tab of extraCouponAdminSectionTabs) {
+  for (const tab of sectionTabs) {
     if (seen.has(tab.value)) continue;
     seen.add(tab.value);
     tabs.push(tab);

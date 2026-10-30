@@ -27,7 +27,7 @@ export type CouponAttributionReward = {
  * redeemer_user_id / coupon_history_id / wallet_history_id（消込者・購入へ辿れる ID）、
  * failure_reason（運用者向け例外文言）、updatedAt は含めない。
  * recipient_user_id は本人自身なので省く。
- * metadata は許可リスト（src/registry/couponAttributionRewardRecipientMetadataRegistry.ts）の
+ * metadata は許可リスト（src/config/app/coupon-attribution.config.ts）の
  * キーのみ通す（上流既定は空 = 常に {}）。
  */
 export type CouponAttributionRewardForRecipient = Pick<

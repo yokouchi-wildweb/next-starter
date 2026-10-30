@@ -31,7 +31,7 @@ type Props = {
  * 汎用監査ログタイムライン（target_type / target_id 軸）。
  *
  * 任意のドメインの履歴タブに `<AuditTimeline targetType="user" targetId={id} />` の
- * 形で配置できる。action 名のラベル変換は `registerActionLabels()` で
+ * 形で配置できる。action 名のラベル変換は `AUDIT_ACTION_LABELS`(src/config/app/audit.config.ts)で
  * ドメイン側から拡張可能。
  *
  * 「ユーザー単位の集約タイムライン」（target_type を跨ぐ）は別の

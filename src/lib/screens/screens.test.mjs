@@ -3,7 +3,7 @@
 //
 // 登録は不要。検査対象は自動検出する(M1):
 //   - src/app 全体のページ(./routeTree.mjs の discoverRoutes。`_` で始まるフォルダと src/app/api を除く、@slot は含む)から、
-//     SCAN_EXCLUDES と fork の FORK_SCAN_EXCLUDES(src/registry/screenRoutesRegistry.ts)の配下を除いたもの
+//     SCAN_EXCLUDES と fork の FORK_SCAN_EXCLUDES(src/config/app/screens.config.ts)の配下を除いたもの
 //     (除外は構造の検査だけ。ルート地図 src/app/route-map.jsonl には除外したページも載る)
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
 //
@@ -25,7 +25,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // fork の merge で export が欠けても import 時に落ちず、鮮度テストが指摘できるよう namespace import にする
-import * as registry from "../../registry/screenRoutesRegistry.ts";
+import * as registry from "../../config/app/screens.config.ts";
 import {
   ROUTE_LOADER_FILE,
   SCREEN_DIRS,
@@ -267,7 +267,7 @@ for (const loader of routeLoaders) {
 
 test("FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES: 不要になった FORK_SCAN_ROOTS の行・存在しない・重複した除外が無い", () => {
   const stale = staleScanEntries();
-  assert.deepEqual(stale, [], `src/registry/screenRoutesRegistry.ts を更新する:\n${stale.join("\n")}`);
+  assert.deepEqual(stale, [], `src/config/app/screens.config.ts を更新する:\n${stale.join("\n")}`);
 });
 
 // wallet ルートは fork が削除してよい(README §7)ので、ディレクトリがあるときだけ「検出されること」を検査する

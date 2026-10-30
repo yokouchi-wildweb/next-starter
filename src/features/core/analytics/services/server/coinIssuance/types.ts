@@ -13,7 +13,7 @@
 // 拡張方法:
 //  1. CoinIssuanceSource を満たす値を作る (sources/ 配下に追加)
 //  2. pnpm extensions:generate で一覧に入る(一覧の順 = ファイル名の順)
-//  3. (任意) labels.ts の registerCoinIssuanceLabels で表示名を登録する
+//  3. (任意) labels.ts の src/config/app/coin-issuance.config.ts に表示名を足す
 //
 // 集計の符号規約:
 //  - kind: "revenue"   = 収入 (プラス)。finalProfit に加算される

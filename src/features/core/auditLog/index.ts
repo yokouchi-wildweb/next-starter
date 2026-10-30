@@ -32,7 +32,6 @@ export {
   formatActionLabel,
   formatActorTypeLabel,
   formatAuditDate,
-  registerActionLabels,
 } from "./presenters";
 
 export { AuditTimeline } from "./components/common/AuditTimeline";

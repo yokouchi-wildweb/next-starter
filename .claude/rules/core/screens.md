@@ -2,7 +2,7 @@
 paths:
   - "src/app/**"
   - "src/lib/screens/**"
-  - "src/registry/screenRoutesRegistry.ts"
+  - "src/config/app/screens.config.ts"
   - "src/features/core/admin/services/server/screenData/**"
   - "src/lib/pageGuard/**"
 ---

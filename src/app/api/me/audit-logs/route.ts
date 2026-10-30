@@ -4,7 +4,7 @@
 // "自分が target として記録された" ログ + "自分が actor として実行した" ログを
 // OR で結合してタイムライン順に返す。
 //
-// fail-closed: USER_VISIBLE_AUDIT_ACTIONS（src/registry/userVisibleAuditActionsRegistry.ts）
+// fail-closed: USER_VISIBLE_AUDIT_ACTIONS（src/config/app/audit.config.ts）
 // に登録された action のみ返す。監査ログには本人に開示してはならない covert な
 // 管理操作が記録され得るため、未登録 action は本人が target / actor でも返さない。
 // レジストリが空（上流既定）の場合は DB を照会せず常に空結果。

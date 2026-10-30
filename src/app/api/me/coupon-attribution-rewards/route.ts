@@ -13,7 +13,7 @@ import {
   toCouponAttributionRewardForRecipient,
   type CouponAttributionRewardForRecipient,
 } from "@/features/core/couponAttributionReward/entities/model";
-import { RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS } from "@/registry/couponAttributionRewardRecipientMetadataRegistry";
+import { RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS } from "@/config/app/coupon-attribution.config";
 import type { PaginatedResult, SearchParams } from "@/lib/crud";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 

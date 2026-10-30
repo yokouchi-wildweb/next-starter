@@ -388,10 +388,10 @@ if (result.valid) {
 `/admin/coupons/*` の上部タブ（公式プロモーション / アフィリエイト / ユーザー招待）は
 `CouponTypeOptions`（クーポン種別 enum）から生成される。ただし **種別 enum と画面セクションは別物**。
 downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を
-`/admin/coupons/<slug>` に置く場合、レジストリに登録すれば core の全クーポン管理画面のタブに末尾追加される。
+`/admin/coupons/<slug>` に置く場合、受け口に項目を置けば core の全クーポン管理画面のタブに末尾追加される。
 
-- レジストリ: `src/registry/couponAdminSectionTabsRegistry.ts`（`extraCouponAdminSectionTabs: PageTabItem[]`、upstream は空 = 従来どおり 3 タブ）
-- 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 登録分。value 重複は core 優先で除外
+- 受け口: `adminSectionTabs/<名前>.<fork の名前>.ts` の `export const tab: PageTabItem`（一覧 `extensions/sectionTabs`、upstream は空 = 従来どおり 3 タブ）
+- 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 項目。value 重複は core 優先で除外
 - 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`placement?: "body" | "header"`、既定 body）。header は AdminHeaderPortal slot="center" に size="sm" で出す。core ページ（official / invite / affiliate）は `placement="header"`
 - **一覧コンポーネント（`AdminCouponList` / referral `AdminInviteList`）はタブを描画しない**。配置（本文 or ヘッダー）はページの関心事なので Screen が CouponSectionTabs を置く。これらを使う downstream の Screen も自分でタブを置くこと（置かなければタブなし）
 - DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
@@ -399,10 +399,8 @@ downstream が種別に属さない派生クーポンの専用画面（例: フ�
 ### downstream レシピ
 
 ```typescript
-// 1. src/registry/couponAdminSectionTabsRegistry.ts
-export const extraCouponAdminSectionTabs: PageTabItem[] = [
-  { value: "friend-coupon", label: "フレンドクーポン", href: "/admin/coupons/friend-coupon" },
-];
+// 1. src/features/core/coupon/adminSectionTabs/friendCoupon.<fork の名前>.ts → pnpm extensions:generate
+export const tab: PageTabItem = { value: "friend-coupon", label: "フレンドクーポン", href: "/admin/coupons/friend-coupon" };
 
 // 2. src/app/admin/(protected)/coupons/friend-coupon/_screen/AdminFriendCouponScreen.tsx（downstream 実装）
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";

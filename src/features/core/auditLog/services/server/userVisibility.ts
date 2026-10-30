@@ -7,7 +7,7 @@
 // 呼び出し側は DB を照会せず空結果を返すこと。
 
 import type { WhereExpr } from "@/lib/crud";
-import { USER_VISIBLE_AUDIT_ACTIONS } from "@/registry/userVisibleAuditActionsRegistry";
+import { USER_VISIBLE_AUDIT_ACTIONS } from "@/config/app/audit.config";
 
 /**
  * 許可リストを action フィルタの WhereExpr に変換する。

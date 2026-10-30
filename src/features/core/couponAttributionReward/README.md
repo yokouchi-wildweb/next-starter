@@ -150,7 +150,7 @@ const { summary } = useMyAttributionRewardSummary();
 
 - 含む: `id` / `coupon_id` / `wallet_type` / `amount` / `status` / `fulfilled_at` / `createdAt` / `metadata`（許可キーのみ）
 - 含まない: `redeemer_user_id` / `coupon_history_id` / `wallet_history_id`（消込者・購入へ辿れる ID）、`failure_reason`（運用者向け）、`updatedAt`、`recipient_user_id`（本人）
-- `metadata` は `src/registry/couponAttributionRewardRecipientMetadataRegistry.ts` の `RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS` に登録したキーだけ通す。**上流既定は空 = 常に `{}`**（fail-closed）。画面で率・購入金額を出すなら下流が `["rewardRate", "paymentAmount"]` 等を登録する。`purchaseRequestId` のような消込者の購入に辿れるキーは登録しない（管理側の追跡用に書き続けるのは可）
+- `metadata` は `src/config/app/coupon-attribution.config.ts` の `RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS` に登録したキーだけ通す。**上流既定は空 = 常に `{}`**（fail-closed）。画面で率・購入金額を出すなら下流が `["rewardRate", "paymentAmount"]` 等を登録する。`purchaseRequestId` のような消込者の購入に辿れるキーは登録しない（管理側の追跡用に書き続けるのは可）
 - 管理側（serviceRegistry の `couponAttributionReward` 一覧、stats、analytics、`getRecipientSummary`）は生行のまま。hiddenColumns を使わないのは、管理側の読みまで null になってしまうため
 
 ```typescript

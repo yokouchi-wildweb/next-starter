@@ -17,7 +17,7 @@
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
 | `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
 | `src/app/route-map.jsonl` | ルート地図（生成物。1 ページ 1 行の守りの鎖の JSON。手で編集しない。§13） |
-| `src/registry/screenRoutesRegistry.ts` | 構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9） |
+| `src/config/app/screens.config.ts` | 構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9） |
 
 ---
 
@@ -344,11 +344,11 @@ import { BalanceCard } from "./BalanceCard";
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 
 ```ts
-// src/registry/screenRoutesRegistry.ts(fork で編集)
+// src/config/app/screens.config.ts(fork で編集)
 export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 ```
 
-テストは tsx ランナーで動く（`screenRoutesRegistry.ts` の `.ts` を読むため）。pre-commit / CI ガードは置かない。
+テストは tsx ランナーで動く（`screens.config.ts` の `.ts` を読むため）。pre-commit / CI ガードは置かない。
 既知の限界: `stripComments` は正規表現リテラルを追跡しない。`//` や引用符・バッククォートを含む正規表現が page.tsx / Screen / loader にあると判定がずれることがある（検査対象のファイルでは稀。必要なら正規表現を `utils/` に逃がす）。
 
 ## 10. 未移行ルートの扱い（例外リストは無い）

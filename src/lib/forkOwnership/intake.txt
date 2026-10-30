@@ -72,6 +72,8 @@ edit src/features/core/batchJob/jobHandlers/*.*/**  # フォルダ形
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(決済セッションのエンリッチャー)
 edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(クーポン発行者プログラム)
 edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(デモユーザー作成後のフック)
+edit src/features/core/coupon/adminSectionTabs/*.*.ts  # クーポン管理画面のセクションタブ
+edit src/features/core/coupon/adminSectionTabs/*.*/**  # フォルダ形
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
@@ -116,10 +118,8 @@ generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。
 debt src/features/core/milestone/components/renderers/index.ts  # renderers/index.ts:3 レンダラーを足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/adminCommand/config/categories.ts  # categories.ts「編集可能」カテゴリを登録 → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/adminCommand/config/plugins.ts  # plugins.ts「編集可能」プラグインを登録 → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/wallet/components/common/currencyIcons.tsx  # currencyIcons.tsx 通貨のアイコンを足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/chatRoom/utils/validation.ts  # validation.ts:5 ファイル種別の制限を足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # RateLimitWarningContent.tsx:2 文言を編集 → upreq:20261029-200108-debt-intake-texts
-debt src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # adjustmentNotificationTemplate.ts:3・wallet/README.md:192 文言を編集 → upreq:20261029-200108-debt-intake-texts
 debt src/features/core/referral/components/InviteCode/InviteBenefitsSection.tsx  # InviteBenefitsSection.tsx:4 部品を差し替え → upreq:20261029-200108-debt-intake-texts
 debt src/app/api/webhook/line/route.ts  # route.ts:17 ファイルを差し替え → upreq:20261029-200108-debt-intake-texts
 debt src/features/core/setting/setting.extended.ts  # setting.extended.ts:4・CLAUDE.md DOMAINS setting フィールドを足す → upreq:20261029-200108-debt-intake-setting
