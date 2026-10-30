@@ -3,9 +3,9 @@
 SKILL.md「付属ファイル」の条件に当たったときに読む。ここに書いた規則は SKILL.md の同名の節に**追加で**効く(SKILL.md の規則を置き換えない)。仕様: `.notices/README.md`「中継(relay)」。
 
 ## 用語と索引
-- **祖父 notice** = `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice(URL 比較は未適用判定と同じく表記差を無視)。中間 fork-id の台帳(SKILL.md「自 fork の識別と台帳」5)が無いときは祖父 notice を判定しない(従来どおり)。
+- **祖父 notice** = `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice(URL 比較は未適用判定と同じく表記差を無視)。中間 Tier の名前の台帳(SKILL.md「自 fork の識別と台帳」4)が無いときは祖父 notice を判定しない(従来どおり)。
 - **covers 索引**: ツリー内と流入予定のすべての notice(自分の origin のものを除く)の `covers:` を読み、`covered id → covers 側 id` の対応を作る。同じ id を複数の notice が covers していたら、履歴上最も早い covers 側を採る。
-- **祖父 notice の区切り点** = 中間 Tier の台帳にその id が記録された commit: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 fork-id>.md` の最古(`--reverse` で先頭)。台帳の `commit:` 欄は使わない。見つからなければ追加 commit を区切り点とし、計画に「中間 Tier が未適用: T1 の生 commit で区切る」と警告する。
+- **祖父 notice の区切り点** = 中間 Tier の台帳にその id が記録された commit: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` の最古(`--reverse` で先頭)。台帳の `commit:` 欄は使わない。見つからなければ追加 commit を区切り点とし、計画に「中間 Tier が未適用: T1 の生 commit で区切る」と警告する。
 - 祖父 notice で covered されていないものは、中間 Tier の台帳のその id の行の `relay:` 欄で分ける:
   - `relay:none` → 中間 Tier が差分で「中継不要」と判定済み(下記「中継判定」)。上流 notice をそのまま適用する(注記・写像なし)。
   - 欄が無い(旧台帳)→ 計画に「<直上 upstream> からの中継 notice なし。required_actions は中間 Tier の状態を前提に書かれている」と注記し、中間 Tier の台帳の `notes:`(その id の行)を読んで自 fork の実情へ写像する。
@@ -49,7 +49,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 中継判定で下書きするときと、下記「relay モード」で共通の規則。スキーマと書き方の一般則は `.claude/skills/ship/SKILL.md`「notice の合成」(英語・機械間ファイル、事前確認なしで書き出す)。材料は推測せず、次から集める:
 - 上流 notice 本文(change / required_actions / moved / verify)
 - 自台帳のその id の行の `notes:`(逸脱・移植した移動・解消した衝突・足した hook 等)
-- 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<fork-id>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」
+- 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<名前>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」
 - 自分が上流ファイルに加えている編集のうち、その notice が触ったファイルに当たるもの: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>`(下流がこの fork の版を受け取る箇所)
 
 合成:
@@ -60,7 +60,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 - `why:` = 下流から見て何が残っているか(上流のコード作業はこの fork で済んでいる。残りは下流自身のカスタマイズと旧パス参照等)。
 - `required_actions:` の先頭 2 行は**必ず**次を入れる(`covers:` を知らない旧 /flux 向けの互換。新 /flux では no-op):
   `1. Merge <自分の repo> up to THIS notice's commit in ONE segment; do NOT stop at the covered notices' commits (<covered 側の上流 commit 短 sha 列>) — they are raw <上流> commits without <自分>'s conflict resolutions.`
-  `2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your-fork-id>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<fork-id>.md.`
+  `2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your fork_id: name>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<名前>.md.`
   以降に、上流 notice の required_actions のうち下流にも残る作業を、この fork の状態(移植先・自分固有のパス)に合わせて書き直したもの。
 - `verify:` = covered 側の verify のうち下流で意味があるもの + この fork の検証結果(実際に取った数値のみ)。
 - `checkpoint:` = ラベル必須(中継 notice は下流にとって 1 つの休憩点)。

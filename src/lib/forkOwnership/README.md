@@ -11,7 +11,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 
 ## 判定
 
-- 基準 = 直接の親 Tier から最後に取り込んだ版(`/flux` の base と同じ merge-base)。多段の Tier でも直接の親だけを見る
+- 基準 = 直接の親 Tier から最後に取り込んだ版(`/flux` の base と同じ merge-base)。その上で、Tier1 の版にあるファイルだけを厳密に判定する(多段、下の「多段の Tier」)
 - 所有台帳は作らない。基準との git の比較(`git diff --name-status -M <基準> HEAD`)だけで決める
 - fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物(基準に入るので自然にそうなる)
 - 判定の順(`judge.mjs`。reason ごとの合否は `REASONS`)
@@ -56,7 +56,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - upstream の負債の箇所(debt)。受け口ができた notice で外す
   - 削除・rename(D/R): 付ける依頼は「止める受け口(feature-gate 等)を用意してほしい」に限る。受け口ができたら、止めてから復元する
   - 祖先 lib への追加: 付ける依頼は「その lib に入れてほしい / 受け口がほしい」に限る(ふつうは自分の lib に置いて re-export する)
-- 置き場: `.fork-ownership/<fork-id>.permits.txt`(fork-id = `.notices/applied/` と同じ所有者 ID)。fork が足すファイルなので fork の物。多段の Tier では親の許可ファイルも基準に入るが、読むのは自分の fork-id のファイルだけ(親の許可を子が借りない)
+- 置き場: `.fork-ownership/<名前>.permits.txt`(名前 = 自分の `fork_id:`。`.notices/applied/` の台帳名と同じ)。fork が足すファイルなので fork の物。多段の Tier では親の許可ファイルも基準に入るが、読むのは自分の fork-id のファイルだけ(親の許可を子が借りない)
 - 書式: 1 ファイル 1 行
   ```
   <path> upreq:<id>[,<id>…] base:<指紋|-> head:<指紋|->  # 理由
@@ -123,12 +123,13 @@ pnpm ownership:check --parent=upstream --branch=main
 - `/flux`: 基準に `intake.txt` がある区間は、区間を commit した後・push の前に走らせ、1 と 2 は停止条件(片付けを追加の commit で積み、0 になってから push する。`.claude/skills/flux/SKILL.md` 手順 7c)。検査は commit 済みの HEAD だけを見るので、commit の前には置けない
 - 出力: 先頭に結論と基準(remote・branch・base)、reason ごとの件数、違反と一時許可の残骸・書式の誤りの一覧
 - 一時許可の依頼の出し方は `/order`「一時許可の依頼」、依頼の状況は `/wen permits`、放置と project.md の食い違いは `/flux` の最終報告(上流への所見 (e)(f))に出る
-- 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<fork-id>.permits.txt` に貼り、commit してから検査し直す
+- 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<名前>.permits.txt` に貼り、commit してから検査し直す
 - 手順(`check.mjs` の `runCheck`)
   1. 名前と Tier1 の判定: `forkIds.mjs` の `readForkIdentity`(project.md の `fork_id:`。宣言なし・形違い・祖先と同名は未検証 = exit 2)。自分の名前が `src/lib/CATALOG.md` の先頭の節の見出しなら Tier1 で対象外。remote の有無・origin の URL では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
   2. 親の remote: `--parent` > 環境変数 `FORK_OWNERSHIP_PARENT` > origin 以外の remote が 1 つならそれ(`/flux` の「upstream の特定」と同じ)。ブランチ = `git ls-remote --symref <remote> HEAD`(`--branch` で上書き)
   3. 鮮度(下の節)
-  4. 判定: `git diff --name-status -M <base> HEAD` を judge に、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む
+  4. Tier1 の版(下の「多段の Tier」)を台帳からたどる
+  5. 判定: `git diff --name-status -M <base> HEAD` を judge に、Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替え、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む
 
 ## CI
 
@@ -142,12 +143,21 @@ pnpm ownership:check --parent=upstream --branch=main
 - 親の remote が無い・決まらない、既定のブランチが分からない、取得(`git fetch`)できない
 - shallow clone(基準を求められない)、merge-base が無い
 - 基準に `intake.txt` が無い(この検査を含む版をまだ取り込んでいない)、書式の誤りがある
-- 取り込み済み(基準にある)なのに自分の台帳(`.notices/applied/<fork-id>.md`)に記録の無い notice がある。fork を作った時点のツリーにあった notice は継承済みとして除く(`/flux` と同じ求め方)。`/flux` で記録してから検査し直す
+- 取り込み済み(基準にある)なのに自分の台帳(`.notices/applied/<名前>.md`)に記録の無い notice がある。fork を作った時点のツリーにあった notice は継承済みとして除く(`/flux` と同じ求め方)。`/flux` で記録してから検査し直す
 - lint の厳しさは手元の情報だけで決める(確かめられなければ今のパスでの判定)。この検査とは別
 
-## fork ID の宣言
+## 多段の Tier(D29・D34)
 
-fork のドット名のファイル(`src/wiring/<名前>[.client].<fork ID>.ts(x)` 等)の検査が「どの fork ID を受けるか」を読む口。読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。
+- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反
+- Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
+- 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
+- override: Tier1 は override(`src/app/api/cron/<name>/override.ts`・`domainEntry.override.ts`)を出荷しないので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
+- 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork ファイル・featureGateRules・override・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替え・置き換えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
+- `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
+
+## fork の名前の宣言
+
+各リポの名前の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。所有の検査・目録・ドット名のファイル(`src/wiring/<名前>[.client].<fork ID>.ts(x)`・`src/proxies/<項目>.<名前>.ts` 等)の検査がこれを使う。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
 
 - 自分の名前: `.claude/rules/project.md` の `fork_id: <名前>` の 1 行。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前(`-` の印は廃止)
 - 親(上の Tier)の ID: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれるので、孫の fork は親の fork のドット名のファイルも受けられる)。fork が書くのは自分の `fork_id:` の 1 行だけ

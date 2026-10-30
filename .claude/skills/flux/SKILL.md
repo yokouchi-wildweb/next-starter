@@ -74,11 +74,10 @@ disable-model-invocation: true
 各項目: 1〜2 行 + 根拠(ファイル・commit・出力)+ 起票文案 1 行。**自動で /order は起票しない**。ユーザーが `/order <上流リポ>` を打てば会話文脈から起票できる形にしておく。台帳の `notes:` には逸脱だけを書き、所見は報告側に出す(台帳は fork の記録であって上流宛てではない)。
 
 ## 自 fork の識別と台帳
-1. origin 取得: `git remote get-url origin`
-2. fork-id 導出: URL のパス部分(ホスト以降)から `.git` を除去し、`/` を `--` に置換、小文字化。例: `git@github.com:acme/shop.git` → `acme--shop`。origin が無ければ `local--<ディレクトリ名>`。
-3. 自 fork 台帳 = `.notices/applied/<fork-id>.md`。無ければ未適用ゼロ記録として扱う(初回適用時に作成)。
-4. `.notices/applied/` 内の他の fork-id のファイルは中間 Tier や他 fork の台帳(merge で流れてきたもの)。**自分の状態と混同しない**。参考情報として読むのは可。
-5. **中間 fork-id** = 直上 upstream の URL から同じ規則で導出した fork-id。`<upstream>/<branch>` に `.notices/applied/<中間 fork-id>.md` があれば、直上 Tier は自分自身も下流として上流を追随している中間 Tier(→ relay.md)。無ければ直上 upstream は最上流で、祖父 notice は存在しない。
+1. 自分の名前 = `.claude/rules/project.md` の `fork_id: <名前>`(全リポが 1 行で宣言。形 = 小文字・数字・ハイフン。読み手と規則は `src/lib/forkOwnership/forkIds.mjs`)。origin の URL から名前を導かない。行が無い・`-`・形違いなら止まって、ユーザーに名前を決めて宣言してもらう(既定の候補 = リポのディレクトリ名の小文字。祖先の台帳名・`src/lib/CATALOG.md` の節の見出しと同じ名前は不可)。
+2. 自 fork 台帳 = `.notices/applied/<名前>.md`、一時許可 = `.fork-ownership/<名前>.permits.txt`、`src/lib/CATALOG.md` の自分の節の見出しも同じ名前。台帳が無ければ未適用ゼロ記録として扱う(初回適用時に作成)。origin 由来の旧い名前(`<owner>--<repo>`)の台帳・一時許可・節の見出しが残っていれば、名前の notice の手順で `git mv` して改名する。
+3. `.notices/applied/` 内の他の名前のファイルは中間 Tier や他 fork の台帳(merge で流れてきたもの)。**自分の状態と混同しない**。参考情報として読むのは可。
+4. **中間 Tier の名前** = 直上 upstream の版(`<upstream>/<branch>`)の `.claude/rules/project.md` の `fork_id:`。その版に `.notices/applied/<中間 Tier の名前>.md` があれば、直上 Tier は自分自身も下流として上流を追随している中間 Tier(→ relay.md)。無ければ直上 upstream は最上流(Tier1)で、祖父 notice は存在しない。
 
 ## upstream の特定
 1. `git remote -v` で origin 以外の remote(通常 `upstream`)を探す。
@@ -123,7 +122,7 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
    - 以降、流入予定を履歴順に走査し、**区切り notice**(`checkpoint:` が `-` 以外、または欄が無い旧 schema)の**直後で区間を閉じる**。閉じた区間の merge 先 = その区切り notice の区切り点 commit。`checkpoint: -` の notice は次の区切りまで同じ区間に入る(上流の例外宣言。理由は notes: にある)。
    - 最後の区切り以降の notice(無ければ空)+ 残りのコミットが**末尾区間**。merge 先 = `<upstream>/<branch>`。notice が無くても未マージコミットがあれば末尾区間は存在する(merge のみ)。
    - 結果として通常は notice 1 件 = 1 区間。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続する(merge は 1 回目で完了し、2 回目以降は「既に最新」になるだけ。正常)。
-6. 区間ごとに持つ情報(概観): 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / `moved:` の有無 / 修正の関係(上記「修正(fixes)」の印)/ `resolves:` のうち自分の一時許可(`.fork-ownership/<fork-id>.permits.txt` の `upreq:`)に当たる番号。当たる行は、その区間の merge の後に許可が失効する(全番号が解決した行)ので、計画で「受け口へ移す・元に戻す」を示す(`.notices/README.md`「解決(resolves)」、`pnpm ownership:check` が expired-resolved で示す)。衝突の予測・移動元の編集・上流の変更点は**次の区間だけ**(下記 2 節)。
+6. 区間ごとに持つ情報(概観): 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / `moved:` の有無 / 修正の関係(上記「修正(fixes)」の印)/ `resolves:` のうち自分の一時許可(`.fork-ownership/<名前>.permits.txt` の `upreq:`)に当たる番号。当たる行は、その区間の merge の後に許可が失効する(全番号が解決した行)ので、計画で「受け口へ移す・元に戻す」を示す(`.notices/README.md`「解決(resolves)」、`pnpm ownership:check` が expired-resolved で示す)。衝突の予測・移動元の編集・上流の変更点は**次の区間だけ**(下記 2 節)。
 
 ## 衝突の事前予測(次の区間の計画時、読み取りのみ)
 次の区間の merge で衝突しそうなファイルを承認前に出す。index・作業ツリーは変更しない。
@@ -200,7 +199,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    - 型チェックは `pnpm typecheck` で行う。古い notice の `verify:` が `tsc --noEmit` と書いていても `pnpm typecheck` に読み替える(`tsc --noEmit` は dev サーバーが残した古い `.next/**/validator.ts` で TS2307 を出すため。`.notices/README.md` 参照)。
    - `pnpm typecheck` が**自 fork では使っていない上流の `_screen/*` 既定 Screen**(page.tsx を `_components/` に向けているルート等)で落ちたら、原因は自 fork の core 編集の非互換(必須 props の追加・使わない core コードの削除など)。直すのは core 側(足した props を省略可能+空の既定値に戻す、消したものを上流から戻す)で、上流の Screen は編集しない(CLAUDE.md CORE_FILES `fork_core_edit_compat`、`src/lib/screens/README.md` §7)。台帳の notes に何を戻したかを書く。
 7. **記録とコミット**(途中確認なしで連続実行):
-   a. 自 fork 台帳 `.notices/applied/<fork-id>.md` に追記(無ければヘッダごと作成。英語):
+   a. 自 fork 台帳 `.notices/applied/<名前>.md` に追記(無ければヘッダごと作成。英語):
       ```
       # APPLIED LEDGER fork:<own origin url>
       - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | upstream:<区間の merge 先の完全な sha> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->

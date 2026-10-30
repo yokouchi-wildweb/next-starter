@@ -12,7 +12,7 @@
 ├── <id>.md                # 現役の notice(id = <YYYYMMDD-HHMMSS>-<slug>)
 ├── done/                  # 上流がアーカイブした notice(全fork適用済み・陳腐化)
 └── applied/
-    └── <fork-id>.md       # fork ごとの適用台帳(その fork だけがコミットする)
+    └── <名前>.md          # fork ごとの適用台帳(名前 = その fork の fork_id:。その fork だけがコミットする)
 ```
 
 ## 使い方
@@ -114,7 +114,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 
 ### 1. 祖父 notice の区切り(中継 notice が無くても常に効く)
 - 判定: `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice = 祖父 notice。
-- **祖父 notice の追加 commit は区切りにしない**。代わりに、直上 Tier の台帳(`.notices/applied/<中間 fork-id>.md`、merge で流れてくる)にその id が記録された commit を区切り点とする: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 fork-id>.md` の最古。台帳の `commit:` 欄は `-` のことが多いので使わない。これで、中間 Tier が衝突を解いて適用し終えた点まで merge される。
+- **祖父 notice の追加 commit は区切りにしない**。代わりに、直上 Tier の台帳(`.notices/applied/<中間 Tier の名前>.md`、merge で流れてくる。名前 = 直上 Tier の fork_id:)にその id が記録された commit を区切り点とする: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` の最古。台帳の `commit:` 欄は `-` のことが多いので使わない。これで、中間 Tier が衝突を解いて適用し終えた点まで merge される。
 - 直上 Tier の台帳に記録が無い(中間 Tier が手動 merge だけして未適用等)祖父 notice は、従来どおり追加 commit を区切りとし、/flux が警告を出す。
 - 中継 notice(下記)に covered されていない祖父 notice は、中間 Tier の台帳のその id の行の `relay:` 欄で扱いを分ける:
   - `relay:none`: 中間 Tier が差分で「中継不要」と判定済み(下記 3)。下流が受け取るコードは上流と同じなので、上流 notice をそのまま適用する。
@@ -168,7 +168,7 @@ fork 固有コミットがまだ無い場合は現役 notice 全件が継承済�
 
 ## 台帳(applied/)が fork ごとに別ファイルである理由
 
-台帳を単一ファイルにすると、多段 Tier で中間 Tier の台帳が下流に merge で流れ込み、双方の追記がコンフリクトする。fork ごとにファイル名を分ける(`<fork-id>` = origin URL のパス部分を `--` 連結・小文字化。例 `acme--shop.md`)ことで merge 衝突が構造的に起きない。副産物として、下流からは中間 Tier がどこまで適用したかも見える。台帳は上流へは流れないため、上流側からの完了追跡は行わない(往復不要)。
+台帳を単一ファイルにすると、多段 Tier で中間 Tier の台帳が下流に merge で流れ込み、双方の追記がコンフリクトする。fork ごとにファイル名を分ける(名前 = その fork の `.claude/rules/project.md` の `fork_id:`。例 `oripa-do.md`)ことで merge 衝突が構造的に起きない。台帳の各行は取り込んだ上流の版 `upstream:<sha>` を持ち、`pnpm ownership:check` が Tier1 の版をここからたどる(`src/lib/forkOwnership/README.md`「多段の Tier」)。副産物として、下流からは中間 Tier がどこまで適用したかも見える。台帳は上流へは流れないため、上流側からの完了追跡は行わない(往復不要)。
 
 ## アーカイブ
 

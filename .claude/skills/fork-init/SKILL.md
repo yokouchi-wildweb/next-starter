@@ -16,24 +16,29 @@ disable-model-invocation: true
 
 ## 事前確認(計画提示の前に行う)
 1. `git remote -v` を確認する。期待する状態は「origin が upstream(フォーク元)を指し、`upstream` リモートはまだ無い」。
-   - `upstream` リモートが既にある、または `.notices/applied/` に自分の fork-id の台帳がある → 初期化済み。その旨を伝えて終了する(再実行で壊さない)。
+   - `upstream` リモートが既にある、または `.claude/rules/project.md` に自分の `fork_id:`(フォーク元と違う名前)があり `.notices/applied/<その名前>.md` がある → 初期化済み。その旨を伝えて終了する(再実行で壊さない)。
    - origin が無い → ユーザーにフォーク元 URL を尋ねる。
 2. 引数 `$ARGUMENTS` から `<name>` と `[github-owner]` を取る。owner 省略時は `gh api user --jq .login` で取得する。
 3. `gh auth status` でログイン済みか確認する。未ログインなら `! gh auth login` を依頼して待つ(ブラウザのコード入力はターミナルのワンタイムコード)。
 4. `gh repo view <owner>/<name>` でリポジトリの有無を確認する。既存なら作成をスキップし、空でなければ(`isEmpty` が false)push 先として安全か確認を取る。
 5. 以下を会話から確定する。足りないものは1回の質問にまとめる:
    - サービスの一言説明(日本語可。project.md には英語で書く)
+   - fork の名前(`fork_id:`): 既定は `<name>` の小文字(手順 6 の重なりの確認をしてから提示する)
    - Tier: 既定は「フォーク元の Tier + 1、下流なし」
    - バックエンド: Firebase / Neon を今設定するか、未設定で始めるか(既定: 未設定)
    - 予定ドメイン・方向性(無ければ「TBD」で可)
    - Vercel プラン: hobby / pro(既定: hobby。hobby は全 cron が 1 日 1 回になる。後から再生成できる)
-6. fork-id を導出する: origin になる URL のパス部分から `.git` を除去、`/` を `--` に置換、小文字化。
+6. fork の名前(`fork_id:`)を決める: 既定 = 新しいリポ名 `<name>` の小文字(5 の質問にまとめて確認する)。形 = 小文字・数字・ハイフン(`src/lib/forkOwnership/forkIds.mjs` の `FORK_ID_PATTERN`)。origin の URL からは導かない。次のどれかと同じ名前なら止まり、別の名前を聞く(D30 K3):
+   - フォーク元の `.claude/rules/project.md` の `fork_id:`・`.notices/applied/` の台帳名・`src/lib/CATALOG.md` の節の見出し(祖先の名前)
+   - `~/.team/fleet.conf` の名前(大文字小文字を区別せず比べる)・`~/.team/orders/` の受信箱のフォルダ名(どちらも無ければ見ない)
+7. フォーク元の版 = 今の HEAD の完全な sha(`git rev-parse HEAD`。台帳の最初の行の `upstream:` に書く)。
 
 ## 計画提示(承認を取る)
 以下を箇条書きで提示し、承認を1回取る:
 - 作成するリポジトリ(`<owner>/<name>` private)/ スキップの場合はその旨
 - リモート: origin = 新リポ、upstream = 現 origin
-- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ 6 項目。README は触らない)
+- fork の名前(`fork_id:`。重なりの確認の結果)と、同じ名前で作るもの(project.md の行・台帳・CATALOG の節)
+- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ項目。README は触らない)
 - `vercel.json` の Vercel プラン(hobby / pro)
 - 初期コミットの件名: `chore: <name> フォーク初期設定`
 - push 先: `origin main`
@@ -44,7 +49,7 @@ disable-model-invocation: true
 3. `pnpm install`(`node_modules` が無い場合のみ)。
 4. フォーク固有ファイルの書き換え(文書の手順 4 の順):
    a. `.claude/rules/project.md`: 同じディレクトリの `project.template.md`(本スキルに同梱)をコピーし、`<...>` を事前確認で得た内容で埋めて置き換える。節の追加・削除はしない(未定の節は `TBD`)。先頭のコメントブロックは削除する。英語・箇条書き。
-   b. `.notices/applied/<fork-id>.md`: `# APPLIED LEDGER fork:<origin url>` の1行のみ。
+   b. 名前をそろえる(同じ値): `.claude/rules/project.md` の TIER 節の `fork_id: <名前>`(雛形の行)/ 台帳 `.notices/applied/<名前>.md` = ヘッダ `# APPLIED LEDGER fork:<origin url>` + 1 行 `- id:fork-init | date:<ISO8601> | commit:- | upstream:<フォーク元の版の完全な sha> | notes:fork start`(`pnpm ownership:check` が Tier1 の版をここからたどる。無いと exit 2)/ `src/lib/CATALOG.md` の末尾に空の節 `## <名前>`(自分の lib を足したらここに 1 行)
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
    e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。

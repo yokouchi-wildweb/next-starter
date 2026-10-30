@@ -16,12 +16,14 @@
 
 ## TIER (multi-tier hierarchy)
 this_repo: Tier<N> (direct fork of <upstream name> = Tier<N-1>). <no Tier<N+1> downstream planned for now | downstream forks: ...>
+fork_id: <fork name>
+- fork_id = this repo's short name (lowercase letters, digits, hyphens; never the same as an ancestor's). The same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, this repo's src/lib/CATALOG.md section heading, the order inbox and dot-named files <item>.<name>.ts | reader: src/lib/forkOwnership/forkIds.mjs
 rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /order <Tier1 repo> instead. <domain> code lives HERE
 request_protocol (shared mailbox: ~/.team/orders/, one inbox per receiving repo):
 - file a one-off order into any repo's inbox, or into this repo as a next task, with /order <self|repo>. generic → Tier1, <domain>-specific → the tier that owns it
 - check the orders filed in the current session with /wen
 - handle orders addressed to this repo with /inbox (judge against this repo's role; relay what another repo owns)
-- receive upstream notices with /flux (ledger: .notices/applied/<fork-id>.md)
+- receive upstream notices with /flux (ledger: .notices/applied/<fork name>.md, each line records upstream:<sha> of the merged upstream version)
 
 ## backend_status
 - firebase: <configured | NOT configured (env empty). auth / storage / firestore paths are inactive>
