@@ -23,6 +23,7 @@ fork は上流のファイルを編集せず、受け口にファイルを置い
 ```
 src/app/_layout/adminCommand/     # 画面側の点
 ├── extensionPoints.ts
+├── AdminCommandRoot.tsx          # 一覧を Provider に結ぶ(client。load は関数でサーバーから渡せない)
 ├── categories/                   # カテゴリの項目
 ├── plugins/                      # プラグインの項目
 └── extensions/                   # 生成物
