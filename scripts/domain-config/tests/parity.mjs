@@ -12,6 +12,9 @@
 //   管理画面ルート・registry も写す = write-once や「既に登録済み」の経路を通す）
 // mode: each = 1 ドメインずつ --yes | all = --all --yes | all2 = all を 2 回（冪等性）| only-registry | only-entities-hooks
 // 失敗系 fixture では両版が同じ exit code・同じエラー文で止まることを見る。意図して変えた挙動は差分として出るので目で確かめる。
+// 旧側の src 部品: 生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も import するので、旧側はそれらのフォルダも
+//   ref から取り出して重ねる（ref の生成器の import を辿って決める。ref に無いフォルダは作業ツリーのまま = 起動時にそう出す）。
+//   重ねたフォルダは生成物ではないので比べない（新側が import するフォルダも同じく外す）。
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -45,11 +48,52 @@ const keep = args.includes("--keep");
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 const cp = (src, dest) => fs.cpSync(src, dest, { recursive: true, dereference: false });
 
-/** <ref> の scripts/domain-config と scripts/registry を取り出す */
-function extractOldScripts() {
-  const dir = tmp("dc-parity-old-");
-  execFileSync("sh", ["-c", `git archive ${JSON.stringify(ref)} scripts/domain-config scripts/registry | tar -x -C ${JSON.stringify(dir)}`], { cwd: repoRoot });
-  return path.join(dir, "scripts");
+const GENERATOR_DIRS = ["scripts/domain-config", "scripts/registry"];
+const RELATIVE_IMPORT = /from\s+["']((?:\.\.?\/)+[^"']+)["']/g;
+
+/** dir 以下の .mjs（tests/ と *.test.mjs を除く）が相対 import する、root/src 配下のフォルダ（root 相対） */
+function srcImportDirs(root, dir) {
+  const out = new Set();
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const abs = path.join(d, e.name);
+      if (e.isDirectory()) {
+        if (e.name !== "tests" && e.name !== "node_modules") walk(abs);
+      } else if (e.name.endsWith(".mjs") && !e.name.endsWith(".test.mjs")) {
+        for (const m of fs.readFileSync(abs, "utf8").matchAll(RELATIVE_IMPORT)) {
+          const rel = path.relative(root, path.resolve(path.dirname(abs), m[1]));
+          if (rel.startsWith(`src${path.sep}`)) out.add(path.dirname(rel));
+        }
+      }
+    }
+  };
+  walk(dir);
+  return out;
+}
+
+const archive = (dir, paths) =>
+  execFileSync("sh", ["-c", `git archive ${JSON.stringify(ref)} ${paths.map((p) => JSON.stringify(p)).join(" ")} | tar -x -C ${JSON.stringify(dir)}`], { cwd: repoRoot });
+const inRef = (p) => execFileSync("git", ["ls-tree", ref, "--", p], { cwd: repoRoot, encoding: "utf8" }).trim() !== "";
+
+/**
+ * <ref> の生成器（scripts/domain-config・scripts/registry）と、それが import する src のフォルダを取り出す。
+ * import を辿り切るまで繰り返す（重ねた src の .mjs がさらに別のフォルダを import する場合）。
+ */
+function extractOld() {
+  const root = tmp("dc-parity-old-");
+  archive(root, GENERATOR_DIRS);
+  const parts = new Set();
+  const missing = new Set();
+  let pending = GENERATOR_DIRS;
+  while (pending.length) {
+    const found = new Set(pending.flatMap((p) => [...srcImportDirs(root, path.join(root, p))]));
+    const fresh = [...found].filter((d) => !parts.has(d) && !missing.has(d));
+    const present = fresh.filter(inRef);
+    for (const d of fresh) (present.includes(d) ? parts : missing).add(d);
+    if (present.length) archive(root, present);
+    pending = present;
+  }
+  return { root, scripts: path.join(root, "scripts"), parts: [...parts].sort(), missing: [...missing].sort() };
 }
 
 /** domain.json を持つドメインフォルダ（features ディレクトリ直下） */
@@ -101,12 +145,16 @@ function buildBase({ featuresDir, repo }, variant) {
   return base;
 }
 
-/** 基準ツリー + 片方の生成器で作業ツリーを作る */
-function makeWork(base, scriptsDir) {
+/** 基準ツリー + 片方の生成器（旧側は ref の src 部品も重ねる）で作業ツリーを作る */
+function makeWork(base, side) {
   const work = tmp("dc-parity-work-");
   cp(path.join(base, "src"), path.join(work, "src"));
-  cp(path.join(scriptsDir, "domain-config"), path.join(work, "scripts", "domain-config"));
-  cp(path.join(scriptsDir, "registry"), path.join(work, "scripts", "registry"));
+  cp(path.join(side.scripts, "domain-config"), path.join(work, "scripts", "domain-config"));
+  cp(path.join(side.scripts, "registry"), path.join(work, "scripts", "registry"));
+  for (const part of side.parts) {
+    fs.rmSync(path.join(work, part), { recursive: true, force: true });
+    cp(path.join(side.root, part), path.join(work, part));
+  }
   fs.symlinkSync(path.join(repoRoot, "node_modules"), path.join(work, "node_modules"), "dir");
   return work;
 }
@@ -145,7 +193,7 @@ function listFiles(dir, base = dir, out = []) {
   return out;
 }
 
-function compare(workOld, workNew, runsOld, runsNew) {
+function compare(workOld, workNew, runsOld, runsNew, excluded) {
   const problems = [];
   for (let i = 0; i < Math.max(runsOld.length, runsNew.length); i++) {
     const x = runsOld[i];
@@ -158,8 +206,9 @@ function compare(workOld, workNew, runsOld, runsNew) {
     if (x.stdout !== y.stdout) problems.push(`[${x.cmd}] stdout differs`);
     if (x.stderr !== y.stderr) problems.push(`[${x.cmd}] stderr differs`);
   }
-  const filesOld = new Set(listFiles(path.join(workOld, "src")));
-  const filesNew = new Set(listFiles(path.join(workNew, "src")));
+  const generated = (f) => !excluded.some((part) => path.join("src", f).startsWith(`${part}${path.sep}`));
+  const filesOld = new Set(listFiles(path.join(workOld, "src")).filter(generated));
+  const filesNew = new Set(listFiles(path.join(workNew, "src")).filter(generated));
   for (const f of filesOld) if (!filesNew.has(f)) problems.push(`only in old: ${f}`);
   for (const f of filesNew) if (!filesOld.has(f)) problems.push(`only in new: ${f}`);
   for (const f of filesOld) {
@@ -168,8 +217,13 @@ function compare(workOld, workNew, runsOld, runsNew) {
   return problems;
 }
 
-const oldScripts = extractOldScripts();
-const newScripts = path.join(repoRoot, "scripts");
+const oldSide = extractOld();
+const newSide = { root: repoRoot, scripts: path.join(repoRoot, "scripts"), parts: [] };
+const newParts = GENERATOR_DIRS.flatMap((p) => [...srcImportDirs(repoRoot, path.join(repoRoot, p))]);
+const excluded = [...new Set([...oldSide.parts, ...newParts])].sort();
+console.log(`旧側の src 部品（${ref} から重ねる）: ${oldSide.parts.join("・") || "なし"}`);
+if (oldSide.missing.length) console.log(`  ${ref} に無いので作業ツリーの src を使う: ${oldSide.missing.join("・")}`);
+console.log(`比べないフォルダ（生成物でない src 部品）: ${excluded.join("・") || "なし"}\n`);
 const reportDir = tmp("dc-parity-report-");
 let cases = 0;
 let failures = 0;
@@ -181,11 +235,11 @@ for (const name of [...fixtures, ...repos]) {
     const base = buildBase(fixture, variant);
     for (const mode of modes) {
       cases++;
-      const workOld = makeWork(base, oldScripts);
-      const workNew = makeWork(base, newScripts);
+      const workOld = makeWork(base, oldSide);
+      const workNew = makeWork(base, newSide);
       const runsOld = runMode(workOld, mode, domains);
       const runsNew = runMode(workNew, mode, domains);
-      const problems = compare(workOld, workNew, runsOld, runsNew);
+      const problems = compare(workOld, workNew, runsOld, runsNew, excluded);
       const label = `${fixture.label} / ${variant} / ${mode}`;
       if (problems.length === 0) {
         console.log(`ok   ${label}  (exit ${runsOld.map((r) => r.status).join(",")})`);
@@ -205,6 +259,6 @@ for (const name of [...fixtures, ...repos]) {
     if (!keep) fs.rmSync(base, { recursive: true, force: true });
   }
 }
-fs.rmSync(path.dirname(oldScripts), { recursive: true, force: true });
+fs.rmSync(oldSide.root, { recursive: true, force: true });
 console.log(`\n${cases - failures}/${cases} cases match（旧 = ${ref}、新 = 作業ツリー）`);
 process.exit(failures ? 1 : 0);
