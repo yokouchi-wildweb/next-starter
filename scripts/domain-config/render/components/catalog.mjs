@@ -3,7 +3,7 @@
 
 /**
  * @typedef {object} ComponentSpec
- * @property {string} key      選択 CLI（dc:generate:component）で使う識別子
+ * @property {string} key      部品の識別子（render の分岐と、部品を絞る keys 引数で使う。選んで生成する CLI は廃止）
  * @property {string} template テンプレートの相対パス（domain.json で変わるものは templateFor）
  * @property {(config: object | null) => string} [templateFor] 設定でテンプレートを切り替える
  * @property {string} [output] 出力の相対パス（templateFor のときに固定名で出す）

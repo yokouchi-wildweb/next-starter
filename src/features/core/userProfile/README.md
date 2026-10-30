@@ -152,7 +152,7 @@ roles/
 
 **メディア項目（mediaUploader）は使えない:**
 - プロフィールのテーブル（createProfileBase）はファイル台帳への紐付け（createCrudService の `storage` オプション）に対応していない。上げたファイルが業務行に紐付かず、掃除 cron で消える
-- そのため `pnpm role:config` はメディア項目を選択肢に出さない。手書きの role.json に mediaUploader 項目があっても、フォームには purpose が渡らず「用途が未設定」の表示になる（アップロード欄は出ない）
+- そのため profile.json に mediaUploader / mediaCollection の項目があると `role:generate`（forge）の検査が止める
 - プロフィールに画像が要る場合は、用途を登録した別ドメインの列に置くか、プロフィールの binding 対応を upstream に依頼する（/order <上流リポ>）
 
 ### リレーション設定
@@ -198,8 +198,7 @@ roles/
 - `model.ts`: FK フィールドの型定義
 - `profileBaseRegistry.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
 
-**対話型スクリプトでの設定:**
-`role:init` または `role:add-profile` 実行時に、フィールド設定後にリレーション質問が表示される。
+**書き方:** role.json・profile.json は手で書き（対話で組み立てるコマンドは無い）、`pnpm forge` で生成する。リレーションの決まり（belongsTo / belongsToMany だけ、fieldName 必須、fieldType は省略か uuid、SET_NULL は required と両立しない、formInput）は生成前の検査が止める（下の「role:generate」）。
 
 ## 自動生成ファイル
 
@@ -722,13 +721,16 @@ pnpm role:generate -- --all      # 全 *.role.json（roleRegistry.ts の今の�
 5. profileBaseRegistry.ts 全件再生成（searchFields・リレーション設定を反映）
 6. profileTableRegistry.ts 全件再生成
 
-### role:init / role:add-profile
+### 操作コマンド
 
-対話型でプロフィール設定を作成。フィールド収集後にリレーション質問が表示される。
+既定は対話なし（引数で決める）。`-i` のときだけ今までの対話。ロール・プロフィールを作る・項目を足すのは JSON を手で書いて `pnpm forge`。
 
 ```bash
-pnpm role:init           # 新規ロール + プロフィール作成
-pnpm role:add-profile    # 既存ロールにプロフィール追加
+pnpm prof:generate <roleId>                    # プロフィールだけ生成（--all = プロフィールのある全ロール）
+pnpm prof:delete <roleId> --confirm <roleId>   # プロフィールの生成物と登録を消す（--keep-generated / --remove-json）
+pnpm role:delete <roleId> --confirm <roleId>   # ロールを消す（同上）
+pnpm role:toggle <roleId> --on|--off           # 有効 / 無効（反転は -i）
+pnpm role:list
 ```
 
 ## generated/package.json

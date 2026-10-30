@@ -597,7 +597,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 - domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）から、`dc:generate` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
   - `fieldName` = 項目名（domain.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
 - 生成の drizzleBase.ts は `import { collections } from "./collections"` して `createCrudService` の options に `collections` を渡す
-- drizzleBase.ts を手書きする主（`generateFiles.serverServices: false`）は、この 2 行を自分で足す（`dc:generate` が毎回案内する）
+- drizzleBase.ts を手書きする主（`generate: false` のドメイン）は、この 2 行を自分で足す（渡し忘れは `pnpm test:collection-wiring` が見つける）
 - 突き合わせ: `pnpm test:collection-wiring` が、全 domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
 - 生成器を使わないドメインは、手書きのサービスで `createCrudService` に `collections` を渡す（宣言の形は同じ `CrudCollectionConfig`）
 
@@ -624,7 +624,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 #### 中間の形（元の列を残して並べる）
 
-- 主の domain.json に、元の multi の項目を残したまま集まりの項目を足し、`pnpm dc:generate <Parent> --yes` で従属を作る（従属の domain.json の書き出し・生成・配線まで。従属の表は `[user-run] pnpm db:push`）
+- 主の domain.json に、元の multi の項目を残したまま集まりの項目を足し、`pnpm dc:generate <Parent>` で従属を作る（従属の domain.json の書き出し・生成・配線まで。従属の表は `[user-run] pnpm db:push`）
 - 前例: `src/features/sample/domain.json` の `gallery_images`（multi）と `images`（集まり、従属 `sampleImage`）
 - 移行が終わるまで元の列と集まりは並んで在る。画面の切り替え（どちらを表示・入力するか）はドメインの事情で決める
 
@@ -698,7 +698,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    - ref を別の表へコピーして持つことは禁止の形（台帳の 1 行は 1 つの業務行を指す）。移行のついでに、コピーの列を従属の行 id を指す FK に置き換える。どの表がコピーを持つかはドメインごとに調べる
 5. 元の列を直接 SQL で空にするか、列ごと落とす（その前に記録の表を消す: `DROP TABLE <migration_log>;`。ここで戻せなくなるので、手順 6 を確かめてから）
    - 空にする: `UPDATE <parent_table> SET <field> = '{}';`（サービスの保存では空にしない）
-   - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent> --yes`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
+   - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent>`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
    - ここから先は戻せない。手順 6 の数え上げを、空にする・落とす前にも一度流す
 6. 確かめる（読み取りの SQL の数え上げ）
 

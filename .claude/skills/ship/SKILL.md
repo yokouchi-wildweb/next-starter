@@ -33,7 +33,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - `src/proxies/featureGateRules/`・`src/proxies/*.ts` の項目・cron の `task.ts` → `pnpm extensions:check`(ずれていれば `pnpm extensions:generate`)と `FEATURE_GATE_CHECK=all pnpm test:feature-gate`
      - `src/config/ui/` → `pnpm test:config-module-load`
      - ページ・ルートの追加・削除・移動、loader・guard.ts の変更 → `pnpm routes:map` で地図(`src/app/route-map.jsonl`)を作り直して範囲に含め、`pnpm test:route-map`
-     - ロール定義(`*.role.json`)→ `pnpm role:generate` の出力を範囲に含める
+     - `domain.json`・ロール定義(`*.role.json`)・`*.profile.json` → `pnpm forge`(生成と事後検査を 1 回で。生成物・`src/features/feature-map.txt`・ルート地図の変化を範囲に含める。表が変わった案内は報告に書く)
      - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
      - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)
      - 上のどれでもない: 変えたファイルの隣にある `*.test.*` と、package.json の `test:*` のうち変えた領域の名前のもの
@@ -101,7 +101,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    ```
    - `<slug>` は change から短い英語のケバブ。保存先は `.notices/<ts>-<slug>.md`。
    - `hotfix:` の notice の required_actions は、間の変更と後の notice を前提にせず書く(fork は間を飛ばして適用する)。`pnpm-lock.yaml`・`src/app/route-map.jsonl` を commit に含めない(fork ごとに中身が違う。`pnpm test:notices` が検査)。
-   - **required_actions は「下流の Claude が承認 1 回で止まらずに実行できる具体度」**で書く。DB マイグレーション・バックフィル・再生成・データ移行も全部ここ。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]`。ドメインの再生成は `pnpm dc:generate <Domain> --yes`(対話なし。`[user-run]` を付けない)で、必要なカテゴリだけ `--only` で指定する。
+   - **required_actions は「下流の Claude が承認 1 回で止まらずに実行できる具体度」**で書く。DB マイグレーション・バックフィル・再生成・データ移行も全部ここ。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]`。ドメインの再生成は `pnpm dc:generate <Domain>`(既定で対話なし。`[user-run]` を付けない)で、必要なカテゴリだけ `--only` で指定する。設定を足した fork 側の一括の作り直しは `pnpm forge`。
    - fork の既存コードが新しい仕様とずれる変更では、fork 側の対象コードを探せる目印(grep パターン等)と、新しい仕様へ揃える手順を書く。互換を残して放置させない。
    - 自動化できないことだけ `manual_steps` に分ける(fail-auto)。
    - **config のキーを足させる notice では、fork が同じキーを既に持つ場合の手順も書く**: fork の分を消して upstream の行に揃える手順と、探す `git grep`。fork と upstream が別の位置に足すと git は衝突なしに両方を取り込むので、「衝突したら」「無ければ足す」だけでは足りない(`.notices/README.md`)。

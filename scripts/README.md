@@ -74,14 +74,14 @@ pnpm db:push:check
 ### ドメイン設定 (dc)
 
 ```bash
-pnpm dc:init                # domain.json を対話で作成
-pnpm dc:generate <Domain>   # ファイル生成（`--` は付けない）
-pnpm dc:generate:all        # 複数ドメイン一括生成
-pnpm dc:add <Domain>        # フィールド追加
-pnpm dc:delete <Domain>     # ドメイン削除
+pnpm forge                                   # 手で書いた domain.json / role.json / profile.json から生成 + 検査（普段はこれ）
+pnpm dc:generate <Domain> [--only <cats>]    # 1 ドメインの生成（既定は対話なし、-i で対話）
+pnpm dc:generate:all                         # 全ドメインの一括生成
+pnpm dc:delete <Domain> --confirm <snake>    # ドメイン削除
+pnpm dc:feature-map [--check]                # ドメインの一覧 src/features/feature-map.txt
 ```
 
-詳細: [domain-config/README.md](./domain-config/README.md)
+詳細: [domain-config/README.md](./domain-config/README.md)、[forge/README.md](./forge/README.md)
 
 ### メール (mail)
 

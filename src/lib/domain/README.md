@@ -44,8 +44,8 @@ export const domainEntries = {
 - `service` は**遅延読み込み**（`() => import(...)`）。登録表を import しても各ドメインのサービス・DB 接続は読み込まれない
 - `table` / `idColumn` は型で必須（`string | null`）。service の直後に、**文字列リテラルか `null` で**書く（生成器はファイルを文字として読むので、定数・式は `registry:check` が失敗にする）。表を持たない Firestore 版は両方 `null`
 - 静的 import してよいのは `@/lib/domain/types` と `@/config/app/domain-api-access.config`（プリセット）だけ。`pnpm registry:check` が縛る
-- 業務ドメイン: `dc:generate` が domain.json から生成する（`generateFiles.registry`。手で直すなら registry を false）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport` が偽なら `"none"`、それ以外は管理者。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
-- core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generateFiles.registry: false`）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test:service-registry` が実物と比べる。core のファイルは fork が編集しない
+- 業務ドメイン: `dc:generate`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
+- core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test:service-registry` が実物と比べる。core のファイルは fork が編集しない
 - fork が core の access を変える: 隣に `domainEntry.override.ts`（fork 所有）。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む
 
 ### 生成と検査
@@ -58,9 +58,9 @@ export const domainEntries = {
 
 `registry:check` が失敗する条件と直し方（メッセージにも出る）:
 
-- 移行前の手書き行（生成ヘッダの無い旧 serviceRegistry.ts に、どの domainEntry.ts からも作られないキー）→ domain.json の `apiAccess` に移して `pnpm dc:generate <Domain> --yes --only registry`、または domainEntry.ts（core）/ domainEntry.override.ts（fork が core の access を変える）へ移す。生成ヘッダ付きのファイルから消えるキー（dc:delete 後）は正当な除去として通る
+- 移行前の手書き行（生成ヘッダの無い旧 serviceRegistry.ts に、どの domainEntry.ts からも作られないキー）→ domain.json の `apiAccess` に移して `pnpm dc:generate <Domain> --only registry`、または domainEntry.ts（core）/ domainEntry.override.ts（fork が core の access を変える）へ移す。生成ヘッダ付きのファイルから消えるキー（dc:delete 後）は正当な除去として通る
 - キーの重複 / `drizzleBase.ts`・`firestoreBase.ts` があるのに domainEntry.ts が無い（登録表に載せないドメインは `scripts/registry/serviceRegistry/discover.mjs` の `ENTRY_EXCEPTIONS` に理由付きで。縮むだけの表）/ `storageBindingFor` の第 1 引数（record_type）がキーに無い / 読めない行・許可外の静的 import / override のキーが隣の domainEntry.ts に無い
-- `table` / `idColumn`: 無い（生成ドメインは `pnpm dc:generate <Domain> --yes --only registry`、手書きは service の直後に書く）/ 文字列リテラルと `null` 以外 / 形が物理名でない（空・63 文字超・引用符や空白入り。大文字は通す）/ 片方だけ `null` / **同じ表が 2 つのキーにある**（両方のファイルとキーを出す）。値が実物と同じかは `registry:check` では見ない（`test:service-registry`）
+- `table` / `idColumn`: 無い（生成ドメインは `pnpm dc:generate <Domain> --only registry`、手書きは service の直後に書く）/ 文字列リテラルと `null` 以外 / 形が物理名でない（空・63 文字超・引用符や空白入り。大文字は通す）/ 片方だけ `null` / **同じ表が 2 つのキーにある**（両方のファイルとキーを出す）。値が実物と同じかは `registry:check` では見ない（`test:service-registry`）
 
 生成器: `scripts/registry/serviceRegistry/{discover,generate,check}.mjs`（plain node。cron の generate / check と同じ 3 分割）。
 

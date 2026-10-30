@@ -1,7 +1,7 @@
 // 生成カテゴリ serverServices: services/server/{drizzleBase|firestoreBase}.ts（毎回）、<domain>Service.ts（write-once）、wrappers/.gitkeep
 //
 // <domain>Service.ts はラッパーや独自処理を組み込む手書きの場所なので再生成で上書きしない。
-// dc:generate:service で明示的に選んだとき（overwriteService）だけ上書きする
+// overwriteService のときだけ上書きする（それを渡していた dc:generate:service は廃止。作り直すときはファイルを消してから生成する）
 
 import path from "node:path";
 import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes.mjs";

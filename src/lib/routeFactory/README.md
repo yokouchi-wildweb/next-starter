@@ -138,7 +138,7 @@ export const domainEntries = {
 } satisfies DomainEntries;
 ```
 
-- 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（`dc:init` が対話で確認し、`dc:generate` が domainEntry.ts に展開）。
+- 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`dc:generate` / forge が domainEntry.ts に展開）。
   コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
