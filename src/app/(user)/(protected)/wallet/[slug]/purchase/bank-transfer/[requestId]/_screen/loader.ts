@@ -7,7 +7,7 @@
 //
 // 仕様(redirect / notFound 条件):
 // - 未知の slug → notFound
-// - 未ログイン → /login へ redirect(requireCurrentUser。layout の authGuard と同じ遷移先)
+// - 未ログイン → /login へ(範囲 (user)/(protected) の createLoader、access authenticated)
 // - purchase_request が無い / 他人のもの → notFound(認可と存在を同一視して秘匿)
 // - provider / method が自社銀行振込でない(誤遷移) → notFound
 // - status === "completed" → 完了画面へ redirect
@@ -15,7 +15,6 @@
 // - status === "processing" → 案内に必要なデータを返す
 
 import "server-only";
-import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 
 import { getBankTransferConfig, type BankTransferConfig } from "@/config/app/payment.config";
@@ -25,8 +24,8 @@ import {
   INHOUSE_PROVIDER_NAME,
 } from "@/features/core/purchaseRequest/services/server/payment/inhouse";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type WalletPurchaseBankTransferScreenParams = { slug: string; requestId: string };
 
@@ -50,19 +49,26 @@ export type WalletPurchaseBankTransferScreenData = {
   aiImageJudgmentStrictMode: boolean;
 };
 
-const resolveWalletPurchaseBankTransferScreen = cache(
-  async (slug: string, requestId: string): Promise<WalletPurchaseBankTransferScreenData> => {
+export const loadWalletPurchaseBankTransferScreen = createLoader({
+  access: "authenticated",
+  key: async (props: ScreenProps<WalletPurchaseBankTransferScreenParams>): Promise<[string, string]> => {
+    const { slug, requestId } = await props.params;
+    return [slug, requestId];
+  },
+  load: async ({ user }, slug, requestId): Promise<WalletPurchaseBankTransferScreenData> => {
     // slug の妥当性検証を兼ねて通貨設定を取得
     const currency = getCurrencyConfigBySlug(slug);
     if (!currency) {
       notFound();
     }
 
-    const user = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
+    if (!user) {
+      notFound();
+    }
 
     // 認可と存在を 404 で同一視して秘匿
     const purchaseRequest = await purchaseRequestService.get(requestId);
-    if (!purchaseRequest || purchaseRequest.user_id !== user.id) {
+    if (!purchaseRequest || purchaseRequest.user_id !== user.userId) {
       notFound();
     }
 
@@ -95,11 +101,4 @@ const resolveWalletPurchaseBankTransferScreen = cache(
       aiImageJudgmentStrictMode: bankTransferConfig.aiImageJudgmentStrictMode,
     };
   },
-);
-
-export async function loadWalletPurchaseBankTransferScreen(
-  props: ScreenProps<WalletPurchaseBankTransferScreenParams>,
-): Promise<WalletPurchaseBankTransferScreenData> {
-  const { slug, requestId } = await props.params;
-  return resolveWalletPurchaseBankTransferScreen(slug, requestId);
-}
+});

@@ -5,6 +5,7 @@
 //
 // 機能フラグ・ログイン・status の遷移制御は loader、復帰操作はセクションコンテナ Reactivate。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
@@ -12,8 +13,8 @@ import { Reactivate } from "@/features/core/user/components/Reactivate";
 
 import { loadReactivateScreen } from "./loader";
 
-export async function ReactivateScreen() {
-  await loadReactivateScreen();
+export async function ReactivateScreen(props: ScreenProps) {
+  await loadReactivateScreen(props);
 
   return (
     <UserPage containerType="narrowStack">

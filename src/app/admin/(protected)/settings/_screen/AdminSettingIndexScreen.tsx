@@ -5,9 +5,10 @@
 //
 // 表示は無い。loader が既定のセクションへ redirect する。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminSettingIndexScreen } from "./loader";
 
-export async function AdminSettingIndexScreen() {
-  await loadAdminSettingIndexScreen();
+export async function AdminSettingIndexScreen(props: ScreenProps) {
+  await loadAdminSettingIndexScreen(props);
   return null;
 }

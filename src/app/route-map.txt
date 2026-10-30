@@ -17,7 +17,7 @@
 /admin/coupons/official	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/insane	legacy-unverified	layout:admin/insane guard#00000000
 /admin/insane/truncate	legacy-unverified	layout:admin/insane guard#00000000
-/admin/login	legacy-unverified	loader:_screen authGuard#feb9963b
+/admin/login	legacy-unverified	none
 /admin/notification-templates	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/notification-templates/[id]/edit	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/notification-templates/new	legacy-unverified	layout:admin/(protected) guard#00000000
@@ -34,7 +34,7 @@
 /admin/samples/new	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/samples/sort	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/settings	legacy-unverified	layout:admin/(protected) guard#00000000
-/admin/settings/[section]	legacy-unverified	layout:admin/(protected) guard#00000000 > loader:_screen authGuard#03c8f813
+/admin/settings/[section]	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/setup	legacy-unverified	none
 /admin/tabs-demo/actions	legacy-unverified	layout:admin/(protected) guard#00000000
 /admin/tabs-demo/insights	legacy-unverified	layout:admin/(protected) guard#00000000
@@ -77,24 +77,24 @@
 /email/verify	legacy-unverified	none
 /entry	legacy-unverified	none
 /forgot-password	legacy-unverified	none
-/login	legacy-unverified	loader:_screen getSessionUser#00000000
+/login	legacy-unverified	none
 /logout	legacy-unverified	none
 /maintenance	legacy-unverified	none
 /mypage	legacy-unverified	layout:(user)/(protected) guard#00000000
-/mypage/account	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
-/mypage/account/email	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
-/mypage/account/password	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
-/mypage/account/phone	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
-/mypage/account/profile	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
+/mypage/account	legacy-unverified	layout:(user)/(protected) guard#00000000
+/mypage/account/email	legacy-unverified	layout:(user)/(protected) guard#00000000
+/mypage/account/password	legacy-unverified	layout:(user)/(protected) guard#00000000
+/mypage/account/phone	legacy-unverified	layout:(user)/(protected) guard#00000000
+/mypage/account/profile	legacy-unverified	layout:(user)/(protected) guard#00000000
 /mypage/invite	legacy-unverified	layout:(user)/(protected) guard#00000000
 /mypage/other	gated-off(/mypage/other)	layout:(user)/(protected) guard#00000000
 /mypage/pause	gated-off(/mypage/pause)	layout:(user)/(protected) guard#00000000
 /mypage/withdraw	gated-off(/mypage/withdraw)	layout:(user)/(protected) guard#00000000
 /password/reset	legacy-unverified	none
 /privacy-policy	legacy-unverified	none
-/reactivate	legacy-unverified	loader:_screen getSessionUser#00000000
+/reactivate	legacy-unverified	none
 /reactivate/complete	legacy-unverified	none
-/restricted	legacy-unverified	loader:_screen getSessionUser#00000000
+/restricted	legacy-unverified	none
 /services	legacy-unverified	none
 /signup	legacy-unverified	none
 /signup-closed	legacy-unverified	none
@@ -105,12 +105,12 @@
 /signup/verify	legacy-unverified	none
 /terms	legacy-unverified	none
 /tradelaw	legacy-unverified	none
-/wallet	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
-/wallet/[slug]	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
-/wallet/[slug]/history	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
+/wallet	legacy-unverified	layout:(user)/(protected) guard#00000000
+/wallet/[slug]	legacy-unverified	layout:(user)/(protected) guard#00000000
+/wallet/[slug]/history	legacy-unverified	layout:(user)/(protected) guard#00000000
 /wallet/[slug]/purchase	legacy-unverified	layout:(user)/(protected) guard#00000000
 /wallet/[slug]/purchase/awaiting-review	legacy-unverified	layout:(user)/(protected) guard#00000000
-/wallet/[slug]/purchase/bank-transfer/[requestId]	legacy-unverified	layout:(user)/(protected) guard#00000000 > loader:_screen requireCurrentUser#a6167f9f
+/wallet/[slug]/purchase/bank-transfer/[requestId]	legacy-unverified	layout:(user)/(protected) guard#00000000
 /wallet/[slug]/purchase/callback	legacy-unverified	layout:(user)/(protected) guard#00000000
 /wallet/[slug]/purchase/complete	legacy-unverified	layout:(user)/(protected) guard#00000000
 /wallet/[slug]/purchase/failed	legacy-unverified	layout:(user)/(protected) guard#00000000

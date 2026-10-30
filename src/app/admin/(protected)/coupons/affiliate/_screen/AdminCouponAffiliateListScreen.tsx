@@ -3,8 +3,9 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。
 // 手順: src/lib/screens/README.md
 //
-// loader は無い(準備中の案内だけ)。
+// loader は access の評価だけ(準備中の案内だけ)。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Section } from "@/components/Layout/Section";
@@ -15,11 +16,15 @@ import { Construction } from "lucide-react";
 
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
 
+import { loadAdminCouponAffiliateListScreen } from "./loader";
+
 export const metadata = {
   title: "クーポン一覧（アフィリエイト）",
 };
 
-export function AdminCouponAffiliateListScreen() {
+export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
+  await loadAdminCouponAffiliateListScreen(props);
+
   return (
     <AdminPage>
       <PageTitle placement="header">クーポン管理</PageTitle>

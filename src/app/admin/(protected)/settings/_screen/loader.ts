@@ -5,11 +5,14 @@
 // 仕様: 遷移制御だけの loader(Promise<void>)。既定のセクション(/admin/settings/<既定キー>)へ常に redirect する。
 
 import "server-only";
-import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { getDefaultSettingSectionKey } from "@/features/core/setting/setting.sections";
+import { createLoader } from "@/app/admin/(protected)/guard";
 
-export const loadAdminSettingIndexScreen = cache(async (): Promise<void> => {
-  redirect(`/admin/settings/${getDefaultSettingSectionKey()}`);
+export const loadAdminSettingIndexScreen = createLoader({
+  access: { roleCategories: ["admin"] },
+  load: async (): Promise<void> => {
+    redirect(`/admin/settings/${getDefaultSettingSectionKey()}`);
+  },
 });

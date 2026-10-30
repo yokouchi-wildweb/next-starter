@@ -4,10 +4,15 @@
 // デバッグ用ページはこの階層（src/app/debug/）にディレクトリを追加する。
 // 認可は debug/layout.tsx が一括で行う。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { Main, Stack } from "@/components/Layout";
 import { Para, SecTitle } from "@/components/TextBlocks";
 
-export function DebugIndexScreen() {
+import { loadDebugIndexScreen } from "./loader";
+
+export async function DebugIndexScreen(props: ScreenProps) {
+  await loadDebugIndexScreen(props);
+
   return (
     <Main>
       <Stack space={4}>

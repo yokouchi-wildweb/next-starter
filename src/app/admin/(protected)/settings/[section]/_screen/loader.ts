@@ -3,17 +3,16 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 未知のセクションキーは 404。セクションに allowRoles があれば、そのロール以外は /admin へ redirect する
-// (管理画面全体の authGuard は layout が済ませている。ここはセクション単位の追加制限)。全体設定(global)を取得する。
+// (範囲 admin/(protected) の createLoader が管理者カテゴリを評価済み。ここはセクション単位の追加制限で、ctx.allows で判定する)。全体設定(global)を取得する。
 
 import "server-only";
-import { cache } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { authGuard } from "@/features/core/auth/services/server/authorization";
 import type { Setting } from "@/features/core/setting/entities";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { settingSections, type SettingSection } from "@/features/core/setting/setting.sections";
+import { createLoader } from "@/app/admin/(protected)/guard";
 
 export type AdminSettingSectionScreenParams = { section: string };
 
@@ -25,21 +24,22 @@ export type AdminSettingSectionScreenData = {
   redirectPath: string;
 };
 
-const resolveAdminSettingSectionScreen = cache(async (sectionKey: string): Promise<AdminSettingSectionScreenData> => {
-  const section = settingSections[sectionKey];
-  if (!section) notFound();
+export const loadAdminSettingSectionScreen = createLoader({
+  access: { roleCategories: ["admin"] },
+  key: async (props: ScreenProps<AdminSettingSectionScreenParams>): Promise<[string]> => {
+    const { section } = await props.params;
+    return [section];
+  },
+  load: async ({ allows }, sectionKey): Promise<AdminSettingSectionScreenData> => {
+    const section = settingSections[sectionKey];
+    if (!section) notFound();
 
-  if (section.allowRoles && section.allowRoles.length > 0) {
-    await authGuard({ allowRoles: section.allowRoles, redirectTo: "/admin" });
-  }
+    if (section.allowRoles && section.allowRoles.length > 0) {
+      if (!allows({ roles: [...section.allowRoles] })) redirect("/admin");
+    }
 
-  const setting = await settingService.getGlobalSetting();
-  return { sectionKey, section, setting, redirectPath: `/admin/settings/${sectionKey}` };
+    const setting = await settingService.getGlobalSetting();
+    return { sectionKey, section, setting, redirectPath: `/admin/settings/${sectionKey}` };
+  },
 });
 
-export async function loadAdminSettingSectionScreen(
-  props: ScreenProps<AdminSettingSectionScreenParams>,
-): Promise<AdminSettingSectionScreenData> {
-  const { section } = await props.params;
-  return resolveAdminSettingSectionScreen(section);
-}

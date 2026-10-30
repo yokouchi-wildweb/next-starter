@@ -5,14 +5,15 @@
 //
 // ログイン・status による redirect は loader。suspended は不正確定前のグレー状態のため専用の柔らかい文言を出す。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks";
 
 import { loadRestrictedScreen } from "./loader";
 
-export async function RestrictedScreen() {
-  const { status } = await loadRestrictedScreen();
+export async function RestrictedScreen(props: ScreenProps) {
+  const { status } = await loadRestrictedScreen(props);
   const isSuspended = status === "suspended";
 
   return (
