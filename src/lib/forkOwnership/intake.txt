@@ -31,6 +31,7 @@ edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/**/_components/**  # upstream のルートの fork の部品
 edit src/app/**/_layout/**/*.*.tsx  # 枠のドット区切り名のカスタム(D41)
 edit src/app/**/_screen/**/*.*.tsx  # Screen の隣のドット区切り名
+edit src/app/_providers/ForkProviders.tsx  # AppProviders の fork の口(D30 K8。上流は空、多段は同じファイルを書き換える)
 !src/app/**/*.test.tsx  # テストはドット区切り名のカスタムではない
 
 # 結線(fork のドット名の wiring。上流の wiring の置き換えは無い。検査: pnpm test:wiring が fork_id: と台帳名で ID を確かめる)

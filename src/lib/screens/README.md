@@ -10,14 +10,14 @@
 
 | ファイル | 役割 |
 |---|---|
-| `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形）。`LegacyRouteEntry` — 例外リストの型 |
+| `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形） |
 | `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`・守りの鎖の解析 `checkScreenLoaderCall`（D21）/ `parseLoaderGuard` / `parseGuardFile` / `layoutCallsGuard` / `parseLiteral`（地図と共有）（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
 | `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
 | `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
-| `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査。上流の未移行ルート一覧 `UPSTREAM_LEGACY_ROUTES` を持つ |
+| `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
 | `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
 | `src/app/route-map.jsonl` | ルート地図（生成物。1 ページ 1 行の守りの鎖の JSON。手で編集しない。§13） |
-| `src/registry/screenRoutesRegistry.ts` | fork の未移行ルートの例外リスト `FORK_LEGACY_ROUTES` と構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9・§10） |
+| `src/registry/screenRoutesRegistry.ts` | 構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9） |
 
 ---
 
@@ -337,42 +337,23 @@ import { BalanceCard } from "./BalanceCard";
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（§13）が見る。補助関数は `utils/` へ | 失敗 |
 | Screen → loader（D21） | `checkScreenLoaderCall`: 同じルートの loader を import し、本体の最上位（最初の `return` より前）で await する | 失敗 |
 | 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
-| 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
 | upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` にドット区切り名（fork のカスタムの印）が無い。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
 
-fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に、未移行のページは `FORK_LEGACY_ROUTES` に書く。fork がローカルに screens テストの写しを持つ必要はない。
+fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 
 ```ts
 // src/registry/screenRoutesRegistry.ts(fork で編集)
 export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 ```
 
-テストは tsx ランナーで動く（例外リストの `.ts` を読むため）。pre-commit / CI ガードは置かない。
+テストは tsx ランナーで動く（`screenRoutesRegistry.ts` の `.ts` を読むため）。pre-commit / CI ガードは置かない。
 既知の限界: `stripComments` は正規表現リテラルを追跡しない。`//` や引用符・バッククォートを含む正規表現が page.tsx / Screen / loader にあると判定がずれることがある（検査対象のファイルでは稀。必要なら正規表現を `utils/` に逃がす）。
 
-## 10. 未移行ルートの扱い（例外リスト）
+## 10. 未移行ルートの扱い（例外リストは無い）
 
-スイッチ形でない page.tsx を残すには、理由を添えて例外リストに載せる。一覧は縮む方向にしか動かない（移行が済んだ行が残っていると失敗する）。
-
-ただしルート地図（§13）は鎖を辿れないページで生成失敗になるので、例外リストに載せたページも `pnpm routes:map` は通らない。ページの守り（guard.ts・createLoader）の出荷からは全 Tier で全ページが新方式であることが前提で、upstream の一覧は空、fork の `FORK_LEGACY_ROUTES` も 0 にする（親 D71 K2）。
-
-| リポジトリ | 場所 |
-|---|---|
-| upstream（core の未移行ルート） | `src/lib/screens/screens.test.mjs` の `UPSTREAM_LEGACY_ROUTES`（Step 5e で空になった。新しい core ルートはスイッチ形で作るので原則増えない） |
-| fork | `src/registry/screenRoutesRegistry.ts` の `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。同じファイルの `FORK_SCAN_EXCLUDES` は構造の検査の除外、§9） |
-
-```ts
-// src/registry/screenRoutesRegistry.ts(fork で編集)
-export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [
-  { dir: "src/app/(user)/(protected)/play", reason: "2026-11 のガチャ改修で移行予定" },
-];
-```
-
-- 「移行済み」の判定は page.tsx が **`./_screen/` へのスイッチになったとき**だけ。`./_components/` へ向いているのは「一覧の所有者ではない側が差し替えた」状態なので移行済み扱いにしない。だから fork が upstream の未移行ルートを `_components/` に差し替えても、fork では編集できない `UPSTREAM_LEGACY_ROUTES` が失敗することはない（スイッチ形なので本体の検査も合格する）
-- fork が upstream の未移行ルートをルートごと削除した場合も失敗しない（削除済みの指摘は所有者が編集できる `FORK_LEGACY_ROUTES` でだけ行う）
-- 中間 Tier（自分も下流を持つ fork）も同じ。Tier3 では Tier2 の未移行ルートが Tier2 の `FORK_LEGACY_ROUTES` によって skip され、Tier3 が `_components/` に差し替えても Tier2 の一覧は失敗しない
+スイッチ形でない page.tsx は `pnpm test:screens` が失敗にし、ルート地図（§13）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リスト（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES`）は仕組みごと廃止した（upstream も 8 fork も 0 件、多段ティア D30 K11）。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
 
 ## 11. 不採用の案（理由を残す）
 

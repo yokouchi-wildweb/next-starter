@@ -12,10 +12,7 @@
 //    (metadata / dynamic 等の export、generateMetadata、それらに必要な import)だけ。画面ロジックを page.tsx に置かない
 // 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
 // 3. loader は `import "server-only"` と、最寄りの guard.ts の createLoader(Factory が cache を張る)か React の cache() を使い load<Xxx> を export する
-// 4. まだスイッチ化していない page.tsx は、理由付きで例外リストに載せる(黙って古いままにしない):
-//    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5e で空になった。新しい core ルートはスイッチ形で作る)
-//    fork     = src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES
-//    移行が済んだのに残っている行も失敗にする(一覧が縮む方向にしか動かない)
+// 4. 未移行の例外リストは無い(upstream も fork も全ページがスイッチ形、D30 K11)。スイッチでない page.tsx は失敗
 // 5. 枠を描く layout.tsx(FRAME_LAYOUTS)と ./_layout/ を指す re-export を持つ layout.tsx は page.tsx と同じ 1 行スイッチ形
 //    (参照先は ./_layout/<X>、採用者所有・write-once)。全 Tier で検査する。ガード付きの layout.tsx が ./_layout/ の枠を
 //    素の import で描くのはスイッチではない(提供者所有、検査対象外)
@@ -52,18 +49,10 @@ import { loadCatalogOwnership } from "../folderCatalog/catalog.mjs";
 export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const FORK_LEGACY_ROUTES = registry.FORK_LEGACY_ROUTES ?? [];
 const FORK_SCAN_ROOTS = registry.FORK_SCAN_ROOTS ?? [];
 const FORK_SCAN_EXCLUDES = registry.FORK_SCAN_EXCLUDES ?? [];
 const read = (path) => readFileSync(resolve(repoRoot, path), "utf8");
 const exists = (path) => existsSync(resolve(repoRoot, path));
-
-/**
- * upstream がまだスイッチ化していない core ルート(理由を添える)。
- * Step 5 完了時点(5e)で空。新しい core ルートはスイッチ形で作るので、原則ここに行は増えない
- * (やむを得ず残す場合だけ { dir, reason } を足し、移行したら外す。移行済みの行が残っていると失敗する)
- */
-export const UPSTREAM_LEGACY_ROUTES = [];
 
 /**
  * upstream の枠を描く layout.tsx(1 行スイッチ形であること。ファイルが無ければ = fork がルートを消した → 検査しない)。
@@ -187,8 +176,6 @@ export function isContainerDir(dirSpec) {
 // テスト本体
 // ---------------------------------------------------------------------------
 
-const legacyEntries = [...UPSTREAM_LEGACY_ROUTES, ...FORK_LEGACY_ROUTES];
-const legacyDirs = new Map(legacyEntries.map((e) => [e.dir, e.reason]));
 const pages = discoverPages();
 const pageByDir = new Map(pages.map((p) => [dirname(p), p]));
 const pageDirs = new Set(pageByDir.keys());
@@ -196,18 +183,13 @@ const pageDirs = new Set(pageByDir.keys());
 for (const page of pages) {
   const dir = dirname(page);
   const { problems, target } = parseSwitchPage(read(page));
-  const isLegacy = legacyDirs.has(dir);
 
-  test(`${dir}: page.tsx は Screen への 1 行スイッチ`, (t) => {
-    if (problems.length > 0 && isLegacy) {
-      t.skip(`未移行(例外リストに記載): ${legacyDirs.get(dir)}`);
-      return;
-    }
+  test(`${dir}: page.tsx は Screen への 1 行スイッチ`, () => {
     assert.deepEqual(
       problems,
       [],
-      `${page}: ${problems.join(" / ")}\n→ page.tsx を \`export { XScreen as default } from "./_screen/XScreen"\` にして本体を _screen/ へ移すか、` +
-        `まだ移行しないなら理由を添えて例外リスト(upstream: UPSTREAM_LEGACY_ROUTES / fork: src/registry/screenRoutesRegistry.ts)に載せる`,
+      `${page}: ${problems.join(" / ")}\n→ page.tsx を \`export { XScreen as default } from "./_screen/XScreen"\` にして本体を _screen/ へ移す` +
+        `(fork の差し替えは _components/ の Screen へ向ける。未移行の例外リストは無い)`,
     );
   });
 
@@ -282,40 +264,6 @@ for (const loader of routeLoaders) {
     assert.deepEqual(problems, [], `${loader}: ${problems.join(" / ")}`);
   });
 }
-
-/**
- * 例外リストの鮮度。「移行済み」= page.tsx が ./_screen/ へのスイッチになったとき。
- * ./_components/ へ向いているのは「その一覧の所有者ではない側(下流)が差し替えた」状態なので移行済み扱いにしない
- * (fork が upstream の未移行ルートを先に差し替えても、fork では編集できない UPSTREAM_LEGACY_ROUTES が失敗しない)。
- * 検査対象に無いルート(削除済み)は、所有者が編集できる一覧(fork の FORK_LEGACY_ROUTES)でだけ指摘する。
- */
-function staleLegacyEntries(entries, { ownerEditable }) {
-  const stale = [];
-  for (const entry of entries) {
-    assert.equal(typeof entry.dir, "string", `例外リストの entry に dir が無い: ${JSON.stringify(entry)}`);
-    assert.ok(typeof entry.reason === "string" && entry.reason.trim(), `例外リストの ${entry.dir} に reason が無い(理由を明示する)`);
-    if (!pageDirs.has(entry.dir)) {
-      if (ownerEditable) stale.push(`${entry.dir}(検査対象に無い。削除済みか走査範囲外)`);
-      continue;
-    }
-    const { problems, target } = parseSwitchPage(read(pageByDir.get(entry.dir)));
-    if (problems.length === 0 && target?.screenDir === "_screen") stale.push(`${entry.dir}(移行済み。例外リストから外す)`);
-  }
-  return stale;
-}
-
-test("UPSTREAM_LEGACY_ROUTES: 移行済み(_screen へのスイッチ)のルートが残っていない", () => {
-  const stale = staleLegacyEntries(UPSTREAM_LEGACY_ROUTES, { ownerEditable: false });
-  assert.deepEqual(stale, [], `upstream の例外リストを更新する:\n${stale.join("\n")}`);
-});
-
-test("FORK_LEGACY_ROUTES: 移行済み・存在しないルートが残っておらず、upstream の一覧と重複しない", () => {
-  const stale = staleLegacyEntries(FORK_LEGACY_ROUTES, { ownerEditable: true });
-  assert.deepEqual(stale, [], `src/registry/screenRoutesRegistry.ts を更新する:\n${stale.join("\n")}`);
-  const upstreamDirs = new Set(UPSTREAM_LEGACY_ROUTES.map((e) => e.dir));
-  const dup = FORK_LEGACY_ROUTES.map((e) => e.dir).filter((d, i, a) => a.indexOf(d) !== i || upstreamDirs.has(d));
-  assert.deepEqual(dup, [], `例外リストに重複(upstream の一覧にあるものは登録不要): ${dup.join(", ")}`);
-});
 
 test("FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES: 不要になった FORK_SCAN_ROOTS の行・存在しない・重複した除外が無い", () => {
   const stale = staleScanEntries();
