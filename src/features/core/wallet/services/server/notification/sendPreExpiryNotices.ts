@@ -26,7 +26,7 @@ import {
   toLocalDateKey,
 } from "@/features/core/wallet/utils/expirationNoticeDate";
 import { findUsersWithExpiringLots } from "../lots/findUsersWithExpiringLots";
-import { formatAmount } from "./adjustmentNotificationTemplate";
+import { formatAmount } from "./adjustmentNotificationFormat";
 import {
   ExpirationNoticeStopError,
   createExpirationNoticeCounts,

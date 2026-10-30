@@ -18,7 +18,7 @@ import { MESSAGING_SOURCES } from "@/features/core/messaging/constants/sources";
 import { getExpiredNotice } from "@/features/core/wallet/utils/expiration";
 import { formatLocalDate } from "@/features/core/wallet/utils/expirationNoticeDate";
 import { listExpirationResults } from "../lots/listExpirationResults";
-import { formatAmount } from "./adjustmentNotificationTemplate";
+import { formatAmount } from "./adjustmentNotificationFormat";
 import {
   ExpirationNoticeStopError,
   createExpirationNoticeCounts,

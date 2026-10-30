@@ -1,5 +1,5 @@
 // src/config/app/wallet-notification.config.ts
-// 管理者による残高変更通知の文言(組み立て: wallet/services/server/notification/adjustmentNotificationTemplate.ts)
+// 管理者による残高変更通知の文言(組み立て: wallet/services/server/notification/adjustmentNotificationTemplate.default.ts)
 
 export const WALLET_ADJUSTMENT_NOTIFICATION = {
   /** タイトルの「<通貨名>」の後ろ */

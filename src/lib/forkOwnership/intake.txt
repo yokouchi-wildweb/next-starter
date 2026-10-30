@@ -84,6 +84,7 @@ edit src/app/_layout/adminCommand/categories/*.*/**  # フォルダ形
 edit src/app/_layout/adminCommand/plugins/*.*.ts  # 管理者コマンドのプラグイン
 edit src/app/_layout/adminCommand/plugins/*.*.tsx  # 管理者コマンドのプラグイン
 edit src/app/_layout/adminCommand/plugins/*.*/**  # フォルダ形
+edit src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # 1 行スイッチ(残高調整の通知の組み立て)
 edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(重複登録の警告の本文)
 edit src/features/core/coupon/adminSectionTabs/*.*.ts  # クーポン管理画面のセクションタブ
 edit src/features/core/coupon/adminSectionTabs/*.*/**  # フォルダ形

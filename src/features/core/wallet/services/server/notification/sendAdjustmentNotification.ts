@@ -3,11 +3,8 @@
 
 import { notificationService } from "@/features/notification/services/server/notificationService";
 import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
-import {
-  buildTitle,
-  buildBody,
-  type AdjustmentNotificationParams,
-} from "./adjustmentNotificationTemplate";
+import type { AdjustmentNotificationParams } from "./adjustmentNotificationFormat";
+import { buildBody, buildTitle } from "./adjustmentNotificationTemplate";
 import type { WalletType } from "@/config/app/currency.config";
 
 type SendAdjustmentNotificationInput = {

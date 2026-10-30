@@ -189,7 +189,7 @@ wallet: {
 }
 ```
 
-通知の文言をカスタマイズする場合は `wallet/services/server/notification/adjustmentNotificationTemplate.ts` を編集する。
+通知の文言は `src/config/app/wallet-notification.config.ts`。組み立てごと変える fork は `adjustmentNotificationTemplate.<fork の名前>.ts`(`buildTitle`・`buildBody` を export)を作り、1 行スイッチ `adjustmentNotificationTemplate.ts` の向きを書き換える。
 
 #### reserveBalance
 
@@ -929,7 +929,7 @@ src/features/core/wallet/
 │       ├── walletService.ts  # メインサービス
 │       ├── drizzleBase.ts    # ベースCRUD
 │       ├── notification/
-│       │   ├── adjustmentNotificationTemplate.ts  # 通知テンプレート（文言カスタマイズ用）
+│       │   ├── adjustmentNotificationTemplate.ts  # 通知の組み立ての 1 行スイッチ（既定 .default.ts、共通の整形 adjustmentNotificationFormat.ts）
 │       │   └── sendAdjustmentNotification.ts      # 残高変更通知の送信
 │       └── wrappers/
 │           ├── utils.ts      # ユーティリティ（getOrCreateWallet等）

@@ -9,18 +9,22 @@ import type { PurchaseCompletionStrategy } from "./types";
 
 let memo: Map<PurchaseTypeKey, PurchaseCompletionStrategy> | null = null;
 
-// 読み込みの途中(循環 import)で一覧を触らないよう、初回の呼び出しで組み立てる
-function strategyMap(): Map<PurchaseTypeKey, PurchaseCompletionStrategy> {
-  if (memo) return memo;
+/** 一覧から Map を組み立てる。同じ type は例外 */
+export function buildStrategyMap(items: readonly PurchaseCompletionStrategy[]): Map<PurchaseTypeKey, PurchaseCompletionStrategy> {
   const map = new Map<PurchaseTypeKey, PurchaseCompletionStrategy>();
-  for (const strategy of completionStrategies) {
+  for (const strategy of items) {
     if (map.has(strategy.type)) {
       throw new Error(`[PurchaseCompletionStrategy] type "${strategy.type}" が複数あります`);
     }
     map.set(strategy.type, strategy);
   }
-  memo = map;
   return map;
+}
+
+// 読み込みの途中(循環 import)で一覧を触らないよう、初回の呼び出しで組み立てる
+function strategyMap(): Map<PurchaseTypeKey, PurchaseCompletionStrategy> {
+  memo ??= buildStrategyMap(completionStrategies);
+  return memo;
 }
 
 /**

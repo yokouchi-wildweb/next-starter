@@ -29,11 +29,15 @@ import { categories } from "@/app/_layout/adminCommand/extensions/categories";
 import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
 import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
 import { loadForAdmin } from "@/features/core/adminCommand/base/loadForAdmin";
 import { navigationItems } from "@/features/core/adminCommand/definitions/navigation/items";
 import { validateChatFile } from "@/features/core/chatRoom/utils/validation";
 import { renderers } from "@/features/core/milestone/extensions/renderers";
+import { buildStrategyMap } from "@/features/core/purchaseRequest/services/server/completion/strategyRegistry";
+import { buildRewardHandlerMap } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
+import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
 import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
@@ -104,7 +108,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   assert.equal(isCouponIssuerProgramEnabled(), false);
   assert.equal(await onDemoUserCreated("u1"), undefined);
   const plan = planExtensions(ROOT);
-  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["RateLimitWarningContent.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
+  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["RateLimitWarningContent.default", "adjustmentNotificationTemplate.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
 });
 
 test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", () => {
@@ -246,4 +250,24 @@ test("同じ鍵: コイン創出ソースと管理者コマンドは例外", asy
   assert.throws(() => activeCoinIssuanceSources([source, source]), /複数あります/);
   const item = { name: "x", load: async () => ({ id: "same" }) as never };
   await assert.rejects(loadForAdmin(true, { categories: [item, item], plugins: [] }), /複数あります/);
+});
+
+test("同じ鍵: 購入完了の strategy と紹介報酬の rewardHandler は例外、違う鍵は通る", () => {
+  const strategy = (type: string) => ({ type }) as never;
+  assert.equal(buildStrategyMap([strategy("a"), strategy("b")]).size, 2);
+  assert.throws(() => buildStrategyMap([strategy("a"), strategy("a")]), /複数あります/);
+  const handler = (rewardKey: string) => ({ rewardKey, handler: async () => ({}) });
+  assert.equal(buildRewardHandlerMap([handler("a"), handler("b")]).size, 2);
+  assert.throws(() => buildRewardHandlerMap([handler("a"), handler("a")]), /複数あります/);
+});
+
+test("残高調整の通知: 既定の組み立ては今までと同じ形", () => {
+  const walletType = Object.keys(CURRENCY_CONFIG)[0] as WalletType;
+  const { label, unit } = CURRENCY_CONFIG[walletType];
+  const params = { walletType, changeMethod: "INCREMENT", amount: 1000, balanceBefore: 0, balanceAfter: 1000, reason: "r" };
+  assert.ok(buildTitle(params).startsWith(label));
+  const lines = buildBody(params).split("\n");
+  assert.equal(lines.length, 4);
+  assert.ok(lines[1].endsWith(`+1,000 ${unit}`));
+  assert.ok(lines[3].endsWith(": r"));
 });
