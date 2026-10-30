@@ -31,8 +31,11 @@
 - cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` だけ（fork 所有の `override.ts` と 1 行の `route.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domains")`）
 - features / lib / components / registry からは import しない。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
 
-「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。今は同じ場所からだけ import できる。
+「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。src/app の中で import してよい場所は限る（D73 K6。UI の場所はデータを取らない）:
 
-- `src/app/api/**` の補助ファイル（例 `data-migration/_shared/`）もデータに届く wiring を import してよい
+- `loader.ts`・`route.ts`・cron の `task.ts`・`src/app/api/**` の補助ファイル（例 `data-migration/_shared/`）
+- `guard.ts` は `@/wiring/pageGuard`（守りの作り手）だけ
+- root の `src/app/layout.tsx` は `@/wiring/AppProviders` だけ（データに届くのは中の AuthSessionProvider = 名前付き例外）
+- Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
-検査: `pnpm test:wiring`（目録・fork のドット名・向き・鎖）。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
+検査: `pnpm test:wiring`（目録・fork のドット名・向き・鎖・データに届く wiring の import の場所）。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。

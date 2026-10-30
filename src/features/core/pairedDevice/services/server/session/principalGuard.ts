@@ -5,7 +5,7 @@
 // 両方から開くページ（店舗のスタッフ画面・POS 等）を layout + loader で書けるようにする。
 //
 // 判定の順: 端末（kinds に合う）→ ユーザー（orUser のルール）→ どちらでもなければ redirect / 404。
-// 端末用だけなら deviceGuard、ユーザー用だけなら authGuard を使う（どちらも挙動は変わらない）。
+// 端末用だけなら deviceGuard、ユーザー用だけならページの守り（guard.ts の createLoader）を使う。
 
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";

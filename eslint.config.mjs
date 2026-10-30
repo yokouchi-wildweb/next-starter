@@ -76,6 +76,8 @@ const config = [
   },
   // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。
   // - route-factory-via-wiring: @/lib/routeFactory の値 import は src/wiring/** だけ(D5 K1。型だけは可)
+  // - page-guard-via-wiring: @/lib/pageGuard の値 import は src/wiring/** だけ(L1.18。型だけは可)
+  // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3)。今の違反は縮むだけの一覧
   //   (eslint-rules/import-boundaries.exceptions.mjs、upstream の物で fork は足せない)
   // 詳細: eslint-rules/import-boundaries.mjs
@@ -84,6 +86,14 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/route-factory-via-wiring": "error",
+      "import-boundaries/page-guard-via-wiring": "error",
+    },
+  },
+  {
+    files: ["src/features/**/index.{ts,tsx}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/features-index-no-server-reexport": "error",
     },
   },
   {
@@ -223,22 +233,10 @@ const config = [
       ],
     },
   },
-  // layout はサーバー側でデータを取らない(M4。詳細: eslint-rules/page-authz.mjs, src/features/core/auth/README.md)。
-  // layout は並列に描かれ、ガードの内側の layout も守られないため、取得は loader へ。許すのは authorization の関数だけ。
-  // 範囲の方針(guard.ts)は layout の隣に置き、layout は guard() の 1 行で呼ぶ(この規則の対象外)。
-  // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
-  {
-    files: ["src/app/**/layout.{ts,tsx}", "src/app/**/_layout/**/*.{ts,tsx}"],
-    plugins: { "page-authz": pageAuthzPlugin },
-    rules: {
-      "page-authz/layout-no-server-data": "error",
-    },
-  },
-  // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)を呼べる場所を役割で限る(M3)。
-  // 対象 = src/app(src/app/api/** を含む)と UI 側。許可 = layout・_layout/(組み立て)・loader.ts(下の ignores)。guard.ts はセッション API を import しない(@/wiring/pageGuard で作る)。
-  // API には許可の場所が無い(主体は Factory の ctx.user。token だけのセッション・Cookie の解析も不可。D8 K4)。
-  // AuthSessionProvider は認証基盤の名前付き例外(Cookie からセッションを解決して client に渡す root layout の Provider)。
-  // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
+  // UI の場所はサーバーのデータを取らない(M4 を D73 K1 の範囲へ。詳細: eslint-rules/page-authz.mjs, src/features/core/auth/README.md)。
+  // 対象 = src/app の Screen・page・layout・_layout・guard.ts・_components の部品と components・hooks。services/server・DB(L1.20)を
+  // 値で import しない(型は可)。取得は同じルートの loader(guard.ts の createLoader)へ。loader.ts・route.ts・API は対象外。
+  // 名前付き例外 = AuthSessionProvider(Cookie の解析とセッション解決)。セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
   {
     files: [
       "src/app/**/*.{ts,tsx}",
@@ -248,11 +246,30 @@ const config = [
       "src/hooks/**/*.{ts,tsx}",
     ],
     ignores: [
-      "src/app/**/layout.{ts,tsx}",
-      "src/app/**/_layout/**",
       "src/app/**/loader.ts",
+      "src/app/**/route.{ts,tsx}",
+      "src/app/api/**",
       "src/features/core/auth/components/AuthSessionProvider.tsx",
     ],
+    plugins: { "page-authz": pageAuthzPlugin },
+    rules: {
+      "page-authz/layout-no-server-data": "error",
+    },
+  },
+  // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)をページ層・UI・API で import しない(M3、D73 K4・K5)。
+  // 対象 = src/app 全体(page・Screen・layout・_layout・loader.ts・guard.ts・_components・API)と UI 側。許可の場所は無い:
+  // ページの主体は guard.ts の createLoader が loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
+  // AuthSessionProvider は認証基盤の名前付き例外(root layout の Provider)。
+  // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
+  {
+    files: [
+      "src/app/**/*.{ts,tsx}",
+      "src/components/**/*.{ts,tsx}",
+      "src/features/**/components/**/*.{ts,tsx}",
+      "src/features/**/hooks/**/*.{ts,tsx}",
+      "src/hooks/**/*.{ts,tsx}",
+    ],
+    ignores: ["src/features/core/auth/components/AuthSessionProvider.tsx"],
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
       "page-authz/session-api-callsite": "error",

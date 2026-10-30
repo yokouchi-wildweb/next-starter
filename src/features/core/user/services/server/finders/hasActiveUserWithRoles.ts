@@ -10,7 +10,7 @@ import { base } from "../drizzleBase";
  *   削除済みも数える checkAdminUserExists とは判定が違う(初期セットアップ側はそちらを使う)。
  * - 行は読まず件数だけを見る。
  * - userService 経由ではなく drizzleBase を直接参照しているため、auth ドメインの
- *   authorization.ts(requireCurrentUser → authorization の向きがある)から循環依存なしに呼べる。
+ *   auth の authorization.ts(ページの守りの setup 誘導)から循環依存なしに呼べる。
  */
 export async function hasActiveUserWithRoles(roles: readonly UserRoleType[]): Promise<boolean> {
   if (roles.length === 0) return false;

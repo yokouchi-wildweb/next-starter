@@ -438,10 +438,10 @@ function isInvertedLoaderImport(source, loaderPath) {
  * - `import "server-only"` / React の `cache()` / `load<Xxx>` の export
  * - `cache()` は中身が純粋(URL 解釈だけ・redirect だけ)でも必須。一律にして「後から取得を足したときの付け忘れ」を無くす
  * - DTO 型は loader が所有する: `_components/` や Screen からの import(type 含む)は不可
- * - `(protected)` 配下の loader は `requireCurrentUser` のみ。`getSessionUser`(nullable)の import は不可
- *   (layout の authGuard が未ログインを弾いた後なので null 分岐は到達しない。公開ルートの任意パーソナライズ専用)
+ * - 主体は guard.ts の createLoader が load の ctx.user で渡す(セッション API の import は lint page-authz/session-api-callsite が止める。
+ *   フォルダ名 `(protected)` による判定は持たない)
  * @param {string} source loader の内容
- * @param {{ path?: string }} [options] path = repo 相対パス(protected 判定に使う。省略時はその検査を行わない)
+ * @param {{ path?: string }} [options] path = repo 相対パス(相対 import の解決に使う)
  */
 export function checkLoaderFile(source, options) {
   const { path = "" } = options ?? {};
@@ -453,11 +453,6 @@ export function checkLoaderFile(source, options) {
   if (!/export\s+(const|async\s+function|function)\s+load[A-Z]\w*/.test(src)) problems.push("load<Name> を export していない");
   for (const m of src.matchAll(/\b(?:import|export)\b[^"'`;]*?\bfrom\s*["']([^"']+)["']/g)) {
     if (isInvertedLoaderImport(m[1], path)) problems.push(`${m[1]} を import している(DTO 型は loader が定義し、部品・Screen 側が loader から import する)`);
-  }
-  const importsGetSessionUser =
-    /import\s*(type\s*)?\{[^}]*\bgetSessionUser\b[^}]*\}\s*from/.test(src) || /\bfrom\s*["'][^"']*\/getSessionUser["']/.test(src);
-  if (/\(protected\)/.test(path) && importsGetSessionUser) {
-    problems.push("(protected) 配下の loader が getSessionUser を import している(requireCurrentUser({ behavior: \"redirect\", redirectTo }) を使う。redirectTo は layout の authGuard と同じ)");
   }
   return problems;
 }

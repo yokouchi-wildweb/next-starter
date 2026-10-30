@@ -1,102 +1,26 @@
-// src/features/auth/services/server/authorization.ts
+// src/features/core/auth/services/server/authorization.ts
+//
+// ページの守り(lib/pageGuard)に auth が渡す部品。結ぶのは src/wiring/pageGuard.ts(束は pageGuardUserDeps.ts)。
+// 旧来の authGuard・hasAdminUser は削除した(範囲の守りは guard.ts の guard()、主体は loader の ctx.user)。
 
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { USER_AVAILABLE_STATUSES, getRolesByCategory } from "@/features/core/user/constants";
+import { getRolesByCategory } from "@/features/core/user/constants";
 import { hasActiveUserWithRoles } from "@/features/core/user/services/server/finders/hasActiveUserWithRoles";
-import type { RoleCategory, UserRoleType, UserStatus } from "@/features/core/user/types";
+import type { RoleCategory, UserRoleType } from "@/features/core/user/types";
 import type { DomainApiAccessRule } from "@/lib/domain";
 
-/** proxy.ts で付与された x-pathname ヘッダーから現在のパスを取得する(ページの守りの束も使う) */
+/** proxy.ts で付与された x-pathname ヘッダーから現在のパスを取得する(ページの守りの returnTo に使う) */
 export async function getRequestPathname(): Promise<string | null> {
   const headersList = await headers();
   return headersList.get("x-pathname");
-}
-
-/** redirectTo に ?returnTo=<currentPath> を付与した URL を返す */
-function buildReturnBackUrl(redirectTo: string, currentPath: string): string {
-  const separator = redirectTo.includes("?") ? "&" : "?";
-  return `${redirectTo}${separator}returnTo=${encodeURIComponent(currentPath)}`;
-}
-
-type AuthGuardOptions = {
-  allowRoles?: UserRoleType[];
-  allowStatuses?: readonly UserStatus[];
-  redirectTo?: string;
-  /** 未認証リダイレクト時に現在のパスを returnTo パラメータとして付与する */
-  returnBack?: boolean;
-  /** ステータス別のリダイレクト先（redirectTo より優先） */
-  statusRedirects?: Partial<Record<UserStatus, string>>;
-};
-
-export async function authGuard(options: AuthGuardOptions = {}): Promise<SessionUser | null> {
-  const { redirectTo, returnBack = false } = options;
-
-  /** 未認証時のリダイレクト先を構築する（returnBack 有効時は returnTo パラメータを付与） */
-  const resolveRedirectUrl = async (): Promise<string | null> => {
-    if (!redirectTo) return null;
-    if (!returnBack) return redirectTo;
-    const currentPath = await getRequestPathname();
-    if (!currentPath || currentPath === redirectTo) return redirectTo;
-    return buildReturnBackUrl(redirectTo, currentPath);
-  };
-
-  // レイアウトやサーバーコンポーネントから呼び出され、セッションを検証する。
-  // getSessionUser は React `cache()` でラップされているため、同一リクエスト内で
-  // AuthSessionProvider 等と重複呼び出しされても DB 引きは 1 回に dedupe される。
-  // 戻り値の status / role は常に DB の現在値が反映される。
-  const sessionUser = await getSessionUser();
-
-  if (!sessionUser) {
-    const url = await resolveRedirectUrl();
-    if (url) redirect(url);
-    return null;
-  }
-
-  // 許可ロールが指定されている場合はユーザーの権限を照合する。
-  if (options.allowRoles && !options.allowRoles.includes(sessionUser.role)) {
-    const url = await resolveRedirectUrl();
-    if (url) redirect(url);
-    return null;
-  }
-
-  // 許可ステータスのリストに含まれているかを判定し、利用停止中のユーザーを弾く。
-  const allowedStatuses = options.allowStatuses ?? USER_AVAILABLE_STATUSES;
-
-  if (!allowedStatuses.includes(sessionUser.status)) {
-    // ステータス別のリダイレクト先が指定されている場合はそちらを優先（returnTo は付与しない）
-    const statusRedirect = options.statusRedirects?.[sessionUser.status];
-    if (statusRedirect) {
-      redirect(statusRedirect);
-    }
-    const url = await resolveRedirectUrl();
-    if (url) redirect(url);
-    return null;
-  }
-
-  return sessionUser;
-}
-
-/**
- * 管理者が 1 人以上いるかを返す(初期セットアップ誘導の判定用。真偽値だけを返す専用の取得口)。
- *
- * layout はサーバー側でデータを取らない(lint page-authz/layout-no-server-data)ため、
- * 管理画面の layout は userService を直接呼ばずにこれを呼ぶ。
- * roles 省略時は admin カテゴリの全ロール。論理削除済みのユーザーは数えない。
- */
-export async function hasAdminUser(
-  roles: readonly UserRoleType[] = getRolesByCategory("admin"),
-): Promise<boolean> {
-  return hasActiveUserWithRoles(roles);
 }
 
 /**
  * access(authenticated / {roles, roleCategories})を満たしうる利用者が 1 人以上いるかを返す
  * (ページの守りの setup 誘導の判定。src/wiring/pageGuard.ts が guard の作り手へ渡す。真偽値だけ)。
  * ロールの指定は roles と roleCategories のロールの和。authenticated は全ロール。public / none は常に true。
+ * 論理削除済みの利用者は数えない。
  */
 export async function hasUserForAccess(rule: DomainApiAccessRule): Promise<boolean> {
   if (rule === "public" || rule === "none") return true;

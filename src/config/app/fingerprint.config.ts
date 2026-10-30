@@ -43,7 +43,7 @@ export const FINGERPRINT_CONFIG = {
      * 本人向けルート（/api/me/fingerprint-challenges/**）の回答を許可するユーザーステータス。
      * チャレンジの主対象は「処分保留 (suspended)」のユーザーなので既定で含める。
      * banned / security_locked / withdrawn は列挙しない限り 403（fail-closed）。
-     * 語彙は createMeRoute / authGuard の allowStatuses と同じ。
+     * 語彙は createMeRoute / ページの守り(guard.ts)の allowStatuses と同じ。
      */
     answerableStatuses: ["active", "suspended"],
 

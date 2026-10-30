@@ -277,7 +277,7 @@ test("FRAME_LAYOUTS: upstream の枠の layout.tsx が検査対象に入って�
 
 const routeLoaders = discoverRouteLoaders(pageDirs);
 for (const loader of routeLoaders) {
-  test(`${loader}: loader は server-only + cache() + load<Xxx>、_components / Screen を import しない、(protected) なら getSessionUser を使わない`, () => {
+  test(`${loader}: loader は server-only + cache() か createLoader + load<Xxx>、_components / Screen を import しない`, () => {
     const problems = checkLoaderFile(read(loader), { path: loader });
     assert.deepEqual(problems, [], `${loader}: ${problems.join(" / ")}`);
   });
@@ -550,18 +550,6 @@ test("checkLoaderFile: DTO 型は loader が所有する(_components / Screen �
   const dirScreen = `${base}import type { Props } from "../_screen/WinReportScreen/index";\nexport const loadWinReportScreen = cache(async (): Promise<Props> => ({}));`;
   assert.ok(checkLoaderFile(dirScreen).some((p) => p.includes("WinReportScreen")));
   assert.deepEqual(checkLoaderFile(ok, null), [], "options に null を渡しても落ちない");
-});
-
-test("checkLoaderFile: (protected) 配下の loader は getSessionUser を使わない(requireCurrentUser のみ)。公開ルートでは可", () => {
-  const tolerant = `import "server-only";\nimport { cache } from "react";\nimport { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";\nexport const loadPlayScreen = cache(async () => { const s = await getSessionUser(); return { userId: s?.userId ?? null }; });`;
-  assert.ok(checkLoaderFile(tolerant, { path: "src/app/(user)/(protected)/play/[batchId]/_screen/loader.ts" }).some((p) => p.includes("getSessionUser")));
-  assert.ok(checkLoaderFile(tolerant, { path: "src/app/admin/(protected)/floor-tables/_screen/loader.ts" }).some((p) => p.includes("getSessionUser")));
-  assert.deepEqual(checkLoaderFile(tolerant, { path: "src/app/(marketing)/gacha/[id]/_screen/loader.ts" }), []);
-  assert.deepEqual(checkLoaderFile(tolerant), [], "path 省略時は protected 判定をしない(checker 単体の互換)");
-  const namespaced = `import "server-only";\nimport { cache } from "react";\nimport * as session from "@/features/core/auth/services/server/session/getSessionUser";\nexport const loadPlayScreen = cache(async () => ({ s: await session.getSessionUser() }));`;
-  assert.ok(checkLoaderFile(namespaced, { path: "src/app/(user)/(protected)/play/_screen/loader.ts" }).some((p) => p.includes("getSessionUser")), "namespace import も import 元で検出");
-  const strict = `import "server-only";\nimport { cache } from "react";\nimport { requireCurrentUser } from "@/features/core/user/services/server/userService";\nexport const loadPlayScreen = cache(async () => { const u = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" }); return { userId: u.id }; });`;
-  assert.deepEqual(checkLoaderFile(strict, { path: "src/app/(user)/(protected)/play/[batchId]/_screen/loader.ts" }), []);
 });
 
 test("isReexportOnlyFile: 再 export だけのファイル(旧パス shim / barrel)を見分ける", () => {

@@ -9,7 +9,7 @@ import type { UserRoleType, UserStatus } from "@/features/core/user/types";
  * 端末でない場合に通すユーザーのルール。
  * - "authenticated": ログインしていて利用可能なステータスのユーザー
  * - { roles?, roleCategories? }: どちらかに合うユーザー（両方省略 = "authenticated" と同じ）
- * - allowStatuses: 通すステータス（省略時は USER_AVAILABLE_STATUSES。authGuard と同じ語彙）
+ * - allowStatuses: 通すステータス（省略時は USER_AVAILABLE_STATUSES。ページの守り(guard.ts / createLoader)と同じ語彙）
  */
 export type PrincipalUserRule =
   | "authenticated"

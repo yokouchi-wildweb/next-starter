@@ -15,7 +15,7 @@ import { resolveSessionUser } from "./token";
  * 管理画面でステータス変更が行われた場合も次回リクエストで即時反映される。
  *
  * React `cache()` でラップしているため、同一サーバーリクエスト内の重複呼び出しは
- * 1 回の DB 引きに圧縮される (例: AuthSessionProvider + authGuard + 各ページの
+ * 1 回の DB 引きに圧縮される (例: AuthSessionProvider + guard.ts の guard() + 各ページの
  * getSessionUser が同居しても DB クエリは 1 回)。
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {

@@ -31,7 +31,7 @@ export type MeRouteConfig = ApiRouteBaseConfig & {
    * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ = 現行動作）。
    * 「利用制限中でも本人が完了すべき手続き」（不正疑いチャレンジの回答・異議申立て・
    * 再有効化・KYC 等）のルートでのみ suspended 等を明示列挙する。
-   * fail-closed: 列挙していないステータスは常に 403。authGuard の allowStatuses と同じ語彙。
+   * fail-closed: 列挙していないステータスは常に 403。ページの守り(guard.ts)の allowStatuses と同じ語彙。
    */
   allowStatuses?: readonly UserStatus[];
 };

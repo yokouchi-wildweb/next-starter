@@ -1,7 +1,7 @@
 // src/features/core/pairedDevice/services/server/session/deviceGuard.ts
 //
 // ページ側のガード。layout では deviceGuard、loader では requireCurrentDevice を使う
-// （authGuard / requireCurrentUser の端末版）。
+// （ページの守り guard.ts の端末版）。
 
 import { notFound, redirect } from "next/navigation";
 

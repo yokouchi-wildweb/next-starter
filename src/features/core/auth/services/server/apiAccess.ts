@@ -24,7 +24,7 @@ export type ApiAccessDecision = "granted" | "not_found" | "unauthenticated" | "f
 export type ApiAccessEvaluationOptions = {
   /**
    * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ）。
-   * fail-closed: 列挙していないステータスは常に forbidden。createMeRoute・authGuard と同じ語彙
+   * fail-closed: 列挙していないステータスは常に forbidden。createMeRoute・ページの守り(guard.ts)と同じ語彙
    */
   allowStatuses?: readonly UserStatus[];
 };

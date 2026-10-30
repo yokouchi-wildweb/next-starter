@@ -10,6 +10,9 @@
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
 //    の鎖を辿る。domains.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
+// 5. データに届く wiring を import してよい場所（D73 K6）: src/app の loader.ts・route.ts・cron の task.ts・API の補助ファイル
+//    （src/app/api/**）、guard.ts は pageGuard の作り手だけ、root の src/app/layout.tsx は AppProviders だけ。proxies・proxy.ts は既存の契約で可。
+//    それ以外の src/app（Screen・page・layout・_layout・_components の部品）は不可。AppProviders の中の AuthSessionProvider で判定を止める
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -172,4 +175,57 @@ test("データに届く wiring: domains.ts は registry → domainEntry.ts → 
 test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts / .tsx 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
   const dataReaching = WIRING_FILES.filter((name) => /\.tsx?$/.test(name) && reachesServicesServer(join(wiringDir, name)).reached);
   assert.deepEqual(dataReaching, ["AppProviders.tsx", "apiRoute.ts", "domains.ts", "pageGuard.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
+});
+
+/**
+ * データに届く wiring を import してよいか（D73 K6）。importerRel = src 相対、wiringName = src/wiring 直下のファイル名。
+ * 問題があれば理由、無ければ null
+ */
+export function dataReachingImportProblem(importerRel, wiringName) {
+  // fork のドット名（pageGuard.acme.ts 等）も同じ作り手として扱う
+  const base = wiringName.split(".")[0];
+  if (importerRel.startsWith("proxies/") || importerRel === "proxy.ts") return null;
+  if (!importerRel.startsWith("app/")) return null; // app の外は向きの検査が止める
+  if (/(^|\/)loader\.ts$/.test(importerRel) || /(^|\/)route\.tsx?$/.test(importerRel)) return null;
+  if (importerRel.startsWith("app/api/")) return null; // API の補助ファイル（cron の task.ts を含む。cron の他は向きの検査が止める）
+  if (/(^|\/)guard\.ts$/.test(importerRel)) return base === "pageGuard" ? null : "guard.ts が import してよいのは @/wiring/pageGuard の作り手だけ";
+  if (importerRel === "app/layout.tsx") return base === "AppProviders" ? null : "root layout が import してよいのは @/wiring/AppProviders だけ";
+  return "データに届く wiring を import してよいのは loader.ts・route.ts・API の補助ファイル・guard.ts（pageGuard）・root layout（AppProviders）だけ（UI の場所はデータを取らない）";
+}
+
+test("データに届く wiring の import の場所の判定（D73 K6）", () => {
+  assert.equal(dataReachingImportProblem("app/foo/_screen/loader.ts", "domains.ts"), null);
+  assert.equal(dataReachingImportProblem("app/api/foo/route.ts", "apiRoute.ts"), null);
+  assert.equal(dataReachingImportProblem("app/api/foo/_shared/helper.ts", "domains.ts"), null);
+  assert.equal(dataReachingImportProblem("app/api/cron/x/task.ts", "domains.ts"), null);
+  assert.equal(dataReachingImportProblem("app/guard.ts", "pageGuard.ts"), null);
+  assert.equal(dataReachingImportProblem("app/guard.ts", "pageGuard.acme.ts"), null);
+  assert.equal(dataReachingImportProblem("app/layout.tsx", "AppProviders.tsx"), null);
+  assert.equal(dataReachingImportProblem("proxies/foo.ts", "domains.ts"), null);
+  assert.ok(dataReachingImportProblem("app/foo/_screen/FooScreen.tsx", "domains.ts"));
+  assert.ok(dataReachingImportProblem("app/foo/page.tsx", "domains.ts"));
+  assert.ok(dataReachingImportProblem("app/admin/layout.tsx", "AppProviders.tsx"));
+  assert.ok(dataReachingImportProblem("app/foo/_components/Part.tsx", "domains.ts"));
+  assert.ok(dataReachingImportProblem("app/guard.ts", "domains.ts"));
+  assert.ok(dataReachingImportProblem("app/layout.tsx", "domains.ts"));
+});
+
+test("データに届く wiring を import する src/app のファイルが許された場所だけ（D73 K6）", () => {
+  const reaching = new Map();
+  const problems = [];
+  for (const file of walk(join(srcDir, "app"))) {
+    const rel = toPosix(relative(srcDir, file));
+    if (rel.endsWith(".test.mjs") || /\.test\.(ts|tsx|mts)$/.test(rel)) continue;
+    for (const { source } of listImportSources(readFileSync(file, "utf8"))) {
+      const target = resolveSource(file, source);
+      if (!target) continue;
+      const targetRel = toPosix(relative(srcDir, target));
+      if (!targetRel.startsWith("wiring/")) continue;
+      if (!reaching.has(target)) reaching.set(target, reachesServicesServer(target).reached);
+      if (!reaching.get(target)) continue;
+      const problem = dataReachingImportProblem(rel, targetRel.slice("wiring/".length));
+      if (problem) problems.push(`${rel} → ${source}（${problem}）`);
+    }
+  }
+  assert.deepEqual(problems, [], problems.join("\n"));
 });

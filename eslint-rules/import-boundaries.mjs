@@ -14,12 +14,23 @@
 // 今ある違反は import-boundaries.exceptions.mjs の縮むだけの一覧(upstream の物。fork は足せない)。
 // 一覧の行(file + target)に当たる import は通す。一覧の行のファイルにその import が無くなったら、行を消すよう error。
 //
+// ── page-guard-via-wiring(L1.18、D5 K1 と同じ形) ──
+// @/lib/pageGuard(src/lib/pageGuard/** のどのファイルも)を値 import できるのは src/wiring/** と src/lib/pageGuard 自身だけ。
+// 型だけの import は誰でも可(auth の束 pageGuardUserDeps は型だけ)。guard.ts は root を @/wiring/pageGuard から、子を親の extend で作る。
+//
+// ── features-index-no-server-reexport(D73 K5) ──
+// src/features/**/index.ts(services/server の外の barrel)は services/server を値で再 export しない(export … from / export * from)。
+// 型だけの再 export は可。理由: UI が barrel 経由でサーバーのサービスを値 import すると、UI の場所の検査(page-authz M4)を
+// 迂回できる(barrel のパスに services/server が出ない)。サーバーの値は services/server のパスから直接 import する。
+//
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
 import { LIB_REGISTRY_EXCEPTIONS } from "./import-boundaries.exceptions.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
 const ROUTE_FACTORY = "src/lib/routeFactory";
+const PAGE_GUARD = "src/lib/pageGuard";
+const SERVER_SERVICE_DIR = /(^|\/)services\/server(\/|$)/;
 const WIRING = "src/wiring";
 const LIB = "src/lib";
 const REGISTRY = "src/registry";
@@ -30,6 +41,20 @@ export function classifyRouteFactoryImport(importerRel, resolved, typeOnly) {
   if (!isUnder(resolved, ROUTE_FACTORY)) return null;
   if (isUnder(importerRel, WIRING) || isUnder(importerRel, ROUTE_FACTORY)) return null;
   return "routeFactory";
+}
+
+export function classifyPageGuardImport(importerRel, resolved, typeOnly) {
+  if (typeOnly) return null;
+  if (!isUnder(resolved, PAGE_GUARD)) return null;
+  if (isUnder(importerRel, WIRING) || isUnder(importerRel, PAGE_GUARD)) return null;
+  return "pageGuard";
+}
+
+/** features の barrel(services/server の外の index.ts)が services/server を値で再 export するか */
+export function classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, isReexport) {
+  if (!isReexport || typeOnly || !resolved) return null;
+  if (!/^src\/features\/.+\/index\.(ts|tsx)$/.test(importerRel) || SERVER_SERVICE_DIR.test(importerRel)) return null;
+  return SERVER_SERVICE_DIR.test(resolved) ? "serverReexport" : null;
 }
 
 export function classifyLibRegistryImport(importerRel, resolved, exceptions = LIB_REGISTRY_EXCEPTIONS) {
@@ -60,6 +85,55 @@ const routeFactoryViaWiring = {
         context.report({ node, messageId: "routeFactory", data: { source } });
       }
     });
+  },
+};
+
+const pageGuardViaWiring = {
+  meta: {
+    type: "problem",
+    docs: { description: "lib/pageGuard を値 import できるのは src/wiring/** だけ(guard.ts は @/wiring/pageGuard と親の extend)" },
+    messages: {
+      pageGuard:
+        '"{{source}}" は汎用版のページの守り(src/lib/pageGuard)です。値 import できるのは src/wiring/** だけ。root の guard.ts は @/wiring/pageGuard の defineRootGuard、子の guard.ts は親の extend で作る(型だけの import は可。詳細: src/lib/pageGuard/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source, typeOnly }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      if (classifyPageGuardImport(importerRel, resolved, typeOnly)) {
+        context.report({ node, messageId: "pageGuard", data: { source } });
+      }
+    });
+  },
+};
+
+const featuresIndexNoServerReexport = {
+  meta: {
+    type: "problem",
+    docs: { description: "features の index.ts(services/server の外)は services/server を値で再 export しない" },
+    messages: {
+      serverReexport:
+        '"{{source}}" はサーバーのサービスです。features の barrel(index.ts)から値で再 export しない(UI が barrel 経由でサーバーの値を import できてしまう)。サーバーの値は services/server のパスから直接 import する(型だけの再 export は可)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    const onExport = (node) => {
+      if (!node.source || typeof node.source.value !== "string") return;
+      const declarationTypeOnly = node.exportKind === "type";
+      const specs = node.specifiers ?? [];
+      const typeOnly = declarationTypeOnly || (specs.length > 0 && specs.every((sp) => sp.exportKind === "type"));
+      const resolved = resolveImport(node.source.value, context.filename, repoRoot);
+      if (classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, true)) {
+        context.report({ node: node.source, messageId: "serverReexport", data: { source: node.source.value } });
+      }
+    };
+    return { ExportNamedDeclaration: onExport, ExportAllDeclaration: onExport };
   },
 };
 
@@ -104,6 +178,8 @@ const plugin = {
   meta: { name: "eslint-plugin-local-import-boundaries", version: "1.0.0" },
   rules: {
     "route-factory-via-wiring": routeFactoryViaWiring,
+    "page-guard-via-wiring": pageGuardViaWiring,
+    "features-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
   },
 };

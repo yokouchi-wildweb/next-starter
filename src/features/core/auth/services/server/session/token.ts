@@ -25,7 +25,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 //
 // なぜ DB fresh をデフォルトにしているか:
 // 管理画面でユーザーの status / role を変更しても、対象ユーザーが既ログインなら
-// JWT cookie 内のクレームは古いままになる (stale JWT 問題)。authGuard が JWT の
+// JWT cookie 内のクレームは古いままになる (stale JWT 問題)。ページの守りが JWT の
 // status を信用すると suspended / banned ユーザーが保護ページに残留できてしまうため、
 // SessionUser を必ず DB と同期させる。
 
@@ -87,7 +87,7 @@ async function verifyAndParseToken(token: string): Promise<TokenPayload | null> 
  * - DB にユーザーが存在しない / 論理削除済み → null
  * - DB アクセス障害 → null (安全側に倒し、stale 状態でのアクセスを許可しない)
  *
- * 通常の認可判定 (authGuard / getSessionUser / proxy) はすべて本 API を経由するため、
+ * 通常の認可判定 (ページの守り guard.ts / API の Factory / getSessionUser / proxy) はすべて本 API を経由するため、
  * 管理画面でのステータス変更が次回リクエストで即時反映される。
  */
 export async function resolveSessionUser(token: string): Promise<SessionUser | null> {

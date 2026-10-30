@@ -1,5 +1,5 @@
 // eslint-rules/import-boundaries.test.mjs
-// 層の境目の import の検査(route-factory-via-wiring・lib-no-registry)の契約テスト。実行: pnpm test:import-boundaries (node:test)
+// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・features-index-no-server-reexport・lib-no-registry)の契約テスト。実行: pnpm test:import-boundaries (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -7,7 +7,12 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { ESLint, RuleTester } from "eslint";
 
-import plugin, { classifyLibRegistryImport, classifyRouteFactoryImport } from "./import-boundaries.mjs";
+import plugin, {
+  classifyFeaturesIndexReexport,
+  classifyLibRegistryImport,
+  classifyPageGuardImport,
+  classifyRouteFactoryImport,
+} from "./import-boundaries.mjs";
 import { LIB_REGISTRY_EXCEPTIONS } from "./import-boundaries.exceptions.mjs";
 import { resolveImport } from "./resolve-import.mjs";
 
@@ -111,4 +116,59 @@ test("config: route・features・scripts で routeFactory の値 import は erro
   assert.deepEqual(await lintAt("src/lib/foo/index.ts", REG), ["import-boundaries/lib-no-registry:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", REG), []);
   assert.deepEqual(await lintAt("src/features/sample/services/server/foo.ts", REG), []);
+});
+
+test("classify: pageGuard の値 import は wiring と pageGuard 自身だけ、型は誰でも(L1.18)", () => {
+  assert.equal(classifyPageGuardImport("src/app/guard.ts", "src/lib/pageGuard", false), "pageGuard");
+  assert.equal(classifyPageGuardImport("src/features/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", false), "pageGuard");
+  assert.equal(classifyPageGuardImport("src/features/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", true), null);
+  assert.equal(classifyPageGuardImport("src/wiring/pageGuard.ts", "src/lib/pageGuard", false), null);
+  assert.equal(classifyPageGuardImport("src/wiring/pageGuard.acme.ts", "src/lib/pageGuard", false), null);
+  assert.equal(classifyPageGuardImport("src/lib/pageGuard/index.ts", "src/lib/pageGuard/createPageGuard", false), null);
+});
+
+test("classify: features の index.ts は services/server を値で再 export しない(D73 K5)", () => {
+  const server = "src/features/core/user/services/server/userService";
+  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, false, true), "serverReexport");
+  assert.equal(classifyFeaturesIndexReexport("src/features/sample/index.tsx", server, false, true), "serverReexport");
+  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, true, true), null, "型だけは可");
+  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/services/server/index.ts", server, false, true), null, "services/server の中の barrel は対象外");
+  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", "src/features/core/user/hooks/useUser", false, true), null);
+  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, false, false), null, "再 export でない import は対象外");
+});
+
+test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止め、型と許可の場所は通す", () => {
+  const guard = at("src/app/x/guard.ts");
+  ruleTester.run("page-guard-via-wiring", plugin.rules["page-guard-via-wiring"], {
+    valid: [
+      { code: `import { defineRootGuard } from "@/wiring/pageGuard";`, filename: guard },
+      { code: `import type { PageGuardDeps } from "@/lib/pageGuard";`, filename: at("src/features/core/auth/services/server/pageGuardUserDeps.ts") },
+      { code: `import { createPageGuard } from "@/lib/pageGuard";`, filename: at("src/wiring/pageGuard.ts") },
+    ],
+    invalid: [
+      { code: `import { createPageGuard } from "@/lib/pageGuard";`, filename: guard, errors: [{ messageId: "pageGuard" }] },
+      { code: `import { createPageGuard } from "src/lib/pageGuard/createPageGuard";`, filename: guard, errors: [{ messageId: "pageGuard" }] },
+    ],
+  });
+  const index = at("src/features/core/user/index.ts");
+  ruleTester.run("features-index-no-server-reexport", plugin.rules["features-index-no-server-reexport"], {
+    valid: [
+      { code: `export type { User } from "./services/server/userService";`, filename: index },
+      { code: `export { type UserSignupSummary } from "./services/server/finders/findSignupSummariesByIds";`, filename: index },
+      { code: `export { useUser } from "./hooks/useUser";`, filename: index },
+    ],
+    invalid: [
+      { code: `export { userService } from "./services/server/userService";`, filename: index, errors: [{ messageId: "serverReexport" }] },
+      { code: `export * from "@/features/core/user/services/server/userService";`, filename: index, errors: [{ messageId: "serverReexport" }] },
+    ],
+  });
+});
+
+test("config: pageGuard の値 import は wiring の外で error、features の index.ts の services/server の値の再 export は error", async () => {
+  const PG = `import { createPageGuard } from "@/lib/pageGuard";\nexport const x = createPageGuard;\n`;
+  assert.deepEqual(await lintAt("src/app/x/guard.ts", PG), ["import-boundaries/page-guard-via-wiring:2"]);
+  assert.deepEqual(await lintAt("src/wiring/pageGuard.acme.ts", PG), []);
+  const RE = `export { userService } from "@/features/core/user/services/server/userService";\n`;
+  assert.deepEqual(await lintAt("src/features/core/user/index.ts", RE), ["import-boundaries/features-index-no-server-reexport:2"]);
+  assert.deepEqual(await lintAt("src/features/core/user/services/server/index.ts", RE), []);
 });

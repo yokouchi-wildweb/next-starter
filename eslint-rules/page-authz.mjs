@@ -4,45 +4,37 @@
 // 対象範囲は eslint.config.mjs 側で決める(このファイルは「対象ファイルで何を import したか」だけを見る)。
 // 強さ: 両規則とも upstream・下流の全 Tier で error。セキュリティの検査は所有で強さを変えない(前例 hidden-columns)。
 //
-// ── layout-no-server-data(M4: layout はサーバー側でデータを取らない) ──
-// 対象: src/app/**/layout.tsx と src/app/**/_layout/**(layout の組み立て)。範囲の方針 guard.ts は layout の隣にあり対象外。
-// 禁止する import:
+// ── layout-no-server-data(M4 を D73 K1 の範囲へ広げた形。名前は互換のため据え置き) ──
+// 対象(eslint.config.mjs の files): UI の場所 = src/app の Screen・page.tsx・layout・_layout/**・guard.ts・_components の部品と
+//   src/components・src/hooks・src/features/**/components・src/features/**/hooks。
+//   loader.ts・route.ts・API(src/app/api/**)は対象外(サーバーのデータを読んでよい場所)。
+// 禁止する import(値。型だけは可):
 //   - `services/server` を含むパス(絶対・相対。管理画面の取得本体 features/core/admin/services/server/screenData も含む)
-//     例外: @/features/core/auth/services/server/authorization(authGuard・hasAdminUser 等の認可の関数)だけは許可
-//   - DB: @/lib/drizzle・drizzle-orm・@/lib/firebase/server・firebase-admin(それぞれ配下も)
-//   - loader: 末尾が /loader のパス(./_screen/loader 等)
-//   (session/getSessionUser 等の直読みも services/server なので止まる。layout のセッション参照は隣の guard.ts の guard() だけ)
-// 通すもの: 型だけの import / client 部品(hooks → API で取るのは対象外)
-// 理由: layout はページ・loader と並列に描かれ、ガードを置いた layout の内側の layout もそのガードで守られない。
-//   layout で取ったデータは「ガードを通った後のデータ」にならないので、取得は loader(と将来の guard.ts)に寄せる。
-// 名前付き例外: root layout の AuthSessionProvider(認証基盤。Cookie からセッションを解決して client に渡す)。
-//   components のパスなのでこの規則には掛からない(import を許す特例の実装は無い)。
+//   - DB(L1.20): @/lib/drizzle・drizzle-orm・@/lib/firebase/server・firebase-admin(配下も)・entities/drizzle(表の定義)
+//   - layout.tsx・_layout/** だけ loader(末尾が /loader のパス)も不可。Screen は同じルートの loader を呼ぶ(D21)
+//   (authorization の関数の例外は撤去した。layout がセッションに触れるのは隣の guard.ts の guard() だけ)
+// 理由: UI で取ったデータは範囲の守り(guard.ts)と loader の access を通った後のデータにならない。取得は loader に集める(D73)。
+// 名前付き例外: root layout(src/wiring/AppProviders.tsx)が描く AuthSessionProvider(Cookie の解析とセッション解決)。ignores に入れる。
 //
-// ── session-api-callsite(M3: セッション・ガード API を呼べる場所を役割で限る) ──
-// 対象: src/app(src/app/api/** の route と補助ファイルを含む)と UI 側(src/components・src/features/**/components・
-//   src/features/**/hooks・src/hooks)。
-// 許可(eslint.config.mjs の ignores): layout・_layout/(組み立て)・loader.ts(_screen/・_components/ とも)。guard.ts は対象だが
-//   セッション API を import しない(root は @/wiring/pageGuard、子は親の extend で作る)。
-//   API には許可の場所が無い: 主体は API の Factory(@/wiring/apiRoute)が 1 回だけ DB 同期で解いて ctx.user で渡す(D8 K4)。
+// ── session-api-callsite(M3: セッション・ガード API を import しない場所) ──
+// 対象: src/app 全体(page・Screen・layout・_layout・loader.ts・guard.ts・_components・API の route と補助ファイル)と UI 側
+//   (src/components・src/features/**/components・src/features/**/hooks・src/hooks)。layout・_layout・loader.ts の許可は撤去した(D73 K4・K5)。
+//   ページの主体は guard.ts の createLoader が解いて loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
-//   管理画面の取得本体(features/core/admin/services/server/screenData)・proxy・services/server・lib/routeFactory は
-//   対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外として ignores に入れる。
+//   services/server・lib(pageGuard・routeFactory)・proxy は対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外。
 // 禁止する import:
-//   - SESSION_API_NAMES の名前の値 import(どのパスからでも。barrel・re-export 経由も名前で捕まえる)
+//   - SESSION_API_NAMES の名前の値 import(どのパスからでも。barrel・re-export 経由も名前で捕まえる)。削除済みの名前
+//     (authGuard・requireCurrentUser 等)も残す(fork に残った呼び出しを見つけるため)
 //   - セッション API の定義モジュール(SESSION_MODULE)の namespace / default / 副作用 / dynamic import
 // 通すもの: 型だけの import(SessionUser 型など)
-// 理由: page.tsx・Screen・部品がセッションを読むと、認可の判断がページごとに散らばり、ルート地図・方針の参照で検査できない。
-//   ガードは layout、ページのデータの認可は loader に集める。
 //
 // 不採用の案:
 //   - 下流(fork)では warn: 一度は採ったが、セキュリティの検査の強さを所有で変えない方針で全 Tier error に上書き
-//   - 「認証方針を持つ layout は見た目部品を import しない」で縛る: 枠とガードの同居を禁じる理由が無く、
-//     データ取得の禁止(M4)で目的を果たせる
+//   - 新しい lint 名を作る: M4 の規則を不可の範囲へ広げるだけにした(D73 K4)
 //
 // 限界:
-//   - 直接の import だけを見る。layout が import した server component の中での取得は捕まえない
+//   - 直接の import だけを見る。UI が import した別のモジュールの中での取得は捕まえない(その別のモジュールが UI の場所なら同じ規則で止まる)
 //   - import 別名は名前の import 行で捕まえるが、値を変数に入れて別ファイルへ渡す形は追わない
-//   - layout での任意のセッション読み取りの範囲・方針の参照(guard.ts)の検査は loader Factory と一緒に入れる
 
 /** M3: セッション・ガード API(呼べる場所を限る名前) */
 export const SESSION_API_NAMES = new Set([
@@ -76,21 +68,22 @@ const SESSION_MODULE = new RegExp(
 );
 
 const SERVER_SERVICE_PATH = /(^|\/)services\/server(\/|$)/;
-const AUTHORIZATION_MODULE = /^@\/features\/core\/auth\/services\/server\/authorization$/;
+// DB(L1.20): 接続(@/lib/drizzle)・drizzle-orm の値(演算子・sql)・Firebase Admin・表の定義(entities/drizzle)
 const DB_MODULE = /^(@\/lib\/drizzle|drizzle-orm|@\/lib\/firebase\/server|firebase-admin)(\/|$)/;
+const ENTITY_TABLE_MODULE = /(^|\/)entities\/drizzle$/;
 const LOADER_PATH = /(^|\/)loader$/;
 
 /**
- * M4: layout での import 1 件を判定する。違反なら理由("serverService" | "db" | "loader")、問題なければ null
+ * M4: UI の場所での import 1 件を判定する。違反なら理由("serverService" | "db" | "loader")、問題なければ null
  * @param {string} source import 元
  * @param {boolean} typeOnly 型だけの import か
+ * @param {{ layout?: boolean }} [options] layout = layout.tsx・_layout/**(loader も不可。Screen は同じルートの loader を呼ぶので可)
  */
-export function classifyLayoutImport(source, typeOnly = false) {
+export function classifyLayoutImport(source, typeOnly = false, options = { layout: true }) {
   if (typeOnly) return null;
-  if (AUTHORIZATION_MODULE.test(source)) return null;
-  if (DB_MODULE.test(source)) return "db";
+  if (DB_MODULE.test(source) || ENTITY_TABLE_MODULE.test(source)) return "db";
   if (SERVER_SERVICE_PATH.test(source)) return "serverService";
-  if (LOADER_PATH.test(source)) return "loader";
+  if (options.layout && LOADER_PATH.test(source)) return "loader";
   return null;
 }
 
@@ -152,18 +145,19 @@ function moduleVisitors(visit) {
 const layoutNoServerData = {
   meta: {
     type: "problem",
-    docs: { description: "layout はサーバー側でデータを取らない(services/server・DB・loader を import しない。authorization の関数は可)" },
+    docs: { description: "UI の場所(Screen・page・layout・_layout・guard.ts・_components・components・hooks)はサーバーのデータを取らない(services/server・DB を値で import しない。layout は loader も)" },
     messages: {
       serverService:
-        '"{{source}}" はサーバーのサービスです。layout はデータを取りません。取得は loader へ(認可の関数は @/features/core/auth/services/server/authorization から。詳細: src/features/core/auth/README.md)',
-      db: '"{{source}}" は DB です。layout はデータを取りません。取得は loader へ(詳細: src/features/core/auth/README.md)',
+        '"{{source}}" はサーバーのサービスです。UI の場所はデータを取りません。取得は同じルートの loader(guard.ts の createLoader)へ(詳細: src/features/core/auth/README.md)',
+      db: '"{{source}}" は DB です(接続・drizzle-orm の値・Firebase Admin・entities/drizzle の表)。UI の場所では import しません。取得はドメインのサービス → loader へ(型だけは可)',
       loader: '"{{source}}" は loader です。layout は loader を呼びません(loader は Screen が呼ぶ。詳細: src/features/core/auth/README.md)',
     },
     schema: [],
   },
   create(context) {
+    const isLayout = /(^|[\\/])layout\.(ts|tsx)$|[\\/]_layout[\\/]/.test(context.filename);
     return moduleVisitors((sourceNode, _specifiers, typeOnly) => {
-      const kind = classifyLayoutImport(sourceNode.value, typeOnly);
+      const kind = classifyLayoutImport(sourceNode.value, typeOnly, { layout: isLayout });
       if (kind) context.report({ node: sourceNode, messageId: kind, data: { source: sourceNode.value } });
     });
   },
@@ -172,12 +166,12 @@ const layoutNoServerData = {
 const sessionApiCallsite = {
   meta: {
     type: "problem",
-    docs: { description: "セッション・ガード API は layout・_layout・loader だけで呼ぶ" },
+    docs: { description: "ページ層・UI・API はセッション・ガード API を import しない(主体は guard.ts の createLoader / API の Factory が渡す)" },
     messages: {
       named:
-        "{{names}} はセッション・ガード API です。呼べるのは layout・_layout/・loader.ts だけ(page.tsx・Screen・部品・hooks では呼ばない。詳細: src/features/core/auth/README.md)",
+        "{{names}} はセッション・ガード API です。ページ層(page・Screen・layout・loader・guard.ts)と部品・hooks では import しない。範囲の守りは隣の guard.ts の guard()、主体は loader の ctx.user(createLoader)。詳細: src/lib/pageGuard/README.md",
       module:
-        '"{{source}}" はセッション API のモジュールです。呼べるのは layout・_layout/・loader.ts だけ(詳細: src/features/core/auth/README.md)',
+        '"{{source}}" はセッション API のモジュールです。ページ層と部品・hooks では import しない(主体は loader の ctx.user。詳細: src/lib/pageGuard/README.md)',
       namedApi:
         "{{names}} はセッション・ガード API です。API(src/app/api/**)では呼ばない。主体は Factory が解いた ctx.user を使い、門は access の宣言で書く(詳細: src/lib/routeFactory/README.md)",
       moduleApi:

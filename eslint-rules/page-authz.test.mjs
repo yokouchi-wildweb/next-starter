@@ -12,7 +12,7 @@ import plugin, { classifyLayoutImport, classifySessionImport } from "./page-auth
 const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
 const repoRoot = path.resolve(import.meta.dirname, "..");
 
-test("classifyLayoutImport: services/server・DB・loader を止め、authorization と型だけは通す", () => {
+test("classifyLayoutImport: services/server・DB(entities/drizzle を含む)を止め、layout だけ loader も止める。型だけは通す", () => {
   assert.equal(classifyLayoutImport("@/features/core/user/services/server/userService"), "serverService");
   assert.equal(classifyLayoutImport("@/features/core/setting/services/server"), "serverService");
   assert.equal(classifyLayoutImport("../services/server/fooService"), "serverService");
@@ -24,8 +24,14 @@ test("classifyLayoutImport: services/server・DB・loader を止め、authorizat
   assert.equal(classifyLayoutImport("firebase-admin/firestore"), "db");
   assert.equal(classifyLayoutImport("./_screen/loader"), "loader");
   assert.equal(classifyLayoutImport("@/app/admin/setup/_screen/loader"), "loader");
+  assert.equal(classifyLayoutImport("@/features/core/user/entities/drizzle"), "db");
+  // authorization の例外は撤去(layout のセッション参照は隣の guard.ts の guard() だけ)
+  assert.equal(classifyLayoutImport("@/features/core/auth/services/server/authorization"), "serverService");
+  // Screen(layout 以外)は同じルートの loader を呼ぶ
+  assert.equal(classifyLayoutImport("./loader", false, { layout: false }), null);
   // 許可
-  assert.equal(classifyLayoutImport("@/features/core/auth/services/server/authorization"), null);
+  assert.equal(classifyLayoutImport("@/features/core/user/entities/drizzle", true), null);
+  assert.equal(classifyLayoutImport("@/features/core/user/entities/model"), null);
   assert.equal(classifyLayoutImport("@/features/core/user/services/server/userService", true), null);
   assert.equal(classifyLayoutImport("@/features/core/user/constants"), null);
   assert.equal(classifyLayoutImport("@/app/admin/(protected)/_layout/AdminProtectedLayout"), null);
@@ -53,7 +59,7 @@ test("classifySessionImport: セッション API の名前と定義モジュー�
   // 通すもの
   assert.deepEqual(classifySessionImport(auth, [t("authGuard")]), []);
   assert.deepEqual(classifySessionImport(auth, [v("authGuard")], true), []);
-  assert.deepEqual(classifySessionImport(auth, [v("hasAdminUser")]), []);
+  assert.deepEqual(classifySessionImport(auth, [v("hasUserForAccess")]), []);
   assert.deepEqual(classifySessionImport("@/features/core/auth/entities/session", [t("SessionUser")]), []);
   assert.deepEqual(classifySessionImport("@/features/core/auth/hooks/useAuthSession", [v("useAuthSession")]), []);
   assert.deepEqual(classifySessionImport("@/features/core/user/services/server/userService", null), []);
@@ -63,10 +69,10 @@ const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2022, sourceType: "module", parser: tsParser },
 });
 
-test("rule layout-no-server-data: 値 import・dynamic import・export from を止め、認可の関数と型 import は通す", () => {
+test("rule layout-no-server-data: 値 import・dynamic import・export from を止め、型 import は通す(layout だけ loader も止める)", () => {
   ruleTester.run("layout-no-server-data", plugin.rules["layout-no-server-data"], {
     valid: [
-      { code: `import { authGuard, hasAdminUser } from "@/features/core/auth/services/server/authorization";` },
+      { code: `import { loadXScreen } from "./loader";`, filename: "src/app/x/_screen/XScreen.tsx" },
       { code: `import type { User } from "@/features/core/user/services/server/userService";` },
       { code: `import { type Foo } from "@/lib/drizzle";` },
       { code: `import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";` },
@@ -79,7 +85,9 @@ test("rule layout-no-server-data: 値 import・dynamic import・export from を�
       },
       { code: `import { db } from "@/lib/drizzle";`, errors: [{ messageId: "db" }] },
       { code: `import { eq } from "drizzle-orm";`, errors: [{ messageId: "db" }] },
-      { code: `import { loadAdminSetupScreen } from "./setup/_screen/loader";`, errors: [{ messageId: "loader" }] },
+      { code: `import { loadAdminSetupScreen } from "./setup/_screen/loader";`, filename: "src/app/admin/layout.tsx", errors: [{ messageId: "loader" }] },
+      { code: `import { guard } from "./guard";\nimport { authGuard } from "@/features/core/auth/services/server/authorization";`, filename: "src/app/admin/layout.tsx", errors: [{ messageId: "serverService" }] },
+      { code: `import { UserTable } from "@/features/core/user/entities/drizzle";`, filename: "src/components/Foo.tsx", errors: [{ messageId: "db" }] },
       { code: `const m = await import("@/features/core/setting/services/server");`, errors: [{ messageId: "serverService" }] },
       { code: `export { userService } from "@/features/core/user/services/server/userService";`, errors: [{ messageId: "serverService" }] },
     ],
@@ -93,7 +101,7 @@ test("rule session-api-callsite: セッション API の名前・モジュール
       { code: `import { type SessionDevice } from "@/features/core/pairedDevice/services/server/session";` },
       { code: `import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";` },
       { code: `import { userService } from "@/features/core/user/services/server/userService";` },
-      { code: `import { hasAdminUser } from "@/features/core/auth/services/server/authorization";` },
+      { code: `import { hasUserForAccess } from "@/features/core/auth/services/server/authorization";` },
     ],
     invalid: [
       {
@@ -145,35 +153,56 @@ const USER_SERVICE = `import { userService } from "@/features/core/user/services
 const AUTH_GUARD = `import { authGuard } from "@/features/core/auth/services/server/authorization";\nexport const x = authGuard;\n`;
 const SESSION = `import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";\nexport const x = getSessionUser;\n`;
 
-test("config: M4 は layout と _layout/ の組み立てで error、layout の隣の guard.ts は対象外", async () => {
-  assert.deepEqual(await lintAt("src/app/admin/(protected)/layout.tsx", USER_SERVICE), ["page-authz/layout-no-server-data:2"]);
-  assert.deepEqual(await lintAt("src/app/(user)/_layout/UserFrame.tsx", USER_SERVICE), ["page-authz/layout-no-server-data:2"]);
-  assert.deepEqual(await lintAt("src/app/(user)/guard.ts", USER_SERVICE), []);
+test("config: M4 は UI の場所全体(Screen・page・layout・_layout・guard.ts・_components・components・hooks)で error、loader・route・API・AuthSessionProvider は対象外", async () => {
+  const err = ["page-authz/layout-no-server-data:2"];
+  for (const file of [
+    "src/app/admin/(protected)/layout.tsx",
+    "src/app/(user)/_layout/UserFrame.tsx",
+    "src/app/(user)/guard.ts",
+    "src/app/foo/page.tsx",
+    "src/app/foo/_screen/FooScreen.tsx",
+    "src/app/foo/_components/Part.tsx",
+    "src/components/Foo/Foo.tsx",
+    "src/hooks/useFoo.ts",
+    "src/features/sample/components/Foo/index.tsx",
+    "src/features/sample/hooks/useFoo.ts",
+  ]) {
+    assert.deepEqual(await lintAt(file, USER_SERVICE), err, file);
+  }
+  // DB(L1.20): entities/drizzle の表の値 import も UI では不可、型は可
+  assert.deepEqual(await lintAt("src/app/foo/_screen/FooScreen.tsx", `import { UserTable } from "@/features/core/user/entities/drizzle";\nexport const x = UserTable;\n`), err);
+  assert.deepEqual(await lintAt("src/app/foo/_screen/FooScreen.tsx", `import type { UserTable } from "@/features/core/user/entities/drizzle";\nexport type X = typeof UserTable;\n`), []);
   // layout は隣の guard.ts の guard() を 1 行で呼ぶ
   assert.deepEqual(await lintAt("src/app/admin/(protected)/layout.tsx", `import { guard } from "./guard";\nexport const x = guard;\n`), []);
-  assert.deepEqual(await lintAt("src/app/foo/_screen/loader.ts", USER_SERVICE), []);
+  // 読んでよい場所
+  for (const file of ["src/app/foo/_screen/loader.ts", "src/app/foo/route.ts", "src/app/api/foo/_shared/helper.ts", "src/features/core/auth/components/AuthSessionProvider.tsx"]) {
+    assert.deepEqual(await lintAt(file, USER_SERVICE), [], file);
+  }
 });
 
-test("config: M3 は page・Screen・部品・hooks・API(route と補助ファイル)で error、layout・_layout・loader・AuthSessionProvider は許可", async () => {
+test("config: M3 は src/app 全体(layout・_layout・loader・guard.ts・API を含む)と UI で error、AuthSessionProvider だけ許可", async () => {
   const err = ["page-authz/session-api-callsite:2"];
-  assert.deepEqual(await lintAt("src/app/debug/playtest/page.tsx", SESSION), err);
-  assert.deepEqual(await lintAt("src/app/foo/_screen/FooScreen.tsx", SESSION), err);
-  assert.deepEqual(await lintAt("src/app/foo/_components/FooScreen.tsx", SESSION), err);
-  assert.deepEqual(await lintAt("src/components/Foo/Foo.tsx", SESSION), err);
-  assert.deepEqual(await lintAt("src/features/sample/components/Foo/index.tsx", SESSION), err);
-  assert.deepEqual(await lintAt("src/features/sample/hooks/useFoo.ts", SESSION), err);
-  assert.deepEqual(await lintAt("src/hooks/useFoo.ts", SESSION), err);
-  // 許可
-  // layout は authorization の関数(authGuard)だけ。session/getSessionUser の直読みは M4 が止める(任意のセッション読み取りの範囲は loader Factory と一緒に決める)
-  assert.deepEqual(await lintAt("src/app/foo/layout.tsx", AUTH_GUARD), []);
-  assert.deepEqual(await lintAt("src/app/foo/layout.tsx", SESSION), ["page-authz/layout-no-server-data:2"]);
-  // guard.ts はセッション API を import しない(root は @/wiring/pageGuard、子は親の extend で作る)
-  assert.deepEqual(await lintAt("src/app/foo/guard.ts", SESSION), err);
-  assert.deepEqual(await lintAt("src/app/foo/_screen/loader.ts", SESSION), []);
-  assert.deepEqual(await lintAt("src/app/foo/_components/loader.ts", SESSION), []);
-  // API: 主体は Factory の ctx.user。token だけのセッション・Cookie の解析も止める(D8 K4)
-  assert.deepEqual(await lintAt("src/app/api/foo/route.ts", SESSION), err);
-  assert.deepEqual(await lintAt("src/app/api/foo/_shared/helper.ts", SESSION), err);
+  for (const file of [
+    "src/app/debug/playtest/page.tsx",
+    "src/app/foo/_screen/FooScreen.tsx",
+    "src/app/foo/_components/FooScreen.tsx",
+    "src/components/Foo/Foo.tsx",
+    "src/features/sample/components/Foo/index.tsx",
+    "src/features/sample/hooks/useFoo.ts",
+    "src/hooks/useFoo.ts",
+    "src/app/foo/guard.ts",
+    "src/app/foo/_screen/loader.ts",
+    "src/app/foo/_components/loader.ts",
+    "src/app/api/foo/route.ts",
+    "src/app/api/foo/_shared/helper.ts",
+  ]) {
+    // UI の場所では M4(services/server の値 import)も同時に出る。M3 が出ることだけを見る
+    assert.ok((await lintAt(file, SESSION)).includes(err[0]), file);
+  }
+  // layout・_layout の許可は撤去(layout は M4 も掛かる)
+  assert.ok((await lintAt("src/app/foo/layout.tsx", AUTH_GUARD)).includes("page-authz/session-api-callsite:2"));
+  assert.ok((await lintAt("src/app/foo/_layout/Frame.tsx", SESSION)).includes("page-authz/session-api-callsite:2"));
+  // API: token だけのセッション・Cookie の解析も止める(D8 K4)
   assert.deepEqual(
     await lintAt("src/app/api/foo/route.ts", `import { getTokenOnlySession } from "@/features/core/auth/services/server/session/getTokenOnlySession";\nexport const x = getTokenOnlySession;\n`),
     err,

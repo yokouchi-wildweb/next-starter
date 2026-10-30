@@ -143,7 +143,7 @@ export type ApiRouteConfig<A extends RouteAccess = RouteAccess> = ApiRouteBaseCo
    * 通過を許可するユーザーステータス。省略時は利用可能な status（USER_AVAILABLE_STATUSES = active のみ）。
    * 「利用制限中でも本人が完了すべき手続き」のルートでのみ明示列挙する。
    * fail-closed: 列挙していないステータスは常に 403（"public" では ctx.user が null）。
-   * createMeRoute・authGuard の allowStatuses と同じ語彙。
+   * createMeRoute・ページの守り(guard.ts)の allowStatuses と同じ語彙。
    */
   allowStatuses?: readonly UserStatus[];
 };
