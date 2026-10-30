@@ -27,3 +27,9 @@ export type ReferralRewardGroup = {
   /** グループに属する報酬定義（key = reward_key） */
   rewards: Record<string, ReferralRewardDefinition>;
 };
+
+/** 報酬グループの項目(rewardGroups/<名前>[.<fork の名前>].ts の export const group) */
+export type ReferralRewardGroupItem = ReferralRewardGroup & {
+  /** グループキー（管理画面でのグルーピング単位） */
+  key: string;
+};

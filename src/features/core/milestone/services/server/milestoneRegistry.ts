@@ -1,13 +1,9 @@
-// マイルストーンレジストリ
-//
-// 下流プロジェクトがマイルストーンの定義を登録するためのレジストリ。
-// ベースリポジトリではレジストリ機構のみ提供し、マイルストーンは登録しない。
+// マイルストーン定義の読み手(項目: ./definitions/<名前>[.<fork の名前>].ts の export const milestone、一覧は生成物)
+// ベースリポジトリの項目は 0。
 //
 // 使い方（下流プロジェクト）:
 // ```ts
-// import { registerMilestone } from "@/features/core/milestone/services/server/milestoneRegistry";
-//
-// registerMilestone({
+// export const milestone: MilestoneDefinition = {
 //   key: "first_purchase",
 //   triggers: ["purchase_completed"],
 //   evaluate: async ({ userId }, tx) => {
@@ -18,27 +14,27 @@
 //     await walletService.adjustBalance({ userId, ... }, tx);
 //     return { reward: "500 coins" };
 //   },
-// });
+// };
 // ```
+
+import { definitions } from "@/features/core/milestone/extensions/definitions";
 
 import type { MilestoneDefinition } from "../../types/milestone";
 
-/** マイルストーン定義の内部ストア */
-const registry = new Map<string, MilestoneDefinition>();
+let memo: Map<string, MilestoneDefinition> | null = null;
 
-/**
- * マイルストーンを登録する
- *
- * @param definition マイルストーン定義
- * @throws key が重複している場合
- */
-export function registerMilestone(definition: MilestoneDefinition): void {
-  if (registry.has(definition.key)) {
-    throw new Error(
-      `マイルストーン "${definition.key}" は既に登録されています。キーが重複していないか確認してください。`,
-    );
+// key の重複は例外。読み込みの途中で一覧を触らないよう初回に組み立てる
+function registry(): Map<string, MilestoneDefinition> {
+  if (memo) return memo;
+  const map = new Map<string, MilestoneDefinition>();
+  for (const definition of definitions) {
+    if (map.has(definition.key)) {
+      throw new Error(`マイルストーン "${definition.key}" が複数あります。キーが重複しないようにしてください。`);
+    }
+    map.set(definition.key, definition);
   }
-  registry.set(definition.key, definition);
+  memo = map;
+  return map;
 }
 
 /**
@@ -48,7 +44,7 @@ export function registerMilestone(definition: MilestoneDefinition): void {
  * @returns マイルストーン定義の配列
  */
 export function getMilestonesByTrigger(trigger: string): MilestoneDefinition[] {
-  return [...registry.values()].filter((d) => d.triggers.includes(trigger));
+  return [...registry().values()].filter((d) => d.triggers.includes(trigger));
 }
 
 /**
@@ -58,12 +54,12 @@ export function getMilestonesByTrigger(trigger: string): MilestoneDefinition[] {
  * @returns マイルストーン定義、未登録の場合は undefined
  */
 export function getMilestoneByKey(key: string): MilestoneDefinition | undefined {
-  return registry.get(key);
+  return registry().get(key);
 }
 
 /**
  * 登録済みの全マイルストーン定義を取得する
  */
 export function getAllMilestones(): MilestoneDefinition[] {
-  return [...registry.values()];
+  return [...registry().values()];
 }

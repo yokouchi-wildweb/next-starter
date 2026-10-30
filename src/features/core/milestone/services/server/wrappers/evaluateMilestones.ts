@@ -23,7 +23,6 @@ import type {
 } from "../../../types/milestone";
 
 // definitions の副作用インポート（登録を実行）
-import "../definitions";
 
 /**
  * マイルストーンを評価する

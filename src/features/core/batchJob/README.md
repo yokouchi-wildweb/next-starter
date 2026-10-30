@@ -63,26 +63,24 @@ const progress = await batchJobService.getProgress(job.id);
 
 ### 1. ハンドラを定義
 
+`src/features/core/batchJob/jobHandlers/<名前>.<fork の名前>.ts` に置き、`pnpm extensions:generate` で一覧に入れる（処理が機能を閉じる規則のフォルダを読むなら `enabled` が必須）。
+
 ```typescript
-// src/features/core/<domain>/services/server/handlers/myBatchHandler.ts
-import { registerBatchJobHandler } from "@/features/batchJob/services/server/registry";
-import type { BatchJobHandler } from "@/features/batchJob/types";
+import { defineBatchJobHandler } from "@/features/core/batchJob/types";
 
 type MyParams = {
   templateId: string;
   subject: string;
 };
 
-const handler: BatchJobHandler<MyParams> = {
+export const jobHandler = defineBatchJobHandler<MyParams>({
+  jobType: MY_BATCH_JOB_TYPE, // ファサードと共有する定数は別のファイルに置く（項目が読み手と循環しない）
   // processChunk か processItem のどちらか一方を定義（排他）
   processItem: async (itemKey, params, tx) => {
     await mailService.send(itemKey, params.templateId, params.subject);
   },
   recoveryTimeoutMs: 60_000, // processItem専用（省略時: 5分）
-};
-
-export const MY_BATCH_JOB_TYPE = "my_batch_job";
-registerBatchJobHandler(MY_BATCH_JOB_TYPE, handler);
+});
 ```
 
 ### 2. ファサード関数を提供（推奨）
@@ -90,7 +88,7 @@ registerBatchJobHandler(MY_BATCH_JOB_TYPE, handler);
 ダウンストリームが jobType や params 構造を知らずに使えるようにする。
 
 ```typescript
-// 同じファイルに追記
+// src/features/core/<domain>/services/server/handlers/myBatchJob.ts
 import { batchJobService } from "@/features/batchJob/services/server/batchJobService";
 import type { BatchJob } from "@/features/batchJob/types";
 
@@ -107,16 +105,6 @@ export async function createMyBatchJob(input: {
     params: { templateId: input.templateId, subject: input.subject } satisfies MyParams,
   });
 }
-```
-
-### 3. ハンドラ登録を保証
-
-`registerHandlers.ts` にimportを追加:
-
-```typescript
-// src/features/core/batchJob/services/server/registerHandlers.ts
-import "@/features/wallet/services/server/handlers/walletBulkAdjustHandler";
-import "@/features/<domain>/services/server/handlers/myBatchHandler"; // 追加
 ```
 
 ---
@@ -247,9 +235,8 @@ src/features/core/batchJob/
     └── server/
         ├── index.ts             # 公開エントリポイント（ハンドラ登録を保証）
         ├── batchJobService.ts   # コアロジック
-        ├── registry.ts          # ハンドラレジストリ
-        ├── helpers.ts           # createJobFromQuery
-        └── registerHandlers.ts  # ハンドラimport集約
+        ├── registry.ts          # ハンドラの読み手（一覧 extensions/jobHandlers）
+        └── helpers.ts           # createJobFromQuery
 ```
 
 ### 関連ファイル（ウォレットハンドラ）
@@ -257,7 +244,7 @@ src/features/core/batchJob/
 ```
 src/features/core/wallet/services/server/
 ├── handlers/
-│   └── walletBulkAdjustHandler.ts  # ハンドラ定義 + ファサード関数
+│   └── walletBulkAdjustHandler.ts  # ファサード関数（処理の本体は batchJob/jobHandlers/walletBulkAdjust.ts）
 └── wrappers/
     └── bulkAdjustByUsers.ts        # バルク調整ロジック
 ```
@@ -267,6 +254,5 @@ src/features/core/wallet/services/server/
 ## Phase 2（未実装）
 
 - 管理画面UI（進捗表示、実行/キャンセルボタン、ポーリング）
-- registerHandlers.ts の自動検出
 - processItemモードのジョブレベル同時実行制御強化
 - データ保持期間・クリーンアップ

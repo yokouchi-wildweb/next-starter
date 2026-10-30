@@ -1,22 +1,16 @@
-// src/features/wallet/services/server/handlers/walletBulkAdjustHandler.ts
+// src/features/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts
 
-import { registerBatchJobHandler } from "@/features/batchJob/services/server/registry";
 import { batchJobService } from "@/features/batchJob/services/server/batchJobService";
-import { bulkAdjustByUsers, type BulkAdjustByUsersParams } from "../wrappers/bulkAdjustByUsers";
-import type { BatchJobHandler, BatchJob } from "@/features/batchJob/types";
+import type { BulkAdjustByUsersParams } from "../wrappers/bulkAdjustByUsers";
+import { WALLET_BULK_ADJUST_JOB_TYPE } from "../../../constants/batchJob";
+import type { BatchJob } from "@/features/batchJob/types";
 import type { WalletTypeValue } from "@/features/wallet/types/field";
 import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/features/walletHistory/types/field";
 import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 
-export const WALLET_BULK_ADJUST_JOB_TYPE = "wallet_bulk_adjust";
+export { WALLET_BULK_ADJUST_JOB_TYPE };
 
-const handler: BatchJobHandler<BulkAdjustByUsersParams> = {
-  processChunk: async (itemKeys, params, tx) => {
-    return bulkAdjustByUsers(tx, itemKeys, params);
-  },
-};
-
-registerBatchJobHandler(WALLET_BULK_ADJUST_JOB_TYPE, handler);
+// 処理の本体は batchJob の項目 jobHandlers/walletBulkAdjust.ts
 
 // --- ファサード: ダウンストリーム向け型安全なジョブ作成 ---
 

@@ -46,8 +46,8 @@ pending ──(セッション作成)──→ processing ──(決済確定)�
 ```
 purchaseRequestService.ts      — base CRUD + 購入フロー関数を束ねた公開サービス
 cancelPending.ts               — ユーザー削除時に pending/processing を一括 expired（user の拡張点 cleanupHandlers から呼ばれる）
-completion/                    — 完了戦略レジストリ + ビルトイン walletTopupStrategy
-hooks/                         — 購入完了ポストフック（registerPurchaseCompleteHook、definitions/ に副作用 import で登録）
+completion/                    — 完了戦略の読み手 + strategies/(項目。ビルトイン walletTopup)
+hooks/                         — 購入完了ポストフック（definitions/ に項目、一覧は extensions/completeHooks）
 payment/                       — 決済プロバイダ実装（→ payment/README.md）
 wrappers/
   purchaseService.ts           — 型定義 + re-export ハブ + getPurchaseStatus / getPurchaseStatusForUser
@@ -171,12 +171,12 @@ wrappers/
 ### 6.1 追加手順
 
 1. `src/config/app/purchaseType.config.ts` の `PURCHASE_TYPE_CONFIG` にエントリを追加（`label`, `requiresWalletType`）。enum が変わるので `pnpm db:push`
-2. `services/server/completion/<name>Strategy.ts` に `PurchaseCompletionStrategy` を実装
-3. `completion/index.ts` で `registerPurchaseCompletionStrategy(<name>Strategy)`（`purchaseService.ts` が `completion` を副作用 import するので登録が走る）
+2. `services/server/completion/strategies/<name>.<fork の名前>.ts` に `export const strategy: PurchaseCompletionStrategy` を実装
+3. `pnpm extensions:generate`
 4. 呼び出し側で `initiatePurchase({ purchaseType: "<name>", walletType: null, amount, paymentAmount, paymentMethod, baseUrl, metadata, ... })`
 
 ```ts
-export const directSaleStrategy: PurchaseCompletionStrategy = {
+export const strategy: PurchaseCompletionStrategy = {
   type: "direct_sale",
   validateInitiation: async ({ params }) => { /* 商品・在庫・価格の照合。不正は DomainError(400) */ },
   afterInitiate: async ({ purchaseRequest, tx }) => { /* 副次テーブルを同一 tx で作成 */ },
@@ -217,6 +217,6 @@ export const directSaleStrategy: PurchaseCompletionStrategy = {
 
 ### 6.4 購入完了ポストフック
 
-`services/server/hooks/definitions/` にフックを定義して `index.ts` から副作用 import する（`registerPurchaseCompleteHook({ key, handler })`）。`walletResult.history` は非ウォレット型で `null` になるため、ウォレット加算前提のフックは冒頭で `if (purchaseRequest.purchase_type !== "wallet_topup") return;` とする。
+`services/server/hooks/definitions/<名前>.<fork の名前>.ts` に `export const hook: PurchaseCompleteHook`（`{ key, priority?, handler }`）を置き `pnpm extensions:generate`。`walletResult.history` は非ウォレット型で `null` になるため、ウォレット加算前提のフックは冒頭で `if (purchaseRequest.purchase_type !== "wallet_topup") return;` とする。
 
 `purchase_type` 導入時（2026-04）の下流移行手順の記録: [docs/journal/2026-04-21--next-starter--purchase-type-migration.md](../../../../docs/journal/2026-04-21--next-starter--purchase-type-migration.md)

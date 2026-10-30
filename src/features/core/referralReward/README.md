@@ -64,9 +64,8 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 - `getRewardDefinition(rewardKey)`: reward_key からフラットな定義を取得
 - `getRewardGroupKey(rewardKey)`: reward_key が属するグループキーを取得
 
-### ハンドラーレジストリ（`services/server/rewardHandlerRegistry.ts`）
+### ハンドラーの読み手（`services/server/rewardHandlerRegistry.ts`、項目は `services/server/handlers/`）
 
-- `registerRewardHandler(key, handler)`: ハンドラー登録
 - `getRewardHandler(key)`: ハンドラー取得
 - `hasRewardHandler(key)`: 登録確認
 
@@ -87,14 +86,14 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 
 ## 下流プロジェクトでの実装手順
 
-1. **報酬グループ・定義を追加**: `config.ts` の `REFERRAL_REWARD_DEFINITIONS` にグループとその中の報酬定義を追加
-2. **ハンドラーを作成**: `services/server/handlers/` にハンドラーファイルを作成。ファイル内で `registerRewardHandler()` を呼んで登録
-3. **ハンドラーをインポート**: `services/server/handlers/index.ts` で副作用インポート（`import "./myHandler"`）
+1. **報酬グループ・定義を追加**: `rewardGroups/<名前>.<fork の名前>.ts` に `export const group: ReferralRewardGroupItem`（`key`・`label`・`rewards`）
+2. **ハンドラーを作成**: `services/server/handlers/<名前>.<fork の名前>.ts` に `export const handler: RewardHandlerItem`（`rewardKey`・`handler`）
+3. **一覧を作る**: `pnpm extensions:generate`
 4. **トリガー呼び出し**: 任意のタイミングで `referralRewardService.triggerRewards("trigger_name", referral, context?, tx?)` を呼ぶ
 
 サインアップ時の `triggerRewards("signup_completed", referral)` は既にベースリポジトリの登録フロー内で呼ばれている。ハンドラーが未登録の場合はスキップされる。
 
-`referralRewardService` をインポートすると `handlers/index.ts` が自動的に読み込まれるため、下流で別途ハンドラーのインポートを書く必要はない。
+ハンドラーは一覧から読まれるので、下流で別途 import する必要はない。
 
 ---
 
@@ -110,6 +109,6 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 
 - エンティティ: `entities/drizzle.ts`, `entities/schema.ts`, `entities/model.ts`
 - サーバーサービス: `services/server/referralRewardService.ts`, `services/server/wrappers/*`
-- レジストリ: `services/server/rewardHandlerRegistry.ts`
-- ハンドラー置き場: `services/server/handlers/`（下流でファイル追加、`index.ts` でインポート）
+- 読み手: `services/server/rewardHandlerRegistry.ts`
+- 受け口: `rewardGroups/`・`services/server/handlers/`（下流でファイル追加、`pnpm extensions:generate`）
 - 設定: `config.ts`

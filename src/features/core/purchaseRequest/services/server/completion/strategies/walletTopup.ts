@@ -1,4 +1,4 @@
-// src/features/core/purchaseRequest/services/server/completion/walletTopupStrategy.ts
+// src/features/core/purchaseRequest/services/server/completion/strategies/walletTopup.ts
 // wallet_topup（ウォレット加算型購入）のビルトイン戦略
 //
 // 旧 completePurchase.ts 内にインライン記述されていたウォレット加算処理を戦略として切り出したもの。
@@ -8,9 +8,9 @@ import { CURRENCY_CONFIG } from "@/config/app/currency.config";
 import { DomainError } from "@/lib/errors/domainError";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
-import type { PurchaseCompletionStrategy } from "./types";
+import type { PurchaseCompletionStrategy } from "../types";
 
-export const walletTopupStrategy: PurchaseCompletionStrategy = {
+export const strategy: PurchaseCompletionStrategy = {
   type: "wallet_topup",
 
   /**

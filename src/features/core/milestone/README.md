@@ -30,7 +30,7 @@ milestone/
 ├── types/milestone.ts              # 型定義（MilestoneDefinition, PersistedMilestoneResult 等）
 ├── constants/triggers.ts            # ベースが提供するトリガー名定数
 ├── services/server/
-│   ├── milestoneRegistry.ts         # registerMilestone / getMilestonesByTrigger
+│   ├── milestoneRegistry.ts         # getMilestonesByTrigger など（一覧の読み手）
 │   ├── wrappers/
 │   │   └── evaluateMilestones.ts    # 評価エンジン（コア処理）
 │   └── definitions/
@@ -51,15 +51,15 @@ milestone/
 
 ### 1. マイルストーン定義ファイルを作成
 
-`services/server/definitions/` 配下にファイルを作成する。
+`services/server/definitions/<名前>.<fork の名前>.ts` を作成し、`pnpm extensions:generate` で一覧に入れる。
 
 ```ts
-// services/server/definitions/firstPurchase.ts
+// services/server/definitions/firstPurchase.<fork の名前>.ts
 
-import { registerMilestone } from "../milestoneRegistry";
+import type { MilestoneDefinition } from "@/features/core/milestone/types/milestone";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 
-registerMilestone({
+export const milestone: MilestoneDefinition = {
   key: "first_purchase",
   triggers: ["purchase_completed"],
 
@@ -86,17 +86,12 @@ registerMilestone({
     // if (referral) await triggerRewards("first_purchase", referral, {}, tx);
     return { note: "初回購入達成" };
   },
-});
+};
 ```
 
-### 2. definitions/index.ts に副作用インポートを追加
+### 2. 一覧を作る
 
-```ts
-// services/server/definitions/index.ts
-
-import "./firstPurchase";
-import "./totalSpent10000";
-```
+`pnpm extensions:generate`（`extensions/definitions.ts` に入る）。
 
 これだけで `evaluateMilestones()` 呼び出し時に自動的に評価される。
 
@@ -182,21 +177,21 @@ await evaluateMilestones("user_verified", {
 3. そのトリガーに反応するマイルストーンを定義
 
 ```ts
-registerMilestone({
+export const milestone: MilestoneDefinition = {
   key: "identity_verified",
   triggers: ["user_verified"],
   evaluate: async () => true,  // トリガー発生 = 即達成
   onAchieved: async ({ userId }) => {
     // 報酬付与など
   },
-});
+};
 ```
 
 ---
 
 ## クライアント側のレンダラーシステム
 
-サーバー側の `registerMilestone` と対称的に、クライアント側でマイルストーン達成時のUI通知を登録できる仕組み。
+サーバー側の定義(`definitions/`)と対称的に、クライアント側でマイルストーン達成時のUI通知を登録できる仕組み。
 
 ### 仕組み
 
@@ -259,7 +254,7 @@ import { registerMilestoneRenderer } from "@/features/core/milestone/components/
 import { FirstPurchaseCelebration } from "./FirstPurchaseCelebration";
 
 registerMilestoneRenderer({
-  key: "first_purchase",          // registerMilestone の key と一致させる
+  key: "first_purchase",          // マイルストーン定義の key と一致させる
   component: FirstPurchaseCelebration,
   priority: 10,                   // 小さいほど先に表示（デフォルト: 0）
   // displayMode: "modal",        // モーダル表示にする場合

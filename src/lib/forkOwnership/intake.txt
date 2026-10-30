@@ -57,6 +57,18 @@ edit src/features/core/interactionTracking/targetRules/*.*.ts  # 計測対象の
 edit src/features/core/interactionTracking/targetRules/*.*/**  # フォルダ形
 edit src/features/core/pairedDevice/kinds/*.*.ts  # 登録端末の種類
 edit src/features/core/pairedDevice/kinds/*.*/**  # フォルダ形
+edit src/features/core/purchaseRequest/services/server/completion/strategies/*.*.ts  # 購入完了戦略
+edit src/features/core/purchaseRequest/services/server/completion/strategies/*.*/**  # フォルダ形
+edit src/features/core/purchaseRequest/services/server/hooks/definitions/*.*.ts  # 購入完了ポストフック
+edit src/features/core/purchaseRequest/services/server/hooks/definitions/*.*/**  # フォルダ形
+edit src/features/core/milestone/services/server/definitions/*.*.ts  # マイルストーン定義
+edit src/features/core/milestone/services/server/definitions/*.*/**  # フォルダ形
+edit src/features/core/referralReward/rewardGroups/*.*.ts  # 報酬グループ
+edit src/features/core/referralReward/rewardGroups/*.*/**  # フォルダ形
+edit src/features/core/referralReward/services/server/handlers/*.*.ts  # 報酬ハンドラー
+edit src/features/core/referralReward/services/server/handlers/*.*/**  # フォルダ形
+edit src/features/core/batchJob/jobHandlers/*.*.ts  # バッチジョブハンドラ
+edit src/features/core/batchJob/jobHandlers/*.*/**  # フォルダ形
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
@@ -98,14 +110,8 @@ generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)
-debt src/features/core/purchaseRequest/services/server/completion/index.ts  # completion/index.ts:7 独自戦略の import を足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/purchaseRequest/services/server/payment/enrichers/index.ts  # enrichers/index.ts:3 エンリッチャーを足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/purchaseRequest/services/server/hooks/definitions/index.ts  # hooks/definitions/index.ts:3 フックを足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/milestone/services/server/definitions/index.ts  # definitions/index.ts:3 マイルストーンを足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/milestone/components/renderers/index.ts  # renderers/index.ts:3 レンダラーを足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/referralReward/config.ts  # config.ts:3 報酬の定義を足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/referralReward/services/server/handlers/index.ts  # handlers/index.ts:3 ハンドラーを足す → upreq:20261029-200108-debt-intake-registries
-debt src/features/core/batchJob/services/server/registerHandlers.ts  # batchJob/README.md:114 import を足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/adminCommand/config/categories.ts  # categories.ts「編集可能」カテゴリを登録 → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/adminCommand/config/plugins.ts  # plugins.ts「編集可能」プラグインを登録 → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/wallet/components/common/currencyIcons.tsx  # currencyIcons.tsx 通貨のアイコンを足す → upreq:20261029-200108-debt-intake-registries

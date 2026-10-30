@@ -61,6 +61,20 @@ export type BatchJobHandler<TParams = unknown> = {
   recoveryTimeoutMs?: number;
 };
 
+/** バッチジョブハンドラの項目(jobHandlers/<名前>[.<fork の名前>].ts の export const jobHandler) */
+export type BatchJobHandlerItem = BatchJobHandler & {
+  jobType: string;
+  /** 機能が無効の間は無いものとして扱う(省略 = 常に有効) */
+  enabled?: () => boolean;
+};
+
+/** 項目を書くためのヘルパー。params の型を付け、一覧の型(params は unknown)にそろえる */
+export function defineBatchJobHandler<TParams>(
+  item: BatchJobHandler<TParams> & { jobType: string; enabled?: () => boolean },
+): BatchJobHandlerItem {
+  return item as BatchJobHandlerItem;
+}
+
 // --- サービス入出力 ---
 
 export type CreateJobInput = {
