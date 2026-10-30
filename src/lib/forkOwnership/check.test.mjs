@@ -204,6 +204,20 @@ describe("ownership:check", () => {
     assert.match(out.stdout, /違反 3 件/);
   });
 
+  test("core への追加は core-add で違反(Tier1 の版に無いファイルでも中間 Tier の物にしない)、一時許可で通る", () => {
+    const fork = makeFork(makeParent());
+    write(fork, "src/features/core/user/mine.ts", "export const mine = 1;\n");
+    commitAll(fork, "core add");
+    const result = runCheck(fork);
+    assert.equal(result.status, "fail");
+    const entry = result.entries.find((item) => item.path === "src/features/core/user/mine.ts");
+    assert.equal(entry.reason, "core-add");
+    const line = entry.permitDraft.replace("<依頼の番号>", "20261029-120000-core-add").replace("<理由>", "移すまで");
+    write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${line}\n`);
+    commitAll(fork, "permit");
+    assert.equal(runCheck(fork).status, "pass");
+  });
+
   test("下書きの指紋で一時許可を書けば合格(permitted)、その後に書き換えると許可し直し", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");

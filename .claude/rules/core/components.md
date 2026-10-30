@@ -12,7 +12,8 @@ text_blocks_inherit: TextBlocks do not inherit like raw tags → Span directly i
 ui_layers (page / section_container / part, defined by role; ref: docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md):
 - page = page.tsx switch + Screen (see SCREENS): no hooks, no state, h1 only here
 - section_container = what a Screen places directly: features/\<domain\>/components/\<Name\> (no *Page/*Screen/*Section suffix) | calls hooks, HTTP only via hooks | top-level props = contract | a Screen imports the container, never its inside
-- part = everything inside a container, not contract | hooks in a part only when fully self-contained | call hooks at the upper layer, pass handlers via props
+- part = 1 visual unit or 1 data shape: display part = props only | data / flow = hooks | hooks in a part only when fully self-contained | call hooks at the upper layer, pass handlers via props
+- core parts (core_ui): every part is public, no private / public split | entry only: nobody imports a file inside components/\<Name\>/ or common/\<Part\>/ from outside that folder (lint core-ui-entry, all tiers; type-only imports exempt) | a part others need → export it from the entry | a fork copying a container points its imports at the entries
 - data_seam: first-paint data = loader → container prop `initial<Name>` → hook `fallbackData` + `revalidateOnMount: fallbackData === undefined || <SWR cache has the key>` | background data = hook only
 forms: FieldRenderer (ref: src/components/Form/FieldRenderer/README.md) | programmatic value = input type hidden (no UI) or custom (own UI); none = excluded from the schema
 async_select: async pickers MUST consume Form/Input/Manual/AsyncOptionSource (never re-implement browse/search paging) | form field → AsyncComboboxInput / AsyncMultiSelectInput (users: UserAsyncCombobox / UserAsyncMultiSelect) | modal opened from an action button → AsyncPickerModal (users: useUserAsyncOptionSource, features/core/user)

@@ -1,6 +1,6 @@
 // src/features/core/wallet/components/WalletBalance/index.tsx
 // セクションコンテナ(残高・購入)。
-// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
+// 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
@@ -20,7 +20,7 @@ import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import type { Wallet } from "@/features/core/wallet/entities";
-import { CouponInput } from "@/features/core/wallet/components/WalletPurchase/CouponInput";
+import { CouponInput } from "@/features/core/wallet/components/WalletPurchase";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
 import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
 import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";

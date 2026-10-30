@@ -8,6 +8,8 @@
 
 - 複数ドメインで使う汎用 UI → ここ（`src/components/`）
 - 特定ドメイン専用 UI → `src/features/<domain>/components/common/`
+- core ドメインの UI(`src/features/core/<domain>/components/`)= 細かい部品(データ・流れ = フック、表示 = props だけの部品)とそれを組んだ既定のコンテナ。部品は全部公開で、読むのは入口(`components/<Name>`・`common/<Part>`)だけ。中のファイルを外から読むと lint(`core-ui-entry`)が止める
+- fork は core の下に足さない・書き換えない。文言・アイコン・色 → config、組み替え → route の `_components/` の Screen で core の部品とフックから組む(部品が合わないときだけコンテナを複製)。足りない値の prop → `/order`。`children` は可、差し替え用の名前付き ReactNode・部品 prop は置かない
 - 特定ページ専用 UI → ルートの既定 Screen の部品なら `app/<route>/_screen/`(ルートを作った側)、fork が足す部品や差し替え Screen なら `app/<route>/_components/`(CLAUDE.md SCREENS)
 
 ## カテゴリ一覧

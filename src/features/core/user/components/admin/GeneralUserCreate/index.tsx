@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import GeneralUserCreateForm from "../../forms/AdminGeneralUserCreateForm";
+import { AdminGeneralUserCreateForm as GeneralUserCreateForm } from "../../forms";
 
 type Props = {
   redirectPath?: string;

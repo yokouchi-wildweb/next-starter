@@ -2,6 +2,7 @@ import nextConfig from "eslint-config-next";
 
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
+import coreUiEntryPlugin from "./eslint-rules/core-ui-entry.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
@@ -282,6 +283,14 @@ const config = [
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
       "page-authz/session-api-callsite": "error",
+    },
+  },
+  // core の部品は入口だけを読む(全 Tier で error。詳細: eslint-rules/core-ui-entry.mjs)
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    plugins: { "core-ui-entry": coreUiEntryPlugin },
+    rules: {
+      "core-ui-entry/no-inner-import": "error",
     },
   },
   // ルームロジック (servers/room にバンドルされる) の純度制約。

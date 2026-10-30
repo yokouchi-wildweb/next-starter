@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import type { User } from "@/features/core/user/entities";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import GeneralUserEditForm from "../../forms/AdminGeneralUserEditForm";
+import { AdminGeneralUserEditForm as GeneralUserEditForm } from "../../forms";
 
 type Props = {
   user: User;

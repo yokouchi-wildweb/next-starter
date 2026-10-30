@@ -1,5 +1,5 @@
 // src/features/core/user/components/AccountDetails.tsx
-// セクションコンテナ(アカウント基本情報)。部品の import は絶対パス: 下流が複製しても import を直さずに動く
+// セクションコンテナ(アカウント基本情報)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 import Link from "next/link";
 import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";

@@ -37,7 +37,7 @@ import { PhoneVerification } from "@/features/core/auth/components/PhoneVerifica
 モーダルでラップしたバージョン。特定アクション前の認証要求に使用。
 
 ```tsx
-import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification/Modal";
+import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification";
 
 <PhoneVerificationModal
   open={isOpen}
@@ -55,7 +55,7 @@ import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVer
 モーダル管理用フック。Promise based APIで認証フローを簡単に実装可能。
 
 ```tsx
-import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification/Modal";
+import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification";
 import { usePhoneVerificationModal } from "@/features/core/auth/hooks/usePhoneVerificationModal";
 
 function CoinPurchasePage({ user }) {

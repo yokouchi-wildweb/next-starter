@@ -4,7 +4,7 @@
 
 import { useAuditLogsBySubjectUser } from "@/features/core/auditLog/hooks/useAuditLogsBySubjectUser";
 
-import { AUDIT_LOG_OBSERVER_OPTIONS, AuditLogListView } from "../AuditTimeline/AuditLogListView";
+import { AUDIT_LOG_OBSERVER_OPTIONS, AuditLogListView } from "../AuditTimeline";
 
 type Props = {
   /**

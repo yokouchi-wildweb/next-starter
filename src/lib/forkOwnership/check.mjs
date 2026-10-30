@@ -256,14 +256,22 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     .filter(Boolean)
     .map((path) => path.replace(/^src\/lib\//, ""));
 
-  const judged = judge({ changes, baseText, headText, baseLibs, intake: intake.rules });
+  const baseHasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/features/core"]) ?? "").trim() !== "";
+
+  const judged = judge({ changes, baseText, headText, baseLibs, baseHasCore, intake: intake.rules });
   const middleTier = [];
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation") continue;
     const target = entry.status === "R" ? entry.from : entry.path;
     // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
     const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;
-    const tier1Owned = lib ? [...tier1Files].some((file) => file.startsWith(`src/lib/${lib}/`)) : tier1Files.has(target);
+    // core への追加: core は Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
+    const tier1Owned =
+      entry.reason === "core-add"
+        ? [...tier1Files].some((file) => file.startsWith("src/features/core/"))
+        : lib
+          ? [...tier1Files].some((file) => file.startsWith(`src/lib/${lib}/`))
+          : tier1Files.has(target);
     if (tier1Owned) continue;
     middleTier.push({ path: entry.path, from: entry.from, was: entry.reason });
     entry.reason = "middle-tier";

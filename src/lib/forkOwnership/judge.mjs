@@ -19,6 +19,7 @@ export const REASONS = {
   deleted: "violation", // 基準にあるファイルの削除
   renamed: "violation", // 基準にあるファイルの rename・移動
   "ancestor-lib-add": "violation", // 祖先 Tier の lib の中へのファイル追加
+  "core-add": "violation", // src/features/core/ の中への受け口の項目でない追加(fork のドメインは src/features/<x>)
   "outside-intake": "violation", // 受け口の外の書き換え
   "outside-region": "violation", // fork の区画の外も書き換えた
   "region-markers": "violation", // fork の区画の印が壊れている
@@ -33,6 +34,8 @@ const libNameOf = (path) => {
   const match = /^src\/lib\/([^/]+)\//.exec(path);
   return match ? match[1] : null;
 };
+
+const CORE_PREFIX = "src/features/core/";
 
 const headUntilMarker = (text) => {
   if (text === null) return null;
@@ -70,11 +73,12 @@ function judgeModified(rule, baseText, headText) {
  *   baseText: (path: string) => string | null,                   // 基準側の中身(無ければ null)
  *   headText: (path: string) => string | null,                   // fork 側の中身(無ければ null)
  *   baseLibs: Iterable<string>,                                  // 基準の src/lib 直下のディレクトリ名
+ *   baseHasCore?: boolean,                                       // 基準に src/features/core/ があるか
  *   intake: { kind: string | null, glob: string, exclude: boolean, line: number }[],  // parseIntake(基準側の intake.txt).rules
  * }} input
  * @returns {{ entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string }[], counts: Record<string, number> }}
  */
-export function judge({ changes, baseText, headText, baseLibs, intake }) {
+export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, intake }) {
   const libs = new Set(baseLibs);
   const entries = changes.map((change) => {
     const status = change.status[0];
@@ -82,7 +86,9 @@ export function judge({ changes, baseText, headText, baseLibs, intake }) {
     let reason;
     if (status === "A") {
       const lib = libNameOf(change.path);
-      reason = lib !== null && libs.has(lib) ? "ancestor-lib-add" : "added";
+      if (lib !== null && libs.has(lib)) reason = "ancestor-lib-add";
+      else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
+      else reason = "added";
     } else if (status === "D") {
       reason = "deleted";
     } else if (status === "R") {

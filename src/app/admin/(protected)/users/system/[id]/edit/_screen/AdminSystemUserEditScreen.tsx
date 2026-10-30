@@ -4,7 +4,7 @@
 // 手順: src/lib/screens/README.md
 
 import type { ScreenProps } from "@/lib/screens/types";
-import ManagerialUserEdit from "@/features/core/user/components/admin/ManagerialUserEdit";
+import { ManagerialUserEdit } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
 

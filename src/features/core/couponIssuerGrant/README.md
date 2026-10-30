@@ -4,7 +4,7 @@
 
 - Tier1 が持つのは **権利の台帳と状態遷移・周期発行の骨組み** のみ。「何を発行するか」（カテゴリ・周期・settings の意味）は下流が 1 行スイッチ `services/server/programConfig.ts` に 1 つ登録する
 - 上流は registry を `null` で出荷 = 発行 API は 503（fail-closed）。申請・審査は registry 未設定でも動く
-- UI は出荷しない（データレイヤのみ）。画面は下流が本 README のレシピで組む
+- 今は UI の部品を持たない。画面は下流が本 README のレシピで組む（core の UI の決まりは CLAUDE.md `core_ui`。部品を足すなら上流が足す）
 
 ---
 

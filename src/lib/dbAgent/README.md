@@ -159,7 +159,7 @@ read-only ツールの範囲のみで、「テーブルXに触れるな」等の
 
 ## UI レシピ (downstream 向け)
 
-upstream は UI を同梱しない (core_domain_ui_boundary 方針)。以下の契約で自由に組む。
+今は UI を同梱しない (lib のため core_ui の部品の対象外)。以下の契約で自由に組む。
 
 ### 最小のチャットフック
 

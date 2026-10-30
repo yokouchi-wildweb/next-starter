@@ -15,7 +15,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 - 所有台帳は作らない。基準との git の比較(`git diff --name-status -M <基準> HEAD`)だけで決める
 - fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物(基準に入るので自然にそうなる)
 - 判定の順(`judge.mjs`。reason ごとの合否は `REASONS`)
-  1. A(fork が足した)→ `added`。ただし基準の `src/lib/<name>/` が実在する `<name>` の中なら `ancestor-lib-add`(違反。自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
+  1. A(fork が足した)→ `added`。ただし基準の `src/lib/<name>/` が実在する `<name>` の中なら `ancestor-lib-add`(違反。自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない。基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらなければ `core-add`(違反。fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
   2. D → `deleted`、R(元が基準にある)→ `renamed`。受け口の中でも違反(config の削除、`_` 付きへの rename も)
   3. M → 受け口の一覧で当たった kind ごと(下の表)。どれにも当たらなければ、生成器の区画の中だけの差なら `generator-region`(合格)、それ以外は `outside-intake`(違反)
 - 生成器の区画(`AUTO-GENERATED-START/END`・`=== AUTO-GENERATED … START/END ===`・終わりの印の無い `// --- Auto-generated imports ---` = 続く import の行まで・道具が丸ごと書き足す `<!-- BEGIN:nextjs-agent-rules -->` 〜 END = 印の行と直前の空行ごと)は検査の対象外。生成器の印の統一は別の論点

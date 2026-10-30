@@ -17,6 +17,7 @@ const LABELS = {
   deleted: "削除",
   renamed: "rename・移動",
   "ancestor-lib-add": "祖先の lib の中への追加",
+  "core-add": "src/features/core/ の中への追加(受け口の項目以外。自分のドメインは src/features/<x> へ)",
   "outside-intake": "受け口の外の書き換え",
   "outside-region": "fork の区画の外の書き換え",
   "region-markers": "fork の区画の印が壊れている",

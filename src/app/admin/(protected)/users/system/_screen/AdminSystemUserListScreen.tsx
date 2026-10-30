@@ -5,7 +5,7 @@
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
-import ManagerialUserList from "@/features/core/user/components/admin/ManagerialUserList";
+import { ManagerialUserList } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
 

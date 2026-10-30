@@ -15,7 +15,7 @@ import { Para } from "@/components/TextBlocks/Para";
 
 import { useEmailPasswordLogin } from "@/features/core/auth/hooks/useEmailPasswordLogin";
 import { log } from "@/utils/log";
-import { ThirdPartySignupOptions } from "@/features/core/auth/components/Signup/ThirdPartySignupOptions";
+import { ThirdPartySignupOptions } from "@/features/core/auth/components/Signup";
 
 export type UserLoginProps = {
   redirectTo?: string;

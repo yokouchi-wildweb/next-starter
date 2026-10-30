@@ -1,6 +1,6 @@
 // src/features/core/wallet/components/WalletHistory/index.tsx
 // セクションコンテナ(履歴一覧)。
-// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
+// 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 

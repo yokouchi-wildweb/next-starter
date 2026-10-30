@@ -1,6 +1,6 @@
 // src/features/core/wallet/components/WalletPurchase/index.tsx
 // セクションコンテナ(購入・決済方法選択)。
-// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
+// 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
@@ -27,6 +27,8 @@ export type WalletPurchaseProps = {
   /** URLスラッグ */
   slug: string;
 };
+
+export { CouponInput } from "./CouponInput";
 
 export function WalletPurchase({ slug }: WalletPurchaseProps) {
   const searchParams = useSearchParams();

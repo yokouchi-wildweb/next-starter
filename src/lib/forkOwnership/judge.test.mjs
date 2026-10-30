@@ -140,8 +140,8 @@ describe("judge", () => {
     ].join("\n"),
   );
 
-  const run = (change, base, head, baseLibs = []) =>
-    judge({ changes: [change], baseText: () => base, headText: () => head, baseLibs, intake }).entries[0];
+  const run = (change, base, head, baseLibs = [], baseHasCore = false) =>
+    judge({ changes: [change], baseText: () => base, headText: () => head, baseLibs, baseHasCore, intake }).entries[0];
 
   test("A: fork の物 / 祖先 lib の中は違反", () => {
     assert.equal(run({ status: "A", path: "src/features/gacha/x.ts" }, null, "x").reason, "added");
@@ -149,6 +149,20 @@ describe("judge", () => {
     const entry = run({ status: "A", path: "src/lib/crud/extra.ts" }, null, "x", ["crud"]);
     assert.equal(entry.reason, "ancestor-lib-add");
     assert.equal(entry.verdict, "violation");
+  });
+
+  test("A: core の中は受け口の項目だけ。受け口の外・debt は core-add、基準に core が無ければ added", () => {
+    const { rules } = parseIntake(["edit src/features/core/user/cleanupHandlers/*.*.ts  # r", "debt src/features/core/mail/templates/**  # r"].join("\n"));
+    const add = (path, baseHasCore = true) =>
+      judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], baseHasCore, intake: rules }).entries[0];
+    assert.equal(add("src/features/core/user/cleanupHandlers/x.child.ts").reason, "added");
+    const inside = add("src/features/core/user/hooks/useMine.ts");
+    assert.equal(inside.reason, "core-add");
+    assert.equal(inside.verdict, "violation");
+    assert.equal(add("src/features/core/mail/templates/x.tsx").reason, "core-add");
+    assert.equal(add("src/features/core/mine/x.ts").reason, "core-add");
+    assert.equal(add("src/features/mine/x.ts").reason, "added");
+    assert.equal(add("src/features/core/mine/x.ts", false).reason, "added");
   });
 
   test("D・R は受け口の中でも違反", () => {

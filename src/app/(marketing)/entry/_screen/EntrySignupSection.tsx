@@ -6,8 +6,7 @@ import Link from "next/link";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { SecTitle } from "@/components/TextBlocks";
-import { EarlyRegistrationSendForm } from "@/features/core/auth/components/Signup/EarlyRegistration/SendForm";
-import { ThirdPartySignupOptions } from "@/features/core/auth/components/Signup/ThirdPartySignupOptions";
+import { EarlyRegistrationSendForm, ThirdPartySignupOptions } from "@/features/core/auth/components/Signup";
 
 export function EntrySignupSection() {
   // 事前登録完了後のリダイレクト先

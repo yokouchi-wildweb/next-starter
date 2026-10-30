@@ -23,7 +23,7 @@ import {
 import type { WhereExpr } from "@/lib/crud";
 import { useAuditLogSearch } from "@/features/core/auditLog/hooks/useAuditLogSearch";
 
-import { DiffView } from "@/features/core/auditLog/components/common/AuditTimeline/DiffView";
+import { DiffView } from "@/features/core/auditLog/components/common/AuditTimeline";
 
 type Filters = {
   targetType: string;

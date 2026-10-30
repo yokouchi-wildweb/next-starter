@@ -9,7 +9,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { SecTitle, Para } from "@/components/TextBlocks";
-import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification/Modal";
+import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification";
 import { usePhoneVerificationModal } from "@/features/core/auth/hooks/usePhoneVerificationModal";
 
 type PhoneVerificationRequiredProps = {
