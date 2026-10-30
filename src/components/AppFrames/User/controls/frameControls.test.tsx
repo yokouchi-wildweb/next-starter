@@ -37,6 +37,9 @@ mock.module(appUrl("(user)/maintenance/_screen/loader.ts"), {
 mock.module(appUrl("(user)/maintenance/_screen/MaintenanceAutoRedirect.tsx"), {
   namedExports: { MaintenanceAutoRedirect: () => null },
 });
+mock.module(appUrl("(user)/(auth)/demo-login/_screen/loader.ts"), {
+  namedExports: { loadDemoLoginScreen: async () => undefined },
+});
 mock.module(appUrl("(user)/(auth)/demo-login/_screen/DemoLoginSection.tsx"), {
   namedExports: { DemoLoginSection: () => null },
 });
@@ -165,7 +168,7 @@ test("upstream で Hide* を使う画面・layout の SSR HTML に印が出る",
   }
 
   const { DemoLoginScreen } = await import(appUrl("(user)/(auth)/demo-login/_screen/DemoLoginScreen.tsx"));
-  const demoLogin = render(<DemoLoginScreen />);
+  const demoLogin = render(await DemoLoginScreen({ params: Promise.resolve({}), searchParams: Promise.resolve({}) }));
   assert.ok(demoLogin.includes(mark("footer-sp footer-pc")));
   assert.ok(demoLogin.includes(mark("bottom-nav-sp bottom-nav-pc")));
 
