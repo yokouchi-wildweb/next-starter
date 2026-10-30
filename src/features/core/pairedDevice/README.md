@@ -167,8 +167,8 @@ const storeId =
 ```
 
 - 同じリクエストで layout と loader が同じルールで呼んでも、判定は 1 回にまとまる
-- ユーザーのステータスは `allowStatuses`（省略時は利用可能なステータスだけ）で、`authGuard` と同じ語彙
-- 端末だけなら `deviceGuard`、ユーザーだけなら `authGuard` を使う（どちらも挙動は変わらない）
+- ユーザーのステータスは `allowStatuses`（省略時は利用可能なステータスだけ）で、ページの守り（guard.ts / createLoader）と同じ語彙
+- 端末だけなら `deviceGuard`、ユーザーだけならページの守り（範囲の guard.ts と loader の createLoader）を使う
 
 ## scope が古くなった端末を止める（一括失効）
 

@@ -270,7 +270,7 @@ setting.sections.ts
        │
        └─ app/admin/(protected)/settings/[section]/page.tsx
               │
-              ├─ section.allowRoles で authGuard
+              ├─ section.allowRoles を loader の ctx.allows で判定(拒否は /admin)
               └─ AdminSettingSectionEdit → EditSettingSectionForm
                       │
                       └─► FieldRenderer（baseFields = section.fields）

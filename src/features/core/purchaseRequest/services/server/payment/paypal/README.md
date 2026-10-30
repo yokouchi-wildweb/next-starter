@@ -226,7 +226,7 @@ PayPal を使わないプロジェクトは `status: "disabled"` にすれば UI
 
 production デプロイで Webhook（PayPal からの外部 POST）を受け取るには、Vercel の
 **Settings → Deployment Protection → Vercel Authentication を Disabled** にする必要がある。
-有効だと Webhook が認証ページで弾かれて届かない。アプリ層の認証は Firebase Auth + authGuard で
+有効だと Webhook が認証ページで弾かれて届かない。アプリ層の認証は Firebase Auth + ページの守り(guard.ts)で
 別途守られているため、これは BtoC 本番運用での標準設定（Paidy 等と同様）。
 
 ### 7. 本番疎通の最終確認

@@ -209,12 +209,12 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 
 | 定数 | 値 | 用途 |
 |------|-----|------|
-| `USER_AVAILABLE_STATUSES` | `active` | サービス利用可能 = ログイン済みとして扱うステータス。`authGuard` の `allowStatuses` 既定値、API の Factory の認可（`apiAccess` の evaluateApiAccessRule、`allowStatuses` の既定値）が参照 |
+| `USER_AVAILABLE_STATUSES` | `active` | サービス利用可能 = ログイン済みとして扱うステータス。ページの守り(guard.ts / createLoader)の `allowStatuses` 既定値、API の Factory の認可（`apiAccess` の evaluateApiAccessRule、`allowStatuses` の既定値）が参照 |
 | `USER_REGISTERED_STATUSES` | `active` / `inactive` / `suspended` / `banned` / `security_locked` | 本登録済み = 再登録不可。サインアップ時の既存ユーザー判定（`auth/services/server/registration.ts`）が参照 |
 
 「利用不可」グループは `!USER_AVAILABLE_STATUSES.includes(status)` で表現できるため定義しない。
 
-`active` 以外でログインした場合の扱いは画面側の `authGuard` が `statusRedirects` で振り分ける（`(user)/(protected)/layout.tsx`: `inactive` → `/reactivate`、`suspended` / `banned` / `security_locked` → `/restricted`、`pending` / `withdrawn` → ログアウトしてサインアップへ）。ログイン時点で拒否されるステータスの詳細は auth ドメインの `localLogin.ts` / `firebaseSession.ts` を参照。
+`active` 以外でログインした場合の扱いは範囲の守りの `statusRedirects` が振り分ける（`(user)/(protected)/guard.ts`: `inactive` → `/reactivate`、`suspended` / `banned` / `security_locked` → `/restricted`、`pending` / `withdrawn` → ログアウトしてサインアップへ）。ログイン時点で拒否されるステータスの詳細は auth ドメインの `localLogin.ts` / `firebaseSession.ts` を参照。
 
 ステータス遷移の記録は [ステータス遷移履歴](#ステータス遷移履歴user_status_histories)、操作の監査は audit_logs（`user.withdrew` / `user.status.changed` 等）が担う。
 
@@ -327,7 +327,7 @@ DB 制約を使わないため、既存データに重複があっても有効�
   （`renamed` の userId 一覧）をもとに `messagingService.send / bulkSend` で通知するのは
   ダウンストリームの責務
 - **セッション JWT の name クレームは古いまま残る。** リネーム後、DB 参照
-  （`requireCurrentUser` 経由）の画面は即反映されるが、JWT クレームの name を表示に
+  （loader の ctx.user・`requireUserRecord` 経由）の画面は即反映されるが、JWT クレームの name を表示に
   使っている箇所は再ログインまで旧名が見える（実害は表示のみ）
 
 ## ロール追加の手順

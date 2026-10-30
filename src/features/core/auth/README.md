@@ -11,7 +11,8 @@ auth/
 ├── services/
 │   ├── server/
 │   │   ├── session/             # getSessionUser / getTokenOnlySession / token.ts (resolveSessionUser) / issue・clearSessionCookie
-│   │   ├── authorization.ts     # authGuard (SSR layout / loader 用ガード)
+│   │   ├── authorization.ts     # getRequestPathname・hasUserForAccess(ページの守りに渡す部品)
+│   │   ├── pageGuardUserDeps.ts # pageGuardUserDeps (ページの守り lib/pageGuard に差し込む利用者の束。結ぶのは src/wiring/pageGuard.ts)
 │   │   ├── apiAccess.ts         # evaluateApiAccessRule (API の Factory のアクセス評価。allowStatuses を受ける)
 │   │   ├── apiRouteUserDeps.ts  # apiRouteUserDeps (API の Factory に差し込む利用者の束。結ぶのは src/wiring/apiRoute.ts)
 │   │   ├── sessionInvalidation.ts # invalidateSessionsForUser (全セッション強制失効)
@@ -67,55 +68,35 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 - `getTokenOnlySession` は JWT クレームのみ（DB を引かない stale な値）。監査ログの actor 抽出やデモ判定など、**認可と無関係な高頻度処理専用**。認可には使わない
 - JWT の署名・検証・Cookie 抽出の汎用部分は [lib/jwt](../../../lib/jwt/README.md)
 
-## 認可ガードの 3 層
+## ページの認可（proxy → 範囲の guard.ts → loader の access）
 
 ```
-proxy (redirectProxy)  →  layout (authGuard)  →  _screen/loader.ts (requireCurrentUser)
-URL ルール              ロール + ステータス       自分のレコードを DB から取得
+proxy (redirectProxy)  →  範囲の guard.ts(layout が guard() の 1 行)  →  _screen/loader.ts(createLoader の access)
+URL ルール              ロール + ステータス + 行き先(親子 AND)          ページの access を評価してから取得、主体は ctx.user
 ```
 
 1. **proxy** (`src/proxies/redirect.ts`): `src/config/app/redirect.config.ts` のルール（+ サインアップモードの内部ルール）で先制リダイレクト。セッション判定は `resolveSessionUser`
-2. **layout** (`authGuard`, `services/server/authorization.ts`): ルートグループ単位で掛ける。配下のページは自前でガードしない
-   - `allowRoles`: 許可ロール。不一致は `redirectTo` へ
-   - `allowStatuses`: 許可ステータス。省略時 `USER_AVAILABLE_STATUSES`（= active のみ）
-   - `redirectTo`: 未認証・権限不足時の遷移先（未指定なら redirect せず null を返す）
-   - `returnBack`: true なら `redirectTo?returnTo=<現在のパス>`（パスは proxy が付ける `x-pathname`）。ログイン画面の loader が内部パスに限定して遷移先に使う
-   - `statusRedirects`: ステータス別の遷移先（`redirectTo` より優先、returnTo なし）。例: `(user)/(protected)/layout.tsx` は inactive → `/reactivate`、suspended / banned / security_locked → `/restricted`、pending / withdrawn → `/logout?redirectTo=/signup`
-   - 適用箇所: `admin/(protected)` と `admin/insane`（admin ロール、`/admin/login`）、`(user)/(protected)`（`/login`）、`debug/`（admin カテゴリ + debugger、`/login`）
-3. **loader** (`requireCurrentUser`, `user/services/server/resolvers/requireCurrentUser.ts`): セッションの userId で自分の `users` レコードを取得する。`cache()` でリクエスト内 1 回。`behavior`: 省略時 `throw` / `"redirect"`（`redirectTo` 必須）/ `"notFound"` / `"returnNull"`
+2. **範囲の guard.ts**（layout の隣。root は `src/app/guard.ts`）: 方針（access・allowStatuses・redirectTo・forbiddenRedirectTo・returnBack・statusRedirects・setupRedirectTo）を字面で書き、layout は `await guard()` の 1 行。子は最寄りの親の `extend` で作る（親子 AND、狭めるだけ）
+   - upstream の範囲: `(user)/(protected)`（利用者・管理者カテゴリ、`/login`、status 別の行き先）/ `admin/(protected)`（管理者カテゴリ、`/admin/login`、管理者 0 人なら `/admin/setup`）/ その `users`（admin ロール、`/admin`）/ `admin/insane`（admin ロール）/ `debug`（管理者カテゴリ + debugger、`/login`）
+   - setup 誘導の判定は auth の `hasUserForAccess(access)`（範囲の access を満たしうる利用者が 1 人以上いるか、真偽値だけ）を wiring が作り手に渡す。guard.ts には行き先の値だけ
+3. **loader**: 最寄りの guard.ts の `createLoader({ access, key?, load })`。範囲の方針とページの access を取得前に評価し、主体は `load({ user })` の `user`（DB 同期、リクエスト内 1 回）。本人の列が要るなら `requireUserRecord(user, "/login")`（user のサービス）
 
-```ts
-// src/app/(user)/(protected)/<route>/_screen/loader.ts
-import "server-only";
-import { cache } from "react";
-import { requireCurrentUser } from "@/features/core/user/services/server/resolvers/requireCurrentUser";
+結ぶのは `src/wiring/pageGuard.ts`（`lib/pageGuard` の汎用版 + auth の `pageGuardUserDeps` + `hasUserForAccess`）。書き方は [lib/pageGuard README](../../../lib/pageGuard/README.md) と [SCREENS §4](../../../lib/screens/README.md)。
 
-const resolveXxxScreen = cache(async () => {
-  // redirectTo はグループ layout の authGuard と同じリテラル
-  const user = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
-  return { /* 最小 DTO */ };
-});
-```
-
-使い分けのルール（[SCREENS](../../../lib/screens/README.md)）:
-
-- page.tsx にガード・取得を書かない（1 行スイッチ）。ユーザー取得は `_screen/loader.ts` で行う
-- `(protected)` 配下の loader は `requireCurrentUser` のみ。`getSessionUser`（nullable）は公開ルートでの任意のパーソナライズ用で、`(protected)` 配下に「未ログインなら既定値」分岐を書かない（layout が既に弾いている）
-- `(protected)` の外でログイン状態を見て遷移する画面（login / restricted / reactivate）は loader で `getSessionUser` を使って自分で redirect する
-- `getSessionUser` / `authGuard` / `requireCurrentUser` はいずれも `cache()` 経由で、同一リクエスト内の DB 引きは 1 回にまとまる
+- page.tsx・Screen・layout にガード・取得を書かない。表示用の利用者は client の `useAuthSession`、ページ本文は loader の DTO
+- 利用できない status の利用者を案内する画面（`/restricted`・`/reactivate`）は root の public の loader に `allowStatuses` を書いて受ける（public の `user` は既定で利用可能な status だけ非 null）
+- `getSessionUser` は `cache()` 経由で、範囲の guard・loader・API の Factory・AuthSessionProvider が同じリクエストで呼んでも DB 引きは 1 回
 
 ### 置き場所の検査（lint `page-authz`、全 Tier で error）
 
-- **layout はサーバー側でデータを取らない**（`page-authz/layout-no-server-data`）: `src/app/**/layout.tsx` と `_layout/` の組み立て（`_layout/guard.ts` は除く）で `services/server`・DB（`@/lib/drizzle`・`drizzle-orm`・`@/lib/firebase/server`・`firebase-admin`）・loader を import しない。許すのは `services/server/authorization.ts` の関数だけ
-  - 理由: layout はページ・loader と並列に描かれ、ガードを置いた layout の内側の layout もそのガードで守られない。layout で取ったデータは「ガードを通った後のデータ」にならないので、取得は loader へ寄せる
-  - 管理画面の初期セットアップ誘導（管理者 0 人なら `/admin/setup`）は `hasAdminUser(roles?)`（authorization.ts、真偽値だけ。省略時は admin カテゴリ全部、論理削除済みは数えない）を呼ぶ。`admin/insane` はロール `admin` だけを数える（`hasAdminUser(["admin"])`）
-  - client 部品が hooks → API で取るのは対象外。名前付き例外は root layout の `AuthSessionProvider`（認証基盤）
-- **セッション・ガード API を呼べる場所を限る**（`page-authz/session-api-callsite`）: `authGuard`・`getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`（削除済み。fork の古い import を止めるため名前は残す）・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
-  - 対象: `src/app`（`src/app/api/**` の route と補助ファイルを含む）と UI 側（`src/components`・`src/features/**/components`・`src/features/**/hooks`・`src/hooks`）
-  - 呼べる場所: layout・`_layout/`（組み立てと guard.ts）・`loader.ts`（`_screen/`・`_components/` とも）。API には呼べる場所が無い（主体は Factory の `ctx.user`）。共有 admin loader・proxy・services/server・lib/routeFactory は対象外（それぞれの契約で守る）。`AuthSessionProvider` は名前付き例外
-  - page.tsx・Screen・部品でセッションを読みたくなったら loader で読んで DTO に載せる
-- 不採用の案: 下流（fork）では warn にする案（セキュリティの検査は所有で強さを変えない、前例 hidden-columns）/ 「認証方針を持つ layout は見た目部品を import しない」で縛る案（枠とガードの同居を禁じる理由が無く、データ取得の禁止で目的を果たせる）
-- 限界: 直接の import だけを見る（layout が import した server component の中での取得は捕まえない）。仕様の本文と判定は `eslint-rules/page-authz.mjs`、テストは `pnpm test:page-authz-lint`
+- **UI の場所はサーバーのデータを取らない**（`page-authz/layout-no-server-data`。名前は互換のため据え置き）: src/app の Screen・page.tsx・layout・`_layout/`・guard.ts・`_components/` の部品と `src/components`・`src/hooks`・features の components / hooks で、`services/server`・DB（`@/lib/drizzle`・`drizzle-orm` の値・`@/lib/firebase/server`・`firebase-admin`・`entities/drizzle` の表）を値で import しない。layout は loader も不可。型だけは可
+  - 理由: UI で取ったデータは範囲の守りと loader の access を通った後のデータにならない。取得は loader へ集める
+  - 名前付き例外は `AuthSessionProvider`（root layout の Provider。Cookie の解析とセッション解決）
+- **セッション・ガード API をページ層・UI・API で import しない**（`page-authz/session-api-callsite`）: `getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・削除済みの `authGuard`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`（fork の古い import を止めるため名前は残す）・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
+  - 対象: `src/app` 全体（page・Screen・layout・`_layout/`・loader・guard.ts・`_components/`・API の route と補助ファイル）と UI 側。許可の場所は無い（ページの主体は createLoader の `ctx.user`、API の主体は Factory の `ctx.user`）。`AuthSessionProvider` は名前付き例外
+- データに届く wiring の import の場所（`pnpm test:wiring`）・`@/lib/pageGuard` の値 import は wiring だけ（lint `import-boundaries/page-guard-via-wiring`）・features の index.ts は services/server を値で再 export しない（`import-boundaries/features-index-no-server-reexport`）
+- 不採用の案: 下流（fork）では warn にする案（セキュリティの検査は所有で強さを変えない、前例 hidden-columns）
+- 限界: 直接の import だけを見る。仕様の本文と判定は `eslint-rules/page-authz.mjs`、テストは `pnpm test:page-authz-lint`
 
 API ルート側の認可はファクトリーが構造的に強制する（`createDomainRoute` は serviceRegistry の `access`、`createApiRoute` は `access` 必須（public / authenticated / { roles, roleCategories } + allowStatuses）、本人データは `createMeRoute`）→ [routeFactory README](../../../lib/routeFactory/README.md)。主体はリクエストごとに 1 回だけ DB 同期の `getSessionUser` で解き（`apiRouteUserDeps`）、ハンドラには `ctx.user` で渡す。セッションの確認と再発行（`GET /api/auth/session`）は `session/refreshSessionResponse.ts`。
 

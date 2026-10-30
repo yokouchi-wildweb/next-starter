@@ -260,7 +260,7 @@ paymentMethods: [
 
 production デプロイで Webhook を受け取るには Vercel Authentication を OFF にする必要がある。
 Vercel Dashboard → Settings → Deployment Protection → Vercel Authentication を Disabled に。
-これは BtoC サービスの本番運用では標準的な設定（アプリ層の認証は Firebase Auth + 各種 authGuard で
+これは BtoC サービスの本番運用では標準的な設定（アプリ層の認証は Firebase Auth + ページの守り(guard.ts)で
 別途守られている）。
 
 ---

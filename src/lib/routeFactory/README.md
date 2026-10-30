@@ -52,7 +52,7 @@ import { createApiRoute, createDomainRoute, createDomainIdRoute, createMeRoute, 
 | `"none"` | 誰も（存在しない扱いの 404） | — | **汎用 CRUD の domainEntry.ts だけ** |
 
 - 拒否: 未認証 → 401、権限不足・利用できない status → 403（JSON に `code: "unauthenticated" | "forbidden"`）。`"none"`・未登録のドメインは 404（`text/plain`、存在を隠す）
-- **`allowStatuses`**（全 Factory。createMeRoute・authGuard と同じ語彙）: 既定は `USER_AVAILABLE_STATUSES`（active のみ）。
+- **`allowStatuses`**（全 Factory。createMeRoute・ページの守り（guard.ts / createLoader）と同じ語彙）: 既定は `USER_AVAILABLE_STATUSES`（active のみ）。
   「利用制限中でも本人が完了すべき手続き」（不正疑いチャレンジ・再有効化・KYC 等）のルートだけ明示列挙する。列挙していない status は常に 403（fail-closed）。
   `"public"` では「その status なら `ctx.user` を渡す」の意味（例: `GET /api/auth/session`・`POST /api/auth/logout` は `USER_STATUSES` 全部を並べ、休会中の人のセッションも扱う）
 - 「ハンドラで自前に認可する」口は無い。宣言に乗らない条件は、宣言の門を通った後に `ctx.user` で判定する（下の「追加の門」「役割で振る舞いを分ける」）

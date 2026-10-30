@@ -97,32 +97,32 @@ ServerService（第 6 層）を呼んで画面用に組み立てるページ入�
 ```ts
 // src/app/(user)/(protected)/wallet/[slug]/_screen/loader.ts
 import "server-only";
-import { cache } from "react";
+import { createLoader } from "@/app/(user)/(protected)/guard";
 
-const resolveWalletBalanceScreen = cache(async (slug: string) => {
-  const config = getCurrencyConfigBySlug(slug);
-  if (!config) notFound();
-  const user = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
-  // /api/me/wallet と同じ ServerService 呼び出し(業務ロジックは二重化しない)
-  const balances = await walletService.search({ where: { field: "user_id", op: "eq", value: user.id } });
-  return { slug, walletType: config.walletType, label: config.label, phoneVerifiedAt: user.phoneVerifiedAt, phoneNumber: user.phoneNumber, wallets: balances.results ?? [] };
+// 最寄りの範囲(guard.ts)の createLoader で作る。範囲の方針とこのページの access を取得前に評価する
+export const loadWalletBalanceScreen = createLoader({
+  access: "authenticated",
+  key: async (props: ScreenProps<{ slug: string }>): Promise<[string]> => [(await props.params).slug],
+  load: async ({ user }, slug) => {
+    const config = getCurrencyConfigBySlug(slug);
+    if (!config) notFound();
+    const record = await requireUserRecord(user, "/login");
+    // /api/me/wallet と同じ ServerService 呼び出し(業務ロジックは二重化しない)
+    const balances = await walletService.search({ where: { field: "user_id", op: "eq", value: record.id } });
+    return { slug, label: config.label, phoneNumber: record.phoneNumber, wallets: balances.results ?? [] };
+  },
 });
-
-export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string }>) {
-  const { slug } = await props.params;
-  return resolveWalletBalanceScreen(slug);
-}
 ```
 
 loader の形を固定している理由:
 
-- **`cache()` で包む**: Screen と `generateMetadata` など、同じリクエスト内で loader が複数回呼ばれても取得を 1 回にするため
+- **範囲の guard.ts の `createLoader` で作る**: 範囲の方針（ログイン・ロール・status）とページの access を取得の前に評価し、拒否なら取得しない。layout と並列に描かれても取得が守られるため。`key` のプリミティブで cache を張るので、Screen と `generateMetadata` が同じリクエストで呼んでも取得は 1 回
 - **redirect / notFound は loader が行う**: 下流が Screen を差し替えても、アクセス制御とページの有無の判断が変わらないようにするため（Screen 側に書くと、差し替えた Screen が写し忘れる）
 - **返り値は画面が必要とする最小の DTO**: サービスの戻り値をそのまま渡すと、Screen とセクションコンテナがサービスの内部の形に依存し、サービスの変更が画面まで波及するため。DTO の型は loader で定義し、Screen と部品は `import type` で使う
 
-サーバー側ロジックの無いページ（法的文書、クライアントが hook で取るだけのページ）は loader を持ちません。
+サーバー側ロジックの無いページ（法的文書、クライアントが hook で取るだけのページ）も access だけの loader を持ちます（ルート地図が全ページの守りの鎖を確かめるため）。
 
-具体的な規則（`server-only`、`cache()` のキー、`requireCurrentUser` の使い分け、命名）・契約・下流の差し替え手順: `src/lib/screens/README.md`
+具体的な規則（`server-only`、範囲の guard.ts、`createLoader` の access と key、主体 `ctx.user`、命名）・契約・下流の差し替え手順: `src/lib/screens/README.md`
 
 ---
 

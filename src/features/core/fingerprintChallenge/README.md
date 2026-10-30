@@ -34,8 +34,8 @@ export const FINGERPRINT_CONFIG = {
 `challenge.answerableStatuses`（既定 `["active","suspended"]`）を渡して通している。
 `banned` / `security_locked` / `withdrawn` は列挙しない限り 403（fail-closed）。
 
-回答ページ側も同じ語彙で開ける: `authGuard({ allowStatuses: ["active", "suspended"] })` を
-持つレイアウト配下に置く（`(user)/(protected)` は active 限定なので、その外に出す）。
+回答ページ側も同じ語彙で開ける: 範囲の guard.ts の方針か loader の `createLoader({ allowStatuses: ["active", "suspended"] })`
+で受ける（`(user)/(protected)` の範囲は active 限定なので、その外に出す）。
 
 ---
 
@@ -227,9 +227,9 @@ const url = `${getAppBaseUrl()}/verify/${token}`;
 // getAppBaseUrl は @/lib/url（businessConfig.url 直参照は禁止）
 ```
 
-> ページguard: `/verify/[token]` は **`(user)/(protected)` の外** に置き、専用レイアウトで
-> `authGuard({ allowStatuses: ["active", "suspended"], redirectTo: "/login", returnBack: true })`
-> を掛ける。`(protected)` は active 限定のため、suspended ユーザーが回答に辿り着けない。
+> ページの守り: `/verify/[token]` は **`(user)/(protected)` の外** に置き、専用の範囲の guard.ts
+> (root の extend で `{ access: "authenticated", allowStatuses: ["active", "suspended"], redirectTo: "/login", returnBack: true }`)
+> と `await guard()` の layout を置く。`(protected)` の範囲は active 限定のため、suspended ユーザーが回答に辿り着けない。
 
 ### トークン無しの回答ページ（本人スコープ経路）
 

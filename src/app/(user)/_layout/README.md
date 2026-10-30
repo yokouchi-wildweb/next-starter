@@ -96,7 +96,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
 ```
 
 3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx をドット区切り名のファイルへコピーして編集する(外枠の `data-frame-root` は残す。無いと Hide* が効かない)
-- カスタムの組み立てでガード関数(authGuard 等)を呼ぶと、ルート地図はスイッチ先を 1 段辿って拾う(`pnpm routes:map`、src/lib/screens/README.md §13)。組み立てがさらに import する先は読まない
+- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm routes:map`、src/lib/screens/README.md §13)
 
 ## 枠の部位を隠す(Hide* と印)
 

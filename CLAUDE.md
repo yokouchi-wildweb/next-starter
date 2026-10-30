@@ -98,8 +98,9 @@ principal: the Factory resolves the DB-synced user once per request → handlers
 
 ## ROLES & PAGE_GUARD
 roles: src/features/core/user/roles/*.role.json (core = `_` prefix) → pnpm role:generate → src/registry/roleRegistry.ts | category = admin or user | debugger role = user category, bypasses maintenance + opens /debug
-page_guard: authGuard({allowRoles, allowStatuses, redirectTo, ...}) in layouts (@/features/core/auth/services/server/authorization) | already guarded at layout level (pages need no own guard): admin/(protected) + admin/insane (admin roles → /admin/login) | (user)/(protected) (→ /login) | debug/ (admin category + debugger → /login)
-flow: proxy → layout (authGuard) → loader (requireCurrentUser) | debug pages go under src/app/debug/, never re-implement guards | layouts fetch no server data | details → .claude/rules/core/screens.md
+page_guard: range policy = guard.ts beside the layout (root src/app/guard.ts from @/wiring/pageGuard, child = nearest parent's extend: AND, narrows only) | layout = `await guard()` one line | ranges: admin/(protected) + admin/insane (→ /admin/login) | (user)/(protected) (→ /login) | debug/ | ref: src/lib/pageGuard/README.md
+- every page loader = nearest guard.ts createLoader({ access, key?, load }) (access required, principal = ctx.user, no session APIs) | route map src/app/route-map.jsonl verifies the chain
+flow: proxy → range guard.ts → loader access | debug pages go under src/app/debug/, never re-implement guards | UI places (Screen, page, layout, _components, components, hooks) never import services/server or DB, no session APIs in src/app (lint page-authz) | details → .claude/rules/core/screens.md
 
 ## CRUD_SERVICE (createCrudService)
 before adding or changing CRUD calls, search options or raw SQL → read src/lib/crud/README.md (hooks: src/lib/crud/hooks/README.md)

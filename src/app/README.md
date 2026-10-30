@@ -96,7 +96,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 自由: 段の数、名前、group か URL フォルダか、入れ子の順序、枠と認証の混在、ラベルだけの group(どれも禁止しない)。
 
-暫定(loader の方針宣言が入るまで): `(protected)` だけは名前に意味がある。パスに `(protected)` を含む loader は `requireCurrentUser` を使う検査(`pnpm test:screens`)がこの名前で判定しているため、ログインが要るページは今は `(protected)` の下に置き、`(protected)` の改名・移動もしない。方針宣言の検査に置き換わった後は、名前は検査にも認可にも意味を持たない。
+フォルダ名(`(protected)` 等)は検査にも認可にも意味を持たない。認可は範囲の `guard.ts`(layout の隣、親子 AND)と loader の `access` で決まり、ルート地図(`route-map.jsonl`)が鎖を確かめる(src/lib/screens/README.md §4・§13)。
 
 決まった置き場:
 
@@ -133,11 +133,13 @@ loader はドメインの features ではなくルートの中に置く（複数
 
 ```
 src/app/
-├── layout.tsx              ← root layout(1 つだけ)
+├── layout.tsx              ← root layout(1 つだけ。Provider の入れ子は @/wiring/AppProviders)
+├── guard.ts                ← root の範囲(public。全ページを覆う)
 ├── (user)/
 │   ├── layout.tsx          ← ユーザー側の枠(1 行スイッチ → _layout/)
 │   ├── (protected)/
-│   │   └── layout.tsx      ← ログインのガード(authGuard)。枠はガードの外 = (user)/layout.tsx
+│   │   ├── guard.ts        ← 範囲の方針(ログイン必須・status 別の行き先)。root の src/app/guard.ts を extend
+│   │   └── layout.tsx      ← await guard() の 1 行。枠はガードの外 = (user)/layout.tsx
 │   ├── (public)/ (auth)/ (legal)/   ← layout なし。(user) の枠をそのまま継ぐ
 │   └── demo/ maintenance/
 ├── (marketing)/

@@ -28,7 +28,7 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 └── InsaneProtectedLayout・InsaneResizableArea・InsaneSidebar・InsanePcSidebar・InsaneSpSidebar
 ```
 
-ガード(hasAdminUser + authGuard)は `admin/(protected)/layout.tsx`・`admin/insane/layout.tsx` 本体に残っている。両 layout はガードの後に `./_layout` の枠を素の import で描く(1 行スイッチではない)。`_layout/` の部品は枠を描くだけ。
+範囲の方針は `admin/(protected)/guard.ts`・`admin/insane/guard.ts`(管理者カテゴリ / admin ロール、管理者 0 人なら `/admin/setup`)。両 layout は `await guard()` の 1 行の後に `./_layout` の枠を素の import で描く(1 行スイッチではない)。`_layout/` の部品は枠を描くだけ。
 
 まだ `src/components/AppFrames/` に残っている物(後の区切りで扱う):
 
