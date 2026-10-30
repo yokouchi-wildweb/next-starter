@@ -204,5 +204,5 @@ scripts/
 ├── room/                  # リアルタイムルーム基盤の init / deploy
 ├── test/                  # テスト実行用の preload (server-only の差し替え)
 ├── worktree/              # ワークツリーの作成・env 複製・片付け
-└── tasks/                 # 運用タスクの CLI ランナー (pnpm task)
+└── tasks/                 # 運用タスクの CLI ランナーとワンショットタスク (pnpm task、tasks/README.md)
 ```

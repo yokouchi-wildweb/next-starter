@@ -1,8 +1,8 @@
 // src/features/core/user/services/server/registration/sendRegistrationCompleteMail.ts
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { EarlyRegistrationCompleteEmail } from "@/features/core/mail/templates/EarlyRegistrationCompleteEmail";
-import { RegistrationCompleteEmail } from "@/features/core/mail/templates/RegistrationCompleteEmail";
+import { EarlyRegistrationCompleteEmail } from "@/features/core/user/mail/EarlyRegistrationCompleteEmail";
+import { RegistrationCompleteEmail } from "@/features/core/user/mail/RegistrationCompleteEmail";
 import { DomainError } from "@/lib/errors";
 
 export type SendRegistrationCompleteMailParams = {

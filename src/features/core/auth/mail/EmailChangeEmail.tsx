@@ -1,4 +1,4 @@
-// src/features/core/mail/templates/EmailChangeEmail.tsx
+// src/features/core/auth/mail/EmailChangeEmail.tsx
 
 import {
   Body,
@@ -15,7 +15,7 @@ import {
 
 import { createMailTemplate } from "@/lib/mail";
 
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 export type EmailChangeEmailProps = {
   /** 認証用URL */

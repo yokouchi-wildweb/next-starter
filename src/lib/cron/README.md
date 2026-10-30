@@ -7,7 +7,7 @@ API ルート・CLI（`pnpm task`）・`vercel.json` の生成は、どれもこ
 upstream / fork / さらに下流の Tier も、タスクを足すときはフォルダを 1 つ足すだけで、共有ファイルを編集しない。
 
 CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。定期タスクに加えて、バックフィル・データ移行などの
-**ワンショット運用タスク**も扱う。ワンショットは `scripts/tasks/run.ts` の `ONE_SHOT_TASKS` だけに書き、
+**ワンショット運用タスク**も扱う。ワンショットは `scripts/tasks/<name>[.<fork の名前>].ts` に 1 ファイルずつ置き(`scripts/tasks/README.md`)、
 `src/app/api/cron/` には置かない（定期実行されてはいけないため）。
 
 ## 構成
@@ -153,9 +153,9 @@ export const cronOverride: CronTaskOverride = {
 
 ## CLI 専用タスク（定期実行しない）
 
-`scripts/tasks/run.ts` の `ONE_SHOT_TASKS` にだけあり、`src/app/api/cron/` にフォルダが無いタスク（vercel.json に載らない = 定期実行されない）。
+`scripts/tasks/<name>.ts` にだけあり、`src/app/api/cron/` にフォルダが無いタスク（vercel.json に載らない = 定期実行されない）。
 
-- `purchase-quota-cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（`ONE_SHOT_TASKS` と同名は不可）。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
+- `purchase-quota-cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（`scripts/tasks/` のタスクと同名は不可）。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
 - ワンショット（**定期実行してはいけない**。導入時などに手動で 1 回だけ実行する）:
   - `wallet-lots-init` — ウォレット有効期限の導入時のデータ移行。対象通貨の指定が必須（`-- --wallet-type <通貨>` か `-- --all`）。再実行は対象通貨の全ユーザーの失効カウントをリセットする
   - `wallet-lots-init-from-history` — `wallet-lots-init` の代替（導入時に**どちらか一方だけ**実行）。付与履歴から実際の付与日でロットを復元し、既に期限を過ぎた分は次回の `wallet-expire-lots` で没収される。対象通貨の指定は `wallet-lots-init` と同じく必須。`--dry-run` で対象件数と没収見込み額を事前確認できる。詳細: `src/features/core/wallet/README.md` の「導入手順（ダウンストリーム）」

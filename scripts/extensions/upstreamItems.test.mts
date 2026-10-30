@@ -7,7 +7,9 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 
 import { onDemoUserCreated } from "@/features/core/auth/services/server/onDemoUserCreated";
@@ -20,6 +22,11 @@ import { activeCoinIssuanceSources } from "@/features/core/analytics/services/se
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
 import { runCleanupItems } from "@/features/core/user/services/server/cleanup";
 
+import { webhookHandlers } from "@/features/core/userLineProfile/extensions/webhookHandlers";
+import { dispatchWebhookEvents } from "@/features/core/userLineProfile/services/server/dispatchWebhookEvents";
+
+import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -119,3 +126,64 @@ for (const [entry, fn, arg] of ENTRIES) {
     assert.equal(result.status, 0, result.stderr.slice(-1500));
   });
 }
+
+test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、上流の項目は 0", async () => {
+  const log: string[] = [];
+  const item = (name: string, eventType: string, fail = false) => ({
+    eventType,
+    handle: async () => {
+      log.push(name);
+      if (fail) throw new Error(name);
+    },
+  });
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const events = [{ type: "follow" }, { type: "unknown" }, { type: "message" }] as never[];
+    await dispatchWebhookEvents(events, [item("a", "follow", true), item("b", "follow"), item("c", "message")]);
+  } finally {
+    console.error = originalError;
+  }
+  assert.deepEqual(log, ["a", "b", "c"]);
+  assert.deepEqual(webhookHandlers, []);
+});
+
+test("タスクの走査: 上流の 7 本、名前の一致と読み込み", async () => {
+  const tasks = listOneShotTasks(ROOT, readDeclaredForkIds(ROOT).all);
+  assert.deepEqual(tasks.map((t) => t.name), [
+    "analytics-rollup-backfill",
+    "paired-device-pair",
+    "purchase-quota-cleanup",
+    "user-name-dedup",
+    "user-status-history-backfill",
+    "wallet-lots-init",
+    "wallet-lots-init-from-history",
+  ]);
+  for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
+});
+
+test("タスクの走査: fork の項目、失敗の形", () => {
+  const root = mkdtempSync(join(tmpdir(), "tasks-"));
+  const dir = join(root, "scripts/tasks");
+  mkdirSync(join(dir, "_shared"), { recursive: true });
+  const put = (name: string) => writeFileSync(join(dir, name), "export const task = {};\n");
+  try {
+    for (const name of ["run.ts", "discover.ts", "types.ts", "a-b.ts", "c.acme.ts", "d.test.ts", "_shared/x.ts", "notes.md"]) put(name);
+    assert.deepEqual(listOneShotTasks(root, ["acme"]).map((t) => t.name), ["a-b", "c"]);
+    assert.throws(() => assertNoCronOverlap(listOneShotTasks(root, ["acme"]), ["c"]), /src\/app\/api\/cron/);
+    assert.throws(() => listOneShotTasks(root, []), /宣言されていない/);
+    put("a-b.acme.ts");
+    assert.throws(() => listOneShotTasks(root, ["acme"]), /両方にあります/);
+    rmSync(join(dir, "a-b.acme.ts"));
+    put("Bad_name.ts");
+    assert.throws(() => listOneShotTasks(root, ["acme"]), /ファイル名/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("メール: テンプレートは送る側のドメインの mail/ にある", () => {
+  for (const path of ["auth/mail/VerificationEmail.tsx", "user/mail/RegistrationCompleteEmail.tsx", "messaging/mail/AdminAnnouncementEmail.tsx"]) {
+    assert.equal(existsSync(join(ROOT, "src/features/core", path)), true, path);
+  }
+});

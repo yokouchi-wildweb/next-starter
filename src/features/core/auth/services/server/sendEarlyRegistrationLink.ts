@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { EarlyRegistrationEmail } from "@/features/core/mail/templates/EarlyRegistrationEmail";
+import { EarlyRegistrationEmail } from "@/features/core/auth/mail/EarlyRegistrationEmail";
 import { toDirectSignInLink } from "@/features/core/auth/services/server/toDirectSignInLink";
 import { appendInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
 import { DomainError } from "@/lib/errors";

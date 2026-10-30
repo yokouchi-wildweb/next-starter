@@ -44,6 +44,7 @@ edit src/proxies/*.*.ts  # src/proxies/README.md「骨組みと枠」(D11 K2)
 edit src/proxies/featureGateRules/*.*.ts  # src/proxies/README.md「規則の書き方」(D15)
 edit src/proxies/*.*/**  # 枠の項目のフォルダ形 <名前>.<fork の名前>/index.ts(scripts/extensions/README.md)
 edit src/proxies/featureGateRules/*.*/**  # 規則のフォルダ形
+edit scripts/tasks/*.*.ts  # ワンショット・任意タスクの fork の項目(scripts/tasks/README.md)
 edit scripts/proxies/alwaysOnExceptions.*.mjs  # src/proxies/README.md「常時実行の入口」の fork の口(L1.24)
 edit src/features/core/analytics/rollupMetrics/*.*.ts  # 日次ロールアップのメトリクス
 edit src/features/core/analytics/rollupMetrics/*.*/**  # フォルダ形
@@ -131,6 +132,5 @@ debt src/features/core/adminCommand/config/plugins.ts  # plugins.ts「編集可�
 debt src/features/core/chatRoom/utils/validation.ts  # validation.ts:5 ファイル種別の制限を足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # RateLimitWarningContent.tsx:2 文言を編集 → upreq:20261029-200108-debt-intake-texts
 debt src/features/core/referral/components/InviteCode/InviteBenefitsSection.tsx  # InviteBenefitsSection.tsx:4 部品を差し替え → upreq:20261029-200108-debt-intake-texts
-debt src/app/api/webhook/line/route.ts  # route.ts:17 ファイルを差し替え → upreq:20261029-200108-debt-intake-texts
 debt src/features/core/setting/setting.extended.ts  # setting.extended.ts:4・CLAUDE.md DOMAINS setting フィールドを足す → upreq:20261029-200108-debt-intake-setting
 debt src/features/core/setting/setting.sections.tsx  # setting.sections.tsx:5 設定カテゴリを足す → upreq:20261029-200108-debt-intake-setting

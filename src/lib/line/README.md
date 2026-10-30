@@ -155,46 +155,25 @@ await broadcast([textMessage("キャンペーン開催中！")]);
 
 ### Webhook イベント処理
 
-`src/app/api/webhook/line/route.ts` の `handleEvent` 関数をダウンストリームで差し替える。
+イベントごとの処理は `src/features/core/userLineProfile/webhookHandlers/<名前>[.<fork の名前>].ts` に置き、`pnpm extensions:generate` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持ち、編集しない。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
 
 ```ts
-// src/app/api/webhook/line/route.ts をダウンストリームで上書き
+// src/features/core/userLineProfile/webhookHandlers/follow.<fork の名前>.ts
+import type { LineWebhookEventHandler } from "@/features/core/userLineProfile/types/webhook";
 import { replyMessage, textMessage } from "@/lib/line";
-import type { LineFollowEvent, LineMessageEvent, LineWebhookEvent } from "@/lib/line";
 
-const handleEvent = async (event: LineWebhookEvent) => {
-  switch (event.type) {
-    case "follow":
-      await handleFollow(event as LineFollowEvent);
-      break;
-    case "message":
-      await handleMessage(event as LineMessageEvent);
-      break;
-  }
+export const handler: LineWebhookEventHandler = {
+  eventType: "follow",
+  handle: async (event) => {
+    if (!event.replyToken) return;
+    await replyMessage(event.replyToken, [
+      textMessage("友だち追加ありがとうございます！\nアカウント連携はこちら → https://example.com/mypage"),
+    ]);
+  },
 };
-
-async function handleFollow(event: LineFollowEvent) {
-  if (!event.replyToken) return;
-  await replyMessage(event.replyToken, [
-    textMessage("友だち追加ありがとうございます！\nアカウント連携はこちら → https://example.com/mypage"),
-  ]);
-}
-
-async function handleMessage(event: LineMessageEvent) {
-  if (!event.replyToken || event.message.type !== "text") return;
-
-  if (event.message.text === "残高") {
-    // LINE userId からユーザーを特定して残高照会
-    const lineProfile = await userLineProfileService.findByLineUserId(event.source.userId!);
-    if (lineProfile) {
-      const balance = await walletService.getBalance(lineProfile.userId);
-      await replyMessage(event.replyToken, [
-        textMessage(`現在の残高: ${balance} コイン`),
-      ]);
-    }
-  }
-}
 ```
+
+メッセージのイベントは `event as LineMessageEvent` で絞る。
 
 ### Flex メッセージ（リッチなカード型通知）
 

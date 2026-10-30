@@ -1,4 +1,4 @@
-// src/features/core/mail/templates/AccountLockedEmail.tsx
+// src/features/core/auth/mail/AccountLockedEmail.tsx
 
 import {
   Body,
@@ -13,7 +13,7 @@ import {
 
 import { createMailTemplate } from "@/lib/mail";
 
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 export type AccountLockedEmailProps = {
   /** 発生時刻 (ISO 文字列、表示用) */

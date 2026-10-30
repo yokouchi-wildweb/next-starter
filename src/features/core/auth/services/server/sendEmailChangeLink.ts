@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { EmailChangeEmail } from "@/features/core/mail/templates/EmailChangeEmail";
+import { EmailChangeEmail } from "@/features/core/auth/mail/EmailChangeEmail";
 import { DomainError } from "@/lib/errors";
 
 export type SendEmailChangeLinkParams = {

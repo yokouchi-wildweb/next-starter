@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { PasswordResetEmail } from "@/features/core/mail/templates/PasswordResetEmail";
+import { PasswordResetEmail } from "@/features/core/auth/mail/PasswordResetEmail";
 import { DomainError } from "@/lib/errors";
 
 export type SendPasswordResetLinkParams = {

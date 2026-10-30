@@ -44,10 +44,11 @@ mail: {
 ```
 src/features/core/mail/
 ├── README.md           # このファイル
-├── constants/
-│   └── colors.ts       # テーマカラー定数（自動生成）
-└── templates/
-    └── VerificationEmail.tsx  # メールテンプレート
+└── constants/
+    └── colors.ts       # テーマカラー定数（自動生成）
+
+src/features/**/<送る側のドメイン>/mail/
+└── <名前>Email.tsx     # メールテンプレート(auth/mail、user/mail、messaging/mail)
 
 src/lib/mail/
 ├── index.ts               # send() 関数
@@ -59,14 +60,14 @@ src/lib/mail/
 
 ### 1. テンプレートファイルを作成
 
-`templates/` に新しいテンプレートを追加:
+送る側のドメインの `mail/` に `<名前>Email.tsx` を追加:
 
 ```tsx
-// templates/WelcomeEmail.tsx
+// src/features/core/user/mail/WelcomeEmail.tsx
 
 import { Html, Text, Button } from "@react-email/components";
 import { createMailTemplate } from "@/lib/mail";
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 type Props = {
   username: string;
@@ -99,7 +100,7 @@ export const WelcomeEmail = createMailTemplate({
 ### 2. 送信する
 
 ```ts
-import { WelcomeEmail } from "@/features/core/mail/templates/WelcomeEmail";
+import { WelcomeEmail } from "@/features/core/user/mail/WelcomeEmail";
 
 // 基本的な送信
 await WelcomeEmail.send("user@example.com", {
@@ -172,7 +173,7 @@ npm run mail:test
 
 ### テンプレートの自動検出
 
-`templates/` ディレクトリ内の `.tsx` ファイルが自動的に検出されます。
+`src/features/**/mail/*Email.tsx` が自動的に検出されます。
 `createMailTemplate()` で作成されたオブジェクトがエクスポートされていれば、テスト送信の選択肢に表示されます。
 
 ## テーマカラー
@@ -209,7 +210,7 @@ src/features/core/mail/constants/colors.ts (自動生成)
 ### 使い方
 
 ```tsx
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 const styles = {
   button: {

@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { VerificationEmail } from "@/features/core/mail/templates/VerificationEmail";
+import { VerificationEmail } from "@/features/core/auth/mail/VerificationEmail";
 import { toDirectSignInLink } from "@/features/core/auth/services/server/toDirectSignInLink";
 import { appendInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
 import { DomainError } from "@/lib/errors";

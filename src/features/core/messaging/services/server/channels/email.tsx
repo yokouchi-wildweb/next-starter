@@ -6,7 +6,7 @@
 
 import { send } from "@/lib/mail";
 
-import { AdminAnnouncementEmail } from "@/features/core/mail/templates/AdminAnnouncementEmail";
+import { AdminAnnouncementEmail } from "@/features/core/messaging/mail/AdminAnnouncementEmail";
 
 import type { MessagingChannelResult } from "../../../entities/model";
 

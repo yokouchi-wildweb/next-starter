@@ -14,7 +14,7 @@
 // `pnpm task --due` を毎分 1 本だけ叩く（各タスクの schedule は CLI が判定する）。
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
-// 下記 ONE_SHOT_TASKS はワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスク。
+// ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>[.<fork の名前>].ts を走査する（./README.md）。
 //
 // package.json の task スクリプトは scripts/test/serverOnlyStub.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
@@ -28,149 +28,17 @@ import dotenv from "dotenv";
 dotenv.config({ path: process.env.APP_ENV || ".env.development", quiet: true });
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
+import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { type LoadedCronTask, loadCronTasks } from "../cron/discover";
+import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile, TASKS_DIR } from "./discover";
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 
-/**
- * ウォレットロット初期化の対象通貨を CLI 引数から読む。
- * --wallet-type <通貨>（繰り返し・カンマ区切り可）か --all のどちらか一方を必須にする
- * （初期化は失効カウントを作り直す取り消せない操作のため、指定の忘れで全通貨を作り直させない）。
- * 通貨名の検証（存在しない・無効な通貨）はサービス側が書き込みの前に行う。
- */
-function readWalletLotsInitSelection(taskName: string, args: string[]): string[] | "all" {
-  const usage = `使い方: pnpm task ${taskName} -- --wallet-type <通貨>[,<通貨>...] | --all（どちらか一方が必須）`;
-  const walletTypes: string[] = [];
-  args.forEach((arg, index) => {
-    if (arg !== "--wallet-type") return;
-    const value = args[index + 1];
-    if (!value || value.startsWith("--")) throw new Error(`--wallet-type の値がありません。${usage}`);
-    walletTypes.push(...value.split(",").map((type) => type.trim()).filter((type) => type !== ""));
-  });
-  const all = args.includes("--all");
-
-  if (all && walletTypes.length > 0) throw new Error(`--wallet-type と --all は同時に指定できません。${usage}`);
-  if (all) return "all";
-  if (walletTypes.length === 0) throw new Error(usage);
-  return walletTypes;
-}
-
-/**
- * ワンショット・任意タスク
- * ここに追加 = pnpm task <name> で実行可能になる（定期実行はされない）
- */
-const ONE_SHOT_TASKS: Record<string, TaskFn> = {
-  "purchase-quota-cleanup": async () => {
-    const { cleanupOldLedger } = await import(
-      "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper"
-    );
-    const deleted = await cleanupOldLedger();
-    return { deleted };
-  },
-  // 使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
-  "analytics-rollup-backfill": async () => {
-    const { backfillRollup } = await import(
-      "@/features/core/analytics/services/server/rollup"
-    );
-    // pnpm は "--" をそのまま渡してくるため除去する
-    const args = process.argv.slice(3).filter((arg) => arg !== "--");
-    const metricKey = args[0];
-    if (!metricKey || metricKey.startsWith("--")) {
-      throw new Error(
-        "使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
-      );
-    }
-    const readFlag = (name: string): string | undefined => {
-      const index = args.indexOf(`--${name}`);
-      return index >= 0 ? args[index + 1] : undefined;
-    };
-    return await backfillRollup({
-      metricKey,
-      from: readFlag("from"),
-      to: readFlag("to"),
-    });
-  },
-  // 導入時1回だけの初期化（定期実行しない。再実行は対象通貨の全ユーザーの失効カウントをリセットするので注意）
-  // 使い方: pnpm task wallet-lots-init -- --wallet-type <通貨>[,<通貨>...] | --all
-  "wallet-lots-init": async () => {
-    const { initWalletLots } = await import(
-      "@/features/core/wallet/services/server/lots/initWalletLots"
-    );
-    const args = process.argv.slice(3).filter((arg) => arg !== "--");
-    return await initWalletLots({ walletTypes: readWalletLotsInitSelection("wallet-lots-init", args) });
-  },
-  // 導入時1回だけの初期化（定期実行しない。wallet-lots-init の代替でどちらか一方だけ実行する）:
-  // 付与履歴からロットを復元し、既に期限を過ぎた分を次回スイープの没収対象にする
-  // 使い方: pnpm task wallet-lots-init-from-history -- (--wallet-type <通貨>[,<通貨>...] | --all) [--dry-run]
-  //        --dry-run で対象確認 → dry-run なしで実行
-  "wallet-lots-init-from-history": async () => {
-    const { initWalletLotsFromHistory } = await import(
-      "@/features/core/wallet/services/server/lots/initWalletLotsFromHistory"
-    );
-    const args = process.argv.slice(3).filter((arg) => arg !== "--");
-    return await initWalletLotsFromHistory({
-      walletTypes: readWalletLotsInitSelection("wallet-lots-init-from-history", args),
-      dryRun: args.includes("--dry-run"),
-    });
-  },
-  // 導入時1回だけの過去分復元（定期実行しない。冪等なので再実行は安全）
-  "user-status-history-backfill": async () => {
-    const { backfillStatusHistoryFromAuditLogs } = await import(
-      "@/features/core/user/services/server/statusHistoryBackfill"
-    );
-    return await backfillStatusHistoryFromAuditLogs();
-  },
-  // 表示名の一意性 (USER_NAME_CONFIG.unique) 有効化時に1回だけ実行する既存重複の解消
-  // （定期実行しない。冪等なので再実行は安全）
-  // 使い方: pnpm task user-name-dedup -- --dry-run で対象確認 → dry-run なしで実行
-  "user-name-dedup": async () => {
-    const { dedupUserNames } = await import(
-      "@/features/core/user/services/server/nameDedup"
-    );
-    const args = process.argv.slice(3);
-    return await dedupUserNames({ dryRun: args.includes("--dry-run") });
-  },
-  // 登録端末のペアリングコードを CLI から発行する（管理画面を作る前の最初の 1 台・復旧用）。
-  // 新しい端末を登録して発行するか、既存の端末（--device）に発行する（再ペアリング）。
-  // 使い方: pnpm task paired-device-pair -- --kind <kind> --label <表示名> [--scope '<JSON>']
-  //        pnpm task paired-device-pair -- --device <端末 id>
-  "paired-device-pair": async () => {
-    const { runAsSystem } = await import("@/lib/audit");
-    const { createPairedDevice, issuePairingCode } = await import(
-      "@/features/core/pairedDevice/services/server"
-    );
-    const args = process.argv.slice(3).filter((arg) => arg !== "--");
-    const readFlag = (name: string): string | undefined => {
-      const index = args.indexOf(`--${name}`);
-      return index >= 0 ? args[index + 1] : undefined;
-    };
-    const usage =
-      "使い方: pnpm task paired-device-pair -- --kind <kind> --label <表示名> [--scope '<JSON>'] | --device <端末 id>";
-    return await runAsSystem(async () => {
-      let deviceId = readFlag("device");
-      if (!deviceId) {
-        const kind = readFlag("kind");
-        const label = readFlag("label");
-        if (!kind || !label) throw new Error(usage);
-        const scopeRaw = readFlag("scope");
-        const scope = scopeRaw ? (JSON.parse(scopeRaw) as unknown) : undefined;
-        const device = await createPairedDevice({ kind, label, scope }, "system");
-        deviceId = device.id;
-      }
-      const issued = await issuePairingCode(deviceId, "system");
-      return { deviceId, code: issued.code, expiresAt: issued.expiresAt.toISOString() };
-    });
-  },
-};
-
-/** pnpm task <name> で実行できる全タスク（定期 + ワンショット） */
-function buildTaskMap(cronTasks: LoadedCronTask[]): Record<string, TaskFn> {
-  for (const task of cronTasks) {
-    if (task.name in ONE_SHOT_TASKS) {
-      throw new Error(`タスク名 "${task.name}" が src/app/api/cron/ と ONE_SHOT_TASKS の両方にあります`);
-    }
-  }
-  return { ...Object.fromEntries(cronTasks.map((task) => [task.name, task.run])), ...ONE_SHOT_TASKS };
+/** pnpm task <name> で実行できる全タスク（定期 + ワンショット）。ワンショットは実行するときに該当のファイルだけ読み込む */
+function buildTaskMap(repoRoot: string, cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[]): Record<string, TaskFn> {
+  assertNoCronOverlap(oneShotTasks, cronTasks.map((task) => task.name));
+  const oneShot = oneShotTasks.map((file): [string, TaskFn] => [file.name, async () => (await loadOneShotTask(repoRoot, file)).run()]);
+  return { ...Object.fromEntries(cronTasks.map((task) => [task.name, task.run])), ...Object.fromEntries(oneShot) };
 }
 
 function log(level: "info" | "error", payload: Record<string, unknown>) {
@@ -179,15 +47,15 @@ function log(level: "info" | "error", payload: Record<string, unknown>) {
   else console.error(line);
 }
 
-function printList(cronTasks: LoadedCronTask[]) {
+function printList(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[]) {
   console.log("Scheduled tasks (src/app/api/cron/*/task.ts):");
   for (const task of cronTasks) {
     const state = task.disabled ? " [off: override.ts]" : task.enabled && !task.enabled() ? " [disabled]" : "";
     const overridden = task.overridden && !task.disabled ? " (override.ts)" : "";
     console.log(`  - ${task.name} [${task.schedule}]${overridden}${state}: ${task.description}`);
   }
-  console.log("\nOne-shot / optional tasks (scripts/tasks/run.ts):");
-  for (const name of Object.keys(ONE_SHOT_TASKS)) {
+  console.log(`\nOne-shot / optional tasks (${TASKS_DIR}/<name>.ts):`);
+  for (const { name } of oneShotTasks) {
     console.log(`  - ${name}`);
   }
 }
@@ -227,11 +95,13 @@ async function main() {
   // pnpm は "--" をそのまま渡してくることがあるため除去する
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
   const taskName = args[0];
-  const cronTasks = await loadCronTasks(path.resolve(import.meta.dirname, "../.."));
-  const TASKS = buildTaskMap(cronTasks);
+  const repoRoot = path.resolve(import.meta.dirname, "../..");
+  const cronTasks = await loadCronTasks(repoRoot);
+  const oneShotTasks = listOneShotTasks(repoRoot, readDeclaredForkIds(repoRoot).all);
+  const TASKS = buildTaskMap(repoRoot, cronTasks, oneShotTasks);
 
   if (!taskName || taskName === "--list" || taskName === "-l") {
-    printList(cronTasks);
+    printList(cronTasks, oneShotTasks);
     if (!taskName) {
       console.log("\nUsage: pnpm task <task-name> | pnpm task --due");
       process.exit(1);

@@ -107,7 +107,7 @@ async function sendWithSendGrid(
  * @example
  * ```ts
  * import { send } from "@/lib/mail";
- * import { VerificationEmail } from "@/features/core/mail/templates/VerificationEmail";
+ * import { VerificationEmail } from "@/features/core/auth/mail/VerificationEmail";
  *
  * await send({
  *   to: "user@example.com",

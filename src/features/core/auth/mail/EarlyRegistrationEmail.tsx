@@ -1,4 +1,4 @@
-// src/features/core/mail/templates/EarlyRegistrationEmail.tsx
+// src/features/core/auth/mail/EarlyRegistrationEmail.tsx
 
 import {
   Body,
@@ -16,7 +16,7 @@ import {
 import { businessConfig } from "@/config/business.config";
 import { createMailTemplate } from "@/lib/mail";
 
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 export type EarlyRegistrationEmailProps = {
   /** 認証用URL */

@@ -5,7 +5,7 @@
 //   npm run mail:test
 //
 // テンプレートの追加方法:
-//   src/features/core/mail/templates/ に .tsx ファイルを作成し、
+//   送る側のドメインの mail/ に <名前>Email.tsx を作成し(例 src/features/core/auth/mail/)、
 //   createMailTemplate() で作成したオブジェクトをエクスポートしてください。
 //
 // 例:
@@ -37,8 +37,18 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const MAIL_FROM_ADDRESS = businessConfig.mail.defaultFrom;
 const MAIL_FROM_NAME = businessConfig.mail.defaultFromName;
 
-// テンプレートディレクトリ
-const TEMPLATES_DIR = "src/features/core/mail/templates";
+// テンプレートの置き場: src/features/**/mail/*Email.tsx
+const FEATURES_DIR = "src/features";
+
+/** src/features の下の mail/*Email.tsx を path 順に返す */
+function findTemplateFiles(): string[] {
+  const entries = fs.readdirSync(path.resolve(process.cwd(), FEATURES_DIR), { recursive: true, encoding: "utf8" });
+  return entries
+    .map((entry) => entry.split(path.sep).join("/"))
+    .filter((entry) => /(^|\/)mail\/[^/]*Email\.tsx$/.test(entry))
+    .sort()
+    .map((entry) => path.resolve(process.cwd(), FEATURES_DIR, entry));
+}
 
 // テンプレート定義
 type TemplateConfig = {
@@ -90,7 +100,7 @@ async function renderSimpleTestEmail(): Promise<{ html: string; subject: string 
 }
 
 /**
- * テンプレートディレクトリから自動検出してテンプレート一覧を取得
+ * 各ドメインの mail/ から自動検出してテンプレート一覧を取得
  */
 async function getTemplateConfigs(): Promise<TemplateConfig[]> {
   const templates: TemplateConfig[] = [
@@ -101,21 +111,9 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
     },
   ];
 
-  // templates/ ディレクトリからテンプレートを検出
-  const templatesPath = path.resolve(process.cwd(), TEMPLATES_DIR);
-  if (!fs.existsSync(templatesPath)) {
-    return templates;
-  }
-
-  const files = fs.readdirSync(templatesPath);
-  for (const file of files) {
-    // .tsx ファイルのみ対象（index.tsx は除外）
-    if (!file.endsWith(".tsx") || file === "index.tsx") {
-      continue;
-    }
-
+  for (const templatePath of findTemplateFiles()) {
+    const file = path.basename(templatePath);
     const templateName = file.replace(".tsx", "");
-    const templatePath = path.resolve(templatesPath, file);
 
     try {
       // テンプレートを動的インポート

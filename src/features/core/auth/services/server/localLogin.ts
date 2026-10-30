@@ -6,7 +6,7 @@ import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/features/core/user/services/server/userService";
-import { AccountLockedEmail } from "@/features/core/mail/templates/AccountLockedEmail";
+import { AccountLockedEmail } from "@/features/core/auth/mail/AccountLockedEmail";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { recordLoginFailure } from "./loginAudit";
 import { invalidateSessionsForUser } from "./sessionInvalidation";

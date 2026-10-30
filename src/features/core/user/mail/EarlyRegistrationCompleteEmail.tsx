@@ -1,6 +1,7 @@
+// src/features/core/user/mail/EarlyRegistrationCompleteEmail.tsx
+
 import {
   Body,
-  Button,
   Container,
   Head,
   Hr,
@@ -15,19 +16,19 @@ import { businessConfig } from "@/config/business.config";
 import { createMailTemplate } from "@/lib/mail";
 import { logoPath } from "@/utils/assets";
 
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
-export type RegistrationCompleteEmailProps = {
+export type EarlyRegistrationCompleteEmailProps = {
   displayName: string;
 };
 
-function RegistrationCompleteEmailComponent({
+function EarlyRegistrationCompleteEmailComponent({
   displayName,
-}: RegistrationCompleteEmailProps) {
+}: EarlyRegistrationCompleteEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>【{businessConfig.serviceNameShort}】会員登録が完了しました</Preview>
+      <Preview>【{businessConfig.serviceNameShort}】事前登録が完了しました</Preview>
       <Body style={s.body}>
         <Container style={s.container}>
           {/* ヘッダー: ロゴ + 登録完了 */}
@@ -38,34 +39,30 @@ function RegistrationCompleteEmailComponent({
               width={120}
               style={s.logo}
             />
-            <Text style={s.headerText}>登録完了</Text>
+            <Text style={s.headerText}>事前登録完了</Text>
           </Section>
 
           {/* 感謝セクション */}
-          <Text style={s.celebrationText}>会員登録が完了しました</Text>
+          <Text style={s.celebrationText}>事前登録が完了しました</Text>
           <Text style={s.thankYouText}>
             {displayName} 様
             <br />
             <br />
-            この度は、{businessConfig.serviceNameShort}に
+            この度は、{businessConfig.serviceNameShort}の
             <br />
-            ご登録いただき、
+            事前登録にお申し込みいただき、
             <br />
             誠にありがとうございます。
           </Text>
 
           <Hr style={s.divider} />
 
-          {/* CTAセクション */}
-          <Text style={s.ctaText}>
-            早速サービスをご利用ください。
+          {/* 案内セクション */}
+          <Text style={s.infoText}>
+            サービス開始時に改めてご案内いたします。
+            <br />
+            今しばらくお待ちください。
           </Text>
-
-          <Section style={s.buttonSection}>
-            <Button style={s.button} href={businessConfig.url}>
-              トップページへ
-            </Button>
-          </Section>
 
           <Hr style={s.divider} />
 
@@ -126,26 +123,12 @@ const s = {
     borderWidth: "1px",
     margin: "24px 0",
   },
-  ctaText: {
+  infoText: {
     color: MAIL_THEME_COLORS.foreground,
     fontSize: "16px",
     lineHeight: "28px",
     textAlign: "center" as const,
-    margin: "0 0 16px",
-  },
-  buttonSection: {
-    textAlign: "center" as const,
-    margin: "0 0 24px",
-  },
-  button: {
-    backgroundColor: MAIL_THEME_COLORS.accent,
-    borderRadius: "6px",
-    color: MAIL_THEME_COLORS.accentForeground,
-    fontSize: "16px",
-    fontWeight: "600",
-    textDecoration: "none",
-    textAlign: "center" as const,
-    padding: "14px 28px",
+    margin: "0",
   },
   footerText: {
     color: MAIL_THEME_COLORS.mutedForeground,
@@ -157,20 +140,20 @@ const s = {
 } as const;
 
 /**
- * 会員登録完了メールテンプレート
+ * 事前登録完了メールテンプレート
  *
  * @example
  * ```ts
- * await RegistrationCompleteEmail.send("user@example.com", {
+ * await EarlyRegistrationCompleteEmail.send("user@example.com", {
  *   displayName: "ユーザー名",
  * });
  * ```
  */
-export const RegistrationCompleteEmail = createMailTemplate({
-  subject: `【${businessConfig.serviceNameShort}】会員登録が完了しました`,
-  component: RegistrationCompleteEmailComponent,
+export const EarlyRegistrationCompleteEmail = createMailTemplate({
+  subject: `【${businessConfig.serviceNameShort}】事前登録が完了しました`,
+  component: EarlyRegistrationCompleteEmailComponent,
   testProps: {
     displayName: "テストユーザー",
   },
-  testDescription: "会員登録完了メール",
+  testDescription: "事前登録完了メール",
 });

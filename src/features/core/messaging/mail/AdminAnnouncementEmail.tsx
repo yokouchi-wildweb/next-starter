@@ -1,4 +1,4 @@
-// src/features/core/mail/templates/AdminAnnouncementEmail.tsx
+// src/features/core/messaging/mail/AdminAnnouncementEmail.tsx
 
 import {
   Body,
@@ -16,7 +16,7 @@ import { businessConfig } from "@/config/business.config";
 import { createMailTemplate } from "@/lib/mail";
 import { logoPath } from "@/utils/assets";
 
-import { MAIL_THEME_COLORS } from "../constants/colors";
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 export type AdminAnnouncementEmailProps = {
   /** ユーザー表示名 */
@@ -132,7 +132,7 @@ const s = {
  * @example
  * ```ts
  * import { send } from "@/lib/mail";
- * import { AdminAnnouncementEmail } from "@/features/core/mail/templates/AdminAnnouncementEmail";
+ * import { AdminAnnouncementEmail } from "@/features/core/messaging/mail/AdminAnnouncementEmail";
  *
  * await send({
  *   to: "user@example.com",
