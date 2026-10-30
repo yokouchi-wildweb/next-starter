@@ -1,5 +1,5 @@
 // src/features/feature-map.txt（ドメインの一覧）の中身を作る・比べる（純粋。フォルダの読み取りは workspace.featureListing、書き込みは apply）。
-// ルートの地図 src/app/route-map.txt と対。src/features と src/features/core の全フォルダ（_ で始まるものを除く）を 1 行ずつ:
+// ルートの地図 src/app/route-map.jsonl と対。src/features と src/features/core の全フォルダ（_ で始まるものを除く）を 1 行ずつ:
 //   <domain>  <kind: business | core>  <domain.json: yes | no | ->  <generate: true | false | ->
 // domain.json あり = generate の値（省略 = true、壊れた JSON は ?）、domain.json なし = 手で管理（-）。business も core も同じ（違いはフォルダだけ）。
 // dc:generate が書き込みの最後に書き直し、pnpm dc:feature-map --check がフォルダの増減・generate の切り替えのずれを見つける。
