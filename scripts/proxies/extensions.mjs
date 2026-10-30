@@ -13,7 +13,9 @@
 // 骨組みと枠の外のファイル(index.ts・types.ts)は走査しない。サブフォルダ(extensions/ 等)・.mjs・テストは見ない。
 //
 // 失敗(書き出さない)の条件: 宣言に無い fork ID / handler と decorator の両方 / どちらも無い新しいファイル /
-// 名前の形が違う(英字始まりの英数字 + 任意の .<fork ID>)。詳細: src/proxies/README.md
+// 名前の形が違う(英字始まりの英数字 + 任意の .<fork ID>)。
+// 機能を閉じる規則も同じ形: src/proxies/featureGateRules/<名前>[.<fork ID>].ts の `export const rule` → extensions/featureGateRules.ts。
+// 規則の中身(住所・表・行き先の重なり)は字面では読まないので、test:feature-gate が一覧を読み込んで検査する。詳細: src/proxies/README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -24,6 +26,9 @@ export const PROXY_DIR = "src/proxies";
 export const EXTENSIONS_DIR = "src/proxies/extensions";
 export const HANDLERS_FILE = `${EXTENSIONS_DIR}/handlers.ts`;
 export const DECORATORS_FILE = `${EXTENSIONS_DIR}/decorators.ts`;
+/** 機能を閉じる規則の置き場(1 機能 1 ファイル、`export const rule`)と一覧 */
+export const GATE_RULES_DIR = "src/proxies/featureGateRules";
+export const GATE_RULES_FILE = `${EXTENSIONS_DIR}/featureGateRules.ts`;
 
 /** 骨組み(index.ts が手書きで並べる上流の handler 4・decorator 2)。走査しない */
 export const SKELETON_FILES = ["maintenance.ts", "demoMode.ts", "featureGate.ts", "redirect.ts", "attribution.ts", "inviteLink.ts"];
@@ -36,7 +41,30 @@ export const GENERATED_HEADER =
 
 const HANDLER_MARK = /^export\s+const\s+handler\b/m;
 const DECORATOR_MARK = /^export\s+const\s+decorator\b/m;
+const RULE_MARK = /^export\s+const\s+rule\b/m;
 const UPSTREAM_NAME = /^([A-Za-z][A-Za-z0-9]*)\.ts$/;
+
+/** 直下の .ts(テスト・型定義を除く)をファイル名の順に */
+function listTsFiles(dir) {
+  return existsSync(dir)
+    ? readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !/\.(test|d)\./.test(entry.name))
+        .map((entry) => entry.name)
+        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    : [];
+}
+
+/** 置き場の名前の判定(上流 = 印なし、fork = 宣言済みの fork ID)。問題があれば理由、なければ { forkId } */
+function checkPlacement(label, file, forkIds) {
+  const dotted = parseForkDotName(file, { extensions: ["ts"] });
+  if (!dotted && !UPSTREAM_NAME.test(file)) return { problem: `${label}: 名前の形が違う(<名前>.ts か <名前>.<fork ID>.ts。名前は英字始まりの英数字)` };
+  if (dotted && !forkIds.includes(dotted.forkId)) {
+    return {
+      problem: `${label}: fork ID "${dotted.forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か .notices/applied/<fork-id>.md の台帳名)`,
+    };
+  }
+  return { forkId: dotted?.forkId ?? null };
+}
 
 /**
  * src/proxies 直下を走査して項目を集める
@@ -46,27 +74,16 @@ const UPSTREAM_NAME = /^([A-Za-z][A-Za-z0-9]*)\.ts$/;
  */
 export function discoverProxyItems(repoRoot, forkIds) {
   const dir = join(repoRoot, PROXY_DIR);
-  const files = existsSync(dir)
-    ? readdirSync(dir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name) && !/\.(test|d)\./.test(entry.name))
-        .map((entry) => entry.name)
-        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-    : [];
+  const files = listTsFiles(dir);
 
   const items = [];
   const problems = [];
   for (const file of files) {
     if (SKELETON_FILES.includes(file) || FRAME_FILES.includes(file)) continue;
     const label = `${PROXY_DIR}/${file}`;
-    const dotted = parseForkDotName(file, { extensions: ["ts"] });
-    if (!dotted && !UPSTREAM_NAME.test(file)) {
-      problems.push(`${label}: 名前の形が違う(<名前>.ts か <名前>.<fork ID>.ts。名前は英字始まりの英数字)`);
-      continue;
-    }
-    if (dotted && !forkIds.includes(dotted.forkId)) {
-      problems.push(
-        `${label}: fork ID "${dotted.forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か .notices/applied/<fork-id>.md の台帳名)`,
-      );
+    const placement = checkPlacement(label, file, forkIds);
+    if (placement.problem) {
+      problems.push(placement.problem);
       continue;
     }
     const text = readFileSync(join(dir, file), "utf8");
@@ -80,20 +97,48 @@ export function discoverProxyItems(repoRoot, forkIds) {
       problems.push(`${label}: export const handler / decorator が無い(src/proxies 直下の .ts は枠の項目だけ。部品は責務のドメインへ)`);
       continue;
     }
-    items.push({ file, kind: isHandler ? "handler" : "decorator", forkId: dotted?.forkId ?? null });
+    items.push({ file, kind: isHandler ? "handler" : "decorator", forkId: placement.forkId });
   }
   return { items, problems };
+}
+
+/**
+ * src/proxies/featureGateRules 直下の規則を集める(1 ファイル 1 つの export const rule、ファイル名の順)
+ * 上流の x.ts と fork の x.<fork ID>.ts は別の規則(上流の規則を fork が上書きする口は無い。fork は閉じる規則を足すだけ)
+ * @param {string} repoRoot
+ * @param {string[]} forkIds 宣言済みの fork ID
+ * @returns {{ rules: { file: string, forkId: string | null }[], problems: string[] }}
+ */
+export function discoverGateRules(repoRoot, forkIds) {
+  const dir = join(repoRoot, GATE_RULES_DIR);
+  const rules = [];
+  const problems = [];
+  for (const file of listTsFiles(dir)) {
+    const label = `${GATE_RULES_DIR}/${file}`;
+    const placement = checkPlacement(label, file, forkIds);
+    if (placement.problem) {
+      problems.push(placement.problem);
+      continue;
+    }
+    if (!RULE_MARK.test(readFileSync(join(dir, file), "utf8"))) {
+      problems.push(`${label}: export const rule が無い(featureGateRules/ の .ts は規則だけ)`);
+      continue;
+    }
+    rules.push({ file, forkId: placement.forkId });
+  }
+  return { rules, problems };
 }
 
 /** import の別名(ファイル名の拡張子を除き、記号を _ に) */
 const aliasOf = (file) => file.replace(/\.ts$/, "").replace(/[^A-Za-z0-9]/g, "_");
 
 /**
- * 生成一覧 2 本の中身を組み立てる
+ * 生成一覧 3 本の中身を組み立てる
  * @param {{ file: string, kind: "handler" | "decorator" }[]} items
+ * @param {{ file: string }[]} [rules] 機能を閉じる規則
  * @returns {{ [path: string]: string }}
  */
-export function renderProxyLists(items) {
+export function renderProxyLists(items, rules = []) {
   const render = (kind, typeName, exportName) => {
     const own = items.filter((item) => item.kind === kind);
     const imports = own.map((item) => `import { ${kind} as ${aliasOf(item.file)} } from "../${item.file.replace(/\.ts$/, "")}";`);
@@ -111,6 +156,22 @@ export function renderProxyLists(items) {
   return {
     [HANDLERS_FILE]: render("handler", "ProxyHandler", "extensionHandlers"),
     [DECORATORS_FILE]: render("decorator", "ProxyResponseDecorator", "extensionDecorators"),
+    [GATE_RULES_FILE]: [
+      GENERATED_HEADER.replace(
+        "項目は src/proxies/<名前>[.<fork ID>].ts に export const handler / decorator を置くと入る",
+        "規則は src/proxies/featureGateRules/<名前>[.<fork ID>].ts に export const rule を置くと入る",
+      ),
+      "",
+      'import type { FeatureGateRule } from "../types";',
+      ...(rules.length > 0
+        ? ["", ...rules.map((rule) => `import { rule as ${aliasOf(rule.file)} } from "../featureGateRules/${rule.file.replace(/\.ts$/, "")}";`)]
+        : []),
+      "",
+      `export const featureGateRules: FeatureGateRule[] = ${
+        rules.length === 0 ? "[]" : `[\n${rules.map((rule) => `  ${aliasOf(rule.file)},`).join("\n")}\n]`
+      };`,
+      "",
+    ].join("\n"),
   };
 }
 

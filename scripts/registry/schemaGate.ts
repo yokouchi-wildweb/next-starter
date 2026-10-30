@@ -1,6 +1,7 @@
 // scripts/registry/schemaGate.ts
 //
-// スキーマゲート: feature-gate.config.ts で enabled=false の機能のテーブルを push 対象から外す。
+// スキーマゲート: 機能を閉じる規則(src/proxies/featureGateRules/、一覧 src/proxies/extensions/featureGateRules.ts)で
+// enabled() が false の機能のテーブルを push 対象から外す。
 // pnpm db:push（push.ts）と pnpm db:push:check（check-schema-roundtrip.ts）が共通で使う。
 //
 // 外し方（両側から外すのが要点。片側だけだと事故になる）:
@@ -13,7 +14,7 @@
 import { getTableName, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 
-import type { FeatureGateRule } from "@/config/app/feature-gate.config";
+import type { FeatureGateRule } from "@/proxies/types";
 
 export type SchemaGateResult = {
   /** pushSchema の第 1 引数（ゲート対象テーブルを除いた schemaRegistry の export） */
@@ -32,11 +33,11 @@ export function applySchemaGate(schema: Record<string, unknown>, rules: FeatureG
   const tables = Object.values(schema).filter((value): value is PgTable => is(value, PgTable));
   const tableNames = new Set(tables.map((table) => getTableName(table)));
 
-  const gated = new Set(rules.filter((rule) => !rule.enabled).flatMap((rule) => rule.tables ?? []));
+  const gated = new Set(rules.filter((rule) => !rule.enabled()).flatMap((rule) => rule.tables ?? []));
   const unknown = [...gated].filter((name) => !tableNames.has(name));
   if (unknown.length > 0) {
     throw new Error(
-      `feature-gate.config.ts の tables に schemaRegistry に無いテーブル名があります: ${unknown.join(", ")}`,
+      `機能を閉じる規則(src/proxies/featureGateRules/)の tables に schemaRegistry に無いテーブル名があります: ${unknown.join(", ")}`,
     );
   }
 

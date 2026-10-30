@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   name: "paired-device-pairings-prune",
   description: "期限切れから 24 時間たったペアリングコード（device_pairings）を削除する",
   schedule: "50 18 * * *", // 毎日 03:50 JST
-  // 登録端末が無効のときはテーブルが無い（src/config/app/feature-gate.config.ts）
+  // 登録端末が無効のときはテーブルが無い（src/proxies/featureGateRules/）
   enabled: () => PAIRED_DEVICE_CONFIG.enabled,
   run: async () => {
     const { pruneExpiredDevicePairings } = await import(

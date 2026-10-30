@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { ROUTE_MAP_FILE, ROUTE_STATE_VERIFIED, buildRouteMap, findNearestGuard, formatRouteMap } from "./routeMap.mjs";
 import { parseLiteral } from "./checks.mjs";
 import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
-import { featureGateRules } from "../../config/app/feature-gate.config.ts";
+import { featureGateRules } from "../../proxies/extensions/featureGateRules.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -236,7 +236,7 @@ export default async function L({ children }) {
 });
 
 test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gatedOff に最初のパターン(鎖は verified 必須)", () => {
-  const { rows } = buildRouteMap({ ...healthyTree(), gateRules: [{ pathPatterns: ["/admin", "/api/admin"], enabled: false }] });
+  const { rows } = buildRouteMap({ ...healthyTree(), gateRules: [{ pathPatterns: ["/admin", "/api/admin"], enabled: () => false }] });
   assert.equal(rows.find((r) => r.path === "/admin/y").gatedOff, "/admin");
   assert.equal(rows.find((r) => r.path === "/x").gatedOff, null);
 });

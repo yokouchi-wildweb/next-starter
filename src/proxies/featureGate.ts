@@ -1,14 +1,15 @@
 // src/proxies/featureGate.ts
 
 import { NextResponse, type NextRequest } from "next/server";
-import { featureGateRules } from "@/config/app/feature-gate.config";
+import { featureGateRules } from "./extensions/featureGateRules";
 import { matchesPath } from "./pathPattern.mjs";
 import type { ProxyHandler } from "./types";
 
 export { matchesPath };
 
-// ゲートの定義（どの機能がどのパスを持つか）は src/config/app/feature-gate.config.ts。
-// ここは判定とレスポンス生成だけを持つ。
+// ゲートの定義（どの機能がどのパスを持つか）は 1 機能 1 ファイルの src/proxies/featureGateRules/<名前>[.<fork ID>].ts、
+// その生成一覧 ./extensions/featureGateRules.ts(ファイル名の順)をここで読む。ここは判定とレスポンス生成だけを持つ。
+// 同じ住所に当たる無効な規則が複数あれば、一覧の順で最初の規則の redirectTo(L1.22)。
 
 // パターンの照合(セグメント境界の前方一致 / `=` 付きの完全一致)は ./pathPattern.mjs(ルート地図と検査も同じ物を使う)
 
@@ -36,7 +37,7 @@ export const featureGateProxy: ProxyHandler = (request) => {
   const pathname = request.nextUrl.pathname;
 
   for (const rule of featureGateRules) {
-    if (rule.enabled) continue;
+    if (rule.enabled()) continue;
     if (rule.pathPatterns.some((pattern) => matchesPath(pathname, pattern))) {
       return blockResponse(request, rule.redirectTo);
     }

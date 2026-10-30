@@ -10,7 +10,7 @@ export const cronTask: CronTaskDefinition = {
   name: "wallet-lots-prune",
   description: "消費し尽くしたウォレットロット（remaining = 0）を保持期間経過後に削除する",
   schedule: "40 18 * * *", // 毎日 03:40 JST（wallet-expire-lots の後）
-  // ウォレット無効時はテーブルが無い場合がある（src/config/app/feature-gate.config.ts）
+  // ウォレット無効時はテーブルが無い場合がある（src/proxies/featureGateRules/）
   enabled: () => APP_FEATURES.wallet.enabled && getExpirationEnabledWalletTypes().length > 0,
   run: async () => {
     const { pruneConsumedWalletLots } = await import(

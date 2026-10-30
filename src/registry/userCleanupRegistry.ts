@@ -8,7 +8,7 @@ import { cancelPending as cancelPendingPurchaseRequests } from "@/features/core/
 // --- fork entries start (upstream never edits inside) ---
 // --- fork entries end ---
 
-// 機能が無効ならテーブルが無い場合があるため、そのハンドラは登録しない（src/config/app/feature-gate.config.ts）
+// 機能が無効ならテーブルが無い場合があるため、そのハンドラは登録しない（src/proxies/featureGateRules/）
 
 /**
  * ユーザー退会・ソフトデリート時に実行されるリソースクリーンナップハンドラの型

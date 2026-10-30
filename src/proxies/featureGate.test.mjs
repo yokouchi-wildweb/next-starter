@@ -1,7 +1,7 @@
 // Feature Gate（ルートゲート + スキーマゲート）の規律テスト。
 // 実行: pnpm test:feature-gate (node:test + tsx。config / registry の .ts を読むため tsx ランナーを使う)
 //
-// 定義: src/config/app/feature-gate.config.ts / 設計: src/proxies/README.md
+// 定義: src/proxies/featureGateRules/<名前>[.<fork ID>].ts(一覧 src/proxies/extensions/featureGateRules.ts)/ 設計: src/proxies/README.md
 //
 // 検査の対象は「今 enabled: false のルール」だけ。有効な機能のルートは開いていて正しく、
 // 機能を切ったときに初めて「テーブルが無いのに開いているルート」が問題になるため。
@@ -17,6 +17,8 @@
 // 4. 現在のフラグの組み合わせでスキーマゲートが成立する（外すテーブルを残すテーブルが外部キーで参照しない）
 //    外部キーに現れない機能間の前提（紹介 → クーポン）も満たす
 // 5. スキーマゲートは enum を外さず、無効なテーブルだけを両側（imports / tablesFilter）から外す
+// 6. 行き先(redirectTo)の違う規則の住所の重なり(L1.22): 上流の規則どうしは失敗、fork の規則と上流の重なりは表示だけ
+//    (判定はファイル名の順で最初の無効な規則の行き先)。一覧は規則ファイルと同じ並び
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -29,7 +31,9 @@ import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
 import { serviceRegistry } from "../registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../lib/domain/config/apiAccess.ts";
 import { APP_FEATURES } from "../config/app/app-features.config.ts";
-import { featureGateRules } from "../config/app/feature-gate.config.ts";
+import { featureGateRules } from "./extensions/featureGateRules.ts";
+import { readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
+import { discoverGateRules } from "../../scripts/proxies/extensions.mjs";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
 import { matchesPath, patternCoversRoute } from "./pathPattern.mjs";
 
@@ -85,7 +89,7 @@ const toUrlSegments = (file) => {
 
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);
 // ルートの被覆を検査するルール（無効なもの。CHECK_ALL なら全部）
-const checkedRules = rulesWithTables.filter((rule) => CHECK_ALL || !rule.enabled);
+const checkedRules = rulesWithTables.filter((rule) => CHECK_ALL || !rule.enabled());
 const schemaTableNames = new Set(
   Object.values(schema)
     .filter((value) => is(value, PgTable))
@@ -185,12 +189,12 @@ test("紹介機能はクーポン機能を前提にする（招待コードの�
 });
 
 test("全機能を無効にしてもスキーマゲートが成立する（外部キーが無効な機能の外へ出ていない）", { skip: !CHECK_ALL && CHECK_ALL_ONLY }, () => {
-  const allDisabled = featureGateRules.map((rule) => ({ ...rule, enabled: false }));
+  const allDisabled = featureGateRules.map((rule) => ({ ...rule, enabled: () => false }));
   assert.doesNotThrow(() => applySchemaGate(schema, allDisabled));
 });
 
 test("スキーマゲートは無効なテーブルを両側から外し、enum は残す", { skip: !CHECK_ALL && CHECK_ALL_ONLY }, () => {
-  const rules = featureGateRules.map((rule) => ({ ...rule, enabled: false }));
+  const rules = featureGateRules.map((rule) => ({ ...rule, enabled: () => false }));
   const gate = applySchemaGate(schema, rules);
   const gatedNames = rules.flatMap((rule) => rule.tables ?? []);
 
@@ -205,7 +209,7 @@ test("スキーマゲートは無効なテーブルを両側から外し、enum 
 });
 
 test("全機能が有効ならスキーマゲートは何も外さない", () => {
-  const rules = featureGateRules.map((rule) => ({ ...rule, enabled: true }));
+  const rules = featureGateRules.map((rule) => ({ ...rule, enabled: () => true }));
   const gate = applySchemaGate(schema, rules);
   assert.equal(gate.tablesFilter, undefined);
   assert.equal(Object.keys(gate.imports).length, Object.keys(schema).length);
@@ -214,7 +218,39 @@ test("全機能が有効ならスキーマゲートは何も外さない", () =>
 test("payment だけ有効で wallet が無効な組み合わせは外部キーで拒否される", () => {
   const rules = featureGateRules.map((rule) => ({
     ...rule,
-    enabled: !(rule.tables ?? []).includes("wallets"),
+    enabled: () => !(rule.tables ?? []).includes("wallets"),
   }));
   assert.throws(() => applySchemaGate(schema, rules), /purchase_requests → wallet_histories/);
+});
+
+// 住所の重なり: どちらかの住所(= を外した形)が相手のパターンに当たれば重なる
+const patternPath = (pattern) => (pattern.startsWith("=") ? pattern.slice(1) : pattern);
+const overlaps = (a, b) => matchesPath(patternPath(a), b) || matchesPath(patternPath(b), a);
+
+test("一覧は規則ファイルと同じ並び・同じ数(proxy:generate のずれは proxy:check でも止まる)", () => {
+  const { all } = readDeclaredForkIds(ROOT);
+  const { rules, problems } = discoverGateRules(ROOT, all);
+  assert.deepEqual(problems, []);
+  assert.equal(rules.length, featureGateRules.length);
+  for (const rule of featureGateRules) assert.equal(typeof rule.enabled, "function");
+});
+
+test("行き先の違う規則の住所の重なり(L1.22): 上流どうしは不可、fork と上流は表示だけ", () => {
+  const { all } = readDeclaredForkIds(ROOT);
+  const { rules: files } = discoverGateRules(ROOT, all);
+  const entries = featureGateRules.map((rule, i) => ({ rule, file: files[i].file, fork: files[i].forkId !== null }));
+  const upstreamConflicts = [];
+  for (let i = 0; i < entries.length; i += 1) {
+    for (let j = i + 1; j < entries.length; j += 1) {
+      const a = entries[i];
+      const b = entries[j];
+      if ((a.rule.redirectTo ?? null) === (b.rule.redirectTo ?? null)) continue;
+      const hit = a.rule.pathPatterns.flatMap((p) => b.rule.pathPatterns.filter((q) => overlaps(p, q)).map((q) => `${p} × ${q}`));
+      if (hit.length === 0) continue;
+      const line = `${a.file}(${a.rule.redirectTo ?? "404"})と ${b.file}(${b.rule.redirectTo ?? "404"}): ${hit.join(", ")}`;
+      if (a.fork || b.fork) console.log(`[feature-gate] 行き先の違う重なり(fork、先の規則が優先): ${line}`);
+      else upstreamConflicts.push(line);
+    }
+  }
+  assert.deepEqual(upstreamConflicts, [], `上流の規則どうしで行き先の違う重なり:\n${upstreamConflicts.join("\n")}`);
 });

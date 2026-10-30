@@ -10,7 +10,7 @@ export const cronTask: CronTaskDefinition = {
   name: "wallet-expiration-notice",
   description: "ウォレットの失効予告・失効時の本通知をメール / サービス内通知で送る",
   schedule: "15 * * * *", // 毎時 15 分
-  // ウォレット無効時はテーブルが無い場合がある（src/config/app/feature-gate.config.ts）
+  // ウォレット無効時はテーブルが無い場合がある（src/proxies/featureGateRules/）
   enabled: () => APP_FEATURES.wallet.enabled && hasAnyExpirationNoticeConfig(),
   run: async () => {
     const { sendWalletExpirationNotices } = await import(

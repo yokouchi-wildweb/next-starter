@@ -44,7 +44,7 @@ import type { CoinIssuanceSource } from "@/features/core/analytics/services/serv
  */
 export const coinIssuanceSources: CoinIssuanceSource[] = [
   // upstream の登録
-  // 機能が無効ならテーブルが無い場合があるため、ソースごと外す（src/config/app/feature-gate.config.ts）
+  // 機能が無効ならテーブルが無い場合があるため、ソースごと外す（src/proxies/featureGateRules/）
   ...(APP_FEATURES.payment.enabled ? [purchaseBonusGapSource] : []),
   referralRewardSource,
   ...(APP_FEATURES.marketing.coupon.enabled ? [couponAttributionRewardSource] : []),

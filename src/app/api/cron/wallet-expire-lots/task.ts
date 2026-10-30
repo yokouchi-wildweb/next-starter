@@ -10,7 +10,7 @@ export const cronTask: CronTaskDefinition = {
   name: "wallet-expire-lots",
   description: "有効期限切れウォレットロットの残額を没収する（sweepEnabled の通貨のみ）",
   schedule: "35 18 * * *", // 毎日 03:35 JST
-  // ウォレット無効時はテーブルが無い場合がある（src/config/app/feature-gate.config.ts）
+  // ウォレット無効時はテーブルが無い場合がある（src/proxies/featureGateRules/）
   enabled: () => APP_FEATURES.wallet.enabled && getSweepEnabledWalletTypes().length > 0,
   run: async () => {
     const { sweepExpiredWalletLots } = await import(

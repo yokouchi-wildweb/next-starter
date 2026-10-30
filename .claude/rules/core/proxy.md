@@ -2,7 +2,6 @@
 paths:
   - "src/proxy.ts"
   - "src/proxies/**"
-  - "src/config/app/feature-gate.config.ts"
 ---
 # PROXY
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies

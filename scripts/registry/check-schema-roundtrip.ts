@@ -46,7 +46,7 @@ const main = async () => {
       import("drizzle-orm/postgres-js"),
       import("drizzle-kit/api"),
       import("@/registry/schemaRegistry"),
-      import("@/config/app/feature-gate.config"),
+      import("@/proxies/extensions/featureGateRules"),
       import("./schemaGate"),
     ]);
 

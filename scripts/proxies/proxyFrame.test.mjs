@@ -17,8 +17,10 @@ import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 
 import {
   DECORATORS_FILE,
+  GATE_RULES_FILE,
   HANDLERS_FILE,
   SKELETON_FILES,
+  discoverGateRules,
   discoverProxyItems,
   renderProxyLists,
   staleProxyLists,
@@ -74,11 +76,31 @@ test("失敗: 宣言に無い fork ID・両方・どちらも無い・名前の�
   assert.ok(problems.some((p) => p.includes("x.a.b.ts") && p.includes("名前の形")));
 });
 
+test("規則: featureGateRules/ の export const rule をファイル名順に集め、上流 x.ts と fork x.<fork ID>.ts は別の規則", () => {
+  const root = fixture({});
+  const dir = join(root, "src/proxies/featureGateRules");
+  mkdirSync(dir, { recursive: true });
+  const R = "export const rule: FeatureGateRule = { pathPatterns: [\"/x\"], enabled: () => true };\n";
+  writeFileSync(join(dir, "wallet.ts"), R);
+  writeFileSync(join(dir, "wallet.acme.ts"), R);
+  writeFileSync(join(dir, "alpha.ts"), R);
+  writeFileSync(join(dir, "helper.ts"), "export const x = 1;\n");
+  writeFileSync(join(dir, "beta.other.ts"), R);
+  const { rules, problems } = discoverGateRules(root, ["acme"]);
+  assert.deepEqual(rules.map((r) => `${r.file}:${r.forkId}`), ["alpha.ts:null", "wallet.acme.ts:acme", "wallet.ts:null"]);
+  assert.equal(problems.length, 2, problems.join("\n"));
+  assert.ok(problems.some((p) => p.includes("helper.ts") && p.includes("export const rule")));
+  assert.ok(problems.some((p) => p.includes("beta.other.ts") && p.includes("宣言されていない")));
+  const list = renderProxyLists([], rules)[GATE_RULES_FILE];
+  assert.match(list, /import \{ rule as alpha \} from "\.\.\/featureGateRules\/alpha";/);
+  assert.match(list, /export const featureGateRules: FeatureGateRule\[\] = \[\n  alpha,\n  wallet_acme,\n  wallet,\n\];/);
+});
+
 test("check: 一覧が無い・古いとずれ、作り直すと一致", () => {
   const root = fixture({ "alpha.ts": H });
   const { items } = discoverProxyItems(root, []);
   const expected = renderProxyLists(items);
-  assert.deepEqual(staleProxyLists(root, expected).sort(), [DECORATORS_FILE, HANDLERS_FILE].sort());
+  assert.deepEqual(staleProxyLists(root, expected).sort(), [DECORATORS_FILE, GATE_RULES_FILE, HANDLERS_FILE].sort());
   for (const [path, content] of Object.entries(expected)) writeFileSync(join(root, path), content);
   assert.deepEqual(staleProxyLists(root, expected), []);
   writeFileSync(join(root, HANDLERS_FILE), expected[HANDLERS_FILE].replace("alpha,", ""));
@@ -89,6 +111,7 @@ test("実リポ: 走査の問題が無く、生成一覧が項目と一致する
   const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
   assert.deepEqual(errors, []);
   const { items, problems } = discoverProxyItems(repoRoot, forkIds);
-  assert.deepEqual(problems, [], problems.join("\n"));
-  assert.deepEqual(staleProxyLists(repoRoot, renderProxyLists(items)), []);
+  const { rules, problems: ruleProblems } = discoverGateRules(repoRoot, forkIds);
+  assert.deepEqual([...problems, ...ruleProblems], [], [...problems, ...ruleProblems].join("\n"));
+  assert.deepEqual(staleProxyLists(repoRoot, renderProxyLists(items, rules)), []);
 });

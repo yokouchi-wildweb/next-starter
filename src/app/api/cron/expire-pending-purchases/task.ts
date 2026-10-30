@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   name: "expire-pending-purchases",
   description: "期限切れの pending 購入リクエストを expired に遷移する（onExpire フックの副次テーブル掃除を含む）",
   schedule: "*/15 * * * *", // 15 分ごと
-  // 決済無効時はテーブルが無い場合がある（src/config/app/feature-gate.config.ts）
+  // 決済無効時はテーブルが無い場合がある（src/proxies/featureGateRules/）
   enabled: () => APP_FEATURES.payment.enabled,
   run: async () => {
     const { expirePendingRequests } = await import(

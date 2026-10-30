@@ -130,13 +130,13 @@ function checkLayout(layoutFile, fileSet, read) {
 
 /**
  * 地図の元データを作る。
- * @param {{ files: string[], read: (path: string) => string, gateRules?: Array<{ pathPatterns: string[], enabled: boolean }> }} input
+ * @param {{ files: string[], read: (path: string) => string, gateRules?: Array<{ pathPatterns: string[], enabled: () => boolean }> }} input
  *   files = repo 相対のファイル一覧(listAppFiles の結果)、read = repo 相対パスの中身を返す関数、
- *   gateRules = feature-gate の規則(src/config/app/feature-gate.config.ts)。無効な規則に当たるルートに gatedOff を付ける
+ *   gateRules = 機能を閉じる規則(生成一覧 src/proxies/extensions/featureGateRules.ts)。無効な規則に当たるルートに gatedOff を付ける
  * @returns {{ rows: Array<RouteMapRow>, problems: string[] }} problems が空でなければ生成失敗(読めない鎖)
  */
 export function buildRouteMap({ files, read, gateRules = [] }) {
-  const disabledRules = gateRules.filter((rule) => !rule.enabled);
+  const disabledRules = gateRules.filter((rule) => !rule.enabled());
   const { routes, problems } = discoverRoutes(files);
   const fileSet = new Set(files.map((f) => f.replace(/\\/g, "/")));
   const checkedLayouts = new Map();
