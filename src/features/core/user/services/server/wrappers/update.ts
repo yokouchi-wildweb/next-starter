@@ -16,6 +16,8 @@ import { invalidateSessionsForUser } from "@/features/core/auth/services/server/
 import { resolveUserNameForGuard, withUserNameGuard } from "../helpers/nameAvailability";
 import { planPasswordChange } from "../helpers/passwordChange";
 import { assertSelfUpdateAllowed, selfUpdateSchema } from "../helpers/selfUpdate";
+import { userFacingValidationMessage } from "../helpers/validationMessage";
+import { USER_UPDATE_VALIDATION } from "@/config/app/user-update.config";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -119,8 +121,15 @@ async function applyUpdate(
   const result = await schema.safeParseAsync(schemaInput);
 
   if (!result.success) {
-    const message = result.error.errors[0]?.message ?? "入力値が不正です";
-    throw new DomainError(message, { status: 400 });
+    // 値は出さない(パスワードなどが入り得る)
+    console.warn(
+      "[userService.update] 検証エラー:",
+      result.error.errors.map((issue) => ({ path: issue.path.join("."), code: issue.code })),
+    );
+    throw new DomainError(
+      userFacingValidationMessage(result.error.errors[0], USER_UPDATE_VALIDATION.fallbackMessage),
+      { status: 400 },
+    );
   }
 
   // phoneNumber は管理者更新時のみスキーマに含まれる

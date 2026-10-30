@@ -170,6 +170,8 @@ pnpm db:push
 >
 > **更新の入口**: `userService.update(id, data)` = 認可済みの呼び手用（汎用 API は管理者限定、サーバー内の処理。管理者のスキーマで検証し、セッションは読まない）。`userService.updateSelf(actor, data)` = 本人用（`actor` は route の `ctx.user`。本人のスキーマ、非管理者のローカル認証は 400）。利用者の入力を渡す route は必ず `updateSelf`。
 >
+> **検証の失敗**: スキーマが書いた文はそのまま返し、Zod の既定の文（"Invalid url" など）は `src/config/app/user-update.config.ts` の固定文に置き換える。失敗した項目の path と code だけを server にログ（値は出さない）。
+>
 > **パスワード変更の契約（`newPassword`）**: `userService.update(id, { newPassword })` は **プロバイダー非依存の「このユーザーのパスワードをこれにする」** 契約。UI（`AdminUserManageModal` 認証タブ等）は保存先を知らず、`services/server/helpers/passwordChange.ts` の `planPasswordChange` がサーバー側で振り分ける: `local` → `localPassword` としてスキーマ入力にマージ（hash 変換・ロックアウトカウンタリセット・全セッション失効は既存経路がそのまま動く）| `email` → Firebase Auth へ同期 | それ以外（OAuth/OIDC/SAML 等）→ **DomainError 400**（パスワード経路が無いのに成功を返す「無言 no-op」を禁止）。`localPassword` を直接渡す旧経路も引き続き有効。回帰テスト: `pnpm test:user-password-change`。
 >
 > **IP データの所在に注意**: ログイン / サインアップの IP は `signupIp` 列・`metadata.loginHistory` (JSONB)・専用テーブル `user_login_events` の **3 箇所に併存** している。同一 IP のアカウント横断検索など IP 集計を行う場合は、JSONB をスキャンせず [`userLoginEvent` ドメイン](../userLoginEvent/README.md) の検索 API (`countDistinctUsersByIp` / `findUsersBySameIp` / `findUsersBySubnet`、端末受け渡し検出は `findSessionHandoffsByUser` / `findSessionHandoffsByIp`) を使うこと。明示ログアウト (logout / pause / withdraw) も同テーブルに `logout` 行として入る。併存の理由と移行方針は同 README を参照。
