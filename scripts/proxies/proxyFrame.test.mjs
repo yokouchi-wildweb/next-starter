@@ -13,7 +13,7 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { parseForkDotName, readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 
 import {
   DECORATORS_FILE,
@@ -186,4 +186,39 @@ test("常時実行の入口の判定: cron は enabled、登録表は条件つ�
     problems.map((p) => p.split(":")[0]).sort(),
     ["c/ng/task.ts", "r/ng.ts", "r/ns.ts", "w/gone.ts", "w/unlisted.ts"],
   );
+});
+
+test("常時実行の入口の fork の口(L1.24): alwaysOnExceptions.<fork ID>.mjs の例外・登録表を読み、reason 必須・宣言済みの ID だけ", async () => {
+  const { readForkAlwaysOn, judgeAlwaysOnEntries } = await import("./alwaysOnEntries.mjs");
+  const parse = (name) => parseForkDotName(name, { extensions: ["mjs"] });
+  const file = (name, mod) => ({ name, load: async () => mod });
+  const ok = await readForkAlwaysOn(
+    [
+      file("alwaysOnExceptions.acme.mjs", {
+        exceptions: [{ file: "src/wiring/x.acme.ts", reason: "端末の解決は route でだけ走る" }],
+        registries: [{ file: "src/registry/cleanup.acme.ts", reason: "退会の後片付け" }],
+      }),
+    ],
+    ["acme"],
+    parse,
+  );
+  assert.deepEqual(ok.problems, []);
+  assert.deepEqual(ok.exceptions, { "src/wiring/x.acme.ts": "端末の解決は route でだけ走る" });
+  assert.deepEqual(ok.registries, ["src/registry/cleanup.acme.ts"]);
+
+  const ng = await readForkAlwaysOn(
+    [
+      file("alwaysOnExceptions.other.mjs", { exceptions: [] }),
+      file("alwaysOnExceptions.acme.mjs", { exceptions: [{ file: "src/wiring/y.acme.ts", reason: " " }, { reason: "x" }], registries: "src/registry/z.ts" }),
+      file("somethingElse.acme.mjs", {}),
+    ],
+    ["acme"],
+    parse,
+  );
+  assert.equal(ng.problems.length, 5, ng.problems.join("\n"));
+  assert.deepEqual(ng.exceptions, {});
+
+  // fork の例外の行にも縮む表の規則(当たらない行は失敗)
+  const { problems } = judgeAlwaysOnEntries([], ["core/wallet"], ok.exceptions);
+  assert.deepEqual(problems.map((p) => p.split(":")[0]), ["src/wiring/x.acme.ts"]);
 });

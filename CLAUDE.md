@@ -10,7 +10,7 @@
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
 
 ## CORE_FILES (ownership: who edits what)
-core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (dot-named files = fork-owned)
+core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/ (dot-named files = fork-owned, extensions/ = generated), scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (dot-named files = fork-owned)
 - routes and libs: src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned) | src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
 downstream_owned (upstream never edits after creation): root src/styles/*.css (entry global.css, palette / typography / overrides.css), src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, _components/** and dot-named files of upstream routes, src/registry fork regions, api/cron/*/override.ts, domainEntry.override.ts
 - full list of the places a fork may write in upstream files (intake points) = src/lib/forkOwnership/intake.txt (kinds: edit / region / marker / append / generated / debt) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
@@ -67,8 +67,9 @@ rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY 
 before touching servers/ or enabling room → MUST read servers/room/README.md + src/lib/realtimeRoom/README.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
-entry: src/proxy.ts | handler chain src/proxies/index.ts (order matters: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy) | x-pathname header | chain, order, adding a handler or decorator → .claude/rules/core/proxy.md
-feature_gate (MANDATORY): rules = src/config/app/feature-gate.config.ts (enabled false → pathPatterns 404, tables skipped by pnpm db:push: never created, never dropped) | new route/table of a gated domain → add it to its rule (test: pnpm test:feature-gate) | always-mounted callers check the flag themselves | push only via pnpm db:push | ref: src/proxies/README.md
+entry: src/proxy.ts | skeleton src/proxies/index.ts (maintenance → demoMode → featureGate → redirect) + frame of items src/proxies/\<name\>[.\<fork ID\>].ts (pnpm proxy:generate, forks never edit index.ts) | user = ctx.user() only | x-pathname header | chain, items, gate rules → .claude/rules/core/proxy.md
+feature_gate (MANDATORY): rules = src/proxies/featureGateRules/\<name\>.ts, one per feature (enabled() false → pathPatterns 404, tables of its features folders skipped by pnpm db:push: never created, never dropped) | ref: src/proxies/README.md
+- new route of a gated domain → add it to its rule (tables follow the folder) | always-on entries (cron, cleanup, wiring) close themselves | test: FEATURE_GATE_CHECK=all pnpm test:feature-gate | push only via pnpm db:push
 
 ## DIRECTORY_STRUCTURE
 features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json

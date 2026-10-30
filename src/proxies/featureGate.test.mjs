@@ -26,6 +26,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { getTableName, is } from "drizzle-orm";
 import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
@@ -34,9 +35,9 @@ import { serviceRegistry } from "../registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../lib/domain/config/apiAccess.ts";
 import { APP_FEATURES } from "../config/app/app-features.config.ts";
 import { featureGateRules } from "./extensions/featureGateRules.ts";
-import { readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
+import { parseForkDotName, readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
 import { discoverGateRules } from "../../scripts/proxies/extensions.mjs";
-import { judgeAlwaysOnEntries } from "../../scripts/proxies/alwaysOnEntries.mjs";
+import { judgeAlwaysOnEntries, readForkAlwaysOn, FORK_ALWAYS_ON_PREFIX } from "../../scripts/proxies/alwaysOnEntries.mjs";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
 import { matchesPath, patternCoversRoute } from "./pathPattern.mjs";
 
@@ -265,24 +266,31 @@ const ALWAYS_ON_REGISTRIES = [
   "src/registry/coinIssuanceRegistry.ts", // コイン創出の照合(管理の集計 API)
   "src/registry/analyticsRollupRegistry.ts", // 日次の集計(cron analytics-rollup-daily)
 ];
-// 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表
+// 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表。
+// fork の分は scripts/proxies/alwaysOnExceptions.<fork ID>.mjs に理由つきで(L1.24。ここは編集しない)
 const ALWAYS_ON_EXCEPTIONS = {
   "src/wiring/apiRoute.ts":
     "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
 };
 
-test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は enabled、登録表は条件つき spread、結線は例外表)", () => {
+test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は enabled、登録表は条件つき spread、結線は例外表)", async () => {
+  const { all: forkIds } = readDeclaredForkIds(ROOT);
+  const forkFiles = readdirSync(join(ROOT, "scripts/proxies"))
+    .filter((name) => name.startsWith(`${FORK_ALWAYS_ON_PREFIX}.`))
+    .map((name) => ({ name, load: () => import(pathToFileURL(join(ROOT, "scripts/proxies", name)).href) }));
+  const fork = await readForkAlwaysOn(forkFiles, forkIds, (name) => parseForkDotName(name, { extensions: ["mjs"] }));
+  assert.deepEqual(fork.problems, [], fork.problems.join("\n"));
   const rel = (abs) => relative(ROOT, abs).split(sep).join("/");
   const code = (f) => /\.(ts|tsx|mts|mjs)$/.test(f) && !/\.test\./.test(f);
   const entries = [
     ...walk(join(APP_DIR, "api/cron")).filter((f) => /[\\/]task\.ts$/.test(f)).map((f) => ({ path: rel(f), kind: "cron" })),
-    ...ALWAYS_ON_REGISTRIES.map((path) => ({ path, kind: "registry" })),
+    ...[...ALWAYS_ON_REGISTRIES, ...fork.registries].map((path) => ({ path, kind: "registry" })),
     ...[join(APP_DIR, "layout.tsx"), ...walk(join(ROOT, "src/wiring")), ...walk(join(ROOT, "src/proxies"))]
       .filter(code)
       .map((f) => ({ path: rel(f), kind: "wiring" })),
   ].map((entry) => ({ ...entry, text: readFileSync(join(ROOT, entry.path), "utf8") }));
   const folders = [...new Set(featureGateRules.flatMap((rule) => rule.features ?? []))];
   assert.ok(folders.length > 0, "表を持つ規則が無い(features の読み取りを確認)");
-  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, ALWAYS_ON_EXCEPTIONS);
+  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, { ...ALWAYS_ON_EXCEPTIONS, ...fork.exceptions });
   assert.deepEqual(problems, [], `常時実行の入口の閉じ漏れ:\n${problems.join("\n")}\n該当: ${hits.join(" / ")}`);
 });

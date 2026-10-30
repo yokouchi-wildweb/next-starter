@@ -102,3 +102,53 @@ export function judgeAlwaysOnEntries(entries, folders, exceptions) {
   }
   return { problems, hits, usedExceptions };
 }
+
+// ── fork の口(L1.24) ──
+// fork は自分の常時の登録表と、常に読み込む結線の例外を、ドット名のファイル
+// scripts/proxies/alwaysOnExceptions.<fork ID>.mjs に理由つきで足す(上流の表は編集しない):
+//   export const exceptions = [{ file: "src/wiring/foo.acme.ts", reason: "<閉じなくてよい理由>" }];
+//   export const registries = [{ file: "src/registry/fooCleanup.acme.ts", reason: "<常に読まれる理由>" }];
+// reason は必須(空・欠けは失敗)、fork ID は宣言済みのもの、縮む表の規則(当たらない例外の行は失敗)は fork の行にも掛かる。
+
+export const FORK_ALWAYS_ON_PREFIX = "alwaysOnExceptions";
+
+/**
+ * fork の口のファイルを読んで、例外と登録表を集める
+ * @param {{ name: string, load: () => Promise<Record<string, unknown>> }[]} files scripts/proxies 直下の alwaysOnExceptions.*.mjs(名前と読み込み関数)
+ * @param {string[]} forkIds 宣言済みの fork ID
+ * @param {(fileName: string) => { name: string, forkId: string } | null} parseDotName forkIds.mjs の parseForkDotName(拡張子 mjs)
+ * @returns {Promise<{ exceptions: Record<string, string>, registries: string[], problems: string[] }>}
+ */
+export async function readForkAlwaysOn(files, forkIds, parseDotName) {
+  const exceptions = {};
+  const registries = [];
+  const problems = [];
+  const rows = (value, label, kind) => {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) {
+      problems.push(`${label}: ${kind} は { file, reason } の配列で書く`);
+      return [];
+    }
+    return value.filter((row, i) => {
+      const ok = row && typeof row.file === "string" && row.file.length > 0 && typeof row.reason === "string" && row.reason.trim().length > 0;
+      if (!ok) problems.push(`${label}: ${kind}[${i}] は file と reason(空でない)が要る`);
+      return ok;
+    });
+  };
+  for (const { name, load } of files) {
+    const label = `scripts/proxies/${name}`;
+    const dotted = parseDotName(name);
+    if (!dotted || dotted.name !== FORK_ALWAYS_ON_PREFIX) {
+      problems.push(`${label}: 名前は ${FORK_ALWAYS_ON_PREFIX}.<fork ID>.mjs`);
+      continue;
+    }
+    if (!forkIds.includes(dotted.forkId)) {
+      problems.push(`${label}: fork ID "${dotted.forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か .notices/applied/<fork-id>.md の台帳名)`);
+      continue;
+    }
+    const mod = await load();
+    for (const row of rows(mod.exceptions, label, "exceptions")) exceptions[row.file] = row.reason;
+    for (const row of rows(mod.registries, label, "registries")) registries.push(row.file);
+  }
+  return { exceptions, registries, problems };
+}

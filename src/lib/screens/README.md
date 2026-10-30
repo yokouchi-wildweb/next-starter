@@ -245,7 +245,7 @@ src/app/(user)/(protected)/points/
 
 ルートは削除・移動・rename しない（`_` 付きへの rename による無効化も同じ）。止めるときはスイッチを使う。
 
-- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは feature-gate のルール（`src/config/app/feature-gate.config.ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm routes:map`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
+- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは機能を閉じる規則（`src/proxies/featureGateRules/<名前>[.<fork ID>].ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm routes:map`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
 - 置き換える: 自分の画面は `_components/` に別名で作り、page.tsx の 1 行スイッチをそこへ向ける（上の「上流の画面を変えたい」）。別の URL に作るなら自分のルートとして足す
 - スイッチも feature-gate のルールも当たらないページ: 削除せず、直接の親に `/order` で止める口を頼み、それまでは一時許可で通す（`src/lib/forkOwnership/README.md`「一時許可」）
 - 削除・rename は `pnpm ownership:check` が違反にする（`/flux` の区間が閉じない）。以前に消したルートは、止めてから `git checkout upstream/main -- <path>` で戻す
