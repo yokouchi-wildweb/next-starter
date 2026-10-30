@@ -61,7 +61,7 @@ export const featureGateRules: GatedFeatureRule[] = [
   { ...pause, tables: [] },
   { ...payment, tables: ["purchase_requests", "bank_transfer_reviews", "purchase_quota_ledger"] },
   { ...referral, tables: [] },
-  { ...sampleDomain, tables: [] },
+  { ...sampleDomain, tables: ["samples", "sample_to_sample_tag", "sample_categories", "sample_tags", "sample_images"] },
   { ...signup, tables: [] },
   { ...userTag, tables: [] },
   { ...wallet, tables: ["wallets", "wallet_lots", "wallet_histories"] },
