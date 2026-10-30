@@ -5,7 +5,7 @@
 > 普段はこれを直接打たず、`pnpm forge`（[`scripts/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
 
 - 対象: `domain.json` を持つドメインのフォルダ。business = `src/features/<domain>/`、core = `src/features/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。`domain.json` の無い core は対象外（手で保守）
-- core の生成の違い: 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）。`src/registry/` の追記（schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry）はしない（一覧は `pnpm registry:generate` が走査で作る。生成時に 1 行で知らせる。ファイルの用途は `src/features/core/storageObject/purposes/` に手で）。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
+- core の生成の違い: 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）。`src/registry/` の一覧は core も business も `pnpm registry:generate` が走査で作る（生成器は serviceRegistry 以外を書かない）。手で管理の core のファイル用途は `src/features/core/storageObject/purposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
 - 今ある core の `domain.json` は `generate: false`（手で管理。生成器は何も書かない）
 - `domain.json` は手で書く（対話で組み立てる入口は無い）。書き方の規則は生成前の検査（`checks/`）が止める・警告する
 - 生成元テンプレート: `src/features/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
@@ -41,7 +41,7 @@
 `domain.json` の `generate`（省略 = true）が、そのドメインを生成器が持つか手で持つかを決める。区分ごとの `generateFiles` は廃止（残っていると生成前に止まる）。
 
 - `true`: 下の「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
-- `false`: 手で管理。生成器は何も書かない（registry の追記・`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
+- `false`: 手で管理。生成器は何も書かない（`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
 - `false` のドメインはどんな実行でも生成器を通さない: `dc:generate:all`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
 - 一覧: 生成の書き込みの最後と `dc:delete` の後に `src/features/feature-map.txt`（`src/features` と `src/features/core` の全フォルダ。`_` 始まりを除く。kind / domain.json の有無 / generate）を書き直す。`pnpm dc:feature-map --check` がフォルダの増減・旗の切り替えのずれで落ちる。merge で衝突したら `pnpm dc:feature-map` で作り直す
 
@@ -62,8 +62,8 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 - `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインは名指ししても何も書かない（上の「generate の旗」）。集まりの従属は従属のカテゴリの内だけ
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
-- `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。追記された adminDataMenu は domain.json の `addToAdminDataMenu` と違えば `registry:check` が止める(`pnpm registry:generate` で domain.json の通りになる。fork が外すのは domain.json 側)。最後に `pnpm registry:generate` が `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）
-  - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
+- `--only registry` が書くのは `services/server/` の `domainEntry.ts`・`collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）。他の `src/registry/` の一覧は `pnpm registry:generate`（forge の段）
+  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --only registry`）。`[user-run]` は付けない
 
@@ -134,7 +134,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列（mediaUploader）があれば drizzleBase に `storage: storageBindingFor(...)`（[src/lib/crud/README.md](../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー。主の集まりの項目があれば drizzleBase が `collections` を import して options に渡す（`generate: false` の主は自分で足す。渡し忘れは `pnpm test:collection-wiring` が見つける） |
 | `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
-| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts`。メディア列があれば `storagePurposeRegistry.ts` の AUTO ブロック。主の集まりの項目があれば `services/server/collections.ts`（毎回上書き） |
+| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く）、メディア列があれば `services/server/storagePurposes.ts`（毎回上書き）。主の集まりの項目があれば `services/server/collections.ts`（毎回上書き） |
 | `presenters` | `presenters.ts`（一覧・詳細表示のフォーマッタ。答えは `src/lib/domain/fields/presenterFor.mjs`。メディア列は `formatMediaThumbnail(s)`） |
 
 生成される client の部品（`components` カテゴリ）は domain.json を import せず、写し `entities/display.ts` の `domainDisplay` を読む（`pnpm registry:generate` が書く。写す項目: [`src/lib/domain/README.md`](../../src/lib/domain/README.md)）。
@@ -147,7 +147,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test:dc-server-service`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
-| 未登録なら追記 | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（引用符・空白違いの既存行も登録済みとみなす） |
+| 作らない（`pnpm registry:generate`） | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（走査で丸ごと） |
 | 毎回上書き（生成物） | `services/server/domainEntry.ts`（`apiAccess` が無ければ fail-closed = `...ADMIN_ONLY`、`useImportExport: true` のときだけ export / import を開く。`table` = `domain/names.mjs` の `domainTableName`、`idColumn` = `"id"`、Firestore は両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。仕組みは `src/lib/domain/README.md`） |
 
 管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。

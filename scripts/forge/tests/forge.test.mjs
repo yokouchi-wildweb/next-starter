@@ -15,13 +15,21 @@ const names = (steps) => steps.map((step) => step.name);
 const tmpDirs = [];
 after(() => tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })));
 
-test("段の並び: 事前検査 → role → dc → routes:map → 事後検査（typecheck・lint）→ デプロイ先の検査。cron は生成しない", () => {
+test("段の並び: 事前検査 → role → dc → 一覧 → routes:map → 事後検査（typecheck・lint）→ デプロイ先の検査。cron は生成しない", () => {
   const steps = buildSteps({ vercel: true });
   const order = names(steps);
   const at = (name) => order.indexOf(name);
   assert.deepEqual([...new Set(steps.map((step) => step.phase))], ["pre", "generate", "post", "deploy"]);
   assert.ok(at("role:generate --all") < at("dc:generate:all"));
-  assert.ok(at("dc:generate:all") < at("routes:map"));
+  assert.ok(at("dc:generate:all") < at("registry:generate"));
+  assert.ok(at("registry:generate") < at("extensions:generate"));
+  assert.ok(at("extensions:generate") < at("routes:map"));
+  // 事前は作り直せる一覧のずれで止めない（新しいドメイン・項目が forge 1 回で通る）。事後は完全に見る
+  const phases = steps.map((step) => `${step.phase} ${step.name}`);
+  assert.ok(!phases.includes("pre registry:check"));
+  assert.ok(phases.includes("pre extensions:check --no-stale"));
+  assert.ok(phases.includes("post registry:check"));
+  assert.ok(phases.includes("post extensions:check"));
   assert.ok(at("routes:map --check") > at("routes:map"));
   assert.ok(order.includes("dc:feature-map --check"));
   assert.ok(!order.some((name) => name.startsWith("cron:generate")));
@@ -44,7 +52,7 @@ test("デプロイ先の検査: vercel.json がある時だけ cron:check（plan
 
 test("止まり方: 落ちた段で止まり、後の段を回さない（事前検査で落ちれば生成の段は 1 つも回らない）", () => {
   const steps = buildSteps({ vercel: false });
-  const failPre = runSteps(steps, { exec: (step) => step.name !== "registry:check" || step.phase !== "pre", io: SILENT });
+  const failPre = runSteps(steps, { exec: (step) => step.name !== "extensions:check --no-stale", io: SILENT });
   assert.equal(failPre.ok, false);
   assert.equal(failPre.failed.phase, "pre");
   assert.ok(!failPre.ran.includes("role:generate --all"));
@@ -57,19 +65,25 @@ test("止まり方: 落ちた段で止まり、後の段を回さない（事前
 test("表の定義の hash: 増えた・消えた・変わったファイルを出す", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-test-"));
   tmpDirs.push(root);
+  const table = (name) => `export const T = pgTable("${name}", {});\n`;
   const drizzle = (dir) => path.join(root, "src/features", dir, "drizzle.ts");
-  for (const dir of ["a/entities", "b/entities", "core/userProfile/generated/x"]) {
+  for (const dir of ["a/entities", "b/entities", "core/userProfile/generated/x", "core/c/entities"]) {
     fs.mkdirSync(path.dirname(drizzle(dir)), { recursive: true });
-    fs.writeFileSync(drizzle(dir), dir);
+    fs.writeFileSync(drizzle(dir), table(dir.replace(/\W/g, "_")));
   }
+  // drizzle.ts でないファイルの表も見る。表の無いファイルは見ない
+  const other = path.join(root, "src/features/core/c/entities/read.ts");
+  fs.writeFileSync(other, table("read"));
+  fs.writeFileSync(path.join(root, "src/features/core/c/entities/plain.ts"), "export const x = 1;\n");
   const before = snapshotTables(root);
-  assert.equal(before.size, 3);
+  assert.equal(before.size, 5);
   assert.deepEqual(changedTables(before, snapshotTables(root)), []);
-  fs.writeFileSync(drizzle("a/entities"), "changed");
+  fs.writeFileSync(drizzle("a/entities"), table("changed"));
+  fs.writeFileSync(other, table("read2"));
   fs.rmSync(drizzle("b/entities"));
   fs.mkdirSync(path.dirname(drizzle("c/entities")), { recursive: true });
-  fs.writeFileSync(drizzle("c/entities"), "new");
-  assert.deepEqual(changedTables(before, snapshotTables(root)), ["src/features/a/entities/drizzle.ts", "src/features/b/entities/drizzle.ts", "src/features/c/entities/drizzle.ts"]);
+  fs.writeFileSync(drizzle("c/entities"), table("new"));
+  assert.deepEqual(changedTables(before, snapshotTables(root)), ["src/features/a/entities/drizzle.ts", "src/features/b/entities/drizzle.ts", "src/features/c/entities/drizzle.ts", "src/features/core/c/entities/read.ts"]);
 });
 
 test("引数: --lint だけ受け付ける", () => {

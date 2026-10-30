@@ -10,8 +10,10 @@ import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const plan = planExtensions(repoRoot);
-const stale = plan.problems.length > 0 ? [] : staleOutputs(repoRoot, plan.outputs);
-const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points);
+// --no-stale: 宣言・項目の問題だけを見る(一覧のずれは extensions:generate で直るので見ない。forge の事前検査)
+const noStale = process.argv.includes("--no-stale");
+const stale = noStale || plan.problems.length > 0 ? [] : staleOutputs(repoRoot, plan.outputs);
+const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points).filter((s) => !(noStale && s.generated));
 const all = [
   ...plan.problems,
   ...stale.map((path) => `${path}: 宣言・項目とずれている(pnpm extensions:generate で作り直してコミット)`),

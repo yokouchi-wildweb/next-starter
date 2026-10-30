@@ -18,7 +18,7 @@
 
 ## 全体の流れ
 
-1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>[.<fork の名前>].ts` の `export const purposes`、業務ドメインは dc:generate が `src/registry/storagePurposeRegistry.ts` の AUTO の区画へ。無い用途は拒否）
+1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>[.<fork の名前>].ts` の `export const purposes`、生成するドメインは dc:generate がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm registry:generate`。無い用途は拒否）
 2. サーバーがアップロード権を発行する。台帳に pending の行を作り、上書き不可の署名 PUT か GCS の再開可能セッションを返す
    - **strip の用途の画像**は、本来の保存先ではなく非公開の受け取り領域（priv バケットの `incoming/`）への権利を返す
 3. ブラウザが GCS へ直接送る
@@ -305,7 +305,7 @@ type StoragePurpose = {
 
 - allow（既存の DomainApiAccessRule の語彙）と check（任意の判定関数）は AND。暗黙に判定を通る道（admin・system の素通し）は無い
 - `resolveStoragePurpose(map, id)` は、未登録なら `StoragePurposeNotFoundError`（400）を投げる。`findStoragePurpose(map, id)` は未登録で undefined
-- `listStoragePurposeProblems(map)` は用途表の形式を検査する（metadata の値・描き直せない画像の型・画像の無い用途の strip・`user.avatar` の keep を含む）。用途の登録表との結線は `src/registry/storagePurposeRegistry.ts` で行う
+- `listStoragePurposeProblems(map)` は用途表の形式を検査する（metadata の値・描き直せない画像の型・画像の無い用途の strip・`user.avatar` の keep を含む）。用途の登録表との結線は `src/features/core/storageObject/services/server/purposeSource.ts` で行う
 
 ## クライアント: `uploadToStorage`
 

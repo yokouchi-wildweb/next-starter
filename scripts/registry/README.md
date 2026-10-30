@@ -5,9 +5,9 @@
 | コマンド | 何をするか | DB 接続 |
 |---|---|---|
 | `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/registry/push.ts`） | 必要・書き込む |
-| `pnpm test:schema-registry` | 走査の表の集合 = schemaRegistry の全 pgTable、α 3 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
+| `pnpm test:schema-registry` | 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
 | `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
-| `pnpm registry:generate` / `pnpm registry:check` | `src/registry` の α 4 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル + `profileTableRegistry`）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
+| `pnpm registry:generate` / `pnpm registry:check` | `src/registry` の α 5 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル + `profileTableRegistry`）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
 
 ## スキーマ変更を DB に反映する（push）
 
@@ -21,7 +21,7 @@
 - `drizzle-kit push` を直接叩くとスキーマゲートを通らない（無効な機能のテーブルも作られる）。使わない。
 
 1. `entities/drizzle.ts` を変更する（business ドメインは `domain.json` → `pnpm dc:generate`）
-2. 新しい表・新しいドメインを足したら `pnpm registry:generate` を走らせてコミットする（core も同じ。`dc:generate` は今も 3 本に行を足すが並びが生成と違うので、この実行まで `registry:check` が止まる）
+2. 新しい表・新しいドメインを足したら `pnpm forge`（単独なら `pnpm registry:generate`）を走らせてコミットする（core も同じ。`dc:generate` は一覧を書かないので、この実行まで `registry:check` が止める）
 3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
 4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）
 

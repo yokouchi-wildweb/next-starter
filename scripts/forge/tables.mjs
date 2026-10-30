@@ -1,27 +1,14 @@
-// DB の表の定義（drizzle.ts）の hash。生成の前後で比べ、変わっていれば db:push の案内を出す（forge は db:push を呼ばない）
+// DB の表の定義（pgTable を持つファイル）の hash。生成の前後で比べ、変わっていれば db:push の案内を出す（forge は db:push を呼ばない）
 
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-/** 表の定義のファイル: business の entities/drizzle.ts とプロフィールの generated/<role>/drizzle.ts */
+import { scanFeatureTables } from "../registry/tableScan.mjs";
+
+/** 表の定義のファイル: src/features の pgTable を持つ全ファイル（core・business・プロフィールの生成物。registry:generate の schemaRegistry と同じ走査） */
 function tableFiles(rootDir) {
-  const featuresDir = path.join(rootDir, "src", "features");
-  const files = [];
-  if (fs.existsSync(featuresDir)) {
-    for (const name of fs.readdirSync(featuresDir)) {
-      const file = path.join(featuresDir, name, "entities", "drizzle.ts");
-      if (fs.existsSync(file)) files.push(file);
-    }
-  }
-  const generatedDir = path.join(featuresDir, "core", "userProfile", "generated");
-  if (fs.existsSync(generatedDir)) {
-    for (const name of fs.readdirSync(generatedDir)) {
-      const file = path.join(generatedDir, name, "drizzle.ts");
-      if (fs.existsSync(file)) files.push(file);
-    }
-  }
-  return files.sort();
+  return [...new Set(scanFeatureTables(rootDir).tables.map((table) => path.join(rootDir, table.file)))].sort();
 }
 
 /**

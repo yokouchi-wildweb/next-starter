@@ -1,5 +1,5 @@
 // forge の段の並び（純粋）と、段を順に回す runner（段の実行は差し替えられる = テスト用）。
-// 順は依存から: 事前検査（何も書かない）→ 生成（role → dc → routes:map）→ 事後検査（速いもの → typecheck → lint）
+// 順は依存から: 事前検査（何も書かない。作り直せる一覧のずれは見ない）→ 生成（role → dc → 一覧 → routes:map）→ 事後検査（速いもの → typecheck → lint）
 // → デプロイ先の検査（生成とは別の段。今は Vercel だけ: vercel.json があるときの cron:check）。
 // cron は生成しない（cron:generate は別コマンド、--plan 必須）。
 // 生成直後に落ちうる検査は route-map だけ（routes:map で作り直してから見る）。調べた所要時間: typecheck 10〜13 秒、lint 全体 32 秒、ほかは 1 秒前後
@@ -34,11 +34,14 @@ export function buildSteps({ vercel, lint = false }) {
   return [
     { phase: "pre", name: "ロール・プロフィールの検査", check: "roles" },
     script("pre", "dc:generate:all", ["--dry-run"]),
-    script("pre", "registry:check"),
+    script("pre", "extensions:check", ["--no-stale"]),
     script("generate", "role:generate", ["--all"]),
     script("generate", "dc:generate:all"),
+    script("generate", "registry:generate"),
+    script("generate", "extensions:generate"),
     script("generate", "routes:map"),
     script("post", "registry:check"),
+    script("post", "extensions:check"),
     script("post", "test:schema-registry"),
     script("post", "test:storage-purposes"),
     script("post", "test:service-registry"),

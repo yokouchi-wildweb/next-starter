@@ -394,7 +394,7 @@ mimeType, src, durationSec, durationFormatted
 
 #### ファイルの保存（storage）
 
-dc:generate は、メディア項目ごとにファイル用途（`<domain>.<field>`）を `src/registry/storagePurposeRegistry.ts` の AUTO ブロックへ書き込む（`--only registry` でも書き込む）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
+dc:generate は、メディア項目ごとにファイル用途（`<domain>.<field>`）を ドメインの `services/server/storagePurposes.ts` に書く（`--only registry` でも書く。`pnpm registry:generate` がその一覧 `src/registry/storagePurposeRegistry.ts` を作る）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
 
 - 用途 ID は `<domain>.<field>`。ref とオブジェクトのパスに入るため、使い始めた後はドメイン名・項目名を変えない
 - contentTypes は accept から作る
@@ -411,8 +411,8 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
   - 管理者だけがアップロードできる項目 → 読める人（`storage.read`、無ければ apiAccess の get）が `"public"` なら public、それ以外は private
 - private の用途には read.allow として読める人（`storage.read`、無ければ apiAccess の get の規則）を付ける。`storage.read` の `"public"` も書ける（visibility を private と明示した項目でもそのまま出す）
 - 同じ ID が項目(`src/features/core/storageObject/purposes/`)にもあると、用途表を合成するときに例外になる（`purposeSource.ts`）。AUTO から外したい用途は項目へ移す。手書きの定義（check 関数付きなど）が優先される
-- 項目を消して再生成すると、AUTO ブロックから消える。dc:delete はそのドメインの AUTO エントリを消す
-- core ドメインの domain.json（notification / coupon など）は、生成しても `src/registry/` の AUTO ブロックに書かないので、`src/features/core/storageObject/purposes/` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
+- 項目を消して再生成すると、そのファイルから消える（メディア項目が 1 つも無くなるとファイルは書かれず、前の版が残るので手で消す）。dc:delete はフォルダごと消す
+- core ドメインの domain.json（notification / coupon など）は、手で管理（`generate: false`）の間は `src/features/core/storageObject/purposes/` に手で書く。`generate: true` にすると同じ ID は重複の例外になるので、そちらからは消す。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
 ---
 
@@ -564,7 +564,7 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が
 
 ### 生成カテゴリ（generate: true のとき作るもの）
 
-`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（registry の追記・domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/domain-config/README.md`）。
+`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/domain-config/README.md`）。
 
 | カテゴリ | - | 説明 |
 |-----------|-----|------|
