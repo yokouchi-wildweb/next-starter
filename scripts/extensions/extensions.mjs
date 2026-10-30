@@ -199,7 +199,15 @@ function checkSettingSections(points, itemsByPoint) {
   const problems = [];
   for (const point of points.filter((p) => p.spec.derive === "settingSections")) {
     const sections = points.find((p) => p.owner === point.owner && p.name === "sections");
-    const keys = new Set((sections ? itemsByPoint.get(sections) : []).flatMap((i) => /\bkey:\s*["']([^"']+)["']/.exec(i.text)?.[1] ?? []));
+    const keyOf = (i) => /\bkey:\s*["']([^"']+)["']/.exec(i.text)?.[1];
+    const sectionItems = sections ? itemsByPoint.get(sections) : [];
+    const seen = new Map();
+    for (const item of sectionItems) {
+      const key = keyOf(item);
+      if (key && seen.has(key)) problems.push(`${item.path}: セクションの key "${key}" は ${seen.get(key)} にもある`);
+      if (key) seen.set(key, item.path);
+    }
+    const keys = new Set(seen.keys());
     for (const item of itemsByPoint.get(point)) {
       const section = /\bsection:\s*["']([^"']+)["']/.exec(item.text)?.[1];
       if (section && !keys.has(section)) problems.push(`${item.path}: 無いセクション "${section}" を指している`);

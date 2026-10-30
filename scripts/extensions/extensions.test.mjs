@@ -341,9 +341,7 @@ test("setting の点: 失敗の形(.default なし・同名・無いセクショ
   hasProblem(settingPlan({ "src/features/core/setting/fields/n.ts": 'export const field = { schema: 1 };\n' }), ".default( が無い");
   hasProblem(settingPlan({ "src/features/core/setting/fields/a.acme.ts": KEY }), "同じ名前の項目");
   hasProblem(settingPlan({ "src/features/core/setting/fields/x.ts": KEY.replace("general", "nope") }), '無いセクション "nope"');
-  const dup = settingPlan({ "src/features/core/setting/sections/other.ts": SECTION });
-  const out = dup.outputs["src/features/core/setting/extensions/sections.ts"];
-  assert.match(out, /が重複している項目がある/);
+  hasProblem(settingPlan({ "src/features/core/setting/sections/other.ts": SECTION }), 'セクションの key "general"');
 });
 
 test("setting の点: キーから推移的に届く値 import を止める、型だけと config と純関数は通す", () => {

@@ -139,7 +139,12 @@ test("useImportExport: false の core は import だけ閉じ、export / truncat
     assert.deepEqual(resolveAccessRule(access, "list", "read"), ADMIN_RULE, `${key}: list`);
   }
   // それ以外の既存 core 行はデータ操作 3 つとも管理者
-  for (const key of ["setting", "wallet", "walletHistory", "purchaseRequest", "couponHistory", "userCounter", "interactionEvent", "notification", "notificationTemplate", "chatRoom", "deviceFingerprint", "fingerprintChallenge", "couponAttributionReward", "couponIssuerGrant"]) {
+  // setting は値の書き手が保存処理だけなので、読みと update と export のほかは閉じる
+  const setting = defaults.setting.access;
+  for (const operation of ["create", "remove", "upsert", "bulkUpdate", "truncateAll", "import"]) assert.equal(resolveAccessRule(setting, operation, "write"), "none", `setting: ${operation}`);
+  assert.deepEqual(resolveAccessRule(setting, "update", "write"), ADMIN_RULE);
+  assert.deepEqual(resolveAccessRule(setting, "export", "write"), ADMIN_RULE);
+  for (const key of ["wallet", "walletHistory", "purchaseRequest", "couponHistory", "userCounter", "interactionEvent", "notification", "notificationTemplate", "chatRoom", "deviceFingerprint", "fingerprintChallenge", "couponAttributionReward", "couponIssuerGrant"]) {
     for (const operation of DOMAIN_DATA_OPERATIONS) {
       assert.deepEqual(resolveAccessRule(defaults[key].access, operation, "write"), ADMIN_RULE, `${key}: ${operation}`);
     }

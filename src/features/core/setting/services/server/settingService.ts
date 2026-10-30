@@ -1,138 +1,50 @@
 // src/features/setting/services/server/settingService.ts
-import type { Setting } from "@/features/core/setting/entities";
+import type { Setting, SettingValues } from "@/features/core/setting/entities";
 import type { User } from "@/features/core/user/entities";
 import { createAdmin } from "@/features/core/user/services/server/creation/console";
 import { checkAdminUserExists } from "@/features/core/user/services/server/finders/checkAdminUserExists";
 import { isDatabaseConfigured } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import { getZodDefaults } from "@/lib/zod";
 
-import { settingExtendedSchema } from "../../setting.extended";
-import type { SettingExtended } from "../../setting.extended";
+import { fields } from "../../extensions/fields";
 import type { AdminSetupInput } from "../types";
-import { base, extendedKeys, splitExtendedFields } from "./drizzleBase";
+import { base } from "./drizzleBase";
+import { readSettingValues } from "./read";
+import { saveSettingValues } from "./save";
 
-const DEFAULT_ADMIN_LIST_PER_PAGE = 50;
+/** 保存値(行が無い・DB 未構成なら null)。DB 未構成で止めない: maintenanceProxy / (user) 配下の表示のため。接続できない場合は例外のまま(障害を隠さない) */
+async function readStored(): Promise<{ row: Awaited<ReturnType<typeof base.get>> | null; stored: Record<string, unknown> | null }> {
+  if (!isDatabaseConfigured()) return { row: null, stored: null };
+  const row = await base.get("global");
+  return { row: row ?? null, stored: (row?.extended as Record<string, unknown> | null | undefined) ?? null };
+}
 
-/**
- * DBの行データ（extended jsonb を含む）をフラットな Setting 型に変換する
- */
-function flattenSettingRow(
-  row: Record<string, unknown>,
-  defaults: Record<string, unknown>,
-): Setting {
-  const { extended, ...baseFields } = row;
-  const extendedData = settingExtendedSchema.safeParse({
-    ...defaults,
-    ...(extended as Record<string, unknown> | null),
-  });
-
+async function getGlobalSetting(): Promise<Setting> {
+  const { row, stored } = await readStored();
   return {
-    ...baseFields,
-    ...(extendedData.success ? extendedData.data : defaults),
+    id: "global",
+    createdAt: row?.createdAt ?? null,
+    updatedAt: row?.updatedAt ?? null,
+    ...readSettingValues(stored, fields),
   } as Setting;
 }
 
-const createDefaultSettingValues = (): Record<string, unknown> => ({
-  // 基本設定項目
-  adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-  // 拡張設定項目（setting.extended.ts から自動取得）
-  ...getZodDefaults(settingExtendedSchema),
-});
-
-/** 行が保存されていない時に返す既定の Setting（DB 未構成時も同じ値） */
-const createUnsavedSetting = (defaultValues: Record<string, unknown>): Setting =>
-  ({
-    id: "global",
-    createdAt: null,
-    updatedAt: null,
-    ...defaultValues,
-  }) as Setting;
-
-async function getGlobalSetting(): Promise<Setting> {
-  const defaultValues = createDefaultSettingValues();
-
-  // DATABASE_URL 未設定（クローン → env:init 直後）では「設定が保存されていない」のと
-  // 同じ扱いで既定値を返し、maintenanceProxy / (user) 配下のページ表示を止めない。
-  // 設定済みで接続できない場合はここを通らず従来どおり例外になる（障害を隠さない）。
-  if (!isDatabaseConfigured()) {
-    return createUnsavedSetting(defaultValues);
-  }
-
-  const existing = await base.get("global");
-
-  if (!existing) {
-    return createUnsavedSetting(defaultValues);
-  }
-
-  const setting = flattenSettingRow(
-    existing as unknown as Record<string, unknown>,
-    defaultValues,
-  );
-
-  return {
-    ...setting,
-    adminListPerPage: setting.adminListPerPage ?? DEFAULT_ADMIN_LIST_PER_PAGE,
-  };
+/** 必要なキーだけを読む(proxy・health・maintenance loader。ほかのキーの検証を走らせない) */
+async function readSettingKeys<K extends keyof SettingValues>(keys: readonly K[]): Promise<Pick<SettingValues, K>> {
+  const { stored } = await readStored();
+  return readSettingValues(stored, fields, keys as readonly string[]) as Pick<SettingValues, K>;
 }
 
-/**
- * global 設定を部分更新する（extended jsonb をマージ）
- *
- * setting は singleton（id="global"）。基本カラムは createCrudService の update が
- * 「送られてきた列だけ」を更新するので問題ないが、extended は単一の jsonb カラムのため
- * 送られてきたキーだけで書くと他の拡張フィールドが黙って全消しされる。
- * そこで現在の extended を読み出し、送られてきた拡張フィールドだけを上書きした
- * 完全な集合を書き戻す。
- *
- * マージ方針: 拡張フィールド単位の shallow マージ。配列は連結せず置換される
- * （incoming の配列がそのまま現在値を置き換える）。ネストした object も同様に丸ごと置換。
- * 全フィールドを送る EditSettingSectionForm 経路は「全集合とマージ」＝同結果で無害。
- */
-async function updateGlobalSetting(
-  data: Parameters<typeof base.update>[1],
-  tx?: Parameters<typeof base.update>[2],
-): Promise<Setting> {
-  const { base: incomingBase, extended: incomingExtended } = splitExtendedFields(
-    data as Record<string, unknown>,
-  );
-
-  // 拡張フィールドが更新対象に含まれるときのみ現在値とマージする。
-  let mergedExtendedFlat: Record<string, unknown> = incomingExtended;
-  if (Object.keys(incomingExtended).length > 0) {
-    const current = (await getGlobalSetting()) as unknown as Record<string, unknown>;
-    const currentExtended: Record<string, unknown> = {};
-    for (const key of extendedKeys) {
-      if (key in current) currentExtended[key] = current[key];
-    }
-    mergedExtendedFlat = { ...currentExtended, ...incomingExtended };
-  }
-
-  const updated = await base.update(
-    "global",
-    { ...incomingBase, ...mergedExtendedFlat } as Parameters<typeof base.update>[1],
-    tx,
-  );
-
-  // get と同じフラット形状で返す（update の戻り値を nested のまま返さない）。
-  if (!updated) return getGlobalSetting();
-  return flattenSettingRow(
-    updated as unknown as Record<string, unknown>,
-    createDefaultSettingValues(),
-  );
-}
-
-/**
- * 拡張フィールドの一部だけを安全に更新する便宜メソッド。
- * 例: settingService.updateFields({ someFlag: true }) — 他フィールドは保持される。
- */
-async function updateFields(partial: Partial<Setting>): Promise<Setting> {
-  return updateGlobalSetting(partial as Parameters<typeof base.update>[1]);
+/** 設定の保存。送ったキーだけを検証して重ねる(./save.ts) */
+async function updateFields(partial: Partial<SettingValues>): Promise<Setting> {
+  await saveSettingValues(partial as Record<string, unknown>);
+  base.invalidateRequestMemo();
+  return getGlobalSetting();
 }
 
 async function getAdminListPerPage(): Promise<number> {
-  const setting = await getGlobalSetting();
-  return setting.adminListPerPage;
+  const { adminListPerPage } = await readSettingKeys(["adminListPerPage"]);
+  return adminListPerPage;
 }
 
 /**
@@ -140,7 +52,7 @@ async function getAdminListPerPage(): Promise<number> {
  * DB上の maintenanceEnabled / maintenanceStartAt / maintenanceEndAt を参照する
  */
 async function isMaintenanceActive(): Promise<boolean> {
-  const setting = await getGlobalSetting();
+  const setting = await readSettingKeys(["maintenanceEnabled", "maintenanceStartAt", "maintenanceEndAt"]);
   if (!setting.maintenanceEnabled) return false;
 
   const now = Date.now();
@@ -165,29 +77,28 @@ export async function initializeAdminSetup(data: AdminSetupInput): Promise<User>
 
   // role はクライアント入力を無視して admin 固定（セットアップUIにロール選択は存在しない）
   const user = await createAdmin({ ...data, role: "admin" });
-  const defaultValues = createDefaultSettingValues();
-  const existing = await base.get("global");
-
-  const createData = { id: "global", ...defaultValues } as Parameters<typeof base.create>[0];
-  if (!existing) {
-    await base.create(createData);
-  } else {
-    await base.update("global", defaultValues as Parameters<typeof base.update>[1]);
-  }
+  // 行を作るだけ。既定値は書かない
+  if (!(await base.get("global"))) await base.create({ id: "global" });
 
   return user;
 }
 
+const closed = (name: string) => async (): Promise<never> => {
+  throw new DomainError(`setting の ${name} はできません`, { status: 405 });
+};
+
 export const settingService = {
   ...base,
   get: async (_id: string) => getGlobalSetting(),
-  // extended jsonb をマージ更新するオーバーライド（全消し footgun を safe-by-default 化）
-  update: (_id: string, data: Parameters<typeof base.update>[1], tx?: Parameters<typeof base.update>[2]) =>
-    updateGlobalSetting(data, tx),
+  // 値の書き手は保存処理だけ(行を作るのは initializeAdminSetup の base.create)
+  update: (_id: string, data: Partial<SettingValues>) => updateFields(data),
+  create: closed("create"),
+  upsert: closed("upsert"),
+  remove: closed("remove"),
   getGlobalSetting,
+  readSettingKeys,
   updateFields,
   getAdminListPerPage,
   isMaintenanceActive,
-  DEFAULT_ADMIN_LIST_PER_PAGE,
   initializeAdminSetup,
 };

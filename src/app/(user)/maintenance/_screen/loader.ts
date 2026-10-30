@@ -22,8 +22,8 @@ export type MaintenanceScreenData = {
 export const loadMaintenanceScreen = createLoader({
   access: "public",
   load: async (): Promise<MaintenanceScreenData> => {
-    const setting = await settingService.getGlobalSetting();
-    const endTime = setting.maintenanceEndAt ? new Date(setting.maintenanceEndAt).toISOString() : null;
+    const { maintenanceEndAt } = await settingService.readSettingKeys(["maintenanceEndAt"]);
+    const endTime = maintenanceEndAt ? new Date(maintenanceEndAt).toISOString() : null;
     return { endTime, redirectTo: maintenanceConfig.redirectAfterEnd };
   },
 });

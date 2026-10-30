@@ -11,6 +11,27 @@ export const domainEntries = {
     service: () => import("./settingService").then((m) => m.settingService),
     table: "settings",
     idColumn: "id",
-    access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
+    // 値の書き手は保存処理だけ: update 以外の書き込みは閉じる
+    access: {
+      ...ADMIN_ONLY,
+      operations: {
+        create: "none",
+        remove: "none",
+        upsert: "none",
+        duplicate: "none",
+        restore: "none",
+        hardDelete: "none",
+        reorder: "none",
+        bulkUpsert: "none",
+        bulkUpdate: "none",
+        bulkUpdateByIds: "none",
+        bulkDeleteByIds: "none",
+        bulkDeleteByQuery: "none",
+        replaceByQuery: "none",
+        truncateAll: "none",
+        import: "none",
+        export: ADMIN_DATA_OPERATIONS.export,
+      },
+    },
   },
 } satisfies DomainEntries;

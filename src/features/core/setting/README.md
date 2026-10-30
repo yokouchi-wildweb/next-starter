@@ -282,3 +282,9 @@ setting.sections.ts
 
 - `src/lib/zod/getZodDefaults.ts` — Zod スキーマからデフォルト値を抽出
 - `src/components/Form/FieldRenderer/` — セクションフィールドを描画する汎用レンダラ
+
+## 実列 admin_list_per_page から jsonb への移行
+
+順番を変えない: 旧版の書き込みを止める → `pnpm task setting-copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。旧版へ戻した間に保存すると、旧版の知らないキーの値が消える。
+
+全面の書き直しは同じ出荷の文書の指令で行う。

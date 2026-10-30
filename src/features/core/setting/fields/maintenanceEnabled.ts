@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import type { SettingFieldDefinition } from "../types/definition";
 
-export const field: SettingFieldDefinition = {
+export const field = {
   schema: z.coerce.boolean().default(false),
   ui: { section: "maintenance", order: 10, field: { label: "メンテナンスモード", formInput: "switchInput" } },
-};
+} satisfies SettingFieldDefinition;
