@@ -99,3 +99,23 @@ test("Firestore ドメインにメディア列があれば生成エラーで止�
   assert.throws(() => run(root, "memo"), /Firestore ドメインにはメディア列/);
   assert.ok(!fs.existsSync(path.join(serverDir(root, "memo"), "firestoreBase.ts")));
 });
+
+test("domain.json の audit: drizzleBase に audit と recorder が入り再生成でも残る。無し・enabled: false は何も出さない", () => {
+  const config = (audit) => ({ singular: "note", plural: "notes", dbEngine: "Neon", idType: "uuid", fields: [{ name: "title", fieldType: "string", formInput: "textInput" }], ...(audit ? { audit } : {}) });
+  const basePath = (root) => path.join(serverDir(root, "note"), "drizzleBase.ts");
+  const plain = project([], { note: config() });
+  run(plain, "note");
+  const plainBase = fs.readFileSync(basePath(plain), "utf8");
+  assert.doesNotMatch(plainBase, /audit/i);
+
+  const off = project([], { note: config({ enabled: false }) });
+  run(off, "note");
+  assert.equal(fs.readFileSync(basePath(off), "utf8"), plainBase);
+
+  const on = project([], { note: config({ targetType: "note", actionPrefix: "note", trackedFields: ["title"], retentionDays: 730 }) });
+  run(on, "note");
+  run(on, "note");
+  const base = fs.readFileSync(basePath(on), "utf8");
+  assert.match(base, /import \{ auditLogger \} from "@\/features\/core\/auditLog\/services\/server";/);
+  assert.match(base, /audit: \{ enabled: true, targetType: "note", actionPrefix: "note", trackedFields: \["title"\], retentionDays: 730, recorder: auditLogger \},/);
+});

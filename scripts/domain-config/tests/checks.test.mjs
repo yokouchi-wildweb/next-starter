@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { configIssues, preflightIssues, preflightWarnings } from "../checks/index.mjs";
+import { auditIssues } from "../checks/audit.mjs";
 import { fieldsIssues, fieldsWarnings } from "../checks/fields.mjs";
 import { mediaIssues } from "../checks/media.mjs";
 import { nameIssues, nameWarnings } from "../checks/names.mjs";
@@ -168,4 +169,24 @@ test("集約: 問題を全件並べ、[camel] を付ける", () => {
   const issues = configIssues("x", { fields: [{ name: "Bad" }] });
   assert.ok(issues.length > 3);
   assert.ok(issues.every((issue) => issue.startsWith("[x] ")));
+});
+
+test("audit: 無し・enabled: false・正しい形は通り、未知キー・必須の欠け・値の型・実在しない列・Neon 以外は止まる", () => {
+  const fields = [{ name: "first_name", fieldType: "string", formInput: "textInput" }];
+  const relations = [{ domain: "group", fieldName: "group_id", relationType: "belongsTo" }, { domain: "tag", fieldName: "tag_ids", relationType: "belongsToMany" }];
+  const audit = (extra) => auditIssues({ dbEngine: "Neon", fields, relations, audit: { targetType: "x", actionPrefix: "x", ...extra } }).join("\n");
+  assert.deepEqual(auditIssues({ dbEngine: "Firestore", fields }), []);
+  assert.deepEqual(auditIssues({ dbEngine: "Firestore", fields, audit: { enabled: false } }), []);
+  assert.equal(audit({ trackedFields: ["firstName", "groupId"], bulkMode: "detail", retentionDays: 730, strict: true }), "");
+  assert.match(audit({ recorder: "a" }), /知らないキー recorder/);
+  assert.match(audit({ targetType: undefined }), /audit\.targetType/);
+  assert.match(audit({ actionPrefix: "" }), /audit\.actionPrefix/);
+  assert.match(audit({ bulkMode: "all" }), /audit\.bulkMode/);
+  assert.match(audit({ retentionDays: 0 }), /audit\.retentionDays/);
+  assert.match(audit({ trackedFields: "firstName" }), /列名の配列/);
+  assert.match(audit({ trackedFields: ["first_name"] }), /"first_name" が列にありません/);
+  assert.match(audit({ trackedFields: ["tagIds"] }), /"tagIds" が列にありません/);
+  assert.match(auditIssues({ dbEngine: "Firestore", fields, audit: { targetType: "x", actionPrefix: "x" } }).join(), /Neon のドメインだけ/);
+  assert.match(auditIssues({ dbEngine: "Neon", fields, audit: [] }).join(), /オブジェクトで書いて/);
+  assert.match(configIssues("sample", { ...good(), audit: { enabled: "no" } }).join("\n"), /\[sample\] audit\.enabled/);
 });

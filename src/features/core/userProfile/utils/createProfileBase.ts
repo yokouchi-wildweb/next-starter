@@ -20,6 +20,8 @@ type CreateProfileBaseOptions = {
   belongsToManyObjectRelations?: BelongsToManyObjectRelation[];
   /** カウント取得対象リレーション（withCount 用） */
   countableRelations?: CountableRelation[];
+  /** 監査ログの設定（createCrudService の audit をそのまま渡す。pnpm role:generate が profile.json から書く） */
+  audit?: DrizzleCrudServiceOptions<any>["audit"];
 };
 
 /**
@@ -44,6 +46,7 @@ export function createProfileBase(
     belongsToRelations: options?.belongsToRelations,
     belongsToManyObjectRelations: options?.belongsToManyObjectRelations,
     countableRelations: options?.countableRelations,
+    audit: options?.audit,
   });
 
   /**
@@ -67,22 +70,17 @@ export function createProfileBase(
 
   /**
    * userId でプロフィールを更新
+   *
+   * audit の自動記録を効かせるため base.update を通す（updatedAt も base.update が付ける）
    */
   async function updateByUserId(
     userId: string,
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown> | null> {
-    const now = new Date();
-    const result = await db
-      .update(table)
-      .set({
-        ...data,
-        updatedAt: now,
-      })
-      .where(eq(table.userId, userId))
-      .returning();
-
-    return (result[0] as Record<string, unknown>) ?? null;
+    const existing = await getByUserId(userId);
+    if (!existing) return null;
+    const updated = await (base as any).update(existing.id as string, data);
+    return (updated as Record<string, unknown>) ?? null;
   }
 
   /**

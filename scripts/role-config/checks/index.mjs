@@ -2,6 +2,7 @@
 // 対話で作っていた頃に質問の中にあった決まりをここに移した（role.json・profile.json は手で書き、role:generate で生成する）。
 // 止めない食い違いは roleConfigWarnings（生成は進める）
 
+import { auditIssues } from "../../domain-config/checks/audit.mjs";
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "./profile.mjs";
 import { profileRelationIssues } from "./relations.mjs";
 import { roleIssues, roleWarnings } from "./role.mjs";
@@ -24,7 +25,7 @@ export function roleConfigIssues({ fileName, role, profile, overrideProblems = [
   // hasProfile: false のプロフィールは生成しないので項目は検査しない（警告だけ）
   if (profile !== null && role?.hasProfile === true) {
     issues.push(
-      ...[...profileFieldIssues(profile), ...profileRelationIssues(profile), ...profileTagIssues(profile)].map((issue) => `[${profileName}] ${issue}`),
+      ...[...profileFieldIssues(profile), ...profileRelationIssues(profile), ...profileTagIssues(profile), ...auditIssues(profile, "Neon")].map((issue) => `[${profileName}] ${issue}`),
     );
   }
   return issues;

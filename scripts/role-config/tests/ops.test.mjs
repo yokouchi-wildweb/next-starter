@@ -95,6 +95,14 @@ test("上書き: role:generate が重ね、JSON は変えない。不正・隣�
   assert.match(run("generate.mjs", "--all").stderr, /知らないキー fields/);
   fs.writeFileSync(profileOverride, typed("ProfileOverride", '{ tags: { selfEdit: ["missing"] } }'));
   assert.match(run("generate.mjs", "--all").stderr, /tags "selfEdit" の "missing"/);
+  fs.writeFileSync(profileOverride, typed("ProfileOverride", '{ audit: { targetType: "x" } }'));
+  assert.match(run("generate.mjs", "--all").stderr, /audit\.actionPrefix/);
+  fs.writeFileSync(profileOverride, typed("ProfileOverride", '{ audit: { targetType: "userProfile", actionPrefix: "user_profile", trackedFields: ["nick"], bulkMode: "detail" } }'));
+  const audited = run("generate.mjs", "--all");
+  assert.equal(audited.status, 0, audited.stderr);
+  assert.match(list("profileBases"), /import \{ auditLogger \} from/);
+  assert.match(list("profileBases"), /user: createProfileBase\(UserProfileTable, \{ defaultSearchFields: \(userProfile as ProfileConfig\)\.searchFields, audit: \{ enabled: true, targetType: "userProfile", actionPrefix: "user_profile", trackedFields: \["nick"\], bulkMode: "detail", recorder: auditLogger \} \}\)/);
+  assert.doesNotMatch(list("profileBases"), /contributor: .*audit/);
   fs.writeFileSync(profileOverride, "// 親の上書きを外す\n");
 
   // 隣に対象なし

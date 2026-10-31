@@ -4,6 +4,7 @@
 // 各 profile.json は使用箇所で直接インポートすること
 // 例: import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
 
+import type { AuditConfig } from "@/lib/crud/drizzle/types";
 import type { ProfileFieldConfig } from "../types";
 
 
@@ -46,4 +47,6 @@ export type ProfileConfig = {
   searchFields?: string[];
   /** リレーション設定（domain.json と同じフォーマット） */
   relations?: ProfileRelationConfig[];
+  /** 監査ログの設定（createCrudService の audit のうち JSON で書ける部分。recorder は role:generate が渡す） */
+  audit?: Partial<Omit<AuditConfig, "recorder">>;
 };

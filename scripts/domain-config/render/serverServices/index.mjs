@@ -10,6 +10,8 @@ import { checkMediaFieldsEngine } from "../../checks/mediaEngine.mjs";
 import { composeServiceOptions } from "./options.mjs";
 import { buildEntityImports, buildRelationTableImports } from "./relations/imports.mjs";
 import {
+  buildAuditImport,
+  buildAuditOption,
   buildCollectionsImport,
   buildCollectionsOption,
   buildStorageBindingImport,
@@ -62,8 +64,8 @@ export function renderServerServices(ctx, workspace) {
       .replace(/__DrizzleEntityImports__/g, buildEntityImports(pascal, composed?.relationTableImports ?? []))
       .replace(/__belongsToManyRelations__/g, composed?.belongsToManyLiteral ?? "")
       .replace(/__RelationTableImports__/g, buildRelationTableImports(composed?.relationDomainImports ?? [], camel))
-      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields) + buildCollectionsImport(hasCollections))
-      .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields) + buildCollectionsOption(hasCollections));
+      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields) + buildCollectionsImport(hasCollections) + buildAuditImport(config?.audit))
+      .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields) + buildCollectionsOption(hasCollections) + buildAuditOption(config?.audit));
 
   // wrappers/ が無ければ作って .gitkeep を置く（あれば中身に触らない）
   const outputs = [dir(path.join(outputDir, "wrappers"), { keepFile: ".gitkeep" })];

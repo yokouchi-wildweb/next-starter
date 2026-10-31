@@ -26,6 +26,8 @@ const PROFILE_KEYS = {
     expected: "{ タグ名: [項目名, ...] }",
   },
   searchFields: { check: isStringArray, expected: "文字列の配列" },
+  // 中身は checks の auditIssues が上書き後の値で見る
+  audit: { check: (value) => typeof value === "object" && value !== null && !Array.isArray(value), expected: "{ targetType, actionPrefix, ... }" },
 };
 
 /** JSON のファイル名 → 隣の上書きのファイル名 */

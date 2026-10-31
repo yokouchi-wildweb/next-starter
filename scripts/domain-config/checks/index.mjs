@@ -6,6 +6,7 @@
 // render/ の各生成器が例外を投げる。pipeline は全カテゴリの Output を集めてから書くので、どちらも書きかけを残さない。
 // 語彙の照合（checks/vocabulary.mjs）は警告だけで、生成は止めない
 
+import { auditIssues } from "./audit.mjs";
 import { checkDomainFolderName } from "./domainFolder.mjs";
 import { fieldsIssues, fieldsWarnings } from "./fields.mjs";
 import { mediaIssues } from "./media.mjs";
@@ -27,6 +28,7 @@ export function configIssues(camel, config) {
     ...fieldsIssues(config),
     ...mediaIssues(config),
     ...viewConfigIssues(config),
+    ...auditIssues(config),
   ].map((issue) => `[${camel}] ${issue}`);
 }
 

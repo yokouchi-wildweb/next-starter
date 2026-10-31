@@ -73,6 +73,7 @@
     "test:dc-vocabulary": "node --test scripts/domain-config/tests/vocabulary.test.mjs",
     "test:dc-checks": "node --test scripts/domain-config/tests/checks.test.mjs",
     "test:dc-feature-map": "node --test scripts/domain-config/tests/featureMap.test.mjs",
+    "test:profile-base": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/userProfile/utils/createProfileBase.test.mts",
     "test:role-config-checks": "node --test scripts/role-config/tests/checks.test.mjs",
     "test:role-config-ops": "node --test scripts/role-config/tests/ops.test.mjs",
     "test:forge": "node --test scripts/forge/tests/forge.test.mjs",

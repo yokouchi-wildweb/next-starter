@@ -6,6 +6,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toPlural, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../domain-config/spec/audit.mjs";
 import { readProfileOverride, readRoleOverride, requireOverride } from "../overrides.mjs";
 import { generatedHeader } from "./header.mjs";
 
@@ -239,6 +240,7 @@ function buildRelationOptions(roleId, config, override) {
   optionParts.push(
     `      defaultSearchFields: ${searchFieldsExpression(roleId, override)},`
   );
+  if (isAuditActive(config.audit)) optionParts.push(`      audit: ${auditLiteral(config.audit)},`);
 
   // belongsToManyRelations
   if (m2mRels.length > 0) {
@@ -343,7 +345,7 @@ function renderProfileBases(profiles) {
     } else {
       // リレーションなし（従来通り）
       entryLines.push(
-        `  ${roleId}: createProfileBase(${tableVar}, { defaultSearchFields: ${searchFieldsExpression(roleId, override)} }),`
+        `  ${roleId}: createProfileBase(${tableVar}, { defaultSearchFields: ${searchFieldsExpression(roleId, override)}${isAuditActive(config.audit) ? `, audit: ${auditLiteral(config.audit)}` : ""} }),`
       );
     }
   }
@@ -373,6 +375,7 @@ function renderProfileBases(profiles) {
     "",
     'import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";',
     'import type { ProfileBase } from "@/features/core/userProfile/types";',
+    ...(profiles.some(({ config }) => isAuditActive(config.audit)) ? [AUDIT_LOGGER_IMPORT.trimEnd()] : []),
     ...(profiles.length ? ['import type { ProfileConfig } from "@/features/core/userProfile/profiles";', ""] : []),
     ...importLines,
     ...extraImports,

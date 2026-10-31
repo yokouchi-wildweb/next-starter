@@ -1,6 +1,7 @@
 // drizzleBase.ts / firestoreBase.ts テンプレートの、ドメインの形に応じた差し込みと削り: storage binding と空スキーマ
 
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
+import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../spec/audit.mjs";
 
 export function buildStorageBindingImport(mediaFields) {
   if (mediaFields.length === 0) return "";
@@ -32,6 +33,16 @@ export function buildCollectionsImport(hasCollections) {
 /** createCrudService に渡す collections（ドメイン集約）。集まりの無いドメインは空 */
 export function buildCollectionsOption(hasCollections) {
   return hasCollections ? "  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は collections.ts\n  collections,\n" : "";
+}
+
+/** 監査ログの recorder の import。audit の無いドメインは空 */
+export function buildAuditImport(audit) {
+  return isAuditActive(audit) ? AUDIT_LOGGER_IMPORT : "";
+}
+
+/** createCrudService に渡す audit（domain.json の audit）。audit の無いドメインは空 */
+export function buildAuditOption(audit) {
+  return isAuditActive(audit) ? `  // 監査ログ（domain.json の audit）\n  audit: ${auditLiteral(audit)},\n` : "";
 }
 
 /** CreateSchema が空になるか（全フィールドが formInput: "none" かつ belongsTo / belongsToMany が無い） */
