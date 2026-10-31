@@ -88,3 +88,11 @@
 ## テスト
 - `pnpm test:data-migration`: 値の分類・解決、export のメディア取得、注入する resolver（DB なし）
 - `pnpm test:data-migration-db`: 実 DB の import（旧 URL の copy・同梱・外部 URL の失敗と巻き戻し・copy 失敗・同じ値の保持・bulkUpsert にメディア列が渡らない）
+
+## 注入するもの
+
+lib は登録表を import しない。API ルートが `src/wiring/domains.ts` の結んだ版を渡す。
+
+- `services`: ドメイン名からサービスを引く(`getService`)
+- `junctionTables`: 中間表の名前から表を引く(`getJunctionTable`)
+- `media`: ファイル台帳の操作

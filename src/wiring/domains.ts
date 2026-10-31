@@ -28,6 +28,8 @@ import {
   type AdminRelationTarget,
 } from "@/features/core/admin/services/server/screenData/adminRelationOptions";
 import { fetchAdminSort, type AdminSortScreenData, type AdminSortService } from "@/features/core/admin/services/server/screenData/adminSort";
+import type { PgTable } from "drizzle-orm/pg-core";
+
 import type { ListPageSearchParams } from "@/lib/crud/types";
 import { resolveAccessRule, type DomainApiAccessRule, type DomainApiOperation } from "@/lib/domain";
 import type { LoaderKeyValue, PageLoaderConfig } from "@/lib/pageGuard";
@@ -39,6 +41,7 @@ import {
   getDomainListWithCount as getDomainListWithCountFrom,
   getDomainTable as getDomainTableFrom,
   getInvalidDomainKeys as getInvalidDomainKeysFrom,
+  getJunctionTable as getJunctionTableFrom,
   getService as getServiceFrom,
   getServiceOrThrow as getServiceOrThrowFrom,
   hasService as hasServiceFrom,
@@ -50,6 +53,10 @@ import type { DomainTable } from "@/lib/domain/server";
 import type { DomainApiAccessConfig, DomainInfo, DomainService, DomainServiceLookup } from "@/lib/domain/types";
 import { domainConfigMap } from "@/registry/domainConfigRegistry";
 import { serviceRegistry } from "@/registry/serviceRegistry";
+
+/** 中間表の名前（snake_case）から表を引く。表の定義は呼ばれたときに読む（このファイルの import を軽く保つ） */
+export const getJunctionTable = async (tableName: string): Promise<PgTable | undefined> =>
+  getJunctionTableFrom(await import("@/registry/schemaRegistry"), tableName);
 
 /** 登録表にキーがあるか（同期。サービスは読み込まない） */
 export const hasService = (key: string): boolean => hasServiceFrom(serviceRegistry, key);

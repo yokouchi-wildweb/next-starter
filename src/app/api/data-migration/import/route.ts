@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { importData } from "@/lib/dataMigration/import";
-import { getService } from "@/wiring/domains";
+import { getJunctionTable, getService } from "@/wiring/domains";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
 
@@ -60,6 +60,7 @@ export const POST = createApiRoute(
       fields,
       media: createDataMigrationMediaResolver(admin),
       services: getService,
+      junctionTables: getJunctionTable,
     });
 
     if (!result.success) {

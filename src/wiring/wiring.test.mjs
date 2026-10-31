@@ -146,7 +146,7 @@ test("向き: wiring を import するのは src/app・src/proxies・src/proxy.t
 });
 
 /** file から import の鎖（動的 import を含む）を辿り、services/server のファイルに届くか */
-function reachesServicesServer(file) {
+function reachesServicesServer(file, { skip = [] } = {}) {
   const seen = new Set();
   const stack = [{ file, path: [] }];
   while (stack.length > 0) {
@@ -158,14 +158,15 @@ function reachesServicesServer(file) {
     if (/\/services\/server\//.test(rel) && !/\/domainEntry(\.override)?\.ts$/.test(rel)) return { reached: true, path: [...path, rel] };
     for (const { source } of listImportSources(readFileSync(current, "utf8"))) {
       const target = resolveSource(current, source);
-      if (target && !seen.has(target)) stack.push({ file: target, path: [...path, rel] });
+      if (target && !seen.has(target) && !skip.includes(toPosix(relative(srcDir, target)))) stack.push({ file: target, path: [...path, rel] });
     }
   }
   return { reached: false, path: [] };
 }
 
 test("データに届く wiring: domains.ts は registry → domainEntry.ts → 遅延 import の鎖で services/server に届く", () => {
-  const result = reachesServicesServer(join(wiringDir, "domains.ts"));
+  // getJunctionTable の遅延 import で表の定義からも届くので、見たい鎖(登録表)だけを辿る
+  const result = reachesServicesServer(join(wiringDir, "domains.ts"), { skip: ["registry/schemaRegistry.ts"] });
   assert.ok(result.reached, "domains.ts から services/server に届かない（登録表か domainEntry.ts の形が変わった）");
   assert.ok(result.path.some((rel) => rel === "registry/serviceRegistry.ts"), `鎖が登録表を通らない: ${result.path.join(" → ")}`);
   assert.ok(result.path.some((rel) => rel.endsWith("/domainEntry.ts")), `鎖が domainEntry.ts を通らない: ${result.path.join(" → ")}`);

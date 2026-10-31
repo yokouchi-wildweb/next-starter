@@ -7,6 +7,8 @@
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
+import { getJunctionTable, getJunctionTableOrThrow } from "@/lib/domain/junction/getTable";
+
 import { assertNoCollectionFields } from "./collectionFields";
 import { createZip, downloadChunkMedia } from "./export/createZip";
 import { exportData } from "./export";
@@ -301,6 +303,7 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
         csvContent: "id,name,main_image,gallery\nr1,a,https://example.com/a.png,x\n",
         media,
         services: async () => service as never,
+        junctionTables: async () => undefined,
       }),
       "gallery",
     );
@@ -359,7 +362,7 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
       { path: "chunk_001/data.csv", content: Buffer.from("id,name\nr1,a\n") },
       { path: "chunk_002/data.csv", content: Buffer.from("id,name,gallery\nr2,b,x\n") },
     ]);
-    await rejects400(importData({ domain: "sample", zipBuffer, media, services: async () => service as never }), "gallery");
+    await rejects400(importData({ domain: "sample", zipBuffer, media, services: async () => service as never, junctionTables: async () => undefined }), "gallery");
     assert.deepEqual(service.calls, []);
     assert.deepEqual(calls, []);
 
@@ -369,7 +372,7 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
       { path: "chunk_001/data.csv", content: Buffer.from("id,name\nr1,a\n") },
     ]);
     await rejects400(
-      importData({ domain: "sample", zipBuffer: clean, fields: [{ name: "gallery" }], media, services: async () => service as never }),
+      importData({ domain: "sample", zipBuffer: clean, fields: [{ name: "gallery" }], media, services: async () => service as never, junctionTables: async () => undefined }),
       "gallery",
     );
     assert.deepEqual(service.calls, []);
@@ -388,6 +391,7 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
         includeImages: false,
         media,
         services: async () => service as never,
+        junctionTables: async () => undefined,
       });
       assert.equal(result.success, true);
       const parsed = parseZip((result as { zipBuffer: Buffer }).zipBuffer, "sample");
@@ -406,5 +410,36 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
     const plain = await exportOf(fakeService({ rows }));
     assert.deepEqual(plain.fields, ["id", "name", "gallery", "createdAt"]);
     assert.equal(plain.csv[0], "id,name,gallery,createdAt");
+  });
+});
+
+describe("中間表の注入", () => {
+  test("getJunctionTable は渡された一覧から名前で引く", () => {
+    const table = { marker: "table" };
+    const tables = { SampleToSampleTagTable: table };
+    assert.equal(getJunctionTable(tables, "sample_to_sample_tag"), table);
+    assert.equal(getJunctionTable(tables, "nope_to_nope"), undefined);
+    assert.equal(getJunctionTableOrThrow(tables, "sample_to_sample_tag"), table);
+    assert.throws(() => getJunctionTableOrThrow(tables, "nope_to_nope"), /Junction table not found: nope_to_nope/);
+  });
+
+  test("中間表の取り込みは注入された関数で表を引き、無ければ失敗を返す", async () => {
+    const asked: string[] = [];
+    const result = await importChunk({
+      domain: "nope_to_nope",
+      chunkName: "chunk_001",
+      csvContent: "a_id,b_id\n1,2\n",
+      domainType: "junction",
+      media: fakeResolver().media,
+      services: async () => {
+        throw new Error("中間表ではサービスを引かない");
+      },
+      junctionTables: async (name) => {
+        asked.push(name);
+        return undefined;
+      },
+    });
+    assert.deepEqual(asked, ["nope_to_nope"]);
+    assert.deepEqual(result, { success: false, chunkName: "chunk_001", error: "Junction table not found: nope_to_nope" });
   });
 });

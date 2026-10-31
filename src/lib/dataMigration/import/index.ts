@@ -7,7 +7,7 @@ import "server-only";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { getDataMigrationConfig } from "../config";
 import type { DataMigrationMediaResolver } from "../media";
-import type { DataMigrationServiceResolver } from "../serviceResolver";
+import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from "../serviceResolver";
 import { assertNoCollectionFields } from "../collectionFields";
 import { parseCsv } from "./parseCsv";
 import { parseZip } from "./parseZip";
@@ -28,6 +28,8 @@ export type ImportOptions = {
   media: DataMigrationMediaResolver;
   /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
   services: DataMigrationServiceResolver;
+  /** 中間表の名前から表を引く（API ルートが src/wiring/domains.ts の getJunctionTable を注入する） */
+  junctionTables: DataMigrationJunctionResolver;
 };
 
 export type ChunkResult = {
@@ -70,7 +72,7 @@ export type ImportError = {
 export async function importData(
   options: ImportOptions
 ): Promise<ImportResult | ImportError> {
-  const { domain, zipBuffer, updateImages = true, fields = [], media, services } = options;
+  const { domain, zipBuffer, updateImages = true, fields = [], media, services, junctionTables } = options;
   const config = getDataMigrationConfig();
 
   // サービスを取得（登録表のキーは camelCase。未登録なら INVALID_DOMAIN）
@@ -148,6 +150,7 @@ export async function importData(
       domainType: "main",
       media,
       services,
+      junctionTables,
     });
     const result: ChunkResult = chunkResult.success
       ? { chunkName: chunkResult.chunkName, success: true, recordCount: chunkResult.recordCount }

@@ -103,7 +103,7 @@ export const domainEntries = {
 - `config/`: `getDomainConfig` / `hasDomainConfig`（`domainConfigRegistry` を読む）、`resolveAccessRule`
 - `relations/`: `getRelations` / `getHasManyRelations`、関連選択肢（`relationOptions.mjs`）
 - `fields/`: `extractFields` / `extractImageFields`
-- `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable` は server-only）
+- `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domains.ts` の `getJunctionTable(name)`）
 - `hooks/` `service/client/`: 管理画面の全件削除一覧（`useFetchDomains`）
 
 テスト: `pnpm test:service-registry`（登録表）、`pnpm test:wiring`（wiring の目録と向き）、`pnpm test:relation-options`、`pnpm test:dc-registry`（domainEntry.ts の生成）。

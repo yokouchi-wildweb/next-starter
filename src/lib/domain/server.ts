@@ -3,7 +3,7 @@
 // クライアントコンポーネントからはインポートしないでください
 
 // junction: 中間テーブル取得（server-only）
-export { getJunctionTable, getJunctionTableOrThrow } from "./junction/getTable";
+export { getJunctionTable, getJunctionTableOrThrow, type JunctionTables } from "./junction/getTable";
 
 // service/server: サービス取得・ドメイン一覧
 export * from "./service/server";

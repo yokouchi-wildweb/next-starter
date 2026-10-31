@@ -1,7 +1,6 @@
 // src/lib/dataMigration/export/index.ts
 
 import "server-only";
-import { getJunctionTable } from "@/lib/domain/server";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
 import {
@@ -20,7 +19,7 @@ import { toCamelCase } from "@/utils/stringCase.mjs";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { withoutCollectionFields } from "../collectionFields";
 import type { DataMigrationMediaResolver, MediaSkipped } from "../media";
-import type { DataMigrationServiceResolver } from "../serviceResolver";
+import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from "../serviceResolver";
 
 export type ExportOptions = {
   /** ドメイン名 */
@@ -40,6 +39,8 @@ export type ExportOptions = {
   media: DataMigrationMediaResolver;
   /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
   services: DataMigrationServiceResolver;
+  /** 中間表の名前から表を引く（API ルートが src/wiring/domains.ts の getJunctionTable を注入する） */
+  junctionTables: DataMigrationJunctionResolver;
   /** リレーションを含めるか（default: false） */
   includeRelations?: boolean;
   /** エクスポートする hasMany ドメインのリスト（snake_case） */
@@ -365,6 +366,7 @@ async function exportDomainRecords(
   includeImages: boolean,
   media: DataMigrationMediaResolver,
   services: DataMigrationServiceResolver,
+  junctionTables: DataMigrationJunctionResolver,
   searchParams?: string
 ): Promise<{
   success: true;
@@ -390,7 +392,7 @@ async function exportDomainRecords(
 
   // 中間テーブルの場合
   if (type === "junction") {
-    const junctionTable = getJunctionTable(domain);
+    const junctionTable = await junctionTables(domain);
     if (!junctionTable) {
       return {
         success: false,
@@ -562,7 +564,7 @@ async function exportDomainRecords(
 export async function exportDataWithRelations(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, includeImages, searchParams, selectedHasManyDomains, media, services } = options;
+  const { domain, includeImages, searchParams, selectedHasManyDomains, media, services, junctionTables } = options;
   const config = getDataMigrationConfig();
 
   try {
@@ -590,6 +592,7 @@ export async function exportDataWithRelations(
         includeImages,
         media,
         services,
+        junctionTables,
         domainSearchParams
       );
 

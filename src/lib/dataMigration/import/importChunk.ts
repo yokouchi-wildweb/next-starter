@@ -6,13 +6,12 @@
 // 集まりの項目（サービスの collectionFields）を含むチャンクは、メディアの解決・書き込みより前に DomainError 400 で拒否する。
 
 import "server-only";
-import { getJunctionTable } from "@/lib/domain/server";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";
 import type { DataMigrationMediaResolver } from "../media";
-import type { DataMigrationServiceResolver } from "../serviceResolver";
+import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from "../serviceResolver";
 import { MediaValueError, resolveMediaRow } from "./mediaValues";
 import { assertNoCollectionFields } from "../collectionFields";
 
@@ -41,6 +40,8 @@ export type ImportChunkOptions = {
   media: DataMigrationMediaResolver;
   /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
   services: DataMigrationServiceResolver;
+  /** 中間表の名前から表を引く（API ルートが src/wiring/domains.ts の getJunctionTable を注入する） */
+  junctionTables: DataMigrationJunctionResolver;
   /** フィールド型情報（型変換用） */
   fields?: FieldTypeInfo[];
   /** ドメインタイプ（main/related/junction/hasMany） */
@@ -215,11 +216,12 @@ async function importJunctionChunk(options: {
   domain: string;
   chunkName: string;
   csvContent: string;
+  junctionTables: DataMigrationJunctionResolver;
 }): Promise<ImportChunkResult> {
-  const { domain, chunkName, csvContent } = options;
+  const { domain, chunkName, csvContent, junctionTables } = options;
 
   // 中間テーブルを取得
-  const junctionTable = getJunctionTable(domain);
+  const junctionTable = await junctionTables(domain);
   if (!junctionTable) {
     return {
       success: false,
@@ -284,11 +286,11 @@ async function findExisting(service: any, id: string): Promise<Record<string, un
 export async function importChunk(
   options: ImportChunkOptions
 ): Promise<ImportChunkResult> {
-  const { domain, chunkName, csvContent, domainType, services } = options;
+  const { domain, chunkName, csvContent, domainType, services, junctionTables } = options;
 
   // 中間テーブルの場合は直接 DB 挿入
   if (domainType === "junction") {
-    return importJunctionChunk({ domain, chunkName, csvContent });
+    return importJunctionChunk({ domain, chunkName, csvContent, junctionTables });
   }
 
   // サービスを取得（登録表のキーは camelCase）。import を許すかは API ルートが domainEntry.ts の access（import）で判定済み
@@ -310,7 +312,7 @@ export async function importChunk(
  */
 export async function importServiceChunk(
   service: any,
-  options: Omit<ImportChunkOptions, "domain" | "domainType" | "services"> & { domain?: string },
+  options: Omit<ImportChunkOptions, "domain" | "domainType" | "services" | "junctionTables"> & { domain?: string },
 ): Promise<ImportChunkResult> {
   const {
     domain = "",
