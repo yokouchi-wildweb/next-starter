@@ -12,6 +12,7 @@ import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 
 const config = normalizeDomainJsonConfig(rawConfig);
 
@@ -33,9 +34,9 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     header: "操作",
     render: (d: Sample) => (
       <TableCellAction>
-        <EditButton domain="sample" id={d.id} />
+        <EditButton domain={sampleDisplay} id={d.id} />
         <DuplicateButton domain="sample" id={d.id} currentName={d.name} />
-        <DeleteButton domain="sample" id={d.id} />
+        <DeleteButton domain={sampleDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

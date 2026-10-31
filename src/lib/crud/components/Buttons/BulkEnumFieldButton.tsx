@@ -13,13 +13,14 @@ import {
 } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig, getFieldOptions, getFieldLabel } from "@/lib/domain";
+import { getFieldOptions, getFieldLabel } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { createApiClient } from "@/lib/crud/client";
 import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
 
 export type BulkEnumFieldButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 更新対象のID配列 */
   ids: string[];
   /** 更新対象のフィールド名 */
@@ -83,7 +84,7 @@ const formatMessage = (message: string, count: number): string => {
  * />
  */
 export function BulkEnumFieldButton({
-  domain,
+  domain: config,
   ids,
   field,
   options: optionsProp,
@@ -100,7 +101,6 @@ export function BulkEnumFieldButton({
   onSuccess,
   disabled = false,
 }: BulkEnumFieldButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useBulkUpdateByIdsDomain(

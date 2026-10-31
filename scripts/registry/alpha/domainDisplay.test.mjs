@@ -2,7 +2,7 @@
 // 実行: pnpm test:domain-display
 
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -71,5 +71,14 @@ test("registry の検査: 写しがずれると stale", () => {
     assert.deepEqual(staleAlphaRegistries(dir, { [path]: text }), [path]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("全ドメイン: ボタンが読む singular・plural・label は domain.json と同じ", () => {
+  const { outputs } = buildAlphaRegistries(process.cwd());
+  for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
+    const display = JSON.parse(/= (\{[\s\S]*\}) as const/.exec(outputs[path])[1]);
+    const config = JSON.parse(readFileSync(path.replace("entities/display.ts", "domain.json"), "utf8"));
+    assert.deepEqual([display.singular, display.plural, display.label], [config.singular, config.plural, config.label], path);
   }
 });

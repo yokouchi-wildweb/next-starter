@@ -30,6 +30,7 @@ import type { SampleWithRelations } from "@/features/sample/entities/model";
 import { Flex } from "@/components/Layout/Flex";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
+import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 
 // デモ用のダミーデータ
 const DEMO_SHIPMENTS = [
@@ -552,7 +553,7 @@ export function DemoPopoverDemo() {
               bulkActions={(selection) => (
                 <>
                   <BulkBelongsToFieldButton
-                    domain="sample"
+                    domain={sampleDisplay}
                     ids={selection.selectedIds}
                     relation="sampleCategory"
                     onSuccess={() => {
@@ -561,7 +562,7 @@ export function DemoPopoverDemo() {
                     }}
                   />
                   <BulkBelongsToManyFieldButton
-                    domain="sample"
+                    domain={sampleDisplay}
                     ids={selection.selectedIds}
                     relation="sampleTag"
                     showClearAll
@@ -571,7 +572,7 @@ export function DemoPopoverDemo() {
                     }}
                   />
                   <BulkEnumFieldButton
-                    domain="sample"
+                    domain={sampleDisplay}
                     ids={selection.selectedIds}
                     field="select"
                     onSuccess={() => {
@@ -580,7 +581,7 @@ export function DemoPopoverDemo() {
                     }}
                   />
                   <BulkDeleteButton
-                    domain="sample"
+                    domain={sampleDisplay}
                     ids={selection.selectedIds}
                     onSuccess={() => {
                       mutateSamples();
@@ -621,14 +622,14 @@ export function DemoPopoverDemo() {
                   render: (item) => (
                     <Flex className="gap-1">
                       <BelongsToFieldButton
-                        domain="sample"
+                        domain={sampleDisplay}
                         id={item.id}
                         relation="sampleCategory"
                         currentValue={item.sample_category_id}
                         onSuccess={() => mutateSamples()}
                       />
                       <BelongsToManyFieldButton
-                        domain="sample"
+                        domain={sampleDisplay}
                         id={item.id}
                         relation="sampleTag"
                         currentValue={item.sample_tag_ids ?? []}
@@ -636,7 +637,7 @@ export function DemoPopoverDemo() {
                         onSuccess={() => mutateSamples()}
                       />
                       <EnumFieldButton
-                        domain="sample"
+                        domain={sampleDisplay}
                         id={item.id}
                         field="select"
                         currentValue={item.select ?? ""}

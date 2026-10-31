@@ -14,6 +14,7 @@ import { useState } from "react";
 import ChatRoomDetailModal from "../common/ChatRoomDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 export type AdminChatRoomListTableProps = {
   /**
@@ -33,8 +34,8 @@ const columns: DataTableColumn<ChatRoom>[] = buildDomainColumns<ChatRoom>({
     header: "操作",
     render: (d: ChatRoom) => (
       <TableCellAction>
-        <EditButton domain="chatRoom" id={d.id} />
-        <DeleteButton domain="chatRoom" id={d.id} />
+        <EditButton domain={chatRoomDisplay} id={d.id} />
+        <DeleteButton domain={chatRoomDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

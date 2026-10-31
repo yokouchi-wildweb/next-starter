@@ -13,13 +13,14 @@ import {
 } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig, getFieldOptions, getFieldLabel } from "@/lib/domain";
+import { getFieldOptions, getFieldLabel } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { createApiClient } from "@/lib/crud/client";
 import { useUpdateDomain } from "@/lib/crud/hooks";
 
 export type EnumFieldButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 更新対象のID */
   id: string;
   /** 更新対象のフィールド名 */
@@ -79,7 +80,7 @@ export type EnumFieldButtonProps = ButtonStyleProps & {
  * />
  */
 export function EnumFieldButton({
-  domain,
+  domain: config,
   id,
   field,
   options: optionsProp,
@@ -97,7 +98,6 @@ export function EnumFieldButton({
   onSuccess,
   disabled = false,
 }: EnumFieldButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useUpdateDomain(

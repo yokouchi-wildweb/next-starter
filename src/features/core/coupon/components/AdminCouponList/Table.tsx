@@ -11,6 +11,7 @@ import { useState } from "react";
 import CouponDetailModal from "../common/CouponDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
 
 export type AdminCouponListTableProps = {
   /**
@@ -30,9 +31,9 @@ const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
     header: "操作",
     render: (d: Coupon) => (
       <TableCellAction>
-        <EditButton domain="coupon" id={d.id} />
-        <DuplicateButton domain="coupon" id={d.id} currentName={d.name} />
-        <DeleteButton domain="coupon" id={d.id} />
+        <EditButton domain={couponDisplay} id={d.id} />
+        <DuplicateButton domain={couponDisplay} id={d.id} currentName={d.name} />
+        <DeleteButton domain={couponDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

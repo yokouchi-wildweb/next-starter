@@ -9,6 +9,7 @@ import config from "@/features/core/userTag/domain.json";
 import presenters from "@/features/core/userTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as userTagDisplay } from "@/features/core/userTag/entities/display";
 
 export type AdminUserTagListTableProps = {
   /**
@@ -28,8 +29,8 @@ const columns: DataTableColumn<UserTag>[] = buildDomainColumns<UserTag>({
     header: "操作",
     render: (d: UserTag) => (
       <TableCellAction>
-        <EditButton domain="userTag" id={d.id} />
-        <DeleteButton domain="userTag" id={d.id} />
+        <EditButton domain={userTagDisplay} id={d.id} />
+        <DeleteButton domain={userTagDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

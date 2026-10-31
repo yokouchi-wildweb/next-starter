@@ -9,13 +9,13 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { createApiClient } from "@/lib/crud/client";
 import { useHardDeleteDomain } from "@/lib/crud/hooks";
 
 export type HardDeleteButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 削除対象のID */
   id: string;
   /** ポップオーバーのタイトル（省略時はドメインラベルから生成） */
@@ -43,7 +43,7 @@ export type HardDeleteButtonProps = ButtonStyleProps & {
 };
 
 export function HardDeleteButton({
-  domain,
+  domain: config,
   id,
   title,
   label = "完全削除",
@@ -59,7 +59,6 @@ export function HardDeleteButton({
   size = "sm",
   variant = "destructive",
 }: HardDeleteButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useHardDeleteDomain(

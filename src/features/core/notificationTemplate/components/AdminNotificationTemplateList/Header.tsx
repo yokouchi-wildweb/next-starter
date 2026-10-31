@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation";
 import config from "@/features/core/notificationTemplate/domain.json";
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as notificationTemplateDisplay } from "@/features/core/notificationTemplate/entities/display";
 
 const paths = getAdminPaths("notification-templates");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -39,7 +40,7 @@ export default function AdminNotificationTemplateListHeader({ page, perPage, tot
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton domain="notificationTemplate" />
+      <CreateButton domain={notificationTemplateDisplay} />
     </ListTop>
   );
 }

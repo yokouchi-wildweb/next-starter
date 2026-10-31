@@ -15,6 +15,7 @@ import rawConfig from "@/features/sampleCategory/domain.json";
 const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
 
 const paths = getAdminPaths("sample-categories");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -49,7 +50,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
       )}
-      <CreateButton domain="sampleCategory" />
+      <CreateButton domain={sampleCategoryDisplay} />
     </ListTop>
   );
 }

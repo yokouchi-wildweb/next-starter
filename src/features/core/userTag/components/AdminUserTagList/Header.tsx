@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation";
 import config from "@/features/core/userTag/domain.json";
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as userTagDisplay } from "@/features/core/userTag/entities/display";
 
 const paths = getAdminPaths("user-tags");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -39,7 +40,7 @@ export default function AdminUserTagListHeader({ page, perPage, total }: AdminUs
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton domain="userTag" />
+      <CreateButton domain={userTagDisplay} />
     </ListTop>
   );
 }

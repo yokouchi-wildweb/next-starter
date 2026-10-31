@@ -1,8 +1,8 @@
 // src/lib/domain/relations/getBelongsToRelations.ts
 // belongsTo リレーション情報を取得するユーティリティ
 
-import { getRelations } from "./utils";
-import type { RelationInfo } from "../types";
+import { getRelations, getRelationsOf } from "./utils";
+import type { DomainDisplay, RelationInfo } from "../types";
 
 /**
  * belongsTo リレーションのみを取得
@@ -13,6 +13,11 @@ import type { RelationInfo } from "../types";
  */
 export function getBelongsToRelations(domain: string): RelationInfo[] {
   return getRelations(domain).filter((r) => r.relationType === "belongsTo");
+}
+
+/** 写しから belongsTo リレーションのみを取得（client の部品はこちら） */
+export function getBelongsToRelationsOf(display: Pick<DomainDisplay, "relations">): RelationInfo[] {
+  return getRelationsOf(display).filter((r) => r.relationType === "belongsTo");
 }
 
 /**

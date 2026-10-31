@@ -10,6 +10,7 @@ import rawConfig from "@/features/sampleTag/domain.json";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
 const config = normalizeDomainJsonConfig(rawConfig);
 
@@ -31,8 +32,8 @@ const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
     header: "操作",
     render: (d: SampleTag) => (
       <TableCellAction>
-        <EditButton domain="sampleTag" id={d.id} />
-        <DeleteButton domain="sampleTag" id={d.id} />
+        <EditButton domain={sampleTagDisplay} id={d.id} />
+        <DeleteButton domain={sampleTagDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

@@ -15,8 +15,8 @@ import {
 } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig } from "@/lib/domain";
-import { getBelongsToRelations } from "@/lib/domain/relations/getBelongsToRelations";
+import type { DomainDisplay } from "@/lib/domain/types/display";
+import { getBelongsToRelationsOf } from "@/lib/domain/relations/getBelongsToRelations";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { createApiClient } from "@/lib/crud/client";
 import { useUpdateDomain } from "@/lib/crud/hooks";
@@ -28,8 +28,8 @@ type RelationData = {
 };
 
 export type BelongsToFieldButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 更新対象のID */
   id: string;
   /** リレーション先ドメイン名（camelCase: "sampleCategory"） */
@@ -90,7 +90,7 @@ export type BelongsToFieldButtonProps = ButtonStyleProps & {
  * />
  */
 export function BelongsToFieldButton({
-  domain,
+  domain: config,
   id,
   relation,
   options: optionsProp,
@@ -110,7 +110,6 @@ export function BelongsToFieldButton({
   onSuccess,
   disabled = false,
 }: BelongsToFieldButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useUpdateDomain(
@@ -124,11 +123,11 @@ export function BelongsToFieldButton({
 
   // リレーション情報を取得（relationからドメイン名で検索）
   const relationInfo = useMemo(() => {
-    const relations = getBelongsToRelations(domain);
+    const relations = getBelongsToRelationsOf(config);
     // relation（camelCase）をsnake_caseに変換して比較
     const targetDomainSnake = relation.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
     return relations.find((r) => r.domain === targetDomainSnake);
-  }, [domain, relation]);
+  }, [config, relation]);
 
   // リレーション先ドメイン
   const targetDomain = relationInfo?.domain;
@@ -202,7 +201,7 @@ export function BelongsToFieldButton({
   // リレーション設定が見つからない場合はエラー表示
   if (!relationInfo) {
     console.warn(
-      `BelongsToFieldButton: リレーション情報が見つかりません。domain=${domain}, relation=${relation}`
+      `BelongsToFieldButton: リレーション情報が見つかりません。domain=${config.singular}, relation=${relation}`
     );
     return (
       <Button type="button" size={size} variant={variant} disabled>

@@ -10,6 +10,7 @@ import rawConfig from "@/features/sampleCategory/domain.json";
 import presenters from "@/features/sampleCategory/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
 
 const config = normalizeDomainJsonConfig(rawConfig);
 
@@ -31,8 +32,8 @@ const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCate
     header: "操作",
     render: (d: SampleCategory) => (
       <TableCellAction>
-        <EditButton domain="sampleCategory" id={d.id} />
-        <DeleteButton domain="sampleCategory" id={d.id} />
+        <EditButton domain={sampleCategoryDisplay} id={d.id} />
+        <DeleteButton domain={sampleCategoryDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

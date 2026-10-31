@@ -3,7 +3,7 @@
 
 import { getDomainConfig } from "../config";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
-import type { RelationType, RelationInfo } from "../types";
+import type { RelationType, RelationInfo, DomainDisplay } from "../types";
 
 export type { RelationType, RelationInfo };
 
@@ -18,7 +18,11 @@ export type { RelationType, RelationInfo };
  * // ]
  */
 export function getRelations(domain: string): RelationInfo[] {
-  const config = getDomainConfig(domain);
+  return getRelationsOf(getDomainConfig(domain) as Pick<DomainDisplay, "relations">);
+}
+
+/** 写し（または同じ形の設定）からリレーション情報を取得 */
+export function getRelationsOf(config: Pick<DomainDisplay, "relations">): RelationInfo[] {
   const relations: RelationInfo[] = [];
 
   for (const relation of config.relations || []) {

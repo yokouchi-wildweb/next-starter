@@ -9,13 +9,13 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { createApiClient } from "@/lib/crud/client";
 import { useBulkDeleteByIdsDomain } from "@/lib/crud/hooks";
 
 export type BulkDeleteButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 削除対象のID配列 */
   ids: string[];
   /**
@@ -62,7 +62,7 @@ const formatMessage = (message: string, count: number): string => {
 };
 
 export function BulkDeleteButton({
-  domain,
+  domain: config,
   ids,
   title,
   label = "一括削除",
@@ -78,7 +78,6 @@ export function BulkDeleteButton({
   size = "sm",
   variant = "destructive",
 }: BulkDeleteButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useBulkDeleteByIdsDomain(

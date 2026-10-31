@@ -1,5 +1,7 @@
 # CRUD Buttons
 
+`domain` は文字列でなく表示用の写し(`import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display"`)を受ける。全ドメインの設定を client に読まないため(`src/lib/domain/README.md`)。
+
 CRUDボタンコンポーネント群。レコードの操作（更新・削除・複製など）を行うボタン。
 
 ## コンポーネント一覧
@@ -30,7 +32,7 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 ```tsx
 // NG: テーブルの表示が更新されない
 <EnumFieldButton
-  domain="sample"
+  domain={sampleDisplay}
   id={item.id}
   field="select"
   currentValue={item.select}
@@ -40,7 +42,7 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 const { data, mutate } = useSWR("samples", fetcher);
 
 <EnumFieldButton
-  domain="sample"
+  domain={sampleDisplay}
   id={item.id}
   field="select"
   currentValue={item.select}
@@ -56,7 +58,7 @@ const { data, mutate } = useSWR("samples", fetcher);
 <RecordSelectionTable
   bulkActions={(selection) => (
     <BulkEnumFieldButton
-      domain="sample"
+      domain={sampleDisplay}
       ids={selection.selectedIds}
       field="select"
       onSuccess={() => {
@@ -75,7 +77,7 @@ const { data, mutate } = useSWR("samples", fetcher);
 ```tsx
 // Enumフィールドの変更
 <EnumFieldButton
-  domain="sample"
+  domain={sampleDisplay}
   id={sample.id}
   field="select"
   currentValue={sample.select}
@@ -84,7 +86,7 @@ const { data, mutate } = useSWR("samples", fetcher);
 
 // BelongsToリレーションの変更
 <BelongsToFieldButton
-  domain="sample"
+  domain={sampleDisplay}
   id={sample.id}
   relation="sampleCategory"
   currentValue={sample.sample_category_id}
@@ -93,7 +95,7 @@ const { data, mutate } = useSWR("samples", fetcher);
 
 // BelongsToManyリレーションの変更
 <BelongsToManyFieldButton
-  domain="sample"
+  domain={sampleDisplay}
   id={sample.id}
   relation="sampleTag"
   currentValue={sample.sample_tag_ids ?? []}
@@ -112,7 +114,7 @@ const { data: items, mutate } = useSWR("items", fetcher);
   bulkActions={(selection) => (
     <>
       <BulkEnumFieldButton
-        domain="sample"
+        domain={sampleDisplay}
         ids={selection.selectedIds}
         field="select"
         onSuccess={() => {
@@ -121,7 +123,7 @@ const { data: items, mutate } = useSWR("items", fetcher);
         }}
       />
       <BulkDeleteButton
-        domain="sample"
+        domain={sampleDisplay}
         ids={selection.selectedIds}
         onSuccess={() => {
           mutate();
@@ -145,7 +147,7 @@ const { data: items, mutate } = useSWR("items", fetcher);
 const { trigger: createUserTag } = useCreateUserTag();
 
 <BulkBelongsToManyFieldButton
-  domain="user"
+  domain={userDisplay}
   ids={selection.selectedIds}
   relation="userTag"
   mode="add"

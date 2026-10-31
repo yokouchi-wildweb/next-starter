@@ -9,13 +9,13 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { createApiClient } from "@/lib/crud/client";
 import { useDeleteDomain } from "@/lib/crud/hooks";
 
 export type DeleteButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 削除対象のID */
   id: string;
   /** ポップオーバーのタイトル（省略時はドメインラベルから生成） */
@@ -43,7 +43,7 @@ export type DeleteButtonProps = ButtonStyleProps & {
 };
 
 export function DeleteButton({
-  domain,
+  domain: config,
   id,
   title,
   label = "削除",
@@ -59,7 +59,6 @@ export function DeleteButton({
   size = "sm",
   variant = "destructive",
 }: DeleteButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useDeleteDomain(

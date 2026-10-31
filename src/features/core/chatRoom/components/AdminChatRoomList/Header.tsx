@@ -13,6 +13,7 @@ import rawConfig from "@/features/core/chatRoom/domain.json";
 const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 const paths = getAdminPaths("chat-rooms");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -42,7 +43,7 @@ export default function AdminChatRoomListHeader({ page, perPage, total }: AdminC
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton domain="chatRoom" />
+      <CreateButton domain={chatRoomDisplay} />
     </ListTop>
   );
 }

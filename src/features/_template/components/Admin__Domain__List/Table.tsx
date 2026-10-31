@@ -10,6 +10,7 @@ import rawConfig from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
 
 const config = normalizeDomainJsonConfig(rawConfig);
 
@@ -31,8 +32,8 @@ const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
     header: "操作",
     render: (d: __Domain__) => (
       <TableCellAction>
-        <EditButton domain="__domain__" id={d.id} />
-        __DUPLICATE_BUTTON__<DeleteButton domain="__domain__" id={d.id} />
+        <EditButton domain={__domain__Display} id={d.id} />
+        __DUPLICATE_BUTTON__<DeleteButton domain={__domain__Display} id={d.id} />
       </TableCellAction>
     ),
   },

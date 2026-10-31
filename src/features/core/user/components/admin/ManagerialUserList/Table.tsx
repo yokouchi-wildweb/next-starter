@@ -19,6 +19,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useSoftDeleteUser } from "@/features/core/user/hooks/useSoftDeleteUser";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
+import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
 
 type Props = {
   users: User[];
@@ -127,7 +128,7 @@ const createColumns = (
             {isMutating ? "削除中..." : "削除"}
           </Button>
         )}
-        <EditButton domain="user" id={user.id} href={`${editBasePath}/${user.id}/edit`} />
+        <EditButton domain={userDisplay} id={user.id} href={`${editBasePath}/${user.id}/edit`} />
       </TableCellAction>
     ),
   });

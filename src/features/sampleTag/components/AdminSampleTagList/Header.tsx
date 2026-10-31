@@ -15,6 +15,7 @@ import rawConfig from "@/features/sampleTag/domain.json";
 const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
 const paths = getAdminPaths("sample-tags");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -49,7 +50,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
       )}
-      <CreateButton domain="sampleTag" />
+      <CreateButton domain={sampleTagDisplay} />
     </ListTop>
   );
 }

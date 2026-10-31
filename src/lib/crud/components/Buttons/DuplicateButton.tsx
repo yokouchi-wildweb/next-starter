@@ -9,13 +9,13 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover, PromptPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { getDomainConfig } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { createApiClient } from "@/lib/crud/client";
 import { useDuplicateDomain } from "@/lib/crud/hooks";
 
 export type DuplicateButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 複製対象のID */
   id: string;
   /** 確認ポップオーバーを表示するか @default true */
@@ -51,7 +51,7 @@ export type DuplicateButtonProps = ButtonStyleProps & {
 };
 
 export function DuplicateButton({
-  domain,
+  domain: config,
   id,
   showConfirm = true,
   title,
@@ -69,7 +69,6 @@ export function DuplicateButton({
   size = "sm",
   variant = "secondary",
 }: DuplicateButtonProps) {
-  const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
   const { trigger, isMutating } = useDuplicateDomain(

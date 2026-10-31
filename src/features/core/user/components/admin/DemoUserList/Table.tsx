@@ -13,6 +13,7 @@ import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
 
 type Props = {
   users: User[];
@@ -95,7 +96,7 @@ const createColumns = (
             ポイント操作
           </Button>
         ) : null}
-        <HardDeleteButton domain="user" id={user.id} title="デモユーザー削除" label="削除" description="デモユーザーを削除します。よろしいですか？" confirmLabel="削除する" />
+        <HardDeleteButton domain={userDisplay} id={user.id} title="デモユーザー削除" label="削除" description="デモユーザーを削除します。よろしいですか？" confirmLabel="削除する" />
       </TableCellAction>
     ),
   });
