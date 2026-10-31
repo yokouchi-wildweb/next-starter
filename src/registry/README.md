@@ -5,7 +5,6 @@
 | ファイル | 作られ方 |
 |---|---|
 | `serviceRegistry.ts`・`schemaRegistry.ts`・`domainConfigRegistry.ts`・`adminDataMenu.ts`・`storagePurposeRegistry.ts` | `pnpm registry:generate` が丸ごと生成(`scripts/registry/README.md`)。build の冒頭の `registry:check` が一致を見る |
-| `roleRegistry.ts`・`profile*Registry.ts` | `pnpm role:generate` が生成 |
 
 ## 足したいとき
 

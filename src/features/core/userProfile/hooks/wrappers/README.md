@@ -12,7 +12,7 @@
 ```typescript
 // hooks/wrappers/useContributorProfile.ts
 import { useProfileByUserId } from "../useProfileByUserId";
-import type { ContributorProfile } from "../../generated/contributor";
+import type { ContributorProfile } from "../../entities/profiles/contributor";
 
 export const useContributorProfile = (userId?: string | null) => {
   const result = useProfileByUserId("contributor", userId);
@@ -28,7 +28,7 @@ export const useContributorProfile = (userId?: string | null) => {
 ```typescript
 // hooks/wrappers/useContributorProfileSearch.ts
 import { useProfileSearch } from "../useProfileSearch";
-import type { ContributorProfile } from "../../generated/contributor";
+import type { ContributorProfile } from "../../entities/profiles/contributor";
 import type { SearchParams, WithOptions } from "@/lib/crud/types";
 
 export const useContributorProfileSearch = (params: SearchParams & WithOptions) => {

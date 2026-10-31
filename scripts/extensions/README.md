@@ -80,7 +80,7 @@ export const extensionPoints = {
 
 ## override(既定を変える隣のファイル)
 
-- 対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`)、cron は `src/app/api/cron/<name>/override.ts`。Tier 別・fork の名前付きのファイルは作らない
+- 対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`・`_user.role.override.ts`・`user.profile.override.ts`)、cron は `src/app/api/cron/<name>/override.ts`。Tier 別・fork の名前付きのファイルは作らない
 - 足した Tier の物。下の Tier は同じファイルを書き換える: 受け継ぐ = 触らない / 既定へ戻す = キーを消すかファイルを消す / 全部を戻す = 空(空白とコメントだけ = 不在と同じ)。合成は git の merge だけ
 - **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `extensions:check`(`overrides.mjs`)
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `scripts/cron/discover.ts`・`scripts/registry/serviceRegistry/discover.mjs`)

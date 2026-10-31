@@ -48,7 +48,7 @@ export type DomainApiOperation = (typeof DOMAIN_API_OPERATIONS)[number];
 
 /**
  * ロール指定によるアクセスルール。
- * - roles: ロール ID（roleRegistry の id）のいずれかに一致すれば許可
+ * - roles: ロール ID（user/extensions/roles の id）のいずれかに一致すれば許可
  * - roleCategories: ロールカテゴリ（"admin" | "user" 等）のいずれかに一致すれば許可
  * 両方指定した場合はいずれかに一致すれば許可（OR 条件）。
  */

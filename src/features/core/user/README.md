@@ -384,26 +384,15 @@ DB 制約を使わないため、既存データに重複があっても有効�
    }
    ```
 
-2. **roles/index.ts に追加**
-   ```typescript
-   import reviewerRole from "./reviewer.role.json";
+2. **hasProfile: true の場合** `userProfile/profiles/{role}.profile.json` を作成
 
-   export const ALL_ROLES: readonly RoleConfig[] = [
-     adminRole, userRole,
-     editorRole, contributorRole, reviewerRole, // 追加
-   ];
-   ```
-
-3. **DB スキーマ反映**
+3. **生成と DB スキーマ反映**（`user/extensions/roles.ts` と生成物は forge が書く）
    ```bash
+   pnpm forge
    pnpm db:push
    ```
 
-4. **hasProfile: true の場合**
-   - `userProfile/profiles/{role}.profile.json` を作成
-   - `userProfile/profiles/index.ts` に追加
-   - `userProfile/entities/{role}Profile.ts` を作成
-   - `userProfile/registry/` を更新
+fork が上流のロールの `label`・`hasProfile`・`enabled` を変えるときは JSON を書き換えず、隣に `<JSON の名前>.override.ts` を置く（`src/features/core/userProfile/README.md`「fork の上書き」）。
 
 ## プロフィール横断検索
 

@@ -99,6 +99,8 @@ audit_logs は **介入 (intervention)** だけを記録する。**業務 (busin
 
 `drizzleBase.ts` の設定だけで CRUD ライフサイクルを拾う。設定型は `AuditConfig`（`src/lib/crud/drizzle/types.ts`）、recorder は DI で渡す。
 
+生成するドメインは `domain.json` の `audit`、プロフィールは `profile.json` か `<role>.profile.override.ts` の `audit` に下の例から recorder を除いた形で書くと、生成器が recorder まで入れて渡す。`targetType`・`actionPrefix` は `enabled: false` 以外で必須（既定の導出はしない）、`trackedFields` は camelCase の列名で検査される、Neon のみ。`generate: false` のドメインと手書きの core では効かないので `drizzleBase.ts` に手で書く。どこに付けるかは下の操作の軸で決める。
+
 ```ts
 import { auditLogger } from "@/features/core/auditLog/services/server";
 

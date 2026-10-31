@@ -21,15 +21,15 @@ src/features/core/userProfile/
 ├── constants/                  # 定数
 │   ├── fieldTags.mjs           # フィールドタグの値（正。role:generate の検査も読む）
 │   └── fieldTag.ts             # fieldTags.mjs を型付きで再 export
-├── generated/                  # 自動生成ファイル [DO NOT EDIT]
-│   ├── {role}/
-│   │   ├── drizzle.ts          # Drizzle テーブル定義
-│   │   ├── schema.ts           # Zod スキーマ
-│   │   ├── form.ts             # フォーム型定義
-│   │   ├── model.ts            # モデル型定義
-│   │   ├── presenters.ts       # プレゼンター
-│   │   └── index.ts
-│   └── index.ts                # 全ロール再エクスポート
+├── entities/profiles/{role}/   # 自動生成ファイル [DO NOT EDIT]
+│   ├── drizzle.ts              # Drizzle テーブル定義
+│   ├── schema.ts               # Zod スキーマ
+│   ├── form.ts                 # フォーム型定義
+│   ├── model.ts                # モデル型定義
+│   ├── presenters.ts           # プレゼンター
+│   └── index.ts
+├── extensionPoints.ts          # 一覧の宣言（writer: "role:generate"）
+├── extensions/                 # 一覧 [DO NOT EDIT]（下の「一覧」）
 ├── hooks/                      # クライアント hooks
 │   ├── index.ts                # 再エクスポート
 │   ├── useProfile.ts           # プロフィールID で取得
@@ -42,7 +42,8 @@ src/features/core/userProfile/
 │       └── README.md
 ├── profiles/                   # プロフィールフィールド設定 JSON
 │   ├── index.ts                # 型定義エクスポート
-│   └── {role}.profile.json     # hasProfile: true のロールのみ
+│   ├── {role}.profile.json     # hasProfile: true のロールのみ
+│   └── {role}.profile.override.ts # fork の上書き（下の「fork の上書き」）
 ├── types/                      # 型定義
 │   ├── index.ts
 │   ├── field.ts                # ProfileFieldConfig
@@ -69,16 +70,16 @@ src/features/core/userProfile/
 └── index.ts                    # ドメイン公開 API
 ```
 
-## レジストリ（src/registry/）
+## 一覧（extensions/）
 
-プロフィール関連のレジストリは `src/registry/` に配置され、すべて全件再生成方式で自動生成される。
+プロフィールの一覧は `extensions/` にあり、`pnpm role:generate` が全件を書き直す。ロールの一覧は `src/features/core/user/extensions/roles.ts`。
 
 | ファイル | 用途 | 環境 |
 |---------|------|------|
-| `profileConfigRegistry.ts` | role → ProfileConfig (UI用設定) | 共通 |
-| `profileSchemaRegistry.ts` | role → Zod スキーマ | 共通 |
-| `profileBaseRegistry.ts` | role → ProfileBase (CRUD) | サーバー |
-| `profileTableRegistry.ts` | role → Drizzle テーブル | サーバー |
+| `profileConfigs.ts` | role → ProfileConfig (UI用設定) | 共通 |
+| `profileSchemas.ts` | role → Zod スキーマ | 共通 |
+| `profileBases.ts` | role → ProfileBase (CRUD) | サーバー |
+| `profileTables.ts` | role → Drizzle テーブル | サーバー |
 
 ## 設定ファイル
 
@@ -196,15 +197,40 @@ roles/
 - `drizzle.ts`: FK カラム（belongsTo）、中間テーブル（belongsToMany）
 - `schema.ts`: FK フィールドの Zod バリデーション
 - `model.ts`: FK フィールドの型定義
-- `profileBaseRegistry.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
+- `extensions/profileBases.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
 
 **書き方:** role.json・profile.json は手で書き（対話で組み立てるコマンドは無い）、`pnpm forge` で生成する。リレーションの決まり（belongsTo / belongsToMany だけ、fieldName 必須、fieldType は省略か uuid、SET_NULL は required と両立しない、formInput）は生成前の検査が止める（下の「role:generate」）。
+
+## fork の上書き
+
+fork は上流の JSON を書き換えず、隣に上書きのファイルを 1 本置く。値を変えるだけで、表の形（fields・relations）は変えられない。
+
+| ファイル | 書けるキー |
+|---------|-----------|
+| `user/roles/<JSON の名前>.override.ts`（コアロールは `_user.role.override.ts`） | `label`・`hasProfile`・`enabled` |
+| `userProfile/profiles/<role>.profile.override.ts` | `tags`・`searchFields`・`audit`（値は丸ごと置き換え） |
+
+```typescript
+// src/features/core/user/roles/_user.role.override.ts
+import type { RoleOverride } from "../types";
+
+export const override: RoleOverride = { hasProfile: true };
+```
+
+- 実行せず字面で読む。書けるのは `import type`（相対パス）と `export const override = { … }` だけで、値はリテラルにする
+- 未知キー・値の型違い・隣に JSON の無い上書きは `role:generate` と forge の事前検査が止める。空（空白とコメントだけ）と不在は上書きなし
+- 上流は上書きを持てない（`extensions:check`）。下の Tier は同じファイルを書き換える
+- `role:toggle` は上書きが `enabled` を決めていると止まる。`prof:delete`・`role:delete` は上書きが `hasProfile` を決めていると止まる（`--remove-json` の `role:delete` は上書きごと消す）
+
+## 監査ログ
+
+`profile.json` か上書きに `audit` を書くと `extensions/profileBases.ts` の `createProfileBase` に渡る。書き方は `src/features/core/auditLog/README.md`「A」。`updateByUserId` は `base.update` を通るので監査に残る。`removeByUserId` は残らない。
 
 ## 自動生成ファイル
 
 設定 JSON から以下が自動生成される（`role:generate` スクリプト）。
 
-### generated/{role}/drizzle.ts
+### entities/profiles/{role}/drizzle.ts
 
 各ロールのプロフィールテーブル定義。
 
@@ -219,7 +245,7 @@ export const contributorProfiles = pgTable("contributor_profiles", {
 });
 ```
 
-### generated/{role}/schema.ts
+### entities/profiles/{role}/schema.ts
 
 Zod バリデーションスキーマ。
 
@@ -295,7 +321,7 @@ createProfileBase(ContributorProfileTable, {
 });
 ```
 
-`profile.json` に `searchFields` や `relations` を記述すると、自動生成時に `profileBaseRegistry.ts` へ反映される。
+`profile.json` に `searchFields` や `relations` を記述すると、自動生成時に `extensions/profileBases.ts` へ反映される。
 リレーションを設定すると `search()` / `list()` で `withRelations` / `withCount` オプションが使用可能になる。
 
 ### query() による自由な JOIN
@@ -418,7 +444,7 @@ function ContributorList() {
 ```typescript
 // hooks/wrappers/useContributorProfile.ts
 import { useProfileByUserId } from "../useProfileByUserId";
-import type { ContributorProfile } from "../../generated/contributor";
+import type { ContributorProfile } from "../../entities/profiles/contributor";
 
 export const useContributorProfile = (userId?: string | null) => {
   const result = useProfileByUserId("contributor", userId);
@@ -692,10 +718,8 @@ export const FormSchema = z
 |---------|------|
 | `src/features/core/user/roles/` | ロール設定 JSON |
 | `src/features/core/user/constants/role.ts` | ロール派生定数 |
-| `src/registry/profileConfigRegistry.ts` | ProfileConfig レジストリ |
-| `src/registry/profileSchemaRegistry.ts` | Zod スキーマレジストリ |
-| `src/registry/profileBaseRegistry.ts` | ProfileBase レジストリ |
-| `src/registry/profileTableRegistry.ts` | Drizzle テーブルレジストリ |
+| `src/features/core/user/extensions/roles.ts` | ロールの一覧（生成物） |
+| `src/features/core/userProfile/extensions/` | プロフィールの一覧（生成物） |
 | `src/app/api/profile/[role]/` | プロフィール API ルート |
 
 ## スクリプト
@@ -706,20 +730,17 @@ export const FormSchema = z
 
 ```bash
 pnpm role:generate -- <roleId>
-pnpm role:generate -- --all      # 全 *.role.json（roleRegistry.ts の今の並び順で回す）
+pnpm role:generate -- --all      # 全 *.role.json（user/extensions/roles.ts の今の並び順で回す）
 ```
 
 書く前に検査する（`scripts/role-config/checks/`、テスト `pnpm test:role-config-checks`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
-- 止める: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`、isCore: true だけ `_<id>.role.json`）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）、ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、リレーションの relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput
+- 止める: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`、isCore: true だけ `_<id>.role.json`）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）、ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、リレーションの relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」）
 - 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `prof:delete`）、型と入力欄の組が表（`scripts/domain-config/spec/formInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
 
 実行内容:
-1. roleRegistry.ts 更新
-2. generated/{roleId}/ 配下のファイル生成（relations があれば FK カラム・中間テーブルも生成）
-3. profileSchemaRegistry.ts 全件再生成
-4. profileConfigRegistry.ts 全件再生成
-5. profileBaseRegistry.ts 全件再生成（searchFields・リレーション設定を反映）
-6. profileTableRegistry.ts 全件再生成
+1. user/extensions/roles.ts 更新
+2. entities/profiles/{roleId}/ 配下のファイル生成（relations があれば FK カラム・中間テーブルも生成）
+3. extensions/ の 4 本を全件再生成（searchFields・リレーション設定・audit を反映）
 
 ### 操作コマンド
 
