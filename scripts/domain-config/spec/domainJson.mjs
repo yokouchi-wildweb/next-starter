@@ -2,6 +2,7 @@
 // src/components/Form/Field/types.ts の FieldConfig。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
 // その DB に無い型を警告する（生成は止めない）。
 
+import { BUILTIN_FORM_INPUTS } from "../../../src/lib/domain/fields/formInputs.mjs";
 import { FORM_INPUTS } from "./formInputs.mjs";
 
 export const DB_ENGINES = new Set(["Neon", "Firestore"]);
@@ -35,11 +36,8 @@ export const FIELD_KEYS = new Set([
 /** 主の集まりの項目（fieldType mediaCollection）の collection のキー: 従属ドメインの singular・最大件数・複製で写すか */
 export const COLLECTION_KEYS = new Set(["domain", "maxItems", "duplicate"]);
 
-/** フォーム入力種別（README の FormInput 一覧 + 各 DB の表に出る種別の camelCase） */
-export const FORM_INPUT_VALUES = new Set([
-  "textInput", "numberInput", "textarea", "select", "multiSelect", "radio", "checkbox", "stepperInput", "switchInput", "dateInput",
-  "timeInput", "datetimeInput", "emailInput", "passwordInput", "colorInput", "mediaUploader", "mediaUploaderMulti", "hidden", "none", "custom",
-]);
+/** フォーム入力種別（組み込みの名前の正は src/lib/domain/fields/formInputs.mjs） */
+export const FORM_INPUT_VALUES = new Set(BUILTIN_FORM_INPUTS);
 
 /** その DB で使える fieldType（spec/formInputs.mjs の表のキー） */
 export function fieldTypesFor(dbEngine) {

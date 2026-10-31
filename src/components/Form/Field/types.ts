@@ -4,36 +4,13 @@
 import type { ReactNode } from "react";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { ParaProps } from "@/components/TextBlocks/Para";
+import type { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
 
 /**
  * フォーム入力種別（domain.json formInput）
  * @see src/features/README.md - FormInput
  */
-export type FormInputType =
-  | "textInput"
-  | "numberInput"
-  | "textarea"
-  | "select"
-  | "multiSelect"
-  | "combobox"
-  | "radio"
-  | "checkbox"
-  | "stepperInput"
-  | "switchInput"
-  | "dateInput"
-  | "timeInput"
-  | "datetimeInput"
-  | "emailInput"
-  | "passwordInput"
-  | "colorInput"
-  | "colorValueInput"
-  | "mediaUploader"
-  | "mediaUploaderMulti"
-  | "hidden"
-  | "none"
-  | "custom"
-  | "asyncCombobox"
-  | "asyncMultiSelect";
+export type FormInputType = (typeof BUILTIN_FORM_INPUTS)[number];
 
 /**
  * フィールドの型（domain.json fieldType - Neon）

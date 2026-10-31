@@ -4,7 +4,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { BUILTIN_FORM_INPUTS } from "../../../src/lib/domain/fields/formInputs.mjs";
+import { toCamelCase } from "../../../src/utils/stringCase.mjs";
 import { vocabularyWarnings } from "../checks/vocabulary.mjs";
+import { FORM_INPUT_VALUES, RELATION_FORM_INPUTS } from "../spec/domainJson.mjs";
+import { FORM_INPUTS } from "../spec/formInputs.mjs";
 import { repoRoot } from "./helpers.mjs";
 
 const BASE = {
@@ -107,4 +111,14 @@ test("mediaCollection は Firestore に無い型", () => {
   });
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /"mediaCollection" は Firestore に無い型/);
+});
+
+test("組み込みの入力種別: 検査の一覧は正の表と同じ、候補の表とリレーションの名前は全部その中、combobox 系は警告にならない", () => {
+  assert.deepEqual([...FORM_INPUT_VALUES], [...BUILTIN_FORM_INPUTS]);
+  const fromTable = Object.values(FORM_INPUTS).flatMap((byType) => Object.values(byType).flat()).map((name) => toCamelCase(name));
+  const fromRelations = Object.values(RELATION_FORM_INPUTS).flatMap((names) => [...names]);
+  assert.deepEqual([...new Set([...fromTable, ...fromRelations])].filter((name) => !FORM_INPUT_VALUES.has(name)), []);
+  const fields = ["combobox", "asyncCombobox", "asyncMultiSelect", "colorValueInput"].map((formInput, index) => ({ name: `f${index}`, label: "x", fieldType: "string", formInput }));
+  assert.equal(vocabularyWarnings({ ...BASE, fields }).filter((w) => w.includes("知らない入力種別")).length, 0);
+  assert.equal(vocabularyWarnings({ ...BASE, fields: [{ ...fields[0], formInput: "fileUploader" }] }).filter((w) => w.includes("知らない入力種別")).length, 1);
 });

@@ -122,7 +122,7 @@ function renderValue({
   }
 }
 
-const UNSORTABLE_INPUT_TYPES = new Set(["mediaUploader", "mediaUploaderMulti", "fileUploader"]);
+const UNSORTABLE_INPUT_TYPES = new Set(["mediaUploader", "mediaUploaderMulti"]);
 
 function resolveSortKey(
   field: string,

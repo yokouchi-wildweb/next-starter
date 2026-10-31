@@ -46,7 +46,7 @@ export function presenterFor(field) {
   if (isCollectionFieldType(fieldType)) return { kind: "collectionThumbnails" };
   // 旧来の複数メディア列（廃止型 mediaUploaderMulti。生成器は生成前に止めるので、読むのは一覧の実行時だけ）
   if (formInput === "mediaUploaderMulti") return { kind: "mediaThumbnails" };
-  if (isMediaFieldType(fieldType) || formInput === "mediaUploader" || formInput === "fileUploader") {
+  if (isMediaFieldType(fieldType) || formInput === "mediaUploader") {
     return { kind: "mediaThumbnail" };
   }
   return { kind: "string" };
