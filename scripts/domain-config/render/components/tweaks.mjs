@@ -25,7 +25,7 @@ export function applyDuplicateButton(content, config) {
   const nameField = (config?.fields ?? []).find((f) => f.name === "name" && f.fieldType === "string");
   const currentNameAttr = nameField ? (nameField.required ? " currentName={d.name}" : " currentName={d.name ?? undefined}") : "";
   const duplicateImport = `import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";\n`;
-  const duplicateButton = `<DuplicateButton domain="__domain__" id={d.id}${currentNameAttr} />\n        `;
+  const duplicateButton = `<DuplicateButton domain={__domain__Display} id={d.id}${currentNameAttr} />\n        `;
   return content
     .replace(/import { EditButton, DeleteButton } from "@\/lib\/crud";\n__DUPLICATE_IMPORT__/g, duplicateImport)
     .replace(/__DUPLICATE_BUTTON__/g, duplicateButton);

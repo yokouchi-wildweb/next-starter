@@ -35,7 +35,7 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     render: (d: Sample) => (
       <TableCellAction>
         <EditButton domain={sampleDisplay} id={d.id} />
-        <DuplicateButton domain="sample" id={d.id} currentName={d.name} />
+        <DuplicateButton domain={sampleDisplay} id={d.id} currentName={d.name} />
         <DeleteButton domain={sampleDisplay} id={d.id} />
       </TableCellAction>
     ),
