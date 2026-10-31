@@ -3,6 +3,7 @@ import nextConfig from "eslint-config-next";
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
 import coreUiEntryPlugin from "./eslint-rules/core-ui-entry.mjs";
+import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
@@ -285,6 +286,14 @@ const config = [
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
       "page-authz/session-api-callsite": "error",
+    },
+  },
+  // server action の禁止(全 Tier で error。詳細: eslint-rules/no-server-action.mjs)
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}"],
+    plugins: { "no-server-action": noServerActionPlugin },
+    rules: {
+      "no-server-action/no-server-action": "error",
     },
   },
   // core の部品は入口だけを読む(全 Tier で error。詳細: eslint-rules/core-ui-entry.mjs)

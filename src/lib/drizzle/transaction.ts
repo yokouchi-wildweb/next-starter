@@ -1,5 +1,7 @@
 // src/lib/drizzle/transaction.ts
 
+import "server-only";
+
 import { db } from "./index";
 
 /**

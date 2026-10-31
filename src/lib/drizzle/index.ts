@@ -1,5 +1,7 @@
 // src/lib/drizzle/index.ts
 
+import "server-only";
+
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
