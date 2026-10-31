@@ -16,7 +16,7 @@ export type FieldOption = {
  * ドメイン設定から指定フィールドを取得
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const field = getField(config, "select");
  * // { name: "select", label: "セレクトボックス", fieldType: "enum", options: [...] }
  */
@@ -29,7 +29,7 @@ export function getField<TField extends { name: string }>(config: { fields: read
  * enumやselect/multiSelectフィールドの選択肢を取得する
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const options = getFieldOptions(config, "select");
  * // [{ value: "apple", label: "りんご" }, ...]
  */
@@ -61,7 +61,7 @@ export function getFieldLabel(config: { fields: readonly { name: string; label?:
  * システムフィールド（id, createdAt, updatedAt, deletedAt）も含む
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const fields = extractFields(config);
  * // [{ name: "id", label: "ID", fieldType: "uuid" }, ...]
  */

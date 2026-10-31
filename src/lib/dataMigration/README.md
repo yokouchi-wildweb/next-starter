@@ -91,8 +91,9 @@
 
 ## 注入するもの
 
-lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts` の結んだ版を渡す。
+lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts`・`src/wiring/domainConfig.ts` の結んだ版を渡す。DataMigrationButton は写し（`entities/display.ts` の `domainDisplay`）を受ける。
 
 - `services`: ドメイン名からサービスを引く(`getService`)
 - `junctionTables`: 中間表の名前から表を引く(`getJunctionTable`)
+- `domainConfigs`: export で関連を含めるときにドメイン名から設定を引く(`getDomainConfig`)
 - `media`: ファイル台帳の操作

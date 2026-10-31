@@ -1,6 +1,6 @@
 # src/lib/domain — domain.json の読み取りと、ドメイン名からサービス・表・主キーを引く仕組み
 
-`domain.json` の設定（フィールド・リレーション・中間表）を読む純関数群と、**登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く正式な仕組み**の汎用部分を持つ。ここの関数は登録表を import せず引数で受ける（lib から新しく登録表を import しない。既存の例外と規則は `src/wiring/README.md`）。登録表を結んだそのまま使える関数は `src/wiring/adminScreenParts.ts`。
+`domain.json` の写しと設定（フィールド・リレーション・中間表）を読む純関数群と、**登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く正式な仕組み**の汎用部分を持つ。ここの関数は登録表を import せず引数で受ける（lib から新しく登録表を import しない。既存の例外と規則は `src/wiring/README.md`）。登録表を結んだそのまま使える関数は `src/wiring/adminScreenParts.ts`。
 
 ## 登録表（serviceRegistry）とは
 
@@ -100,14 +100,20 @@ export const domainEntries = {
 
 ## 表示用の写し（entities/display.ts）
 
-client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`（型 `DomainDisplay`、`types/display.ts`）。`pnpm registry:generate` が domain.json の許可した項目だけを写す（singular・plural・label・fields の表示系・relations の表示系・searchFields・use* の 3 つ。Firestore は名前を camelCase に）。apiAccess・dbEngine・generateFiles・storage 等は写さない。`dc:generate` の後は `pnpm registry:generate`（ずれは `registry:check` が止める）。
+client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`（型 `DomainDisplay`、`types/display.ts`）。`pnpm registry:generate` が domain.json の許可した項目だけを写す（singular・plural・label・fields の表示系・relations の表示系・searchFields・use* の 3 つ。非同期検索の関連には関連先の searchFields。hiddenColumns の列は写さない。Firestore は名前を camelCase に）。apiAccess・dbEngine・generateFiles・storage 等は写さない。`dc:generate` の後は `pnpm registry:generate`（ずれは `registry:check` が止める）。
 
-domain.json の無い手書きの domain は、同じ置き場に同じ形を手で書く。検査: `pnpm test:domain-display`。
+domain.json の無い手書きの domain は、同じ置き場に同じ形を手で書く。`hiddenColumns` は `defineHiddenColumns` と同じ列を宣言する。検査: `pnpm test:domain-display`。
 
-## domain.json の読み取り（従来どおり）
+## ドメイン設定の読み方
 
-- `config/`: `getDomainConfig` / `hasDomainConfig`（`domainConfigRegistry` を読む）、`resolveAccessRule`
-- `relations/`: `getRelations` / `getHasManyRelations`、関連選択肢（`relationOptions.mjs`）
+- client: 写し（上の節）を値で部品に渡す。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
+- server、自分のドメインだけ: 自分の domain.json を読み `normalizeDomainJsonConfig` を通す（drizzleBase の形）
+- server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
+
+## フォルダ
+
+- `config/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
+- `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
 - `fields/`: `extractFields` / `extractImageFields`
 - `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）
 - `hooks/` `service/client/`: 管理画面の全件削除一覧（`useFetchDomains`）

@@ -31,7 +31,7 @@
 
 - `src/app/**`（API ルート・Screen・loader）、`src/proxies/**`、`src/proxy.ts`
 - cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` だけ（fork 所有の `override.ts` と 1 行の `route.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domainRegistry")`）
-- features / lib / components / registry からは import しない。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
+- features / lib / components / registry からは import しない（`domainConfig.ts` も同じ。features は自分の domain.json を読む）。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
 
 「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。src/app の中で import してよい場所は限る（D73 K6。UI の場所はデータを取らない）:
 

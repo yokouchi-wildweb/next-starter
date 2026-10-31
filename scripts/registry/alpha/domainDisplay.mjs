@@ -1,7 +1,7 @@
 // scripts/registry/alpha/domainDisplay.mjs
 // domain.json から client に出す写し(<domain>/entities/display.ts)を作る(D21・L1.44)。
 // 写すのは許可の一覧の項目だけ。domain.json に項目が増えても勝手に client へ出ない。hiddenColumns の列は写さない。
-// Firestore の domain は名前を camelCase にする(getDomainConfig の正規化と同じ)。
+// Firestore の domain は名前を camelCase にする(createDomainConfigLookup の正規化と同じ)。
 
 import { isAsyncRelationFormInput } from "../../../src/lib/domain/relations/relationOptions.mjs";
 import { toCamelCase } from "../../../src/utils/stringCase.mjs";

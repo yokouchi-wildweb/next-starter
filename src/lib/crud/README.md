@@ -13,7 +13,7 @@ src/lib/crud/
 ├── types.ts                  # 共通型（SearchParams, WhereExpr, BelongsToManyFilter 等）
 ├── index.ts                  # バレルエクスポート
 ├── client/                   # クライアント層（createApiClient, イベント）
-├── components/               # CRUD 用 UI ボタン群
+├── components/               # CRUD 用 UI ボタン群（入口 @/lib/crud/components。@/lib/crud は UI を持たない。domain は写しを受ける）
 ├── hooks/                    # 汎用フック（dc:generate で各ドメインに展開）
 │   └── internal/             # mutation 共通実装（useDomainMutation / concurrentMutation + テスト）
 ├── presenters/               # カラムメタデータ・フォーマッタ
