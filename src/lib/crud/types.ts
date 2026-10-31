@@ -238,6 +238,16 @@ export type BulkUpdateRecord<UpdateData> = {
   data: UpdateData;
 };
 
+/** bulkAddRelation / bulkRemoveRelation の結果。存在しない id はエラーにせず飛ばして返す */
+export type BulkRelationResult = {
+  /** 実際に増減した中間テーブルの行数（再追加・もともと無い行の削除は数えない） */
+  count: number;
+  /** 実際に増減があったレコードの id */
+  affectedIds: string[];
+  unknownIds: string[];
+  unknownTargetIds: string[];
+};
+
 export type BulkUpdateResult<T> = {
   /** 更新されたレコード一覧 */
   results: T[];
@@ -280,6 +290,10 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
   bulkUpdate?(records: BulkUpdateRecord<UpdateData>[]): Promise<BulkUpdateResult<T>>;
   bulkUpdateByIds?(ids: string[], data: UpdateData): Promise<{ count: number }>;
+  /** 複数レコードに同じ関連先を足す（belongsToMany。Drizzle のみ）。既存の関連は残す */
+  bulkAddRelation?(field: string, ids: string[], targetIds: string[]): Promise<BulkRelationResult>;
+  /** 複数レコードから指定の関連先だけを外す（belongsToMany。Drizzle のみ） */
+  bulkRemoveRelation?(field: string, ids: string[], targetIds: string[]): Promise<BulkRelationResult>;
   duplicate?(id: string, options?: DuplicateOptions): Promise<T>;
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;

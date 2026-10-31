@@ -12,6 +12,7 @@ import type {
   BulkUpsertResult,
   BulkUpdateRecord,
   BulkUpdateResult,
+  BulkRelationResult,
   ReplaceByQueryOptions,
   DuplicateOptions,
   WhereExpr,
@@ -141,6 +142,18 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         "bulkUpdateByIds",
         async () =>
           (await axios.post<{ count: number }>(`${baseUrl}/bulk/update-by-ids`, { ids, data })).data,
+      ),
+    bulkAddRelation: (field: string, ids: string[], targetIds: string[]) =>
+      handleRequest(
+        "bulkAddRelation",
+        async () =>
+          (await axios.post<BulkRelationResult>(`${baseUrl}/bulk/add-relation`, { field, ids, targetIds })).data,
+      ),
+    bulkRemoveRelation: (field: string, ids: string[], targetIds: string[]) =>
+      handleRequest(
+        "bulkRemoveRelation",
+        async () =>
+          (await axios.post<BulkRelationResult>(`${baseUrl}/bulk/remove-relation`, { field, ids, targetIds })).data,
       ),
     duplicate: (id: string, options?: DuplicateOptions) =>
       handleRequest(

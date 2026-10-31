@@ -11,6 +11,8 @@ export * from "./useBulkUpsertDomain";
 export * from "./useReplaceByQueryDomain";
 export * from "./useBulkUpdateDomain";
 export * from "./useBulkUpdateByIdsDomain";
+export * from "./useBulkAddRelationDomain";
+export * from "./useBulkRemoveRelationDomain";
 export * from "./useDuplicateDomain";
 export * from "./useRestoreDomain";
 export * from "./useHardDeleteDomain";

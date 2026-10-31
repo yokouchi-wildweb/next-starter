@@ -16,6 +16,8 @@ export type CrudAction =
   | "replaceByQuery"
   | "bulkUpdate"
   | "bulkUpdateByIds"
+  | "bulkAddRelation"
+  | "bulkRemoveRelation"
   | "duplicate"
   | "restore"
   | "hardDelete"

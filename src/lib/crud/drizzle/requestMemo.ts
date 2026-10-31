@@ -28,6 +28,8 @@ const WRITE_METHOD_NAMES = [
   "bulkUpdateByQuery",
   "systemBulkUpdateByQuery",
   "bulkUpdate",
+  "bulkAddRelation",
+  "bulkRemoveRelation",
   "bulkUpsert",
   "replaceByQuery",
   "truncateAll",

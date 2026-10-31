@@ -277,10 +277,42 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 | 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
 | 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替。候補名もロックしてから判定） |
 
-ガードを通らない一括書き込み・複製系（`upsert` / `bulkUpsert` / `bulkUpdate` / `bulkUpdateByIds` /
-`replaceByQuery` / `duplicate`）は `userService` から公開しない。汎用 `/api/user/**` の該当ルートは 404、
-CSV インポートも拒否される（`domain.json` も `useImportExport: false`）。サービス内部で必要な場合は
-`base` を直接使い、表示名・ステータス履歴の整合は呼び出し側で担保する。
+ガードを通らず行を作る一括書き込み・複製系（`upsert` / `bulkUpsert` / `replaceByQuery` / `duplicate`）は
+`userService` から公開しない。汎用 `/api/user/**` の該当ルートは 404、CSV インポートも拒否される
+（`domain.json` も `useImportExport: false`）。サービス内部で必要な場合は `base` を直接使い、表示名・
+ステータス履歴の整合は呼び出し側で担保する。
+
+### 一括更新
+
+管理者が複数ユーザーをまとめて更新する経路。列の性質で使い分ける。
+
+| 更新したいもの | 経路 | 動作 |
+|------|------|------|
+| タグを足す / 外す（既存のタグは残す） | `useBulkAddUserTags` / `useBulkRemoveUserTags` の `trigger(userIds, tagIds)` | 1 文の SQL。再追加は何もしない |
+| `adminMemo`、タグの置き換え | `useBulkUpdateByIdsUser`（同じ値）/ `useBulkUpdateUser`（行ごとに違う値） | `base` の一括更新。全件成功か全件失敗か |
+| `status` / `role` | 1 人ずつ `useChangeUserStatus` / `useChangeUserRole` | 一括の経路は無い |
+| `name` / `email` / `phoneNumber` / パスワード | 1 人ずつ `useUpdateUser` | 一括の経路は無い |
+
+- 認可: 汎用 API の `ADMIN_ONLY`（管理者のみ）
+- 許可する列: `src/config/app/user-bulk-update.config.ts` の `USER_BULK_UPDATE.fields`。それ以外の列は黙って捨てず 400。副作用のある列（上の表の下 2 行、`isDemo`）は足さない
+- 上限: 1 回 1000 ユーザー（超えたら 400）。タグの追加・削除はタグ 50 件まで。超える分はクライアントで分割して送る
+- タグの追加・削除の結果: `{ count, affectedIds, unknownIds, unknownTargetIds }`（`unknownTargetIds` = 存在しないタグ）。存在しない id（追加では論理削除済みも）はエラーにせず飛ばして返す
+- 監査: タグの追加・削除は変わったユーザーごとに `user.relation.added` / `user.relation.removed`（metadata に `field` と `targetIds`）。変化が無ければ記録しない
+- `enableUserTag` を切った fork ではタグの表が無いので、タグの経路を呼ばない
+
+画面の例（`RecordSelectionTable` の `bulkActions`）:
+
+```tsx
+<BulkBelongsToManyFieldButton
+  domain="user"
+  ids={selection.selectedIds}
+  relation="userTag"
+  mode="add"
+  onSuccess={selection.clear}
+/>
+```
+
+自前の UI なら `useBulkAddUserTags` の `trigger` を `ChecklistPopover` の `onConfirm` から呼ぶ。
 
 テスト: `pnpm test:user-name-availability`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
 

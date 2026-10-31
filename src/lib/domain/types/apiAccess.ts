@@ -22,6 +22,8 @@ export const DOMAIN_CRUD_OPERATIONS = [
   "bulkUpsert",
   "bulkUpdate",
   "bulkUpdateByIds",
+  "bulkAddRelation",
+  "bulkRemoveRelation",
   "bulkDeleteByIds",
   "bulkDeleteByQuery",
   "replaceByQuery",

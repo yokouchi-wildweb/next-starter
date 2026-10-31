@@ -23,6 +23,7 @@ import { changeStatus } from "./wrappers/changeStatus";
 import { changeRole } from "./wrappers/changeRole";
 import { softDelete } from "./wrappers/softDelete";
 import { searchWithProfile } from "./wrappers/searchWithProfile";
+import { bulkUpdate, bulkUpdateByIds } from "./wrappers/bulkUpdate";
 import { checkLockState, recordFailedLogin, clearLockState } from "./wrappers/lockoutPolicy";
 
 export { requireUserRecord } from "./resolvers/requireUserRecord";
@@ -33,14 +34,13 @@ export {
   type FailedLoginOutcome,
 } from "./wrappers/lockoutPolicy";
 
-// 一括書き込み・複製系は update ラッパー (表示名の一意性ガード / ステータス履歴 / Firebase 同期 /
+// 行を作る一括書き込み・複製系は update ラッパー (表示名の一意性ガード / ステータス履歴 / Firebase 同期 /
 // セッション失効) を通らないため公開しない。汎用 /api/user/** の該当ルートは 404、CSV インポートも拒否される。
 // サービス内部で必要な場合は base を直接使う (例: registration/setPending.ts の base.upsert)。
+// bulkUpdate / bulkUpdateByIds は副作用の無い列に限ったラッパーを公開する (wrappers/bulkUpdate.ts)。
 const {
   upsert: _upsert,
   bulkUpsert: _bulkUpsert,
-  bulkUpdate: _bulkUpdate,
-  bulkUpdateByIds: _bulkUpdateByIds,
   replaceByQuery: _replaceByQuery,
   duplicate: _duplicate,
   ...exposedBase
@@ -66,6 +66,8 @@ export const userService = {
   changeRole,
   softDelete,
   searchWithProfile,
+  bulkUpdate,
+  bulkUpdateByIds,
   // lockout policy
   checkLockState,
   recordFailedLogin,

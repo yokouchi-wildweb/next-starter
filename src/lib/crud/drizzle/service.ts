@@ -18,6 +18,7 @@ import type {
   BulkUpsertResult,
   BulkUpdateRecord,
   BulkUpdateResult,
+  BulkRelationResult,
   ReplaceByQueryOptions,
   DuplicateOptions,
   WhereExpr,
@@ -42,6 +43,10 @@ import {
   separateBelongsToManyInput,
   syncBelongsToManyRelations,
   bulkSyncBelongsToManyRelations,
+  bulkAddBelongsToManyRelation,
+  bulkRemoveBelongsToManyRelation,
+  BULK_RELATION_MAX_IDS,
+  BULK_RELATION_MAX_TARGET_IDS,
 } from "./belongsToMany";
 import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_HAS_MANY_LIMIT, hydrateCount } from "./relations";
 import { applyRequestMemo } from "./requestMemo";
@@ -365,6 +370,63 @@ export function createCrudService<
       map.set(auditIdOf(row), row);
     }
     return map;
+  };
+
+  /** bulkAddRelation / bulkRemoveRelation の共通実装。中間テーブルの書き込みと監査を同じ TX にする */
+  const performBulkRelationChange = async (
+    verb: "added" | "removed",
+    fieldName: string,
+    ids: string[],
+    targetIds: string[],
+    tx?: DbTransaction,
+  ): Promise<BulkRelationResult> => {
+    const relation = (serviceOptions.belongsToManyRelations ?? []).find((item) => item.fieldName === fieldName);
+    if (!relation) {
+      throw new DomainError(`belongsToMany の項目ではありません: ${fieldName}`, { status: 400 });
+    }
+    if (ids.length > BULK_RELATION_MAX_IDS || targetIds.length > BULK_RELATION_MAX_TARGET_IDS) {
+      throw new DomainError(
+        `一度に指定できるのはレコード ${BULK_RELATION_MAX_IDS} 件、関連先 ${BULK_RELATION_MAX_TARGET_IDS} 件までです`,
+        { status: 400 },
+      );
+    }
+
+    const source = { table, idColumn };
+    const perform = async (executor: DbExecutor): Promise<BulkRelationResult> => {
+      const { result, changes } =
+        verb === "added"
+          ? await bulkAddBelongsToManyRelation(executor, relation, source, ids, targetIds)
+          : await bulkRemoveBelongsToManyRelation(executor, relation, source, ids, targetIds);
+
+      if (audit && auditBulkMode === "aggregate" && result.count > 0) {
+        await auditOnBulkAggregate(executor, `relation_${verb}`, {
+          field: fieldName,
+          count: result.count,
+          sampleIds: result.affectedIds.slice(0, 10),
+          targetIds,
+        });
+      } else if (audit && auditBulkMode === "detail") {
+        for (const [recordId, changedTargetIds] of changes) {
+          await audit.recorder.record({
+            ...auditCommonOptions()!,
+            targetType: audit.targetType,
+            targetId: recordId,
+            action: `${audit.actionPrefix}.relation.${verb}`,
+            metadata: { field: fieldName, targetIds: changedTargetIds },
+            tx: auditTxOf(executor),
+          });
+        }
+      }
+      return result;
+    };
+
+    try {
+      if (tx) return await perform(tx);
+      return await db.transaction(async (innerTx) => perform(innerTx));
+    } catch (error) {
+      // 確認の後に相手が物理削除されたときの外部キー違反
+      return handleConstraintError(error, "write");
+    }
   };
 
   // ===== systemUpdate / systemBulkUpdateByQuery（特権書き込み）=====
@@ -1337,6 +1399,29 @@ export function createCrudService<
         return performUpdate(tx);
       }
       return db.transaction(async (innerTx) => performUpdate(innerTx));
+    },
+
+    /**
+     * 複数レコードに同じ関連先を足す（belongsToMany）。既存の関連は残り、再追加は何もしない。
+     * 存在しない id（論理削除済みを含む）は飛ばして結果で返す。
+     */
+    async bulkAddRelation(
+      fieldName: string,
+      ids: string[],
+      targetIds: string[],
+      tx?: DbTransaction,
+    ): Promise<BulkRelationResult> {
+      return performBulkRelationChange("added", fieldName, ids, targetIds, tx);
+    },
+
+    /** 複数レコードから指定の関連先だけを外す（belongsToMany）。他の関連は残す */
+    async bulkRemoveRelation(
+      fieldName: string,
+      ids: string[],
+      targetIds: string[],
+      tx?: DbTransaction,
+    ): Promise<BulkRelationResult> {
+      return performBulkRelationChange("removed", fieldName, ids, targetIds, tx);
     },
 
     async bulkDeleteByQuery(where: WhereExpr, tx?: DbTransaction): Promise<void> {

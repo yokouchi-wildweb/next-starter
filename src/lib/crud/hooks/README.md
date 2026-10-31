@@ -50,6 +50,7 @@
 
 - 集まりのエントリ（従属の行 id 付き）は生成フックではなく、`@/lib/crud/hooks` の汎用の `useCollectionEntries(domain, field, parentId または parentIds)` を直接使う（`{ data, entriesOf, isLoading, error, mutate }`。詳細: [`../README.md`「エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する」](../README.md)）
 - `bulkUpdateByIds` は `@/lib/crud/hooks` の `useBulkUpdateByIdsDomain` のみで、ドメインへの生成フックは無い（必要なら派生フックで包む）
+- `bulkAddRelation` / `bulkRemoveRelation` も同じく `useBulkAddRelationDomain` / `useBulkRemoveRelationDomain` のみ（例: `features/core/user/hooks/useBulkAddUserTags.ts`）
 - `query` / `belongsToMany` / `systemUpdate` / `bulkUpdateByQuery` / `systemBulkUpdateByQuery` はサーバー専用でフックは無い
 - 生成フックは client service に該当メソッドが無いと呼び出し時に例外を投げる（`createApiClient` は全メソッドを持つので、生成ドメインでは通常起きない）
 

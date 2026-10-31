@@ -19,7 +19,7 @@ import { getDomainConfig } from "@/lib/domain";
 import { getBelongsToManyRelations } from "@/lib/domain/relations/getBelongsToManyRelations";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { createApiClient } from "@/lib/crud/client";
-import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
+import { useBulkAddRelationDomain, useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
 
 /** リレーション先データの型 */
 type RelationData = {
@@ -72,6 +72,12 @@ export type BulkBelongsToManyFieldButtonProps = ButtonStyleProps & {
   showClearAll?: boolean;
   /** 「すべて削除」スイッチのラベル */
   clearAllLabel?: string;
+  /**
+   * 選択した値の反映のしかた。
+   * replace = 各レコードの関連を選択した値に置き換える / add = 既存の関連を残して足す
+   * @default "replace"
+   */
+  mode?: "replace" | "add";
 };
 
 /**
@@ -121,11 +127,12 @@ export function BulkBelongsToManyFieldButton({
   disabled = false,
   showClearAll = false,
   clearAllLabel,
+  mode = "replace",
 }: BulkBelongsToManyFieldButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
-  const { trigger, isMutating } = useBulkUpdateByIdsDomain(
+  const { trigger, isMutating: isReplacing } = useBulkUpdateByIdsDomain(
     `${config.plural}/bulkUpdateByIds`,
     client.bulkUpdateByIds!,
     config.plural,
@@ -152,6 +159,14 @@ export function BulkBelongsToManyFieldButton({
 
   // フィールド名（配列フィールド）
   const fieldName = relationInfo?.fieldName;
+
+  const { trigger: triggerAdd, isMutating: isAdding } = useBulkAddRelationDomain(
+    `${config.plural}/bulkAddRelation`,
+    client.bulkAddRelation!,
+    fieldName ?? "",
+    config.plural,
+  );
+  const isMutating = isReplacing || isAdding;
 
   // リレーション先ドメインのAPI path
   const targetApiPath = targetDomain
@@ -200,7 +215,11 @@ export function BulkBelongsToManyFieldButton({
       mode: "persistent",
     });
     try {
-      await trigger(ids, { [fieldName]: values } as any);
+      if (mode === "add") {
+        await triggerAdd(ids, values);
+      } else {
+        await trigger(ids, { [fieldName]: values } as any);
+      }
       showToast(formatMessage(successMessage, count), "success");
       router.refresh();
       onSuccess?.();
@@ -209,7 +228,7 @@ export function BulkBelongsToManyFieldButton({
     }
   };
 
-  const resolvedTitle = title ?? `${relationLabel}を変更`;
+  const resolvedTitle = title ?? (mode === "add" ? `${relationLabel}を追加` : `${relationLabel}を変更`);
 
   // リレーション設定が見つからない場合はエラー表示
   if (!relationInfo) {

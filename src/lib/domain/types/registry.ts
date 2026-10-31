@@ -39,6 +39,8 @@ export type DomainService = {
   bulkUpsert?: AnyServiceMethod;
   bulkUpdate?: AnyServiceMethod;
   bulkUpdateByIds?: AnyServiceMethod;
+  bulkAddRelation?: AnyServiceMethod;
+  bulkRemoveRelation?: AnyServiceMethod;
   bulkDeleteByIds?: AnyServiceMethod;
   bulkDeleteByQuery?: AnyServiceMethod;
   bulkHardDeleteByIds?: AnyServiceMethod;

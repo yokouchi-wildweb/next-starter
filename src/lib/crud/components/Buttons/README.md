@@ -10,6 +10,7 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 | `BelongsToFieldButton` | 単一レコードのBelongsToリレーションを変更 |
 | `BelongsToManyFieldButton` | 単一レコードのBelongsToManyリレーションを変更 |
 | `BulkEnumFieldButton` | 複数レコードのenumフィールドを一括変更 |
+| `BulkBelongsToManyFieldButton` | 複数レコードのBelongsToManyリレーションを一括変更（`mode`: `replace` = 置き換え（既定）/ `add` = 既存を残して追加） |
 | `BulkDeleteButton` | 複数レコードを一括削除 |
 | `DeleteButton` | 単一レコードを削除（論理削除） |
 | `HardDeleteButton` | 単一レコードを物理削除 |

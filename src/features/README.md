@@ -605,7 +605,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 #### Operation（operations のキー）
 
-`list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkDeleteByIds` `bulkDeleteByQuery` `replaceByQuery`
+`list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkAddRelation` `bulkRemoveRelation` `bulkDeleteByIds` `bulkDeleteByQuery` `replaceByQuery`
 
 管理データ操作（汎用ルートではなく管理画面の専用ルートが評価する。未指定 = `"none"`）: `truncateAll` `export` `import`。domain.json では書かない（dc:generate が `useImportExport` から domainEntry.ts に書く）
 

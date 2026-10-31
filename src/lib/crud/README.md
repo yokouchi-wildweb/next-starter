@@ -261,6 +261,8 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 | `bulkUpsert(records, options?, tx?)` | Insert[] | BulkUpsertResult | M2M 非対応（警告ログ） |
 | `bulkUpdate(records, tx?)` | BulkUpdateRecord[] | BulkUpdateResult | CASE WHEN + M2M グループ同期 |
 | `bulkUpdateByIds(ids, data, tx?)` | string[], Partial | { count } | 全 ID に同じ値を適用 |
+| `bulkAddRelation(fieldName, ids, targetIds, tx?)` | string, string[], string[] | BulkRelationResult | M2M に足す（既存は残す、再追加は何もしない。上限 1000 × 50。存在しない id は飛ばして返す。Drizzle のみ） |
+| `bulkRemoveRelation(fieldName, ids, targetIds, tx?)` | string, string[], string[] | BulkRelationResult | M2M から指定の関連先だけ外す（他は残す。Drizzle のみ） |
 | `bulkUpdateByQuery(where, data, tx?)` | WhereExpr, Partial | { count } | 条件一致に同じ値を適用（parseUpdate 経路・M2M 非対応） |
 | `systemBulkUpdateByQuery(where, data, tx?)` | WhereExpr, Record | { count } | 特権一括更新（systemColumns 必須・SQL 式可・サーバー専用） |
 | `bulkDeleteByIds(ids, tx?)` | string[] | void | ソフト/ハード自動判定 |
