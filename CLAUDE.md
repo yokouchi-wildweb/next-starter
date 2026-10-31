@@ -153,6 +153,7 @@ essentials: raw HTML NG → components/ wrappers (div → Layout/*, button → F
 overlays (never a raw _shadcn dialog or a self-built overlay; all under Overlays/, ref: src/components/Overlays/README.md):
 - modal: confirm → Dialog | generic → Modal | tabs → TabbedModal | media + rows → DetailModal | pick N from a large master → AsyncPickerModal
 - inline: confirm / prompt / actions / checklist / info → Popover/{Confirm,Prompt,Action,Checklist,Info}Popover | hover → Tooltip, Tooltip/HelpTip, HoverCard | image zoom → ImageViewer | loading → Loading/ScreenLoader | toast → @/lib/toast
+custom_inputs: own input part → register src/wiring/formInputs/inputs/\<name\>[.\<fork name\>].ts, then formInput: "\<name\>" in domain.json / profile / setting / FieldConfig (render only; builtin names = src/lib/domain/fields/formInputs.mjs) | one-screen insert = custom + beforeField | ref: src/wiring/formInputs/inputs/README.md
 detail (wrapper table, ui_layers, data_seam, forms, async_select, optimistic updates, kiosk) → .claude/rules/core/components.md (loaded with any .tsx)
 
 ## SCREENS (page layer that downstream replaces without editing core)

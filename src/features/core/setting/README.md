@@ -60,7 +60,7 @@ export const field = {
 - 値 import の先は `zod`・`@/config`・純関数・型だけ。React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する(proxy と client の両方から読むため)
 - 同じ名前のキー・無いセクションを指すキーは生成で失敗する
 
-独自の入力部品の欄は、フォームの入力部品の登録の口(`formInput: "<登録名>"`)ができるまで作れない。
+独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.<fork の名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。部品の本体は `src/features/<ドメイン>/components/` に置く(core に足さない。欄の定義は名前だけなので上の値 import の決まりに当たらない)。
 
 ## セクションを足す
 

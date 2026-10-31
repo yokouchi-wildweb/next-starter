@@ -31,6 +31,8 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 ---
 
+独自の入力部品は `src/wiring/formInputs/inputs/` に登録し、`formInput` に名前を書く（`FieldRenderer/README.md`「登録された入力部品」）。このフォルダは一覧を知らず、Context と型だけを持つ。
+
 ## フィールド種別（必ず意識する）
 
 フォームの入力は **単一フィールド** と **インライングループ** に分かれる。  

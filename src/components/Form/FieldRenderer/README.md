@@ -91,6 +91,15 @@
 
 `formInput: "custom"` のフィールドは自動描画されない（スキーマには含まれる）。`beforeField` / `afterField` で独自コンポーネントを注入する（例: `src/features/README.md`「custom の使い方」）。
 
+## 登録された入力部品
+
+`formInput` に `src/wiring/formInputs/inputs/` の登録名を書くと、登録の部品を描く（本体は遅延読み込み。書き方: `src/wiring/formInputs/inputs/README.md`）。
+
+- 枠（ラベル・必須印・説明・エラー）は共通で描く。部品が自分で枠や複数の欄を描くなら項目に `frame: false`（エラーの表示は残る）
+- 自動保存は項目の `blurMode`（省略 = blur で保存しない）。単一値の部品で自動保存を効かせるなら書く
+- 部品は `AppForm` の中で描くので `useFormContext` が使える
+- `custom` との使い分け: 何度も使う部品・setting の欄は登録、1 画面だけの差し込みは `custom` + `beforeField` / `afterField`
+
 ## メディアアップロード
 
 `mediaUploader` / `mediaUploaderMulti` フィールドのアップロード状態は集約され、`onMediaStateChange` で通知される。`AppForm` 配下では context 経由で自動連携するため通常は指定不要。

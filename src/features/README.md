@@ -236,6 +236,8 @@ custom リレーションの UI 実装例:
 
 #### FormInput
 
+組み込みの名前の正は `src/lib/domain/fields/formInputs.mjs`。独自の部品は `src/wiring/formInputs/inputs/` に登録すると名前を書ける（`src/wiring/formInputs/inputs/README.md`。描画だけで、初期値・Zod・列は fieldType が決める）。組み込みにも登録にも無い名前は生成の前に止まる（fields・relations。`generate: false` は検査の外で、手書きの FieldConfig は TS が止める）。
+
 | 値 | 説明 |
 |---|---|
 | textInput | 1行テキスト |
