@@ -600,7 +600,7 @@ export function resolveImportFile(fromFile, source, fileSet) {
   return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find((c) => fileSet.has(c)) ?? null;
 }
 
-/** 管理画面の共通部品の組(src/wiring/domains.ts)と、それぞれが serviceRegistry から解く操作 */
+/** 管理画面の共通部品の組(src/wiring/adminScreenParts.ts)と、それぞれが serviceRegistry から解く操作 */
 export const ADMIN_PARTS_OPERATIONS = {
   adminListParts: "search",
   adminEditParts: "get",
@@ -685,8 +685,8 @@ export function parseLoaderGuard(source) {
   const partsCall = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/.exec(arg.text);
   if (partsCall) {
     const parts = namedImportSource(src, partsCall[1]);
-    if (!parts || parts.source !== "@/wiring/domains") {
-      return { problems: [`${partsCall[1]} を @/wiring/domains から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
+    if (!parts || parts.source !== "@/wiring/adminScreenParts") {
+      return { problems: [`${partsCall[1]} を @/wiring/adminScreenParts から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
     }
     return {
       problems: [],

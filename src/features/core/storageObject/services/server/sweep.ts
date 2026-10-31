@@ -37,7 +37,7 @@ import { storageObjectService, type StorageObjectService } from "./storageObject
 
 /**
  * 台帳の record_type（= 登録表のキー）から業務行のサービスを引く口（照合用）。
- * cron の task.ts が src/wiring/domains.ts の lookupDomainService を渡す（features は登録表を直接引かない）。
+ * cron の task.ts が src/wiring/domainRegistry.ts の lookupDomainService を渡す（features は登録表を直接引かない）。
  * 契約: 引けない（未登録・読み込み失敗・searchWithDeleted が無い）は status で返り、「行なし」（found で検索結果が空）と区別できる。
  * 照合は `lookupService(recordType, { require: ["searchWithDeleted"] })` で呼ぶ
  */
@@ -364,7 +364,7 @@ export function createStorageSweep(deps: StorageSweepDeps) {
 
 export type StorageSweep = ReturnType<typeof createStorageSweep>;
 
-/** 既定の依存（lookupService 以外）。lookupService は登録表に結ぶ側（cron の task.ts）が src/wiring/domains.ts から渡す */
+/** 既定の依存（lookupService 以外）。lookupService は登録表に結ぶ側（cron の task.ts）が src/wiring/domainRegistry.ts から渡す */
 export const defaultStorageSweepDeps: Omit<StorageSweepDeps, "lookupService"> = {
   ledger: drizzleLedger,
   service: storageObjectService,
@@ -373,7 +373,7 @@ export const defaultStorageSweepDeps: Omit<StorageSweepDeps, "lookupService"> = 
   reconcileCursor: checkpointReconcileCursor,
 };
 
-/** cron storage-sweep から呼ぶ（lookupService = src/wiring/domains.ts の lookupDomainService） */
+/** cron storage-sweep から呼ぶ（lookupService = src/wiring/domainRegistry.ts の lookupDomainService） */
 export function runStorageSweep(
   deps: Pick<StorageSweepDeps, "lookupService">,
   options?: StorageSweepOptions,

@@ -7,7 +7,7 @@ import "server-only";
 
 import type { SampleCategory } from "@/features/sampleCategory/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/domains";
+import { adminEditParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminSampleCategoryEditScreen = createLoader(
   adminEditParts<SampleCategory>("sampleCategory", { fallbackPath: "/admin/sample-categories" }),

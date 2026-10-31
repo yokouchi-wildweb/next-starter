@@ -7,6 +7,6 @@ import "server-only";
 
 __LOADER_RELATION_IMPORT__
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminCreateParts } from "@/wiring/domains";
+import { adminCreateParts } from "@/wiring/adminScreenParts";
 
 export const loadAdmin__Domain__CreateScreen = createLoader(adminCreateParts("__domain__"__CREATE_RELATIONS_ARG__));

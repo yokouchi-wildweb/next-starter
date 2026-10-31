@@ -130,7 +130,7 @@ export function staleScanEntries() {
 
 /**
  * ルート内 loader の一覧(検出した各ルートの _screen/loader.ts と _components/loader.ts のうち存在するもの)。
- * ルートの loader は必ずここに置く(README §4)。管理画面も各ルートに loader.ts を置き、共通の取得は wiring/domains.ts の組を渡す
+ * ルートの loader は必ずここに置く(README §4)。管理画面も各ルートに loader.ts を置き、共通の取得は wiring/adminScreenParts.ts の組を渡す
  */
 export function discoverRouteLoaders(pageDirs) {
   const out = [];
@@ -465,7 +465,7 @@ test("例外リストの鮮度: _components への差し替えは移行済み扱
 test("checkLoaderFile: createLoader 製(Factory が cache を張る)も cache() 直書きも通る。void loader も純粋な解釈だけの loader も cache() か createLoader は必須", () => {
   const good = `import "server-only";\nimport { cache } from "react";\nconst r = cache(async () => 1);\nexport async function loadAdminHomeScreen() { return r(); }`;
   assert.deepEqual(checkLoaderFile(good), []);
-  const factory = `import "server-only";\nimport { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts } from "@/wiring/domains";\nexport const loadAdminSampleListScreen = createLoader(adminListParts("sample"));`;
+  const factory = `import "server-only";\nimport { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts } from "@/wiring/adminScreenParts";\nexport const loadAdminSampleListScreen = createLoader(adminListParts("sample"));`;
   assert.deepEqual(checkLoaderFile(factory), []);
   const voidLoader = `import "server-only";\nimport { cache } from "react";\nimport { redirect } from "next/navigation";\nexport const loadFriendCouponScreen = cache(async (): Promise<void> => { if (!enabled()) redirect("/mypage"); });`;
   assert.deepEqual(checkLoaderFile(voidLoader), []);

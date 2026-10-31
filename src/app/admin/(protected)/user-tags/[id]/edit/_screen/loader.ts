@@ -6,6 +6,6 @@ import "server-only";
 
 import type { UserTag } from "@/features/core/userTag/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/domains";
+import { adminEditParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminUserTagEditScreen = createLoader(adminEditParts<UserTag>("userTag", { fallbackPath: "/admin/user-tags" }));

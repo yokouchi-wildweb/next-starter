@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { importData } from "@/lib/dataMigration/import";
-import { getJunctionTable, getService } from "@/wiring/domains";
+import { getJunctionTable, getService } from "@/wiring/domainRegistry";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
 

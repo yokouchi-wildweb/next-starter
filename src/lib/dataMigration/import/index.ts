@@ -26,9 +26,9 @@ export type ImportOptions = {
   fields?: FieldTypeInfo[];
   /** ファイル台帳の操作（API ルートが実行者で作って注入する） */
   media: DataMigrationMediaResolver;
-  /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
+  /** ドメイン名からサービスを引く（API ルートが src/wiring/domainRegistry.ts の getService を注入する） */
   services: DataMigrationServiceResolver;
-  /** 中間表の名前から表を引く（API ルートが src/wiring/domains.ts の getJunctionTable を注入する） */
+  /** 中間表の名前から表を引く（API ルートが src/wiring/domainRegistry.ts の getJunctionTable を注入する） */
   junctionTables: DataMigrationJunctionResolver;
 };
 

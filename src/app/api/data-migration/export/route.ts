@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { exportData } from "@/lib/dataMigration/export";
 import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "@/lib/dataMigration/media";
-import { getJunctionTable, getService } from "@/wiring/domains";
+import { getJunctionTable, getService } from "@/wiring/domainRegistry";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
 

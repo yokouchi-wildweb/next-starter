@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute, enforceAccessRule } from "@/wiring/apiRoute";
 import { resolveAccessRule } from "@/lib/domain";
-import { getDomainAccess, getDomainList, withRecordCounts } from "@/wiring/domains";
+import { getDomainAccess, getDomainList, withRecordCounts } from "@/wiring/domainRegistry";
 
 /**
  * 全件削除できるドメインの一覧を取得する（レコード数付き）

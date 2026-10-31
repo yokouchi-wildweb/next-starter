@@ -90,7 +90,7 @@ export const cronTask: CronTaskDefinition = {
 ```
 
 - `run` は動的 import にする（`cron:generate` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まないため）
-- ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domains.ts` を動的 import して渡す（例: storage-sweep の `lookupService`）。wiring を import してよいのは cron のフォルダでは task.ts だけ（override.ts は不可。`pnpm test:wiring`）
+- ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domainRegistry.ts` を動的 import して渡す（例: storage-sweep の `lookupService`）。wiring を import してよいのは cron のフォルダでは task.ts だけ（override.ts は不可。`pnpm test:wiring`）
 - 長い運用説明は、処理本体があるドメインの README に書く
 
 ### 2. route.ts（1 行）

@@ -11,7 +11,7 @@ export const cronTask: CronTaskDefinition = {
   run: async () => {
     const { runStorageSweep } = await import("@/features/core/storageObject/services/server/sweep");
     // 照合で台帳の record_type から業務行のサービスを引く口は、登録表を結んだ wiring から渡す（features は登録表を直接引かない）
-    const { lookupDomainService } = await import("@/wiring/domains");
+    const { lookupDomainService } = await import("@/wiring/domainRegistry");
     return await runStorageSweep({ lookupService: lookupDomainService });
   },
 };

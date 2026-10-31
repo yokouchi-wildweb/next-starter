@@ -7,6 +7,6 @@ import "server-only";
 
 import domainConfig from "@/features/sample/domain.json";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminCreateParts } from "@/wiring/domains";
+import { adminCreateParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminSampleCreateScreen = createLoader(adminCreateParts("sample", { relations: domainConfig }));

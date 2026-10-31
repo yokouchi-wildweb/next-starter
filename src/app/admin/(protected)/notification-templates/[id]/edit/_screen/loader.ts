@@ -6,6 +6,6 @@ import "server-only";
 
 import type { NotificationTemplate } from "@/features/core/notificationTemplate/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/domains";
+import { adminEditParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminNotificationTemplateEditScreen = createLoader(adminEditParts<NotificationTemplate>("notificationTemplate", { fallbackPath: "/admin/notification-templates" }));

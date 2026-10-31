@@ -1,6 +1,6 @@
 # src/lib/domain — domain.json の読み取りと、ドメイン名からサービス・表・主キーを引く仕組み
 
-`domain.json` の設定（フィールド・リレーション・中間表）を読む純関数群と、**登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く正式な仕組み**の汎用部分を持つ。ここの関数は登録表を import せず引数で受ける（lib から新しく登録表を import しない。既存の例外と規則は `src/wiring/README.md`）。登録表を結んだそのまま使える関数は `src/wiring/domains.ts`。
+`domain.json` の設定（フィールド・リレーション・中間表）を読む純関数群と、**登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く正式な仕組み**の汎用部分を持つ。ここの関数は登録表を import せず引数で受ける（lib から新しく登録表を import しない。既存の例外と規則は `src/wiring/README.md`）。登録表を結んだそのまま使える関数は `src/wiring/adminScreenParts.ts`。
 
 ## 登録表（serviceRegistry）とは
 
@@ -94,7 +94,7 @@ export const domainEntries = {
 
 戻りの型 `DomainService` は createCrudService の操作の構造型（全 optional）。Drizzle 版は `getTableName()`（表の物理名）と `getIdColumnName()`（主キー列の物理名）を持つ。主キーの論理名は常に `CRUD_ID_FIELD = "id"`（`@/lib/crud`）。表そのものは公開しない。Firestore 版（凍結）は `truncateAll` / `getTableName` / `getIdColumnName` を持たない。
 
-登録表を結んだ版は `src/wiring/domains.ts`（import してよい場所は `src/wiring/README.md`）。lib が引きたいときは呼び手が注入する（`src/lib/dataMigration` の `services`、storageObject の sweep の `lookupService`）。
+登録表を結んだ版は `src/wiring/domainRegistry.ts`（import してよい場所は `src/wiring/README.md`）。lib が引きたいときは呼び手が注入する（`src/lib/dataMigration` の `services`、storageObject の sweep の `lookupService`）。
 
 表 ↔ ドメインの逆引きの他の利用候補（auditLog の `target_type` の値をドメイン名に揃える、feature-gate の `tables` を登録表と照らす、中間表の名前解決 `junction/` との役割分担）は、まだ対応していない。使うときは、機能ごとの対応表を作らずこの 2 関数を引く。
 
@@ -109,7 +109,7 @@ domain.json の無い手書きの domain は、同じ置き場に同じ形を手
 - `config/`: `getDomainConfig` / `hasDomainConfig`（`domainConfigRegistry` を読む）、`resolveAccessRule`
 - `relations/`: `getRelations` / `getHasManyRelations`、関連選択肢（`relationOptions.mjs`）
 - `fields/`: `extractFields` / `extractImageFields`
-- `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domains.ts` の `getJunctionTable(name)`）
+- `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）
 - `hooks/` `service/client/`: 管理画面の全件削除一覧（`useFetchDomains`）
 
 テスト: `pnpm test:service-registry`（登録表）、`pnpm test:wiring`（wiring の目録と向き）、`pnpm test:relation-options`、`pnpm test:dc-registry`（domainEntry.ts の生成）。

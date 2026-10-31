@@ -91,7 +91,7 @@
 
 ## 注入するもの
 
-lib は登録表を import しない。API ルートが `src/wiring/domains.ts` の結んだ版を渡す。
+lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts` の結んだ版を渡す。
 
 - `services`: ドメイン名からサービスを引く(`getService`)
 - `junctionTables`: 中間表の名前から表を引く(`getJunctionTable`)

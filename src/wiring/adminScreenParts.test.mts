@@ -1,9 +1,9 @@
-// src/wiring/domains.test.mts
+// src/wiring/adminScreenParts.test.mts
 // 管理画面の共通部品の組(adminListParts 等)と、関連選択肢の取得本体の回帰テスト(DB は使わない)。
 // - access は汎用 API と同じく serviceRegistry の entry から resolveAccessRule で操作ごとに解く
 // - key は params / searchParams から cache のキーのプリミティブを取り出す
 // - 関連選択肢: 関連先ごとに list の access を取得前に評価し、拒否はその関連だけ空・取得しない・開発環境だけログ 1 行
-// 実行: pnpm test:wiring-domains
+// 実行: pnpm test:wiring-admin-parts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -13,7 +13,7 @@ import { fetchAdminRelationOptions } from "@/features/core/admin/services/server
 import { resolveAccessRule } from "@/lib/domain/config/apiAccess";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 
-import { adminCreateParts, adminEditParts, adminListParts, adminSortParts } from "./domains.ts";
+import { adminCreateParts, adminEditParts, adminListParts, adminSortParts } from "./adminScreenParts.ts";
 
 test("共通部品の組: access は serviceRegistry の entry から操作ごとに解く(汎用 API と同じ)", () => {
   const access = serviceRegistry.sample.access;

@@ -1,6 +1,6 @@
 // src/features/core/admin/services/server/screenData/adminEdit.ts
 // 管理画面(編集)の取得本体。認可と cache は呼び手(ルートの _screen/loader.ts)が持つ。
-// service は外から受ける(結ぶのは src/wiring/domains.ts の adminEditParts)。一覧・規則: ./README.md
+// service は外から受ける(結ぶのは src/wiring/adminScreenParts.ts の adminEditParts)。一覧・規則: ./README.md
 
 import "server-only";
 import { notFound } from "next/navigation";

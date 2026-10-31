@@ -170,7 +170,7 @@ test("buildRouteMap: 管理画面の共通部品の組の access は registry:<d
       "src/app/admin/y/_screen/loader.ts": `import "server-only";
 import type { Sample } from "@/features/sample/entities/model";
 import { createLoader } from "@/app/admin/guard";
-import { adminListParts } from "@/wiring/domains";
+import { adminListParts } from "@/wiring/adminScreenParts";
 export const loadYScreen = createLoader(adminListParts<Sample>("sample"));`,
     }),
   );

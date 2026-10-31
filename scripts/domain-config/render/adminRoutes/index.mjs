@@ -3,7 +3,7 @@
 // 出力の構造（SCREENS: src/lib/screens/README.md §12）:
 //   <domains>/page.tsx            1 行スイッチ。初回のみ生成（write-once）、以後上書きしない
 //   <domains>/_screen/<Name>.tsx  既定画面。毎回再生成（手で編集しない）
-//   <domains>/_screen/loader.ts   既定画面の loader（最寄りの guard.ts の createLoader に wiring/domains.ts の共通部品の組を渡す 1 行）。毎回再生成
+//   <domains>/_screen/loader.ts   既定画面の loader（最寄りの guard.ts の createLoader に wiring/adminScreenParts.ts の共通部品の組を渡す 1 行）。毎回再生成
 // 既存の page.tsx が旧形式（本体を直接持つ）なら一度だけ 1 行スイッチへ書き換える（移行）。_components/ には触らない（fork 所有）
 
 import path from "node:path";

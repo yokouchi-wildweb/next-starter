@@ -1,14 +1,14 @@
 # admin screenData — 管理画面の取得本体
 
 `dc:generate` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/{,new/,[id]/edit/,sort/}`）と、同じ形の手書きの core 管理画面が共有する**取得の本体**です。
-認可と cache は持ちません。各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に、`src/wiring/domains.ts` の**共通部品の組**を渡して使います。
+認可と cache は持ちません。各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に、`src/wiring/adminScreenParts.ts` の**共通部品の組**を渡して使います。
 service と関連先は外から受け取り、登録表（serviceRegistry）は読みません（結ぶのは wiring）。
 
 ```
 _screen/<Name>Screen.tsx ──▶ _screen/loader.ts = createLoader(adminXParts("sample", …))
                                  │  createLoader(admin/(protected)/guard.ts): 範囲の方針 + 組の access を取得前に評価、key で cache
                                  ▼
-                            src/wiring/domains.ts の adminXParts: access(serviceRegistry の entry から操作ごと)・key・load
+                            src/wiring/adminScreenParts.ts の adminXParts: access(serviceRegistry の entry から操作ごと)・key・load
                                  ▼
                             screenData/adminX.ts: fetchAdminX(service, …)
 ```
@@ -21,14 +21,14 @@ import "server-only";
 import type { Sample } from "@/features/sample/entities/model";
 import domainConfig from "@/features/sample/domain.json"; // 全件取得する関連があるときだけ
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/domains";
+import { adminEditParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminSampleEditScreen = createLoader(
   adminEditParts<Sample>("sample", { fallbackPath: "/admin/samples", relations: domainConfig }),
 );
 ```
 
-## 共通部品の組（`src/wiring/domains.ts`）
+## 共通部品の組（`src/wiring/adminScreenParts.ts`）
 
 | 組 | 画面 | access（serviceRegistry の entry から resolveAccessRule） | key | 返り値 |
 |---|---|---|---|---|
@@ -65,4 +65,4 @@ export const loadAdminSampleEditScreen = createLoader(
 - 「どの関連を読むか」「SWR キー」の判定をここや生成器に書き足さない。`relationOptions.mjs` だけを直す（hook・取得本体・生成器がずれない）
 - 生成された管理画面を変えたい fork: `_screen/` の Screen と loader.ts を `_components/` にコピーし、page.tsx を向ける（`src/lib/screens/README.md` §12）
 
-テスト: `pnpm test:wiring-domains`（組の access・key、関連選択肢の拒否・ログ）
+テスト: `pnpm test:wiring-admin-parts`（組の access・key、関連選択肢の拒否・ログ）

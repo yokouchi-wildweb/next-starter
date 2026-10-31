@@ -6,6 +6,6 @@ import "server-only";
 
 import type { ChatRoom } from "@/features/core/chatRoom/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/domains";
+import { adminEditParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminChatRoomEditScreen = createLoader(adminEditParts<ChatRoom>("chatRoom", { fallbackPath: "/admin/chat-rooms" }));

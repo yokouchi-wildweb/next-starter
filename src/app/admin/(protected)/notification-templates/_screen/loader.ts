@@ -6,6 +6,6 @@ import "server-only";
 
 import type { NotificationTemplate } from "@/features/core/notificationTemplate/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminListParts } from "@/wiring/domains";
+import { adminListParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminNotificationTemplateListScreen = createLoader(adminListParts<NotificationTemplate>("notificationTemplate"));

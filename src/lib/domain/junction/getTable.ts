@@ -1,6 +1,6 @@
 // src/lib/domain/junction/getTable.ts
 // 中間テーブルの Drizzle テーブルを取得するユーティリティ（server-only）。
-// 表の一覧は引数で受ける（lib は登録表を import しない。結ぶのは src/wiring/domains.ts）
+// 表の一覧は引数で受ける（lib は登録表を import しない。結ぶのは src/wiring/domainRegistry.ts）
 
 import "server-only";
 import { toPascalCase } from "@/utils/stringCase.mjs";

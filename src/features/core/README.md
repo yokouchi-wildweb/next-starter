@@ -72,7 +72,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [cronCheckpoint](cronCheckpoint/README.md) | 差分 cron / 再開可能バッチのチェックポイント |
 | [incrementalRefresh](incrementalRefresh/README.md) | 派生テーブル（read-model）の差分再計算 |
 | [adminCommand](adminCommand/README.md) | 管理者用コマンドパレット |
-| admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/wiring/domains.ts` の組を通して使う）とダッシュボード |
+| admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/wiring/adminScreenParts.ts` の組を通して使う）とダッシュボード |
 | insane | 管理者用の危険操作（ドメインのテーブル全消去など） |
 
 ## エンティティに列を追加・変更するとき

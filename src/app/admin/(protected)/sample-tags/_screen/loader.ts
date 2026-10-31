@@ -7,6 +7,6 @@ import "server-only";
 
 import type { SampleTag } from "@/features/sampleTag/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminListParts } from "@/wiring/domains";
+import { adminListParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminSampleTagListScreen = createLoader(adminListParts<SampleTag>("sampleTag"));

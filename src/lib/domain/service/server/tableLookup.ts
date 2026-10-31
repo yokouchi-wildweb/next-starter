@@ -1,6 +1,6 @@
 // src/lib/domain/service/server/tableLookup.ts
 // 登録表の table / idColumn（domainEntry.ts に書いた表の物理名と主キー列名）で、表 ↔ ドメインを引く汎用関数。
-// サービスを読み込まない同期関数。登録表は引数で受ける（結んだ版は src/wiring/domains.ts）。
+// サービスを読み込まない同期関数。登録表は引数で受ける（結んだ版は src/wiring/domainRegistry.ts）。
 // 登録表の table は各サービスの getTableName() と一致し、1 つの表は 1 つのキーだけ（registry:check と test:service-registry が守る）。
 
 import "server-only";

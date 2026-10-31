@@ -1,6 +1,6 @@
 // src/lib/domain/service/server/getService.ts
 // 登録表（serviceRegistry）からドメイン名でサービスを引く汎用関数。
-// lib は registry を import しない: 登録表は引数で受ける。serviceRegistry を結んだ版は src/wiring/domains.ts
+// lib は registry を import しない: 登録表は引数で受ける。serviceRegistry を結んだ版は src/wiring/domainRegistry.ts
 
 import "server-only";
 

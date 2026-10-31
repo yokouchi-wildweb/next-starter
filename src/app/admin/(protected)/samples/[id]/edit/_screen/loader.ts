@@ -8,7 +8,7 @@ import "server-only";
 import type { Sample } from "@/features/sample/entities/model";
 import domainConfig from "@/features/sample/domain.json";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/domains";
+import { adminEditParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminSampleEditScreen = createLoader(
   adminEditParts<Sample>("sample", { fallbackPath: "/admin/samples", relations: domainConfig }),

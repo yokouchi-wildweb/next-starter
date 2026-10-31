@@ -11,7 +11,9 @@
 | ファイル | 結ぶもの | データに届くか |
 |---|---|---|
 | `apiRoute.ts` | `lib/routeFactory` の汎用版 + 利用者の束（`features/core/auth` の `apiRouteUserDeps`）+ レート制限の束（`features/core/rateLimit` の `apiRouteRateLimitDeps`）+ 端末の束（`features/core/pairedDevice` の `apiRouteDeviceDeps`）+ 主体の具体の型 + `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する） | 届く（serviceRegistry → domainEntry.ts → 遅延 import でサービスに届く） |
-| `domains.ts` | `serviceRegistry` + `domainConfigMap` → `getService` / `getServiceOrThrow` / `hasService` / `lookupDomainService` / `getJunctionTable` / `findDomainByTable` / `getDomainTable` / `getDomainAccess` / `getDomainList` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys`、管理画面の共通部品の組 `adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`（各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に渡す。access は serviceRegistry の entry から操作ごと、取得本体は `features/core/admin/services/server/screenData`。テスト `domains.test.mts`） | 届く（registry → domainEntry.ts → 遅延 import でサービスに届く） |
+| `domainRegistry.ts` | `serviceRegistry` + `domainConfigMap` → `getService` / `getServiceOrThrow` / `hasService` / `lookupDomainService` / `getJunctionTable` / `findDomainByTable` / `getDomainTable` / `getDomainAccess` / `getDomainList` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys` | 届く（registry → domainEntry.ts → 遅延 import でサービスに届く） |
+| `domainConfig.ts` | 全ドメインの設定 → `getDomainConfig` / `hasDomainConfig`（server 専用） | 届かない |
+| `adminScreenParts.ts` | `serviceRegistry` + `features/core/admin/services/server/screenData` → 管理画面の共通部品の組 `adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`（各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に渡す。access は serviceRegistry の entry から操作ごと。テスト `adminScreenParts.test.mts`） | 届く（registry → domainEntry.ts → 遅延 import でサービスに届く） |
 | `pageGuard.ts` | `lib/pageGuard` の汎用版 + 利用者の束（`features/core/auth` の `pageGuardUserDeps`）+ setup 誘導の判定（auth の `hasUserForAccess`）→ `defineRootGuard`（root の `src/app/guard.ts` だけが呼ぶ。子の guard.ts は親の `extend` で作る） | 届く（auth → getSessionUser → DB） |
 | `AppProviders.tsx` | アプリ全体の Provider の入れ子（Tooltip → reCAPTCHA → 認証セッション `AuthSessionProvider` → 管理コマンド → 画像ビューア → fork の口 `src/app/_providers/ForkProviders.tsx`。fork の Provider はこの口のファイルを書き換えて足す。上流は空、多段は同じファイルを書き換える）。root の `src/app/layout.tsx` が 1 か所で描く（server。自分ではデータを取らない） | 届く（AuthSessionProvider → セッション解決。データとセッションを読む場所の名前付き例外） |
 
@@ -28,7 +30,7 @@
 ## 向き（import してよい場所）
 
 - `src/app/**`（API ルート・Screen・loader）、`src/proxies/**`、`src/proxy.ts`
-- cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` だけ（fork 所有の `override.ts` と 1 行の `route.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domains")`）
+- cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` だけ（fork 所有の `override.ts` と 1 行の `route.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domainRegistry")`）
 - features / lib / components / registry からは import しない。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
 
 「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。src/app の中で import してよい場所は限る（D73 K6。UI の場所はデータを取らない）:

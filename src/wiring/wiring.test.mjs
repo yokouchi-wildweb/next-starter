@@ -9,7 +9,7 @@
 //    task.ts だけ（fork 所有の override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
-//    の鎖を辿る。domains.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
+//    の鎖を辿る。domainRegistry.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
 // 5. データに届く wiring を import してよい場所（D73 K6）: src/app の loader.ts・route.ts・cron の task.ts・API の補助ファイル
 //    （src/app/api/**）、guard.ts は pageGuard の作り手だけ、root の src/app/layout.tsx は AppProviders だけ。proxies・proxy.ts は既存の契約で可。
 //    それ以外の src/app（Screen・page・layout・_layout・_components の部品）は不可。AppProviders の中の AuthSessionProvider で判定を止める
@@ -26,7 +26,7 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["AppProviders.tsx", "README.md", "apiRoute.ts", "dbAgent", "dbAgent.ts", "domains.test.mts", "domains.ts", "pageGuard.ts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "pageGuard.ts", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];
@@ -164,17 +164,17 @@ function reachesServicesServer(file, { skip = [] } = {}) {
   return { reached: false, path: [] };
 }
 
-test("データに届く wiring: domains.ts は registry → domainEntry.ts → 遅延 import の鎖で services/server に届く", () => {
+test("データに届く wiring: domainRegistry.ts は registry → domainEntry.ts → 遅延 import の鎖で services/server に届く", () => {
   // getJunctionTable の遅延 import で表の定義からも届くので、見たい鎖(登録表)だけを辿る
-  const result = reachesServicesServer(join(wiringDir, "domains.ts"), { skip: ["registry/schemaRegistry.ts"] });
-  assert.ok(result.reached, "domains.ts から services/server に届かない（登録表か domainEntry.ts の形が変わった）");
+  const result = reachesServicesServer(join(wiringDir, "domainRegistry.ts"), { skip: ["registry/schemaRegistry.ts"] });
+  assert.ok(result.reached, "domainRegistry.ts から services/server に届かない（登録表か domainEntry.ts の形が変わった）");
   assert.ok(result.path.some((rel) => rel === "registry/serviceRegistry.ts"), `鎖が登録表を通らない: ${result.path.join(" → ")}`);
   assert.ok(result.path.some((rel) => rel.endsWith("/domainEntry.ts")), `鎖が domainEntry.ts を通らない: ${result.path.join(" → ")}`);
 });
 
 test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts / .tsx 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
   const dataReaching = WIRING_FILES.filter((name) => /\.tsx?$/.test(name) && reachesServicesServer(join(wiringDir, name)).reached);
-  assert.deepEqual(dataReaching, ["AppProviders.tsx", "apiRoute.ts", "domains.ts", "pageGuard.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
+  assert.deepEqual(dataReaching, ["AppProviders.tsx", "adminScreenParts.ts", "apiRoute.ts", "domainRegistry.ts", "pageGuard.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
 });
 
 /**
@@ -194,20 +194,20 @@ export function dataReachingImportProblem(importerRel, wiringName) {
 }
 
 test("データに届く wiring の import の場所の判定（D73 K6）", () => {
-  assert.equal(dataReachingImportProblem("app/foo/_screen/loader.ts", "domains.ts"), null);
+  assert.equal(dataReachingImportProblem("app/foo/_screen/loader.ts", "domainRegistry.ts"), null);
   assert.equal(dataReachingImportProblem("app/api/foo/route.ts", "apiRoute.ts"), null);
-  assert.equal(dataReachingImportProblem("app/api/foo/_shared/helper.ts", "domains.ts"), null);
-  assert.equal(dataReachingImportProblem("app/api/cron/x/task.ts", "domains.ts"), null);
+  assert.equal(dataReachingImportProblem("app/api/foo/_shared/helper.ts", "domainRegistry.ts"), null);
+  assert.equal(dataReachingImportProblem("app/api/cron/x/task.ts", "domainRegistry.ts"), null);
   assert.equal(dataReachingImportProblem("app/guard.ts", "pageGuard.ts"), null);
   assert.equal(dataReachingImportProblem("app/guard.ts", "pageGuard.acme.ts"), null);
   assert.equal(dataReachingImportProblem("app/layout.tsx", "AppProviders.tsx"), null);
-  assert.equal(dataReachingImportProblem("proxies/foo.ts", "domains.ts"), null);
-  assert.ok(dataReachingImportProblem("app/foo/_screen/FooScreen.tsx", "domains.ts"));
-  assert.ok(dataReachingImportProblem("app/foo/page.tsx", "domains.ts"));
+  assert.equal(dataReachingImportProblem("proxies/foo.ts", "domainRegistry.ts"), null);
+  assert.ok(dataReachingImportProblem("app/foo/_screen/FooScreen.tsx", "domainRegistry.ts"));
+  assert.ok(dataReachingImportProblem("app/foo/page.tsx", "domainRegistry.ts"));
   assert.ok(dataReachingImportProblem("app/admin/layout.tsx", "AppProviders.tsx"));
-  assert.ok(dataReachingImportProblem("app/foo/_components/Part.tsx", "domains.ts"));
-  assert.ok(dataReachingImportProblem("app/guard.ts", "domains.ts"));
-  assert.ok(dataReachingImportProblem("app/layout.tsx", "domains.ts"));
+  assert.ok(dataReachingImportProblem("app/foo/_components/Part.tsx", "domainRegistry.ts"));
+  assert.ok(dataReachingImportProblem("app/guard.ts", "domainRegistry.ts"));
+  assert.ok(dataReachingImportProblem("app/layout.tsx", "domainRegistry.ts"));
 });
 
 test("データに届く wiring を import する src/app のファイルが許された場所だけ（D73 K6）", () => {

@@ -2,7 +2,7 @@
 // 管理画面(追加・編集)のフォームの関連選択肢を SSR で先読みし、SWRConfig の fallback の形で返す取得本体。
 // どの関連を読むか・どのキーで渡すかは src/lib/domain/relations/relationOptions.mjs の判定に従う
 // (クライアントの useRelationOptions と同じ判定・同じキー)。
-// 関連先の access(list)と service は外から受け(登録表は読まない。結ぶのは src/wiring/domains.ts)、
+// 関連先の access(list)と service は外から受け(登録表は読まない。結ぶのは src/wiring/adminScreenParts.ts)、
 // 関連先ごとに access を取得前に評価する。拒否された関連先は取得せず空にする(その関連だけ空)。一覧・規則: ./README.md
 
 import "server-only";

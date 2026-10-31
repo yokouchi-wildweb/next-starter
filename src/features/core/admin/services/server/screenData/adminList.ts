@@ -1,6 +1,6 @@
 // src/features/core/admin/services/server/screenData/adminList.ts
 // 管理画面(一覧)の取得本体。認可と cache は呼び手(ルートの _screen/loader.ts = guard.ts の createLoader)が持つ。
-// service は外から受ける(登録表は読まない。結ぶのは src/wiring/domains.ts の adminListParts)。一覧・規則: ./README.md
+// service は外から受ける(登録表は読まない。結ぶのは src/wiring/adminScreenParts.ts の adminListParts)。一覧・規則: ./README.md
 
 import "server-only";
 

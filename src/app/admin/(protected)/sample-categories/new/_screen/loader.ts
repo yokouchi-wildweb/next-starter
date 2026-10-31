@@ -6,6 +6,6 @@
 import "server-only";
 
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminCreateParts } from "@/wiring/domains";
+import { adminCreateParts } from "@/wiring/adminScreenParts";
 
 export const loadAdminSampleCategoryCreateScreen = createLoader(adminCreateParts("sampleCategory"));
