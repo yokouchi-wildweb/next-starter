@@ -1,290 +1,170 @@
 # Setting ドメイン
 
-アプリケーション全体の設定を管理するコアドメイン。
-**セクション駆動アーキテクチャ**で、新しい設定カテゴリは `setting.sections.ts` にエントリを1つ追加するだけで管理画面・メニューが自動生成される。
+管理者が稼働中に画面から変える値を持つコアドメイン。
 
-## 概要
+- **1 行 + jsonb 1 列**: `settings` 表の `id: "global"` の 1 行の `extended` に、保存したキーだけを持つ。既定値は書かない
+- **1 キー = 1 ファイル**: `fields/` のキーと `sections/` のセクションから、一覧を生成する(`extensions/`、編集不可)
+- **画面は route**: フォームは route の `_screen/` にある。core の setting は hook・型・保存処理だけ
 
-- **シングルトンパターン**: 設定は `id: "global"` の 1 レコードのみ
-- **ハイブリッド構成**: 基本項目（固定カラム） + 拡張項目（`setting.extended.ts` の Zod 定義、`extended` jsonb カラムに格納）
-- **セクション駆動 UI**: `setting.sections.ts` のカタログから、ページ / メニュー / フォームを動的生成
+## setting と config の境界
 
----
+- 管理者が稼働中に画面から変える値 = setting(既定はコード)
+- デプロイで決まる値・コードが構造として依存する値 = config(`src/config/`)
+- 同じ値を両方に置かない。setting の既定値が config を読むのは可、逆は不可
 
 ## ディレクトリ構造
 
 ```
 src/features/core/setting/
-├── setting.extended.ts                       # 拡張設定項目の Zod スキーマ
-├── setting.sections.ts                       # セクション定義（管理UI のカタログ）
-├── menu.ts                                   # セクションから管理メニューを組み立てる helper
-├── entities/
-│   ├── index.ts, drizzle.ts, schema.ts, model.ts, form.ts
-│   ├── schema.extended.ts, model.extended.ts, form.extended.ts
-├── services/
-│   ├── client/settingClient.ts, adminSetupClient.ts
-│   ├── server/drizzleBase.ts, settingService.ts
-│   └── types.ts
-├── hooks/useSetting.ts, useUpdateSetting.ts, useAdminSetup.ts
-└── components/
-    ├── common/EditSettingSectionForm.tsx     # セクション駆動の汎用フォーム
-    ├── AdminSettingSectionEdit/              # 管理画面: 設定編集ラッパ
-    └── AdminSetup/                           # 管理画面: 初期セットアップ
+├── extensionPoints.ts        # 拡張点 fields・sections の宣言
+├── fields/<キー>.ts          # 1 キーの定義
+├── sections/<名前>.ts        # 1 セクションの定義
+├── extensions/               # 生成された一覧(pnpm extensions:generate)
+├── types/definition.ts       # キーとセクションの型
+├── menu.ts                   # 管理メニューの項目を作る
+├── utils/sectionForm.ts      # セクションの並びとフォームの組み立て
+├── entities/                 # 表の定義と型(Setting・SettingValues)
+├── hooks/                    # useSetting・useUpdateSetting・usePublicSetting・useAdminSetup
+└── services/
+    ├── client/               # settingClient・adminSetupClient
+    └── server/
+        ├── settingService.ts # 読み・保存の入口(proxy からも読まれる)
+        ├── settingActor.ts   # 管理者向けの読み書き・公開の読み
+        ├── access.ts         # キーごとの権限の解決
+        ├── read.ts           # 保存値をキーごとに検証して読む
+        └── save.ts           # 唯一の書き手
 ```
 
-管理画面のルートは `src/app/admin/(protected)/settings/` 配下の 1 動的ルート `[section]/page.tsx` で全セクションを賄う。
+画面: `src/app/admin/(protected)/settings/[section]/_screen/`(`EditSettingSectionForm`)、`src/app/admin/setup/_screen/`(`AdminSetupForm`)。
 
----
+## キーを足す
 
-## 基本設定項目（固定カラム）
-
-| 項目名 | DB列名 | 型 | 説明 |
-|--------|--------|-----|------|
-| `adminListPerPage` | `admin_list_per_page` | integer | 一覧表示件数（デフォルト: 50） |
-| `maintenanceEnabled` | `extended` jsonb | boolean | メンテナンスモード有効フラグ |
-| `maintenanceStartAt` | `extended` jsonb | date \| null | メンテナンス開始日時 |
-| `maintenanceEndAt` | `extended` jsonb | date \| null | メンテナンス終了日時 |
-
-固定カラムは `entities/schema.ts` と `entities/drizzle.ts` で定義されており、変更する場合は手動編集が必要。
-
----
-
-## 設定カテゴリ（セクション）の追加方法
-
-### 手順
-
-1. **スキーマを `setting.extended.ts` に追加（必要な場合）**
+`fields/<キー>.ts` を置き、`pnpm extensions:generate` を実行する。ファイル名がキーの名前になる。fork は `fields/<キー>.<fork の名前>.ts`。DB の変更は要らない。
 
 ```ts
-// src/features/core/setting/setting.extended.ts
-export const settingExtendedSchema = z.object({
-  // 既存
-  maintenanceEnabled: z.coerce.boolean().default(false),
-  // 追加
-  siteTitle: z.string().default(""),
-  seoDescription: z.string().default(""),
-});
+import { z } from "zod";
+
+import type { SettingFieldDefinition } from "../types/definition";
+
+export const field = {
+  schema: z.coerce.number().int().min(1).max(500).default(100),
+  public: false,
+  ui: { section: "general", order: 10, field: { label: "一覧表示件数", formInput: "numberInput" } },
+} satisfies SettingFieldDefinition;
 ```
 
-2. **`setting.sections.ts` にセクションを追加**
+- `schema`: 型・検証・既定値。`.default(` が無いと生成で失敗する
+- `public`: `true` で公開の窓口に出す(既定 `false`)
+- `allowRoles`: 書き込みと管理者向けの読みを許すロール
+- `ui`: 設定画面の欄(`section`・`group`・`order`・`field`)。無いキーは設定画面に出ず、使う画面の側が管理者向けの窓口で保存する
+- 値 import の先は `zod`・`@/config`・純関数・型だけ。React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する(proxy と client の両方から読むため)
+- 同じ名前のキー・無いセクションを指すキーは生成で失敗する
+
+独自の入力部品の欄は、フォームの入力部品の登録の口(`formInput: "<登録名>"`)ができるまで作れない。
+
+## セクションを足す
+
+`sections/<名前>.ts`(fork は `sections/<名前>.<fork の名前>.ts`)を置き、`pnpm extensions:generate` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
 
 ```ts
-// src/features/core/setting/setting.sections.ts
-export const settingSections: SettingSectionMap = {
-  // 既存 general, maintenance …
+import { Sliders } from "lucide-react";
 
-  seo: {
-    label: "SEO 設定",
-    order: 30,
-    icon: Search,
-    fields: [
-      { name: "siteTitle", label: "サイトタイトル", formInput: "textInput" },
-      { name: "seoDescription", label: "ディスクリプション", formInput: "textarea" },
-    ],
-  },
+import type { SettingSectionDefinition } from "../types/definition";
+
+export const section: SettingSectionDefinition = {
+  key: "general",
+  label: "基本設定",
+  order: 10,
+  icon: Sliders,
 };
 ```
 
-これだけ。以下は **すべて自動**：
+属性は `key`・`label`・`order`・`icon`・`allowRoles`・`description`・`groups`。キーは欄の側に `ui.section` で所属を書く。同じ `key` のセクションは生成で失敗する。
 
-- 管理メニュー「システム設定」配下に「SEO 設定」が追加される
-- `/admin/settings/seo` ページが動作する
-- 入力UI は `formInput` に従って `FieldRenderer` が生成する
-- 保存処理は既存の `useUpdateSetting` を流用
+この組み立てで足りない画面は、route の `_components/` に Screen とフォームを複製して組み立てる。
 
-### バリデーション
+## 親の Tier のキー・セクションを変える
 
-- **Zod**: 真実のソースは `setting.extended.ts`。バリデーションやデフォルト値はここだけで定義
-- **UI 定義との整合性**: 起動時に `validateSectionFields` がセクション定義のフィールド名が Zod スキーマに存在することを検証。不整合があれば throw
+上流のファイル(ドット名なし)は書き換えない。隣の `<名前>.override.ts` に `export const override` を置く。
 
-### 入力UIの種類
+- キー: `ui`・`public`・`default`・`allowRoles`(型と検証は変えられない)
+- セクション: `label`・`order`・`icon`・`allowRoles`・`description`・`groups`
 
-`formInput` に指定可能な値（FieldRenderer のサポート分）:
+fork のファイルは、下の Tier が直接書き換える。
 
-`textInput`, `numberInput`, `textarea`, `select`, `multiSelect`, `combobox`,
-`radio`, `checkbox`, `stepperInput`, `switchInput`, `dateInput`, `timeInput`,
-`datetimeInput`, `emailInput`, `passwordInput`, `colorInput`, `mediaUploader`,
-`hidden`, `none`, `custom`, `asyncCombobox`, `asyncMultiSelect`
-
-詳細は `src/components/Form/Field/types.ts` を参照。
-
-### カスタムUI
-
-**ファイル拡張子は `.tsx`**（JSX を直接書ける）。任意のReactコンポーネントをフィールド位置に差し込める。
-
-#### パターン1: 既存フィールド位置にUIを追加挿入
-
-セクションに `beforeField` / `afterField` / `beforeAll` / `afterAll` を書く:
-
-```tsx
-import { MyInfoBanner } from "@/features/xxx/components/MyInfoBanner";
-
-maintenance: {
-  label: "メンテナンス",
-  order: 20,
-  fields: [ /* ... */ ],
-  beforeAll: <MyInfoBanner message="作業時間を慎重に設定してください" />,
-  afterField: {
-    maintenanceEndAt: <Para tone="muted">終了後の自動解除はサーバ時刻基準です</Para>,
-  },
-},
-```
-
-#### パターン2: フィールド自体のUIを完全に独自実装
-
-`formInput: "custom"` を使うと FieldRenderer は該当フィールド位置に何も描画しない。代わりに `beforeField` / `afterField` から独自コンポーネントを挿入する。独自コンポーネント内で `react-hook-form` の `Controller` を使って値と連携する:
-
-```tsx
-import { Controller } from "react-hook-form";
-
-const MyPriceTierEditor = () => {
-  // useFormContext でform状態にアクセスしつつ独自UIを組む
-  return <Controller name="bonusTiers" render={({ field }) => /* 独自UI */} />;
-};
-
-pricing: {
-  label: "料金設定",
-  order: 40,
-  fields: [
-    { name: "bonusTiers", label: "階層ボーナス", formInput: "custom" },
-  ],
-  beforeField: {
-    bonusTiers: <MyPriceTierEditor />,
-  },
-},
-```
-
-#### パターン3: 既存フィールドの部分上書き・新規フィールド追加
-
-- `fieldPatches`: 既存フィールドの一部プロパティを上書き（formInput や label の変更等）
-- `insertBefore` / `insertAfter`: 特定フィールドの前後に新規 FieldConfig を挿入（バリデーションスキーマ側にも対応キー必要）
-
-#### パターン4: ページ自体を自作
-
-それでも不十分なほど凝ったUIなら、セクション定義を書かず `app/admin/(protected)/settings/my-custom/page.tsx` を独自に作ってもよい（動的ルートと共存可能、メニュー追加は手動）。
-
-### セクションの権限制御
-
-`allowRoles` を指定すると、そのロールのみがメニューに表示・ページにアクセス可能になる。
+## 読む
 
 ```ts
-security: {
-  label: "セキュリティ",
-  order: 50,
-  allowRoles: ["super_admin"],
-  fields: [ ... ],
-},
-```
-
----
-
-## 使用方法
-
-### 設定を取得する（サーバーサイド）
-
-```typescript
 import { settingService } from "@/features/core/setting/services/server/settingService";
 
 const setting = await settingService.getGlobalSetting();
-setting.adminListPerPage;        // 基本項目
-setting.maintenanceEnabled;      // 拡張項目（フラットアクセス）
-
-// メンテナンス中かどうか
+const { maintenanceEnabled } = await settingService.readSettingKeys(["maintenanceEnabled"]);
 const inMaintenance = await settingService.isMaintenanceActive();
 ```
 
-### 設定を取得する（クライアントサイド）
+- 全キーの読みは `getGlobalSetting`、必要なキーだけの読みは `readSettingKeys`(proxy・health・maintenance loader はこちら)
+- キーごとに検証する。保存値が今の定義に合わないキーだけ既定値を返し、サーバーログに警告する。保存値は書き換えない
+- 行が無い・DB 未構成なら既定値。接続できないときは例外のまま(障害を隠さない)
 
-```typescript
-import { useSetting } from "@/features/core/setting/hooks/useSetting";
+| 読み手 | 使うもの | 返るキー |
+|--------|----------|----------|
+| サーバー内部 | `settingService` | 全部 |
+| 管理画面 | `useSetting` / `getSettingForActor(user)` | そのロールに許されたキー |
+| 誰でも | `usePublicSetting` / `getPublicSetting()` | `public: true` のキー |
 
-const { data: setting, isLoading, error } = useSetting();
+公開するのは保存値だけ。計算した値(交換レート等)は持ち主のドメインの route と hook に置く。
+
+## 保存する
+
+```ts
+const { trigger } = useUpdateSetting();
+await trigger({ id: "global", data: { maintenanceEnabled: true } });
+
+await settingService.updateFields({ maintenanceEnabled: true }); // サーバー内部(権限を見ない)
+await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロールの権限を見る
 ```
 
-### 設定を更新する（通常は自動。個別呼び出しする場合）
+- 書き手は `save.ts` だけ。送ったキーだけを検証して jsonb に重ね、同じ 1 本の文で一覧に無いキーを取り除く(残りが 0 なら `{}`)
+- 一覧に無いキーを送ると 400、検証の失敗も 400
+- 配列は連結せず置き換える(キー単位で重ねる)
+- `create`・`upsert`・`remove` は 405。行を作るのは初回セットアップだけ
+- 注意: 旧版へ戻した間に保存すると、旧版の知らないキーの値が消える
 
-```typescript
-import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
+## 権限
 
-const { trigger, isMutating } = useUpdateSetting();
-await trigger({ id: "global", data: { /* 更新内容 */ } });
-```
+キーの権限は次の順で決まる: キーの `allowRoles` → 所属セクションの `allowRoles` → どちらも無ければ管理カテゴリの全ロール。
 
-> ℹ️ **extended の部分更新（マージ）**: `settingService.update` / `updateFields` は `extended` jsonb を**マージ更新**する。送っていない拡張フィールドは保持されるため、一部フィールド（例: 単一フラグ）だけを送れば安全に更新できる。
->
-> ```typescript
-> // サーバー側: 単一フラグのトグルも他フィールドを消さずに更新できる
-> await settingService.updateFields({ someFlag: true });
-> ```
->
-> - マージは拡張フィールド単位の shallow マージ。**配列は連結せず置換**される。
-> - `EditSettingSectionForm`（全フィールド送信）は「全集合とマージ」＝同結果で従来どおり動作する。
-> - 基本カラム（`adminListPerPage` 等）は元々列単位の部分更新。
+- セクションの `allowRoles`: メニューの表示と画面を開けるロール
+- 許されないキーは欄を出さず、管理者向けの読みでも返さない
+- 許されないキーを 1 つでも送ると 403 で全部拒否する(一部だけ保存しない)
+- フォームは開いているセクションのキーだけを送る
 
----
+## API
 
-## APIエンドポイント
+| メソッド | パス | access | 説明 |
+|----------|------|--------|------|
+| GET | `/api/setting/public` | public | `public: true` のキーの値 |
+| GET | `/api/setting/admin` | 管理カテゴリ | そのロールに許されたキーの値 |
+| PATCH | `/api/setting/admin` | 管理カテゴリ | 許されたキーの保存(`{ data }`) |
+| POST | `/api/setting/setup` | public | 初期セットアップ |
 
-| メソッド | パス | 説明 |
-|----------|------|------|
-| GET | `/api/setting/global` | 設定取得 |
-| PATCH | `/api/setting/global` | 設定更新 |
-| POST | `/api/setting/setup` | 初期セットアップ |
+汎用 `/api/setting` は閉じている(`INTERNAL_ONLY`、管理データの export だけ管理者)。主体を渡せず、キーごとの権限が効かないため。
 
 ### 初期セットアップ (`POST /api/setting/setup`) のセキュリティモデル
 
-- 未認証（`access: "public"`）だが **ワンショット**: `initializeAdminSetup` が冒頭で `checkAdminUserExists()` を確認し、管理者が1人でも存在すれば 409 で拒否する（fail-closed、画面側の redirect はUI補助にすぎない）
-- `role` はクライアント入力を無視して `admin` 固定（セットアップUIにロール選択は存在しない）
-- レート制限 `adminSetup`（同一IP 1時間10回、`src/config/app/rate-limit.config.ts`）。レスポンスは `{ success: true }` のみで、作成したユーザー行は返さない
-- 既知の受容リスク: 管理者が1人もいない間は、このルートを最初に叩いた人が管理者になる（デプロイ直後にセットアップを済ませる運用が前提）
-- 既知の受容リスク: 存在チェックと作成が同一トランザクションでないため、初回セットアップ完了前のみ同時リクエストによる複数管理者作成の競合窓が理論上ある。セットアップ時点では実運用開始前のためリスク受容とし、advisory lock 等での厳密化は意図的に見送っている（判断根拠は `settingService.ts` の `initializeAdminSetup` コメント参照）
-
----
-
-## アーキテクチャ
-
-### スキーマ統合（entities/index.ts）
-
-```typescript
-export const SettingCombinedBaseSchema = SettingBaseSchema.merge(SettingExtendedBaseSchema);
-export const SettingCombinedUpdateSchema = SettingUpdateSchema.merge(SettingExtendedBaseSchema.partial());
-```
-
-### デフォルト値の統合（settingService.ts）
-
-```typescript
-const createDefaultSettingValues = () => ({
-  adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-  ...getZodDefaults(settingExtendedSchema),
-});
-```
-
-### セクションカタログ → 管理UI の流れ
-
-```
-setting.sections.ts
-       │
-       ├─ setting/menu.ts ─────► admin-global-menu.config.ts （メニュー items）
-       │                              │
-       │                              └─► BaseSidebar がロール別にフィルタ
-       │
-       └─ app/admin/(protected)/settings/[section]/page.tsx
-              │
-              ├─ section.allowRoles を loader の ctx.allows で判定(拒否は /admin)
-              └─ AdminSettingSectionEdit → EditSettingSectionForm
-                      │
-                      └─► FieldRenderer（baseFields = section.fields）
-```
-
----
-
-## 関連ファイル
-
-- `src/lib/zod/getZodDefaults.ts` — Zod スキーマからデフォルト値を抽出
-- `src/components/Form/FieldRenderer/` — セクションフィールドを描画する汎用レンダラ
+- 未認証(`access: "public"`)だが **ワンショット**: `initializeAdminSetup` が冒頭で `checkAdminUserExists()` を確認し、管理者が 1 人でも存在すれば 409 で拒否する(fail-closed、画面側の redirect は UI 補助にすぎない)
+- `role` はクライアント入力を無視して `admin` 固定(セットアップ UI にロール選択は存在しない)
+- 設定の行を作るだけで、既定値は書かない
+- レート制限 `adminSetup`(同一 IP 1 時間 10 回、`src/config/app/rate-limit.config.ts`)。レスポンスは `{ success: true }` のみで、作成したユーザー行は返さない
+- 既知の受容リスク: 管理者が 1 人もいない間は、このルートを最初に叩いた人が管理者になる(デプロイ直後にセットアップを済ませる運用が前提)
+- 既知の受容リスク: 存在チェックと作成が同一トランザクションでないため、初回セットアップ完了前のみ同時リクエストによる複数管理者作成の競合窓が理論上ある。セットアップ時点では実運用開始前のためリスク受容とし、advisory lock 等での厳密化は意図的に見送っている(判断根拠は `settingService.ts` の `initializeAdminSetup` コメント参照)
 
 ## 実列 admin_list_per_page から jsonb への移行
 
-順番を変えない: 旧版の書き込みを止める → `pnpm task setting-copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。旧版へ戻した間に保存すると、旧版の知らないキーの値が消える。
+順番を変えない: 旧版の書き込みを止める → `pnpm task setting-copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
 
-全面の書き直しは同じ出荷の文書の指令で行う。
+`adminListPerPage` の既定値はキーの定義の 1 か所で 100。
+
+## テスト
+
+`pnpm test:setting`(読み・保存・権限・フォーム)、`pnpm extensions:check`(生成物の一致)。

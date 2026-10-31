@@ -90,7 +90,7 @@ service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain 
 - server callers → src/wiring/domains.ts (table → domain: findDomainByTable, domain → table: getDomainTable, sync, no service load) | one table = one key | registry = a list that grows one line per domain, not a downstream extension point
 push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/registry/README.md
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
-setting (core): singleton id "global" | extend = add Zod fields to setting.extended.ts (no DB migration) | ref: src/features/core/setting/README.md
+setting (core): singleton id "global" + 1 jsonb | key = setting/fields/\<key\>[.\<fork name\>].ts (Zod + .default(), public, allowRoles, ui), section = setting/sections/\<name\>[.\<fork name\>].ts → pnpm extensions:generate | admin changes it while running = setting, fixed at deploy or structural = config, never both | ref: src/features/core/setting/README.md
 config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; client index.ts, server server.ts)
 inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 
