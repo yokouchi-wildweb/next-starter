@@ -4,6 +4,8 @@ import type { Notification } from "@/features/notification/entities";
 import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";
+export { default as AdminNotificationListHeader } from "./Header";
+export { default as AdminNotificationListTable } from "./Table";
 
 export type AdminNotificationListProps = {
   notifications: Notification[];

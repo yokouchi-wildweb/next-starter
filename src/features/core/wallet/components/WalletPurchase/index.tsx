@@ -29,6 +29,8 @@ export type WalletPurchaseProps = {
 };
 
 export { CouponInput } from "./CouponInput";
+export { PurchaseButton } from "./PurchaseButton";
+export { PurchaseSummaryCard } from "./PurchaseSummaryCard";
 
 export function WalletPurchase({ slug }: WalletPurchaseProps) {
   const searchParams = useSearchParams();

@@ -10,6 +10,9 @@ import Table from "./Table";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 
+export { default as AdminCouponListHeader } from "./Header";
+export { default as AdminCouponListTable } from "./Table";
+
 export type AdminCouponListProps = {
   coupons: Coupon[];
   page: number;

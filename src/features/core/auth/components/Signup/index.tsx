@@ -14,6 +14,7 @@ import { Section } from "@/components/Layout/Section";
 
 export { EarlyRegistrationSendForm } from "./EarlyRegistration/SendForm";
 export { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
+export { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 
 export type SignupProps = {
   urlAfterEmailSent: string;

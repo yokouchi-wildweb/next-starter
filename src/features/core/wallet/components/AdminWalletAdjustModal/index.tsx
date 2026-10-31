@@ -35,6 +35,9 @@ import {
 import { MetaFieldsSection } from "./MetaFieldsSection";
 import { WalletHistoryTabContent } from "./HistoryTabContent";
 
+export { WalletHistoryTabContent } from "./HistoryTabContent";
+export { MetaFieldsSection } from "./MetaFieldsSection";
+
 type Props = {
   open: boolean;
   user: User | null;

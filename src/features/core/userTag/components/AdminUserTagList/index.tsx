@@ -4,6 +4,8 @@ import type { UserTag } from "@/features/core/userTag/entities";
 import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";
+export { default as AdminUserTagListHeader } from "./Header";
+export { default as AdminUserTagListTable } from "./Table";
 
 export type AdminUserTagListProps = {
   userTags: UserTag[];

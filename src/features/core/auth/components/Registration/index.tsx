@@ -13,6 +13,12 @@ import { EmailRegistrationForm } from "./Email";
 import { UnknownRegistrationForm } from "./UnknownRegistrationForm";
 import { RegistrationSteps } from "./RegistrationSteps";
 
+export { InviteCodeField } from "./InviteCodeField";
+export { RateLimitWarningModal } from "./RateLimitWarningModal";
+export { RateLimitWarningContent } from "./RateLimitWarningContent";
+export { RegistrationSteps } from "./RegistrationSteps";
+export { UnknownRegistrationForm } from "./UnknownRegistrationForm";
+
 export type RegistrationMethod = "email" | "thirdParty";
 
 export type RegistrationFormProps = {

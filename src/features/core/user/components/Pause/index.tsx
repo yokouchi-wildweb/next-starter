@@ -18,6 +18,8 @@ import { AccountPageHeader } from "@/features/core/user/components/common/Accoun
 
 import { PauseDescription } from "./PauseDescription";
 
+export { PauseDescription } from "./PauseDescription";
+
 export function Pause() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);

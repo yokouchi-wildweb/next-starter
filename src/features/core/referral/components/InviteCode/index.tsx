@@ -18,6 +18,7 @@ import { useMyInviteCode } from "@/features/core/coupon/hooks/useMyInviteCode";
 import { useIssueMyInviteCode } from "@/features/core/coupon/hooks/useIssueMyInviteCode";
 import { useMyReferrals } from "@/features/core/referral/hooks/useMyReferrals";
 import { InviteBenefitsSection } from "./InviteBenefitsSection";
+export { InviteBenefitsSection } from "./InviteBenefitsSection";
 
 export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = 既定の InviteBenefitsSection) */ benefits?: ReactNode }) {
   const { inviteCode, isLoading: isLoadingCode } = useMyInviteCode();

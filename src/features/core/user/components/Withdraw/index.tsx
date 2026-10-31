@@ -18,6 +18,8 @@ import { AccountPageHeader } from "@/features/core/user/components/common/Accoun
 
 import { WithdrawDescription } from "./WithdrawDescription";
 
+export { WithdrawDescription } from "./WithdrawDescription";
+
 export function Withdraw() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);

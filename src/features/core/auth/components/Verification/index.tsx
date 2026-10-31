@@ -18,6 +18,11 @@ import { EmailInputState } from "./EmailInputState";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { VerifyingState } from "./VerifyingState";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+export { AlreadyRegisteredState } from "./AlreadyRegisteredState";
+export { CompletedState } from "./CompletedState";
+export { EmailInputState } from "./EmailInputState";
+export { InvalidProcessState } from "./InvalidProcessState";
+export { VerifyingState } from "./VerifyingState";
 
 export function Verification() {
   const searchParams = useSearchParams();

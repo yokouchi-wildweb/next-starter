@@ -15,6 +15,8 @@ import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { useToast } from "@/lib/toast";
 
+export { InvalidProcessState } from "./InvalidProcessState";
+
 const { afterVerificationPath } = APP_FEATURES.auth.signup;
 
 export type OAuthProps = {

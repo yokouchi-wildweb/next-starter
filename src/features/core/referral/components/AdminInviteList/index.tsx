@@ -10,6 +10,10 @@ import Header from "./Header";
 import Table from "./Table";
 import type { InviteCodeWithCount } from "../../services/server/wrappers/getInviteCodeListWithCounts";
 
+export { default as AdminInviteListHeader } from "./Header";
+export { default as ReferralListModal } from "./ReferralListModal";
+export { default as AdminInviteListTable } from "./Table";
+
 export type AdminInviteListProps = {
   items: InviteCodeWithCount[];
   page: number;
