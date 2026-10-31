@@ -15,7 +15,8 @@ let tokenOnlyIsDemo = false;
 
 // 主体の解き方は束で差し込む（lib/routeFactory は auth・pairedDevice を import しない）
 const { createRouteFactories } = await import("./createRouteFactories.ts");
-const { createDeviceRoute } = createRouteFactories<string>({
+const { createDeviceRoute } = createRouteFactories<Record<string, unknown>, any, any, any>({
+  rateLimit: { checkRateLimit: async () => ({ allowed: true, resetAt: new Date() }) },
   user: {
     resolveUser: async () => currentUser as never,
     resolveTokenSession: async () =>

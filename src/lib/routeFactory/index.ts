@@ -7,6 +7,9 @@ export type {
   RouteAuthenticatedDevice,
   RouteDeviceDeps,
   RouteFactoryDeps,
+  RouteRateLimitDeps,
+  RouteRateLimitResult,
+  RouteUserBase,
   RouteUserDeps,
 } from "./deps";
 export {

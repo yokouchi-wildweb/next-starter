@@ -81,6 +81,7 @@ const config = [
   // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3)。今の違反は縮むだけの一覧
   //   (eslint-rules/import-boundaries.exceptions.mjs、upstream の物で fork は足せない)
+  // - lib-no-features: src/lib/** → src/features/** は値も型も禁止(親 D8、例外の一覧なし)
   // 詳細: eslint-rules/import-boundaries.mjs
   {
     files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
@@ -104,6 +105,7 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/lib-no-registry": "error",
+      "import-boundaries/lib-no-features": "error",
     },
   },
   // 見出しの直下の <Span> に size / weight を書かせる(Span の既定 text-base font-normal が見出しを上書きするため。

@@ -21,7 +21,16 @@ let resolveCount = 0;
 
 const ownerService = { ping: async () => "pong" };
 
-const factories = createRouteFactories<string>({
+let rateLimitAllowed = true;
+const rateLimitCalls: [string, string][] = [];
+
+const factories = createRouteFactories<Record<string, unknown>, any, any, any>({
+  rateLimit: {
+    checkRateLimit: async (category, identifier) => {
+      rateLimitCalls.push([category, identifier]);
+      return { allowed: rateLimitAllowed, resetAt: new Date(Date.now() + 30_000) };
+    },
+  },
   user: {
     resolveUser: async () => {
       resolveCount += 1;
@@ -221,4 +230,26 @@ test("enforceAccessRule(rule, user) は渡された利用者で評価し、主�
   });
   assert.equal(await enforceAccessRule("authenticated", active as never), null);
   assert.equal(resolveCount, 0);
+});
+
+test("レート制限: 注入した判定を IP とサブネットで呼び、超えたら 429 と Retry-After", async () => {
+  const route = createApiRoute(
+    { operation: "GET /test", operationType: "read", access: "public", rateLimit: "signup", rateLimitSubnet: "signup" },
+    async () => ({ ok: true }),
+  );
+  const call = () =>
+    route(new NextRequest("http://localhost/api/test", { headers: { "x-forwarded-for": "1.2.3.4" } }), {
+      params: Promise.resolve({}),
+    });
+
+  rateLimitCalls.length = 0;
+  rateLimitAllowed = true;
+  assert.equal((await call()).status, 200);
+  assert.deepEqual(rateLimitCalls, [["signup", "1.2.3.4"], ["signup", "1.2.3"]]);
+
+  rateLimitAllowed = false;
+  const limited = await call();
+  assert.equal(limited.status, 429);
+  assert.ok(Number(limited.headers.get("Retry-After")) >= 1);
+  rateLimitAllowed = true;
 });

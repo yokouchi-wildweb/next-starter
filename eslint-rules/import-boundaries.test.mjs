@@ -99,6 +99,22 @@ test("rule lib-no-registry: 値も型も止め、一覧の行は通し、使わ�
   });
 });
 
+test("rule lib-no-features: 値も型も、別名も相対も止める。lib の外は通す", () => {
+  ruleTester.run("lib-no-features", plugin.rules["lib-no-features"], {
+    valid: [
+      { code: `import { x } from "@/lib/domain";`, filename: at("src/lib/foo/index.ts") },
+      { code: `import { x } from "@/features/core/user/types";`, filename: at("src/wiring/apiRoute.ts") },
+    ],
+    invalid: [
+      { code: `import { x } from "@/features/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import type { X } from "@/features/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import { x } from "@/features/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import { x } from "../../features/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `const m = await import("@/features/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+    ],
+  });
+});
+
 // eslint.config.mjs の当て方(全 Tier error・lib のテストは lib-no-registry の対象外)を実ファイルパスで確かめる
 const lintAt = async (filePath, code) => {
   const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
@@ -115,6 +131,9 @@ test("config: route・features・scripts で routeFactory の値 import は erro
   assert.deepEqual(await lintAt("src/wiring/apiRoute.acme.ts", RF), []);
   assert.deepEqual(await lintAt("src/lib/foo/index.ts", REG), ["import-boundaries/lib-no-registry:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", REG), []);
+  const FEAT = `import type { X } from "@/features/core/user/types";\nexport type Y = X;\n`;
+  assert.deepEqual(await lintAt("src/lib/foo/index.ts", FEAT), ["import-boundaries/lib-no-features:2"]);
+  assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", FEAT), []);
   assert.deepEqual(await lintAt("src/features/sample/services/server/foo.ts", REG), []);
 });
 

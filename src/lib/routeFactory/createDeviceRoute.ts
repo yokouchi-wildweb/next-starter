@@ -14,23 +14,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import type { RateLimitCategory } from "@/config/app/rate-limit.config";
-import type { SessionUser } from "@/features/core/auth/entities/session";
-import type { AuthenticatedDevice } from "@/features/core/pairedDevice/services/server/deviceToken";
-import type { SessionDeviceOf } from "@/features/core/pairedDevice/services/server/session";
-import type { UserStatus } from "@/features/core/user/types";
 import { getAuditContext, runWithAuditContext } from "@/lib/audit";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
 import type { ApiRouteBaseConfig, NextRouteHandler, RouteAccess, RouteCore } from "./createApiRoute";
-import type { RouteDeviceDeps, RouteUserDeps } from "./deps";
+import type { RouteAuthenticatedDevice, RouteDeviceDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
 
 /** 端末として通ったときのコンテキスト */
-export type DevicePrincipalContext<K extends string, TParams> = {
+export type DevicePrincipalContext<TDevice, TParams> = {
   params: TParams;
   principal: "device";
-  device: SessionDeviceOf<K>;
+  device: TDevice;
   user: null;
   /**
    * 共有端末で操作者（スタッフ）を選ぶ機能のための予約枠。現在は常に null。
@@ -40,11 +36,11 @@ export type DevicePrincipalContext<K extends string, TParams> = {
 };
 
 /** orUser のルールでユーザーとして通ったときのコンテキスト */
-export type UserPrincipalContext<TParams> = {
+export type UserPrincipalContext<TParams, TUser = RouteUserBase> = {
   params: TParams;
   principal: "user";
   device: null;
-  user: SessionUser;
+  user: TUser;
   operator: null;
 };
 
@@ -66,24 +62,24 @@ export type DeviceRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
   orUser?: never;
 };
 
-export type DeviceOrUserRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
+export type DeviceOrUserRouteConfig<K extends string, TStatus extends string = string> = BaseDeviceRouteConfig<K> & {
   /** 端末でない場合に、このルールに合うログインユーザーを通す（"authenticated" またはロール指定） */
   orUser: Exclude<RouteAccess, "public">;
   /**
    * orUser の user 枝で通過を許可するユーザーステータス（省略時は利用可能な status だけ）。
    * createApiRoute と同じ語彙・fail-closed
    */
-  allowStatuses?: readonly UserStatus[];
+  allowStatuses?: readonly TStatus[];
 };
 
-export type DeviceRouteHandler<K extends string, TParams, TResult> = (
+export type DeviceRouteHandler<TDevice, TParams, TResult> = (
   req: NextRequest,
-  ctx: DevicePrincipalContext<K, TParams>,
+  ctx: DevicePrincipalContext<TDevice, TParams>,
 ) => Promise<TResult>;
 
-export type DeviceOrUserRouteHandler<K extends string, TParams, TResult> = (
+export type DeviceOrUserRouteHandler<TDevice, TParams, TResult, TUser = RouteUserBase> = (
   req: NextRequest,
-  ctx: DevicePrincipalContext<K, TParams> | UserPrincipalContext<TParams>,
+  ctx: DevicePrincipalContext<TDevice, TParams> | UserPrincipalContext<TParams, TUser>,
 ) => Promise<TResult>;
 
 const unauthenticated = () =>
@@ -106,7 +102,7 @@ function toNextResponse(body: unknown): NextResponse {
 
 /**
  * 登録端末専用ルートのファクトリーを作る（利用者・端末の束と土台を結ぶ）。
- * K = 登録済みの端末の種類（wiring が pairedDevice の一覧 kinds の型で結ぶ）。
+ * TDevices = 端末の種類 → ハンドラに渡す端末の型（wiring が pairedDevice の型で結ぶ）。K はそのキー。
  *
  * 作られる createDeviceRoute:
  * - 端末の認証を強制（Cookie なし・失効・期限切れ → 401 / kind 違い → 403）
@@ -121,32 +117,41 @@ function toNextResponse(body: unknown): NextResponse {
  *     async (req, { device }) => lendingService.request({ tableId: device.scope.tableId, ... }),
  *   );
  */
-export function makeCreateDeviceRoute<TKind extends string>(
-  userDeps: RouteUserDeps,
-  deviceDeps: RouteDeviceDeps<AuthenticatedDevice>,
+export function makeCreateDeviceRoute<
+  TDevices extends Record<string, unknown>,
+  TUser extends RouteUserBase<TStatus>,
+  TStatus extends string,
+  TAuthenticated extends RouteAuthenticatedDevice,
+>(
+  userDeps: RouteUserDeps<TUser, TStatus>,
+  deviceDeps: RouteDeviceDeps<TAuthenticated>,
   runRoute: RouteCore,
 ) {
+  type TKind = keyof TDevices & string;
+
   const rateLimited = async (category: RateLimitCategory | undefined, identifier: string) => {
     if (!category) return null;
     return deviceDeps.checkPairedDeviceRateLimit(category, identifier);
   };
 
   function createDeviceRoute<K extends TKind = TKind, TParams = Record<string, string>, TResult = unknown>(
-    config: DeviceOrUserRouteConfig<K>,
-    handler: DeviceOrUserRouteHandler<K, TParams, TResult>,
+    config: DeviceOrUserRouteConfig<K, TStatus>,
+    handler: DeviceOrUserRouteHandler<TDevices[K], TParams, TResult, TUser>,
   ): NextRouteHandler<TParams>;
   function createDeviceRoute<K extends TKind = TKind, TParams = Record<string, string>, TResult = unknown>(
     config: DeviceRouteConfig<K>,
-    handler: DeviceRouteHandler<K, TParams, TResult>,
+    handler: DeviceRouteHandler<TDevices[K], TParams, TResult>,
   ): NextRouteHandler<TParams>;
   function createDeviceRoute<K extends TKind, TParams, TResult>(
-    config: DeviceRouteConfig<K> | DeviceOrUserRouteConfig<K>,
-    rawHandler: DeviceRouteHandler<K, TParams, TResult> | DeviceOrUserRouteHandler<K, TParams, TResult>,
+    config: DeviceRouteConfig<K> | DeviceOrUserRouteConfig<K, TStatus>,
+    rawHandler:
+      | DeviceRouteHandler<TDevices[K], TParams, TResult>
+      | DeviceOrUserRouteHandler<TDevices[K], TParams, TResult, TUser>,
   ): NextRouteHandler<TParams> {
     // user のコンテキストは orUser 指定時（= DeviceOrUserRouteHandler のオーバーロード）にしか渡さない
-    const handler = rawHandler as DeviceOrUserRouteHandler<K, TParams, TResult>;
+    const handler = rawHandler as DeviceOrUserRouteHandler<TDevices[K], TParams, TResult, TUser>;
     const { kinds, rateLimit, orUser, allowStatuses, skipForDemo, ...apiConfig } = config as DeviceRouteConfig<K> &
-      Partial<Pick<DeviceOrUserRouteConfig<K>, "orUser" | "allowStatuses">>;
+      Partial<Pick<DeviceOrUserRouteConfig<K, TStatus>, "orUser" | "allowStatuses">>;
     // デモユーザーの書き込みスキップは user 枝だけに適用する（createApiRoute と同じ既定）
     const shouldSkipForDemo = skipForDemo ?? apiConfig.operationType === "write";
 
@@ -175,7 +180,7 @@ export function makeCreateDeviceRoute<TKind extends string>(
             handler(req, {
               params,
               principal: "device",
-              device: device as SessionDeviceOf<K>,
+              device: device as TDevices[K],
               user: null,
               operator: null,
             });

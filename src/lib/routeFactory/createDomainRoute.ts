@@ -2,19 +2,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
-import type { UserStatus } from "@/features/core/user/types";
 import { resolveAccessRule, type DomainCrudOperation, type DomainRegistry } from "@/lib/domain";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 
 import type { OperationType, ApiRouteContext, RouteCore } from "./createApiRoute";
-import type { RouteUserDeps } from "./deps";
+import type { RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
 
 /**
  * ドメインルートの設定
  */
-export type DomainRouteConfig<TService> = {
+export type DomainRouteConfig<TService, TStatus extends string = string> = {
   /** 操作名（ログ・デバッグ用） */
   operation: string;
   /** 操作の種類 */
@@ -36,13 +34,13 @@ export type DomainRouteConfig<TService> = {
   /**
    * 通過を許可するユーザーステータス（省略時は利用可能な status だけ）。createApiRoute と同じ語彙・fail-closed
    */
-  allowStatuses?: readonly UserStatus[];
+  allowStatuses?: readonly TStatus[];
 };
 
 /**
  * ドメインルートハンドラーのコンテキスト
  */
-export type DomainRouteContext<TService, TParams> = ApiRouteContext<TParams, SessionUser | null> & {
+export type DomainRouteContext<TService, TParams, TUser = RouteUserBase> = ApiRouteContext<TParams, TUser | null> & {
   service: TService;
   domain: string;
 };
@@ -50,9 +48,9 @@ export type DomainRouteContext<TService, TParams> = ApiRouteContext<TParams, Ses
 /**
  * ドメインルートハンドラーの型
  */
-export type DomainRouteHandler<TService, TParams, TResult = unknown> = (
+export type DomainRouteHandler<TService, TParams, TResult = unknown, TUser = RouteUserBase> = (
   req: NextRequest,
-  ctx: DomainRouteContext<TService, TParams>,
+  ctx: DomainRouteContext<TService, TParams, TUser>,
 ) => Promise<TResult> | TResult;
 
 /**
@@ -81,17 +79,21 @@ function ensureSupports<TService>(
  * 認可は URL のドメイン名から登録表の行を引き、domainEntry.ts の access でドメインごとに強制する。
  * ctx.user は Factory が解いた利用者（access が "public" の操作では null 可）。
  */
-export function makeDomainRoutes(deps: RouteUserDeps, registry: DomainRegistry, runRoute: RouteCore) {
+export function makeDomainRoutes<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
+  deps: RouteUserDeps<TUser, TStatus>,
+  registry: DomainRegistry,
+  runRoute: RouteCore,
+) {
   function createDomainRoute<
     TService = any,
     TParams extends DomainParams = DomainParams,
     TResult = unknown,
   >(
-    config: DomainRouteConfig<TService>,
-    handler: DomainRouteHandler<TService, TParams, TResult>,
+    config: DomainRouteConfig<TService, TStatus>,
+    handler: DomainRouteHandler<TService, TParams, TResult, TUser>,
   ) {
     const { crudOp, supports, allowStatuses, ...baseConfig } = config;
-    return runRoute<TParams, { service: TService; user: SessionUser | null }>(
+    return runRoute<TParams, { service: TService; user: TUser | null }>(
       baseConfig,
       async (_req, params) => {
         const { domain } = params;
@@ -127,7 +129,7 @@ export function makeDomainRoutes(deps: RouteUserDeps, registry: DomainRegistry, 
         return { service, user };
       },
       async (req, base, { service, user }) => {
-        const domainCtx: DomainRouteContext<TService, TParams> = {
+        const domainCtx: DomainRouteContext<TService, TParams, TUser> = {
           ...base,
           user,
           service,
@@ -142,8 +144,8 @@ export function makeDomainRoutes(deps: RouteUserDeps, registry: DomainRegistry, 
    * IDパラメータ付きドメインルート用のファクトリー
    */
   function createDomainIdRoute<TService = any, TResult = unknown>(
-    config: DomainRouteConfig<TService>,
-    handler: DomainRouteHandler<TService, DomainIdParams, TResult>,
+    config: DomainRouteConfig<TService, TStatus>,
+    handler: DomainRouteHandler<TService, DomainIdParams, TResult, TUser>,
   ) {
     return createDomainRoute<TService, DomainIdParams, TResult>(config, handler);
   }

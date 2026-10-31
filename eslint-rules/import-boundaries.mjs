@@ -14,6 +14,10 @@
 // 今ある違反は import-boundaries.exceptions.mjs の縮むだけの一覧(upstream の物。fork は足せない)。
 // 一覧の行(file + target)に当たる import は通す。一覧の行のファイルにその import が無くなったら、行を消すよう error。
 //
+// ── lib-no-features(親 D8) ──
+// src/lib/** から src/features/** を import しない(値も型も、例外の一覧なし)。型は lib が持つか型引数で受け、
+// 値は注入で受ける。渡し方の既定 = 組み立て側 1 モジュールが import 時に作る設定済みの版(src/wiring/**)。
+//
 // ── page-guard-via-wiring(L1.18、D5 K1 と同じ形) ──
 // @/lib/pageGuard(src/lib/pageGuard/** のどのファイルも)を値 import できるのは src/wiring/** と src/lib/pageGuard 自身だけ。
 // 型だけの import は誰でも可(auth の束 pageGuardUserDeps は型だけ)。guard.ts は root を @/wiring/pageGuard から、子を親の extend で作る。
@@ -34,6 +38,7 @@ const SERVER_SERVICE_DIR = /(^|\/)services\/server(\/|$)/;
 const WIRING = "src/wiring";
 const LIB = "src/lib";
 const REGISTRY = "src/registry";
+const FEATURES = "src/features";
 
 /** 違反の判定(テストから直接呼ぶ)。違反なら messageId、無ければ null */
 export function classifyRouteFactoryImport(importerRel, resolved, typeOnly) {
@@ -174,6 +179,28 @@ const libNoRegistry = {
   },
 };
 
+/** lib のファイルが features を指す import か */
+export const isLibFeaturesImport = (importerRel, resolved) => isUnder(importerRel, LIB) && isUnder(resolved, FEATURES);
+
+const libNoFeatures = {
+  meta: {
+    type: "problem",
+    docs: { description: "src/lib から src/features を import しない(値も型も)" },
+    messages: {
+      libFeatures: '"{{source}}": lib は features を import しません(値も型も)。型は lib が持つか型引数で受け、値は注入で受けて src/wiring で結びます(CLAUDE.md CODE_PLACEMENT deps)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = context.cwd ?? process.cwd();
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      if (!isLibFeaturesImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
+      context.report({ node, messageId: "libFeatures", data: { source } });
+    });
+  },
+};
+
 const plugin = {
   meta: { name: "eslint-plugin-local-import-boundaries", version: "1.0.0" },
   rules: {
@@ -181,6 +208,7 @@ const plugin = {
     "page-guard-via-wiring": pageGuardViaWiring,
     "features-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
+    "lib-no-features": libNoFeatures,
   },
 };
 

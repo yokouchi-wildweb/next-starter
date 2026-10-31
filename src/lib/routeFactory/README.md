@@ -311,7 +311,7 @@ export const POST = createApiRoute(
 
 ## 汎用版の構成（このフォルダ）
 
-- `createRouteFactories(deps)` が全 Factory を作る。`deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, domains: DomainRegistry }`（全項目必須、型は `deps.ts`）
+- `createRouteFactories(deps)` が全 Factory を作る。`deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry }`。主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）
 - 束の持ち主: 利用者 = `features/core/auth` の `apiRouteUserDeps`、端末 = `features/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
 - fork が独自の主体の Factory を作るときは `src/wiring/<名前>.<fork ID>.ts` で汎用版から作る（`src/wiring/README.md`）

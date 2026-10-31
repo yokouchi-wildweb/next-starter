@@ -12,28 +12,27 @@
 
 import { NextRequest } from "next/server";
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
-import type { UserStatus } from "@/features/core/user/types";
 import type { WhereExpr } from "@/lib/crud";
 
 import type { ApiRouteBaseConfig, ApiRouteContext, CreateApiRoute } from "./createApiRoute";
+import type { RouteUserBase } from "./deps";
 
 /** /api/me/** 用のハンドラーコンテキスト。認証済みユーザー（DB 同期）を必ず含む。 */
-export type MeRouteContext<TParams = Record<string, string>> = ApiRouteContext<TParams, SessionUser>;
+export type MeRouteContext<TParams = Record<string, string>, TUser = RouteUserBase> = ApiRouteContext<TParams, TUser>;
 
-export type MeRouteHandler<TParams = Record<string, string>, TResult = unknown> = (
+export type MeRouteHandler<TParams = Record<string, string>, TResult = unknown, TUser = RouteUserBase> = (
   req: NextRequest,
-  ctx: MeRouteContext<TParams>,
+  ctx: MeRouteContext<TParams, TUser>,
 ) => Promise<TResult>;
 
-export type MeRouteConfig = ApiRouteBaseConfig & {
+export type MeRouteConfig<TStatus extends string = string> = ApiRouteBaseConfig & {
   /**
    * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ = 現行動作）。
    * 「利用制限中でも本人が完了すべき手続き」（不正疑いチャレンジの回答・異議申立て・
    * 再有効化・KYC 等）のルートでのみ suspended 等を明示列挙する。
    * fail-closed: 列挙していないステータスは常に 403。ページの守り(guard.ts)の allowStatuses と同じ語彙。
    */
-  allowStatuses?: readonly UserStatus[];
+  allowStatuses?: readonly TStatus[];
 };
 
 /**
@@ -43,10 +42,12 @@ export type MeRouteConfig = ApiRouteBaseConfig & {
  *
  * access は固定（"authenticated"）のため、config では受け取らない。
  */
-export function makeCreateMeRoute(createApiRoute: CreateApiRoute) {
+export function makeCreateMeRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
+  createApiRoute: CreateApiRoute<TUser, TStatus>,
+) {
   return function createMeRoute<TParams = Record<string, string>, TResult = unknown>(
-    config: MeRouteConfig,
-    handler: MeRouteHandler<TParams, TResult>,
+    config: MeRouteConfig<TStatus>,
+    handler: MeRouteHandler<TParams, TResult, TUser>,
   ) {
     return createApiRoute<TParams, TResult, "authenticated">({ ...config, access: "authenticated" }, handler);
   };
@@ -62,6 +63,6 @@ export function makeCreateMeRoute(createApiRoute: CreateApiRoute) {
  * @param user createMeRoute が渡す認証済みユーザー
  * @param field 所有者カラム名（既定: "user_id"）
  */
-export function ownerWhere(user: SessionUser, field = "user_id"): WhereExpr {
+export function ownerWhere(user: Pick<RouteUserBase, "userId">, field = "user_id"): WhereExpr {
   return { field, op: "eq", value: user.userId };
 }

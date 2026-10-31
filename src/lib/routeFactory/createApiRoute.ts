@@ -4,9 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { RateLimitCategory } from "@/config/app/rate-limit.config";
-import type { SessionUser } from "@/features/core/auth/entities/session";
-import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
-import type { UserStatus } from "@/features/core/user/types";
 import {
   runWithAuditContext,
   type AuditActorType,
@@ -18,7 +15,7 @@ import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
-import type { RouteUserDeps } from "./deps";
+import type { RouteRateLimitDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
 
 /** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
@@ -36,7 +33,7 @@ const INTERNAL_ERROR_MESSAGE = "サーバーでエラーが発生しました";
  *
  * 派生ロールが増えた場合の actorType 判定は後方互換性のため寛容（小文字 includes）。
  */
-function buildAuditContext(req: NextRequest, session: SessionUser | null): AuditContext {
+function buildAuditContext(req: NextRequest, session: RouteUserBase | null): AuditContext {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = req.headers.get("user-agent") ?? null;
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
@@ -81,9 +78,9 @@ export type RouteAccess = "public" | "authenticated" | { roles?: string[]; roleC
  * access ごとの ctx.user の型。
  * "public" は未ログイン・利用できない status なら null、それ以外は必ずいる。
  */
-export type ApiRouteUser<A extends RouteAccess = RouteAccess> = A extends "public"
-  ? SessionUser | null
-  : SessionUser;
+export type ApiRouteUser<A extends RouteAccess = RouteAccess, TUser = RouteUserBase> = A extends "public"
+  ? TUser | null
+  : TUser;
 
 /**
  * reCAPTCHA検証設定
@@ -132,7 +129,7 @@ export type ApiRouteBaseConfig = {
 /**
  * APIルートの設定
  */
-export type ApiRouteConfig<A extends RouteAccess = RouteAccess> = ApiRouteBaseConfig & {
+export type ApiRouteConfig<A extends RouteAccess = RouteAccess, TStatus extends string = string> = ApiRouteBaseConfig & {
   /**
    * アクセスポリシー（必須）。createApiRoute が認可を強制する。
    * 型必須のため、宣言し忘れるとコンパイルが通らない（fail-closed by construction）。
@@ -145,13 +142,13 @@ export type ApiRouteConfig<A extends RouteAccess = RouteAccess> = ApiRouteBaseCo
    * fail-closed: 列挙していないステータスは常に 403（"public" では ctx.user が null）。
    * createMeRoute・ページの守り(guard.ts)の allowStatuses と同じ語彙。
    */
-  allowStatuses?: readonly UserStatus[];
+  allowStatuses?: readonly TStatus[];
 };
 
 /**
  * APIルートハンドラーのコンテキスト
  */
-export type ApiRouteContext<TParams = Record<string, string>, TUser = SessionUser | null> = {
+export type ApiRouteContext<TParams = Record<string, string>, TUser = RouteUserBase | null> = {
   params: TParams;
   /**
    * Factory が 1 回だけ DB 同期で解いた利用者。
@@ -167,7 +164,7 @@ export type ApiRouteContext<TParams = Record<string, string>, TUser = SessionUse
 export type ApiRouteHandler<
   TParams = Record<string, string>,
   TResult = unknown,
-  TUser = SessionUser | null,
+  TUser = RouteUserBase | null,
 > = (req: NextRequest, ctx: ApiRouteContext<TParams, TUser>) => Promise<TResult>;
 
 /**
@@ -200,7 +197,10 @@ export function toRouteResponse(result: unknown): Response {
  * 認可（authorize）は各 Factory が渡す。土台が持つのは監査文脈・デモスキップ・レート制限・reCAPTCHA・
  * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
  */
-export function makeRouteCore(deps: RouteUserDeps) {
+export function makeRouteCore(
+  deps: { resolveTokenSession: () => Promise<RouteUserBase | null> },
+  rateLimit: RouteRateLimitDeps,
+) {
   return function runRoute<TParams, TGrant>(
     config: ApiRouteBaseConfig,
     authorize: RouteAuthorizer<TParams, TGrant>,
@@ -234,7 +234,7 @@ export function makeRouteCore(deps: RouteUserDeps) {
         // レート制限チェック
         if (config.rateLimit) {
           const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-          const limit = await checkRateLimit(config.rateLimit, ip);
+          const limit = await rateLimit.checkRateLimit(config.rateLimit, ip);
           if (!limit.allowed) {
             const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
             return NextResponse.json(
@@ -254,7 +254,7 @@ export function makeRouteCore(deps: RouteUserDeps) {
         if (config.rateLimitSubnet) {
           const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
           const subnet = ip.split(".").slice(0, 3).join(".");
-          const limit = await checkRateLimit(config.rateLimitSubnet, subnet);
+          const limit = await rateLimit.checkRateLimit(config.rateLimitSubnet, subnet);
           if (!limit.allowed) {
             const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
             return NextResponse.json(
@@ -412,11 +412,11 @@ function invalidAccessResponse(): Response {
  * - それ以外: 評価して拒否なら 401 / 403（code 付き）
  * - 形の外の access: 利用者を解かずに 500（fail-closed、code: "route_access_invalid"）
  */
-export function authorizeRouteUser(
-  deps: RouteUserDeps,
+export function authorizeRouteUser<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
+  deps: RouteUserDeps<TUser, TStatus>,
   access: RouteAccess,
-  allowStatuses: readonly UserStatus[] | undefined,
-): () => Promise<Response | { user: SessionUser | null }> {
+  allowStatuses: readonly TStatus[] | undefined,
+): () => Promise<Response | { user: TUser | null }> {
   if (!isRouteAccess(access)) return async () => invalidAccessResponse();
   return async () => {
     const resolved = await deps.resolveUser();
@@ -439,14 +439,17 @@ export function authorizeRouteUser(
  * - エラーハンドリング（DomainError → { message, code?, details? } + status）
  * - ハンドラが返した Response はそのまま返す（NextResponse 以外も）
  */
-export function makeCreateApiRoute(deps: RouteUserDeps, runRoute: RouteCore) {
+export function makeCreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
+  deps: RouteUserDeps<TUser, TStatus>,
+  runRoute: RouteCore,
+) {
   return function createApiRoute<
     TParams = Record<string, string>,
     TResult = unknown,
     A extends RouteAccess = RouteAccess,
   >(
-    config: ApiRouteConfig<A>,
-    handler: ApiRouteHandler<TParams, TResult, ApiRouteUser<A>>,
+    config: ApiRouteConfig<A, TStatus>,
+    handler: ApiRouteHandler<TParams, TResult, ApiRouteUser<A, TUser>>,
   ): NextRouteHandler<TParams> {
     const { access, allowStatuses, ...baseConfig } = config;
     if (!isRouteAccess(access)) {
@@ -456,10 +459,12 @@ export function makeCreateApiRoute(deps: RouteUserDeps, runRoute: RouteCore) {
       );
     }
     const authorize = authorizeRouteUser(deps, access, allowStatuses);
-    return runRoute<TParams, { user: SessionUser | null }>(baseConfig, () => authorize(), (req, base, grant) =>
-      handler(req, { ...base, user: grant.user as ApiRouteUser<A> }),
+    return runRoute<TParams, { user: TUser | null }>(baseConfig, () => authorize(), (req, base, grant) =>
+      handler(req, { ...base, user: grant.user as ApiRouteUser<A, TUser> }),
     );
   };
 }
 
-export type CreateApiRoute = ReturnType<typeof makeCreateApiRoute>;
+export type CreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string> = ReturnType<
+  typeof makeCreateApiRoute<TUser, TStatus>
+>;
