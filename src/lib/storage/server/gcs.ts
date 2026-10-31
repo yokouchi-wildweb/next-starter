@@ -14,13 +14,8 @@ import "server-only";
 import { getServerStorage } from "@/lib/firebase/server/app";
 
 import { contentDispositionFor } from "../contentTypes";
-import {
-  ISSUED_CACHE_CONTROL,
-  StorageReadTooLargeError,
-  type HeadResult,
-  type ObjectLocation,
-  type StoragePort,
-} from "./port";
+import type { HeadResult, ObjectLocation, StoragePort } from "./port";
+import { ISSUED_CACHE_CONTROL, StorageReadTooLargeError } from "./portValues";
 
 // @google-cloud/storage は firebase-admin 経由の間接依存なので、型は戻り値から取る
 type GcsBucket = ReturnType<ReturnType<typeof getServerStorage>["bucket"]>;

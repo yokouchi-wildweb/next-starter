@@ -3,7 +3,7 @@
 "use client";
 
 import Modal from "@/components/Overlays/Modal";
-import { PhoneVerification, type PhoneVerificationProps } from "./index";
+import { PhoneVerification, type PhoneVerificationProps } from "./PhoneVerification";
 
 export type PhoneVerificationModalProps = PhoneVerificationProps & {
   /** モーダルの開閉状態 */

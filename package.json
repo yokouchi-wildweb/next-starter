@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm registry:check && pnpm extensions:check && pnpm cron:check --vercel-build && next build && pnpm styles:check-build",
+    "build": "pnpm test:cycles && pnpm registry:check && pnpm extensions:check && pnpm cron:check --vercel-build && next build && pnpm styles:check-build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.typecheck.json",
@@ -164,7 +164,8 @@
     "room:deploy": "npx tsx scripts/room/deploy.ts",
     "room:secret": "npx tsx scripts/room/secret.ts",
     "room:check": "npx tsx scripts/room/check.ts",
-    "room:dev": "pnpm -C servers/room dev"
+    "room:dev": "pnpm -C servers/room dev",
+    "test:cycles": "node --test scripts/cycles/cycles.test.mjs"
   },
   "engines": {
     "node": "24"
@@ -283,6 +284,7 @@
     "cross-env": "^10.1.0",
     "culori": "^4.0.2",
     "dotenv": "^16.4.7",
+    "dpdm": "3.14.0",
     "drizzle-kit": "^0.31.4",
     "eslint": "^9",
     "eslint-config-next": "^16.0.0",

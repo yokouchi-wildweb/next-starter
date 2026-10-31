@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 
-import { send } from "./index";
+import { send } from "./send";
 
 /**
  * メール送信オプション

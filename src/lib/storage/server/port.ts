@@ -19,6 +19,8 @@ import "server-only";
 
 import { createGcsStoragePort } from "./gcs";
 
+export { ISSUED_CACHE_CONTROL, StorageReadTooLargeError } from "./portValues";
+
 export type ObjectLocation = { bucket: string; path: string };
 
 export type HeadResult = {
@@ -77,19 +79,6 @@ export type ReadOptions = {
   maxBytes: number;
 };
 
-/** read の対象が maxBytes を超えていた */
-export class StorageReadTooLargeError extends Error {
-  readonly size: number;
-  readonly maxBytes: number;
-
-  constructor(location: ObjectLocation, size: number, maxBytes: number) {
-    super(`読み取りの上限を超えています（${size} > ${maxBytes}）: ${location.bucket}/${location.path}`);
-    this.name = "StorageReadTooLargeError";
-    this.size = size;
-    this.maxBytes = maxBytes;
-  }
-}
-
 export type SignReadOptions = {
   ttlSec: number;
   /** 指定すればその世代だけを読ませる */
@@ -121,8 +110,6 @@ export interface StoragePort {
   signRead(location: ObjectLocation, options: SignReadOptions): Promise<string>;
 }
 
-/** 発行直後のオブジェクトに付ける Cache-Control（固定） */
-export const ISSUED_CACHE_CONTROL = "no-store";
 
 let overridePort: StoragePort | null = null;
 let defaultPort: StoragePort | null = null;

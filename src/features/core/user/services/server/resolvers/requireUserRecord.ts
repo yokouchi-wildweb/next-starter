@@ -6,10 +6,10 @@ import { redirect } from "next/navigation";
 
 import type { User } from "@/features/core/user/entities/model";
 
-import { userService } from "../userService";
+import { base } from "../drizzleBase";
 
 // 同じリクエストで同じ利用者を引く loader が重なっても DB は 1 回(キーは userId のプリミティブ)
-const getUserRecord = cache(async (userId: string): Promise<User | null> => (await userService.get(userId)) ?? null);
+const getUserRecord = cache(async (userId: string): Promise<User | null> => (await base.get(userId)) ?? null);
 
 /**
  * loader の主体(guard.ts の createLoader が渡す ctx.user)から本人のユーザーレコードを引く。

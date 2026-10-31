@@ -32,6 +32,12 @@
 
 検査と所有判定の実装は [`folderCatalog/`](./folderCatalog/README.md)。
 
+## 読み込みの輪
+
+静的な値の import で閉じる輪は全部禁止(`pnpm test:cycles`、build の冒頭でも走る。src 全体・全 Tier、例外の一覧は作らない)。型だけの輪と `import()` で閉じる輪は対象外。
+
+輪を消すために `import type` や `import()` へ書き換えたら、**コミットに理由を書く**(実体の依存が残っていないか読み手が確かめるため)。普通は共通の部分を別のファイルへ切り出すか、入口でなく実ファイルを読む。
+
 ## lint の扱い
 
 所有で厳しさが変わる規則（style-tokens の `no-raw-palette` / `span-in-heading`）は、目録で判定する。
