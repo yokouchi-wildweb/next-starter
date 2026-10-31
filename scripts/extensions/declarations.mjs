@@ -49,7 +49,7 @@ export function findDeclarationFiles(repoRoot) {
 }
 
 /** 構文木の値をリテラルとして読む。リテラルでなければ { problem } */
-function literalOf(node) {
+export function literalOf(node) {
   while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return { value: node.text };
   if (ts.isNumericLiteral(node)) return { value: Number(node.text) };

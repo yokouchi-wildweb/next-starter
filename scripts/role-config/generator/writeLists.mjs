@@ -6,6 +6,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toPlural, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { readProfileOverride, readRoleOverride, requireOverride } from "../overrides.mjs";
 import { generatedHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -19,9 +20,16 @@ const PROFILES_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/profiles"
 );
+const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
+
+/** 一覧の要素の式: 上書きが無ければ JSON の変数のまま、あれば変数に上書きの値を重ねる */
+const withOverride = (varName, override) => {
+  const entries = Object.entries(override);
+  return entries.length === 0 ? varName : `{ ...${varName}, ${entries.map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ")} }`;
+};
 
 /**
- * 全プロフィール設定を取得（JSON も読み込む）
+ * 全プロフィール設定を取得（JSON も読み込む。config は上書き後、override は上書きだけ）
  */
 function getAllProfiles() {
   if (!fs.existsSync(PROFILES_DIR)) {
@@ -35,8 +43,9 @@ function getAllProfiles() {
     .map((file) => {
       const roleId = file.replace(".profile.json", "");
       const configPath = path.join(PROFILES_DIR, file);
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      return { roleId, config };
+      const override = requireOverride(readProfileOverride(PROFILES_DIR, file));
+      const config = { ...JSON.parse(fs.readFileSync(configPath, "utf8")), ...override };
+      return { roleId, config, override };
     });
 }
 
@@ -90,7 +99,7 @@ function renderProfileSchemas(profiles) {
 /** userProfile/extensions/profileConfigs.ts: ロール → プロフィール設定 */
 function renderProfileConfigs(profiles) {
   const imports = profiles.map(({ roleId }) => `import ${roleId}Profile from "@/features/core/userProfile/profiles/${roleId}.profile.json";`);
-  const entries = profiles.map(({ roleId }) => `  ${roleId}: ${roleId}Profile as ProfileConfig,`);
+  const entries = profiles.map(({ roleId, override }) => `  ${roleId}: ${withOverride(`${roleId}Profile`, override)} as ProfileConfig,`);
   return [
     PROFILE_HEADER,
     `// ${EXTENSIONS_REL}/profileConfigs.ts`,
@@ -207,10 +216,14 @@ function buildCountableLiteral(roleId, rel) {
   };
 }
 
+/** defaultSearchFields の式（上書きがあればその値、無ければ JSON） */
+const searchFieldsExpression = (roleId, override) =>
+  override.searchFields ? JSON.stringify(override.searchFields) : `(${roleId}Profile as ProfileConfig).searchFields`;
+
 /**
  * リレーション付きプロフィールの createProfileBase オプションリテラルを生成
  */
-function buildRelationOptions(roleId, config) {
+function buildRelationOptions(roleId, config, override) {
   const relations = config.relations || [];
   const belongsToRels = relations.filter((r) => r.relationType === "belongsTo");
   const m2mRels = relations.filter(
@@ -224,7 +237,7 @@ function buildRelationOptions(roleId, config) {
 
   // defaultSearchFields
   optionParts.push(
-    `      defaultSearchFields: (${roleId}Profile as ProfileConfig).searchFields,`
+    `      defaultSearchFields: ${searchFieldsExpression(roleId, override)},`
   );
 
   // belongsToManyRelations
@@ -291,20 +304,22 @@ function renderProfileBases(profiles) {
   // 中間テーブルの import を収集（roleId → [tableVar]）
   const allJunctionImports = new Map();
 
-  for (const { roleId, config } of profiles) {
+  for (const { roleId, config, override } of profiles) {
     const tableVar = `${toPascalCase(roleId)}ProfileTable`;
     const profileVar = `${roleId}Profile`;
 
-    // プロフィールテーブル + JSON の import
+    // プロフィールテーブル + JSON の import（searchFields を上書きしたら JSON は読まない）
     importLines.push(
       `import { ${tableVar} } from "${PROFILE_ENTITIES}/${roleId}";`
     );
-    importLines.push(
-      `import ${profileVar} from "@/features/core/userProfile/profiles/${roleId}.profile.json";`
-    );
+    if (!override.searchFields) {
+      importLines.push(
+        `import ${profileVar} from "@/features/core/userProfile/profiles/${roleId}.profile.json";`
+      );
+    }
 
     if (hasRelations(config)) {
-      const { optionParts, tableImports, junctionTableVars } = buildRelationOptions(roleId, config);
+      const { optionParts, tableImports, junctionTableVars } = buildRelationOptions(roleId, config, override);
 
       // リレーション先テーブル import をマージ
       for (const [domain, vars] of tableImports) {
@@ -328,7 +343,7 @@ function renderProfileBases(profiles) {
     } else {
       // リレーションなし（従来通り）
       entryLines.push(
-        `  ${roleId}: createProfileBase(${tableVar}, { defaultSearchFields: (${profileVar} as ProfileConfig).searchFields }),`
+        `  ${roleId}: createProfileBase(${tableVar}, { defaultSearchFields: ${searchFieldsExpression(roleId, override)} }),`
       );
     }
   }
@@ -381,6 +396,7 @@ export const registeredRoleIds = () => readRoleEntries().map((entry) => entry.id
 
 function writeRoles(entries) {
   const varOf = ({ id }) => `${toCamelCase(id)}Role`;
+  const overrideOf = ({ id, isCore }) => requireOverride(readRoleOverride(ROLES_DIR, `${isCore ? "_" : ""}${id}.role.json`));
   const content = [
     generatedHeader("src/features/core/user/extensionPoints.ts"),
     "// src/features/core/user/extensions/roles.ts",
@@ -390,7 +406,7 @@ function writeRoles(entries) {
     ...entries.map((e) => `import ${varOf(e)} from "@/features/core/user/roles/${e.isCore ? "_" : ""}${e.id}.role.json";`),
     "",
     "export const roles: readonly RoleConfig[] = [",
-    ...entries.map((e) => `  ${varOf(e)} as RoleConfig,`),
+    ...entries.map((e) => `  ${withOverride(varOf(e), overrideOf(e))} as RoleConfig,`),
     "];",
     "",
   ].join("\n");

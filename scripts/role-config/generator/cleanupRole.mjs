@@ -1,7 +1,7 @@
 // scripts/role-config/generator/cleanupRole.mjs
 // ロールを一覧から外す
 
-import { cleanupProfile } from "./cleanupProfile.mjs";
+import { assertHasProfileNotOverridden, cleanupProfile } from "./cleanupProfile.mjs";
 import { removeRoleFromList } from "./writeLists.mjs";
 
 /**
@@ -17,6 +17,8 @@ export function cleanupRole(roleId, options = {}) {
   const { includeProfile = true, deleteEntity = true, updateHasProfile = true, silent = false } = options;
 
   const log = silent ? () => {} : console.log;
+
+  if (includeProfile && updateHasProfile) assertHasProfileNotOverridden(roleId);
 
   log(`ロール "${roleId}" のクリーンアップ中...`);
 

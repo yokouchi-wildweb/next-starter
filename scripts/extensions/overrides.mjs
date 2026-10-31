@@ -8,7 +8,8 @@ import { join } from "node:path";
 
 import { SEARCH_ROOT } from "./declarations.mjs";
 
-const OVERRIDE_FILE = /^(?:[A-Za-z][A-Za-z0-9]*\.override|override)\.(ts|tsx)$/;
+// <対象> は _user.role・user.profile のように _ と . も含む
+const OVERRIDE_FILE = /^(?:[A-Za-z_][\w.-]*\.override|override)\.(ts|tsx)$/;
 const CRON_DIR = "src/app/api/cron";
 
 /** 空白とコメントだけのソースか(cron・serviceRegistry の生成器と同じ判定) */

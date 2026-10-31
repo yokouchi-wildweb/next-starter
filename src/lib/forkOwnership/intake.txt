@@ -104,6 +104,8 @@ edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち�
 # ドメインと定期タスクの上書き
 edit src/app/api/cron/*/override.ts  # cron の時刻変更・停止
 edit src/features/**/services/server/domainEntry.override.ts  # core の access の上書き
+edit src/features/core/user/roles/*.role.override.ts  # ロールの上書き(label・hasProfile・enabled)
+edit src/features/core/userProfile/profiles/*.profile.override.ts  # プロフィールの上書き(tags・searchFields)
 
 # 登録(fork entries の対の中だけ)
 region src/registry/**/*.ts  # .claude/rules/core/code-generation.md fork_region

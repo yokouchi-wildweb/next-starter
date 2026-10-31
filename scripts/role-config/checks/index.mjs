@@ -11,15 +11,16 @@ import { roleIssues, roleWarnings } from "./role.mjs";
  * @property {string} fileName ロール設定のファイル名（例: _admin.role.json）
  * @property {object} role ロール設定
  * @property {object | null} profile プロフィール設定（無ければ null）
+ * @property {string[]} [overrideProblems] 隣の上書きを読んだときの問題（role と profile は上書き後の値）
  */
 
 /**
  * @param {RoleCheckInput} input
  * @returns {string[]} [<file>] を前に付けた問題（空なら無し）
  */
-export function roleConfigIssues({ fileName, role, profile }) {
+export function roleConfigIssues({ fileName, role, profile, overrideProblems = [] }) {
   const profileName = `${role?.id}.profile.json`;
-  const issues = roleIssues({ fileName, role, profileExists: profile !== null }).map((issue) => `[${fileName}] ${issue}`);
+  const issues = [...overrideProblems, ...roleIssues({ fileName, role, profileExists: profile !== null }).map((issue) => `[${fileName}] ${issue}`)];
   // hasProfile: false のプロフィールは生成しないので項目は検査しない（警告だけ）
   if (profile !== null && role?.hasProfile === true) {
     issues.push(

@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import formatDomainConfig from "../domain-config/spec/format.mjs";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
+import { overrideFileName, readRoleOverride, requireOverride } from "./overrides.mjs";
 
 const USAGE = "pnpm role:toggle <roleId> --on|--off [-i]";
 
@@ -63,6 +64,13 @@ function toggleRoleEnabled(roleId, newState) {
     } else {
       console.error(`エラー: ロール「${roleId}」が見つかりません。`);
     }
+    process.exit(1);
+  }
+
+  // 上書きが enabled を決めているロールは JSON を書いても効かないので止める
+  const roleFile = path.basename(role.filePath);
+  if (requireOverride(readRoleOverride(ROLES_DIR, roleFile)).enabled !== undefined) {
+    console.error(`エラー: ロール「${roleId}」の enabled は ${overrideFileName(roleFile)} が決めています。そのファイルを直してから pnpm role:generate を実行してください。`);
     process.exit(1);
   }
 

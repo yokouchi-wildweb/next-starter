@@ -20,6 +20,7 @@ import { generateProfileFieldTypes } from "./generator/generateProfileFieldTypes
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
 import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "./checks/index.mjs";
+import { readProfileOverride, readRoleOverride, strayOverrideIssues } from "./overrides.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
@@ -37,26 +38,31 @@ function loadRoleConfig(roleId) {
   if (!fileName) {
     throw new Error(`ロール設定が見つかりません: ${path.join(ROLES_DIR, `${roleId}.role.json`)}`);
   }
-  return { fileName, role: JSON.parse(fs.readFileSync(path.join(ROLES_DIR, fileName), "utf-8")) };
+  const { override, problems } = readRoleOverride(ROLES_DIR, fileName);
+  return { fileName, role: { ...JSON.parse(fs.readFileSync(path.join(ROLES_DIR, fileName), "utf-8")), ...override }, problems };
 }
 
 /**
- * プロフィール設定JSONを読み込む
+ * プロフィール設定JSONを読み込む（隣の上書きを重ねる）
+ * @returns {{ profile: object | null, problems: string[] }}
  */
 function loadProfileConfig(roleId) {
-  const profilePath = path.join(PROFILES_DIR, `${roleId}.profile.json`);
+  const fileName = `${roleId}.profile.json`;
+  const profilePath = path.join(PROFILES_DIR, fileName);
 
   if (!fs.existsSync(profilePath)) {
-    return null;
+    return { profile: null, problems: [] };
   }
 
-  return JSON.parse(fs.readFileSync(profilePath, "utf-8"));
+  const { override, problems } = readProfileOverride(PROFILES_DIR, fileName);
+  return { profile: { ...JSON.parse(fs.readFileSync(profilePath, "utf-8")), ...override }, problems };
 }
 
-/** 検査の入力（ロール設定のファイル名・中身とプロフィール設定） */
+/** 検査の入力（ロール設定のファイル名・上書き後の中身とプロフィール設定、上書きの問題） */
 function loadCheckInput(roleId) {
-  const { fileName, role } = loadRoleConfig(roleId);
-  return { fileName, role, profile: loadProfileConfig(role.id ?? roleId) };
+  const { fileName, role, problems: roleProblems } = loadRoleConfig(roleId);
+  const { profile, problems: profileProblems } = loadProfileConfig(role.id ?? roleId);
+  return { fileName, role, profile, overrideProblems: [...roleProblems, ...profileProblems] };
 }
 
 function printWarnings(warnings) {
@@ -115,6 +121,8 @@ export default async function generate(roleId, options = {}) {
   console.log(`\n=== ロール "${roleId}" の生成を開始 ===\n`);
 
   // ロール設定を読み込み、書く前に検査する（問題があれば全件を並べて止める）
+  const stray = strayOverrideIssues(ROLES_DIR, PROFILES_DIR);
+  if (stray.length > 0) throw new Error(stray.join("\n"));
   const checkInput = loadCheckInput(roleId);
   assertRoleConfig(checkInput);
   printWarnings(roleConfigWarnings(checkInput));
@@ -208,6 +216,7 @@ export function checkAllRoles(roleIds = idsIn(ROLES_DIR, ".role.json")) {
   return [
     ...roleIds.flatMap((roleId) => roleConfigIssues(loadCheckInput(roleId))),
     ...orphanProfileIssues(roleIds, idsIn(PROFILES_DIR, ".profile.json")),
+    ...strayOverrideIssues(ROLES_DIR, PROFILES_DIR),
   ];
 }
 

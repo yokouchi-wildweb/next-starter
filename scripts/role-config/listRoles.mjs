@@ -5,6 +5,7 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
+import { readRoleOverride, requireOverride } from "./overrides.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
@@ -27,7 +28,7 @@ function getRoles() {
     .filter((file) => file.endsWith(".role.json"))
     .map((file) => {
       const filePath = path.join(ROLES_DIR, file);
-      const config = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      const config = { ...JSON.parse(fs.readFileSync(filePath, "utf-8")), ...requireOverride(readRoleOverride(ROLES_DIR, file)) };
       const isCore = file.startsWith("_") || config.isCore;
 
       // プロフィール設定の確認

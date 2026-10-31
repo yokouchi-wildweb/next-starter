@@ -4,6 +4,7 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
+import { overrideFileName, readRoleOverride, requireOverride } from "../overrides.mjs";
 import { writeProfileLists } from "./writeLists.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +26,16 @@ function cleanupGeneratedFolder(roleId) {
     return true;
   }
   return false;
+}
+
+/**
+ * 上書きが hasProfile を決めているロールは JSON を書いても効かないので、何も消す前に止める
+ */
+export function assertHasProfileNotOverridden(roleId) {
+  const fileName = [`${roleId}.role.json`, `_${roleId}.role.json`].find((name) => fs.existsSync(path.join(ROLES_DIR, name)));
+  if (fileName && requireOverride(readRoleOverride(ROLES_DIR, fileName)).hasProfile !== undefined) {
+    throw new Error(`ロール「${roleId}」の hasProfile は ${overrideFileName(fileName)} が決めています。そのファイルを直してから実行してください。`);
+  }
 }
 
 /**
@@ -64,6 +75,8 @@ export function cleanupProfile(roleId, options = {}) {
   const { deleteEntity = true, updateHasProfile = true, silent = false } = options;
 
   const log = silent ? () => {} : console.log;
+
+  if (updateHasProfile) assertHasProfileNotOverridden(roleId);
 
   log(`プロフィール "${roleId}" のクリーンアップ中...`);
 

@@ -26,3 +26,8 @@ export type RoleConfig = {
   readonly isCore?: boolean;
 };
 
+/**
+ * fork の上書き（roles/<JSON の名前>.override.ts の export const override）。pnpm role:generate が読む
+ */
+export type RoleOverride = Partial<Pick<RoleConfig, "label" | "hasProfile" | "enabled">>;
+

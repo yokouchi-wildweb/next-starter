@@ -42,4 +42,4 @@ export {
 } from "@/features/core/userProfile";
 
 // ロール関連の型
-export { type RoleCategory, type RoleConfig } from "./role";
+export { type RoleCategory, type RoleConfig, type RoleOverride } from "./role";

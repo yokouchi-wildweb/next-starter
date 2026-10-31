@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { cleanupProfile } from "./generator/cleanupProfile.mjs";
+import { removeOverride } from "./overrides.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
@@ -153,6 +154,7 @@ export default async function deleteProfile(roleIdArg, options = {}) {
       fs.unlinkSync(jsonPath);
       console.log(`  ✓ ${selectedRoleId}.profile.json を削除`);
     }
+    if (removeOverride(PROFILES_DIR, `${selectedRoleId}.profile.json`)) console.log(`  ✓ ${selectedRoleId}.profile.override.ts を削除`);
   }
 
   console.log("\n削除完了しました。\n");
