@@ -12,10 +12,11 @@ import { db } from "@/lib/drizzle";
  */
 export async function checkAdminUserExists(): Promise<boolean> {
   const adminRoles = getRolesByCategory("admin");
-  const adminUser = await db.query.UserTable.findFirst({
-    columns: { id: true },
-    where: inArray(UserTable.role, adminRoles),
-  });
+  const [adminUser] = await db
+    .select({ id: UserTable.id })
+    .from(UserTable)
+    .where(inArray(UserTable.role, adminRoles))
+    .limit(1);
 
   return Boolean(adminUser);
 }

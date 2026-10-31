@@ -22,9 +22,11 @@ export async function updateTokens(
     expiresAt: number;
   },
 ): Promise<void> {
-  const existing = await db.query.UserXProfileTable.findFirst({
-    where: eq(UserXProfileTable.userId, userId),
-  });
+  const [existing] = await db
+    .select()
+    .from(UserXProfileTable)
+    .where(eq(UserXProfileTable.userId, userId))
+    .limit(1);
 
   if (!existing) {
     throw new DomainError("X 連携されていません", { status: 400 });

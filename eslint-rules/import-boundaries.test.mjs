@@ -88,7 +88,7 @@ test("rule lib-no-registry: 値も型も止め、一覧の行は通し、使わ�
   ruleTester.run("lib-no-registry", plugin.rules["lib-no-registry"], {
     valid: [
       { code: `import { x } from "@/lib/domain";`, filename: at("src/lib/foo/index.ts") },
-      { code: `import * as schema from "@/registry/schemaRegistry";`, filename: at(listed.file) },
+      { code: `import { x } from "${listed.target.replace("src/registry", "@/registry")}";`, filename: at(listed.file) },
     ],
     invalid: [
       { code: `import { serviceRegistry } from "@/registry/serviceRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },

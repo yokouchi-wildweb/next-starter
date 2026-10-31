@@ -24,9 +24,11 @@ export async function linkLineAccount(
   options?: LinkLineAccountOptions,
 ): Promise<UserLineProfile> {
   // 同じ LINE userId が既に紐付いていないか確認
-  const existingByLineId = await db.query.UserLineProfileTable.findFirst({
-    where: eq(UserLineProfileTable.lineUserId, lineUserId),
-  });
+  const [existingByLineId] = await db
+    .select()
+    .from(UserLineProfileTable)
+    .where(eq(UserLineProfileTable.lineUserId, lineUserId))
+    .limit(1);
 
   if (existingByLineId) {
     if (existingByLineId.userId === userId) {
@@ -45,9 +47,11 @@ export async function linkLineAccount(
   }
 
   // 同じユーザーが既に別の LINE アカウントで連携していないか確認
-  const existingByUserId = await db.query.UserLineProfileTable.findFirst({
-    where: eq(UserLineProfileTable.userId, userId),
-  });
+  const [existingByUserId] = await db
+    .select()
+    .from(UserLineProfileTable)
+    .where(eq(UserLineProfileTable.userId, userId))
+    .limit(1);
 
   if (existingByUserId) {
     // 既存の連携を更新（LINE アカウントを切り替え）

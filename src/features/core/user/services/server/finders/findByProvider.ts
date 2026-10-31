@@ -15,9 +15,11 @@ export async function findByProvider(
   providerType: UserProviderType,
   providerUid: string,
 ): Promise<User | null> {
-  const user = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, providerType), eq(UserTable.providerUid, providerUid)),
-  });
+  const [user] = await db
+    .select()
+    .from(UserTable)
+    .where(and(eq(UserTable.providerType, providerType), eq(UserTable.providerUid, providerUid)))
+    .limit(1);
 
   return user ?? null;
 }

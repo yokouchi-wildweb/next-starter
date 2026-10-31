@@ -30,9 +30,11 @@ export async function assertPhoneAvailability({
     conditions.push(ne(UserTable.id, excludeUserId));
   }
 
-  const existing = await db.query.UserTable.findFirst({
-    where: and(...conditions),
-  });
+  const [existing] = await db
+    .select({ id: UserTable.id })
+    .from(UserTable)
+    .where(and(...conditions))
+    .limit(1);
 
   if (existing) {
     throw new DomainError(errorMessage ?? "この電話番号は既に使用されています", { status: 409 });

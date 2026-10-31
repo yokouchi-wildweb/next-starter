@@ -10,6 +10,7 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { MAX_LOGIN_HISTORY } from "@/features/core/user/entities/model";
 import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
 import { base as userBase } from "@/features/core/user/services/server/drizzleBase";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
@@ -73,9 +74,11 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
   }
 
   // プロバイダー種別と UID をもとに既存ユーザーを検索する。
-  const user = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, providerType), eq(UserTable.providerUid, providerUid)),
-  });
+  const [user] = await db
+    .select(getPublicColumns(UserTable))
+    .from(UserTable)
+    .where(and(eq(UserTable.providerType, providerType), eq(UserTable.providerUid, providerUid)))
+    .limit(1);
 
   // 登録済みユーザーが存在しない場合は 404 を返す。
   if (!user) {

@@ -11,9 +11,11 @@ import { DomainError } from "@/lib/errors";
  * user_line_profiles レコードを物理削除する。
  */
 export async function unlinkLineAccount(userId: string): Promise<void> {
-  const existing = await db.query.UserLineProfileTable.findFirst({
-    where: eq(UserLineProfileTable.userId, userId),
-  });
+  const [existing] = await db
+    .select()
+    .from(UserLineProfileTable)
+    .where(eq(UserLineProfileTable.userId, userId))
+    .limit(1);
 
   if (!existing) {
     throw new DomainError("LINE 連携されていません", { status: 400 });

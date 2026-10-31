@@ -15,9 +15,11 @@ import { db } from "@/lib/drizzle";
  * 戻り値を HTTP レスポンスに乗せることは厳禁（サービス層内で消費し切ること）。
  */
 export async function findByIdWithSecrets(userId: string): Promise<User | null> {
-  const user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.id, userId),
-  });
+  const [user] = await db
+    .select()
+    .from(UserTable)
+    .where(eq(UserTable.id, userId))
+    .limit(1);
 
   return user ?? null;
 }

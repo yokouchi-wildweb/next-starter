@@ -64,9 +64,11 @@ export async function linkXAccount(
   const tokenExpiresAt = new Date(options.tokenExpiresAt);
 
   // 同じ X userId が既に紐付いていないか確認
-  const existingByXId = await db.query.UserXProfileTable.findFirst({
-    where: eq(UserXProfileTable.xUserId, options.xUserId),
-  });
+  const [existingByXId] = await db
+    .select()
+    .from(UserXProfileTable)
+    .where(eq(UserXProfileTable.xUserId, options.xUserId))
+    .limit(1);
 
   if (existingByXId) {
     if (existingByXId.userId === userId) {
@@ -92,9 +94,11 @@ export async function linkXAccount(
   }
 
   // 同じユーザーが既に別の X アカウントで連携していないか確認
-  const existingByUserId = await db.query.UserXProfileTable.findFirst({
-    where: eq(UserXProfileTable.userId, userId),
-  });
+  const [existingByUserId] = await db
+    .select()
+    .from(UserXProfileTable)
+    .where(eq(UserXProfileTable.userId, userId))
+    .limit(1);
 
   if (existingByUserId) {
     // 既存の連携を更新（X アカウントを切り替え）

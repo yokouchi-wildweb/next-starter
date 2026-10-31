@@ -26,13 +26,17 @@ export async function findSoftDeletedUser({
     return null;
   }
 
-  const user = await db.query.UserTable.findFirst({
-    where: and(
-      eq(UserTable.providerType, providerType),
-      eq(UserTable.email, normalizedEmail),
-      isNotNull(UserTable.deletedAt),
-    ),
-  });
+  const [user] = await db
+    .select()
+    .from(UserTable)
+    .where(
+      and(
+        eq(UserTable.providerType, providerType),
+        eq(UserTable.email, normalizedEmail),
+        isNotNull(UserTable.deletedAt),
+      ),
+    )
+    .limit(1);
 
   return user ?? null;
 }

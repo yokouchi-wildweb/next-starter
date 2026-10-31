@@ -13,9 +13,11 @@ import { db } from "@/lib/drizzle";
 export async function findByLocalEmail(email: string): Promise<User | null> {
   const normalizedEmail = email.trim();
 
-  const user = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, "local"), eq(UserTable.email, normalizedEmail)),
-  });
+  const [user] = await db
+    .select()
+    .from(UserTable)
+    .where(and(eq(UserTable.providerType, "local"), eq(UserTable.email, normalizedEmail)))
+    .limit(1);
 
   return user ?? null;
 }

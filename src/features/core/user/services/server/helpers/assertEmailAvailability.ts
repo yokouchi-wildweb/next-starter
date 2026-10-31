@@ -27,9 +27,11 @@ export async function assertEmailAvailability({
     throw new DomainError("メールアドレスを入力してください", { status: 400 });
   }
 
-  const existing = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, providerType), eq(UserTable.email, normalizedEmail)),
-  });
+  const [existing] = await db
+    .select({ id: UserTable.id })
+    .from(UserTable)
+    .where(and(eq(UserTable.providerType, providerType), eq(UserTable.email, normalizedEmail)))
+    .limit(1);
 
   if (existing) {
     throw new DomainError(errorMessage ?? "同じメールアドレスのユーザーが既に存在します", { status: 409 });

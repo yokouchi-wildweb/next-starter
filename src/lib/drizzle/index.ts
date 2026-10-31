@@ -2,9 +2,9 @@
 
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from '@/registry/schemaRegistry';
 
-type Database = PostgresJsDatabase<typeof schema>;
+// schema は渡さない(db.query は使わず db.select。lib は登録表を import しない、接続が全表の定義を読まない)
+type Database = PostgresJsDatabase;
 
 const globalForDb = globalThis as unknown as {
   queryClient: ReturnType<typeof postgres> | undefined;
@@ -61,7 +61,7 @@ function createConfiguredDb(): Database {
     globalForDb.queryClient = queryClient;
   }
 
-  return drizzle(queryClient, { schema });
+  return drizzle(queryClient);
 }
 
 export const db: Database = isDatabaseConfigured() ? createConfiguredDb() : createUnconfiguredDb();

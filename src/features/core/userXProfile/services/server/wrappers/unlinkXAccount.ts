@@ -14,9 +14,11 @@ import { DomainError } from "@/lib/errors";
  * X 側のトークンを revoke してからレコードを物理削除する。
  */
 export async function unlinkXAccount(userId: string): Promise<void> {
-  const existing = await db.query.UserXProfileTable.findFirst({
-    where: eq(UserXProfileTable.userId, userId),
-  });
+  const [existing] = await db
+    .select()
+    .from(UserXProfileTable)
+    .where(eq(UserXProfileTable.userId, userId))
+    .limit(1);
 
   if (!existing) {
     throw new DomainError("X 連携されていません", { status: 400 });

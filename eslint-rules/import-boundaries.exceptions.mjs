@@ -7,6 +7,5 @@
 
 /** @type {readonly { file: string, target: string, reason: string }[]} */
 export const LIB_REGISTRY_EXCEPTIONS = [
-  { file: "src/lib/drizzle/index.ts", target: "src/registry/schemaRegistry", reason: "DB クライアントに全表を渡す" },
   { file: "src/lib/domain/config/getDomainConfig.ts", target: "src/registry/domainConfigRegistry", reason: "ドメイン名 → domain.json(表示用の写しで消す)" },
 ];

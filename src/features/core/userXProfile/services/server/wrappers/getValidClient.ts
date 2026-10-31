@@ -21,9 +21,11 @@ import { DomainError } from "@/lib/errors";
 export async function getValidClient(
   userId: string,
 ): Promise<{ client: TwitterApi; profile: UserXProfile }> {
-  const profile = await db.query.UserXProfileTable.findFirst({
-    where: eq(UserXProfileTable.userId, userId),
-  });
+  const [profile] = await db
+    .select()
+    .from(UserXProfileTable)
+    .where(eq(UserXProfileTable.userId, userId))
+    .limit(1);
 
   if (!profile) {
     throw new DomainError("X 連携されていません", { status: 400 });

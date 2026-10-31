@@ -12,9 +12,11 @@ import { db } from "@/lib/drizzle";
 export async function findByLineUserId(
   lineUserId: string,
 ): Promise<UserLineProfile | null> {
-  const profile = await db.query.UserLineProfileTable.findFirst({
-    where: eq(UserLineProfileTable.lineUserId, lineUserId),
-  });
+  const [profile] = await db
+    .select()
+    .from(UserLineProfileTable)
+    .where(eq(UserLineProfileTable.lineUserId, lineUserId))
+    .limit(1);
 
   return profile ?? null;
 }
