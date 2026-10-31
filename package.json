@@ -75,6 +75,7 @@
     "test:dc-checks": "node --test scripts/domain-config/tests/checks.test.mjs",
     "test:dc-feature-map": "node --test scripts/domain-config/tests/featureMap.test.mjs",
     "test:profile-base": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/userProfile/utils/createProfileBase.test.mts",
+    "test:profile-base-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/userProfile/utils/createProfileBase.db.test.ts",
     "test:role-config-checks": "node --test scripts/role-config/tests/checks.test.mjs",
     "test:role-config-ops": "node --test scripts/role-config/tests/ops.test.mjs",
     "test:forge": "node --test scripts/forge/tests/forge.test.mjs",
