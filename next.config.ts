@@ -79,6 +79,10 @@ const nextConfig: NextConfig = {
     "/api/**": [
       "./node_modules/.pnpm/mediainfo.js@*/node_modules/mediainfo.js/dist/MediaInfoModule.wasm",
       "./node_modules/mediainfo.js/dist/MediaInfoModule.wasm",
+      // sharp 0.35 が .node から OS 経由で読む libvips 本体。ファイルの追跡に載らないことがあり、
+      // 無いと本番（Vercel）で ERR_DLOPEN_FAILED になり画像の描き直しが全て失敗する。
+      // ※ stripImageMetadata を API ルート以外から呼ぶフォークは、その route キーを追加すること。
+      "./node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/sharp-libvips-linux-x64/lib/**",
     ],
   },
   images: {
