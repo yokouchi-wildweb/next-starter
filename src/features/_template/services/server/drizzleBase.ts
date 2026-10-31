@@ -1,6 +1,8 @@
 // src/features/__domain__/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import rawConf from "@/features/__domain__/domain.json";
 import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle";
 __RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 __StorageBindingImport__import { createCrudService } from "@/lib/crud/drizzle";
@@ -9,7 +11,7 @@ import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("__domain__");
+const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField

@@ -392,6 +392,9 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
         media,
         services: async () => service as never,
         junctionTables: async () => undefined,
+        domainConfigs: () => {
+          throw new Error("関連を含めない出力では設定を引かない");
+        },
       });
       assert.equal(result.success, true);
       const parsed = parseZip((result as { zipBuffer: Buffer }).zipBuffer, "sample");

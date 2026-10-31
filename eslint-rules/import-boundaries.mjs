@@ -11,7 +11,6 @@
 //
 // ── lib-no-registry(D23 K3) ──
 // src/lib/** から src/registry/** を import しない(値も型も)。lib の関数は登録表を引数・注入で受け、結ぶのは src/wiring/**。
-// 今ある違反は import-boundaries.exceptions.mjs の縮むだけの一覧(upstream の物。fork は足せない)。
 // 一覧の行(file + target)に当たる import は通す。一覧の行のファイルにその import が無くなったら、行を消すよう error。
 //
 // ── lib-no-features(親 D8) ──
@@ -29,7 +28,6 @@
 //
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
-import { LIB_REGISTRY_EXCEPTIONS } from "./import-boundaries.exceptions.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
 const ROUTE_FACTORY = "src/lib/routeFactory";
@@ -62,11 +60,8 @@ export function classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, i
   return SERVER_SERVICE_DIR.test(resolved) ? "serverReexport" : null;
 }
 
-export function classifyLibRegistryImport(importerRel, resolved, exceptions = LIB_REGISTRY_EXCEPTIONS) {
-  if (!isUnder(importerRel, LIB) || !isUnder(resolved, REGISTRY)) return null;
-  const bare = resolved.replace(/\.(ts|tsx|mts|mjs|js)$/, "");
-  const listed = exceptions.some((e) => e.file === importerRel && (e.target === bare || isUnder(resolved, e.target)));
-  return listed ? "listed" : "libRegistry";
+export function classifyLibRegistryImport(importerRel, resolved) {
+  return isUnder(importerRel, LIB) && isUnder(resolved, REGISTRY) ? "libRegistry" : null;
 }
 
 const repoRootOf = (context) => context.cwd ?? context.getCwd?.() ?? process.cwd();
@@ -149,33 +144,16 @@ const libNoRegistry = {
     messages: {
       libRegistry:
         '"{{source}}" は登録表(src/registry)です。lib は登録表を import しない(値も型も)。引数・注入で受け、結ぶのは src/wiring/**(詳細: src/wiring/README.md)',
-      staleException:
-        "{{file}} は {{target}} を import しなくなりました。eslint-rules/import-boundaries.exceptions.mjs の行を消す(縮むだけの一覧)",
     },
     schema: [],
   },
   create(context) {
     const repoRoot = repoRootOf(context);
     const importerRel = repoRelative(context.filename, repoRoot);
-    const listedHere = LIB_REGISTRY_EXCEPTIONS.filter((e) => e.file === importerRel);
-    const used = new Set();
-    return {
-      ...moduleVisitors(({ node, source }) => {
-        const resolved = resolveImport(source, context.filename, repoRoot);
-        const kind = classifyLibRegistryImport(importerRel, resolved);
-        if (kind === "libRegistry") context.report({ node, messageId: "libRegistry", data: { source } });
-        if (kind === "listed") {
-          for (const e of listedHere) if (isUnder(resolved, e.target)) used.add(e.target);
-        }
-      }),
-      "Program:exit"(program) {
-        for (const e of listedHere) {
-          if (!used.has(e.target)) {
-            context.report({ node: program, messageId: "staleException", data: { file: e.file, target: e.target } });
-          }
-        }
-      },
-    };
+    return moduleVisitors(({ node, source }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      if (classifyLibRegistryImport(importerRel, resolved)) context.report({ node, messageId: "libRegistry", data: { source } });
+    });
   },
 };
 

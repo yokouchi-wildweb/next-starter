@@ -7,14 +7,16 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import { getDomainConfig } from "@/lib/domain";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import rawConf from "@/features/user/domain.json";
 import type { z } from "zod";
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/user/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-const conf = getDomainConfig("user");
+const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 export const baseOptions = {
   idType: "uuid",

@@ -1,7 +1,7 @@
 // src/lib/domain/fields/extractImageFields.ts
 // ドメイン設定から画像フィールドを抽出するユーティリティ
 
-import type { DomainConfig } from "../config";
+import type { DomainConfig } from "../types/domainConfig";
 
 /**
  * ドメイン設定から画像フィールド名を抽出

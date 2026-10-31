@@ -1,6 +1,8 @@
 // src/features/notificationTemplate/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import rawConf from "@/features/notificationTemplate/domain.json";
 import { NotificationTemplateTable } from "@/features/core/notificationTemplate/entities/drizzle";
 import { NotificationTemplateCreateSchema, NotificationTemplateUpdateSchema } from "@/features/core/notificationTemplate/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
@@ -9,10 +11,7 @@ import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("notificationTemplate") as DomainConfig & {
-  useSoftDelete?: boolean;
-  sortOrderField?: string | null;
-};
+const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField

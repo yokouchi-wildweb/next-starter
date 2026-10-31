@@ -1,7 +1,9 @@
 // 生成物・編集不可: pnpm registry:generate が src/features/**/domain.json から生成する
 // src/registry/domainConfigRegistry.ts
 //
-// 全ドメインの domain.json の一覧(キー = フォルダ名の snake_case)。読み手: src/lib/domain/config/getDomainConfig.ts
+// 全ドメインの domain.json の一覧(キー = フォルダ名の snake_case)。読み手: src/wiring/domainConfig.ts
+
+import "server-only";
 
 import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 

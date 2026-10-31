@@ -8,3 +8,4 @@ export * from "./domain";
 export * from "./apiAccess";
 export * from "./registry";
 export * from "./display";
+export * from "./domainConfig";

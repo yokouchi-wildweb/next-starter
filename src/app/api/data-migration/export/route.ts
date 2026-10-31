@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { exportData } from "@/lib/dataMigration/export";
 import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "@/lib/dataMigration/media";
+import { getDomainConfig } from "@/wiring/domainConfig";
 import { getJunctionTable, getService } from "@/wiring/domainRegistry";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
@@ -65,6 +66,7 @@ export const POST = createApiRoute(
       media: createDataMigrationMediaResolver(admin),
       services: getService,
       junctionTables: getJunctionTable,
+      domainConfigs: getDomainConfig,
       includeRelations: includeRelations ?? false,
       selectedHasManyDomains: selectedHasManyDomains ?? [],
     });

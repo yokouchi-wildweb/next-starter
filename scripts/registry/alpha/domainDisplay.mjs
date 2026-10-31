@@ -1,6 +1,6 @@
 // scripts/registry/alpha/domainDisplay.mjs
 // domain.json から client に出す写し(<domain>/entities/display.ts)を作る(D21・L1.44)。
-// 写すのは許可の一覧の項目だけ。domain.json に項目が増えても勝手に client へ出ない。
+// 写すのは許可の一覧の項目だけ。domain.json に項目が増えても勝手に client へ出ない。hiddenColumns の列は写さない。
 // Firestore の domain は名前を camelCase にする(getDomainConfig の正規化と同じ)。
 
 import { isAsyncRelationFormInput } from "../../../src/lib/domain/relations/relationOptions.mjs";
@@ -29,13 +29,15 @@ function toDisplayRelation(relation, allConfigs) {
  */
 export function toDomainDisplay(config, allConfigs = []) {
   const resolve = nameResolver(config);
+  const hidden = new Set(config.hiddenColumns ?? []);
+  const isPublic = (name) => !hidden.has(toCamelCase(name) || name);
   return {
     singular: config.singular,
     plural: config.plural,
     label: config.label,
-    fields: (config.fields ?? []).map((field) => ({ ...pick(field, FIELD_KEYS), name: resolve(field.name) })),
+    fields: (config.fields ?? []).filter((field) => isPublic(field.name)).map((field) => ({ ...pick(field, FIELD_KEYS), name: resolve(field.name) })),
     relations: (config.relations ?? []).map((relation) => toDisplayRelation(relation, allConfigs)),
-    searchFields: (config.searchFields ?? []).map(resolve),
+    searchFields: (config.searchFields ?? []).filter(isPublic).map(resolve),
     useCreatedAt: Boolean(config.useCreatedAt),
     useUpdatedAt: Boolean(config.useUpdatedAt),
     useSoftDelete: Boolean(config.useSoftDelete),

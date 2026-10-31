@@ -103,12 +103,6 @@ export const domainDisplay = {
       ]
     },
     {
-      "name": "local_password",
-      "label": "ローカルパスワード",
-      "fieldType": "password",
-      "formInput": "passwordInput"
-    },
-    {
       "name": "status",
       "label": "ステータス",
       "fieldType": "enum",

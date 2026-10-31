@@ -12,6 +12,7 @@ import {
 } from "./createZip";
 import {
   collectExportDomains,
+  type DataMigrationConfigResolver,
   type ExportDomainInfo,
 } from "../relations";
 import { db } from "@/lib/drizzle";
@@ -41,6 +42,8 @@ export type ExportOptions = {
   services: DataMigrationServiceResolver;
   /** 中間表の名前から表を引く（API ルートが src/wiring/domainRegistry.ts の getJunctionTable を注入する） */
   junctionTables: DataMigrationJunctionResolver;
+  /** ドメイン名から設定を引く（API ルートが src/wiring/domainConfig.ts の getDomainConfig を注入する） */
+  domainConfigs: DataMigrationConfigResolver;
   /** リレーションを含めるか（default: false） */
   includeRelations?: boolean;
   /** エクスポートする hasMany ドメインのリスト（snake_case） */
@@ -564,12 +567,12 @@ async function exportDomainRecords(
 export async function exportDataWithRelations(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, includeImages, searchParams, selectedHasManyDomains, media, services, junctionTables } = options;
+  const { domain, includeImages, searchParams, selectedHasManyDomains, media, services, junctionTables, domainConfigs } = options;
   const config = getDataMigrationConfig();
 
   try {
     // エクスポート対象ドメイン情報を収集（hasMany ドメインの選択を反映）
-    const domainInfos = collectExportDomains(domain, true, selectedHasManyDomains);
+    const domainInfos = collectExportDomains(domainConfigs, domain, true, selectedHasManyDomains);
 
     console.log(`[Export] Starting multi-domain export for: ${domain}`);
     console.log(`[Export] Domains: ${domainInfos.map((d) => d.domain).join(", ")}`);

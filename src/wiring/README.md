@@ -2,7 +2,7 @@
 
 `src/lib` の汎用関数は登録表（`src/registry/*`）を引数で受ける。登録表を引数に渡して結んだ「印なし版」（server 用のそのまま使える関数）を置くのがこのフォルダ。業務コード（features）・部品（components）・lib は wiring を知らない。
 
-**lib は登録表を import しない**（値も型も。引きたい lib は引数・注入で受け、結ぶのはこのフォルダ）。検査は lint `import-boundaries/lib-no-registry`（全 Tier error）。今ある違反は縮むだけの一覧 `eslint-rules/import-boundaries.exceptions.mjs`（upstream の物。fork は足せない。直した出荷で行を消す）。
+**lib は登録表を import しない**（値も型も。引きたい lib は引数・注入で受け、結ぶのはこのフォルダ）。検査は lint `import-boundaries/lib-no-registry`（全 Tier error）。例外の一覧は無い。
 
 汎用 Factory（`src/lib/routeFactory`）も同じ形: 値 import できるのはこのフォルダだけ（lint `import-boundaries/route-factory-via-wiring`）。route とその補助ファイルは `apiRoute.ts` の設定済み版を使う。
 

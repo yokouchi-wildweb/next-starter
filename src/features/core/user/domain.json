@@ -183,5 +183,6 @@
     "registry": true,
     "fieldConstants": false,
     "presenters": false
-  }
+  },
+  "hiddenColumns": ["localPassword"]
 }

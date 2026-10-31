@@ -1,6 +1,8 @@
 // src/features/sampleCategory/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import rawConf from "@/features/sampleCategory/domain.json";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
@@ -11,7 +13,7 @@ import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sampleCategory");
+const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField

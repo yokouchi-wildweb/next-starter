@@ -2,10 +2,9 @@
 // データマイグレーション用のリレーション情報収集ユーティリティ
 
 import {
-  getDomainConfig,
   type DomainConfig,
-  getRelations,
-  getHasManyRelations,
+  getRelationsOf,
+  getHasManyRelationsOf,
   type RelationType,
   type RelationInfo,
   type HasManyRelationInfo,
@@ -18,6 +17,9 @@ import {
   type DomainFieldInfo,
 } from "@/lib/domain";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
+
+/** ドメイン名から設定を引く（API ルートが src/wiring/domainConfig.ts の getDomainConfig を注入する） */
+export type DataMigrationConfigResolver = (domain: string) => DomainConfig;
 
 /** エクスポート対象ドメイン情報 */
 export type ExportDomainInfo = {
@@ -47,6 +49,7 @@ export type ExportDomainInfo = {
  * selectedHasManyDomains: hasMany ドメインの選択リスト（指定された場合のみ hasMany をエクスポート）
  */
 export function collectExportDomains(
+  getDomainConfig: DataMigrationConfigResolver,
   mainDomain: string,
   includeRelations: boolean = false,
   selectedHasManyDomains?: string[]
@@ -68,8 +71,8 @@ export function collectExportDomains(
   }
 
   // リレーション含むモード
-  const relations = getRelations(mainDomain);
-  const hasManyRelations = getHasManyRelations(mainDomain);
+  const relations = getRelationsOf(mainConfig as Parameters<typeof getRelationsOf>[0]);
+  const hasManyRelations = getHasManyRelationsOf(mainConfig as Parameters<typeof getHasManyRelationsOf>[0]);
 
   // 1. related ドメイン（belongsTo, belongsToMany の参照先）
   for (const relation of relations) {

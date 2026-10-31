@@ -2,7 +2,7 @@
 // 実行: pnpm test:domain-display
 
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -66,6 +66,31 @@ test("実物: 写しの searchFields は getDomainConfig が返していた関�
   const relation = display.relations.find((r) => r.domain === "sample_tag");
   assert.deepEqual(relation.searchFields, tag.searchFields);
   assert.equal(display.relations.find((r) => r.domain === "sample_category").searchFields, undefined);
+});
+
+test("hiddenColumns の列は fields と searchFields に出ない", () => {
+  const display = toDomainDisplay({ singular: "a", plural: "as", label: "A", hiddenColumns: ["localPassword"], fields: [{ name: "local_password", label: "P" }, { name: "email", label: "E" }], searchFields: ["local_password", "email"] });
+  assert.deepEqual(display.fields.map((f) => f.name), ["email"]);
+  assert.deepEqual(display.searchFields, ["email"]);
+});
+
+test("実物: user の写しに local_password が無い", () => {
+  assert.doesNotMatch(readFileSync("src/features/core/user/entities/display.ts", "utf8"), /local_password|localPassword/);
+});
+
+test("全ドメイン: domain.json の hiddenColumns と entities の defineHiddenColumns の列が一致する", () => {
+  const { outputs } = buildAlphaRegistries(process.cwd());
+  const checked = [];
+  for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
+    const config = JSON.parse(readFileSync(path.replace("entities/display.ts", "domain.json"), "utf8"));
+    const drizzlePath = path.replace("display.ts", "drizzle.ts");
+    const declared = existsSync(drizzlePath)
+      ? [...readFileSync(drizzlePath, "utf8").matchAll(/defineHiddenColumns\(\w+,\s*\[([^\]]*)\]/g)].flatMap((m) => [...m[1].matchAll(/["']([^"']+)["']/g)].map((c) => c[1]))
+      : [];
+    assert.deepEqual([...(config.hiddenColumns ?? [])].sort(), declared.sort(), path);
+    checked.push(path);
+  }
+  assert.ok(checked.includes("src/features/core/user/entities/display.ts"));
 });
 
 test("Firestore は名前を camelCase に", () => {

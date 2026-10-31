@@ -1,7 +1,7 @@
 // src/lib/domain/fields/extractFields.ts
 // ドメイン設定からフィールド情報を抽出するユーティリティ
 
-import type { DomainConfig } from "../config";
+import type { DomainConfig } from "../types/domainConfig";
 import type { DomainFieldInfo } from "../types";
 
 export type { DomainFieldInfo };

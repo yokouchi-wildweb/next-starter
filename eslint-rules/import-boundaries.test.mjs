@@ -13,7 +13,6 @@ import plugin, {
   classifyPageGuardImport,
   classifyRouteFactoryImport,
 } from "./import-boundaries.mjs";
-import { LIB_REGISTRY_EXCEPTIONS } from "./import-boundaries.exceptions.mjs";
 import { resolveImport } from "./resolve-import.mjs";
 
 const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
@@ -41,21 +40,10 @@ test("classify: routeFactory の値 import は wiring と routeFactory 自身だ
   assert.equal(classifyRouteFactoryImport("src/app/api/cron/x/route.ts", "src/lib/cron", false), null, "lib/cron は対象外");
 });
 
-test("classify: lib → registry は値も型も禁止、一覧の行(file + target)だけ通す", () => {
-  const ex = [{ file: "src/lib/a/index.ts", target: "src/registry/fooRegistry", reason: "" }];
-  assert.equal(classifyLibRegistryImport("src/lib/a/index.ts", "src/registry/fooRegistry", ex), "listed");
-  assert.equal(classifyLibRegistryImport("src/lib/a/index.ts", "src/registry/barRegistry", ex), "libRegistry", "同じファイルでも別の登録表は不可");
-  assert.equal(classifyLibRegistryImport("src/lib/b/index.ts", "src/registry/fooRegistry", ex), "libRegistry");
-  assert.equal(classifyLibRegistryImport("src/features/x/a.ts", "src/registry/fooRegistry", ex), null, "lib の外は対象外");
-  assert.equal(classifyLibRegistryImport("src/lib/b/index.ts", "src/lib/domain", ex), null);
-});
-
-test("例外の一覧: 行のファイルは実在し、登録表は src/registry の下", () => {
-  for (const e of LIB_REGISTRY_EXCEPTIONS) {
-    assert.ok(existsSync(at(e.file)), `${e.file} が無い(一覧から行を消す)`);
-    assert.ok(e.target.startsWith("src/registry/"), `${e.target} は src/registry の下でない`);
-    assert.ok(e.reason, `${e.file} に理由が無い`);
-  }
+test("classify: lib → registry は値も型も禁止(例外の一覧は無い)", () => {
+  assert.equal(classifyLibRegistryImport("src/lib/a/index.ts", "src/registry/fooRegistry"), "libRegistry");
+  assert.equal(classifyLibRegistryImport("src/features/x/a.ts", "src/registry/fooRegistry"), null, "lib の外は対象外");
+  assert.equal(classifyLibRegistryImport("src/lib/b/index.ts", "src/lib/domain"), null);
 });
 
 const ruleTester = new RuleTester({
@@ -83,18 +71,16 @@ test("rule route-factory-via-wiring: エイリアス・相対・baseUrl・サブ
   });
 });
 
-test("rule lib-no-registry: 値も型も止め、一覧の行は通し、使わなくなった行は error", () => {
-  const listed = LIB_REGISTRY_EXCEPTIONS[0];
+test("rule lib-no-registry: 値も型も止める", () => {
   ruleTester.run("lib-no-registry", plugin.rules["lib-no-registry"], {
     valid: [
       { code: `import { x } from "@/lib/domain";`, filename: at("src/lib/foo/index.ts") },
-      { code: `import { x } from "${listed.target.replace("src/registry", "@/registry")}";`, filename: at(listed.file) },
     ],
     invalid: [
       { code: `import { serviceRegistry } from "@/registry/serviceRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },
       { code: `import type { PairedDeviceKind } from "@/registry/pairedDeviceKindRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },
       { code: `import { x } from "../../registry/fooRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },
-      { code: `export const x = 1;`, filename: at(listed.file), errors: [{ messageId: "staleException" }] },
+      { code: `import { domainConfigMap } from "@/registry/domainConfigRegistry";`, filename: at("src/lib/domain/config/createDomainConfigLookup.ts"), errors: [{ messageId: "libRegistry" }] },
     ],
   });
 });

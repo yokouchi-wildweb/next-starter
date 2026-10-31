@@ -1,6 +1,8 @@
 // src/features/coupon/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import rawConf from "@/features/coupon/domain.json";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import { CouponCreateSchema, CouponUpdateSchema } from "@/features/core/coupon/entities/schema";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
@@ -10,10 +12,7 @@ import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("coupon") as DomainConfig & {
-  useSoftDelete?: boolean;
-  sortOrderField?: string | null;
-};
+const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField

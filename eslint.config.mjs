@@ -80,8 +80,7 @@ const config = [
   // - route-factory-via-wiring: @/lib/routeFactory の値 import は src/wiring/** だけ(D5 K1。型だけは可)
   // - page-guard-via-wiring: @/lib/pageGuard の値 import は src/wiring/** だけ(L1.18。型だけは可)
   // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
-  // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3)。今の違反は縮むだけの一覧
-  //   (eslint-rules/import-boundaries.exceptions.mjs、upstream の物で fork は足せない)
+  // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
   // - lib-no-features: src/lib/** → src/features/** は値も型も禁止(親 D8、例外の一覧なし)
   // 詳細: eslint-rules/import-boundaries.mjs
   {
