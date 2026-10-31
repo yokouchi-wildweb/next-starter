@@ -6,7 +6,7 @@ import { useState, type Key } from "react";
 
 import type { Notification } from "@/features/notification/entities";
 import { RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { DeleteButton, BulkDeleteButton } from "@/lib/crud";
+import { DeleteButton, BulkDeleteButton } from "@/lib/crud/components";
 import config from "@/features/notification/domain.json";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";

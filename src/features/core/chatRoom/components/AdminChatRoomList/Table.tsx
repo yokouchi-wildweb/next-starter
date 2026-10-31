@@ -4,7 +4,7 @@
 
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawConfig from "@/features/core/chatRoom/domain.json";
 

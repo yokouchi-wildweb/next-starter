@@ -724,3 +724,7 @@ pnpm role:generate -- <roleId>
 pnpm role:init           # 新規ロール + プロフィール作成
 pnpm role:add-profile    # 既存ロールにプロフィール追加
 ```
+
+## generated/package.json
+
+`generated/package.json` の `"sideEffects": false` は、client が `generated/<role>` の入口からスキーマだけを読むときに、同じ入口の `drizzle.ts`(表の定義と列名)を bundle へ入れないための印。消すと公開ページの client chunk に列名が届く(検査: `pnpm test:client-chunks`)。

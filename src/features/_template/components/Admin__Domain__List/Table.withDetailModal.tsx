@@ -4,7 +4,7 @@
 
 import type { __Domain__ } from "@/features/__domain__/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 __DUPLICATE_IMPORT__import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawConfig from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";

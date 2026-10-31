@@ -169,7 +169,8 @@
     "test:script-entries": "node --test scripts/script-entries/check.test.mjs",
     "test:no-server-action": "node --test eslint-rules/no-server-action.test.mjs",
     "test:domain-display": "node --test scripts/registry/alpha/domainDisplay.test.mjs",
-    "test:codemods": "node --test scripts/codemods/domain-display-buttons.test.mjs scripts/codemods/wiring-domains-split.test.mjs"
+    "test:codemods": "node --test scripts/codemods/domain-display-buttons.test.mjs scripts/codemods/wiring-domains-split.test.mjs scripts/codemods/crud-entry-split.test.mjs",
+    "test:client-chunks": "node --test scripts/bundle/clientChunks.test.mjs && node scripts/bundle/clientChunks.mjs"
   },
   "engines": {
     "node": "24"

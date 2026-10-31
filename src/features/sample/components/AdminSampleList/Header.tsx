@@ -13,7 +13,7 @@ import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJs
 import rawConfig from "@/features/sample/domain.json";
 
 const config = normalizeDomainJsonConfig(rawConfig);
-import { CreateButton } from "@/lib/crud";
+import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 

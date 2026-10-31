@@ -24,9 +24,9 @@ export function applyDuplicateButton(content, config) {
   // （name が無いドメインで d.name を参照すると型エラーになるため条件付き）。非必須の name は string | null なので undefined に変換する
   const nameField = (config?.fields ?? []).find((f) => f.name === "name" && f.fieldType === "string");
   const currentNameAttr = nameField ? (nameField.required ? " currentName={d.name}" : " currentName={d.name ?? undefined}") : "";
-  const duplicateImport = `import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";\n`;
+  const duplicateImport = `import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud/components";\n`;
   const duplicateButton = `<DuplicateButton domain={__domain__Display} id={d.id}${currentNameAttr} />\n        `;
   return content
-    .replace(/import { EditButton, DeleteButton } from "@\/lib\/crud";\n__DUPLICATE_IMPORT__/g, duplicateImport)
+    .replace(/import { EditButton, DeleteButton } from "@\/lib\/crud\/components";\n__DUPLICATE_IMPORT__/g, duplicateImport)
     .replace(/__DUPLICATE_BUTTON__/g, duplicateButton);
 }

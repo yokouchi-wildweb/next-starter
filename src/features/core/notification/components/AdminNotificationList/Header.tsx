@@ -7,7 +7,7 @@ import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/notification/domain.json";
-import { CreateButton } from "@/lib/crud";
+import { CreateButton } from "@/lib/crud/components";
 import { Send } from "lucide-react";
 
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;

@@ -1,5 +1,5 @@
 export * from "./client";
-export * from "./components";
+// 画面の部品（ボタン）は @/lib/crud/components から読む。この入口は UI を持たない
 export * from "./presenters";
 export * from "./types";
 export * from "./hooks";

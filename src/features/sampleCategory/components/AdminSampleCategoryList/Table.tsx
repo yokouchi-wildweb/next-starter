@@ -4,7 +4,7 @@
 
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawConfig from "@/features/sampleCategory/domain.json";
 import presenters from "@/features/sampleCategory/presenters";

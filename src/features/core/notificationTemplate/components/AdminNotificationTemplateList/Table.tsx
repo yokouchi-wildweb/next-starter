@@ -4,7 +4,7 @@
 
 import type { NotificationTemplate } from "@/features/core/notificationTemplate/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 import config from "@/features/core/notificationTemplate/domain.json";
 import presenters from "@/features/core/notificationTemplate/presenters";
 import { buildDomainColumns } from "@/lib/crud";
