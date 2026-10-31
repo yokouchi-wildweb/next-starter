@@ -5,42 +5,24 @@
 // -i のときだけ今までの対話（ロールの選択・反転の確認））
 
 import fs from "fs";
-import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import formatDomainConfig from "../domain-config/spec/format.mjs";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { overrideFileName, readRoleOverride, requireOverride } from "./overrides.mjs";
+import { findRoleFile, isCoreRole, listRoleFiles } from "./rolePaths.mjs";
 
 const USAGE = "pnpm role:toggle <roleId> --on|--off [-i]";
 
 const prompt = inquirer.createPromptModule();
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
-
 /**
  * ロール一覧を取得（コアロール除外）
  */
 function getToggleableRoles() {
-  if (!fs.existsSync(ROLES_DIR)) {
-    return [];
-  }
-
-  const files = fs.readdirSync(ROLES_DIR);
-  return files
-    .filter((file) => file.endsWith(".role.json"))
-    .map((file) => {
-      const filePath = path.join(ROLES_DIR, file);
-      const config = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      return {
-        ...config,
-        filePath,
-        isCore: file.startsWith("_") || config.isCore,
-      };
-    })
-    .filter((role) => !role.isCore) // コアロールを除外
+  return listRoleFiles()
+    .filter((file) => !file.isCore) // コアロールを除外
+    .map((file) => ({ ...JSON.parse(fs.readFileSync(file.filePath, "utf-8")), filePath: file.filePath }))
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
@@ -55,11 +37,7 @@ function toggleRoleEnabled(roleId, newState) {
 
   if (!role) {
     // コアロールかどうかを確認
-    const allFiles = fs.readdirSync(ROLES_DIR);
-    const coreFile = allFiles.find(
-      (f) => f === `_${roleId}.role.json` || f === `${roleId}.role.json`
-    );
-    if (coreFile && coreFile.startsWith("_")) {
+    if (isCoreRole(roleId)) {
       console.error(`エラー: コアロール「${roleId}」は切り替えできません。`);
     } else {
       console.error(`エラー: ロール「${roleId}」が見つかりません。`);
@@ -68,9 +46,9 @@ function toggleRoleEnabled(roleId, newState) {
   }
 
   // 上書きが enabled を決めているロールは JSON を書いても効かないので止める
-  const roleFile = path.basename(role.filePath);
-  if (requireOverride(readRoleOverride(ROLES_DIR, roleFile)).enabled !== undefined) {
-    console.error(`エラー: ロール「${roleId}」の enabled は ${overrideFileName(roleFile)} が決めています。そのファイルを直してから pnpm role:generate を実行してください。`);
+  const roleFile = findRoleFile(roleId);
+  if (requireOverride(readRoleOverride(roleFile)).enabled !== undefined) {
+    console.error(`エラー: ロール「${roleId}」の enabled は ${overrideFileName(roleFile.fileName)} が決めています。そのファイルを直してから pnpm role:generate を実行してください。`);
     process.exit(1);
   }
 
@@ -90,7 +68,6 @@ function toggleRoleEnabled(roleId, newState) {
     enabled: targetState,
   };
   delete updatedConfig.filePath;
-  delete updatedConfig.isCore;
 
   fs.writeFileSync(role.filePath, formatDomainConfig(updatedConfig));
   console.log(

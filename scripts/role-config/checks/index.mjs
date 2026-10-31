@@ -7,9 +7,11 @@ import { profileFieldIssues, profileTagIssues, profileWarnings } from "./profile
 import { profileRelationIssues } from "./relations.mjs";
 import { roleIssues, roleWarnings } from "./role.mjs";
 
+export { roleFolderIssues } from "./role.mjs";
+
 /**
  * @typedef {object} RoleCheckInput
- * @property {string} fileName ロール設定のファイル名（例: _admin.role.json）
+ * @property {string} fileName ロール設定のファイル名（例: admin.role.json）
  * @property {object} role ロール設定
  * @property {object | null} profile プロフィール設定（無ければ null）
  * @property {string[]} [overrideProblems] 隣の上書きを読んだときの問題（role と profile は上書き後の値）

@@ -114,6 +114,7 @@ export function createWorkspace(rootDir = process.cwd()) {
     adminTemplateDir: path.join(rootDir, "src", "app", "admin", "_template"),
     adminProtectedDir: path.join(rootDir, "src", "app", "admin", "(protected)"),
     rolesDir: path.join(coreDir, "user", "roles"),
+    coreRolesDir: path.join(coreDir, "user", "coreRoles"),
     featurePath,
     locateDomain,
     configPath,

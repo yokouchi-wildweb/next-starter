@@ -5,11 +5,11 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { overrideFileName, readRoleOverride, requireOverride } from "../overrides.mjs";
+import { findRoleFile } from "../rolePaths.mjs";
 import { writeProfileLists } from "./writeLists.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 
 /**
  * entities/profiles/{roleId}/ フォルダを削除
@@ -32,9 +32,9 @@ function cleanupGeneratedFolder(roleId) {
  * 上書きが hasProfile を決めているロールは JSON を書いても効かないので、何も消す前に止める
  */
 export function assertHasProfileNotOverridden(roleId) {
-  const fileName = [`${roleId}.role.json`, `_${roleId}.role.json`].find((name) => fs.existsSync(path.join(ROLES_DIR, name)));
-  if (fileName && requireOverride(readRoleOverride(ROLES_DIR, fileName)).hasProfile !== undefined) {
-    throw new Error(`ロール「${roleId}」の hasProfile は ${overrideFileName(fileName)} が決めています。そのファイルを直してから実行してください。`);
+  const file = findRoleFile(roleId);
+  if (file && requireOverride(readRoleOverride(file)).hasProfile !== undefined) {
+    throw new Error(`ロール「${roleId}」の hasProfile は ${overrideFileName(file.fileName)} が決めています。そのファイルを直してから実行してください。`);
   }
 }
 
@@ -42,18 +42,10 @@ export function assertHasProfileNotOverridden(roleId) {
  * ロール設定ファイルの hasProfile を false に更新
  */
 function updateRoleHasProfile(roleId) {
-  // 通常のロールファイルとコアロールファイルの両方をチェック
-  const rolePath = path.join(ROLES_DIR, `${roleId}.role.json`);
-  const coreRolePath = path.join(ROLES_DIR, `_${roleId}.role.json`);
-
-  let targetPath = null;
-  if (fs.existsSync(rolePath)) {
-    targetPath = rolePath;
-  } else if (fs.existsSync(coreRolePath)) {
-    targetPath = coreRolePath;
-  }
-
-  if (!targetPath) return false;
+  const file = findRoleFile(roleId);
+  // core ロールの JSON は上流の物なので書かない（hasProfile は上書きで決まる）
+  if (!file || file.isCore) return false;
+  const targetPath = file.filePath;
 
   const config = JSON.parse(fs.readFileSync(targetPath, "utf-8"));
   if (config.hasProfile === false) return false;

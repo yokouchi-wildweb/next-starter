@@ -3,10 +3,10 @@
 
 import type { RoleConfig } from "@/features/core/user/types";
 
-import adminRole from "@/features/core/user/roles/_admin.role.json";
-import userRole from "@/features/core/user/roles/_user.role.json";
+import adminRole from "@/features/core/user/coreRoles/admin.role.json";
+import userRole from "@/features/core/user/coreRoles/user.role.json";
 import editorRole from "@/features/core/user/roles/editor.role.json";
-import debuggerRole from "@/features/core/user/roles/debugger.role.json";
+import debuggerRole from "@/features/core/user/coreRoles/debugger.role.json";
 import contributorRole from "@/features/core/user/roles/contributor.role.json";
 
 export const roles: readonly RoleConfig[] = [

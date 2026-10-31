@@ -238,7 +238,7 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
     "src/app/api/cron/other/override.ts": "// 親の上書きを外す\n",
     "src/features/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
     "src/features/core/x/thing.override.tsx": "export const x = 1;\n",
-    "src/features/core/user/roles/_user.role.override.ts": "export const override = {};\n",
+    "src/features/core/user/coreRoles/user.role.override.ts": "export const override = {};\n",
     "src/features/core/userProfile/profiles/user.profile.override.ts": "export const override = {};\n",
     "src/features/core/x/override.ts": "export const notAnOverride = 1;\n",
   });
@@ -249,7 +249,7 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
     [
       "src/app/api/cron/other/override.ts:true",
       "src/app/api/cron/wallet-expire/override.ts:false",
-      "src/features/core/user/roles/_user.role.override.ts:false",
+      "src/features/core/user/coreRoles/user.role.override.ts:false",
       "src/features/core/user/services/server/domainEntry.override.ts:false",
       "src/features/core/userProfile/profiles/user.profile.override.ts:false",
       "src/features/core/x/thing.override.tsx:false",

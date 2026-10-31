@@ -10,13 +10,13 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
+import { findRoleFile } from "./rolePaths.mjs";
 import { cleanupProfile } from "./generator/cleanupProfile.mjs";
 import { removeOverride } from "./overrides.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 
 const prompt = inquirer.createPromptModule();
 const USAGE = "pnpm prof:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]";
@@ -41,18 +41,12 @@ function getRolesWithProfile() {
 
     // ロール設定も確認
     let roleLabel = roleId;
-    let isCore = false;
-    const rolePath = path.join(ROLES_DIR, `${roleId}.role.json`);
-    const coreRolePath = path.join(ROLES_DIR, `_${roleId}.role.json`);
+    const roleFile = findRoleFile(roleId);
+    const isCore = roleFile?.isCore ?? false;
 
-    if (fs.existsSync(rolePath)) {
-      const roleConfig = JSON.parse(fs.readFileSync(rolePath, "utf-8"));
+    if (roleFile) {
+      const roleConfig = JSON.parse(fs.readFileSync(roleFile.filePath, "utf-8"));
       roleLabel = roleConfig.label || roleId;
-      isCore = roleConfig.isCore || false;
-    } else if (fs.existsSync(coreRolePath)) {
-      const roleConfig = JSON.parse(fs.readFileSync(coreRolePath, "utf-8"));
-      roleLabel = roleConfig.label || roleId;
-      isCore = true;
     }
 
     roles.push({

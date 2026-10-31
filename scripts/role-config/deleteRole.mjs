@@ -12,10 +12,10 @@ import inquirer from "inquirer";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
 import { overrideFileName, removeOverride } from "./overrides.mjs";
+import { listRoleFiles, ROLES_DIR } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();
@@ -25,17 +25,9 @@ const USAGE = "pnpm role:delete <roleId> --confirm <roleId> [--keep-generated] [
  * 既存のロール設定を取得
  */
 function getExistingRoles() {
-  if (!fs.existsSync(ROLES_DIR)) {
-    return [];
-  }
-
-  const files = fs.readdirSync(ROLES_DIR);
-  return files
-    .filter((file) => file.endsWith(".role.json"))
-    .map((file) => {
-      const filePath = path.join(ROLES_DIR, file);
+  return listRoleFiles()
+    .map(({ fileName, filePath, isCore }) => {
       const content = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      const isCore = file.startsWith("_") || content.isCore;
 
       // プロフィール設定の存在確認
       const profilePath = path.join(PROFILES_DIR, `${content.id}.profile.json`);
@@ -47,7 +39,7 @@ function getExistingRoles() {
         hasProfile,
         isCore,
         filePath,
-        fileName: file,
+        fileName,
       };
     });
 }
@@ -97,9 +89,11 @@ export default async function deleteRole(roleIdArg, options = {}) {
     }
   }
 
-  // コアロールの警告
+  // core ロールは消せない
   if (selectedRole.isCore) {
-    console.log("\n⚠ 警告: これはコアロールです。削除すると重大な問題が発生する可能性があります。\n");
+    console.error(`エラー: core ロール「${selectedRoleId}」は削除できません。`);
+    process.exitCode = 1;
+    return;
   }
 
   let deleteEntity = !options.keepGenerated;

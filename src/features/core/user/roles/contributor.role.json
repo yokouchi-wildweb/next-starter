@@ -4,6 +4,5 @@
   "category": "user",
   "description": "コンテンツを投稿できる",
   "hasProfile": false,
-  "isCore": false,
   "enabled": false
 }

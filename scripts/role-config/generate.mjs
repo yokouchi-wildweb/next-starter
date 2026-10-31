@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/role-config/generate.mjs
 // ロール設定からファイルを生成するスクリプト
-// 使い方: node generate.mjs <roleId> | node generate.mjs --all（全 *.role.json）
+// 使い方: node generate.mjs <roleId> | node generate.mjs --all（coreRoles/・roles/ の全 *.role.json）
 // 書く前に checks/ の検査を通す（問題は全件並べて止める。警告は表示して進む）
 
 import fs from "fs";
@@ -19,27 +19,25 @@ import { generateProfileFieldConstants } from "./generator/generateProfileFieldC
 import { generateProfileFieldTypes } from "./generator/generateProfileFieldTypes.mjs";
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
-import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "./checks/index.mjs";
+import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings, roleFolderIssues } from "./checks/index.mjs";
 import { readProfileOverride, readRoleOverride, strayOverrideIssues } from "./overrides.mjs";
+import { addedRoleFileNames, CORE_ROLES_DIR, coreRoleFileNames, findRoleFile, listRoleFiles, roleFileOf, ROLES_DIR } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 /**
- * ロール設定JSONを読み込む
- * コアロールは _admin.role.json, _user.role.json のように _ プレフィックスがつく
- * @returns {{ fileName: string, role: object }}
+ * ロール設定JSONを読み込む（隣の上書きを重ねる）
+ * @returns {{ fileName: string, role: object, problems: string[] }}
  */
 function loadRoleConfig(roleId) {
-  // 通常のパスを試し、無ければ _ プレフィックス付き（コアロール）
-  const fileName = [`${roleId}.role.json`, `_${roleId}.role.json`].find((name) => fs.existsSync(path.join(ROLES_DIR, name)));
-  if (!fileName) {
-    throw new Error(`ロール設定が見つかりません: ${path.join(ROLES_DIR, `${roleId}.role.json`)}`);
+  const file = findRoleFile(roleId);
+  if (!file) {
+    throw new Error(`ロール設定が見つかりません: ${roleFileOf(roleId).filePath}`);
   }
-  const { override, problems } = readRoleOverride(ROLES_DIR, fileName);
-  return { fileName, role: { ...JSON.parse(fs.readFileSync(path.join(ROLES_DIR, fileName), "utf-8")), ...override }, problems };
+  const { override, problems } = readRoleOverride(file);
+  return { fileName: file.fileName, role: { ...JSON.parse(fs.readFileSync(file.filePath, "utf-8")), ...override }, problems };
 }
 
 /**
@@ -121,8 +119,8 @@ export default async function generate(roleId, options = {}) {
   console.log(`\n=== ロール "${roleId}" の生成を開始 ===\n`);
 
   // ロール設定を読み込み、書く前に検査する（問題があれば全件を並べて止める）
-  const stray = strayOverrideIssues(ROLES_DIR, PROFILES_DIR);
-  if (stray.length > 0) throw new Error(stray.join("\n"));
+  const placement = placementIssues();
+  if (placement.length > 0) throw new Error(placement.join("\n"));
   const checkInput = loadCheckInput(roleId);
   assertRoleConfig(checkInput);
   printWarnings(roleConfigWarnings(checkInput));
@@ -201,38 +199,48 @@ export default async function generate(roleId, options = {}) {
   console.log("  pnpm db:push  # データベースに反映\n");
 }
 
-/** 一覧のファイル名から ID を取る（_admin.role.json → admin） */
-const idsIn = (dir, suffix) =>
-  fs.existsSync(dir)
-    ? fs.readdirSync(dir).filter((name) => name.endsWith(suffix)).map((name) => name.slice(0, -suffix.length).replace(/^_/, "")).sort()
+/** ファイルの置き場の問題（core ロールの置き場、隣に対象の無い上書き） */
+const placementIssues = () => [
+  ...roleFolderIssues({ coreFileNames: coreRoleFileNames(), addedFileNames: addedRoleFileNames() }),
+  ...strayOverrideIssues([CORE_ROLES_DIR, ROLES_DIR], PROFILES_DIR),
+];
+
+const profileIds = () =>
+  fs.existsSync(PROFILES_DIR)
+    ? fs.readdirSync(PROFILES_DIR).filter((name) => name.endsWith(".profile.json")).map((name) => name.slice(0, -".profile.json".length)).sort()
     : [];
+const roleIdsOnDisk = () => listRoleFiles().map((file) => file.id).sort();
 
 /**
  * 全 *.role.json とプロフィール設定を検査する（何も書かない。forge の事前検査も使う）
  * @param {string[]} [roleIds] 検査するロール（既定 = 全 *.role.json）
  * @returns {string[]} 問題（空なら無し）
  */
-export function checkAllRoles(roleIds = idsIn(ROLES_DIR, ".role.json")) {
+export function checkAllRoles(roleIds = roleIdsOnDisk()) {
+  const placement = placementIssues();
+  // 置き場が違うと読めないので、先にそれだけ返す
+  if (placement.length > 0) return placement;
   return [
     ...roleIds.flatMap((roleId) => roleConfigIssues(loadCheckInput(roleId))),
-    ...orphanProfileIssues(roleIds, idsIn(PROFILES_DIR, ".profile.json")),
-    ...strayOverrideIssues(ROLES_DIR, PROFILES_DIR),
+    ...orphanProfileIssues(roleIds, profileIds()),
   ];
 }
 
 /**
- * 全 *.role.json を生成する。先に全ロールを検査し、どれか 1 つでも問題があれば何も書かずに止める。
+ * 全ロールを生成する。先に全ロールを検査し、どれか 1 つでも問題があれば何も書かずに止める。
  * 順は user/extensions/roles.ts の今の並び → 未登録のロール（ID 順）
  */
 export async function generateAll() {
-  const fileIds = idsIn(ROLES_DIR, ".role.json");
+  const placement = placementIssues();
+  if (placement.length > 0) throw new Error(placement.join("\n"));
+  const fileIds = roleIdsOnDisk();
   const order = registeredRoleIds();
   const rank = (id) => {
     const index = order.indexOf(id);
     return index === -1 ? order.length : index;
   };
   // 一覧に無いロールはコアロールを先に（一覧が無い初回でも _admin・_user が先頭）
-  const coreFirst = (id) => (loadRoleConfig(id).role.isCore ? 0 : 1);
+  const coreFirst = (id) => (roleFileOf(id).isCore ? 0 : 1);
   const roleIds = [...fileIds].sort((a, b) => rank(a) - rank(b) || coreFirst(a) - coreFirst(b) || a.localeCompare(b));
   const issues = checkAllRoles(roleIds);
   if (issues.length > 0) throw new Error(issues.join("\n"));

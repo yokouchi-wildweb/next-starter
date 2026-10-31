@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toPlural, toSnakeCase } from "../../../src/utils/stringCase.mjs";
 import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../domain-config/spec/audit.mjs";
 import { readProfileOverride, readRoleOverride, requireOverride } from "../overrides.mjs";
+import { isCoreRole, roleFileOf } from "../rolePaths.mjs";
 import { generatedHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +22,6 @@ const PROFILES_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/profiles"
 );
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 
 /** 一覧の要素の式: 上書きが無ければ JSON の変数のまま、あれば変数に上書きの値を重ねる */
 const withOverride = (varName, override) => {
@@ -391,7 +391,7 @@ function renderProfileBases(profiles) {
 function readRoleEntries() {
   if (!fs.existsSync(ROLES_LIST_PATH)) return [];
   const content = fs.readFileSync(ROLES_LIST_PATH, "utf8");
-  return [...content.matchAll(/^import (\w+)Role from "@\/features\/core\/user\/roles\/(_?)([\w-]+)\.role\.json";$/gm)].map(([, , core, id]) => ({ id, isCore: core === "_" }));
+  return [...content.matchAll(/^import \w+Role from "@\/features\/core\/user\/(?:coreRoles|roles)\/([\w-]+)\.role\.json";$/gm)].map(([, id]) => ({ id }));
 }
 
 /** 一覧のファイルの ID の並び（generate --all が使う） */
@@ -399,14 +399,14 @@ export const registeredRoleIds = () => readRoleEntries().map((entry) => entry.id
 
 function writeRoles(entries) {
   const varOf = ({ id }) => `${toCamelCase(id)}Role`;
-  const overrideOf = ({ id, isCore }) => requireOverride(readRoleOverride(ROLES_DIR, `${isCore ? "_" : ""}${id}.role.json`));
+  const overrideOf = ({ id }) => requireOverride(readRoleOverride(roleFileOf(id)));
   const content = [
     generatedHeader("src/features/core/user/extensionPoints.ts"),
     "// src/features/core/user/extensions/roles.ts",
     "",
     'import type { RoleConfig } from "@/features/core/user/types";',
     "",
-    ...entries.map((e) => `import ${varOf(e)} from "@/features/core/user/roles/${e.isCore ? "_" : ""}${e.id}.role.json";`),
+    ...entries.map((e) => `import ${varOf(e)} from "@/features/core/user/${isCoreRole(e.id) ? "coreRoles" : "roles"}/${e.id}.role.json";`),
     "",
     "export const roles: readonly RoleConfig[] = [",
     ...entries.map((e) => `  ${withOverride(varOf(e), overrideOf(e))} as RoleConfig,`),
@@ -419,7 +419,7 @@ function writeRoles(entries) {
 
 /** ロールの一覧の末尾に足す（同じ ID があれば先に外す） */
 export function addRoleToList(roleConfig) {
-  writeRoles([...readRoleEntries().filter((e) => e.id !== roleConfig.id), { id: roleConfig.id, isCore: Boolean(roleConfig.isCore) }]);
+  writeRoles([...readRoleEntries().filter((e) => e.id !== roleConfig.id), { id: roleConfig.id }]);
 }
 
 /** ロールの一覧から外す。外したら true */

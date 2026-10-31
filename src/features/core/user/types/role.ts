@@ -11,7 +11,7 @@ import type { ProfileFieldConfig } from "@/features/core/userProfile/types";
 export type RoleCategory = "admin" | "user";
 
 /**
- * ロール定義の型（コア + 追加で共通）
+ * ロール定義の型（core の coreRoles/ + 追加の roles/ で共通）
  */
 export type RoleConfig = {
   readonly id: string;
@@ -22,12 +22,15 @@ export type RoleConfig = {
   readonly profileFields?: readonly ProfileFieldConfig[];
   /** ロールが有効か（未定義は true 扱い） */
   readonly enabled?: boolean;
-  /** コアロールか（削除不可） */
-  readonly isCore?: boolean;
 };
 
 /**
  * fork の上書き（roles/<JSON の名前>.override.ts の export const override）。pnpm role:generate が読む
  */
 export type RoleOverride = Partial<Pick<RoleConfig, "label" | "hasProfile" | "enabled">>;
+
+/**
+ * core ロールの上書き（coreRoles/<JSON の名前>.override.ts）。core ロールは無効にできない
+ */
+export type CoreRoleOverride = Omit<RoleOverride, "enabled">;
 

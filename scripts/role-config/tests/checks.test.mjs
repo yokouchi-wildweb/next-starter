@@ -3,13 +3,15 @@
 // 良い例は止めず、悪い例は理由の文で止める（または警告だけにする）ことを確かめる。実行: pnpm test:role-config-checks
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 
 import { orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "../checks/index.mjs";
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "../checks/profile.mjs";
 import { profileRelationIssues } from "../checks/relations.mjs";
-import { roleIssues } from "../checks/role.mjs";
+import { roleFolderIssues, roleIssues } from "../checks/role.mjs";
 
-const role = (extra = {}) => ({ id: "reviewer", label: "審査", category: "user", hasProfile: true, isCore: false, ...extra });
+const role = (extra = {}) => ({ id: "reviewer", label: "審査", category: "user", hasProfile: true, ...extra });
 
 /** 全部の検査を通るプロフィール設定 */
 const profile = (extra = {}) => ({
@@ -33,14 +35,14 @@ const input = (extra = {}) => ({ fileName: "reviewer.role.json", role: role(), p
 test("良い例: どの検査も止めず、警告も出さない", () => {
   assert.deepEqual(roleConfigIssues(input()), []);
   assert.deepEqual(roleConfigWarnings(input()), []);
-  assert.deepEqual(roleConfigIssues({ fileName: "_admin.role.json", role: role({ id: "admin", category: "admin", hasProfile: false, isCore: true }), profile: null }), []);
+  assert.deepEqual(roleConfigIssues({ fileName: "admin.role.json", role: role({ id: "admin", category: "admin", hasProfile: false }), profile: null }), []);
 });
 
-test("ロール: ID の形、ファイル名と isCore の _、category、hasProfile の有無", () => {
+test("ロール: ID の形、ファイル名、isCore の廃止、category、hasProfile の有無", () => {
   assert.match(joined(roleIssues({ fileName: "Reviewer.role.json", role: role({ id: "Reviewer" }), profileExists: true })), /id "Reviewer"/);
   assert.match(joined(roleIssues({ fileName: "_x.role.json", role: role({ id: "_x" }), profileExists: true })), /id "_x"/);
-  assert.match(joined(roleIssues({ fileName: "_reviewer.role.json", role: role(), profileExists: true })), /reviewer\.role\.json にしてください.*_ を付けるのは isCore/);
-  assert.match(joined(roleIssues({ fileName: "admin.role.json", role: role({ id: "admin", isCore: true }), profileExists: true })), /_admin\.role\.json にしてください/);
+  assert.match(joined(roleIssues({ fileName: "_reviewer.role.json", role: role(), profileExists: true })), /reviewer\.role\.json にしてください/);
+  assert.match(joined(roleIssues({ fileName: "reviewer.role.json", role: role({ isCore: false }), profileExists: true })), /isCore は廃止/);
   assert.match(joined(roleIssues({ fileName: "reviewer.role.json", role: role({ category: "staff" }), profileExists: true })), /category は "user" か "admin"/);
   assert.match(joined(roleIssues({ fileName: "reviewer.role.json", role: role({ hasProfile: undefined }), profileExists: true })), /hasProfile は true か false/);
 });
@@ -116,4 +118,22 @@ test("集約: 問題を全件並べ、ファイル名を付ける", () => {
   assert.ok(issues.every((issue) => issue.startsWith("[x.role.json] ")));
   const profileSide = roleConfigIssues(input({ profile: profile({ fields: [] }) }));
   assert.ok(profileSide.every((issue) => issue.startsWith("[reviewer.profile.json] ")));
+});
+
+test("置き場: coreRoles/ は上流の 3 つだけ・欠けは止める、roles/ に core の ID は置けない", () => {
+  const core = ["admin.role.json", "user.role.json", "debugger.role.json"];
+  assert.deepEqual(roleFolderIssues({ coreFileNames: core, addedFileNames: ["editor.role.json"] }), []);
+  assert.match(joined(roleFolderIssues({ coreFileNames: [...core, "x.role.json"], addedFileNames: [] })), /\[coreRoles\/x\.role\.json\] coreRoles\/ は/);
+  assert.match(joined(roleFolderIssues({ coreFileNames: ["admin.role.json", "user.role.json"], addedFileNames: [] })), /coreRoles\/debugger\.role\.json\] core ロールの設定がありません/);
+  assert.match(joined(roleFolderIssues({ coreFileNames: core, addedFileNames: ["user.role.json"] })), /\[roles\/user\.role\.json\] core ロールと同じ ID/);
+});
+
+test("実リポジトリ: core 3 ロールの値は移す前と同じ、一覧の並び（= DB の enum user_role の順）は変えない", () => {
+  const repo = path.resolve(import.meta.dirname, "../../..");
+  const read = (id) => JSON.parse(fs.readFileSync(path.join(repo, "src/features/core/user/coreRoles", `${id}.role.json`), "utf8"));
+  assert.deepEqual(read("admin"), { id: "admin", label: "管理者", category: "admin", description: "システム全体を管理できる", hasProfile: false, enabled: true });
+  assert.deepEqual(read("user"), { id: "user", label: "一般", category: "user", description: "一般ユーザー", hasProfile: false, enabled: true });
+  assert.deepEqual(read("debugger"), { id: "debugger", label: "デバッガー", category: "user", description: "メンテナンスモードをバイパスしてユーザーアプリを使用可能", hasProfile: false, enabled: true });
+  const list = fs.readFileSync(path.join(repo, "src/features/core/user/extensions/roles.ts"), "utf8");
+  assert.deepEqual([...list.matchAll(/^ {2}(\w+)Role as RoleConfig,$/gm)].map((m) => m[1]), ["admin", "user", "editor", "debugger", "contributor"]);
 });

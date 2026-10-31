@@ -1,5 +1,5 @@
 // scripts/role-config/overrides.mjs
-// fork の上書き（JSON の隣の <JSON の名前>.override.ts。例 _user.role.override.ts・user.profile.override.ts）を読む。
+// fork の上書き（JSON の隣の <JSON の名前>.override.ts。例 coreRoles/user.role.override.ts・user.profile.override.ts）を読む。
 // 宣言と同じく TypeScript の構文木で字面を読み、実行しない。形:
 //   import type { RoleOverride } from "../types";
 //   export const override: RoleOverride = { hasProfile: true };
@@ -20,6 +20,8 @@ const ROLE_KEYS = {
   hasProfile: { check: (value) => typeof value === "boolean", expected: "true か false" },
   enabled: { check: (value) => typeof value === "boolean", expected: "true か false" },
 };
+// core ロールは無効にできない
+const { enabled: _enabled, ...CORE_ROLE_KEYS } = ROLE_KEYS;
 const PROFILE_KEYS = {
   tags: {
     check: (value) => typeof value === "object" && value !== null && !Array.isArray(value) && Object.values(value).every(isStringArray),
@@ -83,8 +85,11 @@ function readOverrideOf(dir, jsonName, keys) {
   return parseOverride(fileName, fs.readFileSync(filePath, "utf8"), keys);
 }
 
-/** @returns {{ override: object, problems: string[] }} jsonName = _user.role.json など */
-export const readRoleOverride = (rolesDir, jsonName) => readOverrideOf(rolesDir, jsonName, ROLE_KEYS);
+/**
+ * @param {import("./rolePaths.mjs").RoleFile} file
+ * @returns {{ override: object, problems: string[] }}
+ */
+export const readRoleOverride = ({ dir, fileName, isCore }) => readOverrideOf(dir, fileName, isCore ? CORE_ROLE_KEYS : ROLE_KEYS);
 
 /** @returns {{ override: object, problems: string[] }} jsonName = user.profile.json など */
 export const readProfileOverride = (profilesDir, jsonName) => readOverrideOf(profilesDir, jsonName, PROFILE_KEYS);
@@ -101,11 +106,11 @@ function strayIn(dir, suffix) {
   const names = fs.readdirSync(dir);
   return names
     .filter((name) => name.endsWith(`${suffix}.override.ts`) && !names.includes(name.replace(/\.override\.ts$/, ".json")))
-    .map((name) => `[${name}] 隣に対象の ${name.replace(/\.override\.ts$/, ".json")} がありません（ファイル名を直すか消す。コアロールは _ を付ける）`);
+    .map((name) => `[${name}] 隣に対象の ${name.replace(/\.override\.ts$/, ".json")} がありません（ファイル名を直すか消す。core ロールは coreRoles/ に置く）`);
 }
 
 /** @returns {string[]} 問題（空なら無し） */
-export const strayOverrideIssues = (rolesDir, profilesDir) => [...strayIn(rolesDir, ".role"), ...strayIn(profilesDir, ".profile")];
+export const strayOverrideIssues = (roleDirs, profilesDir) => [...roleDirs.flatMap((dir) => strayIn(dir, ".role")), ...strayIn(profilesDir, ".profile")];
 
 /** 消すときに上書きも一緒に消す。消したら true */
 export function removeOverride(dir, jsonName) {

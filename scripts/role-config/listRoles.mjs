@@ -6,10 +6,10 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { readRoleOverride, requireOverride } from "./overrides.mjs";
+import { listRoleFiles } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
-const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 const PROFILES_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/profiles"
@@ -19,17 +19,10 @@ const PROFILES_DIR = path.join(
  * ロール情報を取得
  */
 function getRoles() {
-  if (!fs.existsSync(ROLES_DIR)) {
-    return [];
-  }
-
-  const files = fs.readdirSync(ROLES_DIR);
-  return files
-    .filter((file) => file.endsWith(".role.json"))
+  return listRoleFiles()
     .map((file) => {
-      const filePath = path.join(ROLES_DIR, file);
-      const config = { ...JSON.parse(fs.readFileSync(filePath, "utf-8")), ...requireOverride(readRoleOverride(ROLES_DIR, file)) };
-      const isCore = file.startsWith("_") || config.isCore;
+      const config = { ...JSON.parse(fs.readFileSync(file.filePath, "utf-8")), ...requireOverride(readRoleOverride(file)) };
+      const { isCore } = file;
 
       // プロフィール設定の確認
       let profileFieldCount = null;
