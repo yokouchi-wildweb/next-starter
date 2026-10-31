@@ -55,6 +55,19 @@ disable-model-invocation: true
 - **修正元が適用済み**: 止まらない。概観で修正の区間に「適用済み <修正元> の修正」と印を付ける(本番に不具合が出ているかもしれないので、ユーザーが優先度を決める材料)。その区間の詳細計画では、台帳の修正元の行の `notes:` と fork 側の差分から当時の回避策を探し、修正が入った後に要らなくなるものを掃討の対象に載せる。
 - **報告**: 区間の終わり・最終報告で、今の位置が修正元を通った後で修正の手前なら「既知の未修正あり: <修正元>(修正は区間 K)。この位置でのデプロイに注意」を 1 行出す。
 
+## 緊急修正(hotfix)— 間を飛ばして先に取る
+上流が `hotfix:` を宣言した notice の commit は、通常の区間より先に cherry-pick する(`.notices/README.md`「緊急修正(hotfix)」)。専用のコマンドは無く、どのモードでも偵察で見つける。取るのは `hotfix:` の宣言があるものだけで、任意の commit は取らない。
+- **見つけ方**(区間の組み立て 5 で): 流入予定の未適用 notice の `hotfix:` の行。元の commit = その notice の追加 commit(祖父 notice → relay.md「緊急修正」)。
+- **pick しないとき**(概観に理由を 1 行): 最初の区間の merge 先に元の commit が含まれる(merge で届く)/ `fixes:` の参照先がすべて未適用(その fork に不具合がまだ無い。修正元の区間は「修正(fixes)」どおり)。
+- **計画**: 緊急修正を次の区間より先に、notice を全文読んで計画に出す(複数なら履歴順、1 件ずつ)。止まり方: 既定・`<n>`・`light` はここで承認を取る(`light` でも軽い区間にしない)。`all` は 1〜2 行報告して進む。`status` は表示だけ。「いいえ」ならその回は飛ばして通常の区間へ進む(後の merge で届く)。
+- **実行**(手順 6〜8 を次のとおり行う):
+  1. `git cherry-pick -x <元の commit>`。衝突したら `git cherry-pick --abort` で戻して止まり、選択肢を出す(手で解いて続行・この緊急修正を飛ばす・元の commit まで区間で進める)。
+  2. notice の required_actions・区間の検査(typecheck / lint)・verify を行う。
+  3. 追従の変更と台帳を、pick の commit とは別の commit にする(下の段が pick の commit だけを取れるように)。台帳の行は `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`。`upstream:` を元の commit にしない(所有の検査が Tier1 の版を読み違える)。下流を持つ fork は `relay:` も書く。
+  4. 手順 7c の `pnpm ownership:check`(基準 + pick と同じ中身は `picked` で合格)→ push → 報告。
+- **pick の後**: 区間を組み立て直す(台帳に記録済みの id は区切りにならない)。後の merge でその箇所が衝突したら、fork の編集が無ければ上流側を採る。
+- **手で pick 済み**: ツリーの未適用 notice の追加 commit が `<upstream>/<branch>` の祖先のままで HEAD の祖先でない(台帳に無い)ときは、区間 0 で適用し、台帳の行を上の形にする(`hotfix:` の有無を問わない)。元の commit は `git log --grep "cherry picked from commit"` の行で確かめる。
+
 ## 軽い区間(`light` の判定。計画を詳しく作った区間だけ)
 - 軽い区間 = 次のどれにも当たらない区間。1 つでも当たれば軽くない: merge と `moved:` の移動以外の作業がある(notice の required_actions に fork 側の変更がある)/ 衝突の事前予測に 1 件でもある / `[user-run]` がある / DB(スキーマ・db:push・データ移行・バックフィル)に触れる / 「上流の変更点の洗い出し」で揃えるものがある / 「上流が持つパスでの fork の編集の見直し」が「なし」でない / 重い区間 / 修正元が未適用の区間(上記「修正(fixes)」)。
 - 判定できるのは詳しく計画した区間だけ(次の区間・次のまとめ)。概観の残りの区間には付けない(材料を読んでいないため)。
@@ -117,7 +130,7 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
 2. 流入予定の各 notice に**区切り点 commit** を対応づける: 通常は追加 commit `git log --diff-filter=A --format=%H <upstream>/<branch> -- .notices/<id>.md`(通常 1 件。複数なら最古)。祖父 notice の区切り点 → relay.md。`from: commit:` 欄は参考情報で、判定には使わない。
 3. covered 側の notice は区切り点にせず covers 側の区間に入れる(→ relay.md)。
 4. 残りの流入予定 notice を区切り点 commit の履歴順に並べる(`git rev-list --reverse --topo-order HEAD..<upstream>/<branch>` 上の位置。区切り点が既に HEAD の祖先なら区間 0 扱い)。
-5. 区間を切る(全区間について行う。ここで読むのは区切りの判定に要る `checkpoint:`・`covers:`・`moved:`・`fixes:` の行と、一時許可の失効を示す `resolves:` の行だけで、notice の全文は読まない。流入予定は `git show <upstream>/<branch>:.notices/<id>.md` を `grep -E '^(checkpoint|covers|moved|fixes|resolves):'` で絞る):
+5. 区間を切る(全区間について行う。ここで読むのは区切りの判定に要る `checkpoint:`・`covers:`・`moved:`・`fixes:` の行と、一時許可の失効を示す `resolves:`・緊急修正を示す `hotfix:` の行だけで、notice の全文は読まない。流入予定は `git show <upstream>/<branch>:.notices/<id>.md` を `grep -E '^(checkpoint|covers|moved|fixes|resolves|hotfix):'` で絞る。`hotfix:` があれば上記「緊急修正(hotfix)」):
    - **区間 0** = ツリー内の未適用 notice(merge 不要)。空なら無し。
    - 以降、流入予定を履歴順に走査し、**区切り notice**(`checkpoint:` が `-` 以外、または欄が無い旧 schema)の**直後で区間を閉じる**。閉じた区間の merge 先 = その区切り notice の区切り点 commit。`checkpoint: -` の notice は次の区切りまで同じ区間に入る(上流の例外宣言。理由は notes: にある)。
    - 最後の区切り以降の notice(無ければ空)+ 残りのコミットが**末尾区間**。merge 先 = `<upstream>/<branch>`。notice が無くても未マージコミットがあれば末尾区間は存在する(merge のみ)。

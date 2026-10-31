@@ -89,6 +89,59 @@ describe("ownership:check", () => {
     rmSync(tmp, { recursive: true, force: true });
   });
 
+  describe("緊急修正の pick(台帳の picked:)", () => {
+    const CORE = "src/features/core/user/multi.ts";
+    const LINES = ["one", "two", "three", "four", "five", "six", "seven", "eight"];
+    const render = (lines) => `${lines.join("\n")}\n`;
+
+    /** 親の間の変更を飛ばして修正だけを pick した fork(1 行目は親の間の変更、8 行目が修正) */
+    function pickedFork({ record = true } = {}) {
+      const parent = makeParent();
+      write(parent, CORE, render(LINES));
+      commitAll(parent, "multi");
+      const fork = makeFork(parent);
+      const base = git(fork, "rev-parse", "upstream/main").trim();
+      write(parent, CORE, render(["ONE", ...LINES.slice(1)]));
+      commitAll(parent, "between");
+      write(parent, CORE, render(["ONE", ...LINES.slice(1, 7), "EIGHT"]));
+      write(parent, ".notices/20261031-000000-hot.md", "# DOWNSTREAM NOTICE id:20261031-000000-hot\n");
+      commitAll(parent, "hotfix");
+      const sha = git(parent, "rev-parse", "HEAD").trim();
+      git(fork, "fetch", "-q", "upstream");
+      git(fork, "cherry-pick", "-x", sha);
+      if (record) {
+        const path = `.notices/applied/${FORK_ID}.md`;
+        write(fork, path, `${readFileSync(join(fork, path), "utf8")}- id:20261031-000000-hot | date:x | commit:- | upstream:${base} | picked:${sha} | notes:-\n`);
+        commitAll(fork, "ledger");
+      }
+      return { fork, base };
+    }
+
+    test("pick しただけのファイルは合格(間の親の変更を飛ばしても)、基準は動かない", () => {
+      const { fork, base } = pickedFork();
+      const result = runCheck(fork);
+      assert.equal(result.status, "pass");
+      assert.equal(result.base, base);
+      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "picked");
+    });
+
+    test("台帳に picked: が無ければ受け口の外の違反", () => {
+      const { fork } = pickedFork({ record: false });
+      const result = runCheck(fork);
+      assert.equal(result.status, "fail");
+      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "outside-intake");
+    });
+
+    test("pick の後に fork が更に変えたら違反", () => {
+      const { fork } = pickedFork();
+      write(fork, CORE, render(["one", "TWO", ...LINES.slice(2, 7), "EIGHT"]));
+      commitAll(fork, "own edit");
+      const result = runCheck(fork);
+      assert.equal(result.status, "fail");
+      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "outside-intake");
+    });
+  });
+
   test("Tier1(CATALOG.md の先頭の節の持ち主)は対象外で 0", () => {
     const parent = makeParent();
     const result = runCheck(parent);

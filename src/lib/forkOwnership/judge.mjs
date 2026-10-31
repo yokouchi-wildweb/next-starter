@@ -26,6 +26,7 @@ export const REASONS = {
   "not-append": "violation", // 基準の中身を変えた
   debt: "violation", // upstream の負債の箇所(一時許可で通す)
   "middle-tier": "ok", // 中間 Tier 以下の物(Tier1 の版に無いファイル)の書き換え・削除・rename(D29。check.mjs が付け替える、参考の一覧)
+  picked: "ok", // 親の緊急修正を pick しただけの差(台帳の picked:。check.mjs が付け替える)
 };
 
 const libNameOf = (path) => {

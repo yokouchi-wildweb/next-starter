@@ -34,6 +34,7 @@ moved: <old path> -> <new path>; ...   (only when the change moves/renames files
 covers: <upstream notice id>, ...   (relay notices only: upstream notice ids this notice subsumes; omit otherwise)
 fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit otherwise)
 resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit otherwise)
+hotfix: <why forks must take this ahead of other changes, one line>   (only when the owner declares it urgent; omit otherwise)
 change: <what changed upstream, one line>
 why: <why downstream must follow up>
 required_actions:
@@ -99,6 +100,17 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
   - 修正元の区間で検査が落ち、修正 notice のコミットが触るファイルに当たるものは「既知(修正は区間 K)」として台帳 `notes:` に書き、自前では直さない。修正を先回りして同じ実装をしない(後の merge で衝突し、fork 独自版が残る)。
   - 修正元が適用済みなら止まらず、概観で修正の区間に「適用済み <修正元> の修正」と印を付ける。その区間では台帳の修正元の行の `notes:` から当時の回避策を探して外す。
   - 「上流への所見」で依頼の文案を出す前に、流入予定の `fixes:` と上流の履歴で修正済みかを確かめる(修正済みなら文案を出さず「上流で修正済み(区間 K)」と書く)。
+
+## 緊急修正(hotfix)— 間の変更を飛ばして先に届ける
+
+区間の merge は履歴の順に進むので、遅れている fork には修正がすぐ届かない。本番が壊れているときだけ、上流が `hotfix:` を宣言した notice の commit を `/flux` が cherry-pick する。任意の commit は取らない(区間の merge を崩さないため)。
+
+- 宣言: `/ship hotfix`。人間が指示したときだけ付ける(全 fork の作業に割り込むため)
+- 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば修正元の commit の上に載ることを確かめる(`/ship`)
+- 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
+- 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
+- 所有の検査: `picked:` の分は基準 + pick と同じ中身なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)
+- 多段: 取れるのは直接の親の commit だけ。上の段から順に進む(`.claude/skills/flux/relay.md`)
 
 ## 解決(resolves)— 下流から届いた依頼を片付けた
 

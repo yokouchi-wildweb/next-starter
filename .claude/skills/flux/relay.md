@@ -21,6 +21,10 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 - 6: 区間の notice 一覧で、covered id・祖父 notice はその旨を添える。
 - `moved:` の対象の組には covers 側・covered 側の両方の `moved:` を合わせる(`moved.md` 手順 0)。
 
+## 緊急修正(SKILL.md「緊急修正(hotfix)」)
+- 祖父 notice の `hotfix:` の元の commit = 直上 Tier が pick した commit(`git show <upstream>/<branch>:.notices/applied/<中間 Tier の名前>.md` のその id の行の `commit:`)。Tier1 の commit を直接取らない。
+- 直上 Tier の台帳に行が無い(まだ pick していない)なら、取れないと概観に 1 行出して通常の区間へ進む。
+
 ## 台帳への追加(SKILL.md 手順 7a)
 - covers 側 notice を記録したら、その covered id も 1 行ずつ記録する(`notes:covered by <covers 側 id>`。既に台帳にある id は重ねない)。
 - `relay:` 欄は下流を持つ fork だけが書き(下記「中継判定」の結果。covered id には covers 側と同じ値)、末端 fork は欄ごと省く。

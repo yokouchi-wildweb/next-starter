@@ -173,6 +173,25 @@ test("resolves: は受信箱の指令 id の並び(形・重複)", () => {
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
+// /flux が cherry-pick する commit の条件(.notices/README.md「緊急修正(hotfix)」)
+const HOTFIX_FORBIDDEN = new Set(["pnpm-lock.yaml", "src/app/route-map.jsonl"]);
+
+test("hotfix: の notice は本体と同じ 1 commit で、生成物を含まない", () => {
+  const problems = [];
+  for (const n of active) {
+    if (n.fields.hotfix === undefined) continue;
+    if (!n.fields.hotfix) problems.push(`${n.path}: hotfix: が空です`);
+    const own = addCommit(n.id);
+    if (!own) continue; // 未コミット(出荷の前)。commit の中身はまだ無い
+    const files = git(["diff-tree", "--no-commit-id", "--name-only", "-r", own]).split("\n").filter(Boolean);
+    if (!files.some((file) => !file.startsWith(`${NOTICES}/`))) problems.push(`${n.path}: hotfix: の notice の commit に本体がありません`);
+    for (const file of files) {
+      if (HOTFIX_FORBIDDEN.has(file)) problems.push(`${n.path}: hotfix: の commit に fork ごとに中身が違う ${file} が入っています`);
+    }
+  }
+  assert.deepEqual(problems, [], problems.join("\n"));
+});
+
 test("covers: の参照先が実在する", () => {
   const problems = [];
   for (const n of active) {

@@ -24,6 +24,7 @@ const LABELS = {
   "not-append": "基準の中身の書き換え(追記でない)",
   debt: "upstream の負債の箇所(一時許可が要る)",
   "middle-tier": "中間 Tier 以下の物の書き換え・削除・rename(参考)",
+  picked: "親の緊急修正の pick(台帳の picked:)",
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
 };

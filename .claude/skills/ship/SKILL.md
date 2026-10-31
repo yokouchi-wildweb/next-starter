@@ -1,7 +1,7 @@
 ---
 name: ship
 description: このリポの変更を出荷する(範囲の確定 → 検査 → 下流への影響の判定 → 要るなら DOWNSTREAM NOTICE を書く → コミット → push)。ユーザーがコミット・push・出荷を指示したとき、/inbox の対応完了のときに使う。取り込む側の /flux と対になる
-argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
+argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
 ---
 
 あなたは今 **出荷**(このリポの変更をコミットして push し、下流 fork に追随作業が要るなら DOWNSTREAM NOTICE を同じコミットに入れる)を行います。受け取る側は下流の `/flux` で、notice の書き方はその読み方と揃える。仕様: `.notices/README.md`
@@ -11,7 +11,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
 - `/inbox` の手順 4(「対応完了」)から。引数 `order:<id>` が付く。
 - 下流を持たないリポ(末端 fork)でも使う。下流の有無は `.claude/rules/project.md` の TIER 節で判断し、無ければ手順 3〜5(notice)を飛ばす。
 
-引数: $ARGUMENTS(`order:<id>` = 指令から来た出荷、`no-push` = commit だけして push しない、残りは補足メモ)
+引数: $ARGUMENTS(`order:<id>` = 指令から来た出荷、`no-push` = commit だけして push しない、`hotfix` = 緊急修正として出す(人間が指示したときだけ。自分の判断で付けない。全 fork の作業に割り込むため)、残りは補足メモ)
 
 ## 手順(確認を挟まず続けて行う。止まるのは下の「止まるとき」だけ)
 1. **範囲を確定する**:
@@ -60,17 +60,20 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
      - コミットの前に `git diff --cached --name-only` で、範囲のファイルだけが入っていることを確かめる。
    - メッセージは behavior.md の書式(件名 `<area>: <summary>`、空行、本文 = 判断の記録)。`order:<id>` があれば本文の後に `order: <id>` の行。末尾に環境指定のトレーラー。
    - ブランチは behavior.md とチームの方針に従う(既にフィーチャーブランチ上ならそのまま)。
-   - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。
+   - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。`hotfix` では不可(本体と notice を必ず同じコミットに入れる。別なら取り消してまとめ直す)。
+   - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直し、`fixes:` があれば修正元の commit(notice なら追加 commit)の上に載ることを一時の複製で確かめる: `git clone -q --shared . <scratchpad の空のフォルダ>` → そのフォルダで `git switch -q --detach <修正元>` → `git cherry-pick -n <この commit>`。衝突したら push せず止まる(「止まるとき」)。一時の複製は消す。`fixes:` が無ければ複製の確認は省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
 7. **push する**(`no-push` のときはしない): `git push`。できなかったら取り繕わず理由を報告する。
 8. **報告**(日本語):
    - 先頭に下流の取り込み判定(実測)を 1 行: `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`。危険 = そのまま merge すると fork のビルド・起動・既存動作が壊れる / fork 側の手作業が要る / 挙動・権限が黙って変わる。要注意 = merge の衝突が起きうる程度。下流が無ければ省く。
    - コミットの短 sha・push 先(またはしなかった理由)・検査の結果・notice の id と change の要約(書かなかったなら「notice 不要: <理由>」)・`fixes:` を付けたならその参照先・`resolves:` を付けたならその指令 id。
+   - `hotfix` のときは、緊急修正として出したことと pick の確認の結果、各 fork で `/flux` が要ること(打つまで fork は気づかない)を伝える。
    - `/inbox` から来たときは、ここで止まらず `/inbox` の手順 4 の続き(RESOLUTION)に戻る。commit sha と push の結果をそこで使う。
 
 ## 止まるとき
 - 範囲に入れてよいか分からないファイルがある(他のセッションの変更かもしれない)。
 - 検査が落ち、直し方が自明でない。
 - 下流への影響の判定で、notice の required_actions が下流の Claude に実行できる具体度で書けない(上流の変更の側を直すべきかもしれない)。
+- `hotfix` で、前の未出荷・未取り込みの変更に依存している、または pick の確認で衝突した(依存する変更を示し、hotfix をやめて通常の出荷にするか、依存を外すかを聞く)。
 止まったら、見つけたことと選択肢を平文で示して待つ。
 
 ## notice の合成
@@ -85,6 +88,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
    moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit the line otherwise)
    fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit the line otherwise)
    resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit the line otherwise)
+   hotfix: <why forks must take this ahead of other changes, one line>   (only with the `hotfix` argument; omit the line otherwise)
    change: <what changed upstream, one line>
    why: <why downstream must follow up>
    required_actions:
@@ -96,6 +100,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
    notes: <anything else downstream should know>
    ```
    - `<slug>` は change から短い英語のケバブ。保存先は `.notices/<ts>-<slug>.md`。
+   - `hotfix:` の notice の required_actions は、間の変更と後の notice を前提にせず書く(fork は間を飛ばして適用する)。`pnpm-lock.yaml`・`src/app/route-map.jsonl` を commit に含めない(fork ごとに中身が違う。`pnpm test:notices` が検査)。
    - **required_actions は「下流の Claude が承認 1 回で止まらずに実行できる具体度」**で書く。DB マイグレーション・バックフィル・再生成・データ移行も全部ここ。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]`。ドメインの再生成は `pnpm dc:generate <Domain> --yes`(対話なし。`[user-run]` を付けない)で、必要なカテゴリだけ `--only` で指定する。
    - fork の既存コードが新しい仕様とずれる変更では、fork 側の対象コードを探せる目印(grep パターン等)と、新しい仕様へ揃える手順を書く。互換を残して放置させない。
    - 自動化できないことだけ `manual_steps` に分ける(fail-auto)。

@@ -2,6 +2,9 @@
 // 表示と終了コードは cli.mjs。仕様: ./README.md「使い方」「鮮度」
 
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
@@ -105,6 +108,48 @@ function parseNameStatus(out) {
 export function lastUpstreamSha(ledgerText) {
   const shas = [...(ledgerText ?? "").matchAll(/^- id:.*\|\s*upstream:([0-9a-f]{7,40})\b/gm)].map((match) => match[1]);
   return shas.at(-1) ?? null;
+}
+
+/** 台帳の本文の picked:<sha>(親の緊急修正を cherry-pick した元の commit)を書かれた順に */
+export function pickedShas(ledgerText) {
+  return [...(ledgerText ?? "").matchAll(/^- id:.*\|\s*picked:([0-9a-f]{7,40})\b/gm)].map((match) => match[1]);
+}
+
+/** 3 方向の合成(git merge-file)。衝突・バイナリは null */
+function mergeText(repoRoot, current, old, next) {
+  const dir = mkdtempSync(join(tmpdir(), "fork-ownership-pick-"));
+  try {
+    const paths = ["current", "old", "next"].map((name) => join(dir, name));
+    [current, old, next].forEach((text, index) => writeFileSync(paths[index], text));
+    return tryGit(repoRoot, ["merge-file", "-p", ...paths]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * 基準に pick だけを順に当てた、そのパスの中身(無いファイルは null)。
+ * @returns {{ touched: boolean, text: string | null } | null} 当てられない(衝突)なら null
+ */
+function textAfterPicks(repoRoot, picks, path, baseContent) {
+  let text = baseContent;
+  let touched = false;
+  for (const sha of picks) {
+    const old = show(repoRoot, `${sha}^`, path);
+    const next = show(repoRoot, sha, path);
+    if (old === next) continue;
+    touched = true;
+    if (next === null) text = null;
+    else if (old === null) {
+      if (text !== null && text !== next) return null;
+      text = next;
+    } else {
+      if (text === null) return null;
+      text = mergeText(repoRoot, text, old, next);
+      if (text === null) return null;
+    }
+  }
+  return { touched, text };
 }
 
 /** 台帳をたどる深さの上限(循環・壊れた台帳で止まらないように) */
@@ -222,6 +267,22 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     if (tier1Owned) continue;
     middleTier.push({ path: entry.path, from: entry.from, was: entry.reason });
     entry.reason = "middle-tier";
+    entry.verdict = "ok";
+  }
+  // 親の緊急修正の pick(台帳の picked:)。基準 + pick と同じ中身なら違反にしない(fork が更に変えた分は違反のまま)。
+  // 既に基準に入った pick は差分に出ないので外す
+  const picks = pickedShas(headText(`.notices/applied/${ownerId}.md`)).filter(
+    (sha) => tryGit(repoRoot, ["cat-file", "-e", `${sha}^^{commit}`]) !== null && tryGit(repoRoot, ["merge-base", "--is-ancestor", sha, base]) === null,
+  );
+  for (const entry of judged.entries) {
+    if (entry.verdict !== "violation" || picks.length === 0) continue;
+    const targets = entry.from ? [entry.from, entry.path] : [entry.path];
+    const onlyPicked = targets.every((path) => {
+      const after = textAfterPicks(repoRoot, picks, path, baseText(path));
+      return after?.touched && after.text === headText(path);
+    });
+    if (!onlyPicked) continue;
+    entry.reason = "picked";
     entry.verdict = "ok";
   }
   const permitFile = permitsPath(ownerId);
