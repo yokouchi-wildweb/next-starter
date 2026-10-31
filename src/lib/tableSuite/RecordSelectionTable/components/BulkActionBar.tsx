@@ -44,6 +44,8 @@ type BulkActionBarProps<T> = {
   alwaysVisible?: boolean;
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
   emptyMessage?: string;
+  /** スクロールしても見える位置に留めるかどうか @default false */
+  sticky?: boolean;
 };
 
 export function BulkActionBar<T>({
@@ -53,6 +55,7 @@ export function BulkActionBar<T>({
   placement = "top",
   alwaysVisible = false,
   emptyMessage = "行を選択して一括処理を実行",
+  sticky = false,
 }: BulkActionBarProps<T>) {
   const hasSelection = selection.count > 0;
   const isVisible = alwaysVisible || hasSelection;
@@ -62,7 +65,10 @@ export function BulkActionBar<T>({
     <div
       className={cn(
         "overflow-hidden transition-all duration-[600ms] ease-out",
-        isVisible ? `${spacingClass} max-h-20 opacity-100` : "mb-0 max-h-0 opacity-0"
+        isVisible ? `${spacingClass} max-h-20 opacity-100` : "mb-0 max-h-0 opacity-0",
+        // バーの色は半透明なので、下を流れる行が透けないよう不透明の土台を敷く
+        sticky && "content-layer sticky bg-background",
+        sticky && (placement === "top" ? "top-0" : "bottom-0")
       )}
     >
       <div

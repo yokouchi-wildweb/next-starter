@@ -2,10 +2,20 @@
 
 "use client";
 
-import { type ReactNode, useState, useCallback, useMemo } from "react";
-import { Search, Check, Minus } from "lucide-react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  useState,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
+import { Search, Check, Minus, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { err } from "@/lib/errors";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 import { Input } from "@/components/Form/Input/Manual/Input";
@@ -49,8 +59,11 @@ export type ChecklistPopoverProps = {
   confirmLabel?: string;
   /** キャンセルボタンのラベル */
   cancelLabel?: string;
-  /** 確認時のコールバック（Promiseを返すと自動でローディング状態になる） */
-  onConfirm?: (values: string[]) => void | Promise<void>;
+  /**
+   * 確認時のコールバック（Promiseを返すと自動でローディング状態になる）。
+   * false を返す（resolve する）と閉じず、選択をそのまま残す（失敗時のやり直し用）
+   */
+  onConfirm?: (values: string[]) => void | boolean | Promise<void | boolean>;
   /** キャンセル時のコールバック */
   onCancel?: () => void;
   /** 確認ボタンのスタイル */
@@ -83,6 +96,22 @@ export type ChecklistPopoverProps = {
   showClearAll?: boolean;
   /** 「すべて削除」スイッチのラベル @default "すべて削除" */
   clearAllLabel?: string;
+  /**
+   * モーダルとして開く（Radix Popover の modal）。開いている間は背面のスクロールと操作を止め、
+   * 外側のクリックで閉じる。自身のリストはスクロールできる @default false
+   */
+  modal?: boolean;
+  /**
+   * 指定すると検索欄とは別に「新規追加」の入口を表示する。名前を受け取って選択肢を作り、作った選択肢を返す。
+   * 作成に成功した選択肢はチェック済みでリストに入る。throw するとエラーを表示し、入力と選択を残す
+   */
+  onCreateOption?: (name: string) => Promise<ChecklistOption>;
+  /** 新規追加の入口のラベル @default "新規追加" */
+  createOptionLabel?: string;
+  /** 新規追加の入力欄のプレースホルダー @default "名前を入力" */
+  createOptionPlaceholder?: string;
+  /** 新規追加に失敗したときの既定メッセージ @default "追加に失敗しました" */
+  createOptionErrorMessage?: string;
 } & Omit<PopoverContentProps, "children" | "title">;
 
 /**
@@ -143,6 +172,11 @@ export function ChecklistPopover({
   noResultsMessage = "該当する項目がありません",
   showClearAll = false,
   clearAllLabel = "すべて削除",
+  modal = false,
+  onCreateOption,
+  createOptionLabel = "新規追加",
+  createOptionPlaceholder = "名前を入力",
+  createOptionErrorMessage = "追加に失敗しました",
   // PopoverContent props
   size = "md",
   layer,
@@ -152,6 +186,7 @@ export function ChecklistPopover({
   align,
   alignOffset,
   className,
+  onEscapeKeyDown,
   ...contentProps
 }: ChecklistPopoverProps) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -159,6 +194,12 @@ export function ChecklistPopover({
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isClearAll, setIsClearAll] = useState(false);
+  const [createdOptions, setCreatedOptions] = useState<ChecklistOption[]>([]);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [focusValue, setFocusValue] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // 制御/非制御の判定
   const isControlled = controlledOpen !== undefined;
@@ -186,19 +227,29 @@ export function ChecklistPopover({
       setSelectedValues(value);
       setSearchQuery("");
       setIsClearAll(false);
+      setCreatedOptions([]);
+      setIsCreateFormOpen(false);
+      setCreateName("");
+      setCreateError(null);
     }
   }
 
+  // 作成した選択肢は、親の options に反映されるまでこちらで持つ（反映後は value で重複を除く）
+  const allOptions = useMemo(() => {
+    const known = new Set(options.map((opt) => opt.value));
+    return [...options, ...createdOptions.filter((opt) => !known.has(opt.value))];
+  }, [options, createdOptions]);
+
   // フィルタリングされた選択肢
   const filteredOptions = useMemo(() => {
-    if (!searchQuery.trim()) return options;
+    if (!searchQuery.trim()) return allOptions;
     const query = searchQuery.toLowerCase();
-    return options.filter(
+    return allOptions.filter(
       (opt) =>
         opt.label.toLowerCase().includes(query) ||
         opt.description?.toLowerCase().includes(query)
     );
-  }, [options, searchQuery]);
+  }, [allOptions, searchQuery]);
 
   // 選択可能な選択肢（disabled除外）
   const selectableOptions = useMemo(
@@ -272,13 +323,13 @@ export function ChecklistPopover({
     if (result instanceof Promise) {
       setIsLoading(true);
       try {
-        await result;
-        if (closeOnConfirm) setOpen(false);
+        const resolved = await result;
+        if (closeOnConfirm && resolved !== false) setOpen(false);
       } finally {
         setIsLoading(false);
       }
     } else {
-      if (closeOnConfirm) setOpen(false);
+      if (closeOnConfirm && result !== false) setOpen(false);
     }
   }, [onConfirm, selectedValues, isClearAll, closeOnConfirm, setOpen]);
 
@@ -286,6 +337,66 @@ export function ChecklistPopover({
     onCancel?.();
     setOpen(false);
   }, [onCancel, setOpen]);
+
+  const { execute: submitCreate, isExecuting: isCreating } = useAsyncAction(async () => {
+    const name = createName.trim();
+    if (!name || !onCreateOption) return;
+
+    setCreateError(null);
+    // 同じ名前があれば作らずにそれを選ぶ（名前の一意制約が無い関連先で重複を増やさない）
+    const existing = allOptions.find((opt) => opt.label.trim() === name);
+    if (existing?.disabled) {
+      setCreateError(`「${name}」は選択できません`);
+      return;
+    }
+    try {
+      const option = existing ?? (await onCreateOption(name));
+      if (!existing) setCreatedOptions((prev) => [...prev, option]);
+      if (!selectedValues.includes(option.value)) handleToggle(option.value, true);
+      // 検索中でも作った項目が絞り込みで隠れないようにする
+      setSearchQuery("");
+      setCreateName("");
+      setIsCreateFormOpen(false);
+      setFocusValue(option.value);
+    } catch (error) {
+      setCreateError(err(error, createOptionErrorMessage));
+    }
+  });
+
+  const closeCreateForm = useCallback(() => {
+    setIsCreateFormOpen(false);
+    setCreateName("");
+    setCreateError(null);
+  }, []);
+
+  const handleCreateKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    // IME の変換確定の Enter では送らない。外側のフォームも送信させない
+    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void submitCreate();
+  };
+
+  // 入力欄が開いている間の Esc は入力欄だけを閉じる（ポップオーバーは閉じない）
+  const handleEscapeKeyDown = (event: KeyboardEvent) => {
+    if (isCreateFormOpen) {
+      event.preventDefault();
+      if (!event.isComposing && !isCreating) closeCreateForm();
+      return;
+    }
+    onEscapeKeyDown?.(event);
+  };
+
+  // 作成した項目へスクロールしフォーカスを移す。入力欄が消えた直後に行うので commit と同じタイミングにする
+  useLayoutEffect(() => {
+    if (focusValue === null) return;
+    const row = Array.from(
+      listRef.current?.querySelectorAll<HTMLElement>("[data-option-value]") ?? []
+    ).find((el) => el.dataset.optionValue === focusValue);
+    row?.scrollIntoView({ block: "nearest" });
+    row?.querySelector<HTMLElement>('[role="checkbox"]')?.focus();
+    setFocusValue(null);
+  }, [focusValue]);
 
   // リストの高さスタイル
   const listStyle = useMemo(() => {
@@ -303,7 +414,7 @@ export function ChecklistPopover({
   }, [selectedValues, value, isClearAll]);
 
   return (
-    <PopoverRoot open={open} onOpenChange={setOpen}>
+    <PopoverRoot open={open} onOpenChange={setOpen} modal={modal}>
       <PopoverTrigger asChild={asChild}>{trigger}</PopoverTrigger>
       <PopoverContent
         size={size}
@@ -314,6 +425,7 @@ export function ChecklistPopover({
         align={align}
         alignOffset={alignOffset}
         className={cn("p-0", className)}
+        onEscapeKeyDown={handleEscapeKeyDown}
         {...contentProps}
       >
         {/* ヘッダー */}
@@ -384,8 +496,8 @@ export function ChecklistPopover({
         )}
 
         {/* チェックリスト */}
-        <div className={cn("overflow-y-auto", isClearAll && "pointer-events-none opacity-40")} style={listStyle}>
-          {options.length === 0 ? (
+        <div ref={listRef} className={cn("overflow-y-auto", isClearAll && "pointer-events-none opacity-40")} style={listStyle}>
+          {allOptions.length === 0 ? (
             <div className="px-3 py-4 text-center text-sm text-muted-foreground">
               {emptyMessage}
             </div>
@@ -402,6 +514,7 @@ export function ChecklistPopover({
                 return (
                   <label
                     key={option.value}
+                    data-option-value={option.value}
                     className={cn(
                       "flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5",
                       "hover:bg-accent hover:text-accent-foreground transition-colors",
@@ -432,6 +545,66 @@ export function ChecklistPopover({
           )}
         </div>
 
+        {/* 新規追加 */}
+        {onCreateOption && !isClearAll && (
+          <div className="border-t px-3 py-2">
+            {isCreateFormOpen ? (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1">
+                  <Input
+                    autoFocus
+                    value={createName}
+                    onChange={(e) => {
+                      setCreateName(e.target.value);
+                      setCreateError(null);
+                    }}
+                    onKeyDown={handleCreateKeyDown}
+                    placeholder={createOptionPlaceholder}
+                    disabled={isCreating}
+                    aria-invalid={createError !== null}
+                    className="h-8 min-w-0 flex-1 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void submitCreate()}
+                    disabled={isCreating || !createName.trim()}
+                  >
+                    {isCreating ? "追加中..." : "追加"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="mutedIcon"
+                    onClick={closeCreateForm}
+                    disabled={isCreating}
+                  >
+                    <X className="size-4" />
+                    <span className="sr-only">新規追加をやめる</span>
+                  </Button>
+                </div>
+                {createError && (
+                  <div role="alert" className="text-xs text-destructive-text">
+                    {createError}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => setIsCreateFormOpen(true)}
+                disabled={isMaxReached}
+              >
+                <Plus className="size-4" />
+                {createOptionLabel}
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* 選択数表示 */}
         {maxSelections && (
           <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
@@ -445,7 +618,7 @@ export function ChecklistPopover({
             size="sm"
             variant={cancelVariant}
             onClick={handleCancel}
-            disabled={isLoading}
+            disabled={isLoading || isCreating}
           >
             {cancelLabel}
           </Button>
@@ -453,7 +626,7 @@ export function ChecklistPopover({
             size="sm"
             variant={confirmVariant}
             onClick={handleConfirm}
-            disabled={isLoading || !hasChanges}
+            disabled={isLoading || isCreating || !hasChanges}
           >
             {isLoading ? "処理中..." : confirmLabel}
           </Button>

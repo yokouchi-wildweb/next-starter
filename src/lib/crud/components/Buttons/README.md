@@ -133,3 +133,29 @@ const { data: items, mutate } = useSWR("items", fetcher);
   columns={[...]}
 />
 ```
+
+### BelongsToMany の選択肢をその場で作る・スクロールする Modal の中で使う
+
+`BelongsToManyFieldButton` / `BulkBelongsToManyFieldButton` 共通（既定はどちらもオフ）。
+
+- `onCreateOption`: ポップオーバーに「新規追加」の入口を出す。関連先ドメインの作成 hook を呼び、作った選択肢を返す。認可は関連先の API のまま。自動取得の選択肢は作成後に取り直す（`options` を渡しているときは呼び出し側で更新する）。指定している間は、確定に失敗してもポップオーバーを閉じず、選択を残す
+- `modal`: 開いている間、背面のスクロールと操作を止める
+
+```tsx
+const { trigger: createUserTag } = useCreateUserTag();
+
+<BulkBelongsToManyFieldButton
+  domain="user"
+  ids={selection.selectedIds}
+  relation="userTag"
+  mode="add"
+  modal
+  onCreateOption={async (name) => {
+    const tag = await createUserTag({ name });
+    return { value: tag.id, label: tag.name };
+  }}
+  onSuccess={selection.clear}
+/>
+```
+
+細かい挙動は `src/components/Overlays/README.md` の ChecklistPopover。

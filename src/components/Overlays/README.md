@@ -826,13 +826,26 @@ import { ChecklistPopover } from "@/components/Overlays/Popover";
 | `description` | `ReactNode` | - | 説明文 |
 | `options` | `ChecklistOption[]` | - | 選択肢リスト |
 | `value` | `string[]` | `[]` | 現在の選択値 |
-| `onConfirm` | `(values: string[]) => void \| Promise<void>` | - | 適用時のコールバック |
+| `onConfirm` | `(values: string[]) => void \| boolean \| Promise<void \| boolean>` | - | 適用時のコールバック。`false` を返すと閉じず、選択を残す |
 | `searchable` | `boolean` | `false` | 検索機能を有効にする |
 | `showSelectAll` | `boolean` | `false` | 全選択/解除ボタンを表示 |
 | `maxSelections` | `number` | - | 最大選択数 |
 | `maxListHeight` | `number \| string` | `330` | リストの最大高さ（スクロール） |
+| `modal` | `boolean` | `false` | モーダルとして開く。背面のスクロールと操作を止め、外側のクリックで閉じる。自身のリストはスクロールできる |
+| `onCreateOption` | `(name: string) => Promise<ChecklistOption>` | - | 指定すると検索欄とは別に「新規追加」の入口を表示する |
+| `createOptionLabel` | `string` | `"新規追加"` | 入口のラベル |
+| `createOptionPlaceholder` | `string` | `"名前を入力"` | 入力欄のプレースホルダー |
+| `createOptionErrorMessage` | `string` | `"追加に失敗しました"` | 作成失敗時の既定メッセージ |
 
 開いている最中に親が再レンダーして `value` の配列参照が変わっても、選択途中の状態と検索文字列は保持される（リセットは open の false→true 遷移時のみ）。
+
+**新規追加（`onCreateOption`）:**
+
+- 「追加」を押した時点で作成する。作った選択肢はチェック済みでリスト末尾に入り、適用するまで対象レコードには反映されない。キャンセルしても作った選択肢は残る
+- 同じ名前（前後の空白を除いて完全一致）があれば作らず、既存の選択肢を選ぶ。読み込み済みの選択肢だけを見るので、厳密な一意性は作成側で保証する
+- `onCreateOption` が throw すると、入力欄の下にエラーを表示し、入力と選択を残す
+- `maxSelections` に達している間は入口を無効にする。「すべて削除」がオンの間は入口を出さない
+- 次に開いたときの選択肢は親の `options` が正になるので、親は作成後に `options` を更新する
 
 **ChecklistOption:**
 

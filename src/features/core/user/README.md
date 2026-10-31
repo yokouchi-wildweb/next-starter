@@ -312,6 +312,8 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 />
 ```
 
+足りないタグをその場で作るときは `useCreateUserTag` の `trigger` を `onCreateOption` から呼ぶ（書き方: `src/lib/crud/components/Buttons/README.md`）。
+
 自前の UI なら `useBulkAddUserTags` の `trigger` を `ChecklistPopover` の `onConfirm` から呼ぶ。
 
 テスト: `pnpm test:user-name-availability`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）

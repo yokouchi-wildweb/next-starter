@@ -62,6 +62,12 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
   bulkActionsEmptyMessage?: string;
   /**
+   * 一括操作バーをスクロールコンテナ（テーブルの外の祖先。Modal 本体など）の端に留める。
+   * テーブル自身をスクロールさせるときは不要で、maxHeight="none" と組み合わせて使う。
+   * @default false
+   */
+  bulkActionsSticky?: boolean;
+  /**
    * 行ホバー時の背景色変更を無効にするかどうか。
    * @default false
    */
@@ -89,6 +95,7 @@ export default function RecordSelectionTable<T>({
   bulkActionsPosition = "top",
   bulkActionsAlwaysVisible,
   bulkActionsEmptyMessage,
+  bulkActionsSticky,
   rowHeight = "md",
   cellPaddingX = "sm",
   cellPaddingY = "none",
@@ -173,6 +180,7 @@ export default function RecordSelectionTable<T>({
           placement="top"
           alwaysVisible={bulkActionsAlwaysVisible}
           emptyMessage={bulkActionsEmptyMessage}
+          sticky={bulkActionsSticky}
         />
       )}
       <div
@@ -314,6 +322,7 @@ export default function RecordSelectionTable<T>({
           placement="bottom"
           alwaysVisible={bulkActionsAlwaysVisible}
           emptyMessage={bulkActionsEmptyMessage}
+          sticky={bulkActionsSticky}
         />
       )}
     </>

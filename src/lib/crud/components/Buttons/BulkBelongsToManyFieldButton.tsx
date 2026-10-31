@@ -12,6 +12,7 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import {
   ChecklistPopover,
   type ChecklistOption,
+  type ChecklistPopoverProps,
 } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -72,6 +73,19 @@ export type BulkBelongsToManyFieldButtonProps = ButtonStyleProps & {
   showClearAll?: boolean;
   /** 「すべて削除」スイッチのラベル */
   clearAllLabel?: string;
+  /** モーダルとして開く（背面のスクロールと操作を止める）。スクロールする Modal の中で使うとき向け @default false */
+  modal?: boolean;
+  /**
+   * 指定するとポップオーバー内に「新規追加」の入口を表示する。関連先の作成 hook を呼び、作った選択肢を返す。
+   * 確定に失敗したときはポップオーバーを閉じず、選択を残す。
+   */
+  onCreateOption?: ChecklistPopoverProps["onCreateOption"];
+  /** 新規追加の入口のラベル @default "新規追加" */
+  createOptionLabel?: string;
+  /** 新規追加の入力欄のプレースホルダー @default "名前を入力" */
+  createOptionPlaceholder?: string;
+  /** 新規追加に失敗したときの既定メッセージ @default "追加に失敗しました" */
+  createOptionErrorMessage?: string;
   /**
    * 選択した値の反映のしかた。
    * replace = 各レコードの関連を選択した値に置き換える / add = 既存の関連を残して足す
@@ -127,6 +141,11 @@ export function BulkBelongsToManyFieldButton({
   disabled = false,
   showClearAll = false,
   clearAllLabel,
+  modal,
+  onCreateOption,
+  createOptionLabel,
+  createOptionPlaceholder,
+  createOptionErrorMessage,
   mode = "replace",
 }: BulkBelongsToManyFieldButtonProps) {
   const config = getDomainConfig(domain);
@@ -174,7 +193,7 @@ export function BulkBelongsToManyFieldButton({
     : null;
 
   // リレーション先データを取得
-  const { data: relationData, isLoading: isLoadingRelation } = useSWR<
+  const { data: relationData, isLoading: isLoadingRelation, mutate: mutateRelation } = useSWR<
     RelationData[]
   >(
     optionsProp ? null : targetApiPath,
@@ -225,8 +244,19 @@ export function BulkBelongsToManyFieldButton({
       onSuccess?.();
     } catch (error) {
       showToast(err(error, errorMessage), "error");
+      // 新規追加ありの画面では作ったばかりの選択を失わせない（既存の呼び出し元は従来どおり閉じる）
+      if (onCreateOption) return false;
     }
   };
+
+  // 自動取得の選択肢は作成後に取り直す（表示は ChecklistPopover が先に足すので待たない）
+  const handleCreateOption = onCreateOption
+    ? async (name: string) => {
+        const option = await onCreateOption(name);
+        if (!optionsProp) void mutateRelation();
+        return option;
+      }
+    : undefined;
 
   const resolvedTitle = title ?? (mode === "add" ? `${relationLabel}を追加` : `${relationLabel}を変更`);
 
@@ -270,6 +300,11 @@ export function BulkBelongsToManyFieldButton({
       onConfirm={handleConfirm}
       showClearAll={showClearAll}
       clearAllLabel={clearAllLabel}
+      modal={modal}
+      onCreateOption={handleCreateOption}
+      createOptionLabel={createOptionLabel}
+      createOptionPlaceholder={createOptionPlaceholder}
+      createOptionErrorMessage={createOptionErrorMessage}
     />
   );
 }

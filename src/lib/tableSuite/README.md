@@ -44,6 +44,8 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 />
 ```
 
+`bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
+
 ### EditableGridTable
 
 ```tsx
