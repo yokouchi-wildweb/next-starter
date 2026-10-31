@@ -78,7 +78,9 @@ describe("実リポジトリの intake.txt", () => {
       ["src/wiring/formInputs/inputs/ticketRates.acme.ts", "edit"],
       ["src/wiring/formInputs/FormInputsRoot.tsx", null],
       ["src/features/core/userProfile/profiles/user.profile.override.ts", "edit"],
-      ["src/features/core/userProfile/profiles/user.profile.json", null],
+      ["src/features/core/userProfile/profiles/user.profile.json", "add"],
+      ["src/features/core/userProfile/profiles/index.ts", null],
+      ["src/features/core/user/roles/editor.role.json", "add"],
       ["eslint.config.mjs", null],
       ["eslint.config.fork.mjs", "edit"],
       ["tsconfig.json", null],
@@ -170,6 +172,17 @@ describe("judge", () => {
     assert.equal(add("src/features/core/mine/x.ts").reason, "core-add");
     assert.equal(add("src/features/mine/x.ts").reason, "added");
     assert.equal(add("src/features/core/mine/x.ts", false).reason, "added");
+  });
+
+  test("add: 足すのは added、基準にあるファイルの書き換えは outside-intake", () => {
+    const { rules } = parseIntake("add src/features/core/user/roles/*.role.json  # r");
+    const path = "src/features/core/user/roles/x.role.json";
+    const entry = (status, baseText) =>
+      judge({ changes: [{ status, path }], baseText: () => baseText, headText: () => "new", baseLibs: [], baseHasCore: true, intake: rules }).entries[0];
+    assert.equal(entry("A", null).reason, "added");
+    assert.equal(entry("M", "old").reason, "outside-intake");
+    assert.equal(entry("M", "old").verdict, "violation");
+    assert.equal(entry("D", "old").reason, "deleted");
   });
 
   test("D・R は受け口の中でも違反", () => {

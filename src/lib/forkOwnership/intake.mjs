@@ -3,7 +3,7 @@
 
 import { matchesGlob } from "node:path";
 
-export const INTAKE_KINDS = ["edit", "region", "marker", "append", "generated", "debt"];
+export const INTAKE_KINDS = ["edit", "add", "region", "marker", "append", "generated", "debt"];
 
 /**
  * 受け口の一覧を読む。行番号は 1 始まり。

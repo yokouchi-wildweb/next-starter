@@ -30,6 +30,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | kind | 合格 | 違反 |
   | --- | --- | --- |
   | edit | 何を書き換えても `intake` | — |
+  | add | — (足すのは A なので `added`) | 基準にあるファイルの書き換え `outside-intake` |
   | region | fork の区画(印の対)と生成器の区画の外が基準と同じ → `region` | 外も変えた `outside-region` / 印の対が壊れている `region-markers` |
   | marker | `fork entries below` の行までが基準と同じ → `marker` | `above-marker`(印が無い場合も) |
   | append | 基準の中身が先頭にそのまま残る → `append` | `not-append` |
