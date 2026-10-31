@@ -13,7 +13,7 @@ const ON_DELETE = new Set(["CASCADE", "RESTRICT", "SET_NULL"]);
  * @param {object} profile プロフィール設定
  * @returns {string[]} 問題（空なら無し）
  */
-export function profileRelationIssues(profile) {
+export function profileRelationIssues(profile, registeredInputs = new Set()) {
   const issues = [];
   (profile.relations ?? []).forEach((relation, index) => {
     const where = `relations[${index}] "${relation?.domain ?? "?"}"`;
@@ -37,7 +37,7 @@ export function profileRelationIssues(profile) {
       issues.push(`${where}: onDelete "SET_NULL" は required: true と両立しません（NOT NULL の列は null にできない。RESTRICT か CASCADE に）`);
     }
     const inputs = RELATION_FORM_INPUTS[type];
-    if (relation.formInput !== undefined && !inputs.has(relation.formInput) && relation.formInput !== "hidden") {
+    if (relation.formInput !== undefined && !inputs.has(relation.formInput) && relation.formInput !== "hidden" && !registeredInputs.has(relation.formInput)) {
       issues.push(`${where}: formInput ${JSON.stringify(relation.formInput)} は ${[...inputs, "hidden"].join(" / ")} のどれかにしてください`);
     }
   });

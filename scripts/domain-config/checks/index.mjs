@@ -9,6 +9,7 @@
 import { auditIssues } from "./audit.mjs";
 import { checkDomainFolderName } from "./domainFolder.mjs";
 import { fieldsIssues, fieldsWarnings } from "./fields.mjs";
+import { formInputNameIssues } from "./formInputNames.mjs";
 import { mediaIssues } from "./media.mjs";
 import { checkMediaFieldsEngine } from "./mediaEngine.mjs";
 import { nameIssues, nameWarnings } from "./names.mjs";
@@ -34,10 +35,12 @@ export function configIssues(camel, config) {
 
 /**
  * @param {import("../domain/context.mjs").DomainContext} ctx
+ * @param {Set<string>} [registeredInputs] 登録された入力部品の名前
  * @returns {string[]} エラー文（空なら問題なし）
  */
-export function preflightIssues(ctx) {
+export function preflightIssues(ctx, registeredInputs = new Set()) {
   return [
+    ...(ctx.config && typeof ctx.config === "object" ? formInputNameIssues(ctx.config, registeredInputs).map((issue) => `[${ctx.camel}] ${issue}`) : []),
     checkDomainFolderName(ctx.camel, ctx.config),
     checkRetiredFieldTypes(ctx.camel, ctx.config),
     checkMediaFieldsEngine(ctx.camel, ctx.config),
@@ -46,8 +49,8 @@ export function preflightIssues(ctx) {
 }
 
 /** 問題があれば全件を並べて例外を投げる（dc:generate の入口） */
-export function assertPreflight(ctx) {
-  const issues = preflightIssues(ctx);
+export function assertPreflight(ctx, registeredInputs = new Set()) {
+  const issues = preflightIssues(ctx, registeredInputs);
   if (issues.length > 0) throw new Error(issues.join("\n"));
 }
 
@@ -55,7 +58,7 @@ export function assertPreflight(ctx) {
  * 止めない警告（domain.json の語彙）。`[domain.json] <camel>: ...` の形で返す
  * @returns {string[]}
  */
-export function preflightWarnings(ctx) {
+export function preflightWarnings(ctx, registeredInputs = new Set()) {
   if (!ctx.config || typeof ctx.config !== "object") return [];
-  return [...vocabularyWarnings(ctx.config), ...nameWarnings(ctx.config), ...fieldsWarnings(ctx.config), ...viewConfigWarnings(ctx.config)].map((w) => `[domain.json] ${ctx.camel}: ${w}`);
+  return [...vocabularyWarnings(ctx.config, registeredInputs), ...nameWarnings(ctx.config), ...fieldsWarnings(ctx.config, registeredInputs), ...viewConfigWarnings(ctx.config)].map((w) => `[domain.json] ${ctx.camel}: ${w}`);
 }

@@ -4,6 +4,7 @@
 
 import path from "node:path";
 import { preflightIssues, preflightWarnings } from "../checks/index.mjs";
+import { readRegisteredFormInputs } from "../domain/formInputNames.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { FEATURE_MAP_FILE, buildFeatureMap } from "../domain/featureMap.mjs";
 import { file } from "../render/output.mjs";
@@ -43,9 +44,10 @@ export function loadDomainForGenerate(workspace, domainInput, io = console, over
     throw new Error(`設定ファイルが見つかりません: ${ctx.configPath}`);
   }
   if (isHandManaged(ctx.config)) return ctx;
-  const issues = [...preflightIssues(ctx), coreAliasIssue(workspace, ctx)].filter(Boolean);
+  const registeredInputs = readRegisteredFormInputs(workspace);
+  const issues = [...preflightIssues(ctx, registeredInputs), coreAliasIssue(workspace, ctx)].filter(Boolean);
   if (issues.length > 0) throw new Error(issues.join("\n"));
-  for (const warning of preflightWarnings(ctx)) io.warn(warning);
+  for (const warning of preflightWarnings(ctx, registeredInputs)) io.warn(warning);
   return ctx;
 }
 

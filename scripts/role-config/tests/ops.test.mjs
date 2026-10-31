@@ -13,6 +13,7 @@ const COPY = [
   "scripts/role-config",
   "scripts/domain-config/spec",
   "scripts/domain-config/checks",
+  "scripts/domain-config/domain",
   "scripts/extensions",
   "src/lib/forkOwnership",
   "src/lib/domain/fields",

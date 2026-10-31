@@ -3,6 +3,7 @@
 // 止めない食い違いは roleConfigWarnings（生成は進める）
 
 import { auditIssues } from "../../domain-config/checks/audit.mjs";
+import { formInputNameIssues } from "../../domain-config/checks/formInputNames.mjs";
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "./profile.mjs";
 import { profileRelationIssues } from "./relations.mjs";
 import { roleIssues, roleWarnings } from "./role.mjs";
@@ -14,6 +15,7 @@ export { roleFolderIssues } from "./role.mjs";
  * @property {string} fileName ロール設定のファイル名（例: admin.role.json）
  * @property {object} role ロール設定
  * @property {object | null} profile プロフィール設定（無ければ null）
+ * @property {Set<string>} [registeredInputs] 登録された入力部品の名前
  * @property {string[]} [overrideProblems] 隣の上書きを読んだときの問題（role と profile は上書き後の値）
  */
 
@@ -21,13 +23,13 @@ export { roleFolderIssues } from "./role.mjs";
  * @param {RoleCheckInput} input
  * @returns {string[]} [<file>] を前に付けた問題（空なら無し）
  */
-export function roleConfigIssues({ fileName, role, profile, overrideProblems = [] }) {
+export function roleConfigIssues({ fileName, role, profile, overrideProblems = [], registeredInputs = new Set() }) {
   const profileName = `${role?.id}.profile.json`;
   const issues = [...overrideProblems, ...roleIssues({ fileName, role, profileExists: profile !== null }).map((issue) => `[${fileName}] ${issue}`)];
   // hasProfile: false のプロフィールは生成しないので項目は検査しない（警告だけ）
   if (profile !== null && role?.hasProfile === true) {
     issues.push(
-      ...[...profileFieldIssues(profile), ...profileRelationIssues(profile), ...profileTagIssues(profile), ...auditIssues(profile, "Neon")].map((issue) => `[${profileName}] ${issue}`),
+      ...[...profileFieldIssues(profile), ...formInputNameIssues(profile, registeredInputs), ...profileRelationIssues(profile, registeredInputs), ...profileTagIssues(profile), ...auditIssues(profile, "Neon")].map((issue) => `[${profileName}] ${issue}`),
     );
   }
   return issues;
@@ -43,9 +45,9 @@ export function assertRoleConfig(input) {
  * @param {RoleCheckInput} input
  * @returns {string[]} [<file>] を前に付けた警告
  */
-export function roleConfigWarnings({ fileName, role, profile }) {
+export function roleConfigWarnings({ fileName, role, profile, registeredInputs = new Set() }) {
   const warnings = roleWarnings({ role, profileExists: profile !== null }).map((w) => `[${fileName}] ${w}`);
-  if (profile !== null && role?.hasProfile === true) warnings.push(...profileWarnings(profile).map((w) => `[${role.id}.profile.json] ${w}`));
+  if (profile !== null && role?.hasProfile === true) warnings.push(...profileWarnings(profile, registeredInputs).map((w) => `[${role.id}.profile.json] ${w}`));
   return warnings;
 }
 

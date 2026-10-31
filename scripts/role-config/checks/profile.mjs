@@ -66,6 +66,6 @@ export function profileTagIssues(profile) {
  * 止めない警告: 型と入力欄の組が表に無い、選択肢が要る入力欄に options が無い（ドメインと同じ）
  * @returns {string[]}
  */
-export function profileWarnings(profile) {
-  return fieldsWarnings(asDomainConfig(profile));
+export function profileWarnings(profile, registeredInputs = new Set()) {
+  return fieldsWarnings(asDomainConfig(profile), registeredInputs);
 }

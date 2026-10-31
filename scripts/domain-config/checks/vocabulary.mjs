@@ -1,4 +1,4 @@
-// 検査: domain.json の語彙（spec/domainJson.mjs との照合）。綴り違い・古いキー・その DB に無い型・知らない入力種別を見つける。
+// 検査: domain.json の語彙（spec/domainJson.mjs との照合）。綴り違い・古いキー・その DB に無い型を見つける（知らない入力種別は checks/formInputNames.mjs が止める）。
 // 生成器は未知の値を黙って通す（未知の fieldType は列名としてそのまま出る、未知の formInput は UI に出ない）ので、
 // ここで警告する。生成は止めない（警告だけ）。
 
@@ -6,7 +6,6 @@ import {
   COLLECTION_KEYS,
   DB_ENGINES,
   FIELD_KEYS,
-  FORM_INPUT_VALUES,
   ID_TYPES,
   LEGACY_RELATION_KEYS,
   LEGACY_TOP_LEVEL_KEYS,
@@ -65,15 +64,12 @@ function fieldWarnings(config) {
     if (knownTypes.size > 0 && field?.fieldType !== undefined && !knownTypes.has(field.fieldType)) {
       warnings.push(`${where}: fieldType "${field.fieldType}" は ${config.dbEngine} に無い型です（そのまま列名に出ます）`);
     }
-    if (field?.formInput !== undefined && !FORM_INPUT_VALUES.has(field.formInput)) {
-      warnings.push(`${where}: formInput "${field.formInput}" は知らない入力種別です（フォームに出ません）`);
-    }
     warnings.push(...collectionWarnings(field?.collection).map((w) => `${where}: ${w}`));
   });
   return warnings;
 }
 
-function relationWarnings(config) {
+function relationWarnings(config, registeredInputs) {
   const warnings = [];
   (config.relations ?? []).forEach((relation, index) => {
     const where = `relations[${index}] "${relation?.domain ?? "?"}"`;
@@ -85,7 +81,7 @@ function relationWarnings(config) {
       warnings.push(`${where}: onDelete "${relation.onDelete}" は ${[...ON_DELETE_VALUES].join(" / ")} のどれでもありません`);
     }
     const allowedInputs = RELATION_FORM_INPUTS[relation?.relationType];
-    if (relation?.formInput !== undefined && allowedInputs && !allowedInputs.has(relation.formInput)) {
+    if (relation?.formInput !== undefined && allowedInputs && !allowedInputs.has(relation.formInput) && !registeredInputs.has(relation.formInput)) {
       warnings.push(`${where}: formInput "${relation.formInput}" は ${relation.relationType} では使えません（${[...allowedInputs].join(" / ")}）`);
     }
   });
@@ -96,7 +92,7 @@ function relationWarnings(config) {
  * @param {object | null} config domain.json
  * @returns {string[]} 警告文（空なら問題なし）
  */
-export function vocabularyWarnings(config) {
+export function vocabularyWarnings(config, registeredInputs = new Set()) {
   if (!config || typeof config !== "object") return [];
-  return [...topLevelWarnings(config), ...fieldWarnings(config), ...relationWarnings(config)];
+  return [...topLevelWarnings(config), ...fieldWarnings(config), ...relationWarnings(config, registeredInputs)];
 }

@@ -19,6 +19,8 @@ import { generateProfileFieldConstants } from "./generator/generateProfileFieldC
 import { generateProfileFieldTypes } from "./generator/generateProfileFieldTypes.mjs";
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
+import { readRegisteredFormInputs } from "../domain-config/domain/formInputNames.mjs";
+import { createWorkspace } from "../domain-config/domain/workspace.mjs";
 import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings, roleFolderIssues } from "./checks/index.mjs";
 import { readProfileOverride, readRoleOverride, strayOverrideIssues } from "./overrides.mjs";
 import { addedRoleFileNames, CORE_ROLES_DIR, coreRoleFileNames, findRoleFile, listRoleFiles, roleFileOf, ROLES_DIR } from "./rolePaths.mjs";
@@ -60,7 +62,7 @@ function loadProfileConfig(roleId) {
 function loadCheckInput(roleId) {
   const { fileName, role, problems: roleProblems } = loadRoleConfig(roleId);
   const { profile, problems: profileProblems } = loadProfileConfig(role.id ?? roleId);
-  return { fileName, role, profile, overrideProblems: [...roleProblems, ...profileProblems] };
+  return { fileName, role, profile, overrideProblems: [...roleProblems, ...profileProblems], registeredInputs: readRegisteredFormInputs(createWorkspace(ROOT_DIR)) };
 }
 
 function printWarnings(warnings) {

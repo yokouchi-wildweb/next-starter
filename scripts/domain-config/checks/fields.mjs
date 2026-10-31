@@ -84,13 +84,13 @@ export function fieldsIssues(config) {
  * @param {object} config domain.json
  * @returns {string[]}
  */
-export function fieldsWarnings(config) {
+export function fieldsWarnings(config, registeredInputs = new Set()) {
   const warnings = [];
   for (const field of config.fields ?? []) {
     if (typeof field?.name !== "string") continue;
     const where = `fields "${field.name}"`;
     const inputs = allowedInputs(config.dbEngine, field.fieldType);
-    if (inputs && field.formInput !== undefined && !inputs.has(field.formInput)) {
+    if (inputs && field.formInput !== undefined && !inputs.has(field.formInput) && !registeredInputs.has(field.formInput)) {
       warnings.push(`${where}: fieldType "${field.fieldType}" に formInput "${field.formInput}" は表（spec/formInputs.mjs）に無い組です（${[...inputs].join(" / ")}）`);
     }
     if (!isEnumFieldType(field.fieldType) && inputNeedsOptions(field) && (!Array.isArray(field.options) || field.options.length === 0)) {

@@ -137,3 +137,11 @@ test("実リポジトリ: core 3 ロールの値は移す前と同じ、一覧�
   const list = fs.readFileSync(path.join(repo, "src/features/core/user/extensions/roles.ts"), "utf8");
   assert.deepEqual([...list.matchAll(/^ {2}(\w+)Role as RoleConfig,$/gm)].map((m) => m[1]), ["admin", "user", "editor", "debugger", "contributor"]);
 });
+
+test("入力部品の名前: 未知の formInput は profile の fields・relations で止まり、登録名は通る", () => {
+  const config = profile({ fields: [{ name: "pick", label: "x", fieldType: "string", formInput: "ticketRates" }], relations: [{ domain: "g", label: "g", fieldName: "g_id", relationType: "belongsTo", onDelete: "SET_NULL", formInput: "ticketRates" }], tags: {} });
+  assert.match(joined(roleConfigIssues(input({ profile: config }))), /\[reviewer\.profile\.json\] fields "pick": formInput "ticketRates" は組み込みにも登録にもありません/);
+  const registered = new Set(["ticketRates"]);
+  assert.deepEqual(roleConfigIssues(input({ profile: config, registeredInputs: registered })), []);
+  assert.deepEqual(roleConfigWarnings(input({ profile: config, registeredInputs: registered })), []);
+});
