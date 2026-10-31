@@ -6,7 +6,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。仕様
 
 ## 手順
 0. 対象の組 = 区間内の notice(covers 側・covered 側の両方)の `moved:` を合わせたもの(同じ組は 1 つにまとめる)。
-1. **計画時**(SKILL.md 手順 2): 対象の各組について `git diff --name-only <base> HEAD -- <old>` を取り、空でなければ計画に「fork が編集した移動元: <old> → <new>(ファイル数・規模)」と出す。無ければ「なし」。
+1. **計画時**(SKILL.md 手順 2): 対象の各組について `git diff --name-only <base> HEAD -- <old>` を取り、空でなければ作業メモの台本に「fork が編集した移動元: <old> → <new>(ファイル数・規模)」と出す。無ければ「なし」。チャットには flux-stop の「fork の追従」として、何を(役割で)・どれだけ・どんな作業か・どこに影響しうるかを出す。
 2. **merge 前**(SKILL.md 手順 5a): 編集のある各組について fork 側の差分を保存する: `git diff --binary <base> HEAD -- <old> > <scratch>/moved-<n>.patch`。
 3. **merge 後**(SKILL.md 手順 5b の直後、区間外変更の検査より前): 古いパスの衝突は上流版を採る(`git checkout --theirs -- <old>`、上流で削除済みなら `git rm`)。保存した差分のパス(`diff --git a/<old>... b/<old>...`・`--- a/`・`+++ b/` 行)を `<new>` に書き換え(ディレクトリはプレフィックスを置換)、`git apply --3way <書き換えた patch>` で当てる。
    - 書き換えるのはこの見出し行だけで、中身の行(コンテキスト・`+`・`-` 行)には触れない。移動したファイルは旧パスを書いた冒頭コメントを残していることがあり、patch 全体を置換するとその行も変わって当たらなくなる。例: `sed -E '/^(diff --git |--- a\/|\+\+\+ b\/)/s#<old>#<new>#g'`
