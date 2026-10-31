@@ -8,6 +8,7 @@
 // 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
 //    task.ts だけ（fork 所有の override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
+//    例外は入力部品の束だけ: AppProviders → formInputs/FormInputsRoot と、formInputs の中どうし（Root → 一覧 → 項目）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
 //    の鎖を辿る。domainRegistry.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
 // 5. データに届く wiring を import してよい場所（D73 K6）: src/app の loader.ts・route.ts・cron の task.ts・API の補助ファイル
@@ -19,6 +20,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
 import { parseForkDotName, readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -26,7 +28,7 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["AppProviders.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "pageGuard.ts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formInputs", "pageGuard.ts", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];
@@ -71,6 +73,26 @@ function resolveSource(fromFile, source) {
     if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
   }
   return null;
+}
+
+/** 入力部品の束だけの例外: AppProviders → FormInputsRoot、formInputs の中どうし */
+function isFormInputsBundleImport(from, to) {
+  if (from === "wiring/AppProviders.tsx" && to === "wiring/formInputs/FormInputsRoot.tsx") return true;
+  return from.startsWith("wiring/formInputs/") && to.startsWith("wiring/formInputs/");
+}
+
+/**
+ * 入力部品の登録の問題: 組み込みの入力種別と同じ名前は不可
+ * @param {Record<string, string>} items ファイル名 → 中身
+ * @returns {string[]}
+ */
+export function formInputItemProblems(items) {
+  const problems = [];
+  for (const [file, text] of Object.entries(items)) {
+    const name = /\bname:\s*["']([^"']+)["']/.exec(stripComments(text))?.[1];
+    if (name && BUILTIN_FORM_INPUTS.includes(name)) problems.push(`${file}: "${name}" は組み込みの入力種別と同じ名前です`);
+  }
+  return problems;
 }
 
 function isAllowedImporter(relPath) {
@@ -135,6 +157,7 @@ test("向き: wiring を import するのは src/app・src/proxies・src/proxy.t
     for (const { source } of listImportSources(text)) {
       const target = resolveSource(file, source);
       if (!target || !toPosix(relative(srcDir, target)).startsWith("wiring/")) continue;
+      if (isFormInputsBundleImport(rel, toPosix(relative(srcDir, target)))) continue;
       if (rel.startsWith("wiring/")) {
         problems.push(`${rel} → ${source}（wiring どうしは import しない。登録表と lib の汎用版を自分で結ぶ）`);
       } else if (!isAllowedImporter(rel)) {
@@ -228,4 +251,17 @@ test("データに届く wiring を import する src/app のファイルが許�
     }
   }
   assert.deepEqual(problems, [], problems.join("\n"));
+});
+
+test("入力部品の束: 例外は AppProviders → Root と formInputs の中だけ、組み込みと同名の登録は落ちる", () => {
+  assert.equal(isFormInputsBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/FormInputsRoot.tsx"), true);
+  assert.equal(isFormInputsBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/formInputs/extensions/inputs.ts"), true);
+  assert.equal(isFormInputsBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/extensions/inputs.ts"), false);
+  assert.equal(isFormInputsBundleImport("wiring/AppProviders.tsx", "wiring/domains.ts"), false);
+  assert.equal(isFormInputsBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/domains.ts"), false);
+  assert.deepEqual(formInputItemProblems({ "a.ts": 'export const formInput = { name: "ticketRates", load };' }), []);
+  assert.match(formInputItemProblems({ "a.ts": 'export const formInput = { name: "select", load };' }).join(), /組み込みの入力種別と同じ名前/);
+  const dir = join(wiringDir, "formInputs/inputs");
+  const items = Object.fromEntries(readdirSync(dir).filter((name) => /\.tsx?$/.test(name)).map((name) => [name, readFileSync(join(dir, name), "utf8")]));
+  assert.deepEqual(formInputItemProblems(items), []);
 });

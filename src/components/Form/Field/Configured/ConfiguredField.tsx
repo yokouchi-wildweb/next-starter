@@ -15,7 +15,9 @@ import {
   shouldUseFieldItem,
   hasVisibleInput,
   getBlurMode,
+  isBuiltinFormInput,
 } from "./inputResolver";
+import { CustomFormInput, useCustomFormInput } from "./customInputs";
 
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,
@@ -78,6 +80,7 @@ export function ConfiguredField<
   const resolvedRequired = required ?? fieldConfig.required ?? false;
 
   const { formInput } = fieldConfig;
+  const customInput = useCustomFormInput(formInput);
 
   // 自動保存コンテキスト（ControlledFieldを使わないコンポーネント用）
   const autoSaveContext = useAutoSaveContext<TFieldValues>();
@@ -92,7 +95,7 @@ export function ConfiguredField<
       return field;
     }
 
-    const blurMode = getBlurMode(fieldConfig);
+    const blurMode = customInput ? (customInput.blurMode ?? "none") : getBlurMode(fieldConfig);
 
     // blurMode="none"の場合は独自のオートセーブ処理を持つためスキップ
     if (blurMode === "none") {
@@ -107,6 +110,51 @@ export function ConfiguredField<
       },
     };
   };
+
+  // 登録された入力部品: 枠は共通（frame: false で外す。エラーの表示は残る）
+  if (customInput) {
+    if (customInput.frame === false) {
+      return (
+        <FormField
+          control={control}
+          name={resolvedName}
+          render={({ field }) => (
+            <FormItem className={className}>
+              <FieldControl hasMessage={!hideError}>
+                <CustomFormInput item={customInput} field={wrapFieldWithAutoSave(field)} fieldConfig={fieldConfig} inputClassName={inputClassName} />
+              </FieldControl>
+              {!hideError && <FormMessage />}
+            </FormItem>
+          )}
+        />
+      );
+    }
+    return (
+      <ControlledField
+        control={control}
+        name={resolvedName}
+        label={resolvedLabel}
+        required={resolvedRequired}
+        requiredMark={requiredMark}
+        requiredMarkPosition={requiredMarkPosition}
+        description={description}
+        className={className}
+        inputClassName={inputClassName}
+        hideLabel={hideLabel}
+        hideError={hideError}
+        layout={layout}
+        labelClass={labelClass}
+        blurMode={customInput.blurMode ?? "none"}
+        renderInput={(field, inputClassName) => <CustomFormInput item={customInput} field={field} fieldConfig={fieldConfig} inputClassName={inputClassName} />}
+      />
+    );
+  }
+
+  // 組み込みに無く登録も無い名前
+  if (!isBuiltinFormInput(formInput)) {
+    console.warn(`Unknown form input type: ${formInput}`);
+    return null;
+  }
 
   // 非表示フィールド
   if (!hasVisibleInput(formInput)) {

@@ -23,6 +23,7 @@ import {
   Textarea,
   TimeInput,
 } from "@/components/Form/Input/Controlled";
+import { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
 import type { FieldConfig, FieldOption, FormInputType } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
@@ -275,6 +276,11 @@ function normalizeRadioOptions(
   });
 }
 
+/** 組み込みの入力種別か（それ以外は登録の部品か未知の名前） */
+export function isBuiltinFormInput(formInput: string): formInput is FormInputType {
+  return (BUILTIN_FORM_INPUTS as readonly string[]).includes(formInput);
+}
+
 /**
  * formInput が入力コンポーネントを持つかどうかを判定
  * hidden と none は入力コンポーネントを持たない（または非表示）
@@ -354,5 +360,6 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
  * 自動保存時のblurモードを取得する
  */
 export function getBlurMode(fieldConfig: FieldConfig): "immediate" | "debounce" | "none" {
-  return BLUR_MODE_CONFIG[fieldConfig.formInput] ?? "debounce";
+  const { formInput } = fieldConfig;
+  return isBuiltinFormInput(formInput) ? BLUR_MODE_CONFIG[formInput] : "debounce";
 }

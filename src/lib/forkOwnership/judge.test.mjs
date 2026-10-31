@@ -75,6 +75,8 @@ describe("実リポジトリの intake.txt", () => {
       ["src/features/core/user/coreRoles/user.role.override.ts", "edit"],
       ["src/features/core/user/coreRoles/user.role.json", null],
       ["src/features/core/user/roles/editor.role.override.ts", "edit"],
+      ["src/wiring/formInputs/inputs/ticketRates.acme.ts", "edit"],
+      ["src/wiring/formInputs/FormInputsRoot.tsx", null],
       ["src/features/core/userProfile/profiles/user.profile.override.ts", "edit"],
       ["src/features/core/userProfile/profiles/user.profile.json", null],
       ["eslint.config.mjs", null],

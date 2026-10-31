@@ -3,7 +3,7 @@
 // アプリ全体を包む Provider の入れ子(server)。root の src/app/layout.tsx がこれを 1 か所で描く。
 // client の Provider を並べるだけで、自分ではデータを取らない。データに届くのは AuthSessionProvider
 // (Cookie の解析とセッション解決。ページのデータ・セッションを読む場所の名前付き例外)だけ。
-// 並び(外 → 内): Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア → fork の口(src/app/_providers/ForkProviders.tsx、
+// 並び(外 → 内): Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア → 入力部品 → fork の口(src/app/_providers/ForkProviders.tsx、
 // 上流は空。fork が自分の Provider を足す、D30 K8)。設計: src/wiring/README.md
 
 import type { ReactNode } from "react";
@@ -14,6 +14,7 @@ import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider"
 import { AdminCommandRoot } from "@/app/_layout/adminCommand/AdminCommandRoot";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { ForkProviders } from "@/app/_providers/ForkProviders";
+import { FormInputsRoot } from "@/wiring/formInputs/FormInputsRoot";
 
 export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -22,7 +23,9 @@ export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
         <AuthSessionProvider>
           <AdminCommandRoot>
             <ImageViewerProvider>
-              <ForkProviders>{children}</ForkProviders>
+              <FormInputsRoot>
+                <ForkProviders>{children}</ForkProviders>
+              </FormInputsRoot>
             </ImageViewerProvider>
           </AdminCommandRoot>
         </AuthSessionProvider>

@@ -7,7 +7,8 @@ import type { Control, FieldPath, FieldValues, ControllerRenderProps } from "rea
 
 import { ControlledFieldGroup, type InputConfig } from "../Controlled";
 import type { FieldConfig, FieldItemDescription, RequiredMarkOptions } from "../types";
-import { renderInputByFormType } from "./inputResolver";
+import { CustomFormInput, useCustomFormInputs } from "./customInputs";
+import { isBuiltinFormInput, renderInputByFormType } from "./inputResolver";
 
 export type ConfiguredFieldGroupProps<
   TFieldValues extends FieldValues,
@@ -91,6 +92,8 @@ export function ConfiguredFieldGroup<
   inputLayout,
   inputConfigs,
 }: ConfiguredFieldGroupProps<TFieldValues, TNames>) {
+  const customInputs = useCustomFormInputs();
+
   if (fieldConfigs.length === 0) {
     return null;
   }
@@ -129,8 +132,17 @@ export function ConfiguredFieldGroup<
         fields.map((field, index) => {
           const fieldConfig = fieldConfigs[index];
           if (!fieldConfig) return null;
+          const { formInput } = fieldConfig;
+          const customInput = Object.hasOwn(customInputs, formInput) ? customInputs[formInput] : undefined;
+          if (customInput) {
+            return <CustomFormInput key={fieldConfig.name} item={customInput} field={field} fieldConfig={fieldConfig} inputClassName={inputClassName} />;
+          }
+          if (!isBuiltinFormInput(formInput)) {
+            console.warn(`Unknown form input type: ${formInput}`);
+            return null;
+          }
           return renderInputByFormType(
-            fieldConfig.formInput,
+            formInput,
             field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>,
             fieldConfig,
             inputClassName

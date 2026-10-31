@@ -1,7 +1,8 @@
 // src/components/Form/Field/types.ts
 // フィールド設定の型定義
 
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import type { ControllerRenderProps } from "react-hook-form";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { ParaProps } from "@/components/TextBlocks/Para";
 import type { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
@@ -11,6 +12,30 @@ import type { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
  * @see src/features/README.md - FormInput
  */
 export type FormInputType = (typeof BUILTIN_FORM_INPUTS)[number];
+
+/** 登録された入力部品の名前（src/wiring/formInputs/FormInputsRoot.tsx が一覧の鍵から広げる） */
+export interface RegisteredFormInputs {}
+
+/** 登録の部品が受ける props（id・aria-* は FormControl が渡す。入力要素に渡すとラベルと結び付く） */
+export type FormInputProps = {
+  field: ControllerRenderProps<any, any>;
+  fieldConfig: FieldConfig;
+  inputClassName?: string;
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
+};
+
+/** 入力部品の登録の項目（src/wiring/formInputs/inputs/ の export const formInput） */
+export type FormInputItem = {
+  readonly name: string;
+  /** 部品の本体（default export） */
+  readonly load: () => Promise<{ default: ComponentType<FormInputProps> }>;
+  /** 共通の枠（ラベル・必須印・説明）を描くか（既定 true）。false でもエラーの表示は残る */
+  readonly frame?: boolean;
+  /** 自動保存の blur の扱い（既定 "none" = 保存しない） */
+  readonly blurMode?: "immediate" | "debounce" | "none";
+};
 
 /**
  * フィールドの型（domain.json fieldType - Neon）
@@ -92,7 +117,7 @@ export type FieldConfig = {
   /** データ型 */
   fieldType?: FieldDataType | FieldDataTypeFirestore | string;
   /** フォーム入力種別 */
-  formInput: FormInputType;
+  formInput: FormInputType | keyof RegisteredFormInputs;
   /** 必須かどうか */
   required?: boolean;
   /** 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） */

@@ -98,6 +98,9 @@ edit src/wiring/dbAgent/promptFragments/*.*.ts  # DB エージェントのプロ
 edit src/wiring/dbAgent/promptFragments/*.*/**  # フォルダ形
 edit src/wiring/dbAgent/suffixProviders/*.*.ts  # DB エージェントのサフィックスのプロバイダ
 edit src/wiring/dbAgent/suffixProviders/*.*/**  # フォルダ形
+edit src/wiring/formInputs/inputs/*.*.ts  # 独自の入力部品の登録
+edit src/wiring/formInputs/inputs/*.*.tsx  # 同上
+edit src/wiring/formInputs/inputs/*.*/**  # フォルダ形
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
