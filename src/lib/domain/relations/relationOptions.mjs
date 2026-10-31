@@ -24,7 +24,7 @@ export const RELATION_OPTIONS_KEY_PREFIX = "relationOptions";
 
 /**
  * @typedef {object} RelationOptionsConfig
- * @property {RelationOptionsRelation[]} [relations]
+ * @property {readonly RelationOptionsRelation[]} [relations]
  */
 
 /** @param {string | undefined} formInput */

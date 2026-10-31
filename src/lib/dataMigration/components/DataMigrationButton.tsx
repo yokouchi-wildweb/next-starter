@@ -6,13 +6,13 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
-import { getDomainConfig } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import { DataMigrationModal } from "./DataMigrationModal";
 import { useDataMigrationConfig } from "../hooks/useDataMigrationConfig";
 
 export type DataMigrationButtonProps = {
-  /** ドメイン名（singular, camelCase） */
-  domain: string;
+  /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
+  domain: DomainDisplay;
   /** 検索パラメータ（URL クエリ文字列形式、エクスポート時のフィルタ用） */
   searchParams?: string;
   /** ボタンのラベル（デフォルト: "ファイル入出力"） */
@@ -24,18 +24,16 @@ export type DataMigrationButtonProps = {
  * ボタンクリックでモーダルを開き、エクスポート/インポート機能を提供
  *
  * @example
- * <DataMigrationButton domain="sample" searchParams={params.toString()} />
+ * <DataMigrationButton domain={sampleDisplay} searchParams={params.toString()} />
  */
 export function DataMigrationButton({
-  domain,
+  domain: config,
   searchParams,
   label = "ファイル入出力",
 }: DataMigrationButtonProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  // ドメイン設定を取得
-  const config = getDomainConfig(domain);
   const { exportFields, hasRelations, hasManyDomains } = useDataMigrationConfig(config);
 
   const handleImportSuccess = useCallback(() => {
@@ -52,7 +50,7 @@ export function DataMigrationButton({
       <DataMigrationModal
         open={isOpen}
         onOpenChange={setIsOpen}
-        domain={domain}
+        domain={config.singular}
         fields={exportFields}
         domainLabel={config.label}
         searchParams={searchParams}

@@ -1,17 +1,17 @@
 // src/lib/dataMigration/configUtils.ts
-// domain.json から DataMigration 用の設定を生成するユーティリティ
+// 写し(entities/display.ts)から DataMigration 用の設定を生成するユーティリティ
 
-import type { DomainConfig } from "@/lib/domain";
+import type { DomainDisplay } from "@/lib/domain/types/display";
 import type { ExportField } from "./components/ExportSettingsModal";
 
 /**
- * domain.json の fields から ExportField[] を生成
+ * 写しの fields から ExportField[] を生成
  *
  * @example
- * import config from "@/features/sample/domain.json";
- * const exportFields = buildExportFields(config);
+ * import { domainDisplay } from "@/features/sample/entities/display";
+ * const exportFields = buildExportFields(domainDisplay);
  */
-export function buildExportFields(config: DomainConfig): ExportField[] {
+export function buildExportFields(config: Pick<DomainDisplay, "fields">): ExportField[] {
   return config.fields.map((field) => ({
     name: field.name,
     label: field.label,

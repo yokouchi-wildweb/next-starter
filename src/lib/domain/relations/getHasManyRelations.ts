@@ -3,7 +3,7 @@
 
 import { getDomainConfig } from "../config";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
-import type { HasManyRelationInfo } from "../types";
+import type { DomainDisplay, HasManyRelationInfo } from "../types";
 
 export type { HasManyRelationInfo };
 
@@ -16,7 +16,11 @@ export type { HasManyRelationInfo };
  * // [{ domain: "sample", label: "サンプル", fieldName: "sampleCategoryId" }]
  */
 export function getHasManyRelations(domain: string): HasManyRelationInfo[] {
-  const config = getDomainConfig(domain);
+  return getHasManyRelationsOf(getDomainConfig(domain) as Pick<DomainDisplay, "relations">);
+}
+
+/** 写し（または同じ形の設定）から hasMany リレーション情報を取得（client の部品はこちら） */
+export function getHasManyRelationsOf(config: Pick<DomainDisplay, "relations">): HasManyRelationInfo[] {
   const relations: HasManyRelationInfo[] = [];
 
   for (const relation of config.relations || []) {

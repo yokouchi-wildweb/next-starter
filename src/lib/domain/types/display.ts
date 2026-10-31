@@ -22,6 +22,8 @@ export type DomainDisplayRelation = {
   /** 関連先の表示に使う列 */
   labelField?: string;
   includeRelationTable?: boolean;
+  /** 非同期検索の関連だけ: 関連先の searchFields */
+  searchFields?: readonly string[];
 };
 
 export type DomainDisplay = {

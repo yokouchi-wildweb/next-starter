@@ -13,6 +13,7 @@ import type {
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
 import { useRelationOptions } from "@/lib/domain/hooks";
+import { domainDisplay } from "@/features/notification/entities/display";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import domainConfig from "@/features/notification/domain.json";
 
@@ -59,7 +60,7 @@ export function NotificationFields<TFieldValues extends FieldValues>({
   afterGroup,
 }: NotificationFieldsProps<TFieldValues>) {
   // リレーション先のデータを自動取得し、insertBefore 形式で返す
-  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainConfig);
+  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainDisplay);
 
   if (isLoading) {
     return <FormSkeleton />;

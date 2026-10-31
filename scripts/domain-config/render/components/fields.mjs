@@ -7,12 +7,13 @@ import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 const RELATION_IMPORTS = `import { useRelationOptions } from "@/lib/domain/hooks";
+import { domainDisplay } from "@/features/__domain__/entities/display";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 `;
 
 const RELATION_BLOCK = `
   // リレーション先のデータを自動取得し、insertBefore 形式で返す
-  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainConfig);
+  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainDisplay);
 
   if (isLoading) {
     return <FormSkeleton />;

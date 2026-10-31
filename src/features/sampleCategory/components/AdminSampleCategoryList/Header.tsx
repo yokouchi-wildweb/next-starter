@@ -33,7 +33,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
     <ListTop title="登録済みサンプルカテゴリの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+        <DataMigrationButton domain={sampleCategoryDisplay} searchParams={params.toString()} />
       )}
       <Pagination
         page={page}

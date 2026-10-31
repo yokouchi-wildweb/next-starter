@@ -51,6 +51,23 @@ test("許可の一覧の項目だけを写す", () => {
   });
 });
 
+test("関連先の searchFields は非同期の関連にだけ、関連先の名前の規則で付く", () => {
+  const relation = (domain, formInput) => ({ domain, label: "L", fieldName: "x", relationType: "belongsToMany", formInput });
+  const main = { singular: "a", plural: "as", label: "A", relations: [relation("b_item", "asyncMultiSelect"), relation("b_item", "select"), relation("c_item", "asyncCombobox"), relation("none", "asyncCombobox")], fields: [] };
+  const all = [main, { singular: "bItem", searchFields: ["some_name"], dbEngine: "Neon" }, { singular: "cItem", searchFields: ["some_name"], dbEngine: "Firestore" }];
+  const { relations } = toDomainDisplay(main, all);
+  assert.deepEqual(relations.map((r) => r.searchFields), [["some_name"], undefined, ["someName"], undefined]);
+});
+
+test("実物: 写しの searchFields は getDomainConfig が返していた関連先の値と同じ", () => {
+  const { outputs } = buildAlphaRegistries(process.cwd());
+  const display = JSON.parse(/= (\{[\s\S]*\}) as const/.exec(outputs["src/features/sample/entities/display.ts"])[1]);
+  const tag = JSON.parse(readFileSync("src/features/sampleTag/domain.json", "utf8"));
+  const relation = display.relations.find((r) => r.domain === "sample_tag");
+  assert.deepEqual(relation.searchFields, tag.searchFields);
+  assert.equal(display.relations.find((r) => r.domain === "sample_category").searchFields, undefined);
+});
+
 test("Firestore は名前を camelCase に", () => {
   const display = toDomainDisplay({ singular: "a", plural: "as", label: "A", dbEngine: "Firestore", fields: [{ name: "user_name", label: "U" }], searchFields: ["user_name"] });
   assert.equal(display.fields[0].name, "userName");

@@ -13,6 +13,7 @@ import type {
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
 import { useRelationOptions } from "@/lib/domain/hooks";
+import { domainDisplay } from "@/features/sample/entities/display";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawDomainConfig from "@/features/sample/domain.json";
@@ -78,7 +79,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
   afterGroup,
 }: SampleFieldsProps<TFieldValues>) {
   // リレーション先のデータを自動取得し、insertBefore 形式で返す
-  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainConfig);
+  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainDisplay);
 
   if (isLoading) {
     return <FormSkeleton />;

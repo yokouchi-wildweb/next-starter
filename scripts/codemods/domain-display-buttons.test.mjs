@@ -35,6 +35,22 @@ test("複数行の属性・関数の属性の後ろ・snake_case", () => {
   assert.match(text, /import \{ domainDisplay as userTagDisplay \} from "@\/features\/core\/userTag\/entities\/display";/);
 });
 
+test("DataMigrationButton の config.singular は同じファイルの domain.json から解く", () => {
+  const source = `import rawConfig from "@/features/core/userTag/domain.json";\nconst A = () => <DataMigrationButton domain={config.singular} searchParams={p} />;\n`;
+  const { text, skipped } = transformSource(source, displays);
+  assert.match(text, /<DataMigrationButton domain=\{userTagDisplay\} searchParams=\{p\} \/>/);
+  assert.match(text, /import \{ domainDisplay as userTagDisplay \}/);
+  assert.deepEqual(skipped, []);
+  assert.deepEqual(transformSource(text, displays).skipped, []);
+});
+
+test("domain.json を読まないファイルの config.singular は一覧へ", () => {
+  const source = `const A = () => <DataMigrationButton domain={config.singular} />;\n`;
+  const { text, skipped } = transformSource(source, displays);
+  assert.equal(text, source);
+  assert.deepEqual(skipped, [`<DataMigrationButton domain={config.singular}>`]);
+});
+
 test("何度走らせても同じ", () => {
   const once = transformSource(`import { X } from "x";\nconst A = () => <DeleteButton domain="sample" id="1" />;\n`, displays).text;
   const twice = transformSource(once, displays);

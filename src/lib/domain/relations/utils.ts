@@ -63,3 +63,8 @@ export function hasRelationType(domain: string, type: RelationType): boolean {
 export function hasRelations(domain: string): boolean {
   return getRelations(domain).length > 0;
 }
+
+/** 写しから、リレーションを持つかどうかを判定（client の部品はこちら） */
+export function hasRelationsOf(display: Pick<DomainDisplay, "relations">): boolean {
+  return getRelationsOf(display).length > 0;
+}

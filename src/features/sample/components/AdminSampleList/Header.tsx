@@ -33,7 +33,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
     <ListTop title="登録済みサンプルの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+        <DataMigrationButton domain={sampleDisplay} searchParams={params.toString()} />
       )}
       <Pagination
         page={page}

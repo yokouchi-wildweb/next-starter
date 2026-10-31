@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // scripts/codemods/domain-display-buttons.mjs
-// lib/crud のボタンの domain="<ドメイン名>" を domain={<ドメイン名>Display}(表示用の写し)へ置き換える。
+// lib/crud のボタンと DataMigrationButton の domain="<ドメイン名>" / domain={config.singular}(config は同じファイルが読む domain.json)を
+// domain={<ドメイン名>Display}(表示用の写し)へ置き換える。
 // 使い方(リポのルートで): node scripts/codemods/domain-display-buttons.mjs
 // 対象は呼び出したリポの src。何度走らせても同じ結果。読めない呼び(動的な domain・写しの無いドメイン)は書き換えず一覧を出す。
 
@@ -21,8 +22,10 @@ const BUTTONS = [
   "BelongsToManyFieldButton",
   "BulkBelongsToFieldButton",
   "BulkBelongsToManyFieldButton",
+  "DataMigrationButton",
 ];
 const TAG_START = new RegExp(`<(${BUTTONS.join("|")})\\b`, "g");
+const DOMAIN_JSON_IMPORT = /from\s+["']@\/features\/(?:.+\/)?([^/]+)\/domain\.json["']/;
 const SKIP = ["src/lib/crud/components/Buttons/", "src/features/_template/"];
 
 const toCamel = (name) => name.replace(/[_-](\w)/g, (_, char) => char.toUpperCase());
@@ -85,25 +88,28 @@ export function transformSource(source, displays) {
     if (attrStart < cursor) continue;
     const attrEnd = attributesEnd(source, attrStart);
     const attributes = source.slice(attrStart, attrEnd);
+    const singular = /(?:^|\s)domain=\{\s*\w+\.singular\s*\}/.exec(attributes);
+    const ownDomain = singular ? DOMAIN_JSON_IMPORT.exec(source)?.[1] : undefined;
     const dynamic = /(?:^|\s)domain=\{/.exec(attributes);
-    if (dynamic) {
+    if (dynamic && !ownDomain) {
       const value = /^[^}]*/.exec(attributes.slice(dynamic.index + dynamic[0].length))[0];
       if (!/Display$/.test(value.trim())) skipped.push(`<${name} domain={${value}}>`);
       continue;
     }
-    const literal = /(?:^|\s)domain="([^"]+)"/.exec(attributes);
+    const literal = singular && ownDomain ? singular : /(?:^|\s)domain="([^"]+)"/.exec(attributes);
     if (!literal) continue;
-    const camel = toCamel(literal[1]);
+    const camel = toCamel(ownDomain ?? literal[1]);
     const from = displays.get(camel);
+    const written = literal[0].trimStart();
     if (!from) {
-      skipped.push(`<${name} domain="${literal[1]}">(写しが無い)`);
+      skipped.push(`<${name} ${written}>(写しが無い)`);
       continue;
     }
     const local = `${camel}Display`;
     added.set(local, from);
     const at = attrStart + literal.index + literal[0].indexOf("domain=");
     text += `${source.slice(cursor, at)}domain={${local}}`;
-    cursor = at + `domain="${literal[1]}"`.length;
+    cursor = at + written.length;
   }
   text += source.slice(cursor);
   if (added.size === 0) return { text, skipped };

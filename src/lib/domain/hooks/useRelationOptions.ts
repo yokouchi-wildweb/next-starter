@@ -1,5 +1,5 @@
 // src/lib/domain/hooks/useRelationOptions.ts
-// domain.json の relations を基にリレーション先のデータを取得し、
+// 写し(entities/display.ts)の relations を基にリレーション先のデータを取得し、
 // FieldRenderer の insertBefore 形式で返すフック
 
 "use client";
@@ -10,7 +10,6 @@ import axios from "axios";
 import type { InsertFieldsMap, FieldConfig } from "@/components/Form/FieldRenderer";
 import type { FormInputType } from "@/components/Form/Field/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
-import { getDomainConfig, hasDomainConfig } from "@/lib/domain/config";
 import {
   getFormRelations,
   getStaticRelations,
@@ -20,7 +19,7 @@ import {
 } from "@/lib/domain/relations/relationOptions.mjs";
 
 /**
- * domain.json の relations の型
+ * 写し(entities/display.ts)の relations の型(userProfile の関連も同じ形)
  */
 type RelationConfig = {
   domain: string;
@@ -33,13 +32,15 @@ type RelationConfig = {
   formInput?: string;
   /** セレクトボックスのラベルに使うフィールド（デフォルト: "name"） */
   labelField?: string;
+  /** 非同期検索の関連の検索列（写しでは生成器が関連先から写す。手書きの関連は手で書く） */
+  searchFields?: readonly string[];
 };
 
 /**
- * domain.json の型（relations 部分のみ）
+ * 写しの型（relations 部分のみ）
  */
-type DomainConfig = {
-  relations?: RelationConfig[];
+type RelationSource = {
+  relations?: readonly RelationConfig[];
 };
 
 /**
@@ -129,13 +130,6 @@ function buildAsyncRelationFieldConfig(
   const apiPath = `/api/${toCamelCase(relation.domain)}`;
   const labelField = relation.labelField ?? "name";
 
-  // リレーション先 domain.json の searchFields を取得
-  let searchFields: string[] | undefined;
-  if (hasDomainConfig(relation.domain)) {
-    const targetConfig = getDomainConfig(relation.domain);
-    searchFields = (targetConfig as Record<string, unknown>).searchFields as string[] | undefined;
-  }
-
   return {
     name: relation.fieldName,
     label: relation.label,
@@ -145,7 +139,7 @@ function buildAsyncRelationFieldConfig(
     // 非同期リレーション用メタデータ
     asyncApiPath: apiPath,
     asyncLabelField: labelField,
-    asyncSearchFields: searchFields,
+    asyncSearchFields: relation.searchFields ? [...relation.searchFields] : undefined,
   };
 }
 
@@ -181,18 +175,18 @@ export type UseRelationOptionsResult = {
 };
 
 /**
- * domain.json の relations を基にリレーション先のデータを取得し、
+ * 写しの relations を基にリレーション先のデータを取得し、
  * FieldRenderer の insertBefore 形式で返すフック
  *
- * @param domainConfig - domain.json の内容
+ * @param domainConfig - 写し（entities/display.ts の domainDisplay）
  * @returns InsertFieldsMap 形式のフィールド設定
  *
  * @example
  * ```tsx
- * import domainConfig from "@/features/sample/domain.json";
+ * import { domainDisplay } from "@/features/sample/entities/display";
  *
  * function SampleFields({ methods }) {
- *   const { insertBefore, isLoading } = useRelationOptions(domainConfig);
+ *   const { insertBefore, isLoading } = useRelationOptions(domainDisplay);
  *
  *   if (isLoading) return <FormSkeleton />;
  *
@@ -207,7 +201,7 @@ export type UseRelationOptionsResult = {
  * ```
  */
 export function useRelationOptions(
-  domainConfig: DomainConfig
+  domainConfig: RelationSource
 ): UseRelationOptionsResult {
   // フォームに出る関連(belongsTo と表側の belongsToMany。hasMany と逆側は除外)
   const relations = getFormRelations(domainConfig) as RelationConfig[];

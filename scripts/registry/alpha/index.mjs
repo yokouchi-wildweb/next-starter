@@ -127,7 +127,7 @@ export function buildAlphaRegistries(repoRoot) {
       [SCHEMA_REGISTRY_FILE]: schema.text,
       [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(domains),
       [ADMIN_DATA_MENU_FILE]: renderAdminDataMenu(domains),
-      ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config)])),
+      ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
     },
     problems: [...domainProblems, ...schema.problems],
   };

@@ -154,7 +154,11 @@ export const domainDisplay = {
       "relationType": "belongsToMany",
       "required": false,
       "formInput": "asyncMultiSelect",
-      "includeRelationTable": true
+      "includeRelationTable": true,
+      "searchFields": [
+        "name",
+        "description"
+      ]
     }
   ],
   "searchFields": [
