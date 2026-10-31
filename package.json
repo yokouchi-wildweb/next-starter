@@ -167,7 +167,8 @@
     "room:dev": "pnpm -C servers/room dev",
     "test:cycles": "node --test scripts/cycles/cycles.test.mjs",
     "test:script-entries": "node --test scripts/script-entries/check.test.mjs",
-    "test:no-server-action": "node --test eslint-rules/no-server-action.test.mjs"
+    "test:no-server-action": "node --test eslint-rules/no-server-action.test.mjs",
+    "test:domain-display": "node --test scripts/registry/alpha/domainDisplay.test.mjs"
   },
   "engines": {
     "node": "24"

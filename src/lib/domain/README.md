@@ -98,6 +98,12 @@ export const domainEntries = {
 
 表 ↔ ドメインの逆引きの他の利用候補（auditLog の `target_type` の値をドメイン名に揃える、feature-gate の `tables` を登録表と照らす、中間表の名前解決 `junction/` との役割分担）は、まだ対応していない。使うときは、機能ごとの対応表を作らずこの 2 関数を引く。
 
+## 表示用の写し（entities/display.ts）
+
+client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`（型 `DomainDisplay`、`types/display.ts`）。`pnpm registry:generate` が domain.json の許可した項目だけを写す（singular・plural・label・fields の表示系・relations の表示系・searchFields・use* の 3 つ。Firestore は名前を camelCase に）。apiAccess・dbEngine・generateFiles・storage 等は写さない。`dc:generate` の後は `pnpm registry:generate`（ずれは `registry:check` が止める）。
+
+domain.json の無い手書きの domain は、同じ置き場に同じ形を手で書く。検査: `pnpm test:domain-display`。
+
 ## domain.json の読み取り（従来どおり）
 
 - `config/`: `getDomainConfig` / `hasDomainConfig`（`domainConfigRegistry` を読む）、`resolveAccessRule`

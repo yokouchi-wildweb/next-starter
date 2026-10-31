@@ -11,6 +11,7 @@ import { join, relative, sep } from "node:path";
 
 import { toCamelCase, toKebabCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
+import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
 
 export const SCHEMA_REGISTRY_FILE = "src/registry/schemaRegistry.ts";
 export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts";
@@ -126,6 +127,7 @@ export function buildAlphaRegistries(repoRoot) {
       [SCHEMA_REGISTRY_FILE]: schema.text,
       [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(domains),
       [ADMIN_DATA_MENU_FILE]: renderAdminDataMenu(domains),
+      ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config)])),
     },
     problems: [...domainProblems, ...schema.problems],
   };

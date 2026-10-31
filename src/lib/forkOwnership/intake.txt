@@ -129,6 +129,7 @@ generated src/wiring/dbAgent.ts  # pnpm extensions:generate
 generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/adminDataMenu.ts  # pnpm registry:generate(走査で丸ごと)
+generated src/features/core/*/entities/display.ts  # pnpm registry:generate(表示用の写し)
 generated src/registry/profileBaseRegistry.ts  # pnpm role:generate
 generated src/registry/profileSchemaRegistry.ts  # pnpm role:generate
 generated src/registry/profileTableRegistry.ts  # pnpm role:generate
