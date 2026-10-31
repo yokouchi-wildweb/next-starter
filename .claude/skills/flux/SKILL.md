@@ -17,6 +17,13 @@ disable-model-invocation: true
 - **`moved.md`**(移動・改名の移植): 次の区間の notice(covers 側・covered 側を含む)のどれかに `moved:` があれば、その区間の詳細計画(手順 2)の前に読む。
 - notice id モード(偵察・区間の組み立てを行わない): 対象 notice と自 fork について同じ条件を判定し、当たれば手順 5 の前に読む。
 
+## 上流の最新の手順に従う(fetch の直後。モードを問わない)
+fork が merge した版の `/flux` は上流より何区間も古いことがあり、遅れている fork ほど直った手順が最後に届く。そこで手順書は、fork の版ではなく**直上 upstream の先端の版**を読む(多段では親の先端。fleet の艦も同じ規則で動く: roles/worker.md LATEST /FLUX)。
+1. `git fetch <upstream>` の後に `git diff --quiet HEAD <upstream>/<branch> -- .claude/skills/flux/ .claude/skills/fmt/`。差が無ければこの文章のまま進む。
+2. 差があれば `git show <upstream>/<branch>:.claude/skills/flux/SKILL.md` を読み、以後は**その文章に従う**(この文章ではなく)。その文章が参照する付属ファイル(`relay.md` / `moved.md`、`.claude/skills/fmt/flux-stop.md` など)も同じく `git show <upstream>/<branch>:<path>` で上流の版を読む。最初の報告に「/flux: upstream <短 sha> の手順で実行」と 1 行添える。
+3. 上流の手順が要する道具(スクリプト・pnpm script・テスト・ファイル)が fork のツリーに無い、または版が違う: その手順は飛ばして報告と「上流への所見」に出す。それを理由に止めたり失敗にしたりしない(道具はその区間の merge で届く)。
+4. fetch をしないモード(notice id 指定)でも、`<upstream>/<branch>` の ref があれば 1〜2 を行う。上流版が読めないときはこの文章で進め、報告に書く。
+
 ## 大原則
 - **状態はイベントではなくファイルと履歴から導出する**: 「ツリー内に存在する現役 notice の集合」−「継承済み notice の集合(fork 成立点から自動判定、下記)」−「自 fork 台帳に記録済みの集合」= 未適用。merge が誰の手でいつ行われたかは問わない(手動 merge / GitHub 上の merge / このコマンドの merge、すべて同じに扱う)。
 - **詳しく計画するのは次の区間だけ、承認は区間ごと**(既定)。残りの区間は 1 行ずつの概観(どこまで進めるかを人間が決める材料)にとどめ、notice の全文・上流の変更点・衝突の予測・移植・fork 側の追従箇所は**次の区間の分だけ**調べて計画にする。起動時に幅(`<n>`)を指定されたときは、「次の区間」を「次のまとめ」(1 回の承認で進める連続した区間。下記「まとめ」)に読み替える。先の区間の材料は読まない(context を埋め、目の前の区間の判断に混ざるため。先の区間の詳細はその前の区間の merge で変わるので、事前に詰めても価値が低い)。
