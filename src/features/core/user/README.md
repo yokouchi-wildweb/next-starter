@@ -14,11 +14,9 @@ src/features/core/user/
 │   ├── schema.ts         # Zod バリデーションスキーマ
 │   ├── model.ts          # 型定義
 │   └── form.ts           # フォーム用型定義
-├── roles/                # ロール設定 JSON
-│   ├── index.ts          # 設定読み込み・エクスポート
-│   ├── _admin.role.json  # コアロール（_ プレフィックス）
-│   ├── _user.role.json   # コアロール
-│   └── *.role.json       # 追加ロール
+├── coreRoles/            # core ロール admin・user・debugger の JSON（消せない・無効にできない）
+├── roles/                # 追加ロールの JSON
+├── extensions/roles.ts   # ロールの一覧（pnpm role:generate が書く）
 ├── constants/
 │   ├── index.ts          # 再エクスポート
 │   ├── role.ts           # ロール派生定数
@@ -49,19 +47,20 @@ PostgreSQL (user_role enum)
 
 ### 1. ロール設定 JSON
 
-`roles/` ディレクトリに 1 ロール 1 ファイルで定義。
+1 ロール 1 ファイルで定義。ファイル名は `<id>.role.json`。
 
 ```
-roles/
-├── _admin.role.json      # コアロール（削除不可）
-├── _user.role.json       # コアロール（削除不可）
-├── editor.role.json      # 追加ロール
-└── contributor.role.json # 追加ロール
+coreRoles/                # core ロール（上流の 3 つだけ。削除・無効化は不可）
+├── admin.role.json
+├── user.role.json
+└── debugger.role.json
+roles/                    # 追加ロール
+├── editor.role.json
+└── contributor.role.json
 ```
 
-**命名規則:**
-- コアロール: `_` プレフィックス（システム保護）
-- 追加ロール: プレフィックスなし
+- `role:delete`・`role:toggle` は core ロールで止まる。`roles/` に core と同じ ID、`coreRoles/` に 3 つ以外のファイル、`isCore` を書いた JSON は `role:generate` と forge の事前検査で止まる
+- fork が core ロールで変えられるのは `label`・`hasProfile` だけ（`coreRoles/<id>.role.override.ts`、`src/features/core/userProfile/README.md`「fork の上書き」）
 
 **{role}.role.json の構造:**
 ```json
@@ -70,8 +69,7 @@ roles/
   "label": "投稿者",
   "category": "user",
   "description": "コンテンツを投稿できる",
-  "hasProfile": true,
-  "isCore": false
+  "hasProfile": true
 }
 ```
 
@@ -82,24 +80,12 @@ roles/
 | `category` | `"admin"` or `"user"`（管理画面での分類） |
 | `description` | 説明文 |
 | `hasProfile` | プロフィールテーブルを持つか |
-| `isCore` | コアロールか（削除不可） |
 
 ### 2. ロール読み込み
 
-`roles/index.ts` で JSON を読み込み、`ALL_ROLES` としてエクスポート。
+`pnpm role:generate`（forge が回す）が `extensions/roles.ts` に一覧を書き、`constants` が `ALL_ROLES` として再 export する。手で直さない。
 
-```typescript
-// roles/index.ts
-import adminRole from "./_admin.role.json";
-import userRole from "./_user.role.json";
-import editorRole from "./editor.role.json";
-import contributorRole from "./contributor.role.json";
-
-export const ALL_ROLES: readonly RoleConfig[] = [
-  adminRole, userRole,       // コアロール（先頭）
-  editorRole, contributorRole // 追加ロール
-];
-```
+一覧の並びは DB の enum `user_role` の順そのもの（`entities/drizzle.ts`）。生成は今の並びを保ち、新しいロールを末尾に足す。
 
 ### 3. 派生定数の生成
 
@@ -379,8 +365,7 @@ DB 制約を使わないため、既存データに重複があっても有効�
      "label": "レビュアー",
      "category": "user",
      "description": "コンテンツをレビューできる",
-     "hasProfile": false,
-     "isCore": false
+     "hasProfile": false
    }
    ```
 

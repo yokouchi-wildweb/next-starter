@@ -85,12 +85,14 @@ src/features/core/userProfile/
 
 ### ロール設定（user ドメイン）
 
-`src/features/core/user/roles/` にロール定義を配置。
+`src/features/core/user/coreRoles/` に core ロール、`roles/` に追加ロールの定義を配置（`src/features/core/user/README.md`）。
 
 ```
+coreRoles/
+├── admin.role.json         # core ロール
+├── user.role.json
+└── debugger.role.json
 roles/
-├── _admin.role.json        # コアロール（_ プレフィックス）
-├── _user.role.json         # コアロール
 ├── editor.role.json        # 追加ロール
 └── contributor.role.json   # 追加ロール（hasProfile: true）
 ```
@@ -102,8 +104,7 @@ roles/
   "label": "投稿者",
   "category": "user",
   "description": "コンテンツを投稿できる",
-  "hasProfile": true,
-  "isCore": false
+  "hasProfile": true
 }
 ```
 
@@ -207,14 +208,15 @@ fork は上流の JSON を書き換えず、隣に上書きのファイルを 1 
 
 | ファイル | 書けるキー |
 |---------|-----------|
-| `user/roles/<JSON の名前>.override.ts`（コアロールは `_user.role.override.ts`） | `label`・`hasProfile`・`enabled` |
+| `user/roles/<id>.role.override.ts`（追加ロール） | `label`・`hasProfile`・`enabled` |
+| `user/coreRoles/<id>.role.override.ts`（core ロール） | `label`・`hasProfile` |
 | `userProfile/profiles/<role>.profile.override.ts` | `tags`・`searchFields`・`audit`（値は丸ごと置き換え） |
 
 ```typescript
-// src/features/core/user/roles/_user.role.override.ts
-import type { RoleOverride } from "../types";
+// src/features/core/user/coreRoles/user.role.override.ts
+import type { CoreRoleOverride } from "../types";
 
-export const override: RoleOverride = { hasProfile: true };
+export const override: CoreRoleOverride = { hasProfile: true };
 ```
 
 - 実行せず字面で読む。書けるのは `import type`（相対パス）と `export const override = { … }` だけで、値はリテラルにする
@@ -716,7 +718,7 @@ export const FormSchema = z
 
 | ファイル | 役割 |
 |---------|------|
-| `src/features/core/user/roles/` | ロール設定 JSON |
+| `src/features/core/user/coreRoles/`・`roles/` | ロール設定 JSON |
 | `src/features/core/user/constants/role.ts` | ロール派生定数 |
 | `src/features/core/user/extensions/roles.ts` | ロールの一覧（生成物） |
 | `src/features/core/userProfile/extensions/` | プロフィールの一覧（生成物） |
@@ -734,7 +736,7 @@ pnpm role:generate -- --all      # 全 *.role.json（user/extensions/roles.ts �
 ```
 
 書く前に検査する（`scripts/role-config/checks/`、テスト `pnpm test:role-config-checks`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
-- 止める: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`、isCore: true だけ `_<id>.role.json`）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）、ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、リレーションの relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」）
+- 止める: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`）、`isCore` のキー、core ロールの置き場（`roles/` に core の ID、`coreRoles/` に 3 つ以外）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）、ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、リレーションの relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」）
 - 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `prof:delete`）、型と入力欄の組が表（`scripts/domain-config/spec/formInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
 
 実行内容:
