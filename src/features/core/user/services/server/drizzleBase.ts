@@ -47,6 +47,7 @@ export const baseOptions = {
   belongsToManyObjectRelations: [
     {
       field: "user_tags",
+      idField: "user_tag_ids",
       targetTable: UserTagTable,
       throughTable: UserToUserTagTable,
       sourceColumn: UserToUserTagTable.userId,
