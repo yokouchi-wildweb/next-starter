@@ -232,7 +232,9 @@ await auditLogger.recordMany(
 
 ## context（actor / IP / UA / requestId）
 
-`auditLogger` は context を **ALS から暗黙取得** するため、wrapper のシグネチャに actor を通さない。
+`auditLogger` は context を **ALS から暗黙取得** するため、記録のためだけに wrapper のシグネチャへ actor を通さない。
+
+これは監査の記録に限った話。認可や業務の判断に利用者が要る処理は、主体を必須の引数で受ける（[routeFactory README「業務処理に利用者が要るとき」](../../../lib/routeFactory/README.md)）。AuditContext は JWT から作る記録用の値なので、認可には使わない。
 
 - `createApiRoute`（およびそれを使う `createDomainRoute` / `createMeRoute`）は handler 全体を `runWithAuditContext` で包む。handler 内の任意の深さから `record()` すれば actor / ip / userAgent / sessionId / requestId が付く
 - **`createCronRoute` と `pnpm task` は context を敷かない**。cron / CLI / バックグラウンド処理から記録する場合は処理側で `runAsSystem` を張る（張らずに記録すると `AuditContext is not set` で throw、bestEffort なら dead-letter 行き）。実例: `wallet/services/server/lots/sweepExpiredLots.ts`

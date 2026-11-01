@@ -77,6 +77,46 @@ export const POST = createApiRoute<Params, unknown, "authenticated">(
 // 管理者なら createApiRoute<Params, unknown, { roleCategories: string[] }>(…)
 ```
 
+### 業務処理に利用者が要るとき
+
+汎用 CRUD の `create` / `update` は利用者を受け取らず、今後も受け取らない。
+
+- **理由**: ここに渡しても `read`・`count`・リレーション展開・`upsert`・bulk・`duplicate` の経路は守れず、どの操作が何を保証するかを契約にできない
+- **形**: 専用のルート（`createApiRoute` か `createMeRoute`）→ 主体を**必須の引数**で受ける業務メソッド → 汎用の経路を閉じる（前例: `user` の `updateSelf(actor, data)`）
+- **しないこと**
+  - `tx` の後ろに省略可能な actor を足す（渡し忘れが権限の抜けになる）
+  - サービスの中でセッションを読む
+  - AuditContext で認可する。JWT から作る記録用の値で、ロール剥奪・利用停止を反映しない
+- **利用者のいない呼び出し**（cron・CLI・内部処理）: 名前の付いた system 用のメソッドを呼ぶ。主体が無いことを権限として扱わない
+- **本人の行を作る入力**: `user_id` はサーバーで `ctx.user.userId` から設定し、クライアントの値を使わない。更新で所有者を変える入力は拒否する。代理の作成は管理者用の別の入口にする
+- `createMeRoute` が保証するのはログイン済みであることまで。行の所有者の確認は業務メソッドに書く
+
+移行の手順:
+
+1. 汎用の `create` / `update` の override で利用者を使っている処理を、主体を必須で受けるメソッドに移す。主体を使わない検証は override に残してよい
+2. 専用のルートを作り、`ctx.user` を渡す
+3. 汎用の書き込みを閉じる。`write: "none"` なら `operations` に個別の指定が無い `create` / `update` / `upsert` / bulk / `duplicate` がまとめて閉じる（解決順は下の「`createDomainRoute` / `createDomainIdRoute`」の節）
+4. 画面の hook を専用のルートへ切り替える（ClientService + `useDomainMutation`）
+
+```ts
+// services/server/wrappers/submit.ts
+export async function submit(actor: { userId: string; role: string }, data: ExampleInput) {
+  await assertCanSubmit(actor, data);
+  return base.create({ ...data, user_id: actor.userId });
+}
+
+// src/app/api/example/submit/route.ts
+export const POST = createApiRoute(
+  { operation: "POST /api/example/submit", operationType: "write", access: "authenticated" },
+  async (req, { user }) => exampleService.submit(user, await req.json()),
+);
+
+// services/server/domainEntry.ts（業務ドメインは domain.json の apiAccess に同じ値を書く）
+access: { read: "public", write: "none" },
+```
+
+移行の後に確かめること: 他人の id を指定した要求 | 汎用 URL（`/api/<domain>`）での迂回 | 利用停止中の利用者 | 利用者のいない内部の呼び出し
+
 ---
 
 ## 提供するファクトリー

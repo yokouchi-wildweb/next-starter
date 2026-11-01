@@ -417,7 +417,7 @@ createCrudService(SampleTable, {
   - 呼び出し元が tx を渡さなければ、内部で TX を張る。commit 後に `afterCommit` で実物を消す（ベストエフォート）
   - tx を渡された場合は、外側の TX がまだ commit されていないので消さない
   - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
-- **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
+- **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）。binding の紐付けのための読み出しで、業務の認可に使う手段ではない（[routeFactory README「業務処理に利用者が要るとき」](../routeFactory/README.md)）
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
 - **FK cascade**: メディア列を持つ表に、親の削除に伴う DB の `onDelete: "cascade"` を付けてよい
   - DB が消した行は binding を通らない。残った紐付けは、掃除 cron（`storage-sweep`）の照合が後の実行で外し、実物を消す（その場ではない。予算と上限つき。[storageObject README「掃除」](../../features/core/storageObject/README.md)）
