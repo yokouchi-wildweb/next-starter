@@ -70,18 +70,23 @@ export type WalletAdjustRequestPayload = {
 export type WalletOperationOptions = {
   /** trueの場合、SELECT FOR UPDATEで行ロックを取得 */
   lock?: boolean;
+  /**
+   * 事前に取得済みのウォレットを渡す（省略時は内部で取得/作成。渡すと再取得せず lock も見ない）。
+   * 契約: 呼び出し元が同じトランザクション内でこの行のロック（SELECT FOR UPDATE）を保持していること。
+   * ロックなしで読んだ値を渡すと、読み取り〜更新の間の更新が失われる。
+   * releaseReservation はこの値を使わない。
+   */
+  wallet?: Wallet;
 };
 
 /** adjustBalance用のオプション */
 export type AdjustBalanceOptions = WalletOperationOptions & {
-  /** 事前に取得済みのウォレットを渡す（省略時は内部で取得/作成） */
-  wallet?: Wallet;
   /** trueの場合、履歴記録をスキップ */
   skipHistory?: boolean;
 };
 
 /** getWallet用のオプション */
-export type GetWalletOptions = WalletOperationOptions & {
+export type GetWalletOptions = Omit<WalletOperationOptions, "wallet"> & {
   /** falseの場合、存在しなければnullを返す（デフォルト: true） */
   createIfNotExists?: boolean;
 };

@@ -73,8 +73,8 @@ await db.transaction(async (tx) => {
 ```typescript
 import type {
   TransactionClient,       // トランザクション型
-  WalletOperationOptions,  // 共通オプション { lock?: boolean }
-  AdjustBalanceOptions,    // adjustBalance用 { lock?, skipHistory? }
+  WalletOperationOptions,  // 共通オプション { lock?: boolean, wallet?: Wallet }
+  AdjustBalanceOptions,    // adjustBalance用 { lock?, wallet?, skipHistory? }
   GetWalletOptions,        // getWallet用 { lock?, createIfNotExists? }
 } from "@/features/core/wallet";
 ```
@@ -199,7 +199,7 @@ wallet: {
 const wallet = await walletService.reserveBalance(
   { userId, walletType, amount },
   tx?,
-  { lock?: boolean }
+  { lock?: boolean, wallet?: Wallet }
 );
 ```
 
@@ -223,7 +223,7 @@ const wallet = await walletService.releaseReservation(
 const result = await walletService.consumeReservedBalance(
   { userId, walletType, amount, sourceType, reason?, meta? },
   tx?,
-  { lock?: boolean }
+  { lock?: boolean, wallet?: Wallet }
 );
 // result: { wallet: Wallet, history: WalletHistory }
 ```
@@ -266,6 +266,11 @@ await walletService.adjustBalance(params);
 await walletService.adjustBalance(params, tx, { lock: true });
 await walletService.reserveBalance(params, tx, { lock: true });
 ```
+
+- `debitBalance` は wallet を渡さなければ常に行ロックで読む（`lock` オプションなし）
+- `adjustBalance` / `reserveBalance` / `consumeReservedBalance` / `debitBalance` は取得済みの `wallet` を受け取れる（再取得せず、`lock` も見ない）
+- `wallet` を渡す契約: 呼び出し元が同じトランザクション内でその行のロックを保持していること。ロックなしで読んだ値を渡すと更新が失われる（実行時の検査はない）
+- `releaseReservation` は `wallet` を使わない
 
 ---
 
@@ -444,8 +449,8 @@ import type {
   TransactionClient,
 
   // オプション型
-  WalletOperationOptions,   // { lock?: boolean }
-  AdjustBalanceOptions,     // { lock?, skipHistory? }
+  WalletOperationOptions,   // { lock?: boolean, wallet?: Wallet }
+  AdjustBalanceOptions,     // { lock?, wallet?, skipHistory? }
   GetWalletOptions,         // { lock?, createIfNotExists? }
 
   // パラメータ型

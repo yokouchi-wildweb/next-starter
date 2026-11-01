@@ -26,10 +26,12 @@ export async function consumeReservedBalance(
   const amount = normalizeAmount(params.amount);
 
   return runWithTransaction(tx, async (trx) => {
-    // 有効期限が有効な通貨は必ず行ロックで読む（失効スイープとの並走で減算が消失するのを防ぐ）
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, {
-      lock: options?.lock || isExpirationEnabled(params.walletType),
-    });
+    // 渡された wallet は、呼び出し元が同じ TX 内で行ロックを保持している前提で再取得しない。
+    // 再取得する場合、有効期限が有効な通貨は必ず行ロックで読む（失効スイープとの並走で減算が消失するのを防ぐ）
+    const wallet = options?.wallet
+      ?? await getOrCreateWallet(trx, params.userId, params.walletType, {
+        lock: options?.lock || isExpirationEnabled(params.walletType),
+      });
     ensureLockedAmount(wallet, amount);
     if (wallet.balance < amount) {
       throw new DomainError("残高が不足しているため確定できません。", { status: 409 });

@@ -8,7 +8,6 @@ import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
 import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import { consumeLotsFifo } from "@/features/core/wallet/services/server/lots/lotAccounting";
-import { isExpirationEnabled } from "@/features/core/wallet/utils/expiration";
 import {
   ensureSufficientAvailable,
   getOrCreateWallet,
@@ -32,11 +31,10 @@ export async function debitBalance(
   const amount = normalizeAmount(params.amount);
 
   return runWithTransaction(tx, async (trx) => {
-    // 有効期限が有効な通貨は必ず行ロックで読む（失効スイープとの並走で減算が消失するのを防ぐ）
+    // 渡された wallet は、呼び出し元が同じ TX 内で行ロックを保持している前提で再取得しない。
+    // 渡されなければ必ず行ロックで読む（読み取り〜更新の間の減算の消失を防ぐ。失効スイープとの並走も同様）
     const wallet = options?.wallet
-      ?? await getOrCreateWallet(trx, params.userId, params.walletType, {
-        lock: isExpirationEnabled(params.walletType),
-      });
+      ?? await getOrCreateWallet(trx, params.userId, params.walletType, { lock: true });
     ensureSufficientAvailable(wallet, amount);
 
     const [updated] = await trx

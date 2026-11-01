@@ -55,8 +55,8 @@ export async function getOrCreateWallet(
       const retried = await selectWallet();
       if (retried) return retried;
     }
-    // その他の制約エラーはDomainErrorに変換
-    throw handleConstraintError(error);
+    // その他の制約エラーはDomainErrorに変換（INSERT なので書き込みとして報告する）
+    throw handleConstraintError(error, "write");
   }
 }
 

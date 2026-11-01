@@ -19,7 +19,9 @@ export async function reserveBalance(
   const amount = normalizeAmount(params.amount);
 
   return runWithTransaction(tx, async (trx) => {
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
+    // 渡された wallet は、呼び出し元が同じ TX 内で行ロックを保持している前提で再取得しない
+    const wallet = options?.wallet
+      ?? await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
     ensureSufficientAvailable(wallet, amount);
 
     const [updated] = await trx
