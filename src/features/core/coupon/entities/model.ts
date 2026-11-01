@@ -20,4 +20,5 @@ export type Coupon = {
   settings: Record<string, unknown>;
   createdAt: Date | null;
   updatedAt: Date | null;
+  deletedAt: Date | null;
 };
