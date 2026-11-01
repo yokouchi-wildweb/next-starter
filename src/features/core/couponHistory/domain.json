@@ -12,6 +12,14 @@
   "useCreatedAt": true,
   "useUpdatedAt": false,
   "useSoftDelete": false,
+  "indexes": [
+    {
+      "fields": [
+        "coupon_id",
+        "redeemer_user_id"
+      ]
+    }
+  ],
   "fields": [
     {
       "name": "coupon_id",

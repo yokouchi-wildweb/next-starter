@@ -28,6 +28,8 @@ export const WalletTable = pgTable(
     typeBalanceIdx: index("wallets_type_balance_idx").on(table.type, table.balance.desc()),
     // Analytics用（state軸）: sortBy=lockedBalance のランキング
     typeLockedBalanceIdx: index("wallets_type_locked_balance_idx").on(table.type, table.locked_balance.desc()),
+    // 差分リフレッシュ（createIncrementalRefresh）の走査と、絞り込みなしの更新日順の検索
+    updatedAtIdx: index("wallets_updated_at_idx").on(table.updatedAt),
   }),
 );
 

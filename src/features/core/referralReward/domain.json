@@ -24,6 +24,12 @@
         "status",
         "fulfilled_at"
       ]
+    },
+    {
+      "fields": [
+        "recipient_user_id",
+        "status"
+      ]
     }
   ],
   "fields": [

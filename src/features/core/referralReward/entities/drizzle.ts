@@ -18,5 +18,7 @@ export const ReferralRewardTable = pgTable("referral_rewards", {
   // 複合ユニーク制約 0: [referral_id, reward_key]
   uniqueIndex("referral_rewards_composite_unique_0").on(table.referral_id, table.reward_key),
   // インデックス: [status, fulfilled_at]
-  index("referral_rewards_status_fulfilled_at_idx").on(table.status, table.fulfilled_at)
+  index("referral_rewards_status_fulfilled_at_idx").on(table.status, table.fulfilled_at),
+  // インデックス: [recipient_user_id, status]（受け取り手を 1 人に絞った報酬の集計用）
+  index("referral_rewards_recipient_user_id_status_idx").on(table.recipient_user_id, table.status)
 ]);

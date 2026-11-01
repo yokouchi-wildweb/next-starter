@@ -53,6 +53,10 @@ export const UserTable = pgTable(
     // Analytics ユーザーフィルタ用（roles ホワイトリスト + デモ除外サブクエリ）
     roleIdx: index("users_role_idx").on(table.role),
     isDemoIdx: index("users_is_demo_idx").on(table.isDemo),
+    // 登録日の期間集計と、管理画面の一覧の既定の並び
+    createdAtIdx: index("users_created_at_idx").on(table.createdAt),
+    // 管理画面の一覧の更新日順と、差分リフレッシュ（createIncrementalRefresh）の走査
+    updatedAtIdx: index("users_updated_at_idx").on(table.updatedAt),
     // 表示名の重複チェック用 (services/server/helpers/nameAvailability.ts)。
     // unique 制約ではなく検索用の expression index。一意性フラグ (USER_NAME_CONFIG.unique)
     // とは独立に常設し、caseInsensitive の両モードで同じ index が効くよう lower() で正規化する
