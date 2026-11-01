@@ -404,8 +404,11 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   });
 
   test("オプションの無いサービスは今のまま（集まりの項目を扱わない）", async () => {
-    // 集まりのあるサービスが足すのは読み取り専用の collectionFields だけ（オプションの無いサービスには無い）
-    assert.deepEqual(Object.keys(parent).sort(), [...Object.keys(plain), "collectionFields"].sort());
+    // 集まりのあるサービスが足すのは読み取り専用の collectionFields と、中身を読む collectionEntries / collectionEntriesForParents だけ（オプションの無いサービスには無い）
+    assert.deepEqual(
+      Object.keys(parent).sort(),
+      [...Object.keys(plain), "collectionFields", "collectionEntries", "collectionEntriesForParents"].sort(),
+    );
     assert.deepEqual(parent.collectionFields, ["items"]);
     assert.equal(plain.collectionFields, undefined);
     const created = await plain.create({ name: "plain", items: ["a"] });
