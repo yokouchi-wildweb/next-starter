@@ -175,6 +175,7 @@ const REQUIRED_SUBJECT_ACTION_PREFIXES = [
   "purchase_quota.",
   "bank_transfer_review.",
   "coupon_grant.",
+  "messaging.",
 ];
 
 /**

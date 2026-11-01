@@ -9,7 +9,7 @@ import { ACTOR_TYPE_LABELS } from "@/features/core/auditLog/constants";
 
 /**
  * 既定の action 名 → 日本語ラベル辞書。
- * テンプレートで提供している user 系 action のみ含む。
+ * テンプレートが同梱するドメインの主な action を含む。
  * 他ドメインの action ラベルは src/config/app/audit.config.ts の AUDIT_ACTION_LABELS に足す。
  */
 const DEFAULT_ACTION_LABELS: Record<string, string> = {
@@ -54,6 +54,10 @@ const DEFAULT_ACTION_LABELS: Record<string, string> = {
   "wallet.balance.bulk_adjusted_by_type": "残高一括調整（通貨種別単位）",
   "wallet.balance.bulk_adjusted_by_users": "残高一括調整（ユーザー指定）",
   "wallet.balance.cleared": "残高クリア",
+
+  // messaging（受信者単位で 1 行ずつ記録される）
+  "messaging.message.sent": "メッセージ送信",
+  "messaging.message.failed": "メッセージ送信失敗",
 };
 
 /**
