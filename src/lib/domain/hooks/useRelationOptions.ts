@@ -25,7 +25,7 @@ type RelationConfig = {
   domain: string;
   label: string;
   fieldName: string;
-  fieldType: string;
+  fieldType?: string;
   relationType: string; // "belongsTo" | "belongsToMany"（JSON import 時は string になる）
   required?: boolean;
   /** リレーションフィールドのフォーム入力種別（省略時は belongsTo→select, belongsToMany→checkbox） */

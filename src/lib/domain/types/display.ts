@@ -9,6 +9,26 @@ export type DomainDisplayField = {
   fieldType?: string;
   formInput?: string;
   options?: readonly { readonly value: unknown; readonly label?: string }[];
+  required?: boolean;
+  readonly?: boolean;
+  /** 入力の初期値(型はフィールドごとに違う) */
+  defaultValue?: unknown;
+  displayType?: string;
+  placeholder?: string;
+  accept?: string;
+  validationRule?: Readonly<Record<string, unknown>>;
+  reorderable?: boolean;
+  helperText?: string;
+};
+
+export type DomainDisplayFieldGroup = {
+  key: string;
+  label: string;
+  /** グループに含む列名 */
+  fields: readonly string[];
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+  bgColor?: string;
 };
 
 export type DomainDisplayRelation = {
@@ -36,4 +56,8 @@ export type DomainDisplay = {
   useCreatedAt: boolean;
   useUpdatedAt: boolean;
   useSoftDelete: boolean;
+  useImportExport?: boolean;
+  sortOrderField?: string;
+  fieldGroups?: readonly DomainDisplayFieldGroup[];
+  tableFields?: readonly string[];
 };

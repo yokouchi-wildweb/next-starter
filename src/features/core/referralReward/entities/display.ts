@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "referralReward",
   "plural": "referralRewards",
   "label": "紹介報酬",
@@ -12,19 +12,22 @@ export const domainDisplay = {
       "name": "referral_id",
       "label": "紹介ID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "reward_key",
       "label": "報酬キー",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "recipient_user_id",
       "label": "受取人ID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "status",
@@ -44,19 +47,23 @@ export const domainDisplay = {
           "value": "failed",
           "label": "失敗"
         }
-      ]
+      ],
+      "required": true,
+      "defaultValue": "pending"
     },
     {
       "name": "fulfilled_at",
       "label": "付与日時",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     }
   ],
   "relations": [],
@@ -67,5 +74,14 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "useImportExport": false,
+  "tableFields": [
+    "referral_id",
+    "reward_key",
+    "recipient_user_id",
+    "status",
+    "fulfilled_at",
+    "createdAt"
+  ]
+};

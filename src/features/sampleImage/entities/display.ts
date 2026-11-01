@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "sample_image",
   "plural": "sample_images",
   "label": "画像",
@@ -12,13 +12,19 @@ export const domainDisplay = {
       "name": "file",
       "label": "画像",
       "fieldType": "mediaUploader",
-      "formInput": "mediaUploader"
+      "formInput": "mediaUploader",
+      "required": true,
+      "accept": "image/*",
+      "validationRule": {
+        "maxSizeBytes": 10485760
+      }
     },
     {
       "name": "sort_order",
       "label": "並び順",
       "fieldType": "string",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": false
     }
   ],
   "relations": [
@@ -34,5 +40,6 @@ export const domainDisplay = {
   "searchFields": [],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "sortOrderField": "sort_order"
+};

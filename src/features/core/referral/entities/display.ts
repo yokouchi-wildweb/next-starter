@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "referral",
   "plural": "referrals",
   "label": "紹介",
@@ -12,19 +12,22 @@ export const domainDisplay = {
       "name": "coupon_id",
       "label": "クーポンID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "inviter_user_id",
       "label": "招待者ID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "invitee_user_id",
       "label": "被招待者ID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "status",
@@ -40,7 +43,9 @@ export const domainDisplay = {
           "value": "cancelled",
           "label": "取消"
         }
-      ]
+      ],
+      "required": true,
+      "defaultValue": "active"
     }
   ],
   "relations": [],
@@ -50,5 +55,12 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "useImportExport": false,
+  "tableFields": [
+    "inviter_user_id",
+    "invitee_user_id",
+    "status",
+    "createdAt"
+  ]
+};

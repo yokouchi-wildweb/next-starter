@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "couponHistory",
   "plural": "couponHistories",
   "label": "クーポン使用履歴",
@@ -12,19 +12,22 @@ export const domainDisplay = {
       "name": "coupon_id",
       "label": "クーポンID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "redeemer_user_id",
       "label": "使用者ID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     }
   ],
   "relations": [],
@@ -34,5 +37,10 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": false,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "tableFields": [
+    "coupon_id",
+    "redeemer_user_id",
+    "createdAt"
+  ]
+};

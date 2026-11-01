@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "milestone",
   "plural": "milestones",
   "label": "マイルストーン",
@@ -12,25 +12,29 @@ export const domainDisplay = {
       "name": "user_id",
       "label": "ユーザーID",
       "fieldType": "uuid",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": true
     },
     {
       "name": "milestone_key",
       "label": "マイルストーンキー",
       "fieldType": "string",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": true
     },
     {
       "name": "achieved_at",
       "label": "達成日時",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": true
     },
     {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": false
     }
   ],
   "relations": [],
@@ -40,5 +44,12 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": false,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "useImportExport": false,
+  "tableFields": [
+    "user_id",
+    "milestone_key",
+    "achieved_at",
+    "createdAt"
+  ]
+};

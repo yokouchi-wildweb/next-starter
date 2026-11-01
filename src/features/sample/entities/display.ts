@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "sample",
   "plural": "samples",
   "label": "サンプル",
@@ -12,25 +12,31 @@ export const domainDisplay = {
       "name": "name",
       "label": "名前",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "number",
       "label": "数字",
       "fieldType": "integer",
-      "formInput": "numberInput"
+      "formInput": "numberInput",
+      "required": false,
+      "readonly": false,
+      "defaultValue": 999
     },
     {
       "name": "rich_number",
       "label": "リッチナンバー",
       "fieldType": "integer",
-      "formInput": "stepperInput"
+      "formInput": "stepperInput",
+      "required": false
     },
     {
       "name": "switch",
       "label": "スイッチ",
       "fieldType": "boolean",
-      "formInput": "switchInput"
+      "formInput": "switchInput",
+      "required": false
     },
     {
       "name": "radio",
@@ -46,7 +52,9 @@ export const domainDisplay = {
           "value": false,
           "label": "いいえ"
         }
-      ]
+      ],
+      "required": false,
+      "displayType": "bookmark"
     },
     {
       "name": "select",
@@ -66,7 +74,9 @@ export const domainDisplay = {
           "value": "berry",
           "label": "いちご"
         }
-      ]
+      ],
+      "required": false,
+      "defaultValue": "orange"
     },
     {
       "name": "multi_select",
@@ -86,55 +96,74 @@ export const domainDisplay = {
           "value": "cherry",
           "label": "さくらんぼ"
         }
-      ]
+      ],
+      "required": false
     },
     {
       "name": "sale_start_at",
       "label": "販売開始日",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "datetimeInput"
+      "formInput": "datetimeInput",
+      "required": false
     },
     {
       "name": "date",
       "label": "日付",
       "fieldType": "date",
-      "formInput": "dateInput"
+      "formInput": "dateInput",
+      "required": false
     },
     {
       "name": "time",
       "label": "時間",
       "fieldType": "time",
-      "formInput": "timeInput"
+      "formInput": "timeInput",
+      "required": false
     },
     {
       "name": "main_image",
       "label": "メイン画像",
       "fieldType": "mediaUploader",
-      "formInput": "mediaUploader"
+      "formInput": "mediaUploader",
+      "required": false,
+      "accept": "image/*,video/*",
+      "validationRule": {
+        "maxSizeBytes": 104857600
+      }
     },
     {
       "name": "sub_image",
       "label": "サブ画像",
       "fieldType": "mediaUploader",
-      "formInput": "mediaUploader"
+      "formInput": "mediaUploader",
+      "required": false,
+      "accept": "image/*,video/*",
+      "validationRule": {
+        "maxSizeBytes": 104857600
+      }
     },
     {
       "name": "images",
       "label": "画像",
       "fieldType": "mediaCollection",
-      "formInput": "mediaUploaderMulti"
+      "formInput": "mediaUploaderMulti",
+      "required": false,
+      "reorderable": true
     },
     {
       "name": "description",
       "label": "説明文",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": false,
+      "readonly": false
     },
     {
       "name": "sort_order",
       "label": "並び順",
       "fieldType": "string",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": false
     }
   ],
   "relations": [
@@ -167,5 +196,73 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": true
-} as const satisfies DomainDisplay;
+  "useSoftDelete": true,
+  "useImportExport": true,
+  "sortOrderField": "sort_order",
+  "fieldGroups": [
+    {
+      "key": "basic",
+      "label": "基本情報",
+      "fields": [
+        "name",
+        "description"
+      ],
+      "bgColor": "#f0f7ff"
+    },
+    {
+      "key": "numbers",
+      "label": "数値設定",
+      "fields": [
+        "number",
+        "rich_number"
+      ],
+      "bgColor": "#fff7e6"
+    },
+    {
+      "key": "selections",
+      "label": "選択項目",
+      "fields": [
+        "switch",
+        "radio",
+        "select",
+        "multi_select"
+      ],
+      "collapsible": true,
+      "bgColor": "#f6ffed"
+    },
+    {
+      "key": "datetime",
+      "label": "日時設定",
+      "fields": [
+        "sale_start_at",
+        "date",
+        "time"
+      ],
+      "collapsible": true,
+      "defaultCollapsed": true,
+      "bgColor": "#fff0f6"
+    },
+    {
+      "key": "media",
+      "label": "メディア",
+      "fields": [
+        "main_image",
+        "sub_image",
+        "images"
+      ],
+      "bgColor": "#f5f5f5"
+    }
+  ],
+  "tableFields": [
+    "name",
+    "number",
+    "rich_number",
+    "switch",
+    "radio",
+    "select",
+    "main_image",
+    "images",
+    "description",
+    "updatedAt"
+  ]
+};

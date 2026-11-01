@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "notification",
   "plural": "notifications",
   "label": "お知らせ",
@@ -12,19 +12,23 @@ export const domainDisplay = {
       "name": "title",
       "label": "タイトル",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": false
     },
     {
       "name": "body",
       "label": "本文",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": true
     },
     {
       "name": "image",
       "label": "画像",
       "fieldType": "mediaUploader",
-      "formInput": "mediaUploader"
+      "formInput": "mediaUploader",
+      "required": false,
+      "accept": "image/*"
     },
     {
       "name": "target_type",
@@ -44,19 +48,22 @@ export const domainDisplay = {
           "value": "individual",
           "label": "個別指定"
         }
-      ]
+      ],
+      "required": true
     },
     {
       "name": "target_user_ids",
       "label": "対象ユーザーID",
       "fieldType": "array",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "target_roles",
       "label": "対象ロール",
       "fieldType": "array",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "sender_type",
@@ -72,25 +79,29 @@ export const domainDisplay = {
           "value": "system",
           "label": "システム"
         }
-      ]
+      ],
+      "required": true
     },
     {
       "name": "created_by_id",
       "label": "作成者ID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "published_at",
       "label": "公開日時",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "datetimeInput"
+      "formInput": "datetimeInput",
+      "required": true
     }
   ],
   "relations": [
@@ -108,5 +119,11 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "tableFields": [
+    "title",
+    "sender_type",
+    "target_type",
+    "published_at"
+  ]
+};

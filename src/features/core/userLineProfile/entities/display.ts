@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "user_line_profile",
   "plural": "user_line_profiles",
   "label": "LINE連携プロフィール",
@@ -12,19 +12,22 @@ export const domainDisplay = {
       "name": "line_user_id",
       "label": "LINE ユーザーID",
       "fieldType": "string",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true
     },
     {
       "name": "display_name",
       "label": "LINE表示名",
       "fieldType": "string",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "picture_url",
       "label": "LINEプロフィール画像URL",
       "fieldType": "string",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     }
   ],
   "relations": [
@@ -40,5 +43,6 @@ export const domainDisplay = {
   "searchFields": [],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "useImportExport": false
+};

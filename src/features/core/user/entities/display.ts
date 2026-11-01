@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "user",
   "plural": "users",
   "label": "ユーザー",
@@ -66,25 +66,29 @@ export const domainDisplay = {
           "value": "custom",
           "label": "カスタム"
         }
-      ]
+      ],
+      "required": true
     },
     {
       "name": "provider_uid",
       "label": "プロバイダーUID",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "email",
       "label": "メールアドレス",
       "fieldType": "email",
-      "formInput": "emailInput"
+      "formInput": "emailInput",
+      "required": false
     },
     {
       "name": "name",
       "label": "表示名",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": false
     },
     {
       "name": "role",
@@ -100,7 +104,8 @@ export const domainDisplay = {
           "value": "user",
           "label": "一般ユーザー"
         }
-      ]
+      ],
+      "required": true
     },
     {
       "name": "status",
@@ -136,31 +141,39 @@ export const domainDisplay = {
           "value": "withdrawn",
           "label": "退会済み"
         }
-      ]
+      ],
+      "required": true,
+      "defaultValue": "pending"
     },
     {
       "name": "is_demo",
       "label": "デモユーザー",
       "fieldType": "boolean",
-      "formInput": "switchInput"
+      "formInput": "switchInput",
+      "required": true,
+      "defaultValue": false
     },
     {
       "name": "last_authenticated_at",
       "label": "最終認証日時",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "avatar_url",
       "label": "アバター画像URL",
       "fieldType": "string",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false,
+      "defaultValue": {}
     }
   ],
   "relations": [
@@ -182,5 +195,14 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": true
-} as const satisfies DomainDisplay;
+  "useSoftDelete": true,
+  "useImportExport": false,
+  "tableFields": [
+    "status",
+    "role",
+    "name",
+    "email",
+    "provider_type",
+    "createdAt"
+  ]
+};

@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "sample_tag",
   "plural": "sample_tags",
   "label": "サンプルタグ",
@@ -12,13 +12,15 @@ export const domainDisplay = {
       "name": "name",
       "label": "タグ名",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "description",
       "label": "説明",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": false
     }
   ],
   "relations": [
@@ -38,5 +40,11 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "useImportExport": false,
+  "tableFields": [
+    "name",
+    "description",
+    "updatedAt"
+  ]
+};

@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "chat_room",
   "plural": "chat_rooms",
   "label": "チャットルーム",
@@ -22,13 +22,15 @@ export const domainDisplay = {
           "value": "group",
           "label": "グループ"
         }
-      ]
+      ],
+      "required": true
     },
     {
       "name": "name",
       "label": "ルーム名",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": false
     },
     {
       "name": "participants",
@@ -61,5 +63,11 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": true
-} as const satisfies DomainDisplay;
+  "useSoftDelete": true,
+  "tableFields": [
+    "type",
+    "name",
+    "participants",
+    "updatedAt"
+  ]
+};

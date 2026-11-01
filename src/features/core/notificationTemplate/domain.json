@@ -69,7 +69,6 @@
     "category",
     "updatedAt"
   ],
-  "": false,
   "apiAccess": {
     "read": {
       "roleCategories": [

@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "coupon",
   "plural": "coupons",
   "label": "クーポン",
@@ -12,13 +12,15 @@ export const domainDisplay = {
       "name": "category",
       "label": "カテゴリ",
       "fieldType": "string",
-      "formInput": "combobox"
+      "formInput": "combobox",
+      "required": false
     },
     {
       "name": "code",
       "label": "クーポンコード",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "type",
@@ -38,7 +40,9 @@ export const domainDisplay = {
           "value": "invite",
           "label": "ユーザー招待"
         }
-      ]
+      ],
+      "required": true,
+      "defaultValue": "official"
     },
     {
       "name": "status",
@@ -54,79 +58,95 @@ export const domainDisplay = {
           "value": "inactive",
           "label": "無効"
         }
-      ]
+      ],
+      "required": true,
+      "defaultValue": "active"
     },
     {
       "name": "name",
       "label": "クーポン名",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "description",
       "label": "説明文",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": false
     },
     {
       "name": "image_url",
       "label": "イメージ画像",
       "fieldType": "mediaUploader",
-      "formInput": "mediaUploader"
+      "formInput": "mediaUploader",
+      "required": false,
+      "accept": "image/*"
     },
     {
       "name": "admin_label",
       "label": "管理者用ラベル",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": false
     },
     {
       "name": "admin_note",
       "label": "管理者用メモ",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": false
     },
     {
       "name": "valid_from",
       "label": "開始日",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "datetimeInput"
+      "formInput": "datetimeInput",
+      "required": false
     },
     {
       "name": "valid_until",
       "label": "終了日",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "datetimeInput"
+      "formInput": "datetimeInput",
+      "required": false
     },
     {
       "name": "max_total_uses",
       "label": "総使用回数上限",
       "fieldType": "integer",
-      "formInput": "numberInput"
+      "formInput": "numberInput",
+      "required": false
     },
     {
       "name": "max_uses_per_redeemer",
       "label": "使用者毎の上限",
       "fieldType": "integer",
-      "formInput": "numberInput"
+      "formInput": "numberInput",
+      "required": false
     },
     {
       "name": "current_total_uses",
       "label": "現在の総使用回数",
       "fieldType": "integer",
-      "formInput": "none"
+      "formInput": "none",
+      "required": true,
+      "defaultValue": 0
     },
     {
       "name": "attribution_user_id",
       "label": "帰属ユーザーID",
       "fieldType": "uuid",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     },
     {
       "name": "settings",
       "label": "カテゴリ設定",
       "fieldType": "jsonb",
-      "formInput": "none"
+      "formInput": "none",
+      "required": false
     }
   ],
   "relations": [],
@@ -138,5 +158,59 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": true
-} as const satisfies DomainDisplay;
+  "useSoftDelete": true,
+  "useImportExport": false,
+  "fieldGroups": [
+    {
+      "key": "code",
+      "label": "",
+      "fields": [
+        "type",
+        "category",
+        "code"
+      ]
+    },
+    {
+      "key": "basic",
+      "label": "基本設定",
+      "fields": [
+        "name",
+        "status",
+        "description",
+        "image_url"
+      ],
+      "bgColor": "#f0f7ff"
+    },
+    {
+      "key": "limits",
+      "label": "使用制限",
+      "fields": [
+        "valid_from",
+        "valid_until",
+        "max_total_uses",
+        "max_uses_per_redeemer"
+      ],
+      "bgColor": "#fffbe6"
+    },
+    {
+      "key": "admin",
+      "label": "",
+      "fields": [
+        "admin_label",
+        "admin_note"
+      ],
+      "bgColor": "#fff1f0"
+    }
+  ],
+  "tableFields": [
+    "code",
+    "type",
+    "category",
+    "status",
+    "name",
+    "admin_label",
+    "current_total_uses",
+    "valid_until",
+    "updatedAt"
+  ]
+};

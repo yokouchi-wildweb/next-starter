@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "notification_template",
   "plural": "notification_templates",
   "label": "お知らせテンプレート",
@@ -12,25 +12,31 @@ export const domainDisplay = {
       "name": "name",
       "label": "管理用名称",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "title",
       "label": "タイトル",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true,
+      "placeholder": "{{variableName}} で変数を埋め込めます"
     },
     {
       "name": "body",
       "label": "本文",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": true,
+      "placeholder": "{{variableName}} で変数を埋め込めます"
     },
     {
       "name": "variables",
       "label": "変数定義",
       "fieldType": "jsonb",
-      "formInput": "custom"
+      "formInput": "custom",
+      "required": false
     },
     {
       "name": "category",
@@ -46,7 +52,8 @@ export const domainDisplay = {
           "value": "manual",
           "label": "手動"
         }
-      ]
+      ],
+      "required": true
     }
   ],
   "relations": [],
@@ -56,5 +63,11 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "tableFields": [
+    "name",
+    "title",
+    "category",
+    "updatedAt"
+  ]
+};

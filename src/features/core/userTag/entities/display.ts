@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "user_tag",
   "plural": "user_tags",
   "label": "ユーザータグ",
@@ -12,7 +12,8 @@ export const domainDisplay = {
       "name": "name",
       "label": "タグ名",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "color",
@@ -76,13 +77,15 @@ export const domainDisplay = {
           "value": "gray",
           "label": "グレー"
         }
-      ]
+      ],
+      "required": false
     },
     {
       "name": "description",
       "label": "説明",
       "fieldType": "string",
-      "formInput": "textarea"
+      "formInput": "textarea",
+      "required": false
     }
   ],
   "relations": [
@@ -102,5 +105,12 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "useImportExport": false,
+  "tableFields": [
+    "name",
+    "color",
+    "description",
+    "updatedAt"
+  ]
+};
