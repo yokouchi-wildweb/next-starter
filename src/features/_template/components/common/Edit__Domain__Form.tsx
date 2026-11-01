@@ -16,12 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/__domain__/domain.json";
+import { domainDisplay } from "@/features/__domain__/entities/display";
 
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   __domain__: __Domain__;
@@ -33,7 +30,7 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
     resolver: zodResolver(__Domain__UpdateSchema) as Resolver<__Domain__UpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, __domain__) as __Domain__UpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, __domain__) as __Domain__UpdateFields,
   });
 
   const router = useRouter();

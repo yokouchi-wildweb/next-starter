@@ -5,16 +5,12 @@
 import type { __Domain__ } from "@/features/__domain__/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
-__DUPLICATE_IMPORT__import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/__domain__/domain.json";
-import presenters from "@/features/__domain__/presenters";
+__DUPLICATE_IMPORT__import presenters from "@/features/__domain__/presenters";
 import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 
 export type Admin__Domain__ListTableProps = {
   /**
@@ -28,7 +24,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
-  config,
+  config: __domain__Display,
   presenters,
   actionColumn: {
     header: "操作",

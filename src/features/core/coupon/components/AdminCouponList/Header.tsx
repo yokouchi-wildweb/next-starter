@@ -7,7 +7,6 @@ import Pagination from "../../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/core/coupon/domain.json";
 import { CreateButton } from "@/lib/crud/components/Buttons";
 import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
 
@@ -18,13 +17,13 @@ export type AdminCouponListHeaderProps = {
 };
 
 export default function AdminCouponListHeader({ page, perPage, total }: AdminCouponListHeaderProps) {
-  const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+  const hasSearch = couponDisplay.searchFields.length > 0;
   const params = useSearchParams();
 
   return (
     <ListTop title="発行済の公式クーポン">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/coupons/official?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {couponDisplay.useImportExport === true && (
         <DataMigrationButton domain={couponDisplay} searchParams={params.toString()} />
       )}
       <Pagination

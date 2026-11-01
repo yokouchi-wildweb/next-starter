@@ -1,12 +1,13 @@
 // src/components/Form/FieldRenderer/defaultValueBuilder.ts
 
+// 受け取るのは写し(entities/display.ts)の形。読み取りだけなので readonly、fieldType は無いこともある
 type DomainField = {
   name: string;
-  fieldType: string;
+  fieldType?: string;
   formInput?: string;
   // domain.json の defaultValue は JSON の値（jsonb 列では object / array もある）
   defaultValue?: unknown;
-  options?: { value: string | number | boolean; label: string }[];
+  options?: readonly { readonly value: unknown; readonly label?: string }[];
 };
 
 type DomainRelation = {
@@ -16,11 +17,11 @@ type DomainRelation = {
 };
 
 type DomainConfig = {
-  fields?: DomainField[];
-  relations?: DomainRelation[];
+  fields?: readonly DomainField[];
+  relations?: readonly DomainRelation[];
 };
 
-function isTimestampType(type: string): boolean {
+function isTimestampType(type: string | undefined): boolean {
   return type === "timestamp" || type === "timestamp With Time Zone";
 }
 
@@ -67,9 +68,9 @@ function getDefaultValueForType(field: DomainField): unknown {
 }
 
 /**
- * domain.json からフォームのデフォルト値を動的に生成する
+ * ドメインの写しからフォームのデフォルト値を動的に生成する
  *
- * @param config - domain.json の内容
+ * @param config - 写し(entities/display.ts の domainDisplay)
  * @param entity - 更新フォームの場合、既存エンティティを渡す
  * @returns フォームの defaultValues オブジェクト
  *

@@ -16,9 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import domainConfig from "@/features/notification/domain.json";
+import { domainDisplay } from "@/features/notification/entities/display";
 
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   notification: Notification;
@@ -30,7 +30,7 @@ export default function EditNotificationForm({ notification, redirectPath = "/" 
     resolver: zodResolver(NotificationUpdateSchema) as Resolver<NotificationUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, notification) as NotificationUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, notification) as NotificationUpdateFields,
   });
 
   const router = useRouter();

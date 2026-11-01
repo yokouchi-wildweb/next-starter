@@ -7,7 +7,6 @@ import { useState, type Key } from "react";
 import type { Notification } from "@/features/notification/entities";
 import { RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { DeleteButton, BulkDeleteButton } from "@/lib/crud/components";
-import config from "@/features/notification/domain.json";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -29,7 +28,7 @@ const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定
 
 function buildColumns(readCounts: Record<string, number>): DataTableColumn<Notification>[] {
   const baseColumns = buildDomainColumns<Notification>({
-    config,
+    config: notificationDisplay,
     presenters,
   });
 

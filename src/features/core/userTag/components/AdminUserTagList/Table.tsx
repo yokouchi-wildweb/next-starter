@@ -5,7 +5,6 @@
 import type { UserTag } from "@/features/core/userTag/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
-import config from "@/features/core/userTag/domain.json";
 import presenters from "@/features/core/userTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -23,7 +22,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<UserTag>[] = buildDomainColumns<UserTag>({
-  config,
+  config: userTagDisplay,
   presenters,
   actionColumn: {
     header: "操作",

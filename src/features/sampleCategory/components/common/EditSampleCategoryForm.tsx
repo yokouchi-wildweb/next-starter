@@ -16,12 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/sampleCategory/domain.json";
+import { domainDisplay } from "@/features/sampleCategory/entities/display";
 
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   sampleCategory: SampleCategory;
@@ -33,7 +30,7 @@ export default function EditSampleCategoryForm({ sampleCategory, redirectPath = 
     resolver: zodResolver(SampleCategoryUpdateSchema) as Resolver<SampleCategoryUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, sampleCategory) as SampleCategoryUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, sampleCategory) as SampleCategoryUpdateFields,
   });
 
   const router = useRouter();

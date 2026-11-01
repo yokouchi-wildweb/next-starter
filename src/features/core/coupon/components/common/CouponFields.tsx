@@ -14,7 +14,7 @@ import type {
 } from "@/components/Form/FieldRenderer/types";
 import { Button } from "@/components/Form/Button";
 import { Shuffle } from "lucide-react";
-import domainConfig from "@/features/core/coupon/domain.json";
+import { domainDisplay } from "@/features/core/coupon/entities/display";
 import { generateCouponCode } from "@/features/core/coupon/utils/generateCode";
 
 // メディア列の用途 ID（storageObject/purposes/coupon.ts の登録名）
@@ -22,7 +22,7 @@ const STORAGE_PURPOSES: Record<string, string> = {
   image_url: "coupon.image_url",
 };
 
-const baseFields = (domainConfig.fields ?? []).map((field) =>
+const baseFields = domainDisplay.fields.map((field) =>
   field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field,
 ) as FieldConfig[];
 
@@ -102,7 +102,7 @@ export function CouponFields<TFieldValues extends FieldValues>({
       fieldPatches={fieldPatches}
       insertBefore={insertBeforeProp}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

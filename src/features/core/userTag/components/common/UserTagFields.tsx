@@ -12,7 +12,7 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import domainConfig from "@/features/core/userTag/domain.json";
+import { domainDisplay } from "@/features/core/userTag/entities/display";
 
 export type UserTagFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -60,11 +60,11 @@ export function UserTagFields<TFieldValues extends FieldValues>({
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      baseFields={domainDisplay.fields as FieldConfig[]}
       fieldPatches={fieldPatches}
       insertBefore={insertBeforeProp}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

@@ -12,10 +12,7 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/sampleTag/domain.json";
-
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+import { domainDisplay } from "@/features/sampleTag/entities/display";
 
 type Props = {
   redirectPath?: string;
@@ -26,7 +23,7 @@ export default function CreateSampleTagForm({ redirectPath = "/" }: Props) {
     resolver: zodResolver(SampleTagCreateSchema) as Resolver<SampleTagCreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig) as SampleTagCreateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay) as SampleTagCreateFields,
   });
 
   const router = useRouter();

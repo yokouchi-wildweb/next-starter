@@ -12,12 +12,9 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/__domain__/domain.json";
+import { domainDisplay } from "@/features/__domain__/entities/display";
 
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
-const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
+const baseFields = domainDisplay.fields as FieldConfig[];
 
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -69,7 +66,7 @@ export function __Domain__Fields<TFieldValues extends FieldValues>({
       fieldPatches={fieldPatches}
       insertBefore={insertBefore}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

@@ -5,10 +5,6 @@
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/core/chatRoom/domain.json";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 import presenters from "@/features/core/chatRoom/presenters";
 import { useState } from "react";
 import ChatRoomDetailModal from "../common/ChatRoomDetailModal";
@@ -28,7 +24,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<ChatRoom>[] = buildDomainColumns<ChatRoom>({
-  config,
+  config: chatRoomDisplay,
   presenters,
   actionColumn: {
     header: "操作",

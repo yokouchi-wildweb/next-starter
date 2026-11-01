@@ -7,13 +7,12 @@ import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/core/userTag/domain.json";
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as userTagDisplay } from "@/features/core/userTag/entities/display";
 
 const paths = getAdminPaths("user-tags");
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = userTagDisplay.searchFields.length > 0;
 
 export type AdminUserTagListHeaderProps = {
   page: number;
@@ -27,7 +26,7 @@ export default function AdminUserTagListHeader({ page, perPage, total }: AdminUs
   return (
     <ListTop title="登録済みユーザータグの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {userTagDisplay.useImportExport === true && (
         <DataMigrationButton domain={userTagDisplay} searchParams={params.toString()} />
       )}
       <Pagination

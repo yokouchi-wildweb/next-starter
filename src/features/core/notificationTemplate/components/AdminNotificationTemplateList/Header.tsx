@@ -7,13 +7,12 @@ import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/core/notificationTemplate/domain.json";
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as notificationTemplateDisplay } from "@/features/core/notificationTemplate/entities/display";
 
 const paths = getAdminPaths("notification-templates");
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = notificationTemplateDisplay.searchFields.length > 0;
 
 export type AdminNotificationTemplateListHeaderProps = {
   page: number;
@@ -27,7 +26,7 @@ export default function AdminNotificationTemplateListHeader({ page, perPage, tot
   return (
     <ListTop title="登録済みお知らせテンプレートの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {notificationTemplateDisplay.useImportExport === true && (
         <DataMigrationButton domain={notificationTemplateDisplay} searchParams={params.toString()} />
       )}
       <Pagination

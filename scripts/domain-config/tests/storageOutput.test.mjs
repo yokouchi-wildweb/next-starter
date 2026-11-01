@@ -69,7 +69,7 @@ test("Fields: メディア列に purpose `<domain>.<field>` を付けて FieldRe
 
   const plain = generateFieldsFromConfig({ ...FIXTURE, fields: [FIXTURE.fields[0]] });
   assert.doesNotMatch(plain, /STORAGE_PURPOSES/);
-  assert.match(plain, /const baseFields = \(domainConfig\.fields \?\? \[\]\) as FieldConfig\[\];/);
+  assert.match(plain, /const baseFields = domainDisplay\.fields as FieldConfig\[\];/);
 });
 
 // ---- ファイル用途のエントリ（storagePurposeRegistry の AUTO ブロックの値） ----

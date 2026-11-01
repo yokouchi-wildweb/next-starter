@@ -5,14 +5,10 @@
 import type { SampleTag } from "@/features/sampleTag/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/sampleTag/domain.json";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 
 export type AdminSampleTagListTableProps = {
   /**
@@ -26,7 +22,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
-  config,
+  config: sampleTagDisplay,
   presenters,
   actionColumn: {
     header: "操作",

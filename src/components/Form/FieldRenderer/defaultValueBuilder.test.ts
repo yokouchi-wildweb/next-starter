@@ -19,6 +19,37 @@ import { FIELD_TYPES } from "../../../../scripts/domain-config/spec/fieldTypes.m
 import { FORM_INPUTS } from "../../../../scripts/domain-config/spec/formInputs.mjs";
 
 import { buildFormDefaultValues } from "./defaultValueBuilder";
+import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
+import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
+import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
+import chatRoomDomainConfig from "@/features/core/chatRoom/domain.json";
+
+describe("buildFormDefaultValues: 写しを受け取る", () => {
+  const cases = [
+    ["sample", sampleDisplay, sampleDomainConfig],
+    ["coupon", couponDisplay, couponDomainConfig],
+    ["chatRoom", chatRoomDisplay, chatRoomDomainConfig],
+  ] as const;
+
+  for (const [name, display, config] of cases) {
+    const normalized = normalizeDomainJsonConfig(config as Record<string, unknown>) as Parameters<typeof buildFormDefaultValues>[0];
+
+    test(`${name}: 作成の既定値が domain.json と同じ`, () => {
+      assert.deepEqual(buildFormDefaultValues(display), buildFormDefaultValues(normalized));
+    });
+
+    test(`${name}: 編集の既定値が domain.json と同じ`, () => {
+      const entity = { id: "x", name: "n", updated_at: "2026-01-01T00:00:00Z" };
+      assert.deepEqual(buildFormDefaultValues(display, entity), buildFormDefaultValues(normalized, entity));
+    });
+  }
+
+  test("fieldType が無い項目は既定の分岐(空文字)に落ちる", () => {
+    const config = { fields: [{ name: "a" }], relations: [] } as const;
+    assert.deepEqual(buildFormDefaultValues(config), { a: "" });
+    assert.deepEqual(buildFormDefaultValues(config, {}), { a: "" });
+  });
+});
 
 describe("buildFormDefaultValues: fieldType ごとの既定値", () => {
   const config = {

@@ -7,16 +7,12 @@ import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/core/chatRoom/domain.json";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 const paths = getAdminPaths("chat-rooms");
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = chatRoomDisplay.searchFields.length > 0;
 
 export type AdminChatRoomListHeaderProps = {
   page: number;
@@ -30,7 +26,7 @@ export default function AdminChatRoomListHeader({ page, perPage, total }: AdminC
   return (
     <ListTop title="登録済みチャットルームの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {chatRoomDisplay.useImportExport === true && (
         <DataMigrationButton domain={chatRoomDisplay} searchParams={params.toString()} />
       )}
       <Pagination

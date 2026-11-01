@@ -12,10 +12,7 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/core/chatRoom/domain.json";
-
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+import { domainDisplay } from "@/features/core/chatRoom/entities/display";
 
 export type ChatRoomFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -63,11 +60,11 @@ export function ChatRoomFields<TFieldValues extends FieldValues>({
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      baseFields={domainDisplay.fields as FieldConfig[]}
       fieldPatches={fieldPatches}
       insertBefore={insertBeforeProp}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

@@ -18,7 +18,7 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import type { FieldConfig } from "@/components/Form/Field/types";
 import type { FieldGroup } from "@/components/Form/FieldRenderer/types";
-import domainConfig from "@/features/core/coupon/domain.json";
+import { domainDisplay } from "@/features/core/coupon/entities/display";
 import { PackageDiscountsInput } from "./PackageDiscountsInput";
 
 type Props = {
@@ -46,7 +46,7 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
     resolver: zodResolver(CouponUpdateSchema) as Resolver<CouponUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, coupon) as CouponUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, coupon) as CouponUpdateFields,
   });
 
   const selectedCategory = useWatch({ control: methods.control, name: "category" as any }) as string | undefined;
@@ -69,7 +69,7 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
 
   // settingsFields がある場合、fieldGroups に動的セクションを追加
   const dynamicFieldGroups = useMemo<FieldGroup[]>(() => {
-    const base = (domainConfig as any).fieldGroups as FieldGroup[];
+    const base = domainDisplay.fieldGroups as FieldGroup[];
     if (settingsFields.length === 0) return base;
     return [
       ...base,

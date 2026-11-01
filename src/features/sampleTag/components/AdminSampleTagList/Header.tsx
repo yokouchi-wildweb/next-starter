@@ -9,16 +9,12 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { Button } from "@/components/Form/Button/Button";
 import { useSearchParams } from "next/navigation";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/sampleTag/domain.json";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
 const paths = getAdminPaths("sample-tags");
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = sampleTagDisplay.searchFields.length > 0;
 
 export type AdminSampleTagListHeaderProps = {
   page: number;
@@ -32,7 +28,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
   return (
     <ListTop title="登録済みサンプルタグの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {sampleTagDisplay.useImportExport === true && (
         <DataMigrationButton domain={sampleTagDisplay} searchParams={params.toString()} />
       )}
       <Pagination
@@ -45,7 +41,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      {"sortOrderField" in config && Boolean(config.sortOrderField) && (
+      {Boolean(sampleTagDisplay.sortOrderField) && (
         <Button variant="outline" asChild>
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>

@@ -5,8 +5,8 @@ import type { FieldPresenter } from "./formatters";
 import { formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
 type FieldOption = {
-  value: string | number | boolean;
-  label: string;
+  readonly value: unknown;
+  readonly label?: string;
 };
 
 type DomainFieldConfig = {
@@ -14,7 +14,7 @@ type DomainFieldConfig = {
   label?: string;
   formInput?: string;
   fieldType?: string;
-  options?: FieldOption[];
+  options?: readonly FieldOption[];
 };
 
 type DomainRelationConfig = {
@@ -24,8 +24,8 @@ type DomainRelationConfig = {
 
 type DomainJsonConfig = {
   tableFields?: unknown;
-  fields?: DomainFieldConfig[];
-  relations?: DomainRelationConfig[];
+  fields?: readonly DomainFieldConfig[];
+  relations?: readonly DomainRelationConfig[];
   [key: string]: unknown;
 };
 

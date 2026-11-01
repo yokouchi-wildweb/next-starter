@@ -5,14 +5,10 @@
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/sampleCategory/domain.json";
 import presenters from "@/features/sampleCategory/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 
 export type AdminSampleCategoryListTableProps = {
   /**
@@ -26,7 +22,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCategory>({
-  config,
+  config: sampleCategoryDisplay,
   presenters,
   actionColumn: {
     header: "操作",

@@ -9,16 +9,12 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { Button } from "@/components/Form/Button/Button";
 import { useSearchParams } from "next/navigation";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/sampleCategory/domain.json";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
 
 const paths = getAdminPaths("sample-categories");
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = sampleCategoryDisplay.searchFields.length > 0;
 
 export type AdminSampleCategoryListHeaderProps = {
   page: number;
@@ -32,7 +28,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
   return (
     <ListTop title="登録済みサンプルカテゴリの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {sampleCategoryDisplay.useImportExport === true && (
         <DataMigrationButton domain={sampleCategoryDisplay} searchParams={params.toString()} />
       )}
       <Pagination
@@ -45,7 +41,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      {"sortOrderField" in config && Boolean(config.sortOrderField) && (
+      {Boolean(sampleCategoryDisplay.sortOrderField) && (
         <Button variant="outline" asChild>
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>

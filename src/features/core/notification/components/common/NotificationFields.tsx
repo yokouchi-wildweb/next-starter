@@ -15,7 +15,6 @@ import type {
 import { useRelationOptions } from "@/lib/domain/hooks";
 import { domainDisplay } from "@/features/notification/entities/display";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import domainConfig from "@/features/notification/domain.json";
 
 export type NotificationFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -76,11 +75,11 @@ export function NotificationFields<TFieldValues extends FieldValues>({
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      baseFields={domainDisplay.fields as FieldConfig[]}
       fieldPatches={fieldPatches}
       insertBefore={mergedInsertBefore}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

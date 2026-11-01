@@ -9,16 +9,12 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { Button } from "@/components/Form/Button/Button";
 import { useSearchParams } from "next/navigation";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawConfig from "@/features/__domain__/domain.json";
-
-const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
 import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
 
 const paths = getAdminPaths("__domainsSlug__");
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = __domain__Display.searchFields.length > 0;
 
 export type Admin__Domain__ListHeaderProps = {
   page: number;
@@ -32,7 +28,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
   return (
     <ListTop title="登録済み__DomainLabel__の一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
+      {__domain__Display.useImportExport === true && (
         <DataMigrationButton domain={__domain__Display} searchParams={params.toString()} />
       )}
       <Pagination
@@ -45,7 +41,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      {"sortOrderField" in config && Boolean(config.sortOrderField) && (
+      {Boolean(__domain__Display.sortOrderField) && (
         <Button variant="outline" asChild>
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>

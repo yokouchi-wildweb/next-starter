@@ -12,10 +12,7 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/__domain__/domain.json";
-
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+import { domainDisplay } from "@/features/__domain__/entities/display";
 
 type Props = {
   redirectPath?: string;
@@ -26,7 +23,7 @@ export default function Create__Domain__Form({ redirectPath = "/" }: Props) {
     resolver: zodResolver(__Domain__CreateSchema) as Resolver<__Domain__CreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig) as __Domain__CreateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay) as __Domain__CreateFields,
   });
 
   const router = useRouter();

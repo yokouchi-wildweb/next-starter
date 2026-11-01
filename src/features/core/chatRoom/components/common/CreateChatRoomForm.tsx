@@ -12,10 +12,7 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/core/chatRoom/domain.json";
-
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+import { domainDisplay } from "@/features/core/chatRoom/entities/display";
 
 type Props = {
   redirectPath?: string;
@@ -26,7 +23,7 @@ export default function CreateChatRoomForm({ redirectPath = "/" }: Props) {
     resolver: zodResolver(ChatRoomCreateSchema) as Resolver<ChatRoomCreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig) as ChatRoomCreateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay) as ChatRoomCreateFields,
   });
 
   const router = useRouter();

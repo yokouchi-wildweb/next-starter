@@ -16,12 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/sampleTag/domain.json";
+import { domainDisplay } from "@/features/sampleTag/entities/display";
 
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   sampleTag: SampleTag;
@@ -33,7 +30,7 @@ export default function EditSampleTagForm({ sampleTag, redirectPath = "/" }: Pro
     resolver: zodResolver(SampleTagUpdateSchema) as Resolver<SampleTagUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, sampleTag) as SampleTagUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, sampleTag) as SampleTagUpdateFields,
   });
 
   const router = useRouter();

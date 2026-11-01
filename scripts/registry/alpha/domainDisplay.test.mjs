@@ -173,6 +173,28 @@ test("実物 chatRoom: 写しの列名は normalizeDomainJsonConfig の結果と
   assert.ok(display.tableFields.includes("updatedAt"));
 });
 
+test("全ドメイン: 部品が読む項目の値は domain.json(Firestore は名前の変換後)と同じ", () => {
+  const { outputs } = buildAlphaRegistries(process.cwd());
+  const FIELD_VALUE_KEYS = ["label", "fieldType", "formInput", "options", "required", "readonly", "defaultValue", "displayType", "placeholder", "accept", "validationRule", "reorderable", "helperText"];
+  for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
+    const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs[path])[1]);
+    const config = JSON.parse(readFileSync(path.replace("entities/display.ts", "domain.json"), "utf8"));
+    const name = (value) => (config.dbEngine === "Firestore" ? toCamelCase(value) || value : value);
+    const hidden = new Set(config.hiddenColumns ?? []);
+    const isPublic = (value) => !hidden.has(toCamelCase(value) || value);
+    const fields = (config.fields ?? []).filter((f) => isPublic(f.name));
+    assert.deepEqual(display.fields.map((f) => f.name), fields.map((f) => name(f.name)), path);
+    fields.forEach((field, index) => {
+      for (const key of FIELD_VALUE_KEYS) assert.deepEqual(display.fields[index][key], field[key], `${path} ${field.name}.${key}`);
+    });
+    assert.equal(display.useImportExport, config.useImportExport, path);
+    assert.equal(display.sortOrderField, config.sortOrderField && name(config.sortOrderField), path);
+    assert.deepEqual(display.tableFields, config.tableFields?.filter(isPublic).map(name), path);
+    assert.deepEqual(display.fieldGroups, config.fieldGroups?.map((g) => ({ ...g, fields: g.fields.filter(isPublic).map(name) })), path);
+    assert.deepEqual(display.relations.map((r) => r.fieldName), (config.relations ?? []).filter((r) => isPublic(r.fieldName)).map((r) => name(r.fieldName)), path);
+  }
+});
+
 test("registry の検査: 写しがずれると stale", () => {
   const dir = mkdtempSync(join(tmpdir(), "display-"));
   try {

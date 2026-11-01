@@ -7,7 +7,6 @@ import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 const RELATION_IMPORTS = `import { useRelationOptions } from "@/lib/domain/hooks";
-import { domainDisplay } from "@/features/__domain__/entities/display";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 `;
 
@@ -58,7 +57,7 @@ export function collectionFieldPatches(config, collectionChildren = new Map()) {
 function baseFieldsBlock(mediaFields, collectionPatches) {
   if (!mediaFields.length && !collectionPatches.length) {
     return `
-const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
+const baseFields = domainDisplay.fields as FieldConfig[];
 `;
   }
   const blocks = [];
@@ -91,7 +90,7 @@ ${collectionPatches.map(({ name, patch }) => `  ${name}: ${JSON.stringify(patch)
 }`;
   }
   return `${blocks.join("")}
-const baseFields = (domainConfig.fields ?? []).map((field) =>${callback}) as FieldConfig[];
+const baseFields = domainDisplay.fields.map((field) =>${callback}) as FieldConfig[];
 `;
 }
 
@@ -121,10 +120,7 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-${hasRelations ? RELATION_IMPORTS : ""}import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/__domain__/domain.json";
-
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+${hasRelations ? RELATION_IMPORTS : ""}import { domainDisplay } from "@/features/__domain__/entities/display";
 ${baseFieldsBlock(collectMediaFields(config), collectionFieldPatches(config, collectionChildren))}
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -176,7 +172,7 @@ export function __Domain__Fields<TFieldValues extends FieldValues>({
       fieldPatches={fieldPatches}
       insertBefore={${insertBeforeValue}}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

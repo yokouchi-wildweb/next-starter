@@ -5,7 +5,6 @@
 import type { NotificationTemplate } from "@/features/core/notificationTemplate/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
-import config from "@/features/core/notificationTemplate/domain.json";
 import presenters from "@/features/core/notificationTemplate/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -23,7 +22,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<NotificationTemplate>[] = buildDomainColumns<NotificationTemplate>({
-  config,
+  config: notificationTemplateDisplay,
   presenters,
   actionColumn: {
     header: "操作",

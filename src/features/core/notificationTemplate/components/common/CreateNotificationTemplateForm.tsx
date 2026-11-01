@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import domainConfig from "@/features/core/notificationTemplate/domain.json";
+import { domainDisplay } from "@/features/core/notificationTemplate/entities/display";
 
 type Props = {
   redirectPath?: string;
@@ -23,7 +23,7 @@ export default function CreateNotificationTemplateForm({ redirectPath = "/" }: P
     resolver: zodResolver(NotificationTemplateCreateSchema) as Resolver<NotificationTemplateCreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig) as NotificationTemplateCreateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay) as NotificationTemplateCreateFields,
   });
 
   const router = useRouter();

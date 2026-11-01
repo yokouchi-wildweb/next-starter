@@ -13,12 +13,8 @@ import type {
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
 import { useRelationOptions } from "@/lib/domain/hooks";
-import { domainDisplay } from "@/features/sample/entities/display";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/sample/domain.json";
-
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+import { domainDisplay } from "@/features/sample/entities/display";
 
 // メディア列の用途 ID（src/registry/storagePurposeRegistry.ts の登録名）
 const STORAGE_PURPOSES: Record<string, string> = {
@@ -31,7 +27,7 @@ const COLLECTION_FIELD_PATCHES: Record<string, Partial<FieldConfig>> = {
   images: {"purpose":"sampleImage.file","accept":"image/*","validationRule":{"maxSizeBytes":10485760,"maxItems":8}},
 };
 
-const baseFields = (domainConfig.fields ?? []).map((field) => {
+const baseFields = domainDisplay.fields.map((field) => {
   const withPurpose = field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field;
   return field.name in COLLECTION_FIELD_PATCHES ? { ...withPurpose, ...COLLECTION_FIELD_PATCHES[field.name] } : withPurpose;
 }) as FieldConfig[];
@@ -99,7 +95,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
       fieldPatches={fieldPatches}
       insertBefore={mergedInsertBefore}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? (domainDisplay.fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

@@ -16,12 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/core/chatRoom/domain.json";
+import { domainDisplay } from "@/features/core/chatRoom/entities/display";
 
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   chatRoom: ChatRoom;
@@ -33,7 +30,7 @@ export default function EditChatRoomForm({ chatRoom, redirectPath = "/" }: Props
     resolver: zodResolver(ChatRoomUpdateSchema) as Resolver<ChatRoomUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, chatRoom) as ChatRoomUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, chatRoom) as ChatRoomUpdateFields,
   });
 
   const router = useRouter();

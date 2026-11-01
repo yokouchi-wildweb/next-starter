@@ -16,9 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import domainConfig from "@/features/core/userTag/domain.json";
+import { domainDisplay } from "@/features/core/userTag/entities/display";
 
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   userTag: UserTag;
@@ -30,7 +30,7 @@ export default function EditUserTagForm({ userTag, redirectPath = "/" }: Props) 
     resolver: zodResolver(UserTagUpdateSchema) as Resolver<UserTagUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, userTag) as UserTagUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, userTag) as UserTagUpdateFields,
   });
 
   const router = useRouter();

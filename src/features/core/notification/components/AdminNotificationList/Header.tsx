@@ -6,11 +6,11 @@ import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/notification/domain.json";
+import { domainDisplay } from "@/features/notification/entities/display";
 import { CreateButton } from "@/lib/crud/components";
 import { Send } from "lucide-react";
 
-const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
+const hasSearch = domainDisplay.searchFields.length > 0;
 
 export type AdminNotificationListHeaderProps = {
   page: number;

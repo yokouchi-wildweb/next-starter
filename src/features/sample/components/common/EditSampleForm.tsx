@@ -17,12 +17,9 @@ import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useAutoSaveConfig } from "@/components/Form/AutoSave";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-import rawDomainConfig from "@/features/sample/domain.json";
+import { domainDisplay } from "@/features/sample/entities/display";
 
-const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   sample: Sample;
@@ -34,7 +31,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
     resolver: zodResolver(SampleUpdateSchema) as Resolver<SampleUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, sample) as SampleUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, sample) as SampleUpdateFields,
   });
 
   const router = useRouter();

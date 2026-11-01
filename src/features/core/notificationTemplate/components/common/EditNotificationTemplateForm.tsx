@@ -16,9 +16,9 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import domainConfig from "@/features/core/notificationTemplate/domain.json";
+import { domainDisplay } from "@/features/core/notificationTemplate/entities/display";
 
-const adminPaths = getAdminPaths(domainConfig.plural);
+const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   notificationTemplate: NotificationTemplate;
@@ -30,7 +30,7 @@ export default function EditNotificationTemplateForm({ notificationTemplate, red
     resolver: zodResolver(NotificationTemplateUpdateSchema) as Resolver<NotificationTemplateUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig, notificationTemplate) as NotificationTemplateUpdateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay, notificationTemplate) as NotificationTemplateUpdateFields,
   });
 
   const router = useRouter();

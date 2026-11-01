@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import domainConfig from "@/features/core/userTag/domain.json";
+import { domainDisplay } from "@/features/core/userTag/entities/display";
 
 type Props = {
   redirectPath?: string;
@@ -23,7 +23,7 @@ export default function CreateUserTagForm({ redirectPath = "/" }: Props) {
     resolver: zodResolver(UserTagCreateSchema) as Resolver<UserTagCreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: buildFormDefaultValues(domainConfig) as UserTagCreateFields,
+    defaultValues: buildFormDefaultValues(domainDisplay) as UserTagCreateFields,
   });
 
   const router = useRouter();

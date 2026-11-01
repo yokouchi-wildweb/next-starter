@@ -5,7 +5,6 @@
 import type { Coupon } from "@/features/core/coupon/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud/components/Buttons";
-import config from "@/features/core/coupon/domain.json";
 import presenters from "@/features/core/coupon/presenters";
 import { useState } from "react";
 import CouponDetailModal from "../common/CouponDetailModal";
@@ -25,7 +24,7 @@ const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
-  config,
+  config: couponDisplay,
   presenters,
   actionColumn: {
     header: "操作",
