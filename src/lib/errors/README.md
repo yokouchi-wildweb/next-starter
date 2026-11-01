@@ -33,8 +33,12 @@ throw new DomainError("この操作は管理者のみ実行できます", { stat
 | `createHttpError({ message, status?, responseData?, cause? })` | HTTP 通信を介さない失敗（外部 SDK、ブラウザ API、クライアント側の検証）を `HttpError` として新たに作る。空文字の `message` は既定文言に置き換わる |
 | `err(error, fallback)` | UI で表示文言を得る。`resolveErrorMessage` の短縮形。内部で `normalizeHttpError` を通すので、想定外の値が来ても必ず文字列を返す |
 | `isHttpError(error)` | 型ガード。通常は `normalizeHttpError` / `err` が代わりに担う |
+| `getErrorCode(error)` | `responseData` の `code`（文字列）を返す。`HttpError` でない、または無ければ `null`。`status` だけでは区別できないエラーの分岐に使う |
+| `getErrorDetails(error)` | `responseData` の `details`（オブジェクト）を返す。`HttpError` でない、または無ければ `null`。中身の型は呼び出し側で検証する |
 
 既定のフォールバック文言は `リクエストに失敗しました`。
+
+開発中のブラウザでは、`normalizeHttpError` が axios の 401 / 403 を `console.warn` に出す（本番とサーバー側では出ない。`rethrowStatuses` で再 throw するステータスも出ない）。認可の拒否が「データ 0 件」に見えて気づけないのを防ぐためで、ボディに `domain` / `operation` があれば併記する。ログアウト中のセッション確認など、想定内の 401 でも出る。
 
 ## 使い方
 

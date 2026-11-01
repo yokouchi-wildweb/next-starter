@@ -63,6 +63,29 @@ function extractAxiosMessage(data: unknown): string | undefined {
 const DEFAULT_FALLBACK_MESSAGE = "リクエストに失敗しました";
 
 /**
+ * 開発中のブラウザに限り 401/403 をコンソールへ警告する。
+ * 認可の拒否は SWR 経由で「データ 0 件」として描画され、気づかず壊れたままになりやすい。
+ * サーバーがボディに載せる domain / operation があれば併記する（ドメインルートのみ）。
+ */
+function warnAuthDenialInDev(status: number, url: string | undefined, responseData: unknown): void {
+  if (process.env.NODE_ENV === "production") return;
+  if (typeof window === "undefined") return;
+
+  const info =
+    typeof responseData === "object" && responseData !== null
+      ? (responseData as { domain?: unknown; operation?: unknown })
+      : {};
+  const domain = typeof info.domain === "string" ? ` | domain: ${info.domain}` : "";
+  const operation = typeof info.operation === "string" ? ` | operation: ${info.operation}` : "";
+
+  console.warn(
+    `[authz] ${status} denied: ${url ?? "(unknown url)"}${domain}${operation}` +
+      " — domainEntry.ts の access とこの画面の利用権限が食い違っていないか確認してください" +
+      "（src/lib/routeFactory/README.md）",
+  );
+}
+
+/**
  * normalizeHttpError のオプション
  */
 export type NormalizeHttpErrorOptions = {
@@ -118,6 +141,10 @@ export function normalizeHttpError(
     const messageFromResponse = extractAxiosMessage(responseData);
     const message = messageFromResponse ?? error.message ?? fallbackMessage;
 
+    if (status === 401 || status === 403) {
+      warnAuthDenialInDev(status, error.config?.url, responseData);
+    }
+
     return new HttpError({
       message,
       status,
@@ -153,4 +180,34 @@ export function resolveErrorMessage(error: unknown, fallbackMessage: string): st
  */
 export function err(error: unknown, fallbackMessage: string): string {
   return resolveErrorMessage(error, fallbackMessage);
+}
+
+/**
+ * `HttpError` の `responseData` からサーバー側 DomainError の `code` を取り出します。
+ * `status` だけでは区別できないエラーを分岐するときに使います。
+ *
+ * @returns 文字列の code があればその値、なければ null
+ */
+export function getErrorCode(error: unknown): string | null {
+  if (!(error instanceof HttpError)) return null;
+  const data = error.responseData;
+  if (typeof data !== "object" || data === null) return null;
+  const code = (data as { code?: unknown }).code;
+  return typeof code === "string" ? code : null;
+}
+
+/**
+ * `HttpError` の `responseData` からサーバー側 DomainError の `details` を取り出します。
+ * 中身の型は保証しないので、呼び出し側で検証してください。
+ *
+ * @returns オブジェクトの details があればその値、なければ null
+ */
+export function getErrorDetails(error: unknown): Record<string, unknown> | null {
+  if (!(error instanceof HttpError)) return null;
+  const data = error.responseData;
+  if (typeof data !== "object" || data === null) return null;
+  const details = (data as { details?: unknown }).details;
+  return typeof details === "object" && details !== null
+    ? (details as Record<string, unknown>)
+    : null;
 }
