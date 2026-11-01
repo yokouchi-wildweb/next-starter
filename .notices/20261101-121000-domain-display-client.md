@@ -1,0 +1,18 @@
+# DOWNSTREAM NOTICE id:20261101-121000-domain-display-client
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-01T12:10:00+09:00
+severity: breaking
+checkpoint: domain-display-client
+change: Client code no longer reads domain.json. Admin client parts, _template and generated Fields read <domain>/entities/display.ts (domainDisplay). The copy gains top keys useImportExport, sortOrderField, fieldGroups, tableFields and field keys required, readonly, defaultValue, displayType, placeholder, accept, validationRule, reorderable, helperText (all optional in DomainDisplay). New lint import-boundaries/client-no-domain-json (error in all tiers).
+why: Client bundles carried whole domain.json files with apiAccess, generateFiles and dbEngine. The copy is an allowlist, so a new key cannot reach the client by accident.
+required_actions:
+1. Merge upstream up to this checkpoint. Take notices in order: oripa-demo after oripa-do. voranowa and oripa-demo: older shared code still reads uploadPath and metadataBinding, so apply the older notices one by one before this one.
+2. Run `pnpm registry:generate`, then `pnpm dc:generate:all --yes`, then `pnpm registry:generate` again.
+3. Run `node scripts/codemods/domain-json-client-display.mjs` from the repo root (idempotent). It rewrites hand-owned client files and lists the files it did not rewrite. Measured by a dry run without writes: oripa-do and pandora list src/features/mediaAsset/components/common/mediaAssetSelectTableColumns.ts and src/features/movieClip/components/AdminMovieClipList/Table.tsx; the other 6 forks list nothing.
+4. Move each listed file to domainDisplay by hand. A key the copy does not have (fork-only key, defaultOrderBy, metadataBinding, uploadPath, field description, apiAccess, generateFiles, dbEngine): pass the value from a server loader, or keep the import with a reasoned eslint-disable on that line.
+5. Run `pnpm typecheck`. Fix code that relied on literal types: the declaration changed from `as const satisfies DomainDisplay` to `: DomainDisplay`, so values such as field names are `string` and fields is a readonly array. Cast at the call site (`domainDisplay.fields as FieldConfig[]`).
+6. Run `pnpm lint`. import-boundaries/client-no-domain-json flags domain.json imported (value, type, import(), export from) by a "use client" file or a file under components/, hooks/ or _components/. Not flagged: *Screen.tsx and loader.ts under _components/ without "use client", server files, tests.
+verify: `pnpm test:domain-display` passes (a fork that added hidden columns also passes the hiddenColumns check), `pnpm registry:check` passes, `pnpm typecheck` and `pnpm lint` report no error, and `git grep -nE 'from "[^"]*domain\.json"' -- 'src/*components*' 'src/*hooks*'` lists only tests and reasoned eslint-disable lines.
+manual_steps: -
+refs: src/lib/domain/README.md (写す項目 and 読み方), scripts/registry/alpha/domainDisplay.mjs, eslint-rules/import-boundaries.mjs, scripts/codemods/domain-json-client-display.mjs
+notes: In the copy, relations.fieldName is now camelCase for Firestore domains and a relation pointing at a hiddenColumns column is not copied. useRelationOptions, buildFormDefaultValues and buildDomainColumns only widened their accepted types (readonly arrays, optional fieldType): callers need no change, and a field without fieldType falls to the default branch. Server code keeps reading its own domain.json through normalizeDomainJsonConfig. No schema change, no db:push. Measured on clones: 88-base 0 rewrites, TriQ 3 rewrites, with no type error from the copy.
