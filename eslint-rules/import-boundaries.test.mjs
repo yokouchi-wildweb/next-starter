@@ -12,6 +12,7 @@ import plugin, {
   classifyLibRegistryImport,
   classifyPageGuardImport,
   classifyRouteFactoryImport,
+  isClientCodeFile,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
 
@@ -101,6 +102,51 @@ test("rule lib-no-features: 値も型も、別名も相対も止める。lib の
   });
 });
 
+test("isClientCodeFile: use client と場所で決め、差し替えの server の Screen・loader とテストは外す", () => {
+  const client = '// コメント\n\n"use client";\n';
+  assert.equal(isClientCodeFile("src/features/x/lib/a.ts", client), true);
+  assert.equal(isClientCodeFile("src/app/a/_screen/AScreen.tsx", client), true);
+  assert.equal(isClientCodeFile("src/features/x/components/A.tsx", ""), true);
+  assert.equal(isClientCodeFile("src/features/x/hooks/useA.ts", ""), true);
+  assert.equal(isClientCodeFile("src/app/a/_components/Part.tsx", ""), true);
+  assert.equal(isClientCodeFile("src/features/x/components/AScreen.tsx", ""), true, "components/ に例外なし");
+  assert.equal(isClientCodeFile("src/features/x/components/loader.ts", ""), true, "components/ に例外なし");
+  assert.equal(isClientCodeFile("src/app/(user)/a/_components/AScreen.tsx", client), true, "use client があれば Screen でも");
+  assert.equal(isClientCodeFile("src/app/a/_components/AScreen.tsx", ""), false);
+  assert.equal(isClientCodeFile("src/app/admin/(protected)/users/general/_components/loader.ts", ""), false);
+  assert.equal(isClientCodeFile("src/app/a/_screen/loader.ts", ""), false);
+  assert.equal(isClientCodeFile("src/features/x/services/server/a.ts", ""), false);
+  assert.equal(isClientCodeFile("src/components/Form/a.test.ts", ""), false);
+  assert.equal(isClientCodeFile("scripts/components/a.ts", ""), false);
+  assert.equal(isClientCodeFile("src/features/x/a.ts", '// "use client"\nconst a = 1;\n'), false, "コメントの中は数えない");
+});
+
+test("rule client-no-domain-json: import・型・import()・export from を止め、server は通す", () => {
+  const part = at("src/features/x/components/A.tsx");
+  const json = "@/features/x/domain.json";
+  ruleTester.run("client-no-domain-json", plugin.rules["client-no-domain-json"], {
+    valid: [
+      { code: `import { domainDisplay } from "@/features/x/entities/display";`, filename: part },
+      { code: `import c from "${json}";`, filename: at("src/features/x/services/server/drizzleBase.ts") },
+      { code: `import c from "${json}";`, filename: at("src/app/admin/samples/new/_screen/loader.ts") },
+      { code: `import c from "${json}";`, filename: at("src/app/admin/(protected)/users/general/_components/loader.ts") },
+      { code: `import c from "${json}";`, filename: at("src/app/admin/x/_components/XScreen.tsx") },
+      { code: `import c from "${json}";`, filename: at("src/features/x/components/A.test.ts") },
+    ],
+    invalid: [
+      { code: `import c from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
+      { code: `import type c from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
+      { code: `import c from "../domain.json";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
+      { code: `import c from "@/features/user/domain.json";`, filename: at("src/features/x/hooks/useA.ts"), errors: [{ messageId: "clientDomainJson" }] },
+      { code: `const c = await import("${json}");`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
+      { code: `export { default } from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
+      { code: `"use client";\nimport c from "${json}";`, filename: at("src/app/a/_screen/Part.tsx"), errors: [{ messageId: "clientDomainJson" }] },
+      { code: `"use client";\nimport c from "${json}";`, filename: at("src/app/a/_components/AScreen.tsx"), errors: [{ messageId: "clientDomainJson" }] },
+      { code: `import c from "${json}";`, filename: at("src/app/a/_components/Part.tsx"), errors: [{ messageId: "clientDomainJson" }] },
+    ],
+  });
+});
+
 // eslint.config.mjs の当て方(全 Tier error・lib のテストは lib-no-registry の対象外)を実ファイルパスで確かめる
 const lintAt = async (filePath, code) => {
   const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
@@ -176,4 +222,10 @@ test("config: pageGuard の値 import は wiring の外で error、features の 
   const RE = `export { userService } from "@/features/core/user/services/server/userService";\n`;
   assert.deepEqual(await lintAt("src/features/core/user/index.ts", RE), ["import-boundaries/features-index-no-server-reexport:2"]);
   assert.deepEqual(await lintAt("src/features/core/user/services/server/index.ts", RE), []);
+});
+
+test("eslint.config: client-no-domain-json は src の client のコードに error で当たる", async () => {
+  const code = `import c from "@/features/sample/domain.json";\nexport default c;\n`;
+  assert.ok((await lintAt("src/features/sample/components/Probe.tsx", code)).includes("import-boundaries/client-no-domain-json:2"));
+  assert.ok(!(await lintAt("src/features/sample/services/server/probe.ts", code)).includes("import-boundaries/client-no-domain-json:2"));
 });

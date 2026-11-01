@@ -26,6 +26,12 @@
 // 型だけの再 export は可。理由: UI が barrel 経由でサーバーのサービスを値 import すると、UI の場所の検査(page-authz M4)を
 // 迂回できる(barrel のパスに services/server が出ない)。サーバーの値は services/server のパスから直接 import する。
 //
+// ── client-no-domain-json(D39) ──
+// client のコードは domain.json を import しない(値も型も。import() と export … from も)。読むのは写し entities/display.ts。
+// client のコード = "use client" のファイル、または src の components/・hooks/・_components/ の下のファイル。
+// _components/ の下で "use client" の無い *Screen.tsx と loader.ts は server の差し替えなので対象外。テストも対象外。
+// 判定は isClientCodeFile に 1 つ(置き換えスクリプト scripts/codemods/domain-json-client-display.mjs も同じものを使う)。
+//
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
@@ -63,6 +69,26 @@ export function classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, i
 export function classifyLibRegistryImport(importerRel, resolved) {
   return isUnder(importerRel, LIB) && isUnder(resolved, REGISTRY) ? "libRegistry" : null;
 }
+
+const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
+const COMMENTS_AT_TOP = /^(?:\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*/;
+
+/** ファイルの先頭(コメントの後)に "use client" があるか */
+export function hasUseClientDirective(text) {
+  return /^["']use client["']/.test(text.replace(COMMENTS_AT_TOP, ""));
+}
+
+/** client のコードか(lint 規則と置き換えスクリプトの共通の判定) */
+export function isClientCodeFile(importerRel, text) {
+  if (!importerRel.startsWith("src/") || TEST_FILE.test(importerRel)) return false;
+  if (hasUseClientDirective(text)) return true;
+  const dirs = importerRel.split("/").slice(0, -1);
+  if (dirs.includes("components") || dirs.includes("hooks")) return true;
+  if (!dirs.includes("_components")) return false;
+  return !/(^|\/)(?:[^/]*Screen\.tsx|loader\.ts)$/.test(importerRel);
+}
+
+export const isDomainJsonPath = (resolved) => Boolean(resolved) && /(^|\/)domain\.json$/.test(resolved);
 
 const repoRootOf = (context) => context.cwd ?? context.getCwd?.() ?? process.cwd();
 
@@ -179,6 +205,27 @@ const libNoFeatures = {
   },
 };
 
+const clientNoDomainJson = {
+  meta: {
+    type: "problem",
+    docs: { description: "client のコードは domain.json を import しない(写し entities/display.ts を読む)" },
+    messages: {
+      clientDomainJson:
+        '"{{source}}": client のコードは domain.json を import しません。写し entities/display.ts の domainDisplay を読みます。写しに無いキーが要るときは理由を書いて eslint-disable(詳細: src/lib/domain/README.md。置き換え: scripts/codemods/domain-json-client-display.mjs)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    if (!isClientCodeFile(repoRelative(context.filename, repoRoot), context.sourceCode.text)) return {};
+    return moduleVisitors(({ node, source }) => {
+      if (isDomainJsonPath(resolveImport(source, context.filename, repoRoot))) {
+        context.report({ node, messageId: "clientDomainJson", data: { source } });
+      }
+    });
+  },
+};
+
 const plugin = {
   meta: { name: "eslint-plugin-local-import-boundaries", version: "1.0.0" },
   rules: {
@@ -187,6 +234,7 @@ const plugin = {
     "features-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
     "lib-no-features": libNoFeatures,
+    "client-no-domain-json": clientNoDomainJson,
   },
 };
 

@@ -91,6 +91,14 @@ const config = [
       "import-boundaries/page-guard-via-wiring": "error",
     },
   },
+  // - client-no-domain-json: client のコードは domain.json を import しない(写しを読む。判定はプラグインの中)
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/client-no-domain-json": "error",
+    },
+  },
   {
     files: ["src/features/**/index.{ts,tsx}"],
     plugins: { "import-boundaries": importBoundariesPlugin },
