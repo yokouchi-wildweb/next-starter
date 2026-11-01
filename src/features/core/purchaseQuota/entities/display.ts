@@ -11,14 +11,14 @@ export const domainDisplay: DomainDisplay = {
     {
       "name": "user_id",
       "label": "ユーザーID",
-      "fieldType": "text",
+      "fieldType": "string",
       "formInput": "none",
       "required": true
     },
     {
       "name": "payment_method",
       "label": "決済方法",
-      "fieldType": "text",
+      "fieldType": "string",
       "formInput": "none",
       "required": true
     },
@@ -32,14 +32,14 @@ export const domainDisplay: DomainDisplay = {
     {
       "name": "purchase_request_id",
       "label": "購入リクエストID",
-      "fieldType": "text",
+      "fieldType": "string",
       "formInput": "none",
       "required": true
     },
     {
       "name": "status",
       "label": "ステータス",
-      "fieldType": "text",
+      "fieldType": "string",
       "formInput": "none",
       "required": true
     },
