@@ -26,7 +26,7 @@ export function profileFieldIssues(profile) {
     if (typeof field?.name !== "string" || field.name.length === 0) issues.push(`fields[${index}]: name を書いてください`);
     else if (!Object.hasOwn(FIELD_TYPES, String(field.fieldType))) {
       // 表に無い型は text 列・z.any() で生成が通り、列の型が黙って変わる（ドメインは forge の後の検査で止まる）
-      issues.push(`fields "${field.name}": fieldType ${JSON.stringify(field.fieldType)} は型の表にありません（綴りを直すか、型を src/lib/domain/fields/fieldTypes.mjs に足す）`);
+      issues.push(`fields "${field.name}": fieldType ${JSON.stringify(field.fieldType)} は型の表にありません（綴りを直してください）`);
     }
     else if (isMediaFieldType(field.fieldType) || isCollectionFieldType(field.fieldType)) {
       issues.push(`fields "${field.name}": fieldType "${field.fieldType}" はプロフィールでは使えません（ファイル台帳に未対応。用途を登録した別ドメインの列に置く）`);
