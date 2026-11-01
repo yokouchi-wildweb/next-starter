@@ -509,6 +509,10 @@ export const productService = createCrudService(ProductTable, {
 
 - 配列を載せる口: `get` / `getWithDeleted` / `list` / `listWithDeleted` / `search` / `searchWithDeleted` / `searchForSorting` と、create / update / upsert の戻り値
   - `restore` / `reorder` / `systemUpdate` / bulk 系の戻り値には載せない（その行を保存しても、省略 = 維持なので失わない）
+- `base.query()` も、行の直下に `id`（文字列か数値）がある行にだけ同じ配列を載せる。費用は他の口と同じく集まりごとに呼び出し 1 回で 1 クエリ。`id` の無い行には項目自体を付けない（`[]` にもしない）
+  - `id` は主の id として読む。別の表の id を `id` として select すると、誤った主の子が載る → 別の名前で出す
+  - 集まりの項目名と同じ出力キーは、`id` のある行では上書きされる
+  - `select({ item: table })` のような入れ子の行は直下に `id` が無いので載らない。こうした select や、サービスを通らない生の select には `collectionEntriesForParents` を使う
 - 件数で打ち切らない（`DEFAULT_HAS_MANY_LIMIT` や主のページの大きさに依らず全件）。従属が無ければ `[]`
 - 並びは 並びの列 ASC NULLS LAST → id ASC。text の並びの列は `COLLATE "C"`（下の「並びの鍵の照合順序」）
 - 集まりごとに呼び出し 1 回で 1 クエリ（主の id の IN）。呼び出し元の tx の外（`db`）で読む。複製の 1 段目の読み出しも同じ

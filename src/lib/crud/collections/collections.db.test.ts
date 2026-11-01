@@ -13,7 +13,7 @@ import { resolve } from "node:path";
 
 import { config as loadEnv } from "dotenv";
 import { randomUUID } from "node:crypto";
-import { asc, eq, isNull, sql } from "drizzle-orm";
+import { asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
 import type { CrudStorageBinding } from "@/lib/crud/storageIntegration/types";
@@ -612,6 +612,49 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     assert.deepEqual(forSorting.get(f.big.id), f.bigRefs);
     assert.deepEqual(forSorting.get(f.empty.id), []);
     assert.equal(forSorting.has(f.deleted.id), false);
+  });
+
+  test("base.query() は id のある行に集まりを全件・並び順で載せ、id の無い行には項目を付けず、total は変えない", async () => {
+    const f = await setupRead();
+    const where = inArray(ReadParentTable.id, [f.big.id, f.order.id, f.empty.id]);
+    const orderBy = [asc(ReadParentTable.name)];
+
+    // id のある行: 主のページが小さくても全件。従属が無ければ []
+    const page1 = await f.readParent.query(db.select().from(ReadParentTable), { where, orderBy, limit: 2 });
+    assert.equal(page1.total, 3);
+    assert.deepEqual(page1.results.map((row: Row) => [row.name, row.items]), [
+      ["a-big", f.bigRefs],
+      ["b-order", f.orderRefs],
+    ]);
+    const page2 = await f.readParent.query(db.select().from(ReadParentTable), { where, orderBy, limit: 2, page: 2 });
+    assert.equal(page2.total, 3);
+    assert.deepEqual(page2.results.map((row: Row) => [row.name, row.items]), [["c-empty", []]]);
+
+    // id の無い行: 項目自体を付けない
+    const noId = await f.readParent.query(db.select({ name: ReadParentTable.name }).from(ReadParentTable), { where, orderBy });
+    assert.equal(noId.total, 3);
+    assert.deepEqual(noId.results, [{ name: "a-big" }, { name: "b-order" }, { name: "c-empty" }]);
+
+    // 混在: id が NULL の行だけ項目を付けない
+    const mixed = await f.readParent.query(
+      db
+        .select({
+          id: sql<string | null>`case when ${ReadParentTable.name} = 'b-order' then ${ReadParentTable.id} end`,
+          name: ReadParentTable.name,
+        })
+        .from(ReadParentTable),
+      { where, orderBy },
+    );
+    assert.deepEqual(mixed.results, [
+      { id: null, name: "a-big" },
+      { id: f.order.id, name: "b-order", items: f.orderRefs },
+      { id: null, name: "c-empty" },
+    ]);
+
+    // オプションの無いサービスは載せない
+    const plain = await f.readPlain.query(db.select().from(ReadParentTable), { where, orderBy });
+    assert.equal(plain.total, 3);
+    for (const row of plain.results) assert.equal("items" in row, false);
   });
 
   test("オプションの無いサービスの読み出しは今のまま（集まりの項目を載せない）", async () => {

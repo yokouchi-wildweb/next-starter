@@ -13,6 +13,7 @@
 //   searchForSorting）: 返した主の行に、集まりごとに値の配列を全件（件数の上限なし）並び順で載せる。
 //   集まり 1 つにつき呼び出し 1 回で 1 クエリ（主の id の IN）。従属が無ければ []。restore / reorder /
 //   systemUpdate / bulk 系の戻り値には載せない（省略 = 維持なので保存しても失わない）
+// - query: select は呼び出し元が組むので、id（文字列か数値）のある行にだけ同じ射影で載せる。id の無い行には項目を付けない
 // - 他ドメインの withRelations で埋め込まれた主の行: 表の登録（tableCollections.ts）からリレーション展開が同じ射影で載せる
 // - collectionFields: 集まりの項目名を読み取り専用で出す（dataMigration の拒否・書き出しの除外が使う）
 // - duplicate / duplicateWithIdMap: applyCollectionDuplicate が storage binding の外側で包み、
@@ -57,6 +58,7 @@ type CollectionAwareService = {
   search(params?: any): Promise<PaginatedRows>;
   searchWithDeleted(params?: any): Promise<PaginatedRows>;
   searchForSorting(params: any): Promise<PaginatedRows>;
+  query(baseQuery: any, options?: any, countQuery?: any): Promise<any>;
   create(data: any, tx?: DbTransaction): Promise<any>;
   update(id: string, data: any, tx?: DbTransaction): Promise<any>;
   upsert(data: any, upsertOptions?: any, tx?: DbTransaction): Promise<any>;
@@ -205,6 +207,13 @@ export function applyCollections<TService extends CollectionAwareService>(
     // base の searchForSorting は this.search を呼ぶ。service から呼ぶので射影は包んだここの 1 回だけ
     async searchForSorting(params) {
       return projectPage(await service.searchForSorting(params));
+    },
+
+    // id の判定は belongsToMany の hydrate と同じ。id のある行が無ければクエリを増やさない
+    async query(baseQuery, options, countQuery) {
+      const page = await service.query(baseQuery, options, countQuery);
+      await project((page.results as Row[]).filter((row) => typeof row.id === "string" || typeof row.id === "number"));
+      return page;
     },
 
     async create(data, tx) {
