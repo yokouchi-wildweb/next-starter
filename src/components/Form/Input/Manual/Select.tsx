@@ -109,7 +109,6 @@ export function SelectInput({
       onValueChange={handleChange}
       onOpenChange={handleOpenChange}
       value={currentValue}
-      defaultValue={currentValue}
       disabled={disabled}
       {...rest}
     >
