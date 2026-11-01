@@ -20,11 +20,17 @@ config: src/config/ = values only (logic → domain utils or lib) | value change
 fork_ownership (check: pnpm ownership:check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
 - base = merge-base with the direct parent | files the fork added = fork-owned | files in the base = parent-owned: write only inside intake points, never delete / move / rename them (a `_` prefix rename too) | adding a file inside an ancestor's lib, or under src/features/core/ outside a receptacle = violation
 - multi-tier: strict only for files in the Tier1 version (walked from the ledger's upstream:\<sha\> to the version without .notices/applied) | files a middle tier added may be edited / deleted / renamed below it | fork name = fork_id: in .claude/rules/project.md (every repo; ledger, permits, CATALOG heading use it)
-- unused upstream page → switch it off (app-features pages / feature-gate) | unused role → enabled:false | replacement → _components/ under a new name, 1-line switch in page.tsx
+- unused upstream page → switch it off (app-features pages / feature-gate) | unused role → enabled:false | replacement allowed by FORK_EXTENSION → _components/ under a new name, 1-line switch in page.tsx
 - edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<fork name\>.permits.txt (≥1 order id; expires when all its orders ship as resolves: or the parent touches the file) | debt rows of intake.txt → permit with that row's order id
 fork_core_edit_compat (while a permit lets a fork edit a core path; upstream's own breaking change → notice is a separate rule, see core_ui):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
 - why: upstream `_screen/*` Screens stay in the fork's tsc scope even when its page.tsx points to `_components/` → an incompatible core edit fails tsc at the next merge | fix the fork's edit, never the upstream Screen | ref: src/lib/screens/README.md §7
+
+## FORK_EXTENSION
+principle: upstream provides the mechanisms | a fork may build any look and any feature | it does not copy behavior it does not change | new features and calling public services or Factories are not copying
+- 1. a public means is enough → use it | 2. the copy brings only looks and layout (visual state incl.) → copy OK at any line count
+- 3. unchanged behavior (form state, submit, effect logic, query, route, server logic) or a guard comes along, or no means → /order + temporary permit, upstream splits the part or adds a receptacle
+detail (guards, want → means, copy mark, receptacle limits) → .claude/rules/core/extensions.md
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
@@ -148,7 +154,7 @@ semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | ref: src/components/README.md
 - single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/
 core_ui: core domains ship UI as fine-grained parts (data / flow = hooks, display = props-only parts, 1 visual unit or 1 data shape each) composed into default containers under features/core/\<domain\>/components/ | every part is public: import only its entry (components/\<Name\> or common/\<Part\>), never a file inside (lint) | no private / public split | improve freely, breaking change → notice
-- forks never edit or add under src/features/core/** (receptacle items only; ownership:check) | fork changes UI: text / icons / colors → config | compose in the route Screen (_components/) from core parts + hooks, copy a container only when its parts do not fit | missing value prop → /order | children OK, no named ReactNode / component prop for swapping
+- forks never edit or add under src/features/core/** (receptacle items only; ownership:check) | fork changes UI: text / icons / colors → config | compose in the route Screen (_components/) from core parts + hooks, copy a container only as FORK_EXTENSION allows | missing value prop → /order | children OK, no named ReactNode / component prop for swapping
 essentials: raw HTML NG → components/ wrappers (div → Layout/*, button → Form/Button …) | lists = InfiniteScrollList + useInfiniteScrollQuery (never own sentinel / isLoading early return) | every background request shows loading (prefer Dialog / ConfirmPopover Promise handling, useAsyncAction) | ui_layers: page (h1, no hooks) → section container (calls hooks) → part
 overlays (never a raw _shadcn dialog or a self-built overlay; all under Overlays/, ref: src/components/Overlays/README.md):
 - modal: confirm → Dialog | generic → Modal | tabs → TabbedModal | media + rows → DetailModal | pick N from a large master → AsyncPickerModal
@@ -159,7 +165,7 @@ detail (wrapper table, ui_layers, data_seam, forms, async_select, optimistic upd
 ## SCREENS (page layer that downstream replaces without editing core)
 before adding or replacing a page, frame layout, Screen or loader → read src/lib/screens/README.md
 route_groups: (user)/(protected) = login required | (user)/(public) = public pages | (user)/(auth) = login / signup flows | (user)/(legal) = legal pages | (marketing)/ = landing pages outside the user layout | admin/ | debug/ | ref: src/app/README.md
-route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default Screen) + _screen/loader.ts | 1 route = 1 Screen | fork replaces = copy to _components/\<X\>Screen.tsx, keep calling the upstream loader, point page.tsx at it, never edit upstream _screen/ | src/app/route-map.jsonl generated (pnpm routes:map; 1 JSON per page = the guard chain, every row verified)
+route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default Screen) + _screen/loader.ts | 1 route = 1 Screen | fork replaces (per FORK_EXTENSION) = copy to _components/\<X\>Screen.tsx, keep calling the upstream loader, point page.tsx at it, never edit upstream _screen/ | src/app/route-map.jsonl generated (pnpm routes:map; 1 JSON per page = the guard chain, every row verified)
 detail (Screen / loader / session rules, contracts, downstream / upstream rules, tests, admin_generated) → .claude/rules/core/screens.md
 
 ## ERROR_HANDLING

@@ -59,7 +59,7 @@ src/app/(user)/
 
 1 対 1 の意味:
 - ユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。上流も fork も同じ
-- 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける。差し替え画面も 1 ページ 1 つ
+- 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける（コピーしてよいかは `.claude/rules/core/extensions.md` で判定）。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 1（データの無いページも access だけの loader を持つ）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
 - 対象外: API だけ。デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）も管理画面（`/admin/**`、手書きも dc:generate 由来も）も対象
@@ -227,15 +227,17 @@ src/app/(user)/(protected)/points/
 
 ### 上流の画面を変えたい（例: `/wallet/[slug]`）
 
-1. `_screen/WalletBalanceScreen.tsx` を同じルートの `_components/WalletBalanceScreen.tsx` にコピーする（差し替え画面は `<Name>Screen.tsx` と命名し、同じ `_components/` に置く部品と区別する）
-2. コピーの loader import を `./loader` から `../_screen/loader` に直す（loader は上流の `_screen/` に残したまま呼び続ける）。`_screen/` の部品を使い続けるならその import も `../_screen/<Part>` に直す（部品は契約外なので、上流が改名・削除したら自分の `_components/` にコピーして持つ）
+コピーの前に `.claude/rules/core/extensions.md` で判定する。変えない処理や守りが付いてくるならコピーせず、直接の親への `/order` と一時許可で通す。
+
+1. `_screen/WalletBalanceScreen.tsx` を同じルートの `_components/WalletBalanceScreen.tsx` にコピーし、先頭に `// copied-from: <元のパス>` を書く（差し替え画面は `<Name>Screen.tsx` と命名し、同じ `_components/` に置く部品と区別する）
+2. コピーの loader import を `./loader` から `../_screen/loader` に直す（loader は上流の `_screen/` に残したまま呼び続ける）。`_screen/` の部品を使い続けるならその import も `../_screen/<Part>` に直す（部品は契約外なので、上流が改名・削除したら、同じ判定のうえで自分の `_components/` にコピーして持つ）
 3. `page.tsx` の 1 行を自分のファイルに向ける
    ```tsx
    export { WalletBalanceScreen as default } from "./_components/WalletBalanceScreen";
    ```
 4. コピーした Screen の中を変える。loader（`load<Name>Screen`）はそのまま呼ぶ
    - レイアウトやタイトルだけ → セクションコンテナ（`features/<domain>/components/<Name>`）はそのまま描く
-   - 部品の並びや一部の部品 → セクションコンテナも `_components/` にコピーし、部品と hook は core から import する
+   - 部品の並びや一部の部品 → 付いてくるのが見た目と並べ方だけなら、セクションコンテナも `_components/` にコピーし、部品と hook は core から import する。フォームの state や送信が付いてくるなら `/order`
    - 見た目を全部作り直す → hook だけ使って自作
    - 上流の loader に無いサーバー側データが要る → `_components/loader.ts` に自分の loader を書く（同じ最寄りの guard.ts の `createLoader` で作る。上流の `_screen/loader.ts` は編集しない。両方呼んでよい）
 
@@ -307,7 +309,9 @@ export { WalletBalanceScreen as default } from "./_components/WalletBalanceScree
 
 ### 8.2 セクションコンテナも複製して部品を 1 つ差し替える
 
-`src/features/core/wallet/components/WalletBalance/index.tsx` を `src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalance.tsx` にコピーし、差し替えたい部品の import だけを自分のものに変える。残りの部品と hook は core から絶対パスで import されたまま動く。
+コンテナに付いてくるのが見た目と並べ方だけのときの例（変えない処理や守りが入っていれば、コピーせず `/order`。`.claude/rules/core/extensions.md`）。
+
+`src/features/core/wallet/components/WalletBalance/index.tsx` を `src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalance.tsx` にコピーし、先頭に `// copied-from: <元のパス>` を書いて、差し替えたい部品の import だけを自分のものに変える。残りの部品と hook は core から絶対パスで import されたまま動く。
 
 ```tsx
 // 変更前(core からそのまま)
@@ -357,9 +361,9 @@ export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 
 ## 11. 不採用の案（理由を残す）
 
-- **slot / registry 注入**: セクションコンテナの複製で代替。契約を増やさない。後から足すのは追加なので可逆
+- **core の部品への名前付き ReactNode の slot**: 契約が増える。見た目と並べ方はセクションコンテナの複製で足り、処理が付いてくるなら部品分割か既存の種類の受け口にする（`.claude/rules/core/extensions.md`）
 - **Screen を route 非依存の中央ディレクトリに置く**: 使わない Screen が中央に死蔵され、1 対 1 が構造から読めない
-- **Screen / loader を `features/core/<domain>/screens/` に置く**: core に UI を置かない方針と衝突し誤読を招く
+- **Screen / loader を `features/core/<domain>/screens/` に置く**: 画面はルートの持ち物で、core の UI は部品と既定のコンテナまで（CLAUDE.md `core_ui`）。1 対 1 が構造から読めなくなる
 - **セクションコンテナの改名（`*Page` → 別名）**: 下流の import を壊す
 - **page.tsx に loader 呼び出しを残す案**: 既定の構成を上流から更新できなくなり、差し替え手順が 2 通りに割れる
 - **ルートを 1 件ずつ登録する方式（初版の `UPSTREAM_ROUTES` / `FORK_SCREEN_ROUTES` + `owner`）**: 登録を忘れると検査が黙って抜け、ページを増やすたびに手間が要る。自動検出 + 例外リストに置き換えた（2026-10-17）

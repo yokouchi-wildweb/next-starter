@@ -36,7 +36,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 └── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、page 専用の部品
 ```
 
-- 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
+- 差し替え（コピーしてよいかは CLAUDE.md FORK_EXTENSION で判定）: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test:screens` が `src/app` 全体のページ（`_` で始まるディレクトリと `api/` を除く）を自動検出して検査する（登録不要。fork の独自エリアや debug / admin に足したページも対象）。検査から外すディレクトリだけ `src/config/app/screens.config.ts` の `FORK_SCAN_EXCLUDES` に書く。スイッチ形でない page.tsx は失敗する（未移行の例外リストは無い）
 - ルート地図 `route-map.jsonl`（このディレクトリ直下）は全ページの守りの鎖（page → Screen → loader の access → guard.ts の段）を 1 行 1 JSON にした生成物（機械が読む）。ページ・loader・guard.ts を変えたら `pnpm routes:map` で作り直してコミットする（ずれは `pnpm test:route-map` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm routes:show`、仕様は src/lib/screens/README.md §13）
 - 上流の core ルートは全て移行済み（wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップ / auth 16 / 手書きの管理画面 33）。新しい core ルートはスイッチ形で作る

@@ -39,7 +39,9 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
    constraints: <compat / must-not-break / perf / deadline | ->
    refs: <files, commits or code locations that show the need>
    notes: <anything else for the receiver | ->
+   tried: <means checked — why not enough>   (only for extension requests; omit the line otherwise)
    ```
+   - 受け口・部品分割・値の追加を頼むときは、先に `.claude/rules/core/extensions.md` で手段を確かめて `tried:` に書く
    - `from:` は先頭が発行元(3 通り。読み手は mailbox.mjs の `requester` で見分ける):
      - リポのセッション = `<origin url> | branch:<branch> | cwd:<path>`
      - チームの役職 = `<team> <instance> | role:<役職名> | repo:<origin url> | branch:<branch> | cwd:<path>`(例: `fleet 20261024-220119 | role:Admiral | …`。repo: は動いていたリポで、参考情報)
