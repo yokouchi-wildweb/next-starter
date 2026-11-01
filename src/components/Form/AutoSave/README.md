@@ -103,3 +103,5 @@ const autoSave = useAutoSaveConfig(trigger, sample.id, { debounceMs: 2000 });
 - オートセーブと明示的な送信ボタンは併用可能（送信ボタンで最終確定も可）
 - バリデーションエラー時は保存されない
 - 同じ `trigger` を使うため、`isMutating` はオートセーブ中も `true` になる
+- `ConfiguredFieldGroup`（`inlineGroups` の横並び）の中の入力は blur で自動保存しない（組み込みの入力も登録の部品も）。送信ボタンか、横並びの外の欄の保存で一緒に送られる
+- `onSave` が受けるのは Zod を通す前のフォームの値（`getValues`。数値の欄が文字列のままのことがある）。`useAutoSave` はその欄の検証だけを通し、変換した値は使わない。生成のドメインの `update` はサーバー側の `parseUpdate` が変換と検証をする。`parseUpdate` の無いサービスや手書きの `onSave` は、自分で変換する

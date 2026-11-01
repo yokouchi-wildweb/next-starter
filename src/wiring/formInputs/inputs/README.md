@@ -20,4 +20,6 @@ export const formInput = {
 
 部品は `{ field, fieldConfig, inputClassName, id, "aria-describedby", "aria-invalid" }` を受ける（`FormInputProps`）。`id`・`aria-*` を入力要素に渡すとラベルと結び付く。
 
+`frame: false` でも共通の枠が出すのは欄そのもののエラー（全体の `refine` など）だけ。内側の欄のエラー（`rates.min` など）は部品が自分で描く（`useFormState` の `errors`）。
+
 登録は描画だけ。初期値・Zod・列は `fieldType` が決め、一覧の表示（presenter）は含めない。

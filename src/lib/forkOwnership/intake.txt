@@ -137,6 +137,7 @@ generated src/wiring/dbAgent.ts  # pnpm extensions:generate
 generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/adminDataMenu.ts  # pnpm registry:generate(走査で丸ごと)
+generated src/features/feature-map.txt  # pnpm dc:feature-map(forge・dc:generate が書き直す)
 generated src/features/core/*/entities/display.ts  # pnpm registry:generate(表示用の写し)
 generated src/app/route-map.jsonl  # pnpm routes:map
 generated vercel.json  # pnpm cron:generate(upstream には無い)

@@ -81,6 +81,7 @@ describe("実リポジトリの intake.txt", () => {
       ["src/features/core/userProfile/profiles/user.profile.json", "add"],
       ["src/features/core/userProfile/profiles/index.ts", null],
       ["src/features/core/user/roles/editor.role.json", "add"],
+      ["src/features/feature-map.txt", "generated"],
       ["eslint.config.mjs", null],
       ["eslint.config.fork.mjs", "edit"],
       ["tsconfig.json", null],
