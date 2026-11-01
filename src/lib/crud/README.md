@@ -1110,7 +1110,20 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 - 式は `fractionalSort/sortKeyOrder.ts` の 1 か所: `sortKeyExpr` / `sortKeyAsc` / `sortKeyDesc` / `sortKeyGt`。text の列は `COLLATE "C"`、integer の列は何も足さない
 - 使う所: create の採番・`reorder`（先頭・次の行の `>` の比較）・`initializeSortOrder`・`fractionalSort/server.ts`・集まりの並び、と `sortOrderColumn` を名指しする `orderBy` / `defaultOrderBy`（`search` / `searchWithDeleted` / `list` / `listWithDeleted` / `searchForSorting`。`buildOrderBy` の `sortKeyColumn`）
 - 保存された鍵は書き換えない（並べ方と比べ方だけ）
-- index: 並びの列の普通の index は `COLLATE "C"` の並べ方・比べ方に使われない（DB の既定が C.UTF-8 でも）。並びの列に自分で index を張るなら `CREATE INDEX ... (sort_order COLLATE "C")` で作るか、列を `text COLLATE "C"` で宣言する。生成器は並びの列に index を出さない
+- index: 並びの列の普通の index は `COLLATE "C"` の並べ方・比べ方に使われない（DB の既定が C.UTF-8 でも）。自分で index を張るなら `sortKeyIndexColumn` で宣言する。生成器は並びの列に index を出さない
+  ```ts
+  import { sortKeyIndexColumn } from "@/lib/crud/drizzle/fractionalSort/sortKeyOrder";
+
+  index("items_sort_idx").on(sortKeyIndexColumn(table.sort_order));
+  index("items_parent_sort_idx").on(table.parent_id, sortKeyIndexColumn(table.sort_order));
+  ```
+  - integer の列には何も足さない。昇順 NULLS LAST のみ（lib の読み方と同じ。降順は後ろから読めば同じ index で足りる）
+  - 仕組み: drizzle の opclass 欄に `COLLATE "C"` を書く。drizzle-kit は opclass をそのまま SQL に出し、push の比較には使わない。drizzle-kit の更新で変わると `pnpm test:crud-sort-collation-db` が落ちる
+  - 使わない書き方:
+    - `` sql`${table.sort_order} COLLATE "C"` ``: 単一列でも複合でも、全列 sql でも、push のたびに DROP + CREATE になる
+    - 普通の `.on(table.sort_order)`: 新しい環境では C にならず、並びに使われない
+    - 列を `text COLLATE "C"` で宣言: push のたびに ALTER COLUMN が出る
+  - 既にある普通の index を書き換えても push は気づかない（opclass は比較されないので、同じ名前のままだと C にならない）。index の名前を変えて作り直す（表が大きければ書き込みの少ない時間に）
 - 自前の SQL で並びの列を並べる・比べるときも `sortKeyExpr`（`@/lib/crud/drizzle/fractionalSort/sortKeyOrder`）を使う
 
 ---

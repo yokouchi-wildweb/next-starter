@@ -6,7 +6,7 @@
 // - integer の列は何も足さない（今までの asc / desc / gt と同じ SQL）
 
 import { asc, desc, gt, sql, type SQL } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import type { AnyPgColumn, ExtraConfigColumn } from "drizzle-orm/pg-core";
 
 /** 並びの列が text（fractional の鍵）か */
 export function isTextSortKey(column: AnyPgColumn): boolean {
@@ -19,6 +19,26 @@ export function isTextSortKey(column: AnyPgColumn): boolean {
  */
 export function sortKeyExpr(column: AnyPgColumn, rendered: AnyPgColumn | SQL = column): AnyPgColumn | SQL {
   return isTextSortKey(column) ? sql`${rendered} collate "C"` : rendered;
+}
+
+/** index の列として渡せる形（向きや別の opclass を足せないように隠す） */
+export type SortKeyIndexColumn = Omit<ExtraConfigColumn, "asc" | "desc" | "nullsFirst" | "nullsLast" | "op">;
+
+/**
+ * 並びの鍵の index の列。text の列は COLLATE "C" 付き、それ以外は列そのもの（sortKeyExpr と同じ分け方）。
+ * `index("x").on(table.parent_id, sortKeyIndexColumn(table.sort_order))`
+ *
+ * - 2 回目の push で差分が出ず、新しい環境でも C の index ができる唯一の書き方
+ *   （drizzle の opclass 欄に書く。drizzle-kit は文字列をそのまま SQL に出し、比較には使わない）
+ * - 昇順 NULLS LAST のみ。opclass があると drizzle-kit は DESC を SQL に出さないので、向きを付けた列は例外にする
+ * - drizzle-kit の更新でこの動きが変わると sortKeyIndex.db.test.ts が落ちる
+ */
+export function sortKeyIndexColumn(column: ExtraConfigColumn): SortKeyIndexColumn {
+  const { order, nulls } = column.indexConfig;
+  if (order === "desc" || nulls === "first") {
+    throw new Error(`sortKeyIndexColumn: 並びの鍵の index は昇順 NULLS LAST のみです（${column.name}）`);
+  }
+  return isTextSortKey(column) ? column.op('COLLATE "C"') : column;
 }
 
 /** 並びの鍵の昇順 */

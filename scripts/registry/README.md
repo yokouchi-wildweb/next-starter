@@ -73,6 +73,7 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 | `sql\`col DESC\`` で作られた既存の物理 index（`DESC` = NULLS FIRST）を無停止で引き取る | `table.col.desc().nullsFirst()` | 物理 index と同じ nulls 順にする。新規作成なら `.desc()` だけでよい |
 | 式 index | `index("x").on(sql\`lower(btrim(${table.name}))\`)` | 純粋な式のみなら round-trip する（precedent: users_name_norm_idx） |
 | 通常列と式の混在 | **全列を `sql\`${table.col}\`` で書く**か、混在をやめる | DB 側は index 単位で全列が式扱いになるため、通常列が 1 つでもあると一致しない |
+| 並びの鍵の `COLLATE "C"`（単一・複合） | `sortKeyIndexColumn(table.sort_order)`（`src/lib/crud/README.md`「並びの鍵の照合順序」） | PostgreSQL は普通の列の `COLLATE` を式として持たないので、`sql` で書くと全列 `sql` でも単一列でも一致せず毎回再構築される。上の行の「全列を sql で」はこの場合に当てはまらない |
 | 部分 index の `where` | 書いてよいが、**`where` だけを変えても push は差分を検出しない**（既知のギャップ） | 変更時は手動で DROP / CREATE する |
 | 空配列 default | `text("x").array().default([]).notNull()` のまま | drizzle-kit の誤正規化（`'{}'` → `'{""}'`）はパッチで修正済み |
 | jsonb default | `jsonb("x").default({...})` のまま | キー順の不一致（PostgreSQL は jsonb のキーを長さ→バイト順で保存）はパッチで修正済み |
