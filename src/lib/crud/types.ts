@@ -57,7 +57,9 @@ export type QueryOp =
   | "arrayOverlaps";
 
 export type WhereExpr =
-  | { field: string; op: QueryOp; value: unknown }
+  | { field: string; op: Exclude<QueryOp, "isNull" | "isNotNull">; value: unknown }
+  // isNull / isNotNull は値を使わない（value: null などを渡してもよい）
+  | { field: string; op: "isNull" | "isNotNull"; value?: unknown }
   | { and: WhereExpr[] }
   | { or: WhereExpr[] };
 

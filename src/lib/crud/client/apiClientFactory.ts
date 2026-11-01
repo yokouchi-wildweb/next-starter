@@ -50,6 +50,12 @@ async function handleRequest<R>(action: CrudAction, fn: () => Promise<R>): Promi
 }
 
 /**
+ * 通常の操作の待ち時間の上限（1 リクエストごとに渡す。axios.defaults は他の通信にも効くので触らない）。
+ * bulk*・replaceByQuery・duplicate は件数やファイルの数だけ時間がかかるので上限を付けない
+ */
+const NORMAL_REQUEST = { timeout: 60_000 };
+
+/**
  * WithOptionsをクエリパラメータ文字列に変換
  */
 function buildWithOptionsParams(options?: WithOptions): string {
@@ -62,47 +68,68 @@ function buildWithOptionsParams(options?: WithOptions): string {
   return str ? `?${str}` : "";
 }
 
+/**
+ * search のクエリを組み立てる（axios のブラケット直列化だとルートが読めない値を、ルートが読む形にする）
+ * - where / relationWhere / orderBy / searchRank の spec: JSON
+ * - searchFields: カンマ区切り
+ * - 未指定・空の orderBy / searchFields は送らない
+ */
+function buildSearchQueryParams(params: SearchParams & WithOptions): Record<string, unknown> {
+  const queryParams: Record<string, unknown> = { ...params };
+
+  if (params.where) {
+    queryParams.where = JSON.stringify(params.where);
+  } else {
+    delete queryParams.where;
+  }
+
+  if (params.relationWhere) {
+    queryParams.relationWhere = JSON.stringify(params.relationWhere);
+  } else {
+    delete queryParams.relationWhere;
+  }
+
+  if (params.orderBy?.length) {
+    queryParams.orderBy = JSON.stringify(params.orderBy);
+  } else {
+    delete queryParams.orderBy;
+  }
+
+  if (params.searchFields?.length) {
+    queryParams.searchFields = params.searchFields.join(",");
+  } else {
+    delete queryParams.searchFields;
+  }
+
+  if (params.searchRank === undefined) {
+    delete queryParams.searchRank;
+  } else if (typeof params.searchRank === "object") {
+    queryParams.searchRank = JSON.stringify(params.searchRank);
+  }
+
+  return queryParams;
+}
+
 export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>>(
   baseUrl: string,
 ): ApiClient<T, CreateData, UpdateData> {
   return {
     getAll: (options?: WithOptions) =>
-      handleRequest("getAll", async () => (await axios.get<T[]>(`${baseUrl}${buildWithOptionsParams(options)}`)).data),
+      handleRequest("getAll", async () => (await axios.get<T[]>(`${baseUrl}${buildWithOptionsParams(options)}`, NORMAL_REQUEST)).data),
     getById: (id, options?: WithOptions) =>
-      handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}${buildWithOptionsParams(options)}`)).data),
+      handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}${buildWithOptionsParams(options)}`, NORMAL_REQUEST)).data),
     create: (data: CreateData) =>
-      handleRequest("create", async () => (await axios.post<T>(baseUrl, { data })).data),
+      handleRequest("create", async () => (await axios.post<T>(baseUrl, { data }, NORMAL_REQUEST)).data),
     update: (id, data: UpdateData) =>
-      handleRequest("update", async () => (await axios.put<T>(`${baseUrl}/${id}`, { data })).data),
+      handleRequest("update", async () => (await axios.put<T>(`${baseUrl}/${id}`, { data }, NORMAL_REQUEST)).data),
     delete: (id) =>
       handleRequest("delete", async () => {
-        await axios.delete(`${baseUrl}/${id}`);
+        await axios.delete(`${baseUrl}/${id}`, NORMAL_REQUEST);
         return undefined;
       }),
     search: (params: SearchParams & WithOptions) =>
       handleRequest("search", async () => {
-        const queryParams: Record<string, unknown> = { ...params };
-
-        if (params.where) {
-          queryParams.where = JSON.stringify(params.where);
-        } else {
-          delete queryParams.where;
-        }
-
-        if (params.relationWhere) {
-          queryParams.relationWhere = JSON.stringify(params.relationWhere);
-        } else {
-          delete queryParams.relationWhere;
-        }
-
-        // searchRank: boolean はそのまま、spec オブジェクトは JSON 化（axios のブラケット直列化を避ける）
-        if (params.searchRank === undefined) {
-          delete queryParams.searchRank;
-        } else if (typeof params.searchRank === "object") {
-          queryParams.searchRank = JSON.stringify(params.searchRank);
-        }
-
-        return (await axios.get<PaginatedResult<T>>(`${baseUrl}/search`, { params: queryParams })).data;
+        return (await axios.get<PaginatedResult<T>>(`${baseUrl}/search`, { params: buildSearchQueryParams(params), ...NORMAL_REQUEST })).data;
       }),
     bulkDeleteByIds: (ids) =>
       handleRequest("bulkDeleteByIds", async () => {
@@ -117,7 +144,7 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
     upsert: (data: CreateData, options?: UpsertOptions<CreateData>) =>
       handleRequest(
         "upsert",
-        async () => (await axios.put<T>(`${baseUrl}/upsert`, { data, options })).data,
+        async () => (await axios.put<T>(`${baseUrl}/upsert`, { data, options }, NORMAL_REQUEST)).data,
       ),
     bulkUpsert: (records: CreateData[], options?: BulkUpsertOptions<CreateData>) =>
       handleRequest(
@@ -164,18 +191,18 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
     restore: (id: string) =>
       handleRequest(
         "restore",
-        async () => (await axios.post<T>(`${baseUrl}/${id}/restore`)).data,
+        async () => (await axios.post<T>(`${baseUrl}/${id}/restore`, undefined, NORMAL_REQUEST)).data,
       ),
     hardDelete: (id: string) =>
       handleRequest("hardDelete", async () => {
-        await axios.delete(`${baseUrl}/${id}/hard-delete`);
+        await axios.delete(`${baseUrl}/${id}/hard-delete`, NORMAL_REQUEST);
         return undefined;
       }),
     reorder: (id: string, afterItemId: string | null) =>
-      handleRequest("reorder", async () => (await axios.post<T>(`${baseUrl}/${id}/reorder`, { afterItemId })).data),
+      handleRequest("reorder", async () => (await axios.post<T>(`${baseUrl}/${id}/reorder`, { afterItemId }, NORMAL_REQUEST)).data),
     searchForSorting: (params: SearchParams) =>
-      handleRequest("searchForSorting", async () => (await axios.post<PaginatedResult<T>>(`${baseUrl}/search-for-sorting`, params)).data),
+      handleRequest("searchForSorting", async () => (await axios.post<PaginatedResult<T>>(`${baseUrl}/search-for-sorting`, params, NORMAL_REQUEST)).data),
     count: (params: CountParams) =>
-      handleRequest("count", async () => (await axios.post<CountResult>(`${baseUrl}/count`, params)).data),
+      handleRequest("count", async () => (await axios.post<CountResult>(`${baseUrl}/count`, params, NORMAL_REQUEST)).data),
   };
 }
