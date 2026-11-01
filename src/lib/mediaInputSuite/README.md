@@ -125,10 +125,10 @@ import type { FieldPath } from "react-hook-form";
 import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldConfig, MediaFieldConfig } from "@/components/Form/Field";
 import { useMediaMetadataBinding } from "@/lib/mediaInputSuite";
-import domainConfig from "@/features/foo/domain.json";
+import { domainDisplay } from "@/features/foo/entities/display";
 
 export function FooFields({ methods, onMediaStateChange }) {
-  const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
+  const baseFields = domainDisplay.fields as FieldConfig[];
   const handleMetadata = useMediaMetadataBinding({
     methods,
     binding: { sizeBytes: "filesize" as FieldPath<FooCreateFields> },

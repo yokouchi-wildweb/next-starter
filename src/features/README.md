@@ -414,7 +414,7 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
 
 ### FieldGroup（フィールドグループ）
 
-管理画面フォームのフィールドをセクション（`<fieldset>` + legend）に分けて表示する。生成された `XxxFields` が domain.json の `fieldGroups` を自動で読み込む（props の `fieldGroups` 指定で上書きも可能）。
+管理画面フォームのフィールドをセクション（`<fieldset>` + legend）に分けて表示する。生成された `XxxFields` が写し（`entities/display.ts`）の `fieldGroups` を自動で読み込む（props の `fieldGroups` 指定で上書きも可能）。
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|

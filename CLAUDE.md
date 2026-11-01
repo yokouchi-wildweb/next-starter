@@ -92,7 +92,7 @@ push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:pus
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
 setting (core): singleton id "global" + 1 jsonb | key = setting/fields/\<key\>[.\<fork name\>].ts (Zod + .default(), public, allowRoles, ui), section = setting/sections/\<name\>[.\<fork name\>].ts → pnpm extensions:generate | admin changes it while running = setting, fixed at deploy or structural = config, never both | ref: src/features/core/setting/README.md
 config_utils: src/lib/domain/ (extractFields, getRelationsOf and the other *Of functions take a domain copy; client index.ts, server server.ts)
-domain_config: client = \<domain\>/entities/display.ts domainDisplay (pnpm registry:generate, no secrets), passed to parts as a value | server, one domain = its own domain.json + normalizeDomainJsonConfig | server, all domains = @/wiring/domainConfig (domainConfigRegistry is server-only) | ref: src/lib/domain/README.md
+domain_config: client = \<domain\>/entities/display.ts domainDisplay (pnpm registry:generate, allowlisted keys only), never import domain.json (lint client-no-domain-json) | server, one domain = its own domain.json + normalizeDomainJsonConfig | server, all domains = @/wiring/domainConfig (domainConfigRegistry is server-only) | ref: src/lib/domain/README.md
 inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 
 ## API_ROUTES

@@ -100,14 +100,22 @@ export const domainEntries = {
 
 ## 表示用の写し（entities/display.ts）
 
-client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`（型 `DomainDisplay`、`types/display.ts`）。`pnpm registry:generate` が domain.json の許可した項目だけを写す（singular・plural・label・fields の表示系・relations の表示系・searchFields・use* の 3 つ。非同期検索の関連には関連先の searchFields。hiddenColumns の列は写さない。Firestore は名前を camelCase に）。apiAccess・dbEngine・generateFiles・storage 等は写さない。`dc:generate` の後は `pnpm registry:generate`（ずれは `registry:check` が止める）。
+client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`（型 `DomainDisplay`、`types/display.ts`）。`pnpm registry:generate` が domain.json の許可した項目だけを写す。`dc:generate` の後は `pnpm registry:generate`（ずれは `registry:check` が止める）。
+
+- top: singular・plural・label・fields・relations・searchFields・useCreatedAt・useUpdatedAt・useSoftDelete・useImportExport・sortOrderField・fieldGroups（key・label・fields・collapsible・defaultCollapsed・bgColor）・tableFields
+- field: name・label・fieldType・formInput・options・required・readonly・defaultValue・displayType・placeholder・accept・validationRule・reorderable・helperText
+- relation: domain・label・fieldName・fieldType・relationType・required・formInput・labelField・includeRelationTable。非同期検索の関連には関連先の searchFields
+- 写さない: defaultOrderBy・metadataBinding・uploadPath・field の description・apiAccess・dbEngine・generateFiles・storage ほか一覧の外。domain.json にキーを足しても client には出ない（fork だけのキーも同じ）
+- 列名を持つ項目（fields・searchFields・tableFields・sortOrderField・fieldGroups[].fields・relations.fieldName）は、Firestore なら camelCase にし、hiddenColumns の列を除く。隠し列を指す関連は写さない
+
+宣言は `export const domainDisplay: DomainDisplay`（リテラル型は持たない）。
 
 domain.json の無い手書きの domain は、同じ置き場に同じ形を手で書く。`hiddenColumns` は `defineHiddenColumns` と同じ列を宣言する。検査: `pnpm test:domain-display`。
 
 ## ドメイン設定の読み方
 
-- client: 写し（上の節）を値で部品に渡す。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
-- server、自分のドメインだけ: 自分の domain.json を読み `normalizeDomainJsonConfig` を通す（drizzleBase の形）
+- client: 写し（上の節）を読む。domain.json は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。手持ちの部品の移行は `node scripts/codemods/domain-json-client-display.mjs`（確かめられないファイルは書き換えず一覧に出す）。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
+- server、自分のドメインだけ: 自分の domain.json を読み `normalizeDomainJsonConfig` を通す（drizzleBase の形。client は写しが変換済みなので呼ばない）
 - server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
 
 ## フォルダ

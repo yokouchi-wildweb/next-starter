@@ -140,6 +140,8 @@
 | `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く。`src/registry/serviceRegistry.ts` はここから `registry:generate` が生成）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts`。メディア列があれば `storagePurposeRegistry.ts` の AUTO ブロック。主の集まりの項目（mediaCollection）があれば `services/server/collections.ts`（毎回上書き。createCrudService の `collections` の宣言 = 従属のサービス・主への参照列・値の列・並び列・件数・複製。従属の domain.json から） |
 | `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ。メディア列は `formatMediaThumbnail(s)` で ref を表示用 URL に解決） |
 
+生成される client の部品（`components` カテゴリ）は domain.json を import せず、写し `entities/display.ts` の `domainDisplay` を読む（`pnpm registry:generate` が書く。写す項目: [`src/lib/domain/README.md`](../../src/lib/domain/README.md)）。
+
 ### 上書きの扱い
 
 | 扱い | 対象 |
