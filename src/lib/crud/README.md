@@ -634,7 +634,9 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 #### 手順
 
-0. 移行の前に数える（読み取りだけ。`pnpm db:query "<SQL>"` で流せる）
+0. 移行の前、書き込みを止める前に数える（読み取りだけ。`pnpm db:query "<SQL>"` で流せる）
+   - 書き込みを止める前に流すのは、見つかった重複の解消に管理画面が要るから
+   - fork が足す事前の検査も同じ時点で流すので、後の `db:push` で作られる列（手順 4 の FK など）を読まない形にする
 
    ```sql
    -- 1 行の最大の要素数（62 を超えるなら下の「並びの鍵」の 63 件以上の方法を使う）
@@ -649,12 +651,15 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    SELECT count(*) FROM storage_objects WHERE status = 'ready' AND record_id IS NULL;
    ```
 
+   - 書き込みを止めるまでの間にアップロードや保存があれば件数は動く。手順 3 で止めた直後に同じ SQL を流し直し、手順 6 の比較はその値を基準にする。新しい重複が見つかれば、止めるのを解いて解消してからやり直す
+
 1. 旧用途を受け口 storageObject/purposes/ の項目へ写し、アップロードを閉じる
    - ドメインの `services/server/storagePurposes.ts` にある `"<old_purpose>": { … }` を、`src/features/core/storageObject/purposes/<名前>.<fork の名前>.ts` の `export const purposes` に移す（元の項目を domain.json から外すと生成物からは消える）
    - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を domain.json から外して AUTO から消えても fork の区画の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
 2. 従属を作る（上の「中間の形」）。元の列は残す
 3. 書き込みを止め、主 1 行ずつ同じ TX で従属の行を作り、台帳を付け替え、作った行を記録する
    - 止め方は運用で決める（メンテナンス表示など）。主と従属への保存・削除・replaceByQuery が走らない状態にする
+   - 止めた直後に手順 0 の SQL を流し直す。手順 4 の `db:push` もこの停止の間に流せるよう、停止の長さを見積もっておく
    - 先に記録の表を作る。中間の形では画面が集まりを先に出すことがあり、移行の外で作られた従属の行（新しいアップロード）が在りうるので、戻すときに「移行で作った行」だけを選べるようにする
 
    ```sql
@@ -700,6 +705,13 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    - UPDATE の件数が INSERT のうち台帳にある値（`storage://` の要素）の件数と合わなければ、その TX を巻き戻し（`ROLLBACK`）、その主の行の台帳（status・record_type・record_id・record_field）を調べてから流し直す。合わないまま進めない
 4. 他の表が同じ値をコピーで持っていれば、従属の行への参照（FK、`ON DELETE SET NULL`）に張り替える
    - ref を別の表へコピーして持つことは禁止の形（台帳の 1 行は 1 つの業務行を指す）。移行のついでに、コピーの列を従属の行 id を指す FK に置き換える。どの表がコピーを持つかはドメインごとに調べる
+   - 大きい表の新しい FK 列には部分 index を付ける（`index("<name>").on(table.<col>).where(sql\`${table.<col>} IS NOT NULL\`)`）。無いと、従属の行を消すたびに `SET NULL` の相手を探して表全体を走査する
+   - 部分 index の `where` は push の比較に入らない。`where` だけを後で変えても検出されないので手動で DROP / CREATE する（[scripts/registry/README.md](../../../scripts/registry/README.md)「index / default の記述ルール」）。push の後は `pnpm db:push:check` が 0 文であることを確かめる
+   - 列・FK・index を足す `db:push` は表を走査し、その間ロックを取る。手順 3 の書き込み停止の間に流す。このとき `<migration_log>` の DROP を提案されるので N にする
+   - とても大きい表では次の順にする（`CREATE INDEX CONCURRENTLY` は列より先に流せない）
+     1. 列だけを先に足す（`ALTER TABLE <table> ADD COLUMN <col> <型>;`。NULL 可・default なしなら走査しない）
+     2. `CREATE INDEX CONCURRENTLY IF NOT EXISTS <宣言と同じ名前> ON <table> (<col>) WHERE <col> IS NOT NULL;`（失敗すると INVALID の index が残るので、DROP してから流し直す）
+     3. `db:push` を流す。列と index は在るものとして飛ばされるが、FK の追加は表を走査するので、この push も書き込み停止の間か低トラフィック時に流す
 5. 元の列を直接 SQL で空にするか、列ごと落とす（その前に記録の表を消す: `DROP TABLE <migration_log>;`。ここで戻せなくなるので、手順 6 を確かめてから）
    - 空にする: `UPDATE <parent_table> SET <field> = '{}';`（サービスの保存では空にしない）
    - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent>`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
