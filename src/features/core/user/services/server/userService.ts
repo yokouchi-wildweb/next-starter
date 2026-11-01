@@ -38,11 +38,14 @@ export {
 // セッション失効) を通らないため公開しない。汎用 /api/user/** の該当ルートは 404、CSV インポートも拒否される。
 // サービス内部で必要な場合は base を直接使う (例: registration/setPending.ts の base.upsert)。
 // bulkUpdate / bulkUpdateByIds は副作用の無い列に限ったラッパーを公開する (wrappers/bulkUpdate.ts)。
+// 一括削除も softDelete (ステータス変更 / クリーンアップ / 監査ログ) を通らないため公開しない (該当ルートは 404)。
 const {
   upsert: _upsert,
   bulkUpsert: _bulkUpsert,
   replaceByQuery: _replaceByQuery,
   duplicate: _duplicate,
+  bulkDeleteByIds: _bulkDeleteByIds,
+  bulkDeleteByQuery: _bulkDeleteByQuery,
   ...exposedBase
 } = base;
 

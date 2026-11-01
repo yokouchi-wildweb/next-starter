@@ -268,6 +268,10 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 （`domain.json` も `useImportExport: false`）。サービス内部で必要な場合は `base` を直接使い、表示名・
 ステータス履歴の整合は呼び出し側で担保する。
 
+一括削除（`bulkDeleteByIds` / `bulkDeleteByQuery`）も `softDelete` のステータス変更・クリーンアップ・監査ログを
+通らないため `userService` から公開しない。汎用の `/api/user/bulk/delete-by-ids` と `/api/user/bulk/delete-by-query` は
+404（権限のない呼び出しは先に 401 / 403）。複数のユーザーを消すときは 1 人ずつ `softDelete` を呼ぶ。
+
 ### 一括更新
 
 管理者が複数ユーザーをまとめて更新する経路。列の性質で使い分ける。
