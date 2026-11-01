@@ -35,7 +35,8 @@ export const ControlledMediaUploader = <
 
   const handleUrlChange = useCallback(
     (url: string | null) => {
-      field.onChange(url);
+      // 空はフォーム値を "" にそろえる。null だと必須項目で z.string() の生のエラー文が出る
+      field.onChange(url ?? "");
       field.onBlur();
       onUrlChange?.(url);
     },
