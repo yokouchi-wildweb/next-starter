@@ -1,4 +1,4 @@
-// dc:delete を止める判定（主と従属の組を壊す削除だけを止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
+// dc:delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
 // 止まる経路は runDelete を直接呼ぶ（-i でなければ対話は出ない）。止まらない経路は判定が null であることを見る。
 // 実行: pnpm test:dc-delete-stop
 import { after, test } from "node:test";
@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { runDelete } from "../cli/delete.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
-import { deleteStopMessage } from "../pipeline/remove/index.mjs";
+import { deleteStopMessage, inboundReferences } from "../pipeline/remove/index.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
 import { makeProject, removeAll } from "./helpers.mjs";
 
@@ -57,7 +57,7 @@ test("主: 従属の domain.json が残っていれば一覧と直す順を出�
   const { stderr, exitCode } = await deleteCapturing(workspace, "album");
   assert.equal(exitCode, 1);
   assert.match(stderr, /album は集まりの従属（albumPhoto）を持っているため削除できません/);
-  assert.match(stderr, /album\/domain\.json の集まりの項目 "photos" を外し、従属を dc:delete してから album を消してください/);
+  assert.match(stderr, /album\/domain\.json の集まりの項目 "photos" を外し、従属を dc:delete --remove-config してから album を消してください/);
   assert.deepEqual(snapshot(root), before);
 });
 
@@ -71,20 +71,94 @@ test("従属: 主が集まりの項目を宣言している間は止まり、何
   assert.deepEqual(snapshot(root), before);
 });
 
-test("止まらない: 従属がまだ書き出されていない主・項目を外した後の従属・集まりでない belongsTo の参照・組の無いドメイン", () => {
+const relation = (domain, relationType, fieldName, extra = {}) => ({ domain, label: "a", fieldName, fieldType: "uuid", relationType, ...extra });
+
+test("止まらない: 従属がまだ書き出されていない主・項目を外した後の従属・組も参照も無いドメイン", () => {
   const notWritten = createWorkspace(makeProject({ configs: { album }, cleanup }));
   assert.equal(deleteStopMessage(notWritten, "album"), null);
 
   const detached = createWorkspace(makeProject({ configs: { album: base("album"), albumPhoto }, cleanup }));
   assert.equal(deleteStopMessage(detached, "albumPhoto"), null);
-  assert.equal(deleteStopMessage(detached, "album"), null);
 
-  const referrer = base("comment", [], {
-    relations: [{ domain: "album", label: "a", fieldName: "album_id", fieldType: "uuid", relationType: "belongsTo", required: true, onDelete: "CASCADE" }],
-  });
-  const plain = createWorkspace(makeProject({ configs: { album: base("album"), comment: referrer }, cleanup }));
-  assert.equal(deleteStopMessage(plain, "album"), null);
-  assert.equal(deleteStopMessage(plain, "comment"), null);
+  const none = createWorkspace(makeProject({ configs: { note: base("note"), memo: base("memo") }, cleanup }));
+  assert.equal(deleteStopMessage(none, "note"), null);
+});
+
+test("inboundReferences: どの種類の関連で指されても domain と fieldName を返す。snake_case の名前も camelCase のフォルダと照合する", () => {
+  const configs = new Map([
+    ["album", base("album")],
+    ["comment", base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] })],
+    ["tag", base("tag", [], { relations: [relation("album", "belongsToMany", "album_ids")] })],
+    ["inverse", base("inverse", [], { relations: [relation("album", "belongsToMany", "album_ids", { includeRelationTable: false })] })],
+    ["shelf", base("shelf", [], { relations: [relation("album", "hasMany", "album_id")] })],
+    ["cover", base("cover", [], { relations: [relation("album", "hasOne", "album_id")] })],
+    ["other", base("other", [], { relations: [relation("note", "belongsTo", "note_id")] })],
+    ["broken", null],
+  ]);
+  assert.deepEqual(inboundReferences(configs, "album"), [
+    { domain: "comment", fieldName: "album_id", relationType: "belongsTo" },
+    { domain: "tag", fieldName: "album_ids", relationType: "belongsToMany" },
+    { domain: "inverse", fieldName: "album_ids", relationType: "belongsToMany" },
+    { domain: "shelf", fieldName: "album_id", relationType: "hasMany" },
+    { domain: "cover", fieldName: "album_id", relationType: "hasOne" },
+  ]);
+  const snake = new Map([["comment", base("comment", [], { relations: [relation("album_photo", "belongsTo", "album_photo_id")] })]]);
+  assert.deepEqual(inboundReferences(snake, "albumPhoto"), [{ domain: "comment", fieldName: "album_photo_id", relationType: "belongsTo" }]);
+});
+
+test("inboundReferences: 自己参照と、消すドメイン自身が持つ外向きの関連は数えない", () => {
+  const configs = new Map([
+    ["node", base("node", [], { relations: [relation("node", "belongsTo", "parent_id"), relation("album", "belongsTo", "album_id")] })],
+    ["album", base("album")],
+  ]);
+  assert.deepEqual(inboundReferences(configs, "node"), []);
+});
+
+test("参照されているドメイン: --confirm が合っていても、参照元を全部出して止まり何も消さない。自己参照だけなら止まらない", async () => {
+  const configs = {
+    album: base("album"),
+    comment: base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] }),
+    tag: base("tag", [], { relations: [relation("album", "belongsToMany", "album_ids")] }),
+    node: base("node", [], { relations: [relation("node", "belongsTo", "parent_id")] }),
+  };
+  const root = makeProject({ configs, cleanup });
+  const workspace = createWorkspace(root);
+  const before = snapshot(root);
+  const { stderr, exitCode } = await deleteCapturing(workspace, "album", { confirm: "album", removeConfig: true });
+  assert.equal(exitCode, 1);
+  assert.match(stderr, /album は他のドメインから参照されているため削除できません/);
+  assert.match(stderr, /comment: album_id（belongsTo）/);
+  assert.match(stderr, /tag: album_ids（belongsToMany）/);
+  assert.deepEqual(snapshot(root), before);
+  assert.equal(deleteStopMessage(workspace, "node"), null);
+  assert.equal(deleteStopMessage(workspace, "comment"), null);
+});
+
+test("主の停止は、従属以外の参照元も同じ文面で一度に出す（従属は重ねて出さない）", () => {
+  const comment = base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] });
+  const workspace = createWorkspace(makeProject({ configs: { album, albumPhoto, comment }, cleanup }));
+  const message = deleteStopMessage(workspace, "album");
+  assert.match(message, /集まりの従属（albumPhoto）/);
+  assert.match(message, /comment: album_id（belongsTo）/);
+  assert.doesNotMatch(message, /albumPhoto: /);
+});
+
+test("消す順: 主の項目を外す → 従属を --remove-config で消す → 主を消す。従属の domain.json を残すと主は止まったまま", async () => {
+  const root = makeProject({ configs: { album: base("album"), albumPhoto }, cleanup });
+  const workspace = createWorkspace(root);
+  const owner = path.join(root, "src/features/album/entities");
+  fs.mkdirSync(owner, { recursive: true });
+  assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
+
+  await deleteCapturing(workspace, "album_photo", { confirm: "album_photo" });
+  assert.equal(fs.existsSync(path.join(root, "src/features/albumPhoto/domain.json")), true);
+  assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
+
+  await deleteCapturing(workspace, "album_photo", { confirm: "album_photo", removeConfig: true });
+  assert.equal(fs.existsSync(path.join(root, "src/features/albumPhoto")), false);
+  assert.equal(deleteStopMessage(workspace, "album"), null);
+  await deleteCapturing(workspace, "album", { confirm: "album" });
+  assert.equal(fs.existsSync(owner), false);
 });
 
 test("--confirm: 無い・違うなら消すものの一覧と打てるコマンドを出して止まり、何も消さない。一致なら消し、domain.json は --remove-config のときだけ消す", async () => {

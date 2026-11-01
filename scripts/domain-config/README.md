@@ -105,10 +105,11 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 
 ## `dc:delete <Domain> --confirm <snake_name>`
 
-0. 主と従属の組を壊す削除は、エラーで止まり何も消さない（`pipeline/remove/pairStop.mjs`。`--force` は無い）
-   - 主: domain.json が残っている従属があれば止まる。消す順 = 主の集まりの項目を外す → 従属を `dc:delete` → 主を `dc:delete`
+0. 主と従属の組を壊す削除と、他のドメインから参照されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの domain.json は書き換えない）
+   - 主: domain.json が残っている従属があれば止まる。消す順 = 主の集まりの項目を外す → 従属を `dc:delete --remove-config` → 主を `dc:delete`
    - 従属: 主が集まりの項目を宣言している間は止まる（残すと次の生成で雛形がまた書き出される）。先に主の項目を外す
-   - 集まりでない belongsTo で指されているだけなら止めない
+   - 参照: 他のドメインの domain.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
+   - 判定は domain.json の宣言だけを見る: domain.json を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。domain.json の無いドメイン・読めない domain.json は見えない
 1. `--confirm` がドメイン名（snake_case）と一致したときだけ消す（名前の打ち直しの安全装置を引数にしたもの）。無い・違うなら、消すものの一覧・追加で消せるディレクトリの候補・そのまま打てるコマンドを出して終了コード 1
 2. `--extra <path>`（何度でも）: `src/app/` 配下で名前が一致する追加ディレクトリのうち、候補に出たものだけ受け付ける
 3. `--remove-config`: `domain.json` も消す（既定は `domain.json` だけ残してドメインディレクトリの中身を消す）
