@@ -54,7 +54,7 @@ const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstre
  */
 const BEFORE_BACKGROUND =
   '<div style="position:fixed;top:0;left:0;width:100vw;height:100lvh;z-index:-1;pointer-events:none;overflow:hidden" aria-hidden="true">' +
-  '<div style="position:absolute;inset:0;background-color:hsl(var(--background))"></div></div>';
+  '<div style="position:absolute;inset:0;background-color:var(--background)"></div></div>';
 const BEFORE_SWITCH =
   '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
   'id="user-app-container" data-user-app-container="" style="--app-header-height:0px">' +

@@ -49,7 +49,7 @@ export const BackgroundLayer = ({
   const baseStyle: CSSProperties = {
     position: "absolute",
     inset: 0,
-    backgroundColor: "hsl(var(--background))",
+    backgroundColor: "var(--background)",
   };
 
   const imageStyle: CSSProperties = {
