@@ -1,6 +1,6 @@
 // src/lib/domain/config/normalizeDomainJsonConfig.ts
 // domain.json の直接インポート時に Firestore ドメインのフィールド名を camelCase に変換する。
-// クライアント/サーバー両方で使用可能な軽量ユーティリティ。
+// server が自分のドメインの domain.json を読むときに使う。client は変換済みの写し entities/display.ts を読む。
 
 import { toCamelCase } from "@/utils/stringCase.mjs";
 
@@ -13,7 +13,7 @@ const resolveField = (name: string) => toCamelCase(name) || name;
  * Drizzle/Neon ドメインの場合はそのまま返す（no-op）。
  *
  * @example
- * import rawConfig from "@/features/chatRoom/domain.json";
+ * import rawConfig from "@/features/core/chatRoom/domain.json";
  * const domainConfig = normalizeDomainJsonConfig(rawConfig);
  */
 export function normalizeDomainJsonConfig<T extends RawDomainConfig>(config: T): T {

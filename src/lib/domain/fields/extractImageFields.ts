@@ -8,7 +8,7 @@ import type { DomainConfig } from "../types/domainConfig";
  * formInput が "mediaUploader" のフィールドを抽出
  *
  * @example
- * import config from "@/features/sample/domain.json";
+ * import { domainDisplay as config } from "@/features/sample/entities/display";
  * const imageFields = extractImageFields(config);
  * // ["thumbnail", "images"]
  *
