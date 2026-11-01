@@ -9,6 +9,7 @@ import JSZip from "jszip";
 import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { contentTypeFromFilename, mediaPurposeOf } from "../../../../media";
+import { buildImportFieldTypeInfo } from "./importFieldTypeInfo";
 import type {
   ChunkResult,
   ImportResultData,
@@ -177,10 +178,7 @@ export function useImportHandler({
       );
 
       // フィールド型情報を準備（メインドメイン用）
-      const fieldTypeInfo = fields.map((f) => ({
-        name: f.name,
-        fieldType: f.fieldType,
-      }));
+      const fieldTypeInfo = buildImportFieldTypeInfo(fields);
 
       for (let i = 0; i < chunkCount; i++) {
         const chunkName = `chunk_${String(i + 1).padStart(3, "0")}`;
