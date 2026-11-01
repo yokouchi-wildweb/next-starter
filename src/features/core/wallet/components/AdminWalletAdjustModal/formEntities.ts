@@ -22,7 +22,7 @@ export const WalletAdjustFormSchema = z
   .object({
     walletType: z.enum(walletTypeValues),
     changeMethod: z.enum(["INCREMENT", "DECREMENT", "SET"]),
-    amount: z.number().int().min(0).optional(),
+    amount: z.number().int().min(0).max(100_000_000, "設定できる金額は1億以下です。").optional(),
     reason: z
       .string()
       .trim()
