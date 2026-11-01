@@ -152,7 +152,11 @@ export async function completePurchase(
         await couponService.redeemWithEffect(
           purchaseRequest.coupon_code,
           purchaseRequest.user_id,
-          { purchaseRequestId: purchaseRequest.id },
+          {
+            purchaseRequestId: purchaseRequest.id,
+            // 割引適用後の実支払額。onRedeemed の計算基数になり、couponHistory.metadata にも残る
+            paymentAmount: purchaseRequest.payment_amount,
+          },
           tx,
           { scope: { categories: [PURCHASE_DISCOUNT_CATEGORY] } },
         );
