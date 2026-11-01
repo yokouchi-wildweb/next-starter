@@ -204,6 +204,8 @@ Screen が import するのは **セクションコンテナそのもの** で�
 
 ### 下流が複製できる条件（core のセクションコンテナ）
 
+複製してよいかの方針は [フォークでの拡張の方針](フォークでの拡張の方針_コピーと受け口の使い分け.md) を参照。ここでは複製できるようにするコンテナ側の条件を書きます。
+
 - `index.tsx` から部品を export する（部品は全部公開で、読むのは入口だけ。CLAUDE.md `core_ui`、lint `core-ui-entry`）。下流が `index.tsx` を `_components/` に複製したら、部品の import を入口（`@/features/core/wallet/components/WalletBalance`）へ向ける。無ければ上流へ `/order`
 - HTTP は hook 経由のみ。client service の直叩きは hook に昇格する
 - トップレベルの props（例: `WalletBalance` の `slug / phoneVerifiedAt / currentPhoneNumber / initialWallets`）は公開契約。追加は自由（§3 の `initial<Name>` も追加）、改名・必須化は `.notices` で通知
