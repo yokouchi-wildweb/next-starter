@@ -1,5 +1,6 @@
 // scripts/db/seed/data/registry.ts
 
+import type { SeedDemoUserResult } from "./demoUser";
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
 
@@ -11,7 +12,7 @@ import type { SeedSampleTags } from "./sampleTags";
  * 新しいシードを追加する際はここに型を追加する
  */
 export type SeedResultMap = {
-  demoUser: void;
+  demoUser: SeedDemoUserResult;
   sampleTags: SeedSampleTags;
   sampleCategories: SeedSampleCategories;
   samples: void;
@@ -54,7 +55,7 @@ export const seedRegistry: SeedConfig[] = [
     deps: [],
     fn: async () => {
       const { seedDemoUser } = await import("./demoUser");
-      await seedDemoUser();
+      return seedDemoUser();
     },
   },
   {

@@ -7,7 +7,9 @@ import { eq, and } from "drizzle-orm";
 const DEMO_USER_PROVIDER_TYPE = "custom" as const;
 const DEMO_USER_PROVIDER_UID = "demo-user-u001";
 
-export async function seedDemoUser() {
+export type SeedDemoUserResult = typeof UserTable.$inferSelect;
+
+export async function seedDemoUser(): Promise<SeedDemoUserResult> {
   console.log("  → デモユーザーを作成中...");
 
   // 既存のデモユーザーを確認
