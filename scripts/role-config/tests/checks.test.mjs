@@ -32,6 +32,14 @@ const profile = (extra = {}) => ({
 const joined = (issues) => issues.join("\n");
 const input = (extra = {}) => ({ fileName: "reviewer.role.json", role: role(), profile: profile(), ...extra });
 
+test("表に無い fieldType は hasProfile:true で止め、hasProfile:false では検査しない", () => {
+  const bad = profile({ fields: [{ name: "nickname", label: "表示名", fieldType: "nope", formInput: "textInput" }], tags: {} });
+  assert.match(joined(profileFieldIssues(bad)), /fields "nickname": fieldType "nope" は型の表にありません/);
+  assert.match(joined(profileFieldIssues(profile({ fields: [{ name: "nickname", label: "表示名", formInput: "textInput" }], tags: {} }))), /fieldType undefined は型の表にありません/);
+  assert.match(joined(roleConfigIssues(input({ profile: bad }))), /型の表にありません/);
+  assert.doesNotMatch(joined(roleConfigIssues(input({ role: role({ hasProfile: false }), profile: bad }))), /型の表にありません/);
+});
+
 test("良い例: どの検査も止めず、警告も出さない", () => {
   assert.deepEqual(roleConfigIssues(input()), []);
   assert.deepEqual(roleConfigWarnings(input()), []);

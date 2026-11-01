@@ -1,11 +1,11 @@
 // 検査: プロフィール設定（<id>.profile.json）の項目とタグ。
 // 型と入力欄の組・選択肢・既定値はドメインの検査（scripts/domain-config/checks/fields.mjs、表は spec/formInputs.mjs の Neon）を共用する。
-// プロフィール固有: 項目は 1 つ以上、メディア型（mediaUploader / mediaCollection）は使えない（プロフィールのテーブルはファイル台帳に未対応）、
+// プロフィール固有: 項目は 1 つ以上、型は表にあるものだけ、メディア型（mediaUploader / mediaCollection）は使えない（プロフィールのテーブルはファイル台帳に未対応）、
 // tags のキーは PROFILE_FIELD_TAGS、値は項目名か belongsTo / belongsToMany の fieldName。
 // 規則の正: src/features/core/userProfile/README.md（プロフィール設定）
 
 import { PROFILE_FIELD_TAGS } from "../../../src/features/core/userProfile/constants/fieldTags.mjs";
-import { isCollectionFieldType, isMediaFieldType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
+import { FIELD_TYPES, isCollectionFieldType, isMediaFieldType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
 import { fieldsIssues, fieldsWarnings } from "../../domain-config/checks/fields.mjs";
 
 /** プロフィールのテーブルは Neon（型と入力欄の組はドメインの Neon の表で照らす） */
@@ -24,6 +24,10 @@ export function profileFieldIssues(profile) {
   }
   fields.forEach((field, index) => {
     if (typeof field?.name !== "string" || field.name.length === 0) issues.push(`fields[${index}]: name を書いてください`);
+    else if (!Object.hasOwn(FIELD_TYPES, String(field.fieldType))) {
+      // 表に無い型は text 列・z.any() で生成が通り、列の型が黙って変わる（ドメインは forge の後の検査で止まる）
+      issues.push(`fields "${field.name}": fieldType ${JSON.stringify(field.fieldType)} は型の表にありません（綴りを直すか、型を src/lib/domain/fields/fieldTypes.mjs に足す）`);
+    }
     else if (isMediaFieldType(field.fieldType) || isCollectionFieldType(field.fieldType)) {
       issues.push(`fields "${field.name}": fieldType "${field.fieldType}" はプロフィールでは使えません（ファイル台帳に未対応。用途を登録した別ドメインの列に置く）`);
     }
