@@ -3,8 +3,8 @@
 // fork のソースの表示名もここに足す(上流の表示名の差し替えも値の書き換えで)。
 
 export const COIN_ISSUANCE_LABELS: Readonly<Record<string, string>> = {
-  // コイン購入時にサービス側が負担した上乗せボーナス全般
-  // (クーポン割引 / ユーザーランクボーナス / 決済方法ボーナス / 購入パッケージの上乗せ等)
+  // コイン購入時にサービス側が負担した分のうち、purchase_requests の amount に含まれるもの
+  // (クーポン割引 / 購入パッケージの上乗せ等。別のウォレット行で払うボーナスは含まれない)
   purchase_bonus_gap: "購入時ボーナス発行",
   referral_reward: "紹介リワード",
   coupon_attribution_reward: "クーポン帰属報酬",

@@ -395,8 +395,9 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 
 | key | kind | 概要 |
 |---|---|---|
-| `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した上乗せボーナス全般＝クーポン割引・ユーザーランクボーナス・決済方法ボーナス・購入パッケージのボーナスを含む）|
+| `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した分のうち `amount` に含まれるもの＝クーポン割引・購入パッケージの上乗せ等。別のウォレット行で払うボーナスは含まれず、上流のどのソースにも入らない）|
 | `referral_reward` | issuance | `referral_rewards` の `status='fulfilled'` 金額合計 (`getReferralSummary().rewardTotal` と同 SQL) |
+| `coupon_attribution_reward` | issuance | `coupon_attribution_rewards` の `status='fulfilled'` の `amount` 合計（`fulfilled_at` で期間集計、受取人に UserFilter を適用）|
 
 ### ソース追加の手順 (downstream)
 
