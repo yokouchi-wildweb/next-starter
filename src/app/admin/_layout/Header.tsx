@@ -8,6 +8,7 @@ import Link from "next/link";
 
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
+import { AppImage } from "@/components/Media/AppImage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { logoPath } from "@/utils/assets";
 
@@ -27,19 +28,25 @@ export function Header() {
     <header id={APP_HEADER_ELEMENT_ID} className={cn(headerContainer())}>
       {/* 左側: ロゴ */}
       <Link href="/admin" className="block shrink-0 p-1 sm:p-2" prefetch={isAuthenticated}>
-        {/* ロゴの AppImage 化は未対応(ライト/ダークの切替を含めて別途) */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        {/* width/height は上流のロゴ素材(1280x260)の縦横比のヒント。実表示の大きさは className の max-* + w-auto/h-auto が決める。
+            ヘッダーはファーストビューなので両方 priority(隠れている方の 1 枚も先読みする) */}
+        <AppImage
+          mode="intrinsic"
           src={logoPath("dark")}
           alt="管理画面ロゴ（ライトモード）"
-          className="block h-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"
+          width={300}
+          height={61}
+          priority
+          className="block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"
         />
-        {/* ロゴの AppImage 化は未対応(ライト/ダークの切替を含めて別途) */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <AppImage
+          mode="intrinsic"
           src={logoPath("light")}
           alt="管理画面ロゴ（ダークモード）"
-          className="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"
+          width={300}
+          height={61}
+          priority
+          className="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"
         />
       </Link>
 

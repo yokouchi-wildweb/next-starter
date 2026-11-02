@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { AppImage } from "@/components/Media/AppImage";
+
 type BackgroundLayerProps = {
   /** 背景画像のURL */
   readonly imageUrl?: string;
@@ -52,15 +54,6 @@ export const BackgroundLayer = ({
     backgroundColor: "var(--background)",
   };
 
-  const imageStyle: CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    objectPosition: "center",
-  };
-
   const overlayStyle: CSSProperties = {
     position: "absolute",
     inset: 0,
@@ -72,15 +65,8 @@ export const BackgroundLayer = ({
     <div style={containerStyle} aria-hidden="true">
       {imageUrl ? (
         <>
-          {/* 全面背景。style で配置と fetchPriority を直接指定するため素の img を使う */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt=""
-            style={imageStyle}
-            decoding="async"
-            fetchPriority="high"
-          />
+          {/* ページ全面の背景画像(cover・中央は AppImage の既定)。ファーストビューなので priority で先読みし lazy にしない */}
+          <AppImage src={imageUrl} alt="" sizes="full" priority className="absolute inset-0" />
           {overlayOpacity > 0 && <div style={overlayStyle} />}
         </>
       ) : (

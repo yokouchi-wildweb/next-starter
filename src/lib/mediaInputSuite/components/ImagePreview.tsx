@@ -46,11 +46,13 @@ export const ImagePreview = ({
       className={className}
       style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
     >
-      {/* 選択直後のローカルファイル(blob: URL)のプレビューも表示するため素の img を使う */}
+      {/* 選択直後のローカルファイル(blob: URL)のプレビューも表示するため素の img を使う。
+          onLoad で読み込み中の表示を外すので lazy にしない(見えない所に置かれると読み込まれず止まる)。decode だけ非同期にする */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}
+        decoding="async"
         style={{
           width: "100%",
           height: "100%",

@@ -66,10 +66,21 @@ const FOOTER_TEXT = `© ${new Date().getFullYear()} ${businessConfig.serviceName
 
 // ---- slot 化の前(a77da63d)の部品を同じモックで描いた HTML。既定の DOM・id・順序の基準 ----
 
-/** slot 化の前の旧 admin/layout.tsx が描いていた物のヘッダー */
-const BEFORE_HEADER = `<header id="header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin"><img src="${logoPath("dark")}" alt="管理画面ロゴ（ライトモード）" class="block h-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"/><img src="${logoPath("light")}" alt="管理画面ロゴ（ダークモード）" class="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"/></a><div id="admin-header-title-slot" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div id="admin-header-center-slot" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div id="admin-header-right-slot" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
+/**
+ * ロゴは AppImage(intrinsic, 300x61, priority)。テストは next.config を読まないので next/image の既定(最適化あり・q=75)の URL になる。
+ * 本番で IMAGE_OPTIMIZATION が無効の間は unoptimized で素のパスが入る(ここでは見ない)
+ */
+const logoOptimizedUrl = (variant: "dark" | "light", width: number) =>
+  `/_next/image?url=${encodeURIComponent(logoPath(variant))}&amp;w=${width}&amp;q=75`;
+const logoSrcSet = (variant: "dark" | "light") => `${logoOptimizedUrl(variant, 384)} 1x, ${logoOptimizedUrl(variant, 640)} 2x`;
+const LOGO_IMG = (variant: "dark" | "light", alt: string, className: string) =>
+  `<img data-component="AppImage" alt="${alt}" width="300" height="61" decoding="async" data-nimg="1" class="${className}" style="color:transparent" srcSet="${logoSrcSet(variant)}" src="${logoOptimizedUrl(variant, 640)}"/>`;
+const LOGO_PRELOAD = (variant: "dark" | "light") => `<link rel="preload" as="image" imageSrcSet="${logoSrcSet(variant)}"/>`;
+
+/** slot 化の前の旧 admin/layout.tsx が描いていた物のヘッダー(ロゴだけ AppImage 化で差し替え) */
+const BEFORE_HEADER = `<header id="header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div id="admin-header-title-slot" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div id="admin-header-center-slot" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div id="admin-header-right-slot" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
 /** 既定の Header のロゴ画像が文書の先頭に出す preload(Header を描かないときは出ない) */
-const BEFORE_LOGO_PRELOAD = `<link rel="preload" as="image" href="${logoPath("dark")}"/><link rel="preload" as="image" href="${logoPath("light")}"/>`;
+const BEFORE_LOGO_PRELOAD = LOGO_PRELOAD("dark") + LOGO_PRELOAD("light");
 /** 同じく外枠全体 */
 const BEFORE_OUTER = BEFORE_LOGO_PRELOAD + `<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground" style="--app-header-height:0px">` + BEFORE_HEADER + `<div class="flex-1 min-h-0 flex flex-col overflow-clip">CHILD</div></div>`;
 /** `<AdminProtectedLayout>CHILD</AdminProtectedLayout>` */

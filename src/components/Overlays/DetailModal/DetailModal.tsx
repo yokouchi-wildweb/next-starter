@@ -65,11 +65,13 @@ export default function DetailModal({
     (mediaType === "video" ? (
       <DetailModalVideo media={media} />
     ) : (
-      // 実寸不明の画像を max-h と object-contain で収める。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行
+      // 実寸不明の画像を max-h と object-contain で収める。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行。
+      // モーダルが開いた時だけ描く = 常に見えているので lazy にせず、decode だけ非同期にする
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={toStorageDisplaySrc(media.url) ?? undefined}
         alt={media.alt ?? ""}
+        decoding="async"
         className="mx-auto w-full max-w-md max-h-80 rounded-md object-contain shadow"
       />
     ));

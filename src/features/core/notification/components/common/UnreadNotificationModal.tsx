@@ -163,11 +163,13 @@ function UnreadNotificationModalInner() {
       <Stack space={1}>
         {/* 画像 */}
         {current.image && (
-          // 実寸不明の画像を横幅いっぱいに表示する。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行
+          // 実寸不明の画像を横幅いっぱいに表示する。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行。
+          // モーダルが開いた時だけ描く = 常に見えているので lazy にせず、decode だけ非同期にする
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={current.image}
             alt={current.title ?? "お知らせ画像"}
+            decoding="async"
             className="w-full rounded-md object-cover"
           />
         )}

@@ -146,10 +146,12 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
         ) : (
           <Stack space={2}>
             <Block className="relative">
+              {/* 選んだ直後のプレビュー(blob: や署名 URL も来る)なので素の img。表示中は常に見えているので lazy にせず、decode だけ非同期にする */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={displayUrl}
                 alt="振込明細プレビュー"
+                decoding="async"
                 className="w-full max-h-80 rounded-md bg-muted object-contain"
               />
               {isUploading && (
