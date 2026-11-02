@@ -1,9 +1,10 @@
 // 1 ドメイン分の「名前の全形 + domain.json」。生成器が使う名前はすべてここで一度だけ導出する。
 //
 // 入力のドメイン名は snake_case / camelCase / PascalCase のどれでもよい（フォルダ名 = camelCase(singular) が前提）。
-// plural は domain.json の plural（無ければ toPlural で推定）、dbEngine は domain.json の dbEngine（引数で上書き可）。
+// plural は domain.json の plural（無ければ domain/plural.mjs の toPlural で推定）、dbEngine は domain.json の dbEngine（引数で上書き可）。
 
-import { toCamelCase, toKebabCase, toPascalCase, toPlural, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { toPlural } from "./plural.mjs";
 
 /**
  * @typedef {object} DomainContext

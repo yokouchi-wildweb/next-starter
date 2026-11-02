@@ -2,7 +2,8 @@
 // 3 種は「先頭の数行」だけが違い、リレーション先のソフトデリート・1 段の nested 展開・import 情報は共通（relationEntry）。
 // belongsTo と belongsToMany は互いに再帰する（リレーション先のリレーションを 1 段だけ nested に展開）
 
-import { toCamelCase, toPascalCase, toPlural } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../../src/utils/stringCase.mjs";
+import { toPlural } from "../../../domain/plural.mjs";
 import { belongsToManyRelations, belongsToRelations, hasManyRelations } from "../../../domain/relations.mjs";
 
 const EMPTY_NESTED = { lines: [], imports: { belongsTo: [], belongsToMany: [] } };

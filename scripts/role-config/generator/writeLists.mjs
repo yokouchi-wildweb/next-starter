@@ -5,7 +5,8 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase, toPlural, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { toPlural } from "../../domain-config/domain/plural.mjs";
 import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../domain-config/spec/audit.mjs";
 import { readProfileOverride, readRoleOverride, requireOverride } from "../overrides.mjs";
 import { isCoreRole, roleFileOf } from "../rolePaths.mjs";

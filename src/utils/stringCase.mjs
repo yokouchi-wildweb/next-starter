@@ -41,9 +41,3 @@ export function toSnakeCase(str) {
   if (words.length === 0) return '';
   return words.map((word) => word.toLowerCase()).join('_');
 }
-
-export function toPlural(name) {
-  if (name.endsWith('y')) return name.slice(0, -1) + 'ies';
-  if (name.endsWith('s')) return name;
-  return name + 's';
-}

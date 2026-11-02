@@ -1,6 +1,7 @@
 // use__Domain__ViewModal.ts（詳細モーダルフック）。リレーション先の一覧フックを注入する特殊処理を含む
 
-import { toCamelCase, toPascalCase, toPlural, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toPlural } from "../../domain/plural.mjs";
 
 /**
  * @param {string} content トークン置換済みのテンプレート

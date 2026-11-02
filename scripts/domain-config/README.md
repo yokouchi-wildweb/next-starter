@@ -103,6 +103,8 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 
 従属のドメイン名の既定（`spec/collectionField.mjs` の `defaultChildName`）: 項目名が s で終われば `<主の singular>_<項目名から末尾の s を 1 つ外したもの>`（plural = `<主の singular>_<項目名>`）、それ以外は `<主の singular>_<項目名>`（plural は推定）。例: sample + images → sample_image / sample_images。
 
+複数形の推定（plural の無い domain.json・関係先の項目名・従属の plural）: `domain/plural.mjs` の `toPlural` 1 か所だけ。語の規則は devDependency の `pluralize` の表に任せ、名前の最後の語だけを複数形にする（例: card_set → card_sets、user_media → user_media、userPerson → userPeople）。domain.json の `plural` が常に優先。推定が誤る語は手の規則を書かず、`plural.mjs` で `pluralize.addIrregularRule` / `addUncountableRule` を足す。
+
 ## `dc:delete <Domain> --confirm <snake_name>`
 
 0. 主と従属の組を壊す削除と、他のドメインから参照されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの domain.json は書き換えない）

@@ -1,6 +1,7 @@
 // entities/model.ts（TS 型: 本体・WithRelations・WithCount・WithRelationsAndCount）。型 → TS の対応は spec/fieldTypes.mjs の表
 
-import { toCamelCase, toPascalCase, toPlural } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
+import { toPlural } from "../../domain/plural.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType, isEnumFieldType, tsType } from "../../spec/fieldTypes.mjs";

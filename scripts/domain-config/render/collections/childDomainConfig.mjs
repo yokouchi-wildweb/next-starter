@@ -4,7 +4,8 @@
 
 import { defaultChildName } from "../../spec/collectionField.mjs";
 import { DOMAIN_CONFIG_VERSION } from "../../spec/version.mjs";
-import { toCamelCase, toPlural, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toPlural } from "../../domain/plural.mjs";
 import { ADMIN_RULE, isValidRule, unionUploadRules } from "../registry/storagePurpose/rules.mjs";
 
 const READ_OPERATIONS = new Set(["get"]);
