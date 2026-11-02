@@ -107,6 +107,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
    ```
 4. 本番ローンチ前にはドメイン要件に合わせた細かいセキュリティルールへ更新し、Pull Request でレビューを受けるよう運用します。
 5. `firestore.rules` を更新した場合は `firebase deploy --only firestore:rules` で同期してください（`firestore.rules` は fork ごとの手元ファイルです。使う場合は fork の `firebase.json` に `"firestore"` の設定を足します）。`storage.rules` は upstream が同梱する全拒否のまま変えません（6.1）。
+6. **複合インデックス**: チャット（chatRoom）を使う場合は、必要な複合インデックスを作成します。管理画面のチャットルーム一覧を使うなら `chat_rooms` の（`deletedAt` 昇順、`updatedAt` 降順）が必須で、無いと一覧がエラーページになります。一覧・作り方（コンソール、または fork の手元の `firestore.indexes.json` と `firebase deploy --only firestore:indexes`）は [chatRoom の README「Firestore 複合インデックス」](../../src/features/core/chatRoom/README.md) にあります。
 
 ---
 

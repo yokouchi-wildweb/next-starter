@@ -98,6 +98,51 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 > Firebase コンソール → Firestore Database → インデックス → 複合インデックスを作成。
 > インデックス未作成でクエリ実行すると、ブラウザコンソールに作成用の直リンクが表示される。
 
+**管理画面の一覧用（必須。管理画面のチャットルーム一覧 `/admin/chat-rooms` を使う場合）**
+
+| コレクション ID | フィールド | 順序 |
+|---|---|---|
+| `chat_rooms` | `deletedAt` | Ascending |
+| | `updatedAt` | Descending |
+
+- 一覧はサーバー側の `search`（`deletedAt == null` + 既定の並び `updatedAt` 降順）で読む。未作成だと一覧の画面がエラーページになる
+- エラーと作成用のリンクはサーバーのログに出る（Admin SDK の `FAILED_PRECONDITION`）。ブラウザコンソールには出ない
+
+**管理画面の名前検索用（未確認）**
+
+一覧の検索ボックス（`searchFields: ["name"]`）で名前を入れると、上の index では足りず `FAILED_PRECONDITION` になる（開発環境で確認）。エラーが求める定義は次のとおり。
+
+| コレクション ID | フィールド | 順序 |
+|---|---|---|
+| `chat_rooms` | `deletedAt` | Ascending |
+| | `updatedAt` | Descending |
+| | `name` | Descending |
+
+- upstream ではこの index を作っておらず、作成後に名前検索が通るかは未確認。使う fork は作ってから検索を 1 回試す
+- 作らない場合、検索ボックスで名前を入れた一覧はエラーページになる（検索なしの一覧は動く）
+- Firestore の名前検索は前方一致・大文字小文字を区別する
+
+**index の入れ方**（どれか 1 つ）
+
+- コンソールで上の表どおりに作る、またはエラーの直リンクを開く（リンクはプロジェクトごと）
+- firebase CLI: fork の手元の `firestore.indexes.json` に足し、fork の `firebase.json` に `"firestore": { "indexes": "firestore.indexes.json" }` を足して `firebase deploy --only firestore:indexes --project <project-id>`。どちらのファイルも fork ごとのもの（upstream は `firestore.indexes.json` を同梱せず、`.gitignore` 対象）。既に持つ fork は自分のファイルに足す（upstream の作業では deploy は未実行）
+
+```json
+{
+  "indexes": [
+    {
+      "collectionGroup": "chat_rooms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deletedAt", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+```
+
 ---
 
 ## データモデル
