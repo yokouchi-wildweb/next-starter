@@ -7,6 +7,7 @@ import {
   type ReactNode,
   useState,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -200,6 +201,7 @@ export function ChecklistPopover({
   const [createError, setCreateError] = useState<string | null>(null);
   const [focusValue, setFocusValue] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const createInputRef = useRef<HTMLInputElement>(null);
 
   // 制御/非制御の判定
   const isControlled = controlledOpen !== undefined;
@@ -377,6 +379,13 @@ export function ChecklistPopover({
     void submitCreate();
   };
 
+  // 「新規追加」を押して入力欄を開いたら、そこへフォーカスを移す（キーボードのまま名前を打てるように）。
+  // autoFocus を使わないのは jsx-a11y/no-autofocus の対象になるため。isCreateFormOpen が true になるのは
+  // ボタンのクリックだけ（ポップオーバーを開いた時・追加後・取消で false）なので、移動は常に利用者の操作の結果
+  useEffect(() => {
+    if (isCreateFormOpen) createInputRef.current?.focus();
+  }, [isCreateFormOpen]);
+
   // 入力欄が開いている間の Esc は入力欄だけを閉じる（ポップオーバーは閉じない）
   const handleEscapeKeyDown = (event: KeyboardEvent) => {
     if (isCreateFormOpen) {
@@ -552,7 +561,7 @@ export function ChecklistPopover({
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1">
                   <Input
-                    autoFocus
+                    ref={createInputRef}
                     value={createName}
                     onChange={(e) => {
                       setCreateName(e.target.value);
