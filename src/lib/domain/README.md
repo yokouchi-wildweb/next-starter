@@ -45,8 +45,38 @@ export const domainEntries = {
 - `table` / `idColumn` は型で必須（`string | null`）。service の直後に、**文字列リテラルか `null` で**書く（生成器はファイルを文字として読むので、定数・式は `registry:check` が失敗にする）。表を持たない Firestore 版は両方 `null`
 - 静的 import してよいのは `@/lib/domain/types` と `@/config/app/domain-api-access.config`（プリセット）だけ。`pnpm registry:check` が縛る
 - 業務ドメイン: `dc:generate`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
-- core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test:service-registry` が実物と比べる。core のファイルは fork が編集しない
+- core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test:service-registry` が実物と比べる。core のファイルは fork が編集しない。業務ドメインの写せる形は下の「generate: false の業務ドメイン」
 - fork が core の access を変える: 隣に `domainEntry.override.ts`（fork 所有）。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む
+
+#### generate: false の業務ドメイン
+
+`"generate": false` の業務ドメインは生成器が何も書かない（`dc:generate <Domain> --only registry` も含む）。`domainEntry.ts` を持たないまま false にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は、`registry:check` が「drizzleBase.ts … があるのに domainEntry.ts が無い」で止まるので、`services/server/domainEntry.ts` を手で書く。形は生成器が書くものと同じ（下は domain.json が `"plural": "visits"`、`apiAccess` 無し、`useImportExport` 無しの `visit` の例。`pnpm test:service-registry` がこの例をそのまま置いて検査が通ることを確かめている）:
+
+```ts
+import type { DomainEntries } from "@/lib/domain/types";
+import { ADMIN_ONLY, ADMIN_RULE } from "@/config/app/domain-api-access.config";
+
+export const domainEntries = {
+  visit: {
+    service: () => import("./visitService").then((m) => m.visitService),
+    table: "visits",
+    idColumn: "id",
+    access: {
+      ...ADMIN_ONLY,
+      operations: {
+        truncateAll: ADMIN_RULE,
+        export: "none",
+        import: "none",
+      },
+    },
+  },
+} satisfies DomainEntries;
+```
+
+- キー = フォルダ名（singular の camelCase）。`service` = 同じフォルダの `<camel>Service.ts` の `<camel>Service`
+- `table` = domain.json の `plural` の snake_case（無ければドメイン名の snake_case）、`idColumn` = `"id"`。Firestore 版は両方 `null`
+- `access` = domain.json の `apiAccess` の read / write（無ければ `...ADMIN_ONLY`。`PUBLIC_READ` などのプリセットに当たるならそれを広げる）+ `apiAccess.operations` + `truncateAll: ADMIN_RULE` + `export` / `import` = `useImportExport: true` なら `ADMIN_RULE`、それ以外は `"none"`
+- 書いたら `pnpm registry:generate` → `pnpm registry:check` → `pnpm test:service-registry`（`table` / `idColumn` を実物と比べる）。以後 `apiAccess` / `useImportExport` / `plural` を変えたらこのファイルも手で直す（生成器は追わない）
 
 ### 生成と検査
 

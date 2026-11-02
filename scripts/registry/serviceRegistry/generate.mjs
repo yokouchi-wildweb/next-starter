@@ -24,8 +24,10 @@ import {
   OVERRIDE_FILE,
   REGISTRY_FILE,
   discoverDomainEntries,
+  diskView,
   listStorageBindingRecordTypes,
   readExistingRegistry,
+  readHandManaged,
 } from "./discover.mjs";
 
 /** 移行前の手書き行の移し先を案内する */
@@ -39,7 +41,11 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
   if (!fs.existsSync(path.join(features, dir))) {
     return `対応するドメインが見つからない。fork が core パスに作ったドメインなら src/features/core/<domain>/services/server/${ENTRY_FILE} を手書きする（access を変えるだけなら ${OVERRIDE_FILE}）`;
   }
-  if (!dir.startsWith("core/") && fs.existsSync(path.join(features, dir, "domain.json"))) {
+  const domainJson = path.join(features, dir, "domain.json");
+  if (!dir.startsWith("core/") && fs.existsSync(domainJson) && readHandManaged(diskView, domainJson)) {
+    return `domain.json が "generate": false なので dc:generate は書かない → src/features/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
+  }
+  if (!dir.startsWith("core/") && fs.existsSync(domainJson)) {
     return `access は domain.json の apiAccess に移し、pnpm dc:generate ${key} --yes --only registry で src/features/${dir}/services/server/${ENTRY_FILE} を生成する`;
   }
   return `src/features/${dir}/services/server/${ENTRY_FILE} を手書きする（core の access を fork で変えるなら隣に ${OVERRIDE_FILE}）`;
@@ -62,9 +68,11 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
     if (!domain.entryPath && domain.hasBase && !(domain.dir in ENTRY_EXCEPTIONS)) {
       errors.push(
         `src/features/${domain.dir}/services/server に drizzleBase.ts / firestoreBase.ts があるのに ${ENTRY_FILE} が無い` +
-          (domain.hasDomainJson && !domain.isCore
+          (domain.hasDomainJson && !domain.isCore && !domain.handManaged
             ? `（pnpm dc:generate ${domain.camel} --yes --only registry で生成する）`
-            : `（手書きする。登録表に載せないドメインは scripts/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
+            : domain.hasDomainJson && !domain.isCore
+              ? `（domain.json が "generate": false なので dc:generate は書かない → 手書きする。形: src/lib/domain/README.md「generate: false の業務ドメイン」）`
+              : `（手書きする。登録表に載せないドメインは scripts/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
       );
     }
     if (domain.entryPath && domain.keys.length === 0 && domain.entryErrors.length === 0) {

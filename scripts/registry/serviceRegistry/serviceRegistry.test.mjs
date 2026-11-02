@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { GENERATED_HEADER, REGISTRY_FILE, discoverDomainEntries, listStaticImports, readObjectKeys } from "./discover.mjs";
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
+import { renderDomainEntry } from "../../domain-config/render/registry/domainEntry.mjs";
 import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
 import { domainConfigMap } from "../../../src/registry/domainConfigRegistry.ts";
 import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../src/lib/domain/types/apiAccess.ts";
@@ -340,6 +341,51 @@ test("検査: table / idColumn の欠け・リテラル以外・形式違い・�
   expect(/表 "shared_items" が 2 つのキーにある: .*core\/first\/.* の "first" と .*core\/second\/.* の "second"/);
   assert.ok(!errors.some((error) => error.includes('"realtime"')), "null / null（Firestore 版）は通る");
   assert.ok(!errors.some((error) => error.includes('"mixedCase"')), "大文字を含む名前も形としては通る（正しさは実物との一致で見る）");
+});
+
+test("generate: false の業務ドメイン: domainEntry.ts が無いと手書きを案内し、README の写せる形を置けば検査が通る（生成器の出力と同じ形）", (t) => {
+  t.mock.method(console, "log", () => {});
+  const readme = fs.readFileSync(path.join(repoRoot, "src/lib/domain/README.md"), "utf8");
+  const section = readme.slice(readme.indexOf("#### generate: false の業務ドメイン"));
+  const example = /```ts\n([\s\S]*?)```/.exec(section)?.[1];
+  assert.ok(example, "README に「generate: false の業務ドメイン」の ts の例がある");
+
+  const domainJson = JSON.stringify({ singular: "visit", plural: "visits", generate: false });
+  const root = makeRoot({
+    "src/features/visit/domain.json": domainJson,
+    "src/features/visit/services/server/drizzleBase.ts": "",
+    "src/features/visit/services/server/visitService.ts": "",
+    "src/features/order/domain.json": JSON.stringify({ singular: "order", plural: "orders" }),
+    "src/features/order/services/server/drizzleBase.ts": "",
+  });
+  const missing = checkServiceRegistry(root).errors;
+  const visitError = missing.find((error) => error.includes("src/features/visit/services/server"));
+  assert.match(visitError, /"generate": false なので dc:generate は書かない → 手書きする。形: src\/lib\/domain\/README.md「generate: false の業務ドメイン」/);
+  assert.doesNotMatch(visitError, /--only registry/, "generate: false には書かない命令を案内しない");
+  assert.match(missing.find((error) => error.includes("src/features/order/services/server")), /pnpm dc:generate order --yes --only registry/, "generate: true は今までどおり生成を案内する");
+
+  // 移行前の手書き行（旧 generateFiles.registry: false のドメイン）の移し先も手書きを案内する
+  fs.mkdirSync(path.join(root, path.dirname(REGISTRY_FILE)), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, REGISTRY_FILE),
+    `import { visitService } from "@/features/visit/services/server/visitService";\nexport const serviceRegistry = {\n  visit: { service: visitService, access: ADMIN_ONLY },\n};\n`,
+  );
+  const legacy = checkServiceRegistry(root).errors.find((error) => error.includes('手書きの行 "visit"'));
+  assert.match(legacy, /"generate": false なので dc:generate は書かない → src\/features\/visit\/services\/server\/domainEntry.ts を手書きし/);
+  fs.rmSync(path.join(root, REGISTRY_FILE));
+
+  // README の例をそのまま置く → 登録・検査が通る
+  fs.rmSync(path.join(root, "src/features/order"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src/features/visit/services/server/domainEntry.ts"), example);
+  generateServiceRegistry(root);
+  assert.deepEqual(checkServiceRegistry(root).errors, []);
+  const [visit] = discoverDomainEntries(root).filter((domain) => domain.camel === "visit");
+  assert.deepEqual(visit.keys, ["visit"]);
+  assert.deepEqual(visit.tables.visit, { table: "visits", idColumn: "id" });
+
+  // README の例 = 生成器が同じ domain.json から書く本文（先頭のコメントを除く）。生成器の形が変われば README も直す
+  const rendered = renderDomainEntry({ camel: "visit", config: JSON.parse(domainJson) });
+  assert.equal(example, rendered.slice(rendered.indexOf("import type")));
 });
 
 // ---------------------------------------------------------------------------

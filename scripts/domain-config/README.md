@@ -42,6 +42,7 @@
 
 - `true`: 下の「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
 - `false`: 手で管理。生成器は何も書かない（`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
+- `domainEntry.ts` を持たないまま `false` にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は登録表に載らず `registry:check` が止まる → `domainEntry.ts` を手書きする（写せる形: [src/lib/domain/README.md](../../src/lib/domain/README.md)「generate: false の業務ドメイン」）
 - `false` のドメインはどんな実行でも生成器を通さない: `dc:generate:all`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
 - 一覧: 生成の書き込みの最後と `dc:delete` の後に `src/features/feature-map.txt`（`src/features` と `src/features/core` の全フォルダ。`_` 始まりを除く。kind / domain.json の有無 / generate）を書き直す。`pnpm dc:feature-map --check` がフォルダの増減・旗の切り替えのずれで落ちる。merge で衝突したら `pnpm dc:feature-map` で作り直す
 
@@ -216,7 +217,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs` と `domain/`（`workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-vocabulary` `test:dc-checks` `test:dc-feature-map` `test:dc-dry-run` `test:dc-registry-precheck` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-sample-drift` `test:dc-storage-output` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks` `test:dc-delete-stop` `test:dc-parent-outputs`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-vocabulary` `test:dc-checks` `test:dc-feature-map` `test:dc-dry-run` `test:dc-registry-precheck` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-sample-drift` `test:dc-storage-output` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks` `test:dc-delete-stop` `test:dc-parent-outputs` `test:dc-plural`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm dc:parity <git-ref>`）
 

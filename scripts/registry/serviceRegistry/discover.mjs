@@ -160,7 +160,7 @@ export function readEntryTables(text, entryPath) {
  *   entryPath: string | null, importPath: string | null, keys: string[], entryErrors: string[],
  *   tables: Record<string, { table: string | null, idColumn: string | null }>,
  *   overridePath: string | null, overrideImportPath: string | null, overrideKeys: string[], overrideErrors: string[],
- *   hasBase: boolean, hasDomainJson: boolean,
+ *   hasBase: boolean, hasDomainJson: boolean, handManaged: boolean,
  * }} DomainEntryInfo
  */
 
@@ -185,6 +185,15 @@ export function createOverlayView(overlay) {
   };
 }
 
+/** domain.json が `"generate": false`（手で管理 = 生成器が domainEntry.ts を書かない）か。読めない JSON は false（生成側の検査が止める） */
+export function readHandManaged(view, file) {
+  try {
+    return JSON.parse(view.read(file))?.generate === false;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * domainEntry.ts / override / drizzleBase / firestoreBase の有無とキーを集める
  * @param {string} repoRoot
@@ -198,7 +207,8 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
     const entryFile = path.join(serverDir, ENTRY_FILE);
     const overrideFile = path.join(serverDir, OVERRIDE_FILE);
     const hasBase = view.exists(path.join(serverDir, "drizzleBase.ts")) || view.exists(path.join(serverDir, "firestoreBase.ts"));
-    const hasDomainJson = view.exists(path.join(repoRoot, "src", "features", dir, "domain.json"));
+    const domainJsonFile = path.join(repoRoot, "src", "features", dir, "domain.json");
+    const hasDomainJson = view.exists(domainJsonFile);
     const camel = toCamelCase(path.basename(dir)) || path.basename(dir);
     const info = {
       dir,
@@ -215,6 +225,7 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
       overrideErrors: [],
       hasBase,
       hasDomainJson,
+      handManaged: hasDomainJson && readHandManaged(view, domainJsonFile),
     };
     const rel = `src/features/${dir}/services/server`;
     if (view.exists(entryFile)) {
