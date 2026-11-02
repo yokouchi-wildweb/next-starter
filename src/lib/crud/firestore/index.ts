@@ -58,6 +58,33 @@ export function createCrudService<
   type Insert = TCreate;
   const useSoftDelete = options.useSoftDelete ?? false;
 
+  // 論理削除の絞り込みは deletedAt == null で、Firestore はフィールドの無い文書を == null に一致させない。
+  // このため作成の経路は deletedAt: null を書く（useSoftDelete のときだけ。入力に値があればそれを使う）
+  const withLiveDeletedAt = <D extends Record<string, any>>(data: D): D =>
+    useSoftDelete && data.deletedAt === undefined ? { ...data, deletedAt: null } : data;
+
+  /**
+   * upsert の書き込み。useSoftDelete のときは同じ TX で今の文書を読み、deletedAt が無い（新規・既存の古い行）
+   * ときだけ null を足す。論理削除済みの行は削除のまま（upsert は復元しない。復元は restore）
+   */
+  const writeUpserts = async (
+    entries: { ref: FirebaseFirestore.DocumentReference; data: Record<string, any> }[],
+  ): Promise<void> => {
+    if (!useSoftDelete) {
+      const batch = getDb().batch();
+      for (const { ref, data } of entries) batch.set(ref, data, { merge: true });
+      await batch.commit();
+      return;
+    }
+    await getDb().runTransaction(async (transaction) => {
+      const snaps = await transaction.getAll(...entries.map((entry) => entry.ref));
+      entries.forEach(({ ref, data }, index) => {
+        const stored = snaps[index].exists ? snaps[index].get("deletedAt") : undefined;
+        transaction.set(ref, stored === undefined ? withLiveDeletedAt(data) : data, { merge: true });
+      });
+    });
+  };
+
   return {
     async create(data: Insert): Promise<Select> {
       const parsedInput = options.parseCreate ? await options.parseCreate(data) : data;
@@ -88,7 +115,7 @@ export function createCrudService<
         insertData.updatedAt = new Date();
       }
 
-      const finalInsert = omitUndefined(insertData);
+      const finalInsert = withLiveDeletedAt(omitUndefined(insertData));
       await docRef.set(finalInsert);
       // serverTimestamp() 未使用のため読み戻し不要 — 入力値をそのまま返却
       return convertTimestamps({ id: docRef.id, ...finalInsert } as unknown as Select);
@@ -279,7 +306,7 @@ export function createCrudService<
 
       const ref = getCol().doc(String(id));
       const sanitizedInsert = omitUndefined(insertData);
-      await ref.set(sanitizedInsert, { merge: true });
+      await writeUpserts([{ ref, data: sanitizedInsert }]);
       const snap = await ref.get();
       return convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select);
     },
@@ -305,8 +332,8 @@ export function createCrudService<
 
       for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const chunk = records.slice(i, i + BATCH_SIZE);
-        const batch = getDb().batch();
-        const refs: FirebaseFirestore.DocumentReference[] = [];
+        // parse は TX の外で済ませる（TX の関数は競合で再実行されうる）
+        const entries: { ref: FirebaseFirestore.DocumentReference; data: Record<string, any> }[] = [];
 
         for (const data of chunk) {
           const parsedInput = options.parseUpsert
@@ -332,15 +359,13 @@ export function createCrudService<
           }
 
           const ref = getCol().doc(String(id));
-          const sanitizedInsert = omitUndefined(insertData);
-          batch.set(ref, sanitizedInsert, { merge: true });
-          refs.push(ref);
+          entries.push({ ref, data: omitUndefined(insertData) });
         }
 
-        await batch.commit();
+        await writeUpserts(entries);
 
         // 結果を一括取得（N回の個別 get → 1回の getAll）
-        const snaps = await getDb().getAll(...refs);
+        const snaps = await getDb().getAll(...entries.map((entry) => entry.ref));
         for (const snap of snaps) {
           if (snap.exists) {
             results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));

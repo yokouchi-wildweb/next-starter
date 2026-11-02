@@ -1160,6 +1160,11 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | 並び替え | Fractional Indexing | 非対応 |
 | バッチ制限 | なし | 500 件/バッチ |
 
+- 論理削除（`useSoftDelete`）: 一覧・検索・件数は `deletedAt == null` で絞り、Firestore はフィールドの無い文書をこれに一致させない。このため作成の経路（`create` / `duplicate` / `upsert` / `bulkUpsert`）は `deletedAt: null` を書く（入力に値があればそれを使う）
+  - `upsert` / `bulkUpsert` は同じ TX で今の文書を読み、`deletedAt` が無いときだけ `null` を足す。論理削除済みの行は削除のまま（復元は `restore`）
+  - `deletedAt` の無い古い文書は `get` では読めるが、一覧・検索・件数に出ない。出すには `deletedAt: null` を書く
+  - クライアントから直接作る文書も同じく `deletedAt: null` を書く（chatRoom の `createRoomWithSystemMessage`）
+
 ---
 
 ## トランザクション

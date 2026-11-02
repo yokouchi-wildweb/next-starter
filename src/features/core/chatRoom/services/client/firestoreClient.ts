@@ -414,6 +414,8 @@ export async function createRoomWithSystemMessage(
         participantPair,
         readAt,
         lastMessageSnapshot: snapshot,
+        // 管理側の一覧・検索・件数は deletedAt == null で絞る。フィールドが無いと一致しないので null を書く
+        deletedAt: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       },
