@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parsePaths, staticPrefix } from "./rulePaths.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const coreDir = ".claude/rules/core";
@@ -16,29 +17,6 @@ const MAX_CLAUDE_MD_LINE_CHARS = 400;
 const claudeMd = readFileSync(join(repoRoot, "CLAUDE.md"), "utf8");
 const ruleFiles = readdirSync(join(repoRoot, coreDir)).filter((f) => f.endsWith(".md")).sort();
 const tracked = execFileSync("git", ["ls-files"], { cwd: repoRoot, encoding: "utf8" }).split("\n").filter(Boolean);
-
-// 先頭の frontmatter から `paths:` の配列を取り出す(`  - "glob"` 形式のみ)
-export function parsePaths(text) {
-  const m = text.match(/^---\n([\s\S]*?)\n---\n/);
-  if (!m) return null;
-  const lines = m[1].split("\n");
-  const start = lines.indexOf("paths:");
-  if (start < 0) return null;
-  const paths = [];
-  for (const line of lines.slice(start + 1)) {
-    const item = line.match(/^\s+-\s+"([^"]+)"\s*$/);
-    if (!item) break;
-    paths.push(item[1]);
-  }
-  return paths;
-}
-
-// ワイルドカードを含む最初の区切りより前の固定部分(例: "src/features/*/room/**" → "src/features")
-export function staticPrefix(pattern) {
-  const segs = pattern.split("/");
-  const i = segs.findIndex((s) => /[*?[{]/.test(s));
-  return i < 0 ? null : segs.slice(0, i).join("/");
-}
 
 test(`CLAUDE.md は ${MAX_CLAUDE_MD_LINES} 行未満`, () => {
   const lines = claudeMd.split("\n").length - (claudeMd.endsWith("\n") ? 1 : 0);

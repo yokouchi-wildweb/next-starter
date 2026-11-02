@@ -81,7 +81,11 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
   1. `git cherry-pick -x <元の commit>`。衝突したら `git cherry-pick --abort` で戻して止まり、選択肢を出す(手で解いて続行・この緊急修正を飛ばす・元の commit まで区間で進める)。
   2. notice の required_actions・区間の検査(typecheck / lint)・verify を行う。
   3. 追従の変更と台帳を、pick の commit とは別の commit にする(下の段が pick の commit だけを取れるように)。台帳の行は `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`。`upstream:` を元の commit にしない(所有の検査が Tier1 の版を読み違える)。下流を持つ fork は `relay:` も書く。
-  4. 手順 7c の `pnpm ownership:check`(基準 + pick と同じ中身は `picked` で合格)→ push → 報告。
+  4. 手順 7c の `pnpm ownership:check`(基準 + pick と同じ中身は `picked` で合格)→ push → 報告。pick には merge 先が無いので、7c の「intake.txt が無ければ飛ばす」の代わりに次で決める:
+     - 検査が無い(`package.json` に `ownership:check` が無い)→ 飛ばす。報告と台帳の notes に「所有の検査なし(後の区間で届く)」と書く。止めない
+     - 検査が古い(`git diff --quiet HEAD <upstream>/<branch> -- src/lib/forkOwnership/` が差分あり)→ 走らせるが、1・2 でも pick は止めない(古い検査は pick を知らないことがある)。結果を報告と台帳の notes に書く
+     - 上流と同じ版 → 7c のとおり(1・2 は停止条件)
+     どれも艦隊の worker の「無い・版の違う道具の手順は飛ばし、止めない」と同じ扱い。
 - **pick の後**: 区間を組み立て直す(台帳に記録済みの id は区切りにならない)。後の merge でその箇所が衝突したら、fork の編集が無ければ上流側を採る。
 - **手で pick 済み**: ツリーの未適用 notice の追加 commit が `<upstream>/<branch>` の祖先のままで HEAD の祖先でない(台帳に無い)ときは、区間 0 で適用し、台帳の行を上の形にする(`hotfix:` の有無を問わない)。元の commit は `git log --grep "cherry picked from commit"` の行で確かめる。
 

@@ -62,6 +62,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - ブランチは behavior.md とチームの方針に従う(既にフィーチャーブランチ上ならそのまま)。
    - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。`hotfix` では不可(本体と notice を必ず同じコミットに入れる。別なら取り消してまとめ直す)。
    - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直し、`fixes:` があれば修正元の commit(notice なら追加 commit)の上に載ることを一時の複製で確かめる: `git clone -q --shared . <scratchpad の空のフォルダ>` → そのフォルダで `git switch -q --detach <修正元>` → `git cherry-pick -n <この commit>`。衝突したら push せず止まる(「止まるとき」)。一時の複製は消す。`fixes:` が無ければ複製の確認は省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
+     続けて **遅れた fork で前提が揃うか確かめる**: `pnpm notices:hotfix-check <この commit>`。fleet.conf の各 fork の位置(merge-base)に pick した木で、この commit が足した・変えたパス指定ルールの `paths:`、notice の手順の `pnpm <script>`、notice が名指すパスがあるかを見る(間の変更で届くものに頼っていないか)。exit 1 → push せず止まる(「止まるとき」)。exit 2(fork の位置が分からない)→ 報告に「未確認: 遅れた fork の位置」と書いて進む。位置が分かれば `--base=<sha>` で渡せる。
 7. **push する**(`no-push` のときはしない): `git push`。できなかったら取り繕わず理由を報告する。
 8. **報告**(日本語):
    - 先頭に下流の取り込み判定(実測)を 1 行: `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`。危険 = そのまま merge すると fork のビルド・起動・既存動作が壊れる / fork 側の手作業が要る / 挙動・権限が黙って変わる。要注意 = merge の衝突が起きうる程度。下流が無ければ省く。
@@ -74,6 +75,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
 - 検査が落ち、直し方が自明でない。
 - 下流への影響の判定で、notice の required_actions が下流の Claude に実行できる具体度で書けない(上流の変更の側を直すべきかもしれない)。
 - `hotfix` で、前の未出荷・未取り込みの変更に依存している、または pick の確認で衝突した(依存する変更を示し、hotfix をやめて通常の出荷にするか、依存を外すかを聞く)。
+- `hotfix` で、`notices:hotfix-check` が遅れた fork の木に無いものを挙げた(その一覧を示し、選択肢を聞く: 依存を外す / notice の required_actions に、その fork で何が通らず何をするかを書き足す / hotfix をやめて通常の出荷にする / そのまま出す)。ルールの `paths:` を、検査を通すためだけに変えない(どのファイルで読まれなくなるかを言わずに変えない)。
 止まったら、見つけたことと選択肢を平文で示して待つ。
 
 ## notice の合成
