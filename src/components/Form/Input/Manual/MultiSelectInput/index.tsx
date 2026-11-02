@@ -21,9 +21,14 @@ import { Stack } from "@/components/Layout/Stack";
 import { cn } from "@/lib/cn";
 import { type Options } from "@/components/Form/types";
 
+import { PICKER_POPOVER_BODY_CLASS, usePickerPopoverSide } from "../AsyncOptionSource";
+
 import { MultiSelectOptionList } from "./MultiSelectOptionList";
 import { MultiSelectSearchSection } from "./MultiSelectSearchSection";
 import { MultiSelectTrigger } from "./MultiSelectTrigger";
+
+/** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60 + 確定ボタン行） */
+const PREFERRED_POPOVER_HEIGHT = 330;
 
 export type MultiSelectInputProps = {
   /** 現在の値（選択されている値の配列） */
@@ -68,6 +73,7 @@ export function MultiSelectInput({
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
+  const { side, anchorRef, measure } = usePickerPopoverSide(PREFERRED_POPOVER_HEIGHT);
 
   const selectedValues = normalizeOptionValues(value);
   const selectedCount = selectedValues.length;
@@ -80,6 +86,10 @@ export function MultiSelectInput({
       setInternalOpen(nextOpen);
     }
     onOpenChange?.(nextOpen);
+    // 下の空きが足りず上の方が広ければ上へ開く（AsyncOptionSource/popoverSide.ts）
+    if (nextOpen) {
+      measure();
+    }
     // ポップオーバーが閉じた時にonBlurを発火
     if (!nextOpen) {
       onBlur?.();
@@ -95,7 +105,7 @@ export function MultiSelectInput({
   };
 
   return (
-    <div className={cn("w-full", className)} {...rest}>
+    <div ref={anchorRef} className={cn("w-full", className)} {...rest}>
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <MultiSelectTrigger
@@ -108,6 +118,7 @@ export function MultiSelectInput({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          side={side}
           layer="surface-ui"
           {...popoverContentProps}
           className={cn(
@@ -115,8 +126,9 @@ export function MultiSelectInput({
             popoverContentProps?.className
           )}
         >
-          <Stack space={0} padding="none">
-            <Command>
+          {/* スクロール領域は候補リストだけ: 上限を中身のルートに付け、flex-col + min-h-0 でリストを縮める */}
+          <Stack space={0} padding="none" className={PICKER_POPOVER_BODY_CLASS}>
+            <Command className="min-h-0">
               {enableSearch && <MultiSelectSearchSection placeholder={searchPlaceholder} />}
               <MultiSelectOptionList
                 options={options}
@@ -128,7 +140,7 @@ export function MultiSelectInput({
             <Flex
               padding="sm"
               justify="end"
-              className="border-t border-border bg-popover"
+              className="shrink-0 border-t border-border bg-popover"
             >
               <Button
                 type="button"

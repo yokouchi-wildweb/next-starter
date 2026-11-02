@@ -27,6 +27,11 @@ import {
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
 
+import { PICKER_POPOVER_BODY_CLASS, usePickerPopoverSide } from "./AsyncOptionSource";
+
+/** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60） */
+const PREFERRED_POPOVER_HEIGHT = 280;
+
 export type ComboboxInputProps = {
   /** 現在の値 */
   value?: OptionPrimitive | null;
@@ -78,6 +83,7 @@ export function ComboboxInput({
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
+  const { side, anchorRef, measure } = usePickerPopoverSide(PREFERRED_POPOVER_HEIGHT);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (disabled) {
@@ -87,6 +93,10 @@ export function ComboboxInput({
       setInternalOpen(nextOpen);
     }
     onOpenChange?.(nextOpen);
+    // 下の空きが足りず上の方が広ければ上へ開く（AsyncOptionSource/popoverSide.ts）
+    if (nextOpen) {
+      measure();
+    }
     // ポップオーバーが閉じた時に onBlur を発火
     if (!nextOpen) {
       onBlur?.();
@@ -118,7 +128,7 @@ export function ComboboxInput({
   const hasValue = selectedLabel !== null;
 
   return (
-    <div className={cn("w-full", className)} {...rest}>
+    <div ref={anchorRef} className={cn("w-full", className)} {...rest}>
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
@@ -148,6 +158,7 @@ export function ComboboxInput({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          side={side}
           layer="surface-ui"
           {...popoverContentProps}
           className={cn(
@@ -156,9 +167,10 @@ export function ComboboxInput({
             popoverContentProps?.className
           )}
         >
-          <Command>
+          {/* スクロール領域は候補リストだけ: 上限を Command に付け、min-h-0 でリストを縮める */}
+          <Command className={PICKER_POPOVER_BODY_CLASS}>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList className="max-h-60">
+            <CommandList className="max-h-60 min-h-0">
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               {options.map((option, index) => {
                 const serialized = serializeOptionValue(option.value);

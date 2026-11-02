@@ -66,7 +66,8 @@ export function AsyncOptionList({
 
   return (
     <CommandList
-      className={cn("flex max-h-60 flex-col gap-1 p-1", className)}
+      // min-h-0: ピッカーの flex-col チェーン内で上限に当たったとき、このリストだけが縮んでスクロールする
+      className={cn("flex max-h-60 min-h-0 flex-col gap-1 p-1", className)}
       onScroll={onScroll}
     >
       {header}

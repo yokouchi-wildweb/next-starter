@@ -49,11 +49,16 @@ import {
   AsyncOptionInitialState,
   AsyncOptionList,
   AsyncOptionListFooter,
+  PICKER_POPOVER_BODY_CLASS,
   PendingOptionLabel,
   isAsyncOptionInitialState,
   useAsyncOptionSource,
+  usePickerPopoverSide,
   useSelectionSnapshot,
 } from "../AsyncOptionSource";
+
+/** 縮めずに出したい中身の高さ（タブ + 検索欄 + 候補リスト max-h-60 + 確定ボタン行） */
+const PREFERRED_POPOVER_HEIGHT = 380;
 
 export type AsyncMultiSelectInputProps<T> = {
   /** 現在の値（選択されている値の配列） */
@@ -146,6 +151,7 @@ export function AsyncMultiSelectInput<T>({
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
+  const { side, anchorRef, measure } = usePickerPopoverSide(PREFERRED_POPOVER_HEIGHT);
 
   // ---- タブ ----
   const [activeTab, setActiveTab] = useState<ActiveTab>("selected");
@@ -192,6 +198,8 @@ export function AsyncMultiSelectInput<T>({
       onOpenChange?.(nextOpen);
 
       if (nextOpen) {
+        // 下の空きが足りず上の方が広ければ上へ開く（popoverSide.ts）
+        measure();
         // session snapshot を current value で初期化
         startSnapshot(normalizeOptionValues(value));
         // デフォルトタブ: 検索（入力フィールドにフォーカスを当てて即タイピング可能にする）
@@ -202,7 +210,7 @@ export function AsyncMultiSelectInput<T>({
         onBlur?.();
       }
     },
-    [disabled, isControlled, onOpenChange, onBlur, value, reset, startSnapshot],
+    [disabled, isControlled, onOpenChange, onBlur, value, reset, startSnapshot, measure],
   );
 
   // ---- トグル ----
@@ -259,7 +267,7 @@ export function AsyncMultiSelectInput<T>({
 
   // ---- レンダリング ----
   return (
-    <div className={cn("w-full", className)} {...rest}>
+    <div ref={anchorRef} className={cn("w-full", className)} {...rest}>
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <MultiSelectTrigger
@@ -272,6 +280,7 @@ export function AsyncMultiSelectInput<T>({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          side={side}
           layer="surface-ui"
           onOpenAutoFocus={(e) => {
             // radix の既定（content への focus）を抑止し、CommandInput の autoFocus に委譲
@@ -284,8 +293,9 @@ export function AsyncMultiSelectInput<T>({
             popoverContentProps?.className,
           )}
         >
-          <Stack space={0} padding="none">
-            <Command shouldFilter={false}>
+          {/* スクロール領域は候補リストだけ: 上限を中身のルートに付け、flex-col + min-h-0 でリストを縮める */}
+          <Stack space={0} padding="none" className={PICKER_POPOVER_BODY_CLASS}>
+            <Command shouldFilter={false} className="min-h-0">
               <StateTabs
                 size="sm"
                 value={activeTab}
@@ -294,10 +304,10 @@ export function AsyncMultiSelectInput<T>({
                   { value: "search", label: "検索" },
                   { value: "selected", label: `選択済み (${selectedCount})` },
                 ]}
-                className="px-2 pt-2"
+                className="min-h-0 px-2 pt-2"
                 listClassName="w-full"
               >
-                <StateTabsContent value="selected">
+                <StateTabsContent value="selected" className="flex min-h-0 flex-col">
                   {selectedSnapshotOptions.length === 0 ? (
                     <Span size="sm" tone="muted" align="center" className="block py-6">
                       選択された項目はありません
@@ -312,7 +322,7 @@ export function AsyncMultiSelectInput<T>({
                   )}
                 </StateTabsContent>
 
-                <StateTabsContent value="search">
+                <StateTabsContent value="search" className="flex min-h-0 flex-col">
                   <CommandInput
                     autoFocus
                     placeholder={searchPlaceholder}
@@ -327,7 +337,7 @@ export function AsyncMultiSelectInput<T>({
             <Flex
               padding="sm"
               justify="end"
-              className="border-t border-border bg-popover"
+              className="shrink-0 border-t border-border bg-popover"
             >
               <Button
                 type="button"

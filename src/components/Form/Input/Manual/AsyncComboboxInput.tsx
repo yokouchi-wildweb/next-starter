@@ -38,10 +38,15 @@ import {
   AsyncOptionInitialState,
   AsyncOptionList,
   AsyncOptionListFooter,
+  PICKER_POPOVER_BODY_CLASS,
   PendingOptionLabel,
   isAsyncOptionInitialState,
   useAsyncOptionSource,
+  usePickerPopoverSide,
 } from "./AsyncOptionSource";
+
+/** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60） */
+const PREFERRED_POPOVER_HEIGHT = 280;
 
 export type AsyncComboboxInputProps<T> = {
   /** 現在の値 */
@@ -146,6 +151,7 @@ export function AsyncComboboxInput<T>({
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
+  const { side, anchorRef, measure } = usePickerPopoverSide(PREFERRED_POPOVER_HEIGHT);
 
   // ---- 取得エンジン ----
   // initialOption は毎 render 同じ参照とは限らないため、配列化は useMemo で固定する
@@ -173,13 +179,15 @@ export function AsyncComboboxInput<T>({
       onOpenChange?.(nextOpen);
 
       if (nextOpen) {
+        // 下の空きが足りず上の方が広ければ上へ開く（popoverSide.ts）
+        measure();
         reset({ preload: preloadOnOpen });
       } else {
         // ポップオーバーが閉じた時に onBlur を発火
         onBlur?.();
       }
     },
-    [disabled, isControlled, onOpenChange, onBlur, preloadOnOpen, reset],
+    [disabled, isControlled, onOpenChange, onBlur, preloadOnOpen, reset, measure],
   );
 
   // ---- 選択 / 解除 ----
@@ -294,7 +302,7 @@ export function AsyncComboboxInput<T>({
     (!hasValue || activeState.items.length === 0);
 
   return (
-    <div className={cn("w-full", className)} {...rest}>
+    <div ref={anchorRef} className={cn("w-full", className)} {...rest}>
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
@@ -324,6 +332,7 @@ export function AsyncComboboxInput<T>({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          side={side}
           layer="surface-ui"
           onOpenAutoFocus={(e) => {
             // radix の既定（content への focus）を抑止し、CommandInput の autoFocus に委譲
@@ -336,7 +345,8 @@ export function AsyncComboboxInput<T>({
             popoverContentProps?.className
           )}
         >
-          <Command shouldFilter={false}>
+          {/* スクロール領域は候補リストだけ: 上限を Command に付け、min-h-0 でリストを縮める */}
+          <Command shouldFilter={false} className={PICKER_POPOVER_BODY_CLASS}>
             <CommandInput
               autoFocus
               placeholder={searchPlaceholder}

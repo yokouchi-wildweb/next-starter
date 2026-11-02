@@ -2,6 +2,7 @@
 //
 // 非同期選択肢ソースの共通エンジン + 共通リスト部品。
 // 消費者: AsyncComboboxInput / AsyncMultiSelectInput / Overlays/AsyncPickerModal
+// ポップオーバーの向き・高さ上限（popoverSide / usePickerPopoverSide）は MultiSelectInput / ComboboxInput も使う
 
 export {
   useAsyncOptionSource,
@@ -23,3 +24,10 @@ export {
   isAsyncOptionInitialState,
 } from "./AsyncOptionListStates";
 export { PendingOptionLabel } from "./PendingOptionLabel";
+export {
+  decidePopoverSide,
+  PICKER_POPOVER_BODY_CLASS,
+  POPOVER_SIDE_MARGIN,
+} from "./popoverSide";
+export type { DecidePopoverSideInput, PopoverVerticalSide } from "./popoverSide";
+export { usePickerPopoverSide } from "./usePickerPopoverSide";
