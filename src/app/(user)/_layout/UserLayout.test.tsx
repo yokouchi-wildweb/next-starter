@@ -63,14 +63,15 @@ const BEFORE_SWITCH =
   "<x-footer></x-footer><x-spacer></x-spacer><x-bottomnav></x-bottomnav><x-modal></x-modal></div>";
 
 /**
- * 外枠の inline style の --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT)。
+ * 外枠の inline style の --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area)。
  * 書くのはボトムナビがある時だけ(slot 省略 = 既定のボトムナビが有効な時 / bottomNav に要素を渡した時)
  */
+const bottomNavValue = () => `calc(${bottomNavConfig.BOTTOM_NAV_HEIGHT}px + var(--app-safe-area-bottom))`;
 const bottomNavVar = (hasBottomNav = bottomNavConfig.BOTTOM_NAV_ENABLED) =>
-  hasBottomNav ? `;--app-bottom-nav-height:${bottomNavConfig.BOTTOM_NAV_HEIGHT}px` : "";
+  hasBottomNav ? `;--app-bottom-nav-height:${bottomNavValue()}` : "";
 /**
  * 寸法変数の区切り(notice frame-dims)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠の inline style に --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT。既定のボトムナビが有効な時)
+ * 外枠の inline style に --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area。既定のボトムナビが有効な時)
  */
 const withBottomNavVar = (html: string) =>
   html.replace('style="--app-header-height:0px"', `style="--app-header-height:0px${bottomNavVar()}"`);
@@ -117,7 +118,7 @@ test("props なしの UserLayout は印・高さ変数・部品の並びを持�
   const html = render(<UserLayout>CHILD</UserLayout>);
   const root = tagOf(html, "user-app-container");
   assert.ok(root.includes('data-frame-root=""'), "外枠に data-frame-root が無い");
-  assert.equal(root.includes(`--app-bottom-nav-height:${bottomNavConfig.BOTTOM_NAV_HEIGHT}px`), bottomNavConfig.BOTTOM_NAV_ENABLED);
+  assert.equal(root.includes(`--app-bottom-nav-height:${bottomNavValue()}`), bottomNavConfig.BOTTOM_NAV_ENABLED);
   assert.ok(html.includes(baseMark()), "基本の印が無い");
   assert.ok(html.includes(configBackground()), "config の値で描いた背景が無い");
   const order = ['id="user-app-container"', "<x-header>", 'id="stretch-wrapper"', "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
@@ -191,7 +192,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
 
 test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、基本の印も描く(差し替えも BOTTOM_NAV_VISIBILITY に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
-  assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavConfig.BOTTOM_NAV_HEIGHT}px`));
+  assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
   assert.ok(html.includes(baseMark(true)), "基本の印が無い");
 });
 

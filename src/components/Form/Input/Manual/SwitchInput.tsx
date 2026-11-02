@@ -202,6 +202,8 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
         className={cn(trackVariants({ checked, interactive: !disabled, size, activeColor, inactiveColor }))}
       >
         <span className={indicatorVariants({ checked, size })} />
+        {/* トラックの label にも名前を持たせる(label が無いと名前の無い label になる) */}
+        {label ? <span className="sr-only">{label}</span> : null}
       </label>
 
       {(label || description) && (

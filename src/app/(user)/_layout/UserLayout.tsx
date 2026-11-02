@@ -63,13 +63,14 @@ export function UserLayout({
   const headerHeight = useHeaderHeight();
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
-  // ボトムナビの高さは config の値。既定のボトムナビが無効な時と bottomNav={null} の時は書かない(:root の 0px)。
+  // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
+  // 既定のボトムナビが無効な時と bottomNav={null} の時は書かない(:root の 0px)。
   // 隠している間の 0 は印の CSS(styles/_base/frame-controls.generated.css)が作る
   const hasBottomNav = bottomNav === undefined ? BOTTOM_NAV_ENABLED : bottomNav !== null;
 
   const layoutStyle: LayoutStyle = {
     "--app-header-height": `${headerHeight}px`,
-    ...(hasBottomNav ? { "--app-bottom-nav-height": `${BOTTOM_NAV_HEIGHT}px` } : {}),
+    ...(hasBottomNav ? { "--app-bottom-nav-height": `calc(${BOTTOM_NAV_HEIGHT}px + var(--app-safe-area-bottom))` } : {}),
     ...(hasBanner ? { "--app-banner-height": `${bannerHeight}px` } : {}),
   };
 

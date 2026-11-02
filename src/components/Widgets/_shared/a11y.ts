@@ -32,7 +32,7 @@ export function getSlideA11yProps({
     role: "group" as const,
     "aria-roledescription": "slide",
     "aria-label": `${index + 1} / ${count}`,
-    ...(isActive ? {} : { "aria-hidden": true, inert: "" as unknown as boolean }),
+    ...(isActive ? {} : { "aria-hidden": true, inert: true }),
   }
 }
 

@@ -49,7 +49,7 @@
 | `enableSwipe` | `boolean` | `true` | 水平スワイプで前後へ |
 | `swipeThreshold` | `number` | `50` | スワイプ判定の閾値 (px) |
 | `pauseOnHover` | `boolean` | `true` | ホバー/フォーカス中は autoplay 一時停止 |
-| `respectReducedMotion` | `boolean` | `true` | `prefers-reduced-motion` を尊重 |
+| `respectReducedMotion` | `boolean` | `true` | `prefers-reduced-motion` を尊重(false の時は自動再生も遷移アニメーションも OS 設定で止めない) |
 
 ### レイアウト・カスタム
 

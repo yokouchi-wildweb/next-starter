@@ -285,7 +285,7 @@ export function FadeSlider<T>({
     ...(containerWidth ? { width: containerWidth, marginLeft: "auto", marginRight: "auto" } : {}),
   }
 
-  const styleTag = buildFadeSliderStyle(sliderId, t.kind, t.duration, t.easing)
+  const styleTag = buildFadeSliderStyle(sliderId, t.kind, t.duration, t.easing, respectReducedMotion)
 
   return (
     <div
@@ -370,6 +370,7 @@ function buildFadeSliderStyle(
   kind: "crossfade" | "fadeThrough",
   duration: number,
   easing: string,
+  respectReducedMotion: boolean,
 ): string {
   const selector = `[data-fade-slider-id="${id}"]`
   const slideSelector = `[data-fade-slide="${id}"]`
@@ -393,8 +394,10 @@ function buildFadeSliderStyle(
         `${selector} ${slideSelector}[data-active="true"] { transition-delay: ${half}ms; }`
       : `${selector} ${slideSelector} { transition-duration: ${duration}ms; transition-delay: 0ms; }`
 
-  const reducedMotion =
-    `@media (prefers-reduced-motion: reduce) {` +
+  // respectReducedMotion が false の時は OS の「動きを減らす」でも遷移を止めない
+  const reducedMotion = !respectReducedMotion
+    ? ""
+    : `@media (prefers-reduced-motion: reduce) {` +
     ` ${selector} ${slideSelector} {` +
     ` transition-duration: 0ms !important;` +
     ` transition-delay: 0ms !important;` +

@@ -2,11 +2,12 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useId, useState } from "react";
 import axios from "axios";
 import Modal from "@/components/Overlays/Modal";
 import { Button } from "@/components/Form/Button/Button";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
+import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 
@@ -58,6 +59,8 @@ export function ExportSettingsModal({
   const [includeImages, setIncludeImages] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // チェックボックスと文言を htmlFor / id で結ぶ(一覧の行は key を足した id)
+  const checkboxIdBase = useId();
 
   const isAllSelected = selectedFields.length === allFieldNames.length;
   const isNoneSelected = selectedFields.length === 0;
@@ -150,13 +153,14 @@ export function ExportSettingsModal({
       <Block className="p-4">
         {/* 画像オプション */}
         <Block className="mb-4 pb-4 border-b border-border">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <Label htmlFor={`${checkboxIdBase}-images`} className="cursor-pointer font-normal leading-normal">
             <BooleanCheckboxInput
+              id={`${checkboxIdBase}-images`}
               value={includeImages}
               onChange={(checked) => setIncludeImages(checked === true)}
             />
             <span className="text-sm">画像を含める（ZIP形式でダウンロード）</span>
-          </label>
+          </Label>
         </Block>
 
         {/* カラム選択 */}
@@ -185,11 +189,13 @@ export function ExportSettingsModal({
 
           <Block className="flex flex-col gap-2 max-h-64 overflow-y-auto">
             {allFields.map((field) => (
-              <label
+              <Label
                 key={field.name}
-                className="flex items-center gap-2 cursor-pointer py-1"
+                htmlFor={`${checkboxIdBase}-field-${field.name}`}
+                className="cursor-pointer py-1 font-normal leading-normal"
               >
                 <BooleanCheckboxInput
+                  id={`${checkboxIdBase}-field-${field.name}`}
                   value={selectedFields.includes(field.name)}
                   onChange={() => handleToggleField(field.name)}
                 />
@@ -197,7 +203,7 @@ export function ExportSettingsModal({
                   {field.label}
                   <span className="text-muted-foreground ml-1">({field.name})</span>
                 </span>
-              </label>
+              </Label>
             ))}
           </Block>
         </Block>

@@ -59,7 +59,7 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
           ここの scrollTop が動いてしまい、フォーム全体が画面外へ押し出される崩れが起きる。
           overflow-clip は CSS 仕様上 scroll container を作らないため focus 駆動の
           スクロールも発火しない。配下（ResizableArea / InsaneResizableArea / login・setup の
-          Main）が自前でスクロール可能領域を確保する前提。 */}
+          Screen が Main を包む overflow-y-auto の Block）が自前でスクロール可能領域を確保する前提。 */}
       <div className="flex-1 min-h-0 flex flex-col overflow-clip">{children}</div>
     </div>
   );

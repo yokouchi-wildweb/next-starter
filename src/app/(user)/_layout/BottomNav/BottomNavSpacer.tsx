@@ -4,7 +4,7 @@ import { useBottomNavItems } from "./useBottomNavItems";
 
 /**
  * BottomNavの高さ分のスペースを確保するスペーサーコンポーネント
- * 高さは外枠の --app-bottom-nav-height(UserLayout が config の値を書き、出さないデバイスと Hide* で隠す間は印の CSS が 0 にする)
+ * 高さは外枠の --app-bottom-nav-height(UserLayout が config の値 + 下の safe-area を書き、出さないデバイスと Hide* で隠す間は印の CSS が 0 にする)
  */
 export const BottomNavSpacer = () => {
   const { enabled } = useBottomNavItems();

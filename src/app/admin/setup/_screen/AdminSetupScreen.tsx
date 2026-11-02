@@ -4,6 +4,7 @@
 // 手順: src/lib/screens/README.md
 
 import type { ScreenProps } from "@/lib/screens/types";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
@@ -16,14 +17,18 @@ export async function AdminSetupScreen(props: ScreenProps) {
   await loadAdminSetupScreen(props);
 
   return (
-    <Main containerType="narrowStack">
-      <Section id="admin-setup">
-        <PageTitle placement="page">管理コンソールへようこそ！</PageTitle>
-        <Para>最初の管理ユーザーを登録し、管理設定を初期化します。</Para>
-        <Stack marginBlock="lg" space={0} padding="none">
-          <AdminSetupForm />
-        </Stack>
-      </Section>
-    </Main>
+    <Block className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+      {/* 管理の枠は固定高さ(AdminLayout の overflow-clip)で body が伸びないため、この画面は自分でスクロールする。
+          狭い画面やソフトウェアキーボードで高さが縮んでもフォームの下まで届く */}
+      <Main containerType="narrowStack">
+        <Section id="admin-setup">
+          <PageTitle placement="page">管理コンソールへようこそ！</PageTitle>
+          <Para>最初の管理ユーザーを登録し、管理設定を初期化します。</Para>
+          <Stack marginBlock="lg" space={0} padding="none">
+            <AdminSetupForm />
+          </Stack>
+        </Section>
+      </Main>
+    </Block>
   );
 }

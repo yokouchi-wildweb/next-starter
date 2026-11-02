@@ -70,6 +70,7 @@ const BottomNavLinkEntry = ({ item }: { readonly item: BottomNavLinkItem }) => {
     <Link
       id={`bottom-nav-item-${item.key}`}
       href={item.href}
+      aria-current={isActive ? "page" : undefined}
       className={cn(ITEM_CLASS_NAME, isActive ? activeColorClass : "text-muted-foreground")}
     >
       <ItemContent item={item} />

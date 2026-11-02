@@ -63,14 +63,15 @@ src/app/(user)/_layout/
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`#header`)の実測の高さ | UserLayout・AdminLayout の外枠の inline |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `BOTTOM_NAV_HEIGHT`(`src/config/ui/user-bottom-menu.config.ts`)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px)。出さないデバイス(`BOTTOM_NAV_VISIBILITY`、既定 PC)と `HideBottomNav` で隠している間は 0px(印の CSS が `!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/_base/frame-controls.generated.css` |
+| `--app-bottom-nav-height` | `calc(BOTTOM_NAV_HEIGHT px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`BOTTOM_NAV_HEIGHT` は `src/config/ui/user-bottom-menu.config.ts`。iOS では下の safe-area ぶん高い)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px)。出さないデバイス(`BOTTOM_NAV_VISIBILITY`、既定 PC)と `HideBottomNav` で隠している間は 0px(印の CSS が `!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/_base/frame-controls.generated.css` |
 | `--app-safe-area-top/right/bottom/left` | `env(safe-area-inset-*, 0px)` | `src/styles/_base/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/_base/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
 - 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので fork の CSS(`src/styles/` 直下)からは上書きできない
 - `--app-header-height` は実測なので、HideHeader で隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は印の対象外
-- BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav の高さ(`style` の height)と BottomNav・UserPage の safe-area(`env()` の直書き)は今の値のまま(値は同じ)
-- 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:64px`。どちらも banner が無い時の計算値・見た目は同じ
+- BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav 本体の高さ(`style` の height)も同じ計算(`calc(<px> + var(--app-safe-area-bottom))`、safe-area は padding-bottom で避ける)。変数が safe-area を含むので、使う側で safe-area を足さない
+- body 直下へ portal する部品(GlobalToast)は外枠の変数を継げない: GlobalToast は表示する時に `[data-frame-root]` の計算値を写して下寄せをナビの上に出す(表示中に Hide* が切り替わると次のトーストまで古い値)
+- 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:calc(64px + var(--app-safe-area-bottom))`(safe-area の無い端末では 64px と同じ)。banner が無い時の Header の計算値・見た目は同じ
 - header / footer の決め方は「slot → 既定(`./Header` の UserNavigation・`./Footer` の UserFooter)」。config は値だけを持ち、部品を export しない
 
 ### fork の差し替え手順

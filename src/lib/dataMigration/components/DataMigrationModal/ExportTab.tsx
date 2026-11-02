@@ -3,10 +3,11 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useId, useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/Form/Button/Button";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
+import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { useToast } from "@/lib/toast";
@@ -59,6 +60,8 @@ export function ExportTab({
   const [selectedHasManyDomains, setSelectedHasManyDomains] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // チェックボックスと文言を htmlFor / id で結ぶ(一覧の行は key を足した id)
+  const checkboxIdBase = useId();
   const { showToast } = useToast();
 
   const isAllSelected = selectedFields.length === allFieldNames.length;
@@ -162,34 +165,41 @@ export function ExportTab({
     <Block className="p-4">
       {/* エクスポートオプション */}
       <Block className="mb-4 pb-4 border-b border-border flex flex-col gap-3">
-        <label className="flex items-center gap-2 cursor-pointer">
+        <Label htmlFor={`${checkboxIdBase}-images`} className="cursor-pointer font-normal leading-normal">
           <BooleanCheckboxInput
+            id={`${checkboxIdBase}-images`}
             value={includeImages}
             onChange={(checked) => setIncludeImages(checked === true)}
           />
           <span className="text-sm">画像を含める（ZIP形式でダウンロード）</span>
-        </label>
+        </Label>
         {hasRelations && (
-          <label className="flex items-center gap-2 cursor-pointer">
+          <Label htmlFor={`${checkboxIdBase}-relations`} className="cursor-pointer font-normal leading-normal">
             <BooleanCheckboxInput
+              id={`${checkboxIdBase}-relations`}
               value={includeRelations}
               onChange={(checked) => setIncludeRelations(checked === true)}
             />
             <span className="text-sm">リレーションを含める（関連データも一緒にエクスポート）</span>
-          </label>
+          </Label>
         )}
         {/* hasMany ドメイン選択（リレーションを含める場合のみ表示） */}
         {includeRelations && hasManyDomains.length > 0 && (
           <Block className="ml-6 mt-2 flex flex-col gap-2">
             <span className="text-xs text-muted-foreground">子データの選択:</span>
             {hasManyDomains.map((hm) => (
-              <label key={hm.domain} className="flex items-center gap-2 cursor-pointer">
+              <Label
+                key={hm.domain}
+                htmlFor={`${checkboxIdBase}-hasmany-${hm.domain}`}
+                className="cursor-pointer font-normal leading-normal"
+              >
                 <BooleanCheckboxInput
+                  id={`${checkboxIdBase}-hasmany-${hm.domain}`}
                   value={selectedHasManyDomains.includes(hm.domain)}
                   onChange={() => handleToggleHasManyDomain(hm.domain)}
                 />
                 <span className="text-sm">{hm.label}</span>
-              </label>
+              </Label>
             ))}
           </Block>
         )}
@@ -216,8 +226,13 @@ export function ExportTab({
 
         <Block className="flex flex-col gap-2 max-h-64 overflow-y-auto">
           {allFields.map((field) => (
-            <label key={field.name} className="flex items-center gap-2 cursor-pointer py-1">
+            <Label
+              key={field.name}
+              htmlFor={`${checkboxIdBase}-field-${field.name}`}
+              className="cursor-pointer py-1 font-normal leading-normal"
+            >
               <BooleanCheckboxInput
+                id={`${checkboxIdBase}-field-${field.name}`}
                 value={selectedFields.includes(field.name)}
                 onChange={() => handleToggleField(field.name)}
               />
@@ -225,7 +240,7 @@ export function ExportTab({
                 {field.label}
                 <span className="text-muted-foreground ml-1">({field.name})</span>
               </span>
-            </label>
+            </Label>
           ))}
         </Block>
       </Block>
