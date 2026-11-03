@@ -8,9 +8,12 @@
 // 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
 //    task.ts だけ（fork 所有の override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
-//    例外は入力部品の束だけ: AppProviders → formInputs/FormInputsRoot と、formInputs の中どうし（Root → 一覧 → 項目）
+//    例外は入力部品の束: AppProviders → formInputs/FormInputsRoot と、formInputs の中どうし（Root → 一覧 → 項目）と、
+//    受け口: 生成物 wiring/<名前>.ts → wiring/<名前>/extensionPoints.ts が宣言した受け口の中の項目（fork のドット名の項目を含む）、
+//    受け口の中の項目どうし（同じ受け口の中だけ）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
 //    の鎖を辿る。domainRegistry.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
+//    一覧の完全一致は Tier1 だけ。fork は受け口の項目でデータに届く wiring が増えてよい（上流の分が残っていることを見る。増えた分も 5 が同じ場所に限る）
 // 5. データに届く wiring を import してよい場所（D73 K6）: src/app の loader.ts・route.ts・cron の task.ts・API の補助ファイル
 //    （src/app/api/**）、guard.ts は pageGuard の作り手だけ、root の src/app/layout.tsx は AppProviders だけ。proxies・proxy.ts は既存の契約で可。
 //    それ以外の src/app（Screen・page・layout・_layout・_components の部品）は不可。AppProviders の中の AuthSessionProvider で判定を止める
@@ -21,7 +24,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
-import { parseForkDotName, readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
+import { parseForkDotName, readDeclaredForkIds, readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const srcDir = join(repoRoot, "src");
@@ -79,6 +82,36 @@ function resolveSource(fromFile, source) {
 function isFormInputsBundleImport(from, to) {
   if (from === "wiring/AppProviders.tsx" && to === "wiring/formInputs/FormInputsRoot.tsx") return true;
   return from.startsWith("wiring/formInputs/") && to.startsWith("wiring/formInputs/");
+}
+
+/**
+ * extensionPoints.ts の中身から受け口のフォルダ名（`dir: "..."`）を読む
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function receptacleDirsOf(text) {
+  return [...stripComments(text).matchAll(/\bdir:\s*["']([^"'/]+)["']/g)].map((m) => m[1]);
+}
+
+/**
+ * 受け口の例外: 生成物 wiring/<名前>.ts → wiring/<名前>/<受け口>/…、同じ受け口の中の項目どうし
+ * @param {string} from src 相対
+ * @param {string} to src 相対
+ * @param {(bundle: string) => string[]} receptacleDirs 束の名前 → 受け口のフォルダ名（wiring/<束>/extensionPoints.ts の dir）
+ */
+export function isReceptacleImport(from, to, receptacleDirs) {
+  const target = /^wiring\/([^/]+)\/([^/]+)\/.+/.exec(to);
+  if (!target) return false;
+  const [, bundle, dir] = target;
+  if (!receptacleDirs(bundle).includes(dir)) return false;
+  if (from === `wiring/${bundle}.ts`) return true;
+  return from.startsWith(`wiring/${bundle}/${dir}/`);
+}
+
+/** src/wiring/<束>/extensionPoints.ts の受け口のフォルダ名（無ければ空） */
+function receptacleDirsOnDisk(bundle) {
+  const file = join(wiringDir, bundle, "extensionPoints.ts");
+  return existsSync(file) ? receptacleDirsOf(readFileSync(file, "utf8")) : [];
 }
 
 /**
@@ -158,6 +191,7 @@ test("向き: wiring を import するのは src/app・src/proxies・src/proxy.t
       const target = resolveSource(file, source);
       if (!target || !toPosix(relative(srcDir, target)).startsWith("wiring/")) continue;
       if (isFormInputsBundleImport(rel, toPosix(relative(srcDir, target)))) continue;
+      if (isReceptacleImport(rel, toPosix(relative(srcDir, target)), receptacleDirsOnDisk)) continue;
       if (rel.startsWith("wiring/")) {
         problems.push(`${rel} → ${source}（wiring どうしは import しない。登録表と lib の汎用版を自分で結ぶ）`);
       } else if (!isAllowedImporter(rel)) {
@@ -195,9 +229,18 @@ test("データに届く wiring: domainRegistry.ts は registry → domainEntry.
   assert.ok(result.path.some((rel) => rel.endsWith("/domainEntry.ts")), `鎖が domainEntry.ts を通らない: ${result.path.join(" → ")}`);
 });
 
+/** 上流のデータに届く wiring（README の表） */
+const UPSTREAM_DATA_REACHING = ["AppProviders.tsx", "adminScreenParts.ts", "apiRoute.ts", "domainRegistry.ts", "pageGuard.ts"];
+
 test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts / .tsx 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
   const dataReaching = WIRING_FILES.filter((name) => /\.tsx?$/.test(name) && reachesServicesServer(join(wiringDir, name)).reached);
-  assert.deepEqual(dataReaching, ["AppProviders.tsx", "adminScreenParts.ts", "apiRoute.ts", "domainRegistry.ts", "pageGuard.ts"], "データに届く wiring の一覧が変わった（README の表を直す）");
+  if (readForkIdentity(repoRoot).isTier1) {
+    assert.deepEqual(dataReaching, UPSTREAM_DATA_REACHING, "データに届く wiring の一覧が変わった（README の表を直す）");
+    return;
+  }
+  // fork: 受け口の項目（dbAgent の promptFragments など）でデータに届く wiring が増えてよい。上流の分は鎖が残っていること
+  const missing = UPSTREAM_DATA_REACHING.filter((name) => !dataReaching.includes(name));
+  assert.deepEqual(missing, [], `上流のデータに届く wiring が届かなくなった: ${missing.join(", ")}`);
 });
 
 /**
@@ -251,6 +294,19 @@ test("データに届く wiring を import する src/app のファイルが許�
     }
   }
   assert.deepEqual(problems, [], problems.join("\n"));
+});
+
+test("受け口の例外: 生成物 wiring/<名前>.ts → 宣言された受け口の中の項目と、同じ受け口の中どうしだけ", () => {
+  const dirs = (bundle) => (bundle === "dbAgent" ? ["extraTools", "promptFragments", "suffixProviders"] : []);
+  assert.deepEqual(receptacleDirsOf('export const extensionPoints = {\n  a: { dir: "promptFragments" },\n  // b: { dir: "old" },\n  c: { dir: \'extraTools\' },\n};'), ["promptFragments", "extraTools"]);
+  assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/promptFragments/rules.acme.ts", dirs), true);
+  assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/extraTools/tool/index.ts", dirs), true);
+  assert.equal(isReceptacleImport("wiring/dbAgent/extraTools/tool/index.ts", "wiring/dbAgent/extraTools/tool/schema.ts", dirs), true);
+  assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/extensionPoints.ts", dirs), false, "受け口の外");
+  assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/notDeclared/x.ts", dirs), false, "宣言に無いフォルダ");
+  assert.equal(isReceptacleImport("wiring/apiRoute.ts", "wiring/dbAgent/promptFragments/x.ts", dirs), false, "別の wiring から");
+  assert.equal(isReceptacleImport("wiring/dbAgent/promptFragments/x.ts", "wiring/dbAgent/extraTools/y.ts", dirs), false, "別の受け口へ");
+  assert.equal(isReceptacleImport("wiring/dbAgent/promptFragments/x.ts", "wiring/domainRegistry.ts", dirs), false, "項目から別の wiring へ");
 });
 
 test("入力部品の束: 例外は AppProviders → Root と formInputs の中だけ、組み込みと同名の登録は落ちる", () => {
