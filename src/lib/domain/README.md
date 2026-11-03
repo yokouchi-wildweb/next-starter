@@ -42,6 +42,8 @@ export const domainEntries = {
 
 - キー付きオブジェクト、1 ファイルに複数キー可（auditLog は 2 キー）
 - `service` は**遅延読み込み**（`() => import(...)`）。登録表を import しても各ドメインのサービス・DB 接続は読み込まれない
+- `service` は CRUD の全メソッドを持つサービスを返す（通常は `<domain>Service` = base + wrappers）。`pnpm test:service-registry` が Drizzle 版の全エントリに `getTableName` / `getIdColumnName` / `truncateAll` / `searchWithDeleted` を求める。**base の一部だけを見せる入口のサービス（読み取り専用など）は通らないので、`service` は base を指す**（上の例の auditLogFailed と同じ `import("./drizzleBase").then((m) => m.<x>Base)`）。足りないメソッドを検査のためだけに入口へ足さない
+  - base を指すと、登録表を通る全経路（汎用 API `/api/<key>/**`・全件削除・データ移行・サーバー内の `getService`）が base 全体を使い、入口の絞り込みは効かない → `access` は `INTERNAL_ONLY` にするか、base 全体に許してよい操作だけを開く。入口のサービスはそのドメイン専用のルートから使い続ける
 - `table` / `idColumn` は型で必須（`string | null`）。service の直後に、**文字列リテラルか `null` で**書く（生成器はファイルを文字として読むので、定数・式は `registry:check` が失敗にする）。表を持たない Firestore 版は両方 `null`
 - 静的 import してよいのは `@/lib/domain/types` と `@/config/app/domain-api-access.config`（プリセット）だけ。`pnpm registry:check` が縛る
 - 業務ドメイン: `dc:generate`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
