@@ -1,4 +1,4 @@
-// dc:delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
+// dc:delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除・残るコードから import されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
 // 止まる経路は runDelete を直接呼ぶ（-i でなければ対話は出ない）。止まらない経路は判定が null であることを見る。
 // 実行: pnpm test:dc-delete-stop
 import { after, test } from "node:test";
@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { runDelete } from "../cli/delete.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
-import { deleteStopMessage, inboundReferences } from "../pipeline/remove/index.mjs";
+import { codeReferences, deleteStopMessage, inboundReferences } from "../pipeline/remove/index.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
 import { makeProject, removeAll } from "./helpers.mjs";
 
@@ -185,3 +185,66 @@ test("--confirm: 無い・違うなら消すものの一覧と打てるコマン
   await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
   assert.equal(fs.existsSync(path.join(root, "src/features/note/domain.json")), false);
 });
+
+test("codeReferences: @/features/<d>・@/features/core/<d>（core/ を省いた書き方も）・相対パスの import を拾い、消すフォルダ・一緒に消すディレクトリ・src/registry は数えない", () => {
+  const files = [
+    { path: "src/features/order/services/server/orderService.ts", text: 'import { couponService } from "@/features/coupon/services/server/couponService";\nimport type { X } from "@/features/couponIssuer/types";' },
+    { path: "src/app/api/me/coupon/route.ts", text: 'export { GET } from "@/features/core/coupon/routes";\nconst m = await import("@/features/coupon");' },
+    { path: "src/features/core/wallet/x.ts", text: 'import { a } from "../coupon/utils/a";' },
+    { path: "src/features/core/wallet/y.ts", text: '// import { a } from "@/features/coupon";\n/* import "@/features/coupon"; */' },
+    { path: "src/features/core/coupon/internal.ts", text: 'import { b } from "@/features/coupon/b";' },
+    { path: "src/app/admin/(protected)/coupons/page.tsx", text: 'import { c } from "@/features/coupon/c";' },
+    { path: "src/registry/serviceRegistry.ts", text: 'coupon: () => import("@/features/core/coupon/services/server/domainEntry"),' },
+    { path: "src/features/core/wallet/README.md", text: 'import { a } from "@/features/coupon";' },
+  ];
+  assert.deepEqual(codeReferences(files, "src/features/core/coupon", ["src/app/admin/(protected)/coupons"]), [
+    { file: "src/features/order/services/server/orderService.ts", source: "@/features/coupon/services/server/couponService" },
+    { file: "src/app/api/me/coupon/route.ts", source: "@/features/core/coupon/routes" },
+    { file: "src/app/api/me/coupon/route.ts", source: "@/features/coupon" },
+    { file: "src/features/core/wallet/x.ts", source: "../coupon/utils/a" },
+  ]);
+  // business のドメインは @/features/<d> だけ（名前が前方一致するだけの別ドメインは数えない）
+  assert.deepEqual(codeReferences([files[0]], "src/features/couponIssuer"), [{ file: files[0].path, source: "@/features/couponIssuer/types" }]);
+});
+
+test("残るコードから import されているドメイン: 参照元のファイルと from 先を全部出して止まり、何も消さない。import を外せば消せる", async () => {
+  const note = base("note");
+  const memo = base("memo");
+  const root = makeProject({ configs: { note, memo }, cleanup });
+  const workspace = createWorkspace(root);
+  fs.mkdirSync(path.join(root, "src/features/note/entities"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src/features/note/entities/model.ts"), "export type Note = { id: string };\n");
+  const importer = path.join(root, "src/features/memo/services/server/memoService.ts");
+  fs.mkdirSync(path.dirname(importer), { recursive: true });
+  fs.writeFileSync(importer, 'import type { Note } from "@/features/note/entities/model";\n');
+  const before = snapshot(root);
+  const { stderr, exitCode } = await deleteCapturing(workspace, "note", { confirm: "note" });
+  assert.equal(exitCode, 1);
+  assert.match(stderr, /note は消さずに残るコードから import されているため削除できません/);
+  assert.match(stderr, /src\/features\/memo\/services\/server\/memoService\.ts: @\/features\/note\/entities\/model/);
+  assert.deepEqual(snapshot(root), before);
+
+  fs.writeFileSync(importer, "export const memoService = {};\n");
+  await deleteCapturing(workspace, "note", { confirm: "note" });
+  assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
+});
+
+test("追加ディレクトリの候補の中の import: --extra で選べば一緒に消え、選ばなければ確認の後に止まる", async () => {
+  const note = base("note");
+  const root = makeProject({ configs: { note }, cleanup });
+  const workspace = createWorkspace(root);
+  fs.mkdirSync(path.join(root, "src/features/note/entities"), { recursive: true });
+  const extraDir = path.join(root, "src/app/(user)/notes");
+  fs.mkdirSync(extraDir, { recursive: true });
+  fs.writeFileSync(path.join(extraDir, "page.tsx"), 'import { x } from "@/features/note/entities/model";\n');
+  const before = snapshot(root);
+  const unchosen = await deleteCapturing(workspace, "note", { confirm: "note" });
+  assert.equal(unchosen.exitCode, 1);
+  assert.match(unchosen.stderr, /src\/app\/\(user\)\/notes\/page\.tsx: @\/features\/note\/entities\/model/);
+  assert.deepEqual(snapshot(root), before);
+
+  await deleteCapturing(workspace, "note", { confirm: "note", extras: ["src/app/(user)/notes"] });
+  assert.equal(fs.existsSync(extraDir), false);
+  assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
+});
+

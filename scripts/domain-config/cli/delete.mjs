@@ -5,7 +5,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { deleteStopMessage, findExtraDirs, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
+import { codeReferenceStopMessage, deleteStopMessage, findExtraDirs, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
 import { refreshFeatureMap } from "../pipeline/generate.mjs";
 import { confirm, prompt } from "./prompts.mjs";
 
@@ -70,15 +70,19 @@ function resolveArguments(workspace, target, domain, searchDirs, listed, options
 export async function runDelete(workspace, domain, options = {}) {
   const target = resolveDeleteTarget(workspace, domain);
   // 組を壊す削除・参照されているドメインの削除は、何も聞かずに止める（何も消さない）
-  const stop = deleteStopMessage(workspace, path.basename(target.featureDir));
+  const { adminDir, pluralKebab } = resolveAdminDir(workspace, target);
+  const searchDirs = findExtraDirs(workspace, target, adminDir);
+  const withAdmin = (dirs) => (adminDir ? [adminDir, ...dirs] : dirs);
+  // 消さずに残るコードからの import も止める。確認より前は追加ディレクトリの候補を全部除いて数え、選んだ後に選ばなかった候補を数える
+  const stop =
+    deleteStopMessage(workspace, path.basename(target.featureDir)) ??
+    codeReferenceStopMessage(workspace, target.featureDir, withAdmin(searchDirs));
   if (stop) {
     console.error(stop);
     process.exitCode = 1;
     return;
   }
 
-  const { adminDir, pluralKebab } = resolveAdminDir(workspace, target);
-  const searchDirs = findExtraDirs(workspace, target, adminDir);
   const listed = (extras) => listDeletePaths(workspace, { featureDir: target.featureDir, adminDir, extras });
 
   const chosen = options.interactive
@@ -86,6 +90,14 @@ export async function runDelete(workspace, domain, options = {}) {
     : resolveArguments(workspace, target, domain, searchDirs, listed, options);
   if (!chosen) return;
   const { extras, removeConfig } = chosen;
+  if (extras.length < searchDirs.length) {
+    const unchosenStop = codeReferenceStopMessage(workspace, target.featureDir, withAdmin(extras));
+    if (unchosenStop) {
+      console.error(unchosenStop);
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   console.log("以下を削除します:");
   listed(extras).forEach((p) => console.log(` - ${p}`));

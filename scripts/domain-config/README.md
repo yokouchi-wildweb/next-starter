@@ -108,11 +108,16 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 
 ## `dc:delete <Domain> --confirm <snake_name>`
 
-0. 主と従属の組を壊す削除と、他のドメインから参照されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの domain.json は書き換えない）
+0. 主と従属の組を壊す削除と、他のドメインから参照されているドメインの削除と、残るコードから import されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの domain.json は書き換えない）
    - 主: domain.json が残っている従属があれば止まる。消す順 = 主の集まりの項目を外す → 従属を `dc:delete --remove-config` → 主を `dc:delete`
    - 従属: 主が集まりの項目を宣言している間は止まる（残すと次の生成で雛形がまた書き出される）。先に主の項目を外す
    - 参照: 他のドメインの domain.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
    - 判定は domain.json の宣言だけを見る: domain.json を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。domain.json の無いドメイン・読めない domain.json は見えない
+   - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/features/<d>/…`・`@/features/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない
+     - 数えないもの: 消すフォルダの中、管理画面ルート（一緒に消す）、`--extra` で選んだディレクトリ、`src/registry/`（生成物。消した後に `pnpm registry:generate` で作り直す）
+     - 追加ディレクトリの候補の中の import は、確認（`--confirm`）の前は数えず、選ばなかった候補だけを確認の後に数えて止める
+     - 外部キーを張る列（drizzle の `.references()`）は参照元が相手の表を import するので、ここで止まる
+   - 見えないもの（消す前に自分で確かめる）: 外部キーを張らない素の id 列（`coupon_id` を text で持つだけの列など。宣言にもコードにも参照が出ない）、文字列でドメイン名を渡す参照（serviceRegistry・domainRegistry 経由、`/api/<domain>` の URL）、`src` の外（`servers/` など）。確かめ方: `git grep -n "<snake_name>_id\|<camelName>Id\|\"<snake_name>\"\|/api/<snake_name>" -- src servers`
 1. `--confirm` がドメイン名（snake_case）と一致したときだけ消す（名前の打ち直しの安全装置を引数にしたもの）。無い・違うなら、消すものの一覧・追加で消せるディレクトリの候補・そのまま打てるコマンドを出して終了コード 1
 2. `--extra <path>`（何度でも）: `src/app/` 配下で名前が一致する追加ディレクトリのうち、候補に出たものだけ受け付ける
 3. `--remove-config`: `domain.json` も消す（既定は `domain.json` だけ残してドメインディレクトリの中身を消す）
