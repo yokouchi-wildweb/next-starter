@@ -1151,6 +1151,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | extraWhere | 対応 | 非対応 |
 | extraOrderBy | 対応 | 非対応 |
 | or 条件 | 対応 | 非対応（エラー） |
+| where の演算子 | `QueryOp` の全部 | `eq` `ne` `lt` `lte` `gt` `gte` `like`（前方一致）のみ。ほかの演算子（`in` / `notIn` / `isNull` / `isNotNull` / `startsWith` / `endsWith` / `contains` ほか）はエラー（条件を黙って捨てない） |
 | 複数列 orderBy | 対応 | 単一列のみ |
 | テキスト検索（searchQuery） | `searchFields` 全カラムに `ILIKE %q%` を OR | `searchFields` の **先頭 1 カラムのみ** 前方一致（`>= q` かつ `<= q + "\uf8ff"`） |
 | searchRank | 対応 | 非対応（無視） |
