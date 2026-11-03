@@ -3,10 +3,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { judge, parseFixes, writePick } from "./pickCheck.mjs";
+import { judge, parseFixes, run, writePick } from "./pickCheck.mjs";
+import { rowFromNotice } from "./shippedIndex.mjs";
 
 const OK = `node -e "process.exit(require('fs').readFileSync('src/a.txt','utf8').includes('ok')?0:1)"`;
 const NEEDS_LIB = `node -e "process.exit(require('fs').existsSync('src/lib.txt')?0:1)"`;
@@ -181,4 +182,43 @@ test("writePick: fixes: の直後に足す / あれば置き換える", () => {
 
 test("parseFixes: id と commit", () => {
   assert.deepEqual(parseFixes("a-b, commit:07924f6c"), [{ id: "a-b" }, { commit: "07924f6c" }]);
+});
+
+const PROJECT = { ".claude/rules/project.md": "fork_id: up\n" };
+const IDX = ".notices/shipped/up.md";
+const index = (...ids) => `# SHIPPED up\n\n${ids.map(([id, opts]) => `${rowFromNotice(notice(id, opts))}\n`).join("")}`;
+
+test("run: 判定を索引のその notice の行の pick: に書き、本文には書かない", (t) => {
+  const r = repo(t);
+  r.commit({ ...PROJECT, "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)), [IDX]: index([N(1)]) });
+  r.commit({ "src/b.txt": "between\n" });
+  r.commit({ "src/a.txt": "ok\n", [F(N(2))]: notice(N(2), { fixes: N(1) }), [IDX]: index([N(1)], [N(2), { fixes: N(1) }]) });
+  const out = [];
+  assert.equal(run(r.dir, ["HEAD", `--check=${OK}`], (l) => out.push(l)), 0, out.join("\n"));
+  const rows = readFileSync(join(r.dir, IDX), "utf8").split("\n").filter((l) => l.startsWith("- id:"));
+  assert.equal(rows[1], `- id:${N(2)} | severity:info | checkpoint:${N(2).slice(16)} | fixes:${N(1)} | pick:clean`);
+  assert.equal(rows[0], rowFromNotice(notice(N(1))));
+  assert.doesNotMatch(readFileSync(join(r.dir, F(N(2))), "utf8"), /^pick:/m);
+});
+
+test("run: 索引に行が無ければ書かずに exit 2", (t) => {
+  const r = repo(t);
+  r.commit({ ...PROJECT, "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)) });
+  r.commit({ "src/b.txt": "between\n" });
+  r.commit({ "src/a.txt": "ok\n", [F(N(2))]: notice(N(2), { fixes: N(1) }) });
+  const out = [];
+  assert.equal(run(r.dir, ["HEAD", `--check=${OK}`], (l) => out.push(l)), 2);
+  assert.match(out.join("\n"), /行が無い/);
+  assert.doesNotMatch(readFileSync(join(r.dir, F(N(2))), "utf8"), /^pick:/m);
+});
+
+test("修正の修正: 前の修正の pick: は索引の行から読む", (t) => {
+  const r = repo(t);
+  const s = r.commit({ "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)), [IDX]: index([N(1)]) });
+  r.commit({ "src/b.txt": "between\n" });
+  r.commit({ "src/a.txt": "almost\n", [F(N(2))]: notice(N(2), { fixes: N(1) }), [IDX]: index([N(1)], [N(2), { fixes: N(1), pick: "clean" }]) });
+  r.commit({ "src/a.txt": "ok\n", [F(N(3))]: notice(N(3), { fixes: N(2) }) });
+  const [res] = judge(r.dir, "HEAD", { checks: [OK] });
+  assert.equal(res.verdict, "clean", res.reasons.join("\n"));
+  assert.equal(res.base, s);
 });

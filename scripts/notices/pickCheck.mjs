@@ -17,7 +17,8 @@
 //   載せた木を土台にする(fork はそこで先に取っているため)。clean でなければ連鎖を試さず -。
 //
 // 実行: pnpm notices:pick-check <commit> [--dry-run] [--check=<cmd> ...]
-//   commit = 修正の notice を足した commit。--dry-run 以外は notice の pick: 行を作業ツリーに書く(無ければ fixes: の直後に足す)。
+//   commit = 修正の notice を足した commit。--dry-run 以外は判定を自分の索引 .notices/shipped/<fork_id>.md のその notice の行の
+//   pick: に書く(作業ツリー。本文には書かない。行が無ければ書かずに exit 2: 先に shippedIndex.mjs add で行を足して commit する)。
 //   --check = 3 の検査を差し替える(繰り返し可。テスト用)
 //   exit 0 = 全部 clean | 1 = - がある | 2 = 判定できない(fixes: の notice が無い・修正元が見つからない・依存を入れられない)
 import { execFileSync, spawnSync } from "node:child_process";
@@ -26,6 +27,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findGaps, hasGaps, noticeSections } from "./hotfixCheck.mjs";
+import { indexPath, ownForkId, parseIndex, SHIPPED_DIR, writeRowPick } from "./shippedIndex.mjs";
 
 export const FORBIDDEN = ["pnpm-lock.yaml", "src/app/route-map.jsonl"];
 export const DEFAULT_CHECKS = ["pnpm typecheck", "pnpm test:config-module-load"];
@@ -63,7 +65,8 @@ export function parseFixes(value) {
     });
 }
 
-/** notice 本文の pick: を value にする(あれば置き換え、無ければ fixes: の直後に足す) */
+/** notice 本文の pick: を value にする(あれば置き換え、無ければ fixes: の直後に足す)。
+ *  索引 .notices/shipped/ の導入後は判定を行に書く(writeRowPick)。これは本文に pick: を持つ古い notice を読む側のためだけに残す */
 export function writePick(text, value) {
   if (/^pick:.*$/m.test(text)) return text.replace(/^pick:.*$/m, `pick: ${value}`);
   return text.replace(/^(fixes:.*)$/m, `$1\npick: ${value}`);
@@ -72,6 +75,7 @@ export function writePick(text, value) {
 /**
  * 修正の commit の木にある notice の索引: id → { path, add(最初に足した commit), checkpoint, fixes, pick }
  * checkpoint・fixes・pick は修正の commit の版で読む(/flux は上流の先端の版の checkpoint で区間を組む)
+ * pick はその commit の索引(.notices/shipped/*.md)の行を先に、無ければ本文を読む
  */
 export function noticeIndex(repo, commit) {
   const add = new Map();
@@ -85,12 +89,17 @@ export function noticeIndex(repo, commit) {
       if (m && cur) add.set(m[1], cur);
     }
   }
+  const rowPick = new Map();
+  const tree = git(repo, ["-c", "core.quotePath=false", "ls-tree", "-r", "--name-only", commit, "--", ".notices/"]).split("\n");
+  for (const path of tree.filter((p) => p.startsWith(`${SHIPPED_DIR}/`) && p.endsWith(".md"))) {
+    for (const r of parseIndex(git(repo, ["show", `${commit}:${path}`]))) if ("pick" in r.fields) rowPick.set(r.id, r.fields.pick);
+  }
   const index = new Map();
-  for (const path of git(repo, ["-c", "core.quotePath=false", "ls-tree", "-r", "--name-only", commit, "--", ".notices/"]).split("\n")) {
+  for (const path of tree) {
     const m = path.match(NOTICE_FILE);
     if (!m) continue;
     const text = git(repo, ["show", `${commit}:${path}`]);
-    index.set(m[1], { path, text, add: add.get(m[1]) ?? null, checkpoint: field(text, "checkpoint"), fixes: field(text, "fixes"), pick: field(text, "pick") });
+    index.set(m[1], { path, text, add: add.get(m[1]) ?? null, checkpoint: field(text, "checkpoint"), fixes: field(text, "fixes"), pick: rowPick.get(m[1]) ?? field(text, "pick") });
   }
   return index;
 }
@@ -249,8 +258,8 @@ export function judge(repo, commit, opts = {}) {
   });
 }
 
-function main(argv) {
-  const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
+/** 本体(テストからは repo と log を渡す)。exit code を返す */
+export function run(repo, argv, log = console.log) {
   const commit = argv.find((a) => !a.startsWith("--"));
   const dryRun = argv.includes("--dry-run");
   const checks = argv.filter((a) => a.startsWith("--check=")).map((a) => a.slice(8));
@@ -261,31 +270,47 @@ function main(argv) {
   try {
     git(repo, ["rev-parse", "--verify", "-q", `${commit}^{commit}`]);
   } catch {
-    console.log(`pick-check: ${commit} がない`);
+    log(`pick-check: ${commit} がない`);
+    return 2;
+  }
+  let shipped;
+  try {
+    shipped = indexPath(repo, ownForkId(repo));
+  } catch (e) {
+    log(`pick-check: ${e.message}`);
     return 2;
   }
   const started = Date.now();
   const results = judge(repo, commit, checks.length ? { checks } : {});
   if (!results.length) {
-    console.log(`pick-check: ${commit} は fixes: の notice を足していない(判定するものなし)`);
+    log(`pick-check: ${commit} は fixes: の notice を足していない(判定するものなし)`);
     return 2;
   }
   let code = 0;
   for (const r of results) {
     const label = r.verdict ?? "未確認";
-    console.log(`pick-check: ${r.id}: ${label}${r.why ? `(土台 = ${r.why})` : ""}`);
-    for (const x of r.reasons) console.log(`  - ${x}`);
-    for (const s of r.skipped) console.log(`  - 未実行: ${s}`);
+    log(`pick-check: ${r.id}: ${label}${r.why ? `(土台 = ${r.why})` : ""}`);
+    for (const x of r.reasons) log(`  - ${x}`);
+    for (const s of r.skipped) log(`  - 未実行: ${s}`);
     if (r.verdict === null) code = Math.max(code, 2);
     else if (r.verdict === "-") code = Math.max(code, 1);
     if (r.verdict && !dryRun) {
-      const abs = join(repo, r.path);
-      writeFileSync(abs, writePick(readFileSync(abs, "utf8"), r.verdict));
-      console.log(`  → ${r.path} に pick: ${r.verdict} を書いた`);
+      const next = existsSync(shipped) ? writeRowPick(readFileSync(shipped, "utf8"), r.id, r.verdict) : null;
+      if (next === null) {
+        log(`  → 索引 ${SHIPPED_DIR} に ${r.id} の行が無い(先に node scripts/notices/shippedIndex.mjs add <notice> で行を足して commit する)`);
+        code = 2;
+        continue;
+      }
+      writeFileSync(shipped, next);
+      log(`  → 索引の ${r.id} の行に pick:${r.verdict} を書いた`);
     }
   }
-  console.log(`pick-check: ${((Date.now() - started) / 1000).toFixed(1)} 秒`);
+  log(`pick-check: ${((Date.now() - started) / 1000).toFixed(1)} 秒`);
   return code === 2 ? 2 : code;
+}
+
+function main(argv) {
+  return run(join(dirname(fileURLToPath(import.meta.url)), "../.."), argv);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exit(main(process.argv.slice(2)));

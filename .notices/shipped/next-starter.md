@@ -1,0 +1,227 @@
+# SHIPPED next-starter
+> .notices/shipped/<fork_id>.md: notices this repo shipped, 1 line each, append only, written by scripts/notices/shippedIndex.mjs (never by hand). spec: .notices/README.md
+
+- id:20260827-051935-fingerprint-basis | severity:action-required
+- id:20260827-234354-crud-replace-by-query | severity:info
+- id:20260904-012518-coupon-attribution-program | severity:action-required
+- id:20260912-013049-user-login-events-schema-registry | severity:action-required
+- id:20260913-022556-user-login-event-logout | severity:action-required
+- id:20260914-010639-coupon-redeem-entry-scope | severity:action-required
+- id:20260930-121656-bank-transfer-review-opt-in | severity:action-required
+- id:20260930-061740-user-local-password-change-fix | severity:action-required
+- id:20261009-200818-db-unconfigured-startup | severity:info
+- id:20261009-202450-firebase-unconfigured-startup | severity:info
+- id:20261011-112213-crud-search-rank | severity:info
+- id:20261012-083610-sortable-list-parent-scroll | severity:info
+- id:20261013-134500-drizzle-push-roundtrip-check | severity:info
+- id:20261014-101500-drizzle-generator-junction-foreignkey-import | severity:info
+- id:20261014-132340-async-picker-modal | severity:info
+- id:20261014-160000-starter-home-switch | severity:action-required
+- id:20261014-115300-project-md-scope | severity:action-required
+- id:20261016-010000-site-theme-and-style-ownership | severity:action-required
+- id:20261016-020000-fonts-config | severity:action-required
+- id:20261017-010000-semantic-tokens-variant-overrides-lint | severity:action-required
+- id:20261017-020000-core-ui-color-sweep-and-shadcn-import-lint | severity:action-required
+- id:20261017-030000-wallet-history-pagination-by-type | severity:action-required
+- id:20261017-040000-screen-switch-wallet-pilot | severity:action-required
+- id:20261017-050000-screens-fork-route-registry | severity:info
+- id:20261017-060000-dc-generate-admin-screen-structure | severity:action-required | checkpoint:admin-screen-structure
+- id:20261017-070000-screens-auto-discovery-and-default-rule | severity:action-required | checkpoint:screens-auto-discovery
+- id:20261018-160000-screens-route-local-loader | severity:action-required | checkpoint:screens-route-local-loader
+- id:20261018-170000-screens-loader-dto-and-session-rule | severity:action-required | checkpoint:screens-loader-dto-and-session-rule
+- id:20261018-180000-screens-fork-scan-roots | severity:action-required | checkpoint:screens-fork-scan-roots
+- id:20261018-190000-screens-purchase-routes | severity:action-required | checkpoint:screens-purchase-routes
+- id:20261018-200000-screens-mypage-routes | severity:action-required | checkpoint:screens-mypage-routes
+- id:20261018-210000-admin-relation-options-prefetch | severity:action-required | checkpoint:admin-relation-options-prefetch
+- id:20261018-220000-screens-public-routes | severity:action-required | checkpoint:screens-public-routes
+- id:20261018-230000-screens-auth-routes | severity:action-required | checkpoint:screens-auth-routes
+- id:20261019-000000-ui-layers-vocabulary | severity:info | checkpoint:ui-layers-vocabulary
+- id:20261019-010000-ui-layers-rename | severity:action-required | checkpoint:-
+- id:20261019-020000-screens-import-check-container-dirs | severity:action-required | checkpoint:screens-import-check-container-dirs
+- id:20261019-030000-ui-layers-shim-removal | severity:breaking | checkpoint:ui-layers-shim-removal
+- id:20261019-040000-infinite-scroll-list | severity:action-required | checkpoint:infinite-scroll-list
+- id:20261019-050000-client-service-boundary | severity:action-required | checkpoint:client-service-boundary
+- id:20261019-060000-admin-screens | severity:breaking | checkpoint:admin-screens
+- id:20261019-070000-coupon-section-tabs-shim-removal | severity:breaking | checkpoint:coupon-section-tabs-shim-removal
+- id:20261019-080000-deprecated-aliases-removal | severity:breaking | checkpoint:deprecated-aliases-removal
+- id:20261019-122551-fork-core-edit-compat-rule | severity:info | checkpoint:fork-core-edit-compat-rule
+- id:20261019-123545-flux-moved-and-conflict-preview | severity:info | checkpoint:flux-moved-and-conflict-preview
+- id:20261019-124714-text-blocks-inherit | severity:action-required | checkpoint:text-blocks-inherit
+- id:20261019-124758-docs-colocation-sweep | severity:action-required | checkpoint:docs-colocation-sweep | moved:docs/how-to/initial-setup/ -> docs/setup/; docs/how-to/APIルート認可実装ガイド.md -> src/lib/routeFactory/README.md; docs/how-to/汎用APIアクセス制御ガイド.md -> src/lib/routeFactory/README.md; docs/troubleshooting/APIルートの静的フォルダは汎用domainルートをシャドーしない.md -> src/lib/routeFactory/README.md; docs/troubleshooting/DrizzleのsqlテンプレートリテラルにDateオブジェクトを渡すとエラーになる問題.md -> src/lib/crud/README.md; docs/core-specs/汎用サービスの詳細仕様と各メソッドの要求型について.md -> src/lib/crud/README.md; docs/core-specs/DB種別の違いによる機能の差異.md -> src/lib/crud/README.md; docs/reference/cron-tasks.md -> src/lib/cron/README.md; docs/core-specs/EditableGridTableの内部構造とエディター拡張.md -> src/lib/tableSuite/EditableGridTable/README.md; docs/how-to/購入クォータ採用ガイド.md -> src/features/core/purchaseQuota/README.md; docs/how-to/initial-setup/firebase統合についての説明.md -> src/lib/firebase/README.md; docs/how-to/implementation/Neonのマイグレーション実行手順.md -> scripts/registry/README.md; docs/how-to/ユーザー退会時のクリーンアップ処理の追加方法.md -> src/features/core/user/README.md; docs/concepts/ユーザーステータスと削除の設計方針.md -> src/features/core/user/README.md; docs/concepts/通知機能の設計方針とスケーリング指針.md -> src/features/core/notification/README.md; docs/concepts/chat機能の構成方針.md -> src/features/core/chatRoom/README.md; docs/concepts/削除時の挙動設計.md -> src/features/README.md; docs/concepts/ユーザー登録と認証の方針.md -> src/features/core/auth/README.md; docs/concepts/ユーザーセッションの管理方針と実装.md -> src/features/core/auth/README.md; docs/how-to/implementation/認証ガードとユーザー取得フローまとめ.md -> src/features/core/auth/README.md; docs/how-to/監査ログ採用ガイド.md -> src/features/core/auditLog/README.md; docs/concepts/コイン購入時の決済フローと外部決済連携に関する処理方針.md -> src/features/core/purchaseRequest/README.md; docs/concepts/purchase-type-migration.md -> src/features/core/purchaseRequest/README.md (one-shot migration steps -> docs/journal/2026-04-21-purchase-type-migration.md); docs/how-to/決済システムのプロバイダ追加方法.md -> src/features/core/purchaseRequest/services/server/payment/README.md; docs/how-to/ローカル環境で決済プロバイダのコールバックを動作させる.md -> src/features/core/purchaseRequest/services/server/payment/README.md; docs/how-to/implementation/汎用CRUDのフック使用方法.md -> src/lib/crud/hooks/README.md; docs/how-to/utility/ドメインファイル自動生成に関するコマンド使用方法.md -> scripts/domain-config/README.md
+- id:20261019-134425-flux-relay-covers | severity:info | checkpoint:flux-relay-covers
+- id:20261019-133730-must-read-why-docs | severity:action-required | checkpoint:must-read-why-docs | moved:.claude/rules/README.md -> .claude/README.md; docs/!must-read/ドメイン内のエンティティ管理方針.md -> src/features/README.md; docs/!must-read/Tailwindと汎用部品を利用した共通スタイル設計.md -> src/styles/README.md; docs/!must-read/汎用CRUDの仕様と拡張方法について.md -> src/lib/crud/README.md
+- id:20261019-140501-eslint-template-ignores | severity:info | checkpoint:eslint-template-ignores
+- id:20261019-141500-search-wrapper-id-tiebreak | severity:action-required | checkpoint:search-wrapper-id-tiebreak | fixes:20261019-080000-deprecated-aliases-removal
+- id:20261019-152649-lib-catalog | severity:action-required | checkpoint:lib-catalog
+- id:20261019-153000-journal-owner-naming | severity:action-required | checkpoint:journal-owner-naming | moved:docs/journal/2026-04-21-purchase-type-migration.md -> docs/journal/2026-04-21--next-starter--purchase-type-migration.md; docs/journal/2026-10-18-ui-layers-revision.md -> docs/journal/2026-10-18--next-starter--ui-layers-revision.md
+- id:20261020-040849-per-project-rules-ownership | severity:action-required | checkpoint:per-project-rules-ownership
+- id:20261020-042918-ebb-memory-tidy-skill | severity:action-required | checkpoint:ebb-memory-tidy-skill
+- id:20261020-045144-journal-owner-rename-existing | severity:action-required | checkpoint:journal-owner-rename-existing | moved:-
+- id:20261020-045541-claude-md-accuracy-fixes | severity:action-required | checkpoint:claude-md-accuracy-fixes
+- id:20261020-050516-claude-md-restructure | severity:action-required | checkpoint:claude-md-restructure
+- id:20261020-142133-crud-extra-order-by | severity:action-required | checkpoint:crud-extra-order-by
+- id:20261020-160000-user-bulk-ops-removed | severity:action-required | checkpoint:user-bulk-ops-removed
+- id:20261020-150229-cron-dispatcher | severity:action-required | checkpoint:cron-dispatcher
+- id:20261020-152703-cron-task-folders | severity:action-required | checkpoint:cron-task-folders | moved:vercel.json.example -> (deleted; generated per repo by `pnpm cron:generate`); src/registry/cronTaskRegistry.ts -> src/app/api/cron/<name>/task.ts; src/registry/forkCronTaskRegistry.ts -> src/app/api/cron/<name>/task.ts; .notices/20261020-150229-cron-dispatcher.md -> .notices/done/20261020-150229-cron-dispatcher.md
+- id:20261020-170000-feature-gate-schema-gate | severity:action-required | checkpoint:feature-gate-schema-gate
+- id:20261020-155336-cron-task-folders-free-schedule | severity:action-required | checkpoint:cron-task-folders-free-schedule | moved:vercel.json.example -> (deleted; generated per repo by `pnpm cron:generate`); src/registry/cronTaskRegistry.ts -> src/app/api/cron/<name>/task.ts; src/registry/forkCronTaskRegistry.ts -> src/app/api/cron/<name>/task.ts; src/config/app/cron-schedule.config.ts -> (deleted; the time lives in each task.ts `schedule`); .notices/20261020-150229-cron-dispatcher.md -> .notices/done/20261020-150229-cron-dispatcher.md; .notices/20261020-152703-cron-task-folders.md -> .notices/done/20261020-152703-cron-task-folders.md
+- id:20261020-161000-purchase-onexpire-all-expire-paths | severity:info | checkpoint:purchase-onexpire-all-expire-paths
+- id:20261020-160342-cron-task-override | severity:info | checkpoint:cron-task-override
+- id:20261020-163000-untrack-claude-settings-local | severity:action-required | checkpoint:untrack-claude-settings-local
+- id:20261020-165234-drizzle-kit-composite-pk-order | severity:action-required | checkpoint:drizzle-kit-composite-pk-order
+- id:20261020-165825-cron-task-override-export | severity:info | checkpoint:cron-task-override-export | fixes:20261020-160342-cron-task-override
+- id:20261020-165959-feature-gate-check-disabled-only | severity:info | checkpoint:feature-gate-check-disabled-only | fixes:20261020-170000-feature-gate-schema-gate
+- id:20261021-125409-paired-device-auth | severity:action-required | checkpoint:paired-device-auth
+- id:20261021-133822-guest-login-feature-gate | severity:action-required | checkpoint:guest-login-feature-gate
+- id:20261021-142959-paired-device-principal-guard | severity:info | checkpoint:paired-device-principal-guard
+- id:20261022-120000-service-registry-preset-names | severity:action-required | checkpoint:service-registry-preset-names
+- id:20261022-160000-session-refresh-db-check | severity:action-required | checkpoint:session-refresh-db-check
+- id:20261022-140000-tsx-test-server-only-preload | severity:action-required | checkpoint:tsx-test-server-only-preload | fixes:20261020-170000-feature-gate-schema-gate
+- id:20261022-170000-hidden-columns-raw-select-lint | severity:action-required | checkpoint:hidden-columns-raw-select-lint
+- id:20261022-180000-redirect-error-pii-hardening | severity:action-required | checkpoint:redirect-error-pii-hardening
+- id:20261022-115459-flux-relay-diff-judgment | severity:info | checkpoint:flux-relay-diff-judgment
+- id:20261022-190000-storage-api-admin-only | severity:action-required | checkpoint:storage-api-admin-only
+- id:20261022-200000-notification-read-visibility-setup-ratelimit | severity:action-required | checkpoint:notification-read-visibility-setup-ratelimit
+- id:20261022-210000-dc-generate-domain-folder-check | severity:action-required | checkpoint:dc-generate-domain-folder-check
+- id:20261022-220000-para-center-in-upstream-screens | severity:info | checkpoint:para-center-in-upstream-screens
+- id:20261022-230000-domain-service-write-once | severity:action-required | checkpoint:domain-service-write-once
+- id:20261022-160000-rules-marker-files | severity:action-required | checkpoint:rules-marker-files
+- id:20261022-233000-pnpm-typecheck | severity:action-required | checkpoint:pnpm-typecheck
+- id:20261023-133633-storage-foundation | severity:action-required | checkpoint:storage-foundation
+- id:20261023-134923-upreq-per-repo-inbox | severity:action-required | checkpoint:upreq-per-repo-inbox
+- id:20261023-174826-storage-cutover | severity:breaking | checkpoint:storage-cutover
+- id:20261023-192512-route-map-page-authz | severity:action-required | checkpoint:route-map-page-authz
+- id:20261023-233152-mediaprobe-fetch-abort | severity:info | checkpoint:mediaprobe-fetch-abort | fixes:20261023-174826-storage-cutover
+- id:20261023-234600-form-default-values | severity:info | checkpoint:form-default-values
+- id:20261023-213357-frame-move-user | severity:action-required | checkpoint:frame-move-user | moved:src/components/AppFrames/User/Layout/UserLayout.tsx -> src/app/(user)/_layout/UserLayout.tsx; src/components/AppFrames/User/Layout/BackgroundLayer.tsx -> src/app/(user)/_layout/BackgroundLayer.tsx; src/components/AppFrames/User/Layout/UserPage.tsx -> src/app/(user)/_layout/UserPage.tsx; src/components/AppFrames/User/Elements/PageTitle.tsx -> src/app/(user)/_layout/PageTitle.tsx; src/components/AppFrames/User/Sections/Header -> src/app/(user)/_layout/Header; src/components/AppFrames/User/Sections/Footer -> src/app/(user)/_layout/Footer; src/components/AppFrames/User/Sections/BottomNav -> src/app/(user)/_layout/BottomNav; src/components/AppFrames/User/hooks -> src/app/(user)/_layout/hooks
+- id:20261024-001617-frame-move-admin | severity:action-required | checkpoint:frame-move-admin | moved:src/components/AppFrames/Admin/Layout/AdminOuterLayout.tsx -> src/app/admin/_layout/AdminOuterLayout.tsx; src/components/AppFrames/Admin/Sections/Header.tsx -> src/app/admin/_layout/Header.tsx; src/components/AppFrames/Admin/Layout/AdminPage.tsx -> src/app/admin/_layout/AdminPage.tsx; src/components/AppFrames/Admin/Elements/PageTitle.tsx -> src/app/admin/_layout/PageTitle.tsx; src/components/AppFrames/Admin/Sections/SIdebar/MenuButton.tsx -> src/app/admin/_layout/Sidebar/MenuButton.tsx; src/stores/adminLayout -> src/app/admin/_layout/stores/adminLayout; src/components/AppFrames/Admin/Layout/AdminProtectedLayout.tsx -> src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx; src/components/AppFrames/Admin/Layout/ResizableArea.tsx -> src/app/admin/(protected)/_layout/ResizableArea.tsx; src/components/AppFrames/Admin/Sections/Footer.tsx -> src/app/admin/(protected)/_layout/Footer.tsx; src/components/AppFrames/Admin/Sections/SIdebar/BaseSidebar.tsx -> src/app/admin/(protected)/_layout/Sidebar/BaseSidebar.tsx; src/components/AppFrames/Admin/Sections/SIdebar/PcSidebar.tsx -> src/app/admin/(protected)/_layout/Sidebar/PcSidebar.tsx; src/components/AppFrames/Admin/Sections/SIdebar/SpSidebar.tsx -> src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx; src/components/AppFrames/Admin/Insane -> src/app/admin/insane/_layout
+- id:20261024-110321-order-skill | severity:action-required | checkpoint:order-skill | moved:.claude/skills/upreq/mailbox.mjs -> .claude/skills/order/mailbox.mjs
+- id:20261024-140000-orders-mailbox-rename | severity:action-required | checkpoint:orders-mailbox-rename
+- id:20261024-153414-claude-md-core-rules | severity:info | checkpoint:claude-md-core-rules
+- id:20261024-154302-server-only-stub-module-mocks | severity:info | checkpoint:server-only-stub-module-mocks | moved:src/features/core/storageObject/callsites.test.ts -> src/features/core/storageObject/callsites.test.mts
+- id:20261024-160000-storage-replace-by-query-cascade | severity:action-required | checkpoint:storage-replace-by-query-cascade
+- id:20261024-155030-overlays-resolve-storage-ref | severity:info | checkpoint:overlays-resolve-storage-ref
+- id:20261024-175215-lint-cleanup-1 | severity:info | checkpoint:lint-cleanup-1
+- id:20261024-180446-lint-cleanup-2 | severity:info | checkpoint:lint-cleanup-2
+- id:20261024-180928-transition-guard-path-query | severity:info | checkpoint:transition-guard-path-query
+- id:20261024-181351-password-input-autocomplete-required | severity:action-required | checkpoint:password-input-autocomplete-required
+- id:20261024-182027-form-a11y-describedby-labels | severity:info | checkpoint:form-a11y-describedby-labels
+- id:20261024-182504-statetabs-active-label-popover-collision | severity:info | checkpoint:statetabs-active-label-popover-collision
+- id:20261024-182850-frame-visibility-overrides | severity:info | checkpoint:frame-visibility-overrides
+- id:20261024-183535-pause-withdraw-feature-gate | severity:action-required | checkpoint:pause-withdraw-feature-gate
+- id:20261024-183852-edit-profile-props | severity:info | checkpoint:edit-profile-props
+- id:20261024-184245-legal-enacted-at-format | severity:info | checkpoint:legal-enacted-at-format
+- id:20261025-164220-storage-cascade-check-warn | severity:action-required | checkpoint:storage-cascade-check-warn | fixes:20261024-160000-storage-replace-by-query-cascade
+- id:20261024-110858-frame-slots-user | severity:action-required | checkpoint:frame-slots-user
+- id:20261024-112625-frame-parts-user | severity:action-required | checkpoint:frame-parts-user
+- id:20261025-161801-frame-slots-admin | severity:action-required | checkpoint:frame-slots-admin
+- id:20261025-163146-frame-dims | severity:info | checkpoint:frame-dims
+- id:20261025-192323-storage-strip | severity:action-required | checkpoint:storage-strip
+- id:20261025-213009-domain-entry-registry | severity:breaking | checkpoint:domain-entry-registry
+- id:20261026-063914-sharp-035 | severity:action-required | checkpoint:sharp-035
+- id:20261026-071349-dc-generate-all-registry-once | severity:action-required | checkpoint:dc-generate-all-registry-once | fixes:20261025-213009-domain-entry-registry
+- id:20261026-131306-domain-registry-table | severity:breaking | checkpoint:domain-registry-table
+- id:20261026-153450-storage-lifecycle | severity:action-required | checkpoint:storage-lifecycle
+- id:20261026-180000-domain-config-restructure | severity:info | checkpoint:domain-config-restructure | moved:scripts/domain-config/generator/registry/utils/objectEntry.mjs -> scripts/domain-config/text/objectEntry.mjs; scripts/domain-config/utils/formatConfig.mjs -> scripts/domain-config/spec/format.mjs; scripts/domain-config/form-inputs.mjs -> scripts/domain-config/spec/formInputs.mjs; scripts/domain-config/generator/registry/updateStoragePurposeRegistry.mjs -> scripts/domain-config/render/registry/storagePurpose/index.mjs; scripts/domain-config/utils/tableName.mjs -> scripts/domain-config/domain/names.mjs; scripts/domain-config/utils/domainFolder.mjs -> scripts/domain-config/checks/domainFolder.mjs; scripts/domain-config/generator/registry/registry.test.mjs -> scripts/domain-config/tests/registry.test.mjs; scripts/domain-config/sampleDrift.test.mjs -> scripts/domain-config/tests/sampleDrift.test.mjs
+- id:20261027-192133-sort-key-collation | severity:info | checkpoint:sort-key-collation
+- id:20261028-082459-vercel-build-cache-css-import-drop | severity:action-required | checkpoint:vercel-build-cache-css-guard | fixes:20261016-010000-site-theme-and-style-ownership, 20261016-020000-fonts-config, 20261017-010000-semantic-tokens-variant-overrides-lint
+- id:20261028-165213-owned-child-domain-collection | severity:action-required | checkpoint:owned-child-domain-collection
+- id:20261028-172612-collection-migration-guide | severity:info | checkpoint:collection-migration-guide
+- id:20261028-191519-collections-in-relation-embeds | severity:action-required | checkpoint:collections-in-relation-embeds
+- id:20261028-231216-storage-sweep-value-check | severity:action-required | checkpoint:storage-sweep-value-check
+- id:20261028-234429-form-array-field-types | severity:info | checkpoint:form-array-field-types
+- id:20261028-235919-multi-media-removed-from-generator | severity:breaking | checkpoint:multi-media-removed-from-generator
+- id:20261028-151649-frame-marks | severity:action-required | checkpoint:frame-marks
+- id:20261028-152652-frame-marks-dims | severity:action-required | checkpoint:-
+- id:20261029-112204-screen-components-move | severity:info | checkpoint:screen-components-move | moved:
+- id:20261029-114238-wallet-lots-init-wallet-type-required | severity:action-required | checkpoint:wallet-lots-init-wallet-type-required
+- id:20261029-114858-upreq-removed | severity:action-required | checkpoint:upreq-removed
+- id:20261029-115057-custom-template-marks | severity:info | checkpoint:custom-template-marks | fixes:20261028-151649-frame-marks, 20261028-152652-frame-marks-dims
+- id:20261029-121450-ship-skill | severity:action-required | checkpoint:ship-skill
+- id:20261029-135455-styles-invert | severity:action-required | checkpoint:styles-invert | moved:src/styles/theme.css -> src/styles/_base/theme.css; src/styles/palette.defaults.css -> src/styles/_base/palette.defaults.css; src/styles/typography.defaults.css -> src/styles/_base/typography.defaults.css; src/styles/gradient.css -> src/styles/_base/gradient.css; src/styles/config.css -> src/styles/_base/config.css; src/styles/frame-controls.generated.css -> src/styles/_base/frame-controls.generated.css; src/styles/z-layer.css -> src/styles/_base/z-layer.css; src/styles/base.css -> src/styles/_base/base.css; src/styles/components.css -> src/styles/_base/components.css; src/styles/utilities.css -> src/styles/_base/utilities.css; src/styles/admin.css -> src/styles/_base/admin.css; src/styles/animations.css -> src/styles/_base/animations.css; src/styles/styleTokens.test.mjs -> src/styles/_base/styleTokens.test.mjs; src/styles/custom/palette.css -> src/styles/palette.css; src/styles/custom/typography.css -> src/styles/typography.css; src/styles/custom/overrides.css -> src/styles/overrides.css
+- id:20261029-152352-motivation-chart-move | severity:info | checkpoint:motivation-chart-move | moved:src/components/AppFrames/Admin/Elements/DeveloperMotivationChart.tsx -> src/features/core/admin/dashboard/components/parts/DeveloperMotivationChart.tsx
+- id:20261029-174413-old-entry-removal | severity:breaking | checkpoint:old-entry-removal
+- id:20261029-182147-old-entry-removal-contexts | severity:breaking | checkpoint:old-entry-removal-contexts
+- id:20261029-191058-registry-fork-markers | severity:action-required | checkpoint:registry-fork-markers
+- id:20261029-195754-fork-intake-extension-points | severity:action-required | checkpoint:fork-intake-extension-points
+- id:20261029-201919-feature-gate-page-switches | severity:action-required | checkpoint:feature-gate-page-switches
+- id:20261029-202403-notice-resolves-field | severity:info | checkpoint:notice-resolves-field
+- id:20261029-210843-security-guest-login-profile-url | severity:action-required | checkpoint:security-guest-login-profile-url
+- id:20261029-223134-fork-ownership-cleanup | severity:breaking | checkpoint:fork-ownership-cleanup
+- id:20261030-102123-ownership-request-resolved | severity:info | checkpoint:ownership-request-resolved | resolves:20261020-160811-core-ownership-definition-consolidated
+- id:20261030-105956-route-factory-wiring | severity:breaking | checkpoint:route-factory
+- id:20261030-133047-page-guard | severity:breaking | checkpoint:page-guard
+- id:20261030-180533-proxy | severity:breaking | checkpoint:proxy | fixes:20261030-105956-route-factory-wiring | resolves:20261028-230743-sample-domain-gate
+- id:20261030-183054-mailbox-fork-id | severity:info | checkpoint:mailbox-fork-id
+- id:20261030-201244-extensions | severity:breaking | checkpoint:extensions | moved:src/features/core/mail/templates/AccountLockedEmail.tsx -> src/features/core/auth/mail/AccountLockedEmail.tsx; src/features/core/mail/templates/EarlyRegistrationEmail.tsx -> src/features/core/auth/mail/EarlyRegistrationEmail.tsx; src/features/core/mail/templates/EmailChangeEmail.tsx -> src/features/core/auth/mail/EmailChangeEmail.tsx; src/features/core/mail/templates/PasswordResetEmail.tsx -> src/features/core/auth/mail/PasswordResetEmail.tsx; src/features/core/mail/templates/VerificationEmail.tsx -> src/features/core/auth/mail/VerificationEmail.tsx; src/features/core/mail/templates/RegistrationCompleteEmail.tsx -> src/features/core/user/mail/RegistrationCompleteEmail.tsx; src/features/core/mail/templates/EarlyRegistrationCompleteEmail.tsx -> src/features/core/user/mail/EarlyRegistrationCompleteEmail.tsx; src/features/core/mail/templates/AdminAnnouncementEmail.tsx -> src/features/core/messaging/mail/AdminAnnouncementEmail.tsx; src/features/core/purchaseRequest/services/server/completion/walletTopupStrategy.ts -> src/features/core/purchaseRequest/services/server/completion/strategies/walletTopup.ts; src/registry/screenRoutesRegistry.ts -> src/config/app/screens.config.ts; src/registry/couponAttributionRewardRecipientMetadataRegistry.ts -> src/config/app/coupon-attribution.config.ts | resolves:20261029-200108-debt-intake-registries, 20261029-200108-debt-intake-texts, 20261026-081029-only-registry-admindatamenu, 20261030-200000-one-shot-task-intake
+- id:20261030-201720-frame-tests-contain | severity:info | checkpoint:frame-tests-contain | fixes:commit:5f91d666 | resolves:20261030-192850-userparts-test-config-independent
+- id:20261030-203500-notice-guidance | severity:info | checkpoint:notice-guidance | resolves:20261030-184734-notice-allow-restoring-comment-edits, 20261030-192850-notice-duplicate-key-on-automerge
+- id:20261030-205135-guard-fixes | severity:action-required | checkpoint:guard-fixes | fixes:20261030-133047-page-guard, 20261030-105956-route-factory-wiring | resolves:20261030-195708-page-guard-verify-grep-and-service-session, 20261030-200000-user-update-validation-message, 20261030-200000-root-layout-viewport-intake
+- id:20261030-210621-extension-tests | severity:action-required | checkpoint:extension-tests | fixes:20261030-201244-extensions | resolves:20261030-205223-extension-tests-fork-aware, 20261030-203004-root-html-lang-ja
+- id:20261031-114701-sharp-libvips-tracing | severity:action-required | checkpoint:sharp-libvips-tracing | fixes:20261026-063914-sharp-035
+- id:20261031-115028-flux-hotfix-pick | severity:info | checkpoint:flux-hotfix-pick | hotfix:yes
+- id:20261031-121800-sharp-libvips-root-cause | severity:info | checkpoint:sharp-libvips-root-cause | resolves:20261031-110700-sharp-libvips-missing-on-vercel
+- id:20261031-124012-user-safe-bulk-update | severity:action-required | checkpoint:user-safe-bulk-update | resolves:20261031-121345-user-tag-bulk-add | hotfix:yes
+- id:20261031-133329-checklist-popover-modal-create-sticky-bar | severity:info | checkpoint:checklist-popover-modal-create-sticky-bar | resolves:20261031-130306-popover-modal-sticky-bulk-bar, 20261031-131311-checklist-popover-direct-create
+- id:20261031-141531-setting-fields-core-ui | severity:breaking | checkpoint:setting-fields-core-ui | moved:src/features/core/setting/components/AdminSetup/index.tsx -> src/app/admin/setup/_screen/AdminSetupForm.tsx; src/features/core/setting/components/common/EditSettingSectionForm.tsx -> src/app/admin/(protected)/settings/[section]/_screen/EditSettingSectionForm.tsx | resolves:20261029-200108-debt-intake-setting
+- id:20261031-155408-flux-stop-format-memo | severity:info | checkpoint:flux-stop-format-memo
+- id:20261031-161509-flux-follow-upstream | severity:info | checkpoint:flux-follow-upstream | hotfix:yes
+- id:20261101-000200-lib-boundaries | severity:breaking | checkpoint:lib-boundaries | moved:src/wiring/domains.ts -> src/wiring/domainRegistry.ts; src/wiring/domains.ts -> src/wiring/adminScreenParts.ts; src/wiring/domains.test.mts -> src/wiring/adminScreenParts.test.mts; src/lib/domain/config/getDomainConfig.ts -> src/lib/domain/config/createDomainConfigLookup.ts | resolves:20261029-175538-db-seed-server-only-stub
+- id:20261101-121000-domain-display-client | severity:breaking | checkpoint:domain-display-client
+- id:20261029-174708-fieldtype-shared-table | severity:info | checkpoint:fieldtype-shared-table
+- id:20261029-180617-fieldtype-behavior-fixes | severity:info | checkpoint:fieldtype-behavior-fixes
+- id:20261029-182714-fieldtype-guard | severity:info | checkpoint:fieldtype-guard
+- id:20261029-183829-fieldtype-presenter-for | severity:info | checkpoint:fieldtype-presenter-for
+- id:20261029-185421-fieldtype-list-presenter-for | severity:info | checkpoint:fieldtype-list-presenter-for
+- id:20261029-192110-fieldtype-numeric-zod | severity:info | checkpoint:fieldtype-numeric-zod
+- id:20261029-193321-fieldtype-role-config-generators | severity:action-required | checkpoint:fieldtype-role-config-generators
+- id:20261029-203513-domain-strict-checks | severity:action-required | checkpoint:domain-strict-checks
+- id:20261029-211427-role-profile-checks | severity:action-required | checkpoint:role-profile-checks
+- id:20261029-221917-generate-flag | severity:action-required | checkpoint:generate-flag
+- id:20261029-223045-feature-map | severity:action-required | checkpoint:feature-map
+- id:20261029-224049-forge | severity:info | checkpoint:forge
+- id:20261029-230240-remove-interactive-config | severity:action-required | checkpoint:remove-interactive-config
+- id:20261029-235453-ops-noninteractive | severity:action-required | checkpoint:ops-noninteractive
+- id:20261030-093345-docs-forge | severity:info | checkpoint:docs-forge
+- id:20261030-100428-import-value-shape | severity:info | checkpoint:import-value-shape
+- id:20261030-102615-parity-ref-lib | severity:info | checkpoint:parity-ref-lib
+- id:20261030-104250-remaining-hardcodes | severity:info | checkpoint:remaining-hardcodes
+- id:20261030-140549-core-domain-generate | severity:info | checkpoint:core-domain-generate
+- id:20261030-150956-generate-decision-compare | severity:action-required | checkpoint:generate-decision-compare
+- id:20261030-213000-registry-writes | severity:action-required | checkpoint:registry-writes
+- id:20261031-142000-role-profile-extensions | severity:action-required | checkpoint:role-profile-extensions | moved:src/features/core/userProfile/generated/contributor -> src/features/core/userProfile/entities/profiles/contributor; src/features/core/userProfile/generated/package.json -> src/features/core/userProfile/entities/profiles/package.json; src/registry/roleRegistry.ts -> src/features/core/user/extensions/roles.ts; src/registry/profileBaseRegistry.ts -> src/features/core/userProfile/extensions/profileBases.ts; src/registry/profileConfigRegistry.ts -> src/features/core/userProfile/extensions/profileConfigs.ts; src/registry/profileSchemaRegistry.ts -> src/features/core/userProfile/extensions/profileSchemas.ts; src/registry/profileTableRegistry.ts -> src/features/core/userProfile/extensions/profileTables.ts | resolves:20261101-111956-intake-role-profile-audit
+- id:20261031-145700-core-roles | severity:action-required | checkpoint:core-roles | moved:src/features/core/user/roles/_admin.role.json -> src/features/core/user/coreRoles/admin.role.json; src/features/core/user/roles/_user.role.json -> src/features/core/user/coreRoles/user.role.json; src/features/core/user/roles/debugger.role.json -> src/features/core/user/coreRoles/debugger.role.json
+- id:20261031-165100-form-inputs | severity:action-required | checkpoint:form-inputs
+- id:20261101-134412-fork-extension-policy | severity:action-required | checkpoint:fork-extension-policy | hotfix:yes
+- id:20261101-161100-wallet-lock-balance | severity:action-required | checkpoint:- | resolves:20261101-133024-fix-wallet-lock-balance
+- id:20261101-161200-coupon-entity | severity:action-required | checkpoint:- | resolves:20261101-133024-fix-coupon-entity
+- id:20261101-161300-audit-messaging-labels | severity:info | checkpoint:- | resolves:20261101-133024-fix-audit-messaging-labels
+- id:20261101-161400-misc-small | severity:action-required | checkpoint:- | resolves:20261101-133024-fix-misc-small
+- id:20261101-161500-user-bulk-delete-closed | severity:action-required | checkpoint:- | resolves:20261031-123649-user-bulk-delete-bypasses-soft-delete
+- id:20261101-161600-upstream-fix-correctness | severity:action-required | checkpoint:bundle1-correctness-fixes | resolves:20261029-221452-upstream-fix-correctness
+- id:20261101-164228-dc-delete-stop-any-reference | severity:action-required | checkpoint:dc-delete-stop-any-reference | moved:scripts/domain-config/pipeline/remove/pairStop.mjs -> scripts/domain-config/pipeline/remove/deleteStop.mjs | resolves:20261028-141419-delete-stop-any-belongsto
+- id:20261101-164326-import-screen-excludes-collection-fields | severity:info | checkpoint:import-screen-excludes-collection-fields | fixes:commit:89951dbc | resolves:20261101-001013-data-import-screen-collection-fields
+- id:20261101-164620-crud-collections-db-stale-key-list | severity:info | checkpoint:crud-collections-db-stale-key-list | resolves:20261031-234503-crud-collections-db-stale-key-list
+- id:20261101-170851-collections-on-query-path | severity:action-required | checkpoint:collections-on-query-path | resolves:20261028-220144-collections-on-query-path
+- id:20261101-183106-actor-through-routes | severity:action-required | checkpoint:actor-through-routes | resolves:20261101-124453-crud-service-actor-argument
+- id:20261101-183231-crud-client-query-timeout | severity:action-required | checkpoint:crud-client-query-timeout | resolves:20261101-133024-fix-crud-where-api-client
+- id:20261101-191742-core-indexes | severity:action-required | checkpoint:core-indexes | resolves:20261101-133024-fix-core-indexes
+- id:20261101-192021-sort-key-index-recipe | severity:action-required | checkpoint:sort-key-index-recipe | fixes:20261027-192133-sort-key-collation | resolves:20261028-171627-sort-collation-index-recipe-roundtrip
+- id:20261101-203337-collection-guide-large-table | severity:info | checkpoint:collection-guide-large-table | resolves:20261028-220623-collection-migration-guide-large-table-fk
+- id:20261102-153615-firestore-softdelete-deletedat | severity:action-required | checkpoint:firestore-softdelete-deletedat | resolves:20261101-121530-firestore-softdelete-create-deletedat
+- id:20261102-153942-chatroom-admin-list-index | severity:action-required | checkpoint:chatroom-admin-list-index | resolves:20261101-121530-chatroom-firestore-index-definition
+- id:20261102-220346-hotfix-pick-checks | severity:info | checkpoint:hotfix-pick-checks
+- id:20261102-222255-frame-mobile-a11y | severity:action-required | checkpoint:frame-mobile-a11y | resolves:20261029-221452-upstream-fix-frame-mobile-a11y
+- id:20261102-222312-picker-popover-side-single-scroll | severity:info | checkpoint:picker-popover-side-single-scroll | fixes:commit:2d2ecc45 | resolves:20261031-123802-async-multiselect-popover-height
+- id:20261102-222212-plural-inflection-lib | severity:action-required | checkpoint:plural-inflection-lib | resolves:20261028-130747-unify-plural-inflection-lib
+- id:20261103-085005-checklist-popover-create-focus | severity:info | checkpoint:checklist-popover-create-focus | resolves:20261031-143223-checklist-popover-autofocus
+- id:20261103-085052-image-loading-appimage | severity:info | checkpoint:image-loading-appimage | resolves:20261101-112939-image-loading-appimage
+- id:20261103-085057-generate-false-domain-entry-doc | severity:info | checkpoint:generate-false-domain-entry-doc | resolves:20261026-081029-registry-false-domain-entry
+- id:20261103-090217-domain-entry-facade-doc | severity:info | checkpoint:domain-entry-facade-doc | resolves:20261026-070040-domain-entry-facade-service-doc
+- id:20261103-090321-lint-hooks-glob-server-paths | severity:info | checkpoint:lint-hooks-glob-server-paths | resolves:20261101-124453-lint-hooks-glob-server-paths
+- id:20261103-090336-remove-demo-check-env | severity:action-required | checkpoint:remove-demo-check-env | resolves:20261030-141229-remove-demo-check-env
+- id:20261103-093026-route-map-read-parts-access | severity:info | checkpoint:route-map-read-parts-access | resolves:20261101-124453-route-map-read-parts-access
+- id:20261103-093235-route-map-viewer | severity:info | checkpoint:route-map-viewer | resolves:20261030-130442-route-map-viewer-cli-skill
+- id:20261103-103553-tsconfig-drop-baseurl | severity:action-required | checkpoint:tsconfig-drop-baseurl | resolves:20261029-221452-upstream-fix-src-imports-tsconfig
+- id:20261103-123202-order-status-routed-taken | severity:info | checkpoint:order-status-routed-taken
+- id:20261103-123638-fix-pick-ahead | severity:info | checkpoint:fix-pick-ahead
