@@ -55,34 +55,67 @@ const noticeIds = (lsTreeOutput) =>
     .filter((id) => id && id !== "README");
 
 /**
+ * ref の消えない索引 .notices/shipped/*.md の行: [{ id, fields }](書式 = scripts/notices/shippedIndex.mjs。src/lib は scripts を
+ * import しないので、行を読む数行をここに置く: `- id:<id> | key:value …`)。索引の無い版(導入前)は空
+ */
+function indexRows(repoRoot, ref) {
+  const files = (tryGit(repoRoot, ["ls-tree", "--name-only", ref, ".notices/shipped/"]) ?? "").split("\n").filter((path) => /^\.notices\/shipped\/[^/]+\.md$/.test(path));
+  const rows = [];
+  for (const file of files) {
+    for (const line of (show(repoRoot, ref, file) ?? "").split("\n")) {
+      if (!line.startsWith("- id:")) continue;
+      const [head, ...rest] = line.slice(2).split(" | ");
+      const fields = {};
+      for (const part of rest) {
+        const at = part.indexOf(":");
+        if (at > 0) fields[part.slice(0, at)] = part.slice(at + 1);
+      }
+      rows.push({ id: head.slice("id:".length), fields });
+    }
+  }
+  return rows;
+}
+
+/** ref で出荷済みの notice の id = 索引の行 ∪ 直下の本文(本文は区間が閉じれば消えるので索引が正、導入前の版は本文だけ) */
+const shippedIds = (repoRoot, ref) => new Set([...indexRows(repoRoot, ref).map((row) => row.id), ...noticeIds(tryGit(repoRoot, ["ls-tree", "--name-only", ref, ".notices/"]))]);
+
+/**
  * 取り込み済み(基準にある)なのに自分の台帳に記録の無い notice(L1.7)。
  * fork を作った時点のツリーにあった notice は継承済みとして除く(/flux と同じ求め方)。
+ * 基準・成立点とも「索引の行 ∪ 本文」で読む(本文が消えても結果が変わらない)
  */
 function unrecordedNotices(repoRoot, base, parentRef, ownerId) {
-  const baseIds = noticeIds(tryGit(repoRoot, ["ls-tree", "--name-only", base, ".notices/"]));
+  const baseIds = [...shippedIds(repoRoot, base)];
   const own = (tryGit(repoRoot, ["rev-list", "--reverse", "HEAD", `^${parentRef}`]) ?? "").split("\n").filter(Boolean);
   if (own.length === 0) return [];
   const hasParent = tryGit(repoRoot, ["rev-parse", "--verify", "--quiet", `${own[0]}^`]) !== null;
   const forkPoint = hasParent ? `${own[0]}^` : own[0];
-  const inherited = new Set(noticeIds(tryGit(repoRoot, ["ls-tree", "--name-only", forkPoint, ".notices/"])));
+  const inherited = shippedIds(repoRoot, forkPoint);
   const ledger = show(repoRoot, "HEAD", `.notices/applied/${ownerId}.md`) ?? "";
   const recorded = new Set([...ledger.matchAll(/^- id:(\S+)/gm)].map((match) => match[1]));
-  return baseIds.filter((id) => !inherited.has(id) && !recorded.has(id));
+  return baseIds.filter((id) => !inherited.has(id) && !recorded.has(id)).sort();
 }
+
+const splitIds = (value) =>
+  value
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && s !== "-");
 
 /**
  * 基準(取り込み済み)の notice の resolves: に書かれた指令 id(上流が解決した下流の依頼)。
- * .notices/ 直下と done/ の両方を読む(アーカイブされても解決は解決)。
+ * 索引の行の resolves: ∪ 本文(直下と done/)の resolves:。本文が消えても索引の行が残るので失効は変わらない
  */
 function resolvedOrders(repoRoot, base) {
+  const ids = new Set();
+  for (const row of indexRows(repoRoot, base)) for (const id of splitIds(row.fields.resolves ?? "")) ids.add(id);
   const files = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", base, ".notices/"]) ?? "")
     .split("\n")
     .filter((path) => /^\.notices\/(done\/)?[^/]+\.md$/.test(path) && !path.endsWith("/README.md"));
-  const ids = new Set();
   for (const path of files) {
     const match = /^resolves:\s*(.+)$/m.exec(show(repoRoot, base, path) ?? "");
     if (!match) continue;
-    for (const id of match[1].split(",").map((s) => s.trim()).filter(Boolean)) ids.add(id);
+    for (const id of splitIds(match[1])) ids.add(id);
   }
   return ids;
 }

@@ -411,4 +411,79 @@ describe("ownership:check", () => {
     assert.equal(JSON.parse(out.stdout).status, "pass");
     assert.equal(cli(fork, "--bogus").status, 2);
   });
+
+  describe("索引 .notices/shipped/ から読む(本文が消えても判定が変わらない)", () => {
+    const ROW_RESOLVE = "- id:20261029-130000-user-hook-intake | severity:info | checkpoint:user-hook-intake | resolves:20261029-120000-user-hook";
+    const ROW_NEW = "- id:20261029-000000-new | severity:info | checkpoint:new";
+
+    /** 親に notice を本文 + 索引の行で出す(/ship と同じ 1 commit) */
+    const ship = (parent, id, body, rows) => {
+      write(parent, `.notices/${id}.md`, body);
+      write(parent, `.notices/shipped/${PARENT_ID}.md`, `# SHIPPED ${PARENT_ID}\n\n${rows.join("\n")}\n`);
+      commitAll(parent, `ship ${id}`);
+    };
+    const pull = (fork) => {
+      git(fork, "fetch", "-q", "upstream");
+      git(fork, "merge", "-q", "--no-edit", "upstream/main");
+    };
+    /** fork が一時許可を持つ状態(親の user.ts を外で変え、依頼 20261029-120000-user-hook の許可で通す) */
+    const forkWithPermit = (parent) => {
+      const fork = makeFork(parent);
+      write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
+      commitAll(fork, "outside");
+      const draft = runCheck(fork).entries.find((entry) => entry.reason === "outside-intake").permitDraft;
+      write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${draft.replace("<依頼の番号>", "20261029-120000-user-hook").replace("<理由>", "待ち")}\n`);
+      commitAll(fork, "permit");
+      return fork;
+    };
+
+    test("台帳に無い notice は索引の行からも数え、親が本文を消した後も同じ", () => {
+      const parent = makeParent();
+      const fork = makeFork(parent);
+      ship(parent, "20261029-000000-new", "# DOWNSTREAM NOTICE id:20261029-000000-new\ncheckpoint: new\n", [ROW_NEW]);
+      git(parent, "rm", "-q", ".notices/20261029-000000-new.md");
+      commitAll(parent, "body removed after the segment closed");
+      pull(fork);
+      const result = runCheck(fork);
+      assert.equal(result.status, "unverified");
+      assert.deepEqual(result.unrecorded, ["20261029-000000-new"]);
+      recordLedger(fork, "20261029-000000-new");
+      commitAll(fork, "ledger");
+      assert.equal(runCheck(fork).status, "pass");
+    });
+
+    test("fork 成立点の索引の行は継承済み(本文が無くても)", () => {
+      const parent = makeParent();
+      ship(parent, "20261029-000000-new", "# DOWNSTREAM NOTICE id:20261029-000000-new\n", [ROW_NEW]);
+      git(parent, "rm", "-q", ".notices/20261029-000000-new.md");
+      commitAll(parent, "body removed");
+      const fork = makeFork(parent);
+      assert.equal(runCheck(fork).status, "pass");
+    });
+
+    test("resolves: は索引の行から読み、本文を消した commit を取り込んでも一時許可は失効する", () => {
+      const parent = makeParent();
+      const fork = forkWithPermit(parent);
+      assert.equal(runCheck(fork).status, "pass");
+      ship(parent, "20261029-130000-user-hook-intake", "# DOWNSTREAM NOTICE id:20261029-130000-user-hook-intake\nresolves: 20261029-120000-user-hook\n", [ROW_RESOLVE]);
+      git(parent, "rm", "-q", ".notices/20261029-130000-user-hook-intake.md");
+      commitAll(parent, "body removed");
+      pull(fork);
+      recordLedger(fork, "20261029-130000-user-hook-intake");
+      commitAll(fork, "ledger");
+      const result = runCheck(fork);
+      assert.equal(result.status, "fail");
+      assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
+    });
+
+    test("索引の行だけにある resolves:(本文に無い)でも失効する = 索引が正", () => {
+      const parent = makeParent();
+      const fork = forkWithPermit(parent);
+      ship(parent, "20261029-130000-user-hook-intake", "# DOWNSTREAM NOTICE id:20261029-130000-user-hook-intake\n", [ROW_RESOLVE]);
+      pull(fork);
+      recordLedger(fork, "20261029-130000-user-hook-intake");
+      commitAll(fork, "ledger");
+      assert.equal(runCheck(fork).entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
+    });
+  });
 });
