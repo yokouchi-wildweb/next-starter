@@ -16,6 +16,8 @@
 | `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
 | `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
+| `routeMapView.mjs` | ルート地図を見る側（`routes:show` の引数・絞り込み・tree / table / mermaid / jsonl の描画。地図の形は変えない。純粋関数、§13「見る」） |
+| `routeMapView.test.mjs` | `pnpm test:route-map` に含む — 手書きの地図 `__fixtures__/route-map.sample.jsonl` で全部の形と絞り込みを検査 |
 | `src/app/route-map.jsonl` | ルート地図（生成物。1 ページ 1 行の守りの鎖の JSON。手で編集しない。§13） |
 | `src/config/app/screens.config.ts` | 構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9） |
 
@@ -404,8 +406,16 @@ src/app/admin/(protected)/samples/
 |---|---|
 | `pnpm routes:map` | 地図を書き出す。ページ・Screen・loader・guard.ts を変えたら実行してコミットする。鎖が読めないページがあれば行と理由を出して exit 1（地図は書かない）。feature-gate の config（.ts）を読むので tsx で動く |
 | `pnpm routes:map --check` | 地図が生成結果と一致するか検査する（ずれていれば exit 1） |
-| `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 + 全行 verified |
-| `pnpm routes:show [<URL 接頭辞>]` | 人が読む形で鎖を表示する（page → Screen → loader の access → guard.ts の段ごとの access と行き先） |
+| `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 + 全行 verified + 見る側（`routeMapView`）のテスト |
+| `pnpm routes:show [<URL 接頭辞>] [オプション]` | 地図を絞り込んで描く（下の「見る」）。引数なし・URL 接頭辞だけは段ごとの鎖（page → Screen → loader の access → guard.ts の段ごとの access と行き先） |
+
+見る（`pnpm routes:show`、`--help` で一覧。人に説明させるときはスキル `/route-map` が依頼を引数に直して結果を読み解く）:
+
+- 入力: 既定は src/app から作り直した値（コミット前の変更も映る。鎖が読めないと exit 1）。コミットされた地図とずれていれば stderr に `! 地図が古い` の 1 行。`--file=<path>` は地図ファイル（JSON Lines）をそのまま読む（fixture・別の版の地図）
+- `--view=`: `details`（既定。段ごとの鎖）/ `tree`（URL の木。ページの行に access・最寄りの範囲・gated-off）/ `table`（Markdown の表。page.tsx のフォルダ = route group が見える列、guard は最寄り → root）/ `mermaid`（guard.ts の範囲を extend の親子で入れ子の subgraph、ページは最寄りの範囲の箱、止めたページは点線）/ `jsonl`（絞った行を地図と同じ形で。エージェント向け）
+- 絞り込み（同じオプションは OR、別の種類は AND）: `<URL 接頭辞>`（セグメント単位）/ `--scope=<範囲>`（`admin/(protected)`・`src/app/admin/(protected)`・`/`。その範囲と配下の範囲、`--nearest` で最寄りの guard.ts だけ）/ `--access=`（loader の access: `public`・`authenticated`・`role:<r>`・`category:<c>`・`registry[:<domain>[.<op>]]`・`statuses` = allowStatuses あり）/ `--state=`（`verified`・`gated-off`・`live`）
+- 表の access は `--access` と同じ言葉（`{"roleCategories":["admin"]}` → `category:admin`）。details の表示は今までどおり
+- `( )` を含む値はシェルで `'…'` で囲む。引数の誤りは説明つきで exit 2
 
 1 行（キーの順は固定、行は path 順。改行は入れない。ここでは読みやすく折り返す）:
 
@@ -431,7 +441,7 @@ src/app/admin/(protected)/samples/
 
 決定の経緯（評議会 20261019-213253 §4 M1・§7、親 D71 K1、legate L1.21）:
 
-- **採った形 = 機械が読む構造化データ**: 主な読み手はエージェント。段ごとの access と方針の値を持ち、差分がページ単位・段単位で読める。人向けの図（ツリー・表など）は CLI（`routes:show`）が描く
+- **採った形 = 機械が読む構造化データ**: 主な読み手はエージェント。段ごとの access と方針の値を持ち、差分がページ単位・段単位で読める。人向けの図（ツリー・表・Mermaid）は CLI（`routes:show --view=`）が描き、スキル `/route-map` が依頼を引数に直して読み解く
 - **不採用: 1 行のテキスト（出どころ + 関数名#hash）**: 初版の形。hash は方針の中身を読めず、Factory の方針（guard.ts・createLoader）を辿れない
 - **不採用: 地図をコミットしない（コマンドで見るだけ）**: 方針の付け外しがレビューの差分に出ず、ずれ検査も作れない
 - **不採用: 固定リストの走査（`SCAN_ROOTS` 等）**: リストの外のページが黙って地図から抜ける（§11）

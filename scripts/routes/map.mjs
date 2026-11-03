@@ -5,7 +5,8 @@
 // 使い方:
 //   pnpm routes:map            # 地図を書き出す(ページ・loader・guard.ts を変えたら実行してコミットする)
 //   pnpm routes:map --check    # 地図が生成結果と一致するか検査する(ずれていれば exit 1。pnpm test:route-map も同じ検査をする)
-//   pnpm routes:show [<URL>]   # 人が読む形で鎖(page → Screen → loader の access → guard の段ごとの方針)を表示する。URL 接頭辞で絞れる
+//   pnpm routes:show [<URL>] [--view= --scope= --access= --state= --file=]
+//                              # 地図を絞り込んで描く(既定 = 段ごとの鎖。tree / table / mermaid / jsonl)。pnpm routes:show --help
 //
 // fork の merge で地図が衝突したら、どちらの版も採らずに pnpm routes:map で作り直す。
 // 詳細: src/lib/screens/README.md §13
@@ -13,13 +14,31 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { ROUTE_MAP_FILE, buildRouteMap, formatRouteDetails, formatRouteMap } from "../../src/lib/screens/routeMap.mjs";
+import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap } from "../../src/lib/screens/routeMap.mjs";
+import { SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap } from "../../src/lib/screens/routeMapView.mjs";
 import { listAppFiles } from "../../src/lib/screens/routeTree.mjs";
 import { featureGateRules } from "../../src/proxies/extensions/featureGateRules.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const read = (rel) => readFileSync(path.join(repoRoot, rel), "utf8");
+
+// show の引数は地図を作る前に読む(--file なら src/app から作り直さない)
+const show = args[0] === "show" ? parseShowArgs(args.slice(1)) : null;
+if (show && !show.ok) {
+  console.error(`✗ ${show.error}\n`);
+  process.stderr.write(SHOW_USAGE);
+  process.exit(2);
+}
+if (show?.opts.help) {
+  process.stdout.write(SHOW_USAGE);
+  process.exit(0);
+}
+if (show?.opts.file) {
+  const rows = parseRouteMapJsonl(readFileSync(path.resolve(process.cwd(), show.opts.file), "utf8"));
+  process.stdout.write(renderRouteMap(filterRows(rows, show.opts), show.opts.view));
+  process.exit(0);
+}
 
 // 止めているルート(機能を閉じる規則のうち無効なもの)は state を gated-off にする。規則の .ts を読むので tsx で動かす
 const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read, gateRules: featureGateRules });
@@ -28,12 +47,13 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-if (args[0] === "show") {
-  const prefix = args[1];
-  // URL のセグメント単位で絞る(/admin は /admin・/admin/**・/admin @slot に一致し、/administrator には一致しない)
-  const base = prefix?.replace(/\/+$/, "");
-  const selected = base ? rows.filter((r) => r.path === base || r.path.startsWith(`${base}/`)) : rows;
-  process.stdout.write(formatRouteDetails(selected));
+if (show) {
+  // src/app から作り直した行を描く(コミット前の変更も映る)。コミットされた地図とずれていれば 1 行知らせる
+  const committed = path.join(repoRoot, ROUTE_MAP_FILE);
+  if (!existsSync(committed) || readFileSync(committed, "utf8") !== formatRouteMap(rows)) {
+    console.error(`! 地図が古い: ${ROUTE_MAP_FILE} が src/app と一致しない(表示は src/app から作り直した値)。pnpm routes:map で作り直す`);
+  }
+  process.stdout.write(renderRouteMap(filterRows(rows, show.opts), show.opts.view));
   process.exit(0);
 }
 
