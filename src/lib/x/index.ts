@@ -1,13 +1,8 @@
 // src/lib/x/index.ts
 
 // 設定
-export {
-  getXAppConfig,
-  getXUserConfig,
-  getXOAuthConfig,
-  X_API_BASE,
-  X_UPLOAD_BASE,
-} from "./config";
+export { getXAppConfig, getXUserConfig, getXOAuthConfig } from "./env";
+export { X_API_BASE, X_UPLOAD_BASE } from "./endpoints";
 
 // クライアントファクトリ
 export {

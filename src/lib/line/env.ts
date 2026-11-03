@@ -1,4 +1,4 @@
-// src/lib/line/config.ts
+// src/lib/line/env.ts
 
 /**
  * LINE連携に必要な環境変数を取得する。
@@ -33,7 +33,3 @@ export function getLineMessagingConfig() {
 export function getLiffId(): string | undefined {
   return process.env.LIFF_ID || undefined;
 }
-
-/** LINE API のベースURL */
-export const LINE_API_BASE = "https://api.line.me";
-export const LINE_LOGIN_BASE = "https://access.line.me";

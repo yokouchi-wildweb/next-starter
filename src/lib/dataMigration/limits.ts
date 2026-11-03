@@ -1,4 +1,4 @@
-// src/lib/dataMigration/config.ts
+// src/lib/dataMigration/limits.ts
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 

@@ -13,7 +13,7 @@
 import { db } from "@/lib/drizzle";
 import { ReferralTable } from "../../../entities/drizzle";
 import { ReferralRewardTable } from "@/features/core/referralReward/entities/drizzle";
-import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/config";
+import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/rewardDefinitions";
 import { and, eq, sql, count as drizzleCount, countDistinct } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 

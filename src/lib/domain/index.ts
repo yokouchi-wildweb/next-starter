@@ -9,7 +9,7 @@
 export * from "./types";
 
 // config: ドメイン設定
-export * from "./config";
+export * from "./definition";
 
 // relations: リレーション情報
 export * from "./relations";

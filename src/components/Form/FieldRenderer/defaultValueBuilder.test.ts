@@ -7,7 +7,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import sampleDomainConfig from "@/features/sample/domain.json";
 import couponDomainConfig from "@/features/core/coupon/domain.json";
 import { SampleCreateSchema } from "@/features/sample/entities/schema";

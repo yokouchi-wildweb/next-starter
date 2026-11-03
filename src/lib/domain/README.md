@@ -152,7 +152,7 @@ domain.json の無い手書きの domain は、同じ置き場に同じ形を手
 
 ## フォルダ
 
-- `config/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
+- `definition/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
 - `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`
 - `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）

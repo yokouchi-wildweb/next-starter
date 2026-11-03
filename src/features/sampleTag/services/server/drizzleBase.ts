@@ -1,6 +1,6 @@
 // src/features/sampleTag/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 import rawConf from "@/features/sampleTag/domain.json";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";

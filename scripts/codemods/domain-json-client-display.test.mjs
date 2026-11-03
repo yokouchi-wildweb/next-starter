@@ -13,7 +13,7 @@ const displayOf = (specifier) => (specifier.includes("/none/") ? null : specifie
 
 test("Header の形: normalize と import を消し、名前を差し替える", () => {
   const source = `"use client";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import rawConfig from "@/features/foo/domain.json";
 
 const config = normalizeDomainJsonConfig(rawConfig);

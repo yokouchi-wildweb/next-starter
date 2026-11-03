@@ -1,6 +1,6 @@
 // src/features/userTag/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 import rawConf from "@/features/userTag/domain.json";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";

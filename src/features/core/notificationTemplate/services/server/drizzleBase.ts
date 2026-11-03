@@ -1,6 +1,6 @@
 // src/features/notificationTemplate/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 import rawConf from "@/features/notificationTemplate/domain.json";
 import { NotificationTemplateTable } from "@/features/core/notificationTemplate/entities/drizzle";

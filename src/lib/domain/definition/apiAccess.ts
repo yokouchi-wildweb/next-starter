@@ -1,4 +1,4 @@
-// src/lib/domain/config/apiAccess.ts
+// src/lib/domain/definition/apiAccess.ts
 // 汎用ドメイン API (/api/[domain]/**) と管理データ操作のアクセスルール解決
 //
 // serviceRegistry のエントリが持つ access（DomainApiAccessConfig）から、操作に対するアクセスルールを

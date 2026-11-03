@@ -25,7 +25,7 @@ import { renderDomainEntry } from "../../domain-config/render/registry/domainEnt
 import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
 import { domainConfigMap } from "../../../src/registry/domainConfigRegistry.ts";
 import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../src/lib/domain/types/apiAccess.ts";
-import { isGenericApiClosed, resolveAccessRule } from "../../../src/lib/domain/config/apiAccess.ts";
+import { isGenericApiClosed, resolveAccessRule } from "../../../src/lib/domain/definition/apiAccess.ts";
 import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../src/config/app/domain-api-access.config.ts";
 // `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
 import { getDomainList } from "../../../src/lib/domain/service/server/getDomainList.ts";

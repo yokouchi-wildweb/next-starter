@@ -9,7 +9,8 @@
 ```
 src/lib/x/
 ├── index.ts          # re-export（公開API一覧）
-├── config.ts         # 環境変数の一元管理
+├── env.ts            # 環境変数の一元管理
+├── endpoints.ts      # X API のベースURL
 ├── client.ts         # クライアントファクトリ（OAuth 1.0a / 2.0 / App-only）
 ├── types.ts          # プロジェクト固有の型定義
 ├── constants.ts      # 定数（スコープ、制限値、Cookie名）

@@ -2,7 +2,7 @@
 
 import { createHmac, timingSafeEqual } from "crypto";
 
-import { getXAppConfig } from "./config";
+import { getXAppConfig } from "./env";
 import type { XCrcChallengeResponse, XWebhookEvent } from "./types";
 
 /**

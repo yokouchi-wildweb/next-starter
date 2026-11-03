@@ -1,6 +1,6 @@
 // 報酬定義のルックアップユーティリティ
 
-import { REFERRAL_REWARD_DEFINITIONS } from "../config";
+import { REFERRAL_REWARD_DEFINITIONS } from "../rewardDefinitions";
 import type { ReferralRewardDefinition } from "../types/rewardConfig";
 
 /**

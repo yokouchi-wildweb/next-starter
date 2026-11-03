@@ -13,7 +13,7 @@
 - export: `src/lib/dataMigration/export/`
 - import: `src/lib/dataMigration/import/`
 - UI: `src/lib/dataMigration/components/`
-- 設定: `src/lib/dataMigration/config.ts`
+- 設定: `src/lib/dataMigration/limits.ts`
 - リレーション収集: `src/lib/dataMigration/relations.ts`
 
 ## エクスポートの流れ

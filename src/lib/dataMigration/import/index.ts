@@ -5,7 +5,7 @@
 
 import "server-only";
 import { toCamelCase } from "@/utils/stringCase.mjs";
-import { getDataMigrationConfig } from "../config";
+import { getDataMigrationConfig } from "../limits";
 import type { DataMigrationMediaResolver } from "../media";
 import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from "../serviceResolver";
 import { assertNoCollectionFields } from "../collectionFields";

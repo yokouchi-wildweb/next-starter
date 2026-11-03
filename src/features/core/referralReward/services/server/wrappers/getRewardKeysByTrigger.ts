@@ -1,6 +1,6 @@
 // トリガー名から該当する reward_key 一覧を取得
 
-import { REFERRAL_REWARD_DEFINITIONS } from "../../../config";
+import { REFERRAL_REWARD_DEFINITIONS } from "../../../rewardDefinitions";
 
 /**
  * トリガー名から該当する reward_key 一覧を取得

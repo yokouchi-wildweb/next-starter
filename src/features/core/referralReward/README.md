@@ -26,7 +26,7 @@
 
 **カスタムメソッド**:
 - `fulfillReward(params)`: 個別報酬の配布実行。冪等（配布済みならスキップ）。ハンドラー呼び出し → status 更新 → metadata 記録。失敗時は status=failed で記録
-- `triggerRewards(trigger, referral, context?, tx?)`: トリガー名で該当する全報酬を一括実行。`config.ts` の定義から reward_key を取得し、各ハンドラーを実行。`context` でイベント固有の情報（購入金額等）をハンドラーに渡せる
+- `triggerRewards(trigger, referral, context?, tx?)`: トリガー名で該当する全報酬を一括実行。`rewardDefinitions.ts` の定義から reward_key を取得し、各ハンドラーを実行。`context` でイベント固有の情報（購入金額等）をハンドラーに渡せる
 - `isFulfilled(referralId, rewardKey, tx?)`: 特定報酬の配布済み判定
 - `getByReferral(referralId, tx?)`: referral に紐づく報酬一覧
 
@@ -34,7 +34,7 @@
 
 ## 拡張基盤
 
-### 報酬定義（`config.ts`）
+### 報酬定義（`rewardDefinitions.ts`）
 
 ```ts
 export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = {
@@ -111,4 +111,4 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 - サーバーサービス: `services/server/referralRewardService.ts`, `services/server/wrappers/*`
 - 読み手: `services/server/rewardHandlerRegistry.ts`
 - 受け口: `rewardGroups/`・`services/server/handlers/`（下流でファイル追加、`pnpm extensions:generate`）
-- 設定: `config.ts`
+- 設定: `rewardDefinitions.ts`

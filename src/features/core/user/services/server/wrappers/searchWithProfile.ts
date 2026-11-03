@@ -9,7 +9,7 @@ import { and, ilike, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import rawUserConf from "@/features/core/user/domain.json";
 import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud/types";
 import type { ExtraWhereOption } from "@/lib/crud/drizzle/types";

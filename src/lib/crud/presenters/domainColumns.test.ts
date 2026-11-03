@@ -7,7 +7,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import sampleConfig from "@/features/sample/domain.json";
 import couponConfig from "@/features/core/coupon/domain.json";
 import chatRoomConfig from "@/features/core/chatRoom/domain.json";

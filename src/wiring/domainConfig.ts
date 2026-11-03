@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import { createDomainConfigLookup } from "@/lib/domain/config/createDomainConfigLookup";
+import { createDomainConfigLookup } from "@/lib/domain/definition/createDomainConfigLookup";
 import { domainConfigMap, type DomainConfig } from "@/registry/domainConfigRegistry";
 
 export const { getDomainConfig, hasDomainConfig } = createDomainConfigLookup<DomainConfig>(domainConfigMap);

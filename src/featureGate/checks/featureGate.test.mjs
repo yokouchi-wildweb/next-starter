@@ -31,7 +31,7 @@ import { getTableName, is } from "drizzle-orm";
 import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
 
 import { serviceRegistry } from "../../registry/serviceRegistry.ts";
-import { isGenericApiClosed } from "../../lib/domain/config/apiAccess.ts";
+import { isGenericApiClosed } from "../../lib/domain/definition/apiAccess.ts";
 import { APP_FEATURES } from "../../config/app/app-features.config.ts";
 import { alwaysOnExceptions, alwaysOnRegistries, gatedSchema as applySchemaGate, rules as featureGateRules } from "../node.ts";
 import { forkAddedFiles } from "../../lib/forkOwnership/check.mjs";

@@ -1,6 +1,7 @@
 // src/lib/line/messagingApi.ts
 
-import { getLineMessagingConfig, LINE_API_BASE } from "./config";
+import { LINE_API_BASE } from "./endpoints";
+import { getLineMessagingConfig } from "./env";
 import { LINE_MULTICAST_MAX_RECIPIENTS } from "./constants";
 import type { LineMessage, LineSendMessageResponse, LineTextMessage } from "./types";
 

@@ -1,6 +1,6 @@
 // src/features/couponHistory/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 import rawConf from "@/features/couponHistory/domain.json";
 import { CouponHistoryTable } from "@/features/core/couponHistory/entities/drizzle";

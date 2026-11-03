@@ -1,4 +1,4 @@
-// src/lib/x/config.ts
+// src/lib/x/env.ts
 
 /**
  * X (Twitter) API 連携に必要な環境変数を取得する。
@@ -36,7 +36,3 @@ export function getXOAuthConfig() {
     clientSecret: getEnvOrThrow("X_OAUTH2_CLIENT_SECRET"),
   };
 }
-
-/** X API のベースURL */
-export const X_API_BASE = "https://api.x.com";
-export const X_UPLOAD_BASE = "https://upload.twitter.com";

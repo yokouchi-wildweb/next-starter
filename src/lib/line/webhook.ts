@@ -2,7 +2,7 @@
 
 import { createHmac } from "crypto";
 
-import { getLineMessagingConfig } from "./config";
+import { getLineMessagingConfig } from "./env";
 import type { LineWebhookBody, LineWebhookEvent } from "./types";
 
 /**

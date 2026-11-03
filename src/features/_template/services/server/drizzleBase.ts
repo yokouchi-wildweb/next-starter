@@ -1,6 +1,6 @@
 // src/features/__domain__/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
 import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 import rawConf from "@/features/__domain__/domain.json";
 import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle";

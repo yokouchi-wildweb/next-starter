@@ -2,7 +2,7 @@
 
 import { TwitterApi, type TwitterApiReadOnly, type TwitterApiReadWrite } from "twitter-api-v2";
 
-import { getXAppConfig, getXOAuthConfig, getXUserConfig } from "./config";
+import { getXAppConfig, getXOAuthConfig, getXUserConfig } from "./env";
 import type { XClientConfig, XFullCredentials } from "./types";
 
 /**

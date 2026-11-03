@@ -1,4 +1,4 @@
-// src/lib/domain/config/normalizeDomainJsonConfig.ts
+// src/lib/domain/definition/normalizeDomainJsonConfig.ts
 // domain.json の直接インポート時に Firestore ドメインのフィールド名を camelCase に変換する。
 // server が自分のドメインの domain.json を読むときに使う。client は変換済みの写し entities/display.ts を読む。
 

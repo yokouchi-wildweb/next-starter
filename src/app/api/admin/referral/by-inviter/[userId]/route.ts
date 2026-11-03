@@ -3,7 +3,7 @@
 import { createApiRoute } from "@/wiring/apiRoute";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
-import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/config";
+import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/rewardDefinitions";
 import { getRewardGroupKey } from "@/features/core/referralReward/utils/rewardDefinitionLookup";
 import { userService } from "@/features/core/user/services/server/userService";
 

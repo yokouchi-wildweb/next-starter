@@ -1,7 +1,7 @@
 // src/lib/dataMigration/export/index.ts
 
 import "server-only";
-import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
+import { getDataMigrationConfig, CHUNK_SIZE } from "../limits";
 import { generateCsv, csvToBuffer } from "./generateCsv";
 import {
   createZip,

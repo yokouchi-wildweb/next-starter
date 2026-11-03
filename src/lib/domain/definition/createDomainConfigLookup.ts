@@ -1,4 +1,4 @@
-// src/lib/domain/config/createDomainConfigLookup.ts
+// src/lib/domain/definition/createDomainConfigLookup.ts
 // ドメイン設定の表を受けて、ドメイン名から設定を引く関数を作る。
 // lib は登録表を import しない。表と結んだ版は src/wiring/domainConfig.ts(server 専用)。
 

@@ -1,7 +1,7 @@
 // src/lib/line/index.ts
 
 // 設定
-export { getLineLoginConfig, getLineMessagingConfig, getLiffId } from "./config";
+export { getLineLoginConfig, getLineMessagingConfig, getLiffId } from "./env";
 
 // OAuth（LINE Login）
 export {

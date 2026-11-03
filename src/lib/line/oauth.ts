@@ -1,6 +1,7 @@
 // src/lib/line/oauth.ts
 
-import { getLineLoginConfig, LINE_API_BASE, LINE_LOGIN_BASE } from "./config";
+import { LINE_API_BASE, LINE_LOGIN_BASE } from "./endpoints";
+import { getLineLoginConfig } from "./env";
 import type { LineFriendshipStatusResponse, LineIdTokenPayload, LineLinkResult, LineTokenResponse } from "./types";
 
 /**

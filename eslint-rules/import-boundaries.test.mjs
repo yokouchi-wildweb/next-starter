@@ -85,7 +85,7 @@ test("rule lib-no-registry: 値も型も止める", () => {
       { code: `import { serviceRegistry } from "@/registry/serviceRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },
       { code: `import type { PairedDeviceKind } from "@/registry/pairedDeviceKindRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },
       { code: `import { x } from "../../registry/fooRegistry";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libRegistry" }] },
-      { code: `import { domainConfigMap } from "@/registry/domainConfigRegistry";`, filename: at("src/lib/domain/config/createDomainConfigLookup.ts"), errors: [{ messageId: "libRegistry" }] },
+      { code: `import { domainConfigMap } from "@/registry/domainConfigRegistry";`, filename: at("src/lib/domain/definition/createDomainConfigLookup.ts"), errors: [{ messageId: "libRegistry" }] },
     ],
   });
 });
