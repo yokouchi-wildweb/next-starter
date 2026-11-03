@@ -308,7 +308,7 @@ export const POST = createApiRoute(
 | 検査 | 内容 | 定義 |
 |---|---|---|
 | `route-http-export/http-export` | `src/app/**/route.{ts,tsx}` の GET〜OPTIONS は `export const X = <wiring か @/lib/cron の作り手>(…)` だけ。export function・再 export・分割代入の export は不可 | `eslint-rules/route-http-export.mjs` |
-| `import-boundaries/route-factory-via-wiring` | `src/lib/routeFactory/**` の値 import は `src/wiring/**`（fork のドット名を含む）と自身だけ。エイリアス・相対・`src/…`・サブパス・dynamic import も実パスで判定。型だけは可 | `eslint-rules/import-boundaries.mjs` |
+| `import-boundaries/route-factory-via-wiring` | `src/lib/routeFactory/**` の値 import は `src/wiring/**`（fork が足した wiring を含む）と自身だけ。エイリアス・相対・`src/…`・サブパス・dynamic import も実パスで判定。型だけは可 | `eslint-rules/import-boundaries.mjs` |
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
@@ -354,13 +354,13 @@ export const POST = createApiRoute(
 - `createRouteFactories(deps)` が全 Factory を作る。`deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry }`。主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）
 - 束の持ち主: 利用者 = `features/core/auth` の `apiRouteUserDeps`、端末 = `features/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
-- fork が独自の主体の Factory を作るときは `src/wiring/<名前>.<fork ID>.ts` で汎用版から作る（`src/wiring/README.md`）
+- fork が独自の主体の Factory を作るときは `src/wiring/<名前>.ts` で汎用版から作る（`src/wiring/README.md`）
 
 ---
 
 ## 関連ドキュメント
 
-- `src/wiring/README.md` - 設定済み版の置き場・fork のドット名
+- `src/wiring/README.md` - 設定済み版の置き場・fork の wiring
 - `src/features/README.md`「ApiAccess」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
 - `src/lib/errors/README.md` - `DomainError` の `code` / `details`
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ

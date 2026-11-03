@@ -38,29 +38,29 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 ## 所有
 
 - このフォルダ(と `(protected)/_layout/`・`insane/_layout/`)の既定の部品 = 提供者(upstream)の所有。fork は直接編集しない(core と同じ扱い。CLAUDE.md CORE_FILES)
-- fork のカスタムはベースの隣にドット区切り名で置く(例 `Header.<project>.tsx`)。ドット区切り名のファイル = 採用者(fork)の所有。upstream はここにドット区切り名のファイルを作らない(`pnpm test:screens` が Tier1 でだけ検査)
-- lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens・client-service-boundary が error)。ドット区切り名は app/ の画面と同じ warn。page-authz は両方に error
+- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `Header.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(名前に fork の印は付けない)。upstream はここに点つきの名前のファイルを作らない(`pnpm test:screens` が Tier1 でだけ検査)。隣に既定の無い `.replace`・旧い fork の名前の印は全 Tier で失敗
+- lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens・client-service-boundary が error)。`*.replace.tsx` は app/ の画面と同じ warn。page-authz は両方に error
 - `admin/layout.tsx` は採用者所有の 1 行スイッチ(`export { AdminLayout as default } from "./_layout/AdminLayout";`、write-once。`pnpm test:screens` が全 Tier で検査)
 - `admin/(protected)/layout.tsx`・`admin/insane/layout.tsx` はガードと同居するので提供者所有。枠の部品は sidebar / footer の props を持つが、fork から渡す口は proxy の /admin 関所の区切り(F2)まで無い(渡すには提供者所有の layout.tsx を編集することになるため)
-- 差し替え部品の置き場: `useAdminSidebarFrame` / `AdminHeaderSlots` を使う差し替え部品(ヘッダー・サイドバーの中身)は `src/app/admin/**` の中(この `_layout/` の隣のドット区切り名)に置く。`src/app/<X>/_layout/**` を import してよいのは `src/app/<X>/**` だけ、という規則を後の区切りで検査にするため(features/** に置くとそこで落ちる)
+- 差し替え部品の置き場: `useAdminSidebarFrame` / `AdminHeaderSlots` を使う差し替え部品(ヘッダー・サイドバーの中身)は `src/app/admin/**` の中(この `_layout/` の隣の `<名前>.replace`)に置く。`src/app/<X>/_layout/**` を import してよいのは `src/app/<X>/**` だけ、という規則を後の区切りで検査にするため(features/** に置くとそこで落ちる)
 
 ## AdminLayout と slot
 
 - slot の約束(User の UserLayout と同じ): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く
 - `header`: 既定 = `./Header`。`className`: 外枠に足すクラス名
-- fork のカスタム: `admin/layout.tsx` を `_layout/AdminLayout.<project>.tsx` へ向け、そこで既定の AdminLayout に slot を渡す
+- fork の置き換え: `admin/layout.tsx` を `_layout/AdminLayout.replace.tsx` へ向け、そこで既定の AdminLayout に slot を渡す
 
 ```tsx
-// src/app/admin/_layout/AdminLayout.<project>.tsx
+// src/app/admin/_layout/AdminLayout.replace.tsx
 import type { ReactNode } from "react";
 
 import { AdminLayout } from "./AdminLayout";
-import { ProjectAdminHeader } from "./Header.<project>";
+import { ProjectAdminHeader } from "./Header.replace";
 
 export function ProjectAdminLayout({ children }: { children: ReactNode }) {
   return <AdminLayout header={<ProjectAdminHeader />}>{children}</AdminLayout>;
 }
-// admin/layout.tsx: export { ProjectAdminLayout as default } from "./_layout/AdminLayout.<project>";
+// admin/layout.tsx: export { ProjectAdminLayout as default } from "./_layout/AdminLayout.replace";
 ```
 
 - ヘッダーを差し替えるときは `<header id={APP_HEADER_ELEMENT_ID}>`(`@/components/AppFrames/constants`)の中で、ロゴ等の後に `<AdminHeaderSlots trailing={…} />` を描く。受け口が無いと PageTitle placement="header" の見出し(sm 以上)と AdminHeaderPortal の中身が出ない。受け口の id は test:admin-layout が固定している

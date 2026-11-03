@@ -33,9 +33,9 @@ src/app/(user)/_layout/
 ## 所有
 
 - このフォルダの既定の部品 = 提供者(upstream)の所有。fork は直接編集しない(core と同じ扱い。CLAUDE.md CORE_FILES)
-- fork のカスタムはベースの隣にドット区切り名で置く(例 `UserLayout.custom.tsx`・`Header/index.<project>.tsx`)。ドット区切り名のファイル = 採用者(fork)の所有。名前は各プロジェクトで決める(多段の fork で衝突しない名前を推奨)
-- upstream はここ(と `_screen/`)にドット区切り名のファイルを作らない。`pnpm test:screens` が Tier1 でだけ検査する(fork では skip)
-- lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens/no-raw-palette・style-tokens/span-in-heading・client-service-boundary/no-direct-import が error)。ドット区切り名のカスタムは app/ の画面と同じ warn。page-authz(layout はサーバー側でデータを取らない)は両方に error
+- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `UserLayout.replace.tsx`・`Header/index.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(所有は git の分岐点で見る。名前に fork の印は付けない)。隣に置き換える既定の無い `.replace` は孤立で失敗(`pnpm test:screens`)
+- upstream はここ(と `_screen/`)に点つきの名前のファイルを作らない(Tier1 でだけ検査、fork では skip)。点つきの名前で許すのは `.replace` と `.test` だけ(旧い fork の名前の印は全 Tier で失敗。移し方 = 共有の棚の印の移行の notice)
+- lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens/no-raw-palette・style-tokens/span-in-heading・client-service-boundary/no-direct-import が error)。丸ごと置き換え(`*.replace.tsx`)は app/ の画面と同じ warn。page-authz(layout はサーバー側でデータを取らない)は両方に error
 
 ---
 
@@ -77,14 +77,14 @@ src/app/(user)/_layout/
 ### fork の差し替え手順
 
 1. 値で済むもの(背景の 3 値、ヘッダー・フッター・ボトムナビの表示設定やメニュー)は `src/config/ui/*.config.ts` の値を変える
-2. 部品を替えるときは、隣にドット区切り名のカスタムを置いて既定の UserLayout に slot を渡し、layout.tsx をそちらへ向ける
+2. 部品を替えるときは、隣に `UserLayout.replace.tsx` を置いて既定の UserLayout に slot を渡し、layout.tsx をそちらへ向ける
 
 ```tsx
-// src/app/(user)/_layout/UserLayout.acme.tsx(fork 所有。名前はプロジェクトで決める)
+// src/app/(user)/_layout/UserLayout.replace.tsx(fork 所有)
 import type { ReactNode } from "react";
 
 import { UserLayout } from "./UserLayout";
-import { AcmeHeader } from "./Header/index.acme";
+import { AcmeHeader } from "./Header/index.replace";
 
 export function AcmeUserLayout({ children }: { children: ReactNode }) {
   return <UserLayout header={<AcmeHeader />}>{children}</UserLayout>;
@@ -93,10 +93,10 @@ export function AcmeUserLayout({ children }: { children: ReactNode }) {
 
 ```tsx
 // src/app/(user)/layout.tsx
-export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
+export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
-3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx をドット区切り名のファイルへコピーして編集する(外枠の `data-frame-root` は残す。無いと Hide* が効かない)
+3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` は残す。無いと Hide* が効かない)
 - 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm routes:map`、src/lib/screens/README.md §13)
 
 ## 枠の部位を隠す(Hide* と印)
@@ -222,16 +222,16 @@ export const GUEST_MENU_ITEMS: HeaderMenuItem[] = [...];
 | `actions` | PC だけに出る「お問い合わせ」 | `#header-right`(SP メニューの開閉ボタンの前)。要素はそのまま描くので SP のヘッダーにも出る。PC だけにするなら要素側で `hidden sm:flex` 等 |
 | `menuActions` | 幅いっぱいの「お問い合わせ」 | SP メニューのパネル下部(`#header-sp-nav-footer`)。`null` で下部の領域ごと描かない |
 
-fork はドット区切り名のカスタムで header slot に渡す(戻るボタン・通知ベル・設定リンク等を Header のファイルを編集せずに足せる):
+fork は `UserLayout.replace.tsx` で header slot に渡す(戻るボタン・通知ベル・設定リンク等を Header のファイルを編集せずに足せる):
 
 ```tsx
-// src/app/(user)/_layout/UserLayout.acme.tsx
+// src/app/(user)/_layout/UserLayout.replace.tsx
 <UserLayout header={<UserNavigation leading={<BackButton />} actions={<NotificationBell />} menuActions={null} />}>
   {children}
 </UserLayout>
 ```
 
-slot で足りない構造の違いはドット区切り名のコピーで持つ。
+slot で足りない構造の違いは `.replace` のコピーで持つ。
 
 ---
 

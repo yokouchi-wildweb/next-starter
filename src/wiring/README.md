@@ -20,10 +20,10 @@
 
 増やすときは、このテーブルと `wiring.test.mjs` の `WIRING_FILES` に足す。将来の API 用・管理画面用の wiring は自分で登録表を結ぶ（wiring どうしは import しない。共有するのは lib の汎用版と登録表だけ）。
 
-## fork の wiring（ドット名）
+## fork の wiring
 
-- fork は `src/wiring/<名前>[.client].<fork ID>.ts(x)` を足せる（fork の物）。例: fork 独自の主体（店舗の会員など）の API の Factory を、`lib/routeFactory` の汎用版から自分の束で作る
-- fork ID = `.claude/rules/project.md` の `fork_id:`（自分）+ `.notices/applied/*.md` の台帳名（親の fork）。宣言に無い ID のドット名は `pnpm test:wiring` が止める（読み手: `src/lib/forkOwnership/forkIds.mjs`）
+- fork は `src/wiring/<名前>.ts(x)`（client 用は `<名前>.client.tsx`）を足せる（fork が足したファイル = fork の物。名前に fork の印は付けない）。例: fork 独自の主体（店舗の会員など）の API の Factory を、`lib/routeFactory` の汎用版から自分の束で作る
+- 目録（`WIRING_FILES` との完全一致）は Tier1 だけで検査する。fork の所有は git の分岐点で `pnpm ownership:check` が見る（上流と同じ単位名は unit-clash）。旧い fork の名前の印つきの名前は全 Tier で `pnpm test:wiring` が止め、移し方 = 共有の棚の印の移行の notice を案内する
 - 向き・データ到達・wiring どうし不可は fork のファイルにも同じに掛かる
 - 上流の wiring のファイルを置き換える口（`<対象>.override.ts`）は無い。上流の結び方を変えたいときは `/order <upstream>`
 - 差し込む値の束は持ち主のドメインが 1 つ export する（利用者 = `features/core/auth` の `apiRouteUserDeps` 等）。全項目必須
@@ -41,7 +41,7 @@
 - root の `src/app/layout.tsx` は `@/wiring/AppProviders` だけ（データに届くのは中の AuthSessionProvider = 名前付き例外）
 - Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
-検査: `pnpm test:wiring`（目録・fork のドット名・向き・鎖・データに届く wiring の import の場所）。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
+検査: `pnpm test:wiring`（目録・旧い印・向き・鎖・データに届く wiring の import の場所）。受け口の宣言は `src/lib/forkOwnership/declarations.mjs` で読む。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
 
 ## dbAgent
 

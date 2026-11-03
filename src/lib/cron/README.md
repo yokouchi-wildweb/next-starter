@@ -7,7 +7,7 @@ API ルート・CLI（`pnpm task`）・`vercel.json` の生成は、どれもこ
 upstream / fork / さらに下流の Tier も、タスクを足すときはフォルダを 1 つ足すだけで、共有ファイルを編集しない。
 
 CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。定期タスクに加えて、バックフィル・データ移行などの
-**ワンショット運用タスク**も扱う。ワンショットは `scripts/tasks/<name>[.<fork の名前>].ts` に 1 ファイルずつ置き(`scripts/tasks/README.md`)、
+**ワンショット運用タスク**も扱う。ワンショットは `scripts/tasks/<name>.ts` に 1 ファイルずつ置き(`scripts/tasks/README.md`)、
 `src/app/api/cron/` には置かない（定期実行されてはいけないため）。
 
 ## 構成

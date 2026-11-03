@@ -18,7 +18,7 @@
 
 ## 全体の流れ
 
-1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>[.<fork の名前>].ts` の `export const purposes`、生成するドメインは dc:generate がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm registry:generate`。無い用途は拒否）
+1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>.ts` の `export const purposes`、生成するドメインは dc:generate がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm registry:generate`。無い用途は拒否）
 2. サーバーがアップロード権を発行する。台帳に pending の行を作り、上書き不可の署名 PUT か GCS の再開可能セッションを返す
    - **strip の用途の画像**は、本来の保存先ではなく非公開の受け取り領域（priv バケットの `incoming/`）への権利を返す
 3. ブラウザが GCS へ直接送る

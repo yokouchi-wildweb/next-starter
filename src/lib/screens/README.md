@@ -53,7 +53,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 src/app/(user)/
 ├── layout.tsx        1 行スイッチ `export { UserLayout as default } from "./_layout/UserLayout";`。採用者(下流)所有・write-once
 └── _layout/          既定の組み立て(UserLayout = 部品を省略可能な props = slot で受ける)と枠の部品。提供者所有
-    └── UserLayout.<project>.tsx   下流のカスタム(ドット区切り名、隣に置く)。layout.tsx をこちらへ向ける
+    └── UserLayout.replace.tsx   下流の丸ごと置き換え(隣に置く)。layout.tsx をこちらへ向ける
 ```
 
 - 対象は upstream の枠を描く layout.tsx（今は `(user)/layout.tsx`・`(user)/(protected)/mypage/layout.tsx`・`admin/layout.tsx`）。ガードと同居する layout（`admin/(protected)`・`admin/insane`）は提供者所有のまま、ガードの後に `./_layout/` の枠を素の import で描く（評議会 20261019-213253 §7）。スイッチの検出は `./_layout/` を指す re-export だけなので、この形は検査対象にならない
@@ -249,7 +249,7 @@ src/app/(user)/(protected)/points/
 
 ルートは削除・移動・rename しない（`_` 付きへの rename による無効化も同じ）。止めるときはスイッチを使う。
 
-- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは機能を閉じる規則（`src/proxies/featureGateRules/<名前>[.<fork ID>].ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm routes:map`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
+- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは機能を閉じる規則（`src/proxies/featureGateRules/<名前>.ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm routes:map`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
 - 置き換える: 自分の画面は `_components/` に別名で作り、page.tsx の 1 行スイッチをそこへ向ける（上の「上流の画面を変えたい」）。別の URL に作るなら自分のルートとして足す
 - スイッチも feature-gate のルールも当たらないページ: 削除せず、直接の親に `/order` で止める口を頼み、それまでは一時許可で通す（`src/lib/forkOwnership/README.md`「一時許可」）
 - 削除・rename は `pnpm ownership:check` が違反にする（`/flux` の区間が閉じない）。以前に消したルートは、止めてから `git checkout upstream/main -- <path>` で戻す
@@ -337,15 +337,16 @@ import { BalanceCard } from "./BalanceCard";
 
 | 保護 | 検査 | 結果 |
 |---|---|---|
-| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
+| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>`（`<X>` は印なしの既定か丸ごと置き換えの `<X>.replace` だけ。旧い fork の印は失敗）からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（§13）が見る。補助関数は `utils/` へ | 失敗 |
 | Screen → loader（D21） | `checkScreenLoaderCall`: 同じルートの loader を import し、本体の最上位（最初の `return` より前）で await する | 失敗 |
-| 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
+| 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>` か `./_layout/<X>.replace`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
-| upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` にドット区切り名（fork のカスタムの印）が無い。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
+| upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に点つきの名前（fork の丸ごと置き換え `.replace`）が無い。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
+| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findOrphanReplaceFiles` = `<名前>.replace` の隣に置き換える既定（`<名前>.ts(x)` か `<名前>/index.ts(x)`）がある | 失敗 |
 
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 

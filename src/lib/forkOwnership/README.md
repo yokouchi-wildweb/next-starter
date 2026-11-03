@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-**fork にはまだ組み込んでいない(`/flux` の verify 等への配線は段階②の後半)。** 部品: 受け口の一覧(`intake.txt`)、判定の核(`judge.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+**fork にはまだ組み込んでいない(`/flux` の verify 等への配線は段階②の後半)。** 部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)、拡張点の宣言の読み手(`declarations.mjs`、生成器 `scripts/extensions` も使う)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -12,14 +12,28 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 ## 判定
 
 - 基準 = 直接の親 Tier から最後に取り込んだ版(`/flux` の base と同じ merge-base)。その上で、Tier1 の版にあるファイルだけを厳密に判定する(多段、下の「多段の Tier」)
-- 所有台帳は作らない。基準との git の比較(`git diff --name-status -M <基準> HEAD`)だけで決める
+- 所有台帳は作らない。基準との git の比較(`git diff --name-status -M <基準> HEAD`)だけで決める。ファイル名に fork の名前の印は使わない(D137。fork の物 = 基準に無く fork が足したファイル。fork の名前は台帳・一時許可・CATALOG の節にだけ使う)
 - fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物(基準に入るので自然にそうなる)
 - 判定の順(`judge.mjs`。reason ごとの合否は `REASONS`)
-  1. A(fork が足した)→ `added`。ただし基準の `src/lib/<name>/` が実在する `<name>` の中なら `ancestor-lib-add`(違反。自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない。基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらなければ `core-add`(違反。fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
+  1. A(fork が足した)→ `added`。ただし次は違反(上から順に)
+     - 基準の `src/lib/<name>/` が実在する `<name>` の中 → `ancestor-lib-add`(自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
+     - 基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
+     - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(下の「単位名」。`x.ts` と `x.tsx`、ファイルとフォルダの組。別の名前にするか、丸ごと置き換えは `<名前>.replace`)
+     - `<対象>.override.ts(x)` で、対象が基準に無い → `override-own`(fork が自分で足した項目への override。fork の項目は直接書き換える。中間 Tier の項目は下の Tier の基準にあるので可)
   2. D → `deleted`、R(元が基準にある)→ `renamed`。受け口の中でも違反(config の削除、`_` 付きへの rename も)
   3. M → 受け口の一覧で当たった kind ごと(下の表)。どれにも当たらなければ、生成器の区画の中だけの差なら `generator-region`(合格)、それ以外は `outside-intake`(違反)
 - 生成器の区画(`AUTO-GENERATED-START/END`・`=== AUTO-GENERATED … START/END ===`・終わりの印の無い `// --- Auto-generated imports ---` = 続く import の行まで・道具が丸ごと書き足す `<!-- BEGIN:nextjs-agent-rules -->` 〜 END = 印の行と直前の空行ごと)は検査の対象外。生成器の印の統一は別の論点
-- 区画の中身を除いたテキスト(`stripOwnedRegions`)が基準側と fork 側で同じ = 区画の中だけの書き換え。一時許可の指紋もこのテキストから取る
+- 区画の中身を除いたテキスト(`stripOwnedRegions`)が基準側と fork 側で同じ = 区画の中だけの書き換え。一時許可の指紋もこのテキストから取る。`#` でコメントを書くファイルの対 `# === AUTO-GENERATED <name> START/END ===` も生成器の区画(`intake.txt` の受け口の行)
+
+## 単位名(unitNames.mjs)
+
+印の代わりの同名の検査(計画書 01 S2)。単位名 = パスから最後の拡張子と末尾の `/index` を除いた名前(`.replace` / `.override` は名前に残す)。
+
+- 検査する場所(これだけ。components・hooks・utils・`src/lib` は対象外)
+  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`・`scripts/tasks`・`scripts/proxies/alwaysOnExceptions`
+  - その下全部: route の隣(`src/app/**/_layout`・`_screen`・`_components`)
+- `unit-clash` と `override-own` は持ち主によらず止める(下の多段で `middle-tier` に付け替えない)
+- fork が足したファイルの一覧だけが要る検査(featureGate の規則の重なりなど)は `forkAddedFiles(repoRoot, { parent, branch, fetch })` を使う: Tier1 は git に触れず空、基準が求められなければ `unverified`(合格にしない)
 
 ## 受け口の一覧
 
@@ -37,8 +51,9 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | generated | 生成物 → `generated` | — |
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
 
-- 載せている物: リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチ(page.tsx・枠の layout.tsx)/ `_components/**` / `_layout/`・`_screen/` のドット区切り名のカスタム / cron の `override.ts` / `domainEntry.override.ts` / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
-- 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す
+- 載せている物(手書き): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチの素の名前(page.tsx・枠の layout.tsx・core の 1 行スイッチ)/ `_components/**` / cron の `override.ts` / `domainEntry.override.ts`・ロールとプロフィールの override / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
+- 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm extensions:generate` が拡張点の宣言と 1 行スイッチから書き、ずれは `pnpm extensions:check` が止める(手で編集しない、`scripts/extensions/README.md`「受け口の一覧の生成区画」)。行は全部 `add`: 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)・1 行スイッチの `<名前>.replace`・`_layout` / `_screen` の隣の `*.replace`・`scripts/tasks/*.ts`・`scripts/proxies/alwaysOnExceptions/*.mjs`。区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても合格(検査は基準の区画を読む)。既知の穴: フォルダ形の行は上流のフォルダ項目の中への fork のファイル追加も通す(第 2 段の棚の検査へ)
+- 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す。生成区画の行は見ない(項目 0 の受け口はフォルダが無い)
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(ただし `next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は、印の行ごと生成器の区画として除く。Next の版で中身が変わるので upstream に固定で置けない)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す
   - 載せる基準: 案内が「core の中のこのファイルを fork が編集・差し替える」で、受け口(edit / region・fork が足すファイル・`src/config/**`)で済まない物。登録の API(`register*()`)を fork のファイルから呼べる物、fork が新しいファイルを足すだけの置き場は載せない
@@ -46,7 +61,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - 件数: Tier1 で `pnpm ownership:check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、`pnpm test:fork-ownership` が diagnostic で出す。`/inbox` の一覧の先頭にも出る
   - 負債の行が実在しないファイルを指す・依頼の番号が無いと `pnpm test:fork-ownership` が失敗する
 - 中間 Tier の一覧にも「下流が消してよい」行は作らない。要らない物は持ち主が自分で消し、merge で流す
-- API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `judge({ changes, baseText, headText, baseLibs, intake })` → `{ entries: [{ status, path, from, kind, reason, verdict }], counts }`
+- API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `replaceIntakeBlock(text, rows)` → 生成区画を入れ替えたテキスト / `judge({ changes, baseText, headText, baseLibs, baseHasCore, intake, places, baseUnits })` → `{ entries: [{ status, path, from, kind, reason, verdict, clash }], counts }`(`places` = `unitPlaces(基準のファイル, 基準の中身)`、`baseUnits` = `unitIndex(基準のファイル)`。渡さなければ単位名の検査をしない。`clash` = unit-clash の相手の基準のパス)
 
 ## 一時許可
 
@@ -157,22 +172,26 @@ pnpm ownership:check --parent=upstream --branch=main
 
 ## 多段の Tier(D29・D34)
 
-- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反
+- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own` は付け替えない(どの段でも止める)
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
 - override: Tier1 は override(`src/app/api/cron/<name>/override.ts`・`<対象>.override.ts`)を出荷しない(`pnpm extensions:check` が検査、`scripts/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
-- 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork ファイル・featureGateRules・override・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替え・置き換えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
+- 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
 
 ## fork の名前の宣言
 
-各リポの名前の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。所有の検査・目録・ドット名のファイル(`src/wiring/<名前>[.client].<fork ID>.ts(x)`・`src/proxies/<項目>.<名前>.ts` 等)の検査がこれを使う。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
+各リポの名前の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。名前を使うのは台帳・一時許可・`src/lib/CATALOG.md` の節の見出し・受信箱だけで、受け口のファイル名には使わない(D137。fork の物の見分けは git の分岐点)。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
 
 - 自分の名前: `.claude/rules/project.md` の `fork_id: <名前>` の 1 行。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前(`-` の印は廃止)
-- 親(上の Tier)の ID: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれるので、孫の fork は親の fork のドット名のファイルも受けられる)。fork が書くのは自分の `fork_id:` の 1 行だけ
-- 使える形: 小文字・数字・ハイフン(ドット名の区切りとぶつかるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(ownership:check は exit 2)
-- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)` / `parseForkDotName(fileName, options)`
-- 名前の読み手はこれ 1 つ(所有の検査・目録・ドット名の検査が使う)。origin の URL から導く実装は持たない(D27)
+- 親(上の Tier)の名前: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれる)。fork が書くのは自分の `fork_id:` の 1 行だけ
+- 使える形: 小文字・数字・ハイフン(台帳・一時許可のファイル名になるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(ownership:check は exit 2)
+- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)`
+- origin の URL から導く実装は持たない(D27)
+
+## 点つきの名前の分類(dottedNames.mjs)
+
+受け口のファイル名の点つきの形の唯一の分類: 印なし `<名前>` / 既定 `<名前>.default` / 丸ごと置き換え `<名前>.replace` / 一部の上書き `<対象>.override`(`<対象>` は `user.role` のように `.` を含んでよい)/ client の口 `<名前>.client` / テスト `.test`・`.spec`・`.d` / それ以外 = 旧い fork の名前の印。生成器・タスク・常時実行の例外・`src/wiring` の目録・screens の検査が使い、旧い印は止めて共有の棚の印の移行の notice を案内する(`oldMarkerProblem`)。
 
 ## folderCatalog との分担
 

@@ -1,6 +1,6 @@
 # 独自の入力部品の登録
 
-1 部品 1 ファイルで `<名前>[.<fork の名前>].ts` を置くと、欄の定義に `formInput: "<name>"` と書ける（domain.json・profile.json・setting の欄・手書きの FieldConfig）。`pnpm extensions:generate`（forge が回す）が一覧を作る。
+1 部品 1 ファイルで `<名前>.ts` を置くと、欄の定義に `formInput: "<name>"` と書ける（domain.json・profile.json・setting の欄・手書きの FieldConfig）。`pnpm extensions:generate`（forge が回す）が一覧を作る。
 
 ```ts
 // src/wiring/formInputs/inputs/ticketRates.acme.ts
