@@ -4,8 +4,10 @@
 // fork の検査(例: test:core-rules の paths:)や notice の手順がその木では通らない。
 //
 // 実行: pnpm notices:hotfix-check <commit> [--base=<sha> ...] [--fleet-conf=<path>]
+//   commit / base は呼んだリポで完全な sha に解決してから使う(HEAD・HEAD~1 等の相対 ref も可)
 //   base = 遅れた fork の位置(上流の commit)。省くと fleet.conf の各 fork の merge-base(上流からは fork の位置が見えないため)
-//   各 base の上に commit を cherry-pick した木(一時の複製、作業ツリーには触れない)で見るもの:
+//     + その fork の台帳 .notices/applied/<name>.md(fork の HEAD の版)の picked:(先に取った修正)のうち merge-base の祖先でないもの
+//   各 base の上に picks を順に載せ、その上に commit を cherry-pick した木(一時の複製、作業ツリーには触れない)で見るもの:
 //     1. commit が足した・変えたパス指定ルール(.claude/rules/**/*.md)の paths: の各 glob が、その木のファイルに当たるか
 //     2. commit の notice の required_actions / verify / manual_steps にある `pnpm <script>` が、その木の package.json にあるか
 //     3. その notice が名指すリポのパス(`…` と refs:)が、その木にあるか
@@ -71,7 +73,32 @@ export function hasGaps(g) {
   return g.rules.length + g.scripts.length + g.paths.length > 0;
 }
 
-/** fleet.conf の各 fork の位置(`git merge-base HEAD upstream/<main|master>`)。読めない fork は理由つき */
+/** 台帳(.notices/applied/<fork_id>.md)の picked: の sha を行の順に(重複は 1 回) */
+export function ledgerPicks(text) {
+  const out = [];
+  for (const m of (text ?? "").matchAll(/^- id:.*\|\s*picked:([0-9a-f]{7,40})\b/gm)) if (!out.includes(m[1])) out.push(m[1]);
+  return out;
+}
+
+/** fork の HEAD の台帳から、base の祖先でない picked:(先に取った修正。台帳が無い・読めない = 空) */
+export function forkPicks(path, name, base) {
+  let text;
+  try {
+    text = execFileSync("git", ["-C", path, "show", `HEAD:.notices/applied/${name}.md`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  } catch {
+    return [];
+  }
+  return ledgerPicks(text).filter((sha) => {
+    try {
+      execFileSync("git", ["-C", path, "merge-base", "--is-ancestor", sha, base], { stdio: "ignore" });
+      return false;
+    } catch {
+      return true;
+    }
+  });
+}
+
+/** fleet.conf の各 fork の位置(`git merge-base HEAD upstream/<main|master>`)と台帳の picks。読めない fork は理由つき */
 export function fleetBases(confPath) {
   if (!existsSync(confPath)) return { bases: [], skipped: [`${confPath} がない`] };
   const bases = [];
@@ -92,7 +119,8 @@ export function fleetBases(confPath) {
       skipped.push(`${name}: upstream の参照が無い(${path})`);
       continue;
     }
-    bases.push({ name, sha: execFileSync("git", ["-C", path, "merge-base", "HEAD", ref], { encoding: "utf8" }).trim() });
+    const sha = execFileSync("git", ["-C", path, "merge-base", "HEAD", ref], { encoding: "utf8" }).trim();
+    bases.push({ name, sha, picks: forkPicks(path, name, sha) });
   }
   return { bases, skipped };
 }
@@ -101,12 +129,34 @@ function git(cwd, args, opts = {}) {
   return execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
 }
 
-/** base の上に commit を pick した木を一時の複製で作って調べる */
-export function checkOnBase(repo, commit, base) {
+/** ref を repo で完全な sha に(一時の複製の中で解決すると HEAD 等が土台を指すため)。無ければ null */
+export function resolveCommit(repo, ref) {
+  try {
+    return git(repo, ["rev-parse", "--verify", "-q", `${ref}^{commit}`]).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** base の上に picks(先に取った修正)を載せ、その上に commit を pick した木を一時の複製で作って調べる。
+ *  載らない pick は { pickFailed: sha } */
+export function checkOnBase(repo, commit, base, picks = []) {
+  const sha = resolveCommit(repo, commit);
+  const at = resolveCommit(repo, base);
+  if (!sha || !at) throw new Error(`hotfix-check: ${sha ? base : commit} がこのリポに無い`);
+  commit = sha;
   const dir = mkdtempSync(join(tmpdir(), "hotfix-check-"));
   try {
     execFileSync("git", ["clone", "-q", "--shared", "--no-checkout", repo, dir], { stdio: "ignore" });
-    git(dir, ["switch", "-q", "--detach", base]);
+    git(dir, ["switch", "-q", "--detach", at]);
+    for (const p of picks) {
+      try {
+        git(dir, ["cherry-pick", "-n", p]);
+        git(dir, ["-c", "user.name=hotfix-check", "-c", "user.email=hotfix-check@local", "commit", "-q", "--no-verify", "--allow-empty", "-m", `pick ${p}`]);
+      } catch {
+        return { pickFailed: p };
+      }
+    }
     const changed = git(repo, ["-c", "core.quotePath=false", "show", "--name-only", "--diff-filter=AMR", "--format=", commit]).split("\n").filter(Boolean);
     let conflict = false;
     try {
@@ -128,55 +178,78 @@ export function checkOnBase(repo, commit, base) {
   }
 }
 
-function main(argv) {
-  const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
-  const commit = argv.find((a) => !a.startsWith("--"));
-  const given = argv.filter((a) => a.startsWith("--base=")).map((a, i) => ({ name: `base${i + 1}`, sha: a.slice(7) }));
+/** 本体(テストからは repo と log を渡す)。exit code を返す */
+export function run(repo, argv, log = console.log) {
+  const commitRef = argv.find((a) => !a.startsWith("--"));
+  const given = argv.filter((a) => a.startsWith("--base=")).map((a, i) => ({ name: `base${i + 1}`, sha: a.slice(7), picks: [] }));
   const conf = argv.find((a) => a.startsWith("--fleet-conf="))?.slice(13) ?? join(process.env.TEAM_BASE || join(homedir(), ".team"), "fleet.conf");
-  if (!commit) {
+  if (!commitRef) {
     console.error("usage: pnpm notices:hotfix-check <commit> [--base=<sha> ...] [--fleet-conf=<path>]");
     return 2;
   }
-  try {
-    git(repo, ["rev-parse", "--verify", "-q", `${commit}^{commit}`]);
-  } catch {
-    console.log(`hotfix-check: ${commit} がない`);
+  const commit = resolveCommit(repo, commitRef);
+  if (!commit) {
+    log(`hotfix-check: ${commitRef} がない`);
     return 2;
   }
   const { bases, skipped } = given.length ? { bases: given, skipped: [] } : fleetBases(conf);
-  for (const s of skipped) console.log(`hotfix-check: 未確認 — ${s}`);
-  // 同じ位置の fork はまとめて 1 回。上流が知らない位置は確かめられない
-  const byBase = new Map();
-  for (const b of bases) byBase.set(b.sha, [...(byBase.get(b.sha) ?? []), b.name]);
-  if (!byBase.size) {
-    console.log("hotfix-check: 未確認 — 遅れた fork の位置が分からない(--base= か fleet.conf)");
-    return 2;
-  }
-  let found = false;
+  for (const s of skipped) log(`hotfix-check: 未確認 — ${s}`);
+  // 位置(相対 ref は呼んだリポで sha に)と picks が同じ fork はまとめて 1 回。上流が知らない位置・pick は確かめられない
   let unknown = false;
-  for (const [sha, names] of byBase) {
-    const who = `${names.join(", ")}(${sha.slice(0, 8)})`;
-    try {
-      git(repo, ["rev-parse", "--verify", "-q", `${sha}^{commit}`]);
-    } catch {
-      console.log(`hotfix-check: 未確認 — ${who}: この位置がこのリポに無い`);
+  const groups = new Map();
+  for (const b of bases) {
+    const sha = resolveCommit(repo, b.sha);
+    if (!sha) {
+      log(`hotfix-check: 未確認 — ${b.name}(${b.sha}): この位置がこのリポに無い`);
       unknown = true;
       continue;
     }
-    const r = checkOnBase(repo, commit, sha);
-    if (r.conflict) console.log(`hotfix-check: ${who}: cherry-pick が衝突する(fork 側で手で解く。以下は commit 側を採った木で見た結果)`);
+    const picks = b.picks.map((p) => resolveCommit(repo, p) ?? p);
+    const key = [sha, ...picks].join(" ");
+    const g = groups.get(key) ?? { sha, picks, names: [] };
+    g.names.push(b.name);
+    groups.set(key, g);
+  }
+  if (!groups.size) {
+    if (!unknown) log("hotfix-check: 未確認 — 遅れた fork の位置が分からない(--base= か fleet.conf)");
+    return 2;
+  }
+  let found = false;
+  for (const { sha, picks, names } of groups.values()) {
+    const who = `${names.join(", ")}(${sha.slice(0, 8)}${picks.length ? ` +picked ${picks.length}` : ""})`;
+    if (picks.includes(commit)) {
+      log(`hotfix-check: ${who}: この commit は先に取り済み`);
+      continue;
+    }
+    const missing = picks.filter((p) => !resolveCommit(repo, p));
+    if (missing.length) {
+      log(`hotfix-check: 未確認 — ${who}: 先に取った修正 ${missing.map((p) => p.slice(0, 8)).join(", ")} がこのリポに無い`);
+      unknown = true;
+      continue;
+    }
+    const r = checkOnBase(repo, commit, sha, picks);
+    if (r.pickFailed) {
+      log(`hotfix-check: 未確認 — ${who}: 先に取った修正 ${r.pickFailed.slice(0, 8)} がこの位置に載らない(fork が手で衝突を解いた pick)`);
+      unknown = true;
+      continue;
+    }
+    if (r.conflict) log(`hotfix-check: ${who}: cherry-pick が衝突する(fork 側で手で解く。以下は commit 側を採った木で見た結果)`);
     if (!hasGaps(r.gaps)) {
-      if (!r.conflict) console.log(`hotfix-check: ${who}: 依存なし`);
+      if (!r.conflict) log(`hotfix-check: ${who}: 依存なし`);
       found ||= r.conflict;
       continue;
     }
     found = true;
-    console.log(`hotfix-check: ${who}: 間の変更で届くものに頼っている`);
-    for (const { file, globs } of r.gaps.rules) console.log(`  - ${file} の paths: がその木のどのファイルにも当たらない: ${globs.join(", ")}`);
-    for (const s of r.gaps.scripts) console.log(`  - notice の手順の pnpm ${s} がその木の package.json に無い`);
-    for (const p of r.gaps.paths) console.log(`  - notice が名指す ${p} がその木に無い`);
+    log(`hotfix-check: ${who}: 間の変更で届くものに頼っている`);
+    for (const { file, globs } of r.gaps.rules) log(`  - ${file} の paths: がその木のどのファイルにも当たらない: ${globs.join(", ")}`);
+    for (const s of r.gaps.scripts) log(`  - notice の手順の pnpm ${s} がその木の package.json に無い`);
+    for (const p of r.gaps.paths) log(`  - notice が名指す ${p} がその木に無い`);
   }
   return found ? 1 : unknown ? 2 : 0;
+}
+
+function main(argv) {
+  return run(join(dirname(fileURLToPath(import.meta.url)), "../.."), argv);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exit(main(process.argv.slice(2)));

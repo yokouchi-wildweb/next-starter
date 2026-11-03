@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkOnBase, findGaps, hasGaps, noticePaths, noticeSections, pnpmScripts } from "./hotfixCheck.mjs";
+import { checkOnBase, findGaps, hasGaps, ledgerPicks, noticePaths, noticeSections, pnpmScripts, run } from "./hotfixCheck.mjs";
 
 const NOTICE = `# DOWNSTREAM NOTICE id:x
 change: c
@@ -77,5 +77,105 @@ test("through a repo: a hotfix whose rule names a folder only a later commit bri
     assert.equal(hasGaps(checkOnBase(dir, hot, `${hot}~1`).gaps), false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** 小さなリポ(git の手続きと書き込み) */
+function miniRepo(prefix) {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  const g = (...a) => execFileSync("git", ["-C", dir, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const put = (f, t) => {
+    mkdirSync(dirname(join(dir, f)), { recursive: true });
+    writeFileSync(join(dir, f), t);
+  };
+  const commit = (m) => {
+    g("add", "-A");
+    g("commit", "-qm", m);
+    return g("rev-parse", "HEAD");
+  };
+  g("init", "-q", "-b", "main");
+  g("config", "user.email", "t@t");
+  g("config", "user.name", "t");
+  return { dir, g, put, commit };
+}
+
+test("ledger: picked: shas in line order, once each, other lines left out", () => {
+  const text = [
+    "# applied",
+    "- id:a | date:x | commit:1111111 | upstream:" + "0".repeat(40) + " | picked:" + "a".repeat(40) + " | notes:-",
+    "- id:b | date:x | commit:2222222 | upstream:" + "0".repeat(40) + " | notes:picked:" + "c".repeat(40),
+    "- id:c | date:x | commit:3333333 | upstream:" + "0".repeat(40) + " | picked:" + "b".repeat(40) + " | relay:none | notes:-",
+    "- id:d | date:x | commit:4444444 | upstream:" + "0".repeat(40) + " | picked:" + "a".repeat(40) + " | notes:-",
+  ].join("\n");
+  assert.deepEqual(ledgerPicks(text), ["a".repeat(40), "b".repeat(40)]);
+  assert.deepEqual(ledgerPicks(""), []);
+});
+
+test("relative refs (HEAD, HEAD~1) are resolved in the calling repo, not inside the temporary clone", () => {
+  const r = miniRepo("hotfix-rel-");
+  try {
+    r.put("package.json", '{"scripts":{}}');
+    r.commit("base");
+    r.put("src/lib/newThing/index.ts", "x");
+    r.commit("between");
+    r.put(".notices/20990101-000000-x.md", "# DOWNSTREAM NOTICE id:20990101-000000-x\nrequired_actions:\n- read `src/lib/newThing/index.ts`\nverify: ok\nrefs: -\n");
+    r.commit("hotfix");
+    const out = [];
+    assert.equal(run(r.dir, ["HEAD", "--base=HEAD~1"], (l) => out.push(l)), 0);
+    assert.match(out.join("\n"), /依存なし/);
+    const out2 = [];
+    assert.equal(run(r.dir, ["HEAD", "--base=HEAD~2"], (l) => out2.push(l)), 1);
+    assert.match(out2.join("\n"), /src\/lib\/newThing\/index\.ts がその木に無い/);
+    assert.equal(hasGaps(checkOnBase(r.dir, "HEAD", "HEAD~2").gaps), true);
+    assert.equal(run(r.dir, ["HEAD", "--base=nope"], () => {}), 2);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+test("fleet.conf: a fork's picked: is laid on its merge-base first, forks with the same base + picks are checked once", () => {
+  const up = miniRepo("hotfix-up-");
+  const forks = [];
+  const tmp = mkdtempSync(join(tmpdir(), "hotfix-conf-"));
+  try {
+    up.put("package.json", '{"scripts":{}}');
+    up.put("doc.md", "line 1\n");
+    const base = up.commit("base");
+    up.put("doc.md", "line 1 picked\n");
+    const picked = up.commit("earlier fix the forks picked");
+    up.put("doc.md", "line 1 picked and hot\n");
+    const hot = up.commit("hotfix on top of the earlier fix");
+    const fork = (name, withPick) => {
+      const dir = join(tmp, name);
+      execFileSync("git", ["clone", "-q", up.dir, dir], { stdio: "ignore" });
+      const g = (...a) => execFileSync("git", ["-C", dir, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+      g("config", "user.email", "t@t");
+      g("config", "user.name", "t");
+      g("remote", "rename", "origin", "upstream");
+      g("reset", "-q", "--hard", base);
+      if (withPick) {
+        g("cherry-pick", "-x", picked);
+        mkdirSync(join(dir, ".notices/applied"), { recursive: true });
+        writeFileSync(join(dir, `.notices/applied/${name}.md`), `- id:p | date:x | commit:${g("rev-parse", "--short", "HEAD")} | upstream:${base} | picked:${picked} | notes:-\n`);
+        g("add", "-A");
+        g("commit", "-qm", "ledger");
+      }
+      forks.push(dir);
+      return `${name} ${dir}`;
+    };
+    const conf = join(tmp, "fleet.conf");
+    writeFileSync(conf, ["# test", fork("fa", true), fork("fb", true), fork("fc", false)].join("\n") + "\n");
+    const out = [];
+    const code = run(up.dir, [hot, `--fleet-conf=${conf}`], (l) => out.push(l));
+    const text = out.join("\n");
+    assert.match(text, /fa, fb\([0-9a-f]{8} \+picked 1\): 依存なし/);
+    assert.match(text, /fc\([0-9a-f]{8}\): cherry-pick が衝突する/);
+    assert.equal(code, 1);
+    const out2 = [];
+    run(up.dir, [picked, `--fleet-conf=${conf}`], (l) => out2.push(l));
+    assert.match(out2.join("\n"), /fa, fb\([0-9a-f]{8} \+picked 1\): この commit は先に取り済み/);
+  } finally {
+    rmSync(up.dir, { recursive: true, force: true });
+    rmSync(tmp, { recursive: true, force: true });
   }
 });
