@@ -33,6 +33,7 @@ checkpoint: <label | ->
 moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit otherwise)
 covers: <upstream notice id>, ...   (relay notices only: upstream notice ids this notice subsumes; omit otherwise)
 fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit otherwise)
+pick: <clean | ->   (written by `pnpm notices:pick-check` after the commit, never by hand; only with fixes:)
 resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit otherwise)
 hotfix: <why forks must take this ahead of other changes, one line>   (only when the owner declares it urgent; omit otherwise)
 change: <what changed upstream, one line>
@@ -52,10 +53,11 @@ notes: <anything else>
 - `moved` はファイル・ディレクトリを移動・改名する notice では**必須**(それ以外は欄ごと省略)。下記「移動・改名(moved)」参照。
 - `covers` は中間 Tier が上流の notice を下流へ中継する notice(relay notice)でだけ書く(それ以外は欄ごと省略)。下記「中継(relay)」参照。
 - `fixes` は前に出荷した変更の不具合を直す notice でだけ書く(それ以外は欄ごと省略)。下記「修正(fixes)」参照。
+- `pick` は `fixes:` のある notice に、/ship が `pnpm notices:pick-check` で書く(人は書かない)。下記「修正(fixes)」の「先に取れる印(pick)」参照。
 - `notes` で特定の fork に触れるときは、その fork で実際に差分を取った結果だけを書く(推測で書かない。調べていない fork は `not checked`)。
 - config のキーを足させる notice は、`required_actions` に「無ければ足す」だけでなく、fork が同じキーを既に持つ場合の手順も書く: fork の分を消して upstream の行に揃える(値を変えているなら upstream の行で値を持つ)、探し方は `git grep -n "<key>" -- <config のファイル>`。fork と upstream が別の位置に足すと、git は衝突なしに両方を取り込み、オブジェクトに同じキーが 2 つ残るので、衝突を手がかりにしない。
 - fork が upstream の行に入れた振る舞いの無い編集(コメントだけの変更など)は、upstream の文面に戻してよい(残して次の取り込みで衝突させ、`pnpm ownership:check` の違反にもなるより、戻す方が安い)。出荷済みの notice の手順に「残して台帳に挙げる」とあっても同じで、戻したことを台帳の行に一言書く。
-- 書式は `pnpm test:notices` で検査する(見出しの id とファイル名、必須の欄、checkpoint ラベルの重複、`fixes:` / `covers:` の参照先、出荷前の `moved:`)。`checkpoint:` と `manual_steps:` の必須は検査の導入以降の notice だけ(それより前は欄の無い旧 schema が残る)。
+- 書式は `pnpm test:notices` で検査する(見出しの id とファイル名、必須の欄、checkpoint ラベルの重複、`fixes:` / `covers:` の参照先、`pick:` の値と `fixes:` の有無、出荷前の `moved:`)。`checkpoint:` と `manual_steps:` の必須は検査の導入以降の notice だけ(それより前は欄の無い旧 schema が残る)。
 - `checkpoint` は**原則ラベル必須**(既定 = 区切り)。「この notice まで適用すれば fork は整合した休憩点にある」の宣言で、`-` は「後続 notice なしでは半端」という例外宣言(理由を `notes:` に)。欄が無い旧 schema の notice は区切り扱い。下記「区切り(checkpoint)」参照。
 
 ## 区切り(checkpoint)と区間適用
@@ -96,17 +98,29 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 修正かどうかは出荷する側(/ship)が決める。/flux は宣言を信じ、自分では判定しない。
 - /flux の扱い:
   - 区間の組み立てで全 notice の見出し行と一緒に `fixes:` を読み、修正元(id ならその notice の区間、commit ならその commit を merge 先の範囲に含む区間)と修正の区間を対応づけて、概観に出す。全文は読まない。
-  - 修正元を含む区間の計画では、先頭に「この区間の <修正元> は区間 K の <修正 notice> で修正される」と出して止まり、1 区間ずつ進めるか、ここで止めるかをユーザーに聞く(`all` / `light` の途中でも止まる)。区間は自動でまとめない: 本番へのデプロイ方法(push で出るか、コマンドで出すか)は fork ごとに違い、ユーザーが知っているため。
+  - 修正元を含む区間の計画では、先頭に「この区間の <修正元> は区間 K の <修正 notice> で修正される」と出して止まり、1 区間ずつ進めるか、ここで止めるかをユーザーに聞く(`all` / `light` の途中でも止まる)。修正が `pick: clean` なら聞かずに区間の直後に取る(下の「先に取れる印(pick)」)。区間は自動でまとめない: 本番へのデプロイ方法(push で出るか、コマンドで出すか)は fork ごとに違い、ユーザーが知っているため。
   - 修正元の区間で検査が落ち、修正 notice のコミットが触るファイルに当たるものは「既知(修正は区間 K)」として台帳 `notes:` に書き、自前では直さない。修正を先回りして同じ実装をしない(後の merge で衝突し、fork 独自版が残る)。
   - 修正元が適用済みなら止まらず、概観で修正の区間に「適用済み <修正元> の修正」と印を付ける。その区間では台帳の修正元の行の `notes:` から当時の回避策を探して外す。
   - 「上流への所見」で依頼の文案を出す前に、流入予定の `fixes:` と上流の履歴で修正済みかを確かめる(修正済みなら文案を出さず「上流で修正済み(区間 K)」と書く)。
+
+### 先に取れる印(pick)
+
+修正元の区切りで止まった fork は、修正の区間に着くまで既知の不具合を抱えたまま push する。上流が出荷のときに「壊れた地点に修正だけを載せても通るか」を機械で試し、通った修正に印を付ければ、/flux は修正元の区間を取り込んだ直後にその修正を cherry-pick して、壊れた区切りのまま push せずに済む。
+
+- 欄: `pick: clean | -`。`fixes:` のある notice にだけ付く(`pnpm test:notices` が検査)。欄なし(古い notice・判定できなかった notice)は `-` と同じ扱いで、今の動き(上の /flux の扱い)のまま
+- 書くのは /ship: `fixes:` の notice を含む commit の後、push の前に `pnpm notices:pick-check <commit>` が判定して本文に書き、/ship がそれを同じ commit に入れる(`git commit --amend`)。人の宣言は要らない
+- 試す土台 = 壊れた地点(修正元の区切りのコミット): 修正元(notice id ならその追加 commit、`commit:<sha>` ならその commit)から履歴を進んで最初に来る区切りの notice の追加 commit。修正の前に区切りが無ければ修正元と修正は同じ区間で届くので `-`。修正元が複数なら最も古い壊れた地点。fork の位置では試さない(上流からは見えない。fork 側の衝突は /flux が戻して今の動きに落とす)
+- clean の条件(全部): 本体と notice が同じ 1 commit / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含まない / 手順(required_actions 〜 manual_steps)が壊れた地点より後の notice を名指さない / 壊れた地点で cherry-pick が衝突しない / 載せた木で `pnpm typecheck` と `pnpm test:config-module-load` が通る(その木に無い script は未実行として飛ばす)/ 遅れた fork 向けの前提の検査(`notices:hotfix-check` と同じ: 足した・変えたルールの `paths:`・手順の `pnpm <script>`・名指すパス)が何も挙げない。cherry-pick が通っても間の commit に意味で依存する修正は壊れるので、型検査まで通して付ける
+- 修正の修正(`fixes:` の先が修正): 前の修正が `pick: clean` のときだけ、その土台に前の修正を載せた木で試す。前の修正が clean でなければ `-`(fork も前の修正を先に取っていない)
+- /flux: 直接の親が出した `pick: clean` の修正を、`fixes:` の参照先のどれかが適用済みになった直後(修正元の区間の commit の後、push の前)に `git cherry-pick -x` で取り、修正の verify と区間の検査を通してから区間と一緒に push する。台帳は緊急修正と同じ `picked:` の行。修正元の区間の手前の問い(進めるか止めるか)はしない。衝突・検査の失敗は戻して、その問いに戻る。多段では祖父 notice の `pick:` は読まない(`.claude/skills/flux/relay.md`)
+- 緊急修正との違い: `hotfix:` は人が宣言して全部の区間の前に割り込む。`pick: clean` は機械の印で、修正元の区間の直後に取るだけで前には出ない
 
 ## 緊急修正(hotfix)— 間の変更を飛ばして先に届ける
 
 区間の merge は履歴の順に進むので、遅れている fork には修正がすぐ届かない。本番が壊れているとき、または壊れていなくても人間が先に届けると宣言したときだけ、上流が `hotfix:` を宣言した notice の commit を `/flux` が cherry-pick する。任意の commit は取らない(区間の merge を崩さないため)。
 
 - 宣言: `/ship hotfix`。人間が指示したときだけ付ける(全 fork の作業に割り込むため)
-- 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば修正元の commit の上に載ることを確かめる(`/ship`)/ 遅れた fork の位置に載せた木で、足した・変えたルールの `paths:`・notice の手順の `pnpm <script>`・名指すパスが揃うことを確かめる(`pnpm notices:hotfix-check`。揃わなければ依存を外すか、その fork で何が通らないかを required_actions に書く)
+- 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm notices:pick-check` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない)/ 遅れた fork の位置に載せた木で、足した・変えたルールの `paths:`・notice の手順の `pnpm <script>`・名指すパスが揃うことを確かめる(`pnpm notices:hotfix-check`。揃わなければ依存を外すか、その fork で何が通らないかを required_actions に書く)
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
 - 所有の検査: `picked:` の分は基準 + pick と同じ中身なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。衝突を手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す

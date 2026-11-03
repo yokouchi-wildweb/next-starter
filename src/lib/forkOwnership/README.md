@@ -78,12 +78,12 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 
 - 依頼の解決: 親が依頼を片付けて出荷するとき、notice の `resolves:` 欄に依頼の番号を書く(下流から来た依頼なら必ず。`.notices/README.md`「解決(resolves)」)。`pnpm ownership:check` は基準(取り込み済み)の `.notices/` と `done/` の `resolves:` を集め、すべての番号が解決した許可を expired-resolved にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の許可に当たる行を示す
 - 却下: 元に戻す・受け口へ移す・別の方針で許可し直す、のどれかを必須にする。明示の期限は持たない(放置は `/flux`・`/wen` が毎回一覧に出す)
-- 修正だけ先に取り込めるのは、親が `hotfix:` を宣言した notice の commit だけ(下の「緊急修正の pick」)
+- 修正だけ先に取り込めるのは、親が `hotfix:` を宣言した notice の commit と、親が `pick: clean` を付けた修正の notice の commit だけ(下の「緊急修正の pick」。台帳の `picked:` の扱いは同じ)
 - API: `parsePermits(text)` → `{ permits, errors }` / `blobId(text)` / `fingerprint(text, kind)` / `checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs })` → `{ entries(permit・verdict 付き), leftovers }` / `permitsPath(forkId)`
 
 ## 緊急修正の pick
 
-親の緊急修正を cherry-pick しても基準は動かないので、受け口の外のファイルはそのままだと違反になる。台帳の `picked:<sha>` がこれを通す。
+親の緊急修正・先に取れる修正(`pick: clean`)を cherry-pick しても基準は動かないので、受け口の外のファイルはそのままだと違反になる。台帳の `picked:<sha>` がこれを通す。
 
 - 台帳の行: `upstream:` は今の merge-base のまま(進めると Tier1 の版の判定がずれる)、`picked:` に pick の元の commit を書く(`.notices/README.md`「緊急修正(hotfix)」)
 - 判定: 基準に pick を順に当てた中身と HEAD の中身が同じファイルを `picked`(合格)にする。fork が更に変えた・fork の編集が元からある・元の commit が取得できないときは違反のまま(直し方は一時許可)

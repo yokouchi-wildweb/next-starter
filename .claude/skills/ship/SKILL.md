@@ -62,12 +62,17 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - メッセージは behavior.md の書式(件名 `<area>: <summary>`、空行、本文 = 判断の記録)。`order:<id>` があれば本文の後に `order: <id>` の行。末尾に環境指定のトレーラー。
    - ブランチは behavior.md とチームの方針に従う(既にフィーチャーブランチ上ならそのまま)。
    - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。`hotfix` では不可(本体と notice を必ず同じコミットに入れる。別なら取り消してまとめ直す)。
-   - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直し、`fixes:` があれば修正元の commit(notice なら追加 commit)の上に載ることを一時の複製で確かめる: `git clone -q --shared . <scratchpad の空のフォルダ>` → そのフォルダで `git switch -q --detach <修正元>` → `git cherry-pick -n <この commit>`。衝突したら push せず止まる(「止まるとき」)。一時の複製は消す。`fixes:` が無ければ複製の確認は省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
+   - `fixes:` の notice を含めたとき、commit の後・push の前に **先に取れるかを判定する**(`.notices/README.md`「修正(fixes)」の「先に取れる印(pick)」): `pnpm notices:pick-check <この commit>`。壊れた地点(修正元の区切りのコミット)にこの commit だけを載せた一時の木で、1 commit・lock / route-map なし・手順が後の notice を名指さない・cherry-pick の衝突なし・`pnpm typecheck`・`pnpm test:config-module-load`・前提の検査を見て、notice に `pick: clean` か `pick: -` を書く(人は書かない・書き換えない)。
+     - exit 0 / 1(clean / -): 書かれた notice を同じ commit に入れる: `git commit --amend --no-edit -- <notice>`(push 前の自分の commit だけ。`pick:` の行は判定に影響しない)→ `pnpm test:notices`。`-` でも止まらずに出荷する(fork は今の fixes の動きで受ける)。外れた条件を報告に書く
+     - exit 2(判定できない: 修正元が履歴に無い・依存を入れられない): 欄を書かずに出荷し(欄なし = `-` と同じ扱い)、報告に「pick 未確認: <理由>」
+     - 「未実行: <検査>」(その土台の木に script が無い)は報告に書く
+   - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直す。`fixes:` があれば上の `pnpm notices:pick-check` がその確かめを兼ねる: `-` の理由が衝突・検査の失敗・後の notice への依存なら push せず止まる(「止まるとき」)。`fixes:` が無ければ省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
      続けて **遅れた fork で前提が揃うか確かめる**: `pnpm notices:hotfix-check <この commit>`。fleet.conf の各 fork の位置(merge-base)に pick した木で、この commit が足した・変えたパス指定ルールの `paths:`、notice の手順の `pnpm <script>`、notice が名指すパスがあるかを見る(間の変更で届くものに頼っていないか)。exit 1 → push せず止まる(「止まるとき」)。exit 2(fork の位置が分からない)→ 報告に「未確認: 遅れた fork の位置」と書いて進む。位置が分かれば `--base=<sha>` で渡せる。
 7. **push する**(`no-push` のときはしない): `git push`。できなかったら取り繕わず理由を報告する。
 8. **報告**(日本語):
    - 先頭に下流の取り込み判定(実測)を 1 行: `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`。危険 = そのまま merge すると fork のビルド・起動・既存動作が壊れる / fork 側の手作業が要る / 挙動・権限が黙って変わる。要注意 = merge の衝突が起きうる程度。下流が無ければ省く。
    - コミットの短 sha・push 先(またはしなかった理由)・検査の結果・notice の id と change の要約(書かなかったなら「notice 不要: <理由>」)・`fixes:` を付けたならその参照先・`resolves:` を付けたならその指令 id。
+   - `fixes:` の notice を出したときは、`pick:` の判定(clean / - と外れた条件 / 未確認)を伝える。
    - `hotfix` のときは、緊急修正として出したことと pick の確認の結果、各 fork で `/flux` が要ること(打つまで fork は気づかない)を伝える。
    - `/inbox` から来たときは、ここで止まらず `/inbox` の手順 4 の続き(RESOLUTION)に戻る。commit sha と push の結果をそこで使う。
 
@@ -75,7 +80,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
 - 範囲に入れてよいか分からないファイルがある(他のセッションの変更かもしれない)。
 - 検査が落ち、直し方が自明でない。
 - 下流への影響の判定で、notice の required_actions が下流の Claude に実行できる具体度で書けない(上流の変更の側を直すべきかもしれない)。
-- `hotfix` で、前の未出荷・未取り込みの変更に依存している、または pick の確認で衝突した(依存する変更を示し、hotfix をやめて通常の出荷にするか、依存を外すかを聞く)。
+- `hotfix` で、前の未出荷・未取り込みの変更に依存している、または pick の確認(`notices:pick-check`)が衝突・検査の失敗を挙げた(依存する変更を示し、hotfix をやめて通常の出荷にするか、依存を外すかを聞く)。
 - `hotfix` で、`notices:hotfix-check` が遅れた fork の木に無いものを挙げた(その一覧を示し、選択肢を聞く: 依存を外す / notice の required_actions に、その fork で何が通らず何をするかを書き足す / hotfix をやめて通常の出荷にする / そのまま出す)。ルールの `paths:` を、検査を通すためだけに変えない(どのファイルで読まれなくなるかを言わずに変えない)。
 止まったら、見つけたことと選択肢を平文で示して待つ。
 
@@ -90,6 +95,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    checkpoint: <label | ->
    moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit the line otherwise)
    fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit the line otherwise)
+   pick: <clean | ->   (written by `pnpm notices:pick-check` after the commit, never by hand; only with fixes:)
    resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit the line otherwise)
    hotfix: <why forks must take this ahead of other changes, one line>   (only with the `hotfix` argument; omit the line otherwise)
    change: <what changed upstream, one line>
