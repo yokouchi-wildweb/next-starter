@@ -28,7 +28,7 @@ type LayoutStyle = CSSProperties & {
 
 /**
  * slot の約束(6 つ共通): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く。
- * fork は layout.tsx をドット区切り名のカスタム(例 `UserLayout.<project>.tsx`)へ向け、そこで既定の UserLayout に slot を渡す。
+ * fork は layout.tsx を丸ごと置き換え `UserLayout.replace.tsx` へ向け、そこで既定の UserLayout に slot を渡す。
  * 経緯と手順: ./README.md
  */
 export type UserLayoutProps = {

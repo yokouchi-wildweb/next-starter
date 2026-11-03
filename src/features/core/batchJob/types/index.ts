@@ -61,7 +61,7 @@ export type BatchJobHandler<TParams = unknown> = {
   recoveryTimeoutMs?: number;
 };
 
-/** バッチジョブハンドラの項目(jobHandlers/<名前>[.<fork の名前>].ts の export const jobHandler) */
+/** バッチジョブハンドラの項目(jobHandlers/<名前>.ts の export const jobHandler) */
 export type BatchJobHandlerItem = BatchJobHandler & {
   jobType: string;
   /** 機能が無効の間は無いものとして扱う(省略 = 常に有効) */

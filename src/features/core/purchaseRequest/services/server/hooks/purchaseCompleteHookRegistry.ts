@@ -1,4 +1,4 @@
-// 購入完了ポストフックの型と読み手(項目: ./definitions/<名前>[.<fork の名前>].ts の export const hook、一覧は生成物)
+// 購入完了ポストフックの型と読み手(項目: ./definitions/<名前>.ts の export const hook、一覧は生成物)
 //
 // completePurchase のトランザクション内で、ウォレット更新・クーポン使用後、
 // マイルストーン評価前に実行されるフックを登録できる。
@@ -7,7 +7,7 @@
 // - マイルストーン: 条件付き、ユーザーあたり1回（冪等）、milestones テーブルに記録
 // - ポストフック: 無条件（or フック内で自前判定）、毎購入で実行、記録はフック側の責務
 //
-// 使い方（下流プロジェクト）: definitions/rankBonus.<fork の名前>.ts
+// 使い方（下流プロジェクト）: definitions/rankBonus.ts
 // ```ts
 // export const hook: PurchaseCompleteHook = {
 //   key: "rank_bonus",

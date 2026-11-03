@@ -3,7 +3,7 @@
 // 管理者のときだけ読み込む(load: lazy)。読み手は ./AdminCommandRoot.tsx → AdminCommandProvider
 
 export const extensionPoints = {
-  // パレットの第 1 メニューのカテゴリ: categories/<名前>[.<fork の名前>].tsx の export const category
+  // パレットの第 1 メニューのカテゴリ: categories/<名前>.tsx の export const category
   categories: {
     dir: "categories",
     export: "category",
@@ -11,7 +11,7 @@ export const extensionPoints = {
     side: "client",
     load: "lazy",
   },
-  // カテゴリの Provider・GlobalComponent: plugins/<名前>[.<fork の名前>].tsx の export const plugin(上流の項目は 0)
+  // カテゴリの Provider・GlobalComponent: plugins/<名前>.tsx の export const plugin(上流の項目は 0)
   plugins: {
     dir: "plugins",
     export: "plugin",

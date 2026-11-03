@@ -5,7 +5,7 @@ import type { BatchJobHandler } from "@/features/batchJob/types";
 
 let memo: Map<string, BatchJobHandler> | null = null;
 
-// 項目(jobHandlers/<名前>[.<fork の名前>].ts の export const jobHandler)を検査して組み立てる。読み込みの途中で一覧を触らないよう初回に。
+// 項目(jobHandlers/<名前>.ts の export const jobHandler)を検査して組み立てる。読み込みの途中で一覧を触らないよう初回に。
 // enabled が false の項目は無いものとして扱う(機能が無効ならテーブルが無い場合がある)
 function handlers(): Map<string, BatchJobHandler> {
   if (memo) return memo;

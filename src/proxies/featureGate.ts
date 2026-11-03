@@ -7,7 +7,7 @@ import type { ProxyHandler } from "./types";
 
 export { matchesPath };
 
-// ゲートの定義（どの機能がどのパスを持つか）は 1 機能 1 ファイルの src/proxies/featureGateRules/<名前>[.<fork ID>].ts、
+// ゲートの定義（どの機能がどのパスを持つか）は 1 機能 1 ファイルの src/proxies/featureGateRules/<名前>.ts、
 // その生成一覧 ./extensions/featureGateRules.ts(ファイル名の順)をここで読む。ここは判定とレスポンス生成だけを持つ。
 // 同じ住所に当たる無効な規則が複数あれば、一覧の順で最初の規則の redirectTo(L1.22)。
 

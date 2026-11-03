@@ -4,7 +4,7 @@
 // 認可を構造で持つ作り手の呼び出し結果だけにする(D8 K7・親 D71 K6)。強さ: 全 Tier error(eslint.config.mjs)。
 //
 // 通す形: `export const GET = <関数>(…)` で、<関数> が次から import した物
-//   - src/wiring/**(@/wiring/apiRoute の createApiRoute 等。fork のドット名の wiring を含む)
+//   - src/wiring/**(@/wiring/apiRoute の createApiRoute 等。fork が足した wiring を含む)
 //   - @/lib/cron の createCronTaskRoute / createCronRoute(cron の 1 行の route.ts)
 //   import の先は resolve-import.mjs で実パスに解く(別名・相対・"src/…" も同じ)。
 // 止める形: export function / export async function / 関数式・アロー関数の直書き / 識別子の再 export(export { GET })/

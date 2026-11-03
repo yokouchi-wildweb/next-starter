@@ -1,7 +1,7 @@
-// 報酬ハンドラーの型と読み手(項目: ./handlers/<名前>[.<fork の名前>].ts の export const handler、一覧は生成物)
+// 報酬ハンドラーの型と読み手(項目: ./handlers/<名前>.ts の export const handler、一覧は生成物)
 // ベースリポジトリの項目は 0。
 //
-// 使い方（下流プロジェクト）: handlers/signupInviterBonus.<fork の名前>.ts
+// 使い方（下流プロジェクト）: handlers/signupInviterBonus.ts
 // ```ts
 // export const handler: RewardHandlerItem = {
 //   rewardKey: "signup_inviter_bonus",
@@ -41,7 +41,7 @@ export type RewardHandler = (
   params: RewardHandlerParams,
 ) => Promise<Record<string, unknown>>;
 
-/** 報酬ハンドラーの項目(./handlers/<名前>[.<fork の名前>].ts の export const handler) */
+/** 報酬ハンドラーの項目(./handlers/<名前>.ts の export const handler) */
 export type RewardHandlerItem = {
   /** 報酬キー（REFERRAL_REWARD_DEFINITIONS のキーと一致させること） */
   rewardKey: string;

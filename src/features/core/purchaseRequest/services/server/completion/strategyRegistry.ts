@@ -1,5 +1,5 @@
 // src/features/core/purchaseRequest/services/server/completion/strategyRegistry.ts
-// 購入完了戦略の読み手(項目: ./strategies/<名前>[.<fork の名前>].ts の export const strategy、一覧は生成物)
+// 購入完了戦略の読み手(項目: ./strategies/<名前>.ts の export const strategy、一覧は生成物)
 //
 // 同じ type が複数あると例外。ビルトインを差し替えたい fork は上流へ 1 行スイッチを依頼する。
 

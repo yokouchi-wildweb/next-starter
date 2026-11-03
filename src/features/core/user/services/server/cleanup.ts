@@ -5,7 +5,7 @@ import type { DbTransaction } from "@/lib/crud/drizzle/types";
 
 export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<void>;
 
-/** 後片付けの項目(src/features/core/user/cleanupHandlers/<名前>[.<fork の名前>].ts の export const handler) */
+/** 後片付けの項目(src/features/core/user/cleanupHandlers/<名前>.ts の export const handler) */
 export type UserCleanupItem = {
   /** true: 失敗したら全体をロールバック / false: 失敗してもログを記録して続行 */
   required: boolean;

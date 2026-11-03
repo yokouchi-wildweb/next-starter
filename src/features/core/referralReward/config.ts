@@ -1,8 +1,8 @@
 // 紹介報酬の設定
 //
 // ベースリポジトリの項目は 0。下流プロジェクトで報酬を追加する:
-// 1. rewardGroups/<名前>.<fork の名前>.ts に export const group(key・label・rewards)
-// 2. services/server/handlers/<名前>.<fork の名前>.ts に export const handler(rewardKey・handler)
+// 1. rewardGroups/<名前>.ts に export const group(key・label・rewards)
+// 2. services/server/handlers/<名前>.ts に export const handler(rewardKey・handler)
 // 3. pnpm extensions:generate
 // 4. 任意のタイミングで triggerRewards(trigger, referral, context?, tx?) を呼ぶ
 

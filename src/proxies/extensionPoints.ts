@@ -4,7 +4,7 @@
 // ignore = 骨組み(index.ts が手書きで並べる上流の handler 4・decorator 2)と枠そのもの。項目として走査しない
 
 export const extensionPoints = {
-  // 枠の handler: src/proxies/<名前>[.<fork の名前>].ts の export const handler。骨組みの後ろでファイル名の順に走る
+  // 枠の handler: src/proxies/<名前>.ts の export const handler。骨組みの後ろでファイル名の順に走る
   handlers: {
     dir: ".",
     export: "handler",
@@ -20,7 +20,7 @@ export const extensionPoints = {
     side: "server",
     ignore: ["maintenance.ts", "demoMode.ts", "featureGate.ts", "redirect.ts", "attribution.ts", "inviteLink.ts", "index.ts", "types.ts"],
   },
-  // 機能を閉じる規則: featureGateRules/<名前>[.<fork の名前>].ts の export const rule。tables は features のフォルダから導く
+  // 機能を閉じる規則: featureGateRules/<名前>.ts の export const rule。tables は features のフォルダから導く
   featureGateRules: {
     dir: "featureGateRules",
     export: "rule",

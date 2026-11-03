@@ -195,8 +195,8 @@ notice は追従の最低線で、上流が出し忘れることもある。次�
 ## 上流が持つパスでの fork の編集の見直し(次の区間の計画時)
 merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の持ち物なら、運ぶ前に「そこに置いてよいか」を見直す(衝突を解いて通すだけで終えない)。
 1. 対象(この区間が触るものだけ。fork 全体の監査はしない): 衝突しそうなファイル / `moved:` の移動元で fork が編集・追加したファイル(→ moved.md)/ 区間の上流差分のうち fork も編集しているファイル。
-2. 判定は自 fork の CLAUDE.md(CORE_FILES・`fork_core_edit_compat`・CODE_PLACEMENT の祖先 lib)と `src/lib/CATALOG.md` で行う。上流の持ち物(core、上流ルートの `_screen/` `_layout/` のドット付きでない名前、祖先リポの lib の内部など)に fork の編集・追加があれば、1 件ずつ次のどれかを計画に載せる:
-   - a. **fork の持ち物の場所へ移す**: 隣のドット付きの名前(`<Name>.<project>.tsx`)・`_components/`・config の値・`override.ts`・fork 自身の lib など。機械的に移せて挙動が変わらず、コピーに変えない処理や守りが付いてこないもの(`.claude/rules/core/extensions.md`)はこの区間で移す(手順 6)。
+2. 判定は自 fork の CLAUDE.md(CORE_FILES・`fork_core_edit_compat`・CODE_PLACEMENT の祖先 lib)と `src/lib/CATALOG.md` で行う。上流の持ち物(core、上流ルートの `_screen/` `_layout/` の `.replace` でない名前、祖先リポの lib の内部など)に fork の編集・追加があれば、1 件ずつ次のどれかを計画に載せる:
+   - a. **fork の持ち物の場所へ移す**: 隣の丸ごと置き換え(`<Name>.replace.tsx`)・`_components/`・config の値・`override.ts`・fork 自身の lib など。機械的に移せて挙動が変わらず、コピーに変えない処理や守りが付いてこないもの(`.claude/rules/core/extensions.md`)はこの区間で移す(手順 6)。
    - b. **残して上流に拡張点を頼む**: 上流に差し込み口が無く、移すと挙動が変わるか、コピーに変えない処理や守りが付いてくるもの。`fork_core_edit_compat` を満たす形で残し、order + 一時許可で通す。「上流への所見」(c)/(d) に /order <上流リポ> の文案を出す。
    - c. **残す**: 一時許可の行があるもの、または人が理由つきで決めたものだけ。上記「区間の完了」の形で書く(台帳の `open:`、作業メモの `kept_old:`、チャットは「区間の結果」に役割の言葉で)。
 3. 該当が無ければ作業メモの台本に「なし」の 1 行(チャットには出さない)。あれば「fork の追従」に含めて出す。どれにするかの判断は計画への go で決まる(迷うものは選択肢を並べて聞く)。

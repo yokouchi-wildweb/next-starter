@@ -3,7 +3,7 @@
 // 宣言と受け口をここに置く理由: fork は祖先の lib の中にファイルを足せない(ownership:check の ancestor-lib-add)。書式: scripts/extensions/README.md
 
 export const extensionPoints = {
-  // 追加ツール: extraTools/<名前>[.<fork の名前>].ts の export const tool(読み取り専用の境界を壊さないこと、lib/dbAgent/README.md)
+  // 追加ツール: extraTools/<名前>.ts の export const tool(読み取り専用の境界を壊さないこと、lib/dbAgent/README.md)
   extraTools: {
     dir: "extraTools",
     export: "tool",
@@ -11,7 +11,7 @@ export const extensionPoints = {
     side: "server",
     target: "wiring",
   },
-  // ドメイン知識のプロンプト断片: promptFragments/<名前>[.<fork の名前>].ts の export const fragment(文字列)
+  // ドメイン知識のプロンプト断片: promptFragments/<名前>.ts の export const fragment(文字列)
   promptFragments: {
     dir: "promptFragments",
     export: "fragment",
@@ -19,7 +19,7 @@ export const extensionPoints = {
     side: "server",
     target: "wiring",
   },
-  // 実行時サフィックス(運営追加指示)のプロバイダ: suffixProviders/<名前>[.<fork の名前>].ts の export const provider
+  // 実行時サフィックス(運営追加指示)のプロバイダ: suffixProviders/<名前>.ts の export const provider
   suffixProviders: {
     dir: "suffixProviders",
     export: "provider",

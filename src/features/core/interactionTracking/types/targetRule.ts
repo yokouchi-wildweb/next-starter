@@ -1,7 +1,7 @@
 // src/features/core/interactionTracking/types/targetRule.ts
 // 公開 ingest(POST /api/interactions)が受け付ける計測対象の規則の型。
 // fail-closed: 項目が無い targetType は拒否。validate では「対象が実在し、計測を受け付けてよい状態か」(例: 公開済みか)を必ず確かめる
-// (存在しない対象・非公開対象へのカウント水増しを防ぐ)。項目: ../targetRules/<名前>[.<fork の名前>].ts の export const rule
+// (存在しない対象・非公開対象へのカウント水増しを防ぐ)。項目: ../targetRules/<名前>.ts の export const rule
 
 /** 計測対象 1 種別ぶんの受け入れルール */
 export type InteractionTargetRule = {

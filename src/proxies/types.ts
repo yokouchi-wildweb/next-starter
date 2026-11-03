@@ -31,7 +31,7 @@ export type ProxyResponseDecorator = (
 ) => void | Promise<void>;
 
 /**
- * 機能を閉じる規則(1 機能 1 ファイル: src/proxies/featureGateRules/<名前>[.<fork ID>].ts の `export const rule`)。
+ * 機能を閉じる規則(1 機能 1 ファイル: src/proxies/featureGateRules/<名前>.ts の `export const rule`)。
  * enabled() が false の規則は次の 2 か所で効く:
  * - ルートゲート(src/proxies/featureGate.ts): pathPatterns に一致するページ / API を 404(redirectTo があればそこへ rewrite)
  * - スキーマゲート(pnpm db:push / db:push:check、scripts/registry/schemaGate.ts): features のフォルダの表を push 対象から外す

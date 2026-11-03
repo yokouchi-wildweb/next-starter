@@ -15,7 +15,7 @@ import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
  * リクエストごとに呼ばれ、運営が編集する追加指示テキスト (setting 由来等) を返す。
  * 空 (null / undefined / 空白のみ) は「追加指示なし」。
  *
- * 項目: src/wiring/dbAgent/suffixProviders/<名前>[.<fork の名前>].ts の export const provider
+ * 項目: src/wiring/dbAgent/suffixProviders/<名前>.ts の export const provider
  *
  * 安全上の注意: 返すテキストは「運営 (管理者) が作成した信頼テキスト」に限定すること。
  * エンドユーザー生成テキストを流し込んではならない (プロンプトインジェクション経路になる)。

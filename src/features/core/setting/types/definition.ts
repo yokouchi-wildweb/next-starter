@@ -20,7 +20,7 @@ export type SettingFieldUi = {
   field: Omit<FieldConfig, "name">;
 };
 
-/** 1 キーの定義(fields/<キー>[.<fork の名前>].ts の export const field) */
+/** 1 キーの定義(fields/<キー>.ts の export const field) */
 export type SettingFieldDefinition = {
   /** 型・検証・既定値(.default() 必須) */
   schema: z.ZodTypeAny;
@@ -36,7 +36,7 @@ export type SettingFieldDefinition = {
 /** 上流のキーの隣の <キー>.override.ts で変えられる属性 */
 export type SettingFieldOverride = Pick<SettingFieldDefinition, "ui" | "public" | "default" | "allowRoles">;
 
-/** 1 セクションの定義(sections/<名前>[.<fork の名前>].ts の export const section) */
+/** 1 セクションの定義(sections/<名前>.ts の export const section) */
 export type SettingSectionDefinition = {
   key: string;
   /** 管理メニュー・ページタイトルに表示する名前 */

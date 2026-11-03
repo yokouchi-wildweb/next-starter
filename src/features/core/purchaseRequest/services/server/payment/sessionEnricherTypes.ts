@@ -7,7 +7,7 @@
 // - ユーザーの住所情報をDBから取得して providerOptions に追加
 // - プロジェクト固有のメタデータを追加
 //
-// 使い方（下流プロジェクト）: sessionEnricher.<fork の名前>.ts を作り、スイッチ sessionEnricher.ts をそこへ向ける
+// 使い方（下流プロジェクト）: sessionEnricher.replace.ts を作り、スイッチ sessionEnricher.ts をそこへ向ける
 // ```ts
 // export const paymentSessionEnricher: PaymentSessionEnricher = async ({ userId, baseParams }) => {
 //   const address = await addressService.getByUserId(userId);

@@ -7,7 +7,7 @@
 //
 // ビルトイン戦略: wallet_topup (strategies/walletTopup.ts)
 // 下流で追加する戦略（例: direct_sale, subscription）は
-// ./strategies/<名前>.<fork の名前>.ts に export const strategy で置く。
+// ./strategies/<名前>.ts に export const strategy で置く。
 
 import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";

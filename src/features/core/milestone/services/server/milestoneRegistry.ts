@@ -1,4 +1,4 @@
-// マイルストーン定義の読み手(項目: ./definitions/<名前>[.<fork の名前>].ts の export const milestone、一覧は生成物)
+// マイルストーン定義の読み手(項目: ./definitions/<名前>.ts の export const milestone、一覧は生成物)
 // ベースリポジトリの項目は 0。
 //
 // 使い方（下流プロジェクト）:

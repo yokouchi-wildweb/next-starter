@@ -1,7 +1,7 @@
 // マイルストーンフレームワークの型定義
 //
 // ベースリポジトリではフレームワークのみ提供。
-// 下流プロジェクトが services/server/definitions/<名前>.<fork の名前>.ts に具体的なマイルストーンを登録する。
+// 下流プロジェクトが services/server/definitions/<名前>.ts に具体的なマイルストーンを登録する。
 
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 

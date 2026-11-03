@@ -4,14 +4,14 @@
 export const extensionPoints = {
   // ロールの一覧: coreRoles/・roles/ の *.role.json から pnpm role:generate が ./extensions/roles.ts を書く
   roles: { writer: "role:generate", side: "shared" },
-  // 表示名の予約名プロバイダ: reservedNames/<名前>[.<fork の名前>].ts の export const provider(上流の項目は 0)
+  // 表示名の予約名プロバイダ: reservedNames/<名前>.ts の export const provider(上流の項目は 0)
   reservedNames: {
     dir: "reservedNames",
     export: "provider",
     type: { from: "@/features/core/user/types", name: "ReservedUserNameProvider" },
     side: "server",
   },
-  // 退会・ソフトデリートの後片付け: cleanupHandlers/<名前>[.<fork の名前>].ts の export const handler
+  // 退会・ソフトデリートの後片付け: cleanupHandlers/<名前>.ts の export const handler
   cleanupHandlers: {
     dir: "cleanupHandlers",
     export: "handler",

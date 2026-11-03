@@ -4,7 +4,7 @@
 // ローカル ESLint プラグイン。解決は resolve-import.mjs。強さ: 全 Tier error(所有で変えない。eslint.config.mjs)。
 //
 // ── route-factory-via-wiring(D5 K1) ──
-// @/lib/routeFactory(src/lib/routeFactory/** のどのファイルも)を値 import できるのは src/wiring/**(fork のドット名の
+// @/lib/routeFactory(src/lib/routeFactory/** のどのファイルも)を値 import できるのは src/wiring/**(fork が足した
 // wiring を含む)と src/lib/routeFactory 自身だけ。型だけの import は誰でも可。
 // 理由: 汎用版の Factory は主体の解き方・access の評価・登録表を差し込んで初めて使える。route は wiring の設定済み版
 // (@/wiring/apiRoute)を使い、差し込み忘れ・別の束での組み立てを構造で防ぐ。createCrudService・lib/cron は対象外(D5 K2)。

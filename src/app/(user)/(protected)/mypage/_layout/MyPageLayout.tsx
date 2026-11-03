@@ -1,5 +1,5 @@
 // マイページ配下の枠(遷移をまたいで残るページコンテナ)。mypage/layout.tsx が 1 行スイッチで default に束ねる
-// fork の差し替え: 隣にドット区切り名のカスタム(例 MyPageLayout.<project>.tsx)を置き、layout.tsx をそちらへ向ける
+// fork の差し替え: 隣に丸ごと置き換え MyPageLayout.replace.tsx を置き、layout.tsx をそちらへ向ける
 
 import type { ReactNode } from "react";
 

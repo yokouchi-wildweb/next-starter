@@ -8,7 +8,7 @@
 //    申請・審査は program 未設定でも動く（先に権利だけ集めておける）
 //
 // downstream で有効化する手順:
-//   1. 隣に programConfig.<fork の名前>.ts を作り export const couponIssuerProgram: CouponIssuerProgramConfig を定義する
+//   1. 隣に programConfig.replace.ts を作り export const couponIssuerProgram: CouponIssuerProgramConfig を定義する
 //   2. スイッチ programConfig.ts をそこへ向ける
 //   3. 発行されるカテゴリのハンドラーが coupon/handlers/init.ts に登録済みであることを確認する
 //

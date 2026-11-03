@@ -1,6 +1,6 @@
 // src/features/core/pairedDevice/types/kind.ts
 //
-// 端末の種類（kind）の定義型。項目は kinds/<名前>[.<fork の名前>].ts に
+// 端末の種類（kind）の定義型。項目は kinds/<名前>.ts に
 // export const kind = definePairedDeviceKind({ kind: "<名前>", ... }) で置く。
 
 import type { z } from "zod";
