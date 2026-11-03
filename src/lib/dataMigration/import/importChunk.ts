@@ -4,6 +4,8 @@
 // チャンクごとの 1 つの TX の中で bulkUpsert（メディア列を外す）→ 行ごとの update（binding が attach / detach）の順に書く。
 // 1 行でも失敗すればチャンク全体を巻き戻す。
 // 集まりの項目（サービスの collectionFields）を含むチャンクは、メディアの解決・書き込みより前に DomainError 400 で拒否する。
+// 関連ドメイン（domainType "related" = belongsTo の相手を一緒に書き出したもの）は無い行だけ足し、既にある行には触らない
+// （existingRows "keep"。毎回全行を upsert すると、変わっていない行の updatedAt まで書き換わるため）。
 
 import "server-only";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
@@ -45,9 +47,53 @@ export type ImportChunkOptions = {
   junctionTables: DataMigrationJunctionResolver;
   /** フィールド型情報（型変換用） */
   fields?: FieldTypeInfo[];
-  /** ドメインタイプ（main/related/junction/hasMany） */
+  /** ドメインタイプ（main/related/junction/hasMany）。related は既にある行に触らない（existingRowsFor） */
   domainType?: "main" | "related" | "junction" | "hasMany";
 };
+
+/**
+ * 既にある行（同じ id）の扱い。update = CSV の値で上書きする（upsert） / keep = 触らず、無い行だけ足す
+ */
+export type ExistingRowsMode = "update" | "keep";
+
+/** ドメインタイプ → 既にある行の扱い（関連ドメインだけ keep。取り込みの目的はメインのドメインで、関連は参照先を揃えるため） */
+export function existingRowsFor(domainType: ImportChunkOptions["domainType"]): ExistingRowsMode {
+  return domainType === "related" ? "keep" : "update";
+}
+
+/** bulkUpsert に渡す options（メディア列は UPDATE SET から外す。keep は衝突した行をスキップ） */
+export function bulkUpsertOptionsFor(
+  mediaNames: readonly string[],
+  existingRows: ExistingRowsMode,
+): { excludeFromUpdate?: string[]; skipDuplicates?: true } | undefined {
+  const options: { excludeFromUpdate?: string[]; skipDuplicates?: true } = {};
+  if (existingRows === "keep") options.skipDuplicates = true;
+  else if (mediaNames.length > 0) options.excludeFromUpdate = [...mediaNames];
+  return Object.keys(options).length > 0 ? options : undefined;
+}
+
+/**
+ * CSV の各行に、bulkUpsert が返した行を対応づける（無ければ null = 書かなかった行）。
+ * update は全行が返るので順番どおり。keep は足した行だけが返るので id で引き、id の無い行には残りを順に当てる
+ * @param recordIds CSV の各行の id（無ければ null）
+ * @param returned bulkUpsert の results
+ */
+export function matchUpsertedRows<T extends Record<string, unknown>>(
+  recordIds: readonly (string | null)[],
+  returned: readonly T[],
+  existingRows: ExistingRowsMode,
+): (T | null)[] {
+  if (existingRows === "update") return recordIds.map((_, i) => returned[i] ?? null);
+  const byId = new Map(returned.map((row) => [String(row.id), row]));
+  const known = new Set(recordIds.filter((id): id is string => id !== null));
+  const rest = returned.filter((row) => !known.has(String(row.id)));
+  return recordIds.map((id) => (id !== null ? byId.get(id) ?? null : rest.shift() ?? null));
+}
+
+/** CSV の行の id（空なら null） */
+function recordIdOf(record: Record<string, unknown>): string | null {
+  return typeof record.id === "string" && record.id.trim() !== "" ? record.id.trim() : null;
+}
 
 export type ImportChunkResult =
   | {
@@ -289,7 +335,7 @@ export async function importChunk(
     };
   }
 
-  return importServiceChunk(service, options);
+  return importServiceChunk(service, { ...options, existingRows: existingRowsFor(domainType) });
 }
 
 /**
@@ -297,7 +343,11 @@ export async function importChunk(
  */
 export async function importServiceChunk(
   service: any,
-  options: Omit<ImportChunkOptions, "domain" | "domainType" | "services" | "junctionTables"> & { domain?: string },
+  options: Omit<ImportChunkOptions, "domain" | "domainType" | "services" | "junctionTables"> & {
+    domain?: string;
+    /** 既にある行の扱い（default: update） */
+    existingRows?: ExistingRowsMode;
+  },
 ): Promise<ImportChunkResult> {
   const {
     domain = "",
@@ -308,6 +358,7 @@ export async function importServiceChunk(
     updateImages = true,
     fields = [],
     media,
+    existingRows = "update",
   } = options;
 
   // bulkUpsert が存在するか確認
@@ -388,8 +439,13 @@ export async function importServiceChunk(
       const uploaded = new Set(uploadedRefs);
       for (let i = 0; i < records.length; i++) {
         const record = records[i];
-        const id = typeof record.id === "string" && record.id.trim() !== "" ? record.id.trim() : null;
+        const id = recordIdOf(record);
         const existing = id ? await findExisting(service, id) : null;
+        // keep: 既にある行には触らないので、メディアも解決しない（複製・アップロードを無駄に作らない）
+        if (existing && existingRows === "keep") {
+          mediaUpdates.push(null);
+          continue;
+        }
         const resolved = await resolveMediaRow({
           rowNumber: i + 1,
           record,
@@ -407,12 +463,17 @@ export async function importServiceChunk(
     // チャンクの書き込みは 1 つの TX（1 行でも失敗すればチャンク全体を巻き戻す）
     await db.transaction(async (tx) => {
       // bulkUpsert 実行（メディア列は UPDATE SET からも外し、既存の値を保つ）
+      // keep は衝突した行（既にある行）をスキップし、足した行だけが返る
       const upsertResult = await service.bulkUpsert(
         recordsForUpsert,
-        mediaNames.size > 0 ? { excludeFromUpdate: [...mediaNames] } : undefined,
+        bulkUpsertOptionsFor([...mediaNames], existingRows),
         tx,
       );
-      const upsertedRecords = upsertResult.results as Record<string, unknown>[];
+      const upsertedRecords = matchUpsertedRows(
+        records.map(recordIdOf),
+        upsertResult.results as Record<string, unknown>[],
+        existingRows,
+      );
 
       // メディア列の書き込みと deletedAt の復元を、各レコード 1 回の update で行う
       // （メディア列を含む update では binding が同じ TX で attach / detach する）

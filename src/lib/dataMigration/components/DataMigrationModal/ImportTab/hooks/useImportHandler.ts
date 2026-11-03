@@ -10,6 +10,7 @@ import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { contentTypeFromFilename, mediaPurposeOf } from "../../../../media";
 import { buildImportFieldTypeInfo } from "./importFieldTypeInfo";
+import { chunkNameOf, runImportSteps, sortImportSteps, type ImportStep } from "./importRun";
 import type {
   ChunkResult,
   ImportResultData,
@@ -28,7 +29,7 @@ export type UseImportHandlerOptions = {
   imageFields: string[];
   /** フィールド情報 */
   fields: ExportField[];
-  /** インポート成功時のコールバック */
+  /** インポートで DB が変わったときのコールバック（途中で止まった場合も、入ったチャンクがあれば呼ぶ。一覧の再取得用） */
   onImportSuccess?: () => void;
 };
 
@@ -153,192 +154,137 @@ export function useImportHandler({
   }, [isImporting]);
 
   /**
-   * 単一ドメインのチャンクを処理
+   * 1 チャンクを処理する（成功・失敗を ChunkResult で返す。投げない）
    */
-  const processChunksForDomain = useCallback(
-    async (
-      zip: JSZip,
-      domainName: string,
-      chunkCount: number,
-      chunkPrefix: string,
-      domainIndex?: number,
-      totalDomains?: number,
-      domainType?: "main" | "related" | "junction" | "hasMany"
-    ): Promise<{ records: number; successful: number; failed: number; results: ChunkResult[] }> => {
-      const results: ChunkResult[] = [];
-      let records = 0;
-      let successful = 0;
-      let failed = 0;
+  const processChunk = useCallback(
+    async (zip: JSZip, step: ImportStep, chunkIndex: number, stepIndex: number, totalSteps: number | undefined): Promise<ChunkResult> => {
+      const { name: domainName, type: domainType, chunkCount, chunkPrefix } = step;
+      const chunkName = chunkNameOf(chunkIndex);
+      const chunkPath = chunkPrefix ? `${chunkPrefix}/${chunkName}` : chunkName;
+      // v1.0（単一ドメイン）は totalSteps を渡さない（進捗にドメインの番号を出さない）
+      const isMultiDomain = totalSteps !== undefined;
 
-      // ドメイン処理開始ログ
-      const domainProgress = totalDomains ? `[${domainIndex}/${totalDomains}]` : "";
+      if (chunkIndex === 0) {
+        console.log(
+          `${LOG_PREFIX} 📦 ドメイン処理開始: ${domainName} ${isMultiDomain ? `[${stepIndex + 1}/${totalSteps}]` : ""}`,
+          { type: domainType, chunkCount, chunkPrefix: chunkPrefix || "(root)" }
+        );
+      }
+
+      setProgress({
+        currentDomain: domainName,
+        currentDomainIndex: isMultiDomain ? stepIndex + 1 : undefined,
+        totalDomains: isMultiDomain ? totalSteps : undefined,
+        currentChunk: chunkIndex + 1,
+        totalChunks: chunkCount,
+        currentChunkName: chunkName,
+      });
+
       console.log(
-        `${LOG_PREFIX} 📦 ドメイン処理開始: ${domainName} ${domainProgress}`,
-        { type: domainType, chunkCount, chunkPrefix: chunkPrefix || "(root)" }
+        `${LOG_PREFIX}   📄 チャンク処理: ${chunkName} [${chunkIndex + 1}/${chunkCount}]`,
+        { domain: domainName, path: chunkPath }
       );
 
-      // フィールド型情報を準備（メインドメイン用）
-      const fieldTypeInfo = buildImportFieldTypeInfo(fields);
+      const fail = (error: string): ChunkResult => {
+        console.error(`${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`, { domain: domainName, error });
+        return { chunkName, domain: domainName, success: false, recordCount: 0, error };
+      };
 
-      for (let i = 0; i < chunkCount; i++) {
-        const chunkName = `chunk_${String(i + 1).padStart(3, "0")}`;
-        const chunkPath = chunkPrefix ? `${chunkPrefix}/${chunkName}` : chunkName;
+      // CSV ファイルを取得
+      const csvFile = zip.file(`${chunkPath}/data.csv`);
+      if (!csvFile) {
+        return fail(`data.csv が見つかりません（${chunkPath}/data.csv）`);
+      }
+      let csvContent = await csvFile.async("string");
 
-        setProgress({
-          currentDomain: domainName,
-          currentDomainIndex: domainIndex,
-          totalDomains: totalDomains,
-          currentChunk: i + 1,
-          totalChunks: chunkCount,
-          currentChunkName: chunkName,
-        });
+      // 同梱ファイル（assets/<列>/…）を用途 `<ドメイン>.<列>` にアップロードし、CSV の値を ref に置き換える
+      // （メイン以外のドメインも同じ。中間テーブルはメディア列を持たない）
+      let uploads: UploadedFile[] = [];
+      const assetsFolder = domainType === "junction" ? null : zip.folder(`${chunkPath}/assets`);
+      if (assetsFolder) {
+        const actualAssetFiles = assetsFolder.filter(() => true).filter((f) => !f.dir);
 
-        // チャンク処理開始ログ
-        console.log(
-          `${LOG_PREFIX}   📄 チャンク処理: ${chunkName} [${i + 1}/${chunkCount}]`,
-          { domain: domainName, path: chunkPath }
-        );
-
-        // CSV ファイルを取得
-        const csvFile = zip.file(`${chunkPath}/data.csv`);
-        if (!csvFile) {
-          console.error(
-            `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
-            { domain: domainName, error: "data.csv が見つかりません", path: `${chunkPath}/data.csv` }
-          );
-          results.push({
-            chunkName,
-            domain: domainName,
-            success: false,
-            recordCount: 0,
-            error: "data.csv が見つかりません",
+        if (actualAssetFiles.length > 0) {
+          console.log(`${LOG_PREFIX}     🖼️ 画像をアップロード: ${actualAssetFiles.length} ファイル`, {
+            path: `${chunkPath}/assets`,
           });
-          failed++;
-          continue;
-        }
-        let csvContent = await csvFile.async("string");
 
-        // 同梱ファイル（assets/<列>/…）を用途 `<ドメイン>.<列>` にアップロードし、CSV の値を ref に置き換える
-        // （メイン以外のドメインも同じ。中間テーブルはメディア列を持たない）
-        let uploads: UploadedFile[] = [];
-        const assetsFolder = domainType === "junction" ? null : zip.folder(`${chunkPath}/assets`);
-        if (assetsFolder) {
-          const actualAssetFiles = assetsFolder.filter(() => true).filter((f) => !f.dir);
+          // アセットを収集
+          const assets = new Map<string, ArrayBuffer>();
+          for (const assetFile of actualAssetFiles) {
+            const assetBuffer = await assetFile.async("arraybuffer");
+            const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
+            assets.set(assetPath, assetBuffer);
+          }
 
-          if (actualAssetFiles.length > 0) {
-            console.log(`${LOG_PREFIX}     🖼️ 画像をアップロード: ${actualAssetFiles.length} ファイル`, {
-              path: `${chunkPath}/assets`,
+          try {
+            const uploaded = await uploadAssets(assets, domainName, (done, total) => {
+              console.log(`${LOG_PREFIX}       📤 アップロード進捗: ${done}/${total}`);
             });
-
-            // アセットを収集
-            const assets = new Map<string, ArrayBuffer>();
-            for (const assetFile of actualAssetFiles) {
-              const assetBuffer = await assetFile.async("arraybuffer");
-              const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
-              assets.set(assetPath, assetBuffer);
-            }
-
-            try {
-              const uploaded = await uploadAssets(assets, domainName, (done, total) => {
-                console.log(`${LOG_PREFIX}       📤 アップロード進捗: ${done}/${total}`);
-              });
-              uploads = uploaded.uploads;
-              // CSVの画像パスを ref に置換
-              csvContent = replaceAssetPathsInCsv(csvContent, uploaded.refMap);
-              console.log(`${LOG_PREFIX}     ✅ 画像アップロード完了、CSVを更新`);
-            } catch (err) {
-              const errorMsg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
-              console.error(`${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`, { domain: domainName, error: errorMsg });
-              results.push({ chunkName, domain: domainName, success: false, recordCount: 0, error: errorMsg });
-              failed++;
-              continue;
-            }
+            uploads = uploaded.uploads;
+            // CSVの画像パスを ref に置換
+            csvContent = replaceAssetPathsInCsv(csvContent, uploaded.refMap);
+            console.log(`${LOG_PREFIX}     ✅ 画像アップロード完了、CSVを更新`);
+          } catch (err) {
+            return fail(err instanceof Error ? err.message : "画像のアップロードに失敗しました");
           }
-        }
-
-        // FormData を作成（画像バイナリは含まない）
-        const formData = new FormData();
-        formData.append("domain", domainName);
-        formData.append("chunkName", chunkName);
-        formData.append("csvContent", csvContent);
-        // 今回アップロードした ref（サーバーはこれをそのまま紐付ける。それ以外の ref・旧 URL は複製する）
-        formData.append("uploadedRefs", JSON.stringify(uploads.map((upload) => upload.ref)));
-        // メインドメインのみフィールド型情報を送る
-        formData.append("fields", JSON.stringify(domainName === domain ? fieldTypeInfo : []));
-        // ドメインタイプを送る
-        if (domainType) {
-          formData.append("domainType", domainType);
-        }
-
-        // チャンクを送信
-        try {
-          const response = await axios.post("/api/data-migration/import-chunk", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-
-          const data = response.data as { chunkName: string; recordCount: number };
-          console.log(
-            `${LOG_PREFIX}   ✅ チャンク成功: ${chunkName}`,
-            { domain: domainName, recordCount: data.recordCount }
-          );
-          results.push({
-            chunkName: data.chunkName,
-            domain: domainName,
-            success: true,
-            recordCount: data.recordCount,
-          });
-          records += data.recordCount;
-          successful++;
-        } catch (err) {
-          // エラーメッセージを複数のフィールドから取得を試みる
-          const responseData = axios.isAxiosError(err) ? err.response?.data : null;
-          const errorMsg =
-            responseData?.error ||
-            responseData?.message ||
-            (axios.isAxiosError(err) ? err.message : null) ||
-            (err instanceof Error ? err.message : "Unknown error");
-          const errorDetails = axios.isAxiosError(err)
-            ? {
-                status: err.response?.status,
-                statusText: err.response?.statusText,
-                data: err.response?.data,
-                headers: err.response?.headers,
-              }
-            : { raw: err };
-          console.error(
-            `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
-            { domain: domainName, error: errorMsg }
-          );
-          console.error(`${LOG_PREFIX}   📋 エラー詳細:`, errorDetails);
-          if (responseData) {
-            console.error(`${LOG_PREFIX}   📋 サーバーレスポンス:`, JSON.stringify(responseData, null, 2));
-          }
-          results.push({
-            chunkName,
-            domain: domainName,
-            success: false,
-            recordCount: 0,
-            error: errorMsg,
-          });
-          failed++;
-          // チャンクは巻き戻っているので、このチャンクで上げたファイルは使われない
-          await discardUploads(uploads);
         }
       }
 
-      // ドメイン処理完了ログ
-      console.log(
-        `${LOG_PREFIX} 📦 ドメイン処理完了: ${domainName}`,
-        { records, successful, failed }
-      );
+      // FormData を作成（画像バイナリは含まない）
+      const formData = new FormData();
+      formData.append("domain", domainName);
+      formData.append("chunkName", chunkName);
+      formData.append("csvContent", csvContent);
+      // 今回アップロードした ref（サーバーはこれをそのまま紐付ける。それ以外の ref・旧 URL は複製する）
+      formData.append("uploadedRefs", JSON.stringify(uploads.map((upload) => upload.ref)));
+      // メインドメインのみフィールド型情報を送る
+      formData.append("fields", JSON.stringify(domainName === domain ? buildImportFieldTypeInfo(fields) : []));
+      // ドメインタイプを送る
+      formData.append("domainType", domainType);
 
-      return { records, successful, failed, results };
+      // チャンクを送信
+      try {
+        const response = await axios.post("/api/data-migration/import-chunk", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        const data = response.data as { chunkName: string; recordCount: number };
+        console.log(
+          `${LOG_PREFIX}   ✅ チャンク成功: ${chunkName}`,
+          { domain: domainName, recordCount: data.recordCount }
+        );
+        return { chunkName: data.chunkName, domain: domainName, success: true, recordCount: data.recordCount };
+      } catch (err) {
+        // エラーメッセージを複数のフィールドから取得を試みる
+        const responseData = axios.isAxiosError(err) ? err.response?.data : null;
+        const errorMsg =
+          responseData?.error ||
+          responseData?.message ||
+          (axios.isAxiosError(err) ? err.message : null) ||
+          (err instanceof Error ? err.message : "Unknown error");
+        const errorDetails = axios.isAxiosError(err)
+          ? {
+              status: err.response?.status,
+              statusText: err.response?.statusText,
+              data: err.response?.data,
+              headers: err.response?.headers,
+            }
+          : { raw: err };
+        console.error(`${LOG_PREFIX}   📋 エラー詳細:`, errorDetails);
+        if (responseData) {
+          console.error(`${LOG_PREFIX}   📋 サーバーレスポンス:`, JSON.stringify(responseData, null, 2));
+        }
+        // チャンクは巻き戻っているので、このチャンクで上げたファイルは使われない
+        await discardUploads(uploads);
+        return fail(errorMsg);
+      }
     },
     [domain, fields]
   );
 
   /**
-   * インポート実行
+   * インポート実行（最初に失敗したチャンクで止める。止まっても、入ったチャンクがあれば onImportSuccess を呼ぶ）
    */
   const handleImport = useCallback(
     async (file: File) => {
@@ -373,140 +319,62 @@ export function useImportHandler({
         const rawManifest = JSON.parse(manifestText);
         console.log(`${LOG_PREFIX} 📋 マニフェスト読み込み完了`, rawManifest);
 
-        // v1.1（複数ドメイン）の処理
-        if (rawManifest.version === "1.1") {
+        let steps: ImportStep[];
+        const isMultiDomain = rawManifest.version === "1.1";
+        if (isMultiDomain) {
+          // v1.1（複数ドメイン）
           const manifest = rawManifest as ManifestV1_1;
-          console.log(`${LOG_PREFIX} 📦 v1.1 複数ドメインモード`, {
-            mainDomain: manifest.mainDomain,
-            domainCount: manifest.domains.length,
-            domains: manifest.domains.map((d) => `${d.name}(${d.type})`),
-          });
-
-          // ドメイン検証（メインドメインのみ）
           if (manifest.mainDomain !== domain) {
             throw new Error(`ドメインが一致しません: ${manifest.mainDomain} !== ${domain}`);
           }
-
           // インポート順序に従ってソート（related → main → hasMany → junction）
-          const typeOrder: Record<string, number> = { related: 1, main: 2, hasMany: 3, junction: 4 };
-          const sortedDomains = [...manifest.domains].sort(
-            (a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99)
-          );
-          console.log(`${LOG_PREFIX} 📋 処理順序`, sortedDomains.map((d) => `${d.name}(${d.type})`));
-
-          const chunkResults: ChunkResult[] = [];
-          const domainResults: {
-            domain: string;
-            totalRecords: number;
-            successfulChunks: number;
-            failedChunks: number;
-          }[] = [];
-          let totalRecords = 0;
-          let successfulChunks = 0;
-          let failedChunks = 0;
-
-          // 各ドメインを順番に処理
-          for (let domainIndex = 0; domainIndex < sortedDomains.length; domainIndex++) {
-            const domainInfo = sortedDomains[domainIndex];
-            const result = await processChunksForDomain(
-              zip,
-              domainInfo.name,
-              domainInfo.chunkCount,
-              domainInfo.name,
-              domainIndex + 1,
-              sortedDomains.length,
-              domainInfo.type
-            );
-
-            chunkResults.push(...result.results);
-            totalRecords += result.records;
-            successfulChunks += result.successful;
-            failedChunks += result.failed;
-
-            domainResults.push({
-              domain: domainInfo.name,
-              totalRecords: result.records,
-              successfulChunks: result.successful,
-              failedChunks: result.failed,
-            });
+          steps = sortImportSteps(manifest.domains).map((d) => ({
+            name: d.name,
+            type: d.type,
+            chunkCount: d.chunkCount,
+            chunkPrefix: d.name,
+          }));
+        } else {
+          // v1.0（単一ドメイン）
+          const manifest = rawManifest as ManifestV1;
+          if (manifest.domain !== domain) {
+            throw new Error(`ドメインが一致しません: ${manifest.domain} !== ${domain}`);
           }
-
-          // v1.1 完了ログ
-          console.log(`${LOG_PREFIX} 🎉 インポート完了 (v1.1)`, {
-            totalRecords,
-            successfulChunks,
-            failedChunks,
-            domainResults,
-          });
-          if (failedChunks > 0) {
-            console.warn(
-              `${LOG_PREFIX} ⚠️ 失敗したチャンク一覧:`,
-              chunkResults.filter((r) => !r.success)
-            );
-          }
-
-          setResult({
-            totalRecords,
-            successfulChunks,
-            failedChunks,
-            chunkResults,
-            domainResults,
-            isMultiDomain: true,
-          });
-
-          // インポート成功時にコールバック
-          if (successfulChunks > 0 && onImportSuccess) {
-            onImportSuccess();
-          }
-          return;
+          steps = [{ name: domain, type: "main", chunkCount: manifest.chunkCount, chunkPrefix: "" }];
         }
+        console.log(`${LOG_PREFIX} 📋 処理順序`, steps.map((s) => `${s.name}(${s.type})`));
 
-        // v1.0（単一ドメイン）の処理
-        const manifest = rawManifest as ManifestV1;
-        console.log(`${LOG_PREFIX} 📦 v1.0 単一ドメインモード`, {
-          domain: manifest.domain,
-          chunkCount: manifest.chunkCount,
-          totalRecords: manifest.totalRecords,
-        });
-
-        // ドメイン検証
-        if (manifest.domain !== domain) {
-          throw new Error(`ドメインが一致しません: ${manifest.domain} !== ${domain}`);
-        }
-
-        // 単一ドメインの処理
-        const importResult = await processChunksForDomain(
-          zip,
-          domain,
-          manifest.chunkCount,
-          "",
-          undefined,
-          undefined,
-          "main"
+        const outcome = await runImportSteps(steps, (step, chunkIndex, stepIndex) =>
+          processChunk(zip, step, chunkIndex, stepIndex, isMultiDomain ? steps.length : undefined)
         );
 
-        // v1.0 完了ログ
-        console.log(`${LOG_PREFIX} 🎉 インポート完了 (v1.0)`, {
-          totalRecords: importResult.records,
-          successfulChunks: importResult.successful,
-          failedChunks: importResult.failed,
-        });
-        if (importResult.failed > 0) {
-          console.warn(
-            `${LOG_PREFIX} ⚠️ 失敗したチャンク一覧:`,
-            importResult.results.filter((r) => !r.success)
-          );
+        if (outcome.stoppedAt) {
+          console.warn(`${LOG_PREFIX} ⛔ インポートを途中で止めました`, {
+            stoppedAt: outcome.stoppedAt,
+            committedRecords: outcome.totalRecords,
+            notRunChunks: outcome.notRunChunks,
+          });
+        } else {
+          console.log(`${LOG_PREFIX} 🎉 インポート完了`, {
+            totalRecords: outcome.totalRecords,
+            successfulChunks: outcome.successfulChunks,
+            domainResults: outcome.domainResults,
+          });
         }
 
         setResult({
-          totalRecords: importResult.records,
-          successfulChunks: importResult.successful,
-          failedChunks: importResult.failed,
-          chunkResults: importResult.results,
+          totalRecords: outcome.totalRecords,
+          successfulChunks: outcome.successfulChunks,
+          failedChunks: outcome.failedChunks,
+          chunkResults: outcome.chunkResults,
+          domainResults: isMultiDomain ? outcome.domainResults : undefined,
+          isMultiDomain: isMultiDomain || undefined,
+          stoppedAt: outcome.stoppedAt,
+          notRunChunks: outcome.notRunChunks,
         });
 
-        // インポート成功時にコールバック
-        if (importResult.successful > 0 && onImportSuccess) {
+        // DB が変わったとき（途中で止まった場合も、入ったチャンクがあれば）一覧を読み直させる
+        if (outcome.successfulChunks > 0 && onImportSuccess) {
           onImportSuccess();
         }
       } catch (err) {
@@ -517,7 +385,7 @@ export function useImportHandler({
         setProgress(null);
       }
     },
-    [domain, imageFields, fields.length, onImportSuccess, processChunksForDomain]
+    [domain, imageFields, fields.length, onImportSuccess, processChunk]
   );
 
   const resetResult = useCallback(() => {

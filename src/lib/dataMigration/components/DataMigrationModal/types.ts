@@ -24,14 +24,28 @@ export type DomainImportResult = {
   failedChunks: number;
 };
 
+/** ドメインの種類（取り込みの順: related → main → hasMany → junction） */
+export type ImportDomainType = "main" | "related" | "junction" | "hasMany";
+
+/** 途中で止まったために流さなかったチャンク */
+export type NotRunChunk = {
+  domain: string;
+  chunkName: string;
+};
+
 /** インポート全体の結果 */
 export type ImportResultData = {
+  /** DB に入ったレコード数（成功したチャンクの合計） */
   totalRecords: number;
   successfulChunks: number;
   failedChunks: number;
   chunkResults: ChunkResult[];
   domainResults?: DomainImportResult[];
   isMultiDomain?: boolean;
+  /** 止まった原因のチャンク（最初に失敗したチャンクで全体を止める。全部成功なら null か省略） */
+  stoppedAt?: ChunkResult | null;
+  /** 止まったために流さなかったチャンク */
+  notRunChunks?: NotRunChunk[];
 };
 
 /** インポート進捗状態 */
@@ -59,7 +73,7 @@ export type ManifestV1 = {
 /** マニフェストのドメイン情報（v1.1） */
 export type ManifestDomainInfo = {
   name: string;
-  type: "main" | "related" | "junction" | "hasMany";
+  type: ImportDomainType;
   totalRecords: number;
   chunkCount: number;
 };
@@ -95,7 +109,7 @@ export type DataMigrationModalProps = {
   domainLabel: string;
   /** 検索パラメータ（URL クエリ文字列形式） */
   searchParams?: string;
-  /** インポート成功時のコールバック */
+  /** インポートで DB が変わったときのコールバック（途中で止まった場合も、入ったチャンクがあれば呼ぶ。一覧の再取得用） */
   onImportSuccess?: () => void;
   /** リレーションが存在するか（エクスポート時に「リレーションを含める」オプションを表示） */
   hasRelations?: boolean;

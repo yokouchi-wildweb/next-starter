@@ -7,7 +7,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { convertRecordTypes, getFieldTypes } from "./importChunk";
+import { bulkUpsertOptionsFor, convertRecordTypes, existingRowsFor, getFieldTypes, matchUpsertedRows } from "./importChunk";
 
 const fields = [
   { name: "tags", fieldType: "array" },
@@ -81,3 +81,36 @@ describe("import の型変換", () => {
     assert.deepEqual(convert({ name: "a,b", flag: "true", meta: '{"a":1}', images: "p,q", other: "z" }), { name: "a,b", flag: "true", meta: '{"a":1}', images: "p,q", other: "z" });
   });
 });
+
+describe("既にある行の扱い（関連ドメインは無い行だけ足す）", () => {
+  test("ドメインタイプ: related だけ keep、他は update", () => {
+    assert.equal(existingRowsFor("related"), "keep");
+    assert.equal(existingRowsFor("main"), "update");
+    assert.equal(existingRowsFor("hasMany"), "update");
+    assert.equal(existingRowsFor(undefined), "update");
+  });
+
+  test("bulkUpsert の options: update はメディア列を UPDATE SET から外す、keep は衝突をスキップ", () => {
+    assert.deepEqual(bulkUpsertOptionsFor(["image"], "update"), { excludeFromUpdate: ["image"] });
+    assert.equal(bulkUpsertOptionsFor([], "update"), undefined);
+    assert.deepEqual(bulkUpsertOptionsFor(["image"], "keep"), { skipDuplicates: true });
+    assert.deepEqual(bulkUpsertOptionsFor([], "keep"), { skipDuplicates: true });
+  });
+
+  test("返った行の対応づけ: update は順番どおり", () => {
+    const rows = [{ id: "a" }, { id: "b" }];
+    assert.deepEqual(matchUpsertedRows(["a", "b"], rows, "update"), rows);
+  });
+
+  test("返った行の対応づけ: keep は足した行だけを id で引き、既にあった行は null、id の無い行には残りを順に当てる", () => {
+    const returned = [{ id: "b" }, { id: "new1" }, { id: "new2" }];
+    assert.deepEqual(matchUpsertedRows(["a", "b", null, "c", null], returned, "keep"), [
+      null,
+      { id: "b" },
+      { id: "new1" },
+      null,
+      { id: "new2" },
+    ]);
+  });
+});
+

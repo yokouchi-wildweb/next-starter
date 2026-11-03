@@ -16,21 +16,37 @@ export type ImportResultProps = {
  * インポート結果表示コンポーネント
  */
 export function ImportResult({ result }: ImportResultProps) {
+  // 最初に失敗したチャンクで全体を止める（前のチャンクは DB に入っている。後のチャンクは流していない）
+  const failed = result.failedChunks > 0;
+  const notRunChunks = result.notRunChunks ?? [];
+  const label = (domain: string, chunkName: string) => (result.isMultiDomain ? `[${domain}] ${chunkName}` : chunkName);
+
   return (
     <Block className="mb-4">
-      <Block
-        className={`p-4 rounded-lg ${
-          result.failedChunks === 0 ? "bg-success/10" : "bg-warning/10"
-        }`}
-      >
-        <p className="font-medium mb-2">
-          {result.failedChunks === 0 ? "インポート完了" : "インポート完了（一部エラー）"}
+      <Block className={`p-4 rounded-lg ${failed ? "bg-destructive/10" : "bg-success/10"}`}>
+        <p className={`font-medium mb-2 ${failed ? "text-destructive-text" : ""}`}>
+          {failed ? "インポート失敗（途中で停止）" : "インポート完了"}
         </p>
         <Block className="text-sm flex flex-col gap-1">
-          <p>インポートされたレコード: {result.totalRecords}件</p>
-          <p>成功したチャンク: {result.successfulChunks}</p>
-          {result.failedChunks > 0 && (
-            <p className="text-destructive-text">失敗したチャンク: {result.failedChunks}</p>
+          {failed ? (
+            <>
+              <p>
+                DB に入ったもの: {result.successfulChunks}チャンク・{result.totalRecords}件
+                {result.successfulChunks > 0 && "（取り消されません）"}
+              </p>
+              <p className="text-destructive-text">
+                入っていないもの: 失敗した {result.failedChunks}チャンク
+                {notRunChunks.length > 0 && ` + 流さなかった ${notRunChunks.length}チャンク`}
+              </p>
+              <p className="text-muted-foreground">
+                原因を直して同じファイルを取り込み直すと、入ったチャンクは上書きされ、残りが続けて入ります。
+              </p>
+            </>
+          ) : (
+            <>
+              <p>インポートされたレコード: {result.totalRecords}件</p>
+              <p>成功したチャンク: {result.successfulChunks}</p>
+            </>
           )}
         </Block>
 
@@ -65,10 +81,19 @@ export function ImportResult({ result }: ImportResultProps) {
             .filter((c) => !c.success)
             .map((c) => (
               <p key={`${c.domain}-${c.chunkName}`} className="text-destructive-text">
-                {result.isMultiDomain ? `[${c.domain}] ` : ""}
-                {c.chunkName}: {c.error}
+                {label(c.domain, c.chunkName)}: {c.error}
               </p>
             ))}
+        </Block>
+      )}
+
+      {/* 止まったために流さなかったチャンク */}
+      {notRunChunks.length > 0 && (
+        <Block className="mt-3 p-3 bg-muted rounded text-sm">
+          <p className="font-medium mb-1">流さなかったチャンク（DB に入っていません）:</p>
+          <p className="text-muted-foreground">
+            {notRunChunks.map((c) => label(c.domain, c.chunkName)).join("、")}
+          </p>
         </Block>
       )}
     </Block>
