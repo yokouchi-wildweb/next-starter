@@ -21,7 +21,8 @@ export const FORM_INPUTS = {
     integer: ["number input", "stepper input", "select", "radio", "hidden", "none", "custom"],
     float: ["number input", "stepper input", "select", "radio", "hidden", "none", "custom"],
     boolean: ["checkbox", "radio", "switch input", "hidden", "none", "custom"],
-    enum: ["select", "radio", "hidden", "none", "custom"],
+    // switch input は options がちょうど 2 つのとき(1 つ目 = オン、2 つ目 = オフ。checks/fields.mjs が数を警告)
+    enum: ["select", "radio", "switch input", "hidden", "none", "custom"],
     mediaUploader: ["media uploader", "hidden", "none", "custom"],
     mediaCollection: ["media uploader multi"],
     date: ["date input", "text input", "hidden", "none", "custom"],

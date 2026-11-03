@@ -3,6 +3,7 @@
 // 生成器は合わない組・空の選択肢（z.enum([]) と空の pgEnum）・既定値を持てない型の .default(...) を黙って書くので、生成前に止める。
 // 表に無い型は扱わない（今の扱い = 語彙の警告だけ。checks/vocabulary.mjs）。
 // 型と入力欄の組の外れ・入力欄（select など）の選択肢の無さは、実行時に別の場所から補う使い方があるので警告だけ（fieldsWarnings）
+// enum の switchInput は options がちょうど 2 つのときだけ働く（inputResolver が 1 つ目をオン・2 つ目をオフに描く。それ以外は boolean のスイッチになり enum に入らない）ので、数の外れも警告
 
 import { toCamelCase } from "../../../src/utils/stringCase.mjs";
 import {
@@ -92,6 +93,9 @@ export function fieldsWarnings(config, registeredInputs = new Set()) {
     const inputs = allowedInputs(config.dbEngine, field.fieldType);
     if (inputs && field.formInput !== undefined && !inputs.has(field.formInput) && !registeredInputs.has(field.formInput)) {
       warnings.push(`${where}: fieldType "${field.fieldType}" に formInput "${field.formInput}" は表（spec/formInputs.mjs）に無い組です（${[...inputs].join(" / ")}）`);
+    }
+    if (isEnumFieldType(field.fieldType) && field.formInput === "switchInput" && Array.isArray(field.options) && field.options.length !== 2) {
+      warnings.push(`${where}: enum の formInput "switchInput" は options がちょうど 2 つのときだけ働きます（1 つ目 = オン、2 つ目 = オフ。今 ${field.options.length} つ。select か radio にするか、選択肢を 2 つに）`);
     }
     if (!isEnumFieldType(field.fieldType) && inputNeedsOptions(field) && (!Array.isArray(field.options) || field.options.length === 0)) {
       warnings.push(`${where}: formInput "${field.formInput}" に options（選択肢）がありません（実行時に別の場所から渡していなければ選べません）`);

@@ -108,16 +108,36 @@ test("項目: enum の選択肢・選択肢の値の型・既定値（持てな�
 test("項目（警告だけ）: 表に無い型と入力欄の組、選択肢の要る入力欄に options が無い", () => {
   const config = good({
     fields: [
-      { name: "state", fieldType: "enum", formInput: "switchInput", options: [{ value: "on", label: "有効" }] },
+      { name: "state", fieldType: "enum", formInput: "textarea", options: [{ value: "on", label: "有効" }] },
       { name: "theme", fieldType: "string", formInput: "select" },
       { name: "tags", fieldType: "array", formInput: "checkbox" },
     ],
   });
   assert.deepEqual(fieldsIssues(config), []);
   const warnings = joined(fieldsWarnings(config));
-  assert.match(warnings, /"state": fieldType "enum" に formInput "switchInput"/);
+  assert.match(warnings, /"state": fieldType "enum" に formInput "textarea"/);
   assert.match(warnings, /"theme": formInput "select" に options/);
   assert.match(warnings, /"tags": formInput "checkbox" に options/);
+});
+
+// 指令 20261103-170209-enum-switch-input-pair: 選択肢 2 つの enum の switchInput は表にある組(inputResolver が 2 択のスイッチを描く)
+test("項目: enum の switchInput は options がちょうど 2 つなら警告なし、1 つ・3 つ以上は数の警告", () => {
+  const two = [{ value: "active", label: "有効" }, { value: "inactive", label: "無効" }];
+  const ok = good({ fields: [{ name: "state", fieldType: "enum", formInput: "switchInput", required: true, defaultValue: "active", options: two }] });
+  assert.deepEqual(fieldsIssues(ok), []);
+  assert.deepEqual(fieldsWarnings(ok), []);
+  const config = good({
+    fields: [
+      { name: "one", fieldType: "enum", formInput: "switchInput", options: [two[0]] },
+      { name: "three", fieldType: "enum", formInput: "switchInput", options: [...two, { value: "x", label: "x" }] },
+      { name: "flag", fieldType: "boolean", formInput: "switchInput" },
+    ],
+  });
+  const warnings = joined(fieldsWarnings(config));
+  assert.match(warnings, /"one": enum の formInput "switchInput" は options がちょうど 2 つ.*今 1 つ/);
+  assert.match(warnings, /"three": enum の formInput "switchInput" は options がちょうど 2 つ.*今 3 つ/);
+  assert.doesNotMatch(warnings, /"flag"/);
+  assert.doesNotMatch(warnings, /表（spec\/formInputs\.mjs）に無い組/);
 });
 
 test("表に無い型は項目の検査の対象外（語彙の警告だけ）", () => {
