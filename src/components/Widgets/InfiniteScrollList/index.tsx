@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { Button } from "@/components/Form/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
@@ -17,6 +18,9 @@ import { Para } from "@/components/TextBlocks/Para";
  * - 「読み込み中」表示が待機中に誤って出続ける問題の防止
  * - 終端メッセージ「すべて表示しました」の自動付与
  * までを統一的にハンドルする。
+ *
+ * エラーは 2 通り: 初回ロードの失敗 (items が 0 件) は `errorNode` に置き換える。
+ * 追加ロードの失敗 (items が 1 件以上) は一覧を残したまま末尾にエラーと「再試行」(`onRetry`) を出す。
  *
  * 呼び出し側は items を生で受け取る render-prop (`children`) でリスト本体を組み立てる。
  * grouped モードのような「items を使わない別レイアウトに切り替わる」分岐は本コンポーネントの上位で行うこと。
@@ -41,8 +45,13 @@ export type InfiniteScrollListProps<TItem> = {
   emptyNode?: ReactNode;
   /** 初回ロード中の表示。 */
   initialLoadingNode?: ReactNode;
-  /** エラー時の表示。 */
+  /** 初回ロード (items が 0 件) のエラー時の表示。追加ロードの失敗では使わない (一覧を残して末尾に出す)。 */
   errorNode?: ReactNode;
+  /**
+   * 追加ロード失敗時に末尾の「再試行」で呼ぶ処理 (フックの `retry`)。
+   * 省略すると末尾にはエラー文だけを出す。
+   */
+  onRetry?: () => void;
   /** 終端メッセージ文言 (デフォルト「すべてのアイテムを表示しました」)。 */
   completedText?: string;
   /** 終端メッセージを抑制したい場合 (例: 短いフィルタ結果で「完了」を出すのが冗長な画面)。 */
@@ -78,13 +87,14 @@ export function InfiniteScrollList<TItem>({
   emptyNode,
   initialLoadingNode,
   errorNode,
+  onRetry,
   completedText = "すべてのアイテムを表示しました",
   hideCompletedNotice = false,
 }: InfiniteScrollListProps<TItem>) {
   if (isInitialLoading) {
     return <>{initialLoadingNode ?? <DefaultInitialLoading />}</>;
   }
-  if (error) {
+  if (error && items.length === 0) {
     return <>{errorNode ?? <DefaultError />}</>;
   }
   if (items.length === 0) {
@@ -94,12 +104,24 @@ export function InfiniteScrollList<TItem>({
   return (
     <>
       {children(items)}
-      {hasMore ? (
+      {error ? (
+        // 追加ロードの失敗: 読み込み済みの一覧は残し、末尾でエラーと再試行を出す
+        // (フックは失敗時に hasMore=false にするので、センチネルも終端メッセージも出さない)
+        <Flex justify="center" align="center" gap="sm" paddingBlock="lg">
+          <Para tone="destructive" size="sm">
+            続きの読み込みに失敗しました
+          </Para>
+          {onRetry ? (
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              再試行
+            </Button>
+          ) : null}
+        </Flex>
+      ) : hasMore ? (
         // DOM は hasMore の間ずっと残して IntersectionObserver を維持する。
         // 中身は isFetchingMore のときだけ表示し、待機中に「読み込み中」が誤って出続けるのを防ぐ。
         // h-12 で高さを確保しレイアウト揺れを抑える。
-        // Layout 部品は ref を受け取らないため、sentinel だけ生の div にする
-        <div ref={sentinelRef} className="flex h-12 items-center justify-center gap-2">
+        <Flex ref={sentinelRef} justify="center" align="center" gap="xs" className="h-12">
           {isFetchingMore && (
             <>
               <Spinner className="size-4 text-muted-foreground" />
@@ -108,7 +130,7 @@ export function InfiniteScrollList<TItem>({
               </Para>
             </>
           )}
-        </div>
+        </Flex>
       ) : !hideCompletedNotice ? (
         <Flex justify="center" align="center" gap="xs" paddingBlock="lg">
           <Block className="h-px w-12 bg-border" />

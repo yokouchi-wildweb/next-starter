@@ -9,14 +9,15 @@ CLAUDE.md の規約により、無限スクロール画面はこの部品を使�
 | 状態 | 表示 |
 |---|---|
 | 初回ロード中（`isInitialLoading`） | `initialLoadingNode`（既定: スピナー） |
-| エラー（`error`） | `errorNode`（既定: 「データの取得に失敗しました」） |
+| 初回ロードのエラー（`error` かつ 0 件） | `errorNode`（既定: 「データの取得に失敗しました」） |
 | 0 件 | `emptyNode`（既定: 「アイテムがありません」） |
 | 一覧あり | `children(items)` + 末尾のセンチネル（`hasMore` の間） |
 | 追加ロード中（`isFetchingMore`） | 一覧はそのまま、センチネル内にスピナー |
+| 追加ロードのエラー（`error` かつ 1 件以上） | 一覧はそのまま、末尾に「続きの読み込みに失敗しました」+「再試行」（`onRetry` を渡したとき） |
 | 全件表示済み | 終端メッセージ（`completedText`、`hideCompletedNotice` で抑止） |
 
 - **mount 直後の空表示フラッシュ**: フックの `isInitialLoading` は最初の取得が終わるまで true（`useEffect` が走る前の 1 フレームも含む）なので、「0 件」が一瞬出ない
-- **追加ロード時に一覧が消える事故**: `isLoading` だけで early return すると、続きの読み込みのたびに一覧全体がローダーに置き換わる。この部品は初回と追加を分けて扱う
+- **追加ロード時に一覧が消える事故**: `isLoading` だけで early return すると、続きの読み込みのたびに一覧全体がローダーに置き換わる。この部品は初回と追加を分けて扱う（失敗も同じ: 2 ページ目以降の失敗で読み込み済みの一覧を消さない）
 - **「読み込み中」が出続ける問題**: センチネルの要素は `hasMore` の間ずっと残し（Observer を維持）、中身は `isFetchingMore` のときだけ出す
 
 ## 使い方
@@ -30,7 +31,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { useMyOrders } from "@/features/order/hooks/useMyOrders";
 
 export function OrderList() {
-  const { items, isInitialLoading, isFetchingMore, hasMore, error, sentinelRef } = useMyOrders();
+  const { items, isInitialLoading, isFetchingMore, hasMore, error, sentinelRef, retry } = useMyOrders();
 
   return (
     <InfiniteScrollList
@@ -40,6 +41,7 @@ export function OrderList() {
       hasMore={hasMore}
       error={error}
       sentinelRef={sentinelRef}
+      onRetry={retry}
       emptyNode={<EmptyOrders />}
     >
       {(orders) => (
@@ -90,7 +92,8 @@ else removeItems((o) => done.has(o.id));
 | `error` | `unknown` | フックの `error`（任意） |
 | `sentinelRef` | `(node: HTMLElement \| null) => void` | フックの `sentinelRef` |
 | `children` | `(items: TItem[]) => ReactNode` | 一覧本体の描画（1 件以上のときだけ呼ばれる） |
-| `emptyNode` / `initialLoadingNode` / `errorNode` | `ReactNode` | 各状態の表示の差し替え（任意） |
+| `emptyNode` / `initialLoadingNode` / `errorNode` | `ReactNode` | 各状態の表示の差し替え（任意。`errorNode` は初回ロードのエラーだけ） |
+| `onRetry` | `() => void` | フックの `retry`（任意）。追加ロード失敗時の末尾の「再試行」で呼ぶ。省略するとエラー文だけ |
 | `completedText` | `string` | 終端メッセージ（既定「すべてのアイテムを表示しました」） |
 | `hideCompletedNotice` | `boolean` | 終端メッセージを出さない |
 
