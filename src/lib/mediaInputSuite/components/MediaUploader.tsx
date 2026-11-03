@@ -51,13 +51,23 @@ export const MediaUploader = ({
   const [error, setError] = useState<string | null>(null);
   const [inputResetSignal, setInputResetSignal] = useState(0);
   const uploadHandleRef = useRef<{ cancel: () => void } | null>(null);
+  // 現在の値(コールバックから最新値を読むため ref でも持つ)
+  const currentUrlRef = useRef<string | null>(initialUrl);
+  // アップロード開始前の値。失敗・キャンセルでこの値に戻す(保存済みの値が黙って null で保存されないように)
+  const previousUrlRef = useRef<string | null>(null);
+  // 進行中のアップロードの番号。中止・やり直しの後に届いた古い onError / onComplete を無視する
+  const uploadIdRef = useRef(0);
   useEffect(() => {
     setCurrentUrl(initialUrl);
   }, [initialUrl]);
+  useEffect(() => {
+    currentUrlRef.current = currentUrl;
+  }, [currentUrl]);
 
   const updateUrl = useCallback(
     (url: string | null) => {
       setCurrentUrl(url);
+      currentUrlRef.current = url;
       onUrlChange?.(url);
     },
     [onUrlChange],
@@ -71,8 +81,13 @@ export const MediaUploader = ({
 
   const beginUpload = useCallback(
     (file: File) => {
+      // 選び直し(前のアップロードが進行中)なら、戻し先は最初のアップロード前の値のまま
+      if (!uploadHandleRef.current) {
+        previousUrlRef.current = currentUrlRef.current;
+      }
       uploadHandleRef.current?.cancel();
       uploadHandleRef.current = null;
+      const uploadId = ++uploadIdRef.current;
       setProgress(null);
       setError(null);
       onUploadingChange?.(true);
@@ -81,15 +96,22 @@ export const MediaUploader = ({
       uploadHandleRef.current = uploadToStorage(file, {
         purpose,
         reencodeImage,
-        onProgress: (p) => setProgress(p),
+        onProgress: (p) => {
+          if (uploadId !== uploadIdRef.current) return;
+          setProgress(p);
+        },
         onComplete: ({ ref }) => {
+          if (uploadId !== uploadIdRef.current) return;
           uploadHandleRef.current = null;
+          previousUrlRef.current = null;
           setProgress(null);
           onUploadingChange?.(false);
           onRegisterPendingUpload?.(ref);
           updateUrl(ref);
         },
         onError: (err) => {
+          // 中止(cancelUpload)・選び直しの後に届いた古い通知は無視する
+          if (uploadId !== uploadIdRef.current) return;
           uploadHandleRef.current = null;
           setProgress(null);
           if (isStorageUploadCanceled(err)) {
@@ -97,6 +119,11 @@ export const MediaUploader = ({
           } else {
             setError(err.message);
           }
+          // 失敗したら選ぶ前の値に戻す。入力の選択中ファイルも外し、プレビューを元の値に戻す
+          const previousUrl = previousUrlRef.current;
+          previousUrlRef.current = null;
+          setInputResetSignal((value) => value + 1);
+          updateUrl(previousUrl);
           onUploadingChange?.(false);
         },
       });
@@ -104,7 +131,15 @@ export const MediaUploader = ({
     [removeUploadedFile, updateUrl, purpose, reencodeImage, onUploadingChange, onRegisterPendingUpload],
   );
 
-  const cancelUpload = useCallback((options?: { notify?: boolean }) => {
+  /**
+   * 進行中のアップロードを止める。
+   * - restore: true = 選ぶ前の値に戻す(オーバーレイの「キャンセル」)
+   * - restore: false = 値を外す(クリア操作)
+   */
+  const cancelUpload = useCallback((options?: { notify?: boolean; restore?: boolean }) => {
+    const wasUploading = Boolean(uploadHandleRef.current);
+    // これ以降に届く onError / onComplete を無効にする
+    uploadIdRef.current += 1;
     uploadHandleRef.current?.cancel();
     uploadHandleRef.current = null;
     setProgress(null);
@@ -114,9 +149,15 @@ export const MediaUploader = ({
       setError(null);
     }
     setInputResetSignal((value) => value + 1);
-    void removeUploadedFile();
+    const previousUrl = previousUrlRef.current;
+    previousUrlRef.current = null;
+    if (options?.restore && wasUploading) {
+      updateUrl(previousUrl);
+    } else {
+      void removeUploadedFile();
+    }
     onUploadingChange?.(false);
-  }, [removeUploadedFile, onUploadingChange]);
+  }, [removeUploadedFile, updateUrl, onUploadingChange]);
 
   const handleFileChange = useCallback(
     (file: File | null) => {
@@ -151,7 +192,7 @@ export const MediaUploader = ({
           className="text-xs text-muted-foreground"
           onClick={(event) => {
             event.preventDefault();
-            cancelUpload();
+            cancelUpload({ restore: true });
           }}
         >
           キャンセル

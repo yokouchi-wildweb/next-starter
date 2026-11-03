@@ -56,6 +56,7 @@ src/lib/mediaInputSuite
 - `reencodeImage`（既定 `false`）: 送る前にブラウザで jpeg / png / webp を描き直す任意の前処理（通信量を減らしたいとき）。位置情報の除去の保証には数えない。
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
+- 選択するとアップロード中は値が外れる（`onUrlChange(null)`）。アップロードが失敗したとき・オーバーレイの「キャンセル」で止めたときは、選ぶ前の値に戻す（`onUrlChange(<前の値>)`、プレビューも戻る）。更新フォームで保存済みの画像が失敗のあと黙って null で保存されないため。クリア操作（値を外す）は戻さない。
 - 16MiB を超えるファイルは GCS のセッションで分けて送る（通信の途切れや一時的な 5xx は再試行。詳細: `src/lib/storage/README.md`）。
 - `onRegisterPendingUpload` / `onRegisterPendingDelete` を使うと、アップロード完了後や削除時に pending 管理へ通知できる。
 - 上げたファイルは、業務の保存（storage binding）で紐付くまで「未採用」。紐付けないまま猶予（既定 24 時間）を過ぎると storage-sweep が消す。デモ（`/demo/media-input`、用途 `demo.media`）で上げたファイルも同じく消える。
