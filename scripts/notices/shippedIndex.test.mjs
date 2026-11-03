@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkAll, checkAppendOnly, checkRows, checkSkipCheckpoint, checkUses, formatRow, parseIndex, parseRow, rowFieldsFromNotice, rowFromNotice, run, writeRowPick } from "./shippedIndex.mjs";
+import { checkAll, checkAppendOnly, checkRows, checkSkipCheckpoint, checkUses, formatRow, parseIndex, parseRow, refresh, rowFieldsFromNotice, rowFromNotice, run, writeRowPick } from "./shippedIndex.mjs";
 
 function notice(id, extra = []) {
   return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "date: x", "severity: info", ...extra, "change: c", "why: w", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
@@ -220,4 +220,30 @@ test("backfill in a fork: notices on the parent's index are left out", (t) => {
   assert.equal(run(r.dir, ["backfill"], quiet), 0);
   assert.deepEqual(rows(r.dir), [B]);
   assert.equal(run(r.dir, ["verify"], quiet), 0);
+});
+
+test("refresh: an unpushed own row is rebuilt from the body (skip_checkpoint added after pick-check), pick: on the row kept", (t) => {
+  const r = repo(t);
+  const pushed = r.commit({ ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n` });
+  const fix = "20990101-000009-f";
+  r.put({ [`.notices/${fix}.md`]: notice(fix, ["checkpoint: f", "fixes: 20990101-000001-a"]) });
+  assert.equal(run(r.dir, ["add", `.notices/${fix}.md`], quiet), 0);
+  r.put({ ".notices/shipped/up.md": writeRowPick(readFileSync(join(r.dir, ".notices/shipped/up.md"), "utf8"), fix, "-") });
+  r.put({ [`.notices/${fix}.md`]: notice(fix, ["checkpoint: f", "fixes: 20990101-000001-a", "skip_checkpoint: 20990101-000001-a"]) });
+  assert.deepEqual(refresh(r.dir, [`.notices/${fix}.md`], pushed), [`- id:${fix} | severity:info | checkpoint:f | fixes:20990101-000001-a | pick:- | skip_checkpoint:20990101-000001-a`]);
+  assert.equal(rows(r.dir)[0], A);
+  assert.deepEqual(checkAll(r.dir, { ref: pushed }).problems.filter((p) => p.includes(fix)), []);
+});
+
+test("refresh: a pushed row, a missing row or an unknown pushed version is refused", (t) => {
+  const r = repo(t);
+  r.put({ ".notices/20990101-000001-a.md": notice("20990101-000001-a", ["checkpoint: a"]) });
+  assert.equal(run(r.dir, ["add", ".notices/20990101-000001-a.md"], quiet), 0);
+  const pushed = r.commit({});
+  assert.throws(() => refresh(r.dir, [".notices/20990101-000001-a.md"], pushed), /push 済みの行/);
+  r.put({ ".notices/20990101-000002-b.md": notice("20990101-000002-b", ["checkpoint: b"]) });
+  assert.throws(() => refresh(r.dir, [".notices/20990101-000002-b.md"], pushed), /行が無い/);
+  const out = [];
+  assert.equal(run(r.dir, ["refresh", ".notices/20990101-000002-b.md"], (l) => out.push(l)), 2);
+  assert.match(out.join(), /分からない/);
 });

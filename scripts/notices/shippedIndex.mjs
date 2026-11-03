@@ -3,8 +3,10 @@
 // 行は手で書かない。書くのは索引の持ち主のリポだけ(台帳 .notices/applied/<fork_id>.md と同じ理由: 多段の merge で追記が重ならない)。
 // 仕様: .notices/README.md
 //
-// 実行: node scripts/notices/shippedIndex.mjs <add <notice>... | backfill | verify>
+// 実行: node scripts/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | verify>
 //   add <notice>...  自分の索引の末尾に、その notice の行を 1 本ずつ足す(/ship が notice を出荷する commit の前に)
+//   refresh <notice>... push 前の自分の行を本文から作り直す(skip_checkpoint: を pick-check の後に足したとき。pick: は行の値を保つ。
+//                    push 済みの行・push した版が分からないときは拒否)
 //   backfill         .notices/ 直下と done/ の notice(他のリポの索引に載る物 = 親の notice は除く)の行を、最初に足した commit の履歴順(同じ commit は id 順)に起こす(索引の導入時に 1 回)
 //   verify           全索引(.notices/shipped/*.md)について、追記だけ(前に push した版 = @{u} か origin/HEAD の行が先頭に同じ順で並ぶ)・
 //                    行と本文の一致(本文 1 本に行 1 本、未 commit の notice は自分の索引に。本文の無い行は通る: 本文は区間が閉じれば消してよい)・
@@ -180,6 +182,36 @@ export function readIndexes(repo) {
       const text = readFileSync(join(dir, f), "utf8");
       return { owner: f.slice(0, -3), file: `${SHIPPED_DIR}/${f}`, text, rows: parseIndex(text) };
     });
+}
+
+/** push 前の自分の行を本文から作り直す(pick: は本文に無ければ行の値を保つ)。push 済みの行は拒否。作り直した行を返す */
+export function refresh(repo, noticePaths, ref = pushedRef(repo)) {
+  const forkId = ownForkId(repo);
+  const path = indexPath(repo, forkId);
+  const file = `${SHIPPED_DIR}/${forkId}.md`;
+  if (!existsSync(path)) throw new Error(`${file} が無い(先に add)`);
+  if (!ref) throw new Error("前に push した版が分からない(@{u} も origin/HEAD も無い)ので、push 前の行か確かめられない");
+  let pushed = "";
+  try {
+    pushed = git(repo, ["show", `${ref}:${file}`]);
+  } catch {
+    pushed = "";
+  }
+  const pushedIds = new Set(parseIndex(pushed).map((r) => r.id));
+  const lines = readFileSync(path, "utf8").split("\n");
+  const out = [];
+  for (const p of noticePaths) {
+    const row = rowFieldsFromNotice(readFileSync(join(repo, p), "utf8"));
+    if (pushedIds.has(row.id)) throw new Error(`${row.id}: push 済みの行は作り直せない(行は書き換えない。直すなら新しい notice)`);
+    const at = lines.findIndex((l) => parseRow(l)?.id === row.id);
+    if (at < 0) throw new Error(`${row.id}: 自分の索引に行が無い(先に add)`);
+    const old = parseRow(lines[at]);
+    if (!("pick" in row.fields) && "pick" in old.fields) row.fields.pick = old.fields.pick;
+    lines[at] = formatRow(row);
+    out.push(lines[at]);
+  }
+  writeFileSync(path, lines.join("\n"));
+  return out;
 }
 
 /** 今ある全 notice の行を履歴順に起こす(索引が既にあれば止まる)。他のリポの索引に載る notice(fork の親の物)は飛ばす */
@@ -376,6 +408,10 @@ export function run(repo, argv, log = console.log) {
       for (const r of add(repo, rest)) log(`shipped-index: 足した ${r.length > 120 ? `${r.slice(0, 117)}...` : r}`);
       return 0;
     }
+    if (cmd === "refresh" && rest.length) {
+      for (const r of refresh(repo, rest)) log(`shipped-index: 作り直した ${r.length > 120 ? `${r.slice(0, 117)}...` : r}`);
+      return 0;
+    }
     if (cmd === "backfill") {
       log(`shipped-index: ${backfill(repo).length} 行を起こした`);
       return 0;
@@ -390,7 +426,7 @@ export function run(repo, argv, log = console.log) {
     log(`shipped-index: できない — ${e.message}`);
     return 2;
   }
-  log("usage: node scripts/notices/shippedIndex.mjs <add <notice>... | backfill | verify>");
+  log("usage: node scripts/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | verify>");
   return 2;
 }
 

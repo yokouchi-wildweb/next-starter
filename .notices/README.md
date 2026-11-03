@@ -93,7 +93,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 形式: `skip_checkpoint: <notice id>, ...`。修正の notice の欄で、各 id は同じ notice の `fixes:` にあること
 - 意味: 名指した notice の `checkpoint` のラベルを `-` とみなす(その notice は次の区切りまで同じ区間に入る)。外す向きだけで、区切りを足す・戻すには使えない
 - 条件(`pnpm test:notices`): 相手の checkpoint がラベル / 相手が `uses:` を持たない / 修正の notice 自身は区切り / 修正の行の `pick:` が `clean` でない(先に取れるなら外す理由が無い)
-- `/ship` がこの欄を新しい notice の索引の行に写す。修正元の本文と既存の行は書き換えない。`/flux` は上流の先端の索引のどの行の `skip_checkpoint:` も区間の組み立てに使う
+- `/ship` がこの欄を新しい notice の索引の行に写す(pick-check の後に足したら、push 前の行を `node scripts/notices/shippedIndex.mjs refresh <notice>` で作り直す)。修正元の本文と既存の行は書き換えない。`/flux` は上流の先端の索引のどの行の `skip_checkpoint:` も区間の組み立てに使う
 
 ## 区切り(checkpoint)と区間適用
 
