@@ -17,7 +17,7 @@ downstream: many derivative projects depend on this as their base
 ## TIER (multi-tier hierarchy)
 this_repo: Tier1 (canonical upstream). Hierarchy: Tier1 → Tier2 → Tier3.
 fork_id: next-starter
-- fork_id = this repo's short name, declared by every repo (Tier1 = next-starter; the old `-` mark is gone) | form: lowercase letters, digits, hyphens | the same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, its src/lib/CATALOG.md section heading, the order inbox and dot-named files <item>.<name>.ts | missing / malformed / same as an ancestor → checks fail (exit 2) | Tier1 = own name equals the first CATALOG.md section | reader: src/lib/forkOwnership/forkIds.mjs (never derived from the origin URL)
+- fork_id = this repo's short name, declared by every repo (Tier1 = next-starter; the old `-` mark is gone) | form: lowercase letters, digits, hyphens | the same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, its src/lib/CATALOG.md section heading, the order inbox | missing / malformed / same as an ancestor → checks fail (exit 2) | Tier1 = own name equals the first CATALOG.md section | reader: src/lib/forkOwnership/forkIds.mjs (never derived from the origin URL)
 note: downstream forks maintain their OWN project.md and overwrite this declaration per-fork.
 rule: generic/foundational capabilities live HERE (Tier1); downstream must not hardcode them locally — escalate instead.
 request_protocol (shared mailbox: ~/.team/orders/ — never under ~/.claude/: Claude Code always prompts for Write/Edit there, allow rules cannot suppress it):

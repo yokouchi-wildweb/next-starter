@@ -89,7 +89,7 @@
 | 画面 | 既定の画面（`_screen/`）、loader | `page.tsx` の向き先、差し替えた画面と専用部品（`_components/`） |
 | スタイル | トークンの構造（`theme.css`）と既定値（`*.defaults.css`） | 変えたい値だけ（`src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`。upstream の CSS は `src/styles/_base/`） |
 | UI の設定 | 部品の既定値とその型 | 上書きする値（`src/config/ui/*.config.ts`） |
-| 拡張 | 生成器（`scripts/registry`・`scripts/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く `<名前>.<fork の名前>.ts` |
+| 拡張 | 生成器（`scripts/registry`・`scripts/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く印のない `<名前>.ts`、上流の既定を丸ごと置き換える `<名前>.replace.ts` |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |
 
 core ドメイン（`src/features/core/`）の UI は細かい部品と既定のコンテナで、部品は全部公開。fork は core の下を書き換えず、route の Screen で部品から組む（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。
