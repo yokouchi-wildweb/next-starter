@@ -669,9 +669,54 @@ export function checkScreenLoaderCall(source, name) {
   return { problems: [], loaderName: called, loaderImport: imp[2] };
 }
 
+const PARTS_CALL_HEAD = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/;
+
+/** `text` の先頭が `adminXxxParts("<domain>"…)` の呼び出しなら、組の名前・domain・閉じ括弧の位置。読めなければ null */
+function partsCallAt(text) {
+  const m = PARTS_CALL_HEAD.exec(text);
+  if (!m) return null;
+  const end = findBalancedEnd(text, m[0].indexOf("("), "(", ")");
+  if (end < 0) return null;
+  return { partsName: m[1], domain: m[2], end };
+}
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * createLoader({ access: <式> }) の式が管理画面の共通部品の組の access か。組の access = domainAccess(domain, 操作) なので、
+ * 引数まるごとの形(createLoader(adminListParts("d")))と同じ registry:<domain>.<operation> に読める。
+ * 受け付ける形: `adminXxxParts("d"…).access` / 同じファイルで 1 回だけ `const x = adminXxxParts("d"…)` と束ねた `x.access`
+ * (組の関数は @/wiring/adminScreenParts から import、domain は文字列の字面)。
+ * それ以外(分割代入・別ファイルの組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式)は null(字面で読めない扱い)。
+ * @returns {{ partsName: string, domain: string } | null}
+ */
+function partsAccessOf(src, expr) {
+  const text = expr.trim();
+  const inline = partsCallAt(text);
+  if (inline) {
+    return /^\s*\.\s*access$/.test(text.slice(inline.end + 1)) ? { partsName: inline.partsName, domain: inline.domain } : null;
+  }
+  const ref = /^([A-Za-z_$][\w$]*)\s*\.\s*access$/.exec(text);
+  if (!ref) return null;
+  const name = escapeRegExp(ref[1]);
+  // 宣言は const の 1 回だけ(再宣言・内側での影・再代入・import が無い)
+  if (new RegExp(`\\b(?:let|var|function|class)\\s+${name}\\b`).test(src)) return null;
+  if (namedImportSource(src, ref[1]) || new RegExp(`import\\s+${name}\\b`).test(src)) return null;
+  const assigns = [...src.matchAll(new RegExp(`(?<![\\w$.])${name}\\s*(?::[^=;]+)?=(?![=>])`, "g"))];
+  if (assigns.length !== 1) return null;
+  const decl = new RegExp(`\\bconst\\s+${name}\\s*(?::[^=;]+)?=\\s*`).exec(src);
+  // 唯一の代入がこの const の宣言であること
+  if (!decl || assigns[0].index < decl.index || assigns[0].index >= decl.index + decl[0].length) return null;
+  const rest = src.slice(decl.index + decl[0].length);
+  const call = partsCallAt(rest);
+  if (!call || !/^\s*(?:;|\n|$)/.test(rest.slice(call.end + 1))) return null;
+  return { partsName: call.partsName, domain: call.domain };
+}
+
 /**
  * loader の createLoader の import 元と access を読む。
  * access はオブジェクトの access の字面、または管理画面の共通部品の組(registry:<domain>.<operation>)。
+ * 組は引数まるごと(createLoader(adminListParts("d")))か、access: <組>.access(partsAccessOf の形)。
  * @returns {{ problems: string[], guardImport: string | null, access: unknown, allowStatuses: unknown }}
  */
 export function parseLoaderGuard(source) {
@@ -700,6 +745,22 @@ export function parseLoaderGuard(source) {
     return { problems: ["createLoader の引数が字面のオブジェクトでない({ access, … } か管理画面の組 admin*Parts(…))"], guardImport: imp.source, access: null, allowStatuses: null };
   }
   if (!("access" in config)) return { problems: ["createLoader に access が無い"], guardImport: imp.source, access: null, allowStatuses: null };
+  const partsAccess =
+    config.access && typeof config.access === "object" && typeof config.access.expr === "string" && Object.keys(config.access).length === 1
+      ? partsAccessOf(src, config.access.expr)
+      : null;
+  if (partsAccess) {
+    const parts = namedImportSource(src, partsAccess.partsName);
+    if (!parts || parts.source !== "@/wiring/adminScreenParts" || parts.imported !== partsAccess.partsName) {
+      return { problems: [`${partsAccess.partsName} を @/wiring/adminScreenParts から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
+    }
+    return {
+      problems: [],
+      guardImport: imp.source,
+      access: { registry: `${partsAccess.domain}.${ADMIN_PARTS_OPERATIONS[partsAccess.partsName]}` },
+      allowStatuses: config.allowStatuses ?? null,
+    };
+  }
   if (hasExpression(config.access)) {
     return { problems: [`access が字面で読めない(${JSON.stringify(config.access)})`], guardImport: imp.source, access: null, allowStatuses: null };
   }
