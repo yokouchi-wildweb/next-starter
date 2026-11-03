@@ -94,6 +94,12 @@ type UseInfiniteScrollQueryResult<TItem> = {
    * predicate に該当する items をリストから削除する (オプティミスティック更新)。
    * total は連動して減算される。hasMore は変更しない。
    * フィルタ済みリスト (例: status="pending" タブ) で別 status に遷移した item を即時除去する用途。
+   *
+   * サーバー側でも同じ行が一覧から外れた (削除・status 変更) ことを前提にする。
+   * 外れた件数だけサーバーのページ境界が前にずれるため、次の `loadMore` は
+   * ずれた分を含むページから取り直し、取得済みの範囲を切り落として末尾に足す
+   * (`computeNextFetchPosition`)。サーバーに残る行をクライアントだけで隠す用途に使うと、
+   * その行が次の読み込みで再び現れる。
    */
   removeItems: (predicate: (item: TItem) => boolean) => void;
   sentinelRef: (node: HTMLElement | null) => void;
@@ -155,6 +161,32 @@ export function computeHasMore(
   if (lastBatchSize !== null && lastBatchSize <= 0) return false;
   if (lastBatchSize !== null && lastBatchSize < limit) return false;
   return true;
+}
+
+/**
+ * 次に取得する位置 (ページ番号と、そのページの先頭から捨てる件数) を算出する。
+ *
+ * `removeItems` で k 件を外すとサーバー側の行が k 件前に詰まり、
+ * `lastFetchedPage + 1` をそのまま取ると k 件が読み飛ばされる。
+ * 取得済み範囲の次の行 (絶対位置 `lastFetchedPage * limit - removedCount`) を含むページを取り、
+ * その手前の `skip` 件 (= 取得済み) を捨てる。
+ *
+ * @example
+ * computeNextFetchPosition(2, 20, 0)  // => { page: 3, skip: 0 }
+ * computeNextFetchPosition(2, 20, 3)  // => { page: 2, skip: 17 }
+ * computeNextFetchPosition(2, 20, 20) // => { page: 2, skip: 0 }
+ * computeNextFetchPosition(2, 20, 25) // => { page: 1, skip: 15 }
+ */
+export function computeNextFetchPosition(
+  lastFetchedPage: number,
+  limit: number,
+  removedCount: number,
+): { page: number; skip: number } {
+  if (limit <= 0 || removedCount <= 0) {
+    return { page: lastFetchedPage + 1, skip: 0 };
+  }
+  const nextIndex = Math.max(0, lastFetchedPage * limit - removedCount);
+  return { page: Math.floor(nextIndex / limit) + 1, skip: nextIndex % limit };
 }
 
 // ============================================================================
@@ -231,11 +263,15 @@ export function useInfiniteScrollQuery<
   const pendingPageRef = useRef<number>(
     hasInitialData ? initialLastFetchedPage + 1 : initialPage,
   );
+  // pendingPageRef の先頭から捨てる件数 (removeItems で詰まった分の取得済み行)
+  const pendingSkipRef = useRef<number>(0);
   const skipNextFetchRef = useRef<boolean>(hasInitialData);
 
   // 内部スナップショット ref
   const itemsRef = useRef<TItem[]>(initialItems);
   const lastFetchedPageRef = useRef<number>(initialLastFetchedPage);
+  // 直近の取得以降に removeItems で外した件数 (次の取得位置の補正用)
+  const removedSinceFetchRef = useRef<number>(0);
   const requestIdRef = useRef<number>(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelNodeRef = useRef<HTMLElement | null>(null);
@@ -261,10 +297,12 @@ export function useInfiniteScrollQuery<
   initialPageRef.current = initialPage;
   observerOptionsRef.current = observerOptions;
 
-  const fetchPage = useCallback(async (pageToFetch: number) => {
+  const fetchPage = useCallback(async (pageToFetch: number, skip: number) => {
     if (!enabledRef.current) return;
 
     const currentRequestId = ++requestIdRef.current;
+    // この取得が補正に使った削除件数。取得中に外された分は次の取得に持ち越す
+    const removedAtStart = removedSinceFetchRef.current;
     setIsLoading(true);
     isLoadingRef.current = true;
     setError(null);
@@ -279,8 +317,11 @@ export function useInfiniteScrollQuery<
 
       if (currentRequestId !== requestIdRef.current) return;
 
-      const baseItems = pageToFetch === initialPageRef.current ? [] : itemsRef.current;
-      const nextItems = [...baseItems, ...result.results];
+      // 先頭ページを skip なしで取ったとき (初回・revalidate・retry) だけ置き換える
+      const replaces = pageToFetch === initialPageRef.current && skip === 0;
+      const baseItems = replaces ? [] : itemsRef.current;
+      const nextItems = [...baseItems, ...result.results.slice(skip)];
+      // 終端判定はサーバーが返したページの件数で行う (skip で捨てた分も含む)
       const batchSize = result.results.length;
       const nextHasMore = computeHasMore(
         nextItems.length,
@@ -291,6 +332,9 @@ export function useInfiniteScrollQuery<
 
       itemsRef.current = nextItems;
       lastFetchedPageRef.current = pageToFetch;
+      removedSinceFetchRef.current = replaces
+        ? 0
+        : Math.max(0, removedSinceFetchRef.current - removedAtStart);
       hasMoreRef.current = nextHasMore;
 
       setItems(nextItems);
@@ -318,24 +362,35 @@ export function useInfiniteScrollQuery<
       skipNextFetchRef.current = false;
       return;
     }
-    fetchPage(pendingPageRef.current);
+    fetchPage(pendingPageRef.current, pendingSkipRef.current);
   }, [enabled, fetchTick, fetchPage]);
 
-  const triggerFetch = useCallback((pageToFetch: number) => {
+  const triggerFetch = useCallback((pageToFetch: number, skip = 0) => {
     pendingPageRef.current = pageToFetch;
+    pendingSkipRef.current = skip;
     skipNextFetchRef.current = false;
     setFetchTick((tick) => tick + 1);
   }, []);
 
+  // 取得済み範囲の続きを取る (removeItems で詰まった分を補正する)
+  const fetchNext = useCallback(() => {
+    const { page, skip } = computeNextFetchPosition(
+      lastFetchedPageRef.current,
+      limitRef.current,
+      removedSinceFetchRef.current,
+    );
+    triggerFetch(page, skip);
+  }, [triggerFetch]);
+
   const loadMore = useCallback(() => {
     if (!enabledRef.current || isLoadingRef.current || !hasMoreRef.current) return;
-    triggerFetch(lastFetchedPageRef.current + 1);
-  }, [triggerFetch]);
+    fetchNext();
+  }, [fetchNext]);
 
   const retry = useCallback(() => {
     if (!enabledRef.current || isLoadingRef.current) return;
-    triggerFetch(lastFetchedPageRef.current + 1);
-  }, [triggerFetch]);
+    fetchNext();
+  }, [fetchNext]);
 
   const applyReset = useCallback((nextInitialData?: { items: TItem[]; total: number }) => {
     const hasInit = nextInitialData !== undefined;
@@ -356,6 +411,7 @@ export function useInfiniteScrollQuery<
 
     itemsRef.current = nextItems;
     lastFetchedPageRef.current = nextLastFetched;
+    removedSinceFetchRef.current = 0;
     hasMoreRef.current = nextHasMore;
     isLoadingRef.current = false;
 
@@ -369,6 +425,7 @@ export function useInfiniteScrollQuery<
     setHasFetchedOnce(hasInit);
 
     pendingPageRef.current = hasInit ? nextLastFetched + 1 : initialPageRef.current;
+    pendingSkipRef.current = 0;
     skipNextFetchRef.current = hasInit;
     setFetchTick((tick) => tick + 1);
   }, []);
@@ -393,6 +450,7 @@ export function useInfiniteScrollQuery<
     requestIdRef.current += 1;
     // pagination だけ初期に戻す (items / hasFetchedOnce / total は据え置き)
     pendingPageRef.current = initialPageRef.current;
+    pendingSkipRef.current = 0;
     lastFetchedPageRef.current = initialPageRef.current - 1;
     skipNextFetchRef.current = false;
     setFetchTick((tick) => tick + 1);
@@ -417,6 +475,7 @@ export function useInfiniteScrollQuery<
     const removedCount = itemsRef.current.length - nextItems.length;
     if (removedCount === 0) return;
     itemsRef.current = nextItems;
+    removedSinceFetchRef.current += removedCount;
     setItems(nextItems);
     setTotal((prev) => Math.max(0, prev - removedCount));
   }, []);
@@ -454,12 +513,12 @@ export function useInfiniteScrollQuery<
         if (!entry?.isIntersecting) return;
         // guard は ref 経由で最新値を読む (Observer 自体は再生成せずに済む)
         if (!enabledRef.current || isLoadingRef.current || !hasMoreRef.current) return;
-        triggerFetch(lastFetchedPageRef.current + 1);
+        fetchNext();
       }, observerOptionsRef.current);
 
       observerRef.current.observe(node);
     },
-    [triggerFetch],
+    [fetchNext],
   );
 
   // フェッチ完了後 (および enabled 復帰後) もセンチネルが可視のままだと
@@ -487,7 +546,12 @@ export function useInfiniteScrollQuery<
     isFetchingMore: isLoading && items.length > 0,
     error,
     hasMore,
-    nextPage: lastFetchedPageRef.current + 1,
+    // removeItems の補正込み (詰まった分を含むページ)
+    nextPage: computeNextFetchPosition(
+      lastFetchedPageRef.current,
+      limit,
+      removedSinceFetchRef.current,
+    ).page,
     loadMore,
     retry,
     reset,
