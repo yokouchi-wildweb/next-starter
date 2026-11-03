@@ -21,7 +21,7 @@
 2. [CATALOG.md](./CATALOG.md) の**自分の節**に `- src/lib/<name> — <一行説明>` を足す。自分の節が無ければ末尾に `## <自分の所有者 ID>` を作る。他の節は編集しない
 3. `pnpm test:lib-catalog` を通す
 
-所有者 ID = origin URL のパス部分を `--` で連結して小文字にしたもの（`git@github.com:acme/shop.git` → `acme--shop`）。`.notices/applied/<fork-id>.md` の fork-id と同じ。
+所有者 ID = 各リポの fork の名前（`.claude/rules/project.md` の `fork_id:`、読み手は `src/lib/forkOwnership/forkIds.mjs`）。origin の URL からは導かない。`.notices/applied/<fork_id>.md` の名前と同じ。
 
 ## 目録の検査（`pnpm test:lib-catalog`）
 
