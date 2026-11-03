@@ -4,7 +4,7 @@
 // 問題があれば書き出さずに止まる。宣言が消えた古い一覧(目印のヘッダを持つ)は消す。手で置いたファイルは消さずに失敗を出す。
 // 書式と失敗の条件: ./README.md
 
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,6 +22,11 @@ for (const path of stale) {
   const abs = join(repoRoot, path);
   mkdirSync(dirname(abs), { recursive: true });
   writeFileSync(abs, plan.outputs[path]);
+}
+// 受け口の一覧の生成区画(intake.txt。一覧の数には入れない)
+if (plan.intake && (!existsSync(join(repoRoot, plan.intake.path)) || readFileSync(join(repoRoot, plan.intake.path), "utf8") !== plan.intake.content)) {
+  writeFileSync(join(repoRoot, plan.intake.path), plan.intake.content);
+  stale.push(plan.intake.path);
 }
 const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points);
 const removed = strays.filter((s) => s.generated);

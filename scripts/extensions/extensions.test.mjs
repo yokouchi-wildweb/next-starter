@@ -1,5 +1,5 @@
 // scripts/extensions/extensions.test.mjs
-// 拡張点の生成器(./declarations.mjs・./extensions.mjs)の回帰テスト。一時ディレクトリの fixture で動かす。
+// 拡張点の生成器(宣言の読み手 src/lib/forkOwnership/declarations.mjs・./extensions.mjs)の回帰テスト。一時ディレクトリの fixture で動かす。
 // - 宣言はリテラルだけ(式・未知のキー・点の名前の形は失敗)、src の下ならどこでも読む(lib の target: "wiring" も)
 // - 項目はファイル(<名前>.ts(x))かフォルダ(<名前>/index.ts(x))、名前の順。import の別名 = <点の名前>_<項目の名前>
 // - 失敗: 旧い fork の名前の印(移し方を案内) / export が無い / 同じ名前のファイルとフォルダ / 旧い extensionPoints.<x>.ts
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 
 import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 
-import { readDeclaration } from "./declarations.mjs";
+import { readDeclaration } from "../../src/lib/forkOwnership/declarations.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { checkSwitches } from "./switches.mjs";
 import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
@@ -141,6 +141,40 @@ test("受け口の override と .replace: overrideOf の無い点は override �
   assert.equal(plan.problems.length, 2, plan.problems.join("\n"));
   assert.ok(plan.problems.some((p) => p.includes("a.override.ts") && p.includes("override を受けない")));
   assert.ok(plan.problems.some((p) => p.includes("a.replace.ts") && p.includes("孤立した .replace")));
+});
+
+test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(dir \".\"・files の点も)・1 行スイッチの .replace・route の隣・scripts の受け口の add を書き、印の無い一覧は失敗、無い fixture は null", () => {
+  const INTAKE = "edit src/config/**  # 値\n# === AUTO-GENERATED intake START ===\nadd old/*.ts  # 古い行\n# === AUTO-GENERATED intake END ===\nappend src/lib/CATALOG.md  # 目録\n";
+  const files = {
+    "src/features/milestone/extensionPoints.ts": point(MILESTONES),
+    "src/proxies/extensionPoints.ts": point(`  handlers: { dir: ".", export: "handler", type: { from: "@/t", name: "H" }, side: "server" },\n  decorators: { dir: ".", export: "decorator", type: { from: "@/t", name: "D" }, side: "server" },`),
+    "src/app/demo/extensionPoints.ts": point(`  pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" },`),
+    "src/features/core/user/extensionPoints.ts": point(`  roles: { writer: "role:generate", side: "shared" },`),
+    "src/features/core/payment/enricher.default.ts": "export function enrich() {}\n",
+    "src/features/core/payment/enricher.ts": 'export { enrich } from "./enricher.default";\n',
+  };
+  assert.equal(planExtensions(fixture(files)).intake, null);
+  const plan = planExtensions(fixture({ ...files, "src/lib/forkOwnership/intake.txt": INTAKE }));
+  assert.deepEqual(plan.problems, []);
+  assert.equal(plan.intake.path, "src/lib/forkOwnership/intake.txt");
+  const rows = plan.intake.content.split("\n").filter((l) => /^add /.test(l)).map((l) => l.split("  #")[0]);
+  assert.deepEqual(rows, [
+    "add src/app/demo/*/_demo.ts",
+    "add src/features/milestone/milestones/*.{ts,tsx}",
+    "add src/features/milestone/milestones/*/**",
+    "add src/proxies/*.{ts,tsx}",
+    "add src/proxies/*/**",
+    "add src/features/core/payment/enricher.replace.{ts,tsx}",
+    "add src/app/**/_layout/**/*.replace.{ts,tsx}",
+    "add src/app/**/_screen/**/*.replace.{ts,tsx}",
+    "add scripts/tasks/*.ts",
+    "add scripts/proxies/alwaysOnExceptions/*.mjs",
+  ]);
+  assert.ok(plan.intake.content.startsWith("edit src/config/**  # 値\n# === AUTO-GENERATED intake START ===\n"));
+  assert.ok(plan.intake.content.endsWith("# === AUTO-GENERATED intake END ===\nappend src/lib/CATALOG.md  # 目録\n"), "区画の外は変えない");
+  assert.equal(Object.keys(plan.outputs).includes("src/lib/forkOwnership/intake.txt"), false, "一覧の数には入れない");
+  const broken = planExtensions(fixture({ ...files, "src/lib/forkOwnership/intake.txt": "edit src/config/**  # 値\n" }));
+  assert.ok(broken.problems.some((p) => p.includes("intake.txt") && p.includes("生成区画の印の対")));
 });
 
 test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を出す)。alwaysOn は真偽だけ", () => {

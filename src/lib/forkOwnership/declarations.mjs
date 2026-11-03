@@ -1,15 +1,16 @@
-// scripts/extensions/declarations.mjs
-// 拡張点の宣言(extensionPoints.ts)を探して読む。fork の点は fork 自身のフォルダの extensionPoints.ts に書く
+// 拡張点の宣言(extensionPoints.ts)の唯一の読み手。生成器(scripts/extensions)・所有の検査の単位名(./unitNames.mjs)・
+// src/wiring の配線テスト・ロールの上書き(scripts/role-config)が使う(D2: 仕組みは src/lib に 1 本、scripts から import)。
+// 宣言を探して読む。fork の点は fork 自身のフォルダの extensionPoints.ts に書く
 // (旧い extensionPoints.<x>.ts は止めて移し方を案内する)。
 // 宣言はリテラルだけ: TypeScript の構文木で字面を読み、実行しない(式・変数・関数呼び出し・テンプレートは失敗)。
-// 書式と置き場: ./README.md
+// 書式と置き場: scripts/extensions/README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
 import ts from "typescript";
 
-import { classifyDottedName, oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem } from "./dottedNames.mjs";
 
 export const DECLARATION_NAME = "extensionPoints";
 /** 宣言を探す範囲(リポジトリ直下からの相対) */

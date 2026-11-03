@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseForkDotName, parseForkIdDeclaration, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
+import { parseForkIdDeclaration, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
 
 test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大文字・_・. ・-- の連続)は error", () => {
   assert.deepEqual(parseForkIdDeclaration("## TIER\nfork_id: oripa-do\n"), { forkId: "oripa-do", error: null });
@@ -60,16 +60,4 @@ test("readForkIdentity: 宣言なし・形違いの台帳名・祖先と同名�
   // 中間 Tier の名前を名乗る
   const middle = readForkIdentity(repo({ forkId: "oripa-do", ledgers: ["oripa-do"], sections: ["next-starter", "oripa-do", "pandora"] }));
   assert.match(middle.errors.join(), /途中の節/);
-});
-
-test("parseForkDotName: <名前>[.<中置き>].<fork ID>.<拡張子> を読み、印なし・ドット入りの ID・受けない拡張子は null", () => {
-  assert.deepEqual(parseForkDotName("playThrottle.acme.ts"), { name: "playThrottle", infix: null, forkId: "acme" });
-  assert.deepEqual(parseForkDotName("AppProviders.client.acme.tsx", { infixes: ["client"] }), { name: "AppProviders", infix: "client", forkId: "acme" });
-  assert.equal(parseForkDotName("maintenance.ts"), null);
-  assert.equal(parseForkDotName("x.a.b.ts"), null);
-  assert.equal(parseForkDotName("x.acme.mjs"), null);
-  assert.deepEqual(parseForkDotName("x.acme.mjs", { extensions: ["mjs"] })?.forkId, "acme");
-  assert.equal(parseForkDotName("1x.acme.ts"), null);
-  assert.equal(parseForkDotName("x.Acme.ts"), null, "fork の名前は小文字");
-  assert.deepEqual(parseForkDotName("x.oripa-do.ts")?.forkId, "oripa-do");
 });

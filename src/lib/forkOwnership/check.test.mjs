@@ -6,6 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
+import { planExtensions } from "../../../scripts/extensions/extensions.mjs";
 import { forkAddedFiles, runCheck } from "./check.mjs";
 
 const CLI = resolve(import.meta.dirname, "cli.mjs");
@@ -185,7 +186,7 @@ describe("ownership:check", () => {
     function parentWithPlaces() {
       const parent = makeParent();
       write(parent, "src/lib/forkOwnership/intake.txt", `${readFileSync(join(parent, "src/lib/forkOwnership/intake.txt"), "utf8")}edit src/features/core/setting/fields/**  # 受け口\n`);
-      write(parent, "src/features/core/setting/extensionPoints.ts", 'export const extensionPoints = { fields: { dir: "fields", export: "field" } };\n');
+      write(parent, "src/features/core/setting/extensionPoints.ts", 'export const extensionPoints = { fields: { dir: "fields", export: "field", type: { from: "@/t", name: "T" }, side: "server" } };\n');
       write(parent, "src/features/core/setting/fields/a.ts", "export const field = 1;\n");
       write(parent, "src/wiring/apiRoute.ts", "export const x = 1;\n");
       write(parent, "src/wiring/dbAgent/index.ts", "export const x = 1;\n");
@@ -231,6 +232,43 @@ describe("ownership:check", () => {
       const result = runCheck(fork);
       assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));
     });
+  });
+
+  test("受け口の行は生成区画(宣言から): core の受け口の印なしの項目と core の 1 行スイッチの .replace は合格、受け口の外の core への追加は core-add", () => {
+    const parent = makeParent();
+    const intakePath = "src/lib/forkOwnership/intake.txt";
+    write(parent, intakePath, `${readFileSync(join(parent, intakePath), "utf8")}# === AUTO-GENERATED intake START ===\n# === AUTO-GENERATED intake END ===\n`);
+    write(parent, "src/features/core/user/extensionPoints.ts", 'export const extensionPoints = { cleanupHandlers: { dir: "cleanupHandlers", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };\n');
+    write(parent, "src/features/core/user/cleanupHandlers/base.ts", "export const handler = 1;\n");
+    write(parent, "src/features/core/payment/enricher.default.ts", "export function enrich() {}\n");
+    write(parent, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.default";\n');
+    // 生成区画は実物の生成器(pnpm extensions:generate の中身)で書く
+    const plan = planExtensions(parent);
+    assert.deepEqual(plan.problems, []);
+    write(parent, intakePath, plan.intake.content);
+    assert.match(plan.intake.content, /^add src\/features\/core\/user\/cleanupHandlers\/\*\.\{ts,tsx\}/m);
+    assert.match(plan.intake.content, /^add src\/features\/core\/payment\/enricher\.replace\.\{ts,tsx\}/m);
+    commitAll(parent, "receptacles");
+
+    const fork = makeFork(parent);
+    write(fork, "src/features/core/user/cleanupHandlers/mine.ts", "export const handler = 2;\n");
+    write(fork, "src/features/core/user/cleanupHandlers/folder/index.ts", "export const handler = 3;\n");
+    write(fork, "src/features/core/payment/enricher.replace.ts", "export function enrich() {}\n");
+    write(fork, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.replace";\n');
+    commitAll(fork, "plain items");
+    let result = runCheck(fork);
+    const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
+    assert.equal(reasonOf("src/features/core/user/cleanupHandlers/mine.ts"), "added");
+    assert.equal(reasonOf("src/features/core/user/cleanupHandlers/folder/index.ts"), "added");
+    assert.equal(reasonOf("src/features/core/payment/enricher.replace.ts"), "added");
+    assert.equal(reasonOf("src/features/core/payment/enricher.ts"), "outside-intake", "スイッチの書き換えは手書きの edit の行(この fixture には無い)");
+
+    write(fork, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.default";\n');
+    write(fork, "src/features/core/user/helper.ts", "export const x = 1;\n");
+    commitAll(fork, "outside");
+    result = runCheck(fork);
+    assert.equal(reasonOf("src/features/core/user/helper.ts"), "core-add");
+    assert.equal(reasonOf("src/features/core/user/cleanupHandlers/mine.ts"), "added");
   });
 
   test("fork の追加と受け口の中の書き換えだけなら合格(0)", () => {

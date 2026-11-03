@@ -10,10 +10,11 @@ import { basename, join, posix } from "node:path";
 import { classifyDottedName, oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
 import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 
-import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "./declarations.mjs";
+import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "../../src/lib/forkOwnership/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
+import { planIntake } from "./intake.mjs";
 import { checkSwitches } from "./switches.mjs";
 
 export const COMMAND = "pnpm extensions:generate";
@@ -23,7 +24,7 @@ const HEADER_PREFIX = "// 生成物・編集不可: ";
 const WIRING_DIR = "src/wiring";
 
 const ITEM_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
-// テスト・宣言(extensionPoints.<x>.ts の旧い形は declarations.mjs が止める)は項目でない
+// テスト・宣言(extensionPoints.<x>.ts の旧い形は宣言の読み手 src/lib/forkOwnership/declarations.mjs が止める)は項目でない
 const isSkippedFile = (name) => /\.(test|spec|d)\.[cm]?tsx?$/.test(name) || !/\.tsx?$/.test(name) || classifyDottedName(name).base === DECLARATION_NAME;
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const markOf = (exportName) => new RegExp(`^export\\s+const\\s+${exportName}\\b`, "m");
@@ -246,7 +247,8 @@ function renderFile(points, itemsByPoint) {
 /**
  * 全拡張点を走査して、生成一覧の中身を組み立てる。1 行スイッチと override の検査(./switches.mjs・./overrides.mjs)も同じ problems に
  * @param {string} repoRoot
- * @returns {{ points: object[], itemsByPoint: Map<object, object[]>, outputs: Record<string, string>, switches: object[], overrides: object[], problems: string[] }}
+ * @returns {{ points: object[], itemsByPoint: Map<object, object[]>, outputs: Record<string, string>, intake: { path: string, content: string } | null, switches: object[], overrides: object[], problems: string[] }}
+ *   intake = 受け口の一覧(intake.txt)の生成区画を作り直した中身(一覧の数には入れない。intake.txt の無い fixture は null)
  */
 export function planExtensions(repoRoot) {
   const identity = readForkIdentity(repoRoot);
@@ -296,7 +298,10 @@ export function planExtensions(repoRoot) {
   const switchCheck = checkSwitches(repoRoot, { isTier1 });
   const overrideCheck = checkOverrides(repoRoot, { isTier1, receptacleDirs: allDirs });
   problems.push(...switchCheck.problems, ...overrideCheck.problems);
-  return { points: declared, itemsByPoint, outputs, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
+  const intakePlan = planIntake(repoRoot, declared, switchCheck.switches);
+  if (intakePlan && "problem" in intakePlan) problems.push(intakePlan.problem);
+  const intake = intakePlan && !("problem" in intakePlan) ? intakePlan : null;
+  return { points: declared, itemsByPoint, outputs, intake, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
 }
 
 /** 点の項目(テスト・検査用): 持ち主のフォルダと点の名前で引く */

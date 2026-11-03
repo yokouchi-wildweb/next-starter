@@ -29,80 +29,83 @@ edit src/app/(user)/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/admin/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/**/_components/**  # upstream のルートの fork の部品
-edit src/app/_layout/adminCommand/categories/*.*.tsx  # 管理者コマンドのカテゴリ
-edit src/app/**/_layout/**/*.*.tsx  # 枠のドット区切り名のカスタム(D41)
-edit src/app/**/_screen/**/*.*.tsx  # Screen の隣のドット区切り名
 edit src/app/_providers/ForkProviders.tsx  # AppProviders の fork の口(D30 K8。上流は空、多段は同じファイルを書き換える)
-!src/app/**/*.test.tsx  # テストはドット区切り名のカスタムではない
 
-# 結線(fork のドット名の wiring。上流の wiring の置き換えは無い。検査: pnpm test:wiring が fork_id: と台帳名で ID を確かめる)
-edit src/wiring/*.*.ts  # src/wiring/README.md「fork の wiring」(D5 K5)
-edit src/wiring/*.*.tsx  # 同上(client 用 <名前>.client.<fork ID>.tsx)
-!src/wiring/*.test.*  # テストはドット区切り名のカスタムではない
-
-# proxy の枠と機能を閉じる規則(fork のドット名。上流の index.ts・規則は編集しない。検査: pnpm extensions:check・test:feature-gate)
-edit src/proxies/*.*.ts  # src/proxies/README.md「骨組みと枠」(D11 K2)
-edit src/proxies/featureGateRules/*.*.ts  # src/proxies/README.md「規則の書き方」(D15)
-edit src/proxies/*.*/**  # 枠の項目のフォルダ形 <名前>.<fork の名前>/index.ts(scripts/extensions/README.md)
-edit src/proxies/featureGateRules/*.*/**  # 規則のフォルダ形
-edit scripts/tasks/*.*.ts  # ワンショット・任意タスクの fork の項目(scripts/tasks/README.md)
-edit scripts/proxies/alwaysOnExceptions.*.mjs  # src/proxies/README.md「常時実行の入口」の fork の口(L1.24)
-edit src/features/core/analytics/rollupMetrics/*.*.ts  # 日次ロールアップのメトリクス
-edit src/features/core/analytics/rollupMetrics/*.*/**  # フォルダ形
-edit src/features/core/analytics/services/server/coinIssuance/sources/*.*.ts  # コイン創出のソース
-edit src/features/core/analytics/services/server/coinIssuance/sources/*.*/**  # フォルダ形
-edit src/features/core/user/reservedNames/*.*.ts  # 表示名の予約名プロバイダ
-edit src/features/core/user/reservedNames/*.*/**  # フォルダ形
-edit src/features/core/user/cleanupHandlers/*.*.ts  # 退会の後片付け
-edit src/features/core/user/cleanupHandlers/*.*/**  # フォルダ形
-edit src/features/core/interactionTracking/targetRules/*.*.ts  # 計測対象の規則
-edit src/features/core/interactionTracking/targetRules/*.*/**  # フォルダ形
-edit src/features/core/pairedDevice/kinds/*.*.ts  # 登録端末の種類
-edit src/features/core/pairedDevice/kinds/*.*/**  # フォルダ形
-edit src/features/core/purchaseRequest/services/server/completion/strategies/*.*.ts  # 購入完了戦略
-edit src/features/core/purchaseRequest/services/server/completion/strategies/*.*/**  # フォルダ形
-edit src/features/core/purchaseRequest/services/server/hooks/definitions/*.*.ts  # 購入完了ポストフック
-edit src/features/core/purchaseRequest/services/server/hooks/definitions/*.*/**  # フォルダ形
-edit src/features/core/milestone/services/server/definitions/*.*.ts  # マイルストーン定義
-edit src/features/core/milestone/services/server/definitions/*.*/**  # フォルダ形
-edit src/features/core/referralReward/rewardGroups/*.*.ts  # 報酬グループ
-edit src/features/core/referralReward/rewardGroups/*.*/**  # フォルダ形
-edit src/features/core/referralReward/services/server/handlers/*.*.ts  # 報酬ハンドラー
-edit src/features/core/referralReward/services/server/handlers/*.*/**  # フォルダ形
-edit src/features/core/batchJob/jobHandlers/*.*.ts  # バッチジョブハンドラ
-edit src/features/core/batchJob/jobHandlers/*.*/**  # フォルダ形
+# 1 行スイッチ(呼び手が import する素の名前。丸ごと置き換え <名前>.replace は下の生成区画)
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(決済セッションのエンリッチャー)
 edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(クーポン発行者プログラム)
 edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(デモユーザー作成後のフック)
-edit src/features/core/milestone/components/renderers/*.*.ts  # マイルストーンのレンダラー
-edit src/features/core/milestone/components/renderers/*.*.tsx  # マイルストーンのレンダラー
-edit src/features/core/milestone/components/renderers/*.*/**  # フォルダ形
-edit src/features/core/adminCommand/navigationItems/*.*.ts  # 管理者コマンドのナビゲーション先
-edit src/features/core/adminCommand/navigationItems/*.*/**  # フォルダ形
-edit src/app/_layout/adminCommand/categories/*.*.ts  # 管理者コマンドのカテゴリ
-edit src/app/_layout/adminCommand/categories/*.*/**  # フォルダ形
-edit src/app/_layout/adminCommand/plugins/*.*.ts  # 管理者コマンドのプラグイン
-edit src/app/_layout/adminCommand/plugins/*.*.tsx  # 管理者コマンドのプラグイン
-edit src/app/_layout/adminCommand/plugins/*.*/**  # フォルダ形
 edit src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # 1 行スイッチ(残高調整の通知の組み立て)
 edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(重複登録の警告の本文)
-edit src/features/core/setting/fields/*.*.ts  # 設定のキー(fork のキー・上流のキーの *.override.ts)
-edit src/features/core/setting/sections/*.*.ts  # 設定のセクション(fork のセクション・上流のセクションの *.override.ts)
-edit src/features/core/coupon/adminSectionTabs/*.*.ts  # クーポン管理画面のセクションタブ
-edit src/features/core/coupon/adminSectionTabs/*.*/**  # フォルダ形
-edit src/features/core/storageObject/purposes/*.*.ts  # ファイル用途
-edit src/features/core/storageObject/purposes/*.*/**  # フォルダ形
-edit src/wiring/dbAgent/extraTools/*.*.ts  # DB エージェントの追加ツール
-edit src/wiring/dbAgent/extraTools/*.*/**  # フォルダ形
-edit src/wiring/dbAgent/promptFragments/*.*.ts  # DB エージェントのプロンプト断片
-edit src/wiring/dbAgent/promptFragments/*.*/**  # フォルダ形
-edit src/wiring/dbAgent/suffixProviders/*.*.ts  # DB エージェントのサフィックスのプロバイダ
-edit src/wiring/dbAgent/suffixProviders/*.*/**  # フォルダ形
-edit src/wiring/formInputs/inputs/*.*.ts  # 独自の入力部品の登録
-edit src/wiring/formInputs/inputs/*.*.tsx  # 同上
-edit src/wiring/formInputs/inputs/*.*/**  # フォルダ形
-edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
-!src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
+
+# 受け口(拡張点の受け口のフォルダ・1 行スイッチと route の隣の丸ごと置き換え・scripts の受け口)。fork の項目は印なしの名前(D137)
+# === AUTO-GENERATED intake START ===
+# pnpm extensions:generate が拡張点の宣言(extensionPoints.ts)と 1 行スイッチから書く。手で編集しない(ずれは extensions:check が止める)
+add src/app/(user)/demo/*/_demo.ts  # 受け口 demoPages
+add src/app/_layout/adminCommand/categories/*.{ts,tsx}  # 受け口 categories
+add src/app/_layout/adminCommand/categories/*/**  # 受け口 categories(フォルダ形)
+add src/app/_layout/adminCommand/plugins/*.{ts,tsx}  # 受け口 plugins
+add src/app/_layout/adminCommand/plugins/*/**  # 受け口 plugins(フォルダ形)
+add src/features/core/adminCommand/navigationItems/*.{ts,tsx}  # 受け口 navigationItems
+add src/features/core/adminCommand/navigationItems/*/**  # 受け口 navigationItems(フォルダ形)
+add src/features/core/analytics/rollupMetrics/*.{ts,tsx}  # 受け口 rollupMetrics
+add src/features/core/analytics/rollupMetrics/*/**  # 受け口 rollupMetrics(フォルダ形)
+add src/features/core/analytics/services/server/coinIssuance/sources/*.{ts,tsx}  # 受け口 coinIssuanceSources
+add src/features/core/analytics/services/server/coinIssuance/sources/*/**  # 受け口 coinIssuanceSources(フォルダ形)
+add src/features/core/batchJob/jobHandlers/*.{ts,tsx}  # 受け口 jobHandlers
+add src/features/core/batchJob/jobHandlers/*/**  # 受け口 jobHandlers(フォルダ形)
+add src/features/core/coupon/adminSectionTabs/*.{ts,tsx}  # 受け口 sectionTabs
+add src/features/core/coupon/adminSectionTabs/*/**  # 受け口 sectionTabs(フォルダ形)
+add src/features/core/interactionTracking/targetRules/*.{ts,tsx}  # 受け口 targetRules
+add src/features/core/interactionTracking/targetRules/*/**  # 受け口 targetRules(フォルダ形)
+add src/features/core/milestone/components/renderers/*.{ts,tsx}  # 受け口 renderers
+add src/features/core/milestone/components/renderers/*/**  # 受け口 renderers(フォルダ形)
+add src/features/core/milestone/services/server/definitions/*.{ts,tsx}  # 受け口 definitions
+add src/features/core/milestone/services/server/definitions/*/**  # 受け口 definitions(フォルダ形)
+add src/features/core/pairedDevice/kinds/*.{ts,tsx}  # 受け口 kinds
+add src/features/core/pairedDevice/kinds/*/**  # 受け口 kinds(フォルダ形)
+add src/features/core/purchaseRequest/services/server/completion/strategies/*.{ts,tsx}  # 受け口 completionStrategies
+add src/features/core/purchaseRequest/services/server/completion/strategies/*/**  # 受け口 completionStrategies(フォルダ形)
+add src/features/core/purchaseRequest/services/server/hooks/definitions/*.{ts,tsx}  # 受け口 completeHooks
+add src/features/core/purchaseRequest/services/server/hooks/definitions/*/**  # 受け口 completeHooks(フォルダ形)
+add src/features/core/referralReward/rewardGroups/*.{ts,tsx}  # 受け口 rewardGroups
+add src/features/core/referralReward/rewardGroups/*/**  # 受け口 rewardGroups(フォルダ形)
+add src/features/core/referralReward/services/server/handlers/*.{ts,tsx}  # 受け口 rewardHandlers
+add src/features/core/referralReward/services/server/handlers/*/**  # 受け口 rewardHandlers(フォルダ形)
+add src/features/core/setting/fields/*.{ts,tsx}  # 受け口 fields
+add src/features/core/setting/fields/*/**  # 受け口 fields(フォルダ形)
+add src/features/core/setting/sections/*.{ts,tsx}  # 受け口 sections
+add src/features/core/setting/sections/*/**  # 受け口 sections(フォルダ形)
+add src/features/core/storageObject/purposes/*.{ts,tsx}  # 受け口 purposes
+add src/features/core/storageObject/purposes/*/**  # 受け口 purposes(フォルダ形)
+add src/features/core/user/cleanupHandlers/*.{ts,tsx}  # 受け口 cleanupHandlers
+add src/features/core/user/cleanupHandlers/*/**  # 受け口 cleanupHandlers(フォルダ形)
+add src/features/core/user/reservedNames/*.{ts,tsx}  # 受け口 reservedNames
+add src/features/core/user/reservedNames/*/**  # 受け口 reservedNames(フォルダ形)
+add src/features/core/userLineProfile/webhookHandlers/*.{ts,tsx}  # 受け口 webhookHandlers
+add src/features/core/userLineProfile/webhookHandlers/*/**  # 受け口 webhookHandlers(フォルダ形)
+add src/proxies/*.{ts,tsx}  # 受け口 decorators・handlers
+add src/proxies/*/**  # 受け口 decorators・handlers(フォルダ形)
+add src/proxies/featureGateRules/*.{ts,tsx}  # 受け口 featureGateRules
+add src/proxies/featureGateRules/*/**  # 受け口 featureGateRules(フォルダ形)
+add src/wiring/dbAgent/extraTools/*.{ts,tsx}  # 受け口 extraTools
+add src/wiring/dbAgent/extraTools/*/**  # 受け口 extraTools(フォルダ形)
+add src/wiring/dbAgent/promptFragments/*.{ts,tsx}  # 受け口 promptFragments
+add src/wiring/dbAgent/promptFragments/*/**  # 受け口 promptFragments(フォルダ形)
+add src/wiring/dbAgent/suffixProviders/*.{ts,tsx}  # 受け口 suffixProviders
+add src/wiring/dbAgent/suffixProviders/*/**  # 受け口 suffixProviders(フォルダ形)
+add src/wiring/formInputs/inputs/*.{ts,tsx}  # 受け口 inputs
+add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
+add src/features/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
+add src/features/core/auth/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/services/server/onDemoUserCreated.ts の丸ごと置き換え
+add src/features/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 1 行スイッチ src/features/core/couponIssuerGrant/services/server/programConfig.ts の丸ごと置き換え
+add src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 1 行スイッチ src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts の丸ごと置き換え
+add src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts の丸ごと置き換え
+add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き換え(_layout の隣の <名前>.replace)
+add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)
+add scripts/tasks/*.ts  # ワンショット・任意タスク(scripts/tasks/README.md)
+add scripts/proxies/alwaysOnExceptions/*.mjs  # 常時実行の例外(1 項目 1 ファイル、src/proxies/README.md)
+# === AUTO-GENERATED intake END ===
 
 # ドメインと定期タスクの上書き
 edit src/app/api/cron/*/override.ts  # cron の時刻変更・停止

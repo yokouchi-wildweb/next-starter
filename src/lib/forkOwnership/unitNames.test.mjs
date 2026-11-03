@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { overrideTargetUnit, placeUnitOf, receptacleDirsOfDeclaration, unitIndex, unitName, unitPlaces } from "./unitNames.mjs";
+import { overrideTargetUnit, placeUnitOf, unitIndex, unitName, unitPlaces } from "./unitNames.mjs";
 
 test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .override は残す", () => {
   assert.equal(unitName("src/wiring/foo.ts"), "src/wiring/foo");
@@ -14,11 +14,13 @@ test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .ov
   assert.equal(unitName("scripts/README"), "scripts/README");
 });
 
+const spec = (dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
+
 test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目だけ、route の隣はその下全部、それ以外は対象外", () => {
   const files = ["src/features/core/user/extensionPoints.ts", "src/proxies/extensionPoints.ts"];
   const texts = {
-    "src/features/core/user/extensionPoints.ts": 'export const extensionPoints = {\n  // dir: "commented"\n  a: { dir: "cleanup", export: "h" },\n};\n',
-    "src/proxies/extensionPoints.ts": 'export const extensionPoints = { h: { dir: "." }, r: { dir: "featureGateRules" } };\n',
+    "src/features/core/user/extensionPoints.ts": `export const extensionPoints = {\n  // b: ${spec("commented")},\n  a: ${spec("cleanup")},\n};\n`,
+    "src/proxies/extensionPoints.ts": `export const extensionPoints = { h: ${spec(".")}, r: ${spec("featureGateRules")} };\n`,
   };
   const places = unitPlaces(files, (p) => texts[p] ?? null);
   assert.ok(places.direct.has("src/features/core/user/cleanup"));
@@ -39,8 +41,9 @@ test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目�
   assert.equal(placeUnitOf("src/lib/x/index.ts", places), null);
 });
 
-test("receptacleDirsOfDeclaration・overrideTargetUnit・unitIndex", () => {
-  assert.deepEqual(receptacleDirsOfDeclaration('{ a: { dir: "x/y" }, b: { dir: \'z\' } }'), ["x/y", "z"]);
+test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは extensions:check)・overrideTargetUnit・unitIndex", () => {
+  const places = unitPlaces(["src/x/extensionPoints.ts"], () => 'export const extensionPoints = { a: { dir: DIR } };\n');
+  assert.ok(![...places.direct].some((d) => d.startsWith("src/x")));
   assert.equal(overrideTargetUnit("src/features/core/setting/fields/a.override.ts"), "src/features/core/setting/fields/a");
   assert.equal(overrideTargetUnit("src/features/core/user/roles/coreRoles/user.role.override.ts"), "src/features/core/user/roles/coreRoles/user.role");
   assert.equal(overrideTargetUnit("src/app/api/cron/x/override.ts"), null);

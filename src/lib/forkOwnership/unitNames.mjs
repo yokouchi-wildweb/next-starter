@@ -1,4 +1,4 @@
-// 単位名(印の代わりの同名の検査、D137・計画書 01 S2)。git には触れない純関数。Node 組み込みも使わない .mjs
+// 単位名(印の代わりの同名の検査、D137・計画書 01 S2)。git には触れない純関数の .mjs(宣言は ./declarations.mjs で読む)
 // 仕様: ./README.md「判定」
 //
 // 単位名 = パスから最後の拡張子と末尾の /index を除いた名前(.replace / .override は名前の一部として残す)。
@@ -8,6 +8,8 @@
 //   scripts/proxies/alwaysOnExceptions … 直下の項目だけ(項目のフォルダの中の部品は見ない)
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
 // <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
+
+import { readDeclaration } from "./declarations.mjs";
 
 const DIRECT_FIXED = ["src/wiring", "scripts", "scripts/tasks", "scripts/proxies/alwaysOnExceptions"];
 const ROUTE_NEIGHBOUR = /^src\/app\/(?:.*\/)?(?:_layout|_screen|_components)\//;
@@ -34,12 +36,6 @@ const normalize = (path) => {
   return out.join("/");
 };
 
-/** extensionPoints.ts の中身から受け口のフォルダ(dir: の字面)を読む(形の検査は extensions:check の側) */
-export function receptacleDirsOfDeclaration(text) {
-  const body = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/[^\n]*$/gm, "");
-  return [...body.matchAll(/\bdir:\s*["']([^"']+)["']/g)].map((m) => m[1]);
-}
-
 /**
  * 基準のファイルの一覧から検査する場所を組み立てる
  * @param {Iterable<string>} baseFiles 基準のファイル(リポジトリ直下からの相対)
@@ -51,7 +47,10 @@ export function unitPlaces(baseFiles, readBase) {
   for (const path of baseFiles) {
     if (!DECLARATION.test(path)) continue;
     const owner = dirOf(path);
-    for (const dir of receptacleDirsOfDeclaration(readBase(path) ?? "")) direct.add(normalize(`${owner}/${dir}`));
+    // 宣言の唯一の読み手で読む(形の誤りのある宣言は点 0。止めるのは extensions:check)
+    for (const point of Object.values(readDeclaration(path, readBase(path) ?? "").points)) {
+      if (typeof point.dir === "string") direct.add(normalize(`${owner}/${point.dir}`));
+    }
   }
   return { direct };
 }

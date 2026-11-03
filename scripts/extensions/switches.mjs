@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
 import { stripComments } from "../../src/lib/screens/checks.mjs";
 
-import { SEARCH_ROOT } from "./declarations.mjs";
+import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
 
 const DEFAULT_FILE = /^([A-Za-z][A-Za-z0-9]*)\.default\.(ts|tsx)$/;
 const REPLACE_FILE = /^(.+)\.replace\.(ts|tsx)$/;

@@ -19,7 +19,10 @@ const S = FORK_REGION_START;
 const E = FORK_REGION_END;
 
 describe("実リポジトリの intake.txt", () => {
-  const { rules, errors } = parseIntake(readFileSync(join(ROOT, "src/lib/forkOwnership/intake.txt"), "utf8"));
+  const intakeText = readFileSync(join(ROOT, "src/lib/forkOwnership/intake.txt"), "utf8");
+  const { rules, errors } = parseIntake(intakeText);
+  // 生成区画の行(pnpm extensions:generate が宣言から書く。項目 0 の受け口はフォルダが無いので鮮度の検査から外す)
+  const generatedLines = parseGeneratorRegions(intakeText);
 
   test("書式の誤りが無い", () => {
     assert.deepEqual(errors, []);
@@ -37,6 +40,7 @@ describe("実リポジトリの intake.txt", () => {
     };
     const stale = rules
       .filter((rule) => rule.kind !== "generated" && rule.kind !== "debt" && !rule.note.includes("upstream には無い"))
+      .filter((rule) => !generatedLines.some((region) => rule.line > region.start && rule.line < region.end))
       .filter((rule) => {
         const prefix = literalPrefix(rule.glob);
         return !files.some((file) => (prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix));
@@ -62,7 +66,8 @@ describe("実リポジトリの intake.txt", () => {
       ["src/styles/palette.css", "edit"],
       ["src/styles/_base/global.css", null],
       ["src/app/(user)/(public)/about/page.tsx", "edit"],
-      ["src/app/(user)/_layout/UserLayout.acme.tsx", "edit"],
+      ["src/app/(user)/_layout/UserLayout.replace.tsx", "add"],
+      ["src/app/(user)/_layout/UserLayout.acme.tsx", null],
       ["src/app/(user)/_layout/UserLayout.test.tsx", null],
       ["src/app/(user)/_layout/UserLayout.tsx", null],
       ["src/registry/storagePurposeRegistry.ts", "generated"],
@@ -70,13 +75,20 @@ describe("実リポジトリの intake.txt", () => {
       [".claude/rules/shortcuts.md", "marker"],
       ["src/lib/CATALOG.md", "append"],
       ["src/features/core/user/services/server/userService.ts", null],
-      ["src/features/core/setting/fields/x.acme.ts", "edit"],
-      ["src/features/core/setting/fields/adminListPerPage.override.ts", "edit"],
-      ["src/features/core/setting/fields/adminListPerPage.ts", null],
+      ["src/features/core/setting/fields/x.ts", "add"],
+      ["src/features/core/setting/fields/adminListPerPage.override.ts", "add"],
+      ["src/features/core/setting/fields/adminListPerPage.ts", "add"],
+      ["src/features/core/userLineProfile/webhookHandlers/postback.ts", "add"],
+      ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.ts", "add"],
+      ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts", "edit"],
+      ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.default.ts", null],
+      ["scripts/tasks/mine.ts", "add"],
+      ["scripts/proxies/alwaysOnExceptions/mine.mjs", "add"],
+      ["src/features/core/user/extensionPoints.acme.ts", null],
       ["src/features/core/user/coreRoles/user.role.override.ts", "edit"],
       ["src/features/core/user/coreRoles/user.role.json", null],
       ["src/features/core/user/roles/editor.role.override.ts", "edit"],
-      ["src/wiring/formInputs/inputs/ticketRates.acme.ts", "edit"],
+      ["src/wiring/formInputs/inputs/ticketRates.ts", "add"],
       ["src/wiring/formInputs/FormInputsRoot.tsx", null],
       ["src/features/core/userProfile/profiles/user.profile.override.ts", "edit"],
       ["src/features/core/userProfile/profiles/user.profile.json", "add"],
@@ -137,6 +149,12 @@ describe("生成器の区画", () => {
     assert.doesNotMatch(stripOwnedRegions(text), /import b|import c|^\s+b,|^\s+c,/m);
     assert.match(stripOwnedRegions(text), /import a/);
   });
+
+  test("# でコメントを書くファイルの対(intake.txt の受け口の行)", () => {
+    const text = ["edit a/**  # r", "# === AUTO-GENERATED intake START ===", "add b/*.ts  # r", "# === AUTO-GENERATED intake END ===", "edit c/**  # r"].join("\n");
+    assert.deepEqual(parseGeneratorRegions(text), [{ start: 2, end: 4 }]);
+    assert.doesNotMatch(stripOwnedRegions(text, { fork: false }), /add b/);
+  });
 });
 
 describe("judge", () => {
@@ -164,7 +182,7 @@ describe("judge", () => {
 
   test("A: 検査する場所で基準と同じ単位は unit-clash(x.ts と x.tsx・ファイルとフォルダ)、場所の外と新しい名前は added", () => {
     const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/dbAgent/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/features/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
-    const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? '{ h: { dir: "." } }' : null));
+    const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? 'export const extensionPoints = { h: { dir: ".", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };' : null));
     const baseUnits = unitIndex(baseFiles);
     const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
     const clash = one("src/wiring/apiRoute.tsx");
@@ -194,10 +212,10 @@ describe("judge", () => {
   });
 
   test("A: core の中は受け口の項目だけ。受け口の外・debt は core-add、基準に core が無ければ added", () => {
-    const { rules } = parseIntake(["edit src/features/core/user/cleanupHandlers/*.*.ts  # r", "debt src/features/core/mail/templates/**  # r"].join("\n"));
+    const { rules } = parseIntake(["add src/features/core/user/cleanupHandlers/*.ts  # r", "debt src/features/core/mail/templates/**  # r"].join("\n"));
     const add = (path, baseHasCore = true) =>
       judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], baseHasCore, intake: rules }).entries[0];
-    assert.equal(add("src/features/core/user/cleanupHandlers/x.child.ts").reason, "added");
+    assert.equal(add("src/features/core/user/cleanupHandlers/x.ts").reason, "added");
     const inside = add("src/features/core/user/hooks/useMine.ts");
     assert.equal(inside.reason, "core-add");
     assert.equal(inside.verdict, "violation");

@@ -24,6 +24,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
+import { readDeclaration } from "../lib/forkOwnership/declarations.mjs";
 import { classifyDottedName, oldMarkerProblem } from "../lib/forkOwnership/dottedNames.mjs";
 import { readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
 
@@ -86,12 +87,14 @@ function isFormInputsBundleImport(from, to) {
 }
 
 /**
- * extensionPoints.ts の中身から受け口のフォルダ名（`dir: "..."`）を読む
+ * extensionPoints.ts の中身から受け口のフォルダ名（点の dir）を読む。読み手は宣言の唯一の読み手（src/lib/forkOwnership/declarations.mjs）
  * @param {string} text
  * @returns {string[]}
  */
 export function receptacleDirsOf(text) {
-  return [...stripComments(text).matchAll(/\bdir:\s*["']([^"'/]+)["']/g)].map((m) => m[1]);
+  return Object.values(readDeclaration("extensionPoints.ts", text).points)
+    .map((point) => point.dir)
+    .filter((dir) => typeof dir === "string");
 }
 
 /**
@@ -297,7 +300,8 @@ test("データに届く wiring を import する src/app のファイルが許�
 
 test("受け口の例外: 生成物 wiring/<名前>.ts → 宣言された受け口の中の項目と、同じ受け口の中どうしだけ", () => {
   const dirs = (bundle) => (bundle === "dbAgent" ? ["extraTools", "promptFragments", "suffixProviders"] : []);
-  assert.deepEqual(receptacleDirsOf('export const extensionPoints = {\n  a: { dir: "promptFragments" },\n  // b: { dir: "old" },\n  c: { dir: \'extraTools\' },\n};'), ["promptFragments", "extraTools"]);
+  const spec = (dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
+  assert.deepEqual(receptacleDirsOf(`export const extensionPoints = {\n  a: ${spec("promptFragments")},\n  // b: ${spec("old")},\n  c: ${spec("extraTools")},\n};`), ["promptFragments", "extraTools"]);
   assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/promptFragments/rules.acme.ts", dirs), true);
   assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/extraTools/tool/index.ts", dirs), true);
   assert.equal(isReceptacleImport("wiring/dbAgent/extraTools/tool/index.ts", "wiring/dbAgent/extraTools/tool/schema.ts", dirs), true);

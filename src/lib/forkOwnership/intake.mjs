@@ -5,6 +5,28 @@ import { matchesGlob } from "node:path";
 
 export const INTAKE_KINDS = ["edit", "add", "region", "marker", "append", "generated", "debt"];
 
+/** 受け口の一覧の置き場(リポジトリ直下からの相対) */
+export const INTAKE_FILE = "src/lib/forkOwnership/intake.txt";
+/** 受け口の行の生成区画(pnpm extensions:generate が拡張点の宣言・1 行スイッチから書く。生成器の区画なので所有の検査の対象外: regions.mjs) */
+export const INTAKE_BLOCK_START = "# === AUTO-GENERATED intake START ===";
+export const INTAKE_BLOCK_END = "# === AUTO-GENERATED intake END ===";
+
+/**
+ * 一覧の生成区画の中身を rows に入れ替えたテキスト。印の対がちょうど 1 つでなければ { problem }
+ * @param {string} text intake.txt の中身
+ * @param {string[]} rows 区画に入れる行(印の行を除く)
+ * @returns {{ text: string } | { problem: string }}
+ */
+export function replaceIntakeBlock(text, rows) {
+  const lines = text.split("\n");
+  const starts = lines.flatMap((line, i) => (line.trim() === INTAKE_BLOCK_START ? [i] : []));
+  const ends = lines.flatMap((line, i) => (line.trim() === INTAKE_BLOCK_END ? [i] : []));
+  if (starts.length !== 1 || ends.length !== 1 || ends[0] < starts[0]) {
+    return { problem: `生成区画の印の対(${INTAKE_BLOCK_START} … ${INTAKE_BLOCK_END})がちょうど 1 つ要る` };
+  }
+  return { text: [...lines.slice(0, starts[0] + 1), ...rows, ...lines.slice(ends[0])].join("\n") };
+}
+
 /**
  * 受け口の一覧を読む。行番号は 1 始まり。
  * @returns {{ rules: { kind: string | null, glob: string, exclude: boolean, note: string, line: number }[], errors: { line: number, message: string }[] }}

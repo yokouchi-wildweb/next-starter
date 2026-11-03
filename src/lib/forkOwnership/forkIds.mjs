@@ -6,7 +6,7 @@
 // - 祖先の名前: .notices/applied/<名前>.md の台帳名(自分を除く。/flux が取り込むたびに作り、子の fork にも受け継がれる)
 // - Tier1 の判定: 自分の名前が src/lib/CATALOG.md の先頭の節の見出しと同じ
 // - 祖先と同名は errors: Tier1 の名前を名乗るのに自分の台帳がある(= fork)/ CATALOG の途中の節(中間 Tier)の名前を名乗る
-// 台帳名・一時許可 .fork-ownership/<名前>.permits.txt・CATALOG の節の見出し・ドット名 <項目>.<名前>.ts はこの名前。
+// 台帳名・一時許可 .fork-ownership/<名前>.permits.txt・CATALOG の節の見出しはこの名前(受け口のファイル名には使わない、D137)。
 // origin の URL からは導かない(導く実装は持たない)。
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -16,7 +16,7 @@ export const PROJECT_RULES_FILE = ".claude/rules/project.md";
 export const LEDGER_DIR = ".notices/applied";
 export const CATALOG_FILE = "src/lib/CATALOG.md";
 
-/** fork の名前の形(小文字・数字・ハイフン。ドット名の区切りとぶつからないよう "." は使わない) */
+/** fork の名前の形(小文字・数字・ハイフン。台帳・一時許可のファイル名になるので "." は使わない) */
 export const FORK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const SECTION_HEADING = /^##\s+(\S+)\s*$/gm;
@@ -81,26 +81,11 @@ export function readForkIdentity(repoRoot) {
 }
 
 /**
- * 宣言済みの名前を集める(ドット名の検査が読む: 自分 + 祖先)
+ * 宣言済みの名前を集める(自分 + 祖先)
  * @param {string} repoRoot リポジトリ直下
  * @returns {{ own: string | null, inherited: string[], all: string[], errors: string[] }}
  */
 export function readDeclaredForkIds(repoRoot) {
   const { own, ancestors, errors } = readForkIdentity(repoRoot);
   return { own, inherited: ancestors, all: [...(own ? [own] : []), ...ancestors], errors };
-}
-
-/**
- * fork のドット名 `<名前>[.<中置き>].<fork ID>.<拡張子>` を読む(src/wiring・src/proxies などの「fork はファイルを足すだけ」の置き場)。
- * 名前は英字始まりの英数字、fork ID は FORK_ID_PATTERN(小文字・数字・ハイフン、ドットなし)。印の無い `<名前>.<拡張子>` は fork のファイルではない(null)
- * @param {string} fileName ファイル名(ディレクトリを含まない)
- * @param {{ infixes?: string[], extensions?: string[] }} [options] infixes = 名前と fork ID の間に置ける語(例 "client")、extensions = 受ける拡張子
- * @returns {{ name: string, infix: string | null, forkId: string } | null}
- */
-export function parseForkDotName(fileName, { infixes = [], extensions = ["ts", "tsx"] } = {}) {
-  const ext = extensions.map((e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const infix = infixes.length > 0 ? `(?:\\.(${infixes.join("|")}))?` : "()";
-  const m = new RegExp(`^([A-Za-z][A-Za-z0-9]*)${infix}\\.([a-z0-9]+(?:-[a-z0-9]+)*)\\.(?:${ext})$`).exec(fileName);
-  if (!m) return null;
-  return { name: m[1], infix: m[2] || null, forkId: m[3] };
 }
