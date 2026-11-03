@@ -64,6 +64,7 @@ export const FRAME_LAYOUTS = [
   "src/app/(user)/layout.tsx",
   "src/app/(user)/(protected)/mypage/layout.tsx",
   "src/app/admin/layout.tsx",
+  "src/app/(marketing)/layout.tsx",
 ];
 
 /** スイッチの印 = ./_layout/ を指す re-export(`export { X as default } from "./_layout/X"`)。素の import はガード付き layout の枠の描画 */

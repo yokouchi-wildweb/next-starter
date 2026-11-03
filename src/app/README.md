@@ -9,7 +9,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | ディレクトリ | 説明 |
 |-------------|------|
 | `(user)/` | ユーザー向けフロントエンド |
-| `(marketing)/` | ランディングページ等。`(user)/` の枠(ヘッダー・フッター)の外の兄弟の枝 |
+| `(marketing)/` | ランディングページ等。`(user)/` の枠(ヘッダー・フッター)の外の兄弟の枝。枠は `_layout/MarketingLayout`(既定は素通し、`_layout/README.md`) |
 | `admin/` | 管理者向け画面 |
 | `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定、layout が一括ガード） |
 | `api/` | API ルート |
@@ -144,7 +144,8 @@ src/app/
 │   ├── (public)/ (auth)/ (legal)/   ← layout なし。(user) の枠をそのまま継ぐ
 │   └── demo/ maintenance/
 ├── (marketing)/
-│   └── layout.tsx          ← (user) の枠の外の兄弟の枝
+│   ├── layout.tsx          ← (user) の枠の外の兄弟の枝(枠 = 1 行スイッチ → _layout/)
+│   └── _layout/            ← MarketingLayout(既定は素通し)
 ├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/・insane/ の layout)
 └── debug/
     └── layout.tsx          ← 管理者カテゴリ + デバッガーのガード

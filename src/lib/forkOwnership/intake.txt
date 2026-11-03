@@ -28,6 +28,7 @@ edit src/app/**/page.tsx  # 1 行スイッチ
 edit src/app/(user)/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/admin/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
+edit src/app/(marketing)/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/**/_components/**  # upstream のルートの fork の部品
 edit src/app/_providers/ForkProviders.tsx  # AppProviders の fork の口(D30 K8。上流は空、多段は同じファイルを書き換える)
 

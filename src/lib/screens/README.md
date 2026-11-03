@@ -56,8 +56,8 @@ src/app/(user)/
     └── UserLayout.replace.tsx   下流の丸ごと置き換え(隣に置く)。layout.tsx をこちらへ向ける
 ```
 
-- 対象は upstream の枠を描く layout.tsx（今は `(user)/layout.tsx`・`(user)/(protected)/mypage/layout.tsx`・`admin/layout.tsx`）。ガードと同居する layout（`admin/(protected)`・`admin/insane`）は提供者所有のまま、ガードの後に `./_layout/` の枠を素の import で描く（評議会 20261019-213253 §7）。スイッチの検出は `./_layout/` を指す re-export だけなので、この形は検査対象にならない
-- slot の一覧と fork の手順は `src/app/(user)/_layout/README.md`・`src/app/admin/_layout/README.md`
+- 対象は upstream の枠を描く layout.tsx（今は `(user)/layout.tsx`・`(user)/(protected)/mypage/layout.tsx`・`admin/layout.tsx`・`(marketing)/layout.tsx`）。ガードと同居する layout（`admin/(protected)`・`admin/insane`）は提供者所有のまま、ガードの後に `./_layout/` の枠を素の import で描く（評議会 20261019-213253 §7）。スイッチの検出は `./_layout/` を指す re-export だけなので、この形は検査対象にならない
+- slot の一覧と fork の手順は `src/app/(user)/_layout/README.md`・`src/app/admin/_layout/README.md`・`src/app/(marketing)/_layout/README.md`(LP の枠、既定は素通しで slot なし)
 
 1 対 1 の意味:
 - ユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。上流も fork も同じ
