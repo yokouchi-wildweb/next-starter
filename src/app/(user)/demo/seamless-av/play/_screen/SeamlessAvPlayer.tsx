@@ -71,7 +71,7 @@ export function SeamlessAvPlayer({ manifest }: Props) {
         </Para>
 
         {error && (
-          <Para size="sm" tone="muted" align="center" className="text-destructive">
+          <Para size="sm" tone="muted" align="center" className="text-destructive-text">
             {error.message}
           </Para>
         )}

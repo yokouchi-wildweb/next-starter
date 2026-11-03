@@ -255,7 +255,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         {preview ? (
           <Stack space={3}>
             {preview.fatalError ? (
-              <div className="flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
                 <AlertCircle className="size-4 mt-0.5 shrink-0" />
                 <span>{preview.fatalError}</span>
               </div>

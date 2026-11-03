@@ -70,9 +70,9 @@ function slotStatus(v: ReelFragmentValidation | undefined): "none" | "ok" | "war
 
 const STATUS_STYLE: Record<"none" | "ok" | "warning" | "ng", { label: string; className: string }> = {
   none: { label: "未検証", className: "bg-muted text-muted-foreground" },
-  ok: { label: "OK", className: "bg-success/15 text-success" },
-  warning: { label: "警告", className: "bg-warning/15 text-warning" },
-  ng: { label: "NG", className: "bg-destructive/15 text-destructive" },
+  ok: { label: "OK", className: "bg-success/15 text-success-text" },
+  warning: { label: "警告", className: "bg-warning/15 text-warning-text" },
+  ng: { label: "NG", className: "bg-destructive/15 text-destructive-text" },
 };
 
 const fmtSec = (s: number | null | undefined) => (s == null ? "—" : `${s.toFixed(2)}s`);
@@ -280,7 +280,7 @@ export function SeamlessAvDemo() {
             これ未満の iOS では音声付き連結を再生できません。
           </Para>
           {(!env.mse || !env.webAudio) && (
-            <Para size="sm" className="text-destructive">
+            <Para size="sm" className="text-destructive-text">
               この環境では音声付き連結を再生できません(iPhone Safari は iOS 17.1+ が必要)。
             </Para>
           )}
@@ -344,7 +344,7 @@ export function SeamlessAvDemo() {
                         <Button
                           variant="ghost"
                           size="xs"
-                          className="text-destructive"
+                          className="text-destructive-text"
                           onClick={() => removeSlot(slot.id)}
                         >
                           削除
@@ -387,12 +387,12 @@ export function SeamlessAvDemo() {
                       </span>
                     )}
                     {v?.issues.map((msg, i) => (
-                      <span key={`i-${i}`} className="text-xs text-destructive">
+                      <span key={`i-${i}`} className="text-xs text-destructive-text">
                         {msg}
                       </span>
                     ))}
                     {v?.warnings.map((msg, i) => (
-                      <span key={`w-${i}`} className="text-xs text-warning">
+                      <span key={`w-${i}`} className="text-xs text-warning-text">
                         {msg}
                       </span>
                     ))}
@@ -418,12 +418,12 @@ export function SeamlessAvDemo() {
               {report.mimeType ? ` / 映像: ${report.mimeType}` : ""}
             </Para>
             {report.errors.map((e, i) => (
-              <Para key={i} size="sm" className="text-destructive">
+              <Para key={i} size="sm" className="text-destructive-text">
                 ・{e}
               </Para>
             ))}
             {report.warnings.map((w, i) => (
-              <Para key={i} size="sm" className="text-warning">
+              <Para key={i} size="sm" className="text-warning-text">
                 ・{w}
               </Para>
             ))}
@@ -597,9 +597,9 @@ export function SeamlessAvDemo() {
                 A/Vドリフト: {(drift.value * 1000).toFixed(0)}ms {drift.corrected ? "(補正中)" : "(同期)"}
               </Para>
             )}
-            {ended && <Para size="sm" className="text-success">演出終了（onEnded 発火）</Para>}
+            {ended && <Para size="sm" className="text-success-text">演出終了（onEnded 発火）</Para>}
             {error && (
-              <Para size="sm" className="text-destructive">
+              <Para size="sm" className="text-destructive-text">
                 エラー: {error.message}
               </Para>
             )}
@@ -640,7 +640,7 @@ export function SeamlessAvDemo() {
                   共有URL
                 </Para>
                 <Flex gap="xs" align="center" wrap="wrap">
-                  <a href={shareUrl} target="_blank" rel="noreferrer" className="break-all text-sm text-info underline">
+                  <a href={shareUrl} target="_blank" rel="noreferrer" className="break-all text-sm text-info-text underline">
                     {shareUrl}
                   </a>
                   <Button variant="outline" size="xs" onClick={() => void handleCopyUrl()}>

@@ -84,8 +84,8 @@ function renderTargetDetail(
   const overflow = totalTargetUserIdCount - targetUsers.length;
 
   return (
-    <Block className="space-y-1">
-      <ul className="text-sm space-y-0.5">
+    <Stack space={1}>
+      <ul className="flex flex-col gap-0.5 text-sm">
         {targetUsers.map((u) => (
           <li key={u.id} className="break-all">
             {u.found ? (
@@ -106,7 +106,7 @@ function renderTargetDetail(
           ほか {overflow} 名（先頭 {NOTIFICATION_TARGET_USERS_DISPLAY_LIMIT} 件のみ表示）
         </Para>
       )}
-    </Block>
+    </Stack>
   );
 }
 

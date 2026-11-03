@@ -571,7 +571,7 @@ function ActionSection({
               {rejectReason.length} / {REJECT_REASON_MAX}
             </span>
             {rejectError ? (
-              <span className="text-xs text-destructive">{rejectError}</span>
+              <span className="text-xs text-destructive-text">{rejectError}</span>
             ) : null}
           </label>
           <Flex gap="sm" justify="end">
@@ -629,7 +629,7 @@ function ActionSection({
               {investigateNote.length} / {INVESTIGATE_NOTE_MAX}
             </span>
             {investigateError ? (
-              <span className="text-xs text-destructive">{investigateError}</span>
+              <span className="text-xs text-destructive-text">{investigateError}</span>
             ) : null}
           </label>
           <Flex gap="sm" justify="end">

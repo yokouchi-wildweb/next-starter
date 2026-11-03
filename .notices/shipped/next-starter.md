@@ -248,3 +248,4 @@
 - id:20261103-144217-notice-shipped-index | severity:action-required | checkpoint:notice-shipped-index
 - id:20261103-161212-domain-json-comment-key | severity:info | checkpoint:domain-json-comment-key
 - id:20261103-182243-appform-submit-lock | severity:info | checkpoint:appform-submit-lock | resolves:20261103-072925-appform-double-submit-lock
+- id:20261104-081650-style-rule-fixes | severity:info | checkpoint:style-rule-fixes

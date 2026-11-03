@@ -35,7 +35,7 @@ export function CampaignSection() {
           <SecTitle as="h3" size="lg" align="center">
             限定特典
           </SecTitle>
-          <ul className="space-y-2 text-left text-sm">
+          <ul className="flex flex-col gap-2 text-left text-sm">
             {/* TODO: 特典リストをカスタマイズ */}
             <li className="flex items-start gap-2">
               <span className="text-primary">✓</span>

@@ -37,9 +37,9 @@ function itemStatus(item: FragmentItem): "ok" | "warning" | "ng" {
 }
 
 const STATUS_STYLE: Record<"ok" | "warning" | "ng", { label: string; className: string }> = {
-  ok: { label: "OK", className: "bg-success/15 text-success" },
-  warning: { label: "警告", className: "bg-warning/15 text-warning" },
-  ng: { label: "NG", className: "bg-destructive/15 text-destructive" },
+  ok: { label: "OK", className: "bg-success/15 text-success-text" },
+  warning: { label: "警告", className: "bg-warning/15 text-warning-text" },
+  ng: { label: "NG", className: "bg-destructive/15 text-destructive-text" },
 };
 
 // 環境サポート状況は不変なので useSyncExternalStore で読む(SSR スナップショットは非対応扱い)。
@@ -143,7 +143,7 @@ export function SeamlessVideoDemo() {
             これ未満の iOS では MSE 非対応のため連結再生できません。
           </Para>
           {!env.mse && (
-            <Para size="sm" className="text-destructive">
+            <Para size="sm" className="text-destructive-text">
               この環境は MSE 非対応のため連結再生できません(iPhone Safari は iOS 17.1+ が必要)。
             </Para>
           )}
@@ -217,12 +217,12 @@ export function SeamlessVideoDemo() {
               </Para>
             )}
             {report.errors.map((e, i) => (
-              <Para key={i} size="sm" className="text-destructive">
+              <Para key={i} size="sm" className="text-destructive-text">
                 ・{e}
               </Para>
             ))}
             {report.warnings.map((w, i) => (
-              <Para key={i} size="sm" className="text-warning">
+              <Para key={i} size="sm" className="text-warning-text">
                 ・{w}
               </Para>
             ))}
@@ -263,7 +263,7 @@ export function SeamlessVideoDemo() {
                           </span>
                         )}
                         {[...item.issues, ...item.warnings].map((msg, i) => (
-                          <span key={i} className="text-xs text-destructive">
+                          <span key={i} className="text-xs text-destructive-text">
                             {msg}
                           </span>
                         ))}
@@ -310,7 +310,7 @@ export function SeamlessVideoDemo() {
                 {duration != null && ` / 連結後尺: ${duration.toFixed(2)}s`}
               </Para>
               {error && (
-                <Para size="sm" className="text-destructive">
+                <Para size="sm" className="text-destructive-text">
                   エラー: {error.message}
                 </Para>
               )}

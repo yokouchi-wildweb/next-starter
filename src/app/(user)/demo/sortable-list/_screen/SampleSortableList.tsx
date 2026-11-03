@@ -104,7 +104,7 @@ export function SampleSortableList({ initialSamples }: Props) {
     <Stack space={6}>
       {/* エラー表示 */}
       {error && (
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
           {error}
         </div>
       )}

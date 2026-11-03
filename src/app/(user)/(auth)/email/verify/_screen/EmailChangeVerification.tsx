@@ -90,7 +90,7 @@ export function EmailChangeVerification() {
       {phase === "error" && (
         <Stack space={6} className="items-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <XCircleIcon className="h-8 w-8 text-destructive" />
+            <XCircleIcon className="h-8 w-8 text-destructive-text" />
           </div>
           <Stack space={2} className="items-center">
             <p className="text-lg font-medium">エラーが発生しました</p>
