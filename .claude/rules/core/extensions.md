@@ -24,7 +24,9 @@ want → means:
 - stop a page or role → app-features / feature-gate / enabled:false | new feature → own route + domain
 
 order: an extension request carries `tried: <means checked — why not enough>`
-copy_mark: line 1 `// copied-from: <upstream path>` | no sha, no ledger, no backfill | unmarked copies are undetectable and accepted | /flux lists changed origins per segment, never stops
+copy_mark: line 1 `// copied-from: <upstream path>` | no sha, no ledger | unmarked copies are undetectable and accepted | /flux lists changed origins per segment, never stops
+- backfill: when a fork takes in this policy, it marks once the existing copies it knows it made | no check, /flux never stops on it | copies it does not know of stay unmarked (undetectable)
+- kept_behavior_copy: an existing copy holding behavior (judge 3) stays, marked, while its split order is open | replace it with the public hook when that ships
 
 receptacle limits (upstream):
 - only for a request with a feature that really uses it, whatever the fork count
