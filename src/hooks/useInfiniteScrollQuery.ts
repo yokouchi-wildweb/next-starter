@@ -41,7 +41,17 @@ type UseInfiniteScrollQueryOptions<TItem, TParams extends Record<string, unknown
    * センチネルの attach 時にのみ参照される (identity 変化では Observer を再生成しない)。
    */
   observerOptions?: IntersectionObserverInit;
+  /**
+   * タブに戻ったとき (visibilitychange で visible / window focus) に `revalidate()` する。
+   * 既定 false (従来どおり再取得しない)。items は維持したまま 1 ページ目を取り直す
+   * (`revalidate` と同じ: 複数ページ読み込み済みなら 1 ページ目だけに戻り、以降は loadMore で取り直す)。
+   * 連続発火は 5 秒に 1 回まで。初回取得の完了前・取得中・`enabled=false` の間は何もしない。
+   */
+  revalidateOnFocus?: boolean;
 };
+
+/** revalidateOnFocus の最小間隔 (SWR の focusThrottleInterval 既定と同じ) */
+const FOCUS_REVALIDATE_THROTTLE_MS = 5000;
 
 type UseInfiniteScrollQueryResult<TItem> = {
   items: TItem[];
@@ -230,6 +240,7 @@ export function useInfiniteScrollQuery<
     deps,
     initialData,
     observerOptions,
+    revalidateOnFocus = false,
   } = options;
 
   const hasInitialData = initialData !== undefined;
@@ -479,6 +490,28 @@ export function useInfiniteScrollQuery<
     setItems(nextItems);
     setTotal((prev) => Math.max(0, prev - removedCount));
   }, []);
+
+  // タブ復帰時の再取得 (opt-in)
+  const hasFetchedOnceRef = useRef<boolean>(hasFetchedOnce);
+  hasFetchedOnceRef.current = hasFetchedOnce;
+  const lastFocusRevalidateAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (!revalidateOnFocus || typeof window === "undefined") return;
+    const handleFocus = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!enabledRef.current || isLoadingRef.current || !hasFetchedOnceRef.current) return;
+      const now = Date.now();
+      if (now - lastFocusRevalidateAtRef.current < FOCUS_REVALIDATE_THROTTLE_MS) return;
+      lastFocusRevalidateAtRef.current = now;
+      revalidate();
+    };
+    document.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [revalidateOnFocus, revalidate]);
 
   // deps 変化での再初期化
   useEffect(() => {

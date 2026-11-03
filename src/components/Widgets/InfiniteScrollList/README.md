@@ -98,4 +98,5 @@ else removeItems((o) => done.has(o.id));
 
 - グループ表示など「items を使わない別レイアウト」への切り替えは、この部品の外（上位）で分岐する
 - 一覧がスクロールコンテナの中にあるときは、フックの `observerOptions.root` にそのコンテナを渡す
+- タブに戻ったときに最新化したい一覧（メッセージ・スレッド等、SWR の revalidateOnFocus 相当）は、フックに `revalidateOnFocus: true` を渡す（既定 false）。一覧を表示したまま `revalidate()` する（5 秒に 1 回まで。複数ページ読み込み済みなら 1 ページ目に戻る）
 - 見た目（スピナー・文言・余白）は `*Node` props で差し替える。部品の中身を fork で編集しない
