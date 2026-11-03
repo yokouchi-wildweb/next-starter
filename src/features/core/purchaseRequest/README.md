@@ -121,7 +121,7 @@ wrappers/
 1. `findByWebhookIdentifier(sessionId, providerName)`: `payment_session_id` → UUID なら `id` → プロバイダ固有リゾルバー（Fincode）
 2. `completed` なら冪等に既存結果を返す / `processing`・`failed` 以外は 400
 3. `paidAmount` があり `payment_amount` と不一致 → `markAsFatalFailure` で `failed` にしてから 400
-4. tx: 楽観ロック（`WHERE status IN ('processing','failed')`、0 行なら 409）→ `commitQuota` → `strategy.complete()`（戻り値に walletHistory があれば `wallet_history_id` 記録）→ クーポン redeem（SAVEPOINT 隔離、失敗しても購入は完了させ `coupon_redeem_failed = true`）→ ポストフック（各 SAVEPOINT 隔離、失敗はログのみ）→ マイルストーン評価（達成分を `milestone_results` に保存、完了画面の通知に使う）
+4. tx: 楽観ロック（`WHERE status IN ('processing','failed')`、0 行なら 409）→ `commitQuota` → `strategy.complete()`（戻り値に walletHistory があれば `wallet_history_id` 記録）→ クーポン redeem（SAVEPOINT 隔離、失敗（例外、または期限切れ等で `success: false`）しても購入は完了させ `coupon_redeem_failed = true`）→ ポストフック（各 SAVEPOINT 隔離、失敗はログのみ）→ マイルストーン評価（達成分を `milestone_results` に保存、完了画面の通知に使う）
 5. コミット後に `markUserDirty(user_id)`
 
 **修復不能エラーの規約**: `handleWebhook` は `DomainError` を 200 で飲み込むため、status を動かさずに throw すると `processing` のまま塩漬けになり、ポーリングは 60 秒タイムアウトまで待つ。リトライしても直らないエラー（金額不一致など）を新設するときは、throw 前に必ず `markAsFatalFailure(id, code, message)` を呼ぶ（`WHERE status='processing'` 付きなので completed / failed を上書きしない）。「既に completed」「楽観ロック競合 409」「pending/expired 等の無効ステータス」では呼ばない。

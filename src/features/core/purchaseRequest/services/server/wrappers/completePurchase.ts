@@ -146,10 +146,13 @@ export async function completePurchase(
     // 囲まないと catch 内の coupon_redeem_failed 更新自体が失敗し、購入完了ごと巻き戻る。
     if (purchaseRequest.coupon_code) {
       const couponSavepoint = "purchase_coupon_redeem";
+      // redeem が不成立（期限切れ・上限到達など success: false）でも例外と同じく失敗として記録する。
+      // 記録しないと割引だけが適用され、使用履歴の無い購入になる
+      let redeemFailed = false;
       try {
         await tx.execute(sql.raw(`SAVEPOINT ${couponSavepoint}`));
         // 購入入口は purchase_discount カテゴリのみ受理（招待コード等の取り違えは category_mismatch で不成立）
-        await couponService.redeemWithEffect(
+        const redeemResult = await couponService.redeemWithEffect(
           purchaseRequest.coupon_code,
           purchaseRequest.user_id,
           {
@@ -161,6 +164,12 @@ export async function completePurchase(
           { scope: { categories: [PURCHASE_DISCOUNT_CATEGORY] } },
         );
         await tx.execute(sql.raw(`RELEASE SAVEPOINT ${couponSavepoint}`));
+        if (!redeemResult.success) {
+          redeemFailed = true;
+          console.error(
+            `[completePurchase] クーポンredeem不成立: code=${purchaseRequest.coupon_code}, requestId=${purchaseRequest.id}, reason=${redeemResult.reason}`,
+          );
+        }
       } catch (error) {
         try {
           await tx.execute(sql.raw(`ROLLBACK TO SAVEPOINT ${couponSavepoint}`));
@@ -173,6 +182,9 @@ export async function completePurchase(
           `[completePurchase] クーポンredeem失敗: code=${purchaseRequest.coupon_code}, requestId=${purchaseRequest.id}`,
           error,
         );
+        redeemFailed = true;
+      }
+      if (redeemFailed) {
         await tx
           .update(PurchaseRequestTable)
           .set({ coupon_redeem_failed: true })
