@@ -1,4 +1,4 @@
-// src/features/core/auth/components/Registration/registrationProfiles.ts
+// src/features/core/auth/hooks/registration/registrationProfiles.ts
 /**
  * 本登録画面のプロフィールバリデーション用設定
  *

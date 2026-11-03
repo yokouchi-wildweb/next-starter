@@ -1,4 +1,4 @@
-// src/features/auth/components/Registration/Email/formEntities.ts
+// src/features/core/auth/hooks/registration/emailFormEntities.ts
 
 import { z } from "zod";
 
@@ -6,7 +6,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import { createProfileDataValidator } from "@/features/core/userProfile/utils";
-import { REGISTRATION_PROFILES } from "../registrationProfiles";
+import { REGISTRATION_PROFILES } from "./registrationProfiles";
 
 // profileData バリデーション関数
 const validateProfileData = createProfileDataValidator(REGISTRATION_PROFILES, "registration");

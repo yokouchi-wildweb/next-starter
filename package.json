@@ -32,6 +32,7 @@
     "test:utils-url": "npx tsx --test src/utils/url.test.ts",
     "test:infinite-scroll": "npx tsx --test src/hooks/useInfiniteScrollQuery.test.ts",
     "test:site-theme": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/siteTheme/siteTheme.test.mjs",
+    "test:auth-registration-flow": "npx tsx --test src/features/core/auth/hooks/registration/submitFlow.test.ts",
     "test:transition-guard": "npx tsx --test src/lib/transitionGuard/matchTargetPath.test.mjs",
     "test:fonts": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/fonts/fonts.test.mjs",
     "test:style-tokens": "node --test src/styles/_base/styleTokens.test.mjs",

@@ -21,7 +21,7 @@ auth/
 │   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   │   └── phoneVerification/   # 電話番号の重複チェック・OTP 検証
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
-├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, oauth/* など
+├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm (公開 hook の契約表), oauth/*, registration/ (内部) など
 ├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin / PhoneVerification 等
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
 ```
@@ -107,6 +107,32 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 - ログアウト: `useLogout` → `services/client/logout.ts` → `POST /api/auth/logout`（Cookie 削除）
 - `AuthSessionClientProvider` は `useFirebaseAuthSync`（JWT はあるのに Firebase Auth が未サインインのとき `/api/auth/firebase-token` のカスタムトークンで再サインイン）と DAU 記録も担う
 - 管理者ログイン: `AdminLogin` + `useAdminLogin` → `POST /api/auth/local/login`（admin カテゴリのみ、失敗は `loginAudit` で記録・ロックアウト判定）
+
+## 公開 hook の契約表
+
+認証の守り（reCAPTCHA・ID トークン・セッション更新・遷移）と form の処理は `hooks/` 直下の公開 hook が持ち、既定の部品は hook を呼んで描くだけ。fork が画面を作り替えるときは処理を写さず同じ hook を呼び、返る `form` を `AppForm` + 任意の markup（`FieldRenderer` 等）で描く。契約 = hook の名前・引数・戻り値・form の項目名（変えるときは notice）。
+
+- `hooks/registration/` は公開 hook の内部（送信の流れ `submitFlow.ts`・共通の送信 hook・formEntities）。部品・fork はここを import しない
+- 送信の流れの単体テスト: `pnpm test:auth-registration-flow`
+
+### 本登録 form（`/signup/register`）
+
+| hook | 引数 | form の項目名 |
+| --- | --- | --- |
+| `useEmailRegistrationForm()` | なし | `email`（localStorage の認証済みメール、読み取り専用）・`name`・`password`・`passwordConfirmation`（double モードのみ）・`role`・`profileData`・`inviteCode`・`agreeToTerms` |
+| `useOAuthRegistrationForm()` | なし | `email`・`name`（provider のプロフィールで初期化）・`role`・`profileData`・`inviteCode`・`agreeToTerms` |
+
+戻り値（2 本共通。Email は `passwordConfirmationRequired` が加わる）:
+
+- `form`: `UseFormReturn<EmailRegistrationFormValues | OAuthRegistrationFormValues>`（zodResolver 済み。型は同じファイルから export）
+- `onSubmit(values)`: `AppForm` の `onSubmit` に渡す。セッション確認（無し = 401 文言・Email はメール一致・OAuth は provider を検査）→ 未適用の招待コードなら止める → ID トークン + reCAPTCHA v3 で登録 → `refreshSession` → `/signup/complete` へ遷移（遷移ガード経由）
+- `isLoading`: 登録 API の通信中
+- `rootErrorMessage`: `form` の root エラー（`string | null`）。失敗の文言・429 silent の文言が入る
+- `selectedRole` / `profiles`: `RoleProfileFields` に渡すロールとプロフィール設定
+- `inviteCodeState`: `InviteCodeField` の `state`（`InviteCodeApplyState`）
+- `recaptchaV2`: `{ open, siteKey, onClose, onVerify }`。v2 チャレンジが要求されたとき `RecaptchaV2Challenge` に渡す（`siteKey` が null の間は描かない）。v2 トークンを得ると保留中の内容で自動で再送する
+- `rateLimitWarning`: `{ open, onOpenChange }`。429（silent でない）で開く `RateLimitWarningModal` 用
+- `passwordConfirmationRequired`（Email のみ）: パスワード（確認）欄を出すか
 
 ## 関連
 

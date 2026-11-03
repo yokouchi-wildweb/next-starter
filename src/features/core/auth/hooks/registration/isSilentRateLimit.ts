@@ -1,4 +1,4 @@
-// src/features/core/auth/components/Registration/isSilentRateLimit.ts
+// src/features/core/auth/hooks/registration/isSilentRateLimit.ts
 
 import type { HttpError } from "@/lib/errors";
 

@@ -1,9 +1,11 @@
+// src/features/core/auth/hooks/registration/oauthFormEntities.ts
+
 import { z } from "zod";
 
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import { UserNameSchema } from "@/features/core/user/entities/userName";
 import { createProfileDataValidator } from "@/features/core/userProfile/utils";
-import { REGISTRATION_PROFILES } from "../registrationProfiles";
+import { REGISTRATION_PROFILES } from "./registrationProfiles";
 
 // profileData バリデーション関数
 const validateProfileData = createProfileDataValidator(REGISTRATION_PROFILES, "registration");

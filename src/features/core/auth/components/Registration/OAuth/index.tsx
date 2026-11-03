@@ -1,35 +1,15 @@
-// src/features/auth/components/Registration/OAuth/index.tsx
+// src/features/core/auth/components/Registration/OAuth/index.tsx
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Para } from "@/components/TextBlocks";
-import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
-import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { useInviteCodePrefill } from "@/features/core/auth/hooks/useInviteCodePrefill";
-import { useInviteCodeValidation } from "@/features/core/auth/hooks/useInviteCodeValidation";
-import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
-import type { RegistrationInput } from "@/features/core/auth/hooks/useRegistration";
-import { err, HttpError, isHttpError } from "@/lib/errors";
-import { auth } from "@/lib/firebase/client/app";
-import {
-  getRecaptchaToken,
-  RecaptchaBadge,
-  RecaptchaV2Challenge,
-  useRecaptchaV2Challenge,
-  isV2ChallengeRequired,
-  useRecaptcha,
-} from "@/lib/recaptcha";
-import { useGuardedNavigation } from "@/lib/transitionGuard";
-import type { UserProviderType } from "@/features/core/user/types";
+import { useOAuthRegistrationForm } from "@/features/core/auth/hooks/useOAuthRegistrationForm";
+import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 const showInviteCode = APP_FEATURES.marketing.referral.enabled;
@@ -37,184 +17,28 @@ import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
-import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 import { InviteCodeField } from "../InviteCodeField";
 import { RateLimitWarningModal } from "../RateLimitWarningModal";
-import { isSilentRateLimit } from "../isSilentRateLimit";
-import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
+/** 本登録（外部アカウント）の既定の部品。入力・送信の処理は useOAuthRegistrationForm が持ち、ここは描くだけ */
 export function OAuthRegistrationForm() {
-  const { guardedPush } = useGuardedNavigation();
-  const { executeRecaptcha } = useRecaptcha();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: DefaultValues,
-  });
-  const { register, isLoading } = useRegistration();
-  const { refreshSession } = useAuthSession();
-  const [showRateLimitWarning, setShowRateLimitWarning] = useState(false);
-
-  // 招待コード欄の「適用」検証（購入ページのクーポン欄と同じ操作モデル）+ 未適用のままの送信ブロック
-  const { state: inviteCodeState, assertInviteCodeSubmittable } = useInviteCodeValidation({ form });
-
-  // 招待リンク（?invite=CODE）由来のコードを招待コード欄へプリフィルし、1回だけ自動で「適用」する
-  const { resolveInviteCodePayload } = useInviteCodePrefill({
-    getInviteCode: () => form.getValues("inviteCode"),
-    setInviteCode: (code) => {
-      form.setValue("inviteCode", code);
-      void inviteCodeState.apply(code);
-    },
-  });
-
-  // v2チャレンジの状態管理
   const {
-    challengeState,
-    handleV2ChallengeRequired,
-    handleV2Verify,
-    closeChallenge,
-    hasV2Token,
-  } = useRecaptchaV2Challenge();
-
-  // v2認証成功後に再送信するためのペイロード保存
-  const pendingPayloadRef = useRef<RegistrationInput | null>(null);
-
-  // ロール選択を監視してプロフィールフィールドを動的に更新
-  const selectedRole = useWatch({ control: form.control, name: "role" });
-
-  const currentUser = auth.currentUser;
-  const providerProfile = {
-    email: currentUser?.email ?? "",
-    name: currentUser?.displayName ?? "",
-  };
-  const isSubmitted = form.formState.isSubmitted;
-
-  useEffect(() => {
-    form.setValue("email", providerProfile.email, {
-      shouldValidate: isSubmitted,
-    });
-    form.setValue("name", providerProfile.name, {
-      shouldValidate: isSubmitted,
-    });
-  }, [form, isSubmitted, providerProfile.name, providerProfile.email]);
-
-  // v2認証成功後に自動的に再送信
-  useEffect(() => {
-    if (hasV2Token && pendingPayloadRef.current) {
-      const payload = pendingPayloadRef.current;
-      pendingPayloadRef.current = null;
-      // v2トークンで再送信
-      register(payload, { recaptchaV2Token: challengeState.v2Token ?? undefined })
-        .then(async () => {
-          await refreshSession();
-          guardedPush("/signup/complete");
-        })
-        .catch((error) => {
-          if (isHttpError(error) && error.status === 429) {
-            if (isSilentRateLimit(error)) {
-              form.setError("root", { type: "server", message: error.message });
-            } else {
-              setShowRateLimitWarning(true);
-            }
-            return;
-          }
-          const message = err(error, "本登録の処理に失敗しました");
-          form.setError("root", { type: "server", message });
-        });
-    }
-  }, [hasV2Token, challengeState.v2Token, register, refreshSession, guardedPush, form]);
-
-  const handleSubmit = useCallback(
-    async ({ email, name, role, profileData, inviteCode, agreeToTerms: _ }: FormValues) => {
-      try {
-        const currentUser = auth.currentUser;
-
-        if (!currentUser) {
-          throw new HttpError({
-            message: "認証情報が確認できませんでした。再度OAuth認証からお試しください。",
-            status: 401,
-          });
-        }
-
-        const providerId = currentUser.providerData?.[0]?.providerId ?? null;
-
-        if (!providerId || !USER_PROVIDER_TYPES.includes(providerId as UserProviderType)) {
-          throw new HttpError({
-            message: "サードパーティの認証情報が確認できませんでした。再度OAuth認証からお試しください。",
-            status: 400,
-          });
-        }
-
-        // 未適用の招待コードを残したまま登録させない（サーバー側でも type=invite 限定で再判定される）
-        if (!assertInviteCodeSubmittable(inviteCode)) return;
-
-        const idToken = await currentUser.getIdToken();
-
-        // reCAPTCHA トークンを取得
-        const recaptchaToken = await getRecaptchaToken(
-          executeRecaptcha,
-          RECAPTCHA_ACTIONS.REGISTER,
-        );
-
-        const payload: RegistrationInput = {
-          providerType: providerId as UserProviderType,
-          providerUid: currentUser.uid,
-          idToken,
-          email,
-          name,
-          role,
-          profileData,
-          inviteCode: resolveInviteCodePayload(inviteCode),
-        };
-
-        await register(payload, { recaptchaToken });
-
-        await refreshSession();
-        guardedPush("/signup/complete");
-      } catch (error) {
-        // v2チャレンジが必要な場合
-        if (isV2ChallengeRequired(error)) {
-          const currentUser = auth.currentUser;
-          const providerId = currentUser?.providerData?.[0]?.providerId ?? null;
-          if (currentUser && providerId) {
-            const idToken = await currentUser.getIdToken();
-            const values = form.getValues();
-            pendingPayloadRef.current = {
-              providerType: providerId as UserProviderType,
-              providerUid: currentUser.uid,
-              idToken,
-              email: values.email,
-              name: values.name,
-              role: values.role,
-              profileData: values.profileData,
-              inviteCode: resolveInviteCodePayload(values.inviteCode),
-            };
-          }
-          handleV2ChallengeRequired(error);
-          return;
-        }
-        // レートリミット発動時
-        if (isHttpError(error) && error.status === 429) {
-          if (isSilentRateLimit(error)) {
-            form.setError("root", { type: "server", message: error.message });
-          } else {
-            setShowRateLimitWarning(true);
-          }
-          return;
-        }
-        const message = err(error, "本登録の処理に失敗しました");
-        form.setError("root", { type: "server", message });
-      }
-    },
-    [form, refreshSession, register, guardedPush, executeRecaptcha, handleV2ChallengeRequired, resolveInviteCodePayload, assertInviteCodeSubmittable],
-  );
-
-  const rootErrorMessage = form.formState.errors.root?.message ?? null;
+    form,
+    onSubmit,
+    isLoading,
+    rootErrorMessage,
+    selectedRole,
+    profiles,
+    inviteCodeState,
+    recaptchaV2,
+    rateLimitWarning,
+  } = useOAuthRegistrationForm();
 
   return (
     <AppForm
       methods={form}
-      onSubmit={handleSubmit}
+      onSubmit={onSubmit}
       pending={isLoading}
       className="flex flex-col gap-4"
       noValidate
@@ -264,7 +88,7 @@ export function OAuthRegistrationForm() {
         <RoleProfileFields
           methods={form}
           role={selectedRole}
-          profiles={REGISTRATION_PROFILES}
+          profiles={profiles}
           tag="registration"
           wrapperClassName="flex flex-col gap-4"
         />
@@ -304,19 +128,19 @@ export function OAuthRegistrationForm() {
         </Button>
 
         {/* v2チャレンジモーダル */}
-        {challengeState.siteKey && (
+        {recaptchaV2.siteKey && (
           <RecaptchaV2Challenge
-            open={challengeState.isOpen}
-            onClose={closeChallenge}
-            onVerify={handleV2Verify}
-            siteKey={challengeState.siteKey}
+            open={recaptchaV2.open}
+            onClose={recaptchaV2.onClose}
+            onVerify={recaptchaV2.onVerify}
+            siteKey={recaptchaV2.siteKey}
           />
         )}
 
         {/* レートリミット警告モーダル */}
         <RateLimitWarningModal
-          open={showRateLimitWarning}
-          onOpenChange={setShowRateLimitWarning}
+          open={rateLimitWarning.open}
+          onOpenChange={rateLimitWarning.onOpenChange}
         />
     </AppForm>
   );
