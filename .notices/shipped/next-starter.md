@@ -225,3 +225,24 @@
 - id:20261103-103553-tsconfig-drop-baseurl | severity:action-required | checkpoint:tsconfig-drop-baseurl | resolves:20261029-221452-upstream-fix-src-imports-tsconfig
 - id:20261103-123202-order-status-routed-taken | severity:info | checkpoint:order-status-routed-taken
 - id:20261103-123638-fix-pick-ahead | severity:info | checkpoint:fix-pick-ahead
+- id:20261103-130000-user-delete-route-soft-delete | severity:action-required | checkpoint:user-delete-route-soft-delete | resolves:20261101-155047-user-delete-route-bypasses-soft-delete
+- id:20261103-124738-block-ref-prop | severity:info | checkpoint:block-ref-prop | resolves:20261102-114757-block-ref-prop
+- id:20261103-131000-coupon-redeem-failure-recorded | severity:info | checkpoint:coupon-redeem-failure-recorded | resolves:20261101-181534-coupon-redeem-failure-silent
+- id:20261103-124908-media-failed-upload-restore | severity:info | checkpoint:media-failed-upload-restore | resolves:20261101-160323-media-failed-upload-drops-stored-image
+- id:20261103-132000-firestore-where-unsupported-op-throws | severity:action-required | checkpoint:firestore-where-unsupported-op-throws | resolves:20261102-184122-firestore-applywhere-silent-drop
+- id:20261103-133000-format-date-ja-fixed-zone | severity:action-required | checkpoint:format-date-ja-fixed-zone | resolves:20261101-160324-format-date-ja-timezone
+- id:20261103-134000-user-name-sanitize | severity:action-required | checkpoint:user-name-sanitize | resolves:20261102-114757-user-name-sanitize
+- id:20261103-125116-route-transition-overlay-removed | severity:action-required | checkpoint:route-transition-overlay-removed | resolves:20261102-114025-route-transition-overlay-app-router
+- id:20261103-125018-data-import-partial-failure | severity:action-required | checkpoint:data-import-partial-failure | resolves:20261102-184122-data-import-partial-failure
+- id:20261103-125037-infinite-scroll-remove-offset | severity:info | checkpoint:infinite-scroll-remove-offset | resolves:20261102-160430-infinite-scroll-remove-offset
+- id:20261103-125408-dc-delete-code-references | severity:info | checkpoint:dc-delete-code-references | resolves:20261102-184122-dc-delete-code-references
+- id:20261103-125440-infinite-scroll-revalidate-on-focus | severity:info | checkpoint:infinite-scroll-revalidate-on-focus | resolves:20261102-160430-infinite-scroll-revalidate-on-focus
+- id:20261103-125532-infinite-scroll-list-loadmore-error | severity:info | checkpoint:infinite-scroll-list-loadmore-error | resolves:20261102-160430-infinite-scroll-list-loadmore-error
+- id:20261103-125547-setting-test-fork-sections | severity:info | checkpoint:setting-test-fork-sections | resolves:20261101-192954-setting-test-fork-sections
+- id:20261103-125656-wiring-test-fork-items | severity:info | checkpoint:wiring-test-fork-items | resolves:20261101-142143-wiring-test-fork-items
+- id:20261103-125709-flux-out-of-segment-check-renames | severity:info | checkpoint:flux-out-of-segment-check-renames | resolves:20261101-181534-flux-out-of-segment-check-renames
+- id:20261103-135000-account-unlink-clients | severity:action-required | checkpoint:account-unlink-clients | resolves:20261101-153803-account-unlink-clients
+- id:20261103-140000-small-fixes-from-council-survey | severity:action-required | checkpoint:small-fixes-from-council-survey | resolves:20261101-171224-small-fixes-from-council-survey
+- id:20261103-134731-fork-copy-policy-docs | severity:info | checkpoint:fork-copy-policy-docs | fixes:20261101-134412-fork-extension-policy | resolves:20261101-174248-copied-from-backfill-on-merge, 20261101-181534-flux-kept-behavior-copies-policy, 20261101-181534-feature-gate-check-all-in-forks
+- id:20261103-134732-closed-orders-resolves | severity:info | checkpoint:closed-orders-resolves | resolves:20261025-213656-user-frame-partial-customization, 20261028-171627-built-css-guard-fork-custom-coverage, 20261101-111956-review-admin-layout-lib-promotion, 20261101-153803-bank-transfer-bulk-decision, 20261101-153803-coupon-discount-totals, 20261101-180140-user-header-look-config
+- id:20261103-144217-notice-shipped-index | severity:action-required | checkpoint:notice-shipped-index
