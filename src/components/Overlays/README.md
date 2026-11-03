@@ -603,7 +603,8 @@ hideToast();
 | `Spinner` | スピナーアイコン |
 | `ScreenLoader` | 画面全体またはローカル領域のローディング |
 | `GlobalScreenLoader` | グローバルなローディング表示 |
-| `RouteTransitionOverlay` | ルート遷移時のローディング |
+
+ページ遷移中の表示は App Router の標準手段で出す（全体を覆う遷移オーバーレイは置かない。App Router には全体の遷移イベントが無い）: ルートの `loading.tsx`（`src/app/(user)/loading.tsx`・`src/app/admin/(protected)/loading.tsx` が `ScreenLoader` を出す）、リンク単位の表示は `next/link` の `useLinkStatus`、自前の遷移は `useTransition` の pending。
 
 ```tsx
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";

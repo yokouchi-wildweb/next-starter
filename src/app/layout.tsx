@@ -13,7 +13,6 @@ import {
 } from "@/lib/siteTheme";
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
-import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
@@ -100,7 +99,6 @@ export default async function RootLayout({
         <GlobalToast />
         {/* Provider の入れ子は src/wiring/AppProviders.tsx(Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア) */}
         <AppProviders>
-          <RouteTransitionOverlay />
           {children}
         </AppProviders>
         <RedirectToastProvider />
