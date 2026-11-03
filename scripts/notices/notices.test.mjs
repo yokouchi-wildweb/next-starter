@@ -1,6 +1,7 @@
 // scripts/notices/notices.test.mjs
 // DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test:notices (node:test)
 // /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・pick・covers・moved・resolves)と食い違わないことを確かめる。
+// 索引 .notices/shipped/*.md の検査(追記だけ・行と本文・uses:・skip_checkpoint:)は scripts/notices/shippedIndex.mjs の checkAll を回す。
 // 仕様: .notices/README.md
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -8,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkAll, readIndexes } from "./shippedIndex.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const NOTICES = ".notices";
@@ -98,7 +100,7 @@ const pending = new Set(
   git(["status", "--porcelain", "--untracked-files=all", "--", NOTICES])
     .split("\n")
     .map((l) => l.slice(3).trim())
-    .filter((p) => p && !p.startsWith(`${DONE}/`) && !p.startsWith(`${NOTICES}/applied/`)),
+    .filter((p) => p && !p.startsWith(`${DONE}/`) && !p.startsWith(`${NOTICES}/applied/`) && !p.startsWith(`${NOTICES}/shipped/`)),
 );
 
 test("見出しの id とファイル名が一致する", () => {
@@ -161,13 +163,23 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
 });
 
 // pick: = 修正を先に取れるかの印。/ship が notices:pick-check で機械で書く(.notices/README.md「修正(fixes)」)
-test("pick: は clean か - で、fixes: のある notice にだけ付く", () => {
+test("pick: は clean か - で、fixes: のある notice にだけ付く(索引の行。古い版の pick-check が本文に書いた物も見る)", () => {
   const problems = [];
-  for (const n of [...active, ...done]) {
+  const items = [
+    ...[...active, ...done].map((n) => ({ where: n.path, fields: n.fields })),
+    ...readIndexes(repoRoot).flatMap((ix) => ix.rows.map((r) => ({ where: `${ix.file} ${r.id}`, fields: r.fields }))),
+  ];
+  for (const n of items) {
     if (n.fields.pick === undefined) continue;
-    if (!["clean", "-"].includes(n.fields.pick)) problems.push(`${n.path}: pick: は clean | - のどちらか("${n.fields.pick}")`);
-    if (n.fields.fixes === undefined) problems.push(`${n.path}: pick: は fixes: のある notice にだけ書きます`);
+    if (!["clean", "-"].includes(n.fields.pick)) problems.push(`${n.where}: pick: は clean | - のどちらか("${n.fields.pick}")`);
+    if (n.fields.fixes === undefined) problems.push(`${n.where}: pick: は fixes: のある notice にだけ書きます`);
   }
+  assert.deepEqual(problems, [], problems.join("\n"));
+});
+
+test("索引 .notices/shipped/: 追記だけ・本文 1 本に行 1 本で欄が一致・uses: の実在と区切り・skip_checkpoint: の条件", (t) => {
+  const { problems, unverified } = checkAll(repoRoot);
+  if (unverified) t.diagnostic(`追記だけの検査は未確認: ${unverified}`);
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 

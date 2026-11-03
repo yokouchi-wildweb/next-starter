@@ -5,8 +5,10 @@
 //
 // 実行: node scripts/notices/shippedIndex.mjs <add <notice>... | backfill | verify>
 //   add <notice>...  自分の索引の末尾に、その notice の行を 1 本ずつ足す(/ship が notice を出荷する commit の前に)
-//   backfill         .notices/ 直下と done/ の全 notice の行を、最初に足した commit の履歴順(同じ commit は id 順)に起こす(索引の導入時に 1 回)
-//   verify           自分の索引の行と今ある本文の一致・id の過不足を見る(本文の無い行は飛ばす: 本文は区間が閉じれば消してよい)
+//   backfill         .notices/ 直下と done/ の notice(他のリポの索引に載る物 = 親の notice は除く)の行を、最初に足した commit の履歴順(同じ commit は id 順)に起こす(索引の導入時に 1 回)
+//   verify           全索引(.notices/shipped/*.md)について、追記だけ(前に push した版 = @{u} か origin/HEAD の行が先頭に同じ順で並ぶ)・
+//                    行と本文の一致(本文 1 本に行 1 本、未 commit の notice は自分の索引に。本文の無い行は通る: 本文は区間が閉じれば消してよい)・
+//                    uses: の実在と区切り・skip_checkpoint: の条件を見る(pnpm test:notices も同じ検査を回す)
 //   exit 0 = 済み / 一致 | 1 = 食い違い(一覧) | 2 = できない(理由)
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -167,12 +169,26 @@ export function add(repo, noticePaths) {
   return rows;
 }
 
-/** 今ある全 notice の行を履歴順に起こす(索引が既にあれば止まる) */
+/** 作業ツリーの全索引 .notices/shipped/*.md: [{ owner, file, text, rows }](owner = ファイル名の fork_id) */
+export function readIndexes(repo) {
+  const dir = join(repo, SHIPPED_DIR);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".md"))
+    .sort()
+    .map((f) => {
+      const text = readFileSync(join(dir, f), "utf8");
+      return { owner: f.slice(0, -3), file: `${SHIPPED_DIR}/${f}`, text, rows: parseIndex(text) };
+    });
+}
+
+/** 今ある全 notice の行を履歴順に起こす(索引が既にあれば止まる)。他のリポの索引に載る notice(fork の親の物)は飛ばす */
 export function backfill(repo) {
   const forkId = ownForkId(repo);
   const path = indexPath(repo, forkId);
   if (existsSync(path)) throw new Error(`${SHIPPED_DIR}/${forkId}.md が既にある(起こすのは導入時の 1 回だけ。足すのは add)`);
-  const files = noticeFiles(repo);
+  const others = new Set(readIndexes(repo).flatMap((ix) => ix.rows.map((r) => r.id)));
+  const files = new Map([...noticeFiles(repo)].filter(([id]) => !others.has(id)));
   const order = historyOrder(repo, new Set(files.keys()));
   const rows = order.map((id) => formatRow(rowFieldsFromNotice(readFileSync(join(repo, files.get(id)), "utf8"))));
   mkdirSync(dirname(path), { recursive: true });
@@ -180,34 +196,176 @@ export function backfill(repo) {
   return rows;
 }
 
-/** 索引と本文の食い違い: [理由]。本文の無い行は飛ばす(区間が閉じた本文は消してよい) */
-export function verify(repo) {
-  const forkId = ownForkId(repo);
-  const path = indexPath(repo, forkId);
-  if (!existsSync(path)) return [`${SHIPPED_DIR}/${forkId}.md が無い`];
-  const rows = parseIndex(readFileSync(path, "utf8"));
+/** 追記だけ: 前に push した版の行が、今の版の先頭に同じ順・同じ文字で並ぶこと(行でない頭書きは見ない)。[理由] */
+export function checkAppendOnly(prevText, curText, file = "") {
+  const prev = prevText.split("\n").filter((l) => l.startsWith("- id:"));
+  const cur = curText.split("\n").filter((l) => l.startsWith("- id:"));
   const problems = [];
-  const seen = new Set();
-  for (const r of rows) {
-    if (seen.has(r.id)) problems.push(`${r.id}: 行が 2 本ある`);
-    seen.add(r.id);
+  for (let i = 0; i < prev.length; i++) {
+    if (cur[i] === prev[i]) continue;
+    const id = parseRow(prev[i]).id;
+    const now = cur.findIndex((l) => l === prev[i]);
+    problems.push(
+      now >= 0
+        ? `${file}: ${id}: push 済みの行の位置が変わった(${i + 1} → ${now + 1} 行目。行は末尾に足すだけ)`
+        : `${file}: ${id}: push 済みの行が変わった・消えた(行は書き換えない。区切りを外すのは修正の notice の skip_checkpoint:)`,
+    );
+    break;
   }
-  const files = noticeFiles(repo);
-  for (const [id, p] of files) {
-    if (!seen.has(id)) {
-      problems.push(`${id}: 本文 ${p} があるのに索引に行が無い`);
+  return problems;
+}
+
+/** 前に push した版を比べる ref(今のブランチの @{u}、無ければ origin/HEAD)。無ければ null */
+export function pushedRef(repo) {
+  for (const ref of ["@{u}", "origin/HEAD"]) {
+    try {
+      return git(repo, ["rev-parse", "--verify", "-q", ref]).trim();
+    } catch {
+      /* 次へ */
+    }
+  }
+  return null;
+}
+
+/** 全索引の追記だけの検査。ref が無ければ { unverified } */
+export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
+  if (!ref) return { unverified: "前に push した版が分からない(@{u} も origin/HEAD も無い)", problems: [] };
+  const problems = [];
+  for (const ix of readIndexes(repo)) {
+    let prev = "";
+    try {
+      prev = git(repo, ["show", `${ref}:${ix.file}`]);
+    } catch {
+      prev = ""; // まだ push していないファイル
+    }
+    problems.push(...checkAppendOnly(prev, ix.text, ix.file));
+  }
+  return { problems };
+}
+
+/** 各 notice を最初に足した commit(done/ への移動は最も古い追加)。id → sha */
+export function addCommits(repo) {
+  const out = new Map();
+  const log = git(repo, ["-c", "core.quotePath=false", "log", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", "HEAD", "--", ".notices/"]);
+  let cur = null;
+  for (const line of log.split("\n")) {
+    if (line.startsWith("@")) cur = line.slice(1);
+    else {
+      const m = line.match(NOTICE_FILE);
+      if (m && cur) out.set(m[1], cur); // 新しい順に出るので最後 = 最も古い
+    }
+  }
+  return out;
+}
+
+/** 行と本文: 本文 1 本に全索引でちょうど 1 行・欄が一致(pick: は行だけでよい)、まだ commit していない notice は自分の索引に。[理由] */
+export function checkRows({ indexes, notices, own, pending = new Set() }) {
+  const problems = [];
+  const where = new Map();
+  for (const ix of indexes) {
+    for (const r of ix.rows) {
+      if (where.has(r.id)) problems.push(`${r.id}: 行が 2 本ある(${where.get(r.id).file} と ${ix.file})`);
+      else where.set(r.id, { file: ix.file, owner: ix.owner, row: r });
+    }
+  }
+  for (const [id, text] of notices) {
+    const at = where.get(id);
+    if (!at) {
+      problems.push(`${id}: 本文があるのに索引に行が無い(出荷する notice は node scripts/notices/shippedIndex.mjs add <notice>)`);
       continue;
     }
-    const want = rowFieldsFromNotice(readFileSync(join(repo, p), "utf8")).fields;
-    const got = rows.find((r) => r.id === id).fields;
-    // pick: は出荷の後に pick-check が行に書く(本文には書かない)ので、本文に無ければ比べない
-    const keys = new Set([...Object.keys(want), ...Object.keys(got)]);
-    for (const k of keys) {
+    if (pending.has(id) && at.owner !== own) problems.push(`${id}: まだ commit していない notice の行が自分の索引(${SHIPPED_DIR}/${own}.md)に無い(${at.file})`);
+    const want = rowFieldsFromNotice(text).fields;
+    const got = at.row.fields;
+    for (const k of new Set([...Object.keys(want), ...Object.keys(got)])) {
       if (k === "pick" && !(k in want)) continue;
       if (want[k] !== got[k]) problems.push(`${id}: ${k}: 本文 ${want[k] ?? "(無い)"} / 行 ${got[k] ?? "(無い)"}`);
     }
   }
   return problems;
+}
+
+const list = (v) => (v ?? "").split(",").map((s) => s.trim()).filter((s) => s && s !== "-");
+
+/** uses: のパスが実在し(exists(path))、.notices/ の下は .notices/<id>.<名前>.mjs、uses: を持つ notice は区切り。[理由] */
+export function checkUses(row, exists) {
+  const paths = list(row.fields.uses);
+  if (!paths.length) return [];
+  const problems = [];
+  if (row.fields.checkpoint === "-") problems.push(`${row.id}: uses: を持つ notice は区切り(checkpoint: - にしない。移行・codemod が消えた木に merge しうる)`);
+  for (const p of paths) {
+    if (p.startsWith(".notices/") && !(p.startsWith(`.notices/${row.id}.`) && p.endsWith(".mjs") && !p.slice(`.notices/${row.id}.`.length).includes("/"))) {
+      problems.push(`${row.id}: uses: ${p}: .notices/ の codemod は .notices/${row.id}.<名前>.mjs`);
+    }
+    if (!exists(p)) problems.push(`${row.id}: uses: ${p} が notice を足した commit に無い(移行・codemod は notice と同じ commit で出す)`);
+  }
+  return problems;
+}
+
+/** skip_checkpoint: <id> の条件(修正元の区切りを外せるのは、先に取れない修正だけ)。[理由] */
+export function checkSkipCheckpoint(row, rowsById) {
+  const targets = list(row.fields.skip_checkpoint);
+  if (!targets.length) return [];
+  const problems = [];
+  const fixes = list(row.fields.fixes);
+  if (row.fields.checkpoint === "-") problems.push(`${row.id}: skip_checkpoint: を書く修正の notice 自身は区切り(checkpoint: - にしない)`);
+  if (row.fields.pick === "clean") problems.push(`${row.id}: pick: clean の修正は先に取れるので skip_checkpoint: は要らない`);
+  for (const t of targets) {
+    if (!fixes.includes(t)) problems.push(`${row.id}: skip_checkpoint: ${t} が fixes: に無い(外せるのは自分が直す修正元の区切りだけ)`);
+    const target = rowsById.get(t);
+    if (!target) {
+      problems.push(`${row.id}: skip_checkpoint: ${t} の行が索引に無い`);
+      continue;
+    }
+    if (!("checkpoint" in target.fields) || target.fields.checkpoint === "-") problems.push(`${row.id}: skip_checkpoint: ${t} は checkpoint がラベルでない(外せるのはラベル → - だけ)`);
+    if (list(target.fields.uses).length) problems.push(`${row.id}: skip_checkpoint: ${t} は uses: を持つので区切りを外せない`);
+  }
+  return problems;
+}
+
+/** 今ある notice(未 commit を含む)の id → 本文 */
+function noticeTexts(repo) {
+  return new Map([...noticeFiles(repo)].map(([id, p]) => [id, readFileSync(join(repo, p), "utf8")]));
+}
+
+/** まだ commit していない notice の id(git status) */
+export function pendingNoticeIds(repo) {
+  const out = git(repo, ["-c", "core.quotePath=false", "status", "--porcelain", "--untracked-files=all", "--", ".notices/"]);
+  return new Set(out.split("\n").map((l) => l.slice(3).trim().match(NOTICE_FILE)?.[1]).filter(Boolean));
+}
+
+/** 索引の検査を全部(追記だけ・行と本文・uses:・skip_checkpoint:)。{ problems, unverified } */
+export function checkAll(repo, { ref } = {}) {
+  const own = ownForkId(repo);
+  const indexes = readIndexes(repo);
+  const pending = pendingNoticeIds(repo);
+  const problems = checkRows({ indexes, notices: noticeTexts(repo), own, pending });
+  const rows = indexes.flatMap((ix) => ix.rows);
+  const rowsById = new Map(rows.map((r) => [r.id, r]));
+  const adds = addCommits(repo);
+  for (const r of rows) {
+    const commit = adds.get(r.id);
+    const exists = (p) => {
+      if (!commit || pending.has(r.id)) return existsSync(join(repo, p));
+      try {
+        git(repo, ["cat-file", "-e", `${commit}:${p}`]);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    problems.push(...checkUses(r, exists), ...checkSkipCheckpoint(r, rowsById));
+  }
+  const ao = appendOnlyProblems(repo, ref === undefined ? pushedRef(repo) : ref);
+  problems.push(...ao.problems);
+  return { problems, unverified: ao.unverified ?? null };
+}
+
+/** verify(CLI): checkAll と、自分の索引があること */
+export function verify(repo) {
+  const forkId = ownForkId(repo);
+  if (!existsSync(indexPath(repo, forkId)) && pendingNoticeIds(repo).size === 0 && readIndexes(repo).length === 0) return [`${SHIPPED_DIR}/${forkId}.md が無い`];
+  return checkAll(repo).problems;
 }
 
 /** 本体(テストからは repo と log を渡す)。exit code を返す */
@@ -225,7 +383,7 @@ export function run(repo, argv, log = console.log) {
     if (cmd === "verify") {
       const problems = verify(repo);
       for (const p of problems) log(`shipped-index: ${p}`);
-      if (!problems.length) log(`shipped-index: 一致(${parseIndex(readFileSync(indexPath(repo, ownForkId(repo)), "utf8")).length} 行)`);
+      if (!problems.length) log(`shipped-index: 一致(${readIndexes(repo).reduce((n, ix) => n + ix.rows.length, 0)} 行)`);
       return problems.length ? 1 : 0;
     }
   } catch (e) {
