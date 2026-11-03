@@ -1,7 +1,10 @@
 // src/features/core/setting/services/server/settingStorage.test.ts
+// fork でも走る: 動きの検査は全 Tier、上流のキー・セクションの組と既定の値の厳密な比較は Tier1 だけ
+// （fork はキー・セクションを足し、既定の値を書き換える。fork では上流のキー・セクションが残っていることを見る）
 // 実行: pnpm test:setting
 
 import assert from "node:assert/strict";
+import { resolve } from "node:path";
 import { test } from "node:test";
 
 import { PgDialect } from "drizzle-orm/pg-core";
@@ -14,6 +17,24 @@ import { publicSettingKeys, settingKeysFor } from "./access";
 import { buildSectionForm, listSections } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
+import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+
+const ROOT = resolve(import.meta.dirname, "../../../../../..");
+const { isTier1 } = readForkIdentity(ROOT);
+/** 上流の既定の値の検査（fork では飛ばす） */
+const tier1Only = { skip: isTier1 ? false : "上流の既定の値の検査（Tier1 だけ）" };
+/** 上流が持つキーとセクション（fields/・sections/ の上流の項目） */
+const UPSTREAM_KEYS = ["adminListPerPage", "maintenanceEnabled", "maintenanceEndAt", "maintenanceStartAt"];
+const UPSTREAM_SECTIONS = ["general", "maintenance"];
+/** Tier1 は完全一致、fork は上流の項目を同じ順で含むこと（fork の項目は間に入ってよい） */
+const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) => {
+  if (isTier1) {
+    assert.deepEqual([...actual], [...upstream]);
+    return;
+  }
+  const present = actual.filter((item) => upstream.includes(item));
+  assert.deepEqual(present, [...upstream], `上流の項目が欠けているか順が違う: ${actual.join(", ")}`);
+};
 
 const defs = {
   count: { schema: z.coerce.number().int().min(1).default(100) },
@@ -68,7 +89,7 @@ test("保存の式: 1 本の文で重ね、一覧のキーだけに絞り、残�
   assert.deepEqual(params, ['{"a":1}', "a", "b"]);
 });
 
-test("上流のキーの既定: adminListPerPage 100、メンテナンスは無効", () => {
+test("上流のキーの既定: adminListPerPage 100、メンテナンスは無効", tier1Only, () => {
   const values = readSettingValues(null, fields);
   assert.equal(values.adminListPerPage, 100);
   assert.equal(values.maintenanceEnabled, false);
@@ -97,23 +118,31 @@ test("権限: キーの allowRoles → セクションの allowRoles → 管理�
 
 test("公開: public true のキーだけ。上流のキーは全部非公開", () => {
   assert.deepEqual(publicSettingKeys({ a: { schema: z.number().default(1), public: true }, b: { schema: z.number().default(1) } }), ["a"]);
-  assert.deepEqual(publicSettingKeys(fields), []);
+  // fork が足したキーは public でもよい（上流のキーだけを見る）
+  assert.deepEqual(publicSettingKeys(fields).filter((key) => UPSTREAM_KEYS.includes(key)), []);
+  assertUpstreamItems(Object.keys(fields).sort(), UPSTREAM_KEYS);
   assert.deepEqual(settingKeysFor("admin", fields, sections).sort(), Object.keys(fields).sort());
 });
 
 test("フォーム: セクションの欄を ui.order で並べ、許されていないキーは欄も送信も無い", () => {
   const current = { adminListPerPage: 5, maintenanceEnabled: true, maintenanceEndAt: null };
   const m = buildSectionForm("maintenance", fields, current);
-  assert.deepEqual(m.keys, ["maintenanceEnabled", "maintenanceEndAt"]);
-  assert.deepEqual(m.fieldConfigs.map((f) => f.name), ["maintenanceEnabled", "maintenanceEndAt"]);
-  assert.deepEqual(m.defaultValues, { maintenanceEnabled: true, maintenanceEndAt: null });
-  assert.deepEqual(Object.keys(m.schema.shape), ["maintenanceEnabled", "maintenanceEndAt"]);
-  assert.equal(m.fieldConfigs[0].label, "メンテナンスモード");
+  // fork は上流のセクションにキーを足せる（Tier1 は完全一致、fork は上流のキーが同じ順で残っていること）
+  assertUpstreamItems(m.keys, ["maintenanceEnabled", "maintenanceEndAt"]);
+  assert.deepEqual(m.fieldConfigs.map((f) => f.name), m.keys);
+  assert.deepEqual(Object.keys(m.schema.shape), m.keys);
+  assert.equal(m.defaultValues.maintenanceEnabled, true);
+  assert.equal(m.defaultValues.maintenanceEndAt, null);
+  if (isTier1) assert.equal(m.fieldConfigs[0].label, "メンテナンスモード");
   const g = buildSectionForm("general", fields, current);
-  assert.deepEqual(g.keys, ["adminListPerPage"]);
-  assert.equal(m.schema.safeParse({ maintenanceEnabled: true, maintenanceEndAt: null }).success, true);
+  assertUpstreamItems(g.keys, ["adminListPerPage"]);
+  if (isTier1) assert.equal(m.schema.safeParse({ maintenanceEnabled: true, maintenanceEndAt: null }).success, true);
 });
 
 test("セクション: order 昇順", () => {
-  assert.deepEqual(listSections(sections).map((s) => s.key), ["general", "maintenance"]);
+  const listed = listSections(sections);
+  const orders = listed.map((s) => s.order);
+  assert.deepEqual(orders, [...orders].sort((a, b) => a - b));
+  // fork はセクションを足せる（上流のセクションが同じ順で残っていること）
+  assertUpstreamItems(listed.map((s) => s.key), UPSTREAM_SECTIONS);
 });
