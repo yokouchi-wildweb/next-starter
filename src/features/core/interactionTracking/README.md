@@ -70,7 +70,7 @@
 
 ### 1. 計測対象を登録（サーバー・fail-closed の解除）
 
-`src/features/core/interactionTracking/targetRules/bulletin.<fork の名前>.ts` に置き `pnpm extensions:generate`:
+`src/features/core/interactionTracking/targetRules/bulletin.ts` に置き `pnpm extensions:generate`:
 
 ```ts
 import { bulletinService } from "@/features/bulletin/services/server/bulletinService";

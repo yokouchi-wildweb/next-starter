@@ -39,7 +39,7 @@ milestone/
 │   ├── MilestoneNotifications.tsx   # 達成通知リスト表示コンポーネント
 │   ├── DefaultMilestoneNotification.tsx # 未登録キーの汎用通知
 │   └── renderers/
-│       └── <名前>.<fork の名前>.tsx  # 下流のレンダラーの項目(export const renderer)
+│       └── <名前>.tsx  # 下流のレンダラーの項目(export const renderer)
 ├── entities/                        # 生成ファイル（user_milestones テーブル定義）
 └── hooks/                           # 生成ファイル（クライアント用フック）
 ```
@@ -50,10 +50,10 @@ milestone/
 
 ### 1. マイルストーン定義ファイルを作成
 
-`services/server/definitions/<名前>.<fork の名前>.ts` を作成し、`pnpm extensions:generate` で一覧に入れる。
+`services/server/definitions/<名前>.ts` を作成し、`pnpm extensions:generate` で一覧に入れる。
 
 ```ts
-// services/server/definitions/firstPurchase.<fork の名前>.ts
+// services/server/definitions/firstPurchase.ts
 
 import type { MilestoneDefinition } from "@/features/core/milestone/types/milestone";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
@@ -247,7 +247,7 @@ export function FirstPurchaseCelebration({ result }: MilestoneRendererProps) {
 #### 2. 受け口に項目を置く
 
 ```ts
-// components/renderers/firstPurchase.<fork の名前>.ts
+// components/renderers/firstPurchase.ts
 
 import type { MilestoneRendererDefinition } from "@/features/core/milestone/types/milestoneRenderer";
 import { FirstPurchaseCelebration } from "@/features/myDomain/components/FirstPurchaseCelebration";

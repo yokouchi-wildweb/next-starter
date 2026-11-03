@@ -10,9 +10,9 @@ fork は上流のファイルを編集せず、受け口にファイルを置い
 
 | 足すもの | 置き場 |
 |---|---|
-| カテゴリ | `src/app/_layout/adminCommand/categories/<名前>[.<fork の名前>].tsx` の `export const category`(並びはファイル名の順) |
-| Provider・GlobalComponent | `src/app/_layout/adminCommand/plugins/<名前>[.<fork の名前>].tsx` の `export const plugin` |
-| ナビゲーション先 | `src/features/core/adminCommand/navigationItems/<名前>[.<fork の名前>].ts` の `export const items`(配列) |
+| カテゴリ | `src/app/_layout/adminCommand/categories/<名前>.tsx` の `export const category`(並びはファイル名の順) |
+| Provider・GlobalComponent | `src/app/_layout/adminCommand/plugins/<名前>.tsx` の `export const plugin` |
+| ナビゲーション先 | `src/features/core/adminCommand/navigationItems/<名前>.ts` の `export const items`(配列) |
 
 カテゴリとプラグインは管理者のときだけ読み込む(`load: lazy`)。一般の利用者には届かない。
 
@@ -41,7 +41,7 @@ src/features/core/adminCommand/
 
 ### ナビゲーション先を追加する
 
-`navigationItems/<名前>.<fork の名前>.ts`:
+`navigationItems/<名前>.ts`:
 
 ```ts
 import type { NavigationItemGroup } from "@/features/core/adminCommand/types";
@@ -94,7 +94,7 @@ src/features/<ドメイン>/components/<カテゴリ>/
 
 ### Step 3: 登録
 
-`src/app/_layout/adminCommand/categories/myCategory.<fork の名前>.tsx`:
+`src/app/_layout/adminCommand/categories/myCategory.tsx`:
 
 ```tsx
 import type { CategoryConfig } from "@/features/core/adminCommand/base/types";
@@ -116,7 +116,7 @@ export const category: CategoryConfig = {
 
 ### 登録方法
 
-`src/app/_layout/adminCommand/plugins/myCategory.<fork の名前>.tsx`:
+`src/app/_layout/adminCommand/plugins/myCategory.tsx`:
 
 ```tsx
 import type { AdminCommandPlugin } from "@/features/core/adminCommand/base/types";

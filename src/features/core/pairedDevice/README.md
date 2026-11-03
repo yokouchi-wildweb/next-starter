@@ -14,7 +14,7 @@
 
 1. `src/config/app/paired-device.config.ts` の `enabled` を `true` にする
 2. `pnpm db:push`（`paired_devices` / `device_pairings` が作られる。無効の間は作られない）
-3. 端末の種類を `kinds/<名前>.<fork の名前>.ts` に置き `pnpm extensions:generate`（下記）
+3. 端末の種類を `kinds/<名前>.ts` に置き `pnpm extensions:generate`（下記）
 
 無効の間は feature-gate が `/api/paired-device/**` `/api/paired-devices/**` を 404 にし、
 `getSessionDevice` は Cookie を読まずに常に null を返す。
@@ -25,7 +25,7 @@
 `scopeSchema` で検証するだけ。登録されていない kind の端末は作れず、認証にも失敗する（fail-closed）。
 
 ```ts
-// src/features/core/pairedDevice/kinds/tableTerminal.<fork の名前>.ts(1 種類 1 ファイル)
+// src/features/core/pairedDevice/kinds/tableTerminal.ts(1 種類 1 ファイル)
 import { z } from "zod";
 import { definePairedDeviceKind } from "@/features/core/pairedDevice/types/kind";
 

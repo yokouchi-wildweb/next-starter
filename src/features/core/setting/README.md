@@ -39,7 +39,7 @@ src/features/core/setting/
 
 ## キーを足す
 
-`fields/<キー>.ts` を置き、`pnpm extensions:generate` を実行する。ファイル名がキーの名前になる。fork は `fields/<キー>.<fork の名前>.ts`。DB の変更は要らない。
+`fields/<キー>.ts` を置き、`pnpm extensions:generate` を実行する。ファイル名がキーの名前になる(上流も fork も同じ形。名前に fork の印は付けない)。DB の変更は要らない。
 
 ```ts
 import { z } from "zod";
@@ -60,11 +60,11 @@ export const field = {
 - 値 import の先は `zod`・`@/config`・純関数・型だけ。React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する(proxy と client の両方から読むため)
 - 同じ名前のキー・無いセクションを指すキーは生成で失敗する
 
-独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.<fork の名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。部品の本体は `src/features/<ドメイン>/components/` に置く(core に足さない。欄の定義は名前だけなので上の値 import の決まりに当たらない)。
+独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。部品の本体は `src/features/<ドメイン>/components/` に置く(core に足さない。欄の定義は名前だけなので上の値 import の決まりに当たらない)。
 
 ## セクションを足す
 
-`sections/<名前>.ts`(fork は `sections/<名前>.<fork の名前>.ts`)を置き、`pnpm extensions:generate` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
+`sections/<名前>.ts`(上流も fork も同じ形)を置き、`pnpm extensions:generate` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
 
 ```ts
 import { Sliders } from "lucide-react";
@@ -85,7 +85,7 @@ export const section: SettingSectionDefinition = {
 
 ## 親の Tier のキー・セクションを変える
 
-上流のファイル(ドット名なし)は書き換えない。隣の `<名前>.override.ts` に `export const override` を置く。
+上の Tier のファイルは書き換えない。隣の `<名前>.override.ts` に `export const override` を置く。
 
 - キー: `ui`・`public`・`default`・`allowRoles`(型と検証は変えられない)
 - セクション: `label`・`order`・`icon`・`allowRoles`・`description`・`groups`

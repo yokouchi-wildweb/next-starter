@@ -36,7 +36,7 @@
 ## プログラム設定（下流が登録）
 
 ```typescript
-// services/server/programConfig.<fork の名前>.ts(スイッチ programConfig.ts をここへ向ける)
+// services/server/programConfig.replace.ts(スイッチ programConfig.ts をここへ向ける)
 import type { CouponIssuerProgramConfig } from "@/features/core/couponIssuerGrant/types/program";
 
 export const couponIssuerProgram: CouponIssuerProgramConfig | null = {

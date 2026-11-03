@@ -189,7 +189,7 @@ wallet: {
 }
 ```
 
-通知の文言は `src/config/app/wallet-notification.config.ts`。組み立てごと変える fork は `adjustmentNotificationTemplate.<fork の名前>.ts`(`buildTitle`・`buildBody` を export)を作り、1 行スイッチ `adjustmentNotificationTemplate.ts` の向きを書き換える。
+通知の文言は `src/config/app/wallet-notification.config.ts`。組み立てごと変える fork は `adjustmentNotificationTemplate.replace.ts`(`buildTitle`・`buildBody` を export)を作り、1 行スイッチ `adjustmentNotificationTemplate.ts` の向きを書き換える。
 
 #### reserveBalance
 

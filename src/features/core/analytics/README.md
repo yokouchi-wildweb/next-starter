@@ -220,7 +220,7 @@ export const coinClosingBalanceMetric: RollupMetricConfig = {
 ```
 
 ```typescript
-// src/features/core/analytics/rollupMetrics/coinClosingBalance.<fork の名前>.ts に置き pnpm extensions:generate
+// src/features/core/analytics/rollupMetrics/coinClosingBalance.ts に置き pnpm extensions:generate
 import { coinClosingBalanceMetric } from "@/features/wallet/analytics/rollup/coinClosingBalance";
 
 export const metric = coinClosingBalanceMetric;
@@ -402,7 +402,7 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 ### ソース追加の手順 (downstream)
 
 1. `CoinIssuanceSource` を満たす値を作成する
-2. `services/server/coinIssuance/sources/<名前>.<fork の名前>.ts` に `export const source` を置き `pnpm extensions:generate`（閉じられる機能を読むソースは `enabled` が必須）
+2. `services/server/coinIssuance/sources/<名前>.ts` に `export const source` を置き `pnpm extensions:generate`（閉じられる機能を読むソースは `enabled` が必須）
    - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
 3. (任意) `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_LABELS` に表示名を足す
 
@@ -447,7 +447,7 @@ export const gachaProfitSource: CoinIssuanceSource = {
 ```
 
 ```typescript
-// src/features/core/analytics/services/server/coinIssuance/sources/gachaProfit.<fork の名前>.ts
+// src/features/core/analytics/services/server/coinIssuance/sources/gachaProfit.ts
 import { gachaProfitSource } from "@/features/gacha/analytics/coinIssuance/gachaProfitSource";
 
 export const source = gachaProfitSource;

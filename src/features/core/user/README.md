@@ -322,7 +322,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 
 ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、
 「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
-`src/features/core/user/reservedNames/<名前>.<fork の名前>.ts` に `export const provider` を置き `pnpm extensions:generate`（上流は項目 0 = 挙動変化なし）。
+`src/features/core/user/reservedNames/<名前>.ts` に `export const provider` を置き `pnpm extensions:generate`（上流は項目 0 = 挙動変化なし）。
 
 ```ts
 // 例: 静的な予約語リスト
@@ -494,7 +494,7 @@ const result = await userClient.searchWithProfile("contributor", {
 退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。
 
 ```
-cleanupHandlers/<名前>[.<fork の名前>].ts      ← 項目（export const handler: UserCleanupItem）
+cleanupHandlers/<名前>.ts      ← 項目（export const handler: UserCleanupItem）
 extensions/cleanupHandlers.ts                 ← 一覧（生成物、pnpm extensions:generate）
 services/server/cleanup.ts                    ← 項目の型と実行（必須 → 任意）
 services/server/executeCleanup.ts             ← 呼び手の入口
@@ -514,7 +514,7 @@ services/server/executeCleanup.ts             ← 呼び手の入口
 
 1. 対象ドメインの `services/server/` に `UserCleanupHandler` 型 `(userId: string, tx: DbTransaction) => Promise<void>` の関数を作る
    - DB 操作は必ず渡された `tx` で行う（独自にトランザクションを開始しない）
-2. `src/features/core/user/cleanupHandlers/<名前>.<fork の名前>.ts` に項目を置き `pnpm extensions:generate`:
+2. `src/features/core/user/cleanupHandlers/<名前>.ts` に項目を置き `pnpm extensions:generate`:
    `export const handler: UserCleanupItem = { required: true, enabled: () => <フラグ>, run: cleanupOnWithdraw };`
 
 ```typescript

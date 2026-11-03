@@ -86,8 +86,8 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 
 ## 下流プロジェクトでの実装手順
 
-1. **報酬グループ・定義を追加**: `rewardGroups/<名前>.<fork の名前>.ts` に `export const group: ReferralRewardGroupItem`（`key`・`label`・`rewards`）
-2. **ハンドラーを作成**: `services/server/handlers/<名前>.<fork の名前>.ts` に `export const handler: RewardHandlerItem`（`rewardKey`・`handler`）
+1. **報酬グループ・定義を追加**: `rewardGroups/<名前>.ts` に `export const group: ReferralRewardGroupItem`（`key`・`label`・`rewards`）
+2. **ハンドラーを作成**: `services/server/handlers/<名前>.ts` に `export const handler: RewardHandlerItem`（`rewardKey`・`handler`）
 3. **一覧を作る**: `pnpm extensions:generate`
 4. **トリガー呼び出し**: 任意のタイミングで `referralRewardService.triggerRewards("trigger_name", referral, context?, tx?)` を呼ぶ
 
