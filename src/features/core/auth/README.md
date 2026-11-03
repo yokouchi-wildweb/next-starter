@@ -21,7 +21,7 @@ auth/
 │   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   │   └── phoneVerification/   # 電話番号の重複チェック・OTP 検証
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
-├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm (公開 hook の契約表), oauth/*, registration/・signup/ (内部) など
+├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など
 ├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin / PhoneVerification 等
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
 ```
@@ -112,7 +112,7 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 
 認証の守り（reCAPTCHA・ID トークン・セッション更新・遷移）と form の処理は `hooks/` 直下の公開 hook が持ち、既定の部品は hook を呼んで描くだけ。fork が画面を作り替えるときは処理を写さず同じ hook を呼び、返る `form` を `AppForm` + 任意の markup（`FieldRenderer` 等）で描く。契約 = hook の名前・引数・戻り値・form の項目名（変えるときは notice）。
 
-- `hooks/registration/`・`hooks/signup/` は公開 hook の内部（送信の流れ `submitFlow.ts` / `sendFlow.ts`・共通の送信 hook・formEntities）。部品・fork はここを import しない
+- `hooks/registration/`・`hooks/signup/` は公開 hook の内部（送信の流れ `submitFlow.ts` / `sendFlow.ts`・共通の送信 hook・formEntities）。`hooks/oauth/transition.ts`（OAuth の遷移の決め方）も内部。部品・fork はここを import しない
 - 送信の流れの単体テスト: `pnpm test:auth-registration-flow`
 
 ### 本登録 form（`/signup/register`）
@@ -148,6 +148,15 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 - `isSubmitting`: 送信中（事前登録は登録済み確認中も含む）
 - `rootErrorMessage`: `form` の root エラー（`string | null`）。登録済み・送信失敗の文言
 - `recaptchaV2`（メール認証のみ）: `{ open, siteKey, onClose, onVerify }`。`RecaptchaV2Challenge` に渡す。v2 トークンを得ると保留中のメールアドレスへ自動で再送する
+
+### OAuth の登録・ログイン（`/signup/oauth`）
+
+| hook | 引数 | 戻り値 |
+| --- | --- | --- |
+| `useOAuthSignupFlow({ provider, redirectTo })` | `provider?: UserProviderType`・`redirectTo?: string`（登録済みユーザーのログイン後の遷移先、既定 `"/"`） | `{ phase, requiresReactivation }` |
+
+- 中で `useOAuthPhase`（認証の段階: initial / redirecting / processing / completed / alreadyRegistered / invalidProcess）を進め、段階が決まると移る: `completed` = `APP_FEATURES.auth.signup.afterVerificationPath?method=thirdParty` へ遷移ガード経由 / `alreadyRegistered` + 休会中 = `/reactivate` へ置き換え / `alreadyRegistered` = 成功トースト「登録済みユーザーでログインしました」+ `redirectTo` へ置き換え
+- 画面は `phase` ごとの表示（読み込み中・`InvalidProcessState`）だけを描く。`useOAuthPhase` は段階だけが要る呼び出し向けに残る（遷移はしない）
 
 ## 関連
 

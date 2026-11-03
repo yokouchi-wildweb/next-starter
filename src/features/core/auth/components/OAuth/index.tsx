@@ -1,23 +1,15 @@
-// src/features/auth/components/OAuth/index.tsx
+// src/features/core/auth/components/OAuth/index.tsx
 
 "use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks";
-import { APP_FEATURES } from "@/config/app/app-features.config";
-import { useOAuthPhase } from "@/features/core/auth/hooks/useOAuthPhase";
-import { useGuardedNavigation } from "@/lib/transitionGuard";
+import { useOAuthSignupFlow } from "@/features/core/auth/hooks/useOAuthSignupFlow";
 import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";
-import { useToast } from "@/lib/toast";
 
 export { InvalidProcessState } from "./InvalidProcessState";
-
-const { afterVerificationPath } = APP_FEATURES.auth.signup;
 
 export type OAuthProps = {
   provider?: UserProviderType;
@@ -37,29 +29,9 @@ function LoadingState({ message }: { message: string }) {
 
 const DEFAULT_REDIRECT_PATH = "/";
 
+/** OAuth の登録・ログインの既定の部品。認証の段階と遷移は useOAuthSignupFlow が持ち、ここは phase ごとに描くだけ */
 export function OAuth({ provider, redirectTo = DEFAULT_REDIRECT_PATH }: OAuthProps) {
-  const router = useRouter();
-  const { showToast } = useToast();
-  const { guardedPush } = useGuardedNavigation();
-  const { phase, requiresReactivation } = useOAuthPhase({ provider });
-
-  useEffect(() => {
-    if (phase === "completed") {
-      guardedPush(`${afterVerificationPath}?method=thirdParty`);
-      return;
-    }
-
-    if (phase === "alreadyRegistered") {
-      // 休会中ユーザーの場合は復帰画面へリダイレクト
-      if (requiresReactivation) {
-        router.replace("/reactivate");
-        return;
-      }
-
-      showToast("登録済みユーザーでログインしました", "success");
-      router.replace(redirectTo);
-    }
-  }, [phase, requiresReactivation, router, guardedPush, redirectTo, showToast]);
+  const { phase } = useOAuthSignupFlow({ provider, redirectTo });
 
   return (
     <Section id="signup-oauth" className="relative flex flex-col gap-4">
