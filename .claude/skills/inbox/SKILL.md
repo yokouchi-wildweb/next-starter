@@ -12,6 +12,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 - **状態**（指令の先頭の `status:`。1 つの値。無い古い指令は open）: `open` = 未対応 | `routed` = 評議会・ギルド・legate の計画に振り分け済み（`routed_to:` が担当）| `taken` = 担当が着手済み（`taken_by:` が担当）| 答え = done / partial / relayed / rejected / withdrawn（`done/` へ移る）。移り変わりは指令の末尾の `## STATUS_LOG` に残る。状態は手で書き換えず、`mailbox.mjs route | take | release | resolve` で変える
 - **担当の守り**: 着手は `node .claude/skills/order/mailbox.mjs take <指令>` から始める。open は誰でも取れる。routed は振り分け先の本人だけが取れる（違えば mailbox.mjs が担当を出して断る）。他人が taken の指令・別の担当に routed の指令は、一覧に出すが作業しない（中継・差し戻し・取り下げも含む）。どうするかは人に聞く（担当に任せる・人の判断で振り直す `route --to=` ・止まったセッションの片付け `release --force=<理由>`）。resolve も担当以外は断られる（人が決めたときだけ `--force=<理由>`。RESOLUTION に `forced:` が残る）
 - 本人の名前 = `mailbox.mjs me`（リポのセッション = `<origin> | branch:<b>`、チームのタブ = `<team> <instance> | role:…`）。チームのタブは `council <instance>` / `guild:<instance>` の振り分けと自動で照合する。名前で振り分けられたとき（`guild:<name>`・`legate <id>.<k> plan-SS`）は `--as=<その名前>` を take / release / resolve に付ける
+- **作業の標準の場所**: 指令の作業は、ターミナルで `guild order <指令 id>` を打って 1 タブのギルド（Runner）で始めるのが標準。着手はその起動が `guild <instance> | role:Runner` として記録し、評議会の議長（Archon を含む）は `msg --order <指令 id>` でそのタブに連絡を届けられる。普通のセッションで着手してもよいが、その場合は連絡が届かない（統括は指令に追記するしかない）。Runner のタブの中では、このスキルの対応モードをそのまま使う（手順 1 の take は起動時に済んでいるので打たない）
 - 未対応のうち `waiting_on:` 行がある指令 = 自リポが別のリポに依頼して結果を待っているもの（下記「中継」の依頼して待つ）。mailbox.mjs は待ちの先が開いていれば `waiting`、すべて対応済みなら `resumable` と出す
 - 指令の `to:` が自リポでない（宛先違いで入った）ときは、着手せず下記「中継 / 差し戻す / 取り下げる」に従う
 - **評議会からの指令** = `from: council <議題id> | legate:l<k> order:NN` の指令。評議会の legate（評議会の中で進む、指令を 1 件ずつ出して検証する仕組み）のうち、自リポでの作業が要る 1 歩。本文の `order:` に評議会の指令がそのまま入っている。扱いは通常の指令と同じで、違いは下の対応モードの各所に書く（境界で止まる・`output:`・RESOLUTION の findings / verify）。評議会は、この指令が `done/` に移ったのを見て RESOLUTION を取り込み、自分で検証する。legate の目次やフォルダは評議会のもので、このセッションは触らない
@@ -28,7 +29,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
    - 2件以上: 「どれに着手しますか？」と尋ねる。
 
 ## $ARGUMENTS が id/ファイル名を指すとき（対応モード）
-1. その依頼ファイルを全文読む。続けて `node .claude/skills/order/mailbox.mjs take <該当ファイル>` で着手を記録する（他のセッションが同じ指令を拾わないように。`resumable` の再開や、自分が taken 済みなら不要）。
+1. その依頼ファイルを全文読む。続けて（Runner のタブでは済んでいるので飛ばす）`node .claude/skills/order/mailbox.mjs take <該当ファイル>` で着手を記録する（他のセッションが同じ指令を拾わないように。`resumable` の再開や、自分が taken 済みなら不要）。
    - 断られた（他人が taken・別の担当に routed）: 要約と担当だけを伝えて止まり、どうするかを人に聞く（上の「担当の守り」）。方針の提案・作業はしない
    - 提案が通らず指令を置いておくことになった・別のセッションに任せる: `node .claude/skills/order/mailbox.mjs release <該当ファイル>` で手放す
 2. **日本語で要約**（need / why / done_when / constraints）。`resumable` の指令は、`waiting_on:` の先（`done/` に移ったファイル）の RESOLUTION も読んで要約に入れる。評議会からの指令は `order:` の本文（この歩がする決定事項・完了の条件・「まだやらないこと」）も要約に入れる。
