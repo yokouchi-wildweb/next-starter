@@ -41,6 +41,7 @@
     "test:deprecated-imports": "node --test eslint-rules/deprecated-imports.test.mjs",
     "test:client-service-boundary": "node --test eslint-rules/client-service-boundary.test.mjs",
     "test:core-ui-entry": "node --test eslint-rules/core-ui-entry.test.mjs",
+    "test:core-ui-guards": "node --test eslint-rules/core-ui-guards.test.mjs",
     "test:field-type-guard": "node --test eslint-rules/field-type-guard.test.mjs",
     "test:hidden-columns-lint": "node --test eslint-rules/hidden-columns.test.mjs",
     "test:page-authz-lint": "node --test eslint-rules/page-authz.test.mjs",

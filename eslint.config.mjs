@@ -3,6 +3,8 @@ import nextConfig from "eslint-config-next";
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
 import coreUiEntryPlugin from "./eslint-rules/core-ui-entry.mjs";
+import coreUiGuardsPlugin from "./eslint-rules/core-ui-guards.mjs";
+import { CORE_UI_GUARDS_ALLOW } from "./eslint-rules/core-ui-guards.allow.mjs";
 import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
@@ -332,6 +334,17 @@ const config = [
     plugins: { "no-server-action": noServerActionPlugin },
     rules: {
       "no-server-action/no-server-action": "error",
+    },
+  },
+  // core の部品は useForm と守りの処理(reCAPTCHA・ID トークン・セッション更新・遷移の守り)を直接持たない。
+  // 持ち主ドメインの公開 hook に置く(詳細: eslint-rules/core-ui-guards.mjs)。
+  // upstream(目録の先頭の節)だけ error、fork では off(fork に残る上流の旧版の部品で fork の lint を止めない)。
+  // 許可一覧 eslint-rules/core-ui-guards.allow.mjs は縮める一方(部品を hook 化したらその行を消す)。
+  {
+    files: ["src/features/core/**/components/**/*.tsx"],
+    plugins: { "core-ui-guards": coreUiGuardsPlugin },
+    rules: {
+      "core-ui-guards/no-guard-in-part": libOwnership.isRoot ? ["error", { allow: CORE_UI_GUARDS_ALLOW }] : "off",
     },
   },
   // core の部品は入口だけを読む(全 Tier で error。詳細: eslint-rules/core-ui-entry.mjs)
