@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/query/buildSearchRank.ts
 //
 // テキスト検索（searchQuery）に関する SQL 片の生成。
-// - buildSearchWhere: 従来どおりの `ILIKE %q%` OR（結果集合を決める）
+// - buildSearchWhere: 従来どおりの `ILIKE %q%` OR（結果集合を決める）。テキストでない列（enum・uuid・数値など）は `::text` に cast する
 // - buildSearchRankOrderBy: 関連度スコア（完全 > 前置 > 語頭 > 部分 × weight の合算）の ORDER BY 片
 //
 // base.query() で独自 JOIN を組む wrapper からも同じ順位付けを再利用できるよう
@@ -39,8 +39,18 @@ export function buildWordStartRegex(query: string): string {
 const resolveColumn = (table: PgTable, field: string): unknown =>
   (table as unknown as Record<string, unknown>)[field];
 
+/** そのまま ILIKE で比べられる列（cast しないので、テキストの列の索引の効き方は変わらない） */
+const TEXT_COLUMN_TYPES = new Set(["PgText", "PgVarchar", "PgChar"]);
+
+/** 列の ILIKE。テキストでない列（enum・uuid・数値・custom 等）は Postgres が `operator does not exist` で拒むので `::text` に cast */
+const ilikeColumn = (column: unknown, pattern: string): SQL => {
+  const columnType = (column as { columnType?: string }).columnType;
+  if (columnType !== undefined && TEXT_COLUMN_TYPES.has(columnType)) return ilike(column as any, pattern);
+  return sql`${column}::text ILIKE ${pattern}`;
+};
+
 /**
- * searchFields の各カラムに `ILIKE %query%` を OR で結合した WHERE 片を返す。
+ * searchFields の各カラムに `ILIKE %query%` を OR で結合した WHERE 片を返す（テキストでない列は `::text` に cast。buildSearchRankOrderBy と揃う）。
  * 対象カラムが 1 つも解決できない場合は `FALSE`（検索要求を無視して全件返さない、fail-closed）。
  */
 export const buildSearchWhere = (
@@ -52,7 +62,7 @@ export const buildSearchWhere = (
   const conds = searchFields
     .map((field) => resolveColumn(table, field))
     .filter((column) => column !== undefined)
-    .map((column) => ilike(column as any, pattern));
+    .map((column) => ilikeColumn(column, pattern));
   if (conds.length === 0) return sql`FALSE`;
   return or(...conds) as SQL;
 };

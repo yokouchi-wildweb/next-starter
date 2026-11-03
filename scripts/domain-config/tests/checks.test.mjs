@@ -182,7 +182,9 @@ test("一覧の設定: 無い項目名・向き・FIRST / LAST、複合ユニー
   assert.match(issues, /compositeUniques\[0\] は 1 つ以上/);
   assert.match(issues, /compositeUniques\[1\] の "missing"/);
   assert.match(joined(viewConfigIssues(good({ dbEngine: "Firestore", relations: [] }))), /Firestore のドメインでは compositeUniques/);
-  assert.match(joined(viewConfigWarnings(good({ searchFields: ["level"] }))), /searchFields "level" は文字列の列ではありません/);
+  // Neon は buildSearchWhere が ::text に cast するので警告しない(指令 20261103-140459)。Firestore は今の警告
+  assert.deepEqual(viewConfigWarnings(good({ searchFields: ["level"] })), []);
+  assert.match(joined(viewConfigWarnings(good({ dbEngine: "Firestore", searchFields: ["level"] }))), /searchFields "level" は文字列の列ではありません/);
 });
 
 test("集約: 問題を全件並べ、[camel] を付ける", () => {

@@ -252,3 +252,4 @@
 - id:20261103-095341-fork-name-markers-removed | severity:breaking | checkpoint:shared-shelf-markers | moved:scripts/extensions/declarations.mjs -> src/lib/forkOwnership/declarations.mjs | resolves:20261101-153803-intake-dot-named-switch-items, 20261103-103348-fork-ownership-readme-stale-intro | uses:scripts/codemods/fork-name-markers.mjs
 - id:20261104-084536-codemod-display-spread | severity:info | checkpoint:codemod-display-spread | fixes:20261101-121000-domain-display-client | resolves:20261103-103348-domain-display-codemod-spread-miss | pick:-
 - id:20261104-084626-enum-switch-input | severity:info | checkpoint:enum-switch-input | resolves:20261103-170209-enum-switch-input-pair
+- id:20261104-084644-search-non-text-cast | severity:info | checkpoint:search-non-text-cast | resolves:20261103-140459-search-where-non-text-columns

@@ -916,7 +916,7 @@ sql`CASE WHEN ${t.completedAt} >= ${range.dateFrom.toISOString()} THEN 'current'
 
 ### テキスト検索（searchQuery）
 
-- `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）
+- `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）。テキストでない列（enum・uuid・数値など、relation の FK 列も）は `::text` に cast して比べる（cast しないと Postgres が `operator does not exist` で拒む）。テキストの列（text・varchar・char）は cast しないので索引の効き方は変わらない
 - 並び順: `searchRank` 指定時は後述の関連度ランキングを `extraOrderBy` / `orderBy` の前に置く。未指定なら `extraOrderBy`（あれば）→ `orderBy`
 - SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
 - 並び順の最後は `withIdTiebreak(table, orderBy, clauses)`（`@/lib/crud/drizzle`）で閉じる。`orderBy` に id が無ければ `asc(id)` を末尾に足す（base `search()` と同じ規則）。wrapper で `buildOrderBy` の結果だけを使うと、同順位の行の並びが DB 任せになり、ページをまたいで入れ替わる・重複する。base と同じ合成順（rank → extraOrderBy → orderBy → id）でよければ `composeSearchOrderBy` を使う

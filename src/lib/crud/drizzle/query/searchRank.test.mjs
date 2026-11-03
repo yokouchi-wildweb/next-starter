@@ -2,7 +2,7 @@
 // 実行: pnpm test:crud-search-rank （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pgTable, text, PgDialect } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, char, uuid, integer, pgEnum, PgDialect } from "drizzle-orm/pg-core";
 
 import { normalizeSearchRankSpec } from "./searchRankSpec.ts";
 import {
@@ -157,4 +157,31 @@ test("parseSearchRank: 不正入力は 400 相当の BadRequestError", () => {
   for (const input of bad) {
     assert.throws(() => parseSearchRank(input), BadRequestError, `should reject: ${input}`);
   }
+});
+
+// 指令 20261103-140459-search-where-non-text-columns: テキストでない列の ILIKE は Postgres が拒む(operator does not exist)
+const StatusEnum = pgEnum("session_status", ["active", "closed"]);
+const SessionsTable = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  title: varchar("title", { length: 100 }),
+  code: char("code", { length: 4 }),
+  status: StatusEnum("status"),
+  userId: uuid("user_id"),
+  level: integer("level"),
+});
+
+test("buildSearchWhere: テキストの列(text・varchar・char)は cast しない、enum・uuid・integer は ::text に cast", () => {
+  const { sql, params } = toSql(buildSearchWhere(SessionsTable, "ab", ["title", "code", "status", "userId", "level"]));
+  assert.match(sql, /"sessions"\."title" ilike \$1/);
+  assert.match(sql, /"sessions"\."code" ilike \$2/);
+  assert.match(sql, /"sessions"\."status"::text ILIKE \$3/);
+  assert.match(sql, /"sessions"\."user_id"::text ILIKE \$4/);
+  assert.match(sql, /"sessions"\."level"::text ILIKE \$5/);
+  assert.doesNotMatch(sql, /"title"::text|"code"::text/);
+  assert.deepEqual(params, ["%ab%", "%ab%", "%ab%", "%ab%", "%ab%"]);
+  assert.equal(toSql(buildSearchWhere(SessionsTable, "ab", ["missing"])).sql, "FALSE");
+});
+
+test("buildSearchWhere: テキストの列だけなら前と同じ SQL", () => {
+  assert.equal(toSql(buildSearchWhere(UsersTable, "ab", ["name", "email"])).sql, '("users"."name" ilike $1 or "users"."email" ilike $2)');
 });

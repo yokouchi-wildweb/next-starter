@@ -1,6 +1,6 @@
 // 検査: 一覧・検索の設定（searchFields・defaultOrderBy・tableFields）と複合ユニーク（compositeUniques）。
-// 無い項目名は生成物で `table.<名>` になり tsc で落ちる / 一覧で空の列になる。文字列でない列の検索は ilike で落ち、
-// Firestore の複合ユニークは黙って捨てられるので、生成前に止める。
+// 無い項目名は生成物で `table.<名>` になり tsc で落ちる / 一覧で空の列になる。Firestore の複合ユニークは黙って捨てられるので、生成前に止める。
+// 文字列でない列の検索: Neon は buildSearchWhere が `::text` に cast するので警告しない。Firestore だけ警告(文字列の前方一致で比べる)
 // 規則の正: src/features/README.md「domain.json スキーマ定義」（searchFields / defaultOrderBy / tableFields / compositeUniques）
 
 import { fieldTypeSpec } from "../spec/fieldTypes.mjs";
@@ -13,11 +13,12 @@ const NULLS_ORDER = new Set(["FIRST", "LAST"]);
 const isSearchable = (field) => fieldTypeSpec(field.fieldType).column === "text";
 
 /**
- * 止めない警告: searchFields の文字列でない列（ilike は enum・boolean・uuid の列に使えないはず。実行時は未確認なので止めない）
+ * 止めない警告: Firestore の searchFields の文字列でない列(Neon は buildSearchWhere が `::text` に cast するので対象外)
  * @param {object} config domain.json
  * @returns {string[]}
  */
 export function viewConfigWarnings(config) {
+  if (config.dbEngine === "Neon") return [];
   const fields = new Map((config.fields ?? []).filter((f) => typeof f?.name === "string").map((f) => [f.name, f]));
   return (config.searchFields ?? [])
     .filter((name) => fields.has(name) && !isSearchable(fields.get(name)))

@@ -6,7 +6,7 @@
 
 ## domain.json スキーマ定義
 
-この決まりは `pnpm dc:generate` の生成前の検査（`scripts/domain-config/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・文字列でない列の検索など）は `[domain.json]` の警告として出る。
+この決まりは `pnpm dc:generate` の生成前の検査（`scripts/domain-config/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・Firestore の文字列でない列の検索など）は `[domain.json]` の警告として出る。
 
 ### トップレベルプロパティ
 
