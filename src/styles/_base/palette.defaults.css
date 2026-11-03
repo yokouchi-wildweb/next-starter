@@ -75,6 +75,15 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /*
+   * Layout の appearance(Block / Section / Stack 等の appearance prop)ごとの影。値は box-shadow 全体。
+   * Tailwind の --shadow-*(影の段)とは別の名前にしている(汎用の影の段は作らない)。fork は palette.css の :root / .dark で変える
+   */
+  --appearance-shadow-raised: 0 20px 60px -15px rgba(30, 64, 175, 0.3);
+  --appearance-shadow-outlined: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --appearance-shadow-frosted: 0 25px 55px -20px rgba(150, 180, 233, 0.35);
+  --appearance-shadow-soft: 0 12px 35px -20px rgba(15, 23, 42, 0.35);
+  --appearance-shadow-radiant: 0 25px 50px -20px color-mix(in oklch, var(--primary) 20%, transparent);
 }
 
 .dark {
@@ -129,4 +138,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --appearance-shadow-raised: 0 20px 60px -15px rgba(96, 165, 250, 0.45);
+  --appearance-shadow-outlined: 0 1px 2px rgba(15, 23, 42, 0.65);
+  --appearance-shadow-frosted: 0 25px 55px -20px rgba(14, 165, 233, 0.5);
+  --appearance-shadow-soft: 0 12px 35px -18px rgba(15, 23, 42, 0.55);
+  --appearance-shadow-radiant: 0 25px 50px -20px color-mix(in oklch, var(--primary) 28%, transparent);
 }

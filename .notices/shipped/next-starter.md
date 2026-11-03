@@ -253,3 +253,4 @@
 - id:20261104-084536-codemod-display-spread | severity:info | checkpoint:codemod-display-spread | fixes:20261101-121000-domain-display-client | resolves:20261103-103348-domain-display-codemod-spread-miss | pick:-
 - id:20261104-084626-enum-switch-input | severity:info | checkpoint:enum-switch-input | resolves:20261103-170209-enum-switch-input-pair
 - id:20261104-084644-search-non-text-cast | severity:info | checkpoint:search-non-text-cast | resolves:20261103-140459-search-where-non-text-columns
+- id:20261104-084812-shadow-tokens-style-docs | severity:info | checkpoint:shadow-tokens-style-docs
