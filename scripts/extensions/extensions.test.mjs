@@ -1,8 +1,8 @@
 // scripts/extensions/extensions.test.mjs
 // 拡張点の生成器(./declarations.mjs・./extensions.mjs)の回帰テスト。一時ディレクトリの fixture で動かす。
 // - 宣言はリテラルだけ(式・未知のキー・点の名前の形は失敗)、src の下ならどこでも読む(lib の target: "wiring" も)
-// - 項目はファイル(<名前>[.<fork の名前>].ts(x))かフォルダ(<名前>[.<fork の名前>]/index.ts(x))、名前の順
-// - 失敗: 宣言に無い fork の名前 / 印が無い / 同じ名前のファイルとフォルダ / fork の点が上流と同名
+// - 項目はファイル(<名前>.ts(x))かフォルダ(<名前>/index.ts(x))、名前の順。import の別名 = <点の名前>_<項目の名前>
+// - 失敗: 旧い fork の名前の印(移し方を案内) / export が無い / 同じ名前のファイルとフォルダ / 旧い extensionPoints.<x>.ts
 // - 描画: eager の配列・key の Record・lazy の import・wiring の 1 本・共通のヘッダ
 // - check: ずれ・extensions/ の手で置いたファイル(ヘッダ無し)・宣言の消えた古い一覧
 // - 1 行スイッチ(./switches.mjs)の形と、上流は override を出荷しない(./overrides.mjs)
@@ -24,7 +24,7 @@ import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles }
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-/** fork の名前 acme(祖先 parent)の一時リポにファイルを置く */
+/** fork(acme、祖先 parent)の一時リポにファイルを置く */
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "extensions-"));
   const put = (path, text) => {
@@ -53,33 +53,33 @@ test("宣言: リテラル以外・未知のキー・点の名前の形・欠け
   assert.match(readDeclaration("x/extensionPoints.ts", "export const other = {};\n").problems[0], /export const extensionPoints/);
 });
 
-test("走査: ファイルとフォルダの 2 形・fork の名前・名前の順。src の下のどこでも宣言を読む", () => {
+test("走査: ファイルとフォルダの 2 形・名前の順。src の下のどこでも宣言を読む", () => {
   const M = "export const milestone = { id: 1 };\n";
   const root = fixture({
     "src/features/milestone/extensionPoints.ts": point(MILESTONES),
     "src/features/milestone/milestones/zeta.ts": M,
-    "src/features/milestone/milestones/alpha.acme.ts": M,
+    "src/features/milestone/milestones/alpha.ts": M,
     "src/features/milestone/milestones/beta/index.tsx": M,
     "src/features/milestone/milestones/beta/part.ts": "export const x = 1;\n",
-    "src/features/milestone/milestones/gamma.parent.tsx": M,
+    "src/features/milestone/milestones/gamma.tsx": M,
     "src/features/milestone/milestones/zeta.test.ts": M,
     "src/features/milestone/milestones/notes.md": "x",
   });
   const plan = planExtensions(root);
   assert.deepEqual(plan.problems, []);
   assert.deepEqual(
-    itemsOf(plan, "src/features/milestone", "definitions").map((i) => `${i.name}:${i.forkId}`),
-    ["alpha.acme:acme", "beta:null", "gamma.parent:parent", "zeta:null"],
+    itemsOf(plan, "src/features/milestone", "definitions").map((i) => i.name),
+    ["alpha", "beta", "gamma", "zeta"],
   );
   const out = plan.outputs["src/features/milestone/extensions/definitions.ts"];
   assert.ok(out.startsWith(`${headerFor("src/features/milestone/extensionPoints.ts")}\n`));
   assert.match(out, /import type \{ MilestoneDefinition \} from "@\/features\/milestone\/types";/);
-  assert.match(out, /import \{ milestone as alpha_acme \} from "@\/features\/milestone\/milestones\/alpha\.acme";/);
-  assert.match(out, /import \{ milestone as beta \} from "@\/features\/milestone\/milestones\/beta";/);
-  assert.match(out, /export const definitions: MilestoneDefinition\[\] = \[\n  alpha_acme,\n  beta,\n  gamma_parent,\n  zeta,\n\];/);
+  assert.match(out, /import \{ milestone as definitions_alpha \} from "@\/features\/milestone\/milestones\/alpha";/);
+  assert.match(out, /import \{ milestone as definitions_beta \} from "@\/features\/milestone\/milestones\/beta";/);
+  assert.match(out, /export const definitions: MilestoneDefinition\[\] = \[\n  definitions_alpha,\n  definitions_beta,\n  definitions_gamma,\n  definitions_zeta,\n\];/);
 });
 
-test("失敗: 宣言に無い fork の名前・印が無い・index の無いフォルダ・同じ名前のファイルとフォルダ・名前の形", () => {
+test("失敗: 旧い fork の印(移し方を案内)・export が無い・index の無いフォルダ・同じ名前のファイルとフォルダ・名前の形", () => {
   const M = "export const milestone = 1;\n";
   const root = fixture({
     "src/features/milestone/extensionPoints.ts": point(MILESTONES),
@@ -89,34 +89,41 @@ test("失敗: 宣言に無い fork の名前・印が無い・index の無いフ
     "src/features/milestone/milestones/dup.ts": M,
     "src/features/milestone/milestones/dup/index.ts": M,
     "src/features/milestone/milestones/x.a.b.ts": M,
+    "src/features/milestone/milestones/old.acme/index.ts": M,
+    "src/features/milestone/milestones/x.default.ts": M,
+    "src/features/milestone/milestones/1bad.ts": M,
     "src/features/milestone/milestones/ok.ts": M,
   });
   const plan = planExtensions(root);
   assert.deepEqual(itemsOf(plan, "src/features/milestone", "definitions").map((i) => i.name), ["dup", "ok"]);
   const find = (s) => plan.problems.find((p) => p.includes(s)) ?? "";
-  assert.match(find("a.other.ts"), /宣言されていない/);
+  assert.match(find("a.other.ts"), /印なしの a\.ts に改名/);
+  assert.ok(find("a.other.ts").includes("shared-shelf marker migration notice"));
+  assert.match(find("x.a.b.ts"), /印なしの x\.ts に改名/);
+  assert.match(find("old.acme"), /印なしの old\/ に改名/);
+  assert.match(find("x.default.ts"), /名前の形/);
+  assert.match(find("1bad.ts"), /名前の形/);
   assert.match(find("helper.ts"), /export const milestone が無い/);
   assert.match(find("empty"), /index\.ts\(x\)/);
   assert.match(find("/dup.ts"), /同じ名前の項目/);
-  assert.match(find("x.a.b.ts"), /名前の形/);
-  assert.equal(plan.problems.length, 5, plan.problems.join("\n"));
+  // x.default.ts はスイッチの検査にも掛かる(隣の素の名前が無い)
+  assert.equal(plan.problems.length, 9, plan.problems.join("\n"));
 });
 
-test("fork の宣言: extensionPoints.<fork の名前>.ts の点は同じ持ち主の extensions/ に出る。上流と同名・宣言に無い名前は失敗", () => {
+test("fork の宣言: fork 自身のフォルダの extensionPoints.ts は上流と同じに読む。旧い extensionPoints.<x>.ts は止めて移し方を案内する", () => {
   const root = fixture({
     "src/features/core/user/extensionPoints.ts": point(`  cleanupHandlers: { dir: "cleanup", export: "handler", type: { from: "@/features/user/types", name: "CleanupHandler" }, side: "server" },`),
-    "src/features/core/user/extensionPoints.acme.ts": point(
-      `  badges: { dir: "badges", export: "badge", type: { from: "@/features/user/types", name: "Badge" }, side: "client" },\n  cleanupHandlers: { dir: "x", export: "y", type: { from: "a", name: "T" }, side: "server" },`,
-    ),
-    "src/features/core/user/extensionPoints.other.ts": point(`  things: { dir: "t", export: "t", type: { from: "a", name: "T" }, side: "server" },`),
+    "src/features/core/user/extensionPoints.acme.ts": point(`  badges: { dir: "badges", export: "badge", type: { from: "@/features/user/types", name: "Badge" }, side: "client" },`),
+    "src/features/core/user/extensionPoints.test.ts": "export const x = 1;\n",
+    "src/features/acmeBadge/extensionPoints.ts": point(`  badges: { dir: "badges", export: "badge", type: { from: "@/features/acmeBadge/types", name: "Badge" }, side: "client" },`),
     "src/features/core/user/cleanup/a.ts": "export const handler = 1;\n",
-    "src/features/core/user/badges/gold.acme.tsx": "export const badge = 1;\n",
+    "src/features/acmeBadge/badges/gold.tsx": "export const badge = 1;\n",
   });
   const plan = planExtensions(root);
-  assert.deepEqual(plan.points.map((p) => `${p.name}:${p.forkId}`).sort(), ["badges:acme", "cleanupHandlers:null"]);
-  assert.ok(plan.problems.some((p) => p.includes("extensionPoints.acme.ts") && p.includes("cleanupHandlers") && p.includes("でも宣言されている")));
-  assert.ok(plan.problems.some((p) => p.includes("extensionPoints.other.ts") && p.includes("宣言されていない")));
-  assert.match(plan.outputs["src/features/core/user/extensions/badges.ts"], /import \{ badge as gold_acme \} from "@\/features\/core\/user\/badges\/gold\.acme";/);
+  assert.deepEqual(plan.points.map((p) => `${p.owner}:${p.name}`).sort(), ["src/features/acmeBadge:badges", "src/features/core/user:cleanupHandlers"]);
+  assert.equal(plan.problems.length, 1, plan.problems.join("\n"));
+  assert.ok(plan.problems[0].includes("extensionPoints.acme.ts") && plan.problems[0].includes("fork 自身のフォルダ") && plan.problems[0].includes("shared-shelf marker migration notice"));
+  assert.match(plan.outputs["src/features/acmeBadge/extensions/badges.ts"], /import \{ badge as badges_gold \} from "@\/features\/acmeBadge\/badges\/gold";/);
 });
 
 test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を出す)。alwaysOn は真偽だけ", () => {
@@ -133,7 +140,7 @@ test("描画: literalKeys は鍵の文字列を型に残す。key なし・true 
     "src/features/core/pairedDevice/kinds/terminal.ts": "export const kind = {};\n",
   });
   const out = planExtensions(root).outputs["src/features/core/pairedDevice/extensions/kinds.ts"];
-  assert.match(out, /const kindsList = \[\n  terminal,\n\] as const satisfies readonly K\[\];/);
+  assert.match(out, /const kindsList = \[\n  kinds_terminal,\n\] as const satisfies readonly K\[\];/);
   assert.match(out, /as unknown as \{ readonly \[I in \(typeof kindsList\)\[number\] as I\["kind"\]\]: I \};/);
   assert.match(out, /kind が重複/);
   const bad = (body) => readDeclaration("x/extensionPoints.ts", point(body)).problems[0];
@@ -155,11 +162,13 @@ test("描画: key の Record・lazy の import・lib の target wiring は src/w
     ),
     "src/lib/dbAgent/tools/query.ts": "export const tool = {};\n",
     "src/lib/dbAgent/prompts/base.ts": "export const prompt = {};\n",
+    // 1 本の wiring に混ざる別の点の同じ名前の項目(別名は点の名前で分かれる)
+    "src/lib/dbAgent/prompts/query.ts": "export const prompt = {};\n",
   });
   const plan = planExtensions(root);
   assert.deepEqual(plan.problems, []);
   const keyed = plan.outputs["src/features/core/userLineProfile/extensions/webhookHandlers.ts"];
-  assert.match(keyed, /const webhookHandlersList: LineWebhookHandler\[\] = \[\n  follow,\n\];/);
+  assert.match(keyed, /const webhookHandlersList: LineWebhookHandler\[\] = \[\n  webhookHandlers_follow,\n\];/);
   assert.match(keyed, /export const webhookHandlers: Readonly<Record<string, LineWebhookHandler>> = Object\.assign\(Object\.create\(null\), Object\.fromEntries\(webhookHandlersList\.map\(\(item\) => \[String\(item\.eventType\), item\]\)\)\);/);
   const lazy = plan.outputs["src/app/_layout/adminCommand/extensions/plugins.ts"];
   assert.match(lazy, /\{ name: "search", load: \(\) => import\("@\/app\/_layout\/adminCommand\/plugins\/search"\)\.then\(\(m\) => m\.plugin\) \},/);
@@ -167,8 +176,10 @@ test("描画: key の Record・lazy の import・lib の target wiring は src/w
   const wiring = plan.outputs["src/wiring/dbAgent.ts"];
   assert.ok(wiring.startsWith(`${headerFor("src/lib/dbAgent/extensionPoints.ts")}\n`));
   assert.match(wiring, /import type \{ DbAgentPrompt, DbAgentTool \} from "@\/lib\/dbAgent\/types";/);
-  assert.match(wiring, /export const tools: DbAgentTool\[\] = \[\n  query,\n\];/);
-  assert.match(wiring, /export const prompts: DbAgentPrompt\[\] = \[\n  base,\n\];/);
+  assert.match(wiring, /import \{ tool as tools_query \} from "@\/lib\/dbAgent\/tools\/query";/);
+  assert.match(wiring, /import \{ prompt as prompts_query \} from "@\/lib\/dbAgent\/prompts\/query";/);
+  assert.match(wiring, /export const tools: DbAgentTool\[\] = \[\n  tools_query,\n\];/);
+  assert.match(wiring, /export const prompts: DbAgentPrompt\[\] = \[\n  prompts_base,\n  prompts_query,\n\];/);
   assert.equal(Object.keys(plan.outputs).length, 3);
 });
 
@@ -196,38 +207,40 @@ test("check: 一覧のずれ・extensions/ に手で置いたファイル(受け
   assert.ok(existsSync(join(root, "src/features/milestone/extensions/definitions.ts")));
 });
 
-test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ、宣言済みの fork の名前・実在する先、Tier1 は .default", () => {
+test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ、先は .default か .replace(実在する)、旧い印は止める、Tier1 は .default", () => {
   const D = "export function enrich() {}\n";
   const root = fixture({
     "src/features/core/payment/enricher.default.ts": D,
     "src/features/core/payment/enricher.ts": '// 採用者所有のスイッチ\nexport { enrich } from "./enricher.default";\n',
-    "src/features/core/payment/enricher.acme.ts": D,
+    "src/features/core/payment/enricher.replace.ts": D,
     "src/features/core/a/x.default.ts": D,
-    "src/features/core/a/x.ts": 'export * from "./x.acme";\n',
-    "src/features/core/a/x.acme.ts": D,
+    "src/features/core/a/x.ts": 'export * from "./x.replace";\n',
+    "src/features/core/a/x.replace.ts": D,
     "src/features/core/b/y.default.tsx": D,
     "src/features/core/b/y.tsx": 'export { default } from "./y.default";\nexport const z = 1;\n',
     "src/features/core/c/z.default.ts": D,
     "src/features/core/c/z.ts": 'export * from "./z.other";\n',
     "src/features/core/d/w.default.ts": D,
-    "src/features/core/d/w.ts": 'export * from "./w.parent";\n',
+    "src/features/core/d/w.ts": 'export * from "./w.replace";\n',
     "src/features/core/e/v.default.ts": D,
     "src/features/core/f/u.default.ts": D,
     "src/features/core/f/u.ts": 'export * from "../g/u";\n',
-    "src/features/core/h/only.acme.ts": D,
+    "src/features/core/h/only.replace.ts": D,
+    "src/features/core/i/t.default.ts": D,
+    "src/features/core/i/t.ts": 'export * from "./t.custom.x";\n',
   });
-  const forkIds = ["acme", "parent"];
-  const fork = checkSwitches(root, { forkIds, isTier1: false });
-  assert.deepEqual(fork.switches.map((s) => `${s.path}>${s.target}`), ["src/features/core/a/x.ts>x.acme", "src/features/core/payment/enricher.ts>enricher.default"]);
+  const fork = checkSwitches(root, { isTier1: false });
+  assert.deepEqual(fork.switches.map((s) => `${s.path}>${s.target}`), ["src/features/core/a/x.ts>x.replace", "src/features/core/payment/enricher.ts>enricher.default"]);
   const reason = (r, s) => r.problems.find((p) => p.includes(s)) ?? "";
   assert.match(reason(fork, "b/y.tsx"), /re-export 1 文だけ/);
-  assert.match(reason(fork, "c/z.ts"), /宣言されていない/);
-  assert.match(reason(fork, "d/w.ts"), /w\.parent\.ts\(x\) が無い/);
+  assert.match(reason(fork, "c/z.ts"), /印なしの z\.replace\.ts\(x\) に改名/);
+  assert.match(reason(fork, "d/w.ts"), /w\.replace\.ts\(x\) が無い/);
+  assert.match(reason(fork, "i/t.ts"), /t\.default か t\.replace だけ/);
   assert.match(reason(fork, "e/v.default.ts"), /スイッチ v\.ts\(x\) が無い/);
   assert.match(reason(fork, "f/u.ts"), /re-export 1 文だけ/);
-  assert.equal(fork.problems.length, 5, fork.problems.join("\n"));
+  assert.equal(fork.problems.length, 6, fork.problems.join("\n"));
 
-  const tier1 = checkSwitches(root, { forkIds, isTier1: true });
+  const tier1 = checkSwitches(root, { isTier1: true });
   assert.match(reason(tier1, "a/x.ts"), /上流\(Tier1\)のスイッチは x\.default を指す/);
   assert.deepEqual(tier1.switches.map((s) => s.path), ["src/features/core/payment/enricher.ts"]);
 });
@@ -285,8 +298,8 @@ test("files の点: 1 段下の決まった名前のファイルが項目、fold
     let plan = planExtensions(root);
     assert.deepEqual(plan.problems, []);
     const out = plan.outputs["src/app/demo/extensions/pages.ts"];
-    assert.match(out, /import \{ demo as a_page \} from "@\/app\/demo\/a-page\/_demo";/);
-    assert.match(out, /\{ \.\.\.a_page, folder: "a-page" \},\n {2}\{ \.\.\.b_page, folder: "b-page" \}/);
+    assert.match(out, /import \{ demo as pages_a_page \} from "@\/app\/demo\/a-page\/_demo";/);
+    assert.match(out, /\{ \.\.\.pages_a_page, folder: "a-page" \},\n {2}\{ \.\.\.pages_b_page, folder: "b-page" \}/);
     put("src/app/demo/b-page/_demo.ts", "export const other = {};\n");
     plan = planExtensions(root);
     assert.ok(plan.problems.some((p) => p.includes("export const demo が無い")));
@@ -333,17 +346,18 @@ const settingPlan = (extra) =>
   }));
 const hasProblem = (plan, text) => assert.ok(plan.problems.some((p) => p.includes(text)), `${text} が無い: ${plan.problems.join(" / ")}`);
 
-test("setting の点: shape object はキーを型に残し、fork のキーも並び、null プロトタイプ", () => {
-  const plan = settingPlan({ "src/features/core/setting/fields/b.acme.ts": KEY });
+test("setting の点: shape object はキーを型に残し、足したキーも並び、null プロトタイプ", () => {
+  const plan = settingPlan({ "src/features/core/setting/fields/b.ts": KEY });
   assert.deepEqual(plan.problems, []);
   const out = plan.outputs["src/features/core/setting/extensions/fields.ts"];
-  assert.match(out, /const fieldsMap = \{\n {2}a: a,\n {2}b: b_acme,\n\} as const satisfies Readonly<Record<string, F>>;/);
+  assert.match(out, /const fieldsMap = \{\n {2}a: fields_a,\n {2}b: fields_b,\n\} as const satisfies Readonly<Record<string, F>>;/);
   assert.match(out, /export const fields = Object\.assign\(Object\.create\(null\), fieldsMap\) as typeof fieldsMap;/);
 });
 
 test("setting の点: 失敗の形(.default なし・同名・無いセクション・セクションの重複)", () => {
   hasProblem(settingPlan({ "src/features/core/setting/fields/n.ts": 'export const field = { schema: 1 };\n' }), ".default( が無い");
-  hasProblem(settingPlan({ "src/features/core/setting/fields/a.acme.ts": KEY }), "同じ名前の項目");
+  hasProblem(settingPlan({ "src/features/core/setting/fields/a.acme.ts": KEY }), "印なしの a.ts に改名");
+  hasProblem(settingPlan({ "src/features/core/setting/fields/a/index.ts": KEY }), "同じ名前の項目");
   hasProblem(settingPlan({ "src/features/core/setting/fields/x.ts": KEY.replace("general", "nope") }), '無いセクション "nope"');
   hasProblem(settingPlan({ "src/features/core/setting/sections/other.ts": SECTION }), 'セクションの key "general"');
 });
@@ -367,19 +381,21 @@ test("setting の点: キーから推移的に届く値 import を止める、�
   assert.deepEqual(fine.problems, []);
 });
 
-test("setting の点: override は許す属性だけ、上流の項目だけ、一覧に重なる、空は不在", () => {
+test("setting の点: override は許す属性だけ、既存の項目だけ、一覧に重なる、空は不在", () => {
   const f = "src/features/core/setting/fields/";
   const ok = settingPlan({ [`${f}a.override.ts`]: 'export const override = { public: true };\n' });
   assert.deepEqual(ok.problems, []);
-  assert.match(ok.outputs["src/features/core/setting/extensions/fields.ts"], /a: \{ \.\.\.a, \.\.\.a_override \},/);
+  assert.match(ok.outputs["src/features/core/setting/extensions/fields.ts"], /a: \{ \.\.\.fields_a, \.\.\.fields_a_override \},/);
   hasProblem(settingPlan({ [`${f}a.override.ts`]: 'export const override = { schema: 1 };\n' }), "schema は上書きできない");
-  hasProblem(settingPlan({ [`${f}b.acme.ts`]: KEY, [`${f}b.acme.override.ts`]: 'export const override = { public: true };\n' }), "上流の項目");
+  hasProblem(settingPlan({ [`${f}nope.override.ts`]: 'export const override = { public: true };\n' }), "項目 nope が無い");
+  // 「上流の項目だけ」は名前では見分けない(所有の側の検査、指令 02)。足した項目への override もここでは通る
+  assert.deepEqual(settingPlan({ [`${f}b.ts`]: KEY, [`${f}b.override.ts`]: 'export const override = { public: true };\n' }).problems, []);
   const blank = settingPlan({ [`${f}a.override.ts`]: "// 空\n" });
   assert.deepEqual(blank.problems, []);
-  assert.doesNotMatch(blank.outputs["src/features/core/setting/extensions/fields.ts"], /a_override/);
+  assert.doesNotMatch(blank.outputs["src/features/core/setting/extensions/fields.ts"], /fields_a_override/);
   const sec = settingPlan({ "src/features/core/setting/sections/general.override.ts": 'export const override = { label: "y" };\n' });
   assert.deepEqual(sec.problems, []);
-  assert.match(sec.outputs["src/features/core/setting/extensions/sections.ts"], /\{ \.\.\.general, \.\.\.general_override \},/);
+  assert.match(sec.outputs["src/features/core/setting/extensions/sections.ts"], /\{ \.\.\.sections_general, \.\.\.sections_general_override \},/);
 });
 
 test("writer の点: 別の生成器が書く一覧。持てるのは side だけ、ほかのキー・未知の writer は失敗", () => {

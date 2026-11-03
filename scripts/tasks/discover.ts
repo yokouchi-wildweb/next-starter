@@ -1,5 +1,5 @@
 // scripts/tasks/discover.ts
-// scripts/tasks 直下の <name>[.<fork の名前>].ts を走査してワンショット・任意タスクを集める(一覧ファイルは持たない)。
+// scripts/tasks 直下の <name>.ts を走査してワンショット・任意タスクを集める(一覧ファイルは持たない)。
 //
 // タスク名はファイル名で決まるので、一覧と名前の検査はファイルを読み込まない。実行するタスクのファイルだけを読み込む。
 // 利用者: scripts/tasks/run.ts(pnpm task)
@@ -8,13 +8,15 @@ import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { classifyDottedName, oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
+
 import type { OneShotTask } from "./types";
 
 export const TASKS_DIR = "scripts/tasks";
 
 /** 受け口の直下にある、タスクでないファイル */
 const RUNNER_FILES = new Set(["run.ts", "discover.ts", "types.ts"]);
-const TASK_FILE = /^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?:\.([a-z0-9]+(?:-[a-z0-9]+)*))?\.ts$/;
+const TASK_FILE = /^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.ts$/;
 
 export type OneShotTaskFile = {
   name: string;
@@ -22,11 +24,8 @@ export type OneShotTaskFile = {
   file: string;
 };
 
-/**
- * タスクのファイルを名前順に返す
- * @param forkIds 宣言済みの fork の名前(src/lib/forkOwnership/forkIds.mjs の readDeclaredForkIds().all)
- */
-export function listOneShotTasks(repoRoot: string, forkIds: readonly string[]): OneShotTaskFile[] {
+/** タスクのファイルを名前順に返す(名前に fork の印は付けない。旧い <name>.<fork の名前>.ts は止めて移し方を案内する) */
+export function listOneShotTasks(repoRoot: string): OneShotTaskFile[] {
   const root = path.join(repoRoot, TASKS_DIR);
   if (!existsSync(root)) return [];
   const byName = new Map<string, string>();
@@ -34,14 +33,12 @@ export function listOneShotTasks(repoRoot: string, forkIds: readonly string[]): 
     if (!entry.isFile() || RUNNER_FILES.has(entry.name) || /\.test\.[cm]?ts$/.test(entry.name) || !entry.name.endsWith(".ts")) continue;
     const file = `${TASKS_DIR}/${entry.name}`;
     const match = TASK_FILE.exec(entry.name);
-    if (!match) throw new Error(`${file}: タスクのファイル名は <kebab-case の名前>[.<fork の名前>].ts`);
-    const [, name, forkId] = match;
-    if (forkId && !forkIds.includes(forkId)) {
-      throw new Error(`${file}: fork の名前 "${forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か祖先の台帳名)`);
+    if (!match) {
+      const shape = classifyDottedName(entry.name);
+      if (shape.kind === "marker" && TASK_FILE.test(`${shape.base}.ts`)) throw new Error(oldMarkerProblem(file, `${shape.base}.ts`));
+      throw new Error(`${file}: タスクのファイル名は <kebab-case の名前>.ts`);
     }
-    const other = byName.get(name);
-    if (other) throw new Error(`タスク名 "${name}" が ${other} と ${file} の両方にあります`);
-    byName.set(name, file);
+    byName.set(match[1], file);
   }
   return [...byName.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, file]) => ({ name, file }));
 }

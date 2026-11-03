@@ -1,5 +1,6 @@
 // scripts/extensions/declarations.mjs
-// 拡張点の宣言(extensionPoints.ts / extensionPoints.<fork の名前>.ts)を探して読む。
+// 拡張点の宣言(extensionPoints.ts)を探して読む。fork の点は fork 自身のフォルダの extensionPoints.ts に書く
+// (旧い extensionPoints.<x>.ts は止めて移し方を案内する)。
 // 宣言はリテラルだけ: TypeScript の構文木で字面を読み、実行しない(式・変数・関数呼び出し・テンプレートは失敗)。
 // 書式と置き場: ./README.md
 
@@ -8,7 +9,7 @@ import { dirname, join, relative } from "node:path";
 
 import ts from "typescript";
 
-import { parseForkDotName } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
 
 export const DECLARATION_NAME = "extensionPoints";
 /** 宣言を探す範囲(リポジトリ直下からの相対) */
@@ -29,23 +30,26 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 /**
  * src の下の宣言のファイルを集める(node_modules・extensions/ の中は見ない)
  * @param {string} repoRoot
- * @returns {string[]} リポジトリ直下からの相対パス(並びは path 順)
+ * @returns {{ files: string[], stale: string[] }} リポジトリ直下からの相対パス(並びは path 順)。stale = 旧い形 extensionPoints.<x>.ts
  */
 export function findDeclarationFiles(repoRoot) {
   const found = [];
+  const stale = [];
   const walk = (dir) => {
     if (!existsSync(dir)) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".")) continue;
         walk(join(dir, entry.name));
-      } else if (entry.name === `${DECLARATION_NAME}.ts` || parseForkDotName(entry.name, { extensions: ["ts"] })?.name === DECLARATION_NAME) {
+      } else if (entry.name === `${DECLARATION_NAME}.ts`) {
         found.push(relative(repoRoot, join(dir, entry.name)).split("\\").join("/"));
+      } else if (/\.tsx?$/.test(entry.name) && classifyDottedName(entry.name).base === DECLARATION_NAME && classifyDottedName(entry.name).kind !== "test") {
+        stale.push(relative(repoRoot, join(dir, entry.name)).split("\\").join("/"));
       }
     }
   };
   walk(join(repoRoot, SEARCH_ROOT));
-  return found.sort();
+  return { files: found.sort(), stale: stale.sort() };
 }
 
 /** 構文木の値をリテラルとして読む。リテラルでなければ { problem } */
@@ -142,34 +146,22 @@ export function readDeclaration(path, text) {
 }
 
 /**
- * 全宣言を読んで点の一覧にする。fork の宣言の点が上流(印なし)の点と同じ名前なら失敗
+ * 全宣言を読んで点の一覧にする。宣言は 1 フォルダ 1 ファイル(extensionPoints.ts)なので 持ち主:点の名前 は重ならない。
+ * fork の点は fork 自身のフォルダ(fork が足したドメイン・lib)の extensionPoints.ts に書く
  * @param {string} repoRoot
- * @param {string[]} forkIds 宣言済みの fork の名前
- * @returns {{ points: { owner: string, name: string, declaredIn: string, forkId: string | null, spec: object }[], problems: string[] }}
+ * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: object }[], problems: string[] }}
  */
-export function collectPoints(repoRoot, forkIds) {
+export function collectPoints(repoRoot) {
   const points = [];
   const problems = [];
-  for (const path of findDeclarationFiles(repoRoot)) {
-    const fileName = path.split("/").pop();
-    const forkId = fileName === `${DECLARATION_NAME}.ts` ? null : parseForkDotName(fileName, { extensions: ["ts"] }).forkId;
-    if (forkId !== null && !forkIds.includes(forkId)) {
-      problems.push(`${path}: fork の名前 "${forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か祖先の台帳名)`);
-      continue;
-    }
+  const { files, stale } = findDeclarationFiles(repoRoot);
+  for (const path of stale) {
+    problems.push(`${oldMarkerProblem(path, `${DECLARATION_NAME}.ts`)}。fork の拡張点は fork 自身のフォルダの ${DECLARATION_NAME}.ts に宣言する`);
+  }
+  for (const path of files) {
     const read = readDeclaration(path, readFileSync(join(repoRoot, path), "utf8"));
     problems.push(...read.problems);
-    for (const [name, spec] of Object.entries(read.points)) points.push({ owner: dirname(path), name, declaredIn: path, forkId, spec });
+    for (const [name, spec] of Object.entries(read.points)) points.push({ owner: dirname(path), name, declaredIn: path, spec });
   }
-  const seen = new Map();
-  for (const point of [...points].sort((a, b) => (a.forkId === null ? 0 : 1) - (b.forkId === null ? 0 : 1))) {
-    const id = `${point.owner}:${point.name}`;
-    const first = seen.get(id);
-    if (first) {
-      problems.push(`${point.declaredIn}: 点 ${point.name} は ${first.declaredIn} でも宣言されている(fork の点は上流と違う名前に。上流が後から同じ名前を足したら fork の点を改名する)`);
-      continue;
-    }
-    seen.set(id, point);
-  }
-  return { points: [...seen.values()].sort((a, b) => (a.declaredIn + a.name < b.declaredIn + b.name ? -1 : 1)), problems };
+  return { points: points.sort((a, b) => (a.declaredIn + a.name < b.declaredIn + b.name ? -1 : 1)), problems };
 }

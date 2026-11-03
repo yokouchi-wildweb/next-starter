@@ -38,6 +38,7 @@ import {
   checkSwitchPage,
   findDotNamedFiles,
   findForkOwnedDirFiles,
+  findMarkerNamedFiles,
   isReexportOnlyFile,
   parseSwitchLayout,
   parseSwitchPage,
@@ -223,7 +224,7 @@ for (const layout of switchLayouts) {
       problems,
       [],
       `${layout}: ${problems.join(" / ")}\n→ layout.tsx を \`export { XLayout as default } from "./_layout/XLayout"\` にし、` +
-        `fork の差分は slot / config / ドット区切り名のカスタム(_layout/XLayout.<project>.tsx)へ移す`,
+        `fork の差分は slot / config / 丸ごと置き換え(_layout/XLayout.replace.tsx)へ移す`,
     );
   });
   if (problems.length === 0 && target) {
@@ -511,17 +512,22 @@ test("isReexportOnlyFile: 再 export だけのファイル(旧パス shim / barr
   assert.equal(isReexportOnlyFile(`const a = 1;`), false);
 });
 
-// upstream は _screen/・_layout/ にドット区切り名のファイルを作らない(報告書 §2 W: ドット区切り名 = fork のカスタム)。
-// fork はそこへ自分のカスタムを置く側なので、Tier1(src/lib/CATALOG.md の先頭節の持ち主 = 自分)でだけ検査する。
+// upstream は _screen/・_layout/ に点つきの名前のファイルを作らない(報告書 §2 W: 点つきの名前 = fork の置き換え .replace)。
+// fork はそこへ自分の置き換えを置く側なので、Tier1(src/lib/CATALOG.md の先頭節の持ち主 = 自分)でだけ検査する。
 // 判定は eslint.config.mjs の fork 所有ライブラリと同じ isRoot(origin が分からないときは skip = 検査しない)。
 const isUpstreamRoot = loadCatalogOwnership({ repoRoot, folder: "src/lib" }).isRoot;
 test(
-  "upstream は _screen/・_layout/ にドット区切り名のファイルを作らない(Tier1 のみ)",
-  { skip: isUpstreamRoot ? false : "fork(Tier1 以外)ではドット区切り名のカスタムを置くので検査しない" },
+  "upstream は _screen/・_layout/ に点つきの名前のファイルを作らない(Tier1 のみ)",
+  { skip: isUpstreamRoot ? false : "fork(Tier1 以外)では丸ごと置き換え .replace を置くので検査しない" },
   () => {
     assert.deepEqual(findDotNamedFiles(listAppFiles(repoRoot)), []);
   },
 );
+
+// _screen/・_layout/ の隣に許す点つきの名前は .replace(と .test)だけ。旧い fork の名前の印は全 Tier で止める
+test("_screen/・_layout/ の点つきの名前は .replace だけ(旧い fork の印は移し方: 共有の棚の印の移行の notice)", () => {
+  assert.deepEqual(findMarkerNamedFiles(listAppFiles(repoRoot)), []);
+});
 
 // upstream は src/app に _components/ を持たない(`_components/` = fork 所有。upstream の既定は _screen/・_layout/)。
 // fork はそこへ自分の画面・部品を置く側なので、上と同じく Tier1 でだけ検査する。
@@ -550,33 +556,34 @@ test("findForkOwnedDirFiles: src/app 配下の _components/ のファイルだ�
   ]);
 });
 
-test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だけを拾う(*.test.* は除く)", () => {
+test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点つきの名前を拾う(*.test.* は除く)、印は .replace 以外", () => {
   const files = [
     "src/app/(user)/_layout/UserLayout.tsx",
-    "src/app/(user)/_layout/UserLayout.custom.tsx",
+    "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/UserLayout.test.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
     "src/app/(user)/_layout/hooks/useHeaderData.ts",
     "src/app/admin/(protected)/_layout/guard.ts",
     "src/app/(user)/wallet/_screen/WalletScreen.tsx",
-    "src/app/(user)/wallet/_screen/WalletScreen.custom.tsx",
-    "src/app/(user)/wallet/_components/WalletScreen.custom.tsx",
+    "src/app/(user)/wallet/_screen/WalletScreen.replace.tsx",
+    "src/app/(user)/wallet/_components/WalletScreen.acme.tsx",
     "src/app/(user)/wallet/page.tsx",
     "src/app/route-map.jsonl",
   ];
   assert.deepEqual(findDotNamedFiles(files), [
-    "src/app/(user)/_layout/UserLayout.custom.tsx",
+    "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
-    "src/app/(user)/wallet/_screen/WalletScreen.custom.tsx",
+    "src/app/(user)/wallet/_screen/WalletScreen.replace.tsx",
   ]);
+  assert.deepEqual(findMarkerNamedFiles(files), ["src/app/(user)/_layout/Header/index.acme.tsx"]);
 });
 
 test("parseSwitchLayout: ./_layout/ への 1 行スイッチだけを許し、JSX 直書き・_screen 向き・複数の re-export を弾く", () => {
   const ok = `export { UserLayout as default } from "./_layout/UserLayout";\n`;
   assert.deepEqual(parseSwitchLayout(ok).problems, []);
   assert.deepEqual(parseSwitchLayout(ok).target, { screenDir: "_layout", file: "UserLayout", name: "UserLayout" });
-  const custom = `// fork のカスタムへ\nexport { AcmeUserLayout as default } from "./_layout/UserLayout.acme";\n`;
-  assert.deepEqual(parseSwitchLayout(custom).target, { screenDir: "_layout", file: "UserLayout.acme", name: "AcmeUserLayout" });
+  const replaced = `// fork の丸ごと置き換えへ\nexport { AcmeUserLayout as default } from "./_layout/UserLayout.replace";\n`;
+  assert.deepEqual(parseSwitchLayout(replaced).target, { screenDir: "_layout", file: "UserLayout.replace", name: "AcmeUserLayout" });
   const withMetadata = `import type { Metadata } from "next";\nexport const metadata: Metadata = { title: "x" };\nexport { XLayout as default } from "./_layout/XLayout";`;
   assert.deepEqual(parseSwitchLayout(withMetadata).problems, []);
   const jsx = `import type { ReactNode } from "react";\nimport { UserLayout } from "@/app/(user)/_layout/UserLayout";\nexport default function L({ children }: { children: ReactNode }) {\n  return <UserLayout>{children}</UserLayout>;\n}`;

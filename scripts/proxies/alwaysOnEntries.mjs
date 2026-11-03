@@ -9,6 +9,8 @@
 // 限界: 直接の import だけを見る(別のモジュールを経由した到達は見ない)。型だけの import は数えない。
 // 使い手: src/proxies/featureGate.test.mjs(実リポ)、scripts/proxies/proxyFrame.test.mjs(fixture)
 
+import { oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
+
 /** 機能のフォルダ(src/features からの相対)を import 元の印に。core は `@/features/core/<x>/` と `@/features/<x>/` の両方 */
 export function folderSourcePattern(folder) {
   const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -104,51 +106,55 @@ export function judgeAlwaysOnEntries(entries, folders, exceptions) {
 }
 
 // ── fork の口(L1.24) ──
-// fork は自分の常時の登録表と、常に読み込む結線の例外を、ドット名のファイル
-// scripts/proxies/alwaysOnExceptions.<fork ID>.mjs に理由つきで足す(上流の表は編集しない):
-//   export const exceptions = [{ file: "src/wiring/foo.acme.ts", reason: "<閉じなくてよい理由>" }];
-//   export const registries = [{ file: "src/registry/fooCleanup.acme.ts", reason: "<常に読まれる理由>" }];
-// reason は必須(空・欠けは失敗)、fork ID は宣言済みのもの、縮む表の規則(当たらない例外の行は失敗)は fork の行にも掛かる。
+// fork は自分の常時の登録表と、常に読み込む結線の例外を、1 項目 1 ファイルの受け口
+// scripts/proxies/alwaysOnExceptions/<名前>.mjs に理由つきで足す(上流の表は編集しない。名前に fork の印は付けない):
+//   export const exception = { file: "src/wiring/foo.ts", reason: "<閉じなくてよい理由>" };
+//   または export const registry = { file: "src/registry/fooCleanup.ts", reason: "<常に読まれる理由>" };
+// どちらか 1 つだけ、reason は必須(空・欠けは失敗)、縮む表の規則(当たらない例外の行は失敗)は fork の行にも掛かる。
+// 旧い scripts/proxies/alwaysOnExceptions.<fork ID>.mjs は止めて移し方を案内する。
 
-export const FORK_ALWAYS_ON_PREFIX = "alwaysOnExceptions";
+export const ALWAYS_ON_DIR = "alwaysOnExceptions";
+const ITEM_FILE = /^[A-Za-z][A-Za-z0-9-]*\.mjs$/;
 
 /**
- * fork の口のファイルを読んで、例外と登録表を集める
- * @param {{ name: string, load: () => Promise<Record<string, unknown>> }[]} files scripts/proxies 直下の alwaysOnExceptions.*.mjs(名前と読み込み関数)
- * @param {string[]} forkIds 宣言済みの fork ID
- * @param {(fileName: string) => { name: string, forkId: string } | null} parseDotName forkIds.mjs の parseForkDotName(拡張子 mjs)
+ * 旧い形のファイル(scripts/proxies 直下の alwaysOnExceptions.<x>.mjs)を止める
+ * @param {string[]} rootNames scripts/proxies 直下のファイル名
+ * @returns {string[]} problems
+ */
+export function staleAlwaysOnFiles(rootNames) {
+  return rootNames
+    .filter((name) => name.startsWith(`${ALWAYS_ON_DIR}.`))
+    .map((name) => `${oldMarkerProblem(`scripts/proxies/${name}`, `${ALWAYS_ON_DIR}/<名前>.mjs`)}。行ごとに 1 ファイル(export const exception か registry)に分ける`);
+}
+
+/**
+ * fork の口の項目を読んで、例外と登録表を集める
+ * @param {{ name: string, load: () => Promise<Record<string, unknown>> }[]} files scripts/proxies/alwaysOnExceptions/ 直下の .mjs(名前と読み込み関数)
  * @returns {Promise<{ exceptions: Record<string, string>, registries: string[], problems: string[] }>}
  */
-export async function readForkAlwaysOn(files, forkIds, parseDotName) {
+export async function readForkAlwaysOn(files) {
   const exceptions = {};
   const registries = [];
   const problems = [];
-  const rows = (value, label, kind) => {
-    if (value === undefined) return [];
-    if (!Array.isArray(value)) {
-      problems.push(`${label}: ${kind} は { file, reason } の配列で書く`);
-      return [];
-    }
-    return value.filter((row, i) => {
-      const ok = row && typeof row.file === "string" && row.file.length > 0 && typeof row.reason === "string" && row.reason.trim().length > 0;
-      if (!ok) problems.push(`${label}: ${kind}[${i}] は file と reason(空でない)が要る`);
-      return ok;
-    });
-  };
   for (const { name, load } of files) {
-    const label = `scripts/proxies/${name}`;
-    const dotted = parseDotName(name);
-    if (!dotted || dotted.name !== FORK_ALWAYS_ON_PREFIX) {
-      problems.push(`${label}: 名前は ${FORK_ALWAYS_ON_PREFIX}.<fork ID>.mjs`);
-      continue;
-    }
-    if (!forkIds.includes(dotted.forkId)) {
-      problems.push(`${label}: fork ID "${dotted.forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か .notices/applied/<fork-id>.md の台帳名)`);
+    const label = `scripts/proxies/${ALWAYS_ON_DIR}/${name}`;
+    if (!ITEM_FILE.test(name)) {
+      problems.push(`${label}: 名前は印なしの <名前>.mjs(英字始まりの英数字とハイフン)`);
       continue;
     }
     const mod = await load();
-    for (const row of rows(mod.exceptions, label, "exceptions")) exceptions[row.file] = row.reason;
-    for (const row of rows(mod.registries, label, "registries")) registries.push(row.file);
+    const kinds = ["exception", "registry"].filter((k) => mod[k] !== undefined);
+    if (kinds.length !== 1) {
+      problems.push(`${label}: export const exception か export const registry のどちらか 1 つを書く(1 項目 1 ファイル)`);
+      continue;
+    }
+    const row = mod[kinds[0]];
+    if (!(row && typeof row.file === "string" && row.file.length > 0 && typeof row.reason === "string" && row.reason.trim().length > 0)) {
+      problems.push(`${label}: ${kinds[0]} は { file, reason }(reason は空でない)`);
+      continue;
+    }
+    if (kinds[0] === "exception") exceptions[row.file] = row.reason;
+    else registries.push(row.file);
   }
   return { exceptions, registries, problems };
 }

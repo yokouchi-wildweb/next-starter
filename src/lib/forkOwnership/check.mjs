@@ -227,6 +227,45 @@ function resolveTier1Version(repoRoot, ownerId) {
 }
 
 /**
+ * 直接の親との基準(merge-base)を求める(runCheck と forkAddedFiles の共通の入口)
+ * @returns {{ ownerId: string, remote: string, branch: string, base: string, parentRef: string } | { status: "unverified", reason: string }}
+ */
+function resolveParentBase(repoRoot, ownerId, { parent, branch, fetch }) {
+  if (tryGit(repoRoot, ["rev-parse", "--is-shallow-repository"])?.trim() === "true") {
+    return unverified("shallow clone では基準を求められない(git fetch --unshallow)", { ownerId });
+  }
+  const parentRemote = resolveParentRemote(repoRoot, parent);
+  if (parentRemote.error) return unverified(parentRemote.error, { ownerId });
+  const remote = parentRemote.remote;
+  const parentBranch = resolveParentBranch(repoRoot, remote, branch);
+  if (!parentBranch) return unverified(`${remote} の既定のブランチが分からない(取得できないか --branch で指定する)`, { ownerId, remote });
+  if (fetch && tryGit(repoRoot, ["fetch", "--quiet", remote, parentBranch]) === null) {
+    return unverified(`${remote} を取得できない`, { ownerId, remote, branch: parentBranch });
+  }
+  const parentRef = `${remote}/${parentBranch}`;
+  const base = tryGit(repoRoot, ["merge-base", "HEAD", parentRef])?.trim();
+  if (!base) return unverified(`${parentRef} との merge-base が無い`, { ownerId, remote, branch: parentBranch });
+  return { ownerId, remote, branch: parentBranch, base, parentRef };
+}
+
+/**
+ * fork が足したファイルの一覧(「fork の物か」の見分け。名前の印では見ない、D137)。
+ * Tier1 は git に触れず空の一覧を返す(全部が上流の物)。基準が求められなければ unverified(合格にしない)
+ * @param {string} repoRoot
+ * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false = 取得済みの ref で判定する(テストの中など)
+ * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, added: Set<string> } | { status: "unverified", reason: string }}
+ */
+export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) {
+  const identity = readForkIdentity(repoRoot);
+  if (identity.errors.length > 0) return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId: identity.own });
+  if (identity.isTier1) return { status: "tier1", added: new Set() };
+  const where = resolveParentBase(repoRoot, identity.own, { parent, branch, fetch });
+  if (where.status === "unverified") return where;
+  const added = (tryGit(repoRoot, ["diff", "--name-only", "--no-renames", "--diff-filter=A", "-z", where.base, "HEAD"]) ?? "").split("\0").filter(Boolean);
+  return { status: "ok", base: where.base, added: new Set(added) };
+}
+
+/**
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)
  * @returns {object} status: tier1 | unverified | pass | fail
@@ -244,20 +283,9 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     return { status: "tier1", ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
   }
 
-  if (tryGit(repoRoot, ["rev-parse", "--is-shallow-repository"])?.trim() === "true") {
-    return unverified("shallow clone では基準を求められない(git fetch --unshallow)", { ownerId });
-  }
-  const parentRemote = resolveParentRemote(repoRoot, parent);
-  if (parentRemote.error) return unverified(parentRemote.error, { ownerId });
-  const remote = parentRemote.remote;
-  const parentBranch = resolveParentBranch(repoRoot, remote, branch);
-  if (!parentBranch) return unverified(`${remote} の既定のブランチが分からない(取得できないか --branch で指定する)`, { ownerId, remote });
-  if (fetch && tryGit(repoRoot, ["fetch", "--quiet", remote, parentBranch]) === null) {
-    return unverified(`${remote} を取得できない`, { ownerId, remote, branch: parentBranch });
-  }
-  const parentRef = `${remote}/${parentBranch}`;
-  const base = tryGit(repoRoot, ["merge-base", "HEAD", parentRef])?.trim();
-  if (!base) return unverified(`${parentRef} との merge-base が無い`, { ownerId, remote, branch: parentBranch });
+  const resolved = resolveParentBase(repoRoot, ownerId, { parent, branch, fetch });
+  if (resolved.status === "unverified") return resolved;
+  const { remote, branch: parentBranch, base, parentRef } = resolved;
   const where = { ownerId, remote, branch: parentBranch, base };
 
   const intakeText = show(repoRoot, base, INTAKE_PATH);

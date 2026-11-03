@@ -41,7 +41,7 @@ import { buildRewardHandlerMap } from "@/features/core/referralReward/services/s
 import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
 import { seoConfig } from "@/config/seo.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { readDeclaredForkIds, readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
@@ -175,7 +175,7 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
 });
 
 test("タスクの走査: 上流の 8 本、名前の一致と読み込み", async () => {
-  const tasks = listOneShotTasks(ROOT, readDeclaredForkIds(ROOT).all);
+  const tasks = listOneShotTasks(ROOT);
   assertUpstreamItems(tasks.map((t) => t.name), [
     "analytics-rollup-backfill",
     "paired-device-pair",
@@ -189,21 +189,20 @@ test("タスクの走査: 上流の 8 本、名前の一致と読み込み", asy
   for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
 });
 
-test("タスクの走査: fork の項目、失敗の形", () => {
+test("タスクの走査: 足した項目は印なし、旧い fork の印は止める、失敗の形", () => {
   const root = mkdtempSync(join(tmpdir(), "tasks-"));
   const dir = join(root, "scripts/tasks");
   mkdirSync(join(dir, "_shared"), { recursive: true });
   const put = (name: string) => writeFileSync(join(dir, name), "export const task = {};\n");
   try {
-    for (const name of ["run.ts", "discover.ts", "types.ts", "a-b.ts", "c.acme.ts", "d.test.ts", "_shared/x.ts", "notes.md"]) put(name);
-    assert.deepEqual(listOneShotTasks(root, ["acme"]).map((t) => t.name), ["a-b", "c"]);
-    assert.throws(() => assertNoCronOverlap(listOneShotTasks(root, ["acme"]), ["c"]), /src\/app\/api\/cron/);
-    assert.throws(() => listOneShotTasks(root, []), /宣言されていない/);
-    put("a-b.acme.ts");
-    assert.throws(() => listOneShotTasks(root, ["acme"]), /両方にあります/);
-    rmSync(join(dir, "a-b.acme.ts"));
+    for (const name of ["run.ts", "discover.ts", "types.ts", "a-b.ts", "c.ts", "d.test.ts", "_shared/x.ts", "notes.md"]) put(name);
+    assert.deepEqual(listOneShotTasks(root).map((t) => t.name), ["a-b", "c"]);
+    assert.throws(() => assertNoCronOverlap(listOneShotTasks(root), ["c"]), /src\/app\/api\/cron/);
+    put("e-f.acme.ts");
+    assert.throws(() => listOneShotTasks(root), /印なしの e-f\.ts に改名.*shared-shelf marker migration notice/);
+    rmSync(join(dir, "e-f.acme.ts"));
     put("Bad_name.ts");
-    assert.throws(() => listOneShotTasks(root, ["acme"]), /ファイル名/);
+    assert.throws(() => listOneShotTasks(root), /ファイル名/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

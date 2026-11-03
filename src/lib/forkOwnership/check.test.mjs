@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-import { runCheck } from "./check.mjs";
+import { forkAddedFiles, runCheck } from "./check.mjs";
 
 const CLI = resolve(import.meta.dirname, "cli.mjs");
 const PARENT_ID = "parent";
@@ -148,6 +148,20 @@ describe("ownership:check", () => {
     assert.equal(result.status, "tier1");
     assert.deepEqual(result.debt, []);
     assert.equal(cli(parent).status, 0);
+  });
+
+  test("forkAddedFiles: fork が足したファイルを git の分岐点で返す。Tier1 は git に触れず空、親の remote が無ければ未検証", () => {
+    const parent = makeParent();
+    assert.deepEqual(forkAddedFiles(parent), { status: "tier1", added: new Set() });
+    const fork = makeFork(parent);
+    write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
+    commitAll(fork, "edit upstream file");
+    const result = forkAddedFiles(fork, { fetch: false });
+    assert.equal(result.status, "ok");
+    assert.equal(result.base, git(fork, "rev-parse", "upstream/main").trim());
+    assert.deepEqual([...result.added].sort(), [`.notices/applied/${FORK_ID}.md`, "src/features/game/game.ts"]);
+    git(fork, "remote", "remove", "upstream");
+    assert.equal(forkAddedFiles(fork, { fetch: false }).status, "unverified");
   });
 
   test("名前の宣言が無い・- ・形違い → 未検証(2)。Tier1 は origin でなく fork_id: と CATALOG の先頭の節で決まる", () => {

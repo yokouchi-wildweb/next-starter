@@ -134,7 +134,7 @@ const config = [
   // 除外: _shadcn(vendored。見た目はラッパー側が上書きする) / Three(3D 演出) / gradient(トークン生成元)。
   // ブランドロゴ色・ユーザーが選ぶ固定パレットなど正当な例外は理由付き eslint-disable で明示する。
   // 枠の既定部品(src/app/**/_layout/。AppFrames から移した物)も upstream 所有の UI として error。
-  // 隣に置く fork のカスタム(ドット区切り名 <Name>.<project>.tsx)は ignores で外し、上の app/ の warn に従う。
+  // 隣に置く fork の丸ごと置き換え(<Name>.replace.tsx)は ignores で外し、上の app/ の warn に従う。
   {
     files: [
       "src/components/**/*.{ts,tsx}",
@@ -147,7 +147,7 @@ const config = [
       "src/components/_shadcn/**",
       "src/components/Three/**",
       "src/lib/gradient/**",
-      "src/app/**/_layout/**/*.*.{ts,tsx}",
+      "src/app/**/_layout/**/*.replace.{ts,tsx}",
     ],
     plugins: { "style-tokens": styleTokensPlugin },
     rules: {
@@ -223,8 +223,8 @@ const config = [
       "src/features/_template/**/components/**/*.{ts,tsx}",
       "src/app/**/_layout/**/*.{ts,tsx}",
     ],
-    // 枠の既定部品は upstream 所有の UI。隣のドット区切り名(fork のカスタム)は上の app/ の warn
-    ignores: ["src/app/**/_layout/**/*.*.{ts,tsx}"],
+    // 枠の既定部品は upstream 所有の UI。隣の丸ごと置き換え(<Name>.replace.tsx)は上の app/ の warn
+    ignores: ["src/app/**/_layout/**/*.replace.{ts,tsx}"],
     plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
     rules: {
       "client-service-boundary/no-direct-import": "error",

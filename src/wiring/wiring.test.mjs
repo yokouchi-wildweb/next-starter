@@ -2,14 +2,14 @@
 // 実行: pnpm test:wiring (node:test。テキストで import を読むだけなので plain node)
 //
 // 守りたい契約(設計: src/wiring/README.md):
-// 1. 目録: src/wiring に置けるファイルは WIRING_FILES に書いたものと、fork のドット名 `<名前>[.client].<fork ID>.ts(x)`
-//    （fork ID = 宣言済みの ID: 自分の project.md の fork_id: + 親の台帳名。src/lib/forkOwnership/forkIds.mjs）だけ
-//    （upstream のファイルは勝手に増やさない。増やすなら README と一緒に）。2〜4 は fork のファイルにも同じに掛かる
+// 1. 目録: Tier1 では src/wiring に置けるファイルは WIRING_FILES に書いたものだけ（upstream のファイルは勝手に増やさない。
+//    増やすなら README と一緒に）。fork は目録を見ない（fork が足したファイルは印なしの名前。所有は git の分岐点で ownership:check が見る）。
+//    名前に fork の印（旧い `<名前>[.client].<fork ID>.ts(x)`）は全 Tier で止める（src/lib/forkOwnership/dottedNames.mjs）。2〜4 は fork のファイルにも同じに掛かる
 // 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
 //    task.ts だけ（fork 所有の override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
 //    例外は入力部品の束: AppProviders → formInputs/FormInputsRoot と、formInputs の中どうし（Root → 一覧 → 項目）と、
-//    受け口: 生成物 wiring/<名前>.ts → wiring/<名前>/extensionPoints.ts が宣言した受け口の中の項目（fork のドット名の項目を含む）、
+//    受け口: 生成物 wiring/<名前>.ts → wiring/<名前>/extensionPoints.ts が宣言した受け口の中の項目（fork が足した項目を含む）、
 //    受け口の中の項目どうし（同じ受け口の中だけ）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
 //    の鎖を辿る。domainRegistry.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
@@ -24,7 +24,8 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
-import { parseForkDotName, readDeclaredForkIds, readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../lib/forkOwnership/dottedNames.mjs";
+import { readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const srcDir = join(repoRoot, "src");
@@ -138,46 +139,44 @@ function isAllowedImporter(relPath) {
   return true;
 }
 
-/** fork のドット名 `<名前>[.client].<fork ID>.ts(x)` なら fork ID、違えば null */
-export function forkIdOfWiringFile(name) {
-  return parseForkDotName(name, { infixes: ["client"] })?.forkId ?? null;
-}
-
 /**
  * 目録の判定。置いてはいけないファイルの一覧を返す（空 = 問題なし）
  * @param {string[]} files src/wiring 直下のファイル名
- * @param {string[]} forkIds 宣言済みの fork ID
+ * @param {{ isTier1: boolean }} identity 目録（WIRING_FILES との完全一致）は Tier1 だけ。旧い fork の印は全 Tier で止める
  */
-export function catalogProblems(files, forkIds) {
+export function catalogProblems(files, { isTier1 }) {
   const problems = [];
   for (const name of files) {
-    if (WIRING_FILES.includes(name)) continue;
-    const forkId = forkIdOfWiringFile(name);
-    if (forkId && forkIds.includes(forkId)) continue;
-    problems.push(
-      forkId
-        ? `${name}（fork ID "${forkId}" は宣言されていない。.claude/rules/project.md の fork_id: か .notices/applied/<fork-id>.md の台帳名）`
-        : `${name}（置けるのは WIRING_FILES と fork のドット名 <名前>[.client].<fork ID>.ts(x) だけ）`,
-    );
+    const shape = classifyDottedName(name, { folder: !/\.[A-Za-z]+$/.test(name) });
+    if (shape.kind === "marker") {
+      const kept = shape.marker.startsWith("client.") ? ".client" : "";
+      problems.push(oldMarkerProblem(name, `${shape.base}${kept}.${shape.ext}`));
+      continue;
+    }
+    if (isTier1 && !WIRING_FILES.includes(name)) problems.push(`${name}（Tier1 の src/wiring に置けるのは WIRING_FILES だけ。増やすなら README と一緒に）`);
   }
-  for (const name of WIRING_FILES) if (!files.includes(name)) problems.push(`${name}（WIRING_FILES にあるのに無い）`);
+  if (isTier1) for (const name of WIRING_FILES) if (!files.includes(name)) problems.push(`${name}（WIRING_FILES にあるのに無い）`);
   return problems;
 }
 
-test("目録の判定: upstream のファイルと宣言済み fork ID のドット名だけを受ける", () => {
+test("目録の判定: Tier1 は WIRING_FILES と完全一致、fork は目録を見ない、旧い fork の印は全 Tier で止める", () => {
   const base = [...WIRING_FILES];
-  assert.deepEqual(catalogProblems([...base, "dbAgent.acme.ts", "AppProviders.client.acme.tsx", "apiRoute.parent.ts"], ["acme", "parent"]), []);
-  assert.equal(catalogProblems([...base, "dbAgent.other.ts"], ["acme"]).length, 1, "宣言に無い ID は不可");
-  assert.equal(catalogProblems([...base, "extra.ts"], ["acme"]).length, 1, "ドット名でない新しいファイルは不可");
-  assert.equal(catalogProblems([...base, "dbAgent.a.b.ts"], ["a", "b"]).length, 1, "fork ID にドットは使えない");
-  assert.equal(catalogProblems(base.filter((n) => n !== "apiRoute.ts"), []).length, 1, "upstream のファイルが消えたら不可");
+  assert.deepEqual(catalogProblems(base, { isTier1: true }), []);
+  assert.equal(catalogProblems([...base, "extra.ts"], { isTier1: true }).length, 1, "Tier1 は目録に無いファイルを置かない");
+  assert.equal(catalogProblems(base.filter((n) => n !== "apiRoute.ts"), { isTier1: true }).length, 1, "upstream のファイルが消えたら不可");
+  assert.deepEqual(catalogProblems([...base, "extra.ts", "AppProviders.client.tsx"], { isTier1: false }), [], "fork が足した印なしのファイルは通る");
+  const old = catalogProblems([...base, "dbAgent.acme.ts", "AppProviders.client.acme.tsx", "x.a.b.ts"], { isTier1: false });
+  assert.equal(old.length, 3, old.join("\n"));
+  assert.match(old[0], /印なしの dbAgent\.ts に改名.*shared-shelf marker migration notice/);
+  assert.match(old[1], /印なしの AppProviders\.client\.tsx に改名/);
+  assert.equal(catalogProblems([...base, "dbAgent.acme.ts"], { isTier1: true }).length, 1, "Tier1 でも印の文言 1 つ(移し方を案内)");
 });
 
-test("目録: src/wiring にあるファイルは WIRING_FILES と宣言済み fork ID のドット名だけ", () => {
-  const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
-  assert.deepEqual(errors, [], errors.join("\n"));
+test("目録: Tier1 は src/wiring のファイルが WIRING_FILES と一致、全 Tier で旧い fork の印が無い", () => {
+  const identity = readForkIdentity(repoRoot);
+  assert.deepEqual(identity.errors, [], identity.errors.join("\n"));
   const files = readdirSync(wiringDir).sort();
-  const problems = catalogProblems(files, forkIds);
+  const problems = catalogProblems(files, { isTier1: identity.isTier1 });
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
@@ -248,7 +247,7 @@ test("データに届く wiring を import するのも同じ場所だけ（WIRI
  * 問題があれば理由、無ければ null
  */
 export function dataReachingImportProblem(importerRel, wiringName) {
-  // fork のドット名（pageGuard.acme.ts 等）も同じ作り手として扱う
+  // pageGuard.client.ts のような点つきの名前も同じ作り手として扱う
   const base = wiringName.split(".")[0];
   if (importerRel.startsWith("proxies/") || importerRel === "proxy.ts") return null;
   if (!importerRel.startsWith("app/")) return null; // app の外は向きの検査が止める

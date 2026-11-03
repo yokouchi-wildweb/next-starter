@@ -3,6 +3,8 @@
 // fork が独自の検査を書くときもここを import する(screens.test.mjs は import した時点でテストを登録する)。
 // 設計: src/lib/screens/README.md
 
+import { classifyDottedName } from "../forkOwnership/dottedNames.mjs";
+
 /**
  * コメントを除去する(行コメントとブロックコメント)。
  * 文字列・テンプレートリテラルの中は触らず、行コメント内の「/」+「*」をブロックコメントの開始と誤認しない
@@ -63,13 +65,13 @@ export function stripComments(src) {
 /** page.tsx が Screen を置けるディレクトリ(既定画面 / 下流の差し替え画面) */
 export const SCREEN_DIRS = ["_screen", "_components"];
 
-/** 提供者(upstream)の既定の実装を置くディレクトリ。fork のカスタムは隣にドット区切り名で置く(W) */
+/** 提供者(upstream)の既定の実装を置くディレクトリ。fork の丸ごと置き換えは隣に <名前>.replace.ts(x) で置く(W) */
 export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 
 /**
- * DEFAULT_IMPL_DIRS 配下のドット区切り名のファイル(拡張子を除いた名前に "." を含む: `UserLayout.custom.tsx`)を返す。
- * ドット区切り名 = fork のカスタムの印なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)。
- * `*.test.*` は除く(test はカスタムではない)
+ * DEFAULT_IMPL_DIRS 配下の点つきの名前のファイル(拡張子を除いた名前に "." を含む: `UserLayout.replace.tsx`)を返す。
+ * 点つきの名前 = fork の置き換え(.replace)なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)。
+ * `*.test.*` は除く(test は置き換えではない)
  * @param {string[]} files repo 相対パス
  */
 export function findDotNamedFiles(files) {
@@ -78,9 +80,21 @@ export function findDotNamedFiles(files) {
     const base = segments.pop();
     if (!segments.some((segment) => DEFAULT_IMPL_DIRS.includes(segment))) return false;
     const stem = base.replace(/\.[^.]+$/, "");
-    // test(`UserLayout.test.tsx`)はカスタムではない(既定の隣に置いてよい)
+    // test(`UserLayout.test.tsx`)は置き換えではない(既定の隣に置いてよい)
     if (/\.test$/.test(stem)) return false;
     return stem.includes(".");
+  });
+}
+
+/**
+ * DEFAULT_IMPL_DIRS 配下で許さない点つきの名前(.replace・.test 以外。旧い fork の名前の印 `UserLayout.acme.tsx` など)を返す。
+ * 全 Tier で検査する(移し方は dottedNames.mjs の MARKER_MIGRATION_NOTICE)
+ * @param {string[]} files repo 相対パス
+ */
+export function findMarkerNamedFiles(files) {
+  return findDotNamedFiles(files).filter((file) => {
+    const kind = classifyDottedName(file.split("/").pop()).kind;
+    return kind !== "replace" && kind !== "test";
   });
 }
 
@@ -201,7 +215,7 @@ function isAllowedImportSource(source) {
   return false;
 }
 
-/** layout.tsx のスイッチ先のディレクトリ(既定の組み立て `_layout/<Name>Layout.tsx`、fork のカスタムはその隣のドット区切り名) */
+/** layout.tsx のスイッチ先のディレクトリ(既定の組み立て `_layout/<Name>Layout.tsx`、fork の丸ごと置き換えはその隣の <Name>Layout.replace.tsx) */
 export const LAYOUT_DIRS = ["_layout"];
 
 /** スイッチの種類ごとの文言(page と layout は同じ検査関数を共有する。報告書 §2「Screen と Layout は同じ概念の対」) */

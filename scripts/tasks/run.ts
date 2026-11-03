@@ -14,7 +14,7 @@
 // `pnpm task --due` を毎分 1 本だけ叩く（各タスクの schedule は CLI が判定する）。
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
-// ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>[.<fork の名前>].ts を走査する（./README.md）。
+// ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>.ts を走査する（./README.md）。
 //
 // package.json の task スクリプトは scripts/test/serverOnlyStub.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
@@ -28,7 +28,6 @@ import dotenv from "dotenv";
 dotenv.config({ path: process.env.APP_ENV || ".env.development", quiet: true });
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
-import { readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { type LoadedCronTask, loadCronTasks } from "../cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile, TASKS_DIR } from "./discover";
 
@@ -97,7 +96,7 @@ async function main() {
   const taskName = args[0];
   const repoRoot = path.resolve(import.meta.dirname, "../..");
   const cronTasks = await loadCronTasks(repoRoot);
-  const oneShotTasks = listOneShotTasks(repoRoot, readDeclaredForkIds(repoRoot).all);
+  const oneShotTasks = listOneShotTasks(repoRoot);
   const TASKS = buildTaskMap(repoRoot, cronTasks, oneShotTasks);
 
   if (!taskName || taskName === "--list" || taskName === "-l") {

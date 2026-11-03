@@ -23,7 +23,7 @@
 //    (判定はファイル名の順で最初の無効な規則の行き先)。一覧は規則ファイルと同じ並び
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -35,9 +35,9 @@ import { serviceRegistry } from "../registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../lib/domain/config/apiAccess.ts";
 import { APP_FEATURES } from "../config/app/app-features.config.ts";
 import { featureGateRules } from "./extensions/featureGateRules.ts";
-import { parseForkDotName, readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
+import { forkAddedFiles } from "../lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../../scripts/extensions/extensions.mjs";
-import { judgeAlwaysOnEntries, readForkAlwaysOn, FORK_ALWAYS_ON_PREFIX } from "../../scripts/proxies/alwaysOnEntries.mjs";
+import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../scripts/proxies/alwaysOnEntries.mjs";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
 import { matchesPath, patternCoversRoute } from "./pathPattern.mjs";
 
@@ -231,7 +231,7 @@ test("payment だけ有効で wallet が無効な組み合わせは外部キー�
 const patternPath = (pattern) => (pattern.startsWith("=") ? pattern.slice(1) : pattern);
 const overlaps = (a, b) => matchesPath(patternPath(a), b) || matchesPath(patternPath(b), a);
 
-// 規則ファイルの走査(生成器と同じ。ファイル名の順、fork の名前つき)
+// 規則ファイルの走査(生成器と同じ。ファイル名の順)
 const gateRuleFiles = () => {
   const plan = planExtensions(ROOT);
   return { rules: itemsOf(plan, "src/proxies", "featureGateRules"), problems: plan.problems };
@@ -244,40 +244,51 @@ test("一覧は規則ファイルと同じ並び・同じ数(extensions:generate
   for (const rule of featureGateRules) assert.equal(typeof rule.enabled, "function");
 });
 
-test("行き先の違う規則の住所の重なり(L1.22): 上流どうしは不可、fork と上流は表示だけ", () => {
-  const { rules: files } = gateRuleFiles();
-  const entries = featureGateRules.map((rule, i) => ({ rule, file: files[i].path.split("/").pop(), fork: files[i].forkId !== null }));
-  const upstreamConflicts = [];
-  for (let i = 0; i < entries.length; i += 1) {
-    for (let j = i + 1; j < entries.length; j += 1) {
-      const a = entries[i];
-      const b = entries[j];
-      if ((a.rule.redirectTo ?? null) === (b.rule.redirectTo ?? null)) continue;
-      const hit = a.rule.pathPatterns.flatMap((p) => b.rule.pathPatterns.filter((q) => overlaps(p, q)).map((q) => `${p} × ${q}`));
-      if (hit.length === 0) continue;
-      const line = `${a.file}(${a.rule.redirectTo ?? "404"})と ${b.file}(${b.rule.redirectTo ?? "404"}): ${hit.join(", ")}`;
-      if (a.fork || b.fork) console.log(`[feature-gate] 行き先の違う重なり(fork、先の規則が優先): ${line}`);
-      else upstreamConflicts.push(line);
+// fork の規則か = fork が足したファイルか(git の分岐点。名前では見ない、D137)。Tier1 は git に触れず全部が上流の規則。
+// 基準が求められない fork(親の remote が無い・shallow)では skip(合格にしない)
+const forkAdded = forkAddedFiles(ROOT, { fetch: false });
+
+test(
+  "行き先の違う規則の住所の重なり(L1.22): 上流どうしは不可、fork と上流は表示だけ",
+  { skip: forkAdded.status === "unverified" ? `fork の規則を見分けられない(${forkAdded.reason})` : false },
+  () => {
+    const { rules: files } = gateRuleFiles();
+    const entries = featureGateRules.map((rule, i) => ({ rule, file: files[i].path.split("/").pop(), fork: forkAdded.added.has(files[i].path) }));
+    const upstreamConflicts = [];
+    for (let i = 0; i < entries.length; i += 1) {
+      for (let j = i + 1; j < entries.length; j += 1) {
+        const a = entries[i];
+        const b = entries[j];
+        if ((a.rule.redirectTo ?? null) === (b.rule.redirectTo ?? null)) continue;
+        const hit = a.rule.pathPatterns.flatMap((p) => b.rule.pathPatterns.filter((q) => overlaps(p, q)).map((q) => `${p} × ${q}`));
+        if (hit.length === 0) continue;
+        const line = `${a.file}(${a.rule.redirectTo ?? "404"})と ${b.file}(${b.rule.redirectTo ?? "404"}): ${hit.join(", ")}`;
+        if (a.fork || b.fork) console.log(`[feature-gate] 行き先の違う重なり(fork、先の規則が優先): ${line}`);
+        else upstreamConflicts.push(line);
+      }
     }
-  }
-  assert.deepEqual(upstreamConflicts, [], `上流の規則どうしで行き先の違う重なり:\n${upstreamConflicts.join("\n")}`);
-});
+    assert.deepEqual(upstreamConflicts, [], `上流の規則どうしで行き先の違う重なり:\n${upstreamConflicts.join("\n")}`);
+  },
+);
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)
 // 後片付け・照合など常に読まれる項目は、宣言の alwaysOn: true の点(項目ごとに enabled で閉じる)。手書きの登録表は fork の口だけ
 // 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表。
-// fork の分は scripts/proxies/alwaysOnExceptions.<fork ID>.mjs に理由つきで(L1.24。ここは編集しない)
+// fork の分は scripts/proxies/alwaysOnExceptions/<名前>.mjs に 1 項目 1 ファイルで理由つきで(L1.24。ここは編集しない)
 const ALWAYS_ON_EXCEPTIONS = {
   "src/wiring/apiRoute.ts":
     "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
 };
 
 test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron と alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
-  const { all: forkIds } = readDeclaredForkIds(ROOT);
-  const forkFiles = readdirSync(join(ROOT, "scripts/proxies"))
-    .filter((name) => name.startsWith(`${FORK_ALWAYS_ON_PREFIX}.`))
-    .map((name) => ({ name, load: () => import(pathToFileURL(join(ROOT, "scripts/proxies", name)).href) }));
-  const fork = await readForkAlwaysOn(forkFiles, forkIds, (name) => parseForkDotName(name, { extensions: ["mjs"] }));
+  const stale = staleAlwaysOnFiles(readdirSync(join(ROOT, "scripts/proxies")));
+  assert.deepEqual(stale, [], stale.join("\n"));
+  const itemDir = join(ROOT, "scripts/proxies", ALWAYS_ON_DIR);
+  const forkFiles = (existsSync(itemDir) ? readdirSync(itemDir) : [])
+    .filter((name) => name.endsWith(".mjs"))
+    .sort()
+    .map((name) => ({ name, load: () => import(pathToFileURL(join(itemDir, name)).href) }));
+  const fork = await readForkAlwaysOn(forkFiles);
   assert.deepEqual(fork.problems, [], fork.problems.join("\n"));
   const rel = (abs) => relative(ROOT, abs).split(sep).join("/");
   const code = (f) => /\.(ts|tsx|mts|mjs)$/.test(f) && !/\.test\./.test(f);

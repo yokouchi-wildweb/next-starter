@@ -113,7 +113,7 @@
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "test:paired-device": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/pairedDevice/pairedDevice.test.ts",
     "test:collection-entries-route": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/lib/routeFactory/collectionEntriesRoute.test.mts",
-    "test:fork-ids": "node --test src/lib/forkOwnership/forkIds.test.mjs",
+    "test:fork-ids": "node --test src/lib/forkOwnership/forkIds.test.mjs src/lib/forkOwnership/dottedNames.test.mjs",
     "test:import-boundaries": "node --test eslint-rules/import-boundaries.test.mjs",
     "test:route-http-export": "node --test eslint-rules/route-http-export.test.mjs",
     "test:page-guard": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/pageGuard/createPageGuard.test.mts",

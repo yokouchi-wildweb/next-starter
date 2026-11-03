@@ -1,12 +1,14 @@
 // scripts/extensions/extensions.mjs
 // 拡張点の項目の走査と生成一覧の組み立て(pnpm extensions:generate / extensions:check の中身)。
-// Node 組み込み + typescript(宣言の構文木)だけで動く。項目のファイルは import しない(字面で印を見るだけ)。
+// Node 組み込み + typescript(宣言の構文木)だけで動く。項目のファイルは import しない(字面で名前と export を見るだけ)。
+// 項目の名前に fork の印は付けない(点つきの名前の分類は src/lib/forkOwnership/dottedNames.mjs)。
 // 書式・置き場・失敗の条件: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { parseForkDotName, readDeclaredForkIds, readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
+import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "./declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
@@ -20,32 +22,29 @@ export const headerFor = (source) => `// 生成物・編集不可: ${COMMAND} �
 const HEADER_PREFIX = "// 生成物・編集不可: ";
 const WIRING_DIR = "src/wiring";
 
-const UPSTREAM_FILE = /^([A-Za-z][A-Za-z0-9]*)\.(ts|tsx)$/;
-const UPSTREAM_FOLDER = /^[A-Za-z][A-Za-z0-9]*$/;
-const isSkippedFile = (name) => /\.(test|spec|d)\.[cm]?tsx?$/.test(name) || !/\.tsx?$/.test(name) || name === `${DECLARATION_NAME}.ts` || parseForkDotName(name, { extensions: ["ts"] })?.name === DECLARATION_NAME;
+const ITEM_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
+// テスト・宣言(extensionPoints.<x>.ts の旧い形は declarations.mjs が止める)は項目でない
+const isSkippedFile = (name) => /\.(test|spec|d)\.[cm]?tsx?$/.test(name) || !/\.tsx?$/.test(name) || classifyDottedName(name).base === DECLARATION_NAME;
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const markOf = (exportName) => new RegExp(`^export\\s+const\\s+${exportName}\\b`, "m");
 
-/** 項目の名前の判定(上流 = 印なし、fork = 宣言済みの名前)。{ name, forkId } か { problem } */
-function placement(label, entry, isFolder, forkIds) {
-  const name = isFolder ? entry : entry.replace(/\.tsx?$/, "");
-  const upstream = isFolder ? UPSTREAM_FOLDER.test(entry) : UPSTREAM_FILE.test(entry);
-  const dotted = isFolder ? parseForkDotName(`${entry}.ts`, { extensions: ["ts"] }) : parseForkDotName(entry);
-  if (!upstream && !dotted) return { problem: `${label}: 名前の形が違う(<名前>.ts(x) / <名前>.<fork の名前>.ts(x) / そのフォルダ形。名前は英字始まりの英数字)` };
-  if (dotted && !forkIds.includes(dotted.forkId)) {
-    return { problem: `${label}: fork の名前 "${dotted.forkId}" は宣言されていない(.claude/rules/project.md の fork_id: か祖先の台帳名)` };
+/** 項目の名前の判定(印なしの <名前>.ts(x) か <名前>/ だけ。旧い fork の印は止めて移し方を案内する)。{ name } か { problem } */
+function placement(label, entry, isFolder) {
+  const shape = classifyDottedName(entry, { folder: isFolder });
+  if (shape.kind === "marker" && ITEM_NAME.test(shape.base)) {
+    return { problem: oldMarkerProblem(label, isFolder ? `${shape.base}/` : `${shape.base}.${shape.ext}`) };
   }
-  return { name, forkId: dotted?.forkId ?? null };
+  if (shape.kind !== "plain" || !ITEM_NAME.test(shape.base)) {
+    return { problem: `${label}: 名前の形が違う(<名前>.ts(x) かそのフォルダ形 <名前>/index.ts(x)。名前は英字始まりの英数字)` };
+  }
+  return { name: shape.base };
 }
-
-/** fork の印を除いた項目の名前 */
-const dotlessName = (place, entry) => (place.forkId ? place.name.slice(0, place.name.lastIndexOf(`.${place.forkId}`)) : entry.isDirectory() ? entry.name : place.name);
 
 /**
  * 同じフォルダを受け口にする点(proxy の handlers と decorators のように)をまとめて走査する
  * @returns {{ items: Map<string, object[]>, problems: string[] }} items = 点の名前 → 項目(ファイル名の順)
  */
-function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
+function discoverDir(repoRoot, owner, dir, points, otherDirs) {
   const rel = posix.normalize(posix.join(owner, dir));
   const abs = join(repoRoot, rel);
   const items = new Map(points.map((p) => [p.name, []]));
@@ -75,7 +74,7 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
       if (!entry.isFile() || isSkippedFile(entry.name) || ignore.has(entry.name)) continue;
       itemFile = label;
     }
-    const place = placement(label, entry.name, entry.isDirectory(), forkIds);
+    const place = placement(label, entry.name, entry.isDirectory());
     if (place.problem) {
       problems.push(place.problem);
       continue;
@@ -96,23 +95,18 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs, forkIds) {
       problems.push(`${label}: ${hits.map((p) => p.spec.export).join(" と ")} の両方を export している(1 項目 1 つ。分けて置く)`);
       continue;
     }
-    const base = dotlessName(place, entry);
-    items.get(hits[0].name).push({ name: place.name, baseName: base, forkId: place.forkId, path: label, itemFile, text });
+    items.get(hits[0].name).push({ name: place.name, path: label, itemFile, text });
     const spec = hits[0].spec;
     if (spec.requireText && !text.includes(spec.requireText)) problems.push(`${label}: ${spec.requireText} が無い(この点の項目に必須)`);
     if (spec.pureImports) problems.push(...checkPureImports(repoRoot, itemFile));
   }
-  for (const point of points.filter((p) => p.spec.shape === "object")) {
-    const names = items.get(point.name).map((i) => i.baseName);
-    for (const name of new Set(names.filter((n, i) => names.indexOf(n) !== i))) problems.push(`${rel}/${name}: 同じ名前の項目が複数ある(上流と fork で同じキーは置けない)`);
-  }
-  // 隣の <名前>.override.ts(属性だけ)。上流の項目にだけ置ける
+  // 隣の <名前>.override.ts(属性だけ)。対象は同じ受け口にある項目(「上流の項目だけ」の検査は所有の側、指令 02)
   for (const { label, target } of pendingOverrides) {
     const text = readFileSync(join(repoRoot, label), "utf8");
     if (isBlankSource(text)) continue;
-    const point = points.find((p) => p.spec.overrideOf && items.get(p.name).some((i) => i.name === target && i.forkId === null));
+    const point = points.find((p) => p.spec.overrideOf && items.get(p.name).some((i) => i.name === target));
     if (!point) {
-      problems.push(`${label}: 上流の項目 ${target} が無い(override は上流の項目にだけ。fork の項目は下の Tier が直接書き換える)`);
+      problems.push(`${label}: 項目 ${target} が無い(override は同じ受け口の既存の項目の属性を上書きする)`);
       continue;
     }
     const keys = overrideKeys(label, text);
@@ -142,13 +136,17 @@ function discoverFiles(repoRoot, rel, abs, point, items) {
       problems.push(`${label}: export const ${point.spec.export} が無い`);
       continue;
     }
-    items.get(point.name).push({ name: entry.name, forkId: null, path: label, itemFile: label, text, folder: entry.name });
+    items.get(point.name).push({ name: entry.name, path: label, itemFile: label, text, folder: entry.name });
   }
   return { items, problems };
 }
 
-/** import の別名(名前の記号を _ に) */
-const aliasOf = (name) => name.replace(/[^A-Za-z0-9]/g, "_");
+/**
+ * import の別名 = <点の名前>_<項目の名前>。点の名前は英数字だけなので最初の "_" で区切れ、
+ * 1 つの出力に複数の点を混ぜる wiring(dbAgent など)・予約語の項目名・生成の識別子 <点>/<点>Map/<点>List とも衝突しない。
+ * files の点の項目名(フォルダ名)の記号は _ に
+ */
+const aliasOf = (point, item) => `${point.name}_${item.name.replace(/[^A-Za-z0-9]/g, "_")}`;
 /** 項目の import 元(@/ からの path、拡張子とフォルダの index を除く) */
 const specifierOf = (path) => `@/${path.slice(`${SEARCH_ROOT}/`.length).replace(/\.tsx?$/, "")}`;
 
@@ -163,17 +161,17 @@ function renderPoint(point, items) {
     lines.push(`export const ${point.name}: { name: string; load: () => Promise<${T}> }[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
     return { imports: [], lines };
   }
-  const imports = items.map((item) => `import { ${spec.export} as ${aliasOf(item.name)} } from ${JSON.stringify(specifierOf(item.path))};`);
-  for (const item of items.filter((i) => i.override)) imports.push(`import { override as ${aliasOf(item.name)}_override } from ${JSON.stringify(specifierOf(item.override))};`);
+  const imports = items.map((item) => `import { ${spec.export} as ${aliasOf(point, item)} } from ${JSON.stringify(specifierOf(item.path))};`);
+  for (const item of items.filter((i) => i.override)) imports.push(`import { override as ${aliasOf(point, item)}_override } from ${JSON.stringify(specifierOf(item.override))};`);
   if (spec.shape === "object") {
     const list = `${point.name}Map`;
-    const entries = items.map((item) => `  ${item.baseName}: ${item.override ? `{ ...${aliasOf(item.name)}, ...${aliasOf(item.name)}_override }` : aliasOf(item.name)},`);
+    const entries = items.map((item) => `  ${item.name}: ${item.override ? `{ ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override }` : aliasOf(point, item)},`);
     lines.push(`const ${list} = ${entries.length === 0 ? "{}" : `{\n${entries.join("\n")}\n}`} as const satisfies Readonly<Record<string, ${T}>>;`);
     lines.push(`export const ${point.name} = Object.assign(Object.create(null), ${list}) as typeof ${list};`);
     return { imports, lines };
   }
   const values = items.map((item) =>
-    item.folder ? `  { ...${aliasOf(item.name)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(item.name)}, ...${aliasOf(item.name)}_override },` : item.fields ? `  { ...${aliasOf(item.name)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(item.name)},`,
+    item.folder ? `  { ...${aliasOf(point, item)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(point, item)},`,
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
   if (spec.derive === "featureTables") lines.push("// tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)");
@@ -230,7 +228,7 @@ function renderFile(points, itemsByPoint) {
   }
   const out = [
     headerFor(sources),
-    ...points.map((p) => p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順)` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>[.<fork の名前>].ts(x) か <名前>[.<fork の名前>]/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
+    ...points.map((p) => p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順)` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
     "",
     ...[...types.entries()].sort(([a], [b]) => byName(a, b)).map(([from, names]) => `import type { ${[...names].sort(byName).join(", ")} } from ${JSON.stringify(from)};`),
   ];
@@ -248,9 +246,9 @@ function renderFile(points, itemsByPoint) {
  * @returns {{ points: object[], itemsByPoint: Map<object, object[]>, outputs: Record<string, string>, switches: object[], overrides: object[], problems: string[] }}
  */
 export function planExtensions(repoRoot) {
-  const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
-  const { points: declared, problems } = collectPoints(repoRoot, forkIds);
-  problems.unshift(...errors);
+  const identity = readForkIdentity(repoRoot);
+  const { points: declared, problems } = collectPoints(repoRoot);
+  problems.unshift(...identity.errors);
   // writer の点の一覧は別の生成器が書く: ここでは探さず書かない(宣言の数にだけ入る)
   const points = declared.filter((p) => !p.spec.writer);
   const dirOf = (p) => posix.normalize(posix.join(p.owner, p.spec.dir));
@@ -262,7 +260,7 @@ export function planExtensions(repoRoot) {
   let featureTables = null;
   for (const [dir, group] of groups) {
     const others = new Set([...allDirs].filter((d) => d !== dir));
-    const found = discoverDir(repoRoot, group[0].owner, posix.relative(group[0].owner, dir) || ".", group, others, forkIds);
+    const found = discoverDir(repoRoot, group[0].owner, posix.relative(group[0].owner, dir) || ".", group, others);
     problems.push(...found.problems);
     for (const p of group) {
       const items = found.items.get(p.name);
@@ -291,8 +289,8 @@ export function planExtensions(repoRoot) {
     if (new Set(names).size !== names.length) problems.push(`${path}: 同じ名前の点が 1 つの wiring に重なる`);
     outputs[path] = renderFile(filePoints, itemsByPoint);
   }
-  const { isTier1 } = readForkIdentity(repoRoot);
-  const switchCheck = checkSwitches(repoRoot, { forkIds, isTier1 });
+  const { isTier1 } = identity;
+  const switchCheck = checkSwitches(repoRoot, { isTier1 });
   const overrideCheck = checkOverrides(repoRoot, { isTier1 });
   problems.push(...switchCheck.problems, ...overrideCheck.problems);
   return { points: declared, itemsByPoint, outputs, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
