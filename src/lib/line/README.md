@@ -102,22 +102,16 @@ function LineStatusMessage() {
 
 ### LINE連携解除
 
-```ts
-// クライアントサービス
-import { axios } from "@/lib/axios"; // ← プロジェクトの規約に合わせる
-
-export async function unlinkLine() {
-  // ダウンストリームで API ルートを作成
-  return axios.post("/api/auth/line/unlink");
-}
-```
+ルート `POST /api/auth/line/unlink`（上流同梱、本人のみ・`createApiRoute` access authenticated）と ClientService を使う。
 
 ```ts
-// サーバーサービス（API ルート内）
-import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
+// クライアント（UI からは fork のフックで包む。例: useDomainMutation）
+import { unlinkLine } from "@/features/core/userLineProfile/services/client/userLineProfileClient";
 
-await userLineProfileService.unlinkLineAccount(session.userId);
+await unlinkLine(); // 連携が無ければ 400（normalizeHttpError 済みのエラー）
 ```
+
+サーバー側の処理は `userLineProfileService.unlinkLineAccount(userId)`（ルートは `ctx.user.userId` を渡す）。
 
 ### Push通知を送る
 

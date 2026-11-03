@@ -231,11 +231,10 @@ LINE 連携と同じパターン。`redirect_after` で連携後の戻り先を�
 ### X 連携解除
 
 ```ts
-import { axios } from "@/lib/axios";
+// クライアント（UI からは fork のフックで包む。例: useDomainMutation）
+import { unlinkX } from "@/features/core/userXProfile/services/client/userXProfileClient";
 
-export async function unlinkX() {
-  return axios.post("/api/auth/x/unlink");
-}
+await unlinkX(); // POST /api/auth/x/unlink（normalizeHttpError 済みのエラー）
 ```
 
 ### userXProfileService
