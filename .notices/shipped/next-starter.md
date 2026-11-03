@@ -247,3 +247,4 @@
 - id:20261103-134732-closed-orders-resolves | severity:info | checkpoint:closed-orders-resolves | resolves:20261025-213656-user-frame-partial-customization, 20261028-171627-built-css-guard-fork-custom-coverage, 20261101-111956-review-admin-layout-lib-promotion, 20261101-153803-bank-transfer-bulk-decision, 20261101-153803-coupon-discount-totals, 20261101-180140-user-header-look-config
 - id:20261103-144217-notice-shipped-index | severity:action-required | checkpoint:notice-shipped-index
 - id:20261103-161212-domain-json-comment-key | severity:info | checkpoint:domain-json-comment-key
+- id:20261103-182243-appform-submit-lock | severity:info | checkpoint:appform-submit-lock | resolves:20261103-072925-appform-double-submit-lock

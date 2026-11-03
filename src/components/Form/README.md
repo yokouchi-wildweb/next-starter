@@ -29,6 +29,8 @@
 
 Controlled Input は Manual Input を内部でラップして、`field` を `value/onChange` へ変換する。
 
+`AppForm` は二重送信を同期のロックで防ぐ（`submitLock.ts`）。送信中（検証 → `onSubmit` → メディアのコミット）に来た 2 回目の送信は `onSubmit` を呼ばずに捨て、ロックは成功・失敗のどちらでも外れる。`isSubmitting` / `pending` は次の描画まで効かないため、同じフレームの連打はこのロックが止める。フォームの側で ref ロックを足す必要はない。
+
 ---
 
 独自の入力部品は `src/wiring/formInputs/inputs/` に登録し、`formInput` に名前を書く（`FieldRenderer/README.md`「登録された入力部品」）。このフォルダは一覧を知らず、Context と型だけを持つ。

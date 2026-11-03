@@ -17,6 +17,7 @@ import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRender
 import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 import { AutoSaveContext, useAutoSave, type AutoSaveOptions } from "./AutoSave";
+import { createSubmitLock, type SubmitLock } from "./submitLock";
 
 /**
  * 送信ボタン付近のエラー表示モード
@@ -240,6 +241,19 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState],
   );
 
+  // 二重送信ロック: isSubmitting / pending は次の描画まで効かないため、同じフレームの 2 回目を同期に捨てる。
+  // 検証 → onSubmit → メディアのコミットが終わるまで持ち、成功 / 失敗のどちらでも外す（submitLock.ts）
+  const submitLockRef = React.useRef<SubmitLock | null>(null);
+  if (submitLockRef.current === null) {
+    submitLockRef.current = createSubmitLock();
+  }
+  const submitLock = submitLockRef.current;
+
+  const handleFormSubmit = React.useMemo(
+    () => submitLock.wrap(handleSubmit(handleSubmitWithMediaCommit, onSubmitError)),
+    [submitLock, handleSubmit, handleSubmitWithMediaCommit, onSubmitError],
+  );
+
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLFormElement>) => {
       onKeyDown?.(event);
@@ -345,7 +359,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
               data-submitting={isBusy ? "true" : "false"}
               data-saving={isSaving ? "true" : "false"}
               aria-busy={isBusy || isSaving}
-              onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
+              onSubmit={handleFormSubmit}
               onKeyDown={handleKeyDown}
               {...formProps}
             >

@@ -20,6 +20,7 @@
     "test:schema-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/tableScan.test.mjs scripts/registry/alpha/alpha.test.mjs",
     "test:service-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/serviceRegistry/serviceRegistry.test.mjs",
     "test:collection-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/collectionWiring/collectionWiring.test.mjs",
+    "test:form-submit-lock": "npx tsx --test src/components/Form/submitLock.test.ts",
     "test:form-inputs": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/Field/Configured/customInputs.test.tsx",
     "test:wiring": "node --test src/wiring/wiring.test.mjs",
     "test:wiring-admin-parts": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/wiring/adminScreenParts.test.mts",
