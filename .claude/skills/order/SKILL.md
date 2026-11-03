@@ -11,7 +11,8 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
 - **受信箱はリポごと**: `<置き場>/<fork-id>/`(未対応)と `<fork-id>/done/`(対応済み)。fork-id = そのリポの `.claude/rules/project.md` の `fork_id: <短い名前>`(小文字・数字・ハイフン)。未宣言(行なし・旧い `-`)のリポは移行中だけ旧い名前(origin URL のホスト以降から `.git` を除き `/` → `--`、小文字。origin が無ければ `local--<ディレクトリ名>`)。宣言済みのリポの受信箱は、mailbox.mjs が名前を読んだときに旧い名前の箱から移り、旧い名前は新しい箱へのリンクとして残る
 - 受信箱に入るのは単発の指令だけ。連続した・グループ化された指令は council の legate の中で扱う
 - 宛先リポは自分の受信箱を `/inbox` で読む。起票したセッションは `/wen` で状況を確かめる
-- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | repos | inbox | name-check <名前> | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`name-check` = その名前を自リポの fork_id: にしてよいか(fleet.conf・手元のリポ・既存の受信箱と重ならないか。/fork-init が使う)。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。手順は `.claude/skills/inbox/SKILL.md` の 4)
+- **指令の状態**(先頭の `status:`、1 つの値): `open` → `routed`(評議会・ギルド・legate の計画に振り分け済み。`routed_to:` / `routed_by:` / `routed_at:`)→ `taken`(担当が着手。`taken_by:` / `taken_at:`)→ 答え(done / partial / relayed / rejected / withdrawn、`done/` へ)。移り変わりは末尾の `## STATUS_LOG` に追記される。`status:` の無い古い指令は open。担当以外の着手・答えは mailbox.mjs が断る(使い方は `.claude/skills/inbox/SKILL.md` の「担当の守り」)
+- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox | name-check <名前> | route | take | release | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`me` = 担当として書かれる自分の名前。`route <指令> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = 振り分け、`take <指令> [--as=]` = 着手、`release <指令>` = 手放す。`name-check` = その名前を自リポの fork_id: にしてよいか(fleet.conf・手元のリポ・既存の受信箱と重ならないか。/fork-init が使う)。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。手順は `.claude/skills/inbox/SKILL.md` の 4)
 
 ## 使う材料
 - ここまでの会話の文脈(=何をしてほしいかは既に議論済みのはず)
@@ -48,7 +49,7 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
      - 評議会の legate = `council <議題id> | …`(legate が自分で書く。role: 欄は無い)
    - self 宛てのとき: 後で読むのは文脈を持たない別のセッションなので、`why:` と `refs:` に今の会話で分かっていることを省かず書く(どこまで決まったか、未決の点、読むべきファイル)
    - `<slug>` は need から短いケバブ(英語)で作る
-   - `status:` は起票時 `open`。答えた側の `mailbox.mjs resolve` が done/ に移すときに RESOLUTION の status(done / partial / relayed / rejected / withdrawn)へ書き換える(手では書き換えない)
+   - `status:` は起票時 `open`。以後は mailbox.mjs だけが書き換える(route → routed、take → taken、release → 取る前の状態、resolve → RESOLUTION の status(done / partial / relayed / rejected / withdrawn)で done/ へ。手では書き換えない)
 4. **事前確認は取らず、そのままファイルを書き出す**(受信箱のフォルダが無ければ作成)。宛先が決まった後の「この内容で起票していいですか?」等の承認待ちは**禁止**(起票はただの md ファイルで、後から編集・移動・削除で直せるため):
    - パス: `<宛先の box>/<ts>-<slug>.md`
 5. 書き出したら日本語で報告:

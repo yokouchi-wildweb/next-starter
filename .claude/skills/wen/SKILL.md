@@ -14,7 +14,10 @@ argument-hint: "[指令の id / ファイルパス(省略でこのセッショ�
 - 引数あり: その id かパスの 1 件。id だけなら置き場(`node .claude/skills/order/mailbox.mjs self` の `root:`)の `*/` と `*/done/` から `<id>.md` を探す
 
 ## 状態の確かめ方(1 件ごと)
-- 起票したパスにファイルがある → **未対応**(まだ…)。宛先と need を 1 行で示す
+- 起票したパスにファイルがある → **未対応**(まだ…)。宛先と need を 1 行で示し、先頭の `status:` で区分を添える(無い古い指令は open):
+  - `open`: 誰もまだ手を付けていない
+  - `routed`: 「振り分け済み → <routed_to:>」(評議会・ギルド・legate の計画。`routed_at:` も添える)
+  - `taken`: 「着手中 → <taken_by:>」(`taken_at:` も添える)。前に別の担当がいたら末尾の `## STATUS_LOG` から 1 行で添える
 - 起票したパスの隣の `done/<同じ名前>` にある → **対応済み**。本文を Read して RESOLUTION を示す:
   - `status: done`: implemented / consume / notes を要約する。`pushed: no` なら「宛先がまだ push していない」と添える
   - `status: relayed`: 宛先が別のリポへ引き渡した。`relayed_to:` の先(`<置き場>/<relayed_to>`)を同じ方法で確かめ、その状況を合わせて示す

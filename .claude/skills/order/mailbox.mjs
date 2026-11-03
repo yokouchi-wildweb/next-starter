@@ -9,12 +9,18 @@
 //   node mailbox.mjs self    自リポの fork-id と受信箱
 //   node mailbox.mjs from    起票する指令の from: 行（チームのタブなら発行元はそのチーム。下記 fromLine）
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
-//   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）
+//   node mailbox.mjs me      この者の名前（taken_by / routed_by に書く値。下記 actorOf）
+//   node mailbox.mjs inbox   自リポ宛ての未対応の指令（状態 open | routed | taken、waiting_on: の待ち、担当が自分なら (you)）
+//   node mailbox.mjs route <指令> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS> [--by=]
+//                            振り分ける: open | routed → routed（振り直し可）。着手中は断る
+//   node mailbox.mjs take <指令> [--as=<id>]      着手する: open → taken。routed は振り分け先の本人だけ（違えば担当を出して断る）
+//   node mailbox.mjs release <指令> [--as=<id>] [--force=<理由>]   手放す: taken → 取る前の状態（取った者だけ）
 //   node mailbox.mjs name-check <名前>   その名前を自リポの fork_id: にしてよいか（形・fleet.conf・手元のリポ・既存の受信箱と
 //                            重ならないか。/fork-init が名前を決めるときに使う。重なれば理由を出して exit 1）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
-//                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>]
-//                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す
+//                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>] [--as=<id>] [--force=<理由>]
+//                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す。
+//                            他人の taken・別の振り分け先の routed は断る（--force で通すと RESOLUTION に forced: が残る）
 //                            （/inbox 手順 4 と guild close の共通の書き手）
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, writeFileSync } from "node:fs";
@@ -283,26 +289,177 @@ function isoNow(d = new Date()) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
 }
 
-// 先頭の `status:`（最初の `## ` より前の最初の行）を書き換える。無ければ `date:` の次に足す（古い形の指令）
-function withHeaderStatus(text, status) {
-  const head = text.search(/^## /m);
-  const end = head < 0 ? text.length : head;
-  const top = text.slice(0, end);
-  const next = /^status:.*$/m.test(top)
-    ? top.replace(/^status:.*$/m, `status: ${status}`)
-    : top.replace(/^date:.*$/m, (l) => `${l}\nstatus: ${status}`);
-  return next + text.slice(end);
+// ---- 指令の状態（status: は 1 つの値）--------------------------------------------------------------
+// open（未対応）→ routed（評議会・ギルド・legate の計画に振り分け済み）→ taken（担当が着手）→ 答え（REQUIRED の status）
+// routed は routed_to / routed_by / routed_at、taken は taken_by / taken_at を先頭に持つ（今の状態。release で taken_* は消える）。
+// 移り変わりは末尾の `## STATUS_LOG` に 1 行ずつ足す（消さない。前の担当が見える）。答え（resolve）の記録は RESOLUTION が持つ。
+// status: が無い・知らない値の古い指令は open として読む
+export const LIVE = ["open", "routed", "taken"];
+const HEAD_KEYS = ["status", "routed_to", "routed_by", "routed_at", "taken_by", "taken_at"];
+
+// 先頭（最初の `## ` より前）と残り
+function splitHead(text) {
+  const i = text.search(/^## /m);
+  const end = i < 0 ? text.length : i;
+  return [text.slice(0, end), text.slice(end)];
+}
+
+function headField(text, name) {
+  return field(splitHead(text)[0], name);
+}
+
+// 先頭の欄を書き換える（null = 消す）。無い欄は HEAD_KEYS の並びで前の欄の次（status は date: の次。古い形の指令）に足す
+function setHead(text, sets) {
+  let [top, rest] = splitHead(text);
+  for (const [k, v] of Object.entries(sets)) {
+    const line = new RegExp(`^${k}:.*$`, "m");
+    if (line.test(top)) {
+      top = v == null ? top.replace(new RegExp(`^${k}:.*\\n?`, "m"), "") : top.replace(line, () => `${k}: ${v}`);
+      continue;
+    }
+    if (v == null) continue;
+    const anchors = [...HEAD_KEYS.slice(0, HEAD_KEYS.indexOf(k)).reverse(), "date", "to", "from"];
+    const a = anchors.find((x) => new RegExp(`^${x}:`, "m").test(top));
+    top = a
+      ? top.replace(new RegExp(`^${a}:.*$`, "m"), (l) => `${l}\n${k}: ${v}`)
+      : top.replace(/^.*$/m, (l) => `${l}\n${k}: ${v}`);
+  }
+  return top + rest;
+}
+
+// `## STATUS_LOG` に 1 行足す（無ければ末尾に作る）
+function appendLog(text, entry) {
+  const lines = text.split("\n");
+  const h = lines.indexOf("## STATUS_LOG");
+  if (h < 0) return `${text.endsWith("\n") ? text : `${text}\n`}\n## STATUS_LOG\n${entry}\n`;
+  let i = h + 1;
+  while (i < lines.length && lines[i].startsWith("- ")) i++;
+  lines.splice(i, 0, entry);
+  return lines.join("\n");
+}
+
+export function orderStatus(text) {
+  const s = headField(text, "status");
+  return LIVE.includes(s) || REQUIRED[s] ? s : "open";
+}
+
+// 動いている者の名前（taken_by / routed_by に書く）
+//   チームのタブ: <team> <instance> | role:<役職名>（from: と同じ環境変数）| リポのセッション: <origin> | branch:<b>
+export function actorOf(env, { origin, repoId, branch }) {
+  if (env.TK_TEAM && env.TK_INSTANCE) return `${env.TK_TEAM} ${env.TK_INSTANCE} | role:${env.TK_LABEL || env.TK_ROLE || "-"}`;
+  return `${origin || repoId} | branch:${branch || "-"}`;
+}
+
+// 同じ担当かを比べる鍵: チーム（role: 欄あり）は <team> <instance>（同じタブの組の誰でも）、リポは cwd: を除いた全体
+function actorKey(a) {
+  const parts = String(a).split(" | ").map((x) => x.trim()).filter((x) => x && !x.startsWith("cwd:"));
+  return parts.some((x) => x.startsWith("role:")) ? parts[0] : parts.join(" | ");
+}
+
+export function sameActor(a, b) {
+  return actorKey(a) === actorKey(b);
+}
+
+// routed_to（council <id> | guild:<instance|name> | legate <id>.<k> plan-SS）がこの者を指すか。
+// as = 明示した名前（--as）。チームのタブは council <instance> / <team>:<instance> / <team> <instance> とも照合する
+export function routedMatches(routedTo, actor, as, env = {}) {
+  const norm = (s) => String(s).trim().replace(/\s+/g, " ");
+  const want = norm(routedTo);
+  const names = as ? [as] : [actor, actorKey(actor)];
+  if (!as && env.TK_TEAM && env.TK_INSTANCE) names.push(`${env.TK_TEAM} ${env.TK_INSTANCE}`, `${env.TK_TEAM}:${env.TK_INSTANCE}`);
+  return names.some((n) => norm(n) === want);
+}
+
+function whoHas(text) {
+  const s = orderStatus(text);
+  if (s === "taken") return `taken by ${headField(text, "taken_by") || "?"}`;
+  if (s === "routed") return `routed to ${headField(text, "routed_to") || "?"}`;
+  return s;
+}
+
+function writeAtomic(path, text) {
+  const tmp = `${path}.tmp.${process.pid}`;
+  writeFileSync(tmp, text);
+  renameSync(tmp, path);
+}
+
+function liveOrder(orderPath) {
+  if (!existsSync(orderPath)) throw new Error(`指令がありません: ${orderPath}（対応済みなら done/ にあります）`);
+  if (basename(dirname(orderPath)) === "done") throw new Error(`done/ の指令の状態は変えません: ${orderPath}`);
+  const text = readFileSync(orderPath, "utf8");
+  if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
+  return text;
+}
+
+// 振り分ける: open | routed → routed（振り直しも可。ログに残る）。taken は断る（取った者が release してから）
+export function routeOrder(orderPath, { to, by, now = isoNow() }) {
+  if (!to) throw new Error("--to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS> が要ります");
+  const text = liveOrder(orderPath);
+  const s = orderStatus(text);
+  if (s === "taken") throw new Error(`着手中です（${whoHas(text)}）: 振り分けるなら取った者が release してから`);
+  const next = setHead(text, { status: "routed", routed_to: to, routed_by: by, routed_at: now });
+  writeAtomic(orderPath, appendLog(next, `- ${now} ${s} → routed | to:${to} | by:${by}`));
+  return { from: s, to: "routed" };
+}
+
+// 着手する: open → taken（誰でも）| routed → taken（routed_to が自分のときだけ）| 他人の taken は断る
+export function takeOrder(orderPath, { actor, as, env = {}, now = isoNow() }) {
+  const text = liveOrder(orderPath);
+  const s = orderStatus(text);
+  const who = as || actor;
+  if (s === "taken") {
+    const holder = headField(text, "taken_by");
+    if (sameActor(holder, who)) throw new Error(`すでに自分が着手しています（taken by ${holder}）`);
+    throw new Error(`他の担当が着手しています: taken by ${holder}（担当に確かめる。止まっているなら担当か人が release）`);
+  }
+  if (s === "routed") {
+    const to = headField(text, "routed_to");
+    if (!routedMatches(to, actor, as, env)) throw new Error(`振り分け先が別です: routed to ${to}（その担当が take する。自分でやるなら人の判断で振り直す）`);
+  }
+  const next = setHead(text, { status: "taken", taken_by: who, taken_at: now });
+  writeAtomic(orderPath, appendLog(next, `- ${now} ${s} → taken | by:${who}`));
+  return { from: s, to: "taken" };
+}
+
+// 手放す: taken → 取る前の状態（routed_to があれば routed、無ければ open）。取った者だけ（force = 理由。止まったセッションの片付け）
+export function releaseOrder(orderPath, { actor, as, force, now = isoNow() }) {
+  const text = liveOrder(orderPath);
+  const s = orderStatus(text);
+  if (s !== "taken") throw new Error(`着手中ではありません（${whoHas(text)}）`);
+  const holder = headField(text, "taken_by");
+  const who = as || actor;
+  if (!sameActor(holder, who) && !force) throw new Error(`取ったのは別の担当です: taken by ${holder}（片付けるなら --force=<理由>）`);
+  const back = headField(text, "routed_to") ? "routed" : "open";
+  const next = setHead(text, { status: back, taken_by: null, taken_at: null });
+  const why = force && !sameActor(holder, who) ? ` | forced:${force} (was taken by ${holder})` : "";
+  writeAtomic(orderPath, appendLog(next, `- ${now} taken → ${back} | by:${who}${why}`));
+  return { from: s, to: back };
+}
+
+// 答えてよいか: 他人の taken・別の振り分け先の routed は断る（force = 理由。RESOLUTION の forced: に残る）
+function resolveGuard(text, { actor, as, env, force }) {
+  if (!actor) return "";
+  const s = orderStatus(text);
+  const who = as || actor;
+  let blocked = "";
+  if (s === "taken" && !sameActor(headField(text, "taken_by"), who)) blocked = whoHas(text);
+  if (s === "routed" && !routedMatches(headField(text, "routed_to"), actor, as, env)) blocked = whoHas(text);
+  if (!blocked) return "";
+  if (!force) throw new Error(`この指令は ${blocked} です: 担当以外は答えません（人の判断で答えるなら --force=<理由>）`);
+  return `forced: ${force} (was ${blocked}; resolved by ${who})`;
 }
 
 // 指令に答える: 確かめてから RESOLUTION を追記し、先頭の status: を RESOLUTION の status に書き換えて done/ へ移す
 // （ファイルだけを読んでも状態が分かるように）。足りないものがあれば何も書かずに throw する。
-// by = { repoId, origin, branch, commit, pushed }。戻り値 = 移した先のパス
-export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
+// by = { repoId, origin, branch, commit, pushed }。actor / as / env / force = 担当の守り（resolveGuard。actor が無ければ確かめない）。
+// 戻り値 = 移した先のパス
+export function resolveOrder(orderPath, { status, body, by, now = isoNow(), actor, as, env = {}, force }) {
   if (!REQUIRED[status]) throw new Error(`--status は ${Object.keys(REQUIRED).join(" | ")} のどれか（${status || "なし"}）`);
   if (!existsSync(orderPath)) throw new Error(`指令がありません: ${orderPath}（対応済みなら done/ にあります）`);
   if (basename(dirname(orderPath)) === "done") throw new Error(`done/ の指令には答えません: ${orderPath}`);
   const text = readFileSync(orderPath, "utf8");
   if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
+  const forced = resolveGuard(text, { actor, as, env, force });
   const lines = body.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
   const want = [...REQUIRED[status]];
   if ((status === "done" || status === "partial") && requester(field(text, "from")).kind === "council") want.push("findings", "verify");
@@ -313,10 +470,8 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
   const byLine = full
     ? `by: ${by.repoId} | ${by.origin || "-"} | branch:${by.branch || "-"} | commit:${by.commit || "-"} | pushed:${by.pushed}`
     : `by: ${by.repoId} | commit:- | pushed:-`;
-  const block = ["", "## RESOLUTION", `resolved: ${now}   status: ${status}`, byLine, ...lines, ""].join("\n");
-  const tmp = `${orderPath}.tmp.${process.pid}`;
-  writeFileSync(tmp, withHeaderStatus(text, status) + (text.endsWith("\n") ? "" : "\n") + block);
-  renameSync(tmp, orderPath);
+  const block = ["", "## RESOLUTION", `resolved: ${now}   status: ${status}`, byLine, ...lines, ...(forced ? [forced] : []), ""].join("\n");
+  writeAtomic(orderPath, setHead(text, { status }) + (text.endsWith("\n") ? "" : "\n") + block);
   const doneDir = join(dirname(orderPath), "done");
   mkdirSync(doneDir, { recursive: true });
   const dest = join(doneDir, basename(orderPath));
@@ -324,12 +479,18 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
   return dest;
 }
 
-function printOrder(path) {
+// 一覧の 1 件。先頭の語 = open | routed | taken | waiting | resumable（waiting_on: があれば待ちが先）。
+// routed_to / taken_by が自分を指せば (you) を付ける（/ship の担当の確かめもこれを読む）
+function printOrder(path, actor, env) {
   const text = readFileSync(path, "utf8");
   const waits = fields(text, "waiting_on").map(orderState);
-  let state = "open";
+  let state = orderStatus(text);
   if (waits.length) state = waits.every((w) => w.state === "done") ? "resumable" : "waiting";
   console.log(`${state} ${path}\n  from: ${requester(field(text, "from")).label}\n  need: ${field(text, "need")}`);
+  const to = headField(text, "routed_to");
+  const by = headField(text, "taken_by");
+  if (to) console.log(`  routed_to: ${to}${routedMatches(to, actor, undefined, env) ? " (you)" : ""}`);
+  if (orderStatus(text) === "taken") console.log(`  taken_by: ${by}${sameActor(by, actor) ? " (you)" : ""}`);
   for (const w of waits) console.log(`  waiting_on: ${w.state} ${w.path}`);
 }
 
@@ -378,21 +539,46 @@ function main() {
       process.exit(1);
     }
     console.log(`name-check: ${name} — ok`);
+  } else if (cmd === "me") {
+    console.log(`me: ${actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) })}`);
   } else if (cmd === "inbox") {
+    const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
     console.log(`box: ${boxOf(self.repoId)}`);
-    for (const p of mdFiles(boxOf(self.repoId))) printOrder(p);
+    for (const p of mdFiles(boxOf(self.repoId))) printOrder(p, actor, process.env);
+  } else if (["route", "take", "release"].includes(cmd)) {
+    const args = process.argv.slice(3);
+    const file = args.find((a) => !a.startsWith("--"));
+    const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
+    try {
+      if (!file) throw new Error(`usage: node mailbox.mjs ${cmd} <指令ファイル> ${{ route: "--to=<id> [--by=]", take: "[--as=<id>]", release: "[--as=<id>] [--force=<理由>]" }[cmd]}`);
+      const path = file.replace(/^~(?=\/)/, homedir());
+      const r = cmd === "route"
+        ? routeOrder(path, { to: opt(args, "to"), by: opt(args, "by") || actor })
+        : cmd === "take"
+          ? takeOrder(path, { actor, as: opt(args, "as"), env: process.env })
+          : releaseOrder(path, { actor, as: opt(args, "as"), force: opt(args, "force") });
+      console.log(`${cmd}: ${r.from} → ${r.to} ${path}`);
+    } catch (e) {
+      console.error(`${cmd}: ${e.message}`);
+      process.exit(1);
+    }
   } else if (cmd === "resolve") {
     const args = process.argv.slice(3);
     const file = args.find((a) => !a.startsWith("--"));
     const bodyFile = opt(args, "body");
     try {
-      if (!file || !bodyFile) throw new Error("usage: node mailbox.mjs resolve <指令ファイル> --status=… --body=<ファイル> [--commit=] [--pushed=] [--branch=]");
+      if (!file || !bodyFile) throw new Error("usage: node mailbox.mjs resolve <指令ファイル> --status=… --body=<ファイル> [--commit=] [--pushed=] [--branch=] [--as=<id>] [--force=<理由>]");
       const commit = opt(args, "commit") ?? (git(self.top, ["rev-parse", "--short", "HEAD"]) || "-");
       const branch = opt(args, "branch") ?? (git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) || "-");
+      const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
       const dest = resolveOrder(file.replace(/^~(?=\/)/, homedir()), {
         status: opt(args, "status"),
         body: readFileSync(bodyFile, "utf8"),
         by: { repoId: self.repoId, origin: self.origin, branch, commit, pushed: opt(args, "pushed") },
+        actor,
+        as: opt(args, "as"),
+        env: process.env,
+        force: opt(args, "force"),
       });
       console.log(`resolved: ${dest}`);
     } catch (e) {
@@ -400,7 +586,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.error("usage: node mailbox.mjs self | from | repos | inbox | name-check <名前> | resolve <指令ファイル> --status=… --body=<ファイル>");
+    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | resolve <指令ファイル> --status=… --body=<ファイル>");
     process.exit(1);
   }
 }
