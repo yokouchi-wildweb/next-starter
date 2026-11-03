@@ -132,7 +132,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 
 - 形式: `resolves: <指令 id>, ...`。指令 id = 受信箱のファイル名(`<YYYYMMDD-HHMMSS>-<slug>`)。複数可
 - 書く条件: `/ship` が `/inbox` から来た指令(`order:<id>`)を出荷し、その指令の依頼元(requester)が自リポ以外のリポ(下流の fork)のとき。上流からは、下流がその依頼に一時許可を書いているかが見えないので、**他に notice が要らなくても** `severity: info` + `required_actions: none` + `checkpoint:` の notice を出して `resolves:` を伝える
-- 却下(rejected)は解決ではないので書かない。下流は `/wen` で却下を知り、元に戻す・受け口へ移す・別の方針で許可し直す
+- 却下(rejected)・取り下げで閉じた依頼にも書く(閉じた = その番号の一時許可は失効する)。結果は `done/` の RESOLUTION にあり、下流は `/wen` で却下を知って、元に戻す・受け口へ移す・別の方針で許可し直す(失効した許可は `pnpm ownership:check` が違反に戻すので放置されない)
 - 下流の使い方: `pnpm ownership:check` が基準(取り込み済み)の `.notices/` と `done/` の `resolves:` を集め、すべての番号が解決した一時許可を失効(expired-resolved)にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の一時許可に当たる行を示す
 - 書式は `pnpm test:notices` が検査する(id の形・重複)。参照先の実在は見ない(受信箱は git の外)
 

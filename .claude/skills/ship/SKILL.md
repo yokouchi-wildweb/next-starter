@@ -46,7 +46,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - 挙動・権限が黙って変わる
    - 変えた分野のルール・README が notice を求めている(CLAUDE.md や `.claude/rules/core/`、colocated README で「→ notice」「ship .notices」と書かれた条件。変えた分野のものを読んで確かめる)
    - 前に出荷したものの修正(手順 4)
-   - 下流の fork から来た指令の解決: 引数 `order:<id>` があり、その指令の依頼元が自リポ以外のリポ(`node .claude/skills/order/mailbox.mjs` の requester で判定。指令の `from:` の先頭がリポの origin URL で自リポと違う)。notice に `resolves: <id>` を書く。他に notice が要らなくても `severity: info` + `required_actions: none` + `checkpoint:` の notice を出す(下流の一時許可の失効に使う。`.notices/README.md`「解決(resolves)」)。却下は書かない
+   - 下流の fork から来た指令の解決: 引数 `order:<id>` があり、その指令の依頼元が自リポ以外のリポ(`node .claude/skills/order/mailbox.mjs` の requester で判定。指令の `from:` の先頭がリポの origin URL で自リポと違う)。notice に `resolves: <id>` を書く。他に notice が要らなくても `severity: info` + `required_actions: none` + `checkpoint:` の notice を出す(下流の一時許可の失効に使う。`.notices/README.md`「解決(resolves)」)。却下・取り下げで閉じた指令にも書く
 4. **修正かどうかを確かめる**: まず会話の文脈(不具合の報告・指令の need・「直して」)で判断する。
    - 文脈で修正と分かる、またはコードの既存の行を変えた・消した → 下の blame で修正元を特定する
    - 文書・スキル・設定の追記だけで、文脈にも不具合が無い → 確認を省き、報告に「修正ではない」と書く
