@@ -68,7 +68,12 @@ function judgeModified(rule, baseText, headText) {
     return head !== null && head === headUntilMarker(baseText) ? "marker" : "above-marker";
   }
   if (kind === "append") {
-    return headText.startsWith(withoutTrailingNewlines(baseText)) ? "append" : "not-append";
+    // 基準(末尾の改行を除く)で始まり、続きがあればその先頭が改行のときだけ追記。
+    // 基準の最後の行に同じ行で書き足すのは基準の行の変更なので not-append
+    const head = withoutTrailingNewlines(baseText);
+    if (!headText.startsWith(head)) return "not-append";
+    const rest = headText.slice(head.length);
+    return rest === "" || rest.startsWith("\n") ? "append" : "not-append";
   }
   return stripOwnedRegions(baseText, { fork: false }) === stripOwnedRegions(headText, { fork: false })
     ? "generator-region"

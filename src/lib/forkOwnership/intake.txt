@@ -139,6 +139,7 @@ edit .claude/rules/project.md  # CLAUDE.md PER_PROJECT
 edit .claude/rules/behavior.md  # CLAUDE.md PER_PROJECT
 marker .claude/rules/shortcuts.md  # 印より下が fork
 marker .claude/rules/term-aliases.md  # 印より下が fork
+append .claude/rules/lineage.md  # 中間層の節を末尾に足すだけ(lineage.md の前置き)
 
 # 目録(自分の節の追記)
 append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき」

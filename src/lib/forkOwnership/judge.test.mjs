@@ -74,6 +74,7 @@ describe("実リポジトリの intake.txt", () => {
       ["src/registry/serviceRegistry.ts", "generated"],
       [".claude/rules/shortcuts.md", "marker"],
       ["src/lib/CATALOG.md", "append"],
+      [".claude/rules/lineage.md", "append"],
       ["src/features/core/user/services/server/userService.ts", null],
       ["src/features/core/setting/fields/x.ts", "add"],
       ["src/features/core/setting/fields/adminListPerPage.override.ts", "add"],
@@ -165,6 +166,7 @@ describe("judge", () => {
       "generated src/registry/serviceRegistry.ts  # r",
       "marker .claude/rules/shortcuts.md  # r",
       "append src/lib/CATALOG.md  # r",
+      "append .claude/rules/lineage.md  # r",
       "debt src/features/core/mail/templates/**  # r",
     ].join("\n"),
   );
@@ -322,6 +324,24 @@ describe("judge", () => {
     const path = "src/lib/CATALOG.md";
     assert.equal(run({ status: "M", path }, base, `${base}\n## fork\n- src/lib/b — y\n`).reason, "append");
     assert.equal(run({ status: "M", path }, base, base.replace("x", "z")).reason, "not-append");
+  });
+
+  test("M(append): 基準の最後の行に同じ行で書き足す = not-append、改行の後なら append", () => {
+    const path = ".claude/rules/lineage.md";
+    for (const base of ["# l\n<!-- end preamble -->\n", "# l\n<!-- end preamble -->"]) {
+      const last = "# l\n<!-- end preamble -->";
+      assert.equal(run({ status: "M", path }, base, `${last} x\n`).reason, "not-append");
+      assert.equal(run({ status: "M", path }, base, `${last}x`).reason, "not-append");
+      assert.equal(run({ status: "M", path }, base, `${last}\n## t2\n<!-- end t2 -->\n`).reason, "append");
+      assert.equal(run({ status: "M", path }, base, base).reason, "append");
+    }
+  });
+
+  test("M(append): 実物の src/lib/CATALOG.md に fork の節を改行の後に足す = append", () => {
+    const path = "src/lib/CATALOG.md";
+    const base = readFileSync(new URL("../CATALOG.md", import.meta.url), "utf8");
+    const forked = `${base.replace(/\n+$/, "")}\n\n## fork-x\n- src/lib/mine — 自分のライブラリ\n`;
+    assert.equal(run({ status: "M", path }, base, forked).reason, "append");
   });
 
   test("件数と、すべての reason に verdict がある", () => {
