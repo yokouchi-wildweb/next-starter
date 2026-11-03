@@ -39,6 +39,7 @@ import {
   findDotNamedFiles,
   findForkOwnedDirFiles,
   findMarkerNamedFiles,
+  findOrphanReplaceFiles,
   isReexportOnlyFile,
   parseSwitchLayout,
   parseSwitchPage,
@@ -529,6 +530,24 @@ test("_screen/・_layout/ の点つきの名前は .replace だけ(旧い fork �
   assert.deepEqual(findMarkerNamedFiles(listAppFiles(repoRoot)), []);
 });
 
+test("_screen/・_layout/ の .replace は置き換える既定が隣にある(孤立した .replace は不可、全 Tier)", () => {
+  assert.deepEqual(findOrphanReplaceFiles(listAppFiles(repoRoot)), []);
+});
+
+test("findOrphanReplaceFiles: 隣に <名前>.ts(x) か <名前>/index.ts(x) の無い .replace だけを拾う", () => {
+  const files = [
+    "src/app/(user)/_layout/UserLayout.tsx",
+    "src/app/(user)/_layout/UserLayout.replace.tsx",
+    "src/app/(user)/_layout/Header/index.tsx",
+    "src/app/(user)/_layout/Header.replace.tsx",
+    "src/app/(user)/_layout/Header/index.replace.tsx",
+    "src/app/(user)/_layout/Gone.replace.tsx",
+    "src/app/(user)/w/_screen/WScreen.replace.tsx",
+    "src/app/(user)/w/_components/X.replace.tsx",
+  ];
+  assert.deepEqual(findOrphanReplaceFiles(files), ["src/app/(user)/_layout/Gone.replace.tsx", "src/app/(user)/w/_screen/WScreen.replace.tsx"]);
+});
+
 // upstream は src/app に _components/ を持たない(`_components/` = fork 所有。upstream の既定は _screen/・_layout/)。
 // fork はそこへ自分の画面・部品を置く側なので、上と同じく Tier1 でだけ検査する。
 test(
@@ -583,7 +602,13 @@ test("parseSwitchLayout: ./_layout/ への 1 行スイッチだけを許し、JS
   assert.deepEqual(parseSwitchLayout(ok).problems, []);
   assert.deepEqual(parseSwitchLayout(ok).target, { screenDir: "_layout", file: "UserLayout", name: "UserLayout" });
   const replaced = `// fork の丸ごと置き換えへ\nexport { AcmeUserLayout as default } from "./_layout/UserLayout.replace";\n`;
+  assert.deepEqual(parseSwitchLayout(replaced).problems, []);
   assert.deepEqual(parseSwitchLayout(replaced).target, { screenDir: "_layout", file: "UserLayout.replace", name: "AcmeUserLayout" });
+  assert.match(parseSwitchLayout(`export { L as default } from "./_layout/UserLayout.acme";`).problems.join(), /既定の <X> か丸ごと置き換えの <X>\.replace だけ/);
+  assert.deepEqual(parseSwitchPage(`export { WScreen as default } from "./_screen/WScreen.replace";`).problems, []);
+  assert.deepEqual(parseSwitchPage(`export { WScreen as default } from "./_components/WScreen";`).problems, []);
+  assert.match(parseSwitchPage(`export { WScreen as default } from "./_components/WScreen.custom";`).problems.join(), /\.replace だけ/);
+  assert.match(parseSwitchPage(`export { WScreen as default } from "./_screen/WScreen.default";`).problems.join(), /\.replace だけ/);
   const withMetadata = `import type { Metadata } from "next";\nexport const metadata: Metadata = { title: "x" };\nexport { XLayout as default } from "./_layout/XLayout";`;
   assert.deepEqual(parseSwitchLayout(withMetadata).problems, []);
   const jsx = `import type { ReactNode } from "react";\nimport { UserLayout } from "@/app/(user)/_layout/UserLayout";\nexport default function L({ children }: { children: ReactNode }) {\n  return <UserLayout>{children}</UserLayout>;\n}`;

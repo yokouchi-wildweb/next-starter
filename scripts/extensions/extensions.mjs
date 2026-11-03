@@ -57,10 +57,13 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
   const pendingOverrides = [];
   for (const entry of readdirSync(abs, { withFileTypes: true }).sort((a, b) => byName(a.name, b.name))) {
     const label = `${rel}/${entry.name}`;
-    if (entry.isFile() && /\.override\.tsx?$/.test(entry.name) && points.some((p) => p.spec.overrideOf)) {
-      pendingOverrides.push({ label, target: entry.name.replace(/\.override\.tsx?$/, "") });
+    if (entry.isFile() && /\.override\.tsx?$/.test(entry.name)) {
+      if (points.some((p) => p.spec.overrideOf)) pendingOverrides.push({ label, target: entry.name.replace(/\.override\.tsx?$/, "") });
+      else if (!isBlankSource(readFileSync(join(abs, entry.name), "utf8"))) problems.push(`${label}: この受け口の点は override を受けない(宣言に overrideOf が無い)`);
       continue;
     }
+    // <名前>.replace は 1 行スイッチの既定の置き換え。受け口の項目ではない(孤立は switches.mjs が止める)
+    if (entry.isFile() && classifyDottedName(entry.name).kind === "replace") continue;
     let itemFile;
     if (entry.isDirectory()) {
       if (entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".") || otherDirs.has(posix.join(rel, entry.name))) continue;
@@ -291,7 +294,7 @@ export function planExtensions(repoRoot) {
   }
   const { isTier1 } = identity;
   const switchCheck = checkSwitches(repoRoot, { isTier1 });
-  const overrideCheck = checkOverrides(repoRoot, { isTier1 });
+  const overrideCheck = checkOverrides(repoRoot, { isTier1, receptacleDirs: allDirs });
   problems.push(...switchCheck.problems, ...overrideCheck.problems);
   return { points: declared, itemsByPoint, outputs, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
 }

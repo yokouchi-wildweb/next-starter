@@ -98,6 +98,20 @@ export function findMarkerNamedFiles(files) {
   });
 }
 
+/**
+ * DEFAULT_IMPL_DIRS 配下の孤立した <名前>.replace.ts(x)(隣に置き換える既定 <名前>.ts(x) か <名前>/index.ts(x) が無い)を返す。全 Tier で検査する
+ * @param {string[]} files repo 相対パス(同じ一覧の中で既定を探す)
+ */
+export function findOrphanReplaceFiles(files) {
+  const present = new Set(files);
+  return findDotNamedFiles(files).filter((file) => {
+    const match = /^(.*)\/([^/]+)\.replace\.tsx?$/.exec(file);
+    if (!match) return false;
+    const [, dir, name] = match;
+    return ![`${name}.tsx`, `${name}.ts`, `${name}/index.tsx`, `${name}/index.ts`].some((rel) => present.has(`${dir}/${rel}`));
+  });
+}
+
 /** fork 所有のディレクトリ(下流の差し替え画面と page 専用部品)。upstream はここにファイルを置かない */
 export const FORK_OWNED_DIR = "_components";
 
@@ -254,6 +268,11 @@ function parseSwitchModule(source, kind) {
     } else {
       const name = defaultSpec.replace(/\s+as\s+default$/, "").trim();
       target = { screenDir, file: file.replace(/\.tsx?$/, ""), name };
+      // 指す先は既定(印なし)か丸ごと置き換え <X>.replace だけ
+      const kind = classifyDottedName(`${target.file.split("/").pop()}.tsx`).kind;
+      if (kind !== "plain" && kind !== "replace") {
+        problems.push(`指す先 ./${screenDir}/${target.file} は既定の <X> か丸ごと置き換えの <X>.replace だけ(旧い fork の印は共有の棚の印の移行の notice で改名する)`);
+      }
     }
     for (const spec of specifiers) {
       if (spec === defaultSpec) continue;

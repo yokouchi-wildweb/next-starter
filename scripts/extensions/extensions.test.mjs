@@ -126,6 +126,23 @@ test("fork の宣言: fork 自身のフォルダの extensionPoints.ts は上流
   assert.match(plan.outputs["src/features/acmeBadge/extensions/badges.ts"], /import \{ badge as badges_gold \} from "@\/features\/acmeBadge\/badges\/gold";/);
 });
 
+test("受け口の override と .replace: overrideOf の無い点は override を受けない(空は不在)、.replace は項目でなく孤立はスイッチの検査で止まる", () => {
+  const M = "export const milestone = 1;\n";
+  const plan = planExtensions(
+    fixture({
+      "src/features/milestone/extensionPoints.ts": point(MILESTONES),
+      "src/features/milestone/milestones/a.ts": M,
+      "src/features/milestone/milestones/a.override.ts": "export const override = {};\n",
+      "src/features/milestone/milestones/b.override.ts": "// 空\n",
+      "src/features/milestone/milestones/a.replace.ts": M,
+    }),
+  );
+  assert.deepEqual(itemsOf(plan, "src/features/milestone", "definitions").map((i) => i.name), ["a"]);
+  assert.equal(plan.problems.length, 2, plan.problems.join("\n"));
+  assert.ok(plan.problems.some((p) => p.includes("a.override.ts") && p.includes("override を受けない")));
+  assert.ok(plan.problems.some((p) => p.includes("a.replace.ts") && p.includes("孤立した .replace")));
+});
+
 test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を出す)。alwaysOn は真偽だけ", () => {
   const root = fixture({ "src/features/milestone/extensionPoints.ts": point(MILESTONES) });
   const plan = planExtensions(root);
@@ -226,6 +243,7 @@ test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ
     "src/features/core/f/u.default.ts": D,
     "src/features/core/f/u.ts": 'export * from "../g/u";\n',
     "src/features/core/h/only.replace.ts": D,
+    "src/app/x/_layout/XLayout.replace.tsx": D,
     "src/features/core/i/t.default.ts": D,
     "src/features/core/i/t.ts": 'export * from "./t.custom.x";\n',
   });
@@ -238,15 +256,21 @@ test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ
   assert.match(reason(fork, "i/t.ts"), /t\.default か t\.replace だけ/);
   assert.match(reason(fork, "e/v.default.ts"), /スイッチ v\.ts\(x\) が無い/);
   assert.match(reason(fork, "f/u.ts"), /re-export 1 文だけ/);
-  assert.equal(fork.problems.length, 6, fork.problems.join("\n"));
+  assert.match(reason(fork, "h/only.replace.ts"), /孤立した \.replace/);
+  assert.ok(!fork.problems.some((p) => p.includes("_layout")), "route の隣は test:screens の側");
+  assert.equal(fork.problems.length, 7, fork.problems.join("\n"));
 
   const tier1 = checkSwitches(root, { isTier1: true });
   assert.match(reason(tier1, "a/x.ts"), /上流\(Tier1\)のスイッチは x\.default を指す/);
   assert.deepEqual(tier1.switches.map((s) => s.path), ["src/features/core/payment/enricher.ts"]);
 });
 
-test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。素の override.ts は cron のタスクだけ", () => {
+test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。素の override.ts は cron のタスクだけ。隣に対象の無い override は孤立で失敗", () => {
   const root = fixture({
+    "src/features/core/user/services/server/domainEntry.ts": "export const domainEntry = {};\n",
+    "src/features/core/x/thing.tsx": "export const x = 1;\n",
+    "src/features/core/user/coreRoles/user.role.json": "{}\n",
+    "src/features/core/userProfile/profiles/user.profile.json": "{}\n",
     "src/app/api/cron/wallet-expire/override.ts": "export const cronOverride = { disabled: true };\n",
     "src/app/api/cron/other/override.ts": "// 親の上書きを外す\n",
     "src/features/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
@@ -270,6 +294,16 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
   );
   const tier1 = checkOverrides(root, { isTier1: true });
   assert.equal(tier1.problems.length, 6, tier1.problems.join("\n"));
+  const orphan = fixture({
+    "src/features/core/x/gone.override.ts": "export const x = 1;\n",
+    "src/features/core/x/blank.override.ts": "// 親の上書きを外す\n",
+    "src/features/core/x/folder.override.ts": "export const x = 1;\n",
+    "src/features/core/x/folder/index.ts": "export const x = 1;\n",
+    "src/features/core/setting/fields/n.override.ts": "export const override = {};\n",
+  });
+  const lone = checkOverrides(orphan, { isTier1: false, receptacleDirs: ["src/features/core/setting/fields"] });
+  assert.deepEqual(lone.problems.map((p) => p.split(":")[0]), ["src/features/core/x/gone.override.ts"], "空は不在と同じ、フォルダの対象は可、受け口の中は extensions.mjs の側");
+  assert.match(lone.problems[0], /孤立した override/);
   assert.ok(tier1.problems.every((p) => p.includes("上流(Tier1)は override を出荷しない")));
 });
 

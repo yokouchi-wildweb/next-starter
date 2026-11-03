@@ -180,6 +180,59 @@ describe("ownership:check", () => {
     assert.notEqual(runCheck(parent).status, "tier1");
   });
 
+  describe("単位名の同名(unit-clash)と自分の項目への override(override-own)", () => {
+    /** 受け口・wiring・route の隣・scripts の項目を持つ親 */
+    function parentWithPlaces() {
+      const parent = makeParent();
+      write(parent, "src/lib/forkOwnership/intake.txt", `${readFileSync(join(parent, "src/lib/forkOwnership/intake.txt"), "utf8")}edit src/features/core/setting/fields/**  # 受け口\n`);
+      write(parent, "src/features/core/setting/extensionPoints.ts", 'export const extensionPoints = { fields: { dir: "fields", export: "field" } };\n');
+      write(parent, "src/features/core/setting/fields/a.ts", "export const field = 1;\n");
+      write(parent, "src/wiring/apiRoute.ts", "export const x = 1;\n");
+      write(parent, "src/wiring/dbAgent/index.ts", "export const x = 1;\n");
+      write(parent, "src/app/(user)/_layout/Header/index.tsx", "export const Header = 1;\n");
+      write(parent, "scripts/tasks/a-b.ts", "export const task = 1;\n");
+      commitAll(parent, "places");
+      return parent;
+    }
+
+    test("同じ単位の追加(.ts と .tsx・ファイルとフォルダ、受け口・wiring・route の隣・scripts/tasks)と自分の項目への override は違反(1)", () => {
+      const fork = makeFork(parentWithPlaces());
+      write(fork, "src/features/core/setting/fields/a.tsx", "export const field = 2;\n");
+      write(fork, "src/wiring/apiRoute.tsx", "export const x = 2;\n");
+      write(fork, "src/wiring/dbAgent.ts", "export const x = 2;\n");
+      write(fork, "src/app/(user)/_layout/Header.tsx", "export const Header = 2;\n");
+      write(fork, "scripts/tasks/a-b/index.ts", "export const task = 2;\n");
+      write(fork, "src/features/core/setting/fields/mine.ts", "export const field = 3;\n");
+      write(fork, "src/features/core/setting/fields/mine.override.ts", "export const override = {};\n");
+      commitAll(fork, "clash");
+      const result = runCheck(fork);
+      assert.equal(result.status, "fail");
+      const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
+      for (const path of ["src/features/core/setting/fields/a.tsx", "src/wiring/apiRoute.tsx", "src/wiring/dbAgent.ts", "src/app/(user)/_layout/Header.tsx", "scripts/tasks/a-b/index.ts"]) {
+        assert.equal(reasonOf(path), "unit-clash", path);
+      }
+      assert.equal(result.entries.find((entry) => entry.path === "src/wiring/dbAgent.ts").clash, "src/wiring/dbAgent/index.ts");
+      assert.equal(reasonOf("src/features/core/setting/fields/mine.override.ts"), "override-own");
+      assert.equal(reasonOf("src/features/core/setting/fields/mine.ts"), "added");
+      assert.deepEqual(result.middleTier, []);
+      const out = cli(fork);
+      assert.equal(out.status, 1);
+      assert.match(out.stdout, /\[unit-clash\] src\/wiring\/dbAgent\.ts\(基準の src\/wiring\/dbAgent\/index\.ts と同じ単位\)/);
+    });
+
+    test("正しい形(印なしの新しい名前・.replace・上流の項目への override)は合格(0)", () => {
+      const fork = makeFork(parentWithPlaces());
+      write(fork, "src/features/core/setting/fields/mine.ts", "export const field = 3;\n");
+      write(fork, "src/features/core/setting/fields/a.override.ts", "export const override = {};\n");
+      write(fork, "src/wiring/mine.ts", "export const x = 2;\n");
+      write(fork, "src/app/(user)/_layout/Header.replace.tsx", "export const Header = 2;\n");
+      write(fork, "scripts/tasks/mine.ts", "export const task = 2;\n");
+      commitAll(fork, "plain");
+      const result = runCheck(fork);
+      assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));
+    });
+  });
+
   test("fork の追加と受け口の中の書き換えだけなら合格(0)", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/config/app.config.ts", "export const app = { name: 'child' };\n");

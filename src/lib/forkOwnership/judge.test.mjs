@@ -10,6 +10,7 @@ import { join, resolve } from "node:path";
 
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge, REASONS } from "./judge.mjs";
+import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { blobId, checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 import { FORK_REGION_END, FORK_REGION_START, parseGeneratorRegions, stripOwnedRegions } from "./regions.mjs";
 
@@ -159,6 +160,37 @@ describe("judge", () => {
     const entry = run({ status: "A", path: "src/lib/crud/extra.ts" }, null, "x", ["crud"]);
     assert.equal(entry.reason, "ancestor-lib-add");
     assert.equal(entry.verdict, "violation");
+  });
+
+  test("A: 検査する場所で基準と同じ単位は unit-clash(x.ts と x.tsx・ファイルとフォルダ)、場所の外と新しい名前は added", () => {
+    const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/dbAgent/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/features/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
+    const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? '{ h: { dir: "." } }' : null));
+    const baseUnits = unitIndex(baseFiles);
+    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
+    const clash = one("src/wiring/apiRoute.tsx");
+    assert.equal(clash.reason, "unit-clash");
+    assert.equal(clash.verdict, "violation");
+    assert.equal(clash.clash, "src/wiring/apiRoute.ts");
+    assert.equal(one("src/wiring/dbAgent.ts").reason, "unit-clash", "ファイルとフォルダ");
+    assert.equal(one("src/app/(user)/_layout/Header.tsx").reason, "unit-clash");
+    assert.equal(one("src/proxies/maintenance.tsx").reason, "unit-clash", "受け口(dir: \".\")の直下");
+    assert.equal(one("src/features/sample/x.tsx").reason, "added", "場所の外は見ない");
+    assert.equal(one("src/wiring/other.ts").reason, "added");
+    assert.equal(one("src/app/(user)/_layout/Header.replace.tsx").reason, "added", ".replace は別の単位");
+  });
+
+  test("A: <対象>.override の対象が基準に無ければ override-own、上の Tier の項目への override は added", () => {
+    const baseFiles = ["src/features/core/setting/fields/a.ts", "src/features/core/user/roles/coreRoles/user.role.json"];
+    const places = unitPlaces(baseFiles, () => null);
+    const baseUnits = unitIndex(baseFiles);
+    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
+    assert.equal(one("src/features/core/setting/fields/a.override.ts").reason, "added");
+    assert.equal(one("src/features/core/user/roles/coreRoles/user.role.override.ts").reason, "added");
+    const own = one("src/features/core/setting/fields/mine.override.ts");
+    assert.equal(own.reason, "override-own");
+    assert.equal(own.verdict, "violation");
+    assert.equal(one("src/app/api/cron/x/override.ts").reason, "added", "cron の素の override.ts は対象を持たない");
+    assert.equal(run({ status: "A", path: "src/x/mine.override.ts" }, null, "x").reason, "added", "places を渡さなければ見ない");
   });
 
   test("A: core の中は受け口の項目だけ。受け口の外・debt は core-add、基準に core が無ければ added", () => {

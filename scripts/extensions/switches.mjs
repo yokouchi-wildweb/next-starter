@@ -1,7 +1,8 @@
 // scripts/extensions/switches.mjs
 // 1 行スイッチの検査: 既定 <名前>.default.ts(x)(上流)の隣の素の名前 <名前>.ts(x) = 呼び手が import する口で、採用者所有の 1 行 re-export。
 // 中身(コメントを除く)は ./<名前>.default か ./<名前>.replace を指す re-export 1 文だけ。Tier1 は .default を指す。
-// fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。page.tsx・layout.tsx のスイッチ(_screen / _components を指す)は test:screens の側。書式: ./README.md
+// fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。
+// 隣に <名前>.default の無い <名前>.replace は孤立で失敗(route の隣 _layout/_screen/_components は test:screens の側)。page.tsx・layout.tsx のスイッチ(_screen / _components を指す)は test:screens の側。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -12,23 +13,28 @@ import { stripComments } from "../../src/lib/screens/checks.mjs";
 import { SEARCH_ROOT } from "./declarations.mjs";
 
 const DEFAULT_FILE = /^([A-Za-z][A-Za-z0-9]*)\.default\.(ts|tsx)$/;
+const REPLACE_FILE = /^(.+)\.replace\.(ts|tsx)$/;
+const ROUTE_DIRS = ["_layout", "_screen", "_components"];
 const REEXPORT = /^export\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*["']\.\/([^"'/]+)["']\s*;?$/;
 
-/** src の下の <名前>.default.ts(x) を集める */
+/** src の下の <名前>.default.ts(x) と、route の隣の外の <名前>.replace.ts(x) を集める */
 function findDefaults(repoRoot) {
   const found = [];
-  const walk = (dir) => {
+  const replaces = [];
+  const walk = (dir, inRoute) => {
     if (!existsSync(join(repoRoot, dir))) return;
     for (const entry of readdirSync(join(repoRoot, dir), { withFileTypes: true })) {
       if (entry.isDirectory()) {
-        if (entry.name !== "node_modules" && !entry.name.startsWith(".")) walk(`${dir}/${entry.name}`);
+        if (entry.name !== "node_modules" && !entry.name.startsWith(".")) walk(`${dir}/${entry.name}`, inRoute || ROUTE_DIRS.includes(entry.name));
       } else if (DEFAULT_FILE.test(entry.name)) {
         found.push(`${dir}/${entry.name}`);
+      } else if (!inRoute && REPLACE_FILE.test(entry.name)) {
+        replaces.push(`${dir}/${entry.name}`);
       }
     }
   };
-  walk(SEARCH_ROOT);
-  return found.sort();
+  walk(SEARCH_ROOT, false);
+  return { defaults: found.sort(), replaces: replaces.sort() };
 }
 
 /**
@@ -40,7 +46,15 @@ function findDefaults(repoRoot) {
 export function checkSwitches(repoRoot, { isTier1 }) {
   const switches = [];
   const problems = [];
-  for (const defaultPath of findDefaults(repoRoot)) {
+  const { defaults, replaces } = findDefaults(repoRoot);
+  for (const replacePath of replaces) {
+    const dir = replacePath.slice(0, replacePath.lastIndexOf("/"));
+    const name = REPLACE_FILE.exec(replacePath.slice(dir.length + 1))[1];
+    if (!["ts", "tsx"].some((ext) => existsSync(join(repoRoot, `${dir}/${name}.default.${ext}`)))) {
+      problems.push(`${replacePath}: 隣に既定 ${name}.default.ts(x) が無い(孤立した .replace。置き換えられるのは 1 行スイッチの既定だけ)`);
+    }
+  }
+  for (const defaultPath of defaults) {
     const dir = defaultPath.slice(0, defaultPath.lastIndexOf("/"));
     const name = DEFAULT_FILE.exec(defaultPath.slice(dir.length + 1))[1];
     const switchFile = ["ts", "tsx"].map((ext) => `${dir}/${name}.${ext}`).find((p) => existsSync(join(repoRoot, p)));

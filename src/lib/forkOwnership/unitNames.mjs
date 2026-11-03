@@ -1,0 +1,84 @@
+// 単位名(印の代わりの同名の検査、D137・計画書 01 S2)。git には触れない純関数。Node 組み込みも使わない .mjs
+// 仕様: ./README.md「判定」
+//
+// 単位名 = パスから最後の拡張子と末尾の /index を除いた名前(.replace / .override は名前の一部として残す)。
+//   x.ts と x.tsx、x.ts と x/index.ts は同じ単位 x。fork が足したパスが、基準(merge-base)にある単位と同じなら同名(unit-clash)。
+// 検査する場所(計画書 S2 の場所だけ。components・hooks・utils・src/lib は対象外):
+// - 受け口のフォルダ(基準の src/**/extensionPoints.ts の dir:、"." = 持ち主の直下)・src/wiring・scripts・scripts/tasks・
+//   scripts/proxies/alwaysOnExceptions … 直下の項目だけ(項目のフォルダの中の部品は見ない)
+// - route の隣(src/app/**/_layout・_screen・_components)… その下全部
+// <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
+
+const DIRECT_FIXED = ["src/wiring", "scripts", "scripts/tasks", "scripts/proxies/alwaysOnExceptions"];
+const ROUTE_NEIGHBOUR = /^src\/app\/(?:.*\/)?(?:_layout|_screen|_components)\//;
+const DECLARATION = /^src\/(?:.*\/)?extensionPoints\.ts$/;
+
+/** パスの単位名(最後の拡張子と末尾の /index を除く) */
+export function unitName(path) {
+  const slash = path.lastIndexOf("/");
+  const name = path.slice(slash + 1);
+  const dot = name.lastIndexOf(".");
+  const stem = path.slice(0, dot > 0 ? slash + 1 + dot : path.length);
+  return stem.endsWith("/index") ? stem.slice(0, -"/index".length) : stem;
+}
+
+const dirOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
+
+const normalize = (path) => {
+  const out = [];
+  for (const part of path.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") out.pop();
+    else out.push(part);
+  }
+  return out.join("/");
+};
+
+/** extensionPoints.ts の中身から受け口のフォルダ(dir: の字面)を読む(形の検査は extensions:check の側) */
+export function receptacleDirsOfDeclaration(text) {
+  const body = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/[^\n]*$/gm, "");
+  return [...body.matchAll(/\bdir:\s*["']([^"']+)["']/g)].map((m) => m[1]);
+}
+
+/**
+ * 基準のファイルの一覧から検査する場所を組み立てる
+ * @param {Iterable<string>} baseFiles 基準のファイル(リポジトリ直下からの相対)
+ * @param {(path: string) => string | null} readBase 基準側の中身
+ * @returns {{ direct: Set<string> }} direct = 直下の項目だけを見るフォルダ(route の隣は形で決まるので持たない)
+ */
+export function unitPlaces(baseFiles, readBase) {
+  const direct = new Set(DIRECT_FIXED);
+  for (const path of baseFiles) {
+    if (!DECLARATION.test(path)) continue;
+    const owner = dirOf(path);
+    for (const dir of receptacleDirsOfDeclaration(readBase(path) ?? "")) direct.add(normalize(`${owner}/${dir}`));
+  }
+  return { direct };
+}
+
+/**
+ * 検査する場所の中のパスなら単位名、外なら null
+ * @param {string} path
+ * @param {{ direct: Set<string> }} places
+ */
+export function placeUnitOf(path, places) {
+  const unit = unitName(path);
+  if (ROUTE_NEIGHBOUR.test(path)) return unit;
+  return places.direct.has(dirOf(unit)) ? unit : null;
+}
+
+/** <対象>.override.ts(x) なら対象の単位名(同じフォルダの <対象>)、違えば null。cron の素の override.ts は対象を持たない */
+export function overrideTargetUnit(path) {
+  const match = /^(.*\/)?([^/]+)\.override\.tsx?$/.exec(path);
+  return match ? `${match[1] ?? ""}${match[2]}` : null;
+}
+
+/** 基準のファイルの単位名 → 基準のパス(最初の 1 つ) */
+export function unitIndex(baseFiles) {
+  const index = new Map();
+  for (const path of baseFiles) {
+    const unit = unitName(path);
+    if (!index.has(unit)) index.set(unit, path);
+  }
+  return index;
+}

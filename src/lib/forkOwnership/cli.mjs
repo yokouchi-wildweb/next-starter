@@ -18,6 +18,8 @@ const LABELS = {
   renamed: "rename・移動",
   "ancestor-lib-add": "祖先の lib の中への追加",
   "core-add": "src/features/core/ の中への追加(受け口の項目以外。自分のドメインは src/features/<x> へ)",
+  "unit-clash": "基準の単位と同名の追加(x.ts と x.tsx・ファイルとフォルダ。別の名前にするか、丸ごと置き換えは <名前>.replace)",
+  "override-own": "対象が基準に無い override(fork の項目は直接書き換える。override は上の Tier の項目にだけ)",
   "outside-intake": "受け口の外の書き換え",
   "outside-region": "fork の区画の外の書き換え",
   "region-markers": "fork の区画の印が壊れている",
@@ -87,7 +89,7 @@ function print(result, { verbose }) {
     lines.push("", "違反(受け口へ移す・元に戻す・一時許可のどれかで片付ける):");
     for (const entry of violations) {
       const path = entry.from ? `${entry.from} → ${entry.path}` : entry.path;
-      lines.push(`  [${entry.reason}] ${path}${entry.permit && entry.permit !== "none" ? ` — ${PERMIT_STATES[entry.permit]}` : ""}`);
+      lines.push(`  [${entry.reason}] ${path}${entry.clash ? `(基準の ${entry.clash} と同じ単位)` : ""}${entry.permit && entry.permit !== "none" ? ` — ${PERMIT_STATES[entry.permit]}` : ""}`);
       lines.push(`    許可の下書き: ${entry.permitDraft}`);
     }
   }

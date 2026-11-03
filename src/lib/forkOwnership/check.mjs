@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
+import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 
 export const INTAKE_PATH = "src/lib/forkOwnership/intake.txt";
@@ -319,10 +320,17 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
 
   const baseHasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/features/core"]) ?? "").trim() !== "";
 
-  const judged = judge({ changes, baseText, headText, baseLibs, baseHasCore, intake: intake.rules });
+  // 単位名の同名・自分の項目への override(D137 の印の代わり): 基準のファイルの単位と照らす
+  const baseFiles = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", base]) ?? "").split("\n").filter(Boolean);
+  const places = unitPlaces(baseFiles, baseText);
+  const baseUnits = unitIndex(baseFiles);
+
+  const judged = judge({ changes, baseText, headText, baseLibs, baseHasCore, intake: intake.rules, places, baseUnits });
   const middleTier = [];
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation") continue;
+    // 同名と自分の項目への override は持ち主によらず止める(中間 Tier の物にしない)
+    if (entry.reason === "unit-clash" || entry.reason === "override-own") continue;
     const target = entry.status === "R" ? entry.from : entry.path;
     // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
     const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;
