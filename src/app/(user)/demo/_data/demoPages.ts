@@ -10,8 +10,7 @@ export type DemoCategoryKey =
   | "ui"
   | "media"
   | "auth"
-  | "payment"
-  | "dev";
+  | "payment";
 
 export type DemoCategory = {
   key: DemoCategoryKey;
@@ -38,7 +37,6 @@ export const DEMO_CATEGORIES: readonly DemoCategory[] = [
   { key: "media", label: "メディア" },
   { key: "auth", label: "認証・計測" },
   { key: "payment", label: "決済" },
-  { key: "dev", label: "開発ツール" },
 ] as const;
 
 export const demoHref = (page: Pick<DemoPage, "folder">) => `/demo/${page.folder}`;

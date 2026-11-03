@@ -233,7 +233,6 @@ test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテ
     media: ["seamless-av", "seamless-video"],
     auth: ["fingerprint", "google-popup", "google-redirect"],
     payment: ["bank-transfer-vision", "dummy-payment"],
-    dev: ["check-env"],
   };
   const groups = groupDemoPagesByCategory(demoPages);
   const byKey = Object.fromEntries(groups.map((g) => [g.key, g.pages.map((p) => p.folder)]));

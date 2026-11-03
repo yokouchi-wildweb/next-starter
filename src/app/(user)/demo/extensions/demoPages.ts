@@ -6,7 +6,6 @@ import type { DemoPage } from "@/app/(user)/demo/_data/demoPages";
 import { demo as async_picker_modal } from "@/app/(user)/demo/async-picker-modal/_demo";
 import { demo as bank_transfer_vision } from "@/app/(user)/demo/bank-transfer-vision/_demo";
 import { demo as block_appearance } from "@/app/(user)/demo/block-appearance/_demo";
-import { demo as check_env } from "@/app/(user)/demo/check-env/_demo";
 import { demo as dummy_payment } from "@/app/(user)/demo/dummy-payment/_demo";
 import { demo as fade_slider } from "@/app/(user)/demo/fade-slider/_demo";
 import { demo as field_layout } from "@/app/(user)/demo/field-layout/_demo";
@@ -28,7 +27,6 @@ export const demoPages: DemoPage[] = [
   { ...async_picker_modal, folder: "async-picker-modal" },
   { ...bank_transfer_vision, folder: "bank-transfer-vision" },
   { ...block_appearance, folder: "block-appearance" },
-  { ...check_env, folder: "check-env" },
   { ...dummy_payment, folder: "dummy-payment" },
   { ...fade_slider, folder: "fade-slider" },
   { ...field_layout, folder: "field-layout" },

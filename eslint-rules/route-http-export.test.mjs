@@ -50,6 +50,6 @@ const lintAt = async (filePath, code) => {
 test("config: src/app の route.ts は api の外も error、route.ts 以外は対象外", async () => {
   const RAW = `export async function GET() { return new Response("x"); }\n`;
   assert.deepEqual(await lintAt("src/app/api/foo/route.ts", RAW), ["route-http-export/http-export:2"]);
-  assert.deepEqual(await lintAt("src/app/(user)/demo/check-env/api/route.ts", RAW), ["route-http-export/http-export:2"]);
+  assert.deepEqual(await lintAt("src/app/(user)/example/api/route.ts", RAW), ["route-http-export/http-export:2"]);
   assert.deepEqual(await lintAt("src/app/api/foo/handler.ts", RAW), []);
 });
