@@ -27,6 +27,7 @@
     "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
     "test:popover-side": "node --test src/components/Form/Input/Manual/AsyncOptionSource/popoverSide.test.mjs",
     "test:cn": "node --test src/lib/cn/cn.test.mjs",
+    "test:utils-date": "cross-env TZ=UTC npx tsx --test src/utils/date.test.ts && cross-env TZ=Pacific/Auckland npx tsx --test src/utils/date.test.ts",
     "test:utils-url": "npx tsx --test src/utils/url.test.ts",
     "test:site-theme": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/siteTheme/siteTheme.test.mjs",
     "test:transition-guard": "npx tsx --test src/lib/transitionGuard/matchTargetPath.test.mjs",
