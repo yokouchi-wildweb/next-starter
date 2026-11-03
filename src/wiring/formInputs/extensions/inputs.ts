@@ -1,5 +1,5 @@
 // 生成物・編集不可: pnpm extensions:generate が src/wiring/formInputs/extensionPoints.ts から生成する
-// inputs: src/wiring/formInputs/inputs/<名前>[.<fork の名前>].ts(x) か <名前>[.<fork の名前>]/index.ts(x) の export const formInput(並びはファイル名の順)
+// inputs: src/wiring/formInputs/inputs/<名前>.ts(x) か <名前>/index.ts(x) の export const formInput(並びはファイル名の順)
 
 import type { FormInputItem } from "@/components/Form/Field/types";
 

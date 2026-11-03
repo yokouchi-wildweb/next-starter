@@ -1,5 +1,5 @@
 // 生成物・編集不可: pnpm extensions:generate が src/features/core/pairedDevice/extensionPoints.ts から生成する
-// kinds: src/features/core/pairedDevice/kinds/<名前>[.<fork の名前>].ts(x) か <名前>[.<fork の名前>]/index.ts(x) の export const kind(並びはファイル名の順)
+// kinds: src/features/core/pairedDevice/kinds/<名前>.ts(x) か <名前>/index.ts(x) の export const kind(並びはファイル名の順)
 
 import type { AnyPairedDeviceKindDefinition } from "@/features/core/pairedDevice/types/kind";
 
