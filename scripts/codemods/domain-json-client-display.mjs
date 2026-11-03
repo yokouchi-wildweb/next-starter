@@ -4,7 +4,7 @@
 // 対象の判定は lint 規則 import-boundaries/client-no-domain-json と同じ isClientCodeFile。
 // 使い方(リポのルートで): node scripts/codemods/domain-json-client-display.mjs
 // 対象は呼び出したリポの src。何度走らせても同じ結果。
-// 確かめられないファイル(写しに無いキーを読む・写しの外へ丸ごと渡す・写しの無いドメイン・import() 等)は書き換えず一覧に出す。
+// 確かめられないファイル(写しに無いキーを読む・写しの外へ丸ごと渡す・spread で丸ごと展開する・写しの無いドメイン・import() 等)は書き換えず一覧に出す。
 // 一覧のファイルは手で移す。写しに無いキーが要るなら理由を書いて eslint-disable する。
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -48,11 +48,12 @@ function maskComments(source) {
 /** 文字列の中身も空白に(名前の探索用。位置を保つ) */
 const maskStrings = (masked) => masked.replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, (match) => match.replace(/[^\n]/g, " "));
 
-/** 名前の出現の位置(プロパティ・文字列・コメント・オブジェクトのキーを除く) */
+/** 名前の出現の位置(プロパティ・文字列・コメント・オブジェクトのキーを除く。spread の `...name` は数える) */
 function wordPositions(source, name) {
   const code = maskStrings(maskComments(source));
   const positions = [];
-  for (const match of code.matchAll(new RegExp(`(?<![\\w$.])${escape(name)}(?![\\w$])`, "g"))) {
+  // 直前が `.` 1 つ(`obj.name`・`obj?.name`)はプロパティなので除く。`...name`(spread)は名前の使い方なので数える
+  for (const match of code.matchAll(new RegExp(`(?<![\\w$])(?<!(?<!\\.\\.)\\.)${escape(name)}(?![\\w$])`, "g"))) {
     const isKey = /^\s*:(?!:)/.test(code.slice(match.index + name.length)) && /[{,(]\s*$|^\s*$/.test(code.slice(0, match.index));
     if (!isKey) positions.push(match.index);
   }
@@ -68,6 +69,8 @@ function checkUses(masked, name) {
     const before = masked.slice(0, index);
     const after = masked.slice(index + name.length);
     if (/^\s*from\b/.test(after) && /import\s+$/.test(before)) continue; // import 文そのもの
+    // spread(`{ ...config }`): 写しは domain.json の一部のキーだけなので、展開先が写しに無いキーを読むかを確かめられない
+    if (/\.\.\.\s*$/.test(before)) return `${name} を写しの外へ丸ごと展開している(...${name})`;
     if (/normalizeDomainJsonConfig\(\s*$/.test(before)) continue;
     if (/^\s*=\s*normalizeDomainJsonConfig\(/.test(after)) continue;
     const property = /^\)?\s*\??\.\s*([\w$]+)/.exec(after) ?? /^\s+as\s+any\s*\)\s*\??\.\s*([\w$]+)/.exec(after) ?? /^\s*\[\s*["']([^"']+)["']\s*\]/.exec(after);

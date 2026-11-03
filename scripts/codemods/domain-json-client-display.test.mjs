@@ -57,6 +57,7 @@ test("別のものの同じ綴りは触らない: プロパティ・キー・文
   const source = `import config from "@/features/foo/domain.json";
 // config はコメント
 const a = other.config;
+const a2 = other?.config;
 const b = { config: other };
 const c = "config";
 const d = config.plural;
@@ -65,6 +66,7 @@ const d = config.plural;
   assert.deepEqual(skipped, []);
   assert.match(text, /\/\/ config はコメント/);
   assert.match(text, /other\.config/);
+  assert.match(text, /other\?\.config/);
   assert.match(text, /\{ config: other \}/);
   assert.match(text, /"config"/);
   assert.match(text, /const d = fooDisplay\.plural/);
@@ -76,6 +78,9 @@ for (const [title, source, reason] of [
   ["写しに無いキー(in)", `import c from "@/features/foo/domain.json";\nconst a = "forkOnlyKey" in c;\n`, /forkOnlyKey/],
   ["写しに無い field の項目", `import c from "@/features/foo/domain.json";\nconst a = c.fields.map((f) => f.uploadPath);\n`, /uploadPath/],
   ["外へ丸ごと渡す", `import c from "@/features/foo/domain.json";\nconst a = forkHelper(c);\n`, /写しの外/],
+  // 指令 20261103-103348: import を消して `...config` が残り型検査が通らないファイルになっていた
+  ["spread で丸ごと展開する", `import config from "@/features/foo/domain.json";\nconst x = { ...config, tableFields: config.tableFields };\n`, /丸ごと展開している\(\.\.\.config\)/],
+  ["spread(normalize の別名)", `import c from "@/features/foo/domain.json";\nconst n = normalizeDomainJsonConfig(c);\nconst x = { ... n };\n`, /丸ごと展開している\(\.\.\.n\)/],
   ["typeof", `import c from "@/features/foo/domain.json";\ntype A = typeof c;\n`, /写しの外/],
   ["写しが無いドメイン", `import c from "@/features/none/domain.json";\nconst a = c.plural;\n`, /写しが無い/],
   ["import()", `const c = await import("@/features/foo/domain.json");\n`, /import\(\)/],

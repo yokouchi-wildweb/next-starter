@@ -250,3 +250,4 @@
 - id:20261103-182243-appform-submit-lock | severity:info | checkpoint:appform-submit-lock | resolves:20261103-072925-appform-double-submit-lock
 - id:20261104-081650-style-rule-fixes | severity:info | checkpoint:style-rule-fixes
 - id:20261103-095341-fork-name-markers-removed | severity:breaking | checkpoint:shared-shelf-markers | moved:scripts/extensions/declarations.mjs -> src/lib/forkOwnership/declarations.mjs | resolves:20261101-153803-intake-dot-named-switch-items, 20261103-103348-fork-ownership-readme-stale-intro | uses:scripts/codemods/fork-name-markers.mjs
+- id:20261104-084536-codemod-display-spread | severity:info | checkpoint:codemod-display-spread | fixes:20261101-121000-domain-display-client | resolves:20261103-103348-domain-display-codemod-spread-miss | pick:-
