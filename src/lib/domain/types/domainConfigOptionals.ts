@@ -60,4 +60,6 @@ export type DomainConfigOptionals = {
   };
   // false = 手で管理し dc:generate は何も書かない（省略 = true）。生成器だけが読む
   generate?: boolean;
+  // 開発者のメモ（どの階層にも書ける。生成器も client の写しも読まず、動作に効かない）
+  $comment?: string | string[];
 };

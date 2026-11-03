@@ -41,6 +41,13 @@
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `dc:generate` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（後述「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm dc:compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/domain-config/README.md`「generate の旗を決める」） |
+| $comment | string \| string[] | ⚪ No | 開発者のメモ（JSON にはコメントが無いため）。トップレベル・Relation・Field・collection・FieldGroup のどこにでも書ける（下の「開発者のメモ（$comment）」） |
+
+#### 開発者のメモ（$comment）
+
+- `"$comment"` = 開発者向けのメモ（JSON Schema の注記と同じ名前）。値は文字列か文字列の配列（複数行）。トップレベル・`relations[]`・`fields[]`・`fields[].collection`・`fieldGroups[]` のどこにでも書ける
+- 動作には効かない: 生成器は読まず（あっても無くても生成物は同じ）、client の写し（`entities/display.ts`）にも出ない。画面に出す説明文は `helperText` に書く（`$comment` は画面に出ない）
+- メモを別のキー（`description` など）に書くと、知らないキーとして警告される（同じキーはドメインごとに 1 行にまとまる）
 
 > ⚠️ **オプショナルフィールドを追加する場合**: `src/lib/domain/types/domainConfigOptionals.ts` の `DomainConfigOptionals` にも同じフィールドを追加すること。省略すると、そのフィールドを持たないドメインが存在するだけで DomainConfig の union 型が壊れてビルドエラーになる。
 

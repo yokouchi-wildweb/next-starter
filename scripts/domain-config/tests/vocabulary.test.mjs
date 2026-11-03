@@ -39,7 +39,7 @@ test("正しい domain.json には警告が無い（このリポのサンプル 
 test("知らないトップレベルのキーと古いキー（version）を警告する", () => {
   const warnings = vocabularyWarnings({ ...BASE, version: "1.1", useSoftDelte: true });
   assert.match(warnings.join("\n"), /古いキー "version" は "domainConfigVersion"/);
-  assert.match(warnings.join("\n"), /知らないキー "useSoftDelte"/);
+  assert.match(warnings.join("\n"), /知らないキー "useSoftDelte": 1 か所（トップレベル）/);
 });
 
 test("その DB に無い fieldType と知らない formInput を警告する", () => {
@@ -54,8 +54,8 @@ test("その DB に無い fieldType と知らない formInput を警告する", 
   });
   assert.match(warnings.join("\n"), /fields\[0\] "ids": fieldType "uuid\[\]" は Neon に無い型/);
   assert.match(warnings.join("\n"), /fields\[1\] "at": fieldType "timestamp with time zone" は Neon に無い型/);
-  assert.match(warnings.join("\n"), /fields\[3\] "color": 知らないキー "description"/);
-  assert.match(warnings.join("\n"), /fields\[3\] "color": 知らないキー "uploadPath"/);
+  assert.match(warnings.join("\n"), /知らないキー "description": 1 か所（fields\.color）/);
+  assert.match(warnings.join("\n"), /知らないキー "uploadPath": 1 か所（fields\.color）/);
   assert.doesNotMatch(warnings.join("\n"), /colorInput/);
 });
 
@@ -99,7 +99,7 @@ test("主の集まりの項目（mediaCollection + collection）は警告なく�
       { ...gallery, name: "other", collection: ["memoImage"] },
     ],
   }).join("\n");
-  assert.match(text, /fields\[0\] "gallery": collection: 知らないキー "minItems"/);
+  assert.match(text, /知らないキー "minItems": 1 か所（fields\.gallery\.collection）/);
   assert.match(text, /fields\[0\] "gallery": collection\.domain は従属ドメインの singular/);
   assert.match(text, /fields\[0\] "gallery": collection\.maxItems は 1 以上の整数/);
   assert.match(text, /fields\[0\] "gallery": collection\.duplicate は true か false/);
@@ -151,4 +151,83 @@ test("登録名の読み手: 項目の name を字面で読み、ファイル形
   assert.deepEqual([...readRegisteredFormInputs(createWorkspace(root))].sort(), ["pick", "ticketRates"]);
   assert.deepEqual([...readRegisteredFormInputs(createWorkspace(path.join(root, "nothing")))], []);
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ---- 開発者のメモ "$comment" と、知らないキーのまとめ ----
+
+/** sample の domain.json の全階層（トップ・fields・collection・relations・fieldGroups）に $comment を足した写し */
+function withCommentsEverywhere(config) {
+  const note = (value) => ({ $comment: "開発者のメモ", ...value });
+  return {
+    ...note(config),
+    $comment: ["複数行の", "メモ"],
+    fields: config.fields.map((field) => note(field.collection ? { ...field, collection: note(field.collection) } : field)),
+    relations: config.relations.map(note),
+    ...(config.fieldGroups ? { fieldGroups: config.fieldGroups.map(note) } : {}),
+  };
+}
+
+const readSample = () => JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "features", "sample", "domain.json"), "utf8"));
+
+test("$comment はどの階層でも警告なく通り、値が文字列・文字列の配列でなければ警告する", () => {
+  const sample = readSample();
+  assert.ok(sample.fieldGroups?.length && sample.fields.some((field) => field.collection), "sample に fieldGroups と collection がある前提");
+  assert.deepEqual(vocabularyWarnings(withCommentsEverywhere(sample)), []);
+  const text = vocabularyWarnings({
+    ...BASE,
+    $comment: 1,
+    fields: [{ ...BASE.fields[0], $comment: ["a", 2] }],
+    fieldGroups: [{ key: "basic", label: "基本", fields: ["title"], $comment: { x: 1 } }],
+  }).join("\n");
+  assert.match(text, /^\$comment は文字列か文字列の配列/m);
+  assert.match(text, /fields\[0\] "title": \$comment は文字列か文字列の配列/);
+  assert.match(text, /fieldGroups\[0\] "basic": \$comment は文字列か文字列の配列/);
+});
+
+test("$comment を全階層に足しても生成物は 1 バイトも変わらない（client の写し display.ts にも出ない）", async () => {
+  const { planDomain } = await import("../pipeline/plan.mjs");
+  const { createDomainContext } = await import("../domain/context.mjs");
+  const { ALL_GENERATE_OPTIONS } = await import("../spec/categories.mjs");
+  const { toDomainDisplay } = await import("../../registry/alpha/domainDisplay.mjs");
+  const workspace = createWorkspace(repoRoot);
+  const sample = readSample();
+  const commented = withCommentsEverywhere(sample);
+  const snapshot = (config) =>
+    planDomain(createDomainContext(workspace, "sample", { config }), workspace, ALL_GENERATE_OPTIONS).map((output) => {
+      if (output.kind === "patch") return { kind: output.kind, path: output.path, result: workspace.exists(output.path) ? output.apply(workspace.readText(output.path)) : null };
+      const { warnOnKeep, migrate, ...rest } = output;
+      return rest;
+    });
+  const plain = snapshot(sample);
+  assert.ok(plain.length > 10);
+  assert.deepEqual(snapshot(commented), plain);
+  assert.doesNotMatch(JSON.stringify(plain), /開発者のメモ/);
+  assert.deepEqual(toDomainDisplay(commented), toDomainDisplay(sample));
+});
+
+test("知らないキーはキーごとに 1 行（件数・最初の 3 か所）にまとめ、値の誤り・古いキーの後ろに並べる。メモには $comment を案内する", () => {
+  const fields = ["a", "b", "c", "d", "e"].map((name) => ({ name, label: name, fieldType: "string", formInput: "textInput", description: `${name} の説明` }));
+  const warnings = vocabularyWarnings({
+    ...BASE,
+    version: "1.1",
+    fields: [...fields, { name: "bad", label: "x", fieldType: "uuid[]", formInput: "textInput", note: "x" }],
+    fieldGroups: [{ key: "g", label: "g", fields: ["a"], description: "グループの説明" }],
+    relations: [{ domain: "tag", label: "t", fieldName: "tag_id", fieldType: "uuid", relationType: "belongsTo", description: "x" }],
+  });
+  const description = warnings.filter((w) => w.includes('"description"'));
+  assert.equal(description.length, 1, "description は 1 行にまとまる");
+  assert.match(description[0], /知らないキー "description": 7 か所（fields\.a, fields\.b, fields\.c, …）/);
+  assert.match(description[0], /"\$comment" に書く/);
+  assert.match(warnings.join("\n"), /知らないキー "note": 1 か所（fields\.bad）/);
+  const firstUnknown = warnings.findIndex((w) => w.startsWith("知らないキー"));
+  assert.ok(firstUnknown > 0);
+  assert.ok(warnings.slice(firstUnknown).every((w) => w.startsWith("知らないキー")), "知らないキーは最後にまとまる");
+  assert.match(warnings.slice(0, firstUnknown).join("\n"), /古いキー "version"/);
+  assert.match(warnings.slice(0, firstUnknown).join("\n"), /"uuid\[\]" は Neon に無い型/);
+});
+
+test("fieldGroups のキーも照合する（知っているキーは警告しない）", () => {
+  const groups = [{ key: "g", label: "g", fields: ["title"], collapsible: true, defaultCollapsed: false, bgColor: "#fff" }];
+  assert.deepEqual(vocabularyWarnings({ ...BASE, fieldGroups: groups }), []);
+  assert.match(vocabularyWarnings({ ...BASE, fieldGroups: [{ ...groups[0], colapsible: true }] }).join("\n"), /知らないキー "colapsible": 1 か所（fieldGroups\.g）/);
 });

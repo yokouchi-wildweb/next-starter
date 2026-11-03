@@ -17,7 +17,7 @@ import { relationIssues } from "./relations.mjs";
 import { requiredIssues } from "./required.mjs";
 import { checkRetiredFieldTypes } from "./retiredFieldTypes.mjs";
 import { viewConfigIssues, viewConfigWarnings } from "./viewConfig.mjs";
-import { vocabularyWarnings } from "./vocabulary.mjs";
+import { vocabularyReport } from "./vocabulary.mjs";
 
 /** domain.json の中身の決まり（[camel] を前に付けて返す） */
 export function configIssues(camel, config) {
@@ -55,10 +55,18 @@ export function assertPreflight(ctx, registeredInputs = new Set()) {
 }
 
 /**
- * 止めない警告（domain.json の語彙）。`[domain.json] <camel>: ...` の形で返す
+ * 止めない警告（domain.json の語彙）。`[domain.json] <camel>: ...` の形で返す。
+ * 知らないキー（キーごとにまとめた行）は最後に並べる（値の誤り・DB の型・古いキーを先に読ませる）
  * @returns {string[]}
  */
 export function preflightWarnings(ctx, registeredInputs = new Set()) {
   if (!ctx.config || typeof ctx.config !== "object") return [];
-  return [...vocabularyWarnings(ctx.config, registeredInputs), ...nameWarnings(ctx.config), ...fieldsWarnings(ctx.config, registeredInputs), ...viewConfigWarnings(ctx.config)].map((w) => `[domain.json] ${ctx.camel}: ${w}`);
+  const vocabulary = vocabularyReport(ctx.config, registeredInputs);
+  return [
+    ...vocabulary.warnings,
+    ...nameWarnings(ctx.config),
+    ...fieldsWarnings(ctx.config, registeredInputs),
+    ...viewConfigWarnings(ctx.config),
+    ...vocabulary.unknownKeys,
+  ].map((w) => `[domain.json] ${ctx.camel}: ${w}`);
 }
