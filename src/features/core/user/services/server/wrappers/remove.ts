@@ -1,8 +1,10 @@
-// src/features/user/services/server/wrappers/remove.ts
-// ソフトデリート: deletedAt を設定するのみ（Firebase Authは削除しない）
+// src/features/core/user/services/server/wrappers/remove.ts
+// 汎用の削除（DELETE /api/user/:id → service.remove）も softDelete と同じ手順を通す。
+// base.remove だけだと deletedAt を付けるのみで、ステータス変更・ステータス履歴・クリーンアップ・監査ログが抜けるため。
+// Firebase Auth は削除しない（物理削除は hardDelete）。
 
-import { base } from "../drizzleBase";
+import { softDelete } from "./softDelete";
 
 export async function remove(id: string): Promise<void> {
-  await base.remove(id);
+  await softDelete({ userId: id });
 }

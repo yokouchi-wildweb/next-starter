@@ -272,6 +272,9 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 通らないため `userService` から公開しない。汎用の `/api/user/bulk/delete-by-ids` と `/api/user/bulk/delete-by-query` は
 404（権限のない呼び出しは先に 401 / 403）。複数のユーザーを消すときは 1 人ずつ `softDelete` を呼ぶ。
 
+単体の削除 `userService.remove`（汎用 `DELETE /api/user/:id`・`useDeleteUser`）は `softDelete` と同じ処理を通す
+（`wrappers/remove.ts`）。削除済みのユーザーは 400、存在しないユーザーは 404。
+
 ### 一括更新
 
 管理者が複数ユーザーをまとめて更新する経路。列の性質で使い分ける。
@@ -462,7 +465,7 @@ const result = await userClient.searchWithProfile("contributor", {
 | 操作 | 実装 | 内容 |
 |------|------|------|
 | 本人退会 | `withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る。アバターなどのファイルも残す |
-| ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete` | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション）。ファイルは残す（復元できるように） |
+| ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete`（汎用 `DELETE /api/user/:id` = `wrappers/remove.ts` も同じ） | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション）。ファイルは残す（復元できるように） |
 | 復元 | `wrappers/restore.ts`（汎用 `/api/user/[id]/restore`） | `deleted_at` を戻す（表示名衝突時は自動サフィックス） |
 | 物理削除（管理者） | `wrappers/hardDelete.ts` / `DELETE /api/admin/user/[userId]/hard-delete` | 削除前のユーザー情報全体を `before` に入れた監査ログ `user.hard_deleted` を記録 → user カテゴリなら Firebase Auth も削除 → DB 行を物理削除（アバターの実物も消える）→ その人の未使用のアップロードを取り消す |
 
