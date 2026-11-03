@@ -53,17 +53,17 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - `fixes:` を付けるのは、修正元の区切りに留まった fork で、ビルド・起動・挙動・データのどれかに害がある(検査が落ちる・自前で直す・同じ不具合を再オーダーする原因になる)ときだけ。/flux はその区切りの手前で全 fork を止めて聞くので、害の無いもの(上流側の道具・スキル・文書の書き方の改善)は修正として扱わない(notice の要否は手順 3 の他の項目で判断する)
 
    修正元の特定: 変えた行の元を辿る。変更前の行に `git blame -L <範囲> HEAD -- <file>` をかけ(または `git log -L`)、出てきた commit が最近の notice の区間に入っているか(`git log --diff-filter=A --format=%H -- .notices/` の各 notice の追加 commit との前後)を見る。会話の文脈(不具合の報告・指令の need)と合わせて、前の出荷の不具合を直すものなら `fixes:` の候補にする。修正元に notice があればその id、無ければ `commit:<短 sha>`。この修正に fork の追随作業が無くても、`fixes:` を伝えるために notice を出す(`severity: info`、`required_actions: none`)。
-5. **notice を書く**(要るときだけ。事前確認は取らずに書き出す。下記「notice の合成」)。書いたら手順 2 の `pnpm test:notices` を通す。
+5. **notice を書く**(要るときだけ。事前確認は取らずに書き出す。下記「notice の合成」)。書いたら**索引の行を足す**: `node scripts/notices/shippedIndex.mjs add .notices/<id>.md`(自分の索引 `.notices/shipped/<fork_id>.md` の末尾に本文から 1 行。手で書かない・既存の行を直さない。`.notices/README.md`「出荷索引と本文の読み方」)。自分の索引がまだ無く自分の notice が既にあるリポ(索引の導入前から notice を出していた fork)は、先に `node scripts/notices/shippedIndex.mjs backfill`(親の索引に載る notice は飛ばす)。その後に手順 2 の `pnpm test:notices` を通す(索引の検査を含む)。
 6. **コミットする**:
    - 自分のファイルだけを入れる(他のセッションのステージを巻き込まない)。notice は変更本体と同じコミットに入れる:
      - `git add` には作業ツリーにあるパスだけを渡す(削除・移動元は渡すと pathspec エラーで止まる。削除は `git rm` でステージするか、次の commit の pathspec に含める)。
      - `git commit -- <paths>` には削除したパス・ディレクトリも含める(commit の pathspec は削除も拾う)。
-     - コミットの前に `git diff --cached --name-only` で、範囲のファイルだけが入っていることを確かめる。
+     - コミットの前に `git diff --cached --name-only` で、範囲のファイルだけが入っていることを確かめる(notice を書いたら `.notices/shipped/<fork_id>.md` も入る)。
    - メッセージは behavior.md の書式(件名 `<area>: <summary>`、空行、本文 = 判断の記録)。`order:<id>` があれば本文の後に `order: <id>` の行。末尾に環境指定のトレーラー。
    - ブランチは behavior.md とチームの方針に従う(既にフィーチャーブランチ上ならそのまま)。
    - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。`hotfix` では不可(本体と notice を必ず同じコミットに入れる。別なら取り消してまとめ直す)。
-   - `fixes:` の notice を含めたとき、commit の後・push の前に **先に取れるかを判定する**(`.notices/README.md`「修正(fixes)」の「先に取れる印(pick)」): `pnpm notices:pick-check <この commit>`。壊れた地点(修正元の区切りのコミット)にこの commit だけを載せた一時の木で、1 commit・lock / route-map なし・手順が後の notice を名指さない・cherry-pick の衝突なし・`pnpm typecheck`・`pnpm test:config-module-load`・前提の検査を見て、notice に `pick: clean` か `pick: -` を書く(人は書かない・書き換えない)。
-     - exit 0 / 1(clean / -): 書かれた notice を同じ commit に入れる: `git commit --amend --no-edit -- <notice>`(push 前の自分の commit だけ。`pick:` の行は判定に影響しない)→ `pnpm test:notices`。`-` でも止まらずに出荷する(fork は今の fixes の動きで受ける)。外れた条件を報告に書く
+   - `fixes:` の notice を含めたとき、commit の後・push の前に **先に取れるかを判定する**(`.notices/README.md`「修正(fixes)」の「先に取れる印(pick)」): `pnpm notices:pick-check <この commit>`。壊れた地点(修正元の区切りのコミット)にこの commit だけを載せた一時の木で、1 commit・lock / route-map なし・手順が後の notice を名指さない・cherry-pick の衝突なし・`pnpm typecheck`・`pnpm test:config-module-load`・前提の検査を見て、**索引のその notice の行**に `pick:clean` か `pick:-` を書く(本文には書かない。人は書かない・書き換えない。行が無ければ書かずに exit 2 = 手順 5 の add を忘れている)。
+     - exit 0 / 1(clean / -): 書かれた索引を同じ commit に入れる: `git commit --amend --no-edit -- .notices/shipped/<fork_id>.md`(push 前の自分の commit だけ。`pick:` は判定に影響しない)→ `pnpm test:notices`。`-` でも止まらずに出荷する(fork は今の fixes の動きで受ける)。外れた条件を報告に書く
      - exit 2(判定できない: 修正元が履歴に無い・依存を入れられない): 欄を書かずに出荷し(欄なし = `-` と同じ扱い)、報告に「pick 未確認: <理由>」
      - 「未実行: <検査>」(その土台の木に script が無い)は報告に書く
    - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直す。`fixes:` があれば上の `pnpm notices:pick-check` がその確かめを兼ねる: `-` の理由が衝突・検査の失敗・後の notice への依存なら push せず止まる(「止まるとき」)。`fixes:` が無ければ省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
@@ -95,7 +95,8 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    checkpoint: <label | ->
    moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit the line otherwise)
    fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit the line otherwise)
-   pick: <clean | ->   (written by `pnpm notices:pick-check` after the commit, never by hand; only with fixes:)
+   skip_checkpoint: <notice id>, ...   (only on a fix that cannot be picked ahead, see below; omit the line otherwise)
+   uses: <path>, ...   (only when required_actions run a migration / codemod shipped in this commit; omit the line otherwise)
    resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit the line otherwise)
    hotfix: <why forks must take this ahead of other changes, one line>   (only with the `hotfix` argument; omit the line otherwise)
    change: <what changed upstream, one line>
@@ -109,6 +110,9 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    notes: <anything else downstream should know>
    ```
    - `<slug>` は change から短い英語のケバブ。保存先は `.notices/<ts>-<slug>.md`。
+   - `pick:` は本文に書かない(手順 6 の pick-check が索引の行に書く)。値に ` | ` を含めない(索引の行の区切り。`shippedIndex.mjs add` が止まる)。
+   - **`uses:`**: required_actions が実行する移行(`src/features/<domain>/scripts/migrations/`)・codemod(`.notices/<id>.<名前>.mjs`)を列挙し、同じ commit に入れる。`uses:` を持つ notice は `checkpoint:` をラベルにする(`-` 不可)。`pnpm test:notices` が実在と区切りを見る(`.notices/README.md`「使う移行・codemod の欄」)。
+   - **`skip_checkpoint:`**: `fixes:` の修正元の区切りが動かない(その区切りで fork の検査が落ちる)のに、手順 6 の pick-check が `-` のときだけ、修正元の id を書く(各 id は `fixes:` にあること。修正の notice 自身はラベルの区切り)。修正元が `uses:` を持つなら外せない。pick-check の後に足したら索引の行も同じ値に直す(push 前): `node scripts/notices/shippedIndex.mjs verify` が食い違いを挙げる(`.notices/README.md`「区切りを外す欄」)。
    - `hotfix:` の notice の required_actions は、間の変更と後の notice を前提にせず書く(fork は間を飛ばして適用する)。`pnpm-lock.yaml`・`src/app/route-map.jsonl` を commit に含めない(fork ごとに中身が違う。`pnpm test:notices` が検査)。
    - **required_actions は「下流の Claude が承認 1 回で止まらずに実行できる具体度」**で書く。DB マイグレーション・バックフィル・再生成・データ移行も全部ここ。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]`。ドメインの再生成は `pnpm dc:generate <Domain>`(既定で対話なし。`[user-run]` を付けない)で、必要なカテゴリだけ `--only` で指定する。設定を足した fork 側の一括の作り直しは `pnpm forge`。
    - fork の既存コードが新しい仕様とずれる変更では、fork 側の対象コードを探せる目印(grep パターン等)と、新しい仕様へ揃える手順を書く。互換を残して放置させない。
@@ -122,10 +126,10 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - **`checkpoint` = 原則ラベル**(英語ケバブ、既存と重ならない。迷ったら `<slug>`)。「この notice まで適用すれば fork は整合した休憩点にある」の宣言。**区切りの commit は動く状態であること**: その notice を含める commit で `pnpm typecheck` と `pnpm test:config-module-load`(部品を re-export する config を最初に読んだときの循環 import の検査)を通す。通らなければ修正を同じ commit に入れる(後の commit に回すなら `checkpoint: -` + notes)。区切りで画面が落ちると、全 fork の /flux がそこで止まって commit・push する。`-` は「後続の notice が無いと fork が動かない中間点」と断言できるときだけで、理由を `notes:` に書く(例: `notes: checkpoint:- because <id> (step 2) is required for the build to pass`)。迷ったら `-` にしない。
    - 追随作業は無いが区切りや `fixes:` だけ伝えたいときは `severity: info` + `required_actions: none` + `checkpoint: <label>`。
    - notice は区切りに含めたい変更本体と同じ commit か、それより後の commit に入れる(先に出すと merge 先に本体が含まれない)。
-3. 出荷済みの notice を直すのは、その notice の書き間違い(手順が実態と合わない等)を直すときだけ。不具合の修正は修正元を編集せず、新しい notice の `fixes:` で示す(`.notices/README.md`「修正(fixes)」)。
+3. 出荷済みの notice の本文と索引の行は書き換えない(push 済みの行の変更は `pnpm test:notices` が止める)。書き間違い・不具合の修正・動かない区切りは、新しい notice の `fixes:`(と要るなら `skip_checkpoint:`)で示す(`.notices/README.md`「修正(fixes)」「区切りを外す欄」)。
 
-## アーカイブ
-全 fork が適用済み・陳腐化したと判断した notice は、上流側で手動で `.notices/done/` へ `git mv` してよい(下流には merge で伝わり、/flux の走査対象から外れる)。台帳は上流へは流れないので、上流での適用状況の追跡はしない。
+## 本文の片付け
+区間が閉じた notice の本文は、上流側で消してよい(期限なし。`done/` へは移さない。索引の行は残す)。移行・codemod を使う notice は、出荷 → 自分の DB で実行 → 次の commit で添付と本文を消す。片付けだけの削除に notice は要らない(`.notices/README.md`「本文と添付物の片付け」)。台帳は上流へは流れないので、上流での適用状況の追跡はしない。
 
 ## 言語
 ユーザーとの会話は日本語。notice の中身は英語。

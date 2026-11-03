@@ -177,9 +177,10 @@ db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{c
 
 ## DOWNSTREAM_NOTICES
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<fork name\>.md, each line records upstream:\<sha\> | ref: .notices/README.md
+- index: .notices/shipped/\<fork name\>.md = 1 line per notice this repo shipped, append-only, written by /ship from the body (never by hand) | readers (/flux, ownership:check, test:notices) use the index + history | body never edited after shipping, deletable once its segment closed
 - resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice (info notice if nothing else needs one) | forks' temporary permits on that order expire with it
 ship (MANDATORY): every commit + push of this repo goes through /ship (checks, judges whether a notice is needed, writes it, pnpm test:notices, commits, pushes) | /flux = its receiving pair | a fix to something shipped earlier → `fixes: <notice id | commit:sha>` in the fix's notice, never edit the earlier notice (/flux warns forks before the broken point)
-checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)
+checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:) | shipped one that does not build + an unpickable fix → `skip_checkpoint: <id>` in the fix
 relay: a mid tier's /flux judges per segment by git diff whether each applied upstream notice needs relaying (ledger `relay:none` or a drafted relay notice with covers: ids) | `/flux relay` = only for legacy unjudged ids | ref: .notices/README.md
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 

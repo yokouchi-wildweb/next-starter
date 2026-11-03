@@ -76,9 +76,9 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | same-as-base(残骸) | 基準と同じに戻った | 失敗(行を消す) |
   | unused(残骸) | 違反の無いファイルの行 | 失敗(行を消す) |
 
-- 依頼の解決: 親が依頼を片付けて出荷するとき、notice の `resolves:` 欄に依頼の番号を書く(下流から来た依頼なら必ず。`.notices/README.md`「解決(resolves)」)。`pnpm ownership:check` は基準(取り込み済み)の `.notices/` と `done/` の `resolves:` を集め、すべての番号が解決した許可を expired-resolved にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の許可に当たる行を示す
+- 依頼の解決: 親が依頼を片付けて出荷するとき、notice の `resolves:` 欄に依頼の番号を書く(下流から来た依頼なら必ず。`.notices/README.md`「解決(resolves)」)。`pnpm ownership:check` は基準(取り込み済み)の消えない索引 `.notices/shipped/*.md` の行と本文(`.notices/` と `done/`)の `resolves:` を集め(和をとる。親が本文を片付けても索引の行で失効は変わらない)、すべての番号が解決した許可を expired-resolved にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の許可に当たる行を示す
 - 却下: 親は却下・取り下げで閉じた依頼にも `resolves:` を書くので、許可は失効する。fork は元に戻す・受け口へ移す・別の方針で許可し直す、のどれかを必須にする(`/flux`・`/wen` が一覧に出す)
-- 修正だけ先に取り込めるのは、親が `hotfix:` を宣言した notice の commit と、親が `pick: clean` を付けた修正の notice の commit だけ(下の「緊急修正の pick」。台帳の `picked:` の扱いは同じ)
+- 修正だけ先に取り込めるのは、親が `hotfix:` を宣言した notice の commit と、親が索引の行に `pick:clean` を付けた修正の notice の commit だけ(下の「緊急修正の pick」。台帳の `picked:` の扱いは同じ)
 - API: `parsePermits(text)` → `{ permits, errors }` / `blobId(text)` / `fingerprint(text, kind)` / `checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs })` → `{ entries(permit・verdict 付き), leftovers }` / `permitsPath(forkId)`
 
 ## 緊急修正の pick
@@ -152,7 +152,7 @@ pnpm ownership:check --parent=upstream --branch=main
 - 親の remote が無い・決まらない、既定のブランチが分からない、取得(`git fetch`)できない
 - shallow clone(基準を求められない)、merge-base が無い
 - 基準に `intake.txt` が無い(この検査を含む版をまだ取り込んでいない)、書式の誤りがある
-- 取り込み済み(基準にある)なのに自分の台帳(`.notices/applied/<名前>.md`)に記録の無い notice がある。fork を作った時点のツリーにあった notice は継承済みとして除く(`/flux` と同じ求め方)。`/flux` で記録してから検査し直す
+- 取り込み済み(基準の索引の行 ∪ 基準の本文)なのに自分の台帳(`.notices/applied/<名前>.md`)に記録の無い notice がある。fork を作った時点の索引の行とツリーの notice は継承済みとして除く(`/flux` と同じ求め方。本文が片付けられても索引の行で数える)。`/flux` で記録してから検査し直す
 - lint の厳しさは手元の情報だけで決める(確かめられなければ今のパスでの判定)。この検査とは別
 
 ## 多段の Tier(D29・D34)

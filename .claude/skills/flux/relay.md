@@ -3,8 +3,9 @@
 SKILL.md「付属ファイル」の条件に当たったときに読む。ここに書いた規則は SKILL.md の同名の節に**追加で**効く(SKILL.md の規則を置き換えない)。仕様: `.notices/README.md`「中継(relay)」。
 
 ## 用語と索引
-- **祖父 notice** = `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice(URL 比較は未適用判定と同じく表記差を無視)。中間 Tier の名前の台帳(SKILL.md「自 fork の識別と台帳」4)が無いときは祖父 notice を判定しない(従来どおり)。
-- **covers 索引**: ツリー内と流入予定のすべての notice(自分の origin のものを除く)の `covers:` を読み、`covered id → covers 側 id` の対応を作る。同じ id を複数の notice が covers していたら、履歴上最も早い covers 側を採る。
+- 道具: 祖父 notice の判定・区切り点・covers 索引・covered の吸収は、上流の先端の `incoming.mjs`(SKILL.md「流入の発見の道具」)が出す(各 notice の `owner`・`grandparent`・`point`・`covered`、区切り点の無い祖父 notice は `warnings`)。以下はその規則と、道具の無い上流での手作業。
+- **祖父 notice** = 自分の索引でも直上 Tier の索引でもない索引の行(`.notices/shipped/<名前>.md` のファイル名 = 出荷したリポ)。索引の無い上流では、`from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice(URL 比較は未適用判定と同じく表記差を無視)。中間 Tier の名前の台帳(SKILL.md「自 fork の識別と台帳」4)が無いときは祖父 notice を判定しない(従来どおり)。
+- **covers 索引**: 上流の先端の全索引の行(自分の索引を除く。索引の無い上流ではツリー内と流入予定の本文)の `covers:` を読み、`covered id → covers 側 id` の対応を作る。同じ id を複数の notice が covers していたら、履歴上最も早い covers 側を採る。
 - **祖父 notice の区切り点** = 中間 Tier の台帳にその id が記録された commit: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` の最古(`--reverse` で先頭)。台帳の `commit:` 欄は使わない。見つからなければ追加 commit を区切り点とし、計画に「中間 Tier が未適用: T1 の生 commit で区切る」と警告する。
 - 祖父 notice で covered されていないものは、中間 Tier の台帳のその id の行の `relay:` 欄で分ける:
   - `relay:none` → 中間 Tier が差分で「中継不要」と判定済み(下記「中継判定」)。上流 notice をそのまま適用する(注記・写像なし)。
@@ -36,9 +37,9 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 ## 中継判定(下流を持つ fork のみ)
 自分が中間 Tier として、適用した上流 notice を下流へ中継する必要があるかを **git の差分だけで**機械的に決める(文面の解釈で判断しない)。
 - **対象 fork**: `.claude/rules/project.md` の TIER 節に下流(Tier3 等)を持つと書かれている fork。下流が無い・予定なしと書かれていれば末端 fork として何もしない。どちらとも読めなければ平文でユーザーに尋ねる。
-- **対象 notice**: 区間内で適用した notice のうち `from:` が自分の origin でないもの(祖父 notice・上流の中継 notice を含む)。covered id は covers 側と一緒に 1 件として判定する。
+- **対象 notice**: 区間内で適用した notice のうち自分の索引の行でないもの(索引の無い上流では `from:` が自分の origin でないもの。祖父 notice・上流の中継 notice を含む)。covered id は covers 側と一緒に 1 件として判定する。
 - **判定**(区間の手順 6 の verify 後、手順 7 の前。notice ごとに。次の ①〜③ のどれか 1 つでも当たれば中継が必要、どれにも当たらなければ `relay:none`):
-  - 基準点: `Q` = その notice の区切り点(区間の組み立ての区切り点。区間 0 なら追加 commit。祖父 notice なら中間 Tier の台帳記録 commit)、`P` = 上流履歴上でその直前にある notice の区切り点(無ければ fork 成立点)、`A` = この区間の手順 5 を終えた直後の HEAD(merge コミット。fast-forward ならその到達点、区間 0 なら区間開始時の HEAD)。
+  - 基準点: `Q` = その notice の区切り点(区間の組み立ての区切り点 = `incoming.mjs` の出力の `point`。区間 0 なら追加 commit。祖父 notice なら中間 Tier の台帳記録 commit)、`P` = 上流履歴上でその直前にある notice の区切り点(前の notice の `point`。無ければ fork 成立点 = 出力の `forkPoint`)、`A` = この区間の手順 5 を終えた直後の HEAD(merge コミット。fast-forward ならその到達点、区間 0 なら区間開始時の HEAD)。
   - ①② はスクリプトで出す(ハンクを手で読み比べない): `node .claude/skills/flux/relay-check.mjs --p <P> --q <Q> --applied-from <A>`。exit 0 = ①② とも該当なし / 1 = 該当あり(`overlap:` / `outside:` 行が根拠)/ 2 = エラー(停止条件として止める)。
   - **① ハンクの重なり**: 上流が P→Q で変えた行範囲と、作業ツリーが Q と食い違う行範囲が、同じファイルで重なるか接している。接触も数えるのは git の 3-way merge が衝突とみなす基準と揃えるため。上流が追加・削除したファイル、バイナリはファイル全体を範囲とみなす。同じファイルでも離れた場所にある fork 独自の追加(package.json の fork スクリプト、registry の fork エントリ等)は数えない。
   - **② 適用作業での上流変更ファイル外の変更**: `A` から作業ツリー(未追跡を含む)までに変わったファイルのうち、上流が P→Q で変えていないもの(この区間の掃討・改名など)。区間の notice すべてを該当にする(区間は通常 notice 1 件)。
@@ -48,7 +49,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 - **台帳**: 手順 7a で各 id の行に `relay:none` か `relay:<中継 notice id>` を書く。
 - **報告**: チャットは flux-stop の「中継」の節で、あり / なし + 下流がすべきこと + 理由を役割の言葉で(「fork が既定を変えた画面スイッチの設定が上流の変更と重なるため、下流も値を見直す必要がある」)。notice の id・中継 id・根拠(①<files> / ②<files> / ③逸脱)は作業メモに書く。作成した中継 notice は「中身は判定根拠・台帳 notes から組み立てた下書き。下流へ出す前に確認・編集してよい」と添える。
 - **判定の限界**(機械判定のため): ② は notice の手順自体が生む fork 側の変更(dc:generate による fork ドメインの再生成等)も拾う(見逃しより安全側の誤検知)。マーカーファイルのように fork の行が上流の変更のすぐ隣に来る形は ① の接触で拾う。行範囲が離れていても意味の上で依存し合う変更は拾えない。
-- **未判定**(この仕組み導入前の旧台帳行): 自台帳の id のうち、`relay:` 欄が無く、`from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの(継承済み・notice ファイルが無い id は除く)。1 件以上あれば報告に 1 行: 「中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きできます」。0 件なら何も出さない。
+- **未判定**(この仕組み導入前の旧台帳行): 自台帳の id のうち、`relay:` 欄が無く、自分の索引の行でなく、自分の索引の行のどの `covers:` にも含まれないもの(継承済み・どの索引にも行の無い id は除く。索引の無い版では `from:` が自分の origin でない・自分の origin の notice の `covers:`・notice ファイルが無い id、で同じことを見る)。1 件以上あれば報告に 1 行: 「中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きできます」。0 件なら何も出さない。
 
 ## 中継 notice の合成
 中継判定で下書きするときと、下記「relay モード」で共通の規則。スキーマと書き方の一般則は `.claude/skills/ship/SKILL.md`「notice の合成」(英語・機械間ファイル、事前確認なしで書き出す)。材料は推測せず、次から集める:
@@ -80,7 +81,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 4. 報告: 書き出したパスと covers した id。「中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください(コミットは /ship)」と添える。covers に入った id は未判定から外れる(台帳は書き換えない)。
 
 ## エッジケース
-- `covers:` の id が merge 後のツリー(現役・`done/`)のどこにも無い: その id を報告に含める(黙って飛ばさない)。covers 側 notice の適用自体は続け、その id は台帳に記録しない。
+- `covers:` の id が上流の先端のどの索引にも無い(索引の無い上流では merge 後のツリーの現役・`done/` のどこにも無い): その id を報告に含める(黙って飛ばさない)。covers 側 notice の適用自体は続け、その id は台帳に記録しない。
 - 祖父 notice の中間 Tier 台帳記録 commit が covers 側 notice の追加 commit より後: covers 側の区間の merge 先をその記録 commit まで伸ばす(区間内で最も後の点を merge 先にする)。
 - 自分の origin の notice が `covers:` を持つ(自分が出した中継 notice): 未適用判定の対象外なのは従来どおり。covers 索引には入れず、中継判定の未判定の計算にだけ使う。
 - 中継判定で `P` と `Q` の間に上流の変更ファイルが無い(`severity: info` の区切りだけの notice 等): ① は該当なし。②③ に当たらなければ `relay:none`。
