@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyMigration, planMigration, rewriteImports, splitAlwaysOn, stripMarker } from "./fork-name-markers.mjs";
+import { applyMigration, planForkLint, planMigration, rewriteImports, routePartLintFiles, splitAlwaysOn, stripMarker } from "./fork-name-markers.mjs";
 
 const POINT = (dir) => `{ dir: "${dir}", export: "item", type: { from: "@/t", name: "T" }, side: "server" }`;
 
@@ -181,6 +181,40 @@ test("常時実行の例外: alwaysOnExceptions.<印>.mjs を行ごとのファ�
     const applied = applyMigration(root, plan);
     assert.equal(applied.alwaysOnFiles.length, 3);
     assert.ok(!existsSync(join(root, "scripts/proxies/alwaysOnExceptions.acme.mjs")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("lint の強さ: _layout の fork だけの部品を eslint.config.fork.mjs の配列の先頭のブロックに足す(無ければ作る・2 回目は何もしない)", () => {
+  const changes = [
+    { from: "src/app/(user)/_layout/Bell.other.tsx", to: "src/app/(user)/_layout/Bell.tsx", kind: "route-part" },
+    { from: "src/app/(user)/_layout/README.acme.md", to: "src/app/(user)/_layout/README.md", kind: "route-part" },
+    { from: "src/app/(user)/w/_screen/Part.acme.tsx", to: "src/app/(user)/w/_screen/Part.tsx", kind: "route-part" },
+    { from: "src/app/(user)/_layout/UserLayout.acme.tsx", to: "src/app/(user)/_layout/UserLayout.replace.tsx", kind: "route-replace" },
+  ];
+  assert.deepEqual(routePartLintFiles(changes), ["src/app/(user)/_layout/Bell.tsx"], "_screen は上流の強さのブロックの外、.replace は上流が外している");
+
+  const created = planForkLint(null, ["src/app/(user)/_layout/Bell.tsx"]);
+  assert.match(created.text, /const forkConfig = \[\n {2}\/\/ --- fork-name-markers: _layout の fork だけの部品 start ---/);
+  assert.match(created.text, /"style-tokens\/no-raw-palette": "off",\n {6}"style-tokens\/span-in-heading": "warn",\n {6}"client-service-boundary\/no-direct-import": "warn",/);
+  assert.match(created.text, /export default forkConfig;\n$/);
+
+  const own = '/** @type {import("eslint").Linter.Config[]} */\nconst forkConfig = [\n  { files: ["src/app/**/*.tsx"], rules: { "style-tokens/no-raw-palette": "error" } },\n];\n\nexport default forkConfig;\n';
+  const inserted = planForkLint(own, ["src/app/(user)/_layout/Bell.tsx"]);
+  assert.ok(inserted.text.indexOf("fork-name-markers") < inserted.text.indexOf('"src/app/**/*.tsx"'), "fork の規則より前(後ろの fork の規則が勝つ)");
+  assert.deepEqual(planForkLint(inserted.text, ["src/app/(user)/_layout/Bell.tsx"]), { path: "eslint.config.fork.mjs", text: null, added: [] });
+  const more = planForkLint(inserted.text, ["src/app/(user)/_layout/Bell.tsx", "src/app/admin/_layout/Gate.tsx"]);
+  assert.deepEqual(more.added, ["src/app/admin/_layout/Gate.tsx"]);
+  assert.equal(more.text.match(/fork-name-markers: _layout の fork だけの部品 start/g).length, 1);
+  assert.match(more.text, /"src\/app\/\(user\)\/_layout\/Bell\.tsx",\n {6}"src\/app\/admin\/_layout\/Gate\.tsx",/);
+  assert.ok(planForkLint("export default [];\n", ["src/app/x/_layout/A.tsx"]).problem, "形が読めなければ止める");
+
+  const root = fixture({ ...UPSTREAM, ...FORK });
+  try {
+    const applied = applyMigration(root, planMigration(root, { baseFiles: BASE }));
+    assert.deepEqual(applied.lintAdded, ["src/app/(user)/_layout/Bell.tsx"]);
+    assert.match(readFileSync(join(root, "eslint.config.fork.mjs"), "utf8"), /"src\/app\/\(user\)\/_layout\/Bell\.tsx",/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

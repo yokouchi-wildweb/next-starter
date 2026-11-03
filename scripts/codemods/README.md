@@ -33,6 +33,7 @@ node scripts/codemods/fork-name-markers.mjs --apply      # 改名(git mv)・impo
 | `scripts/proxies/alwaysOnExceptions.<印>.mjs` | 行ごとに `scripts/proxies/alwaysOnExceptions/<名前>.mjs`(`export const exception` か `registry`)へ分ける。行のパスも改名に追従 |
 | `src/**/extensionPoints.<印>.ts` | 止める(機械では移せない。fork 自身のフォルダの `extensionPoints.ts` へ点と受け口のフォルダを移す) |
 
+- lint の強さ: `_layout` の下で印を外した fork だけの部品(上流の既定の隣に無いもの)は、そのままだと上流の部品と同じ強さ(`style-tokens/no-raw-palette`・`span-in-heading`・`client-service-boundary/no-direct-import` が error)の対象に入る。印つきのころは上流の強さのブロックから外れていたので、`eslint.config.fork.mjs` の `const forkConfig = [` の直後(配列の先頭)に、そのファイルを今の強さ(no-raw-palette off・ほか warn)へ戻すブロックを足す(無ければファイルを作る。何度当てても同じ。足す行は dry-run と --apply の出力に出る)。先頭なので、その下の fork 自身の規則(boardgame-site の app/ の色の検査など)はそのまま効く。上流が持ち主で lint の強さを決めるようになったら、このブロックは消してよい(別の指令)
 - import の書き換え: `src`・`scripts` のコード(.ts / .tsx / .mts / .mjs / .js)の `@/…` と相対の指定で、改名したファイル・フォルダを指すものを新しい名前にする。JSON・Markdown の中のパスの字面は書き換えない
 - 衝突(止める): 印を外した名前の単位(拡張子と末尾の `/index` を除いた名前)が、基準の版のファイル・ほかの HEAD のファイル・ほかの移行先と同じ。書き換えず、改名の案(項目 = `<名前><印の Pascal>`、タスク = `<名前>-<印>`)を出す。案は決まった規則で作るので、中間 Tier と下の Tier で同じ名前になる
 
@@ -41,8 +42,8 @@ node scripts/codemods/fork-name-markers.mjs --apply      # 改名(git mv)・impo
 1. 上流のこの版(印をやめた版)を `/flux` で取り込む(上流の生成器・検査が新しくなる。生成器は印つきの名前で止まる)
 2. dry-run: `node scripts/codemods/fork-name-markers.mjs` で変更の一覧と止めた物の一覧を見る
 3. 止めた物を片付ける: 衝突は案(か別の名前)に手で改名し、改名した名前を使う import も直す。`extensionPoints.<印>.ts` は fork 自身のフォルダへ移す
-4. `--apply`: 改名・import・常時実行の例外の分割をして、`pnpm extensions:generate` が一覧と受け口の一覧(`intake.txt` の生成区画)を作り直す
+4. `--apply`: 改名・import・常時実行の例外の分割と `eslint.config.fork.mjs` の強さのブロック(上)を足して、`pnpm extensions:generate` が一覧と受け口の一覧(`intake.txt` の生成区画)を作り直す
 5. `pnpm extensions:check`・`pnpm test:screens`・`pnpm test:wiring`・`pnpm tsc --noEmit` を通してコミットし、`pnpm ownership:check`(上流と同じ単位名は unit-clash、自分の項目への override は override-own)
 6. 多段の Tier: **中間 Tier が先に移してから**下の Tier が取り込む。下の Tier が受け継いだ中間 Tier の印つきのファイルは、中間 Tier の移行と同じ名前になるので、中間 Tier の版を取り込めば改名が揃う(下の Tier が自分で足した印つきのファイルは、取り込みの後にこの道具で移す)
 
-確かめ(使い捨ての写し、2026-11-03): oripa-do 印つき 90 → 変更 87(フォルダ 1 件 = 4 ファイル)・止め 0、boardgame-site 26 → 変更 25・止め 1(`README.bodolist.md` が上流の `README.md` と同じ単位)、pandora(oripa-do の下)80 → 変更 77・止め 0(oripa-do から受け継いだ 67 件は oripa-do の移行と同じ名前)。`--apply` の後、上流の走査(生成器の旧い印・スイッチ・tasks・wiring・screens の点つきの名前)は旧い印 0。
+確かめ(使い捨ての写し、2026-11-03): oripa-do 印つき 90 → 変更 87(フォルダ 1 件 = 4 ファイル)・止め 0、boardgame-site 26 → 変更 25・止め 1(`README.bodolist.md` が上流の `README.md` と同じ単位)、pandora(oripa-do の下)80 → 変更 77・止め 0(oripa-do から受け継いだ 67 件は oripa-do の移行と同じ名前)。`--apply` の後、上流の走査(生成器の旧い印・スイッチ・tasks・wiring・screens の点つきの名前)は旧い印 0。lint の強さのブロック: oripa-do 1・boardgame-site 9・pandora 1 件を足し、`eslint --print-config` で no-raw-palette off・span-in-heading / client-service-boundary warn(boardgame-site は自分の規則で no-raw-palette error のまま = 今と同じ)、上流の既定の部品は error のまま。

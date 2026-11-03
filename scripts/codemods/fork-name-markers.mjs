@@ -13,6 +13,9 @@
 // - scripts/tasks・src/wiring の直下 → 印を外す(client の中置きは残す)
 // - scripts/proxies/alwaysOnExceptions.<印>.mjs → 行ごとに alwaysOnExceptions/<名前>.mjs(exception か registry)へ分ける
 // - src/**/extensionPoints.<印>.ts → 機械では決められないので止める(fork 自身のフォルダの extensionPoints.ts へ移す)
+// _layout の下で印を外した fork だけの部品(上流の既定の隣に無いもの)は、そのままだと上流の部品と同じ強さの lint
+// (style-tokens・client-service-boundary の error)に入るので、eslint.config.fork.mjs の先頭に今の強さへ戻すブロックを足す
+// (印つきのころは上流の強さのブロックから外れていた。上流が持ち主で lint の強さを決めるようになったら要らなくなる)。
 // 新しい名前の単位が基準(台帳の最後の upstream:<sha> の版)か、ほかの HEAD のファイルの単位と同じなら衝突: 書き換えず、
 // 改名の案を付けて止める。案は決まった規則で作るので、中間 Tier から受け継いだ物は中間 Tier の移行と同じ名前になる。
 
@@ -239,6 +242,65 @@ const movedPath = (path, changes) => {
   return path;
 };
 
+// ── lint の強さ(eslint.config.fork.mjs) ──
+
+export const FORK_LINT_FILE = "eslint.config.fork.mjs";
+const LINT_START = "  // --- fork-name-markers: _layout の fork だけの部品 start ---";
+const LINT_END = "  // --- fork-name-markers: _layout の fork だけの部品 end ---";
+/** 印つきのころの強さ(上流の強さのブロックから外れていたときの app/ の値) */
+const LINT_RULES = { "style-tokens/no-raw-palette": "off", "style-tokens/span-in-heading": "warn", "client-service-boundary/no-direct-import": "warn" };
+const FORK_LINT_TEMPLATE = (block) => `// fork が足す ESLint の設定(flat config の配列)。eslint.config.mjs が最後に読み足す。
+// upstream は空で出荷し、以後このファイルを編集しない(fork の物。受け口: src/lib/forkOwnership/intake.txt)。
+
+/** @type {import("eslint").Linter.Config[]} */
+const forkConfig = [
+${block}
+];
+
+export default forkConfig;
+`;
+
+/** 強さを戻すファイル(_layout の下で印を外した fork だけの部品) */
+export const routePartLintFiles = (changes) => changes.filter((c) => c.kind === "route-part" && /\/_layout\//.test(c.to) && /\.tsx?$/.test(c.to)).map((c) => c.to);
+
+const lintBlock = (files) =>
+  [
+    LINT_START,
+    "  // 印を外した _layout の fork だけの部品を、印つきのころと同じ強さに戻す(上流の強さのブロックの error を外す)。",
+    "  // 配列の先頭に置くので、この下の fork の規則はそのまま効く。上流が持ち主で lint の強さを決めるようになったら消してよい",
+    "  {",
+    "    files: [",
+    ...files.map((f) => `      ${JSON.stringify(f)},`),
+    "    ],",
+    "    rules: {",
+    ...Object.entries(LINT_RULES).map(([rule, level]) => `      ${JSON.stringify(rule)}: ${JSON.stringify(level)},`),
+    "    },",
+    "  },",
+    LINT_END,
+  ].join("\n");
+
+/**
+ * eslint.config.fork.mjs に強さを戻すブロックを足す計画(何度当てても同じ)
+ * @returns {{ path: string, text: string | null, added: string[] } | { path: string, problem: string, added: string[] }}
+ */
+export function planForkLint(current, files) {
+  if (files.length === 0) return { path: FORK_LINT_FILE, text: null, added: [] };
+  if (current === null) return { path: FORK_LINT_FILE, text: FORK_LINT_TEMPLATE(lintBlock([...files].sort())), added: [...files].sort() };
+  const start = current.indexOf(LINT_START);
+  const end = current.indexOf(LINT_END);
+  if (start >= 0 && end > start) {
+    const existing = [...current.slice(start, end).matchAll(/^\s+"([^"]+)",$/gm)].map((m) => m[1]).filter((f) => !Object.keys(LINT_RULES).includes(f));
+    const added = files.filter((f) => !existing.includes(f)).sort();
+    if (added.length === 0) return { path: FORK_LINT_FILE, text: null, added: [] };
+    const merged = [...new Set([...existing, ...files])].sort();
+    return { path: FORK_LINT_FILE, text: current.slice(0, start) + lintBlock(merged) + current.slice(end + LINT_END.length), added };
+  }
+  const open = /^const forkConfig\b[^=]*=\s*\[[ \t]*$/m.exec(current);
+  if (!open) return { path: FORK_LINT_FILE, problem: `${FORK_LINT_FILE} に \`const forkConfig = [\` の行が無い(配列の先頭に次のブロックを手で足す)`, added: [...files].sort() };
+  const at = open.index + open[0].length;
+  return { path: FORK_LINT_FILE, text: `${current.slice(0, at)}\n${lintBlock([...files].sort())}${current.slice(at)}`, added: [...files].sort() };
+}
+
 // ── 常時実行の例外の分割 ──
 
 function readRows(text, label) {
@@ -282,7 +344,7 @@ export function splitAlwaysOn(text, label, changes, existing) {
 
 /**
  * 計画を当てる(改名・import の書き換え・常時実行の例外の分割)
- * @returns {{ renamed: number, importEdits: string[], alwaysOnFiles: string[], stops: object[] }}
+ * @returns {{ renamed: number, importEdits: string[], alwaysOnFiles: string[], lintAdded: string[], stops: object[] }}
  */
 export function applyMigration(root, plan) {
   const { changes } = plan;
@@ -321,7 +383,12 @@ export function applyMigration(root, plan) {
     }
     rmSync(join(root, from));
   }
-  return { renamed: changes.length, importEdits: importEdits.sort(), alwaysOnFiles, stops };
+  // 4. lint の強さ
+  const lintPath = join(root, FORK_LINT_FILE);
+  const lint = planForkLint(existsSync(lintPath) ? readFileSync(lintPath, "utf8") : null, routePartLintFiles(changes));
+  if ("problem" in lint) stops.push({ path: FORK_LINT_FILE, reason: `${lint.problem}: ${lint.added.join(", ")}` });
+  else if (lint.text !== null) writeFileSync(lintPath, lint.text);
+  return { renamed: changes.length, importEdits: importEdits.sort(), alwaysOnFiles, lintAdded: "problem" in lint ? [] : lint.added, stops };
 }
 
 /** 基準の版のファイル(台帳の最後の upstream:<sha>、--base で上書き) */
@@ -353,10 +420,12 @@ function main() {
     process.exit(2);
   }
   const plan = planMigration(root, { baseFiles: base.files });
-  const result = { base: base.rev, mode: apply ? "apply" : "dry-run", changes: plan.changes, stops: plan.stops, alwaysOn: plan.alwaysOn.map((a) => a.from) };
+  const lintPath = join(root, FORK_LINT_FILE);
+  const lintPlan = planForkLint(existsSync(lintPath) ? readFileSync(lintPath, "utf8") : null, routePartLintFiles(plan.changes));
+  const result = { base: base.rev, mode: apply ? "apply" : "dry-run", changes: plan.changes, stops: plan.stops, alwaysOn: plan.alwaysOn.map((a) => a.from), lint: { path: FORK_LINT_FILE, added: lintPlan.added } };
   if (apply) {
     const applied = applyMigration(root, plan);
-    Object.assign(result, { importEdits: applied.importEdits, alwaysOnFiles: applied.alwaysOnFiles });
+    Object.assign(result, { importEdits: applied.importEdits, alwaysOnFiles: applied.alwaysOnFiles, lint: { path: FORK_LINT_FILE, added: applied.lintAdded } });
     result.stops = [...result.stops, ...applied.stops];
     if (!args.includes("--no-generate")) {
       const generated = spawnSync("pnpm", ["extensions:generate"], { cwd: root, encoding: "utf8" });
@@ -370,6 +439,10 @@ function main() {
     console.log(`変更: ${plan.changes.length} 件`);
     for (const c of plan.changes) console.log(`  ${c.from} → ${c.to}  [${c.kind}]`);
     if (plan.alwaysOn.length > 0) console.log(`常時実行の例外の分割: ${plan.alwaysOn.map((a) => a.from).join(", ")}`);
+    if (result.lint.added.length > 0) {
+      console.log(`${FORK_LINT_FILE} の先頭のブロックに足す(_layout の fork だけの部品を今の lint の強さに): ${result.lint.added.length} 件`);
+      for (const file of result.lint.added) console.log(`  "${file}"`);
+    }
     console.log(`止めた物(書き換えない): ${result.stops.length} 件`);
     for (const s of result.stops) console.log(`  ${s.path}: ${s.reason}${s.suggest ? ` → 案: ${s.suggest} に改名してからもう一度` : ""}`);
     if (apply) {
