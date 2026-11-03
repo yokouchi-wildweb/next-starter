@@ -1,5 +1,5 @@
 import { type VariantProps } from "class-variance-authority";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -7,7 +7,7 @@ import { createLayoutVariants } from "./commonVariants";
 
 const blockVariants = createLayoutVariants("block");
 
-type BlockProps = ComponentPropsWithoutRef<"div"> & VariantProps<typeof blockVariants>;
+type BlockProps = ComponentProps<"div"> & VariantProps<typeof blockVariants>;
 
 /**
  * シンプルなブロック要素コンポーネント

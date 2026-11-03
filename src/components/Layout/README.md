@@ -34,6 +34,8 @@
 
 全コンポーネント共通: `appearance`, `padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`
 
+`ref`: Block / InBlock / Flex / Stack / Grid / Section / Main / Hidden は出力要素への `ref` を受け取る（React 19 の ref は props として渡る）。外部ライブラリが描画先の要素を要する場合（カメラのプレビュー等）も生の div を使わずこれらに `ref` を渡す。Main の `ref` はどの containerType でも `<main>` 要素を指す
+
 ### 詳細
 
 #### Section

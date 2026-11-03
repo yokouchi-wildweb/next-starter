@@ -1,7 +1,7 @@
 // src/components/Layout/Main.tsx
 
 import { type VariantProps } from "class-variance-authority";
-import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
 import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen";
 import { cn } from "@/lib/cn";
@@ -26,7 +26,7 @@ const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>>
   wideShowcase: "var(--layout-width-wide-showcase)",
 };
 
-export type MainProps = ComponentPropsWithoutRef<"main"> &
+export type MainProps = ComponentProps<"main"> &
   VariantProps<typeof mainLayoutVariants> & {
     children: ReactNode;
     containerType?: ContainerType;

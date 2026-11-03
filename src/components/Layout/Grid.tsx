@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -88,7 +88,7 @@ const gridVariants = cva("grid", {
 });
 
 type GridProps =
-  Omit<ComponentPropsWithoutRef<"div">, "className"> &
+  Omit<ComponentProps<"div">, "className"> &
   VariantProps<typeof gridVariants> & {
     className?: string;
   };

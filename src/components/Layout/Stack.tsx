@@ -1,7 +1,7 @@
 // src/components/Layout/Stack.tsx
 
 import { cva, type VariantProps } from "class-variance-authority";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -35,7 +35,7 @@ const stackVariants = cva("flex flex-col", {
 
 type StackVariantProps = VariantProps<typeof stackVariants>;
 
-type StackProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
+type StackProps = Omit<ComponentProps<"div">, "className"> &
   StackVariantProps & {
     /** 子要素間の縦方向のスペース（Tailwind spacing scale） */
     space?: StackSpace;

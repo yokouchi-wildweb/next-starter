@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { ComponentPropsWithoutRef } from "react";
+import { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -66,7 +66,7 @@ const flexVariants = cva("flex", {
   },
 });
 
-type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
+type FlexProps = Omit<ComponentProps<"div">, "className"> &
   VariantProps<typeof flexVariants> & {
     className?: string;
   };

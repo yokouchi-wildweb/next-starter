@@ -1,5 +1,5 @@
 import { type VariantProps } from "class-variance-authority";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -9,7 +9,7 @@ const sectionVariants = createLayoutVariants("block");
 
 type SectionElement = "section" | "article" | "aside" | "nav" | "header" | "footer";
 
-type BaseSectionProps<T extends SectionElement> = Omit<ComponentPropsWithoutRef<T>, "className"> & {
+type BaseSectionProps<T extends SectionElement> = Omit<ComponentProps<T>, "className"> & {
   as?: T;
   className?: string;
 };
