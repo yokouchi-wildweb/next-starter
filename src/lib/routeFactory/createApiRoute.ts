@@ -13,6 +13,7 @@ import type { RecaptchaAction } from "@/lib/recaptcha/constants";
 import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
 import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
+import { readClientIp } from "@/lib/request";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
 import type { RouteRateLimitDeps, RouteUserBase, RouteUserDeps } from "./deps";
@@ -29,12 +30,12 @@ const INTERNAL_ERROR_MESSAGE = "サーバーでエラーが発生しました";
  *   - session.role に "admin" を含む → "admin"
  *   - それ以外 → "user"
  * - requestId: x-request-id ヘッダ優先、無ければ UUID 発番
- * - ip: x-forwarded-for の先頭エントリ
+ * - ip: readClientIp（@/lib/request。x-vercel-forwarded-for → cf-connecting-ip → x-forwarded-for の先頭 → x-real-ip）
  *
  * 派生ロールが増えた場合の actorType 判定は後方互換性のため寛容（小文字 includes）。
  */
 function buildAuditContext(req: NextRequest, session: RouteUserBase | null): AuditContext {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ip = readClientIp(req.headers);
   const userAgent = req.headers.get("user-agent") ?? null;
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
 
@@ -233,7 +234,8 @@ export function makeRouteCore(
 
         // レート制限チェック
         if (config.rateLimit) {
-          const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+          // IP の読み方は監査・端末の記録と同じ readClientIp に揃える（ヘッダーごとに別の値を鍵にしない）
+          const ip = readClientIp(req.headers) ?? "unknown";
           const limit = await rateLimit.checkRateLimit(config.rateLimit, ip);
           if (!limit.allowed) {
             const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
@@ -252,7 +254,8 @@ export function makeRouteCore(
 
         // サブネット単位（/24）レート制限チェック
         if (config.rateLimitSubnet) {
-          const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+          // IP の読み方は監査・端末の記録と同じ readClientIp に揃える（ヘッダーごとに別の値を鍵にしない）
+          const ip = readClientIp(req.headers) ?? "unknown";
           const subnet = ip.split(".").slice(0, 3).join(".");
           const limit = await rateLimit.checkRateLimit(config.rateLimitSubnet, subnet);
           if (!limit.allowed) {

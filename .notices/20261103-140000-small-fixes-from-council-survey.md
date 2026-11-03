@@ -1,0 +1,16 @@
+# DOWNSTREAM NOTICE id:20261103-140000-small-fixes-from-council-survey
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:fix/bundle4 | commit:- (this commit)
+date: 2026-11-03T14:00:00+09:00
+severity: action-required
+checkpoint: small-fixes-from-council-survey
+resolves: 20261101-171224-small-fixes-from-council-survey
+change: (1) UserActivationSchema / UserPreRegistrationSchema give Japanese messages on every field (email format, server-set role / status / providerType / lastAuthenticatedAt → 登録情報が不正です), so activate / setPending no longer surface Zod's English defaults | (2) requireUserRecord reads through userService.get (lazy import) instead of base.get | (3) createApiRoute reads the client IP with readClientIp (@/lib/request: x-vercel-forwarded-for → cf-connecting-ip → x-forwarded-for → x-real-ip) for the audit context ip and the rateLimit / rateLimitSubnet keys; before it took x-forwarded-for only | (4) role-config checks (forge / role:generate) stop when a profile.json field has the key "default" (the generator reads defaultValue only; "default" was silently ignored) | (5) the unused devDependency chalk is removed
+why: (3) changes the rate-limit key on hosts where x-vercel-forwarded-for / cf-connecting-ip differ from x-forwarded-for (counters restart once); (4) a fork profile.json with "default" now stops pnpm forge until renamed
+required_actions:
+1. git grep -n '"default"' -- 'src/features/core/userProfile/profiles/*.profile.json' 'src/features/core/userProfile/profiles/*.override.ts'; in each profile.json field that has "default", rename the key to "defaultValue", then pnpm forge (or pnpm role:generate --all) and, if a generated drizzle.ts changed, [user-run] pnpm db:push then pnpm db:push:check
+2. If fork code imports chalk, add it back to the fork's own devDependencies (pnpm add -D chalk); upstream no longer ships it
+3. pnpm typecheck && pnpm lint
+verify: pnpm typecheck and pnpm lint pass | pnpm test:role-config-checks passes | pnpm forge pre-checks pass | pnpm db:push:check reports zero statements
+manual_steps: -
+refs: src/features/core/user/entities/schema.ts, src/features/core/user/services/server/resolvers/requireUserRecord.ts, src/lib/routeFactory/createApiRoute.ts, src/lib/request/getClientIp.ts, scripts/role-config/checks/profile.mjs
+notes: items closed without code: generator↔component type drift (pnpm typecheck checks the in-tree sample output, test:dc-sample-drift proves it equals generator output); .next/static size 5138→5474 KB (one-off measurement, no budget gate; a size gate is new tooling for its own order); Firestore create deletedAt (fixed in 4236af38); contributor hasProfile:false (setting it true regenerates contributor_profiles.is_approved as notNull default false = db:push, so left as is); output.mjs patch() in scripts/domain-config (left as is); paired-device review: createDeviceRoute demo branch (base skipForDemo off, user branch only) and orUser type (overloads, orUser?: never) are already in place, userDirty covers both branches (runRoute wraps the handler; the device branch re-wraps inside its audit context); rate-limit category redesign = design work, follow-up order candidate. Forks not checked for "default" keys or chalk imports

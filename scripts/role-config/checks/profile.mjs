@@ -1,6 +1,6 @@
 // 検査: プロフィール設定（<id>.profile.json）の項目とタグ。
 // 型と入力欄の組・選択肢・既定値はドメインの検査（scripts/domain-config/checks/fields.mjs、表は spec/formInputs.mjs の Neon）を共用する。
-// プロフィール固有: 項目は 1 つ以上、型は表にあるものだけ、メディア型（mediaUploader / mediaCollection）は使えない（プロフィールのテーブルはファイル台帳に未対応）、
+// プロフィール固有: 項目は 1 つ以上、既定値のキーは defaultValue（default は止める）、型は表にあるものだけ、メディア型（mediaUploader / mediaCollection）は使えない（プロフィールのテーブルはファイル台帳に未対応）、
 // tags のキーは PROFILE_FIELD_TAGS、値は項目名か belongsTo / belongsToMany の fieldName。
 // 規則の正: src/features/core/userProfile/README.md（プロフィール設定）
 
@@ -30,6 +30,10 @@ export function profileFieldIssues(profile) {
     }
     else if (isMediaFieldType(field.fieldType) || isCollectionFieldType(field.fieldType)) {
       issues.push(`fields "${field.name}": fieldType "${field.fieldType}" はプロフィールでは使えません（ファイル台帳に未対応。用途を登録した別ドメインの列に置く）`);
+    }
+    // 生成器が読むのは defaultValue だけ。default と書くと黙って無視され、既定値の無い列になる
+    if (field && typeof field === "object" && Object.hasOwn(field, "default")) {
+      issues.push(`fields "${field.name ?? index}": キー "default" は使えません（既定値は defaultValue に書いてください。default は生成器が読まず黙って無視されます）`);
     }
   });
   issues.push(...fieldsIssues(asDomainConfig(profile)));

@@ -153,3 +153,16 @@ test("入力部品の名前: 未知の formInput は profile の fields・relati
   assert.deepEqual(roleConfigIssues(input({ profile: config, registeredInputs: registered })), []);
   assert.deepEqual(roleConfigWarnings(input({ profile: config, registeredInputs: registered })), []);
 });
+
+test("プロフィール項目の既定値は defaultValue だけ（default は止める）", () => {
+  const withDefault = profile({
+    fields: [{ name: "isApproved", label: "承認", fieldType: "boolean", formInput: "switchInput", default: true }],
+    tags: {},
+  });
+  assert.match(joined(profileFieldIssues(withDefault)), /fields "isApproved": キー "default" は使えません/);
+  const withDefaultValue = profile({
+    fields: [{ name: "isApproved", label: "承認", fieldType: "boolean", formInput: "switchInput", defaultValue: true }],
+    tags: {},
+  });
+  assert.doesNotMatch(joined(profileFieldIssues(withDefaultValue)), /"default"/);
+});

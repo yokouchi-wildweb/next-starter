@@ -91,20 +91,26 @@ export const UserSelfUpdateSchema = UserOptionalSchema.pick({
   avatarUrl: true,
 });
 
+// 登録経路（本登録・仮登録）のエラーはそのまま DomainError のメッセージになり、利用者に届く。
+// Zod 既定の英語メッセージ（"Invalid email" など）を出さないよう、全項目に日本語のメッセージを持たせる。
+// role / status / providerType / lastAuthenticatedAt はサーバーが入れる値なので、外れたら内部の不整合として汎用文言にする
+const REGISTRATION_INTERNAL_ERROR = { errorMap: () => ({ message: "登録情報が不正です" }) };
+const RegistrationEmailSchema = z
+  .string({ invalid_type_error: "メールアドレスの形式が正しくありません" })
+  .email({ message: "メールアドレスの形式が正しくありません" })
+  .nullish()
+  .transform((value) => emptyToNull(value));
+
 /**
  * 本登録時のユーザー有効化スキーマ。
  * pending → active への状態遷移で更新可能なフィールドを定義。
  */
 export const UserActivationSchema = z.object({
-  role: z.enum(USER_ROLES),
-  status: z.literal("active"),
+  role: z.enum(USER_ROLES, REGISTRATION_INTERNAL_ERROR),
+  status: z.literal("active", REGISTRATION_INTERNAL_ERROR),
   name: UserNameSchema,
-  email: z
-    .string()
-    .email()
-    .nullish()
-    .transform((value) => emptyToNull(value)),
-  lastAuthenticatedAt: z.coerce.date(),
+  email: RegistrationEmailSchema,
+  lastAuthenticatedAt: z.coerce.date(REGISTRATION_INTERNAL_ERROR),
 });
 
 /**
@@ -112,18 +118,14 @@ export const UserActivationSchema = z.object({
  * 新規作成 or withdrawn → pending への状態遷移で設定するフィールドを定義。
  */
 export const UserPreRegistrationSchema = z.object({
-  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerType: z.enum(USER_PROVIDER_TYPES, REGISTRATION_INTERNAL_ERROR),
   providerUid: z
-    .string({ required_error: "プロバイダー UID が不足しています" })
+    .string({ required_error: "プロバイダー UID が不足しています", invalid_type_error: "プロバイダー UID が不足しています" })
     .trim()
     .min(1, { message: "プロバイダー UID が不足しています" }),
-  role: z.literal("user"),
-  status: z.literal("pending"),
-  email: z
-    .string()
-    .email()
-    .nullish()
-    .transform((value) => emptyToNull(value)),
-  lastAuthenticatedAt: z.coerce.date(),
+  role: z.literal("user", REGISTRATION_INTERNAL_ERROR),
+  status: z.literal("pending", REGISTRATION_INTERNAL_ERROR),
+  email: RegistrationEmailSchema,
+  lastAuthenticatedAt: z.coerce.date(REGISTRATION_INTERNAL_ERROR),
 });
 
