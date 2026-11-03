@@ -241,6 +241,10 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 ルール: trim + `maxLength`（既定 30、設定で調整）+ 制御文字/改行/ゼロ幅文字の拒否。
 表示名のルールを変える場合は `userName.ts` だけを変更すれば全経路に反映される。
 
+外から来た名前（サインインプロバイダーの表示名など）を表示名にするときは `sanitizeUserName(raw)` で整える
+（使用できない文字の除去 + trim + `maxLength` で切る。空文字になりうる。一意性は見ないので保存は `withUserNameGuard` を通す）。
+禁止文字の一覧を fork 側で持ち直さない。
+
 ### 一意性（オプトイン、既定は重複許容）
 
 `USER_NAME_CONFIG.unique.enabled: true` で表示名の重複を禁止できる。DB の unique 制約ではなく
