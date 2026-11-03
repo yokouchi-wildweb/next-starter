@@ -21,7 +21,7 @@ auth/
 │   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   │   └── phoneVerification/   # 電話番号の重複チェック・OTP 検証
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
-├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm (公開 hook の契約表), oauth/*, registration/ (内部) など
+├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm (公開 hook の契約表), oauth/*, registration/・signup/ (内部) など
 ├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin / PhoneVerification 等
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
 ```
@@ -112,7 +112,7 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 
 認証の守り（reCAPTCHA・ID トークン・セッション更新・遷移）と form の処理は `hooks/` 直下の公開 hook が持ち、既定の部品は hook を呼んで描くだけ。fork が画面を作り替えるときは処理を写さず同じ hook を呼び、返る `form` を `AppForm` + 任意の markup（`FieldRenderer` 等）で描く。契約 = hook の名前・引数・戻り値・form の項目名（変えるときは notice）。
 
-- `hooks/registration/` は公開 hook の内部（送信の流れ `submitFlow.ts`・共通の送信 hook・formEntities）。部品・fork はここを import しない
+- `hooks/registration/`・`hooks/signup/` は公開 hook の内部（送信の流れ `submitFlow.ts` / `sendFlow.ts`・共通の送信 hook・formEntities）。部品・fork はここを import しない
 - 送信の流れの単体テスト: `pnpm test:auth-registration-flow`
 
 ### 本登録 form（`/signup/register`）
@@ -133,6 +133,21 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 - `recaptchaV2`: `{ open, siteKey, onClose, onVerify }`。v2 チャレンジが要求されたとき `RecaptchaV2Challenge` に渡す（`siteKey` が null の間は描かない）。v2 トークンを得ると保留中の内容で自動で再送する
 - `rateLimitWarning`: `{ open, onOpenChange }`。429（silent でない）で開く `RateLimitWarningModal` 用
 - `passwordConfirmationRequired`（Email のみ）: パスワード（確認）欄を出すか
+
+### メール送信 form（`/signup` のメール入力・`/entry` の事前登録）
+
+| hook | 引数 | form の項目名 |
+| --- | --- | --- |
+| `useVerificationEmailSendForm({ urlAfterEmailSent })` | `urlAfterEmailSent`: 送信後の遷移先 | `email` |
+| `useEarlyRegistrationSendForm({ urlAfterEmailSent })` | 同上 | `email` |
+
+戻り値（2 本共通。メール認証は `recaptchaV2` が加わる）:
+
+- `form`: `UseFormReturn<EmailSendFormValues>`（zodResolver 済み。型は `useVerificationEmailSendForm` から export）
+- `onSubmit(values)`: `AppForm` の `onSubmit` に渡す。登録済みのメールなら root エラーで止める → （メール認証のみ reCAPTCHA v3）→ メールアドレスを localStorage へ保存（本登録 form が読む）→ リンクを送信 → `urlAfterEmailSent` へ遷移
+- `isSubmitting`: 送信中（事前登録は登録済み確認中も含む）
+- `rootErrorMessage`: `form` の root エラー（`string | null`）。登録済み・送信失敗の文言
+- `recaptchaV2`（メール認証のみ）: `{ open, siteKey, onClose, onVerify }`。`RecaptchaV2Challenge` に渡す。v2 トークンを得ると保留中のメールアドレスへ自動で再送する
 
 ## 関連
 
