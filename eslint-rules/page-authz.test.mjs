@@ -199,6 +199,13 @@ test("config: M4 は UI の場所全体(Screen・page・layout・_layout・guard
   for (const file of ["src/app/foo/_screen/loader.ts", "src/app/foo/route.ts", "src/app/api/foo/_shared/helper.ts", "src/features/core/auth/components/AuthSessionProvider.tsx"]) {
     assert.deepEqual(await lintAt(file, USER_SERVICE), [], file);
   }
+  // サーバーのコードの hooks/ フォルダは UI の hooks ではない(features/**/hooks の glob が services/server/**/hooks にも当たっていた)
+  for (const file of [
+    "src/features/sample/services/server/draw/hooks/drawHooks.ts",
+    "src/features/core/purchaseRequest/services/server/hooks/purchaseCompleteHookRegistry.ts",
+  ]) {
+    assert.deepEqual(await lintAt(file, USER_SERVICE), [], file);
+  }
 });
 
 test("config: M3 は src/app 全体(layout・_layout・loader・guard.ts・API を含む)と UI で error、AuthSessionProvider だけ許可", async () => {
@@ -236,6 +243,10 @@ test("config: M3 は src/app 全体(layout・_layout・loader・guard.ts・API �
   );
   assert.deepEqual(await lintAt("src/features/core/auth/components/AuthSessionProvider.tsx", SESSION), []);
   assert.deepEqual(await lintAt("src/features/sample/services/server/fooService.ts", SESSION), []);
+  // services/server/**/hooks: core は core のサービスとして M3 が掛かり続け、fork は他の fork のサービスと同じく対象外
+  assert.deepEqual(await lintAt("src/features/core/purchaseRequest/services/server/hooks/purchaseCompleteHookRegistry.ts", SESSION), err);
+  assert.deepEqual(await lintAt("src/features/core/auth/services/server/hooks/foo.ts", SESSION), [], "主体を解く基盤(auth)は従来どおり外す");
+  assert.deepEqual(await lintAt("src/features/sample/services/server/draw/hooks/drawHooks.ts", SESSION), []);
 });
 
 test("config: M3 は proxy の項目(src/proxies/**、上流・fork のドット名)で error、解決器を作る src/proxy.ts は対象外", async () => {

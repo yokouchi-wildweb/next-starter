@@ -265,6 +265,7 @@ const config = [
   // UI の場所はサーバーのデータを取らない(M4 を D73 K1 の範囲へ。詳細: eslint-rules/page-authz.mjs, src/features/core/auth/README.md)。
   // 対象 = src/app の Screen・page・layout・_layout・guard.ts・_components の部品と components・hooks。services/server・DB(L1.20)を
   // 値で import しない(型は可)。取得は同じルートの loader(guard.ts の createLoader)へ。loader.ts・route.ts・API は対象外。
+  // features/**/hooks は React の hook(層 3)の意味。services/server/**/hooks 等のサーバーのコードは UI ではないので外す。
   // 名前付き例外 = AuthSessionProvider(Cookie の解析とセッション解決)。セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
   {
     files: [
@@ -278,6 +279,7 @@ const config = [
       "src/app/**/loader.ts",
       "src/app/**/route.{ts,tsx}",
       "src/app/api/**",
+      "src/features/**/services/server/**",
       "src/features/core/auth/components/AuthSessionProvider.tsx",
     ],
     plugins: { "page-authz": pageAuthzPlugin },
@@ -299,12 +301,23 @@ const config = [
       "src/features/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
       "src/proxies/**/*.{ts,tsx,mts,mjs}",
-      // core のサービスもセッションを読まない(主体は呼び手が引数で渡す)。主体を解く基盤だけ外す。
-      // fork のサービスは対象外: 自前のドメインで読んでいる fork があり、別の依頼で判断する
-      "src/features/core/**/services/server/**/*.{ts,tsx}",
     ],
     ignores: [
       "src/features/core/auth/components/AuthSessionProvider.tsx",
+      // サーバーのコード(services/server/**/hooks 等)は UI の hooks ではない。core の分は次の項目で見る
+      "src/features/**/services/server/**",
+    ],
+    plugins: { "page-authz": pageAuthzPlugin },
+    rules: {
+      "page-authz/session-api-callsite": "error",
+    },
+  },
+  // core のサービスもセッションを読まない(主体は呼び手が引数で渡す)。主体を解く基盤だけ外す。
+  // fork のサービスは対象外: 自前のドメインで読んでいる fork があり、別の依頼で判断する。
+  // 上の UI の項目と分けているのは、flat config の ignores が項目全体に効くため(UI 側で services/server を外すと core の分まで外れる)
+  {
+    files: ["src/features/core/**/services/server/**/*.{ts,tsx}"],
+    ignores: [
       "src/features/core/auth/services/server/**",
       "src/features/core/pairedDevice/services/server/session/**",
     ],
