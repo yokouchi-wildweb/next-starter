@@ -37,7 +37,7 @@ import { alwaysOnExceptions, alwaysOnRegistries, gatedSchema as applySchemaGate,
 import { forkAddedFiles } from "../../lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../../../scripts/extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "./alwaysOnEntries.mjs";
-import { matchesPath, patternCoversRoute } from "../../proxies/pathPattern.mjs";
+import { matchesPath, patternCoversRoute } from "../../lib/pathPattern/index.mjs";
 
 // schemaRegistry は `export *` の再 export だけで構成されるため、ESM の namespace import では
 // 名前を拾えない（CJS として読まれ default しか見えない）。db:push と同じく require で全 export を得る
@@ -87,7 +87,7 @@ const toUrlSegments = (file) => {
   );
 };
 
-// パターンがルートを覆うか(完全一致の `=` も含む)は proxy と同じ src/proxies/pathPattern.mjs
+// パターンがルートを覆うか(完全一致の `=` も含む)は門番と同じ src/lib/pathPattern
 
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);
 // ルートの被覆を検査するルール（無効なもの。CHECK_ALL なら全部）

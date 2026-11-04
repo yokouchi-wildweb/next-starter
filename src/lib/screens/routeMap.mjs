@@ -15,7 +15,7 @@ import {
   resolveImportFile,
   stripComments,
 } from "./checks.mjs";
-import { patternCoversRoute } from "../../proxies/pathPattern.mjs";
+import { patternCoversRoute } from "../pathPattern/index.mjs";
 
 import { APP_DIR, discoverRoutes } from "./routeTree.mjs";
 

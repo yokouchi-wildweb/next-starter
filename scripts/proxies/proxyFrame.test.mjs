@@ -39,7 +39,6 @@ function fixture(files) {
   writeFileSync(join(gateDir, "extensionPoints.ts"), GATE_DECLARATION);
   writeFileSync(join(dir, "extensionPoints.ts"), DECLARATION);
   for (const name of [...SKELETON_FILES, "index.ts", "types.ts"]) writeFileSync(join(dir, name), "export const somethingProxy = () => {};\n");
-  writeFileSync(join(dir, "pathPattern.mjs"), "export const x = 1;\n");
   writeFileSync(join(dir, "proxy.test.mts"), "export const handler = 1;\n");
   // "rules/<名前>.ts" は門番の受け口、それ以外は src/proxies の直下
   for (const [name, text] of Object.entries(files)) writeFileSync(join(name.startsWith("rules/") ? gateDir : dir, name), text);

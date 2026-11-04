@@ -18,7 +18,7 @@ export type { FeatureName };
 export type FeatureGateRule = {
   /**
    * ブロック対象のパス。"/demo" = セグメント境界の前方一致("/demo-login" は含まない)、
-   * "=/mypage" = そのパスちょうど(fork が同じ URL の下に足したページを巻き込まない)。照合: src/proxies/pathPattern.mjs
+   * "=/mypage" = そのパスちょうど(fork が同じ URL の下に足したページを巻き込まない)。照合: src/lib/pathPattern
    */
   pathPatterns: string[];
   /**

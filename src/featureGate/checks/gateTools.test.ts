@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 import { gate, type FeatureName } from "@/featureGate";
 import { rules } from "@/featureGate/node";
-import { matchesPath } from "@/proxies/pathPattern.mjs";
+import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 test("gate.enabled: 規則のファイル名で引け、規則の enabled() の答えを返す", () => {
   assert.ok(rules.length > 0);

@@ -3,7 +3,7 @@
 // - 名前: 1 つでも閉なら閉(規則は 1 機能 1 ファイルなので名前 1 つに規則 1 つ)。未知の名前は throw
 // - 住所: 一覧の順(ファイル名の順)で最初の閉じた規則が答え(行き先 redirectTo もその規則の物)
 
-import { matchesPath } from "@/proxies/pathPattern.mjs";
+import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 import { rules } from "./extensions/rules";
 import type { FeatureName, GatedFeatureRule, GatePathResult } from "./types";
