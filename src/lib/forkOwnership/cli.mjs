@@ -33,6 +33,7 @@ const LABELS = {
   picked: "親の緊急修正の pick(台帳の picked:)",
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
+  lineage: ".claude/rules/lineage.md の並び・鍵・打ち消しの誤り",
 };
 
 const PERMIT_STATES = {
@@ -70,7 +71,8 @@ function print(result, { verbose }) {
   }
 
   const violations = result.entries.filter((entry) => entry.verdict === "violation");
-  const problems = violations.length + result.leftovers.length + result.permitErrors.length;
+  const lineageFailures = result.lineage?.failures ?? [];
+  const problems = violations.length + result.leftovers.length + result.permitErrors.length + lineageFailures.length;
   lines.push(result.status === "pass" ? "合格" : `違反 ${problems} 件`);
   lines.push(`基準: ${result.remote}/${result.branch} ${result.base.slice(0, 10)}(fork: ${result.ownerId})`);
   if (result.tier1) {
@@ -103,6 +105,14 @@ function print(result, { verbose }) {
   if (result.permitErrors.length > 0) {
     lines.push("", `一時許可の書式の誤り(${result.permitFile}):`);
     for (const error of result.permitErrors) lines.push(`  ${error.line} 行目: ${error.message}`);
+  }
+  if (lineageFailures.length > 0) {
+    lines.push("", "中間層の規則の誤り(.claude/rules/lineage.md・project.md の overrides:。前置きの規則に合わせて直す):");
+    for (const failure of lineageFailures) lines.push(`  ${failure}`);
+  }
+  if ((result.lineage?.warnings ?? []).length > 0) {
+    lines.push("", "警告(合否は変えない):");
+    for (const warning of result.lineage.warnings) lines.push(`  ${warning}`);
   }
   if (verbose) {
     lines.push("", "合格:");

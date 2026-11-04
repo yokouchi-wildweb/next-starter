@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
+import { checkLineageStructure, checkOverrides, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
 import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 
@@ -298,7 +299,7 @@ export function treeSnapshot(repoRoot, rev) {
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
  * @returns {{ status: "tier1", ownerId: string }
  *   | { status: "unverified", reason: string }
- *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, parentRef: string,
+ *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, downstream: "yes" | "none" | null, parentRef: string,
  *       intake: object[], tier1: { sha: string, chain: { sha: string, name: string }[] }, tier1Files: Set<string> }}
  */
 export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = {}) {
@@ -307,9 +308,6 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
   const ownerId = identity.own;
   if (identity.errors.length > 0) {
     return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId });
-  }
-  if (identity.downstreamError) {
-    return unverified(`下流の有無の宣言に問題がある: ${identity.downstreamError}`, { ownerId });
   }
   if (identity.isTier1) return { status: "tier1", ownerId };
 
@@ -333,7 +331,7 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
   if (tier1.error) return unverified(tier1.error, where);
   const tier1Files = new Set((tryGit(repoRoot, ["ls-tree", "-r", "--name-only", tier1.sha]) ?? "").split("\n").filter(Boolean));
 
-  return { status: "ok", ...where, parentRef, intake: intake.rules, tier1: { sha: tier1.sha, chain: tier1.chain }, tier1Files };
+  return { status: "ok", ...where, downstream: identity.downstream, parentRef, intake: intake.rules, tier1: { sha: tier1.sha, chain: tier1.chain }, tier1Files };
 }
 
 /**
@@ -439,15 +437,18 @@ export function judgeFork(repoRoot, context) {
  */
 export function runCheck(repoRoot, options = {}) {
   const context = resolveForkContext(repoRoot, options);
+  if (context.status === "unverified") return context;
+  // 下流の有無の誤りで止めるのは ownership:check(と lineage の検査)だけ。ownership:who とビルドは止めない(L1.2)
+  const { downstreamError } = readForkIdentity(repoRoot);
+  if (downstreamError) return unverified(`下流の有無の宣言に問題がある: ${downstreamError}`, { ownerId: context.ownerId });
   if (context.status === "tier1") {
     // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
     const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
     return { status: "tier1", ownerId: context.ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
   }
-  if (context.status === "unverified") return context;
-  const { ownerId, remote, branch, base, tier1 } = context;
+  const { ownerId, remote, branch, base, tier1, downstream } = context;
 
-  const { entries, leftovers, middleTier, permitFile, permitErrors } = judgeFork(repoRoot, context);
+  const { entries, leftovers, middleTier, permitFile, permitErrors, headText } = judgeFork(repoRoot, context);
 
   const counts = {};
   for (const entry of entries) {
@@ -456,8 +457,22 @@ export function runCheck(repoRoot, options = {}) {
   }
   for (const leftover of leftovers) counts[`permit-${leftover.reason}`] = (counts[`permit-${leftover.reason}`] ?? 0) + 1;
 
+  // 中間層の規則(lineage.md)の並び・鍵・打ち消し。祖先の部分が基準どおりかは append の判定が見る。
+  // chain は直接の親から上へ積むので、古い順は逆。lineage.md の無い fork(この版を取り込む前)は検査しない
+  const lineageText = headText(LINEAGE_FILE);
+  const lineage = { checked: lineageText !== null, failures: [], warnings: [] };
+  if (lineageText !== null) {
+    const parsed = parseLineage(lineageText);
+    const ancestorsOldestFirst = tier1.chain.map((step) => step.name).reverse();
+    lineage.failures.push(...checkLineageStructure({ parsed, ancestorsOldestFirst, own: ownerId, downstream }));
+    const overrides = checkOverrides({ parsed, projectText: headText(PROJECT_RULES_FILE) ?? "", own: ownerId, projectFile: PROJECT_RULES_FILE });
+    lineage.failures.push(...overrides.failures);
+    lineage.warnings.push(...overrides.warnings);
+  }
+  if (lineage.failures.length > 0) counts.lineage = lineage.failures.length;
+
   const violations = entries.filter((entry) => entry.verdict === "violation");
-  const failed = violations.length > 0 || leftovers.length > 0 || permitErrors.length > 0;
+  const failed = violations.length > 0 || leftovers.length > 0 || permitErrors.length > 0 || lineage.failures.length > 0;
   return {
     status: failed ? "fail" : "pass",
     ownerId,
@@ -471,6 +486,7 @@ export function runCheck(repoRoot, options = {}) {
     counts,
     entries,
     leftovers,
+    lineage,
   };
 }
 

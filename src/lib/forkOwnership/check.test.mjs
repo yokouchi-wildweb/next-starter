@@ -39,8 +39,10 @@ const commitAll = (root, message) => {
 let tmp;
 let counter = 0;
 
-/** 親(Tier1 役)を作る。withIntake: false = この検査を含まない版 */
-function makeParent({ withIntake = true } = {}) {
+const LINEAGE_PREAMBLE = "# lineage\n> **ROLE**: 中間層の規則\n<!-- end preamble -->\n";
+
+/** 親(Tier1 役)を作る。withIntake: false = この検査を含まない版、withLineage = 前置きだけの lineage.md と append の受け口 */
+function makeParent({ withIntake = true, withLineage = false } = {}) {
   const root = join(tmp, `parent-${(counter += 1)}`);
   mkdirSync(root);
   git(root, "init", "-q", "-b", "main");
@@ -53,8 +55,13 @@ function makeParent({ withIntake = true } = {}) {
   write(root, ".notices/README.md", "# notices\n");
   write(root, ".notices/20260101-000000-inherited.md", "# DOWNSTREAM NOTICE id:20260101-000000-inherited\n");
   if (withIntake) {
-    write(root, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\n");
+    write(
+      root,
+      "src/lib/forkOwnership/intake.txt",
+      `edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\n${withLineage ? "append .claude/rules/lineage.md  # 中間層の節\n" : ""}`,
+    );
   }
+  if (withLineage) write(root, ".claude/rules/lineage.md", LINEAGE_PREAMBLE);
   commitAll(root, "base");
   return root;
 }
@@ -511,6 +518,57 @@ describe("ownership:check", () => {
     const ng = runCheck(tier3);
     assert.equal(ng.status, "fail");
     assert.equal(ng.entries.find((e) => e.path === "src/features/core/user/user.ts").reason, "outside-intake");
+  });
+
+  test("多段: lineage.md の節(中間層の節・(default) の打ち消しは合格、並び違い・(default) でない打ち消し・none で自分の節は違反、同名の鍵は警告)", () => {
+    const tier1 = makeParent({ withLineage: true });
+    const tier2 = makeFork(tier1);
+    const lineage = ".claude/rules/lineage.md";
+    write(tier2, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n`);
+    commitAll(tier2, "tier2 section");
+    const tier2Result = runCheck(tier2);
+    assert.equal(tier2Result.status, "pass", JSON.stringify(tier2Result.lineage));
+    assert.equal(tier2Result.lineage.checked, true);
+
+    const tier3 = makeTier(tier2, "grandchild");
+    const project = `## TIER\nfork_id: grandchild\ndownstream: yes\n`;
+    write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.tone = casual | why: 若年層向け\n`);
+    commitAll(tier3, "override default");
+    const ok = runCheck(tier3);
+    assert.equal(ok.status, "pass", JSON.stringify(ok.lineage));
+    assert.deepEqual(ok.lineage.warnings, []);
+
+    write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.relay = never | why: r\n- tone: casual\n`);
+    commitAll(tier3, "override non-default");
+    const ng = runCheck(tier3);
+    assert.equal(ng.status, "fail");
+    assert.match(ng.lineage.failures.join(), /\(default\) でない/);
+    assert.match(ng.lineage.warnings.join(), /鍵 tone は祖先/);
+    assert.equal(ng.counts.lineage, 1);
+    const printed = cli(tier3);
+    assert.equal(printed.status, 1);
+    assert.match(printed.stdout, /中間層の規則の誤り/);
+
+    // 自分の節の後ろに祖先の節をもう一度(追記なので append は通るが、並びが違う)
+    write(tier3, ".claude/rules/project.md", project);
+    write(tier3, lineage, `${readFileSync(join(tier3, lineage), "utf8")}## grandchild\n- own: 1\n<!-- end grandchild -->\n## ${FORK_ID}\n<!-- end ${FORK_ID} -->\n`);
+    commitAll(tier3, "bad order");
+    assert.match(runCheck(tier3).lineage.failures.join(), /並びが違う/);
+
+    // 末端(downstream: none)なのに自分の節
+    write(tier3, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n## grandchild\n- own: 1\n<!-- end grandchild -->\n`);
+    write(tier3, ".claude/rules/project.md", `## TIER\nfork_id: grandchild\ndownstream: none\n`);
+    commitAll(tier3, "leaf with section");
+    const leaf = runCheck(tier3);
+    assert.equal(leaf.status, "fail");
+    assert.match(leaf.lineage.failures.join(), /downstream: none/);
+  });
+
+  test("lineage.md の無い fork(取り込む前)は lineage を検査しない", () => {
+    const fork = makeFork(makeParent());
+    const result = runCheck(fork);
+    assert.equal(result.status, "pass");
+    assert.equal(result.lineage.checked, false);
   });
 
   test("多段: 4 段目も Tier1 の版を取り違えない(Tier2・Tier3 の物は合格、Tier1 の物は違反)", () => {

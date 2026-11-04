@@ -8,6 +8,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parsePaths, staticPrefix } from "./rulePaths.mjs";
+import { formatProblems, LINEAGE_FILE, parseLineage } from "../../src/lib/forkOwnership/lineage.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const coreDir = ".claude/rules/core";
@@ -73,4 +74,12 @@ test("staticPrefix / parsePaths の部品", () => {
   assert.equal(staticPrefix("src/proxy.ts"), null);
   assert.deepEqual(parsePaths('---\npaths:\n  - "a/**"\n  - "b.ts"\n---\n# x\n'), ["a/**", "b.ts"]);
   assert.equal(parsePaths("# no frontmatter\n"), null);
+});
+
+test(`${LINEAGE_FILE}: 書式(frontmatter なし・区切り行がちょうど 1 つ・各節は fork の名前の ## 見出しで区切り行で閉じる)`, () => {
+  // 並び・鍵・打ち消しは祖先の名前が要るので ownership:check(fork)が見る。ここは全 repo の書式だけ
+  const path = join(repoRoot, LINEAGE_FILE);
+  assert.ok(existsSync(path), `${LINEAGE_FILE} が無い(Tier1 が前置きを出す)`);
+  const problems = formatProblems(parseLineage(readFileSync(path, "utf8")));
+  assert.deepEqual(problems, [], problems.join("\n"));
 });

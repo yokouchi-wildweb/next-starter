@@ -58,7 +58,7 @@
     "test:user-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test \"src/app/(user)/_layout/UserLayout.test.tsx\" \"src/app/(user)/_layout/UserParts.test.tsx\" \"src/app/(user)/_layout/UserPageDefault.test.tsx\" \"src/app/(user)/_layout/UserFrame.test.tsx\" \"src/app/(user)/_layout/BottomNav/BottomNavMenu.test.tsx\"",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
     "test:fork-regions": "node --test src/lib/forkOwnership/regions.test.mjs",
-    "test:fork-ownership": "node --test src/lib/forkOwnership/judge.test.mjs src/lib/forkOwnership/check.test.mjs src/lib/forkOwnership/unitNames.test.mjs src/lib/forkOwnership/who.test.mjs",
+    "test:fork-ownership": "node --test src/lib/forkOwnership/judge.test.mjs src/lib/forkOwnership/check.test.mjs src/lib/forkOwnership/unitNames.test.mjs src/lib/forkOwnership/who.test.mjs src/lib/forkOwnership/lineage.test.mjs",
     "test:core-rules": "node --test scripts/claude-rules/coreRules.test.mjs",
     "test:notices": "node --test scripts/notices/notices.test.mjs scripts/notices/hotfixCheck.test.mjs scripts/notices/pickCheck.test.mjs scripts/notices/shippedIndex.test.mjs .claude/skills/flux/incoming.test.mjs",
     "notices:hotfix-check": "node scripts/notices/hotfixCheck.mjs",
