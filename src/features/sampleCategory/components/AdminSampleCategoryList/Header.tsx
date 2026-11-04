@@ -2,7 +2,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";

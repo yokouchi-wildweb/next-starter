@@ -1,6 +1,6 @@
 // src/features/core/user/components/common/AccountBackButton.tsx
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { ArrowLeftIcon } from "lucide-react";
 
 type AccountBackButtonProps = {

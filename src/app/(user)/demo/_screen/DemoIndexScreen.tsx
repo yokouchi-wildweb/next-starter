@@ -2,7 +2,7 @@
 // /demo(デモ)の既定画面。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { ArrowUpRight } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";

@@ -5,7 +5,7 @@
 // loader は access の評価だけ(public。静的な完了案内のみ)。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";

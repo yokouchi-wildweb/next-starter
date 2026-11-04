@@ -5,7 +5,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { useEffect } from "react";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";

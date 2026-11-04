@@ -4,7 +4,7 @@
 
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/cn";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";

@@ -1,7 +1,7 @@
 // src/features/core/user/components/AccountDetails.tsx
 // セクションコンテナ(アカウント基本情報)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
 
 import { Section } from "@/components/Layout/Section";

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { businessConfig } from "@/config/business.config";
 import { HEADER_LOGO_LINK } from "@/config/ui/user-header.config";

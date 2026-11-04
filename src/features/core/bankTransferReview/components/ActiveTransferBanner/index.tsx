@@ -14,7 +14,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { ChevronRight, Clock } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";

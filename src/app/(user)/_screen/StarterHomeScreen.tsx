@@ -8,7 +8,7 @@
 // 背景は FullScreen layer="background" でビューポート全体に敷く(コンテナ幅に閉じない)。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Block } from "@/components/Layout/Block";

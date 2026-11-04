@@ -5,7 +5,7 @@
 //
 // ログイン後の遷移先とログイン済みの redirect は loader が担う。フォームはセクションコンテナ AdminLogin。
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";

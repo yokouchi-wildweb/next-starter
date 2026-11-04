@@ -10,7 +10,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { useState } from "react";
 import { CalendarClock, Check, ChevronRight, CreditCard, Gauge, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";

@@ -1,7 +1,7 @@
 // src/app/(marketing)/entry/_screen/EntrySignupSection.tsx
 // 事前登録フォームセクション
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

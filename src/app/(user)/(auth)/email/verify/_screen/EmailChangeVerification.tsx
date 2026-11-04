@@ -5,7 +5,7 @@
 "use client";
 
 import { useSearchParams, usePathname } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { CheckCircleIcon, XCircleIcon, LoaderIcon, MailIcon, LockIcon } from "lucide-react";
 
 import { Section } from "@/components/Layout/Section";

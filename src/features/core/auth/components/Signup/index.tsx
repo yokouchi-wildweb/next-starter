@@ -3,7 +3,7 @@
 // サインアップ画面全体を表すセクションコンテナです。
 // Server Component として機能し、個別のサインアップ手段は子コンポーネントに委譲します。
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 import { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";

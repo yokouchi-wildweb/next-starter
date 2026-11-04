@@ -96,6 +96,17 @@ const config = [
       "import-boundaries/feature-gate-entries": "error",
     },
   },
+  // - link-via-shelf: next/link を直接 import しない(棚の Link が閉じた機能の住所を自動で隠す。D14・L1.9)。
+  //   強さは field-type-guard と同じく Tier で切り替える(libOwnership.isRoot = src/lib/CATALOG.md の先頭の節が自分):
+  //   Tier1 は全部 error、fork は閉じられる住所の字面を持つファイルだけ warn。テストは対象外
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/**/*.test.{ts,tsx}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/link-via-shelf": libOwnership.isRoot ? "error" : ["warn", { closableOnly: true }],
+    },
+  },
   // - client-no-domain-json: client のコードは domain.json を import しない(写しを読む。判定はプラグインの中)
   {
     files: ["src/**/*.{ts,tsx,mts,mjs}"],

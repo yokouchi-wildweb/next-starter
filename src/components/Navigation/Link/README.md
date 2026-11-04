@@ -13,3 +13,11 @@
 - 判定するのは `href` が文字列のとき。`UrlObject` は `pathname`(無ければ判定しない)
 - `'use client'` の部品だが、server component の中から使ってよい(Provider の中で SSR され、判定が効く)
 - `LinkButton`(`Form/Button`)も中でこれを使い、`gate` を受ける
+
+## lint `import-boundaries/link-via-shelf`
+
+`next/link` を直接 import しない(このファイルだけが包む)。強さは Tier で切り替える(`eslint.config.mjs`、`field-type-guard` と同じ `libOwnership.isRoot`):
+
+- 上流(Tier1): 棚の Link の外の `next/link` の値の import を全部 error
+- fork: 門番の規則の住所(`src/featureGate/rules/*.ts` の `pathPatterns` の文字列リテラル、`/api` の下を除く)に当たる住所の字面(`/` で始まる文字列・テンプレートの頭)を持つファイルの import だけ warn
+- 限界(fork): 字面だけを見る。式で作る `href`・計算で作る規則の住所(例: payment の通貨 slug ごとの住所)・別ファイルから props で渡る住所は見えない。fork のリンクも棚の Link に寄せておけば、見えない住所でも機能を閉じたとき消える

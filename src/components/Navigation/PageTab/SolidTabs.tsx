@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import { Link } from "../Link"
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/_shadcn/tabs"
 import { Flex } from "@/components/Layout/Flex"

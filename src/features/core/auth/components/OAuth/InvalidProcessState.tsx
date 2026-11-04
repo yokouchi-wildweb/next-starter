@@ -1,6 +1,6 @@
 // src/features/auth/components/OAuth/InvalidProcessState.tsx
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";

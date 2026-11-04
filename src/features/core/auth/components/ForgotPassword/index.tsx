@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";

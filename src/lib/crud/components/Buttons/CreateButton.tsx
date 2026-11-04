@@ -2,7 +2,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { Plus, type LucideIcon } from "lucide-react";
 
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";

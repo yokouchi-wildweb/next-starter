@@ -5,7 +5,7 @@
  * PC/SP共通で使用
  */
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 export type MenuItemLinkProps = {
   readonly href?: string | null;

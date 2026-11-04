@@ -43,6 +43,17 @@
 
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
+// ── link-via-shelf(D14、L1.9) ──
+// next/link を直接 import しない。リンクは棚の Link(src/components/Navigation/Link、閉じた機能の住所を自動で隠す)を使う。
+// - 既定(上流 = Tier1): 棚の Link の外の next/link の値の import を全部報告する
+// - option closableOnly(fork): 門番の規則の住所(src/featureGate/rules/*.ts の pathPatterns の文字列リテラル)に当たる
+//   住所の字面('/' で始まる文字列・テンプレートの頭)を持つファイルの import だけを報告する
+// 限界(closableOnly): 字面だけを見る。式で作る href・計算で作る規則の住所(payment の通貨 slug など)・別ファイルから渡る住所は見えない
+
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { matchesPath } from "../src/lib/pathPattern/index.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
 const ROUTE_FACTORY = "src/lib/routeFactory";
@@ -108,6 +119,45 @@ export function featureGateWiringNameOutside(importerRel, resolved, specifiers) 
   const hit = specifiers.find((s) => !s.typeOnly && FEATURE_GATE_WIRING_NAMES.includes(s.name));
   return hit ? hit.name : null;
 }
+const SHELF_LINK = "src/components/Navigation/Link/index.tsx";
+const GATE_RULES_DIR = "src/featureGate/rules";
+
+const closablePatternCache = new Map();
+
+/** 門番の規則の住所のパターン(pathPatterns の中の文字列リテラル、/api の下は除く)。字面で読む */
+export function readClosablePatterns(repoRoot) {
+  if (closablePatternCache.has(repoRoot)) return closablePatternCache.get(repoRoot);
+  const patterns = [];
+  let files = [];
+  try {
+    files = readdirSync(join(repoRoot, GATE_RULES_DIR)).filter((f) => /\.(ts|tsx)$/.test(f));
+  } catch {
+    files = [];
+  }
+  for (const file of files) {
+    const text = readFileSync(join(repoRoot, GATE_RULES_DIR, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    const block = /pathPatterns\s*:\s*\[([\s\S]*?)\]/.exec(text);
+    if (!block) continue;
+    for (const m of block[1].matchAll(/"([^"]*)"|'([^']*)'/g)) {
+      const pattern = m[1] ?? m[2];
+      if (pattern.startsWith("/") || pattern.startsWith("=/")) {
+        if (!matchesPath(pattern.replace(/^=/, ""), "/api")) patterns.push(pattern);
+      }
+    }
+  }
+  closablePatternCache.set(repoRoot, patterns);
+  return patterns;
+}
+
+/** 住所の字面が閉じられる住所に当たるか。当たればそのパターン、無ければ null */
+export function closablePatternOf(text, patterns) {
+  if (!text.startsWith("/") || text.startsWith("//")) return null;
+  const end = text.search(/[?#]/);
+  const pathname = end === -1 ? text : text.slice(0, end);
+  if (pathname === "") return null;
+  return patterns.find((pattern) => matchesPath(pathname, pattern)) ?? null;
+}
+
 const COMMENTS_AT_TOP = /^(?:\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*/;
 
 /** ファイルの先頭(コメントの後)に "use client" があるか */
@@ -271,6 +321,60 @@ const featureGateEntries = {
   },
 };
 
+const linkViaShelf = {
+  meta: {
+    type: "problem",
+    docs: { description: "next/link を直接 import しない(棚の Link を使う)。fork は閉じられる住所の字面を持つファイルだけ" },
+    messages: {
+      rawNextLink:
+        '"next/link" を直接 import しません。棚の Link(import { Link } from "@/components/Navigation")を使うと閉じた機能の住所へのリンクが自動で消えます(閉じていても出すなら gate="always"。src/components/Navigation/Link/README.md)',
+      rawNextLinkClosable:
+        '"next/link" のリンクが閉じられる住所 "{{text}}"(門番の規則 {{pattern}})を指しています。棚の Link(import { Link } from "@/components/Navigation")を使うと機能を閉じたとき自動で消えます(src/components/Navigation/Link/README.md)',
+    },
+    schema: [
+      {
+        type: "object",
+        properties: { closableOnly: { type: "boolean" } },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    if (importerRel === SHELF_LINK) return {};
+    const closableOnly = context.options[0]?.closableOnly === true;
+    const imports = [];
+    const texts = [];
+    const visitors = moduleVisitors(({ node, source, typeOnly }) => {
+      if (source === "next/link" && !typeOnly) imports.push(node);
+    });
+    return {
+      ...visitors,
+      Literal(node) {
+        if (closableOnly && typeof node.value === "string") texts.push(node.value);
+      },
+      TemplateLiteral(node) {
+        if (closableOnly) texts.push(node.quasis[0]?.value.cooked ?? "");
+      },
+      "Program:exit"() {
+        if (imports.length === 0) return;
+        if (!closableOnly) {
+          for (const node of imports) context.report({ node, messageId: "rawNextLink" });
+          return;
+        }
+        const patterns = readClosablePatterns(repoRoot);
+        for (const text of texts) {
+          const pattern = closablePatternOf(text, patterns);
+          if (!pattern) continue;
+          for (const node of imports) context.report({ node, messageId: "rawNextLinkClosable", data: { text, pattern } });
+          return;
+        }
+      },
+    };
+  },
+};
+
 const clientNoDomainJson = {
   meta: {
     type: "problem",
@@ -302,6 +406,7 @@ const plugin = {
     "lib-no-features": libNoFeatures,
     "client-no-domain-json": clientNoDomainJson,
     "feature-gate-entries": featureGateEntries,
+    "link-via-shelf": linkViaShelf,
   },
 };
 

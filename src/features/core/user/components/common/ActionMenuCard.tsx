@@ -2,7 +2,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 

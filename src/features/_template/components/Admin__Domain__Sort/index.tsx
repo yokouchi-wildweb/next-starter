@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { SortableList, type ReorderResult } from "@/lib/sortableList";
 import type { __Domain__ } from "@/features/__domain__/entities/model";
 import { Section } from "@/components/Layout/Section";

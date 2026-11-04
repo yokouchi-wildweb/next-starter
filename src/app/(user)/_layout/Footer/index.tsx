@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { APP_FOOTER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { cn } from "@/lib/cn";

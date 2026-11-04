@@ -13,7 +13,9 @@ import plugin, {
   classifyLibRegistryImport,
   classifyPageGuardImport,
   classifyRouteFactoryImport,
+  closablePatternOf,
   isClientCodeFile,
+  readClosablePatterns,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
 
@@ -286,4 +288,48 @@ test("config: feature-gate-entries は src と scripts で error、テストは�
   assert.deepEqual(await lintAt("scripts/foo/run.ts", DEEP), ["import-boundaries/feature-gate-entries:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/index.ts", `import { gate } from "@/featureGate";\nexport const x = gate;\n`), ["import-boundaries/feature-gate-entries:2"]);
   assert.deepEqual(await lintAt("scripts/foo/run.test.mjs", DEEP), []);
+});
+
+test("rule link-via-shelf: 既定は棚の Link の外の next/link を全部止め、棚の Link の中と型だけの import は通す", () => {
+  ruleTester.run("link-via-shelf", plugin.rules["link-via-shelf"], {
+    valid: [
+      { code: `import NextLink from "next/link";`, filename: at("src/components/Navigation/Link/index.tsx") },
+      { code: `import type { LinkProps } from "next/link";`, filename: at("src/app/x/page.tsx") },
+      { code: `import { Link } from "@/components/Navigation";`, filename: at("src/app/x/page.tsx") },
+    ],
+    invalid: [
+      { code: `import Link from "next/link";\nconst a = "/somewhere";`, filename: at("src/app/x/page.tsx"), errors: [{ messageId: "rawNextLink" }] },
+      { code: `import NextLink from "next/link";`, filename: at("src/features/core/user/components/X.tsx"), errors: [{ messageId: "rawNextLink" }] },
+    ],
+  });
+});
+
+test("rule link-via-shelf closableOnly(fork): 規則の住所の字面(文字列・テンプレートの頭)を持つファイルだけ止める", () => {
+  const options = [{ closableOnly: true }];
+  ruleTester.run("link-via-shelf", plugin.rules["link-via-shelf"], {
+    valid: [
+      { code: `import Link from "next/link";\nconst a = "/my-own-page";`, filename: at("src/app/x/page.tsx"), options },
+      { code: `import Link from "next/link";\nconst a = "/api/wallet";`, filename: at("src/app/x/page.tsx"), options },
+      { code: `import Link from "next/link";\nconst a = "https://example.com/wallet";`, filename: at("src/app/x/page.tsx"), options },
+      { code: `import Link from "next/link";\nconst href = base + "/x";`, filename: at("src/app/x/page.tsx"), options },
+    ],
+    invalid: [
+      { code: `import Link from "next/link";\nconst a = "/wallet/history?x=1";`, filename: at("src/app/x/page.tsx"), options, errors: [{ messageId: "rawNextLinkClosable" }] },
+      { code: "import Link from \"next/link\";\nconst a = `/wallet/${slug}`;", filename: at("src/app/x/page.tsx"), options, errors: [{ messageId: "rawNextLinkClosable" }] },
+    ],
+  });
+});
+
+test("readClosablePatterns: 実リポの規則から字面のパターンを読み、/api の下は除く", () => {
+  const patterns = readClosablePatterns(repoRoot);
+  assert.ok(patterns.includes("/wallet"), "wallet の住所");
+  assert.ok(patterns.every((p) => !/^=?\/api(\/|$)/.test(p)), "/api の下は除く");
+  assert.equal(closablePatternOf("/wallet/history#a", patterns), "/wallet");
+  assert.equal(closablePatternOf("//wallet", patterns), null);
+});
+
+test("config: link-via-shelf は Tier1 で error(テストは対象外)", async () => {
+  const RAW = `import Link from "next/link";\nexport const x = Link;\n`;
+  assert.deepEqual(await lintAt("src/app/foo/_components/Part.tsx", RAW), ["import-boundaries/link-via-shelf:2"]);
+  assert.deepEqual(await lintAt("src/app/foo/_components/Part.test.tsx", RAW), []);
 });

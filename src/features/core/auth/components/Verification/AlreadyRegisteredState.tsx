@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";

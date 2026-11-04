@@ -2,7 +2,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import { Link } from "../Link"
 
 import { Flex } from "@/components/Layout/Flex"
 import { Span } from "@/components/TextBlocks/Span"

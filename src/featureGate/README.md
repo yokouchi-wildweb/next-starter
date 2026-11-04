@@ -67,6 +67,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 - `GatedLink`(`@/featureGate/client`): 同じ判定で描かない。棚の口の差し込みに依らない(口を別の判定で包み直した場所の中でも門番の判定で隠す)
 - 隠すのは「`/` で始まる内部の住所で、今の枠の中の、`redirectTo` の無い閉じた機能の住所」だけ(判定 `tools/client/linkHidden.ts` → `hiddenHref.ts`、`gate.filter` と同じ)。外部 URL・`redirectTo` 付きの閉・枠の外(利用者の枠で `/admin`)・Provider の外は描く(`useGate` と違い throw しない)
 - server component の中から使ってよい(client 部品として Provider の中で SSR され、判定が効く)。server 版の GatedLink は作らない
+- `next/link` の直 import は lint `import-boundaries/link-via-shelf` が知らせる(上流 error、fork は規則の住所の字面に当たるファイルだけ warn。字面に出ない住所は見えない限界: 棚の Link の README)
 
 ## 機能を閉じる規則
 

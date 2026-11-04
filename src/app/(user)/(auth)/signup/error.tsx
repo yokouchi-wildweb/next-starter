@@ -2,7 +2,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";

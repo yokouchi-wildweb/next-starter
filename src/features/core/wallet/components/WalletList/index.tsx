@@ -1,7 +1,7 @@
 // src/features/core/wallet/components/WalletList/index.tsx
 // セクションコンテナ(ウォレット一覧)
 
-import Link from "next/link";
+import { Link } from "@/components/Navigation";
 import { ChevronRight } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
