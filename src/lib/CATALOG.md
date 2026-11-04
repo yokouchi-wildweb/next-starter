@@ -10,6 +10,7 @@
 ## next-starter
 - src/lib/ai — Claude API を使う汎用エージェント基盤(runAgent のツール実行ループ、型付きイベント、SSE)
 - src/lib/aiVision — Claude Vision による画像の事前判定ユーティリティ
+- src/lib/analyticsConsent — アクセス解析の送信の門(ANALYTICS_CONFIG の有効化 + 同意の状態。計測サービスに依存しない、同意バナー / CMP の差し込み口)
 - src/lib/audit — 監査ログ基盤(ALS コンテキスト・diff・denylist)
 - src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
 - src/lib/clarity — Microsoft Clarity 解析タグ

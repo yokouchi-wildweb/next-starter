@@ -1,15 +1,32 @@
 // src/lib/firebase/client/analytics.ts
 
-import { Analytics, getAnalytics, logEvent } from "firebase/analytics";
+import {
+  type Analytics,
+  getAnalytics,
+  logEvent,
+  setAnalyticsCollectionEnabled,
+} from "firebase/analytics";
+
+import { isAnalyticsAllowed, subscribeAnalyticsConsent } from "@/lib/analyticsConsent";
+
 import { app, isFirebaseClientConfigured } from "./app";
 
 let analytics: Analytics | null = null;
+
+// 同意が取り消されたら、初期化済みのインスタンスの収集を止める（再び許可されたら戻す）
+if (typeof window !== "undefined") {
+  subscribeAnalyticsConsent(() => {
+    if (analytics) setAnalyticsCollectionEnabled(analytics, isAnalyticsAllowed());
+  });
+}
 
 /**
  * Firebase Analytics インスタンスを取得
  * - SSR環境では null を返す
  * - Firebase クライアント自体が未設定の場合は null を返す
  * - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID が未設定の場合は null を返す
+ * - 送ってよくない（ANALYTICS_CONFIG.enabled が false、または同意が無い）場合は null を返す。
+ *   getAnalytics は呼んだ時点で gtag を読み込むので、許可が出るまで初期化しない（@/lib/analyticsConsent）
  */
 export function getFirebaseAnalytics(): Analytics | null {
   if (typeof window === "undefined") return null;
@@ -17,6 +34,8 @@ export function getFirebaseAnalytics(): Analytics | null {
 
   const measurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
   if (!measurementId) return null;
+
+  if (!isAnalyticsAllowed()) return null;
 
   if (!analytics) {
     analytics = getAnalytics(app);

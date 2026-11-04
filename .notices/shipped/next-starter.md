@@ -260,3 +260,4 @@
 - id:20261104-085017-intake-line-webhook-handlers | severity:info | checkpoint:intake-line-webhook-handlers | resolves:20261101-113401-intake-line-webhook-handlers
 - id:20261105-065201-firebase-hardening | severity:action-required | checkpoint:firebase-hardening
 - id:20261104-091518-eslint-required-rules | severity:info | checkpoint:eslint-required-rules
+- id:20261105-070608-analytics-opt-in-consent | severity:action-required | checkpoint:analytics-opt-in-consent

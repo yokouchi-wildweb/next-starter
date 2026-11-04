@@ -84,7 +84,14 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
 
 **フォーク先での利用**: この値を設定しなければ Analytics は自動的に無効化されます（エラーは発生しません）。
 
-#### 3. 動作確認
+#### 3. 送信を有効にし、同意の扱いを決める
+
+Measurement ID を入れただけでは何も送りません。`src/config/app/analytics.config.ts` の `ANALYTICS_CONFIG` で有効にします（門の仕様は [src/lib/analyticsConsent/README.md](../analyticsConsent/README.md)）。
+
+- `enabled: true` + `consent: "required"`（既定）: 同意バナー / CMP が `setAnalyticsConsent("granted")` を呼ぶまで、初期化（gtag の読み込み）も page_view も trackEvent もしない
+- `enabled: true` + `consent: "notRequired"`: 同意を待たずに送る（同意の取得を求めない運用）
+
+#### 4. 動作確認
 
 開発サーバーを起動し、Firebase コンソールの「Analytics > DebugView」でイベントが送信されていることを確認します。
 
@@ -104,7 +111,7 @@ localStorage.setItem('debug_mode', 'true');
 
 #### ページビューの自動トラッキング
 
-`src/app/layout.tsx` に `<FirebaseAnalytics />` コンポーネントが配置されており、ルート遷移時に自動で `page_view` イベントが送信されます。追加の設定は不要です。
+`src/app/layout.tsx` に `<FirebaseAnalytics />` コンポーネントが配置されており、送ってよいとき（上の 3.）はルート遷移時に自動で `page_view` イベントが送信されます。同意が後から出たときは、その時点のページの `page_view` を 1 回送ります。
 
 ```tsx
 // src/app/layout.tsx（設定済み）
