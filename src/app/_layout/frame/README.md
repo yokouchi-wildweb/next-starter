@@ -1,6 +1,6 @@
 # 枠の宣言(frame.default.ts / frame.ts)
 
-ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm extensions:generate` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout、読み手 `useUserFrame`)と管理の枠(`admin` の AdminLayout、読み手 `useAdminFrame`)がそれぞれの表を読む。
+ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm extensions:generate` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout)と管理の枠(`admin` の AdminLayout)が、共通の読み手 `useFrameAttributes(<自分の表>)` でそれぞれの表を読み、外枠の属性 `data-frame-hide` / `data-frame-fill` にする。
 
 原則: 隣に置く宣言・差し替え・上書きは相手を名指す(ファイル名かキー)。隣に何があるかで意味を変えない。
 
@@ -11,8 +11,9 @@
 | `parts.mjs` | 枠の部位の一覧(唯一の元、data-slot の名前 31 名)・隠せる部位・枠の根・端末 |
 | `resolve.mjs` | 宣言の形の検査・重ね(親の鎖)・表の照合 `matchFrame`(純関数。生成器と実行時の読み手が共有) |
 | `types.ts` | `FrameDeclaration` / `FrameValue`(利用者の枠)・`AdminFrameDeclaration` / `AdminFrameValue`(管理の枠)・表の行の型 |
+| `useFrameAttributes.ts` | 表の共通の読み手("use client" の hook)。`matchFrame(useSelectedLayoutSegments(), table)` → 外枠の属性(型 `FrameAttributes`)。client なので `index.ts` から re-export せず、このパスから直に import する |
 | `index.ts` | 入口(re-export だけ) |
-| `parts.test.mjs` / `resolve.test.mjs` | `pnpm test:frame-declaration` |
+| `parts.test.mjs` / `resolve.test.mjs` / `useFrameAttributes.test.tsx` | `pnpm test:frame-declaration` |
 
 生成器は `scripts/extensions/frames.mjs`(テスト `pnpm test:extensions`)。`.mjs` なのは、tsx を通さない生成器(node)からも TypeScript からも import するため。
 

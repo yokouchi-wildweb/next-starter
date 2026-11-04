@@ -79,7 +79,7 @@
     "test:feature-gate:client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/clientTools.test.tsx src/featureGate/checks/readers.test.tsx",
     "test:proxy-frame": "node --test scripts/proxies/proxyFrame.test.mjs",
     "test:extensions": "node --test scripts/extensions/extensions.test.mjs scripts/extensions/frames.test.mjs",
-    "test:frame-declaration": "node --test src/app/_layout/frame/parts.test.mjs src/app/_layout/frame/resolve.test.mjs",
+    "test:frame-declaration": "node --test src/app/_layout/frame/parts.test.mjs src/app/_layout/frame/resolve.test.mjs && npx tsx --experimental-test-module-mocks --test src/app/_layout/frame/useFrameAttributes.test.tsx",
     "test:extension-items": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/extensions/upstreamItems.test.mts",
     "test:proxy": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/proxies/proxy.test.mts",
     "test:frame-dims": "npx tsx --test src/hooks/useFrameDimsStyle.test.ts",

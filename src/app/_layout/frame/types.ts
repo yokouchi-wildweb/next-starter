@@ -44,3 +44,9 @@ export type FrameTableRow = {
 };
 
 export type FrameTable = readonly FrameTableRow[];
+
+/** 枠の根(外枠)に付ける属性(./useFrameAttributes.ts)。data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り、data-frame-fill = 本文が残りの高さを埋める */
+export type FrameAttributes = {
+  readonly "data-frame-hide"?: string;
+  readonly "data-frame-fill"?: "";
+};
