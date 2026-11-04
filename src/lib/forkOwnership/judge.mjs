@@ -21,6 +21,7 @@ export const REASONS = {
   renamed: "violation", // 基準にあるファイルの rename・移動
   "ancestor-lib-add": "violation", // 祖先 Tier の lib の中へのファイル追加
   "core-add": "violation", // src/features/core/ の中への受け口の項目でない追加(fork のドメインは src/features/<x>)
+  "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・required/)
   "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
   "outside-intake": "violation", // 受け口の外の書き換え
@@ -39,6 +40,7 @@ const libNameOf = (path) => {
 };
 
 const CORE_PREFIX = "src/features/core/";
+const GATE_PREFIX = "src/featureGate/";
 
 const headUntilMarker = (text) => {
   if (text === null) return null;
@@ -77,13 +79,14 @@ function judgeModified(rule, baseText, headText) {
  *   headText: (path: string) => string | null,                   // fork 側の中身(無ければ null)
  *   baseLibs: Iterable<string>,                                  // 基準の src/lib 直下のディレクトリ名
  *   baseHasCore?: boolean,                                       // 基準に src/features/core/ があるか
+ *   baseHasGate?: boolean,                                       // 基準に src/featureGate/ があるか
  *   intake: { kind: string | null, glob: string, exclude: boolean, line: number }[],  // parseIntake(基準側の intake.txt).rules
  *   places?: { direct: Set<string> },                            // unitPlaces(基準のファイル)。無ければ単位名の検査をしない
  *   baseUnits?: Map<string, string>,                             // unitIndex(基準のファイル): 単位名 → 基準のパス
  * }} input
  * @returns {{ entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string, clash?: string }[], counts: Record<string, number> }}
  */
-export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, intake, places = null, baseUnits = new Map() }) {
+export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, baseHasGate = false, intake, places = null, baseUnits = new Map() }) {
   const libs = new Set(baseLibs);
   const entries = changes.map((change) => {
     const status = change.status[0];
@@ -96,6 +99,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       const target = overrideTargetUnit(change.path);
       if (lib !== null && libs.has(lib)) reason = "ancestor-lib-add";
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
+      else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
       else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);

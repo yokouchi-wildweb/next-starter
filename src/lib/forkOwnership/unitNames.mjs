@@ -5,13 +5,13 @@
 //   x.ts と x.tsx、x.ts と x/index.ts は同じ単位 x。fork が足したパスが、基準(merge-base)にある単位と同じなら同名(unit-clash)。
 // 検査する場所(計画書 S2 の場所だけ。components・hooks・utils・src/lib は対象外):
 // - 受け口のフォルダ(基準の src/**/extensionPoints.ts の dir:、"." = 持ち主の直下)・src/wiring・scripts・scripts/tasks・
-//   scripts/proxies/alwaysOnExceptions … 直下の項目だけ(項目のフォルダの中の部品は見ない)
+//   … 直下の項目だけ(項目のフォルダの中の部品は見ない。門番の例外 src/featureGate/alwaysOnExceptions も宣言の受け口)
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
 // <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
 
 import { readDeclaration } from "./declarations.mjs";
 
-const DIRECT_FIXED = ["src/wiring", "scripts", "scripts/tasks", "scripts/proxies/alwaysOnExceptions"];
+const DIRECT_FIXED = ["src/wiring", "scripts", "scripts/tasks"];
 const ROUTE_NEIGHBOUR = /^src\/app\/(?:.*\/)?(?:_layout|_screen|_components)\//;
 const DECLARATION = /^src\/(?:.*\/)?extensionPoints\.ts$/;
 

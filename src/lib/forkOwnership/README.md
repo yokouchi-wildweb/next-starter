@@ -18,6 +18,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   1. A(fork が足した)→ `added`。ただし次は違反(上から順に)
      - 基準の `src/lib/<name>/` が実在する `<name>` の中 → `ancestor-lib-add`(自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
      - 基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
+     - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`alwaysOnExceptions/`・`required/` の `<名前>.ts`)
      - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(下の「単位名」。`x.ts` と `x.tsx`、ファイルとフォルダの組。別の名前にするか、丸ごと置き換えは `<名前>.replace`)
      - `<対象>.override.ts(x)` で、対象が基準に無い → `override-own`(fork が自分で足した項目への override。fork の項目は直接書き換える。中間 Tier の項目は下の Tier の基準にあるので可)
   2. D → `deleted`、R(元が基準にある)→ `renamed`。受け口の中でも違反(config の削除、`_` 付きへの rename も)
@@ -30,7 +31,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 印の代わりの同名の検査(計画書 01 S2)。単位名 = パスから最後の拡張子と末尾の `/index` を除いた名前(`.replace` / `.override` は名前に残す)。
 
 - 検査する場所(これだけ。components・hooks・utils・`src/lib` は対象外)
-  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`・`scripts/tasks`・`scripts/proxies/alwaysOnExceptions`
+  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`・`scripts/tasks`(門番の例外 `src/featureGate/alwaysOnExceptions` は宣言の受け口)
   - その下全部: route の隣(`src/app/**/_layout`・`_screen`・`_components`)
 - `unit-clash` と `override-own` は持ち主によらず止める(下の多段で `middle-tier` に付け替えない)
 - fork が足したファイルの一覧だけが要る検査(featureGate の規則の重なりなど)は `forkAddedFiles(repoRoot, { parent, branch, fetch })` を使う: Tier1 は git に触れず空、基準が求められなければ `unverified`(合格にしない)
@@ -52,7 +53,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
 
 - 載せている物(手書き): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチの素の名前(page.tsx・枠の layout.tsx・core の 1 行スイッチ)/ `_components/**` / cron の `override.ts` / `domainEntry.override.ts`・ロールとプロフィールの override / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
-- 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm extensions:generate` が拡張点の宣言と 1 行スイッチから書き、ずれは `pnpm extensions:check` が止める(手で編集しない、`scripts/extensions/README.md`「受け口の一覧の生成区画」)。行は全部 `add`: 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)・1 行スイッチの `<名前>.replace`・`_layout` / `_screen` の隣の `*.replace`・`scripts/tasks/*.ts`・`scripts/proxies/alwaysOnExceptions/*.mjs`。区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても合格(検査は基準の区画を読む)。既知の穴: フォルダ形の行は上流のフォルダ項目の中への fork のファイル追加も通す(第 2 段の棚の検査へ)
+- 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm extensions:generate` が拡張点の宣言と 1 行スイッチから書き、ずれは `pnpm extensions:check` が止める(手で編集しない、`scripts/extensions/README.md`「受け口の一覧の生成区画」)。行は全部 `add`: 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)・1 行スイッチの `<名前>.replace`・`_layout` / `_screen` の隣の `*.replace`・`scripts/tasks/*.ts`。区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても合格(検査は基準の区画を読む)。既知の穴: フォルダ形の行は上流のフォルダ項目の中への fork のファイル追加も通す(第 2 段の棚の検査へ)
 - 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す。生成区画の行は見ない(項目 0 の受け口はフォルダが無い)
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(ただし `next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は、印の行ごと生成器の区画として除く。Next の版で中身が変わるので upstream に固定で置けない)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す
@@ -61,7 +62,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - 件数: Tier1 で `pnpm ownership:check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、`pnpm test:fork-ownership` が diagnostic で出す。`/inbox` の一覧の先頭にも出る
   - 負債の行が実在しないファイルを指す・依頼の番号が無いと `pnpm test:fork-ownership` が失敗する
 - 中間 Tier の一覧にも「下流が消してよい」行は作らない。要らない物は持ち主が自分で消し、merge で流す
-- API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `replaceIntakeBlock(text, rows)` → 生成区画を入れ替えたテキスト / `judge({ changes, baseText, headText, baseLibs, baseHasCore, intake, places, baseUnits })` → `{ entries: [{ status, path, from, kind, reason, verdict, clash }], counts }`(`places` = `unitPlaces(基準のファイル, 基準の中身)`、`baseUnits` = `unitIndex(基準のファイル)`。渡さなければ単位名の検査をしない。`clash` = unit-clash の相手の基準のパス)
+- API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `replaceIntakeBlock(text, rows)` → 生成区画を入れ替えたテキスト / `judge({ changes, baseText, headText, baseLibs, baseHasCore, baseHasGate, intake, places, baseUnits })` → `{ entries: [{ status, path, from, kind, reason, verdict, clash }], counts }`(`places` = `unitPlaces(基準のファイル, 基準の中身)`、`baseUnits` = `unitIndex(基準のファイル)`。渡さなければ単位名の検査をしない。`clash` = unit-clash の相手の基準のパス)
 
 ## 一時許可
 

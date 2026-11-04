@@ -323,6 +323,21 @@ describe("ownership:check", () => {
     assert.equal(runCheck(fork).status, "pass");
   });
 
+  test("門番への受け口の外の追加は gate-add で違反(中間 Tier の物にしない)、受け口の項目は合格", () => {
+    const parent = makeParent();
+    write(parent, "src/featureGate/index.ts", "export const gate = {};\n");
+    write(parent, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\nadd src/featureGate/rules/*.{ts,tsx}  # 受け口 rules\n");
+    commitAll(parent, "gate");
+    const fork = makeFork(parent);
+    write(fork, "src/featureGate/mine.ts", "export const mine = 1;\n");
+    write(fork, "src/featureGate/rules/mine.ts", "export const rule = {};\n");
+    commitAll(fork, "gate add");
+    const result = runCheck(fork);
+    assert.equal(result.status, "fail");
+    assert.equal(result.entries.find((item) => item.path === "src/featureGate/mine.ts").reason, "gate-add");
+    assert.equal(result.entries.find((item) => item.path === "src/featureGate/rules/mine.ts").reason, "added");
+  });
+
   test("下書きの指紋で一時許可を書けば合格(permitted)、その後に書き換えると許可し直し", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");

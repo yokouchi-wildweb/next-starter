@@ -319,13 +319,14 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     .map((path) => path.replace(/^src\/lib\//, ""));
 
   const baseHasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/features/core"]) ?? "").trim() !== "";
+  const baseHasGate = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/featureGate"]) ?? "").trim() !== "";
 
   // 単位名の同名・自分の項目への override(D137 の印の代わり): 基準のファイルの単位と照らす
   const baseFiles = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", base]) ?? "").split("\n").filter(Boolean);
   const places = unitPlaces(baseFiles, baseText);
   const baseUnits = unitIndex(baseFiles);
 
-  const judged = judge({ changes, baseText, headText, baseLibs, baseHasCore, intake: intake.rules, places, baseUnits });
+  const judged = judge({ changes, baseText, headText, baseLibs, baseHasCore, baseHasGate, intake: intake.rules, places, baseUnits });
   const middleTier = [];
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation") continue;
@@ -334,10 +335,10 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     const target = entry.status === "R" ? entry.from : entry.path;
     // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
     const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;
-    // core への追加: core は Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
+    // core・門番への追加: core と門番は Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
     const tier1Owned =
-      entry.reason === "core-add"
-        ? [...tier1Files].some((file) => file.startsWith("src/features/core/"))
+      entry.reason === "core-add" || entry.reason === "gate-add"
+        ? [...tier1Files].some((file) => file.startsWith(entry.reason === "core-add" ? "src/features/core/" : "src/featureGate/"))
         : lib
           ? [...tier1Files].some((file) => file.startsWith(`src/lib/${lib}/`))
           : tier1Files.has(target);

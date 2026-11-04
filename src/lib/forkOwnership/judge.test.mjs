@@ -225,6 +225,19 @@ describe("judge", () => {
     assert.equal(add("src/features/core/mine/x.ts", false).reason, "added");
   });
 
+  test("A: 門番の中は受け口の項目だけ。受け口の外・debt は gate-add、基準に門番が無ければ added", () => {
+    const { rules } = parseIntake(["add src/featureGate/rules/*.{ts,tsx}  # r", "add src/featureGate/alwaysOnExceptions/*.{ts,tsx}  # r", "add src/featureGate/required/*.{ts,tsx}  # r", "debt src/featureGate/tools/**  # r"].join("\n"));
+    const add = (path, baseHasGate = true) =>
+      judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], baseHasCore: true, baseHasGate, intake: rules }).entries[0];
+    for (const path of ["src/featureGate/rules/mine.ts", "src/featureGate/alwaysOnExceptions/mine.ts", "src/featureGate/required/wallet.ts"]) assert.equal(add(path).reason, "added", path);
+    const outside = add("src/featureGate/foo.ts");
+    assert.equal(outside.reason, "gate-add");
+    assert.equal(outside.verdict, "violation");
+    assert.equal(add("src/featureGate/tools/server/mine.ts").reason, "gate-add", "debt の行も受け口でない");
+    assert.equal(add("src/featureGate/foo.ts", false).reason, "added");
+    assert.equal(add("src/featureGateMine/foo.ts").reason, "added", "接頭辞はフォルダの境目で見る");
+  });
+
   test("add: 足すのは added、基準にあるファイルの書き換えは outside-intake", () => {
     const { rules } = parseIntake("add src/features/core/user/roles/*.role.json  # r");
     const path = "src/features/core/user/roles/x.role.json";
