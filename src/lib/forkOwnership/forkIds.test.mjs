@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseForkIdDeclaration, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
+import { parseDownstreamDeclaration, parseForkIdDeclaration, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
 
 test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大文字・_・. ・-- の連続)は error", () => {
   assert.deepEqual(parseForkIdDeclaration("## TIER\nfork_id: oripa-do\n"), { forkId: "oripa-do", error: null });
@@ -19,12 +19,12 @@ test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大�
 });
 
 /** project.md・台帳・CATALOG.md を置いた一時リポ */
-function repo({ forkId, ledgers = [], sections = [] }) {
+function repo({ forkId, downstream = "yes", ledgers = [], sections = [] }) {
   const root = mkdtempSync(join(tmpdir(), "fork-ids-"));
   mkdirSync(join(root, ".claude/rules"), { recursive: true });
   mkdirSync(join(root, ".notices/applied"), { recursive: true });
   mkdirSync(join(root, "src/lib"), { recursive: true });
-  if (forkId !== undefined) writeFileSync(join(root, ".claude/rules/project.md"), `## TIER\nfork_id: ${forkId}\n`);
+  if (forkId !== undefined) writeFileSync(join(root, ".claude/rules/project.md"), `## TIER\nfork_id: ${forkId}\n${downstream === null ? "" : `downstream: ${downstream}\n`}`);
   for (const name of ledgers) writeFileSync(join(root, `.notices/applied/${name}.md`), "");
   writeFileSync(join(root, "src/lib/CATALOG.md"), `# 目録\n\n${sections.map((n) => `## ${n}\n- src/lib/x — x\n`).join("\n")}`);
   return root;
@@ -35,12 +35,16 @@ test("readForkIdentity: 自分の名前・祖先(台帳名から自分を除く)
     own: "next-starter",
     ancestors: [],
     isTier1: true,
+    downstream: "yes",
+    downstreamError: null,
     errors: [],
   });
-  assert.deepEqual(readForkIdentity(repo({ forkId: "pandora", ledgers: ["oripa-do", "pandora"], sections: ["next-starter", "oripa-do", "pandora"] })), {
+  assert.deepEqual(readForkIdentity(repo({ forkId: "pandora", downstream: "none", ledgers: ["oripa-do", "pandora"], sections: ["next-starter", "oripa-do", "pandora"] })), {
     own: "pandora",
     ancestors: ["oripa-do"],
     isTier1: false,
+    downstream: "none",
+    downstreamError: null,
     errors: [],
   });
   assert.deepEqual(readDeclaredForkIds(repo({ forkId: "child", ledgers: ["child", "parent"], sections: ["next-starter"] })), {
@@ -60,4 +64,26 @@ test("readForkIdentity: 宣言なし・形違いの台帳名・祖先と同名�
   // 中間 Tier の名前を名乗る
   const middle = readForkIdentity(repo({ forkId: "oripa-do", ledgers: ["oripa-do"], sections: ["next-starter", "oripa-do", "pandora"] }));
   assert.match(middle.errors.join(), /途中の節/);
+});
+
+test("parseDownstreamDeclaration: yes / none(行末コメント可)、欠落・2 行・未知値・fork_id: と別の節は error", () => {
+  assert.deepEqual(parseDownstreamDeclaration("## TIER\nfork_id: a\ndownstream: yes\n"), { downstream: "yes", error: null });
+  assert.deepEqual(parseDownstreamDeclaration("## TIER\nfork_id: a\ndownstream: none  # 末端\n"), { downstream: "none", error: null });
+  assert.match(parseDownstreamDeclaration("## TIER\nfork_id: a\n").error, /行が無い/);
+  assert.match(parseDownstreamDeclaration("## TIER\nfork_id: a\ndownstream: yes\ndownstream: none\n").error, /2 つ以上/);
+  assert.match(parseDownstreamDeclaration("## TIER\nfork_id: a\ndownstream: many derivative projects\n").error, /使えない値/);
+  assert.match(parseDownstreamDeclaration("## TIER\nfork_id: a\ndownstream:\n").error, /使えない値/);
+  assert.match(parseDownstreamDeclaration("## ROLE\ndownstream: yes\n\n## TIER\nfork_id: a\n").error, /別の節/);
+  // 散文の別名(downstream_users:)は宣言に数えない
+  assert.deepEqual(parseDownstreamDeclaration("## ROLE\ndownstream_users: many\n## TIER\nfork_id: a\ndownstream: yes\n"), { downstream: "yes", error: null });
+});
+
+test("readForkIdentity: downstream: の欠落・未知値は downstreamError(errors には入れない = ビルドは止めない)", () => {
+  const missing = readForkIdentity(repo({ forkId: "acme", downstream: null, sections: ["next-starter"] }));
+  assert.equal(missing.downstream, null);
+  assert.match(missing.downstreamError, /downstream: の行が無い/);
+  assert.deepEqual(missing.errors, []);
+  const bad = readForkIdentity(repo({ forkId: "acme", downstream: "maybe", sections: ["next-starter"] }));
+  assert.match(bad.downstreamError, /使えない値/);
+  assert.deepEqual(bad.errors, []);
 });

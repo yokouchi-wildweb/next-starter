@@ -46,7 +46,7 @@ function makeParent({ withIntake = true } = {}) {
   git(root, "init", "-q", "-b", "main");
   git(root, "remote", "add", "origin", `git@github.com:acme/parent.git`);
   write(root, "src/lib/CATALOG.md", `# 目録\n\n## ${PARENT_ID}\n- src/lib/crud — CRUD\n`);
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${PARENT_ID}\n`);
+  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${PARENT_ID}\ndownstream: yes\n`);
   write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
   write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
   write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
@@ -66,7 +66,7 @@ function makeFork(parent) {
   git(root, "remote", "rename", "origin", "upstream");
   git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
   write(root, "src/features/game/game.ts", "export const game = 1;\n");
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\n`);
+  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\ndownstream: yes\n`);
   // 台帳の初めの行: 取り込んだ上流(Tier1)の版を upstream: に(D29)
   write(root, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
   commitAll(root, "fork start");
@@ -176,9 +176,22 @@ describe("ownership:check", () => {
 
     // origin が親と同じでも、名前が CATALOG の先頭の節と違えば Tier1 扱いにしない
     const parent = makeParent();
-    write(parent, ".claude/rules/project.md", "## TIER\nfork_id: someone-else\n");
+    write(parent, ".claude/rules/project.md", "## TIER\nfork_id: someone-else\ndownstream: yes\n");
     commitAll(parent, "rename");
     assert.notEqual(runCheck(parent).status, "tier1");
+  });
+
+  test("downstream: の宣言が無い・yes / none 以外 → 未検証(2)", () => {
+    const fork = makeFork(makeParent());
+    write(fork, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\n`);
+    commitAll(fork, "no downstream");
+    const missing = runCheck(fork);
+    assert.equal(missing.status, "unverified");
+    assert.match(missing.reason, /downstream: の行が無い/);
+    assert.equal(cli(fork).status, 2);
+    write(fork, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\ndownstream: maybe\n`);
+    commitAll(fork, "bad downstream");
+    assert.match(runCheck(fork).reason, /使えない値/);
   });
 
   describe("単位名の同名(unit-clash)と自分の項目への override(override-own)", () => {
@@ -469,7 +482,7 @@ describe("ownership:check", () => {
     git(tmp, "clone", "-q", upper, root);
     git(root, "remote", "rename", "origin", "upstream");
     git(root, "remote", "add", "origin", `git@github.com:acme/${name}.git`);
-    write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${name}\n`);
+    write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${name}\ndownstream: yes\n`);
     write(root, `.notices/applied/${name}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
     commitAll(root, `${name} start`);
     return root;

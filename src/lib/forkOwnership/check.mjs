@@ -259,6 +259,8 @@ function resolveParentBase(repoRoot, ownerId, { parent, branch, fetch }) {
 export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) {
   const identity = readForkIdentity(repoRoot);
   if (identity.errors.length > 0) return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId: identity.own });
+  // 下流の有無の宣言の誤りは所有の検査だけが止める(errors と別の欄。ビルドは止めない)
+  if (identity.downstreamError) return unverified(`下流の有無の宣言に問題がある: ${identity.downstreamError}`, { ownerId: identity.own });
   if (identity.isTier1) return { status: "tier1", added: new Set() };
   const where = resolveParentBase(repoRoot, identity.own, { parent, branch, fetch });
   if (where.status === "unverified") return where;
@@ -305,6 +307,9 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
   const ownerId = identity.own;
   if (identity.errors.length > 0) {
     return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId });
+  }
+  if (identity.downstreamError) {
+    return unverified(`下流の有無の宣言に問題がある: ${identity.downstreamError}`, { ownerId });
   }
   if (identity.isTier1) return { status: "tier1", ownerId };
 

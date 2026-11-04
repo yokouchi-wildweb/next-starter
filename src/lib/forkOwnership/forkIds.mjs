@@ -8,6 +8,9 @@
 // - 祖先と同名は errors: Tier1 の名前を名乗るのに自分の台帳がある(= fork)/ CATALOG の途中の節(中間 Tier)の名前を名乗る
 // 台帳名・一時許可 .fork-ownership/<名前>.permits.txt・CATALOG の節の見出しはこの名前(受け口のファイル名には使わない、D137)。
 // origin の URL からは導かない(導く実装は持たない)。
+// - 下流の有無: project.md の `downstream: yes|none` の 1 行(fork_id: と同じ ## 節)。読み手はここだけ(/ship・/flux・
+//   lineage.md の検査もこの値を使う)。欠落・2 行以上・yes / none 以外・fork_id: と別の節は downstreamError。
+//   errors には入れない: ownership:check と lineage.md の検査だけが未検証(exit 2)にし、ビルド(extensions:check)は止めない
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,6 +23,15 @@ export const CATALOG_FILE = "src/lib/CATALOG.md";
 export const FORK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const SECTION_HEADING = /^##\s+(\S+)\s*$/gm;
+
+/** 下流の有無の宣言の値(yes = 下流の fork を持つ・持つ予定がある、none = 末端) */
+export const DOWNSTREAM_VALUES = ["yes", "none"];
+
+/** 行番号 index の行が属する ## 節の見出しの行番号(節の外 = -1) */
+const sectionStartOf = (lines, index) => {
+  for (let i = index; i >= 0; i -= 1) if (/^##\s/.test(lines[i])) return i;
+  return -1;
+};
 
 /**
  * project.md の本文から自分の名前を読む。宣言が無い・`-`・形違いは error
@@ -36,23 +48,44 @@ export function parseForkIdDeclaration(text) {
   return { forkId: value, error: null };
 }
 
+/**
+ * project.md の本文から下流の有無を読む。欠落・2 行以上・yes / none 以外・fork_id: と別の ## 節は error
+ * @param {string} text project.md の中身
+ * @returns {{ downstream: "yes" | "none" | null, error: string | null }}
+ */
+export function parseDownstreamDeclaration(text) {
+  const lines = text.split("\n");
+  const at = lines.flatMap((line, index) => (/^downstream:/.test(line) ? [index] : []));
+  if (at.length === 0) return { downstream: null, error: "downstream: の行が無い(fork_id: と同じ節に downstream: yes|none を 1 行。下流の fork を持つなら yes)" };
+  if (at.length > 1) return { downstream: null, error: "downstream: の行が 2 つ以上ある" };
+  const value = lines[at[0]].slice("downstream:".length).trim().split(/\s+/)[0] ?? "";
+  if (!DOWNSTREAM_VALUES.includes(value)) return { downstream: null, error: `downstream: ${value || "(空)"} は使えない値(yes か none)` };
+  const forkIdAt = lines.findIndex((line) => /^fork_id:/.test(line));
+  if (forkIdAt !== -1 && sectionStartOf(lines, forkIdAt) !== sectionStartOf(lines, at[0])) {
+    return { downstream: null, error: "downstream: が fork_id: と別の節にある(同じ節に置く)" };
+  }
+  return { downstream: /** @type {"yes" | "none"} */ (value), error: null };
+}
+
 /** CATALOG.md の節の見出し(上流から順、先頭 = Tier1) */
 export function catalogSectionNames(text) {
   return [...text.matchAll(SECTION_HEADING)].map((match) => match[1]);
 }
 
 /**
- * 自分の名前・祖先の名前・Tier1 かを読む
+ * 自分の名前・祖先の名前・Tier1 か・下流の有無を読む
  * @param {string} repoRoot リポジトリ直下
- * @returns {{ own: string | null, ancestors: string[], isTier1: boolean, errors: string[] }}
+ * @returns {{ own: string | null, ancestors: string[], isTier1: boolean, downstream: "yes" | "none" | null, downstreamError: string | null, errors: string[] }}
+ *   downstreamError = downstream: の宣言の誤り(errors と別。読むのは ownership:check と lineage.md の検査だけ)
  */
 export function readForkIdentity(repoRoot) {
   const errors = [];
   const rulesPath = join(repoRoot, PROJECT_RULES_FILE);
-  const { forkId: own, error } = existsSync(rulesPath)
-    ? parseForkIdDeclaration(readFileSync(rulesPath, "utf8"))
-    : { forkId: null, error: `${PROJECT_RULES_FILE} が無い` };
+  const rulesText = existsSync(rulesPath) ? readFileSync(rulesPath, "utf8") : null;
+  const { forkId: own, error } = rulesText !== null ? parseForkIdDeclaration(rulesText) : { forkId: null, error: `${PROJECT_RULES_FILE} が無い` };
   if (error) errors.push(`${PROJECT_RULES_FILE}: ${error}`);
+  const declared = rulesText !== null ? parseDownstreamDeclaration(rulesText) : { downstream: null, error: null };
+  const downstreamError = declared.error ? `${PROJECT_RULES_FILE}: ${declared.error}` : null;
 
   const ledgerDir = join(repoRoot, LEDGER_DIR);
   const ledgerIds = existsSync(ledgerDir)
@@ -77,7 +110,7 @@ export function readForkIdentity(repoRoot) {
       errors.push(`${PROJECT_RULES_FILE}: fork_id: ${own} は ${CATALOG_FILE} の途中の節(祖先)と同じ名前(祖先と違う名前にする)`);
     }
   }
-  return { own, ancestors, isTier1, errors };
+  return { own, ancestors, isTier1, downstream: declared.downstream, downstreamError, errors };
 }
 
 /**

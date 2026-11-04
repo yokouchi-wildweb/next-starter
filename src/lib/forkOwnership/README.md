@@ -212,7 +212,8 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
 - 自分の名前: `.claude/rules/project.md` の `fork_id: <名前>` の 1 行。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前(`-` の印は廃止)
 - 親(上の Tier)の名前: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれる)。fork が書くのは自分の `fork_id:` の 1 行だけ
 - 使える形: 小文字・数字・ハイフン(台帳・一時許可のファイル名になるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(ownership:check は exit 2)
-- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)`
+- 下流の有無: 同じ `project.md` の `fork_id:` と同じ節に `downstream: yes|none` の 1 行(yes = 下流の fork を持つ・持つ予定)。読み手は `forkIds.mjs` だけで、`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う。欠落・2 行以上・yes / none 以外・`fork_id:` と別の節は `downstreamError`(名前の誤りの `errors` とは別の欄)。止めるのは ownership:check(未検証 = exit 2)と lineage.md の検査だけで、`extensions:check`(`pnpm build`)は止めない。散文で下流を説明する行は別の鍵名(Tier1 は `downstream_users:`)
+- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, downstream, downstreamError, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)` / `parseDownstreamDeclaration(text)`
 - origin の URL から導く実装は持たない(D27)
 
 ## 点つきの名前の分類(dottedNames.mjs)
