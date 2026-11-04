@@ -39,7 +39,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
     headerOffset,
   } = useHeaderData();
 
-  // ヘッダーとナビを隠す端末・ページ(各ルートの frame.ts)では styles/_base/frame.css が display: none にする
+  // ヘッダーとナビを隠す端末・ページ(各ルートの枠の宣言 frame.default.ts / frame.ts)では styles/_base/frame.css が display: none にする
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}

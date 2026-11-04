@@ -32,13 +32,13 @@ export type KioskFrameProps = ComponentPropsWithoutRef<"div"> & {
  * - overflow-clip（scroll container 化しないので focus 駆動の勝手なスクロールも
  *   起きない）+ overscroll-none（タブレットの引っ張り更新・バウンスを抑止）
  * - flex-col。子は `flex-1 min-h-0` だけで残り高さを得る
- *   （frame.ts の fill のページ / AdminPage fill と同じ子契約。calc() やマジックナンバー不要）
+ *   （枠の宣言の fill のページ / AdminPage fill と同じ子契約。calc() やマジックナンバー不要）
  * - ヘッダー・フッター・認証・Provider は一切持たない。bg-background text-foreground
  *   だけ既定で当てる（className で上書き可）
  *
- * frame.ts の fill との違い: fill は UserLayout の外枠が属性 data-frame-fill で確定高さに切り替わり
+ * 枠の宣言の fill との違い: fill は UserLayout の外枠が属性 data-frame-fill で確定高さに切り替わり
  * 「ヘッダー下の残り高さ」をページが占有するフロー内の形。KioskFrame は自身がビューポート根。
- * レイアウトを持つ画面では frame.ts の fill(枠も隠すなら hide)を、持たない独立ルート群では
+ * レイアウトを持つ画面では枠の宣言の fill(枠も隠すなら hide)を、持たない独立ルート群では
  * KioskFrame を使う。
  *
  * 全画面化ボタンは画面デザインの一部なので内蔵しない。useFullscreen を使った

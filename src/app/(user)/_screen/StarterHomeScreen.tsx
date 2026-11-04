@@ -3,7 +3,7 @@
 // 上流所有。下流は編集・削除せず、自前のトップページを ../_components/<Name>Screen.tsx に作って
 // ../page.tsx の import 先を差し替える(README.md 参照)。部品は ./StarterHome/ にある(Screen 専用、契約外)。
 //
-// レイアウト: fill(../frame.ts の page の fill: true)でヘッダー下〜フッター上の残り高さちょうどに収め、
+// レイアウト: fill(../frame.default.ts の page: { fill: true })でヘッダー下〜フッター上の残り高さちょうどに収め、
 // ページ自体はスクロールしない(本文は flex-1 min-h-0 で残り高さを占める)。内容が収まらない小さな画面では内側だけがスクロールする。
 // 背景は FullScreen layer="background" でビューポート全体に敷く(コンテナ幅に閉じない)。
 

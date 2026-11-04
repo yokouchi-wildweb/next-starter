@@ -2,7 +2,7 @@
  * src/styles/_base/frame.css
  * 枠の部位の出し入れ(手書き・生成しない)。
  *
- * 外枠 [data-frame-root](UserLayout の #user-app-container)に、今のルートの宣言(各ルートの frame.ts → 表)を
+ * 外枠 [data-frame-root](UserLayout の #user-app-container)に、今のルートの宣言(各ルートの枠の宣言 frame.default.ts / frame.ts → 表)を
  * 読み手(src/app/(user)/_layout/hooks/useUserFrame.ts)が属性で付ける:
  *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
  * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠)。狙う先 = 既定部品の id と [data-frame-part~="<部位>"]

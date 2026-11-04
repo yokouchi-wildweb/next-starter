@@ -7,14 +7,14 @@ import { cn } from "@/lib/cn";
 export type UserPageProps = MainProps & {
   /**
    * env(safe-area-inset-*) ぶんのパディングを付与する（横向きスマホのノッチ、ホームインジケータ等の回避）。
-   * 本文が画面の高さを埋めるページ(ルートの frame.ts で宣言)で使う想定
+   * 本文が画面の高さを埋めるページ(ルートの枠の宣言 frame.default.ts / frame.ts で宣言)で使う想定
    */
   safeArea?: boolean;
 };
 
 /**
  * ユーザー側のページコンテナ。枠の部位の出し入れと「本文が画面の高さを埋める」は、
- * ページの隣の frame.ts で宣言する(仕組み: src/app/_layout/frame/README.md)。
+ * ページの隣の枠の宣言(上流 frame.default.ts / 下のリポ frame.ts)に書く(仕組み: src/app/_layout/frame/README.md)。
  * 高さを埋めるページの本文は `flex-1 min-h-0`(とスクロールさせない `overflow-clip`)を自分で付ける
  */
 export function UserPage({ children, safeArea = false, className, padding, containerType, ...props }: UserPageProps) {

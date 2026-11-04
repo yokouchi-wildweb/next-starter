@@ -5,7 +5,7 @@
 // 枠そのもの(BackgroundLayer・#user-app-container・#stretch-wrapper・並び順・表示制御の Provider)は本物を描く。
 // 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さ)はその場の config から、外枠の隠す印は枠の表
 // (extensions/frameTable.ts。静的描画は app router の外なので segments = [] = 枠の根の宣言の行)から組み立てるので、
-// config や frame.ts を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
+// config や枠の宣言を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -33,6 +33,7 @@ let BackgroundLayer: typeof import("./BackgroundLayer").BackgroundLayer;
 let layoutConfig: typeof import("@/config/ui/user-layout.config");
 let bottomNavConfig: typeof import("@/config/ui/user-bottom-menu.config");
 let rootHide: string;
+let rootFill: boolean;
 before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ UserLayout } = await import("./UserLayout"));
@@ -41,6 +42,7 @@ before(async () => {
   bottomNavConfig = await import("@/config/ui/user-bottom-menu.config");
   const { matchFrame } = await import("@/app/_layout/frame");
   const { frameTable } = await import("./extensions/frameTable");
+  ({ fill: rootFill } = matchFrame([], frameTable));
   rootHide = matchFrame([], frameTable).hide.join(" ");
 });
 
@@ -78,10 +80,10 @@ const bottomNavVar = (hasBottomNav = true) =>
  */
 const withBottomNavVar = (html: string) =>
   html.replace('style="--app-header-height:0px"', `style="--app-header-height:0px${bottomNavVar()}"`);
-/** 外枠の隠す印の属性(枠の表の根の行。何も隠さなければ付かない) */
-const rootHideAttr = () => (rootHide ? ` data-frame-hide="${rootHide}"` : "");
+/** 外枠の属性(枠の表の segments = [] の行 = 上流ではトップページ /。何も隠さなければ data-frame-hide は付かず、fill の時だけ data-frame-fill) */
+const rootHideAttr = () => (rootHide ? ` data-frame-hide="${rootHide}"` : "") + (rootFill ? ' data-frame-fill=""' : "");
 /**
- * 枠の宣言の区切り(notice frame-marks → frame.ts)で既定の DOM に入った差分はこの 1 か所だけ:
+ * 枠の宣言の区切り(notice frame-marks → 枠の宣言)で既定の DOM に入った差分はこの 1 か所だけ:
  * 外枠に data-frame-root と、枠の表の行の data-frame-hide(styles/_base/frame.css が読む)
  */
 const withFrameRoot = (html: string) =>
@@ -183,7 +185,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
   );
 });
 
-test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、外枠の隠す印も同じ(差し替えも frame.ts の宣言に従う)", () => {
+test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、外枠の隠す印も同じ(差し替えも枠の宣言に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
   assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
   assert.ok(tagOf(html, "user-app-container").includes(rootHideAttr()));

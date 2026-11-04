@@ -3,7 +3,7 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける
 // (loader の import は ../_screen/loader に、部品の import は ../_screen/MaintenanceAutoRedirect に直す)。手順: src/lib/screens/README.md
 //
-// ヘッダーのナビ・フッター・ボトムナビを隠した 1 画面の案内(隠すのは ../frame.ts)。終了時刻は loader が設定から読み、
+// ヘッダーのナビ・フッター・ボトムナビを隠した 1 画面の案内(隠すのは ../frame.default.ts)。終了時刻は loader が設定から読み、
 // MaintenanceAutoRedirect(client 部品)が時刻到来で遷移する。
 
 import type { ScreenProps } from "@/lib/screens/types";

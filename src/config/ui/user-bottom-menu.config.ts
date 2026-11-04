@@ -74,7 +74,7 @@ export type BottomNavItem = BottomNavLinkItem | BottomNavMenuItem;
 // 基本設定
 // ============================================
 
-// ボトムナビを出す・隠す(端末ごと・ページごと)は各ルートの frame.ts(既定 = スマホだけ: src/app/(user)/frame.ts)。
+// ボトムナビを出す・隠す(端末ごと・ページごと)は各ルートの枠の宣言 frame.default.ts / frame.ts(既定 = スマホだけ: src/app/(user)/frame.default.ts。fork は隣に frame.ts)。
 // 書式: src/app/_layout/frame/README.md
 
 /** ボトムナビの高さ（px） */

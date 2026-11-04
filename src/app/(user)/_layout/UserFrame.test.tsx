@@ -124,8 +124,9 @@ test("useUserFrame は今の segments に当たる表の行を属性にする(�
   assert.equal(attrsAt(null), attrsAt([]));
 });
 
-test("上流の宣言: 準備中は header-nav・footer・bottom-nav、signup の下はボトムナビと SP のフッターを隠し、既定はボトムナビを PC で隠す", () => {
-  assert.deepEqual(parts.matchFrame([], frameTable).hide, ["bottom-nav-pc"]);
+test("上流の宣言: 準備中は header-nav・footer・bottom-nav、signup の下はボトムナビと SP のフッターを隠し、既定はボトムナビを PC で隠す、トップページ / だけ fill", () => {
+  assert.deepEqual(parts.matchFrame([], frameTable), { hide: ["bottom-nav-pc"], fill: true });
+  assert.deepEqual(parts.matchFrame(["(public)", "about"], frameTable), { hide: ["bottom-nav-pc"], fill: false }, "fill は / だけ(子のルートに継がない)");
   assert.deepEqual(parts.matchFrame(["maintenance"], frameTable).hide, ["header-nav-sp", "header-nav-pc", "footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"]);
   assert.deepEqual(parts.matchFrame(["(auth)", "signup", "verify"], frameTable).hide, ["footer-sp", "bottom-nav-sp", "bottom-nav-pc"]);
   assert.deepEqual(parts.matchFrame(["(auth)", "demo-login"], frameTable).hide, ["footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"]);

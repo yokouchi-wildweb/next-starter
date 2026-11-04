@@ -10,7 +10,7 @@ import { Home, LayoutGrid, LogIn, LogOut, User, UserPlus } from "lucide-react";
 import { FileIcon } from "@/components/Icons";
 import type { IconComponent } from "@/components/Icons";
 
-// ヘッダー・ヘッダーのナビを出す・隠す(端末ごと・ページごと)は各ルートの frame.ts。
+// ヘッダー・ヘッダーのナビを出す・隠す(端末ごと・ページごと)は各ルートの枠の宣言 frame.default.ts / frame.ts。
 // 書式: src/app/_layout/frame/README.md
 
 // ============================================

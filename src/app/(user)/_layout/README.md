@@ -21,7 +21,7 @@ src/app/(user)/_layout/
 ├── Footer/index.tsx     # フッター(既定。export UserFooter)
 ├── BottomNav/           # スマホ用ボトムナビ(index・BottomNavItem・BottomNavMenu・BottomNavSpacer・types・useBottomNavItems)
 ├── hooks/               # useHeaderData・useFooterData(ヘッダー・フッターの表示データと状態)・useUserFrame(枠の表の読み手)
-└── extensions/frameTable.ts # 枠の表(生成物。各ルートの frame.ts から pnpm extensions:generate)
+└── extensions/frameTable.ts # 枠の表(生成物。各ルートの frame.default.ts / frame.ts から pnpm extensions:generate)
 ```
 
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
@@ -63,12 +63,12 @@ src/app/(user)/_layout/
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`#header`)の実測の高さ | UserLayout・AdminLayout の外枠の inline |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `calc(BOTTOM_NAV_HEIGHT px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`BOTTOM_NAV_HEIGHT` は `src/config/ui/user-bottom-menu.config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの宣言(frame.ts、既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/_base/frame.css` |
+| `--app-bottom-nav-height` | `calc(BOTTOM_NAV_HEIGHT px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`BOTTOM_NAV_HEIGHT` は `src/config/ui/user-bottom-menu.config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/_base/frame.css` |
 | `--app-safe-area-top/right/bottom/left` | `env(safe-area-inset-*, 0px)` | `src/styles/_base/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/_base/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
 - 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので fork の CSS(`src/styles/` 直下)からは上書きできない
-- `--app-header-height` は実測なので、frame.ts でヘッダーを隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は隠す対象外
+- `--app-header-height` は実測なので、枠の宣言でヘッダーを隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は隠す対象外
 - BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav 本体の高さ(`style` の height)も同じ計算(`calc(<px> + var(--app-safe-area-bottom))`、safe-area は padding-bottom で避ける)。変数が safe-area を含むので、使う側で safe-area を足さない
 - body 直下へ portal する部品(GlobalToast・fork の BodyPortal の部品)は外枠の変数を継げない(:root の 0px になる) → `useFrameDimsStyle()`(`@/hooks/useFrameDimsStyle`)の style を portal した一番外の要素に付け、中は外枠の中と同じく `var(--app-bottom-nav-height)` などで書く。値は外枠 `[data-frame-root]` の計算値(header / banner / bottom-nav。隠している間・出さないデバイスでは 0)で、表示中の切り替えと画面幅の変化にも追随する。外枠を自分で読まない。GlobalToast もこれを使う
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:calc(64px + var(--app-safe-area-bottom))`(safe-area の無い端末では 64px と同じ)。banner が無い時の Header の計算値・見た目は同じ
@@ -96,24 +96,24 @@ export function AcmeUserLayout({ children }: { children: ReactNode }) {
 export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
-3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `useUserFrame()` の属性は残す。無いと frame.ts の宣言が効かない)
+3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `useUserFrame()` の属性は残す。無いと枠の宣言が効かない)
 - 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm routes:map`、src/lib/screens/README.md §13)
 
-## 枠の部位を隠す・fill(frame.ts)
+## 枠の部位を隠す・fill(枠の宣言)
 
-ページや layout の隣の `frame.ts` で「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を宣言する。書式・重ね方・照合の順・fork の `frame.override.ts` は [src/app/_layout/frame/README.md](../../_layout/frame/README.md)。
+ページや layout の隣の枠の宣言で「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書く。ルートを作ったリポ(上流)は `frame.default.ts`(`export const frameDefault`)、その下のリポ(fork・中間 Tier)は上流のルートでも自分のルートでも `frame.ts`(`export const frame`、既定の上に重なる)。範囲はキーで名指す: `layout:` = 隣の layout.tsx の下全部、`page:` = 隣の page.tsx だけ。書式・重ね方・照合の順は [src/app/_layout/frame/README.md](../../_layout/frame/README.md)。
 
 ```ts
-// src/app/(user)/maintenance/frame.ts(page.tsx だけの隣 = そのページだけ。layout.tsx の隣 = その下全部)
+// src/app/(user)/maintenance/frame.default.ts(上流。fork が変えるときは隣に frame.ts の export const frame)
 import type { FrameDeclaration } from "@/app/_layout/frame";
 
-export const frame = {
-  hide: { headerNav: { sp: true, pc: true }, footer: { sp: true, pc: true }, bottomNav: { sp: true, pc: true } },
+export const frameDefault = {
+  page: { hide: { headerNav: { sp: true, pc: true }, footer: { sp: true, pc: true }, bottomNav: { sp: true, pc: true } } },
 } satisfies FrameDeclaration;
 ```
 
 - 隠せる部位: `header` / `headerNav`(ヘッダーは残る)/ `footer` / `bottomNav`(スペーサーごと)。端末 `sp` = 40rem 未満 / `pc` = 40rem 以上
-- 枠の全体の既定 = `src/app/(user)/frame.ts`(上流: ボトムナビを PC で隠す = スマホだけ)。fork が変えるときは隣に `frame.override.ts`
+- 枠の全体の既定 = `src/app/(user)/frame.default.ts` の `layout:`(上流: ボトムナビを PC で隠す = スマホだけ。同じファイルの `page:` はトップページ / の fill)。fork が変えるときは隣に `frame.ts`
 - 仕組み: `pnpm extensions:generate` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が `useUserFrame()`(`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/_base/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。部品はアンマウントしない
 - 効く時点: 属性は外枠そのものに付くので初回の HTML に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
 - 狙う先: 既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)と `[data-frame-part~="<部位>"]`。差し替えた部品は id を残すか、外側の要素に `data-frame-part="<部位>"` を付ければ従う
@@ -132,7 +132,7 @@ export const frame = {
 | `user-layout.config.ts` | 枠全体の値(背景画像・オーバーレイの色と透明度) |
 | `user-header.config.ts` | ヘッダーの設定(コンポーネント切り替えは廃止予定 → header slot) |
 | `user-footer.config.ts` | フッターの設定(コンポーネント切り替えは廃止予定 → footer slot) |
-| `user-bottom-menu.config.ts` | ボトムナビの設定(高さ・メニュー。出し入れは frame.ts) |
+| `user-bottom-menu.config.ts` | ボトムナビの設定(高さ・メニュー。出し入れは枠の宣言) |
 
 ---
 
@@ -176,7 +176,7 @@ const {
   linkSeparator,    // フッターリンクのセパレーター
   copyrightEnabled, // コピーライトが有効か
   copyrightText,    // 生成済みコピーライトテキスト
-  visibilityClass,  // FOOTER_VISIBILITY から作る表示クラス(ページ単位で隠すのは frame.ts)
+  visibilityClass,  // FOOTER_VISIBILITY から作る表示クラス(ページ単位で隠すのは枠の宣言)
 } = useFooterData();
 ```
 
@@ -188,7 +188,7 @@ const {
 
 **`src/config/ui/user-header.config.ts`**
 
-値だけを持つ(部品の差し替えは UserLayout の header slot、ヘッダー・ナビの出し入れは frame.ts の `header` / `headerNav`)。
+値だけを持つ(部品の差し替えは UserLayout の header slot、ヘッダー・ナビの出し入れは枠の宣言の `header` / `headerNav`)。
 
 ```tsx
 // メニュー設定
@@ -284,7 +284,7 @@ export const COPYRIGHT_FORMAT = "simple";
 **`src/config/ui/user-bottom-menu.config.ts`**
 
 ```tsx
-// 基本設定(出し入れは frame.ts の bottomNav。既定 = スマホだけ: src/app/(user)/frame.ts)
+// 基本設定(出し入れは枠の宣言の bottomNav。既定 = スマホだけ: src/app/(user)/frame.default.ts)
 export const BOTTOM_NAV_HEIGHT = 64;
 
 // メニュー設定(type 省略 = リンク項目)
@@ -340,7 +340,7 @@ menu 型の項目を独自の型・判別で実装していた場合は、`type:
 
 BottomNavは固定表示のため、フッターなど下部コンテンツが隠れないよう`BottomNavSpacer`が自動でスペースを確保します。
 
-- 高さは `var(--app-bottom-nav-height)`(1 要素 `#bottom-nav-spacer`)。frame.ts で隠している端末・ページでは変数が 0 になり、要素も `src/styles/_base/frame.css` で隠れる
+- 高さは `var(--app-bottom-nav-height)`(1 要素 `#bottom-nav-spacer`)。枠の宣言で隠している端末・ページでは変数が 0 になり、要素も `src/styles/_base/frame.css` で隠れる
 
 ---
 
@@ -357,10 +357,10 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 ページ自体がスクロールしない「アプリ的」な画面（ゲーム、プレイヤー、エディタ、キオスク、楽器 UI 等）向け。
 固定ヘッダー直下からフッター / ボトムナビスペーサー直上までの残り高さちょうどにスナップし、内部スクロールは子に委譲する。
-ページの隣の `frame.ts` に `fill: true`(枠も隠すなら `hide`)を書き、本文は自分で `flex-1 min-h-0` を付ける。
+ページの隣の枠の宣言に `page: { fill: true }`(枠も隠すなら `hide`)を書き、本文は自分で `flex-1 min-h-0` を付ける。
 
 ```tsx
-// frame.ts: export const frame = { fill: true } satisfies FrameDeclaration;
+// 隣の frame.default.ts(fork は frame.ts の frame): export const frameDefault = { page: { fill: true } } satisfies FrameDeclaration;
 <UserPage containerType="plain" padding="none" className="flex min-h-0 flex-1 flex-col overflow-clip overscroll-none">
   <Toolbar />                                   {/* 固有高さ */}
   <Block className="flex-1 min-h-0 overflow-y-auto">
@@ -373,19 +373,19 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 | 項目 | 内容 |
 |------|------|
 | 高さの契約 | 子は `flex-1 min-h-0` だけで残り高さを確保する。`calc(100dvh - ...)` やマジックナンバーは書かない |
-| ヘッダー | `--app-header-height`（実測値）で自動補正。frame.ts でヘッダーを隠せばその分広がる |
+| ヘッダー | `--app-header-height`（実測値）で自動補正。枠の宣言でヘッダーを隠せばその分広がる |
 | フッター / ボトムナビ | フロー内に残るので fill と高さを分け合う。隠せば広がる（スペーサーも自動で 0） |
 | SSR | `--viewport-height` 設定前は `100dvh` にフォールバック |
 
 - 仕組み: 外枠 `[data-user-app-container]` は既定 `min-h` で中身ぶん伸びるが、`data-frame-fill` が付くと `src/styles/_base/frame.css` の規則で確定高さ + `overflow-clip` に切り替わる
-- 没入(ヘッダー・フッター・ボトムナビを全部隠す)は frame.ts の `hide` に 3 つを書く。枠が全部要らないページは枠の外のルートグループに置く
+- 没入(ヘッダー・フッター・ボトムナビを全部隠す)は枠の宣言の `hide` に 3 つを書く。枠が全部要らないページは枠の外のルートグループに置く
 - `safeArea` を付けると `env(safe-area-inset-*)` ぶんのパディングを付与（横向きスマホのノッチ対策）
 
 ### fullscreen との使い分け
 
 | 欲しいもの | 使うもの |
 |-----------|---------|
-| フロー内に留まる非スクロールのページ土台（ヘッダー等と共存） | frame.ts の `fill: true` + `UserPage`(上の「fill のページ」) |
+| フロー内に留まる非スクロールのページ土台（ヘッダー等と共存） | 枠の宣言の `page: { fill: true }` + `UserPage`(上の「fill のページ」) |
 | 画面全体を覆う一時的なオーバーレイ（スプラッシュ、背景演出） | `<Main containerType="fullscreen">`（FullScreen による fixed オーバーレイ、z 層指定、body スクロールロック） |
 | UserLayout の外（独立ルート群）のビューポート固定ページ枠（卓上端末・サイネージ） | `<KioskFrame>`（[AppFrames/Kiosk/README.md](../../../components/AppFrames/Kiosk/README.md)） |
 
@@ -428,7 +428,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 ## 印の経緯(notice frame-marks)
 
-> 印(Hide*)・生成 CSS・`:has()` は後の区切りで frame.ts に置き換わった(下の「宣言の経緯」)。以下はその前の記録
+> 印(Hide*)・生成 CSS・`:has()` は後の区切りで枠の宣言(frame.default.ts / frame.ts)に置き換わった(下の「宣言の経緯」)。以下はその前の記録
 
 - 報告書 §2 の枠の制御 =「細部だけ違う → 1 行の印」(server で描く data-frame-* の空要素 + 外枠 1 か所の CSS `:has()`、client JS なし、どこからでも書ける、隠す方向のみ、足し算。CSS 規則と印の属性は 1 つの部位一覧から生成)
 - 以前の Hide* は "use client" の部品で、useEffect で表示制御の context に書き、枠の部品が context を読んで class を付けていた。そのため hydration まで枠が一瞬見え、Hide* のあるページ同士の遷移では旧ページの後始末が新ページの指定を消す競合が起きた(呼び出し元ごとの上書き setOverride で直した。その notice の「setVisibility + reset を setOverride へ」は印で置き換わる)
@@ -441,16 +441,16 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 ## 寸法の 0 と context 離れの経緯(notice frame-marks-dims)
 
 - 印の区切りの 2 手目。隠す印があるデバイスで `--app-bottom-nav-height` を 0 にする(生成 CSS、外枠の inline に勝つため `!important`)。BottomNavSpacer は sp/pc の px 2 本をやめ、変数を読む 1 要素にした
-- PC の既定(ボトムナビを出さない)は、表示制御の context の既定値 `{ sp: true, pc: false }` にあった。context をやめたので config の表示する端末の値(FOOTER_VISIBILITY と同じ形。今は frame.ts に置き換わった)へ移し、UserLayout がその値から「隠す印」を描く。表示も高さ変数も同じ規則に乗り、差し替えたボトムナビも従う。描く条件は高さ変数を書く条件(既定のボトムナビ有効、または bottomNav の差し替えあり)と同じ
+- PC の既定(ボトムナビを出さない)は、表示制御の context の既定値 `{ sp: true, pc: false }` にあった。context をやめたので config の表示する端末の値(FOOTER_VISIBILITY と同じ形。今は枠の宣言に置き換わった)へ移し、UserLayout がその値から「隠す印」を描く。表示も高さ変数も同じ規則に乗り、差し替えたボトムナビも従う。描く条件は高さ変数を書く条件(既定のボトムナビ有効、または bottomNav の差し替えあり)と同じ
 - 表示方向(ボトムナビの Hide* の `pc={false}` = PC にも出す)は印で表せないので捨て、PC にも出す受け皿をこの config の値にした
 - 枠の部品と hook(BottomNav・BottomNavSpacer・Header・useHeaderData・useFooterData)は context を読まない。useHeaderData の `visibility` / `navVisibility` / `visibilityClass` は差し替え部品が読むので型を残し、固定値の `@deprecated` にした。useFooterData の `visibility` / `visibilityClass` は config の値だけから作る
 - contexts と Provider は `@deprecated` の互換で残した(fork の部品が直接呼んでも落ちない)。旧入口撤去の区切り(notice old-entry-removal-contexts)で削除した
 - 既定の DOM の差分(test で固定): 外枠の先頭に基本の印 `bottom-nav-pc`、スペーサーが 1 要素、Header の class 末尾の空白が無くなった
 
-## 宣言の経緯(frame.ts)
+## 宣言の経緯(frame.default.ts / frame.ts)
 
-- 共有の棚の評議会(計画書 02)で、ページから枠を変える手段をルートの宣言 `frame.ts` 1 つにした。Hide*(子が描く印を親が `:has()` で読む)・生成 CSS(`frame:generate`)・UserPage の `fill` / `immersive`・枠の設定の重なる切り替え 4 つ(ボトムナビの有効と表示する端末、ヘッダーの有効、ヘッダーのナビの表示する端末)を消した
-- 理由: 子が親を変える仕組みは、ページが外枠に何をしているかが外から読めない(どのページが何を隠すかは全ページを開かないと分からない)。宣言は生成した表 1 つに集まり、fork の上書きも `frame.override.ts` で部位ごとに重なる
+- 共有の棚の評議会(計画書 02)で、ページから枠を変える手段をルートの隣の宣言 1 つにした(ルートを作ったリポは `frame.default.ts`、その下のリポは `frame.ts`、範囲はキー `layout:` / `page:` で名指す)。Hide*(子が描く印を親が `:has()` で読む)・CSS の生成スクリプト(package.json の script ごと)・UserPage の `fill` / `immersive`・枠の設定の重なる切り替え 4 つ(ボトムナビの有効と表示する端末、ヘッダーの有効、ヘッダーのナビの表示する端末)を消した
+- 理由: 子が親を変える仕組みは、ページが外枠に何をしているかが外から読めない(どのページが何を隠すかは全ページを開かないと分からない)。宣言は生成した表 1 つに集まり、fork の宣言も隣の `frame.ts` で既定の上に部位ごとに重なる(隣に何があるかで意味を変えない)
 - CSS は部位 4 × 端末 2 の静的な規則なので手書きにした(生成をやめた)。部位の一覧との一致はテストで見る
 - 既定の DOM の差分: 外枠に `data-frame-hide`(上流の既定 `bottom-nav-pc`)と fill のページの `data-frame-fill`、先頭の基本の印 `<span hidden>` は無くなった。ヘッダー・ナビ・ボトムナビは設定で消さず常に描き、隠すのは CSS
 - 試作(prototype/frame-declaration)で確かめたこと: 読み手 `useSelectedLayoutSegments` は rewrite 先のルートを返す、属性は初回の HTML に入る(cacheComponents なし)、loading の間と戻る・進むで正しく切り替わる

@@ -1,7 +1,7 @@
 "use client";
 
 // 利用者の枠の表の読み手。今のルート(枠の layout の下の segment)に当たる表の行を、外枠に付ける属性にする。
-// 表 = ../extensions/frameTable.ts(pnpm extensions:generate が各ルートの frame.ts から生成)。照合 = matchFrame(当たる 1 行)。
+// 表 = ../extensions/frameTable.ts(pnpm extensions:generate が各ルートの枠の宣言 frame.default.ts / frame.ts から生成)。照合 = matchFrame(当たる 1 行)。
 // 属性を読む CSS = src/styles/_base/frame.css。仕組み: src/app/_layout/frame/README.md
 
 import { useSelectedLayoutSegments } from "next/navigation";

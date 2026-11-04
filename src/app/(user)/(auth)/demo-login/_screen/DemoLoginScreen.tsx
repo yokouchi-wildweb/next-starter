@@ -4,7 +4,7 @@
 // (部品の import は ../_screen/DemoLoginSection に直す)。手順: src/lib/screens/README.md
 //
 // loader は access の評価だけ(public)。デモモード無効時の 404 は Proxy 層(demoModeProxy)が担う。
-// ログイン操作は client 部品 DemoLoginSection が hook で行う。フッターとボトムナビを隠すのは ../frame.ts。
+// ログイン操作は client 部品 DemoLoginSection が hook で行う。フッターとボトムナビを隠すのは ../frame.default.ts。
 
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
