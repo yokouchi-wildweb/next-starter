@@ -261,3 +261,4 @@
 - id:20261105-065201-firebase-hardening | severity:action-required | checkpoint:firebase-hardening
 - id:20261104-091518-eslint-required-rules | severity:info | checkpoint:eslint-required-rules
 - id:20261105-070608-analytics-opt-in-consent | severity:action-required | checkpoint:analytics-opt-in-consent
+- id:20261105-073019-feature-gate-readers | severity:info | checkpoint:gate-s2 | resolves:20261103-140211-admin-menu-hide-gated-rows, 20261103-172638-demo-pages-hide-gated
