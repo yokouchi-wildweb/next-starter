@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 import { createOAuthProvider } from "@/features/core/auth/utils/createOAuthProvider";
 import { sessionStorageClient } from "@/lib/browserStorage";
@@ -33,7 +33,6 @@ export type { OAuthPhase } from "./oauth/types";
  */
 export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
   const sessionStorage = sessionStorageClient;
-  const isActiveRef = useRef(true);
 
   // ステートマシン
   const { phase, requiresReactivation, setPhase, setCredential, setError, setRequiresReactivation } = useOAuthStateMachine();
@@ -63,13 +62,18 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
       return;
     }
 
+    // この実行が生きているか（後始末でこの実行だけを止める）。
+    // effect の実行ごとに作る: 共有の ref だと StrictMode の「実行 → 後始末 → 再実行」で
+    // 再実行まで止まったままになり、dev でフローが initial で止まる
+    let active = true;
+
     // メインフロー
     const run = async () => {
       let extractedCredential: OAuthCredentialInfo | null = null;
       try {
         // 1. リダイレクト結果の取得
         const redirectResult = await getResult();
-        if (!isActiveRef.current) return;
+        if (!active) return;
 
         // 2. リダイレクト結果がない場合
         if (!redirectResult) {
@@ -83,14 +87,14 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
 
         // 4. 認証情報の抽出
         extractedCredential = await extract(redirectResult);
-        if (!isActiveRef.current) return;
+        if (!active) return;
         setCredential(extractedCredential);
 
         // 5. ユーザー存在チェック
         const { isRegistered: userIsRegistered } = await checkUser(
           extractedCredential,
         );
-        if (!isActiveRef.current) return;
+        if (!active) return;
 
         // 6. 既存ユーザーの場合
         if (userIsRegistered) {
@@ -100,7 +104,7 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
 
         // 7. 新規ユーザーの仮登録
         await registerNewUser(extractedCredential);
-        if (!isActiveRef.current) return;
+        if (!active) return;
 
         setPhase("completed");
         log(3, "[useOAuthPhase] authentication flow completed successfully");
@@ -141,7 +145,7 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
       }
 
       const { requiresReactivation: needsReactivation } = await createSessionForExistingUser(cred);
-      if (!isActiveRef.current) return;
+      if (!active) return;
 
       setRequiresReactivation(needsReactivation);
       clearRedirectAttempt(sessionStorage, provider);
@@ -165,7 +169,7 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
         return;
       }
 
-      if (!isActiveRef.current) {
+      if (!active) {
         log(3, "[useOAuthPhase] effect no longer active. Abort error handling.");
         return;
       }
@@ -190,7 +194,7 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
 
     return () => {
       log(3, "[useOAuthPhase] effect cleanup", { provider });
-      isActiveRef.current = false;
+      active = false;
     };
   }, [
     provider,
