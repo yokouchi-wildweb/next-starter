@@ -27,7 +27,7 @@
  *
  * ⚠️ 置き換えたいクラスと同じ修飾子(hover: / dark: / focus-visible: 等)を付けること。
  *    `hover:bg-primary/90` を消したいなら `hover:bg-primary/80` のように同じ hover: で上書きする。
- * ⚠️ 色はここではなく src/styles/custom/palette.css で変える(トークンを変えれば全部品に効く)。
+ * ⚠️ 色はここではなく src/styles/palette.css で変える(トークンを変えれば全部品に効く)。
  *    ここは形(角丸・影・枠線・寸法)の差し替えに使う。
  * 詳細: src/styles/README.md「variant オーバーライド」
  */

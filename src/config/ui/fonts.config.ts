@@ -30,7 +30,7 @@
  *   export const FONTS_CONFIG = defineFontsConfig({ sans, mono });
  *
  * Web フォントを使わず system フォントの並びだけ変えたい場合は、このファイルは触らず
- * src/styles/custom/typography.css に `:root { --font-geist-sans: "Hiragino Sans", ...; }` と書く。
+ * src/styles/typography.css に `:root { --font-geist-sans: "Hiragino Sans", ...; }` と書く。
  * 詳細: src/styles/README.md
  */
 

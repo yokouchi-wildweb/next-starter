@@ -19,7 +19,7 @@
  *   defineSiteThemeConfig({ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" }] })
  *
  * エリア key は <html data-area="..."> に出力され、CSS で `[data-area="user"] { --primary: ... }`
- * のようにエリア別の色を当てられる(src/styles/custom/palette.css)。
+ * のようにエリア別の色を当てられる(src/styles/palette.css)。
  * 詳細: src/styles/README.md
  */
 
