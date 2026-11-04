@@ -19,7 +19,7 @@ import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 
 import { readDeclaration } from "../../src/lib/forkOwnership/declarations.mjs";
 import { checkOverrides } from "./overrides.mjs";
-import { checkSwitches } from "./switches.mjs";
+import { CLAIMERS, checkSwitches, isClaimedDefault } from "./switches.mjs";
 import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -273,6 +273,24 @@ test("1 行スイッチ: src/app の frame.default.ts は枠の宣言の既定�
       assert.deepEqual(switches, []);
       assert.deepEqual(problems, ["src/features/core/x/frame.default.ts: 隣にスイッチ frame.ts(x) が無い(呼び手が import する素の名前。中身は export … from \"./frame.default\" の 1 行)"], "src/app の外の frame.default は今どおりスイッチの既定");
     }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("1 行スイッチ: .default を使うほかの仕組みは形を名乗れば外れる(name でも pattern でも)、名乗りの無い .default は今どおりスイッチの既定", () => {
+  const root = fixture({
+    "src/features/core/theme/palette.default.ts": "export const palette = {};\n",
+    "src/features/core/theme/tokens/accent.default.ts": "export const accent = 1;\n",
+    "src/features/core/other/x.default.ts": "export const x = 1;\n",
+  });
+  try {
+    const claims = [...CLAIMERS, { by: "test(名前で)", under: "src/features/core/theme", name: "palette.default.ts" }, { by: "test(形で)", under: "src/features/core/theme/tokens", pattern: /^[a-z]+\.default\.ts$/ }];
+    const { problems } = checkSwitches(root, { isTier1: true, claims });
+    assert.deepEqual(problems, ["src/features/core/other/x.default.ts: 隣にスイッチ x.ts(x) が無い(呼び手が import する素の名前。中身は export … from \"./x.default\" の 1 行)"]);
+    assert.equal(checkSwitches(root, { isTier1: true }).problems.length, 3, "名乗りが無ければ全部スイッチの既定");
+    assert.equal(isClaimedDefault("src/app/(user)/frame.default.ts"), true, "枠の仕組み(frames.mjs)の名乗り");
+    assert.equal(isClaimedDefault("src/features/core/x/frame.default.ts"), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

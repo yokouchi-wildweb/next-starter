@@ -2,7 +2,7 @@
 // 1 行スイッチの検査: 既定 <名前>.default.ts(x)(上流)の隣の素の名前 <名前>.ts(x) = 呼び手が import する口で、採用者所有の 1 行 re-export。
 // 中身(コメントを除く)は ./<名前>.default か ./<名前>.replace を指す re-export 1 文だけ。Tier1 は .default を指す。
 // fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。
-// src/app の frame.default.ts は枠の宣言の既定でスイッチではない(frames.mjs)。
+// .default は作ったリポが出す既定の共通の印(D171)。ほかの仕組みが名乗った形(各仕組みの CLAIMED_DEFAULTS、下の CLAIMERS)はスイッチの既定として扱わない。
 // 隣に <名前>.default の無い <名前>.replace は孤立で失敗(route の隣 _layout/_screen/_components は test:screens の側)。page.tsx・layout.tsx のスイッチ(_screen / _components を指す)は test:screens の側。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -12,16 +12,27 @@ import { oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
 import { stripComments } from "../../src/lib/screens/checks.mjs";
 
 import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
+import { CLAIMED_DEFAULTS as FRAME_CLAIMS } from "./frames.mjs";
+
+/**
+ * .default を使うほかの仕組みが名乗るファイルの形(仕組みごとに 1 か所で公開した一覧を足す。.default.css なども同じ形で足せる)
+ * @type {readonly { by: string, under: string, name?: string, pattern?: RegExp }[]}
+ */
+export const CLAIMERS = [...FRAME_CLAIMS];
+
+/** path(リポジトリ直下からの相対)がどれかの仕組みの名乗った形か */
+export function isClaimedDefault(path, claims = CLAIMERS) {
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  return claims.some((c) => path.startsWith(`${c.under}/`) && (c.name !== undefined ? name === c.name : c.pattern.test(name)));
+}
 
 const DEFAULT_FILE = /^([A-Za-z][A-Za-z0-9]*)\.default\.(ts|tsx)$/;
 const REPLACE_FILE = /^(.+)\.replace\.(ts|tsx)$/;
 const ROUTE_DIRS = ["_layout", "_screen", "_components"];
-/** 枠の宣言の既定(src/app の frame.default.ts)は 1 行スイッチの既定ではない(隣の frame.ts は既定の上に重なる宣言。frames.mjs) */
-const FRAME_DEFAULT = /^src\/app\/(?:.*\/)?frame\.default\.ts$/;
 const REEXPORT = /^export\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*["']\.\/([^"'/]+)["']\s*;?$/;
 
-/** src の下の <名前>.default.ts(x) と、route の隣の外の <名前>.replace.ts(x) を集める */
-function findDefaults(repoRoot) {
+/** src の下の <名前>.default.ts(x)(ほかの仕組みが名乗った形を除く)と、route の隣の外の <名前>.replace.ts(x) を集める */
+function findDefaults(repoRoot, claims) {
   const found = [];
   const replaces = [];
   const walk = (dir, inRoute) => {
@@ -29,7 +40,7 @@ function findDefaults(repoRoot) {
     for (const entry of readdirSync(join(repoRoot, dir), { withFileTypes: true })) {
       if (entry.isDirectory()) {
         if (entry.name !== "node_modules" && !entry.name.startsWith(".")) walk(`${dir}/${entry.name}`, inRoute || ROUTE_DIRS.includes(entry.name));
-      } else if (DEFAULT_FILE.test(entry.name) && !FRAME_DEFAULT.test(`${dir}/${entry.name}`)) {
+      } else if (DEFAULT_FILE.test(entry.name) && !isClaimedDefault(`${dir}/${entry.name}`, claims)) {
         found.push(`${dir}/${entry.name}`);
       } else if (!inRoute && REPLACE_FILE.test(entry.name)) {
         replaces.push(`${dir}/${entry.name}`);
@@ -43,13 +54,13 @@ function findDefaults(repoRoot) {
 /**
  * スイッチを全部検査する
  * @param {string} repoRoot
- * @param {{ isTier1: boolean }} identity
+ * @param {{ isTier1: boolean, claims?: readonly object[] }} identity claims = ほかの仕組みが名乗った .default の形(省略 = CLAIMERS)
  * @returns {{ switches: { path: string, target: string }[], problems: string[] }}
  */
-export function checkSwitches(repoRoot, { isTier1 }) {
+export function checkSwitches(repoRoot, { isTier1, claims = CLAIMERS }) {
   const switches = [];
   const problems = [];
-  const { defaults, replaces } = findDefaults(repoRoot);
+  const { defaults, replaces } = findDefaults(repoRoot, claims);
   for (const replacePath of replaces) {
     const dir = replacePath.slice(0, replacePath.lastIndexOf("/"));
     const name = REPLACE_FILE.exec(replacePath.slice(dir.length + 1))[1];

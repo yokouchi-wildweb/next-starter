@@ -20,6 +20,12 @@ import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../.
 
 export const FRAME_FILE = "frame.ts";
 export const FRAME_DEFAULT_FILE = "frame.default.ts";
+/**
+ * この仕組みが持つ .default のファイルの形(.default = 作ったリポが出す既定の共通の印、D171)。
+ * 1 行スイッチの検査(switches.mjs)はここに名乗った形をスイッチの既定として扱わない。
+ * 形: { by: 持ち主, under: 走査の範囲(リポジトリ直下からの相対), name: ファイル名 | pattern: ファイル名の RegExp }
+ */
+export const CLAIMED_DEFAULTS = [{ by: "scripts/extensions/frames.mjs(枠の宣言の既定)", under: "src/app", name: FRAME_DEFAULT_FILE }];
 /** 宣言の 2 つの名前と export の名前(並び = 重ねる順) */
 const SOURCES = [
   { file: FRAME_DEFAULT_FILE, exportName: "frameDefault", slot: "default" },

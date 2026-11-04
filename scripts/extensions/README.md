@@ -80,6 +80,7 @@ export const extensionPoints = {
 
 - 検査(`extensions:check`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 隣に `<名前>.default` の無い `<名前>.replace` は孤立で失敗(route の隣 `_layout` / `_screen` / `_components` は `test:screens` の側)
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
+- `.default` は作ったリポが出す既定の共通の印(D171)で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
 - page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`test:screens`)
 
 ## override(既定を変える隣のファイル)
