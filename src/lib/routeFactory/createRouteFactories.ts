@@ -21,7 +21,7 @@ export function createRouteFactories<
   TStatus extends string,
   TAuthenticated extends RouteAuthenticatedDevice,
 >(deps: RouteFactoryDeps<TUser, TStatus, TAuthenticated>) {
-  const runRoute = makeRouteCore(deps.user, deps.rateLimit);
+  const runRoute = makeRouteCore(deps.user, deps.rateLimit, deps.gate);
   const createApiRoute = makeCreateApiRoute(deps.user, runRoute);
   const { createDomainRoute, createDomainIdRoute } = makeDomainRoutes(deps.user, deps.domains, runRoute);
   const createMeRoute = makeCreateMeRoute(createApiRoute);

@@ -78,6 +78,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 | 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `features` / `enabled()` / `redirectTo` |
 | 一覧 | `extensions/rules.ts`（生成物） | — | 規則 + 名前 + `features` から導いた表名。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
 | ルートゲート | `src/proxies/featureGate.ts`(`gate.path` を呼ぶ) | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
+| API の部品工場 | `src/wiring/apiRoute.ts` が `gate.path` を Factory の口 `gate` に結ぶ | API のリクエストごと | 閉じた住所の API は Factory も 404(proxy の安全網。`src/lib/routeFactory/README.md`) |
 | スキーマゲート | `node/gatedSchema.ts`（`@/featureGate/node` の `gatedSchema`、`pnpm db:push` / `db:push:check`） | push のとき | 導いた表を push 対象から外す |
 | 検査 | `pnpm test:feature-gate`・`pnpm extensions:check` | CI / 手元 | 書き漏れ・書き間違い・常時実行の入口の閉じ漏れ |
 

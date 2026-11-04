@@ -74,6 +74,14 @@ export type RouteRateLimitDeps = {
   checkRateLimit: (category: RateLimitCategory, identifier: string) => Promise<RouteRateLimitResult>;
 };
 
+/**
+ * 機能を閉じる仕組み(門番)の口(省略可)。要求の住所が閉じた機能の物か。
+ * lib は門番を知らない: wiring が門番の判定を結ぶ(src/wiring/apiRoute.ts)。閉なら Factory は not_found と同じ 404 を返す(proxy の 404 の安全網)
+ */
+export type RouteGateDeps = {
+  isClosed: (pathname: string) => boolean;
+};
+
 /** createRouteFactories に渡す束 */
 export type RouteFactoryDeps<
   TUser extends RouteUserBase<TStatus>,
@@ -85,4 +93,6 @@ export type RouteFactoryDeps<
   rateLimit: RouteRateLimitDeps;
   /** 汎用 CRUD（/api/[domain]/**）がドメイン名から行（access・遅延 service）を引く登録表 */
   domains: DomainRegistry;
+  /** 門番の口(省略時 = 住所では閉じない) */
+  gate?: RouteGateDeps;
 };

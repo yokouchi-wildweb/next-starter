@@ -253,3 +253,73 @@ test("レート制限: 注入した判定を IP とサブネットで呼び、�
   assert.ok(Number(limited.headers.get("Retry-After")) >= 1);
   rateLimitAllowed = true;
 });
+
+test("門番の口(gate): 閉じた住所は主体の解決・認可・ハンドラの前に not_found の 404。開いた住所と口の省略は今と同じ", async () => {
+  let resolved = 0;
+  let tokenResolved = 0;
+  let handled = 0;
+  let deviceAuth = 0;
+  const gated = createRouteFactories<Record<string, unknown>, any, any, any>({
+    rateLimit: { checkRateLimit: async () => ({ allowed: true, resetAt: new Date() }) },
+    user: {
+      resolveUser: async () => {
+        resolved += 1;
+        return active as never;
+      },
+      resolveTokenSession: async () => {
+        tokenResolved += 1;
+        return active as never;
+      },
+      evaluateAccess: evaluateApiAccessRule,
+      availableStatuses: ["active"],
+    },
+    device: {
+      authenticateRequestDevice: async () => {
+        deviceAuth += 1;
+        return null;
+      },
+      syncPairedDeviceCookie: (response) => response,
+      checkPairedDeviceRateLimit: async () => null,
+      pairedDeviceErrorResponse: () => null,
+    },
+    domains: {
+      adminOnly: {
+        service: async () => ownerService as never,
+        access: { read: { roleCategories: ["admin"] }, write: { roleCategories: ["admin"] } },
+        table: "admin_only",
+        idColumn: "id",
+      } as never,
+    },
+    gate: { isClosed: (pathname) => pathname === "/api/closed" || pathname.startsWith("/api/closed/") },
+  });
+  const at = (path: string) => new NextRequest(`http://localhost${path}`, { method: "GET" });
+  const handler = async () => {
+    handled += 1;
+    return { ok: true };
+  };
+  const routes = {
+    api: gated.createApiRoute({ operation: "GET /api/x", operationType: "read", access: "public" }, handler),
+    me: gated.createMeRoute({ operation: "GET /api/me/x", operationType: "read" }, handler),
+    domain: gated.createDomainRoute({ operation: "GET /api/[domain]", operationType: "read", crudOp: "list" }, handler),
+    device: gated.createDeviceRoute({ operation: "GET /api/device/x", operationType: "read" } as never, handler as never),
+  };
+  for (const [name, route] of Object.entries(routes)) {
+    resolved = tokenResolved = handled = deviceAuth = 0;
+    const res = await (route as Route<object>)(at("/api/closed/x"), { params: Promise.resolve({ domain: "adminOnly" }) });
+    assert.equal(res.status, 404, name);
+    assert.equal(await res.text(), "Not Found", `${name}: 機能名を出さない`);
+    assert.deepEqual([resolved, tokenResolved, handled, deviceAuth], [0, 0, 0, 0], `${name}: 何も解かない`);
+  }
+  // 開いた住所は今と同じ(public の api はハンドラまで届く)
+  handled = 0;
+  const open = await routes.api(at("/api/open"), { params: Promise.resolve({}) });
+  assert.equal(open.status, 200);
+  assert.equal(handled, 1);
+  // 口を省略した Factory(上の factories)は住所で閉じない
+  currentUser = active;
+  const plain = await createApiRoute({ operation: "GET /api/closed", operationType: "read", access: "public" }, async () => ({ ok: true }))(
+    at("/api/closed"),
+    { params: Promise.resolve({}) },
+  );
+  assert.equal(plain.status, 200);
+});

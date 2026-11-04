@@ -351,7 +351,7 @@ export const POST = createApiRoute(
 
 ## 汎用版の構成（このフォルダ）
 
-- `createRouteFactories(deps)` が全 Factory を作る。`deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry }`。主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）
+- `createRouteFactories(deps)` が全 Factory を作る。`deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry, gate?: RouteGateDeps }`。`gate`(省略可)= 門番の口 `{ isClosed(pathname) }`: 全 Factory の土台(`runRoute`)が最初に要求の住所を聞き、閉なら主体の解決・認可・ハンドラの前に `not_found` と同じ 404(本文 `Not Found`、機能名を出さない)。proxy の門番の 404 が先に効くので、通り抜けたときの安全網。lib は門番を知らず、`src/wiring/apiRoute.ts` が `gate.path` で結ぶ(Factory に機能名の指定欄は無い)。主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）
 - 束の持ち主: 利用者 = `features/core/auth` の `apiRouteUserDeps`、端末 = `features/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
 - fork が独自の主体の Factory を作るときは `src/wiring/<名前>.ts` で汎用版から作る（`src/wiring/README.md`）

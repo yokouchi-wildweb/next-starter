@@ -16,7 +16,7 @@ import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { readClientIp } from "@/lib/request";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
-import type { RouteRateLimitDeps, RouteUserBase, RouteUserDeps } from "./deps";
+import type { RouteGateDeps, RouteRateLimitDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
 
 /** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
@@ -197,10 +197,12 @@ export function toRouteResponse(result: unknown): Response {
  * 全 Factory 共通の土台を作る（利用者の束を結ぶ）。
  * 認可（authorize）は各 Factory が渡す。土台が持つのは監査文脈・デモスキップ・レート制限・reCAPTCHA・
  * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
+ * 門番の口（gate、省略可）があれば最初に要求の住所を聞き、閉なら not_found の 404（主体の解決・認可・ハンドラの前）。
  */
 export function makeRouteCore(
   deps: { resolveTokenSession: () => Promise<RouteUserBase | null> },
   rateLimit: RouteRateLimitDeps,
+  gate?: RouteGateDeps,
 ) {
   return function runRoute<TParams, TGrant>(
     config: ApiRouteBaseConfig,
@@ -208,6 +210,10 @@ export function makeRouteCore(
     handler: (req: NextRequest, base: { params: TParams }, grant: TGrant) => Promise<unknown>,
   ): NextRouteHandler<TParams> {
     return async (req: NextRequest, context: { params: Promise<TParams> }) => {
+      // 門番: 閉じた機能の住所なら何も解かずに 404（proxy が先に止める。ここは通り抜けたときの安全網）
+      if (gate?.isClosed(req.nextUrl.pathname)) {
+        return accessDenialResponse("not_found") ?? new NextResponse("Not Found", { status: 404 });
+      }
       const params = await context.params;
       // 監査ログの actor_id / actorType とデモユーザー判定にしか使わないため、
       // DB 同期が不要な JWT-only 取得を選択する（認可は authorize が DB 同期の利用者で行う）。

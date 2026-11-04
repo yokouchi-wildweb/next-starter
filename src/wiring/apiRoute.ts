@@ -1,7 +1,7 @@
 // src/wiring/apiRoute.ts
 //
 // API ルートの設定済み Factory 群。lib/routeFactory の汎用版に、利用者の束（auth）・レート制限の束（rateLimit）・端末の束（pairedDevice）・
-// 登録表（serviceRegistry）を結ぶ。src/app/**/route.ts とその補助ファイルはここから import する
+// 登録表（serviceRegistry）・門番（@/featureGate の gate.path）を結ぶ。src/app/**/route.ts とその補助ファイルはここから import する
 // （@/lib/routeFactory の値 import は wiring だけ）。設計: src/wiring/README.md, src/lib/routeFactory/README.md
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
@@ -12,6 +12,7 @@ import type { SessionDeviceOf } from "@/features/core/pairedDevice/services/serv
 import type { PairedDeviceKind } from "@/features/core/pairedDevice/types/kinds";
 import { apiRouteRateLimitDeps } from "@/features/core/rateLimit/services/server/apiRouteRateLimitDeps";
 import type { UserStatus } from "@/features/core/user/types";
+import { gate } from "@/featureGate";
 import { createRouteFactories } from "@/lib/routeFactory";
 import type {
   ApiRouteConfig as GenericApiRouteConfig,
@@ -41,6 +42,8 @@ const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, A
   device: apiRouteDeviceDeps,
   rateLimit: apiRouteRateLimitDeps,
   domains: serviceRegistry,
+  // 門番: 閉じた機能の住所の API は Factory も 404（proxy の 404 の安全網、D19）
+  gate: { isClosed: (pathname) => !gate.path(pathname).open },
 });
 
 /** 全 API ルート共通の Factory（access で認可し、利用者を ctx.user で渡す） */
