@@ -14,6 +14,7 @@ import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } fro
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
+import { planFrames } from "./frames.mjs";
 import { planIntake } from "./intake.mjs";
 import { checkSwitches } from "./switches.mjs";
 
@@ -305,7 +306,12 @@ export function planExtensions(repoRoot) {
   const intakePlan = planIntake(repoRoot, declared, switchCheck.switches);
   if (intakePlan && "problem" in intakePlan) problems.push(intakePlan.problem);
   const intake = intakePlan && !("problem" in intakePlan) ? intakePlan : null;
-  return { points: declared, itemsByPoint, outputs, intake, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
+  // 枠の表(<枠の根>/_layout/extensions/frameTable.ts。frame.ts / frame.override.ts から、frames.mjs)
+  const framePlan = planFrames(repoRoot, headerFor);
+  problems.push(...framePlan.problems);
+  Object.assign(outputs, framePlan.outputs);
+  const frames = { tables: Object.keys(framePlan.outputs).length, declarations: framePlan.declarations };
+  return { points: declared, itemsByPoint, outputs, intake, switches: switchCheck.switches, overrides: overrideCheck.overrides, frames, warnings: framePlan.warnings, problems };
 }
 
 /** 点の項目(テスト・検査用): 持ち主のフォルダと点の名前で引く */

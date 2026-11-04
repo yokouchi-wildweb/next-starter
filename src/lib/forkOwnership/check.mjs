@@ -330,8 +330,8 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   const middleTier = [];
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation") continue;
-    // 同名と自分の項目への override は持ち主によらず止める(中間 Tier の物にしない)
-    if (entry.reason === "unit-clash" || entry.reason === "override-own") continue;
+    // 同名・自分の項目への override・上流の隣の frame.ts は持ち主によらず止める(中間 Tier の物にしない)
+    if (entry.reason === "unit-clash" || entry.reason === "override-own" || entry.reason === "frame-beside-parent") continue;
     const target = entry.status === "R" ? entry.from : entry.path;
     // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
     const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;

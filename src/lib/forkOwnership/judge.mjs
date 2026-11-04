@@ -3,7 +3,7 @@
 // 仕様: ./README.md「判定」
 
 import { matchIntake } from "./intake.mjs";
-import { overrideTargetUnit, placeUnitOf } from "./unitNames.mjs";
+import { frameNeighbourUnits, overrideTargetUnits, placeUnitOf } from "./unitNames.mjs";
 import { parseForkRegions, stripOwnedRegions } from "./regions.mjs";
 
 const MARKER_LINE = /fork entries below/;
@@ -24,6 +24,7 @@ export const REASONS = {
   "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
   "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
+  "frame-beside-parent": "violation", // fork が基準の page / layout の隣に frame.ts を足した(上流の隣の宣言は frame.override.ts)
   "outside-intake": "violation", // 受け口の外の書き換え
   "outside-region": "violation", // fork の区画の外も書き換えた
   "region-markers": "violation", // fork の区画の印が壊れている
@@ -96,14 +97,17 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     if (status === "A") {
       const lib = libNameOf(change.path);
       const unit = places ? placeUnitOf(change.path, places) : null;
-      const target = overrideTargetUnit(change.path);
+      const targets = overrideTargetUnits(change.path);
+      const frameNeighbours = frameNeighbourUnits(change.path);
       if (lib !== null && libs.has(lib)) reason = "ancestor-lib-add";
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
       else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
-      else if (unit !== null && baseUnits.has(unit)) {
+      else if (frameNeighbours.some((u) => baseUnits.has(u))) {
+        reason = "frame-beside-parent";
+      } else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);
-      } else if (places && target !== null && !baseUnits.has(target)) reason = "override-own";
+      } else if (places && targets.length > 0 && !targets.some((t) => baseUnits.has(t))) reason = "override-own";
       else reason = "added";
     } else if (status === "D") {
       reason = "deleted";

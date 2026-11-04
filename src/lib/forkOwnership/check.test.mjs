@@ -234,6 +234,50 @@ describe("ownership:check", () => {
     });
   });
 
+  describe("枠の宣言(frame.ts)の隣の持ち主(frame-beside-parent)", () => {
+    /** 上流のページ(page だけ・layout だけ・frame.ts あり)を持つ親 */
+    function parentWithPages() {
+      const parent = makeParent();
+      write(parent, "src/app/(user)/(public)/news/page.tsx", "export default 1;\n");
+      write(parent, "src/app/(user)/(protected)/layout.tsx", "export default 1;\n");
+      write(parent, "src/app/(user)/(public)/about/page.tsx", "export default 1;\n");
+      write(parent, "src/app/(user)/(public)/about/frame.ts", "export const frame = {};\n");
+      commitAll(parent, "pages");
+      return parent;
+    }
+
+    test("上流の page / layout の隣に fork が足した frame.ts と、fork のページへの frame.override.ts は違反(1)、中間 Tier の物にしない", () => {
+      const fork = makeFork(parentWithPages());
+      write(fork, "src/app/(user)/(public)/news/frame.ts", "export const frame = {};\n");
+      write(fork, "src/app/(user)/(protected)/frame.ts", "export const frame = {};\n");
+      write(fork, "src/app/(user)/(public)/mine/page.tsx", "export default 1;\n");
+      write(fork, "src/app/(user)/(public)/mine/frame.override.ts", "export const override = {};\n");
+      commitAll(fork, "frames");
+      const result = runCheck(fork);
+      assert.equal(result.status, "fail");
+      const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
+      assert.equal(reasonOf("src/app/(user)/(public)/news/frame.ts"), "frame-beside-parent");
+      assert.equal(reasonOf("src/app/(user)/(protected)/frame.ts"), "frame-beside-parent");
+      assert.equal(reasonOf("src/app/(user)/(public)/mine/frame.override.ts"), "override-own");
+      assert.deepEqual(result.middleTier, []);
+      const out = cli(fork);
+      assert.equal(out.status, 1);
+      assert.match(out.stdout, /\[frame-beside-parent\] src\/app\/\(user\)\/\(public\)\/news\/frame\.ts/);
+    });
+
+    test("fork のページの frame.ts と、上流のページ(frame.ts の有無によらず)への frame.override.ts は合格(0)", () => {
+      const fork = makeFork(parentWithPages());
+      write(fork, "src/app/(user)/(public)/mine/page.tsx", "export default 1;\n");
+      write(fork, "src/app/(user)/(public)/mine/frame.ts", "export const frame = {};\n");
+      write(fork, "src/app/(user)/(public)/news/frame.override.ts", "export const override = {};\n");
+      write(fork, "src/app/(user)/(public)/about/frame.override.ts", "export const override = {};\n");
+      write(fork, "src/app/(user)/(protected)/frame.override.ts", "export const override = {};\n");
+      commitAll(fork, "frames ok");
+      const result = runCheck(fork);
+      assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));
+    });
+  });
+
   test("受け口の行は生成区画(宣言から): core の受け口の印なしの項目と core の 1 行スイッチの .replace は合格、受け口の外の core への追加は core-add", () => {
     const parent = makeParent();
     const intakePath = "src/lib/forkOwnership/intake.txt";

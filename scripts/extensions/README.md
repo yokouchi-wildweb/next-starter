@@ -85,10 +85,16 @@ export const extensionPoints = {
 ## override(既定を変える隣のファイル)
 
 - 一部の上書き(丸ごと置き換えは `.replace`、D136)。対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`・`user.role.override.ts`・`user.profile.override.ts`)、cron は `src/app/api/cron/<name>/override.ts`。Tier 別・fork の名前付きのファイルは作らない
-- 隣に対象(`<対象>.<拡張子>` か `<対象>/`)の無い override は孤立で失敗(全 Tier、`overrides.mjs`。受け口の中は項目と照らす `extensions.mjs` の側)。上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `ownership:check` の override-own
+- 隣に対象(`<対象>.<拡張子>` か `<対象>/`。`frame.override.ts` は `frame.ts`・page・layout)の無い override は孤立で失敗(全 Tier、`overrides.mjs`。受け口の中は項目と照らす `extensions.mjs` の側)。上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `ownership:check` の override-own
 - 足した Tier の物。下の Tier は同じファイルを書き換える: 受け継ぐ = 触らない / 既定へ戻す = キーを消すかファイルを消す / 全部を戻す = 空(空白とコメントだけ = 不在と同じ)。合成は git の merge だけ
 - **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `extensions:check`(`overrides.mjs`)
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `scripts/cron/discover.ts`・`scripts/registry/serviceRegistry/discover.mjs`)
+
+## 枠の表(frame.ts の宣言から)
+
+- `src/app` の `frame.ts` / `frame.override.ts`(枠の部位の出し入れと fill の宣言)を `frames.mjs` が字面で読み(`literalOf`)、親の鎖と override を解決した表を枠の根ごとに `<枠の根>/_layout/extensions/frameTable.ts` へ書く(`src/app/(user)`・`src/app/admin`。一覧の数に入る)。宣言の書き方・表の形・照合: `src/app/_layout/frame/README.md`
+- 失敗: 枠の外・隣に page / layout が無い・private / @slot / intercepting の下・形の違う値・宣言にない部位・`frame.ts` 以外の名前。孤立した `frame.override.ts`(隣に `frame.ts` も page / layout も無い)と上流の override は `overrides.mjs`。全部の部位を隠す宣言は warn(止めない)
+- fork が上流の page / layout の隣に `frame.ts` を置くのは `ownership:check` の frame-beside-parent(git の分岐点が要るので生成器は見ない)
 
 ## 受け口の一覧の生成区画(intake.txt)
 
@@ -108,6 +114,7 @@ export const extensionPoints = {
 | `src/lib/forkOwnership/declarations.mjs` | 宣言の探索とリテラルの読み取り(宣言の唯一の読み手。ここには置かない) |
 | `extensions.mjs` | 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 |
 | `intake.mjs` | 受け口の一覧の生成区画の行 |
+| `frames.mjs` | 枠の表(frame.ts / frame.override.ts の解決) |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
 | `switches.mjs` / `overrides.mjs` | 1 行スイッチの形・孤立した `.replace`、孤立した override と上流の override の検査 |

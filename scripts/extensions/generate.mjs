@@ -17,6 +17,8 @@ if (plan.problems.length > 0) {
   process.exit(1);
 }
 
+for (const warning of plan.warnings) console.warn(`[extensions:generate] warn: ${warning}`);
+
 const stale = staleOutputs(repoRoot, plan.outputs);
 for (const path of stale) {
   const abs = join(repoRoot, path);
@@ -34,7 +36,7 @@ for (const stray of removed) rmSync(join(repoRoot, stray.path));
 const handMade = strays.filter((s) => !s.generated);
 
 console.log(
-  `[extensions:generate] 点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length}` +
+  `[extensions:generate] 点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length}(うち枠の表 ${plan.frames.tables}、宣言 ${plan.frames.declarations})` +
     (stale.length > 0 ? `、書き出し: ${stale.join(", ")}` : "、変更なし") +
     (removed.length > 0 ? `、古い一覧を削除: ${removed.map((s) => s.path).join(", ")}` : ""),
 );

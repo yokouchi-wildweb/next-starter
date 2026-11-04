@@ -211,6 +211,21 @@ describe("judge", () => {
     assert.equal(run({ status: "A", path: "src/x/mine.override.ts" }, null, "x").reason, "added", "places を渡さなければ見ない");
   });
 
+  test("A: fork の frame.ts の隣に基準の page / layout があれば frame-beside-parent、frame.override.ts は隣の frame / page / layout が基準にあれば added", () => {
+    const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(protected)/layout.tsx"];
+    const places = unitPlaces(baseFiles, () => null);
+    const baseUnits = unitIndex(baseFiles);
+    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
+    const beside = one("src/app/(user)/(public)/news/frame.ts");
+    assert.equal(beside.reason, "frame-beside-parent");
+    assert.equal(beside.verdict, "violation");
+    assert.equal(one("src/app/(user)/(protected)/frame.ts").reason, "frame-beside-parent");
+    assert.equal(one("src/app/(user)/(public)/mine/frame.ts").reason, "added", "fork のページの隣");
+    assert.equal(one("src/app/(user)/(public)/news/frame.override.ts").reason, "added");
+    assert.equal(one("src/app/(user)/(protected)/frame.override.ts").reason, "added");
+    assert.equal(one("src/app/(user)/(public)/mine/frame.override.ts").reason, "override-own");
+  });
+
   test("A: core の中は受け口の項目だけ。受け口の外・debt は core-add、基準に core が無ければ added", () => {
     const { rules } = parseIntake(["add src/features/core/user/cleanupHandlers/*.ts  # r", "debt src/features/core/mail/templates/**  # r"].join("\n"));
     const add = (path, baseHasCore = true) =>

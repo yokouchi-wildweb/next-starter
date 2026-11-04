@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/extensions/check.mjs
 // 全拡張点の生成一覧が宣言と項目に一致するかを検査する(pnpm extensions:check。build の冒頭で走る)。書き出さない。
-// 失敗: 宣言・項目の問題 / 1 行スイッチの形 / 上流の override / 一覧と受け口の一覧(intake.txt の生成区画)のずれ / extensions/ の宣言に無いファイル(ヘッダの無い = 手で置いた、ある = 古い一覧)。規則: ./README.md
+// 失敗: 宣言・項目の問題 / 1 行スイッチの形 / 上流の override / 枠の宣言(frame.ts)の形と置き場 / 一覧と受け口の一覧(intake.txt の生成区画)のずれ / extensions/ の宣言に無いファイル(ヘッダの無い = 手で置いた、ある = 古い一覧)。規則: ./README.md
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -26,10 +26,11 @@ const all = [
       : `${s.path}: extensions/ は生成物の置き場(目印のヘッダが無い = 手で置いたファイル)。${s.hint}`,
   ),
 ];
+for (const warning of plan.warnings) console.warn(`[extensions:check] warn: ${warning}`);
 if (all.length > 0) {
   console.error(`[extensions:check] 失敗(${all.length} 件):\n${all.map((p) => `  - ${p}`).join("\n")}`);
   process.exit(1);
 }
 console.log(
-  `[extensions:check] OK(点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length} / 項目 ${[...plan.itemsByPoint.values()].reduce((n, items) => n + items.length, 0)} / スイッチ ${plan.switches.length} / override ${plan.overrides.length})`,
+  `[extensions:check] OK(点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length} / 項目 ${[...plan.itemsByPoint.values()].reduce((n, items) => n + items.length, 0)} / スイッチ ${plan.switches.length} / override ${plan.overrides.length} / 枠の表 ${plan.frames.tables} / 枠の宣言 ${plan.frames.declarations})`,
 );
