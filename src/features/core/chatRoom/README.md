@@ -679,6 +679,8 @@ const scoutUnread = useUnreadCount(uid, { type: "scout" as any });
 
 Firestore はスキーマレスのため、コアファイルの変更なしに独自フィールドを追加できる。
 
+> 注意: ルール例（`firestore.rules.example`）はこの独自フィールドを通さない。使うならルールに足す。既定の `fstore` で書くと、メール+パスワード・OAuth のユーザーは `request.auth.uid` が `users.id` にならない（「セキュリティルールの方針」の chatRoom 専用の Firebase アプリ）。
+
 ```ts
 // 書き込み
 await updateDoc(doc(fstore, "chat_rooms", roomId), {
@@ -835,7 +837,15 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 **セキュリティルールの方針（例を `src/features/core/chatRoom/firestore.rules.example` に同梱。ダウンストリームが自分の `firestore.rules` に足してデプロイする）**
 
 - ブラウザが `chat_rooms` と `messages` を直接読み書きするので、ルールが唯一の守り。手順は docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.2
-- 例は `request.auth.uid` == `users.id`（participants・senderId・readAt のキー）を前提にする。カスタムトークンでのサインインはこれを満たす
+- 例は `request.auth.uid` == `users.id`（participants・senderId・readAt のキー）を前提にする。chatRoom のクライアントはどのログイン方法でもこれを満たす（下の「chatRoom 専用の Firebase アプリ」）
+- 例は chatRoom のクライアントが書くフィールドと type（direct / group）だけを通す。独自フィールド・独自の type を使う fork は、自分の `firestore.rules` に足す
+
+**chatRoom 専用の Firebase アプリ（つなぎの修正。ブラウザからの配信の形はバックエンド評議会の決定 R4 待ち）**
+
+- chatRoom のクライアント（`services/client/firestoreClient.ts` / `messageClient.ts`）は、既定のアプリではなく chatRoom 専用のアプリ（名前 `"chatRoom"`、`services/client/chatFirebase.ts`）の Firestore を使う
+- 専用のアプリはカスタムトークン（`/api/auth/firebase-token`。uid = `users.id`）でサインインし、読み書き・購読の前にそれを待つ。認証の状態はメモリにだけ持つ（ページの読み込みごとにトークンを 1 回取る）
+- 理由: メール+パスワード・OAuth でログインすると、既定のアプリの uid はプロバイダーの uid のまま（`users.id` と違う）で、ルールで chatRoom の読み書きがすべて拒否される（2026-11-05 に実機で確認）。既定のアプリ（ログイン・電話番号の紐づけ・パスワード変更）は入れ替えない
+- 専用のアプリは chatRoom の内側だけの部品で、公開の入口にはしない。fork が既定の `fstore`（`@/lib/firebase/client/app`）で chat_rooms に直接書くと、メール+パスワード・OAuth のユーザーでは `request.auth.uid` が `users.id` にならない
 
 - ルールはドキュメント単位で評価されるため、各ドキュメントのフィールド値検証で制約を担保する
 - `chat_rooms` の update は 1 つの allow 式で「どのフィールドが変わったか」を分岐判定する。少なくとも次の経路を区別する:

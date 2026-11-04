@@ -26,7 +26,13 @@ mock.module(pathToFileURL(require.resolve("firebase/firestore")).href, {
     where: () => ({}),
   },
 });
-mock.module("@/lib/firebase/client/app", { namedExports: { fstore: {} } });
+mock.module(pathToFileURL(require.resolve("./chatFirebase")).href, {
+  namedExports: {
+    ensureChatAuth: async () => {},
+    getChatFirestore: () => ({}),
+    subscribeAfterChatAuth: (start: () => () => void) => start(),
+  },
+});
 mock.module("@/lib/firestore/client", {
   namedExports: {
     executeBatch: async (operations: Operation[]) => void executed.push(operations),

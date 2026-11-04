@@ -6,9 +6,10 @@ rules_version = '2';
 //
 // request.auth.uid について:
 //   participants / senderId / readAt のキーはアプリの users.id。このルールは request.auth.uid == users.id を前提にする。
-//   カスタムトークン（createFirebaseToken / localLogin。uid = users.id）でサインインしたユーザーはこれを満たす。
-//   メール+パスワード・OAuth でログインしたユーザーの uid がプロバイダーの uid のまま残るかは検証中（next-starter の依頼 20261104-183246-chatroom-uid-mismatch）。
-//   ずれていると、そのユーザーは参加しているルームも読めず、送信も拒否される。
+//   chatRoom のクライアントは、どのログイン方法でも chatRoom 専用の Firebase アプリをカスタムトークン（uid = users.id）で
+//   サインインさせてから読み書きする（services/client/chatFirebase.ts）。既定のアプリはメール+パスワード・OAuth だと
+//   プロバイダーの uid のままなので、既定の fstore で chat_rooms に書くとこのルールで拒否される。
+//   独自フィールド・独自の type はこの例では通らない。使う fork はここに足す。
 //
 // 管理画面の操作（一覧・論理削除など）はサーバーの Admin SDK で行うのでルールを通らない。
 // 数値は src/features/core/chatRoom/constants/chat.ts に合わせる（MESSAGE_MAX_LENGTH = 5000、MAX_PARTICIPANTS = 30）。変えたらここも変える。

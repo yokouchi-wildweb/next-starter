@@ -133,6 +133,7 @@
     "test:auth-verify-revoked": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/verifyIdTokenRevoked.test.ts",
     "test:firebase-client-unconfigured": "npx tsx --test src/lib/firebase/client/unconfigured.test.ts",
     "test:analytics-consent": "npx tsx --experimental-test-module-mocks --test src/lib/analyticsConsent/consent.test.ts",
+    "test:chat-room-auth": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/chatRoom/services/client/chatFirebase.test.ts",
     "test:auth-session-refresh": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/app/api/auth/session/route.test.mts",
     "test:user-bulk-update": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/bulkUpdateFields.test.ts",
     "test:user-name": "npx tsx --test src/features/core/user/entities/userName.test.ts",

@@ -83,7 +83,8 @@ export async function executeBatch(operations: BatchOperation[]): Promise<void> 
 // ---------------------------------------------------------------------------
 
 function commitBatch(operations: BatchOperation[]): Promise<void> {
-  const batch = writeBatch(fstore);
+  // ref の Firestore で書く（既定のアプリ以外の Firestore の ref も渡せる。chatRoom など）
+  const batch = writeBatch(operations[0]?.ref.firestore ?? fstore);
 
   for (const op of operations) {
     switch (op.type) {

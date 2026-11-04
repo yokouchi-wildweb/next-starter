@@ -2,6 +2,7 @@
 //
 // チャットメッセージの Firestore クライアント操作。
 // メッセージ送信・過去メッセージ取得・新着メッセージ購読を提供する。
+// Firestore は chatRoom 専用のアプリのもの（uid = users.id でサインイン。./chatFirebase.ts）。読み書きの前にサインインを待つ。
 
 import {
   type QueryDocumentSnapshot,
@@ -14,7 +15,6 @@ import {
   startAfter,
 } from "firebase/firestore";
 
-import { fstore } from "@/lib/firebase/client/app";
 import {
   executeBatch,
   queryDocs,
@@ -29,6 +29,8 @@ import { collectionPath } from "@/features/chatRoom/entities/firestore";
 import { MESSAGES_PER_PAGE } from "@/features/chatRoom/constants/chat";
 import { updateDoc } from "@/lib/firestore/client";
 
+import { ensureChatAuth, getChatFirestore, subscribeAfterChatAuth } from "./chatFirebase";
+
 // ---------------------------------------------------------------------------
 // ユーティリティ
 // ---------------------------------------------------------------------------
@@ -40,7 +42,7 @@ import { updateDoc } from "@/lib/firestore/client";
  * 一致させるために使用する。
  */
 export function generateMessageId(roomId: string): string {
-  const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
+  const messagesRef = collection(getChatFirestore(), messagesSubcollectionPath(roomId));
   return doc(messagesRef).id;
 }
 
@@ -158,9 +160,10 @@ export type EditMessageParams = {
  */
 export async function editMessage(params: EditMessageParams): Promise<void> {
   const { roomId, messageId, content, senderId, isLatestMessage } = params;
+  await ensureChatAuth(senderId);
 
-  const messageRef = doc(fstore, messagesSubcollectionPath(roomId), messageId);
-  const roomRef = doc(fstore, collectionPath, roomId);
+  const messageRef = doc(getChatFirestore(), messagesSubcollectionPath(roomId), messageId);
+  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
 
   if (isLatestMessage) {
     const operations: BatchOperation[] = [
@@ -209,7 +212,8 @@ export type DeleteMessageParams = {
  */
 export async function deleteMessage(params: DeleteMessageParams): Promise<void> {
   const { roomId, messageId } = params;
-  const messageRef = doc(fstore, messagesSubcollectionPath(roomId), messageId);
+  await ensureChatAuth();
+  const messageRef = doc(getChatFirestore(), messagesSubcollectionPath(roomId), messageId);
 
   await updateDoc(messageRef, {
     deletedAt: serverTimestamp(),
@@ -231,7 +235,8 @@ export async function fetchPastMessages(
   cursor?: QueryDocumentSnapshot | null,
   limit: number = MESSAGES_PER_PAGE,
 ): Promise<FetchMessagesResult> {
-  const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
+  await ensureChatAuth();
+  const messagesRef = collection(getChatFirestore(), messagesSubcollectionPath(roomId));
 
   const q = cursor
     ? query(messagesRef, orderBy("createdAt", "desc"), startAfter(cursor), firestoreLimit(limit))
@@ -262,13 +267,15 @@ export function subscribeNewMessages(
   callback: (snapshot: CollectionChangesSnapshot<ChatMessage>) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe {
-  const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
-  const q = query(
-    messagesRef,
-    orderBy("createdAt", "asc"),
-    startAfter(after),
-  );
-  return subscribeCollectionChanges<ChatMessage>(q, callback, onError as any);
+  return subscribeAfterChatAuth(() => {
+    const messagesRef = collection(getChatFirestore(), messagesSubcollectionPath(roomId));
+    const q = query(
+      messagesRef,
+      orderBy("createdAt", "asc"),
+      startAfter(after),
+    );
+    return subscribeCollectionChanges<ChatMessage>(q, callback, onError as any);
+  }, onError);
 }
 
 // ---------------------------------------------------------------------------
@@ -296,10 +303,11 @@ async function sendMessage(
   params: SendMessageInternalParams,
 ): Promise<string> {
   const { roomId, type, content, senderId, metadata, messageId } = params;
+  await ensureChatAuth(senderId);
 
-  const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
+  const messagesRef = collection(getChatFirestore(), messagesSubcollectionPath(roomId));
   const messageRef = messageId ? doc(messagesRef, messageId) : doc(messagesRef);
-  const roomRef = doc(fstore, collectionPath, roomId);
+  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
 
   const snapshotData = {
     type,

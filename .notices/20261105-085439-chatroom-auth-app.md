@@ -1,0 +1,15 @@
+# DOWNSTREAM NOTICE id:20261105-085439-chatroom-auth-app
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-05T08:54:39+09:00
+severity: action-required
+checkpoint: chatroom-auth-app
+change: chatRoom's browser Firestore access (services/client/firestoreClient.ts, messageClient.ts) now goes through a chatRoom-only Firebase app ("chatRoom", in-memory auth) signed in with the custom token from /api/auth/firebase-token (uid = users.id); reads, writes and subscriptions wait for that sign-in. Function signatures are unchanged. The default Firebase app (login, phone linking, password change), session/JWT and custom-token claims are untouched. executeBatch (@/lib/firestore/client) now writes with the Firestore of the refs it is given.
+why: With email+password or OAuth login the default app keeps the provider uid, which differs from users.id, so under participant-only rules (src/features/core/chatRoom/firestore.rules.example, request.auth.uid == users.id) every chat read and write of those users was denied (reproduced live). Interim fix until the backend council decides the delivery shape (R4).
+required_actions:
+1. Merge upstream up to this checkpoint.
+2. If the fork does not use chatRoom, nothing more to do.
+3. Find fork code that touches chat_rooms with the default Firestore: `git grep -nE "fstore.*chat_rooms|chat_rooms.*fstore|collectionPath|messagesSubcollectionPath" -- src ':!src/features/core'`. Writes there go out with the default app's uid (the provider uid for email+password / OAuth users) and are denied by the chatRoom rules. Move them to the chatRoom client functions (createRoomWithSystemMessage, sendTextMessage, updateReadAt, ...), or, for fork-only fields and types, add the fields to your firestore.rules and know that until R4 such writes only pass for custom-token users. Report a needed public means with /order next-starter instead of importing services/client/chatFirebase.ts (internal, not a public entry).
+verify: `pnpm typecheck` | `pnpm test:chat-room-auth` | `pnpm test:crud-firestore-softdelete` | chatRoom forks: log in with email+password, open a room and send; no permission-denied in the browser console after the chatRoom rules are deployed.
+manual_steps: -
+refs: src/features/core/chatRoom/services/client/chatFirebase.ts, src/features/core/chatRoom/README.md (セキュリティルールの方針), src/features/core/chatRoom/firestore.rules.example, order 20261104-183246-chatroom-uid-mismatch, notice 20261105-065201-firebase-hardening
+notes: The chatRoom rules example can now be deployed to production (the firebase-hardening notice asked to wait for this order). Verified live on the upstream's Firebase project with the real chatRoom client code while the default app stayed signed in with email+password: create (incl. the existing-room lookup), subscribe, send, read receipt, history, edit, soft delete and new-message subscription passed under the example rules. Not run in a browser chat UI (upstream has none) and not with OAuth. The room list query needs the composite index listed in the chatRoom README (participants + lastMessageSnapshot.createdAt).
