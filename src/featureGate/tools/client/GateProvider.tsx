@@ -1,19 +1,31 @@
 // src/featureGate/tools/client/GateProvider.tsx
 // client の受け渡し: server が計算した値(clientGateState)を文脈に置く Provider と、それを読む useGate。
-// GateProvider は配線用(L1.7): src/wiring/AppProviders.tsx(利用者の枠)と admin の守りの layout 2 つ(管理の枠で包み直す)だけ(lint)
+// GateProvider は配線用(L1.7): src/wiring/AppProviders.tsx(利用者の枠)と admin の守りの layout 2 つ(管理の枠で包み直す)だけ(lint)。
+// 棚の Link の口(LinkVisibilityProvider)にリンクを隠す判定(linkHidden.ts)を差し込むので、枠ごとに閉じた機能へのリンクが自動で消える(D14)
 
 "use client";
 
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
+
+import { LinkVisibilityProvider } from "@/components/Navigation/Link";
 
 import type { ClientGatePathResult, ClientGateState, FeatureName } from "../../types";
 import { clientTools } from "./index";
+import { linkHidden } from "./linkHidden";
 
 const GateContext = createContext<ClientGateState | null>(null);
 
 export function GateProvider({ state, children }: Readonly<{ state: ClientGateState; children: ReactNode }>) {
-  return <GateContext.Provider value={state}>{children}</GateContext.Provider>;
+  const isHidden = useCallback((href: string) => linkHidden(state, href), [state]);
+  return (
+    <GateContext.Provider value={state}>
+      <LinkVisibilityProvider isHidden={isHidden}>{children}</LinkVisibilityProvider>
+    </GateContext.Provider>
+  );
 }
+
+/** 渡された値(Provider の外は null)。門番の中の部品(GatedLink)だけが使う */
+export const useGateState = (): ClientGateState | null => useContext(GateContext);
 
 type HrefGetter<T> = (item: T) => string | undefined;
 

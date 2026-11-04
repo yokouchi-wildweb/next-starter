@@ -1,14 +1,13 @@
 // src/components/Form/Button/LinkButton.tsx
 
-import Link from "next/link";
-import type { ComponentPropsWithoutRef } from "react";
-
 import { baseButtonClassName } from "@/components/_shadcn/button";
+import { Link, type LinkProps } from "@/components/Navigation/Link";
 import { cn } from "@/lib/cn";
 
 import { buttonVariants, type ButtonStyleProps } from "./button-variants";
 
-export type LinkButtonProps = ComponentPropsWithoutRef<typeof Link> & ButtonStyleProps;
+/** 棚の Link の props(gate を含む: 閉じた機能の住所は既定で描かない)+ ボタンの見た目 */
+export type LinkButtonProps = LinkProps & ButtonStyleProps;
 
 export function LinkButton({
   variant,

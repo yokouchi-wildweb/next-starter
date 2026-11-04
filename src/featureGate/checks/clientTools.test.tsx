@@ -2,6 +2,8 @@
 // client の受け渡しの回帰テスト(D5・D23): useGate() の enabled・path・filter は、範囲(枠)の中では server の gate と同じ答え。
 // 範囲の外の住所・Provider の外は dev(NODE_ENV !== "production")で throw、本番は閉。
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作り、server が計算する値は clientGateState で作る(config の値に依らない)。
+// リンク: 棚の Link・LinkButton・GatedLink は「'/' で始まる内部の住所で、枠の中の redirectTo の無い閉」だけを描かない(D14)。
+// 枠の外・Provider の外・外部 URL・redirectTo 付きの閉は描く(throw しない)。server component(フックを持たない関数部品)の中から描いても同じ(L1.8)。
 // 実行: pnpm test:feature-gate:client(react-dom/server の静的描画で Provider を通す)
 
 import assert from "node:assert/strict";
@@ -10,7 +12,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
-import { GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";
+import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { Link, LinkVisibilityProvider } from "@/components/Navigation";
+import { GatedLink, GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";
 import { clientTools } from "@/featureGate/tools/client";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
@@ -131,4 +135,77 @@ test("getHref: href を持たない型は getHref が必須、順は保つ", () 
     // @ts-expect-error href を持たない型は getHref が必須
     userGate.filter(rows);
   });
+});
+
+/** href を指す a が HTML にあるか */
+const hasAnchor = (html: string, href: string) => html.includes(`href="${href.replace(/&/g, "&amp;")}"`);
+
+const renderIn = (state: ClientGateState | null, node: React.ReactNode) =>
+  renderToStaticMarkup(state === null ? <>{node}</> : <GateProvider state={state}>{node}</GateProvider>);
+
+/** server component の形(フックを持たず 'use client' でもない関数部品)の中から棚の Link・LinkButton・GatedLink を描く */
+function ServerLinks({ href }: { href: string }) {
+  return (
+    <nav>
+      <Link href={href}>link</Link>
+      <LinkButton href={href}>button</LinkButton>
+      <GatedLink href={href}>gated</GatedLink>
+    </nav>
+  );
+}
+
+test("リンク: 規則を 1 つずつ閉じ、枠の中の redirectTo の無い閉だけを描かない(Link・LinkButton・GatedLink・server component の中)", () => {
+  for (const rule of rules) {
+    withRules({ [rule.name]: false }, () => {
+      for (const area of ["user", "admin"] as const) {
+        const state = clientGateState(area);
+        for (const pattern of rule.pathPatterns) {
+          const pathname = pathOf(pattern);
+          if (underApi(pathname)) continue;
+          const inArea = area === "admin" || !underAdmin(pathname);
+          const hidden = inArea && rule.redirectTo === undefined;
+          const label = `${rule.name} ${pattern} ${area}`;
+          for (const node of [
+            <Link key="l" href={pathname}>x</Link>,
+            <LinkButton key="b" href={pathname}>x</LinkButton>,
+            <GatedLink key="g" href={pathname}>x</GatedLink>,
+            <Link key="q" href={`${pathname}?q=1#x`}>x</Link>,
+            <Link key="u" href={{ pathname }}>x</Link>,
+          ]) {
+            assert.equal(renderIn(state, node).includes("<a "), !hidden, label);
+          }
+          const html = renderIn(state, <ServerLinks href={pathname} />);
+          assert.equal((html.match(/<a /g) ?? []).length, hidden ? 0 : 3, `server component ${label}`);
+          // 開いた住所と外部 URL は描く
+          assert.ok(hasAnchor(renderIn(state, <ServerLinks href="/__open__" />), "/__open__"));
+          assert.ok(hasAnchor(renderIn(state, <Link href={`https://example.com${pathname}`}>x</Link>), `https://example.com${pathname}`));
+        }
+      }
+    });
+  }
+});
+
+test("リンク: gate prop(always は閉でも描く・hide は描かない)、Provider の外は描く、GatedLink は棚の口の差し込みに依らない", () => {
+  const wallet = rules.find((r) => r.name === "wallet");
+  assert.ok(wallet);
+  const closedPath = pathOf(wallet.pathPatterns.find((p) => !underApi(pathOf(p)) && !underAdmin(pathOf(p))) ?? "");
+  withRules({ wallet: false }, () => {
+    const state = clientGateState("user");
+    env.NODE_ENV = "development";
+    assert.ok(hasAnchor(renderIn(state, <Link href={closedPath} gate="always">x</Link>), closedPath));
+    assert.ok(hasAnchor(renderIn(state, <LinkButton href={closedPath} gate="always">x</LinkButton>), closedPath));
+    assert.equal(renderIn(state, <Link href="/__open__" gate="hide">x</Link>), "");
+    assert.equal(renderIn(null, <Link href="/__open__" gate="hide">x</Link>), "");
+    // Provider の外・枠の外は描く(throw しない)
+    assert.equal((renderIn(null, <ServerLinks href={closedPath} />).match(/<a /g) ?? []).length, 3);
+    assert.ok(hasAnchor(renderIn(state, <Link href="/admin/users">x</Link>), "/admin/users"));
+    // 棚の口を「何も隠さない」で包み直しても、GatedLink は門番の判定で隠す(棚の Link は包み直しに従う)
+    const reopened = (node: React.ReactNode) => <LinkVisibilityProvider isHidden={() => false}>{node}</LinkVisibilityProvider>;
+    assert.equal(renderIn(state, reopened(<GatedLink href={closedPath}>x</GatedLink>)), "");
+    assert.ok(hasAnchor(renderIn(state, reopened(<Link href={closedPath}>x</Link>)), closedPath));
+  });
+});
+
+test("棚の Link は門番なしでは何も隠さない(既定の口)", () => {
+  assert.ok(hasAnchor(renderToStaticMarkup(<Link href="/wallet">x</Link>), "/wallet"));
 });

@@ -14,7 +14,7 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 | `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`alwaysOnExceptions`・`alwaysOnRegistries`・`required`) |
 | `extensions/` | 生成物 | `pnpm extensions:generate` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
-| `client.ts` | 上流 | 入口(client): `useGate`・配線用の `GateProvider` と型 |
+| `client.ts` | 上流 | 入口(client): `useGate`・`GatedLink`・配線用の `GateProvider` と型 |
 | `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`・`gatedSchema`・`closedTables`・例外の一覧 |
 | `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`area.ts`・`clientState.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定・`area.ts` = 枠の判定の純関数で server と client が共有、`clientState.ts` = client に渡す値の計算)・1 道具 1 ファイルと束・道具の中身 |
 | `checks/` | 上流 | 検査(`pnpm test:feature-gate`・`:reach`・`:tools`・`:client`) |
@@ -58,6 +58,15 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 - `clientGateState`・`GateProvider` は配線用。使えるのは上の 4 ファイルだけ(lint `feature-gate-entries`)。画面・部品は `useGate()` を使う
 - 範囲の外の住所・Provider の外で聞くと、dev(`NODE_ENV !== "production"`)は throw(書き間違いに気づかせる)、本番は閉とみなす: `enabled` は false、`path` は `{ open: false, rule: null }`、`filter` は内部の住所の項目を除く(外部 URL・住所の無い項目は残す)
 - 値は deploy で決まる config から作るので、ページを開いた時点の値のまま(クライアント遷移では計算し直さない)
+
+## リンク(棚の Link・GatedLink)
+
+閉じた機能へのリンクは自動で消える。新しい機能(規則)を足しても、既存のリンク箇所は書き換えない。
+
+- 棚の Link(`@/components/Navigation` の `Link`、next/link の包み)と `LinkButton`: 棚の口 `LinkVisibilityProvider` に `GateProvider` が判定を差し込む。`gate` prop: `auto`(既定、判定に従う)・`always`(閉じていても描く逃げ道)・`hide`(描かない)。棚の README: `src/components/Navigation/Link/README.md`
+- `GatedLink`(`@/featureGate/client`): 同じ判定で描かない。棚の口の差し込みに依らない(口を別の判定で包み直した場所の中でも門番の判定で隠す)
+- 隠すのは「`/` で始まる内部の住所で、今の枠の中の、`redirectTo` の無い閉じた機能の住所」だけ(判定 `tools/client/linkHidden.ts` → `hiddenHref.ts`、`gate.filter` と同じ)。外部 URL・`redirectTo` 付きの閉・枠の外(利用者の枠で `/admin`)・Provider の外は描く(`useGate` と違い throw しない)
+- server component の中から使ってよい(client 部品として Provider の中で SSR され、判定が効く)。server 版の GatedLink は作らない
 
 ## 機能を閉じる規則
 

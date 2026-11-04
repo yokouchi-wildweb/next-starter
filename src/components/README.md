@@ -26,7 +26,7 @@
 | `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
 | `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |
 | `Media/` | 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替） | [Media/AppImage/README.md](./Media/AppImage/README.md) |
-| `Navigation/` | ナビゲーション（`PageTab`、`StateTabs`、`Pagination`） | - |
+| `Navigation/` | ナビゲーション（`Link`（next/link の包み。閉じた機能の住所を自動で隠す口）、`PageTab`、`StateTabs`、`Pagination`） | [Navigation/Link/README.md](./Navigation/Link/README.md) |
 | `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
 | `Providers/` | 外部サービスの Provider（`RecaptchaProvider` など） | - |
 | `Skeleton/` | `BaseSkeleton` を基盤としたローディングプレースホルダー | [Skeleton/README.md](./Skeleton/README.md) |
