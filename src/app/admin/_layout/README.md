@@ -84,7 +84,7 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 
 - ページ・ルートの隣の枠の宣言(上流 = ルートを作ったリポの `frame.default.ts` の `frameDefault` / 下のリポ = `frame.ts` の `frame`、型 `AdminFrameDeclaration`)に、隠す部位(`header`・`sidebar`・`footer` × `sp` / `pc`)と `fill` を書く。書式・重ねる順・生成する表: [src/app/_layout/frame/README.md](../../_layout/frame/README.md)
 - 仕組み: `pnpm extensions:generate` が `extensions/frameTable.ts` を作り、AdminLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠の属性 `data-frame-root` + `data-frame-hide="admin-<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/_base/frame.css`(手書き、`:has()` なし)がその属性で部位を `display: none` にする。部品はアンマウントしない
-- 部位の印 = 要素の `data-slot`(下の「data-slot の一覧」)。frame.css は `[data-slot="admin-<部位>"]` と id(`#header`・`#footer`)を狙う。ヘッダー・フッターを差し替えるときは id を残すか同じ data-slot を付ける
+- 部位の印 = 要素の `data-slot`(下の「data-slot の一覧」)。frame.css は `[data-slot="admin-<部位>"]` と id(`#header`・`#footer`・`#admin-sidebar-toggle`)を狙う。ヘッダー・フッターを差し替えるときは id を残すか同じ data-slot を付ける
 - fill: 外枠は前から確定高さ。`[data-admin-main-wrapper]`(ResizableArea・InsaneResizableArea の本文の直接の親)を flex-col + min-height:0 の束縛モードにし、直下のページの本文 `#main`(AdminPage の Main)を flex-1 min-h-0 の flex-col + 余白トークン(`--admin-page-padding-inline` / `--admin-page-padding-block`)にする。前の `<AdminPage fill>` と同じ見た目。fill の子は `h-full min-h-0 overflow-y-auto` で内部スクロールする
 - 上流の管理のページは宣言を持たない(表は空)。端末の境界は 40rem(枠の宣言の約束。サイドバーの PC / SP の切り替えは md だが、隠すのは印の付いた物の全部)
 - 以前: `<AdminPage fill>` が本文に `data-admin-fill` を出し、`config.css` の `[data-admin-main-wrapper]:has([data-admin-fill])` が親を切り替えていた。共有の棚の評議会(計画書 02)で子から親を変える `:has()` をやめ、利用者の枠と同じ宣言 + 外枠の属性にした
@@ -98,7 +98,7 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 - `admin-header-title` — HeaderSlots のタイトルの受け口 `#admin-header-title-slot`
 - `admin-header-center` — HeaderSlots の中央の受け口 `#admin-header-center-slot`
 - `admin-header-right` — HeaderSlots の右の受け口 `#admin-header-right-slot`
-- `admin-sidebar` — サイドバーに付く物の全部: PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ・AdminProtectedLayout の SP の開閉ボタン(insane の Insane* も同じ)
+- `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ(insane の Insane* も同じ)。SP の開閉ボタン(AdminProtectedLayout・InsaneProtectedLayout)は Form/Button が自分の `data-slot="button"` を持つので data-slot を上書きせず、`id="admin-sidebar-toggle"` で狙う(frame.css は admin-sidebar を隠すときこの id も隠す)
 - `admin-main` — ResizableArea の本文の親 `[data-admin-main-wrapper]`(insane は InsaneResizableArea のスクロール領域)
 - `admin-footer` — (protected) の Footer の `<footer id="footer">`
 
