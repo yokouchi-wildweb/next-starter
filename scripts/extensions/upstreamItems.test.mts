@@ -288,7 +288,7 @@ test("残高調整の通知: 既定の組み立ては今までと同じ形", tie
 test("root の lang・viewport の既定: lang は ja で OGP の locale と揃う", tier1Only, () => {
   assert.equal(seoConfig.htmlLang, "ja");
   assert.equal(seoConfig.locale, "ja_JP");
-  assert.deepEqual(seoConfig.viewport, { width: "device-width", initialScale: 1 });
+  assert.deepEqual(seoConfig.viewport, { width: "device-width", initialScale: 1, viewportFit: "cover" });
 });
 
 test("root の lang・viewport: layout は config を読む", () => {
