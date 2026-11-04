@@ -70,3 +70,29 @@ export function formatDateJa(date: unknown, options: FormatDateJaOptions = {}): 
   const zoned = typeof input === "string" && DATE_ONLY_PATTERN.test(input) ? parsed : parsed.tz(timeZone);
   return zoned.locale(locale).format(format);
 }
+
+export type TimeZoneOptions = {
+  /** 日の境目を決めるタイムゾーン（IANA 名）。省略時は formatDateJa と同じ "Asia/Tokyo"。 */
+  timeZone?: string;
+};
+
+/**
+ * at を含む日の始まり（options.timeZone の 0 時。既定は日本時間）。
+ * 実行環境の時間帯（サーバー = Vercel は UTC）に左右されない。「今日」の集計の境目はこれで決める
+ */
+export function startOfDayInTimeZone(at: ConfigType = new Date(), options: TimeZoneOptions = {}): Date {
+  const { timeZone = DEFAULT_TIME_ZONE } = options;
+  return dayjs(at).tz(timeZone).startOf("day").toDate();
+}
+
+/**
+ * at を含む日の範囲 [start, end)（options.timeZone の 0 時から翌日の 0 時。既定は日本時間）。
+ * 集計の where は createdAt >= start かつ < end で使う
+ */
+export function dayRangeInTimeZone(at: ConfigType = new Date(), options: TimeZoneOptions = {}): { start: Date; end: Date } {
+  const { timeZone = DEFAULT_TIME_ZONE } = options;
+  const start = dayjs(at).tz(timeZone).startOf("day");
+  // 翌日の 0 時は「翌日のどこか」の日の始まりで取る（夏時間で 1 日が 23 / 25 時間でもずれない）
+  const end = start.add(36, "hour").tz(timeZone).startOf("day");
+  return { start: start.toDate(), end: end.toDate() };
+}

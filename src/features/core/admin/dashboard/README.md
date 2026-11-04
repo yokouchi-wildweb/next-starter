@@ -28,7 +28,7 @@ src/features/core/admin/dashboard/
 ├── registry.ts                              # ★ 主要差し替え点(表示の対応表)
 ├── services/server/
 │   ├── sectionLoads.ts                      # ★ 取得の登録表(id → load)
-│   └── mainMetrics.ts                       # main-metrics の取得
+│   └── mainMetrics.ts                       # main-metrics の取得(「本日」= 日本時間の日。境目は @/utils/date の dayRangeInTimeZone)
 └── components/
     ├── AdminDashboard.tsx                   # registry を render するだけのシン
     ├── sections/
