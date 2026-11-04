@@ -9,6 +9,7 @@ export const BottomNavSpacer = () => {
   return (
     <div
       id="bottom-nav-spacer"
+      data-slot="bottom-nav"
       className="shrink-0 h-[var(--app-bottom-nav-height,0px)]"
       aria-hidden="true"
     />

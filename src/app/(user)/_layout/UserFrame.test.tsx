@@ -81,3 +81,15 @@ test("上流の宣言: 準備中は header-nav・footer・bottom-nav、signup �
   assert.deepEqual(parts.matchFrame(["(auth)", "signup", "verify"], frameTable).hide, ["footer-sp", "bottom-nav-sp", "bottom-nav-pc"]);
   assert.deepEqual(parts.matchFrame(["(auth)", "demo-login"], frameTable).hide, ["footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"]);
 });
+
+test("SP の開閉ボタンは display: contents の包みが部位の印 header-nav を持ち、ボタン(shadcn)の data-slot=\"button\" は上書きしない", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { createElement } = await import("react");
+  const { SpNavSwitch } = await import("./Header/Sp/SpNavSwitch");
+  const html = renderToStaticMarkup(createElement(SpNavSwitch, { isMenuOpen: false, onToggle: () => {} }));
+  const wrapper = html.match(/^<[a-z]+[^>]*>/)?.[0] ?? "";
+  assert.ok(wrapper.includes('data-slot="header-nav"'), html);
+  assert.match(wrapper, /class="[^"]*\bcontents\b/);
+  const button = html.match(/<button[^>]*id="header-sp-menu-toggle"[^>]*>/)?.[0] ?? "";
+  assert.ok(button.includes('data-slot="button"'), "ボタンの data-slot が button でない");
+});

@@ -117,7 +117,8 @@ export const frameDefault = {
 - 枠の全体の既定 = `src/app/(user)/frame.default.ts` の `layout:`(上流: ボトムナビを PC で隠す = スマホだけ。同じファイルの `page:` はトップページ / の fill)。fork が変えるときは隣に `frame.ts`
 - 仕組み: `pnpm extensions:generate` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/_base/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。部品はアンマウントしない
 - 効く時点: 属性は外枠そのものに付くので初回の HTML に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
-- 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)と既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`。fork が読むので残す)。差し替えた部品は外側の要素に `data-slot="<部位>"` を付けるか id を残せば従う
+- 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)だけで全部隠せる。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
+- frame.css の `:is()` に残る既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に一緒に外す
 - 寸法変数: ボトムナビを隠している間、外枠の `--app-bottom-nav-height` は 0px
 - 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test:frame-declaration`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test:user-layout`)
 - フッターの基本の表示は config の `FOOTER_VISIBILITY` の固定の class のまま
@@ -136,10 +137,10 @@ export const frameDefault = {
 - `header-brand` — Brand の `#header-brand`(ロゴのリンク)
 - `header-brand-logo` — Brand の `#header-brand-logo`(画像)
 - `header-brand-text` — Brand の `#header-brand-text`(ロゴ画像が無い時の名前)
-- `header-nav` — PcNavigation の `#header-pc-nav` と SpNavigation の `#header-sp-nav`。SP の開閉ボタン `#header-sp-menu-toggle` は shadcn の Button(`data-slot="button"`)なので付けず、隠す CSS は id で狙う
+- `header-nav` — PcNavigation の `#header-pc-nav`、SpNavigation の `#header-sp-nav`、SP の開閉ボタン `#header-sp-menu-toggle` の包み(SpNavSwitch。ボタンは shadcn の Button で自分の `data-slot="button"` を持つので、`display: contents` の包みが名前を持つ)
 - `header-sp-nav-panel` — SpNavPanel の `#header-sp-nav-panel`
 - `footer` — Footer の `<footer id="footer">`
-- `bottom-nav` — BottomNav の `<nav id="bottom-nav">`(スペーサー `#bottom-nav-spacer` は名前を持たず、隠す CSS は id で狙う)
+- `bottom-nav` — BottomNav の `<nav id="bottom-nav">` とスペーサー `#bottom-nav-spacer`(同じ部位なので同じ名前。fork の CSS で本体だけを狙うときは `nav[data-slot="bottom-nav"]`)
 - `bottom-nav-item` — BottomNavItem のリンクの項目 `#bottom-nav-item-<key>`。メニューの項目は shadcn の Button なので付けない
 - `main` — Main(`src/components/Layout/Main.tsx`、両方の枠)の `<main id="main">`
 - `main-layout` — Main の `#main-layout`(`data-component="Main:layout"`)

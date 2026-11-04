@@ -250,7 +250,7 @@ test("UserPage は containerType の明示が既定より勝つ", () => {
 
 test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は styles/_base/frame.css が変数を 0 にする)", () => {
   const spacer = tagOf(render(<BottomNavSpacer />), "bottom-nav-spacer");
-  assert.equal(spacer.includes("data-slot"), false, "スペーサーは名前を持たない(隠す CSS は id で狙う)");
+  assert.ok(spacer.includes('data-slot="bottom-nav"'), "スペーサーは部位の印 bottom-nav を持つ(data-slot だけで隠せる)");
   assert.ok(hasClass(spacer, "h-[var(--app-bottom-nav-height,0px)]"));
   assert.ok(spacer.includes('aria-hidden="true"'));
 });
