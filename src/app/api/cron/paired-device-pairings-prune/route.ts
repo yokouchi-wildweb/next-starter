@@ -5,7 +5,7 @@
 // 認証: Authorization: Bearer ${CRON_SECRET}
 //   development では認証バイパス（src/lib/cron/auth.ts 参照）
 
-import { createCronTaskRoute } from "@/lib/cron";
+import { createCronTaskRoute } from "@/wiring/cronRoute";
 import { cronTask } from "./task";
 
 export const maxDuration = 300;

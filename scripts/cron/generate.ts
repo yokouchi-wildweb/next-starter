@@ -7,7 +7,7 @@
 //   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //
 // 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や override.ts を
-// 変えたとき・プランを変えたとき。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
+// 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
 // 詳細: src/lib/cron/README.md
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -85,6 +85,10 @@ async function main() {
   const disabled = allTasks.filter((task) => task.disabled).map((task) => task.name);
   if (disabled.length > 0) {
     console.log(`  override.ts で外したタスク（vercel.json に載せない）: ${disabled.join(", ")}`);
+  }
+  const closed = allTasks.filter((task) => !task.disabled && task.closedBy !== null).map((task) => `${task.name}（${task.closedBy}）`);
+  if (closed.length > 0) {
+    console.log(`  機能が閉じているタスク（vercel.json に載せない。機能を開いたら再生成する）: ${closed.join(", ")}`);
   }
   if (kept.length > 0) {
     console.log(`  /api/cron/ 以外のエントリ ${kept.length} 件はそのまま残しています`);

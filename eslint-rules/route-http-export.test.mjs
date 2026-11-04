@@ -24,6 +24,7 @@ test("rule http-export: wiring の Factory と lib/cron の作り手だけを通
       { code: `import { createDomainRoute as make } from "src/wiring/apiRoute";\nexport const GET = make({}, async () => ({}));`, filename: route },
       { code: `import { createAcmeRoute } from "@/wiring/acmeRoute.acme";\nexport const GET = createAcmeRoute({}, async () => ({}));`, filename: route },
       { code: `import { createCronTaskRoute } from "@/lib/cron";\nimport { cronTask } from "./task";\nexport const GET = createCronTaskRoute(cronTask);`, filename: route },
+      { code: `import { createCronTaskRoute } from "@/wiring/cronRoute";\nimport { cronTask } from "./task";\nexport const GET = createCronTaskRoute(cronTask);`, filename: route },
       { code: `export const GET = createApiRoute({}, async () => ({}));\nimport { createApiRoute } from "@/wiring/apiRoute";`, filename: route },
       { code: `import { createApiRoute } from "@/wiring/apiRoute";\nexport const dynamic = "force-dynamic";\nexport const GET = createApiRoute({}, async () => ({}));`, filename: route },
     ],

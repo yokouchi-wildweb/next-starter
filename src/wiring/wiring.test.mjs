@@ -33,7 +33,7 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["AppProviders.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formInputs", "pageGuard.ts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.ts", "cronRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formInputs", "pageGuard.ts", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];
@@ -132,15 +132,27 @@ export function formInputItemProblems(items) {
   return problems;
 }
 
-function isAllowedImporter(relPath) {
+/** cron の route.ts が読んでよい wiring（門番を結んだ cron の作り手） */
+const CRON_ROUTE_WIRING = "wiring/cronRoute.ts";
+
+export function isAllowedImporter(relPath, targetRel) {
   if (ALLOWED_IMPORTER_FILES.includes(relPath)) return true;
   if (!ALLOWED_IMPORTER_PREFIXES.some((prefix) => relPath.startsWith(prefix))) return false;
   if (relPath.startsWith(CRON_DIR)) {
-    // cron のフォルダは task.ts だけ（override.ts は fork 所有で schedule / disabled しか持てない。route.ts は 1 行）
-    return /^app\/api\/cron\/[^/]+\/task\.ts$/.test(relPath);
+    // cron のフォルダは task.ts（どの wiring も可）と、1 行の route.ts（cronRoute.ts だけ）。override.ts は fork 所有で schedule / disabled しか持てない
+    if (/^app\/api\/cron\/[^/]+\/task\.ts$/.test(relPath)) return true;
+    return /^app\/api\/cron\/[^/]+\/route\.ts$/.test(relPath) && targetRel === CRON_ROUTE_WIRING;
   }
   return true;
 }
+
+test("向きの判定: cron の route.ts は cronRoute.ts だけ、task.ts はどれでも、override.ts は不可", () => {
+  assert.equal(isAllowedImporter("app/api/cron/x/route.ts", "wiring/cronRoute.ts"), true);
+  assert.equal(isAllowedImporter("app/api/cron/x/route.ts", "wiring/domainRegistry.ts"), false);
+  assert.equal(isAllowedImporter("app/api/cron/x/task.ts", "wiring/domainRegistry.ts"), true);
+  assert.equal(isAllowedImporter("app/api/cron/x/override.ts", "wiring/cronRoute.ts"), false);
+  assert.equal(isAllowedImporter("features/x/y.ts", "wiring/cronRoute.ts"), false);
+});
 
 /**
  * 目録の判定。置いてはいけないファイルの一覧を返す（空 = 問題なし）
@@ -183,7 +195,7 @@ test("目録: Tier1 は src/wiring のファイルが WIRING_FILES と一致、�
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-test("向き: wiring を import するのは src/app・src/proxies・src/proxy.ts だけ（cron は task.ts のみ）、wiring どうしは import しない", () => {
+test("向き: wiring を import するのは src/app・src/proxies・src/proxy.ts だけ（cron は task.ts と route.ts → cronRoute.ts）、wiring どうしは import しない", () => {
   const problems = [];
   for (const file of walk(srcDir)) {
     const rel = toPosix(relative(srcDir, file));
@@ -196,8 +208,8 @@ test("向き: wiring を import するのは src/app・src/proxies・src/proxy.t
       if (isReceptacleImport(rel, toPosix(relative(srcDir, target)), receptacleDirsOnDisk)) continue;
       if (rel.startsWith("wiring/")) {
         problems.push(`${rel} → ${source}（wiring どうしは import しない。登録表と lib の汎用版を自分で結ぶ）`);
-      } else if (!isAllowedImporter(rel)) {
-        problems.push(`${rel} → ${source}（wiring を import してよいのは src/app・src/proxies・src/proxy.ts。cron は task.ts だけ）`);
+      } else if (!isAllowedImporter(rel, toPosix(relative(srcDir, target)))) {
+        problems.push(`${rel} → ${source}（wiring を import してよいのは src/app・src/proxies・src/proxy.ts。cron は task.ts と、route.ts からの cronRoute.ts だけ）`);
       }
     }
   }

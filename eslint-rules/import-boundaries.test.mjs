@@ -1,5 +1,5 @@
 // eslint-rules/import-boundaries.test.mjs
-// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries)の契約テスト。実行: pnpm test:import-boundaries (node:test)
+// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries)の契約テスト。実行: pnpm test:import-boundaries (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -11,6 +11,7 @@ import plugin, {
   classifyFeatureGateImport,
   classifyFeaturesIndexReexport,
   classifyLibRegistryImport,
+  classifyCronFactoryImport,
   classifyPageGuardImport,
   classifyRouteFactoryImport,
   closablePatternOf,
@@ -189,6 +190,38 @@ test("classify: features の index.ts は services/server を値で再 export �
   assert.equal(classifyFeaturesIndexReexport("src/features/core/user/services/server/index.ts", server, false, true), null, "services/server の中の barrel は対象外");
   assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", "src/features/core/user/hooks/useUser", false, true), null);
   assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, false, false), null, "再 export でない import は対象外");
+});
+
+test("classifyCronFactoryImport: cron の作り手の値 import は wiring と lib/cron の中だけ、型と他の名前は誰でも", () => {
+  const route = "src/app/api/cron/x/route.ts";
+  const value = (name) => [{ name, typeOnly: false }];
+  assert.equal(classifyCronFactoryImport(route, "src/lib/cron", false, value("createCronTaskRoute")), "createCronTaskRoute");
+  assert.equal(classifyCronFactoryImport(route, "src/lib/cron/createCronRoute.ts", false, value("createCronRoute")), "createCronRoute");
+  assert.equal(classifyCronFactoryImport(route, "src/lib/cron", false, null), "*", "名前を問わない形は止める");
+  assert.equal(classifyCronFactoryImport(route, "src/lib/cron", true, value("createCronTaskRoute")), null, "型だけは可");
+  assert.equal(classifyCronFactoryImport("src/features/x/sweep.ts", "src/lib/cron", false, value("runBudgetedBatches")), null, "他の名前は可");
+  assert.equal(classifyCronFactoryImport(route, "src/lib/cron", false, [{ name: "createCronTaskRoute", typeOnly: true }]), null);
+  assert.equal(classifyCronFactoryImport("src/wiring/cronRoute.ts", "src/lib/cron", false, value("createCronTaskRoute")), null);
+  assert.equal(classifyCronFactoryImport("src/lib/cron/index.ts", "src/lib/cron/createCronRoute", false, value("createCronTaskRoute")), null);
+  assert.equal(classifyCronFactoryImport(route, "src/wiring/cronRoute.ts", false, value("createCronTaskRoute")), null);
+  assert.equal(classifyCronFactoryImport("scripts/cron/cronWiring.test.mjs", "src/lib/cron/createCronRoute.ts", false, value("createCronRoute")), null, "テストは対象外");
+});
+
+test("rule cron-route-via-wiring: cron の route は @/wiring/cronRoute、@/lib/cron の作り手は止める", () => {
+  const route = at("src/app/api/cron/x/route.ts");
+  ruleTester.run("cron-route-via-wiring", plugin.rules["cron-route-via-wiring"], {
+    valid: [
+      { code: `import { createCronTaskRoute } from "@/wiring/cronRoute";`, filename: route },
+      { code: `import type { CronTaskDefinition } from "@/lib/cron";`, filename: at("src/app/api/cron/x/task.ts") },
+      { code: `import { runBudgetedBatches, createDeadline } from "@/lib/cron";`, filename: at("src/features/core/auditLog/services/server/prune.ts") },
+      { code: `import { createCronTaskRoute } from "@/lib/cron";`, filename: at("src/wiring/cronRoute.ts") },
+    ],
+    invalid: [
+      { code: `import { createCronTaskRoute } from "@/lib/cron";`, filename: route, errors: [{ messageId: "cronFactory" }] },
+      { code: `import { createCronRoute } from "src/lib/cron/createCronRoute";`, filename: route, errors: [{ messageId: "cronFactory" }] },
+      { code: `import * as cron from "@/lib/cron";`, filename: route, errors: [{ messageId: "cronFactory" }] },
+    ],
+  });
 });
 
 test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止め、型と許可の場所は通す", () => {

@@ -3,7 +3,7 @@
 
 export { verifyCronRequest } from "./auth";
 export { createCronRoute, createCronTaskRoute } from "./createCronRoute";
-export type { CronHandler, CreateCronRouteOptions } from "./createCronRoute";
+export type { CreateCronRouteDeps, CreateCronRouteOptions, CronHandler, CronRouteGate } from "./createCronRoute";
 export type { CronTaskDefinition, CronTaskOverride, CronTaskResult } from "./types";
 export { isAtMostDailySchedule, isValidCronExpression, matchesCronExpression } from "./cronExpression";
 export {

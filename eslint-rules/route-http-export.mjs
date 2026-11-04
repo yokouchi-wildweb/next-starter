@@ -4,8 +4,10 @@
 // 認可を構造で持つ作り手の呼び出し結果だけにする(D8 K7・親 D71 K6)。強さ: 全 Tier error(eslint.config.mjs)。
 //
 // 通す形: `export const GET = <関数>(…)` で、<関数> が次から import した物
-//   - src/wiring/**(@/wiring/apiRoute の createApiRoute 等。fork が足した wiring を含む)
-//   - @/lib/cron の createCronTaskRoute / createCronRoute(cron の 1 行の route.ts)
+//   - src/wiring/**(@/wiring/apiRoute の createApiRoute 等、cron の 1 行の route.ts は @/wiring/cronRoute の createCronTaskRoute。
+//     fork が足した wiring を含む)
+//   - @/lib/cron の createCronTaskRoute / createCronRoute(作り手の形としては通す。route からの値 import は
+//     import-boundaries/cron-route-via-wiring が止める = 門番の判定を結んだ @/wiring/cronRoute を使う)
 //   import の先は resolve-import.mjs で実パスに解く(別名・相対・"src/…" も同じ)。
 // 止める形: export function / export async function / 関数式・アロー関数の直書き / 識別子の再 export(export { GET })/
 //   export … from / 分割代入の export(export const { GET } = …)/ wiring・lib/cron 以外の関数の呼び出し。
@@ -34,7 +36,7 @@ const httpExport = {
     docs: { description: "route.ts の HTTP の export は wiring の Factory か lib/cron の作り手の呼び出し結果だけ" },
     messages: {
       notFactory:
-        "{{method}} は wiring の Factory(@/wiring/apiRoute の createApiRoute 等)か @/lib/cron の作り手(createCronTaskRoute / createCronRoute)の呼び出し結果にする。主体と access は Factory が持つ(詳細: src/lib/routeFactory/README.md)",
+        "{{method}} は wiring の Factory(@/wiring/apiRoute の createApiRoute 等、cron は @/wiring/cronRoute の createCronTaskRoute)の呼び出し結果にする。主体と access は Factory が持つ(詳細: src/lib/routeFactory/README.md)",
       shape:
         "{{method}} は `export const {{method}} = createApiRoute(…)` の形で書く(関数の直書き・再 export・分割代入の export は不可。詳細: src/lib/routeFactory/README.md)",
     },

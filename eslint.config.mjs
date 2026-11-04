@@ -82,6 +82,7 @@ const config = [
   // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。
   // - route-factory-via-wiring: @/lib/routeFactory の値 import は src/wiring/** だけ(D5 K1。型だけは可)
   // - page-guard-via-wiring: @/lib/pageGuard の値 import は src/wiring/** だけ(L1.18。型だけは可)
+  // - cron-route-via-wiring: @/lib/cron の作り手 createCronTaskRoute / createCronRoute の値 import は src/wiring/** だけ(D19。cron の route は @/wiring/cronRoute)
   // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
   // - lib-no-features: src/lib/** → src/features/** は値も型も禁止(親 D8、例外の一覧なし)
@@ -93,6 +94,7 @@ const config = [
     rules: {
       "import-boundaries/route-factory-via-wiring": "error",
       "import-boundaries/page-guard-via-wiring": "error",
+      "import-boundaries/cron-route-via-wiring": "error",
       "import-boundaries/feature-gate-entries": "error",
     },
   },

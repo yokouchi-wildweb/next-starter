@@ -9,6 +9,12 @@
 // 理由: 汎用版の Factory は主体の解き方・access の評価・登録表を差し込んで初めて使える。route は wiring の設定済み版
 // (@/wiring/apiRoute)を使い、差し込み忘れ・別の束での組み立てを構造で防ぐ。createCrudService・lib/cron は対象外(D5 K2)。
 //
+// ── cron-route-via-wiring(D19、route-factory-via-wiring と同じ形) ──
+// @/lib/cron の作り手 createCronTaskRoute / createCronRoute を値 import できるのは src/wiring/** と src/lib/cron 自身だけ。
+// 型・他の名前(runBudgetedBatches・型 CronTaskDefinition など)とテスト(*.test.*、作り手の単体テスト)は誰でも可。名前を問わない形(namespace・動的 import・
+// export *)は作り手を含みうるので止める。理由: cron の route は wiring の設定済み版(@/wiring/cronRoute)が門番の判定を結ぶ。
+// 汎用版を直に使うと閉じた機能のタスクが route で飛ばない。
+//
 // ── lib-no-registry(D23 K3) ──
 // src/lib/** から src/registry/** を import しない(値も型も)。lib の関数は登録表を引数・注入で受け、結ぶのは src/wiring/**。
 // 一覧の行(file + target)に当たる import は通す。一覧の行のファイルにその import が無くなったら、行を消すよう error。
@@ -58,6 +64,8 @@ import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-
 
 const ROUTE_FACTORY = "src/lib/routeFactory";
 const PAGE_GUARD = "src/lib/pageGuard";
+const CRON_LIB = "src/lib/cron";
+const CRON_FACTORY_NAMES = ["createCronTaskRoute", "createCronRoute"];
 const SERVER_SERVICE_DIR = /(^|\/)services\/server(\/|$)/;
 const WIRING = "src/wiring";
 const LIB = "src/lib";
@@ -87,6 +95,18 @@ export function classifyPageGuardImport(importerRel, resolved, typeOnly) {
   if (!isUnder(resolved, PAGE_GUARD)) return null;
   if (isUnder(importerRel, WIRING) || isUnder(importerRel, PAGE_GUARD)) return null;
   return "pageGuard";
+}
+
+/**
+ * cron の作り手の値 import か。違反なら作り手の名前(名前を問わない形は "*")、無ければ null
+ * @param {{ name: string, typeOnly: boolean }[] | null} specifiers null = 名前を問わない形(namespace・動的 import・export *)
+ */
+export function classifyCronFactoryImport(importerRel, resolved, typeOnly, specifiers) {
+  if (typeOnly || !isUnder(resolved, CRON_LIB)) return null;
+  if (isUnder(importerRel, WIRING) || isUnder(importerRel, CRON_LIB) || TEST_FILE.test(importerRel)) return null;
+  if (!Array.isArray(specifiers)) return "*";
+  const hit = specifiers.find((s) => !s.typeOnly && CRON_FACTORY_NAMES.includes(s.name));
+  return hit ? hit.name : null;
 }
 
 /** features の barrel(services/server の外の index.ts)が services/server を値で再 export するか */
@@ -219,6 +239,27 @@ const pageGuardViaWiring = {
       if (classifyPageGuardImport(importerRel, resolved, typeOnly)) {
         context.report({ node, messageId: "pageGuard", data: { source } });
       }
+    });
+  },
+};
+
+const cronRouteViaWiring = {
+  meta: {
+    type: "problem",
+    docs: { description: "lib/cron の作り手(createCronTaskRoute / createCronRoute)を値 import できるのは src/wiring/** だけ(cron の route は @/wiring/cronRoute から)" },
+    messages: {
+      cronFactory:
+        '"{{source}}" の {{name}} は cron の汎用版の作り手です。値 import できるのは src/wiring/** だけ。cron の route.ts は @/wiring/cronRoute の createCronTaskRoute を使う(門番がタスクの住所 /api/cron/<name> で閉じた機能のタスクを飛ばす。型と他の名前は可。詳細: src/lib/cron/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source, typeOnly, specifiers }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      const name = classifyCronFactoryImport(importerRel, resolved, typeOnly, specifiers);
+      if (name) context.report({ node, messageId: "cronFactory", data: { source, name: name === "*" ? "名前を問わない import" : name } });
     });
   },
 };
@@ -401,6 +442,7 @@ const plugin = {
   rules: {
     "route-factory-via-wiring": routeFactoryViaWiring,
     "page-guard-via-wiring": pageGuardViaWiring,
+    "cron-route-via-wiring": cronRouteViaWiring,
     "features-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
     "lib-no-features": libNoFeatures,

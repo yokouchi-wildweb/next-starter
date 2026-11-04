@@ -2,6 +2,8 @@
 
 `pnpm task <名前>` のランナー(`run.ts`)と、ワンショット・任意タスクの受け口。定期タスクは `src/app/api/cron/<name>/task.ts`(`src/lib/cron/README.md`)。
 
+定期タスクは機能の門に従う: 住所 `/api/cron/<name>` を規則が閉じていれば、`--due` でも名前指定でも本体を呼ばずに飛ばし(`skipped: true, reason: "closed", rule` をログに出して exit 0)、`--list` に `[closed: <規則>]` と出す(判定 = `scripts/cron/discover.ts` の `closedBy`、門番の `gate.path`)。ワンショット・任意タスクは門に掛からない。
+
 ## タスクを足す
 
 `scripts/tasks/<名前>.ts`(上流も fork も同じ。名前に fork の印は付けない)を 1 つ置く。一覧ファイルは無く、`run.ts`・`discover.ts`・`types.ts` 以外の直下のファイルが全部タスク。

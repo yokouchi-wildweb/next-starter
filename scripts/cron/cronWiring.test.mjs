@@ -3,7 +3,8 @@
 //
 // 登録は不要。src/app/api/cron/<name>/ を走査して検査する。守りたい契約(設計: src/lib/cron/README.md):
 // 1. cron のフォルダには route.ts と task.ts がある。task.ts は cronTask を export し、name = フォルダ名
-// 2. route.ts は ./task の cronTask を createCronTaskRoute で読む(定義を route.ts に二重に書かない)
+// 2. route.ts は ./task の cronTask を @/wiring/cronRoute の createCronTaskRoute で読む(定義を route.ts に二重に書かない。
+//    門番の判定は wiring が結ぶ: 住所 /api/cron/<name> が閉じていれば route・pnpm task は飛ばし、vercel.json に載せない)
 // 3. タスク名はケバブケース、schedule は正しい cron 式、description あり、enabled は throw せず boolean を返す
 // 4. fork の override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
 // 5. README と task.ts / override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
@@ -15,7 +16,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CRON_ROUTE_DIR, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
+import { CRON_ROUTE_DIR, gateClosedBy, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
+import { createCronRoute, createCronTaskRoute } from "../../src/lib/cron/createCronRoute.ts";
 import { buildVercelCrons, checkVercelCrons, listHobbyDowngradedTasks } from "../../src/lib/cron/vercelCrons.ts";
 import {
   isAtMostDailySchedule,
@@ -35,6 +37,10 @@ test("cron のフォルダには route.ts と task.ts があり、route.ts は .
     assert.ok(
       route.includes('from "./task"') && route.includes("createCronTaskRoute(cronTask)"),
       `${dir}: route.ts は export const GET = createCronTaskRoute(cronTask)(cronTask は ./task から)にする`,
+    );
+    assert.ok(
+      route.includes('from "@/wiring/cronRoute"'),
+      `${dir}: route.ts の createCronTaskRoute は @/wiring/cronRoute から読む(門番の判定を結んだ版。lint cron-route-via-wiring)`,
     );
   }
 });
@@ -154,6 +160,93 @@ test("override.ts: schedule を差し替え、disabled のタスクは定期実�
       );
     },
   );
+});
+
+test("機能の門: 住所 /api/cron/<name> が閉じたタスクは closedBy が付き、定期実行(vercel.json の生成と検査)から外れる", async () => {
+  await withCronFixture(
+    {
+      "a-task/task.ts": taskSource("a-task", "0 18 * * *"),
+      "b-task/task.ts": taskSource("b-task", "5 18 * * *"),
+      "c-task/task.ts": taskSource("c-task", "* * * * *"),
+    },
+    async (root) => {
+      const closedBy = (pathname) => (pathname === "/api/cron/b-task" ? "wallet" : null);
+      const tasks = await loadCronTasks(root, { closedBy });
+      assert.deepEqual(
+        tasks.map(({ name, closedBy: rule }) => ({ name, rule })),
+        [
+          { name: "a-task", rule: null },
+          { name: "b-task", rule: "wallet" },
+          { name: "c-task", rule: null },
+        ],
+      );
+      const scheduled = scheduledCronTasks(tasks);
+      for (const plan of ["pro", "hobby"]) {
+        const crons = buildVercelCrons(scheduled, plan);
+        assert.deepEqual(crons.map((entry) => entry.path), ["/api/cron/a-task", "/api/cron/c-task"], plan);
+        assert.deepEqual(checkVercelCrons(crons, scheduled).errors, [], `${plan}: 生成と検査は同じ一覧で一致する`);
+      }
+      const reopened = await loadCronTasks(root, { closedBy: () => null });
+      assert.ok(
+        checkVercelCrons(buildVercelCrons(scheduled, "pro"), scheduledCronTasks(reopened)).errors.length > 0,
+        "機能を開いたのに再生成していない vercel.json は検査で止まる",
+      );
+    },
+  );
+});
+
+test("機能の門: 既定の判定は門番の gate.path(今の config。登録端末は既定で閉)", async () => {
+  assert.equal(gateClosedBy("/api/cron/paired-device-pairings-prune"), "pairedDevice");
+  assert.equal(gateClosedBy("/api/cron/audit-log-prune"), null);
+  const tasks = await loadCronTasks(repoRoot);
+  assert.equal(tasks.find((task) => task.name === "paired-device-pairings-prune")?.closedBy, "pairedDevice");
+});
+
+test("createCronRoute: 依存の gate が閉と答えたら認証の後・enabled と本体の前に skipped(reason closed)、依存なしは今と同じ", async () => {
+  const saved = process.env.CRON_SECRET;
+  process.env.CRON_SECRET = "s";
+  try {
+    const req = (auth = "Bearer s") => new Request("http://localhost/api/cron/x-task", { headers: { authorization: auth } });
+    const calls = [];
+    const task = {
+      name: "x-task",
+      description: "d",
+      schedule: "0 18 * * *",
+      enabled: () => {
+        calls.push("enabled");
+        return true;
+      },
+      run: async () => {
+        calls.push("run");
+        return { done: 1 };
+      },
+    };
+    const seen = [];
+    const closedGate = { isClosed: (pathname) => (seen.push(pathname), true) };
+
+    assert.equal((await createCronTaskRoute(task, { gate: closedGate })(req("Bearer x"))).status, 401, "認証が先");
+    assert.deepEqual(seen, []);
+
+    const closed = await createCronTaskRoute(task, { gate: closedGate })(req());
+    assert.equal(closed.status, 200);
+    assert.deepEqual(await closed.json(), { ok: true, skipped: true, reason: "closed" });
+    assert.deepEqual(seen, ["/api/cron/x-task"], "住所はタスクの名前から組む");
+    assert.deepEqual(calls, [], "閉なら enabled も本体も呼ばない");
+
+    const open = await createCronTaskRoute(task, { gate: { isClosed: () => false } })(req());
+    assert.deepEqual(await open.json(), { ok: true, done: 1 });
+    assert.deepEqual(calls, ["enabled", "run"]);
+
+    calls.length = 0;
+    const plain = await createCronTaskRoute(task)(req());
+    assert.deepEqual(await plain.json(), { ok: true, done: 1 }, "依存なしは今と同じ");
+
+    const disabled = await createCronRoute({ name: "y-task", handler: async () => ({}), enabled: () => false }, { gate: { isClosed: () => false } })(req());
+    assert.deepEqual(await disabled.json(), { ok: true, skipped: true, reason: "disabled" });
+  } finally {
+    if (saved === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = saved;
+  }
 });
 
 test("override.ts: 不正な cron 式・未知の項目・task.ts の無いフォルダは失敗", async () => {

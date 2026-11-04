@@ -14,6 +14,7 @@
 // `pnpm task --due` を毎分 1 本だけ叩く（各タスクの schedule は CLI が判定する）。
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
+// 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
 // ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>.ts を走査する（./README.md）。
 //
 // package.json の task スクリプトは scripts/test/serverOnlyStub.mjs を preload する
@@ -37,8 +38,12 @@ type TaskFn = () => Promise<Record<string, unknown>>;
 function buildTaskMap(repoRoot: string, cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[]): Record<string, TaskFn> {
   assertNoCronOverlap(oneShotTasks, cronTasks.map((task) => task.name));
   const oneShot = oneShotTasks.map((file): [string, TaskFn] => [file.name, async () => (await loadOneShotTask(repoRoot, file)).run()]);
-  return { ...Object.fromEntries(cronTasks.map((task) => [task.name, task.run])), ...Object.fromEntries(oneShot) };
+  const cron = cronTasks.map((task): [string, TaskFn] => [task.name, task.closedBy === null ? task.run : closedTask(task.closedBy)]);
+  return { ...Object.fromEntries(cron), ...Object.fromEntries(oneShot) };
 }
+
+/** 機能が閉じた定期タスクの代わり: 本体を呼ばずに飛ばした印を返す（終了コードは 0） */
+const closedTask = (rule: string): TaskFn => async () => ({ skipped: true, reason: "closed", rule });
 
 function log(level: "info" | "error", payload: Record<string, unknown>) {
   const line = JSON.stringify({ level, scope: "task-cli", ...payload });
@@ -49,7 +54,13 @@ function log(level: "info" | "error", payload: Record<string, unknown>) {
 function printList(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[]) {
   console.log("Scheduled tasks (src/app/api/cron/*/task.ts):");
   for (const task of cronTasks) {
-    const state = task.disabled ? " [off: override.ts]" : task.enabled && !task.enabled() ? " [disabled]" : "";
+    const state = task.disabled
+      ? " [off: override.ts]"
+      : task.closedBy !== null
+        ? ` [closed: ${task.closedBy}]`
+        : task.enabled && !task.enabled()
+          ? " [disabled]"
+          : "";
     const overridden = task.overridden && !task.disabled ? " (override.ts)" : "";
     console.log(`  - ${task.name} [${task.schedule}]${overridden}${state}: ${task.description}`);
   }
@@ -81,8 +92,12 @@ async function runDue(cronTasks: LoadedCronTask[]) {
   let failed = 0;
   for (const task of cronTasks) {
     if (task.disabled || !matchesCronExpression(task.schedule, now)) continue;
+    if (task.closedBy !== null) {
+      log("info", { task: task.name, ok: true, skipped: true, reason: "closed", rule: task.closedBy });
+      continue;
+    }
     if (task.enabled && !task.enabled()) {
-      log("info", { task: task.name, ok: true, skipped: true });
+      log("info", { task: task.name, ok: true, skipped: true, reason: "disabled" });
       continue;
     }
     if (!(await runTask(task.name, task.run))) failed += 1;

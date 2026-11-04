@@ -138,7 +138,7 @@ export const cronTask: CronTaskDefinition = {
 
 ```ts
 // src/app/api/cron/user-metrics-refresh/route.ts
-import { createCronTaskRoute } from "@/lib/cron";
+import { createCronTaskRoute } from "@/wiring/cronRoute";
 import { cronTask } from "./task";
 
 export const maxDuration = 300;

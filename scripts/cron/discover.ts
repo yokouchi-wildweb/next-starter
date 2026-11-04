@@ -4,13 +4,17 @@
 // 利用者: scripts/cron/generate.ts, scripts/cron/check.ts, scripts/tasks/run.ts（pnpm task）, scripts/cron/cronWiring.test.mjs
 // task.ts の run は動的 import なので、ここで読み込んでも DB などの依存は読み込まれない。
 // fork が置いた override.ts（任意）があれば、schedule の差し替えと disabled をここで反映する。空(空白とコメントだけ)は不在と同じ。
+// 機能の門: タスクの住所 /api/cron/<name> を門番（@/featureGate/node の gate.path）に聞き、閉じていれば closedBy に規則の名前を付ける
+// （定期実行から外す・pnpm task で飛ばす。route 側は src/wiring/cronRoute.ts が同じ住所で判定する）。
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { gate } from "@/featureGate/node";
 import { isValidCronExpression } from "@/lib/cron/cronExpression";
 import type { CronTaskDefinition, CronTaskOverride } from "@/lib/cron/types";
+import { cronTaskPath } from "@/lib/cron/vercelCrons";
 
 export const CRON_ROUTE_DIR = "src/app/api/cron";
 
@@ -20,6 +24,22 @@ export type LoadedCronTask = CronTaskDefinition & {
   disabled: boolean;
   /** override.ts があるか */
   overridden: boolean;
+  /** タスクの住所を閉じている規則の名前（開いていれば null） */
+  closedBy: string | null;
+};
+
+/** 住所 → 閉じている規則の名前（開いていれば null） */
+export type CronPathClosedBy = (pathname: string) => string | null;
+
+/** 既定の判定: 門番の gate.path（今の config の値で評価する） */
+export const gateClosedBy: CronPathClosedBy = (pathname) => {
+  const result = gate.path(pathname);
+  return result.open ? null : result.rule;
+};
+
+export type LoadCronTasksOptions = {
+  /** 住所の判定の差し替え（テスト用。既定 = gateClosedBy） */
+  closedBy?: CronPathClosedBy;
 };
 
 const OVERRIDE_KEYS = new Set(["schedule", "disabled"]);
@@ -63,7 +83,8 @@ async function loadOverride(dir: string, file: string): Promise<CronTaskOverride
  * task.ts が無い・`cronTask` を export していない・name がフォルダ名と違う・override.ts が不正な場合は throw
  * （vercel.json の生成や CLI が黙ってタスクを落とさないため）
  */
-export async function loadCronTasks(repoRoot: string): Promise<LoadedCronTask[]> {
+export async function loadCronTasks(repoRoot: string, options: LoadCronTasksOptions = {}): Promise<LoadedCronTask[]> {
+  const closedBy = options.closedBy ?? gateClosedBy;
   const tasks: LoadedCronTask[] = [];
   for (const dir of listCronTaskDirs(repoRoot)) {
     const base = path.join(repoRoot, CRON_ROUTE_DIR, dir);
@@ -88,12 +109,13 @@ export async function loadCronTasks(repoRoot: string): Promise<LoadedCronTask[]>
       schedule: override?.schedule ?? task.schedule,
       disabled: override?.disabled === true,
       overridden: override !== null,
+      closedBy: closedBy(cronTaskPath(dir)),
     });
   }
   return tasks;
 }
 
-/** 定期実行するタスク（override.ts で disabled にしたものを除く） */
+/** 定期実行するタスク（override.ts で disabled にしたもの・機能が閉じているものを除く） */
 export function scheduledCronTasks(tasks: readonly LoadedCronTask[]): LoadedCronTask[] {
-  return tasks.filter((task) => !task.disabled);
+  return tasks.filter((task) => !task.disabled && task.closedBy === null);
 }
