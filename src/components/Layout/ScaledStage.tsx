@@ -53,7 +53,7 @@ export type ScaledStageProps = {
  * 枠を挟む理由: transform は layout box を変えないため、ステージ単体を flex で
  * 中央寄せすると「論理サイズのまま」の箱として配置されてしまう。
  *
- * 親が flex-col の fill 系土台（KioskFrame / UserPage fill / AdminPage fill）なら
+ * 親が flex-col の fill 系土台（KioskFrame / 枠の宣言の fill のページ(利用者・管理)）なら
  * そのまま残り高さを占有する。親が確定高さの通常ブロックなら className="h-full" を渡す。
  *
  * ```tsx

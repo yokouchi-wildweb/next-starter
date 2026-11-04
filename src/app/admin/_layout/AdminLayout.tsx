@@ -6,6 +6,7 @@ import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { cn } from "@/lib/cn";
 
 import { Header } from "./Header";
+import { useAdminFrame } from "./hooks/useAdminFrame";
 import { useAdminLayoutStore } from "./stores/adminLayout";
 
 type AdminLayoutCSSVariables = CSSProperties & {
@@ -28,10 +29,15 @@ export type AdminLayoutProps = {
   readonly className?: string;
 };
 
-/** 管理画面の外枠(固定ヘッダー + 子領域)の既定の組み立て。src/app/admin/layout.tsx が 1 行スイッチで default に束ねる */
+/**
+ * 管理画面の外枠(固定ヘッダー + 子領域)の既定の組み立て。src/app/admin/layout.tsx が 1 行スイッチで default に束ねる。
+ * 外枠 = 枠の根(data-frame-root)。今のルートの枠の宣言(frame.default.ts / frame.ts → 表)を useAdminFrame が属性にし、
+ * src/styles/_base/frame.css が部位(admin-header・admin-sidebar・admin-footer)を隠す・fill で本文に残りの高さを埋めさせる
+ */
 export function AdminLayout({ children, header, className }: AdminLayoutProps) {
   const headerHeight = useHeaderHeight();
   const { extraClassName } = useAdminLayoutStore();
+  const frameAttributes = useAdminFrame();
 
   // 寸法変数のうち書くのは --app-header-height だけ。Admin には banner も bottomNav も無いので
   // --app-banner-height / --app-bottom-nav-height は styles/_base/config.css の :root の 0px を継ぐ(safe-area も :root)
@@ -50,6 +56,8 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
         extraClassName,
       )}
       style={layoutStyle}
+      data-frame-root=""
+      {...frameAttributes}
     >
       {header === undefined ? <Header /> : header}
       {/* ヘッダー固定 + メイン領域は配下が独自にスクロールを担う土台。

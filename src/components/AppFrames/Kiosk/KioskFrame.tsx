@@ -32,7 +32,7 @@ export type KioskFrameProps = ComponentPropsWithoutRef<"div"> & {
  * - overflow-clip（scroll container 化しないので focus 駆動の勝手なスクロールも
  *   起きない）+ overscroll-none（タブレットの引っ張り更新・バウンスを抑止）
  * - flex-col。子は `flex-1 min-h-0` だけで残り高さを得る
- *   （枠の宣言の fill のページ / AdminPage fill と同じ子契約。calc() やマジックナンバー不要）
+ *   （枠の宣言の fill のページ(利用者・管理)と同じ子契約。calc() やマジックナンバー不要）
  * - ヘッダー・フッター・認証・Provider は一切持たない。bg-background text-foreground
  *   だけ既定で当てる（className で上書き可）
  *

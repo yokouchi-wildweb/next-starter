@@ -2,12 +2,14 @@
  * src/styles/_base/frame.css
  * 枠の部位の出し入れ(手書き・生成しない)。
  *
- * 外枠 [data-frame-root](UserLayout の #user-app-container)に、今のルートの宣言(各ルートの枠の宣言 frame.default.ts / frame.ts → 表)を
- * 読み手(src/app/(user)/_layout/hooks/useUserFrame.ts)が属性で付ける:
+ * 外枠 [data-frame-root](利用者 = UserLayout の #user-app-container / 管理 = AdminLayout の外枠)に、今のルートの宣言
+ * (各ルートの枠の宣言 frame.default.ts / frame.ts → 枠ごとの表)を読み手が属性で付ける
+ * (利用者 src/app/(user)/_layout/hooks/useUserFrame.ts / 管理 src/app/admin/_layout/hooks/useAdminFrame.ts):
  *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
- * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠)。狙う先 = 既定部品の id と [data-frame-part~="<部位>"]
- * (差し替えた部品は id を残すか外側に data-frame-part を付ける)。
- * 部位の一覧と規則の一致は src/app/(user)/_layout/UserFrame.test.tsx(pnpm test:user-layout)が確かめる。
+ * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠は接頭辞なし、管理の枠は admin-)。狙う先 = 既定部品の id と
+ * [data-frame-part~="<部位>"](差し替えた部品は id を残すか外側に data-frame-part を付ける)。
+ * 部位の一覧と規則の一致は src/app/(user)/_layout/UserFrame.test.tsx(pnpm test:user-layout)と
+ * src/app/admin/_layout/AdminFrame.test.tsx(pnpm test:admin-layout)が確かめる。
  * 部位の寸法変数は隠している間 0(外枠の inline の値に勝つため !important)。
  * layer に入れない = 部品の Tailwind ユーティリティ(sm:flex 等)より優先する。端末の境界 = Tailwind の sm(40rem)。
  */
@@ -64,4 +66,54 @@
   height: var(--viewport-height, 100dvh);
   min-height: 0;
   overflow: clip;
+}
+
+/*
+ * 管理の枠(src/app/admin)。印は admin- 付きなので利用者の規則とは当たらない。
+ * サイドバーの印(admin-sidebar)は PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタンの全部に付く
+ * (サイドバーの PC / SP の切り替えは md だが、隠すのは端末の境界 40rem ごとに全部の印)。
+ * ヘッダーを隠すと useHeaderHeight が 0 を読み、--app-header-height も 0 になる。
+ */
+@media (width < 40rem) {
+  [data-frame-root][data-frame-hide~="admin-header-sp"] :is(#header, [data-frame-part~="admin-header"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="admin-sidebar-sp"] :is([data-frame-part~="admin-sidebar"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="admin-footer-sp"] :is(#footer, [data-frame-part~="admin-footer"]) {
+    display: none;
+  }
+}
+
+@media (width >= 40rem) {
+  [data-frame-root][data-frame-hide~="admin-header-pc"] :is(#header, [data-frame-part~="admin-header"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="admin-sidebar-pc"] :is([data-frame-part~="admin-sidebar"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="admin-footer-pc"] :is(#footer, [data-frame-part~="admin-footer"]) {
+    display: none;
+  }
+}
+
+/*
+ * 管理の fill: 外枠は既に確定高さ(AdminLayout)。メイン領域のラッパー [data-admin-main-wrapper](ResizableArea・InsaneResizableArea)を
+ * flex-col + min-height:0 の束縛モードにし、直下のページの本文 #main(AdminPage の Main)を flex-1 min-h-0 の flex-col にする。
+ * 余白は --admin-page-padding-inline / --admin-page-padding-block トークン(Main の padding の既定 p-4 sm:p-6 py-6 sm:py-10 に代わる)。
+ * 外側は非スクロール、内部ペインが独自スクロール。既定(fill なし)のラッパーは display:block で中身の高さぶん伸び、外側がスクロールする。
+ */
+[data-frame-root][data-frame-fill] [data-admin-main-wrapper] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+[data-frame-root][data-frame-fill] [data-admin-main-wrapper] > #main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding-block: var(--admin-page-padding-block);
+  padding-inline: var(--admin-page-padding-inline);
 }

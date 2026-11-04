@@ -60,6 +60,7 @@ export function InsaneResizableArea({
 
       {hasSidebar && isSidebarResizable ? (
         <div
+          data-frame-part="admin-sidebar"
           onMouseDown={() => {
             dragging.current = true;
             document.body.style.cursor = "ew-resize";
@@ -69,8 +70,10 @@ export function InsaneResizableArea({
       ) : null}
 
       {/* メイン領域: 縦スクロールはここで担う。AdminLayout 側は overflow-hidden に変更されたため、
-          insane 配下でコンテンツが画面高を超える場合のスクロール責務はこのコンテナが持つ。 */}
-      <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
+          insane 配下でコンテンツが画面高を超える場合のスクロール責務はこのコンテナが持つ。
+          data-admin-main-wrapper = ページの本文(#main)の直接の親の印。枠の宣言の fill で本文を flex-1 min-h-0 にする
+          規則(styles/_base/frame.css)が狙う。ここは既に flex-col + min-h-0 なのでラッパー側の切り替えは変化なし */}
+      <div data-admin-main-wrapper="" className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
         {children}
         {footer}
       </div>

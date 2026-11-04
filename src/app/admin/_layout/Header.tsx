@@ -25,7 +25,7 @@ export function Header() {
   const { isAuthenticated } = useAuthSession();
 
   return (
-    <header id={APP_HEADER_ELEMENT_ID} className={cn(headerContainer())}>
+    <header id={APP_HEADER_ELEMENT_ID} data-frame-part="admin-header" className={cn(headerContainer())}>
       {/* 左側: ロゴ */}
       <Link href="/admin" className="block shrink-0 p-1 sm:p-2" prefetch={isAuthenticated}>
         {/* width/height は上流のロゴ素材(1280x260)の縦横比のヒント。実表示の大きさは className の max-* + w-auto/h-auto が決める。

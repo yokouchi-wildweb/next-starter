@@ -57,7 +57,7 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 | 欲しいもの | 使うもの |
 |-----------|---------|
 | UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.default.ts` / `frame.ts`)の `page: { fill: true }`(枠も隠すなら `hide`)+ `UserPage`（[src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)「fill のページ」） |
-| AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | `<AdminPage fill>` |
+| AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.default.ts` / `frame.ts`)の `page: { fill: true }` + `AdminPage`（[src/app/admin/_layout/README.md](../../../app/admin/_layout/README.md)「AdminPage と PageTitle」） |
 | **レイアウトを持たない独立ルート群**のビューポート固定ページ枠 | `<KioskFrame>` |
 | 画面全体を覆う一時的なオーバーレイ（スプラッシュ・背景演出） | `<Main containerType="fullscreen">`（fixed オーバーレイ、z 層、body スクロールロック） |
 
@@ -138,7 +138,7 @@ export function FullscreenToggle() {
 | `hideUntilMeasured` | `true` | 初回計測まで非表示にして倍率 1 → 実倍率の跳びを隠す |
 | `className` / `stageClassName` | - | 計測コンテナ / 論理ステージのクラス |
 
-- 計測コンテナは `flex-1 min-h-0 w-full`。親が flex-col の fill 系土台（KioskFrame / 枠の宣言の fill のページ / AdminPage fill）ならそのまま残り領域を占有する。親が確定高さの通常ブロックなら `className="h-full"` を渡す
+- 計測コンテナは `flex-1 min-h-0 w-full`。親が flex-col の fill 系土台（KioskFrame / 枠の宣言の fill のページ(利用者・管理)）ならそのまま残り領域を占有する。親が確定高さの通常ブロックなら `className="h-full"` を渡す
 - transform は layout box を変えないため、内部で「拡縮後サイズの枠」を挟んで実占有面積を作っている。子の `position: fixed` / ポータルは transform の影響を受けるので、モーダル等は ScaledStage の外（Overlays は BodyPortal 経由なので問題ない）
 - テキスト入力やスクロール領域をステージ内に置くと拡縮倍率ぶん操作感が変わる。操作主体の画面は A 方式を選ぶ
 

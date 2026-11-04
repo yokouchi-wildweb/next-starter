@@ -16,7 +16,7 @@ const noop = () => {};
 
 export function InsanePcSidebar({ width, content }: InsanePcSidebarProps) {
   return (
-    <div className="hidden md:block" style={{ width }}>
+    <div data-frame-part="admin-sidebar" className="hidden md:block" style={{ width }}>
       <AdminSidebarFrameProvider value={{ placement: "pc", width, close: noop }}>
         {content === undefined ? <InsaneSidebar width={width} /> : content}
       </AdminSidebarFrameProvider>

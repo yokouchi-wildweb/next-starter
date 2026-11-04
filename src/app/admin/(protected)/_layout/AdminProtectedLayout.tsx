@@ -42,6 +42,7 @@ export function AdminProtectedLayout({ children, sidebar, footer }: AdminProtect
       </ResizableArea>
       {sidebar === null ? null : (
         <Button
+          data-frame-part="admin-sidebar"
           type="button"
           variant="accent"
           size="icon"

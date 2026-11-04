@@ -1,6 +1,6 @@
 # 枠の宣言(frame.default.ts / frame.ts)
 
-ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm extensions:generate` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の layout)はその表を読む(管理の枠が読むのは後の段)。
+ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm extensions:generate` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout、読み手 `useUserFrame`)と管理の枠(`admin` の AdminLayout、読み手 `useAdminFrame`)がそれぞれの表を読む。
 
 原則: 隣に置く宣言・差し替え・上書きは相手を名指す(ファイル名かキー)。隣に何があるかで意味を変えない。
 
@@ -79,4 +79,4 @@ export const frameTable = [
 - Main: `main`・`main-layout`・`main-container`
 - 見出し(一覧に載せるだけ): `user-page-title`・`page-title`・`admin-page-title`・`sec-title`・`admin-sec-title`
 - 隠せる部位(`hideable: true`): 利用者 `header`・`header-nav`・`footer`・`bottom-nav`、管理 `admin-header`・`admin-sidebar`・`admin-footer`
-- テスト: 一覧の名前と隠せる部位、型のキーの union = 隠せる部位(`parts.test.mjs`)。利用者の枠の部品との照合は `(user)/_layout` のテスト
+- テスト: 一覧の名前と隠せる部位、型のキーの union = 隠せる部位(`parts.test.mjs`)。枠の部品と frame.css の規則との照合は `(user)/_layout/UserFrame.test.tsx`(利用者)・`admin/_layout/AdminFrame.test.tsx`(管理)

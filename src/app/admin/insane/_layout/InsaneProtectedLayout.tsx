@@ -51,6 +51,7 @@ export function InsaneProtectedLayout({ children, sidebar, footer }: InsaneProte
       </InsaneResizableArea>
       {sidebar === null ? null : (
         <Button
+          data-frame-part="admin-sidebar"
           type="button"
           variant="destructive"
           size="icon"

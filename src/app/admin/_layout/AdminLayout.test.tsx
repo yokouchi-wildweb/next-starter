@@ -1,5 +1,6 @@
 // 管理画面の枠(AdminLayout・AdminProtectedLayout・InsaneProtectedLayout・AdminHeaderSlots)とページ枠部品(AdminPage・PageTitle)の
-// slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査。
+// slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の部位の印 data-frame-root / data-frame-part="admin-*" /
+// insane の data-admin-main-wrapper だけ。枠の宣言の読み手と CSS は ./AdminFrame.test.tsx)。
 // 実行: pnpm test:admin-layout(test:user-layout と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // 重い部品(BaseSidebar・InsaneSidebar・DarkModeSwitch・Button)と useHeaderHeight・useAuthSession は目印にモックし、
@@ -64,7 +65,7 @@ before(async () => {
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 const FOOTER_TEXT = `© ${new Date().getFullYear()} ${businessConfig.serviceName}`;
 
-// ---- slot 化の前(a77da63d)の部品を同じモックで描いた HTML。既定の DOM・id・順序の基準 ----
+// ---- slot 化の前(a77da63d)の部品を同じモックで描いた HTML + 枠の部位の印。既定の DOM・id・順序の基準 ----
 
 /**
  * ロゴは AppImage(intrinsic, 300x61, priority)。テストは next.config を読まないので next/image の既定(最適化あり・q=75)の URL になる。
@@ -78,18 +79,17 @@ const LOGO_IMG = (variant: "dark" | "light", alt: string, className: string) =>
 const LOGO_PRELOAD = (variant: "dark" | "light") => `<link rel="preload" as="image" imageSrcSet="${logoSrcSet(variant)}"/>`;
 
 /** slot 化の前の旧 admin/layout.tsx が描いていた物のヘッダー(ロゴだけ AppImage 化で差し替え) */
-const BEFORE_HEADER = `<header id="header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div id="admin-header-title-slot" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div id="admin-header-center-slot" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div id="admin-header-right-slot" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
+const BEFORE_HEADER = `<header id="header" data-frame-part="admin-header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div id="admin-header-title-slot" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div id="admin-header-center-slot" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div id="admin-header-right-slot" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
 /** 既定の Header のロゴ画像が文書の先頭に出す preload(Header を描かないときは出ない) */
 const BEFORE_LOGO_PRELOAD = LOGO_PRELOAD("dark") + LOGO_PRELOAD("light");
 /** 同じく外枠全体 */
-const BEFORE_OUTER = BEFORE_LOGO_PRELOAD + `<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground" style="--app-header-height:0px">` + BEFORE_HEADER + `<div class="flex-1 min-h-0 flex flex-col overflow-clip">CHILD</div></div>`;
+const BEFORE_OUTER = BEFORE_LOGO_PRELOAD + `<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground" style="--app-header-height:0px" data-frame-root="">` + BEFORE_HEADER + `<div class="flex-1 min-h-0 flex flex-col overflow-clip">CHILD</div></div>`;
 /** `<AdminProtectedLayout>CHILD</AdminProtectedLayout>` */
-const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false"></x-button>`;
+const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div data-frame-part="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div data-frame-part="admin-sidebar" class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div data-frame-part="admin-sidebar" class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" data-frame-part="admin-footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false"></x-button>`;
 /** `<InsaneProtectedLayout>CHILD</InsaneProtectedLayout>` */
-const BEFORE_INSANE = `<div class="flex flex-1 flex-col min-h-0"><div class="flex flex-1 min-h-0 relative"><div style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-insanesidebar data-nav=""></x-insanesidebar></div><div class="hidden md:block" style="width:192px"><x-insanesidebar></x-insanesidebar></div><div class="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">CHILD</div></div><x-button data-variant="destructive" aria-label="メニューを開く" aria-pressed="false"></x-button></div>`;
-/** `<AdminPage>CHILD</AdminPage>` / `<AdminPage fill>CHILD</AdminPage>` */
+const BEFORE_INSANE = `<div class="flex flex-1 flex-col min-h-0"><div class="flex flex-1 min-h-0 relative"><div data-frame-part="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-insanesidebar data-nav=""></x-insanesidebar></div><div data-frame-part="admin-sidebar" class="hidden md:block" style="width:192px"><x-insanesidebar></x-insanesidebar></div><div data-frame-part="admin-sidebar" class="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div data-admin-main-wrapper="" class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">CHILD</div></div><x-button data-variant="destructive" aria-label="メニューを開く" aria-pressed="false"></x-button></div>`;
+/** `<AdminPage>CHILD</AdminPage>`(fill は枠の宣言 + frame.css に移った。AdminPage の DOM は通常のページのまま) */
 const BEFORE_PAGE = `<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">CHILD</main>`;
-const BEFORE_PAGE_FILL = `<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-0 flex min-h-0 flex-1 flex-col px-[var(--admin-page-padding-inline)] py-[var(--admin-page-padding-block)]" data-admin-fill="">CHILD</main>`;
 /** `<PageTitle>T</PageTitle>`(当時の既定 = page)/ `<PageTitle placement="header">T</PageTitle>`(SSR では AdminHeaderPortal は何も描かない) */
 const BEFORE_TITLE_PAGE = `<h1 class="tracking-tight text-2xl font-normal text-left relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] mb-8 sm:text-3xl">T</h1>`;
 const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text-left relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] mb-8 sm:text-3xl sm:hidden">T</h1>`;
@@ -183,14 +183,10 @@ test("footer slot: (protected) は要素で置き換え / null で描かない�
 
 // ---- AdminPage・PageTitle ----
 
-test("props なしの AdminPage は前と同じ DOM。tabs は本文の前に mb-6 で描く(通常・fill)", () => {
+test("props なしの AdminPage は前と同じ DOM(fill の prop は無い)。tabs は本文の前に mb-6 で描く", () => {
   assert.equal(render(<AdminPage>CHILD</AdminPage>), BEFORE_PAGE);
-  assert.equal(render(<AdminPage fill>CHILD</AdminPage>), BEFORE_PAGE_FILL);
   assert.equal(render(<AdminPage tabs={<i id="t" />}>CHILD</AdminPage>), BEFORE_PAGE.replace(">CHILD<", '><div class="mb-6"><i id="t"></i></div>CHILD<'));
-  assert.equal(
-    render(<AdminPage fill tabs={<i id="t" />}>CHILD</AdminPage>),
-    BEFORE_PAGE_FILL.replace(">CHILD<", '><div class="mb-6"><i id="t"></i></div>CHILD<'),
-  );
+  assert.ok(!BEFORE_PAGE.includes("data-admin-fill"));
 });
 
 test("PageTitle の既定は placement=header。placement=page は前の既定と同じ DOM", () => {

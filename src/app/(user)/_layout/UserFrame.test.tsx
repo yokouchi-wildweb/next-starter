@@ -48,7 +48,8 @@ const MEDIA = { sp: "@media (width < 40rem)", pc: "@media (width >= 40rem)" } as
 test("frame.css の隠す規則は隠せる部位 × 端末とちょうど一致する(足りない・余る規則なし、:has() なし)", () => {
   const css = read(CSS_PATH);
   assert.equal(css.includes(":has("), false, "子が親を変える :has() は使わない");
-  const hides = rulesOf(css).filter((r) => r.decl.startsWith("display: none"));
+  // 管理の枠の規則(印 admin-*)は src/app/admin/_layout/AdminFrame.test.tsx が見る
+  const hides = rulesOf(css).filter((r) => r.decl.startsWith("display: none") && !r.selector.includes('data-frame-hide~="admin-'));
   const expected = parts.hideableParts("user").flatMap(({ slot }) => parts.FRAME_DEVICES.map((device) => `${slot}-${device}`));
   const found = hides.map((r) => /\[data-frame-hide~="([^"]+)"\]/.exec(r.selector)?.[1] ?? `?${r.selector}`);
   assert.deepEqual([...found].sort(), [...expected].sort());
@@ -87,7 +88,8 @@ test("規則の狙う先(id と data-frame-part)が既定の枠部品に実在�
     "BottomNav/BottomNavSpacer.tsx",
   ].map((file) => read(`${layout}/${file}`));
   const all = sources.join("\n") + read("src/components/AppFrames/constants.ts");
-  const css = read(CSS_PATH).replace(/\/\*[\s\S]*?\*\//g, "");
+  // 管理の枠の規則(印 admin-* と data-admin-*)の狙う先は src/app/admin/_layout/AdminFrame.test.tsx が見る
+  const css = rulesOf(read(CSS_PATH)).filter((r) => !/data-frame-hide~="admin-|data-admin-/.test(r.selector)).map((r) => r.selector).join("\n");
   for (const { slot } of parts.hideableParts("user")) {
     assert.ok(all.includes(`data-frame-part="${slot}"`), `data-frame-part="${slot}" の部品が無い`);
   }
