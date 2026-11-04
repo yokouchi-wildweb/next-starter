@@ -267,22 +267,46 @@ export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) 
 }
 
 /**
+ * 版 rev のツリーを judge に渡す形にする(中身の読み手・ファイルの一覧・単位名の場所・lib・core の有無)。
+ * runCheck は基準(merge-base)で、ownership:who は Tier1 で HEAD を基準に見立てて使う
  * @param {string} repoRoot
- * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)
- * @returns {object} status: tier1 | unverified | pass | fail
+ * @param {string} rev
  */
-export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
+export function treeSnapshot(repoRoot, rev) {
+  const cache = new Map();
+  const read = (path) => {
+    if (!cache.has(path)) cache.set(path, show(repoRoot, rev, path));
+    return cache.get(path);
+  };
+  const files = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", rev]) ?? "").split("\n").filter(Boolean);
+  const libs = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/lib/"]) ?? "")
+    .split("\n")
+    .filter(Boolean)
+    .map((path) => path.replace(/^src\/lib\//, ""));
+  const hasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/features/core"]) ?? "").trim() !== "";
+  const hasGate = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/featureGate"]) ?? "").trim() !== "";
+  // 単位名の同名・自分の項目への override(D137 の印の代わり): 基準のファイルの単位と照らす
+  return { rev, read, files, libs, hasCore, hasGate, places: unitPlaces(files, read), units: unitIndex(files) };
+}
+
+/**
+ * fork の検査の前提をそろえる(runCheck と ownership:who の共通の入口)。順に: 名前の宣言 → Tier1 なら打ち切り →
+ * 直接の親との基準 → 基準の受け口の一覧 → 鮮度(台帳に無い notice)→ Tier1 の版。どこかで欠ければ unverified(exit 2)
+ * @param {string} repoRoot
+ * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
+ * @returns {{ status: "tier1", ownerId: string }
+ *   | { status: "unverified", reason: string }
+ *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, parentRef: string,
+ *       intake: object[], tier1: { sha: string, chain: { sha: string, name: string }[] }, tier1Files: Set<string> }}
+ */
+export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = {}) {
   // 自分の名前と Tier1 の判定は forkIds.mjs だけが読む(project.md の fork_id:、CATALOG.md の先頭の節。origin は読まない、D27)
   const identity = readForkIdentity(repoRoot);
   const ownerId = identity.own;
   if (identity.errors.length > 0) {
     return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId });
   }
-  if (identity.isTier1) {
-    // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
-    const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
-    return { status: "tier1", ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
-  }
+  if (identity.isTier1) return { status: "tier1", ownerId };
 
   const resolved = resolveParentBase(repoRoot, ownerId, { parent, branch, fetch });
   if (resolved.status === "unverified") return resolved;
@@ -304,31 +328,17 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   if (tier1.error) return unverified(tier1.error, where);
   const tier1Files = new Set((tryGit(repoRoot, ["ls-tree", "-r", "--name-only", tier1.sha]) ?? "").split("\n").filter(Boolean));
 
-  const changes = parseNameStatus(git(repoRoot, ["diff", "--name-status", "-M", "-z", base, "HEAD"]));
-  const cache = new Map();
-  const read = (rev) => (path) => {
-    const key = `${rev}:${path}`;
-    if (!cache.has(key)) cache.set(key, show(repoRoot, rev, path));
-    return cache.get(key);
-  };
-  const baseText = read(base);
-  const headText = read("HEAD");
-  const baseLibs = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/lib/"]) ?? "")
-    .split("\n")
-    .filter(Boolean)
-    .map((path) => path.replace(/^src\/lib\//, ""));
+  return { status: "ok", ...where, parentRef, intake: intake.rules, tier1: { sha: tier1.sha, chain: tier1.chain }, tier1Files };
+}
 
-  const baseHasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/features/core"]) ?? "").trim() !== "";
-  const baseHasGate = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", base, "src/featureGate"]) ?? "").trim() !== "";
-
-  // 単位名の同名・自分の項目への override(D137 の印の代わり): 基準のファイルの単位と照らす
-  const baseFiles = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", base]) ?? "").split("\n").filter(Boolean);
-  const places = unitPlaces(baseFiles, baseText);
-  const baseUnits = unitIndex(baseFiles);
-
-  const judged = judge({ changes, baseText, headText, baseLibs, baseHasCore, baseHasGate, intake: intake.rules, places, baseUnits });
+/**
+ * Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替える(D29)。entries を書き換え、付け替えた分を返す
+ * @param {{ status: string, path: string, from?: string, reason: string, verdict: string }[]} entries judge の結果
+ * @param {Set<string>} tier1Files
+ */
+export function reassignMiddleTier(entries, tier1Files) {
   const middleTier = [];
-  for (const entry of judged.entries) {
+  for (const entry of entries) {
     if (entry.verdict !== "violation") continue;
     // 同名・自分の項目への override・親の既定(*.default.*)の追加と書き換えは持ち主によらず止める(中間 Tier の物にしない。中間 Tier の既定も親の物、D169)
     if (entry.reason === "unit-clash" || entry.reason === "override-own" || entry.reason === "default-add" || entry.reason === "default-edit") continue;
@@ -347,6 +357,36 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     entry.reason = "middle-tier";
     entry.verdict = "ok";
   }
+  return middleTier;
+}
+
+/**
+ * 基準との差分の全件を判定する(judge → 中間 Tier の付け替え → pick → 一時許可 → 許可の下書き)。context = resolveForkContext の ok
+ * @returns {{ entries: object[], leftovers: object[], middleTier: object[], permitFile: string, permitErrors: object[], snapshot: object, headText: (path: string) => string | null }}
+ */
+export function judgeFork(repoRoot, context) {
+  const { ownerId, base, intake, tier1Files } = context;
+  const changes = parseNameStatus(git(repoRoot, ["diff", "--name-status", "-M", "-z", base, "HEAD"]));
+  const snapshot = treeSnapshot(repoRoot, base);
+  const baseText = snapshot.read;
+  const headCache = new Map();
+  const headText = (path) => {
+    if (!headCache.has(path)) headCache.set(path, show(repoRoot, "HEAD", path));
+    return headCache.get(path);
+  };
+
+  const judged = judge({
+    changes,
+    baseText,
+    headText,
+    baseLibs: snapshot.libs,
+    baseHasCore: snapshot.hasCore,
+    baseHasGate: snapshot.hasGate,
+    intake,
+    places: snapshot.places,
+    baseUnits: snapshot.units,
+  });
+  const middleTier = reassignMiddleTier(judged.entries, tier1Files);
   // 親の緊急修正の pick(台帳の picked:)。基準 + pick と同じ中身なら違反にしない(fork が更に変えた分は違反のまま)。
   // 既に基準に入った pick は差分に出ないので外す
   const picks = pickedShas(headText(`.notices/applied/${ownerId}.md`)).filter(
@@ -370,7 +410,7 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     permits: permitParse.permits,
     baseText,
     headText,
-    intake: intake.rules,
+    intake,
     resolvedUpreqs: resolvedOrders(repoRoot, base),
   });
 
@@ -378,11 +418,31 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   for (const entry of entries) {
     if (entry.verdict !== "violation") continue;
     const target = entry.status === "R" ? entry.from : entry.path;
-    const kind = matchIntake(intake.rules, target)?.kind ?? null;
+    const kind = matchIntake(intake, target)?.kind ?? null;
     const baseFp = entry.fingerprints?.base ?? fingerprint(baseText(target), kind);
     const headFp = entry.fingerprints?.head ?? (entry.status === "D" || entry.status === "R" ? "-" : fingerprint(headText(target), kind));
     entry.permitDraft = `${target} upreq:<依頼の番号> base:${baseFp} head:${headFp}  # <理由>`;
   }
+
+  return { entries, leftovers, middleTier, permitFile, permitErrors: permitParse.errors, permits: permitParse.permits, snapshot, headText };
+}
+
+/**
+ * @param {string} repoRoot
+ * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)
+ * @returns {object} status: tier1 | unverified | pass | fail
+ */
+export function runCheck(repoRoot, options = {}) {
+  const context = resolveForkContext(repoRoot, options);
+  if (context.status === "tier1") {
+    // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
+    const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
+    return { status: "tier1", ownerId: context.ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
+  }
+  if (context.status === "unverified") return context;
+  const { ownerId, remote, branch, base, tier1 } = context;
+
+  const { entries, leftovers, middleTier, permitFile, permitErrors } = judgeFork(repoRoot, context);
 
   const counts = {};
   for (const entry of entries) {
@@ -392,16 +452,29 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   for (const leftover of leftovers) counts[`permit-${leftover.reason}`] = (counts[`permit-${leftover.reason}`] ?? 0) + 1;
 
   const violations = entries.filter((entry) => entry.verdict === "violation");
-  const failed = violations.length > 0 || leftovers.length > 0 || permitParse.errors.length > 0;
+  const failed = violations.length > 0 || leftovers.length > 0 || permitErrors.length > 0;
   return {
     status: failed ? "fail" : "pass",
-    ...where,
+    ownerId,
+    remote,
+    branch,
+    base,
     tier1: { sha: tier1.sha, chain: tier1.chain },
     middleTier,
     permitFile,
-    permitErrors: permitParse.errors,
+    permitErrors,
     counts,
     entries,
     leftovers,
   };
 }
+
+/** rev のツリーにファイル(blob)としてあるか(フォルダは false) */
+export const existsAt = (repoRoot, rev, path) => tryGit(repoRoot, ["cat-file", "-t", `${rev}:${path}`])?.trim() === "blob";
+
+/** rev のツリーで dir の下にあるファイル(dir がファイルなら空) */
+export const filesUnder = (repoRoot, rev, dir) =>
+  (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", rev, "--", `${dir.replace(/\/+$/, "")}/`]) ?? "").split("\n").filter(Boolean);
+
+/** rev の版の project.md の fork_id:(無ければ null) */
+export const forkIdAt = (repoRoot, rev) => parseForkIdDeclaration(show(repoRoot, rev, PROJECT_RULES_FILE) ?? "").forkId ?? null;

@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-`/flux` が各区間のコミットの後・push の前に `pnpm ownership:check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)、拡張点の宣言の読み手(`declarations.mjs`、生成器 `scripts/extensions` も使う)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+`/flux` が各区間のコミットの後・push の前に `pnpm ownership:check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)、拡張点の宣言の読み手(`declarations.mjs`、生成器 `scripts/extensions` も使う)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -156,6 +156,30 @@ pnpm ownership:check --parent=upstream --branch=main
   3. 鮮度(下の節)
   4. Tier1 の版(下の「多段の Tier」)を台帳からたどる
   5. 判定: `git diff --name-status -M <base> HEAD` を judge に、Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替え、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む
+
+## 持ち主を調べる(ownership:who)
+
+ファイルの持ち主は git の分岐点で決まる(D137)ので、名前を見ても分からない。`pnpm ownership:who` はパスごとに、持ち主・できること・根拠を答える。読むだけ(リポのファイルは書かない。親の取得 `git fetch` は remote の ref だけを動かす)。
+
+```sh
+pnpm ownership:who <path...>          # フォルダは中のファイル(HEAD ∪ 基準)に広げて 1 ファイルずつ答える
+pnpm ownership:who <path...> --json   # 機械向け(エージェント・集計)
+pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
+```
+
+- 判定の規則は持たない: 前提(名前・基準・受け口の一覧・鮮度・Tier1 の版)は `ownership:check` と同じ `resolveForkContext`、今の差分は同じ `judgeFork`(judge → 中間 Tier の付け替え → pick → 一時許可)、「足したら」の答えは同じ `judge` に仮の A を渡して出す(`check.mjs`)
+- 持ち主(`owner.kind`)
+  - `tier1` = Tier1 の版にある / `middle` = 基準にあるが Tier1 の版に無い(`owner.forkId` = その版を持つ、Tier1 に最も近い中間 Tier の `fork_id:`。台帳の鎖でたどれなければ基準の project.md の `fork_id:`)/ `fork` = 基準に無く HEAD にある(この fork が足した)/ `generated` = 受け口の一覧の generated の行に当たる(`owner.tier` に元の持ち主)/ `missing` = 基準にも HEAD にも無い
+- できること(`allowed`、無ければ `none`)
+  - `edit`: Tier1 の物は受け口の kind ごと(edit = 書き換え可 / region = fork の区画の中だけ / marker = 印より下だけ / append = 追記だけ / generated = 生成器で作り直す)。中間 Tier の物・fork の物は書き換え・削除・rename 可
+  - `add`: 無いパス。judge が `added`(中間 Tier の lib なら `middle-tier`)なら可、違反の reason は `blocked` に出る(`ancestor-lib-add`・`core-add`・`gate-add`・`unit-clash` など)
+  - `replace`: `<名前>.replace.ts(x)`(`<名前>.default` の隣も同じ名前)を名指しする add の行があり、足しても合格のとき。1 行スイッチを向け替える
+  - `override`: `<対象>.override.ts`(cron のフォルダは素の `override.ts`)を名指しする行があり、足しても合格のとき。`src/config/**` のような広い edit の行では上書きの口があるとは言わない
+  - `none` = 受け口が無い → `/order <直接の親>`(要るまでの間は一時許可、上の「一時許可」)。`blocked` に止まる理由(`outside-intake`・`debt` など)
+- 根拠(`evidence`): 基準・Tier1 の版・HEAD にあるか / 当たった受け口の行(行番号・kind・glob・理由)/ 今の差分(`ownership:check` と同じ status・reason・合否、違反なら一時許可の行の下書き)/ 自分の一時許可の行(行番号・依頼の番号・状態)。冒頭に基準(remote・branch・merge-base)と Tier1 の版(台帳の鎖)
+- Tier1 では「直接の fork から見たら」を答える(基準 = HEAD、受け口の一覧 = HEAD の版)。冒頭に「このリポ = Tier1: 自由に編集できる」
+- 終了コード: 0 = 答えた / 2 = 未検証(`ownership:check` の「鮮度」と同じ条件。台帳に無い notice があるときも)・引数の誤り
+- テスト: `who.test.mjs`(`pnpm test:fork-ownership`)
 
 ## CI
 
