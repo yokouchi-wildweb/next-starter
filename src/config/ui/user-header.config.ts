@@ -10,20 +10,8 @@ import { Home, LayoutGrid, LogIn, LogOut, User, UserPlus } from "lucide-react";
 import { FileIcon } from "@/components/Icons";
 import type { IconComponent } from "@/components/Icons";
 
-// ============================================
-// ヘッダー表示設定
-// ============================================
-
-/** ヘッダー自体を表示するか */
-export const HEADER_ENABLED = true;
-
-/** ヘッダーのナビゲーションメニューを表示するか（falseでもヘッダー自体は表示される） */
-export const HEADER_NAV_ENABLED = {
-  /** スマホ版（640px未満）で表示するか */
-  sp: true,
-  /** PC版（640px以上）で表示するか */
-  pc: true,
-} as const;
+// ヘッダー・ヘッダーのナビを出す・隠す(端末ごと・ページごと)は各ルートの frame.ts。
+// 書式: src/app/_layout/frame/README.md
 
 // ============================================
 // ロゴ設定

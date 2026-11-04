@@ -24,9 +24,7 @@ const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 mock.module(here("./hooks/index.ts"), {
   namedExports: {
     useHeaderData: () => ({
-      enabled: true,
       navItems: [],
-      navEnabled: { sp: true, pc: true },
       logoLink: "/",
       showIcons: false,
       isMenuOpen: true,
@@ -51,7 +49,7 @@ const LINK_ITEMS: BottomNavLinkItem[] = [
 ];
 const navItems: { current: readonly BottomNavItem[] } = { current: LINK_ITEMS };
 mock.module(here("./BottomNav/useBottomNavItems.ts"), {
-  namedExports: { useBottomNavItems: () => ({ items: navItems.current, height: 64, enabled: true }) },
+  namedExports: { useBottomNavItems: () => ({ items: navItems.current, height: 64 }) },
 });
 
 let render: (node: ReactNode) => string;
@@ -59,6 +57,7 @@ let UserNavigation: typeof import("./Header").UserNavigation;
 let UserBottomNav: typeof import("./BottomNav").UserBottomNav;
 let isBottomNavMenuItem: typeof import("./BottomNav/types").isBottomNavMenuItem;
 let BottomNavSpacer: typeof import("./BottomNav/BottomNavSpacer").BottomNavSpacer;
+let BottomNavMenu: typeof import("./BottomNav/BottomNavMenu").BottomNavMenu;
 let UserPage: typeof import("./UserPage").UserPage;
 let Main: typeof import("@/components/Layout/Main").Main;
 let USER_PAGE_CONTAINER_TYPE: typeof import("@/config/ui/user-layout.config").USER_PAGE_CONTAINER_TYPE;
@@ -71,6 +70,7 @@ before(async () => {
   ({ UserBottomNav } = await import("./BottomNav"));
   ({ isBottomNavMenuItem } = await import("./BottomNav/types"));
   ({ BottomNavSpacer } = await import("./BottomNav/BottomNavSpacer"));
+  ({ BottomNavMenu } = await import("./BottomNav/BottomNavMenu"));
   ({ UserPage } = await import("./UserPage"));
   ({ Main } = await import("@/components/Layout/Main"));
 });
@@ -88,7 +88,6 @@ const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstre
 const BEFORE = {
   header: "<header id=\"header\" class=\"fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground \"><div id=\"header-shell\" class=\"mx-auto flex w-full max-w-6xl items-stretch justify-between px-4 py-2 sm:py-4\"><div id=\"header-left\" class=\"flex items-center\"><x-brand></x-brand></div><div id=\"header-center\" class=\"flex items-stretch\"><x-pcnav></x-pcnav></div><div id=\"header-right\" class=\"flex items-center gap-2\"><button data-slot=\"button\" class=\"cursor-pointer items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive disabled:pointer-events-auto disabled:cursor-not-allowed bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-9 rounded-md gap-1.5 px-3 min-w-16 hidden sm:inline-flex\">お問い合わせ</button><x-spswitch></x-spswitch></div></div><x-spnav><button data-slot=\"button\" class=\"inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive disabled:pointer-events-auto disabled:cursor-not-allowed bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-10 px-4 py-2 min-w-20 w-full\">お問い合わせ</button></x-spnav></header>",
   userPage: "<div data-component=\"Main:container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" id=\"main-layout\" class=\"my-auto mx-auto w-full max-w-screen overflow-clip\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" id=\"main\" class=\"mx-auto w-full p-3 sm:p-4\">CHILD</main></div></div>",
-  userPageFill: "<main data-component=\"Main\" id=\"main\" class=\"max-w-screen mx-auto w-full p-0 flex min-h-0 flex-1 flex-col overflow-clip overscroll-none\" data-user-fill=\"\">CHILD</main>",
   mainSurface: "<div data-component=\"Main:container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" id=\"main-layout\" class=\"my-auto max-w-screen overflow-clip bg-surface mx-auto w-full p-3 sm:p-4\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" id=\"main\" class=\"mx-auto w-full\" style=\"max-width:var(--layout-width-narrow-stack)\">CHILD</main></div></div>",
   mainPlain: "<main data-component=\"Main\" id=\"main\" class=\"max-w-screen overflow-hidden mx-auto w-full p-3 sm:p-4\">CHILD</main>",
 } as const;
@@ -116,7 +115,7 @@ const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-ban
 
 /**
  * 枠の印の区切り(notice frame-marks)で既定の部品に入った差分は、外側の要素の data-frame-part だけ
- * (Hide* の印で隠す CSS の狙う先。styles/_base/frame-controls.generated.css)。ナビの部品(Pc / Sp)はここではモック
+ * (隠す CSS の狙う先。styles/_base/frame.css)。ナビの部品(Pc / Sp)はここではモック
  */
 const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ')
   // 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims): context の表示クラス(既定 "")を外したので class の末尾の空白が無くなった
@@ -210,18 +209,17 @@ test("isBottomNavMenuItem は type で判別する(省略 = リンク)", () => {
   assert.equal(isBottomNavMenuItem({ type: "menu", key: "a", label: "A", icon: Icon, menu: [] }), true);
 });
 
-test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、fill は Main の上に充填の class と印を足す", () => {
+test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、safeArea は env() の padding を足すだけ", () => {
   assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
   assert.equal(render(<UserPage verticalAlign="center">CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
-  const fill = render(<UserPage fill>CHILD</UserPage>);
-  assert.match(fill, /<main [^>]*data-user-fill=""/);
-  assert.match(fill, /class="[^"]*flex min-h-0 flex-1 flex-col overflow-clip overscroll-none[^"]*"/);
+  const safe = render(<UserPage containerType="plain" safeArea className="x">CHILD</UserPage>);
+  assert.match(safe, /class="[^"]*pt-\[env\(safe-area-inset-top\)\][^"]*pl-\[env\(safe-area-inset-left\)\] x"/);
+  assert.equal(render(<UserPage>CHILD</UserPage>).includes("safe-area"), false);
 });
 
 test("props なしの UserPage・Main は slot 化の前と同じ DOM を描く(core の Main の固定の class、Tier1 のみ)", tier1Only, () => {
   assert.equal(USER_PAGE_CONTAINER_TYPE, "contentShell", "upstream の config の既定は contentShell");
   assert.equal(render(<UserPage>CHILD</UserPage>), BEFORE.userPage);
-  assert.equal(render(<UserPage fill>CHILD</UserPage>), BEFORE.userPageFill);
   assert.equal(render(<Main>CHILD</Main>), BEFORE.userPage);
   assert.equal(render(<Main containerType="surfaceDisplay">CHILD</Main>), BEFORE.mainSurface);
   assert.equal(render(<Main containerType="plain">CHILD</Main>), BEFORE.mainPlain);
@@ -240,14 +238,21 @@ test("Main の verticalAlign=\"start\" は中央寄せ(my-auto)をやめて上�
   assert.equal(render(<Main containerType="plain" verticalAlign="start">CHILD</Main>), render(<Main containerType="plain">CHILD</Main>), "plain には効かない");
 });
 
-test("UserPage は containerType の明示が既定より勝つ(fill の時も)", () => {
+test("UserPage は containerType の明示が既定より勝つ", () => {
   assert.equal(render(<UserPage containerType="narrowStack">CHILD</UserPage>), render(<Main containerType="narrowStack">CHILD</Main>));
-  assert.match(render(<UserPage fill containerType="narrowStack">CHILD</UserPage>), /max-width:var\(--layout-width-narrow-stack\)/);
 });
 
-test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は印の CSS が変数を 0 にする)", () => {
+test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は styles/_base/frame.css が変数を 0 にする)", () => {
   const spacer = tagOf(render(<BottomNavSpacer />), "bottom-nav-spacer");
   assert.ok(spacer.includes('data-frame-part="bottom-nav"'));
   assert.ok(hasClass(spacer, "h-[var(--app-bottom-nav-height,0px)]"));
   assert.ok(spacer.includes('aria-hidden="true"'));
+});
+
+test("BottomNavMenu の side の省略は今の DOM のまま(= 上向き side=\"top\" の明示と同じ)。向きの受け渡しは BottomNav/BottomNavMenu.test.tsx", () => {
+  const item = { type: "menu" as const, key: "create", label: "作成", icon: Icon, menu: [{ key: "post", label: "投稿", href: "/items" }] };
+  const trigger = <button type="button" id="t">T</button>;
+  const html = render(<BottomNavMenu item={item} trigger={trigger} />);
+  assert.ok(html.includes('id="t"'));
+  assert.equal(html, render(<BottomNavMenu item={item} trigger={trigger} side="top" />));
 });

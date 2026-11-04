@@ -19,7 +19,6 @@ test("containerType を渡さない UserPage は config の USER_PAGE_CONTAINER_
   assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType="narrowStack">CHILD</Main>));
 });
 
-test("containerType の明示は config の既定より勝ち、fill は既定を使わない", () => {
+test("containerType の明示は config の既定より勝つ", () => {
   assert.equal(render(<UserPage containerType="wideShowcase">CHILD</UserPage>), render(<Main containerType="wideShowcase">CHILD</Main>));
-  assert.equal(render(<UserPage fill>CHILD</UserPage>).includes("narrow-stack"), false);
 });

@@ -3,8 +3,9 @@
 //
 // 重い部品(既定の Header / Footer、BottomNav、未読モーダル)と useHeaderHeight は目印の要素にモックし、
 // 枠そのもの(BackgroundLayer・#user-app-container・#stretch-wrapper・並び順・表示制御の Provider)は本物を描く。
-// 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さと表示するデバイス)はその場の config から組み立てるので、
-// config の値を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
+// 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さ)はその場の config から、外枠の隠す印は枠の表
+// (extensions/frameTable.ts。静的描画は app router の外なので segments = [] = 枠の根の宣言の行)から組み立てるので、
+// config や frame.ts を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -31,14 +32,16 @@ let UserLayout: typeof import("./UserLayout").UserLayout;
 let BackgroundLayer: typeof import("./BackgroundLayer").BackgroundLayer;
 let layoutConfig: typeof import("@/config/ui/user-layout.config");
 let bottomNavConfig: typeof import("@/config/ui/user-bottom-menu.config");
-let frameHideTokens: typeof import("@/components/AppFrames/User/controls/frameParts").frameHideTokens;
+let rootHide: string;
 before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ UserLayout } = await import("./UserLayout"));
   ({ BackgroundLayer } = await import("./BackgroundLayer"));
   layoutConfig = await import("@/config/ui/user-layout.config");
   bottomNavConfig = await import("@/config/ui/user-bottom-menu.config");
-  ({ frameHideTokens } = await import("@/components/AppFrames/User/controls/frameParts"));
+  const { matchFrame } = await import("@/app/_layout/frame");
+  const { frameTable } = await import("./extensions/frameTable");
+  rootHide = matchFrame([], frameTable).hide.join(" ");
 });
 
 // upstream(Tier1 = src/lib/CATALOG.md の先頭節の持ち主 = 自分)だけで見る検査の判定。screens.test と同じ
@@ -64,38 +67,27 @@ const BEFORE_SWITCH =
 
 /**
  * 外枠の inline style の --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area)。
- * 書くのはボトムナビがある時だけ(slot 省略 = 既定のボトムナビが有効な時 / bottomNav に要素を渡した時)
+ * 書くのはボトムナビがある時だけ(bottomNav={null} 以外)
  */
 const bottomNavValue = () => `calc(${bottomNavConfig.BOTTOM_NAV_HEIGHT}px + var(--app-safe-area-bottom))`;
-const bottomNavVar = (hasBottomNav = bottomNavConfig.BOTTOM_NAV_ENABLED) =>
+const bottomNavVar = (hasBottomNav = true) =>
   hasBottomNav ? `;--app-bottom-nav-height:${bottomNavValue()}` : "";
 /**
  * 寸法変数の区切り(notice frame-dims)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠の inline style に --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area。既定のボトムナビが有効な時)
+ * 外枠の inline style に --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area)
  */
 const withBottomNavVar = (html: string) =>
   html.replace('style="--app-header-height:0px"', `style="--app-header-height:0px${bottomNavVar()}"`);
+/** 外枠の隠す印の属性(枠の表の根の行。何も隠さなければ付かない) */
+const rootHideAttr = () => (rootHide ? ` data-frame-hide="${rootHide}"` : "");
 /**
- * 枠の印の区切り(notice frame-marks)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠に data-frame-root(配下の Hide* の印で部位を隠す CSS の起点。styles/_base/frame-controls.generated.css)
+ * 枠の宣言の区切り(notice frame-marks → frame.ts)で既定の DOM に入った差分はこの 1 か所だけ:
+ * 外枠に data-frame-root と、枠の表の行の data-frame-hide(styles/_base/frame.css が読む)
  */
 const withFrameRoot = (html: string) =>
-  html.replace('data-user-app-container=""', 'data-user-app-container="" data-frame-root=""');
-/**
- * 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠の先頭にボトムナビの基本の印(config の BOTTOM_NAV_VISIBILITY で出さない PC を隠す。高さ変数もこの印で 0)
- */
-/** 基本の印(config の BOTTOM_NAV_VISIBILITY で出さないデバイス。既定 = PC)。ボトムナビが無ければ描かない(条件は高さ変数と同じ) */
-const baseMark = (hasBottomNav = bottomNavConfig.BOTTOM_NAV_ENABLED) => {
-  if (!hasBottomNav) return "";
-  const { sp, pc } = bottomNavConfig.BOTTOM_NAV_VISIBILITY;
-  const tokens = frameHideTokens("bottom-nav", { sp: !sp, pc: !pc });
-  return tokens ? `<span hidden="" data-frame-hide="${tokens}"></span>` : "";
-};
-const withBaseMark = (html: string) =>
-  html.replace(`style="--app-header-height:0px${bottomNavVar()}">`, `style="--app-header-height:0px${bottomNavVar()}">${baseMark()}`);
+  html.replace('data-user-app-container=""', `data-user-app-container="" data-frame-root=""${rootHideAttr()}`);
 /** 枠の期待値(背景を除く): 1 行スイッチ化の前の枠 + 区切りごとの差分。ボトムナビの値は config から */
-const frameDims = () => withBaseMark(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)));
+const frameDims = () => withFrameRoot(withBottomNavVar(BEFORE_SWITCH));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -114,12 +106,13 @@ const defaultLayout = () => configBackground() + frameDims();
 /** id の要素の開始タグ(属性の並びに依らず印・属性を見る) */
 const tagOf = (html: string, id: string) => html.match(new RegExp(`<[a-z][^>]*\\sid="${id}"[^>]*>`))?.[0] ?? "";
 
-test("props なしの UserLayout は印・高さ変数・部品の並びを持つ(ボトムナビの値は config から)", () => {
+test("props なしの UserLayout は外枠の属性・高さ変数・部品の並びを持つ(ボトムナビの値は config から、隠す印は枠の表から)", () => {
   const html = render(<UserLayout>CHILD</UserLayout>);
   const root = tagOf(html, "user-app-container");
   assert.ok(root.includes('data-frame-root=""'), "外枠に data-frame-root が無い");
-  assert.equal(root.includes(`--app-bottom-nav-height:${bottomNavValue()}`), bottomNavConfig.BOTTOM_NAV_ENABLED);
-  assert.ok(html.includes(baseMark()), "基本の印が無い");
+  assert.ok(root.includes(`--app-bottom-nav-height:${bottomNavValue()}`));
+  assert.ok(root.includes(rootHideAttr()), "外枠に枠の表の隠す印が無い");
+  assert.equal(html.includes("<span hidden"), false, "Hide* の印が残っている");
   assert.ok(html.includes(configBackground()), "config の値で描いた背景が無い");
   const order = ['id="user-app-container"', "<x-header>", 'id="stretch-wrapper"', "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
   const positions = order.map((part) => html.indexOf(part));
@@ -127,7 +120,7 @@ test("props なしの UserLayout は印・高さ変数・部品の並びを持�
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
 });
 
-test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・基本の印だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
+test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・枠の表の隠す印だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(withFrameRoot(BEFORE_SWITCH), BEFORE_SWITCH);
   assert.equal(render(<UserLayout>CHILD</UserLayout>), defaultLayout());
 });
@@ -185,19 +178,15 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
   assert.equal(
     render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
-      'id="user-app-container" data-user-app-container="" data-frame-root="" style="--app-header-height:0px">' +
+      'id="user-app-container" data-user-app-container="" data-frame-root=""' + rootHideAttr() + ' style="--app-header-height:0px">' +
       '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div></div>',
   );
 });
 
-test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、基本の印も描く(差し替えも BOTTOM_NAV_VISIBILITY に従う)", () => {
+test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、外枠の隠す印も同じ(差し替えも frame.ts の宣言に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
   assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
-  assert.ok(html.includes(baseMark(true)), "基本の印が無い");
-});
-
-test("bottomNav={null} では基本の印を描かない(高さ変数も書かないので隠す物が無い)", () => {
-  assert.equal(render(<UserLayout bottomNav={null}>CHILD</UserLayout>).includes("data-frame-hide"), false);
+  assert.ok(tagOf(html, "user-app-container").includes(rootHideAttr()));
 });
 
 test("banner の省略と null は同じ(既定なし): 帯・スペーサー・--app-banner-height を描かない", () => {

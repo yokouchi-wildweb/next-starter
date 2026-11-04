@@ -3,4 +3,9 @@
 
 import type { FrameTable } from "@/app/_layout/frame";
 
-export const frameTable = [] as const satisfies FrameTable;
+export const frameTable = [
+  { pattern: ["(auth)","demo-login"], scope: "page", hide: ["footer-sp","footer-pc","bottom-nav-sp","bottom-nav-pc"], fill: false },
+  { pattern: ["(auth)","signup"], scope: "layout", hide: ["footer-sp","bottom-nav-sp","bottom-nav-pc"], fill: false },
+  { pattern: [], scope: "layout", hide: ["bottom-nav-pc"], fill: false },
+  { pattern: ["maintenance"], scope: "page", hide: ["header-nav-sp","header-nav-pc","footer-sp","footer-pc","bottom-nav-sp","bottom-nav-pc"], fill: false },
+] as const satisfies FrameTable;

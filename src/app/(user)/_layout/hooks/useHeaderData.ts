@@ -12,10 +12,8 @@ import { usePathname } from "next/navigation";
 import {
   AUTHENTICATED_MENU_ITEMS,
   GUEST_MENU_ITEMS,
-  HEADER_ENABLED,
   HEADER_LOGO_LINK,
   HEADER_MENU_ICONS_ENABLED,
-  HEADER_NAV_ENABLED,
   LOGOUT_ICON,
   LOGOUT_LABEL,
   LOGOUT_REDIRECT_TO,
@@ -42,12 +40,8 @@ export type DeviceVisibility = {
 
 /** useHeaderData の戻り値 */
 export type UseHeaderDataReturn = {
-  /** ヘッダー機能が有効か */
-  enabled: boolean;
   /** ナビゲーションメニュー項目（認証状態反映済み） */
   navItems: HeaderNavItem[];
-  /** ナビメニューの有効設定（SP/PC） */
-  navEnabled: DeviceVisibility;
   /** ロゴのリンク先 */
   logoLink: string;
   /** メニューにアイコンを表示するか */
@@ -190,9 +184,7 @@ export const useHeaderData = (): UseHeaderDataReturn => {
   }, [isAuthenticated, isLogoutLoading, logout, badgeMap]);
 
   return {
-    enabled: HEADER_ENABLED,
     navItems,
-    navEnabled: HEADER_NAV_ENABLED,
     logoLink: HEADER_LOGO_LINK,
     showIcons: HEADER_MENU_ICONS_ENABLED,
     isMenuOpen,

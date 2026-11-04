@@ -6,14 +6,14 @@ import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
 
-import { HideBottomNav } from "@/components/AppFrames/User/controls";
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
 import { UserBottomNav } from "./BottomNav";
 import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
 import { UserFooter } from "./Footer";
 import { UserNavigation } from "./Header";
-import { BOTTOM_NAV_ENABLED, BOTTOM_NAV_HEIGHT, BOTTOM_NAV_VISIBILITY } from "@/config/ui/user-bottom-menu.config";
+import { useUserFrame } from "./hooks/useUserFrame";
+import { BOTTOM_NAV_HEIGHT } from "@/config/ui/user-bottom-menu.config";
 import {
   BACKGROUND_IMAGE_URL,
   BACKGROUND_OVERLAY_COLOR,
@@ -60,13 +60,14 @@ export function UserLayout({
   background,
   notificationModal,
 }: UserLayoutProps) {
+  const frame = useUserFrame();
   const headerHeight = useHeaderHeight();
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
-  // 既定のボトムナビが無効な時と bottomNav={null} の時は書かない(:root の 0px)。
-  // 隠している間の 0 は印の CSS(styles/_base/frame-controls.generated.css)が作る
-  const hasBottomNav = bottomNav === undefined ? BOTTOM_NAV_ENABLED : bottomNav !== null;
+  // bottomNav={null} の時は書かない(:root の 0px)。
+  // 隠している間(各ルートの frame.ts の宣言)の 0 は styles/_base/frame.css が作る
+  const hasBottomNav = bottomNav !== null;
 
   const layoutStyle: LayoutStyle = {
     "--app-header-height": `${headerHeight}px`,
@@ -85,21 +86,18 @@ export function UserLayout({
       ) : (
         background
       )}
-      {/* data-user-app-container: <UserPage fill> が配下にある時だけ
-          styles/_base/config.css の :has() ルールで確定高さ + overflow-clip に
-          切り替わる（既定は min-h で伸びる通常ページ）。
-          data-frame-root: 配下に Hide* の印がある間、styles/_base/frame-controls.generated.css が
-          その部位を隠す（controls/frameParts.ts）。 */}
+      {/* data-frame-root + 今のルートの宣言(各ルートの frame.ts → 表 → useUserFrame)の属性:
+          data-frame-hide の部位を隠し、data-frame-fill の間は確定高さ + overflow-clip に切り替わる
+          (既定は min-h で伸びる通常ページ)。規則は styles/_base/frame.css */}
       <Flex
         id="user-app-container"
         data-user-app-container=""
         data-frame-root=""
+        {...frame}
         direction="column"
         className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
         style={layoutStyle}
       >
-        {/* ボトムナビの基本の表示: config で出さないデバイスは「隠す印」で隠す(差し替えたボトムナビも同じ。高さ変数もこの印で 0) */}
-        {hasBottomNav && <HideBottomNav sp={!BOTTOM_NAV_VISIBILITY.sp} pc={!BOTTOM_NAV_VISIBILITY.pc} />}
         {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
         {header === undefined ? <UserNavigation /> : header}
         {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}

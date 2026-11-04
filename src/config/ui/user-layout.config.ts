@@ -25,7 +25,7 @@ export const BACKGROUND_OVERLAY_OPACITY: number = 0;
 // ============================================
 
 /**
- * UserPage の containerType の既定(fill / immersive 以外。ページが containerType を渡せばそちらが勝つ)。
+ * UserPage の containerType の既定(ページが containerType を渡せばそちらが勝つ。fill のページは "plain" を渡す)。
  * 値は Layout/Main の containerType。アプリ全体で 1 つ(layout ごとの既定は持たない)
  */
 export const USER_PAGE_CONTAINER_TYPE: NonNullable<MainProps["containerType"]> = "contentShell";

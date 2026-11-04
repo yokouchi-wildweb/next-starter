@@ -10,7 +10,7 @@
 src/app/(user)/
 ├── page.tsx                      # 1 行のスイッチ(下流所有)。上流は今後このファイルを編集しない
 ├── _screen/                      # 上流所有。下流は編集も削除もしない
-│   ├── StarterHomeScreen.tsx     # 既定画面(FullScreen 背景 + UserPage fill + Hero + Capabilities + footer)
+│   ├── StarterHomeScreen.tsx     # 既定画面(FullScreen 背景 + fill の UserPage + Hero + Capabilities + footer)
 │   ├── README.md                 # このファイル
 │   └── StarterHome/              # Screen 専用の部品(契約外)
 │       ├── Hero.tsx
@@ -20,7 +20,7 @@ src/app/(user)/
     └── <Name>Screen.tsx          # 下流の自前トップページ
 ```
 
-- **縦スクロールなし**: `<UserPage fill>` でヘッダー下〜フッター上の残り高さちょうどに収めています。内容が収まらない小さな画面では内側の Flex だけがスクロールします（縦中央寄せは `justify-center` ではなく `my-auto`。溢れたときに上端が切れないため）。
+- **縦スクロールなし**: fill(`../frame.ts` の宣言。本文は `flex-1 min-h-0`)でヘッダー下〜フッター上の残り高さちょうどに収めています。内容が収まらない小さな画面では内側の Flex だけがスクロールします（縦中央寄せは `justify-center` ではなく `my-auto`。溢れたときに上端が切れないため）。
 - **背景は全画面**: `<FullScreen layer="background">` でビューポート全体に敷き、`UserPage` 側に `content-layer` を付けて前面に出しています。コンテナ幅に閉じ込めると境界が見えて平板になるため。
 - `/demo` の gate（`APP_FEATURES.demo.samplePages`）が OFF のときは「デモを見る」ボタンを出しません。
 - デモの一覧は各デモの route の `_demo.ts` から生成します（`/demo` 一覧がカテゴリ別に描画、閉じた機能のデモは除く）。デモを足すときは `_demo.ts` を置いて `pnpm extensions:generate`。

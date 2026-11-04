@@ -3,11 +3,10 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける
 // (loader の import は ../_screen/loader に、部品の import は ../_screen/MaintenanceAutoRedirect に直す)。手順: src/lib/screens/README.md
 //
-// ヘッダー・フッター・ボトムナビを隠した 1 画面の案内。終了時刻は loader が設定から読み、
+// ヘッダーのナビ・フッター・ボトムナビを隠した 1 画面の案内(隠すのは ../frame.ts)。終了時刻は loader が設定から読み、
 // MaintenanceAutoRedirect(client 部品)が時刻到来で遷移する。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { HideHeaderNav, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
@@ -23,9 +22,6 @@ export async function MaintenanceScreen(props: ScreenProps) {
     <>
       <MaintenanceAutoRedirect endTime={endTime} redirectTo={redirectTo} />
       <UserPage>
-        <HideHeaderNav />
-        <HideFooter />
-        <HideBottomNav />
         <Stack space={8} className="text-center py-12">
           <UserPageTitle>ただいま準備中です</UserPageTitle>
           <Para align="center" tone="muted">現在サイトを準備しております。</Para>

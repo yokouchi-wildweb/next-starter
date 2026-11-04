@@ -42,8 +42,8 @@
    * ここは「書かれない時の 0」だけを持つ。inline が勝つので fork の CSS(src/styles/ 直下)から上書きしても効かない。
    *   --app-banner-height    : UserLayout の banner slot の実測の高さ（banner がない時は 0）
    *   --app-bottom-nav-height: 既定のボトムナビが有効な時の BOTTOM_NAV_HEIGHT（config/ui/user-bottom-menu.config.ts）。
-   *                            出さないデバイス（BOTTOM_NAV_VISIBILITY）と HideBottomNav で隠している間は
-   *                            frame-controls.generated.css が 0px にする（inline に勝つため !important）
+   *                            ルートの宣言(frame.ts)で隠している間は
+   *                            frame.css が 0px にする（inline に勝つため !important）
    * --app-safe-area-* は env(safe-area-inset-*) の別名（fork の CSS から上書き可）。
    * 枠の配下の部品・ページは枠の寸法を px で直書きせず、これらの変数を使う。
    */
@@ -93,22 +93,4 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-/*
- * ユーザーレイアウトの外枠（[data-user-app-container] = UserLayout の #user-app-container）
- * の mode 切替。既定は min-height: var(--viewport-height) で中身ぶん伸び、body が
- * スクロールする通常の Web ページ。
- * <UserPage fill> が配下に data-user-fill を出している時だけ、外枠を確定高さ +
- * overflow-clip の束縛モードへ切り替える。これにより #stretch-wrapper（flex-1 min-h-0）
- * → UserPage（flex-1 min-h-0）の高さチェーンが成立し、ページは「ヘッダー下から
- * フッター/ボトムナビスペーサー上まで」ちょうどに収まってスクロールしなくなる。
- * Admin 側（[data-admin-main-wrapper]:has([data-admin-fill])）と同じ手法。
- * overflow-hidden ではなく overflow-clip を使う理由は AdminLayout(src/app/admin/_layout)のコメント参照
- * （scroll container 化による focus 駆動スクロールの抑止）。
- */
-[data-user-app-container]:has([data-user-fill]) {
-  height: var(--viewport-height, 100dvh);
-  min-height: 0;
-  overflow: clip;
 }

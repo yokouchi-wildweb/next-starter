@@ -28,7 +28,7 @@
 @import "./typography.defaults.css";
 @import "./gradient.css";
 @import "./config.css";
-@import "./frame-controls.generated.css";
+@import "./frame.css";
 @import "./z-layer.css";
 @import "./base.css";
 @import "./components.css";

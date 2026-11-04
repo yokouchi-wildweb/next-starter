@@ -1,0 +1,67 @@
+/*
+ * src/styles/_base/frame.css
+ * 枠の部位の出し入れ(手書き・生成しない)。
+ *
+ * 外枠 [data-frame-root](UserLayout の #user-app-container)に、今のルートの宣言(各ルートの frame.ts → 表)を
+ * 読み手(src/app/(user)/_layout/hooks/useUserFrame.ts)が属性で付ける:
+ *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
+ * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠)。狙う先 = 既定部品の id と [data-frame-part~="<部位>"]
+ * (差し替えた部品は id を残すか外側に data-frame-part を付ける)。
+ * 部位の一覧と規則の一致は src/app/(user)/_layout/UserFrame.test.tsx(pnpm test:user-layout)が確かめる。
+ * 部位の寸法変数は隠している間 0(外枠の inline の値に勝つため !important)。
+ * layer に入れない = 部品の Tailwind ユーティリティ(sm:flex 等)より優先する。端末の境界 = Tailwind の sm(40rem)。
+ */
+
+/* 目印(styles:check-build がビルド出力にこのファイルがあるかをこの名前で確かめる) */
+:root {
+  --styles-marker-frame: 1;
+}
+
+@media (width < 40rem) {
+  [data-frame-root][data-frame-hide~="header-sp"] :is(#header, [data-frame-part~="header"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="header-nav-sp"] :is(#header-pc-nav, #header-sp-menu-toggle, #header-sp-nav, [data-frame-part~="header-nav"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="footer-sp"] :is(#footer, [data-frame-part~="footer"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="bottom-nav-sp"] :is(#bottom-nav, #bottom-nav-spacer, [data-frame-part~="bottom-nav"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="bottom-nav-sp"] {
+    --app-bottom-nav-height: 0px !important;
+  }
+}
+
+@media (width >= 40rem) {
+  [data-frame-root][data-frame-hide~="header-pc"] :is(#header, [data-frame-part~="header"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="header-nav-pc"] :is(#header-pc-nav, #header-sp-menu-toggle, #header-sp-nav, [data-frame-part~="header-nav"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="footer-pc"] :is(#footer, [data-frame-part~="footer"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="bottom-nav-pc"] :is(#bottom-nav, #bottom-nav-spacer, [data-frame-part~="bottom-nav"]) {
+    display: none;
+  }
+  [data-frame-root][data-frame-hide~="bottom-nav-pc"] {
+    --app-bottom-nav-height: 0px !important;
+  }
+}
+
+/*
+ * fill: 外枠を確定高さ + overflow-clip にする(既定は min-height で中身ぶん伸びる通常の Web ページ)。
+ * #stretch-wrapper(flex-1 min-h-0)→ ページの本文(flex-1 min-h-0)の高さの鎖が成り立ち、
+ * 本文は「ヘッダー下からフッター/ボトムナビスペーサー上まで」ちょうどに収まる。本文側は自分で flex-1 min-h-0 を付ける。
+ * overflow-hidden ではなく overflow-clip の理由は AdminLayout(src/app/admin/_layout)のコメント参照
+ * (scroll container 化による focus 駆動スクロールの抑止)。
+ */
+[data-user-app-container][data-frame-fill] {
+  height: var(--viewport-height, 100dvh);
+  min-height: 0;
+  overflow: clip;
+}

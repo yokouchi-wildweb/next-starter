@@ -103,13 +103,13 @@ src/styles/
     ├── config.css          upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
     ├── z-layer.css         upstream  z-index トークン
     ├── gradient.css        upstream  gradient:gen で生成(src/lib/gradient ＋ fork の src/config/app/gradients.config.ts)
-    ├── frame-controls.generated.css  upstream  frame:generate で生成(枠の部位を隠す Hide* の規則。src/components/AppFrames/User/controls/frameParts.ts)
+    ├── frame.css           upstream  枠の部位を隠す・fill の規則(手書き。外枠の属性 data-frame-hide / data-frame-fill を読む)
     ├── animations.css / base.css / components.css / utilities.css / admin.css   upstream
     └── styleTokens.test.mjs      upstream  pnpm test:style-tokens
 ```
 
 - upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` を初回作成後に編集しない。説明は fork 所有のファイルに書かず、この README か `.claude/rules/core/style.md` に書く。fork が直下に足した CSS も fork の物
-- 生成物 2 つ(`gradient.css` / `frame-controls.generated.css`)は upstream の仕組みが書くので `_base/` に置く。fork が自分の `gradients.config.ts` から `pnpm gradient:gen` で再生成するのは正しい使い方(手で編集しない)
+- 生成物(`gradient.css`)は upstream の仕組みが書くので `_base/` に置く。fork が自分の `gradients.config.ts` から `pnpm gradient:gen` で再生成するのは正しい使い方(手で編集しない)
 - `_` の意味は場所で違う(`src/app` の `_screen/` `_layout/` = 提供者の既定、`_components/` = fork の物)。`_base/` = upstream の物で、所有の印として一般化しない
 - 置き場の経緯: docs/journal/2026-11-04--next-starter--styles-readme-history.md
 
@@ -130,7 +130,7 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 - メール用 hex 定数: `pnpm mail:generate-colors`(両ファイルの `:root` を合成して `src/features/core/mail/constants/colors.ts` を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
 - gradient トークン: `pnpm gradient:gen`(`src/config/app/gradients.config.ts` → `_base/gradient.css`。palette には依存しない)
 
-枠の部位を隠す規則: `pnpm frame:generate`(`src/components/AppFrames/User/controls/frameParts.ts` → `_base/frame-controls.generated.css`、`--check` で一致検査)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す(Hide* と印)」。隠す仕組みの印 `data-frame-part` は data-slot とは別の役目で、同じ語(`header` / `footer` …)を使う
+枠の部位を隠す規則: `_base/frame.css`(手書きの静的な規則。各ルートの `frame.ts` の宣言を UserLayout が外枠の属性にし、その属性で部位を隠す)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。部位の一覧との一致は `pnpm test:user-layout`。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す・fill(frame.ts)」
 
 shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま直下の `palette.css` に貼れば効く。
 
@@ -348,7 +348,7 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 - **ガード**: `pnpm build` の末尾で `pnpm styles:check-build` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
 - **直し方**: キャッシュを使わずに再デプロイする。`pnpm deploy:all -- --prod --force`、またはダッシュボードの Redeploy で「Use existing Build Cache」を外す、または環境変数 `VERCEL_FORCE_NO_BUILD_CACHE=1` を一時的に置いて再デプロイし成功後に外す。キャッシュを常時無効にはしない(Hobby プランはビルド CPU が逼迫する)
 - **運用ルール**: CSS ファイルを足す・構成を変える notice を取り込んだ後の初回本番デプロイは、ガードの有無にかかわらずキャッシュ無しで行う
-- **目印の変数**: `@theme` の外に変数を持たない upstream のファイル(`_base/` の theme / animations / base / components / admin)は、固有の目印 `--styles-marker-<名前>: 1`(生成物は `--frame-controls-generated`)を宣言して検査対象にしている。`_base/` に CSS を足すときも、固有の変数が無ければ目印を 1 つ置く
+- **目印の変数**: `@theme` の外に変数を持たない upstream のファイル(`_base/` の theme / animations / base / components / admin)は、固有の目印 `--styles-marker-<名前>: 1`(枠の規則 frame.css は `--styles-marker-frame`)を宣言して検査対象にしている。`_base/` に CSS を足すときも、固有の変数が無ければ目印を 1 つ置く
 - **ガードの限界**: 他のファイルが宣言している名前だけを上書きするファイル(`palette.css` で `--primary` だけ変える等)は、抜けても名前が残るので検出できない(警告のみ)。fork 独自の変数(例 `--brand-accent`)を 1 つ宣言すれば検査対象になる。`@theme` 内の変数と `@utility` の中身は出力に残る保証が無いため検査しない
 
 ## テスト

@@ -1,18 +1,10 @@
 // src/app/(user)/(auth)/signup/layout.tsx
-
-import { HideBottomNav } from "@/components/AppFrames/User/controls/BottomNavControl";
-import { HideFooter } from "@/components/AppFrames/User/controls/FooterControl";
+// 新規登録の流れの layout。枠の部位の出し入れは隣の frame.ts(この layout の下全部に効く)
 
 type SignupLayoutProps = {
   children: React.ReactNode;
 };
 
 export default function SignupLayout({ children }: SignupLayoutProps) {
-  return (
-    <>
-      <HideBottomNav />
-      <HideFooter sp />
-      {children}
-    </>
-  );
+  return children;
 }

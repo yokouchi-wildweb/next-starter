@@ -8,7 +8,6 @@ import { useMemo } from "react";
 
 import {
   AUTHENTICATED_MENU_ITEMS,
-  BOTTOM_NAV_ENABLED,
   BOTTOM_NAV_HEIGHT,
   GUEST_MENU_ITEMS,
   useBottomNavBadges,
@@ -33,6 +32,5 @@ export const useBottomNavItems = () => {
   return {
     items,
     height: BOTTOM_NAV_HEIGHT,
-    enabled: BOTTOM_NAV_ENABLED,
   };
 };

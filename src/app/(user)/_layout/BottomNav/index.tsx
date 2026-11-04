@@ -6,14 +6,9 @@ import { BottomNavItem } from "./BottomNavItem";
 import { useBottomNavItems } from "./useBottomNavItems";
 
 export const UserBottomNav = () => {
-  const { items, height, enabled } = useBottomNavItems();
+  const { items, height } = useBottomNavItems();
 
-  // 機能が無効の場合は何も表示しない
-  if (!enabled) {
-    return null;
-  }
-
-  // 出さないデバイス(config の BOTTOM_NAV_VISIBILITY)と Hide* で隠す時は、印の CSS が display: none にする
+  // 隠す端末・ページ(各ルートの frame.ts)では styles/_base/frame.css が display: none にする
   return (
     <nav
       id="bottom-nav"

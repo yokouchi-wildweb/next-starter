@@ -30,9 +30,7 @@ export type UserNavigationProps = {
 
 export const UserNavigation = ({ leading, actions, menuActions }: UserNavigationProps = {}) => {
   const {
-    enabled,
     navItems,
-    navEnabled,
     showIcons,
     isMenuOpen,
     closeMenu,
@@ -41,15 +39,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
     headerOffset,
   } = useHeaderData();
 
-  // ヘッダー自体が無効の場合は何も表示しない
-  if (!enabled) {
-    return null;
-  }
-
-  // ナビの可否は config(HEADER_NAV_ENABLED)。ページ単位で隠すのは Hide* の印の CSS
-  const showSpNav = navEnabled.sp;
-  const showPcNav = navEnabled.pc;
-
+  // ヘッダーとナビを隠す端末・ページ(各ルートの frame.ts)では styles/_base/frame.css が display: none にする
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}
@@ -64,7 +54,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
             <Brand />
           </>
         }
-        center={showPcNav && <PcNavigation items={navItems} showIcons={showIcons} />}
+        center={<PcNavigation items={navItems} showIcons={showIcons} />}
         right={
           <>
             {actions === undefined ? (
@@ -75,30 +65,28 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
             ) : (
               actions
             )}
-            {showSpNav && <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />}
+            <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />
           </>
         }
       />
 
-      {showSpNav && (
-        <SpNavigation
-          isOpen={isMenuOpen}
-          items={navItems}
-          showIcons={showIcons}
-          onClose={closeMenu}
-          headerOffset={headerOffset}
-          footer={
-            menuActions === undefined ? (
-              /* SP版: メニュー下部にCTAボタン */
-              <Button variant="default" className="w-full">
-                お問い合わせ
-              </Button>
-            ) : (
-              menuActions
-            )
-          }
-        />
-      )}
+      <SpNavigation
+        isOpen={isMenuOpen}
+        items={navItems}
+        showIcons={showIcons}
+        onClose={closeMenu}
+        headerOffset={headerOffset}
+        footer={
+          menuActions === undefined ? (
+            /* SP版: メニュー下部にCTAボタン */
+            <Button variant="default" className="w-full">
+              お問い合わせ
+            </Button>
+          ) : (
+            menuActions
+          )
+        }
+      />
     </header>
   );
 };
