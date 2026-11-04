@@ -77,8 +77,8 @@ before touching servers/ or enabling room → MUST read servers/room/README.md +
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
 entry: src/proxy.ts | skeleton src/proxies/index.ts (maintenance → demoMode → featureGate → redirect) + frame of items src/proxies/\<name\>.ts (pnpm extensions:generate, forks never edit index.ts) | user = ctx.user() only | x-pathname header | chain, items → .claude/rules/core/proxy.md
-feature_gate (MANDATORY): rules = src/featureGate/rules/\<name\>.ts, one per feature, name = FeatureName (enabled() false → pathPatterns 404, tables of its features folders skipped by pnpm db:push: never created, never dropped) | read via gate.enabled(name) / gate.path(pathname) from @/featureGate (node.ts = scripts and tests) | ref: src/featureGate/README.md
-- new route of a gated domain → add it to its rule (tables follow the folder) | always-on entries (cron, cleanup, wiring) close themselves | test: FEATURE_GATE_CHECK=all pnpm test:feature-gate | push only via pnpm db:push
+feature_gate (MANDATORY): rules = src/featureGate/rules/\<name\>.ts, one per feature, name = FeatureName (enabled() false → pathPatterns 404, tables of its features folders skipped by pnpm db:push: never created, never dropped) | read: gate.enabled/assert/path/filter (@/featureGate), useGate() (client), node.ts = scripts/tests | links = shelf Link, never next/link | ref: src/featureGate/README.md
+- new route of a gated domain → add it to its rule (tables follow the folder) | always-on entries (cron, cleanup, wiring) close themselves | closable folder imported from outside → domainEntry requires or gate check (dependency check) | test: FEATURE_GATE_CHECK=all pnpm test:feature-gate | push only via pnpm db:push
 
 ## DIRECTORY_STRUCTURE
 features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json

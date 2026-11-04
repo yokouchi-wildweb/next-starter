@@ -179,6 +179,7 @@ export const rule: FeatureGateRule = {
 
 - 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・テスト・型だけの import。動的 import と副作用 import は数える
 - 今の上流の違反はテストの中の縮む表 `UPSTREAM_DEPENDENCY_DEBT`(直った行が表に残ると落ちる)
+- 強さ: Tier1(`src/lib/CATALOG.md` の先頭の節が自分。lint の Tier の切り替えと同じ判定)は落とす。Tier1 でない repo は区切り gate-s2 の間は表示だけ(違反を一覧に出して通す)で、次の区切り gate-s3 で落とす側に切り替わる。それまでに上の 1〜6 のどれかで通しておく
 - 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
 
 ### 門番の範囲外

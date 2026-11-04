@@ -5,6 +5,8 @@
 // 判定: ./dependencies.mjs。実行: pnpm test:feature-gate
 // - 上流の例外は UPSTREAM_DEPENDENCY_EXCEPTIONS(理由つき)、fork の例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts
 // - 今の上流の違反は縮む表 UPSTREAM_DEPENDENCY_DEBT(持ち主 = 設定の議会の legate。直った行が表に残ると落ちる)
+// - 強さ(L1.13): Tier1(src/lib/CATALOG.md の先頭の節が自分 = lint の libOwnership.isRoot と同じ判定)は落とす。
+//   Tier1 でない repo は区切り gate-s2 の間は表示だけ(違反を一覧に出して通す)。次の区切り gate-s3 で落とす側に切り替える
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -12,6 +14,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
+import { loadCatalogOwnership } from "../../lib/folderCatalog/catalog.mjs";
 import { dependencyExceptions, rules } from "../node.ts";
 import { findDependencyViolations } from "./dependencies.mjs";
 
@@ -70,27 +73,43 @@ const UPSTREAM_DEPENDENCY_DEBT = {
 
 const keyOf = (v) => `${v.file} → ${v.folder}`;
 
+/** Tier1 か(lint の Tier の切り替えと同じ判定)。Tier1 でなければ実リポの検査は表示だけ(gate-s2 の間) */
+const IS_TIER1 = loadCatalogOwnership({ repoRoot: ROOT, folder: "src/lib" }).isRoot;
+
+/** 実リポの検査の結果: Tier1 は落とし、それ以外は一覧を出して通す */
+function enforce(problems, message) {
+  if (problems.length === 0) return;
+  if (IS_TIER1) {
+    assert.deepEqual(problems, [], message);
+    return;
+  }
+  console.warn(`[依存の検査・表示だけ(Tier1 でない repo、区切り gate-s3 で落とす側に切り替わる)] ${message}\n${problems.map((p) => `  - ${p}`).join("\n")}`);
+}
+
 test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(上流の違反は縮む表、直った行は表から消す)", () => {
   const exceptionFiles = [...Object.keys(UPSTREAM_DEPENDENCY_EXCEPTIONS), ...dependencyExceptions.map((e) => e.file)];
   const violations = findDependencyViolations({ root: ROOT, rules, exceptionFiles });
   const keys = [...new Set(violations.map(keyOf))];
   const unknown = violations.filter((v) => !(keyOf(v) in UPSTREAM_DEPENDENCY_DEBT));
-  assert.deepEqual(
+  enforce(
     unknown.map((v) => `${v.file} → ${v.folder}(規則 ${v.rule})`),
-    [],
     "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts・dependencyExceptions/ のどれかで通す(src/featureGate/README.md「依存の検査」)",
   );
-  const healed = Object.keys(UPSTREAM_DEPENDENCY_DEBT).filter((key) => !keys.includes(key));
-  assert.deepEqual(healed, [], "直った行が UPSTREAM_DEPENDENCY_DEBT に残っている(表から消す)");
+  // 縮む表は上流の物: fork では上流のファイルが変わっていることがあるので Tier1 だけで見る
+  if (IS_TIER1) {
+    const healed = Object.keys(UPSTREAM_DEPENDENCY_DEBT).filter((key) => !keys.includes(key));
+    assert.deepEqual(healed, [], "直った行が UPSTREAM_DEPENDENCY_DEBT に残っている(表から消す)");
+  }
 });
 
 test("実リポ: 例外の行は当たる(縮む表)・理由は空でない", () => {
   const all = { ...UPSTREAM_DEPENDENCY_EXCEPTIONS, ...Object.fromEntries(dependencyExceptions.map((e) => [e.file, e.reason])) };
   for (const [file, reason] of Object.entries(all)) assert.ok(reason.trim().length > 0, `${file}: reason が空`);
   const without = findDependencyViolations({ root: ROOT, rules, exceptionFiles: [] });
-  for (const file of Object.keys(all)) {
-    assert.ok(without.some((v) => v.file === file), `${file}: 例外が当たらない(行を消す)`);
-  }
+  enforce(
+    Object.keys(all).filter((file) => !without.some((v) => v.file === file)),
+    "例外が当たらない(行を消す)",
+  );
 });
 
 /** 一時リポ: tsconfig の @/*、閉じられるフォルダ core/wallet(規則 wallet、住所 /wallet)と core/coupon(規則 coupon) */
