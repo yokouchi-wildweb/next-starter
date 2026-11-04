@@ -41,19 +41,22 @@ export function AdminProtectedLayout({ children, sidebar, footer }: AdminProtect
         {children}
       </ResizableArea>
       {sidebar === null ? null : (
-        // SP の開閉ボタン。Form/Button は自分の data-slot(button)を持つので部位の印は id(frame.css が admin-sidebar を隠すときに一緒に隠す)
-        <Button
-          id="admin-sidebar-toggle"
-          type="button"
-          variant="accent"
-          size="icon"
-          className="fixed bottom-4 right-4 size-12 rounded-full surface-ui-layer md:hidden"
-          onClick={toggleSidebar}
-          aria-pressed={sidebarOpen}
-          aria-label={sidebarOpen ? "メニューを閉じる" : "メニューを開く"}
-        >
-          {sidebarOpen ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
-        </Button>
+        // SP の開閉ボタン。Form/Button は自分の data-slot(button)を持つので上書きせず、箱を作らない(display: contents)包みに
+        // 部位の印 admin-sidebar を付ける(frame.css が隠す)。id はサイドバーを差し替えた fork 向けの橋渡し(frame.css)
+        <div data-slot="admin-sidebar" className="contents">
+          <Button
+            id="admin-sidebar-toggle"
+            type="button"
+            variant="accent"
+            size="icon"
+            className="fixed bottom-4 right-4 size-12 rounded-full surface-ui-layer md:hidden"
+            onClick={toggleSidebar}
+            aria-pressed={sidebarOpen}
+            aria-label={sidebarOpen ? "メニューを閉じる" : "メニューを開く"}
+          >
+            {sidebarOpen ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
+          </Button>
+        </div>
       )}
     </>
   );

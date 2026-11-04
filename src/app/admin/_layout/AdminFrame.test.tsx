@@ -81,23 +81,27 @@ test("README の data-slot の一覧 = 管理の枠の部品の要素の data-sl
   for (const { slot } of parts.hideableParts("admin")) assert.ok(found.has(slot), `隠せる部位 ${slot} の要素が無い`);
 });
 
-test("サイドバーの data-slot は PC の列・SP のドロワーと背景・リサイズのつまみに付き、SP の開閉ボタン(Button = data-slot=\"button\")は id。(protected) と insane の両方", () => {
+test("サイドバーの data-slot は PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタンの包みに付く(Button の data-slot は上書きしない)。(protected) と insane の両方", () => {
   const count = (file: string) => read(file).split('data-slot="admin-sidebar"').length - 1;
   for (const [file, n] of [
     ["src/app/admin/(protected)/_layout/Sidebar/PcSidebar.tsx", 1],
     ["src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx", 2],
     ["src/app/admin/(protected)/_layout/ResizableArea.tsx", 1],
-    ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx", 0],
+    ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx", 1],
     ["src/app/admin/insane/_layout/InsanePcSidebar.tsx", 1],
     ["src/app/admin/insane/_layout/InsaneSpSidebar.tsx", 2],
     ["src/app/admin/insane/_layout/InsaneResizableArea.tsx", 1],
-    ["src/app/admin/insane/_layout/InsaneProtectedLayout.tsx", 0],
+    ["src/app/admin/insane/_layout/InsaneProtectedLayout.tsx", 1],
   ] as const) {
     assert.equal(count(file), n, `${file} の admin-sidebar`);
   }
-  // shadcn の部品の data-slot は上書きしない: 開閉ボタンの印は id(どちらか 1 つの layout だけが描く)
+  // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない。
+  // id はサイドバーを差し替えた fork 向けの橋渡し(どちらか 1 つの layout だけが描く)
   for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx", "src/app/admin/insane/_layout/InsaneProtectedLayout.tsx"]) {
-    assert.equal(read(file).split('id="admin-sidebar-toggle"').length - 1, 1, `${file} の開閉ボタンの id`);
+    const toggle = /<div data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/div>/.exec(read(file));
+    assert.ok(toggle, `${file}: 開閉ボタンが admin-sidebar の包みの直下に無い`);
+    assert.ok(toggle[1].includes('id="admin-sidebar-toggle"'), `${file} の開閉ボタンの id`);
+    assert.equal(toggle[1].includes("data-slot"), false, `${file}: Button の data-slot を上書きしている`);
   }
 });
 
