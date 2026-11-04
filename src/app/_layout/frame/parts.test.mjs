@@ -84,6 +84,17 @@ test("frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末(過�
   }
 });
 
+test("frame.css: 名前を持たない既定部品(shadcn の Button・スペーサー)は id で狙う(SP の開閉ボタン・ボトムナビのスペーサー・管理の SP の開閉ボタン)", () => {
+  const rules = rulesOf(read(FRAME_CSS));
+  const targets = { "header-nav": "#header-sp-menu-toggle", "bottom-nav": "#bottom-nav-spacer", "admin-sidebar": "#admin-sidebar-toggle" };
+  for (const [slot, id] of Object.entries(targets)) {
+    for (const device of FRAME_DEVICES) {
+      const rule = rules.find((r) => r.selector.startsWith(`[data-frame-root][data-frame-hide~="${slot}-${device}"] :is(`));
+      assert.ok(rule?.selector.includes(id), `${slot}-${device} の規則が ${id} を狙わない`);
+    }
+  }
+});
+
 test("frame.css: ボトムナビを隠す間は --app-bottom-nav-height を 0、利用者の fill は外枠の属性で確定高さ", () => {
   const rules = rulesOf(read(FRAME_CSS));
   for (const device of FRAME_DEVICES) {

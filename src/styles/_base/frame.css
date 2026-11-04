@@ -69,7 +69,8 @@
 
 /*
  * 管理の枠(src/app/admin)。印は admin- 付きなので利用者の規則とは当たらない。
- * サイドバーの印(admin-sidebar)は PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタンの全部に付く
+ * サイドバーの印(admin-sidebar)は PC の列・SP のドロワーと背景・リサイズのつまみに付く。SP の開閉ボタンは shadcn の Button
+ * (data-slot="button" を上書きしない)なので id #admin-sidebar-toggle で狙う
  * (サイドバーの PC / SP の切り替えは md だが、隠すのは端末の境界 40rem ごとに全部の印)。
  * ヘッダーを隠すと useHeaderHeight が 0 を読み、--app-header-height も 0 になる。
  */
@@ -77,7 +78,7 @@
   [data-frame-root][data-frame-hide~="admin-header-sp"] :is(#header, [data-slot="admin-header"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="admin-sidebar-sp"] :is([data-slot="admin-sidebar"]) {
+  [data-frame-root][data-frame-hide~="admin-sidebar-sp"] :is(#admin-sidebar-toggle, [data-slot="admin-sidebar"]) {
     display: none;
   }
   [data-frame-root][data-frame-hide~="admin-footer-sp"] :is(#footer, [data-slot="admin-footer"]) {
@@ -89,7 +90,7 @@
   [data-frame-root][data-frame-hide~="admin-header-pc"] :is(#header, [data-slot="admin-header"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="admin-sidebar-pc"] :is([data-slot="admin-sidebar"]) {
+  [data-frame-root][data-frame-hide~="admin-sidebar-pc"] :is(#admin-sidebar-toggle, [data-slot="admin-sidebar"]) {
     display: none;
   }
   [data-frame-root][data-frame-hide~="admin-footer-pc"] :is(#footer, [data-slot="admin-footer"]) {
