@@ -179,3 +179,27 @@ test("fleet.conf: a fork's picked: is laid on its merge-base first, forks with t
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test("through a repo: a hotfix whose only conflict is the shipped index is not a conflict, and the tree keeps the base's index", () => {
+  const r = miniRepo("hotfix-index-");
+  try {
+    r.put("package.json", '{"scripts":{}}');
+    r.put("src/a.txt", "bug\n");
+    const noIndex = r.commit("base without the index");
+    r.put(".notices/shipped/up.md", "- id:a\n");
+    const shortIndex = r.commit("index appears");
+    r.put(".notices/shipped/up.md", "- id:a\n- id:between\n");
+    r.commit("between");
+    r.put("src/a.txt", "ok\n");
+    r.put(".notices/20990101-000000-x.md", "# DOWNSTREAM NOTICE id:20990101-000000-x\nrequired_actions: none\nverify: ok\nrefs: src/a.txt\n");
+    r.put(".notices/shipped/up.md", "- id:a\n- id:between\n- id:x\n");
+    const hot = r.commit("hotfix");
+    for (const base of [noIndex, shortIndex]) {
+      const res = checkOnBase(r.dir, hot, base);
+      assert.equal(res.conflict, false);
+      assert.equal(hasGaps(res.gaps), false);
+    }
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});

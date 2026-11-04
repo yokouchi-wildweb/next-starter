@@ -73,7 +73,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
   - 対象: 未適用で、`fixes:` の参照先のどれかが適用済み(この出撃で merge・pick したものを含む)になった直後で、修正の追加 commit がまだ HEAD の祖先でないもの。直接の親が出した notice だけ(祖父 notice の `pick:` は読まない → relay.md「緊急修正」)。修正の修正は、前の修正が適用済み・pick 済みのときだけ対象になる(上流の判定もその木で試している)。修正元がこの出撃の前から適用済みなら、最初の区間の前に取る(最初の区間の merge 先に含まれるなら merge で届くので取らない)。複数なら履歴順に 1 件ずつ。
   - 計画: 修正元の区間の詳細計画に、修正 notice の全文を読んで「直後に <修正 notice> を取る」と required_actions・verify を載せる。その区間の承認がこの pick の承認を兼ねる(`all` も止まらない)。pick を伴う区間は軽い区間にしない。
   - 実行: 修正元の区間の手順 7b の commit の後、7c の前に、下の「緊急修正(hotfix)」の実行 1〜3 と同じ(`git cherry-pick -x <修正の追加 commit>` → 修正の required_actions・区間の検査・verify → 追従と台帳を別 commit。台帳の行も同じ形で `picked:` を書き、`notes:` は `pick-clean after <修正元 id>`)。続けて 7c の `pnpm ownership:check`(`picked:` の分は合格)→ 7d で区間と一緒に push。
-  - 取れなかったとき: cherry-pick の衝突 → `git cherry-pick --abort`。検査・verify の失敗 → この pick で作った未 push の commit を戻す(`git reset --keep <区間の 7b の commit>`。push 済みの commit は戻さない)。どちらも台帳の修正元の行の `notes:` に `pick failed: <理由>` を書き足して commit し、上の「修正元が未適用」の問い(1 区間ずつ進める / ここで止める)をして待つ。「上流への所見」(b) に 1 行出す(上流の判定は通ったのに fork で通らなかった)。
+  - 取れなかったとき: cherry-pick の衝突(`.notices/shipped/` だけの衝突は上の実行 1 のとおり fork 側を採って続け、取れなかったに数えない)→ `git cherry-pick --abort`。検査・verify の失敗 → この pick で作った未 push の commit を戻す(`git reset --keep <区間の 7b の commit>`。push 済みの commit は戻さない)。どちらも台帳の修正元の行の `notes:` に `pick failed: <理由>` を書き足して commit し、上の「修正元が未適用」の問い(1 区間ずつ進める / ここで止める)をして待つ。「上流への所見」(b) に 1 行出す(上流の判定は通ったのに fork で通らなかった)。
   - 後の区間: 台帳に記録済みの id は区切りにならない(緊急修正と同じ)。後の merge でその箇所が衝突したら、fork の編集が無ければ上流側を採る。
 - **修正元が適用済み**: 止まらない。概観で修正の区間に「適用済み <修正元> の修正」と印を付ける(本番に不具合が出ているかもしれないので、ユーザーが優先度を決める材料)。その区間の詳細計画では、台帳の修正元の行の `notes:` と fork 側の差分から当時の回避策を探し、修正が入った後に要らなくなるものを掃討の対象に載せる。
 - **報告**: 区間の終わり・最終報告で、今の位置が修正元を通った後で修正の手前なら「既知の未修正あり: <修正元>(修正は区間 K)。この位置でのデプロイに注意」を 1 行出す。
@@ -84,7 +84,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - **pick しないとき**(概観に理由を 1 行): 最初の区間の merge 先に元の commit が含まれる(merge で届く)/ `fixes:` の参照先がすべて未適用(その fork に不具合がまだ無い。修正元の区間は「修正(fixes)」どおり)。
 - **計画**: 緊急修正を次の区間より先に、notice を全文読んで計画に出す(複数なら履歴順、1 件ずつ)。止まり方: 既定・`<n>`・`light` はここで承認を取る(`light` でも軽い区間にしない)。`all` は 1〜2 行報告して進む。`status` は表示だけ。「いいえ」ならその回は飛ばして通常の区間へ進む(後の merge で届く)。
 - **実行**(手順 6〜8 を次のとおり行う):
-  1. `git cherry-pick -x <元の commit>`。衝突したら `git cherry-pick --abort` で戻して止まり、選択肢を出す(手で解いて続行・この緊急修正を飛ばす・元の commit まで区間で進める)。
+  1. `git cherry-pick -x <元の commit>`。衝突が `.notices/shipped/` だけなら fork 側を採って続ける(`git checkout --ours -- <path>`、fork に無いファイルは `git rm -q -- <path>` → `git cherry-pick --continue --no-edit`。上流の索引は後の merge で届き、未適用の判定は上流の先端の索引を読むので pick には要らない。`.notices/README.md`「先に取れる印」)。それ以外の衝突は `git cherry-pick --abort` で戻して止まり、選択肢を出す(手で解いて続行・この緊急修正を飛ばす・元の commit まで区間で進める)。
   2. notice の required_actions・区間の検査(typecheck / lint)・verify を行う。
   3. 追従の変更と台帳を、pick の commit とは別の commit にする(下の段が pick の commit だけを取れるように)。台帳の行は `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`。`upstream:` を元の commit にしない(所有の検査が Tier1 の版を読み違える)。下流を持つ fork は `relay:` も書く。
   4. 手順 7c の `pnpm ownership:check`(基準 + pick と同じ中身は `picked` で合格)→ push → 報告。pick には merge 先が無いので、7c の「intake.txt が無ければ飛ばす」の代わりに次で決める:

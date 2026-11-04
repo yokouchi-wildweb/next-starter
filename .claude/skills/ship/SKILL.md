@@ -62,7 +62,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - メッセージは behavior.md の書式(件名 `<area>: <summary>`、空行、本文 = 判断の記録)。`order:<id>` があれば本文の後に `order: <id>` の行。末尾に環境指定のトレーラー。
    - ブランチは behavior.md とチームの方針に従う(既にフィーチャーブランチ上ならそのまま)。
    - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。`hotfix` では不可(本体と notice を必ず同じコミットに入れる。別なら取り消してまとめ直す)。
-   - `fixes:` の notice を含めたとき、commit の後・push の前に **先に取れるかを判定する**(`.notices/README.md`「修正(fixes)」の「先に取れる印(pick)」): `pnpm notices:pick-check <この commit>`。壊れた地点(修正元の区切りのコミット)にこの commit だけを載せた一時の木で、1 commit・lock / route-map なし・手順が後の notice を名指さない・cherry-pick の衝突なし・`pnpm typecheck`・`pnpm test:config-module-load`・前提の検査を見て、**索引のその notice の行**に `pick:clean` か `pick:-` を書く(本文には書かない。人は書かない・書き換えない。行が無ければ書かずに exit 2 = 手順 5 の add を忘れている)。
+   - `fixes:` の notice を含めたとき、commit の後・push の前に **先に取れるかを判定する**(`.notices/README.md`「修正(fixes)」の「先に取れる印(pick)」): `pnpm notices:pick-check <この commit>`。壊れた地点(修正元の区切りのコミット)にこの commit だけを載せた一時の木で、1 commit・lock / route-map なし・手順が後の notice を名指さない・cherry-pick の衝突なし・`pnpm typecheck`・`pnpm test:config-module-load`・前提の検査を見て(この commit が足した索引の行は捨てて載せる。索引だけの衝突は数えない)、**索引のその notice の行**に `pick:clean` か `pick:-` を書く(本文には書かない。人は書かない・書き換えない。行が無ければ書かずに exit 2 = 手順 5 の add を忘れている)。
      - exit 0 / 1(clean / -): 書かれた索引を同じ commit に入れる: `git commit --amend --no-edit -- .notices/shipped/<fork_id>.md`(push 前の自分の commit だけ。`pick:` は判定に影響しない)→ `pnpm test:notices`。`-` でも止まらずに出荷する(fork は今の fixes の動きで受ける)。外れた条件を報告に書く
      - exit 2(判定できない: 修正元が履歴に無い・依存を入れられない): 欄を書かずに出荷し(欄なし = `-` と同じ扱い)、報告に「pick 未確認: <理由>」
      - 「未実行: <検査>」(その土台の木に script が無い)は報告に書く

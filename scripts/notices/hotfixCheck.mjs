@@ -18,6 +18,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parsePaths, unmatchedPaths } from "../claude-rules/rulePaths.mjs";
+import { pickDroppingIndex } from "./pickDroppingIndex.mjs";
 
 // pnpm の組み込みコマンド(package.json の scripts ではない)
 const PNPM_BUILTIN = new Set(["install", "i", "add", "remove", "rm", "up", "update", "exec", "dlx", "run", "why", "list", "ls", "store", "env"]);
@@ -149,9 +150,10 @@ export function checkOnBase(repo, commit, base, picks = []) {
   try {
     execFileSync("git", ["clone", "-q", "--shared", "--no-checkout", repo, dir], { stdio: "ignore" });
     git(dir, ["switch", "-q", "--detach", at]);
+    // 出荷索引の変更は捨てて載せる(fork の /flux も索引だけの衝突は fork 側を採る。pickDroppingIndex.mjs)
     for (const p of picks) {
       try {
-        git(dir, ["cherry-pick", "-n", p]);
+        if (pickDroppingIndex(dir, p).conflicts.length) throw new Error("conflict");
         git(dir, ["-c", "user.name=hotfix-check", "-c", "user.email=hotfix-check@local", "commit", "-q", "--no-verify", "--allow-empty", "-m", `pick ${p}`]);
       } catch {
         return { pickFailed: p };
@@ -159,9 +161,13 @@ export function checkOnBase(repo, commit, base, picks = []) {
     }
     const changed = git(repo, ["-c", "core.quotePath=false", "show", "--name-only", "--diff-filter=AMR", "--format=", commit]).split("\n").filter(Boolean);
     let conflict = false;
+    let picked;
     try {
-      git(dir, ["cherry-pick", "-n", commit]);
+      picked = pickDroppingIndex(dir, commit);
     } catch {
+      picked = { conflicts: ["?"] };
+    }
+    if (picked.conflicts.length) {
       // a conflict the fork solves by hand: look at the tree with the commit's side of every file it touches
       conflict = true;
       git(dir, ["reset", "-q", "--hard"]);

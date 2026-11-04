@@ -4,7 +4,7 @@
 // 壊れた地点(修正元の区切りのコミット)で、その上に修正のコミットだけを載せた一時の木で次を全部満たすときだけ clean:
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
 //      required_actions 〜 manual_steps が、壊れた地点より後の notice を名指さない
-//   2. cherry-pick が衝突しない
+//   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: pickDroppingIndex.mjs)
 //   3. 載せた木で検査が通る(既定 pnpm typecheck と pnpm test:config-module-load。その木の package.json に無い script は未実行と書いて飛ばす)
 //   4. 遅れた fork 向けの前提の検査(hotfixCheck.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない
 // notices:hotfix-check は存在の検査だけで型・merge の成立を見ないので、ここでは 4 の部品として呼ぶだけで、clean の根拠は 1〜4 の全部。
@@ -27,6 +27,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findGaps, hasGaps, noticeSections } from "./hotfixCheck.mjs";
+import { pickDroppingIndex } from "./pickDroppingIndex.mjs";
 import { indexPath, ownForkId, parseIndex, SHIPPED_DIR, writeRowPick } from "./shippedIndex.mjs";
 
 export const FORBIDDEN = ["pnpm-lock.yaml", "src/app/route-map.jsonl"];
@@ -199,16 +200,18 @@ export function tryOnBase(repo, commit, { base, picks }, { checks = DEFAULT_CHEC
   try {
     execFileSync("git", ["clone", "-q", "--shared", "--no-checkout", repo, dir], { stdio: "ignore" });
     git(dir, ["switch", "-q", "--detach", base]);
+    // 出荷索引の変更は捨てて載せる(索引の無い・短い土台で必ず衝突するため。pickDroppingIndex.mjs)
     for (const p of picks) {
       try {
-        git(dir, ["cherry-pick", "-n", p]);
-        git(dir, ["-c", "user.name=pick-check", "-c", "user.email=pick-check@local", "commit", "-q", "--no-verify", "-m", `pick ${p}`]);
+        if (pickDroppingIndex(dir, p).conflicts.length) throw new Error("conflict");
+        git(dir, ["-c", "user.name=pick-check", "-c", "user.email=pick-check@local", "commit", "-q", "--no-verify", "--allow-empty", "-m", `pick ${p}`]);
       } catch {
         return { failed: [`先に載せる修正 ${p.slice(0, 8)} が土台に載らない`], skipped: [] };
       }
     }
     try {
-      git(dir, ["cherry-pick", "-n", commit]);
+      const { conflicts } = pickDroppingIndex(dir, commit);
+      if (conflicts.length) return { failed: [`cherry-pick が衝突する(土台 ${base.slice(0, 8)}: ${conflicts.join(", ")})`], skipped: [] };
     } catch {
       return { failed: [`cherry-pick が衝突する(土台 ${base.slice(0, 8)})`], skipped: [] };
     }

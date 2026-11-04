@@ -148,6 +148,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - clean の条件(全部): 本体と notice が同じ 1 commit / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含まない / 手順(required_actions 〜 manual_steps)が壊れた地点より後の notice を名指さない / 壊れた地点で cherry-pick が衝突しない / 載せた木で `pnpm typecheck` と `pnpm test:config-module-load` が通る(その木に無い script は未実行として飛ばす)/ 遅れた fork 向けの前提の検査(`notices:hotfix-check` と同じ: 足した・変えたルールの `paths:`・手順の `pnpm <script>`・名指すパス)が何も挙げない。cherry-pick が通っても間の commit に意味で依存する修正は壊れるので、型検査まで通して付ける
 - 修正の修正(`fixes:` の先が修正): 前の修正が `pick: clean` のときだけ、その土台に前の修正を載せた木で試す。前の修正が clean でなければ `-`(fork も前の修正を先に取っていない)
 - /flux: 直接の親が出した `pick: clean` の修正を、`fixes:` の参照先のどれかが適用済みになった直後(修正元の区間の commit の後、push の前)に `git cherry-pick -x` で取り、修正の verify と区間の検査を通してから区間と一緒に push する。台帳は緊急修正と同じ `picked:` の行。修正元の区間の手前の問い(進めるか止めるか)はしない。衝突・検査の失敗は戻して、その問いに戻る。多段では祖父 notice の `pick:` は読まない(`.claude/skills/flux/relay.md`)
+- 出荷索引は pick の外: 修正の commit は notice の索引の行(`.notices/shipped/<fork_id>.md`)を含むが、索引は追記だけの上流の帳簿で、索引の無い・短い土台では必ず衝突する。pick-check・hotfix-check は索引の変更を捨てて載せ(`scripts/notices/pickDroppingIndex.mjs`)、/flux も衝突が `.notices/shipped/` だけなら fork 側を採って続ける(fork が無ければ消す)。fork は pick の時点で上流の索引を要らない(未適用の判定は上流の先端の索引を読む)。索引は後の merge で届く
 - 緊急修正との違い: `hotfix:` は人が宣言して全部の区間の前に割り込む。`pick: clean` は機械の印で、修正元の区間の直後に取るだけで前には出ない
 
 ## 緊急修正(hotfix)— 間の変更を飛ばして先に届ける
@@ -155,7 +156,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 区間の merge は履歴の順に進むので、遅れている fork には修正がすぐ届かない。本番が壊れているとき、または壊れていなくても人間が先に届けると宣言したときだけ、上流が `hotfix:` を宣言した notice の commit を `/flux` が cherry-pick する。任意の commit は取らない(区間の merge を崩さないため)。
 
 - 宣言: `/ship hotfix`。人間が指示したときだけ付ける(全 fork の作業に割り込むため)
-- 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm notices:pick-check` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない)/ 遅れた fork の位置に載せた木で、足した・変えたルールの `paths:`・notice の手順の `pnpm <script>`・名指すパスが揃うことを確かめる(`pnpm notices:hotfix-check`。揃わなければ依存を外すか、その fork で何が通らないかを required_actions に書く)
+- 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm notices:pick-check` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない。出荷索引だけの衝突は数えない: 上の「先に取れる印」)/ 遅れた fork の位置に載せた木で、足した・変えたルールの `paths:`・notice の手順の `pnpm <script>`・名指すパスが揃うことを確かめる(`pnpm notices:hotfix-check`。揃わなければ依存を外すか、その fork で何が通らないかを required_actions に書く)
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
 - 所有の検査: `picked:` の分は基準 + pick と同じ中身なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。衝突を手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
