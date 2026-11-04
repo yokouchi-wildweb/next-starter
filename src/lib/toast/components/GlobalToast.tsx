@@ -2,9 +2,10 @@
 
 "use client";
 
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useFrameDimsStyle } from "@/hooks/useFrameDimsStyle";
 import { useIsClient } from "@/hooks/useIsClient";
 import { cn } from "@/lib/cn";
 import { useToastStore } from "../stores";
@@ -21,24 +22,6 @@ const POSITION_CLASSES: Record<ToastPosition, string> = {
   "bottom-center": "bottom-[calc(var(--app-bottom-nav-height,0px)+1rem)] left-1/2 -translate-x-1/2",
   "bottom-right": "bottom-[calc(var(--app-bottom-nav-height,0px)+1rem)] right-4",
 };
-
-/**
- * 下寄せのトーストをボトムナビの上に出すため、外枠の --app-bottom-nav-height(ナビの px + 下の safe-area。
- * Hide* と出さないデバイスでは 0)を読む。トーストは body 直下へ portal するので外枠の変数を継げず、
- * 表示する時に外枠 [data-frame-root](UserLayout の公開の印)の計算値を写す。外枠が無い(admin など)時は 0。
- * 表示中に Hide* が切り替わっても次のトーストまで値は古いまま。枠の寸法を :root へ出す仕組みができたら置き換える。
- */
-const FRAME_ROOT_SELECTOR = "[data-frame-root]";
-const BOTTOM_NAV_HEIGHT_VAR = "--app-bottom-nav-height";
-
-type BottomNavOffsetStyle = CSSProperties & { [BOTTOM_NAV_HEIGHT_VAR]?: string };
-
-function readBottomNavOffsetStyle(): BottomNavOffsetStyle | undefined {
-  const frameRoot = document.querySelector(FRAME_ROOT_SELECTOR);
-  if (!frameRoot) return undefined;
-  const value = getComputedStyle(frameRoot).getPropertyValue(BOTTOM_NAV_HEIGHT_VAR).trim();
-  return value ? { [BOTTOM_NAV_HEIGHT_VAR]: value } : undefined;
-}
 
 const ENTER_ANIMATION_CLASSES: Record<ToastPosition, string> = {
   center: "animate-bounce-drop fill-both",
@@ -86,7 +69,6 @@ export function GlobalToast() {
   const mounted = useIsClient();
   const [displayedToast, setDisplayedToast] = useState<Toast | null>(null);
   const [isExiting, setIsExiting] = useState(false);
-  const [bottomNavOffsetStyle, setBottomNavOffsetStyle] = useState<BottomNavOffsetStyle | undefined>(undefined);
   const exitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // storeのtoast変化を監視
@@ -101,7 +83,6 @@ export function GlobalToast() {
       // 表示中のトーストは store から消えた後もアニメーションの間だけ残すため、render 中の導出では書けない
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsExiting(false);
-      setBottomNavOffsetStyle(readBottomNavOffsetStyle());
       setDisplayedToast(storeToast);
     } else if (!storeToast && displayedToast && !isExiting) {
       // トーストが消えた → 退出アニメーション開始
@@ -169,24 +150,35 @@ export function GlobalToast() {
       </div>
     </div>
   ) : (
-    <div
+    <FramedToastRegion
       className={cn(
         "fixed pointer-events-none",
         layerClass,
         POSITION_CLASSES[displayedToast.position],
         animationClass,
       )}
-      style={bottomNavOffsetStyle}
-      role="region"
-      aria-label="通知"
     >
       <ToastItem
         key={displayedToast.id}
         toast={displayedToast}
         onClose={handleClose}
       />
-    </div>
+    </FramedToastRegion>
   );
 
   return createPortal(content, document.body);
+}
+
+/**
+ * 隅に出すトーストの外側。body 直下へ portal するので外枠の寸法変数を継げず、useFrameDimsStyle で外枠の値を写す
+ * (下寄せをボトムナビの上に出す。ナビを隠している間・出さないデバイスでは 0)。表示中の切り替えにも追随する。
+ * トーストを出している間だけ描くので、外枠の監視もその間だけ。
+ */
+function FramedToastRegion({ className, children }: { className: string; children: ReactNode }) {
+  const frameDims = useFrameDimsStyle();
+  return (
+    <div className={className} style={frameDims} role="region" aria-label="通知">
+      {children}
+    </div>
+  );
 }
