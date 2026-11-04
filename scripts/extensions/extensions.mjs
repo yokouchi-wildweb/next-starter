@@ -306,7 +306,7 @@ export function planExtensions(repoRoot) {
   const intakePlan = planIntake(repoRoot, declared, switchCheck.switches);
   if (intakePlan && "problem" in intakePlan) problems.push(intakePlan.problem);
   const intake = intakePlan && !("problem" in intakePlan) ? intakePlan : null;
-  // 枠の表(<枠の根>/_layout/extensions/frameTable.ts。frame.ts / frame.override.ts から、frames.mjs)
+  // 枠の表(<枠の根>/_layout/extensions/frameTable.ts。frame.default.ts / frame.ts から、frames.mjs)
   const framePlan = planFrames(repoRoot, headerFor);
   problems.push(...framePlan.problems);
   Object.assign(outputs, framePlan.outputs);
