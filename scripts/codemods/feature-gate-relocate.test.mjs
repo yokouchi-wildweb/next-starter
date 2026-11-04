@@ -45,6 +45,9 @@ test("書き換えの部品: 規則の型の import・例外の型・コード�
   const relative = rewriteCodeImports('import { featureGateRules as list } from "../../src/proxies/extensions/featureGateRules.ts";\nimport { x } from "../proxies/pathPattern.mjs";\n');
   assert.equal(relative.text, 'import { rules as list } from "../../src/featureGate/node.ts";\nimport { x } from "../lib/pathPattern/index.mjs";\n');
   assert.ok(rewriteCodeImports('import * as g from "@/proxies/extensions/featureGateRules";\n').problem, "名前空間の形は止める");
+  const literal = 'const doc = "src/proxies/pathPattern.mjs と @/proxies/extensions/featureGateRules は移った";\n';
+  assert.deepEqual(rewriteCodeImports(literal), { text: literal, changed: false, problem: undefined }, "import でない字面は見ない");
+  assert.match(rewriteCodeImports('const m = await import("@/proxies/pathPattern.mjs");\n').text, /import\("@\/lib\/pathPattern\/index\.mjs"\)/);
 });
 
 test("dry-run は計画だけ、--apply で移して書き換え、移した後の生成一覧に fork の規則が入る", () => {

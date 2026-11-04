@@ -33,9 +33,12 @@ const CODE = /\.(ts|tsx|mts|mjs|js)$/;
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);
 
 const RULE_TYPE_IMPORT = /import\s+type\s*\{\s*FeatureGateRule\s*\}\s*from\s*["'](?:\.\.\/types|@\/proxies\/types)["'];?/;
-const PATH_PATTERN_SPEC = /(["'])((?:@\/|(?:\.\.?\/)+(?:src\/)?)proxies\/pathPattern\.mjs)\1/g;
+// import の指定子だけを見る(from "…" と import("…")。文字列の字面一般は見ない)
+const PATH_PATTERN_SPEC = /(\bfrom\s*|\bimport\(\s*)(["'])((?:@\/|(?:\.\.?\/)+(?:src\/)?)proxies\/pathPattern\.mjs)\2/g;
 const GATE_LIST_IMPORT = /import\s*\{\s*([^}]*)\}\s*from\s*(["'])((?:@\/|(?:\.\.?\/)+(?:src\/)?)proxies\/extensions\/featureGateRules(?:\.ts)?)\2;?/g;
-const GATE_LIST_ANY = /proxies\/extensions\/featureGateRules/;
+const GATE_LIST_ANY = /(?:\bfrom\s*|\bimport\(\s*)["'][^"']*proxies\/extensions\/featureGateRules/;
+/** この道具自身(と同じ置き場の道具の fixture)は書き換えない */
+const SELF_DIR = "scripts/codemods/";
 
 function listFiles(root, dirs = ["src", "scripts"]) {
   const out = [];
@@ -78,9 +81,9 @@ const gateListTarget = (spec) => (spec.startsWith("@/") ? "@/featureGate/node" :
 /** fork のコードの import 2 種を書き換える。{ text, changed, problem? } */
 export function rewriteCodeImports(text) {
   let changed = false;
-  let out = text.replace(PATH_PATTERN_SPEC, (_m, q, spec) => {
+  let out = text.replace(PATH_PATTERN_SPEC, (_m, lead, q, spec) => {
     changed = true;
-    return `${q}${pathPatternTarget(spec)}${q}`;
+    return `${lead}${q}${pathPatternTarget(spec)}${q}`;
   });
   out = out.replace(GATE_LIST_IMPORT, (match, names, q, spec) => {
     const parts = names.split(",").map((p) => p.trim()).filter(Boolean);
@@ -165,7 +168,7 @@ export function planRelocate(root) {
   }
 
   // 3. fork のコードの import(門番の中と移す規則は除く)
-  for (const path of files.filter((p) => CODE.test(p) && !p.startsWith("src/featureGate/") && !p.startsWith(`${OLD_RULES}/`) && !p.startsWith(`${OLD_ALWAYS_ON}/`))) {
+  for (const path of files.filter((p) => CODE.test(p) && !p.startsWith("src/featureGate/") && !p.startsWith(SELF_DIR) && !p.startsWith(`${OLD_RULES}/`) && !p.startsWith(`${OLD_ALWAYS_ON}/`))) {
     const text = readFileSync(join(root, path), "utf8");
     if (!PATH_PATTERN_SPEC.test(text) && !GATE_LIST_ANY.test(text)) continue;
     PATH_PATTERN_SPEC.lastIndex = 0;
