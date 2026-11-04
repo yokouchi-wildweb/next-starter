@@ -39,6 +39,7 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
     error,
     hasMore,
     sentinelRef,
+    retry,
   } = useMyWalletHistoryBatches({
     walletType: config?.walletType,
     limit: HISTORY_PAGE_SIZE,
@@ -71,6 +72,7 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
         hasMore={hasMore}
         error={error}
         sentinelRef={sentinelRef}
+        onRetry={retry}
         completedText="すべて表示しました"
         initialLoadingNode={
           <Flex justify="center" padding="lg">

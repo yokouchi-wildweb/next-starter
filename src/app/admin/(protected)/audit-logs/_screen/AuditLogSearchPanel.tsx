@@ -90,7 +90,7 @@ export function AuditLogSearchPanel() {
     [],
   );
 
-  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
+  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef, retry } =
     useAuditLogSearch({ where, limit: PAGE_SIZE, observerOptions });
 
   const columns: DataTableColumn<AuditLog>[] = [
@@ -194,6 +194,7 @@ export function AuditLogSearchPanel() {
           hasMore={hasMore}
           error={error}
           sentinelRef={sentinelRef}
+          onRetry={retry}
           completedText="すべて読み込み済み"
           initialLoadingNode={
             <div className="flex min-h-[160px] items-center justify-center">

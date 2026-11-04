@@ -40,7 +40,7 @@ const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 
 export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps) {
   const [detailHistory, setDetailHistory] = useState<WalletHistoryBatchSummarySerialized | null>(null);
 
-  const { items: histories, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
+  const { items: histories, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef, retry } =
     useAdminWalletHistoryBatches({
       userId,
       limit: HISTORY_PAGE_SIZE,
@@ -131,6 +131,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
         hasMore={hasMore}
         error={error}
         sentinelRef={sentinelRef}
+        onRetry={retry}
         completedText="すべて読み込み済み"
         initialLoadingNode={
           <div className="flex min-h-[160px] items-center justify-center">

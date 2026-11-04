@@ -268,3 +268,4 @@
 - id:20261105-085439-chatroom-auth-app | severity:action-required | checkpoint:chatroom-auth-app
 - id:20261105-094711-route-user-unavailable-503 | severity:info | checkpoint:route-user-unavailable-503 | resolves:20261102-155755-route-user-resolution-db-failure-and-cost
 - id:20261103-172638-template-style-comment-paths | severity:info | checkpoint:template-style-comment-paths | resolves:20261103-172638-template-style-comment-paths
+- id:20261103-175406-infinite-scroll-callers-on-retry | severity:info | checkpoint:infinite-scroll-callers-on-retry | resolves:20261103-175406-infinite-scroll-callers-on-retry
