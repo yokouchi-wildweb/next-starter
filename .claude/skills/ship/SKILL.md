@@ -31,7 +31,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - `src/app/api/cron/` → `pnpm cron:check`
      - `domainEntry.ts`・`domain.json` → `pnpm registry:check`(ずれていれば `pnpm registry:generate`)
      - `entities/drizzle.ts`・`src/registry/schemaRegistry.ts` → `pnpm test:schema-registry`。index を変えたら `pnpm db:push:check` が出す差分の説明を報告に書く(db:push 自体は実行しない)
-     - `src/proxies/featureGateRules/`・`src/proxies/*.ts` の項目・cron の `task.ts` → `pnpm extensions:check`(ずれていれば `pnpm extensions:generate`)と `FEATURE_GATE_CHECK=all pnpm test:feature-gate`
+     - `src/featureGate/rules/`・`src/proxies/*.ts` の項目・cron の `task.ts` → `pnpm extensions:check`(ずれていれば `pnpm extensions:generate`)と `FEATURE_GATE_CHECK=all pnpm test:feature-gate`
      - `src/config/ui/` → `pnpm test:config-module-load`
      - ページ・ルートの追加・削除・移動、loader・guard.ts の変更 → `pnpm routes:map` で地図(`src/app/route-map.jsonl`)を作り直して範囲に含め、`pnpm test:route-map`
      - `domain.json`・ロール定義(`*.role.json`)・`*.profile.json` → `pnpm forge`(生成と事後検査を 1 回で。生成物・`src/features/feature-map.txt`・ルート地図の変化を範囲に含める。表が変わった案内は報告に書く)

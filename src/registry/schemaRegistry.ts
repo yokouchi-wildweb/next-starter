@@ -2,7 +2,7 @@
 // src/registry/schemaRegistry.ts
 //
 // db:push の唯一のスキーマ入口。pgTable を持つファイルを走査して全部並べる(足し忘れが起きない)。
-// 機能を閉じたときに外す表は scripts/registry/schemaGate.ts が別に見る。検査: pnpm registry:check / pnpm test:schema-registry
+// 機能を閉じたときに外す表は 門番 src/featureGate/node/gatedSchema.ts(@/featureGate/node の gatedSchema)が別に見る。検査: pnpm registry:check / pnpm test:schema-registry
 
 export * from "@/features/core/analytics/entities/drizzle";
 export * from "@/features/core/auditLog/entities/drizzle";

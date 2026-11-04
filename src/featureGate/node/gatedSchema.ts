@@ -9,7 +9,7 @@
 // - DB 側:   tablesFilter（"!<table>"）で introspection から除く → 既存でも DROP されない
 // - enum は外さない（コード側から消すと DROP TYPE が出る。空の型が残るだけで無害）
 //
-// 詳細: src/featureGate/README.md・src/proxies/README.md
+// 詳細: src/featureGate/README.md
 
 import { getTableName, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";

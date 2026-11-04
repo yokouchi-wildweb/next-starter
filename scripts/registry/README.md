@@ -13,7 +13,7 @@
 
 このリポジトリはマイグレーションファイルを使わない。`pnpm db:push` が schemaRegistry と実 DB を直接比較し、差分の SQL をその場で実行する（`drizzle-kit generate` → SQL ファイル適用、という手順は取らない）。
 
-`pnpm db:push` の本体は `scripts/registry/push.ts`（drizzle-kit CLI ではなく `drizzle-kit/api` の `pushSchema`）。理由は **スキーマゲート**: 機能フラグで無効な機能のテーブルを、push のコード側と DB 側の両方から外す（作らない・消さない）。CLI はスキーマファイルの export をそのまま拾うのでコード側から外せない。仕組みと決まりは `src/proxies/README.md`（Feature Gate）。
+`pnpm db:push` の本体は `scripts/registry/push.ts`（drizzle-kit CLI ではなく `drizzle-kit/api` の `pushSchema`）。理由は **スキーマゲート**: 機能フラグで無効な機能のテーブルを、push のコード側と DB 側の両方から外す（作らない・消さない）。CLI はスキーマファイルの export をそのまま拾うのでコード側から外せない。仕組みと決まりは `src/featureGate/README.md`（門番、入口 `@/featureGate/node` の `gatedSchema`）。
 
 - 実行する SQL を必ず表示してから実行する（差分が無ければ何もしない）。
 - テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る。

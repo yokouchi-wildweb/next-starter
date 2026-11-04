@@ -9,7 +9,7 @@
 // - ダウンストリームでプロバイダや支払い方法を追加する場合は、このファイルの
 //   paymentMethods および providers を拡張する（コードロジックの変更は不要）。
 // - 決済機能全体の有効/無効は APP_FEATURES.payment.enabled（false でルート 404 + テーブル未作成。
-//   src/proxies/featureGateRules/）。
+//   src/featureGate/rules/）。
 
 import { APP_FEATURES } from "./app-features.config";
 

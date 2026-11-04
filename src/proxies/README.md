@@ -13,8 +13,8 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 |---|---|---|
 | 骨組み（順序に意味がある上流の 4 + 2） | `src/proxies/index.ts`・各 `<名前>.ts` | 上流だけ（fork は index.ts を編集しない） |
 | 枠の項目 | `src/proxies/<名前>.ts`（上流も fork も印なし）。フォルダ形 `<名前>/index.ts` も可 | 1 項目 1 つ `export const handler` か `export const decorator` |
-| 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators・featureGateRules の 3 点） | 上流だけ |
-| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts`・`featureGateRules.ts` | `pnpm extensions:generate`（手で編集しない。仕組み: `scripts/extensions/README.md`） |
+| 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators の 2 点。機能を閉じる規則は門番 `src/featureGate/extensionPoints.ts`） | 上流だけ |
+| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts` | `pnpm extensions:generate`（手で編集しない。仕組み: `scripts/extensions/README.md`） |
 | 検査 | `pnpm extensions:check`（build の冒頭）・`pnpm test:proxy-frame` | — |
 
 - 項目は骨組みの**後ろ**で、ファイル名の順に走る（Tier 順は使わない）。項目どうしは互いに依存しない（前の項目の結果を読まない）。骨組みより前で走らせたい項目は作らない（要るなら上流へ依頼し、骨組みに吸収する）
@@ -41,95 +41,8 @@ export const handler: ProxyHandler = async (request, ctx) => {
 
 ## 機能を閉じる規則（Feature Gate）
 
-機能フラグ（`src/config/app/app-features.config.ts` ほか）を false にした機能を、**ルートとテーブルの両方から**閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
+規則・判定・検査は門番 `src/featureGate/` にある(詳細: [src/featureGate/README.md](../featureGate/README.md))。proxy の骨組みの項目 `featureGate.ts` は `gate.path(pathname)`(`@/featureGate`)を呼び、閉じていれば応答を作るだけ: `redirectTo` があればそこへ rewrite、無ければ API は 404、ページは `/404` へ rewrite。
 
-| 部品 | 場所 | いつ効くか | やること |
-|---|---|---|---|
-| 規則 | `src/proxies/featureGateRules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル。`pathPatterns` / `features` / `enabled()` / `redirectTo` |
-| 一覧 | `src/proxies/extensions/featureGateRules.ts`（生成物） | — | 規則 + `features` から導いた表名。読み手はこれだけを読む |
-| ルートゲート | `src/proxies/featureGate.ts` | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
-| スキーマゲート | `scripts/registry/schemaGate.ts`（`pnpm db:push` / `db:push:check`） | push のとき | 導いた表を push 対象から外す |
-| 検査 | `pnpm test:feature-gate`・`pnpm extensions:check` | CI / 手元 | 書き漏れ・書き間違い・常時実行の入口の閉じ漏れ |
+### fork での使い方(proxy の項目)
 
-### 規則の書き方
-
-```ts
-// src/proxies/featureGateRules/wallet.ts
-import { APP_FEATURES } from "@/config/app/app-features.config";
-
-import type { FeatureGateRule } from "../types";
-
-export const rule: FeatureGateRule = {
-  pathPatterns: ["/wallet", "/api/wallet", "/api/me/wallet"],
-  features: ["core/wallet", "core/walletHistory"],
-  enabled: () => APP_FEATURES.wallet.enabled,
-};
-```
-
-- `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/proxies/pathPattern.mjs`（proxy・ルート地図・test:feature-gate が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
-- **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
-- `features` = 外す表を持つ機能のフォルダ（`src/features` からの相対、文字列リテラルの配列）。表名は書かない: `extensions:generate`（宣言の `derive: "featureTables"`）がフォルダの下の全 `pgTable` から導く（`scripts/registry/tableScan.mjs`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たない規則は `features` を書かない
-- `enabled` は config の値を読む同期関数（値の置き場は config）
-- `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）
-- 住所の重なりは許す（OR）。**行き先の違う重なりは、ファイル名の順で最初の無効な規則の `redirectTo`**。上流の規則どうしの行き先の違う重なりは `test:feature-gate` で失敗、fork の規則と上流の重なりは表示だけ
-- 上流の規則を fork が上書き・無効化する口は無い（fork は閉じる規則を足すだけ）
-
-### スキーマゲートは作る方向にしか働かない
-
-| 状態 | `pnpm db:push` の結果 |
-|---|---|
-| 最初から false | テーブルは作られない |
-| false → true（初めて） | 次の push で作られる |
-| true → false | **テーブルもデータも残る**（DROP しない）。false の間はスキーマ変更も当たらず、true に戻した push でまとめて反映される |
-
-仕組み: 無効なテーブルを push の**両側**から外す。コード側（pushSchema に渡すスキーマ）から外すので作られず、DB 側（tablesFilter）からも外すので既存でも DROP されない。片側だけだと「コード側だけ = DROP TABLE CASCADE」「DB 側だけ = 既存テーブルへの CREATE」になる（実測済み）。
-
-- enum は外さない（コード側から消すと DROP TYPE が出る。空の型が残るだけで無害）
-- serial / identity 列（sequence）を持つテーブルは想定していない。ゲート対象のテーブルに足す場合は sequence の扱いを検証すること
-- `drizzle-kit push` を直接叩くとゲートを通らない（全テーブルが作られる。消えはしない）。push は必ず `pnpm db:push` で行う
-- 外す表を残す表が外部キーで参照していると例外（導いた表に掛かる）
-
-### 決まりごと
-
-- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test:feature-gate` が次を検査する:
-  - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test:schema-registry`）
-  - **今 `enabled()` が false の規則について**、その表を定義するドメインを import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている
-  - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
-  - 現在のフラグで、外す表を残す表が外部キーで参照していない
-  - 常時実行の入口の閉じ漏れ（下）
-- **有効な機能のルートは検査しない。** 開いていて正しいので、その機能を土台にした fork は何も宣言しなくてよい。機能を切ると、その機能に依存するルートと外部キーがテストで一覧になる（= 切る前に直す場所）
-- **`FEATURE_GATE_CHECK=all pnpm test:feature-gate` は upstream も fork も実行する。** 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`、fork の例外は `scripts/proxies/alwaysOnExceptions/<名前>.mjs` に理由付きで書く
-- **サンプルのドメイン**（`sampleDomain`、`APP_FEATURES.adminConsole.enableSampleDomain`）: 既定 `true`（上流のデモ用）。権限は公開読み・ログイン済みの更新・子の画像のログイン済みアップロードのままで厳しくしない → **実際の利用者がいる fork は `false` にする**: 管理画面・`/api/sample*` の汎用 API・サンプルを読むデモ画面 4 つが 404、5 表（samples ほか）は db:push で作らない（既存の表と行は消さない）。管理のメニューの行は残る
-- **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）
-
-### 常時実行の入口
-
-ゲートが閉じるのはその機能自身のルートとテーブルだけ。常に動く処理（cron・退会の後片付け・集計の照合・常に読み込まれる結線）が無効な機能を使うと、テーブルが無くて失敗する。`test:feature-gate` が全規則を無効とみなして次を見る（判定: `scripts/proxies/alwaysOnEntries.mjs`）:
-
-| 入口 | 閉じ方 |
-|---|---|
-| cron の `src/app/api/cron/<name>/task.ts` | `cronTask` に `enabled`（config を読む同期関数。CLI の `pnpm task` は proxy を通らない） |
-| 宣言に `alwaysOn: true` の拡張点の項目（`cleanupHandlers`・`coinIssuanceSources`・`rollupMetrics`） | 項目に `enabled` |
-| fork の手書きの登録表（下の `registries`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
-| 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`） | import しない。避けられないものは理由付きの例外表 |
-
-- 上流の例外表はテスト内の `ALWAYS_ON_EXCEPTIONS`（縮む表。当たらなくなった行は失敗）
-- **fork の分は 1 項目 1 ファイルの受け口に理由つきで**: `scripts/proxies/alwaysOnExceptions/<名前>.mjs`(名前に fork の印は付けない)
-  ```js
-  // scripts/proxies/alwaysOnExceptions/storeMembers.mjs(常に読み込まれる結線の例外)
-  export const exception = { file: "src/wiring/storeMembers.ts", reason: "<閉じなくてよい理由>" };
-  // scripts/proxies/alwaysOnExceptions/storeCleanup.mjs(fork の手書きの登録表)
-  export const registry = { file: "src/registry/storeCleanup.ts", reason: "<常に読まれる理由>" };
-  ```
-  1 ファイルに `exception` か `registry` のどちらか 1 つ、`reason` は必須、縮む表の規則は fork の行にも掛かる。旧い `scripts/proxies/alwaysOnExceptions.<x>.mjs`(1 ファイルに配列)は止まり、行ごとのファイルへの移し方 = 共有の棚の印の移行の notice を案内する
-- 限界: 直接の import だけを見る（別のモジュールを経由した到達は見ない）。`enabled` の式が本当にその機能のフラグかは見ない
-- 上の外にも呼び出し側でフラグを見る経路がある（登録時の招待コード消し込み `auth/services/server/registration.ts`、管理画面ユーザー一覧の残高調整 `user/components/admin/*UserList/Table.tsx`）。サービスの層で止める仕組みは別の議題
-
-### fork での使い方
-
-- upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない
-- upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、`APP_FEATURES.pages`（マイページ全体と account の各画面・/entry・/services・規約 3 種）か `adminConsole` のスイッチ（サンプルのドメイン・チャットルームの管理・通知テンプレート・デモユーザー）を false にする。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
-- スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork の規則で upstream の画面を止めない（upstream の規則と重なり、merge のたびに見直しになる）
-- fork 自身の機能を閉じたい: `src/proxies/featureGateRules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - fork の handler・decorator: `src/proxies/<名前>.ts`(上流の項目と違う名前。同じ単位名は `ownership:check` の unit-clash)に置き、`pnpm extensions:generate` で一覧をコミット
-- 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る

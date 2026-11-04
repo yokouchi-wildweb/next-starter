@@ -56,7 +56,7 @@ function renderSchemaRegistry(repoRoot) {
     `// ${SCHEMA_REGISTRY_FILE}`,
     "//",
     "// db:push の唯一のスキーマ入口。pgTable を持つファイルを走査して全部並べる(足し忘れが起きない)。",
-    "// 機能を閉じたときに外す表は scripts/registry/schemaGate.ts が別に見る。検査: pnpm registry:check / pnpm test:schema-registry",
+    "// 機能を閉じたときに外す表は 門番 src/featureGate/node/gatedSchema.ts(@/featureGate/node の gatedSchema)が別に見る。検査: pnpm registry:check / pnpm test:schema-registry",
     "",
     ...files.map((f) => `export * from "@/${f.slice("src/".length).replace(/\.tsx?$/, "")}";`),
     "",
