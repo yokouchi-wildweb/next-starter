@@ -6,6 +6,7 @@
 |---|---|
 | `fork-name-markers.mjs` | 受け口のファイル名から fork の名前の印を外す(共有の棚の印の移行。下) |
 | `feature-gate-relocate.mjs` | 門番の規則・常時実行の例外を src/featureGate/ へ移し、旧い置き場の import を直す(下) |
+| `frame-declarations.mjs` | 枠の部位の出し入れ(Hide*・fill・枠の設定の 4 つ)を枠の宣言 `frame.ts` へ移す(共有の棚の枠の宣言の移行。下) |
 | `crud-entry-split.mjs` | ボタンの import を `@/lib/crud/components` へ振り分ける |
 | `domain-display-buttons.mjs` | ボタンの `domain="<名前>"` を表示用の写し `domain={<名前>Display}` へ置き換える |
 | `domain-json-client-display.mjs` | client のコードの domain.json の import を写し `entities/display.ts` の `domainDisplay` へ置き換える |
@@ -65,3 +66,47 @@ node scripts/codemods/fork-name-markers.mjs --apply      # 改名(git mv)・impo
 6. 多段の Tier: **中間 Tier が先に移してから**下の Tier が取り込む。下の Tier が受け継いだ中間 Tier の印つきのファイルは、中間 Tier の移行と同じ名前になるので、中間 Tier の版を取り込めば改名が揃う(下の Tier が自分で足した印つきのファイルは、取り込みの後にこの道具で移す)
 
 確かめ(使い捨ての写し、2026-11-03): oripa-do 印つき 90 → 変更 87(フォルダ 1 件 = 4 ファイル)・止め 0、boardgame-site 26 → 変更 25・止め 1(`README.bodolist.md` が上流の `README.md` と同じ単位)、pandora(oripa-do の下)80 → 変更 77・止め 0(oripa-do から受け継いだ 67 件は oripa-do の移行と同じ名前)。`--apply` の後、上流の走査(生成器の旧い印・スイッチ・tasks・wiring・screens の点つきの名前)は旧い印 0。lint の強さのブロック: oripa-do 1・boardgame-site 9・pandora 1 件を足し、`eslint --print-config` で no-raw-palette off・span-in-heading / client-service-boundary warn(boardgame-site は自分の規則で no-raw-palette error のまま = 今と同じ)、上流の既定の部品は error のまま。
+
+## 枠の宣言へ移す(frame-declarations.mjs)
+
+枠の部位の出し入れは、ルートの隣の宣言 `frame.ts`(`{ layout?, page? }`、上流の既定 `frame.default.ts` の上に重なる)だけで決める。旧い仕組み(`Hide*` の部品・`UserPage` の `fill` / `immersive`・`AdminPage` の `fill`・枠の設定の `BOTTOM_NAV_ENABLED` / `BOTTOM_NAV_VISIBILITY` / `HEADER_ENABLED` / `HEADER_NAV_ENABLED`)は上流から消えたので、この道具で移す。宣言の書き方: `src/app/_layout/frame/README.md`。
+
+```sh
+node scripts/codemods/frame-declarations.mjs              # dry-run(既定): 変更の一覧と止めた物の一覧
+node scripts/codemods/frame-declarations.mjs --apply      # frame.ts を書き、タグ・属性・使われなくなった import を消す → 生成器の検査を掛ける
+#   --base <rev>    基準の版(既定 = 自分の台帳 .notices/applied/<fork_id>.md の最後の upstream:<sha>)
+#   --json          機械向けの出力
+```
+
+触るのは fork が足したファイルだけ(基準の版にあるファイル = 上流の物は取り込みで移る)。書くのはいつも `frame.ts`(上流のルートの隣でも自分のルートでも。`frame.default.ts` は書かない。既にある `frame.ts` には部位と端末ごとに足す):
+
+| 旧い形 | 移し方 |
+|---|---|
+| `page.tsx` の中の自己閉じの `<HideFooter />` など(`sp` / `pc` 指定つき、なし = 両方、`={false}` = 何もしない) | 同じフォルダの `frame.ts` の `page:` の `hide`、タグと import を消す |
+| `layout.tsx` の中の `Hide*` | 同じフォルダの `frame.ts` の `layout:` |
+| `<ルート>/_screen/` か `_components/` の `<名前>Screen.tsx` の中の `Hide*` | そのルート(page.tsx のあるフォルダ)の `frame.ts` の `page:` |
+| `<UserPage fill>` / `<AdminPage fill>`(ルートの Screen の中) | そのルートの `frame.ts` の `page: { fill: true }`、属性を消す(管理の枠の下は `AdminFrameDeclaration`) |
+| 枠の設定の 4 つの値が上流の旧い既定(ボトムナビ = スマホだけ・ヘッダーとナビ = 両方)と違う | `src/app/(user)/frame.ts` の `layout:`(設定の行は書き換えない。上流はもう読まないので手で消してよい) |
+
+止める(書き換えず一覧に出す。手で直す):
+
+- 子を持つ・条件の中の・`sp` / `pc` 以外か式の props の `Hide*`
+- Screen でない部品(`_components/` の部品・`_layout/` の部品・`src/features`・`src/components`)の中の `Hide*` と `fill`: 使うページか layout が決まらないので、使う側の `frame.ts` に書く(部品を使うページが 1 つなら `page:`、layout が包むなら `layout:`)
+- `<UserPage immersive>`: 意味が 1 つに決まらない(`page:` の `fill` と隠す部位を `frame.ts` に書き、`safeArea` などの見た目は部品へ)
+- `fill={式}`、管理の枠の下の `Hide*`
+- 消えた API の読み手: `useBottomNavItems().enabled`・`useHeaderData().enabled` / `navEnabled`・枠の設定の 4 つの import(出し入れは宣言に任せ、読み手を消す)
+- 読めない(旧い形の)`frame.ts`: そのファイルへ足す分は書かず、そのタグも残す
+
+差し替えた枠の部品(ヘッダー・フッター・ボトムナビなどを fork が自分の部品にした物)は、外側の要素に `data-slot="<部位>"`(`header` / `header-nav` / `footer` / `bottom-nav`、管理の枠は `admin-header` / `admin-sidebar` / `admin-footer`)を付ければ隠す宣言に従う(部位の名前: `src/app/_layout/frame/parts.mjs`)。
+
+### fork の手順
+
+1. 上流のこの版(枠の宣言の版)を `/flux` で取り込む(上流のファイルの `Hide*` と設定の 4 つは取り込みで消える)
+2. dry-run: `node scripts/codemods/frame-declarations.mjs` で変更の一覧と止めた物の一覧を見る
+3. 止めた物を手で直す(上の一覧。使う側の `frame.ts` に書き、タグ・読み手を消す)
+4. `--apply`: `frame.ts` を書き、タグ・属性・import を消し、書いた結果に生成器の検査(`scripts/extensions/frames.mjs`)を掛ける(問題があれば exit 1)
+5. `pnpm extensions:generate`(枠の表を作り直す)→ `pnpm typecheck` → `pnpm lint`(消したタグの跡の空行は整形で消える)
+6. CSS: 枠の部位の id(`#header-shell`・`[data-user-app-container]`・`#page-title` など)を狙う fork の規則は `[data-slot="<名前>"]` へ移す(写し先の表は notice。id は移し終えるまで上流に残る。道具は CSS を書き換えない)
+7. 差し替えた枠の部品に `data-slot` を付ける(上)。`pnpm ownership:check`(親のルートの隣に `frame.default.ts` を足す・親の既定を書き換えるのは default-add / default-edit。fork は `frame.ts` に書く)
+
+確かめ(使い捨ての写し、2026-11-04): boardgame-site `Hide*` 15 → 変更 12・止め 3(`_layout` の部品)+ 消えた API の読み手 3、oripa-do `Hide*` 40 → 変更 16・止め 24(`src/features`・`src/components`・`_components` の部品)+ `AdminPage fill` 8 → 変更 8 + `HEADER_NAV_ENABLED` の sp → `(user)/frame.ts` + 読み手 1、next-vnx `Hide*` 1 → 変更 1 + `HEADER_ENABLED = false` → `(user)/frame.ts`、88-base `UserPage immersive` 1 → 止め。`--apply` の後、fork のファイルで旧い部品を import するのは止めた物だけ、書いた `frame.ts` は生成器の検査で問題 0。
