@@ -174,6 +174,17 @@ pnpm room:dev
 
 ➡ [servers/room/README.md](../servers/room/README.md)
 
+### ESLint の必須規則 (eslint:required)
+
+```bash
+# 全 Tier の必須の ESLint 規則が、fork の設定を最後に読んだ最終の設定でも error のままか
+pnpm eslint:required
+```
+
+- 一覧 = `eslint-rules/required-rules.mjs`(upstream の物。規則名と、その規則が掛かる代表のファイル)。tier で強さが変わらない守り・境界の規則だけを載せる
+- `eslint.config.fork.mjs` は `eslint.config.mjs` の最後に読まれるので、ここで一覧の規則を off / warn にすると止まる。規則を足す・一覧の外を緩めるのは自由。行ごとの例外は理由付きの eslint-disable
+- `pnpm build` が呼ぶ(fork の Vercel のビルドと /flux の build 検査でも走る)。試験: `pnpm test:eslint-required`
+
 ### テスト (tsx で動かすもの)
 
 tsx で動かすテスト（`*.test.ts` / `*.test.mts`、TypeScript を import する `*.test.mjs`）の package.json スクリプトは、必ず `--import ./scripts/test/serverOnlyStub.mjs` を付ける。

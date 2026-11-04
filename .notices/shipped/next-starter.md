@@ -259,3 +259,4 @@
 - id:20261104-173649-feature-gate-relocate | severity:breaking | checkpoint:gate-s1 | moved:src/proxies/featureGateRules -> src/featureGate/rules; scripts/proxies/alwaysOnExceptions -> src/featureGate/alwaysOnExceptions; scripts/registry/schemaGate.ts -> src/featureGate/node/gatedSchema.ts; src/proxies/pathPattern.mjs -> src/lib/pathPattern/index.mjs; src/proxies/featureGate.test.mjs -> src/featureGate/checks/featureGate.test.mjs; scripts/proxies/alwaysOnEntries.mjs -> src/featureGate/checks/alwaysOnEntries.mjs | uses:scripts/codemods/feature-gate-relocate.mjs
 - id:20261104-085017-intake-line-webhook-handlers | severity:info | checkpoint:intake-line-webhook-handlers | resolves:20261101-113401-intake-line-webhook-handlers
 - id:20261105-065201-firebase-hardening | severity:action-required | checkpoint:firebase-hardening
+- id:20261104-091518-eslint-required-rules | severity:info | checkpoint:eslint-required-rules
