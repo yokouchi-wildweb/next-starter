@@ -50,8 +50,20 @@ export type AlwaysOnException = {
 };
 
 /**
+ * 依存の検査の例外(1 項目 1 ファイル: src/featureGate/dependencyExceptions/<名前>.ts の `export const exception`)。
+ * 閉じられる機能のフォルダを外から import してよいファイル(字面で判定できない物: 動的 import・wiring の遅延 import など)。
+ * reason は必須(空は失敗)。当たらない行は失敗(縮む表)。検査: checks/dependencies.test.mjs
+ */
+export type DependencyException = {
+  /** リポジトリ直下からの相対パス */
+  file: string;
+  /** 閉じられる機能を確かめずに読んでよい理由 */
+  reason: string;
+};
+
+/**
  * この fork が必ず使う機能(1 機能 1 ファイル: src/featureGate/required/<機能名>.ts の `export const required`)。
- * S1 は受け口(器)だけ。働き(依存の検査)は次の計画書
+ * 依存の検査は「この機能のフォルダを外から読むこと」を依存を書いたとみなして通す(features:set / list での働きは次の計画書)
  */
 export type RequiredFeature = {
   /** 必ず使う理由 */

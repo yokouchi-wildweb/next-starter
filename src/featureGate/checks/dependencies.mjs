@@ -1,0 +1,140 @@
+// src/featureGate/checks/dependencies.mjs
+// 依存の検査の判定(D20(b)・L1.12)。閉じられるフォルダ(規則の features)を、そのフォルダの外から値で import するファイルを集め、
+// 次の形のどれでもなければ違反として返す:
+//   (1) import する側のドメインの domainEntry.ts の requires に相手のドメインがある(字面で読む)
+//   (2) ファイルが規則の名前で gate.enabled / gate.assert / useGate().enabled を呼ぶ(`.enabled("R")`・`.assert("R")` の字面)
+//   (3) ファイルが src/app の下で、その規則の pathPatterns が覆う住所にある(page・loader・route・_screen・_components…)
+//   (4) 同じ規則のフォルダどうし
+//   (5) fork の required/<規則名>.ts(x) がある
+//   (6) 例外(上流 = 検査の中の表、fork = 受け口 dependencyExceptions/)に載る
+// 数えない: src/registry(生成の一覧)・src/featureGate・テスト(*.test.*)。import は型だけの物を除く(動的 import は数える)
+// 限界: 字面だけを見る。別のモジュールを経由した到達・(2) の呼び出しが import の使い所を本当に守っているかは見ない
+
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+
+import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
+import { patternCoversRoute } from "../../lib/pathPattern/index.mjs";
+import { valueImportSources } from "./importSources.mjs";
+
+const toPosix = (p) => p.split(sep).join("/");
+const SOURCE = /\.(ts|tsx|mts|mjs)$/;
+const TEST = /\.test\.[cm]?[jt]sx?$/;
+
+function walk(dir, out = []) {
+  if (!existsSync(dir)) return out;
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) {
+      if (name !== "node_modules") walk(path, out);
+    } else if (SOURCE.test(name) && !TEST.test(name)) out.push(path);
+  }
+  return out;
+}
+
+/** src/features の下のファイルが属するドメインのフォルダ(core は core/<d>、業務は <d>)。外なら null */
+export function domainFolderOf(rel) {
+  const m = /^src\/features\/(core\/[^/]+|[^/]+)\//.exec(rel);
+  if (!m || m[1] === "core") return null;
+  return m[1];
+}
+
+/** ドメインのフォルダの domainEntry.ts の requires(字面の文字列リテラル) */
+export function readRequires(root, folder) {
+  const file = join(root, "src/features", folder, "services/server/domainEntry.ts");
+  if (!existsSync(file)) return [];
+  const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const names = [];
+  for (const m of text.matchAll(/\brequires\s*:\s*\[([\s\S]*?)\]/g)) {
+    for (const s of m[1].matchAll(/["']([^"']+)["']/g)) names.push(s[1]);
+  }
+  return names;
+}
+
+/** ドメインのフォルダが名乗る名前(フォルダ名の末尾と domainEntry.ts のキー) */
+export function domainNamesOf(root, folder) {
+  const names = new Set([folder.split("/").pop()]);
+  const file = join(root, "src/features", folder, "services/server/domainEntry.ts");
+  if (existsSync(file)) {
+    const text = readFileSync(file, "utf8");
+    const body = /domainEntries\s*=\s*\{([\s\S]*)\}\s*satisfies/.exec(text)?.[1] ?? "";
+    for (const m of body.matchAll(/^\s{2}(\w+)\s*:\s*\{/gm)) names.add(m[1]);
+  }
+  return [...names];
+}
+
+/** src/app の下のファイルの住所のセグメント(ルートグループ・_ で始まるフォルダ・ファイル名を除く)。外なら null */
+export function routeSegmentsOf(rel) {
+  const m = /^src\/app\/(.*)$/.exec(rel);
+  if (!m) return null;
+  const parts = m[1].split("/");
+  parts.pop();
+  return parts.filter((seg) => !/^\(.*\)$/.test(seg) && !seg.startsWith("_") && !seg.startsWith("@"));
+}
+
+/** fork の required/ の機能名(ファイル名) */
+export function readRequiredNames(root) {
+  const dir = join(root, "src/featureGate/required");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((name) => name !== "README.md")
+    .map((name) => name.replace(/\.(ts|tsx)$/, ""));
+}
+
+const callsGate = (text, ruleName) =>
+  new RegExp(`\\.(enabled|assert)\\(\\s*["'\`]${ruleName}["'\`]\\s*\\)`).test(text);
+
+/**
+ * 違反を集める
+ * @param {{ root: string, rules: { name: string, features?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @returns {{ file: string, folder: string, rule: string }[]}
+ */
+export function findDependencyViolations({ root, rules, exceptionFiles = [], requiredNames = readRequiredNames(root) }) {
+  const folderRules = new Map();
+  for (const rule of rules) for (const folder of rule.features ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
+  const folders = [...folderRules.keys()];
+  const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/features/${f}` || resolved.startsWith(`src/features/${f}/`)) ?? null;
+  const requiresCache = new Map();
+  const namesCache = new Map();
+  const exceptions = new Set(exceptionFiles);
+  const violations = [];
+  const seen = new Set();
+
+  for (const path of walk(join(root, "src"))) {
+    const rel = toPosix(relative(root, path));
+    if (rel.startsWith("src/registry/") || rel.startsWith("src/featureGate/")) continue;
+    if (exceptions.has(rel)) continue;
+    const text = readFileSync(path, "utf8");
+    const ownFolder = domainFolderOf(rel);
+    const ownRules = ownFolder ? (folderRules.get(folders.find((f) => ownFolder === f) ?? "") ?? []) : [];
+    const segments = routeSegmentsOf(rel);
+    for (const source of valueImportSources(text)) {
+      const resolved = resolveImport(source, path, root);
+      if (!resolved) continue;
+      const folder = folderOfTarget(resolved);
+      if (!folder) continue;
+      if (ownFolder === folder) continue;
+      for (const rule of folderRules.get(folder)) {
+        const key = `${rel}|${folder}|${rule.name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        // (4) 同じ規則のフォルダどうし
+        if (ownRules.some((r) => r.name === rule.name)) continue;
+        // (1) requires
+        if (ownFolder) {
+          if (!requiresCache.has(ownFolder)) requiresCache.set(ownFolder, readRequires(root, ownFolder));
+          if (!namesCache.has(folder)) namesCache.set(folder, domainNamesOf(root, folder));
+          if (namesCache.get(folder).some((name) => requiresCache.get(ownFolder).includes(name))) continue;
+        }
+        // (2) 規則の名前で確かめる
+        if (callsGate(text, rule.name)) continue;
+        // (3) その規則で閉じる住所の下
+        if (segments && rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, segments))) continue;
+        // (5) fork の required/
+        if (requiredNames.includes(rule.name)) continue;
+        violations.push({ file: rel, folder, rule: rule.name });
+      }
+    }
+  }
+  return violations;
+}

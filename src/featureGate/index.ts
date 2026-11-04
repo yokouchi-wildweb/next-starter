@@ -14,6 +14,7 @@ export type {
   ClientGateArea,
   ClientGatePathResult,
   ClientGateState,
+  DependencyException,
   FeatureGateRule,
   FeatureName,
   GatedFeatureRule,

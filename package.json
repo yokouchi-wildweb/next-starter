@@ -74,7 +74,7 @@
     "test:data-migration-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/storageObject/dataMigrationImport.db.test.ts",
     "test:worktree": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/worktree/worktree.test.ts",
     "test:cron-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/cron/cronWiring.test.mjs",
-    "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/featureGate.test.mjs",
+    "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/featureGate.test.mjs src/featureGate/checks/dependencies.test.mjs",
     "test:feature-gate:reach": "node --test src/featureGate/checks/reachability.test.mjs",
     "test:feature-gate:tools": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/gateTools.test.ts",
     "test:feature-gate:client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/clientTools.test.tsx src/featureGate/checks/readers.test.tsx",

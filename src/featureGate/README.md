@@ -10,8 +10,9 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 |---|---|---|
 | `rules/<名前>.ts` | 上流・fork(受け口) | 機能を閉じる規則(1 機能 1 ファイル、`export const rule`)。名前 = ファイル名 = `FeatureName` |
 | `alwaysOnExceptions/<名前>.ts` | fork(受け口、上流の項目は 0) | 常時実行の入口の例外(`export const exception` か `export const registry`) |
-| `required/<機能名>.ts` | fork(受け口、器) | この fork が必ず使う機能(`export const required: RequiredFeature`)。働き(依存の検査)は次の区切り |
-| `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`alwaysOnExceptions`・`alwaysOnRegistries`・`required`) |
+| `dependencyExceptions/<名前>.ts` | fork(受け口、上流の項目は 0) | 依存の検査の例外(`export const exception: DependencyException`) |
+| `required/<機能名>.ts` | fork(受け口) | この fork が必ず使う機能(`export const required: RequiredFeature`)。依存の検査はこの機能のフォルダを外から読むことを通す。features:set / list での働きは次の区切り |
+| `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`alwaysOnExceptions`・`alwaysOnRegistries`・`dependencyExceptions`・`required`) |
 | `extensions/` | 生成物 | `pnpm extensions:generate` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
 | `client.ts` | 上流 | 入口(client): `useGate`・`GatedLink`・配線用の `GateProvider` と型 |
@@ -165,12 +166,35 @@ export const rule: FeatureGateRule = {
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
 
+### 依存の検査
+
+閉じられるフォルダ(規則の `features`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test:feature-gate` が落ちる(判定: `checks/dependencies.mjs`):
+
+1. 自分のドメインの `services/server/domainEntry.ts` の `requires` に相手のドメインがある(`requires: ["wallet"]`、文字列リテラルの配列で書く。字面で読む)
+2. ファイルが規則の名前で確かめる: `gate.enabled("wallet")`・`gate.assert("wallet")`・`useGate().enabled("wallet")`
+3. ファイルが src/app の下で、その規則の `pathPatterns` が覆う住所にある(page・loader・route・`_screen`・`_components` など。閉じれば一緒に閉じる)
+4. 同じ規則のフォルダどうし
+5. fork の `required/<規則名>.ts` がある(この fork はその機能を必ず使う = 依存を書いたとみなす)
+6. 例外: fork は `dependencyExceptions/<名前>.ts` に理由つきで(字面で判定できない物: 動的 import の結線・wiring の遅延 import など)。上流の例外はテストの中の表
+
+- 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・テスト・型だけの import。動的 import と副作用 import は数える
+- 今の上流の違反はテストの中の縮む表 `UPSTREAM_DEPENDENCY_DEBT`(直った行が表に残ると落ちる)
+- 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
+
+### 門番の範囲外
+
+門番が閉じるのは、規則の住所(ページ・API)・表・常時実行の入口・リンクとメニュー・依存の検査が見る import まで。次は門番では止まらないので、その機能の側で閉じる:
+
+- 他のドメインの画面の中の細かい出し分け(欄・ボタン・文言の一部): その画面が `useGate().enabled` / `gate.enabled` で確かめる
+- API を通らない書き込み・読み出し: client から直に Firestore に書く処理、外部サービスの webhook を自前で受ける処理など(住所で閉じないので、規則の住所の外で動く)
+- 規則の `enabled` の式が本当にその機能の入切かは見ない
+
 ## 守り
 
 - lint `import-boundaries/feature-gate-entries`: 外からは入口 3 つだけ・lib は読まない・`node.ts` は scripts とテストだけ・配線用の `clientGateState`・`GateProvider` は配線の 4 ファイルだけ(`eslint-rules/import-boundaries.mjs`)
 - 到達の検査 `pnpm test:feature-gate:reach`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)
 - lint `page-authz/session-api-callsite` は `src/featureGate/**` にも掛かる(規則と判定はセッションを解かない)
-- 所有の検査(`pnpm ownership:check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
+- 所有の検査(`pnpm ownership:check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`dependencyExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
 
 ## 旧い置き場からの移行(fork)
 

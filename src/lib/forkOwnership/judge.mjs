@@ -21,7 +21,7 @@ export const REASONS = {
   renamed: "violation", // 基準にあるファイルの rename・移動
   "ancestor-lib-add": "violation", // 祖先 Tier の lib の中へのファイル追加
   "core-add": "violation", // src/features/core/ の中への受け口の項目でない追加(fork のドメインは src/features/<x>)
-  "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・required/)
+  "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
   "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
   "outside-intake": "violation", // 受け口の外の書き換え

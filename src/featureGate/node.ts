@@ -3,8 +3,10 @@
 // - rules: 規則の生成一覧(名前・tables 付き)
 // - gatedSchema: db:push / db:push:check に渡す入力(閉じた機能の表を両側から外す)
 // - closedTables: 今閉じている機能の表名
+// - dependencyExceptions: 依存の検査の例外(fork の受け口)
 
 export { rules } from "./extensions/rules";
 export { alwaysOnExceptions } from "./extensions/alwaysOnExceptions";
 export { alwaysOnRegistries } from "./extensions/alwaysOnRegistries";
+export { dependencyExceptions } from "./extensions/dependencyExceptions";
 export { applySchemaGate as gatedSchema, closedTables, type SchemaGateResult } from "./node/gatedSchema";

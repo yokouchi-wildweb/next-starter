@@ -77,6 +77,12 @@ export type DomainRegistryEntry = {
    * null は表を持たない Firestore 版のドメインだけ。業務ドメインは dc:generate が書き、core は手書き
    */
   idColumn: string | null;
+  /**
+   * このドメインが前提にする(閉じられる)ドメインの名前。省略可。宣言すると、門番の依存の検査が
+   * このドメインのフォルダから相手の閉じられるフォルダを読むことを通す(src/featureGate/README.md「依存の検査」)。
+   * 検査はこの欄を字面で読む(文字列リテラルの配列で書く)
+   */
+  requires?: readonly string[];
 };
 
 /** domainEntry.ts の export（`export const domainEntries = { ... } satisfies DomainEntries`） */

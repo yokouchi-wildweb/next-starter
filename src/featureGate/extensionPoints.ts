@@ -25,7 +25,14 @@ export const extensionPoints = {
     type: { from: "@/featureGate", name: "AlwaysOnException" },
     side: "shared",
   },
-  // この fork が必ず使う機能: required/<機能名>.ts の export const required(器。働きは次の計画書)
+  // 依存の検査の例外: dependencyExceptions/<名前>.ts の export const exception(閉じられる機能のフォルダを外から読んでよいファイル)
+  dependencyExceptions: {
+    dir: "dependencyExceptions",
+    export: "exception",
+    type: { from: "@/featureGate", name: "DependencyException" },
+    side: "shared",
+  },
+  // この fork が必ず使う機能: required/<機能名>.ts の export const required(依存の検査が依存を書いたとみなす)
   required: {
     dir: "required",
     export: "required",
