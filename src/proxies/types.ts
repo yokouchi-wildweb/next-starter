@@ -29,3 +29,9 @@ export type ProxyResponseDecorator = (
   response: NextResponse,
   ctx: ProxyContext,
 ) => void | Promise<void>;
+
+/**
+ * @deprecated 門番の型は @/featureGate から読む(src/featureGate/types.ts)。旧い場所の再 export は次の区切りの notice で消す。
+ * 移し方: node scripts/codemods/feature-gate-relocate.mjs
+ */
+export type { FeatureGateRule, GatedFeatureRule } from "@/featureGate";

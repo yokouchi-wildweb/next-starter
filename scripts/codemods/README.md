@@ -5,10 +5,28 @@
 | 道具 | すること |
 |---|---|
 | `fork-name-markers.mjs` | 受け口のファイル名から fork の名前の印を外す(共有の棚の印の移行。下) |
+| `feature-gate-relocate.mjs` | 門番の規則・常時実行の例外を src/featureGate/ へ移し、旧い置き場の import を直す(下) |
 | `crud-entry-split.mjs` | ボタンの import を `@/lib/crud/components` へ振り分ける |
 | `domain-display-buttons.mjs` | ボタンの `domain="<名前>"` を表示用の写し `domain={<名前>Display}` へ置き換える |
 | `domain-json-client-display.mjs` | client のコードの domain.json の import を写し `entities/display.ts` の `domainDisplay` へ置き換える |
 | `wiring-domains-split.mjs` | `@/wiring/domains` の import を `@/wiring/domainRegistry` と `@/wiring/adminScreenParts` へ振り分ける |
+
+## 門番の置き場を移す(feature-gate-relocate.mjs)
+
+門番(機能を閉じる仕組み)は src 直下の基盤 `src/featureGate/` になった。上流の規則は取り込みで移るので、fork が足した物をこの道具で移す。
+
+```sh
+node scripts/codemods/feature-gate-relocate.mjs              # dry-run(既定): 移動・書き換え・止めた物の一覧
+node scripts/codemods/feature-gate-relocate.mjs --apply      # git mv・書き換え → pnpm extensions:generate
+```
+
+- 規則 `src/proxies/featureGateRules/<名前>.ts`(フォルダ形も)→ `src/featureGate/rules/`、型の import `"../types"` → `"@/featureGate"`(取り込みで先に新しい置き場へ来た規則も import だけ直す)
+- 常時実行の例外 `scripts/proxies/alwaysOnExceptions/<名前>.mjs` → `src/featureGate/alwaysOnExceptions/<名前>.ts`(型 `AlwaysOnException` を付ける。名前は英字始まりの英数字だけ)
+- fork のコードの import: `proxies/pathPattern.mjs` → `lib/pathPattern/index.mjs`、生成一覧 `proxies/extensions/featureGateRules` の `{ featureGateRules }` → `featureGate/node` の `{ rules as featureGateRules }`
+- 止める(書き換えない): 印付きの名前(先に fork-name-markers)・上流と同名の規則(案 `<名前>Fork`)・ハイフンの例外名(案 camelCase)・例外に exception も registry も無い・生成一覧を名前空間などで読む形
+- アプリ側(proxy・loader など)で規則の一覧を読んでいた所は書き換えた上で「手で直す」と出す: `@/featureGate/node` は scripts とテストだけ(lint feature-gate-entries)なので `gate.path` / `gate.enabled` に直す
+
+手順: 上流を取り込む → dry-run → 止めた物を片付ける → `--apply` → `pnpm typecheck`・`pnpm ownership:check`・`pnpm test:feature-gate` を通してコミット。旧い型 `@/proxies/types` の `FeatureGateRule` は次の区切りまで残る(非推奨)。
 
 ## fork の名前の印を外す(fork-name-markers.mjs)
 
