@@ -68,6 +68,7 @@ export function Main({
     return (
       <main
         data-component="Main"
+        data-slot="main"
         id={id}
         className={cn(
           "max-w-screen overflow-hidden",
@@ -94,6 +95,7 @@ export function Main({
       <FullScreen layer={fullscreenLayer}>
         <main
           data-component="Main"
+          data-slot="main"
           id={id}
           className={cn(
             mainLayoutVariants({
@@ -117,9 +119,10 @@ export function Main({
 
   if (effectiveContainerType === "surfaceDisplay") {
     return (
-      <div data-component="Main:container" id={`${id}-container`} className="flex flex-1 flex-col">
+      <div data-component="Main:container" data-slot="main-container" id={`${id}-container`} className="flex flex-1 flex-col">
         <div
           data-component="Main:layout"
+          data-slot="main-layout"
           id={`${id}-layout`}
           className={cn(
             verticalAlignClass,
@@ -139,6 +142,7 @@ export function Main({
         >
           <main
             data-component="Main"
+            data-slot="main"
             id={id}
             className={cn("mx-auto w-full", innerClassName)}
             style={{ maxWidth: layoutMaxWidths.narrowStack }}
@@ -152,9 +156,10 @@ export function Main({
   }
 
   return (
-    <div data-component="Main:container" id={`${id}-container`} className="flex flex-1 flex-col">
+    <div data-component="Main:container" data-slot="main-container" id={`${id}-container`} className="flex flex-1 flex-col">
       <div
         data-component="Main:layout"
+        data-slot="main-layout"
         id={`${id}-layout`}
         className={cn(verticalAlignClass, "mx-auto w-full max-w-screen overflow-clip")}
         style={
@@ -165,6 +170,7 @@ export function Main({
       >
         <main
           data-component="Main"
+          data-slot="main"
           id={id}
           className={cn(
             mainLayoutVariants({

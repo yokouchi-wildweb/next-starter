@@ -89,7 +89,15 @@ const rootHideAttr = () => (rootHide ? ` data-frame-hide="${rootHide}"` : "") + 
 const withFrameRoot = (html: string) =>
   html.replace('data-user-app-container=""', `data-user-app-container="" data-frame-root=""${rootHideAttr()}`);
 /** 枠の期待値(背景を除く): 1 行スイッチ化の前の枠 + 区切りごとの差分。ボトムナビの値は config から */
-const frameDims = () => withFrameRoot(withBottomNavVar(BEFORE_SWITCH));
+/**
+ * data-slot と safe-area の区切り(指令 10)で既定の DOM に入った差分: 外枠に data-slot="app-container"(属性は id・data-user-app-container の後)、
+ * #stretch-wrapper に左右の切り欠きの padding(切り欠きの無い画面では 0)
+ */
+const withSlotsAndSafeArea = (html: string) =>
+  html
+    .replace('data-user-app-container="" data-frame-root=""', 'data-user-app-container="" data-slot="app-container" data-frame-root=""')
+    .replace('class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]"', 'class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"');
+const frameDims = () => withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -180,8 +188,8 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
   assert.equal(
     render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
-      'id="user-app-container" data-user-app-container="" data-frame-root=""' + rootHideAttr() + ' style="--app-header-height:0px">' +
-      '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div></div>',
+      'id="user-app-container" data-user-app-container="" data-slot="app-container" data-frame-root=""' + rootHideAttr() + ' style="--app-header-height:0px">' +
+      '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div></div>',
   );
 });
 
@@ -196,7 +204,9 @@ test("banner の省略と null は同じ(既定なし): 帯・スペーサー・
   assert.equal(render(<UserLayout>CHILD</UserLayout>).includes("app-banner"), false);
 });
 
-const BANNER_TAG = '<div id="app-banner" class="fixed inset-x-0 top-0 header-layer"><p id="promo">PROMO</p></div>';
+// banner の殻: data-slot="app-banner" と、上と左右の切り欠きの padding(切り欠きの無い画面では 0)
+const BANNER_TAG =
+  '<div id="app-banner" data-slot="app-banner" class="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"><p id="promo">PROMO</p></div>';
 const BANNER_SPACER_TAG = '<div aria-hidden="true" class="shrink-0 h-[var(--app-banner-height,0px)]"></div>';
 
 test("banner に要素を渡すとヘッダーより前の固定の帯に描き、本文の前にその高さのスペーサーを置く", () => {

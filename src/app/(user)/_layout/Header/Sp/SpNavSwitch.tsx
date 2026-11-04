@@ -10,7 +10,6 @@ export type NavigationToggleButtonProps = {
 export const SpNavSwitch = ({ isMenuOpen, onToggle }: NavigationToggleButtonProps) => (
   <Button
     id="header-sp-menu-toggle"
-    data-frame-part="header-nav"
     type="button"
     variant="outline"
     size="icon"

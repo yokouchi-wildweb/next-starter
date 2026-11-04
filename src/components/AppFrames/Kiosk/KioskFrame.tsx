@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 
 export type KioskFrameProps = ComponentPropsWithoutRef<"div"> & {
   /**
-   * env(safe-area-inset-*) ぶんのパディングを付与する
+   * 端末の切り欠き(--app-safe-area-*、src/styles/_base/config.css)ぶんのパディングを付与する
    * （ノッチ・ホームインジケータ・丸角ディスプレイの回避）。既定 false。
    */
   safeArea?: boolean;
@@ -68,7 +68,7 @@ export function KioskFrame({
       className={cn(
         "flex h-[var(--viewport-height,100dvh)] w-full flex-col overflow-clip overscroll-none bg-background text-foreground",
         safeArea &&
-          "pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]",
+          "pt-[var(--app-safe-area-top)] pr-[var(--app-safe-area-right)] pb-[var(--app-safe-area-bottom)] pl-[var(--app-safe-area-left)]",
         className,
       )}
     >

@@ -287,7 +287,7 @@ upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/
 
 `_base/config.css` の管理画面余白トークン等は直下の fork のどのファイルからでも `:root { --admin-page-padding-inline: 2rem; }` で上書きできる。`config.css` 側が `@media (min-width: 40rem)` で値を切り替えているトークンは、同じメディアクエリも書くこと(無レイヤーの `:root` は全幅で勝つため)。
 
-枠の寸法変数(`--app-header-height` / `--app-banner-height` / `--app-bottom-nav-height` / `--app-safe-area-*`)の既定値も `config.css` の `:root` にある。`--app-*-height` は UserLayout・AdminLayout が外枠の inline style で実値(実測か config の値)を書くので、fork のファイルから上書きしても効かない(値を変えるのは config の TS か部品の高さそのもの)。`--app-safe-area-*`(= `env(safe-area-inset-*, 0px)`)は fork のファイルから上書きできる。`config.css` に置いたのは、枠の外(Admin など)でも 0 の既定で参照できるようにするため。layout ごとに書くと枠の外では未定義になる。一覧: `src/app/(user)/_layout/README.md` の「寸法の CSS 変数」
+枠の寸法変数(`--app-header-height` / `--app-banner-height` / `--app-bottom-nav-height` / `--app-safe-area-*`)の既定値も `config.css` の `:root` にある。`--app-*-height` は UserLayout・AdminLayout が外枠の inline style で実値(実測か config の値)を書くので、fork のファイルから上書きしても効かない(値を変えるのは config の TS か部品の高さそのもの)。`--app-safe-area-*`(端末の切り欠き = CSS の env() の safe-area-inset-*、無ければ 0px)は fork のファイルから上書きできる。viewport-fit=cover が既定(`src/config/seo.config.ts`)で、枠の部品はこの変数で端を避ける。env() を直接書くのは `config.css` の定義の 4 行だけ(部品・ページはこの変数を使う)。`config.css` に置いたのは、枠の外(Admin など)でも 0 の既定で参照できるようにするため。layout ごとに書くと枠の外では未定義になる。一覧: `src/app/(user)/_layout/README.md` の「寸法の CSS 変数」
 
 ### Tier2 → Tier3 の重ね合わせ
 

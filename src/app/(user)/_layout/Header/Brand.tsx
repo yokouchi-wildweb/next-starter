@@ -13,12 +13,14 @@ export const Brand = () => {
   return (
     <Link
       id="header-brand"
+      data-slot="header-brand"
       href={HEADER_LOGO_LINK}
       className="flex items-center gap-2.5 text-base font-semibold sm:gap-3 sm:text-lg"
     >
       {hasLogo ? (
         <Image
           id="header-brand-logo"
+          data-slot="header-brand-logo"
           src={logoPath()}
           alt={businessConfig.serviceNameShort}
           width={160}
@@ -27,7 +29,7 @@ export const Brand = () => {
           priority
         />
       ) : (
-        <span id="header-brand-text" className="text-base font-semibold sm:text-lg">
+        <span id="header-brand-text" data-slot="header-brand-text" className="text-base font-semibold sm:text-lg">
           {businessConfig.serviceNameShort}
         </span>
       )}

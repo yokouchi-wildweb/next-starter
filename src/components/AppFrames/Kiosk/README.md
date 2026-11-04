@@ -32,7 +32,7 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 
 | prop | 既定 | 説明 |
 |------|------|------|
-| `safeArea` | `false` | `env(safe-area-inset-*)` ぶんのパディングを付与 |
+| `safeArea` | `false` | 端末の切り欠き `var(--app-safe-area-*)` ぶんのパディングを付与 |
 | `wakeLock` | `false` | 表示中 Screen Wake Lock で画面スリープを抑止（`useWakeLock`、非対応は no-op） |
 | `className` 他 | - | `div` の属性をそのまま受ける。`bg-background text-foreground` が既定 |
 

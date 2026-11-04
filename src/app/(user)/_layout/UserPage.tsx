@@ -6,8 +6,9 @@ import { cn } from "@/lib/cn";
 
 export type UserPageProps = MainProps & {
   /**
-   * env(safe-area-inset-*) ぶんのパディングを付与する（横向きスマホのノッチ、ホームインジケータ等の回避）。
-   * 本文が画面の高さを埋めるページ(ルートの枠の宣言 frame.default.ts / frame.ts で宣言)で使う想定
+   * 端末の切り欠き(--app-safe-area-*)ぶんのパディングを付与する（横向きスマホのノッチ、ホームインジケータ等の回避）。
+   * 枠の部位(ヘッダー・フッター・ボトムナビ)を枠の宣言で隠したページ用。枠の部位が出ている辺は枠が避けるので、
+   * 部位を出したまま付けると二重に避ける(例: ボトムナビのスペーサーと本文の下の余白)
    */
   safeArea?: boolean;
 };
@@ -24,7 +25,7 @@ export function UserPage({ children, safeArea = false, className, padding, conta
       className={
         safeArea
           ? cn(
-              "pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]",
+              "pt-[var(--app-safe-area-top)] pr-[var(--app-safe-area-right)] pb-[var(--app-safe-area-bottom)] pl-[var(--app-safe-area-left)]",
               className,
             )
           : className

@@ -43,9 +43,9 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}
-      data-frame-part="header"
+      data-slot="header"
       ref={headerRef}
-      className="fixed shadow inset-x-0 top-[var(--app-banner-height,0px)] header-layer border-b border-border bg-header text-header-foreground"
+      className="fixed shadow inset-x-0 top-[var(--app-banner-height,0px)] header-layer border-b border-border bg-header text-header-foreground pt-[max(0px,calc(var(--app-safe-area-top)_-_var(--app-banner-height,0px)))] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"
     >
       <HeaderShell
         left={

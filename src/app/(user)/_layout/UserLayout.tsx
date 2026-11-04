@@ -12,7 +12,8 @@ import { UserBottomNav } from "./BottomNav";
 import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
 import { UserFooter } from "./Footer";
 import { UserNavigation } from "./Header";
-import { useUserFrame } from "./hooks/useUserFrame";
+import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
+import { frameTable } from "./extensions/frameTable";
 import { BOTTOM_NAV_HEIGHT } from "@/config/ui/user-bottom-menu.config";
 import {
   BACKGROUND_IMAGE_URL,
@@ -60,7 +61,7 @@ export function UserLayout({
   background,
   notificationModal,
 }: UserLayoutProps) {
-  const frame = useUserFrame();
+  const frame = useFrameAttributes(frameTable);
   const headerHeight = useHeaderHeight();
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
@@ -86,12 +87,13 @@ export function UserLayout({
       ) : (
         background
       )}
-      {/* data-frame-root + 今のルートの宣言(各ルートの枠の宣言 → 表 → useUserFrame)の属性:
+      {/* data-frame-root + 今のルートの宣言(各ルートの枠の宣言 → 表 → useFrameAttributes)の属性:
           data-frame-hide の部位を隠し、data-frame-fill の間は確定高さ + overflow-clip に切り替わる
           (既定は min-h で伸びる通常ページ)。規則は styles/_base/frame.css */}
       <Flex
         id="user-app-container"
         data-user-app-container=""
+        data-slot="app-container"
         data-frame-root=""
         {...frame}
         direction="column"
@@ -102,7 +104,10 @@ export function UserLayout({
         {header === undefined ? <UserNavigation /> : header}
         {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}
         {hasBanner && <div aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
-        <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+        <div
+          id="stretch-wrapper"
+          className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"
+        >
           {children}
         </div>
         {footer === undefined ? <UserFooter /> : footer}

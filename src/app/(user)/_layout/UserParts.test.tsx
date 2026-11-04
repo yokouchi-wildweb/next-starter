@@ -1,4 +1,4 @@
-// User 枠の部品(Header・BottomNav・UserPage・Layout/Main)の slot / props と、守る印・属性(data-frame-part・寸法変数)の検査。
+// User 枠の部品(Header・BottomNav・UserPage・Layout/Main)の slot / props と、守る印・属性(data-slot・寸法変数)の検査。
 // 全 Tier で見るのは印・属性を含むかの判定。fork の config の値や無害な追加で落とさない。固定の HTML は upstream(Tier1)でだけ見る。
 // 実行: pnpm test:user-layout(UserLayout.test.tsx と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
@@ -83,13 +83,13 @@ const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstre
 
 /**
  * 部品 slot 化の前(be9747fd)の部品を同じモックで描いた HTML。既定の DOM・id・class・順序の基準(Tier1 のみ)
- * header = <UserNavigation /> / userPage = <UserPage>CHILD</UserPage>(= <Main>CHILD</Main>)
+ * header = <UserNavigation /> / userPage = <UserPage>CHILD</UserPage>(= <Main>CHILD</Main>)。Main には data-slot と safe-area の区切り(指令 10)で data-slot を足した
  */
 const BEFORE = {
   header: "<header id=\"header\" class=\"fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground \"><div id=\"header-shell\" class=\"mx-auto flex w-full max-w-6xl items-stretch justify-between px-4 py-2 sm:py-4\"><div id=\"header-left\" class=\"flex items-center\"><x-brand></x-brand></div><div id=\"header-center\" class=\"flex items-stretch\"><x-pcnav></x-pcnav></div><div id=\"header-right\" class=\"flex items-center gap-2\"><button data-slot=\"button\" class=\"cursor-pointer items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive disabled:pointer-events-auto disabled:cursor-not-allowed bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-9 rounded-md gap-1.5 px-3 min-w-16 hidden sm:inline-flex\">お問い合わせ</button><x-spswitch></x-spswitch></div></div><x-spnav><button data-slot=\"button\" class=\"inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive disabled:pointer-events-auto disabled:cursor-not-allowed bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-10 px-4 py-2 min-w-20 w-full\">お問い合わせ</button></x-spnav></header>",
-  userPage: "<div data-component=\"Main:container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" id=\"main-layout\" class=\"my-auto mx-auto w-full max-w-screen overflow-clip\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" id=\"main\" class=\"mx-auto w-full p-3 sm:p-4\">CHILD</main></div></div>",
-  mainSurface: "<div data-component=\"Main:container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" id=\"main-layout\" class=\"my-auto max-w-screen overflow-clip bg-surface mx-auto w-full p-3 sm:p-4\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" id=\"main\" class=\"mx-auto w-full\" style=\"max-width:var(--layout-width-narrow-stack)\">CHILD</main></div></div>",
-  mainPlain: "<main data-component=\"Main\" id=\"main\" class=\"max-w-screen overflow-hidden mx-auto w-full p-3 sm:p-4\">CHILD</main>",
+  userPage: "<div data-component=\"Main:container\" data-slot=\"main-container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" data-slot=\"main-layout\" id=\"main-layout\" class=\"my-auto mx-auto w-full max-w-screen overflow-clip\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" data-slot=\"main\" id=\"main\" class=\"mx-auto w-full p-3 sm:p-4\">CHILD</main></div></div>",
+  mainSurface: "<div data-component=\"Main:container\" data-slot=\"main-container\" id=\"main-container\" class=\"flex flex-1 flex-col\"><div data-component=\"Main:layout\" data-slot=\"main-layout\" id=\"main-layout\" class=\"my-auto max-w-screen overflow-clip bg-surface mx-auto w-full p-3 sm:p-4\" style=\"max-width:var(--layout-width-content-shell)\"><main data-component=\"Main\" data-slot=\"main\" id=\"main\" class=\"mx-auto w-full\" style=\"max-width:var(--layout-width-narrow-stack)\">CHILD</main></div></div>",
+  mainPlain: "<main data-component=\"Main\" data-slot=\"main\" id=\"main\" class=\"max-w-screen overflow-hidden mx-auto w-full p-3 sm:p-4\">CHILD</main>",
 } as const;
 
 const CTA = "お問い合わせ";
@@ -117,17 +117,22 @@ const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-ban
  * 枠の印の区切り(notice frame-marks)で既定の部品に入った差分は、外側の要素の data-frame-part だけ
  * (隠す CSS の狙う先。styles/_base/frame.css)。ナビの部品(Pc / Sp)はここではモック
  */
-const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ')
+const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-slot="header" ')
   // 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims): context の表示クラス(既定 "")を外したので class の末尾の空白が無くなった
-  .replace(' text-header-foreground ">', ' text-header-foreground">');
+  .replace(' text-header-foreground ">', ' text-header-foreground pt-[max(0px,calc(var(--app-safe-area-top)_-_var(--app-banner-height,0px)))] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">')
+  // data-slot と safe-area の区切り(指令 10): 部位の印は data-slot(data-frame-part をやめた)、ヘッダーは上と左右の切り欠きを避ける(上の class。切り欠きの無い画面では 0)
+  .replace('<div id="header-shell" ', '<div id="header-shell" data-slot="header-shell" ')
+  .replace('<div id="header-left" ', '<div id="header-left" data-slot="header-left" ')
+  .replace('<div id="header-center" ', '<div id="header-center" data-slot="header-center" ')
+  .replace('<div id="header-right" ', '<div id="header-right" data-slot="header-right" ');
 
-test("Header は data-frame-part の印と banner 分の top を持つ", () => {
+test("Header は data-slot の印と banner 分の top を持つ", () => {
   const header = tagOf(render(<UserNavigation />), "header");
-  assert.ok(header.includes('data-frame-part="header"'));
+  assert.ok(header.includes('data-slot="header"'));
   assert.ok(hasClass(header, "top-[var(--app-banner-height,0px)]"));
 });
 
-test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top と data-frame-part だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
+test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top・data-slot・切り欠きの padding だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(BEFORE_HEADER_DIMS, BEFORE.header);
   assert.notEqual(BEFORE_HEADER_MARKS, BEFORE_HEADER_DIMS);
   assert.equal(render(<UserNavigation />), BEFORE_HEADER_MARKS);
@@ -165,11 +170,12 @@ test("actions / menuActions に null を渡すとその CTA を描かない", ()
 
 /** リンク項目 2 つの BottomNav の契約: 印・項目の id / href / 並び、カレント(/items)だけが config の色 */
 const assertLinkItems = (html: string) => {
-  assert.ok(tagOf(html, "bottom-nav").includes('data-frame-part="bottom-nav"'));
+  assert.ok(tagOf(html, "bottom-nav").includes('data-slot="bottom-nav"'));
   assertInOrder(html, ['id="bottom-nav"', 'id="bottom-nav-item-game"', "ゲーム", 'id="bottom-nav-item-items"', "<i>1</i>", "商品"]);
   const active = `text-${ACTIVE_COLOR_TYPE}`;
   const game = tagOf(html, "bottom-nav-item-game");
   assert.ok(game.includes('href="/game"'));
+  assert.ok(game.includes('data-slot="bottom-nav-item"'));
   assert.ok(hasClass(game, "text-muted-foreground"));
   assert.equal(hasClass(game, active), false);
   const items = tagOf(html, "bottom-nav-item-items");
@@ -209,11 +215,11 @@ test("isBottomNavMenuItem は type で判別する(省略 = リンク)", () => {
   assert.equal(isBottomNavMenuItem({ type: "menu", key: "a", label: "A", icon: Icon, menu: [] }), true);
 });
 
-test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、safeArea は env() の padding を足すだけ", () => {
+test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、safeArea は切り欠きの変数の padding を足すだけ", () => {
   assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
   assert.equal(render(<UserPage verticalAlign="center">CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
   const safe = render(<UserPage containerType="plain" safeArea className="x">CHILD</UserPage>);
-  assert.match(safe, /class="[^"]*pt-\[env\(safe-area-inset-top\)\][^"]*pl-\[env\(safe-area-inset-left\)\] x"/);
+  assert.match(safe, /class="[^"]*pt-\[var\(--app-safe-area-top\)\][^"]*pl-\[var\(--app-safe-area-left\)\] x"/);
   assert.equal(render(<UserPage>CHILD</UserPage>).includes("safe-area"), false);
 });
 
@@ -244,7 +250,7 @@ test("UserPage は containerType の明示が既定より勝つ", () => {
 
 test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は styles/_base/frame.css が変数を 0 にする)", () => {
   const spacer = tagOf(render(<BottomNavSpacer />), "bottom-nav-spacer");
-  assert.ok(spacer.includes('data-frame-part="bottom-nav"'));
+  assert.equal(spacer.includes("data-slot"), false, "スペーサーは名前を持たない(隠す CSS は id で狙う)");
   assert.ok(hasClass(spacer, "h-[var(--app-bottom-nav-height,0px)]"));
   assert.ok(spacer.includes('aria-hidden="true"'));
 });

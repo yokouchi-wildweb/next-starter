@@ -68,7 +68,7 @@ export const frameTable = [
 - 各行は解決済みの最終の値(親の鎖を重ねた物)。照合 `matchFrame(segments, frameTable)` は当たる 1 行を選ぶだけで重ねない。当たらなければ何も隠さない
 - 照合の順: 長い方 → 位置ごとに静的 > 動的 > catch-all > 任意の catch-all → page > layout。page は同じ長さ(末尾の `[[...x]]` は無くてよい)、layout は先頭の一致。catch-all は 1 つの segment(`"a/b"`)
 - 行 = 宣言の範囲ごと(`layout:` は layout の行、`page:` は page の行)+ 照合がずれるページの行。宣言のある動的な段(`x/[id]`)は静的な兄弟(`x/new`)にも当たるので、生成器は全部のページを照合で試し、ずれるページに解決済みの値の行を足す(祖先の宣言が無ければ空の行)
-- 隠す印 = `<部位>-<sp|pc>`(部位の名前 = data-slot の名前、利用者の枠は data-frame-part の語と同じ)
+- 隠す印 = `<部位>-<sp|pc>`(部位の名前 = data-slot の名前)
 - 全部の部位を両方の端末で隠す宣言は warn でルートグループを案内する(書くことは止めない)
 
 ## 部位の一覧
@@ -80,4 +80,5 @@ export const frameTable = [
 - Main: `main`・`main-layout`・`main-container`
 - 見出し(一覧に載せるだけ): `user-page-title`・`page-title`・`admin-page-title`・`sec-title`・`admin-sec-title`
 - 隠せる部位(`hideable: true`): 利用者 `header`・`header-nav`・`footer`・`bottom-nav`、管理 `admin-header`・`admin-sidebar`・`admin-footer`
-- テスト: 一覧の名前と隠せる部位、型のキーの union = 隠せる部位(`parts.test.mjs`)。枠の部品と frame.css の規則との照合は `(user)/_layout/UserFrame.test.tsx`(利用者)・`admin/_layout/AdminFrame.test.tsx`(管理)
+- 部位の印は要素の `data-slot` だけ。隠す CSS(`src/styles/_base/frame.css`)は `[data-slot="<部位>"]` と既定部品の id(fork が読むので残す)を狙う。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
+- テスト: 一覧の名前と隠せる部位、型のキーの union = 隠せる部位、frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末(`parts.test.mjs`)。各枠の README の data-slot の一覧と要素の data-slot の照合は `(user)/_layout/UserFrame.test.tsx`(利用者・Main)・`admin/_layout/AdminFrame.test.tsx`(管理)

@@ -54,6 +54,8 @@
 - `center`: 余白があれば縦中央寄せ（default。ログイン・エラー等の短いページ向け）
 - `start`: 上揃え（縦に長いコンテンツのページ向け）
 
+部位の印 `data-slot`(fork の CSS が狙う名前): `<main>` = `main`、`plain`・`fullscreen` 以外の外側の 2 段 = `main-container` / `main-layout`。今の id(`main` / `main-container` / `main-layout`)と `data-component`(`Main` / `Main:container` / `Main:layout`)も残す。一覧: [src/app/(user)/_layout/README.md](../../app/(user)/_layout/README.md)「data-slot の一覧」
+
 #### FullScreen
 モバイルブラウザのアドレスバーを考慮した真のフルスクリーン表示。`layer` propでz-index層を指定。
 

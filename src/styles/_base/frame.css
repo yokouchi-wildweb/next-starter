@@ -4,12 +4,11 @@
  *
  * 外枠 [data-frame-root](利用者 = UserLayout の #user-app-container / 管理 = AdminLayout の外枠)に、今のルートの宣言
  * (各ルートの枠の宣言 frame.default.ts / frame.ts → 枠ごとの表)を読み手が属性で付ける
- * (利用者 src/app/(user)/_layout/hooks/useUserFrame.ts / 管理 src/app/admin/_layout/hooks/useAdminFrame.ts):
+ * (共通の読み手 src/app/_layout/frame/useFrameAttributes.ts。各枠の根が自分の表を渡す):
  *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
- * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠は接頭辞なし、管理の枠は admin-)。狙う先 = 既定部品の id と
- * [data-frame-part~="<部位>"](差し替えた部品は id を残すか外側に data-frame-part を付ける)。
- * 部位の一覧と規則の一致は src/app/(user)/_layout/UserFrame.test.tsx(pnpm test:user-layout)と
- * src/app/admin/_layout/AdminFrame.test.tsx(pnpm test:admin-layout)が確かめる。
+ * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠は接頭辞なし、管理の枠は admin-)。狙う先 = 部位の印 [data-slot="<部位>"]
+ * と既定部品の id(fork が読むので残す)。差し替えた部品は外側の要素に data-slot="<部位>" を付ければ従う(id を残しても従う)。
+ * 部位の一覧と規則の一致は src/app/_layout/frame/parts.test.mjs(pnpm test:frame-declaration)が両方の枠で確かめる。
  * 部位の寸法変数は隠している間 0(外枠の inline の値に勝つため !important)。
  * layer に入れない = 部品の Tailwind ユーティリティ(sm:flex 等)より優先する。端末の境界 = Tailwind の sm(40rem)。
  */
@@ -20,16 +19,16 @@
 }
 
 @media (width < 40rem) {
-  [data-frame-root][data-frame-hide~="header-sp"] :is(#header, [data-frame-part~="header"]) {
+  [data-frame-root][data-frame-hide~="header-sp"] :is(#header, [data-slot="header"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="header-nav-sp"] :is(#header-pc-nav, #header-sp-menu-toggle, #header-sp-nav, [data-frame-part~="header-nav"]) {
+  [data-frame-root][data-frame-hide~="header-nav-sp"] :is(#header-pc-nav, #header-sp-menu-toggle, #header-sp-nav, [data-slot="header-nav"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="footer-sp"] :is(#footer, [data-frame-part~="footer"]) {
+  [data-frame-root][data-frame-hide~="footer-sp"] :is(#footer, [data-slot="footer"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="bottom-nav-sp"] :is(#bottom-nav, #bottom-nav-spacer, [data-frame-part~="bottom-nav"]) {
+  [data-frame-root][data-frame-hide~="bottom-nav-sp"] :is(#bottom-nav, #bottom-nav-spacer, [data-slot="bottom-nav"]) {
     display: none;
   }
   [data-frame-root][data-frame-hide~="bottom-nav-sp"] {
@@ -38,16 +37,16 @@
 }
 
 @media (width >= 40rem) {
-  [data-frame-root][data-frame-hide~="header-pc"] :is(#header, [data-frame-part~="header"]) {
+  [data-frame-root][data-frame-hide~="header-pc"] :is(#header, [data-slot="header"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="header-nav-pc"] :is(#header-pc-nav, #header-sp-menu-toggle, #header-sp-nav, [data-frame-part~="header-nav"]) {
+  [data-frame-root][data-frame-hide~="header-nav-pc"] :is(#header-pc-nav, #header-sp-menu-toggle, #header-sp-nav, [data-slot="header-nav"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="footer-pc"] :is(#footer, [data-frame-part~="footer"]) {
+  [data-frame-root][data-frame-hide~="footer-pc"] :is(#footer, [data-slot="footer"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="bottom-nav-pc"] :is(#bottom-nav, #bottom-nav-spacer, [data-frame-part~="bottom-nav"]) {
+  [data-frame-root][data-frame-hide~="bottom-nav-pc"] :is(#bottom-nav, #bottom-nav-spacer, [data-slot="bottom-nav"]) {
     display: none;
   }
   [data-frame-root][data-frame-hide~="bottom-nav-pc"] {
@@ -75,25 +74,25 @@
  * ヘッダーを隠すと useHeaderHeight が 0 を読み、--app-header-height も 0 になる。
  */
 @media (width < 40rem) {
-  [data-frame-root][data-frame-hide~="admin-header-sp"] :is(#header, [data-frame-part~="admin-header"]) {
+  [data-frame-root][data-frame-hide~="admin-header-sp"] :is(#header, [data-slot="admin-header"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="admin-sidebar-sp"] :is([data-frame-part~="admin-sidebar"]) {
+  [data-frame-root][data-frame-hide~="admin-sidebar-sp"] :is([data-slot="admin-sidebar"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="admin-footer-sp"] :is(#footer, [data-frame-part~="admin-footer"]) {
+  [data-frame-root][data-frame-hide~="admin-footer-sp"] :is(#footer, [data-slot="admin-footer"]) {
     display: none;
   }
 }
 
 @media (width >= 40rem) {
-  [data-frame-root][data-frame-hide~="admin-header-pc"] :is(#header, [data-frame-part~="admin-header"]) {
+  [data-frame-root][data-frame-hide~="admin-header-pc"] :is(#header, [data-slot="admin-header"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="admin-sidebar-pc"] :is([data-frame-part~="admin-sidebar"]) {
+  [data-frame-root][data-frame-hide~="admin-sidebar-pc"] :is([data-slot="admin-sidebar"]) {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="admin-footer-pc"] :is(#footer, [data-frame-part~="admin-footer"]) {
+  [data-frame-root][data-frame-hide~="admin-footer-pc"] :is(#footer, [data-slot="admin-footer"]) {
     display: none;
   }
 }

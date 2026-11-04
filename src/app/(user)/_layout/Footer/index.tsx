@@ -27,9 +27,9 @@ export function UserFooter() {
   return (
     <footer
       id={APP_FOOTER_ELEMENT_ID}
-      data-frame-part="footer"
+      data-slot="footer"
       className={cn(
-        "flex-col items-center justify-center gap-4 bg-footer px-6 py-6 text-footer-foreground shadow-inner",
+        "flex-col items-center justify-center gap-4 bg-footer pl-[calc(var(--spacing)*6_+_var(--app-safe-area-left))] pr-[calc(var(--spacing)*6_+_var(--app-safe-area-right))] py-6 text-footer-foreground shadow-inner",
         visibilityClass
       )}
     >

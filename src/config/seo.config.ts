@@ -30,11 +30,13 @@ export const seoConfig = {
 
   /**
    * root の viewport。省略した項目は Next の既定。
-   * env(safe-area-inset-*) を使うなら viewportFit: "cover" を足す（端に固定する要素と本文の左右は各自で余白を取る）
+   * viewportFit "cover" = 画面の端(切り欠きの下)まで描く。枠の部品は --app-safe-area-*(src/styles/_base/config.css)で端を避ける。
+   * 枠の外で端に固定する要素も同じ変数で避ける(env() は直接書かない)
    */
   viewport: {
     width: "device-width",
     initialScale: 1,
+    viewportFit: "cover",
   } satisfies Viewport as Viewport,
 
   /** Twitter/Xアカウント（@なし） */
