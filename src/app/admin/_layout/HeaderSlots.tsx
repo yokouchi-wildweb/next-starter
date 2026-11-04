@@ -24,18 +24,20 @@ export function AdminHeaderSlots({ trailing }: AdminHeaderSlotsProps) {
       {/* タイトルスロット: ロゴ右隣に配置（sm 以上で表示、モバイルではページ内フォールバック） */}
       <div
         id={ADMIN_HEADER_TITLE_SLOT_ID}
+        data-slot="admin-header-title"
         className="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"
       />
 
       {/* 中央: ポータルスロット */}
       <div
         id={ADMIN_HEADER_CENTER_SLOT_ID}
+        data-slot="admin-header-center"
         className="flex min-w-0 flex-1 items-center justify-center"
       />
 
       {/* 右側: ポータルスロット + trailing */}
       <div className="flex shrink-0 items-center gap-3">
-        <div id={ADMIN_HEADER_RIGHT_SLOT_ID} className="flex items-center gap-3" />
+        <div id={ADMIN_HEADER_RIGHT_SLOT_ID} data-slot="admin-header-right" className="flex items-center gap-3" />
         {trailing}
       </div>
     </>

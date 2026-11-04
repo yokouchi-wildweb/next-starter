@@ -21,7 +21,7 @@ export function InsaneSpSidebar({ width, isOpen, onClose, content }: InsaneSpSid
   return (
     <Fragment>
       <div
-        data-frame-part="admin-sidebar"
+        data-slot="admin-sidebar"
         style={{ width }}
         className={cn(
           "fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden",
@@ -37,7 +37,7 @@ export function InsaneSpSidebar({ width, isOpen, onClose, content }: InsaneSpSid
         </AdminSidebarFrameProvider>
       </div>
       {isOpen ? (
-        <div data-frame-part="admin-sidebar" className="fixed inset-0 backdrop-layer bg-overlay/50 md:hidden" onClick={onClose} />
+        <div data-slot="admin-sidebar" className="fixed inset-0 backdrop-layer bg-overlay/50 md:hidden" onClick={onClose} />
       ) : null}
     </Fragment>
   );

@@ -15,10 +15,9 @@ src/app/admin/_layout/                  # admin/layout.tsx の枠 + admin 全体
 ├── PageTitle.tsx           # ページの h1(default export。placement = "header"(既定)| "page")。Screen が使う
 ├── Sidebar/MenuButton.tsx  # サイドバーのボタン(通常 / insane の両サイドバーが使う)
 ├── Sidebar/AdminSidebarFrame.tsx  # サイドバーの殻が中身に渡す状態(useAdminSidebarFrame)
-├── hooks/useAdminFrame.ts  # 枠の宣言の表の読み手(外枠の属性 data-frame-hide / data-frame-fill)
 ├── extensions/frameTable.ts  # 枠の宣言の表(生成物。pnpm extensions:generate)
 ├── AdminLayout.test.tsx    # pnpm test:admin-layout(slot と既定の DOM)
-├── AdminFrame.test.tsx     # pnpm test:admin-layout(枠の宣言の読み手・frame.css の管理の規則)
+├── AdminFrame.test.tsx     # pnpm test:admin-layout(data-slot の一覧と要素の照合・枠の表の結線)
 └── stores/adminLayout/     # 枠固有の store(下の「store」)
 
 src/app/admin/(protected)/_layout/      # admin/(protected)/layout.tsx の枠
@@ -84,11 +83,24 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 ## 枠の宣言(部位の出し入れと fill)
 
 - ページ・ルートの隣の枠の宣言(上流 = ルートを作ったリポの `frame.default.ts` の `frameDefault` / 下のリポ = `frame.ts` の `frame`、型 `AdminFrameDeclaration`)に、隠す部位(`header`・`sidebar`・`footer` × `sp` / `pc`)と `fill` を書く。書式・重ねる順・生成する表: [src/app/_layout/frame/README.md](../../_layout/frame/README.md)
-- 仕組み: `pnpm extensions:generate` が `extensions/frameTable.ts` を作り、AdminLayout が `useAdminFrame()`(`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠の属性 `data-frame-root` + `data-frame-hide="admin-<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/_base/frame.css`(手書き、`:has()` なし)がその属性で部位を `display: none` にする。部品はアンマウントしない
-- 部位の印 `data-frame-part`: `admin-header`(Header の `#header`)・`admin-footer`((protected) の Footer の `#footer`)・`admin-sidebar`(PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタン。(protected) と insane の両方)。ヘッダー・フッターを差し替えるときは id を残すか同じ data-frame-part を付ける
+- 仕組み: `pnpm extensions:generate` が `extensions/frameTable.ts` を作り、AdminLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠の属性 `data-frame-root` + `data-frame-hide="admin-<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/_base/frame.css`(手書き、`:has()` なし)がその属性で部位を `display: none` にする。部品はアンマウントしない
+- 部位の印 = 要素の `data-slot`(下の「data-slot の一覧」)。frame.css は `[data-slot="admin-<部位>"]` と id(`#header`・`#footer`)を狙う。ヘッダー・フッターを差し替えるときは id を残すか同じ data-slot を付ける
 - fill: 外枠は前から確定高さ。`[data-admin-main-wrapper]`(ResizableArea・InsaneResizableArea の本文の直接の親)を flex-col + min-height:0 の束縛モードにし、直下のページの本文 `#main`(AdminPage の Main)を flex-1 min-h-0 の flex-col + 余白トークン(`--admin-page-padding-inline` / `--admin-page-padding-block`)にする。前の `<AdminPage fill>` と同じ見た目。fill の子は `h-full min-h-0 overflow-y-auto` で内部スクロールする
 - 上流の管理のページは宣言を持たない(表は空)。端末の境界は 40rem(枠の宣言の約束。サイドバーの PC / SP の切り替えは md だが、隠すのは印の付いた物の全部)
 - 以前: `<AdminPage fill>` が本文に `data-admin-fill` を出し、`config.css` の `[data-admin-main-wrapper]:has([data-admin-fill])` が親を切り替えていた。共有の棚の評議会(計画書 02)で子から親を変える `:has()` をやめ、利用者の枠と同じ宣言 + 外枠の属性にした
+
+## data-slot の一覧
+
+管理の枠の部位に付ける `data-slot`(余白の議会の一覧の管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。今の id(`#header`・`#footer`・受け口の `#admin-header-*-slot`)と `data-admin-main-wrapper` は今どおり残す。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
+
+- `admin-app-container` — AdminLayout の外枠(枠の根 `data-frame-root`)
+- `admin-header` — Header の `<header id="header">`
+- `admin-header-title` — HeaderSlots のタイトルの受け口 `#admin-header-title-slot`
+- `admin-header-center` — HeaderSlots の中央の受け口 `#admin-header-center-slot`
+- `admin-header-right` — HeaderSlots の右の受け口 `#admin-header-right-slot`
+- `admin-sidebar` — サイドバーに付く物の全部: PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ・AdminProtectedLayout の SP の開閉ボタン(insane の Insane* も同じ)
+- `admin-main` — ResizableArea の本文の親 `[data-admin-main-wrapper]`(insane は InsaneResizableArea のスクロール領域)
+- `admin-footer` — (protected) の Footer の `<footer id="footer">`
 
 ## store
 

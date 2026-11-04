@@ -15,7 +15,7 @@ export function Footer() {
   const footerText = `© ${year} ${businessConfig.serviceName}`;
 
   return (
-    <footer id={APP_FOOTER_ELEMENT_ID} data-frame-part="admin-footer" className={cn(footerContainer())}>
+    <footer id={APP_FOOTER_ELEMENT_ID} data-slot="admin-footer" className={cn(footerContainer())}>
       {footerText}
     </footer>
   );

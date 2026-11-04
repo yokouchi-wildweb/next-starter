@@ -61,7 +61,7 @@ export function ResizableArea({
 
       {hasSidebar && isSidebarResizable ? (
         <div
-          data-frame-part="admin-sidebar"
+          data-slot="admin-sidebar"
           onMouseDown={() => {
             dragging.current = true;
             document.body.style.cursor = "ew-resize";
@@ -84,7 +84,7 @@ export function ResizableArea({
           ページの本文(#main)を flex-1 min-h-0 にする（styles/_base/frame.css）。
           これにより高さチェーンがページへ伝播し、内部ペインが独自スクロール、外側は非スクロールになる。 */}
       <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
-        <div data-admin-main-wrapper className="flex-1">
+        <div data-slot="admin-main" data-admin-main-wrapper className="flex-1">
           {children}
         </div>
         {footer === undefined ? <Footer /> : footer}
