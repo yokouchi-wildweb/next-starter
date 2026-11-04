@@ -3,13 +3,16 @@
 //
 // 機能を閉じる規則(features を持つもの)の機能が無効なら、その表は db:push で作られない。それでも常に動く処理が
 // その機能のフォルダを import していたら、無効なときに無い表を読む。そこで常時実行の入口ごとに「閉じられるか」を見る:
-// - cron の task.ts と、宣言の alwaysOn: true の点の項目(後片付け・照合): enabled(config を読む同期関数)がある(式の中身までは見ない)
+// - cron の task.ts(種類 cronTask): タスクの住所 /api/cron/<name> を、import した機能のフォルダを features に持つ規則の全部が
+//   pathPatterns で覆う(閉じた機能のタスクは route・pnpm task・cron:generate が住所で飛ばす。enabled は見ない)
+// - 宣言の alwaysOn: true の点の項目(後片付け・照合、種類 alwaysOnItem): enabled(config を読む同期関数)がある(式の中身までは見ない)
 // - fork の手書きの登録表: import した名前の使い所(import 行以外)が全部 `...(<条件> ? [ ... ] : [])` の内側
 // - それ以外(常に読み込まれる結線など): 理由付きの例外表にある
 // 限界: 直接の import だけを見る(別のモジュールを経由した到達は見ない)。型だけの import は数えない。
 // 使い手: src/featureGate/checks/featureGate.test.mjs(実リポ)、scripts/proxies/proxyFrame.test.mjs(fixture)
 
 import { oldMarkerProblem } from "../../lib/forkOwnership/dottedNames.mjs";
+import { matchesPath } from "../../lib/pathPattern/index.mjs";
 
 /** 機能のフォルダ(src/features からの相対)を import 元の印に。core は `@/features/core/<x>/` と `@/features/<x>/` の両方 */
 export function folderSourcePattern(folder) {
@@ -62,17 +65,35 @@ export function namesOutsideConditionalSpread(text, names) {
   });
 }
 
-/** cron の task.ts: cronTask に enabled があるか(字面) */
-export const cronTaskHasEnabled = (text) => /\benabled\s*:/.test(text);
+/** alwaysOn の点の項目: 値に enabled があるか(字面) */
+export const itemHasEnabled = (text) => /\benabled\s*:/.test(text);
+
+/** cron の task.ts のパス(…/api/cron/<name>/task.ts)からタスクの住所 /api/cron/<name> */
+export function cronTaskPathOf(file) {
+  const name = /(?:^|\/)api\/cron\/([^/]+)\/task\.ts$/.exec(file)?.[1];
+  return name ? `/api/cron/${name}` : null;
+}
+
+/**
+ * cron のタスクの住所を、import した機能のフォルダを持つ規則が全部閉じるか。覆わない規則の名前を返す
+ * @param {string} taskPath /api/cron/<name>
+ * @param {string[]} sources import 元(@/features/…)
+ * @param {{ name: string, features?: string[], pathPatterns: string[] }[]} rules
+ */
+export function rulesNotCoveringCronTask(taskPath, sources, rules) {
+  const owners = rules.filter((rule) => (rule.features ?? []).some((folder) => sources.some((source) => folderSourcePattern(folder).test(source))));
+  return owners.filter((rule) => !rule.pathPatterns.some((pattern) => matchesPath(taskPath, pattern))).map((rule) => rule.name);
+}
 
 /**
  * 入口の判定
- * @param {{ path: string, text: string, kind: "cron" | "registry" | "wiring" }[]} entries
- * @param {string[]} folders 表を持つ規則の機能のフォルダ
+ * @param {{ path: string, text: string, kind: "cronTask" | "alwaysOnItem" | "registry" | "wiring" }[]} entries
+ * @param {{ name: string, features?: string[], pathPatterns: string[] }[]} rules 規則(features を持つものが対象。cronTask の住所の判定にも使う)
  * @param {Record<string, string>} exceptions 結線の例外表(path → 理由)
  * @returns {{ problems: string[], hits: string[], usedExceptions: string[] }} hits = 該当した入口(path: 種類)
  */
-export function judgeAlwaysOnEntries(entries, folders, exceptions) {
+export function judgeAlwaysOnEntries(entries, rules, exceptions) {
+  const folders = [...new Set(rules.flatMap((rule) => rule.features ?? []))];
   const patterns = folders.map(folderSourcePattern);
   const problems = [];
   const hits = [];
@@ -82,8 +103,21 @@ export function judgeAlwaysOnEntries(entries, folders, exceptions) {
     if (imports.length === 0) continue;
     const sources = [...new Set(imports.map((i) => i.source))].join(", ");
     hits.push(`${entry.path}: ${entry.kind}`);
-    if (entry.kind === "cron") {
-      if (!cronTaskHasEnabled(entry.text)) problems.push(`${entry.path}: ${sources} を import するのに enabled が無い(cron は cronTask、拡張点の項目は値に書く)`);
+    if (entry.kind === "cronTask") {
+      const taskPath = cronTaskPathOf(entry.path);
+      if (!taskPath) {
+        problems.push(`${entry.path}: cron の task.ts のパス(…/api/cron/<name>/task.ts)でない`);
+        continue;
+      }
+      for (const name of rulesNotCoveringCronTask(taskPath, imports.map((i) => i.source), rules)) {
+        problems.push(
+          `${entry.path}: ${sources} を import するのに、規則 ${name} の pathPatterns が ${taskPath} を覆わない(src/featureGate/rules/${name}.ts の pathPatterns に "${taskPath}" を足す。閉じた機能のタスクは住所で飛ぶ)`,
+        );
+      }
+      continue;
+    }
+    if (entry.kind === "alwaysOnItem") {
+      if (!itemHasEnabled(entry.text)) problems.push(`${entry.path}: ${sources} を import するのに enabled が無い(拡張点の項目は値に書く)`);
       continue;
     }
     if (entry.kind === "registry") {

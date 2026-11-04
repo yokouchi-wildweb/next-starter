@@ -278,7 +278,7 @@ const ALWAYS_ON_EXCEPTIONS = {
     "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
 };
 
-test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron と alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
+test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は住所が規則の pathPatterns に入る、alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
   const oldDir = join(ROOT, "scripts/proxies", ALWAYS_ON_DIR);
   const stale = staleAlwaysOnFiles(
     existsSync(join(ROOT, "scripts/proxies")) ? readdirSync(join(ROOT, "scripts/proxies")) : [],
@@ -293,15 +293,14 @@ test("常時実行の入口: 表を持つ規則の機能を import するなら�
   const alwaysOnItems = plan.points.filter((p) => p.spec.alwaysOn).flatMap((p) => plan.itemsByPoint.get(p).map((item) => item.itemFile));
   assert.ok(alwaysOnItems.length > 0, "alwaysOn の点の項目が無い(宣言の読み取りを確認)");
   const entries = [
-    ...walk(join(APP_DIR, "api/cron")).filter((f) => /[\\/]task\.ts$/.test(f)).map((f) => ({ path: rel(f), kind: "cron" })),
-    ...alwaysOnItems.map((path) => ({ path, kind: "cron" })),
+    ...walk(join(APP_DIR, "api/cron")).filter((f) => /[\\/]task\.ts$/.test(f)).map((f) => ({ path: rel(f), kind: "cronTask" })),
+    ...alwaysOnItems.map((path) => ({ path, kind: "alwaysOnItem" })),
     ...fork.registries.map((path) => ({ path, kind: "registry" })),
     ...[join(APP_DIR, "layout.tsx"), ...walk(join(ROOT, "src/wiring")), ...walk(join(ROOT, "src/proxies")), ...walk(join(ROOT, "src/featureGate"))]
       .filter(code)
       .map((f) => ({ path: rel(f), kind: "wiring" })),
   ].map((entry) => ({ ...entry, text: readFileSync(join(ROOT, entry.path), "utf8") }));
-  const folders = [...new Set(featureGateRules.flatMap((rule) => rule.features ?? []))];
-  assert.ok(folders.length > 0, "表を持つ規則が無い(features の読み取りを確認)");
-  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, { ...ALWAYS_ON_EXCEPTIONS, ...fork.exceptions });
+  assert.ok(featureGateRules.some((rule) => (rule.features ?? []).length > 0), "表を持つ規則が無い(features の読み取りを確認)");
+  const { problems, hits } = judgeAlwaysOnEntries(entries, featureGateRules, { ...ALWAYS_ON_EXCEPTIONS, ...fork.exceptions });
   assert.deepEqual(problems, [], `常時実行の入口の閉じ漏れ:\n${problems.join("\n")}\n該当: ${hits.join(" / ")}`);
 });

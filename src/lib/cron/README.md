@@ -131,6 +131,9 @@ upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:gen
 - README と `task.ts` / `override.ts` が `@/lib/cron` から import する名前を、`src/lib/cron/index.ts` がすべて export している
 - `vercel.json`（あれば）が task.ts（+ override.ts、閉じた機能のタスクを除く）からの生成結果と一致する
 - 機能の門: 閉じた住所のタスクは `closedBy` が付いて生成と検査から外れる、route の作り手は閉なら認証の後・本体の前に skipped
+- task.ts が門番（`@/featureGate`）を読まない（機能の入切は住所で自動。Tier1 は失敗、fork は一覧を出すだけ）
+
+閉じられる機能のフォルダを import する task.ts の住所が規則の `pathPatterns` に載っているかは、`FEATURE_GATE_CHECK=all pnpm test:feature-gate` の常時実行の入口の検査が見る（`src/featureGate/README.md`）。
 
 ## upstream のタスクを外す・時刻を変える（fork）
 

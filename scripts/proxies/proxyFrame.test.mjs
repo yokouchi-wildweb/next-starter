@@ -121,36 +121,80 @@ test("規則の features: フォルダの pgTable から表を導き(fork が上
   assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\] \},/);
 });
 
-test("常時実行の入口の判定: cron は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
-  const { judgeAlwaysOnEntries, folderSourcePattern } = await import("../../src/featureGate/checks/alwaysOnEntries.mjs");
-  const folders = ["core/wallet", "sample"];
+test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
+  const { judgeAlwaysOnEntries, folderSourcePattern, cronTaskPathOf, rulesNotCoveringCronTask } = await import("../../src/featureGate/checks/alwaysOnEntries.mjs");
+  const rules = [
+    { name: "wallet", features: ["core/wallet"], pathPatterns: ["/wallet", "/api/cron/wallet-ok"] },
+    { name: "walletAdmin", features: ["core/wallet"], pathPatterns: ["/admin/wallet", "/api/cron/wallet-ok"] },
+    { name: "sample", features: ["sample"], pathPatterns: ["/sample", "/api/cron"] },
+    { name: "pageOnly", pathPatterns: ["/api/cron/wallet-partial"] },
+  ];
   assert.ok(folderSourcePattern("core/wallet").test("@/features/wallet/x"));
   assert.ok(folderSourcePattern("core/wallet").test("@/features/core/wallet/x"));
   assert.ok(!folderSourcePattern("core/wallet").test("@/features/core/walletHistory/x"));
+  assert.equal(cronTaskPathOf("src/app/api/cron/wallet-ok/task.ts"), "/api/cron/wallet-ok");
+  assert.equal(cronTaskPathOf("src/app/api/other/task.ts"), null);
+  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/wallet-ok", ["@/features/core/wallet/x"], rules), []);
+  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/wallet-ng", ["@/features/wallet/x"], rules), ["wallet", "walletAdmin"]);
+  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/any", ["@/features/sample/x"], rules), [], "セグメント境界の前方一致で覆う");
 
-  const cronOk = `export const cronTask = { enabled: () => FLAG, run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
-  const cronNg = `export const cronTask = { run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
+  const walletTask = `export const cronTask = { run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
+  const walletWithEnabled = `export const cronTask = { enabled: () => FLAG, run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
   const cronUnrelated = `export const cronTask = { run: async () => (await import("@/features/core/auditLog/x")).run() };`;
+  const itemOk = `import { x } from "@/features/core/wallet/services/server/x";\nexport const item = { enabled: () => FLAG, run: x };`;
+  const itemNg = `import { x } from "@/features/core/wallet/services/server/x";\nexport const item = { run: x };`;
   const regOk = `import { clear } from "@/features/core/wallet/services/server/clear";\nimport type { T } from "@/features/sample/types";\nexport const h = [\n  ...(FLAG.enabled ? [clear] : []),\n];`;
   const regNg = `import { clear } from "@/features/core/wallet/services/server/clear";\nexport const h = [clear];`;
   const regNamespace = `import * as w from "@/features/core/wallet";\nexport const h = [...(F ? [w.x] : [])];`;
   const wire = `import { deps } from "@/features/sample/services/server/deps";\nexport const x = deps;`;
   const entries = [
-    { path: "c/ok/task.ts", kind: "cron", text: cronOk },
-    { path: "c/ng/task.ts", kind: "cron", text: cronNg },
-    { path: "c/other/task.ts", kind: "cron", text: cronUnrelated },
+    { path: "src/app/api/cron/wallet-ok/task.ts", kind: "cronTask", text: walletTask },
+    { path: "src/app/api/cron/wallet-ng/task.ts", kind: "cronTask", text: walletWithEnabled },
+    { path: "src/app/api/cron/wallet-partial/task.ts", kind: "cronTask", text: walletTask },
+    { path: "src/app/api/cron/other/task.ts", kind: "cronTask", text: cronUnrelated },
+    { path: "i/ok.ts", kind: "alwaysOnItem", text: itemOk },
+    { path: "i/ng.ts", kind: "alwaysOnItem", text: itemNg },
     { path: "r/ok.ts", kind: "registry", text: regOk },
     { path: "r/ng.ts", kind: "registry", text: regNg },
     { path: "r/ns.ts", kind: "registry", text: regNamespace },
     { path: "w/listed.ts", kind: "wiring", text: wire },
     { path: "w/unlisted.ts", kind: "wiring", text: wire },
   ];
-  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, { "w/listed.ts": "理由", "w/gone.ts": "もう無い" });
-  assert.deepEqual(hits.map((h) => h.split(":")[0]), ["c/ok/task.ts", "c/ng/task.ts", "r/ok.ts", "r/ng.ts", "r/ns.ts", "w/listed.ts", "w/unlisted.ts"]);
+  const { problems, hits } = judgeAlwaysOnEntries(entries, rules, { "w/listed.ts": "理由", "w/gone.ts": "もう無い" });
+  assert.deepEqual(hits.map((h) => h.split(":")[0]), [
+    "src/app/api/cron/wallet-ok/task.ts",
+    "src/app/api/cron/wallet-ng/task.ts",
+    "src/app/api/cron/wallet-partial/task.ts",
+    "i/ok.ts",
+    "i/ng.ts",
+    "r/ok.ts",
+    "r/ng.ts",
+    "r/ns.ts",
+    "w/listed.ts",
+    "w/unlisted.ts",
+  ]);
   assert.deepEqual(
     problems.map((p) => p.split(":")[0]).sort(),
-    ["c/ng/task.ts", "r/ng.ts", "r/ns.ts", "w/gone.ts", "w/unlisted.ts"],
+    [
+      "i/ng.ts",
+      "r/ng.ts",
+      "r/ns.ts",
+      "src/app/api/cron/wallet-ng/task.ts", // enabled があっても住所を覆わなければ失敗(規則 2 つ分)
+      "src/app/api/cron/wallet-ng/task.ts",
+      "src/app/api/cron/wallet-partial/task.ts", // 表を持たない規則が覆っても足りない(2 規則とも覆わない)
+      "src/app/api/cron/wallet-partial/task.ts",
+      "w/gone.ts",
+      "w/unlisted.ts",
+    ],
   );
+  assert.match(problems.find((p) => p.startsWith("src/app/api/cron/wallet-ng/")), /規則 wallet の pathPatterns が \/api\/cron\/wallet-ng を覆わない.*"\/api\/cron\/wallet-ng" を足す/);
+  const oneMissing = judgeAlwaysOnEntries(
+    [{ path: "src/app/api/cron/wallet-ok/task.ts", kind: "cronTask", text: walletTask }],
+    [rules[0], { ...rules[1], pathPatterns: ["/admin/wallet"] }],
+    {},
+  );
+  assert.deepEqual(oneMissing.problems.length, 1, "同じフォルダを持つ規則の 1 つでも覆わなければ失敗");
+  assert.match(oneMissing.problems[0], /規則 walletAdmin/);
 });
 
 test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExceptions/<名前>.ts は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い置き場は止める", async () => {
@@ -188,6 +232,6 @@ test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExcep
   assert.match(stale[1], /scripts\/proxies\/alwaysOnExceptions\/deviceWiring\.mjs: 置き場が src\/featureGate\/alwaysOnExceptions\/<名前>\.ts に移った/);
 
   // fork の例外の行にも縮む表の規則(当たらない行は失敗)
-  const { problems } = judgeAlwaysOnEntries([], ["core/wallet"], ok.exceptions);
+  const { problems } = judgeAlwaysOnEntries([], [{ name: "wallet", features: ["core/wallet"], pathPatterns: ["/wallet"] }], ok.exceptions);
   assert.deepEqual(problems.map((p) => p.split(":")[0]), ["src/wiring/x.ts"]);
 });

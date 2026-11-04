@@ -5,7 +5,8 @@
 // 1. cron のフォルダには route.ts と task.ts がある。task.ts は cronTask を export し、name = フォルダ名
 // 2. route.ts は ./task の cronTask を @/wiring/cronRoute の createCronTaskRoute で読む(定義を route.ts に二重に書かない。
 //    門番の判定は wiring が結ぶ: 住所 /api/cron/<name> が閉じていれば route・pnpm task は飛ばし、vercel.json に載せない)
-// 3. タスク名はケバブケース、schedule は正しい cron 式、description あり、enabled は throw せず boolean を返す
+// 3. タスク名はケバブケース、schedule は正しい cron 式、description あり、enabled は throw せず boolean を返す。
+//    task.ts は門番(@/featureGate)を読まない(機能の入切は住所で自動。Tier1 は失敗、fork は冗長なだけなので一覧を出す)
 // 4. fork の override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
 // 5. README と task.ts / override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
 // 6. vercel.json(あれば)は task.ts(+ override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 
 import { CRON_ROUTE_DIR, gateClosedBy, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
 import { createCronRoute, createCronTaskRoute } from "../../src/lib/cron/createCronRoute.ts";
+import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { buildVercelCrons, checkVercelCrons, listHobbyDowngradedTasks } from "../../src/lib/cron/vercelCrons.ts";
 import {
   isAtMostDailySchedule,
@@ -52,6 +54,33 @@ test("task.ts の定義: name = フォルダ名・ケバブケース・正しい
     assert.ok(isValidCronExpression(task.schedule), `${task.name}: schedule "${task.schedule}" は 5 フィールドの cron 式(UTC)にする`);
     assert.ok(task.description?.trim(), `${task.name}: description を書く`);
     if (task.enabled) assert.equal(typeof task.enabled(), "boolean", `${task.name}: enabled は boolean を返す`);
+  }
+});
+
+/** task.ts の中の門番の import(@/featureGate とその下。コメントは除く) */
+export function gateImportsIn(text) {
+  const code = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  return [...code.matchAll(/(?:from\s+|import\(\s*)["'](@\/featureGate(?:\/[^"']*)?)["']/g)].map((m) => m[1]);
+}
+
+test("gateImportsIn: 門番の import を拾い、コメントと他の import は拾わない", () => {
+  assert.deepEqual(gateImportsIn(`import { gate } from "@/featureGate";\nimport type { X } from "@/lib/cron";`), ["@/featureGate"]);
+  assert.deepEqual(gateImportsIn(`// import { gate } from "@/featureGate";\nconst x = await import("@/featureGate/node");`), ["@/featureGate/node"]);
+  assert.deepEqual(gateImportsIn(`import { a } from "@/features/core/wallet";`), []);
+});
+
+test("task.ts は機能の入切を書かない(門番を読まない。住所 /api/cron/<name> を規則の pathPatterns に書けば自動): Tier1 は失敗、fork は一覧だけ", (t) => {
+  const identity = readForkIdentity(repoRoot);
+  assert.deepEqual(identity.errors, [], identity.errors.join("\n"));
+  const hits = listCronTaskDirs(repoRoot)
+    .map((dir) => ({ dir, sources: gateImportsIn(readFileSync(join(repoRoot, CRON_ROUTE_DIR, dir, "task.ts"), "utf8")) }))
+    .filter((hit) => hit.sources.length > 0)
+    .map((hit) => `${CRON_ROUTE_DIR}/${hit.dir}/task.ts → ${hit.sources.join(", ")}`);
+  const message = `task.ts が門番を読んでいる(機能の入切は書かない。enabled には機能以外の条件だけ。src/lib/cron/README.md「機能の門」):\n${hits.join("\n")}`;
+  if (identity.isTier1) {
+    assert.deepEqual(hits, [], message);
+  } else if (hits.length > 0) {
+    t.diagnostic(message);
   }
 });
 
