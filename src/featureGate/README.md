@@ -18,6 +18,6 @@
 ## 判定
 
 - `gate.enabled(name)`: 規則の `enabled()` の答え。未知の名前は型で落ち、実行時は throw
-- `gate.path(pathname)`: 一覧の順(ファイル名の順)で最初の閉じた規則に当たれば `{ closed: true, feature, redirectTo }`
+- `gate.path(pathname)`: 一覧の順(ファイル名の順)で最初の閉じた規則に当たれば `{ open: false, rule, redirectTo }`(開いていれば `{ open: true }`)
 
 規則の書き方と効き方(ルートゲート・スキーマゲート): `types.ts` の `FeatureGateRule`、`src/proxies/README.md`。

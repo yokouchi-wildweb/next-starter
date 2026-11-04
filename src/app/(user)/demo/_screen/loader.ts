@@ -12,5 +12,5 @@ import { demoPages } from "../extensions/demoPages";
 
 export const loadDemoIndexScreen = createLoader({
   access: "public",
-  load: async () => ({ pages: openDemoPages(demoPages, (href) => gate.path(href).closed) }),
+  load: async () => ({ pages: openDemoPages(demoPages, (href) => !gate.path(href).open) }),
 });

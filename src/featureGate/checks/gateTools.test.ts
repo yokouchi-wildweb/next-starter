@@ -22,13 +22,13 @@ test("gate.enabled: 未知の名前は型で落ち、実行時は throw", () => 
   assert.throws(() => gate.enabled("constructor" as FeatureName), /未知の機能の名前/);
 });
 
-test("gate.path: 閉じた規則の住所なら一覧の順で最初の閉じた規則の名前と redirectTo、開いていれば closed:false", () => {
+test("gate.path: 閉じた規則の住所なら一覧の順で最初の閉じた規則の名前と redirectTo、開いていれば open:true", () => {
   for (const rule of rules.filter((r) => !r.enabled())) {
     for (const pattern of rule.pathPatterns) {
       const pathname = pattern.replace(/^=/, "");
       const first = rules.find((r) => !r.enabled() && r.pathPatterns.some((p) => matchesPath(pathname, p)));
-      assert.deepEqual(gate.path(pathname), { closed: true, feature: first?.name, redirectTo: first?.redirectTo });
+      assert.deepEqual(gate.path(pathname), { open: false, rule: first?.name, redirectTo: first?.redirectTo });
     }
   }
-  assert.deepEqual(gate.path("/__no_such_gated_path__"), { closed: false });
+  assert.deepEqual(gate.path("/__no_such_gated_path__"), { open: true });
 });

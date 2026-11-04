@@ -17,13 +17,13 @@ export function isFeatureEnabled(name: FeatureName): boolean {
   return rule.enabled();
 }
 
-/** 住所が閉じているか。閉じていれば一覧の順で最初の閉じた規則 */
+/** 住所が開いているか。閉じていれば一覧の順で最初の閉じた規則の名前(rule)と redirectTo */
 export function resolvePath(pathname: string, list: readonly GatedFeatureRule[] = rules): GatePathResult {
   for (const rule of list) {
     if (rule.enabled()) continue;
     if (rule.pathPatterns.some((pattern) => matchesPath(pathname, pattern))) {
-      return { closed: true, feature: rule.name, redirectTo: rule.redirectTo };
+      return { open: false, rule: rule.name, redirectTo: rule.redirectTo };
     }
   }
-  return { closed: false };
+  return { open: true };
 }

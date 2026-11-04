@@ -31,5 +31,5 @@ function blockResponse(request: NextRequest, redirectTo?: string): NextResponse 
  */
 export const featureGateProxy: ProxyHandler = (request) => {
   const result = gate.path(request.nextUrl.pathname);
-  if (result.closed) return blockResponse(request, result.redirectTo);
+  if (!result.open) return blockResponse(request, result.redirectTo);
 };

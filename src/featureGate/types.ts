@@ -58,7 +58,7 @@ export type RequiredFeature = {
   reason: string;
 };
 
-/** gate.path の答え: 閉じているか。閉じていれば一覧の順で最初の閉じた規則の名前と行き先 */
+/** gate.path の答え(D23): 開いているか。閉じていれば一覧の順で最初の閉じた規則の名前(rule)と行き先 */
 export type GatePathResult =
-  | { closed: false }
-  | { closed: true; feature: FeatureName; redirectTo?: string };
+  | { open: true }
+  | { open: false; rule: FeatureName; redirectTo?: string };
