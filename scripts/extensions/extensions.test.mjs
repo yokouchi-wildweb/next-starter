@@ -258,6 +258,26 @@ test("check: 一覧のずれ・extensions/ に手で置いたファイル(受け
   assert.ok(existsSync(join(root, "src/features/milestone/extensions/definitions.ts")));
 });
 
+test("1 行スイッチ: src/app の frame.default.ts は枠の宣言の既定でスイッチではない(隣の frame.ts も不在も問わない)", () => {
+  const root = fixture({
+    "src/app/(user)/a/page.tsx": "export default 1;\n",
+    "src/app/(user)/a/frame.default.ts": "export const frameDefault = { page: {} };\n",
+    "src/app/(user)/b/page.tsx": "export default 1;\n",
+    "src/app/(user)/b/frame.default.ts": "export const frameDefault = { page: {} };\n",
+    "src/app/(user)/b/frame.ts": "export const frame = { page: { fill: true } };\n",
+    "src/features/core/x/frame.default.ts": "export const x = 1;\n",
+  });
+  try {
+    for (const isTier1 of [true, false]) {
+      const { switches, problems } = checkSwitches(root, { isTier1 });
+      assert.deepEqual(switches, []);
+      assert.deepEqual(problems, ["src/features/core/x/frame.default.ts: 隣にスイッチ frame.ts(x) が無い(呼び手が import する素の名前。中身は export … from \"./frame.default\" の 1 行)"], "src/app の外の frame.default は今どおりスイッチの既定");
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ、先は .default か .replace(実在する)、旧い印は止める、Tier1 は .default", () => {
   const D = "export function enrich() {}\n";
   const root = fixture({

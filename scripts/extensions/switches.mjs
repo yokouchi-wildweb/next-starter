@@ -2,6 +2,7 @@
 // 1 行スイッチの検査: 既定 <名前>.default.ts(x)(上流)の隣の素の名前 <名前>.ts(x) = 呼び手が import する口で、採用者所有の 1 行 re-export。
 // 中身(コメントを除く)は ./<名前>.default か ./<名前>.replace を指す re-export 1 文だけ。Tier1 は .default を指す。
 // fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。
+// src/app の frame.default.ts は枠の宣言の既定でスイッチではない(frames.mjs)。
 // 隣に <名前>.default の無い <名前>.replace は孤立で失敗(route の隣 _layout/_screen/_components は test:screens の側)。page.tsx・layout.tsx のスイッチ(_screen / _components を指す)は test:screens の側。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -15,6 +16,8 @@ import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
 const DEFAULT_FILE = /^([A-Za-z][A-Za-z0-9]*)\.default\.(ts|tsx)$/;
 const REPLACE_FILE = /^(.+)\.replace\.(ts|tsx)$/;
 const ROUTE_DIRS = ["_layout", "_screen", "_components"];
+/** 枠の宣言の既定(src/app の frame.default.ts)は 1 行スイッチの既定ではない(隣の frame.ts は既定の上に重なる宣言。frames.mjs) */
+const FRAME_DEFAULT = /^src\/app\/(?:.*\/)?frame\.default\.ts$/;
 const REEXPORT = /^export\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*["']\.\/([^"'/]+)["']\s*;?$/;
 
 /** src の下の <名前>.default.ts(x) と、route の隣の外の <名前>.replace.ts(x) を集める */
@@ -26,7 +29,7 @@ function findDefaults(repoRoot) {
     for (const entry of readdirSync(join(repoRoot, dir), { withFileTypes: true })) {
       if (entry.isDirectory()) {
         if (entry.name !== "node_modules" && !entry.name.startsWith(".")) walk(`${dir}/${entry.name}`, inRoute || ROUTE_DIRS.includes(entry.name));
-      } else if (DEFAULT_FILE.test(entry.name)) {
+      } else if (DEFAULT_FILE.test(entry.name) && !FRAME_DEFAULT.test(`${dir}/${entry.name}`)) {
         found.push(`${dir}/${entry.name}`);
       } else if (!inRoute && REPLACE_FILE.test(entry.name)) {
         replaces.push(`${dir}/${entry.name}`);
