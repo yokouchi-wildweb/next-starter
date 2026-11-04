@@ -13,6 +13,7 @@ edit next.config.ts  # fork のビルド設定
 edit .mcp.json  # エージェントの接続設定
 edit README.md  # fork のプロジェクトの説明
 edit eslint.config.fork.mjs  # fork の ESLint の設定(eslint.config.mjs が読み足す。eslint.config.mjs 自体は upstream)
+edit firebase.json  # fork の Firebase の配備設定(firestore のルール・インデックスを足す。storage は upstream の全拒否のまま)
 # tsconfig.json は受け口の外(paths の不足は upstream で直す、L1.8)。AGENTS.md も外(Next が書き足す区画は生成器の区画として除く)
 
 # 値(config の再設計までは全体。値とキーを区別しない)

@@ -1,0 +1,156 @@
+rules_version = '2';
+
+// chatRoom の Firestore ルールの例。upstream が同梱する見本で、配備はしない。
+// fork は firestore.rules（リポ直下の firestore.rules.example から作る）の documents の中へ、下の match /chat_rooms ブロックを足して配備する。
+// 方針は src/features/core/chatRoom/README.md「セキュリティルールの方針」。ブラウザが chat_rooms と messages を直接読み書きするので、ルールが唯一の守り。
+//
+// request.auth.uid について:
+//   participants / senderId / readAt のキーはアプリの users.id。このルールは request.auth.uid == users.id を前提にする。
+//   カスタムトークン（createFirebaseToken / localLogin。uid = users.id）でサインインしたユーザーはこれを満たす。
+//   メール+パスワード・OAuth でログインしたユーザーの uid がプロバイダーの uid のまま残るかは検証中（next-starter の依頼 20261104-183246-chatroom-uid-mismatch）。
+//   ずれていると、そのユーザーは参加しているルームも読めず、送信も拒否される。
+//
+// 管理画面の操作（一覧・論理削除など）はサーバーの Admin SDK で行うのでルールを通らない。
+// 数値は src/features/core/chatRoom/constants/chat.ts に合わせる（MESSAGE_MAX_LENGTH = 5000、MAX_PARTICIPANTS = 30）。変えたらここも変える。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /chat_rooms/{roomId} {
+      function signedIn() {
+        return request.auth != null;
+      }
+      function me() {
+        return request.auth.uid;
+      }
+      function isParticipant() {
+        return signedIn() && me() in resource.data.participants;
+      }
+      function changedKeys() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+      // readAt の中で変わったキーが keys（set）の中だけ
+      function readAtChangedOnly(keys) {
+        return request.resource.data.get('readAt', {}).diff(resource.data.get('readAt', {}))
+          .affectedKeys().difference(keys).size() == 0;
+      }
+      // 自分が送った、この書き込みの時刻の最新メッセージ
+      function validSnapshot(snap, types) {
+        return snap.senderId == me()
+          && snap.type in types
+          && snap.content is string
+          && snap.content.size() <= 5000
+          && snap.createdAt == request.time;
+      }
+
+      // 追加・退出された参加者（前後の差）
+      function changedParticipants() {
+        return request.resource.data.participants.toSet().difference(resource.data.participants.toSet())
+          .union(resource.data.participants.toSet().difference(request.resource.data.participants.toSet()));
+      }
+
+      // 読み取り: 参加者だけ（一覧の購読は where("participants", "array-contains", <自分>) で絞るので、この条件で通る）
+      allow read: if isParticipant();
+
+      // 作成: 自分が参加者に入ったルームを、作成のシステムメッセージと一緒に作る（createRoomWithSystemMessage）
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'type', 'name', 'participants', 'participantPair', 'readAt',
+          'lastMessageSnapshot', 'deletedAt', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.participants is list
+        && me() in request.resource.data.participants
+        && request.resource.data.participants.size() <= 30
+        && request.resource.data.readAt.keys().toSet().difference(request.resource.data.participants.toSet()).size() == 0
+        && request.resource.data.deletedAt == null
+        && validSnapshot(request.resource.data.lastMessageSnapshot, ['system'])
+        && (
+          (request.resource.data.type == 'direct'
+            && request.resource.data.participants.size() == 2
+            && request.resource.data.participants[0] != request.resource.data.participants[1]
+            && request.resource.data.participantPair in [
+              request.resource.data.participants[0] + '_' + request.resource.data.participants[1],
+              request.resource.data.participants[1] + '_' + request.resource.data.participants[0]
+            ])
+          || (request.resource.data.type == 'group' && request.resource.data.participantPair == null)
+        );
+
+      // 更新: 参加者だけ。どのフィールドが変わったかで経路を分ける
+      allow update: if isParticipant() && (
+        // 既読更新（updateReadAt）: 自分の readAt だけ
+        (changedKeys().hasOnly(['readAt']) && readAtChangedOnly([me()].toSet()))
+        // メッセージ送信（sendMessage）: 最新メッセージ・updatedAt・自分の readAt だけ
+        || (changedKeys().hasOnly(['lastMessageSnapshot', 'updatedAt', 'readAt'])
+          && readAtChangedOnly([me()].toSet())
+          && validSnapshot(request.resource.data.lastMessageSnapshot, ['text', 'image', 'video', 'file'])
+          && request.resource.data.updatedAt == request.time)
+        // 最新メッセージの編集（editMessage）: 自分が送った最新メッセージの本文だけ
+        || (changedKeys().hasOnly(['lastMessageSnapshot', 'updatedAt'])
+          && resource.data.lastMessageSnapshot.senderId == me()
+          && request.resource.data.lastMessageSnapshot.diff(resource.data.lastMessageSnapshot).affectedKeys().hasOnly(['content'])
+          && request.resource.data.lastMessageSnapshot.content.size() <= 5000
+          && request.resource.data.updatedAt == request.time)
+        // 参加者の追加・退出（addParticipant / removeParticipant）: group だけ、1 人ずつ、システムメッセージと一緒に
+        // 誰が追加・退出させてよいかはここでは参加者なら誰でも。fork の用途に合わせて絞る（例: 退出は本人だけ）
+        || (resource.data.type == 'group'
+          && changedKeys().hasOnly(['participants', 'readAt', 'lastMessageSnapshot', 'updatedAt'])
+          && request.resource.data.participants is list
+          && request.resource.data.participants.size() <= 30
+          && changedParticipants().size() == 1
+          && readAtChangedOnly(changedParticipants())
+          && validSnapshot(request.resource.data.lastMessageSnapshot, ['system']))
+      );
+
+      // 削除: クライアントからはしない（ルームの論理削除は管理画面 = サーバー）
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        function room() {
+          return get(/databases/$(database)/documents/chat_rooms/$(roomId));
+        }
+        function roomAfter() {
+          return getAfter(/databases/$(database)/documents/chat_rooms/$(roomId));
+        }
+
+        // 読み取り: 親ルームの参加者だけ
+        allow read: if signedIn() && me() in room().data.participants;
+
+        // 作成: 送信者は本人。親ルームの最新メッセージの更新と同じ書き込み（batch）でだけ作れる
+        //   参加者の判定は書き込みの前（退出のシステムメッセージ）か後（ルーム作成・追加）のどちらかで通る
+        allow create: if signedIn()
+          && (me() in roomAfter().data.participants || me() in room().data.participants)
+          && request.resource.data.keys().hasOnly(['type', 'content', 'senderId', 'metadata', 'createdAt'])
+          && request.resource.data.senderId == me()
+          && request.resource.data.type in ['text', 'image', 'video', 'file', 'system']
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 5000
+          && request.resource.data.createdAt == request.time
+          && roomAfter().data.lastMessageSnapshot.createdAt == request.time
+          && roomAfter().data.lastMessageSnapshot.type == request.resource.data.type
+          && roomAfter().data.lastMessageSnapshot.content == request.resource.data.content
+          && roomAfter().data.lastMessageSnapshot.senderId == me();
+
+        // 更新: 送信者本人の、システムメッセージ以外。編集（editMessage）か論理削除（deleteMessage）だけ
+        allow update: if signedIn()
+          && resource.data.senderId == me()
+          && resource.data.type != 'system'
+          && me() in room().data.participants
+          && (
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'editedAt'])
+              && request.resource.data.content is string
+              && request.resource.data.content.size() <= 5000
+              && request.resource.data.editedAt == request.time)
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedAt'])
+              && request.resource.data.deletedAt == request.time)
+          );
+
+        // 物理削除: クライアントからはしない
+        allow delete: if false;
+      }
+    }
+
+    // どの allow にも当たらないパスはすべて拒否する（firestore.rules.example と同じ。firestore.rules に 1 つあればよい）
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

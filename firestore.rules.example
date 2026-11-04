@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Firestore のルールの雛形（全拒否）。upstream が同梱する見本で、配備はしない。
+// 使い方（fork ごと。手順の全体は docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.2）:
+//   1. このファイルを firestore.rules にコピーする（firestore.rules は fork が持ち、fork のリポでコミットする。upstream は同梱しない）
+//   2. 使う機能のルール例を、下の documents の中へ足す（chatRoom = src/features/core/chatRoom/firestore.rules.example）
+//   3. firebase.json に "firestore": { "rules": "firestore.rules" } を足す（fork が書いてよい場所。src/lib/forkOwnership/intake.txt）
+//   4. 配備: firebase deploy --only firestore:rules --project <project-id>
+// サーバーの Admin SDK（getServerFirestore）はルールを通らないので、このルールの影響を受けない。
+// ブラウザから直接読み書きするコレクションだけに、必要最小限の allow を足す（業務データは Firestore に置かない: CLAUDE.md BACKEND_DOCTRINE）。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // どの allow にも当たらないパスはすべて拒否する
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

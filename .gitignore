@@ -28,10 +28,9 @@
 firebase-service-acount.json
 .firebaserc
 firebase-debug.log
-firestore.indexes.json
 apphosting.yaml
-firestore.rules
 # firebase.json と storage.rules は upstream が同梱する（Storage は全拒否のルール。src/lib/storage/README.md）
+# firestore.rules / firestore.indexes.json は fork が持ち、fork のリポでコミットする（upstream は雛形 firestore.rules.example だけを同梱する）
 
 # production
 /build

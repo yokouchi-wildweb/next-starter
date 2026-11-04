@@ -27,7 +27,7 @@ src/lib/firebase/
 
 | 層 | 判定関数 | 未設定時の挙動 |
 |---|---|---|
-| client (`client/app.ts`) | `isFirebaseClientConfigured()`（API key と projectId が非空） | `app` / `fstore` は従来どおり生成（空設定でも throw しない）。`auth` だけは `getAuth` を呼ばず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth }` の形状は不変） |
+| client (`client/app.ts`) | `isFirebaseClientConfigured()`（API key と projectId が非空） | `app` は従来どおり生成（空設定でも throw しない）。`auth` と `fstore` は初期化せず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth, fstore }` の形状は不変。`collection(fstore, …)` などの SDK 関数も同じエラーで即座に止まる） |
 | server (`server/app.ts`) | `isFirebaseServerConfigured()`（`MY_SERVICE_ACCOUNT_KEY` が非空） | `getServerApp / getServerAuth / getServerFirestore / getServerStorage` が `FirebaseNotConfiguredError("server")` を投げる（遅延初期化なので import だけでは失敗しない） |
 
 ルール:

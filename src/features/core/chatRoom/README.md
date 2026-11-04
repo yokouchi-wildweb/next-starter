@@ -832,7 +832,10 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 - 構造案: `chatTyping/{roomId}/{userId}: { isTyping, updatedAt }`。クライアント側で `updatedAt` が数秒以上古ければ表示しないフェイルセーフを入れる
 - RTDB は必要になった時点で導入する（上流は未導入）
 
-**セキュリティルールの方針（ルールファイルは上流に同梱しない。ダウンストリームでデプロイする）**
+**セキュリティルールの方針（例を `src/features/core/chatRoom/firestore.rules.example` に同梱。ダウンストリームが自分の `firestore.rules` に足してデプロイする）**
+
+- ブラウザが `chat_rooms` と `messages` を直接読み書きするので、ルールが唯一の守り。手順は docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.2
+- 例は `request.auth.uid` == `users.id`（participants・senderId・readAt のキー）を前提にする。カスタムトークンでのサインインはこれを満たす
 
 - ルールはドキュメント単位で評価されるため、各ドキュメントのフィールド値検証で制約を担保する
 - `chat_rooms` の update は 1 つの allow 式で「どのフィールドが変わったか」を分岐判定する。少なくとも次の経路を区別する:

@@ -95,9 +95,12 @@ export async function createDirectRoom(
   const participantPair = buildParticipantPair(myUid, otherUid);
 
   // 既存ルームの検索
+  // participants の array-contains は結果を変えない（participantPair は自分を含む）。
+  // 参加者だけが読めるルール（chatRoom/firestore.rules.example）では、これが無いと検索ごと拒否される。
   const q = query(
     collection(fstore, collectionPath),
     where("participantPair", "==", participantPair),
+    where("participants", "array-contains", myUid),
   );
   const { docs: existing } = await queryDocs<ChatRoom>(q);
 

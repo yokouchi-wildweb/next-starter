@@ -32,7 +32,8 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
 
   let decoded;
   try {
-    decoded = await auth.verifyIdToken(idToken);
+    // checkRevoked=true: 失効済み（revokeRefreshTokens 後）・無効化されたユーザーのトークンも拒否する。
+    decoded = await auth.verifyIdToken(idToken, true);
   } catch (error) {
     console.error("Failed to verify ID token in preRegister", error);
     throw new DomainError("認証情報の検証に失敗しました", { status: 401 });

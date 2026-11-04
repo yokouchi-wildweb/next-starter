@@ -57,7 +57,8 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
   let decodedToken: Awaited<ReturnType<typeof auth.verifyIdToken>>;
   try {
     // ID トークンを検証して署名と有効期限をチェックする。
-    decodedToken = await auth.verifyIdToken(idToken);
+    // checkRevoked=true: 失効済み（revokeRefreshTokens 後）・無効化されたユーザーのトークンも拒否する。
+    decodedToken = await auth.verifyIdToken(idToken, true);
   } catch (error) {
     console.error("Failed to verify ID token in createFirebaseSession", error);
     throw new DomainError("認証情報の検証に失敗しました", { status: 401 });
