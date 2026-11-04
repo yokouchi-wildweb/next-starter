@@ -77,7 +77,7 @@
     "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/featureGate.test.mjs",
     "test:feature-gate:reach": "node --test src/featureGate/checks/reachability.test.mjs",
     "test:feature-gate:tools": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/gateTools.test.ts",
-    "test:feature-gate:client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/clientTools.test.tsx",
+    "test:feature-gate:client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/clientTools.test.tsx src/featureGate/checks/readers.test.tsx",
     "test:proxy-frame": "node --test scripts/proxies/proxyFrame.test.mjs",
     "test:extensions": "node --test scripts/extensions/extensions.test.mjs",
     "test:extension-items": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/extensions/upstreamItems.test.mts",

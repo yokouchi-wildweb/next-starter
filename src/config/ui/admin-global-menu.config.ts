@@ -3,7 +3,6 @@
 import { adminDataMenu } from "@/registry/adminDataMenu";
 import type { UserRoleType } from "@/features/core/user/types";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { isPaymentMethodSelectable } from "@/config/app/payment.config";
 import { buildSettingMenuItems } from "@/features/core/setting/menu";
 import type { IconComponent } from "@/components/Icons";
 import {
@@ -55,6 +54,11 @@ export type AdminMenuSection = {
   icon?: IconComponent;
 };
 
+/**
+ * 管理のサイドバーのメニュー。閉じた機能(門番の規則)の住所の行は書いたままでよい:
+ * サイドバーが管理の枠の門番の値で除き、行が 0 で href の無い節も描かない(src/app/admin/(protected)/_layout/Sidebar/sidebarSections.ts)。
+ * 規則でない出し分け(showInAdminMenu など)だけをここで書く
+ */
 export const adminMenu: AdminMenuSection[] = [
 
   {
@@ -73,12 +77,8 @@ export const adminMenu: AdminMenuSection[] = [
           href: null,
           icon: Megaphone,
           items: [
-            ...(APP_FEATURES.marketing.notification.enableAdminBroadcast
-              ? [{ title: "お知らせ", href: "/admin/notifications", icon: Bell }]
-              : []),
-            ...(APP_FEATURES.marketing.coupon.enabled
-              ? [{ title: "クーポン", href: "/admin/coupons/official", icon: Ticket }]
-              : []),
+            { title: "お知らせ", href: "/admin/notifications", icon: Bell },
+            { title: "クーポン", href: "/admin/coupons/official", icon: Ticket },
           ],
         },
       ]
@@ -89,21 +89,17 @@ export const adminMenu: AdminMenuSection[] = [
     icon: Database,
     items: adminDataMenu,
   },
-  // 銀行振込レビューは決済方法 bank_transfer_inhouse が選択可能なときだけ露出する。
-  // 現状このセクションは単一項目のため、無効時はセクションごと非表示にする。
-  ...(isPaymentMethodSelectable("bank_transfer_inhouse")
-    ? [
-        {
-          title: "リクエスト管理",
-          href: null,
-          icon: Inbox,
-          items: [
-            { title: "銀行振込レビュー", href: "/admin/bank-transfer-reviews/pending-review", icon: Banknote },
-          ],
-          allowRoles: ["admin"] as UserRoleType[],
-        },
-      ]
-    : []),
+  // 銀行振込レビューは規則 bankTransferReview(決済方法 bank_transfer_inhouse が選択可能なとき開く)で閉じる。
+  // 閉じていれば行が除かれ、行が 0 になったこの節も描かれない
+  {
+    title: "リクエスト管理",
+    href: null,
+    icon: Inbox,
+    items: [
+      { title: "銀行振込レビュー", href: "/admin/bank-transfer-reviews/pending-review", icon: Banknote },
+    ],
+    allowRoles: ["admin"],
+  },
   {
     title: "ユーザー管理",
     href: null,
@@ -111,12 +107,8 @@ export const adminMenu: AdminMenuSection[] = [
     items: [
       { title: "登録ユーザー", href: "/admin/users/general" },
       { title: "システム管理者", href: "/admin/users/system" },
-      ...(APP_FEATURES.adminConsole.enableDemoUser
-        ? [{ title: "デモユーザー", href: "/admin/users/demo" }]
-        : []),
-      ...(APP_FEATURES.user.enableUserTag
-        ? [{ title: "ユーザータグ", href: "/admin/user-tags" }]
-        : []),
+      { title: "デモユーザー", href: "/admin/users/demo" },
+      { title: "ユーザータグ", href: "/admin/user-tags" },
     ],
     allowRoles: ["admin"],
   },

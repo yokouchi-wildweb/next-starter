@@ -7,10 +7,11 @@ import "server-only";
 import { createLoader } from "@/app/guard";
 import { gate } from "@/featureGate";
 
-import { openDemoPages } from "../_data/demoPages";
+import { demoHref } from "../_data/demoPages";
 import { demoPages } from "../extensions/demoPages";
 
 export const loadDemoIndexScreen = createLoader({
   access: "public",
-  load: async () => ({ pages: openDemoPages(demoPages, (href) => !gate.path(href).open) }),
+  // 閉じた機能の住所のデモを除く(判定は gate.filter。画面の数・カテゴリの数はこの一覧から数える)
+  load: async () => ({ pages: gate.filter(demoPages, demoHref) }),
 });

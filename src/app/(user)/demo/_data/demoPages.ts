@@ -39,7 +39,7 @@ export const DEMO_CATEGORIES: readonly DemoCategory[] = [
 
 export const demoHref = (page: Pick<DemoPage, "folder">) => `/demo/${page.folder}`;
 
-/** 閉じた機能の住所のデモを除く(isClosed = 門番の !gate.path(href).open。loader が渡す) */
+/** isClosed の住所のデモを除く。上流の loader は gate.filter(demoPages, demoHref) を使う(fork の Screen から呼んでいる物のために残す) */
 export const openDemoPages = (pages: readonly DemoPage[], isClosed: (href: string) => boolean): DemoPage[] =>
   pages.filter((page) => !isClosed(demoHref(page)));
 

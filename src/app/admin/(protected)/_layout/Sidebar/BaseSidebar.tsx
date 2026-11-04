@@ -18,87 +18,18 @@ import {
   adminMenu,
   ADMIN_MENU_ICONS_ENABLED,
   ADMIN_LOGOUT_ICON,
-  type AdminMenuSection,
 } from "@/config/ui/admin-global-menu.config";
-import type { IconComponent } from "@/components/Icons";
+import { useGate } from "@/featureGate/client";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { MenuButton, adminSidebarButtonClassName } from "@/app/admin/_layout/Sidebar/MenuButton";
+
+import { buildSidebarSections } from "./sidebarSections";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
 
 const sidebarContainer = cva(
   "h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg",
 );
-
-const hasHref = (href: string | null | undefined): href is string =>
-  typeof href === "string" && href.length > 0;
-
-type SidebarMenuItem = {
-  title: string;
-  href: string;
-  icon?: IconComponent;
-  allowRoles?: readonly string[];
-};
-
-/**
- * allowRoles によるフィルタ判定
- * - allowRoles 未指定/空 → 全員表示
- * - ユーザーロールが allowRoles に含まれているか
- */
-const isAllowedForRole = (
-  allowRoles: readonly string[] | undefined,
-  userRole: string | undefined,
-): boolean => {
-  if (!allowRoles || allowRoles.length === 0) return true;
-  return userRole ? allowRoles.includes(userRole) : false;
-};
-
-type SidebarMenuSection = {
-  title: string;
-  href: string | null;
-  items: SidebarMenuItem[];
-  icon?: IconComponent;
-};
-
-/**
- * メニュー設定からサイドバー用のセクションリストを生成
- * allowRoles が指定されている場合、ユーザーロールでフィルタリング
- */
-function buildSidebarSections(
-  menu: AdminMenuSection[],
-  userRole: string | undefined,
-): SidebarMenuSection[] {
-  return menu
-    .filter((section) => isAllowedForRole(section.allowRoles, userRole))
-    .map((section) => {
-      const primaryHref = hasHref(section.href) ? section.href : null;
-
-      const items = section.items.reduce<SidebarMenuItem[]>((acc, item) => {
-        if (!hasHref(item.href)) {
-          return acc;
-        }
-        // アイテム単位の allowRoles でも絞り込み
-        if (!isAllowedForRole(item.allowRoles, userRole)) {
-          return acc;
-        }
-
-        acc.push({
-          title: item.title,
-          href: item.href,
-          icon: item.icon,
-          allowRoles: item.allowRoles,
-        });
-        return acc;
-      }, []);
-
-      return {
-        title: section.title,
-        href: primaryHref,
-        items,
-        icon: section.icon,
-      };
-    });
-}
 
 const submenuVariants = cva(
   "modal-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
@@ -153,10 +84,11 @@ export function BaseSidebar({
   const { showToast } = useToast();
   const { user } = useAuthSession();
 
-  // ユーザーロールに基づいてメニューをフィルタリング
+  // ユーザーロールと門番(管理の枠の値。閉じた機能の住所の行・空になった節を除く)でメニューを絞る
+  const gate = useGate();
   const sidebarSections = useMemo(
-    () => buildSidebarSections(adminMenu, user?.role),
-    [user?.role],
+    () => buildSidebarSections(adminMenu, user?.role, gate.filter),
+    [user?.role, gate],
   );
 
   const clearCloseTimeout = useCallback(() => {
