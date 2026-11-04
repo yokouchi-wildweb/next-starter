@@ -10,7 +10,7 @@ paths:
 
 ownership: see CORE_FILES (src/styles/_base/** = upstream | src/styles/*.css at the root (entry global.css + palette / typography / overrides.css + fork-added), src/config/ui/*.config.ts = downstream) | color source of truth = CSS
 config: variants / fonts / site theme are set through src/config/ui/*.config.ts define*Config({partial}) | variant and size names are public contract (rename → .notices) | before changing tokens, variants, fonts or theme → read src/styles/README.md
-frame_dims: user / admin frame sizes (header, banner, bottom nav, safe area) → var(--app-*-height) / var(--app-safe-area-*), never hard-coded px (vars go 0 while a part is hidden) | ref: src/app/(user)/_layout/README.md
+frame_dims: user / admin frame sizes (header, banner, bottom nav, safe area) → var(--app-*-height) / var(--app-safe-area-*), never hard-coded px (vars go 0 while a part is hidden) | a part portaled to body cannot inherit them → put useFrameDimsStyle() (@/hooks/useFrameDimsStyle) on its outer element, never read [data-frame-root] yourself | ref: src/app/(user)/_layout/README.md
 layer_map: change a look at the widest layer that reaches it (token → config/ui variant override → frame → page → part name / spacing step → className) | lower layers use upper values, never restate them | ref: src/styles/README.md
 fork_css_contract: fork CSS may target only [data-slot] marks and :root / .dark / [data-area] values | id, class names, data-component, DOM shape are not a contract (no notice on change)
 building_a_part (MANDATORY):
