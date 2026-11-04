@@ -264,3 +264,4 @@
 - id:20261105-073019-feature-gate-readers | severity:info | checkpoint:gate-s2 | resolves:20261103-140211-admin-menu-hide-gated-rows, 20261103-172638-demo-pages-hide-gated
 - id:20261105-075841-frame-dims-portal-hook | severity:info | checkpoint:frame-dims-portal-hook | fixes:20261102-222255-frame-mobile-a11y | resolves:20261105-073339-frame-dims-for-portaled-parts | hotfix:yes | pick:-
 - id:20261105-081445-pick-ignores-shipped-index | severity:info | checkpoint:pick-ignores-shipped-index
+- id:20261105-082025-frame-declarations | severity:breaking | checkpoint:shared-shelf-frame | resolves:20261102-114757-bottom-nav-menu-side-prop | uses:scripts/codemods/frame-declarations.mjs
