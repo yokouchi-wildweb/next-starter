@@ -21,7 +21,7 @@
 ## 使い方
 
 - **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ 索引の行を `node scripts/notices/shippedIndex.mjs add <notice>` で足す → `pnpm test:notices` → 変更本体と同じコミットで push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/notices/notices.test.mjs`・索引の欄の並び(`scripts/notices/shippedIndex.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`)を同じコミットで直す)。
-- **中継(中間 Tier)**: 下流を持つ fork の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/flux relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
+- **中継(中間 Tier)**: 下流を持つ fork(`.claude/rules/project.md` の `downstream: yes`)の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/flux relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 全区間の概観(1 行ずつ)と**次の区間だけ**の詳細な適用計画を提示 → 承認 → その区間の merge・コード修正・DB 操作・検証・台帳記録・コミット・push → 次の区間の計画を出して止まる。承認は区間ごと(区間の終わりの `go` = 次の区間の計画の承認)で、`/flux all` は最初の区間の承認の後、区間ごとに計画と実行を繰り返して最後まで進める(`/flux next` は既定の別名)。fork が移動元を編集した大きな `moved:` の移植を含む区間は、`all` の途中でも手前で止まる。`/flux status` で状態確認のみ。notice の有無にかかわらず区間の上流差分から使い方の変わった部品・lib・core を洗い出し、fork 側の使用箇所を同じ区間で揃え、区間ごとに typecheck / lint を通してから commit する(古い使い方を残すのはユーザーが判断したときだけ)。notice が無いのに追従が要った変更は「上流への所見」で notice 漏れとして返る。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/order <上流リポ> 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
 
@@ -196,7 +196,8 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 
 ### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
 中継が要るかどうかは文面の解釈ではなく **git の差分と適用の事実だけ**で決める。下流に補足が要るのは「上流が変えた箇所が中間 Tier で食い違う」「中間 Tier が適用作業で上流の外まで変えた」「中間 Tier が手順から外れた」ときだけで、どれも無ければ下流が中間 Tier から受け取るコードと作業は上流 notice どおりで済むため。
-- 対象 fork: `.claude/rules/project.md` の TIER 節に下流を持つと書かれている fork。末端 fork は判定しない。
+- 対象 fork: `.claude/rules/project.md` の `downstream: yes` の fork(読み手は `src/lib/forkOwnership/forkIds.mjs` だけ。宣言が無い・誤りは止まる)。`downstream: none` の末端 fork は判定しない。
+- 中継の義務(CLAUDE.md DOWNSTREAM_NOTICES relay): `/flux` の中継未判定の報告が 0 でない間は flux 未完(助言ではない)。中継を忘れたら次の commit で他の作業より先に入れる。
 - 対象 notice: 区間内で適用した、自分の索引に無い notice(covered id は covers 側と一緒に判定)。
 - 判定(区間の verify 後、commit 前): `Q` = その notice の区切り点、`P` = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点。どちらも `incoming.mjs` の出力の `point`)、`A` = 区間の merge 直後の HEAD。次のどれか 1 つで中継が必要、どれも無ければ中継不要(①② は `.claude/skills/flux/relay-check.mjs` が出す。詳細と限界は `.claude/skills/flux/relay.md`「中継判定」):
   - ① ハンクの重なり: 上流が P→Q で変えた行範囲と、作業ツリーが Q と食い違う行範囲が重なるか接する。同じファイルでも離れた場所の fork 独自の追加は数えない。

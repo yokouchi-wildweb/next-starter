@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { checkLineageStructure, checkOverrides, formatProblems, parseLineage, parseOverrideBody } from "./lineage.mjs";
+import { checkLineageStructure, checkOverrides, formatProblems, parseLineage, parseOverrideBody, touchedOverrides } from "./lineage.mjs";
 
 const PREAMBLE = "# lineage\n> **ROLE**: x\n<!-- end preamble -->\n";
 const section = (name, ...lines) => `## ${name}\n${lines.map((line) => `${line}\n`).join("")}<!-- end ${name} -->\n`;
@@ -82,4 +82,22 @@ test("checkOverrides: (default) の祖先の鍵だけ。無い節・無い鍵・
   assert.deepEqual(warned.failures, []);
   assert.match(warned.warnings.join(), /鍵 tone は祖先/);
   assert.deepEqual(run("- tone: casual\noverrides: oripa-do.tone = casual | why: r\n").warnings, []);
+});
+
+test("touchedOverrides: 名指す鍵の行が変わった・消えた・(default) が外れた = 接触、他の鍵の変更・名指し先が前から無いのは接触でない", () => {
+  const before = PREAMBLE + section("oripa-do", "- tone (default): polite", "- relay: always") + section("pandora", "overrides: oripa-do.relay = x | why: r");
+  const projectText = "overrides: oripa-do.tone = casual | why: r\noverrides: oripa-do.ghost = 1 | why: r\n";
+  const run = (after) => touchedOverrides({ before, after, projectText, own: "pandora" });
+
+  assert.deepEqual(run(before), []);
+  assert.deepEqual(run(PREAMBLE + section("oripa-do", "- tone (default): polite", "- relay: always", "- new: 1") + section("pandora", "overrides: oripa-do.relay = x | why: r")), [], "他の鍵を足しただけ");
+  const changed = run(PREAMBLE + section("oripa-do", "- tone (default): formal", "- relay: always") + section("pandora", "overrides: oripa-do.relay = x | why: r"));
+  assert.deepEqual(changed.map((t) => `${t.target}:${t.change}`), ["oripa-do.tone:changed"]);
+  assert.equal(changed[0].where, ".claude/rules/project.md");
+  const removed = run(PREAMBLE + section("oripa-do", "- relay: never") + section("pandora", "overrides: oripa-do.relay = x | why: r"));
+  assert.deepEqual(removed.map((t) => `${t.target}:${t.change}`).sort(), ["oripa-do.relay:changed", "oripa-do.tone:removed"], "自分の節の打ち消しも見る");
+  const undefaulted = run(PREAMBLE + section("oripa-do", "- tone: polite", "- relay: always") + section("pandora", "overrides: oripa-do.relay = x | why: r"));
+  assert.deepEqual(undefaulted.map((t) => `${t.target}:${t.change}`), ["oripa-do.tone:default-removed"]);
+  assert.deepEqual(run(null).map((t) => t.change).sort(), ["removed", "removed"], "lineage.md ごと消えた");
+  assert.deepEqual(touchedOverrides({ before: null, after: before, projectText, own: "pandora" }), [], "取り込む前に無かった");
 });

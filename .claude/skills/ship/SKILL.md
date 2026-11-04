@@ -9,7 +9,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
 ## いつ使うか
 - ユーザーがコミット・push・出荷を指示したとき(「コミットして」「プッシュして」「出荷して」)。指示が無ければ使わない(behavior.md: 指示なしにコミットしない)。
 - `/inbox` の手順 4(「対応完了」)から。引数 `order:<id>` が付く。
-- 下流を持たないリポ(末端 fork)でも使う。下流の有無は `.claude/rules/project.md` の TIER 節で判断し、無ければ手順 3〜5(notice)を飛ばす。
+- 下流を持たないリポ(末端 fork)でも使う。下流の有無は `.claude/rules/project.md` の `downstream: yes|none` の 1 行(読み手は `src/lib/forkOwnership/forkIds.mjs` だけ): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`。`none` なら手順 3〜5(notice)を飛ばす。`yes` / `none` 以外(宣言が無い・誤り)なら文面から推し量らずに止まり、`fork_id:` と同じ節に宣言を足してもらう(`pnpm ownership:check` も未検証になる)。
 
 引数: $ARGUMENTS(`order:<id>` = 指令から来た出荷、`no-push` = commit だけして push しない、`hotfix` = 緊急修正として出す(人間が指示したときだけ。自分の判断で付けない。全 fork の作業に割り込むため)、残りは補足メモ)
 
@@ -46,6 +46,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - 挙動・権限が黙って変わる
    - 変えた分野のルール・README が notice を求めている(CLAUDE.md や `.claude/rules/core/`、colocated README で「→ notice」「ship .notices」と書かれた条件。変えた分野のものを読んで確かめる)
    - 前に出荷したものの修正(手順 4)
+   - 自分の `.claude/rules/lineage.md` の節(`## <自分の fork_id>`)を変えた: 下流に効く規則の変更なので必ず notice(言い回しだけの変更 = `severity: info` + `required_actions: none`)。`(default)` の鍵の削除・改名・`(default)` を外した・下流に作業が要る契約の変更は、`required_actions` に打ち消し(`overrides: <自分の fork_id>.<key> = …`)を書いている下流の直し方を書く(鍵の新しい名前へ書き換える・打ち消しを消す等。下流の `/flux` は打ち消しの鍵に触れた区間で止まる)
    - 下流の fork から来た指令の解決: 引数 `order:<id>` があり、その指令の依頼元が自リポ以外のリポ(`node .claude/skills/order/mailbox.mjs` の requester で判定。指令の `from:` の先頭がリポの origin URL で自リポと違う)。notice に `resolves: <id>` を書く。他に notice が要らなくても `severity: info` + `required_actions: none` + `checkpoint:` の notice を出す(下流の一時許可の失効に使う。`.notices/README.md`「解決(resolves)」)。却下・取り下げで閉じた指令にも書く
 4. **修正かどうかを確かめる**: まず会話の文脈(不具合の報告・指令の need・「直して」)で判断する。
    - 文脈で修正と分かる、またはコードの既存の行を変えた・消した → 下の blame で修正元を特定する

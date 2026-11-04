@@ -5,6 +5,7 @@
 // - 鍵: 節の中の `- <key>: ...` / `- <key> (default): ...` の行だけ(説明の文・### 小見出しは契約の本文)。節の中で一意
 // - 打ち消し: `overrides: <fork_id>.<key> = <value> | why: <理由>`(行頭の `- ` 可)。project.md(その repo だけ)と自分の節(下流にも)に書く。
 //   名指せるのは祖先の節の (default) の鍵だけ。同じ project.md か同じ節で同じ対象を 2 回 = 失敗。勝ち負け(近い層が勝つ)は読み手の規則で、検査はしない
+// - 接触(touchedOverrides)は /flux が取り込む前後の lineage.md で見る(.claude/skills/flux/lineage-touch.mjs)。自分の打ち消しが名指す鍵が変わったら止める
 // - 書式(formatProblems)は test:core-rules が全 repo で、並び・鍵・打ち消し(checkLineageStructure / checkOverrides)は ownership:check が fork で見る
 
 import { FORK_ID_PATTERN } from "./forkIds.mjs";
@@ -53,7 +54,7 @@ export function parseOverrides(text, offset = 0) {
  * @returns {{
  *   frontmatter: boolean,
  *   preambleEnds: number[],
- *   sections: { name: string, line: number, closed: boolean, keys: { key: string, isDefault: boolean, line: number }[], overrides: object[] }[],
+ *   sections: { name: string, line: number, closed: boolean, keys: { key: string, isDefault: boolean, line: number, text: string }[], overrides: object[] }[],
  *   stray: number[],
  * }} stray = 節の外(区切り行の後)の空でない行の行番号
  */
@@ -89,7 +90,7 @@ export function parseLineage(text) {
         return;
       }
       const key = KEY_LINE.exec(line);
-      if (key) current.keys.push({ key: key[1], isDefault: Boolean(key[2]), line: number });
+      if (key) current.keys.push({ key: key[1], isDefault: Boolean(key[2]), line: number, text: line });
       return;
     }
     if (preambleEnds.length > 0 && line.trim() !== "") stray.push(number);
@@ -192,4 +193,31 @@ export function checkOverrides({ parsed, projectText, own, projectFile = ".claud
     }
   });
   return { failures, warnings };
+}
+
+/**
+ * 取り込みで自分の打ち消しが名指す祖先の鍵が変わったか(/flux が人に確かめる)
+ * @param {{ before: string | null, after: string | null, projectText: string, own: string }} input
+ *   before / after = 取り込む前後の lineage.md(無ければ null)、projectText = 自分の project.md
+ * @returns {{ target: string, where: string, change: "changed" | "removed" | "default-removed", before: string | null, after: string | null }[]}
+ *   changed = 鍵の行の中身が変わった / removed = 鍵(か節)が消えた / default-removed = (default) が外れた(打ち消せなくなった)
+ */
+export function touchedOverrides({ before, after, projectText, own }) {
+  const beforeParsed = parseLineage(before ?? "");
+  const afterParsed = parseLineage(after ?? "");
+  const keyOf = (parsed, owner, key) => parsed.sections.find((section) => section.name === owner)?.keys.find((item) => item.key === key) ?? null;
+  const targets = [];
+  for (const item of parseOverrides(projectText)) if (!item.error) targets.push({ ...item, where: ".claude/rules/project.md" });
+  const ownSection = afterParsed.sections.find((section) => section.name === own) ?? beforeParsed.sections.find((section) => section.name === own);
+  for (const item of ownSection?.overrides ?? []) if (!item.error) targets.push({ ...item, where: `${LINEAGE_FILE} の節 ${own}` });
+
+  const touched = [];
+  for (const { owner, key, where } of targets) {
+    const was = keyOf(beforeParsed, owner, key);
+    if (!was) continue; // 取り込む前から名指し先が無い = ownership:check が打ち消しの誤りとして出す
+    const now = keyOf(afterParsed, owner, key);
+    const change = !now ? "removed" : was.isDefault && !now.isDefault ? "default-removed" : was.text !== now.text ? "changed" : null;
+    if (change) touched.push({ target: `${owner}.${key}`, where, change, before: was.text, after: now?.text ?? null });
+  }
+  return touched;
 }

@@ -12,7 +12,7 @@ disable-model-invocation: true
 - **`relay.md`**(中継・3 段以上の Tier): 次のいずれかに当たったら、区間の組み立ての前に読む:
   - 直上 upstream が中間 Tier(下記「自 fork の識別と台帳」5)
   - ツリー内(適用済みを含む)・流入予定の notice のどれかが `covers:` を持つ
-  - 自分が下流を持つ fork、またはそうか読み取れない(`.claude/rules/project.md` の TIER 節)
+  - 自分の `downstream:` が `yes`(下記「自 fork の識別と台帳」5。宣言が無い・誤りならそこで止まる)
   - モードが `status --chain` または `relay`
 - **`moved.md`**(移動・改名の移植): 次の区間の notice(covers 側・covered 側を含む)のどれかに `moved:` があれば、その区間の詳細計画(手順 2)の前に読む。
 - notice id モード(偵察・区間の組み立てを行わない): 対象 notice と自 fork について同じ条件を判定し、当たれば手順 5 の前に読む。
@@ -53,6 +53,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - 上流の変更に fork の使用箇所を揃えきれない(新しい使い方への寄せ方に fork 固有の判断が要る・寄せると fork の挙動が変わる)。黙って古い使い方を残して commit しない
 - 区間の検査(手順 6 の typecheck / lint)が落ち、直し方が自明でない(既知の失敗は除く: 下記「修正(fixes)」)
 - merge 結果が区間の上流差分の外のファイルを変えた(手順 5d「区間外変更の検査」。git の改名推定が fork の無関係なディレクトリへ上流ファイルを流し込む・fork のファイルを消す等)
+- 流入する `.claude/rules/lineage.md` の変更が自分の打ち消し(`overrides:`)の鍵に触れた(手順 5a の `lineage-touch.mjs` が 1)。祖先が規則の中身・`(default)` を変えたので、打ち消しをそのまま残すか・直すか・消すかを人に確かめる(選択肢: 打ち消しを新しい鍵の行に合わせて直す / 打ち消しを消して祖先の規則に従う / 上流に報告して待つ)。鍵の行の前後は作業メモに
 - 所有の検査(手順 7c の `pnpm ownership:check`)が 1(違反)か 2(未検証)を返した。この停止は commit の後・push の前で起きる: 区間の commit は残したまま push せず、片付け・直しを追加の commit で積んで検査し直す(`git merge --abort` はしない)
 
 止まり方: merge 途中(未 commit)なら `git merge --abort` で区間開始前に戻す。適用途中なら変更をそのまま残し、何を変えたかを示す。そのうえで「何を見つけたか / 根拠(ファイル・差分・出力)/ 選択肢(手で直して続行・上記「区間の完了」の条件で残す・上流に報告して待つ)」を提示して**待つ**。勝手にスキップも押し切りもしない。再開はユーザーの指示で(同じセッションならその返事で、閉じた後なら `/flux` や notice id 指定で続きから)。
@@ -118,6 +119,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 2. 自 fork 台帳 = `.notices/applied/<名前>.md`、一時許可 = `.fork-ownership/<名前>.permits.txt`、`src/lib/CATALOG.md` の自分の節の見出しも同じ名前。台帳が無ければ未適用ゼロ記録として扱う(初回適用時に作成)。origin 由来の旧い名前(`<owner>--<repo>`)の台帳・一時許可・節の見出しが残っていれば、名前の notice の手順で `git mv` して改名する。
 3. `.notices/applied/` 内の他の名前のファイルは中間 Tier や他 fork の台帳(merge で流れてきたもの)。**自分の状態と混同しない**。参考情報として読むのは可。
 4. **中間 Tier の名前** = 直上 upstream の版(`<upstream>/<branch>`)の `.claude/rules/project.md` の `fork_id:`。その版に `.notices/applied/<中間 Tier の名前>.md` があれば、直上 Tier は自分自身も下流として上流を追随している中間 Tier(→ relay.md)。無ければ直上 upstream は最上流(Tier1)で、祖父 notice は存在しない。
+5. **下流の有無** = `.claude/rules/project.md` の `downstream: yes|none`(`fork_id:` と同じ節の 1 行。読み手は `forkIds.mjs` だけ): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`。`yes` = 下流を持つ(中継判定をする → relay.md)、`none` = 末端。それ以外(宣言が無い・誤り)は文面から推し量らずに止まり、ユーザーに宣言を足してもらう(`pnpm ownership:check` も未検証で止まる)。
 
 ## upstream の特定
 1. `git remote -v` で origin 以外の remote(通常 `upstream`)を探す。
@@ -225,7 +227,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    - `light`: 区間の終わりで次の区間の詳細計画を作り、軽い区間(上記)なら `all` と同じに 1〜2 行報告して承認なしで進む。軽くなければ既定どおり止まって承認を取る。
    - **会話が途切れても再開できる**: 区間の終わりで止まっている状態は台帳と git から導出でき、手順 8 の区間報告が残りの判断材料を持つので、セッションを閉じた・compact した後でも `/flux` を打ち直せば次の区間の計画から続く。
 5. **merge**(区間 0 は省略):
-   a. 準備: 区間に `moved:` の移植対象があれば先に差分を保存する(→ moved.md 手順 2)。merge 直前の HEAD を控える(`git rev-parse HEAD` = `<pre>`)。
+   a. 準備: 区間に `moved:` の移植対象があれば先に差分を保存する(→ moved.md 手順 2)。merge 直前の HEAD を控える(`git rev-parse HEAD` = `<pre>`)。打ち消しの接触を見る: `node .claude/skills/flux/lineage-touch.mjs --before <pre> --after <区間の merge 先>`。1 = 流入する `.claude/rules/lineage.md` の変更が自分の打ち消し(project.md・自分の節の `overrides:`)が名指す祖先の鍵に触れた → merge せずに停止条件(下記)。0 = 進む。2 = 読めない(理由を伝えて止まる)
    b. `git -c merge.directoryRenames=false merge --no-commit <区間の merge 先>`。ディレクトリ改名推定を切るのは、fork 側の削除・再編を「ディレクトリの改名」と誤推定し、上流の新規ファイルを fork の無関係なディレクトリへ置いたり fork のファイルの削除をステージしたりするため(`-X no-renames` では止まらない)。上流の本物のディレクトリ移動は `moved:` の移植が扱う。移植対象があればここで移植する(→ moved.md 手順 3〜4)。
    c. コンフリクトは自分で解消する(上流の意図と自 fork の改変の両立を判断。判断が本当に割れるものだけユーザーに確認)。プロジェクトごとのファイルの採り方:
       - `.claude/rules/project.md` と `behavior.md`: fork 側を採り、上流の追加はこの fork に当てはまるものだけ取り込む。
