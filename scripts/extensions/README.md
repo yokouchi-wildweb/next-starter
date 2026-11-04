@@ -40,7 +40,7 @@ export const extensionPoints = {
   - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `ownership:check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test:feature-gate`)
   - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る
-  - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダから `tables` を導いて項目に付ける(`derive/featureTables.mjs`)。fork が変換を足す口は無い
+  - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダから `tables` を導き、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 
 ## 項目
@@ -97,7 +97,7 @@ export const extensionPoints = {
 - 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
 - 1 行スイッチの置き換え: `add <dir>/<名前>.replace.{ts,tsx}`
 - route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`
-- scripts の受け口: `scripts/tasks/*.ts`・`scripts/proxies/alwaysOnExceptions/*.mjs`
+- scripts の受け口: `scripts/tasks/*.ts`(常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
 区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `ownership:check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。
 

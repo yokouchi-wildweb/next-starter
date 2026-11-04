@@ -237,7 +237,7 @@ test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテ
   const byKey = Object.fromEntries(groups.map((g) => [g.key, g.pages.map((p) => p.folder)]));
   for (const [key, folders] of Object.entries(expected)) assertUpstreamItems(byKey[key] ?? [], folders);
   if (isTier1) assert.deepEqual(groups.map((g) => g.key), DEMO_CATEGORIES.map((c) => c.key));
-  const open = openDemoPages(demoPages, [{ enabled: () => false, pathPatterns: ["/demo/tables"] }, { enabled: () => true, pathPatterns: ["/demo/popover"] }]);
+  const open = openDemoPages(demoPages, (href) => href === "/demo/tables" || href.startsWith("/demo/tables/"));
   assert.equal(open.length, demoPages.length - 1);
   assert.equal(open.some((p) => p.folder === "tables"), false);
 });

@@ -2,7 +2,7 @@
 //
 // pnpm db:push の本体。schemaRegistry を実 DB に反映する（drizzle-kit push の代わり）。
 // drizzle-kit の CLI ではなく drizzle-kit/api の pushSchema を使うのは、スキーマゲート
-// （機能を閉じる規則 src/proxies/featureGateRules/ で無効な機能のテーブルを push 対象から外す）をコード側・DB 側の両方に掛けるため。
+// （機能を閉じる規則 src/featureGate/rules/ で無効な機能のテーブルを push 対象から外す）をコード側・DB 側の両方に掛けるため。
 // CLI はスキーマファイルの export をそのまま拾うので、コード側から外せない。
 //
 // 実行:
@@ -50,17 +50,16 @@ const main = async () => {
   }
 
   // env ロード後に読み込む (schemaRegistry 側の import が env に依存しないよう動的 import)
-  const [{ default: postgres }, { drizzle }, { pushSchema }, schema, { featureGateRules }, { applySchemaGate }] =
+  const [{ default: postgres }, { drizzle }, { pushSchema }, schema, { rules, gatedSchema }] =
     await Promise.all([
       import("postgres"),
       import("drizzle-orm/postgres-js"),
       import("drizzle-kit/api"),
       import("@/registry/schemaRegistry"),
-      import("@/proxies/extensions/featureGateRules"),
-      import("./schemaGate"),
+      import("@/featureGate/node"),
     ]);
 
-  const gate = applySchemaGate(schema, featureGateRules);
+  const gate = gatedSchema(schema, rules);
 
   const client = postgres(databaseUrl, { prepare: false, max: 1 });
   const db = drizzle(client);

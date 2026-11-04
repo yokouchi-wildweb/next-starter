@@ -47,6 +47,12 @@ add src/app/_layout/adminCommand/categories/*.{ts,tsx}  # 受け口 categories
 add src/app/_layout/adminCommand/categories/*/**  # 受け口 categories(フォルダ形)
 add src/app/_layout/adminCommand/plugins/*.{ts,tsx}  # 受け口 plugins
 add src/app/_layout/adminCommand/plugins/*/**  # 受け口 plugins(フォルダ形)
+add src/featureGate/alwaysOnExceptions/*.{ts,tsx}  # 受け口 alwaysOnExceptions・alwaysOnRegistries
+add src/featureGate/alwaysOnExceptions/*/**  # 受け口 alwaysOnExceptions・alwaysOnRegistries(フォルダ形)
+add src/featureGate/required/*.{ts,tsx}  # 受け口 required
+add src/featureGate/required/*/**  # 受け口 required(フォルダ形)
+add src/featureGate/rules/*.{ts,tsx}  # 受け口 rules
+add src/featureGate/rules/*/**  # 受け口 rules(フォルダ形)
 add src/features/core/adminCommand/navigationItems/*.{ts,tsx}  # 受け口 navigationItems
 add src/features/core/adminCommand/navigationItems/*/**  # 受け口 navigationItems(フォルダ形)
 add src/features/core/analytics/rollupMetrics/*.{ts,tsx}  # 受け口 rollupMetrics
@@ -87,8 +93,6 @@ add src/features/core/userLineProfile/webhookHandlers/*.{ts,tsx}  # 受け口 we
 add src/features/core/userLineProfile/webhookHandlers/*/**  # 受け口 webhookHandlers(フォルダ形)
 add src/proxies/*.{ts,tsx}  # 受け口 decorators・handlers
 add src/proxies/*/**  # 受け口 decorators・handlers(フォルダ形)
-add src/proxies/featureGateRules/*.{ts,tsx}  # 受け口 featureGateRules
-add src/proxies/featureGateRules/*/**  # 受け口 featureGateRules(フォルダ形)
 add src/wiring/dbAgent/extraTools/*.{ts,tsx}  # 受け口 extraTools
 add src/wiring/dbAgent/extraTools/*/**  # 受け口 extraTools(フォルダ形)
 add src/wiring/dbAgent/promptFragments/*.{ts,tsx}  # 受け口 promptFragments
@@ -105,7 +109,6 @@ add src/features/core/wallet/services/server/notification/adjustmentNotification
 add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き換え(_layout の隣の <名前>.replace)
 add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)
 add scripts/tasks/*.ts  # ワンショット・任意タスク(scripts/tasks/README.md)
-add scripts/proxies/alwaysOnExceptions/*.mjs  # 常時実行の例外(1 項目 1 ファイル、src/proxies/README.md)
 # === AUTO-GENERATED intake END ===
 
 # ドメインと定期タスクの上書き

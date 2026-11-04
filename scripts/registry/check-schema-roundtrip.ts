@@ -40,18 +40,17 @@ const main = async () => {
   }
 
   // env ロード後に読み込む (schemaRegistry 側の import が env に依存しないよう動的 import)
-  const [{ default: postgres }, { drizzle }, { pushSchema }, schema, { featureGateRules }, { applySchemaGate }] =
+  const [{ default: postgres }, { drizzle }, { pushSchema }, schema, { rules, gatedSchema }] =
     await Promise.all([
       import("postgres"),
       import("drizzle-orm/postgres-js"),
       import("drizzle-kit/api"),
       import("@/registry/schemaRegistry"),
-      import("@/proxies/extensions/featureGateRules"),
-      import("./schemaGate"),
+      import("@/featureGate/node"),
     ]);
 
   // db:push と同じスキーマゲートを掛ける (無効な機能のテーブルは比較対象外)
-  const gate = applySchemaGate(schema, featureGateRules);
+  const gate = gatedSchema(schema, rules);
 
   const client = postgres(databaseUrl, { prepare: false, max: 1 });
   const db = drizzle(client);

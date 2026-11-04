@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { ROUTE_MAP_FILE, ROUTE_STATE_VERIFIED, buildRouteMap, findNearestGuard, formatRouteMap } from "./routeMap.mjs";
 import { parseLiteral } from "./checks.mjs";
 import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
-import { featureGateRules } from "../../proxies/extensions/featureGateRules.ts";
+import { rules as featureGateRules } from "../../featureGate/node.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 

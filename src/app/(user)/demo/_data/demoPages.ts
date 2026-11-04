@@ -2,8 +2,6 @@
 // デモの一覧の型・カテゴリの定義と、組み立て。デモ本体の情報は各 route の _demo.ts(一覧 ../extensions/demoPages.ts は生成物)。
 // デモを足す = route のフォルダに _demo.ts を置いて pnpm extensions:generate。カテゴリの中はフォルダ名の順。
 
-import { matchesPath } from "@/proxies/pathPattern.mjs";
-
 export type DemoCategoryKey =
   | "form"
   | "overlay"
@@ -41,14 +39,9 @@ export const DEMO_CATEGORIES: readonly DemoCategory[] = [
 
 export const demoHref = (page: Pick<DemoPage, "folder">) => `/demo/${page.folder}`;
 
-/** 閉じた機能の住所のデモを除く(機能を閉じる規則と同じ照合) */
-export const openDemoPages = (
-  pages: readonly DemoPage[],
-  rules: readonly { enabled: () => boolean; pathPatterns: readonly string[] }[],
-): DemoPage[] => {
-  const closed = rules.filter((rule) => !rule.enabled()).flatMap((rule) => rule.pathPatterns);
-  return pages.filter((page) => !closed.some((pattern) => matchesPath(demoHref(page), pattern)));
-};
+/** 閉じた機能の住所のデモを除く(isClosed = 門番の gate.path(href).closed。loader が渡す) */
+export const openDemoPages = (pages: readonly DemoPage[], isClosed: (href: string) => boolean): DemoPage[] =>
+  pages.filter((page) => !isClosed(demoHref(page)));
 
 export const groupDemoPagesByCategory = (pages: readonly DemoPage[]) =>
   DEMO_CATEGORIES.map((category) => ({

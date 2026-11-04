@@ -5,12 +5,12 @@
 import "server-only";
 
 import { createLoader } from "@/app/guard";
-import { featureGateRules } from "@/proxies/extensions/featureGateRules";
+import { gate } from "@/featureGate";
 
 import { openDemoPages } from "../_data/demoPages";
 import { demoPages } from "../extensions/demoPages";
 
 export const loadDemoIndexScreen = createLoader({
   access: "public",
-  load: async () => ({ pages: openDemoPages(demoPages, featureGateRules) }),
+  load: async () => ({ pages: openDemoPages(demoPages, (href) => gate.path(href).closed) }),
 });

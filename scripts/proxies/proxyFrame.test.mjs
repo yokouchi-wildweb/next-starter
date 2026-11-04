@@ -4,7 +4,7 @@
 // - 項目 = export const handler / decorator を 1 つ持つ直下の .ts、骨組み・枠・テスト・サブフォルダ・.mjs は見ない
 // - 並びはファイル名の順、上流と fork の項目はどちらも印なしで同じ枠に入る
 // - 失敗: 旧い fork の名前の印(移し方を案内) / 両方 / どちらも無い / 名前の形
-// - 機能を閉じる規則: features のフォルダから tables を導く(derive featureTables)、失敗の各条件
+// - 機能を閉じる規則(門番 src/featureGate/rules/、宣言は実物の src/featureGate/extensionPoints.ts): features のフォルダから tables を導き、名前を付ける(derive featureTables)、失敗の各条件
 // 生成一覧の一致(実リポ)は pnpm test:extensions と extensions:check
 // 実行: pnpm test:proxy-frame
 
@@ -19,10 +19,11 @@ import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const DECLARATION = readFileSync(join(repoRoot, "src/proxies/extensionPoints.ts"), "utf8");
+const GATE_DECLARATION = readFileSync(join(repoRoot, "src/featureGate/extensionPoints.ts"), "utf8");
 const SKELETON_FILES = ["maintenance.ts", "demoMode.ts", "featureGate.ts", "redirect.ts", "attribution.ts", "inviteLink.ts"];
 const HANDLERS = "src/proxies/extensions/handlers.ts";
 const DECORATORS = "src/proxies/extensions/decorators.ts";
-const GATE_RULES = "src/proxies/extensions/featureGateRules.ts";
+const GATE_RULES = "src/featureGate/extensions/rules.ts";
 
 /** fork(acme、祖先 parent)、骨組み + 渡したファイルを置いた一時リポ */
 function fixture(files) {
@@ -33,12 +34,15 @@ function fixture(files) {
   writeFileSync(join(root, ".notices/applied/parent.md"), "");
   const dir = join(root, "src/proxies");
   mkdirSync(join(dir, "extensions"), { recursive: true });
-  mkdirSync(join(dir, "featureGateRules"), { recursive: true });
+  const gateDir = join(root, "src/featureGate");
+  mkdirSync(join(gateDir, "rules"), { recursive: true });
+  writeFileSync(join(gateDir, "extensionPoints.ts"), GATE_DECLARATION);
   writeFileSync(join(dir, "extensionPoints.ts"), DECLARATION);
   for (const name of [...SKELETON_FILES, "index.ts", "types.ts"]) writeFileSync(join(dir, name), "export const somethingProxy = () => {};\n");
   writeFileSync(join(dir, "pathPattern.mjs"), "export const x = 1;\n");
   writeFileSync(join(dir, "proxy.test.mts"), "export const handler = 1;\n");
-  for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+  // "rules/<名前>.ts" は門番の受け口、それ以外は src/proxies の直下
+  for (const [name, text] of Object.entries(files)) writeFileSync(join(name.startsWith("rules/") ? gateDir : dir, name), text);
   return root;
 }
 
@@ -67,29 +71,30 @@ test("失敗: 旧い fork の名前の印・両方・どちらも無い・名前
   assert.ok(plan.problems.some((p) => p.includes("1x.ts") && p.includes("名前の形")));
 });
 
-test("規則: featureGateRules/ の export const rule をファイル名順に集め、旧い x.<fork の名前>.ts は止める", () => {
+test("規則: src/featureGate/rules/ の export const rule をファイル名順に集め、旧い x.<fork の名前>.ts は止める", () => {
   const R = 'export const rule: FeatureGateRule = { pathPatterns: ["/x"], enabled: () => true };\n';
   const plan = planExtensions(
-    fixture({ "featureGateRules/wallet.ts": R, "featureGateRules/acmeShop.ts": R, "featureGateRules/alpha.ts": R, "featureGateRules/helper.ts": "export const x = 1;\n", "featureGateRules/beta.other.ts": R }),
+    fixture({ "rules/wallet.ts": R, "rules/acmeShop.ts": R, "rules/alpha.ts": R, "rules/helper.ts": "export const x = 1;\n", "rules/beta.other.ts": R }),
   );
-  assert.deepEqual(names(plan, "featureGateRules"), ["acmeShop", "alpha", "wallet"]);
+  assert.deepEqual(itemsOf(plan, "src/featureGate", "rules").map((i) => i.name), ["acmeShop", "alpha", "wallet"]);
   assert.equal(plan.problems.length, 2, plan.problems.join("\n"));
   assert.ok(plan.problems.some((p) => p.includes("helper.ts") && p.includes("export const rule")));
   assert.ok(plan.problems.some((p) => p.includes("beta.other.ts") && p.includes("印なしの beta.ts に改名")));
-  assert.match(plan.outputs[GATE_RULES], /import \{ rule as featureGateRules_alpha \} from "@\/proxies\/featureGateRules\/alpha";/);
-  assert.match(plan.outputs[GATE_RULES], /export const featureGateRules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.featureGateRules_acmeShop, tables: \[\] \},\n  \{ \.\.\.featureGateRules_alpha, tables: \[\] \},\n  \{ \.\.\.featureGateRules_wallet, tables: \[\] \},\n\];/);
+  assert.match(plan.outputs[GATE_RULES], /import \{ rule as rules_alpha \} from "@\/featureGate\/rules\/alpha";/);
+  assert.match(plan.outputs[GATE_RULES], /export type FeatureName = "acmeShop" \| "alpha" \| "wallet";/);
+  assert.match(plan.outputs[GATE_RULES], /export const rules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\] \},\n\];/);
 });
 
 test("規則の features: フォルダの pgTable から表を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
   const rule = (body) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], ${body} enabled: () => true };\n`;
   const root = fixture({
-    "featureGateRules/wallet.ts": rule('features: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'),
-    "featureGateRules/plain.ts": rule(""),
-    "featureGateRules/handWritten.ts": rule('tables: ["wallets"],'),
-    "featureGateRules/variable.ts": rule("features: FOLDERS,"),
-    "featureGateRules/notLiteral.ts": rule("features: [FOLDER],"),
-    "featureGateRules/missing.ts": rule('features: ["core/nowhere"],'),
-    "featureGateRules/noTables.ts": rule('features: ["core/empty"],'),
+    "rules/wallet.ts": rule('features: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'),
+    "rules/plain.ts": rule(""),
+    "rules/handWritten.ts": rule('tables: ["wallets"],'),
+    "rules/variable.ts": rule("features: FOLDERS,"),
+    "rules/notLiteral.ts": rule("features: [FOLDER],"),
+    "rules/missing.ts": rule('features: ["core/nowhere"],'),
+    "rules/noTables.ts": rule('features: ["core/empty"],'),
   });
   const feat = (name, tables) => {
     const d = join(root, "src/features", name, "entities");
@@ -104,7 +109,7 @@ test("規則の features: フォルダの pgTable から表を導き(fork が上
 
   const plan = planExtensions(root);
   assert.deepEqual(
-    itemsOf(plan, "src/proxies", "featureGateRules").map((r) => `${r.name}:${r.fields.tables.join("|")}`),
+    itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.tables.join("|")}`),
     ["plain:", "wallet:wallets|wallet_lots|wallet_fork_extras|wallet_histories"],
   );
   const reasons = Object.fromEntries(["handWritten", "variable", "notLiteral", "missing", "noTables"].map((n) => [n, plan.problems.find((p) => p.includes(`/${n}.ts`)) ?? ""]));
@@ -114,11 +119,11 @@ test("規則の features: フォルダの pgTable から表を導き(fork が上
   assert.match(reasons.missing, /無いフォルダ/);
   assert.match(reasons.noTables, /pgTable が無い/);
   assert.equal(plan.problems.length, 5, plan.problems.join("\n"));
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.featureGateRules_wallet, tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\] \},/);
 });
 
 test("常時実行の入口の判定: cron は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
-  const { judgeAlwaysOnEntries, folderSourcePattern } = await import("./alwaysOnEntries.mjs");
+  const { judgeAlwaysOnEntries, folderSourcePattern } = await import("../../src/featureGate/checks/alwaysOnEntries.mjs");
   const folders = ["core/wallet", "sample"];
   assert.ok(folderSourcePattern("core/wallet").test("@/features/wallet/x"));
   assert.ok(folderSourcePattern("core/wallet").test("@/features/core/wallet/x"));
@@ -149,30 +154,39 @@ test("常時実行の入口の判定: cron は enabled、登録表は条件つ�
   );
 });
 
-test("常時実行の入口の fork の口(L1.24): alwaysOnExceptions/<名前>.mjs は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い alwaysOnExceptions.<x>.mjs は止める", async () => {
-  const { readForkAlwaysOn, staleAlwaysOnFiles, judgeAlwaysOnEntries } = await import("./alwaysOnEntries.mjs");
-  const file = (name, mod) => ({ name, load: async () => mod });
-  const ok = await readForkAlwaysOn([
-    file("deviceWiring.mjs", { exception: { file: "src/wiring/x.ts", reason: "端末の解決は route でだけ走る" } }),
-    file("cleanup.mjs", { registry: { file: "src/registry/cleanup.ts", reason: "退会の後片付け" } }),
-  ]);
+test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExceptions/<名前>.ts は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い置き場は止める", async () => {
+  const { readForkAlwaysOn, staleAlwaysOnFiles, judgeAlwaysOnEntries } = await import("../../src/featureGate/checks/alwaysOnEntries.mjs");
+  const ok = readForkAlwaysOn({
+    exceptions: [{ file: "src/wiring/x.ts", reason: "端末の解決は route でだけ走る" }],
+    registries: [{ file: "src/registry/cleanup.ts", reason: "退会の後片付け" }],
+  });
   assert.deepEqual(ok.problems, []);
   assert.deepEqual(ok.exceptions, { "src/wiring/x.ts": "端末の解決は route でだけ走る" });
   assert.deepEqual(ok.registries, ["src/registry/cleanup.ts"]);
 
-  const ng = await readForkAlwaysOn([
-    file("blank.mjs", { exception: { file: "src/wiring/y.ts", reason: " " } }),
-    file("noFile.mjs", { registry: { reason: "x" } }),
-    file("both.mjs", { exception: { file: "a", reason: "r" }, registry: { file: "b", reason: "r" } }),
-    file("none.mjs", { exceptions: [] }),
-    file("old.acme.mjs", { exception: { file: "a", reason: "r" } }),
-  ]);
-  assert.equal(ng.problems.length, 5, ng.problems.join("\n"));
+  const ng = readForkAlwaysOn({
+    exceptions: [{ file: "src/wiring/y.ts", reason: " " }, { file: "", reason: "r" }],
+    registries: [{ reason: "x" }],
+  });
+  assert.equal(ng.problems.length, 3, ng.problems.join("\n"));
   assert.deepEqual(ng.exceptions, {});
 
-  const stale = staleAlwaysOnFiles(["alwaysOnEntries.mjs", "alwaysOnExceptions.acme.mjs", "proxyFrame.test.mjs"]);
-  assert.equal(stale.length, 1);
-  assert.match(stale[0], /alwaysOnExceptions\.acme\.mjs.*alwaysOnExceptions\/<名前>\.mjs に改名.*shared-shelf marker migration notice/);
+  // 受け口の走査(生成器): exception と registry の両方・どちらも無い・旧い印は止まる、.mjs は項目でない
+  const X = 'export const exception: AlwaysOnException = { file: "src/wiring/x.ts", reason: "r" };\n';
+  const Y = 'export const registry: AlwaysOnException = { file: "src/registry/y.ts", reason: "r" };\n';
+  const root = fixture({});
+  const itemDir = join(root, "src/featureGate/alwaysOnExceptions");
+  mkdirSync(itemDir, { recursive: true });
+  for (const [name, text] of Object.entries({ "wire.ts": X, "cleanup.ts": Y, "both.ts": X + Y, "none.ts": "export const x = 1;\n", "old.acme.ts": X, "legacy.mjs": X })) writeFileSync(join(itemDir, name), text);
+  const plan = planExtensions(root);
+  assert.deepEqual(itemsOf(plan, "src/featureGate", "alwaysOnExceptions").map((i) => i.name), ["wire"]);
+  assert.deepEqual(itemsOf(plan, "src/featureGate", "alwaysOnRegistries").map((i) => i.name), ["cleanup"]);
+  assert.equal(plan.problems.length, 3, plan.problems.join("\n"));
+
+  const stale = staleAlwaysOnFiles(["alwaysOnEntries.mjs", "alwaysOnExceptions.acme.mjs", "proxyFrame.test.mjs"], ["deviceWiring.mjs"]);
+  assert.equal(stale.length, 2);
+  assert.match(stale[0], /alwaysOnExceptions\.acme\.mjs.*alwaysOnExceptions\/<名前>\.mjs に改名.*shared-shelf marker migration notice.*src\/featureGate\/alwaysOnExceptions/);
+  assert.match(stale[1], /scripts\/proxies\/alwaysOnExceptions\/deviceWiring\.mjs: 置き場が src\/featureGate\/alwaysOnExceptions\/<名前>\.ts に移った/);
 
   // fork の例外の行にも縮む表の規則(当たらない行は失敗)
   const { problems } = judgeAlwaysOnEntries([], ["core/wallet"], ok.exceptions);

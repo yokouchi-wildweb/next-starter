@@ -175,10 +175,14 @@ function renderPoint(point, items) {
     return { imports, lines };
   }
   const values = items.map((item) =>
-    item.folder ? `  { ...${aliasOf(point, item)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: [${v.map((x) => JSON.stringify(x)).join(", ")}]`).join(", ")} },` : `  ${aliasOf(point, item)},`,
+    item.folder ? `  { ...${aliasOf(point, item)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: ${Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v)}`).join(", ")} },` : `  ${aliasOf(point, item)},`,
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
-  if (spec.derive === "featureTables") lines.push("// tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)");
+  if (spec.derive === "featureTables") {
+    // 機能の名前 = 規則のファイル名(gate.enabled(name) の型)。一覧の並びと同じ
+    lines.push(`export type FeatureName = ${items.length === 0 ? "never" : items.map((item) => JSON.stringify(item.name)).join(" | ")};`, "");
+    lines.push("// name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)");
+  }
   if (spec.literalKeys) {
     // 鍵の文字列を型に残す(項目の値の型が鍵を文字列リテラルで持つこと)
     const list = `${point.name}List`;
@@ -275,7 +279,7 @@ export function planExtensions(repoRoot) {
         for (const item of items) {
           const derived = featureTables.apply(item.path, item.text);
           if (derived.problem) problems.push(derived.problem);
-          else kept.push({ ...item, fields: derived.fields, features: derived.features });
+          else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, features: derived.features });
         }
         itemsByPoint.set(p, kept);
       } else {

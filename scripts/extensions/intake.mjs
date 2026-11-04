@@ -13,7 +13,6 @@ const FIXED_ROWS = [
   "add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き換え(_layout の隣の <名前>.replace)",
   "add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)",
   "add scripts/tasks/*.ts  # ワンショット・任意タスク(scripts/tasks/README.md)",
-  "add scripts/proxies/alwaysOnExceptions/*.mjs  # 常時実行の例外(1 項目 1 ファイル、src/proxies/README.md)",
 ];
 
 /**

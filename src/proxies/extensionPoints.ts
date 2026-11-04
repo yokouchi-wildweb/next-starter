@@ -20,12 +20,4 @@ export const extensionPoints = {
     side: "server",
     ignore: ["maintenance.ts", "demoMode.ts", "featureGate.ts", "redirect.ts", "attribution.ts", "inviteLink.ts", "index.ts", "types.ts"],
   },
-  // 機能を閉じる規則: featureGateRules/<名前>.ts の export const rule。tables は features のフォルダから導く
-  featureGateRules: {
-    dir: "featureGateRules",
-    export: "rule",
-    type: { from: "@/proxies/types", name: "GatedFeatureRule" },
-    side: "shared",
-    derive: "featureTables",
-  },
 };

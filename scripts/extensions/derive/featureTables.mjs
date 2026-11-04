@@ -1,7 +1,7 @@
 // scripts/extensions/derive/featureTables.mjs
 // 組み込みの変換 "featureTables": 機能を閉じる規則の features: [機能のフォルダ] から、そのフォルダの全 pgTable の表名を導く(D16・D20 K1)。
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。表の走査: scripts/registry/tableScan.mjs
-// 一覧の項目は `{ ...rule, tables: [...] }` になる(型 GatedFeatureRule)。
+// 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";

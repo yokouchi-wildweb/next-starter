@@ -17,7 +17,7 @@ import path from "node:path";
 import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap } from "../../src/lib/screens/routeMap.mjs";
 import { SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap } from "../../src/lib/screens/routeMapView.mjs";
 import { listAppFiles } from "../../src/lib/screens/routeTree.mjs";
-import { featureGateRules } from "../../src/proxies/extensions/featureGateRules.ts";
+import { rules as featureGateRules } from "../../src/featureGate/node.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
