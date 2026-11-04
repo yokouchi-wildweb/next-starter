@@ -14,6 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Link, LinkVisibilityProvider } from "@/components/Navigation";
+import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCard";
 import { GatedLink, GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";
 import { clientTools } from "@/featureGate/tools/client";
@@ -208,4 +209,23 @@ test("リンク: gate prop(always は閉でも描く・hide は描かない)、P
 
 test("棚の Link は門番なしでは何も隠さない(既定の口)", () => {
   assert.ok(hasAnchor(renderToStaticMarkup(<Link href="/wallet">x</Link>), "/wallet"));
+});
+
+test("マイページのメニュー: 条件を外した RichMenuCard は、閉じた規則(referral・mypageOther・pause・withdraw)の住所ならカードごと描かない", () => {
+  const cards: Array<[FeatureName, string]> = [
+    ["referral", "/mypage/invite"],
+    ["mypageOther", "/mypage/other"],
+    ["pause", "/mypage/pause"],
+    ["withdraw", "/mypage/withdraw"],
+  ];
+  const Icon = () => null;
+  for (const [name, href] of cards) {
+    const card = <RichMenuCard icon={Icon as never} title="t" description="d" href={href} showChevron />;
+    withRules({ [name]: false }, () => {
+      assert.equal(renderIn(clientGateState("user"), card), "", `${name} 閉`);
+    });
+    withRules({}, () => {
+      assert.ok(hasAnchor(renderIn(clientGateState("user"), card), href), `${name} 開`);
+    });
+  }
 });

@@ -15,7 +15,7 @@ import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
 import { TAG_COLOR_STYLES } from "@/features/core/userTag/constants/colors";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { useGate } from "@/featureGate/client";
 import type { User } from "@/features/user/entities";
 import {
   RoleProfileFields,
@@ -45,7 +45,7 @@ export default function GeneralUserEditForm({
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateUser();
-  const enableUserTag = APP_FEATURES.user.enableUserTag;
+  const enableUserTag = useGate().enabled("userTag");
   const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
   const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 

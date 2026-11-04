@@ -11,7 +11,7 @@
 import { useCallback, useState } from "react";
 import type { FieldValues, Path, PathValue, UseFormReturn } from "react-hook-form";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { useGate } from "@/featureGate/client";
 import { INVITE_CODE_UNAPPLIED_MESSAGE } from "@/features/core/referral/constants/inviteCodeValidation";
 import { useValidateInviteCode } from "@/features/core/referral/hooks/useValidateInviteCode";
 
@@ -54,7 +54,7 @@ export function useInviteCodeValidation<TFieldValues extends FieldValues>({
   form,
   name = "inviteCode" as Path<TFieldValues>,
 }: UseInviteCodeValidationParams<TFieldValues>): UseInviteCodeValidationReturn {
-  const enabled = APP_FEATURES.marketing.referral.enabled;
+  const enabled = useGate().enabled("referral");
   const { validate, isLoading } = useValidateInviteCode();
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

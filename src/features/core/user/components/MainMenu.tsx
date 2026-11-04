@@ -4,7 +4,6 @@
 
 import { useCallback } from "react";
 import { UserCircleIcon, LogOutIcon, EllipsisIcon, GiftIcon } from "lucide-react";
-import { APP_FEATURES } from "@/config/app/app-features.config";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -22,15 +21,13 @@ export function MainMenu() {
   return (
     <Section>
       <Stack space={3}>
-        {APP_FEATURES.marketing.referral.enabled && (
-          <RichMenuCard
-            icon={GiftIcon}
-            title="招待コードを取得"
-            description="お友だちを招待して特典を獲得"
-            href="/mypage/invite"
-            showChevron
-          />
-        )}
+        <RichMenuCard
+          icon={GiftIcon}
+          title="招待コードを取得"
+          description="お友だちを招待して特典を獲得"
+          href="/mypage/invite"
+          showChevron
+        />
         <RichMenuCard
           icon={UserCircleIcon}
           title="アカウント基本情報"
@@ -45,17 +42,15 @@ export function MainMenu() {
           onClick={handleLogout}
           disabled={isLoggingOut}
         />
-        {/* 中身(休会・退会)がどちらも無効なら入口も出さない(/mypage/other は featureGate で 404) */}
-        {(APP_FEATURES.user.pauseEnabled || APP_FEATURES.user.withdrawEnabled) && (
-          <RichMenuCard
-            icon={EllipsisIcon}
-            title="その他の操作"
-            description="アカウントに関するその他の操作"
-            href="/mypage/other"
-            variant="muted"
-            showChevron
-          />
-        )}
+        {/* 閉じた機能(招待 = 規則 referral、その他の操作 = 規則 mypageOther: 休会・退会がどちらも無効)のカードは棚の Link が描かない */}
+        <RichMenuCard
+          icon={EllipsisIcon}
+          title="その他の操作"
+          description="アカウントに関するその他の操作"
+          href="/mypage/other"
+          variant="muted"
+          showChevron
+        />
       </Stack>
     </Section>
   );

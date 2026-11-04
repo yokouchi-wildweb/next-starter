@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { useGate } from "@/featureGate/client";
 import { usePendingInviteCode } from "@/features/core/referral/hooks/usePendingInviteCode";
 
 type UseInviteCodePrefillParams = {
@@ -35,7 +35,7 @@ export function useInviteCodePrefill({
   setInviteCode,
 }: UseInviteCodePrefillParams): UseInviteCodePrefillReturn {
   // ゲートは referral 機能フラグのみ（流入経路解析のオンオフとは独立）
-  const enabled = APP_FEATURES.marketing.referral.enabled;
+  const enabled = useGate().enabled("referral");
   const { inviteCode: pendingInviteCode } = usePendingInviteCode(enabled);
   const prefilledRef = useRef(false);
 

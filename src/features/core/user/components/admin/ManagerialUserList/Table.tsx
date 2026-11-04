@@ -16,6 +16,7 @@ import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalle
 import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { useGate } from "@/featureGate/client";
 import { useSoftDeleteUser } from "@/features/core/user/hooks/useSoftDeleteUser";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -145,7 +146,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
   const { showToast } = useToast();
   const { trigger: triggerDelete, isMutating } = useSoftDeleteUser();
 
-  const enableWalletAdjust = APP_FEATURES.wallet.enabled && APP_FEATURES.wallet.enableAdminBalanceAdjust;
+  const enableWalletAdjust = useGate().enabled("wallet") && APP_FEATURES.wallet.enableAdminBalanceAdjust;
   const enableUserManagement = APP_FEATURES.adminConsole.enableUserManagement;
   const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;

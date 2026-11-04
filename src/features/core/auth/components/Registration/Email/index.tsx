@@ -13,7 +13,7 @@ import { useEmailRegistrationForm } from "@/features/core/auth/hooks/useEmailReg
 import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-const showInviteCode = APP_FEATURES.marketing.referral.enabled;
+import { useGate } from "@/featureGate/client";
 import {
   RoleSelector,
   RoleProfileFields,
@@ -24,6 +24,7 @@ import { RateLimitWarningModal } from "../RateLimitWarningModal";
 
 /** 本登録（メール）の既定の部品。入力・送信の処理は useEmailRegistrationForm が持ち、ここは描くだけ */
 export function EmailRegistrationForm() {
+  const showInviteCode = useGate().enabled("referral");
   const {
     form,
     onSubmit,

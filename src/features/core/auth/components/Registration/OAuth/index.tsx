@@ -12,7 +12,7 @@ import { useOAuthRegistrationForm } from "@/features/core/auth/hooks/useOAuthReg
 import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-const showInviteCode = APP_FEATURES.marketing.referral.enabled;
+import { useGate } from "@/featureGate/client";
 import {
   RoleSelector,
   RoleProfileFields,
@@ -23,6 +23,7 @@ import { RateLimitWarningModal } from "../RateLimitWarningModal";
 
 /** 本登録（外部アカウント）の既定の部品。入力・送信の処理は useOAuthRegistrationForm が持ち、ここは描くだけ */
 export function OAuthRegistrationForm() {
+  const showInviteCode = useGate().enabled("referral");
   const {
     form,
     onSubmit,
