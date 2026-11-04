@@ -3,7 +3,8 @@
 // 仕様: ./README.md「判定」
 
 import { matchIntake } from "./intake.mjs";
-import { frameNeighbourUnits, overrideTargetUnits, placeUnitOf } from "./unitNames.mjs";
+import { classifyDottedName } from "./dottedNames.mjs";
+import { overrideTargetUnit, placeUnitOf } from "./unitNames.mjs";
 import { parseForkRegions, stripOwnedRegions } from "./regions.mjs";
 
 const MARKER_LINE = /fork entries below/;
@@ -24,7 +25,8 @@ export const REASONS = {
   "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
   "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
-  "frame-beside-parent": "violation", // fork が基準の page / layout の隣に frame.ts を足した(上流の隣の宣言は frame.override.ts)
+  "default-add": "violation", // fork が基準のファイルのあるフォルダに <名前>.default.* を足した(既定はそこを作ったリポの物。自分のフォルダの自分の既定は可)
+  "default-edit": "violation", // fork が基準の <名前>.default.* を書き換えた(既定の上に重ねる側のファイルに書く。例 frame.default.ts → 隣の frame.ts)
   "outside-intake": "violation", // 受け口の外の書き換え
   "outside-region": "violation", // fork の区画の外も書き換えた
   "region-markers": "violation", // fork の区画の印が壊れている
@@ -73,6 +75,10 @@ function judgeModified(rule, baseText, headText) {
     : "outside-intake";
 }
 
+const dirOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
+/** <名前>.default.<拡張子>(既定。D173: そこを作ったリポだけが書く) */
+const isDefaultName = (path) => classifyDottedName(path.slice(path.lastIndexOf("/") + 1)).kind === "default";
+
 /**
  * @param {{
  *   changes: { status: string, path: string, from?: string }[],  // git diff --name-status -M <base> HEAD の各行(R は from → path)
@@ -89,6 +95,8 @@ function judgeModified(rule, baseText, headText) {
  */
 export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, baseHasGate = false, intake, places = null, baseUnits = new Map() }) {
   const libs = new Set(baseLibs);
+  // 基準のファイルのあるフォルダ(親の物の隣への *.default.* の追加 = default-add)
+  const baseDirs = new Set([...baseUnits.values()].map(dirOf));
   const entries = changes.map((change) => {
     const status = change.status[0];
     const rule = matchIntake(intake, change.path);
@@ -97,22 +105,22 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     if (status === "A") {
       const lib = libNameOf(change.path);
       const unit = places ? placeUnitOf(change.path, places) : null;
-      const targets = overrideTargetUnits(change.path);
-      const frameNeighbours = frameNeighbourUnits(change.path);
+      const target = overrideTargetUnit(change.path);
       if (lib !== null && libs.has(lib)) reason = "ancestor-lib-add";
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
       else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
-      else if (frameNeighbours.some((u) => baseUnits.has(u))) {
-        reason = "frame-beside-parent";
-      } else if (unit !== null && baseUnits.has(unit)) {
+      else if (places && isDefaultName(change.path) && baseDirs.has(dirOf(change.path))) reason = "default-add";
+      else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);
-      } else if (places && targets.length > 0 && !targets.some((t) => baseUnits.has(t))) reason = "override-own";
+      } else if (places && target !== null && !baseUnits.has(target)) reason = "override-own";
       else reason = "added";
     } else if (status === "D") {
       reason = "deleted";
     } else if (status === "R") {
       reason = "renamed";
+    } else if (places && isDefaultName(change.path)) {
+      reason = "default-edit";
     } else {
       reason = judgeModified(rule, baseText(change.path) ?? "", headText(change.path) ?? "");
     }

@@ -211,19 +211,23 @@ describe("judge", () => {
     assert.equal(run({ status: "A", path: "src/x/mine.override.ts" }, null, "x").reason, "added", "places を渡さなければ見ない");
   });
 
-  test("A: fork の frame.ts の隣に基準の page / layout があれば frame-beside-parent、frame.override.ts は隣の frame / page / layout が基準にあれば added", () => {
-    const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(protected)/layout.tsx"];
+  test("既定(*.default.*): 親のファイルのあるフォルダへの追加は default-add、親の既定の書き換えは default-edit、自分のフォルダの自分の既定と隣の frame.ts は合格", () => {
+    const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(public)/news/frame.default.ts", "src/app/(user)/(protected)/layout.tsx", "src/features/core/x/services/server/enricher.default.ts"];
     const places = unitPlaces(baseFiles, () => null);
     const baseUnits = unitIndex(baseFiles);
-    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
-    const beside = one("src/app/(user)/(public)/news/frame.ts");
-    assert.equal(beside.reason, "frame-beside-parent");
-    assert.equal(beside.verdict, "violation");
-    assert.equal(one("src/app/(user)/(protected)/frame.ts").reason, "frame-beside-parent");
-    assert.equal(one("src/app/(user)/(public)/mine/frame.ts").reason, "added", "fork のページの隣");
-    assert.equal(one("src/app/(user)/(public)/news/frame.override.ts").reason, "added");
-    assert.equal(one("src/app/(user)/(protected)/frame.override.ts").reason, "added");
-    assert.equal(one("src/app/(user)/(public)/mine/frame.override.ts").reason, "override-own");
+    const one = (status, path) => judge({ changes: [{ status, path }], baseText: () => "a", headText: () => "b", baseLibs: [], intake, places, baseUnits }).entries[0];
+    const add = one("A", "src/app/(user)/(protected)/frame.default.ts");
+    assert.equal(add.reason, "default-add");
+    assert.equal(add.verdict, "violation");
+    const edit = one("M", "src/app/(user)/(public)/news/frame.default.ts");
+    assert.equal(edit.reason, "default-edit");
+    assert.equal(edit.verdict, "violation");
+    assert.equal(one("M", "src/features/core/x/services/server/enricher.default.ts").reason, "default-edit");
+    assert.equal(one("A", "src/app/(user)/(public)/news/frame.ts").reason, "added", "上流のルートの隣の frame.ts");
+    assert.equal(one("A", "src/app/(user)/(protected)/frame.ts").reason, "added");
+    assert.equal(one("A", "src/app/(user)/(public)/mine/frame.default.ts").reason, "added", "自分のフォルダの自分の既定(中間 Tier の既定)");
+    assert.equal(one("A", "src/features/mine/x.default.ts").reason, "added");
+    assert.equal(judge({ changes: [{ status: "M", path: "src/x/a.default.ts" }], baseText: () => "a", headText: () => "b", baseLibs: [], intake }).entries[0].reason === "default-edit", false, "places を渡さなければ見ない");
   });
 
   test("A: core の中は受け口の項目だけ。受け口の外・debt は core-add、基準に core が無ければ added", () => {

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { checkFrameValue, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame } from "./resolve.mjs";
+import { checkFrameDeclaration, checkFrameValue, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame } from "./resolve.mjs";
 
 test("checkFrameValue: 部位は枠ごと、値は { sp?, pc? } の真偽、未知のキーは失敗", () => {
   assert.deepEqual(checkFrameValue({ hide: { bottomNav: { sp: true }, footer: { sp: false, pc: true } }, fill: true }, "user"), []);
@@ -15,6 +15,17 @@ test("checkFrameValue: 部位は枠ごと、値は { sp?, pc? } の真偽、未�
   assert.match(checkFrameValue({ title: "x" }, "user")[0], /未知のキー title/);
   assert.match(checkFrameValue({ fill: 1 }, "user")[0], /fill は真偽/);
   assert.equal(checkFrameValue([], "user").length, 1);
+});
+
+test("checkFrameDeclaration: 範囲はキー layout / page で名指す、キーが無い・知らないキーは失敗、各範囲は値の形", () => {
+  assert.deepEqual(checkFrameDeclaration({ layout: { hide: { bottomNav: { pc: true } } }, page: { fill: true } }, "user"), []);
+  assert.deepEqual(checkFrameDeclaration({ page: {} }, "user"), [], "空の範囲は書ける(何も変えない)");
+  assert.match(checkFrameDeclaration({}, "user")[0], /範囲のキーが無い/);
+  assert.match(checkFrameDeclaration({ hide: { footer: { sp: true } } }, "user")[0], /未知のキー hide\(範囲は layout \/ page/);
+  assert.match(checkFrameDeclaration({ layout: { hide: { sidebar: { sp: true } } } }, "user")[0], /^layout: hide の sidebar はこの枠の部位でない/);
+  assert.match(checkFrameDeclaration({ page: { page: {} } }, "admin")[0], /^page: 未知のキー page/);
+  assert.match(checkFrameDeclaration({ page: true }, "user")[0], /^page: 値は/);
+  assert.equal(checkFrameDeclaration(null, "user").length, 1);
 });
 
 test("overlayFrame: 省略 = 親のまま、false = 取り消し、上に重ねた方が勝つ(部位と端末ごと)", () => {

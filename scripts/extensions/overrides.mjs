@@ -2,7 +2,7 @@
 // override の検査: 既定を変える隣のファイル(src/**/<対象>.override.ts(x)・src/app/api/cron/<name>/override.ts)は
 // 足した Tier の物で、上流(Tier1)は 1 本も出荷しない(空のものも)。既定は既定の場所に書く。
 // fork では空(空白とコメントだけ)は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)。
-// <対象>.override の隣に対象(<対象>.<拡張子> か <対象>/。frame.override.ts は frame.ts・page・layout)が無ければ孤立で失敗(全 Tier)。受け口の中は項目と照らす extensions.mjs の側。書式: ./README.md
+// <対象>.override の隣に対象(<対象>.<拡張子> か <対象>/)が無ければ孤立で失敗(全 Tier)。受け口の中は項目と照らす extensions.mjs の側。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -12,6 +12,7 @@ import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
 // <対象> は user.role・user.profile のように . も含む
 const OVERRIDE_FILE = /^(?:[A-Za-z_][\w.-]*\.override|override)\.(ts|tsx)$/;
 const CRON_DIR = "src/app/api/cron";
+const FRAME_OVERRIDE = /^src\/app\/(?:.*\/)?frame\.override\.tsx?$/;
 
 /** 空白とコメントだけのソースか(cron・serviceRegistry の生成器と同じ判定) */
 export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
@@ -20,23 +21,19 @@ export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").rep
 const isOverridePath = (path) => {
   const name = path.slice(path.lastIndexOf("/") + 1);
   if (!OVERRIDE_FILE.test(name)) return false;
+  // src/app の frame.override.ts は override ではない(枠の宣言は frame.default.ts / frame.ts。止めるのは frames.mjs)
+  if (FRAME_OVERRIDE.test(path)) return false;
   return !name.startsWith("override.") || new RegExp(`^${CRON_DIR}/[^/]+/override\\.ts$`).test(path);
 };
 
-/** 枠の宣言の override(src/app の frame.override.ts)の対象: 隣の frame.ts か、frame.ts の無い上流の page / layout(scripts/extensions/frames.mjs) */
-const FRAME_OVERRIDE = /^src\/app\/(?:.*\/)?frame\.override\.ts$/;
-const FRAME_TARGETS = ["frame", "page", "layout"];
-
-/** <対象>.override の隣に対象があるか(<対象>.<拡張子> のファイルか <対象>/ のフォルダ。frame.override.ts は frame / page / layout) */
+/** <対象>.override の隣に対象があるか(<対象>.<拡張子> のファイルか <対象>/ のフォルダ) */
 function hasTarget(repoRoot, path) {
   const dir = path.slice(0, path.lastIndexOf("/"));
   const target = path.slice(dir.length + 1).replace(/\.override\.tsx?$/, "");
-  const isFrame = FRAME_OVERRIDE.test(path);
-  const targets = isFrame ? FRAME_TARGETS : [target];
   return readdirSync(join(repoRoot, dir)).some((name) => {
-    if (name === target) return !isFrame && statSync(join(repoRoot, dir, name)).isDirectory();
+    if (name === target) return statSync(join(repoRoot, dir, name)).isDirectory();
     const dot = name.lastIndexOf(".");
-    return dot > 0 && targets.includes(name.slice(0, dot));
+    return dot > 0 && name.slice(0, dot) === target;
   });
 }
 

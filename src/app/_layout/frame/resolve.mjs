@@ -1,26 +1,44 @@
 // src/app/_layout/frame/resolve.mjs
 // 枠の宣言の形の検査・親の鎖と override の重ね・表の照合(純関数。生成器と実行時の読み手が共有する)。
-// 宣言の形: { hide?: { <キー>: { sp?: boolean, pc?: boolean } }, fill?: boolean }(キーは ./parts.mjs の hideableParts)
-// 重ね: 浅い → 深い、frame.ts → frame.override.ts の順に部位と端末ごとに上書き(省略 = 親のまま、false = 親の指定の取り消し、override が勝つ)。
+// 宣言の形: { layout?: <値>, page?: <値> }、<値> = { hide?: { <キー>: { sp?: boolean, pc?: boolean } }, fill?: boolean }(キーは ./parts.mjs の hideableParts)
+// 重ね: 浅い段から layout(frame.default.ts → frame.ts)、葉の段で最後に page(frame.default.ts → frame.ts)。
+// 部位と端末ごとに上書き(省略 = 親のまま、false = 親の指定の取り消し、後が勝つ)。
 // 表の行は生成時に解決済みの最終の値なので、照合は当たる行を 1 つ選ぶだけ(重ねない)。仕組み: ./README.md
 
 import { FRAME_DEVICES, hideableParts } from "./parts.mjs";
 
-const TOP_KEYS = ["hide", "fill"];
+const SCOPES = ["layout", "page"];
+const VALUE_KEYS = ["hide", "fill"];
 const isPlainObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
- * 宣言の値を確かめる
+ * 宣言を確かめる(範囲のキーが 1 つ以上・知らないキーは失敗・各範囲の値の形)
+ * @param {unknown} declaration
+ * @param {"user" | "admin"} root
+ * @returns {string[]} 問題の一覧
+ */
+export function checkFrameDeclaration(declaration, root) {
+  if (!isPlainObject(declaration)) return ["宣言は { layout?: { … }, page?: { … } } の object"];
+  const problems = [];
+  for (const key of Object.keys(declaration)) if (!SCOPES.includes(key)) problems.push(`未知のキー ${key}(範囲は ${SCOPES.join(" / ")} で名指す。ページの中身は書かない)`);
+  const scopes = SCOPES.filter((s) => declaration[s] !== undefined);
+  if (scopes.length === 0 && problems.length === 0) problems.push(`範囲のキーが無い(${SCOPES.join(" / ")} の少なくとも 1 つ。layout = 隣の layout.tsx の下全部、page = 隣の page.tsx だけ)`);
+  for (const scope of scopes) problems.push(...checkFrameValue(declaration[scope], root).map((p) => `${scope}: ${p}`));
+  return problems;
+}
+
+/**
+ * 1 つの範囲の値を確かめる
  * @param {unknown} value
  * @param {"user" | "admin"} root
  * @returns {string[]} 問題の一覧
  */
 export function checkFrameValue(value, root) {
-  if (!isPlainObject(value)) return ["frame は { hide?: { … }, fill?: boolean } の object"];
+  if (!isPlainObject(value)) return ["値は { hide?: { … }, fill?: boolean } の object"];
   const problems = [];
   const parts = hideableParts(root);
   const keys = parts.map((p) => p.key);
-  for (const key of Object.keys(value)) if (!TOP_KEYS.includes(key)) problems.push(`未知のキー ${key}(書けるのは ${TOP_KEYS.join(" / ")}。ページの中身は書かない)`);
+  for (const key of Object.keys(value)) if (!VALUE_KEYS.includes(key)) problems.push(`未知のキー ${key}(書けるのは ${VALUE_KEYS.join(" / ")})`);
   if (value.fill !== undefined && typeof value.fill !== "boolean") problems.push("fill は真偽");
   if (value.hide !== undefined) {
     if (!isPlainObject(value.hide)) problems.push("hide は { <部位>: { sp?: boolean, pc?: boolean } }");
@@ -48,9 +66,9 @@ export function checkFrameValue(value, root) {
 export const emptyFrame = () => ({ hide: {}, fill: undefined });
 
 /**
- * 宣言を上に重ねた値(元は変えない)。宣言は checkFrameValue を通った物
+ * 1 つの範囲の値を上に重ねた値(元は変えない)。値は checkFrameValue を通った物
  * @param {{ hide: Record<string, { sp?: boolean, pc?: boolean }>, fill?: boolean }} base 部位の名前で持つ値
- * @param {object | undefined} declaration
+ * @param {object | undefined} declaration 範囲の値(宣言の layout か page)
  * @param {"user" | "admin"} root
  */
 export function overlayFrame(base, declaration, root) {

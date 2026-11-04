@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { frameNeighbourUnits, overrideTargetUnit, overrideTargetUnits, placeUnitOf, unitIndex, unitName, unitPlaces } from "./unitNames.mjs";
+import { overrideTargetUnit, placeUnitOf, unitIndex, unitName, unitPlaces } from "./unitNames.mjs";
 
 test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .override は残す", () => {
   assert.equal(unitName("src/wiring/foo.ts"), "src/wiring/foo");
@@ -48,11 +48,5 @@ test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは extensions
   assert.equal(overrideTargetUnit("src/features/core/user/roles/coreRoles/user.role.override.ts"), "src/features/core/user/roles/coreRoles/user.role");
   assert.equal(overrideTargetUnit("src/app/api/cron/x/override.ts"), null);
   assert.equal(overrideTargetUnit("src/x/a.ts"), null);
-  assert.deepEqual(overrideTargetUnits("src/app/(user)/x/frame.override.ts"), ["src/app/(user)/x/frame", "src/app/(user)/x/page", "src/app/(user)/x/layout"]);
-  assert.deepEqual(overrideTargetUnits("src/features/core/setting/fields/a.override.ts"), ["src/features/core/setting/fields/a"]);
-  assert.deepEqual(overrideTargetUnits("src/x/a.ts"), []);
-  assert.deepEqual(frameNeighbourUnits("src/app/(user)/x/frame.ts"), ["src/app/(user)/x/page", "src/app/(user)/x/layout"]);
-  assert.deepEqual(frameNeighbourUnits("src/app/(user)/x/frame.tsx"), []);
-  assert.deepEqual(frameNeighbourUnits("src/lib/x/frame.ts"), []);
   assert.deepEqual([...unitIndex(["a/x.ts", "a/x/index.tsx", "a/y.json"]).entries()], [["a/x", "a/x.ts"], ["a/y", "a/y.json"]]);
 });

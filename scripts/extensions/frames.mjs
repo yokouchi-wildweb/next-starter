@@ -1,8 +1,10 @@
 // scripts/extensions/frames.mjs
-// 枠の宣言の生成器: src/app の frame.ts / frame.override.ts を字面で読み(declarations.literalOf、D2)、ルートの親の鎖と override を
-// 部位と端末ごとに解決した表を枠の根ごとに書く(<枠の根>/_layout/extensions/frameTable.ts。pnpm extensions:generate が書き、extensions:check が照らす)。
-// git は使わない(fork の frame.ts が上流の page/layout の隣にあるかは ownership:check の frame-beside-parent)。
-// 孤立した frame.override.ts と上流の override は overrides.mjs。仕組みと表の形: src/app/_layout/frame/README.md
+// 枠の宣言の生成器: src/app の frame.default.ts(ルートを作ったリポの既定)と frame.ts(その下のリポの宣言)を字面で読み
+// (declarations.literalOf、D2)、ルートの親の鎖を部位と端末ごとに解決した表を枠の根ごとに書く
+// (<枠の根>/_layout/extensions/frameTable.ts。pnpm extensions:generate が書き、extensions:check が照らす)。
+// 範囲はキーで名指す(layout = 隣の layout.tsx の下全部、page = 隣の page.tsx だけ)。隣に何があるかで意味を変えない。
+// 重ねる順: 浅い段から layout(frame.default → frame)、葉の段で最後に page(frame.default → frame)。
+// git は使わない(親の物の隣の *.default.* は ownership:check の default-add)。仕組みと表の形: src/app/_layout/frame/README.md
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,14 +12,21 @@ import { join } from "node:path";
 import ts from "typescript";
 
 import { FRAME_ROOTS } from "../../src/app/_layout/frame/parts.mjs";
-import { checkFrameValue, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame, sameFrameValue } from "../../src/app/_layout/frame/resolve.mjs";
+import { checkFrameDeclaration, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame, sameFrameValue } from "../../src/app/_layout/frame/resolve.mjs";
 import { literalOf } from "../../src/lib/forkOwnership/declarations.mjs";
+import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { isBlankSource } from "./overrides.mjs";
 import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../src/lib/screens/routeTree.mjs";
 
 export const FRAME_FILE = "frame.ts";
-export const FRAME_OVERRIDE_FILE = "frame.override.ts";
-const FRAME_LIKE = /^frame(?:\.override)?\.(?:tsx|js|jsx|mjs)$/;
+export const FRAME_DEFAULT_FILE = "frame.default.ts";
+/** 宣言の 2 つの名前と export の名前(並び = 重ねる順) */
+const SOURCES = [
+  { file: FRAME_DEFAULT_FILE, exportName: "frameDefault", slot: "default" },
+  { file: FRAME_FILE, exportName: "frame", slot: "frame" },
+];
+/** frame.ts・frame.default.ts 以外の frame.<何か> / frame.tsx など(frame.override.ts を含む) */
+const FRAME_LIKE = /^frame(?:\.[^/]+)?\.(?:ts|tsx|js|jsx|mjs)$/;
 /** 照合の試しに使う動的な段の値(実際の URL に出ない文字) */
 const PROBE = "\u0000";
 
@@ -51,30 +60,34 @@ function probesOf(pattern) {
  * 全部の枠の根の表を作る
  * @param {string} repoRoot
  * @param {(source: string) => string} headerFor 生成物のヘッダ(extensions.mjs の headerFor)
+ * @param {{ isTier1?: boolean }} [identity] 省略 = readForkIdentity(上流(Tier1)は frame.ts を持たない、既定は frame.default.ts)
  * @returns {{ outputs: Record<string, string>, tables: Record<string, object[]>, problems: string[], warnings: string[], declarations: number }}
  */
-export function planFrames(repoRoot, headerFor) {
+export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(repoRoot).isTier1 } = {}) {
   const outputs = {};
   const tables = {};
   const problems = [];
   const warnings = [];
   if (!existsSync(join(repoRoot, "src/app"))) return { outputs, tables, problems, warnings, declarations: 0 };
   const files = listAppFiles(repoRoot);
-  const fileSet = new Set(files);
   const dirOf = (path) => path.slice(0, path.lastIndexOf("/"));
   const rootOf = (dir) => Object.keys(FRAME_ROOTS).find((r) => dir === FRAME_ROOTS[r].dir || dir.startsWith(`${FRAME_ROOTS[r].dir}/`)) ?? null;
   const has = (dir, re) => files.some((f) => dirOf(f) === dir && re.test(f.slice(dir.length + 1)));
 
-  // 宣言を集める: 根 → (segments の文字列 → { segments, scope, frame, override })
+  // 宣言を集める: 根 → (segments の文字列 → { segments, default?, frame?, paths })
   const nodesByRoot = Object.fromEntries(Object.keys(FRAME_ROOTS).map((r) => [r, new Map()]));
   let declarations = 0;
   for (const path of files) {
     const name = path.slice(path.lastIndexOf("/") + 1);
-    if (FRAME_LIKE.test(name)) {
-      problems.push(`${path}: 枠の宣言は ${FRAME_FILE}(fork が上流の page/layout の隣に置くなら ${FRAME_OVERRIDE_FILE})`);
+    const source = SOURCES.find((s) => s.file === name);
+    if (!source) {
+      if (FRAME_LIKE.test(name)) problems.push(`${path}: 枠の宣言の名前は ${FRAME_DEFAULT_FILE}(ルートを作ったリポの既定)か ${FRAME_FILE}(その下のリポの宣言。既定の上に重なる)だけ`);
       continue;
     }
-    if (name !== FRAME_FILE && name !== FRAME_OVERRIDE_FILE) continue;
+    if (source.file === FRAME_FILE && isTier1) {
+      problems.push(`${path}: 上流(Tier1)は ${FRAME_FILE} を持たない(ルートを作ったリポの既定は隣の ${FRAME_DEFAULT_FILE}、export const frameDefault)`);
+      continue;
+    }
     const dir = dirOf(path);
     const root = rootOf(dir);
     if (root === null) {
@@ -86,52 +99,56 @@ export function planFrames(repoRoot, headerFor) {
       problems.push(`${path}: private フォルダ(_x)・@slot・intercepting の下には宣言を置けない`);
       continue;
     }
-    const scope = has(dir, LAYOUT_FILE_RE) ? "layout" : has(dir, PAGE_FILE_RE) ? "page" : null;
-    if (scope === null) {
-      // 隣に frame.ts も無い frame.override.ts は overrides.mjs が孤立で止める
-      if (name === FRAME_FILE || fileSet.has(`${dir}/${FRAME_FILE}`)) problems.push(`${path}: 隣に page.tsx か layout.tsx が要る(宣言はその page か layout の下全部に効く)`);
+    const hasLayout = has(dir, LAYOUT_FILE_RE);
+    const hasPage = has(dir, PAGE_FILE_RE);
+    if (!hasLayout && !hasPage) {
+      problems.push(`${path}: 隣に layout.tsx か page.tsx が要る(宣言はその layout の下全部か page に効く)`);
       continue;
     }
     const text = readFileSync(join(repoRoot, path), "utf8");
-    const isOverride = name === FRAME_OVERRIDE_FILE;
-    if (isOverride && isBlankSource(text)) continue;
-    const read = readExportedLiteral(path, text, isOverride ? "override" : "frame");
-    const found = read.problem ? [read.problem] : checkFrameValue(read.value, root);
+    if (isBlankSource(text)) continue;
+    const read = readExportedLiteral(path, text, source.exportName);
+    const found = read.problem ? [read.problem] : checkFrameDeclaration(read.value, root);
+    if (found.length === 0) {
+      if (read.value.layout !== undefined && !hasLayout) found.push(`layout: は隣に layout.tsx があるフォルダだけ(このフォルダのページだけなら page:)`);
+      if (read.value.page !== undefined && !hasPage) found.push(`page: は隣に page.tsx があるフォルダだけ(このフォルダの下全部なら layout:)`);
+    }
     if (found.length > 0) {
       problems.push(...found.map((p) => `${path}: ${p}`));
       continue;
     }
     declarations += 1;
     const key = segments.join("/");
-    const node = nodesByRoot[root].get(key) ?? { segments, scope, path: null };
-    if (isOverride) node.override = read.value;
-    else {
-      node.frame = read.value;
-      node.path = path;
-    }
-    node.path ??= path;
+    const node = nodesByRoot[root].get(key) ?? { segments, paths: [] };
+    node[source.slot] = read.value;
+    node.paths.push(path);
     nodesByRoot[root].set(key, node);
   }
 
   const { routes } = discoverRoutes(files);
   for (const root of Object.keys(FRAME_ROOTS)) {
     const nodes = nodesByRoot[root];
-    // 親の鎖: 浅い → 深い(layout の宣言は自分と下全部、page の宣言は自分のページだけ)、各段で frame.ts → frame.override.ts
+    const sections = (node, scope) => SOURCES.map((s) => node[s.slot]?.[scope]).filter((v) => v !== undefined);
+    // 親の鎖: 浅い段から layout(frame.default → frame)、葉の段で最後に page(frame.default → frame)
     const resolve = (segments, isPage) => {
       let value = emptyFrame();
       for (let i = 0; i <= segments.length; i += 1) {
         const node = nodes.get(segments.slice(0, i).join("/"));
-        if (!node || (node.scope === "page" && !(isPage && i === segments.length))) continue;
-        value = overlayFrame(overlayFrame(value, node.frame, root), node.override, root);
+        if (node) for (const section of sections(node, "layout")) value = overlayFrame(value, section, root);
       }
+      const leaf = isPage ? nodes.get(segments.join("/")) : undefined;
+      if (leaf) for (const section of sections(leaf, "page")) value = overlayFrame(value, section, root);
       return value;
     };
     const rows = [];
     for (const node of [...nodes.values()].sort((a, b) => (a.segments.join("/") < b.segments.join("/") ? -1 : 1))) {
-      const value = resolve(node.segments, node.scope === "page");
-      rows.push({ pattern: node.segments, scope: node.scope, ...frameRowValue(value, root) });
-      if (hidesWholeFrame(value, root)) {
-        warnings.push(`${node.path}: 枠の部位を全部隠している(枠が全部要らないページはルートグループに分けて枠の layout の外に置く。書くことは止めない)`);
+      for (const scope of ["layout", "page"]) {
+        if (sections(node, scope).length === 0) continue;
+        const value = resolve(node.segments, scope === "page");
+        rows.push({ pattern: node.segments, scope, ...frameRowValue(value, root) });
+        if (hidesWholeFrame(value, root)) {
+          warnings.push(`${node.paths.join(" / ")}(${scope}): 枠の部位を全部隠している(枠が全部要らないページはルートグループに分けて枠の layout の外に置く。書くことは止めない)`);
+        }
       }
     }
     // 宣言のある動的な段が静的な兄弟に誤って効かないよう、照合がずれるページに解決済みの行を足す(試作の結論、止まるまで繰り返す)
@@ -165,8 +182,8 @@ export function planFrames(repoRoot, headerFor) {
 function renderTable(root, rows, headerFor) {
   const typeName = "FrameTable";
   const lines = [
-    headerFor(`${FRAME_ROOTS[root].dir} の ${FRAME_FILE} / ${FRAME_OVERRIDE_FILE}`),
-    "// 枠の表: 行 = 解決済みの最終の値(親の鎖と override を重ねた物)。照合は matchFrame(静的が先・長い方が先、当たる 1 行)。仕組み: src/app/_layout/frame/README.md",
+    headerFor(`${FRAME_ROOTS[root].dir} の ${FRAME_DEFAULT_FILE} / ${FRAME_FILE}`),
+    "// 枠の表: 行 = 解決済みの最終の値(親の鎖と frame.default → frame を重ねた物)。照合は matchFrame(静的が先・長い方が先、当たる 1 行)。仕組み: src/app/_layout/frame/README.md",
     "",
     `import type { ${typeName} } from "@/app/_layout/frame";`,
     "",

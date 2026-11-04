@@ -7,8 +7,7 @@
 // - 受け口のフォルダ(基準の src/**/extensionPoints.ts の dir:、"." = 持ち主の直下)・src/wiring・scripts・scripts/tasks・
 //   … 直下の項目だけ(項目のフォルダの中の部品は見ない。門番の例外 src/featureGate/alwaysOnExceptions も宣言の受け口)
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
-// <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own。frame.override.ts は frame / page / layout)。
-// src/app の frame.ts を fork が足した隣に基準の page / layout がある = frame-beside-parent(上流の隣は frame.override.ts)。
+// <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
 
 import { readDeclaration } from "./declarations.mjs";
 
@@ -71,22 +70,6 @@ export function placeUnitOf(path, places) {
 export function overrideTargetUnit(path) {
   const match = /^(.*\/)?([^/]+)\.override\.tsx?$/.exec(path);
   return match ? `${match[1] ?? ""}${match[2]}` : null;
-}
-
-/**
- * override の対象の単位名の候補(どれかが基準にあれば上の Tier の物への override)。
- * src/app の frame.override.ts は隣の frame / page / layout(frame.ts の無い上流のページにも重ねられる)。override でなければ空
- */
-export function overrideTargetUnits(path) {
-  const target = overrideTargetUnit(path);
-  if (target === null) return [];
-  return /^src\/app\/(?:.*\/)?frame$/.test(target) ? ["frame", "page", "layout"].map((name) => `${target.slice(0, -"frame".length)}${name}`) : [target];
-}
-
-/** fork が足した src/app の frame.ts なら、隣の page / layout の単位名(基準にあれば frame-beside-parent)。違えば空 */
-export function frameNeighbourUnits(path) {
-  const match = /^(src\/app\/(?:.*\/)?)frame\.ts$/.exec(path);
-  return match ? [`${match[1]}page`, `${match[1]}layout`] : [];
 }
 
 /** 基準のファイルの単位名 → 基準のパス(最初の 1 つ) */

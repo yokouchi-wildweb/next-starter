@@ -167,6 +167,7 @@ test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(di
     "add src/features/core/payment/enricher.replace.{ts,tsx}",
     "add src/app/**/_layout/**/*.replace.{ts,tsx}",
     "add src/app/**/_screen/**/*.replace.{ts,tsx}",
+    "add src/app/**/frame.ts",
     "add scripts/tasks/*.ts",
   ]);
   assert.ok(plan.intake.content.startsWith("edit src/config/**  # 値\n# === AUTO-GENERATED intake START ===\n"));
