@@ -20,6 +20,11 @@
 
 増やすときは、このテーブルと `wiring.test.mjs` の `WIRING_FILES` に足す。将来の API 用・管理画面用の wiring は自分で登録表を結ぶ（wiring どうしは import しない。共有するのは lib の汎用版と登録表だけ）。
 
+wiring どうしの import の例外は次の 2 つだけ（`pnpm test:wiring` の `isReceptacleImport` / `isFormInputsBundleImport` と同じ）:
+
+- 受け口: 生成物 `wiring/<束>.ts` → その束の受け口の項目 `wiring/<束>/<受け口>/…`（受け口 = `wiring/<束>/extensionPoints.ts` が宣言した `dir`）と、同じ受け口の中の項目どうし。項目は fork が足した物を含み、名前に fork の印は付けない。例: 生成物 `dbAgent.ts` → `dbAgent/extraTools/<名前>.ts`・`dbAgent/promptFragments/<名前>.ts`
+- 入力部品の束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、`formInputs/` の中どうし（受け口 `formInputs/inputs/` の項目を含む）
+
 ## fork の wiring
 
 - fork は `src/wiring/<名前>.ts(x)`（client 用は `<名前>.client.tsx`）を足せる（fork が足したファイル = fork の物。名前に fork の印は付けない）。例: fork 独自の主体（店舗の会員など）の API の Factory を、`lib/routeFactory` の汎用版から自分の束で作る

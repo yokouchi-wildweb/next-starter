@@ -271,3 +271,4 @@
 - id:20261103-175406-infinite-scroll-callers-on-retry | severity:info | checkpoint:infinite-scroll-callers-on-retry | resolves:20261103-175406-infinite-scroll-callers-on-retry
 - id:20261103-144114-ownership-owner-lookup | severity:info | checkpoint:ownership-owner-lookup | resolves:20261103-144114-ownership-owner-lookup
 - id:20261103-175406-main-metrics-day-boundary-timezone | severity:info | checkpoint:main-metrics-day-boundary-timezone | resolves:20261103-175406-main-metrics-day-boundary-timezone
+- id:20261103-175406-wiring-readme-receptacle-exception | severity:info | checkpoint:wiring-readme-receptacle-exception | resolves:20261103-175406-wiring-readme-receptacle-exception
