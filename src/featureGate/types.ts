@@ -62,3 +62,24 @@ export type RequiredFeature = {
 export type GatePathResult =
   | { open: true }
   | { open: false; rule: FeatureName; redirectTo?: string };
+
+/** 閉じた住所の 1 項目(閉じた規則の pathPatterns の 1 つと、その規則の名前・行き先)。並びの順 = 一覧の順 → 規則の中の pathPatterns の順 */
+export type ClosedPathEntry = { pattern: string; rule: FeatureName; redirectTo?: string };
+
+/**
+ * client に渡す範囲(枠)。user = 利用者の枠(/admin と /api の下を除く住所)、admin = 管理の枠(user + /admin の下)。
+ * /api の下はどちらの範囲にも入らない(リンクの先にならない)
+ */
+export type ClientGateArea = "user" | "admin";
+
+/** server が計算して client に渡す値(clientGateState)。client は規則を評価せずこれだけを読む */
+export type ClientGateState = {
+  area: ClientGateArea;
+  /** { 規則名: 開閉 }(全規則) */
+  enabled: Record<FeatureName, boolean>;
+  /** 範囲の中の閉じた住所の並び */
+  closed: ClosedPathEntry[];
+};
+
+/** client の useGate().path の答え。rule: null = 範囲の外・Provider の外(本番だけ。dev は throw)で閉とみなした */
+export type ClientGatePathResult = GatePathResult | { open: false; rule: null };

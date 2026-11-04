@@ -51,6 +51,19 @@ export function forbiddenTarget(source, resolvedRel) {
   return null;
 }
 
+const CLIENT_ENTRY = "src/featureGate/client.ts";
+
+/** client の入口だけの落とす先(client は規則を評価せず server が渡した値だけを読む: D5)。理由か null */
+export function forbiddenForClient(resolvedRel) {
+  if (!resolvedRel) return null;
+  const bare = resolvedRel.replace(/\.(ts|tsx|mts|mjs|js)$/, "");
+  if (bare.startsWith("src/featureGate/rules/")) return "門番の規則(client は規則を評価しない)";
+  if (bare === "src/featureGate/extensions/rules") return "門番の規則の一覧(client は規則を評価しない)";
+  if (bare === "src/featureGate/evaluate" || bare === "src/featureGate/clientState") return "門番の評価(client は規則を評価しない)";
+  if (bare === "src/config" || bare.startsWith("src/config/")) return "config(client は規則の値を読まない)";
+  return null;
+}
+
 const completeFile = (root, rel) => {
   const base = join(root, rel);
   const candidates = [base, ...[".ts", ".tsx", ".mts", ".mjs", ".js"].map((e) => base + e), ...["index.ts", "index.tsx", "index.mjs"].map((f) => join(base, f))];
@@ -74,7 +87,7 @@ export function findForbiddenReach(root, entries) {
       seen.add(file);
       for (const source of valueImportSources(readFileSync(file, "utf8"))) {
         const resolvedRel = resolveImport(source, file, root);
-        const reason = forbiddenTarget(source, resolvedRel);
+        const reason = forbiddenTarget(source, resolvedRel) ?? (entry === CLIENT_ENTRY ? forbiddenForClient(resolvedRel) : null);
         if (reason) {
           problems.push(`${[...chain, resolvedRel ?? source].join(" → ")}: ${reason}`);
           continue;
@@ -88,7 +101,7 @@ export function findForbiddenReach(root, entries) {
   return problems;
 }
 
-test("実リポ: 門番の入口(index.ts・client.ts)はデータの層・Node 専用の物に届かない", () => {
+test("実リポ: 門番の入口(index.ts・client.ts)はデータの層・Node 専用の物に届かない。client.ts は規則・評価・config にも届かない", () => {
   for (const entry of ENTRIES) assert.ok(existsSync(join(ROOT, entry)), `${entry} が無い`);
   const problems = findForbiddenReach(ROOT, ENTRIES);
   assert.deepEqual(problems, [], `門番の入口から届いてはいけない先:\n${problems.join("\n")}`);
@@ -137,4 +150,19 @@ test("fixture: services・drizzle・server-only・node: のどれに届いても
   // client.ts からの鎖も見る
   const viaClient = fixture("export const rule = {};\n", { "src/featureGate/client.ts": 'export { x } from "./tools/client/x";\n', "src/featureGate/tools/client/x.ts": 'import "server-only";\nexport const x = 1;\n' });
   assert.match(findForbiddenReach(viaClient, ENTRIES)[0] ?? "", /^src\/featureGate\/client\.ts → src\/featureGate\/tools\/client\/x\.ts → server-only: server-only/);
+});
+
+test("fixture: client.ts から規則・評価・config に届くと落ちる(index.ts からは通る)", () => {
+  const cases = {
+    rules: ['export { rules } from "./extensions/rules";\n', /門番の規則の一覧/],
+    evaluate: ['export { isFeatureEnabled } from "./evaluate";\n', /門番の評価/],
+    config: ['import { FLAG } from "@/config/app";\nexport const x = FLAG;\n', /config/],
+  };
+  for (const [name, [body, reason]] of Object.entries(cases)) {
+    const root = fixture("export const rule = {};\n", { "src/featureGate/client.ts": body, "src/featureGate/evaluate.ts": "export const isFeatureEnabled = () => true;\n" });
+    const problems = findForbiddenReach(root, ENTRIES);
+    assert.equal(problems.length, 1, `${name}: ${problems.join("\n")}`);
+    assert.match(problems[0], /^src\/featureGate\/client\.ts → /);
+    assert.match(problems[0], reason);
+  }
 });

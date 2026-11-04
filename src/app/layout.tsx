@@ -19,6 +19,7 @@ import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { GoogleTag } from "@/lib/googleTag";
 import { seoConfig } from "@/config/seo.config";
 import { AppProviders } from "@/wiring/AppProviders";
+import { clientGateState } from "@/featureGate";
 
 export const viewport: Viewport = seoConfig.viewport;
 
@@ -98,7 +99,8 @@ export default async function RootLayout({
         <GlobalScreenLoader />
         <GlobalToast />
         {/* Provider の入れ子は src/wiring/AppProviders.tsx(Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア) */}
-        <AppProviders>
+        {/* 門番の client への受け渡し: 利用者の枠の値をここで計算して渡す(管理の枠は admin の守りの layout が包み直す) */}
+        <AppProviders gate={clientGateState("user")}>
           {children}
         </AppProviders>
         <RedirectToastProvider />

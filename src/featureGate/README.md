@@ -13,11 +13,11 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 | `required/<機能名>.ts` | fork(受け口、器) | この fork が必ず使う機能(`export const required: RequiredFeature`)。働き(依存の検査)は次の区切り |
 | `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`alwaysOnExceptions`・`alwaysOnRegistries`・`required`) |
 | `extensions/` | 生成物 | `pnpm extensions:generate` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
-| `index.ts` | 上流 | 入口(server・proxy): `gate` と型 |
-| `client.ts` | 上流 | 入口(client、器。Provider と `useGate` は次の区切り) |
+| `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
+| `client.ts` | 上流 | 入口(client): `useGate`・配線用の `GateProvider` と型 |
 | `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`・`gatedSchema`・`closedTables`・例外の一覧 |
-| `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定の純関数、server と client が共有)・1 道具 1 ファイルと束・道具の中身 |
-| `checks/` | 上流 | 検査(`pnpm test:feature-gate`・`:reach`・`:tools`) |
+| `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`area.ts`・`clientState.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定・`area.ts` = 枠の判定の純関数で server と client が共有、`clientState.ts` = client に渡す値の計算)・1 道具 1 ファイルと束・道具の中身 |
+| `checks/` | 上流 | 検査(`pnpm test:feature-gate`・`:reach`・`:tools`・`:client`) |
 
 ## 入口と gate の口
 
@@ -37,7 +37,27 @@ gate.filter(rows, (row) => row.link); // href を持たない型は住所の取�
 - `gate.path`: 一覧の順(ファイル名の順)で最初の閉じた規則に当たれば `{ open: false, rule, redirectTo }`。読み手は proxy の項目 `src/proxies/featureGate.ts`(応答を作る)と demo の loader(閉じたデモを一覧から外す)
 - `gate.filter`: メニュー・一覧から閉じた住所の行を隠すだけ(応答は proxy が作る)。除くのは「`/` で始まる内部の住所(`//` は別オリジンで対象外)で、閉じた住所の並びの順で最初に当たった規則に `redirectTo` が無い」項目だけ。`?` と `#` の後ろは照合から外す。外部 URL・`redirectTo` 付きの閉(行き先の画面がある。例: サインアップ → `/signup-closed`)・住所の無い項目(`getHref` が `undefined`)は残す。判定は `hiddenHref.ts` の純関数で、リンクの自動で隠す判定(client)も同じ関数を使う
 - 既存の読み手(demo の loader・service の自己停止・管理メニュー)は `gate.assert` / `gate.filter` へ移す途中(まだ直読み・`gate.path` の箇所がある)
-- 中の名前(`isFeatureEnabled`・`resolvePath`)は外に出さない。道具を足すときは `tools/server/<名前>.ts` に 1 ファイル、束 `tools/server/index.ts` に 1 行
+- 中の名前(`isFeatureEnabled`・`resolvePath`)は外に出さない。道具を足すときは `tools/server/<名前>.ts` に 1 ファイル、束 `tools/server/index.ts` に 1 行(client でも使う道具は `tools/client/` にも同じ名前で。束の名前の一致は `checks/gateTools.test.ts`: client の名前 ⊆ server、server だけの名前は `assert` だけ)
+
+## client の口(useGate)
+
+client は規則を評価しない。server が計算した値(`clientGateState(area)` = `{ 規則名: 開閉 }` と枠で絞った閉じた住所の並び)を `GateProvider` で受け取り、`useGate()` が読む。
+
+```tsx
+"use client";
+import { useGate } from "@/featureGate/client";
+
+const gate = useGate();
+gate.enabled("referral");        // server の gate.enabled と同じ答え。未知の名前は throw
+gate.path("/mypage/invite");     // { open: true } | { open: false; rule; redirectTo? }(範囲の中は server と同じ)
+gate.filter(menuItems);          // server の gate.filter と同じ判定(hiddenHref.ts)
+```
+
+- 枠(範囲): 利用者の枠(`user`)= `/admin` と `/api` の下を除く住所。管理の枠(`admin`)= 利用者の枠 + `/admin` の下。`/api` の下はどの枠にも入らない
+- 配線: root の `src/app/layout.tsx` が `clientGateState("user")` を `src/wiring/AppProviders.tsx` に渡し、AppProviders が一番外で `GateProvider` で包む。admin の守りの layout(`src/app/admin/(protected)/layout.tsx`・`src/app/admin/insane/layout.tsx`)が guard の後に `clientGateState("admin")` で包み直す。管理の住所は守りの後にだけ渡すので、公開ページの HTML に出ない(`/admin/login`・`/admin/setup` は利用者の枠)。root layout はクライアント遷移で描き直されないので、枠の切替は入れ子の Provider で行う
+- `clientGateState`・`GateProvider` は配線用。使えるのは上の 4 ファイルだけ(lint `feature-gate-entries`)。画面・部品は `useGate()` を使う
+- 範囲の外の住所・Provider の外で聞くと、dev(`NODE_ENV !== "production"`)は throw(書き間違いに気づかせる)、本番は閉とみなす: `enabled` は false、`path` は `{ open: false, rule: null }`、`filter` は内部の住所の項目を除く(外部 URL・住所の無い項目は残す)
+- 値は deploy で決まる config から作るので、ページを開いた時点の値のまま(クライアント遷移では計算し直さない)
 
 ## 機能を閉じる規則
 
@@ -136,8 +156,8 @@ export const rule: FeatureGateRule = {
 
 ## 守り
 
-- lint `import-boundaries/feature-gate-entries`: 外からは入口 3 つだけ・lib は読まない・`node.ts` は scripts とテストだけ(`eslint-rules/import-boundaries.mjs`)
-- 到達の検査 `pnpm test:feature-gate:reach`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)
+- lint `import-boundaries/feature-gate-entries`: 外からは入口 3 つだけ・lib は読まない・`node.ts` は scripts とテストだけ・配線用の `clientGateState`・`GateProvider` は配線の 4 ファイルだけ(`eslint-rules/import-boundaries.mjs`)
+- 到達の検査 `pnpm test:feature-gate:reach`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)
 - lint `page-authz/session-api-callsite` は `src/featureGate/**` にも掛かる(規則と判定はセッションを解かない)
 - 所有の検査(`pnpm ownership:check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
 

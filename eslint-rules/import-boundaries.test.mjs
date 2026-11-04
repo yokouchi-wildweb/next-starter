@@ -260,6 +260,12 @@ test("rule feature-gate-entries: 型も別名も相対も dynamic import も止�
       { code: `const m = await import("@/featureGate/node");`, filename: at("scripts/registry/push.ts") },
       { code: `import { rule } from "@/featureGate/rules/wallet";`, filename: at("src/featureGate/extensions/rules.ts") },
       { code: `import { rules } from "../../featureGate/node.ts";`, filename: at("src/lib/screens/routeMap.test.mjs") },
+      { code: `import { clientGateState } from "@/featureGate";`, filename: at("src/app/layout.tsx") },
+      { code: `import { GateProvider, type ClientGateState } from "@/featureGate/client";`, filename: at("src/wiring/AppProviders.tsx") },
+      { code: `import { GateProvider } from "@/featureGate/client";`, filename: at("src/app/admin/(protected)/layout.tsx") },
+      { code: `import { clientGateState } from "@/featureGate";`, filename: at("src/app/admin/insane/layout.tsx") },
+      { code: `import { useGate, type ClientGateState } from "@/featureGate/client";`, filename: at("src/app/x/_components/Menu.tsx") },
+      { code: `import { gate } from "@/featureGate";`, filename: at("src/app/x/page.tsx") },
     ],
     invalid: [
       { code: `import type { FeatureGateRule } from "@/featureGate";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "gateFromLib" }] },
@@ -267,6 +273,9 @@ test("rule feature-gate-entries: 型も別名も相対も dynamic import も止�
       { code: `import { rule } from "../../featureGate/rules/wallet";`, filename: at("src/app/x/page.tsx"), errors: [{ messageId: "gateInternal" }] },
       { code: `const m = await import("@/featureGate/node");`, filename: at("src/app/api/x/route.ts"), errors: [{ messageId: "gateNode" }] },
       { code: `export { rules } from "src/featureGate/node";`, filename: at("src/proxies/x.ts"), errors: [{ messageId: "gateNode" }] },
+      { code: `import { clientGateState } from "@/featureGate";`, filename: at("src/app/x/_screen/loader.ts"), errors: [{ messageId: "gateWiringOnly" }] },
+      { code: `import { useGate, GateProvider } from "@/featureGate/client";`, filename: at("src/app/admin/layout.tsx"), errors: [{ messageId: "gateWiringOnly" }] },
+      { code: `export { GateProvider } from "@/featureGate/client";`, filename: at("src/components/x.ts"), errors: [{ messageId: "gateWiringOnly" }] },
     ],
   });
 });

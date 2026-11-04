@@ -4,6 +4,9 @@
 
 import type { ReactNode } from "react";
 
+import { clientGateState } from "@/featureGate";
+import { GateProvider } from "@/featureGate/client";
+
 import { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";
 import { guard } from "./guard";
 
@@ -12,5 +15,10 @@ export default async function AdminLayout({
 }: Readonly<{ children: ReactNode }>) {
   await guard();
 
-  return <AdminProtectedLayout>{children}</AdminProtectedLayout>;
+  // 門番の管理の枠: 守りの後で /admin の下の閉じた住所を足した値で包み直す(公開ページの HTML に管理の住所を出さない)
+  return (
+    <GateProvider state={clientGateState("admin")}>
+      <AdminProtectedLayout>{children}</AdminProtectedLayout>
+    </GateProvider>
+  );
 }

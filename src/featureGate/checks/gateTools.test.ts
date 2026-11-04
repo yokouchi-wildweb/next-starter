@@ -2,6 +2,7 @@
 // gate の束の道具の回帰テスト(D23): gate.enabled は規則名で引けて規則の enabled() を返し、未知の名前は型で落ち実行時は throw。
 // gate.path は一覧の順で最初の閉じた規則を返す。gate.assert は閉なら 404 の DomainError(機能名を出さない)。
 // gate.filter は '/' で始まる内部の住所で redirectTo の無い閉じた規則に当たる項目だけを除く(判定 hiddenHref.ts)。
+// clientGateState は全規則の開閉と、枠(user / admin)で絞った閉じた住所を返す。束の名前: client ⊆ server、server だけの名前は SERVER_ONLY に限る。
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。
 // 型の検査は pnpm typecheck(@ts-expect-error の行)、実行は pnpm test:feature-gate:tools
 
@@ -9,7 +10,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { gate, type FeatureGateRule, type FeatureName, type GatedFeatureRule } from "@/featureGate";
+import { clientGateState } from "@/featureGate";
 import { isHiddenHref } from "@/featureGate/hiddenHref";
+import { clientTools } from "@/featureGate/tools/client";
+import { serverTools } from "@/featureGate/tools/server";
 import { isDomainError } from "@/lib/errors";
 import type { FeatureGateRule as LegacyFeatureGateRule } from "@/proxies/types";
 import { rules } from "@/featureGate/node";
@@ -97,7 +101,12 @@ test("gate.filter: 規則を 1 つずつ閉じ、その住所の項目だけが�
     withRules({ [rule.name]: false }, () => {
       for (const pattern of rule.pathPatterns) {
         const pathname = pattern.replace(/^=/, "");
-        const items = [{ href: "/__open_before__" }, { href: pathname }, { href: `${pathname}?q=1#x` }, { href: "/__open_after__" }];
+        const items = [
+          { href: "/__open_before__" },
+          { href: pathname },
+          { href: `${pathname}?q=1#x` },
+          { href: "/__open_after__" },
+        ];
         const expected = rule.redirectTo === undefined ? [items[0], items[3]] : items;
         assert.deepEqual(gate.filter(items), expected, `${rule.name} ${pattern}`);
       }
@@ -135,9 +144,57 @@ test("gate.filter: 内部の住所だけを見る・href の無い項目は残�
 });
 
 test("isHiddenHref: 並びの順で最初に当たった閉じた住所の redirectTo で決まる", () => {
-  const closed = [{ pattern: "/a", redirectTo: "/a-closed" }, { pattern: "/a/b" }];
+  const closed = [
+    { pattern: "/a", rule: "signup" as FeatureName, redirectTo: "/a-closed" },
+    { pattern: "/a/b", rule: "wallet" as FeatureName },
+  ];
   assert.equal(isHiddenHref("/a/b", closed), false);
   assert.equal(isHiddenHref("/a/b", [...closed].reverse()), true);
   assert.equal(isHiddenHref("/x", closed), false);
-  assert.equal(isHiddenHref("a/b", [{ pattern: "/a" }]), false);
+  assert.equal(isHiddenHref("a/b", [{ pattern: "/a", rule: "wallet" as FeatureName }]), false);
+});
+
+/** パターンの住所が /admin・/api の下か */
+const under = (pattern: string, prefix: string) => matchesPath(pattern.replace(/^=/, ""), prefix);
+
+test("clientGateState: 全規則の開閉と、枠で絞った閉じた住所(user = /admin・/api を除く、admin = user + /admin)", () => {
+  const all = Object.fromEntries(rules.map((rule) => [rule.name, false]));
+  withRules(all, () => {
+    const user = clientGateState("user");
+    const admin = clientGateState("admin");
+    assert.equal(user.area, "user");
+    assert.equal(admin.area, "admin");
+    for (const state of [user, admin]) {
+      assert.deepEqual(Object.keys(state.enabled).sort(), rules.map((r) => r.name).sort());
+      assert.ok(Object.values(state.enabled).every((v) => v === false));
+      assert.ok(state.closed.every((e) => !under(e.pattern, "/api")), "/api の下は渡さない");
+      assert.ok(state.closed.every((e) => !("redirectTo" in e) || typeof e.redirectTo === "string"), "redirectTo は無いか文字列");
+    }
+    assert.ok(user.closed.every((e) => !under(e.pattern, "/admin")), "利用者の枠に /admin の住所は出さない");
+    const expectAll = rules.flatMap((rule) => rule.pathPatterns.map((pattern) => ({ pattern, rule: rule.name })));
+    assert.deepEqual(
+      admin.closed.map((e) => ({ pattern: e.pattern, rule: e.rule })),
+      expectAll.filter((e) => !under(e.pattern, "/api")),
+      "admin の枠 = /api を除く全部(一覧の順)",
+    );
+    assert.deepEqual(
+      user.closed.map((e) => e.pattern),
+      admin.closed.map((e) => e.pattern).filter((p) => !under(p, "/admin")),
+    );
+    assert.ok(admin.closed.some((e) => under(e.pattern, "/admin")), "管理の住所を持つ規則がある前提");
+  });
+  withRules({}, () => {
+    assert.deepEqual(clientGateState("admin").closed, []);
+    assert.ok(Object.values(clientGateState("user").enabled).every((v) => v === true));
+  });
+});
+
+/** server だけの道具(client の束に無くてよい名前) */
+const SERVER_ONLY = ["assert"];
+
+test("束の名前の一致: client の束の名前 ⊆ server の束、server だけの名前は SERVER_ONLY に限る", () => {
+  const server = Object.keys(serverTools).sort();
+  const client = Object.keys(clientTools).sort();
+  assert.deepEqual(client.filter((name) => !server.includes(name)), [], "client だけの名前がある");
+  assert.deepEqual(server.filter((name) => !client.includes(name)), [...SERVER_ONLY].sort(), "server だけの名前が SERVER_ONLY と違う");
 });

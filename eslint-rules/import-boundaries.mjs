@@ -37,6 +37,8 @@
 // - lib(src/lib/**)は門番を読まない(入口も。値も型も)。lib の関数は規則や判定を引数で受ける(例 routeMap の gateRules)
 // - node.ts(規則の一覧・gatedSchema・closedTables)は scripts/** とテストだけ。アプリ・proxy は index.ts / client.ts
 // - テスト(*.test.*)はこの規則の対象外(中の部品を確かめるのが役。lib-no-features がテストを外すのと同じ)
+// - 配線用の 2 名(L1.7: index.ts の clientGateState・client.ts の GateProvider)は root layout・AppProviders・admin の守りの layout 2 つだけ
+//   (名前で読む import / re-export を見る。namespace import・dynamic import は名前が分からないので見ない)
 // 門番の中どうし(生成一覧 → 規則、道具 → evaluate、規則 → @/featureGate の型)は自由。到達の検査は src/featureGate/checks/reachability.test.mjs
 
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
@@ -52,6 +54,14 @@ const REGISTRY = "src/registry";
 const FEATURES = "src/features";
 const FEATURE_GATE = "src/featureGate";
 const FEATURE_GATE_ENTRIES = ["src/featureGate", "src/featureGate/index", "src/featureGate/client", "src/featureGate/node"];
+/** 配線用の名前(L1.7)と、それを読んでよいファイル */
+const FEATURE_GATE_WIRING_NAMES = ["clientGateState", "GateProvider"];
+const FEATURE_GATE_WIRING_FILES = [
+  "src/app/layout.tsx",
+  "src/wiring/AppProviders.tsx",
+  "src/app/admin/(protected)/layout.tsx",
+  "src/app/admin/insane/layout.tsx",
+];
 
 /** 違反の判定(テストから直接呼ぶ)。違反なら messageId、無ければ null */
 export function classifyRouteFactoryImport(importerRel, resolved, typeOnly) {
@@ -89,6 +99,14 @@ export function classifyFeatureGateImport(importerRel, resolved) {
   if (!FEATURE_GATE_ENTRIES.includes(bare)) return "gateInternal";
   if (bare === "src/featureGate/node" && !isUnder(importerRel, "scripts")) return "gateNode";
   return null;
+}
+/** 配線用の名前を配線の 4 ファイルの外で読むか。読むならその名前、無ければ null(テストは対象外) */
+export function featureGateWiringNameOutside(importerRel, resolved, specifiers) {
+  if (!resolved || !Array.isArray(specifiers) || TEST_FILE.test(importerRel)) return null;
+  if (!isUnder(resolved, FEATURE_GATE) || isUnder(importerRel, FEATURE_GATE)) return null;
+  if (FEATURE_GATE_WIRING_FILES.includes(importerRel)) return null;
+  const hit = specifiers.find((s) => !s.typeOnly && FEATURE_GATE_WIRING_NAMES.includes(s.name));
+  return hit ? hit.name : null;
 }
 const COMMENTS_AT_TOP = /^(?:\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*/;
 
@@ -232,15 +250,23 @@ const featureGateEntries = {
       gateFromLib: '"{{source}}": lib は門番(src/featureGate)を読みません(値も型も)。規則や判定は引数で受けます(例 routeMap の gateRules)',
       gateInternal: '"{{source}}": 門番の中(rules・evaluate・tools・extensions など)は外から読みません。入口 @/featureGate・@/featureGate/client・@/featureGate/node を使います(src/featureGate/README.md)',
       gateNode: '"{{source}}": @/featureGate/node は道具の入口(scripts とテストだけ)。アプリ・proxy は @/featureGate(gate.enabled / gate.path)を使います',
+      gateWiringOnly:
+        '"{{name}}" は門番の client への受け渡しの配線用です(root の layout.tsx・src/wiring/AppProviders.tsx・admin の守りの layout 2 つだけ)。画面・部品は useGate()(@/featureGate/client)か gate(@/featureGate)を使います',
     },
     schema: [],
   },
   create(context) {
     const repoRoot = repoRootOf(context);
     const importerRel = repoRelative(context.filename, repoRoot);
-    return moduleVisitors(({ node, source }) => {
-      const messageId = classifyFeatureGateImport(importerRel, resolveImport(source, context.filename, repoRoot));
-      if (messageId) context.report({ node, messageId, data: { source } });
+    return moduleVisitors(({ node, source, specifiers }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      const messageId = classifyFeatureGateImport(importerRel, resolved);
+      if (messageId) {
+        context.report({ node, messageId, data: { source } });
+        return;
+      }
+      const name = featureGateWiringNameOutside(importerRel, resolved, specifiers);
+      if (name) context.report({ node, messageId: "gateWiringOnly", data: { name } });
     });
   },
 };

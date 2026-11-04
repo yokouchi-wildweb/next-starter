@@ -6,8 +6,7 @@
 
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
-/** 閉じた住所の 1 項目(閉じた規則の pathPatterns の 1 つと、その規則の行き先) */
-export type ClosedPathEntry = { pattern: string; redirectTo?: string };
+import type { ClosedPathEntry } from "./types";
 
 /** 照合に使う pathname(内部の住所でなければ null) */
 export function internalPathname(href: string): string | null {

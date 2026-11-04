@@ -6,8 +6,7 @@
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 import { rules } from "./extensions/rules";
-import type { ClosedPathEntry } from "./hiddenHref";
-import type { FeatureName, GatedFeatureRule, GatePathResult } from "./types";
+import type { ClosedPathEntry, FeatureName, GatedFeatureRule, GatePathResult } from "./types";
 
 const byName = new Map<string, GatedFeatureRule>(rules.map((rule) => [rule.name, rule]));
 
@@ -33,5 +32,12 @@ export function resolvePath(pathname: string, list: readonly GatedFeatureRule[] 
 export function closedPathEntries(list: readonly GatedFeatureRule[] = rules): ClosedPathEntry[] {
   return list
     .filter((rule) => !rule.enabled())
-    .flatMap((rule) => rule.pathPatterns.map((pattern) => ({ pattern, redirectTo: rule.redirectTo })));
+    .flatMap((rule) =>
+      rule.pathPatterns.map(
+        (pattern): ClosedPathEntry =>
+          rule.redirectTo === undefined
+            ? { pattern, rule: rule.name }
+            : { pattern, rule: rule.name, redirectTo: rule.redirectTo },
+      ),
+    );
 }
