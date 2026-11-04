@@ -6,6 +6,7 @@
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 import { rules } from "./extensions/rules";
+import type { ClosedPathEntry } from "./hiddenHref";
 import type { FeatureName, GatedFeatureRule, GatePathResult } from "./types";
 
 const byName = new Map<string, GatedFeatureRule>(rules.map((rule) => [rule.name, rule]));
@@ -26,4 +27,11 @@ export function resolvePath(pathname: string, list: readonly GatedFeatureRule[] 
     }
   }
   return { open: true };
+}
+
+/** 今の閉じた住所の並び(一覧の順・規則の中は pathPatterns の順)。隠す判定 hiddenHref.ts に渡す */
+export function closedPathEntries(list: readonly GatedFeatureRule[] = rules): ClosedPathEntry[] {
+  return list
+    .filter((rule) => !rule.enabled())
+    .flatMap((rule) => rule.pathPatterns.map((pattern) => ({ pattern, redirectTo: rule.redirectTo })));
 }
