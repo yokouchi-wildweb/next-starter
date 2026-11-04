@@ -8,6 +8,7 @@ import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
 import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
+import { gate } from "@/featureGate";
 
 export const POST = createApiRoute(
   {
@@ -62,7 +63,7 @@ export const POST = createApiRoute(
     // 招待リンク由来の保留コードをメールリンクへ引き継ぐ
     // (このリクエストは招待リンクを踏んだブラウザから届くため cookie が読める。
     //  メールを別ブラウザで開いても proxy が cookie を焼き直し、紹介が成立する)
-    const inviteCode = APP_FEATURES.marketing.referral.enabled
+    const inviteCode = gate.enabled("referral")
       ? req.cookies.get(INVITE_LINK_COOKIE_NAME)?.value?.trim() || undefined
       : undefined;
 

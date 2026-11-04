@@ -3,20 +3,20 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 範囲 (user)/(protected) の createLoader(access authenticated。未ログインは /login)。遷移制御だけ(Promise<void>)。
-// 紹介機能(APP_FEATURES.marketing.referral.enabled)が無効なら /mypage へ redirect。
+// 紹介機能(gate.enabled("referral"))が無効なら /mypage へ redirect。
 // サーバー側の取得は無い(招待コードはセクションコンテナが hook で取得する)。
 
 import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export const loadMyPageInviteScreen = createLoader({
   access: "authenticated",
   load: async (): Promise<void> => {
-    if (!APP_FEATURES.marketing.referral.enabled) {
+    if (!gate.enabled("referral")) {
       redirect("/mypage");
     }
   },

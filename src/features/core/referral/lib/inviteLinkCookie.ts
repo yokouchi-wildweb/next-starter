@@ -4,7 +4,7 @@
 //
 // 責務の分離:
 // - 紹介リワードの「機能」（プリフィル / 本登録時の自動適用）はこの専用 cookie が担い、
-//   APP_FEATURES.marketing.referral.enabled のみでゲートされる
+//   gate.enabled("referral") のみでゲートされる
 // - 流入経路の「解析」（タッチ記録・source/medium 集計）は userAcquisition が担い、
 //   ACQUISITION_CONFIG.enabled でゲートされる
 // 招待リンクは解析機能のオンオフに関係なく動作する。

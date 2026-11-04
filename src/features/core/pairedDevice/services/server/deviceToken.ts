@@ -17,6 +17,7 @@ import { db, isDatabaseConfigured } from "@/lib/drizzle";
 
 import { getPairedDeviceKind, runDeviceVerify, safeParseDeviceScope } from "./kinds";
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { gate } from "@/featureGate";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -158,7 +159,7 @@ export async function authenticateDeviceToken(
   request: DeviceRequestInfo,
   options: AuthenticateDeviceOptions = {},
 ): Promise<AuthenticatedDevice | null> {
-  if (!PAIRED_DEVICE_CONFIG.enabled || !isDatabaseConfigured()) return null;
+  if (!gate.enabled("pairedDevice") || !isDatabaseConfigured()) return null;
   if (!token) return null;
 
   const tokenHash = hashSecretToken(token);

@@ -8,6 +8,7 @@ import {
 } from '@/features/core/referral/lib/inviteLinkCookie';
 import { isPageNavigation } from './attribution';
 import type { ProxyResponseDecorator } from './types';
+import { gate } from "@/featureGate";
 
 /**
  * 紹介リワード: 招待リンク（?invite=CODE）の招待コードを専用 cookie へ保存するデコレーター。
@@ -21,7 +22,7 @@ export const inviteLinkDecorator: ProxyResponseDecorator = (
   request: NextRequest,
   response: NextResponse,
 ) => {
-  if (!APP_FEATURES.marketing.referral.enabled) return;
+  if (!gate.enabled("referral")) return;
   if (request.method !== 'GET') return;
   if (!isPageNavigation(request)) return;
 

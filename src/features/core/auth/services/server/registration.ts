@@ -21,7 +21,7 @@ import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
 import { INVITE_CODE_REDEEM_SCOPE } from "@/features/core/referral/constants/inviteCodeScope";
@@ -181,8 +181,8 @@ export async function register(
   let inviteCodeResult: RegistrationInviteCodeResult | null = null;
   // 招待コードの実体はクーポン。クーポン無効時はテーブルが無い場合があるため触らない
   if (
-    APP_FEATURES.marketing.referral.enabled &&
-    APP_FEATURES.marketing.coupon.enabled &&
+    gate.enabled("referral") &&
+    gate.enabled("coupon") &&
     effectiveInviteCode
   ) {
     try {

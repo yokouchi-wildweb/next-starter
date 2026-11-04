@@ -3,20 +3,13 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 範囲 (user)/(protected) の createLoader(access authenticated。未ログインは /login)。遷移制御だけ(Promise<void>)。
-// 休会機能(APP_FEATURES.user.pauseEnabled)が無効なら notFound。サーバー側の取得は無い。
+// 休会機能が無効なときの 404 は門番(規則 pause、proxy の項目)が先に返すので、ここでは見ない。サーバー側の取得は無い。
 
 import "server-only";
 
-import { notFound } from "next/navigation";
-
-import { APP_FEATURES } from "@/config/app/app-features.config";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export const loadMyPagePauseScreen = createLoader({
   access: "authenticated",
-  load: async (): Promise<void> => {
-    if (!APP_FEATURES.user.pauseEnabled) {
-      notFound();
-    }
-  },
+  load: async (): Promise<void> => {},
 });

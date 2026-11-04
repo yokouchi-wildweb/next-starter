@@ -17,7 +17,7 @@ import FullScreen from "@/components/Layout/FullScreen";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 
 import { Backdrop } from "./StarterHome/Backdrop";
 import { Capabilities } from "./StarterHome/Capabilities";
@@ -33,7 +33,7 @@ const RESOURCE_LINKS = [
 export async function StarterHomeScreen(props: ScreenProps) {
   await loadStarterHomeScreen(props);
 
-  const demoEnabled = APP_FEATURES.demo.samplePages;
+  const demoEnabled = gate.enabled("demoPages");
 
   return (
     <>

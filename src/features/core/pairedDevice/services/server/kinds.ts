@@ -19,7 +19,7 @@ import { isValidScopePattern, scopeContains } from "@/features/core/pairedDevice
 import { getRoleCategory } from "@/features/core/user/constants";
 import { DomainError } from "@/lib/errors";
 import { kinds } from "@/features/core/pairedDevice/extensions/kinds";
-import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { gate } from "@/featureGate";
 
 /**
  * 理由（reason）付きの DomainError。API はこれを { message, reason } で返す。
@@ -40,7 +40,7 @@ export function isPairedDeviceError(error: unknown): error is PairedDeviceError 
 
 /** 機能が無効なら 404 を投げる（feature-gate の外から呼ばれた場合の保険） */
 export function assertPairedDeviceEnabled(): void {
-  if (!PAIRED_DEVICE_CONFIG.enabled) {
+  if (!gate.enabled("pairedDevice")) {
     throw new PairedDeviceError("disabled", "この機能は無効です", 404);
   }
 }

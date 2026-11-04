@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { INVITE_CODE_INVALID_MESSAGE } from "@/features/core/referral/constants/inviteCodeValidation";
 import { referralService } from "@/features/core/referral/services/server/referralService";
@@ -37,7 +37,7 @@ export const POST = createApiRoute(
       return NextResponse.json({ message }, { status: 400 });
     }
 
-    if (!APP_FEATURES.marketing.referral.enabled) {
+    if (!gate.enabled("referral")) {
       return { valid: false, message: INVITE_CODE_INVALID_MESSAGE };
     }
 

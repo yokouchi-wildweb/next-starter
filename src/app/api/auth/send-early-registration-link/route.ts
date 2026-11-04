@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail } from "@/lib/spamGuard";
 import { sendEarlyRegistrationLink } from "@/features/core/auth/services/server/sendEarlyRegistrationLink";
@@ -33,7 +33,7 @@ export const POST = createApiRoute(
     const origin = req.headers.get("origin") ?? req.nextUrl.origin;
 
     // 招待リンク由来の保留コードをメールリンクへ引き継ぐ（send-email-link と同様）
-    const inviteCode = APP_FEATURES.marketing.referral.enabled
+    const inviteCode = gate.enabled("referral")
       ? req.cookies.get(INVITE_LINK_COOKIE_NAME)?.value?.trim() || undefined
       : undefined;
 

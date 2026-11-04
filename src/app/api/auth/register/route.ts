@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { register } from "@/features/core/auth/services/server/registration";
@@ -47,7 +47,7 @@ export const POST = createApiRoute(
         : undefined;
 
     // 招待リンク由来の保留コード（referral 専用 cookie、解析のオンオフとは独立）
-    const pendingInviteCode = APP_FEATURES.marketing.referral.enabled
+    const pendingInviteCode = gate.enabled("referral")
       ? req.cookies.get(INVITE_LINK_COOKIE_NAME)?.value?.trim() || null
       : null;
 
