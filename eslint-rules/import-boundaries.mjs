@@ -32,6 +32,13 @@
 // _components/ の下で "use client" の無い *Screen.tsx と loader.ts は server の差し替えなので対象外。テストも対象外。
 // 判定は isClientCodeFile に 1 つ(置き換えスクリプト scripts/codemods/domain-json-client-display.mjs も同じものを使う)。
 //
+// ── feature-gate-entries(D7、L1.3) ──
+// 門番 src/featureGate/ の外からは入口 3 つ(index.ts = @/featureGate・client.ts・node.ts)だけを読む(値も型も)。
+// - lib(src/lib/**)は門番を読まない(入口も。値も型も)。lib の関数は規則や判定を引数で受ける(例 routeMap の gateRules)
+// - node.ts(規則の一覧・gatedSchema・closedTables)は scripts/** とテストだけ。アプリ・proxy は index.ts / client.ts
+// - テスト(*.test.*)はこの規則の対象外(中の部品を確かめるのが役。lib-no-features がテストを外すのと同じ)
+// 門番の中どうし(生成一覧 → 規則、道具 → evaluate、規則 → @/featureGate の型)は自由。到達の検査は src/featureGate/checks/reachability.test.mjs
+
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
@@ -43,6 +50,8 @@ const WIRING = "src/wiring";
 const LIB = "src/lib";
 const REGISTRY = "src/registry";
 const FEATURES = "src/features";
+const FEATURE_GATE = "src/featureGate";
+const FEATURE_GATE_ENTRIES = ["src/featureGate", "src/featureGate/index", "src/featureGate/client", "src/featureGate/node"];
 
 /** 違反の判定(テストから直接呼ぶ)。違反なら messageId、無ければ null */
 export function classifyRouteFactoryImport(importerRel, resolved, typeOnly) {
@@ -71,6 +80,16 @@ export function classifyLibRegistryImport(importerRel, resolved) {
 }
 
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
+
+/** 門番の外から門番を読む import の判定(値も型も)。違反なら messageId、無ければ null */
+export function classifyFeatureGateImport(importerRel, resolved) {
+  if (!isUnder(resolved, FEATURE_GATE) || isUnder(importerRel, FEATURE_GATE) || TEST_FILE.test(importerRel)) return null;
+  if (isUnder(importerRel, LIB)) return "gateFromLib";
+  const bare = resolved.replace(/\.(ts|tsx|mts|mjs|js)$/, "");
+  if (!FEATURE_GATE_ENTRIES.includes(bare)) return "gateInternal";
+  if (bare === "src/featureGate/node" && !isUnder(importerRel, "scripts")) return "gateNode";
+  return null;
+}
 const COMMENTS_AT_TOP = /^(?:\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*/;
 
 /** ファイルの先頭(コメントの後)に "use client" があるか */
@@ -205,6 +224,27 @@ const libNoFeatures = {
   },
 };
 
+const featureGateEntries = {
+  meta: {
+    type: "problem",
+    docs: { description: "門番 src/featureGate の外からは入口(index.ts・client.ts・node.ts)だけを読む。lib は読まない、node.ts は scripts とテストだけ" },
+    messages: {
+      gateFromLib: '"{{source}}": lib は門番(src/featureGate)を読みません(値も型も)。規則や判定は引数で受けます(例 routeMap の gateRules)',
+      gateInternal: '"{{source}}": 門番の中(rules・evaluate・tools・extensions など)は外から読みません。入口 @/featureGate・@/featureGate/client・@/featureGate/node を使います(src/featureGate/README.md)',
+      gateNode: '"{{source}}": @/featureGate/node は道具の入口(scripts とテストだけ)。アプリ・proxy は @/featureGate(gate.enabled / gate.path)を使います',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      const messageId = classifyFeatureGateImport(importerRel, resolveImport(source, context.filename, repoRoot));
+      if (messageId) context.report({ node, messageId, data: { source } });
+    });
+  },
+};
+
 const clientNoDomainJson = {
   meta: {
     type: "problem",
@@ -235,6 +275,7 @@ const plugin = {
     "lib-no-registry": libNoRegistry,
     "lib-no-features": libNoFeatures,
     "client-no-domain-json": clientNoDomainJson,
+    "feature-gate-entries": featureGateEntries,
   },
 };
 

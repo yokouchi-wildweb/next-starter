@@ -1,5 +1,5 @@
 // eslint-rules/import-boundaries.test.mjs
-// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・features-index-no-server-reexport・lib-no-registry)の契約テスト。実行: pnpm test:import-boundaries (node:test)
+// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries)の契約テスト。実行: pnpm test:import-boundaries (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { ESLint, RuleTester } from "eslint";
 
 import plugin, {
+  classifyFeatureGateImport,
   classifyFeaturesIndexReexport,
   classifyLibRegistryImport,
   classifyPageGuardImport,
@@ -228,4 +229,52 @@ test("eslint.config: client-no-domain-json は src の client のコードに er
   const code = `import c from "@/features/sample/domain.json";\nexport default c;\n`;
   assert.ok((await lintAt("src/features/sample/components/Probe.tsx", code)).includes("import-boundaries/client-no-domain-json:2"));
   assert.ok(!(await lintAt("src/features/sample/services/server/probe.ts", code)).includes("import-boundaries/client-no-domain-json:2"));
+});
+
+test("classify: 門番の外からは入口 3 つだけ、lib は読まない、node.ts は scripts とテストだけ(D7・L1.3)", () => {
+  const C = classifyFeatureGateImport;
+  assert.equal(C("src/proxies/featureGate.ts", "src/featureGate"), null);
+  assert.equal(C("src/app/(user)/demo/_screen/loader.ts", "src/featureGate/index"), null);
+  assert.equal(C("src/app/x/Client.tsx", "src/featureGate/client.ts"), null);
+  assert.equal(C("scripts/registry/push.ts", "src/featureGate/node"), null);
+  assert.equal(C("scripts/routes/map.mjs", "src/featureGate/node.ts"), null);
+  assert.equal(C("src/featureGate/extensions/rules.ts", "src/featureGate/rules/wallet"), null, "門番の中どうしは自由");
+  assert.equal(C("src/featureGate/rules/wallet.ts", "src/featureGate"), null);
+  assert.equal(C("src/lib/screens/routeMap.test.mjs", "src/featureGate/node.ts"), null, "テストは対象外");
+  assert.equal(C("scripts/proxies/proxyFrame.test.mjs", "src/featureGate/checks/alwaysOnEntries.mjs"), null, "テストは対象外");
+  assert.equal(C("src/app/x/page.tsx", "src/lib/pathPattern/index.mjs"), null, "門番の外の import は見ない");
+  assert.equal(C("src/lib/screens/routeMap.mjs", "src/featureGate/node.ts"), "gateFromLib");
+  assert.equal(C("src/lib/foo/index.ts", "src/featureGate"), "gateFromLib", "lib は入口も読まない");
+  assert.equal(C("src/proxies/x.ts", "src/featureGate/evaluate"), "gateInternal");
+  assert.equal(C("src/app/x/page.tsx", "src/featureGate/rules/wallet"), "gateInternal");
+  assert.equal(C("scripts/foo.mjs", "src/featureGate/extensions/rules.ts"), "gateInternal");
+  assert.equal(C("src/app/api/x/route.ts", "src/featureGate/node"), "gateNode");
+  assert.equal(C("src/proxies/x.ts", "src/featureGate/node.ts"), "gateNode");
+});
+
+test("rule feature-gate-entries: 型も別名も相対も dynamic import も止め、入口は通す", () => {
+  ruleTester.run("feature-gate-entries", plugin.rules["feature-gate-entries"], {
+    valid: [
+      { code: `import { gate } from "@/featureGate";`, filename: at("src/proxies/featureGate.ts") },
+      { code: `import type { FeatureName } from "@/featureGate";`, filename: at("src/app/x/page.tsx") },
+      { code: `const m = await import("@/featureGate/node");`, filename: at("scripts/registry/push.ts") },
+      { code: `import { rule } from "@/featureGate/rules/wallet";`, filename: at("src/featureGate/extensions/rules.ts") },
+      { code: `import { rules } from "../../featureGate/node.ts";`, filename: at("src/lib/screens/routeMap.test.mjs") },
+    ],
+    invalid: [
+      { code: `import type { FeatureGateRule } from "@/featureGate";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "gateFromLib" }] },
+      { code: `import { resolvePath } from "@/featureGate/evaluate";`, filename: at("src/proxies/x.ts"), errors: [{ messageId: "gateInternal" }] },
+      { code: `import { rule } from "../../featureGate/rules/wallet";`, filename: at("src/app/x/page.tsx"), errors: [{ messageId: "gateInternal" }] },
+      { code: `const m = await import("@/featureGate/node");`, filename: at("src/app/api/x/route.ts"), errors: [{ messageId: "gateNode" }] },
+      { code: `export { rules } from "src/featureGate/node";`, filename: at("src/proxies/x.ts"), errors: [{ messageId: "gateNode" }] },
+    ],
+  });
+});
+
+test("config: feature-gate-entries は src と scripts で error、テストは対象外", async () => {
+  const DEEP = `import { rules } from "@/featureGate/extensions/rules";\nexport const x = rules;\n`;
+  assert.deepEqual(await lintAt("src/app/api/foo/route.ts", DEEP), ["import-boundaries/feature-gate-entries:2"]);
+  assert.deepEqual(await lintAt("scripts/foo/run.ts", DEEP), ["import-boundaries/feature-gate-entries:2"]);
+  assert.deepEqual(await lintAt("src/lib/foo/index.ts", `import { gate } from "@/featureGate";\nexport const x = gate;\n`), ["import-boundaries/feature-gate-entries:2"]);
+  assert.deepEqual(await lintAt("scripts/foo/run.test.mjs", DEEP), []);
 });

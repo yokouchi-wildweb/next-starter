@@ -85,6 +85,7 @@ const config = [
   // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
   // - lib-no-features: src/lib/** → src/features/** は値も型も禁止(親 D8、例外の一覧なし)
+  // - feature-gate-entries: 門番 src/featureGate の外からは入口 3 つだけ、lib は読まない、node.ts は scripts だけ(D7。テストは対象外 L1.3)
   // 詳細: eslint-rules/import-boundaries.mjs
   {
     files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
@@ -92,6 +93,7 @@ const config = [
     rules: {
       "import-boundaries/route-factory-via-wiring": "error",
       "import-boundaries/page-guard-via-wiring": "error",
+      "import-boundaries/feature-gate-entries": "error",
     },
   },
   // - client-no-domain-json: client のコードは domain.json を import しない(写しを読む。判定はプラグインの中)
@@ -293,6 +295,7 @@ const config = [
   // 対象 = src/app 全体(page・Screen・layout・_layout・loader.ts・guard.ts・_components・API)と UI 側。許可の場所は無い:
   // ページの主体は guard.ts の createLoader が loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
   // proxy の項目(src/proxies/**、上流・fork)の主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
+  // 門番(src/featureGate/**、規則と判定。proxy の鎖に載る)もセッションを解かない(規則は config だけを読む)。
   // AuthSessionProvider は認証基盤の名前付き例外(root layout の Provider)。
   // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
   {
@@ -303,6 +306,7 @@ const config = [
       "src/features/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
       "src/proxies/**/*.{ts,tsx,mts,mjs}",
+      "src/featureGate/**/*.{ts,tsx,mts,mjs}",
     ],
     ignores: [
       "src/features/core/auth/components/AuthSessionProvider.tsx",

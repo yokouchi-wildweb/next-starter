@@ -73,6 +73,7 @@
     "test:worktree": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/worktree/worktree.test.ts",
     "test:cron-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/cron/cronWiring.test.mjs",
     "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/featureGate.test.mjs",
+    "test:feature-gate:reach": "node --test src/featureGate/checks/reachability.test.mjs",
     "test:feature-gate:tools": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/gateTools.test.ts",
     "test:proxy-frame": "node --test scripts/proxies/proxyFrame.test.mjs",
     "test:extensions": "node --test scripts/extensions/extensions.test.mjs",

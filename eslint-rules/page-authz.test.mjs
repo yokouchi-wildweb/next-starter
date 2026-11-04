@@ -249,9 +249,9 @@ test("config: M3 は src/app 全体(layout・_layout・loader・guard.ts・API �
   assert.deepEqual(await lintAt("src/features/sample/services/server/draw/hooks/drawHooks.ts", SESSION), []);
 });
 
-test("config: M3 は proxy の項目(src/proxies/**、上流・fork のドット名)で error、解決器を作る src/proxy.ts は対象外", async () => {
+test("config: M3 は proxy の項目(src/proxies/**、上流・fork のドット名)と門番(src/featureGate/**)で error、解決器を作る src/proxy.ts は対象外", async () => {
   const err = ["page-authz/session-api-callsite:2"];
-  for (const file of ["src/proxies/maintenance.ts", "src/proxies/playThrottle.myfork.ts", "src/proxies/featureGateRules/foo.ts"]) {
+  for (const file of ["src/proxies/maintenance.ts", "src/proxies/playThrottle.myfork.ts", "src/featureGate/rules/foo.ts", "src/featureGate/tools/server/x.ts"]) {
     assert.deepEqual(await lintAt(file, SESSION), err, file);
     assert.deepEqual(await lintAt(file, `import { parseSessionCookie } from "@/lib/jwt";\nexport const x = parseSessionCookie;\n`), err, file);
   }
