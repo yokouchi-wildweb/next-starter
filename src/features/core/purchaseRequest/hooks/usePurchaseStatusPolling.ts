@@ -1,7 +1,7 @@
 // src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.ts
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { getPurchaseStatus } from "../services/client/purchaseRequestClient";
 
 const POLL_INTERVAL = 2000; // 2秒

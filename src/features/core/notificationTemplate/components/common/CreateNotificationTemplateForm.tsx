@@ -8,7 +8,7 @@ import { NotificationTemplateCreateSchema } from "@/features/core/notificationTe
 import { NotificationTemplateCreateFields } from "@/features/core/notificationTemplate/entities/form";
 import { useCreateNotificationTemplate } from "@/features/core/notificationTemplate/hooks/useCreateNotificationTemplate";
 import { NotificationTemplateForm } from "./NotificationTemplateForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

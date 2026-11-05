@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { ArrowLeftIcon } from "lucide-react";
 
 import {

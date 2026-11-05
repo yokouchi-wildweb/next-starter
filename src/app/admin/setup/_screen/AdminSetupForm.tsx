@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";

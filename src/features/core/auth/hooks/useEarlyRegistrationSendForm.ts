@@ -8,7 +8,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 

@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { UserProviderType } from "@/features/core/user/types";

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 import { useCallback } from "react";
 
 import { useAppStatus } from "@/hooks/useAppStatus";

@@ -8,7 +8,7 @@ import { __Domain__CreateSchema } from "@/features/__domain__/entities/schema";
 import { __Domain__CreateFields } from "@/features/__domain__/entities/form";
 import { useCreate__Domain__ } from "@/features/__domain__/hooks/useCreate__Domain__";
 import { __Domain__Form } from "./__Domain__Form";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

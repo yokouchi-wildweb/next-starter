@@ -9,7 +9,7 @@ import type { NotificationTemplateUpdateFields } from "@/features/core/notificat
 import type { NotificationTemplate } from "@/features/core/notificationTemplate/entities";
 import { useUpdateNotificationTemplate } from "@/features/core/notificationTemplate/hooks/useUpdateNotificationTemplate";
 import { NotificationTemplateForm } from "./NotificationTemplateForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

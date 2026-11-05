@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { withdraw as withdrawService } from "@/features/core/auth/services/client/withdraw";

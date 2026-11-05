@@ -4,7 +4,7 @@
 import { useState, type KeyboardEvent } from "react";
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 

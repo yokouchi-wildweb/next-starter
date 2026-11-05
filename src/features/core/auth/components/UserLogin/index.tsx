@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { Link } from "@/components/Navigation";
 import { Mail, LockKeyhole } from "lucide-react";
 

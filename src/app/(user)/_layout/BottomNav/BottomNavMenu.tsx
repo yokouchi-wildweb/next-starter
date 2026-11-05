@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { ActionPopover } from "@/components/Overlays/Popover";
 

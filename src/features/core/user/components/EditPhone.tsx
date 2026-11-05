@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { CheckCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";

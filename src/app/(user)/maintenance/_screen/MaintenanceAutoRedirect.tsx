@@ -4,7 +4,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 type Props = {
   /** メンテナンス終了時刻（ISO8601形式） */

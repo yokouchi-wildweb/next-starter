@@ -11,7 +11,7 @@ import { useCreateCoupon } from "@/features/core/coupon/hooks/useCreateCoupon";
 import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
 import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
 import { CouponForm } from "./CouponForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

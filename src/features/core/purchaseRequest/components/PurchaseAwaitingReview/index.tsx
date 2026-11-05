@@ -11,7 +11,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { Clock } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";

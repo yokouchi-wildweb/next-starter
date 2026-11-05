@@ -2,7 +2,8 @@
 
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Input/Manual";
 import { useState } from "react";

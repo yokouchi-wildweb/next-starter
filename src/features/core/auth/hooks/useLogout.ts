@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { signOut } from "firebase/auth";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";

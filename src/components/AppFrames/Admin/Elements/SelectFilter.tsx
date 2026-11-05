@@ -2,7 +2,8 @@
 
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 
 import { SelectInput } from "@/components/Form/Input/Manual/Select";
 

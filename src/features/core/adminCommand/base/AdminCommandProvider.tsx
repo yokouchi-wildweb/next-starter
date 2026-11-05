@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";

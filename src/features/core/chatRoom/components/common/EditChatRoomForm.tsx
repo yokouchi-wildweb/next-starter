@@ -9,7 +9,7 @@ import type { ChatRoomUpdateFields } from "@/features/core/chatRoom/entities/for
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import { useUpdateChatRoom } from "@/features/core/chatRoom/hooks/useUpdateChatRoom";
 import { ChatRoomForm } from "./ChatRoomForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

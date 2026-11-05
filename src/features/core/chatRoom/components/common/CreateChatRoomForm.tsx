@@ -8,7 +8,7 @@ import { ChatRoomCreateSchema } from "@/features/core/chatRoom/entities/schema";
 import { ChatRoomCreateFields } from "@/features/core/chatRoom/entities/form";
 import { useCreateChatRoom } from "@/features/core/chatRoom/hooks/useCreateChatRoom";
 import { ChatRoomForm } from "./ChatRoomForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

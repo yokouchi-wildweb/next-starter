@@ -7,7 +7,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { AppForm, ControlledField, ControlledMediaField } from "@/components/Form";
 import {
   TextInput,
