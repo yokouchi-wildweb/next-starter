@@ -1,0 +1,12 @@
+# DOWNSTREAM NOTICE id:20261105-132947-standalone-upload-failure
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:ui/infinite-list-retry | commit:- (this commit)
+date: 2026-11-05T13:29:47+09:00
+severity: info
+checkpoint: standalone-upload-failure
+change: (1) AdminNotificationSend's image field is now ControlledMediaField (registered with AppForm) instead of a bare ControlledMediaUploader: a failed upload blocks the send with the shared toast until retried or cleared, AppForm disables the form while uploading (the local isUploading state is gone), and replaced / abandoned uploads are cleaned up by AppForm's commit / reset. (2) PrepareProofImage keeps an inline error ("画像のアップロードに失敗しました。もう一度添付してください") after a failed upload until the image is picked again or cleared (the toast stays; the parent value stays null, so step ④ still cannot proceed). (3) AccountAvatarSection is unchanged: upload and save are one action, a failed upload never saves and shows its error inline. New render tests: pnpm test:form-background-failure (AppForm + ControlledMediaField: fail → blocked + toast → retry → sent), pnpm test:standalone-upload-failure (PrepareProofImage, AccountAvatarSection).
+why: Visible behavior change on the admin notification send screen and the bank transfer proof step. No fork code copies these parts (88-base, triq, boardgame-site, next-vnx, oripa-do, pandora checked), so nothing to follow up.
+required_actions: none
+verify: pnpm typecheck passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen | pnpm test:form-background-failure | pnpm test:standalone-upload-failure
+manual_steps: -
+refs: src/features/core/notification/components/AdminNotificationSend/index.tsx, src/features/core/purchaseRequest/components/BankTransferInstruction/PrepareProofImage.tsx, src/components/Form/backgroundFailure.render.test.tsx, notice 20261105-122620-media-upload-failure-blocks-submit, order 20261105-124257-upload-failure-rule-for-standalone-uploaders
+notes: A fork screen that keeps its own upload state outside AppForm should follow the same rule: inside AppForm use ControlledMediaField / ConfiguredMediaField (or register a MediaHandleEntry with hasFailed); outside a form, never save the pre-upload value after a failure and keep the error visible until retry / clear.

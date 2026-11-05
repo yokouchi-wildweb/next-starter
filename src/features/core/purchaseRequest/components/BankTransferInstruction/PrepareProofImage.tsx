@@ -11,6 +11,8 @@
 // - プレビュー: ローカルの blob URL（即時表示）。アップロード完了後も blob URL を維持
 //   （親に渡すのは storage の ref）
 // - 削除: ローカル state をリセットし、上げた画像を取り消す（申告済みの画像は取り消されない）
+// - 失敗: 親の値は null のまま（④の申告は画像が無いと押せない = 失敗したままでは進めない）。欄にエラー文を残し、
+//   選び直し・削除で消す（AppForm の「失敗したままなら止める・欄にエラーを出す」と同じ規則。トーストも出す）
 
 "use client";
 
@@ -52,6 +54,8 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  // アップロードが失敗したまま（選び直し・削除で外れる）
+  const [hasFailed, setHasFailed] = useState(false);
 
   // 旧 blob URL のメモリリーク防止（差し替え時 / アンマウント時に解放）
   useEffect(() => {
@@ -82,12 +86,14 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
       return localUrl;
     });
     setIsUploading(true);
+    setHasFailed(false);
 
     try {
       const { ref } = await upload(file);
       onChange(ref, file);
     } catch {
       showToast("画像のアップロードに失敗しました", "error");
+      setHasFailed(true);
       URL.revokeObjectURL(localUrl);
       setPreviewUrl(null);
       onChange(null, null);
@@ -98,6 +104,7 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
 
   const handleClear = () => {
     discardCurrent();
+    setHasFailed(false);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -124,6 +131,12 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
           className="hidden"
           onChange={handleFileChange}
         />
+
+        {hasFailed && !hasAttached ? (
+          <Para size="sm" tone="destructive" role="alert">
+            画像のアップロードに失敗しました。もう一度添付してください
+          </Para>
+        ) : null}
 
         {!hasAttached ? (
           <Stack space={2}>

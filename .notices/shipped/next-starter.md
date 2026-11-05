@@ -292,3 +292,4 @@
 - id:20261105-125909-remove-unused-core-ui-parts | severity:info | checkpoint:remove-unused-core-ui-parts
 - id:20261105-130613-use-in-view-only-observer | severity:action-required | checkpoint:use-in-view-only-observer
 - id:20261105-131310-cron-task-override-rename | severity:action-required | checkpoint:cron-task-override-rename
+- id:20261105-132947-standalone-upload-failure | severity:info | checkpoint:standalone-upload-failure

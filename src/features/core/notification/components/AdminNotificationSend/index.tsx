@@ -6,9 +6,9 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AppForm, ControlledField } from "@/components/Form";
+import { AppForm, ControlledField, ControlledMediaField } from "@/components/Form";
 import {
   TextInput,
   Textarea,
@@ -17,7 +17,6 @@ import {
   MultiSelectInput,
   DatetimeInput,
 } from "@/components/Form/Input/Controlled";
-import { ControlledMediaUploader } from "@/components/Form/MediaHandler/ControlledMediaUploader";
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -93,7 +92,6 @@ export default function AdminNotificationSend() {
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger: sendNotification, isMutating: isSending } = useSendNotification();
-  const [isUploading, setIsUploading] = useState(false);
   useLoadingToast(isSending, "送信中です…");
 
   const methods = useForm<SendFormValues>({
@@ -160,18 +158,15 @@ export default function AdminNotificationSend() {
             renderInput={(field) => <Textarea field={field} placeholder="お知らせの本文を入力" />}
           />
 
-          <ControlledField
+          {/* AppForm に登録される画像欄: アップロード中は AppForm が無効にし、失敗したままなら送信を止める。
+              送信の成功でコミット、差し替えた画像の後片付けも AppForm が持つ */}
+          <ControlledMediaField
             control={methods.control}
+            methods={methods}
             name="image"
             label="画像"
-            renderInput={(field) => (
-              <ControlledMediaUploader
-                field={field}
-                purpose="notification.image"
-                accept="image/*"
-                onUploadingChange={setIsUploading}
-              />
-            )}
+            purpose="notification.image"
+            accept="image/*"
           />
 
           <ControlledField
@@ -241,7 +236,7 @@ export default function AdminNotificationSend() {
       </Section>
 
       <Flex gap="sm" justify="center" className="mt-6">
-        <Button type="submit" variant="default" disabled={isSending || isUploading}>
+        <Button type="submit" variant="default" disabled={isSending}>
           <Send className="h-4 w-4" />
           {sendTiming === "scheduled" ? "予約する" : "送信する"}
         </Button>
