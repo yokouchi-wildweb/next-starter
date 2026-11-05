@@ -46,7 +46,8 @@ test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは extensions
   assert.ok(![...places.direct].some((d) => d.startsWith("src/x")));
   assert.equal(overrideTargetUnit("src/features/core/setting/fields/a.override.ts"), "src/features/core/setting/fields/a");
   assert.equal(overrideTargetUnit("src/features/core/user/roles/coreRoles/user.role.override.ts"), "src/features/core/user/roles/coreRoles/user.role");
-  assert.equal(overrideTargetUnit("src/app/api/cron/x/override.ts"), null);
+  assert.equal(overrideTargetUnit("src/app/api/cron/x/task.override.ts"), "src/app/api/cron/x/task");
+  assert.equal(overrideTargetUnit("src/app/api/cron/x/override.ts"), null, "旧名の素の override.ts は対象を持たない");
   assert.equal(overrideTargetUnit("src/x/a.ts"), null);
   assert.deepEqual([...unitIndex(["a/x.ts", "a/x/index.tsx", "a/y.json"]).entries()], [["a/x", "a/x.ts"], ["a/y", "a/y.json"]]);
 });

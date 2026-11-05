@@ -53,7 +53,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | generated | 生成物 → `generated` | — |
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
 
-- 載せている物(手書き): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチの素の名前(page.tsx・枠の layout.tsx・core の 1 行スイッチ)/ `_components/**` / cron の `override.ts` / `domainEntry.override.ts`・ロールとプロフィールの override / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
+- 載せている物(手書き): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチの素の名前(page.tsx・枠の layout.tsx・core の 1 行スイッチ)/ `_components/**` / cron の `task.override.ts` / `domainEntry.override.ts`・ロールとプロフィールの override / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
 - 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm extensions:generate` が拡張点の宣言と 1 行スイッチから書き、ずれは `pnpm extensions:check` が止める(手で編集しない、`scripts/extensions/README.md`「受け口の一覧の生成区画」)。行は全部 `add`: 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)・1 行スイッチの `<名前>.replace`・`_layout` / `_screen` の隣の `*.replace`・`scripts/tasks/*.ts`。区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても合格(検査は基準の区画を読む)。既知の穴: フォルダ形の行は上流のフォルダ項目の中への fork のファイル追加も通す(第 2 段の棚の検査へ)
 - 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す。生成区画の行は見ない(項目 0 の受け口はフォルダが無い)
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(ただし `next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は、印の行ごと生成器の区画として除く。Next の版で中身が変わるので upstream に固定で置けない)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
@@ -174,7 +174,7 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
   - `edit`: Tier1 の物は受け口の kind ごと(edit = 書き換え可 / region = fork の区画の中だけ / marker = 印より下だけ / append = 追記だけ / generated = 生成器で作り直す)。中間 Tier の物・fork の物は書き換え・削除・rename 可
   - `add`: 無いパス。judge が `added`(中間 Tier の lib なら `middle-tier`)なら可、違反の reason は `blocked` に出る(`ancestor-lib-add`・`core-add`・`gate-add`・`unit-clash` など)
   - `replace`: `<名前>.replace.ts(x)`(`<名前>.default` の隣も同じ名前)を名指しする add の行があり、足しても合格のとき。1 行スイッチを向け替える
-  - `override`: `<対象>.override.ts`(cron のフォルダは素の `override.ts`)を名指しする行があり、足しても合格のとき。`src/config/**` のような広い edit の行では上書きの口があるとは言わない
+  - `override`: `<対象>.override.ts`(cron のフォルダは `task.override.ts`)を名指しする行があり、足しても合格のとき。`src/config/**` のような広い edit の行では上書きの口があるとは言わない
   - `none` = 受け口が無い → `/order <直接の親>`(要るまでの間は一時許可、上の「一時許可」)。`blocked` に止まる理由(`outside-intake`・`debt` など)
 - 根拠(`evidence`): 基準・Tier1 の版・HEAD にあるか / 当たった受け口の行(行番号・kind・glob・理由)/ 今の差分(`ownership:check` と同じ status・reason・合否、違反なら一時許可の行の下書き)/ 自分の一時許可の行(行番号・依頼の番号・状態)。冒頭に基準(remote・branch・merge-base)と Tier1 の版(台帳の鎖)
 - Tier1 では「直接の fork から見たら」を答える(基準 = HEAD、受け口の一覧 = HEAD の版)。冒頭に「このリポ = Tier1: 自由に編集できる」
@@ -201,7 +201,7 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
 - 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit` は付け替えない(どの段でも止める)
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
-- override: Tier1 は override(`src/app/api/cron/<name>/override.ts`・`<対象>.override.ts`)を出荷しない(`pnpm extensions:check` が検査、`scripts/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
+- override: Tier1 は override(`<対象>.override.ts`。cron は `src/app/api/cron/<name>/task.override.ts`)を出荷しない(`pnpm extensions:check` が検査、`scripts/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
 - 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
 - 規則と実装の分担(D10): `.claude/rules/lineage.md` の祖先の節 = その祖先の下流への契約で、下の Tier は誤字も直さず `/order <その節の持ち主>`。中間 Tier が足したファイル(lineage.md の外) = 実装で、下の Tier が直せる。ただし親の `<名前>.default.<拡張子>` は除く(既定はそれを作ったリポの物。下の Tier は隣の印なしのファイルに重ねる)。書き換えは `default-edit` がどの段でも止める。中間 Tier の既定の削除・rename はまだ `middle-tier`(合格)で、止めるのは棚の議会の側

@@ -7,9 +7,9 @@
 //    門番の判定は wiring が結ぶ: 住所 /api/cron/<name> が閉じていれば route・pnpm task は飛ばし、vercel.json に載せない)
 // 3. タスク名はケバブケース、schedule は正しい cron 式、description あり、enabled は throw せず boolean を返す。
 //    task.ts は門番(@/featureGate)を読まない(機能の入切は住所で自動。Tier1 は失敗、fork は冗長なだけなので一覧を出す)
-// 4. fork の override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
-// 5. README と task.ts / override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
-// 6. vercel.json(あれば)は task.ts(+ override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
+// 4. fork の task.override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
+// 5. README と task.ts / task.override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
+// 6. vercel.json(あれば)は task.ts(+ task.override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -84,7 +84,7 @@ test("task.ts は機能の入切を書かない(門番を読まない。住所 /
   }
 });
 
-test("README と task.ts / override.ts が @/lib/cron から import する名前は index.ts が export している", () => {
+test("README と task.ts / task.override.ts が @/lib/cron から import する名前は index.ts が export している", () => {
   const indexSource = readFileSync(join(repoRoot, "src/lib/cron/index.ts"), "utf8");
   const exported = new Set();
   for (const [, names] of indexSource.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}/g)) {
@@ -95,7 +95,7 @@ test("README と task.ts / override.ts が @/lib/cron から import する名前
   }
   const sources = [join(repoRoot, "src/lib/cron/README.md")];
   for (const dir of listCronTaskDirs(repoRoot)) {
-    for (const file of ["task.ts", "override.ts", "route.ts"]) {
+    for (const file of ["task.ts", "task.override.ts", "route.ts"]) {
       const path = join(repoRoot, CRON_ROUTE_DIR, dir, file);
       if (existsSync(path)) sources.push(path);
     }
@@ -124,7 +124,7 @@ test("vercel.json(あれば)は task.ts からの生成結果と一致する", a
   assert.deepEqual(errors, []);
 });
 
-// ---- override.ts(一時ディレクトリに cron フォルダを作って検査) ----
+// ---- task.override.ts(一時ディレクトリに cron フォルダを作って検査) ----
 
 async function withCronFixture(files, fn) {
   const root = mkdtempSync(join(tmpdir(), "cron-wiring-"));
@@ -143,13 +143,13 @@ async function withCronFixture(files, fn) {
 const taskSource = (name, schedule) =>
   `export const cronTask = { name: "${name}", description: "d", schedule: "${schedule}", run: async () => ({}) };\n`;
 
-test("override.ts: 空(空白とコメントだけ)は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)", async () => {
+test("task.override.ts: 空(空白とコメントだけ)は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)", async () => {
   await withCronFixture(
     {
       "a-task/task.ts": taskSource("a-task", "0 18 * * *"),
-      "a-task/override.ts": "",
+      "a-task/task.override.ts": "",
       "b-task/task.ts": taskSource("b-task", "5 18 * * *"),
-      "b-task/override.ts": "// 親の上書きを外した(下の Tier)\n/* 空 */\n",
+      "b-task/task.override.ts": "// 親の上書きを外した(下の Tier)\n/* 空 */\n",
     },
     async (root) => {
       const tasks = await loadCronTasks(root);
@@ -164,13 +164,13 @@ test("override.ts: 空(空白とコメントだけ)は不在と同じ(多段で�
   );
 });
 
-test("override.ts: schedule を差し替え、disabled のタスクは定期実行から外す", async () => {
+test("task.override.ts: schedule を差し替え、disabled のタスクは定期実行から外す", async () => {
   await withCronFixture(
     {
       "a-task/task.ts": taskSource("a-task", "0 18 * * *"),
-      "a-task/override.ts": 'export const cronOverride = { schedule: "0 20 * * *" };\n',
+      "a-task/task.override.ts": 'export const cronOverride = { schedule: "0 20 * * *" };\n',
       "b-task/task.ts": taskSource("b-task", "5 18 * * *"),
-      "b-task/override.ts": "export const cronOverride = { disabled: true };\n",
+      "b-task/task.override.ts": "export const cronOverride = { disabled: true };\n",
       "c-task/task.ts": taskSource("c-task", "10 18 * * *"),
     },
     async (root) => {
@@ -278,19 +278,33 @@ test("createCronRoute: 依存の gate が閉と答えたら認証の後・enable
   }
 });
 
-test("override.ts: 不正な cron 式・未知の項目・task.ts の無いフォルダは失敗", async () => {
+test("task.override.ts: 不正な cron 式・未知の項目・task.ts の無いフォルダは失敗", async () => {
   await withCronFixture(
-    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/override.ts": 'export const cronOverride = { schedule: "daily" };\n' },
-    async (root) => assert.rejects(loadCronTasks(root), /override\.ts の schedule/),
+    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/task.override.ts": 'export const cronOverride = { schedule: "daily" };\n' },
+    async (root) => assert.rejects(loadCronTasks(root), /task\.override\.ts の schedule/),
   );
   await withCronFixture(
-    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/override.ts": "export const cronOverride = { enabled: false };\n" },
+    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/task.override.ts": "export const cronOverride = { enabled: false };\n" },
     async (root) => assert.rejects(loadCronTasks(root), /未知の項目/),
   );
   await withCronFixture(
-    { "gone/override.ts": "export const cronOverride = { disabled: true };\n" },
-    async (root) => assert.rejects(loadCronTasks(root), /override\.ts だけが残っている/),
+    { "gone/task.override.ts": "export const cronOverride = { disabled: true };\n" },
+    async (root) => assert.rejects(loadCronTasks(root), /task\.override\.ts だけが残っている/),
   );
+});
+
+test("旧名の override.ts が残っていれば task.override.ts への改名を案内して止まる(空でも)", async () => {
+  for (const body of ['export const cronOverride = { disabled: true };\n', ""]) {
+    await withCronFixture(
+      { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/override.ts": body },
+      async (root) =>
+        assert.rejects(loadCronTasks(root), (error) => {
+          assert.match(error.message, /a-task\/override\.ts は旧名です。task\.override\.ts に改名してください/);
+          assert.match(error.message, /git mv src\/app\/api\/cron\/a-task\/override\.ts src\/app\/api\/cron\/a-task\/task\.override\.ts/);
+          return true;
+        }),
+    );
+  }
 });
 
 // ---- 純関数の単体テスト ----

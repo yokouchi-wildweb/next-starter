@@ -6,7 +6,7 @@
 //   pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
 //   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //
-// 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や override.ts を
+// 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や task.override.ts を
 // 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
 // 詳細: src/lib/cron/README.md
 
@@ -84,7 +84,7 @@ async function main() {
   }
   const disabled = allTasks.filter((task) => task.disabled).map((task) => task.name);
   if (disabled.length > 0) {
-    console.log(`  override.ts で外したタスク（vercel.json に載せない）: ${disabled.join(", ")}`);
+    console.log(`  task.override.ts で外したタスク（vercel.json に載せない）: ${disabled.join(", ")}`);
   }
   const closed = allTasks.filter((task) => !task.disabled && task.closedBy !== null).map((task) => `${task.name}（${task.closedBy}）`);
   if (closed.length > 0) {

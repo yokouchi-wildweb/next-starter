@@ -35,10 +35,10 @@ export function replaceCandidate(path) {
   return `${unit.replace(/\.default$/, "")}.replace.${match[1]}`;
 }
 
-/** 一部の上書き <対象>.override.ts の候補(cron のフォルダは素の override.ts)。.override 自身は null */
+/** 一部の上書き <対象>.override.ts の候補(cron のフォルダは上書きできるのが task.ts だけなので、どのファイルも task.override.ts)。.override 自身は null */
 export function overrideCandidate(path) {
   const cron = /^(src\/app\/api\/cron\/[^/]+)\/[^/]+$/.exec(path);
-  if (cron) return path.endsWith("/override.ts") ? null : `${cron[1]}/override.ts`;
+  if (cron) return /\.override\.tsx?$/.test(path) ? null : `${cron[1]}/task.override.ts`;
   const slash = path.lastIndexOf("/");
   const name = path.slice(slash + 1);
   const dot = name.lastIndexOf(".");

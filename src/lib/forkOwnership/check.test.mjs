@@ -595,11 +595,11 @@ describe("ownership:check", () => {
 
   test("多段: 親の上書き(override)を下の Tier が消す・空にするのは合格(Tier1 は override を出荷しない = 中間 Tier の物、D34 K1)", () => {
     const tier2 = makeFork(makeParent());
-    write(tier2, "src/app/api/cron/a/override.ts", "export const cronOverride = { disabled: true };\n");
+    write(tier2, "src/app/api/cron/a/task.override.ts", "export const cronOverride = { disabled: true };\n");
     write(tier2, "src/features/core/user/services/server/domainEntry.override.ts", "export const domainEntryOverrides = {};\n");
     commitAll(tier2, "tier2 overrides");
     const tier3 = makeTier(tier2, "grandchild");
-    write(tier3, "src/app/api/cron/a/override.ts", "");
+    write(tier3, "src/app/api/cron/a/task.override.ts", "");
     git(tier3, "rm", "-q", "src/features/core/user/services/server/domainEntry.override.ts");
     commitAll(tier3, "tier3 drops overrides");
     const result = runCheck(tier3);

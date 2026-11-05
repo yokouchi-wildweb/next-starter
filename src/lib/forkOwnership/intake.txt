@@ -120,7 +120,7 @@ add scripts/tasks/*.ts  # ワンショット・任意タスク(scripts/tasks/REA
 # === AUTO-GENERATED intake END ===
 
 # ドメインと定期タスクの上書き
-edit src/app/api/cron/*/override.ts  # cron の時刻変更・停止
+edit src/app/api/cron/*/task.override.ts  # cron の時刻変更・停止(task.ts の一部の上書き)
 edit src/features/**/services/server/domainEntry.override.ts  # core の access の上書き
 edit src/features/core/user/roles/*.role.override.ts  # ロールの上書き(label・hasProfile・enabled)
 edit src/features/core/user/coreRoles/*.role.override.ts  # core ロールの上書き(label・hasProfile)

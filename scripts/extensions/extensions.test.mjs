@@ -337,14 +337,16 @@ test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ
   assert.deepEqual(tier1.switches.map((s) => s.path), ["src/features/core/payment/enricher.ts"]);
 });
 
-test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。素の override.ts は cron のタスクだけ。隣に対象の無い override は孤立で失敗", () => {
+test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。cron は task.ts の隣の task.override.ts。素の override.ts は override ではない。隣に対象の無い override は孤立で失敗", () => {
   const root = fixture({
     "src/features/core/user/services/server/domainEntry.ts": "export const domainEntry = {};\n",
     "src/features/core/x/thing.tsx": "export const x = 1;\n",
     "src/features/core/user/coreRoles/user.role.json": "{}\n",
     "src/features/core/userProfile/profiles/user.profile.json": "{}\n",
-    "src/app/api/cron/wallet-expire/override.ts": "export const cronOverride = { disabled: true };\n",
-    "src/app/api/cron/other/override.ts": "// 親の上書きを外す\n",
+    "src/app/api/cron/wallet-expire/task.ts": "export const cronTask = {};\n",
+    "src/app/api/cron/wallet-expire/task.override.ts": "export const cronOverride = { disabled: true };\n",
+    "src/app/api/cron/other/task.override.ts": "// 親の上書きを外す\n",
+    "src/app/api/cron/legacy/override.ts": "export const cronOverride = { disabled: true };\n",
     "src/features/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
     "src/features/core/x/thing.override.tsx": "export const x = 1;\n",
     "src/features/core/user/coreRoles/user.role.override.ts": "export const override = {};\n",
@@ -356,8 +358,8 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
   assert.deepEqual(
     fork.overrides.map((o) => `${o.path}:${o.blank}`),
     [
-      "src/app/api/cron/other/override.ts:true",
-      "src/app/api/cron/wallet-expire/override.ts:false",
+      "src/app/api/cron/other/task.override.ts:true",
+      "src/app/api/cron/wallet-expire/task.override.ts:false",
       "src/features/core/user/coreRoles/user.role.override.ts:false",
       "src/features/core/user/services/server/domainEntry.override.ts:false",
       "src/features/core/userProfile/profiles/user.profile.override.ts:false",
@@ -384,7 +386,7 @@ test("実リポ: 宣言・項目の問題が無く、生成一覧が一致し、
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   assert.deepEqual(staleOutputs(repoRoot, plan.outputs), []);
   assert.deepEqual(strayExtensionFiles(repoRoot, plan.outputs, plan.points), []);
-  // override は足した Tier の物(fork の cron の override.ts は受け口)。上流だけ 0 を見る
+  // override は足した Tier の物(fork の cron の task.override.ts は受け口)。上流だけ 0 を見る
   if (readForkIdentity(repoRoot).isTier1) assert.deepEqual(plan.overrides, [], "上流は override を出荷しない");
 });
 

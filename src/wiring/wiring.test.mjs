@@ -6,7 +6,7 @@
 //    増やすなら README と一緒に）。fork は目録を見ない（fork が足したファイルは印なしの名前。所有は git の分岐点で ownership:check が見る）。
 //    名前に fork の印（旧い `<名前>[.client].<fork ID>.ts(x)`）は全 Tier で止める（src/lib/forkOwnership/dottedNames.mjs）。2〜4 は fork のファイルにも同じに掛かる
 // 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
-//    task.ts だけ（fork 所有の override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
+//    task.ts だけ（fork 所有の task.override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
 //    例外は入力部品の束: AppProviders → formInputs/FormInputsRoot と、formInputs の中どうし（Root → 一覧 → 項目）と、
 //    受け口: 生成物 wiring/<名前>.ts → wiring/<名前>/extensionPoints.ts が宣言した受け口の中の項目（fork が足した項目を含む）、
@@ -139,18 +139,18 @@ export function isAllowedImporter(relPath, targetRel) {
   if (ALLOWED_IMPORTER_FILES.includes(relPath)) return true;
   if (!ALLOWED_IMPORTER_PREFIXES.some((prefix) => relPath.startsWith(prefix))) return false;
   if (relPath.startsWith(CRON_DIR)) {
-    // cron のフォルダは task.ts（どの wiring も可）と、1 行の route.ts（cronRoute.ts だけ）。override.ts は fork 所有で schedule / disabled しか持てない
+    // cron のフォルダは task.ts（どの wiring も可）と、1 行の route.ts（cronRoute.ts だけ）。task.override.ts は fork 所有で schedule / disabled しか持てない
     if (/^app\/api\/cron\/[^/]+\/task\.ts$/.test(relPath)) return true;
     return /^app\/api\/cron\/[^/]+\/route\.ts$/.test(relPath) && targetRel === CRON_ROUTE_WIRING;
   }
   return true;
 }
 
-test("向きの判定: cron の route.ts は cronRoute.ts だけ、task.ts はどれでも、override.ts は不可", () => {
+test("向きの判定: cron の route.ts は cronRoute.ts だけ、task.ts はどれでも、task.override.ts は不可", () => {
   assert.equal(isAllowedImporter("app/api/cron/x/route.ts", "wiring/cronRoute.ts"), true);
   assert.equal(isAllowedImporter("app/api/cron/x/route.ts", "wiring/domainRegistry.ts"), false);
   assert.equal(isAllowedImporter("app/api/cron/x/task.ts", "wiring/domainRegistry.ts"), true);
-  assert.equal(isAllowedImporter("app/api/cron/x/override.ts", "wiring/cronRoute.ts"), false);
+  assert.equal(isAllowedImporter("app/api/cron/x/task.override.ts", "wiring/cronRoute.ts"), false);
   assert.equal(isAllowedImporter("features/x/y.ts", "wiring/cronRoute.ts"), false);
 });
 

@@ -55,13 +55,13 @@ function printList(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[])
   console.log("Scheduled tasks (src/app/api/cron/*/task.ts):");
   for (const task of cronTasks) {
     const state = task.disabled
-      ? " [off: override.ts]"
+      ? " [off: task.override.ts]"
       : task.closedBy !== null
         ? ` [closed: ${task.closedBy}]`
         : task.enabled && !task.enabled()
           ? " [disabled]"
           : "";
-    const overridden = task.overridden && !task.disabled ? " (override.ts)" : "";
+    const overridden = task.overridden && !task.disabled ? " (task.override.ts)" : "";
     console.log(`  - ${task.name} [${task.schedule}]${overridden}${state}: ${task.description}`);
   }
   console.log(`\nOne-shot / optional tasks (${TASKS_DIR}/<name>.ts):`);

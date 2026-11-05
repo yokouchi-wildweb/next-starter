@@ -200,7 +200,7 @@ describe("judge", () => {
   });
 
   test("A: <対象>.override の対象が基準に無ければ override-own、上の Tier の項目への override は added", () => {
-    const baseFiles = ["src/features/core/setting/fields/a.ts", "src/features/core/user/roles/coreRoles/user.role.json"];
+    const baseFiles = ["src/features/core/setting/fields/a.ts", "src/features/core/user/roles/coreRoles/user.role.json", "src/app/api/cron/x/task.ts"];
     const places = unitPlaces(baseFiles, () => null);
     const baseUnits = unitIndex(baseFiles);
     const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
@@ -209,7 +209,8 @@ describe("judge", () => {
     const own = one("src/features/core/setting/fields/mine.override.ts");
     assert.equal(own.reason, "override-own");
     assert.equal(own.verdict, "violation");
-    assert.equal(one("src/app/api/cron/x/override.ts").reason, "added", "cron の素の override.ts は対象を持たない");
+    assert.equal(one("src/app/api/cron/x/task.override.ts").reason, "added", "cron の task.override.ts は上流の task.ts への上書き");
+    assert.equal(one("src/app/api/cron/mine/task.override.ts").reason, "override-own", "fork が足したタスクは task.ts を直接書き換える");
     assert.equal(run({ status: "A", path: "src/x/mine.override.ts" }, null, "x").reason, "added", "places を渡さなければ見ない");
   });
 

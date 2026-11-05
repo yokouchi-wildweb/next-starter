@@ -144,7 +144,7 @@ export function checkVercelCrons(
   const expectedPaths = new Set(expected.map((entry) => entry.path));
   for (const path of actualByPath.keys()) {
     if (!expectedPaths.has(path)) {
-      errors.push(`${path}: 生成結果にありません（消えたタスク、task.ts の置き忘れ、または override.ts で disabled にしたタスク）`);
+      errors.push(`${path}: 生成結果にありません（消えたタスク、task.ts の置き忘れ、または task.override.ts で disabled にしたタスク）`);
     }
   }
   errors.push(`直し方: pnpm cron:generate --plan ${guess}（プランが違うなら hobby|pro を指定し直す）`);

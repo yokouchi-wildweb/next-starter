@@ -66,7 +66,7 @@ export function placeUnitOf(path, places) {
   return places.direct.has(dirOf(unit)) ? unit : null;
 }
 
-/** <対象>.override.ts(x) なら対象の単位名(同じフォルダの <対象>)、違えば null。cron の素の override.ts は対象を持たない */
+/** <対象>.override.ts(x) なら対象の単位名(同じフォルダの <対象>。cron の task.override.ts は task)、違えば null */
 export function overrideTargetUnit(path) {
   const match = /^(.*\/)?([^/]+)\.override\.tsx?$/.exec(path);
   return match ? `${match[1] ?? ""}${match[2]}` : null;

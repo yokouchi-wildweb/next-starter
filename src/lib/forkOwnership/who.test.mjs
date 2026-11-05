@@ -89,15 +89,16 @@ describe("ownership:who", () => {
     rmSync(tmp, { recursive: true, force: true });
   });
 
-  test("候補の名前: <名前>.replace(.default の隣も)と <対象>.override.ts、cron は素の override.ts", () => {
+  test("候補の名前: <名前>.replace(.default の隣も)と <対象>.override.ts、cron のフォルダは task.override.ts", () => {
     assert.equal(replaceCandidate("src/app/a/_screen/X.tsx"), "src/app/a/_screen/X.replace.tsx");
     assert.equal(replaceCandidate("src/a/b.default.ts"), "src/a/b.replace.ts");
     assert.equal(replaceCandidate("src/a/b.replace.ts"), null);
     assert.equal(replaceCandidate("src/a/b.json"), null);
     assert.equal(overrideCandidate("src/f/services/server/domainEntry.ts"), "src/f/services/server/domainEntry.override.ts");
     assert.equal(overrideCandidate("src/f/roles/a.role.json"), "src/f/roles/a.role.override.ts");
-    assert.equal(overrideCandidate("src/app/api/cron/x/task.ts"), "src/app/api/cron/x/override.ts");
-    assert.equal(overrideCandidate("src/app/api/cron/x/override.ts"), null);
+    assert.equal(overrideCandidate("src/app/api/cron/x/task.ts"), "src/app/api/cron/x/task.override.ts");
+    assert.equal(overrideCandidate("src/app/api/cron/x/route.ts"), "src/app/api/cron/x/task.override.ts");
+    assert.equal(overrideCandidate("src/app/api/cron/x/task.override.ts"), null);
   });
 
   test("Tier1: 直接の fork から見た答え(基準 = HEAD)。受け口・置き換え・上書き・生成物・負債・足す場所", () => {

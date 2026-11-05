@@ -1,5 +1,5 @@
 // scripts/extensions/overrides.mjs
-// override の検査: 既定を変える隣のファイル(src/**/<対象>.override.ts(x)・src/app/api/cron/<name>/override.ts)は
+// override の検査: 既定を変える隣のファイル(src/**/<対象>.override.ts(x)。cron は task.ts の隣の task.override.ts)は
 // 足した Tier の物で、上流(Tier1)は 1 本も出荷しない(空のものも)。既定は既定の場所に書く。
 // fork では空(空白とコメントだけ)は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)。
 // <対象>.override の隣に対象(<対象>.<拡張子> か <対象>/)が無ければ孤立で失敗(全 Tier)。受け口の中は項目と照らす extensions.mjs の側。書式: ./README.md
@@ -10,20 +10,19 @@ import { join } from "node:path";
 import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
 
 // <対象> は user.role・user.profile のように . も含む
-const OVERRIDE_FILE = /^(?:[A-Za-z_][\w.-]*\.override|override)\.(ts|tsx)$/;
-const CRON_DIR = "src/app/api/cron";
+const OVERRIDE_FILE = /^[A-Za-z_][\w.-]*\.override\.(ts|tsx)$/;
 const FRAME_OVERRIDE = /^src\/app\/(?:.*\/)?frame\.override\.tsx?$/;
 
 /** 空白とコメントだけのソースか(cron・serviceRegistry の生成器と同じ判定) */
 export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
 
-/** override のファイルか(<対象>.override.ts(x) はどこでも、素の override.ts は cron のタスクのフォルダだけ) */
+/** override のファイルか(<対象>.override.ts(x)。素の override.ts は override ではない: cron の旧名は scripts/cron/discover.ts が止める) */
 const isOverridePath = (path) => {
   const name = path.slice(path.lastIndexOf("/") + 1);
   if (!OVERRIDE_FILE.test(name)) return false;
   // src/app の frame.override.ts は override ではない(枠の宣言は frame.default.ts / frame.ts。止めるのは frames.mjs)
   if (FRAME_OVERRIDE.test(path)) return false;
-  return !name.startsWith("override.") || new RegExp(`^${CRON_DIR}/[^/]+/override\\.ts$`).test(path);
+  return true;
 };
 
 /** <対象>.override の隣に対象があるか(<対象>.<拡張子> のファイルか <対象>/ のフォルダ) */
@@ -64,7 +63,7 @@ export function checkOverrides(repoRoot, { isTier1, receptacleDirs = [] }) {
   const receptacles = new Set(receptacleDirs);
   for (const o of overrides) {
     const dir = o.path.slice(0, o.path.lastIndexOf("/"));
-    if (o.blank || o.path.endsWith("/override.ts") || receptacles.has(dir)) continue;
+    if (o.blank || receptacles.has(dir)) continue;
     if (!hasTarget(repoRoot, o.path)) problems.push(`${o.path}: 隣に上書きの対象 ${o.path.slice(dir.length + 1).replace(/\.override\.tsx?$/, "")} が無い(孤立した override。対象の名前に合わせるか消す)`);
   }
   return { overrides, problems };
