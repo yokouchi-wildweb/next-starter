@@ -5,7 +5,7 @@
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
 //      required_actions 〜 manual_steps が、壊れた地点より後の notice を名指さない
 //   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: pickDroppingIndex.mjs)
-//   3. 載せた木で検査が通る(既定 pnpm typecheck と pnpm test:config-module-load。その木の package.json に無い script は未実行と書いて飛ばす)
+//   3. 載せた木で検査が通る(既定 pnpm typecheck・pnpm test:config-module-load・pnpm registry:check。その木の package.json に無い script は未実行と書いて飛ばす)
 //   4. 遅れた fork 向けの前提の検査(hotfixCheck.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない
 // notices:hotfix-check は存在の検査だけで型・merge の成立を見ないので、ここでは 4 の部品として呼ぶだけで、clean の根拠は 1〜4 の全部。
 //
@@ -34,7 +34,7 @@ import { pickDroppingIndex } from "./pickDroppingIndex.mjs";
 import { indexPath, ownForkId, parseIndex, SHIPPED_DIR, writeRowPick } from "./shippedIndex.mjs";
 
 export const FORBIDDEN = ["pnpm-lock.yaml", "src/app/route-map.jsonl"];
-export const DEFAULT_CHECKS = ["pnpm typecheck", "pnpm test:config-module-load"];
+export const DEFAULT_CHECKS = ["pnpm typecheck", "pnpm test:config-module-load", "pnpm registry:check"];
 const NOTICE_FILE = /^\.notices\/(?:done\/)?(\d{8}-\d{6}-[^/]+)\.md$/;
 const NOTICE_ID = /\b\d{8}-\d{6}-[a-z0-9][a-z0-9-]*\b/g;
 

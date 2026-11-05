@@ -11,8 +11,8 @@ import { check, checkpointsIn, run } from "./checkpointCheck.mjs";
 const OK = `node -e "process.exit(require('fs').readFileSync('src/a.txt','utf8').includes('bug')?1:0)"`;
 const NEEDS_LIB = `node -e "const fs=require('fs');process.exit(!fs.readFileSync('src/a.txt','utf8').includes('uses-lib')||fs.existsSync('src/lib.txt')?0:1)"`;
 
-const notice = (id, { checkpoint = id.slice(16), skip } = {}) =>
-  [`# DOWNSTREAM NOTICE id:${id}`, "severity: info", `checkpoint: ${checkpoint}`, ...(skip ? [`skip_checkpoint: ${skip}`] : []), "change: c", "why: w", "required_actions:", "none", "verify: v", "manual_steps: -", "refs: -", "notes: -", ""].join("\n");
+const notice = (id, { checkpoint = id.slice(16), skip, fixes, pick } = {}) =>
+  [`# DOWNSTREAM NOTICE id:${id}`, "severity: info", `checkpoint: ${checkpoint}`, ...(fixes ? [`fixes: ${fixes}`] : []), ...(pick ? [`pick: ${pick}`] : []), ...(skip ? [`skip_checkpoint: ${skip}`] : []), "change: c", "why: w", "required_actions:", "none", "verify: v", "manual_steps: -", "refs: -", "notes: -", ""].join("\n");
 const N = (k) => `20990101-00000${k}-n${k}`;
 const F = (id) => `.notices/${id}.md`;
 
@@ -120,4 +120,39 @@ test("区切りが無い範囲・checkpoint: - と skip_checkpoint: は区切り
   assert.match(log2.join("\n"), new RegExp(`最初に壊れた区切り = ${N(4)}`));
   assert.equal(run(r.dir, ["HEAD..HEAD", `--check=${OK}`], () => {}), 0);
   assert.equal(run(r.dir, ["nowhere..HEAD"], () => {}), 2);
+});
+
+test("先取り: 途中の区切りが壊れても、fork が直後に取る後の clean な修正(脇の commit)を取った木で通る / pick:- なら壊れた / --at が修正の前なら壊れた", (t) => {
+  for (const pick of ["clean", "-"]) {
+    const r = repo(t);
+    const b1 = r.commit({ "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)) });
+    r.commit({ "src/b.txt": "2\n", [F(N(2))]: notice(N(2)) });
+    // 修正 n3 を壊れた地点 b1 の脇の commit で出して --no-ff merge
+    r.g("switch", "-q", "-c", "fix", b1);
+    const fix = r.commit({ "src/a.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick }) });
+    r.g("switch", "-q", "main");
+    r.g("merge", "-q", "--no-ff", "-m", "merge fix", "fix");
+    const res = check(r.dir, r.base, "HEAD", { checks: [OK], all: true });
+    if (pick === "clean") {
+      assert.deepEqual(ids(res), [`${N(1)}:ok`, `${N(2)}:ok`, `${N(3)}:picked`]);
+      assert.deepEqual(res.results[0].took, [N(3)]);
+      // 修正より前を先端にすると(修正が出荷前)壊れた
+      assert.equal(check(r.dir, r.base, "HEAD", { checks: [OK], at: b1 }).results[0].status, "broken");
+      // --no-picks 相当
+      assert.equal(check(r.dir, r.base, "HEAD", { checks: [OK], stack: false }).results[0].status, "broken");
+    } else {
+      assert.equal(res.results[0].status, "broken");
+    }
+    assert.ok(fix);
+  }
+});
+
+test("先取り: 取る修正が今の木に載らなければ、その区切りを壊れたと数え修正を挙げる", (t) => {
+  const r = repo(t);
+  const b1 = r.commit({ "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)) });
+  r.commit({ "src/a.txt": "bug2\n" });
+  r.commit({ "src/a.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick: "clean" }) });
+  const res = check(r.dir, r.base, b1, { checks: [OK] });
+  assert.equal(res.results[0].status, "broken");
+  assert.match(res.results[0].reasons.join("\n"), new RegExp(`先に取る修正 ${N(3)}`));
 });
