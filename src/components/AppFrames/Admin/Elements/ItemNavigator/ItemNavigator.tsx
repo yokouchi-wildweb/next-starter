@@ -2,107 +2,60 @@
 
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { AdminHeaderPortal } from "@/components/AppFrames/Admin/Elements/AdminHeaderPortal";
 import { SelectInput } from "@/components/Form/Input/Manual/Select";
 import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 import type { ItemNavigatorProps } from "./types";
 
 /**
- * アイテム並行移動コンポーネント
- *
- * 編集画面などで、現在のアイテムを別のアイテムに切り替えるためのセレクトボックスUI。
- * AdminHeaderPortalと組み合わせてヘッダーに配置することも可能。
- *
- * @example
- * // 基本的な使用方法（ヘッダー右側に配置）
- * <ItemNavigator
- *   items={items}
- *   currentId={sample.id}
- *   getLabel={(item) => item.name}
- *   getPath={(id) => `/admin/samples/${id}/edit`}
- * />
+ * 編集画面の「前後の項目へ移る」選択欄(移るだけ。保存・入力の検証・トースト・ヘッダーへの差し込みは持たない)。
+ * 選ぶと getPath(id) へ router.push する。置き場は呼ぶ側(ルートの画面が <AdminPage actions={…}> に置く)。
+ * データは src/lib/crud の useDomainItemNavigation が返す(items / currentId / getPath / getLabel をそのまま渡す)。
+ * 未保存の編集の守りは移動の仕組みの側(後の指令)で受け止める
  *
  * @example
- * // 遷移前に処理を挟む
- * <ItemNavigator
- *   items={items}
- *   currentId={sample.id}
- *   getLabel={(item) => item.name}
- *   getPath={(id) => `/admin/samples/${id}/edit`}
- *   onBeforeNavigate={async (nextId) => {
- *     await saveForm();
- *     return true; // 遷移を許可
- *   }}
- * />
+ * const navigation = useDomainItemNavigation({ domain: sampleDisplay, current: sample });
+ * return <ItemNavigator {...navigation} />;
  */
 export function ItemNavigator<T extends { id: string }>({
   items,
   currentId,
   getLabel,
   getPath,
-  onBeforeNavigate,
   isLoading = false,
   disabled = false,
   label = "切り替え",
   placeholder,
-  usePortal = true,
-  slot = "right",
   className,
 }: ItemNavigatorProps<T>) {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
 
   const options = items.map((item) => ({
     value: item.id,
     label: getLabel(item),
   }));
 
-  const handleChange = async (value: string | number | boolean | null | "") => {
+  const handleChange = (value: string | number | boolean | null | "") => {
     if (value === null || value === "" || typeof value === "boolean") return;
     const nextId = String(value);
     if (nextId === currentId) return;
-
-    setIsPending(true);
-    try {
-      // 遷移前処理がある場合は実行
-      if (onBeforeNavigate) {
-        const shouldNavigate = await onBeforeNavigate(nextId, currentId);
-        if (!shouldNavigate) {
-          return; // 遷移キャンセル
-        }
-      }
-
-      // 遷移実行
-      router.push(getPath(nextId));
-    } finally {
-      setIsPending(false);
-    }
+    router.push(getPath(nextId));
   };
 
-  const isDisabled = disabled || isPending || isLoading;
-
-  const content = (
+  return (
     <Flex align="center" gap="xs" className={cn("min-w-0", className)}>
       <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
       <SelectInput
         value={currentId}
         onChange={handleChange}
         options={options}
-        disabled={isDisabled}
+        disabled={disabled || isLoading}
         showPlaceholderOption={false}
         placeholder={placeholder}
         className="min-w-[160px] max-w-[240px]"
       />
     </Flex>
   );
-
-  if (usePortal) {
-    return <AdminHeaderPortal slot={slot}>{content}</AdminHeaderPortal>;
-  }
-
-  return content;
 }

@@ -10,6 +10,8 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import { loadAdminChatRoomEditScreen } from "./loader";
 import AdminChatRoomEdit from "@/features/core/chatRoom/components/AdminChatRoomEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
+import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 export const metadata = {
   title: "チャットルーム編集",
@@ -19,7 +21,7 @@ export async function AdminChatRoomEditScreen(props: ScreenProps<AdminEditScreen
   const { record: chatRoom, redirectPath } = await loadAdminChatRoomEditScreen(props);
 
   return (
-    <AdminPage title="チャットルーム編集">
+    <AdminPage title="チャットルーム編集" actions={<AdminEditItemNavigator domain={chatRoomDisplay} current={chatRoom} />}>
       <AdminChatRoomEdit chatRoom={chatRoom} redirectPath={redirectPath} />
     </AdminPage>
   );

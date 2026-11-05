@@ -286,3 +286,12 @@ removeItems((s) => s.id === id);
 - 取得系: `useDomain` / `useDomainList` / `useSearchDomain` / `useCountDomain`（`@/lib/crud/hooks`）を包むか、`useSWR` を直接使う。client service 経由で HTTP を呼ぶ（Hook から axios / fetch を直接呼ばない）
 - 更新系: `useDomainMutation` を包む。`useSWRMutation` は使わない（理由は [`../README.md`](../README.md#汎用フックhooksの-mutation-契約)）
 - 生成フックのシグネチャを変えたいときはテンプレート（`src/features/_template/hooks/`）と本体（このディレクトリ）を変える。全ドメインに波及する
+
+---
+
+## 編集画面の項目の移動（useDomainItemNavigation）
+
+- `useDomainItemNavigation({ domain, current, labelField?, limit = 10 })` → `{ items, currentId, getPath, getLabel, isLoading }`。管理の編集画面の「前後の項目へ移る」のデータ
+- `domain` = 呼ぶ側が渡す `<domain>/entities/display.ts` の `domainDisplay`（lib/crud は features を読まない）。取得は汎用の `/api/<singular>` の search（検索の既定の並びの先頭 `limit` 件、SWR キー `<plural>/search`）、`current` が候補に無ければ先頭に足す。パスは `getAdminPaths(domain.plural).edit`、表示名は `labelField` → name → title → id
+- 表示は棚の `ItemNavigator`（`@/components/AppFrames/Admin/Elements/ItemNavigator`、props だけ）に戻り値をそのまま渡す。管理画面では `src/app/admin/_layout/AdminEditItemNavigator` がこの組み合わせ
+- テスト: 候補と表示名の純関数 `internal/itemNavigation.ts`（`pnpm test:crud-hooks`）

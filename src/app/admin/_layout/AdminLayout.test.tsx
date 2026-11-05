@@ -252,7 +252,7 @@ test("main={false} + title: ヘッダーの題に加え、本文の大見出し�
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
 });
 
-test("portal の着地(帯を足す段の互換): AdminPage の行の中に受け口の id が題・中央・右の順で 1 つずつあり、AdminHeaderPortal(ItemNavigator の slot も)が探す id と同じ", () => {
+test("portal の着地(帯を足す段の互換): AdminPage の行の中に受け口の id が題・中央・右の順で 1 つずつあり、AdminHeaderPortal(互換の useItemNavigator の slot も)が探す id と同じ", () => {
   const html = page(<AdminPage>CHILD</AdminPage>);
   const header = /<header id="header" data-slot="admin-header"[^>]*>[\s\S]*<\/header>/.exec(html)?.[0] ?? "";
   const ids = [...header.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
@@ -262,8 +262,9 @@ test("portal の着地(帯を足す段の互換): AdminPage の行の中に受�
   for (const [slot, constant] of [["title", "ADMIN_HEADER_TITLE_SLOT_ID"], ["center", "ADMIN_HEADER_CENTER_SLOT_ID"], ["right", "ADMIN_HEADER_RIGHT_SLOT_ID"]]) {
     assert.ok(portal.includes(`${slot}: ${constant},`), `AdminHeaderPortal の ${slot} が ${constant} を探していない`);
   }
-  const navigatorTypes = readFileSync(join(__dirname, "../../../components/AppFrames/Admin/Elements/ItemNavigator/types.ts"), "utf8");
-  assert.match(navigatorTypes, /slot\?: "center" \| "right"/, "ItemNavigator の slot は AdminHeaderPortal の center / right");
+  // 互換の useItemNavigator(指令 17 まで)の差し込み先も center / right の受け口
+  const compat = readFileSync(join(__dirname, "../../../components/AppFrames/Admin/Elements/ItemNavigator/useItemNavigator.tsx"), "utf8");
+  assert.match(compat, /slot\?: "center" \| "right"/, "互換の useItemNavigator の slot は AdminHeaderPortal の center / right");
 });
 
 test("main={false} はヘッダーの行だけを描き、children をそのまま続ける(login・setup 用)", () => {

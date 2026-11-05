@@ -8,17 +8,12 @@ import { ChatRoomUpdateSchema } from "@/features/core/chatRoom/entities/schema";
 import type { ChatRoomUpdateFields } from "@/features/core/chatRoom/entities/form";
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import { useUpdateChatRoom } from "@/features/core/chatRoom/hooks/useUpdateChatRoom";
-import { useSearchChatRoom } from "@/features/core/chatRoom/hooks/useSearchChatRoom";
 import { ChatRoomForm } from "./ChatRoomForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
-import { getAdminPaths } from "@/lib/crud/utils/paths";
 import { domainDisplay } from "@/features/core/chatRoom/entities/display";
-
-const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   chatRoom: ChatRoom;
@@ -36,18 +31,8 @@ export default function EditChatRoomForm({ chatRoom, redirectPath = "/" }: Props
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateChatRoom();
-  const { data: items } = useSearchChatRoom({ limit: 10 });
 
-  const { navigator, isSwitching } = useItemNavigator({
-    items,
-    currentItem: chatRoom,
-    getPath: adminPaths.edit,
-    methods,
-    updateTrigger: trigger,
-    isMutating,
-  });
-
-  useLoadingToast(isMutating, isSwitching ? "アイテムを切り替え中" : "更新中です…");
+  useLoadingToast(isMutating, "更新中です…");
 
   const submit = async (data: ChatRoomUpdateFields) => {
     try {
@@ -60,15 +45,12 @@ export default function EditChatRoomForm({ chatRoom, redirectPath = "/" }: Props
   };
 
   return (
-    <>
-      {navigator}
-      <ChatRoomForm
-        methods={methods}
-        onSubmitAction={submit}
-        isMutating={isMutating}
-        submitLabel="更新"
-        onCancel={() => router.push(redirectPath)}
-      />
-    </>
+    <ChatRoomForm
+      methods={methods}
+      onSubmitAction={submit}
+      isMutating={isMutating}
+      submitLabel="更新"
+      onCancel={() => router.push(redirectPath)}
+    />
   );
 }

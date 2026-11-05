@@ -8,18 +8,13 @@ import { SampleUpdateSchema } from "@/features/sample/entities/schema";
 import type { SampleUpdateFields } from "@/features/sample/entities/form";
 import type { Sample } from "@/features/sample/entities";
 import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
-import { useSearchSample } from "@/features/sample/hooks/useSearchSample";
 import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useAutoSaveConfig } from "@/components/Form/AutoSave";
-import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
-import { getAdminPaths } from "@/lib/crud/utils/paths";
 import { domainDisplay } from "@/features/sample/entities/display";
-
-const adminPaths = getAdminPaths(domainDisplay.plural);
 
 type Props = {
   sample: Sample;
@@ -38,18 +33,8 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSample();
   const autoSave = useAutoSaveConfig(trigger, sample.id);
-  const { data: items } = useSearchSample({ limit: 10 });
 
-  const { navigator, isSwitching } = useItemNavigator({
-    items,
-    currentItem: sample,
-    getPath: adminPaths.edit,
-    methods,
-    updateTrigger: trigger,
-    isMutating,
-  });
-
-  useLoadingToast(isMutating, isSwitching ? "アイテムを切り替え中" : "更新中です…");
+  useLoadingToast(isMutating, "更新中です…");
 
   const submit = async (data: SampleUpdateFields) => {
     try {
@@ -62,15 +47,12 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   };
 
   return (
-    <>
-      {navigator}
-      <SampleForm
-        methods={methods}
-        onSubmitAction={submit}
-        isMutating={isMutating}
-        submitLabel="更新"
-        autoSave={autoSave}
-      />
-    </>
+    <SampleForm
+      methods={methods}
+      onSubmitAction={submit}
+      isMutating={isMutating}
+      submitLabel="更新"
+      autoSave={autoSave}
+    />
   );
 }

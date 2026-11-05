@@ -36,10 +36,14 @@ const read = (path: string) => readFileSync(join(repo, path), "utf8");
 let render: (node: ReactNode) => string;
 let AdminLayout: typeof import("./AdminLayout").AdminLayout;
 let parts: typeof import("@/app/_layout/frame");
+let AdminPage: typeof import("./AdminPage").default;
+let ItemNavigator: typeof import("@/components/AppFrames/Admin/Elements/ItemNavigator").ItemNavigator;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
   parts = await import("@/app/_layout/frame");
+  AdminPage = (await import("./AdminPage")).default;
+  ({ ItemNavigator } = await import("@/components/AppFrames/Admin/Elements/ItemNavigator"));
 });
 
 /** 管理の枠の部品のソース(テストを除く .tsx / .ts) */
@@ -212,7 +216,7 @@ test("上流の管理の画面(_template を含む)は題を AdminPage title で
   }
 });
 
-test("中央の差し込み(銀行振込の status タブ・クーポンのタブ)は AdminPage center。上流で AdminHeaderPortal を使うのは ItemNavigator と指令 17 までの互換 2 つだけ", () => {
+test("中央の差し込み(銀行振込の status タブ・クーポンのタブ)は AdminPage center。上流で AdminHeaderPortal を使うのは指令 17 までの互換 3 つ(PageTitle・CouponSectionTabs の placement header・useItemNavigator)だけ", () => {
   assert.match(read("src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/AdminBankTransferReviewsScreen.tsx"), /<AdminPage title="銀行振込レビュー" center=\{<BankTransferStatusTabs \/>\}>/);
   for (const section of ["official", "affiliate", "invite"]) {
     const screen = sourcesOf(`src/app/admin/(protected)/coupons/${section}/_screen`).map(read).join("\n");
@@ -226,9 +230,71 @@ test("中央の差し込み(銀行振込の status タブ・クーポンのタ�
   assert.deepEqual(users, [
     "app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx",
     "app/admin/_layout/PageTitle.tsx",
-    "components/AppFrames/Admin/Elements/ItemNavigator/ItemNavigator.tsx",
+    "components/AppFrames/Admin/Elements/ItemNavigator/useItemNavigator.tsx",
   ]);
   // 互換の 2 つは @deprecated(上流の使用 0 は上のテストと CouponSectionTabs placement の 0)
   assert.match(read("src/app/admin/_layout/PageTitle.tsx"), /@deprecated/);
   assert.match(read("src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx"), /@deprecated/);
+});
+
+// ---- 前後の項目へ移る(指令 16) ----
+
+const NAV_DIR = "src/components/AppFrames/Admin/Elements/ItemNavigator";
+
+test("ItemNavigator は移るだけ: portal・react-hook-form・保存・トーストを持たない(フォルダの中で持つのは互換の useItemNavigator だけ)", () => {
+  const navigator = read(`${NAV_DIR}/ItemNavigator.tsx`);
+  for (const word of ["AdminHeaderPortal", "react-hook-form", "useToast", "onBeforeNavigate", "usePortal"]) {
+    assert.equal(navigator.includes(word), false, `ItemNavigator.tsx に ${word}`);
+  }
+  assert.match(navigator, /router\.push\(getPath\(nextId\)\)/);
+  for (const file of sourcesOf(NAV_DIR)) {
+    if (file.endsWith("useItemNavigator.tsx")) continue;
+    assert.equal(read(file).includes("react-hook-form"), false, `${file} が react-hook-form を読む`);
+  }
+  assert.match(read(`${NAV_DIR}/useItemNavigator.tsx`), /@deprecated/);
+});
+
+test("AdminPage actions に置いた ItemNavigator は右の受け口の中に描かれ、候補は items の順・表示名は getLabel", () => {
+  const items = [
+    { id: "a", name: "A" },
+    { id: "b", name: "B" },
+  ];
+  const html = render(
+    <AdminPage
+      actions={
+        <ItemNavigator items={items} currentId="a" getPath={(id) => `/admin/x/${id}/edit`} getLabel={(item) => `L-${item.name}`} />
+      }
+    >
+      CHILD
+    </AdminPage>,
+  );
+  const right = /<div id="admin-header-right-slot"[^>]*>([\s\S]*?)<\/div><\/div>/.exec(html)?.[1] ?? "";
+  assert.ok(right.includes("切り替え"), html);
+  assert.ok(html.indexOf("L-A") < html.indexOf("L-B") || !html.includes("L-B"), "候補の順");
+});
+
+test("上流の編集画面(core 3・サンプル 3・管理の _template)は AdminPage actions に AdminEditItemNavigator を置き、features の Edit*Form から useItemNavigator が消えた", () => {
+  const screens = [
+    "src/app/admin/_template/__domains__/[id]/edit/_screen/Admin__Domain__EditScreen.tsx",
+    "src/app/admin/(protected)/user-tags/[id]/edit/_screen/AdminUserTagEditScreen.tsx",
+    "src/app/admin/(protected)/chat-rooms/[id]/edit/_screen/AdminChatRoomEditScreen.tsx",
+    "src/app/admin/(protected)/notification-templates/[id]/edit/_screen/AdminNotificationTemplateEditScreen.tsx",
+    "src/app/admin/(protected)/samples/[id]/edit/_screen/AdminSampleEditScreen.tsx",
+    "src/app/admin/(protected)/sample-categories/[id]/edit/_screen/AdminSampleCategoryEditScreen.tsx",
+    "src/app/admin/(protected)/sample-tags/[id]/edit/_screen/AdminSampleTagEditScreen.tsx",
+  ];
+  for (const file of screens) {
+    assert.match(read(file), /<AdminPage title="[^"]+" actions=\{<AdminEditItemNavigator domain=\{\w+Display\} current=\{\w+\} \/>\}>/, file);
+  }
+  // 部品 = データの hook(src/lib/crud)+ 移るだけの表示(棚)の組み合わせ
+  const part = read("src/app/admin/_layout/AdminEditItemNavigator.tsx");
+  assert.match(part, /useDomainItemNavigation\(options\)/);
+  assert.match(part, /<ItemNavigator \{\.\.\.navigation\}/);
+  const hook = read("src/lib/crud/hooks/useDomainItemNavigation.ts");
+  assert.match(hook, /createApiClient<T>\(`\/api\/\$\{domain\.singular\}`\)/);
+  assert.match(hook, /getAdminPaths\(domain\.plural\)\.edit/);
+  assert.match(hook, /limit = 10/);
+  // 上流で useItemNavigator( を呼ぶのは互換の定義だけ
+  const callers = sourcesOf("src").filter((file) => !/\.test\.tsx?$/.test(file) && /\buseItemNavigator\(/.test(read(file)));
+  assert.deepEqual(callers.map((f) => relative("src", f)), ["components/AppFrames/Admin/Elements/ItemNavigator/useItemNavigator.tsx"]);
 });

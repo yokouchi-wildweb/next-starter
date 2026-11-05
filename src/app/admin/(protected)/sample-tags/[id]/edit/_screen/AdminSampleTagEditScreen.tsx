@@ -6,6 +6,8 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleTagEdit from "@/features/sampleTag/components/AdminSampleTagEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
+import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
 import { loadAdminSampleTagEditScreen } from "./loader";
 
@@ -16,7 +18,7 @@ export const metadata = {
 export async function AdminSampleTagEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
   const { record: sampleTag, redirectPath } = await loadAdminSampleTagEditScreen(props);
   return (
-    <AdminPage title="サンプルタグ編集">
+    <AdminPage title="サンプルタグ編集" actions={<AdminEditItemNavigator domain={sampleTagDisplay} current={sampleTag} />}>
       <AdminSampleTagEdit sampleTag={sampleTag} redirectPath={redirectPath} />
     </AdminPage>
   );

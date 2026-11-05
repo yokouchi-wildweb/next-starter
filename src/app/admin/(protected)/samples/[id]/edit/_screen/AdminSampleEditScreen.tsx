@@ -7,6 +7,8 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { SWRConfig } from "swr";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
+import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 
 import { loadAdminSampleEditScreen } from "./loader";
 
@@ -18,7 +20,7 @@ export async function AdminSampleEditScreen(props: ScreenProps<AdminEditScreenPa
   const { record: sample, redirectPath, relationFallback } = await loadAdminSampleEditScreen(props);
   return (
   <SWRConfig value={{ fallback: relationFallback }}>
-    <AdminPage title="サンプル編集">
+    <AdminPage title="サンプル編集" actions={<AdminEditItemNavigator domain={sampleDisplay} current={sample} />}>
       <AdminSampleEdit sample={sample} redirectPath={redirectPath} />
     </AdminPage>
   </SWRConfig>

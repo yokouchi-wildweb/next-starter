@@ -14,6 +14,7 @@ src/app/admin/_layout/                  # admin/layout.tsx の枠 + admin 全体
 ├── Header.tsx              # 互換の Header(props なしの AdminHeader、流れの中の形)。指令 17 で外す
 ├── HeaderSlots.tsx         # AdminHeaderSlots: ヘッダーの受け口 3 つ(タイトル / 中央 / 右)をまとめて描く
 ├── AdminPage.tsx           # ページコンテナ(default export。ヘッダーの行 title / center / actions・tabs・main)。Screen が使う
+├── AdminEditItemNavigator.tsx  # 編集画面の「前後の項目へ移る」(useDomainItemNavigation + 移るだけの ItemNavigator)。編集の Screen が AdminPage actions に置く
 ├── AdminPageTitle.tsx      # 題の部品(本文の大見出し AdminPageTitleBody・ヘッダーの圧縮の題 AdminPageTitleCompact・見た目 adminPageTitleVariants)。AdminPage が使う
 ├── PageTitle.tsx           # @deprecated 互換(placement の題)。上流の使用 0、指令 17 で消す
 ├── Sidebar/MenuButton.tsx  # サイドバーのボタン(通常 / insane の両サイドバーが使う)
@@ -85,6 +86,7 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 - AdminPage の本文: padding lg / paddingBlock xl の通常ページ。`tabs` は本文の前に下余白 mb-6 で描く。固定ヘッダー直下の残り高さにスナップする非スクロールのページは、ページの隣の枠の宣言に `page: { fill: true }` を書く(下の「枠の宣言」。説明は AdminPage.tsx の JSDoc)
 - 題(D135): 管理画面の題は必ず `<AdminPage title="…">` に渡す(位置を選ぶ選択肢は無い。login・setup も)。h1 は 1 つ = 本文の先頭(タブの前)の大見出し `AdminPageTitleBody`(SP で見え、PC は `sm:sr-only` で見た目から消して支援技術向けに残す)。PC で見える題はヘッダーの行のロゴの右隣の `AdminPageTitleCompact`(飾りの文字、aria-hidden)。見た目は前の PageTitle placement="header" と同じ。`main={false}` のときの本文の大見出しは children の前(login・setup では自分のスクロール領域の上)
 - 本文の中の見出しはページの題とは別の普通の見出しの部品(`SecTitle` など)。題の無い AdminPage は前から題を持たない insane の 2 画面だけ(本文の見出しは SecTitle)
+- 前後の項目へ移る(編集画面): `<AdminPage title="…" actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}>`(domain = `<domain>/entities/display.ts` の domainDisplay、current = loader の行)。候補は検索の既定の並びの先頭 10 件 + 今の行(`src/lib/crud` の `useDomainItemNavigation`)、選ぶと編集画面へ移るだけで保存しない(D127。未保存の守りは移動の仕組みの側)。雛形(`_template`)の編集画面も同じ形
 - 中央の差し込みもページが props で渡す: 銀行振込のレビューの status タブ = `<AdminPage center={<BankTransferStatusTabs />}>`(件数は route の `_screen/useStatusCounts.ts` を一覧の本体と共有)、クーポンのタブ = `<AdminPage center={<CouponSectionTabs variant="header" />}>`
 - 互換(指令 17 で消す、上流の使用 0): `PageTitle`(`placement="header"` = 前と同じ AdminHeaderPortal で題の受け口へ、`"page"` = 本文の大見出し)・`CouponSectionTabs placement="header"`(AdminHeaderPortal で中央の受け口へ)。fork はこの間に `title` / `center` へ移す
 

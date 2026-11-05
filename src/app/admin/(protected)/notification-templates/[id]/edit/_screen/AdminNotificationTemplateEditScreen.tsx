@@ -10,6 +10,8 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import { loadAdminNotificationTemplateEditScreen } from "./loader";
 import AdminNotificationTemplateEdit from "@/features/core/notificationTemplate/components/AdminNotificationTemplateEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
+import { domainDisplay as notificationTemplateDisplay } from "@/features/core/notificationTemplate/entities/display";
 
 export const metadata = {
   title: "お知らせテンプレート編集",
@@ -19,7 +21,7 @@ export async function AdminNotificationTemplateEditScreen(props: ScreenProps<Adm
   const { record: notificationTemplate, redirectPath } = await loadAdminNotificationTemplateEditScreen(props);
 
   return (
-    <AdminPage title="お知らせテンプレート編集">
+    <AdminPage title="お知らせテンプレート編集" actions={<AdminEditItemNavigator domain={notificationTemplateDisplay} current={notificationTemplate} />}>
       <AdminNotificationTemplateEdit notificationTemplate={notificationTemplate} redirectPath={redirectPath} />
     </AdminPage>
   );
