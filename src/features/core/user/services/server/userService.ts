@@ -12,7 +12,7 @@ import {
   createDemoUser,
   createGuestDemoUser,
 } from "./creation";
-import { registerFromAuth, preRegisterFromAuth } from "./registration";
+import { registerFromAuth, preRegisterFromAuth, createFromProvider } from "./registration";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
@@ -83,4 +83,6 @@ export const userService = {
   // registration (auth)
   registerFromAuth,
   preRegisterFromAuth,
+  // 新しい認証手段 (外部の身元 → 利用者。auth README「新しい認証手段」)
+  createFromProvider,
 };

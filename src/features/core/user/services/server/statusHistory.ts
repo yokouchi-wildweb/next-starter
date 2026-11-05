@@ -24,7 +24,7 @@ export type RecordStatusTransitionInput = {
  *
  * 【重要】users.status を書き換える処理を新設・変更したら、必ず本関数の呼び出しを追加すること。
  * 既存の記録箇所: withdraw / pause / reactivate / softDelete / changeStatus / activate /
- * setPending / restore / createAdmin / createGeneralUser / createDemoUser /
+ * setPending / restore / createAdmin / createGeneralUser / createDemoUser / createFromProvider /
  * createGuestDemoUser / lockoutPolicy(recordFailedLogin)
  */
 export async function recordStatusTransition(

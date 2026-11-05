@@ -266,6 +266,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 | 管理画面からのユーザー作成 | `creation/console/createGeneralUser.ts` / `createAdmin.ts` |
 | 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
 | 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替。候補名もロックしてから判定） |
+| 外部の認証の身元からの作成・再登録 | `registration/createFromProvider.ts`（衝突時はブロックせず「名前_2」等へ自動付替。候補名もロックしてから判定） |
 
 ガードを通らず行を作る一括書き込み・複製系（`upsert` / `bulkUpsert` / `replaceByQuery` / `duplicate`）は
 `userService` から公開しない。汎用 `/api/user/**` の該当ルートは 404、CSV インポートも拒否される
@@ -531,6 +532,41 @@ export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Prom
 - 未処理リクエストのキャンセルのような中間的なものはケースバイケース。**迷ったら `required`**（データ整合性を優先）
 
 > optional でも、ハンドラ内の SQL が失敗すると PostgreSQL のトランザクション自体が aborted 状態になり、後続の処理（監査ログ記録等）も失敗して結局ロールバックされる（`executeCleanup` は SAVEPOINT を張らない）。DB 書き込みの失敗まで許容したい optional ハンドラは、内部の DB 操作を `tx.transaction(...)`（ネストトランザクション = SAVEPOINT）で囲むこと。
+
+## 外部の認証の身元から作る口（createFromProvider）
+
+新しい認証手段（fork の LINE ログインなど）で、外部の身元 `(providerType, providerUid)` から有効な利用者を引く・作る公開の口。
+名前の規則・状態の履歴・ログインの記録・監査を写さずに済ませる。使い方の全体（身元の確認 → この口 → `establishSession`）は
+[auth README「新しい認証手段」](../auth/README.md#新しい認証手段身元の確認--createfromprovider--establishsession)。
+
+```ts
+import { userService } from "@/features/core/user/services/server/userService";
+
+const { user, isNewUser, isRejoin } = await userService.createFromProvider({
+  providerType: "line",     // USER_PROVIDER_TYPES の値
+  providerUid: lineUserId,  // プロバイダー側の利用者 ID
+  displayName,              // プロバイダーの表示名（名前の規則を通す）
+  ip,                       // signupIp とログインの記録 signup（省略可）
+  role,                     // 省略 = REGISTRATION_DEFAULT_ROLE（assertRoleEnabled）
+  tx,                       // 呼び手の tx（省略 = 自分で 1 つ開く）
+});
+```
+
+| 見つかった行 | すること | 戻り値 |
+|------|------|------|
+| なし | 新規作成: `active`・`email` null・`isDemo` false・`signupIp` → 状態の履歴 `null → active`（`signup_activate`）→ 監査 `user.registered` → tx の後にログインの記録 `signup` | `isNewUser: true` |
+| `pending` | 本登録と同じく `active` に（状態の履歴 `signup_activate`・監査 `user.registered`） | `isNewUser: false` |
+| `withdrawn` | 上流の再登録の規則で `active` に（`signupIp`・状態の履歴 `signup_activate`・監査 `user.rejoined`・ログインの記録 `signup`） | `isRejoin: true` |
+| その他（`active`・`inactive`・`suspended`・`security_locked` など） | 何も変えずに返す（判断は `establishSession` の状態の分岐） | `isNewUser: false` |
+
+- 名前: `sanitizeUserName(displayName)`、空なら既定名 `PROVIDER_USER_DEFAULT_NAME`（「ユーザー」）。`USER_NAME_CONFIG.unique.enabled` のとき
+  `lockUserName` の後に使用中（予約名を含む）か見て、使用中なら `findAvailableSuffixedUserName`（「名前_2」…）。無効のときはそのまま（他の作成の道と同じ規則）
+- tx: 書き込み（引く・名前・作成または有効化・状態の履歴・監査）は 1 つの tx の中の savepoint で行う。呼び手の tx を渡せばそこで一緒に確定・巻き戻しする
+- 同時に 2 回来て `(provider_type, provider_uid)` の unique 違反になったら savepoint だけ巻き戻して引き直し、既存として返す（他の DB エラーはそのまま）
+- 戻り値の `user` は公開の列だけ（`localPassword` は含まない）
+- 退会者を断りたい fork は、呼ぶ前に `userService.findByProvider` で状態を見てこの口を呼ばない（口の中に選択肢を足さない）
+- 入れない物: 招待コード・流入の記録・プロフィール（呼び手がこの後に行う）。Firebase Auth のアカウントは作らない
+- テスト: `pnpm test:create-from-provider`
 
 ## ステータス遷移履歴（user_status_histories）
 

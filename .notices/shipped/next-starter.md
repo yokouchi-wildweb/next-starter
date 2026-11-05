@@ -305,3 +305,4 @@
 - id:20261105-191948-gate-features-tableless-domains | severity:info | checkpoint:gate-features-tableless-domains
 - id:20261105-194544-config-requires | severity:breaking | checkpoint:config-requires
 - id:20261106-003534-room-socket-token-expiry | severity:action-required | checkpoint:room-socket-token-expiry
+- id:20261106-011616-create-from-provider | severity:info | checkpoint:create-from-provider

@@ -91,6 +91,33 @@ const { sessionUser, requiresReactivation, expiresAt } = await establishSession(
 - メール / OAuth のログイン（`createFirebaseSession`）も最終ログインの更新は `updateLastAuthenticated`（他のログインと同じ。`user_login_events` に行が残り、成功でパスワードのロックアウトの数が消える）
 - テスト: `pnpm test:establish-session`
 
+### 新しい認証手段（身元の確認 → createFromProvider → establishSession）
+
+fork が上流に無いログインの方法（LINE など）を足すときの組み方。守りの処理（状態の分岐・`SessionUser`・署名・利用者の作成・状態の履歴）は写さず、公開の口を順に呼ぶ。
+
+```ts
+// ① 身元の確認（fork の物: OAuth のコードの交換・id token の検証など）
+const { providerUid, displayName } = await verifyWithProvider(request);
+
+// ② 利用者を引く・作る（user README「外部の認証の身元から作る口」）
+const { user, isNewUser } = await userService.createFromProvider({
+  providerType: "line",
+  providerUid,
+  displayName,
+  ip,
+});
+
+// ③ セッションを出す（上の「セッションを出す口」）
+const response = NextResponse.json({ ok: true, isNewUser });
+await establishSession({ cookies: response.cookies, user, ip });
+return response;
+```
+
+- providerType は `USER_PROVIDER_TYPES`（`user/constants/provider.ts`、users の enum）の値。`line` / `oidc` / `custom` などは既にある。無い種類は上流に /order（fork は enum を足さない）
+- 退会者（`withdrawn`）の既定は上流の再登録の規則（`createFromProvider` が `active` に戻し、監査 `user.rejoined`）。断りたい fork は ② の前に `userService.findByProvider` で状態を見て、自分のエラーを返す
+- fork 独自の監査名（`user.line_registered` など）は作らない: 作成の監査は口の `user.registered` / `user.rejoined`
+- 招待コード・流入の記録・プロフィールは口に入れない。fork の呼び手が ② の後に行う
+
 ## ページの認可（proxy → 範囲の guard.ts → loader の access）
 
 ```
