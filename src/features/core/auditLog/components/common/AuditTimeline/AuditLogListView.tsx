@@ -36,6 +36,8 @@ export type AuditLogListQuery = {
   hasMore: boolean;
   error: unknown;
   sentinelRef: (node: HTMLElement | null) => void;
+  /** 失敗したページを取り直す (フックの retry)。渡すと失敗時に「再試行」が出る */
+  retry?: () => void;
 };
 
 type Props = {
@@ -63,7 +65,7 @@ type Props = {
 export function AuditLogListView({ query, showTargetColumn, className }: Props) {
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
-  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } = query;
+  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef, retry } = query;
 
   const columns: DataTableColumn<AuditLog>[] = [
     { header: "日時", render: (log) => formatAuditDate(log.createdAt) },
@@ -147,6 +149,7 @@ export function AuditLogListView({ query, showTargetColumn, className }: Props) 
           hasMore={hasMore}
           error={error}
           sentinelRef={sentinelRef}
+          onRetry={retry}
           completedText="すべて読み込み済み"
           initialLoadingNode={
             <div className="flex min-h-[160px] items-center justify-center">

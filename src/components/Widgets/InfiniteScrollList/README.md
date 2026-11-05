@@ -9,7 +9,7 @@ CLAUDE.md の規約により、無限スクロール画面はこの部品を使�
 | 状態 | 表示 |
 |---|---|
 | 初回ロード中（`isInitialLoading`） | `initialLoadingNode`（既定: スピナー） |
-| 初回ロードのエラー（`error` かつ 0 件） | `errorNode`（既定: 「データの取得に失敗しました」） |
+| 初回ロードのエラー（`error` かつ 0 件） | `errorNode`（既定: 「データの取得に失敗しました」）+ その下に「再試行」（`onRetry` を渡したとき） |
 | 0 件 | `emptyNode`（既定: 「アイテムがありません」） |
 | 一覧あり | `children(items)` + 末尾のセンチネル（`hasMore` の間） |
 | 追加ロード中（`isFetchingMore`） | 一覧はそのまま、センチネル内にスピナー |
@@ -92,8 +92,8 @@ else removeItems((o) => done.has(o.id));
 | `error` | `unknown` | フックの `error`（任意） |
 | `sentinelRef` | `(node: HTMLElement \| null) => void` | フックの `sentinelRef` |
 | `children` | `(items: TItem[]) => ReactNode` | 一覧本体の描画（1 件以上のときだけ呼ばれる） |
-| `emptyNode` / `initialLoadingNode` / `errorNode` | `ReactNode` | 各状態の表示の差し替え（任意。`errorNode` は初回ロードのエラーだけ） |
-| `onRetry` | `() => void` | フックの `retry`（任意）。追加ロード失敗時の末尾の「再試行」で呼ぶ。省略するとエラー文だけ |
+| `emptyNode` / `initialLoadingNode` / `errorNode` | `ReactNode` | 各状態の表示の差し替え（任意。`errorNode` は初回ロードのエラーだけ。再試行はこの部品が `errorNode` の下に付けるので、`errorNode` の中に組み込まない） |
+| `onRetry` | `() => void` | フックの `retry`（任意。失敗したページを取り直す）。初回ロードの失敗ではエラー表示の下、追加ロードの失敗では一覧の末尾の「再試行」で呼ぶ。省略するとエラー文だけ |
 | `completedText` | `string` | 終端メッセージ（既定「すべてのアイテムを表示しました」） |
 | `hideCompletedNotice` | `boolean` | 終端メッセージを出さない |
 

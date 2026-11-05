@@ -19,8 +19,8 @@ import { Para } from "@/components/TextBlocks/Para";
  * - 終端メッセージ「すべて表示しました」の自動付与
  * までを統一的にハンドルする。
  *
- * エラーは 2 通り: 初回ロードの失敗 (items が 0 件) は `errorNode` に置き換える。
- * 追加ロードの失敗 (items が 1 件以上) は一覧を残したまま末尾にエラーと「再試行」(`onRetry`) を出す。
+ * エラーは 2 通り: 初回ロードの失敗 (items が 0 件) は `errorNode` に置き換え、その下に「再試行」(`onRetry`) を出す。
+ * 追加ロードの失敗 (items が 1 件以上) は一覧を残したまま末尾にエラーと「再試行」を出す。
  *
  * 呼び出し側は items を生で受け取る render-prop (`children`) でリスト本体を組み立てる。
  * grouped モードのような「items を使わない別レイアウトに切り替わる」分岐は本コンポーネントの上位で行うこと。
@@ -45,11 +45,14 @@ export type InfiniteScrollListProps<TItem> = {
   emptyNode?: ReactNode;
   /** 初回ロード中の表示。 */
   initialLoadingNode?: ReactNode;
-  /** 初回ロード (items が 0 件) のエラー時の表示。追加ロードの失敗では使わない (一覧を残して末尾に出す)。 */
+  /**
+   * 初回ロード (items が 0 件) のエラー時の表示。追加ロードの失敗では使わない (一覧を残して末尾に出す)。
+   * `onRetry` を渡すと、この表示の下に「再試行」が付く (errorNode の中に再試行を組み込まない)。
+   */
   errorNode?: ReactNode;
   /**
-   * 追加ロード失敗時に末尾の「再試行」で呼ぶ処理 (フックの `retry`)。
-   * 省略すると末尾にはエラー文だけを出す。
+   * 読み込み失敗時の「再試行」で呼ぶ処理 (フックの `retry` = 失敗したページを取り直す)。
+   * 初回ロードの失敗ではエラー表示の下、追加ロードの失敗では一覧の末尾に出る。省略するとエラー文だけを出す。
    */
   onRetry?: () => void;
   /** 終端メッセージ文言 (デフォルト「すべてのアイテムを表示しました」)。 */
@@ -95,7 +98,19 @@ export function InfiniteScrollList<TItem>({
     return <>{initialLoadingNode ?? <DefaultInitialLoading />}</>;
   }
   if (error && items.length === 0) {
-    return <>{errorNode ?? <DefaultError />}</>;
+    // 初回ロードの失敗: エラー表示の下に「再試行」を出す (onRetry があるとき)
+    return (
+      <>
+        {errorNode ?? <DefaultError />}
+        {onRetry ? (
+          <Flex justify="center" paddingBlock="md">
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              再試行
+            </Button>
+          </Flex>
+        ) : null}
+      </>
+    );
   }
   if (items.length === 0) {
     return <>{emptyNode ?? <DefaultEmpty />}</>;
