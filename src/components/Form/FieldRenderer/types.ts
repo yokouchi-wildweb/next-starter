@@ -25,6 +25,8 @@ type FieldConfig = FieldConfigType;
 export type MediaState = {
   /** いずれかのメディアがアップロード中か */
   isUploading: boolean;
+  /** いずれかの欄のアップロードが失敗したままか(AppForm は送信を止める。省略 = false) */
+  hasFailed?: boolean;
   /** すべてのメディアをコミット */
   commitAll: () => Promise<void>;
   /** すべてのメディアをリセット */
@@ -38,6 +40,8 @@ export type MediaState = {
 export type MediaHandleEntry = {
   /** アップロード中か */
   isUploading: boolean;
+  /** アップロードが失敗したままか(やり直す・取り消すまで true。AppForm は送信を止める。省略 = false) */
+  hasFailed?: boolean;
   /** メディアをコミット（アップロード確定、古いメディア削除） */
   commit: (finalUrl?: string | null) => Promise<void>;
   /** メディアをリセット（アップロードキャンセル） */

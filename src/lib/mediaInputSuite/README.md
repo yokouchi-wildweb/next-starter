@@ -57,6 +57,7 @@ src/lib/mediaInputSuite
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
 - 選択するとアップロード中は値が外れる（`onUrlChange(null)`）。アップロードが失敗したとき・オーバーレイの「キャンセル」で止めたときは、選ぶ前の値に戻す（`onUrlChange(<前の値>)`、プレビューも戻る）。更新フォームで保存済みの画像が失敗のあと黙って null で保存されないため。クリア操作（値を外す）は戻さない。
+- `onUploadFailedChange(failed)`: 失敗したまま（エラー文を出している）なら `true`。やり直しの開始・成功・クリアで `false`（複数版は失敗した枠を外すと `false`）。利用者の中止は失敗に数えない。AppForm はこれで送信を止める。
 - 16MiB を超えるファイルは GCS のセッションで分けて送る（通信の途切れや一時的な 5xx は再試行。詳細: `src/lib/storage/README.md`）。
 - `onRegisterPendingUpload` / `onRegisterPendingDelete` を使うと、アップロード完了後や削除時に pending 管理へ通知できる。
 - 上げたファイルは、業務の保存（storage binding）で紐付くまで「未採用」。紐付けないまま猶予（既定 24 時間）を過ぎると storage-sweep が消す。デモ（`/demo/media-input`、用途 `demo.media`）で上げたファイルも同じく消える。
@@ -92,7 +93,7 @@ src/lib/mediaInputSuite
 | `useDragAndDrop` | ドラッグ＆ドロップのイベント補助 | `eventHandlers` と `isDragging` を返す |
 | `useMediaMetadataBinding` | メタデータを RHF フィールドへ自動反映 | `SelectedMediaMetadata` を受け取り `setValue` |
 | `useMediaMetadataActions` | メタデータ値ごとの任意アクション | 取得失敗時は `null` を通知 |
-| `useMediaUploaderField` | RHF と `ControlledMediaUploader` のブリッジ | `render` / `isUploading` / `commit` / `reset` を返す |
+| `useMediaUploaderField` | RHF と `ControlledMediaUploader` のブリッジ | `render` / `isUploading` / `hasFailed` / `commit` / `reset` を返す |
 | `usePendingMediaUploads` | 編集中にアップロードした未採用分の登録/確定/取り消し | `cleanupOnUnmount` 既定 `true`。中身は `pendingUploadTracker` |
 | `usePendingMediaDeletion` | 互換のために残した空の実装 | 何もしない（下記） |
 

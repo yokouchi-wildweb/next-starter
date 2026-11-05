@@ -90,6 +90,7 @@ export function ConfiguredMediaMultiField<
   useEffect(() => {
     const entry: MediaHandleEntry = {
       isUploading: mediaHandle.isUploading,
+      hasFailed: mediaHandle.hasFailed,
       // MediaHandleEntry.commit は引数なしで呼び出される契約（commitAll 経由）。
       // 複数枚版の commit シグネチャ (finalUrls?: string[]) は wrap して合わせる
       commit: () => mediaHandle.commit(),
@@ -109,7 +110,7 @@ export function ConfiguredMediaMultiField<
     }
     // mediaHandle は毎 render 新しいオブジェクトになるため、使うメンバーだけを依存に並べる(丸ごと入れると毎 render 登録し直す)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldName, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange, appFormMedia]);
+  }, [fieldName, mediaHandle.isUploading, mediaHandle.hasFailed, mediaHandle.commit, mediaHandle.reset, onHandleChange, appFormMedia]);
 
   return (
     <ControlledField

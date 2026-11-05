@@ -30,6 +30,7 @@ import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";
 import type { FileValidationError, FileValidationRule } from "../types";
 import { validateFile } from "../utils";
+import { hasFailedUpload } from "./uploadFailure";
 
 /**
  * 複数枚アップローダ用の追加バリデーション
@@ -51,6 +52,11 @@ export type MediaUploaderMultiProps = {
   initialUrls?: string[] | null;
   onUrlsChange?: (urls: string[]) => void;
   onUploadingChange?: (isUploading: boolean) => void;
+  /**
+   * 失敗した枠の有無が変わったら呼ぶ（失敗の枠がある = true。その枠を外すと false）。
+   * 利用者が自分で中止した枠は失敗に数えない。フォームはこれで送信を止める（AppForm）
+   */
+  onUploadFailedChange?: (failed: boolean) => void;
   /** アップロード完了直後の URL を pending upload に登録するためのフック */
   onRegisterPendingUpload?: (url: string | null) => void;
   /** 削除確定時の URL を pending delete に登録するためのフック */
@@ -76,7 +82,7 @@ const DEFAULT_MAX_ITEMS = 10;
 type SlotState =
   | { kind: "uploaded"; id: string; url: string }
   | { kind: "uploading"; id: string; file: File; progress: UploadProgress | null; cancel: () => void; objectUrl: string }
-  | { kind: "error"; id: string; file: File; message: string; objectUrl: string };
+  | { kind: "error"; id: string; file: File; message: string; objectUrl: string; canceled: boolean };
 
 // URL 配列の比較用キー（URL に含まれない制御文字で連結）
 const toUrlsKey = (urls: readonly string[]): string => urls.join("\u0001");
@@ -90,6 +96,7 @@ export const MediaUploaderMulti = ({
   initialUrls,
   onUrlsChange,
   onUploadingChange,
+  onUploadFailedChange,
   onRegisterPendingUpload,
   onRegisterPendingDelete,
   validationRule,
@@ -162,6 +169,15 @@ export const MediaUploaderMulti = ({
     onUploadingChange?.(isUploading);
   }, [isUploading, onUploadingChange]);
 
+  // 失敗した枠の有無を通知（中止した枠は数えない）
+  const hasFailed = useMemo(() => hasFailedUpload(slots), [slots]);
+  const lastFailedRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (lastFailedRef.current === hasFailed) return;
+    lastFailedRef.current = hasFailed;
+    onUploadFailedChange?.(hasFailed);
+  }, [hasFailed, onUploadFailedChange]);
+
   // unmount 時、生成中の objectURL を解放
   useEffect(() => {
     return () => {
@@ -213,10 +229,9 @@ export const MediaUploaderMulti = ({
             prev.map((s) => {
               if (s.id !== slotId) return s;
               if (s.kind !== "uploading") return s;
-              const message = isStorageUploadCanceled(err)
-                ? "アップロードをキャンセルしました。"
-                : err.message;
-              return { kind: "error", id: slotId, file: s.file, message, objectUrl: s.objectUrl };
+              const canceled = isStorageUploadCanceled(err);
+              const message = canceled ? "アップロードをキャンセルしました。" : err.message;
+              return { kind: "error", id: slotId, file: s.file, message, objectUrl: s.objectUrl, canceled };
             }),
           );
         },

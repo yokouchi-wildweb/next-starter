@@ -138,6 +138,7 @@ export function ConfiguredMediaField<
   useEffect(() => {
     const entry: MediaHandleEntry = {
       isUploading: mediaHandle.isUploading,
+      hasFailed: mediaHandle.hasFailed,
       commit: mediaHandle.commit,
       reset: mediaHandle.reset,
     };
@@ -155,7 +156,7 @@ export function ConfiguredMediaField<
         appFormMedia.unregisterMediaHandle(String(fieldName));
       };
     }
-  }, [fieldName, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange, appFormMedia]);
+  }, [fieldName, mediaHandle.isUploading, mediaHandle.hasFailed, mediaHandle.commit, mediaHandle.reset, onHandleChange, appFormMedia]);
 
   const watchedValue = useWatch({
     control,

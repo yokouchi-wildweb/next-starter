@@ -11,7 +11,7 @@ type ControlledMediaUploaderExternalProps<
   TName extends FieldPath<TFieldValues>,
 > = Omit<
   ControlledMediaUploaderProps<TFieldValues, TName>,
-  "field" | "defaultUrl" | "onUrlChange" | "onUploadingChange" | "onRegisterPendingUpload" | "onRegisterPendingDelete"
+  "field" | "defaultUrl" | "onUrlChange" | "onUploadingChange" | "onUploadFailedChange" | "onRegisterPendingUpload" | "onRegisterPendingDelete"
 >;
 
 export type ControlledMediaUploaderBridgeProps<
@@ -43,6 +43,8 @@ export type UseMediaUploaderFieldResult<
   controlledProps: ControlledMediaUploaderBridgeProps<TFieldValues, TName>;
   render: MediaUploaderFieldRenderer<TFieldValues, TName>;
   isUploading: boolean;
+  /** アップロードが失敗したまま(やり直す・取り消すまで true)。AppForm はこれで送信を止める */
+  hasFailed: boolean;
   commit: (finalUrl?: string | null) => Promise<void>;
   reset: () => Promise<void>;
 };
@@ -59,6 +61,7 @@ export function useMediaUploaderField<
   onUrlChange,
 }: UseMediaUploaderFieldOptions<TFieldValues, TName>): UseMediaUploaderFieldResult<TFieldValues, TName> {
   const [isUploading, setUploading] = useState(false);
+  const [hasFailed, setFailed] = useState(false);
   const originalUrlRef = useRef<string | null>((methods.getValues(name) as string | null) ?? defaultValue ?? null);
 
   useEffect(() => {
@@ -79,6 +82,10 @@ export function useMediaUploaderField<
 
   const handleUploadingChange = useCallback((uploading: boolean) => {
     setUploading(uploading);
+  }, []);
+
+  const handleUploadFailedChange = useCallback((failed: boolean) => {
+    setFailed(failed);
   }, []);
 
   const handleUrlChange = useCallback(
@@ -112,6 +119,7 @@ export function useMediaUploaderField<
       ...uploaderProps,
       defaultUrl: defaultValue ?? null,
       onUploadingChange: handleUploadingChange,
+      onUploadFailedChange: handleUploadFailedChange,
       onUrlChange: handleUrlChange,
       onRegisterPendingUpload: registerPendingUpload,
       onRegisterPendingDelete: handleRegisterPendingDelete,
@@ -120,6 +128,7 @@ export function useMediaUploaderField<
       uploaderProps,
       defaultValue,
       handleUploadingChange,
+      handleUploadFailedChange,
       handleUrlChange,
       registerPendingUpload,
       handleRegisterPendingDelete,
@@ -151,5 +160,5 @@ export function useMediaUploaderField<
     methods.setValue(name, originalUrlRef.current as any, { shouldDirty: false });
   }, [cleanupPendingUploads, methods, name, revertPendingDeletion]);
 
-  return { controlledProps, render, isUploading, commit, reset };
+  return { controlledProps, render, isUploading, hasFailed, commit, reset };
 }

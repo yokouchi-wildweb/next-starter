@@ -18,6 +18,7 @@ type ControlledMediaUploaderMultiExternalProps<
   | "defaultUrls"
   | "onUrlsChange"
   | "onUploadingChange"
+  | "onUploadFailedChange"
   | "onRegisterPendingUpload"
   | "onRegisterPendingDelete"
 >;
@@ -51,6 +52,8 @@ export type UseMediaUploaderMultiFieldResult<
   controlledProps: ControlledMediaUploaderMultiBridgeProps<TFieldValues, TName>;
   render: MediaUploaderMultiFieldRenderer<TFieldValues, TName>;
   isUploading: boolean;
+  /** アップロードが失敗したまま(やり直す・取り消すまで true)。AppForm はこれで送信を止める */
+  hasFailed: boolean;
   commit: (finalUrls?: string[] | null) => Promise<void>;
   reset: () => Promise<void>;
 };
@@ -77,6 +80,7 @@ export function useMediaUploaderMultiField<
   onUrlsChange,
 }: UseMediaUploaderMultiFieldOptions<TFieldValues, TName>): UseMediaUploaderMultiFieldResult<TFieldValues, TName> {
   const [isUploading, setUploading] = useState(false);
+  const [hasFailed, setFailed] = useState(false);
 
   const readInitialUrls = (): string[] => {
     const value = methods.getValues(name) as unknown;
@@ -115,6 +119,10 @@ export function useMediaUploaderMultiField<
     setUploading(uploading);
   }, []);
 
+  const handleUploadFailedChange = useCallback((failed: boolean) => {
+    setFailed(failed);
+  }, []);
+
   const handleUrlsChange = useCallback(
     (urls: string[]) => {
       onUrlsChange?.(urls);
@@ -140,6 +148,7 @@ export function useMediaUploaderMultiField<
       ...uploaderProps,
       defaultUrls: Array.isArray(defaultValue) ? defaultValue : null,
       onUploadingChange: handleUploadingChange,
+      onUploadFailedChange: handleUploadFailedChange,
       onUrlsChange: handleUrlsChange,
       onRegisterPendingUpload: registerPendingUpload,
       onRegisterPendingDelete: handleRegisterPendingDelete,
@@ -148,6 +157,7 @@ export function useMediaUploaderMultiField<
       uploaderProps,
       defaultValue,
       handleUploadingChange,
+      handleUploadFailedChange,
       handleUrlsChange,
       registerPendingUpload,
       handleRegisterPendingDelete,
@@ -182,5 +192,5 @@ export function useMediaUploaderMultiField<
     methods.setValue(name, originalUrlsRef.current as never, { shouldDirty: false });
   }, [cleanupPendingUploads, methods, name, revertPendingDeletion]);
 
-  return { controlledProps, render, isUploading, commit, reset };
+  return { controlledProps, render, isUploading, hasFailed, commit, reset };
 }

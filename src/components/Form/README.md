@@ -264,6 +264,7 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
 | フォーム送信成功 | 全メディアを自動コミット | `AppForm` が `commitAll()` を呼び出し |
 | ページ離脱 / アンマウント | 未コミットのメディアを自動削除 | `cleanupOnUnmount` による |
 | アップロード中 | 送信ボタン自動無効化 | `AppForm` の `fieldset disabled` |
+| アップロードが失敗したまま | 送信を止めてトーストを出す(欄は無効にしない。やり直し・取り消しで外れる) | 登録の `hasFailed`(`backgroundFailure.ts`) |
 
 ### 対応コンポーネント
 
@@ -302,6 +303,8 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
 - `AppForm` 外でメディアフィールドを使う場合は、手動で `commit()` を呼ぶ必要がある
 - キャンセルボタンで `resetAll()` を呼ぶ必要はない（ページ離脱時に自動クリーンアップ）
 - `disableAutoCommitMedia` prop で自動コミットを無効化可能
+- 裏で処理する欄(アップロードなど)が失敗したままなら送らない(古い値で黙って保存しない)。メディア以外の非同期の欄も、`registerMediaHandle` に渡す `MediaHandleEntry` の `hasFailed` を返せば同じく止まる(`FieldRenderer` の `onHandleChange` も同じ)
+- 消したメディアのフォーム値は `""`(必須の欄は「〇〇は必須です。」で止まる)。生成のスキーマが任意の欄の `""` を null にして保存する。サイズの上限はサーバーが用途の `maxBytes` を署名に入れて GCS が強制する(`validationRule` は画面の事前の確認だけ)
 
 ---
 

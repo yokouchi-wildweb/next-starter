@@ -25,6 +25,11 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
   validationRule?: FileValidationRule;
   onValidationError?: (error: FileValidationError) => void;
   onUploadingChange?: (isUploading: boolean) => void;
+  /**
+   * アップロードの失敗の有無が変わったら呼ぶ（失敗 = true。やり直しの開始・成功・取り消しで false）。
+   * 利用者が自分で中止したものは失敗に数えない。フォームはこれで送信を止める（AppForm）
+   */
+  onUploadFailedChange?: (failed: boolean) => void;
   onRegisterPendingUpload?: (url: string | null) => void;
   onRegisterPendingDelete?: (url: string | null) => void;
 };
@@ -40,6 +45,7 @@ export const MediaUploader = ({
   onValidationError,
   helperText,
   onUploadingChange,
+  onUploadFailedChange,
   onRegisterPendingUpload,
   onRegisterPendingDelete,
   ...inputProps
@@ -49,6 +55,14 @@ export const MediaUploader = ({
   const [currentUrl, setCurrentUrl] = useState<string | null>(initialUrl);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // アップロードが失敗したまま(中止は含めない)。変わったときだけ onUploadFailedChange へ
+  const [failed, setFailed] = useState(false);
+  const lastFailedRef = useRef(false);
+  useEffect(() => {
+    if (lastFailedRef.current === failed) return;
+    lastFailedRef.current = failed;
+    onUploadFailedChange?.(failed);
+  }, [failed, onUploadFailedChange]);
   const [inputResetSignal, setInputResetSignal] = useState(0);
   const uploadHandleRef = useRef<{ cancel: () => void } | null>(null);
   // 現在の値(コールバックから最新値を読むため ref でも持つ)
@@ -90,6 +104,7 @@ export const MediaUploader = ({
       const uploadId = ++uploadIdRef.current;
       setProgress(null);
       setError(null);
+      setFailed(false);
       onUploadingChange?.(true);
       void removeUploadedFile();
       setProgress({ loaded: 0, total: file.size, percent: 0 });
@@ -118,6 +133,7 @@ export const MediaUploader = ({
             setError("アップロードをキャンセルしました。");
           } else {
             setError(err.message);
+            setFailed(true);
           }
           // 失敗したら選ぶ前の値に戻す。入力の選択中ファイルも外し、プレビューを元の値に戻す
           const previousUrl = previousUrlRef.current;
@@ -143,6 +159,7 @@ export const MediaUploader = ({
     uploadHandleRef.current?.cancel();
     uploadHandleRef.current = null;
     setProgress(null);
+    setFailed(false);
     if (options?.notify ?? true) {
       setError("アップロードをキャンセルしました。");
     } else {

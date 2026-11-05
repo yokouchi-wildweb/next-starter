@@ -18,6 +18,7 @@ import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 import { AutoSaveContext, useAutoSave, type AutoSaveOptions } from "./AutoSave";
 import { createSubmitLock, type SubmitLock } from "./submitLock";
+import { BACKGROUND_FAILURE_MESSAGE, hasBackgroundFailure } from "./backgroundFailure";
 
 /**
  * 送信ボタン付近のエラー表示モード
@@ -213,6 +214,13 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediaHandlesVersion]);
 
+  // 裏の処理(アップロード)が失敗したままの欄。やり直す・取り消すまで送信を止める(欄は無効にしない。やり直せなくなるため)
+  const hasFailedBackground = React.useMemo(
+    () => hasBackgroundFailure([effectiveFieldRendererState, ...mediaHandlesRef.current.values()]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveFieldRendererState, mediaHandlesVersion],
+  );
+
   // メディアアップロード中はフォームを無効化（両方を考慮）
   const isMediaUploading = (effectiveFieldRendererState?.isUploading ?? false) || individualMediaUploading;
   // NOTE: isSavingは含めない（自動保存中も編集を継続できるようにする）
@@ -249,10 +257,18 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   }
   const submitLock = submitLockRef.current;
 
-  const handleFormSubmit = React.useMemo(
-    () => submitLock.wrap(handleSubmit(handleSubmitWithMediaCommit, onSubmitError)),
-    [submitLock, handleSubmit, handleSubmitWithMediaCommit, onSubmitError],
-  );
+  const handleFormSubmit = React.useMemo(() => {
+    const submit = submitLock.wrap(handleSubmit(handleSubmitWithMediaCommit, onSubmitError));
+    return (event?: React.BaseSyntheticEvent) => {
+      // 失敗したままの欄があれば送らない(古い値で黙って保存しない)
+      if (hasFailedBackground) {
+        event?.preventDefault();
+        showToast(BACKGROUND_FAILURE_MESSAGE, "error");
+        return Promise.resolve();
+      }
+      return submit(event);
+    };
+  }, [submitLock, handleSubmit, handleSubmitWithMediaCommit, onSubmitError, hasFailedBackground, showToast]);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLFormElement>) => {

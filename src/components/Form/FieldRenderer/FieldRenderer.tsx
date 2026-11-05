@@ -15,6 +15,7 @@ import { useAppFormMedia } from "@/components/Form/AppForm";
 import { FieldGroupSection } from "./FieldGroupSection";
 import { UNGROUPED_GROUP_KEY } from "./types";
 import type { FieldGroup, GroupContentMap, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
+import { hasBackgroundFailure } from "../backgroundFailure";
 
 export type FieldRendererProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
@@ -457,6 +458,7 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     const isUploading = entries.some((entry) => entry.isUploading);
     effectiveOnMediaStateChange({
       isUploading,
+      hasFailed: hasBackgroundFailure(entries),
       commitAll: async () => {
         await Promise.all(entries.map((entry) => entry.commit()));
       },

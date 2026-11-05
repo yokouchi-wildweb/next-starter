@@ -98,6 +98,7 @@ export function ControlledMediaField<
 
     appFormMedia.registerMediaHandle(String(name), {
       isUploading: mediaHandle.isUploading,
+      hasFailed: mediaHandle.hasFailed,
       commit: mediaHandle.commit,
       reset: mediaHandle.reset,
     });
@@ -105,7 +106,7 @@ export function ControlledMediaField<
     return () => {
       appFormMedia.unregisterMediaHandle(String(name));
     };
-  }, [name, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, appFormMedia]);
+  }, [name, mediaHandle.isUploading, mediaHandle.hasFailed, mediaHandle.commit, mediaHandle.reset, appFormMedia]);
 
   return (
     <ControlledField
