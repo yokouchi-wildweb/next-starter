@@ -232,6 +232,9 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
 `FieldConfig` を渡して描画する高レベルコンポーネント。  
 表示順・一括描画・インライン化の用途で使い分ける。
 
+- 欄の説明文は `FieldConfig.helperText` の 1 つだけ(domain.json の欄・設定の欄 `ui.field` も同じ名前)。枠(ControlledField)がラベルの下に描き、入力の `aria-describedby` が指す。組み込み・登録部品(`frame: true`)・メディア(`ConfiguredMediaField` / `ConfiguredMediaMultiField`)のどれも枠が描き、入力部品の中には描かない
+- props の `description`(色・位置も指定できる)を渡したときはそちらが優先。枠を持たない入力(`switchInput`・`stepperInput`・登録部品の `frame: false`)は helperText を描かない
+
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
 |---|---|---|---|---|
 | 単一フィールド | `ConfiguredField` | `fieldConfig` | 1項目だけ差し込みたいとき | `mediaUploader` は非対応 |

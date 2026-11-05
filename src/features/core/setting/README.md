@@ -60,6 +60,8 @@ export const field = {
 - 値 import の先は `zod`・`@/config`・純関数・型だけ。React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する(proxy と client の両方から読むため)
 - 同じ名前のキー・無いセクションを指すキーは生成で失敗する
 
+欄の説明文: `ui.field` に `helperText` を書くと、設定画面の枠がラベルの下に描く(組み込みの入力も、`frame: true` の登録部品も同じ。部品の中で自分で描かない)。
+
 独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。部品の本体は `src/features/<ドメイン>/components/` に置く(core に足さない。欄の定義は名前だけなので上の値 import の決まりに当たらない)。
 
 ## セクションを足す

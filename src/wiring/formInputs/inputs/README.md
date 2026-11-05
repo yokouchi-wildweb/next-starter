@@ -15,7 +15,7 @@ export const formInput = {
 
 - `name`: 組み込みの入力種別（`src/lib/domain/fields/formInputs.mjs`）と同じ名前は不可
 - `load`: 部品の本体を `import()` で返す（default export。使う画面で初めて読み込む）
-- `frame`（既定 true）: true はラベル・必須印・説明・エラーの枠を共通で描く。部品が自分で枠や複数の欄を描くなら false（エラーの表示だけ残る）
+- `frame`（既定 true）: true はラベル・必須印・説明(欄の `helperText`)・エラーの枠を共通で描く。部品が自分で枠や複数の欄を描くなら false（エラーの表示だけ残る）
 - `blurMode`（既定 `"none"` = blur で自動保存しない）: 単一値の部品で自動保存を効かせるなら `"immediate"` か `"debounce"`
 
 部品は `{ field, fieldConfig, inputClassName, id, "aria-describedby", "aria-invalid" }` を受ける（`FormInputProps`）。`id`・`aria-*` を入力要素に渡すとラベルと結び付く。

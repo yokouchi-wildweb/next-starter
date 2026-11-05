@@ -18,6 +18,7 @@ import {
   isBuiltinFormInput,
 } from "./inputResolver";
 import { CustomFormInput, useCustomFormInput } from "./customInputs";
+import { resolveFieldDescription } from "./fieldDescription";
 
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,
@@ -78,6 +79,8 @@ export function ConfiguredField<
   const resolvedName = (name ?? fieldConfig.name) as TName;
   const resolvedLabel = label ?? fieldConfig.label;
   const resolvedRequired = required ?? fieldConfig.required ?? false;
+  // 説明文は枠が描く(props 優先、無ければ fieldConfig.helperText)
+  const resolvedDescription = resolveFieldDescription(description, fieldConfig);
 
   const { formInput } = fieldConfig;
   const customInput = useCustomFormInput(formInput);
@@ -137,7 +140,7 @@ export function ConfiguredField<
         required={resolvedRequired}
         requiredMark={requiredMark}
         requiredMarkPosition={requiredMarkPosition}
-        description={description}
+        description={resolvedDescription}
         className={className}
         inputClassName={inputClassName}
         hideLabel={hideLabel}
@@ -202,7 +205,7 @@ export function ConfiguredField<
       required={resolvedRequired}
       requiredMark={requiredMark}
       requiredMarkPosition={requiredMarkPosition}
-      description={description}
+      description={resolvedDescription}
       className={className}
       inputClassName={inputClassName}
       hideLabel={hideLabel}

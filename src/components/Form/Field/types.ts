@@ -143,7 +143,7 @@ export type FieldConfig = {
   accept?: string;
   /** バリデーション設定 */
   validationRule?: MediaValidationRule;
-  /** ヘルパーテキスト */
+  /** 説明文。フィールドの枠(ControlledField)がラベルの下に描き、入力の aria-describedby が指す(メディアも同じ。props の description があればそちらが優先) */
   helperText?: string;
   /** メタデータを別フィールドに保存 */
   metadataBinding?: Record<string, string>;

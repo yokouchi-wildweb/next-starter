@@ -279,3 +279,4 @@
 - id:20261105-110503-setting-test-fork-sections-pick | severity:info | checkpoint:setting-test-fork-sections-pick | fixes:20261031-141531-setting-fields-core-ui | resolves:20261103-172638-setting-test-fix-notice-fixes-pick | pick:clean
 - id:20261105-112509-feature-gate-automation | severity:breaking | checkpoint:gate-s3 | uses:scripts/codemods/feature-gate-s3.mjs
 - id:20261105-111136-user-registered-milestone | severity:info | checkpoint:user-registered-milestone | resolves:20261101-111956-intake-post-registration-hook
+- id:20261105-115506-field-frame-helper-text | severity:action-required | checkpoint:field-frame-helper-text | resolves:20261104-090257-field-frame-description

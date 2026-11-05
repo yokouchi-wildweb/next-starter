@@ -14,6 +14,7 @@ import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 import { MissingPurposeNotice } from "./MissingPurposeNotice";
+import { resolveFieldDescription } from "./fieldDescription";
 
 export type ConfiguredMediaMultiFieldProps<
   TFieldValues extends FieldValues,
@@ -73,7 +74,6 @@ export function ConfiguredMediaMultiField<
       // purpose が無い項目は入力を出さない（下の renderInput）。hook は常に呼ぶため空文字を渡す
       purpose: fieldConfig.purpose ?? "",
       accept: fieldConfig.accept,
-      helperText: fieldConfig.helperText,
       validationRule: fieldConfig.validationRule,
       reorderable: fieldConfig.reorderable ?? true,
     },
@@ -116,7 +116,8 @@ export function ConfiguredMediaMultiField<
       control={control}
       name={fieldName}
       label={resolvedLabel}
-      description={description}
+      // 説明文は枠が描く(uploader の中には渡さない)
+      description={resolveFieldDescription(description, fieldConfig)}
       className={className}
       inputClassName={inputClassName}
       hideLabel={hideLabel}

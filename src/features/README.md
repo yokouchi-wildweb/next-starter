@@ -388,7 +388,7 @@ import { ControlledField } from "@/components/Form/Field";
 | accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`）。受け付ける型を必ず列挙する（`"all"` の preset でも空にしない。空だと dc:generate が止まる。lib は `*/*` を受けない）。preset の目安: images = `image/*`、videos = `video/*`、imagesAndVideos = `image/*,video/*` |
 | validationRule | object | ⚪ No | バリデーション設定 |
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
-| helperText | string | ⚪ No | ヘルパーテキスト（アップロード欄に表示される説明文） |
+| helperText | string | ⚪ No | 欄の説明文。フィールドの枠がラベルの下に描く（メディア以外の欄でも同じ。`src/components/Form/README.md`「設定駆動フィールドの使い分け」） |
 | metadataBinding | object | ⚪ No | メタデータを別フィールドに保存 |
 | storage | object | ⚪ No | ファイル用途の設定（下の「ファイルの保存（storage）」） |
 | storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると dc:generate がエラーで止まる） |
