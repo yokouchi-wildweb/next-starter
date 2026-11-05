@@ -486,7 +486,8 @@ function printOrder(path, actor, env) {
   const waits = fields(text, "waiting_on").map(orderState);
   let state = orderStatus(text);
   if (waits.length) state = waits.every((w) => w.state === "done") ? "resumable" : "waiting";
-  console.log(`${state} ${path}\n  from: ${requester(field(text, "from")).label}\n  need: ${field(text, "need")}`);
+  const title = headField(text, "title");
+  console.log(`${state} ${path}\n  from: ${requester(field(text, "from")).label}${title ? `\n  title: ${title}` : ""}\n  need: ${field(text, "need")}`);
   const to = headField(text, "routed_to");
   const by = headField(text, "taken_by");
   if (to) console.log(`  routed_to: ${to}${routedMatches(to, actor, undefined, env) ? " (you)" : ""}`);

@@ -146,6 +146,21 @@ test("CLI: from はチームの環境変数を読み、inbox の一覧は発行�
   assert.match(out, /\n  from: fleet f1 Admiral\n  need: do x\n/);
 });
 
+test("CLI: inbox の一覧は title:（日本語の短い題）があれば need の前に出す。本文の title: は拾わない", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
+  run("init", "-q", "-b", "main");
+  run("remote", "add", "origin", "git@github.com:Acme/App.git");
+  run("commit", "-q", "--allow-empty", "-m", "x");
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const { dir, file } = box();
+  writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\ntitle: 題を出す\nneed: do x\n");
+  writeFileSync(join(dir, "20260101-000001-y.md"), "# ORDER id:20260101-000001-y\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\nneed: do y\n\n## BODY\ntitle: not the title\n");
+  const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: dirname(dir) } });
+  assert.match(out, /\n  from: .*\n  title: 題を出す\n  need: do x\n/);
+  assert.match(out, /000001-y\.md\n  from: .*\n  need: do y\n/);
+});
+
 // ---- 状態（open | routed | taken）と担当の守り ----
 const ME = "git@x:Acme/App.git | branch:main";
 const OTHER = "git@x:Acme/App.git | branch:feature/y";

@@ -27,13 +27,14 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
    - リポ名: `node .claude/skills/order/mailbox.mjs repos` の `repo:`(fork-id)か `path:` のディレクトリ名で照合し、その `box:`
    - 省略: 会話の文脈から宛先を決め、`repos` で受信箱を引く
    - 見つからない・複数当たる・会話から決めきれない: 候補を示して AskUserQuestion で聞く(推測で送らない)
-3. 会話内容と補足から、指令を**次のスキーマちょうど**に合成する(**機械間ファイルなので英語・簡潔。散文や表は使わない**):
+3. 会話内容と補足から、指令を**次のスキーマちょうど**に合成する(**機械間ファイルなので英語・簡潔。散文や表は使わない**。`title:` だけは例外で日本語):
    ```
    # ORDER id:<ts>-<slug>
    from: <mailbox.mjs from の値>
    to: <target origin url> | box:<target fork-id>
    date: <ISO8601>
    status: open
+   title: <日本語の短い題(20 文字前後)>
    need: <one line — the work or check requested>
    why: <the situation driving it; for work that should live in the target repo, why it belongs there>
    done_when: <how the receiver can tell it is finished>
@@ -49,6 +50,7 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
      - 評議会の legate = `council <議題id> | …`(legate が自分で書く。role: 欄は無い)
    - self 宛てのとき: 後で読むのは文脈を持たない別のセッションなので、`why:` と `refs:` に今の会話で分かっていることを省かず書く(どこまで決まったか、未決の点、読むべきファイル)
    - `<slug>` は need から短いケバブ(英語)で作る
+   - `title:` = 人が一覧(チームの起動画面・`mailbox.mjs inbox`)で読む日本語の短い題。何をするかが分かる名詞句で 20 文字前後(例: `チャットルームの UID 不一致を直す`)。一覧は「題 id」と並べるので、id や日付は題に入れない
    - `status:` は起票時 `open`。以後は mailbox.mjs だけが書き換える(route → routed、take → taken、release → 取る前の状態、resolve → RESOLUTION の status(done / partial / relayed / rejected / withdrawn)で done/ へ。手では書き換えない)
 4. **事前確認は取らず、そのままファイルを書き出す**(受信箱のフォルダが無ければ作成)。宛先が決まった後の「この内容で起票していいですか?」等の承認待ちは**禁止**(起票はただの md ファイルで、後から編集・移動・削除で直せるため):
    - パス: `<宛先の box>/<ts>-<slug>.md`
