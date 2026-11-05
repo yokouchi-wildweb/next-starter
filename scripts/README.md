@@ -49,10 +49,11 @@ pnpm db:seed
 # 全シーダー実行
 pnpm db:seed:all
 
-# データ削除（インタラクティブ）
+# データ削除（インタラクティブ。閉じた機能の表は選べない・参照元は外部キーから足して一覧 → 確認 → 1 文の TRUNCATE ... RESTRICT）
+# (閉じた機能の表も消す: pnpm db:clear --include-closed。計画の検査: pnpm test:db-clear。詳細: src/featureGate/README.md「db:clear と閉じた機能の表」)
 pnpm db:clear
 
-# 全データ削除
+# 選べる表のデータを全部削除（対話なし。閉じた機能の表は除く）
 pnpm db:clear:all
 
 # DB構築 + 全シード（初期セットアップ）

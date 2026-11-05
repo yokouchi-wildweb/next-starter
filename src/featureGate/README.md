@@ -121,6 +121,16 @@ export const rule: FeatureGateRule = {
 - `drizzle-kit push` を直接叩くとゲートを通らない（全テーブルが作られる。消えはしない）。push は必ず `pnpm db:push` で行う
 - 外す表を残す表が外部キーで参照していると例外（導いた表に掛かる）
 
+### db:clear と閉じた機能の表
+
+`pnpm db:clear`（`scripts/db/clear/`、計画は純関数 `plan.ts`、検査 `pnpm test:db-clear`）は閉じた機能の表（`@/featureGate/node` の `closedTables`）に触れない。
+
+- 選べる表（対話の選択肢と `--all`）から閉じた表を外し、外した表は名前を出す
+- 選んだ表を参照する表を schemaRegistry の外部キーから推移的に足し、確認の前に「選んだ表 / 足した参照元 / 外した表（DB に無い・閉じた）」を見せる
+- DB にある閉じた表が消す表を参照していると、何も消さずに全部並べて exit 1（DB に無い閉じた表には制約も無いので止めない）
+- 消すのは 1 文の `TRUNCATE TABLE "a", "b", … RESTRICT`（全部消えるか何も消えないか。連鎖の削除は使わない）
+- 閉じた表も選び・参照元に足すのは `--include-closed` のときだけ
+
 ### 決まりごと
 
 - **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test:feature-gate` が次を検査する:
