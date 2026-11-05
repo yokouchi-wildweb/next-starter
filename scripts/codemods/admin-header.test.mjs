@@ -1,12 +1,13 @@
 // 実行: pnpm test:codemods
 // 管理ヘッダーへ移す道具(./admin-header.mjs)の書き換え・止める一覧・区切りの決め方
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { STOP_KINDS, detectCheckpoint, planAdminHeader, rewriteAdminHeader, scanText } from "./admin-header.mjs";
+import { STOP_KINDS, detectCheckpoint, planAdminHeader, readUpstreamFiles, rewriteAdminHeader, scanText } from "./admin-header.mjs";
 
 const SCREEN = "src/app/admin/(protected)/things/_components/ThingListScreen.tsx";
 const PAGE = `import AdminPage from "@/app/admin/_layout/AdminPage";\n`;
@@ -171,4 +172,53 @@ test("止める種類は閉じた 10 個", () => {
     "page-without-admin-page",
   ]);
   assert.ok(Object.isFrozen(STOP_KINDS));
+});
+
+test("上流のファイル: 台帳の版の後に上流が足したファイル(帯の AdminHeader.tsx など)を fork の物と取り違えない(取り込んだ上流の版 = HEAD と upstream/main の merge-base)", () => {
+  const root = fork({ "src/app/admin/_layout/AdminPageTitle.tsx": "x" });
+  const g = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  try {
+    g("init", "-q", "-b", "main");
+    g("-c", "user.name=t", "-c", "user.email=t@t", "add", ".");
+    g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "ledger");
+    const ledger = g("rev-parse", "HEAD");
+    // 上流: 台帳の後にヘッダーの部品を足す(説明のコメントに旧い受け口の id)
+    g("checkout", "-q", "-b", "up");
+    const header = "src/app/admin/_layout/AdminHeader.tsx";
+    mkdirSync(join(root, "src/app/admin/_layout"), { recursive: true });
+    writeFileSync(join(root, header), `// 前は #admin-header-center-slot へ差し込んでいた\nexport { AdminHeader } from "./AdminHeader.default";\n`);
+    g("add", ".");
+    g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "upstream");
+    g("update-ref", "refs/remotes/upstream/main", "HEAD");
+    const upstreamHead = g("rev-parse", "HEAD");
+    // fork: 上流を取り込み、自分のファイルを足す
+    g("checkout", "-q", "main");
+    g("-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-edit", "up");
+    writeFileSync(join(root, "src/app/admin/_layout/Mine.css"), `#admin-header-right-slot { gap: 0; }\n`);
+    g("add", ".");
+    g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "fork");
+    g("update-ref", "refs/remotes/upstream/main", upstreamHead);
+
+    const upstream = readUpstreamFiles(root, null);
+    assert.equal(upstream.rev, upstreamHead, "既定 = merge-base(HEAD, upstream/main)");
+    assert.ok(upstream.files.includes(header));
+    const ledgerFiles = g("ls-tree", "-r", "--name-only", ledger).split("\n");
+    const onlyLedger = planAdminHeader(root, { baseFiles: ledgerFiles, checkpoint: "band" });
+    assert.deepEqual(onlyLedger.stops.map((s) => s.path).sort(), ["src/app/admin/_layout/AdminHeader.tsx", "src/app/admin/_layout/Mine.css"], "台帳だけだと上流の新しいファイルを取り違える");
+    const both = planAdminHeader(root, { baseFiles: [...ledgerFiles, ...upstream.files], checkpoint: "band" });
+    assert.deepEqual(both.stops.map((s) => [s.path, s.kind]), [["src/app/admin/_layout/Mine.css", "slot-id-css"]]);
+    assert.equal(readUpstreamFiles(root, ledger).rev, ledger, "--upstream で渡した版");
+    g("update-ref", "-d", "refs/remotes/upstream/main");
+    const unknown = readUpstreamFiles(root, null);
+    assert.equal(unknown.rev, null);
+    assert.match(unknown.note, /--upstream/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("案内: item-navigator は生成するドメインの dc:generate、page-without-admin-page は転送だけの Screen と子の部品の中の AdminPage", () => {
+  assert.match(STOP_KINDS["item-navigator"], /pnpm dc:generate <Domain>/);
+  assert.match(STOP_KINDS["page-without-admin-page"], /return <AdminPage title="…" \/>/);
+  assert.match(STOP_KINDS["page-without-admin-page"], /AdminPage を Screen へ上げ/);
 });

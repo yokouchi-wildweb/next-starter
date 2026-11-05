@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // scripts/codemods/admin-header.mjs
 // 管理のヘッダーの差し込みを AdminPage の props へ移す(共有の棚の計画書 03・指令 20、D134・D135・D127・D171)。fork のリポのルートで走らせる。
-// 使い方: node scripts/codemods/admin-header.mjs [--apply] [--base <rev>] [--json]
+// 使い方: node scripts/codemods/admin-header.mjs [--apply] [--base <rev>] [--upstream <rev>] [--json]
 //   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で書き換える。何度走らせても同じ結果。手順: ./README.md「管理ヘッダーへ移す」
 //
-// 触るのは fork が足したファイルだけ(基準 = 台帳の最後の upstream:<sha> の版に無いファイル。上流のファイルは取り込みで移る)。
+// 触るのは fork が足したファイルだけ = 上流のどちらの版にも無いファイル(上流のファイルは取り込みで移る):
+// - 台帳の最後の upstream:<sha>(--base)の版と、取り込んだ上流の版(--upstream。既定 = HEAD と upstream/main の merge-base = 取り込んだ最後の上流の commit)
+// - 台帳だけで決めると、台帳の版の後に上流が足したファイル(帯の区切りの AdminHeader.tsx など)を fork の物と取り違える
 // 区切り(checkpoint)は取り込んだ後のツリーで決める(台帳では決めない):
 // - band: AdminPage の title がある(_layout/AdminPageTitle.tsx)+ 差し込みの互換が残っている(AdminHeaderPortal.tsx)。止めた物は portal の区切りまでに直す
 // - portal: 差し込みの互換が消えた。止めた物は今直す(直すまで型の検査が落ちる)
@@ -16,6 +18,7 @@
 // ほかは止める(書き換えず、種類と移し先を一覧に出す。種類は STOP_KINDS の閉じた一覧)。この道具はほかの道具を呼ばない
 // (useRouter の import 元は guarded-router.mjs、枠の宣言は frame-declarations.mjs の持ち分。順番は README)。
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,11 +35,11 @@ export const STOP_KINDS = Object.freeze({
   "portal-right": "<AdminPage actions={…}>(src/features の部品の中から差していたら、その部分を部品の外へ出して route の Screen が actions に渡す)",
   "page-title-in-body": "<AdminPage title=\"…\">(ページの題)か、本文の見出しなら SecTitle などの見出しの部品",
   "coupon-tabs-placement": "<AdminPage center={<CouponSectionTabs variant=\"header\" />}>",
-  "item-navigator": "<AdminPage actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}>、または ItemNavigator + useDomainItemNavigation(src/lib/crud)。移るだけ(保存・検証は移る前にしない)",
+  "item-navigator": "<AdminPage actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}>、または ItemNavigator + useDomainItemNavigation(src/lib/crud)。移るだけ(保存・検証は移る前にしない)。domain.json の generate が true のドメインは pnpm dc:generate <Domain> が Edit*Form と編集の Screen を作り直す(手で直さない)",
   "admin-layout-header-prop": "src/app/admin/_layout/AdminHeader.replace.tsx(名前 AdminHeader・props { title, center, actions, className })+ AdminHeader.tsx の 1 行をそちらへ向ける",
   "slot-id-css": "[data-slot=\"admin-header-title\"] / [data-slot=\"admin-header-center\"] / [data-slot=\"admin-header-right\"](受け口の id は消えた)",
   "own-unsaved-guard": "@/lib/unsavedGuard(useUnsavedGuard(isDirty)・AppForm は既定で守る)。自前の beforeunload・popstate の処理と確認の部品を外す",
-  "page-without-admin-page": "<AdminPage title=\"…\"> で包む。ヘッダーを出さないページは隣の frame.ts に { page: { hide: { header: { sp: true, pc: true } } } }",
+  "page-without-admin-page": "<AdminPage title=\"…\"> で包む。子の部品(src/features・_components)の中で AdminPage を描いていたら、AdminPage を Screen へ上げて部品はその中に置く。転送だけの Screen(loader が redirect する)は return <AdminPage title=\"…\" />(上流の settings の入口と同じ)。ヘッダーを出さないページは隣の frame.ts に { page: { hide: { header: { sp: true, pc: true } } } }",
 });
 
 /** 機械で書き換えた物の種類 */
@@ -63,6 +66,36 @@ const ADMIN_SCREEN = /^src\/app\/admin\/.*\/(?:_screen|_components)\/(?:.*\/)?[A
 const SLOT_ID = /admin-header-(?:title|center|right)-slot|ADMIN_HEADER_(?:TITLE|CENTER|RIGHT)_SLOT_ID/;
 const BEFORE_UNLOAD = /["'`]beforeunload["'`]|\bonbeforeunload\b/;
 const OWN_GUARD_NAME = /\b(use\w*Unsaved\w*Guard)\b/;
+
+/** 既定の取り込んだ上流の版の手がかり(リモートの追跡ブランチ) */
+const UPSTREAM_REFS = ["refs/remotes/upstream/main", "refs/remotes/upstream/HEAD"];
+
+const git = (root, args) => execFileSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).trim();
+
+/**
+ * 取り込んだ上流の版のファイル。{ rev, files } / { rev: null, files: [], note } / { problem }
+ * rev を渡せばその版、無ければ HEAD と upstream の追跡ブランチの merge-base(= 取り込んだ最後の上流の commit)
+ */
+export function readUpstreamFiles(root, rev) {
+  let target = rev;
+  if (!target) {
+    for (const ref of UPSTREAM_REFS) {
+      try {
+        git(root, ["rev-parse", "--verify", "--quiet", ref]);
+        target = git(root, ["merge-base", "HEAD", ref]);
+        break;
+      } catch {
+        // 次の手がかり
+      }
+    }
+    if (!target) return { rev: null, files: [], note: "取り込んだ上流の版が分からない(upstream/main が無い)。台帳の版だけで fork のファイルを決めた: 台帳の後に上流が足したファイルを fork の物と取り違えることがある(--upstream <取り込んだ上流の rev> を渡す)" };
+  }
+  try {
+    return { rev: target, files: git(root, ["ls-tree", "-r", "--name-only", target]).split("\n").filter(Boolean) };
+  } catch {
+    return { problem: `取り込んだ上流の版 ${target} を読めない(git の履歴に無い)` };
+  }
+}
 
 /** 区切りを取り込んだ後のツリーで決める。{ checkpoint: "band" | "portal" } か { problem } */
 export function detectCheckpoint(root) {
@@ -337,14 +370,21 @@ function main() {
     console.error(`[admin-header] ${base.problem}`);
     process.exit(2);
   }
-  const plan = planAdminHeader(root, { baseFiles: base.files, checkpoint: point.checkpoint });
+  const upstreamIndex = args.indexOf("--upstream");
+  const upstream = readUpstreamFiles(root, upstreamIndex >= 0 ? args[upstreamIndex + 1] : null);
+  if (upstream.problem) {
+    console.error(`[admin-header] ${upstream.problem}`);
+    process.exit(2);
+  }
+  const plan = planAdminHeader(root, { baseFiles: [...base.files, ...upstream.files], checkpoint: point.checkpoint });
   if (apply) for (const w of plan.writes) writeFileSync(join(root, w.path), w.text);
-  const result = { base: base.rev, checkpoint: plan.checkpoint, mode: apply ? "apply" : "dry-run", changes: plan.changes, stops: plan.stops };
+  const result = { base: base.rev, upstream: upstream.rev, checkpoint: plan.checkpoint, mode: apply ? "apply" : "dry-run", changes: plan.changes, stops: plan.stops, notes: upstream.note ? [upstream.note] : [] };
   if (json) {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
-  console.log(`[admin-header] ${result.mode}(基準 ${String(base.rev).slice(0, 10)}、区切り ${plan.checkpoint})`);
+  console.log(`[admin-header] ${result.mode}(台帳の版 ${String(base.rev).slice(0, 10)}、取り込んだ上流の版 ${upstream.rev ? upstream.rev.slice(0, 10) : "不明"}、区切り ${plan.checkpoint})`);
+  for (const note of result.notes) console.log(`注意: ${note}`);
   console.log(`機械で書き換える: ${plan.changes.length} か所(${plan.writes.length} ファイル)`);
   for (const c of plan.changes) console.log(`  ${c.path}:${c.line} ${c.detail}`);
   console.log(`止めた物(手で直す、期限 ${plan.checkpoint === "band" ? "portal の区切りまで" : "今"}): ${plan.stops.length} 件`);

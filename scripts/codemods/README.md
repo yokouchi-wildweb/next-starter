@@ -171,11 +171,12 @@ node scripts/codemods/guarded-router.mjs --apply    # 書き換える
 ```sh
 node scripts/codemods/admin-header.mjs              # dry-run(既定): 変更の一覧と止めた物の一覧
 node scripts/codemods/admin-header.mjs --apply      # 書き換える
-#   --base <rev>    基準の版(既定 = 自分の台帳 .notices/applied/<fork_id>.md の最後の upstream:<sha>)
-#   --json          機械向けの出力 { base, checkpoint, mode, changes: [{ path, line, kind, detail }], stops: [{ path, line, kind, target, due, detail }] }
+#   --base <rev>      台帳の版(既定 = 自分の台帳 .notices/applied/<fork_id>.md の最後の upstream:<sha>)
+#   --upstream <rev>  取り込んだ上流の版(既定 = HEAD と upstream/main の merge-base = 取り込んだ最後の上流の commit)
+#   --json            機械向けの出力 { base, upstream, checkpoint, mode, changes: [{ path, line, kind, detail }], stops: [{ path, line, kind, target, due, detail }], notes }
 ```
 
-- 触るのは fork が足したファイルだけ(基準の版にあるファイル = 上流の物は取り込みで移る)。テスト・守りの lib の中は見ない
+- 触るのは fork が足したファイルだけ = 台帳の版にも取り込んだ上流の版にも無いファイル(上流の物は取り込みで移る)。台帳の版だけだと、台帳の後に上流が足したファイル(帯の区切りの `AdminHeader.tsx` など)を fork の物と取り違える。取り込んだ上流の版が分からない(`upstream/main` が無く `--upstream` も無い)ときは台帳の版だけで決め、`notes` に出す。テスト・守りの lib の中は見ない
 - 区切りは取り込んだ後のツリーで決める(台帳は fork のファイルを決めるだけ): `src/app/admin/_layout/AdminPageTitle.tsx` が無い = 帯の版をまだ取り込んでいない(exit 2)/ 互換の `AdminHeaderPortal.tsx` が残っている = 帯の区切り(止めた物の `due` は `portal`)/ 消えた = portal の区切り(`due` は `now`)
 
 機械で書き換える(どちらの区切りでも):
@@ -192,17 +193,17 @@ node scripts/codemods/admin-header.mjs --apply      # 書き換える
 | `portal-title` / `portal-center` / `portal-right` | `<AdminHeaderPortal slot="title" / "center" / "right">`(式の slot は center) | AdminPage の `title` / `center` / `actions`。`src/features` の部品の中から差していたら、その部分を部品の外へ出して route の Screen が組む |
 | `page-title-in-body` | 機械で移せない PageTitle(`placement="page"`・最初の子でない・ほかの props・子が部品・AdminPage に title がある・AdminPage の外) | ページの題なら AdminPage の `title`、本文の見出しなら `SecTitle` など |
 | `coupon-tabs-placement` | 機械で移せない `CouponSectionTabs placement`(AdminPage に center がある・ほかの props・直接の子でない) | `center={<CouponSectionTabs variant="header" />}` |
-| `item-navigator` | `useItemNavigator(…)`、`ItemNavigator` の `usePortal` / `slot` / `onBeforeNavigate` | `actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}`、または `ItemNavigator` + `useDomainItemNavigation`(移るだけ) |
+| `item-navigator` | `useItemNavigator(…)`、`ItemNavigator` の `usePortal` / `slot` / `onBeforeNavigate` | `actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}`、または `ItemNavigator` + `useDomainItemNavigation`(移るだけ)。domain.json の `generate` が true のドメインは `pnpm dc:generate <Domain>` が Edit*Form と編集の Screen を作り直す |
 | `admin-layout-header-prop` | `<AdminLayout header={…}>`、`_layout/HeaderSlots`・`_layout/Header`・`_layout/AdminHeaderContext` の import | `src/app/admin/_layout/AdminHeader.replace.tsx` + `AdminHeader.tsx` の 1 行を向ける |
 | `slot-id-css` | `admin-header-{title,center,right}-slot`・`ADMIN_HEADER_*_SLOT_ID`(CSS・スクリプト) | `[data-slot="admin-header-title" / "-center" / "-right"]` |
 | `own-unsaved-guard` | 自前の `beforeunload`、`use…Unsaved…Guard` の定義・守りの lib 以外からの import | `@/lib/unsavedGuard`(`useUnsavedGuard(isDirty)`、AppForm は既定で守る) |
-| `page-without-admin-page` | AdminPage を描かない管理の Screen(`src/app/admin/**/_screen/**/<名前>Screen.tsx` か `_components/` の下、`src/lib/screens/checks.mjs` の `checkAdminPageScreen`) | AdminPage で包む。ヘッダーを出さないページは隣の `frame.ts` で隠す |
+| `page-without-admin-page` | AdminPage を描かない管理の Screen(`src/app/admin/**/_screen/**/<名前>Screen.tsx` か `_components/` の下、`src/lib/screens/checks.mjs` の `checkAdminPageScreen`) | AdminPage で包む。子の部品(`src/features`・`_components`)の中で描いていたら AdminPage を Screen へ上げる。転送だけの Screen は `return <AdminPage title="…" />`(上流の settings の入口と同じ)。ヘッダーを出さないページは隣の `frame.ts` で隠す |
 
 見つけ方はファイルごとの名前と import(別名は追う。fork の入口から読み直した物は見つからないことがある = typecheck が残りを知らせる)。
 
 ### fork の手順
 
-1. 上流の帯の版を `/flux` で取り込む → dry-run(`due: portal` の一覧を見る)→ `--apply` → `pnpm typecheck` → `pnpm lint`
+1. 上流の帯の版を `/flux` で取り込む → dry-run(`due: portal` の一覧を見る。上流のリモートが `upstream` でなければ `--upstream <取り込んだ上流の rev>`)→ `--apply` → `pnpm typecheck` → `pnpm lint`
 2. 止めた物は portal の区切りまでに直す(帯の区切りでは互換がまだ動く)。`--json` の `stops` は /flux の手作業の一覧にそのまま貼れる
 3. 上流の portal の版を取り込む → もう一度走らせる(`due: now` = 直すまで型の検査が落ちる)→ 止めた物を直す → `pnpm typecheck` → `pnpm lint` → `pnpm routes:map`(AdminPage を描かない管理のページは地図でも止まる)
 4. useRouter の import 元は `guarded-router.mjs`(上の順番)
