@@ -5,16 +5,18 @@
 // 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキーから /api/<key> を導き(字面、
 // scripts/registry/serviceRegistry/discover.mjs の readObjectKeys)、項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
 // domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は test:feature-gate が重なりとして知らせる。
+// 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導き settingPaths として同じく足す(./gateSettingPaths.mjs、L1.17)。
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ENTRIES_EXPORT, ENTRY_FILE, readObjectKeys } from "../../registry/serviceRegistry/discover.mjs";
 import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../../registry/tableScan.mjs";
+import { scanSettingSectionFeatures } from "./gateSettingPaths.mjs";
 
 const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
 const TABLES_FIELD = /(?:^|[{,\s])tables\s*:/;
-const DOMAIN_API_PATHS_FIELD = /(?:^|[{,\s])domainApiPaths\s*:/;
+const DOMAIN_API_PATHS_FIELD = /(?:^|[{,\s])(domainApiPaths|settingPaths)\s*:/;
 const STRING_LITERAL = /^["']([A-Za-z0-9_/-]+)["']$/;
 
 /**
@@ -23,7 +25,8 @@ const STRING_LITERAL = /^["']([A-Za-z0-9_/-]+)["']$/;
  */
 export function readFeatures(text) {
   if (TABLES_FIELD.test(text)) return { problem: "tables を手書きしている(features: [機能のフォルダ] で書く。表名は生成器が導く)" };
-  if (DOMAIN_API_PATHS_FIELD.test(text)) return { problem: "domainApiPaths を手書きしている(汎用 API の住所は features のフォルダの domainEntry.ts から生成器が導く)" };
+  const derivedField = DOMAIN_API_PATHS_FIELD.exec(text)?.[1];
+  if (derivedField) return { problem: `${derivedField} を手書きしている(汎用 API の住所は features のフォルダの domainEntry.ts、設定の節の住所は節の feature から生成器が導く)` };
   const match = FEATURES_FIELD.exec(text);
   if (!match) return /\bfeatures\s*:/.test(text) ? { problem: "features が文字列リテラルの配列でない" } : { features: [] };
   const features = [];
@@ -50,13 +53,15 @@ export function domainApiPathsOf(repoRoot, folder) {
 /**
  * 変換を作る(表の走査は 1 回だけ)
  * @param {string} repoRoot
- * @returns {{ problems: string[], apply: (label: string, text: string) => { fields: { tables: string[], domainApiPaths: string[] }, features: string[] } | { problem: string } }}
+ * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[] }, features: string[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[] }}
  */
 export function createFeatureTables(repoRoot) {
   const scan = scanFeatureTables(repoRoot);
+  const sections = scanSettingSectionFeatures(repoRoot);
   return {
-    problems: scan.problems,
-    apply(label, text) {
+    problems: [...scan.problems, ...sections.problems],
+    unknownFeatures: sections.unknownFeatures,
+    apply(label, text, name) {
       const read = readFeatures(text);
       if (read.problem) return { problem: `${label}: ${read.problem}` };
       const tables = [];
@@ -70,7 +75,7 @@ export function createFeatureTables(repoRoot) {
         if (api.problem) return { problem: `${label}: ${api.problem}` };
         domainApiPaths.push(...api.paths.filter((path) => !domainApiPaths.includes(path)));
       }
-      return { fields: { tables, domainApiPaths }, features: read.features };
+      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name) }, features: read.features };
     },
   };
 }

@@ -227,11 +227,11 @@ function checkSettingSections(points, itemsByPoint) {
 const outputOf = (point) => (point.spec.target === "wiring" ? `${WIRING_DIR}/${basename(point.owner)}.ts` : `${point.owner}/${EXTENSIONS_DIR_NAME}/${point.name}.ts`);
 
 /** 1 つの出力ファイルを組み立てる(wiring は同じ lib の点を 1 本に) */
-// 生成器が付ける欄の描画。domainApiPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)
+// 生成器が付ける欄の描画。domainApiPaths・settingPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)
 function renderFields(alias, fields) {
   const literal = (v) => (Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v));
   const parts = Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`);
-  const extra = fields.domainApiPaths ?? [];
+  const extra = [...(fields.domainApiPaths ?? []), ...(fields.settingPaths ?? [])];
   if (extra.length > 0) parts.push(`pathPatterns: [...${alias}.pathPatterns, ${extra.map((x) => JSON.stringify(x)).join(", ")}]`);
   return parts.join(", ");
 }
@@ -287,10 +287,11 @@ export function planExtensions(repoRoot) {
         featureTables ??= createFeatureTables(repoRoot);
         const kept = [];
         for (const item of items) {
-          const derived = featureTables.apply(item.path, item.text);
+          const derived = featureTables.apply(item.path, item.text, item.name);
           if (derived.problem) problems.push(derived.problem);
           else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, features: derived.features });
         }
+        problems.push(...featureTables.unknownFeatures(items.map((item) => item.name)));
         itemsByPoint.set(p, kept);
       } else {
         itemsByPoint.set(p, items);

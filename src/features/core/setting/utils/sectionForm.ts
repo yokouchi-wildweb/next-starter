@@ -15,6 +15,17 @@ export function listSections(sections: Sections): SettingSectionDefinition[] {
   return Object.values(sections).sort((a, b) => a.order - b.order);
 }
 
+/** セクションの画面の住所(管理メニュー・loader・門番の生成器 scripts/extensions/derive/gateSettingPaths.mjs が同じ字面) */
+export const settingSectionHref = (key: string): string => `/admin/settings/${key}`;
+
+/**
+ * /admin/settings の既定のセクション: order 昇順で、住所が閉じていない最初のもの(閉じた機能の節を飛ばす)。無ければ undefined
+ * @param isOpenPath 住所が開いているか(server は gate.path(href).open)
+ */
+export function firstOpenSection(sections: Sections, isOpenPath: (href: string) => boolean): SettingSectionDefinition | undefined {
+  return listSections(sections).find((section) => isOpenPath(settingSectionHref(section.key)));
+}
+
 /**
  * セクションのフォームの部品を作る。欄を持つキーを ui.order 順に並べる。
  * current に無いキー(そのロールに許されていないキー)は欄を出さず送らない。

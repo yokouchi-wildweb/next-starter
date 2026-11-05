@@ -270,22 +270,24 @@ test(
 );
 
 // 汎用 API の住所(/api/<domain>)は生成器が features のフォルダの domainEntry.ts から導いて pathPatterns に足す(domainApiPaths)。
+// 設定の節の住所(/admin/settings/<key>)も節の feature から導く(settingPaths、L1.17)。
 // 規則に同じ住所を手書きすると重なる: 上流の規則は不可、fork の規則は表示だけ
 test(
-  "汎用 API の住所は規則に手書きしない(生成器が domainApiPaths として pathPatterns に足す)",
+  "汎用 API と設定の節の住所は規則に手書きしない(生成器が domainApiPaths・settingPaths として pathPatterns に足す)",
   { skip: forkAdded.status === "unverified" ? `fork の規則を見分けられない(${forkAdded.reason})` : false },
   () => {
     const { rules: files } = gateRuleFiles();
     const upstream = [];
     featureGateRules.forEach((rule, i) => {
-      const handWritten = rule.pathPatterns.slice(0, rule.pathPatterns.length - rule.domainApiPaths.length);
-      const dup = handWritten.filter((pattern) => rule.domainApiPaths.includes(pattern));
+      const derived = [...rule.domainApiPaths, ...rule.settingPaths];
+      const handWritten = rule.pathPatterns.slice(0, rule.pathPatterns.length - derived.length);
+      const dup = handWritten.filter((pattern) => derived.includes(pattern));
       if (dup.length === 0) return;
       const line = `${files[i].path}: ${dup.join(", ")}`;
-      if (forkAdded.added.has(files[i].path)) console.log(`[feature-gate] 生成器が導く汎用 API の住所を手書きしている(fork、消してよい): ${line}`);
+      if (forkAdded.added.has(files[i].path)) console.log(`[feature-gate] 生成器が導く住所を手書きしている(fork、消してよい): ${line}`);
       else upstream.push(line);
     });
-    assert.deepEqual(upstream, [], `汎用 API の住所は生成器が導く。規則から消す:\n${upstream.join("\n")}`);
+    assert.deepEqual(upstream, [], `汎用 API・設定の節の住所は生成器が導く。規則から消す:\n${upstream.join("\n")}`);
   },
 );
 
@@ -298,6 +300,8 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
     sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
     wallet: ["/api/wallet", "/api/walletHistory"],
   });
+  // 上流の設定の節は feature を持たない
+  assert.deepEqual(featureGateRules.filter((rule) => rule.settingPaths.length > 0).map((rule) => rule.name), []);
 });
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)

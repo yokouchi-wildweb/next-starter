@@ -108,3 +108,31 @@ test("/demo: sampleDomain を閉じると sample のデモが一覧と数から�
     });
   }
 });
+
+test("設定の節(L1.17): 規則の settingPaths(節の feature から導く /admin/settings/<key>)が閉じると、サイドバーの行が消え、既定の節は次の開いた節", async () => {
+  const { sections } = await import("@/features/core/setting/extensions/sections");
+  const { firstOpenSection, settingSectionHref } = await import("@/features/core/setting/utils/sectionForm");
+  const sample = rules.find((r) => r.name === "sampleDomain");
+  assert.ok(sample);
+  // fixture: general 節が feature: "sampleDomain" を持つときの生成一覧の項目(生成器が settingPaths を pathPatterns の後ろに足す)
+  const savedPatterns = sample.pathPatterns;
+  const savedSettingPaths = sample.settingPaths;
+  const href = settingSectionHref("general");
+  sample.pathPatterns = [...savedPatterns, href];
+  sample.settingPaths = [href];
+  try {
+    withRules({ sampleDomain: false }, () => {
+      const hrefs = buildSidebarSections(adminMenu, "admin", adminGate().filter).flatMap((s) => s.items.map((i) => i.href));
+      assert.ok(!hrefs.includes(href));
+      assert.ok(hrefs.includes(settingSectionHref("maintenance")));
+      assert.equal(gate.path(href).open, false);
+      assert.notEqual(firstOpenSection(sections, (h) => gate.path(h).open)?.key, "general");
+    });
+    withRules({}, () => {
+      assert.ok(buildSidebarSections(adminMenu, "admin", adminGate().filter).some((s) => s.items.some((i) => i.href === href)));
+    });
+  } finally {
+    sample.pathPatterns = savedPatterns;
+    sample.settingPaths = savedSettingPaths;
+  }
+});

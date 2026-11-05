@@ -14,7 +14,7 @@ import { COLUMN_EXISTS_SQL, COPY_SQL, VERIFY_SQL, task } from "../../../../../..
 import { fields } from "../../extensions/fields";
 import { sections } from "../../extensions/sections";
 import { publicSettingKeys, settingKeysFor } from "./access";
-import { buildSectionForm, listSections } from "../../utils/sectionForm";
+import { buildSectionForm, firstOpenSection, listSections, settingSectionHref } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
 import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
@@ -145,4 +145,17 @@ test("セクション: order 昇順", () => {
   assert.deepEqual(orders, [...orders].sort((a, b) => a - b));
   // fork はセクションを足せる（上流のセクションが同じ順で残っていること）
   assertUpstreamItems(listed.map((s) => s.key), UPSTREAM_SECTIONS);
+});
+
+test("既定のセクション: order 昇順で住所の開いた最初の節(閉じた機能の節を飛ばす)", () => {
+  const fixture = {
+    b: { key: "b", label: "B", order: 20 },
+    a: { key: "a", label: "A", order: 10 },
+    c: { key: "c", label: "C", order: 30 },
+  };
+  assert.equal(settingSectionHref("a"), "/admin/settings/a");
+  assert.equal(firstOpenSection(fixture, () => true)?.key, "a");
+  assert.equal(firstOpenSection(fixture, (href) => href !== "/admin/settings/a")?.key, "b");
+  assert.equal(firstOpenSection(fixture, () => false), undefined);
+  assert.equal(firstOpenSection(sections, () => true)?.key, listSections(sections)[0]?.key);
 });

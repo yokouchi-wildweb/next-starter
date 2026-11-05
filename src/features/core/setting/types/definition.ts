@@ -6,6 +6,7 @@ import type { z } from "zod";
 import type { FieldConfig } from "@/components/Form/Field/types";
 import type { FieldGroup } from "@/components/Form/FieldRenderer";
 import type { IconComponent } from "@/components/Icons";
+import type { FeatureName } from "@/featureGate";
 import type { UserRoleType } from "@/features/core/user/types";
 
 /** 設定画面の欄。無いキーは設定画面に出ず、使う画面の側が保存する */
@@ -48,6 +49,11 @@ export type SettingSectionDefinition = {
   allowRoles?: UserRoleType[];
   description?: string;
   groups?: FieldGroup[];
+  /**
+   * この節が属する機能(規則名)。1 つでも閉じていれば /admin/settings/<key> が閉じる(管理メニューの行も消える)。
+   * 生成器が字面で読み規則の住所に足す(文字列リテラルかその配列で書く。src/featureGate/README.md)。override では変えない
+   */
+  feature?: FeatureName | FeatureName[];
 };
 
 /** 上流のセクションの隣の <名前>.override.ts で変えられる属性 */

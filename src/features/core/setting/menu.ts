@@ -6,13 +6,16 @@
 import type { AdminMenuItem } from "@/config/ui/admin-global-menu.config";
 
 import { sections } from "./extensions/sections";
-import { listSections } from "./utils/sectionForm";
+import { listSections, settingSectionHref } from "./utils/sectionForm";
 
-/** allowRoles はメニュー側のロールフィルタ用にそのまま継承される。並び順は order 昇順 */
+/**
+ * allowRoles はメニュー側のロールフィルタ用にそのまま継承される。並び順は order 昇順。
+ * 閉じた機能の節(section.feature)は住所が門番で閉じるので、管理のサイドバーの住所の絞り込みで行が消える
+ */
 export function buildSettingMenuItems(): AdminMenuItem[] {
   return listSections(sections).map((section) => ({
     title: section.label,
-    href: `/admin/settings/${section.key}`,
+    href: settingSectionHref(section.key),
     icon: section.icon,
     allowRoles: section.allowRoles,
   }));

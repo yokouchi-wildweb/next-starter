@@ -15,6 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readSectionFeature } from "../extensions/derive/gateSettingPaths.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -81,7 +82,7 @@ test("規則: src/featureGate/rules/ の export const rule をファイル名順
   assert.ok(plan.problems.some((p) => p.includes("beta.other.ts") && p.includes("印なしの beta.ts に改名")));
   assert.match(plan.outputs[GATE_RULES], /import \{ rule as rules_alpha \} from "@\/featureGate\/rules\/alpha";/);
   assert.match(plan.outputs[GATE_RULES], /export type FeatureName = "acmeShop" \| "alpha" \| "wallet";/);
-  assert.match(plan.outputs[GATE_RULES], /export const rules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\] \},\n\];/);
+  assert.match(plan.outputs[GATE_RULES], /export const rules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\] \},\n\];/);
 });
 
 test("規則の features: フォルダの pgTable から表と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
@@ -140,9 +141,39 @@ test("規則の features: フォルダの pgTable から表と汎用 API の住�
   assert.equal(plan.problems.length, 7, plan.problems.join("\n"));
   assert.match(
     plan.outputs[GATE_RULES],
-    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
+    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\] \},/);
+});
+
+test("設定の節の feature: 字面で読む(1 つ・配列・複数行)、書けない形は problem", () => {
+  assert.deepEqual(readSectionFeature('export const section = { key: "general", label: "x", order: 1 };'), { key: "general", features: [] });
+  assert.deepEqual(readSectionFeature('export const section = { key: "shop", feature: "wallet", order: 1 };'), { key: "shop", features: ["wallet"] });
+  assert.deepEqual(readSectionFeature('export const section = {\n  key: "shop",\n  feature: [\n    "wallet",\n    "payment",\n  ],\n};'), { key: "shop", features: ["wallet", "payment"] });
+  assert.deepEqual(readSectionFeature('// feature: "nope"\nexport const section = { key: "a", features: ["x"] };'), { key: "a", features: [] });
+  assert.match(readSectionFeature('export const section = { key: "a", feature: NAME };').problem, /文字列リテラル/);
+  assert.match(readSectionFeature('export const section = { key: "a", feature: ["wallet", NAME] };').problem, /NAME/);
+  assert.match(readSectionFeature('export const section = { key: KEY, feature: "wallet" };').problem, /key/);
+});
+
+test("設定の節の feature から /admin/settings/<key> を規則の settingPaths と pathPatterns に導き、規則名でない feature は止める", () => {
+  const R = 'export const rule: FeatureGateRule = { pathPatterns: ["/x"], enabled: () => true };\n';
+  const root = fixture({ "rules/wallet.ts": R, "rules/payment.ts": R, "rules/plain.ts": R });
+  const dir = join(root, "src/features/core/setting/sections");
+  mkdirSync(join(dir, "nested"), { recursive: true });
+  writeFileSync(join(dir, "general.ts"), 'export const section = { key: "general", label: "基本", order: 10 };\n');
+  writeFileSync(join(dir, "shop.ts"), 'export const section = { key: "shop", label: "店", order: 20, feature: ["wallet", "payment"] };\n');
+  writeFileSync(join(dir, "nested/index.ts"), 'export const section = { key: "coins", label: "コイン", order: 30, feature: "wallet" };\n');
+  writeFileSync(join(dir, "shop.override.ts"), 'export const override = { feature: "plain" };\n');
+  writeFileSync(join(dir, "typo.ts"), 'export const section = { key: "typo", label: "x", order: 40, feature: "walet" };\n');
+  const plan = planExtensions(root);
+  assert.deepEqual(
+    itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.settingPaths.join("|")}`),
+    ["payment:/admin/settings/shop", "plain:", "wallet:/admin/settings/coins|/admin/settings/shop"],
+  );
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
+  assert.equal(plan.problems.length, 1, plan.problems.join("\n"));
+  assert.match(plan.problems[0], /typo\.ts: feature の "walet" は機能を閉じる規則/);
 });
 
 test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
