@@ -1,4 +1,4 @@
-// 管理画面の枠(AdminLayout・AdminProtectedLayout・InsaneProtectedLayout・AdminHeaderSlots)とページ枠部品(AdminPage・PageTitle)の
+// 管理画面の枠(AdminLayout・AdminProtectedLayout・InsaneProtectedLayout)とページ枠部品(AdminPage・AdminHeader)の
 // slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の根の data-frame-root・部位の data-slot="admin-*"・
 // insane の data-admin-main-wrapper だけ。data-slot の一覧と枠の表の結線は ./AdminFrame.test.tsx)。
 // 実行: pnpm test:admin-layout(test:user-layout と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
@@ -14,12 +14,6 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createElement, type ReactNode } from "react";
 
-import {
-  ADMIN_HEADER_CENTER_SLOT_ID,
-  ADMIN_HEADER_RIGHT_SLOT_ID,
-  ADMIN_HEADER_TITLE_SLOT_ID,
-  APP_HEADER_ELEMENT_ID,
-} from "@/components/AppFrames/constants";
 import { businessConfig } from "@/config/business.config";
 import { logoPath } from "@/utils/assets";
 
@@ -48,23 +42,19 @@ mock.module(here("../insane/_layout/InsaneSidebar.tsx"), { namedExports: { Insan
 
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 let AdminLayout: typeof import("./AdminLayout").AdminLayout;
-let AdminHeaderSlots: typeof import("./HeaderSlots").AdminHeaderSlots;
-let Header: typeof import("./Header").Header;
+let AdminHeader: typeof import("./AdminHeader").AdminHeader;
 let useAdminSidebarFrame: typeof import("./Sidebar/AdminSidebarFrame").useAdminSidebarFrame;
 let AdminProtectedLayout: typeof import("../(protected)/_layout/AdminProtectedLayout").AdminProtectedLayout;
 let InsaneProtectedLayout: typeof import("../insane/_layout").InsaneProtectedLayout;
 let AdminPage: typeof import("./AdminPage").default;
-let PageTitle: typeof import("./PageTitle").default;
 before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
-  ({ AdminHeaderSlots } = await import("./HeaderSlots"));
-  ({ Header } = await import("./Header"));
+  ({ AdminHeader } = await import("./AdminHeader"));
   ({ useAdminSidebarFrame } = await import("./Sidebar/AdminSidebarFrame"));
   ({ AdminProtectedLayout } = await import("../(protected)/_layout/AdminProtectedLayout"));
   ({ InsaneProtectedLayout } = await import("../insane/_layout"));
   AdminPage = (await import("./AdminPage")).default;
-  PageTitle = (await import("./PageTitle")).default;
 });
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
@@ -84,7 +74,7 @@ const LOGO_IMG = (variant: "dark" | "light", alt: string, className: string) =>
 const LOGO_PRELOAD = (variant: "dark" | "light") => `<link rel="preload" as="image" imageSrcSet="${logoSrcSet(variant)}"/>`;
 
 /** slot 化の前の旧 admin/layout.tsx が描いていた物のヘッダー(ロゴだけ AppImage 化で差し替え) */
-const BEFORE_HEADER = `<header id="header" data-slot="admin-header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div id="admin-header-title-slot" data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div id="admin-header-center-slot" data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div id="admin-header-right-slot" data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
+const BEFORE_HEADER = `<header id="header" data-slot="admin-header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
 /** 既定の Header のロゴ画像が文書の先頭に出す preload(Header を描かないときは出ない) */
 const BEFORE_LOGO_PRELOAD = LOGO_PRELOAD("dark") + LOGO_PRELOAD("light");
 /** 同じく外枠全体 */
@@ -99,24 +89,19 @@ const BEFORE_PAGE = `<main data-component="Main" id="main" class="max-w-screen o
 const BEFORE_TITLE_PAGE = `<h1 class="tracking-tight text-2xl font-normal text-left relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] mb-8 sm:text-3xl">T</h1>`;
 const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text-left relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] mb-8 sm:text-3xl sm:hidden">T</h1>`;
 
-// ---- AdminLayout(外枠)と header slot ----
+// ---- AdminLayout(外枠)と AdminHeader(行の部品・1 行スイッチ) ----
 
 /** 器になった後の外枠: ヘッダーを描かず、子の領域が上の余白で AdminPage の固定の行の高さを空ける(利用者の枠と同じ形) */
 const CONTAINER_OUTER = BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "")
   .replace(BEFORE_HEADER, "")
   .replace('<div class="flex-1 min-h-0 flex flex-col overflow-clip">', '<div class="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">');
-/** AdminPage の行 = 前の Header と同じ DOM + 置き方のクラス(上端に固定・全幅・header-layer) */
-const PAGE_HEADER = BEFORE_HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
+/** 今の AdminHeader の行 = 前の Header の DOM から受け口の id 3 つを除いた物(portal を消した。data-slot は残る) */
+const HEADER = BEFORE_HEADER.replace(/ id="admin-header-(?:title|center|right)-slot"/g, "");
+/** AdminPage の行 = HEADER + 置き方のクラス(上端に固定・全幅・header-layer) */
+const PAGE_HEADER = HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
 
 test("props なしの AdminLayout はヘッダーを描かない器: 前の外枠からヘッダーを除き、子の領域に上の余白だけを足した DOM", () => {
   assert.equal(render(<AdminLayout>CHILD</AdminLayout>), CONTAINER_OUTER);
-});
-
-test("header slot(指令 17 までの差し替えの口): 要素 = 前と同じ位置(流れの中、上の余白なし)に描く / null = 描かない", () => {
-  const replaced = render(<AdminLayout header={<header id="h" />}>CHILD</AdminLayout>);
-  assert.equal(replaced, BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "").replace(BEFORE_HEADER, '<header id="h"></header>'));
-  const none = render(<AdminLayout header={null}>CHILD</AdminLayout>);
-  assert.equal(none, BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "").replace(BEFORE_HEADER, ""));
 });
 
 test("--app-header-height は測れた時だけ外枠の inline に書く(null = 測る前 = 書かず、frame.css の初期値が効く)", () => {
@@ -134,25 +119,6 @@ test("--app-header-height は測れた時だけ外枠の inline に書く(null =
 
 test("className は外枠に足される(slot 化の前と同じ)", () => {
   assert.match(render(<AdminLayout className="invert">CHILD</AdminLayout>), /text-foreground invert"/);
-});
-
-// ---- 受け口(DOM id の約束) ----
-
-test("既定の Header はヘッダーの id と受け口 3 つの id を描き、受け口は AdminHeaderSlots と同じ DOM", () => {
-  for (const id of [APP_HEADER_ELEMENT_ID, ADMIN_HEADER_TITLE_SLOT_ID, ADMIN_HEADER_CENTER_SLOT_ID, ADMIN_HEADER_RIGHT_SLOT_ID]) {
-    assert.ok(BEFORE_HEADER.includes(`id="${id}"`), `既定の Header に id="${id}" が無い`);
-  }
-  const slots = render(<AdminHeaderSlots trailing={<i id="t" />} />);
-  const slotsInHeader = render(<AdminHeaderSlots trailing={createElement("x-darkmode")} />);
-  assert.ok(BEFORE_HEADER.includes(slotsInHeader), "既定の Header の受け口部分 = AdminHeaderSlots(trailing = DarkModeSwitch)");
-  assert.ok(slots.endsWith(`<div id="${ADMIN_HEADER_RIGHT_SLOT_ID}" data-slot="admin-header-right" class="flex items-center gap-3"></div><i id="t"></i></div>`), "trailing は右の受け口の後ろ");
-});
-
-test("受け口の id = AdminHeaderPortal と PageTitle placement=header が探す id(AppFrames/constants の値)", () => {
-  const html = render(<AdminHeaderSlots />);
-  const ids = [...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ["admin-header-title-slot", "admin-header-center-slot", "admin-header-right-slot"]);
-  assert.deepEqual(ids, [ADMIN_HEADER_TITLE_SLOT_ID, ADMIN_HEADER_CENTER_SLOT_ID, ADMIN_HEADER_RIGHT_SLOT_ID]);
 });
 
 // ---- (protected)・insane の sidebar / footer ----
@@ -228,20 +194,20 @@ const TITLE_COMPACT = `<p title="T" aria-hidden="true" class="relative text-base
 test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は大見出し、PC は sm:sr-only)、PC で見える圧縮の題はヘッダーの題の受け口の中の飾りの文字", () => {
   const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1, "h1 は 1 つ");
-  assert.ok(html.includes(`<div id="admin-header-title-slot" data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
+  assert.ok(html.includes(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
   assert.ok(html.includes(`<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
   // 見た目の元: 前の PageTitle placement="header" の本文側(sm:hidden)と同じクラスに、PC で消す手段だけ sm:sr-only に替えた物
   assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden"), BEFORE_TITLE_HEADER);
 });
 
-test("AdminPage の center / actions は行の中央・右の受け口の中(今の id・data-slot の要素)に描く", () => {
+test("AdminPage の center / actions は行の中央・右の位置(data-slot admin-header-center / -right の要素)に描く", () => {
   const html = page(
     <AdminPage center={<b id="pc" />} actions={<b id="pa" />}>
       CHILD
     </AdminPage>,
   );
-  assert.ok(html.includes('<div id="admin-header-center-slot" data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"><b id="pc"></b></div>'));
-  assert.ok(html.includes('<div id="admin-header-right-slot" data-slot="admin-header-right" class="flex items-center gap-3"><b id="pa"></b></div><x-darkmode></x-darkmode>'));
+  assert.ok(html.includes('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"><b id="pc"></b></div>'));
+  assert.ok(html.includes('<div data-slot="admin-header-right" class="flex items-center gap-3"><b id="pa"></b></div><x-darkmode></x-darkmode>'));
   const withoutProps = html.replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
   assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + BEFORE_PAGE, "props の中身のほかは props なしと同じ DOM");
 });
@@ -252,54 +218,19 @@ test("main={false} + title: ヘッダーの題に加え、本文の大見出し�
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
 });
 
-test("portal の着地(帯を足す段の互換): AdminPage の行の中に受け口の id が題・中央・右の順で 1 つずつあり、AdminHeaderPortal(互換の useItemNavigator の slot も)が探す id と同じ", () => {
-  const html = page(<AdminPage>CHILD</AdminPage>);
-  const header = /<header id="header" data-slot="admin-header"[^>]*>[\s\S]*<\/header>/.exec(html)?.[0] ?? "";
-  const ids = [...header.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ["header", ADMIN_HEADER_TITLE_SLOT_ID, ADMIN_HEADER_CENTER_SLOT_ID, ADMIN_HEADER_RIGHT_SLOT_ID]);
-  assert.equal(html.split('id="admin-header-title-slot"').length - 1, 1);
-  const portal = readFileSync(join(__dirname, "../../../components/AppFrames/Admin/Elements/AdminHeaderPortal.tsx"), "utf8");
-  for (const [slot, constant] of [["title", "ADMIN_HEADER_TITLE_SLOT_ID"], ["center", "ADMIN_HEADER_CENTER_SLOT_ID"], ["right", "ADMIN_HEADER_RIGHT_SLOT_ID"]]) {
-    assert.ok(portal.includes(`${slot}: ${constant},`), `AdminHeaderPortal の ${slot} が ${constant} を探していない`);
-  }
-  // 互換の useItemNavigator(指令 17 まで)の差し込み先も center / right の受け口
-  const compat = readFileSync(join(__dirname, "../../../components/AppFrames/Admin/Elements/ItemNavigator/useItemNavigator.tsx"), "utf8");
-  assert.match(compat, /slot\?: "center" \| "right"/, "互換の useItemNavigator の slot は AdminHeaderPortal の center / right");
-});
-
 test("main={false} はヘッダーの行だけを描き、children をそのまま続ける(login・setup 用)", () => {
   assert.equal(page(<AdminPage main={false}>CHILD</AdminPage>), BEFORE_LOGO_PRELOAD + PAGE_HEADER + "CHILD");
 });
 
-test("AdminLayout の header の prop(差し替え)がある間、AdminPage は行を描かない / 無ければ器の子の AdminPage が行を 1 つ描く", () => {
-  const replaced = page(
-    <AdminLayout header={<header id="h" />}>
-      <AdminPage>CHILD</AdminPage>
-    </AdminLayout>,
-  );
-  assert.equal(replaced.includes('data-slot="admin-header"'), false);
-  assert.ok(replaced.includes('<header id="h"></header>') && replaced.includes(BEFORE_PAGE));
-  const nothing = page(
-    <AdminLayout header={null}>
-      <AdminPage>CHILD</AdminPage>
-    </AdminLayout>,
-  );
-  assert.equal(nothing.includes("<header"), false);
-  const own = page(
-    <AdminLayout>
-      <AdminPage>CHILD</AdminPage>
-    </AdminLayout>,
-  );
-  assert.equal(own.split('data-slot="admin-header"').length - 1, 1);
-  assert.ok(own.includes(PAGE_HEADER + BEFORE_PAGE));
-});
-
-test("互換の Header(props なし)は前の Header と同じ DOM(流れの中に置く形、固定のクラスなし)", () => {
-  assert.equal(render(<Header />), BEFORE_LOGO_PRELOAD + BEFORE_HEADER);
-});
-
-test("PageTitle の既定は placement=header。placement=page は前の既定と同じ DOM", () => {
-  assert.equal(render(<PageTitle>T</PageTitle>), BEFORE_TITLE_HEADER);
-  assert.equal(render(<PageTitle placement="header">T</PageTitle>), BEFORE_TITLE_HEADER);
-  assert.equal(render(<PageTitle placement="page">T</PageTitle>), BEFORE_TITLE_PAGE);
+test("AdminHeader は 1 行スイッチ(./AdminHeader.default を指す re-export 1 文)。行は data-slot admin-header・-title・-center・-right を持ち、受け口の id は無い", () => {
+  const sw = readFileSync(join(__dirname, "AdminHeader.tsx"), "utf8").replace(/^\s*\/\/.*$/gm, "").trim();
+  assert.equal(sw, 'export { AdminHeader, type AdminHeaderProps } from "./AdminHeader.default";');
+  const html = render(<AdminHeader />);
+  assert.equal(html, BEFORE_LOGO_PRELOAD + HEADER);
+  for (const slot of ["admin-header", "admin-header-title", "admin-header-center", "admin-header-right"]) {
+    assert.ok(html.includes(`data-slot="${slot}"`), slot);
+  }
+  assert.equal(/-slot"/.test(html), false, "受け口の id が残っている");
+  // AdminLayout に header の prop は無い(差し替えの口は AdminHeader のスイッチだけ)
+  assert.equal(/\bheader\?:/.test(readFileSync(join(__dirname, "AdminLayout.tsx"), "utf8")), false);
 });

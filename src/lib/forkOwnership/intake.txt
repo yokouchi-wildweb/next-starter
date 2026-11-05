@@ -118,6 +118,7 @@ add src/wiring/dbAgent/suffixProviders/*.{ts,tsx}  # 受け口 suffixProviders
 add src/wiring/dbAgent/suffixProviders/*/**  # 受け口 suffixProviders(フォルダ形)
 add src/wiring/formInputs/inputs/*.{ts,tsx}  # 受け口 inputs
 add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
+add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え
 add src/features/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
 add src/features/core/auth/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/services/server/onDemoUserCreated.ts の丸ごと置き換え
 add src/features/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 1 行スイッチ src/features/core/couponIssuerGrant/services/server/programConfig.ts の丸ごと置き換え

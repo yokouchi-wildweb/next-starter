@@ -163,11 +163,11 @@ const screenOf = (pagePath: string) => {
   assert.fail(`${pagePath} の Screen ${target} が無い`);
 };
 
-test("AdminPage を使わない管理のページは settings の入口(loader が転送して null を返す)だけ", () => {
+test("AdminPage を使わない管理のページは無い(settings の入口も AdminPage を返す。止める検査に例外を作らない)", () => {
   const pages = adminPages();
   assert.ok(pages.length > 40, `管理のページを読めていない(${pages.length})`);
   const without = pages.filter((page) => !/\bAdminPage\b/.test(screenOf(page).source)).map((page) => relative("src/app/admin", page));
-  assert.deepEqual(without, ["(protected)/settings/page.tsx"]);
+  assert.deepEqual(without, []);
 });
 
 test("未ログインの login・setup は AdminPage main={false} で包み、行には題だけを渡す(中央・右の操作なし)= 操作はロゴの Link と明暗の切り替えだけ(指令 14 AMENDMENT 1 (2)、題は指令 15 (a))", () => {
@@ -178,9 +178,10 @@ test("未ログインの login・setup は AdminPage main={false} で包み、�
     assert.equal(source.includes("AdminHeaderPortal"), false, `${file} がヘッダーに差し込んでいる`);
   }
   // 行の中身 = ロゴの Link 1 つ + 空の受け口 3 つ + 明暗の切り替え(操作はそれだけ)
-  const header = read("src/app/admin/_layout/AdminHeader.tsx");
+  const header = read("src/app/admin/_layout/AdminHeader.default.tsx");
   assert.equal(header.split("<Link ").length - 1, 1);
-  assert.match(header, /<AdminHeaderSlots title=\{title\} center=\{center\} right=\{actions\} trailing=\{<DarkModeSwitch \/>\} \/>/);
+  assert.equal(header.split("<DarkModeSwitch").length - 1, 1);
+  for (const prop of ["{title}", "{center}", "{actions}"]) assert.ok(header.includes(prop), prop);
 });
 
 // ---- 題と中央の差し込み(指令 15) ----
@@ -201,10 +202,8 @@ test("上流の管理の画面(_template を含む)は題を AdminPage title で
     assert.equal(source.includes("_layout/PageTitle"), false, `${file} が PageTitle を使っている`);
     assert.equal(/\bplacement=/.test(source), false, `${file} に placement=`);
   }
-  // 題を持たない AdminPage = 前から題の無い insane の 2 画面だけ(本文の見出しは SecTitle。見た目を変えないので題を足さない)。
-  // settings の入口は AdminPage 自体が無い
+  // 題を持たない AdminPage = 前から題の無い insane の 2 画面だけ(本文の見出しは SecTitle。見た目を変えないので題を足さない)
   const untitled = adminPages()
-    .filter((p) => !p.endsWith("(protected)/settings/page.tsx"))
     .map((p) => screenOf(p))
     .filter(({ source }) => !/<AdminPage\b[^>]*\btitle=/.test(source))
     .map(({ path }) => relative("src/app/admin", path))
@@ -216,45 +215,59 @@ test("上流の管理の画面(_template を含む)は題を AdminPage title で
   }
 });
 
-test("中央の差し込み(銀行振込の status タブ・クーポンのタブ)は AdminPage center。上流で AdminHeaderPortal を使うのは指令 17 までの互換 3 つ(PageTitle・CouponSectionTabs の placement header・useItemNavigator)だけ", () => {
+test("中央の差し込み(銀行振込の status タブ・クーポンのタブ)は AdminPage center", () => {
   assert.match(read("src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/AdminBankTransferReviewsScreen.tsx"), /<AdminPage title="銀行振込レビュー" center=\{<BankTransferStatusTabs \/>\}>/);
   for (const section of ["official", "affiliate", "invite"]) {
     const screen = sourcesOf(`src/app/admin/(protected)/coupons/${section}/_screen`).map(read).join("\n");
     assert.match(screen, /center=\{<CouponSectionTabs variant="header" \/>\}/, `coupons/${section}`);
   }
-  const users = [...sourcesOf("src"), ...sourcesOf("src/app")]
-    .filter((file, i, all) => all.indexOf(file) === i && !/\.test\.tsx?$/.test(file) && !file.endsWith("Elements/AdminHeaderPortal.tsx"))
-    .filter((file) => /<AdminHeaderPortal\b/.test(read(file)))
-    .map((file) => relative("src", file))
-    .sort();
-  assert.deepEqual(users, [
-    "app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx",
-    "app/admin/_layout/PageTitle.tsx",
-    "components/AppFrames/Admin/Elements/ItemNavigator/useItemNavigator.tsx",
-  ]);
-  // 互換の 2 つは @deprecated(上流の使用 0 は上のテストと CouponSectionTabs placement の 0)
-  assert.match(read("src/app/admin/_layout/PageTitle.tsx"), /@deprecated/);
-  assert.match(read("src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx"), /@deprecated/);
 });
 
+// ---- ヘッダーの差し込みの仕組みと互換を消した(指令 17) ----
+
+test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその定数・互換の PageTitle / Header / useItemNavigator・CouponSectionTabs の placement・AdminLayout の header の prop が無い(テストを除く、README とコメントも)", () => {
+  const files = sourcesOf("src").filter((file) => !/\.test\.tsx?$/.test(file));
+  const readmes = (dir: string): string[] =>
+    readdirSync(join(repo, dir), { withFileTypes: true }).flatMap((entry) => {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) return entry.name === "node_modules" ? [] : readmes(path);
+      return entry.name.endsWith(".md") ? [path] : [];
+    });
+  const patterns = [
+    /AdminHeaderPortal/,
+    /\bHeaderSlots\b/,
+    /ADMIN_HEADER_(?:TITLE|CENTER|RIGHT)_SLOT_ID/,
+    /admin-header-(?:title|center|right)-slot/,
+    /\buseItemNavigator\b/,
+    /PageTitle placement/,
+    /CouponSectionTabs placement/,
+    /admin\/_layout\/(?:PageTitle|Header|HeaderSlots|AdminHeaderContext)\b/,
+  ];
+  const hits = [...files, ...readmes("src")].flatMap((file) =>
+    patterns.filter((pattern) => pattern.test(read(file))).map((pattern) => `${relative("src", file)}: ${pattern}`),
+  );
+  assert.deepEqual(hits, []);
+  for (const gone of ["src/app/admin/_layout/PageTitle.tsx", "src/app/admin/_layout/Header.tsx", "src/app/admin/_layout/HeaderSlots.tsx", "src/app/admin/_layout/AdminHeaderContext.tsx"]) {
+    assert.throws(() => read(gone), `${gone} が残っている`);
+  }
+  assert.equal(/placement/.test(read("src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx")), false);
+});
 // ---- 前後の項目へ移る(指令 16) ----
 
 const NAV_DIR = "src/components/AppFrames/Admin/Elements/ItemNavigator";
 
-test("ItemNavigator は移るだけ: portal・react-hook-form・保存・トーストを持たない(フォルダの中で持つのは互換の useItemNavigator だけ)", () => {
+test("ItemNavigator は移るだけ: portal・react-hook-form・保存・トーストを持たない(フォルダの中のどのファイルも)", () => {
   const navigator = read(`${NAV_DIR}/ItemNavigator.tsx`);
   for (const word of ["AdminHeaderPortal", "react-hook-form", "useToast", "onBeforeNavigate", "usePortal"]) {
     assert.equal(navigator.includes(word), false, `ItemNavigator.tsx に ${word}`);
   }
   assert.match(navigator, /router\.push\(getPath\(nextId\)\)/);
   for (const file of sourcesOf(NAV_DIR)) {
-    if (file.endsWith("useItemNavigator.tsx")) continue;
     assert.equal(read(file).includes("react-hook-form"), false, `${file} が react-hook-form を読む`);
   }
-  assert.match(read(`${NAV_DIR}/useItemNavigator.tsx`), /@deprecated/);
 });
 
-test("AdminPage actions に置いた ItemNavigator は右の受け口の中に描かれ、候補は items の順・表示名は getLabel", () => {
+test("AdminPage actions に置いた ItemNavigator は行の右の位置(data-slot admin-header-right)に描かれ、候補は items の順・表示名は getLabel", () => {
   const items = [
     { id: "a", name: "A" },
     { id: "b", name: "B" },
@@ -268,12 +281,12 @@ test("AdminPage actions に置いた ItemNavigator は右の受け口の中に�
       CHILD
     </AdminPage>,
   );
-  const right = /<div id="admin-header-right-slot"[^>]*>([\s\S]*?)<\/div><\/div>/.exec(html)?.[1] ?? "";
+  const right = /<div data-slot="admin-header-right"[^>]*>([\s\S]*?)<\/div><\/div>/.exec(html)?.[1] ?? "";
   assert.ok(right.includes("切り替え"), html);
   assert.ok(html.indexOf("L-A") < html.indexOf("L-B") || !html.includes("L-B"), "候補の順");
 });
 
-test("上流の編集画面(core 3・サンプル 3・管理の _template)は AdminPage actions に AdminEditItemNavigator を置き、features の Edit*Form から useItemNavigator が消えた", () => {
+test("上流の編集画面(core 3・サンプル 3・管理の _template)は AdminPage actions に AdminEditItemNavigator を置き", () => {
   const screens = [
     "src/app/admin/_template/__domains__/[id]/edit/_screen/Admin__Domain__EditScreen.tsx",
     "src/app/admin/(protected)/user-tags/[id]/edit/_screen/AdminUserTagEditScreen.tsx",
@@ -294,7 +307,4 @@ test("上流の編集画面(core 3・サンプル 3・管理の _template)は Ad
   assert.match(hook, /createApiClient<T>\(`\/api\/\$\{domain\.singular\}`\)/);
   assert.match(hook, /getAdminPaths\(domain\.plural\)\.edit/);
   assert.match(hook, /limit = 10/);
-  // 上流で useItemNavigator( を呼ぶのは互換の定義だけ
-  const callers = sourcesOf("src").filter((file) => !/\.test\.tsx?$/.test(file) && /\buseItemNavigator\(/.test(read(file)));
-  assert.deepEqual(callers.map((f) => relative("src", f)), ["components/AppFrames/Admin/Elements/ItemNavigator/useItemNavigator.tsx"]);
 });

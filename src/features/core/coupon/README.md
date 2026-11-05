@@ -394,7 +394,7 @@ downstream が種別に属さない派生クーポンの専用画面（例: フ�
 
 - 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: PageTabItem`（一覧 `extensions/sectionTabs`、upstream は空 = 従来どおり 3 タブ）
 - 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 項目。value 重複は core 優先で除外
-- 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`placement?: "body" | "header"`、既定 body）。header は AdminHeaderPortal slot="center" に size="sm" で出す。core ページ（official / invite / affiliate）は `placement="header"`
+- 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。置き場はページが決める: core ページ（official / invite / affiliate）は `<AdminPage center={<CouponSectionTabs variant="header" />}>`
 - **一覧コンポーネント（`AdminCouponList` / referral `AdminInviteList`）はタブを描画しない**。配置（本文 or ヘッダー）はページの関心事なので Screen が CouponSectionTabs を置く。これらを使う downstream の Screen も自分でタブを置くこと（置かなければタブなし）
 - DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
 
@@ -407,16 +407,14 @@ export const tab: PageTabItem = { value: "friend-coupon", label: "フレンド�
 // 2. src/app/admin/(protected)/coupons/friend-coupon/_screen/AdminFriendCouponScreen.tsx（downstream 実装）
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
 // ...
-<AdminPage>
-  <PageTitle placement="header">クーポン管理</PageTitle>
-  <CouponSectionTabs placement="header" />
+<AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
   {/* 一覧本体 */}
 </AdminPage>
 ```
 
 downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて
 CouponSectionTabs（内部で `buildCouponAdminSectionTabs()`）に寄せると core と downstream のタブ一覧が常に一致する。
-本文配置に戻したい場合は `placement` を省略する。
+本文に置きたい場合は `center` ではなく本文に `<CouponSectionTabs />`(variant 省略)を置く。
 
 ---
 

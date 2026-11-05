@@ -9,7 +9,6 @@
 
 "use client";
 
-import { AdminHeaderPortal } from "@/components/AppFrames/Admin/Elements/AdminHeaderPortal";
 import { SolidTabs } from "@/components/Navigation";
 import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
 
@@ -22,20 +21,13 @@ type Props = {
    * - "header": ヘッダーの行の中央に置く小さめの形（`<AdminPage center={<CouponSectionTabs variant="header" />}>`）
    */
   variant?: "body" | "header";
-  /**
-   * @deprecated 置き場はページが AdminPage の `center` で決める（上のとおり）。"header" = 前と同じく AdminHeaderPortal で
-   * ヘッダー中央の受け口へ差し込む互換で、上流の使用は 0。portal と受け口の id を消す指令 17 で一緒に消す
-   */
-  placement?: "body" | "header";
 };
 
-export function CouponSectionTabs({ variant = "body", placement = "body" }: Props) {
+export function CouponSectionTabs({ variant = "body" }: Props) {
   const tabs = buildCouponAdminSectionTabs();
-  const headerTabs = <SolidTabs tabs={tabs} ariaLabel={ARIA_LABEL} size="sm" listClassName="mx-auto max-w-2xl" />;
-
-  if (placement === "header") {
-    return <AdminHeaderPortal slot="center">{headerTabs}</AdminHeaderPortal>;
-  }
-
-  return variant === "header" ? headerTabs : <SolidTabs tabs={tabs} ariaLabel={ARIA_LABEL} />;
+  return variant === "header" ? (
+    <SolidTabs tabs={tabs} ariaLabel={ARIA_LABEL} size="sm" listClassName="mx-auto max-w-2xl" />
+  ) : (
+    <SolidTabs tabs={tabs} ariaLabel={ARIA_LABEL} />
+  );
 }
