@@ -14,13 +14,13 @@ import { isCollectionFieldType, isMediaFieldType, presenterKind } from "./fieldT
 /**
  * @typedef {object} PresenterSpec
  * @property {PresenterKind} kind 表示の種類
- * @property {Array<{ value: string | number | boolean, label?: string }>} [options] kind "enum" のときの選択肢（値 → ラベル）
+ * @property {ReadonlyArray<{ value: unknown, label?: string }>} [options] kind "enum" のときの選択肢（値 → ラベル）
  */
 
 /**
  * 項目の表示の種類。順: 表の presenter（boolean・number・stringArray・enum。enum は選択肢が無ければ文字列で確定）
  * → formInput（数値・文字列・日時・日付）→ 主の集まり → 旧来の複数メディア列 → メディア → 文字列
- * @param {{ fieldType?: string, formInput?: string, options?: Array<{ value: string | number | boolean, label?: string }> }} field
+ * @param {{ fieldType?: string, formInput?: string, options?: ReadonlyArray<{ value: unknown, label?: string }> }} field
  * @returns {PresenterSpec}
  */
 export function presenterFor(field) {
