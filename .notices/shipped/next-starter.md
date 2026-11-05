@@ -278,3 +278,4 @@
 - id:20261105-110502-feature-map-intake-pick | severity:info | checkpoint:feature-map-intake-pick | fixes:20261029-223045-feature-map | resolves:20261103-171644-feature-map-intake-fix-notice | pick:clean
 - id:20261105-110503-setting-test-fork-sections-pick | severity:info | checkpoint:setting-test-fork-sections-pick | fixes:20261031-141531-setting-fields-core-ui | resolves:20261103-172638-setting-test-fix-notice-fixes-pick | pick:clean
 - id:20261105-112509-feature-gate-automation | severity:breaking | checkpoint:gate-s3 | uses:scripts/codemods/feature-gate-s3.mjs
+- id:20261105-111136-user-registered-milestone | severity:info | checkpoint:user-registered-milestone | resolves:20261101-111956-intake-post-registration-hook

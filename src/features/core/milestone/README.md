@@ -15,10 +15,10 @@ evaluateMilestones(trigger, { userId, payload }, tx?)
   ↓
 登録済みマイルストーンのうち、該当 trigger を持つものをループ
   ↓ 各マイルストーンについて:
-  ① user_milestones テーブルで達成済みか確認 → 済みならスキップ
+  ① milestones テーブルで達成済みか確認 → 済みならスキップ
   ② evaluate(context, tx?) で条件を評価 → false ならスキップ
   ③ onAchieved() を実行（報酬付与など）
-  ④ user_milestones に記録（user_id + milestone_key のユニーク制約で冪等性を保証）
+  ④ milestones に記録（user_id + milestone_key のユニーク制約で冪等性を保証）
 ```
 
 ---
@@ -40,7 +40,7 @@ milestone/
 │   ├── DefaultMilestoneNotification.tsx # 未登録キーの汎用通知
 │   └── renderers/
 │       └── <名前>.tsx  # 下流のレンダラーの項目(export const renderer)
-├── entities/                        # 生成ファイル（user_milestones テーブル定義）
+├── entities/                        # 生成ファイル（milestones テーブル定義）
 └── hooks/                           # 生成ファイル（クライアント用フック）
 ```
 
@@ -145,6 +145,59 @@ evaluate: async ({ userId, payload }, tx) => {
   const pr = payload.purchaseRequest as PurchaseRequest;
   return pr.payment_amount >= 10000;
 },
+```
+
+### `user_registered`
+
+- **場所**: `auth/services/server/registration.ts` の `register()` の後段（`postRegistrationMilestones.ts` の `runPostRegistrationMilestones`）
+- **タイミング**: 本登録の守り（ID トークンの検証・メール一致・仮登録の確認）→ `registerFromAuth`（active 化）→ プロフィール・流入経路・招待コードの後、セッション発行の前に 1 回。登録の守りより前には発火しない
+- **トランザクション**: 登録とは別の 1 つの tx を開いて評価する（このトリガーの定義が無ければ開かない）。`onAchieved` に渡る `tx` で付与すれば、付与と `milestones` の記録が同時に確定する（同じ人の同時の 2 回目は記録のユニークで落ち、付与も巻き戻る）
+- **1 人 1 回**: `milestones` の `user_id + milestone_key` のユニーク。退会後の再登録など同じ `users.id` の 2 度目の本登録では、発火しても達成済みで走らない
+- **失敗時**: 定義ごとの失敗は SAVEPOINT で分離（他の定義は確定する）。評価そのもの・tx の失敗はログだけで、**登録は止めない**（登録は確定済みで巻き戻さない。巻き戻したい処理はここに置かない）
+- **結果の伝達**: 応答には載せない（`purchase_completed` の `milestone_results` のような永続化は無い）
+- **payload**（`UserRegisteredPayload`）:
+  - `user`: 本登録後の利用者（User 型）
+  - `role`: 本登録のロール
+  - `providerType`: 認証手段（`"email"` など）
+  - `inviteCode`: 招待コードの適用結果（`{ applied: true }` / `{ applied: false, reason }` / `null` = 指定なし）
+
+登録ボーナスのレシピ（金額は管理画面で変えられる setting の項目、付与は定義 1 つ）:
+
+```ts
+// 1. src/features/core/setting/fields/signupBonusCoinAmount.ts（setting の項目の受け口。書式は setting README）
+// 2. src/features/core/milestone/services/server/definitions/signupBonus.ts → pnpm extensions:generate
+import { gate } from "@/featureGate";
+import type { MilestoneDefinition } from "@/features/core/milestone/types/milestone";
+import { settingService } from "@/features/core/setting/services/server/settingService";
+import { walletService } from "@/features/core/wallet/services/server/walletService";
+
+export const milestone: MilestoneDefinition = {
+  key: "signup_bonus",
+  triggers: ["user_registered"],
+  evaluate: async () => {
+    if (!gate.enabled("wallet")) return false; // wallet を閉じている間は表が無い
+    const setting = await settingService.getGlobalSetting();
+    return (setting.signupBonusCoinAmount ?? 0) > 0;
+  },
+  onAchieved: async ({ userId, tx }) => {
+    const setting = await settingService.getGlobalSetting();
+    const amount = setting.signupBonusCoinAmount ?? 0;
+    // tx を渡す: 付与と達成の記録が同時に確定する（二重付与しない）
+    await walletService.adjustBalance(
+      {
+        userId,
+        walletType: "regular_coin",
+        changeMethod: "INCREMENT",
+        amount,
+        sourceType: "system",
+        reason: "新規登録ボーナス",
+        reasonCategory: "bonus", // 販促の付与は区分を必ず書く（集計が区分で見る）
+      },
+      tx,
+    );
+    return { amount };
+  },
+};
 ```
 
 ---

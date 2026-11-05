@@ -26,6 +26,7 @@ import { couponService } from "@/features/core/coupon/services/server/couponServ
 import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
 import { INVITE_CODE_REDEEM_SCOPE } from "@/features/core/referral/constants/inviteCodeScope";
 import { recordSignupAcquisition } from "@/features/core/userAcquisition/services/server";
+import { runPostRegistrationMilestones } from "./postRegistrationMilestones";
 import type {
   AcquisitionExtras,
   AcquisitionTouch,
@@ -206,6 +207,15 @@ export async function register(
       console.warn("[registration] 招待コード処理に失敗しましたが登録は続行します:", error);
     }
   }
+
+  // 登録後の処理（登録ボーナスなど）: milestone のトリガー user_registered を 1 回発火する。
+  // 登録の守りをすべて通った後だけ。失敗しても登録はブロックしない（throw しない）
+  await runPostRegistrationMilestones({
+    user,
+    role,
+    providerType,
+    inviteCode: inviteCodeResult,
+  });
 
   const sessionUser = SessionUserSchema.parse({
     userId: user.id,

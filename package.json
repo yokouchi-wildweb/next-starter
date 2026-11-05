@@ -133,6 +133,7 @@
     "test:form-defaults": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts",
     "test:sanitize-redirect": "npx tsx --test src/lib/url/sanitizeRedirectPath.test.mts",
     "test:server-only-stub": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test scripts/test/serverOnlyStub.test.mts",
+    "test:registration-milestone": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/postRegistrationMilestones.test.ts",
     "test:auth-verify-revoked": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/verifyIdTokenRevoked.test.ts",
     "test:firebase-client-unconfigured": "npx tsx --test src/lib/firebase/client/unconfigured.test.ts",
     "test:analytics-consent": "npx tsx --experimental-test-module-mocks --test src/lib/analyticsConsent/consent.test.ts",
