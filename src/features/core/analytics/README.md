@@ -6,6 +6,7 @@
 ## ドメインの位置づけ
 
 - core ドメイン（domain.json なし、手動管理）
+- 閉じられる機能(門番の規則 `src/featureGate/rules/analytics.ts`、今は常に開)。閉じると `/api/admin/analytics`・`/api/activity/dau`・rollup の cron が 404 で、表も push から外れる。ログイン中の DAU の記録は `useGate().enabled("analytics")` が閉なら送らない。`src/config/app/analytics.config.ts` の `enabled`(ブラウザのアクセス解析の送信)は別物で、規則は読まない
 - エンティティ: `user_daily_activities`（DAU 計測）と `analytics_daily_rollups`（日次事前集計）のみ。下流で必要に応じて追加
 - データ所有: 原則なし（wallet_histories, purchase_requests 等を参照のみ）。例外は上記2テーブル
   - `user_daily_activities`: **本ドメインが所有する一次記録（source of truth）**。イベント発生時の ingest（useDauTracker → POST /api/activity/dau）でのみ生まれ、他テーブルから再計算**できない**

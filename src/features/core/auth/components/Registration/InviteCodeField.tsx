@@ -18,6 +18,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Span } from "@/components/TextBlocks";
 import type { InviteCodeApplyState } from "@/features/core/auth/hooks/useInviteCodeValidation";
 import { INVITE_CODE_APPLIED_MESSAGE } from "@/features/core/referral/constants/inviteCodeValidation";
+import { useGate } from "@/featureGate/client";
 
 type InviteCodeFieldProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues>;
@@ -31,6 +32,9 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
   name = "inviteCode" as Path<TFieldValues>,
 }: InviteCodeFieldProps<TFieldValues>) {
   const { appliedCode, isLoading, errorMessage, apply, clear, onDraftChange } = state;
+  // 紹介の機能が閉じていれば描かない(呼び手の登録画面も useGate で確かめる。欄の中でも確かめる、L1.9)
+  const referralOpen = useGate().enabled("referral");
+  if (!referralOpen) return null;
 
   // 適用済み状態
   if (appliedCode) {

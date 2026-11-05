@@ -11,6 +11,7 @@
 //    metadata 構造が異なる下流は rewardAmountExpr を渡せば任意の式で集計できる。
 //  - 当期+前期を CASE WHEN で 1 クエリにまとめて並列実行する（既存 summary 系と同パターン）。
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { ReferralTable } from "@/features/core/referral/entities/drizzle";
@@ -100,6 +101,8 @@ export type AggregateReferralRewardCurrentVsPrevParams = {
 export async function aggregateReferralRewardCurrentVsPrev(
   params: AggregateReferralRewardCurrentVsPrevParams,
 ): Promise<{ current: number; previous: number }> {
+  // 紹介の機能が閉じている間は表が無いことがあるので 0(couponAttributionAnalytics と同じ形、L1.9)
+  if (!gate.enabled("referral")) return { current: 0, previous: 0 };
   const amountExpr = params.rewardAmountExpr ?? DEFAULT_REWARD_AMOUNT_EXPR;
 
   const isCurrentReward = sql`(${ReferralRewardTable.fulfilled_at} >= ${params.range.dateFrom.toISOString()} AND ${ReferralRewardTable.fulfilled_at} <= ${params.range.dateTo.toISOString()})`;
@@ -153,22 +156,25 @@ export async function getReferralSummary(
     ? [inArray(r.status, statuses as readonly ReferralStatus[] as [ReferralStatus, ...ReferralStatus[]])]
     : [];
 
-  // referredUserCount: User × Referral inner join、当期+前期を 1 クエリで集計
-  const referredRowsPromise = db
-    .select({
-      current: sql<number>`COUNT(DISTINCT CASE WHEN ${isCurrentUser} THEN ${u.id} END)::int`.as("current_count"),
-      previous: sql<number>`COUNT(DISTINCT CASE WHEN ${isPrevUser} THEN ${u.id} END)::int`.as("prev_count"),
-    })
-    .from(u)
-    .innerJoin(r, eq(r.invitee_user_id, u.id))
-    .where(and(
-      between(u.createdAt, prevDateFrom, range.dateTo),
-      isNull(u.deletedAt),
-      ...userTableFilters,
-      ...statusFilter,
-      // 分析の除外条件: 除外した invitee を紹介経由の数から丸ごと落とす（stock）
-      ...buildExclusionConditions(u.id, params, { kind: "stock" }),
-    ));
+  // referredUserCount: User × Referral inner join、当期+前期を 1 クエリで集計。
+  // 紹介の機能が閉じている間は表を読まず 0(報酬の合計も aggregateReferralRewardCurrentVsPrev が 0 を返す、L1.9)
+  const referredRowsPromise = !gate.enabled("referral")
+    ? Promise.resolve([{ current: 0, previous: 0 }])
+    : db
+        .select({
+          current: sql<number>`COUNT(DISTINCT CASE WHEN ${isCurrentUser} THEN ${u.id} END)::int`.as("current_count"),
+          previous: sql<number>`COUNT(DISTINCT CASE WHEN ${isPrevUser} THEN ${u.id} END)::int`.as("prev_count"),
+        })
+        .from(u)
+        .innerJoin(r, eq(r.invitee_user_id, u.id))
+        .where(and(
+          between(u.createdAt, prevDateFrom, range.dateTo),
+          isNull(u.deletedAt),
+          ...userTableFilters,
+          ...statusFilter,
+          // 分析の除外条件: 除外した invitee を紹介経由の数から丸ごと落とす（stock）
+          ...buildExclusionConditions(u.id, params, { kind: "stock" }),
+        ));
 
   // rewardTotal: 共通ヘルパーで当期+前期を 1 クエリ集計 (coinIssuance と同一ロジック)
   const rewardTotalsPromise = aggregateReferralRewardCurrentVsPrev({

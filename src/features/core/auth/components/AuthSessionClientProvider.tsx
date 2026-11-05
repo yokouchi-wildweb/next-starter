@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { useFirebaseAuthSync } from "@/features/core/auth/hooks/useFirebaseAuthSync";
 import { useDauTracker } from "@/features/core/analytics/hooks/useDauTracker";
+import { useGate } from "@/featureGate/client";
 // このコンポーネントはセッション状態の持ち主(Context の提供元)で、refreshSession はその状態更新そのもの
 // (フック層に相当する)。利用側は useAuthSession / useSessionRefresh 経由で呼ぶので、例外として直接呼ぶ
 // eslint-disable-next-line client-service-boundary/no-direct-import
@@ -25,8 +26,9 @@ export function AuthSessionClientProvider({ initialUser, children }: AuthSession
   // Firebase Auth とローカルセッションの同期を維持する。
   useFirebaseAuthSync(user);
 
-  // DAU（日次アクティブユーザー）を記録する（1日1回）。
-  useDauTracker(user);
+  // DAU（日次アクティブユーザー）を記録する（1日1回）。分析の機能が閉じていれば記録しない（null を渡すと何もしない）
+  const dauOpen = useGate().enabled("analytics");
+  useDauTracker(dauOpen ? user : null);
 
   const refreshSession = useCallback(async () => {
     try {

@@ -7,6 +7,7 @@ import { rule as rules_adminChatRooms } from "@/featureGate/rules/adminChatRooms
 import { rule as rules_adminDemoUsers } from "@/featureGate/rules/adminDemoUsers";
 import { rule as rules_adminNotificationTemplates } from "@/featureGate/rules/adminNotificationTemplates";
 import { rule as rules_adminTabsDemo } from "@/featureGate/rules/adminTabsDemo";
+import { rule as rules_analytics } from "@/featureGate/rules/analytics";
 import { rule as rules_bankTransferReview } from "@/featureGate/rules/bankTransferReview";
 import { rule as rules_coupon } from "@/featureGate/rules/coupon";
 import { rule as rules_demoLogin } from "@/featureGate/rules/demoLogin";
@@ -37,7 +38,7 @@ import { rule as rules_userTag } from "@/featureGate/rules/userTag";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "bankTransferReview" | "coupon" | "demoLogin" | "demoPages" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userTag" | "wallet" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "analytics" | "bankTransferReview" | "coupon" | "demoLogin" | "demoPages" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userTag" | "wallet" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GatedFeatureRule[] = [
@@ -45,6 +46,7 @@ export const rules: GatedFeatureRule[] = [
   { ...rules_adminDemoUsers, name: "adminDemoUsers", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_adminNotificationTemplates, name: "adminNotificationTemplates", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_adminTabsDemo, name: "adminTabsDemo", tables: [], domainApiPaths: [], settingPaths: [] },
+  { ...rules_analytics, name: "analytics", tables: ["user_daily_activities", "analytics_daily_rollups"], domainApiPaths: [], settingPaths: [] },
   { ...rules_bankTransferReview, name: "bankTransferReview", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_coupon, name: "coupon", tables: ["coupons", "coupon_histories", "coupon_attribution_rewards", "coupon_issuer_grants"], domainApiPaths: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"], settingPaths: [], pathPatterns: [...rules_coupon.pathPatterns, "/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"] },
   { ...rules_demoLogin, name: "demoLogin", tables: [], domainApiPaths: [], settingPaths: [] },
@@ -68,7 +70,7 @@ export const rules: GatedFeatureRule[] = [
   { ...rules_pairedDevice, name: "pairedDevice", tables: ["paired_devices", "device_pairings"], domainApiPaths: ["/api/pairedDevice"], settingPaths: [], pathPatterns: [...rules_pairedDevice.pathPatterns, "/api/pairedDevice"] },
   { ...rules_pause, name: "pause", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_payment, name: "payment", tables: ["purchase_requests", "bank_transfer_reviews", "purchase_quota_ledger"], domainApiPaths: ["/api/purchaseRequest", "/api/bankTransferReview"], settingPaths: [], pathPatterns: [...rules_payment.pathPatterns, "/api/purchaseRequest", "/api/bankTransferReview"] },
-  { ...rules_referral, name: "referral", tables: [], domainApiPaths: [], settingPaths: [] },
+  { ...rules_referral, name: "referral", tables: ["referrals", "referral_rewards"], domainApiPaths: ["/api/referral", "/api/referralReward"], settingPaths: [], pathPatterns: [...rules_referral.pathPatterns, "/api/referral", "/api/referralReward"] },
   { ...rules_sampleDomain, name: "sampleDomain", tables: ["samples", "sample_to_sample_tag", "sample_categories", "sample_tags", "sample_images"], domainApiPaths: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"], settingPaths: [], pathPatterns: [...rules_sampleDomain.pathPatterns, "/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"] },
   { ...rules_signup, name: "signup", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_userTag, name: "userTag", tables: [], domainApiPaths: [], settingPaths: [] },

@@ -49,6 +49,9 @@ const FEATURES_DIR = join(ROOT, "src/features");
 
 // 対象ドメインを import するが、意図的にゲートで閉じないルート（src/app 相対 → 理由）。upstream のルート用
 const ROUTE_EXCEPTIONS = {
+  "api/auth/register/route.ts": "本登録(紹介が閉でも登録は動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ読む",
+  "api/auth/send-early-registration-link/route.ts": "事前登録のメール(紹介が閉でも動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ渡す",
+  "api/auth/send-email-link/route.ts": "サインインのメール(紹介が閉でも動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ渡す",
   "(user)/_layout/UserLayout.tsx": "利用者の枠(常に描く)。既定の未読のお知らせのモーダルは useGate().enabled(\"notification\") が開のときだけ描く(閉なら描かず未読数も取りに行かない)",
 };
 
@@ -302,6 +305,7 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
     notificationTemplate: ["/api/notificationTemplate"],
     pairedDevice: ["/api/pairedDevice"],
     payment: ["/api/purchaseRequest", "/api/bankTransferReview"],
+    referral: ["/api/referral", "/api/referralReward"],
     sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
     wallet: ["/api/wallet", "/api/walletHistory"],
   });
@@ -316,6 +320,8 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
 const ALWAYS_ON_EXCEPTIONS = {
   "src/wiring/apiRoute.ts":
     "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
+  "src/proxies/inviteLink.ts":
+    "proxy の項目。読むのは referral の lib/inviteLinkCookie(edge で動く cookie 名と URL の読み取りだけ、表に届かない)。処理は先頭の gate.enabled(\"referral\") で閉じる",
 };
 
 test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は住所が規則の pathPatterns に入る、alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {

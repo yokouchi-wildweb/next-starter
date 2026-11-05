@@ -12,11 +12,12 @@
 
 import { gate } from "@/featureGate";
 import { registerPurchaseDiscountHandler } from "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
+import { registerReferralCouponHandler } from "@/features/core/referral/services/server/coupon/referralHandler";
 
 // === ハンドラー登録（消費側ドメインが追加時にここにimportを追加） ===
 
-// 招待リファラル
-import "@/features/core/referral/services/server/coupon/referralHandler";
+// 招待リファラル（紹介との付け足しの連携。紹介が閉じていればカテゴリを登録しない）
+if (gate.enabled("referral")) registerReferralCouponHandler();
 
 // 購入割引（決済との付け足しの連携。決済が閉じていればカテゴリを登録しない）
 if (gate.enabled("payment")) registerPurchaseDiscountHandler();

@@ -4,6 +4,8 @@
 
 招待コードの発行・使用は **coupon ドメイン**（type=invite）を利用し、本ドメインは紹介「関係」の管理に特化する。
 
+閉じられる機能(門番の規則 `src/featureGate/rules/referral.ts`、`APP_FEATURES.marketing.referral.enabled`)。表 `referrals`・`referral_rewards` も閉じる(features)。前提 `requires: ["coupon"]`。閉じたときの呼び手: 招待コードのカテゴリをクーポンに登録しない(`registerReferralCouponHandler`)・登録画面の招待コードの欄を描かない・紹介の集計(analytics)は 0・招待クーポンの管理画面 `/admin/coupons/invite` は 404。
+
 ---
 
 ## データモデル
