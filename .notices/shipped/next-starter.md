@@ -285,3 +285,4 @@
 - id:20261105-121534-wallet-balance-series | severity:info | checkpoint:wallet-balance-series | resolves:20261101-180140-wallet-balance-series-multi-type
 - id:20261105-122620-media-upload-failure-blocks-submit | severity:action-required | checkpoint:media-upload-failure-blocks-submit
 - id:20261105-123320-coin-issuance-ledger-source | severity:action-required | checkpoint:coin-issuance-ledger-source
+- id:20261105-125702-mid-tier-lineage-downstream | severity:action-required | checkpoint:mid-tier-lineage-downstream
