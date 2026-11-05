@@ -61,14 +61,14 @@ src/app/(user)/_layout/
 
 | 変数 | 値 | 書く所 |
 |------|----|--------|
-| `--app-header-height` | ヘッダー(`#header`)の実測の高さ | UserLayout・AdminLayout の外枠の inline |
+| `--app-header-height` | ヘッダー(`[data-slot="header"]` / `[data-slot="admin-header"]`、id は一時の橋)の高さ。初期値 = 今の行の高さ(外枠ごと・端末ごと、測る前の最初の表示とページを移る間に使う)、測った値が上書きする。枠の宣言で隠している端末は 0px | 初期値と隠す間の 0 は `src/styles/_base/frame.css`、測った値は UserLayout・AdminLayout の外枠の inline(`useHeaderHeight()` が値を返した時だけ) |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
 | `--app-bottom-nav-height` | `calc(BOTTOM_NAV_HEIGHT px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`BOTTOM_NAV_HEIGHT` は `src/config/ui/user-bottom-menu.config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
 | `--app-safe-area-top/right/bottom/left` | 端末の切り欠き(CSS の env() の safe-area-inset-*、無ければ 0px)。env() を直接書くのはこの定義だけ | `src/styles/core/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/core/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
 - 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので fork の CSS(`src/styles/` 直下)からは上書きできない
-- `--app-header-height` は実測なので、枠の宣言でヘッダーを隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は隠す対象外
+- `--app-header-height` は枠の宣言でヘッダーを隠すと測る前から 0(frame.css)、測った後も display: none で 0 に追随する。`--app-banner-height` は隠す対象外
 - BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav 本体の高さ(`style` の height)も同じ計算(`calc(<px> + var(--app-safe-area-bottom))`、safe-area は padding-bottom で避ける)。変数が safe-area を含むので、使う側で safe-area を足さない
 - body 直下へ portal する部品(GlobalToast・fork の BodyPortal の部品)は外枠の変数を継げない(:root の 0px になる) → `useFrameDimsStyle()`(`@/hooks/useFrameDimsStyle`)の style を portal した一番外の要素に付け、中は外枠の中と同じく `var(--app-bottom-nav-height)` などで書く。値は外枠 `[data-frame-root]` の計算値(header / banner / bottom-nav。隠している間・出さないデバイスでは 0)で、表示中の切り替えと画面幅の変化にも追随する。外枠を自分で読まない。GlobalToast もこれを使う
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:calc(64px + var(--app-safe-area-bottom))`(safe-area の無い端末では 64px と同じ)。banner が無い時の Header の計算値・見た目は同じ

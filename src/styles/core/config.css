@@ -40,6 +40,8 @@
    * --app-header-height / --app-banner-height / --app-bottom-nav-height は
    * UserLayout・AdminLayout が外枠の inline style で実値（実測値または config の値）を書き、
    * ここは「書かれない時の 0」だけを持つ。inline が勝つので fork の CSS(src/styles/ 直下)から上書きしても効かない。
+   *   --app-header-height    : 枠の外の 0。枠の外枠には frame.css が外枠ごと・端末ごとの初期値(今の行の高さ)を置き、
+   *                            useHeaderHeight が測った値を外枠の inline で上書きする(測る前・ページを移る間も 0 にならない)
    *   --app-banner-height    : UserLayout の banner slot の実測の高さ（banner がない時は 0）
    *   --app-bottom-nav-height: 既定のボトムナビが有効な時の BOTTOM_NAV_HEIGHT（config/ui/user-bottom-menu.config.ts）。
    *                            ルートの宣言(frame.ts)で隠している間は
