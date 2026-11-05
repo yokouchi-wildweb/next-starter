@@ -301,3 +301,4 @@
 - id:20261105-183811-flux-side-commit-segment | severity:info | checkpoint:flux-side-commit-segment
 - id:20261105-182849-fieldtype-registry-display-pick | severity:info | checkpoint:fieldtype-registry-display-pick | fixes:20261029-174708-fieldtype-shared-table | pick:clean
 - id:20261105-183459-coin-issuance-breakdown | severity:info | checkpoint:coin-issuance-breakdown | resolves:20261101-133024-fix-coin-issuance-double-count
+- id:20261105-190935-establish-session | severity:action-required | checkpoint:establish-session

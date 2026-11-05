@@ -9,10 +9,7 @@ import {
   type UserRoleType,
 } from "@/features/core/user/constants";
 import { RegistrationSchema } from "@/features/core/auth/entities";
-import {
-  SessionUserSchema,
-  type SessionUser,
-} from "@/features/core/auth/entities/session";
+import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { User } from "@/features/core/user/entities";
 import { userService } from "@/features/core/user/services/server/userService";
 import { registerFromAuth } from "@/features/core/user/services/server/registration";
@@ -20,7 +17,7 @@ import { userProfileService } from "@/features/core/userProfile/services/server/
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { gate } from "@/featureGate";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
@@ -31,6 +28,7 @@ import type {
   AcquisitionExtras,
   AcquisitionTouch,
 } from "@/features/core/userAcquisition/entities/model";
+import { issueSessionToken } from "./session/sessionToken";
 
 export type RegistrationInput = z.infer<typeof RegistrationSchema>;
 
@@ -217,28 +215,9 @@ export async function register(
     inviteCode: inviteCodeResult,
   });
 
-  const sessionUser = SessionUserSchema.parse({
-    userId: user.id,
-    role: user.role,
-    status: user.status,
-    isDemo: user.isDemo,
-    providerType: user.providerType,
-    providerUid: user.providerUid,
-    name: user.name,
-  });
-
-  const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
-  const { token, expiresAt } = await signUserToken({
-    subject: sessionUser.userId,
-    claims: {
-      role: sessionUser.role,
-      status: sessionUser.status,
-      isDemo: sessionUser.isDemo,
-      providerType: sessionUser.providerType,
-      providerUid: sessionUser.providerUid,
-      name: sessionUser.name,
-    },
-    options: { maxAge },
+  // セッションに格納する情報を組み立ててトークンを署名する(通常の maxAge)。establishSession と同じ部品
+  const { sessionUser, token, expiresAt, maxAge } = await issueSessionToken(user, {
+    maxAge: SESSION_DEFAULT_MAX_AGE_SECONDS,
   });
 
   return {

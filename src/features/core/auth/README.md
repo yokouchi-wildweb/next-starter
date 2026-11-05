@@ -69,6 +69,28 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 - `getTokenOnlySession` は JWT クレームのみ（DB を引かない stale な値）。監査ログの actor 抽出やデモ判定など、**認可と無関係な高頻度処理専用**。認可には使わない
 - JWT の署名・検証・Cookie 抽出の汎用部分は [lib/jwt](../../../lib/jwt/README.md)
 
+### セッションを出す口（establishSession）
+
+新しい認証手段（fork の LINE ログインなど）の route は、身元を確かめて DB の利用者の行を引いた後に `establishSession` だけを呼ぶ。状態の分岐・`SessionUser`・署名・Cookie を写さない（守りの写しは禁止）。
+
+```ts
+import { establishSession } from "@/features/core/auth/services/server/session/establishSession";
+
+const response = NextResponse.json({ ok: true });
+const { sessionUser, requiresReactivation, expiresAt } = await establishSession({
+  cookies: response.cookies, // 応答の Cookie
+  user,                      // DB の現在値の行（{ id, role, status, isDemo, providerType, providerUid, name }）
+  ip,                        // ログインの記録に残す IP（省略可）
+});
+```
+
+- 順番（変えない）: ① 状態の分岐 `assertSessionStatus`（`security_locked` / `pending` / `withdrawn` は 403、`inactive` は `requiresReactivation: true`、`suspended` / `banned` はセッションを出して画面が `/restricted` へ）→ ② `userService.updateLastAuthenticated`（最終ログイン・`metadata.loginHistory`・`user_login_events`・ロックアウトの数の解除）→ ③ `issueSessionToken`（`SessionUser` を組み立てて署名。既定の maxAge は `isDemo` でデモの短い時間 / 通常）→ ④ `issueSessionCookie`
+- 拒否（403）なら何も書かない（最終ログインも Cookie も）。Cookie は分岐を通った後でしか出ないので迂回できない
+- 退会者（`withdrawn`）は 403 = 上流の既定（戻るには仮登録 → 本登録の再登録の道）。さらに拒否の条件を足すのは fork の呼び手（`establishSession` の前で）
+- 部品 2 つ（`services/server/session/sessionToken.ts`）: `assertSessionStatus(user)` と `issueSessionToken(user, { maxAge? })`。上流のログイン 5 か所（`firebaseSession`・`localLogin`・`demoLogin`・`registration`・`refreshSessionCookie`）もこれを使う（route が Cookie を書く形のため、route と service の戻り値は変えていない）。ローカルログインの状態の分岐は失敗の記録とロックアウトを伴う別の物
+- メール / OAuth のログイン（`createFirebaseSession`）も最終ログインの更新は `updateLastAuthenticated`（他のログインと同じ。`user_login_events` に行が残り、成功でパスワードのロックアウトの数が消える）
+- テスト: `pnpm test:establish-session`
+
 ## ページの認可（proxy → 範囲の guard.ts → loader の access）
 
 ```

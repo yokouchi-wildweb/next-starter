@@ -4,17 +4,16 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
-import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { MAX_LOGIN_HISTORY } from "@/features/core/user/entities/model";
-import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
-import { base as userBase } from "@/features/core/user/services/server/drizzleBase";
+import { userService } from "@/features/core/user/services/server/userService";
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+
+import { assertSessionStatus, issueSessionToken } from "./session/sessionToken";
 
 export type FirebaseSessionInput = z.infer<typeof FirebaseSessionSchema>;
 
@@ -86,76 +85,16 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     throw new DomainError("ユーザー情報が見つかりません", { status: 404 });
   }
 
-  // security_locked はログイン自体をブロックする（不正試行対策）
-  if (user.status === "security_locked") {
-    throw new DomainError("アカウントがロックされています。", { status: 403 });
-  }
+  // 状態の分岐(security_locked・pending・withdrawn は 403。inactive は復帰フラグを立ててセッション発行、
+  // suspended・banned はセッション発行後に /restricted へ誘導)。establishSession と同じ部品
+  const { requiresReactivation } = assertSessionStatus(user);
 
-  // pending, withdrawn は利用不可
-  if (user.status === "pending" || user.status === "withdrawn") {
-    throw new DomainError("このアカウントは利用できません", { status: 403 });
-  }
+  // 最終ログインを更新する(ログインの記録 user_login_events と、成功によるロックアウトの数の解除も。他のログインと同じ)
+  await userService.updateLastAuthenticated(user.id, { ip });
 
-  // inactive は復帰フラグを立ててセッション発行
-  // suspended, banned はセッション発行後に /restricted へ誘導
-  const requiresReactivation = user.status === "inactive";
-
-  // 認証成功時点を記録し、利用履歴を更新する。
-  const now = new Date();
-
-  // IPアドレスがある場合はログイン履歴も更新
-  if (ip) {
-    const currentMetadata = (user.metadata ?? {}) as UserMetadata;
-    const newRecord: UserLoginRecord = {
-      ip,
-      at: now.toISOString(),
-    };
-    const newLoginHistory = [
-      newRecord,
-      ...(currentMetadata.loginHistory ?? []).slice(0, MAX_LOGIN_HISTORY - 1),
-    ];
-
-    await db
-      .update(UserTable)
-      .set({
-        lastAuthenticatedAt: now,
-        updatedAt: now,
-        metadata: { ...currentMetadata, loginHistory: newLoginHistory },
-      })
-      .where(eq(UserTable.id, user.id));
-  } else {
-    await db
-      .update(UserTable)
-      // Firebase ログインであっても lastAuthenticatedAt を更新して整合性を保つ。
-      .set({ lastAuthenticatedAt: now, updatedAt: now })
-      .where(eq(UserTable.id, user.id));
-  }
-  userBase.invalidateRequestMemo();
-
-  // セッションで扱うユーザー情報をスキーマで正規化する。
-  const sessionUser = SessionUserSchema.parse({
-    userId: user.id,
-    role: user.role,
-    status: user.status,
-    isDemo: user.isDemo,
-    providerType: user.providerType,
-    providerUid: user.providerUid,
-    name: user.name,
-  });
-
-  // JWT の期限を設定してトークンを署名する。
-  const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
-  const { token, expiresAt } = await signUserToken({
-    subject: sessionUser.userId,
-    claims: {
-      role: sessionUser.role,
-      status: sessionUser.status,
-      isDemo: sessionUser.isDemo,
-      providerType: sessionUser.providerType,
-      providerUid: sessionUser.providerUid,
-      name: sessionUser.name,
-    },
-    options: { maxAge },
+  // セッションで扱うユーザー情報を組み立ててトークンを署名する(通常の maxAge)
+  const { sessionUser, token, expiresAt, maxAge } = await issueSessionToken(user, {
+    maxAge: SESSION_DEFAULT_MAX_AGE_SECONDS,
   });
 
   // 呼び出し元へユーザー情報と新しいセッションを返す。

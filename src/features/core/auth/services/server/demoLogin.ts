@@ -1,13 +1,12 @@
 // src/features/core/auth/services/server/demoLogin.ts
 
-import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
 import { createGuestDemoUser } from "@/features/core/user/services/server/creation/createGuestDemoUser";
 import { demoModeConfig } from "@/config/app/demo-mode.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { signUserToken } from "@/lib/jwt";
 import { onDemoUserCreated } from "./onDemoUserCreated";
+import { issueSessionToken } from "./session/sessionToken";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;
@@ -57,30 +56,9 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
   // 最終認証日時を更新
   await userService.updateLastAuthenticated(user.id, { ip });
 
-  // セッションに格納する情報をスキーマで整形
-  const sessionUser = SessionUserSchema.parse({
-    userId: user.id,
-    role: user.role,
-    status: user.status,
-    isDemo: user.isDemo,
-    providerType: user.providerType,
-    providerUid: user.providerUid,
-    name: user.name,
-  });
-
-  // JWT の存続期間を定義し、トークンを署名（デモユーザーは短いセッション時間）
-  const maxAge = APP_FEATURES.auth.session.demoMaxAgeSeconds;
-  const { token, expiresAt } = await signUserToken({
-    subject: sessionUser.userId,
-    claims: {
-      role: sessionUser.role,
-      status: sessionUser.status,
-      isDemo: sessionUser.isDemo,
-      providerType: sessionUser.providerType,
-      providerUid: sessionUser.providerUid,
-      name: sessionUser.name,
-    },
-    options: { maxAge },
+  // セッションに格納する情報を組み立ててトークンを署名する(デモユーザーは短いセッション時間)。establishSession と同じ部品
+  const { sessionUser, token, expiresAt, maxAge } = await issueSessionToken(user, {
+    maxAge: APP_FEATURES.auth.session.demoMaxAgeSeconds,
   });
 
   return {

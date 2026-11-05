@@ -7,12 +7,10 @@ import { SessionUserSchema, TokenPayloadSchema } from "@/features/core/auth/enti
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { findUserById } from "@/features/core/user/services/server/finders/findUserById";
 import {
-  SESSION_DEFAULT_MAX_AGE_SECONDS,
-  signUserToken,
   verifyUserToken,
   type SessionTokenClaims,
 } from "@/lib/jwt";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { issueSessionToken } from "./sessionToken";
 
 // JWT クレームを Auth ドメインのセッション情報として扱うためのユーティリティ群。
 //
@@ -196,20 +194,15 @@ export async function refreshSessionCookie(
   cookiesStore: ResponseCookies,
   user: SessionUser,
 ): Promise<{ expiresAt: Date }> {
-  const maxAge = user.isDemo
-    ? APP_FEATURES.auth.session.demoMaxAgeSeconds
-    : SESSION_DEFAULT_MAX_AGE_SECONDS;
-  const { token, expiresAt } = await signUserToken({
-    subject: user.userId,
-    claims: {
-      role: user.role,
-      status: user.status,
-      isDemo: user.isDemo,
-      providerType: user.providerType,
-      providerUid: user.providerUid,
-      name: user.name,
-    },
-    options: { maxAge },
+  // SessionUser からトークンを署名する(isDemo ならデモの短い時間)。establishSession と同じ部品
+  const { token, expiresAt, maxAge } = await issueSessionToken({
+    id: user.userId,
+    role: user.role,
+    status: user.status,
+    isDemo: user.isDemo,
+    providerType: user.providerType,
+    providerUid: user.providerUid,
+    name: user.name ?? null,
   });
 
   issueSessionCookie({

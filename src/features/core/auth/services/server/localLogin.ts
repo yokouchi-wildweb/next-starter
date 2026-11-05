@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 
-import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/features/core/user/services/server/userService";
@@ -12,9 +11,10 @@ import { recordLoginFailure } from "./loginAudit";
 import { invalidateSessionsForUser } from "./sessionInvalidation";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { User } from "@/features/core/user/entities";
 import { getRoleCategory } from "@/features/core/user/constants";
+import { issueSessionToken } from "./session/sessionToken";
 
 export type LocalLoginInput = z.infer<typeof LocalLoginSchema> & {
   ip?: string;
@@ -170,33 +170,12 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   // 最終認証日時を更新する (ロックアウト関連カウンタも併せてクリアされる)。
   await userService.updateLastAuthenticated(user.id, { ip });
 
-  // セッションに格納する情報をスキーマで整形し、不正値混入を防ぐ。
-  const sessionUser = SessionUserSchema.parse({
-    userId: user.id,
-    role: user.role,
-    status: user.status,
-    isDemo: user.isDemo,
-    providerType: user.providerType,
-    providerUid: user.providerUid,
-    name: user.name,
-  });
-
   // inactive の場合は復帰フラグを立てる
   const requiresReactivation = user.status === "inactive";
 
-  // JWT の存続期間を定義し、トークンを署名する。
-  const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
-  const { token, expiresAt } = await signUserToken({
-    subject: sessionUser.userId,
-    claims: {
-      role: sessionUser.role,
-      status: sessionUser.status,
-      isDemo: sessionUser.isDemo,
-      providerType: sessionUser.providerType,
-      providerUid: sessionUser.providerUid,
-      name: sessionUser.name,
-    },
-    options: { maxAge },
+  // セッションに格納する情報を組み立ててトークンを署名する(通常の maxAge)。establishSession と同じ部品
+  const { sessionUser, token, expiresAt, maxAge } = await issueSessionToken(user, {
+    maxAge: SESSION_DEFAULT_MAX_AGE_SECONDS,
   });
 
   // Firebase Storage のセキュリティルールで認証を通すためのカスタムトークンを生成する。

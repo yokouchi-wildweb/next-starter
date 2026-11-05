@@ -141,6 +141,7 @@
     "test:sanitize-redirect": "npx tsx --test src/lib/url/sanitizeRedirectPath.test.mts",
     "test:server-only-stub": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test scripts/test/serverOnlyStub.test.mts",
     "test:registration-milestone": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/postRegistrationMilestones.test.ts",
+    "test:establish-session": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/session/establishSession.test.ts src/features/core/auth/services/server/firebaseSession.lastAuth.test.ts",
     "test:auth-verify-revoked": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/verifyIdTokenRevoked.test.ts",
     "test:firebase-client-unconfigured": "npx tsx --test src/lib/firebase/client/unconfigured.test.ts",
     "test:analytics-exclusion": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/analytics/services/server/exclusion/exclusion.test.ts",
