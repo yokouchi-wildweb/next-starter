@@ -176,7 +176,7 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
   if (isTier1) assert.deepEqual(webhookHandlers, []);
 });
 
-test("タスクの走査: 上流の 8 本、名前の一致と読み込み", async () => {
+test("タスクの走査: 上流の 9 本、名前の一致と読み込み", async () => {
   const tasks = listOneShotTasks(ROOT);
   assertUpstreamItems(tasks.map((t) => t.name), [
     "analytics-rollup-backfill",
@@ -187,6 +187,7 @@ test("タスクの走査: 上流の 8 本、名前の一致と読み込み", asy
     "user-status-history-backfill",
     "wallet-lots-init",
     "wallet-lots-init-from-history",
+    "wallet-reason-key-backfill",
   ]);
   for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
 });

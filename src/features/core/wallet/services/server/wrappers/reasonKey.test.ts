@@ -115,3 +115,42 @@ test("上流のコード: requiresKey の区分(bonus)を書くファイルは r
     });
   assert.deepEqual(offenders, []);
 });
+
+// 過去の行を埋める規則(walletHistory/services/server/reasonKeyBackfill.ts)
+test("埋める規則: 未登録・重複・パターンなしは例外、fromCategories の既定は種類の区分", async () => {
+  const bf = await import("@/features/core/walletHistory/services/server/reasonKeyBackfill");
+  const lookup = (key: string) =>
+    ({ rank_bonus: { key: "rank_bonus", label: "ランク", category: "bonus" as const } })[key as "rank_bonus"];
+  assert.deepEqual(bf.resolveBackfillRules([{ key: "rank_bonus", reasonPatterns: ["ランク%"] }], lookup)[0]?.fromCategories, ["bonus"]);
+  assert.deepEqual(
+    bf.resolveBackfillRules([{ key: "rank_bonus", reasonPatterns: ["ランク%"], fromCategories: ["bonus", "other"] }], lookup)[0]?.fromCategories,
+    ["bonus", "other"],
+  );
+  assert.throws(() => bf.resolveBackfillRules([{ key: "nope", reasonPatterns: ["%"] }], lookup), /登録されていません/);
+  assert.throws(
+    () => bf.resolveBackfillRules([{ key: "rank_bonus", reasonPatterns: ["a%"] }, { key: "rank_bonus", reasonPatterns: ["b%"] }], lookup),
+    /2 つあります/,
+  );
+  assert.throws(() => bf.resolveBackfillRules([{ key: "rank_bonus", reasonPatterns: [] }], lookup), /空です/);
+});
+
+test("埋める規則: 一致の条件は reason_key IS NULL・区分・LIKE(NULL の reason は明示したときだけ)", async () => {
+  const bf = await import("@/features/core/walletHistory/services/server/reasonKeyBackfill");
+  const { PgDialect } = await import("drizzle-orm/pg-core");
+  const dialect = new PgDialect();
+  const q = dialect.sqlToQuery(bf.backfillMatchCondition({ key: "rank_bonus", reasonPatterns: ["ランク%", "rank:%"] }, ["bonus"]));
+  assert.match(q.sql, /"wallet_histories"\."reason_key" is null/);
+  assert.match(q.sql, /"wallet_histories"\."reason_category" in \(\$1\)/);
+  assert.match(q.sql, /"wallet_histories"\."reason" like \$2 or "wallet_histories"\."reason" like \$3/);
+  assert.deepEqual(q.params, ["bonus", "ランク%", "rank:%"]);
+  const withNull = dialect.sqlToQuery(
+    bf.backfillMatchCondition({ key: "admin_adjustment", reasonPatterns: ["%"], includeNullReason: true }, ["admin_adjustment"]),
+  );
+  assert.match(withNull.sql, /"wallet_histories"\."reason" is null/);
+});
+
+test("上流の埋める規則の種類はどれも登録済み", async () => {
+  const bf = await import("@/features/core/walletHistory/services/server/reasonKeyBackfill");
+  assert.doesNotThrow(() => bf.resolveBackfillRules(bf.UPSTREAM_REASON_KEY_BACKFILL_RULES));
+  assert.deepEqual(bf.UPSTREAM_REASON_KEY_BACKFILL_RULES.map((r) => r.key), ["coupon_attribution_reward", "admin_adjustment"]);
+});

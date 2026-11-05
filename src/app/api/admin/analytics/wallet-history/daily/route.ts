@@ -3,7 +3,7 @@
 import { createApiRoute } from "@/wiring/apiRoute";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import { getWalletHistoryDaily } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
+import { getWalletHistoryDaily, type WalletHistoryGroupBy } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
 
 export const GET = createApiRoute(
   {
@@ -19,7 +19,7 @@ export const GET = createApiRoute(
       ...parseUserFilterParams(searchParams),
       userId: searchParams.get("userId") ?? undefined,
       walletType: searchParams.get("walletType") ?? undefined,
-      groupBy: (searchParams.get("groupBy") as "reasonCategory" | "sourceType" | "changeMethod") ?? undefined,
+      groupBy: (searchParams.get("groupBy") as WalletHistoryGroupBy | null) ?? undefined,
       reasonCategories: searchParams.get("reasonCategories") ?? undefined,
     });
   },

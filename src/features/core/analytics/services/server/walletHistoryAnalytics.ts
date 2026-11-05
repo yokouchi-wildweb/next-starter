@@ -52,7 +52,7 @@ type WalletHistorySummaryData = {
 
 export type WalletHistoryDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter & {
   /** 内訳の軸（デフォルト: "reasonCategory"） */
-  groupBy?: "reasonCategory" | "sourceType" | "changeMethod";
+  groupBy?: WalletHistoryGroupBy;
   /** カテゴリフィルタ（CSV） */
   reasonCategories?: string;
 };
@@ -67,6 +67,12 @@ type WalletBalanceDailyData = {
   /** その日のレコード数 */
   recordCount: number;
 };
+
+/** 日別の内訳の軸(reasonKey = 付与の種類。種類の無い行は "unkeyed") */
+export type WalletHistoryGroupBy = "reasonCategory" | "sourceType" | "changeMethod" | "reasonKey";
+
+/** groupBy "reasonKey" で種類の無い行の鍵 */
+export const UNKEYED_GROUP_KEY = "unkeyed";
 
 export type WalletBalanceDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter;
 
@@ -444,11 +450,14 @@ function toRunningBalances(
 // ============================================================================
 
 /** groupByフィールドから対応するカラムを返す */
-function resolveGroupColumn(groupByField: "reasonCategory" | "sourceType" | "changeMethod") {
+function resolveGroupColumn(groupByField: WalletHistoryGroupBy): SQL {
   switch (groupByField) {
-    case "reasonCategory": return t.reason_category;
-    case "sourceType": return t.source_type;
-    case "changeMethod": return t.change_method;
+    case "reasonCategory": return sql`${t.reason_category}`;
+    case "sourceType": return sql`${t.source_type}`;
+    case "changeMethod": return sql`${t.change_method}`;
+    // 付与の種類。種類の無い行は "unkeyed" の鍵にまとめる(breakdown の鍵は文字列)。
+    // 定数は SQL に埋める: パラメータにすると SELECT と GROUP BY が別の式($n)になり Postgres が同じ式と見なさない
+    case "reasonKey": return sql`COALESCE(${t.reason_key}, ${sql.raw(`'${UNKEYED_GROUP_KEY}'`)})`;
   }
 }
 

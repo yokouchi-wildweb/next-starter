@@ -20,6 +20,9 @@
 //   導入前に書かれた行は全部 other で埋まっている。上流の既定は other を数えないので混ざらないが、
 //   other に印を付けた fork では導入前の期間の値は信用できない(ガチャ・調整・退会の残高クリアが混ざり純額が負になり得る)。
 //
+// 内訳(breakdown、表示だけ): reason_key(付与の種類、walletHistory/reasonKeys)ごとの行。同じクエリの GROUP BY で取り、
+//   合計は行の和(= 今までの式と同じ値)。種類の無い行は key: null の「未分類」。並び = 種類の sortOrder → 未分類は最後。
+//
 // 期間判定: wallet_histories.created_at
 // UserFilter・分析の除外: wallet_histories.user_id に buildUserFilterConditions(flow の scope、source wallet_histories)
 
@@ -29,9 +32,11 @@ import { COIN_ISSUANCE_WALLET_TYPES } from "@/config/app/coin-issuance.config";
 import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
+import { getWalletReasonKey } from "@/features/core/walletHistory/utils/reasonKey";
 
 import { buildUserFilterConditions } from "../../utils/userFilter";
 import { issuanceReasonCategories } from "../issuanceCategories";
+import { toReasonKeyBreakdown } from "../reasonKeyBreakdown";
 import type { CoinIssuanceSource } from "../types";
 
 const t = WalletHistoryTable;
@@ -45,16 +50,17 @@ export const source: CoinIssuanceSource = {
   async aggregate({ range, prevRange, userFilter }) {
     const categories = issuanceReasonCategories();
     if (categories.length === 0 || COIN_ISSUANCE_WALLET_TYPES.length === 0) {
-      return { current: 0, previous: 0 };
+      return { current: 0, previous: 0, breakdown: [] };
     }
 
     const delta = sql`(${t.balance_after} - ${t.balance_before})`;
     const isCurrent = sql`(${t.createdAt} >= ${range.dateFrom.toISOString()} AND ${t.createdAt} <= ${range.dateTo.toISOString()})`;
     const isPrev = sql`(${t.createdAt} >= ${prevRange.dateFrom.toISOString()} AND ${t.createdAt} <= ${prevRange.dateTo.toISOString()})`;
 
-    // 当期+前期を CASE WHEN で 1 クエリ集計
+    // 当期+前期を CASE WHEN で 1 クエリ集計(付与の種類ごと)
     const rows = await db
       .select({
+        key: t.reason_key,
         current: sql<number>`COALESCE(SUM(CASE WHEN ${isCurrent} THEN ${delta} ELSE 0 END), 0)`.as("current_grant"),
         previous: sql<number>`COALESCE(SUM(CASE WHEN ${isPrev} THEN ${delta} ELSE 0 END), 0)`.as("prev_grant"),
       })
@@ -64,11 +70,9 @@ export const source: CoinIssuanceSource = {
         inArray(t.type, [...COIN_ISSUANCE_WALLET_TYPES]),
         inArray(t.reason_category, categories),
         ...buildUserFilterConditions(t.user_id, userFilter, { kind: "flow", source: "wallet_histories", rowId: t.id }),
-      ));
+      ))
+      .groupBy(t.reason_key);
 
-    return {
-      current: Number(rows[0]?.current ?? 0),
-      previous: Number(rows[0]?.previous ?? 0),
-    };
+    return toReasonKeyBreakdown(rows, getWalletReasonKey);
   },
 };

@@ -72,6 +72,10 @@ export async function getCoinIssuanceSummary(
       current: result.current,
       previous: result.previous,
       changeRate: changeRate(result.current, result.previous),
+      // 内訳は表示だけ(合計には足さない)
+      ...(result.breakdown && {
+        breakdown: result.breakdown.map((row) => ({ ...row, changeRate: changeRate(row.current, row.previous) })),
+      }),
     };
 
     if (source.kind === "revenue") {
@@ -113,6 +117,7 @@ export async function getCoinIssuanceSummary(
 
 // 主要 export を 1 箇所に集約
 export type {
+  CoinIssuanceBreakdownRow,
   CoinIssuanceSource,
   CoinIssuanceSourceContext,
   CoinIssuanceSourceResult,

@@ -73,6 +73,21 @@ export type CoinIssuanceSourceContext = {
 export type CoinIssuanceSourceResult = {
   current: number;
   previous: number;
+  /**
+   * 内訳(省略可、表示だけ)。aggregator は合計(totalIssuance / finalProfit)に使わない。
+   * 行の和はこのソースの current / previous と一致させる(どの行にも入らない分は key: null の「未分類」に寄せる)
+   */
+  breakdown?: CoinIssuanceBreakdownRow[];
+};
+
+/** 内訳の 1 行(例: wallet_bonus_grant の付与の種類ごと) */
+export type CoinIssuanceBreakdownRow = {
+  /** 内訳の鍵(付与の種類など)。null = 未分類 */
+  key: string | null;
+  /** 表示名 */
+  label: string;
+  current: number;
+  previous: number;
 };
 
 /**
@@ -131,6 +146,8 @@ export type CoinIssuanceSourceEntry = {
   previous: number;
   /** 前期比変化率。previous=0 のときの規約は utils/aggregation.ts changeRate を参照 */
   changeRate: number | null;
+  /** 内訳(ソースが返したときだけ。表示だけで、合計には足さない) */
+  breakdown?: Array<CoinIssuanceBreakdownRow & { changeRate: number | null }>;
 };
 
 /**

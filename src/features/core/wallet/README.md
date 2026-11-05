@@ -502,6 +502,32 @@ for (let i = 0; i < 10; i++) {
 - **requiresKey**: 区分の config の `requiresKey: true`（上流の既定 = `bonus`）の書き込みに `reasonKey` が無いと `console.warn`（書き込みは止めない）。上流のコードは `pnpm test:wallet-reason-key` の静的な検査で必ず渡す
 - **管理者の調整**: `/api/admin/wallet/[userId]/adjust`・`bulk/adjust-by-type` は `reasonKey` を受ける。省略して区分も省略（または `admin_adjustment`）なら固定キー `admin_adjustment`。他の区分を選んだ調整は種類なし。未登録の key は 400
 - 上流の項目: `coupon_attribution_reward`（bonus、クーポン帰属報酬の付与）・`admin_adjustment`（admin_adjustment、管理者の調整）
+- **過去の行に種類を埋める**（冪等・時間予算付き・dry-run あり）: `backfillWalletReasonKeys(rules, { dryRun, deadline?, chunkSize? })`（`walletHistory/services/server/reasonKeyBackfill.ts`）
+  - 規則 = `{ key, reasonPatterns, fromCategories?, includeNullReason? }` の配列（種類の項目には持たせない: 1 回きりの移行の物）。対象 = `reason_key IS NULL` かつ区分が `fromCategories`（既定 = 種類の category）かつ `reason` がどれかの LIKE（`%` は規則に書く）に一致
+  - 2 つ以上の規則に一致する行は書かずに `conflicts` に数える。`unmatchedRequiresKey` = requiresKey の区分で種類の無いまま残る行
+  - 上流の分: `pnpm task wallet-reason-key-backfill -- --dry-run` → dry-run なしで実行（締切で止まったら再実行で続きから）。規則 `UPSTREAM_REASON_KEY_BACKFILL_RULES`（クーポン帰属報酬・管理者の調整）
+  - fork の分: fork の 1 回きりの task `scripts/tasks/<名前>.ts` で自分の規則を渡す（済んだら消してよい）
+  - **区分の書き換え**は fork が明示して選ぶ別のやり方: `fromCategories` に別の区分（reason_category の導入前は全部 `other`）を入れると、その行の区分も種類の category に書き換わり、**過去の期間の合計（コイン創出の `wallet_bonus_grant` など）が変わる**。dry-run の `categoryRewrites` で件数を見てから流す
+  - 文の解釈（LIKE）はこの移行の中だけ。集計の時に `reason` を解かない
+
+```ts
+// fork: scripts/tasks/oripa-reason-key-backfill.ts（1 回きり）
+import type { OneShotTask } from "./types";
+export const task: OneShotTask = {
+  name: "oripa-reason-key-backfill",
+  run: async () => {
+    const { backfillWalletReasonKeys } = await import("@/features/core/walletHistory/services/server/reasonKeyBackfill");
+    return backfillWalletReasonKeys(
+      [
+        { key: "rank_bonus", reasonPatterns: ["ランクボーナス:%"] },
+        { key: "signup_bonus", reasonPatterns: ["新規登録ボーナス"], fromCategories: ["bonus", "other"] }, // 区分も直す（過去の合計が変わる）
+      ],
+      { dryRun: process.argv.slice(3).includes("--dry-run") },
+    );
+  },
+};
+```
+
 - 列 `reason_key` に index は置かない: 集計は `type`・`reason_category`・`created_at` で絞ってから GROUP BY する（既存の `(reason_category, created_at)` で足りる）。遅いと分かったら CONCURRENTLY で足す
 
 ```ts

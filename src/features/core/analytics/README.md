@@ -102,6 +102,7 @@ purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `wall
 - `userId`: 特定ユーザーに絞り込み（ranking以外）
 - `roles`: 含めるロール（CSV、ホワイトリスト方式）。未指定=全ロール
 - `excludeDemo`: `true` でデモユーザー（is_demo=true）を除外
+- `groupBy`（`/wallet-history/daily`）: `reasonCategory`（既定）/ `sourceType` / `changeMethod` / `reasonKey`（付与の種類。種類の無い行は鍵 `unkeyed`）
 - `includeExcluded`: `true` で分析の除外条件を足さない（除外の前後を比べる検証用。下の「分析の除外条件」）
 
 フィルタ:
@@ -446,6 +447,9 @@ upstream / downstream の双方がソースを登録できるため、サービ�
   - `other` は既定で数えない: 区分を書かずに書いた行（`DEFAULT_REASON_CATEGORY`）と reason_category の導入前の行（全部 `other` で埋まっている）が入り、ガチャ・調整・退会の残高クリアなどの引き落としで純額が負になり得るため
   - 区分なしで書かれた付与も拾いたい fork は自分の config で `other` に `countsAsIssuance: true` を付けられる（その場合、導入前の期間の値は信用しない）
 - **数える通貨** = `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_WALLET_TYPES`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
+- **内訳（breakdown、表示だけ）**: `wallet_bonus_grant` は付与の種類（`reason_key`）ごとの行を `sources.wallet_bonus_grant.breakdown` に返す（`{ key, label, current, previous, changeRate }`、key null = 「未分類」、並び = 種類の sortOrder → 未分類は最後）。行の和 = そのソースの値。aggregator は合計（`totalIssuance` / `finalProfit`）に breakdown を使わない。画面は「販促・特典付与 = 合計」の下に行を並べる
+  - 自前のソースも `aggregate()` の戻り値に `breakdown?: CoinIssuanceBreakdownRow[]` を返せる（規約: 表示だけ・行の和はソースの値と一致させる・どの行にも入らない分は key null に寄せる）
+  - 過去の行は種類が無く「未分類」に入る。種類を埋める task は wallet README「付与の種類」
 - **付与は `reasonKey`（付与の種類。区分は種類から決まる）か `reasonCategory` を必ず書く**（`walletService.adjustBalance` 等）。書かないと `other` になり、既定ではこのまとめに入らない（wallet README「付与の種類」）
 
 2 つとも `enabled` で門番の入切を見る（`purchase_bonus_gap` = `gate.enabled("payment")`・`wallet_bonus_grant` = `gate.enabled("wallet")`）。閉じている間は走らず、応答の `sources` に出ない
