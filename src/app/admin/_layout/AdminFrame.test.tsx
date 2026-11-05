@@ -134,3 +134,47 @@ test("上流は管理の枠の宣言を持たない(表は空)。AdminPage の f
   assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper'));
   assert.ok(read("src/app/admin/insane/_layout/InsaneResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper=""'));
 });
+
+// ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 16) ----
+
+/** src/app/admin の下の page.tsx(_ で始まるフォルダ = _template などは除く) */
+const adminPages = (dir = "src/app/admin"): string[] =>
+  readdirSync(join(repo, dir), { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isDirectory()) return entry.name.startsWith("_") ? [] : adminPages(join(dir, entry.name));
+    return entry.name === "page.tsx" ? [join(dir, entry.name)] : [];
+  });
+
+/** page.tsx の 1 行スイッチが指す Screen のファイル(`from "./_screen/X"` / `"./_components/X"`) */
+const screenOf = (pagePath: string) => {
+  const target = /from "\.\/((?:_screen|_components)\/[^"]+)"/.exec(read(pagePath))?.[1];
+  assert.ok(target, `${pagePath} が _screen / _components の Screen を指していない`);
+  const base = join(pagePath, "..", target);
+  for (const ext of [".tsx", ".ts", "/index.tsx"]) {
+    try {
+      return { path: base + ext, source: read(base + ext) };
+    } catch {
+      // 次の拡張子
+    }
+  }
+  assert.fail(`${pagePath} の Screen ${target} が無い`);
+};
+
+test("AdminPage を使わない管理のページは settings の入口(loader が転送して null を返す)だけ", () => {
+  const pages = adminPages();
+  assert.ok(pages.length > 40, `管理のページを読めていない(${pages.length})`);
+  const without = pages.filter((page) => !/\bAdminPage\b/.test(screenOf(page).source)).map((page) => relative("src/app/admin", page));
+  assert.deepEqual(without, ["(protected)/settings/page.tsx"]);
+});
+
+test("未ログインの login・setup は AdminPage main={false} で包み、行に props を渡さない = ロゴの Link と明暗の切り替えだけ(AMENDMENT 1 (2))", () => {
+  for (const file of ["src/app/admin/login/_screen/AdminLoginScreen.tsx", "src/app/admin/setup/_screen/AdminSetupScreen.tsx"]) {
+    const source = read(file);
+    assert.match(source, /<AdminPage main=\{false\}>/, `${file} が AdminPage main={false} で包んでいない`);
+    assert.equal(/<AdminPage[^>]*\b(title|center|actions)=/.test(source), false, `${file} の行に題・中央・右の操作を渡している`);
+    assert.equal(source.includes("AdminHeaderPortal"), false, `${file} がヘッダーに差し込んでいる`);
+  }
+  // 行の中身 = ロゴの Link 1 つ + 空の受け口 3 つ + 明暗の切り替え(操作はそれだけ)
+  const header = read("src/app/admin/_layout/AdminHeader.tsx");
+  assert.equal(header.split("<Link ").length - 1, 1);
+  assert.match(header, /<AdminHeaderSlots title=\{title\} center=\{center\} right=\{actions\} trailing=\{<DarkModeSwitch \/>\} \/>/);
+});

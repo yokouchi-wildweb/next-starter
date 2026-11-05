@@ -6,7 +6,7 @@ import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { cn } from "@/lib/cn";
 
-import { Header } from "./Header";
+import { AdminHeaderReplacedProvider } from "./AdminHeaderContext";
 import { frameTable } from "./extensions/frameTable";
 import { useAdminLayoutStore } from "./stores/adminLayout";
 
@@ -22,7 +22,9 @@ type AdminLayoutCSSVariables = CSSProperties & {
 export type AdminLayoutProps = {
   readonly children: ReactNode;
   /**
-   * ヘッダー。既定 = ./Header の Header。
+   * ヘッダーの差し替え(今までどおりの口。指令 16 で AdminHeader の差し替えに置き換える)。
+   * 省略 = 器はヘッダーを描かず、各ページの AdminPage が行を描く(上端に固定、器が上の余白で高さを空ける)。
+   * 要素 = それを器の先頭(今までの場所、流れの中)に描き、AdminPage は自分の行を描かない / null = どちらも描かない。
    * 差し替えるヘッダーは ./HeaderSlots の AdminHeaderSlots を描くと、PageTitle placement="header"・AdminHeaderPortal の受け口が残る
    */
   readonly header?: ReactNode;
@@ -31,7 +33,8 @@ export type AdminLayoutProps = {
 };
 
 /**
- * 管理画面の外枠(固定ヘッダー + 子領域)の既定の組み立て。src/app/admin/layout.tsx が 1 行スイッチで default に束ねる。
+ * 管理画面の外枠(ヘッダーを描かない器 + 子領域)の既定の組み立て。src/app/admin/layout.tsx が 1 行スイッチで default に束ねる。
+ * ヘッダーの行は各ページの AdminPage が描く(./AdminPage)。
  * 外枠 = 枠の根(data-frame-root)。今のルートの枠の宣言(frame.default.ts / frame.ts → 管理の表 ./extensions/frameTable)を
  * 共通の読み手 useFrameAttributes が属性にし、src/styles/core/frame.css が部位(data-slot の admin-header・admin-sidebar・admin-footer)を
  * 隠す・fill で本文に残りの高さを埋めさせる
@@ -40,6 +43,8 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
   const headerHeight = useHeaderHeight();
   const { extraClassName } = useAdminLayoutStore();
   const frameAttributes = useFrameAttributes(frameTable);
+  // header の prop が渡された(要素でも null でも)= ヘッダーの差し替え。AdminPage の行を止め、渡された物を今までの場所に描く
+  const replaced = header !== undefined;
 
   // 寸法変数のうち書くのは --app-header-height だけ。Admin には banner も bottomNav も無いので
   // --app-banner-height / --app-bottom-nav-height は styles/core/config.css の :root の 0px を継ぐ(safe-area も :root)
@@ -62,7 +67,7 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
       data-frame-root=""
       {...frameAttributes}
     >
-      {header === undefined ? <Header /> : header}
+      {replaced ? header : null}
       {/* ヘッダー固定 + メイン領域は配下が独自にスクロールを担う土台。
           ここは scroll container 化させてはならないため overflow-clip を使う。
           overflow-hidden は視覚クリップは効くが scroll container として残るため、sr-only な
@@ -71,7 +76,11 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
           overflow-clip は CSS 仕様上 scroll container を作らないため focus 駆動の
           スクロールも発火しない。配下（ResizableArea / InsaneResizableArea / login・setup の
           Screen が Main を包む overflow-y-auto の Block）が自前でスクロール可能領域を確保する前提。 */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-clip">{children}</div>
+      {/* 差し替えのヘッダーが無いとき: AdminPage の行は上端に固定なので、その高さ(実測の --app-header-height)を上の余白で空ける
+          (利用者の枠の UserLayout と同じ形)。差し替えのヘッダーは流れの中に置くので余白は要らない */}
+      <div className={cn("flex-1 min-h-0 flex flex-col overflow-clip", !replaced && "pt-[var(--app-header-height,0px)]")}>
+        <AdminHeaderReplacedProvider replaced={replaced}>{children}</AdminHeaderReplacedProvider>
+      </div>
     </div>
   );
 }

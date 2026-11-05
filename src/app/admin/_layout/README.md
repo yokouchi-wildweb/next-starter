@@ -8,10 +8,12 @@
 
 ```
 src/app/admin/_layout/                  # admin/layout.tsx の枠 + admin 全体で共有する物
-├── AdminLayout.tsx         # 外枠の既定の組み立て(固定ヘッダー + 子領域、header slot)。admin/layout.tsx が 1 行スイッチで描く
-├── Header.tsx              # 管理画面ヘッダー(ロゴ + AdminHeaderSlots + ダークモード切替)
+├── AdminLayout.tsx         # 外枠の既定の組み立て(ヘッダーを描かない器 + 子領域、header slot = 差し替えの口)。admin/layout.tsx が 1 行スイッチで描く
+├── AdminHeader.tsx         # ヘッダーの行の部品(ロゴの Link + 題 / 中央 / 右の受け口 + 明暗の切り替え)。AdminPage が描く
+├── AdminHeaderContext.tsx  # AdminPageHeader(AdminPage の固定の行)と、header slot で差し替え中は行を描かない印(指令 16 までの橋)
+├── Header.tsx              # 互換の Header(props なしの AdminHeader、流れの中の形)。指令 16 で外す
 ├── HeaderSlots.tsx         # AdminHeaderSlots: ヘッダーの受け口 3 つ(タイトル / 中央 / 右)をまとめて描く
-├── AdminPage.tsx           # ページコンテナ(default export。tabs)。Screen が使う
+├── AdminPage.tsx           # ページコンテナ(default export。ヘッダーの行 title / center / actions・tabs・main)。Screen が使う
 ├── PageTitle.tsx           # ページの h1(default export。placement = "header"(既定)| "page")。Screen が使う
 ├── Sidebar/MenuButton.tsx  # サイドバーのボタン(通常 / insane の両サイドバーが使う)
 ├── Sidebar/AdminSidebarFrame.tsx  # サイドバーの殻が中身に渡す状態(useAdminSidebarFrame)
@@ -49,7 +51,7 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 ## AdminLayout と slot
 
 - slot の約束(User の UserLayout と同じ): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く
-- `header`: 既定 = `./Header`。`className`: 外枠に足すクラス名
+- `header`(差し替えの口。指令 16 で AdminHeader の差し替えに置き換える): 省略 = 器はヘッダーを描かず、各ページの AdminPage が行を描く / 要素 = 器の先頭(前と同じ場所、流れの中)に描き、AdminPage は自分の行を描かない(`./AdminHeaderContext`)/ null = どちらも描かない。`className`: 外枠に足すクラス名
 - fork の置き換え: `admin/layout.tsx` を `_layout/AdminLayout.replace.tsx` へ向け、そこで既定の AdminLayout に slot を渡す
 
 ```tsx
@@ -76,7 +78,10 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 
 ## AdminPage と PageTitle
 
-- AdminPage: padding lg / paddingBlock xl の通常ページ。`tabs` は本文の前に下余白 mb-6 で描く。固定ヘッダー直下の残り高さにスナップする非スクロールのページは、ページの隣の枠の宣言に `page: { fill: true }` を書く(下の「枠の宣言」。説明は AdminPage.tsx の JSDoc)
+- AdminPage はヘッダーの行も描く: 行 = `./AdminHeader` の部品(ロゴの Link・明暗の切り替え。利用者のメニューは無い)。props `title` / `center` / `actions` は行の題(ロゴの右隣、sm 以上)・中央・右(明暗の切り替えの前)の受け口の中に入る。受け口の id(`#admin-header-*-slot`)と data-slot は行の中に今の名前で残し、AdminHeaderPortal・PageTitle placement="header"・ItemNavigator の差し込みもここに着地する(帯を足す段。portal と id を消すのは指令 16)
+- 行の置き方は利用者の枠のヘッダーと同じ: 上端に固定(`fixed inset-x-0 top-0 header-layer`、全幅でサイドバーの上)、高さは AdminLayout の器が `pt-[var(--app-header-height,0px)]`(実測)で空ける。ハイドレーション後に測るまでの最初の表示では本文の上端がヘッダーに重なる(利用者の枠と同じ。ブラウザの確かめは指令 20)
+- `main`(既定 true): false = 行だけを描き、children をそのまま続ける。自分のスクロール領域と Main を持つ login・setup だけが使う(未ログインの行はロゴと明暗の切り替えだけ)。AdminPage を使わない管理のページは settings の入口(loader が転送して null)だけ(`AdminFrame.test.tsx` が一覧を出す)
+- AdminPage の本文: padding lg / paddingBlock xl の通常ページ。`tabs` は本文の前に下余白 mb-6 で描く。固定ヘッダー直下の残り高さにスナップする非スクロールのページは、ページの隣の枠の宣言に `page: { fill: true }` を書く(下の「枠の宣言」。説明は AdminPage.tsx の JSDoc)
 - PageTitle: 既定 `placement="header"` で sm 以上はヘッダーのタイトル受け口に描き込み(AdminHeaderPortal 経由)、sm 未満は本文に出す。`placement="page"` で本文上部に h1(ヘッダーの無い login・setup の画面はこれを明示)
 - ヘッダーが無い・受け口を持たないヘッダーのときの PageTitle の挙動(と pageTitle slot)は、共有層の議題の後に決める
 
@@ -94,10 +99,10 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 管理の枠の部位に付ける `data-slot`(余白の議会の一覧の管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。今の id(`#header`・`#footer`・受け口の `#admin-header-*-slot`)と `data-admin-main-wrapper` は今どおり残す。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
 
 - `admin-app-container` — AdminLayout の外枠(枠の根 `data-frame-root`)
-- `admin-header` — Header の `<header id="header">`
-- `admin-header-title` — HeaderSlots のタイトルの受け口 `#admin-header-title-slot`
-- `admin-header-center` — HeaderSlots の中央の受け口 `#admin-header-center-slot`
-- `admin-header-right` — HeaderSlots の右の受け口 `#admin-header-right-slot`
+- `admin-header` — AdminHeader(AdminPage の行・互換の Header)の `<header id="header">`
+- `admin-header-title` — AdminHeader の中の HeaderSlots のタイトルの受け口 `#admin-header-title-slot`
+- `admin-header-center` — AdminHeader の中の HeaderSlots の中央の受け口 `#admin-header-center-slot`
+- `admin-header-right` — AdminHeader の中の HeaderSlots の右の受け口 `#admin-header-right-slot`
 - `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ・SP の開閉ボタンの包み(AdminProtectedLayout・InsaneProtectedLayout。insane の Insane* も同じ)。開閉ボタンは Form/Button が自分の `data-slot="button"` を持つので上書きせず、箱を作らない包み(`display: contents`)が印を持つ。ボタンの `id="admin-sidebar-toggle"` はサイドバーを差し替えた fork 向けの一時の橋渡し(frame.css)
 - `admin-main` — ResizableArea の本文の親 `[data-admin-main-wrapper]`(insane は InsaneResizableArea のスクロール領域)
 - `admin-footer` — (protected) の Footer の `<footer id="footer">`
