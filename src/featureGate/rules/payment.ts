@@ -13,7 +13,6 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     ...walletSlugs.map((slug) => `/wallet/${slug}/purchase`),
     "/api/wallet/purchase",
-    "/api/purchaseRequest",
     "/api/webhook/payment",
     "/api/admin/analytics/purchase",
     "/api/cron/expire-pending-purchases",

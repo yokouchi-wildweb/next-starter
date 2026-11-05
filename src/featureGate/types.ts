@@ -33,8 +33,11 @@ export type FeatureGateRule = {
   redirectTo?: string;
 };
 
-/** 生成一覧の要素: 規則 + 生成器が付ける名前(ファイル名)と features から導いた表名(features を書かない規則は空) */
-export type GatedFeatureRule = FeatureGateRule & { name: FeatureName; tables: string[] };
+/**
+ * 生成一覧の要素: 規則 + 生成器が付ける名前(ファイル名)と features から導いた表名・汎用 API の住所(features を書かない規則は空)。
+ * domainApiPaths(/api/<features のフォルダの domainEntry のキー>)は生成器が pathPatterns の後ろにも足す(規則に手書きしない)
+ */
+export type GatedFeatureRule = FeatureGateRule & { name: FeatureName; tables: string[]; domainApiPaths: string[] };
 
 /**
  * 常時実行の入口の例外(1 項目 1 ファイル: src/featureGate/alwaysOnExceptions/<名前>.ts)。

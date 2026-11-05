@@ -8,8 +8,6 @@ import type { FeatureGateRule } from "@/featureGate";
 export const rule: FeatureGateRule = {
   pathPatterns: [
     "/wallet",
-    "/api/wallet",
-    "/api/walletHistory",
     "/api/me/wallet",
     "/api/admin/wallet",
     "/api/admin/analytics/wallet",

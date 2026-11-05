@@ -10,10 +10,6 @@ export const rule: FeatureGateRule = {
     "/admin/samples",
     "/admin/sample-categories",
     "/admin/sample-tags",
-    "/api/sample",
-    "/api/sampleCategory",
-    "/api/sampleTag",
-    "/api/sampleImage",
     // サンプルを読むデモ画面(デモのスイッチ demo.samplePages とは別に、サンプルを切ったら一緒に閉じる)
     "/demo/async-picker-modal",
     "/demo/popover",

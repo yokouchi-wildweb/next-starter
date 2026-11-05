@@ -77,7 +77,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 | 部品 | 場所 | いつ効くか | やること |
 |---|---|---|---|
 | 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `features` / `enabled()` / `redirectTo` |
-| 一覧 | `extensions/rules.ts`（生成物） | — | 規則 + 名前 + `features` から導いた表名。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
+| 一覧 | `extensions/rules.ts`（生成物） | — | 規則 + 名前 + `features` から導いた表名と汎用 API の住所(`domainApiPaths`、`pathPatterns` にも足す)。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
 | ルートゲート | `src/proxies/featureGate.ts`(`gate.path` を呼ぶ) | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
 | API の部品工場 | `src/wiring/apiRoute.ts` が `gate.path` を Factory の口 `gate` に結ぶ | API のリクエストごと | 閉じた住所の API は Factory も 404(proxy の安全網。`src/lib/routeFactory/README.md`) |
 | スキーマゲート | `node/gatedSchema.ts`（`@/featureGate/node` の `gatedSchema`、`pnpm db:push` / `db:push:check`） | push のとき | 導いた表を push 対象から外す |
@@ -92,7 +92,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
-  pathPatterns: ["/wallet", "/api/wallet", "/api/me/wallet"],
+  pathPatterns: ["/wallet", "/api/me/wallet"], // 汎用 API の /api/wallet・/api/walletHistory は書かない(features から導く)
   features: ["core/wallet", "core/walletHistory"],
   enabled: () => APP_FEATURES.wallet.enabled,
 };
@@ -101,6 +101,7 @@ export const rule: FeatureGateRule = {
 - `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/lib/pathPattern`（門番の判定・ルート地図・test:feature-gate が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
 - **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
 - `features` = 外す表を持つ機能のフォルダ（`src/features` からの相対、文字列リテラルの配列）。表名は書かない: `extensions:generate`（宣言の `derive: "featureTables"`）がフォルダの下の全 `pgTable` から導く（`scripts/registry/tableScan.mjs`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たない規則は `features` を書かない
+- **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、一覧の項目の `domainApiPaths` と `pathPatterns` の後ろに足す（全部の読み手に効く）。`domainEntry.ts` の無いフォルダは何も足さない。手書きと重なると `test:feature-gate` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm extensions:generate`（ずれは `extensions:check` が止める）
 - `enabled` は config の値を読む同期関数（値の置き場は config）
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）
 - 住所の重なりは許す（OR）。**行き先の違う重なりは、ファイル名の順で最初の無効な規則の `redirectTo`**。上流の規則どうしの行き先の違う重なりは `test:feature-gate` で失敗、fork の規則と上流の重なりは表示だけ

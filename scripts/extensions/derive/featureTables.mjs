@@ -1,15 +1,20 @@
 // scripts/extensions/derive/featureTables.mjs
 // 組み込みの変換 "featureTables": 機能を閉じる規則の features: [機能のフォルダ] から、そのフォルダの全 pgTable の表名を導く(D16・D20 K1)。
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。表の走査: scripts/registry/tableScan.mjs
-// 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
+// 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
+// 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキーから /api/<key> を導き(字面、
+// scripts/registry/serviceRegistry/discover.mjs の readObjectKeys)、項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
+// domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は test:feature-gate が重なりとして知らせる。
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { ENTRIES_EXPORT, ENTRY_FILE, readObjectKeys } from "../../registry/serviceRegistry/discover.mjs";
 import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../../registry/tableScan.mjs";
 
 const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
 const TABLES_FIELD = /(?:^|[{,\s])tables\s*:/;
+const DOMAIN_API_PATHS_FIELD = /(?:^|[{,\s])domainApiPaths\s*:/;
 const STRING_LITERAL = /^["']([A-Za-z0-9_/-]+)["']$/;
 
 /**
@@ -18,6 +23,7 @@ const STRING_LITERAL = /^["']([A-Za-z0-9_/-]+)["']$/;
  */
 export function readFeatures(text) {
   if (TABLES_FIELD.test(text)) return { problem: "tables を手書きしている(features: [機能のフォルダ] で書く。表名は生成器が導く)" };
+  if (DOMAIN_API_PATHS_FIELD.test(text)) return { problem: "domainApiPaths を手書きしている(汎用 API の住所は features のフォルダの domainEntry.ts から生成器が導く)" };
   const match = FEATURES_FIELD.exec(text);
   if (!match) return /\bfeatures\s*:/.test(text) ? { problem: "features が文字列リテラルの配列でない" } : { features: [] };
   const features = [];
@@ -30,9 +36,21 @@ export function readFeatures(text) {
 }
 
 /**
+ * 機能のフォルダの汎用 API の住所(/api/<domainEntries のキー>)。domainEntry.ts が無ければ空
+ * @returns {{ paths: string[] } | { problem: string }}
+ */
+export function domainApiPathsOf(repoRoot, folder) {
+  const file = join(repoRoot, FEATURES_DIR, folder, "services/server", ENTRY_FILE);
+  if (!existsSync(file)) return { paths: [] };
+  const { keys, error } = readObjectKeys(readFileSync(file, "utf8"), ENTRIES_EXPORT);
+  if (error) return { problem: `${FEATURES_DIR}/${folder}/services/server/${ENTRY_FILE} の ${ENTRIES_EXPORT} が読めない(${error})` };
+  return { paths: keys.map((key) => `/api/${key}`) };
+}
+
+/**
  * 変換を作る(表の走査は 1 回だけ)
  * @param {string} repoRoot
- * @returns {{ problems: string[], apply: (label: string, text: string) => { fields: { tables: string[] }, features: string[] } | { problem: string } }}
+ * @returns {{ problems: string[], apply: (label: string, text: string) => { fields: { tables: string[], domainApiPaths: string[] }, features: string[] } | { problem: string } }}
  */
 export function createFeatureTables(repoRoot) {
   const scan = scanFeatureTables(repoRoot);
@@ -42,13 +60,17 @@ export function createFeatureTables(repoRoot) {
       const read = readFeatures(text);
       if (read.problem) return { problem: `${label}: ${read.problem}` };
       const tables = [];
+      const domainApiPaths = [];
       for (const folder of read.features) {
         if (!existsSync(join(repoRoot, FEATURES_DIR, folder))) return { problem: `${label}: features の "${folder}" は ${FEATURES_DIR}/ に無いフォルダ` };
         const own = tablesOfFolder(scan.tables, folder);
         if (own.length === 0) return { problem: `${label}: features の "${folder}" に pgTable が無い(表を持たない機能は features に書かない)` };
         tables.push(...own);
+        const api = domainApiPathsOf(repoRoot, folder);
+        if (api.problem) return { problem: `${label}: ${api.problem}` };
+        domainApiPaths.push(...api.paths.filter((path) => !domainApiPaths.includes(path)));
       }
-      return { fields: { tables }, features: read.features };
+      return { fields: { tables, domainApiPaths }, features: read.features };
     },
   };
 }

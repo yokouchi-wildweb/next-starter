@@ -176,7 +176,7 @@ function renderPoint(point, items) {
     return { imports, lines };
   }
   const values = items.map((item) =>
-    item.folder ? `  { ...${aliasOf(point, item)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${Object.entries(item.fields).map(([k, v]) => `${k}: ${Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v)}`).join(", ")} },` : `  ${aliasOf(point, item)},`,
+    item.folder ? `  { ...${aliasOf(point, item)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${renderFields(aliasOf(point, item), item.fields)} },` : `  ${aliasOf(point, item)},`,
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
   if (spec.derive === "featureTables") {
@@ -227,6 +227,15 @@ function checkSettingSections(points, itemsByPoint) {
 const outputOf = (point) => (point.spec.target === "wiring" ? `${WIRING_DIR}/${basename(point.owner)}.ts` : `${point.owner}/${EXTENSIONS_DIR_NAME}/${point.name}.ts`);
 
 /** 1 つの出力ファイルを組み立てる(wiring は同じ lib の点を 1 本に) */
+// 生成器が付ける欄の描画。domainApiPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)
+function renderFields(alias, fields) {
+  const literal = (v) => (Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v));
+  const parts = Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`);
+  const extra = fields.domainApiPaths ?? [];
+  if (extra.length > 0) parts.push(`pathPatterns: [...${alias}.pathPatterns, ${extra.map((x) => JSON.stringify(x)).join(", ")}]`);
+  return parts.join(", ");
+}
+
 function renderFile(points, itemsByPoint) {
   const sources = [...new Set(points.map((p) => p.declaredIn))].join("・");
   const types = new Map();

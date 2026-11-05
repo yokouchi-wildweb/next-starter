@@ -8,10 +8,6 @@ import type { FeatureGateRule } from "@/featureGate";
 export const rule: FeatureGateRule = {
   pathPatterns: [
     "/admin/coupons",
-    "/api/coupon",
-    "/api/couponHistory",
-    "/api/couponAttributionReward",
-    "/api/couponIssuerGrant",
     "/api/me/coupon-issuer",
     "/api/me/coupon-attribution-rewards",
     "/api/admin/coupon-issuer-grants",

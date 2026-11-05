@@ -269,6 +269,37 @@ test(
   },
 );
 
+// 汎用 API の住所(/api/<domain>)は生成器が features のフォルダの domainEntry.ts から導いて pathPatterns に足す(domainApiPaths)。
+// 規則に同じ住所を手書きすると重なる: 上流の規則は不可、fork の規則は表示だけ
+test(
+  "汎用 API の住所は規則に手書きしない(生成器が domainApiPaths として pathPatterns に足す)",
+  { skip: forkAdded.status === "unverified" ? `fork の規則を見分けられない(${forkAdded.reason})` : false },
+  () => {
+    const { rules: files } = gateRuleFiles();
+    const upstream = [];
+    featureGateRules.forEach((rule, i) => {
+      const handWritten = rule.pathPatterns.slice(0, rule.pathPatterns.length - rule.domainApiPaths.length);
+      const dup = handWritten.filter((pattern) => rule.domainApiPaths.includes(pattern));
+      if (dup.length === 0) return;
+      const line = `${files[i].path}: ${dup.join(", ")}`;
+      if (forkAdded.added.has(files[i].path)) console.log(`[feature-gate] 生成器が導く汎用 API の住所を手書きしている(fork、消してよい): ${line}`);
+      else upstream.push(line);
+    });
+    assert.deepEqual(upstream, [], `汎用 API の住所は生成器が導く。規則から消す:\n${upstream.join("\n")}`);
+  },
+);
+
+test("上流の規則の汎用 API の住所(導出の固定。domainEntry のキー・規則の features が変わったら見直す)", { skip: forkAdded.status !== "tier1" ? "Tier1 だけ(fork は自分の規則が足される)" : false }, () => {
+  const derived = Object.fromEntries(featureGateRules.filter((rule) => rule.domainApiPaths.length > 0).map((rule) => [rule.name, rule.domainApiPaths]));
+  assert.deepEqual(derived, {
+    coupon: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"],
+    pairedDevice: ["/api/pairedDevice"],
+    payment: ["/api/purchaseRequest", "/api/bankTransferReview"],
+    sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
+    wallet: ["/api/wallet", "/api/walletHistory"],
+  });
+});
+
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)
 // 後片付け・照合など常に読まれる項目は、宣言の alwaysOn: true の点(項目ごとに enabled で閉じる)。手書きの登録表は fork の口だけ
 // 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表。
