@@ -2,6 +2,7 @@
 // purchase 集計サービス（日別売上 + 期間サマリー + ステータス概況）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import { and, between, eq, sql, type SQL } from "drizzle-orm";
@@ -125,6 +126,7 @@ function purchaseDateExpr(tz: string, granularity: Parameters<typeof granularity
 export async function getPurchaseDaily(
   params: PurchaseDailyParams,
 ): Promise<DailyAnalyticsResponse<PurchaseDailyData>> {
+  gate.assert("payment"); // 決済の機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
   const tz = range.timezone;
   const status = params.status ?? "completed";
@@ -227,6 +229,7 @@ export async function getPurchaseDaily(
 export async function getPurchaseSummary(
   params: PurchaseSummaryParams,
 ): Promise<PeriodSummaryResponse<PurchaseSummaryData>> {
+  gate.assert("payment"); // 決済の機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
 
   const statusParams = { ...params, status: "completed" as const };
@@ -376,6 +379,7 @@ export async function getPurchaseSummary(
 // ============================================================================
 
 export async function getPurchaseStatusOverview(): Promise<StatusOverviewData> {
+  gate.assert("payment"); // 決済の機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   // ステータス別集計 + 失敗理由を並列実行
   const [statusRows, failureRows] = await Promise.all([
     db

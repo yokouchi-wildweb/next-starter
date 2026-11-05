@@ -2,6 +2,7 @@
 // 購入額グループ分布集計サービス
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import { and, between, eq, sql, type SQL } from "drizzle-orm";
@@ -83,6 +84,7 @@ const p = PurchaseRequestTable;
 export async function getPurchaseDistribution(
   params: PurchaseDistributionParams,
 ): Promise<PurchaseDistributionResponse> {
+  gate.assert("payment"); // 決済の機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
   const metric = params.metric ?? "coinAmount";
   const { boundaries } = params;

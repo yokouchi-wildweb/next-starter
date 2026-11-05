@@ -15,6 +15,7 @@
 | **残高管理** | `balance`（総残高）- `locked_balance`（予約済み）= 利用可能残高 |
 | **ウォレット作成** | 遅延作成（初回操作時に自動作成） |
 | **設定ファイル** | `src/config/app/currency.config.ts`（通貨の追加・変更はここで行う） |
+| **閉じた機能との連携（画面）** | 残高・購入画面は相手の入切を `useGate()` で見る: クーポン欄 `CouponInput` はクーポンか決済が閉じていれば描かない・`CurrencyPurchase` は決済が閉じていれば描かない・振込の案内 `ActiveTransferBanner` は決済が閉じていれば出さない |
 
 ### 基本操作
 

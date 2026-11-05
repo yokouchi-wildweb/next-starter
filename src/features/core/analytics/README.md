@@ -73,6 +73,8 @@ analytics/
 | GET /api/admin/analytics/dau/active-days-histogram | dauAnalytics | アクティブ日数ヒストグラム（ちょうど N 日アクティブだったユーザー数の分布） |
 | GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
 
+purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `walletRanking` / `walletState`)はウォレットの機能の表を読むので、外に出す集計関数の先頭で `gate.assert("payment" / "wallet")`（閉なら 404。住所は門番の規則が既に閉じるので、route 以外から呼んだときの自己停止）。
+
 ### referral summary 固有のパラメータ
 - `referralStatuses`: 集計対象とする `referrals.status` を CSV で指定（例: `active,cancelled`）。省略時は全状態をカウント
 - リワード金額の抽出 SQL 式は `getReferralSummary()` の `rewardAmountExpr` 引数で差し替え可能。デフォルトは `(referral_rewards.metadata ->> 'amount')::numeric`（rewardHandler が metadata に `amount: number` を入れる規約に従う場合）。下流が異なる metadata 構造を持つ場合は独自の API ルートからカスタム SQL を渡す

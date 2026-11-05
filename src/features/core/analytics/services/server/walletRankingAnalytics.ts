@@ -4,6 +4,7 @@
 // 対比: purchaseRankingAnalytics.ts（purchase_requests ベース、決済情報を含む）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
@@ -81,6 +82,7 @@ function resolveSortAlias(sortBy: WalletRankingSortBy): string {
 export async function getWalletRanking(
   params: WalletRankingParams,
 ): Promise<RankingResponse<WalletRankingEntry>> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
   const sortBy = params.sortBy ?? "totalPurchase";
   const limit = Math.min(Math.max(params.limit ?? DEFAULT_RANKING_LIMIT, 1), MAX_RANKING_LIMIT);

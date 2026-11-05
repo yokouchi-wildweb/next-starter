@@ -22,6 +22,7 @@ import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/typ
 import type { Wallet } from "@/features/core/wallet/entities";
 import { CouponInput } from "@/features/core/wallet/components/WalletPurchase";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+import { useGate } from "@/featureGate/client";
 import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
 import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";
 import { PurchaseList } from "@/features/core/wallet/components/WalletBalance/PurchaseList";
@@ -53,6 +54,8 @@ export function WalletBalance({
   const { data, isLoading, error } = useMyWalletBalances(user?.userId, {
     fallbackData: initialWallets ? { wallets: initialWallets } : undefined,
   });
+  // 振込の案内は決済の機能(bankTransferReview は payment の規則のフォルダ)が開いているときだけ
+  const showTransferBanner = useGate().enabled("payment");
 
   // クーポン状態管理
   const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
@@ -143,7 +146,7 @@ export function WalletBalance({
   return (
     <Stack space={6}>
       {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
-      <ActiveTransferBanner />
+      {showTransferBanner && <ActiveTransferBanner />}
       <Flex justify="end">
         <LinkButton href={`/wallet/${slug}/history`} variant="outline" size="sm">
           履歴

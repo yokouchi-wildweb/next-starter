@@ -2,6 +2,7 @@
 // walletHistory 集計サービス（日別集計 + 期間サマリー + 日次残高 + 残高の系列）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { and, between, eq, inArray, lte, sql, type SQL } from "drizzle-orm";
@@ -114,6 +115,7 @@ const signedDeltaExpr = sql<number>`
 export async function getWalletHistoryDaily(
   params: WalletHistoryDailyParams,
 ): Promise<DailyAnalyticsResponse<WalletHistoryDailyData>> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
   const tz = range.timezone;
   const groupByField = params.groupBy ?? "reasonCategory";
@@ -198,6 +200,7 @@ export async function getWalletHistoryDaily(
 export async function getWalletHistorySummary(
   params: WalletHistorySummaryParams,
 ): Promise<PeriodSummaryResponse<WalletHistorySummaryData>> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
@@ -255,6 +258,7 @@ export async function getWalletHistorySummary(
 export async function getWalletBalanceDaily(
   params: WalletBalanceDailyParams,
 ): Promise<DailyAnalyticsResponse<WalletBalanceDailyData>> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const range = resolveDateRange(params);
   const dateSql = dateExpr(range.timezone, range.granularity);
   const { rangeWhere, baselineWhere } = balanceWheres(

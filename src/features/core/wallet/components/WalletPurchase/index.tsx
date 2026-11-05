@@ -16,6 +16,7 @@ import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBal
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+import { useGate } from "@/featureGate/client";
 
 import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
 import { CurrencyPurchase } from "@/features/core/wallet/components/WalletPurchase/CurrencyPurchase";
@@ -40,6 +41,8 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useMyWalletBalances(user?.userId);
+  // 振込の案内は決済の機能(bankTransferReview は payment の規則のフォルダ)が開いているときだけ
+  const showTransferBanner = useGate().enabled("payment");
 
   // 無効なスラッグ
   if (!config) {
@@ -119,7 +122,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
           </LinkButton>
         </Flex>
         {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
-        <ActiveTransferBanner />
+        {showTransferBanner && <ActiveTransferBanner />}
         <PurchaseSuspended message={getPurchaseSuspensionMessage()} />
       </Stack>
     );
@@ -137,7 +140,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
         </LinkButton>
       </Flex>
       {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
-      <ActiveTransferBanner />
+      {showTransferBanner && <ActiveTransferBanner />}
       <CurrencyPurchase
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}

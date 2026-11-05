@@ -9,6 +9,7 @@ import type { WalletType } from "@/config/app/currency.config";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import { useActiveBankTransfer } from "@/features/core/bankTransferReview/hooks/useActiveBankTransfer";
+import { useGate } from "@/featureGate/client";
 
 import { SupportedPaymentMethods, type BlockedPaymentMethod } from "../common/SupportedPaymentMethods";
 
@@ -30,7 +31,14 @@ type CurrencyPurchaseProps = {
   walletType: WalletType;
 };
 
-export function CurrencyPurchase({
+/** 決済の機能が閉じていれば描かない(購入・振込の hook を呼ばない。購入の住所は門番が閉じるので通常は来ない) */
+export function CurrencyPurchase(props: CurrencyPurchaseProps) {
+  const gate = useGate();
+  if (!gate.enabled("payment")) return null;
+  return <CurrencyPurchaseBody {...props} />;
+}
+
+function CurrencyPurchaseBody({
   purchaseAmount,
   paymentAmount,
   currentBalance,

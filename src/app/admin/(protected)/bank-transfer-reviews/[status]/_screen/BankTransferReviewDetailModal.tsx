@@ -21,6 +21,7 @@ import { ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { resolveStorageSrc } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
+import { useGate } from "@/featureGate/client";
 import {
   adminGetBankTransferReview,
   adminConfirmBankTransferReview,
@@ -241,6 +242,7 @@ function PurchaseRequestSection({
 /**
  * 付与額(通貨) と 振込金額(円) を「コイン / ¥金額」形式で横並び表示する。
  * wallet_type が未知の値や null の場合は CurrencyDisplay を出さず、フォールバックする。
+ * ウォレットの機能が閉じているときは通貨の表示(wallet の部品・設定)を使わず、付与額を数字だけで出す。
  */
 function AmountInline({
   amount,
@@ -251,13 +253,16 @@ function AmountInline({
   paymentAmount: number | undefined;
   walletType: string | null | undefined;
 }) {
-  const isKnownWalletType = walletType != null && walletType in CURRENCY_CONFIG;
+  const walletOpen = useGate().enabled("wallet");
+  const isKnownWalletType = walletOpen && walletType != null && walletType in CURRENCY_CONFIG;
   const hasAmount = typeof amount === "number";
   const hasPaymentAmount = typeof paymentAmount === "number";
 
   return (
     <Flex gap="sm" align="center" wrap="wrap">
-      {hasAmount && isKnownWalletType ? (
+      {hasAmount && !walletOpen ? (
+        <span>{amount.toLocaleString()}</span>
+      ) : hasAmount && isKnownWalletType ? (
         <CurrencyDisplay
           walletType={walletType as WalletType}
           amount={amount}

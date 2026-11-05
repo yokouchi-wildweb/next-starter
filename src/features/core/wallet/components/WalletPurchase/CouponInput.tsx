@@ -15,6 +15,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useValidateCouponForCategory } from "@/features/core/coupon/hooks/useValidateCouponForCategory";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { getActiveCoupon } from "@/features/core/wallet/utils/couponParam";
+import { useGate } from "@/featureGate/client";
 
 type CouponInputProps = {
   /** 元の支払い金額（割引計算のmetadataとして送信。未指定時は割引条件のみ取得） */
@@ -27,7 +28,14 @@ type CouponInputProps = {
   onClear: () => void;
 };
 
-export function CouponInput({ paymentAmount, purchaseAmount, onApply, onClear }: CouponInputProps) {
+/** クーポンか決済の機能が閉じていれば描かない(購入割引はクーポンと決済の付け足しの連携) */
+export function CouponInput(props: CouponInputProps) {
+  const gate = useGate();
+  if (!gate.enabled("coupon") || !gate.enabled("payment")) return null;
+  return <CouponInputBody {...props} />;
+}
+
+function CouponInputBody({ paymentAmount, purchaseAmount, onApply, onClear }: CouponInputProps) {
   const [code, setCode] = useState("");
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [appliedEffect, setAppliedEffect] = useState<PurchaseDiscountEffect | null>(null);

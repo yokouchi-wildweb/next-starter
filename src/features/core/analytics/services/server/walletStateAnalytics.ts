@@ -4,6 +4,7 @@
 // 対比: walletRankingAnalytics.ts（wallet_histories ベースの増減量集計）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
@@ -60,6 +61,7 @@ const u = UserTable;
 export async function getWalletStateSummary(
   params: WalletStateSummaryParams,
 ): Promise<WalletStateSummary> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const conditions = buildBaseConditions(params);
 
   const rows = await db
@@ -149,6 +151,7 @@ function resolveRankingSortExpr(sortBy: WalletStateRankingSortBy): SQL {
 export async function getWalletStateRanking(
   params: WalletStateRankingParams,
 ): Promise<RankingResponse<WalletStateRankingEntry> & { walletType: WalletType }> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const sortBy = params.sortBy ?? "balance";
   const limit = Math.min(
     Math.max(params.limit ?? DEFAULT_RANKING_LIMIT, 1),
@@ -235,6 +238,7 @@ export type WalletStateDistributionParams = RequiredWalletTypeFilter &
 export async function getWalletStateDistribution(
   params: WalletStateDistributionParams,
 ): Promise<WalletStateDistribution> {
+  gate.assert("wallet"); // ウォレットの機能が閉じていれば 404(route は住所で閉じるので通常は来ない)
   const { boundaries } = params;
   const baseConditions = buildBaseConditions(params);
 
