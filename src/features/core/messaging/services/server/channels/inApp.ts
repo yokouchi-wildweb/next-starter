@@ -11,6 +11,7 @@
 // "system"、それ以外（管理画面からの送信、コンテキスト無し）は "admin"。
 // message_dispatches.actor_type と同じ情報源なので、送信記録と通知レコードの送信者種別が一致する。
 
+import { gate } from "@/featureGate";
 import { getAuditContext } from "@/lib/audit";
 import { sendDirect } from "@/features/core/notification/services/server/notification/sendDirect";
 
@@ -29,10 +30,14 @@ export type SendInAppNotificationResult = {
 /**
  * 個別指定の通知レコードを作成する。
  * 失敗は console.error して構造化エラーで返す（throw しない）。
+ * お知らせの機能が閉じているときは作らずに未作成で返す（送信の記録に残る。例外にしない）。
  */
 export async function sendInAppNotification(
   params: SendInAppNotificationParams,
 ): Promise<SendInAppNotificationResult> {
+  if (!gate.enabled("notification")) {
+    return { created: false, error: "お知らせの機能が閉じているため作成しませんでした" };
+  }
   const senderType = getAuditContext()?.actorType === "system" ? "system" : "admin";
 
   try {

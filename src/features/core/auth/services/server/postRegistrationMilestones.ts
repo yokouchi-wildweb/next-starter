@@ -8,6 +8,7 @@
 // - 失敗しても登録は止めない(登録は確定済み。ここで巻き戻さない)。定義ごとの失敗は evaluateMilestones の SAVEPOINT で分離
 // 詳細: src/features/core/milestone/README.md「統合ポイント一覧」
 
+import { gate } from "@/featureGate";
 import type { User } from "@/features/core/user/entities";
 import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
 import { MILESTONE_TRIGGER_USER_REGISTERED } from "@/features/core/milestone/constants/triggers";
@@ -29,9 +30,10 @@ export type UserRegisteredPayload = {
 
 /**
  * 本登録の後に user_registered のマイルストーンを評価する。throw しない(失敗はログだけ)。
- * 定義が無ければ tx を開かない
+ * 定義が無ければ tx を開かない。マイルストーンの機能が閉じているときは何もしない
  */
 export async function runPostRegistrationMilestones(payload: UserRegisteredPayload): Promise<void> {
+  if (!gate.enabled("milestone")) return;
   try {
     if (getMilestonesByTrigger(MILESTONE_TRIGGER_USER_REGISTERED).length === 0) return;
     await runWithTransaction(undefined, (tx) =>

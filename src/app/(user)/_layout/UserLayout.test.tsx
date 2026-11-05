@@ -21,6 +21,11 @@ const marker = (name: string) => {
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
 mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => 0 } });
+// 門番の client の口: 静的描画は GateProvider の外なので、開閉をテストで決める(既定 = 全部開)
+let notificationOpen = true;
+mock.module("@/featureGate/client", {
+  namedExports: { useGate: () => ({ enabled: (name: string) => (name === "notification" ? notificationOpen : true) }) },
+});
 mock.module("@/features/notification/components/common/UnreadNotificationModal", { defaultExport: marker("modal") });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
@@ -226,4 +231,14 @@ test("banner なしの HTML に帯とスペーサーと変数を足しただけ(
     html.replace(BANNER_TAG, "").replace(BANNER_SPACER_TAG, "").replace(";--app-banner-height:0px", ""),
     defaultLayout(),
   );
+});
+
+test("お知らせの機能が閉じていれば既定の未読のモーダルを描かない(差し替えたモーダルはそのまま描く)", () => {
+  notificationOpen = false;
+  try {
+    assert.equal(render(<UserLayout>CHILD</UserLayout>).includes("<x-modal>"), false, "閉なのに既定のモーダルが残っている");
+    assert.ok(render(<UserLayout notificationModal={<dialog id="m" />}>CHILD</UserLayout>).includes('<dialog id="m">'));
+  } finally {
+    notificationOpen = true;
+  }
 });

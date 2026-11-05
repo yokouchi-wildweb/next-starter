@@ -64,6 +64,7 @@ const result = await messagingService.send({
 - 受信者は ID だけを渡す。メールアドレスと名前はサービスが DB から取る（名前が無ければ「お客様」）
 - ユーザーが存在しない → `DomainError(404)`
 - `email` チャネル指定でメールアドレス未登録 → `DomainError(400)`（呼び出し側の契約違反として扱う）
+- `inApp` チャネルはお知らせの機能(門番の規則 `notification`)が閉じていれば作らず、`inApp: { created: false, error }` で返す（例外にしない。送信の記録に残る）
 
 ### bulkSend（複数ユーザー）
 

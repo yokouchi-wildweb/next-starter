@@ -14,6 +14,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { usePurchaseStatus } from "@/features/core/purchaseRequest/hooks/usePurchaseStatus";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
 import { useGoogleAdsConversion } from "@/lib/googleTag";
+import { useGate } from "@/featureGate/client";
 import { MilestoneNotifications } from "@/features/core/milestone/components/MilestoneNotifications";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 
@@ -38,6 +39,8 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
 
   // コイン購入完了コンバージョン（status==="completed" 時のみ・transaction_id で dedup。env 未設定なら no-op）
   const { fire } = useGoogleAdsConversion();
+  // マイルストーンの達成の表示はマイルストーンの機能が開いているときだけ
+  const showMilestones = useGate().enabled("milestone");
   useEffect(() => {
     if (!requestId) return;
     if (purchaseInfo?.status !== "completed") return;
@@ -105,7 +108,7 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
           </Stack>
         )}
 
-        {purchaseInfo?.milestoneResults && (purchaseInfo.milestoneResults as PersistedMilestoneResult[]).length > 0 && (
+        {showMilestones && purchaseInfo?.milestoneResults && (purchaseInfo.milestoneResults as PersistedMilestoneResult[]).length > 0 && (
           <MilestoneNotifications results={purchaseInfo.milestoneResults as PersistedMilestoneResult[]} />
         )}
 

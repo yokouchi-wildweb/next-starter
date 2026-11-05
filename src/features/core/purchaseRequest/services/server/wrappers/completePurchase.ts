@@ -224,18 +224,21 @@ export async function completePurchase(
       }
     }
 
-    // マイルストーン評価（登録済みマイルストーンがなければ何もしない）
-    const milestoneResult = await evaluateMilestones(
-      MILESTONE_TRIGGER_PURCHASE_COMPLETED,
-      {
-        userId: purchaseRequest.user_id,
-        payload: {
-          purchaseRequest: { ...updated, wallet_history_id: walletHistoryId },
-          walletHistoryId,
-        },
-      },
-      tx,
-    );
+    // マイルストーン評価（登録済みマイルストーンがなければ何もしない）。
+    // マイルストーンの機能が閉じているときは評価しない（結果は空。付け足しの連携、D47）
+    const milestoneResult = gate.enabled("milestone")
+      ? await evaluateMilestones(
+          MILESTONE_TRIGGER_PURCHASE_COMPLETED,
+          {
+            userId: purchaseRequest.user_id,
+            payload: {
+              purchaseRequest: { ...updated, wallet_history_id: walletHistoryId },
+              walletHistoryId,
+            },
+          },
+          tx,
+        )
+      : { results: [] };
 
     // マイルストーン結果を永続化（達成されたもののみ）
     const persistedResults: PersistedMilestoneResult[] = milestoneResult.results

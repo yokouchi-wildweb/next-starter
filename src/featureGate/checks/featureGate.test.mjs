@@ -48,7 +48,9 @@ const APP_DIR = join(ROOT, "src/app");
 const FEATURES_DIR = join(ROOT, "src/features");
 
 // 対象ドメインを import するが、意図的にゲートで閉じないルート（src/app 相対 → 理由）。upstream のルート用
-const ROUTE_EXCEPTIONS = {};
+const ROUTE_EXCEPTIONS = {
+  "(user)/_layout/UserLayout.tsx": "利用者の枠(常に描く)。既定の未読のお知らせのモーダルは useGate().enabled(\"notification\") が開のときだけ描く(閉なら描かず未読数も取りに行かない)",
+};
 
 // FEATURE_GATE_CHECK=all: 全ルールを無効とみなして検査する（upstream 用）
 const CHECK_ALL = process.env.FEATURE_GATE_CHECK === "all";
@@ -295,6 +297,9 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
   const derived = Object.fromEntries(featureGateRules.filter((rule) => rule.domainApiPaths.length > 0).map((rule) => [rule.name, rule.domainApiPaths]));
   assert.deepEqual(derived, {
     coupon: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"],
+    milestone: ["/api/milestone"],
+    notification: ["/api/notification"],
+    notificationTemplate: ["/api/notificationTemplate"],
     pairedDevice: ["/api/pairedDevice"],
     payment: ["/api/purchaseRequest", "/api/bankTransferReview"],
     sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],

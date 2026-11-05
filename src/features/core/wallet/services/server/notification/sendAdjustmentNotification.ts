@@ -1,6 +1,7 @@
 // src/features/core/wallet/services/server/notification/sendAdjustmentNotification.ts
 // 管理者による残高変更時の通知送信
 
+import { gate } from "@/featureGate";
 import { notificationService } from "@/features/notification/services/server/notificationService";
 import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
 import type { AdjustmentNotificationParams } from "./adjustmentNotificationFormat";
@@ -20,10 +21,12 @@ type SendAdjustmentNotificationInput = {
 /**
  * 管理者による残高変更をユーザーに通知する。
  * Safe版を使用し、通知送信の失敗が本体処理に影響しないようにする。
+ * お知らせの機能が閉じているときは送らない（残高の変更は済んでいる。付け足しの連携、D52）。
  */
 export async function sendAdjustmentNotification(
   input: SendAdjustmentNotificationInput,
 ): Promise<void> {
+  if (!gate.enabled("notification")) return;
   const params: AdjustmentNotificationParams = {
     walletType: input.walletType,
     changeMethod: input.changeMethod,

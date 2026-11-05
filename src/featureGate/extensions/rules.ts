@@ -11,8 +11,11 @@ import { rule as rules_bankTransferReview } from "@/featureGate/rules/bankTransf
 import { rule as rules_coupon } from "@/featureGate/rules/coupon";
 import { rule as rules_demoLogin } from "@/featureGate/rules/demoLogin";
 import { rule as rules_demoPages } from "@/featureGate/rules/demoPages";
+import { rule as rules_milestone } from "@/featureGate/rules/milestone";
 import { rule as rules_mypageOther } from "@/featureGate/rules/mypageOther";
+import { rule as rules_notification } from "@/featureGate/rules/notification";
 import { rule as rules_notificationBroadcast } from "@/featureGate/rules/notificationBroadcast";
+import { rule as rules_notificationTemplate } from "@/featureGate/rules/notificationTemplate";
 import { rule as rules_pageEntry } from "@/featureGate/rules/pageEntry";
 import { rule as rules_pageMypage } from "@/featureGate/rules/pageMypage";
 import { rule as rules_pageMypageAccount } from "@/featureGate/rules/pageMypageAccount";
@@ -34,7 +37,7 @@ import { rule as rules_userTag } from "@/featureGate/rules/userTag";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "bankTransferReview" | "coupon" | "demoLogin" | "demoPages" | "mypageOther" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userTag" | "wallet" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "bankTransferReview" | "coupon" | "demoLogin" | "demoPages" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userTag" | "wallet" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GatedFeatureRule[] = [
@@ -46,8 +49,11 @@ export const rules: GatedFeatureRule[] = [
   { ...rules_coupon, name: "coupon", tables: ["coupons", "coupon_histories", "coupon_attribution_rewards", "coupon_issuer_grants"], domainApiPaths: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"], settingPaths: [], pathPatterns: [...rules_coupon.pathPatterns, "/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"] },
   { ...rules_demoLogin, name: "demoLogin", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_demoPages, name: "demoPages", tables: [], domainApiPaths: [], settingPaths: [] },
+  { ...rules_milestone, name: "milestone", tables: ["milestones"], domainApiPaths: ["/api/milestone"], settingPaths: [], pathPatterns: [...rules_milestone.pathPatterns, "/api/milestone"] },
   { ...rules_mypageOther, name: "mypageOther", tables: [], domainApiPaths: [], settingPaths: [] },
+  { ...rules_notification, name: "notification", tables: ["notifications", "notification_reads", "notification_read_states"], domainApiPaths: ["/api/notification"], settingPaths: [], pathPatterns: [...rules_notification.pathPatterns, "/api/notification"] },
   { ...rules_notificationBroadcast, name: "notificationBroadcast", tables: [], domainApiPaths: [], settingPaths: [] },
+  { ...rules_notificationTemplate, name: "notificationTemplate", tables: ["notification_templates"], domainApiPaths: ["/api/notificationTemplate"], settingPaths: [], pathPatterns: [...rules_notificationTemplate.pathPatterns, "/api/notificationTemplate"] },
   { ...rules_pageEntry, name: "pageEntry", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_pageMypage, name: "pageMypage", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_pageMypageAccount, name: "pageMypageAccount", tables: [], domainApiPaths: [], settingPaths: [] },

@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
+import { useGate } from "@/featureGate/client";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
 
@@ -47,7 +48,7 @@ export type UserLayoutProps = {
   readonly bottomNav?: ReactNode;
   /** 最背面の背景。既定 = BackgroundLayer(config/ui/user-layout.config の 3 値) */
   readonly background?: ReactNode;
-  /** 未読お知らせのモーダル。既定 = UnreadNotificationModal */
+  /** 未読お知らせのモーダル。既定 = UnreadNotificationModal(お知らせの機能が閉じていれば描かない。差し替えた物はそのまま描く) */
   readonly notificationModal?: ReactNode;
 };
 
@@ -64,6 +65,8 @@ export function UserLayout({
   const frame = useFrameAttributes(frameTable);
   const headerHeight = useHeaderHeight();
   const [bannerHeight, setBannerHeight] = useState(0);
+  // 既定の未読お知らせのモーダルは、お知らせの機能が開いているときだけ(閉なら未読数も取りに行かない)
+  const notificationOpen = useGate().enabled("notification");
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
   // bottomNav={null} の時は書かない(:root の 0px)。
@@ -119,7 +122,7 @@ export function UserLayout({
         ) : (
           bottomNav
         )}
-        {notificationModal === undefined ? <UnreadNotificationModal /> : notificationModal}
+        {notificationModal === undefined ? notificationOpen && <UnreadNotificationModal /> : notificationModal}
       </Flex>
     </>
   );
