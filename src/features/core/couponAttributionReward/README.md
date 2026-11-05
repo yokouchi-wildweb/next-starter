@@ -168,7 +168,7 @@ items.map((item) => ({
 ### 運用
 
 - 失敗行の検知: 管理一覧（serviceRegistry `couponAttributionReward`, admin）で `status = failed` を検索 → `retry(rewardId)` を管理ルート/タスクから呼ぶ（上流はルート未提供。必要なら下流で `createApiRoute` + admin access）
-- コイン創出サマリー（`/api/admin/analytics/coin-issuance/summary`）に `coupon_attribution_reward` ソースとして自動参加（`fulfilled_at` 基準、受取人に UserFilter 適用）
+- コイン創出サマリー（`/api/admin/analytics/coin-issuance/summary`）の合計には、付与の wallet の行（既定の区分 `bonus`）として `wallet_bonus_grant` に入る（この表のソースは登録しない: 二重計上になる）。内訳は `aggregateCouponAttributionRewardCurrentVsPrev`（`analytics/services/server/couponAttributionAnalytics.ts`、`fulfilled_at` 基準、受取人に UserFilter と除外）
 
 ---
 

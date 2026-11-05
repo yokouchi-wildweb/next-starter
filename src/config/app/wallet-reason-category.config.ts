@@ -12,6 +12,11 @@ export type ReasonCategoryConfig = {
   sourceTypes: readonly ("user_action" | "admin_action" | "system")[];
   /** 集計時のデフォルト表示順（小さいほど先） */
   sortOrder: number;
+  /**
+   * コイン創出サマリー（管理画面のコイン収支）の発行 wallet_bonus_grant に数えるか（省略 = 数えない）。
+   * 数える通貨は src/config/app/coin-issuance.config.ts の COIN_ISSUANCE_WALLET_TYPES
+   */
+  countsAsIssuance?: boolean;
 };
 
 /**
@@ -37,6 +42,8 @@ export const REASON_CATEGORY_CONFIG = {
     label: "ボーナス",
     sourceTypes: ["user_action", "system"],
     sortOrder: 30,
+    // 販促・特典の付与（紹介報酬・クーポン帰属報酬・登録ボーナス等）。発行として数える
+    countsAsIssuance: true,
   },
   refund: {
     label: "返金",

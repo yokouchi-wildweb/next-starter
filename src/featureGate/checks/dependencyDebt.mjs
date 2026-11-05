@@ -22,7 +22,6 @@ export const OWNER = "設定の議会の legate(legate-20261023-175358-config-re
  */
 export const UPSTREAM_DEPENDENCY_DEBT = {
   "src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewDetailModal.tsx → core/wallet": { owner: OWNER, order: NOT_FILED, how: 'gate: 画面で gate.enabled("wallet") を確かめる(payment の前提で閉じるが検査は前提をたどらない)' },
-  "src/features/core/analytics/services/server/coinIssuance/sources/couponAttributionReward.ts → core/couponAttributionReward": { owner: OWNER, order: NOT_FILED, how: 'gate: gate.enabled("coupon") を確かめてから呼ぶ' },
   "src/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap.ts → core/purchaseRequest": { owner: OWNER, order: NOT_FILED, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
   "src/features/core/analytics/services/server/purchaseAnalytics.ts → core/purchaseRequest": { owner: OWNER, order: NOT_FILED, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
   "src/features/core/analytics/services/server/purchaseDistributionAnalytics.ts → core/purchaseRequest": { owner: OWNER, order: NOT_FILED, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },

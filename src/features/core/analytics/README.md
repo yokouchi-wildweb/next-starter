@@ -434,9 +434,17 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 
 | key | kind | 概要 |
 |---|---|---|
-| `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した分のうち `amount` に含まれるもの＝クーポン割引・購入パッケージの上乗せ等。別のウォレット行で払うボーナスは含まれず、上流のどのソースにも入らない）|
-| `referral_reward` | issuance | `referral_rewards` の `status='fulfilled'` 金額合計 (`getReferralSummary().rewardTotal` と同 SQL) |
-| `coupon_attribution_reward` | issuance | `coupon_attribution_rewards` の `status='fulfilled'` の `amount` 合計（`fulfilled_at` で期間集計、受取人に UserFilter を適用）|
+| `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した分のうち `amount` に含まれるもの＝クーポン割引・購入パッケージの上乗せ等。別のウォレット行で払うボーナスは `wallet_bonus_grant` 側）|
+| `wallet_bonus_grant` | issuance | `wallet_histories` の `SUM(balance_after - balance_before)`。対象 = 数える通貨（`COIN_ISSUANCE_WALLET_TYPES`、既定 `regular_coin`）× `countsAsIssuance` の区分（既定 `bonus`）。付与元を問わず 1 本で数える（紹介報酬・クーポン帰属報酬・登録ボーナス・fork の施策も、wallet の行を `bonus` で書けば入る）。flow の scope（`wallet_histories`）で UserFilter と除外 |
+
+**台帳の純額で 1 本に数える（二重計上しない）**:
+
+- 付与元の表ごとのソース（紹介報酬 `referral_rewards`・クーポン帰属報酬 `coupon_attribution_rewards` など）は `wallet_bonus_grant` の部分集合。`sources` に並べると `finalProfit` から二重に引かれるので、上流は登録しない（旧 `referral_reward` / `coupon_attribution_reward` は外した）。内訳を見たい画面は `aggregateReferralRewardCurrentVsPrev`（`referralAnalytics.ts`）・`aggregateCouponAttributionRewardCurrentVsPrev`（`couponAttributionAnalytics.ts`）を別に呼ぶ（合計には足さない）
+- **数える区分** = `src/config/app/wallet-reason-category.config.ts` の `countsAsIssuance: true`（上流の既定は `bonus` だけ）。fork のカテゴリにも同じ印を付けられる
+  - `other` は既定で数えない: 区分を書かずに書いた行（`DEFAULT_REASON_CATEGORY`）と reason_category の導入前の行（全部 `other` で埋まっている）が入り、ガチャ・調整・退会の残高クリアなどの引き落としで純額が負になり得るため
+  - 区分なしで書かれた付与も拾いたい fork は自分の config で `other` に `countsAsIssuance: true` を付けられる（その場合、導入前の期間の値は信用しない）
+- **数える通貨** = `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_WALLET_TYPES`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
+- **付与は `reasonCategory` を必ず書く**（`walletService.adjustBalance` 等）。書かないと `other` になり、既定ではこのまとめに入らない
 
 ### ソース追加の手順 (downstream)
 
@@ -523,7 +531,7 @@ export const source = gachaProfitSource;
 
 `userFilter (roles / excludeDemo)` は対象テーブルの `user_id` カラムに対して
 `buildUserFilterConditions(column, userFilter)` で適用できる。
-ただし「発行先 user を絞り込むことが意味を持たないソース」(e.g. `referral_reward` の rewardTotal) は適用しない。
+ただし「発行先 user を絞り込むことが意味を持たないソース」は適用しない。分析の除外条件は第 3 引数の scope で足す（上の「分析の除外条件」）。
 
 #### 4. 戻り値は常に絶対値
 
@@ -537,11 +545,11 @@ export const source = gachaProfitSource;
 upstream の key と衝突しない snake_case を選ぶ。
 `gacha_profit`, `winning_report_reward`, `winning_comment_reward` 等、ソースの意味が読み取れる命名にする。
 
-### `referralReward` の金額抽出 SQL を差し替える
+### 紹介報酬の金額抽出 SQL を差し替える（内訳の集計）
 
-`referralReward` ソースは `metadata ->> 'amount'` で金額を抽出する規約に従う。
-規約が異なる downstream は、`aggregateReferralRewardCurrentVsPrev` を直接呼ぶカスタム source を実装するか、
-上流のソースは消さず（`sources/referralReward.ts` は上流の物）、独自 key の source を足す。
+`aggregateReferralRewardCurrentVsPrev` は `metadata ->> 'amount'` で金額を抽出する規約に従う。
+規約が異なる downstream は `rewardAmountExpr` を渡す。紹介報酬は `wallet_bonus_grant` に含まれるので、
+これをコイン創出の `sources` に足すと二重計上になる。内訳の画面（や合計に入れない表示）で使う。
 
 ```typescript
 import { sql } from "drizzle-orm";
@@ -549,23 +557,23 @@ import { ReferralRewardTable } from "@/features/core/referralReward/entities/dri
 import { aggregateReferralRewardCurrentVsPrev } from "@/features/core/analytics/services/server/referralAnalytics";
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
 
-// 独自 metadata 構造 ({ rewardCoins: number } 等) を持つ downstream 用
-export const customReferralRewardSource: CoinIssuanceSource = {
-  key: "referral_reward",
-  kind: "issuance",
-  async aggregate({ range, prevRange }) {
-    return aggregateReferralRewardCurrentVsPrev({
-      range,
-      prevRange,
-      rewardAmountExpr: sql<number>`(${ReferralRewardTable.metadata} ->> 'rewardCoins')::numeric`,
-    });
-  },
-};
+// 独自 metadata 構造 ({ rewardCoins: number } 等) を持つ downstream の内訳用(合計の sources には登録しない)
+export async function getReferralRewardBreakdown({ range, prevRange }: Parameters<CoinIssuanceSource["aggregate"]>[0]) {
+  return aggregateReferralRewardCurrentVsPrev({
+    range,
+    prevRange,
+    rewardAmountExpr: sql<number>`(${ReferralRewardTable.metadata} ->> 'rewardCoins')::numeric`,
+  });
+}
 ```
 
 ### Breaking Changes: コイン創出ソース key 変更履歴
 
 upstream で組み込みソースの `key` をリネームした際の移行履歴。ダウンストリームは pull 時に該当項目があれば対応すること。
+
+#### `referral_reward` / `coupon_attribution_reward` → `wallet_bonus_grant`
+
+応答の `sources` から `referral_reward` と `coupon_attribution_reward` が消え、`wallet_bonus_grant` が出る（2 つは `wallet_bonus_grant` の部分集合で、並べると二重計上だった）。ファイル `sources/referralReward.ts`・`sources/couponAttributionReward.ts` は消した。キーを読む画面は `wallet_bonus_grant` に移し、内訳が要るなら上の集計関数を別に呼ぶ（手順は notice 20261105-123320-coin-issuance-ledger-source）。
 
 #### `coupon_bonus_gap` → `purchase_bonus_gap`
 

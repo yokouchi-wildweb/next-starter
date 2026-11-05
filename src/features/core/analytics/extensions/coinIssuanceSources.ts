@@ -3,12 +3,10 @@
 
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
 
-import { source as coinIssuanceSources_couponAttributionReward } from "@/features/core/analytics/services/server/coinIssuance/sources/couponAttributionReward";
 import { source as coinIssuanceSources_purchaseBonusGap } from "@/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap";
-import { source as coinIssuanceSources_referralReward } from "@/features/core/analytics/services/server/coinIssuance/sources/referralReward";
+import { source as coinIssuanceSources_walletBonusGrant } from "@/features/core/analytics/services/server/coinIssuance/sources/walletBonusGrant";
 
 export const coinIssuanceSources: CoinIssuanceSource[] = [
-  coinIssuanceSources_couponAttributionReward,
   coinIssuanceSources_purchaseBonusGap,
-  coinIssuanceSources_referralReward,
+  coinIssuanceSources_walletBonusGrant,
 ];
