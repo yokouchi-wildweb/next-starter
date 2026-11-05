@@ -15,8 +15,6 @@ export const CORE_UI_GUARDS_ALLOW = [
   "src/features/core/coupon/components/common/CreateCouponForm.tsx",
   "src/features/core/coupon/components/common/EditCouponForm.tsx",
   "src/features/core/notification/components/AdminNotificationSend/index.tsx",
-  "src/features/core/notification/components/common/CreateNotificationForm.tsx",
-  "src/features/core/notification/components/common/EditNotificationForm.tsx",
   "src/features/core/notificationTemplate/components/common/CreateNotificationTemplateForm.tsx",
   "src/features/core/notificationTemplate/components/common/EditNotificationTemplateForm.tsx",
   "src/features/core/user/components/EditProfile.tsx",

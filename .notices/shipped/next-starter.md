@@ -289,3 +289,4 @@
 - id:20261105-130531-wallet-reason-key | severity:action-required | checkpoint:wallet-reason-key
 - id:20261105-140927-config-pre-shelf | severity:breaking | checkpoint:config-pre-shelf | moved:src/lib/dataMigration/config.ts -> src/lib/dataMigration/limits.ts; src/lib/x/config.ts -> src/lib/x/env.ts; src/lib/line/config.ts -> src/lib/line/env.ts; src/features/core/referralReward/config.ts -> src/features/core/referralReward/rewardDefinitions.ts; src/lib/domain/config/ -> src/lib/domain/definition/ | resolves:20261105-070903-wallet-purchase-pluggable
 - id:20261105-125331-infinite-list-initial-retry | severity:info | checkpoint:infinite-list-initial-retry
+- id:20261105-125909-remove-unused-core-ui-parts | severity:info | checkpoint:remove-unused-core-ui-parts
