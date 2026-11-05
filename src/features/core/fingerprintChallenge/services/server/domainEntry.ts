@@ -14,5 +14,7 @@ export const domainEntries = {
     table: "fingerprint_challenges",
     idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
+    // 前提の機能(門番の依存の検査): 回答に端末の指紋を記録し、表も指紋を参照する(D48)
+    requires: ["deviceFingerprint"],
   },
 } satisfies DomainEntries;

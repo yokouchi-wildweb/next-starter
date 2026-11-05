@@ -3,6 +3,8 @@
 ユーザーがサインアップ完了するまでの流入タッチ（UTM パラメータ / 広告クリック ID / 外部リファラー）を
 サービス側 DB に保存する core ドメイン。GA に依存せず first-touch / last-touch / パス分析を自前データで行える。
 
+閉じられる機能(門番の規則 `src/featureGate/rules/userAcquisition.ts`、今は常に開)。閉じる値と処理の値は別: `acquisition.config.ts` の `enabled` は記録の opt-in(既定 false)で、規則は読まない。流入経路の proxy・本登録の route・本登録の保存は両方(`gate.enabled("userAcquisition")` と `ACQUISITION_CONFIG.enabled`)が開のときだけ動く。閉じると表も push から外れる。
+
 **デフォルト無効（オプトイン）。** 必要になった downstream が `acquisition.config.ts` の `enabled: true` で有効化する。
 有効化した時点以降のサインアップから蓄積される（過去のサインアップには遡及できない）。
 集計 UI は core に同梱しない — 各プロジェクトが下記の読み取り API と集計レシピを使って管理画面等に自作する。

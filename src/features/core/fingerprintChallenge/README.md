@@ -1,5 +1,7 @@
 # fingerprintChallenge — 不正疑いユーザーへの回答チャレンジ
 
+閉じられる機能(門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、今は常に開、前提 `requires: ["deviceFingerprint"]`)。閉じる値と処理の値は別: `fingerprint.config.ts` の challenge の `enabled` は確認の opt-in で、規則は読まない。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・導出の `/api/fingerprintChallenge` が 404 で、表も push から外れる。
+
 不正が疑われるユーザーに **専用フォームを送って回答させ、その提出時に
 デバイスフィンガープリント + 詳細な行動計測を強制的に採取する** ための基盤。
 

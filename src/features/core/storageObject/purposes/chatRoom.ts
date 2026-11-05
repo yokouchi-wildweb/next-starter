@@ -9,6 +9,7 @@ import {
   IMAGE_MAX_SIZE,
   VIDEO_MAX_SIZE,
 } from "@/features/core/chatRoom/constants/chat";
+import { gate } from "@/featureGate";
 import { isChatParticipant } from "@/features/core/chatRoom/services/server/isChatParticipant";
 import type { StoragePurpose, StoragePurposeMap } from "@/lib/storage";
 
@@ -17,7 +18,8 @@ const ADMIN = { roleCategories: ["admin"] };
 /** チャット添付の共通規則: 現参加者だけが上げられ、読める。削除は管理者のみ。業務行に紐付けない */
 const chatAttachment = {
   visibility: "private",
-  upload: { allow: "authenticated", check: ({ actor, scopeId }) => isChatParticipant(scopeId, actor) },
+  // チャットの機能が閉じていれば添付を受け付けない(read はそのまま: 保存済みの添付を参加者が見られる、L1.12)
+  upload: { allow: "authenticated", check: ({ actor, scopeId }) => gate.enabled("chatRoom") && isChatParticipant(scopeId, actor) },
   read: { allow: "authenticated", check: ({ actor, object }) => isChatParticipant(object.scopeId, actor) },
   delete: { allow: ADMIN },
   maxPending: 10,

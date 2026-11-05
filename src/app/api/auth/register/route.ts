@@ -33,8 +33,9 @@ export const POST = createApiRoute(
 
     // 流入経路: proxy が蓄積したタッチ履歴 cookie をサーバーサイドで復元して渡す
     // (クライアント申告値ではないため RegistrationSchema には含めない)
-    // enabled=false 時は蓄積側(proxy)と揃えて確定保存も行わない (期限切れ前の残存 cookie 対策)
-    const cookieTouches = ACQUISITION_CONFIG.enabled
+    // enabled=false 時は蓄積側(proxy)と揃えて確定保存も行わない (期限切れ前の残存 cookie 対策)。
+    // 流入経路の機能が閉じているときも読まない(閉じる値 gate と記録の opt-in ACQUISITION_CONFIG.enabled は別、L1.8)
+    const cookieTouches = gate.enabled("userAcquisition") && ACQUISITION_CONFIG.enabled
       ? parseAttributionCookie(req.cookies.get(ACQUISITION_COOKIE_NAME)?.value)
       : [];
     const gaClientId = extractGaClientId(req.cookies.get("_ga")?.value);

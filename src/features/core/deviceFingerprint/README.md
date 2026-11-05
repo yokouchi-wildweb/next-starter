@@ -3,6 +3,8 @@
 不正が疑われるユーザーを **デバイス軸** で突き合わせるための一次データ基盤。
 `userLoginEvent`（IP = ネットワーク軸）の兄弟で、両者を組み合わせて調査する。
 
+閉じられる機能(門番の規則 `src/featureGate/rules/deviceFingerprint.ts`、今は常に開)。閉じる値と処理の値は別: `fingerprint.config.ts` の `collection.enabled` は収集の opt-in で、規則は読まない(閉じる値は土台の後にこのドメインの config.ts)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる。
+
 収集ロジック本体はドメイン非依存の `src/lib/fingerprint/` にあり、本ドメインは
 その **蓄積（device_fingerprints）と照合（成分別スコアリング）** を担う。
 

@@ -1,6 +1,7 @@
 import type { NextRequest, NextResponse } from 'next/server';
 
 import { ACQUISITION_CONFIG } from '@/config/app/acquisition.config';
+import { gate } from '@/featureGate';
 import { ACQUISITION_COOKIE_NAME } from '@/features/core/userAcquisition/constants';
 import {
   appendTouch,
@@ -27,6 +28,8 @@ export const attributionDecorator: ProxyResponseDecorator = (
   request: NextRequest,
   response: NextResponse,
 ) => {
+  // 閉じる値(門番の規則 userAcquisition)と記録の opt-in(ACQUISITION_CONFIG.enabled)は別。どちらかが閉なら何もしない(L1.8)
+  if (!gate.enabled("userAcquisition")) return;
   if (!ACQUISITION_CONFIG.enabled) return;
   if (request.method !== 'GET') return;
   if (!isPageNavigation(request)) return;
