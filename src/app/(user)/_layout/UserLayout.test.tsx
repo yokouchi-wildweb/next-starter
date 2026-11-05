@@ -20,7 +20,9 @@ const marker = (name: string) => {
 };
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
-mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => 0 } });
+/** useHeaderHeight の値(null = 測る前 = SSR の最初の HTML。test ごとに書き換えて戻す) */
+const headerHeight: { current: number | null } = { current: null };
+mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => headerHeight.current } });
 // 門番の client の口: 静的描画は GateProvider の外なので、開閉をテストで決める(既定 = 全部開)
 let notificationOpen = true;
 mock.module("@/featureGate/client", {
@@ -102,7 +104,12 @@ const withSlotsAndSafeArea = (html: string) =>
   html
     .replace('data-user-app-container="" data-frame-root=""', 'data-user-app-container="" data-slot="app-container" data-frame-root=""')
     .replace('class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]"', 'class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"');
-const frameDims = () => withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)));
+/**
+ * ヘッダーの高さの初期値の区切り(指令 15 AMENDMENT 1 (1))で既定の DOM に入った差分: 測る前(SSR の最初の HTML)は外枠の inline に
+ * --app-header-height を書かない(styles/_base/frame.css の初期値 = 今の行の高さが効く)。測った値は書く(下の test)
+ */
+const withoutHeaderVar = (html: string) => html.replace("--app-header-height:0px;", "").replace(' style="--app-header-height:0px"', "");
+const frameDims = () => withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH))));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -193,7 +200,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
   assert.equal(
     render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
-      'id="user-app-container" data-user-app-container="" data-slot="app-container" data-frame-root=""' + rootHideAttr() + ' style="--app-header-height:0px">' +
+      'id="user-app-container" data-user-app-container="" data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
       '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div></div>',
   );
 });
@@ -226,7 +233,7 @@ test("banner に要素を渡すとヘッダーより前の固定の帯に描き�
 
 test("banner なしの HTML に帯とスペーサーと変数を足しただけ(固定の HTML、Tier1 のみ)", tier1Only, () => {
   const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);
-  assert.ok(html.includes(`style="--app-header-height:0px${bottomNavVar()};--app-banner-height:0px"`));
+  assert.ok(html.includes(`style="${bottomNavVar().slice(1)};--app-banner-height:0px"`));
   assert.equal(
     html.replace(BANNER_TAG, "").replace(BANNER_SPACER_TAG, "").replace(";--app-banner-height:0px", ""),
     defaultLayout(),
@@ -240,5 +247,21 @@ test("お知らせの機能が閉じていれば既定の未読のモーダル�
     assert.ok(render(<UserLayout notificationModal={<dialog id="m" />}>CHILD</UserLayout>).includes('<dialog id="m">'));
   } finally {
     notificationOpen = true;
+  }
+});
+
+test("測る前(useHeaderHeight が null = SSR の最初の HTML)は外枠に --app-header-height を書かず、CSS の初期値に任せる", () => {
+  headerHeight.current = null;
+  assert.equal(tagOf(render(<UserLayout>CHILD</UserLayout>), "user-app-container").includes("--app-header-height"), false);
+});
+
+test("測った値は外枠の inline の --app-header-height に書く(ヘッダーを隠して測った 0 も書く = 初期値を上書きする)", () => {
+  try {
+    headerHeight.current = 56;
+    assert.ok(tagOf(render(<UserLayout>CHILD</UserLayout>), "user-app-container").includes("--app-header-height:56px"));
+    headerHeight.current = 0;
+    assert.ok(tagOf(render(<UserLayout>CHILD</UserLayout>), "user-app-container").includes("--app-header-height:0px"));
+  } finally {
+    headerHeight.current = null;
   }
 });

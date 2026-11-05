@@ -73,8 +73,10 @@ export function UserLayout({
   // 隠している間(各ルートの枠の宣言 frame.default.ts / frame.ts)の 0 は styles/core/frame.css が作る
   const hasBottomNav = bottomNav !== null;
 
+  // ヘッダーの高さは測れた時だけ書く(null = 測る前。最初の HTML とページを移る間は styles/_base/frame.css の初期値 = 今の行の高さが効き、
+  // 本文がヘッダーに重ならない)。測った値は初期値を上書きするだけ(隠している間の 0 も書く)
   const layoutStyle: LayoutStyle = {
-    "--app-header-height": `${headerHeight}px`,
+    ...(headerHeight === null ? {} : { "--app-header-height": `${headerHeight}px` }),
     ...(hasBottomNav ? { "--app-bottom-nav-height": `calc(${BOTTOM_NAV_HEIGHT}px + var(--app-safe-area-bottom))` } : {}),
     ...(hasBanner ? { "--app-banner-height": `${bannerHeight}px` } : {}),
   };
