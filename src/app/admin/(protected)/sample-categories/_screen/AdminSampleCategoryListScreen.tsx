@@ -6,7 +6,6 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSampleCategoryListScreen } from "./loader";
 
@@ -18,8 +17,7 @@ export async function AdminSampleCategoryListScreen(props: ScreenProps<Record<st
   const { results: sampleCategories, page, limit, total } = await loadAdminSampleCategoryListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">サンプルカテゴリ管理</PageTitle>
+    <AdminPage title="サンプルカテゴリ管理">
       <AdminSampleCategoryList sampleCategories={sampleCategories} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

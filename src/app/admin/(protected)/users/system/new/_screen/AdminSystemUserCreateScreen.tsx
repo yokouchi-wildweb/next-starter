@@ -7,7 +7,6 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { ManagerialUserCreate } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSystemUserCreateScreen } from "./loader";
 
@@ -19,8 +18,7 @@ export async function AdminSystemUserCreateScreen(props: ScreenProps) {
   await loadAdminSystemUserCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">システム管理者追加</PageTitle>
+    <AdminPage title="システム管理者追加">
       <ManagerialUserCreate redirectPath="/admin/users/system" />
     </AdminPage>
   );

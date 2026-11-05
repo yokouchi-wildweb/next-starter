@@ -4,7 +4,6 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleSort from "@/features/sample/components/AdminSampleSort";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminSampleSortScreen } from "./loader";
@@ -17,8 +16,7 @@ export async function AdminSampleSortScreen(props: ScreenProps) {
   const { results: samples } = await loadAdminSampleSortScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">サンプル並び替え</PageTitle>
+    <AdminPage title="サンプル並び替え">
       <AdminSampleSort initialSamples={samples} />
     </AdminPage>
   );

@@ -7,7 +7,6 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
@@ -26,9 +25,7 @@ export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
   await loadAdminCouponAffiliateListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン管理</PageTitle>
-      <CouponSectionTabs placement="header" />
+    <AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
       <Section>
         <Stack space={6}>
           <ListTop title="発行済みのアフィリエイトクーポン" />

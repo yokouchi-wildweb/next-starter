@@ -7,7 +7,6 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { GeneralUserCreate } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminGeneralUserCreateScreen } from "./loader";
 
@@ -19,8 +18,7 @@ export async function AdminGeneralUserCreateScreen(props: ScreenProps) {
   await loadAdminGeneralUserCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">一般ユーザー追加</PageTitle>
+    <AdminPage title="一般ユーザー追加">
       <GeneralUserCreate redirectPath="/admin/users/general" />
     </AdminPage>
   );

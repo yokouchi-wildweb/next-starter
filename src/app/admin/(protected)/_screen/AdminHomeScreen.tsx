@@ -4,7 +4,6 @@
 //
 // セクションのデータは loader(範囲の守りを通った後)が取り、AdminDashboard の data で各セクションへ渡す。
 
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Stack } from "@/components/Layout/Stack";
 import { AdminDashboard } from "@/features/admin/dashboard";
@@ -16,9 +15,8 @@ export async function AdminHomeScreen(props: ScreenProps) {
   const { sections } = await loadAdminHomeScreen(props);
 
   return (
-    <AdminPage>
+    <AdminPage title="管理ダッシュボード">
       <Stack space={8}>
-        <PageTitle placement="header">管理ダッシュボード</PageTitle>
         <AdminDashboard data={sections} />
       </Stack>
     </AdminPage>

@@ -6,11 +6,11 @@
 // status タブは URL 遷移で切り替える(StatusTabs)。部品はこの _screen/ に置いてある(BankTransferReviewListPanel ほか)。
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Section } from "@/components/Layout/Section";
 import type { ScreenProps } from "@/lib/screens/types";
 
 import { BankTransferReviewListPanel } from "./BankTransferReviewListPanel";
+import { BankTransferStatusTabs } from "./StatusTabs";
 import { loadAdminBankTransferReviewsScreen, type AdminBankTransferReviewsScreenParams } from "./loader";
 
 export const metadata = {
@@ -21,8 +21,7 @@ export async function AdminBankTransferReviewsScreen(props: ScreenProps<AdminBan
   const { status } = await loadAdminBankTransferReviewsScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">銀行振込レビュー</PageTitle>
+    <AdminPage title="銀行振込レビュー" center={<BankTransferStatusTabs />}>
       <Section>
         <BankTransferReviewListPanel status={status} />
       </Section>

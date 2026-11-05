@@ -6,7 +6,6 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { GeneralUserEdit } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminGeneralUserEditScreen, type AdminGeneralUserEditScreenParams } from "./loader";
 
@@ -18,8 +17,7 @@ export async function AdminGeneralUserEditScreen(props: ScreenProps<AdminGeneral
   const { user, profileData } = await loadAdminGeneralUserEditScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">一般ユーザー編集</PageTitle>
+    <AdminPage title="一般ユーザー編集">
       <GeneralUserEdit user={user} profileData={profileData} redirectPath="/admin/users/general" />
     </AdminPage>
   );

@@ -6,7 +6,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { SWRConfig } from "swr";
 import AdminSampleCreate from "@/features/sample/components/AdminSampleCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSampleCreateScreen } from "./loader";
 
@@ -18,8 +17,7 @@ export async function AdminSampleCreateScreen(props: ScreenProps) {
   const { relationFallback } = await loadAdminSampleCreateScreen(props);
   return (
   <SWRConfig value={{ fallback: relationFallback }}>
-    <AdminPage>
-      <PageTitle placement="header">サンプル追加</PageTitle>
+    <AdminPage title="サンプル追加">
       <AdminSampleCreate redirectPath="/admin/samples" />
     </AdminPage>
   </SWRConfig>

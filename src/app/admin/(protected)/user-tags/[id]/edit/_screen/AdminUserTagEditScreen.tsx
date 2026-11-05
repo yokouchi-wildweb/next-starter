@@ -10,7 +10,6 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import { loadAdminUserTagEditScreen } from "./loader";
 import AdminUserTagEdit from "@/features/core/userTag/components/AdminUserTagEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "ユーザータグ編集",
@@ -20,8 +19,7 @@ export async function AdminUserTagEditScreen(props: ScreenProps<AdminEditScreenP
   const { record: userTag, redirectPath } = await loadAdminUserTagEditScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">ユーザータグ編集</PageTitle>
+    <AdminPage title="ユーザータグ編集">
       <AdminUserTagEdit userTag={userTag} redirectPath={redirectPath} />
     </AdminPage>
   );

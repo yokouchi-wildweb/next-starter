@@ -6,7 +6,6 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleTagList from "@/features/sampleTag/components/AdminSampleTagList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSampleTagListScreen } from "./loader";
 
@@ -18,8 +17,7 @@ export async function AdminSampleTagListScreen(props: ScreenProps<Record<string,
   const { results: sampleTags, page, limit, total } = await loadAdminSampleTagListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">サンプルタグ管理</PageTitle>
+    <AdminPage title="サンプルタグ管理">
       <AdminSampleTagList sampleTags={sampleTags} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

@@ -6,7 +6,6 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { ManagerialUserEdit } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSystemUserEditScreen, type AdminSystemUserEditScreenParams } from "./loader";
 
@@ -18,8 +17,7 @@ export async function AdminSystemUserEditScreen(props: ScreenProps<AdminSystemUs
   const { user, profileData } = await loadAdminSystemUserEditScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">システム管理者編集</PageTitle>
+    <AdminPage title="システム管理者編集">
       <ManagerialUserEdit user={user} profileData={profileData} redirectPath="/admin/users/system" />
     </AdminPage>
   );

@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminUserTagListScreen } from "./loader";
 import AdminUserTagList from "@/features/core/userTag/components/AdminUserTagList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "ユーザータグ一覧",
@@ -19,8 +18,7 @@ export async function AdminUserTagListScreen(props: ScreenProps<Record<string, n
   const { results: userTags, page, limit, total } = await loadAdminUserTagListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">ユーザータグ管理</PageTitle>
+    <AdminPage title="ユーザータグ管理">
       <AdminUserTagList userTags={userTags} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

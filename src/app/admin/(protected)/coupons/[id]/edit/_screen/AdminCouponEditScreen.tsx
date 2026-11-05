@@ -10,7 +10,6 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import { loadAdminCouponEditScreen } from "./loader";
 import AdminCouponEdit from "@/features/core/coupon/components/AdminCouponEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "クーポン編集",
@@ -20,8 +19,7 @@ export async function AdminCouponEditScreen(props: ScreenProps<AdminEditScreenPa
   const { record: coupon, redirectPath } = await loadAdminCouponEditScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン編集</PageTitle>
+    <AdminPage title="クーポン編集">
       <AdminCouponEdit coupon={coupon} redirectPath={redirectPath} />
     </AdminPage>
   );

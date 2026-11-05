@@ -10,7 +10,6 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import { loadAdminChatRoomEditScreen } from "./loader";
 import AdminChatRoomEdit from "@/features/core/chatRoom/components/AdminChatRoomEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "チャットルーム編集",
@@ -20,8 +19,7 @@ export async function AdminChatRoomEditScreen(props: ScreenProps<AdminEditScreen
   const { record: chatRoom, redirectPath } = await loadAdminChatRoomEditScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">チャットルーム編集</PageTitle>
+    <AdminPage title="チャットルーム編集">
       <AdminChatRoomEdit chatRoom={chatRoom} redirectPath={redirectPath} />
     </AdminPage>
   );

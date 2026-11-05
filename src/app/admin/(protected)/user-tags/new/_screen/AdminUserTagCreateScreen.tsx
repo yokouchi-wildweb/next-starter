@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminUserTagCreateScreen } from "./loader";
 import AdminUserTagCreate from "@/features/core/userTag/components/AdminUserTagCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "ユーザータグ追加",
@@ -19,8 +18,7 @@ export async function AdminUserTagCreateScreen(props: ScreenProps) {
   await loadAdminUserTagCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">ユーザータグ追加</PageTitle>
+    <AdminPage title="ユーザータグ追加">
       <AdminUserTagCreate redirectPath="/admin/user-tags" />
     </AdminPage>
   );

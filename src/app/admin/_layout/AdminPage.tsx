@@ -5,9 +5,13 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { Main } from "@/components/TextBlocks";
 
 import { AdminPageHeader } from "./AdminHeaderContext";
+import { AdminPageTitleBody, AdminPageTitleCompact } from "./AdminPageTitle";
 
 export type AdminPageProps = PropsWithChildren<{
-  /** ヘッダーの行の題の位置(ロゴの右隣、sm 以上)に描く物。省略 = 空(今は PageTitle placement="header" の差し込みがここに着地する) */
+  /**
+   * ページの題(管理画面の題は必ずここ。D135)。h1 は 1 つ = 本文の先頭の大見出し(SP で見え、PC では見た目から消して支援技術向けに残す)。
+   * PC で見える題はヘッダーの行のロゴの右隣の圧縮の題(飾りの文字)。省略 = 題なし(受け口は空のまま portal の差し込み先)
+   */
   title?: ReactNode;
   /** ヘッダーの行の中央に描く物(タブ・検索など) */
   center?: ReactNode;
@@ -25,7 +29,7 @@ export type AdminPageProps = PropsWithChildren<{
 /**
  * 管理画面のページコンテナ。ヘッダーの行(./AdminHeader の部品: ロゴ + title / center / actions + 明暗の切り替え)もここで描く。
  * 行は利用者の枠のヘッダーと同じく上端に固定(全幅)で、高さは AdminLayout の器が上の余白(--app-header-height)で空ける。
- * AdminLayout の header の prop で fork がヘッダーを差し替えている間は行を描かない(./AdminHeaderContext、指令 16 までの橋)。
+ * AdminLayout の header の prop で fork がヘッダーを差し替えている間は行を描かない(./AdminHeaderContext、指令 17 までの橋)。
  *
  * 本文を固定ヘッダー直下の残り高さちょうどにする(ページ自体はスクロールせず、内部スクロールは子に委譲する)ときは、
  * ページの隣の枠の宣言(上流 frame.default.ts の frameDefault / 下のリポ frame.ts の frame)に
@@ -38,19 +42,28 @@ export type AdminPageProps = PropsWithChildren<{
  *   calc(100dvh - var(--app-header-height) - var(--admin-page-padding-block) * 2)
  */
 export default function AdminPage({ title, center, actions, tabs, children, main = true }: AdminPageProps) {
+  const hasTitle = title !== undefined && title !== null && title !== false;
+  const body = (
+    <>
+      {hasTitle && <AdminPageTitleBody>{title}</AdminPageTitleBody>}
+      {tabs && <div className="mb-6">{tabs}</div>}
+      {children}
+    </>
+  );
+
   return (
     <>
-      <AdminPageHeader title={title} center={center} actions={actions} />
+      <AdminPageHeader
+        title={hasTitle ? <AdminPageTitleCompact>{title}</AdminPageTitleCompact> : undefined}
+        center={center}
+        actions={actions}
+      />
       {main ? (
         <Main containerType="plain" padding="lg" paddingBlock="xl">
-          {tabs && <div className="mb-6">{tabs}</div>}
-          {children}
+          {body}
         </Main>
       ) : (
-        <>
-          {tabs && <div className="mb-6">{tabs}</div>}
-          {children}
-        </>
+        body
       )}
     </>
   );

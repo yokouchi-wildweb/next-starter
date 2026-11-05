@@ -6,7 +6,6 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import Admin__Domain__List from "@/features/__domain__/components/Admin__Domain__List";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdmin__Domain__ListScreen } from "./loader";
 
@@ -18,8 +17,7 @@ export async function Admin__Domain__ListScreen(props: ScreenProps<Record<string
   const { results: __domains__, page, limit, total } = await loadAdmin__Domain__ListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">__DomainLabel__管理</PageTitle>
+    <AdminPage title="__DomainLabel__管理">
       <Admin__Domain__List __domains__={__domains__} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

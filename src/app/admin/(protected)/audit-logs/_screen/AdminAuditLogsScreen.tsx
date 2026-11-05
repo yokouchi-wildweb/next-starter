@@ -7,7 +7,6 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Section } from "@/components/Layout/Section";
 
 import { AuditLogSearchPanel } from "./AuditLogSearchPanel";
@@ -22,8 +21,7 @@ export async function AdminAuditLogsScreen(props: ScreenProps) {
   await loadAdminAuditLogsScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">監査ログ</PageTitle>
+    <AdminPage title="監査ログ">
       <Section>
         <AuditLogSearchPanel />
       </Section>

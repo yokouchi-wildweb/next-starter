@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminChatRoomListScreen } from "./loader";
 import AdminChatRoomList from "@/features/core/chatRoom/components/AdminChatRoomList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "チャットルーム一覧",
@@ -19,8 +18,7 @@ export async function AdminChatRoomListScreen(props: ScreenProps<Record<string, 
   const { results: chatRooms, page, limit, total } = await loadAdminChatRoomListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">チャットルーム管理</PageTitle>
+    <AdminPage title="チャットルーム管理">
       <AdminChatRoomList chatRooms={chatRooms} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

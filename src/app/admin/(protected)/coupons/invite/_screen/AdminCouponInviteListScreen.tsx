@@ -7,7 +7,6 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminInviteList from "@/features/core/referral/components/AdminInviteList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
@@ -21,9 +20,7 @@ export async function AdminCouponInviteListScreen(props: ScreenProps<Record<stri
   const data = await loadAdminCouponInviteListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン管理</PageTitle>
-      <CouponSectionTabs placement="header" />
+    <AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
       {data.enabled ? (
         <AdminInviteList items={data.items} page={data.page} perPage={data.perPage} total={data.total} />
       ) : (

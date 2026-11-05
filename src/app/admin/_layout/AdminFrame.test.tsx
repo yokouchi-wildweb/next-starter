@@ -135,7 +135,7 @@ test("上流は管理の枠の宣言を持たない(表は空)。AdminPage の f
   assert.ok(read("src/app/admin/insane/_layout/InsaneResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper=""'));
 });
 
-// ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 16) ----
+// ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 17) ----
 
 /** src/app/admin の下の page.tsx(_ で始まるフォルダ = _template などは除く) */
 const adminPages = (dir = "src/app/admin"): string[] =>
@@ -166,15 +166,69 @@ test("AdminPage を使わない管理のページは settings の入口(loader �
   assert.deepEqual(without, ["(protected)/settings/page.tsx"]);
 });
 
-test("未ログインの login・setup は AdminPage main={false} で包み、行に props を渡さない = ロゴの Link と明暗の切り替えだけ(AMENDMENT 1 (2))", () => {
+test("未ログインの login・setup は AdminPage main={false} で包み、行には題だけを渡す(中央・右の操作なし)= 操作はロゴの Link と明暗の切り替えだけ(指令 14 AMENDMENT 1 (2)、題は指令 15 (a))", () => {
   for (const file of ["src/app/admin/login/_screen/AdminLoginScreen.tsx", "src/app/admin/setup/_screen/AdminSetupScreen.tsx"]) {
     const source = read(file);
-    assert.match(source, /<AdminPage main=\{false\}>/, `${file} が AdminPage main={false} で包んでいない`);
-    assert.equal(/<AdminPage[^>]*\b(title|center|actions)=/.test(source), false, `${file} の行に題・中央・右の操作を渡している`);
+    assert.match(source, /<AdminPage main=\{false\} title="[^"]+">/, `${file} が AdminPage main={false} title で包んでいない`);
+    assert.equal(/<AdminPage[^>]*\b(center|actions)=/.test(source), false, `${file} の行に中央・右の操作を渡している`);
     assert.equal(source.includes("AdminHeaderPortal"), false, `${file} がヘッダーに差し込んでいる`);
   }
   // 行の中身 = ロゴの Link 1 つ + 空の受け口 3 つ + 明暗の切り替え(操作はそれだけ)
   const header = read("src/app/admin/_layout/AdminHeader.tsx");
   assert.equal(header.split("<Link ").length - 1, 1);
   assert.match(header, /<AdminHeaderSlots title=\{title\} center=\{center\} right=\{actions\} trailing=\{<DarkModeSwitch \/>\} \/>/);
+});
+
+// ---- 題と中央の差し込み(指令 15) ----
+
+/** 上流の管理の画面のソース(src/app/admin の .tsx。_layout の部品とテストを除く。_template は含む) */
+const adminScreenSources = (dir = "src/app/admin"): string[] =>
+  readdirSync(join(repo, dir), { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return path === "src/app/admin/_layout" ? [] : adminScreenSources(path);
+    return entry.name.endsWith(".tsx") && !entry.name.endsWith(".test.tsx") ? [path] : [];
+  });
+
+test("上流の管理の画面(_template を含む)は題を AdminPage title で渡す: PageTitle と placement= の使用 0、題のある AdminPage の題は 1 つ", () => {
+  const files = adminScreenSources();
+  assert.ok(files.some((f) => f.includes("/_template/")), "_template を読めていない");
+  for (const file of files) {
+    const source = read(file);
+    assert.equal(source.includes("_layout/PageTitle"), false, `${file} が PageTitle を使っている`);
+    assert.equal(/\bplacement=/.test(source), false, `${file} に placement=`);
+  }
+  // 題を持たない AdminPage = 前から題の無い insane の 2 画面だけ(本文の見出しは SecTitle。見た目を変えないので題を足さない)。
+  // settings の入口は AdminPage 自体が無い
+  const untitled = adminPages()
+    .filter((p) => !p.endsWith("(protected)/settings/page.tsx"))
+    .map((p) => screenOf(p))
+    .filter(({ source }) => !/<AdminPage\b[^>]*\btitle=/.test(source))
+    .map(({ path }) => relative("src/app/admin", path))
+    .sort();
+  assert.deepEqual(untitled, ["insane/_screen/InsaneDashboardScreen.tsx", "insane/truncate/_screen/InsaneTruncateScreen.tsx"]);
+  for (const file of ["Admin__Domain__ListScreen.tsx", "new/_screen/Admin__Domain__CreateScreen.tsx", "[id]/edit/_screen/Admin__Domain__EditScreen.tsx", "sort/_screen/Admin__Domain__SortScreen.tsx"]) {
+    const path = file.includes("/") ? `src/app/admin/_template/__domains__/${file}` : `src/app/admin/_template/__domains__/_screen/${file}`;
+    assert.match(read(path), /<AdminPage title="__DomainLabel__[^"]+"/, `${path} の雛形が AdminPage title の形でない`);
+  }
+});
+
+test("中央の差し込み(銀行振込の status タブ・クーポンのタブ)は AdminPage center。上流で AdminHeaderPortal を使うのは ItemNavigator と指令 17 までの互換 2 つだけ", () => {
+  assert.match(read("src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/AdminBankTransferReviewsScreen.tsx"), /<AdminPage title="銀行振込レビュー" center=\{<BankTransferStatusTabs \/>\}>/);
+  for (const section of ["official", "affiliate", "invite"]) {
+    const screen = sourcesOf(`src/app/admin/(protected)/coupons/${section}/_screen`).map(read).join("\n");
+    assert.match(screen, /center=\{<CouponSectionTabs variant="header" \/>\}/, `coupons/${section}`);
+  }
+  const users = [...sourcesOf("src"), ...sourcesOf("src/app")]
+    .filter((file, i, all) => all.indexOf(file) === i && !/\.test\.tsx?$/.test(file) && !file.endsWith("Elements/AdminHeaderPortal.tsx"))
+    .filter((file) => /<AdminHeaderPortal\b/.test(read(file)))
+    .map((file) => relative("src", file))
+    .sort();
+  assert.deepEqual(users, [
+    "app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx",
+    "app/admin/_layout/PageTitle.tsx",
+    "components/AppFrames/Admin/Elements/ItemNavigator/ItemNavigator.tsx",
+  ]);
+  // 互換の 2 つは @deprecated(上流の使用 0 は上のテストと CouponSectionTabs placement の 0)
+  assert.match(read("src/app/admin/_layout/PageTitle.tsx"), /@deprecated/);
+  assert.match(read("src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx"), /@deprecated/);
 });

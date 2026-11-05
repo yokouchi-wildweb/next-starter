@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminChatRoomCreateScreen } from "./loader";
 import AdminChatRoomCreate from "@/features/core/chatRoom/components/AdminChatRoomCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "チャットルーム追加",
@@ -19,8 +18,7 @@ export async function AdminChatRoomCreateScreen(props: ScreenProps) {
   await loadAdminChatRoomCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">チャットルーム追加</PageTitle>
+    <AdminPage title="チャットルーム追加">
       <AdminChatRoomCreate redirectPath="/admin/chat-rooms" />
     </AdminPage>
   );

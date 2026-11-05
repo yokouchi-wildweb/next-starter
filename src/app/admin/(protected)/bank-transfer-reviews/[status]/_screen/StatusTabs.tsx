@@ -12,6 +12,7 @@ import { SolidTabs, type PageTabItem } from "@/components/Navigation";
 import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
 
 import { STATUS_SLUG_BY_VALUE } from "./statusSlug";
+import { useStatusCounts } from "./useStatusCounts";
 
 const BASE_PATH = "/admin/bank-transfer-reviews";
 
@@ -50,4 +51,10 @@ export function StatusTabs({ counts }: Props) {
   );
 
   return <SolidTabs tabs={tabs} ariaLabel="銀行振込レビュー ステータス切替" size="sm" />;
+}
+
+/** ヘッダーの行の中央に置く status タブ(件数は ./useStatusCounts)。Screen が `<AdminPage center={<BankTransferStatusTabs />}>` で置く */
+export function BankTransferStatusTabs() {
+  const { data } = useStatusCounts();
+  return <StatusTabs counts={data?.counts} />;
 }

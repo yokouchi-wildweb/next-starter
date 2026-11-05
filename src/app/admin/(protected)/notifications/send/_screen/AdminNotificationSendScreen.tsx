@@ -6,7 +6,6 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminNotificationSend from "@/features/core/notification/components/AdminNotificationSend";
 
 import { loadAdminNotificationSendScreen } from "./loader";
@@ -19,8 +18,7 @@ export async function AdminNotificationSendScreen(props: ScreenProps) {
   await loadAdminNotificationSendScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">お知らせ送信</PageTitle>
+    <AdminPage title="お知らせ送信">
       <AdminNotificationSend />
     </AdminPage>
   );

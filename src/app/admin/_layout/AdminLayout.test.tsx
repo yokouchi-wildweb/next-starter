@@ -31,7 +31,9 @@ const marker = (name: string) => {
 };
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
-mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => 0 } });
+// ヘッダーの高さ: 既定は測った値 0(前の DOM の --app-header-height:0px)。null = 測る前
+const headerHeight: { current: number | null } = { current: 0 };
+mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => headerHeight.current } });
 mock.module("@/components/Fanctional/DarkModeSwitch", { namedExports: { DarkModeSwitch: marker("darkmode") } });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 mock.module("@/components/Form/Button/Button", {
@@ -110,11 +112,24 @@ test("props なしの AdminLayout はヘッダーを描かない器: 前の外�
   assert.equal(render(<AdminLayout>CHILD</AdminLayout>), CONTAINER_OUTER);
 });
 
-test("header slot(指令 16 までの差し替えの口): 要素 = 前と同じ位置(流れの中、上の余白なし)に描く / null = 描かない", () => {
+test("header slot(指令 17 までの差し替えの口): 要素 = 前と同じ位置(流れの中、上の余白なし)に描く / null = 描かない", () => {
   const replaced = render(<AdminLayout header={<header id="h" />}>CHILD</AdminLayout>);
   assert.equal(replaced, BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "").replace(BEFORE_HEADER, '<header id="h"></header>'));
   const none = render(<AdminLayout header={null}>CHILD</AdminLayout>);
   assert.equal(none, BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "").replace(BEFORE_HEADER, ""));
+});
+
+test("--app-header-height は測れた時だけ外枠の inline に書く(null = 測る前 = 書かず、frame.css の初期値が効く)", () => {
+  try {
+    headerHeight.current = null;
+    const before = render(<AdminLayout>CHILD</AdminLayout>);
+    assert.equal(before.includes("style="), false, before);
+    assert.equal(before, CONTAINER_OUTER.replace(' style="--app-header-height:0px"', ""));
+    headerHeight.current = 88;
+    assert.ok(render(<AdminLayout>CHILD</AdminLayout>).includes('style="--app-header-height:88px"'));
+  } finally {
+    headerHeight.current = 0;
+  }
 });
 
 test("className は外枠に足される(slot 化の前と同じ)", () => {
@@ -205,17 +220,36 @@ test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM
   assert.ok(!BEFORE_PAGE.includes("data-admin-fill"));
 });
 
-test("AdminPage の title / center / actions は行の題・中央・右の受け口の中(今の id・data-slot の要素)に、受け口の今の順で描く", () => {
+/** title="T" の本文側(h1 1 つ。SP で見え、PC は sm:sr-only)= 前の PageTitle の本文の大見出しの見た目 + sm:sr-only */
+const TITLE_BODY = BEFORE_TITLE_PAGE.replace("mb-8 sm:text-3xl", "mb-8 sm:text-3xl sm:sr-only");
+/** title="T" のヘッダー側 = 前の PageTitle の圧縮の題と同じクラスの飾りの文字(h1 ではない、aria-hidden) */
+const TITLE_COMPACT = `<p title="T" aria-hidden="true" class="relative text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`;
+
+test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は大見出し、PC は sm:sr-only)、PC で見える圧縮の題はヘッダーの題の受け口の中の飾りの文字", () => {
+  const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
+  assert.equal((html.match(/<h1\b/g) ?? []).length, 1, "h1 は 1 つ");
+  assert.ok(html.includes(`<div id="admin-header-title-slot" data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
+  assert.ok(html.includes(`<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
+  // 見た目の元: 前の PageTitle placement="header" の本文側(sm:hidden)と同じクラスに、PC で消す手段だけ sm:sr-only に替えた物
+  assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden"), BEFORE_TITLE_HEADER);
+});
+
+test("AdminPage の center / actions は行の中央・右の受け口の中(今の id・data-slot の要素)に描く", () => {
   const html = page(
-    <AdminPage title={<b id="pt" />} center={<b id="pc" />} actions={<b id="pa" />}>
+    <AdminPage center={<b id="pc" />} actions={<b id="pa" />}>
       CHILD
     </AdminPage>,
   );
-  assert.ok(html.includes('<div id="admin-header-title-slot" data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"><b id="pt"></b></div>'));
   assert.ok(html.includes('<div id="admin-header-center-slot" data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"><b id="pc"></b></div>'));
   assert.ok(html.includes('<div id="admin-header-right-slot" data-slot="admin-header-right" class="flex items-center gap-3"><b id="pa"></b></div><x-darkmode></x-darkmode>'));
-  const withoutProps = html.replace('<b id="pt"></b>', "").replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
+  const withoutProps = html.replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
   assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + BEFORE_PAGE, "props の中身のほかは props なしと同じ DOM");
+});
+
+test("main={false} + title: ヘッダーの題に加え、本文の大見出しは children の前(login・setup の自分のスクロール領域の上)", () => {
+  const html = page(<AdminPage main={false} title="T">CHILD</AdminPage>);
+  assert.ok(html.endsWith(`</header>${TITLE_BODY}CHILD`), html);
+  assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
 });
 
 test("portal の着地(帯を足す段の互換): AdminPage の行の中に受け口の id が題・中央・右の順で 1 つずつあり、AdminHeaderPortal(ItemNavigator の slot も)が探す id と同じ", () => {

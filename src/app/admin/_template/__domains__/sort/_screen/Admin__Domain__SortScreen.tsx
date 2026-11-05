@@ -4,7 +4,6 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import Admin__Domain__Sort from "@/features/__domain__/components/Admin__Domain__Sort";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdmin__Domain__SortScreen } from "./loader";
@@ -17,8 +16,7 @@ export async function Admin__Domain__SortScreen(props: ScreenProps) {
   const { results: __domains__ } = await loadAdmin__Domain__SortScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">__DomainLabel__並び替え</PageTitle>
+    <AdminPage title="__DomainLabel__並び替え">
       <Admin__Domain__Sort initial__Domains__={__domains__} />
     </AdminPage>
   );

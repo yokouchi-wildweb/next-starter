@@ -5,7 +5,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { ActivityIcon, LayoutDashboardIcon, Settings2Icon } from "lucide-react";
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { SolidTabs, UnderlineTabs, type PageTabItem } from "@/components/Navigation";
@@ -43,8 +42,7 @@ export async function AdminTabsDemoOverviewScreen(props: ScreenProps) {
   await loadAdminTabsDemoOverviewScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">タブUIデモ</PageTitle>
+    <AdminPage title="タブUIデモ">
       <Section>
         <Stack space={6}>
           <SecTitle>タブ切り替えデモ（概要）</SecTitle>

@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminCouponCreateScreen } from "./loader";
 import AdminCouponCreate from "@/features/core/coupon/components/AdminCouponCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "クーポン追加",
@@ -19,8 +18,7 @@ export async function AdminCouponCreateScreen(props: ScreenProps) {
   await loadAdminCouponCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン追加</PageTitle>
+    <AdminPage title="クーポン追加">
       <AdminCouponCreate redirectPath="/admin/coupons/official" />
     </AdminPage>
   );

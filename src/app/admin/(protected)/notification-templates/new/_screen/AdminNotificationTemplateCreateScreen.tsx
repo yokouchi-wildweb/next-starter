@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminNotificationTemplateCreateScreen } from "./loader";
 import AdminNotificationTemplateCreate from "@/features/core/notificationTemplate/components/AdminNotificationTemplateCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "お知らせテンプレート追加",
@@ -19,8 +18,7 @@ export async function AdminNotificationTemplateCreateScreen(props: ScreenProps) 
   await loadAdminNotificationTemplateCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">お知らせテンプレート追加</PageTitle>
+    <AdminPage title="お知らせテンプレート追加">
       <AdminNotificationTemplateCreate redirectPath="/admin/notification-templates" />
     </AdminPage>
   );

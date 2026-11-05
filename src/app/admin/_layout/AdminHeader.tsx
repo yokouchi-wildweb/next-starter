@@ -36,7 +36,7 @@ export type AdminHeaderProps = {
 /**
  * 管理画面のヘッダーの行の部品: ロゴの Link + 題 / 中央 / 右の位置 + DarkModeSwitch。
  * 行は各ページの AdminPage が描く(title / center / actions の props)。受け口の id と data-slot は今の名前のまま行の中に残し、
- * AdminHeaderPortal・PageTitle placement="header"・ItemNavigator の差し込みもここに着地する(指令 16 で portal と id を消すまでの橋)
+ * AdminHeaderPortal・PageTitle placement="header"・ItemNavigator の差し込みもここに着地する(指令 17 で portal と id を消すまでの橋)
  */
 export function AdminHeader({ title, center, actions, className }: AdminHeaderProps) {
   const { isAuthenticated } = useAuthSession();

@@ -1,6 +1,6 @@
 # admin/_layout — 管理画面の枠の部品
 
-`src/app/admin/layout.tsx`・`admin/(protected)/layout.tsx`・`admin/insane/layout.tsx` が描く管理画面の枠(ヘッダー・サイドバー・フッター)と、Screen が使うページ枠部品(AdminPage・PageTitle)を置く場所。import は別名なしの `@/app/admin/_layout/<X>`・`@/app/admin/(protected)/_layout/<X>`・`@/app/admin/insane/_layout`。
+`src/app/admin/layout.tsx`・`admin/(protected)/layout.tsx`・`admin/insane/layout.tsx` が描く管理画面の枠(ヘッダー・サイドバー・フッター)と、Screen が使うページ枠部品(AdminPage。PageTitle は互換だけ)を置く場所。import は別名なしの `@/app/admin/_layout/<X>`・`@/app/admin/(protected)/_layout/<X>`・`@/app/admin/insane/_layout`。
 
 ## ディレクトリ構成
 
@@ -10,11 +10,12 @@
 src/app/admin/_layout/                  # admin/layout.tsx の枠 + admin 全体で共有する物
 ├── AdminLayout.tsx         # 外枠の既定の組み立て(ヘッダーを描かない器 + 子領域、header slot = 差し替えの口)。admin/layout.tsx が 1 行スイッチで描く
 ├── AdminHeader.tsx         # ヘッダーの行の部品(ロゴの Link + 題 / 中央 / 右の受け口 + 明暗の切り替え)。AdminPage が描く
-├── AdminHeaderContext.tsx  # AdminPageHeader(AdminPage の固定の行)と、header slot で差し替え中は行を描かない印(指令 16 までの橋)
-├── Header.tsx              # 互換の Header(props なしの AdminHeader、流れの中の形)。指令 16 で外す
+├── AdminHeaderContext.tsx  # AdminPageHeader(AdminPage の固定の行)と、header slot で差し替え中は行を描かない印(指令 17 までの橋)
+├── Header.tsx              # 互換の Header(props なしの AdminHeader、流れの中の形)。指令 17 で外す
 ├── HeaderSlots.tsx         # AdminHeaderSlots: ヘッダーの受け口 3 つ(タイトル / 中央 / 右)をまとめて描く
 ├── AdminPage.tsx           # ページコンテナ(default export。ヘッダーの行 title / center / actions・tabs・main)。Screen が使う
-├── PageTitle.tsx           # ページの h1(default export。placement = "header"(既定)| "page")。Screen が使う
+├── AdminPageTitle.tsx      # 題の部品(本文の大見出し AdminPageTitleBody・ヘッダーの圧縮の題 AdminPageTitleCompact・見た目 adminPageTitleVariants)。AdminPage が使う
+├── PageTitle.tsx           # @deprecated 互換(placement の題)。上流の使用 0、指令 17 で消す
 ├── Sidebar/MenuButton.tsx  # サイドバーのボタン(通常 / insane の両サイドバーが使う)
 ├── Sidebar/AdminSidebarFrame.tsx  # サイドバーの殻が中身に渡す状態(useAdminSidebarFrame)
 ├── extensions/frameTable.ts  # 枠の宣言の表(生成物。pnpm extensions:generate)
@@ -51,7 +52,7 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 ## AdminLayout と slot
 
 - slot の約束(User の UserLayout と同じ): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く
-- `header`(差し替えの口。指令 16 で AdminHeader の差し替えに置き換える): 省略 = 器はヘッダーを描かず、各ページの AdminPage が行を描く / 要素 = 器の先頭(前と同じ場所、流れの中)に描き、AdminPage は自分の行を描かない(`./AdminHeaderContext`)/ null = どちらも描かない。`className`: 外枠に足すクラス名
+- `header`(差し替えの口。指令 17 で AdminHeader の差し替えに置き換える): 省略 = 器はヘッダーを描かず、各ページの AdminPage が行を描く / 要素 = 器の先頭(前と同じ場所、流れの中)に描き、AdminPage は自分の行を描かない(`./AdminHeaderContext`)/ null = どちらも描かない。`className`: 外枠に足すクラス名
 - fork の置き換え: `admin/layout.tsx` を `_layout/AdminLayout.replace.tsx` へ向け、そこで既定の AdminLayout に slot を渡す
 
 ```tsx
@@ -69,21 +70,23 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 
 - ヘッダーを差し替えるときは `<header id={APP_HEADER_ELEMENT_ID}>`(`@/components/AppFrames/constants`)の中で、ロゴ等の後に `<AdminHeaderSlots trailing={…} />` を描く。受け口が無いと PageTitle placement="header" の見出し(sm 以上)と AdminHeaderPortal の中身が出ない。受け口の id は test:admin-layout が固定している
 
-- 寸法の CSS 変数: AdminLayout が外枠の inline に書くのは `--app-header-height`(ヘッダーの実測の高さ)だけ。`--app-banner-height` / `--app-bottom-nav-height` は Admin に banner も bottomNav も無いので書かず、`src/styles/core/config.css` の `:root` の 0px を継ぐ。`--app-safe-area-*` も :root。一覧と経緯は User 側の README(`src/app/(user)/_layout/README.md` の「寸法の CSS 変数」)。Admin の banner slot は作っていない(要る例が無い)
+- 寸法の CSS 変数: AdminLayout が外枠の inline に書くのは `--app-header-height`(ヘッダーの実測の高さ)だけで、測れた時だけ書く(`useHeaderHeight()` が null = 測る前は書かず、`src/styles/core/frame.css` の外枠の初期値 = 今の行の高さが効くので最初の表示とページを移る間も本文が固定の行に重ならない)。`--app-banner-height` / `--app-bottom-nav-height` は Admin に banner も bottomNav も無いので書かず、`src/styles/core/config.css` の `:root` の 0px を継ぐ。`--app-safe-area-*` も :root。一覧と経緯は User 側の README(`src/app/(user)/_layout/README.md` の「寸法の CSS 変数」)。Admin の banner slot は作っていない(要る例が無い)
 
 ## サイドバー・フッター((protected)・insane)
 
 - `sidebar`: 既定 = BaseSidebar(insane は InsaneSidebar)。要素は PC の列と SP のドロワーの殻の中に描く。幅・開閉・リサイズは枠が持ち、中身は `useAdminSidebarFrame()` で `placement`("pc" | "sp")・`width`・`close`(SP のドロワーを閉じる。遷移の後に呼ぶ。PC では何もしない)を読む。null = サイドバー・リサイズのつまみ・SP の開閉ボタンを描かない
 - `footer`: (protected) の既定 = `./Footer`、null = 描かない。insane の既定 = 無し(今の insane はフッターを持たない)、要素のときだけ本文の後に描く
 
-## AdminPage と PageTitle
+## AdminPage(ヘッダーの行・題・中央の差し込み)
 
-- AdminPage はヘッダーの行も描く: 行 = `./AdminHeader` の部品(ロゴの Link・明暗の切り替え。利用者のメニューは無い)。props `title` / `center` / `actions` は行の題(ロゴの右隣、sm 以上)・中央・右(明暗の切り替えの前)の受け口の中に入る。受け口の id(`#admin-header-*-slot`)と data-slot は行の中に今の名前で残し、AdminHeaderPortal・PageTitle placement="header"・ItemNavigator の差し込みもここに着地する(帯を足す段。portal と id を消すのは指令 16)
-- 行の置き方は利用者の枠のヘッダーと同じ: 上端に固定(`fixed inset-x-0 top-0 header-layer`、全幅でサイドバーの上)、高さは AdminLayout の器が `pt-[var(--app-header-height,0px)]`(実測)で空ける。ハイドレーション後に測るまでの最初の表示では本文の上端がヘッダーに重なる(利用者の枠と同じ。ブラウザの確かめは指令 20)
+- AdminPage はヘッダーの行も描く: 行 = `./AdminHeader` の部品(ロゴの Link・明暗の切り替え。利用者のメニューは無い)。props `center` / `actions` は行の中央・右(明暗の切り替えの前)の受け口の中に入る。`title` は下の「題」。受け口の id(`#admin-header-*-slot`)と data-slot は行の中に今の名前で残し、AdminHeaderPortal・PageTitle placement="header"・ItemNavigator の差し込みもここに着地する(帯を足す段。portal と id を消すのは指令 17)
+- 行の置き方は利用者の枠のヘッダーと同じ: 上端に固定(`fixed inset-x-0 top-0 header-layer`、全幅でサイドバーの上)、高さは AdminLayout の器が `pt-[var(--app-header-height,0px)]` で空ける(測る前は frame.css の初期値 = 今の行の高さ、測った後は実測。下の「寸法の CSS 変数」。ブラウザの確かめは指令 21)
 - `main`(既定 true): false = 行だけを描き、children をそのまま続ける。自分のスクロール領域と Main を持つ login・setup だけが使う(未ログインの行はロゴと明暗の切り替えだけ)。AdminPage を使わない管理のページは settings の入口(loader が転送して null)だけ(`AdminFrame.test.tsx` が一覧を出す)
 - AdminPage の本文: padding lg / paddingBlock xl の通常ページ。`tabs` は本文の前に下余白 mb-6 で描く。固定ヘッダー直下の残り高さにスナップする非スクロールのページは、ページの隣の枠の宣言に `page: { fill: true }` を書く(下の「枠の宣言」。説明は AdminPage.tsx の JSDoc)
-- PageTitle: 既定 `placement="header"` で sm 以上はヘッダーのタイトル受け口に描き込み(AdminHeaderPortal 経由)、sm 未満は本文に出す。`placement="page"` で本文上部に h1(ヘッダーの無い login・setup の画面はこれを明示)
-- ヘッダーが無い・受け口を持たないヘッダーのときの PageTitle の挙動(と pageTitle slot)は、共有層の議題の後に決める
+- 題(D135): 管理画面の題は必ず `<AdminPage title="…">` に渡す(位置を選ぶ選択肢は無い。login・setup も)。h1 は 1 つ = 本文の先頭(タブの前)の大見出し `AdminPageTitleBody`(SP で見え、PC は `sm:sr-only` で見た目から消して支援技術向けに残す)。PC で見える題はヘッダーの行のロゴの右隣の `AdminPageTitleCompact`(飾りの文字、aria-hidden)。見た目は前の PageTitle placement="header" と同じ。`main={false}` のときの本文の大見出しは children の前(login・setup では自分のスクロール領域の上)
+- 本文の中の見出しはページの題とは別の普通の見出しの部品(`SecTitle` など)。題の無い AdminPage は前から題を持たない insane の 2 画面だけ(本文の見出しは SecTitle)
+- 中央の差し込みもページが props で渡す: 銀行振込のレビューの status タブ = `<AdminPage center={<BankTransferStatusTabs />}>`(件数は route の `_screen/useStatusCounts.ts` を一覧の本体と共有)、クーポンのタブ = `<AdminPage center={<CouponSectionTabs variant="header" />}>`
+- 互換(指令 17 で消す、上流の使用 0): `PageTitle`(`placement="header"` = 前と同じ AdminHeaderPortal で題の受け口へ、`"page"` = 本文の大見出し)・`CouponSectionTabs placement="header"`(AdminHeaderPortal で中央の受け口へ)。fork はこの間に `title` / `center` へ移す
 
 ## 枠の宣言(部位の出し入れと fill)
 

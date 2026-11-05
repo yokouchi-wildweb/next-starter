@@ -7,7 +7,6 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { DemoUserCreate } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminDemoUserCreateScreen } from "./loader";
 
@@ -19,8 +18,7 @@ export async function AdminDemoUserCreateScreen(props: ScreenProps) {
   await loadAdminDemoUserCreateScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">デモユーザー作成</PageTitle>
+    <AdminPage title="デモユーザー作成">
       <DemoUserCreate redirectPath="/admin/users/demo" />
     </AdminPage>
   );

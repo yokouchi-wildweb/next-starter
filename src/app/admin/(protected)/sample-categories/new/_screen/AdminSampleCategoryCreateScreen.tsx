@@ -5,7 +5,6 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleCategoryCreate from "@/features/sampleCategory/components/AdminSampleCategoryCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSampleCategoryCreateScreen } from "./loader";
 
@@ -16,8 +15,7 @@ export const metadata = {
 export async function AdminSampleCategoryCreateScreen(props: ScreenProps) {
   await loadAdminSampleCategoryCreateScreen(props);
   return (
-    <AdminPage>
-      <PageTitle placement="header">サンプルカテゴリ追加</PageTitle>
+    <AdminPage title="サンプルカテゴリ追加">
       <AdminSampleCategoryCreate redirectPath="/admin/sample-categories" />
     </AdminPage>
   );

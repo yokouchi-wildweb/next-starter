@@ -7,7 +7,6 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminNotificationList from "@/features/core/notification/components/AdminNotificationList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminNotificationListScreen } from "./loader";
 
@@ -19,8 +18,7 @@ export async function AdminNotificationListScreen(props: ScreenProps<Record<stri
   const { notifications, readCounts, page, perPage, total } = await loadAdminNotificationListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">お知らせ管理</PageTitle>
+    <AdminPage title="お知らせ管理">
       <AdminNotificationList
         notifications={notifications}
         readCounts={readCounts}

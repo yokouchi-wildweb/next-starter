@@ -6,7 +6,6 @@ import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/featu
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSampleCategoryEditScreen } from "./loader";
 
@@ -17,8 +16,7 @@ export const metadata = {
 export async function AdminSampleCategoryEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
   const { record: sampleCategory, redirectPath } = await loadAdminSampleCategoryEditScreen(props);
   return (
-    <AdminPage>
-      <PageTitle placement="header">サンプルカテゴリ編集</PageTitle>
+    <AdminPage title="サンプルカテゴリ編集">
       <AdminSampleCategoryEdit sampleCategory={sampleCategory} redirectPath={redirectPath} />
     </AdminPage>
   );

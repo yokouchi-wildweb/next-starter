@@ -9,7 +9,7 @@ import { AdminHeader, type AdminHeaderProps } from "./AdminHeader";
 /**
  * AdminLayout の header の prop(fork のヘッダーの差し替え)が使われているか。
  * 使われている間は AdminLayout が差し替えのヘッダーを今の場所に描き、AdminPage は自分の行を描かない。
- * 指令 16 で AdminLayout の header の prop を AdminHeader の差し替えに置き換えるまでの一時の橋
+ * 指令 17 で AdminLayout の header の prop を AdminHeader の差し替えに置き換えるまでの一時の橋
  */
 const AdminHeaderReplacedContext = createContext(false);
 

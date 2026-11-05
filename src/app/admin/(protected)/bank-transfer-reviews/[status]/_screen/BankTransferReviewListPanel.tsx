@@ -2,7 +2,7 @@
 //
 // 銀行振込レビュー管理画面のメインコンテナ。
 // status タブ・ページング・モーダル開閉などの状態を一括で管理する。
-// status タブは AdminHeaderPortal (slot="center") で管理画面ヘッダー中央に表示する。
+// status タブは Screen が AdminPage の center に置く(./StatusTabs の BankTransferStatusTabs)。件数は ./useStatusCounts を共有する。
 // CSV 一括取込ボタンは全タブ共通でページ上部に常設する。
 
 "use client";
@@ -18,10 +18,8 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
-import { AdminHeaderPortal } from "@/components/AppFrames/Admin/Elements/AdminHeaderPortal";
 import {
   adminListBankTransferReviews,
-  adminGetBankTransferReviewStatusCounts,
   adminUpdateBankTransferReviewAdminMemo,
   type BankTransferReviewStatus,
 } from "@/features/core/bankTransferReview";
@@ -31,7 +29,7 @@ import { useToast } from "@/lib/toast";
 import { BankTransferReviewTable } from "./BankTransferReviewTable";
 import { BankTransferReviewDetailModal } from "./BankTransferReviewDetailModal";
 import { BankTransferReviewCsvImportDialog } from "./BankTransferReviewCsvImportDialog";
-import { StatusTabs } from "./StatusTabs";
+import { useStatusCounts } from "./useStatusCounts";
 
 const PAGE_LIMIT = 100;
 
@@ -88,19 +86,8 @@ export function BankTransferReviewListPanel({ status }: Props) {
     });
   });
 
-  // status 別件数。ページ移動では再取得せず、検索クエリが変わったときと
-  // 一覧アクション完了時にだけ再取得する（list 本体とは独立した SWR キー）。
-  const statusCountsSwrKey = useMemo(
-    () => ["adminGetBankTransferReviewStatusCounts", searchQuery] as const,
-    [searchQuery],
-  );
-  const { data: statusCountsData, mutate: mutateStatusCounts } = useSWR(
-    statusCountsSwrKey,
-    async () =>
-      adminGetBankTransferReviewStatusCounts({
-        searchQuery: searchQuery || undefined,
-      }),
-  );
+  // status 別件数(ヘッダーの行の中央のタブと同じ SWR のキー)。一覧の操作の後の mutate でタブの件数も取り直す
+  const { mutate: mutateStatusCounts } = useStatusCounts();
 
   const handleCsvImportDone = useCallback(() => {
     void mutate();
@@ -148,11 +135,6 @@ export function BankTransferReviewListPanel({ status }: Props) {
 
   return (
     <>
-      {/* status タブはページ内ではなく管理画面ヘッダー中央のポータルスロットに表示する */}
-      <AdminHeaderPortal slot="center">
-        <StatusTabs counts={statusCountsData?.counts} />
-      </AdminHeaderPortal>
-
       <Stack space={4}>
         {/* タブをヘッダーへ移設して空いた最上段に、件数・検索・CSV・ページャを 1 段で収める */}
         <Flex justify="between" align="center" wrap="wrap" gap="sm">

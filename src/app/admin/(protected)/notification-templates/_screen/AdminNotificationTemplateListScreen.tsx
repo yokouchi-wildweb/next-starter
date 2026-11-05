@@ -9,7 +9,6 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminNotificationTemplateListScreen } from "./loader";
 import AdminNotificationTemplateList from "@/features/core/notificationTemplate/components/AdminNotificationTemplateList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "お知らせテンプレート一覧",
@@ -19,8 +18,7 @@ export async function AdminNotificationTemplateListScreen(props: ScreenProps<Rec
   const { results: notificationTemplates, page, limit, total } = await loadAdminNotificationTemplateListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">お知らせテンプレート管理</PageTitle>
+    <AdminPage title="お知らせテンプレート管理">
       <AdminNotificationTemplateList notificationTemplates={notificationTemplates} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

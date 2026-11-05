@@ -7,7 +7,6 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import { DemoUserList } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminDemoUserListScreen } from "./loader";
 
@@ -21,8 +20,7 @@ export async function AdminDemoUserListScreen(props: ScreenProps<Record<string, 
   const { users, page, perPage, total, sortBy } = await loadAdminDemoUserListScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">デモユーザー</PageTitle>
+    <AdminPage title="デモユーザー">
       <DemoUserList
         users={users}
         page={page}

@@ -7,7 +7,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import PageTitle from "@/app/admin/_layout/PageTitle";
 import type { ScreenProps } from "@/lib/screens/types";
 import { Section } from "@/components/Layout/Section";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
@@ -26,8 +25,7 @@ export async function AdminSettingSectionScreen(props: ScreenProps<AdminSettingS
   const { sectionKey, section, setting, redirectPath } = await loadAdminSettingSectionScreen(props);
 
   return (
-    <AdminPage>
-      <PageTitle placement="header">{section.label}</PageTitle>
+    <AdminPage title={section.label}>
       <Section>
         <Suspense fallback={<FormSkeleton />}>
           <EditSettingSectionForm sectionKey={sectionKey} setting={setting} redirectPath={redirectPath} />
