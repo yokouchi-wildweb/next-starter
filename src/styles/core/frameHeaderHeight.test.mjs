@@ -1,8 +1,9 @@
 // 実行: pnpm test:style-tokens
-// ヘッダーの高さの初期値(frame.css の外枠ごと・端末ごとの --app-header-height)を確かめる(指令 15 AMENDMENT 1 (1))。
-// - 測る前の値が 0 でない(利用者・管理 × SP・PC)、計算した値 = 今の行の高さ(実測: 利用者 53 / 73、管理 52 / 88)
+// ヘッダーの高さの初期値(frame.css の外枠ごと・端末ごとの --app-header-height)を確かめる(指令 15 AMENDMENT 1 (1)・指令 21 AMENDMENT 2)。
+// - 測る前の値が 0 でない(利用者・管理 × SP・PC)、値 = 今の行の高さ(利用者 53 / 73 = 部品のクラスの calc()、管理 52 / 88)
+// - 管理は行の高さの値 --admin-header-row-height(config.css、1 か所)をそのまま読む(子のクラスの calc() にしない)
 // - 宣言でヘッダーを隠す端末は 0(!important で外枠の inline に勝つ)
-// - 値を組み立てた部品のクラスがまだそのままか(変わったら frame.css の calc() を直す)
+// - 利用者の値を組み立てた部品のクラスがまだそのままか(変わったら frame.css の calc() を直す)
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -46,24 +47,29 @@ function rules(css) {
 const declOf = (body, name) => new RegExp(`${name}\\s*:\\s*([^;]+);`).exec(body)?.[1].trim() ?? null;
 const valueAt = (css, selector, media, name) => rules(css).find((r) => r.selector === selector && r.media === media && declOf(r.body, name) !== null)?.body;
 
-/** --admin-header-padding-y の端末ごとの値(config.css の :root と sm の @media) */
-const paddingY = {
-  sp: declOf(valueAt(configCss, ":root", "", "--admin-header-padding-y"), "--admin-header-padding-y"),
-  pc: declOf(rules(configCss).find((r) => r.media.includes("40rem") && declOf(r.body, "--admin-header-padding-y"))?.body ?? "", "--admin-header-padding-y"),
-};
+/** config.css の :root と sm の @media の値 */
+const configValue = (name) => ({
+  sp: declOf(valueAt(configCss, ":root", "", name) ?? "", name),
+  pc: declOf(rules(configCss).find((r) => r.media.includes("40rem") && declOf(r.body, name))?.body ?? "", name),
+});
+const rowHeight = configValue("--admin-header-row-height");
 
-/** calc() を px に(rem = 16px、var(--admin-header-padding-y) は端末の値) */
+/** calc() / var(--admin-header-row-height) を px に(rem = 16px) */
 function px(expression, device) {
   const js = expression
     .replace(/^calc\((.*)\)$/, "$1")
-    .replace(/var\(--admin-header-padding-y\)/g, `(${paddingY[device]})`)
+    .replace(/var\(--admin-header-row-height\)/g, `(${rowHeight[device]})`)
     .replace(/([\d.]+)rem/g, (_, n) => `(${n} * 16)`)
     .replace(/([\d.]+)px/g, "$1");
   assert.match(js, /^[\d\s.*+()-]+$/, `計算できない式: ${expression}`);
   return Function(`return (${js});`)();
 }
 
-const initial = (root, device) => declOf(valueAt(frameCss, ROOTS[root], device === "pc" ? PC_MEDIA : "", "--app-header-height") ?? "", "--app-header-height");
+/** 端末の初期値(PC の @media に無ければ SP の規則の値を継ぐ) */
+const initial = (root, device) => {
+  const at = (media) => declOf(valueAt(frameCss, ROOTS[root], media, "--app-header-height") ?? "", "--app-header-height");
+  return device === "pc" ? (at(PC_MEDIA) ?? at("")) : at("");
+};
 
 test("測る前の値は 0 でない: 外枠ごと・端末ごとの初期値 = 今の行の高さ", () => {
   const expected = { user: { sp: 53, pc: 73 }, admin: { sp: 52, pc: 88 } };
@@ -78,6 +84,14 @@ test("測る前の値は 0 でない: 外枠ごと・端末ごとの初期値 = 
   }
 });
 
+test("管理の初期値は行の高さの値 --admin-header-row-height を読むだけ(子のクラスの calc() にしない)、値は config.css の 1 か所で 52 / 88px", () => {
+  assert.equal(initial("admin", "sp"), "var(--admin-header-row-height)");
+  assert.equal(initial("admin", "pc"), "var(--admin-header-row-height)");
+  assert.deepEqual(rowHeight, { sp: "3.25rem", pc: "5.5rem" });
+  const declared = rules(frameCss).filter((r) => declOf(r.body, "--admin-header-row-height") !== null);
+  assert.deepEqual(declared, [], "frame.css は行の高さの値を定義しない(config.css だけ)");
+});
+
 test("宣言でヘッダーを隠す端末は 0(!important)", () => {
   for (const [part, device, media] of [["header", "sp", SP_MEDIA], ["header", "pc", PC_MEDIA], ["admin-header", "sp", SP_MEDIA], ["admin-header", "pc", PC_MEDIA]]) {
     const body = valueAt(frameCss, `[data-frame-root][data-frame-hide~="${part}-${device}"]`, media, "--app-header-height");
@@ -89,16 +103,9 @@ test("枠の外は config.css の :root の 0px のまま", () => {
   assert.equal(declOf(valueAt(configCss, ":root", "", "--app-header-height"), "--app-header-height"), "0px");
 });
 
-test("初期値を組み立てた部品のクラスがそのまま(変わったら frame.css の calc() を直す)", () => {
+test("利用者の初期値を組み立てた部品のクラスがそのまま(変わったら frame.css の calc() を直す)", () => {
   const has = (path, re, why) => assert.match(read(path), re, `${path}: ${why}(frame.css のヘッダーの高さの初期値を直す)`);
   has("src/app/(user)/_layout/Header/HeaderShell.tsx", /data-slot="header-shell"[^>]*className="[^"]*\bpy-2 sm:py-4\b/, "行の上下の余白 py-2 / sm:py-4");
   has("src/app/(user)/_layout/Header/Brand.tsx", /className="h-9 w-auto sm:h-10"/, "ロゴの高さ h-9 / sm:h-10");
   has("src/app/(user)/_layout/Header/index.tsx", /data-slot="header"[\s\S]*?className="[^"]*\bborder-b\b/, "下の線 border-b 1px");
-  has("src/app/admin/_layout/AdminHeader.default.tsx", /py-\[var\(--admin-header-padding-y\)\]/, "行の上下の余白 = --admin-header-padding-y");
-  has("src/app/admin/_layout/AdminHeader.default.tsx", /className="block shrink-0 p-1 sm:p-2"/, "ロゴのリンクの余白 p-1 / sm:p-2");
-  has("src/app/admin/_layout/AdminHeader.default.tsx", /max-h-6 [^"]*sm:max-h-12/, "ロゴの高さ max-h-6 / sm:max-h-12");
-  has("src/app/admin/_layout/AdminHeader.default.tsx", /<DarkModeSwitch \/>/, "SP の行の高さを決めるダークモードのスイッチ");
-  has("src/components/Fanctional/DarkModeSwitch.tsx", /size="icon"/, "スイッチは icon の大きさ");
-  has("src/components/Form/Button/button-variants.ts", /icon: "size-9"/, "icon の大きさ size-9(2.25rem)");
-  assert.deepEqual(paddingY, { sp: "0.5rem", pc: "0.75rem" }, "config.css の --admin-header-padding-y");
 });

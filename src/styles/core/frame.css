@@ -23,26 +23,22 @@
 
 /*
  * ヘッダーの高さの初期値(外枠ごと・端末ごと = 今の既定のヘッダーの行の高さ)。useHeaderHeight が測るまで(最初の表示・ページを移る間)
- * 本文の上の余白とポータルの部品(useFrameDimsStyle)はこの値を使い、ヘッダーに重ならない。測った値は外枠の inline の値で上書きする
+ * 本文の上の余白とポータルの部品(useFrameDimsStyle)はこの値を使い、ヘッダーに重ならない。利用者の枠は測った値を外枠の inline の値で上書きする
  * (ここは !important にしない)。宣言でヘッダーを隠す端末では下の規則が 0 にする。枠の外は config.css の :root の 0px。
- * 値は行の高さを決める部品のクラスから組み立てた calc() でここ 1 か所に書く(部品のクラスが変わると
- * frameHeaderHeight.test.mjs が落ちて、ここを直すよう案内する):
- *   利用者 = HeaderShell の py-2 / sm:py-4 ×2 + Brand の h-9 / sm:h-10 + Header の border-b 1px → 53px / 73px
- *   管理   = --admin-header-padding-y ×2 + SP: DarkModeSwitch(Button size="icon" = size-9)/ PC: ロゴの sm:max-h-12 + Link の sm:p-2 ×2
- *            → 52px / 88px(SP のロゴ max-h-6 + p-1 ×2 = 32px はスイッチより低い。スイッチを出さない設定では測った値 48px が上書きする)
+ * 利用者 = 行の高さを決める部品のクラスから組み立てた calc() をここ 1 か所に書く(部品のクラスが変わると frameHeaderHeight.test.mjs が
+ * 落ちて、ここを直すよう案内する): HeaderShell の py-2 / sm:py-4 ×2 + Brand の h-9 / sm:h-10 + Header の border-b 1px → 53px / 73px
+ * 管理 = 行の高さの値 --admin-header-row-height(config.css、区切りごとに 52px / 88px)をそのまま読む。行(AdminHeader)も同じ値で
+ *        高さを決めているので、中身(ロゴの読み込み・ItemNavigator)で行は動かず、管理の枠は高さを測らない
  */
 [data-frame-root][data-slot="app-container"] {
   --app-header-height: calc(2 * 0.5rem + 2.25rem + 1px);
 }
 [data-frame-root][data-slot="admin-app-container"] {
-  --app-header-height: calc(2 * var(--admin-header-padding-y) + 2.25rem);
+  --app-header-height: var(--admin-header-row-height);
 }
 @media (width >= 40rem) {
   [data-frame-root][data-slot="app-container"] {
     --app-header-height: calc(2 * 1rem + 2.5rem + 1px);
-  }
-  [data-frame-root][data-slot="admin-app-container"] {
-    --app-header-height: calc(2 * var(--admin-header-padding-y) + 3rem + 2 * 0.5rem);
   }
 }
 

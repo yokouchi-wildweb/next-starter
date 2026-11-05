@@ -74,6 +74,12 @@
   --admin-page-padding-inline: 1rem;
   --admin-page-padding-block: 1.5rem;
   --admin-header-padding-y: 0.5rem;
+  /*
+   * 管理のヘッダーの行の高さ(区切りごとに決まった値。中身 = ロゴの箱・ItemNavigator などはこの行に収める)。
+   * 行(AdminHeader)の高さと、管理の枠の外枠の --app-header-height の初期値(frame.css)の両方がこれ 1 つを読む
+   * (管理の枠は高さを測らない)。ヘッダーを別の高さの部品に差し替えた fork は、ここを overrides.css で上書きする
+   */
+  --admin-header-row-height: 3.25rem;
 }
 
 @media (min-width: 40rem) {
@@ -81,5 +87,6 @@
     --admin-page-padding-inline: 1.5rem;
     --admin-page-padding-block: 2.5rem;
     --admin-header-padding-y: 0.75rem;
+    --admin-header-row-height: 5.5rem;
   }
 }

@@ -73,7 +73,7 @@ test("id を外して data-slot だけ残したヘッダーも測る(既定の�
   assert.deepEqual(heights, [56]);
   header.height = 0;
   fake.observers[0].callback();
-  assert.deepEqual(heights, [56, 0], "隠すと 0");
+  assert.deepEqual(heights, [56, null], "隠すと null(0 は書かない。枠の宣言で隠した 0 は frame.css の hide の規則が受け持つ)");
 });
 
 test("見つかるまでフレームごとに探し、見つけたら測って ResizeObserver で追う", () => {
@@ -125,4 +125,33 @@ test("外れた後に見つからなければ null のまま、フレームご�
   doc.slots["admin-header"] = element(88);
   fake.flush();
   assert.deepEqual(heights, [52, null, 88]);
+});
+
+test("戻る / 進むの付け直し: 古いヘッダーが高さ 0 になってから差し替わっても 0 を返さない(null の間は CSS の初期値)", () => {
+  const first = element(52);
+  const doc = fakeDoc({ "admin-header": first });
+  const fake = fakeEnv(doc);
+  const heights: (number | null)[] = [];
+  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  first.height = 0;
+  fake.observers[0].callback();
+  const second = element(52);
+  first.isConnected = false;
+  doc.slots["admin-header"] = second;
+  fake.observers[0].callback();
+  assert.deepEqual(heights, [52, null, null, 52]);
+  assert.equal(heights.includes(0), false);
+});
+
+test("見つけた直後でまだ高さ 0 の新しいヘッダーは null、高さが付いたら測る", () => {
+  const doc = fakeDoc();
+  const fake = fakeEnv(doc);
+  const heights: (number | null)[] = [];
+  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  const header = element(0);
+  doc.slots.header = header;
+  fake.flush();
+  header.height = 73;
+  fake.observers[0].callback();
+  assert.deepEqual(heights, [null, 73]);
 });
