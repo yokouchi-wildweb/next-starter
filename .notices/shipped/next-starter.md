@@ -299,3 +299,4 @@
 - id:20261105-183809-checkpoint-range-check | severity:info | checkpoint:checkpoint-range-check | resolves:20261104-143340-ship-check-branch-checkpoints-on-main
 - id:20261105-183810-notice-admin-wide-rule | severity:info | checkpoint:notice-admin-wide-rule | resolves:20261105-070903-notice-admin-wide-scan-adminroutes
 - id:20261105-183811-flux-side-commit-segment | severity:info | checkpoint:flux-side-commit-segment
+- id:20261105-182849-fieldtype-registry-display-pick | severity:info | checkpoint:fieldtype-registry-display-pick | fixes:20261029-174708-fieldtype-shared-table | pick:clean
