@@ -287,3 +287,4 @@
 - id:20261105-123320-coin-issuance-ledger-source | severity:action-required | checkpoint:coin-issuance-ledger-source
 - id:20261105-125702-mid-tier-lineage-downstream | severity:action-required | checkpoint:mid-tier-lineage-downstream
 - id:20261105-130531-wallet-reason-key | severity:action-required | checkpoint:wallet-reason-key
+- id:20261105-140927-config-pre-shelf | severity:breaking | checkpoint:config-pre-shelf | moved:src/lib/dataMigration/config.ts -> src/lib/dataMigration/limits.ts; src/lib/x/config.ts -> src/lib/x/env.ts; src/lib/line/config.ts -> src/lib/line/env.ts; src/features/core/referralReward/config.ts -> src/features/core/referralReward/rewardDefinitions.ts; src/lib/domain/config/ -> src/lib/domain/definition/ | resolves:20261105-070903-wallet-purchase-pluggable
