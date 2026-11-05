@@ -12,6 +12,21 @@ export {
   processCallback,
 } from "./oauth";
 
+// OAuth の state と nonce cookie（CSRF 対策。新しい LINE ログインの route も使う）
+export {
+  issueOAuthState,
+  verifyOAuthState,
+  LINE_OAUTH_STATE_MAX_AGE_SECONDS,
+} from "./oauthState";
+export type {
+  IssueOAuthStateInput,
+  IssueOAuthStateResult,
+  LineOAuthNonceCookie,
+  OAuthStateCookieReader,
+  VerifyOAuthStateInput,
+  VerifyOAuthStateResult,
+} from "./oauthState";
+
 // Messaging API
 export {
   textMessage,

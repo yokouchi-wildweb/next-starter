@@ -315,3 +315,4 @@
 - id:20261106-121228-tmux-launch-close-ends | severity:action-required | checkpoint:tmux-launch-close-ends
 - id:20261106-122708-tmux-launch-team-keys | severity:action-required | checkpoint:tmux-launch-team-keys
 - id:20261106-125717-running-app-terminal-line | severity:info | checkpoint:running-app-terminal-line
+- id:20261106-085035-line-oauth-state | severity:info | checkpoint:line-oauth-state

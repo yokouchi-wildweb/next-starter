@@ -568,6 +568,22 @@ const { user, isNewUser, isRejoin } = await userService.createFromProvider({
 - 入れない物: 招待コード・流入の記録・プロフィール（呼び手がこの後に行う）。Firebase Auth のアカウントは作らない
 - テスト: `pnpm test:create-from-provider`
 
+### 名前の公開の部品
+
+利用者を作る・名前を書く処理は普通 `createFromProvider`（外部の身元）や `userService` の作成・更新を使い、自分で users に書かない。
+名前を自分で扱う必要があるときに使える部品（どれも公開）:
+
+| 部品 | 場所 | すること |
+|------|------|------|
+| `sanitizeUserName(raw)` | `entities/userName.ts` | 外から来た名前から使えない文字を除き、前後の空白を削り、`maxLength` に収める（空になり得る。一意性は見ない） |
+| `lockUserName(executor, name)` | `services/server/helpers/nameAvailability.ts` | 正規化名の advisory lock を tx の終わりまで取る（同名の同時書き込みを直列化。executor は tx） |
+| `isUserNameTaken(name, { excludeUserId?, executor? })` | 同上 | 使用中か（削除済み・デモは占有しない、予約名を含む） |
+| `findAvailableSuffixedUserName(name, { executor?, reserved?, lockCandidates? })` | 同上 | 「名前_2」… の空き名を探す（`lockCandidates: true` で候補もロック） |
+| `withUserNameGuard({ name, excludeUserId? }, write)` | 同上 | 判定と書き込みを 1 つの tx で（使用中なら 409）。`unique.enabled` が false なら判定せず書く |
+
+- 一意性を見るのは `USER_NAME_CONFIG.unique.enabled` のときだけ（`lockUserName` と `isUserNameTaken` を自分で呼ぶときも、この設定を見てから呼ぶ）
+- users.status を書くなら `recordStatusTransition` も（ステータス遷移履歴の節）
+
 ## ステータス遷移履歴（user_status_histories）
 
 退会・休会・復帰・BAN 等のステータス遷移を恒久保存するサテライトテーブル。**常時オン**（設定フラグなし）。

@@ -3,9 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { sanitizeRedirectPath } from "@/lib/url";
-import { processCallback } from "@/lib/line/oauth";
-import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
+import { LINE_OAUTH_NONCE_COOKIE, processCallback, verifyOAuthState } from "@/lib/line";
 import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
 
 /**
@@ -44,28 +42,12 @@ export const GET = createApiRoute(
     const friendshipStatusChanged =
       req.nextUrl.searchParams.get("friendship_status_changed") === "true";
 
-    // state からリダイレクト先と nonce を復元
-    let redirectAfter = "/";
-    let stateNonce: string | undefined;
-    if (stateParam) {
-      try {
-        const statePayload = JSON.parse(
-          Buffer.from(stateParam, "base64url").toString("utf-8"),
-        ) as { redirectAfter?: string; nonce?: string };
-        // state はクライアントを経由して戻ってくる値なので、必ず同一オリジンのパスに限定する
-        redirectAfter = sanitizeRedirectPath(statePayload.redirectAfter);
-        stateNonce = statePayload.nonce;
-      } catch {
-        // state のパースに失敗した場合はルートにリダイレクト
-      }
-    }
-
-    // nonce の CSRF 検証
-    const cookieNonce = req.cookies.get(LINE_OAUTH_NONCE_COOKIE)?.value;
-    // 検証に失敗した state の戻り先は信用せず、ルートへ戻す
-    if (!stateNonce || !cookieNonce || stateNonce !== cookieNonce) {
+    // state と cookie の nonce の照合（CSRF 対策）。検証に失敗した state の戻り先は信用せず、ルートへ戻す
+    const verified = verifyOAuthState({ state: stateParam, cookies: req.cookies });
+    if (!verified.ok) {
       return errorRedirect("/", req.nextUrl.origin, "invalid_state");
     }
+    const { redirectAfter } = verified;
 
     // エラーパラメータのチェック（ユーザーが認可を拒否した場合等）
     const error = req.nextUrl.searchParams.get("error");

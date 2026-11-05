@@ -148,6 +148,7 @@
     "test:registration-milestone": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/postRegistrationMilestones.test.ts",
     "test:establish-session": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/session/establishSession.test.ts src/features/core/auth/services/server/firebaseSession.lastAuth.test.ts",
     "test:create-from-provider": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/user/services/server/registration/createFromProvider.test.ts",
+    "test:line-oauth-state": "npx tsx --test src/lib/line/oauthState.test.ts",
     "test:auth-verify-revoked": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/verifyIdTokenRevoked.test.ts",
     "test:firebase-client-unconfigured": "npx tsx --test src/lib/firebase/client/unconfigured.test.ts",
     "test:analytics-exclusion": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/analytics/services/server/exclusion/exclusion.test.ts",

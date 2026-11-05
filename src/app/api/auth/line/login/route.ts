@@ -1,12 +1,10 @@
 // src/app/api/auth/line/login/route.ts
 
 import { NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { sanitizeRedirectPath } from "@/lib/url";
-import { buildAuthorizationUrl } from "@/lib/line/oauth";
-import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
+import { buildAuthorizationUrl, issueOAuthState } from "@/lib/line";
 
 /**
  * LINE Login OAuth フローを開始する。
@@ -45,26 +43,15 @@ export const GET = createApiRoute(
       | "normal"
       | "none";
 
-    // CSRF対策用の nonce を生成
-    const nonce = randomBytes(16).toString("hex");
-
-    // state に nonce と redirect_after を含める
-    const statePayload = JSON.stringify({ nonce, redirectAfter });
-    const state = Buffer.from(statePayload).toString("base64url");
+    // CSRF対策: state に nonce と redirect_after を入れ、同じ nonce を httpOnly cookie に置く（callback で照合）
+    const { state, nonceCookie } = issueOAuthState({ redirectAfter });
 
     // callback URL を自動構築
     const callbackUrl = new URL("/api/auth/line/callback", req.nextUrl.origin).toString();
     const authorizationUrl = buildAuthorizationUrl(callbackUrl, state, { botPrompt });
 
-    // nonce を httpOnly cookie に保存（callback で照合するため）
     const response = NextResponse.redirect(authorizationUrl);
-    response.cookies.set(LINE_OAUTH_NONCE_COOKIE, nonce, {
-      httpOnly: true,
-      secure: process.env.APP_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 600, // 10分（OAuth フローの猶予時間）
-    });
+    response.cookies.set(nonceCookie);
 
     return response;
   },

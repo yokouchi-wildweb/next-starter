@@ -243,6 +243,8 @@ import {
   buildAuthorizationUrl,
   processCallback,
   verifyIdToken,
+  issueOAuthState,   // state と nonce cookie を作る（CSRF 対策）
+  verifyOAuthState,  // callback で state と cookie の nonce を照合する
 
   // Messaging（戻り値で送信結果を取得可能）
   pushMessage,
@@ -263,10 +265,36 @@ import {
 } from "@/lib/line";
 ```
 
+### OAuth の state と nonce cookie（issueOAuthState / verifyOAuthState）
+
+LINE Login の行き（認可 URL へのリダイレクト）と帰り（callback）の CSRF 対策。上流の `/api/auth/line/login`・`/callback` もこれを使う。
+fork が自分の LINE ログイン（新規登録・ログインの流れ）を足すときも、nonce・state を写さずにこの 2 つを呼ぶ。
+
+```ts
+import { buildAuthorizationUrl, issueOAuthState, verifyOAuthState } from "@/lib/line";
+
+// 行き: state を認可 URL に、nonce を httpOnly cookie に
+const { state, nonceCookie } = issueOAuthState({ redirectAfter, cookieName: "__line_signin_nonce" });
+const response = NextResponse.redirect(buildAuthorizationUrl(callbackUrl, state));
+response.cookies.set(nonceCookie);
+
+// 帰り: 照合。失敗なら戻り先を信用せず "/" へ
+const verified = verifyOAuthState({ state: req.nextUrl.searchParams.get("state"), cookies: req.cookies, cookieName: "__line_signin_nonce" });
+if (!verified.ok) { /* invalid_state で "/" へ。cookie は消す */ }
+// verified.redirectAfter = 同一オリジンのパスに sanitize 済み
+```
+
+- state = base64url の JSON `{ nonce, redirectAfter }`、nonce = ランダム 16 byte の hex
+- cookie: `httpOnly`・`sameSite: lax`・`path: /`・10 分（`LINE_OAUTH_STATE_MAX_AGE_SECONDS`）・`secure` は `APP_ENV === "production"` のとき
+- `cookieName` の既定は `LINE_OAUTH_NONCE_COOKIE`（上流の連携の流れ）。別の流れ（ログインなど）は別の名前にすれば同時に進んでも互いの nonce を上書きしない
+- 照合の後（成功・失敗とも）、呼び手が `response.cookies.delete(cookieName)` で cookie を消す
+- 利用者を引く・作る・セッションを出すのは auth README「新しい認証手段」（createFromProvider → establishSession）
+- テスト: `pnpm test:line-oauth-state`
+
 ## セキュリティ
 
 - **id_token 署名検証**: LINE の Verify API（POST /oauth2/v2.1/verify）でサーバーサイド検証。自前デコードではなく LINE サーバーが署名・aud・iss・exp を検証する
-- **CSRF 対策**: OAuth フロー開始時に nonce を httpOnly cookie に保存し、callback で state 内の nonce と照合。不一致時は `invalid_state` エラーでリダイレクト
+- **CSRF 対策**: OAuth フロー開始時に nonce を httpOnly cookie に保存し、callback で state 内の nonce と照合（`issueOAuthState` / `verifyOAuthState`）。不一致時は `invalid_state` エラーでリダイレクト
 - **Webhook 署名検証**: HMAC-SHA256 で x-line-signature ヘッダーを検証
 
 ## 注意事項
