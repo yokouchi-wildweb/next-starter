@@ -300,6 +300,7 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
   const derived = Object.fromEntries(featureGateRules.filter((rule) => rule.domainApiPaths.length > 0).map((rule) => [rule.name, rule.domainApiPaths]));
   assert.deepEqual(derived, {
     coupon: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"],
+    interactionTracking: ["/api/interactionEvent"],
     milestone: ["/api/milestone"],
     notification: ["/api/notification"],
     notificationTemplate: ["/api/notificationTemplate"],
@@ -307,6 +308,9 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
     payment: ["/api/purchaseRequest", "/api/bankTransferReview"],
     referral: ["/api/referral", "/api/referralReward"],
     sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
+    userCounter: ["/api/userCounter"],
+    userLineProfile: ["/api/userLineProfile"],
+    userXProfile: ["/api/userXProfile"],
     wallet: ["/api/wallet", "/api/walletHistory"],
   });
   // 上流の設定の節は feature を持たない

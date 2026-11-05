@@ -2,6 +2,8 @@
 
 匿名ユーザーを含む行動イベント（クリック等）を (target_type, target_id, action) 単位で記録・集計する汎用計測基盤。
 
+閉じられる機能(門番の規則 `src/featureGate/rules/interactionTracking.ts`、今は常に開)。閉じると `/api/interactions`・`/api/admin/interactions`・導出の `/api/interactionEvent`・掃除の cron が 404 で、表も push から外れる。
+
 ## このドメインの責務（何のためにあるか）
 
 「**匿名を含む不特定多数が、コンテンツ単位で何回アクションしたか**」を答えるためのドメイン。
