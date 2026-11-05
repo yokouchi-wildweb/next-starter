@@ -273,3 +273,6 @@
 - id:20261103-175406-main-metrics-day-boundary-timezone | severity:info | checkpoint:main-metrics-day-boundary-timezone | resolves:20261103-175406-main-metrics-day-boundary-timezone
 - id:20261103-175406-wiring-readme-receptacle-exception | severity:info | checkpoint:wiring-readme-receptacle-exception | resolves:20261103-175406-wiring-readme-receptacle-exception
 - id:20261105-105244-closed-orders-resolves-bundle5 | severity:info | checkpoint:closed-orders-resolves-bundle5 | resolves:20261031-134813-bulk-relation-mode-switch, 20261101-111956-intake-purchase-discount-on-redeemed
+- id:20261105-110501-presenterfor-readonly-pick | severity:info | checkpoint:presenterfor-readonly-pick | fixes:20261029-185421-fieldtype-list-presenter-for | resolves:20261103-105120-presenterfor-readonly-fix-notice, 20261104-143340-presenterfor-fix-pickable-notice | pick:clean
+- id:20261105-110502-feature-map-intake-pick | severity:info | checkpoint:feature-map-intake-pick | fixes:20261029-223045-feature-map | resolves:20261103-171644-feature-map-intake-fix-notice | pick:clean
+- id:20261105-110503-setting-test-fork-sections-pick | severity:info | checkpoint:setting-test-fork-sections-pick | fixes:20261031-141531-setting-fields-core-ui | resolves:20261103-172638-setting-test-fix-notice-fixes-pick | pick:clean
