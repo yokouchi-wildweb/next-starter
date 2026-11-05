@@ -158,7 +158,7 @@ function buildConditions(
   ];
 
   // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
-  conditions.push(...buildUserFilterConditions(p.user_id, params));
+  conditions.push(...buildUserFilterConditions(p.user_id, params, { kind: "flow", source: "purchase_requests", rowId: p.id }));
 
   if (params.walletType) {
     conditions.push(

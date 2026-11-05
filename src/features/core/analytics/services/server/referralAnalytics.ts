@@ -25,6 +25,7 @@ import type {
 } from "@/features/core/analytics/types/common";
 import { resolveDateRange, formatDateRangeForResponse, derivePreviousRange } from "./utils/dateRange";
 import { changeRate } from "./utils/aggregation";
+import { buildExclusionConditions } from "./utils/userFilter";
 
 // ============================================================================
 // 型定義
@@ -92,6 +93,8 @@ export type AggregateReferralRewardCurrentVsPrevParams = {
   prevRange: { dateFrom: Date; dateTo: Date };
   /** 金額抽出 SQL 式。省略時は DEFAULT_REWARD_AMOUNT_EXPR */
   rewardAmountExpr?: SQL<number>;
+  /** 分析の除外条件を足さない（検証用。UserFilter.includeExcluded と同じ） */
+  includeExcluded?: boolean;
 };
 
 export async function aggregateReferralRewardCurrentVsPrev(
@@ -111,6 +114,8 @@ export async function aggregateReferralRewardCurrentVsPrev(
     .where(and(
       between(ReferralRewardTable.fulfilled_at, params.prevRange.dateFrom, params.range.dateTo),
       eq(ReferralRewardTable.status, "fulfilled"),
+      // roles / excludeDemo は適用しないが、分析の除外条件は受取人に stock で足す（除外した人の報酬を丸ごと落とす）
+      ...buildExclusionConditions(ReferralRewardTable.recipient_user_id, params, { kind: "stock" }),
     ));
 
   return {
@@ -161,6 +166,8 @@ export async function getReferralSummary(
       isNull(u.deletedAt),
       ...userTableFilters,
       ...statusFilter,
+      // 分析の除外条件: 除外した invitee を紹介経由の数から丸ごと落とす（stock）
+      ...buildExclusionConditions(u.id, params, { kind: "stock" }),
     ));
 
   // rewardTotal: 共通ヘルパーで当期+前期を 1 クエリ集計 (coinIssuance と同一ロジック)
@@ -168,6 +175,7 @@ export async function getReferralSummary(
     range,
     prevRange,
     rewardAmountExpr: params.rewardAmountExpr,
+    includeExcluded: params.includeExcluded,
   });
 
   const [referredRows, rewardTotals] = await Promise.all([referredRowsPromise, rewardTotalsPromise]);

@@ -36,7 +36,7 @@ export const source: CoinIssuanceSource = {
       .where(and(
         between(r.fulfilled_at, prevRange.dateFrom, range.dateTo),
         eq(r.status, "fulfilled"),
-        ...buildUserFilterConditions(r.recipient_user_id, userFilter),
+        ...buildUserFilterConditions(r.recipient_user_id, userFilter, { kind: "flow", source: "coupon_attribution_rewards", rowId: r.id }),
       ));
 
     return {

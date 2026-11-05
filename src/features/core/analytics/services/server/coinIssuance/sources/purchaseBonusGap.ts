@@ -54,7 +54,7 @@ export const source: CoinIssuanceSource = {
       .where(and(
         between(p.completed_at, prevRange.dateFrom, range.dateTo),
         eq(p.status, "completed"),
-        ...buildUserFilterConditions(p.user_id, userFilter),
+        ...buildUserFilterConditions(p.user_id, userFilter, { kind: "flow", source: "purchase_requests", rowId: p.id }),
       ));
 
     return {

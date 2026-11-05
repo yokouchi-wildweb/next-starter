@@ -159,7 +159,7 @@ function buildConditions(
   ];
 
   // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
-  conditions.push(...buildUserFilterConditions(t.user_id, params));
+  conditions.push(...buildUserFilterConditions(t.user_id, params, { kind: "flow", source: "wallet_histories", rowId: t.id }));
 
   if (params.walletType) {
     conditions.push(eq(t.type, params.walletType as "regular_coin" | "regular_point"));

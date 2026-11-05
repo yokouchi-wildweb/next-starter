@@ -26,7 +26,7 @@ export const source: CoinIssuanceSource = {
   key: "referral_reward",
   kind: "issuance",
 
-  async aggregate({ range, prevRange }) {
-    return aggregateReferralRewardCurrentVsPrev({ range, prevRange });
+  async aggregate({ range, prevRange, userFilter }) {
+    return aggregateReferralRewardCurrentVsPrev({ range, prevRange, includeExcluded: userFilter.includeExcluded });
   },
 };

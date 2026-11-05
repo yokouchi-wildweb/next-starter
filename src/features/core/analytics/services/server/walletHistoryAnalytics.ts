@@ -23,6 +23,7 @@ import {
 } from "./utils/dateRange";
 import type { Granularity } from "@/features/core/analytics/types/common";
 
+import type { AnalyticsExclusionScope } from "./exclusion/types";
 import { buildUserFilterConditions } from "./utils/userFilter";
 
 // ============================================================================
@@ -240,7 +241,9 @@ export async function getWalletBalanceDaily(
   const tz = range.timezone;
   const dateSql = dateExpr(tz, range.granularity);
 
-  const filterConditions = buildBaseFilterConditions(params);
+  // ストック系（ランニング残高）: 除外した人を丸ごと落とす（期間の行の除外では期間外の残高に残る）。
+  // 利用者を指定した調査（userId）では落とさない（その人のチャートが空になり調べられない）
+  const filterConditions = buildBaseFilterConditions(params, params.userId ? undefined : { kind: "stock" });
   const rangeWhere = and(
     between(t.createdAt, range.dateFrom, range.dateTo),
     ...filterConditions,
@@ -373,6 +376,7 @@ function resolveGroupColumn(groupByField: "reasonCategory" | "sourceType" | "cha
 /** ユーザー/ウォレット/ロール等の共通フィルタ条件（日付条件なし） */
 function buildBaseFilterConditions(
   params: WalletTypeFilter & UserIdFilter & UserFilter,
+  scope: AnalyticsExclusionScope | undefined,
 ): SQL[] {
   const conditions: SQL[] = [];
 
@@ -380,7 +384,7 @@ function buildBaseFilterConditions(
     conditions.push(eq(t.user_id, params.userId));
   }
 
-  conditions.push(...buildUserFilterConditions(t.user_id, params));
+  conditions.push(...buildUserFilterConditions(t.user_id, params, scope));
 
   if (params.walletType) {
     conditions.push(eq(t.type, params.walletType as "regular_coin" | "regular_point"));
@@ -397,7 +401,8 @@ function buildConditions(
 ): SQL[] {
   const conditions: SQL[] = [
     between(t.createdAt, dateFrom, dateTo),
-    ...buildBaseFilterConditions(params),
+    // フロー系（日別変動・サマリー）: 除外した行を落とす
+    ...buildBaseFilterConditions(params, { kind: "flow", source: "wallet_histories", rowId: t.id }),
   ];
 
   if (params.reasonCategories) {

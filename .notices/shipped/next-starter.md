@@ -280,3 +280,4 @@
 - id:20261105-112509-feature-gate-automation | severity:breaking | checkpoint:gate-s3 | uses:scripts/codemods/feature-gate-s3.mjs
 - id:20261105-111136-user-registered-milestone | severity:info | checkpoint:user-registered-milestone | resolves:20261101-111956-intake-post-registration-hook
 - id:20261105-115506-field-frame-helper-text | severity:action-required | checkpoint:field-frame-helper-text | resolves:20261104-090257-field-frame-description
+- id:20261105-115033-analytics-exclusion-providers | severity:info | checkpoint:analytics-exclusion-providers | resolves:20261101-111956-intake-analytics-exclusion

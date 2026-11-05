@@ -322,6 +322,7 @@ function buildBaseConditions(
 ): SQL[] {
   return [
     eq(w.type, params.walletType),
-    ...buildUserFilterConditions(w.user_id, params),
+    // ストック系（現在残高）: 除外した人を丸ごと落とす（期間の行の除外では期間外の残高に残る）
+    ...buildUserFilterConditions(w.user_id, params, { kind: "stock" }),
   ];
 }

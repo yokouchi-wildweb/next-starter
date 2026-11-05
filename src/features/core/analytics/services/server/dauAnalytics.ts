@@ -132,7 +132,7 @@ function buildConditions(
 
   const conditions: SQL[] = [
     between(t.activityDate, dateFromStr, dateToStr),
-    ...buildUserFilterConditions(t.userId, params),
+    ...buildUserFilterConditions(t.userId, params, { kind: "flow", source: "user_daily_activities", rowId: t.id }),
   ];
 
   if (params.userId) {

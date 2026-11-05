@@ -434,7 +434,7 @@ function buildNonDateConditions(
     conditions.push(eq(p.user_id, params.userId));
   }
 
-  conditions.push(...buildUserFilterConditions(p.user_id, params));
+  conditions.push(...buildUserFilterConditions(p.user_id, params, { kind: "flow", source: "purchase_requests", rowId: p.id }));
 
   if (params.status) {
     conditions.push(eq(p.status, params.status as "completed"));

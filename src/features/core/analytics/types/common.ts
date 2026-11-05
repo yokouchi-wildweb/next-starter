@@ -143,6 +143,11 @@ export type UserFilter = {
   roles?: string;
   /** デモユーザーを除外する */
   excludeDemo?: boolean;
+  /**
+   * 分析の除外条件（exclusionProviders の項目）を足さず、除外したデータも含めて集計する。
+   * 除外の前後を比べる検証用（クエリ includeExcluded=true）。通常の集計では指定しない（= 除外が効く）
+   */
+  includeExcluded?: boolean;
 };
 
 /** ページネーション */

@@ -48,6 +48,7 @@ export async function getCoinIssuanceSummary(
   const userFilter: UserFilter = {
     ...(params.roles && { roles: params.roles }),
     ...(params.excludeDemo && { excludeDemo: params.excludeDemo }),
+    ...(params.includeExcluded && { includeExcluded: params.includeExcluded }),
   };
 
   // 全ソースを並列実行

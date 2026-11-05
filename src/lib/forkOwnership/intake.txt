@@ -58,6 +58,8 @@ add src/featureGate/rules/*.{ts,tsx}  # 受け口 rules
 add src/featureGate/rules/*/**  # 受け口 rules(フォルダ形)
 add src/features/core/adminCommand/navigationItems/*.{ts,tsx}  # 受け口 navigationItems
 add src/features/core/adminCommand/navigationItems/*/**  # 受け口 navigationItems(フォルダ形)
+add src/features/core/analytics/exclusionProviders/*.{ts,tsx}  # 受け口 exclusionProviders
+add src/features/core/analytics/exclusionProviders/*/**  # 受け口 exclusionProviders(フォルダ形)
 add src/features/core/analytics/rollupMetrics/*.{ts,tsx}  # 受け口 rollupMetrics
 add src/features/core/analytics/rollupMetrics/*/**  # 受け口 rollupMetrics(フォルダ形)
 add src/features/core/analytics/services/server/coinIssuance/sources/*.{ts,tsx}  # 受け口 coinIssuanceSources

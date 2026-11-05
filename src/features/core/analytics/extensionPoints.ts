@@ -18,4 +18,13 @@ export const extensionPoints = {
     side: "server",
     alwaysOn: true,
   },
+  // 分析の除外条件のプロバイダ: exclusionProviders/<名前>.ts の export const provider(上流の項目は 0)
+  exclusionProviders: {
+    dir: "exclusionProviders",
+    export: "provider",
+    type: { from: "@/features/core/analytics/services/server/exclusion/types", name: "AnalyticsExclusionProvider" },
+    side: "server",
+    alwaysOn: true,
+    key: "key",
+  },
 };

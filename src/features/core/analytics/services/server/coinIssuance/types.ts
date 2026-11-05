@@ -54,7 +54,10 @@ export type CoinIssuanceSourceContext = {
   range: ResolvedDateRange;
   /** 前期の日付範囲 (aggregator が計算済み) */
   prevRange: PreviousRange;
-  /** ユーザー属性フィルタ (roles / excludeDemo)。ソース側が独自に適用する */
+  /**
+   * ユーザー属性フィルタ (roles / excludeDemo / includeExcluded)。ソース側が独自に適用する。
+   * 分析の除外条件は buildUserFilterConditions の第 3 引数(scope)で足す(README「分析の除外条件」)
+   */
   userFilter: UserFilter;
 };
 
