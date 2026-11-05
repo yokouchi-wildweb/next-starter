@@ -1,5 +1,7 @@
 // scripts/extensions/derive/featureTables.mjs
 // 組み込みの変換 "featureTables": 機能を閉じる規則の features: [機能のフォルダ] から、そのフォルダの全 pgTable の表名を導く(D16・D20 K1)。
+// features に書けるのはドメインの位置にあるフォルダ(src/features/core/<名前> か src/features/<名前>。CLAUDE.md DOMAINS)。
+// 表の数は問わない(0 = Firestore のドメインなど、tables: [] になる)。無いフォルダ・ドメインの位置でない書き方(深い場所・core そのもの)は止める。
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。表の走査: scripts/registry/tableScan.mjs
 // 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
 // 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキーから /api/<key> を導き(字面、
@@ -18,6 +20,11 @@ const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
 const TABLES_FIELD = /(?:^|[{,\s])tables\s*:/;
 const DOMAIN_API_PATHS_FIELD = /(?:^|[{,\s])(domainApiPaths|settingPaths)\s*:/;
 const STRING_LITERAL = /^["']([A-Za-z0-9_/-]+)["']$/;
+/** ドメインの位置: core/<1 段> か、core 以外の 1 段 */
+const DOMAIN_POSITION = /^(?:core\/[^/]+|(?!core$)[^/]+)$/;
+
+/** features に書いたフォルダがドメインの位置にあるか(src/features/core/<名前> か src/features/<名前>) */
+export const isDomainPosition = (folder) => DOMAIN_POSITION.test(folder);
 
 /**
  * 規則ファイルの features: [...] を字面で読む(文字列リテラルの配列だけ)
@@ -68,9 +75,9 @@ export function createFeatureTables(repoRoot) {
       const domainApiPaths = [];
       for (const folder of read.features) {
         if (!existsSync(join(repoRoot, FEATURES_DIR, folder))) return { problem: `${label}: features の "${folder}" は ${FEATURES_DIR}/ に無いフォルダ` };
-        const own = tablesOfFolder(scan.tables, folder);
-        if (own.length === 0) return { problem: `${label}: features の "${folder}" に pgTable が無い(表を持たない機能は features に書かない)` };
-        tables.push(...own);
+        if (!isDomainPosition(folder)) return { problem: `${label}: features の "${folder}" はドメインの位置でない(${FEATURES_DIR}/core/<名前> か ${FEATURES_DIR}/<名前> のフォルダを書く)` };
+        // 表は 0 でもよい(表を持たないドメインは tables: [] のまま、住所は下で導く)
+        tables.push(...tablesOfFolder(scan.tables, folder));
         const api = domainApiPathsOf(repoRoot, folder);
         if (api.problem) return { problem: `${label}: ${api.problem}` };
         domainApiPaths.push(...api.paths.filter((path) => !domainApiPaths.includes(path)));

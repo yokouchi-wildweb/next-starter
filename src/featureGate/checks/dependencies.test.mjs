@@ -113,3 +113,19 @@ test("fixture: 型だけの import は数えず、動的 import・副作用 impo
   assert.deepEqual(run({ [caller]: 'import "@/features/core/coupon/services/server/couponService";\n' }), [`${caller} → core/coupon`]);
   assert.deepEqual(run({ "src/registry/serviceRegistry.ts": IMPORT_WALLET }), []);
 });
+
+test("fixture: 表を持たない閉じられるフォルダ(Firestore 版など)も、表のあるフォルダと同じに数える", () => {
+  // core/chatRoom は pgTable を持たない(domainEntry の table: null)。判定は規則の features だけを見る
+  const rules = [...fixtureRules, { name: "chatRoom", features: ["core/chatRoom"], pathPatterns: ["/chat"] }];
+  const tableless = {
+    "src/features/core/chatRoom/services/server/chatRoomService.ts": "export const chatRoomService = {};\n",
+    "src/features/core/chatRoom/services/server/domainEntry.ts": 'export const domainEntries = {\n  chatRoom: { table: null, idColumn: null },\n} satisfies X;\n',
+  };
+  const IMPORT_CHAT = 'import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRoomService";\nexport const x = chatRoomService;\n';
+  const runChat = (files, opts = {}) => findDependencyViolations({ root: fixture({ ...tableless, ...files }), rules, requiredNames: [], ...opts }).map(keyOf);
+  const caller = "src/features/core/purchase/services/server/notify.ts";
+  assert.deepEqual(runChat({ [caller]: IMPORT_CHAT }), [`${caller} → core/chatRoom`]);
+  assert.deepEqual(runChat({ [caller]: IMPORT_CHAT + 'if (!gate.enabled("chatRoom")) throw 0;\n' }), []);
+  assert.deepEqual(runChat({ "src/app/(user)/chat/_screen/loader.ts": IMPORT_CHAT }), []);
+  assert.deepEqual(runChat({ [caller]: IMPORT_CHAT }, { requiredNames: ["chatRoom"] }), []);
+});
