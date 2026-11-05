@@ -26,6 +26,7 @@ src/lib/mediaInputSuite
   hooks/useMediaUploaderField.tsx
   hooks/usePendingMediaUploads.ts
   hooks/pendingUploadTracker.ts
+  hooks/uploadGuard.ts
   hooks/usePendingMediaDeletion.ts
   types.ts
   utils.ts
@@ -109,6 +110,23 @@ src/lib/mediaInputSuite
   - 送れなかった分（ページ遷移で途切れた等）は掃除 cron（storage-sweep）が猶予期間の後に消す
 - 採用済み（業務行に保存済み）のファイルはクライアントから消さない。値を差し替え・削除して業務保存すると、サーバーの CRUD 連動（detach）が台帳を deleted にして実物を消す。そのため `usePendingMediaDeletion` は API だけを残した空の実装。
 - アップロード（`uploadToStorage`）は features・app の UI 部品から直接呼ばない。フォームではこの部品（FieldRenderer・MediaHandler 経由を含む）を使う（`src/lib/storage/README.md`「呼び出す場所」）。
+
+### 未保存の守り(送信中)
+
+`MediaUploader` / `MediaUploaderMulti` は送信中(アップロード中)の間、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。
+
+- 外す: `guardUnsaved={false}`(既定 true)
+- フォームの中でも特別な扱いはしない: 守りの元が 1 つ増えるだけで、1 回の移動に確認は 1 回(送信中なら「処理の途中」の文)
+- アップロードが済んで保存前の値は、フォームの編集済み(AppForm の守り)が受ける。ここでは守らない(未採用分の追跡で守ると、保存の後の移動で聞いてしまう: 確定は送信の後に走る)
+- 判定: `hooks/uploadGuard.ts`(テスト `pnpm test:unsaved-guard`)
+
+### 依存(読む lib)
+
+守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
+
+- `src/lib/unsavedGuard`(送信中の守り)
+- `src/lib/storage`(アップロード・取り消し・用途の方針)
+- `src/lib/cn`(クラスの結合)
 
 ---
 

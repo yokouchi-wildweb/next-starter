@@ -3,12 +3,14 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import axios from "axios";
 import JSZip from "jszip";
 import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
+import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { contentTypeFromFilename, mediaPurposeOf } from "../../../../media";
+import { importUnsavedGuard } from "./importGuard";
 import { buildImportFieldTypeInfo } from "./importFieldTypeInfo";
 import { chunkNameOf, runImportSteps, sortImportSteps, type ImportStep } from "./importRun";
 import type {
@@ -31,6 +33,8 @@ export type UseImportHandlerOptions = {
   fields: ExportField[];
   /** インポートで DB が変わったときのコールバック（途中で止まった場合も、入ったチャンクがあれば呼ぶ。一覧の再取得用） */
   onImportSuccess?: () => void;
+  /** 取り込み中のページの移動・再読み込みを未保存の守り(lib/unsavedGuard)で止めるか(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 export type UseImportHandlerReturn = {
@@ -133,25 +137,16 @@ export function useImportHandler({
   imageFields,
   fields,
   onImportSuccess,
+  guardUnsaved = true,
 }: UseImportHandlerOptions): UseImportHandlerReturn {
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [result, setResult] = useState<ImportResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // インポート中の画面遷移警告
-  useEffect(() => {
-    if (!isImporting) return;
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "インポート処理中です。ページを離れると処理が中断されます。";
-      return e.returnValue;
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isImporting]);
+  // 取り込み中は移動・戻る進む・再読み込みに確認を出す(未保存の守り。理由 = 処理の途中)
+  const guard = importUnsavedGuard({ isImporting, guardUnsaved });
+  useUnsavedGuard(guard.when, { reason: guard.reason });
 
   /**
    * 1 チャンクを処理する（成功・失敗を ChunkResult で返す。投げない）

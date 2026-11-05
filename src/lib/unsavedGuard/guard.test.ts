@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { NAVIGATION_PORT_ATTR, SENTINEL_KEY, createUnsavedGuard } from "./guard";
+import { NAVIGATION_PORT_ATTR, SENTINEL_KEY, createTaskTracker, createUnsavedGuard, pickConfirmReason } from "./guard";
 import type { LeaveRequest } from "./types";
 
 type Fn = (event: never) => void;
@@ -83,7 +83,7 @@ test("router: 留まるなら進まない、移るなら進み、移動が終わ
   stay.guard.createSource().set(true);
   assert.equal(await stay.guard.request({ kind: "push", href: "/a" }, () => stay.moves.push("go")), false);
   assert.deepEqual(stay.moves, []);
-  assert.deepEqual(stay.asked, [{ kind: "push", href: "/a" }]);
+  assert.deepEqual(stay.asked, [{ kind: "push", href: "/a", reasons: ["unsaved"] }]);
 
   const leave = setup(true);
   leave.guard.createSource().set(true);
@@ -103,7 +103,7 @@ test("Link の判定: 止めて聞き、移るなら元の href へ(replace / sc
   guard.judgeLink("/t", { replace: true, scroll: false })?.({ preventDefault: () => (prevented += 1) });
   await tick();
   assert.equal(prevented, 1);
-  assert.deepEqual(asked, [{ kind: "link", href: "/t" }]);
+  assert.deepEqual(asked, [{ kind: "link", href: "/t", reasons: ["unsaved"] }]);
   assert.deepEqual(moves, ["replace /t"]);
 });
 
@@ -123,7 +123,7 @@ test("素の <a>: 同じオリジンの別のページだけ止める(棚の Lin
   };
   assert.equal(fire(anchor("http://x.test/other?q=1")), true);
   await tick();
-  assert.deepEqual(asked, [{ kind: "anchor", href: "/other?q=1" }]);
+  assert.deepEqual(asked, [{ kind: "anchor", href: "/other?q=1", reasons: ["unsaved"] }]);
   assert.deepEqual(moves, ["push /other?q=1"]);
   const { guard: g2, fake: f2 } = setup(true);
   g2.createSource().set(true);
@@ -147,7 +147,7 @@ test("戻る / 進む(popstate): 留まるなら番兵を積み直し、移る�
   (stay.fake.listeners.get("popstate") as unknown as () => void)();
   await tick();
   assert.equal(stay.fake.pushed.length, 2, "積み直す");
-  assert.deepEqual(stay.asked, [{ kind: "popstate" }]);
+  assert.deepEqual(stay.asked, [{ kind: "popstate", reasons: ["unsaved"] }]);
 
   const leave = setup(true);
   leave.guard.createSource().set(true);
@@ -189,4 +189,67 @@ test("router.back の移る: 今が番兵の履歴なら番兵を飛ばして 2 
   fake.env.win.history.state = { __NA: true };
   guard.back(() => raw.push("back"));
   assert.deepEqual(raw, ["back"]);
+});
+
+test("元が 2 つ(フォーム + アップロード中など)でも 1 回の移動に確認は 1 回、立っている理由を全部渡す", async () => {
+  const { guard, asked, moves } = setup(true);
+  guard.createSource().set(true);
+  guard.createSource("inProgress").set(true);
+  await guard.request({ kind: "push", href: "/a" }, () => moves.push("go"));
+  assert.equal(asked.length, 1);
+  assert.deepEqual(asked[0].reasons, ["unsaved", "inProgress"]);
+  assert.deepEqual(moves, ["go"]);
+});
+
+test("同じ理由の元が 2 つなら理由は 1 つ、外れた元の理由は渡さない", async () => {
+  const { guard, asked } = setup(false);
+  guard.createSource("inProgress").set(true);
+  guard.createSource("inProgress").set(true);
+  const form = guard.createSource();
+  form.set(true);
+  form.set(false);
+  await guard.request({ kind: "back" }, () => {});
+  assert.deepEqual(asked[0].reasons, ["inProgress"]);
+});
+
+test("確認に出す理由: 処理の途中(inProgress)が勝つ、無ければ unsaved", () => {
+  assert.equal(pickConfirmReason(["unsaved", "inProgress"]), "inProgress");
+  assert.equal(pickConfirmReason(["inProgress"]), "inProgress");
+  assert.equal(pickConfirmReason(["unsaved"]), "unsaved");
+  assert.equal(pickConfirmReason([]), "unsaved");
+});
+
+test("終わるまで守る仕事: Promise が残っている間だけ守る(成功でも失敗でも外す)、Promise でない値は素通り", async () => {
+  const { guard } = setup(true);
+  const tracker = createTaskTracker(guard.createSource());
+  assert.equal(tracker.track(undefined), undefined);
+  assert.equal(guard.isDirty(), false, "void は数えない");
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+  const ok = tracker.track(new Promise<void>((r) => (resolve = r)));
+  const ng = tracker.track(new Promise<void>((_, r) => (reject = r)));
+  assert.equal(guard.isDirty(), true);
+  resolve();
+  await ok;
+  assert.equal(guard.isDirty(), true, "まだ 1 つ残っている");
+  reject(new Error("x"));
+  await assert.rejects(ng);
+  await tick();
+  assert.equal(guard.isDirty(), false);
+  assert.equal(tracker.pending(), 0);
+});
+
+test("終わるまで守る仕事: 外す設定(guardUnsaved = false)の間は数えても守らない", async () => {
+  const { guard } = setup(true);
+  const tracker = createTaskTracker(guard.createSource());
+  tracker.setEnabled(false);
+  let resolve!: () => void;
+  const task = tracker.track(new Promise<void>((r) => (resolve = r)));
+  assert.equal(guard.isDirty(), false);
+  tracker.setEnabled(true);
+  assert.equal(guard.isDirty(), true, "戻すと残りの仕事で守る");
+  resolve();
+  await task;
+  await tick();
+  assert.equal(guard.isDirty(), false);
 });

@@ -20,6 +20,7 @@ export function DataMigrationModal({
   onImportSuccess,
   hasRelations = false,
   hasManyDomains = [],
+  guardUnsaved = true,
 }: DataMigrationModalProps) {
   // 画像フィールドを抽出
   const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);
@@ -49,6 +50,7 @@ export function DataMigrationModal({
           fields={fields}
           onOpenChange={onOpenChange}
           onImportSuccess={onImportSuccess}
+          guardUnsaved={guardUnsaved}
         />
       ),
     },

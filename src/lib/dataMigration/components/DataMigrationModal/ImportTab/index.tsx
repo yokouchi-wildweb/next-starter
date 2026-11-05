@@ -22,6 +22,7 @@ export function ImportTab({
   fields,
   onOpenChange,
   onImportSuccess,
+  guardUnsaved = true,
 }: ImportTabContentProps) {
   // ファイルドロップゾーンの状態管理
   const dropzone = useFileDropzone();
@@ -32,6 +33,7 @@ export function ImportTab({
     imageFields,
     fields,
     onImportSuccess,
+    guardUnsaved,
   });
 
   // インポート実行

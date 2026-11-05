@@ -67,10 +67,26 @@ import { SortableList, type ReorderResult } from "@/lib/sortableList";
 - スクロールする Modal / セクションの中の短い編集リスト → `"parent"`
 - Modal を固定高・内側だけスクロールにできる単一セクション構成 → Modal の `scrollable={false}` + `"self"` でもよい（`src/components/Overlays/README.md` の固定高コンテナモード参照）
 
+## 未保存の守り(並びの保存待ち)
+
+`onReorder` が Promise を返すと、終わるまで(並びの保存待ち)ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。void を返す使い手は守らない。
+
+- 外す: `guardUnsaved={false}`(既定 true)
+- リストは未保存の並びを持たない(落とすたびに使い手が保存する)。手元で並びをためて後でまとめて保存する画面は、その画面が `useUnsavedGuard(並びが変わった)` を呼ぶ
+- 判定: `reorderGuard.ts`(テスト `pnpm test:unsaved-guard`)
+
+## 依存(読む lib)
+
+守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
+
+- `src/lib/unsavedGuard`(並びの保存待ちの守り)
+- `src/lib/cn`(クラスの結合)
+
 ## ファイル構成
 
 - `SortableList.tsx`: 本体（DndContext / 仮想化 / scroll モード分岐）
 - `components/`: `SortableItem`（useSortable 行）/ `StaticItem`（無効行）/ `HeaderRow` / `DragHandle`
 - `types.ts`: Props・`ReorderResult`・`SortableListScrollMode`
+- `reorderGuard.ts`: 並べ替えを使い手へ渡し、保存待ちを守りに数える
 - `utils.ts`: `computeReorderResult`（active/over ID から after/before を算出。tableSuite reorderable も共用）
 - `variants.ts`: 行の高さ・パディング・配置クラス

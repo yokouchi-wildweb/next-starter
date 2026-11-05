@@ -13,6 +13,7 @@ export async function UnsavedGuardStartScreen(props: ScreenProps) {
     <Main>
       <h1 id="page">start</h1>
       <Link id="to-form" href="/e2e/unsaved-guard/form">form</Link>
+      <Link id="to-table" href="/e2e/unsaved-guard/table">table</Link>
     </Main>
   );
 }

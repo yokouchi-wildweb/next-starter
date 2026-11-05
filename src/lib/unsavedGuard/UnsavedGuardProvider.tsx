@@ -6,8 +6,8 @@
 import { useRouter as useNextRouter, usePathname } from "next/navigation";
 import { createContext, type ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
-import { createUnsavedGuard, type UnsavedGuard } from "./guard";
-import type { ConfirmLeave, GuardedRouter, LinkNavigateJudge, UnsavedSource } from "./types";
+import { createTaskTracker, createUnsavedGuard, type UnsavedGuard } from "./guard";
+import type { ConfirmLeave, GuardedRouter, LinkNavigateJudge, UnsavedReason, UnsavedSource, UnsavedTasks } from "./types";
 
 type GuardContextValue = { guard: UnsavedGuard; raw: ReturnType<typeof useNextRouter> };
 
@@ -32,20 +32,34 @@ export function UnsavedGuardProvider({ confirm, children }: Readonly<{ confirm: 
   return <GuardContext.Provider value={value}>{children}</GuardContext.Provider>;
 }
 
-/** 編集済みの間(when = true)守る。フォームなら formState.isDirty を渡す */
-export function useUnsavedGuard(when: boolean): void {
-  const source = useUnsavedSource();
+/** 編集済みの間(when = true)守る。フォームなら formState.isDirty を渡す。reason = 守る理由(既定 unsaved、処理の途中は inProgress) */
+export function useUnsavedGuard(when: boolean, options?: { readonly reason?: UnsavedReason }): void {
+  const source = useUnsavedSource(options?.reason);
   useEffect(() => {
     source.set(when);
   }, [source, when]);
 }
 
+/**
+ * 終わるまで守る仕事(保存待ちの Promise など)。track(value) した Promise が 1 つでも終わっていない間守る(Promise でない値は素通り)。
+ * when = false の間は守らない(使い手の guardUnsaved)。reason の既定は unsaved
+ */
+export function useUnsavedTasks(options?: { readonly when?: boolean; readonly reason?: UnsavedReason }): UnsavedTasks {
+  const source = useUnsavedSource(options?.reason);
+  const tracker = useMemo(() => createTaskTracker(source), [source]);
+  const when = options?.when ?? true;
+  useEffect(() => {
+    tracker.setEnabled(when);
+  }, [tracker, when]);
+  return useMemo(() => ({ track: (task) => tracker.track(task) }), [tracker]);
+}
+
 const noopSource: UnsavedSource = { set: () => {}, dispose: () => {} };
 
-/** 編集済みの元を 1 つ作る(set を同期に呼べる。送信の直前に外すなど)。unmount で外れる */
-export function useUnsavedSource(): UnsavedSource {
+/** 編集済みの元を 1 つ作る(set を同期に呼べる。送信の直前に外すなど)。unmount で外れる。reason の既定は unsaved */
+export function useUnsavedSource(reason: UnsavedReason = "unsaved"): UnsavedSource {
   const context = useContext(GuardContext);
-  const source = useMemo(() => context?.guard.createSource() ?? noopSource, [context]);
+  const source = useMemo(() => context?.guard.createSource(reason) ?? noopSource, [context, reason]);
   useEffect(() => () => source.dispose(), [source]);
   return source;
 }
@@ -70,9 +84,9 @@ export function useRouter(): GuardedRouter {
 }
 
 /** 編集済みの元の作り方(src/wiring が棚の口へ入れる。Provider の外は何もしない元) */
-export function useUnsavedSourceFactory(): () => UnsavedSource {
+export function useUnsavedSourceFactory(): (reason?: UnsavedReason) => UnsavedSource {
   const context = useContext(GuardContext);
-  return useMemo(() => (context ? () => context.guard.createSource() : () => noopSource), [context]);
+  return useMemo(() => (context ? (reason?: UnsavedReason) => context.guard.createSource(reason) : () => noopSource), [context]);
 }
 
 const passLink: LinkNavigateJudge = () => undefined;

@@ -35,6 +35,7 @@ type EditableGridCellProps<T> = {
   cellPaddingY: PaddingSize;
   highlightReadonly?: boolean;
   onValidChange?: (value: unknown) => void;
+  onDraftChange?: (drafting: boolean) => void;
 };
 
 export function EditableGridCell<T>({
@@ -46,6 +47,7 @@ export function EditableGridCell<T>({
   cellPaddingY,
   highlightReadonly = true,
   onValidChange,
+  onDraftChange,
 }: EditableGridCellProps<T>) {
   // カスタムフックでステート管理
   const { state, handlers, refs, flags, cellKey } = useEditableCell({
@@ -53,6 +55,7 @@ export function EditableGridCell<T>({
     rowKey,
     column,
     onValidChange,
+    onDraftChange,
   });
   const { inputRef, cellRef } = refs;
 

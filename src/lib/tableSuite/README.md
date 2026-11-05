@@ -99,6 +99,24 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 
 セルの内部構造・カラムのカスタマイズ（validator / onToggleRequest / renderDisplay 等）・エディター型の追加手順は [EditableGridTable/README.md](./EditableGridTable/README.md)。
 
+#### 未保存の守り
+
+書きかけのセル(入力して未確定)がある間と、`onCellChange` が返した Promise が終わるまで(保存待ち)、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。
+
+- 外す: `guardUnsaved={false}`(既定 true)
+- セルの外を押すと書きかけは確定する(→ `onCellChange`)。同期に保存する使い手(void を返す)は確定の時点で守りが外れる
+- 表は確定した値の未保存の状態を持たない。手元に変更をためて後でまとめて保存する画面は、その画面が `useUnsavedGuard` を呼ぶ
+- 行の並び替え(`reorderable`)の保存待ちは守らない
+- 判定: `EditableGridTable/utils/editGuard.ts`(テスト `pnpm test:unsaved-guard`)
+
+## 依存(読む lib)
+
+守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
+
+- `src/lib/unsavedGuard`(EditableGridTable の守り)
+- `src/lib/sortableList`(行の並び替えの計算 `computeReorderResult`)
+- `src/lib/cn`・`src/lib/crud`・`src/lib/date`(クラスの結合・ソートの型 `crud/types`・日時の解釈 `date/parseFlexible`)
+
 ## カラムソート
 
 3つのテーブル（DataTable / RecordSelectionTable / EditableGridTable）で共通のヘッダークリックソートを提供する。

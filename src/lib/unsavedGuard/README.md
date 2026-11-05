@@ -7,6 +7,7 @@
 - 入口は `index.ts` だけ(中のファイルを外から読まない)
 - 読む物: `react`、`next/navigation`(`useRouter`・`usePathname`。`useRouter` を読むのはこの lib の中だけ = lint `import-boundaries/router-via-guard` の例外)
 - 読まない物: features・棚(src/components)・ほかの lib。確認の見た目は持たず、確認の関数を値で受ける
+- 読む lib(使い手): `dataMigration`(取り込み中)・`mediaInputSuite`(アップロード中)・`tableSuite`(EditableGridTable の書きかけ・保存待ち)・`sortableList`(並びの保存待ち)。どれも `guardUnsaved`(既定 true)で外せる。棚の AppForm は棚の Navigation の口から(D50)
 
 ## 使い方
 
@@ -16,6 +17,11 @@
 
 // 編集済みの間守る(AppForm は既定で入る。ほかの編集画面はこれを呼ぶ)
 useUnsavedGuard(formState.isDirty);
+// 処理の途中(取り込み中・アップロード中)は理由を変える = 確認の文が変わる
+useUnsavedGuard(isImporting, { reason: "inProgress" });
+// 保存待ちの Promise が終わるまで守る(Promise でない値は素通り)
+const saving = useUnsavedTasks({ when: guardUnsaved });
+saving.track(onCellChange(event));
 
 // 移動は守り付きの router(next/navigation の useRouter と同じ名前・同じ形)
 import { useRouter } from "@/lib/unsavedGuard";
@@ -25,14 +31,22 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 
 | 入口 | 中身 |
 |---|---|
-| `UnsavedGuardProvider({ confirm })` | 守りを置く。`confirm(request) => boolean \| Promise<boolean>`(true = 移る)。`request.kind` = link / anchor / push / replace / back / forward / popstate |
-| `useUnsavedGuard(when)` | when が true の間守る |
-| `useUnsavedSource()` / `useUnsavedSourceFactory()` | 編集済みの元(`set(active)` を同期に呼べる。送信の直前に外す等)/ その作り方(結線が棚の口へ入れる) |
+| `UnsavedGuardProvider({ confirm })` | 守りを置く。`confirm(request) => boolean \| Promise<boolean>`(true = 移る)。`request.kind` = link / anchor / push / replace / back / forward / popstate、`request.reasons` = いま立っている元の理由 |
+| `useUnsavedGuard(when, { reason })` | when が true の間守る。reason の既定 `unsaved` |
+| `useUnsavedTasks({ when, reason })` | `track(value)` した Promise が 1 つでも終わっていない間守る。when = false の間は守らない |
+| `useUnsavedSource(reason)` / `useUnsavedSourceFactory()` | 編集済みの元(`set(active)` を同期に呼べる。送信の直前に外す等)/ その作り方(結線が棚の口へ入れる) |
+| `UnsavedReason` / `UNSAVED_REASONS` / `pickConfirmReason(reasons)` | 理由の閉じた一覧 / 確認に出す理由を 1 つ選ぶ(`inProgress` が勝つ) |
 | `useRouter()` | push / replace / back / forward は編集済みの間に確認。refresh / prefetch はそのまま。Provider の外は素の Next の router |
 | `useLinkNavigateJudge()` | 棚の Link の `onNavigate` に渡す判定(結線が棚の Navigation の口へ入れる) |
 
 - 送信: AppForm は送信の直前に同期に外し(`onSubmit` の中の `router.push` を聞かない)、失敗(throw)なら戻す。成功の後は次の入力まで外したまま。`guardUnsaved={false}` で切る
 - 「移る」を選んだ後は、住所が変わる(移動が終わる)か編集済みの元が無くなるまで聞かない
+
+## 理由と確認の文
+
+- 理由は閉じた一覧: `unsaved`(保存していない変更。既定)・`inProgress`(処理の途中。離れると中断される)。使い手ごとの自由な文は受けない
+- 元がいくつ立っていても 1 回の移動に確認は 1 回(フォームの中のアップロードも特別な扱いをしない)。確認には立っている理由を全部渡し、結線は `pickConfirmReason` で 1 つ選ぶ(`inProgress` が勝つ)
+- 文は `src/config/ui/unsaved-guard.config.ts` の `UNSAVED_GUARD_CONFIRM`(理由ごとに題・説明・ボタンの語。fork は値だけ替える)。再読み込み・タブを閉じるときはブラウザの確認で、この文は出ない
 
 ## 受け止める経路と手段(試作の計測で決めた、D11)
 
@@ -60,5 +74,5 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 
 ## テスト
 
-- `pnpm test:unsaved-guard` — 本体(`guard.ts`)を偽物の window / document で
+- `pnpm test:unsaved-guard` — 本体(`guard.ts`)を偽物の window / document で + 使い手の lib の判定(取り込み・アップロード・表・並べ替え)
 - `pnpm test:e2e:unsaved-guard` — 実際のブラウザで 4 経路 × 留まる / 移る(dev server が要る: `e2e/README.md`)

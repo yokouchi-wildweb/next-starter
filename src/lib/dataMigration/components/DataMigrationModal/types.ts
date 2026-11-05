@@ -115,6 +115,8 @@ export type DataMigrationModalProps = {
   hasRelations?: boolean;
   /** hasMany ドメイン情報（エクスポート時に選択可能） */
   hasManyDomains?: HasManyDomainInfo[];
+  /** 取り込み中のページの移動・再読み込みを未保存の守り(lib/unsavedGuard)で止めるか(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 /** ExportTabContent の Props */
@@ -134,6 +136,8 @@ export type ImportTabContentProps = {
   fields: ExportField[];
   onOpenChange: (open: boolean) => void;
   onImportSuccess?: () => void;
+  /** 取り込み中の未保存の守り(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 // Re-export for convenience

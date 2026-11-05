@@ -8,7 +8,7 @@
 // - 再読み込み・タブを閉じる・別のオリジン: beforeunload(ブラウザの確認。文言は変えられない)
 // 「移る」を選んだ後は移動が終わるまで聞かない(leaving)。編集済みの元が無くなるか、住所が変わったら戻す。
 
-import type { ConfirmLeave, LeaveRequest, LinkNavigateJudge, UnsavedSource } from "./types";
+import type { ConfirmLeave, LeaveRequest, LinkNavigateJudge, UnsavedReason, UnsavedSource } from "./types";
 
 /** 番兵の履歴の印(history.state に足す。Next の state は残す) */
 export const SENTINEL_KEY = "__unsavedGuardSentinel";
@@ -17,6 +17,17 @@ export const NAVIGATION_PORT_ATTR = "data-navigation-port";
 
 type Listener = (event: never) => void;
 type Target = { addEventListener: (type: string, fn: Listener, capture?: boolean) => void; removeEventListener: (type: string, fn: Listener, capture?: boolean) => void };
+
+/** 理由の一覧(閉じた一覧。確認に渡す順) */
+export const UNSAVED_REASONS: readonly UnsavedReason[] = ["unsaved", "inProgress"];
+
+/** 確認に出す理由を 1 つ選ぶ: 処理の途中(inProgress)が立っていればそれ、無ければ unsaved */
+export function pickConfirmReason(reasons: readonly UnsavedReason[]): UnsavedReason {
+  return reasons.includes("inProgress") ? "inProgress" : "unsaved";
+}
+
+/** 移動の確認の中身(reasons は guard が足す) */
+type LeaveInput = Omit<LeaveRequest, "reasons">;
 
 export type GuardEnv = {
   win: Target & {
@@ -40,16 +51,20 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
   // 確認の関数と素の router は後から入れ替えられる(React の描画の後に最新を入れる、configure)
   let confirm: ConfirmLeave = initialConfirm ?? (() => false);
   let router: () => RawRouter = initialRouter ?? (() => ({ push: () => {}, replace: () => {}, back: () => {}, forward: () => {} }));
-  const active = new Set<symbol>();
+  const active = new Map<symbol, UnsavedReason>();
   const listeners = new Set<() => void>();
   let leaving = false;
   let asking = false;
   let attached = false;
 
   const isDirty = () => active.size > 0 && !leaving;
+  const reasons = (): UnsavedReason[] => {
+    const up = new Set(active.values());
+    return UNSAVED_REASONS.filter((reason) => up.has(reason));
+  };
 
-  /** 確認して、移るなら proceed。編集済みでなければそのまま進む。確認中の 2 回目は捨てる */
-  const request = async (req: LeaveRequest, proceed: () => void): Promise<boolean> => {
+  /** 確認して、移るなら proceed。編集済みでなければそのまま進む。確認中の 2 回目は捨てる。元がいくつ立っていても確認は 1 回 */
+  const request = async (input: LeaveInput, proceed: () => void): Promise<boolean> => {
     if (!isDirty()) {
       proceed();
       return true;
@@ -58,7 +73,7 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
     asking = true;
     let ok = false;
     try {
-      ok = await confirm(req);
+      ok = await confirm({ ...input, reasons: reasons() });
     } finally {
       asking = false;
     }
@@ -140,12 +155,12 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
     },
     isDirty,
     request,
-    /** 編集済みの元を 1 つ作る(フォーム 1 つ = 元 1 つ) */
-    createSource(): UnsavedSource {
-      const token = Symbol("unsaved");
+    /** 編集済みの元を 1 つ作る(フォーム 1 つ = 元 1 つ)。reason = 守る理由(既定 unsaved) */
+    createSource(reason: UnsavedReason = "unsaved"): UnsavedSource {
+      const token = Symbol(reason);
       return {
         set(on: boolean) {
-          if (on) active.add(token);
+          if (on) active.set(token, reason);
           else active.delete(token);
           if (active.size === 0) leaving = false;
           update();
@@ -185,5 +200,36 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
+  };
+}
+
+/**
+ * 終わるまで守る仕事の数え方: track した Promise(then を持つ値。ほかの値は数えない) が 1 つでも終わっていない間、元を立てる(成功・失敗どちらでも終われば外す)。
+ * enabled = false の間は数えるだけで立てない(使い手の guardUnsaved)
+ */
+const isThenable = (value: unknown): value is PromiseLike<unknown> =>
+  typeof value === "object" && value !== null && typeof (value as { then?: unknown }).then === "function";
+
+export function createTaskTracker(source: UnsavedSource) {
+  let pending = 0;
+  let enabled = true;
+  const sync = () => source.set(enabled && pending > 0);
+  return {
+    track<T>(task: T): T {
+      if (!isThenable(task)) return task;
+      pending += 1;
+      sync();
+      const settle = () => {
+        pending -= 1;
+        sync();
+      };
+      task.then(settle, settle);
+      return task;
+    },
+    setEnabled(next: boolean) {
+      enabled = next;
+      sync();
+    },
+    pending: () => pending,
   };
 }

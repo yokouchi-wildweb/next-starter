@@ -109,6 +109,23 @@
 - `pnpm test:data-migration`: 値の分類・解決、export のメディア取得、注入する resolver（DB なし）
 - `pnpm test:data-migration-db`: 実 DB の import（旧 URL の copy・同梱・外部 URL の失敗と巻き戻し・copy 失敗・同じ値の保持・bulkUpsert にメディア列が渡らない）
 
+## 未保存の守り(取り込み中)
+
+取り込み中は、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。自前の `beforeunload` は持たない。
+
+- 外す: `guardUnsaved={false}`(`DataMigrationButton` / `DataMigrationModal` / `useImportHandler`、既定 true)
+- 何を守るかの判定: `ImportTab/hooks/importGuard.ts`(テスト `pnpm test:unsaved-guard`)
+- モーダルを閉じる操作は移動ではないので聞かない(閉じても取り込みは続く)
+
+## 依存(読む lib)
+
+守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
+
+- `src/lib/unsavedGuard`(取り込み中の守り)
+- `src/lib/storage`(同梱ファイルのアップロード・取り消し)
+- `src/lib/crud`・`src/lib/domain`・`src/lib/drizzle`(サーバー側の取り込み・設定の読み方)
+- `src/lib/errors`・`src/lib/toast`(失敗の形・通知)
+
 ## 注入するもの
 
 lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts`・`src/wiring/domainConfig.ts` の結んだ版を渡す。DataMigrationButton は写し（`entities/display.ts` の `domainDisplay`）を受ける。

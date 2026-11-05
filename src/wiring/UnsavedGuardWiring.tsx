@@ -1,5 +1,6 @@
 // src/wiring/UnsavedGuardWiring.tsx
 // 未保存の編集の守り(src/lib/unsavedGuard)の既定の結線: 確認 = Overlays の Dialog(lib は見た目を持たず確認の関数を値で受ける)、
+// 文は理由ごとに src/config/ui/unsaved-guard.config.ts から(立っている理由が複数なら lib の pickConfirmReason = 処理の途中が勝つ)、
 // 守りを棚の Navigation の口(Link の移動の判定・棚の router・AppForm の編集済みの元)へ入れる(棚は lib を読まない、D50)。
 // 門番の口(GateProvider → LinkVisibilityProvider)と同じ置き方。AppProviders が 1 か所で描く
 
@@ -9,13 +10,16 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 
 import { NavigationPortProvider, type NavigationPortValue } from "@/components/Navigation/NavigationPort";
 import { Dialog } from "@/components/Overlays/Dialog";
+import { UNSAVED_GUARD_CONFIRM } from "@/config/ui/unsaved-guard.config";
 import {
   NAVIGATION_PORT_ATTR,
+  pickConfirmReason,
   UnsavedGuardProvider,
   useLinkNavigateJudge,
   useRouter,
   useUnsavedSourceFactory,
   type ConfirmLeave,
+  type UnsavedReason,
 } from "@/lib/unsavedGuard";
 
 const LINK_ATTRIBUTES = { [NAVIGATION_PORT_ATTR]: "" };
@@ -34,6 +38,7 @@ function NavigationPortBridge({ children }: Readonly<{ children: ReactNode }>) {
 
 export function UnsavedGuardWiring({ children }: Readonly<{ children: ReactNode }>) {
   const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<UnsavedReason>("unsaved");
   const resolveRef = useRef<((leave: boolean) => void) | null>(null);
   const settle = useCallback((leave: boolean) => {
     resolveRef.current?.(leave);
@@ -41,13 +46,15 @@ export function UnsavedGuardWiring({ children }: Readonly<{ children: ReactNode 
     setOpen(false);
   }, []);
   const confirm = useCallback<ConfirmLeave>(
-    () =>
+    (request) =>
       new Promise<boolean>((resolve) => {
         resolveRef.current = resolve;
+        setReason(pickConfirmReason(request.reasons));
         setOpen(true);
       }),
     [],
   );
+  const texts = UNSAVED_GUARD_CONFIRM[reason];
   return (
     <UnsavedGuardProvider confirm={confirm}>
       <NavigationPortBridge>{children}</NavigationPortBridge>
@@ -56,10 +63,10 @@ export function UnsavedGuardWiring({ children }: Readonly<{ children: ReactNode 
         onOpenChange={(next) => {
           if (!next) settle(false);
         }}
-        title="編集中の内容があります"
-        description="保存していない変更は失われます。このページを離れますか？"
-        confirmLabel="離れる"
-        cancelLabel="留まる"
+        title={texts.title}
+        description={texts.description}
+        confirmLabel={texts.confirmLabel}
+        cancelLabel={texts.cancelLabel}
         confirmVariant="destructive"
         onConfirm={() => settle(true)}
         layer="apex"

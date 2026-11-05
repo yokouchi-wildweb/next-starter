@@ -93,7 +93,16 @@ export type EditableGridTableProps<T> = TableStylingProps<T> &
     items?: T[];
     columns: EditableGridColumn<T>[];
     getKey?: (row: T, index: number) => React.Key;
-    onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
+    /**
+     * セルの値が確定した時(検証を通った後)。Promise を返すと、終わるまで未保存の守りで移動・再読み込みを止める(保存待ち)
+     */
+    onCellChange?: (event: EditableGridCellChangeEvent<T>) => void | Promise<unknown>;
+    /**
+     * 書きかけのセル(入力して未確定)と保存待ち(onCellChange の Promise)の間、ページの移動・戻る進む・再読み込みに
+     * 確認を出すか(lib/unsavedGuard、理由 = 未保存)。
+     * @default true
+     */
+    guardUnsaved?: boolean;
     emptyValueFallback?: string;
     tableLayout?: "auto" | "fixed";
     /**

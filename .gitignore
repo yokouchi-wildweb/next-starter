@@ -15,6 +15,9 @@
 
 # testing
 /coverage
+# Playwright の結果(pnpm test:e2e:*)
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/

@@ -18,6 +18,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useUnsavedTasks } from "@/lib/unsavedGuard";
 import {
   useVirtualizer,
   defaultRangeExtractor,
@@ -31,6 +32,7 @@ import type {
   SortableListProps,
 } from "./types";
 import { resolveRowClassName } from "./types";
+import { REORDER_GUARD_REASON, runReorder } from "./reorderGuard";
 import { computeReorderResult } from "./utils";
 import type { RowHeight } from "./variants";
 
@@ -90,7 +92,10 @@ export default function SortableList<T extends SortableItemType>({
   itemPaddingX = "sm",
   itemPaddingY = "none",
   scroll = "self",
+  guardUnsaved = true,
 }: SortableListProps<T>) {
+  // 未保存の守り: 並びの保存待ち(onReorder の Promise)の間
+  const saving = useUnsavedTasks({ when: guardUnsaved, reason: REORDER_GUARD_REASON });
   const mounted = useIsClient();
   const isSelfScroll = scroll === "self";
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -170,10 +175,10 @@ export default function SortableList<T extends SortableItemType>({
       );
 
       if (result) {
-        onReorder(result);
+        runReorder(onReorder, result, saving);
       }
     },
-    [items, onReorder]
+    [items, onReorder, saving]
   );
 
   const handleDragCancel = useCallback(() => {

@@ -155,9 +155,14 @@ export type SortableListProps<T extends SortableItem> = {
    */
   headerClassName?: string;
   /**
-   * 並び替え完了時のコールバック
+   * 並び替え完了時のコールバック。Promise を返すと、終わるまで未保存の守りで移動・再読み込みを止める(並びの保存待ち)
    */
-  onReorder: (result: ReorderResult) => void;
+  onReorder: (result: ReorderResult) => void | Promise<unknown>;
+  /**
+   * 並びの保存待ち(onReorder の Promise)の間、ページの移動・戻る進む・再読み込みに確認を出すか(lib/unsavedGuard、理由 = 未保存)。
+   * @default true
+   */
+  guardUnsaved?: boolean;
   /**
    * ドラッグハンドルを表示するか
    * @default true

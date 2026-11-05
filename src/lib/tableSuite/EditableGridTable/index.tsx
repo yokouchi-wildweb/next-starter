@@ -7,6 +7,7 @@ import React from "react";
 import { Lock, PencilLine } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { useUnsavedGuard, useUnsavedTasks } from "@/lib/unsavedGuard";
 
 import {
   Table,
@@ -23,6 +24,7 @@ import {
 import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
 import { EditableGridCell } from "./components/EditableGridCell";
+import { EDIT_GUARD_REASON, createDraftCells, editUnsavedGuard } from "./utils/editGuard";
 
 type KeyedRow<T> = {
   row: T;
@@ -51,7 +53,15 @@ export default function EditableGridTable<T>({
   sort,
   onSortChange,
   reorderable,
+  guardUnsaved = true,
 }: EditableGridTableProps<T>) {
+  // 未保存の守り: 書きかけのセルがある間 + onCellChange の保存待ちの間(理由 = 未保存)
+  const [draftCount, setDraftCount] = React.useState(0);
+  const [draftCells] = React.useState(() => createDraftCells(setDraftCount));
+  const guard = editUnsavedGuard({ draftCount, guardUnsaved });
+  useUnsavedGuard(guard.when, { reason: guard.reason });
+  const saving = useUnsavedTasks({ when: guardUnsaved, reason: EDIT_GUARD_REASON });
+
   const keyedRows = React.useMemo<KeyedRow<T>[]>(
     () =>
       items.map((row, rowIndex) => ({
@@ -163,14 +173,17 @@ export default function EditableGridTable<T>({
                   cellPaddingX={column.paddingX ?? cellPaddingX}
                   cellPaddingY={column.paddingY ?? cellPaddingY}
                   highlightReadonly={highlightReadonlyCells}
-                  onValidChange={(value) =>
-                    onCellChange?.({
-                      rowKey,
-                      field: column.field,
-                      value,
-                      row,
-                    })
-                  }
+                  onValidChange={(value) => {
+                    saving.track(
+                      onCellChange?.({
+                        rowKey,
+                        field: column.field,
+                        value,
+                        row,
+                      }),
+                    );
+                  }}
+                  onDraftChange={(drafting) => draftCells.set(`${String(rowKey)}-${column.field}`, drafting)}
                 />
               ))}
             </ReorderableRow>

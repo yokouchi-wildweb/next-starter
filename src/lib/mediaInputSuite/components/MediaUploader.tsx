@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { MediaInput, type MediaInputProps } from "./MediaInput";
 import type { FileValidationError, FileValidationRule } from "../types";
+import { uploadUnsavedGuard } from "../hooks/uploadGuard";
 import {
   isStorageUploadCanceled,
   pickerAcceptFor,
@@ -11,6 +12,7 @@ import {
   usePurposeMetadata,
   type UploadProgress,
 } from "@/lib/storage/client";
+import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 
@@ -32,6 +34,8 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
   onUploadFailedChange?: (failed: boolean) => void;
   onRegisterPendingUpload?: (url: string | null) => void;
   onRegisterPendingDelete?: (url: string | null) => void;
+  /** 送信中(アップロード中)のページの移動・再読み込みを未保存の守り(lib/unsavedGuard、理由 = 処理の途中)で止めるか(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 export const MediaUploader = ({
@@ -48,6 +52,7 @@ export const MediaUploader = ({
   onUploadFailedChange,
   onRegisterPendingUpload,
   onRegisterPendingDelete,
+  guardUnsaved = true,
   ...inputProps
 }: MediaUploaderProps) => {
   // 用途の方針（サーバーから。分かるまでは accept を狭めない）。strip なら accept の image/* を受け付ける画像の型に狭める
@@ -71,6 +76,9 @@ export const MediaUploader = ({
   const previousUrlRef = useRef<string | null>(null);
   // 進行中のアップロードの番号。中止・やり直しの後に届いた古い onError / onComplete を無視する
   const uploadIdRef = useRef(0);
+  // 送信中は移動・戻る進む・再読み込みに確認を出す(フォームの中でも元が 1 つ増えるだけ。確認は 1 回)
+  const guard = uploadUnsavedGuard({ uploading: progress !== null, guardUnsaved });
+  useUnsavedGuard(guard.when, { reason: guard.reason });
   useEffect(() => {
     setCurrentUrl(initialUrl);
   }, [initialUrl]);

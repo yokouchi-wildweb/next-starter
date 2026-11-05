@@ -18,6 +18,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 import { cn } from "@/lib/cn";
+import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import {
   isStorageUploadCanceled,
   pickerAcceptFor,
@@ -30,6 +31,7 @@ import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";
 import type { FileValidationError, FileValidationRule } from "../types";
 import { validateFile } from "../utils";
+import { uploadUnsavedGuard } from "../hooks/uploadGuard";
 import { hasFailedUpload } from "./uploadFailure";
 
 /**
@@ -73,6 +75,8 @@ export type MediaUploaderMultiProps = {
   dropLabel?: string;
   /** 削除ボタンのラベル */
   clearButtonLabel?: string;
+  /** 送信中(アップロード中)のページの移動・再読み込みを未保存の守り(lib/unsavedGuard、理由 = 処理の途中)で止めるか(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 /** 既定の最大件数 */
@@ -107,6 +111,7 @@ export const MediaUploaderMulti = ({
   disabled = false,
   dropLabel = "クリックまたはドラッグ＆ドロップで追加",
   clearButtonLabel = "削除",
+  guardUnsaved = true,
 }: MediaUploaderMultiProps) => {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -162,6 +167,9 @@ export const MediaUploaderMulti = ({
 
   // アップロード中の有無を通知
   const isUploading = useMemo(() => slots.some(slotIsUploading), [slots]);
+  // 送信中は移動・戻る進む・再読み込みに確認を出す(フォームの中でも元が 1 つ増えるだけ。確認は 1 回)
+  const guard = uploadUnsavedGuard({ uploading: isUploading, guardUnsaved });
+  useUnsavedGuard(guard.when, { reason: guard.reason });
   const lastUploadingRef = useRef<boolean>(false);
   useEffect(() => {
     if (lastUploadingRef.current === isUploading) return;

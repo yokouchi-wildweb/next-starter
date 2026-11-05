@@ -17,6 +17,7 @@ export function useEditableCell<T>({
   rowKey,
   column,
   onValidChange,
+  onDraftChange,
 }: UseEditableCellProps<T>) {
   // ステート管理
   const [draftValue, setDraftValue] = React.useState<string | null>(null);
@@ -194,6 +195,17 @@ export function useEditableCell<T>({
       setError(null);
     }
   }, [draftValue]);
+
+  // エフェクト: 書きかけ(draft がある)の有無をテーブルへ知らせる(未保存の守り)。unmount で外す
+  const drafting = draftValue !== null;
+  const onDraftChangeRef = React.useRef(onDraftChange);
+  React.useEffect(() => {
+    onDraftChangeRef.current = onDraftChange;
+  }, [onDraftChange]);
+  React.useEffect(() => {
+    onDraftChangeRef.current?.(drafting);
+  }, [drafting]);
+  React.useEffect(() => () => onDraftChangeRef.current?.(false), []);
 
   // エフェクト: multiDraftValueのリセット
   React.useEffect(() => {

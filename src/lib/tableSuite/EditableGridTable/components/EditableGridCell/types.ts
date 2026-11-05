@@ -50,6 +50,8 @@ export type UseEditableCellProps<T> = {
   rowKey: React.Key;
   column: EditableGridColumn<T>;
   onValidChange?: (value: unknown) => void;
+  /** 書きかけ(draft がある)になった / 無くなった時(テーブルが未保存の守りに数える)。unmount で false */
+  onDraftChange?: (drafting: boolean) => void;
 };
 
 /**

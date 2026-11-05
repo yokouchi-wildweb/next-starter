@@ -6,7 +6,7 @@ Playwright(`playwright.config.ts`、chromium・firefox・webkit)。ページは 
 
 1. 受入のページを開く: `src/config/app/app-features.config.ts` の `e2e.fixtures` を `true` にする(コミットしない。終わったら戻す)
 2. dev server を立てる(エージェントは自分で立てない: 人か guild dev が立て、住所を受け取る)
-3. `E2E_BASE_URL=http://localhost:<port> pnpm test:e2e:unsaved-guard`(1 つのブラウザだけ: `-- --project=chromium`)
+3. `E2E_BASE_URL=http://localhost:<port> pnpm test:e2e:unsaved-guard`(1 つのブラウザだけ: `E2E_BASE_URL=… pnpm exec playwright test e2e/unsavedGuard.spec.ts --project=chromium`。`pnpm test:e2e:unsaved-guard -- --project=…` では絞れない)
 4. `e2e.fixtures` を `false` に戻す
 
 - CI だけ `webServer` で `pnpm dev` を立てる(`CI` があるとき)
@@ -16,4 +16,4 @@ Playwright(`playwright.config.ts`、chromium・firefox・webkit)。ページは 
 
 | ファイル | 中身 |
 |---|---|
-| `unsavedGuard.spec.ts` | 未保存の編集の守り(`src/lib/unsavedGuard`): 棚の Link・素の `<a>`・router.push・router.back・ブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない(firefox は 1 ページで 2 回目の beforeunload の確認を出さないことがあるので、再読み込みは留まる / 移るを別のテストにする) |
+| `unsavedGuard.spec.ts` | 未保存の編集の守り(`src/lib/unsavedGuard`): 棚の Link・素の `<a>`・router.push・router.back・ブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない(firefox は 1 ページで 2 回目の beforeunload の確認を出さないことがあるので、再読み込みは留まる / 移るを別のテストにする)。フォーム以外の使い手の行: 表の直接の編集(`EditableGridTable`)の書きかけ × 戻る(留まる / 移る)・再読み込み、保存待ち × 棚の Link(保存が終われば聞かない) |

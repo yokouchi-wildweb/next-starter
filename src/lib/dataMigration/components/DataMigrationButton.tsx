@@ -17,6 +17,8 @@ export type DataMigrationButtonProps = {
   searchParams?: string;
   /** ボタンのラベル（デフォルト: "ファイル入出力"） */
   label?: string;
+  /** 取り込み中のページの移動・再読み込みを未保存の守り(lib/unsavedGuard)で止めるか(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 /**
@@ -30,6 +32,7 @@ export function DataMigrationButton({
   domain: config,
   searchParams,
   label = "ファイル入出力",
+  guardUnsaved = true,
 }: DataMigrationButtonProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -57,6 +60,7 @@ export function DataMigrationButton({
         onImportSuccess={handleImportSuccess}
         hasRelations={hasRelations}
         hasManyDomains={hasManyDomains}
+        guardUnsaved={guardUnsaved}
       />
     </>
   );
