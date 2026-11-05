@@ -33,7 +33,7 @@ export type AdminLayoutProps = {
 /**
  * 管理画面の外枠(固定ヘッダー + 子領域)の既定の組み立て。src/app/admin/layout.tsx が 1 行スイッチで default に束ねる。
  * 外枠 = 枠の根(data-frame-root)。今のルートの枠の宣言(frame.default.ts / frame.ts → 管理の表 ./extensions/frameTable)を
- * 共通の読み手 useFrameAttributes が属性にし、src/styles/_base/frame.css が部位(data-slot の admin-header・admin-sidebar・admin-footer)を
+ * 共通の読み手 useFrameAttributes が属性にし、src/styles/core/frame.css が部位(data-slot の admin-header・admin-sidebar・admin-footer)を
  * 隠す・fill で本文に残りの高さを埋めさせる
  */
 export function AdminLayout({ children, header, className }: AdminLayoutProps) {
@@ -42,7 +42,7 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
   const frameAttributes = useFrameAttributes(frameTable);
 
   // 寸法変数のうち書くのは --app-header-height だけ。Admin には banner も bottomNav も無いので
-  // --app-banner-height / --app-bottom-nav-height は styles/_base/config.css の :root の 0px を継ぐ(safe-area も :root)
+  // --app-banner-height / --app-bottom-nav-height は styles/core/config.css の :root の 0px を継ぐ(safe-area も :root)
   const layoutStyle: AdminLayoutCSSVariables = useMemo(
     () => ({
       "--app-header-height": `${headerHeight}px`,

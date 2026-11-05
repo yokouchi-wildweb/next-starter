@@ -80,6 +80,6 @@ export const frameTable = [
 - Main: `main`・`main-layout`・`main-container`
 - 見出し(一覧に載せるだけ): `user-page-title`・`page-title`・`admin-page-title`・`sec-title`・`admin-sec-title`
 - 隠せる部位(`hideable: true`): 利用者 `header`・`header-nav`・`footer`・`bottom-nav`、管理 `admin-header`・`admin-sidebar`・`admin-footer`
-- 部位の印は要素の `data-slot` だけ。隠せる部位は `hideSlots`(その部位を隠す data-slot の名前。今は全部が部位の名前 1 つ)を持ち、隠す CSS(`src/styles/_base/frame.css`)はそれだけで隠せる。shadcn の Button のように自分の data-slot を持つ部品は `display: contents` の包みが名前を持つ。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
+- 部位の印は要素の `data-slot` だけ。隠せる部位は `hideSlots`(その部位を隠す data-slot の名前。今は全部が部位の名前 1 つ)を持ち、隠す CSS(`src/styles/core/frame.css`)はそれだけで隠せる。shadcn の Button のように自分の data-slot を持つ部品は `display: contents` の包みが名前を持つ。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
 - frame.css の `:is()` に残る既定部品の id は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に一緒に外す
 - テスト: 一覧の名前と隠せる部位、型のキーの union = 隠せる部位、frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末で hideSlots の data-slot を狙う、id で狙う既定部品も自分か祖先が hideSlots の data-slot を持つ(`parts.test.mjs`)。各枠の README の data-slot の一覧と要素の data-slot の照合は `(user)/_layout/UserFrame.test.tsx`(利用者・Main)・`admin/_layout/AdminFrame.test.tsx`(管理)

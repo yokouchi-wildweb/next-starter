@@ -115,7 +115,7 @@ const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-ban
 
 /**
  * 枠の印の区切り(notice frame-marks)で既定の部品に入った差分は、外側の要素の data-frame-part だけ
- * (隠す CSS の狙う先。styles/_base/frame.css)。ナビの部品(Pc / Sp)はここではモック
+ * (隠す CSS の狙う先。styles/core/frame.css)。ナビの部品(Pc / Sp)はここではモック
  */
 const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-slot="header" ')
   // 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims): context の表示クラス(既定 "")を外したので class の末尾の空白が無くなった
@@ -248,7 +248,7 @@ test("UserPage は containerType の明示が既定より勝つ", () => {
   assert.equal(render(<UserPage containerType="narrowStack">CHILD</UserPage>), render(<Main containerType="narrowStack">CHILD</Main>));
 });
 
-test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は styles/_base/frame.css が変数を 0 にする)", () => {
+test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は styles/core/frame.css が変数を 0 にする)", () => {
   const spacer = tagOf(render(<BottomNavSpacer />), "bottom-nav-spacer");
   assert.ok(spacer.includes('data-slot="bottom-nav"'), "スペーサーは部位の印 bottom-nav を持つ(data-slot だけで隠せる)");
   assert.ok(hasClass(spacer, "h-[var(--app-bottom-nav-height,0px)]"));

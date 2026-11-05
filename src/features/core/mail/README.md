@@ -183,7 +183,7 @@ npm run mail:test
 ### 仕組み
 
 ```
-src/styles/_base/palette.defaults.css (上流既定値)  +  src/styles/palette.css (下流の上書き)
+src/styles/core/palette.default.css (上流既定値)  +  src/styles/palette.css (下流の上書き)
     ↓ 手動で変換コマンドを実行(:root を合成、後者が前者を上書き)
 src/features/core/mail/constants/colors.ts (自動生成)
     ↓ 参照
@@ -200,7 +200,7 @@ src/features/core/mail/constants/colors.ts (自動生成)
 
 ### テーマカラー変更時の手順
 
-1. `src/styles/palette.css` を編集(上流側の既定値を変える場合は `palette.defaults.css`。所有権は `src/styles/README.md`)
+1. `src/styles/palette.css` を編集(上流側の既定値を変える場合は `palette.default.css`。所有権は `src/styles/README.md`)
 2. 以下のコマンドを実行:
    ```bash
    pnpm mail:generate-colors

@@ -59,7 +59,7 @@ test("shadcn の部品の data-slot と名前が衝突せず、data-frame-part �
 
 test("frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある", () => {
   const all = sourcesUnder(LAYOUT).map(read).join("\n") + read("src/components/AppFrames/constants.ts");
-  const css = read("src/styles/_base/frame.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = read("src/styles/core/frame.css").replace(/\/\*[\s\S]*?\*\//g, "");
   const userRules = css.split("\n").filter((line) => /data-frame-hide~="(?!admin-)/.test(line)).join("\n");
   for (const id of new Set([...userRules.matchAll(/#([a-z-]+)/g)].map((m) => m[1]))) {
     assert.ok(all.includes(`"${id}"`), `#${id} の部品が無い`);

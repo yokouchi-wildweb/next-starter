@@ -67,7 +67,7 @@ export function UserLayout({
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
   // bottomNav={null} の時は書かない(:root の 0px)。
-  // 隠している間(各ルートの枠の宣言 frame.default.ts / frame.ts)の 0 は styles/_base/frame.css が作る
+  // 隠している間(各ルートの枠の宣言 frame.default.ts / frame.ts)の 0 は styles/core/frame.css が作る
   const hasBottomNav = bottomNav !== null;
 
   const layoutStyle: LayoutStyle = {
@@ -89,7 +89,7 @@ export function UserLayout({
       )}
       {/* data-frame-root + 今のルートの宣言(各ルートの枠の宣言 → 表 → useFrameAttributes)の属性:
           data-frame-hide の部位を隠し、data-frame-fill の間は確定高さ + overflow-clip に切り替わる
-          (既定は min-h で伸びる通常ページ)。規則は styles/_base/frame.css */}
+          (既定は min-h で伸びる通常ページ)。規則は styles/core/frame.css */}
       <Flex
         id="user-app-container"
         data-user-app-container=""

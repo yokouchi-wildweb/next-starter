@@ -1,12 +1,15 @@
 // scripts/styles/generate-gradient-css.ts
-// グラデーショントークン（src/lib/gradient）から src/styles/_base/gradient.css を生成する。
+// グラデーショントークンから CSS を 2 本生成する(既定と実効の対):
+//   - src/styles/core/gradient.default.css = 上流の既定(BASE_GRADIENTS)+ 角度ユーティリティ。upstream 所有、fork でも上流と同じ中身
+//   - src/styles/gradient.css             = そのリポの分(src/config/app/gradients.config.ts の customGradients)。fork 所有、global.css が読む
+//   fork は core/ の下に差分を持たない。同じ key を customGradients に書けば、直下の gradient.css が後から読まれて上書きする
 //
 // 使い方:
 //   pnpm gradient:gen
 //
 // 方針（生成物コミット方式）:
 //   - 単一ソースは TS（tokens.base.ts ＋ config/app/gradients.config.ts）。
-//   - 本スクリプトで gradient.css を生成し、生成物を git にコミットする。
+//   - 本スクリプトで 2 本を生成し、生成物を git にコミットする。
 //   - これにより Vercel など本番ビルドは生成済みCSSをそのまま使い、ビルド手順は不変。
 //   - 実行時用途（ピッカー / inline style / canvas）は listGradients() を直接使う（CSS不要）。
 
@@ -14,10 +17,12 @@ import * as fs from "fs";
 import * as path from "path";
 
 import { DEFAULT_GRADIENT_ANGLE } from "@/lib/gradient/build";
-import { listGradientInputs } from "@/lib/gradient/registry";
+import { BASE_GRADIENTS } from "@/lib/gradient/tokens.base";
 import type { GradientTokenInput } from "@/lib/gradient/types";
+import { customGradients } from "@/config/app/gradients.config";
 
-const OUTPUT_PATH = "src/styles/_base/gradient.css";
+const DEFAULT_OUTPUT_PATH = "src/styles/core/gradient.default.css";
+const REPO_OUTPUT_PATH = "src/styles/gradient.css";
 
 /** 角度ユーティリティ（静的）。0=上 / 90=右 / 135=右下(既定) / 180=下 … */
 const DIRECTION_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
@@ -50,33 +55,35 @@ function groupTokens(tokens: GradientTokenInput[]): Map<string, GradientTokenInp
   return groups;
 }
 
-function buildCss(tokens: GradientTokenInput[]): string {
+type BuildOptions = {
+  /** ファイル冒頭のコメント(1 行ずつ、` * ` は付けない) */
+  header: string[];
+  /** 既定角度の変数と角度ユーティリティを書くか(上流の既定の側だけ) */
+  withAngles: boolean;
+};
+
+function buildCss(tokens: GradientTokenInput[], options: BuildOptions): string {
   const grouped = groupTokens(tokens);
   const out: string[] = [];
 
   // ── ヘッダー ──
-  out.push(
-    [
-      "/*",
-      " * src/styles/_base/gradient.css",
-      " * 【自動生成ファイル】直接編集しないでください。",
-      " * 生成元: src/lib/gradient/tokens.base.ts ＋ src/config/app/gradients.config.ts",
-      " * 再生成: pnpm gradient:gen",
-      " *",
-      " * 使用例:",
-      " *   <div className=\"bg-gradient-ocean gradient-90\" />",
-      " *   <div className=\"bg-gradient-sunset gradient-180\" />",
-      " */",
-    ].join("\n"),
-  );
+  out.push(["/*", ...options.header.map((line) => (line ? ` * ${line}` : " *")), " */"].join("\n"));
+
+  // そのリポの分が空なら変数もユーティリティも書かない(ヘッダーだけ)
+  if (tokens.length === 0 && !options.withAngles) {
+    return out.join("\n") + "\n";
+  }
 
   // ── :root 変数 ──
   out.push("");
   out.push(section("Variables"));
   out.push("");
-  const rootLines: string[] = [":root {", "  /* デフォルト角度 */", `  --gradient-angle: ${DEFAULT_GRADIENT_ANGLE}deg;`];
+  const rootLines: string[] = [":root {"];
+  if (options.withAngles) {
+    rootLines.push("  /* デフォルト角度 */", `  --gradient-angle: ${DEFAULT_GRADIENT_ANGLE}deg;`);
+  }
   for (const [groupName, list] of grouped) {
-    rootLines.push("");
+    if (rootLines.length > 1) rootLines.push("");
     rootLines.push(`  /* ─── ${groupName} ─── */`);
     for (const token of list) {
       rootLines.push(`  --gradient-${token.key}-colors: ${token.stops.join(", ")};`);
@@ -112,15 +119,17 @@ function buildCss(tokens: GradientTokenInput[]): string {
     }
   }
 
-  // ── 方向ユーティリティ（静的） ──
-  out.push("");
-  const dirHeader =
-    "Direction Utilities（角度）\n\n" +
-    "   角度の対応:\n" +
-    DIRECTION_ANGLES.map((a) => `     ${String(a).padEnd(3)} = ${DIRECTION_LABEL[a]}`).join("\n");
-  out.push(section(dirHeader));
-  for (const angle of DIRECTION_ANGLES) {
-    out.push(`@utility gradient-${angle} {\n  --gradient-angle: ${angle}deg;\n}`);
+  // ── 方向ユーティリティ（静的。上流の既定の側だけ） ──
+  if (options.withAngles) {
+    out.push("");
+    const dirHeader =
+      "Direction Utilities（角度）\n\n" +
+      "   角度の対応:\n" +
+      DIRECTION_ANGLES.map((a) => `     ${String(a).padEnd(3)} = ${DIRECTION_LABEL[a]}`).join("\n");
+    out.push(section(dirHeader));
+    for (const angle of DIRECTION_ANGLES) {
+      out.push(`@utility gradient-${angle} {\n  --gradient-angle: ${angle}deg;\n}`);
+    }
   }
 
   // ── テキストグラデーションユーティリティ（text: true のみ） ──
@@ -143,12 +152,46 @@ function buildCss(tokens: GradientTokenInput[]): string {
   return out.join("\n") + "\n";
 }
 
+const USAGE = [
+  "",
+  "使用例:",
+  '  <div className="bg-gradient-ocean gradient-90" />',
+  '  <div className="bg-gradient-sunset gradient-180" />',
+];
+
+function write(relPath: string, css: string, count: number): void {
+  fs.writeFileSync(path.resolve(process.cwd(), relPath), css, "utf8");
+  console.log(`✓ ${relPath} を生成しました（${count} トークン）`);
+}
+
 function main(): void {
-  const tokens = listGradientInputs();
-  const css = buildCss(tokens);
-  const outPath = path.resolve(process.cwd(), OUTPUT_PATH);
-  fs.writeFileSync(outPath, css, "utf8");
-  console.log(`✓ ${OUTPUT_PATH} を生成しました（${tokens.length} トークン）`);
+  write(
+    DEFAULT_OUTPUT_PATH,
+    buildCss(BASE_GRADIENTS, {
+      header: [
+        DEFAULT_OUTPUT_PATH,
+        "【自動生成ファイル】直接編集しないでください。上流の既定(upstream 所有。fork でも上流と同じ中身)。",
+        "生成元: src/lib/gradient/tokens.base.ts",
+        "再生成: pnpm gradient:gen(そのリポの分は直下の src/styles/gradient.css)",
+        ...USAGE,
+      ],
+      withAngles: true,
+    }),
+    BASE_GRADIENTS.length,
+  );
+  write(
+    REPO_OUTPUT_PATH,
+    buildCss(customGradients, {
+      header: [
+        REPO_OUTPUT_PATH,
+        "【自動生成ファイル】直接編集しないでください。このリポのグラデーション(fork 所有。global.css が読む)。",
+        "生成元: src/config/app/gradients.config.ts の customGradients(空なら中身なし)",
+        "再生成: pnpm gradient:gen。上流の既定(core/gradient.default.css)の後に読まれ、同じ key は上書きする",
+      ],
+      withAngles: false,
+    }),
+    customGradients.length,
+  );
 }
 
 main();
