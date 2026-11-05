@@ -705,6 +705,26 @@ daily / summary は `userId` で単一ユーザーに絞り込める（他ドメ
 | 提供 API | `/wallet-history/{daily,summary,balance}`, `/wallet/ranking` | `/wallet/state/{summary,ranking,distribution}` |
 | 主なユースケース | 期間内の流入・流出、KPI推移 | 現在の流通量・保有者分布、リワード設計 |
 
+### 残高の系列（getWalletBalanceSeries）
+
+history 軸の残高推移の公開の入口（server）。`getWalletBalanceDaily`（API `/wallet-history/balance`）と同じ式で、複数の wallet type を合算できる。fork の画面の系列（特定の種別の組の残高推移など）は、この関数を自分の route から呼ぶ（残高の SQL を写さない）。
+
+```ts
+import { getWalletBalanceSeries } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
+
+const { history, walletTypes } = await getWalletBalanceSeries({
+  dateFrom: "2026-10-01",
+  dateTo: "2026-10-31",
+  walletTypes: ["prize_deposit", "prize_deposit_bonus"], // 省略・空 = 全種別 / 1 つ = その種別 / 複数 = 合算
+  // granularity, timezone, roles, excludeDemo, userId, includeExcluded も受ける（DateRangeParams・UserFilter と同じ）
+});
+// history: [{ date, closingBalance }, ...]（バケットごとの終了時点の残高。データの無いバケットは前の値を引き継ぐ）
+```
+
+- 合算: per-(user, type) の最新 `balance_after` のアンカー差分を合計する（種別ごとの系列の和と一致）。単位の違う種別を合算する意味は呼び手が持つ
+- 除外: `userId` 指定なしは stock の scope（除外の受け口の stock で、除外した人を丸ごと落とす）、`userId` 指定ありは付けない。`includeExcluded: true` で外す（上の「分析の除外条件」）
+- 活動（`activeUsers` / `recordCount`）は集計しない（クエリ 1 本）。要るなら `getWalletBalanceDaily`（walletType 1 つ、活動付き）
+
 ### state 軸の追加要件・補足
 
 - **walletType は必須クエリパラメータ**: 残高（balance）の単位は通貨によって意味が変わる（例: コイン枚数とポイント数は加算しても意味がない）。state 系では `walletType` 未指定はリクエストエラー。

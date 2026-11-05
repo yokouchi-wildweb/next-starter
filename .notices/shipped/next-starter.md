@@ -282,3 +282,4 @@
 - id:20261105-115506-field-frame-helper-text | severity:action-required | checkpoint:field-frame-helper-text | resolves:20261104-090257-field-frame-description
 - id:20261105-115033-analytics-exclusion-providers | severity:info | checkpoint:analytics-exclusion-providers | resolves:20261101-111956-intake-analytics-exclusion
 - id:20261105-121318-form-input-a11y-contract | severity:info | checkpoint:form-input-a11y-contract | resolves:20261104-142141-async-combobox-label-link
+- id:20261105-121534-wallet-balance-series | severity:info | checkpoint:wallet-balance-series | resolves:20261101-180140-wallet-balance-series-multi-type

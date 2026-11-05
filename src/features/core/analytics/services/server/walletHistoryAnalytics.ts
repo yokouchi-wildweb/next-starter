@@ -1,5 +1,5 @@
 // src/features/core/analytics/services/server/walletHistoryAnalytics.ts
-// walletHistory 集計サービス（日別集計 + 期間サマリー + 日次残高）
+// walletHistory 集計サービス（日別集計 + 期間サマリー + 日次残高 + 残高の系列）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
 import { db } from "@/lib/drizzle";
@@ -68,6 +68,24 @@ type WalletBalanceDailyData = {
 };
 
 export type WalletBalanceDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter;
+
+export type WalletBalanceSeriesParams = DateRangeParams & UserIdFilter & UserFilter & {
+  /** 合算する wallet type（省略・空 = 全種別） */
+  walletTypes?: readonly string[];
+};
+
+export type WalletBalanceSeriesResponse = {
+  dateFrom: string;
+  dateTo: string;
+  granularity: Granularity;
+  /** 対象の wallet type（null = 全種別） */
+  walletTypes: string[] | null;
+  /** バケットごとの終了時点の残高（対象の利用者・種別の合計） */
+  history: Array<{ date: string; closingBalance: number }>;
+};
+
+/** wallet_histories.type の値の型 */
+type WalletHistoryType = (typeof WalletHistoryTable.type)["_"]["data"];
 
 // ============================================================================
 // SQL式ヘルパー
@@ -238,21 +256,103 @@ export async function getWalletBalanceDaily(
   params: WalletBalanceDailyParams,
 ): Promise<DailyAnalyticsResponse<WalletBalanceDailyData>> {
   const range = resolveDateRange(params);
-  const tz = range.timezone;
-  const dateSql = dateExpr(tz, range.granularity);
+  const dateSql = dateExpr(range.timezone, range.granularity);
+  const { rangeWhere, baselineWhere } = balanceWheres(
+    range,
+    params,
+    params.walletType ? [params.walletType] : undefined,
+  );
 
+  // アクティビティ（activeUsers / recordCount）は flow 集計のため従来どおり
+  const activityQuery = db
+    .select({
+      date: dateSql,
+      activeUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("active_users"),
+      recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
+    })
+    .from(t)
+    .where(rangeWhere)
+    .groupBy(sql.raw("1"));
+
+  const [anchorRows, dailyRows] = await Promise.all([
+    queryBalanceAnchors(dateSql, rangeWhere, baselineWhere),
+    activityQuery,
+  ]);
+
+  const dailyMap = new Map(dailyRows.map((r) => [r.date, {
+    activeUsers: Number(r.activeUsers),
+    recordCount: Number(r.recordCount),
+  }]));
+
+  const history = toRunningBalances(range, anchorRows).map(({ date, closingBalance }) => {
+    const row = dailyMap.get(date);
+    return {
+      date,
+      closingBalance,
+      activeUsers: row?.activeUsers ?? 0,
+      recordCount: row?.recordCount ?? 0,
+    };
+  });
+
+  return {
+    ...formatDateRangeForResponse(range),
+    history,
+  };
+}
+
+/**
+ * 残高の系列（複数の wallet type の合算可）。管理画面の残高推移・fork の画面の系列の公開の入口。
+ *
+ * - walletTypes: 省略 = 全種別 / 1 つ = その種別 / 複数 = 合算（per-(user, type) のアンカー差分を合計する）
+ * - 除外: userId 指定なしは stock の scope（exclusionProviders の stock。除外した人を丸ごと落とす）、
+ *   userId 指定ありは付けない（その人の調査ビューが空にならないように）。includeExcluded = true で外す
+ * - 活動（activeUsers / recordCount）は集計しない（要るなら getWalletBalanceDaily）
+ * 値は getWalletBalanceDaily の closingBalance と同じ式（walletTypes を 1 つにすれば一致する）
+ */
+export async function getWalletBalanceSeries(
+  params: WalletBalanceSeriesParams,
+): Promise<WalletBalanceSeriesResponse> {
+  const range = resolveDateRange(params);
+  const walletTypes = params.walletTypes && params.walletTypes.length > 0 ? [...params.walletTypes] : undefined;
+  const { rangeWhere, baselineWhere } = balanceWheres(range, params, walletTypes);
+  const anchorRows = await queryBalanceAnchors(dateExpr(range.timezone, range.granularity), rangeWhere, baselineWhere);
+
+  return {
+    ...formatDateRangeForResponse(range),
+    walletTypes: walletTypes ?? null,
+    history: toRunningBalances(range, anchorRows),
+  };
+}
+
+/** 残高の系列の期間・基準時点の WHERE（walletTypes: 省略 = 全種別 / 1 つ = eq / 複数 = IN） */
+function balanceWheres(
+  range: ReturnType<typeof resolveDateRange>,
+  params: WalletTypeFilter & UserIdFilter & UserFilter,
+  walletTypes: readonly string[] | undefined,
+): { rangeWhere: SQL; baselineWhere: SQL } {
   // ストック系（ランニング残高）: 除外した人を丸ごと落とす（期間の行の除外では期間外の残高に残る）。
   // 利用者を指定した調査（userId）では落とさない（その人のチャートが空になり調べられない）
-  const filterConditions = buildBaseFilterConditions(params, params.userId ? undefined : { kind: "stock" });
-  const rangeWhere = and(
-    between(t.createdAt, range.dateFrom, range.dateTo),
-    ...filterConditions,
-  )!;
-  const baselineWhere = and(
-    lte(t.createdAt, range.dateFrom),
-    ...filterConditions,
-  )!;
+  // walletType はここで walletTypes として掛ける（buildBaseFilterConditions に二重に掛けさせない）
+  const filterConditions = buildBaseFilterConditions(
+    { ...params, walletType: undefined },
+    params.userId ? undefined : { kind: "stock" },
+  );
+  if (walletTypes && walletTypes.length > 0) {
+    const types = walletTypes as WalletHistoryType[];
+    filterConditions.push(types.length === 1 ? eq(t.type, types[0]!) : inArray(t.type, types));
+  }
+  return {
+    rangeWhere: and(between(t.createdAt, range.dateFrom, range.dateTo), ...filterConditions)!,
+    baselineWhere: and(lte(t.createdAt, range.dateFrom), ...filterConditions)!,
+  };
+}
 
+/** 期間開始の基準残高（bucket = NULL の行）とバケットごとのアンカー差分の合計 */
+function queryBalanceAnchors(
+  dateSql: SQL,
+  rangeWhere: SQL,
+  baselineWhere: SQL,
+): Promise<Array<{ bucket: string | null; amount: string | number }>> {
   // 残高集計は balance_after スナップショットのみを情報源にする（アンカー差分方式）。
   // points_delta の符号付き累積は、不整合な行（初期シード・手動修正・履歴prune等）が
   // 1件でも混ざると期間依存の恒久ドリフトになるため使わない。
@@ -269,7 +369,7 @@ export async function getWalletBalanceDaily(
   // 同一 created_at の行（1トランザクション内の複数操作）は id DESC でタイブレークする。
   // 恣意的だが決定的な選択であり、実行ごとに値が揺れることを防ぐ。テレスコープ恒等式を
   // 保つため、タイブレークは baseline / range_anchors の両方に同一に適用すること。
-  const anchorQuery = db.execute(sql`
+  return db.execute(sql`
     WITH baseline AS (
       SELECT DISTINCT ON (${t.user_id}, ${t.type})
         ${t.user_id} AS user_id,
@@ -310,20 +410,13 @@ export async function getWalletBalanceDaily(
     UNION ALL
     SELECT NULL::text AS bucket, COALESCE(SUM(bal), 0) AS amount FROM baseline
   `) as Promise<Array<{ bucket: string | null; amount: string | number }>>;
+}
 
-  // アクティビティ（activeUsers / recordCount）は flow 集計のため従来どおり
-  const activityQuery = db
-    .select({
-      date: dateSql,
-      activeUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("active_users"),
-      recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
-    })
-    .from(t)
-    .where(rangeWhere)
-    .groupBy(sql.raw("1"));
-
-  const [anchorRows, dailyRows] = await Promise.all([anchorQuery, activityQuery]);
-
+/** アンカー差分を期間のバケットごとに累積する（データの無いバケットは前の値を引き継ぐ） */
+function toRunningBalances(
+  range: ReturnType<typeof resolveDateRange>,
+  anchorRows: Array<{ bucket: string | null; amount: string | number }>,
+): Array<{ date: string; closingBalance: number }> {
   // bucket=NULL 行がベースライン合計、それ以外が各バケットのアンカー差分合計
   let baselineBalance = 0;
   const anchorChangeMap = new Map<string, number>();
@@ -335,29 +428,11 @@ export async function getWalletBalanceDaily(
     }
   }
 
-  const dailyMap = new Map(dailyRows.map((r) => [r.date, {
-    activeUsers: Number(r.activeUsers),
-    recordCount: Number(r.recordCount),
-  }]));
-
-  const dateKeys = generateDateKeys(range);
   let runningBalance = baselineBalance;
-
-  const history = dateKeys.map((date) => {
+  return generateDateKeys(range).map((date) => {
     runningBalance += anchorChangeMap.get(date) ?? 0;
-    const row = dailyMap.get(date);
-    return {
-      date,
-      closingBalance: runningBalance,
-      activeUsers: row?.activeUsers ?? 0,
-      recordCount: row?.recordCount ?? 0,
-    };
+    return { date, closingBalance: runningBalance };
   });
-
-  return {
-    ...formatDateRangeForResponse(range),
-    history,
-  };
 }
 
 // ============================================================================
