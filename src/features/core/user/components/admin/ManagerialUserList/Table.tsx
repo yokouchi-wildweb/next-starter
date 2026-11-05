@@ -5,7 +5,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdminBulkActions";
 import { EditButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
@@ -151,6 +152,8 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
   const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.managerial;
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
+  const bulkActionItems = useUserAdminBulkActions("managerial");
 
   const handleOpenAdjust = useCallback((user: User) => setAdjustTarget(user), []);
   const handleCloseAdjust = useCallback(() => setAdjustTarget(null), []);
@@ -198,7 +201,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
           emptyValueFallback={adminDataTableFallback}
           selectionBehavior={selectionBehavior}
           bulkActionsAlwaysVisible={bulkActionsAlwaysVisible}
-          bulkActions={() => null}
+          bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
         />
       ) : (
         <DataTable

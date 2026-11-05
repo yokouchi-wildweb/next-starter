@@ -293,3 +293,4 @@
 - id:20261105-130613-use-in-view-only-observer | severity:action-required | checkpoint:use-in-view-only-observer
 - id:20261105-131310-cron-task-override-rename | severity:action-required | checkpoint:cron-task-override-rename
 - id:20261105-132947-standalone-upload-failure | severity:info | checkpoint:standalone-upload-failure
+- id:20261105-140526-admin-bulk-action-receptacle | severity:action-required | checkpoint:admin-bulk-action-receptacle

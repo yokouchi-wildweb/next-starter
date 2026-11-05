@@ -11,6 +11,10 @@ export { default as DataTable } from "./DataTable";
 export { default as RecordSelectionTable } from "./RecordSelectionTable";
 export { default as EditableGridTable } from "./EditableGridTable";
 
+// 一括操作の受け口の項目(型・絞って並べる関数・描く部品。D149)
+export { BulkActionItems, selectBulkActions, DEFAULT_BULK_ACTION_ORDER } from "./BulkActions";
+export type { BulkActionItem, BulkActionProps, BulkActionItemsProps, SelectBulkActionsOptions } from "./BulkActions";
+
 // ============================================================
 // 共通コンポーネント（shared/）
 // ============================================================

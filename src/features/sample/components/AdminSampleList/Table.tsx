@@ -3,10 +3,12 @@
 "use client";
 
 import type { Sample } from "@/features/sample/entities";
-import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { useMemo, useState } from "react";
+import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, selectBulkActions, type DataTableColumn } from "@/lib/tableSuite";
+import { adminBulkActions } from "@/features/sample/extensions/adminBulkActions";
+import { useAdminBulkActionCan } from "@/features/core/user/hooks/useAdminBulkActionCan";
 import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud/components";
 import presenters from "@/features/sample/presenters";
-import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -40,17 +42,34 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
 
 export default function AdminSampleListTable({ samples }: AdminSampleListTableProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 一括操作: 受け口 adminBulkActions の項目(adminBulkActions/<名前>.tsx。D149)。項目が無ければ素の表
+  const can = useAdminBulkActionCan();
+  const bulkActionItems = useMemo(() => selectBulkActions(Object.values(adminBulkActions), { can }), [can]);
 
   return (
     <>
-      <DataTable
-        items={samples ?? []}
-        columns={columns}
-        getKey={(d) => d.id}
-        rowClassName="cursor-pointer"
-        onRowClick={(d) => setSelectedId(String(d.id))}
-        emptyValueFallback={adminDataTableFallback}
-      />
+      {bulkActionItems.length === 0 ? (
+        <DataTable
+          items={samples ?? []}
+          columns={columns}
+          getKey={(d) => d.id}
+          rowClassName="cursor-pointer"
+          onRowClick={(d) => setSelectedId(String(d.id))}
+          emptyValueFallback={adminDataTableFallback}
+        />
+      ) : (
+        <RecordSelectionTable
+          items={samples ?? []}
+          columns={columns}
+          getKey={(d) => d.id}
+          rowClassName="cursor-pointer"
+          // 行のクリックは詳細を開くので、選択はチェックボックスだけ
+          selectionBehavior="checkbox"
+          onRowClick={(d) => setSelectedId(String(d.id))}
+          emptyValueFallback={adminDataTableFallback}
+          bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
+        />
+      )}
       <SampleDetailModal
         sampleId={selectedId}
         open={selectedId !== null}

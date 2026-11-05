@@ -44,6 +44,34 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 />
 ```
 
+### 一括操作の受け口（管理一覧）
+
+管理一覧の一括操作は、`bulkActions` の中に手で書かず、持ち主のドメインの受け口 `adminBulkActions` に **1 項目 1 ファイル**で置く（棚の評議会 D149）。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
+
+- 項目の型 `BulkActionItem<Row, Access>` = `{ key, Component, lists?, enabled?, order?, access? }`。`Component` は `{ selection, onDone }` を受ける部品
+  - `key`: 受け口の中で一意。override の宛先
+  - `lists`: 出す一覧の名前（省略 = 全部の一覧。user は `"general"` / `"managerial"` / `"demo"`）
+  - `enabled`: `false` か `() => boolean`（機能の設定に従うときは関数）
+  - `order`: 小さい順（省略 = 100、同じなら key の順）
+  - `access`: 表示の出し分け（管理一覧は `{ roles: [...] }` = `AdminBulkActionAccess`）。**権限の守りは API**で、ここは見せ方だけ
+- `selectBulkActions(items, { list, can })` が絞って並べ、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）でこの 2 つを呼ぶ
+- よくある一括変更は `@/lib/crud/components` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
+- 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
+
+```tsx
+// src/features/core/user/adminBulkActions/userTags.tsx（上流の既定の項目）
+export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
+  { key: "userTags", lists: ["general"], enabled: () => APP_FEATURES.user.enableUserTag, order: 10 },
+  { domain: userDisplay, relation: "userTag", mode: "replace", icon: Tags, label: "タグ設定" },
+);
+
+// fork: src/features/core/user/adminBulkActions/userTags.override.ts（上流の項目を外す・並べ替える。書けるのは enabled・order）
+export const override = { enabled: false };
+```
+
+- 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・dc:generate で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
+- 項目を置いた・消したら `pnpm extensions:generate`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/extensions/README.md`
+
 `bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
 
 ### EditableGridTable

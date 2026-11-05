@@ -297,16 +297,14 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 - 監査: タグの追加・削除は変わったユーザーごとに `user.relation.added` / `user.relation.removed`（metadata に `field` と `targetIds`）。変化が無ければ記録しない
 - `enableUserTag` を切った fork ではタグの表が無いので、タグの経路を呼ばない
 
-画面の例（`RecordSelectionTable` の `bulkActions`）:
+画面: 管理一覧の一括操作は受け口 `adminBulkActions/` の項目で出す（`src/lib/tableSuite/README.md`「一括操作の受け口」）。上流の既定は一般ユーザーの一覧のタグの一括設定（`adminBulkActions/userTags.tsx`、置き換え）。追加だけの操作が要る fork は自分の項目を足す:
 
 ```tsx
-<BulkBelongsToManyFieldButton
-  domain="user"
-  ids={selection.selectedIds}
-  relation="userTag"
-  mode="add"
-  onSuccess={selection.clear}
-/>
+// src/features/core/user/adminBulkActions/addUserTags.tsx（fork の項目）
+export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
+  { key: "addUserTags", lists: ["general"], order: 20 },
+  { domain: userDisplay, relation: "userTag", mode: "add", label: "タグを追加" },
+);
 ```
 
 足りないタグをその場で作るときは `useCreateUserTag` の `trigger` を `onCreateOption` から呼ぶ（書き方: `src/lib/crud/components/Buttons/README.md`）。

@@ -43,3 +43,18 @@ export {
 
 // ロール関連の型
 export { type RoleCategory, type CoreRoleOverride, type RoleConfig, type RoleOverride } from "./role";
+
+/**
+ * 管理一覧の一括操作の項目の access(表示の出し分け。権限の守りは API の側)。
+ * roles に今の管理者のロールがあれば出す(useAdminBulkActionCan)。user 以外の管理一覧の受け口も同じ形を使う
+ */
+export type AdminBulkActionAccess = { roles: readonly UserRoleType[] };
+
+/**
+ * user の管理一覧の一括操作の項目(src/features/core/user/adminBulkActions/<名前>.tsx の export const bulkAction)。
+ * lists は "general"(一般)/ "managerial"(システム管理者)/ "demo"(デモ)。作り方: src/lib/tableSuite/README.md「一括操作の受け口」
+ */
+export type UserAdminBulkActionItem = import("@/lib/tableSuite").BulkActionItem<
+  import("@/features/core/user/entities").User,
+  AdminBulkActionAccess
+>;

@@ -3,7 +3,10 @@
 "use client";
 
 import type { SampleCategory } from "@/features/sampleCategory/entities";
-import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { useMemo } from "react";
+import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, selectBulkActions, type DataTableColumn } from "@/lib/tableSuite";
+import { adminBulkActions } from "@/features/sampleCategory/extensions/adminBulkActions";
+import { useAdminBulkActionCan } from "@/features/core/user/hooks/useAdminBulkActionCan";
 import { EditButton, DeleteButton } from "@/lib/crud/components";
 import presenters from "@/features/sampleCategory/presenters";
 import { buildDomainColumns } from "@/lib/crud";
@@ -36,10 +39,25 @@ const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCate
 });
 
 export default function AdminSampleCategoryListTable({ sampleCategories }: AdminSampleCategoryListTableProps) {
-  return <DataTable
+  // 一括操作: 受け口 adminBulkActions の項目(adminBulkActions/<名前>.tsx。D149)。項目が無ければ素の表
+  const can = useAdminBulkActionCan();
+  const bulkActionItems = useMemo(() => selectBulkActions(Object.values(adminBulkActions), { can }), [can]);
+
+  if (bulkActionItems.length === 0) {
+    return <DataTable
+      items={sampleCategories ?? []}
+      columns={columns}
+      getKey={(d) => d.id}
+      emptyValueFallback={adminDataTableFallback}
+    />;
+  }
+  return <RecordSelectionTable
     items={sampleCategories ?? []}
     columns={columns}
     getKey={(d) => d.id}
     emptyValueFallback={adminDataTableFallback}
+    // 行に操作のボタンがあるので、選択はチェックボックスだけ
+    selectionBehavior="checkbox"
+    bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
   />;
 }

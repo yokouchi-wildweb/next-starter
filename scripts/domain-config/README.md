@@ -153,7 +153,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 
 | 扱い | 対象 |
 |---|---|
-| 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む |
+| 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む。`components` は一括操作の受け口の宣言 `extensionPoints.ts` と型 `types/adminBulkAction.ts` も書く（生成されるドメインの宣言は生成器が持つ。別の受け口が要るなら `"generate": false` にして手で持つ）。項目の `adminBulkActions/` は触らない |
 | 初回だけ生成（write-once） | `closable: true` の規則 `src/featureGate/rules/<domain>.ts` と `config.ts`、管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test:dc-server-service`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
@@ -168,6 +168,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 - **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` から渡す（[`src/components/Form/FieldRenderer/README.md`](../../src/components/Form/FieldRenderer/README.md)）
 - **管理画面のレイアウト** → `_screen/` を同じルートの `_components/` にコピーして `page.tsx` を向ける
 - **CRUD の振る舞い** → `services/server/wrappers/` に置き、write-once の `<domain>Service.ts` で組み込む
+- **一覧の一括操作** → 生成された受け口 `adminBulkActions/` に項目を 1 ファイルずつ置いて `pnpm extensions:generate`（`Table.tsx` には書かない。書き方: [`src/lib/tableSuite/README.md`](../../src/lib/tableSuite/README.md)「一括操作の受け口」）。項目が無ければ一覧は選択の無い素の表
 - 生成ファイルを手で直す必要が出た・載せ替えが手間になった → そのドメインを `"generate": false` にする（以後は生成器が何も書かない。`--only` で名指ししても書かない）
 
 ---

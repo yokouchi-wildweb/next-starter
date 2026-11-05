@@ -23,6 +23,7 @@
     "test:collection-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/collectionWiring/collectionWiring.test.mjs",
     "test:form-submit-lock": "npx tsx --test src/components/Form/submitLock.test.ts",
     "test:form-background-failure": "npx tsx --test src/components/Form/backgroundFailure.test.ts && npx tsx --experimental-test-module-mocks --test src/components/Form/backgroundFailure.render.test.tsx",
+    "test:bulk-actions": "npx tsx --test src/lib/tableSuite/BulkActions/selectBulkActions.test.ts && npx tsx --experimental-test-module-mocks --test src/lib/crud/components/BulkActions/bulkActions.test.tsx",
     "test:standalone-upload-failure": "npx tsx --experimental-test-module-mocks --test src/features/core/purchaseRequest/components/BankTransferInstruction/PrepareProofImage.test.tsx src/features/core/user/components/common/AccountAvatarSection.test.tsx",
     "test:form-inputs": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/Field/Configured/customInputs.test.tsx",
     "test:form-a11y-contract": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/Input/a11yContract.test.tsx",

@@ -5,8 +5,9 @@
 import { useState, type Key } from "react";
 
 import type { Notification } from "@/features/notification/entities";
-import { RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { DeleteButton, BulkDeleteButton } from "@/lib/crud/components";
+import { BulkActionItems, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { DeleteButton } from "@/lib/crud/components";
+import { useNotificationAdminBulkActions } from "@/features/core/notification/hooks/useNotificationAdminBulkActions";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -62,6 +63,8 @@ export default function AdminNotificationListTable({ notifications, readCounts =
   // チェックボックスで選択中の行（お知らせID）。バルク削除の対象。
   const [selectedKeys, setSelectedKeys] = useState<Key[]>([]);
   const columns = buildColumns(readCounts);
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 = 一括削除 + fork の項目。D149)
+  const bulkActionItems = useNotificationAdminBulkActions();
 
   return (
     <>
@@ -77,15 +80,8 @@ export default function AdminNotificationListTable({ notifications, readCounts =
         onRowClick={(d) => setSelectedId(String(d.id))}
         emptyValueFallback={adminDataTableFallback}
         bulkActionsAlwaysVisible
-        bulkActionsEmptyMessage="お知らせを選択すると一括削除できます"
-        bulkActions={(selection) => (
-          <BulkDeleteButton
-            domain={notificationDisplay}
-            ids={selection.selectedIds}
-            title="お知らせを{count}件削除"
-            onSuccess={() => selection.clear()}
-          />
-        )}
+        bulkActionsEmptyMessage="お知らせを選択すると一括操作できます"
+        bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
       />
       <NotificationDetailModal
         notificationId={selectedId}

@@ -12,6 +12,7 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 | `BelongsToFieldButton` | 単一レコードのBelongsToリレーションを変更 |
 | `BelongsToManyFieldButton` | 単一レコードのBelongsToManyリレーションを変更 |
 | `BulkEnumFieldButton` | 複数レコードのenumフィールドを一括変更 |
+| `BulkBelongsToFieldButton` | 複数レコードのBelongsToリレーションを一括変更 |
 | `BulkBelongsToManyFieldButton` | 複数レコードのBelongsToManyリレーションを一括変更（`mode`: `replace` = 置き換え（既定）/ `add` = 既存を残して追加） |
 | `BulkDeleteButton` | 複数レコードを一括削除 |
 | `DeleteButton` | 単一レコードを削除（論理削除） |
@@ -19,6 +20,19 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 | `DuplicateButton` | 単一レコードを複製 |
 | `EditButton` | 編集ページへ遷移 |
 | `CreateButton` | 作成ページへ遷移 |
+
+## 管理一覧の一括操作の項目にする（作成関数）
+
+管理一覧では、`Bulk*Button` を `bulkActions` に手で書かず、作成関数で一括操作の受け口の項目にする（`@/lib/crud/components`）。ボタンには選択の ids と `onSuccess` = 項目の `onDone` が入る。書き方と受け口: `src/lib/tableSuite/README.md`「一括操作の受け口」
+
+| 作成関数 | 包むボタン |
+|---|---|
+| `bulkFieldAction(meta, options)` | `BulkEnumFieldButton` |
+| `bulkBelongsToAction(meta, options)` | `BulkBelongsToFieldButton` |
+| `bulkRelationAction(meta, options)` | `BulkBelongsToManyFieldButton` |
+| `bulkDeleteAction(meta, options)` | `BulkDeleteButton` |
+
+`meta` = 項目の `{ key, lists?, enabled?, order?, access? }`、`options` = ボタンの props から `ids` と `onSuccess` を除いた物。
 
 ## 重要: テーブルと併用する場合のミューテーション処理
 

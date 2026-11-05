@@ -4,7 +4,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdminBulkActions";
 import { HardDeleteButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";
@@ -111,6 +112,8 @@ export default function DemoUserListTable({ users }: Props) {
   const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.demo;
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
+  const bulkActionItems = useUserAdminBulkActions("demo");
 
   const handleOpenAdjust = useCallback((user: User) => {
     setAdjustTarget(user);
@@ -135,7 +138,7 @@ export default function DemoUserListTable({ users }: Props) {
           emptyValueFallback={adminDataTableFallback}
           selectionBehavior={selectionBehavior}
           bulkActionsAlwaysVisible={bulkActionsAlwaysVisible}
-          bulkActions={() => null}
+          bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
         />
       ) : (
         <DataTable

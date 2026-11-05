@@ -7,6 +7,7 @@ import { componentSpecsFor } from "./catalog.mjs";
 import { resolveCollectionChildren } from "../collections/children.mjs";
 import { generateFieldsFromConfig } from "./fields.mjs";
 import { applyAutoSave, applyDuplicateButton } from "./tweaks.mjs";
+import { renderBulkActionFiles } from "./bulkActions.mjs";
 
 function renderBody(ctx, workspace, spec) {
   const { config, camel, pascal } = ctx;
@@ -38,5 +39,7 @@ export function renderComponent(ctx, workspace, spec, warn = console.warn) {
  * @returns {import("../output.mjs").Output[]} domain.json の設定どおりの部品
  */
 export function renderComponents(ctx, workspace) {
-  return componentSpecsFor(ctx.config).map((spec) => renderComponent(ctx, workspace, spec)).filter(Boolean);
+  const components = componentSpecsFor(ctx.config).map((spec) => renderComponent(ctx, workspace, spec)).filter(Boolean);
+  // 一覧の Table が読む一括操作の受け口(宣言と項目の型)
+  return [...components, ...renderBulkActionFiles(ctx)];
 }

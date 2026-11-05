@@ -19,4 +19,14 @@ export const extensionPoints = {
     side: "server",
     alwaysOn: true,
   },
+  // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = タグの一括設定)。
+  // fork は項目を足す・<名前>.override.ts で enabled・order を変える(D149)
+  adminBulkActions: {
+    dir: "adminBulkActions",
+    export: "bulkAction",
+    type: { from: "@/features/core/user/types", name: "UserAdminBulkActionItem" },
+    side: "client",
+    key: "key",
+    overrideOf: ["enabled", "order"],
+  },
 };
