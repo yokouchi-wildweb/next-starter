@@ -80,7 +80,7 @@ wrappers/
 4. 新規作成時のみ `provider.validateInitiation`（inhouse の「未完了振込があれば既存案内へ戻す」等）
 5. `PURCHASE_TYPE_CONFIG` と完了戦略を解決し `strategy.validateInitiation`（`wallet_topup` は `CURRENCY_CONFIG` のパッケージ照合）。**reuse-pending でも必ず再実行**（金額更新の経路で照合を飛ばすと金額詐称の穴になる）
 6. `walletType` があれば保有上限チェック（`assertHoldingLimit`）
-7. クーポン検証（`couponService.validateForCategory`、purchase_discount カテゴリ）→ 割引後金額 `<= 0` は 400
+7. クーポン検証（`couponService.validateForCategory`、purchase_discount カテゴリ）→ 割引後金額 `<= 0` は 400。クーポンの機能が閉じている（`gate.enabled("coupon")` が false）ときにクーポンコード付きで来たら 400「クーポンは現在使えません。」で断る（黙って定価にしない）。完了側も閉なら redeem を飛ばし warn 1 行
 8. 1 tx で create（または pending 更新）+ `reserveQuota` +（新規時のみ）`strategy.afterInitiate`。新規作成の直前に `expireStaleClientSdkSessions(userId)` で同一ユーザーの放置 client_sdk processing を expired にする（best-effort）
 9. `buildLaunchForRequest`: セッションエンリッチャー適用 → `provider.createSession` → `processing` に更新（`payment_session_id`、redirect 型のみ `redirect_url`、`deriveProviderOrderId` があれば `provider_order_id`）→ `LaunchInstruction` を返す
 

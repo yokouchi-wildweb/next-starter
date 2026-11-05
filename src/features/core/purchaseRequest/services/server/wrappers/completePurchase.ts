@@ -10,6 +10,7 @@ import { evaluateMilestones } from "@/features/core/milestone/services/server/wr
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { gate } from "@/featureGate";
 import { PURCHASE_DISCOUNT_CATEGORY } from "../../../types/couponEffect";
 import { commitQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
@@ -144,7 +145,12 @@ export async function completePurchase(
     // SAVEPOINT で囲み、redeem / ハンドラー内で SQL エラーが起きても外側 tx が
     // abort 状態にならないようにする（ポストフックと同じ隔離パターン）。
     // 囲まないと catch 内の coupon_redeem_failed 更新自体が失敗し、購入完了ごと巻き戻る。
-    if (purchaseRequest.coupon_code) {
+    // クーポンの機能が閉じているときは消費を飛ばす（開始で断るので通常は来ない。閉じる前に始まった購入だけ）
+    if (purchaseRequest.coupon_code && !gate.enabled("coupon")) {
+      console.warn(
+        `[completePurchase] クーポンの機能が閉じているため消費を飛ばした: code=${purchaseRequest.coupon_code}, requestId=${purchaseRequest.id}`,
+      );
+    } else if (purchaseRequest.coupon_code) {
       const couponSavepoint = "purchase_coupon_redeem";
       // redeem が不成立（期限切れ・上限到達など success: false）でも例外と同じく失敗として記録する。
       // 記録しないと割引だけが適用され、使用履歴の無い購入になる

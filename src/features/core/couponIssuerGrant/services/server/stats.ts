@@ -16,6 +16,7 @@
 
 import { and, asc, count as drizzleCount, desc, eq, gte, ilike, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import type { SortState } from "@/lib/tableSuite";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
@@ -142,17 +143,29 @@ function buildStatsSources(period: IssuancePeriod | null, couponScope: SQL[]) {
     .as("reward");
 
   // 割引総額（発行者別）。purchase_requests.coupon_code → coupons.code で結合
+  // 決済の機能が閉じているときは purchase_requests を読まない（表が無いことがある）。
+  // 結合の形は保ち、行の無い副問い合わせに替えて割引総額を 0 にする
   const p = PurchaseRequestTable;
-  const discountSq = db
-    .select({
-      user_id: CouponTable.attribution_user_id,
-      discountTotal: sql<number>`COALESCE(SUM(${p.discount_amount}), 0)`.as("discount_total"),
-    })
-    .from(p)
-    .innerJoin(CouponTable, eq(p.coupon_code, CouponTable.code))
-    .where(and(eq(p.status, "completed"), ...couponScope))
-    .groupBy(CouponTable.attribution_user_id)
-    .as("discount");
+  const discountSq = gate.enabled("payment")
+    ? db
+        .select({
+          user_id: CouponTable.attribution_user_id,
+          discountTotal: sql<number>`COALESCE(SUM(${p.discount_amount}), 0)`.as("discount_total"),
+        })
+        .from(p)
+        .innerJoin(CouponTable, eq(p.coupon_code, CouponTable.code))
+        .where(and(eq(p.status, "completed"), ...couponScope))
+        .groupBy(CouponTable.attribution_user_id)
+        .as("discount")
+    : db
+        .select({
+          user_id: CouponTable.attribution_user_id,
+          discountTotal: sql<number>`0`.as("discount_total"),
+        })
+        .from(CouponTable)
+        .where(sql`false`)
+        .groupBy(CouponTable.attribution_user_id)
+        .as("discount");
 
   // 当期クーポン（発行者につき 1 件。発行ロックで 1 周期 1 枚だが、手動作成の重複に備え最新 1 件に絞る）
   // program 未設定（period=null）時は常に空になる条件にして、join 連鎖を静的に保つ
@@ -311,11 +324,14 @@ export async function getGrantListWithStats(
       .select({ value: sql<number>`COALESCE(SUM(${CouponAttributionRewardTable.amount}), 0)` })
       .from(CouponAttributionRewardTable)
       .where(eq(CouponAttributionRewardTable.status, "fulfilled")),
-    db
-      .select({ value: sql<number>`COALESCE(SUM(${PurchaseRequestTable.discount_amount}), 0)` })
-      .from(PurchaseRequestTable)
-      .innerJoin(CouponTable, eq(PurchaseRequestTable.coupon_code, CouponTable.code))
-      .where(and(eq(PurchaseRequestTable.status, "completed"), ...couponScope)),
+    // 決済の機能が閉じているときは purchase_requests を読まず 0
+    gate.enabled("payment")
+      ? db
+          .select({ value: sql<number>`COALESCE(SUM(${PurchaseRequestTable.discount_amount}), 0)` })
+          .from(PurchaseRequestTable)
+          .innerJoin(CouponTable, eq(PurchaseRequestTable.coupon_code, CouponTable.code))
+          .where(and(eq(PurchaseRequestTable.status, "completed"), ...couponScope))
+      : Promise.resolve([{ value: 0 }]),
   ]);
 
   return {

@@ -8,11 +8,15 @@
 // 新しいハンドラーを追加する場合:
 // 1. 消費側ドメインにハンドラーファイルを作成し registerCouponHandler() を呼ぶ
 // 2. このファイルにそのハンドラーファイルの import を追加する
+//    (閉じられる機能との付け足しの連携は、登録を関数にして門番の gate で相手の入切を確かめてから呼ぶ)
+
+import { gate } from "@/featureGate";
+import { registerPurchaseDiscountHandler } from "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
 
 // === ハンドラー登録（消費側ドメインが追加時にここにimportを追加） ===
 
 // 招待リファラル
 import "@/features/core/referral/services/server/coupon/referralHandler";
 
-// 購入割引
-import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
+// 購入割引（決済との付け足しの連携。決済が閉じていればカテゴリを登録しない）
+if (gate.enabled("payment")) registerPurchaseDiscountHandler();

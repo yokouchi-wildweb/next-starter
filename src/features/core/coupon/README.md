@@ -355,6 +355,8 @@ registerCouponHandler("purchase_discount", {
 import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
 ```
 
+- 消費側が閉じられる機能（門番の規則がある機能）なら、登録を関数にして init.ts で相手の入切を確かめてから呼ぶ（付け足しの連携）。上流の購入割引は `if (gate.enabled("payment")) registerPurchaseDiscountHandler();` で、決済が閉じていればカテゴリが一覧に出ない（関数の中でもクーポンの入切を確かめる）
+
 #### 3. 管理画面で確認
 
 - クーポン作成/編集フォームの「カテゴリ」ドロップダウンに「購入割引」が表示される

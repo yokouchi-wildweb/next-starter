@@ -20,6 +20,7 @@ import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { gate } from "@/featureGate";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 import { getPaymentSessionEnricher } from "../payment/getSessionEnricher";
 import { PURCHASE_TYPE_CONFIG, type PurchaseTypeKey } from "@/config/app/purchaseType.config";
@@ -301,6 +302,10 @@ export async function initiatePurchase(
   let actualPaymentAmount = paymentAmount;
   let discountAmount: number | undefined;
   if (couponCode) {
+    // クーポンの機能が閉じているときは断る（黙って定価にすると、割引のつもりの利用者が定価を払う）
+    if (!gate.enabled("coupon")) {
+      throw new DomainError("クーポンは現在使えません。", { status: 400 });
+    }
     const validation = await couponService.validateForCategory(
       couponCode,
       PURCHASE_DISCOUNT_CATEGORY,

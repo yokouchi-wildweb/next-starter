@@ -126,7 +126,7 @@ const { items, total, grandTotals, period } = await couponIssuerGrantService.get
 | `currentPeriodCoupon` | registry の周期で解決した当期区間に `valid_from` が入る affiliate クーポン（id / code / status / current_total_uses / max_total_uses / valid_from / valid_until）。program 未設定・未発行なら null |
 | `lifetimeUses` | 発行者の affiliate クーポン（program.category 限定）の `coupon_histories` 件数 |
 | `rewardPaidTotal` / `rewardPaidCurrentPeriod` | `coupon_attribution_rewards.amount` の合計（fulfilled のみ。当期は `fulfilled_at` で区切り） |
-| `discountTotal` | `purchase_requests.discount_amount` の合計（status=completed、`coupon_code` で結合） |
+| `discountTotal` | `purchase_requests.discount_amount` の合計（status=completed、`coupon_code` で結合）。決済の機能が閉じている（`gate.enabled("payment")` が false）ときは `purchase_requests` を読まず 0（一覧・単体・`grandTotals` とも） |
 | `grandTotals` | フィルタ非依存の全体合計（lifetimeUses / rewardPaidTotal / discountTotal） |
 
 ソートキー: `requested_at`（既定）/ `lifetimeUses` / `currentPeriodUses` / `rewardPaidTotal` / `rewardPaidCurrentPeriod` / `discountTotal`。集計は主表に LEFT JOIN されるため、クーポン未発行の grant も 0 埋めで並ぶ。

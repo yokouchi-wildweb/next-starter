@@ -25,7 +25,7 @@
 // UserFilter:
 //   purchase_requests.user_id に対して buildUserFilterConditions で適用する。
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import { and, between, eq, sql } from "drizzle-orm";
@@ -38,7 +38,7 @@ const p = PurchaseRequestTable;
 export const source: CoinIssuanceSource = {
   key: "purchase_bonus_gap",
   kind: "issuance",
-  enabled: () => APP_FEATURES.payment.enabled,
+  enabled: () => gate.enabled("payment"),
 
   async aggregate({ range, prevRange, userFilter }) {
     const isCurrent = sql`(${p.completed_at} >= ${range.dateFrom.toISOString()} AND ${p.completed_at} <= ${range.dateTo.toISOString()})`;

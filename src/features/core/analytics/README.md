@@ -446,6 +446,8 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 - **数える通貨** = `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_WALLET_TYPES`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
 - **付与は `reasonKey`（付与の種類。区分は種類から決まる）か `reasonCategory` を必ず書く**（`walletService.adjustBalance` 等）。書かないと `other` になり、既定ではこのまとめに入らない（wallet README「付与の種類」）
 
+2 つとも `enabled` で門番の入切を見る（`purchase_bonus_gap` = `gate.enabled("payment")`・`wallet_bonus_grant` = `gate.enabled("wallet")`）。閉じている間は走らず、応答の `sources` に出ない
+
 ### ソース追加の手順 (downstream)
 
 1. `CoinIssuanceSource` を満たす値を作成する
