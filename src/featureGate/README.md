@@ -184,6 +184,7 @@ export const rule: FeatureGateRule = {
 - 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。dc:generate が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts` の `<SNAKE>_CONFIG.enabled`（既定 fork = true・Tier1 = false）を書き捨てで書く。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
+- ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整が消える(`checks/walletOff.test.tsx`、`test:feature-gate:client`)。残り(設定の議会の legate の持ち分、縮む表 `checks/dependencyDebt.mjs`): coupon の購入割引のカテゴリ(`coupon/handlers/init.ts` が常に登録)・コイン発行の源 `purchaseBonusGap` が config を直に読む(本物の config では一緒に閉じる)
 - 区切り gate-s3 の取り込み: 依存の検査が fork でも落ちる。codemod `scripts/codemods/feature-gate-s3.mjs` が今開いている機能の違反を `required/` に書き出し、cron の route.ts の import を直す(`scripts/codemods/README.md`)
 
 ### features:list / features:set
