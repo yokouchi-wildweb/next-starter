@@ -4,7 +4,7 @@
 //   各対象の入口(gate.json の check / generate のファイル)を、.mjs/.js は node、.ts は tsx(+ server-only の下駄)で起動する。
 //   引数は入口にそのまま渡し、env GATE=<門 | ->を付ける。
 //   features の機能が閉じていれば飛ばし「機能 <名前> が閉じているので飛ばした」を必ず出す。
-//   offline の門(build)に乗る対象の check は、DB・外部の env を空にし netGuard.mjs を preload して起動し、外に届こうとしたら落とす。
+//   offline の門(build・build:post)に乗る対象の check は、DB・外部の env を空にし netGuard.mjs を preload して起動し、外に届こうとしたら落とす。
 //   exit 0 = 全部通る(対象なし含む)| 1 = 落ちた・外に届いた | 2 = 宣言の誤り(知らない門・欄・入口のファイル・after の循環)
 import { spawnSync } from "node:child_process";
 import { dirname, extname, join } from "node:path";
@@ -56,7 +56,11 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
     log(`gates: 対象 ${name} が無い(gate.json を持つ対象: ${targets.map((t) => t.name).join(", ") || "なし"})`);
     return 2;
   }
-  const picked = targets.filter((t) => t.decl[mode] && (!name || t.name === name) && (!gate || (t.decl.gates ?? []).includes(gate)));
+  // explicit の門(build:post = 組み上がった物が要る)だけに乗る対象は、その門か名前で呼んだ時だけ回す
+  const explicitGates = Object.entries(gates.gates).filter(([, g]) => g.explicit).map(([n]) => n);
+  const onlyExplicit = (t) => (t.decl.gates ?? []).length > 0 && (t.decl.gates ?? []).every((g) => explicitGates.includes(g));
+  const picked = targets.filter((t) => t.decl[mode] && (!name || t.name === name) && (gate ? (t.decl.gates ?? []).includes(gate) : name || !onlyExplicit(t)));
+  if (!gate && !name) for (const t of targets.filter((x) => x.decl[mode] && onlyExplicit(x))) log(`gates: ${t.kind}/${t.name}: ${t.decl.gates.join(", ")} だけの対象なので飛ばした(--gate=${t.decl.gates[0]} か名前で回す)`);
   if (!picked.length) {
     log(`gates: ${mode}${gate ? ` --gate=${gate}` : ""}${name ? ` ${name}` : ""}: 対象なし`);
     return 0;

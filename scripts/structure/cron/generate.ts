@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// scripts/cron/generate.ts
+// scripts/structure/cron/generate.ts
 // vercel.json の crons を src/app/api/cron/<name>/task.ts から生成する（crons 以外のキーと /api/cron/ の外のエントリは保持）
 //
 // 使い方:
@@ -7,7 +7,7 @@
 //   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //
 // 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や task.override.ts を
-// 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
+// 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/structure/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
 // 詳細: src/lib/cron/README.md
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -38,7 +38,7 @@ async function main() {
     process.exit(1);
   }
 
-  const repoRoot = path.resolve(import.meta.dirname, "../..");
+  const repoRoot = path.resolve(import.meta.dirname, "../../..");
   const file = path.join(repoRoot, "vercel.json");
 
   let config: Record<string, unknown> = { $schema: VERCEL_SCHEMA_URL };

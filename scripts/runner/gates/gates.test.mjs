@@ -33,10 +33,10 @@ function fixture(t) {
 
 const names = (f) => scanTargets(f.scriptsDir, loadGates(f.scriptsDir)).map((t) => t.name);
 
-test("門の一覧: 5 つの門、build だけ offline、上流の対象フォルダの名簿", () => {
+test("門の一覧: 6 つの門、build と build:post が offline、上流の対象フォルダの名簿", () => {
   const g = loadGates(join(HERE, "../.."));
-  assert.deepEqual(Object.keys(g.gates), ["build", "ship", "forge:pre", "forge:post", "deploy"]);
-  assert.deepEqual(Object.entries(g.gates).filter(([, v]) => v.offline).map(([k]) => k), ["build"]);
+  assert.deepEqual(Object.keys(g.gates), ["build", "build:post", "ship", "forge:pre", "forge:post", "deploy"]);
+  assert.deepEqual(Object.entries(g.gates).filter(([, v]) => v.offline).map(([k]) => k), ["build", "build:post"]);
   assert.ok(g.upstreamFolders.structure.includes("domain") && g.upstreamFolders.workflow.includes("notices"));
 });
 
@@ -125,4 +125,15 @@ test("build の守り: build に乗る check が fetch・net・dns に届こう�
   assert.match(r.out, /structure\/config: check 通る/);
   // build に乗らない対象は守りを付けない
   assert.match(f.exec(["check", "domain"]).out, /structure\/domain: check 通る/);
+});
+
+test("explicit の門(build:post)だけに乗る対象は、全部を回す時は飛ばして出し、門か名前で呼べば回す", (t) => {
+  const f = fixture(t);
+  f.add("structure", "bundle", { check: "check.mjs", gates: ["build:post"] }, { "check.mjs": "process.exit(1)\n" });
+  f.add("structure", "cycles", { check: "check.mjs", gates: ["build"] });
+  const all = f.exec(["check"]);
+  assert.equal(all.code, 0);
+  assert.match(all.out, /structure\/bundle: build:post だけの対象なので飛ばした/);
+  assert.equal(f.exec(["check", "--gate=build:post"]).code, 1);
+  assert.equal(f.exec(["check", "bundle"]).code, 1);
 });

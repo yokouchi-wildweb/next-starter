@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // pnpm forge: 設定（domain.json・*.role.json・*.profile.json）を書いた後の生成と検査を 1 回で回す。
-// 段の並びは steps.mjs、DB の案内は tables.mjs。詳細: scripts/forge/README.md
+// 段の並びは steps.mjs、DB の案内は tables.mjs。詳細: scripts/structure/forge/README.md
 //
 // 使い方:
 //   pnpm forge          # 全部（generate: true のドメインは丸ごと作り直し、false は何もしない）
@@ -12,11 +12,11 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import { checkAllRoles } from "../structure/role/generate.mjs";
+import { checkAllRoles } from "../role/generate.mjs";
 import { buildSteps, runSteps } from "./steps.mjs";
 import { changedTables, snapshotTables } from "./tables.mjs";
 
-const rootDir = path.resolve(import.meta.dirname, "../..");
+const rootDir = path.resolve(import.meta.dirname, "../../..");
 /** 引数: --lint だけ。ほかは止める */
 export function parseForgeArgs(argv) {
   const options = { lint: false };

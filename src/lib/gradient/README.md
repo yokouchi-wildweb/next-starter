@@ -76,5 +76,5 @@ const css = resolveColorValue(value, { resolveDefault: () => "var(--color-primar
 
 - `src/lib/gradient/` … トークン / レジストリ / カラー値モデル / 解析ヘルパー（純粋TS・React非依存）
 - `src/config/app/gradients.config.ts` … downstream 拡張ポイント
-- `scripts/styles/generate-gradient-css.ts` … `core/gradient.default.css` と直下の `gradient.css` の生成（`pnpm gradient:gen`）
+- `scripts/structure/styles/generate-gradient-css.ts` … `core/gradient.default.css` と直下の `gradient.css` の生成（`pnpm gradient:gen`）
 - `src/components/Form/Input/{Manual,Controlled}/ColorValueInput.tsx` … ピッカーUI

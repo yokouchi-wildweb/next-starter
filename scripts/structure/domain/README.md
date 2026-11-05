@@ -2,7 +2,7 @@
 
 > 手で書いた `src/features/<domain>/domain.json` から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
 > `domain.json` のスキーマ（キー・型・リレーション・`generate` 等）は [`src/features/README.md`](../../src/features/README.md) が正です。
-> 普段はこれを直接打たず、`pnpm forge`（[`scripts/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
+> 普段はこれを直接打たず、`pnpm forge`（[`scripts/structure/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
 
 - 対象: `domain.json` を持つドメインのフォルダ。business = `src/features/<domain>/`、core = `src/features/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。`domain.json` の無い core は対象外（手で保守）
 - core の生成の違い: 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）。`src/registry/` の一覧は core も business も `pnpm registry:generate` が走査で作る（生成器は serviceRegistry 以外を書かない）。手で管理の core のファイル用途は `src/features/core/storageObject/purposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）

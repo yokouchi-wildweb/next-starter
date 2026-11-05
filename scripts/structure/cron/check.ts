@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// scripts/cron/check.ts
+// scripts/structure/cron/check.ts
 // vercel.json の crons が src/app/api/cron/<name>/task.ts からの生成結果と一致するか検査する
 //
 // 使い方:
@@ -28,7 +28,7 @@ async function main() {
     return;
   }
 
-  const repoRoot = path.resolve(import.meta.dirname, "../..");
+  const repoRoot = path.resolve(import.meta.dirname, "../../..");
   const tasks = scheduledCronTasks(await loadCronTasks(repoRoot));
   const file = path.join(repoRoot, "vercel.json");
 

@@ -1,0 +1,1 @@
+{ "check": "gate-check.ts", "gates": ["build", "ship", "deploy"] }

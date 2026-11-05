@@ -1,4 +1,4 @@
-// scripts/styles/generate-gradient-css.ts
+// scripts/structure/styles/generate-gradient-css.ts
 // グラデーショントークンから CSS を 2 本生成する(既定と実効の対):
 //   - src/styles/core/gradient.default.css = 上流の既定(BASE_GRADIENTS)+ 角度ユーティリティ。upstream 所有、fork でも上流と同じ中身
 //   - src/styles/gradient.css             = そのリポの分(src/config/app/gradients.config.ts の customGradients)。fork 所有、global.css が読む

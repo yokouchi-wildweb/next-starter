@@ -16,8 +16,9 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 
 ## 門の一覧(gates.json、上流だけが持つ)
 
-- `gates`: 門の名前 → `runs`(どこで回るか)・`offline`(true = DB・外部に届いてはいけない)。今の門: `build`(offline)・`ship`・`forge:pre`・`forge:post`・`deploy`
+- `gates`: 門の名前 → `runs`(どこで回るか)・`offline`(true = DB・外部に届いてはいけない)。今の門: `build`(offline、next build の前)・`build:post`(offline、next build の後に組み上がった物を見る)・`ship`・`forge:pre`・`forge:post`・`deploy`
 - `upstreamFolders`: 上流の対象フォルダの名簿(`structure` / `workflow`)。順序で上流と fork を分けるのに使う。上流が対象フォルダを足したらここにも 1 行足す
+- `explicit: true` の門(build:post)だけに乗る対象は、全部を回す時(対象も --gate も無し)は飛ばして出す。その門か対象の名前で呼んだ時だけ回す
 - 知らない門の名前は止める(gate.json の誤り)。門を増やすのは上流
 
 ## gate.json(各対象フォルダに 1 枚)
@@ -37,7 +38,7 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 
 ## build の守り
 
-offline の門(build)に乗る対象の check は、DB・外部の env(`DATABASE_URL*`・`MY_SERVICE_ACCOUNT_KEY`・`NEXT_PUBLIC_FIREBASE_*` 等、`run.mjs` の `OFFLINE_ENV`)を空にし、`netGuard.mjs` を preload して起動します。fetch・http(s)・net・tls・dns に届こうとした時点で落とし、「build に宣言した検査が外に届いた」でその宣言を拒みます(検査が例外を握りつぶしても印で分かります)。黙って飛ばしません。
+offline の門(build・build:post)に乗る対象の check は、DB・外部の env(`DATABASE_URL*`・`MY_SERVICE_ACCOUNT_KEY`・`NEXT_PUBLIC_FIREBASE_*` 等、`run.mjs` の `OFFLINE_ENV`)を空にし、`netGuard.mjs` を preload して起動します。fetch・http(s)・net・tls・dns に届こうとした時点で落とし、「build に宣言した検査が外に届いた」でその宣言を拒みます(検査が例外を握りつぶしても印で分かります)。黙って飛ばしません。
 
 ## fork
 

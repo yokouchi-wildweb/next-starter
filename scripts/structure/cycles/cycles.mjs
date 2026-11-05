@@ -1,4 +1,4 @@
-// scripts/cycles/cycles.mjs
+// scripts/structure/cycles/cycles.mjs
 // 静的な値の import で閉じる輪を探す(D24)。型だけの import は dpdm の transform で消え、import() の辺は数えない。
 // 例外の一覧は置かない(D25)。実行: pnpm test:cycles
 

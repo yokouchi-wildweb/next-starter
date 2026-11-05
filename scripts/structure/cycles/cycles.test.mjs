@@ -1,4 +1,4 @@
-// scripts/cycles/cycles.test.mjs
+// scripts/structure/cycles/cycles.test.mjs
 // src 全体に静的な値の import の輪が無いこと(D24・D25)と、判定の契約。
 // 実行: pnpm test:cycles(build の冒頭でも走る)
 

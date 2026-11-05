@@ -1,7 +1,7 @@
-// scripts/cron/discover.ts
+// scripts/structure/cron/discover.ts
 // src/app/api/cron/<name>/ を走査して定期タスク定義を集める（一覧ファイルは持たない）
 //
-// 利用者: scripts/cron/generate.ts, scripts/cron/check.ts, scripts/tasks/run.ts（pnpm task）, scripts/cron/cronWiring.test.mjs
+// 利用者: scripts/structure/cron/generate.ts, scripts/structure/cron/check.ts, scripts/tasks/run.ts（pnpm task）, scripts/structure/cron/cronWiring.test.mjs
 // task.ts の run は動的 import なので、ここで読み込んでも DB などの依存は読み込まれない。
 // fork が置いた task.override.ts（任意。task.ts の一部の上書き = <対象>.override.ts の形）があれば、schedule の差し替えと
 // disabled をここで反映する。空(空白とコメントだけ)は不在と同じ。旧名の override.ts が残っていれば改名を案内して止める。

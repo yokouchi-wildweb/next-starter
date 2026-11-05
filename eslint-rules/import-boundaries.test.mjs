@@ -204,7 +204,7 @@ test("classifyCronFactoryImport: cron の作り手の値 import は wiring と l
   assert.equal(classifyCronFactoryImport("src/wiring/cronRoute.ts", "src/lib/cron", false, value("createCronTaskRoute")), null);
   assert.equal(classifyCronFactoryImport("src/lib/cron/index.ts", "src/lib/cron/createCronRoute", false, value("createCronTaskRoute")), null);
   assert.equal(classifyCronFactoryImport(route, "src/wiring/cronRoute.ts", false, value("createCronTaskRoute")), null);
-  assert.equal(classifyCronFactoryImport("scripts/cron/cronWiring.test.mjs", "src/lib/cron/createCronRoute.ts", false, value("createCronRoute")), null, "テストは対象外");
+  assert.equal(classifyCronFactoryImport("scripts/structure/cron/cronWiring.test.mjs", "src/lib/cron/createCronRoute.ts", false, value("createCronRoute")), null, "テストは対象外");
 });
 
 test("rule cron-route-via-wiring: cron の route は @/wiring/cronRoute、@/lib/cron の作り手は止める", () => {

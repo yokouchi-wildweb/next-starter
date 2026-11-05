@@ -22,7 +22,7 @@ import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
 import { configRules, rules } from "@/featureGate/node";
 
 import { folderSourcePattern, gatedImports } from "./alwaysOnEntries.mjs";
-import { loadCronTasks } from "../../../scripts/cron/discover";
+import { loadCronTasks } from "../../../scripts/structure/cron/discover";
 import { planExtensions } from "../../../scripts/extensions/extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");

@@ -1,4 +1,4 @@
-// scripts/eslint/requiredRules.mjs
+// scripts/structure/eslint/requiredRules.mjs
 //
 // 全 Tier の必須の ESLint 規則(eslint-rules/required-rules.mjs)が、fork の eslint.config.fork.mjs を最後に読んだ
 // 最終の設定でも error のままかを確かめる。pnpm eslint:required(pnpm build から呼ぶ)。
@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { ESLint } from "eslint";
 
-import { REQUIRED_ESLINT_RULES } from "../../eslint-rules/required-rules.mjs";
+import { REQUIRED_ESLINT_RULES } from "../../../eslint-rules/required-rules.mjs";
 
 const ERROR = 2;
 

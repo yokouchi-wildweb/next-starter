@@ -1,4 +1,4 @@
-// scripts/mail/test-send.ts
+// scripts/operations/mail/test-send.ts
 // メールテンプレートのテスト送信スクリプト
 //
 // 使い方:
@@ -23,7 +23,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { createElement } from "react";
 
-import { businessConfig } from "../../src/config/business.config";
+import { businessConfig } from "../../../src/config/business.config";
 
 // .env.development を読み込む
 config({ path: ".env.development" });

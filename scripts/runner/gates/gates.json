@@ -1,13 +1,51 @@
 {
   "gates": {
-    "build": { "runs": "pnpm build の前(next build の前)", "offline": true },
-    "ship": { "runs": "/ship の検査(commit の前)", "offline": false },
-    "forge:pre": { "runs": "pnpm forge の生成の前(何も書かない検査)", "offline": false },
-    "forge:post": { "runs": "pnpm forge の生成の後", "offline": false },
-    "deploy": { "runs": "デプロイ先の検査(vercel.json がある時の forge の最後)", "offline": false }
+    "build": {
+      "runs": "pnpm build の前(next build の前)",
+      "offline": true
+    },
+    "build:post": {
+      "runs": "pnpm build の後(next build の後に組み上がった物を見る)",
+      "offline": true,
+      "explicit": true
+    },
+    "ship": {
+      "runs": "/ship の検査(commit の前)",
+      "offline": false
+    },
+    "forge:pre": {
+      "runs": "pnpm forge の生成の前(何も書かない検査)",
+      "offline": false
+    },
+    "forge:post": {
+      "runs": "pnpm forge の生成の後",
+      "offline": false
+    },
+    "deploy": {
+      "runs": "デプロイ先の検査(vercel.json がある時の forge の最後)",
+      "offline": false
+    }
   },
   "upstreamFolders": {
-    "structure": ["domain", "role", "forge", "registry", "extensions", "cron", "routes", "proxies", "styles", "bundle", "cycles", "config"],
-    "workflow": ["worktree", "rules", "notices"]
+    "structure": [
+      "domain",
+      "role",
+      "forge",
+      "registry",
+      "extensions",
+      "cron",
+      "routes",
+      "proxies",
+      "styles",
+      "bundle",
+      "cycles",
+      "config",
+      "eslint"
+    ],
+    "workflow": [
+      "worktree",
+      "rules",
+      "notices"
+    ]
   }
 }

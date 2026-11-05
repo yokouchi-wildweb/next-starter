@@ -1,4 +1,4 @@
-// scripts/mail/generate-colors.ts
+// scripts/structure/styles/generate-mail-colors.ts
 // 色トークン(CSS)からメール用のカラー定数ファイルを生成するスクリプト。
 //
 // 色の正は CSS(src/styles/core/palette.default.css + src/styles/palette.css)。

@@ -21,7 +21,7 @@ CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。
 - `index.ts` — 公開エントリ
 
 周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）・`task.override.ts`（fork の上書き、任意）/ `src/wiring/cronRoute.ts`（門番を結んだ `createCronTaskRoute`）/
-`scripts/cron/`（`discover.ts` = フォルダ走査、`cron:generate` / `cron:check`、`cronWiring.test.mjs` = `pnpm test:cron-wiring`）
+`scripts/structure/cron/`（`discover.ts` = フォルダ走査、`cron:generate` / `cron:check`、`cronWiring.test.mjs` = `pnpm test:cron-wiring`）
 
 ## 仕組み
 
@@ -47,7 +47,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   `pathPatterns`（`src/featureGate/rules/<名前>.ts`）に載せるだけでよい。規則が閉じていると、route は本体を呼ばずに
   `{ ok: true, skipped: true, reason: "closed" }` を返し（proxy が先に 404 にする。route の判定は proxy を通らない呼び出しの安全網）、
   `pnpm task` は `--due` でも名前指定でも飛ばし、`cron:generate` は vercel.json に載せない（機能を閉じた・開いたら再生成する）。
-  判定はどれも門番の `gate.path`（route = `src/wiring/cronRoute.ts`、CLI と生成 = `scripts/cron/discover.ts` の `closedBy`）。
+  判定はどれも門番の `gate.path`（route = `src/wiring/cronRoute.ts`、CLI と生成 = `scripts/structure/cron/discover.ts` の `closedBy`）。
   fork のタスクも同じ（自分の規則の pathPatterns に住所を書く）。task.ts に機能の入切（`gate.enabled` など）は書かない
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。config だけを見る同期関数（DB に触れない）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。

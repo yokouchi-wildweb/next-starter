@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/bundle/clientChunks.mjs
+// scripts/structure/bundle/clientChunks.mjs
 // next build の結果で、管理と debug を除くページの client chunk に、全ドメインの設定と列名が届いていないかを確かめる。
 // 実行: pnpm test:client-chunks(先に next build)。問題あり = exit 1、build の結果が無い = exit 2(未検証、通過ではない)。
 

@@ -14,7 +14,7 @@
 // `pnpm task --due` を毎分 1 本だけ叩く（各タスクの schedule は CLI が判定する）。
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
-// 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
+// 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/structure/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
 // ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>.ts を走査する（./README.md）。
 //
 // package.json の task スクリプトは scripts/test/serverOnlyStub.mjs を preload する
@@ -29,7 +29,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: process.env.ENV_FILE || ".env.development", quiet: true });
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
-import { type LoadedCronTask, loadCronTasks } from "../cron/discover";
+import { type LoadedCronTask, loadCronTasks } from "../structure/cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile, TASKS_DIR } from "./discover";
 
 type TaskFn = () => Promise<Record<string, unknown>>;

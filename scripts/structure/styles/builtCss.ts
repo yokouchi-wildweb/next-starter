@@ -1,4 +1,4 @@
-// scripts/styles/builtCss.ts
+// scripts/structure/styles/builtCss.ts
 //
 // ビルド済み CSS の検査(pnpm styles:check-build)の純粋ロジック。CLI は check-built-css.ts。
 //

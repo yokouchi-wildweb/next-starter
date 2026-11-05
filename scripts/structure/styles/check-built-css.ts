@@ -1,4 +1,4 @@
-// scripts/styles/check-built-css.ts
+// scripts/structure/styles/check-built-css.ts
 //
 // ビルド済み CSS に、global.css から @import で辿れる全ファイルが取り込まれているかを検査する。
 // `pnpm build` の末尾(next build の直後)で走り、抜けがあればビルドを落とす(fail-closed)。
@@ -15,7 +15,7 @@ import path from "node:path";
 
 import { checkBuiltCss, findCssFiles, resolveImportGraph } from "./builtCss";
 
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const ENTRY = "src/styles/global.css";
 
 const args = process.argv.slice(2);

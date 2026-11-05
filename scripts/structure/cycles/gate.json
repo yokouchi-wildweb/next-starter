@@ -1,0 +1,1 @@
+{ "check": "cycles.test.mjs", "gates": ["build", "ship"] }

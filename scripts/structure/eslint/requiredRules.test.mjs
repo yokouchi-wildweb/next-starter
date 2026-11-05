@@ -1,4 +1,4 @@
-// scripts/eslint/requiredRules.test.mjs
+// scripts/structure/eslint/requiredRules.test.mjs
 // 必須の ESLint 規則の検査の試験。fork の設定は overrideConfig(設定ファイルの後に足される = eslint.config.fork.mjs と同じ位置)で差し替える。
 // 実行: pnpm test:eslint-required
 import { test } from "node:test";
@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 
 import { ESLint } from "eslint";
 
-import { REQUIRED_ESLINT_RULES } from "../../eslint-rules/required-rules.mjs";
+import { REQUIRED_ESLINT_RULES } from "../../../eslint-rules/required-rules.mjs";
 import { checkRequiredRules, severityOf } from "./requiredRules.mjs";
 
 const repoRoot = process.cwd();

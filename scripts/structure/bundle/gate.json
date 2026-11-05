@@ -1,0 +1,1 @@
+{ "check": "clientChunks.mjs", "gates": ["build:post"] }

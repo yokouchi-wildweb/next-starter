@@ -1,4 +1,4 @@
-// scripts/bundle/clientChunks.test.mjs
+// scripts/structure/bundle/clientChunks.test.mjs
 // 実行: pnpm test:client-chunks
 
 import assert from "node:assert/strict";

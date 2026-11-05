@@ -1,8 +1,8 @@
 // src/lib/cron/vercelCrons.ts
 // vercel.json の crons をタスク定義から生成・検査する純関数（next / DB / fs 非依存）
 //
-// 利用者: scripts/cron/generate.ts（pnpm cron:generate）, scripts/cron/check.ts（pnpm cron:check / Vercel ビルド前の検査）,
-//         scripts/tasks/run.ts（pnpm task --due）, scripts/cron/cronWiring.test.mjs（pnpm test:cron-wiring）
+// 利用者: scripts/structure/cron/generate.ts（pnpm cron:generate）, scripts/structure/cron/check.ts（pnpm cron:check / Vercel ビルド前の検査）,
+//         scripts/tasks/run.ts（pnpm task --due）, scripts/structure/cron/cronWiring.test.mjs（pnpm test:cron-wiring）
 //
 // vercel.json の crons は「src/app/api/cron/<name>/task.ts 1 つにつき 1 エントリ」で、人は手で書かない。
 // 各エントリの時刻 = task.ts の schedule。

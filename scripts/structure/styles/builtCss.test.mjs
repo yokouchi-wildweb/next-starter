@@ -1,4 +1,4 @@
-// ビルド済み CSS 検査(scripts/styles/builtCss.ts)の純粋ロジックのテスト。
+// ビルド済み CSS 検査(scripts/structure/styles/builtCss.ts)の純粋ロジックのテスト。
 // 実行: pnpm test:built-css
 //
 // 守りたい契約:
@@ -20,7 +20,7 @@ import {
 } from "./builtCss.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, "../..");
+const repoRoot = resolve(here, "../../..");
 
 test("stripAtRuleBlocks: @theme / @utility のブロックを入れ子ごと除き、他は残す", () => {
   const css = `

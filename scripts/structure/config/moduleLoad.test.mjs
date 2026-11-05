@@ -14,7 +14,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const CONFIG_DIR = "src/config/ui";
 
 /** コメントを除いた本文に `export { … } from "…"`(値の re-export。`export type` は除く)があるか */
