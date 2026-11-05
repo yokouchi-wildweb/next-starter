@@ -28,6 +28,8 @@ type UseInViewResult = {
 
 /**
  * 要素がビューポート内に表示されているかを監視するフック。
+ * IntersectionObserver を使う物はここに寄せる（直書きは lint intersection-observer/via-use-in-view が止める。
+ * 例外は useInfiniteScrollQuery の番兵だけ。詳細: eslint-rules/intersection-observer.mjs）。
  *
  * ```tsx
  * const { ref, isInView } = useInView();

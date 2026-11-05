@@ -47,6 +47,8 @@
     "test:core-ui-guards": "node --test eslint-rules/core-ui-guards.test.mjs",
     "test:eslint-required": "node --test scripts/eslint/requiredRules.test.mjs",
     "test:field-type-guard": "node --test eslint-rules/field-type-guard.test.mjs",
+    "test:intersection-observer": "node --test eslint-rules/intersection-observer.test.mjs",
+    "test:impression-tracker": "npx tsx --experimental-test-module-mocks --test src/features/core/interactionTracking/hooks/useImpressionTracker.test.tsx",
     "test:hidden-columns-lint": "node --test eslint-rules/hidden-columns.test.mjs",
     "test:page-authz-lint": "node --test eslint-rules/page-authz.test.mjs",
     "test:variant-overrides": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/variantOverrides/variantOverrides.test.mjs",

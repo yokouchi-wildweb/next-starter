@@ -8,6 +8,7 @@ import { CORE_UI_GUARDS_ALLOW } from "./eslint-rules/core-ui-guards.allow.mjs";
 import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
+import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
@@ -262,6 +263,17 @@ const config = [
     plugins: { "field-type-guard": fieldTypeGuardPlugin },
     rules: {
       "field-type-guard/no-literal-field-type": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  // IntersectionObserver を直書きしない: 要素の表示の監視は @/hooks/useInView に寄せる(棚の評議会 D148。
+  // 詳細: eslint-rules/intersection-observer.mjs)。強さはリポジトリ単位: 上流リポ = error、fork = warn。
+  // 対象外: useInView 自身・useInfiniteScrollQuery の番兵(役目が違うので寄せない)・テスト
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/hooks/useInView.ts", "src/hooks/useInfiniteScrollQuery.ts", "**/*.test.{ts,tsx,mjs,mts}"],
+    plugins: { "intersection-observer": intersectionObserverPlugin },
+    rules: {
+      "intersection-observer/via-use-in-view": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // 秘匿カラム (defineHiddenColumns) を生 drizzle の select / returning で取り出さない。

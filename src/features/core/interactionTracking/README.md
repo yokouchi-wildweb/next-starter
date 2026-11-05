@@ -113,7 +113,7 @@ const impressionRef = useImpressionTracker({
 return <Block ref={impressionRef}>{/* バナー */}</Block>;
 ```
 
-- 要素の 50% がビューポートに入った時点で 1 回計上（マウント毎に 1 回・重複なし）
+- 要素の 50% がビューポートに入った時点で 1 回計上（マウント毎に 1 回・重複なし）。表示の監視は `@/hooks/useInView` に任せ、記録した後は監視を外す。対象（targetId 等）が変わったら新しい対象として、もう一度見えたときに計上する
 - 送信はバッファ集約（15 秒ごと / ページ離脱時 / 満杯時にまとめて 1 リクエスト）。
   離脱時は sendBeacon で取りこぼしを防ぐ
 - CTR はクリックと同じ軸に載る: `getDailySeries` で click ÷ impression を日別に計算できる
