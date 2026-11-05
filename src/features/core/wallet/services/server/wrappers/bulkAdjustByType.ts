@@ -8,7 +8,6 @@ import type {
   BulkAdjustByTypeParams,
   BulkAdjustByTypeResult,
 } from "@/features/core/wallet/services/types";
-import { DEFAULT_REASON_CATEGORY, type ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import {
@@ -21,6 +20,7 @@ import { normalizeAmount, resolveRequestBatchId, sanitizeMeta } from "./utils";
 import { type TransactionClient } from "./utils";
 import { db } from "@/lib/drizzle";
 import { eq, and, sql, gt, inArray } from "drizzle-orm";
+import { resolveWalletReason, toHistoryReason, type ResolvedWalletReason } from "./reasonKey";
 
 /** バッチサイズ: 1回のトランザクションで処理するウォレット数 */
 const BATCH_SIZE = 1000;
@@ -51,13 +51,13 @@ export async function bulkAdjustByType(
 
   const requestBatchId = resolveRequestBatchId(params.requestBatchId);
   const meta = sanitizeMeta(params.meta);
-  const reasonCategory = params.reasonCategory ?? DEFAULT_REASON_CATEGORY;
+  const reason = resolveWalletReason(params);
 
   let result: BulkAdjustByTypeResult;
 
   // 外部トランザクションが渡された場合はバッチ分割せず単一トランザクションで処理
   if (tx) {
-    result = await executeSingleBatch(tx, params, amount, requestBatchId, reasonCategory, meta);
+    result = await executeSingleBatch(tx, params, amount, requestBatchId, reason, meta);
   } else {
     // バッチ分割処理: 各バッチが独立したトランザクション
     let totalAffected = 0;
@@ -77,7 +77,7 @@ export async function bulkAdjustByType(
 
         if (toUpdate.length > 0) {
           await executeBalanceUpdate(trx, toUpdate, params.walletType, params.changeMethod, amount);
-          await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
+          await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reason, meta);
         }
 
         return {
@@ -116,7 +116,8 @@ export async function bulkAdjustByType(
       sourceType: params.sourceType,
       affectedCount: result.affectedCount,
       skippedCount: result.skippedCount,
-      reasonCategory,
+      reasonCategory: reason.reasonCategory,
+      reasonKey: reason.reasonKey,
       requestMeta: meta,
     },
     reason: params.reason ?? null,
@@ -138,7 +139,7 @@ async function executeSingleBatch(
   params: BulkAdjustByTypeParams,
   amount: number,
   requestBatchId: string,
-  reasonCategory: ReasonCategory,
+  reason: ResolvedWalletReason,
   meta: WalletHistoryMeta | null,
 ): Promise<BulkAdjustByTypeResult> {
   let totalAffected = 0;
@@ -154,7 +155,7 @@ async function executeSingleBatch(
 
     if (toUpdate.length > 0) {
       await executeBalanceUpdate(tx, toUpdate, params.walletType, params.changeMethod, amount);
-      await insertHistoryRecords(tx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
+      await insertHistoryRecords(tx, toUpdate, params, amount, requestBatchId, reason, meta);
     }
 
     totalAffected += toUpdate.length;
@@ -300,7 +301,7 @@ async function insertHistoryRecords(
   params: BulkAdjustByTypeParams,
   amount: number,
   requestBatchId: string,
-  reasonCategory: ReasonCategory,
+  reason: ResolvedWalletReason,
   meta: WalletHistoryMeta | null,
 ): Promise<void> {
   const historyValues = wallets.map((w) => ({
@@ -313,7 +314,7 @@ async function insertHistoryRecords(
     source_type: params.sourceType as "user_action" | "admin_action" | "system",
     request_batch_id: requestBatchId,
     reason: params.reason ?? null,
-    reason_category: reasonCategory,
+    ...toHistoryReason(reason),
     meta: meta ?? {},
   }));
 

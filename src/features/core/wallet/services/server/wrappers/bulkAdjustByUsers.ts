@@ -7,7 +7,6 @@ import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/features/core/walletHistory/types/field";
 import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
-import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import type { ChunkResult } from "@/features/batchJob/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import {
@@ -18,6 +17,7 @@ import {
 import { normalizeAmount, sanitizeMeta, resolveRequestBatchId } from "./utils";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { resolveWalletReason } from "./reasonKey";
 
 /** ウォレット系 audit retention（コンプライアンス対応で 2 年） */
 const WALLET_AUDIT_RETENTION_DAYS = 730;
@@ -33,6 +33,8 @@ export type BulkAdjustByUsersParams = {
   requestBatchId?: string | null;
   reason?: string | null;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる */
+  reasonKey?: string | null;
   meta?: Record<string, unknown>;
 };
 
@@ -53,7 +55,7 @@ export async function bulkAdjustByUsers(
 
   const requestBatchId = resolveRequestBatchId(params.requestBatchId);
   const meta = sanitizeMeta(params.meta);
-  const reasonCategory = params.reasonCategory ?? DEFAULT_REASON_CATEGORY;
+  const { reasonCategory, reasonKey } = resolveWalletReason(params);
 
   // 1. 既存ウォレットを一括取得
   const existingWallets = await tx
@@ -176,6 +178,7 @@ export async function bulkAdjustByUsers(
       request_batch_id: requestBatchId,
       reason: params.reason ?? null,
       reason_category: reasonCategory,
+      reason_key: reasonKey,
       meta: (meta ?? {}) as Record<string, unknown>,
     }));
 
@@ -199,6 +202,7 @@ export async function bulkAdjustByUsers(
       skippedCount: skipped.length,
       sampleSucceededUserIds: succeeded.slice(0, SAMPLE_USER_IDS_CAP),
       reasonCategory,
+      reasonKey,
       requestMeta: meta,
     },
     reason: params.reason ?? null,

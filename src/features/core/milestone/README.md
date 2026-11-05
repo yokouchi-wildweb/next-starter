@@ -191,7 +191,9 @@ export const milestone: MilestoneDefinition = {
         amount,
         sourceType: "system",
         reason: "新規登録ボーナス",
-        reasonCategory: "bonus", // 販促の付与は区分を必ず書く（集計が区分で見る）
+        // 付与の種類（walletHistory/reasonKeys/signupBonus.ts に { key: "signup_bonus", label: "登録ボーナス", category: "bonus" }）。
+        // 区分（bonus）は種類から決まる。wallet README「付与の種類」
+        reasonKey: "signup_bonus",
       },
       tx,
     );

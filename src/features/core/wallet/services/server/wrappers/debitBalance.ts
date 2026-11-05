@@ -6,7 +6,6 @@ import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizz
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
-import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import { consumeLotsFifo } from "@/features/core/wallet/services/server/lots/lotAccounting";
 import {
   ensureSufficientAvailable,
@@ -17,6 +16,7 @@ import {
   runWithTransaction,
   type TransactionClient,
 } from "./utils";
+import { resolveWalletReason, toHistoryReason } from "./reasonKey";
 
 /**
  * TX内で残高を即時引き落とし（残高減算 + 履歴記録）。
@@ -67,7 +67,7 @@ export async function debitBalance(
         source_type: params.sourceType,
         request_batch_id: resolveRequestBatchId(params.requestBatchId),
         reason: params.reason ?? null,
-        reason_category: params.reasonCategory ?? DEFAULT_REASON_CATEGORY,
+        ...toHistoryReason(resolveWalletReason(params)),
         meta: historyMeta ?? undefined,
       })
       .returning();

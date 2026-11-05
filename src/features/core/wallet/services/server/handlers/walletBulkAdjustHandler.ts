@@ -23,6 +23,8 @@ type CreateWalletBulkAdjustJobInput = {
   sourceType?: WalletHistorySourceTypeValue;
   reason?: string;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる */
+  reasonKey?: string;
   meta?: Record<string, unknown>;
   batchSize?: number;
 };
@@ -44,6 +46,7 @@ export async function createWalletBulkAdjustJob(input: CreateWalletBulkAdjustJob
       sourceType: input.sourceType ?? "system",
       reason: input.reason,
       reasonCategory: input.reasonCategory,
+      reasonKey: input.reasonKey,
       meta: input.meta,
     } satisfies BulkAdjustByUsersParams,
   });

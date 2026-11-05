@@ -23,6 +23,9 @@ export const WalletHistoryTable = pgTable(
     request_batch_id: uuid("request_batch_id"),
     reason: text("reason"),
     reason_category: text("reason_category").$type<ReasonCategory>().notNull().default(DEFAULT_REASON_CATEGORY),
+    // 付与の種類(機械向けの名前。受け口 reasonKeys に登録した key)。区分は種類から決まる。null = 種類なし(従来の行)。
+    // index は置かない: 集計は type・reason_category・created_at で絞ってから GROUP BY する(既存の index で足りる)
+    reason_key: text("reason_key"),
     meta: jsonb("meta").$type<WalletHistoryMeta>().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },

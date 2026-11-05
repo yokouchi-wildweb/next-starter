@@ -119,6 +119,7 @@
     "test:dc-plural": "node --test scripts/domain-config/tests/plural.test.mjs",
     "test:flux-relay": "node --test .claude/skills/flux/relay-check.test.mjs .claude/skills/flux/lineage-touch.test.mjs",
     "test:order-mailbox": "node --test .claude/skills/order/mailbox.test.mjs",
+    "test:wallet-reason-key": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/services/server/wrappers/reasonKey.test.ts",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:wallet-expiration": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/expiration.test.ts",
     "test:setting": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/setting/services/server/settingStorage.test.ts",

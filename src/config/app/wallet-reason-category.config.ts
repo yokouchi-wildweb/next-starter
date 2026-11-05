@@ -17,6 +17,11 @@ export type ReasonCategoryConfig = {
    * 数える通貨は src/config/app/coin-issuance.config.ts の COIN_ISSUANCE_WALLET_TYPES
    */
   countsAsIssuance?: boolean;
+  /**
+   * この区分の書き込みは付与の種類(reasonKey、受け口 walletHistory/reasonKeys)を渡すべきか(省略 = 要らない)。
+   * 渡さないと console.warn(書き込みは止めない)。上流のコードは静的な検査(test:wallet-reason-key)で必ず渡す
+   */
+  requiresKey?: boolean;
 };
 
 /**
@@ -44,6 +49,8 @@ export const REASON_CATEGORY_CONFIG = {
     sortOrder: 30,
     // 販促・特典の付与（紹介報酬・クーポン帰属報酬・登録ボーナス等）。発行として数える
     countsAsIssuance: true,
+    // 施策ごとの内訳を出すため、付与の種類（reasonKey）を渡す
+    requiresKey: true,
   },
   refund: {
     label: "返金",

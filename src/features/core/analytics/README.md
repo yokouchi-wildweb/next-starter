@@ -444,7 +444,7 @@ upstream / downstream の双方がソースを登録できるため、サービ�
   - `other` は既定で数えない: 区分を書かずに書いた行（`DEFAULT_REASON_CATEGORY`）と reason_category の導入前の行（全部 `other` で埋まっている）が入り、ガチャ・調整・退会の残高クリアなどの引き落としで純額が負になり得るため
   - 区分なしで書かれた付与も拾いたい fork は自分の config で `other` に `countsAsIssuance: true` を付けられる（その場合、導入前の期間の値は信用しない）
 - **数える通貨** = `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_WALLET_TYPES`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
-- **付与は `reasonCategory` を必ず書く**（`walletService.adjustBalance` 等）。書かないと `other` になり、既定ではこのまとめに入らない
+- **付与は `reasonKey`（付与の種類。区分は種類から決まる）か `reasonCategory` を必ず書く**（`walletService.adjustBalance` 等）。書かないと `other` になり、既定ではこのまとめに入らない（wallet README「付与の種類」）
 
 ### ソース追加の手順 (downstream)
 

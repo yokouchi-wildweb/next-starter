@@ -109,7 +109,9 @@ import type {
 | `balance_after` | `number` | 変動後残高 |
 | `source_type` | `enum` | `user_action` / `admin_action` / `system` |
 | `request_batch_id` | `string?` | バッチ処理ID |
-| `reason` | `string?` | 変更理由 |
+| `reason` | `string?` | 変更理由（人向けの文。集計に使わない） |
+| `reason_category` | `string` | 区分（`src/config/app/wallet-reason-category.config.ts`、既定 `other`） |
+| `reason_key` | `string?` | 付与の種類（受け口 `walletHistory/reasonKeys` の key。下の「付与の種類」） |
 | `meta` | `jsonb` | 追加メタ情報 |
 | `createdAt` | `Date` | 作成日時 |
 
@@ -485,6 +487,32 @@ for (let i = 0; i < 10; i++) {
     requestBatchId: batchId,  // 全操作で同じIDを使用
   }, tx);
 }
+```
+
+### 付与の種類（reason key）
+
+区分（`reason_category`: bonus / admin_adjustment …）より細かい「どの施策の付与か」を、機械向けの名前で行に持たせる（管理画面のコイン創出の施策ごとの内訳に使う）。`reason` の文や `meta` を集計の軸にしない。
+
+- **施策を足す = 種類の項目 1 つ + 書き込みで `reasonKey` を渡す**:
+  1. `src/features/core/walletHistory/reasonKeys/<名前>.ts` に `export const reasonKey: WalletReasonKeyItem = { key, label, category, sortOrder? }` → `pnpm extensions:generate`（型: `walletHistory/types/reasonKey.ts`。key の重複は一覧の読み込みで例外）
+  2. 書き込み（`adjustBalance` / `consumeReservedBalance` / `debitBalance` / `bulkAdjustByType` / `bulkAdjustByUsers` / `createWalletBulkAdjustJob`）で `reasonKey: "<key>"` を渡す
+- **区分は種類から決まる**: `reasonKey` を渡せば `reason_category` は項目の `category`。`reasonCategory` も渡して食い違う・未登録の key は書き手の誤りとして `DomainError` 500（`code: wallet_reason_key_mismatch | wallet_reason_key_unknown`）
+- `reasonKey` なしは今まで通り（`reasonCategory ?? "other"`、`reason_key` は null）
+- **requiresKey**: 区分の config の `requiresKey: true`（上流の既定 = `bonus`）の書き込みに `reasonKey` が無いと `console.warn`（書き込みは止めない）。上流のコードは `pnpm test:wallet-reason-key` の静的な検査で必ず渡す
+- **管理者の調整**: `/api/admin/wallet/[userId]/adjust`・`bulk/adjust-by-type` は `reasonKey` を受ける。省略して区分も省略（または `admin_adjustment`）なら固定キー `admin_adjustment`。他の区分を選んだ調整は種類なし。未登録の key は 400
+- 上流の項目: `coupon_attribution_reward`（bonus、クーポン帰属報酬の付与）・`admin_adjustment`（admin_adjustment、管理者の調整）
+- 列 `reason_key` に index は置かない: 集計は `type`・`reason_category`・`created_at` で絞ってから GROUP BY する（既存の `(reason_category, created_at)` で足りる）。遅いと分かったら CONCURRENTLY で足す
+
+```ts
+// src/features/core/walletHistory/reasonKeys/rankBonus.ts（fork の施策）
+import type { WalletReasonKeyItem } from "@/features/core/walletHistory/types/reasonKey";
+export const reasonKey: WalletReasonKeyItem = { key: "rank_bonus", label: "ランクボーナス", category: "bonus" };
+
+// 書き手
+await walletService.adjustBalance(
+  { userId, walletType: "regular_coin", changeMethod: "INCREMENT", amount, sourceType: "system", reason: `ランクボーナス: ${tierLabel}`, reasonKey: "rank_bonus" },
+  tx,
+);
 ```
 
 ### meta フィールド

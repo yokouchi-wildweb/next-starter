@@ -5,7 +5,6 @@ import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizz
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
-import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import {
   consumeLotsFifo,
@@ -23,6 +22,7 @@ import {
   runWithTransaction,
   type TransactionClient,
 } from "./utils";
+import { resolveWalletReason } from "./reasonKey";
 
 // ウォレット系の audit retention（コンプライアンス対応で 2 年）
 const WALLET_AUDIT_RETENTION_DAYS = 730;
@@ -89,6 +89,7 @@ export async function adjustBalance(
     }
 
     const historyMeta = sanitizeMeta(params.meta);
+    const reason = resolveWalletReason(params);
 
     const [history] = await trx
       .insert(WalletHistoryTable)
@@ -102,7 +103,8 @@ export async function adjustBalance(
         source_type: params.sourceType,
         request_batch_id: resolveRequestBatchId(params.requestBatchId),
         reason: params.reason ?? null,
-        reason_category: params.reasonCategory ?? DEFAULT_REASON_CATEGORY,
+        reason_category: reason.reasonCategory,
+        reason_key: reason.reasonKey,
         meta: historyMeta ?? undefined,
       })
       .returning();
@@ -127,7 +129,8 @@ export async function adjustBalance(
         amount,
         sourceType: params.sourceType,
         requestBatchId: history.request_batch_id,
-        reasonCategory: params.reasonCategory ?? DEFAULT_REASON_CATEGORY,
+        reasonCategory: reason.reasonCategory,
+        reasonKey: reason.reasonKey,
         walletHistoryId: history.id,
       },
       reason: params.reason ?? null,

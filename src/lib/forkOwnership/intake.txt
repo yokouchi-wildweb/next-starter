@@ -96,6 +96,8 @@ add src/features/core/user/reservedNames/*.{ts,tsx}  # 受け口 reservedNames
 add src/features/core/user/reservedNames/*/**  # 受け口 reservedNames(フォルダ形)
 add src/features/core/userLineProfile/webhookHandlers/*.{ts,tsx}  # 受け口 webhookHandlers
 add src/features/core/userLineProfile/webhookHandlers/*/**  # 受け口 webhookHandlers(フォルダ形)
+add src/features/core/walletHistory/reasonKeys/*.{ts,tsx}  # 受け口 reasonKeys
+add src/features/core/walletHistory/reasonKeys/*/**  # 受け口 reasonKeys(フォルダ形)
 add src/proxies/*.{ts,tsx}  # 受け口 decorators・handlers
 add src/proxies/*/**  # 受け口 decorators・handlers(フォルダ形)
 add src/wiring/dbAgent/extraTools/*.{ts,tsx}  # 受け口 extraTools

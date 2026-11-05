@@ -24,6 +24,9 @@ import type { CouponHistory } from "@/features/core/couponHistory/entities/model
 import { CouponAttributionRewardTable } from "@/features/core/couponAttributionReward/entities/drizzle";
 import type { CouponAttributionReward } from "@/features/core/couponAttributionReward/entities/model";
 
+/** 付与の種類(walletHistory/reasonKeys/couponAttributionReward.ts) */
+const COUPON_ATTRIBUTION_REWARD_REASON_KEY = "coupon_attribution_reward";
+
 export type GrantAttributionRewardParams = {
   /** 消込されたクーポン（attribution_user_id が受取人になる） */
   coupon: Coupon;
@@ -36,6 +39,11 @@ export type GrantAttributionRewardParams = {
   reason?: string;
   /** 省略時 "bonus" */
   reasonCategory?: ReasonCategory;
+  /**
+   * 付与の種類(walletHistory/reasonKeys の key)。省略時、区分が bonus なら "coupon_attribution_reward"
+   * (区分を bonus 以外にした呼び手は種類なし)
+   */
+  reasonKey?: string;
   /** 台帳 metadata（rate / purchaseAmount 等、集計・表示用の任意情報） */
   metadata?: Record<string, unknown>;
 };
@@ -101,6 +109,9 @@ export async function grantAttributionReward(
     return fulfillRewardRow(trx, reward, {
       reason: params.reason ?? DEFAULT_REASON,
       reasonCategory: params.reasonCategory ?? "bonus",
+      reasonKey:
+        params.reasonKey ??
+        ((params.reasonCategory ?? "bonus") === "bonus" ? COUPON_ATTRIBUTION_REWARD_REASON_KEY : null),
     });
   });
 }
@@ -131,6 +142,7 @@ export async function retryAttributionReward(
     return fulfillRewardRow(trx, reward, {
       reason: DEFAULT_REASON,
       reasonCategory: "bonus",
+      reasonKey: COUPON_ATTRIBUTION_REWARD_REASON_KEY,
     });
   });
 }
@@ -144,7 +156,7 @@ export async function retryAttributionReward(
 async function fulfillRewardRow(
   trx: TransactionClient,
   reward: CouponAttributionReward,
-  options: { reason: string; reasonCategory: ReasonCategory },
+  options: { reason: string; reasonCategory: ReasonCategory; reasonKey: string | null },
 ): Promise<Exclude<GrantAttributionRewardResult, { status: "skipped" }>> {
   const savepoint = `coupon_attr_reward_${reward.id.replace(/-/g, "_")}`;
   try {
@@ -160,6 +172,7 @@ async function fulfillRewardRow(
         requestBatchId: reward.coupon_history_id,
         reason: options.reason,
         reasonCategory: options.reasonCategory,
+        reasonKey: options.reasonKey,
         meta: {
           couponId: reward.coupon_id,
           couponHistoryId: reward.coupon_history_id,

@@ -22,6 +22,8 @@ export type AdjustWalletParams = {
   requestBatchId?: string | null;
   reason?: string | null;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる(reasonCategory と食い違えば例外) */
+  reasonKey?: string | null;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -41,6 +43,8 @@ export type ConsumeReservationParams = {
   requestBatchId?: string | null;
   reason?: string | null;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる(reasonCategory と食い違えば例外) */
+  reasonKey?: string | null;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -53,6 +57,8 @@ export type DebitBalanceParams = {
   requestBatchId?: string | null;
   reason?: string | null;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる(reasonCategory と食い違えば例外) */
+  reasonKey?: string | null;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -63,6 +69,8 @@ export type WalletAdjustRequestPayload = {
   requestBatchId?: string | null;
   reason?: string | null;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる(reasonCategory と食い違えば例外) */
+  reasonKey?: string | null;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -113,6 +121,8 @@ export type BulkAdjustByTypeParams = {
   requestBatchId?: string | null;
   reason?: string | null;
   reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる(reasonCategory と食い違えば例外) */
+  reasonKey?: string | null;
   meta?: WalletHistoryMetaInput;
   /** 指定したロールのユーザーのみ対象 */
   role?: string;

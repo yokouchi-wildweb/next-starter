@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
+import { resolveAdminAdjustReason } from "@/features/core/wallet/services/server/wrappers/reasonKey";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
@@ -22,7 +23,9 @@ const BulkAdjustByTypePayloadSchema = z
       .trim()
       .max(200, { message: "理由は200文字以内で入力してください。" })
       .optional(),
-    reasonCategory: z.enum(REASON_CATEGORY_VALUES).default("admin_adjustment"),
+    // 省略 = admin_adjustment(固定キー admin_adjustment)。reasonKey を渡すと区分は種類から決まる
+    reasonCategory: z.enum(REASON_CATEGORY_VALUES).optional(),
+    reasonKey: z.string().trim().min(1).max(100).optional(),
     requestBatchId: z.string().uuid().optional(),
     meta: WalletHistoryMetaSchema.nullable().optional(),
     role: z.string().trim().optional(),
@@ -71,7 +74,7 @@ export const POST = createApiRoute(
       sourceType: "admin_action",
       requestBatchId: payload.requestBatchId,
       reason: payload.reason,
-      reasonCategory: payload.reasonCategory,
+      ...resolveAdminAdjustReason(payload),
       meta: mergedMeta,
       role: payload.role,
     });

@@ -39,6 +39,11 @@ export const WalletHistoryBaseSchema = z.object({
     .nullish()
     .transform((value) => emptyToNull(value)),
   reason_category: z.enum(REASON_CATEGORY_VALUES).default(DEFAULT_REASON_CATEGORY),
+  reason_key: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
   meta: WalletHistoryMetaSchema.nullish().transform((value) => value ?? null),
 });
 

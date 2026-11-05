@@ -16,6 +16,8 @@ export type WalletHistory = {
   request_batch_id: string | null;
   reason: string | null;
   reason_category: ReasonCategory;
+  /** 付与の種類(受け口 reasonKeys の key。null = 種類なし) */
+  reason_key: string | null;
   meta: WalletHistoryMeta | null;
   createdAt: Date | null;
 };
