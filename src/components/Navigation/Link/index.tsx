@@ -32,15 +32,15 @@ export function Link({ gate = "auto", onNavigate, ...props }: LinkProps) {
   if (gate === "hide") return null;
   const text = hrefText(props.href);
   if (gate === "auto" && text !== null && isHidden(text)) return null;
-  const judge = text === null ? undefined : port.judgeLink(text, { replace: props.replace === true, scroll: props.scroll !== false });
+  // 判定は押した時に口へ聞く(描いた後に編集済みになっても効く)。呼び手の onNavigate が先で、それが止めた移動は聞かない
   const handleNavigate: LinkProps["onNavigate"] =
-    judge === undefined
+    text === null
       ? onNavigate
       : (event) => {
-          // 呼び手の onNavigate が止めた移動は聞かない
           let prevented = false;
           onNavigate?.({ ...event, preventDefault: () => ((prevented = true), event.preventDefault()) });
-          if (!prevented) judge(event);
+          if (prevented) return;
+          port.judgeLink(text, { replace: props.replace === true, scroll: props.scroll !== false })?.(event);
         };
   return <NextLink {...port.linkAttributes} {...props} onNavigate={handleNavigate} />;
 }

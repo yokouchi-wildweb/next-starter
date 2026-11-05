@@ -20,7 +20,7 @@ type Target = { addEventListener: (type: string, fn: Listener, capture?: boolean
 
 export type GuardEnv = {
   win: Target & {
-    history: { state: unknown; pushState: (state: unknown, unused: string, url?: string) => void; back: () => void };
+    history: { state: unknown; pushState: (state: unknown, unused: string, url?: string) => void; back: () => void; go: (delta: number) => void };
     location: { href: string; origin: string; pathname: string; search: string };
   };
   doc: Target;
@@ -156,6 +156,15 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
           update();
         },
       };
+    },
+    /**
+     * 「戻る」を進める(router.back の移ると決めた後): 今が番兵の履歴なら番兵を飛ばして 2 つ戻る
+     * (番兵は同じ住所なので、1 つ戻るだけではフォームに留まる)
+     */
+    back(rawBack: () => void) {
+      const state = getEnv().win.history.state as Record<string, unknown> | null;
+      if (state && state[SENTINEL_KEY]) getEnv().win.history.go(-2);
+      else rawBack();
     },
     /** 棚の Link の onNavigate の判定 */
     judgeLink: ((href, { replace, scroll }) => {

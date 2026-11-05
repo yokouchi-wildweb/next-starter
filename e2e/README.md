@@ -16,4 +16,4 @@ Playwright(`playwright.config.ts`、chromium・firefox・webkit)。ページは 
 
 | ファイル | 中身 |
 |---|---|
-| `unsavedGuard.spec.ts` | 未保存の編集の守り(`src/lib/unsavedGuard`): 棚の Link・素の `<a>`・router.push・router.back・ブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない |
+| `unsavedGuard.spec.ts` | 未保存の編集の守り(`src/lib/unsavedGuard`): 棚の Link・素の `<a>`・router.push・router.back・ブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない(firefox は 1 ページで 2 回目の beforeunload の確認を出さないことがあるので、再読み込みは留まる / 移るを別のテストにする) |

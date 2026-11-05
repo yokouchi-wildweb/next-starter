@@ -38,8 +38,8 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 
 | 経路 | 手段 |
 |---|---|
-| 棚の Link | `next/link` の `onNavigate`(棚の Navigation の口から判定が入る)。止めて確認し、移るなら元の href へ素の router で(replace / scroll も保つ) |
-| router.push / replace / back / forward | 守り付きの `useRouter`(lint で next/navigation の useRouter を止める: 上流 error・fork warn) |
+| 棚の Link | `next/link` の `onNavigate`(押した時に棚の Navigation の口へ判定を聞く = 描いた後に編集済みになっても効く)。止めて確認し、移るなら元の href へ素の router で(replace / scroll も保つ) |
+| router.push / replace / back / forward | 守り付きの `useRouter`(lint で next/navigation の useRouter を止める: 上流 error・fork warn)。back の「移る」は今が番兵の履歴なら番兵を飛ばして 2 つ戻る |
 | 同じオリジンの素の `<a>` | document の click の capture(棚の Link の `<a>` は `data-navigation-port` の印で除く)。別のタブ・download・修飾キー・同じページの `#` は通す |
 | 戻る / 進む | popstate の番兵: 編集済みになった時に同じ住所の履歴を 1 つ積む(Next の `history.state` は残す)。留まるなら積み直し、移るなら番兵の先へもう 1 つ戻る |
 | 再読み込み・タブを閉じる・別のオリジン | `beforeunload`(ブラウザの確認。文言は変えられない) |

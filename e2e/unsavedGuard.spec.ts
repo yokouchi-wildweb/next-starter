@@ -67,19 +67,24 @@ test("ブラウザの進む: 編集済みの間は進む履歴が番兵で消え
   await expectStayed(page);
 });
 
-test("再読み込み: ブラウザの確認(beforeunload)で留まると入力がそのまま、移ると読み直す", async ({ page }) => {
-  await openDirtyForm(page);
-  page.once("dialog", (dialog) => {
-    expect(dialog.type()).toBe("beforeunload");
-    void dialog.dismiss();
-  });
-  // firefox は page.reload() で beforeunload を出さないので、ページの中から location.reload() を呼ぶ(全ブラウザで同じ手順)
-  await page.evaluate(() => setTimeout(() => location.reload(), 0));
-  await page.waitForTimeout(500);
-  await expectStayed(page);
+// firefox は page.reload() で beforeunload を出さないので、ページの中から location.reload() を呼ぶ(全ブラウザで同じ手順)。
+// firefox は 1 つのページで 2 回目の確認を出さないことがあるので、留まると移るを別のテストにする
+const reloadFromPage = (page: Page) => page.evaluate(() => setTimeout(() => location.reload(), 0));
 
+test("再読み込み: ブラウザの確認(beforeunload)で留まると入力がそのまま", async ({ page }) => {
+  await openDirtyForm(page);
+  const dialog = page.waitForEvent("dialog");
+  await reloadFromPage(page);
+  const shown = await dialog;
+  expect(shown.type()).toBe("beforeunload");
+  await shown.dismiss();
+  await expectStayed(page);
+});
+
+test("再読み込み: ブラウザの確認(beforeunload)で移ると読み直す", async ({ page }) => {
+  await openDirtyForm(page);
   page.once("dialog", (dialog) => void dialog.accept());
-  await Promise.all([page.waitForEvent("load"), page.evaluate(() => setTimeout(() => location.reload(), 0))]);
+  await Promise.all([page.waitForEvent("load"), reloadFromPage(page)]);
   await expect(page.locator("#note")).toHaveValue("");
 });
 

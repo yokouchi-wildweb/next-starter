@@ -61,7 +61,7 @@ export function useRouter(): GuardedRouter {
     return {
       push: (href, options) => void guard.request({ kind: "push", href }, () => raw().push(href, options)),
       replace: (href, options) => void guard.request({ kind: "replace", href }, () => raw().replace(href, options)),
-      back: () => void guard.request({ kind: "back" }, () => raw().back()),
+      back: () => void guard.request({ kind: "back" }, () => guard.back(() => raw().back())),
       forward: () => void guard.request({ kind: "forward" }, () => raw().forward()),
       refresh: () => raw().refresh(),
       prefetch: (href) => raw().prefetch(href),

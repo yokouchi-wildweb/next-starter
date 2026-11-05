@@ -13,6 +13,7 @@ function fakeEnv() {
   const docListeners = new Map<string, Fn>();
   const pushed: unknown[] = [];
   let backs = 0;
+  const gos: number[] = [];
   const win = {
     addEventListener: (type: string, fn: Fn) => listeners.set(type, fn),
     removeEventListener: (type: string) => listeners.delete(type),
@@ -23,11 +24,12 @@ function fakeEnv() {
         win.history.state = state as Record<string, unknown>;
       },
       back: () => (backs += 1),
+      go: (delta: number) => gos.push(delta),
     },
     location: { href: "http://x.test/form", origin: "http://x.test", pathname: "/form", search: "" },
   };
   const doc = { addEventListener: (type: string, fn: Fn) => docListeners.set(type, fn), removeEventListener: (type: string) => docListeners.delete(type) };
-  return { env: { win, doc }, listeners, docListeners, pushed, backs: () => backs };
+  return { env: { win, doc }, listeners, docListeners, pushed, backs: () => backs, gos };
 }
 
 function setup(answer: boolean) {
@@ -176,4 +178,15 @@ test("元が複数: どれか 1 つでも編集済みなら守り、全部が外
   assert.equal(guard.isDirty(), true);
   b.dispose();
   assert.equal(guard.isDirty(), false);
+});
+
+test("router.back の移る: 今が番兵の履歴なら番兵を飛ばして 2 つ戻る、そうでなければ素の back", () => {
+  const { guard, fake } = setup(true);
+  guard.createSource().set(true);
+  const raw: string[] = [];
+  guard.back(() => raw.push("back"));
+  assert.deepEqual(fake.gos, [-2]);
+  fake.env.win.history.state = { __NA: true };
+  guard.back(() => raw.push("back"));
+  assert.deepEqual(raw, ["back"]);
 });
