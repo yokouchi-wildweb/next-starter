@@ -13,7 +13,7 @@
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形） |
 | `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkAdminPageScreen` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`・守りの鎖の解析 `checkScreenLoaderCall`（D21）/ `parseLoaderGuard` / `parseGuardFile` / `layoutCallsGuard` / `parseLiteral`（地図と共有）（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
 | `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
-| `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
+| `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/structure/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
 | `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
 | `routeMapView.mjs` | ルート地図を見る側（`routes:show` の引数・絞り込み・tree / table / mermaid / jsonl の描画。地図の形は変えない。純粋関数、§13「見る」） |

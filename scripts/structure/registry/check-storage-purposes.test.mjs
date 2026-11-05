@@ -14,16 +14,16 @@ import { fileURLToPath } from "node:url";
 import {
   buildStoragePurposeEntries,
   renderStoragePurposesContent,
-} from "../domain-config/render/registry/storagePurpose/index.mjs";
-import { MEDIA_FIELD_TYPES } from "../domain-config/spec/fieldTypes.mjs";
+} from "../../domain-config/render/registry/storagePurpose/index.mjs";
+import { MEDIA_FIELD_TYPES } from "../../domain-config/spec/fieldTypes.mjs";
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const { allStoragePurposes, mergeStoragePurposes } = await import("../../src/features/core/storageObject/services/server/purposeSource.ts");
+const { allStoragePurposes, mergeStoragePurposes } = await import("../../../src/features/core/storageObject/services/server/purposeSource.ts");
 const storagePurposeRegistry = allStoragePurposes();
-const { listStoragePurposeProblems } = await import("../../src/lib/storage/server/purposes.ts");
-const { isValidStoragePurposeId } = await import("../../src/lib/storage/ref.ts");
-const { FIXED_STRIP_PURPOSES } = await import("../../src/features/core/storageObject/services/server/purposeSource.ts");
+const { listStoragePurposeProblems } = await import("../../../src/lib/storage/server/purposes.ts");
+const { isValidStoragePurposeId } = await import("../../../src/lib/storage/ref.ts");
+const { FIXED_STRIP_PURPOSES } = await import("../../../src/features/core/storageObject/services/server/purposeSource.ts");
 
 /** src/features/<domain>/domain.json と src/features/core/<domain>/domain.json（ドメイン名 = フォルダ名） */
 function listDomainConfigs() {
@@ -40,7 +40,7 @@ function listDomainConfigs() {
 
 test("用途の合成: ID の重複は例外。用途キーのドメインの段は serviceRegistry のキー(demo.media は持ち主が無いので除く、D61 U5)", async () => {
   assert.throws(() => mergeStoragePurposes([{ "a.b": {} }, { "a.b": {} }]), /a\.b/);
-  const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
+  const { serviceRegistry } = await import("../../../src/registry/serviceRegistry.ts");
   const unknown = Object.keys(storagePurposeRegistry)
     .filter((id) => id !== "demo.media")
     .filter((id) => !(id.split(".")[0] in serviceRegistry));
@@ -288,7 +288,7 @@ describe("ドメインの storagePurposes.ts", () => {
 describe("メディア列と systemColumns（特権書き込み）・hiddenColumns", () => {
   test("storage オプションの列を systemColumns に入れると、サービスを作る時点で throw", async () => {
     const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
-    const { createCrudService } = await import("../../src/lib/crud/drizzle/service.ts");
+    const { createCrudService } = await import("../../../src/lib/crud/drizzle/service.ts");
     const table = pgTable("check_storage_system_columns", { id: uuid("id").primaryKey(), photo: text("photo"), note: text("note") });
     const binding = {
       fields: [{ name: "photo", purpose: "item.photo" }],
@@ -306,8 +306,8 @@ describe("メディア列と systemColumns（特権書き込み）・hiddenColum
 
   test("storage オプションの列を hiddenColumns にすると、サービスを作る時点で throw（掃除の照合が値を読めないため）", async () => {
     const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
-    const { createCrudService } = await import("../../src/lib/crud/drizzle/service.ts");
-    const { defineHiddenColumns } = await import("../../src/lib/crud/drizzle/hiddenColumns.ts");
+    const { createCrudService } = await import("../../../src/lib/crud/drizzle/service.ts");
+    const { defineHiddenColumns } = await import("../../../src/lib/crud/drizzle/hiddenColumns.ts");
     const binding = {
       fields: [{ name: "photo", purpose: "item.photo" }],
       afterWrite: async () => null,
@@ -324,7 +324,7 @@ describe("メディア列と systemColumns（特権書き込み）・hiddenColum
   });
 
   test("serviceRegistry に登録された全サービスが作れる（違反があれば読み込みで throw する）", async () => {
-    const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
+    const { serviceRegistry } = await import("../../../src/registry/serviceRegistry.ts");
     assert.ok(Object.keys(serviceRegistry).length > 0);
     // サービスは遅延読み込み（domainEntry.ts）なので、1 つずつ読み込んで createCrudService を走らせる
     for (const [key, entry] of Object.entries(serviceRegistry)) {

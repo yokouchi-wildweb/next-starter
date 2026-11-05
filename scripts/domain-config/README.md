@@ -211,7 +211,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、domain.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。`index.mjs` が全件を並べて止める。止めない食い違いは `*Warnings` と `vocabulary.mjs`。`pairs.mjs` = 組の検査、`accessRules.mjs` = アクセスルールの広さ。ロール・プロフィールの検査も `checks/fields.mjs` を共用する（`scripts/role-config/checks/`） | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + domain.json）、`names.mjs`（表名・FK 名・63 字）、`featureMap.mjs`（feature-map の中身）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
 | `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（キーの集合）、`collectionField.mjs`（従属の既定の名前・snake_case）、`formInputs.mjs`（型と入力欄の組の表）、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
-| `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
+| `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/structure/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
 規則（`pnpm test:dc-structure`）: 1 ファイル 200 行以内（テスト 320）| `spec/` `domain/`（workspace 以外）`checks/` `render/` `text/` は fs・child_process・inquirer・process.exit を使わない | fs は `domain/workspace.mjs` `pipeline/apply.mjs` `pipeline/dryRun.mjs` `pipeline/remove/` `cli/` だけ | inquirer と process.exit は `cli/` だけ | `render/` は `pipeline/` `cli/` を import しない。

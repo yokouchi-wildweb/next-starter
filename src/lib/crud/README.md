@@ -706,7 +706,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 4. 他の表が同じ値をコピーで持っていれば、従属の行への参照（FK、`ON DELETE SET NULL`）に張り替える
    - ref を別の表へコピーして持つことは禁止の形（台帳の 1 行は 1 つの業務行を指す）。移行のついでに、コピーの列を従属の行 id を指す FK に置き換える。どの表がコピーを持つかはドメインごとに調べる
    - 大きい表の新しい FK 列には部分 index を付ける（`index("<name>").on(table.<col>).where(sql\`${table.<col>} IS NOT NULL\`)`）。無いと、従属の行を消すたびに `SET NULL` の相手を探して表全体を走査する
-   - 部分 index の `where` は push の比較に入らない。`where` だけを後で変えても検出されないので手動で DROP / CREATE する（[scripts/registry/README.md](../../../scripts/registry/README.md)「index / default の記述ルール」）。push の後は `pnpm db:push:check` が 0 文であることを確かめる
+   - 部分 index の `where` は push の比較に入らない。`where` だけを後で変えても検出されないので手動で DROP / CREATE する（[scripts/structure/registry/README.md](../../../scripts/structure/registry/README.md)「index / default の記述ルール」）。push の後は `pnpm db:push:check` が 0 文であることを確かめる
    - 列・FK・index を足す `db:push` は表を走査し、その間ロックを取る。手順 3 の書き込み停止の間に流す。このとき `<migration_log>` の DROP を提案されるので N にする
    - とても大きい表では次の順にする（`CREATE INDEX CONCURRENTLY` は列より先に流せない）
      1. 列だけを先に足す（`ALTER TABLE <table> ADD COLUMN <col> <型>;`。NULL 可・default なしなら走査しない）

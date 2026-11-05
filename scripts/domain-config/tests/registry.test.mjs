@@ -1,5 +1,5 @@
 // dc:generate のレジストリ更新（domainEntry.ts の生成 / schemaRegistry / domainConfigRegistry / objectEntry）の回帰テスト。
-// serviceRegistry.ts 自体の生成・検査は scripts/registry/serviceRegistry/serviceRegistry.test.mjs（pnpm test:service-registry）。
+// serviceRegistry.ts 自体の生成・検査は scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs（pnpm test:service-registry）。
 // 実行: pnpm test:dc-registry
 import { after, test } from "node:test";
 import assert from "node:assert/strict";

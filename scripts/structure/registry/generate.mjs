@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/registry/generate.mjs
+// scripts/structure/registry/generate.mjs
 // src/registry の α 5 本(serviceRegistry・schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry)を丸ごと生成する(pnpm registry:generate)。
 // 問題があれば書かずに止まる。ほかの拡張点の一覧は pnpm extensions:generate。詳細: ./README.md
 
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { buildAlphaRegistries, staleAlphaRegistries } from "./alpha/index.mjs";
 import { generateServiceRegistry } from "./serviceRegistry/generate.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const { outputs, problems } = buildAlphaRegistries(repoRoot);
 if (problems.length > 0) {
   console.error(`✗ src/registry を生成できません(${problems.length} 件):\n${problems.map((p) => `  - ${p}`).join("\n")}`);

@@ -1,4 +1,4 @@
-// scripts/registry/tableScan.test.mjs
+// scripts/structure/registry/tableScan.test.mjs
 // 表の走査(./tableScan.mjs)の回帰テスト。
 // - 実リポ: 走査の表の集合 = schemaRegistry の全 pgTable 名(走査の漏れ・schemaRegistry の登録漏れの両方で止まる)
 // - 字面で読めない pgTable は problems、フォルダの表はフォルダの下の全ファイルから
@@ -16,9 +16,9 @@ import { PgTable } from "drizzle-orm/pg-core";
 
 import { scanFeatureTables, tablesOfFolder } from "./tableScan.mjs";
 
-const ROOT = resolve(import.meta.dirname, "../..");
+const ROOT = resolve(import.meta.dirname, "../../..");
 // schemaRegistry は `export *` の再 export だけなので require で全 export を得る(db:push と同じ)
-const schema = createRequire(import.meta.url)("../../src/registry/schemaRegistry.ts");
+const schema = createRequire(import.meta.url)("../../../src/registry/schemaRegistry.ts");
 
 test("実リポ: 走査の表の集合 = schemaRegistry の全 pgTable", () => {
   const { tables, problems } = scanFeatureTables(ROOT);

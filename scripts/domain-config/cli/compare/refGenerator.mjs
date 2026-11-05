@@ -1,5 +1,5 @@
 // git ref の時点の生成器を一時ディレクトリに組み立てる（dc:parity の旧側・dc:compare の base 側で共有）。
-// 生成器 = scripts/domain-config と scripts/registry。生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も
+// 生成器 = scripts/domain-config と scripts/structure/registry。生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も
 // import するので、ref の生成器の相対 import を辿り切って、それらのフォルダも ref から取り出す（ref に無いフォルダは missing）。
 // テンプレート（src/features/_template・src/app/admin/_template）も生成器の一部として ref から取り出す（parts に入る）。
 
@@ -8,7 +8,9 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
-export const GENERATOR_DIRS = ["scripts/domain-config", "scripts/registry"];
+export const GENERATOR_DIRS = ["scripts/domain-config", "scripts/structure/registry"];
+/** 旧い版での生成器の置き場(scripts/ の再編の前)。ref に今の置き場が無ければこちらを取り出す */
+export const LEGACY_GENERATOR_DIRS = { "scripts/structure/registry": "scripts/registry" };
 export const TEMPLATE_DIRS = ["src/features/_template", "src/app/admin/_template"];
 const RELATIVE_IMPORT = /from\s+["']((?:\.\.?\/)+[^"']+)["']/g;
 
@@ -48,13 +50,14 @@ export function extractGeneratorAt(repoRoot, ref, prefix = "dc-ref-") {
   const archive = (paths) =>
     execFileSync("sh", ["-c", `git archive ${JSON.stringify(ref)} ${paths.map((p) => JSON.stringify(p)).join(" ")} | tar -x -C ${JSON.stringify(root)}`], { cwd: repoRoot });
   const inRef = (p) => execFileSync("git", ["ls-tree", ref, "--", p], { cwd: repoRoot, encoding: "utf8" }).trim() !== "";
-  archive(GENERATOR_DIRS);
+  const generatorDirs = GENERATOR_DIRS.map((d) => (inRef(d) || !LEGACY_GENERATOR_DIRS[d] ? d : LEGACY_GENERATOR_DIRS[d]));
+  archive(generatorDirs);
   const parts = new Set();
   const missing = new Set();
   const templates = TEMPLATE_DIRS.filter(inRef);
   if (templates.length) archive(templates);
   for (const dir of TEMPLATE_DIRS) (templates.includes(dir) ? parts : missing).add(dir);
-  let pending = GENERATOR_DIRS;
+  let pending = generatorDirs;
   while (pending.length) {
     const found = new Set(pending.flatMap((p) => [...srcImportDirs(root, path.join(root, p))]));
     const fresh = [...found].filter((d) => !parts.has(d) && !missing.has(d));

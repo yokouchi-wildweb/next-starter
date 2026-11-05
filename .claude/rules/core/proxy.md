@@ -2,7 +2,7 @@
 paths:
   - "src/proxy.ts"
   - "src/proxies/**"
-  - "scripts/proxies/**"
+  - "scripts/structure/proxies/**"
   - "src/featureGate/**"
 ---
 # PROXY

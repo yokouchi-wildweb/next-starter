@@ -1,4 +1,4 @@
-// scripts/registry/alpha/alpha.test.mjs
+// scripts/structure/registry/alpha/alpha.test.mjs
 // α 3 本の走査生成(./index.mjs)の回帰テスト。
 // - 実リポ: 生成結果と一致(pnpm registry:check と同じ)
 // - fixture: pgTable を持つファイル全部・profile の生成物は一覧を通す・キーは snake_case・メニューは印だけ・
@@ -14,7 +14,7 @@ import { test } from "node:test";
 
 import { ADMIN_DATA_MENU_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, STORAGE_PURPOSE_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
 
-const ROOT = resolve(import.meta.dirname, "../../..");
+const ROOT = resolve(import.meta.dirname, "../../../..");
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "alpha-"));

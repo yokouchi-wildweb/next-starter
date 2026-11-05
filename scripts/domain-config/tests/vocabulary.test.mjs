@@ -188,7 +188,7 @@ test("$comment を全階層に足しても生成物は 1 バイトも変わら�
   const { planDomain } = await import("../pipeline/plan.mjs");
   const { createDomainContext } = await import("../domain/context.mjs");
   const { ALL_GENERATE_OPTIONS } = await import("../spec/categories.mjs");
-  const { toDomainDisplay } = await import("../../registry/alpha/domainDisplay.mjs");
+  const { toDomainDisplay } = await import("../../structure/registry/alpha/domainDisplay.mjs");
   const workspace = createWorkspace(repoRoot);
   const sample = readSample();
   const commented = withCommentsEverywhere(sample);

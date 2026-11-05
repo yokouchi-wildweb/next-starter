@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/routes/map.mjs
+// scripts/structure/routes/map.mjs
 // ルート地図(src/app/route-map.jsonl。1 ページ 1 行の守りの鎖)を src/app から生成する。読めない鎖は生成失敗(行と理由、exit 1)。
 //
 // 使い方:
@@ -14,13 +14,12 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap } from "../../src/lib/screens/routeMap.mjs";
-import { SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap } from "../../src/lib/screens/routeMapView.mjs";
-import { listAppFiles } from "../../src/lib/screens/routeTree.mjs";
-// 規則の値だけの一覧(全開スイッチを通さない: コミットする route-map.jsonl が env で揺れないため、L2.3)
-import { configRules as featureGateRules } from "../../src/featureGate/node.ts";
+import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap } from "../../../src/lib/screens/routeMap.mjs";
+import { SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap } from "../../../src/lib/screens/routeMapView.mjs";
+import { listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
+import { rules as featureGateRules } from "../../../src/featureGate/node.ts";
 
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const read = (rel) => readFileSync(path.join(repoRoot, rel), "utf8");
 

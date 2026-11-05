@@ -40,7 +40,11 @@ export function generateAllConfig(config, { legacy, categories }) {
 export function buildTree({ repoRoot, scriptsDir, partsRoot, parts = [], domains, categories, prefix }) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   cp(path.join(repoRoot, "src"), path.join(root, "src"));
-  for (const dir of GENERATOR_DIRS) cp(path.join(scriptsDir, path.basename(dir)), path.join(root, dir));
+  // 生成器の置き場は版で違う(scripts/registry → scripts/structure/registry)。載せる側の版にある方を、その版の並びのまま写す
+  for (const dir of GENERATOR_DIRS) {
+    const rel = [dir.replace(/^scripts\//, ""), path.basename(dir)].find((r) => fs.existsSync(path.join(scriptsDir, r)));
+    if (rel) cp(path.join(scriptsDir, rel), path.join(root, "scripts", rel));
+  }
   for (const part of parts) {
     fs.rmSync(path.join(root, part), { recursive: true, force: true });
     cp(path.join(partsRoot, part), path.join(root, part));

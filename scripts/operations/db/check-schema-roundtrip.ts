@@ -1,4 +1,4 @@
-// scripts/registry/check-schema-roundtrip.ts
+// scripts/operations/db/check-schema-roundtrip.ts
 //
 // pnpm db:push の「読み取り専用ドライラン」。
 // schemaRegistry (TypeScript 側、スキーマゲート適用後) と DATABASE_URL の実 DB を drizzle-kit の push モードで比較し、
@@ -15,7 +15,7 @@
 //   pnpm db:push:check -- --allow-defaults     # SET/DROP DEFAULT 行だけを無視 (fork 固有の default 事情向け退避口)
 //
 // 前提: drizzle-kit/api の pushSchema はバインドパラメータを捨てるバグがあるため、
-// patches/drizzle-kit@*.patch で修正済み (pnpm install で自動適用)。詳細: scripts/registry/README.md
+// patches/drizzle-kit@*.patch で修正済み (pnpm install で自動適用)。詳細: scripts/structure/registry/README.md
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -86,7 +86,7 @@ const main = async () => {
     console.log("");
     console.log(
       "push 直後にこの差分が残る場合は、index / default の書き方が drizzle-kit と round-trip していません。" +
-        " scripts/registry/README.md の記述ルールを参照してください。",
+        " scripts/structure/registry/README.md の記述ルールを参照してください。",
     );
     return 1;
   } finally {

@@ -1,4 +1,4 @@
-// scripts/registry/alpha/index.mjs
+// scripts/structure/registry/alpha/index.mjs
 // src/registry の α 4 本(schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry)を走査から丸ごと組み立てる(親 D67)。
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
@@ -6,7 +6,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
-import { toCamelCase, toKebabCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
 import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
 

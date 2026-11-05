@@ -102,7 +102,7 @@ export const rule: FeatureGateRule = {
 
 - `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/lib/pathPattern`（門番の判定・ルート地図・test:feature-gate が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
 - **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
-- `features` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。無いフォルダ・ドメインの位置でない書き方（`core/wallet/entities` のような深い場所・`core` そのもの）は生成器が止める。表名は書かない: `extensions:generate`（宣言の `derive: "featureTables"`）がフォルダの下の全 `pgTable` から導く（`scripts/registry/tableScan.mjs`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
+- `features` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。無いフォルダ・ドメインの位置でない書き方（`core/wallet/entities` のような深い場所・`core` そのもの）は生成器が止める。表名は書かない: `extensions:generate`（宣言の `derive: "featureTables"`）がフォルダの下の全 `pgTable` から導く（`scripts/structure/registry/tableScan.mjs`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
 - **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、一覧の項目の `domainApiPaths` と `pathPatterns` の後ろに足す（全部の読み手に効く）。`domainEntry.ts` の無いフォルダは何も足さない。手書きと重なると `test:feature-gate` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm extensions:generate`（ずれは `extensions:check` が止める）
 - **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器がその規則の `settingPaths` と `pathPatterns` に足す（`scripts/extensions/derive/gateSettingPaths.mjs`）。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - `enabled` は config の値を読む同期関数（値の置き場は config）
@@ -260,4 +260,4 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 
 ## 旧い置き場からの移行(fork)
 
-旧い置き場(`src/proxies/featureGateRules/`・`scripts/proxies/alwaysOnExceptions/`・`src/proxies/pathPattern.mjs`・`scripts/registry/schemaGate.ts`・生成一覧 `src/proxies/extensions/featureGateRules.ts`)からの移し方は `node scripts/codemods/feature-gate-relocate.mjs`(dry-run → `--apply`、`scripts/codemods/README.md`)。旧い型 `@/proxies/types` の `FeatureGateRule`・`GatedFeatureRule` の再 export は区切り gate-s3 で消した(型は `@/featureGate` から。この道具が直す)。
+旧い置き場(`src/proxies/featureGateRules/`・`scripts/proxies/alwaysOnExceptions/`・`src/proxies/pathPattern.mjs`・`scripts/structure/registry/schemaGate.ts`・生成一覧 `src/proxies/extensions/featureGateRules.ts`)からの移し方は `node scripts/codemods/feature-gate-relocate.mjs`(dry-run → `--apply`、`scripts/codemods/README.md`)。旧い型 `@/proxies/types` の `FeatureGateRule`・`GatedFeatureRule` の再 export は区切り gate-s3 で消した(型は `@/featureGate` から。この道具が直す)。

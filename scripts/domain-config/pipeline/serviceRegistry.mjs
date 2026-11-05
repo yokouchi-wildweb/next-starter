@@ -1,9 +1,9 @@
-// src/registry/serviceRegistry.ts の作り直し（scripts/registry/serviceRegistry/generate.mjs を呼ぶ）と、書く前の検査。
+// src/registry/serviceRegistry.ts の作り直し（scripts/structure/registry/serviceRegistry/generate.mjs を呼ぶ）と、書く前の検査。
 // 登録表は全 domainEntry.ts から丸ごと生成する。失敗 = 他の domainEntry.ts や手書き行の不整合（メッセージの直し方に従う）。
 // 検査は「これから書くファイル」を重ねた見え方で行うので、書いてから壊れていたと分かることがない
 
-import { createOverlayView } from "../../registry/serviceRegistry/discover.mjs";
-import { buildServiceRegistry, formatRegistryErrors, generateServiceRegistry } from "../../registry/serviceRegistry/generate.mjs";
+import { createOverlayView } from "../../structure/registry/serviceRegistry/discover.mjs";
+import { buildServiceRegistry, formatRegistryErrors, generateServiceRegistry } from "../../structure/registry/serviceRegistry/generate.mjs";
 
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace

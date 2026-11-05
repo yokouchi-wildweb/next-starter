@@ -1,4 +1,4 @@
-// scripts/registry/alpha/domainDisplay.test.mjs
+// scripts/structure/registry/alpha/domainDisplay.test.mjs
 // 実行: pnpm test:domain-display
 
 import assert from "node:assert/strict";
@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { renderDomainDisplay, toDomainDisplay } from "./domainDisplay.mjs";
 import { buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
-import { toCamelCase } from "../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 const FORBIDDEN = ["apiAccess", "dbEngine", "idType", "generateFiles", "storage", "indexes", "hiddenColumns", "onDelete", "slug", "collection", "defaultOrderBy", "metadataBinding", "uploadPath", "description"];
 

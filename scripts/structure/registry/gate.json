@@ -1,0 +1,1 @@
+{ "check": "check.mjs", "generate": "generate.mjs", "gates": ["build", "ship", "forge:post"] }

@@ -1,4 +1,4 @@
-// scripts/registry/serviceRegistry/discover.mjs
+// scripts/structure/registry/serviceRegistry/discover.mjs
 // src/features/**/services/server/domainEntry.ts（と fork の domainEntry.override.ts）を走査し、
 // src/registry/serviceRegistry.ts の生成・検査に必要な情報を集める（一覧ファイルは持たない）。
 //
@@ -10,8 +10,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { scanObjectEntries } from "../../domain-config/text/objectEntry.mjs";
-import { toCamelCase } from "../../../src/utils/stringCase.mjs";
+import { scanObjectEntries } from "../../../domain-config/text/objectEntry.mjs";
+import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 export const ENTRY_FILE = "domainEntry.ts";
 export const OVERRIDE_FILE = "domainEntry.override.ts";

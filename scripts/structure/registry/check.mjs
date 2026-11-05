@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/registry/check.mjs
+// scripts/structure/registry/check.mjs
 // src/registry の α 5 本が走査の生成結果と一致するか検査する(pnpm registry:check。build の冒頭で走る)。書かない。
 // ドメインを足した・消した直後もここで止まる(直し方は pnpm registry:generate)。詳細: ./README.md
 
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { buildAlphaRegistries, staleAlphaRegistries } from "./alpha/index.mjs";
 import { checkServiceRegistry } from "./serviceRegistry/check.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const { errors, keys } = checkServiceRegistry(repoRoot);
 const { outputs, problems } = buildAlphaRegistries(repoRoot);
 const stale = problems.length > 0 ? [] : staleAlphaRegistries(repoRoot, outputs);

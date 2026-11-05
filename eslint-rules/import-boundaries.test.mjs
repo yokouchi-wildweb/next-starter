@@ -271,12 +271,12 @@ test("classify: 門番の外からは入口 3 つだけ、lib は読まない、
   assert.equal(C("src/proxies/featureGate.ts", "src/featureGate"), null);
   assert.equal(C("src/app/(user)/demo/_screen/loader.ts", "src/featureGate/index"), null);
   assert.equal(C("src/app/x/Client.tsx", "src/featureGate/client.ts"), null);
-  assert.equal(C("scripts/registry/push.ts", "src/featureGate/node"), null);
-  assert.equal(C("scripts/routes/map.mjs", "src/featureGate/node.ts"), null);
+  assert.equal(C("scripts/operations/db/push.ts", "src/featureGate/node"), null);
+  assert.equal(C("scripts/structure/routes/map.mjs", "src/featureGate/node.ts"), null);
   assert.equal(C("src/featureGate/extensions/rules.ts", "src/featureGate/rules/wallet"), null, "門番の中どうしは自由");
   assert.equal(C("src/featureGate/rules/wallet.ts", "src/featureGate"), null);
   assert.equal(C("src/lib/screens/routeMap.test.mjs", "src/featureGate/node.ts"), null, "テストは対象外");
-  assert.equal(C("scripts/proxies/proxyFrame.test.mjs", "src/featureGate/checks/alwaysOnEntries.mjs"), null, "テストは対象外");
+  assert.equal(C("scripts/structure/proxies/proxyFrame.test.mjs", "src/featureGate/checks/alwaysOnEntries.mjs"), null, "テストは対象外");
   assert.equal(C("src/app/x/page.tsx", "src/lib/pathPattern/index.mjs"), null, "門番の外の import は見ない");
   assert.equal(C("src/lib/screens/routeMap.mjs", "src/featureGate/node.ts"), "gateFromLib");
   assert.equal(C("src/lib/foo/index.ts", "src/featureGate"), "gateFromLib", "lib は入口も読まない");
@@ -292,7 +292,7 @@ test("rule feature-gate-entries: 型も別名も相対も dynamic import も止�
     valid: [
       { code: `import { gate } from "@/featureGate";`, filename: at("src/proxies/featureGate.ts") },
       { code: `import type { FeatureName } from "@/featureGate";`, filename: at("src/app/x/page.tsx") },
-      { code: `const m = await import("@/featureGate/node");`, filename: at("scripts/registry/push.ts") },
+      { code: `const m = await import("@/featureGate/node");`, filename: at("scripts/operations/db/push.ts") },
       { code: `import { rule } from "@/featureGate/rules/wallet";`, filename: at("src/featureGate/extensions/rules.ts") },
       { code: `import { rules } from "../../featureGate/node.ts";`, filename: at("src/lib/screens/routeMap.test.mjs") },
       { code: `import { clientGateState } from "@/featureGate";`, filename: at("src/app/layout.tsx") },

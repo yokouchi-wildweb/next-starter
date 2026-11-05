@@ -9,11 +9,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compareCollectionWiring, declaredCollections } from "./compare.mjs";
-import { hasTableCollections } from "../../../src/lib/crud/collections/tableCollections.ts";
-import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
-import { collectionFieldsOf } from "../../../src/lib/dataMigration/collectionFields.ts";
+import { hasTableCollections } from "../../../../src/lib/crud/collections/tableCollections.ts";
+import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
+import { collectionFieldsOf } from "../../../../src/lib/dataMigration/collectionFields.ts";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 const pascalOf = (camel) => camel.charAt(0).toUpperCase() + camel.slice(1);
 

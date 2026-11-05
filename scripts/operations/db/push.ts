@@ -1,4 +1,4 @@
-// scripts/registry/push.ts
+// scripts/operations/db/push.ts
 //
 // pnpm db:push の本体。schemaRegistry を実 DB に反映する（drizzle-kit push の代わり）。
 // drizzle-kit の CLI ではなく drizzle-kit/api の pushSchema を使うのは、スキーマゲート
@@ -7,7 +7,7 @@
 //
 // 実行:
 //   pnpm db:push                                        # .env.development 固定
-//   ENV_FILE=.env.production pnpm exec tsx scripts/registry/push.ts   # 任意の env ファイル
+//   APP_ENV=.env.production pnpm exec tsx scripts/operations/db/push.ts   # 任意の env ファイル
 //   ... --force                                         # データ消失を伴う文も確認なしで実行
 //
 // 挙動は drizzle-kit push に合わせる:
@@ -15,7 +15,7 @@
 // - テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る
 // - データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する（--force で省略）
 //
-// 詳細: scripts/registry/README.md
+// 詳細: scripts/structure/registry/README.md
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";

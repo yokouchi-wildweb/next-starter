@@ -9,7 +9,7 @@
 // - fork の手書きの登録表: import した名前の使い所(import 行以外)が全部 `...(<条件> ? [ ... ] : [])` の内側
 // - それ以外(常に読み込まれる結線など): 理由付きの例外表にある
 // 限界: 直接の import だけを見る(別のモジュールを経由した到達は見ない)。型だけの import は数えない。
-// 使い手: src/featureGate/checks/featureGate.test.mjs(実リポ)、scripts/proxies/proxyFrame.test.mjs(fixture)
+// 使い手: src/featureGate/checks/featureGate.test.mjs(実リポ)、scripts/structure/proxies/proxyFrame.test.mjs(fixture)
 
 import { oldMarkerProblem } from "../../lib/forkOwnership/dottedNames.mjs";
 import { matchesPath } from "../../lib/pathPattern/index.mjs";

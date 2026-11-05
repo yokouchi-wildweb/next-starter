@@ -1,10 +1,10 @@
-# scripts/registry — スキーマ登録と push round-trip の検査
+# scripts/structure/registry — スキーマ登録と push round-trip の検査
 
 `src/registry/schemaRegistry.ts` は push の唯一のスキーマ入口。ここには、push 本体（`pnpm db:push`）と、その入口と実 DB の整合を機械的に確認する 2 つの検査、それに付随する運用方針・記述ルールをまとめる。
 
 | コマンド | 何をするか | DB 接続 |
 |---|---|---|
-| `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/registry/push.ts`） | 必要・書き込む |
+| `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/operations/db/push.ts`） | 必要・書き込む |
 | `pnpm test:schema-registry` | 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
 | `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
 | `pnpm registry:generate` / `pnpm registry:check` | `src/registry` の α 5 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル。プロフィールの `entities/profiles/<名前>/drizzle.ts` も）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
@@ -13,7 +13,7 @@
 
 このリポジトリはマイグレーションファイルを使わない。`pnpm db:push` が schemaRegistry と実 DB を直接比較し、差分の SQL をその場で実行する（`drizzle-kit generate` → SQL ファイル適用、という手順は取らない）。
 
-`pnpm db:push` の本体は `scripts/registry/push.ts`（drizzle-kit CLI ではなく `drizzle-kit/api` の `pushSchema`）。理由は **スキーマゲート**: 機能フラグで無効な機能のテーブルを、push のコード側と DB 側の両方から外す（作らない・消さない）。CLI はスキーマファイルの export をそのまま拾うのでコード側から外せない。仕組みと決まりは `src/featureGate/README.md`（門番、入口 `@/featureGate/node` の `gatedSchema`）。
+`pnpm db:push` の本体は `scripts/operations/db/push.ts`（drizzle-kit CLI ではなく `drizzle-kit/api` の `pushSchema`）。理由は **スキーマゲート**: 機能フラグで無効な機能のテーブルを、push のコード側と DB 側の両方から外す（作らない・消さない）。CLI はスキーマファイルの export をそのまま拾うのでコード側から外せない。仕組みと決まりは `src/featureGate/README.md`（門番、入口 `@/featureGate/node` の `gatedSchema`）。
 
 - 実行する SQL を必ず表示してから実行する（差分が無ければ何もしない）。
 - テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る。
@@ -25,7 +25,7 @@
 3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
 4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）
 
-他環境への push は `pnpm db:push` ではなく `ENV_FILE=<env ファイル> pnpm exec tsx scripts/registry/push.ts`（`db:push` スクリプトは `ENV_FILE=.env.development` を固定で設定するため）。本番 push のタイミングは下記「運用方針」に従う。
+他環境への push は `pnpm db:push` ではなく `APP_ENV=<env ファイル> pnpm exec tsx scripts/operations/db/push.ts`（`db:push` スクリプトは `APP_ENV=.env.development` を固定で設定するため）。本番 push のタイミングは下記「運用方針」に従う。
 
 ## db:push:check（push の読み取り専用ドライラン）
 

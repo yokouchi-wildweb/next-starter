@@ -74,7 +74,7 @@ test("実地: base で生成 → fork が手を入れる → 分類。generateFi
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dc-compare-test-"));
   cleanup.push(root);
   fs.cpSync(path.join(repoRoot, "src"), path.join(root, "src"), { recursive: true });
-  for (const dir of ["scripts/domain-config", "scripts/registry"]) fs.cpSync(path.join(repoRoot, dir), path.join(root, dir), { recursive: true });
+  for (const dir of ["scripts/domain-config", "scripts/structure/registry"]) fs.cpSync(path.join(repoRoot, dir), path.join(root, dir), { recursive: true });
   fs.symlinkSync(path.join(repoRoot, "node_modules"), path.join(root, "node_modules"), "dir");
   fs.writeFileSync(path.join(root, ".gitignore"), "node_modules\n");
   const memoDir = path.join(root, "src/features/memo");

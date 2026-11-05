@@ -106,7 +106,9 @@ function makeWork(base, side) {
   const work = tmp("dc-parity-work-");
   cp(path.join(base, "src"), path.join(work, "src"));
   cp(path.join(side.scripts, "domain-config"), path.join(work, "scripts", "domain-config"));
-  cp(path.join(side.scripts, "registry"), path.join(work, "scripts", "registry"));
+  // 登録表の生成器の置き場は版で違う(scripts/registry → scripts/structure/registry)。その版の並びのまま写す
+  const registryDir = ["structure/registry", "registry"].find((r) => fs.existsSync(path.join(side.scripts, r)));
+  cp(path.join(side.scripts, registryDir), path.join(work, "scripts", registryDir));
   for (const part of side.parts) {
     fs.rmSync(path.join(work, part), { recursive: true, force: true });
     cp(path.join(side.root, part), path.join(work, part));

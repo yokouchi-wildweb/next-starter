@@ -4,7 +4,7 @@ import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { GENERATED_HEADER, createOverlayView, discoverDomainEntries } from "../../registry/serviceRegistry/discover.mjs";
+import { GENERATED_HEADER, createOverlayView, discoverDomainEntries } from "../../structure/registry/serviceRegistry/discover.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
 import { overlayFromOutputs, precheckServiceRegistry } from "../pipeline/serviceRegistry.mjs";

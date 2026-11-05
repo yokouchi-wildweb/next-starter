@@ -1,4 +1,4 @@
-// scripts/proxies/proxyFrame.test.mjs
+// scripts/structure/proxies/proxyFrame.test.mjs
 // proxy の枠(src/proxies/<名前>.ts の走査と生成一覧)と常時実行の入口の判定の回帰テスト。一時ディレクトリで動かす。
 // 生成器は汎用の拡張点の生成器(scripts/extensions/)で、宣言は実物の src/proxies/extensionPoints.ts をそのまま使う。
 // - 項目 = export const handler / decorator を 1 つ持つ直下の .ts、骨組み・枠・テスト・サブフォルダ・.mjs は見ない
@@ -15,12 +15,12 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createFeatureTables } from "../extensions/derive/featureTables.mjs";
-import { readSectionFeature } from "../extensions/derive/gateSettingPaths.mjs";
+import { createFeatureTables } from "../../extensions/derive/featureTables.mjs";
+import { readSectionFeature } from "../../extensions/derive/gateSettingPaths.mjs";
 import { scanFeatureTables } from "../registry/tableScan.mjs";
-import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
+import { itemsOf, planExtensions } from "../../extensions/extensions.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const DECLARATION = readFileSync(join(repoRoot, "src/proxies/extensionPoints.ts"), "utf8");
 const GATE_DECLARATION = readFileSync(join(repoRoot, "src/featureGate/extensionPoints.ts"), "utf8");
 const SKELETON_FILES = ["maintenance.ts", "demoMode.ts", "featureGate.ts", "redirect.ts", "attribution.ts", "inviteLink.ts"];
@@ -200,7 +200,7 @@ test("設定の節の feature から /admin/settings/<key> を規則の settingP
 });
 
 test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
-  const { judgeAlwaysOnEntries, folderSourcePattern, cronTaskPathOf, rulesNotCoveringCronTask } = await import("../../src/featureGate/checks/alwaysOnEntries.mjs");
+  const { judgeAlwaysOnEntries, folderSourcePattern, cronTaskPathOf, rulesNotCoveringCronTask } = await import("../../../src/featureGate/checks/alwaysOnEntries.mjs");
   const rules = [
     { name: "wallet", features: ["core/wallet"], pathPatterns: ["/wallet", "/api/cron/wallet-ok"] },
     { name: "walletAdmin", features: ["core/wallet"], pathPatterns: ["/admin/wallet", "/api/cron/wallet-ok"] },
@@ -288,7 +288,7 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
 });
 
 test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExceptions/<名前>.ts は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い置き場は止める", async () => {
-  const { readForkAlwaysOn, staleAlwaysOnFiles, judgeAlwaysOnEntries } = await import("../../src/featureGate/checks/alwaysOnEntries.mjs");
+  const { readForkAlwaysOn, staleAlwaysOnFiles, judgeAlwaysOnEntries } = await import("../../../src/featureGate/checks/alwaysOnEntries.mjs");
   const ok = readForkAlwaysOn({
     exceptions: [{ file: "src/wiring/x.ts", reason: "端末の解決は route でだけ走る" }],
     registries: [{ file: "src/registry/cleanup.ts", reason: "退会の後片付け" }],

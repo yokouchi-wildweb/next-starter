@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/registry/serviceRegistry/generate.mjs
+// scripts/structure/registry/serviceRegistry/generate.mjs
 // src/registry/serviceRegistry.ts を src/features/**/services/server/domainEntry.ts（+ domainEntry.override.ts）から丸ごと生成する
 //
 // 使い方:
@@ -72,7 +72,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
             ? `（pnpm dc:generate ${domain.camel} --yes --only registry で生成する）`
             : domain.hasDomainJson && !domain.isCore
               ? `（domain.json が "generate": false なので dc:generate は書かない → 手書きする。形: src/lib/domain/README.md「generate: false の業務ドメイン」）`
-              : `（手書きする。登録表に載せないドメインは scripts/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
+              : `（手書きする。登録表に載せないドメインは scripts/structure/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
       );
     }
     if (domain.entryPath && domain.keys.length === 0 && domain.entryErrors.length === 0) {
@@ -211,7 +211,7 @@ export function generateServiceRegistry(repoRoot, { log = console.log } = {}) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
   try {
     generateServiceRegistry(repoRoot);
   } catch (error) {

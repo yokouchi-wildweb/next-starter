@@ -1,0 +1,1 @@
+{ "check": "check.ts", "generate": "generate.ts", "gates": ["ship", "forge:post"] }

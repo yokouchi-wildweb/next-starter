@@ -21,18 +21,18 @@ import { fileURLToPath } from "node:url";
 import { GENERATED_HEADER, REGISTRY_FILE, discoverDomainEntries, listStaticImports, readObjectKeys } from "./discover.mjs";
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
-import { renderDomainEntry } from "../../domain-config/render/registry/domainEntry.mjs";
-import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
-import { domainConfigMap } from "../../../src/registry/domainConfigRegistry.ts";
-import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../src/lib/domain/types/apiAccess.ts";
-import { isGenericApiClosed, resolveAccessRule } from "../../../src/lib/domain/definition/apiAccess.ts";
-import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../src/config/app/domain-api-access.config.ts";
+import { renderDomainEntry } from "../../../domain-config/render/registry/domainEntry.mjs";
+import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
+import { domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
+import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../../src/lib/domain/types/apiAccess.ts";
+import { isGenericApiClosed, resolveAccessRule } from "../../../../src/lib/domain/definition/apiAccess.ts";
+import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../../src/config/app/domain-api-access.config.ts";
 // `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
-import { getDomainList } from "../../../src/lib/domain/service/server/getDomainList.ts";
-import { getService, hasService, lookupDomainService } from "../../../src/lib/domain/service/server/getService.ts";
-import { findDomainByTable, getDomainTable } from "../../../src/lib/domain/service/server/tableLookup.ts";
+import { getDomainList } from "../../../../src/lib/domain/service/server/getDomainList.ts";
+import { getService, hasService, lookupDomainService } from "../../../../src/lib/domain/service/server/getService.ts";
+import { findDomainByTable, getDomainTable } from "../../../../src/lib/domain/service/server/tableLookup.ts";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 /** 各 domainEntry.ts の domainEntries（fork の domainEntry.override.ts を当てる前の既定値）をキーで引く */
 async function loadDefaultEntries() {

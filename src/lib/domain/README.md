@@ -91,10 +91,10 @@ export const domainEntries = {
 `registry:check` が失敗する条件と直し方（メッセージにも出る）:
 
 - 移行前の手書き行（生成ヘッダの無い旧 serviceRegistry.ts に、どの domainEntry.ts からも作られないキー）→ domain.json の `apiAccess` に移して `pnpm dc:generate <Domain> --only registry`、または domainEntry.ts（core）/ domainEntry.override.ts（fork が core の access を変える）へ移す。生成ヘッダ付きのファイルから消えるキー（dc:delete 後）は正当な除去として通る
-- キーの重複 / `drizzleBase.ts`・`firestoreBase.ts` があるのに domainEntry.ts が無い（登録表に載せないドメインは `scripts/registry/serviceRegistry/discover.mjs` の `ENTRY_EXCEPTIONS` に理由付きで。縮むだけの表）/ `storageBindingFor` の第 1 引数（record_type）がキーに無い / 読めない行・許可外の静的 import / override のキーが隣の domainEntry.ts に無い
+- キーの重複 / `drizzleBase.ts`・`firestoreBase.ts` があるのに domainEntry.ts が無い（登録表に載せないドメインは `scripts/structure/registry/serviceRegistry/discover.mjs` の `ENTRY_EXCEPTIONS` に理由付きで。縮むだけの表）/ `storageBindingFor` の第 1 引数（record_type）がキーに無い / 読めない行・許可外の静的 import / override のキーが隣の domainEntry.ts に無い
 - `table` / `idColumn`: 無い（生成ドメインは `pnpm dc:generate <Domain> --only registry`、手書きは service の直後に書く）/ 文字列リテラルと `null` 以外 / 形が物理名でない（空・63 文字超・引用符や空白入り。大文字は通す）/ 片方だけ `null` / **同じ表が 2 つのキーにある**（両方のファイルとキーを出す）。値が実物と同じかは `registry:check` では見ない（`test:service-registry`）
 
-生成器: `scripts/registry/serviceRegistry/{discover,generate,check}.mjs`（plain node。cron の generate / check と同じ 3 分割）。
+生成器: `scripts/structure/registry/serviceRegistry/{discover,generate,check}.mjs`（plain node。cron の generate / check と同じ 3 分割）。
 
 ### access と管理データ操作
 

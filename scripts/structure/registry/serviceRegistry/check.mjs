@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/registry/serviceRegistry/check.mjs
+// scripts/structure/registry/serviceRegistry/check.mjs
 // src/registry/serviceRegistry.ts が src/features/**/services/server/domainEntry.ts からの生成結果と一致するか検査する
 //
 // 使い方:
@@ -30,7 +30,7 @@ export function checkServiceRegistry(repoRoot) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
   const { errors, keys } = checkServiceRegistry(repoRoot);
   if (errors.length > 0) {
     console.error(`✗ ${REGISTRY_FILE} の検査に失敗しました:`);

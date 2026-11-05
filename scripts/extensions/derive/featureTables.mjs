@@ -2,18 +2,18 @@
 // 組み込みの変換 "featureTables": 機能を閉じる規則の features: [機能のフォルダ] から、そのフォルダの全 pgTable の表名を導く(D16・D20 K1)。
 // features に書けるのはドメインの位置にあるフォルダ(src/features/core/<名前> か src/features/<名前>。CLAUDE.md DOMAINS)。
 // 表の数は問わない(0 = Firestore のドメインなど、tables: [] になる)。無いフォルダ・ドメインの位置でない書き方(深い場所・core そのもの)は止める。
-// 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。表の走査: scripts/registry/tableScan.mjs
+// 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。表の走査: scripts/structure/registry/tableScan.mjs
 // 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
 // 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキーから /api/<key> を導き(字面、
-// scripts/registry/serviceRegistry/discover.mjs の readObjectKeys)、項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
+// scripts/structure/registry/serviceRegistry/discover.mjs の readObjectKeys)、項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
 // domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は test:feature-gate が重なりとして知らせる。
 // 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導き settingPaths として同じく足す(./gateSettingPaths.mjs、L1.17)。
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ENTRIES_EXPORT, ENTRY_FILE, readObjectKeys } from "../../registry/serviceRegistry/discover.mjs";
-import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../../registry/tableScan.mjs";
+import { ENTRIES_EXPORT, ENTRY_FILE, readObjectKeys } from "../../structure/registry/serviceRegistry/discover.mjs";
+import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../../structure/registry/tableScan.mjs";
 import { scanSettingSectionFeatures } from "./gateSettingPaths.mjs";
 
 const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
