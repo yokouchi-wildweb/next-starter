@@ -252,3 +252,95 @@ test("-: 索引のほかに本体のファイルも衝突するなら、その�
   assert.match(res.reasons.join("\n"), /衝突する.*src\/a\.txt/);
   assert.doesNotMatch(res.reasons.join("\n"), /shipped/);
 });
+
+// 別の notice の pick:clean の修正 G を先に載せる(stackedPicks)。N0 が b.txt を壊し、G が N0 を直す。F は N1 の修正
+const FIXED = `node -e "process.exit(require('fs').readFileSync('src/b.txt','utf8').includes('fixed')?0:1)"`;
+
+test("先に載せる: fork が壊れた地点までに取っている別の clean な修正を載せてから試す / G が pick:- なら今どおり -", (t) => {
+  for (const pick of ["clean", "-", undefined]) {
+    const r = repo(t);
+    r.commit({ "src/b.txt": "brk\n", [F(N(1))]: notice(N(1)) });
+    const b1 = r.commit({ "src/a.txt": "bug\n", [F(N(2))]: notice(N(2)) });
+    const g = r.commit({ "src/b.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick }) });
+    r.commit({ "src/a.txt": "ok\n", [F(N(4))]: notice(N(4), { fixes: N(2) }) });
+    const [res] = judge(r.dir, "HEAD", { checks: [OK, FIXED] });
+    assert.equal(res.base, b1);
+    if (pick === "clean") {
+      assert.equal(res.verdict, "clean", res.reasons.join("\n"));
+      assert.match(res.why, new RegExp(`修正 ${N(3)} を先に載せた`));
+    } else {
+      assert.equal(res.verdict, "-", `G pick:${pick}`);
+      assert.doesNotMatch(res.why, new RegExp(N(3)));
+    }
+    assert.ok(g);
+  }
+});
+
+test("先に載せない: G の土台が壊れた地点より後 / G が既に土台の祖先 / G が F より後に出荷", (t) => {
+  // G の土台(N0 の区切り)が F の壊れた地点より後
+  const r = repo(t);
+  r.commit({ "src/a.txt": "bug\n", [F(N(2))]: notice(N(2)) });
+  r.commit({ "src/b.txt": "brk\n", [F(N(1))]: notice(N(1)) });
+  r.commit({ "src/b.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick: "clean" }) });
+  r.commit({ "src/a.txt": "ok\n", [F(N(4))]: notice(N(4), { fixes: N(2) }) });
+  const [res] = judge(r.dir, "HEAD", { checks: [OK] });
+  assert.equal(res.verdict, "clean", res.reasons.join("\n"));
+  assert.doesNotMatch(res.why, new RegExp(N(3)));
+
+  // G が壊れた地点の祖先(既に木にある)
+  const r2 = repo(t);
+  r2.commit({ "src/b.txt": "brk\n", [F(N(1))]: notice(N(1)) });
+  r2.commit({ "src/b.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick: "clean" }) });
+  r2.commit({ "src/a.txt": "bug\n", [F(N(2))]: notice(N(2)) });
+  r2.commit({ "src/a.txt": "ok\n", [F(N(4))]: notice(N(4), { fixes: N(2) }) });
+  const [res2] = judge(r2.dir, "HEAD", { checks: [OK, FIXED] });
+  assert.equal(res2.verdict, "clean", res2.reasons.join("\n"));
+  assert.doesNotMatch(res2.why, new RegExp(N(3)));
+
+  // G が F より後に出荷(F の出荷時には知りようがない)
+  const r3 = repo(t);
+  r3.commit({ "src/b.txt": "brk\n", [F(N(1))]: notice(N(1)) });
+  r3.commit({ "src/a.txt": "bug\n", [F(N(2))]: notice(N(2)) });
+  const fix = r3.commit({ "src/a.txt": "ok\n", [F(N(4))]: notice(N(4), { fixes: N(2) }) });
+  r3.commit({ "src/b.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick: "clean" }) });
+  const [res3] = judge(r3.dir, fix, { checks: [OK, FIXED] });
+  assert.equal(res3.verdict, "-");
+  assert.doesNotMatch(res3.why, new RegExp(N(3)));
+});
+
+test("先に載せる G が壊れた地点に載らないなら -(G の sha を挙げる)", (t) => {
+  const r = repo(t);
+  r.commit({ "src/b.txt": "brk\n", [F(N(1))]: notice(N(1)) });
+  r.commit({ "src/a.txt": "bug\n", [F(N(2))]: notice(N(2)) });
+  r.commit({ "src/b.txt": "brk-between\n" });
+  const g = r.commit({ "src/b.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick: "clean" }) });
+  r.commit({ "src/a.txt": "ok\n", [F(N(4))]: notice(N(4), { fixes: N(2) }) });
+  const [res] = judge(r.dir, "HEAD", { checks: [OK] });
+  assert.equal(res.verdict, "-");
+  assert.match(res.reasons.join("\n"), new RegExp(`先に載せる修正 ${g.slice(0, 8)} が土台に載らない`));
+});
+
+test("先に載せる: 束 5 の形(修正を壊れた地点の脇の commit で出して merge)。G と F は互いの祖先でなく、先端の索引から G を見つける", (t) => {
+  const r = repo(t);
+  const g_ = (...a) => execFileSync("git", ["-C", r.dir, ...a], { encoding: "utf8" }).trim();
+  const b0 = r.commit({ "src/b.txt": "brk\n", [F(N(1))]: notice(N(1)) });
+  const b1 = r.commit({ "src/a.txt": "bug\n", [F(N(2))]: notice(N(2)) });
+  r.commit({ "src/c.txt": "later\n" });
+  // G: N0 の区切りの脇
+  g_("switch", "-q", "-c", "g", b0);
+  r.commit({ "src/b.txt": "fixed\n", [F(N(3))]: notice(N(3), { fixes: N(1), pick: "clean" }) });
+  g_("switch", "-q", "main");
+  g_("merge", "-q", "--no-ff", "-m", "merge g", "g");
+  // F: N1 の区切りの脇(G を含まない)
+  g_("switch", "-q", "-c", "f", b1);
+  const fix = r.commit({ "src/a.txt": "ok\n", [F(N(4))]: notice(N(4), { fixes: N(2) }) });
+  g_("switch", "-q", "main");
+  g_("merge", "-q", "--no-ff", "-m", "merge f", "f");
+  const [res] = judge(r.dir, fix, { checks: [OK, FIXED] });
+  assert.equal(res.base, b1);
+  assert.equal(res.verdict, "clean", res.reasons.join("\n"));
+  assert.match(res.why, new RegExp(`修正 ${N(3)} を先に載せた`));
+  // 先端が G の merge より前なら G は出荷前で載らない
+  const [early] = judge(r.dir, fix, { checks: [OK, FIXED], at: "f" });
+  assert.equal(early.verdict, "-");
+});

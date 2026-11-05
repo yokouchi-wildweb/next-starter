@@ -15,10 +15,13 @@
 //   同じ区間で届く(先に取る意味が無い)ので -。修正元が複数なら最も古い壊れた地点を土台にする。
 //   修正元が修正(fixes: を持つ notice)のとき(修正の修正): その修正の pick: が clean なら、その修正の土台の上にその修正を
 //   載せた木を土台にする(fork はそこで先に取っているため)。clean でなければ連鎖を試さず -。
+//   別の notice の pick:clean の修正も、fork が壊れた地点までに先に取っているもの(その修正の土台が壊れた地点かその祖先で、
+//   出荷済み(--at、既定 HEAD の祖先)で修正の後の履歴にないもの)は履歴順に先に載せてから試す(stackedPicks。土台 + 先に載せた修正 = fork の実際の木)。
 //
-// 実行: pnpm notices:pick-check <commit> [--dry-run] [--check=<cmd> ...]
+// 実行: pnpm notices:pick-check <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]
 //   commit = 修正の notice を足した commit。--dry-run 以外は判定を自分の索引 .notices/shipped/<fork_id>.md のその notice の行の
 //   pick: に書く(作業ツリー。本文には書かない。行が無ければ書かずに exit 2: 先に shippedIndex.mjs add で行を足して commit する)。
+//   --at = 出荷する先端(既定 HEAD)。先に載せる別の clean な修正はこの祖先から選ぶ(脇の commit の修正は merge の後の先端で)
 //   --check = 3 の検査を差し替える(繰り返し可。テスト用)
 //   exit 0 = 全部 clean | 1 = - がある | 2 = 判定できない(fixes: の notice が無い・修正元が見つからない・依存を入れられない)
 import { execFileSync, spawnSync } from "node:child_process";
@@ -156,6 +159,32 @@ export function sourcesBase(repo, refs, fix, index, cps, seen = new Set()) {
   return bases.reduce((a, b) => (isAncestor(repo, b.base, a.base) && b.base !== a.base ? b : a));
 }
 
+/**
+ * fork が土台 b.base に着いた時点で既に取っている、別の notice の pick:clean の修正を b に足す(土台 + picks = fork の実際の木)。
+ * /flux は clean な修正を修正元の区間の直後に履歴順で取るので、対象 = 出荷済み(at = 出荷する先端、既定 HEAD の祖先)で fix より後の
+ * 履歴にない(fix の子孫でない)修正のうち、土台の祖先でなく、その修正の土台が b.base か b.base の祖先であるもの(その連鎖の picks ごと)。
+ * 修正を壊れた地点の脇の commit で出す形(fix と G が互いの祖先でない)もあるので、候補は fix の木ではなく at の索引から読む。
+ * 戻り値 = { ...b, picks: 履歴順, stacked: [載せた修正の notice id] }
+ */
+export function stackedPicks(repo, fix, b, { at = "HEAD" } = {}) {
+  const tip = git(repo, ["rev-parse", "--verify", "-q", `${at}^{commit}`]).trim();
+  const index = noticeIndex(repo, tip);
+  const cps = checkpointCommits(index);
+  const want = new Set(b.picks);
+  const stacked = [];
+  for (const [id, g] of index) {
+    if (!g.add || g.add === fix || g.fixes === undefined || g.pick !== "clean" || want.has(g.add)) continue;
+    if (!isAncestor(repo, g.add, tip) || isAncestor(repo, fix, g.add) || isAncestor(repo, g.add, b.base)) continue;
+    const gb = sourcesBase(repo, parseFixes(g.fixes), g.add, index, cps);
+    if (!gb.base || !isAncestor(repo, gb.base, b.base)) continue;
+    for (const p of [...gb.picks, g.add]) if (!isAncestor(repo, p, b.base)) want.add(p);
+    stacked.push(id);
+  }
+  if (!stacked.length) return { ...b, stacked };
+  const order = git(repo, ["rev-list", "--reverse", "--topo-order", tip, fix, `^${b.base}`]).split("\n").filter((c) => want.has(c));
+  return { ...b, picks: order, stacked, why: `${b.why}${stacked.map((id) => ` + 修正 ${id} を先に載せた`).join("")}` };
+}
+
 /** commit の中身から決まる条件(土台に依らない) */
 export function commitConditions(files, noticePath) {
   const out = [];
@@ -244,7 +273,8 @@ export function judge(repo, commit, opts = {}) {
   const targets = [...index.entries()].filter(([, n]) => n.add === sha && n.fixes !== undefined);
   return targets.map(([id, n]) => {
     const reasons = commitConditions(files, n.path);
-    const b = sourcesBase(repo, parseFixes(n.fixes), sha, index, cps);
+    const sb = sourcesBase(repo, parseFixes(n.fixes), sha, index, cps);
+    const b = sb.base ? stackedPicks(repo, sha, sb, { at: opts.at }) : sb;
     if (b.unknown) return { id, path: n.path, verdict: null, reasons: [b.unknown], base: null, skipped: [] };
     if (b.fail) return { id, path: n.path, verdict: "-", reasons: [...reasons, b.fail], base: null, skipped: [] };
     // 3 つ目の条件: 手順が壊れた地点より後の notice を名指さない
@@ -266,8 +296,9 @@ export function run(repo, argv, log = console.log) {
   const commit = argv.find((a) => !a.startsWith("--"));
   const dryRun = argv.includes("--dry-run");
   const checks = argv.filter((a) => a.startsWith("--check=")).map((a) => a.slice(8));
+  const at = argv.find((a) => a.startsWith("--at="))?.slice(5);
   if (!commit) {
-    console.error("usage: pnpm notices:pick-check <commit> [--dry-run] [--check=<cmd> ...]");
+    console.error("usage: pnpm notices:pick-check <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]");
     return 2;
   }
   try {
@@ -284,7 +315,7 @@ export function run(repo, argv, log = console.log) {
     return 2;
   }
   const started = Date.now();
-  const results = judge(repo, commit, checks.length ? { checks } : {});
+  const results = judge(repo, commit, { ...(checks.length ? { checks } : {}), ...(at ? { at } : {}) });
   if (!results.length) {
     log(`pick-check: ${commit} は fixes: の notice を足していない(判定するものなし)`);
     return 2;
