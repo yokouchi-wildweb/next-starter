@@ -7,6 +7,7 @@
 // 語彙の照合（checks/vocabulary.mjs）は警告だけで、生成は止めない
 
 import { auditIssues } from "./audit.mjs";
+import { closableIssues } from "./closable.mjs";
 import { checkDomainFolderName } from "./domainFolder.mjs";
 import { fieldsIssues, fieldsWarnings } from "./fields.mjs";
 import { formInputNameIssues } from "./formInputNames.mjs";
@@ -30,6 +31,7 @@ export function configIssues(camel, config) {
     ...mediaIssues(config),
     ...viewConfigIssues(config),
     ...auditIssues(config),
+    ...closableIssues(config),
   ].map((issue) => `[${camel}] ${issue}`);
 }
 

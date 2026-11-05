@@ -99,6 +99,7 @@
     "test:role-config-checks": "node --test scripts/role-config/tests/checks.test.mjs",
     "test:role-config-ops": "node --test scripts/role-config/tests/ops.test.mjs",
     "test:forge": "node --test scripts/forge/tests/forge.test.mjs",
+    "test:dc-feature-gate": "node --test scripts/domain-config/tests/featureGateScaffold.test.mjs",
     "test:dc-dry-run": "node --test scripts/domain-config/tests/dryRun.test.mjs",
     "test:dc-registry-precheck": "node --test scripts/domain-config/tests/registryPrecheck.test.mjs",
     "test:dc-domain-folder": "node --test scripts/domain-config/tests/domainFolder.test.mjs",

@@ -145,6 +145,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
 | `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く）、メディア列があれば `services/server/storagePurposes.ts`（毎回上書き）。主の集まりの項目があれば `services/server/collections.ts`（毎回上書き） |
 | `presenters` | `presenters.ts`（一覧・詳細表示のフォーマッタ。答えは `src/lib/domain/fields/presenterFor.mjs`。メディア列は `formatMediaThumbnail(s)`） |
+| `featureGate` | `closable: true` のときだけ（Neon のみ）: `src/featureGate/rules/<domain>.ts`（閉じる規則: `pathPatterns` = `/admin/<domains>`、`features` = ドメインのフォルダ、`enabled` = ドメインの config）と `config.ts`（`<SNAKE>_CONFIG = { enabled }`、既定 Tier1 = false・fork = true）。どちらも write-once（`render/featureGate/`、テスト `pnpm test:dc-feature-gate`）。一覧への反映は `pnpm extensions:generate`（forge は続けて回す） |
 
 生成される client の部品（`components` カテゴリ）は domain.json を import せず、写し `entities/display.ts` の `domainDisplay` を読む（`pnpm registry:generate` が書く。写す項目: [`src/lib/domain/README.md`](../../src/lib/domain/README.md)）。
 
@@ -153,7 +154,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | 扱い | 対象 |
 |---|---|
 | 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む |
-| 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test:dc-server-service`）。作り直すときはファイルを消してから生成する |
+| 初回だけ生成（write-once） | `closable: true` の規則 `src/featureGate/rules/<domain>.ts` と `config.ts`、管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test:dc-server-service`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
 | 作らない（`pnpm registry:generate`） | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（走査で丸ごと） |

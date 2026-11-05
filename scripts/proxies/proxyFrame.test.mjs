@@ -250,6 +250,18 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
   );
   assert.deepEqual(oneMissing.problems.length, 1, "同じフォルダを持つ規則の 1 つでも覆わなければ失敗");
   assert.match(oneMissing.problems[0], /規則 walletAdmin/);
+  // 規則のファイルが自分の機能のドメインの config(入切の値)を読むのは閉じ漏れでない(L1.18)。config の外・規則の外は今までどおり
+  const configImport = 'import { WALLET_CONFIG } from "@/features/core/wallet/config";\nexport const rule = {};\n';
+  const ruleConfig = judgeAlwaysOnEntries(
+    [
+      { path: "src/featureGate/rules/wallet.ts", kind: "wiring", text: configImport },
+      { path: "src/featureGate/rules/walletBad.ts", kind: "wiring", text: 'import { walletService } from "@/features/core/wallet/services/server/walletService";\n' },
+      { path: "src/wiring/walletConfig.ts", kind: "wiring", text: configImport },
+    ],
+    rules,
+    {},
+  );
+  assert.deepEqual(ruleConfig.problems.map((p) => p.split(":")[0]), ["src/featureGate/rules/walletBad.ts", "src/wiring/walletConfig.ts"]);
 });
 
 test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExceptions/<名前>.ts は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い置き場は止める", async () => {

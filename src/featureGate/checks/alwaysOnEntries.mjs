@@ -85,6 +85,13 @@ export function rulesNotCoveringCronTask(taskPath, sources, rules) {
   return owners.filter((rule) => !rule.pathPatterns.some((pattern) => matchesPath(taskPath, pattern))).map((rule) => rule.name);
 }
 
+// 規則のファイル(src/featureGate/rules/)が自分の機能のドメインの config(src/features/<d>/config.ts、入切の値だけ)を読むのは閉じ漏れでない
+// (L1.18: 入切の値は各機能のドメインの config。dc:generate の closable のひな形がこの形を書く)。config が値以外に届くかは到達の検査
+// (test:feature-gate:reach: 入口から services・drizzle・server-only に届かない)が見る
+const RULE_FILE = /^src\/featureGate\/rules\//;
+const DOMAIN_CONFIG = /^@\/features\/(?:core\/)?[^/]+\/config$/;
+export const isRuleConfigImport = (path, source) => RULE_FILE.test(path) && DOMAIN_CONFIG.test(source);
+
 /**
  * 入口の判定
  * @param {{ path: string, text: string, kind: "cronTask" | "alwaysOnItem" | "registry" | "wiring" }[]} entries
@@ -99,7 +106,7 @@ export function judgeAlwaysOnEntries(entries, rules, exceptions) {
   const hits = [];
   const usedExceptions = [];
   for (const entry of entries) {
-    const imports = gatedImports(entry.text, patterns);
+    const imports = gatedImports(entry.text, patterns).filter((i) => !isRuleConfigImport(entry.path, i.source));
     if (imports.length === 0) continue;
     const sources = [...new Set(imports.map((i) => i.source))].join(", ");
     hits.push(`${entry.path}: ${entry.kind}`);
