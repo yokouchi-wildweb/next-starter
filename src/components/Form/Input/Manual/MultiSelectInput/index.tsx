@@ -68,6 +68,9 @@ export function MultiSelectInput({
   open,
   onOpenChange,
   triggerClassName,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
   ...rest
 }: MultiSelectInputProps) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -109,6 +112,9 @@ export function MultiSelectInput({
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <MultiSelectTrigger
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
             placeholder={placeholder}
             selectedCount={selectedCount}
             open={resolvedOpen}

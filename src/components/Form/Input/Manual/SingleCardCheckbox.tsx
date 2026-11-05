@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/_shadcn/checkbox";
+import type { FormControlA11yProps } from "@/components/Form/Field/types";
 
 /**
  * カラーバリアント
@@ -61,7 +62,7 @@ export type SingleCardCheckboxProps = {
   disabled?: boolean;
   /** 追加のクラス名 */
   className?: string;
-};
+} & FormControlA11yProps; // id・aria-* はチェックボックスへ
 
 export function SingleCardCheckbox({
   value,
@@ -75,6 +76,9 @@ export function SingleCardCheckbox({
   centered = true,
   disabled = false,
   className,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
 }: SingleCardCheckboxProps) {
   const isChecked = Boolean(value);
   const currentVariant = isChecked ? checkedVariant : uncheckedVariant;
@@ -92,6 +96,9 @@ export function SingleCardCheckbox({
       )}
     >
       <Checkbox
+        id={id}
+        aria-describedby={ariaDescribedby}
+        aria-invalid={ariaInvalid}
         checked={isChecked}
         onCheckedChange={(checked) => {
           if (!disabled) {

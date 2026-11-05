@@ -31,6 +31,7 @@ import {
 
 import { ColorInput } from "./ColorInput";
 import { Input } from "./Input";
+import type { FormControlA11yProps } from "@/components/Form/Field/types";
 
 const MODE_LABELS: Record<ColorMode, string> = {
   default: "デフォルト",
@@ -72,7 +73,7 @@ export type ColorValueInputProps = {
   defaultLabel?: string;
   /** グラデーションの選択肢（既定: listGradients() の全件） */
   gradients?: GradientToken[];
-};
+} & FormControlA11yProps; // id・aria-* は role="group" の入れ物へ(モード切替と色の欄の組)
 
 const FALLBACK_SOLID = "#000000";
 
@@ -324,7 +325,11 @@ const ColorValueInput = React.forwardRef<HTMLDivElement, ColorValueInputProps>(
       defaultPreview,
       defaultLabel = MODE_LABELS.default,
       gradients,
+      id,
+      "aria-describedby": ariaDescribedby,
+      "aria-invalid": ariaInvalid,
     } = props;
+    const groupProps = { role: "group", id, "aria-describedby": ariaDescribedby, "aria-invalid": ariaInvalid } as const;
 
     const gradientOptions = React.useMemo(
       () => gradients ?? listGradients(),
@@ -417,6 +422,7 @@ const ColorValueInput = React.forwardRef<HTMLDivElement, ColorValueInputProps>(
         <div
           ref={ref}
           className={cn("flex flex-wrap items-center gap-2", className)}
+          {...groupProps}
         >
           {modeControl}
           {activeControl}
@@ -425,7 +431,7 @@ const ColorValueInput = React.forwardRef<HTMLDivElement, ColorValueInputProps>(
     }
 
     return (
-      <div ref={ref} className={cn("flex flex-col gap-3", className)}>
+      <div ref={ref} className={cn("flex flex-col gap-3", className)} {...groupProps}>
         {modeControl}
         {activeControl}
       </div>

@@ -78,6 +78,9 @@ export function ComboboxInput({
   popoverContentProps,
   open,
   onOpenChange,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
   ...rest
 }: ComboboxInputProps) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -135,6 +138,9 @@ export function ComboboxInput({
             type="button"
             variant="outline"
             role="combobox"
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
             aria-expanded={resolvedOpen}
             disabled={disabled}
             className={cn(

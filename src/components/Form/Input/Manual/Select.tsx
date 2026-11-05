@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/_shadcn/select";
+import type { FormControlA11yProps } from "@/components/Form/Field/types";
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
 
@@ -40,8 +41,6 @@ export type SelectInputProps = {
    * @default "default"
    */
   size?: "default" | "sm";
-  /** トリガー要素の id(外部 Label の htmlFor 用) */
-  id?: string;
   /**
    * SelectTrigger に適用するクラス名。
    */
@@ -53,7 +52,7 @@ export type SelectInputProps = {
   contentClassName?: string;
   /** 無効化 */
   disabled?: boolean;
-};
+} & FormControlA11yProps; // id・aria-* はトリガー要素へ(外部 Label の htmlFor・枠の説明文 / エラー用)
 
 const CLEAR_VALUE = "__EMPTY__";
 
@@ -75,6 +74,8 @@ export function SelectInput({
   showPlaceholderOption = true,
   size = "default",
   id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
   className,
   contentClassName,
   disabled,
@@ -114,6 +115,8 @@ export function SelectInput({
     >
       <SelectTrigger
         id={id}
+        aria-describedby={ariaDescribedby}
+        aria-invalid={ariaInvalid}
         size={size}
         className={cn(size === "default" && "!h-auto border-muted-foreground/50 py-3", className)}
       >

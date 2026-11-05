@@ -1,7 +1,7 @@
 // src/components/Form/Field/types.ts
 // フィールド設定の型定義
 
-import type { ComponentType, ReactNode } from "react";
+import type { AriaAttributes, ComponentType, ReactNode } from "react";
 import type { ControllerRenderProps } from "react-hook-form";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { ParaProps } from "@/components/TextBlocks/Para";
@@ -16,15 +16,23 @@ export type FormInputType = (typeof BUILTIN_FORM_INPUTS)[number];
 /** 登録された入力部品の名前（src/wiring/formInputs/FormInputsRoot.tsx が一覧の鍵から広げる） */
 export interface RegisteredFormInputs {}
 
-/** 登録の部品が受ける props（id・aria-* は FormControl が渡す。入力要素に渡すとラベルと結び付く） */
+/**
+ * 枠(FormControl)が入力へ渡す 3 つ。入力部品(Form/Input)は受けて、フォーカスされる要素
+ * (input・トリガーのボタン。選択肢の組は role="group" / "radiogroup" の入れ物)へ付ける。
+ * ラベルの for・説明文・エラーがこれで入力と結び付く(検査: pnpm test:form-a11y-contract)
+ */
+export type FormControlA11yProps = {
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
+};
+
+/** 登録の部品が受ける props（id・aria-* は FormControl が渡す。入力部品へそのまま渡すとラベルと結び付く） */
 export type FormInputProps = {
   field: ControllerRenderProps<any, any>;
   fieldConfig: FieldConfig;
   inputClassName?: string;
-  id?: string;
-  "aria-describedby"?: string;
-  "aria-invalid"?: boolean;
-};
+} & FormControlA11yProps;
 
 /** 入力部品の登録の項目（src/wiring/formInputs/inputs/ の export const formInput） */
 export type FormInputItem = {

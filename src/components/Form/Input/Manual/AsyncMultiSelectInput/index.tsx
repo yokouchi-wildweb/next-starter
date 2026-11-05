@@ -145,6 +145,9 @@ export function AsyncMultiSelectInput<T>({
   popoverContentProps,
   open,
   onOpenChange,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
   ...rest
 }: AsyncMultiSelectInputProps<T>) {
   // ---- 開閉 ----
@@ -271,6 +274,9 @@ export function AsyncMultiSelectInput<T>({
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <MultiSelectTrigger
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
             placeholder={placeholder}
             selectedCount={selectedCount}
             open={resolvedOpen}

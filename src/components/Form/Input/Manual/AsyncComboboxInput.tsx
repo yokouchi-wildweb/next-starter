@@ -145,6 +145,9 @@ export function AsyncComboboxInput<T>({
   popoverContentProps,
   open,
   onOpenChange,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
   ...rest
 }: AsyncComboboxInputProps<T>) {
   // ---- 開閉 ----
@@ -306,6 +309,9 @@ export function AsyncComboboxInput<T>({
       <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
             type="button"
             variant="outline"
             role="combobox"

@@ -7,6 +7,7 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
+import type { FormControlA11yProps } from "@/components/Form/Field/types";
 
 const containerVariants = cva(
   "inline-flex w-fit items-stretch overflow-hidden rounded-md border",
@@ -67,7 +68,7 @@ export type StepperInputProps = {
   manualInputEnabled?: boolean;
   /** 無効化 */
   disabled?: boolean;
-};
+} & FormControlA11yProps; // id・aria-* は直接入力の欄へ(manualInputEnabled: false のときは role="group" の入れ物へ)
 
 export default function StepperInput({
   label,
@@ -85,6 +86,9 @@ export default function StepperInput({
   buttonSize,
   manualInputEnabled = true,
   disabled,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
 }: StepperInputProps) {
   const [internalValue, setInternalValue] = useState(initialValue);
   const [manualInputValue, setManualInputValue] = useState(String(initialValue));
@@ -154,7 +158,10 @@ export default function StepperInput({
   };
 
   return (
-    <div className={cn(containerVariants({ size }), className, disabled && "opacity-70")}>
+    <div
+      className={cn(containerVariants({ size }), className, disabled && "opacity-70")}
+      {...(manualInputEnabled ? {} : { role: "group", id, "aria-describedby": ariaDescribedby, "aria-invalid": ariaInvalid })}
+    >
       {label ? (
         <span className="flex items-center bg-foreground px-4 text-background whitespace-nowrap">
           {label}
@@ -178,6 +185,9 @@ export default function StepperInput({
       >
         {manualInputEnabled ? (
           <input
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
             type="number"
             inputMode="decimal"
             min={min}

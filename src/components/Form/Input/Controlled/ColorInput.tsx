@@ -24,6 +24,9 @@ export const ColorInput = <TFieldValues extends FieldValues, TName extends Field
       readOnly={rest.readOnly}
       disabled={rest.disabled}
       className={rest.className}
+      id={rest.id}
+      aria-describedby={rest["aria-describedby"]}
+      aria-invalid={rest["aria-invalid"]}
     />
   );
 };
