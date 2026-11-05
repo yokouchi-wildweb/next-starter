@@ -106,8 +106,10 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   const names = (owner: string, point: string) => itemsOf(plan, owner, point).map((i: { name: string }) => i.name);
   assertUpstreamItems(names("src/features/core/user", "cleanupHandlers"), ["purchaseRequest", "wallet"]);
-  assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["couponAttributionReward", "purchaseBonusGap", "referralReward"]);
+  assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
   assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), []);
+  assertUpstreamItems(names("src/features/core/analytics", "exclusionProviders"), []);
+  assertUpstreamItems(names("src/features/core/walletHistory", "reasonKeys"), ["adminAdjustment", "couponAttributionReward"]);
   assertUpstreamItems(names("src/features/core/user", "reservedNames"), []);
   assertUpstreamItems(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
   assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
@@ -125,7 +127,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
 test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", tier1Only, () => {
   assert.equal(getCoinIssuanceLabel("purchase_bonus_gap"), "購入時ボーナス発行");
   assert.equal(getCoinIssuanceLabel("unknown_key"), "unknown_key");
-  assert.deepEqual(Object.keys(getAllCoinIssuanceLabels()).sort(), ["coupon_attribution_reward", "purchase_bonus_gap", "referral_reward"]);
+  assert.deepEqual(Object.keys(getAllCoinIssuanceLabels()).sort(), ["coupon_attribution_reward", "purchase_bonus_gap", "referral_reward", "wallet_bonus_grant"]);
   assert.equal(formatActionLabel("wallet.balance.cleared"), "残高クリア");
   assert.equal(formatActionLabel("unknown.action.done"), "unknown.action.done");
   assert.deepEqual(buildCouponAdminSectionTabs().map((tab) => tab.value), ["official", "affiliate", "invite"]);

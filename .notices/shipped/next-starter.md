@@ -294,3 +294,4 @@
 - id:20261105-131310-cron-task-override-rename | severity:action-required | checkpoint:cron-task-override-rename
 - id:20261105-132947-standalone-upload-failure | severity:info | checkpoint:standalone-upload-failure
 - id:20261105-140526-admin-bulk-action-receptacle | severity:action-required | checkpoint:admin-bulk-action-receptacle
+- id:20261105-182611-extension-items-coin-sources | severity:info | checkpoint:extension-items-coin-sources | fixes:commit:1324eedb | pick:clean
