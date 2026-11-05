@@ -272,3 +272,4 @@
 - id:20261103-144114-ownership-owner-lookup | severity:info | checkpoint:ownership-owner-lookup | resolves:20261103-144114-ownership-owner-lookup
 - id:20261103-175406-main-metrics-day-boundary-timezone | severity:info | checkpoint:main-metrics-day-boundary-timezone | resolves:20261103-175406-main-metrics-day-boundary-timezone
 - id:20261103-175406-wiring-readme-receptacle-exception | severity:info | checkpoint:wiring-readme-receptacle-exception | resolves:20261103-175406-wiring-readme-receptacle-exception
+- id:20261105-105244-closed-orders-resolves-bundle5 | severity:info | checkpoint:closed-orders-resolves-bundle5 | resolves:20261031-134813-bulk-relation-mode-switch, 20261101-111956-intake-purchase-discount-on-redeemed
