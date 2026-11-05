@@ -29,7 +29,10 @@ export type RouteUserBase<TStatus extends string = string> = {
 /** 利用者の束（features/core/auth が export する） */
 export type RouteUserDeps<TUser extends RouteUserBase<TStatus>, TStatus extends string> = {
   /**
-   * Cookie から DB 同期の利用者を解く（未ログイン・失効なら null）。
+   * Cookie から DB 同期の利用者を解く。
+   * - null = 利用者がいないと分かった（未ログイン・失効・削除）→ access により 401 / public は ctx.user null
+   * - throw = 確かめられない（DB 障害など）→ Factory が RouteUserUnavailableError（503、code "route_user_unavailable"）にする。
+   *   障害を null に畳まないこと（401 になりクライアントが未ログインと読む）。JWT のクレームにも落とさない
    * Factory はリクエストごとに 1 回だけ呼ぶ（同じリクエストの重複は持ち主側の cache で 1 回に）
    */
   resolveUser: () => Promise<TUser | null>;

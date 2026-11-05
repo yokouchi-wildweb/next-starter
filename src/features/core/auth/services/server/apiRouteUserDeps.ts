@@ -9,12 +9,13 @@ import type { RouteUserDeps } from "@/lib/routeFactory";
 import { USER_AVAILABLE_STATUSES } from "@/features/core/user/constants";
 
 import { evaluateApiAccessRule } from "./apiAccess";
-import { getSessionUser } from "./session/getSessionUser";
+import { getSessionUserForRoute } from "./session/getSessionUser";
 import { getTokenOnlySession } from "./session/getTokenOnlySession";
 
 export const apiRouteUserDeps: RouteUserDeps<SessionUser, UserStatus> = {
-  // DB 同期（React cache でリクエスト内 1 回）。DB に届かないときは null（resolveSessionUser が整合性を優先）
-  resolveUser: getSessionUser,
+  // DB 同期（React cache でリクエスト内 1 回、getSessionUser と共有）。null = 利用者なし、
+  // DB に届かないときは throw（Factory が 503 route_user_unavailable にする。401 にも JWT のクレームにも落とさない）
+  resolveUser: getSessionUserForRoute,
   // JWT のクレームだけ（監査の actor・デモ判定の内部用。認可には使わない）
   resolveTokenSession: getTokenOnlySession,
   evaluateAccess: evaluateApiAccessRule,

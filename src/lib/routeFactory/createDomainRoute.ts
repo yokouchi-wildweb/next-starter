@@ -8,6 +8,7 @@ import { toCamelCase } from "@/utils/stringCase.mjs";
 import type { OperationType, ApiRouteContext, RouteCore } from "./createApiRoute";
 import type { RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
+import { resolveRouteUser } from "./routeUser";
 
 /**
  * ドメインルートの設定
@@ -111,7 +112,8 @@ export function makeDomainRoutes<TUser extends RouteUserBase<TStatus>, TStatus e
         // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
         // サービスの読み込み（遅延 import）より先に判定し、拒否される要求でサービスを読み込まない。
         const rule = resolveAccessRule(entry.access, crudOp, config.operationType);
-        const resolved = await deps.resolveUser();
+        // DB 障害（束の throw）は RouteUserUnavailableError（503）
+        const resolved = await resolveRouteUser(deps);
         const denied = accessDenialResponse(deps.evaluateAccess(rule, resolved, { allowStatuses }), {
           domain: normalizedDomain,
           operation: crudOp,

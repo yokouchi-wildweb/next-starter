@@ -30,7 +30,7 @@ mock.module("@/features/core/storageObject/services/server/storageObjectService"
 });
 // ルートの門（admin）は Factory が DB 同期の利用者で評価し、その利用者を ctx.user で渡す
 mock.module("@/features/core/auth/services/server/session/getSessionUser", {
-  namedExports: { getSessionUser: async () => ADMIN },
+  namedExports: { getSessionUser: async () => ADMIN, getSessionUserForRoute: async () => ADMIN },
 });
 mock.module("@/lib/mediaProbe", {
   namedExports: {

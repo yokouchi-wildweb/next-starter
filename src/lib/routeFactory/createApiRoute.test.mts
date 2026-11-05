@@ -18,6 +18,7 @@ import { createRouteFactories } from "./createRouteFactories.ts";
 type FakeUser = { userId: string; role: string; status: string; isDemo: boolean };
 let currentUser: FakeUser | null = null;
 let resolveCount = 0;
+let userOutage = false;
 
 const ownerService = { ping: async () => "pong" };
 
@@ -34,6 +35,7 @@ const factories = createRouteFactories<Record<string, unknown>, any, any, any>({
   user: {
     resolveUser: async () => {
       resolveCount += 1;
+      if (userOutage) throw new Error("connect ECONNREFUSED (users)");
       return currentUser as never;
     },
     resolveTokenSession: async () => currentUser as never,
@@ -322,4 +324,91 @@ test("門番の口(gate): 閉じた住所は主体の解決・認可・ハンド
     { params: Promise.resolve({}) },
   );
   assert.equal(plain.status, 200);
+});
+
+test("利用者の DB 引きの障害（束の throw）は全 Factory で 503 route_user_unavailable。401 / 403 にも JWT のクレームにも落とさない", async () => {
+  const originalError = console.error;
+  console.error = () => {};
+  userOutage = true;
+  // JWT のクレームだけなら admin で通る状態（resolveTokenSession は currentUser を返す）。それでも通さない
+  currentUser = { userId: "a1", role: "admin", status: "active", isDemo: false };
+  let handled = 0;
+  const handler = async () => {
+    handled += 1;
+    return { ok: true };
+  };
+  try {
+    const routes = {
+      public: createApiRoute({ operation: "GET /api/x", operationType: "read", access: "public" }, handler),
+      authenticated: createApiRoute({ operation: "GET /api/x", operationType: "read", access: "authenticated" }, handler),
+      role: createApiRoute({ operation: "GET /api/x", operationType: "read", access: { roleCategories: ["admin"] } }, handler),
+      me: createMeRoute({ operation: "GET /api/me/x", operationType: "read" }, handler),
+      domain: createDomainRoute({ operation: "GET /api/[domain]", operationType: "read", crudOp: "list" }, handler),
+    };
+    for (const [name, route] of Object.entries(routes)) {
+      const res = await call(route as Route<object>, { domain: "adminOnly" });
+      assert.equal(res.status, 503, name);
+      const body = await res.json();
+      assert.equal(body.code, "route_user_unavailable", name);
+      assert.doesNotMatch(JSON.stringify(body), /ECONNREFUSED/, `${name}: 障害の内部情報を返さない`);
+    }
+    assert.equal(handled, 0, "ハンドラに届かない");
+  } finally {
+    userOutage = false;
+    console.error = originalError;
+  }
+});
+
+test("user: \"skip\"（public だけ）: 利用者を解かず ctx.user は null。省略は今と同じ", async () => {
+  currentUser = active;
+  resolveCount = 0;
+  const skipped = createApiRoute(
+    { operation: "GET /api/public", operationType: "read", access: "public", user: "skip" },
+    async (_req, { user }) => ({ userId: user?.userId ?? null }),
+  );
+  assert.deepEqual(await (await call(skipped)).json(), { userId: null });
+  assert.equal(resolveCount, 0, "users を読まない");
+  // DB 障害でも skip のルートは利用者を引かないので影響を受けない
+  userOutage = true;
+  try {
+    assert.equal((await call(skipped)).status, 200);
+  } finally {
+    userOutage = false;
+  }
+  resolveCount = 0;
+  assert.deepEqual(await (await call(echoUser("public"))).json(), { userId: "u1" });
+  assert.equal(resolveCount, 1, "省略は今まで通り 1 回解く");
+});
+
+test("user: \"skip\" を public 以外・未知の値で渡すと利用者を解かずに 500 route_access_invalid（無視しない）", async () => {
+  const originalError = console.error;
+  const logged: string[] = [];
+  console.error = (message: string) => logged.push(message);
+  try {
+    const cases: [unknown, unknown][] = [
+      ["authenticated", "skip"],
+      [{ roleCategories: ["admin"] }, "skip"],
+      ["public", "lazy"],
+    ];
+    for (const [access, user] of cases) {
+      let reached = false;
+      const route = createApiRoute(
+        { operation: "GET /api/bad-skip", operationType: "read", access: access as never, user: user as never },
+        async () => {
+          reached = true;
+          return { ok: true };
+        },
+      );
+      currentUser = active;
+      resolveCount = 0;
+      const res = await call(route);
+      assert.equal(res.status, 500, JSON.stringify([access, user]));
+      assert.equal((await res.json()).code, "route_access_invalid");
+      assert.equal(resolveCount, 0, "利用者を解かない");
+      assert.equal(reached, false, "handler に届かない");
+    }
+    assert.equal(logged.length, 3, "組み立て時に 1 本 1 回だけ記録する");
+  } finally {
+    console.error = originalError;
+  }
 });

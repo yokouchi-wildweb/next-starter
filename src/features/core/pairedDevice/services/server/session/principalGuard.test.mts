@@ -16,7 +16,7 @@ mock.module("./getSessionDevice.ts", {
   namedExports: { getSessionDevice: async () => currentDevice },
 });
 mock.module("@/features/core/auth/services/server/session/getSessionUser", {
-  namedExports: { getSessionUser: async () => currentUser },
+  namedExports: { getSessionUser: async () => currentUser, getSessionUserForRoute: async () => currentUser },
 });
 mock.module("next/navigation", {
   namedExports: {

@@ -40,7 +40,7 @@ mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", 
   namedExports: { getTokenOnlySession: async () => currentUser },
 });
 mock.module("@/features/core/auth/services/server/session/getSessionUser", {
-  namedExports: { getSessionUser: async () => currentUser },
+  namedExports: { getSessionUser: async () => currentUser, getSessionUserForRoute: async () => currentUser },
 });
 
 const { GET } = await import("../../app/api/[domain]/collection-entries/route.ts");

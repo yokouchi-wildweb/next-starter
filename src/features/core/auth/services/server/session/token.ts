@@ -78,36 +78,45 @@ async function verifyAndParseToken(token: string): Promise<TokenPayload | null> 
 }
 
 /**
- * JWT を検証し、DB から最新のユーザー情報を取得して SessionUser を構築する。
+ * セッションの利用者を DB で確かめた結果。
+ * - { user }: 確かめられた（user = null は未ログイン同然: JWT 不正・削除済み・失効）
+ * - { unavailable }: 確かめられない（DB アクセス障害）。「利用者なし」とは区別する
+ */
+export type SessionUserOutcome =
+  | { user: SessionUser | null; unavailable?: undefined }
+  | { user?: undefined; unavailable: true; error: unknown };
+
+/**
+ * JWT を検証し、DB から最新のユーザー情報を取得して SessionUser を構築する（障害を「利用者なし」と区別する形）。
  *
  * 戻り値の status / role / isDemo / name / providerType / providerUid はすべて
  * DB の現在値が反映される。JWT のクレームは userId の証明にのみ利用する。
  *
- * - JWT 検証失敗 → null
- * - DB にユーザーが存在しない / 論理削除済み → null
- * - DB アクセス障害 → null (安全側に倒し、stale 状態でのアクセスを許可しない)
+ * - JWT 検証失敗 → { user: null }
+ * - DB にユーザーが存在しない / 論理削除済み / 全セッション失効 → { user: null }
+ * - DB アクセス障害 → { unavailable: true }（stale な JWT クレームには落とさない）
  *
- * 通常の認可判定 (ページの守り guard.ts / API の Factory / getSessionUser / proxy) はすべて本 API を経由するため、
- * 管理画面でのステータス変更が次回リクエストで即時反映される。
+ * 直接使うのは resolveSessionUser と getSessionUser.ts の cache（リクエスト内 1 回）。ページの守り等は障害も null、
+ * API の Factory は getSessionUserForRoute（障害は throw → 503）を使う。
  */
-export async function resolveSessionUser(token: string): Promise<SessionUser | null> {
+export async function resolveSessionUserOutcome(token: string): Promise<SessionUserOutcome> {
   const payload = await verifyAndParseToken(token);
   if (!payload) {
-    return null;
+    return { user: null };
   }
 
   let dbUser;
   try {
     dbUser = await findUserById(payload.sub);
   } catch (error) {
-    // DB アクセス障害時はセッション無効として扱う。stale な JWT クレームで
-    // 認可判定が通ってしまうのを防ぐため、可用性より整合性を優先する。
+    // DB アクセス障害。stale な JWT クレームで認可判定が通ってしまうのを防ぐため、
+    // 利用者は返さない（可用性より整合性を優先）。null に畳むかどうかは呼び手が決める
     console.error("[resolveSessionUser] failed to fetch user from DB", error);
-    return null;
+    return { unavailable: true, error };
   }
 
   if (!dbUser) {
-    return null;
+    return { user: null };
   }
 
   // 全セッション失効チェック: パスワード変更や status=banned/security_locked への
@@ -119,7 +128,7 @@ export async function resolveSessionUser(token: string): Promise<SessionUser | n
       dbUser.sessionsInvalidatedAt.getTime() / 1000,
     );
     if (payload.iat < invalidatedAtSeconds) {
-      return null;
+      return { user: null };
     }
   }
 
@@ -134,10 +143,26 @@ export async function resolveSessionUser(token: string): Promise<SessionUser | n
   });
 
   if (!parsed.success) {
-    return null;
+    return { user: null };
   }
 
-  return parsed.data;
+  return { user: parsed.data };
+}
+
+/**
+ * JWT を検証し、DB から最新のユーザー情報を取得して SessionUser を構築する。
+ *
+ * - JWT 検証失敗 → null
+ * - DB にユーザーが存在しない / 論理削除済み → null
+ * - DB アクセス障害 → null (安全側に倒し、stale 状態でのアクセスを許可しない)
+ *
+ * ページの守り guard.ts / getSessionUser / proxy は本 API（の cache 版）を経由するため、
+ * 管理画面でのステータス変更が次回リクエストで即時反映される。
+ * 障害と「利用者なし」を区別したいとき（API の Factory）は resolveSessionUserOutcome を使う。
+ */
+export async function resolveSessionUser(token: string): Promise<SessionUser | null> {
+  const outcome = await resolveSessionUserOutcome(token);
+  return outcome.unavailable ? null : outcome.user;
 }
 
 /**

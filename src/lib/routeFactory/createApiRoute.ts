@@ -18,6 +18,7 @@ import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
 import type { RouteGateDeps, RouteRateLimitDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
+import { resolveRouteUser } from "./routeUser";
 
 /** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
 const INTERNAL_ERROR_MESSAGE = "サーバーでエラーが発生しました";
@@ -130,7 +131,8 @@ export type ApiRouteBaseConfig = {
 /**
  * APIルートの設定
  */
-export type ApiRouteConfig<A extends RouteAccess = RouteAccess, TStatus extends string = string> = ApiRouteBaseConfig & {
+export type ApiRouteConfig<A extends RouteAccess = RouteAccess, TStatus extends string = string> = ApiRouteBaseConfig &
+  ApiRouteUserResolutionConfig<A> & {
   /**
    * アクセスポリシー（必須）。createApiRoute が認可を強制する。
    * 型必須のため、宣言し忘れるとコンパイルが通らない（fail-closed by construction）。
@@ -145,6 +147,17 @@ export type ApiRouteConfig<A extends RouteAccess = RouteAccess, TStatus extends 
    */
   allowStatuses?: readonly TStatus[];
 };
+
+/**
+ * 利用者の DB 引きを省く宣言（access "public" のときだけ型で書ける）。
+ * - user: "skip": 利用者を解かない（users を読まない）。ctx.user はいつも null
+ * - 省略: 今まで通り Factory が 1 回だけ DB 同期で解く
+ * 監査の actor とデモ判定は skip でも JWT だけ（DB を引かない）で今まで通り。
+ * "authenticated" / roles は書けない（実行時に届いても無視せず 500 route_access_invalid）
+ */
+export type ApiRouteUserResolutionConfig<A extends RouteAccess> = A extends "public"
+  ? { user?: "skip" }
+  : { user?: never };
 
 /**
  * APIルートハンドラーのコンテキスト
@@ -419,16 +432,25 @@ function invalidAccessResponse(): Response {
  * Factory が 1 回だけ利用者を解き、access で認可する。許可なら ctx.user に渡す利用者を返す。
  * - "public": 認可しない。利用可能な status（または allowStatuses）のときだけ利用者、他は null
  * - それ以外: 評価して拒否なら 401 / 403（code 付き）
- * - 形の外の access: 利用者を解かずに 500（fail-closed、code: "route_access_invalid"）
+ * - 形の外の access・"public" 以外の user: "skip": 利用者を解かずに 500（fail-closed、code: "route_access_invalid"）
+ * - user: "skip"（"public" だけ）: 利用者を解かず user は null
+ * - 利用者を確認できない（束の throw = DB 障害）: RouteUserUnavailableError（503、code "route_user_unavailable"）
  */
 export function authorizeRouteUser<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
   deps: RouteUserDeps<TUser, TStatus>,
   access: RouteAccess,
   allowStatuses: readonly TStatus[] | undefined,
+  userResolution?: unknown,
 ): () => Promise<Response | { user: TUser | null }> {
   if (!isRouteAccess(access)) return async () => invalidAccessResponse();
+  // user: "skip" は "public" だけ。形の外（他の access・未知の値）は利用者を解かずに 500（設定の書き誤り）
+  if (userResolution !== undefined && (userResolution !== "skip" || access !== "public")) {
+    return async () => invalidAccessResponse();
+  }
+  if (userResolution === "skip") return async () => ({ user: null });
   return async () => {
-    const resolved = await deps.resolveUser();
+    // DB 障害（束の throw）は RouteUserUnavailableError（503）。土台の try が応答にする
+    const resolved = await resolveRouteUser(deps);
     if (access === "public") {
       const allowed = allowStatuses ?? deps.availableStatuses;
       return { user: resolved && allowed.includes(resolved.status) ? resolved : null };
@@ -460,14 +482,18 @@ export function makeCreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus
     config: ApiRouteConfig<A, TStatus>,
     handler: ApiRouteHandler<TParams, TResult, ApiRouteUser<A, TUser>>,
   ): NextRouteHandler<TParams> {
-    const { access, allowStatuses, ...baseConfig } = config;
+    const { access, allowStatuses, user: userResolution, ...baseConfig } = config;
     if (!isRouteAccess(access)) {
       // build は止めない（fork の route 1 本で全体が落ちないように）。実行時は毎回 500 で拒否する
       console.error(
         `${baseConfig.operation}: access が不正です（${access === null ? "null" : Array.isArray(access) ? "array" : typeof access === "string" ? JSON.stringify(access) : typeof access}）。全リクエストを 500 で拒否します`,
       );
+    } else if (userResolution !== undefined && (userResolution !== "skip" || access !== "public")) {
+      console.error(
+        `${baseConfig.operation}: user: ${JSON.stringify(userResolution)} は access "public" でだけ "skip" と書けます。全リクエストを 500 で拒否します`,
+      );
     }
-    const authorize = authorizeRouteUser(deps, access, allowStatuses);
+    const authorize = authorizeRouteUser(deps, access, allowStatuses, userResolution);
     return runRoute<TParams, { user: TUser | null }>(baseConfig, () => authorize(), (req, base, grant) =>
       handler(req, { ...base, user: grant.user as ApiRouteUser<A, TUser> }),
     );

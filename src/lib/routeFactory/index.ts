@@ -13,12 +13,14 @@ export type {
   RouteUserBase,
   RouteUserDeps,
 } from "./deps";
+export { ROUTE_USER_UNAVAILABLE_CODE, RouteUserUnavailableError } from "./routeUser";
 export {
   type ApiRouteBaseConfig,
   type ApiRouteConfig,
   type ApiRouteContext,
   type ApiRouteHandler,
   type ApiRouteUser,
+  type ApiRouteUserResolutionConfig,
   type NextRouteHandler,
   type OperationType,
   type RecaptchaConfig,

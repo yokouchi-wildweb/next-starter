@@ -36,7 +36,7 @@ mock.module("@/features/core/storageObject/services/server/crudBinding", {
   namedExports: { storageBindingFor: () => null },
 });
 mock.module("@/features/core/auth/services/server/session/getSessionUser", {
-  namedExports: { getSessionUser: async () => null },
+  namedExports: { getSessionUser: async () => null, getSessionUserForRoute: async () => null },
 });
 mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", {
   namedExports: { getTokenOnlySession: async () => null },

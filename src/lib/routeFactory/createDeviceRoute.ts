@@ -21,6 +21,7 @@ import { runWithUserDirtyTracking } from "@/lib/userDirty";
 import type { ApiRouteBaseConfig, NextRouteHandler, RouteAccess, RouteCore } from "./createApiRoute";
 import type { RouteAuthenticatedDevice, RouteDeviceDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
+import { resolveRouteUser } from "./routeUser";
 
 /** 端末として通ったときのコンテキスト */
 export type DevicePrincipalContext<TDevice, TParams> = {
@@ -208,8 +209,9 @@ export function makeCreateDeviceRoute<
         }
 
         if (orUser) {
-          // 利用者はリクエストごとに 1 回だけ DB 同期で解く
-          const user = await userDeps.resolveUser();
+          // 利用者はリクエストごとに 1 回だけ DB 同期で解く。DB 障害（束の throw）は RouteUserUnavailableError
+          // （503）で、土台の try が応答にする（このハンドラは土台の try の中で動く）
+          const user = await resolveRouteUser(userDeps);
           const denied = accessDenialResponse(userDeps.evaluateAccess(orUser, user, { allowStatuses }));
           if (denied) return denied;
           if (!user) return unauthenticated();

@@ -12,13 +12,17 @@ type FakeDevice = { deviceId: string; kind: string; label: string; scope: unknow
 let currentDevice: FakeDevice | null = null;
 let currentUser: { userId: string; role: string; status: string; isDemo: boolean } | null = null;
 let tokenOnlyIsDemo = false;
+let userOutage = false;
 
 // 主体の解き方は束で差し込む（lib/routeFactory は auth・pairedDevice を import しない）
 const { createRouteFactories } = await import("./createRouteFactories.ts");
 const { createDeviceRoute } = createRouteFactories<Record<string, unknown>, any, any, any>({
   rateLimit: { checkRateLimit: async () => ({ allowed: true, resetAt: new Date() }) },
   user: {
-    resolveUser: async () => currentUser as never,
+    resolveUser: async () => {
+      if (userOutage) throw new Error("connect ECONNREFUSED (users)");
+      return currentUser as never;
+    },
     resolveTokenSession: async () =>
       (tokenOnlyIsDemo ? { userId: "demo", role: "user", status: "active", isDemo: true } : null) as never,
     evaluateAccess: (_rule, user) => (user ? "granted" : "unauthenticated"),
@@ -111,5 +115,33 @@ test("DomainError 以外の例外は内部の文言を返さず、汎用メッ�
     assert.doesNotMatch(JSON.stringify(body), /local_password|SELECT/);
   } finally {
     console.error = originalConsoleError;
+  }
+});
+
+test("orUser の user 枝: 利用者の DB 引きが障害なら 503 route_user_unavailable（401 / 403 にしない）", async () => {
+  currentDevice = null;
+  currentUser = { userId: "u1", role: "admin", status: "active", isDemo: false };
+  tokenOnlyIsDemo = false;
+  userOutage = true;
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  let handled = 0;
+  try {
+    const route = createDeviceRoute(
+      { operation: "POST /api/test", operationType: "write", orUser: "authenticated" },
+      async () => {
+        handled += 1;
+        return { ok: true };
+      },
+    );
+    const res = await call(route);
+    assert.equal(res.status, 503);
+    const body = await res.json();
+    assert.equal(body.code, "route_user_unavailable");
+    assert.doesNotMatch(JSON.stringify(body), /ECONNREFUSED/, "障害の内部情報を返さない");
+    assert.equal(handled, 0);
+  } finally {
+    console.error = originalConsoleError;
+    userOutage = false;
   }
 });

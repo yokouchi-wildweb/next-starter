@@ -65,6 +65,22 @@ import { createApiRoute, createDomainRoute, createDomainIdRoute, createMeRoute, 
 - Factory がリクエストごとに **1 回だけ** DB 同期で解く（`getSessionUser`。同じリクエストの重複は cache で 1 回）。ロール剥奪・利用停止は次の要求から効く
 - ハンドラは `ctx.user` だけを使う。route（と `src/app/api/**` の補助ファイル）でセッション取得・`requireRole`・token だけのセッション・`lib/jwt` の Cookie の解析を import しない（検査が止める）
 - token だけのセッション（JWT のクレーム）は Factory の内部で監査の actor とデモ判定にだけ使い、ハンドラには渡さない
+- **利用者を確かめられないとき（DB 障害）は 503**（`code: "route_user_unavailable"`、`RouteUserUnavailableError`）。全 Factory（createApiRoute の全 access・createMeRoute・createDomainRoute・createDeviceRoute の `orUser`）で同じ。ハンドラには届かない
+  - 意味: 障害であって認証の失敗ではない。401（未ログイン）にはせず、JWT のクレームに落として通すこともしない（stale な権限で通さない）
+  - クライアント: 503 + この code は「未ログイン」と読まずに再試行する（ログイン画面へ送らない）
+  - 束の契約（`deps.ts` の `resolveUser`）: `null` = 利用者がいないと分かった（未ログイン・失効・削除）、throw = 確かめられない。Factory が throw を `RouteUserUnavailableError` にする（束は lib の値を import しない）。auth の束は `getSessionUserForRoute`（`getSessionUser` と同じ 1 回の引きを共有）
+  - ページの守り（guard.ts）・proxy・`AuthSessionProvider` は今まで通り障害も `null`（ログインへ送る）
+- **利用者を使わない公開ルートは `user: "skip"`** で users の読みを省ける（createApiRoute の `access: "public"` だけ。他の access は型で止まり、JS などで届いても無視せず 500 `route_access_invalid`）
+  - `ctx.user` はいつも `null`。DB 障害でも利用者を引かないので 503 にならない
+  - 監査の actor とデモ判定は今まで通り JWT だけ（DB を引かない）で決まる。デモの書き込みスキップも効く
+  - 使うのは `ctx.user` に触れない公開ルートだけ（公開の一覧・メディアの配信など）。ログイン中なら中身を変えるルートは省略（既定 = 今まで通り 1 回解く）
+
+```ts
+export const GET = createApiRoute(
+  { operation: "GET /api/public-prizes", operationType: "read", access: "public", user: "skip" },
+  async () => prizeService.listPublic(),
+);
+```
 - **役割で振る舞いを分ける**のは可（門ではない）: 門は宣言で書き、通った後の分岐に `ctx.user.role` を使う（例: `GET /api/wallet/history/batches` は「他人の userId を指定できるのは admin だけ」）
 - 型引数を書くときは 3 つ目に access を書く（TS は型引数の一部だけを推論できない。省くと `ctx.user` が `null` 可になる）:
 
@@ -290,6 +306,7 @@ export const POST = createApiRoute(
 - `DomainError` → `{ message, code?, details? }` + その status。`code`（機械可読な分類）・`details` は指定したときだけ載る（`src/lib/errors/README.md`）
 - それ以外の例外 → `{ message: "サーバーでエラーが発生しました" }` + 500（元の message はサーバーログだけ）
 - 認可の拒否 → 401 / 403 の JSON（`code`、汎用 CRUD は `domain` / `operation` も）、404 は `text/plain`
+- 利用者を確かめられない（DB 障害）→ 503 の JSON（`code: "route_user_unavailable"`、上の「主体の決まり」）。クライアントは再試行
 
 ---
 
@@ -310,7 +327,7 @@ export const POST = createApiRoute(
 | `route-http-export/http-export` | `src/app/**/route.{ts,tsx}` の GET〜OPTIONS は `export const X = <wiring か @/lib/cron の作り手>(…)` だけ。export function・再 export・分割代入の export は不可 | `eslint-rules/route-http-export.mjs` |
 | `import-boundaries/route-factory-via-wiring` | `src/lib/routeFactory/**` の値 import は `src/wiring/**`（fork が足した wiring を含む）と自身だけ。エイリアス・相対・`src/…`・サブパス・dynamic import も実パスで判定。型だけは可 | `eslint-rules/import-boundaries.mjs` |
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
-| 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
+| 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
 テスト: `pnpm test:route-factory`（Factory の契約）/ `test:route-http-export` / `test:import-boundaries` / `test:device-route` / `test:collection-entries-route`。
 
@@ -343,6 +360,7 @@ export const POST = createApiRoute(
 - **管理画面の一覧が 403**: 対象ドメインの registry `access` が admin 限定で、ログイン中ユーザーのロールカテゴリが admin でない
 - **公開ページの一覧取得が 401**: registry の `read` が `"public"` でない。公開してよいデータか（上記判断基準）を確認してから宣言する
 - **休会中・処分保留中の人が 403**: 既定は active だけを通す。その手続きに限って `allowStatuses` を列挙する
+- **DB が落ちている間 API が 503 `route_user_unavailable`**: 想定通り（未ログインの 401 と区別している）。DB の復旧を待つ。利用者を使わない公開ルートなら `user: "skip"` で影響を受けない
 - **`ctx.user` が `null` 可の型になる**: 型引数を書いていて 3 つ目（access）を省いている（上の「主体の決まり」）
 - **wallet 等で本人のデータが取れない**: 汎用 `/api/[domain]` ではなく `/api/me/**`（createMeRoute）を使う
 - **静的サブルートを持つドメインの汎用パスが 404 / 401**: シャドーイングではない。上記「注意（よくある誤解）」の curl で判定する
