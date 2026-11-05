@@ -64,7 +64,7 @@
     "test:fork-regions": "node --test src/lib/forkOwnership/regions.test.mjs",
     "test:fork-ownership": "node --test src/lib/forkOwnership/judge.test.mjs src/lib/forkOwnership/check.test.mjs src/lib/forkOwnership/unitNames.test.mjs src/lib/forkOwnership/who.test.mjs src/lib/forkOwnership/lineage.test.mjs",
     "test:core-rules": "node --test scripts/claude-rules/coreRules.test.mjs",
-    "test:notices": "node --test scripts/notices/notices.test.mjs scripts/notices/hotfixCheck.test.mjs scripts/notices/pickCheck.test.mjs scripts/notices/shippedIndex.test.mjs .claude/skills/flux/incoming.test.mjs",
+    "test:notices": "node --test scripts/notices/notices.test.mjs scripts/notices/hotfixCheck.test.mjs scripts/notices/pickCheck.test.mjs scripts/notices/checkpointCheck.test.mjs scripts/notices/shippedIndex.test.mjs .claude/skills/flux/incoming.test.mjs",
     "notices:hotfix-check": "node scripts/notices/hotfixCheck.mjs",
     "notices:pick-check": "node scripts/notices/pickCheck.mjs",
     "test:storage-setup": "npx tsx --test scripts/storage/iamGrant.test.ts",

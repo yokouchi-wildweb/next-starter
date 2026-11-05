@@ -69,6 +69,9 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - 「未実行: <検査>」(その土台の木に script が無い)は報告に書く
    - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直す。`fixes:` があれば上の `pnpm notices:pick-check` がその確かめを兼ねる: `-` の理由が衝突・検査の失敗・後の notice への依存なら push せず止まる(「止まるとき」)。`fixes:` が無ければ省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
      続けて **遅れた fork で前提が揃うか確かめる**: `pnpm notices:hotfix-check <この commit>`。fleet.conf の各 fork の位置(merge-base)に pick した木で、この commit が足した・変えたパス指定ルールの `paths:`、notice の手順の `pnpm <script>`、notice が名指すパスがあるかを見る(間の変更で届くものに頼っていないか)。exit 1 → push せず止まる(「止まるとき」)。exit 2(fork の位置が分からない)→ 報告に「未確認: 遅れた fork の位置」と書いて進む。位置が分かれば `--base=<sha>` で渡せる。
+   - push の前に **途中の区切りを確かめる**(`.notices/README.md`「区切り(checkpoint)と区間適用」の「途中の区切りの検査」): 範囲 `origin/<branch>..HEAD` に先端の commit 以外で足した区切りの notice があれば、`node scripts/notices/checkpointCheck.mjs origin/<branch>..HEAD`。fork が区間ごとに merge して持つ木で各区切りに typecheck・test:config-module-load・test:core-rules・registry:check を通す。
+     - exit 1(壊れた区切りがある): push せずに止まる。その区切りが push 前の自分の commit なら、その commit を直して(rebase で直す・本体と notice と索引の行を揃える)検査を通し直す。push 済みの区切り(sha を保つ必要がある脇の commit を含む)なら、`fixes: <その notice>` の修正を出して pick-check で `pick: clean` にする
+     - exit 2(判定できない: 依存を入れられない等): 報告に「途中の区切り未確認: <理由>」と書いて進む
 7. **push する**(`no-push` のときはしない): `git push`。できなかったら取り繕わず理由を報告する。
 8. **報告**(日本語):
    - 先頭に下流の取り込み判定(実測)を 1 行: `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`。危険 = そのまま merge すると fork のビルド・起動・既存動作が壊れる / fork 側の手作業が要る / 挙動・権限が黙って変わる。要注意 = merge の衝突が起きうる程度。下流が無ければ省く。
@@ -127,7 +130,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - **`checkpoint` = 原則ラベル**(英語ケバブ、既存と重ならない。迷ったら `<slug>`)。「この notice まで適用すれば fork は整合した休憩点にある」の宣言。**区切りの commit は動く状態であること**: その notice を含める commit で `pnpm typecheck` と `pnpm test:config-module-load`(部品を re-export する config を最初に読んだときの循環 import の検査)を通す。通らなければ修正を同じ commit に入れる(後の commit に回すなら `checkpoint: -` + notes)。区切りで画面が落ちると、全 fork の /flux がそこで止まって commit・push する。`-` は「後続の notice が無いと fork が動かない中間点」と断言できるときだけで、理由を `notes:` に書く(例: `notes: checkpoint:- because <id> (step 2) is required for the build to pass`)。迷ったら `-` にしない。
    - 追随作業は無いが区切りや `fixes:` だけ伝えたいときは `severity: info` + `required_actions: none` + `checkpoint: <label>`。
    - notice は区切りに含めたい変更本体と同じ commit か、それより後の commit に入れる(先に出すと merge 先に本体が含まれない)。
-3. 出荷済みの notice の本文と索引の行は書き換えない(push 済みの行の変更は `pnpm test:notices` が止める)。書き間違い・不具合の修正・動かない区切りは、新しい notice の `fixes:`(と要るなら `skip_checkpoint:`)で示す(`.notices/README.md`「修正(fixes)」「区切りを外す欄」)。
+3. push 前の自分の commit(`origin/<branch>..HEAD`)は自由に直してよい(amend・rebase で本体・notice・索引の行を直す。索引の行は本文から作り直す: `shippedIndex.mjs refresh`)。出荷済み(push 済み)の notice の本文と索引の行は書き換えない(push 済みの行の変更は `pnpm test:notices` が止める)。修正の notice(`fixes:`)は push 済みの物を直す時だけ。書き間違い・不具合の修正・動かない区切りは、新しい notice の `fixes:`(と要るなら `skip_checkpoint:`)で示す(`.notices/README.md`「修正(fixes)」「区切りを外す欄」)。
 
 ## 本文の片付け
 区間が閉じた notice の本文は、上流側で消してよい(期限なし。`done/` へは移さない。索引の行は残す)。移行・codemod を使う notice は、出荷 → 自分の DB で実行 → 次の commit で添付と本文を消す。片付けだけの削除に notice は要らない(`.notices/README.md`「本文と添付物の片付け」)。台帳は上流へは流れないので、上流での適用状況の追跡はしない。

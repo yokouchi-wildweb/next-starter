@@ -194,7 +194,7 @@ export function commitConditions(files, noticePath) {
   return out;
 }
 
-function runChecks(dir, checks, scripts) {
+export function runChecks(dir, checks, scripts) {
   const out = { failed: [], skipped: [] };
   for (const cmd of checks) {
     const m = cmd.match(/^pnpm\s+(?:run\s+)?([\w:.-]+)/);
@@ -209,7 +209,7 @@ function runChecks(dir, checks, scripts) {
 }
 
 /** 依存: 土台の lock が repo の lock と同じなら node_modules を借り、違えば一時の木に入れる */
-function provideDeps(repo, dir) {
+export function provideDeps(repo, dir) {
   if (!existsSync(join(dir, "package.json"))) return null;
   const lockHere = join(dir, "pnpm-lock.yaml");
   const lockRepo = join(repo, "pnpm-lock.yaml");

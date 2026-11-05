@@ -73,7 +73,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 索引は出荷したリポごとに 1 ファイル、notice ごとに 1 行。書くのはそのリポだけ(台帳 `applied/<名前>.md` を fork ごとに分けたのと同じ理由: 多段の merge で追記が重ならない)。ファイル名の fork 名は台帳と同じ例外。上流の索引は merge で下流に届くが、下流は書かない
 - 行 = `- id:<id>` に本文の欄を決まった順で ` | key:value`(`severity`・`checkpoint`・`covers`・`moved`・`fixes`・`resolves`・`hotfix`・`uses`・`pick`・`skip_checkpoint`)。**本文にある欄だけ**を写す(`checkpoint:` の欄が無い旧 notice は行でも欄なし = 区切り。`-` で埋めない)。`hotfix:` は理由の文でなく `yes`。値に ` | ` は書けない
 - 行は `/ship` が `node scripts/notices/shippedIndex.mjs add <notice>` で本文から作り、notice と同じ commit に入れる。手で書かない。出荷する commit 自身の sha は行に書かない(行を書く時に決まっていない)。notice を足した commit は履歴から引く
-- 追記だけ: push した行は変えない・消さない・並べ替えない(`pnpm test:notices` が前に push した版と比べる)。push 前の行(`pick:` の書き込み)は直してよい
+- 追記だけ: push した行は変えない・消さない・並べ替えない(`pnpm test:notices` が前に push した版と比べる)。push 前の行は直してよい(`pick:` の書き込み・本文を直した後の `refresh`。push 前の自分の commit は本体・notice・行とも自由に直す: 下記「区切り(checkpoint)と区間適用」)
 - 正: 欄の値は索引、本文はその notice を**足した commit の版**(`git show <足した commit>:.notices/<id>.md`)。区間の merge 先や上流の先端の版で代用しない
 - 読む側: `/flux` の流入の発見と区間(`.claude/skills/flux/incoming.mjs`)・`pnpm ownership:check` の「台帳に無い notice」と `resolves:`・`pnpm test:notices` は索引を読む。索引の無い版(導入前の上流・fork 成立点)は本文も読み、両方の和をとる
 - 止まる: 浅い clone・索引に行があるのに足した commit が履歴に無い(履歴の書き換え・食い違い)ときは、未適用ゼロとして進まずに止まる
@@ -104,7 +104,8 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 区間 = 履歴順に並べた未適用 notice を、区切り notice(索引の行の `checkpoint` が `-` 以外、または欄なし。ただし `skip_checkpoint:` に名指された notice は `-` とみなす)の直後で切ったもの。`-` の notice は次の区切りまで同じ区間に入る。最後の区切り以降〜上流 HEAD が末尾区間(空のこともある)。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続するだけで問題ない。
 - /flux は区間ごとに「その区間の merge 先(区切り notice の追加 commit、末尾区間は上流 HEAD)まで merge → 区間内 notice を適用 → verify → 台帳 → commit → push」を繰り返す。途中で止まっても fork は直前の区切りに居るので、再実行すれば続きから進む(状態は下記の集合演算で毎回導出されるため、追加の記録は不要)。詳しく計画するのは次の区間だけで、区間の終わりごとに次の区間の計画を出して止まる(`all` で止まらずに進む)。区間の終わりの報告は次の区間に必要なこと(ここまでの sha・人間の判断・次の merge 先・残作業)だけを持つので、セッションを閉じても `/flux` で続きから計画し直せる。
 - merge commit は区間数ぶん増える。これは意図した代償(区切りごとに fork が整合する)。追随を小刻みに続けている fork は今までと同じ。
-- 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りの commit は動く状態であること: その commit で `pnpm typecheck` と `pnpm test:config-module-load` が通る(通らない区切りを出してしまったら、出荷済みの本文と索引の行は書き換えず、修正の notice を出す。修正が先に取れれば `pick: clean` で修正元の区間の直後に取られ、取れなければ修正の notice に `skip_checkpoint: <その notice の id>` を書いて修正元の区切りを外す: 上記「区切りを外す欄」、下記「修正(fixes)」)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
+- 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りの commit は動く状態であること: その commit で `pnpm typecheck` と `pnpm test:config-module-load` が通る(push 前の自分の commit なら、その commit を直して(amend・rebase)通し直す。通らない区切りを push してしまったら、出荷済みの本文と索引の行は書き換えず、修正の notice を出す。修正が先に取れれば `pick: clean` で修正元の区間の直後に取られ、取れなければ修正の notice に `skip_checkpoint: <その notice の id>` を書いて修正元の区切りを外す: 上記「区切りを外す欄」、下記「修正(fixes)」)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
+- 途中の区切りの検査(`node scripts/notices/checkpointCheck.mjs <from>..<to>`、/ship が push の前に走らせる): ふだんの検査は先端の木しか見ないので、出荷する範囲の途中の区切りが壊れていても気づかない(脇のブランチを main に載せ直して出した範囲で、途中の区切りが型検査に落ちていた)。この道具は区切りを /flux と同じ順(先端の `rev-list --topo-order`)に並べ、範囲の起点から各区切りの commit を順に merge した木 = fork がその区間で実際に持つ木(直線の履歴ではその commit の木、脇のブランチを merge した範囲では先に並ぶ側を merge 済みの木)で、`pnpm typecheck`・`test:config-module-load`・`test:core-rules`・`registry:check` を通す。merge の衝突も壊れたと数える(出荷索引だけの衝突は除く)。最初に壊れた区切りで止まる(`--all` で続ける)。壊れた区切りが push 前の自分の commit なら、その commit を直して通し直す。push 済み(脇の commit を他のリポが持つ等で sha を保つ必要がある時を含む)なら、`fixes: <その notice>` の修正を出し、pick-check で `pick: clean` になる形にする
 
 ## 移動・改名(moved)
 
@@ -240,7 +241,7 @@ fork 固有コミットがまだ無い場合は現役 notice 全件が継承済�
 
 ## 本文と添付物の片付け
 
-- 出荷済みの本文は書き換えない(書き間違いでも、手順が実態と合わないなら新しい notice の `fixes:` で直す)。索引の行も書き換えない
+- 出荷済み(push 済み)の本文は書き換えない(push 前の自分の commit は直してよい。書き間違いでも、手順が実態と合わないなら新しい notice の `fixes:` で直す)。索引の行も書き換えない
 - 本文は区間が閉じた(後ろに区切りの行がある)ものから消してよい。期限はなく、全 fork の適用を待たない(遅れた fork は足した commit の版を履歴から読む)。消すのは出荷したリポだけ。片付けだけの削除に notice は要らない
 - 移行・codemod を使う notice: ① コード変更・移行 / codemod・案内の notice を同じ commit で出荷 → ② 自分の DB で移行を実行 → ③ 次の commit で添付と本文を消す(① を squash しない)
 - `done/` への移動の運用はやめた(発見と適用状態は索引・履歴・台帳から決まるので、本文を移して対象外にする必要がない)。既存の `done/` の 2 本はそのまま読まれる
