@@ -303,3 +303,4 @@
 - id:20261105-183459-coin-issuance-breakdown | severity:info | checkpoint:coin-issuance-breakdown | resolves:20261101-133024-fix-coin-issuance-double-count
 - id:20261105-190935-establish-session | severity:action-required | checkpoint:establish-session
 - id:20261105-191948-gate-features-tableless-domains | severity:info | checkpoint:gate-features-tableless-domains
+- id:20261105-194544-config-requires | severity:breaking | checkpoint:config-requires
