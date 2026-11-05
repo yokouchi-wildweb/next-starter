@@ -14,6 +14,7 @@
 //   区切り点 = 直接の親の行は notice を足した commit、祖父の行は直上 Tier の台帳にその id が載った commit(無ければ足した commit + 警告)
 //   区切り = 行の checkpoint がラベルか欄なし。ただし先端のどれかの行の skip_checkpoint: <id> に名指された物は - とみなす
 //   区間 0 = 区切り点が HEAD の祖先。以降は区切り点の履歴順に、区切りの直後で閉じる。最後の区切り以降 + 残りの commit = 末尾区間
+//   offLine = 前の位置(HEAD と先端の merge-base / 前の区間の merge 先)が merge 先の祖先でない区間(脇の commit。mainline = 本線でそれを含む最初の commit)
 //   exit 0 = 出した | 2 = 止まる(浅い clone・行があるのに足した commit が無い・区切り点が先端の祖先でない・fork_id が無い)| 3 = 先端に索引が無い(今の手順で進める)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -226,6 +227,17 @@ export function incoming(repo, { upstream, from = "index" }) {
   }
   const restCommits = Number(g.git(["rev-list", "--count", `${last}..${tip}`, "^HEAD"]).trim());
   if (cur.length || restCommits > 0) segments.push({ n: segments.length + (zero.length ? 0 : 1), target: tip, label: "HEAD", tail: true, notices: cur });
+  // 脇の commit の区間: 前の位置(最初 = HEAD と先端の merge-base、以降 = 前の区間の merge 先)が merge 先の祖先でない
+  // (修正を壊れた地点の脇の commit で出して merge した形で、その修正を取らなかった fork)。merge すると上流との merge-base が 2 つになる
+  let prev = (g.tryGit(["merge-base", "HEAD", tip]) ?? "").trim() || null;
+  for (const s of segments) {
+    if (!s.target) continue;
+    if (prev && !g.isAncestor(prev, s.target)) {
+      s.offLine = true;
+      s.mainline = (g.tryGit(["rev-list", "--first-parent", "--ancestry-path", `${s.target}..${tip}`]) ?? "").split("\n").filter(Boolean).pop() ?? null;
+    }
+    prev = s.target;
+  }
   return { tip, own, mid, midIsTier, source: from, forkPoint, segments, warnings };
 }
 
@@ -249,6 +261,7 @@ export function run(repo, argv, log = console.log) {
     for (const s of r.segments) {
       const ids = s.notices.map((n) => `${n.id}${n.grandparent ? "(祖父)" : ""}${n.skipCheckpoint ? "(区切りを外された)" : ""}${n.covered.length ? ` covers ${n.covered.join(", ")}` : ""}`);
       log(`区間 ${s.n} → ${s.target ? s.target.slice(0, 8) : "merge なし"} ${s.label}: ${ids.join(" / ") || "(notice なし、merge のみ)"}`);
+      if (s.offLine) log(`  脇の commit: merge 先が前の位置の子孫でない(merge すると上流との merge-base が 2 つになる)。本線で含む commit ${s.mainline ? s.mainline.slice(0, 8) : "-"}。merge せず止まる(SKILL.md 手順 5a)`);
     }
     for (const w of r.warnings) log(`警告: ${w}`);
     return 0;

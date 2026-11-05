@@ -298,3 +298,4 @@
 - id:20261105-183808-pick-check-stacks-clean-fixes | severity:info | checkpoint:pick-check-stacks-clean-fixes
 - id:20261105-183809-checkpoint-range-check | severity:info | checkpoint:checkpoint-range-check | resolves:20261104-143340-ship-check-branch-checkpoints-on-main
 - id:20261105-183810-notice-admin-wide-rule | severity:info | checkpoint:notice-admin-wide-rule | resolves:20261105-070903-notice-admin-wide-scan-adminroutes
+- id:20261105-183811-flux-side-commit-segment | severity:info | checkpoint:flux-side-commit-segment

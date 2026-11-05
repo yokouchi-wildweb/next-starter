@@ -152,6 +152,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 別の notice の clean な修正も先に載せる: 出荷済み(出荷する先端の索引にある。壊れた地点の脇の commit で出した修正も含む)で修正の後の履歴にない `pick: clean` の修正のうち、その土台が壊れた地点かその祖先で、壊れた地点の祖先でないもの(fork が壊れた地点に着くまでに先に取っているもの)を、履歴順に壊れた地点へ先に載せてから試す(土台 + 先に載せた修正 = fork の実際の木)。載らなければ `-`。載せた修正は pick-check の出力(土台の説明)に出し、索引の行には残さない(/flux も同じ順で取るので同じ木になる)
 - /flux: 直接の親が出した `pick: clean` の修正を、`fixes:` の参照先のどれかが適用済みになった直後(修正元の区間の commit の後、push の前)に `git cherry-pick -x` で取り、修正の verify と区間の検査を通してから区間と一緒に push する。台帳は緊急修正と同じ `picked:` の行。修正元の区間の手前の問い(進めるか止めるか)はしない。衝突・検査の失敗は戻して、その問いに戻る。多段では祖父 notice の `pick:` は読まない(`.claude/skills/flux/relay.md`)
 - 出荷索引は pick の外: 修正の commit は notice の索引の行(`.notices/shipped/<fork_id>.md`)を含むが、索引は追記だけの上流の帳簿で、索引の無い・短い土台では必ず衝突する。pick-check・hotfix-check は索引の変更を捨てて載せ(`scripts/notices/pickDroppingIndex.mjs`)、/flux も衝突が `.notices/shipped/` だけなら fork 側を採って続ける(fork が無ければ消す)。fork は pick の時点で上流の索引を要らない(未適用の判定は上流の先端の索引を読む)。索引は後の merge で届く
+- 脇の commit で出した修正: 修正を壊れた地点の脇の commit で出して merge すると、その修正を取らなかった fork では脇の commit が区間の merge 先になり、merge すると上流との merge-base が 2 つになる(所有の検査が判定できない)。/flux はその区間を見つけ(`incoming.mjs` の `offLine`)、merge の前に止まって取り方(修正を pick する・ユーザーに聞く)を出す。所有の検査はこの形を判定するように作り直さない(fork は常に pick する前提)
 - 緊急修正との違い: `hotfix:` は人が宣言して全部の区間の前に割り込む。`pick: clean` は機械の印で、修正元の区間の直後に取るだけで前には出ない
 
 ## 緊急修正(hotfix)— 間の変更を飛ばして先に届ける

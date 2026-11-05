@@ -196,3 +196,42 @@ test("self-contained: only node: imports, and a copy written elsewhere runs in t
   assert.equal(res.status, 0, res.stdout + res.stderr);
   assert.match(res.stdout, new RegExp(`区間 1 → [0-9a-f]{8} one: ${N(1)}`));
 });
+
+test("脇の commit の区間: 修正を壊れた地点の脇で出して merge、fork が取っていなければ offLine と mainline / 取っていれば・直線なら印なし", (t) => {
+  const up = repo(t, "up", "up");
+  up.ship(N(0), ["checkpoint: zero"]);
+  const f = repo(t, "f", "f", up);
+  const p1 = up.ship(N(1), ["checkpoint: one"]);
+  up.ship(N(2), ["checkpoint: two"]);
+  // 修正 n3 を壊れた地点 p1 の脇の commit で出して --no-ff merge(束 5 の形)
+  up.g("switch", "-q", "-c", "fix", p1);
+  const side = up.ship(N(3), ["checkpoint: three", `fixes: ${N(1)}`], { "src/fix.txt": "fixed" });
+  up.g("switch", "-q", "main");
+  // 本線の索引は脇の行も持つ(/ship は merge で両方の行を残す)
+  try {
+    up.g("merge", "-q", "--no-ff", "-m", "merge fix", "fix");
+  } catch {
+    up.g("checkout", "--theirs", "--", ".notices/shipped/up.md");
+    up.g("add", "-A");
+    up.g("commit", "-qm", "merge fix");
+  }
+  const merge = up.g("rev-parse", "HEAD");
+  up.ship(N(4), ["checkpoint: four"]);
+  f.fetch();
+  const segs = incoming(f.dir, { upstream: "upstream/main" }).segments;
+  const offs = segs.filter((s) => s.offLine);
+  assert.equal(offs.length, 1, summary({ segments: segs }).join("\n"));
+  assert.equal(offs[0].target, side);
+  assert.equal(offs[0].mainline, merge);
+  const log = [];
+  run(f.dir, ["--upstream=upstream/main"], (l) => log.push(l));
+  assert.match(log.join("\n"), /脇の commit/);
+
+  // fork が修正を取った(台帳に載る)なら、その区間は無く印も無い
+  f.commit(ledger("f", N(3)));
+  assert.ok(incoming(f.dir, { upstream: "upstream/main" }).segments.every((s) => !s.offLine));
+
+  // 直線の履歴では印なし
+  const { f: f2 } = twoTier(t);
+  assert.ok(incoming(f2.dir, { upstream: "upstream/main" }).segments.every((s) => !s.offLine));
+});

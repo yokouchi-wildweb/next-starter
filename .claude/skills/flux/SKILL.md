@@ -74,7 +74,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
   - 対象: 未適用で、`fixes:` の参照先のどれかが適用済み(この出撃で merge・pick したものを含む)になった直後で、修正の追加 commit がまだ HEAD の祖先でないもの。直接の親が出した notice だけ(祖父 notice の `pick:` は読まない → relay.md「緊急修正」)。修正の修正は、前の修正が適用済み・pick 済みのときだけ対象になる(上流の判定もその木で試している)。修正元がこの出撃の前から適用済みなら、最初の区間の前に取る(最初の区間の merge 先に含まれるなら merge で届くので取らない)。複数なら履歴順に 1 件ずつ。
   - 計画: 修正元の区間の詳細計画に、修正 notice の全文を読んで「直後に <修正 notice> を取る」と required_actions・verify を載せる。その区間の承認がこの pick の承認を兼ねる(`all` も止まらない)。pick を伴う区間は軽い区間にしない。
   - 実行: 修正元の区間の手順 7b の commit の後、7c の前に、下の「緊急修正(hotfix)」の実行 1〜3 と同じ(`git cherry-pick -x <修正の追加 commit>` → 修正の required_actions・区間の検査・verify → 追従と台帳を別 commit。台帳の行も同じ形で `picked:` を書き、`notes:` は `pick-clean after <修正元 id>`)。続けて 7c の `pnpm ownership:check`(`picked:` の分は合格)→ 7d で区間と一緒に push。
-  - 取れなかったとき: cherry-pick の衝突(`.notices/shipped/` だけの衝突は上の実行 1 のとおり fork 側を採って続け、取れなかったに数えない)→ `git cherry-pick --abort`。検査・verify の失敗 → この pick で作った未 push の commit を戻す(`git reset --keep <区間の 7b の commit>`。push 済みの commit は戻さない)。どちらも台帳の修正元の行の `notes:` に `pick failed: <理由>` を書き足して commit し、上の「修正元が未適用」の問い(1 区間ずつ進める / ここで止める)をして待つ。「上流への所見」(b) に 1 行出す(上流の判定は通ったのに fork で通らなかった)。
+  - 取れなかったとき: cherry-pick の衝突(`.notices/shipped/` だけの衝突は上の実行 1 のとおり fork 側を採って続け、取れなかったに数えない)→ `git cherry-pick --abort`。検査・verify の失敗 → この pick で作った未 push の commit を戻す(`git reset --keep <区間の 7b の commit>`。push 済みの commit は戻さない)。どちらも台帳の修正元の行の `notes:` に `pick failed: <理由>` を書き足して commit し(修正が脇の commit なら、後でその区間は手順 5a の「脇の commit の確かめ」で止まる)、上の「修正元が未適用」の問い(1 区間ずつ進める / ここで止める)をして待つ。「上流への所見」(b) に 1 行出す(上流の判定は通ったのに fork で通らなかった)。
   - 後の区間: 台帳に記録済みの id は区切りにならない(緊急修正と同じ)。後の merge でその箇所が衝突したら、fork の編集が無ければ上流側を採る。
 - **修正元が適用済み**: 止まらない。概観で修正の区間に「適用済み <修正元> の修正」と印を付ける(本番に不具合が出ているかもしれないので、ユーザーが優先度を決める材料)。その区間の詳細計画では、台帳の修正元の行の `notes:` と fork 側の差分から当時の回避策を探し、修正が入った後に要らなくなるものを掃討の対象に載せる。
 - **報告**: 区間の終わり・最終報告で、今の位置が修正元を通った後で修正の手前なら「既知の未修正あり: <修正元>(修正は区間 K)。この位置でのデプロイに注意」を 1 行出す。
@@ -151,6 +151,7 @@ fork は最新コードごと clone して始まるため、**fork 成立点の�
 未適用判定・継承済み・区間の組み立て(と relay.md の祖父の区切り点・covers)は、上流の先端の版の `.claude/skills/flux/incoming.mjs` が機械で出す。上流の先端の消えない索引(`.notices/shipped/*.md`、1 notice = 1 行)と notice を足した commit の履歴だけを読み、本文は読まないので、上流が区間の閉じた本文を消していても答えは変わらない(`.notices/README.md`「出荷索引と本文の読み方」)。
 - 実行(手順書と同じく上流の先端の版を動かす。自己完結の 1 ファイルなので fork の木に無くても動く): `git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > .flux/incoming.mjs && node .flux/incoming.mjs --upstream=<upstream>/<branch> --json`(`.flux/` は作業メモと同じ git 管理外の置き場)(cwd = fork のリポ)
 - 出力: 区間ごとに 番号 / merge 先(`target`、区間 0 は無し)/ ラベル / notice(`id`・`owner` = 載っている索引の名前・`grandparent`・`point` = 区切り点・`body` = 本文を読む場所 `<足した commit>:<パス>`・`fields` = 行の欄・`covered` = その notice に乗る covered id・`skipCheckpoint`)と `warnings`
+- `offLine: true`(人の読む出力は「脇の commit」の行)の区間 = merge 先が前の位置(HEAD と上流の merge-base / 前の区間の merge 先)の子孫でない。修正を壊れた地点の脇の commit で出して merge した形で、その修正を取らなかった(pick しなかった・取れなかった)fork に出る。概観にその区間を「脇の commit の区間(本線では `mainline` の commit)」と出し、手順 5a で止まる
 - 本文(required_actions など)はいつも `git show <body>` で読む(足した commit の版。区間の merge 先や上流の先端の版で代用しない)
 - exit 2 = 止まる(浅い clone・索引に行があるのに足した commit が無い・区切り点が上流の先端の祖先でない・fork_id が無い)。理由をそのまま伝え、未適用ゼロとして進まない
 - exit 3(上流の先端に索引が無い)・`git show` で道具が取れない(この道具の導入前の上流): 下の「未適用判定」「区間の組み立て」の手作業の手順で進める(下の手順は道具と同じ規則の説明でもある)
@@ -228,6 +229,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    - **会話が途切れても再開できる**: 区間の終わりで止まっている状態は台帳と git から導出でき、手順 8 の区間報告が残りの判断材料を持つので、セッションを閉じた・compact した後でも `/flux` を打ち直せば次の区間の計画から続く。
 5. **merge**(区間 0 は省略):
    a. 準備: 区間に `moved:` の移植対象があれば先に差分を保存する(→ moved.md 手順 2)。merge 直前の HEAD を控える(`git rev-parse HEAD` = `<pre>`)。打ち消しの接触を見る: `node .claude/skills/flux/lineage-touch.mjs --before <pre> --after <区間の merge 先>`。1 = 流入する `.claude/rules/lineage.md` の変更が自分の打ち消し(project.md・自分の節の `overrides:`)が名指す祖先の鍵に触れた → merge せずに停止条件(下記)。0 = 進む。2 = 読めない(理由を伝えて止まる)
+   - **脇の commit の確かめ**(a の後、merge の前): `git merge-base --is-ancestor $(git merge-base HEAD <upstream>/<branch>) <区間の merge 先>` が偽(道具の `offLine`)なら merge せずに止まる。理由: merge すると上流との merge-base が 2 つになり、区間外の検査(5d)・所有の検査(7c)・次の区間の土台が決まらない(所有の検査はこの形を判定するように作り直さない。この区間の手前で止めて取り方を選ぶ)。取り方を出して待つ: (1) その修正を pick する(上の「先に取れる修正」の実行と同じ。`pick: -` でもユーザーの承認で試す。取れたら区間を組み立て直す)/(2) ユーザーに聞く(例: この区間を飛ばし、本線でそれを含む commit `mainline` を次の区間の merge 先にする)
    b. `git -c merge.directoryRenames=false merge --no-commit <区間の merge 先>`。ディレクトリ改名推定を切るのは、fork 側の削除・再編を「ディレクトリの改名」と誤推定し、上流の新規ファイルを fork の無関係なディレクトリへ置いたり fork のファイルの削除をステージしたりするため(`-X no-renames` では止まらない)。上流の本物のディレクトリ移動は `moved:` の移植が扱う。移植対象があればここで移植する(→ moved.md 手順 3〜4)。
    c. コンフリクトは自分で解消する(上流の意図と自 fork の改変の両立を判断。判断が本当に割れるものだけユーザーに確認)。プロジェクトごとのファイルの採り方:
       - `.claude/rules/project.md` と `behavior.md`: fork 側を採り、上流の追加はこの fork に当てはまるものだけ取り込む。
