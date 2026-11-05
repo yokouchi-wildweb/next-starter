@@ -25,6 +25,7 @@ disable-model-invocation: true
    - サービスの一言説明(日本語可。project.md には英語で書く)
    - fork の名前(`fork_id:`): 既定は `<name>` の小文字(手順 6 の重なりの確認をしてから提示する)
    - Tier: 既定は「フォーク元の Tier + 1、下流なし」
+   - 下流の fork を持つ予定か(`downstream:`。既定 `none`。持つ・持つ予定なら `yes`。後から変えてよい)
    - バックエンド: Firebase / Neon を今設定するか、未設定で始めるか(既定: 未設定)
    - 予定ドメイン・方向性(無ければ「TBD」で可)
    - Vercel プラン: hobby / pro(既定: hobby。hobby は全 cron が 1 日 1 回になる。後から再生成できる)
@@ -50,7 +51,7 @@ disable-model-invocation: true
 3. `pnpm install`(`node_modules` が無い場合のみ)。
 4. フォーク固有ファイルの書き換え(文書の手順 4 の順):
    a. `.claude/rules/project.md`: 同じディレクトリの `project.template.md`(本スキルに同梱)をコピーし、`<...>` を事前確認で得た内容で埋めて置き換える。節の追加・削除はしない(未定の節は `TBD`)。先頭のコメントブロックは削除する。英語・箇条書き。
-   b. 名前をそろえる(同じ値): `.claude/rules/project.md` の TIER 節の `fork_id: <名前>`(雛形の行)/ 台帳 `.notices/applied/<名前>.md` = ヘッダ `# APPLIED LEDGER fork:<origin url>` + 1 行 `- id:fork-init | date:<ISO8601> | commit:- | upstream:<フォーク元の版の完全な sha> | notes:fork start`(`pnpm ownership:check` が Tier1 の版をここからたどる。無いと exit 2)/ `src/lib/CATALOG.md` の末尾に空の節 `## <名前>`(自分の lib を足したらここに 1 行)
+   b. 名前をそろえる(同じ値): `.claude/rules/project.md` の TIER 節の `fork_id: <名前>` と、その次の `downstream: <yes|none>`(雛形の行。事前確認 5 の答え。無いと `pnpm ownership:check` が未検証 = exit 2、`/ship` も止まる)/ 台帳 `.notices/applied/<名前>.md` = ヘッダ `# APPLIED LEDGER fork:<origin url>` + 1 行 `- id:fork-init | date:<ISO8601> | commit:- | upstream:<フォーク元の版の完全な sha> | notes:fork start`(`pnpm ownership:check` が Tier1 の版をここからたどる。無いと exit 2)/ `src/lib/CATALOG.md` の末尾に空の節 `## <名前>`(自分の lib を足したらここに 1 行)
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
    e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。

@@ -5,6 +5,7 @@
 > - holds edit-time detail; design-time rules (needed before any file is opened) stay here | each moved section keeps its essentials + `→ .claude/rules/core/<name>.md` here | creating files in an area without reading a neighbor first → read its core rule file
 > - test: pnpm test:core-rules (paths match real files, pointers both ways, CLAUDE.md < 200 lines, every line ≤ 400 chars)
 > **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/) | marker files (.claude/rules/shortcuts.md, term-aliases.md): upstream above the `fork entries below` marker, fork below it
+> - .claude/rules/lineage.md = rules a middle tier passes to its downstream (always loaded, Tier1 ships the preamble only) | `downstream: yes|none` beside `fork_id:` in project.md (reader forkIds.mjs) | an ancestor's section is never edited → /order <its owner> | only `(default)` keys are overridden, by `overrides:` | ref: lineage.md preamble
 
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)

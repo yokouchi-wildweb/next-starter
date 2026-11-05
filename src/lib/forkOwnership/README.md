@@ -204,6 +204,17 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
 - override: Tier1 は override(`src/app/api/cron/<name>/override.ts`・`<対象>.override.ts`)を出荷しない(`pnpm extensions:check` が検査、`scripts/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
 - 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
+- 規則と実装の分担(D10): `.claude/rules/lineage.md` の祖先の節 = その祖先の下流への契約で、下の Tier は誤字も直さず `/order <その節の持ち主>`。中間 Tier が足したファイル(lineage.md の外) = 実装で、下の Tier が直せる。ただし親の `<名前>.default.<拡張子>` は除く(既定はそれを作ったリポの物。下の Tier は隣の印なしのファイルに重ねる)。書き換えは `default-edit` がどの段でも止める。中間 Tier の既定の削除・rename はまだ `middle-tier`(合格)で、止めるのは棚の議会の側
+
+## 中間層の規則(lineage.mjs)
+
+中間 Tier が下流へ渡す規則の置き場 `.claude/rules/lineage.md`(仕様 = その前置き)の検査。git に触れない純関数だけで、git を読むのは呼び手。
+
+- 構造(`checkLineageStructure`): 前置き → `<!-- end preamble -->` → `## <fork_id>` の節を古い祖先から順(自分は在れば最後)、各節は `<!-- end <fork_id> -->` で閉じる。`downstream: none` のリポが自分の節を持つ = 失敗
+- 打ち消し(`checkOverrides`): `overrides: <fork_id>.<key> = <value> | why: <理由>` は project.md(そのリポだけ)と自分の節(下流にも)に書く。名指せるのは祖先の節の `(default)` の鍵だけ。鍵が無い・`(default)` でない・同じ project.md か同じ節で同じ対象を 2 回 = 失敗。祖先の鍵と同じ名前の鍵が project.md に overrides の行なしである = 警告
+- 接触(`touchedOverrides`): `/flux` が取り込む前後の lineage.md を比べ、自分の打ち消しが名指す鍵が変わったら止める(`.claude/skills/flux/lineage-touch.mjs`)
+- `runCheck` の `lineage` 欄 = `{ checked, failures, warnings }`(lineage.md の無い版は `checked: false` で検査しない)。failures は違反と同じく exit 1、件数は reason `lineage`。祖先の部分が基準どおりかは受け口 `append .claude/rules/lineage.md` の判定が見る
+- 書式(`formatProblems`): `pnpm test:core-rules` が全リポで同じ parser を使って見る(前置きの終わりの印・節の閉じ・節の中の鍵の重複)
 
 ## fork の名前の宣言
 
