@@ -84,7 +84,7 @@ const withBottomNavVar = (html: string) =>
 const rootHideAttr = () => (rootHide ? ` data-frame-hide="${rootHide}"` : "") + (rootFill ? ' data-frame-fill=""' : "");
 /**
  * 枠の宣言の区切り(notice frame-marks → 枠の宣言)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠に data-frame-root と、枠の表の行の data-frame-hide(styles/_base/frame.css が読む)
+ * 外枠に data-frame-root と、枠の表の行の data-frame-hide(styles/core/frame.css が読む)
  */
 const withFrameRoot = (html: string) =>
   html.replace('data-user-app-container=""', `data-user-app-container="" data-frame-root=""${rootHideAttr()}`);

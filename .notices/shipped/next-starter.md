@@ -267,6 +267,7 @@
 - id:20261105-082025-frame-declarations | severity:breaking | checkpoint:shared-shelf-frame | resolves:20261102-114757-bottom-nav-menu-side-prop | uses:scripts/codemods/frame-declarations.mjs
 - id:20261105-085439-chatroom-auth-app | severity:action-required | checkpoint:chatroom-auth-app
 - id:20261105-094711-route-user-unavailable-503 | severity:info | checkpoint:route-user-unavailable-503 | resolves:20261102-155755-route-user-resolution-db-failure-and-cost
+- id:20261105-105641-styles-core-rename | severity:breaking | checkpoint:styles-core-rename | moved:src/styles/_base -> src/styles/core; src/styles/_base/palette.defaults.css -> src/styles/core/palette.default.css; src/styles/_base/typography.defaults.css -> src/styles/core/typography.default.css; src/styles/_base/gradient.css -> src/styles/core/gradient.default.css | resolves:20261105-070903-gradient-css-fork-output
 - id:20261103-172638-template-style-comment-paths | severity:info | checkpoint:template-style-comment-paths | resolves:20261103-172638-template-style-comment-paths
 - id:20261103-175406-infinite-scroll-callers-on-retry | severity:info | checkpoint:infinite-scroll-callers-on-retry | resolves:20261103-175406-infinite-scroll-callers-on-retry
 - id:20261103-144114-ownership-owner-lookup | severity:info | checkpoint:ownership-owner-lookup | resolves:20261103-144114-ownership-owner-lookup

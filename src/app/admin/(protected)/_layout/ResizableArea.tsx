@@ -81,7 +81,7 @@ export function ResizableArea({
 
           ルートの枠の宣言が fill(frame.default.ts / frame.ts の fill: true)の時だけ、外枠の
           data-frame-fill を読んでこのラッパーを flex-col + min-h-0 の束縛モードに切り替え、直下の
-          ページの本文(#main)を flex-1 min-h-0 にする（styles/_base/frame.css）。
+          ページの本文(#main)を flex-1 min-h-0 にする（styles/core/frame.css）。
           これにより高さチェーンがページへ伝播し、内部ペインが独自スクロール、外側は非スクロールになる。 */}
       <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
         <div data-slot="admin-main" data-admin-main-wrapper className="flex-1">

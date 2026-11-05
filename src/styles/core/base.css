@@ -1,5 +1,5 @@
 /*
- * src/styles/_base/base.css
+ * src/styles/core/base.css
  * Tailwind の base レイヤーを拡張して、全体に適用する初期化スタイルを管理します。
  * フォーム要素のリセットや body のデフォルトカラーなど、
  * アプリケーション全体で共有したい最低限のスタイルをここに記述してください。

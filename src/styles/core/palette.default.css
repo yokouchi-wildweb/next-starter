@@ -1,5 +1,5 @@
 /*
- * src/styles/_base/palette.defaults.css — 色トークンの上流既定値(upstream 所有)
+ * src/styles/core/palette.default.css — 色トークンの上流既定値(upstream 所有)
  *
  * ここには「値」だけを置きます。トークンの構造(@theme inline の対応表)は theme.css にあります。
  *
@@ -12,7 +12,7 @@
  *
  * ⚠️ 色を変えたら(upstream / custom どちらでも)メール用カラー定数を再生成してコミットしてください:
  *    pnpm mail:generate-colors
- *    (palette.defaults.css + src/styles/palette.css の :root を合成して hex に変換します)
+ *    (palette.default.css + src/styles/palette.css の :root を合成して hex に変換します)
  *
  * 詳細: src/styles/README.md
  */

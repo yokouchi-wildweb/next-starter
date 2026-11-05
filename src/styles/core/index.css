@@ -1,7 +1,7 @@
 /*
- * src/styles/_base/index.css
+ * src/styles/core/index.css
  * upstream 所有のスタイルの入口。Tailwind・プラグインと upstream の CSS をここで読み込む。
- * fork はこのフォルダ(_base/)を編集しない(以後の merge で衝突する)。値の変更・追加は
+ * fork はこのフォルダ(core/)を編集しない(以後の merge で衝突する)。値の変更・追加は
  * src/styles/ 直下の palette.css / typography.css / overrides.css か、fork が足したファイルに書く。
  * このファイルには @import 以外の CSS を書かない。読み込みは src/styles/global.css から。
  */
@@ -24,9 +24,9 @@
 @import "tw-animate-css";
 @import "./animations.css";
 @import "./theme.css";
-@import "./palette.defaults.css";
-@import "./typography.defaults.css";
-@import "./gradient.css";
+@import "./palette.default.css";
+@import "./typography.default.css";
+@import "./gradient.default.css";
 @import "./config.css";
 @import "./frame.css";
 @import "./z-layer.css";

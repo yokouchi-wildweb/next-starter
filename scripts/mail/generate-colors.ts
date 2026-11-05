@@ -1,7 +1,7 @@
 // scripts/mail/generate-colors.ts
 // 色トークン(CSS)からメール用のカラー定数ファイルを生成するスクリプト。
 //
-// 色の正は CSS(src/styles/_base/palette.defaults.css + src/styles/palette.css)。
+// 色の正は CSS(src/styles/core/palette.default.css + src/styles/palette.css)。
 // 上流既定値を読み、下流の上書きを後勝ちで合成してから hex に変換する。
 // メールはエリア(data-area)もダークモードも持たないため、`:root` ブロックだけを対象にする。
 //
@@ -19,7 +19,7 @@ import { formatHex, parse } from "culori";
 
 /** 読み込み順 = 優先度(後のファイルが前を上書き) */
 const INPUT_CSS_PATHS = [
-  "src/styles/_base/palette.defaults.css", // 上流既定値(必須)
+  "src/styles/core/palette.default.css", // 上流既定値(必須)
   "src/styles/palette.css", // 下流の上書き(無ければ無視)
 ] as const;
 const OUTPUT_PATH = "src/features/core/mail/constants/colors.ts";

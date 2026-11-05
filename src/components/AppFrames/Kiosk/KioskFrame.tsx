@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 
 export type KioskFrameProps = ComponentPropsWithoutRef<"div"> & {
   /**
-   * 端末の切り欠き(--app-safe-area-*、src/styles/_base/config.css)ぶんのパディングを付与する
+   * 端末の切り欠き(--app-safe-area-*、src/styles/core/config.css)ぶんのパディングを付与する
    * （ノッチ・ホームインジケータ・丸角ディスプレイの回避）。既定 false。
    */
   safeArea?: boolean;

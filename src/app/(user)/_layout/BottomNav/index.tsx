@@ -8,7 +8,7 @@ import { useBottomNavItems } from "./useBottomNavItems";
 export const UserBottomNav = () => {
   const { items, height } = useBottomNavItems();
 
-  // 隠す端末・ページ(各ルートの枠の宣言 frame.default.ts / frame.ts)では styles/_base/frame.css が display: none にする
+  // 隠す端末・ページ(各ルートの枠の宣言 frame.default.ts / frame.ts)では styles/core/frame.css が display: none にする
   return (
     <nav
       id="bottom-nav"

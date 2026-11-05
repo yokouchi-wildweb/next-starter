@@ -64,7 +64,7 @@ describe("実リポジトリの intake.txt", () => {
       ["package.json", "edit"],
       ["src/config/app/app-features.config.ts", "edit"],
       ["src/styles/palette.css", "edit"],
-      ["src/styles/_base/global.css", null],
+      ["src/styles/core/global.css", null],
       ["src/app/(user)/(public)/about/page.tsx", "edit"],
       ["src/app/(user)/_layout/UserLayout.replace.tsx", "add"],
       ["src/app/(user)/_layout/UserLayout.acme.tsx", null],

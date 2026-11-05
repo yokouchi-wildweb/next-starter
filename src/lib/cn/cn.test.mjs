@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { cn, FLUID_TEXT_SIZES } from "./index.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const themeCssPath = resolve(here, "../../styles/_base/theme.css");
+const themeCssPath = resolve(here, "../../styles/core/theme.css");
 
 test("text-fluid-* は文字色と共存する（文字色が捨てられない）", () => {
   assert.equal(

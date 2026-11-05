@@ -6,7 +6,7 @@
  *
  * 仕組み: next/font のローダーを `variable` オプション付きで呼び、その結果を渡すと
  *   root layout が <html> にクラスを当て、CSS 変数 --font-sans-loaded / --font-mono-loaded が定義されます。
- *   src/styles/typography.defaults.css のスタックがその変数をフォールバック付きで参照しているため、
+ *   src/styles/core/typography.default.css のスタックがその変数をフォールバック付きで参照しているため、
  *   theme.css や Tailwind の font-sans / font-mono は何も変えずに新しい書体になります。
  *
  * ⚠️ next/font の制約: ローダー呼び出しはモジュールのトップレベルで、引数はリテラルで書くこと

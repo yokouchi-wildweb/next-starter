@@ -30,7 +30,7 @@ export const seoConfig = {
 
   /**
    * root の viewport。省略した項目は Next の既定。
-   * viewportFit "cover" = 画面の端(切り欠きの下)まで描く。枠の部品は --app-safe-area-*(src/styles/_base/config.css)で端を避ける。
+   * viewportFit "cover" = 画面の端(切り欠きの下)まで描く。枠の部品は --app-safe-area-*(src/styles/core/config.css)で端を避ける。
    * 枠の外で端に固定する要素も同じ変数で避ける(env() は直接書かない)
    */
   viewport: {

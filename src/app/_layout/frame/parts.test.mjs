@@ -1,6 +1,6 @@
 // 実行: pnpm test:frame-declaration
 // 部位の一覧(./parts.mjs)が 1 か所にあり、枠の実物と宣言の型に合うことを見る(指令 07 d5)。
-// 隠す CSS(src/styles/_base/frame.css)の部位 = 部位の一覧(両方の枠、印は data-slot だけ)もここで見る。
+// 隠す CSS(src/styles/core/frame.css)の部位 = 部位の一覧(両方の枠、印は data-slot だけ)もここで見る。
 // 各枠の README の data-slot の一覧と実物(要素の data-slot)の照合は (user)/_layout の UserFrame.test・admin/_layout の AdminFrame.test
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -65,7 +65,7 @@ const rulesOf = (css) => {
   return rules;
 };
 const MEDIA = { sp: "@media (width < 40rem)", pc: "@media (width >= 40rem)" };
-const FRAME_CSS = "src/styles/_base/frame.css";
+const FRAME_CSS = "src/styles/core/frame.css";
 
 test("frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末(過不足なし)、印は [data-slot] だけ、:has() なし", () => {
   const css = read(FRAME_CSS);
@@ -151,5 +151,5 @@ test("frame.css: ボトムナビを隠す間は --app-bottom-nav-height を 0、
   const fill = rules.find((r) => r.selector === "[data-user-app-container][data-frame-fill]");
   assert.ok(fill && fill.media === null, "利用者の fill の規則が無い");
   assert.match(fill.decl, /height: var\(--viewport-height, 100dvh\);\s*min-height: 0;\s*overflow: clip;/);
-  assert.ok(read("src/styles/_base/index.css").includes('@import "./frame.css";'), "index.css が frame.css を読まない");
+  assert.ok(read("src/styles/core/index.css").includes('@import "./frame.css";'), "index.css が frame.css を読まない");
 });

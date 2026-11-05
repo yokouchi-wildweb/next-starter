@@ -1,8 +1,8 @@
-/* src/styles/_base/animations.css */
+/* src/styles/core/animations.css */
 
 
 /*
- * src/styles/_base/animations.css
+ * src/styles/core/animations.css
  * 共通のアニメーションや関連ユーティリティを定義します。
  * `--animate-*` の変数は `@theme` ブロックで登録し、
  * 追加のアニメーション用クラスは `@layer utilities` に配置します。

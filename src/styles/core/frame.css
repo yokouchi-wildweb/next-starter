@@ -1,5 +1,5 @@
 /*
- * src/styles/_base/frame.css
+ * src/styles/core/frame.css
  * 枠の部位の出し入れ(手書き・生成しない)。
  *
  * 外枠 [data-frame-root](利用者 = UserLayout の #user-app-container / 管理 = AdminLayout の外枠)に、今のルートの宣言
