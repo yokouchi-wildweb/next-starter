@@ -230,4 +230,4 @@ export const rule: FeatureGateRule = {
 
 ## 旧い置き場からの移行(fork)
 
-旧い置き場(`src/proxies/featureGateRules/`・`scripts/proxies/alwaysOnExceptions/`・`src/proxies/pathPattern.mjs`・`scripts/registry/schemaGate.ts`・生成一覧 `src/proxies/extensions/featureGateRules.ts`)からの移し方は `node scripts/codemods/feature-gate-relocate.mjs`(dry-run → `--apply`、`scripts/codemods/README.md`)。旧い型 `@/proxies/types` の `FeatureGateRule` は非推奨の再 export で次の区切りまで残る。
+旧い置き場(`src/proxies/featureGateRules/`・`scripts/proxies/alwaysOnExceptions/`・`src/proxies/pathPattern.mjs`・`scripts/registry/schemaGate.ts`・生成一覧 `src/proxies/extensions/featureGateRules.ts`)からの移し方は `node scripts/codemods/feature-gate-relocate.mjs`(dry-run → `--apply`、`scripts/codemods/README.md`)。旧い型 `@/proxies/types` の `FeatureGateRule`・`GatedFeatureRule` の再 export は区切り gate-s3 で消した(型は `@/featureGate` から。この道具が直す)。

@@ -45,7 +45,7 @@ node scripts/codemods/feature-gate-relocate.mjs --apply      # git mv・書き�
 - 止める(書き換えない): 印付きの名前(先に fork-name-markers)・上流と同名の規則(案 `<名前>Fork`)・ハイフンの例外名(案 camelCase)・例外に exception も registry も無い・生成一覧を名前空間などで読む形
 - アプリ側(proxy・loader など)で規則の一覧を読んでいた所は書き換えた上で「手で直す」と出す: `@/featureGate/node` は scripts とテストだけ(lint feature-gate-entries)なので `gate.path` / `gate.enabled` に直す
 
-手順: 上流を取り込む → dry-run → 止めた物を片付ける → `--apply` → `pnpm typecheck`・`pnpm ownership:check`・`pnpm test:feature-gate` を通してコミット。旧い型 `@/proxies/types` の `FeatureGateRule` は次の区切りまで残る(非推奨)。
+手順: 上流を取り込む → dry-run → 止めた物を片付ける → `--apply` → `pnpm typecheck`・`pnpm ownership:check`・`pnpm test:feature-gate` を通してコミット。旧い型 `@/proxies/types` の `FeatureGateRule`・`GatedFeatureRule` の再 export は区切り gate-s3 で消した(この道具が型の import を `@/featureGate` へ直す)。
 
 ## fork の名前の印を外す(fork-name-markers.mjs)
 

@@ -15,7 +15,6 @@ import { isHiddenHref } from "@/featureGate/hiddenHref";
 import { clientTools } from "@/featureGate/tools/client";
 import { serverTools } from "@/featureGate/tools/server";
 import { isDomainError } from "@/lib/errors";
-import type { FeatureGateRule as LegacyFeatureGateRule } from "@/proxies/types";
 import { rules } from "@/featureGate/node";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
@@ -24,13 +23,6 @@ test("gate.enabled: 規則のファイル名で引け、規則の enabled() の�
   for (const rule of rules) assert.equal(gate.enabled(rule.name), rule.enabled());
   const wallet: FeatureName = "wallet";
   assert.equal(typeof gate.enabled(wallet), "boolean");
-});
-
-// 旧い場所の型(非推奨の再 export)は同じ型のまま残る(次の区切りで消す)
-const legacyRule: LegacyFeatureGateRule = { pathPatterns: ["/x"], enabled: () => true } satisfies FeatureGateRule;
-
-test("旧い場所の型 @/proxies/types の FeatureGateRule は @/featureGate と同じ型", () => {
-  assert.equal(legacyRule.enabled(), true);
 });
 
 test("gate.enabled: 未知の名前は型で落ち、実行時は throw", () => {
