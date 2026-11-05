@@ -67,7 +67,7 @@ export type DependencyException = {
 
 /**
  * この fork が必ず使う機能(1 機能 1 ファイル: src/featureGate/required/<機能名>.ts の `export const required`)。
- * 依存の検査は「この機能のフォルダを外から読むこと」を依存を書いたとみなして通す(features:set / list での働きは次の計画書)
+ * 依存の検査は「この機能のフォルダを外から読むこと」を依存を書いたとみなして通す。features:list は必須と出し、features:set は off にしない
  */
 export type RequiredFeature = {
   /** 必ず使う理由 */

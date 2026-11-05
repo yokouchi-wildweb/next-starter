@@ -49,6 +49,12 @@ pnpm db:seed
 # 全シーダー実行
 pnpm db:seed:all
 
+# 機能を閉じる規則の一覧（開閉・必須・住所・表・依存・呼び出し。--name <規則名> で詳細、--json）
+pnpm features:list
+
+# 機能の入切（規則がドメインの config の <X>_CONFIG.enabled を読む形だけ書く。他は場所を案内して exit 2。必須は off にしない）
+pnpm features:set <規則名> on|off
+
 # データ削除（インタラクティブ。閉じた機能の表は選べない・参照元は外部キーから足して一覧 → 確認 → 1 文の TRUNCATE ... RESTRICT）
 # (閉じた機能の表も消す: pnpm db:clear --include-closed。計画の検査: pnpm test:db-clear。詳細: src/featureGate/README.md「db:clear と閉じた機能の表」)
 pnpm db:clear

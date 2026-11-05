@@ -198,3 +198,86 @@ test("束の名前の一致: client の束の名前 ⊆ server の束、server �
   assert.deepEqual(client.filter((name) => !server.includes(name)), [], "client だけの名前がある");
   assert.deepEqual(server.filter((name) => !client.includes(name)), [...SERVER_ONLY].sort(), "server だけの名前が SERVER_ONLY と違う");
 });
+
+// ── features:list / features:set の道具(node/describe.ts・node/setEnabled.ts、L1.19) ──
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { describeFeatures, planFeatureSetFromText, readFeatureReport } from "@/featureGate/node";
+import { findCallSites } from "@/featureGate/node/describe";
+import { readRuleConfigTarget, rewriteConfigEnabled } from "@/featureGate/node/setEnabled";
+
+const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
+  ({ name, pathPatterns: ["/x", "/api/x", "/admin/settings/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], ...over }) as GatedFeatureRule;
+
+test("describeFeatures: 住所を手書き / 導出に分け、依存・呼び出し・必須を規則ごとに", () => {
+  const [x, y] = describeFeatures([fixtureRule("x"), fixtureRule("y", { pathPatterns: ["/y"], features: [], tables: [], domainApiPaths: [], settingPaths: [], enabled: () => true })], {
+    dependencies: [
+      { file: "src/a.ts", folder: "x", rule: "x", allowedBy: "gate" },
+      { file: "src/b.ts", folder: "x", rule: "x", allowedBy: null },
+    ],
+    callSites: { x: ["src/a.ts"] },
+    required: { y: "この fork の中心" },
+  });
+  assert.deepEqual(x.paths, { handWritten: ["/x"], domainApi: ["/api/x"], setting: ["/admin/settings/x"] });
+  assert.equal(x.enabled, false);
+  assert.equal(x.required, null);
+  assert.deepEqual(x.dependents.map((d) => d.allowedBy), ["gate", null]);
+  assert.deepEqual(x.callSites, ["src/a.ts"]);
+  assert.equal(y.required, "この fork の中心");
+  assert.deepEqual(y.dependents, []);
+});
+
+test("findCallSites: gate.enabled / gate.assert / useGate().enabled の字面の名前(門番の中・テストは除く)", () => {
+  const root = mkdtempSync(join(tmpdir(), "gate-calls-"));
+  mkdirSync(join(root, "src/app"), { recursive: true });
+  mkdirSync(join(root, "src/featureGate"), { recursive: true });
+  writeFileSync(join(root, "src/app/a.ts"), 'gate.enabled("wallet"); gate.assert(\'payment\'); useGate().enabled(`wallet`); gate.enabled(name);\n');
+  writeFileSync(join(root, "src/app/a.test.ts"), 'gate.enabled("wallet");\n');
+  writeFileSync(join(root, "src/featureGate/b.ts"), 'gate.enabled("wallet");\n');
+  writeFileSync(join(root, "src/app/c.ts"), 'gate.enabled("unknown");\n');
+  assert.deepEqual(findCallSites(root, ["wallet", "payment"]), { wallet: ["src/app/a.ts"], payment: ["src/app/a.ts"] });
+});
+
+const RULE_WRITABLE = 'import { SHOP_CONFIG } from "@/features/shop/config";\n\nexport const rule = {\n  pathPatterns: ["/admin/shops"],\n  enabled: () => SHOP_CONFIG.enabled,\n};\n';
+const CONFIG = "export const SHOP_CONFIG = {\n  /** この機能を使うか */\n  enabled: true,\n  limit: 3,\n};\n";
+
+test("features:set の計画: 書ける形は config の enabled の 1 行だけを書き換える", () => {
+  const files: Record<string, string> = { "src/features/shop/config.ts": CONFIG };
+  const plan = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: (f) => `src/features/${f}/config.ts`, readConfig: (f) => files[f] ?? null, value: false, requiredReason: null });
+  assert.equal(plan.kind, "write");
+  if (plan.kind !== "write") return;
+  assert.equal(plan.after, CONFIG.replace("enabled: true", "enabled: false"));
+  assert.equal(plan.changed, true);
+  const same = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: (f) => `src/features/${f}/config.ts`, readConfig: (f) => files[f] ?? null, value: true, requiredReason: null });
+  assert.ok(same.kind === "write" && same.changed === false);
+});
+
+test("features:set の計画: 必須は off にしない(on はよい)、書けない形は理由と enabled の字面", () => {
+  const read = () => CONFIG;
+  const cfg = (f: string) => `src/features/${f}/config.ts`;
+  assert.deepEqual(planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: read, value: false, requiredReason: "中心" }), { kind: "required", reason: "中心" });
+  assert.equal(planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: read, value: true, requiredReason: "中心" }).kind, "write");
+  const shared = planFeatureSetFromText({ ruleText: "export const rule = { enabled: () => APP_FEATURES.wallet.enabled };\n", configFile: cfg, readConfig: read, value: false, requiredReason: null });
+  assert.ok(shared.kind === "unwritable" && shared.enabledSource === "() => APP_FEATURES.wallet.enabled");
+  const notDomain = planFeatureSetFromText({ ruleText: 'import { SHOP_CONFIG } from "@/config/app/shop.config";\nexport const rule = { enabled: () => SHOP_CONFIG.enabled };\n', configFile: cfg, readConfig: read, value: false, requiredReason: null });
+  assert.ok(notDomain.kind === "unwritable" && /import されていない/.test(notDomain.why));
+  const missing = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: () => null, value: false, requiredReason: null });
+  assert.ok(missing.kind === "unwritable" && /が無い/.test(missing.why));
+  const expr = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: () => "export const SHOP_CONFIG = { enabled: process.env.X === '1' };\n", value: false, requiredReason: null });
+  assert.ok(expr.kind === "unwritable" && /リテラル/.test(expr.why));
+});
+
+test("features:set の読み取り: core のドメイン・入れ子の enabled は書かない", () => {
+  assert.deepEqual(readRuleConfigTarget('import { W_CONFIG } from "@/features/core/wallet/config";\nexport const rule = { enabled: () => W_CONFIG.enabled };\n'), { constName: "W_CONFIG", folder: "core/wallet" });
+  assert.equal(rewriteConfigEnabled("export const S_CONFIG = { enabled: true, sub: { enabled: false } };\n", "S_CONFIG", false), null);
+  assert.equal(rewriteConfigEnabled("export const OTHER = { enabled: true };\n", "S_CONFIG", false), null);
+});
+
+test("readFeatureReport: 上流の全規則で動く(依存は依存の検査の走査と同じ物)", async () => {
+  const report = await readFeatureReport(process.cwd(), rules);
+  assert.deepEqual(report.map((d) => d.name), rules.map((r) => r.name));
+  const wallet = report.find((d) => d.name === "wallet");
+  assert.ok(wallet && wallet.tables.includes("wallets") && wallet.dependents.length > 0 && wallet.callSites.length > 0);
+});

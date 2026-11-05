@@ -85,11 +85,12 @@ const callsGate = (text, ruleName) =>
   new RegExp(`\\.(enabled|assert)\\(\\s*["'\`]${ruleName}["'\`]\\s*\\)`).test(text);
 
 /**
- * 違反を集める
+ * 閉じられるフォルダを外から値で読むファイルを全部集め、どの形で許されたかを付ける(許されなければ allowedBy: null = 違反)。
+ * features:list(node/describe.ts)の依存の一覧と、違反の判定 findDependencyViolations が共有する
  * @param {{ root: string, rules: { name: string, features?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
- * @returns {{ file: string, folder: string, rule: string }[]}
+ * @returns {{ file: string, folder: string, rule: string, allowedBy: "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null }[]}
  */
-export function findDependencyViolations({ root, rules, exceptionFiles = [], requiredNames = readRequiredNames(root) }) {
+export function scanDependencies({ root, rules, exceptionFiles = [], requiredNames = readRequiredNames(root) }) {
   const folderRules = new Map();
   for (const rule of rules) for (const folder of rule.features ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
   const folders = [...folderRules.keys()];
@@ -97,13 +98,12 @@ export function findDependencyViolations({ root, rules, exceptionFiles = [], req
   const requiresCache = new Map();
   const namesCache = new Map();
   const exceptions = new Set(exceptionFiles);
-  const violations = [];
+  const found = [];
   const seen = new Set();
 
   for (const path of walk(join(root, "src"))) {
     const rel = toPosix(relative(root, path));
     if (rel.startsWith("src/registry/") || rel.startsWith("src/featureGate/")) continue;
-    if (exceptions.has(rel)) continue;
     const text = readFileSync(path, "utf8");
     const ownFolder = domainFolderOf(rel);
     const ownRules = ownFolder ? (folderRules.get(folders.find((f) => ownFolder === f) ?? "") ?? []) : [];
@@ -118,23 +118,39 @@ export function findDependencyViolations({ root, rules, exceptionFiles = [], req
         const key = `${rel}|${folder}|${rule.name}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        // (4) 同じ規則のフォルダどうし
-        if (ownRules.some((r) => r.name === rule.name)) continue;
-        // (1) requires
-        if (ownFolder) {
-          if (!requiresCache.has(ownFolder)) requiresCache.set(ownFolder, readRequires(root, ownFolder));
-          if (!namesCache.has(folder)) namesCache.set(folder, domainNamesOf(root, folder));
-          if (namesCache.get(folder).some((name) => requiresCache.get(ownFolder).includes(name))) continue;
+        found.push({ file: rel, folder, rule: rule.name, allowedBy: allowedBy() });
+        function allowedBy() {
+          // (6) 例外
+          if (exceptions.has(rel)) return "exception";
+          // (4) 同じ規則のフォルダどうし
+          if (ownRules.some((r) => r.name === rule.name)) return "sameRule";
+          // (1) requires
+          if (ownFolder) {
+            if (!requiresCache.has(ownFolder)) requiresCache.set(ownFolder, readRequires(root, ownFolder));
+            if (!namesCache.has(folder)) namesCache.set(folder, domainNamesOf(root, folder));
+            if (namesCache.get(folder).some((name) => requiresCache.get(ownFolder).includes(name))) return "requires";
+          }
+          // (2) 規則の名前で確かめる
+          if (callsGate(text, rule.name)) return "gate";
+          // (3) その規則で閉じる住所の下
+          if (segments && rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, segments))) return "route";
+          // (5) fork の required/
+          if (requiredNames.includes(rule.name)) return "required";
+          return null;
         }
-        // (2) 規則の名前で確かめる
-        if (callsGate(text, rule.name)) continue;
-        // (3) その規則で閉じる住所の下
-        if (segments && rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, segments))) continue;
-        // (5) fork の required/
-        if (requiredNames.includes(rule.name)) continue;
-        violations.push({ file: rel, folder, rule: rule.name });
       }
     }
   }
-  return violations;
+  return found;
+}
+
+/**
+ * 違反を集める(scanDependencies の許されなかった物)
+ * @param {{ root: string, rules: { name: string, features?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @returns {{ file: string, folder: string, rule: string }[]}
+ */
+export function findDependencyViolations(input) {
+  return scanDependencies(input)
+    .filter((entry) => entry.allowedBy === null)
+    .map(({ file, folder, rule }) => ({ file, folder, rule }));
 }

@@ -185,6 +185,15 @@ export const rule: FeatureGateRule = {
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
 
+### features:list / features:set
+
+道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/features/`）。
+
+- `pnpm features:list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。上流の縮む表の行は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
+- `pnpm features:set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、その `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（`closable` のひな形の形、L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
+- `features:set` は `db:push`・`extensions:generate` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
+- 上流の規則は今どれも共有の config（`APP_FEATURES` など）を読むので `features:set` は場所の案内だけになる。入切の値がドメインの config へ移った規則から書けるようになる
+
 ### 依存の検査
 
 閉じられるフォルダ(規則の `features`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test:feature-gate` が落ちる(判定: `checks/dependencies.mjs`):

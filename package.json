@@ -188,6 +188,8 @@
     "extensions:check": "node scripts/extensions/check.mjs",
     "cron:generate": "npx tsx scripts/cron/generate.ts",
     "cron:check": "npx tsx scripts/cron/check.ts",
+    "features:list": "npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/features/list.ts",
+    "features:set": "npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/features/set.ts",
     "routes:map": "npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/routes/map.mjs",
     "routes:show": "npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/routes/map.mjs show",
     "env:init": "npx tsx scripts/env/init.ts",
