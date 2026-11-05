@@ -140,6 +140,8 @@ export function featureGateWiringNameOutside(importerRel, resolved, specifiers) 
   return hit ? hit.name : null;
 }
 const SHELF_LINK = "src/components/Navigation/Link/index.tsx";
+/** 守りの lib(next/navigation の useRouter を読んでよい唯一の置き場) */
+const UNSAVED_GUARD_LIB = "src/lib/unsavedGuard";
 const GATE_RULES_DIR = "src/featureGate/rules";
 
 const closablePatternCache = new Map();
@@ -416,6 +418,36 @@ const linkViaShelf = {
   },
 };
 
+// ── router-via-guard(D11、指令 18) ──
+// next/navigation の useRouter を直接 import しない。移動は未保存の編集の守り付きの router(import { useRouter } from "@/lib/unsavedGuard"、
+// 同じ名前・同じ形)を使う(棚の部品は useShelfRouter from "@/components/Navigation/NavigationPort")。例外は守りの lib の中だけ。
+// 上流 = error・fork = warn(link-via-shelf の対)。置き換え: scripts/codemods/guarded-router.mjs
+const routerViaGuard = {
+  meta: {
+    type: "problem",
+    docs: { description: "next/navigation の useRouter を直接 import しない(守り付きの router を使う)" },
+    messages: {
+      rawUseRouter:
+        '"next/navigation" の useRouter を直接 import しません。編集中の離脱を確かめる守り付きの router(import { useRouter } from "@/lib/unsavedGuard"、同じ形)を使います(棚の部品は useShelfRouter from "@/components/Navigation/NavigationPort"。置き換え: scripts/codemods/guarded-router.mjs。src/lib/unsavedGuard/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    if (isUnder(repoRelative(context.filename, repoRoot), UNSAVED_GUARD_LIB)) return {};
+    return {
+      ImportDeclaration(node) {
+        if (node.source.value !== "next/navigation" || node.importKind === "type") return;
+        for (const specifier of node.specifiers) {
+          if (specifier.type !== "ImportSpecifier" || specifier.importKind === "type") continue;
+          const imported = specifier.imported.type === "Identifier" ? specifier.imported.name : specifier.imported.value;
+          if (imported === "useRouter") context.report({ node: specifier, messageId: "rawUseRouter" });
+        }
+      },
+    };
+  },
+};
+
 const clientNoDomainJson = {
   meta: {
     type: "problem",
@@ -449,6 +481,7 @@ const plugin = {
     "client-no-domain-json": clientNoDomainJson,
     "feature-gate-entries": featureGateEntries,
     "link-via-shelf": linkViaShelf,
+    "router-via-guard": routerViaGuard,
   },
 };
 

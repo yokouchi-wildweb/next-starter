@@ -13,6 +13,7 @@ import type {
 import { FormProvider } from "react-hook-form";
 
 import { Stack, type StackSpace } from "@/components/Layout/Stack";
+import { useShelfUnsavedSource } from "@/components/Navigation/NavigationPort";
 import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
@@ -126,6 +127,12 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
    * ```
    */
   autoSave?: AutoSaveOptions<TFieldValues>;
+  /**
+   * 編集済み(formState.isDirty)の間、ページを離れる前に確認する(既定 true。送信が済めば外し、次の入力でまた守る)。
+   * 守りの中身はアプリの結線が棚の Navigation の口へ入れる(src/lib/unsavedGuard)。false で切る
+   * @default true
+   */
+  guardUnsaved?: boolean;
 } & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit" | "autoSave">;
 
 const AppFormComponent = <TFieldValues extends FieldValues>(
@@ -147,6 +154,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     disableAutoCommitMedia = false,
     submitErrorDisplay = "summary",
     autoSave,
+    guardUnsaved = true,
     ...formProps
   }: AppFormProps<TFieldValues>,
   ref: React.ForwardedRef<HTMLFormElement>,
@@ -228,10 +236,31 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   const effectivePending = isSaving ? false : pending;
   const isBusy = effectivePending || isSubmitting || isMediaUploading;
 
+  // 未保存の編集の守り: 編集済みの間は守る。送信の直前に同期に外し(onSubmit の中の移動を聞かない)、失敗すれば戻す。
+  // 成功の後は次の入力まで外したまま(react-hook-form は送信が済んでも isDirty を戻さない)
+  const unsavedSource = useShelfUnsavedSource();
+  const [releasedAfterSubmit, setReleasedAfterSubmit] = React.useState(false);
+  const isDirty = formState.isDirty;
+  React.useEffect(() => {
+    unsavedSource.set(guardUnsaved && isDirty && !releasedAfterSubmit);
+  }, [unsavedSource, guardUnsaved, isDirty, releasedAfterSubmit]);
+  React.useEffect(() => {
+    if (!releasedAfterSubmit) return;
+    const subscription = methods.watch(() => setReleasedAfterSubmit(false));
+    return () => subscription.unsubscribe();
+  }, [methods, releasedAfterSubmit]);
+
   // 送信成功時にメディアをコミット
   const handleSubmitWithMediaCommit: SubmitHandler<TFieldValues> = React.useCallback(
     async (data, event) => {
-      await onSubmit(data, event);
+      unsavedSource.set(false);
+      try {
+        await onSubmit(data, event);
+      } catch (error) {
+        unsavedSource.set(guardUnsaved && methods.formState.isDirty);
+        throw error;
+      }
+      setReleasedAfterSubmit(true);
 
       if (disableAutoCommitMedia) return;
 
@@ -246,7 +275,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
         await Promise.all(individualEntries.map((entry) => entry.commit()));
       }
     },
-    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState],
+    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState, unsavedSource, guardUnsaved, methods],
   );
 
   // 二重送信ロック: isSubmitting / pending は次の描画まで効かないため、同じフレームの 2 回目を同期に捨てる。

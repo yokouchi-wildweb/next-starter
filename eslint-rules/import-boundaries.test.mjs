@@ -366,3 +366,19 @@ test("config: link-via-shelf は Tier1 で error(テストは対象外)", async 
   assert.deepEqual(await lintAt("src/app/foo/_components/Part.tsx", RAW), ["import-boundaries/link-via-shelf:2"]);
   assert.deepEqual(await lintAt("src/app/foo/_components/Part.test.tsx", RAW), []);
 });
+
+test("rule router-via-guard: next/navigation の useRouter を止め(別名・ほかの名前と一緒でも)、守りの lib の中・型だけ・ほかの名前は通す", () => {
+  ruleTester.run("router-via-guard", plugin.rules["router-via-guard"], {
+    valid: [
+      { code: `import { useRouter, usePathname } from "next/navigation";`, filename: at("src/lib/unsavedGuard/UnsavedGuardProvider.tsx") },
+      { code: `import { usePathname, useSearchParams, redirect } from "next/navigation";`, filename: at("src/app/x/page.tsx") },
+      { code: `import { useRouter } from "@/lib/unsavedGuard";`, filename: at("src/features/core/user/components/X.tsx") },
+      { code: `import type { useRouter } from "next/navigation";`, filename: at("src/app/x/page.tsx") },
+    ],
+    invalid: [
+      { code: `import { useRouter } from "next/navigation";`, filename: at("src/features/core/user/components/X.tsx"), errors: [{ messageId: "rawUseRouter" }] },
+      { code: `import { usePathname, useRouter as useNav } from "next/navigation";`, filename: at("src/components/AppFrames/X.tsx"), errors: [{ messageId: "rawUseRouter" }] },
+      { code: `import { useRouter } from "next/navigation";`, filename: at("src/lib/crud/hooks/x.ts"), errors: [{ messageId: "rawUseRouter" }] },
+    ],
+  });
+});

@@ -13,6 +13,7 @@
 - 判定するのは `href` が文字列のとき。`UrlObject` は `pathname`(無ければ判定しない)
 - `'use client'` の部品だが、server component の中から使ってよい(Provider の中で SSR され、判定が効く)
 - `LinkButton`(`Form/Button`)も中でこれを使い、`gate` を受ける
+- 移動の判定は別の口 `../NavigationPort`(棚の Navigation の口: Link の `onNavigate` の判定・棚の router・編集済みの元)。アプリでは `src/wiring/UnsavedGuardWiring.tsx` が未保存の編集の守り(`src/lib/unsavedGuard`)を入れるので、編集済みの間に Link で移ると確認が出る。呼び手の `onNavigate` が先に動き、それが止めた移動は聞かない。門番の口とは混ぜない
 
 ## lint `import-boundaries/link-via-shelf`
 

@@ -6,6 +6,7 @@
 |---|---|
 | `fork-name-markers.mjs` | 受け口のファイル名から fork の名前の印を外す(共有の棚の印の移行。下) |
 | `feature-gate-relocate.mjs` | 門番の規則・常時実行の例外を src/featureGate/ へ移し、旧い置き場の import を直す(下) |
+| `guarded-router.mjs` | next/navigation の `useRouter` を守り付きの router(`@/lib/unsavedGuard`、棚は `useShelfRouter`)へ移す(下) |
 | `frame-declarations.mjs` | 枠の部位の出し入れ(Hide*・fill・枠の設定の 4 つ)を枠の宣言 `frame.ts` へ移す(共有の棚の枠の宣言の移行。下) |
 | `feature-gate-s3.mjs` | 門番の区切り gate-s3: 依存の検査の違反のうち今開いている機能を `required/` に書き出し、cron の route.ts の import を `@/wiring/cronRoute` へ(下) |
 | `crud-entry-split.mjs` | ボタンの import を `@/lib/crud/components` へ振り分ける |
@@ -128,3 +129,24 @@ node scripts/codemods/frame-declarations.mjs --apply      # frame.ts を書き�
 7. 差し替えた枠の部品に `data-slot` を付ける(上)。`pnpm ownership:check`(親のルートの隣に `frame.default.ts` を足す・親の既定を書き換えるのは default-add / default-edit。fork は `frame.ts` に書く)
 
 確かめ(使い捨ての写し、2026-11-04): boardgame-site `Hide*` 15 → 変更 12・止め 3(`_layout` の部品)+ 消えた API の読み手 3、oripa-do `Hide*` 40 → 変更 16・止め 24(`src/features`・`src/components`・`_components` の部品)+ `AdminPage fill` 8 → 変更 8 + `HEADER_NAV_ENABLED` の sp → `(user)/frame.ts` + 読み手 1、next-vnx `Hide*` 1 → 変更 1 + `HEADER_ENABLED = false` → `(user)/frame.ts`、88-base `UserPage immersive` 1 → 止め。`--apply` の後、fork のファイルで旧い部品を import するのは止めた物だけ、書いた `frame.ts` は生成器の検査で問題 0。
+
+## 守り付きの router へ移す(guarded-router.mjs)
+
+移動は未保存の編集の守り付きの router を使う(`import { useRouter } from "@/lib/unsavedGuard"`、next/navigation と同じ名前・同じ形。仕組み: `src/lib/unsavedGuard/README.md`)。lint `import-boundaries/router-via-guard` が next/navigation の `useRouter` を止める(上流 error・fork warn、例外は守りの lib の中だけ)。
+
+```sh
+node scripts/codemods/guarded-router.mjs            # dry-run(既定): 書き換えるファイルの一覧
+node scripts/codemods/guarded-router.mjs --apply    # 書き換える
+#   --json  機械向けの出力
+```
+
+- `import { useRouter } from "next/navigation"` から `useRouter` だけを外して `import { useRouter } from "@/lib/unsavedGuard"` を足す(ほかの名前は next/navigation に残す、別名も保つ)。呼び出しの書き方は変えない
+- 棚(`src/components`)は lib を読まない(D50)ので、棚の Navigation の口の `useShelfRouter` を同じ名前で読む(`import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort"`)
+- 触らない: 守りの lib の中・テスト・型だけの import。何度当てても同じ
+
+### fork の手順
+
+1. 上流のこの版(守りの lib の版)を `/flux` で取り込む(上流のファイルは取り込みで移る)
+2. dry-run → `--apply` で fork のファイルを移す
+3. `pnpm typecheck` → `pnpm lint`(`router-via-guard` の残りが 0)
+4. 編集画面を AppForm で組んでいなければ、その画面で `useUnsavedGuard(isDirty)` を呼ぶ(AppForm は既定で守る。切るなら `guardUnsaved={false}`)。自作の守り(beforeunload・popstate の自前の処理)は外す

@@ -13,3 +13,7 @@ export type { StateTabItem, StateTabSize } from "./StateTabs"
 // Pagination
 export { default as Pagination } from "./Pagination"
 export type { PaginationProps } from "./Pagination"
+
+// NavigationPort（棚の Navigation の口: Link の移動の判定・棚の router・編集済みの元。アプリでは src/wiring が未保存の編集の守りを入れる）
+export { NavigationPortProvider, useNavigationPort, useShelfRouter, useShelfUnsavedSource } from "./NavigationPort"
+export type { NavigationPortValue, ShelfLinkJudge, ShelfRouter, ShelfUnsavedSource } from "./NavigationPort"

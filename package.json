@@ -21,6 +21,7 @@
     "test:schema-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/tableScan.test.mjs scripts/registry/alpha/alpha.test.mjs",
     "test:service-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/serviceRegistry/serviceRegistry.test.mjs",
     "test:collection-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/collectionWiring/collectionWiring.test.mjs",
+    "test:unsaved-guard": "npx tsx --test src/lib/unsavedGuard/guard.test.ts",
     "test:form-submit-lock": "npx tsx --test src/components/Form/submitLock.test.ts",
     "test:form-background-failure": "npx tsx --test src/components/Form/backgroundFailure.test.ts && npx tsx --experimental-test-module-mocks --test src/components/Form/backgroundFailure.render.test.tsx",
     "test:bulk-actions": "npx tsx --test src/lib/tableSuite/BulkActions/selectBulkActions.test.ts && npx tsx --experimental-test-module-mocks --test src/lib/crud/components/BulkActions/bulkActions.test.tsx",
@@ -220,7 +221,7 @@
     "test:script-entries": "node --test scripts/script-entries/check.test.mjs",
     "test:no-server-action": "node --test eslint-rules/no-server-action.test.mjs",
     "test:domain-display": "node --test scripts/registry/alpha/domainDisplay.test.mjs",
-    "test:codemods": "node --test scripts/codemods/domain-display-buttons.test.mjs scripts/codemods/wiring-domains-split.test.mjs scripts/codemods/crud-entry-split.test.mjs scripts/codemods/domain-json-client-display.test.mjs scripts/codemods/fork-name-markers.test.mjs scripts/codemods/feature-gate-relocate.test.mjs scripts/codemods/frame-declarations.test.mjs scripts/codemods/feature-gate-s3.test.mjs",
+    "test:codemods": "node --test scripts/codemods/domain-display-buttons.test.mjs scripts/codemods/wiring-domains-split.test.mjs scripts/codemods/crud-entry-split.test.mjs scripts/codemods/domain-json-client-display.test.mjs scripts/codemods/fork-name-markers.test.mjs scripts/codemods/feature-gate-relocate.test.mjs scripts/codemods/frame-declarations.test.mjs scripts/codemods/feature-gate-s3.test.mjs scripts/codemods/guarded-router.test.mjs",
     "test:client-chunks": "node --test scripts/bundle/clientChunks.test.mjs && node scripts/bundle/clientChunks.mjs"
   },
   "engines": {

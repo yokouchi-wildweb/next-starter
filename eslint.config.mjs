@@ -108,6 +108,8 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/link-via-shelf": libOwnership.isRoot ? "error" : ["warn", { closableOnly: true }],
+      // router-via-guard: next/navigation の useRouter は守り付きの router(@/lib/unsavedGuard)へ。上流 error / fork warn、例外は守りの lib の中だけ
+      "import-boundaries/router-via-guard": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // - client-no-domain-json: client のコードは domain.json を import しない(写しを読む。判定はプラグインの中)
