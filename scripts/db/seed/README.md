@@ -20,6 +20,7 @@ npm run db:setup
 ```
 scripts/db/seed/
 ├── run.ts               # メインスクリプト（実行エントリーポイント）
+├── gate.ts              # 閉じた機能の項目を飛ばす・feature の検査（pnpm test:db-seed）
 ├── README.md            # このファイル
 └── data/
     ├── index.ts         # エクスポート集約
@@ -110,6 +111,25 @@ export const seedRegistry: SeedConfig[] = [
 export { seedNewDomain } from "./newDomain";
 export type { SeedNewDomainResult } from "./newDomain";
 ```
+
+## 閉じた機能と seed
+
+項目に `feature`（規則名 = `FeatureName`、1 つか配列）を書くと、その規則が 1 つでも閉じている間は項目を飛ばす（対話の選択肢にも `--all` にも出さず、`<項目>: 閉じた機能 <規則>` と出す）。判定は `gate.ts`（`@/featureGate/node` の `gate.enabled`）。
+
+```typescript
+{
+  name: "サンプル",
+  key: "samples",
+  feature: "sampleDomain",
+  deps: ["sampleTags", "sampleCategories"],
+  fn: async (deps) => { /* ... */ },
+},
+```
+
+- 閉じられるフォルダ（規則の `features`）を import する seed のファイルの項目には `feature` が要る。`pnpm test:db-seed` が registry.ts の各項目の `import("./x")` からファイルを引き、その値 import を見て、規則が `feature` に無ければ落とす（fork の項目も同じ registry なので入る）
+- 限界: seed のファイルの直接の import だけを見る（別の seed のファイルを経由した到達は見ない）。項目の `fn` は `import("./<file>")` の形で書く
+- `feature` の無い項目は今までどおり走る。書き込む表が DB に無い（PostgreSQL 42P01）と、項目名と直し方（閉じた機能の表なら `feature` を付ける）を出して止まる
+- 飛ばした項目に頼る項目は、依存先を選ばなかったときと同じく `deps.xxx` が `undefined` で走る
 
 ## 依存関係の解決
 

@@ -131,6 +131,10 @@ export const rule: FeatureGateRule = {
 - 消すのは 1 文の `TRUNCATE TABLE "a", "b", … RESTRICT`（全部消えるか何も消えないか。連鎖の削除は使わない）
 - 閉じた表も選び・参照元に足すのは `--include-closed` のときだけ
 
+### seed と閉じた機能
+
+`pnpm db:seed` の項目（`scripts/db/seed/data/registry.ts`）は省略可の `feature?: FeatureName | FeatureName[]` を持ち、1 つでも閉じていれば飛ばして名前を出す。閉じられるフォルダを import する項目に `feature` が無いと `pnpm test:db-seed` が落とす。詳細: `scripts/db/seed/README.md`「閉じた機能と seed」
+
 ### 決まりごと
 
 - **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test:feature-gate` が次を検査する:

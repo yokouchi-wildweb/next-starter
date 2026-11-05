@@ -1,5 +1,7 @@
 // scripts/db/seed/data/registry.ts
 
+import type { FeatureName } from "@/featureGate";
+
 import type { SeedDemoUserResult } from "./demoUser";
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
@@ -40,6 +42,11 @@ export type SeedConfig = {
   key: SeedKey;
   /** 依存するシードのキー（先に実行される必要がある） */
   deps: SeedKey[];
+  /**
+   * この項目が書く機能(規則名)。1 つでも閉じていれば飛ばして名前を出す(scripts/db/seed/gate.ts)。
+   * 閉じられるフォルダ(規則の features)を import する項目には必須(pnpm test:db-seed が落とす)
+   */
+  feature?: FeatureName | FeatureName[];
   /** シード実行関数 */
   fn: (deps: SeedDeps) => Promise<SeedResultMap[SeedConfig["key"]]>;
 };
@@ -61,6 +68,7 @@ export const seedRegistry: SeedConfig[] = [
   {
     name: "サンプルタグ",
     key: "sampleTags",
+    feature: "sampleDomain",
     deps: [],
     fn: async () => {
       const { seedSampleTags } = await import("./sampleTags");
@@ -70,6 +78,7 @@ export const seedRegistry: SeedConfig[] = [
   {
     name: "サンプルカテゴリ",
     key: "sampleCategories",
+    feature: "sampleDomain",
     deps: [],
     fn: async () => {
       const { seedSampleCategories } = await import("./sampleCategories");
@@ -79,6 +88,7 @@ export const seedRegistry: SeedConfig[] = [
   {
     name: "サンプル",
     key: "samples",
+    feature: "sampleDomain",
     deps: ["sampleTags", "sampleCategories"],
     fn: async (deps) => {
       const { seedSamples } = await import("./samples");

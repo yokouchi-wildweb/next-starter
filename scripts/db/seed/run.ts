@@ -1,4 +1,7 @@
 // scripts/db/seed/run.ts
+//
+// 閉じた機能の項目(feature の規則が 1 つでも閉じている)は選択肢と --all から外し、名前を出す(scripts/db/seed/gate.ts)。
+// feature の無い項目は走る。表が無くて失敗したら項目名と直し方を出す。詳細: scripts/db/seed/README.md「閉じた機能と seed」
 
 import { config } from "dotenv";
 import { checkbox } from "@inquirer/prompts";
@@ -11,9 +14,25 @@ async function main() {
   console.log("");
 
   // 環境変数読み込み後に動的import
-  const { seedRegistry, resolveDependencyOrder } = await import("./data");
+  const [{ seedRegistry, resolveDependencyOrder }, { gate }, { partitionSeeds, isUndefinedTableError }] = await Promise.all([
+    import("./data"),
+    import("@/featureGate/node"),
+    import("./gate"),
+  ]);
   type SeedKey = (typeof seedRegistry)[number]["key"];
   type SeedResults = Partial<Record<SeedKey, unknown>>;
+
+  // 閉じた機能の項目は外す(選択肢にも --all にも出さない)
+  const { run: openSeeds, skipped } = partitionSeeds(seedRegistry, (feature) => gate.enabled(feature));
+  if (skipped.length > 0) {
+    console.log("🔒 閉じた機能の項目なので飛ばします:");
+    for (const { seed, closed } of skipped) console.log(`   ${seed.name}(${seed.key}): 閉じた機能 ${closed.join(", ")}`);
+    console.log("");
+  }
+  if (openSeeds.length === 0) {
+    console.log("実行できるシードがありません。終了します。");
+    process.exit(0);
+  }
 
   // --all フラグで全シードを実行（インタラクティブ選択をスキップ）
   const runAll = process.argv.includes("--all");
@@ -21,13 +40,13 @@ async function main() {
   let selectedKeys: SeedKey[];
 
   if (runAll) {
-    selectedKeys = seedRegistry.map((s) => s.key);
+    selectedKeys = openSeeds.map((s) => s.key);
     console.log("📋 全てのシードを実行します");
   } else {
     // チェックボックスで実行するシードを選択
     selectedKeys = await checkbox<SeedKey>({
       message: "実行するシードを選択してください（スペースで選択、Enterで確定）",
-      choices: seedRegistry.map((seed) => ({
+      choices: openSeeds.map((seed) => ({
         name: seed.deps.length > 0 ? `${seed.name} (依存: ${seed.deps.join(", ")})` : seed.name,
         value: seed.key,
         checked: true, // デフォルトで全選択
@@ -67,8 +86,16 @@ async function main() {
     }
 
     // シード実行
-    const result = await seedConfig.fn(deps as any);
-    results[key] = result;
+    try {
+      results[key] = await seedConfig.fn(deps as any);
+    } catch (error) {
+      if (isUndefinedTableError(error)) {
+        console.error(`❌ ${seedConfig.name}(${key}): 書き込む表が DB にありません。`);
+        console.error("   閉じた機能の表なら registry.ts のこの項目に feature: \"<規則名>\" を付ける(閉じている間は飛ばす)。");
+        console.error("   開いた機能の表なら pnpm db:push で作る。");
+      }
+      throw error;
+    }
   }
 
   console.log("");
