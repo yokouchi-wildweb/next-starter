@@ -141,7 +141,7 @@ export const rule: FeatureGateRule = {
 
 - **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test:feature-gate` が次を検査する:
   - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test:schema-registry`）
-  - **今 `enabled()` が false の規則について**、その表を定義するドメインを import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている
+  - **今 `enabled()` が false の規則について**、その規則の `features` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている（判定 `checks/routeImports.mjs`。`features` の無い規則は対象外）
   - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
   - 現在のフラグで、外す表を残す表が外部キーで参照していない
   - 常時実行の入口の閉じ漏れ（下）

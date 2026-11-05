@@ -10,14 +10,15 @@
 //
 // 守りたい契約:
 // 1. features のフォルダから導いた表名(生成一覧の tables)は schemaRegistry に実在する
-// 2. 無効なルールのドメイン（そのテーブルを entities/drizzle.ts で定義するドメイン）を
+// 2. 無効なルールのドメイン（規則の features のフォルダ。表の数は問わない）を
 //    import するルート（route.ts / page.tsx と、その _screen/ _components/ 配下）は、そのルールの pathPatterns で閉じている
 //    （新しいルートを足して定義に書き忘れると失敗する）。意図的に閉じないルートは ROUTE_EXCEPTIONS に理由付きで書く（upstream 用）
 // 3. 同じドメインの汎用 CRUD（/api/<domain>）も閉じている（汎用 CRUD が全操作 "none" の INTERNAL_ONLY の行は対象外）
+//    (2・3 の判定は ./routeImports.mjs。features を持たない規則は対象外)
 // 4. 現在のフラグの組み合わせでスキーマゲートが成立する（外すテーブルを残すテーブルが外部キーで参照しない）
 //    外部キーに現れない機能間の前提（紹介 → クーポン）も満たす
 // 5. スキーマゲートは enum を外さず、無効なテーブルだけを両側（imports / tablesFilter）から外す
-// 7. 常時実行の入口(cron の task.ts・後片付けと照合の登録表・常に読み込まれる結線)が表を持つ規則の機能のフォルダを
+// 7. 常時実行の入口(cron の task.ts・後片付けと照合の登録表・常に読み込まれる結線)が規則の features の機能のフォルダを
 //    import するなら閉じられる(D17・D30・D20 K4。判定は ./alwaysOnEntries.mjs)。全規則を無効とみなして見る
 // 6. 行き先(redirectTo)の違う規則の住所の重なり(L1.22): 上流の規則どうしは失敗、fork の規則と上流の重なりは表示だけ
 //    (判定はファイル名の順で最初の無効な規則の行き先)。一覧は規則ファイルと同じ並び
@@ -37,6 +38,7 @@ import { alwaysOnExceptions, alwaysOnRegistries, gatedSchema as applySchemaGate,
 import { forkAddedFiles } from "../../lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../../../scripts/extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "./alwaysOnEntries.mjs";
+import { findOpenGenericApis, findOpenRouteImports, rulesWithFeatures } from "./routeImports.mjs";
 import { matchesPath, patternCoversRoute } from "../../lib/pathPattern/index.mjs";
 
 // schemaRegistry は `export *` の再 export だけで構成されるため、ESM の namespace import では
@@ -45,7 +47,6 @@ const schema = createRequire(import.meta.url)("../../registry/schemaRegistry.ts"
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 const APP_DIR = join(ROOT, "src/app");
-const FEATURES_DIR = join(ROOT, "src/features");
 
 // 対象ドメインを import するが、意図的にゲートで閉じないルート（src/app 相対 → 理由）。upstream のルート用
 const ROUTE_EXCEPTIONS = {
@@ -69,19 +70,6 @@ const walk = (dir, out = []) => {
 };
 
 // テーブル名 → それを定義するドメイン名（src/features/<domain> または src/features/core/<domain>）
-const tableOwnerDomains = () => {
-  const owners = new Map();
-  for (const file of walk(FEATURES_DIR).filter((f) => f.endsWith(`${sep}entities${sep}drizzle.ts`))) {
-    const parts = relative(FEATURES_DIR, file).split(sep);
-    const domain = parts[0] === "core" ? parts[1] : parts[0];
-    const source = readFileSync(file, "utf8");
-    for (const match of source.matchAll(/pgTable\(\s*["']([^"']+)["']/g)) {
-      owners.set(match[1], domain);
-    }
-  }
-  return owners;
-};
-
 // src/app 配下のファイルパス → それが属するルートの URL セグメント
 // （ルートグループは除き、private フォルダ（_screen / _components 等）以降は切り捨て、動的セグメントは "[x]" のまま）
 const toUrlSegments = (file) => {
@@ -94,9 +82,10 @@ const toUrlSegments = (file) => {
 
 // パターンがルートを覆うか(完全一致の `=` も含む)は門番と同じ src/lib/pathPattern
 
+// 表の実在を見る検査だけが使う(閉じるドメインは表ではなく features のフォルダから導く)
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);
-// ルートの被覆を検査するルール（無効なもの。CHECK_ALL なら全部）
-const checkedRules = rulesWithTables.filter((rule) => CHECK_ALL || !rule.enabled());
+// ルートの被覆を検査するルール（features を持ち、無効なもの。CHECK_ALL なら全部）
+const checkedRules = rulesWithFeatures(featureGateRules).filter((rule) => CHECK_ALL || !rule.enabled());
 const schemaTableNames = new Set(
   Object.values(schema)
     .filter((value) => is(value, PgTable))
@@ -131,44 +120,17 @@ test("features から導いた表名は schemaRegistry に実在する(導出は
 });
 
 test("無効な機能のドメインを import するルートは、そのドメインのルールで閉じている", () => {
-  const owners = tableOwnerDomains();
   // route.ts / page.tsx だけでなく、そのルートの Screen / loader / 部品（_screen/ _components/）も見る
-  const routeFiles = walk(APP_DIR).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f));
-  const problems = [];
-
-  for (const rule of checkedRules) {
-    const domains = new Set(rule.tables.map((name) => owners.get(name)).filter(Boolean));
-    for (const file of routeFiles) {
-      const rel = relative(APP_DIR, file).split(sep).join("/");
-      if (rel in ROUTE_EXCEPTIONS) continue;
-      const source = readFileSync(file, "utf8");
-      const imported = [...domains].filter((domain) =>
-        new RegExp(`["']@/features/(core/)?${domain}/`).test(source),
-      );
-      if (imported.length === 0) continue;
-      const segments = toUrlSegments(file);
-      if (!rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, segments))) {
-        problems.push(`${rel}（${imported.join(", ")} を import）が「${rule.tables.join(", ")}」のルールで閉じていない`);
-      }
-    }
-  }
+  const routeFiles = walk(APP_DIR)
+    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f))
+    .map((f) => ({ rel: relative(APP_DIR, f).split(sep).join("/"), segments: toUrlSegments(f), text: readFileSync(f, "utf8") }));
+  const problems = findOpenRouteImports(checkedRules, routeFiles, ROUTE_EXCEPTIONS);
   assert.deepEqual(problems, [], `pathPatterns に追加するか ROUTE_EXCEPTIONS に理由付きで書く:\n${problems.join("\n")}`);
 });
 
 test("無効な機能のドメインの汎用 CRUD（/api/<domain>）は閉じている", () => {
-  const owners = tableOwnerDomains();
-  const problems = [];
-  for (const rule of checkedRules) {
-    for (const name of rule.tables) {
-      const domain = owners.get(name);
-      if (!domain || !(domain in serviceRegistry)) continue;
-      // 汎用 CRUD が全操作 "none"（INTERNAL_ONLY）の行は /api/<domain> が存在しない（404）ので対象外
-      if (isGenericApiClosed(serviceRegistry[domain].access)) continue;
-      if (!rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, ["api", domain]))) {
-        problems.push(`/api/${domain}`);
-      }
-    }
-  }
+  // 汎用 CRUD が全操作 "none"（INTERNAL_ONLY）の行は /api/<domain> が存在しない（404）ので対象外
+  const problems = findOpenGenericApis(checkedRules, (domain) => domain in serviceRegistry && !isGenericApiClosed(serviceRegistry[domain].access));
   assert.deepEqual(problems, [], `pathPatterns に追加する: ${problems.join(", ")}`);
 });
 
@@ -322,7 +284,7 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)
 // 後片付け・照合など常に読まれる項目は、宣言の alwaysOn: true の点(項目ごとに enabled で閉じる)。手書きの登録表は fork の口だけ
-// 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表。
+// 常に読み込まれる結線のうち、規則の features の機能のフォルダを import してよいもの(path → 理由)。縮む表。
 // fork の分は src/featureGate/alwaysOnExceptions/<名前>.ts に 1 項目 1 ファイルで理由つきで(L1.24。ここは編集しない)
 const ALWAYS_ON_EXCEPTIONS = {
   "src/wiring/apiRoute.ts":
@@ -333,7 +295,7 @@ const ALWAYS_ON_EXCEPTIONS = {
     "proxy の項目。読むのは referral の lib/inviteLinkCookie(edge で動く cookie 名と URL の読み取りだけ、表に届かない)。処理は先頭の gate.enabled(\"referral\") で閉じる",
 };
 
-test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は住所が規則の pathPatterns に入る、alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
+test("常時実行の入口: 規則の features の機能を import するなら閉じられる(cron は住所が規則の pathPatterns に入る、alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
   const oldDir = join(ROOT, "scripts/proxies", ALWAYS_ON_DIR);
   const stale = staleAlwaysOnFiles(
     existsSync(join(ROOT, "scripts/proxies")) ? readdirSync(join(ROOT, "scripts/proxies")) : [],
@@ -355,7 +317,37 @@ test("常時実行の入口: 表を持つ規則の機能を import するなら�
       .filter(code)
       .map((f) => ({ path: rel(f), kind: "wiring" })),
   ].map((entry) => ({ ...entry, text: readFileSync(join(ROOT, entry.path), "utf8") }));
-  assert.ok(featureGateRules.some((rule) => (rule.features ?? []).length > 0), "表を持つ規則が無い(features の読み取りを確認)");
+  assert.ok(featureGateRules.some((rule) => (rule.features ?? []).length > 0), "features を持つ規則が無い(features の読み取りを確認)");
   const { problems, hits } = judgeAlwaysOnEntries(entries, featureGateRules, { ...ALWAYS_ON_EXCEPTIONS, ...fork.exceptions });
   assert.deepEqual(problems, [], `常時実行の入口の閉じ漏れ:\n${problems.join("\n")}\n該当: ${hits.join(" / ")}`);
+});
+
+// 表を持たないドメイン(Firestore 版の core/chatRoom など)の規則も、表のある規則と同じに見る(fixture。閉じるドメインは features のフォルダ)
+test("fixture: 表 0 のドメインの規則も、ルート・汎用 CRUD・常時実行の入口の検査に掛かる。features の無い規則は対象外", () => {
+  const chat = { name: "chatRoom", features: ["core/chatRoom"], tables: [], pathPatterns: ["/chat", "/api/chatRoom", "/api/cron/chat-sweep"] };
+  const plain = { name: "plain", pathPatterns: ["/plain"] };
+  const IMPORT_CHAT = 'import { useChat } from "@/features/chatRoom/hooks/useChat";\nexport const x = useChat;\n';
+  const routeFiles = [
+    { rel: "(user)/mypage/_screen/MypageScreen.tsx", segments: ["mypage"], text: IMPORT_CHAT },
+    { rel: "(user)/chat/[id]/page.tsx", segments: ["chat", "[id]"], text: IMPORT_CHAT },
+    { rel: "(user)/plain/page.tsx", segments: ["plain"], text: 'import { x } from "@/features/core/wallet/hooks/x";\n' },
+  ];
+  assert.deepEqual(
+    findOpenRouteImports([chat, plain], routeFiles, {}).map((p) => p.split("（")[0]),
+    ["(user)/mypage/_screen/MypageScreen.tsx"],
+  );
+  assert.deepEqual(findOpenRouteImports([chat], routeFiles, { "(user)/mypage/_screen/MypageScreen.tsx": "理由" }), []);
+
+  const hasOpen = (domain) => domain === "chatRoom";
+  assert.deepEqual(findOpenGenericApis([chat, plain], hasOpen), []);
+  assert.deepEqual(findOpenGenericApis([{ ...chat, pathPatterns: ["/chat"] }], hasOpen), ["/api/chatRoom"]);
+
+  const task = (pathPatterns) =>
+    judgeAlwaysOnEntries(
+      [{ path: "src/app/api/cron/chat-sweep/task.ts", kind: "cronTask", text: 'import { sweep } from "@/features/core/chatRoom/services/server/sweep";\nexport const run = sweep;\n' }],
+      [{ ...chat, pathPatterns }],
+      {},
+    ).problems;
+  assert.deepEqual(task(chat.pathPatterns), []);
+  assert.equal(task(["/chat"]).length, 1);
 });
