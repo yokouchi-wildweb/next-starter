@@ -1,7 +1,8 @@
 // src/featureGate/node/describe.ts(入口 @/featureGate/node の describeFeatures・readFeatureReport。pnpm features:list が使う)
 //
 // 規則ごとの説明: 開閉・住所(手書き / 汎用 API の導出 / 設定の節の導出)・表・機能のフォルダ・
-// 依存(閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査 checks/dependencies.mjs の走査そのもの)・
+// 依存(閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査 checks/dependencies.mjs の走査そのもの。
+// 上流の縮む表 checks/dependencyDebt.mjs の行は消す依頼を付ける)・
 // 名前の呼び出し箇所(gate.enabled / gate.assert / useGate().enabled の字面の "<名前>")・必須(required/<名前>.ts の reason)。
 // 限界: 呼び出し箇所は字面の "<名前>" だけ(変数で渡す名前は見えない)。詳細: src/featureGate/README.md「features:list / features:set」
 
@@ -10,10 +11,12 @@ import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
+import { debtKeyOf, UPSTREAM_DEPENDENCY_DEBT, UPSTREAM_DEPENDENCY_EXCEPTIONS } from "../checks/dependencyDebt.mjs";
 import type { GatedFeatureRule } from "../types";
 
 export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null;
-export type FeatureDependent = { file: string; folder: string; allowedBy: DependencyAllowedBy };
+/** debtOrder = 上流の縮む表の行なら消す依頼(持ち主の legate の指令 id か "未起票")、でなければ null */
+export type FeatureDependent = { file: string; folder: string; allowedBy: DependencyAllowedBy; debtOrder: string | null };
 
 export type FeatureDescription = {
   name: string;
@@ -33,6 +36,8 @@ export type FeatureFacts = {
   callSites: Record<string, string[]>;
   /** 規則名 → 必須の理由 */
   required: Record<string, string>;
+  /** 上流の縮む表(キー "<ファイル> → <フォルダ>" → 消す依頼)。無ければ空 */
+  debt?: Record<string, string>;
 };
 
 /** 規則と集めた事実から説明を組む(純関数。並びは一覧の順) */
@@ -50,7 +55,9 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
       },
       tables: [...rule.tables],
       folders: [...(rule.features ?? [])],
-      dependents: facts.dependencies.filter((d) => d.rule === rule.name).map(({ file, folder, allowedBy }) => ({ file, folder, allowedBy })),
+      dependents: facts.dependencies
+        .filter((d) => d.rule === rule.name)
+        .map(({ file, folder, allowedBy }) => ({ file, folder, allowedBy, debtOrder: allowedBy === null ? (facts.debt?.[debtKeyOf({ file, folder })] ?? null) : null })),
       callSites: [...(facts.callSites[rule.name] ?? [])],
     };
   });
@@ -108,7 +115,13 @@ export async function readFeatureReport(
   exceptionFiles: readonly string[] = [],
 ): Promise<FeatureDescription[]> {
   const required = await readRequired(root);
-  const dependencies = scanDependencies({ root, rules: [...rules], exceptionFiles: [...exceptionFiles], requiredNames: Object.keys(required) });
+  const dependencies = scanDependencies({
+    root,
+    rules: [...rules],
+    exceptionFiles: [...Object.keys(UPSTREAM_DEPENDENCY_EXCEPTIONS), ...exceptionFiles],
+    requiredNames: Object.keys(required),
+  });
   const callSites = findCallSites(root, rules.map((rule) => rule.name));
-  return describeFeatures(rules, { dependencies, callSites, required });
+  const debt = Object.fromEntries(Object.entries(UPSTREAM_DEPENDENCY_DEBT as Record<string, { order: string }>).map(([key, row]) => [key, row.order]));
+  return describeFeatures(rules, { dependencies, callSites, required, debt });
 }

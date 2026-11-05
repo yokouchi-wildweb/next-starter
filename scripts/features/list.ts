@@ -13,6 +13,12 @@ const ALLOWED_LABEL: Record<string, string> = {
   exception: "例外",
 };
 
+function label(dep: FeatureDescription["dependents"][number]): string {
+  if (dep.allowedBy !== null) return ALLOWED_LABEL[dep.allowedBy];
+  if (dep.debtOrder !== null) return `縮む表(消す依頼 ${dep.debtOrder})`;
+  return "未(依存の検査で違反)";
+}
+
 function detail(d: FeatureDescription): string[] {
   const lines = [
     `${d.name}  ${d.enabled ? "開" : "閉"}${d.required !== null ? `  必須(${d.required})` : ""}`,
@@ -22,7 +28,7 @@ function detail(d: FeatureDescription): string[] {
     `  機能のフォルダ: ${d.folders.join(", ") || "-"}`,
     `  表: ${d.tables.join(", ") || "-"}`,
     `  依存(外から読むファイル ${d.dependents.length}):`,
-    ...d.dependents.map((dep) => `    ${dep.file} → ${dep.folder}  [${dep.allowedBy === null ? "未(依存の検査で違反)" : ALLOWED_LABEL[dep.allowedBy]}]`),
+    ...d.dependents.map((dep) => `    ${dep.file} → ${dep.folder}  [${label(dep)}]`),
     `  名前の呼び出し(${d.callSites.length}): ${d.callSites.join(", ") || "-"}`,
   ];
   return lines;
@@ -46,11 +52,12 @@ async function main() {
     console.log(detail(picked[0]).join("\n"));
     return;
   }
-  console.log("名前 | 開閉 | 必須 | 住所 | 表 | 依存(うち未) | 呼び出し");
+  console.log("名前 | 開閉 | 必須 | 住所 | 表 | 依存(うち縮む表 / 未) | 呼び出し");
   for (const d of picked) {
     const paths = d.paths.handWritten.length + d.paths.domainApi.length + d.paths.setting.length;
-    const open = d.dependents.filter((dep) => dep.allowedBy === null).length;
-    console.log(`${d.name} | ${d.enabled ? "開" : "閉"} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${open}) | ${d.callSites.length}`);
+    const debt = d.dependents.filter((dep) => dep.allowedBy === null && dep.debtOrder !== null).length;
+    const open = d.dependents.filter((dep) => dep.allowedBy === null && dep.debtOrder === null).length;
+    console.log(`${d.name} | ${d.enabled ? "開" : "閉"} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${debt} / ${open}) | ${d.callSites.length}`);
   }
   console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length})。詳細: pnpm features:list --name <名前>`);
 }

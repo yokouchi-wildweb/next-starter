@@ -7,10 +7,28 @@
 | `fork-name-markers.mjs` | 受け口のファイル名から fork の名前の印を外す(共有の棚の印の移行。下) |
 | `feature-gate-relocate.mjs` | 門番の規則・常時実行の例外を src/featureGate/ へ移し、旧い置き場の import を直す(下) |
 | `frame-declarations.mjs` | 枠の部位の出し入れ(Hide*・fill・枠の設定の 4 つ)を枠の宣言 `frame.ts` へ移す(共有の棚の枠の宣言の移行。下) |
+| `feature-gate-s3.mjs` | 門番の区切り gate-s3: 依存の検査の違反のうち今開いている機能を `required/` に書き出し、cron の route.ts の import を `@/wiring/cronRoute` へ(下) |
 | `crud-entry-split.mjs` | ボタンの import を `@/lib/crud/components` へ振り分ける |
 | `domain-display-buttons.mjs` | ボタンの `domain="<名前>"` を表示用の写し `domain={<名前>Display}` へ置き換える |
 | `domain-json-client-display.mjs` | client のコードの domain.json の import を写し `entities/display.ts` の `domainDisplay` へ置き換える |
 | `wiring-domains-split.mjs` | `@/wiring/domains` の import を `@/wiring/domainRegistry` と `@/wiring/adminScreenParts` へ振り分ける |
+
+## 門番の区切り gate-s3(feature-gate-s3.mjs)
+
+gate-s3 から依存の検査は fork でも落ちる(gate-s2 の間は表示だけだった)。fork の既存コードが閉じられる機能のフォルダを確かめずに読んでいる所を、この道具で片付ける。門番の道具を読むので tsx で走らせる。
+
+```sh
+npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/codemods/feature-gate-s3.mjs            # dry-run(既定): 書く物・手で直す物の一覧
+npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/codemods/feature-gate-s3.mjs --apply    # 書く → pnpm extensions:generate
+#   --no-generate(最後の extensions:generate を省く) | --json(機械向けの出力)
+```
+
+- 違反(上流の縮む表 `src/featureGate/checks/dependencyDebt.mjs` の行と例外を除く)の規則が今開いている(fork の config の今の値で `enabled()` が true)→ `src/featureGate/required/<規則>.ts` を書く(reason は「codemod が書いた・要見直し」。本当に必須か見直す: 閉じうるなら消して requires・`gate.enabled("<規則>")` で確かめる)。既にある `required/` は触らない
+- 違反の規則が今閉じている → 書かない(閉じた機能を確かめずに読んでいる = 本当の閉じ漏れ)。一覧に出すので手で直す
+- cron の `src/app/api/cron/<名>/route.ts` の `@/lib/cron` からの `createCronTaskRoute` → `@/wiring/cronRoute`(他の名前は残す)。`createCronRoute`(手書きの handler)は wiring に口が無いので止めて一覧に出す(`createCronTaskRoute` + `task.ts` に直す)
+- 手で直す物が残っていれば `--apply` の後に exit 2
+
+手順: 上流を取り込む(gate-s1・gate-s2 の後)→ dry-run → 閉じた機能の違反と止めた物を片付ける → `--apply` → `pnpm typecheck`・`pnpm ownership:check`・`pnpm test:feature-gate` を通してコミット。
 
 ## 門番の置き場を移す(feature-gate-relocate.mjs)
 

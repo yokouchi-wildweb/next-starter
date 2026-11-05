@@ -5,8 +5,8 @@
 // 判定: ./dependencies.mjs。実行: pnpm test:feature-gate
 // - 上流の例外は UPSTREAM_DEPENDENCY_EXCEPTIONS(理由つき)、fork の例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts
 // - 今の上流の違反は縮む表 UPSTREAM_DEPENDENCY_DEBT(持ち主 = 設定の議会の legate。直った行が表に残ると落ちる)
-// - 強さ(L1.13): Tier1(src/lib/CATALOG.md の先頭の節が自分 = lint の libOwnership.isRoot と同じ判定)は落とす。
-//   Tier1 でない repo は区切り gate-s2 の間は表示だけ(違反を一覧に出して通す)。次の区切り gate-s3 で落とす側に切り替える
+// - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod scripts/codemods/feature-gate-s3.mjs が required/ を書き出す)。
+//   縮む表の「直った行」は上流のファイルが前提なので Tier1(src/lib/CATALOG.md の先頭の節が自分 = lint の libOwnership.isRoot と同じ判定)だけで見る
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -17,73 +17,18 @@ import { test } from "node:test";
 import { loadCatalogOwnership } from "../../lib/folderCatalog/catalog.mjs";
 import { dependencyExceptions, rules } from "../node.ts";
 import { findDependencyViolations } from "./dependencies.mjs";
+import { UPSTREAM_DEPENDENCY_DEBT, UPSTREAM_DEPENDENCY_EXCEPTIONS } from "./dependencyDebt.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 
-/** 上流の例外(縮む表。当たらなくなった行は失敗) */
-const UPSTREAM_DEPENDENCY_EXCEPTIONS = {
-  "src/wiring/apiRoute.ts": "常に読まれる API の結線。端末の束(pairedDevice)を Factory に結ぶだけで、端末の判定は pairedDevice の側が gate.enabled(\"pairedDevice\") で自分を閉じる(deviceToken.ts)",
-};
-
-const OWNER = "設定の議会の legate(legate-20261023-175358-config-redesign.1)";
-
-/**
- * 今の上流の違反(縮む表、L1.12)。キー = "<ファイル> → <閉じられるフォルダ>"。
- * how の先頭 requires: = 持ち主が domainEntry.ts に requires を書けば消える行 / gate: = gate.enabled などで確かめれば消える行
- */
-const UPSTREAM_DEPENDENCY_DEBT = {
-  "src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewDetailModal.tsx → core/wallet": { owner: OWNER, how: 'gate: 画面で gate.enabled("wallet") を確かめる(payment の前提で閉じるが検査は前提をたどらない)' },
-  "src/features/core/analytics/services/server/coinIssuance/sources/couponAttributionReward.ts → core/couponAttributionReward": { owner: OWNER, how: 'gate: gate.enabled("coupon") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap.ts → core/purchaseRequest": { owner: OWNER, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/purchaseAnalytics.ts → core/purchaseRequest": { owner: OWNER, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/purchaseDistributionAnalytics.ts → core/purchaseRequest": { owner: OWNER, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/purchaseRankingAnalytics.ts → core/purchaseRequest": { owner: OWNER, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/purchaseRegistrationAgeAnalytics.ts → core/purchaseRequest": { owner: OWNER, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/walletHistoryAnalytics.ts → core/walletHistory": { owner: OWNER, how: 'gate: gate.enabled("wallet") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/walletRankingAnalytics.ts → core/walletHistory": { owner: OWNER, how: 'gate: gate.enabled("wallet") を確かめてから呼ぶ' },
-  "src/features/core/analytics/services/server/walletStateAnalytics.ts → core/wallet": { owner: OWNER, how: 'gate: gate.enabled("wallet") を確かめてから呼ぶ' },
-  "src/features/core/coupon/handlers/init.ts → core/purchaseRequest": { owner: OWNER, how: 'gate または例外: 登録の結線で payment を確かめる(常に読まれる登録)' },
-  "src/features/core/couponAttributionReward/entities/drizzle.ts → core/wallet": { owner: OWNER, how: 'requires: couponAttributionReward の domainEntry に wallet' },
-  "src/features/core/couponAttributionReward/services/server/grant.ts → core/wallet": { owner: OWNER, how: 'requires: couponAttributionReward の domainEntry に wallet' },
-  "src/features/core/couponIssuerGrant/services/server/stats.ts → core/purchaseRequest": { owner: OWNER, how: 'gate: gate.enabled("payment") を確かめてから呼ぶ' },
-  "src/features/core/purchaseRequest/components/PurchaseAwaitingReview/index.tsx → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/components/PurchaseComplete/index.tsx → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/components/PurchaseFailed/index.tsx → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/constants/field.ts → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/entities/drizzle.ts → core/walletHistory": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/services/server/completion/strategies/walletTopup.ts → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/services/server/coupon/registerHandler.ts → core/coupon": { owner: OWNER, how: 'gate: gate.enabled("coupon") を確かめてから呼ぶ' },
-  "src/features/core/purchaseRequest/services/server/payment/inhouse/inhouseProvider.ts → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/services/server/wrappers/completePurchase.ts → core/coupon": { owner: OWNER, how: 'gate: gate.enabled("coupon") を確かめてから呼ぶ' },
-  "src/features/core/purchaseRequest/services/server/wrappers/initiatePurchase.ts → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/purchaseRequest/services/server/wrappers/initiatePurchase.ts → core/coupon": { owner: OWNER, how: 'gate: gate.enabled("coupon") を確かめてから呼ぶ' },
-  "src/features/core/purchaseRequest/services/server/wrappers/purchaseHelpers.ts → core/wallet": { owner: OWNER, how: 'requires: purchaseRequest の domainEntry に wallet / walletHistory(payment は wallet を前提)' },
-  "src/features/core/referral/components/InviteCode/index.tsx → core/coupon": { owner: OWNER, how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
-  "src/features/core/referral/services/server/coupon/referralHandler.ts → core/coupon": { owner: OWNER, how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
-  "src/features/core/referral/services/server/wrappers/getInviteCodeListWithCounts.ts → core/coupon": { owner: OWNER, how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
-  "src/features/core/referral/services/server/wrappers/validateInviteCode.ts → core/coupon": { owner: OWNER, how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
-  "src/features/core/storageObject/purposes/purchaseRequest.ts → core/purchaseRequest": { owner: OWNER, how: 'gate または例外: 登録の結線で payment を確かめる(常に読まれる登録)' },
-  "src/features/core/wallet/components/WalletBalance/index.tsx → core/bankTransferReview": { owner: OWNER, how: 'gate: 画面側で useGate().enabled("payment") を確かめる' },
-  "src/features/core/wallet/components/WalletPurchase/CouponInput.tsx → core/coupon": { owner: OWNER, how: 'gate: 画面側で useGate().enabled("coupon") を確かめる' },
-  "src/features/core/wallet/components/WalletPurchase/CouponInput.tsx → core/purchaseRequest": { owner: OWNER, how: 'gate: 画面側で useGate().enabled("payment") を確かめる' },
-  "src/features/core/wallet/components/WalletPurchase/CurrencyPurchase.tsx → core/purchaseRequest": { owner: OWNER, how: 'gate: 画面側で useGate().enabled("payment") を確かめる' },
-  "src/features/core/wallet/components/WalletPurchase/CurrencyPurchase.tsx → core/bankTransferReview": { owner: OWNER, how: 'gate: 画面側で useGate().enabled("payment") を確かめる' },
-  "src/features/core/wallet/components/WalletPurchase/index.tsx → core/bankTransferReview": { owner: OWNER, how: 'gate: 画面側で useGate().enabled("payment") を確かめる' },
-};
-
 const keyOf = (v) => `${v.file} → ${v.folder}`;
 
-/** Tier1 か(lint の Tier の切り替えと同じ判定)。Tier1 でなければ実リポの検査は表示だけ(gate-s2 の間) */
+/** Tier1 か(lint の Tier の切り替えと同じ判定)。縮む表の直った行を見るのは Tier1 だけ */
 const IS_TIER1 = loadCatalogOwnership({ repoRoot: ROOT, folder: "src/lib" }).isRoot;
 
-/** 実リポの検査の結果: Tier1 は落とし、それ以外は一覧を出して通す */
+/** 実リポの検査の結果: 全 Tier で落とす(gate-s3 から) */
 function enforce(problems, message) {
-  if (problems.length === 0) return;
-  if (IS_TIER1) {
-    assert.deepEqual(problems, [], message);
-    return;
-  }
-  console.warn(`[依存の検査・表示だけ(Tier1 でない repo、区切り gate-s3 で落とす側に切り替わる)] ${message}\n${problems.map((p) => `  - ${p}`).join("\n")}`);
+  assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/codemods/feature-gate-s3.mjs)`);
 }
 
 test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(上流の違反は縮む表、直った行は表から消す)", () => {
@@ -99,6 +44,12 @@ test("実リポ: 閉じられるフォルダを外から読むファイルは 6 
   if (IS_TIER1) {
     const healed = Object.keys(UPSTREAM_DEPENDENCY_DEBT).filter((key) => !keys.includes(key));
     assert.deepEqual(healed, [], "直った行が UPSTREAM_DEPENDENCY_DEBT に残っている(表から消す)");
+  }
+});
+
+test("縮む表の各行に持ち主・消す依頼(order)・直し方がある(L1.20)", () => {
+  for (const [key, row] of Object.entries(UPSTREAM_DEPENDENCY_DEBT)) {
+    for (const field of ["owner", "order", "how"]) assert.ok(typeof row[field] === "string" && row[field].trim().length > 0, `${key}: ${field} が空`);
   }
 });
 

@@ -184,6 +184,7 @@ export const rule: FeatureGateRule = {
 - 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。dc:generate が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts` の `<SNAKE>_CONFIG.enabled`（既定 fork = true・Tier1 = false）を書き捨てで書く。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
+- 区切り gate-s3 の取り込み: 依存の検査が fork でも落ちる。codemod `scripts/codemods/feature-gate-s3.mjs` が今開いている機能の違反を `required/` に書き出し、cron の route.ts の import を直す(`scripts/codemods/README.md`)
 
 ### features:list / features:set
 
@@ -207,7 +208,8 @@ export const rule: FeatureGateRule = {
 
 - 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・テスト・型だけの import。動的 import と副作用 import は数える
 - 今の上流の違反はテストの中の縮む表 `UPSTREAM_DEPENDENCY_DEBT`(直った行が表に残ると落ちる)
-- 強さ: Tier1(`src/lib/CATALOG.md` の先頭の節が自分。lint の Tier の切り替えと同じ判定)は落とす。Tier1 でない repo は区切り gate-s2 の間は表示だけ(違反を一覧に出して通す)で、次の区切り gate-s3 で落とす側に切り替わる。それまでに上の 1〜6 のどれかで通しておく
+- 強さ: 全 Tier で落とす(区切り gate-s3 から。gate-s2 の間は Tier1 でない repo では表示だけだった)。fork の移行は codemod `scripts/codemods/feature-gate-s3.mjs`(今開いている機能の違反を `required/<規則>.ts` に書き出す。閉じた機能の違反は一覧に出すので手で直す。`scripts/codemods/README.md`)
+- 上流の縮む表は `checks/dependencyDebt.mjs`(L1.20、置き場の木の一時許可と同じ扱い): 各行に持ち主・消す依頼(`order`、持ち主の legate の指令 id。まだ無ければ「未起票」)・直し方。新しい違反は表に足せない(requires・gate・required/・例外で通す)。直った行は同じ commit で表から消す(`test:feature-gate` が残りを落とす)。0 行になった出荷で、表と読み取りのコード(`dependencies.test.mjs`・`node/describe.ts`)も消す。`features:list` は該当の依存に「縮む表(消す依頼 <order>)」と出す
 - 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
 
 ### 門番の範囲外

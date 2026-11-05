@@ -219,11 +219,12 @@ test("describeFeatures: 住所を手書き / 導出に分け、依存・呼び�
     ],
     callSites: { x: ["src/a.ts"] },
     required: { y: "この fork の中心" },
+    debt: { "src/b.ts → x": "未起票" },
   });
   assert.deepEqual(x.paths, { handWritten: ["/x"], domainApi: ["/api/x"], setting: ["/admin/settings/x"] });
   assert.equal(x.enabled, false);
   assert.equal(x.required, null);
-  assert.deepEqual(x.dependents.map((d) => d.allowedBy), ["gate", null]);
+  assert.deepEqual(x.dependents.map((d) => [d.allowedBy, d.debtOrder]), [["gate", null], [null, "未起票"]]);
   assert.deepEqual(x.callSites, ["src/a.ts"]);
   assert.equal(y.required, "この fork の中心");
   assert.deepEqual(y.dependents, []);
@@ -280,4 +281,7 @@ test("readFeatureReport: 上流の全規則で動く(依存は依存の検査の
   assert.deepEqual(report.map((d) => d.name), rules.map((r) => r.name));
   const wallet = report.find((d) => d.name === "wallet");
   assert.ok(wallet && wallet.tables.includes("wallets") && wallet.dependents.length > 0 && wallet.callSites.length > 0);
+  // 上流の違反は全部縮む表の行(消す依頼付き)で、表に無い違反は無い
+  const unlisted = report.flatMap((d) => d.dependents.filter((dep) => dep.allowedBy === null && dep.debtOrder === null).map((dep) => `${dep.file} → ${dep.folder}`));
+  assert.deepEqual(unlisted, []);
 });
