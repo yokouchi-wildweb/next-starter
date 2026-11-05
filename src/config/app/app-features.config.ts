@@ -227,6 +227,13 @@ export const APP_FEATURES = {
     /** デモログイン機能を有効にする */
     login: true,
   },
+  e2e: {
+    /**
+     * 受入のテスト(Playwright、e2e/)が開くページ(/e2e 配下)を有効にする。既定 false = 404(本番では閉じたまま)。
+     * テストを走らせる間だけ true にする(手順: e2e/README.md)
+     */
+    fixtures: false,
+  },
 } as const;
 
 export type ThirdPartyProvider = keyof typeof APP_FEATURES.auth.thirdPartyProviders;
