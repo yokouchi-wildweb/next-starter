@@ -9,7 +9,7 @@ import type { SampleCategoryUpdateFields } from "@/features/sampleCategory/entit
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 import { useUpdateSampleCategory } from "@/features/sampleCategory/hooks/useUpdateSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

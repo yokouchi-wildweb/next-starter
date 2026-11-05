@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";

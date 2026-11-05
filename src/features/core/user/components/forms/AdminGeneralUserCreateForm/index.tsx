@@ -4,7 +4,7 @@
 
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";

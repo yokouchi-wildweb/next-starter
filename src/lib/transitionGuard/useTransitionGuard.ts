@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { notFound } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 

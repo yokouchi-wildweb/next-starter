@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { PromptPopover } from "@/components/Overlays/Popover/PromptPopover";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";

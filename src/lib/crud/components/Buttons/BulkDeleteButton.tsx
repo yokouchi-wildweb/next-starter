@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { Trash2, type LucideIcon } from "lucide-react";
 
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";

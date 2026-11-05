@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdminBulkActions";

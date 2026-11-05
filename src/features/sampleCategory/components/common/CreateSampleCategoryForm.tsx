@@ -8,7 +8,7 @@ import { SampleCategoryCreateSchema } from "@/features/sampleCategory/entities/s
 import { SampleCategoryCreateFields } from "@/features/sampleCategory/entities/form";
 import { useCreateSampleCategory } from "@/features/sampleCategory/hooks/useCreateSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

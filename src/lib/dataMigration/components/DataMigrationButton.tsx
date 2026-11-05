@@ -4,7 +4,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { Button } from "@/components/Form/Button/Button";
 import type { DomainDisplay } from "@/lib/domain/types/display";
 import { DataMigrationModal } from "./DataMigrationModal";

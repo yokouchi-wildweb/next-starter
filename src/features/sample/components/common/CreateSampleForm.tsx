@@ -8,7 +8,7 @@ import { SampleCreateSchema } from "@/features/sample/entities/schema";
 import { SampleCreateFields } from "@/features/sample/entities/form";
 import { useCreateSample } from "@/features/sample/hooks/useCreateSample";
 import { SampleForm } from "./SampleForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

@@ -8,7 +8,7 @@ import { SampleTagCreateSchema } from "@/features/sampleTag/entities/schema";
 import { SampleTagCreateFields } from "@/features/sampleTag/entities/form";
 import { useCreateSampleTag } from "@/features/sampleTag/hooks/useCreateSampleTag";
 import { SampleTagForm } from "./SampleTagForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

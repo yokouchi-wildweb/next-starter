@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";

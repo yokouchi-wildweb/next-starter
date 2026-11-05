@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 
 import Dialog from "@/components/Overlays/Dialog";
 import { useToast } from "@/lib/toast";

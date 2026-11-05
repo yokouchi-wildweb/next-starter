@@ -3,7 +3,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { RefreshCw, type LucideIcon } from "lucide-react";
 
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";

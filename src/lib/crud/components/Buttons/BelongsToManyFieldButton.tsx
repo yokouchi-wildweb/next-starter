@@ -3,7 +3,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import useSWR from "swr";
 import axios from "axios";
 import { Tags, type LucideIcon } from "lucide-react";

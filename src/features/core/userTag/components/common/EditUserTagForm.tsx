@@ -9,7 +9,7 @@ import type { UserTagUpdateFields } from "@/features/core/userTag/entities/form"
 import type { UserTag } from "@/features/core/userTag/entities";
 import { useUpdateUserTag } from "@/features/core/userTag/hooks/useUpdateUserTag";
 import { UserTagForm } from "./UserTagForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

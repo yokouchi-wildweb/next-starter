@@ -9,7 +9,7 @@ import type { SampleUpdateFields } from "@/features/sample/entities/form";
 import type { Sample } from "@/features/sample/entities";
 import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
 import { SampleForm } from "./SampleForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";

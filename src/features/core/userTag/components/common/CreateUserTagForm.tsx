@@ -8,7 +8,7 @@ import { UserTagCreateSchema } from "@/features/core/userTag/entities/schema";
 import { UserTagCreateFields } from "@/features/core/userTag/entities/form";
 import { useCreateUserTag } from "@/features/core/userTag/hooks/useCreateUserTag";
 import { UserTagForm } from "./UserTagForm";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
