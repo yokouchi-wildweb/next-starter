@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/role-config/listRoles.mjs
+// scripts/structure/role/listRoles.mjs
 // ロール一覧を表示するスクリプト
 
 import fs from "fs";
@@ -9,7 +9,7 @@ import { readRoleOverride, requireOverride } from "./overrides.mjs";
 import { listRoleFiles } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../..");
 const PROFILES_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/profiles"

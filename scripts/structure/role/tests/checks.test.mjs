@@ -1,4 +1,4 @@
-// scripts/role-config/tests/checks.test.mjs
+// scripts/structure/role/tests/checks.test.mjs
 // role:generate の前の検査（checks/ の role・profile・relations と index の集約）の契約テスト。
 // 良い例は止めず、悪い例は理由の文で止める（または警告だけにする）ことを確かめる。実行: pnpm test:role-config-checks
 import { test } from "node:test";
@@ -137,7 +137,7 @@ test("置き場: coreRoles/ は上流の 3 つだけ・欠けは止める、role
 });
 
 test("実リポジトリ: core 3 ロールの値は移す前と同じ、一覧の並び（= DB の enum user_role の順）は変えない", () => {
-  const repo = path.resolve(import.meta.dirname, "../../..");
+  const repo = path.resolve(import.meta.dirname, "../../../..");
   const read = (id) => JSON.parse(fs.readFileSync(path.join(repo, "src/features/core/user/coreRoles", `${id}.role.json`), "utf8"));
   assert.deepEqual(read("admin"), { id: "admin", label: "管理者", category: "admin", description: "システム全体を管理できる", hasProfile: false, enabled: true });
   assert.deepEqual(read("user"), { id: "user", label: "一般", category: "user", description: "一般ユーザー", hasProfile: false, enabled: true });

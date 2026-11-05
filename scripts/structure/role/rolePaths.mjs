@@ -1,4 +1,4 @@
-// scripts/role-config/rolePaths.mjs
+// scripts/structure/role/rolePaths.mjs
 // ロール設定の置き場。core ロールは user/coreRoles/（上流の物。fork は消せない・無効にできない）、追加ロールは user/roles/
 
 import fs from "fs";
@@ -6,7 +6,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../..");
 export const CORE_ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/coreRoles");
 export const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 

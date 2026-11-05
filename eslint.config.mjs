@@ -256,7 +256,7 @@ const config = [
   // 対象外: 表そのもの（src/lib/domain/fields/）・型名の union（Field/types.ts。表との突き合わせは test:form-defaults）・テストだけ。
   // 決め打ちの許可リストは無い（型の答えが要る所は表の属性・述語を足して引く）
   {
-    files: ["src/**/*.{ts,tsx}", "scripts/domain-config/**/*.mjs", "scripts/role-config/**/*.mjs"],
+    files: ["src/**/*.{ts,tsx}", "scripts/domain-config/**/*.mjs", "scripts/structure/role/**/*.mjs"],
     ignores: [
       "src/lib/domain/fields/**",
       "src/components/Form/Field/types.ts",

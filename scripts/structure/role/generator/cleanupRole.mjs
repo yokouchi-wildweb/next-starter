@@ -1,4 +1,4 @@
-// scripts/role-config/generator/cleanupRole.mjs
+// scripts/structure/role/generator/cleanupRole.mjs
 // ロールを一覧から外す
 
 import { assertHasProfileNotOverridden, cleanupProfile } from "./cleanupProfile.mjs";

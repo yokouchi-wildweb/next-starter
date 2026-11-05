@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/role-config/deleteRole.mjs
+// scripts/structure/role/deleteRole.mjs
 // 使い方: pnpm role:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]
 // 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。entities/profiles/<roleId>/ は既定で消す（--keep-generated で残す）、
 // 設定の JSON は既定で残す（--remove-json で消す）。-i のときだけ今までの対話（選択・確認）
@@ -15,7 +15,7 @@ import { overrideFileName, removeOverride } from "./overrides.mjs";
 import { listRoleFiles, ROLES_DIR } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../..");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();

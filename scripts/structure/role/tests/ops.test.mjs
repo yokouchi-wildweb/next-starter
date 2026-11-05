@@ -8,9 +8,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const repoRoot = path.resolve(import.meta.dirname, "../../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 const COPY = [
-  "scripts/role-config",
+  "scripts/structure/role",
   "scripts/domain-config/spec",
   "scripts/domain-config/checks",
   "scripts/domain-config/domain",
@@ -32,7 +32,7 @@ before(() => {
 });
 after(() => fs.rmSync(root, { recursive: true, force: true }));
 
-const run = (script, ...args) => spawnSync("node", [path.join(root, "scripts/role-config", script), ...args], { cwd: root, encoding: "utf8", input: "", timeout: 20000 });
+const run = (script, ...args) => spawnSync("node", [path.join(root, "scripts/structure/role", script), ...args], { cwd: root, encoding: "utf8", input: "", timeout: 20000 });
 const rolePath = (file) => path.join(root, "src/features/core/user/roles", file);
 const coreRolePath = (file) => path.join(root, "src/features/core/user/coreRoles", file);
 const readRole = (file) => JSON.parse(fs.readFileSync(rolePath(file), "utf8"));

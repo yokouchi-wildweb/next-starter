@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-import { checkAllRoles } from "../role-config/generate.mjs";
+import { checkAllRoles } from "../structure/role/generate.mjs";
 import { buildSteps, runSteps } from "./steps.mjs";
 import { changedTables, snapshotTables } from "./tables.mjs";
 

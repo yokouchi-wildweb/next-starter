@@ -1,10 +1,10 @@
-// scripts/role-config/generator/generateProfileSchema.mjs
+// scripts/structure/role/generator/generateProfileSchema.mjs
 // entities/profiles/{roleId}/schema.ts の生成（Zodスキーマ）
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
 import {
   isArrayFieldType,
   isEmailFieldType,
@@ -12,11 +12,11 @@ import {
   isTextFieldType,
   isTimestampFieldType,
   zodType,
-} from "../../../src/lib/domain/fields/fieldTypes.mjs";
+} from "../../../../src/lib/domain/fields/fieldTypes.mjs";
 import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/entities/profiles"

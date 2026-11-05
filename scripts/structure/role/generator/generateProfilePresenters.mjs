@@ -1,15 +1,15 @@
-// scripts/role-config/generator/generateProfilePresenters.mjs
+// scripts/structure/role/generator/generateProfilePresenters.mjs
 // entities/profiles/{roleId}/presenters.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
-import { presenterFor } from "../../../src/lib/domain/fields/presenterFor.mjs";
+import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
+import { presenterFor } from "../../../../src/lib/domain/fields/presenterFor.mjs";
 import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/entities/profiles"

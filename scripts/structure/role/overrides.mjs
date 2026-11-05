@@ -1,4 +1,4 @@
-// scripts/role-config/overrides.mjs
+// scripts/structure/role/overrides.mjs
 // fork の上書き（JSON の隣の <JSON の名前>.override.ts。例 coreRoles/user.role.override.ts・user.profile.override.ts）を読む。
 // 宣言と同じく TypeScript の構文木で字面を読み、実行しない。形:
 //   import type { RoleOverride } from "../types";
@@ -9,8 +9,8 @@
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import { literalOf } from "../../src/lib/forkOwnership/declarations.mjs";
-import { isBlankSource } from "../extensions/overrides.mjs";
+import { literalOf } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { isBlankSource } from "../../extensions/overrides.mjs";
 
 const isString = (value) => typeof value === "string";
 const isStringArray = (value) => Array.isArray(value) && value.every(isString);

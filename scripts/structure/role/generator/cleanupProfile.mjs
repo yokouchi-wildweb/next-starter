@@ -1,4 +1,4 @@
-// scripts/role-config/generator/cleanupProfile.mjs
+// scripts/structure/role/generator/cleanupProfile.mjs
 // プロフィールの生成フォルダを消し、一覧を作り直す
 
 import fs from "fs";
@@ -9,7 +9,7 @@ import { findRoleFile } from "../rolePaths.mjs";
 import { writeProfileLists } from "./writeLists.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../../..");
 
 /**
  * entities/profiles/{roleId}/ フォルダを削除

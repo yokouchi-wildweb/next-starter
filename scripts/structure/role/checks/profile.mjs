@@ -4,9 +4,9 @@
 // tags のキーは PROFILE_FIELD_TAGS、値は項目名か belongsTo / belongsToMany の fieldName。
 // 規則の正: src/features/core/userProfile/README.md（プロフィール設定）
 
-import { PROFILE_FIELD_TAGS } from "../../../src/features/core/userProfile/constants/fieldTags.mjs";
-import { FIELD_TYPES, isCollectionFieldType, isMediaFieldType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
-import { fieldsIssues, fieldsWarnings } from "../../domain-config/checks/fields.mjs";
+import { PROFILE_FIELD_TAGS } from "../../../../src/features/core/userProfile/constants/fieldTags.mjs";
+import { FIELD_TYPES, isCollectionFieldType, isMediaFieldType } from "../../../../src/lib/domain/fields/fieldTypes.mjs";
+import { fieldsIssues, fieldsWarnings } from "../../../domain-config/checks/fields.mjs";
 
 /** プロフィールのテーブルは Neon（型と入力欄の組はドメインの Neon の表で照らす） */
 const asDomainConfig = (profile) => ({ dbEngine: "Neon", fields: profile.fields ?? [] });

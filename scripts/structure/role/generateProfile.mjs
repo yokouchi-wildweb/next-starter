@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/role-config/generateProfile.mjs
+// scripts/structure/role/generateProfile.mjs
 // 既存のプロフィール設定に対して生成処理のみを実行するスクリプト
 // 使い方: pnpm prof:generate <roleId> | --all（プロフィールのある全ロール）。既定は対話なし、-i のときだけロールを選ぶ。
 // プロフィール設定が見つからなければ終了コード 1
@@ -15,7 +15,7 @@ import { findRoleFile } from "./rolePaths.mjs";
 const USAGE = "pnpm prof:generate <roleId> | --all [-i]";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../..");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();

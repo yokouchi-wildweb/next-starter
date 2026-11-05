@@ -1,19 +1,19 @@
-// scripts/role-config/generator/writeLists.mjs
+// scripts/structure/role/generator/writeLists.mjs
 // ロール・プロフィールの一覧（user/extensions/roles.ts・userProfile/extensions/profile*.ts）を丸ごと書く。
 // 宣言: user・userProfile の extensionPoints.ts（writer: "role:generate"。extensions:generate は書かない）
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
-import { toPlural } from "../../domain-config/domain/plural.mjs";
-import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../domain-config/spec/audit.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toPlural } from "../../../domain-config/domain/plural.mjs";
+import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../../domain-config/spec/audit.mjs";
 import { readProfileOverride, readRoleOverride, requireOverride } from "../overrides.mjs";
 import { isCoreRole, roleFileOf } from "../rolePaths.mjs";
 import { generatedHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const EXTENSIONS_REL = "src/features/core/userProfile/extensions";
 const EXTENSIONS_DIR = path.join(ROOT_DIR, EXTENSIONS_REL);
 const ROLES_LIST_PATH = path.join(ROOT_DIR, "src/features/core/user/extensions/roles.ts");

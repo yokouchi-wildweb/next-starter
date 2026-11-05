@@ -1,14 +1,14 @@
-// scripts/role-config/generator/generateProfileForm.mjs
+// scripts/structure/role/generator/generateProfileForm.mjs
 // entities/profiles/{roleId}/form.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { toPascalCase } from "../../../../src/utils/stringCase.mjs";
 import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
+const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/entities/profiles"
