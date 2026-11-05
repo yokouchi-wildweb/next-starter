@@ -6,12 +6,12 @@ import type { CSSProperties } from "react";
 import { useSyncExternalStore } from "react";
 
 /**
- * 枠の寸法変数(部位の名前 → 変数名)。部位の名前は枠の部位一覧(data-slot: header / banner / bottom-nav)に合わせる。
+ * 枠の寸法変数(部位の名前 → 変数名)。部位の名前は枠の部位一覧(src/app/_layout/frame/parts.mjs の data-slot: header / app-banner / bottom-nav)に合わせる。
  * 値の意味と書く所: src/app/(user)/_layout/README.md「寸法の CSS 変数」
  */
 export const FRAME_DIM_VARS = {
   header: "--app-header-height",
-  banner: "--app-banner-height",
+  "app-banner": "--app-banner-height",
   "bottom-nav": "--app-bottom-nav-height",
 } as const;
 
@@ -57,31 +57,44 @@ function getSnapshot(): FrameDimsStyle {
 const getServerSnapshot = () => EMPTY_STYLE;
 
 /**
+ * 外枠を見る MutationObserver の指定。1 回の observe にまとめる: 同じ要素へ observe を 2 回呼ぶと 2 回目の指定が 1 回目を
+ * 置き換え、外枠の属性だけの変化(inline の --app-header-height・隠す宣言の属性)を拾わなくなる
+ */
+export const FRAME_OBSERVE_OPTIONS: MutationObserverInit = Object.freeze({ attributes: true, childList: true, subtree: true });
+
+type SubscribeEnv = {
+  doc: FrameRootLookup;
+  win: Pick<Window, "addEventListener" | "removeEventListener" | "requestAnimationFrame" | "cancelAnimationFrame">;
+  createObserver: (callback: () => void) => Pick<MutationObserver, "observe" | "disconnect">;
+};
+
+/**
  * 外枠の中の変化(印の出入り・部品の差し替え)・外枠の属性(inline の寸法・隠す宣言)・画面幅(デバイスの境目)を見て、
  * 1 フレームに 1 回だけ読み直す。外枠は購読を始めた時のものを見る(枠は遷移しても描き直されない)。
+ * document・window・observer は渡す(test が DOM の道具なしで確かめる)
  */
-function subscribe(onChange: () => void): () => void {
+export function subscribeFrameDims(onChange: () => void, { doc, win, createObserver }: SubscribeEnv): () => void {
   let frame = 0;
   const schedule = () => {
     if (frame) return;
-    frame = requestAnimationFrame(() => {
+    frame = win.requestAnimationFrame(() => {
       frame = 0;
       onChange();
     });
   };
-  const frameRoot = document.querySelector(FRAME_ROOT_SELECTOR);
-  const observer = frameRoot ? new MutationObserver(schedule) : null;
-  if (frameRoot && observer) {
-    observer.observe(frameRoot, { attributes: true });
-    observer.observe(frameRoot, { childList: true, subtree: true });
-  }
-  window.addEventListener("resize", schedule);
+  const frameRoot = doc.querySelector(FRAME_ROOT_SELECTOR);
+  const observer = frameRoot ? createObserver(schedule) : null;
+  if (frameRoot && observer) observer.observe(frameRoot, FRAME_OBSERVE_OPTIONS);
+  win.addEventListener("resize", schedule);
   return () => {
     observer?.disconnect();
-    window.removeEventListener("resize", schedule);
-    if (frame) cancelAnimationFrame(frame);
+    win.removeEventListener("resize", schedule);
+    if (frame) win.cancelAnimationFrame(frame);
   };
 }
+
+const subscribe = (onChange: () => void) =>
+  subscribeFrameDims(onChange, { doc: document, win: window, createObserver: (callback) => new MutationObserver(callback) });
 
 /**
  * body 直下へ portal する部品が、枠の寸法変数(--app-header-height / --app-banner-height / --app-bottom-nav-height)を

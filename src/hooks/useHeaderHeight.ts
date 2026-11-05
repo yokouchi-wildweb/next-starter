@@ -6,6 +6,100 @@ import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 
 const FALLBACK_INTERVAL_MS = 250;
 
+/**
+ * ヘッダーを探す順: 枠の部位の印 data-slot(利用者の枠 header → 管理の枠 admin-header)を先に、id を最後に。
+ * id は部品を差し替えて id だけ残した fork のための一時の橋(余白の議会 D12 で枠の部品の id を外す時に一緒に外す)。
+ * 部位の名前: src/app/_layout/frame/parts.mjs
+ */
+export const HEADER_SLOT_SELECTORS = ['[data-slot="header"]', '[data-slot="admin-header"]'] as const;
+
+type HeaderLookup = Pick<Document, "querySelector" | "getElementById">;
+type MeasuredElement = Pick<HTMLElement, "getBoundingClientRect" | "isConnected">;
+
+/** ヘッダーの要素(data-slot → id の順)。無ければ null */
+export function findHeaderElement(doc: HeaderLookup, elementId: string = APP_HEADER_ELEMENT_ID): MeasuredElement | null {
+  for (const selector of HEADER_SLOT_SELECTORS) {
+    const element = doc.querySelector(selector);
+    if (element) return element as unknown as MeasuredElement;
+  }
+  return doc.getElementById(elementId);
+}
+
+type TrackEnv = {
+  doc: HeaderLookup;
+  win: Pick<Window, "addEventListener" | "removeEventListener" | "requestAnimationFrame" | "cancelAnimationFrame" | "setInterval" | "clearInterval">;
+  /** ResizeObserver を作る(無い環境では null = 一定間隔で測る) */
+  createResizeObserver: ((callback: () => void) => Pick<ResizeObserver, "observe" | "disconnect">) | null;
+};
+
+/**
+ * ヘッダーの高さを追う(hook の中身。document・window・observer は渡す = test が DOM の道具なしで確かめる)。
+ * 見つかるまで 1 フレームごとに探し、見つけた要素の大きさの変化と画面幅の変化で測り直す。
+ * 測っている要素が DOM から外れたら(管理の枠のヘッダーの行はページごとに描き直される・部品の差し替え)0 を返して探し直す。
+ * 隠している間(display: none)は高さ 0。
+ */
+export function trackHeaderHeight(onHeight: (height: number) => void, elementId: string, { doc, win, createResizeObserver }: TrackEnv): () => void {
+  let element: MeasuredElement | null = null;
+  let resizeObserver: Pick<ResizeObserver, "observe" | "disconnect"> | null = null;
+  let intervalId: number | null = null;
+  let animationFrameId: number | null = null;
+
+  const measure = (target: MeasuredElement) => {
+    const height = target.getBoundingClientRect().height;
+    if (Number.isFinite(height)) onHeight(height);
+  };
+
+  const detach = () => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    if (intervalId !== null) win.clearInterval(intervalId);
+    intervalId = null;
+    element = null;
+  };
+
+  const tick = () => {
+    if (!element) return;
+    if (!element.isConnected) {
+      detach();
+      onHeight(0);
+      ensure();
+      return;
+    }
+    measure(element);
+  };
+
+  const attach = (target: MeasuredElement) => {
+    element = target;
+    measure(target);
+    if (createResizeObserver) {
+      resizeObserver = createResizeObserver(tick);
+      resizeObserver.observe(target as unknown as Element);
+    } else {
+      intervalId = win.setInterval(tick, FALLBACK_INTERVAL_MS) as unknown as number;
+    }
+  };
+
+  function ensure() {
+    animationFrameId = null;
+    const found = findHeaderElement(doc, elementId);
+    if (found) attach(found);
+    else animationFrameId = win.requestAnimationFrame(ensure);
+  }
+
+  win.addEventListener("resize", tick);
+  ensure();
+
+  return () => {
+    if (animationFrameId !== null) win.cancelAnimationFrame(animationFrameId);
+    win.removeEventListener("resize", tick);
+    detach();
+  };
+}
+
+/**
+ * ヘッダーの実測の高さ(px)。UserLayout・AdminLayout が --app-header-height に書く。
+ * elementId = data-slot で見つからない時に探す id(一時の橋、上の HEADER_SLOT_SELECTORS)
+ */
 export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID) => {
   const [height, setHeight] = useState(0);
 
@@ -13,79 +107,15 @@ export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID) => {
     if (typeof window === "undefined") {
       return;
     }
-
-    let resizeObserver: ResizeObserver | null = null;
-    let intervalId: number | null = null;
-    let animationFrameId: number | null = null;
-    let cleanupResizeListener: (() => void) | null = null;
-
-    const updateHeight = (element: HTMLElement) => {
-      const nextHeight = element.getBoundingClientRect().height;
-
-      setHeight((prev) => {
-        if (!Number.isFinite(nextHeight)) {
-          return prev;
-        }
-
-        return Math.abs(prev - nextHeight) < 0.5 ? prev : nextHeight;
-      });
-    };
-
-    const observeElement = (element: HTMLElement) => {
-      updateHeight(element);
-
-      const handleResize = () => {
-        updateHeight(element);
-      };
-
-      window.addEventListener("resize", handleResize);
-      cleanupResizeListener = () => {
-        window.removeEventListener("resize", handleResize);
-      };
-
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => {
-          updateHeight(element);
-        });
-        resizeObserver.observe(element);
-        return;
-      }
-
-      intervalId = window.setInterval(() => {
-        updateHeight(element);
-      }, FALLBACK_INTERVAL_MS);
-    };
-
-    const ensureElement = () => {
-      const element = document.getElementById(elementId);
-
-      if (element instanceof HTMLElement) {
-        observeElement(element);
-        return;
-      }
-
-      animationFrameId = window.requestAnimationFrame(ensureElement);
-    };
-
-    ensureElement();
-
-    return () => {
-      if (animationFrameId !== null) {
-        window.cancelAnimationFrame(animationFrameId);
-      }
-
-      if (cleanupResizeListener) {
-        cleanupResizeListener();
-      }
-
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-
-      if (intervalId !== null) {
-        window.clearInterval(intervalId);
-      }
-    };
+    return trackHeaderHeight(
+      (nextHeight) => setHeight((prev) => (Math.abs(prev - nextHeight) < 0.5 ? prev : nextHeight)),
+      elementId,
+      {
+        doc: document,
+        win: window,
+        createResizeObserver: typeof ResizeObserver !== "undefined" ? (callback) => new ResizeObserver(callback) : null,
+      },
+    );
   }, [elementId]);
 
   return height;

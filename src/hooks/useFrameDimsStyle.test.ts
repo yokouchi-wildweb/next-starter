@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { FRAME_DIM_VARS, readFrameDimsStyle } from "./useFrameDimsStyle";
+import { FRAME_DIM_VARS, FRAME_OBSERVE_OPTIONS, readFrameDimsStyle, subscribeFrameDims } from "./useFrameDimsStyle";
 
 const frameRoot = { tagName: "DIV" } as unknown as Element;
 
@@ -39,5 +39,58 @@ test("隠している間に 0 になった値もそのまま写す", () => {
 });
 
 test("部位の名前は枠の部位一覧に合わせる", () => {
-  assert.deepEqual(Object.keys(FRAME_DIM_VARS), ["header", "banner", "bottom-nav"]);
+  assert.deepEqual(Object.keys(FRAME_DIM_VARS), ["header", "app-banner", "bottom-nav"]);
+});
+
+/** subscribe の環境の偽物: observe の呼び方を記録し、変化を手で起こせる */
+function fakeEnv(found: Element | null) {
+  const observes: { target: Element; options: MutationObserverInit }[] = [];
+  let mutate: (() => void) | null = null;
+  const frames: (() => void)[] = [];
+  const listeners = new Map<string, () => void>();
+  const env = {
+    doc: lookup(found),
+    win: {
+      addEventListener: (type: string, fn: () => void) => listeners.set(type, fn),
+      removeEventListener: (type: string) => listeners.delete(type),
+      requestAnimationFrame: (fn: () => void) => frames.push(fn),
+      cancelAnimationFrame: () => {},
+    } as never,
+    createObserver: (callback: () => void) => {
+      mutate = callback;
+      return { observe: (target: Element, options?: MutationObserverInit) => observes.push({ target, options: options ?? {} }), disconnect: () => {} };
+    },
+  };
+  return { env, observes, mutate: () => mutate?.(), flush: () => frames.splice(0).forEach((fn) => fn()), listeners };
+}
+
+test("外枠を 1 回の observe で属性と子孫の両方を見る(2 回目の observe が 1 回目の指定を置き換えない)", () => {
+  const fake = fakeEnv(frameRoot);
+  subscribeFrameDims(() => {}, fake.env);
+  assert.equal(fake.observes.length, 1);
+  assert.equal(fake.observes[0].target, frameRoot);
+  assert.deepEqual(fake.observes[0].options, { attributes: true, childList: true, subtree: true });
+  assert.deepEqual({ ...FRAME_OBSERVE_OPTIONS }, { attributes: true, childList: true, subtree: true });
+});
+
+test("外枠の属性だけの変化(inline の寸法)でも 1 フレームに 1 回読み直す、片付けで resize を外す", () => {
+  const fake = fakeEnv(frameRoot);
+  let calls = 0;
+  const unsubscribe = subscribeFrameDims(() => (calls += 1), fake.env);
+  fake.mutate();
+  fake.mutate();
+  fake.flush();
+  assert.equal(calls, 1);
+  fake.listeners.get("resize")?.();
+  fake.flush();
+  assert.equal(calls, 2);
+  unsubscribe();
+  assert.equal(fake.listeners.has("resize"), false);
+});
+
+test("外枠が無い時は observe せず resize だけ見る", () => {
+  const fake = fakeEnv(null);
+  subscribeFrameDims(() => {}, fake.env);
+  assert.equal(fake.observes.length, 0);
+  assert.equal(fake.listeners.has("resize"), true);
 });
