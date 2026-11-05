@@ -55,7 +55,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 登録まわりの関連仕様（ここでは再説明しない）:
 
 - **サインアップの有効/モード**: `APP_FEATURES.auth.signup`。`enabled=false` で画面・API とも `/signup-closed` へ（Feature Gate: 規則 `src/featureGate/rules/signup.ts`、詳細 `src/featureGate/README.md`）。`mode="earlyRegistration"`（事前登録）では `/signup` → `/entry` にリダイレクトされ、`POST /api/auth/send-early-registration-link` を使う（`src/proxies/redirect.ts`）
-- **招待コード**: `register` の `inviteCode` は「非空=その値を使う / `""`=明示的に辞退（cookie フォールバックしない）/ undefined=招待リンク cookie にフォールバック」。消し込みは `INVITE_CODE_REDEEM_SCOPE`（invite 種別のみ）で、失敗しても登録はブロックしない → [referral README](../referral/README.md#サインアップフロー統合)
+- **招待コード**: `register` の `inviteCode` は「非空=その値を使う / `""`=明示的に辞退（cookie フォールバックしない）/ undefined=招待リンク cookie にフォールバック」。消し込みは `INVITE_CODE_REDEEM_SCOPE`（invite 種別のみ）で、失敗しても登録はブロックしない → [referral README](../referral/README.md#サインアップフロー統合)。サインイン用・事前登録用のメールのリンクに招待のパラメータを付けるのは紹介が開いているとき（`gate.enabled("referral")`）だけ（route とサービスの両方で確かめる）
 - **流入経路**: 本登録時に attribution cookie から `recordSignupAcquisition`（bestEffort）→ [userAcquisition README](../userAcquisition/README.md)
 - **登録の後の処理**（登録ボーナスなど）: 本登録の守りの後に milestone のトリガー `user_registered` が 1 回発火する。fork は route や `registration.ts` を編集せず、マイルストーン定義を置く（1 人 1 回・付与と記録は同じ tx・失敗しても登録は止めない）→ [milestone README](../milestone/README.md#user_registered)
 - **表示名の検証・一意性**: `UserNameSchema` と `withUserNameGuard`（本登録の `activate` で適用）→ [user README 表示名節](../user/README.md#表示名--ユーザー名バリデーションと一意性)

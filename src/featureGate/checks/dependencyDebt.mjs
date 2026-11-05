@@ -36,7 +36,6 @@ export const UPSTREAM_DEPENDENCY_DEBT = {
   "src/features/core/referral/services/server/coupon/referralHandler.ts → core/coupon": { owner: OWNER, order: "legate-20261023-175358-config-redesign.1 sheet:02", how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
   "src/features/core/referral/services/server/wrappers/getInviteCodeListWithCounts.ts → core/coupon": { owner: OWNER, order: "legate-20261023-175358-config-redesign.1 sheet:02", how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
   "src/features/core/referral/services/server/wrappers/validateInviteCode.ts → core/coupon": { owner: OWNER, order: "legate-20261023-175358-config-redesign.1 sheet:02", how: 'requires: referral の domainEntry に coupon(referral は coupon を前提)' },
-  "src/features/core/storageObject/purposes/purchaseRequest.ts → core/purchaseRequest": { owner: OWNER, order: "legate-20261023-175358-config-redesign.1 S3", how: 'gate または例外: 登録の結線で payment を確かめる(常に読まれる登録)' },
 };
 
 /** 縮む表のキー(違反・依存の 1 件から) */

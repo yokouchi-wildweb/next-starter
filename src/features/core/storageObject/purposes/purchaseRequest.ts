@@ -3,6 +3,7 @@
 
 import "server-only";
 
+import { gate } from "@/featureGate";
 import { isOwnPendingPurchaseRequest } from "@/features/core/purchaseRequest/services/server/isOwnPendingPurchaseRequest";
 import { getRoleCategory } from "@/features/core/user/constants";
 import type { StorageActor, StoragePurposeMap } from "@/lib/storage";
@@ -18,7 +19,8 @@ export const purposes = {
     contentTypes: ["image/*"],
     upload: {
       allow: "authenticated",
-      check: ({ actor, scopeId }) => isOwnPendingPurchaseRequest(scopeId, actor),
+      // 決済の機能が閉じていれば受け付けない(purchase_requests が無いことがある)。read はそのまま: 保存済みの明細を管理者が見られる
+      check: ({ actor, scopeId }) => gate.enabled("payment") && isOwnPendingPurchaseRequest(scopeId, actor),
     },
     read: {
       allow: "authenticated",

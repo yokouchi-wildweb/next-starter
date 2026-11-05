@@ -6,6 +6,7 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { VerificationEmail } from "@/features/core/auth/mail/VerificationEmail";
 import { toDirectSignInLink } from "@/features/core/auth/services/server/toDirectSignInLink";
 import { appendInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
+import { gate } from "@/featureGate";
 import { DomainError } from "@/lib/errors";
 
 export type SendSignInLinkParams = {
@@ -34,7 +35,8 @@ export async function sendSignInLink({
   const auth = getServerAuth();
   const baseUrl = `${origin.replace(/\/$/, "")}/signup/verify`;
   let continueUrl = `${baseUrl}?email=${encodeURIComponent(email)}`;
-  if (inviteCode) {
+  // 紹介の機能が閉じていれば招待のパラメータを付けない(呼び手の route も空にして渡すが、呼び手が増えても漏らさない)
+  if (inviteCode && gate.enabled("referral")) {
     continueUrl = appendInviteLinkParam(continueUrl, inviteCode);
   }
 

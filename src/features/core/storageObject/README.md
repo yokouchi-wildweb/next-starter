@@ -12,6 +12,8 @@
 
 > 用途は拡張点 `purposes`（`purposes/<名前>.ts`）とドメインの `services/server/storagePurposes.ts` の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
 
+> 閉じられる機能の表を読む用途の規則は、相手の入切を門番で確かめてから読む（例: `purposes/purchaseRequest.ts` の upload は `gate.enabled("payment")` が false なら受け付けない。read は保存済みの原本を見られるようそのまま）。
+
 ## 流れ
 
 ```
