@@ -30,6 +30,8 @@ import type {
   MeRouteContext as GenericMeRouteContext,
   MeRouteHandler as GenericMeRouteHandler,
   RouteAccess,
+  RouteAuthenticatedDevice,
+  RouteDeviceDeps,
   UserPrincipalContext as GenericUserPrincipalContext,
 } from "@/lib/routeFactory";
 import { serviceRegistry } from "@/registry/serviceRegistry";
@@ -37,9 +39,22 @@ import { serviceRegistry } from "@/registry/serviceRegistry";
 /** 端末の種類 → ハンドラに渡す端末の型 */
 type DevicesByKind = { [K in PairedDeviceKind]: SessionDeviceOf<K> };
 
+/**
+ * 端末の束を門番に結ぶ: 端末の機能が閉じている間(isOpen() が false)は、端末の認証を常に「端末なし」にする。
+ * 端末だけのルートは端末として通らず 401 で失敗し(素通りしない)、orUser のルートは利用者の枝だけが動く。
+ * 判定はリクエストごと。レート制限・エラーの応答の束はそのまま(利用者の枝も使う)。テスト: apiRoute.test.mts
+ */
+export function gateDeviceDeps<T extends RouteAuthenticatedDevice>(deps: RouteDeviceDeps<T>, isOpen: () => boolean): RouteDeviceDeps<T> {
+  return {
+    ...deps,
+    authenticateRequestDevice: (req) => (isOpen() ? deps.authenticateRequestDevice(req) : Promise.resolve(null)),
+  };
+}
+
 const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, AuthenticatedDevice>({
   user: apiRouteUserDeps,
-  device: apiRouteDeviceDeps,
+  // 端末の機能(pairedDevice)が閉じている間は端末を認証しない(門番の依存の検査: 結線が閉じられる機能を確かめてから使う)
+  device: gateDeviceDeps(apiRouteDeviceDeps, () => gate.enabled("pairedDevice")),
   rateLimit: apiRouteRateLimitDeps,
   domains: serviceRegistry,
   // 門番: 閉じた機能の住所の API は Factory も 404（proxy の 404 の安全網、D19）

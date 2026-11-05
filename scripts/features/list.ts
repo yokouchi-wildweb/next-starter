@@ -15,7 +15,6 @@ const ALLOWED_LABEL: Record<string, string> = {
 
 function label(dep: FeatureDescription["dependents"][number]): string {
   if (dep.allowedBy !== null) return ALLOWED_LABEL[dep.allowedBy];
-  if (dep.debtOrder !== null) return `縮む表(消す依頼 ${dep.debtOrder})`;
   return "未(依存の検査で違反)";
 }
 
@@ -52,12 +51,11 @@ async function main() {
     console.log(detail(picked[0]).join("\n"));
     return;
   }
-  console.log("名前 | 開閉 | 必須 | 住所 | 表 | 依存(うち縮む表 / 未) | 呼び出し");
+  console.log("名前 | 開閉 | 必須 | 住所 | 表 | 依存(うち未) | 呼び出し");
   for (const d of picked) {
     const paths = d.paths.handWritten.length + d.paths.domainApi.length + d.paths.setting.length;
-    const debt = d.dependents.filter((dep) => dep.allowedBy === null && dep.debtOrder !== null).length;
-    const open = d.dependents.filter((dep) => dep.allowedBy === null && dep.debtOrder === null).length;
-    console.log(`${d.name} | ${d.enabled ? "開" : "閉"} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${debt} / ${open}) | ${d.callSites.length}`);
+    const open = d.dependents.filter((dep) => dep.allowedBy === null).length;
+    console.log(`${d.name} | ${d.enabled ? "開" : "閉"} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${open}) | ${d.callSites.length}`);
   }
   console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length})。詳細: pnpm features:list --name <名前>`);
 }

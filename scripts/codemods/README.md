@@ -23,7 +23,7 @@ npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/codemods/feature-gate
 #   --no-generate(最後の extensions:generate を省く) | --json(機械向けの出力)
 ```
 
-- 違反(上流の縮む表 `src/featureGate/checks/dependencyDebt.mjs` の行と例外を除く)の規則が今開いている(fork の config の今の値で `enabled()` が true)→ `src/featureGate/required/<規則>.ts` を書く(reason は「codemod が書いた・要見直し」。本当に必須か見直す: 閉じうるなら消して requires・`gate.enabled("<規則>")` で確かめる)。既にある `required/` は触らない
+- 違反(例外を除く。上流の縮む表 `src/featureGate/checks/dependencyDebt.mjs` がある古い版ではその行も除く。表の無い版でも同じ結果: 表の行だった上流の箇所は requires・gate で通る)の規則が今開いている(fork の config の今の値で `enabled()` が true)→ `src/featureGate/required/<規則>.ts` を書く(reason は「codemod が書いた・要見直し」。本当に必須か見直す: 閉じうるなら消して requires・`gate.enabled("<規則>")` で確かめる)。既にある `required/` は触らない
 - 違反の規則が今閉じている → 書かない(閉じた機能を確かめずに読んでいる = 本当の閉じ漏れ)。一覧に出すので手で直す
 - cron の `src/app/api/cron/<名>/route.ts` の `@/lib/cron` からの `createCronTaskRoute` → `@/wiring/cronRoute`(他の名前は残す)。`createCronRoute`(手書きの handler)は wiring に口が無いので止めて一覧に出す(`createCronTaskRoute` + `task.ts` に直す)
 - 手で直す物が残っていれば `--apply` の後に exit 2

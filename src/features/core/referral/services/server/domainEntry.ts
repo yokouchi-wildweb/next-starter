@@ -13,5 +13,7 @@ export const domainEntries = {
     table: "referrals",
     idColumn: "id",
     access: { ...ADMIN_ONLY, operations: { ...ADMIN_DATA_OPERATIONS, import: "none" } },
+    // 前提の機能(門番の依存の検査): 招待コードの実体はクーポン(type invite)
+    requires: ["coupon"],
   },
 } satisfies DomainEntries;

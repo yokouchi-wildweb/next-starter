@@ -14,5 +14,7 @@ export const domainEntries = {
     table: "coupon_attribution_rewards",
     idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
+    // 前提の機能(門番の依存の検査): 報酬の付与はウォレットへの加算(表もウォレットの通貨の型を使う)
+    requires: ["wallet"],
   },
 } satisfies DomainEntries;

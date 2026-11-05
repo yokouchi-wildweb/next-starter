@@ -3,10 +3,8 @@
 // (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前で gate.enabled / gate.assert / useGate().enabled
 // (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前> (6) 例外、のどれかでなければ落とす。
 // 判定: ./dependencies.mjs。実行: pnpm test:feature-gate
-// - 上流の例外は UPSTREAM_DEPENDENCY_EXCEPTIONS(理由つき)、fork の例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts
-// - 今の上流の違反は縮む表 UPSTREAM_DEPENDENCY_DEBT(持ち主 = 設定の議会の legate。直った行が表に残ると落ちる)
-// - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod scripts/codemods/feature-gate-s3.mjs が required/ を書き出す)。
-//   縮む表の「直った行」は上流のファイルが前提なので Tier1(src/lib/CATALOG.md の先頭の節が自分 = lint の libOwnership.isRoot と同じ判定)だけで見る
+// - 例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts だけ(上流の項目は 0。上流の違反の縮む表は 0 行になって消した)
+// - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod scripts/codemods/feature-gate-s3.mjs が required/ を書き出す)
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -14,47 +12,29 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { loadCatalogOwnership } from "../../lib/folderCatalog/catalog.mjs";
 import { dependencyExceptions, rules } from "../node.ts";
 import { findDependencyViolations } from "./dependencies.mjs";
-import { UPSTREAM_DEPENDENCY_DEBT, UPSTREAM_DEPENDENCY_EXCEPTIONS } from "./dependencyDebt.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 
 const keyOf = (v) => `${v.file} → ${v.folder}`;
-
-/** Tier1 か(lint の Tier の切り替えと同じ判定)。縮む表の直った行を見るのは Tier1 だけ */
-const IS_TIER1 = loadCatalogOwnership({ repoRoot: ROOT, folder: "src/lib" }).isRoot;
 
 /** 実リポの検査の結果: 全 Tier で落とす(gate-s3 から) */
 function enforce(problems, message) {
   assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/codemods/feature-gate-s3.mjs)`);
 }
 
-test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(上流の違反は縮む表、直った行は表から消す)", () => {
-  const exceptionFiles = [...Object.keys(UPSTREAM_DEPENDENCY_EXCEPTIONS), ...dependencyExceptions.map((e) => e.file)];
+test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(違反 0)", () => {
+  const exceptionFiles = dependencyExceptions.map((e) => e.file);
   const violations = findDependencyViolations({ root: ROOT, rules, exceptionFiles });
-  const keys = [...new Set(violations.map(keyOf))];
-  const unknown = violations.filter((v) => !(keyOf(v) in UPSTREAM_DEPENDENCY_DEBT));
   enforce(
-    unknown.map((v) => `${v.file} → ${v.folder}(規則 ${v.rule})`),
+    violations.map((v) => `${v.file} → ${v.folder}(規則 ${v.rule})`),
     "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts・dependencyExceptions/ のどれかで通す(src/featureGate/README.md「依存の検査」)",
   );
-  // 縮む表は上流の物: fork では上流のファイルが変わっていることがあるので Tier1 だけで見る
-  if (IS_TIER1) {
-    const healed = Object.keys(UPSTREAM_DEPENDENCY_DEBT).filter((key) => !keys.includes(key));
-    assert.deepEqual(healed, [], "直った行が UPSTREAM_DEPENDENCY_DEBT に残っている(表から消す)");
-  }
-});
-
-test("縮む表の各行に持ち主・消す依頼(order)・直し方がある(L1.20)", () => {
-  for (const [key, row] of Object.entries(UPSTREAM_DEPENDENCY_DEBT)) {
-    for (const field of ["owner", "order", "how"]) assert.ok(typeof row[field] === "string" && row[field].trim().length > 0, `${key}: ${field} が空`);
-  }
 });
 
 test("実リポ: 例外の行は当たる(縮む表)・理由は空でない", () => {
-  const all = { ...UPSTREAM_DEPENDENCY_EXCEPTIONS, ...Object.fromEntries(dependencyExceptions.map((e) => [e.file, e.reason])) };
+  const all = Object.fromEntries(dependencyExceptions.map((e) => [e.file, e.reason]));
   for (const [file, reason] of Object.entries(all)) assert.ok(reason.trim().length > 0, `${file}: reason が空`);
   const without = findDependencyViolations({ root: ROOT, rules, exceptionFiles: [] });
   enforce(

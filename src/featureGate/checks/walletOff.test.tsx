@@ -6,8 +6,7 @@
 // (c) 管理のサイドバー: wallet / payment の住所の行が無い
 // (d) client の枠の値: useGate().enabled("wallet" / "payment") が false(利用者の管理一覧の残高調整などの出し分け)
 // (e) 閉じる住所: 画面・汎用 API・自前の API・webhook・cron の住所が gate.path で閉
-// coupon の購入割引のカテゴリ: coupon/handlers/init.ts が purchaseRequest の handler を常に登録する(上流の縮む表の行、持ち主 = 設定の議会の legate)。
-//   行がある間は既知として名指しして通し、行が消えたら(登録が payment で閉じたら)購入割引のカテゴリが無いことを確かめる側に切り替わる
+// coupon の購入割引のカテゴリ: coupon/handlers/init.ts は payment が開のときだけ purchaseRequest の handler を登録する。閉じたら購入割引のカテゴリが無い
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -23,7 +22,6 @@ import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";
 
 import { folderSourcePattern, gatedImports } from "./alwaysOnEntries.mjs";
-import { debtKeyOf, UPSTREAM_DEPENDENCY_DEBT } from "./dependencyDebt.mjs";
 import { loadCronTasks } from "../../../scripts/cron/discover";
 import { planExtensions } from "../../../scripts/extensions/extensions.mjs";
 
@@ -146,16 +144,7 @@ test("(e) 閉じる住所: 画面・汎用 API・自前の API・webhook・cron"
   }, []);
 });
 
-const COUPON_INIT_DEBT = "src/features/core/coupon/handlers/init.ts → core/purchaseRequest";
-
-test("coupon の購入割引のカテゴリ: 縮む表の行(init.ts → purchaseRequest)がある間は既知、消えたら payment を閉じると出ない", async () => {
-  const row = (UPSTREAM_DEPENDENCY_DEBT as Record<string, { order: string; owner: string }>)[COUPON_INIT_DEBT];
-  if (row) {
-    assert.equal(debtKeyOf({ file: "src/features/core/coupon/handlers/init.ts", folder: "core/purchaseRequest" }), COUPON_INIT_DEBT);
-    console.log(`[wallet-off] 既知: coupon の購入割引のカテゴリは payment を閉じても出る(縮む表 ${COUPON_INIT_DEBT}、持ち主 ${row.owner}、消す依頼 ${row.order})`);
-    return;
-  }
-  // 行が消えた = 登録が payment で閉じた。閉じた状態で登録を読み、購入割引のカテゴリが無いこと
+test("coupon の購入割引のカテゴリ: payment を閉じると登録されない", async () => {
   await withWalletOff(async () => {
     await import("@/features/core/coupon/handlers/init");
     const { getRegisteredCategories } = await import("@/features/core/coupon/handlers");

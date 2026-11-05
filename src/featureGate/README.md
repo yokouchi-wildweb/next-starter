@@ -184,14 +184,14 @@ export const rule: FeatureGateRule = {
 - 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。dc:generate が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts` の `<SNAKE>_CONFIG.enabled`（既定 fork = true・Tier1 = false）を書き捨てで書く。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
-- ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整が消える(`checks/walletOff.test.tsx`、`test:feature-gate:client`)。残り(設定の議会の legate の持ち分、縮む表 `checks/dependencyDebt.mjs`): coupon の購入割引のカテゴリ(`coupon/handlers/init.ts` が常に登録)・コイン発行の源 `purchaseBonusGap` が config を直に読む(本物の config では一緒に閉じる)
+- ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`checks/walletOff.test.tsx`、`test:feature-gate:client`)
 - 区切り gate-s3 の取り込み: 依存の検査が fork でも落ちる。codemod `scripts/codemods/feature-gate-s3.mjs` が今開いている機能の違反を `required/` に書き出し、cron の route.ts の import を直す(`scripts/codemods/README.md`)
 
 ### features:list / features:set
 
 道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/features/`）。
 
-- `pnpm features:list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。上流の縮む表の行は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
+- `pnpm features:list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
 - `pnpm features:set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、その `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（`closable` のひな形の形、L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
 - `features:set` は `db:push`・`extensions:generate` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
 - 上流の規則は今どれも共有の config（`APP_FEATURES` など）を読むので `features:set` は場所の案内だけになる。入切の値がドメインの config へ移った規則から書けるようになる
@@ -205,12 +205,11 @@ export const rule: FeatureGateRule = {
 3. ファイルが src/app の下で、その規則の `pathPatterns` が覆う住所にある(page・loader・route・`_screen`・`_components` など。閉じれば一緒に閉じる)
 4. 同じ規則のフォルダどうし
 5. fork の `required/<規則名>.ts` がある(この fork はその機能を必ず使う = 依存を書いたとみなす)
-6. 例外: fork は `dependencyExceptions/<名前>.ts` に理由つきで(字面で判定できない物: 動的 import の結線・wiring の遅延 import など)。上流の例外はテストの中の表
+6. 例外: `dependencyExceptions/<名前>.ts` に理由つきで(字面で判定できない物: 動的 import の結線・wiring の遅延 import など)。上流の例外は 0(上流の結線は確かめる側で通す。例: `src/wiring/apiRoute.ts` は端末の束を `gate.enabled("pairedDevice")` で結ぶ)
 
 - 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・テスト・型だけの import。動的 import と副作用 import は数える
-- 今の上流の違反はテストの中の縮む表 `UPSTREAM_DEPENDENCY_DEBT`(直った行が表に残ると落ちる)
+- 上流の違反は 0(全 Tier で同じ検査。上流の縮む表は 0 行になって表ごと消した)
 - 強さ: 全 Tier で落とす(区切り gate-s3 から。gate-s2 の間は Tier1 でない repo では表示だけだった)。fork の移行は codemod `scripts/codemods/feature-gate-s3.mjs`(今開いている機能の違反を `required/<規則>.ts` に書き出す。閉じた機能の違反は一覧に出すので手で直す。`scripts/codemods/README.md`)
-- 上流の縮む表は `checks/dependencyDebt.mjs`(L1.20、置き場の木の一時許可と同じ扱い): 各行に持ち主・消す依頼(`order`、持ち主の legate の指令 id。まだ無ければ「未起票」)・直し方。新しい違反は表に足せない(requires・gate・required/・例外で通す)。直った行は同じ commit で表から消す(`test:feature-gate` が残りを落とす)。0 行になった出荷で、表と読み取りのコード(`dependencies.test.mjs`・`node/describe.ts`)も消す。`features:list` は該当の依存に「縮む表(消す依頼 <order>)」と出す
 - 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
 
 ### 門番の範囲外

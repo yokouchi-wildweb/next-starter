@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { applyS3, planRequired, requiredContent, rewriteCronRouteImport } from "./feature-gate-s3.mjs";
+import { applyS3, exceptionFilesOf, planRequired, requiredContent, rewriteCronRouteImport, selectViolations } from "./feature-gate-s3.mjs";
 
 const rules = [
   { name: "wallet", enabled: () => true },
@@ -28,6 +28,34 @@ test("planRequired: 開いた規則の違反は required/ を書く、閉じた�
   assert.deepEqual(plan.closed, [v("src/c.ts", "core/coupon", "coupon")]);
   assert.deepEqual(plan.kept, ["payment"]);
   assert.deepEqual(planRequired([], rules, []), { write: [], closed: [], kept: [] });
+});
+
+test("selectViolations: 縮む表のある古い版と表の無い版で同じ違反・同じ計画になる", () => {
+  // 古い版: 上流の行(purchaseRequest → wallet、referral → coupon)は違反(allowedBy null)で、縮む表に載る。上流の例外 1 行
+  const oldDeps = [
+    { file: "src/features/core/purchaseRequest/x.ts", folder: "core/wallet", rule: "wallet", allowedBy: null },
+    { file: "src/features/core/referral/y.ts", folder: "core/coupon", rule: "coupon", allowedBy: null },
+    { file: "src/features/myShop/z.ts", folder: "core/wallet", rule: "wallet", allowedBy: null },
+    { file: "src/features/myShop/ok.ts", folder: "core/coupon", rule: "coupon", allowedBy: "gate" },
+  ];
+  const oldDebt = {
+    UPSTREAM_DEPENDENCY_DEBT: {
+      "src/features/core/purchaseRequest/x.ts → core/wallet": { owner: "o", order: "x", how: "requires" },
+      "src/features/core/referral/y.ts → core/coupon": { owner: "o", order: "x", how: "requires" },
+    },
+    UPSTREAM_DEPENDENCY_EXCEPTIONS: { "src/wiring/apiRoute.ts": "結線" },
+  };
+  // 表の無い版: 同じ上流の行は requires で通る(allowedBy "requires")、上流の例外は確かめる側に直った(走査に出ない)
+  const newDeps = oldDeps.map((d) => (d.file.startsWith("src/features/core/") ? { ...d, allowedBy: "requires" } : d));
+  const before = selectViolations(oldDeps, oldDebt);
+  const after = selectViolations(newDeps, null);
+  assert.deepEqual(after, before);
+  assert.deepEqual(after.map((d) => d.file), ["src/features/myShop/z.ts"]);
+  assert.deepEqual(planRequired(after, rules, []), planRequired(before, rules, []));
+  // 例外: 古い版は上流の例外 + fork の受け口、無い版は fork の受け口だけ(上流の例外のファイルは直って走査に出ない)
+  const fork = [{ file: "src/features/myShop/wire.ts" }];
+  assert.deepEqual(exceptionFilesOf(oldDebt, fork), ["src/wiring/apiRoute.ts", "src/features/myShop/wire.ts"]);
+  assert.deepEqual(exceptionFilesOf(null, fork), ["src/features/myShop/wire.ts"]);
 });
 
 test("requiredContent: 型付きの export const required と見直しの印", () => {

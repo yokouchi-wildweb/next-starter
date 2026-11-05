@@ -8,7 +8,8 @@
 // 1. 依存の検査(gate-s3 から fork でも落ちる)の違反のうち、規則が今開いている(fork の config の今の値で rule.enabled())物は
 //    src/featureGate/required/<規則>.ts を書き出す(この fork が必ず使う機能 = 依存を書いたとみなす)。reason は「codemod が書いた・要見直し」
 //    今閉じている規則の違反は書かない(閉じた機能を確かめずに読んでいる = 本当の閉じ漏れ): 一覧に出すので手で直す
-//    上流の縮む表(checks/dependencyDebt.mjs)の行と例外は数えない。既にある required/ は触らない
+//    上流の縮む表(checks/dependencyDebt.mjs。上流は 0 行になって消した)の行と例外は数えない。表の無い版でも同じ結果
+//    (表の行だった違反は上流の requires・gate で通るので、どちらの版でも fork の違反だけが残る)。既にある required/ は触らない
 // 2. cron の route.ts(src/app/api/cron/<名>/route.ts)の `@/lib/cron` からの createCronTaskRoute の値 import を `@/wiring/cronRoute` へ
 //    (lint import-boundaries/cron-route-via-wiring)。createCronRoute(手書きの handler)は wiring に口が無いので止めて一覧に出す
 // 手順: 上流を取り込む → dry-run → 閉じた機能の違反と止めた物を片付ける → --apply → typecheck・ownership:check・test:feature-gate → コミット
@@ -100,16 +101,34 @@ function cronRouteFiles(root) {
     .filter((rel) => existsSync(join(root, rel)));
 }
 
+/** 上流の縮む表の module(古い版だけにある。無い版 = null) */
+export const DEBT_MODULE = "src/featureGate/checks/dependencyDebt.mjs";
+
+/**
+ * 依存の走査の結果から、required/ の計画に回す違反を選ぶ(純関数)。debt = 縮む表の module(無い版は null)。
+ * 例外と許された形は走査の側(scanDependencies)が allowedBy に付ける。ここで落とすのは「許されていない」かつ「縮む表の行でない」物
+ */
+export function selectViolations(dependencies, debt) {
+  const rows = debt?.UPSTREAM_DEPENDENCY_DEBT ?? {};
+  return dependencies
+    .filter((d) => d.allowedBy === null)
+    .filter((d) => !(`${d.file} → ${d.folder}` in rows));
+}
+
+/** 例外のファイル(縮む表の module の上流の例外 + fork の受け口) */
+export function exceptionFilesOf(debt, forkExceptions) {
+  return [...Object.keys(debt?.UPSTREAM_DEPENDENCY_EXCEPTIONS ?? {}), ...forkExceptions.map((e) => e.file)];
+}
+
 /** repo を読んで計画を立てる(書かない)。門番の道具は tsx で読む */
 export async function planS3(root) {
   const node = await import(join(root, "src/featureGate/node.ts"));
   const { scanDependencies } = await import(join(root, "src/featureGate/checks/dependencies.mjs"));
-  const debtModule = await import(join(root, "src/featureGate/checks/dependencyDebt.mjs"));
-  const exceptionFiles = [...Object.keys(debtModule.UPSTREAM_DEPENDENCY_EXCEPTIONS), ...node.dependencyExceptions.map((e) => e.file)];
+  const debtPath = join(root, DEBT_MODULE);
+  const debtModule = existsSync(debtPath) ? await import(debtPath) : null;
+  const exceptionFiles = exceptionFilesOf(debtModule, node.dependencyExceptions);
   const existingRequired = Object.keys(await node.readRequired(root));
-  const violations = scanDependencies({ root, rules: node.rules, exceptionFiles, requiredNames: [] })
-    .filter((d) => d.allowedBy === null)
-    .filter((d) => !(debtModule.debtKeyOf(d) in debtModule.UPSTREAM_DEPENDENCY_DEBT));
+  const violations = selectViolations(scanDependencies({ root, rules: node.rules, exceptionFiles, requiredNames: [] }), debtModule);
   const required = planRequired(violations, node.rules, existingRequired);
   const cron = [];
   const manual = [];

@@ -13,5 +13,7 @@ export const domainEntries = {
     table: "purchase_requests",
     idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
+    // 前提の機能(門番の依存の検査): 購入はウォレットへの加算と履歴の行が主な働き(表の外部キー wallet_history_id も)
+    requires: ["wallet", "walletHistory"],
   },
 } satisfies DomainEntries;
