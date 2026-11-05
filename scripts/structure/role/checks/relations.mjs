@@ -4,7 +4,7 @@
 // 規則の正: src/features/core/userProfile/README.md「リレーション設定」
 
 import { columnFunction } from "../../../../src/lib/domain/fields/fieldTypes.mjs";
-import { RELATION_FORM_INPUTS } from "../../../domain-config/spec/domainJson.mjs";
+import { RELATION_FORM_INPUTS } from "../../domain/spec/domainJson.mjs";
 
 const RELATION_TYPES = new Set(["belongsTo", "belongsToMany"]);
 const ON_DELETE = new Set(["CASCADE", "RESTRICT", "SET_NULL"]);

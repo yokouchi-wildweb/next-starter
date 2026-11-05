@@ -17,7 +17,7 @@ import type { FieldDataType, FieldDataTypeFirestore } from "@/components/Form/Fi
 import { isCheckGroupFieldType } from "@/components/Form/Field/Configured/checkGroupFieldTypes";
 import { isCheckboxArray } from "@/components/Form/Field/Configured/inputResolver";
 import { FIELD_TYPES } from "@/lib/domain/fields/fieldTypes.mjs";
-import { FORM_INPUTS } from "../../../../scripts/domain-config/spec/formInputs.mjs";
+import { FORM_INPUTS } from "../../../../scripts/structure/domain/spec/formInputs.mjs";
 
 import { buildFormDefaultValues } from "./defaultValueBuilder";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";

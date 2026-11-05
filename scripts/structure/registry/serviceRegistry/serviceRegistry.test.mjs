@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { GENERATED_HEADER, REGISTRY_FILE, discoverDomainEntries, listStaticImports, readObjectKeys } from "./discover.mjs";
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
-import { renderDomainEntry } from "../../../domain-config/render/registry/domainEntry.mjs";
+import { renderDomainEntry } from "../../domain/render/registry/domainEntry.mjs";
 import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
 import { domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
 import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../../src/lib/domain/types/apiAccess.ts";

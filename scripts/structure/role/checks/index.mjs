@@ -2,8 +2,8 @@
 // 対話で作っていた頃に質問の中にあった決まりをここに移した（role.json・profile.json は手で書き、role:generate で生成する）。
 // 止めない食い違いは roleConfigWarnings（生成は進める）
 
-import { auditIssues } from "../../../domain-config/checks/audit.mjs";
-import { formInputNameIssues } from "../../../domain-config/checks/formInputNames.mjs";
+import { auditIssues } from "../../domain/checks/audit.mjs";
+import { formInputNameIssues } from "../../domain/checks/formInputNames.mjs";
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "./profile.mjs";
 import { profileRelationIssues } from "./relations.mjs";
 import { roleIssues, roleWarnings } from "./role.mjs";

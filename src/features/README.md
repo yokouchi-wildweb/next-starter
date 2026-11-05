@@ -6,7 +6,7 @@
 
 ## domain.json スキーマ定義
 
-この決まりは `pnpm dc:generate` の生成前の検査（`scripts/domain-config/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・Firestore の文字列でない列の検索など）は `[domain.json]` の警告として出る。
+この決まりは `pnpm dc:generate` の生成前の検査（`scripts/structure/domain/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・Firestore の文字列でない列の検索など）は `[domain.json]` の警告として出る。
 
 ### トップレベルプロパティ
 
@@ -41,7 +41,7 @@
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
 | closable | boolean | ⚪ No | 閉じられる形のひな形を頼む（省略 = false、Neon のみ）。true なら dc:generate が門番の規則 `src/featureGate/rules/<domain>.ts` と入切の値 `config.ts`（`<SNAKE>_CONFIG.enabled`、既定 Tier1 = false・fork = true）を write-once で書く。以後は手で直す。詳細: `src/featureGate/README.md`「fork での使い方」 |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
-| generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `dc:generate` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（後述「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm dc:compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/domain-config/README.md`「generate の旗を決める」） |
+| generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `dc:generate` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（後述「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm dc:compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
 | $comment | string \| string[] | ⚪ No | 開発者のメモ（JSON にはコメントが無いため）。トップレベル・Relation・Field・collection・FieldGroup のどこにでも書ける（下の「開発者のメモ（$comment）」） |
 
 #### 開発者のメモ（$comment）
@@ -90,7 +90,7 @@
 
 #### onDelete（削除時の挙動）
 
-belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/domain-config/domain/relations.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`、出力は `render/entities/drizzle/foreignKeys.mjs`）。
+belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/structure/domain/domain/relations.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`、出力は `render/entities/drizzle/foreignKeys.mjs`）。
 
 | 値 | 参照先が削除されたとき | 生成される Drizzle 設定 |
 |---|---|---|
@@ -199,7 +199,7 @@ custom リレーションの UI 実装例:
 | collection | Collection | ⚪ No | 主の集まりの宣言（fieldType `mediaCollection` の項目。下の「主の集まりの項目（mediaCollection）」） |
 
 - リレーションのラベルの既定は関連先の `name` 項目（labelField の既定）なので、選ばれる側のドメインには `{ "name": "name", "fieldType": "string", "formInput": "textInput" }` の項目を置くとよい
-- 型と入力欄の組は `scripts/domain-config/spec/formInputs.mjs` の表（表に無い組は警告）
+- 型と入力欄の組は `scripts/structure/domain/spec/formInputs.mjs` の表（表に無い組は警告）
 
 #### FieldType（Neon）
 
@@ -369,7 +369,7 @@ import { ControlledField } from "@/components/Form/Field";
   - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false。従属の生成カテゴリは生成器が決める: entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う。domain.json には書かない）
   - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・主が `generate: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
   - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
-- 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/domain-config/README.md](../../scripts/domain-config/README.md)「dc:generate」）
+- 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/structure/domain/README.md](../../scripts/structure/domain/README.md)「dc:generate」）
   - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
   - メディア項目（mediaUploader）はちょうど 1 つ。mediaCollection は持たない。ファイルの条件はここに書く（主の項目には書かない）
   - `sortOrderField` とその項目を持ち、`systemColumns` に入れる（集まりの並びを持つ列。主の項目が reorderable: false でも要る）
@@ -563,7 +563,7 @@ drizzle-kit は特定の書き方の index を DB から正しく読み戻せず
 
 ### core ドメインへの indexes 反映について
 
-core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が business と同じに扱う（違いはフォルダだけ。`scripts/domain-config/README.md`）。今ある core の domain.json は `generate: false`（手で管理）なので、`indexes` を追加・変更する場合は以下のいずれかで反映する:
+core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が business と同じに扱う（違いはフォルダだけ。`scripts/structure/domain/README.md`）。今ある core の domain.json は `generate: false`（手で管理）なので、`indexes` を追加・変更する場合は以下のいずれかで反映する:
 
 1. **手書きで `entities/drizzle.ts` を直接編集** (推奨、変更が小さい場合)
    - `domain.json` の `indexes` 宣言も同時に更新する (将来の整合性のため)
@@ -575,7 +575,7 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が
 
 ### 生成カテゴリ（generate: true のとき作るもの）
 
-`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/domain-config/README.md`）。
+`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/structure/domain/README.md`）。
 
 | カテゴリ | - | 説明 |
 |-----------|-----|------|
@@ -699,4 +699,4 @@ business ドメインの `entities/` は `dc:generate` が生成するので手�
 
 ## 関連コマンド
 
-domain.json を手で書いて `pnpm forge`（検査 → 生成 → 事後検査）。個別には `dc:generate <Domain> [--only <categories>]` / `dc:generate:all` / `dc:delete <Domain> --confirm <snake_name>`（既定は対話なし、`-i` で対話）。generate の旗・生成物と上書きの扱い・典型的な流れは [`scripts/domain-config/README.md`](../../scripts/domain-config/README.md)。
+domain.json を手で書いて `pnpm forge`（検査 → 生成 → 事後検査）。個別には `dc:generate <Domain> [--only <categories>]` / `dc:generate:all` / `dc:delete <Domain> --confirm <snake_name>`（既定は対話なし、`-i` で対話）。generate の旗・生成物と上書きの扱い・典型的な流れは [`scripts/structure/domain/README.md`](../../scripts/structure/domain/README.md)。

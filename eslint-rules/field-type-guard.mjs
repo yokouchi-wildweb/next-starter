@@ -16,7 +16,7 @@
 // eslint.config.mjs 側で決める。
 
 import { FIELD_TYPES } from "../src/lib/domain/fields/fieldTypes.mjs";
-import { FORM_INPUT_VALUES } from "../scripts/domain-config/spec/domainJson.mjs";
+import { FORM_INPUT_VALUES } from "../scripts/structure/domain/spec/domainJson.mjs";
 
 /** 表のキーのうち、型以外の意味でもよく書かれる語（集合の数に入れない） */
 const GENERAL_WORDS = new Set([

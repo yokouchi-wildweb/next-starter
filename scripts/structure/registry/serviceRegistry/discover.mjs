@@ -3,14 +3,14 @@
 // src/registry/serviceRegistry.ts の生成・検査に必要な情報を集める（一覧ファイルは持たない）。
 //
 // 利用者: ./generate.mjs（pnpm registry:generate）, ./check.mjs（pnpm registry:check）,
-//         ./serviceRegistry.test.mjs（pnpm test:service-registry）, scripts/domain-config（dc:generate / dc:delete の最後）
+//         ./serviceRegistry.test.mjs（pnpm test:service-registry）, scripts/structure/domain（dc:generate / dc:delete の最後）
 // TS を実行せずテキストで読む（キーの一覧・import 行）。plain node で動くので dc:generate から直接呼べる。
 // サービスを実際に読み込む検査はテスト側（tsx）。
 
 import fs from "node:fs";
 import path from "node:path";
 
-import { scanObjectEntries } from "../../../domain-config/text/objectEntry.mjs";
+import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 export const ENTRY_FILE = "domainEntry.ts";

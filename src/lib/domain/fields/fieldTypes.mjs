@@ -1,10 +1,10 @@
 // src/lib/domain/fields/fieldTypes.mjs
 // domain.json の項目の型（fieldType）の意味を決める表。型の意味の持ち主はここ 1 か所で、
-// 生成器（scripts/domain-config。spec/fieldTypes.mjs は再 export）も実行時（フォームの初期値・checkbox の単複・編集時の日時変換）も
+// 生成器（scripts/structure/domain。spec/fieldTypes.mjs は再 export）も実行時（フォームの初期値・checkbox の単複・編集時の日時変換）も
 // fieldTypeSpec(type) とここの導出関数でこの表を引く。ここ以外に型名の集合や型名の比較を書かない。
 // .mjs なのは、tsx を通さない生成器（node）からも TypeScript からも import できるようにするため（relationOptions.mjs と同じ）。
 //
-// 新しい型を足すときは FIELD_TYPES に 1 行足し（formDefault は必ず書く）、scripts/domain-config/spec/formInputs.mjs に入力種別を、
+// 新しい型を足すときは FIELD_TYPES に 1 行足し（formDefault は必ず書く）、scripts/structure/domain/spec/formInputs.mjs に入力種別を、
 // src/components/Form/Field/types.ts の union に型名を足す（ずれは pnpm test:form-defaults と typecheck が検知する）。
 // 表に無い型は「未知型」: 生成器は型名をそのまま列関数に出して警告、フォームの初期値は ""、日時変換も複数選択もしない。
 // 型名は小文字化せずにそのまま引く（"timestamp with time zone" は未知型）。

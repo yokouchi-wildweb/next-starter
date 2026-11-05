@@ -19,8 +19,8 @@ import { generateProfileFieldConstants } from "./generator/generateProfileFieldC
 import { generateProfileFieldTypes } from "./generator/generateProfileFieldTypes.mjs";
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
-import { readRegisteredFormInputs } from "../../domain-config/domain/formInputNames.mjs";
-import { createWorkspace } from "../../domain-config/domain/workspace.mjs";
+import { readRegisteredFormInputs } from "../domain/domain/formInputNames.mjs";
+import { createWorkspace } from "../domain/domain/workspace.mjs";
 import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings, roleFolderIssues } from "./checks/index.mjs";
 import { readProfileOverride, readRoleOverride, strayOverrideIssues } from "./overrides.mjs";
 import { addedRoleFileNames, CORE_ROLES_DIR, coreRoleFileNames, findRoleFile, listRoleFiles, roleFileOf, ROLES_DIR } from "./rolePaths.mjs";

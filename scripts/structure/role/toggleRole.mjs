@@ -7,7 +7,7 @@
 import fs from "fs";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
-import formatDomainConfig from "../../domain-config/spec/format.mjs";
+import formatDomainConfig from "../domain/spec/format.mjs";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { overrideFileName, readRoleOverride, requireOverride } from "./overrides.mjs";
 import { findRoleFile, isCoreRole, listRoleFiles } from "./rolePaths.mjs";

@@ -256,12 +256,12 @@ const config = [
   // 対象外: 表そのもの（src/lib/domain/fields/）・型名の union（Field/types.ts。表との突き合わせは test:form-defaults）・テストだけ。
   // 決め打ちの許可リストは無い（型の答えが要る所は表の属性・述語を足して引く）
   {
-    files: ["src/**/*.{ts,tsx}", "scripts/domain-config/**/*.mjs", "scripts/structure/role/**/*.mjs"],
+    files: ["src/**/*.{ts,tsx}", "scripts/structure/domain/**/*.mjs", "scripts/structure/role/**/*.mjs"],
     ignores: [
       "src/lib/domain/fields/**",
       "src/components/Form/Field/types.ts",
       "**/*.test.{ts,tsx,mjs,mts}",
-      "scripts/domain-config/tests/**",
+      "scripts/structure/domain/tests/**",
     ],
     plugins: { "field-type-guard": fieldTypeGuardPlugin },
     rules: {

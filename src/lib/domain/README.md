@@ -46,7 +46,7 @@ export const domainEntries = {
   - base を指すと、登録表を通る全経路（汎用 API `/api/<key>/**`・全件削除・データ移行・サーバー内の `getService`）が base 全体を使い、入口の絞り込みは効かない → `access` は `INTERNAL_ONLY` にするか、base 全体に許してよい操作だけを開く。入口のサービスはそのドメイン専用のルートから使い続ける
 - `table` / `idColumn` は型で必須（`string | null`）。service の直後に、**文字列リテラルか `null` で**書く（生成器はファイルを文字として読むので、定数・式は `registry:check` が失敗にする）。表を持たない Firestore 版は両方 `null`
 - 静的 import してよいのは `@/lib/domain/types` と `@/config/app/domain-api-access.config`（プリセット）だけ。`pnpm registry:check` が縛る
-- 業務ドメイン: `dc:generate`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
+- 業務ドメイン: `dc:generate`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。`table` = 表の定義の生成器と同じ決め方（`scripts/structure/domain/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
 - core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test:service-registry` が実物と比べる。core のファイルは fork が編集しない。業務ドメインの写せる形は下の「generate: false の業務ドメイン」
 - fork が core の access を変える: 隣に `domainEntry.override.ts`（fork 所有）。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む
 
@@ -160,17 +160,17 @@ domain.json の無い手書きの domain は、同じ置き場に同じ形を手
 
 ### 型（fieldType）の表: `fields/fieldTypes.mjs`
 
-domain.json の項目の型の意味（列関数・Zod・TS 型・フォームの初期値・checkbox の単複・日時か・廃止か）を決める表 1 つ。生成器（`scripts/domain-config/spec/fieldTypes.mjs` は再 export）も実行時（`buildFormDefaultValues`・`isCheckGroupFieldType`）も `fieldTypeSpec(type)` と導出関数でここを引く。
+domain.json の項目の型の意味（列関数・Zod・TS 型・フォームの初期値・checkbox の単複・日時か・廃止か）を決める表 1 つ。生成器（`scripts/structure/domain/spec/fieldTypes.mjs` は再 export）も実行時（`buildFormDefaultValues`・`isCheckGroupFieldType`）も `fieldTypeSpec(type)` と導出関数でここを引く。
 
 - 型名は小文字化せずに引く。表に無い型は未知型（生成器は型名をそのまま列関数に出して警告、フォームの初期値は `""`、日時変換も複数選択もしない）。別名は作らない
-- 型を足す: 表に 1 行（`formDefault` は必ず書く）+ `scripts/domain-config/spec/formInputs.mjs` に入力種別 + `src/components/Form/Field/types.ts` の union に型名。属性の意味は表の頭のコメント
+- 型を足す: 表に 1 行（`formDefault` は必ず書く）+ `scripts/structure/domain/spec/formInputs.mjs` に入力種別 + `src/components/Form/Field/types.ts` の union に型名。属性の意味は表の頭のコメント
 - 廃止: 行に `retired`（移り先の案内文）。生成前の検査が止める。実行時は見ない（まだ列を持つ fork の初期値は残す）
 - `.mjs` なのは node の生成器と TypeScript の両方から import するため（`relationOptions.mjs` と同じ）
 - テスト: `pnpm test:form-defaults`（行ごとの答えを literal で固定、union と表のキーの突き合わせ）
 
 #### 何で表示するか: `fields/presenterFor.mjs`
 
-`presenterFor(field)` が項目の表示の種類 `{ kind, options? }` を返す（kind = `boolean`・`number`・`stringArray`・`enum`（選択肢つき）・`string`・`datetime`・`date`・`collectionThumbnails`・`mediaThumbnail`）。生成器（`scripts/domain-config/render/presenters`）はこの答えを presenters.ts の式に写すだけ。
+`presenterFor(field)` が項目の表示の種類 `{ kind, options? }` を返す（kind = `boolean`・`number`・`stringArray`・`enum`（選択肢つき）・`string`・`datetime`・`date`・`collectionThumbnails`・`mediaThumbnail`）。生成器（`scripts/structure/domain/render/presenters`）はこの答えを presenters.ts の式に写すだけ。
 
 - 順: 表の `presenter`（`enum` は選択肢が無ければ `string` で確定）→ formInput（数値・文字列・日時・日付）→ 主の集まり → メディア → `string`
 - 手書きの presenters.ts の項目は、この答えより優先される（生成後に手で書き換えた項目はそのまま）
@@ -181,7 +181,7 @@ domain.json の項目の型の意味（列関数・Zod・TS 型・フォーム�
 表の外で型名を決め打ちするコードを止める。ずれのバグ（型を足したときの抜け）は表の外の型名の比較・集合からしか生まれないので、構造で止める。
 
 - 検出: (a) fieldType 由来の値（`.fieldType`・名前に fieldType を含む変数・`.fieldType` から代入した変数）と文字列の `===` / `!==` / `switch` / `includes` 等 (b) 表のキーのうち一般語でないもの（`stringArray`・`bigint`・`"numeric(10,2)"` 等）を 2 つ以上含む配列・`switch` の case 列。typeof の比較と入力種別（formInput）の名前の集合は通す。詳細: `eslint-rules/field-type-guard.mjs`
-- 対象: `src/**/*.{ts,tsx}` と生成器（`scripts/domain-config`・`scripts/structure/role` の `.mjs`）。対象外: この表（`fields/`）・型名の union（`src/components/Form/Field/types.ts`、表との突き合わせは `test:form-defaults`）・テスト
+- 対象: `src/**/*.{ts,tsx}` と生成器（`scripts/structure/domain`・`scripts/structure/role` の `.mjs`）。対象外: この表（`fields/`）・型名の union（`src/components/Form/Field/types.ts`、表との突き合わせは `test:form-defaults`）・テスト
 - 強さ: 上流リポ（`src/lib/CATALOG.md` の先頭の節の持ち主）= error、fork = warn（fork に残る上流の旧版の写しで fork の lint を止めない）
 - 直し方: 表の属性と導出関数（`fieldTypeSpec`・`isArrayFieldType`・`isMediaFieldType` 等）で引く。答えに要る属性が表に無ければ表に属性を足す。正当な例外は理由付き eslint-disable
 - 許可リストは無い（表の外の決め打ち 0）。新しい決め打ちをフォルダ単位で通さない

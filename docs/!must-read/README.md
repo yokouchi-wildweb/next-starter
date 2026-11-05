@@ -68,7 +68,7 @@
 
 | 仕組み | 何のためにあるか | 詳細 |
 |---|---|---|
-| コード生成（`dc:generate`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/domain-config/README.md`、`src/features/README.md` |
+| コード生成（`dc:generate`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/features/README.md` |
 | 汎用 CRUD（`createCrudService`） | 一覧・検索・作成・更新・削除・並び替えなどを全ドメイン共通の実装で提供する。ドメインごとの差分だけを書けば済む | `src/lib/crud/README.md` |
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 3 つのファクトリーのどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |

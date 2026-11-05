@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
 import {
   buildStoragePurposeEntries,
   renderStoragePurposesContent,
-} from "../../domain-config/render/registry/storagePurpose/index.mjs";
-import { MEDIA_FIELD_TYPES } from "../../domain-config/spec/fieldTypes.mjs";
+} from "../domain/render/registry/storagePurpose/index.mjs";
+import { MEDIA_FIELD_TYPES } from "../domain/spec/fieldTypes.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 

@@ -11,9 +11,9 @@ import path from "node:path";
 const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 const COPY = [
   "scripts/structure/role",
-  "scripts/domain-config/spec",
-  "scripts/domain-config/checks",
-  "scripts/domain-config/domain",
+  "scripts/structure/domain/spec",
+  "scripts/structure/domain/checks",
+  "scripts/structure/domain/domain",
   "scripts/extensions",
   "src/lib/forkOwnership",
   "src/lib/domain/fields",

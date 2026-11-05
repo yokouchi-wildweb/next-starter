@@ -17,7 +17,7 @@
 
 ## 生成されるフック
 
-テンプレート: `src/features/_template/hooks/`、生成判定: `scripts/domain-config/render/hooks/catalog.mjs`。
+テンプレート: `src/features/_template/hooks/`、生成判定: `scripts/structure/domain/render/hooks/catalog.mjs`。
 
 ### 常に生成
 
