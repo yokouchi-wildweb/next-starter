@@ -55,6 +55,17 @@ Next.js アプリ (Vercel) ── ServerService → createRoomClient / verifyRoo
 | HTTP dispatch/getState | `room_server` (短命、Next サーバーが署名) | サーバーのみが持てる |
 | callback (Worker→アプリ) | `room_callback` (短命、Worker が署名) | `verifyRoomCallback` で検証必須 |
 
+**WebSocket の寿命 = 接続トークンの期限** (取り消しが購読者に届くまでの上限。既定 60 秒 = `REALTIME_ROOM_CONFIG.clientTokenTtlSeconds`):
+
+- 接続時にトークンの `exp` を attachment に保存する (hibernation を跨いで残る)。`exp` の無いトークンは 401
+- 期限後は**状態もイベントも 1 通も届かず、操作も通らない**: ルームは受信と配信のたびに期限を見て、期限切れのソケットには送らずに
+  終了コード `ROOM_CLOSE_CODES.tokenExpired` (4001) で閉じる。クライアントの協力には頼らない (`src/core/socketExpiry.ts`)
+- 静かなルーム (配信も操作も無い) では、期限後のソケットは次の配信か操作まで開いたまま残る (何も届かない)。
+  alarm で閉じないのは、alarm がルームにつき 1 スロットで schedule effect が使っているため
+- `useRoomState` は 4001 で閉じたら待たずに `GET /api/realtime-room/token` で取り直して再接続する (状態は接続時に丸ごと届くので追いつく。
+  繋ぎ直しの間に流れた event effect は届かない)。退会・無効化された利用者はトークンを取れないので、期限で切れたまま戻らない
+- 有効期間を伸ばすと上限も伸びる (10 分以内に収める)
+
 **権威性の必要なアクション (経済・当選・確定処理) は clientActions に載せず、必ず
 Next サーバー経由 (`createRoomClient`) にすること。** クライアント直接 dispatch は
 「参加タップ」「エモート」のような高頻度・低権威アクション専用。

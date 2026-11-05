@@ -23,3 +23,11 @@ export const ROOM_TOKEN_KINDS = {
   /** Worker → Next API へのコールバック (永続化エスケープハッチ) 用 (短命) */
   callback: "room_callback",
 } as const;
+
+/**
+ * Worker が WebSocket を閉じるときの終了コード (4000-4999 = アプリ定義の範囲)。
+ * tokenExpired: 接続トークンの期限が来た (期限後は状態も操作も通らない)。クライアントは新しいトークンで即座に再接続する
+ */
+export const ROOM_CLOSE_CODES = {
+  tokenExpired: 4001,
+} as const;

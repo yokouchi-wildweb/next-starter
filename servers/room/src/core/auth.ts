@@ -17,6 +17,8 @@ export type VerifiedRoomToken = {
   subject: string | null;
   ns: string | null;
   roomId: string | null;
+  /** トークンの期限 (exp、ミリ秒)。exp が無ければ null */
+  expiresAtMs: number | null;
 };
 
 /** トークンを検証し、クレームを返す。無効なら null (fail-closed) */
@@ -39,6 +41,7 @@ export const verifyRoomToken = async (
       subject: typeof payload.sub === "string" ? payload.sub : null,
       ns: typeof payload.ns === "string" ? payload.ns : null,
       roomId: typeof payload.roomId === "string" ? payload.roomId : null,
+      expiresAtMs: typeof payload.exp === "number" ? payload.exp * 1000 : null,
     };
   } catch {
     return null;

@@ -9,13 +9,14 @@
 // 挙動:
 //   - 接続直後にサーバーから現在状態が届く (購読 = 常に最新状態)
 //   - 切断時は自動再接続 (トークン再取得込み、指数バックオフ)
+//   - 接続トークンの期限で Worker が閉じたとき (ROOM_CLOSE_CODES.tokenExpired) は待たずに新しいトークンで再接続する
 //   - config 無効時は status:"disabled" で一切通信しない (fail-closed)
 //   - プロトコル不一致は status:"error" + エラーメッセージで明示
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { REALTIME_ROOM_CONFIG } from "@/config/app/realtime-room.config";
-import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
 import type { RoomActionBase, RoomServerMessage, RoomStateBase } from "@/lib/realtimeRoom/protocol";
 
 import { roomSessionClient } from "./roomSessionClient";
@@ -126,16 +127,22 @@ export const useRoomState = <
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         wsRef.current = null;
         if (closedByUserRef.current) return;
+        setConnStatus("connecting");
+        // トークンの期限 = 通常の寿命。障害ではないので待たずに取り直す (バックオフも戻す)
+        if (event.code === ROOM_CLOSE_CODES.tokenExpired) {
+          retryCountRef.current = 0;
+          reconnectTimer = setTimeout(connect, 0);
+          return;
+        }
         // 指数バックオフで再接続 (トークンは短命のため毎回取り直す)
         const delay = Math.min(
           REALTIME_ROOM_CONFIG.reconnectBaseDelayMs * 2 ** retryCountRef.current,
           REALTIME_ROOM_CONFIG.reconnectMaxDelayMs,
         );
         retryCountRef.current += 1;
-        setConnStatus("connecting");
         reconnectTimer = setTimeout(connect, delay);
       };
 

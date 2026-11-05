@@ -61,6 +61,7 @@ const RaidScreen = ({ machineId }: { machineId: string }) => {
 ```
 
 - 接続直後 + 毎変更で `state` が更新される。再接続 (トークン再取得込み) は自動
+- 接続はトークンの期限 (既定 60 秒) で Worker が閉じる (終了コード 4001)。フックは待たずに取り直して再接続する。上限の詳細: servers/room/README.md「認可モデル」
 - 接続トークンは `GET /api/realtime-room/token` (要ログイン) が発行する
 
 ## callback (PG 永続化エスケープハッチ) を受ける

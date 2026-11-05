@@ -11,8 +11,9 @@
 //   - WebSocket 接続: room_client トークン (対象 ns/roomId 一致) 必須
 //   - dispatch/state (HTTP): room_server トークン必須
 //   - WebSocket 経由の dispatch: RoomDefinition.clientActions 許可リストに載る action のみ
+//   - WebSocket の寿命 = 接続トークンの期限: 期限後は状態も操作も通さず、受信・送信のたびに見て閉じる (./socketExpiry.ts)
 
-import { ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/protocol";
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/protocol";
 import type {
   AnyRoomDefinition,
   RoomActionBase,
@@ -26,6 +27,7 @@ import type {
 
 import { roomRegistry } from "../registry";
 import { extractBearerToken, isTokenForRoom, signCallbackToken, verifyRoomToken } from "./auth";
+import { isSocketExpired, socketAttachmentFor, type SocketAttachment } from "./socketExpiry";
 import type { Env } from "./types";
 
 /** storage キー */
@@ -35,9 +37,6 @@ const KEY_STATE_VERSION = "stateVersion";
 const KEY_SCHEDULED_ACTION = "scheduledAction";
 
 type RoomMeta = { ns: string; roomId: string };
-
-/** WebSocket ごとの attachment (hibernation を跨いで保持される) */
-type SocketAttachment = { userId: string | null };
 
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -117,13 +116,15 @@ export class RoomDurableObject {
     if (!verified || verified.kind !== ROOM_TOKEN_KINDS.client || !isTokenForRoom(verified, ns, roomId)) {
       return jsonResponse({ error: "unauthorized" }, 401);
     }
+    // 期限 (exp) の無いトークンでは接続させない。ソケットの寿命はトークンの期限まで
+    const attachment = socketAttachmentFor(verified);
+    if (!attachment) return jsonResponse({ error: "unauthorized" }, 401);
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
     // Hibernation API: 接続維持中に DO がメモリから追い出されても接続は生き続ける
     this.state.acceptWebSocket(server);
-    const attachment: SocketAttachment = { userId: verified.subject };
     server.serializeAttachment(attachment);
 
     // 接続直後に現在状態を送る (購読 = 常に最新状態が手元にある、を保証)
@@ -133,6 +134,8 @@ export class RoomDurableObject {
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    // 期限後の操作は受けない (中身を読む前に閉じる)
+    if (this.closeIfExpired(ws)) return;
     await this.ensureLoaded(null);
     if (!this.meta) return;
 
@@ -378,6 +381,8 @@ export class RoomDurableObject {
   private broadcast(message: RoomServerMessage): void {
     const serialized = JSON.stringify(message);
     for (const ws of this.state.getWebSockets()) {
+      // 期限切れのソケットには送らずに閉じる
+      if (this.closeIfExpired(ws)) continue;
       try {
         ws.send(serialized);
       } catch {
@@ -393,6 +398,17 @@ export class RoomDurableObject {
       stateVersion: this.stateVersion,
       state: this.roomState ?? {},
     };
+  }
+
+  /** 接続トークンの期限が来ていたら tokenExpired で閉じる (クライアントは新しいトークンで再接続する)。閉じたら true */
+  private closeIfExpired(ws: WebSocket): boolean {
+    if (!isSocketExpired(ws.deserializeAttachment(), Date.now())) return false;
+    try {
+      ws.close(ROOM_CLOSE_CODES.tokenExpired, "token expired");
+    } catch {
+      // 既に閉じている
+    }
+    return true;
   }
 
   private sendError(ws: WebSocket, code: string, message: string): void {

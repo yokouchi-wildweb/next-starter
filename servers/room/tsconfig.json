@@ -19,5 +19,6 @@
     "src/**/*.ts",
     "../../src/lib/realtimeRoom/protocol/**/*.ts",
     "../../src/features/**/room/**/*.ts"
-  ]
+  ],
+  "exclude": ["src/**/*.test.ts"]
 }
