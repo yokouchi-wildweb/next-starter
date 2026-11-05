@@ -29,6 +29,7 @@ export function ItemNavigator<T extends { id: string }>({
   label = "切り替え",
   placeholder,
   className,
+  selectClassName,
 }: ItemNavigatorProps<T>) {
   const router = useRouter();
 
@@ -54,7 +55,7 @@ export function ItemNavigator<T extends { id: string }>({
         disabled={disabled || isLoading}
         showPlaceholderOption={false}
         placeholder={placeholder}
-        className="min-w-[160px] max-w-[240px]"
+        className={cn("min-w-[160px] max-w-[240px]", selectClassName)}
       />
     </Flex>
   );

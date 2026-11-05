@@ -13,11 +13,12 @@ import { AppImage } from "@/components/Media/AppImage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { logoPath } from "@/utils/assets";
 
-// 縦 padding は --admin-header-padding-y トークン経由（sm 切替はトークン側の
-// メディアクエリで吸収）。downstream はトークン上書きだけでヘッダー密度を
-// 変更でき、共有コンポーネントを編集する必要がない。
+// 行の高さは端末(SP / PC)ごとに決まった値 --admin-header-row-height(src/styles/core。枠の初期の --app-header-height も同じ値を読む)。
+// 中身で行が伸び縮みしないので、本文の位置が後から測った高さに頼らない。中身はこの高さに収める(はみ出しは切る。
+// 画面ごとに高い行を宣言する特例は作らない)。縦 padding は --admin-header-padding-y トークン経由(行の高さの内側)。
+// downstream はトークン上書きだけでヘッダー密度を変更でき、共有コンポーネントを編集する必要がない。
 const headerContainer = cva(
-  "flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg",
+  "flex h-[var(--admin-header-row-height)] items-center justify-between gap-3 overflow-clip px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg",
 );
 
 export type AdminHeaderProps = {
@@ -44,8 +45,8 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
     <header id={APP_HEADER_ELEMENT_ID} data-slot="admin-header" className={cn(headerContainer(), className)}>
       {/* 左側: ロゴ */}
       <Link href="/admin" className="block shrink-0 p-1 sm:p-2" prefetch={isAuthenticated}>
-        {/* width/height は上流のロゴ素材(1280x260)の縦横比のヒント。実表示の大きさは className の max-* + w-auto/h-auto が決める。
-            ヘッダーはファーストビューなので両方 priority(隠れている方の 1 枚も先読みする) */}
+        {/* 箱の大きさは画像の読み込みの前から決める(高さ h-6 / sm:h-12 + 上流のロゴ素材の縦横比 300:61 → SP 24×118 / PC 48×236)。
+            読み込みで行が動かない。ヘッダーはファーストビューなので両方 priority(隠れている方の 1 枚も先読みする) */}
         <AppImage
           mode="intrinsic"
           src={logoPath("dark")}
@@ -53,7 +54,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
           width={300}
           height={61}
           priority
-          className="block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"
+          className="block aspect-[300/61] h-6 w-auto dark:hidden sm:h-12"
         />
         <AppImage
           mode="intrinsic"
@@ -62,7 +63,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
           width={300}
           height={61}
           priority
-          className="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"
+          className="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"
         />
       </Link>
 

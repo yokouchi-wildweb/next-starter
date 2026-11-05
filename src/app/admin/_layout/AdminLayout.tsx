@@ -1,17 +1,12 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useMemo } from "react";
+import type { ReactNode } from "react";
 
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
-import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { cn } from "@/lib/cn";
 
 import { frameTable } from "./extensions/frameTable";
 import { useAdminLayoutStore } from "./stores/adminLayout";
-
-type AdminLayoutCSSVariables = CSSProperties & {
-  "--app-header-height"?: string;
-};
 
 /**
  * ヘッダーは描かない(各ページの AdminPage が行を描く。行の差し替えは ./AdminHeader の 1 行スイッチ)。
@@ -31,20 +26,12 @@ export type AdminLayoutProps = {
  * 隠す・fill で本文に残りの高さを埋めさせる
  */
 export function AdminLayout({ children, className }: AdminLayoutProps) {
-  const headerHeight = useHeaderHeight();
   const { extraClassName } = useAdminLayoutStore();
   const frameAttributes = useFrameAttributes(frameTable);
 
-  // ヘッダーの高さは測れた時だけ書く(null = 測る前。最初の HTML とページを移る間は styles/core/frame.css の初期値 = 今の行の高さが効き、
-  // 本文が固定の行に重ならない)。測った値は初期値を上書きするだけ(隠している間の 0 も書く)。
-  // 寸法変数のうち書くのは --app-header-height だけ。Admin には banner も bottomNav も無いので
-  // --app-banner-height / --app-bottom-nav-height は styles/core/config.css の :root の 0px を継ぐ(safe-area も :root)
-  const layoutStyle: AdminLayoutCSSVariables = useMemo(
-    () => ({
-      ...(headerHeight === null ? {} : { "--app-header-height": `${headerHeight}px` }),
-    }),
-    [headerHeight],
-  );
+  // ヘッダーの行の高さは端末ごとに決まった値(--admin-header-row-height)なので測らない。--app-header-height は
+  // styles/core/frame.css が枠の根に同じ値で書く(行を隠す宣言のときは 0)。inline には書かない。
+  // Admin には banner も bottomNav も無いので --app-banner-height / --app-bottom-nav-height は :root の 0px を継ぐ(safe-area も :root)
 
   return (
     <div
@@ -53,7 +40,6 @@ export function AdminLayout({ children, className }: AdminLayoutProps) {
         className,
         extraClassName,
       )}
-      style={layoutStyle}
       data-slot="admin-app-container"
       data-frame-root=""
       {...frameAttributes}

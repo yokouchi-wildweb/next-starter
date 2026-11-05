@@ -26,7 +26,6 @@ const TABLE = [
 
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 mock.module(here("./extensions/frameTable.ts"), { namedExports: { frameTable: TABLE } });
-mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => 0 } });
 mock.module("@/components/Fanctional/DarkModeSwitch", { namedExports: { DarkModeSwitch: () => null } });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 
@@ -124,7 +123,7 @@ test("外枠(AdminLayout)は管理の表を共通の読み手に渡し、当た�
   segments.current = ["(protected)", "board", "12"];
   assert.match(
     render(createElement(AdminLayout, null, "CHILD")),
-    /style="--app-header-height:0px" data-slot="admin-app-container" data-frame-root="" data-frame-hide="admin-footer-pc" data-frame-fill="">/,
+    /text-foreground" data-slot="admin-app-container" data-frame-root="" data-frame-hide="admin-footer-pc" data-frame-fill="">/,
   );
   segments.current = ["(protected)", "users"];
   assert.match(render(createElement(AdminLayout, null, "CHILD")), /data-slot="admin-app-container" data-frame-root="">/);
@@ -303,6 +302,10 @@ test("上流の編集画面(core 3・サンプル 3・管理の _template)は Ad
   const part = read("src/app/admin/_layout/AdminEditItemNavigator.tsx");
   assert.match(part, /useDomainItemNavigation\(options\)/);
   assert.match(part, /<ItemNavigator \{\.\.\.navigation\}/);
+  // ヘッダーの行(SP 52px・中身 36px)に収める: SP だけ選択欄を h-8 に詰め、PC は既定の大きさのまま
+  assert.match(part, /const SP_FIT = "max-sm:!h-8 max-sm:py-0";/);
+  assert.match(part, /selectClassName=\{SP_FIT\}/);
+  assert.match(read(`${NAV_DIR}/ItemNavigator.tsx`), /className=\{cn\("min-w-\[160px\] max-w-\[240px\]", selectClassName\)\}/);
   const hook = read("src/lib/crud/hooks/useDomainItemNavigation.ts");
   assert.match(hook, /createApiClient<T>\(`\/api\/\$\{domain\.singular\}`\)/);
   assert.match(hook, /getAdminPaths\(domain\.plural\)\.edit/);

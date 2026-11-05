@@ -26,8 +26,14 @@ const marker = (name: string) => {
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
 // ヘッダーの高さ: 既定は測った値 0(前の DOM の --app-header-height:0px)。null = 測る前
-const headerHeight: { current: number | null } = { current: 0 };
-mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => headerHeight.current } });
+// AdminLayout はもうヘッダーの高さを測らない(呼ばれたら失敗させる)
+mock.module("@/hooks/useHeaderHeight", {
+  namedExports: {
+    useHeaderHeight: () => {
+      throw new Error("AdminLayout はヘッダーの高さを測らない");
+    },
+  },
+});
 mock.module("@/components/Fanctional/DarkModeSwitch", { namedExports: { DarkModeSwitch: marker("darkmode") } });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 mock.module("@/components/Form/Button/Button", {
@@ -94,9 +100,16 @@ const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text
 /** 器になった後の外枠: ヘッダーを描かず、子の領域が上の余白で AdminPage の固定の行の高さを空ける(利用者の枠と同じ形) */
 const CONTAINER_OUTER = BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "")
   .replace(BEFORE_HEADER, "")
+  .replace(' style="--app-header-height:0px"', "")
   .replace('<div class="flex-1 min-h-0 flex flex-col overflow-clip">', '<div class="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">');
-/** 今の AdminHeader の行 = 前の Header の DOM から受け口の id 3 つを除いた物(portal を消した。data-slot は残る) */
-const HEADER = BEFORE_HEADER.replace(/ id="admin-header-(?:title|center|right)-slot"/g, "");
+/**
+ * 今の AdminHeader の行 = 前の Header の DOM から受け口の id 3 つを除き、行の高さを決まった値(--admin-header-row-height)に固定し
+ * (はみ出しは切る)、ロゴの箱の大きさを読み込みの前から決めた物(高さ + 縦横比。仕上がりの大きさは前と同じ)
+ */
+const HEADER = BEFORE_HEADER.replace(/ id="admin-header-(?:title|center|right)-slot"/g, "")
+  .replace('class="flex items-center justify-between gap-3 px-4 ', 'class="flex h-[var(--admin-header-row-height)] items-center justify-between gap-3 overflow-clip px-4 ')
+  .replace('class="block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"', 'class="block aspect-[300/61] h-6 w-auto dark:hidden sm:h-12"')
+  .replace('class="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"', 'class="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"');
 /** AdminPage の行 = HEADER + 置き方のクラス(上端に固定・全幅・header-layer) */
 const PAGE_HEADER = HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
 
@@ -104,16 +117,17 @@ test("props なしの AdminLayout はヘッダーを描かない器: 前の外�
   assert.equal(render(<AdminLayout>CHILD</AdminLayout>), CONTAINER_OUTER);
 });
 
-test("--app-header-height は測れた時だけ外枠の inline に書く(null = 測る前 = 書かず、frame.css の初期値が効く)", () => {
-  try {
-    headerHeight.current = null;
-    const before = render(<AdminLayout>CHILD</AdminLayout>);
-    assert.equal(before.includes("style="), false, before);
-    assert.equal(before, CONTAINER_OUTER.replace(' style="--app-header-height:0px"', ""));
-    headerHeight.current = 88;
-    assert.ok(render(<AdminLayout>CHILD</AdminLayout>).includes('style="--app-header-height:88px"'));
-  } finally {
-    headerHeight.current = 0;
+test("ヘッダーの行の高さは決まった値で中身に依らない: 外枠は --app-header-height を inline に書かず(frame.css の初期値 = 行の高さ)、行は actions の有無で同じクラス", () => {
+  assert.equal(render(<AdminLayout>CHILD</AdminLayout>).includes("style="), false);
+  const plain = page(<AdminPage>CHILD</AdminPage>);
+  const withActions = page(<AdminPage actions={<b id="pa" />}>CHILD</AdminPage>);
+  const headerOpen = (html: string) => /<header [^>]*>/.exec(html)?.[0];
+  assert.equal(headerOpen(withActions), headerOpen(plain));
+  assert.match(headerOpen(plain) ?? "", /class="flex h-\[var\(--admin-header-row-height\)\] [^"]*overflow-clip/);
+  // ロゴの箱は読み込みの前から大きさを持つ(明示の高さ + 縦横比。自動の高さ・幅の上限だけで決めない)
+  for (const img of plain.match(/<img [^>]*>/g) ?? []) {
+    assert.match(img, /class="[^"]*aspect-\[300\/61\] h-6 w-auto[^"]* sm:h-12"/, img);
+    assert.equal(/h-auto|max-h-/.test(img), false, img);
   }
 });
 

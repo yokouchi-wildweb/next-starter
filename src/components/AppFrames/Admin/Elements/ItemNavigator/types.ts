@@ -22,4 +22,6 @@ export type ItemNavigatorProps<T extends { id: string }> = {
   placeholder?: string;
   /** 追加のクラス名 */
   className?: string;
+  /** 選択欄(SelectInput)に足すクラス名。置き場に合わせた大きさの調整に使う(例: 管理のヘッダーの行に SP で収める) */
+  selectClassName?: string;
 };

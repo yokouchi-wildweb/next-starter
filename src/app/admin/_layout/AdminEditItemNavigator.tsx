@@ -16,7 +16,11 @@ export type AdminEditItemNavigatorProps<T extends { id: string }> = UseDomainIte
  * 編集の Screen が `<AdminPage title="…" actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}>` で置く
  * (domain = <domain>/entities/display.ts の domainDisplay、current = loader が返した今の行)
  */
+/** SP(sm 未満)だけ選択欄を詰める。PC は SelectInput の既定の大きさ(88px の行に収まる) */
+const SP_FIT = "max-sm:!h-8 max-sm:py-0";
+
 export function AdminEditItemNavigator<T extends { id: string }>({ label, ...options }: AdminEditItemNavigatorProps<T>) {
   const navigation = useDomainItemNavigation(options);
-  return <ItemNavigator {...navigation} label={label} />;
+  // 管理のヘッダーの行は高さが決まっている(SP 52px、中身 36px)。SP だけ選択欄を 32px(h-8)に詰めて収める。PC は今の大きさのまま
+  return <ItemNavigator {...navigation} label={label} selectClassName={SP_FIT} />;
 }

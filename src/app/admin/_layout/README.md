@@ -65,7 +65,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 // src/app/admin/_layout/AdminHeader.tsx: export { AdminHeader, type AdminHeaderProps } from "./AdminHeader.replace";
 ```
 
-- 寸法の CSS 変数: AdminLayout が外枠の inline に書くのは `--app-header-height`(ヘッダーの実測の高さ)だけで、測れた時だけ書く(`useHeaderHeight()` が null = 測る前は書かず、`src/styles/core/frame.css` の外枠の初期値 = 今の行の高さが効くので最初の表示とページを移る間も本文が固定の行に重ならない)。`--app-banner-height` / `--app-bottom-nav-height` は Admin に banner も bottomNav も無いので書かず、`src/styles/core/config.css` の `:root` の 0px を継ぐ。`--app-safe-area-*` も :root。一覧と経緯は User 側の README(`src/app/(user)/_layout/README.md` の「寸法の CSS 変数」)。Admin の banner slot は作っていない(要る例が無い)
+- 寸法の CSS 変数: AdminLayout は寸法の変数を inline に書かない(ヘッダーの高さも測らない)。`--app-header-height` は `src/styles/core/frame.css` が枠の根に行の高さ `--admin-header-row-height`(SP / PC ごとに決まった値、`src/styles/core`)で書く(行を隠す宣言のときは 0)。`--app-banner-height` / `--app-bottom-nav-height` は Admin に banner も bottomNav も無いので `src/styles/core/config.css` の `:root` の 0px を継ぐ。`--app-safe-area-*` も :root。一覧と経緯は User 側の README(`src/app/(user)/_layout/README.md` の「寸法の CSS 変数」)。Admin の banner slot は作っていない(要る例が無い)
 
 ## サイドバー・フッター((protected)・insane)
 
@@ -75,7 +75,8 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 ## AdminPage(ヘッダーの行・題・中央の差し込み)
 
 - AdminPage はヘッダーの行も描く: 行 = `./AdminHeader` の部品(ロゴの Link・明暗の切り替え。利用者のメニューは無い)。props `center` / `actions` は行の中央・右(明暗の切り替えの前)の位置に入る。`title` は下の「題」。ページごとに変わる中身はページが props で渡す(ヘッダーへ外から差し込む仕組みは無い、D134)
-- 行の置き方は利用者の枠のヘッダーと同じ: 上端に固定(`fixed inset-x-0 top-0 header-layer`、全幅でサイドバーの上)、高さは AdminLayout の器が `pt-[var(--app-header-height,0px)]` で空ける(測る前は frame.css の初期値 = 今の行の高さ、測った後は実測。下の「寸法の CSS 変数」。ブラウザの確かめは指令 21)
+- 行の置き方は利用者の枠のヘッダーと同じ: 上端に固定(`fixed inset-x-0 top-0 header-layer`、全幅でサイドバーの上)、高さは AdminLayout の器が `pt-[var(--app-header-height,0px)]` で空ける
+- 行の高さは端末ごとに決まった値 `--admin-header-row-height`(中身で伸び縮みしない、はみ出しは切る)。中身はこの高さに収める: 画面ごとに高い行を宣言する特例は作らない。編集画面の ItemNavigator は SP だけ選択欄を h-8 に詰める(`AdminEditItemNavigator` の `selectClassName`)、PC は既定の大きさのまま。ロゴの箱は読み込みの前から大きさを持つ(`h-6 sm:h-12` + 縦横比 300:61)
 - `main`(既定 true): false = 行だけを描き、children をそのまま続ける。自分のスクロール領域と Main を持つ login・setup だけが使う(未ログインの行はロゴと明暗の切り替えだけ)。AdminPage を使わない管理のページは settings の入口(loader が転送して null)だけ(`AdminFrame.test.tsx` が一覧を出す)
 - AdminPage の本文: padding lg / paddingBlock xl の通常ページ。`tabs` は本文の前に下余白 mb-6 で描く。固定ヘッダー直下の残り高さにスナップする非スクロールのページは、ページの隣の枠の宣言に `page: { fill: true }` を書く(下の「枠の宣言」。説明は AdminPage.tsx の JSDoc)
 - 題(D135): 管理画面の題は必ず `<AdminPage title="…">` に渡す(位置を選ぶ選択肢は無い。login・setup も)。h1 は 1 つ = 本文の先頭(タブの前)の大見出し `AdminPageTitleBody`(SP で見え、PC は `sm:sr-only` で見た目から消して支援技術向けに残す)。PC で見える題はヘッダーの行のロゴの右隣の `AdminPageTitleCompact`(飾りの文字、aria-hidden)。見た目は前の題の部品(ヘッダーへ差し込む形)と同じ。`main={false}` のときの本文の大見出しは children の前(login・setup では自分のスクロール領域の上)
