@@ -1,21 +1,21 @@
-// scripts/tasks/discover.ts
+// scripts/runner/task/discover.ts
 // scripts/tasks 直下の <name>.ts を走査してワンショット・任意タスクを集める(一覧ファイルは持たない)。
 //
 // タスク名はファイル名で決まるので、一覧と名前の検査はファイルを読み込まない。実行するタスクのファイルだけを読み込む。
-// 利用者: scripts/tasks/run.ts(pnpm task)
+// 利用者: scripts/runner/task/run.ts(pnpm task)
 
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { classifyDottedName, oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
 
-import type { OneShotTask } from "./types";
+import type { OneShotTask } from "../../tasks/types";
 
 export const TASKS_DIR = "scripts/tasks";
 
 /** 受け口の直下にある、タスクでないファイル */
-const RUNNER_FILES = new Set(["run.ts", "discover.ts", "types.ts"]);
+const RUNNER_FILES = new Set(["types.ts"]);
 const TASK_FILE = /^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.ts$/;
 
 export type OneShotTaskFile = {

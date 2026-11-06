@@ -144,9 +144,9 @@ add src/features/core/userProfile/profiles/*.profile.json  # fork が足すプ�
 # 登録(fork entries の対の中だけ)
 region src/registry/**/*.ts  # .claude/rules/core/code-generation.md fork_region
 region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編集点】)
-region scripts/db/seed/data/registry.ts  # seed の登録点
-region scripts/db/seed/data/index.ts  # seed の export
-edit scripts/db/seed/data/demoUser.ts  # デモの利用者の値
+region scripts/runner/seed/data/registry.ts  # seed の登録点
+region scripts/runner/seed/data/index.ts  # seed の export
+edit scripts/runner/seed/data/demoUser.ts  # デモの利用者の値
 edit servers/room/wrangler.toml  # room:init が作る fork の Worker の設定(upstream には無い。.example だけ)
 
 # 規則(PER_PROJECT)

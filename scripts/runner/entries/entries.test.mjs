@@ -52,7 +52,7 @@ test("入口: 省けば一覧(exit 0)、.mjs は node・.ts は tsx + server-onl
   assert.equal(run(["workflow", "tool", "go", "--x", "a b"], opts), 3);
   assert.deepEqual(calls.at(-1), { cmd: process.execPath, args: [join(root, "scripts/workflow/tool/go.mjs"), "--x", "a b"], repo: root });
   assert.equal(run(["operations", "--", "db", "inspect", "tables"], opts), 3);
-  assert.deepEqual(calls.at(-1), { cmd: "npx", args: ["tsx", "--import", "./scripts/test/serverOnlyStub.mjs", join(root, "scripts/operations/db/inspect.ts"), "tables"], repo: root });
+  assert.deepEqual(calls.at(-1), { cmd: "npx", args: ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", join(root, "scripts/operations/db/inspect.ts"), "tables"], repo: root });
 });
 
 test("入口: 知らない種類・対象・動作・部品(lib・テスト・下のフォルダ)の名前は止める(exit 2、動作を起動しない)", () => {

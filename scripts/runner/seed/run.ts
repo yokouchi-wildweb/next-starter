@@ -1,7 +1,7 @@
-// scripts/db/seed/run.ts
+// scripts/runner/seed/run.ts
 //
-// 閉じた機能の項目(feature の規則が 1 つでも閉じている)は選択肢と --all から外し、名前を出す(scripts/db/seed/gate.ts)。
-// feature の無い項目は走る。表が無くて失敗したら項目名と直し方を出す。詳細: scripts/db/seed/README.md「閉じた機能と seed」
+// 閉じた機能の項目(feature の規則が 1 つでも閉じている)は選択肢と --all から外し、名前を出す(scripts/runner/seed/gate.ts)。
+// feature の無い項目は走る。表が無くて失敗したら項目名と直し方を出す。詳細: scripts/runner/seed/README.md「閉じた機能と seed」
 
 import { config } from "dotenv";
 import { checkbox } from "@inquirer/prompts";

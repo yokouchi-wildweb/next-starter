@@ -1,4 +1,4 @@
-// scripts/db/seed/gate.test.ts(pnpm test:db-seed)
+// scripts/runner/seed/gate.test.ts(pnpm test:db-seed)
 // seed と機能の門: 閉じた項目を飛ばす計算・表が無いエラーの見分け・閉じられるフォルダを import する項目の feature の検査。
 
 import assert from "node:assert/strict";
@@ -14,7 +14,7 @@ import { seedRegistry } from "./data/registry";
 import { featuresOf, isUndefinedTableError, missingSeedFeatures, partitionSeeds, seedFilesByKey } from "./gate";
 
 const ROOT = join(dirname(new URL(import.meta.url).pathname), "../../..");
-const DATA_DIR = join(ROOT, "scripts/db/seed/data");
+const DATA_DIR = join(ROOT, "scripts/runner/seed/data");
 
 test("featuresOf: 無し・1 つ・配列", () => {
   assert.deepEqual(featuresOf({}), []);

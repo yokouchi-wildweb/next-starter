@@ -1,4 +1,4 @@
-// scripts/db/seed/data/registry.ts
+// scripts/runner/seed/data/registry.ts
 
 import type { FeatureName } from "@/featureGate";
 
@@ -43,7 +43,7 @@ export type SeedConfig = {
   /** 依存するシードのキー（先に実行される必要がある） */
   deps: SeedKey[];
   /**
-   * この項目が書く機能(規則名)。1 つでも閉じていれば飛ばして名前を出す(scripts/db/seed/gate.ts)。
+   * この項目が書く機能(規則名)。1 つでも閉じていれば飛ばして名前を出す(scripts/runner/seed/gate.ts)。
    * 閉じられるフォルダ(規則の features)を import する項目には必須(pnpm test:db-seed が落とす)
    */
   feature?: FeatureName | FeatureName[];

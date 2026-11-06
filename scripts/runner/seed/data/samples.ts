@@ -1,4 +1,4 @@
-// scripts/db/seed/data/samples.ts
+// scripts/runner/seed/data/samples.ts
 
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import type { SeedSampleCategories } from "./sampleCategories";

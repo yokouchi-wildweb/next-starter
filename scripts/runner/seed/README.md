@@ -18,7 +18,7 @@ npm run db:setup
 ## ファイル構成
 
 ```
-scripts/db/seed/
+scripts/runner/seed/
 ├── run.ts               # メインスクリプト（実行エントリーポイント）
 ├── gate.ts              # 閉じた機能の項目を飛ばす・feature の検査（pnpm test:db-seed）
 ├── README.md            # このファイル
@@ -36,7 +36,7 @@ scripts/db/seed/
 ### 1. シードファイルを作成
 
 ```typescript
-// scripts/db/seed/data/newDomain.ts
+// scripts/runner/seed/data/newDomain.ts
 
 import { db } from "@/lib/drizzle";
 import { NewDomainTable } from "@/features/newDomain/entities/drizzle";
@@ -80,7 +80,7 @@ export async function seedNewDomain(
 ### 2. registry.ts に登録
 
 ```typescript
-// scripts/db/seed/data/registry.ts
+// scripts/runner/seed/data/registry.ts
 
 // 型マップに追加
 export type SeedResultMap = {
@@ -106,7 +106,7 @@ export const seedRegistry: SeedConfig[] = [
 ### 3. index.ts にエクスポート追加
 
 ```typescript
-// scripts/db/seed/data/index.ts
+// scripts/runner/seed/data/index.ts
 
 export { seedNewDomain } from "./newDomain";
 export type { SeedNewDomainResult } from "./newDomain";

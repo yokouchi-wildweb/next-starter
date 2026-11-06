@@ -21,7 +21,7 @@ const keyOf = (v) => `${v.file} → ${v.folder}`;
 
 /** 実リポの検査の結果: 全 Tier で落とす(gate-s3 から) */
 function enforce(problems, message) {
-  assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/test/serverOnlyStub.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs)`);
+  assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs)`);
 }
 
 test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(違反 0)", () => {

@@ -1,4 +1,4 @@
-// scripts/script-entries/check.test.mjs
+// scripts/runner/preload/entries.test.mjs
 // 実行: pnpm test:script-entries
 
 import assert from "node:assert/strict";
@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 
-import { findMissingStubs, readEntries, scanTree, serverOnlyPath } from "./check.mjs";
+import { findMissingStubs, readEntries, scanTree, serverOnlyPath } from "./entries.mjs";
 
 const tree = {
   "scripts/a.ts": [{ request: "./b", id: "src/b.ts", kind: "StaticImport" }],
@@ -19,7 +19,7 @@ const tree = {
 test("readEntries: tsx の入口だけ、stub の有無、複数のファイル", () => {
   const entries = readEntries({
     a: "cross-env X=1 npx tsx scripts/a.ts --all",
-    b: "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/x.test.ts src/y.test.mts",
+    b: "npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test src/x.test.ts src/y.test.mts",
     c: "node --test scripts/c.test.mjs",
   });
   assert.deepEqual(entries, [

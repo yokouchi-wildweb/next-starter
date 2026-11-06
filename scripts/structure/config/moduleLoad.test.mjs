@@ -45,7 +45,7 @@ for (const file of targets) {
   test(`${file} を最初に import しても読み込みが落ちない`, () => {
     const code = `import(${JSON.stringify(resolve(repoRoot, file))}).then(() => process.exit(0), (e) => { console.error(String(e && e.stack || e)); process.exit(1); });`;
     try {
-      execFileSync("npx", ["tsx", "--import", "./scripts/test/serverOnlyStub.mjs", "-e", code], { cwd: repoRoot, stdio: "pipe", encoding: "utf8" });
+      execFileSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "-e", code], { cwd: repoRoot, stdio: "pipe", encoding: "utf8" });
     } catch (error) {
       assert.fail(`${file} の読み込みが落ちた(循環 import で config の値を初期化前に読んでいないか):\n${error.stderr || error.message}`);
     }

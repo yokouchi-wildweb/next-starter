@@ -1,5 +1,5 @@
 // tsx で動かすテスト用の preload: `server-only` を空モジュールに解決する。
-// 使い方: `npx tsx --import ./scripts/test/serverOnlyStub.mjs --test <file>`
+// 使い方: `npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <file>`
 //
 // 背景: `import "server-only"` は Next のバンドラーだけが解決するガードで、package.json に依存は無い。
 // テストが serviceRegistry などから server コードへ import をたどると、素の tsx では
@@ -12,7 +12,7 @@
 // さらに Module._resolveFilename も包む。--experimental-test-module-mocks を付けると CJS の require が
 // テストランナーの mock ローダー経由になり、registerHooks の resolve を通らずに元の _resolveFilename へ届くため。
 // この preload は tsx の登録より後に読まれるので、ここで包めば一番外側になり mock ローダー経由も拾える。
-// pnpm task（scripts/tasks/run.ts）も同じ理由でこの preload を読む。
+// pnpm task（scripts/runner/task/run.ts）も同じ理由でこの preload を読む。
 import Module, { registerHooks } from "node:module";
 import { fileURLToPath } from "node:url";
 

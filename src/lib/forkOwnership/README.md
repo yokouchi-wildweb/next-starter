@@ -119,7 +119,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 
 ## registry の fork の区画
 
-- `src/registry/` と、受け口の一覧で region にしたファイル(`servers/room/src/registry.ts`・`scripts/db/seed/data/registry.ts`・`index.ts`)の中で fork が書いてよいのは、次の印の対の間だけ。印の外は upstream の物
+- `src/registry/` と、受け口の一覧で region にしたファイル(`servers/room/src/registry.ts`・`scripts/runner/seed/data/registry.ts`・`index.ts`)の中で fork が書いてよいのは、次の印の対の間だけ。印の外は upstream の物
   ```ts
   // --- fork entries start (upstream never edits inside) ---
   // --- fork entries end ---

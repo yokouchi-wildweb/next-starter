@@ -1,7 +1,7 @@
 // 集まりの配線の突き合わせテスト: domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの collectionFields。
 // あわせて、主の表に集まりの登録（entities/drizzle.ts の defineTableCollections）があることを、主のサービスを読む前に確かめる
 // （他ドメインの withRelations で埋め込まれた行に集まりを載せる経路。サービスを読むと登録されてしまうので、この検査を先に置く）。
-// 実行: pnpm test:collection-wiring（test:service-registry と同じく tsx + serverOnlyStub で登録表と各サービスを実際に読み込む）
+// 実行: pnpm test:collection-wiring（test:service-registry と同じく tsx + server-only の下駄(scripts/runner/preload/serverOnly.mjs)で登録表と各サービスを実際に読み込む）
 // DB 未設定（DATABASE_URL が空）でも通る（サービスの生成は DB に繋がない）
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// scripts/tasks/run.ts
+// scripts/runner/task/run.ts
 // 運用タスクを CLI から実行するための統合ランナー
 // 定期実行（cron）タスクと、バックフィル・データ移行などのワンショットタスクの両方を扱う。
 //
@@ -15,9 +15,9 @@
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/structure/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
-// ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>.ts を走査する（./README.md）。
+// ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>.ts を走査する（scripts/tasks/README.md）。
 //
-// package.json の task スクリプトは scripts/test/serverOnlyStub.mjs を preload する
+// package.json の task スクリプトは scripts/runner/preload/serverOnly.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
 
 import path from "node:path";
@@ -29,7 +29,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: process.env.ENV_FILE || ".env.development", quiet: true });
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
-import { type LoadedCronTask, loadCronTasks } from "../structure/cron/discover";
+import { type LoadedCronTask, loadCronTasks } from "../../structure/cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile, TASKS_DIR } from "./discover";
 
 type TaskFn = () => Promise<Record<string, unknown>>;
@@ -109,7 +109,7 @@ async function main() {
   // pnpm は "--" をそのまま渡してくることがあるため除去する
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
   const taskName = args[0];
-  const repoRoot = path.resolve(import.meta.dirname, "../..");
+  const repoRoot = path.resolve(import.meta.dirname, "../../..");
   const cronTasks = await loadCronTasks(repoRoot);
   const oneShotTasks = listOneShotTasks(repoRoot);
   const TASKS = buildTaskMap(repoRoot, cronTasks, oneShotTasks);

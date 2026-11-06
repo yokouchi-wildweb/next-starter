@@ -1,5 +1,5 @@
-// scripts/test/serverOnlyStub.test.mts
-// serverOnlyStub.mjs の回帰テスト: --experimental-test-module-mocks 付きでも `server-only` が空モジュールに解決されること。
+// scripts/runner/preload/serverOnly.test.mts
+// serverOnly.mjs の回帰テスト: --experimental-test-module-mocks 付きでも `server-only` が空モジュールに解決されること。
 // module mocks を有効にすると CJS の require がテストランナーの mock ローダー経由になり、registerHooks の resolve を通らない。
 // node_modules/server-only が無い状態（依存に入れない方針）でここが落ちたら、stub の Module._resolveFilename の包みを確かめる。
 // 実行: pnpm test:server-only-stub

@@ -1,6 +1,6 @@
-// scripts/script-entries/check.mjs
+// scripts/runner/preload/entries.mjs
 // package.json の tsx の入口のうち、server-only に届くのに stub を読まないものを探す(D26 K5)。
-// server-only は Next のバンドラーだけが解決するので、tsx の入口は scripts/test/serverOnlyStub.mjs を読まないと落ちる。
+// server-only は Next のバンドラーだけが解決するので、tsx の入口は scripts/runner/preload/serverOnly.mjs を読まないと落ちる。
 // 届く判定は import() の辺も辿る(db:seed の `await import("./data")` のように実行時に評価されるため)。
 // 届かない入口には求めない。実行: pnpm test:script-entries
 
@@ -14,7 +14,7 @@ export function readEntries(scripts) {
     .filter(([, command]) => /\btsx\b/.test(command))
     .map(([name, command]) => ({
       name,
-      stub: command.includes("serverOnlyStub"),
+      stub: command.includes("scripts/runner/preload/serverOnly.mjs"),
       files: [...command.matchAll(ENTRY_FILE)].map((match) => match[1]),
     }));
 }

@@ -1,4 +1,4 @@
-// scripts/db/seed/data/index.ts
+// scripts/runner/seed/data/index.ts
 
 export { seedDemoUser } from "./demoUser";
 export { seedSampleTags } from "./sampleTags";

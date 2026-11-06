@@ -63,7 +63,7 @@ export function run(argv, { repo = join(HERE, "../../.."), log = console.log, sp
     return 2;
   }
   const file = join(target.dir, action.file);
-  if (extname(file) === ".ts") return spawn("npx", ["tsx", "--import", "./scripts/test/serverOnlyStub.mjs", file, ...rest], repo);
+  if (extname(file) === ".ts") return spawn("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", file, ...rest], repo);
   return spawn(process.execPath, [file, ...rest], repo);
 }
 

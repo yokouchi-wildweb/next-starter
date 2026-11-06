@@ -1,8 +1,8 @@
 // .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs
 // 門番の区切り gate-s3 の fork の移行(L1.13・L1.14)。fork のリポのルートで走らせる。何度走らせても同じ結果になる。
 //
-//   npx tsx --import ./scripts/test/serverOnlyStub.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs            # dry-run(既定)
-//   npx tsx --import ./scripts/test/serverOnlyStub.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs --apply    # 書く → pnpm extensions:generate
+//   npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs            # dry-run(既定)
+//   npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs --apply    # 書く → pnpm extensions:generate
 //   --no-generate(最後の extensions:generate を省く) | --json(機械向けの出力)
 //
 // 1. 依存の検査(gate-s3 から fork でも落ちる)の違反のうち、規則が今開いている(fork の config の今の値で rule.enabled())物は

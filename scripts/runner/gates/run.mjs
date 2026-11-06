@@ -58,14 +58,14 @@ export const OFFLINE_ENV = /^(DATABASE_URL.*|MY_SERVICE_ACCOUNT_KEY|NEXT_PUBLIC_
 /** 機能の開閉: env GATES_FEATURES(JSON、テスト用)か features.ts を tsx で */
 function featureStates(repo) {
   if (process.env.GATES_FEATURES) return JSON.parse(process.env.GATES_FEATURES);
-  const r = spawnSync("npx", ["tsx", "--import", "./scripts/test/serverOnlyStub.mjs", join(HERE, "features.ts")], { cwd: repo, encoding: "utf8" });
+  const r = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", join(HERE, "features.ts")], { cwd: repo, encoding: "utf8" });
   if (r.status !== 0) throw new GateError(`機能の開閉が読めない: ${(r.stderr || r.stdout).trim().split("\n").slice(-2).join(" / ")}`);
   return JSON.parse(r.stdout);
 }
 
 function command(repo, file, offline) {
   const guard = offline ? ["--import", join(HERE, "netGuard.mjs")] : [];
-  if (extname(file) === ".ts") return ["npx", ["tsx", ...guard, "--import", "./scripts/test/serverOnlyStub.mjs", file]];
+  if (extname(file) === ".ts") return ["npx", ["tsx", ...guard, "--import", "./scripts/runner/preload/serverOnly.mjs", file]];
   return [process.execPath, [...guard, file]];
 }
 

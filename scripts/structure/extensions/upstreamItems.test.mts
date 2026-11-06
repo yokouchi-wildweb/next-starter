@@ -42,7 +42,7 @@ import { buildBody, buildTitle } from "@/features/core/wallet/services/server/no
 import { seoConfig } from "@/config/seo.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../../tasks/discover";
+import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
@@ -152,7 +152,7 @@ for (const [entry, rawFn, arg] of ENTRIES) {
   const fn = rawFn === "getHandler" && !APP_FEATURES.wallet.enabled ? null : rawFn;
   test(`読み込み: ${entry} から読んでも壊れない${fn ? `、${fn}("${arg}") が引ける` : ""}`, () => {
     const code = `const m = await import(${JSON.stringify(`${ROOT}/${entry}`)});${fn ? `const r = m.${fn}(${JSON.stringify(arg)}); if (!r) throw new Error("not found");` : ""}process.exit(0);`;
-    const result = spawnSync("npx", ["tsx", "--import", "./scripts/test/serverOnlyStub.mjs", "--input-type=module", "-e", code], { cwd: ROOT, encoding: "utf8", env: { ...process.env, DATABASE_URL: "" } });
+    const result = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--input-type=module", "-e", code], { cwd: ROOT, encoding: "utf8", env: { ...process.env, DATABASE_URL: "" } });
     assert.equal(result.status, 0, result.stderr.slice(-1500));
   });
 }
@@ -201,7 +201,7 @@ test("タスクの走査: 足した項目は印なし、旧い fork の印は止
   mkdirSync(join(dir, "_shared"), { recursive: true });
   const put = (name: string) => writeFileSync(join(dir, name), "export const task = {};\n");
   try {
-    for (const name of ["run.ts", "discover.ts", "types.ts", "a-b.ts", "c.ts", "d.test.ts", "_shared/x.ts", "notes.md"]) put(name);
+    for (const name of ["types.ts", "a-b.ts", "c.ts", "d.test.ts", "_shared/x.ts", "notes.md"]) put(name);
     assert.deepEqual(listOneShotTasks(root).map((t) => t.name), ["a-b", "c"]);
     assert.throws(() => assertNoCronOverlap(listOneShotTasks(root), ["c"]), /src\/app\/api\/cron/);
     put("e-f.acme.ts");

@@ -1,4 +1,4 @@
-// scripts/db/seed/gate.ts
+// scripts/runner/seed/gate.ts
 //
 // seed と機能の門(純関数。run.ts と gate.test.ts が使う)。
 // - 項目の feature?(規則名 = FeatureName、1 つか配列)が 1 つでも閉じていれば飛ばす(partitionSeeds)
@@ -6,7 +6,7 @@
 // - 検査: 項目の fn が import する seed のファイルが閉じられるフォルダ(規則の features)を値で import するなら、
 //   その規則が項目の feature に要る(seedFilesByKey + missingSeedFeatures、pnpm test:db-seed)
 //
-// 詳細: scripts/db/seed/README.md「閉じた機能と seed」
+// 詳細: scripts/runner/seed/README.md「閉じた機能と seed」
 
 /** 項目の feature を配列にそろえる */
 export function featuresOf<F extends string>(seed: { feature?: F | readonly F[] }): F[] {

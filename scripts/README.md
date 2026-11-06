@@ -98,7 +98,7 @@ pnpm db:push:check
 
 詳細: [registry/README.md](./registry/README.md)
 
-詳細: [db/seed/README.md](./db/seed/README.md)
+詳細: [runner/seed/README.md](./runner/seed/README.md)
 
 ### ドメイン設定 (dc)
 
@@ -159,8 +159,8 @@ pnpm cron:generate --plan pro     # Vercel Pro: task.ts の schedule どおり
 pnpm cron:check
 ```
 
-- `pnpm task` は env ファイルを読む（`ENV_FILE`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
-- タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/test/serverOnlyStub.mjs`、下記「テスト」）を付けている。
+- `pnpm task` は env ファイルを読む（`APP_ENV`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
+- タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/runner/preload/serverOnly.mjs`、下記「テスト」）を付けている。
 
 定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:
 
@@ -216,10 +216,10 @@ pnpm eslint:required
 
 ### テスト (tsx で動かすもの)
 
-tsx で動かすテスト（`*.test.ts` / `*.test.mts`、TypeScript を import する `*.test.mjs`）の package.json スクリプトは、必ず `--import ./scripts/test/serverOnlyStub.mjs` を付ける。
+tsx で動かすテスト（`*.test.ts` / `*.test.mts`、TypeScript を import する `*.test.mjs`）の package.json スクリプトは、必ず `--import ./scripts/runner/preload/serverOnly.mjs` を付ける。
 
 ```bash
-npx tsx --import ./scripts/test/serverOnlyStub.mjs --test <テストファイル>
+npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <テストファイル>
 ```
 
 - 理由: `import "server-only"` は Next のバンドラーだけが解決する。テストが serviceRegistry などから server コードへ import をたどると、素の tsx では `Cannot find module 'server-only'` で全件落ちる（依存の import 連鎖次第なので、今通っているテストもドメイン追加で落ち始める）。
