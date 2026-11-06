@@ -387,6 +387,35 @@ export function checkScreenFile(source, name) {
   return problems;
 }
 
+/** 管理のページ(src/app/admin の下)の枠の行を描く部品 */
+export const ADMIN_PAGE_COMPONENT = "AdminPage";
+const ADMIN_PAGE_IMPORT = /import\s+(?:type\s+)?(?:(\w+)\s*,?\s*)?(?:\{([^}]*)\})?\s*from\s*["']((?:@\/app\/admin|\.{1,2}(?:\/\.\.)*)\/_layout\/AdminPage)["']/g;
+
+/**
+ * 管理のページの Screen の検査(全 Tier、例外なし)。管理のヘッダーの行は AdminPage が描くので、AdminPage を描かないページには
+ * ヘッダーが出ない(D134)。Screen のファイル自身が AdminPage を import して `<AdminPage …>` を描くことを字面で読む。
+ * 限界: 子の部品の中で AdminPage を描く形(Screen が `<MyShell>` を返し、その中で AdminPage)は読まずに止める
+ * (ページがヘッダーの行を描く決定のとおり、Screen が AdminPage を描き、子はその中に置く)
+ * @param {string} source Screen ファイルの内容
+ * @returns {string[]} 問題(空なら合格)
+ */
+export function checkAdminPageScreen(source) {
+  const src = stripComments(source);
+  const locals = new Set();
+  for (const m of src.matchAll(ADMIN_PAGE_IMPORT)) {
+    if (m[1]) locals.add(m[1]);
+    for (const spec of (m[2] ?? "").split(",")) {
+      const named = /^\s*(?:type\s+)?(\w+)(?:\s+as\s+(\w+))?\s*$/.exec(spec);
+      if (named && named[1] === ADMIN_PAGE_COMPONENT) locals.add(named[2] ?? named[1]);
+    }
+  }
+  const renders = [...locals].some((local) => new RegExp(`<${local}[\\s>/]`).test(src));
+  if (renders) return [];
+  return [
+    `管理のページの Screen が <${ADMIN_PAGE_COMPONENT}> を描いていない(管理のヘッダーの行は AdminPage が描く。題・中央・右の操作は <${ADMIN_PAGE_COMPONENT} title="…" center={…} actions={…}> で渡し、子の部品は AdminPage の中に置く。ヘッダーを出さないページも AdminPage で包み、隣の frame.ts の宣言 { page: { hide: { header: { sp: true, pc: true } } } } で隠す)`,
+  ];
+}
+
 /**
  * Screen は `@/features/<domain>/components/` 配下のセクションコンテナを読み、その内側(部品、契約外)を直接読まない(must-read §4)。
  * 「部品を持つコンテナ」= `index.tsx` を持つディレクトリ。import 先の途中のディレクトリがコンテナなら違反。
