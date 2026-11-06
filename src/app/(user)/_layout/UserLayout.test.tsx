@@ -106,7 +106,7 @@ const withSlotsAndSafeArea = (html: string) =>
     .replace('class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]"', 'class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"');
 /**
  * ヘッダーの高さの初期値の区切り(指令 15 AMENDMENT 1 (1))で既定の DOM に入った差分: 測る前(SSR の最初の HTML)は外枠の inline に
- * --app-header-height を書かない(styles/_base/frame.css の初期値 = 今の行の高さが効く)。測った値は書く(下の test)
+ * --app-header-height を書かない(styles/core/frame.css の初期値 = 今の行の高さが効く)。測った値は書く(下の test)
  */
 const withoutHeaderVar = (html: string) => html.replace("--app-header-height:0px;", "").replace(' style="--app-header-height:0px"', "");
 const frameDims = () => withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH))));

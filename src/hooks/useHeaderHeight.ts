@@ -36,7 +36,7 @@ type TrackEnv = {
  * ヘッダーの高さを追う(hook の中身。document・window・observer は渡す = test が DOM の道具なしで確かめる)。
  * 見つかるまで 1 フレームごとに探し、見つけた要素の大きさの変化と画面幅の変化で測り直す。
  * 測っている要素が DOM から外れたら(管理の枠のヘッダーの行はページごとに描き直される・部品の差し替え)null を返して探し直す。
- * 隠している間(display: none)は高さ 0。null = まだ測れていない(呼び手は inline の値を書かず、styles/_base/frame.css の初期値が効く)。
+ * 隠している間(display: none)は高さ 0。null = まだ測れていない(呼び手は inline の値を書かず、styles/core/frame.css の初期値が効く)。
  */
 export function trackHeaderHeight(onHeight: (height: number | null) => void, elementId: string, { doc, win, createResizeObserver }: TrackEnv): () => void {
   let element: MeasuredElement | null = null;
@@ -98,7 +98,7 @@ export function trackHeaderHeight(onHeight: (height: number | null) => void, ele
 
 /**
  * ヘッダーの実測の高さ(px)。測る前と探し直している間は null。
- * UserLayout・AdminLayout は値があるときだけ外枠の inline の --app-header-height に書く(null の間は styles/_base/frame.css の
+ * UserLayout・AdminLayout は値があるときだけ外枠の inline の --app-header-height に書く(null の間は styles/core/frame.css の
  * 外枠ごと・端末ごとの初期値 = 今の行の高さが効き、測る前の最初の表示とページを移る間も本文がヘッダーに重ならない)。
  * elementId = data-slot で見つからない時に探す id(一時の橋、上の HEADER_SLOT_SELECTORS)
  */

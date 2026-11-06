@@ -46,7 +46,7 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
   // header の prop が渡された(要素でも null でも)= ヘッダーの差し替え。AdminPage の行を止め、渡された物を今までの場所に描く
   const replaced = header !== undefined;
 
-  // ヘッダーの高さは測れた時だけ書く(null = 測る前。最初の HTML とページを移る間は styles/_base/frame.css の初期値 = 今の行の高さが効き、
+  // ヘッダーの高さは測れた時だけ書く(null = 測る前。最初の HTML とページを移る間は styles/core/frame.css の初期値 = 今の行の高さが効き、
   // 本文が固定の行に重ならない)。測った値は初期値を上書きするだけ(隠している間の 0 も書く)。
   // 寸法変数のうち書くのは --app-header-height だけ。Admin には banner も bottomNav も無いので
   // --app-banner-height / --app-bottom-nav-height は styles/core/config.css の :root の 0px を継ぐ(safe-area も :root)
