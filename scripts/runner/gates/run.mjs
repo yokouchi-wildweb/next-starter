@@ -1,6 +1,7 @@
 // scripts/runner/gates/run.mjs — 門の入口(pnpm check / pnpm generate)
 // 実行: node scripts/runner/gates/run.mjs <check|generate> [<対象>] [--gate=<門>]
-//   対象なし = 全部の対象の check(generate)を順に / <対象> = その 1 つ / --gate=<門> = その門に乗る物だけ(gates.json の門の名前)
+//   対象なし = 全部の対象の check(generate)を順に / <対象> = その 1 つ / --gate=<門>[,<門>…] = そのどれかに乗る物だけ(gates.json の門の名前。
+//   複数なら after の順に 1 回ずつ、env GATE はその対象が乗る最初の門)
 //   各対象の入口(gate.json の check / generate のファイル)を、.mjs/.js は node、.ts は tsx(+ server-only の下駄)で起動する。
 //   引数は入口にそのまま渡し、env GATE=<門 | ->を付ける。
 //   features の機能が閉じていれば飛ばし「機能 <名前> が閉じているので飛ばした」を必ず出す。
@@ -40,12 +41,13 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   const own = sep < 0 ? argv.slice(1) : argv.slice(1, sep);
   const pass = sep < 0 ? [] : argv.slice(sep + 1);
   const gate = own.find((a) => a.startsWith("--gate="))?.slice(7) ?? null;
+  const gateList = gate ? gate.split(",").map((g) => g.trim()).filter(Boolean) : null;
   const name = own.find((a) => !a.startsWith("--")) ?? null;
   let gates;
   let targets;
   try {
     gates = loadGates(scriptsDir);
-    if (gate && !(gate in gates.gates)) throw new GateError(`知らない門 ${gate}(門は ${Object.keys(gates.gates).join(", ")})`);
+    for (const g of gateList ?? []) if (!(g in gates.gates)) throw new GateError(`知らない門 ${g}(門は ${Object.keys(gates.gates).join(", ")})`);
     targets = scanTargets(scriptsDir, gates);
   } catch (e) {
     if (!(e instanceof GateError)) throw e;
@@ -59,7 +61,7 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   // explicit の門(build:post = 組み上がった物が要る)だけに乗る対象は、その門か名前で呼んだ時だけ回す
   const explicitGates = Object.entries(gates.gates).filter(([, g]) => g.explicit).map(([n]) => n);
   const onlyExplicit = (t) => (t.decl.gates ?? []).length > 0 && (t.decl.gates ?? []).every((g) => explicitGates.includes(g));
-  const picked = targets.filter((t) => t.decl[mode] && (!name || t.name === name) && (gate ? (t.decl.gates ?? []).includes(gate) : name || !onlyExplicit(t)));
+  const picked = targets.filter((t) => t.decl[mode] && (!name || t.name === name) && (gateList ? gateList.some((g) => (t.decl.gates ?? []).includes(g)) : name || !onlyExplicit(t)));
   if (!gate && !name) for (const t of targets.filter((x) => x.decl[mode] && onlyExplicit(x))) log(`gates: ${t.kind}/${t.name}: ${t.decl.gates.join(", ")} だけの対象なので飛ばした(--gate=${t.decl.gates[0]} か名前で回す)`);
   if (!picked.length) {
     log(`gates: ${mode}${gate ? ` --gate=${gate}` : ""}${name ? ` ${name}` : ""}: 対象なし`);
@@ -89,7 +91,7 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
       continue;
     }
     const offline = mode === "check" && (t.decl.gates ?? []).some((g) => offlineGates.includes(g));
-    const env = { ...process.env, GATE: gate ?? "-" };
+    const env = { ...process.env, GATE: gateList?.find((g) => (t.decl.gates ?? []).includes(g)) ?? "-" };
     if (offline) for (const k of Object.keys(env)) if (OFFLINE_ENV.test(k)) env[k] = "";
     const [cmd, args] = command(repo, join(t.dir, t.decl[mode]), offline);
     const r = spawnSync(cmd, [...args, ...pass], { cwd: repo, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });

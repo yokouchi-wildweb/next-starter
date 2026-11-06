@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { parseForgeArgs } from "../run.mjs";
-import { buildSteps, deploySteps, runSteps } from "../steps.mjs";
+import { buildSteps, runSteps } from "../steps.mjs";
 import { changedTables, snapshotTables } from "../tables.mjs";
 
 const SILENT = { log: () => {}, error: () => {} };
@@ -15,47 +15,38 @@ const names = (steps) => steps.map((step) => step.name);
 const tmpDirs = [];
 after(() => tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })));
 
-test("段の並び: 事前検査 → role → dc → 一覧 → routes:map → 事後検査（typecheck・lint）→ デプロイ先の検査。cron は生成しない", () => {
-  const steps = buildSteps({ vercel: true });
+test("段の並び: 門の forge:pre → 門の生成(forge:pre・forge:post)→ 門の forge:post → テスト → typecheck(・lint)→ 門の deploy。cron は生成しない", () => {
+  const steps = buildSteps();
   const order = names(steps);
   const at = (name) => order.indexOf(name);
   assert.deepEqual([...new Set(steps.map((step) => step.phase))], ["pre", "generate", "post", "deploy"]);
-  assert.ok(at("role:generate --all") < at("dc:generate:all"));
-  assert.ok(at("dc:generate:all") < at("registry:generate"));
-  assert.ok(at("registry:generate") < at("extensions:generate"));
-  assert.ok(at("extensions:generate") < at("routes:map"));
-  // 事前は作り直せる一覧のずれで止めない（新しいドメイン・項目が forge 1 回で通る）。事後は完全に見る
-  const phases = steps.map((step) => `${step.phase} ${step.name}`);
-  assert.ok(!phases.includes("pre registry:check"));
-  assert.ok(phases.includes("pre extensions:check --no-stale"));
-  assert.ok(phases.includes("post registry:check"));
-  assert.ok(phases.includes("post extensions:check"));
-  assert.ok(at("routes:map --check") > at("routes:map"));
-  assert.ok(order.includes("dc:feature-map --check"));
+  assert.equal(order[0], "check --gate=forge:pre");
+  assert.equal(order[1], "generate --gate=forge:pre,forge:post");
+  assert.equal(order[2], "check --gate=forge:post");
+  assert.ok(at("check --gate=forge:post") < at("test:screens"));
+  assert.ok(at("test:wiring") < at("typecheck"));
   assert.ok(!order.some((name) => name.startsWith("cron:generate")));
-  assert.equal(order.at(-1), "cron:check");
-  assert.ok(at("typecheck") < at("cron:check"));
-  const withLint = names(buildSteps({ vercel: false, lint: true }));
-  assert.equal(withLint.at(-1), "lint");
-  assert.equal(withLint.at(-2), "typecheck");
+  assert.equal(order.at(-1), "check --gate=deploy");
+  const withLint = names(buildSteps({ lint: true }));
+  assert.equal(withLint.at(-2), "lint");
+  assert.equal(withLint.at(-3), "typecheck");
 });
 
-test("デプロイ先の検査: vercel.json がある時だけ cron:check（plan は要らない）、落ちたら cron:generate --plan を案内", () => {
-  assert.deepEqual(deploySteps({ vercel: false }), []);
-  const [check] = deploySteps({ vercel: true });
-  assert.equal(check.script, "cron:check");
-  assert.deepEqual(check.args, []);
+test("デプロイ先の検査: 門 deploy(vercel.json が無ければ cron が飛ばして出す)、落ちたら cron:generate --plan を案内", () => {
+  const check = buildSteps().at(-1);
+  assert.equal(check.script, "check");
+  assert.deepEqual(check.args, ["--gate=deploy"]);
   const errors = [];
   runSteps([check], { exec: () => false, io: { log: () => {}, error: (m) => errors.push(m) } });
-  assert.match(errors.join("\n"), /デプロイ先の検査「cron:check」.*pnpm cron:generate --plan hobby\|pro/);
+  assert.match(errors.join("\n"), /デプロイ先の検査「check --gate=deploy」.*pnpm cron:generate --plan hobby\|pro/);
 });
 
 test("止まり方: 落ちた段で止まり、後の段を回さない（事前検査で落ちれば生成の段は 1 つも回らない）", () => {
-  const steps = buildSteps({ vercel: false });
-  const failPre = runSteps(steps, { exec: (step) => step.name !== "extensions:check --no-stale", io: SILENT });
+  const steps = buildSteps();
+  const failPre = runSteps(steps, { exec: (step) => step.name !== "check --gate=forge:pre", io: SILENT });
   assert.equal(failPre.ok, false);
   assert.equal(failPre.failed.phase, "pre");
-  assert.ok(!failPre.ran.includes("role:generate --all"));
+  assert.ok(!failPre.ran.includes("generate --gate=forge:pre,forge:post"));
   const failPost = runSteps(steps, { exec: (step) => step.name !== "test:screens", io: SILENT });
   assert.equal(failPost.failed.name, "test:screens");
   assert.ok(!failPost.ran.includes("typecheck"));
