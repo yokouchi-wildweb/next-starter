@@ -64,7 +64,14 @@ test("decideAnalyticsAllowed: 無効なら同意があっても送らない、�
   assert.equal(decideAnalyticsAllowed({ enabled: true, consent: "required" }, "unknown"), false);
 });
 
-test("既定の設定は無効・同意が必要（ソースの値。実行中の値は beforeEach が書き換える）", async () => {
+// 上流の既定の値の検査は Tier1 だけ。fork は notice 20261105-070608 の手順どおり値を変えてよい（src/config/app = fork の取り込み口）
+test("既定の設定は無効・同意が必要（ソースの値。実行中の値は beforeEach が書き換える。Tier1 だけ）", async (t) => {
+  const { resolve } = await import("node:path");
+  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  if (!readForkIdentity(resolve(__dirname, "../../..")).isTier1) {
+    t.skip("上流の既定の値の検査（Tier1 だけ）");
+    return;
+  }
   const { readFileSync } = await import("node:fs");
   const source = readFileSync(require.resolve("@/config/app/analytics.config"), "utf8");
   assert.match(source, /enabled: false,/);
