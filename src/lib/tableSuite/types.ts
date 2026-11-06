@@ -131,7 +131,7 @@ export type ReorderableConfig<T> = {
    * 並び替え確定時のコールバック。
    * ReorderResult は CRUD の reorder(id, afterItemId) / useReorder<Domain> にそのまま接続できる。
    */
-  onReorder: (result: ReorderResult) => void;
+  onReorder: (result: ReorderResult) => void | Promise<unknown>;
   /**
    * グループ単位の並び替え。指定すると:
    * - グループを跨ぐドロップはキャンセルされる（所属変更は update の責務であり並び替えでは扱わない）
@@ -155,6 +155,13 @@ export type RowReorderProps<T> = {
    * - カラムソート（sort）適用中は表示順と保存順が一致しないため自動的に無効化される
    */
   reorderable?: ReorderableConfig<T>;
+  /**
+   * 並びの保存待ち(reorderable.onReorder が返した Promise)の間、ページの移動・戻る進む・再読み込みに確認を出すか
+   * (lib/unsavedGuard、理由 = 未保存。lib/sortableList と同じ)。void を返す onReorder は守らない。
+   * 並びを手元にためて後でまとめて保存する画面は、その画面が useUnsavedGuard で守る
+   * @default true
+   */
+  guardUnsaved?: boolean;
 };
 
 // ============================================================

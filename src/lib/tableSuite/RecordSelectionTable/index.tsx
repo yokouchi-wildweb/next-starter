@@ -104,6 +104,7 @@ export default function RecordSelectionTable<T>({
   sort,
   onSortChange,
   reorderable,
+  guardUnsaved = true,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -150,7 +151,7 @@ export default function RecordSelectionTable<T>({
     [fullWidthRows, items.length],
   );
 
-  const reorder = useTableReorder({ items, getKey, reorderable, sort });
+  const reorder = useTableReorder({ items, getKey, reorderable, sort, guardUnsaved });
   // 選択列（+ ハンドル列）を含めた全カラムを結合して描画する
   const fullWidthColSpan = columns.length + 1 + (reorder.enabled ? 1 : 0);
 

@@ -6,8 +6,11 @@ import React from "react";
 
 import type { DragEndEvent } from "@dnd-kit/core";
 
+import { useUnsavedTasks } from "@/lib/unsavedGuard";
+
 import type { ReorderableConfig, SortState } from "../../types";
 import { computeGroupedReorderResult } from "./computeGroupedReorder";
+import { TABLE_REORDER_GUARD_REASON, runTableReorder } from "./reorderGuard";
 
 /** ドラッグハンドルの表示状態 */
 export type DragHandleState = "grab" | "sortLocked" | "disabled";
@@ -45,6 +48,8 @@ type UseTableReorderArgs<T> = {
   reorderable: ReorderableConfig<T> | undefined;
   /** 現在のカラムソート状態。適用中は並び替えを自動無効化する */
   sort: SortState | undefined;
+  /** 並びの保存待ち(onReorder の Promise)の間、未保存の守りを掛けるか(既定 true) */
+  guardUnsaved?: boolean;
 };
 
 /**
@@ -56,8 +61,11 @@ export function useTableReorder<T>({
   getKey,
   reorderable,
   sort,
+  guardUnsaved = true,
 }: UseTableReorderArgs<T>): TableReorderState<T> {
   const mounted = useMounted();
+  // 未保存の守り: 並びの保存待ち(onReorder の Promise)の間(lib/sortableList と同じ)
+  const saving = useUnsavedTasks({ when: guardUnsaved, reason: TABLE_REORDER_GUARD_REASON });
   const enabled = Boolean(reorderable);
   const sortLocked = enabled && Boolean(sort);
   const active = enabled && mounted && !reorderable?.disabled && !sortLocked;
@@ -92,10 +100,10 @@ export function useTableReorder<T>({
         getGroup,
       });
       if (result) {
-        onReorder(result);
+        runTableReorder(onReorder, result, saving);
       }
     },
-    [items, ids, getGroup, onReorder],
+    [items, ids, getGroup, onReorder, saving],
   );
 
   const globallyDisabled = reorderable?.disabled;

@@ -106,14 +106,23 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 - 外す: `guardUnsaved={false}`(既定 true)
 - セルの外を押すと書きかけは確定する(→ `onCellChange`)。同期に保存する使い手(void を返す)は確定の時点で守りが外れる
 - 表は確定した値の未保存の状態を持たない。手元に変更をためて後でまとめて保存する画面は、その画面が `useUnsavedGuard` を呼ぶ
-- 行の並び替え(`reorderable`)の保存待ちは守らない
+- 確定は編集 1 回につき 1 回(Enter・Tab・フォーカスが外れる、のどれで閉じても。Enter の後の blur でもう一度 `onCellChange` を呼ばない。`EditableGridTable/utils/commitOnce.ts`)
+- 行の並び替えの保存待ちは下の「行の並び替えの未保存の守り」(同じ `guardUnsaved` で外れる)
 - 判定: `EditableGridTable/utils/editGuard.ts`(テスト `pnpm test:unsaved-guard`)
+
+#### 行の並び替えの未保存の守り(DataTable / RecordSelectionTable / EditableGridTable)
+
+`reorderable.onReorder` が返した Promise が終わるまで(並びの保存待ち)、理由「未保存」で守る(`lib/sortableList` と同じ決まり。`shared/reorder/reorderGuard.ts`、テスト `pnpm test:unsaved-guard`)。
+
+- 外す: `guardUnsaved={false}`(既定 true。EditableGridTable は編集の守りと同じ prop)
+- `void` を返す `onReorder` は守らない(保存待ちが無い)
+- 並びを手元にためて後でまとめて保存する画面は、その画面が `useUnsavedGuard` を呼ぶ(表は未保存の並びを持たない)
 
 ## 依存(読む lib)
 
 守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
 
-- `src/lib/unsavedGuard`(EditableGridTable の守り)
+- `src/lib/unsavedGuard`(EditableGridTable の編集の守り・3 つの表の並び替えの守り)
 - `src/lib/sortableList`(行の並び替えの計算 `computeReorderResult`)
 - `src/lib/cn`・`src/lib/crud`・`src/lib/date`(クラスの結合・ソートの型 `crud/types`・日時の解釈 `date/parseFlexible`)
 

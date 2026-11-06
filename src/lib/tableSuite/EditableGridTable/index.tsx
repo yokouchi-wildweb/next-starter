@@ -117,7 +117,7 @@ export default function EditableGridTable<T>({
   const resolvedMaxHeight = maxHeight ?? "70vh";
   const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
-  const reorder = useTableReorder({ items, getKey, reorderable, sort });
+  const reorder = useTableReorder({ items, getKey, reorderable, sort, guardUnsaved });
 
   return (
     <div

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
+import { createCommitOnce } from "../../../utils/commitOnce";
 import { parseCellValue, readCellValue } from "../../../utils/value";
 import { POPUP_ATTR } from "../constants";
 import type {
@@ -30,6 +31,8 @@ export function useEditableCell<T>({
   // Refs
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const cellRef = React.useRef<HTMLTableCellElement | null>(null);
+  // 編集 1 回につき確定 1 回(Enter の確定の後の blur でもう一度確定しない)
+  const commitOnceRef = React.useRef(createCommitOnce());
 
   // エディター型判定
   const isActionEditor = column.editorType === "action";
@@ -42,11 +45,17 @@ export function useEditableCell<T>({
   // コミット処理
   const handleCommit = React.useCallback(
     (next?: unknown, options?: CommitOptions) => {
+      const keepEditing = Boolean(options?.keepEditing);
+      // 同じ編集で既に確定して閉じた(Enter の後の blur など)。もう一度は確定しない
+      if (!commitOnceRef.current.accepts(keepEditing)) {
+        return;
+      }
       // 値の変更がない場合（引数なし＆draftValueがnull）は、編集モードを終了するのみ
       // onValidChangeは呼ばず、元の値を維持する
       if (typeof next === "undefined" && draftValue === null) {
         setError(null);
-        if (!options?.keepEditing) {
+        if (!keepEditing) {
+          commitOnceRef.current.close();
           setIsEditing(false);
           setPopupOpen(false);
         }
@@ -66,7 +75,8 @@ export function useEditableCell<T>({
       if (!options?.skipDraftReset) {
         setDraftValue(null);
       }
-      if (!options?.keepEditing) {
+      if (!keepEditing) {
+        commitOnceRef.current.close();
         setIsEditing(false);
         setPopupOpen(false);
       }
@@ -213,6 +223,11 @@ export function useEditableCell<T>({
       setMultiDraftValue(null);
     }
   }, [isEditing, isMultiSelectEditor]);
+
+  // エフェクト: 編集を始めたら次の確定を受ける
+  React.useEffect(() => {
+    if (isEditing) commitOnceRef.current.open();
+  }, [isEditing]);
 
   // エフェクト: 編集モード時のフォーカス
   React.useEffect(() => {

@@ -21,7 +21,7 @@
     "test:schema-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/tableScan.test.mjs scripts/registry/alpha/alpha.test.mjs",
     "test:service-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/serviceRegistry/serviceRegistry.test.mjs",
     "test:collection-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/collectionWiring/collectionWiring.test.mjs",
-    "test:unsaved-guard": "npx tsx --test src/lib/unsavedGuard/guard.test.ts src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importGuard.test.ts src/lib/mediaInputSuite/hooks/uploadGuard.test.ts src/lib/tableSuite/EditableGridTable/utils/editGuard.test.ts src/lib/sortableList/reorderGuard.test.ts",
+    "test:unsaved-guard": "npx tsx --experimental-test-module-mocks --test src/lib/unsavedGuard/guard.test.ts src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importGuard.test.ts src/lib/mediaInputSuite/hooks/uploadGuard.test.ts src/lib/tableSuite/EditableGridTable/utils/editGuard.test.ts src/lib/tableSuite/EditableGridTable/components/EditableGridCell/hooks/useEditableCell.commit.test.tsx src/lib/sortableList/reorderGuard.test.ts src/lib/tableSuite/shared/reorder/reorderGuard.test.ts src/lib/tableSuite/shared/reorder/useTableReorder.guard.test.tsx",
     "test:e2e:unsaved-guard": "playwright test -c playwright.config.default.ts tests/e2e/unsavedGuard",
     "test:form-submit-lock": "npx tsx --test src/components/Form/submitLock.test.ts",
     "test:form-background-failure": "npx tsx --test src/components/Form/backgroundFailure.test.ts && npx tsx --experimental-test-module-mocks --test src/components/Form/backgroundFailure.render.test.tsx",

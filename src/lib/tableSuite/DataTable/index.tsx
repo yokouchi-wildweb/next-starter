@@ -130,6 +130,7 @@ export default function DataTable<T>({
   sort,
   onSortChange,
   reorderable,
+  guardUnsaved = true,
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -149,7 +150,7 @@ export default function DataTable<T>({
     [fullWidthRows, items.length],
   );
 
-  const reorder = useTableReorder({ items, getKey, reorderable, sort });
+  const reorder = useTableReorder({ items, getKey, reorderable, sort, guardUnsaved });
   const fullWidthColSpan = columns.length + (reorder.enabled ? 1 : 0);
 
   return (
