@@ -92,7 +92,7 @@ const runShim = ({ cwd, args = [], env = {} }) => {
   const bin = temp("tmux-launch-bin-");
   const log = path.join(bin, "log");
   for (const name of ["tmux", "claude"]) {
-    writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> ${JSON.stringify(log)}\n[ "$1" = has-session ] && exit 1\nexit 0\n`);
+    writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> ${JSON.stringify(log)}\n[ "$1" = list-sessions ] && printf '%s\\n' "\${FAKE_SESSIONS:-}"\nexit 0\n`);
     chmodSync(path.join(bin, name), 0o755);
   }
   const quoted = args.map((a) => `'${a}'`).join(" ");
@@ -116,8 +116,18 @@ test("シェル関数: 目印のあるリポでは tmux のセッションを作
   mkdirSync(path.join(repo, "src"));
 
   const inRepo = runShim({ cwd: path.join(repo, "src"), args: ["--continue"] });
-  assert.match(inRepo, /^tmux new-session -s tmux-launch-repo-\S+ -c \S+\/src bash .*claude-tmux\.sh run \S+ --continue/m);
+  assert.match(
+    inRepo,
+    /^tmux new-session -s tmux-launch-repo-\S+ -c \S+\/src bash .*claude-tmux\.sh run \S+ --continue +; set-option destroy-unattached on$/m,
+  );
   assert.doesNotMatch(inRepo, /^claude /m);
+
+  // 同じリポで 2 つ目: 名前が使われていれば -2(前方一致で取り違えない)
+  const name = path.basename(repo).replace(/[^A-Za-z0-9_-]/g, "-");
+  const second = runShim({ cwd: repo, env: { FAKE_SESSIONS: `${name}-x\n${name}` } });
+  assert.match(second, new RegExp(`^tmux new-session -s ${name}-2 `, "m"));
+  const prefixOnly = runShim({ cwd: repo, env: { FAKE_SESSIONS: `${name}-x` } });
+  assert.match(prefixOnly, new RegExp(`^tmux new-session -s ${name} `, "m"));
 
   const other = temp("tmux-launch-other-");
   assert.match(runShim({ cwd: other }), /^claude $/m);
@@ -155,5 +165,41 @@ test("タブの中(run): claude が終わり、ほかに claude のタブが無�
     assert.match(text, /^pnpm -s dev:tab stop$/m);
   } finally {
     tmuxCmd("kill-server");
+  }
+});
+
+const hasScript = spawnSync("script", ["--version"], { stdio: "ignore" }).status === 0;
+
+test("通し: ターミナルを閉じると tmux のセッションも中の claude も終わる(普通のタブと同じ)", { skip: (!hasTmux || !hasScript) && "tmux か script が無い" }, async () => {
+  const repo = temp("tmux-launch-close-");
+  mkdirSync(path.join(repo, ".claude"));
+  writeFileSync(path.join(repo, ".claude/tmux-launch"), "");
+  const bin = temp("tmux-launch-closebin-");
+  const marker = `claude-close-test-${process.pid}`;
+  // 偽の claude: 長く眠る(終わったかを見る印を引数に持つ)
+  writeFileSync(path.join(bin, "claude"), `#!/usr/bin/env bash\nexec -a ${marker} sleep 300\n`);
+  chmodSync(path.join(bin, "claude"), 0o755);
+  const tmuxDir = temp("tmux-launch-closesock-");
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, TMUX: "", TMUX_PANE: "", TMUX_TMPDIR: tmuxDir, NO_TMUX_LAUNCH: "" };
+  const shim = path.join(here, "claude-tmux.sh");
+  const { spawn } = await import("node:child_process");
+  // script で端末を用意し、その中でシェル関数 claude を打つ(= ターミナルで claude を打つ)
+  const term = spawn("script", ["-qfc", `bash -c '. ${shim}; cd ${repo}; claude'`, "/dev/null"], { env, stdio: "ignore" });
+  const tmuxQ = (...args) => spawnSync("tmux", args, { env, encoding: "utf8" });
+  const alive = () => spawnSync("pgrep", ["-f", marker]).status === 0;
+  try {
+    for (let i = 0; i < 50 && !alive(); i += 1) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(alive(), true, "claude が tmux の中で起動していない");
+    assert.equal(tmuxQ("show-options", "-v", "destroy-unattached").stdout.trim(), "on");
+    // ターミナルを閉じる = tmux のクライアントに切断(HUP)が届く
+    const client = tmuxQ("list-clients", "-F", "#{client_pid}").stdout.trim();
+    process.kill(Number(client), "SIGHUP");
+    for (let i = 0; i < 50 && alive(); i += 1) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(alive(), false, "ターミナルを閉じても claude が残っている");
+    assert.notEqual(tmuxQ("has-session").status, 0, "tmux のセッションが残っている");
+  } finally {
+    term.kill();
+    tmuxQ("kill-server");
+    spawnSync("pkill", ["-f", marker]);
   }
 });

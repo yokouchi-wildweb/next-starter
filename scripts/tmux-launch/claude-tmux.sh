@@ -4,9 +4,11 @@
 #   1. ~/.bashrc / ~/.zshrc から読み込まれ、シェル関数 `claude` を定義する(pnpm setup:tmux-launch が置く)
 #   2. tmux のタブの中で `bash <このファイル> run <リポのルート> <claude の引数...>` として動き、claude を起動する
 #      claude が終わったら、そのセッションに claude のタブが残っていなければ pnpm dev:tab stop をする
+# 普通のターミナルのタブと同じ振る舞い: claude 1 つにつき tmux のセッション 1 つ(destroy-unattached)。
+# ターミナルを閉じるとセッションごと終わり、中の claude も Dev タブのサーバーも止まる(裏に残らない)
 # 正本: next-starter の scripts/tmux-launch/claude-tmux.sh(ここを直したら版を上げる)。説明: scripts/tmux-launch/README.md
 
-NEXT_STARTER_CLAUDE_TMUX_VERSION=1
+NEXT_STARTER_CLAUDE_TMUX_VERSION=2
 
 # ---- 2. タブの中で動くとき ------------------------------------------------------------
 if [ "${1:-}" = "run" ] && [ -n "${2:-}" ]; then
@@ -55,9 +57,10 @@ claude() {
   __ct_session="$(printf '%s' "$(basename "$__ct_root")" | tr -c 'A-Za-z0-9_-' '-')"
   __ct_cmd="bash $(printf '%q' "$__ct_self") run $(printf '%q' "$__ct_root")"
   if [ $# -gt 0 ]; then __ct_cmd="$__ct_cmd $(printf '%q ' "$@")"; fi
-  if tmux has-session -t "=$__ct_session" 2>/dev/null; then
-    tmux new-window -t "=$__ct_session:" -c "$PWD" "$__ct_cmd" && tmux attach-session -t "=$__ct_session"
-  else
-    tmux new-session -s "$__ct_session" -c "$PWD" "$__ct_cmd"
-  fi
+  # 毎回新しいセッション(同じリポで 2 つ目なら <名前>-2, -3 …)。名前の照合は一覧で厳密に行う(-t は前方一致もする)
+  local __ct_name="$__ct_session" __ct_n=2 __ct_list
+  __ct_list="$(tmux list-sessions -F '#{session_name}' 2>/dev/null)"
+  while printf '%s\n' "$__ct_list" | grep -qx -- "$__ct_name"; do __ct_name="$__ct_session-$__ct_n"; __ct_n=$((__ct_n + 1)); done
+  # destroy-unattached: ターミナルを閉じて誰もつないでいなくなったら、セッションと中のプロセスを終える
+  tmux new-session -s "$__ct_name" -c "$PWD" "$__ct_cmd" \; set-option destroy-unattached on
 }
