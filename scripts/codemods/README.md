@@ -129,6 +129,8 @@ node scripts/codemods/frame-declarations.mjs --apply      # frame.ts を書き�
 - 消えた API の読み手: `useBottomNavItems().enabled`・`useHeaderData().enabled` / `navEnabled`・枠の設定の 4 つの import(出し入れは宣言に任せ、読み手を消す)
 - 読めない(旧い形の)`frame.ts`: そのファイルへ足す分は書かず、そのタグも残す
 
+部品の中で止めた物(Screen でない部品・ルートの外の `Hide*` と `fill`、`immersive`)は、その部品を描くルートを止める理由に名指す(src のファイルの import を逆にたどり、ルートの page.tsx / layout.tsx / Screen で止まる。`描くルート: <ルート>/frame.ts の page:`)。たどれなければ「描くルートが見つからない」と出す。
+
 差し替えた枠の部品(ヘッダー・フッター・ボトムナビなどを fork が自分の部品にした物)は、外側の要素に `data-slot="<部位>"`(`header` / `header-nav` / `footer` / `bottom-nav`、管理の枠は `admin-header` / `admin-sidebar` / `admin-footer`)を付ければ隠す宣言に従う(部位の名前: `src/app/_layout/frame/parts.mjs`)。
 
 ### fork の手順

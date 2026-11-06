@@ -70,9 +70,9 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 | fork の自作 d(oripa-do) | ○ | × | × | ○ | 戻る / 進む・push を受けない |
 | fork の自作 e(boardgame-site) | ○ | × | 戻る ○(進むは番兵で消える) | ○ | push を受けない |
 
-この lib(c + 守り付きの router)は 4 経路を全部受け止める: 受入のテスト `e2e/unsavedGuard.spec.ts`(chromium・firefox・webkit)。
+この lib(c + 守り付きの router)は 4 経路を全部受け止める: 受入のテスト `tests/e2e/unsavedGuard/unsavedGuard.spec.ts`(chromium・firefox・webkit)。
 
 ## テスト
 
 - `pnpm test:unsaved-guard` — 本体(`guard.ts`)を偽物の window / document で + 使い手の lib の判定(取り込み・アップロード・表・並べ替え)
-- `pnpm test:e2e:unsaved-guard` — 実際のブラウザで 4 経路 × 留まる / 移る(dev server が要る: `e2e/README.md`)
+- `pnpm test:e2e:unsaved-guard` — 実際のブラウザで 4 経路 × 留まる / 移る(dev server が要る: `tests/e2e/unsavedGuard/README.md`。e2eFixtures が閉なら skip)

@@ -230,7 +230,7 @@ export const APP_FEATURES = {
   e2e: {
     /**
      * 受入のテスト(Playwright、e2e/)が開くページ(/e2e 配下)を有効にする。既定 false = 404(本番では閉じたまま)。
-     * テストを走らせる間だけ true にする(手順: e2e/README.md)
+     * テストを走らせる間だけ true にする(手順: tests/e2e/unsavedGuard/README.md)
      */
     fixtures: false,
   },

@@ -22,7 +22,7 @@
     "test:service-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/serviceRegistry/serviceRegistry.test.mjs",
     "test:collection-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/collectionWiring/collectionWiring.test.mjs",
     "test:unsaved-guard": "npx tsx --test src/lib/unsavedGuard/guard.test.ts src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importGuard.test.ts src/lib/mediaInputSuite/hooks/uploadGuard.test.ts src/lib/tableSuite/EditableGridTable/utils/editGuard.test.ts src/lib/sortableList/reorderGuard.test.ts",
-    "test:e2e:unsaved-guard": "playwright test e2e/unsavedGuard.spec.ts",
+    "test:e2e:unsaved-guard": "playwright test -c playwright.config.default.ts tests/e2e/unsavedGuard",
     "test:form-submit-lock": "npx tsx --test src/components/Form/submitLock.test.ts",
     "test:form-background-failure": "npx tsx --test src/components/Form/backgroundFailure.test.ts && npx tsx --experimental-test-module-mocks --test src/components/Form/backgroundFailure.render.test.tsx",
     "test:bulk-actions": "npx tsx --test src/lib/tableSuite/BulkActions/selectBulkActions.test.ts && npx tsx --experimental-test-module-mocks --test src/lib/crud/components/BulkActions/bulkActions.test.tsx",

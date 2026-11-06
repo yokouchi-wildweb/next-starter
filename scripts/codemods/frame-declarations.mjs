@@ -89,6 +89,76 @@ export function placementOf(root, path) {
   return { dir, scope, root: frameRoot };
 }
 
+const SOURCE_FILE = /\.(tsx|ts|jsx|js|mjs)$/;
+const IMPORT_SPEC = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["']([^"']+)["']/g;
+const RESOLVE_SUFFIXES = ["", ".tsx", ".ts", ".jsx", ".js", ".mjs", "/index.tsx", "/index.ts", "/index.js"];
+
+/** import の指定子 → リポのファイル(@/ = src/、相対)。分からなければ null */
+function resolveImport(from, spec, known) {
+  let base;
+  if (spec.startsWith("@/")) base = `src/${spec.slice(2)}`;
+  else if (spec.startsWith(".")) {
+    const parts = dirOf(from).split("/");
+    for (const seg of spec.split("/")) {
+      if (seg === "..") parts.pop();
+      else if (seg !== ".") parts.push(seg);
+    }
+    base = parts.join("/");
+  } else return null;
+  return RESOLVE_SUFFIXES.map((suffix) => `${base}${suffix}`).find((candidate) => known.has(candidate)) ?? null;
+}
+
+/**
+ * 部品を描くルートの探し方: src のファイルの import を逆にたどり、ルートの page.tsx / layout.tsx / Screen(placementOf で置き場が決まる物)で止まる。
+ * routesOf(path) → [{ frameFile, scope }](部品そのものがルートの Screen ならそのルート)
+ */
+export function createRouteIndex(root, files) {
+  const known = new Set(files);
+  const importers = new Map();
+  for (const file of files) {
+    if (!SOURCE_FILE.test(file)) continue;
+    const text = readFileSync(join(root, file), "utf8");
+    for (const match of text.matchAll(IMPORT_SPEC)) {
+      const target = resolveImport(file, match[1], known);
+      if (!target || target === file) continue;
+      if (!importers.has(target)) importers.set(target, new Set());
+      importers.get(target).add(file);
+    }
+  }
+  const MAX_DEPTH = 6;
+  return {
+    routesOf(path) {
+      const found = new Map();
+      const seen = new Set([path]);
+      let frontier = [path];
+      for (let depth = 0; depth <= MAX_DEPTH && frontier.length > 0; depth += 1) {
+        const next = [];
+        for (const file of frontier) {
+          const place = placementOf(root, file);
+          if (!place.problem) {
+            found.set(`${place.dir}/${FRAME_FILE}|${place.scope}`, { frameFile: `${place.dir}/${FRAME_FILE}`, scope: place.scope });
+            continue;
+          }
+          for (const importer of importers.get(file) ?? []) {
+            if (seen.has(importer)) continue;
+            seen.add(importer);
+            next.push(importer);
+          }
+        }
+        frontier = next;
+      }
+      return [...found.values()].sort((a, b) => (a.frameFile < b.frameFile ? -1 : 1));
+    },
+  };
+}
+
+/** 止める理由に足す「描くルート」の文 */
+function routesNote(routes, path) {
+  const list = routes.routesOf(path);
+  if (list.length === 0) return " 描くルートが見つからない(import をたどれない。使うページの frame.ts に手で書く)";
+  return ` 描くルート: ${list.map((r) => `${r.frameFile} の ${r.scope}:`).join(" / ")}`;
+}
+
 /** JSX の属性 → { name, value: true | false | null(式), node } */
 function attributesOf(opening) {
   return opening.attributes.properties.map((a) => {
@@ -123,7 +193,7 @@ function addTo(decls, frameFile, scope, value) {
 }
 
 /** 1 つのファイルを見る */
-function scanFile(root, path, text, { decls, changes, stops, edits }) {
+function scanFile(root, path, text, { decls, changes, stops, edits, routes }) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const hideNames = new Map();
   const pageNames = new Map();
@@ -158,7 +228,7 @@ function scanFile(root, path, text, { decls, changes, stops, edits }) {
       if (ts.isJsxElement(node)) stops.push({ path: at, reason: `<${tag}> が子を持つ(手で直す)` });
       else if (isConditional(node)) stops.push({ path: at, reason: `<${tag}> が条件の中(ページごとに決まらない。手で直す)` });
       else if (attrs.some((a) => !DEVICES.includes(a.name) || a.value === null)) stops.push({ path: at, reason: `<${tag}> の props が sp / pc の真偽でない(手で直す)` });
-      else if (place.problem) stops.push({ path: at, reason: `<${tag}>: ${place.problem}` });
+      else if (place.problem) stops.push({ path: at, reason: `<${tag}>: ${place.problem}${routesNote(routes, path)}` });
       else if (place.root !== "user") stops.push({ path: at, reason: `<${tag}> は利用者の枠の部品(管理の枠の下。手で直す)` });
       else {
         const given = attrs.length === 0 ? { sp: true, pc: true } : Object.fromEntries(attrs.filter((a) => a.value === true).map((a) => [a.name, true]));
@@ -172,11 +242,11 @@ function scanFile(root, path, text, { decls, changes, stops, edits }) {
       const attrs = attributesOf(opening);
       const immersive = attrs.find((a) => a.name === "immersive");
       const fill = attrs.find((a) => a.name === "fill");
-      if (immersive) stops.push({ path: at, reason: `<${tag} immersive> は意味が 1 つに決まらない(page: の fill と隠す部位を frame.ts に手で書き、safeArea などの見た目は部品に移す)` });
+      if (immersive) stops.push({ path: at, reason: `<${tag} immersive> は意味が 1 つに決まらない(page: の fill と隠す部位を frame.ts に手で書き、safeArea などの見た目は部品に移す)${routesNote(routes, path)}` });
       else if (fill) {
         const place = placementOf(root, path);
         if (fill.value === null) stops.push({ path: at, reason: `<${tag} fill={…}> が式(ページごとに決まらない。手で直す)` });
-        else if (place.problem) stops.push({ path: at, reason: `<${tag} fill>: ${place.problem}` });
+        else if (place.problem) stops.push({ path: at, reason: `<${tag} fill>: ${place.problem}${routesNote(routes, path)}` });
         else if (place.root !== pageNames.get(tag)) stops.push({ path: at, reason: `<${tag}> が別の枠の下にある(手で直す)` });
         else {
           const frameFile = `${place.dir}/${FRAME_FILE}`;
@@ -266,9 +336,11 @@ export function planFrameMigration(root, { baseFiles }) {
   const changes = [];
   const stops = [];
   const edits = new Map();
-  for (const path of listFiles(root)) {
+  const files = listFiles(root);
+  const routes = createRouteIndex(root, files);
+  for (const path of files) {
     if (base.has(path) || !/\.(tsx|ts)$/.test(path) || /\.(test|spec|d)\.tsx?$/.test(path)) continue;
-    scanFile(root, path, readFileSync(join(root, path), "utf8"), { decls, changes, stops, edits });
+    scanFile(root, path, readFileSync(join(root, path), "utf8"), { decls, changes, stops, edits, routes });
   }
   scanConfig(root, { decls, changes });
   // 既にある frame.ts に足す(読めなければ止める)

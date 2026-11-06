@@ -170,3 +170,31 @@ test("applyEdits: 使われなくなった Hide* の import だけ消す(残る�
   const start = text.indexOf("<HideFooter />");
   assert.equal(applyEdits(text, [[start, start + "<HideFooter />".length]]), `import { HideHeader } from "${CONTROLS}";\nimport { A } from "a";\nconst x = <><HideHeader>y</HideHeader></>;\n`);
 });
+
+test("止めた部品の案内に描くルートを名指す: import を上へたどり page / Screen で止まる(@/ と相対、Screen を通す)、Screen そのものは自分のルート、見つからなければそう言う", () => {
+  const training = 'import { UserPage } from "@/app/(user)/_layout/UserPage";\nexport function TrainingPage({ children }) {\n  return <UserPage immersive>{children}</UserPage>;\n}\n';
+  withFork(
+    {
+      "src/components/AppFrames/Training/TrainingPage.tsx": training,
+      "src/app/(user)/training/scale/page.tsx": 'export { ScaleScreen as default } from "./_screen/ScaleScreen";\n',
+      "src/app/(user)/training/scale/_screen/ScaleScreen.tsx": 'import { TrainingPage } from "@/components/AppFrames/Training/TrainingPage";\nexport function ScaleScreen() {\n  return <TrainingPage>x</TrainingPage>;\n}\n',
+      "src/app/(user)/training/note-reading/page.tsx": 'import { Board } from "./_components/Board";\nexport default function Page() {\n  return <Board />;\n}\n',
+      "src/app/(user)/training/note-reading/_components/Board.tsx": 'import { TrainingPage } from "../../../../../components/AppFrames/Training/TrainingPage";\nexport function Board() {\n  return <TrainingPage>x</TrainingPage>;\n}\n',
+      "src/app/(user)/i/page.tsx": page,
+      "src/app/(user)/i/_screen/IScreen.tsx": 'import { UserPage } from "@/app/(user)/_layout/UserPage";\nexport function IScreen() {\n  return <UserPage immersive>x</UserPage>;\n}\n',
+      "src/app/(user)/a/page.tsx": 'import { Part } from "./_components/Part";\nexport default function Page() {\n  return <Part />;\n}\n',
+      "src/app/(user)/a/_components/Part.tsx": screen("      <HideFooter />"),
+      "src/features/game/Play.tsx": screen("      <HideHeader />"),
+    },
+    (_root, plan) => {
+      const reasonOf = (path) => plan.stops.find((s) => s.path.startsWith(`${path}:`))?.reason ?? "";
+      assert.match(
+        reasonOf("src/components/AppFrames/Training/TrainingPage.tsx"),
+        /描くルート: src\/app\/\(user\)\/training\/note-reading\/frame\.ts の page: \/ src\/app\/\(user\)\/training\/scale\/frame\.ts の page:$/,
+      );
+      assert.match(reasonOf("src/app/(user)/i/_screen/IScreen.tsx"), /描くルート: src\/app\/\(user\)\/i\/frame\.ts の page:$/);
+      assert.match(reasonOf("src/app/(user)/a/_components/Part.tsx"), /Screen\(<名前>Screen\.tsx\)でない部品.*描くルート: src\/app\/\(user\)\/a\/frame\.ts の page:$/);
+      assert.match(reasonOf("src/features/game/Play.tsx"), /描くルートが見つからない/);
+    },
+  );
+});

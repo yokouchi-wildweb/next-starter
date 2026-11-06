@@ -1,10 +1,14 @@
-// e2e/unsavedGuard.spec.ts — pnpm test:e2e:unsaved-guard(chromium・firefox・webkit)
+// tests/e2e/unsavedGuard/unsavedGuard.spec.ts — pnpm test:e2e:unsaved-guard(chromium・firefox・webkit、設定 playwright.config.default.ts)
 // 未保存の編集の守り(src/lib/unsavedGuard)の受入: 編集済みのフォームから 4 つの経路(棚の Link・router.push・戻る / 進む・
 // 再読み込みと離脱)と素の <a> で離れようとすると確認が出て、留まるなら画面も住所も入力もそのまま、移るなら元の行き先へ進む。
 // fork の自作 2 つが受けない経路(router.push・戻る / 進む)もこの lib は受ける(比べの表: src/lib/unsavedGuard/README.md)。
-// ページは門番の規則 e2eFixtures(既定で閉じる)の /e2e/unsaved-guard。開き方: e2e/README.md
+// ページは門番の規則 e2eFixtures(既定で閉じる)の /e2e/unsaved-guard。閉じている間は理由を出して skip する。開き方: ./README.md
 
 import { expect, type Page, test } from "@playwright/test";
+
+import { skipWhileClosed } from "../featureGate";
+
+skipWhileClosed("e2eFixtures");
 
 const START = "/e2e/unsaved-guard";
 const FORM = "/e2e/unsaved-guard/form";
