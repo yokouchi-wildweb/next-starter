@@ -178,10 +178,11 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
   if (isTier1) assert.deepEqual(webhookHandlers, []);
 });
 
-test("タスクの走査: 上流の 9 本、名前の一致と読み込み", async () => {
+test("タスクの走査: 上流の 10 本、名前の一致と読み込み", async () => {
   const tasks = listOneShotTasks(ROOT);
   assertUpstreamItems(tasks.map((t) => t.name), [
     "analytics-rollup-backfill",
+    "dev-admin",
     "paired-device-pair",
     "purchase-quota-cleanup",
     "setting-copy-list-per-page",
