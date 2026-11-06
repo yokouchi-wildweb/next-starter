@@ -68,7 +68,7 @@ export function AdminPageTitleCompact({ children, as: Tag = "p" }: { readonly ch
       title={titleAttr}
       aria-hidden={Tag === "p" ? true : undefined}
       className={cn(
-        "relative",
+        "relative min-w-0",
         "text-base font-semibold tracking-tight text-foreground sm:text-lg",
         "after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-['']",
         "animate-in fade-in slide-in-from-left-2 duration-200",

@@ -15,7 +15,9 @@ import { logoPath } from "@/utils/assets";
 
 // 行の高さは端末(SP / PC)ごとに決まった値 --admin-header-row-height(src/styles/core。枠の初期の --app-header-height も同じ値を読む)。
 // 中身で行が伸び縮みしないので、本文の位置が後から測った高さに頼らない。中身はこの高さに収める(はみ出しは切る。
-// 画面ごとに高い行を宣言する特例は作らない)。縦 padding は --admin-header-padding-y トークン経由(行の高さの内側)。
+// 画面ごとに高い行を宣言する特例は作らない)。
+// 横幅に入りきらないときの決まり(画面ごとの対応はしない): ロゴと明暗の切り替えは縮めない(shrink-0)。題の欄と中央は縮み、
+// 題は末尾を … で省く。右の操作は切らない: PC(sm 以上)は縮めず、SP だけ縮む(中の部品が … で省いて収める。例 AdminEditItemNavigator)。縦 padding は --admin-header-padding-y トークン経由(行の高さの内側)。
 // downstream はトークン上書きだけでヘッダー密度を変更でき、共有コンポーネントを編集する必要がない。
 const headerContainer = cva(
   "flex h-[var(--admin-header-row-height)] items-center justify-between gap-3 overflow-clip px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg",
@@ -73,17 +75,17 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
       </div>
 
       {/* 中央: タブ・検索など */}
-      <div data-slot="admin-header-center" className="flex min-w-0 flex-1 items-center justify-center">
+      <div data-slot="admin-header-center" className="flex min-w-0 flex-1 items-center justify-center overflow-hidden">
         {center}
       </div>
 
       {/* 右: ページの操作 + ダークモードスイッチ(エリアが switchable のときだけ描画される。
           切替可否は src/config/ui/site-theme.config.ts の areas.admin.switchable) */}
-      <div className="flex shrink-0 items-center gap-3">
-        <div data-slot="admin-header-right" className="flex items-center gap-3">
+      <div className="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink">
+        <div data-slot="admin-header-right" className="flex min-w-0 items-center gap-3">
           {actions}
         </div>
-        <DarkModeSwitch />
+        <DarkModeSwitch className="shrink-0" />
       </div>
     </header>
   );

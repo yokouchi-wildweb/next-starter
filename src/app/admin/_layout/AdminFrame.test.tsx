@@ -302,9 +302,10 @@ test("上流の編集画面(core 3・サンプル 3・管理の _template)は Ad
   const part = read("src/app/admin/_layout/AdminEditItemNavigator.tsx");
   assert.match(part, /useDomainItemNavigation\(options\)/);
   assert.match(part, /<ItemNavigator \{\.\.\.navigation\}/);
-  // ヘッダーの行(SP 52px・中身 36px)に収める: SP だけ選択欄を h-8 に詰め、PC は既定の大きさのまま
-  assert.match(part, /const SP_FIT = "max-sm:!h-8 max-sm:py-0";/);
-  assert.match(part, /selectClassName=\{SP_FIT\}/);
+  // ヘッダーの行(SP 52px・中身 36px)に収める: SP だけ選択欄を h-8 に詰めて縮め(… で省く)、ラベルは見た目だけ隠す。PC は既定の大きさのまま
+  assert.match(part, /const SP_FIT =\s*"max-sm:!h-8 max-sm:py-0 max-sm:min-w-0 /);
+  assert.match(part, /const SP_LABEL = "max-sm:sr-only";/);
+  assert.match(part, /labelClassName=\{SP_LABEL\} selectClassName=\{SP_FIT\}/);
   assert.match(read(`${NAV_DIR}/ItemNavigator.tsx`), /className=\{cn\("min-w-\[160px\] max-w-\[240px\]", selectClassName\)\}/);
   const hook = read("src/lib/crud/hooks/useDomainItemNavigation.ts");
   assert.match(hook, /createApiClient<T>\(`\/api\/\$\{domain\.singular\}`\)/);

@@ -27,6 +27,7 @@ export function ItemNavigator<T extends { id: string }>({
   isLoading = false,
   disabled = false,
   label = "切り替え",
+  labelClassName,
   placeholder,
   className,
   selectClassName,
@@ -47,7 +48,7 @@ export function ItemNavigator<T extends { id: string }>({
 
   return (
     <Flex align="center" gap="xs" className={cn("min-w-0", className)}>
-      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className={cn("shrink-0 text-sm text-muted-foreground", labelClassName)}>{label}</span>
       <SelectInput
         value={currentId}
         onChange={handleChange}

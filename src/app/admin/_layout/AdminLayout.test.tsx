@@ -34,7 +34,23 @@ mock.module("@/hooks/useHeaderHeight", {
     },
   },
 });
-mock.module("@/components/Fanctional/DarkModeSwitch", { namedExports: { DarkModeSwitch: marker("darkmode") } });
+// 明暗の切り替えの目印は受けた className を class に写す(行のはみ出しの決まり = shrink-0 を見る)
+mock.module("@/components/Fanctional/DarkModeSwitch", {
+  namedExports: { DarkModeSwitch: ({ className }: { className?: string }) => createElement("x-darkmode", className ? { class: className } : null) },
+});
+// 編集画面の「前後の項目へ移る」のデータ: 名前がとても長い今の項目 1 件(SP で行の幅を超える名前)
+const LONG_LABEL = "z".repeat(400);
+mock.module("@/lib/crud/hooks", {
+  namedExports: {
+    useDomainItemNavigation: () => ({
+      items: [{ id: "a", name: LONG_LABEL }],
+      currentId: "a",
+      getPath: (id: string) => `/admin/samples/${id}/edit`,
+      getLabel: (item: { name: string }) => item.name,
+      isLoading: false,
+    }),
+  },
+});
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 mock.module("@/components/Form/Button/Button", {
   namedExports: {
@@ -53,7 +69,9 @@ let useAdminSidebarFrame: typeof import("./Sidebar/AdminSidebarFrame").useAdminS
 let AdminProtectedLayout: typeof import("../(protected)/_layout/AdminProtectedLayout").AdminProtectedLayout;
 let InsaneProtectedLayout: typeof import("../insane/_layout").InsaneProtectedLayout;
 let AdminPage: typeof import("./AdminPage").default;
+let AdminEditItemNavigator: typeof import("./AdminEditItemNavigator").AdminEditItemNavigator;
 before(async () => {
+  ({ AdminEditItemNavigator } = await import("./AdminEditItemNavigator"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
   ({ AdminHeader } = await import("./AdminHeader"));
@@ -109,7 +127,10 @@ const CONTAINER_OUTER = BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "")
 const HEADER = BEFORE_HEADER.replace(/ id="admin-header-(?:title|center|right)-slot"/g, "")
   .replace('class="flex items-center justify-between gap-3 px-4 ', 'class="flex h-[var(--admin-header-row-height)] items-center justify-between gap-3 overflow-clip px-4 ')
   .replace('class="block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"', 'class="block aspect-[300/61] h-6 w-auto dark:hidden sm:h-12"')
-  .replace('class="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"', 'class="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"');
+  .replace('class="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"', 'class="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"')
+  // 横幅のはみ出しの決まり: 中央は中で切る、右の操作は SP だけ縮む(PC は縮めない)、明暗の切り替えは縮めない
+  .replace('class="flex min-w-0 flex-1 items-center justify-center"', 'class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"')
+  .replace('<div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode>', '<div class="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink"><div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"></div><x-darkmode class="shrink-0"></x-darkmode>');
 /** AdminPage の行 = HEADER + 置き方のクラス(上端に固定・全幅・header-layer) */
 const PAGE_HEADER = HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
 
@@ -203,7 +224,7 @@ test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM
 /** title="T" の本文側(h1 1 つ。SP で見え、PC は sm:sr-only)= 前の PageTitle の本文の大見出しの見た目 + sm:sr-only */
 const TITLE_BODY = BEFORE_TITLE_PAGE.replace("mb-8 sm:text-3xl", "mb-8 sm:text-3xl sm:sr-only");
 /** title="T" のヘッダー側 = 前の PageTitle の圧縮の題と同じクラスの飾りの文字(h1 ではない、aria-hidden) */
-const TITLE_COMPACT = `<p title="T" aria-hidden="true" class="relative text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`;
+const TITLE_COMPACT = `<p title="T" aria-hidden="true" class="relative min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`;
 
 test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は大見出し、PC は sm:sr-only)、PC で見える圧縮の題はヘッダーの題の受け口の中の飾りの文字", () => {
   const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
@@ -220,8 +241,8 @@ test("AdminPage の center / actions は行の中央・右の位置(data-slot ad
       CHILD
     </AdminPage>,
   );
-  assert.ok(html.includes('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"><b id="pc"></b></div>'));
-  assert.ok(html.includes('<div data-slot="admin-header-right" class="flex items-center gap-3"><b id="pa"></b></div><x-darkmode></x-darkmode>'));
+  assert.ok(html.includes('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"><b id="pc"></b></div>'));
+  assert.ok(html.includes('<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"><b id="pa"></b></div><x-darkmode class="shrink-0"></x-darkmode>'));
   const withoutProps = html.replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
   assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + BEFORE_PAGE, "props の中身のほかは props なしと同じ DOM");
 });
@@ -247,4 +268,59 @@ test("AdminHeader は 1 行スイッチ(./AdminHeader.default を指す re-expor
   assert.equal(/-slot"/.test(html), false, "受け口の id が残っている");
   // AdminLayout に header の prop は無い(差し替えの口は AdminHeader のスイッチだけ)
   assert.equal(/\bheader\?:/.test(readFileSync(join(__dirname, "AdminLayout.tsx"), "utf8")), false);
+});
+
+// ---- 行の横幅のはみ出しの決まり(order 22 AMENDMENT 1 (2)。画面ごとの対応はしない) ----
+
+/** class 属性の中身を語の集まりで返す(data-slot で要素を探す) */
+const classesOf = (html: string, pattern: RegExp) => {
+  const m = html.match(pattern);
+  assert.ok(m, `見つからない: ${pattern}`);
+  return new Set(m[1].split(/\s+/));
+};
+const hasAll = (set: Set<string>, words: string[]) => {
+  for (const w of words) assert.ok(set.has(w), `${w} が無い: ${[...set].join(" ")}`);
+};
+
+test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めない / 題・中央は縮む(題は … で省く)/ 右の操作は SP だけ縮み PC は縮めない", () => {
+  const html = page(<AdminPage title="T" center={<b id="pc" />} actions={<b id="pa" />}>CHILD</AdminPage>);
+  hasAll(classesOf(html, /<a class="([^"]*)" href="\/admin">/), ["shrink-0"]);
+  hasAll(classesOf(html, /data-slot="admin-header-title" class="([^"]*)"/), ["min-w-0", "shrink"]);
+  hasAll(classesOf(html, /<p title="T" aria-hidden="true" class="([^"]*)"/), ["min-w-0"]);
+  hasAll(classesOf(html, /<span class="([^"]*)">T<\/span>/), ["truncate", "block"]);
+  hasAll(classesOf(html, /data-slot="admin-header-center" class="([^"]*)"/), ["min-w-0", "flex-1", "overflow-hidden"]);
+  const right = classesOf(html, /<div class="([^"]*)"><div data-slot="admin-header-right"/);
+  hasAll(right, ["min-w-0", "shrink-0", "max-sm:shrink"]);
+  assert.equal(right.has("sm:shrink"), false, "PC で右の操作が縮む");
+  hasAll(classesOf(html, /data-slot="admin-header-right" class="([^"]*)"/), ["min-w-0"]);
+  hasAll(classesOf(html, /<x-darkmode class="([^"]*)">/), ["shrink-0"]);
+});
+
+test("名前のとても長い項目の編集: 明暗の切り替えは行の中・操作の後に描き、選択欄は SP だけ最小幅を外して … で省く(ラベルは SP で見た目だけ隠す)、PC の大きさは前のまま", () => {
+  const html = page(
+    <AdminPage title="T" actions={<AdminEditItemNavigator domain={{ singular: "sample", plural: "samples" } as never} current={{ id: "a" }} />}>
+      CHILD
+    </AdminPage>,
+  );
+  const header = html.slice(html.indexOf("<header"), html.indexOf("</header>") + "</header>".length);
+  // 切り替えは行の中、右の操作の後(行の外や操作の前に押し出されない)
+  const right = header.indexOf('data-slot="admin-header-right"');
+  const sw = header.indexOf("<x-darkmode");
+  assert.ok(right > 0 && sw > right, header);
+  assert.ok(header.indexOf("<button", right) < sw, "選択欄は切り替えの前");
+  // 選択欄(SelectTrigger): PC の幅(160〜240px)は前のまま、SP だけ縮んで値を … で省く
+  const trigger = classesOf(header, /<button[^>]* class="([^"]*)"/);
+  hasAll(trigger, [
+    "min-w-[160px]",
+    "max-w-[240px]",
+    "max-sm:!h-8",
+    "max-sm:py-0",
+    "max-sm:min-w-0",
+    "max-sm:max-w-none",
+    "max-sm:*:data-[slot=select-value]:block",
+    "max-sm:*:data-[slot=select-value]:min-w-0",
+    "max-sm:*:data-[slot=select-value]:truncate",
+  ]);
+  // ラベル「切り替え」は SP で見た目だけ隠す(読み上げには残る)。PC は出す
+  hasAll(classesOf(header, /<span class="([^"]*)">切り替え<\/span>/), ["shrink-0", "max-sm:sr-only"]);
 });
