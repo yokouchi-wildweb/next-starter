@@ -197,13 +197,15 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
         }}
       />
 
+      {/* トラック = 押す場所だけ(押すと input が切り替わる)。読み上げからは外す: input の名前は隣の見える文字
+          (aria-labelledby = labelId)が持つので、ここに名前の写しを入れると順に読んだとき 2 回読まれ、
+          写しが無いと名前の無い label が残る */}
       <label
         htmlFor={inputId}
+        aria-hidden="true"
         className={cn(trackVariants({ checked, interactive: !disabled, size, activeColor, inactiveColor }))}
       >
         <span className={indicatorVariants({ checked, size })} />
-        {/* トラックの label にも名前を持たせる(label が無いと名前の無い label になる) */}
-        {label ? <span className="sr-only">{label}</span> : null}
       </label>
 
       {(label || description) && (

@@ -321,3 +321,4 @@
 - id:20261106-143026-exchange-auth-time-invalidation | severity:info | checkpoint:exchange-auth-time-invalidation
 - id:20261106-145807-agent-terminal-self-compact | severity:info | checkpoint:agent-terminal-self-compact
 - id:20261106-155246-unsaved-guard-root-moved | severity:info | checkpoint:unsaved-guard-root-moved | moved:src/wiring/UnsavedGuardWiring.tsx -> src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx
+- id:20261106-191203-switch-input-label-once | severity:info | checkpoint:switch-input-label-once | fixes:20261102-222255-frame-mobile-a11y | resolves:20261105-190039-switch-input-label-read-twice | pick:-

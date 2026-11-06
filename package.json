@@ -28,7 +28,7 @@
     "test:bulk-actions": "npx tsx --test src/lib/tableSuite/BulkActions/selectBulkActions.test.ts && npx tsx --experimental-test-module-mocks --test src/lib/crud/components/BulkActions/bulkActions.test.tsx",
     "test:standalone-upload-failure": "npx tsx --experimental-test-module-mocks --test src/features/core/purchaseRequest/components/BankTransferInstruction/PrepareProofImage.test.tsx src/features/core/user/components/common/AccountAvatarSection.test.tsx",
     "test:form-inputs": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/Field/Configured/customInputs.test.tsx",
-    "test:form-a11y-contract": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/Input/a11yContract.test.tsx",
+    "test:form-a11y-contract": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/Input/a11yContract.test.tsx src/components/Form/Input/Manual/SwitchInput.a11y.test.tsx",
     "test:wiring": "node --test src/wiring/wiring.test.mjs",
     "test:wiring-admin-parts": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/wiring/adminScreenParts.test.mts",
     "test:storage-purposes": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/check-storage-purposes.test.mjs",
