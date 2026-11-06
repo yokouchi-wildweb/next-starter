@@ -16,6 +16,8 @@ import plugin, {
   classifyRouteFactoryImport,
   closablePatternOf,
   isClientCodeFile,
+  isDbWriteGuardedFile,
+  isToolFile,
   readClosablePatterns,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
@@ -381,4 +383,77 @@ test("rule router-via-guard: next/navigation の useRouter を止め(別名・�
       { code: `import { useRouter } from "next/navigation";`, filename: at("src/lib/crud/hooks/x.ts"), errors: [{ messageId: "rawUseRouter" }] },
     ],
   });
+});
+
+test("rule src-no-scripts: src(テストも)から scripts への import・型・import()・require を止め、src の中と scripts の側は通す(D78)", () => {
+  ruleTester.run("src-no-scripts", plugin.rules["src-no-scripts"], {
+    valid: [
+      { code: `import { x } from "@/lib/cron/discover";`, filename: at("src/featureGate/checks/a.test.ts") },
+      { code: `import { x } from "../../src/lib/task";`, filename: at("scripts/tasks/a.ts") },
+    ],
+    invalid: [
+      { code: `import { x } from "../../../scripts/structure/extensions/extensions.mjs";`, filename: at("src/featureGate/checks/a.test.mjs"), errors: [{ messageId: "srcScripts" }] },
+      { code: `import type { X } from "../../scripts/runner/task/discover";`, filename: at("src/lib/x.ts"), errors: [{ messageId: "srcScripts" }] },
+      { code: `const m = await import("../../scripts/tasks/a");`, filename: at("src/lib/x.ts"), errors: [{ messageId: "srcScripts" }] },
+      { code: `const m = require("../../scripts/tasks/a");`, filename: at("src/lib/x.ts"), errors: [{ messageId: "srcScripts" }] },
+    ],
+  });
+});
+
+test("rule scripts-no-static-wiring: 道具から wiring の静的 import(別名も相対も、型も)を止め、import()・require と道具の外は通す(D79)", () => {
+  assert.ok(isToolFile("scripts/a.ts") && isToolFile("src/features/sample/scripts/tasks/x.ts") && isToolFile(".notices/20260101-000000-a.tool.mjs"));
+  assert.ok(!isToolFile("src/wiring/a.ts") && !isToolFile(".notices/README.md") && !isToolFile("src/features/sample/services/server/a.ts"));
+  ruleTester.run("scripts-no-static-wiring", plugin.rules["scripts-no-static-wiring"], {
+    valid: [
+      { code: `const { getService } = await import("@/wiring/domainRegistry");`, filename: at("scripts/tasks/a.ts") },
+      { code: `const w = require("@/wiring/domainRegistry");`, filename: at("scripts/tasks/a.ts") },
+      { code: `const s = 'import { x } from "@/wiring/domains";';`, filename: at(".notices/20260101-000000-a.tool.test.mjs") },
+      { code: `import { x } from "@/wiring/domainRegistry";`, filename: at("src/features/sample/services/server/a.ts") },
+    ],
+    invalid: [
+      { code: `import { getService } from "@/wiring/domainRegistry";`, filename: at("scripts/tasks/a.ts"), errors: [{ messageId: "toolWiring" }] },
+      { code: `import type { X } from "../../src/wiring/apiRoute";`, filename: at("scripts/operations/a.ts"), errors: [{ messageId: "toolWiring" }] },
+      { code: `export { x } from "@/wiring/cronRoute";`, filename: at("src/features/sample/scripts/tasks/a.ts"), errors: [{ messageId: "toolWiring" }] },
+      { code: `import { x } from "../src/wiring/domainRegistry.ts";`, filename: at(".notices/20260101-000000-a.tool.mjs"), errors: [{ messageId: "toolWiring" }] },
+    ],
+  });
+});
+
+test("rule tools-no-db-write: ドメインのタスク・operations(db を除く)・seed.ts で db・表の定義・生 SQL・ドライバを止め、移行・operations/db・型・サービスは通す(D75・D90)", () => {
+  assert.ok(isDbWriteGuardedFile("src/features/sample/scripts/tasks/x.ts") && isDbWriteGuardedFile("scripts/operations/features/set.ts") && isDbWriteGuardedFile("src/features/sample/seed.ts"));
+  assert.ok(!isDbWriteGuardedFile("src/features/sample/scripts/migrations/001.ts") && !isDbWriteGuardedFile("src/features/sample/scripts/migrations/001.local.ts"));
+  assert.ok(!isDbWriteGuardedFile("scripts/operations/db/push.ts") && !isDbWriteGuardedFile("scripts/tasks/a.ts") && !isDbWriteGuardedFile("scripts/runner/seed/data/a.ts"));
+  ruleTester.run("tools-no-db-write", plugin.rules["tools-no-db-write"], {
+    valid: [
+      { code: `import { sampleService } from "@/features/sample/services/server/sampleService";`, filename: at("src/features/sample/scripts/tasks/x.ts") },
+      { code: `import { eq, type SQL } from "drizzle-orm";`, filename: at("scripts/operations/x/a.ts") },
+      { code: `import { db } from "@/lib/drizzle";
+import { sql } from "drizzle-orm";`, filename: at("src/features/sample/scripts/migrations/001.ts") },
+      { code: `import { db } from "@/lib/drizzle";`, filename: at("scripts/operations/db/clear.ts") },
+    ],
+    invalid: [
+      { code: `import { db } from "@/lib/drizzle";`, filename: at("src/features/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `const { db } = await import("@/lib/drizzle");`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import { SampleTable } from "@/features/sample/entities/drizzle";`, filename: at("src/features/sample/seed.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import { sql } from "drizzle-orm";`, filename: at("src/features/sample/seed.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import * as orm from "drizzle-orm";`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import postgres from "postgres";`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `const m = await import("drizzle-orm/postgres-js");`, filename: at("src/features/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
+    ],
+  });
+});
+
+test("config: 置き場の境目の 3 本は src・scripts・.notices の codemod で error(全 Tier)", async () => {
+  assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", `import { x } from "../../../scripts/tasks/a";
+export const y = x;
+`), ["import-boundaries/src-no-scripts:2"]);
+  assert.deepEqual(await lintAt("scripts/operations/x/a.ts", `import { x } from "@/wiring/domainRegistry";
+export const y = x;
+`), ["import-boundaries/scripts-no-static-wiring:2"]);
+  assert.deepEqual(await lintAt(".notices/20260101-000000-a.tool.mjs", `import { x } from "../src/wiring/domainRegistry.ts";
+export const y = x;
+`), ["import-boundaries/scripts-no-static-wiring:2"]);
+  assert.deepEqual(await lintAt("scripts/operations/x/a.ts", `import { db } from "@/lib/drizzle";
+export const y = db;
+`), ["import-boundaries/tools-no-db-write:2"]);
 });

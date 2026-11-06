@@ -32,7 +32,7 @@ pnpm worktree:sync [path] [--force]
 pnpm worktree:remove <path>
 ```
 
-複製するファイルの一覧は `scripts/workflow/worktree/include`。DB は本体と共有になる点に注意。詳細: [worktree/README.md](./worktree/README.md)
+複製するファイルの一覧は `scripts/workflow/worktree/include`。DB は本体と共有になる点に注意。詳細: [workflow/worktree/README.md](./workflow/worktree/README.md)
 
 ### 開発サーバーのタブ (dev:tab)
 
@@ -45,7 +45,7 @@ pnpm dev:tab stop
 pnpm dev:tab status
 ```
 
-1 チェックアウトに 1 つ (本体とワークツリーで同時に立てられる)。詳細: [dev-tab/README.md](./dev-tab/README.md)
+1 チェックアウトに 1 つ (本体とワークツリーで同時に立てられる)。詳細: [workflow/dev-tab/README.md](./workflow/dev-tab/README.md)
 
 ### 通常セッションを tmux で開く (setup:tmux-launch)
 
@@ -54,7 +54,7 @@ pnpm dev:tab status
 pnpm setup:tmux-launch
 ```
 
-詳細: [tmux-launch/README.md](./tmux-launch/README.md)
+詳細: [workflow/tmux-launch/README.md](./workflow/tmux-launch/README.md)
 
 ### データベース (db)
 
@@ -96,7 +96,7 @@ pnpm test:schema-registry
 pnpm db:push:check
 ```
 
-詳細: [registry/README.md](./registry/README.md)
+詳細: [structure/registry/README.md](./structure/registry/README.md)
 
 詳細: [runner/seed/README.md](./runner/seed/README.md)
 
@@ -110,7 +110,7 @@ pnpm dc:delete <Domain> --confirm <snake>    # ドメイン削除
 pnpm dc:feature-map [--check]                # ドメインの一覧 src/features/feature-map.txt
 ```
 
-詳細: [domain-config/README.md](./domain-config/README.md)、[forge/README.md](./forge/README.md)
+詳細: [structure/domain/README.md](./structure/domain/README.md)、[structure/forge/README.md](./structure/forge/README.md)
 
 ### メール (mail)
 
@@ -141,7 +141,7 @@ pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> 
 pnpm storage:setup-cors https://your-app.com
 ```
 
-手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [scripts/operations/storage/README.md](storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
+手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [operations/storage/README.md](./operations/storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
 
 ### 定期タスク (task / cron)
 
@@ -227,6 +227,13 @@ npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <テストファ
 - `server-only` を devDependencies に入れても解決しない（本物は react-server 条件以外では import 時に throw する）。
 - `--experimental-test-module-mocks`（`mock.module`）を使うテストでも同じ preload で足りる。module mocks を有効にすると CJS の require が import のフックを通らないため、preload は `Module._resolveFilename` も包んでいる。回帰テスト: `pnpm test:server-only-stub`。
 - `mock.module` は後から読み込むモジュールにしか効かない。モックの影響を受けるモジュールは `mock.module` の後に動的 import する（例: `src/features/core/storageObject/callsites.test.mts`）。
+
+## 置き場の境目(lint、全 Tier で error)
+
+- `import-boundaries/src-no-scripts`: `src/**`(テストも)は `scripts/**` を import しない。アプリと道具が両方使う物は `src/lib` に置く(例 `src/lib/cron/discover.ts`・`src/lib/task`)。道具の側を確かめるテストは `scripts` の側に置く
+- `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/features/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使うときは run の中で `await import("@/wiring/…")`
+- `import-boundaries/tools-no-db-write`: ドメインの `scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義 `entities/drizzle`・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行(`src/features/<domain>/scripts/migrations/`)
+- 3 本とも必須の規則の一覧(`eslint-rules/required-rules.mjs`)に載る: fork の `eslint.config.fork.mjs` で off / warn にすると `pnpm build`(`pnpm eslint:required`)が止まる。行ごとの例外は理由付きの eslint-disable
 
 ## ディレクトリ構成
 

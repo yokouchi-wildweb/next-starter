@@ -1,6 +1,6 @@
 # scripts/operations/storage
 
-ファイル保存の新基盤（[src/lib/storage/README.md](../../src/lib/storage/README.md)）が使うバケットを用意するスクリプト。
+ファイル保存の新基盤（[src/lib/storage/README.md](../../../src/lib/storage/README.md)）が使うバケットを用意するスクリプト。
 
 - `setup.ts`（`pnpm storage:setup`）: 新しい公開バケット（pub）と非公開バケット（priv）を冪等に用意する
 - `setup-cors.ts`（`pnpm storage:setup-cors`）: 旧バケット（Firebase の既定バケット）の CORS 設定。新しい 2 バケットには使わない（`storage:setup` が CORS まで設定する）

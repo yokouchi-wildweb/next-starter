@@ -47,6 +47,20 @@
 //   (名前で読む import / re-export を見る。namespace import・dynamic import は名前が分からないので見ない)
 // 門番の中どうし(生成一覧 → 規則、道具 → evaluate、規則 → @/featureGate の型)は自由。到達の検査は src/featureGate/checks/reachability.test.mjs
 
+// ── src-no-scripts(D78) ──
+// src/**(テストを含む)から scripts/** を import しない(値も型も、import()・require も)。道具とアプリが両方使う物は lib に置く
+// (例 src/lib/cron/discover.ts・src/lib/task)。道具の側のテストは scripts の側に置く(scripts → src は可)。
+//
+// ── scripts-no-static-wiring(D79) ──
+// 道具(scripts/**・src/features/**/scripts/**・.notices/<id>.<名前>.mjs の codemod)は src/wiring/** を静的に import しない
+// (import / export … from、値も型も)。run の中の動的 import()・require は可(読み込みのたびに結線の束を立ち上げないため。
+// 道具の一覧・検査は結線を読まずに動く)。
+//
+// ── tools-no-db-write(D75・D90) ──
+// DB を直接書く部品(@/lib/drizzle の db、表の定義 **/entities/drizzle、drizzle-orm の生 SQL sql・接続のドライバ、postgres 等)を
+// import しない(どの形も): src/features/**/scripts/tasks/**・scripts/operations/**(scripts/operations/db/** を除く)・
+// src/features/**/seed.ts。書くのはドメインのサービスを通す。移行 src/features/**/scripts/migrations/**(.local.ts を含む)は例外(直接の SQL・db を許す)。
+
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
 // ── link-via-shelf(D14、L1.9) ──
@@ -313,6 +327,91 @@ const libNoRegistry = {
   },
 };
 
+/** src のファイルが scripts を指す import か(D78) */
+export const isSrcScriptsImport = (importerRel, resolved) => isUnder(importerRel, "src") && isUnder(resolved, "scripts");
+
+/** 道具のファイルか(D79: scripts・ドメインの scripts・.notices の codemod) */
+export const isToolFile = (rel) => isUnder(rel, "scripts") || /^src\/features\/.+\/scripts\//.test(rel) || /^\.notices\/[^/]+\.mjs$/.test(rel);
+
+/** 道具から wiring への静的 import か(D79。import()・require は通す) */
+export const isToolStaticWiringImport = (importerRel, resolved, dynamic) => !dynamic && isToolFile(importerRel) && isUnder(resolved, WIRING);
+
+/** DB を直接書く部品を禁じる場所か(D75・D90。移行は例外) */
+export function isDbWriteGuardedFile(rel) {
+  if (/^src\/features\/.+\/scripts\/migrations\//.test(rel)) return false;
+  if (/^src\/features\/.+\/scripts\/tasks\//.test(rel)) return true;
+  if (/^src\/features\/.+\/seed\.ts$/.test(rel)) return true;
+  return isUnder(rel, "scripts/operations") && !isUnder(rel, "scripts/operations/db");
+}
+
+const DB_DRIVER = /^(postgres|pg|@neondatabase\/serverless|drizzle-orm\/(postgres-js|node-postgres|neon-http|neon-serverless|pg-proxy|pglite|vercel-postgres))(\/|$)/;
+
+/** DB を直接書く部品の import か: { what } か null。specifiers = null は名前を問わない形 */
+export function classifyDbWriteImport(source, resolved, specifiers) {
+  if (resolved && isUnder(resolved, "src/lib/drizzle")) return { what: "@/lib/drizzle(db)" };
+  if (resolved && /(^|\/)entities\/drizzle(\.[a-z]+)?$/.test(resolved)) return { what: "表の定義(entities/drizzle)" };
+  if (DB_DRIVER.test(source)) return { what: `接続のドライバ(${source})` };
+  if (source === "drizzle-orm" && (specifiers === null || specifiers.some((sp) => sp.name === "sql" && !sp.typeOnly))) return { what: "生 SQL(drizzle-orm の sql)" };
+  return null;
+}
+
+const srcNoScripts = {
+  meta: {
+    type: "problem",
+    docs: { description: "src/** から scripts/** を import しない(テストも、D78)" },
+    messages: {
+      srcScripts: '"{{source}}" は道具の置き場(scripts)です。src は scripts を import しません(テストも)。アプリと道具が両方使う物は src/lib に置き、道具の側のテストは scripts の側に置きます(scripts/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      if (isSrcScriptsImport(importerRel, resolveImport(source, context.filename, repoRoot))) context.report({ node, messageId: "srcScripts", data: { source } });
+    });
+  },
+};
+
+const scriptsNoStaticWiring = {
+  meta: {
+    type: "problem",
+    docs: { description: "道具(scripts・ドメインの scripts・codemod)から src/wiring を静的に import しない(D79。import() は可)" },
+    messages: {
+      toolWiring: '"{{source}}" は結線(src/wiring)です。道具は結線を静的に import しません。使うときは run の中で `await import("{{source}}")` にします(読み込みのたびに結線の束を立ち上げないため。scripts/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    if (!isToolFile(importerRel)) return {};
+    return moduleVisitors(({ node, source, dynamic }) => {
+      if (isToolStaticWiringImport(importerRel, resolveImport(source, context.filename, repoRoot), dynamic)) context.report({ node, messageId: "toolWiring", data: { source } });
+    });
+  },
+};
+
+const toolsNoDbWrite = {
+  meta: {
+    type: "problem",
+    docs: { description: "タスク・操作・シードは DB を直接書く部品を import しない(D75・D90。移行は例外)" },
+    messages: {
+      dbWrite: '"{{source}}" は DB を直接書く部品({{what}})です。ドメインのタスク・操作(scripts/operations、db を除く)・seed.ts からは読みません。書くのはドメインのサービスを通します。直接の SQL が要るなら移行(src/features/<domain>/scripts/migrations/)にします',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    if (!isDbWriteGuardedFile(importerRel)) return {};
+    return moduleVisitors(({ node, source, specifiers }) => {
+      const hit = classifyDbWriteImport(source, resolveImport(source, context.filename, repoRoot), specifiers);
+      if (hit) context.report({ node, messageId: "dbWrite", data: { source, what: hit.what } });
+    });
+  },
+};
+
 /** lib のファイルが features を指す import か */
 export const isLibFeaturesImport = (importerRel, resolved) => isUnder(importerRel, LIB) && isUnder(resolved, FEATURES);
 
@@ -482,6 +581,9 @@ const plugin = {
     "feature-gate-entries": featureGateEntries,
     "link-via-shelf": linkViaShelf,
     "router-via-guard": routerViaGuard,
+    "src-no-scripts": srcNoScripts,
+    "scripts-no-static-wiring": scriptsNoStaticWiring,
+    "tools-no-db-write": toolsNoDbWrite,
   },
 };
 
