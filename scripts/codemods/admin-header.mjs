@@ -9,6 +9,7 @@
 // - 台帳だけで決めると、台帳の版の後に上流が足したファイル(帯の区切りの AdminHeader.tsx など)を fork の物と取り違える
 // 区切り(checkpoint)は取り込んだ後のツリーで決める(台帳では決めない):
 // - band: AdminPage の title がある(_layout/AdminPageTitle.tsx)+ 差し込みの互換が残っている(AdminHeaderPortal.tsx)。止めた物は portal の区切りまでに直す
+//   (ItemNavigator の消えた props は帯で消えたので due: now)
 // - portal: 差し込みの互換が消えた。止めた物は今直す(直すまで型の検査が落ちる)
 // - AdminPage の title が無い = まだ帯の版を取り込んでいない → exit 2
 // 機械で書き換える物(どちらの区切りでも):
@@ -262,7 +263,8 @@ export function rewriteAdminHeader(path, text) {
       }
       if (locals.itemNavigator.has(tag)) {
         const old = attributesOf(node).map(attrName).filter((n) => n === "usePortal" || n === "slot" || n === "onBeforeNavigate");
-        if (old.length > 0) stops.push({ line: lineOf(node), kind: "item-navigator", detail: `<${tag}> の消えた props: ${old.join(", ")}` });
+        // ItemNavigator の props は帯の区切り(指令 16)で消えた: どちらの区切りでも今直す(型の検査が落ちる)
+        if (old.length > 0) stops.push({ line: lineOf(node), kind: "item-navigator", detail: `<${tag}> の消えた props: ${old.join(", ")}`, now: true });
       }
       if (locals.adminLayout.has(tag) && findAttr(node, "header")) stops.push({ line: lineOf(node), kind: "admin-layout-header-prop", detail: `<${tag} header={…}>` });
     }
@@ -348,7 +350,7 @@ export function planAdminHeader(root, { baseFiles, checkpoint }) {
     }
     found.push(...scanText(path, after));
     if (ADMIN_SCREEN.test(path)) for (const problem of checkAdminPageScreen(after)) found.push({ line: 1, kind: "page-without-admin-page", detail: problem.slice(0, 60) });
-    for (const s of found) stops.push({ path, line: s.line, kind: s.kind, target: STOP_KINDS[s.kind], due, detail: s.detail });
+    for (const s of found) stops.push({ path, line: s.line, kind: s.kind, target: STOP_KINDS[s.kind], due: s.now ? "now" : due, detail: s.detail });
   }
   stops.sort((a, b) => (a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1));
   return { checkpoint, changes, stops, writes };
@@ -387,7 +389,7 @@ function main() {
   for (const note of result.notes) console.log(`注意: ${note}`);
   console.log(`機械で書き換える: ${plan.changes.length} か所(${plan.writes.length} ファイル)`);
   for (const c of plan.changes) console.log(`  ${c.path}:${c.line} ${c.detail}`);
-  console.log(`止めた物(手で直す、期限 ${plan.checkpoint === "band" ? "portal の区切りまで" : "今"}): ${plan.stops.length} 件`);
+  console.log(`止めた物(手で直す、期限 ${plan.checkpoint === "band" ? "portal の区切りまで(due: now の物は今)" : "今"}): ${plan.stops.length} 件`);
   for (const kind of Object.keys(STOP_KINDS)) {
     const rows = plan.stops.filter((s) => s.kind === kind);
     if (rows.length === 0) continue;

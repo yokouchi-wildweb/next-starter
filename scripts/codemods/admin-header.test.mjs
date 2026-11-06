@@ -222,3 +222,21 @@ test("案内: item-navigator は生成するドメインの dc:generate、page-w
   assert.match(STOP_KINDS["page-without-admin-page"], /return <AdminPage title="…" \/>/);
   assert.match(STOP_KINDS["page-without-admin-page"], /AdminPage を Screen へ上げ/);
 });
+
+test("期限: 帯の区切りでも ItemNavigator の消えた props は今直す(帯で消えた)、ほかの止めた物は portal まで", () => {
+  const root = fork({
+    "src/app/admin/_layout/AdminPageTitle.tsx": "x",
+    "src/app/admin/(protected)/x/_components/Nav.tsx": [
+      `import { ItemNavigator, useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";`,
+      `const nav = useItemNavigator({ items, currentItem, getPath, methods, updateTrigger });`,
+      `const d = <ItemNavigator items={items} currentId="1" getPath={p} getLabel={l} usePortal />;`,
+      ``,
+    ].join("\n"),
+  });
+  try {
+    const plan = planAdminHeader(root, { baseFiles: [], checkpoint: "band" });
+    assert.deepEqual(plan.stops.map((s) => [s.detail.startsWith("<") ? "props" : "hook", s.due]).sort(), [["hook", "portal"], ["props", "now"]]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

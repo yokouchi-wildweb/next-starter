@@ -179,7 +179,7 @@ node scripts/codemods/admin-header.mjs --apply      # 書き換える
 ```
 
 - 触るのは fork が足したファイルだけ = 台帳の版にも取り込んだ上流の版にも無いファイル(上流の物は取り込みで移る)。台帳の版だけだと、台帳の後に上流が足したファイル(帯の区切りの `AdminHeader.tsx` など)を fork の物と取り違える。取り込んだ上流の版が分からない(`upstream/main` が無く `--upstream` も無い)ときは台帳の版だけで決め、`notes` に出す。テスト・守りの lib の中は見ない
-- 区切りは取り込んだ後のツリーで決める(台帳は fork のファイルを決めるだけ): `src/app/admin/_layout/AdminPageTitle.tsx` が無い = 帯の版をまだ取り込んでいない(exit 2)/ 互換の `AdminHeaderPortal.tsx` が残っている = 帯の区切り(止めた物の `due` は `portal`)/ 消えた = portal の区切り(`due` は `now`)
+- 区切りは取り込んだ後のツリーで決める(台帳は fork のファイルを決めるだけ): `src/app/admin/_layout/AdminPageTitle.tsx` が無い = 帯の版をまだ取り込んでいない(exit 2)/ 互換の `AdminHeaderPortal.tsx` が残っている = 帯の区切り(止めた物の `due` は `portal`)/ 消えた = portal の区切り(`due` は `now`)。`ItemNavigator` の消えた props(`usePortal` / `slot` / `onBeforeNavigate`)は帯の区切りで消えたので、どちらの区切りでも `due: now`
 
 機械で書き換える(どちらの区切りでも):
 
