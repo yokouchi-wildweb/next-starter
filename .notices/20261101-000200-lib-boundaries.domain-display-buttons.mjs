@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// scripts/codemods/domain-display-buttons.mjs
+// .notices/20261101-000200-lib-boundaries.domain-display-buttons.mjs
 // lib/crud のボタンと DataMigrationButton の domain="<ドメイン名>" / domain={config.singular}(config は同じファイルが読む domain.json)を
 // domain={<ドメイン名>Display}(表示用の写し)へ置き換える。
-// 使い方(リポのルートで): node scripts/codemods/domain-display-buttons.mjs
+// 使い方(リポのルートで): node .notices/20261101-000200-lib-boundaries.domain-display-buttons.mjs
 // 対象は呼び出したリポの src。何度走らせても同じ結果。読めない呼び(動的な domain・写しの無いドメイン)は書き換えず一覧を出す。
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";

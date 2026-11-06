@@ -1,4 +1,4 @@
-// scripts/codemods/fork-name-markers.test.mjs
+// .notices/20261103-095341-fork-name-markers-removed.fork-name-markers.test.mjs
 // 実行: pnpm test:codemods(一時フォルダの fixture。git は使わない: 基準の版のファイルは引数で渡す)
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyMigration, planForkLint, planMigration, rewriteImports, routePartLintFiles, splitAlwaysOn, stripMarker } from "./fork-name-markers.mjs";
+import { applyMigration, planForkLint, planMigration, rewriteImports, routePartLintFiles, splitAlwaysOn, stripMarker } from "./20261103-095341-fork-name-markers-removed.fork-name-markers.mjs";
 
 const POINT = (dir) => `{ dir: "${dir}", export: "item", type: { from: "@/t", name: "T" }, side: "server" }`;
 

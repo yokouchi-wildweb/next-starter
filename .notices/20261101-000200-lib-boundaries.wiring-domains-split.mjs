@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// scripts/codemods/wiring-domains-split.mjs
+// .notices/20261101-000200-lib-boundaries.wiring-domains-split.mjs
 // @/wiring/domains の import を、分割後の @/wiring/domainRegistry と @/wiring/adminScreenParts へ名前ごとに振り分ける。
-// 使い方(リポのルートで): node scripts/codemods/wiring-domains-split.mjs
+// 使い方(リポのルートで): node .notices/20261101-000200-lib-boundaries.wiring-domains-split.mjs
 // 対象は呼び出したリポの src。何度走らせても同じ結果。読めない形(import * など)は書き換えず一覧を出す。
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";

@@ -174,7 +174,7 @@ export const rule: FeatureGateRule = {
   // src/featureGate/alwaysOnExceptions/storeCleanup.ts(fork の手書きの登録表)
   export const registry: AlwaysOnException = { file: "src/registry/storeCleanup.ts", reason: "<常に読まれる理由>" };
   ```
-  1 ファイルに `exception` か `registry` のどちらか 1 つ(生成器が止める)、`reason` は必須、縮む表の規則は fork の行にも掛かる。旧い置き場 `scripts/proxies/alwaysOnExceptions/<名前>.mjs`・`scripts/proxies/alwaysOnExceptions.<x>.mjs` は止まり、移し方を案内する(`scripts/codemods/feature-gate-relocate.mjs`)
+  1 ファイルに `exception` か `registry` のどちらか 1 つ(生成器が止める)、`reason` は必須、縮む表の規則は fork の行にも掛かる。旧い置き場 `scripts/proxies/alwaysOnExceptions/<名前>.mjs`・`scripts/proxies/alwaysOnExceptions.<x>.mjs` は止まり、移し方を案内する(`.notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs`)
 - 限界: 直接の import だけを見る（別のモジュールを経由した到達は見ない）。`enabled` の式が本当にその機能のフラグかは見ない
 - 上の外にも呼び出し側でフラグを見る経路がある（登録時の招待コード消し込み `auth/services/server/registration.ts`、管理画面ユーザー一覧の残高調整 `user/components/admin/*UserList/Table.tsx`）。サービスの層で止める仕組みは別の議題
 
@@ -187,7 +187,7 @@ export const rule: FeatureGateRule = {
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
 - ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`checks/walletOff.test.tsx`、`test:feature-gate:client`)
-- 区切り gate-s3 の取り込み: 依存の検査が fork でも落ちる。codemod `scripts/codemods/feature-gate-s3.mjs` が今開いている機能の違反を `required/` に書き出し、cron の route.ts の import を直す(`scripts/codemods/README.md`)
+- 区切り gate-s3 の取り込み: 依存の検査が fork でも落ちる。codemod `.notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs` が今開いている機能の違反を `required/` に書き出し、cron の route.ts の import を直す(`.notices/README.md` の codemod の節)
 
 ### features:list / features:set
 
@@ -211,7 +211,7 @@ export const rule: FeatureGateRule = {
 
 - 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・テスト・型だけの import。動的 import と副作用 import は数える
 - 上流の違反は 0(全 Tier で同じ検査。上流の縮む表は 0 行になって表ごと消した)
-- 強さ: 全 Tier で落とす(区切り gate-s3 から。gate-s2 の間は Tier1 でない repo では表示だけだった)。fork の移行は codemod `scripts/codemods/feature-gate-s3.mjs`(今開いている機能の違反を `required/<規則>.ts` に書き出す。閉じた機能の違反は一覧に出すので手で直す。`scripts/codemods/README.md`)
+- 強さ: 全 Tier で落とす(区切り gate-s3 から。gate-s2 の間は Tier1 でない repo では表示だけだった)。fork の移行は codemod `.notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs`(今開いている機能の違反を `required/<規則>.ts` に書き出す。閉じた機能の違反は一覧に出すので手で直す。`.notices/README.md` の codemod の節)
 - 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
 
 ### 門番の範囲外
@@ -260,4 +260,4 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 
 ## 旧い置き場からの移行(fork)
 
-旧い置き場(`src/proxies/featureGateRules/`・`scripts/proxies/alwaysOnExceptions/`・`src/proxies/pathPattern.mjs`・`scripts/structure/registry/schemaGate.ts`・生成一覧 `src/proxies/extensions/featureGateRules.ts`)からの移し方は `node scripts/codemods/feature-gate-relocate.mjs`(dry-run → `--apply`、`scripts/codemods/README.md`)。旧い型 `@/proxies/types` の `FeatureGateRule`・`GatedFeatureRule` の再 export は区切り gate-s3 で消した(型は `@/featureGate` から。この道具が直す)。
+旧い置き場(`src/proxies/featureGateRules/`・`scripts/proxies/alwaysOnExceptions/`・`src/proxies/pathPattern.mjs`・`scripts/structure/registry/schemaGate.ts`・生成一覧 `src/proxies/extensions/featureGateRules.ts`)からの移し方は `node .notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs`(dry-run → `--apply`、`.notices/README.md` の codemod の節)。旧い型 `@/proxies/types` の `FeatureGateRule`・`GatedFeatureRule` の再 export は区切り gate-s3 で消した(型は `@/featureGate` から。この道具が直す)。

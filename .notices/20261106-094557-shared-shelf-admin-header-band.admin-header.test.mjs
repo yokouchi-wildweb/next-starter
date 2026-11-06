@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { STOP_KINDS, detectCheckpoint, planAdminHeader, readUpstreamFiles, rewriteAdminHeader, scanText } from "./admin-header.mjs";
+import { STOP_KINDS, detectCheckpoint, planAdminHeader, readUpstreamFiles, rewriteAdminHeader, scanText } from "./20261106-094557-shared-shelf-admin-header-band.admin-header.mjs";
 
 const SCREEN = "src/app/admin/(protected)/things/_components/ThingListScreen.tsx";
 const PAGE = `import AdminPage from "@/app/admin/_layout/AdminPage";\n`;

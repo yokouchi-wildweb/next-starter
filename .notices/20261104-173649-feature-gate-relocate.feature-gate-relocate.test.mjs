@@ -1,4 +1,4 @@
-// scripts/codemods/feature-gate-relocate.test.mjs
+// .notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.test.mjs
 // 実行: pnpm test:codemods(一時フォルダの fixture。git は使わない)
 
 import assert from "node:assert/strict";
@@ -7,11 +7,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { itemsOf, planExtensions } from "../structure/extensions/extensions.mjs";
+import { itemsOf, planExtensions } from "../scripts/structure/extensions/extensions.mjs";
 
-import { applyRelocate, convertAlwaysOn, planRelocate, rewriteCodeImports, rewriteRuleImport } from "./feature-gate-relocate.mjs";
+import { applyRelocate, convertAlwaysOn, planRelocate, rewriteCodeImports, rewriteRuleImport } from "./20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs";
 
-const repoRoot = resolve(import.meta.dirname, "../..");
+const repoRoot = resolve(import.meta.dirname, "..");
 const RULE = (flag) => `// fork の規則\nimport { F } from "@/config/app/f.config";\n\nimport type { FeatureGateRule } from "../types";\n\nexport const rule: FeatureGateRule = {\n  pathPatterns: ["/${flag}"],\n  enabled: () => F.${flag},\n};\n`;
 const EXCEPTION = '// fork の結線\nexport const exception = { file: "src/wiring/mine.ts", reason: "route でだけ走る" };\n';
 

@@ -146,7 +146,7 @@ domain.json の無い手書きの domain は、同じ置き場に同じ形を手
 
 ## ドメイン設定の読み方
 
-- client: 写し（上の節）を読む。domain.json は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。手持ちの部品の移行は `node scripts/codemods/domain-json-client-display.mjs`（確かめられないファイルは書き換えず一覧に出す）。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
+- client: 写し（上の節）を読む。domain.json は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。手持ちの部品の移行は `node .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs`（確かめられないファイルは書き換えず一覧に出す）。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
 - server、自分のドメインだけ: 自分の domain.json を読み `normalizeDomainJsonConfig` を通す（drizzleBase の形。client は写しが変換済みなので呼ばない）
 - server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
 

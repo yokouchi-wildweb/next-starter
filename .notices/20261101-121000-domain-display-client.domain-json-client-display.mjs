@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// scripts/codemods/domain-json-client-display.mjs
+// .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs
 // client のコードの domain.json の import(と normalizeDomainJsonConfig)を、写し entities/display.ts の domainDisplay へ置き換える。
 // 対象の判定は lint 規則 import-boundaries/client-no-domain-json と同じ isClientCodeFile。
-// 使い方(リポのルートで): node scripts/codemods/domain-json-client-display.mjs
+// 使い方(リポのルートで): node .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs
 // 対象は呼び出したリポの src。何度走らせても同じ結果。
 // 確かめられないファイル(写しに無いキーを読む・写しの外へ丸ごと渡す・spread で丸ごと展開する・写しの無いドメイン・import() 等)は書き換えず一覧に出す。
 // 一覧のファイルは手で移す。写しに無いキーが要るなら理由を書いて eslint-disable する。
@@ -11,8 +11,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { isClientCodeFile } from "../../eslint-rules/import-boundaries.mjs";
-import { resolveImport } from "../../eslint-rules/resolve-import.mjs";
+import { isClientCodeFile } from "../eslint-rules/import-boundaries.mjs";
+import { resolveImport } from "../eslint-rules/resolve-import.mjs";
 
 /** 写しにある top のキー(src/lib/domain/types/display.ts の DomainDisplay) */
 const DISPLAY_KEYS = new Set([

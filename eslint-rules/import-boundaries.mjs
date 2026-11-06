@@ -36,7 +36,7 @@
 // client のコードは domain.json を import しない(値も型も。import() と export … from も)。読むのは写し entities/display.ts。
 // client のコード = "use client" のファイル、または src の components/・hooks/・_components/ の下のファイル。
 // _components/ の下で "use client" の無い *Screen.tsx と loader.ts は server の差し替えなので対象外。テストも対象外。
-// 判定は isClientCodeFile に 1 つ(置き換えスクリプト scripts/codemods/domain-json-client-display.mjs も同じものを使う)。
+// 判定は isClientCodeFile に 1 つ(置き換えスクリプト .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs も同じものを使う)。
 //
 // ── feature-gate-entries(D7、L1.3) ──
 // 門番 src/featureGate/ の外からは入口 3 つ(index.ts = @/featureGate・client.ts・node.ts)だけを読む(値も型も)。
@@ -421,14 +421,14 @@ const linkViaShelf = {
 // ── router-via-guard(D11、指令 18) ──
 // next/navigation の useRouter を直接 import しない。移動は未保存の編集の守り付きの router(import { useRouter } from "@/lib/unsavedGuard"、
 // 同じ名前・同じ形)を使う(棚の部品は useShelfRouter from "@/components/Navigation/NavigationPort")。例外は守りの lib の中だけ。
-// 上流 = error・fork = warn(link-via-shelf の対)。置き換え: scripts/codemods/guarded-router.mjs
+// 上流 = error・fork = warn(link-via-shelf の対)。置き換え: .notices/20261106-094557-shared-shelf-admin-header-band.guarded-router.mjs
 const routerViaGuard = {
   meta: {
     type: "problem",
     docs: { description: "next/navigation の useRouter を直接 import しない(守り付きの router を使う)" },
     messages: {
       rawUseRouter:
-        '"next/navigation" の useRouter を直接 import しません。編集中の離脱を確かめる守り付きの router(import { useRouter } from "@/lib/unsavedGuard"、同じ形)を使います(棚の部品は useShelfRouter from "@/components/Navigation/NavigationPort"。置き換え: scripts/codemods/guarded-router.mjs。src/lib/unsavedGuard/README.md)',
+        '"next/navigation" の useRouter を直接 import しません。編集中の離脱を確かめる守り付きの router(import { useRouter } from "@/lib/unsavedGuard"、同じ形)を使います(棚の部品は useShelfRouter from "@/components/Navigation/NavigationPort"。置き換え: .notices/20261106-094557-shared-shelf-admin-header-band.guarded-router.mjs。src/lib/unsavedGuard/README.md)',
     },
     schema: [],
   },
@@ -454,7 +454,7 @@ const clientNoDomainJson = {
     docs: { description: "client のコードは domain.json を import しない(写し entities/display.ts を読む)" },
     messages: {
       clientDomainJson:
-        '"{{source}}": client のコードは domain.json を import しません。写し entities/display.ts の domainDisplay を読みます。写しに無いキーが要るときは理由を書いて eslint-disable(詳細: src/lib/domain/README.md。置き換え: scripts/codemods/domain-json-client-display.mjs)',
+        '"{{source}}": client のコードは domain.json を import しません。写し entities/display.ts の domainDisplay を読みます。写しに無いキーが要るときは理由を書いて eslint-disable(詳細: src/lib/domain/README.md。置き換え: .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs)',
     },
     schema: [],
   },

@@ -4,7 +4,7 @@
 // (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前> (6) 例外、のどれかでなければ落とす。
 // 判定: ./dependencies.mjs。実行: pnpm test:feature-gate
 // - 例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts だけ(上流の項目は 0。上流の違反の縮む表は 0 行になって消した)
-// - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod scripts/codemods/feature-gate-s3.mjs が required/ を書き出す)
+// - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs が required/ を書き出す)
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -21,7 +21,7 @@ const keyOf = (v) => `${v.file} → ${v.folder}`;
 
 /** 実リポの検査の結果: 全 Tier で落とす(gate-s3 から) */
 function enforce(problems, message) {
-  assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/test/serverOnlyStub.mjs scripts/codemods/feature-gate-s3.mjs)`);
+  assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/test/serverOnlyStub.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs)`);
 }
 
 test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(違反 0)", () => {

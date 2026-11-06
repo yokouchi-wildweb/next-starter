@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// scripts/codemods/admin-header.mjs
+// .notices/20261106-094557-shared-shelf-admin-header-band.admin-header.mjs
 // 管理のヘッダーの差し込みを AdminPage の props へ移す(共有の棚の計画書 03・指令 20、D134・D135・D127・D171)。fork のリポのルートで走らせる。
-// 使い方: node scripts/codemods/admin-header.mjs [--apply] [--base <rev>] [--upstream <rev>] [--json]
-//   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で書き換える。何度走らせても同じ結果。手順: ./README.md「管理ヘッダーへ移す」
+// 使い方: node .notices/20261106-094557-shared-shelf-admin-header-band.admin-header.mjs [--apply] [--base <rev>] [--upstream <rev>] [--json]
+//   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で書き換える。何度走らせても同じ結果。手順: 下の「fork の手順」
 //
 // 触るのは fork が足したファイルだけ = 上流のどちらの版にも無いファイル(上流のファイルは取り込みで移る):
 // - 台帳の最後の upstream:<sha>(--base)の版と、取り込んだ上流の版(--upstream。既定 = HEAD と upstream/main の merge-base = 取り込んだ最後の上流の commit)
@@ -17,7 +17,25 @@
 //   → <AdminPage title="…">、PageTitle を消し、使われなくなった import を消す
 // - AdminPage の直接の子の <CouponSectionTabs placement="header" />(ほかの props 無し、AdminPage に center が無い)→ center={<CouponSectionTabs variant="header" />}
 // ほかは止める(書き換えず、種類と移し先を一覧に出す。種類は STOP_KINDS の閉じた一覧)。この道具はほかの道具を呼ばない
-// (useRouter の import 元は guarded-router.mjs、枠の宣言は frame-declarations.mjs の持ち分。順番は README)。
+// (useRouter の import 元は guarded-router.mjs、枠の宣言は frame-declarations.mjs の持ち分。順番は .notices/README.md の codemod の節)。
+//
+// 形: src/app/admin/_layout/README.md。--json = { base, upstream, checkpoint, mode, changes: [{ path, line, kind, detail }], stops: [{ path, line, kind, target, due, detail }], notes }
+// 取り込んだ上流の版が分からない(upstream/main が無く --upstream も無い)ときは台帳の版だけで決め、notes に出す。テスト・守りの lib の中は見ない
+// 止める種類が見つける物(移し先は STOP_KINDS):
+// - portal-title / portal-center / portal-right: <AdminHeaderPortal slot="title" / "center" / "right">(式の slot は center)
+// - page-title-in-body: 機械で移せない PageTitle(placement="page"・最初の子でない・ほかの props・子が部品・AdminPage に title がある・AdminPage の外)
+// - coupon-tabs-placement: 機械で移せない CouponSectionTabs placement(AdminPage に center がある・ほかの props・直接の子でない)
+// - item-navigator: useItemNavigator(…)、ItemNavigator の usePortal / slot / onBeforeNavigate
+// - admin-layout-header-prop: <AdminLayout header={…}>、_layout/HeaderSlots・_layout/Header・_layout/AdminHeaderContext の import
+// - slot-id-css: admin-header-{title,center,right}-slot・ADMIN_HEADER_*_SLOT_ID(CSS・スクリプト)
+// - own-unsaved-guard: 自前の beforeunload、use…Unsaved…Guard の定義・守りの lib 以外からの import
+// - page-without-admin-page: AdminPage を描かない管理の Screen(src/lib/screens/checks.mjs の checkAdminPageScreen)
+// 見つけ方はファイルごとの名前と import(別名は追う。fork の入口から読み直した物は見つからないことがある = typecheck が残りを知らせる)
+// fork の手順:
+// 1. 上流の帯の版を /flux で取り込む → dry-run(due: portal の一覧。上流のリモートが upstream でなければ --upstream <rev>)→ --apply → pnpm typecheck → pnpm lint
+// 2. 止めた物は portal の区切りまでに直す(帯の区切りでは互換がまだ動く)。--json の stops は /flux の手作業の一覧にそのまま貼れる
+// 3. 上流の portal の版を取り込む → もう一度走らせる(due: now = 直すまで型の検査が落ちる)→ 直す → pnpm typecheck → pnpm lint → pnpm routes:map
+// 4. useRouter の import 元は guarded-router.mjs(順番は .notices/README.md の codemod の節)
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -26,8 +44,8 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-import { checkAdminPageScreen } from "../../src/lib/screens/checks.mjs";
-import { readBaseFiles } from "./fork-name-markers.mjs";
+import { checkAdminPageScreen } from "../src/lib/screens/checks.mjs";
+import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
 
 /** 止める種類(閉じた一覧)→ 移し先 */
 export const STOP_KINDS = Object.freeze({

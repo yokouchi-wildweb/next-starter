@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { matchFrame } from "../../src/app/_layout/frame/resolve.mjs";
-import { applyEdits, applyFrameMigration, checkFrames, planFrameMigration } from "./frame-declarations.mjs";
+import { matchFrame } from "../src/app/_layout/frame/resolve.mjs";
+import { applyEdits, applyFrameMigration, checkFrames, planFrameMigration } from "./20261105-082025-frame-declarations.frame-declarations.mjs";
 
 const CONTROLS = "@/components/AppFrames/User/controls";
 const page = "export default function Page() { return null; }\n";

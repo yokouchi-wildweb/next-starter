@@ -1,4 +1,4 @@
-// scripts/codemods/domain-display-buttons.test.mjs
+// .notices/20261101-000200-lib-boundaries.domain-display-buttons.test.mjs
 // 実行: pnpm test:codemods
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { findDisplays, run, transformSource } from "./domain-display-buttons.mjs";
+import { findDisplays, run, transformSource } from "./20261101-000200-lib-boundaries.domain-display-buttons.mjs";
 
 const displays = new Map([
   ["sample", "@/features/sample/entities/display"],

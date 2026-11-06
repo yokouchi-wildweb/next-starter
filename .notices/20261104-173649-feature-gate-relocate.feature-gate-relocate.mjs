@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// scripts/codemods/feature-gate-relocate.mjs
+// .notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs
 // 門番の置き場の移行(feature-gate の S1: src/featureGate/ の新設)。fork のリポのルートで、上流の S1 を取り込んだ後に走らせる。
-// 使い方: node scripts/codemods/feature-gate-relocate.mjs [--apply] [--no-generate] [--json]
+// 使い方: node .notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs [--apply] [--no-generate] [--json]
 //   既定は dry-run(計画と止める一覧を出すだけ、何も書かない)。--apply で移動(git mv)・書き換えをし、
-//   最後に pnpm extensions:generate を走らせる(--no-generate で省く)。手順: ./README.md「門番の置き場を移す」
+//   最後に pnpm extensions:generate を走らせる(--no-generate で省く)。手順: 下の「fork の手順」
 //
 // 移す物(fork が足した物。上流の分は取り込みで移っている):
 // - 規則 src/proxies/featureGateRules/<名前>.ts(x)・<名前>/ → src/featureGate/rules/。型の import
@@ -15,19 +15,24 @@
 //   生成一覧 proxies/extensions/featureGateRules の { featureGateRules } → featureGate/node の { rules as featureGateRules }
 // 止める(書き換えない): 印付きの名前(先の移行 fork-name-markers が先)・新しい置き場に同じ単位がある・例外の名前が英数字でない
 // (案を付ける)・例外に exception も registry も無い・生成一覧の import が { featureGateRules } の形でない
+//
+// アプリ側(proxy・loader など)で規則の一覧を読んでいた所は書き換えた上で「手で直す」と出す:
+//   @/featureGate/node は scripts とテストだけ(lint feature-gate-entries)なので gate.path / gate.enabled に直す
+// 旧い型 @/proxies/types の FeatureGateRule・GatedFeatureRule の再 export は区切り gate-s3 で消した(この道具が型の import を @/featureGate へ直す)
+// fork の手順: 上流を取り込む → dry-run → 止めた物を片付ける → --apply → pnpm typecheck・pnpm ownership:check・pnpm test:feature-gate を通してコミット
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { classifyDottedName } from "../../src/lib/forkOwnership/dottedNames.mjs";
+import { classifyDottedName } from "../src/lib/forkOwnership/dottedNames.mjs";
 
 const OLD_RULES = "src/proxies/featureGateRules";
 const NEW_RULES = "src/featureGate/rules";
 const OLD_ALWAYS_ON = "scripts/proxies/alwaysOnExceptions";
 const NEW_ALWAYS_ON = "src/featureGate/alwaysOnExceptions";
-const MARKER_NOTICE = ".notices/20261103-095341-fork-name-markers-removed.md(node scripts/codemods/fork-name-markers.mjs)";
+const MARKER_NOTICE = ".notices/20261103-095341-fork-name-markers-removed.md(node .notices/20261103-095341-fork-name-markers-removed.fork-name-markers.mjs)";
 const ITEM_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
 const CODE = /\.(ts|tsx|mts|mjs|js)$/;
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);
@@ -38,7 +43,7 @@ const PATH_PATTERN_SPEC = /(\bfrom\s*|\bimport\(\s*)(["'])((?:@\/|(?:\.\.?\/)+(?
 const GATE_LIST_IMPORT = /import\s*\{\s*([^}]*)\}\s*from\s*(["'])((?:@\/|(?:\.\.?\/)+(?:src\/)?)proxies\/extensions\/featureGateRules(?:\.ts)?)\2;?/g;
 const GATE_LIST_ANY = /(?:\bfrom\s*|\bimport\(\s*)["'][^"']*proxies\/extensions\/featureGateRules/;
 /** この道具自身(と同じ置き場の道具の fixture)は書き換えない */
-const SELF_DIR = "scripts/codemods/";
+const SELF_DIR = ".notices/";
 
 function listFiles(root, dirs = ["src", "scripts"]) {
   const out = [];

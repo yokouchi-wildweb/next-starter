@@ -1,4 +1,4 @@
-// scripts/codemods/wiring-domains-split.test.mjs
+// .notices/20261101-000200-lib-boundaries.wiring-domains-split.test.mjs
 // 実行: pnpm test:codemods
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { run, transformSource } from "./wiring-domains-split.mjs";
+import { run, transformSource } from "./20261101-000200-lib-boundaries.wiring-domains-split.mjs";
 
 test("名前ごとに振り分ける(混在は 2 行、型も)", () => {
   const { text, skipped } = transformSource(`import { getService, adminListParts, type AdminEditScreenProps, type DomainX as Y } from "@/wiring/domains";\n`);

@@ -11,6 +11,7 @@
 ├── README.md              # この文書(仕様)
 ├── <id>.md                # notice の本文(id = <YYYYMMDD-HHMMSS>-<slug>)。出荷後は書き換えない。区間が閉じたら消してよい
 ├── <id>.<name>.mjs        # その notice が使う codemod(uses: で名指す。notice と一緒に消す)
+├── <id>.<name>.test.mjs   # その codemod のテスト(pnpm test:codemods。codemod と一緒に消す)
 ├── done/                  # 旧運用のアーカイブ(既存の 2 本だけ。新しくは作らない)
 ├── shipped/
 │   └── <名前>.md          # 出荷索引(1 notice = 1 行、追記だけ。名前 = 出荷したリポの fork_id:。そのリポだけが書く)
@@ -87,6 +88,37 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 列挙したファイルは notice を足した commit に実在すること(`pnpm test:notices`、中継 notice も同じ)。`.notices/` の下は `.notices/<その notice の id>.<名前>.mjs` の形
 - `uses:` を持つ notice は区切り(`checkpoint: -` にしない)。後の `skip_checkpoint:` でも外せない(区間が後ろにずれると、添付が消えた木に merge しうる)
 - 実行の手順は `required_actions`、確かめ方は `verify` に書く。後から取り込む fork は、添付を notice を足した commit の版から読む
+
+### codemod(`.notices/<id>.<名前>.mjs`)
+
+上流の変更に合わせて fork のコードを機械的に書き換える 1 回きりの道具。案内する notice(最初に名指した notice)の隣に置き、本文と一緒に消す。
+
+- 走らせ方: fork のリポのルートで。既定は dry-run、`--apply` で書く。何度走らせても同じ結果。使い方・止める物・fork の手順は各道具の頭のコメント
+- 1 つの道具 = 1 つの変更の持ち分。道具はほかの道具を呼ばず、import もし合わない(本文と一緒に消したとき別の道具が壊れないように)。順番は notice の手順と下の表が示す
+- 道具どうしの共有の部品は lib に置く: 基準の版(台帳の最後の `upstream:<sha>`)のファイル一覧 = `src/lib/forkOwnership/baseFiles.mjs` の `readBaseFiles`
+- テストは隣の `.notices/<id>.<名前>.test.mjs`(`pnpm test:codemods` = `.notices/*.test.mjs` 全部)。道具を消すときはテストも消す
+- 出荷済みの notice の本文・索引の `uses:` は出荷した時の置き場(scripts の下の旧い置き場)のまま。fork はその notice の区間の木で走らせるので、そこには旧い置き場がある
+
+今ある道具(`.notices/<id>.<名前>.mjs`):
+
+- `20261101-000200-lib-boundaries.crud-entry-split` — ボタンの import を `@/lib/crud/components` へ振り分ける
+- `20261101-000200-lib-boundaries.domain-display-buttons` — ボタンの `domain="<名前>"` を表示用の写し `domain={<名前>Display}` へ
+- `20261101-000200-lib-boundaries.wiring-domains-split` — `@/wiring/domains` の import を `@/wiring/domainRegistry` と `@/wiring/adminScreenParts` へ振り分ける
+- `20261101-121000-domain-display-client.domain-json-client-display` — client のコードの domain.json の import を写し `entities/display.ts` の `domainDisplay` へ
+- `20261103-095341-fork-name-markers-removed.fork-name-markers` — 受け口のファイル名から fork の名前の印を外す
+- `20261104-173649-feature-gate-relocate.feature-gate-relocate` — 門番の規則・常時実行の例外を `src/featureGate/` へ移し、旧い置き場の import を直す
+- `20261105-082025-frame-declarations.frame-declarations` — 枠の部位の出し入れ(Hide*・fill・枠の設定の 4 つ)を枠の宣言 `frame.ts` へ
+- `20261105-112509-feature-gate-automation.feature-gate-s3` — 依存の検査の違反のうち今開いている機能を `required/` に書き出し、cron の route.ts の import を `@/wiring/cronRoute` へ(tsx で走らせる)
+- `20261106-094557-shared-shelf-admin-header-band.admin-header` — 管理のヘッダーの題・クーポンのタブを AdminPage の props へ移し、ほかの差し込みを止める一覧に出す
+- `20261106-094557-shared-shelf-admin-header-band.guarded-router` — next/navigation の `useRouter` を守り付きの router(`@/lib/unsavedGuard`、棚は `useShelfRouter`)へ
+
+共有の棚の道具の順番(notice の区切りごとに、その区切りの道具を取り込みの後に走らせる。前の区切りの道具を先に):
+
+1. `fork-name-markers` — 印の移行の区切り
+2. `frame-declarations` — 枠の宣言の区切り
+3. `admin-header` — 管理ヘッダーの帯の区切り(題・クーポンのタブを機械で移す。止めた物は期限 portal)
+4. `admin-header` — portal の区切り(もう一度走らせる。止めた物は期限 今 = 直すまで型の検査が落ちる)
+5. `guarded-router` — 未保存の守りの区切り(admin-header とは触る所が違うので 3・4 との前後は問わない)
 
 ## 区切りを外す欄(skip_checkpoint)
 

@@ -1,14 +1,22 @@
 #!/usr/bin/env node
-// scripts/codemods/guarded-router.mjs
+// .notices/20261106-094557-shared-shelf-admin-header-band.guarded-router.mjs
 // next/navigation の useRouter を、未保存の編集の守り付きの router へ移す(指令 18・D11。fork の移し方でも使う)。リポのルートで走らせる。
-// 使い方: node scripts/codemods/guarded-router.mjs [--apply] [--json]
-//   既定は dry-run(書き換える一覧だけ)。--apply で書き換える。何度走らせても同じ結果。手順: ./README.md「守り付きの router へ移す」
+// 使い方: node .notices/20261106-094557-shared-shelf-admin-header-band.guarded-router.mjs [--apply] [--json]
+//   既定は dry-run(書き換える一覧だけ)。--apply で書き換える。何度走らせても同じ結果。手順: 下の「fork の手順」
 //
 // - src の .ts / .tsx の `import { useRouter } from "next/navigation"`(別名・ほかの名前と一緒でも)から useRouter だけを外し、
 //   `import { useRouter } from "@/lib/unsavedGuard"`(同じ名前・同じ形)を足す。呼び出しの書き方はそのまま
 // - 棚(src/components)は lib を読まない(D50): `import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort"`
 // - 触らない: 守りの lib の中(src/lib/unsavedGuard)・テスト・型だけの import
 // lint import-boundaries/router-via-guard が残りを報告する。
+//
+// 仕組み: src/lib/unsavedGuard/README.md。lint は上流 error・fork warn、例外は守りの lib の中だけ
+// fork の手順:
+// 1. 上流のこの版(守りの lib の版)を /flux で取り込む(上流のファイルは取り込みで移る)
+// 2. dry-run → --apply で fork のファイルを移す
+// 3. pnpm typecheck → pnpm lint(router-via-guard の残りが 0)
+// 4. 編集画面を AppForm で組んでいなければ、その画面で useUnsavedGuard(isDirty) を呼ぶ(AppForm は既定で守る。切るなら guardUnsaved={false})。
+//    自作の守り(beforeunload・popstate の自前の処理)は外す
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

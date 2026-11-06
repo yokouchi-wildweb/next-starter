@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { planGuardedRouter, rewriteRouterImport } from "./guarded-router.mjs";
+import { planGuardedRouter, rewriteRouterImport } from "./20261106-094557-shared-shelf-admin-header-band.guarded-router.mjs";
 
 test("useRouter だけを外して守りの lib から足す(ほかの名前は next/navigation に残す、別名も保つ)", () => {
   assert.equal(

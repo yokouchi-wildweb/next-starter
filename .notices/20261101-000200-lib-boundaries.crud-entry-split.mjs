@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// scripts/codemods/crud-entry-split.mjs
+// .notices/20261101-000200-lib-boundaries.crud-entry-split.mjs
 // @/lib/crud の入口から UI が外れたので、ボタンの import を @/lib/crud/components へ振り分ける。
-// 使い方(リポのルートで): node scripts/codemods/crud-entry-split.mjs
+// 使い方(リポのルートで): node .notices/20261101-000200-lib-boundaries.crud-entry-split.mjs
 // 対象は呼び出したリポの src。何度走らせても同じ結果。読めない形(import * など)は書き換えず一覧を出す。
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";

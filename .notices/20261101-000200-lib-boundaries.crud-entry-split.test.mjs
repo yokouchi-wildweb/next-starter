@@ -1,4 +1,4 @@
-// scripts/codemods/crud-entry-split.test.mjs
+// .notices/20261101-000200-lib-boundaries.crud-entry-split.test.mjs
 // 実行: pnpm test:codemods
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { run, transformSource } from "./crud-entry-split.mjs";
+import { run, transformSource } from "./20261101-000200-lib-boundaries.crud-entry-split.mjs";
 
 test("ボタンだけ @/lib/crud/components へ、混在は 2 行、非 UI は触らない", () => {
   assert.equal(transformSource(`import { EditButton, type DeleteButtonProps } from "@/lib/crud";\n`).text, `import { EditButton, type DeleteButtonProps } from "@/lib/crud/components";\n`);

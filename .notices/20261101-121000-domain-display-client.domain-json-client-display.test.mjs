@@ -1,4 +1,4 @@
-// scripts/codemods/domain-json-client-display.test.mjs
+// .notices/20261101-121000-domain-display-client.domain-json-client-display.test.mjs
 // 実行: pnpm test:codemods
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { run, transformSource } from "./domain-json-client-display.mjs";
+import { run, transformSource } from "./20261101-121000-domain-display-client.domain-json-client-display.mjs";
 
 const displayOf = (specifier) => (specifier.includes("/none/") ? null : specifier.replace("domain.json", "entities/display"));
 

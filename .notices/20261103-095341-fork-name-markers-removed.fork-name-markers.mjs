@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// scripts/codemods/fork-name-markers.mjs
+// .notices/20261103-095341-fork-name-markers-removed.fork-name-markers.mjs
 // 受け口のファイル名から fork の名前の印を外す移行(共有の棚の印の移行、D136・D137)。fork のリポのルートで走らせる。
-// 使い方: node scripts/codemods/fork-name-markers.mjs [--apply] [--base <rev>] [--no-generate] [--json]
+// 使い方: node .notices/20261103-095341-fork-name-markers-removed.fork-name-markers.mjs [--apply] [--base <rev>] [--no-generate] [--json]
 //   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で改名・import の書き換え・常時実行の例外の分割をし、
-//   最後に pnpm extensions:generate を走らせる(--no-generate で省く)。手順: ./README.md「fork の名前の印を外す」
+//   最後に pnpm extensions:generate を走らせる(--no-generate で省く)。手順: 下の「fork の手順」
 //
 // 印 = 点つきの名前のうち .default / .replace / .override / .client / .test 以外の語(src/lib/forkOwnership/dottedNames.mjs)。
 // 自分の fork_id でも親の名前でも食い違った語(.bodolist)でも拾う。触るのは受け口の場所だけ:
@@ -18,6 +18,25 @@
 // (印つきのころは上流の強さのブロックから外れていた。上流が持ち主で lint の強さを決めるようになったら要らなくなる)。
 // 新しい名前の単位が基準(台帳の最後の upstream:<sha> の版)か、ほかの HEAD のファイルの単位と同じなら衝突: 書き換えず、
 // 改名の案を付けて止める。案は決まった規則で作るので、中間 Tier から受け継いだ物は中間 Tier の移行と同じ名前になる。
+//
+// --base <rev> = 基準の版(既定 = 自分の台帳 .notices/applied/<fork_id>.md の最後の upstream:<sha>、src/lib/forkOwnership/baseFiles.mjs)
+// import の書き換え: src・scripts のコード(.ts / .tsx / .mts / .mjs / .js)の @/… と相対の指定で、改名したファイル・フォルダを指すものを新しい名前に。
+//   JSON・Markdown の中のパスの字面は書き換えない
+// 衝突(止める): 印を外した名前の単位(拡張子と末尾の /index を除いた名前)が基準の版・ほかの HEAD のファイル・ほかの移行先と同じ。
+//   案 = 項目 <名前><印の Pascal>、タスク <名前>-<印>
+// lint の強さのブロック: eslint.config.fork.mjs の `const forkConfig = [` の直後(無ければファイルを作る、何度当てても同じ。足す行は出力に出る)。
+//   先頭なので、その下の fork 自身の規則はそのまま効く
+// fork の手順:
+// 1. 上流のこの版(印をやめた版)を /flux で取り込む(上流の生成器は印つきの名前で止まる)
+// 2. dry-run で変更の一覧と止めた物の一覧を見る
+// 3. 止めた物を片付ける: 衝突は案(か別の名前)に手で改名し import も直す。extensionPoints.<印>.ts は fork 自身のフォルダへ移す
+// 4. --apply(改名・import・常時実行の例外の分割・lint の強さのブロック → pnpm extensions:generate が一覧と intake.txt の生成区画を作り直す)
+// 5. pnpm extensions:check・pnpm test:screens・pnpm test:wiring・pnpm tsc --noEmit を通してコミットし、pnpm ownership:check
+//    (上流と同じ単位名は unit-clash、自分の項目への override は override-own)
+// 6. 多段の Tier: 中間 Tier が先に移してから下の Tier が取り込む(受け継いだ印つきのファイルは中間 Tier の移行と同じ名前になる。
+//    下の Tier が自分で足した物は取り込みの後にこの道具で移す)
+// 確かめ(使い捨ての写し、2026-11-03): oripa-do 印つき 90 → 変更 87・止め 0、boardgame-site 26 → 変更 25・止め 1(README.bodolist.md)、
+// pandora 80 → 変更 77・止め 0(oripa-do から受け継いだ 67 件は oripa-do の移行と同じ名前)。--apply の後、上流の走査で旧い印 0
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -26,11 +45,10 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-import { lastUpstreamSha } from "../../src/lib/forkOwnership/check.mjs";
-import { DECLARATION_NAME, findDeclarationFiles, literalOf } from "../../src/lib/forkOwnership/declarations.mjs";
-import { classifyDottedName } from "../../src/lib/forkOwnership/dottedNames.mjs";
-import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
-import { unitName } from "../../src/lib/forkOwnership/unitNames.mjs";
+import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
+import { DECLARATION_NAME, findDeclarationFiles, literalOf } from "../src/lib/forkOwnership/declarations.mjs";
+import { classifyDottedName } from "../src/lib/forkOwnership/dottedNames.mjs";
+import { unitName } from "../src/lib/forkOwnership/unitNames.mjs";
 
 const KEEP = new Set(["default", "replace", "client"]);
 const CODE = /\.(ts|tsx|mts|cts|mjs|js|cjs)$/;
@@ -389,23 +407,6 @@ export function applyMigration(root, plan) {
   if ("problem" in lint) stops.push({ path: FORK_LINT_FILE, reason: `${lint.problem}: ${lint.added.join(", ")}` });
   else if (lint.text !== null) writeFileSync(lintPath, lint.text);
   return { renamed: changes.length, importEdits: importEdits.sort(), alwaysOnFiles, lintAdded: "problem" in lint ? [] : lint.added, stops };
-}
-
-/** 基準の版のファイル(台帳の最後の upstream:<sha>、--base で上書き) */
-export function readBaseFiles(root, base) {
-  let rev = base;
-  if (!rev) {
-    const { own } = readForkIdentity(root);
-    const ledger = own ? join(root, ".notices/applied", `${own}.md`) : null;
-    rev = ledger && existsSync(ledger) ? lastUpstreamSha(readFileSync(ledger, "utf8")) : null;
-    if (!rev) return { problem: "基準の版が決まらない(.claude/rules/project.md の fork_id: と台帳の upstream:<sha> を確かめるか --base <rev> を渡す)" };
-  }
-  try {
-    const out = execFileSync("git", ["ls-tree", "-r", "--name-only", rev], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
-    return { rev, files: out.split("\n").filter(Boolean) };
-  } catch {
-    return { problem: `基準の版 ${rev} を読めない(git の履歴に無い)` };
-  }
 }
 
 function main() {

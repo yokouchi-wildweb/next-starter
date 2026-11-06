@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// scripts/codemods/frame-declarations.mjs
+// .notices/20261105-082025-frame-declarations.frame-declarations.mjs
 // 枠の部位の出し入れを枠の宣言 frame.ts へ移す(共有の棚の枠の宣言の移行、D62・D65・D66・D90・D165・D170)。fork のリポのルートで走らせる。
-// 使い方: node scripts/codemods/frame-declarations.mjs [--apply] [--base <rev>] [--json]
+// 使い方: node .notices/20261105-082025-frame-declarations.frame-declarations.mjs [--apply] [--base <rev>] [--json]
 //   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で frame.ts を書き、タグ・属性・import を消す。
-//   最後に生成器の検査(scripts/structure/extensions/frames.mjs の planFrames)を書いた結果に掛けて出す。手順: ./README.md「枠の宣言へ移す」
+//   最後に生成器の検査(scripts/structure/extensions/frames.mjs の planFrames)を書いた結果に掛けて出す。手順: 下の「fork の手順」
 //
 // 触るのは fork が足したファイルだけ(基準 = 台帳の最後の upstream:<sha> の版に無いファイル)。上流のファイルは取り込みで移る。
 // - 自己閉じの Hide*(HideHeader・HideHeaderNav・HideFooter・HideBottomNav、sp / pc 指定つき)→ 隣の frame.ts
@@ -14,6 +14,23 @@
 // 止める(書き換えず手で直す): 子を持つ・条件つき・式の props の Hide*、ルートの外の Hide* と fill、immersive、
 // 消えた API の読み手(useBottomNavItems().enabled・useHeaderData().enabled / navEnabled・設定の 4 つの import)、読めない frame.ts。
 // 書くのはいつも frame.ts(上流のルートの隣でも自分のルートでも。frame.default.ts は書かない)。
+//
+// --base <rev> = 基準の版(既定 = 台帳の最後の upstream:<sha>、src/lib/forkOwnership/baseFiles.mjs)。既にある frame.ts には部位と端末ごとに足す。宣言の書き方: src/app/_layout/frame/README.md
+// 止めた物のうち部品の中の物(Screen でない部品・ルートの外の Hide* と fill、immersive)は、src の import を逆にたどって描くルートを名指す
+//   (`描くルート: <ルート>/frame.ts の page:`。たどれなければ「描くルートが見つからない」)。部品を使うページが 1 つなら page:、layout が包むなら layout:
+// 差し替えた枠の部品は外側の要素に data-slot="<部位>"(header / header-nav / footer / bottom-nav、管理は admin-header / admin-sidebar / admin-footer。
+//   名前: src/app/_layout/frame/parts.mjs)を付ければ隠す宣言に従う
+// fork の手順:
+// 1. 上流のこの版(枠の宣言の版)を /flux で取り込む(上流のファイルの Hide* と設定の 4 つは取り込みで消える)
+// 2. dry-run で変更の一覧と止めた物の一覧を見る
+// 3. 止めた物を手で直す(使う側の frame.ts に書き、タグ・読み手を消す)
+// 4. --apply(問題があれば exit 1)
+// 5. pnpm extensions:generate(枠の表を作り直す)→ pnpm typecheck → pnpm lint(消したタグの跡の空行は整形で消える)
+// 6. CSS: 枠の部位の id(#header-shell・[data-user-app-container]・#page-title など)を狙う fork の規則は [data-slot="<名前>"] へ移す
+//    (写し先の表は notice。道具は CSS を書き換えない)
+// 7. 差し替えた枠の部品に data-slot を付ける。pnpm ownership:check(親のルートの隣に frame.default.ts を足す・親の既定を書き換えるのは default-add / default-edit)
+// 確かめ(使い捨ての写し、2026-11-04): boardgame-site Hide* 15 → 変更 12・止め 3 + 読み手 3、oripa-do Hide* 40 → 変更 16・止め 24 + AdminPage fill 8 → 変更 8、
+// next-vnx Hide* 1 → 変更 1、88-base UserPage immersive 1 → 止め。--apply の後に書いた frame.ts は生成器の検査で問題 0
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -21,11 +38,11 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-import { FRAME_ROOTS, hideableParts } from "../../src/app/_layout/frame/parts.mjs";
-import { checkFrameDeclaration } from "../../src/app/_layout/frame/resolve.mjs";
-import { headerFor } from "../structure/extensions/extensions.mjs";
-import { FRAME_FILE, planFrames, readExportedLiteral } from "../structure/extensions/frames.mjs";
-import { readBaseFiles } from "./fork-name-markers.mjs";
+import { FRAME_ROOTS, hideableParts } from "../src/app/_layout/frame/parts.mjs";
+import { checkFrameDeclaration } from "../src/app/_layout/frame/resolve.mjs";
+import { headerFor } from "../scripts/structure/extensions/extensions.mjs";
+import { FRAME_FILE, planFrames, readExportedLiteral } from "../scripts/structure/extensions/frames.mjs";
+import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);
 const HIDE_MODULE = /AppFrames\/User\/controls/;
