@@ -25,3 +25,14 @@ export const task: OneShotTask = {
 - 実行は指定の名前のファイルだけを読み込む。`pnpm task --list` はファイル名だけを見る
 - タスク間で使う部品は `_shared/` に置く(直下でないので走査しない)
 - 所有: `scripts/tasks/*.ts` は intake の生成区画の add 行(fork が足すのは可、上流のタスクの書き換えは違反)
+
+## エージェントの確認用の管理者(dev-admin)
+
+`pnpm task dev-admin` — 開発用 DB に確認用の管理者を用意し、ログイン情報を出す(エージェントが Playwright で自分でログインするためのもの)。
+
+- メール `agent-admin@example.test` / ロール `admin`。管理者カテゴリなので `(user)/(protected)` のページにも入れる
+- パスワードは `AUTH_JWT_SECRET` から決まる(出力に出る)。env はワークツリーにも複製されるので、本体とワークツリーで同じ値
+- 何度実行してもよい: 無ければ作る(監査に system として残る)/ あればそのまま使い、パスワードが合わなければ合わせ直し、ロックが掛かっていれば外す
+- 止まる: `NODE_ENV=production` / `APP_ENV` が `.env.development*` でない / `AUTH_JWT_SECRET` が無い / DB 未設定
+- ログイン: `/admin/login` を開き、メールとパスワードを入れて送信する(開発サーバーは `pnpm dev:tab`、`scripts/dev-tab/README.md`)
+- テスト: `pnpm test:dev-admin`(純粋な部品だけ。DB には触らない)

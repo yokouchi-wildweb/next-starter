@@ -62,7 +62,7 @@ Claude Code のワークツリーは `.claude/worktrees/` (リポジトリの内
 
 - **DB は本体と共有**: env を複製するので同じ DB を指す。ワークツリーで `db:push` すると本体の開発 DB も変わる
 - **同じブランチは 2 か所で同時にチェックアウトできない** (git が拒否する)
-- **dev サーバーを同時に立てるとき**: ポートが衝突する。片方のポートと env の `APP_BASE_URL` を変える (DB 操作・型チェック・テストだけなら関係ない)
+- **dev サーバーを同時に立てるとき**: `pnpm dev:tab` で立てる (空いているポートを選び、`APP_BASE_URL` もそのポートに合わせる。[dev-tab/README.md](../dev-tab/README.md))
 - **Claude Code の自動メモリはフォルダごとに別**: ワークツリーで起動したセッションからは本体のメモリが見えない。`CLAUDE.md` と `.claude/rules/` は git 管理なのでどちらでも読まれる
 - `servers/room/` は独立した package なので、使うならワークツリー側で別途 install する
 

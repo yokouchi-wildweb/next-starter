@@ -16,7 +16,12 @@
 - commit_message_format: subject = `<area>: <summary>` ~50 chars, max 72 | blank line | body = decision record (why, rejected alternatives, pitfalls, verification). never cram details into the subject
 - shared_worktree_commit: other sessions may have staged changes in the same index → commit only your files with `git commit -- <paths>` (or check `git diff --cached --name-only` first)
 - never_push_db_without_explicit_instruction: true. never run db push/migrate commands (e.g. pnpm db:push, drizzle-kit migrate). always ask user to run manually
-- playwright_mcp: available, use only when the user explicitly instructs
 - never_use_enter_plan_mode: true. never use EnterPlanMode tool. plan tasks using TodoWrite instead
 - propose_prerequisite_work: when base logic improvements, core file changes, or work in a different scope would unblock or simplify the current task, proactively propose switching to that scope first before continuing
 - prioritize_long_term_maintainability: always favor long-term maintainability and extensibility over short-term convenience. even if current scope becomes harder, choose implementations that scale well for large-scale operation
+
+## RUNNING_APP
+- check_needing_the_running_app: ask the user's go once, in one line (what to check, where) → start it yourself with `pnpm dev:tab` | never ask the user to start a server | `pnpm dev:tab stop` when the checks are done | ref: scripts/dev-tab/README.md
+- browser_check: Playwright MCP, run by the agent itself (no separate instruction needed once the go above is given)
+- login: `pnpm task dev-admin` → admin test account on the development DB, log in at /admin/login yourself | an admin also reaches (user)/(protected) pages | ref: scripts/tasks/README.md
+- out_of_scope: recon (investigation) never starts a server | /ship does not run scripts that need a dev server

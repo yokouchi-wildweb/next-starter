@@ -44,6 +44,7 @@ disable-model-invocation: true
 - `vercel.json` の Vercel プラン(hobby / pro)
 - 初期コミットの件名: `chore: <name> フォーク初期設定`
 - push 先: `origin main`
+- このマシンの tmux で開く設定(`pnpm setup:tmux-launch --check` の結果): 未設定なら承認後に `pnpm setup:tmux-launch` を実行する(`~/.bashrc` か `~/.zshrc` に 1 行、`~/.tmux.conf` に設定の塊)。済んでいれば何もしない
 
 ## 実行(承認後、途中確認なし)
 1. `gh repo create <owner>/<name> --private --description "<name>: <一言説明>"`(既存ならスキップ。既存で description が空なら `gh repo edit --description` で設定する。README は全リポ共通のため、GitHub 上のプロジェクト名はこの欄が担う)。
@@ -60,11 +61,12 @@ disable-model-invocation: true
 5. `pnpm typecheck` の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
 6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
 7. `git push -u origin main`。
+8. tmux で開く設定(文書の手順 4「tmux で開く設定」): 計画で未設定だったときだけ `pnpm setup:tmux-launch` を実行する。exit 2(tmux が無い)なら止めずに報告へ回し、入れ方(`! sudo apt install tmux` / `! brew install tmux`)と、入れた後に `pnpm setup:tmux-launch` を実行することを案内する。
 
 ## 報告(日本語)
 - 作成したリポジトリ URL、リモート構成、コミット sha
 - `.env.development` に生成した値は**表示しない**(ファイルにあることだけ伝える)
-- 次にユーザーがやること: `pnpm dev` で起動確認。Vercel にデプロイする前に環境変数 `CRON_SECRET` を登録する(未登録だと定期タスクが全部 401 で止まる。必須の次作業として明示する)。以降の作業は新リポのディレクトリで別セッションを開くよう案内する
+- 次にユーザーがやること: (tmux で開く設定を入れた・入れてあるなら)新しいターミナルを開き、新リポのディレクトリで `claude` を打ち直す(tmux の中で開く。起動の確認はエージェントが `pnpm dev:tab` で行うので人が `pnpm dev` を打つ必要はない)。Vercel にデプロイする前に環境変数 `CRON_SECRET` を登録する(未登録だと定期タスクが全部 401 で止まる。必須の次作業として明示する)。tmux で開く設定が入っていなければその入れ方も添える
 - バックエンドを後で接続する場合の導線: 文書の手順 3「機能別に必要なバックエンド」と `Neon_Firebaseなど各種バックエンドサービスの設定方法.md`
 
 ## 言語ルール

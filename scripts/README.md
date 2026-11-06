@@ -34,6 +34,28 @@ pnpm worktree:remove <path>
 
 複製するファイルの一覧は `scripts/worktree/include`。DB は本体と共有になる点に注意。詳細: [worktree/README.md](./worktree/README.md)
 
+### 開発サーバーのタブ (dev:tab)
+
+```bash
+# tmux のタブ「Dev」で開発サーバーを立てる (ポートは 3000 から空きを選ぶ。tmux の外なら裏でセッションを作る)
+pnpm dev:tab [--port=<n>]
+
+# 止めてタブを閉じる / どこで動いているか
+pnpm dev:tab stop
+pnpm dev:tab status
+```
+
+1 チェックアウトに 1 つ (本体とワークツリーで同時に立てられる)。詳細: [dev-tab/README.md](./dev-tab/README.md)
+
+### 通常セッションを tmux で開く (setup:tmux-launch)
+
+```bash
+# マシンごとに 1 回: ターミナルで打った claude が tmux の中で開くようにする (--check で確かめる、--remove で外す)
+pnpm setup:tmux-launch
+```
+
+詳細: [tmux-launch/README.md](./tmux-launch/README.md)
+
 ### データベース (db)
 
 ```bash
@@ -222,5 +244,7 @@ scripts/
 ├── room/                  # リアルタイムルーム基盤の init / deploy
 ├── test/                  # テスト実行用の preload (server-only の差し替え)
 ├── worktree/              # ワークツリーの作成・env 複製・片付け
+├── dev-tab/               # 開発サーバーを tmux のタブで立てる・止める (pnpm dev:tab)
+├── tmux-launch/           # ターミナルの claude を tmux で開く仕組み (pnpm setup:tmux-launch)
 └── tasks/                 # 運用タスクの CLI ランナーとワンショットタスク (pnpm task、tasks/README.md)
 ```
