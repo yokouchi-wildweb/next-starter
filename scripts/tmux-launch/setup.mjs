@@ -64,14 +64,14 @@ const rcText = read(state.rc);
 const rcNext = upsertBlock(rcText, rcBody(state.installed));
 if (rcNext !== rcText) {
   writeFileSync(state.rc, rcNext);
-  console.log(`シェルの設定に足しました: ${state.rc}`);
+  console.log(`シェルの設定${hasBlock(rcText) ? "の塊を書き直しました" : "に足しました"}: ${state.rc}`);
 }
 
 const confText = read(state.tmuxConf);
 const confNext = upsertBlock(confText, tmuxConfBody());
 if (confNext !== confText) {
   writeFileSync(state.tmuxConf, confNext);
-  console.log(`tmux の設定に足しました: ${state.tmuxConf}`);
+  console.log(`tmux の設定${hasBlock(confText) ? "の塊を書き直しました" : "に足しました"}: ${state.tmuxConf}`);
 }
 // 動いている tmux サーバー(いつものもの)があれば設定を読み直させる。無ければ何もしない
 if (spawnSync("tmux", ["has-session"], { stdio: "ignore" }).status === 0) {

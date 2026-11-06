@@ -52,6 +52,8 @@ test("setup の通し: 入れる → --check が通る → もう一度でも重
   assert.equal(setup("--check").status, 1);
   const installed = setup();
   assert.equal(installed.status, 0, installed.stderr);
+  assert.match(installed.stdout, /シェルの設定に足しました/);
+  assert.match(installed.stdout, /tmux の設定に足しました/);
   assert.equal(setup("--check").status, 0);
   setup();
   const rc = readFileSync(path.join(home, ".bashrc"), "utf8");
@@ -74,7 +76,7 @@ test("setup の通し: 入れる → --check が通る → もう一度でも重
   const stale = setup("--check");
   assert.equal(stale.status, 1);
   assert.match(stale.stdout, /tmux の設定: 古い/);
-  setup();
+  assert.match(setup().stdout, /tmux の設定の塊を書き直しました/);
   assert.match(readFileSync(confPath, "utf8"), /set -gq allow-passthrough on/);
   assert.doesNotMatch(readFileSync(confPath, "utf8"), /set -g allow-passthrough on/);
   assert.equal(setup("--check").status, 0);
