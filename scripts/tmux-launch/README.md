@@ -21,6 +21,8 @@ tmux が無ければ何も入れずに止まる(exit 2)。先に入れる: Debia
 - **`~/.tmux.conf`**: Claude Code の文書(terminal-config)が tmux に勧める設定 + マウスでのスクロール
   - `allow-passthrough on`(通知・進み具合が外のターミナルに届く)/ `focus-events on` / `extended-keys on` + `terminal-features 'xterm*:extkeys'`(Shift+Enter で改行)/ `mouse on`
   - 動いている tmux サーバーがあれば `tmux source-file` で読み直させる
+  - どれも `-q` 付き(その版の tmux が知らない設定は黙って飛ばす。`allow-passthrough` は tmux 3.3 から。`-q` が無いと、tmux サーバーの起動時 = 最初の 1 回だけ、設定のエラーが最初のタブに重なって出て claude が隠れる)
+- `--check` と hook は塊の中身まで比べる: 前の版の中身のままなら「古い」と出る。`pnpm setup:tmux-launch` で書き直す
 
 ## `claude` を打ったとき
 

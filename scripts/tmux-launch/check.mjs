@@ -9,7 +9,7 @@ try {
     const { inspect } = await import("./lib.mjs");
     const state = inspect();
     if (!state.ok) {
-      const what = state.installedVersion !== null && !state.upToDate ? "古い" : "まだ無い";
+      const what = state.stale ? "古い" : "まだ無い";
       console.log(
         `[tmux-launch] このマシンでは claude を tmux で開く設定が${what}(pnpm setup:tmux-launch --check で詳細)。` +
           "ユーザーに 1 回だけ伝え、承認をもらってから pnpm setup:tmux-launch を実行する" +

@@ -59,6 +59,26 @@ test("setup の通し: 入れる → --check が通る → もう一度でも重
   assert.match(rc, /\.local\/share\/next-starter\/claude-tmux\.sh/);
   assert.match(readFileSync(path.join(home, ".tmux.conf"), "utf8"), /extended-keys on/);
 
+  // 書いた ~/.tmux.conf を専用の tmux サーバーに読ませ、この版の tmux でもエラーが出ないこと
+  // (3.2a は allow-passthrough を知らない。-q が無いとサーバーの起動時に最初のタブへエラーが重なって出る)
+  const socket = `tmux-launch-conf-${process.pid}`;
+  spawnSync("tmux", ["-L", socket, "-f", "/dev/null", "new-session", "-d", "-s", "c", "sleep 30"], { env, stdio: "ignore" });
+  const loaded = spawnSync("tmux", ["-L", socket, "source-file", path.join(home, ".tmux.conf")], { env, encoding: "utf8" });
+  spawnSync("tmux", ["-L", socket, "kill-server"], { env, stdio: "ignore" });
+  assert.equal(loaded.status, 0, loaded.stderr);
+  assert.equal(loaded.stderr.trim(), "");
+
+  // 古い中身の塊(前の版の allow-passthrough に -q が無いもの)は「古い」と出て、入れ直すと書き換わる
+  const confPath = path.join(home, ".tmux.conf");
+  writeFileSync(confPath, upsertBlock("", "set -g allow-passthrough on"));
+  const stale = setup("--check");
+  assert.equal(stale.status, 1);
+  assert.match(stale.stdout, /tmux の設定: 古い/);
+  setup();
+  assert.match(readFileSync(confPath, "utf8"), /set -gq allow-passthrough on/);
+  assert.doesNotMatch(readFileSync(confPath, "utf8"), /set -g allow-passthrough on/);
+  assert.equal(setup("--check").status, 0);
+
   assert.equal(setup("--remove").status, 0);
   assert.equal(readFileSync(path.join(home, ".bashrc"), "utf8"), "# mine\n");
   assert.equal(readFileSync(path.join(home, ".tmux.conf"), "utf8"), "");

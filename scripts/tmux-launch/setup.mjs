@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { SOURCE, TMUX_CONF_LINES, inspect, rcBody, removeBlock, upsertBlock } from "./lib.mjs";
+import { SOURCE, hasBlock, inspect, rcBody, removeBlock, tmuxConfBody, upsertBlock } from "./lib.mjs";
 
 const arg = process.argv[2] ?? "";
 if (!["", "--check", "--remove"].includes(arg)) {
@@ -22,13 +22,13 @@ if (!["", "--check", "--remove"].includes(arg)) {
 
 const read = (file) => (existsSync(file) ? readFileSync(file, "utf8") : "");
 const state = inspect();
-const mark = (ok) => (ok ? "済" : "未");
+const mark = (ok, text) => (ok ? "済" : hasBlock(text) ? "古い" : "未");
 
 if (arg === "--check") {
   console.log(`tmux: ${state.tmux ? "あり" : "なし"}`);
   console.log(`中身: ${state.installedVersion === null ? "未" : `版 ${state.installedVersion}`}(リポの版 ${state.sourceVersion})${state.installedVersion !== null && !state.upToDate ? " → 古い" : ""} ${state.installed}`);
-  console.log(`シェルの設定: ${mark(state.rcOk)} ${state.rc}`);
-  console.log(`tmux の設定: ${mark(state.tmuxConfOk)} ${state.tmuxConf}`);
+  console.log(`シェルの設定: ${mark(state.rcOk, read(state.rc))} ${state.rc}`);
+  console.log(`tmux の設定: ${mark(state.tmuxConfOk, read(state.tmuxConf))} ${state.tmuxConf}`);
   console.log(state.ok ? "→ 入っています" : "→ 足りません: pnpm setup:tmux-launch");
   process.exit(state.ok ? 0 : 1);
 }
@@ -68,7 +68,7 @@ if (rcNext !== rcText) {
 }
 
 const confText = read(state.tmuxConf);
-const confNext = upsertBlock(confText, TMUX_CONF_LINES.join("\n"));
+const confNext = upsertBlock(confText, tmuxConfBody());
 if (confNext !== confText) {
   writeFileSync(state.tmuxConf, confNext);
   console.log(`tmux の設定に足しました: ${state.tmuxConf}`);

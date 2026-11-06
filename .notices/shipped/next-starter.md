@@ -311,3 +311,4 @@
 - id:20261106-105431-analytics-single-page-view | severity:info | checkpoint:analytics-single-page-view
 - id:20261106-110435-agent-dev-server-tools | severity:action-required | checkpoint:agent-dev-server-tools
 - id:20261106-112252-dev-tab-self-detection | severity:info | checkpoint:dev-tab-self-detection | fixes:20261106-110435-agent-dev-server-tools | pick:clean
+- id:20261106-112710-tmux-launch-conf-quiet | severity:action-required | checkpoint:tmux-launch-conf-quiet | fixes:20261106-110435-agent-dev-server-tools | pick:-

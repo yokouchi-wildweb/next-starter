@@ -14,13 +14,17 @@ export const SOURCE = path.join(path.dirname(fileURLToPath(import.meta.url)), "c
 export const BLOCK_START = "# >>> next-starter claude-tmux >>>";
 export const BLOCK_END = "# <<< next-starter claude-tmux <<<";
 
-/** Claude Code の文書(terminal-config)が tmux に勧める設定 + マウスでのスクロール */
+/**
+ * Claude Code の文書(terminal-config)が tmux に勧める設定 + マウスでのスクロール。
+ * どれも -q を付ける: その版の tmux が知らない設定(allow-passthrough は 3.3 から、extended-keys は 3.2 から)を
+ * エラーにせず黙って飛ばす。-q が無いと、tmux サーバーの起動時(最初の 1 回)に設定のエラーが最初のタブに重なって出る
+ */
 export const TMUX_CONF_LINES = [
-  "set -g allow-passthrough on",
-  "set -g focus-events on",
-  "set -s extended-keys on",
-  "set -as terminal-features 'xterm*:extkeys'",
-  "set -g mouse on",
+  "set -gq allow-passthrough on",
+  "set -gq focus-events on",
+  "set -sq extended-keys on",
+  "set -asq terminal-features 'xterm*:extkeys'",
+  "set -gq mouse on",
 ];
 
 /** 置き場所(HOME・XDG_DATA_HOME・SHELL から決まる) */
@@ -67,6 +71,20 @@ export const removeBlock = (text) => {
 
 export const hasBlock = (text) => (text ?? "").includes(BLOCK_START) && (text ?? "").includes(BLOCK_END);
 
+/** 印の塊の中身(無ければ null) */
+export const blockBody = (text) => {
+  const current = text ?? "";
+  const start = current.indexOf(BLOCK_START);
+  const end = current.indexOf(BLOCK_END);
+  if (start === -1 || end < start) return null;
+  return current.slice(start + BLOCK_START.length, end).trim();
+};
+
+/** 印の塊が今の中身どおりか(古い中身のままなら false) */
+export const blockMatches = (text, body) => blockBody(text) === body.trim();
+
+export const tmuxConfBody = () => TMUX_CONF_LINES.join("\n");
+
 export const rcBody = (installed) => `[ -f "${installed}" ] && . "${installed}"`;
 
 const read = (file) => (existsSync(file) ? readFileSync(file, "utf8") : null);
@@ -78,9 +96,14 @@ export const inspect = (env = process.env) => {
   const p = paths(env);
   const sourceVersion = parseVersion(read(SOURCE));
   const installedVersion = parseVersion(read(p.installed));
-  const rcOk = hasBlock(read(p.rc));
-  const tmuxConfOk = hasBlock(read(p.tmuxConf));
+  const rcText = read(p.rc);
+  const confText = read(p.tmuxConf);
+  const rcOk = blockMatches(rcText, rcBody(p.installed));
+  const tmuxConfOk = blockMatches(confText, tmuxConfBody());
+  // 入ってはいるが中身が古い(どれかが古ければ「古い」と案内する)
+  const stale = (installedVersion !== null && installedVersion < (sourceVersion ?? 0)) ||
+    (hasBlock(rcText) && !rcOk) || (hasBlock(confText) && !tmuxConfOk);
   const tmux = hasTmux();
   const upToDate = installedVersion !== null && installedVersion >= (sourceVersion ?? 0);
-  return { ...p, tmux, sourceVersion, installedVersion, rcOk, tmuxConfOk, upToDate, ok: tmux && rcOk && tmuxConfOk && upToDate };
+  return { ...p, tmux, sourceVersion, installedVersion, rcOk, tmuxConfOk, upToDate, stale, ok: tmux && rcOk && tmuxConfOk && upToDate };
 };
