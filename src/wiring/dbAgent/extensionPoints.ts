@@ -1,6 +1,6 @@
 // src/wiring/dbAgent/extensionPoints.ts
 // DB 調査エージェント(lib)の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み src/wiring/dbAgent.ts を生成する)。
-// 宣言と受け口をここに置く理由: fork は祖先の lib の中にファイルを足せない(ownership:check の ancestor-lib-add)。書式: scripts/extensions/README.md
+// 宣言と受け口をここに置く理由: fork は祖先の lib の中にファイルを足せない(ownership:check の ancestor-lib-add)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 追加ツール: extraTools/<名前>.ts の export const tool(読み取り専用の境界を壊さないこと、lib/dbAgent/README.md)

@@ -34,7 +34,7 @@ test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目�
   assert.equal(placeUnitOf("scripts/tasks/a-b.ts", places), "scripts/tasks/a-b");
   assert.equal(placeUnitOf("scripts/proxies/alwaysOnExceptions/x.mjs", places), null, "旧い例外の置き場は場所でない(門番の受け口へ移った)");
   assert.equal(placeUnitOf("scripts/foo.mjs", places), "scripts/foo");
-  assert.equal(placeUnitOf("scripts/extensions/foo.mjs", places), null);
+  assert.equal(placeUnitOf("scripts/structure/extensions/foo.mjs", places), null);
   assert.equal(placeUnitOf("src/app/(user)/_layout/Header/Nav.tsx", places), "src/app/(user)/_layout/Header/Nav");
   assert.equal(placeUnitOf("src/app/(user)/w/_components/X.tsx", places), "src/app/(user)/w/_components/X");
   assert.equal(placeUnitOf("src/components/Foo.tsx", places), null);

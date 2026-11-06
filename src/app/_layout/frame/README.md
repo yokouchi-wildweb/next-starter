@@ -15,7 +15,7 @@
 | `index.ts` | 入口(re-export だけ) |
 | `parts.test.mjs` / `resolve.test.mjs` / `useFrameAttributes.test.tsx` | `pnpm test:frame-declaration` |
 
-生成器は `scripts/extensions/frames.mjs`(テスト `pnpm test:extensions`)。`.mjs` なのは、tsx を通さない生成器(node)からも TypeScript からも import するため。
+生成器は `scripts/structure/extensions/frames.mjs`(テスト `pnpm test:extensions`)。`.mjs` なのは、tsx を通さない生成器(node)からも TypeScript からも import するため。
 
 ## 名前の対
 
@@ -51,7 +51,7 @@ export const frameDefault = {
 - 浅い段から各段の `layout`(`frame.default.ts` → `frame.ts`)、葉の段で最後に `page`(`frame.default.ts` → `frame.ts`)。部位と端末ごとに後が勝つ
 - 枠の根の隣の宣言の `layout` = 枠の全体の既定(領域全体の入り切り)、`page` = トップページだけ(例 `/` の fill)
 - 置けない: 枠の外(枠が全部要らないページはルートグループに分けて枠の layout の外に置く)・private フォルダ(`_x`)・`@slot`・intercepting(`(.)x`)の下・隣に `layout.tsx` も `page.tsx` も無いフォルダ
-- テスト: `scripts/extensions/frames.test.mjs` が全部の組み合わせで順を固定する
+- テスト: `scripts/structure/extensions/frames.test.mjs` が全部の組み合わせで順を固定する
 
 ## 生成する表
 

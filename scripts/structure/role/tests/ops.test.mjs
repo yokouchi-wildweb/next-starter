@@ -14,7 +14,7 @@ const COPY = [
   "scripts/structure/domain/spec",
   "scripts/structure/domain/checks",
   "scripts/structure/domain/domain",
-  "scripts/extensions",
+  "scripts/structure/extensions",
   "src/lib/forkOwnership",
   "src/lib/domain/fields",
   "src/utils",

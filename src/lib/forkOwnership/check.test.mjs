@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-import { planExtensions } from "../../../scripts/extensions/extensions.mjs";
+import { planExtensions } from "../../../scripts/structure/extensions/extensions.mjs";
 import { forkAddedFiles, runCheck } from "./check.mjs";
 
 const CLI = resolve(import.meta.dirname, "cli.mjs");

@@ -16,7 +16,7 @@ const featureImport = (ctx) => `@/features/${featureRel(ctx).replace(/^src\/feat
 export function extensionPointsContent(ctx) {
   return `// ${featureRel(ctx)}/extensionPoints.ts
 // ${ctx.label}の拡張点の宣言(dc:generate が生成する。生成のたびに書き直すので手で編集しない。
-// 別の受け口が要るなら domain.json を generate: false にして手で持つ)。書式: scripts/extensions/README.md
+// 別の受け口が要るなら domain.json を generate: false にして手で持つ)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(lib/crud の作成関数で数行。D149)

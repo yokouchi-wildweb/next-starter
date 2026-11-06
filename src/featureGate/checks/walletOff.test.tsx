@@ -23,7 +23,7 @@ import { configRules, rules } from "@/featureGate/node";
 
 import { folderSourcePattern, gatedImports } from "./alwaysOnEntries.mjs";
 import { loadCronTasks } from "../../../scripts/structure/cron/discover";
-import { planExtensions } from "../../../scripts/extensions/extensions.mjs";
+import { planExtensions } from "../../../scripts/structure/extensions/extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 const OFF: FeatureName[] = ["wallet", "payment"];

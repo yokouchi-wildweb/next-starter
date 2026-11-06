@@ -1,6 +1,6 @@
 // 生成カテゴリ featureGate: domain.json の closable: true のときだけ、閉じられる形のひな形を write-once で書く(L1.18)。
 // - src/featureGate/rules/<camel>.ts: 規則(pathPatterns = 管理画面 /admin/<kebab 複数形>、features = [ドメインのフォルダ]、enabled = ドメインの config)
-//   汎用 API の住所 /api/<domain> は書かない(生成器 scripts/extensions が features の domainEntry から導く)
+//   汎用 API の住所 /api/<domain> は書かない(生成器 scripts/structure/extensions が features の domainEntry から導く)
 // - src/features/<camel>/config.ts: 入切の値の書き始め `export const <SNAKE>_CONFIG = { enabled }`。既定は Tier1 = false(上流の新しい機能は opt-in)、fork = true
 // どちらも既にあれば書かない(書き捨て)。書いた後の住所・値は手で直す。規則名(= FeatureName)はファイル名 = camel
 // 一覧への反映は pnpm extensions:generate(forge は続けて回す)。詳細: src/featureGate/README.md「fork での使い方」

@@ -70,7 +70,7 @@ export const override = { enabled: false };
 ```
 
 - 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・dc:generate で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
-- 項目を置いた・消したら `pnpm extensions:generate`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/extensions/README.md`
+- 項目を置いた・消したら `pnpm extensions:generate`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
 
 `bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
 

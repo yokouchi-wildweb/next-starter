@@ -1,5 +1,5 @@
 // src/features/core/milestone/extensionPoints.ts
-// milestone の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// milestone の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // マイルストーン定義: services/server/definitions/<名前>.ts の export const milestone(上流の項目は 0)

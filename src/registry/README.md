@@ -8,7 +8,7 @@
 
 ## 足したいとき
 
-- 機能ごとの差し込み(ハンドラ・用途・タブなど): 持ち主のドメインの受け口にファイルを置いて `pnpm extensions:generate`(`scripts/extensions/README.md`)
+- 機能ごとの差し込み(ハンドラ・用途・タブなど): 持ち主のドメインの受け口にファイルを置いて `pnpm extensions:generate`(`scripts/structure/extensions/README.md`)
 - 値: `src/config/`
 - 管理画面「データ管理」のメニューからドメインを外す: `domain.json` の `addToAdminDataMenu: false`。`adminDataMenu.ts` を手で消しても次の生成で戻る
 - 手書きのメニューの行: `src/config/ui/admin-global-menu.config.ts`

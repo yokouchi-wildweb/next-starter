@@ -1,4 +1,4 @@
-// scripts/extensions/derive/featureTables.mjs
+// scripts/structure/extensions/derive/featureTables.mjs
 // 組み込みの変換 "featureTables": 機能を閉じる規則の features: [機能のフォルダ] から、そのフォルダの全 pgTable の表名を導く(D16・D20 K1)。
 // features に書けるのはドメインの位置にあるフォルダ(src/features/core/<名前> か src/features/<名前>。CLAUDE.md DOMAINS)。
 // 表の数は問わない(0 = Firestore のドメインなど、tables: [] になる)。無いフォルダ・ドメインの位置でない書き方(深い場所・core そのもの)は止める。
@@ -12,8 +12,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ENTRIES_EXPORT, ENTRY_FILE, readObjectKeys } from "../../structure/registry/serviceRegistry/discover.mjs";
-import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../../structure/registry/tableScan.mjs";
+import { ENTRIES_EXPORT, ENTRY_FILE, readObjectKeys } from "../../registry/serviceRegistry/discover.mjs";
+import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../../registry/tableScan.mjs";
 import { scanSettingSectionFeatures } from "./gateSettingPaths.mjs";
 
 const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;

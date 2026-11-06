@@ -1,4 +1,4 @@
-// scripts/extensions/intake.mjs
+// scripts/structure/extensions/intake.mjs
 // 受け口の一覧(src/lib/forkOwnership/intake.txt)の生成区画の行を、拡張点の宣言と 1 行スイッチから組み立てる
 // (pnpm extensions:generate が書き、extensions:check がずれを止める)。区画の印と差し替えは src/lib/forkOwnership/intake.mjs。
 // 行の kind は add(fork が足すのは可、基準にあるファイルの書き換えは違反)。書式: ./README.md
@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
-import { INTAKE_FILE, replaceIntakeBlock } from "../../src/lib/forkOwnership/intake.mjs";
+import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/intake.mjs";
 
 /** 宣言に依らない受け口(route の隣の丸ごと置き換え・scripts の 1 項目 1 ファイルの受け口) */
 const FIXED_ROWS = [

@@ -1,6 +1,6 @@
 // scripts/structure/proxies/proxyFrame.test.mjs
 // proxy の枠(src/proxies/<名前>.ts の走査と生成一覧)と常時実行の入口の判定の回帰テスト。一時ディレクトリで動かす。
-// 生成器は汎用の拡張点の生成器(scripts/extensions/)で、宣言は実物の src/proxies/extensionPoints.ts をそのまま使う。
+// 生成器は汎用の拡張点の生成器(scripts/structure/extensions/)で、宣言は実物の src/proxies/extensionPoints.ts をそのまま使う。
 // - 項目 = export const handler / decorator を 1 つ持つ直下の .ts、骨組み・枠・テスト・サブフォルダ・.mjs は見ない
 // - 並びはファイル名の順、上流と fork の項目はどちらも印なしで同じ枠に入る
 // - 失敗: 旧い fork の名前の印(移し方を案内) / 両方 / どちらも無い / 名前の形
@@ -15,10 +15,10 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createFeatureTables } from "../../extensions/derive/featureTables.mjs";
-import { readSectionFeature } from "../../extensions/derive/gateSettingPaths.mjs";
+import { createFeatureTables } from "../extensions/derive/featureTables.mjs";
+import { readSectionFeature } from "../extensions/derive/gateSettingPaths.mjs";
 import { scanFeatureTables } from "../registry/tableScan.mjs";
-import { itemsOf, planExtensions } from "../../extensions/extensions.mjs";
+import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const DECLARATION = readFileSync(join(repoRoot, "src/proxies/extensionPoints.ts"), "utf8");

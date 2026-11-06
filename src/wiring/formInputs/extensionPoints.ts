@@ -1,5 +1,5 @@
 // src/wiring/formInputs/extensionPoints.ts
-// 独自の入力部品の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// 独自の入力部品の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 // 宣言と受け口をここに置く理由: src/components/Form は一覧を知らない(FormInputsRoot が渡す)
 
 export const extensionPoints = {

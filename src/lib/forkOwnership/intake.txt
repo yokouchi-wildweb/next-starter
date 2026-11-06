@@ -170,7 +170,7 @@ generated src/features/feature-map.txt  # pnpm dc:feature-map(forge・dc:generat
 generated src/features/core/*/entities/display.ts  # pnpm registry:generate(表示用の写し)
 generated src/app/route-map.jsonl  # pnpm routes:map
 generated vercel.json  # pnpm cron:generate(upstream には無い)
-generated src/features/core/mail/constants/colors.ts  # scripts/mail/generate-colors.ts
+generated src/features/core/mail/constants/colors.ts  # scripts/structure/styles/generate-mail-colors.ts
 generated src/features/core/userProfile/entities/profiles/**  # pnpm role:generate
 generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。proxy の枠の項目と機能を閉じる規則も)
 

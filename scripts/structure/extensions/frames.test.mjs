@@ -10,11 +10,11 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { matchFrame } from "../../src/app/_layout/frame/resolve.mjs";
+import { matchFrame } from "../../../src/app/_layout/frame/resolve.mjs";
 import { headerFor, planExtensions } from "./extensions.mjs";
 import { planFrames } from "./frames.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function tree(files) {
   const root = mkdtempSync(join(tmpdir(), "frames-"));

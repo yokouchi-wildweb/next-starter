@@ -1,5 +1,5 @@
 // src/features/core/adminCommand/extensionPoints.ts
-// adminCommand の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// adminCommand の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 // カテゴリ・プラグイン(React)の点は src/app/_layout/adminCommand/extensionPoints.ts
 
 export const extensionPoints = {

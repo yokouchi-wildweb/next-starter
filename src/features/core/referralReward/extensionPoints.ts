@@ -1,5 +1,5 @@
 // src/features/core/referralReward/extensionPoints.ts
-// referralReward の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// referralReward の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 報酬グループ: rewardGroups/<名前>.ts の export const group(上流の項目は 0)

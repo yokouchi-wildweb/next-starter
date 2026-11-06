@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/extensions/check.mjs
+// scripts/structure/extensions/check.mjs
 // 全拡張点の生成一覧が宣言と項目に一致するかを検査する(pnpm extensions:check。build の冒頭で走る)。書き出さない。
 // 失敗: 宣言・項目の問題 / 1 行スイッチの形 / 上流の override / 枠の宣言(frame.ts)の形と置き場 / 一覧と受け口の一覧(intake.txt の生成区画)のずれ / extensions/ の宣言に無いファイル(ヘッダの無い = 手で置いた、ある = 古い一覧)。規則: ./README.md
 
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const plan = planExtensions(repoRoot);
 // --no-stale: 宣言・項目の問題だけを見る(一覧のずれは extensions:generate で直るので見ない。forge の事前検査)
 const noStale = process.argv.includes("--no-stale");

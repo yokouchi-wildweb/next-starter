@@ -15,7 +15,7 @@ export function listSections(sections: Sections): SettingSectionDefinition[] {
   return Object.values(sections).sort((a, b) => a.order - b.order);
 }
 
-/** セクションの画面の住所(管理メニュー・loader・門番の生成器 scripts/extensions/derive/gateSettingPaths.mjs が同じ字面) */
+/** セクションの画面の住所(管理メニュー・loader・門番の生成器 scripts/structure/extensions/derive/gateSettingPaths.mjs が同じ字面) */
 export const settingSectionHref = (key: string): string => `/admin/settings/${key}`;
 
 /**

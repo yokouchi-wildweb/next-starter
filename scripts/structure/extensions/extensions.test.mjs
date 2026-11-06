@@ -1,4 +1,4 @@
-// scripts/extensions/extensions.test.mjs
+// scripts/structure/extensions/extensions.test.mjs
 // 拡張点の生成器(宣言の読み手 src/lib/forkOwnership/declarations.mjs・./extensions.mjs)の回帰テスト。一時ディレクトリの fixture で動かす。
 // - 宣言はリテラルだけ(式・未知のキー・点の名前の形は失敗)、src の下ならどこでも読む(lib の target: "wiring" も)
 // - 項目はファイル(<名前>.ts(x))かフォルダ(<名前>/index.ts(x))、名前の順。import の別名 = <点の名前>_<項目の名前>
@@ -15,15 +15,15 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
-import { readDeclaration } from "../../src/lib/forkOwnership/declarations.mjs";
+import { readDeclaration } from "../../../src/lib/forkOwnership/declarations.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { CLAIMERS, checkSwitches, isClaimedDefault } from "./switches.mjs";
 import { intakeRows } from "./intake.mjs";
 import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /** fork(acme、祖先 parent)の一時リポにファイルを置く */
 function fixture(files) {

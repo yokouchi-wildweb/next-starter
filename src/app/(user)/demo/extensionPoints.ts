@@ -1,5 +1,5 @@
 // src/app/(user)/demo/extensionPoints.ts
-// デモの一覧の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// デモの一覧の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // デモの一覧: <route のフォルダ>/_demo.ts の export const demo

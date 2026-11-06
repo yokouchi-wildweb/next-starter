@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/extensions/generate.mjs
+// scripts/structure/extensions/generate.mjs
 // 全拡張点の生成一覧(<持ち主>/extensions/<点>.ts・src/wiring/<lib>.ts)を宣言と項目から丸ごと書く(pnpm extensions:generate)。
 // 問題があれば書き出さずに止まる。宣言が消えた古い一覧(目印のヘッダを持つ)は消す。手で置いたファイルは消さずに失敗を出す。
 // 書式と失敗の条件: ./README.md
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const plan = planExtensions(repoRoot);
 if (plan.problems.length > 0) {
   console.error(`[extensions:generate] 書き出しを止めました(${plan.problems.length} 件):\n${plan.problems.map((p) => `  - ${p}`).join("\n")}`);

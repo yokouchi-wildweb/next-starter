@@ -1,4 +1,4 @@
-// scripts/extensions/switches.mjs
+// scripts/structure/extensions/switches.mjs
 // 1 行スイッチの検査: 既定 <名前>.default.ts(x)(上流)の隣の素の名前 <名前>.ts(x) = 呼び手が import する口で、採用者所有の 1 行 re-export。
 // 中身(コメントを除く)は ./<名前>.default か ./<名前>.replace を指す re-export 1 文だけ。Tier1 は .default を指す。
 // fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。
@@ -8,10 +8,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { oldMarkerProblem } from "../../src/lib/forkOwnership/dottedNames.mjs";
-import { stripComments } from "../../src/lib/screens/checks.mjs";
+import { oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
+import { stripComments } from "../../../src/lib/screens/checks.mjs";
 
-import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
+import { SEARCH_ROOT } from "../../../src/lib/forkOwnership/declarations.mjs";
 import { CLAIMED_DEFAULTS as FRAME_CLAIMS } from "./frames.mjs";
 
 /**

@@ -155,7 +155,7 @@ export const cronOverride: CronTaskOverride = {
   機能を閉じたいだけなら要らない（閉じた機能のタスクは自動で外れる）。機能以外の理由で外すときに使う
 - 置いた・変えたら `pnpm cron:generate --plan <hobby|pro>` で再生成する（忘れると Vercel のビルドで止まる）
 - upstream がそのタスクを消すと `task.override.ts` だけが残り、`cron:check` / `test:cron-wiring` が失敗する → `task.override.ts` も消す
-- 名前は `task.ts` の一部の上書き = 他の上書きと同じ `<対象>.override.ts` の形（`scripts/extensions/README.md`「override」）。旧名の `override.ts` が残っていると `cron:check` / `cron:generate` / `pnpm task` が改名を案内して止まる（`git mv <dir>/override.ts <dir>/task.override.ts`、中身はそのまま）
+- 名前は `task.ts` の一部の上書き = 他の上書きと同じ `<対象>.override.ts` の形（`scripts/structure/extensions/README.md`「override」）。旧名の `override.ts` が残っていると `cron:check` / `cron:generate` / `pnpm task` が改名を案内して止まる（`git mv <dir>/override.ts <dir>/task.override.ts`、中身はそのまま）
 - 個人情報を含むデータの削除タスク（`audit-log-prune` / `user-login-event-prune` / `device-fingerprint-prune` /
   `fingerprint-challenge-access-prune`）を外すと保持期限が守られなくなる。外すのは、その機能を使っておらず対象テーブルが空のときだけ
 - `pnpm task --list` に上書きの状態（`(task.override.ts)` / `[off: task.override.ts]`）と、機能が閉じたタスクの `[closed: <規則>]` が出る

@@ -1,4 +1,4 @@
-// scripts/extensions/overrides.mjs
+// scripts/structure/extensions/overrides.mjs
 // override の検査: 既定を変える隣のファイル(src/**/<対象>.override.ts(x)。cron は task.ts の隣の task.override.ts)は
 // 足した Tier の物で、上流(Tier1)は 1 本も出荷しない(空のものも)。既定は既定の場所に書く。
 // fork では空(空白とコメントだけ)は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)。
@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { SEARCH_ROOT } from "../../src/lib/forkOwnership/declarations.mjs";
+import { SEARCH_ROOT } from "../../../src/lib/forkOwnership/declarations.mjs";
 
 // <対象> は user.role・user.profile のように . も含む
 const OVERRIDE_FILE = /^[A-Za-z_][\w.-]*\.override\.(ts|tsx)$/;
@@ -16,7 +16,7 @@ const FRAME_OVERRIDE = /^src\/app\/(?:.*\/)?frame\.override\.tsx?$/;
 /** 空白とコメントだけのソースか(cron・serviceRegistry の生成器と同じ判定) */
 export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
 
-/** override のファイルか(<対象>.override.ts(x)。素の override.ts は override ではない: cron の旧名は scripts/cron/discover.ts が止める) */
+/** override のファイルか(<対象>.override.ts(x)。素の override.ts は override ではない: cron の旧名は scripts/structure/cron/discover.ts が止める) */
 const isOverridePath = (path) => {
   const name = path.slice(path.lastIndexOf("/") + 1);
   if (!OVERRIDE_FILE.test(name)) return false;

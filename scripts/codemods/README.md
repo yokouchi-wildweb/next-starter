@@ -138,7 +138,7 @@ node scripts/codemods/frame-declarations.mjs --apply      # frame.ts を書き�
 1. 上流のこの版(枠の宣言の版)を `/flux` で取り込む(上流のファイルの `Hide*` と設定の 4 つは取り込みで消える)
 2. dry-run: `node scripts/codemods/frame-declarations.mjs` で変更の一覧と止めた物の一覧を見る
 3. 止めた物を手で直す(上の一覧。使う側の `frame.ts` に書き、タグ・読み手を消す)
-4. `--apply`: `frame.ts` を書き、タグ・属性・import を消し、書いた結果に生成器の検査(`scripts/extensions/frames.mjs`)を掛ける(問題があれば exit 1)
+4. `--apply`: `frame.ts` を書き、タグ・属性・import を消し、書いた結果に生成器の検査(`scripts/structure/extensions/frames.mjs`)を掛ける(問題があれば exit 1)
 5. `pnpm extensions:generate`(枠の表を作り直す)→ `pnpm typecheck` → `pnpm lint`(消したタグの跡の空行は整形で消える)
 6. CSS: 枠の部位の id(`#header-shell`・`[data-user-app-container]`・`#page-title` など)を狙う fork の規則は `[data-slot="<名前>"]` へ移す(写し先の表は notice。id は移し終えるまで上流に残る。道具は CSS を書き換えない)
 7. 差し替えた枠の部品に `data-slot` を付ける(上)。`pnpm ownership:check`(親のルートの隣に `frame.default.ts` を足す・親の既定を書き換えるのは default-add / default-edit。fork は `frame.ts` に書く)

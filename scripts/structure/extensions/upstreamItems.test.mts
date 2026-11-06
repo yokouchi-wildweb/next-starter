@@ -1,4 +1,4 @@
-// scripts/extensions/upstreamItems.test.mts
+// scripts/structure/extensions/upstreamItems.test.mts
 // 拡張点へ移した上流の項目が、何も足さない状態で今までどおり動くことの回帰テスト(DB は使わない)。
 // - 退会の後片付け: 必須 → 任意の順、必須の失敗は投げる、任意の失敗は続行、enabled false は走らない。上流の項目の組
 // - コイン創出のソース: enabled false は外す。上流の項目の組(一覧の順 = ファイル名の順)
@@ -41,11 +41,11 @@ import { buildRewardHandlerMap } from "@/features/core/referralReward/services/s
 import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
 import { seoConfig } from "@/config/seo.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
-import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../tasks/discover";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../../tasks/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
-const ROOT = resolve(import.meta.dirname, "../..");
+const ROOT = resolve(import.meta.dirname, "../../..");
 const tx = {} as never;
 const { isTier1 } = readForkIdentity(ROOT);
 /** 上流の既定の値の検査(fork では飛ばす) */

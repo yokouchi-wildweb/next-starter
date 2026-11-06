@@ -3,7 +3,7 @@
 // 枠の部位の出し入れを枠の宣言 frame.ts へ移す(共有の棚の枠の宣言の移行、D62・D65・D66・D90・D165・D170)。fork のリポのルートで走らせる。
 // 使い方: node scripts/codemods/frame-declarations.mjs [--apply] [--base <rev>] [--json]
 //   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で frame.ts を書き、タグ・属性・import を消す。
-//   最後に生成器の検査(scripts/extensions/frames.mjs の planFrames)を書いた結果に掛けて出す。手順: ./README.md「枠の宣言へ移す」
+//   最後に生成器の検査(scripts/structure/extensions/frames.mjs の planFrames)を書いた結果に掛けて出す。手順: ./README.md「枠の宣言へ移す」
 //
 // 触るのは fork が足したファイルだけ(基準 = 台帳の最後の upstream:<sha> の版に無いファイル)。上流のファイルは取り込みで移る。
 // - 自己閉じの Hide*(HideHeader・HideHeaderNav・HideFooter・HideBottomNav、sp / pc 指定つき)→ 隣の frame.ts
@@ -23,8 +23,8 @@ import ts from "typescript";
 
 import { FRAME_ROOTS, hideableParts } from "../../src/app/_layout/frame/parts.mjs";
 import { checkFrameDeclaration } from "../../src/app/_layout/frame/resolve.mjs";
-import { headerFor } from "../extensions/extensions.mjs";
-import { FRAME_FILE, planFrames, readExportedLiteral } from "../extensions/frames.mjs";
+import { headerFor } from "../structure/extensions/extensions.mjs";
+import { FRAME_FILE, planFrames, readExportedLiteral } from "../structure/extensions/frames.mjs";
 import { readBaseFiles } from "./fork-name-markers.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);

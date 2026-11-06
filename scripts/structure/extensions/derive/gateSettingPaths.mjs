@@ -1,4 +1,4 @@
-// scripts/extensions/derive/gateSettingPaths.mjs
+// scripts/structure/extensions/derive/gateSettingPaths.mjs
 // 変換 "featureTables" の一部: 設定の節(src/features/core/setting/sections/<名前>.ts か <名前>/index.ts の export const section)の
 // key と feature を字面で読み、規則名 → 閉じる住所 /admin/settings/<key> を導く(L1.17)。
 // 節が複数の feature を持てば、その全部の規則に住所を足す(1 つでも閉じていれば閉じる = 住所の OR)。

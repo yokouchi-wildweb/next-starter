@@ -1,5 +1,5 @@
 // src/features/core/analytics/extensionPoints.ts
-// analytics の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// analytics の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 日次ロールアップのメトリクス: rollupMetrics/<名前>.ts の export const metric(上流の項目は 0)

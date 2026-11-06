@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
+import { itemsOf, planExtensions } from "../structure/extensions/extensions.mjs";
 
 import { applyRelocate, convertAlwaysOn, planRelocate, rewriteCodeImports, rewriteRuleImport } from "./feature-gate-relocate.mjs";
 

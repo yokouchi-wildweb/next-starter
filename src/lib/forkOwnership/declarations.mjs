@@ -1,9 +1,9 @@
-// 拡張点の宣言(extensionPoints.ts)の唯一の読み手。生成器(scripts/extensions)・所有の検査の単位名(./unitNames.mjs)・
-// src/wiring の配線テスト・ロールの上書き(scripts/role-config)が使う(D2: 仕組みは src/lib に 1 本、scripts から import)。
+// 拡張点の宣言(extensionPoints.ts)の唯一の読み手。生成器(scripts/structure/extensions)・所有の検査の単位名(./unitNames.mjs)・
+// src/wiring の配線テスト・ロールの上書き(scripts/structure/role)が使う(D2: 仕組みは src/lib に 1 本、scripts から import)。
 // 宣言を探して読む。fork の点は fork 自身のフォルダの extensionPoints.ts に書く
 // (旧い extensionPoints.<x>.ts は止めて移し方を案内する)。
 // 宣言はリテラルだけ: TypeScript の構文木で字面を読み、実行しない(式・変数・関数呼び出し・テンプレートは失敗)。
-// 書式と置き場: scripts/extensions/README.md
+// 書式と置き場: scripts/structure/extensions/README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";

@@ -10,7 +10,7 @@ import fs from "fs";
 import path from "path";
 import ts from "typescript";
 import { literalOf } from "../../../src/lib/forkOwnership/declarations.mjs";
-import { isBlankSource } from "../../extensions/overrides.mjs";
+import { isBlankSource } from "../extensions/overrides.mjs";
 
 const isString = (value) => typeof value === "string";
 const isStringArray = (value) => Array.isArray(value) && value.every(isString);

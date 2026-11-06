@@ -1,4 +1,4 @@
-// scripts/extensions/frames.mjs
+// scripts/structure/extensions/frames.mjs
 // 枠の宣言の生成器: src/app の frame.default.ts(ルートを作ったリポの既定)と frame.ts(その下のリポの宣言)を字面で読み
 // (declarations.literalOf、D2)、ルートの親の鎖を部位と端末ごとに解決した表を枠の根ごとに書く
 // (<枠の根>/_layout/extensions/frameTable.ts。pnpm extensions:generate が書き、extensions:check が照らす)。
@@ -11,12 +11,12 @@ import { join } from "node:path";
 
 import ts from "typescript";
 
-import { FRAME_ROOTS } from "../../src/app/_layout/frame/parts.mjs";
-import { checkFrameDeclaration, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame, sameFrameValue } from "../../src/app/_layout/frame/resolve.mjs";
-import { literalOf } from "../../src/lib/forkOwnership/declarations.mjs";
-import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { FRAME_ROOTS } from "../../../src/app/_layout/frame/parts.mjs";
+import { checkFrameDeclaration, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame, sameFrameValue } from "../../../src/app/_layout/frame/resolve.mjs";
+import { literalOf } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { isBlankSource } from "./overrides.mjs";
-import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../src/lib/screens/routeTree.mjs";
+import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
 
 export const FRAME_FILE = "frame.ts";
 export const FRAME_DEFAULT_FILE = "frame.default.ts";
@@ -25,7 +25,7 @@ export const FRAME_DEFAULT_FILE = "frame.default.ts";
  * 1 行スイッチの検査(switches.mjs)はここに名乗った形をスイッチの既定として扱わない。
  * 形: { by: 持ち主, under: 走査の範囲(リポジトリ直下からの相対), name: ファイル名 | pattern: ファイル名の RegExp }
  */
-export const CLAIMED_DEFAULTS = [{ by: "scripts/extensions/frames.mjs(枠の宣言の既定)", under: "src/app", name: FRAME_DEFAULT_FILE }];
+export const CLAIMED_DEFAULTS = [{ by: "scripts/structure/extensions/frames.mjs(枠の宣言の既定)", under: "src/app", name: FRAME_DEFAULT_FILE }];
 /** 宣言の 2 つの名前と export の名前(並び = 重ねる順) */
 const SOURCES = [
   { file: FRAME_DEFAULT_FILE, exportName: "frameDefault", slot: "default" },

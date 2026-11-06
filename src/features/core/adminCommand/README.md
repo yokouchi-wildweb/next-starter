@@ -6,7 +6,7 @@
 
 ## 足し方
 
-fork は上流のファイルを編集せず、受け口にファイルを置いて `pnpm extensions:generate`(仕組み: `scripts/extensions/README.md`)。
+fork は上流のファイルを編集せず、受け口にファイルを置いて `pnpm extensions:generate`(仕組み: `scripts/structure/extensions/README.md`)。
 
 | 足すもの | 置き場 |
 |---|---|

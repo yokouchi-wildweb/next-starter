@@ -14,7 +14,7 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 | 骨組み（順序に意味がある上流の 4 + 2） | `src/proxies/index.ts`・各 `<名前>.ts` | 上流だけ（fork は index.ts を編集しない） |
 | 枠の項目 | `src/proxies/<名前>.ts`（上流も fork も印なし）。フォルダ形 `<名前>/index.ts` も可 | 1 項目 1 つ `export const handler` か `export const decorator` |
 | 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators の 2 点。機能を閉じる規則は門番 `src/featureGate/extensionPoints.ts`） | 上流だけ |
-| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts` | `pnpm extensions:generate`（手で編集しない。仕組み: `scripts/extensions/README.md`） |
+| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts` | `pnpm extensions:generate`（手で編集しない。仕組み: `scripts/structure/extensions/README.md`） |
 | 検査 | `pnpm extensions:check`（build の冒頭）・`pnpm test:proxy-frame` | — |
 
 - 項目は骨組みの**後ろ**で、ファイル名の順に走る（Tier 順は使わない）。項目どうしは互いに依存しない（前の項目の結果を読まない）。骨組みより前で走らせたい項目は作らない（要るなら上流へ依頼し、骨組みに吸収する）

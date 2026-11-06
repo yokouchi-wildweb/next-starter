@@ -37,7 +37,7 @@ import { APP_FEATURES } from "../../config/app/app-features.config.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
 import { alwaysOnExceptions, alwaysOnRegistries, configRules as featureGateRules, gatedSchema as applySchemaGate } from "../node.ts";
 import { forkAddedFiles } from "../../lib/forkOwnership/check.mjs";
-import { itemsOf, planExtensions } from "../../../scripts/extensions/extensions.mjs";
+import { itemsOf, planExtensions } from "../../../scripts/structure/extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "./alwaysOnEntries.mjs";
 import { findOpenGenericApis, findOpenRouteImports, rulesWithFeatures } from "./routeImports.mjs";
 import { matchesPath, patternCoversRoute } from "../../lib/pathPattern/index.mjs";

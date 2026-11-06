@@ -1,4 +1,4 @@
-// scripts/extensions/pureImports.mjs
+// scripts/structure/extensions/pureImports.mjs
 // 宣言の pureImports: 項目のファイルから値 import を推移的に辿り、proxy・client の両方から読めない物へ届いたら失敗にする。
 // 通すのは zod と src の下の純関数・値だけ。パッケージ(react・next・server-only・drizzle など)と、
 // サービス・部品・hook・DB の定義の置き場は失敗。型だけの import は辿らない。
@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import ts from "typescript";
 
-import { resolveImport } from "../../eslint-rules/resolve-import.mjs";
+import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 
 const ALLOWED_PACKAGES = new Set(["zod"]);
 const FORBIDDEN_PATH = /^src\/app\/|(^|\/)(services|components|hooks|stores)(\/|$)|(^|\/)entities\/drizzle(\.|$)|^src\/lib\/drizzle(\/|$)|\.tsx$/;

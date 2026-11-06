@@ -1,5 +1,5 @@
 // src/features/core/user/extensionPoints.ts
-// user の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// user の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // ロールの一覧: coreRoles/・roles/ の *.role.json から pnpm role:generate が ./extensions/roles.ts を書く
