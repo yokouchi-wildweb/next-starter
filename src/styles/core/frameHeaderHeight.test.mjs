@@ -94,10 +94,10 @@ test("初期値を組み立てた部品のクラスがそのまま(変わった�
   has("src/app/(user)/_layout/Header/HeaderShell.tsx", /data-slot="header-shell"[^>]*className="[^"]*\bpy-2 sm:py-4\b/, "行の上下の余白 py-2 / sm:py-4");
   has("src/app/(user)/_layout/Header/Brand.tsx", /className="h-9 w-auto sm:h-10"/, "ロゴの高さ h-9 / sm:h-10");
   has("src/app/(user)/_layout/Header/index.tsx", /data-slot="header"[\s\S]*?className="[^"]*\bborder-b\b/, "下の線 border-b 1px");
-  has("src/app/admin/_layout/AdminHeader.tsx", /py-\[var\(--admin-header-padding-y\)\]/, "行の上下の余白 = --admin-header-padding-y");
-  has("src/app/admin/_layout/AdminHeader.tsx", /className="block shrink-0 p-1 sm:p-2"/, "ロゴのリンクの余白 p-1 / sm:p-2");
-  has("src/app/admin/_layout/AdminHeader.tsx", /max-h-6 [^"]*sm:max-h-12/, "ロゴの高さ max-h-6 / sm:max-h-12");
-  has("src/app/admin/_layout/AdminHeader.tsx", /<DarkModeSwitch \/>/, "SP の行の高さを決めるダークモードのスイッチ");
+  has("src/app/admin/_layout/AdminHeader.default.tsx", /py-\[var\(--admin-header-padding-y\)\]/, "行の上下の余白 = --admin-header-padding-y");
+  has("src/app/admin/_layout/AdminHeader.default.tsx", /className="block shrink-0 p-1 sm:p-2"/, "ロゴのリンクの余白 p-1 / sm:p-2");
+  has("src/app/admin/_layout/AdminHeader.default.tsx", /max-h-6 [^"]*sm:max-h-12/, "ロゴの高さ max-h-6 / sm:max-h-12");
+  has("src/app/admin/_layout/AdminHeader.default.tsx", /<DarkModeSwitch \/>/, "SP の行の高さを決めるダークモードのスイッチ");
   has("src/components/Fanctional/DarkModeSwitch.tsx", /size="icon"/, "スイッチは icon の大きさ");
   has("src/components/Form/Button/button-variants.ts", /icon: "size-9"/, "icon の大きさ size-9(2.25rem)");
   assert.deepEqual(paddingY, { sp: "0.5rem", pc: "0.75rem" }, "config.css の --admin-header-padding-y");
