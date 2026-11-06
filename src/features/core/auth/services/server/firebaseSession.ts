@@ -13,6 +13,7 @@ import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 
+import { assertAuthenticatedAfterInvalidation } from "./session/invalidationBoundary";
 import { assertSessionStatus, issueSessionToken } from "./session/sessionToken";
 
 export type FirebaseSessionInput = z.infer<typeof FirebaseSessionSchema>;
@@ -84,6 +85,10 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
   if (!user) {
     throw new DomainError("ユーザー情報が見つかりません", { status: 404 });
   }
+
+  // 全セッション失効の境目より前に認証した Firebase のセッションからは、新しいセッションを出さない
+  // (Firebase の取り消しが失敗していても止める。./session/invalidationBoundary.ts)
+  assertAuthenticatedAfterInvalidation(decodedToken, user);
 
   // 状態の分岐(security_locked・pending・withdrawn は 403。inactive は復帰フラグを立ててセッション発行、
   // suspended・banned はセッション発行後に /restricted へ誘導)。establishSession と同じ部品

@@ -146,7 +146,7 @@
     "test:sanitize-redirect": "npx tsx --test src/lib/url/sanitizeRedirectPath.test.mts",
     "test:server-only-stub": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test scripts/test/serverOnlyStub.test.mts",
     "test:registration-milestone": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/postRegistrationMilestones.test.ts",
-    "test:establish-session": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/session/establishSession.test.ts src/features/core/auth/services/server/firebaseSession.lastAuth.test.ts",
+    "test:establish-session": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/session/establishSession.test.ts src/features/core/auth/services/server/firebaseSession.lastAuth.test.ts src/features/core/auth/services/server/session/invalidationBoundary.test.ts",
     "test:create-from-provider": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/user/services/server/registration/createFromProvider.test.ts",
     "test:line-oauth-state": "npx tsx --test src/lib/line/oauthState.test.ts",
     "test:auth-verify-revoked": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/auth/services/server/verifyIdTokenRevoked.test.ts",

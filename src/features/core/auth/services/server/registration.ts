@@ -28,6 +28,7 @@ import type {
   AcquisitionExtras,
   AcquisitionTouch,
 } from "@/features/core/userAcquisition/entities/model";
+import { assertAuthenticatedAfterInvalidation } from "./session/invalidationBoundary";
 import { issueSessionToken } from "./session/sessionToken";
 
 export type RegistrationInput = z.infer<typeof RegistrationSchema>;
@@ -124,6 +125,10 @@ export async function register(
   if (!existingUser) {
     throw new DomainError("仮登録が完了していません。先に仮登録を行ってください", { status: 400 });
   }
+
+  // 全セッション失効の境目より前に認証した Firebase のセッションからは登録もセッションも進めない
+  // (パスワードの書き換えより前。Firebase の取り消しが失敗していても止める。./session/invalidationBoundary.ts)
+  assertAuthenticatedAfterInvalidation(decodedToken, existingUser);
 
   if (USER_REGISTERED_STATUSES.includes(existingUser.status)) {
     throw new DomainError("このアカウントはすでに本登録が完了しています", { status: 409 });

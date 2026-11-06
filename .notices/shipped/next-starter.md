@@ -318,3 +318,4 @@
 - id:20261106-085035-line-oauth-state | severity:info | checkpoint:line-oauth-state
 - id:20261106-133656-local-login-without-firebase | severity:info | checkpoint:local-login-without-firebase
 - id:20261106-142215-tablesuite-commit-once-reorder-guard | severity:info | checkpoint:tablesuite-commit-once-reorder-guard
+- id:20261106-143026-exchange-auth-time-invalidation | severity:info | checkpoint:exchange-auth-time-invalidation

@@ -10,6 +10,7 @@ import {
   verifyUserToken,
   type SessionTokenClaims,
 } from "@/lib/jwt";
+import { isBeforeSessionInvalidation } from "./invalidationBoundary";
 import { issueSessionToken } from "./sessionToken";
 
 // JWT クレームを Auth ドメインのセッション情報として扱うためのユーティリティ群。
@@ -121,13 +122,9 @@ export async function resolveSessionUserOutcome(token: string): Promise<SessionU
   // 遷移で sessionsInvalidatedAt が更新されている場合、それより前に発行された
   // JWT (= jwt.iat < invalidatedAt) は失効とみなす。
   // 発火元: invalidateSessionsForUser (src/features/core/auth/services/server/sessionInvalidation.ts)
-  if (dbUser.sessionsInvalidatedAt) {
-    const invalidatedAtSeconds = Math.floor(
-      dbUser.sessionsInvalidatedAt.getTime() / 1000,
-    );
-    if (payload.iat < invalidatedAtSeconds) {
-      return { user: null };
-    }
+  // 比較は ./invalidationBoundary.ts(Firebase の ID トークンの交換と同じ境目)
+  if (isBeforeSessionInvalidation(payload.iat, dbUser.sessionsInvalidatedAt)) {
+    return { user: null };
   }
 
   const parsed = SessionUserSchema.safeParse({
