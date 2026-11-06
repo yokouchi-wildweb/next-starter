@@ -20,6 +20,7 @@ import { readForkIdentity } from "../../src/lib/forkOwnership/forkIds.mjs";
 import { readDeclaration } from "../../src/lib/forkOwnership/declarations.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { CLAIMERS, checkSwitches, isClaimedDefault } from "./switches.mjs";
+import { intakeRows } from "./intake.mjs";
 import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -293,6 +294,28 @@ test("1 行スイッチ: .default を使うほかの仕組みは形を名乗れ�
     assert.equal(isClaimedDefault("src/features/core/x/frame.default.ts"), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("1 行スイッチ: route の _layout の隣の既定(管理のヘッダー AdminHeader.default.tsx)もスイッチとして数え、Tier1 は .default、fork は .replace を指せる", () => {
+  const D = "export function AdminHeader() { return null; }\n";
+  const files = (target) => ({
+    "src/app/admin/_layout/AdminHeader.default.tsx": D,
+    "src/app/admin/_layout/AdminHeader.tsx": `export { AdminHeader } from "./AdminHeader.${target}";\n`,
+    ...(target === "replace" ? { "src/app/admin/_layout/AdminHeader.replace.tsx": D } : {}),
+  });
+  const upstream = fixture(files("default"));
+  const fork = fixture(files("replace"));
+  try {
+    const tier1 = checkSwitches(upstream, { isTier1: true });
+    assert.deepEqual(tier1.problems, []);
+    assert.deepEqual(tier1.switches.map((sw) => sw.path), ["src/app/admin/_layout/AdminHeader.tsx"]);
+    assert.ok(intakeRows([], tier1.switches).includes("add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え"));
+    assert.deepEqual(checkSwitches(fork, { isTier1: false }).problems, []);
+    assert.match(checkSwitches(fork, { isTier1: true }).problems.join(), /AdminHeader\.tsx/, "上流のスイッチは .default を指す");
+  } finally {
+    rmSync(upstream, { recursive: true, force: true });
+    rmSync(fork, { recursive: true, force: true });
   }
 });
 

@@ -71,7 +71,7 @@ export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 /**
  * DEFAULT_IMPL_DIRS 配下の点つきの名前のファイル(拡張子を除いた名前に "." を含む: `UserLayout.replace.tsx`)を返す。
  * 点つきの名前 = fork の置き換え(.replace)なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)。
- * `*.test.*` は除く(test は置き換えではない)
+ * `*.test.*` と 1 行スイッチの既定 `<名前>.default.*` は除く(どちらも置き換えではない)
  * @param {string[]} files repo 相対パス
  */
 export function findDotNamedFiles(files) {
@@ -82,12 +82,14 @@ export function findDotNamedFiles(files) {
     const stem = base.replace(/\.[^.]+$/, "");
     // test(`UserLayout.test.tsx`)は置き換えではない(既定の隣に置いてよい)
     if (/\.test$/.test(stem)) return false;
+    // 1 行スイッチの既定 <名前>.default(`AdminHeader.default.tsx`)は作ったリポの物で、置き換えではない(隣の素の名前がスイッチ、switches.mjs)
+    if (classifyDottedName(base).kind === "default") return false;
     return stem.includes(".");
   });
 }
 
 /**
- * DEFAULT_IMPL_DIRS 配下で許さない点つきの名前(.replace・.test 以外。旧い fork の名前の印 `UserLayout.acme.tsx` など)を返す。
+ * DEFAULT_IMPL_DIRS 配下で許さない点つきの名前(.replace・.test・1 行スイッチの既定 .default 以外。旧い fork の名前の印 `UserLayout.acme.tsx` など)を返す。
  * 全 Tier で検査する(移し方は dottedNames.mjs の MARKER_MIGRATION_NOTICE)
  * @param {string[]} files repo 相対パス
  */

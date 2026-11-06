@@ -32,6 +32,7 @@ import {
   barrelTarget,
   checkScreenLoaderCall,
   checkLoaderFile,
+  checkAdminPageScreen,
   checkScreenFile,
   checkScreenImports,
   checkLayoutTarget,
@@ -204,6 +205,14 @@ for (const page of pages) {
       const screenProblems = [...checkScreenFile(source, target.name), ...checkScreenImports(source, { isContainerDir })];
       assert.deepEqual(screenProblems, [], `${file}: ${screenProblems.join(" / ")}`);
     });
+    if (dir === "src/app/admin" || dir.startsWith("src/app/admin/")) {
+      test(`${dir}: 管理のページの ${target.name} が AdminPage を描く(ヘッダーの行は AdminPage、全 Tier)`, () => {
+        const file = resolveScreenFile(dir, target);
+        if (!file) return;
+        const adminProblems = checkAdminPageScreen(read(file));
+        assert.deepEqual(adminProblems, [], `${file}: ${adminProblems.join(" / ")}`);
+      });
+    }
     test(`${dir}: ${target.name} が同じルートの loader を import し本体の最上位で await する(D21)`, () => {
       const file = resolveScreenFile(dir, target);
       if (!file) return;
@@ -576,12 +585,15 @@ test("findForkOwnedDirFiles: src/app 配下の _components/ のファイルだ�
   ]);
 });
 
-test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点つきの名前を拾う(*.test.* は除く)、印は .replace 以外", () => {
+test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点つきの名前を拾う(*.test.* と 1 行スイッチの既定 .default は除く)、印は .replace 以外", () => {
   const files = [
     "src/app/(user)/_layout/UserLayout.tsx",
     "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/UserLayout.test.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
+    "src/app/admin/_layout/AdminHeader.default.tsx",
+    "src/app/admin/_layout/AdminHeader.tsx",
+    "src/app/admin/_layout/AdminHeader.replace.tsx",
     "src/app/(user)/_layout/hooks/useHeaderData.ts",
     "src/app/admin/(protected)/_layout/guard.ts",
     "src/app/(user)/wallet/_screen/WalletScreen.tsx",
@@ -593,8 +605,10 @@ test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点
   assert.deepEqual(findDotNamedFiles(files), [
     "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
+    "src/app/admin/_layout/AdminHeader.replace.tsx",
     "src/app/(user)/wallet/_screen/WalletScreen.replace.tsx",
-  ]);
+  ], "1 行スイッチの既定 AdminHeader.default.tsx は作ったリポの物(点つきの置き換えではない)");
+  assert.deepEqual(findOrphanReplaceFiles(files), [], "AdminHeader.replace は隣のスイッチ AdminHeader.tsx を置き換える");
   assert.deepEqual(findMarkerNamedFiles(files), ["src/app/(user)/_layout/Header/index.acme.tsx"]);
 });
 

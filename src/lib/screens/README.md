@@ -11,7 +11,7 @@
 | ファイル | 役割 |
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形） |
-| `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`・守りの鎖の解析 `checkScreenLoaderCall`（D21）/ `parseLoaderGuard` / `parseGuardFile` / `layoutCallsGuard` / `parseLiteral`（地図と共有）（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
+| `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkAdminPageScreen` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`・守りの鎖の解析 `checkScreenLoaderCall`（D21）/ `parseLoaderGuard` / `parseGuardFile` / `layoutCallsGuard` / `parseLiteral`（地図と共有）（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
 | `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
 | `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
@@ -342,11 +342,12 @@ import { BalanceCard } from "./BalanceCard";
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（§13）が見る。補助関数は `utils/` へ | 失敗 |
 | Screen → loader（D21） | `checkScreenLoaderCall`: 同じルートの loader を import し、本体の最上位（最初の `return` より前）で await する | 失敗 |
+| 管理のページは AdminPage を描く | `checkAdminPageScreen`: `src/app/admin` の下の全ページの Screen が `AdminPage`(`@/app/admin/_layout/AdminPage` か相対の `…/_layout/AdminPage`)を import して `<AdminPage …>` を描く。管理のヘッダーの行は AdminPage が描くので、描かないページにはヘッダーが出ない(D134)。字面で Screen のファイル自身を読む: 子の部品の中で AdminPage を描く形は読まずに止める(Screen が AdminPage を描き、子はその中に置く)。ヘッダーを出さないページも AdminPage で包み、隣の `frame.ts` の宣言でヘッダーを隠す。全 Tier・例外なし。ルート地図(`pnpm routes:map`)も同じ関数で行の問題にする | 失敗 |
 | 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>` か `./_layout/<X>.replace`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
-| upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に点つきの名前（fork の丸ごと置き換え `.replace`）が無い。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
-| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findOrphanReplaceFiles` = `<名前>.replace` の隣に置き換える既定（`<名前>.ts(x)` か `<名前>/index.ts(x)`）がある | 失敗 |
+| upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に点つきの名前（fork の丸ごと置き換え `.replace`）が無い（1 行スイッチの既定 `<名前>.default`、例 `admin/_layout/AdminHeader.default.tsx` は作ったリポの物なので数えない）。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
+| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `extensions:check` の `switches.mjs`）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findOrphanReplaceFiles` = `<名前>.replace` の隣に置き換える既定（`<名前>.ts(x)` か `<名前>/index.ts(x)`）がある | 失敗 |
 
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 

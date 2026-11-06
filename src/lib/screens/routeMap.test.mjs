@@ -32,6 +32,15 @@ export async function ${name}(props: ScreenProps) {
   const data = await ${loader}(props);
   return <div>{"it's" + JSON.stringify(data)}</div>;
 }`;
+/** 管理のページの Screen(AdminPage を描く = checkAdminPageScreen) */
+const adminScreen = (name, loader) => `import type { ScreenProps } from "@/lib/screens/types";
+import { AdminPage } from "@/app/admin/_layout/AdminPage";
+import { ${loader} } from "./loader";
+
+export async function ${name}(props: ScreenProps) {
+  const data = await ${loader}(props);
+  return <AdminPage title="y">{JSON.stringify(data)}</AdminPage>;
+}`;
 const loader = (name, guardPath, access) => `import "server-only";
 import { createLoader } from "${guardPath}";
 
@@ -63,7 +72,7 @@ function healthyTree(overrides = {}) {
     "src/app/admin/guard.ts": childGuard("@/app/guard", `{ access: { roleCategories: ["admin"] }, redirectTo: "/admin/login" }`),
     "src/app/admin/layout.tsx": GUARD_LAYOUT,
     "src/app/admin/y/page.tsx": page("YScreen"),
-    "src/app/admin/y/_screen/YScreen.tsx": screen("YScreen", "loadYScreen"),
+    "src/app/admin/y/_screen/YScreen.tsx": adminScreen("YScreen", "loadYScreen"),
     "src/app/admin/y/_screen/loader.ts": loader("loadYScreen", "../../guard", `{ roles: ["admin"] }`),
     ...overrides,
   });
@@ -289,4 +298,9 @@ test(`${ROUTE_MAP_FILE} が src/app からの生成結果と一致し、全行�
     formatRouteMap(rows),
     `${ROUTE_MAP_FILE} が古い。pnpm routes:map で作り直し、差分(方針の変化)を確かめてコミットする(merge で衝突したときも同じ)`,
   );
+});
+
+test("buildRouteMap: 管理のページの Screen が AdminPage を描かなければ生成失敗(全 Tier、案内は AdminPage と frame.ts)", () => {
+  const { problems } = buildRouteMap(healthyTree({ "src/app/admin/y/_screen/YScreen.tsx": screen("YScreen", "loadYScreen") }));
+  assert.ok(problems.some((p) => p.includes("src/app/admin/y/_screen/YScreen.tsx: 管理のページの Screen が <AdminPage> を描いていない") && p.includes("frame.ts")), problems.join("\n"));
 });

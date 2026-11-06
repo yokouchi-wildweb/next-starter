@@ -6,6 +6,7 @@
 // ここは純粋関数だけ(ファイルの読み込みは呼び出し側が read を渡す)。発見は routeTree.mjs と共有。設計: src/lib/screens/README.md §13
 import {
   barrelTarget,
+  checkAdminPageScreen,
   checkScreenLoaderCall,
   layoutCallsGuard,
   parseGuardFile,
@@ -18,6 +19,9 @@ import {
 import { patternCoversRoute } from "../pathPattern/index.mjs";
 
 import { APP_DIR, discoverRoutes } from "./routeTree.mjs";
+
+/** 管理のページの置き場(checkAdminPageScreen を掛ける範囲) */
+const ADMIN_DIR = "src/app/admin";
 
 /** 地図に書き出すファイル(repo 相対) */
 export const ROUTE_MAP_FILE = "src/app/route-map.jsonl";
@@ -155,6 +159,10 @@ export function buildRouteMap({ files, read, gateRules = [] }) {
       rowProblems.push(`${where}: page.tsx の 1 行スイッチから Screen を解決できない`);
     } else {
       chain.push({ kind: "screen", file: screenFile, name: page.target.name });
+      // 管理のページは Screen が AdminPage を描く(ヘッダーの行は AdminPage が描く。全 Tier、例外なし)
+      if (route.dir === ADMIN_DIR || route.dir.startsWith(`${ADMIN_DIR}/`)) {
+        for (const p of checkAdminPageScreen(read(screenFile))) rowProblems.push(`${screenFile}: ${p}`);
+      }
       const call = checkScreenLoaderCall(read(screenFile), page.target.name);
       for (const p of call.problems) rowProblems.push(`${screenFile}: ${p}`);
       const loaderFile = call.loaderImport ? resolveImportFile(screenFile, call.loaderImport, fileSet) : null;

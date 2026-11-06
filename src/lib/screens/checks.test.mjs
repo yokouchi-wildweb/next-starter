@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { checkAdminPageScreen, parseLoaderGuard } from "./checks.mjs";
+import { checkAdminPageScreen, findMarkerNamedFiles, parseLoaderGuard } from "./checks.mjs";
 
 const HEAD = `import { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts, adminEditParts, adminCreateParts, adminSortParts } from "@/wiring/adminScreenParts";\n`;
 const loader = (body) => parseLoaderGuard(HEAD + body);
@@ -105,4 +105,11 @@ test("checkAdminPageScreen: import だけ・描くだけ(import 元が違う)・
 
 test("checkAdminPageScreen: 子の部品の中で AdminPage を描く形は読まずに error(字面で Screen のファイル自身を読む限界 = Screen が AdminPage を描く決まり)", () => {
   assert.equal(checkAdminPageScreen(screen(`import { MyAdminShell } from "../_components/MyAdminShell";\n`, "<MyAdminShell>body</MyAdminShell>")).length, 1);
+});
+
+test("1 行スイッチの既定 <名前>.default は _layout の隣でも旧い印ではない(AdminHeader の差し替えの口)、ほかの点つきの名前は印", () => {
+  assert.deepEqual(
+    findMarkerNamedFiles(["src/app/admin/_layout/AdminHeader.default.tsx", "src/app/admin/_layout/AdminHeader.tsx", "src/app/admin/_layout/AdminHeader.replace.tsx", "src/app/admin/_layout/AdminHeader.acme.tsx"]),
+    ["src/app/admin/_layout/AdminHeader.acme.tsx"],
+  );
 });
