@@ -1,4 +1,6 @@
-// 「フィールドの型」と、型ごとに選べる「フォーム入力種別」（DB ごと）。domain.json の検査（checks/fields.mjs・vocabulary）とロールの検査が使う。
+// src/lib/domain/fields/fieldFormInputs.mjs
+// 「フィールドの型」と、型ごとに選べる「フォーム入力種別」（DB ごと）の表。domain.json の検査（scripts/structure/domain の checks/fields.mjs・vocabulary）と
+// ロールの検査、フォームの既定値のテストが使う（道具とアプリのテストが共有するので lib に置く、D78）。組み込みの入力の名前の正は formInputs.mjs（別の表）。
 // 値は表示名で、domain.json には camelCase（toCamelCase）で書く。
 
 export const FORM_INPUTS = {

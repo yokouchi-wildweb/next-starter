@@ -210,7 +210,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` は主の集まりの項目から従属の domain.json を組む）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`） | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、domain.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。`index.mjs` が全件を並べて止める。止めない食い違いは `*Warnings` と `vocabulary.mjs`。`pairs.mjs` = 組の検査、`accessRules.mjs` = アクセスルールの広さ。ロール・プロフィールの検査も `checks/fields.mjs` を共用する（`scripts/structure/role/checks/`） | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + domain.json）、`names.mjs`（表名・FK 名・63 字）、`featureMap.mjs`（feature-map の中身）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
-| `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（キーの集合）、`collectionField.mjs`（従属の既定の名前・snake_case）、`formInputs.mjs`（型と入力欄の組の表）、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
+| `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（キーの集合）、`collectionField.mjs`（従属の既定の名前・snake_case）(型と入力欄の組の表は `src/lib/domain/fields/fieldFormInputs.mjs`、アプリのテストも読むので lib)、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/structure/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
@@ -218,7 +218,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 よくある変更の置き場:
 
-- **項目の種類を足す**（例: 新しい fieldType） → 型の表 `src/lib/domain/fields/fieldTypes.mjs` に行（属性と `formDefault`）、`spec/formInputs.mjs` に入力種別、各 `render/` は述語で分岐（型名を比べない: lint `field-type-guard`）。フォーム側の手書きは `src/components/Form/Field/types.ts` の型の名前だけ（ずれは `pnpm test:form-defaults` と typecheck が検知する）
+- **項目の種類を足す**（例: 新しい fieldType） → 型の表 `src/lib/domain/fields/fieldTypes.mjs` に行（属性と `formDefault`）、`src/lib/domain/fields/fieldFormInputs.mjs` に入力種別、各 `render/` は述語で分岐（型名を比べない: lint `field-type-guard`）。フォーム側の手書きは `src/components/Form/Field/types.ts` の型の名前だけ（ずれは `pnpm test:form-defaults` と typecheck が検知する）
 - **生成ファイルを足す** → そのカテゴリの `render/<カテゴリ>/` に `(ctx, workspace) → Output` を足し、カテゴリの `index.mjs` の配列に並べる（hooks / components は `catalog.mjs` に 1 行）
 - **生成前の検査を足す** → `checks/` に「エラー文の配列」を返す関数を足し、`checks/index.mjs` に並べる（止めないものは警告の関数に）。テストは `tests/checks.test.mjs`（`pnpm test:dc-checks`）
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す

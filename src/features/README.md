@@ -199,7 +199,7 @@ custom リレーションの UI 実装例:
 | collection | Collection | ⚪ No | 主の集まりの宣言（fieldType `mediaCollection` の項目。下の「主の集まりの項目（mediaCollection）」） |
 
 - リレーションのラベルの既定は関連先の `name` 項目（labelField の既定）なので、選ばれる側のドメインには `{ "name": "name", "fieldType": "string", "formInput": "textInput" }` の項目を置くとよい
-- 型と入力欄の組は `scripts/structure/domain/spec/formInputs.mjs` の表（表に無い組は警告）
+- 型と入力欄の組は `src/lib/domain/fields/fieldFormInputs.mjs` の表（表に無い組は警告）
 
 #### FieldType（Neon）
 

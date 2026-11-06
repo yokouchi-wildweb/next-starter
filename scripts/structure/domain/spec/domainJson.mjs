@@ -3,7 +3,7 @@
 // その DB に無い型を警告する（生成は止めない）。
 
 import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/fields/formInputs.mjs";
-import { FORM_INPUTS } from "./formInputs.mjs";
+import { FORM_INPUTS } from "../../../../src/lib/domain/fields/fieldFormInputs.mjs";
 
 /** 開発者のメモのキー（JSON Schema の注記と同じ名前）。どの階層にも書け、生成器も client の写しも読まない。値は文字列か文字列の配列 */
 export const COMMENT_KEY = "$comment";
@@ -45,7 +45,7 @@ export const FIELD_GROUP_KEYS = new Set(["key", "label", "fields", "collapsible"
 /** フォーム入力種別（組み込みの名前の正は src/lib/domain/fields/formInputs.mjs） */
 export const FORM_INPUT_VALUES = new Set(BUILTIN_FORM_INPUTS);
 
-/** その DB で使える fieldType（spec/formInputs.mjs の表のキー） */
+/** その DB で使える fieldType（src/lib/domain/fields/fieldFormInputs.mjs の表のキー） */
 export function fieldTypesFor(dbEngine) {
   return new Set(Object.keys(FORM_INPUTS[dbEngine] ?? {}));
 }

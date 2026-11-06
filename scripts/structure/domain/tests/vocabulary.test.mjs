@@ -12,7 +12,7 @@ import { formInputNameOf, readRegisteredFormInputs } from "../domain/formInputNa
 import { createWorkspace } from "../domain/workspace.mjs";
 import { vocabularyWarnings } from "../checks/vocabulary.mjs";
 import { FORM_INPUT_VALUES, RELATION_FORM_INPUTS } from "../spec/domainJson.mjs";
-import { FORM_INPUTS } from "../spec/formInputs.mjs";
+import { FORM_INPUTS } from "../../../../src/lib/domain/fields/fieldFormInputs.mjs";
 import { repoRoot } from "./helpers.mjs";
 
 const BASE = {

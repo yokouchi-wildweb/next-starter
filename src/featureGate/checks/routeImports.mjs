@@ -6,7 +6,7 @@
 // - ルート: そのドメインを `@/features/(core/)?<名前>/` で参照するファイル(route.ts / page.tsx と _screen/ _components/ 配下)は、
 //   規則の pathPatterns のどれかに覆われる。意図して閉じないルートは例外表に理由付きで書く
 // - 汎用 CRUD: ドメイン名(フォルダ名の末尾)が汎用 API の登録にあり、閉じていない(INTERNAL_ONLY でない)なら /api/<名前> が覆われる
-// 使い手: src/featureGate/checks/featureGate.test.mjs(実リポと fixture)
+// 使い手: scripts/structure/proxies/featureGate.test.mjs(実リポと fixture)
 
 import { patternCoversRoute } from "../../lib/pathPattern/index.mjs";
 

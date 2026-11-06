@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 
 import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
 
-import type { OneShotTask } from "../../tasks/types";
+import type { OneShotTask } from "../../../src/lib/task";
 
 export const TASKS_DIR = "scripts/tasks";
 

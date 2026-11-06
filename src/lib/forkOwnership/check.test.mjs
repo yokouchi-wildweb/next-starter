@@ -1,100 +1,22 @@
 // 検査コマンド(check.mjs / cli.mjs)の検査。一時の git リポジトリ(親と fork)を os.tmpdir に作る(ネットワーク不要)
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { readFileSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
 
-import { planExtensions } from "../../../scripts/structure/extensions/extensions.mjs";
 import { forkAddedFiles, runCheck } from "./check.mjs";
+import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, makeParent, nextId, openTmp, PARENT_ID, recordLedger, tmpRoot, write } from "./testRepos.mjs";
 
 const CLI = resolve(import.meta.dirname, "cli.mjs");
-const PARENT_ID = "parent";
-const FORK_ID = "child";
-
-const ENV = {
-  ...process.env,
-  GIT_AUTHOR_NAME: "t",
-  GIT_AUTHOR_EMAIL: "t@example.com",
-  GIT_COMMITTER_NAME: "t",
-  GIT_COMMITTER_EMAIL: "t@example.com",
-  GIT_CONFIG_GLOBAL: "/dev/null",
-  GIT_CONFIG_NOSYSTEM: "1",
-};
-delete ENV.FORK_OWNERSHIP_PARENT;
-
-const git = (cwd, ...args) => execFileSync("git", args, { cwd, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-
-const write = (root, path, text) => {
-  mkdirSync(dirname(join(root, path)), { recursive: true });
-  writeFileSync(join(root, path), text);
-};
-
-const commitAll = (root, message) => {
-  git(root, "add", "-A");
-  git(root, "commit", "-q", "-m", message);
-};
-
-let tmp;
-let counter = 0;
-
-const LINEAGE_PREAMBLE = "# lineage\n> **ROLE**: 中間層の規則\n<!-- end preamble -->\n";
-
-/** 親(Tier1 役)を作る。withIntake: false = この検査を含まない版、withLineage = 前置きだけの lineage.md と append の受け口 */
-function makeParent({ withIntake = true, withLineage = false } = {}) {
-  const root = join(tmp, `parent-${(counter += 1)}`);
-  mkdirSync(root);
-  git(root, "init", "-q", "-b", "main");
-  git(root, "remote", "add", "origin", `git@github.com:acme/parent.git`);
-  write(root, "src/lib/CATALOG.md", `# 目録\n\n## ${PARENT_ID}\n- src/lib/crud — CRUD\n`);
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${PARENT_ID}\ndownstream: yes\n`);
-  write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
-  write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
-  write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
-  write(root, ".notices/README.md", "# notices\n");
-  write(root, ".notices/20260101-000000-inherited.md", "# DOWNSTREAM NOTICE id:20260101-000000-inherited\n");
-  if (withIntake) {
-    write(
-      root,
-      "src/lib/forkOwnership/intake.txt",
-      `edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\n${withLineage ? "append .claude/rules/lineage.md  # 中間層の節\n" : ""}`,
-    );
-  }
-  if (withLineage) write(root, ".claude/rules/lineage.md", LINEAGE_PREAMBLE);
-  commitAll(root, "base");
-  return root;
-}
-
-/** 親を clone して fork を作る(親の remote = upstream、origin = acme/child、名前は project.md の fork_id: child) */
-function makeFork(parent) {
-  const root = join(tmp, `fork-${(counter += 1)}`);
-  git(tmp, "clone", "-q", parent, root);
-  git(root, "remote", "rename", "origin", "upstream");
-  git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
-  write(root, "src/features/game/game.ts", "export const game = 1;\n");
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\ndownstream: yes\n`);
-  // 台帳の初めの行: 取り込んだ上流(Tier1)の版を upstream: に(D29)
-  write(root, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
-  commitAll(root, "fork start");
-  return root;
-}
-
-/** 台帳に 1 行足す(upstream: = 今取り込んだ親の版) */
-const recordLedger = (fork, id, ledger = FORK_ID) => {
-  const path = `.notices/applied/${ledger}.md`;
-  const current = readFileSync(join(fork, path), "utf8");
-  write(fork, path, `${current}- id:${id} | date:x | commit:- | upstream:${git(fork, "rev-parse", "upstream/main").trim()} | notes:-\n`);
-};
-
 const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
 
 describe("ownership:check", () => {
   before(() => {
-    tmp = mkdtempSync(join(tmpdir(), "fork-ownership-"));
+    openTmp();
   });
   after(() => {
-    rmSync(tmp, { recursive: true, force: true });
+    closeTmp();
   });
 
   describe("緊急修正の pick(台帳の picked:)", () => {
@@ -293,43 +215,6 @@ describe("ownership:check", () => {
     });
   });
 
-  test("受け口の行は生成区画(宣言から): core の受け口の印なしの項目と core の 1 行スイッチの .replace は合格、受け口の外の core への追加は core-add", () => {
-    const parent = makeParent();
-    const intakePath = "src/lib/forkOwnership/intake.txt";
-    write(parent, intakePath, `${readFileSync(join(parent, intakePath), "utf8")}# === AUTO-GENERATED intake START ===\n# === AUTO-GENERATED intake END ===\n`);
-    write(parent, "src/features/core/user/extensionPoints.ts", 'export const extensionPoints = { cleanupHandlers: { dir: "cleanupHandlers", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };\n');
-    write(parent, "src/features/core/user/cleanupHandlers/base.ts", "export const handler = 1;\n");
-    write(parent, "src/features/core/payment/enricher.default.ts", "export function enrich() {}\n");
-    write(parent, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.default";\n');
-    // 生成区画は実物の生成器(pnpm extensions:generate の中身)で書く
-    const plan = planExtensions(parent);
-    assert.deepEqual(plan.problems, []);
-    write(parent, intakePath, plan.intake.content);
-    assert.match(plan.intake.content, /^add src\/features\/core\/user\/cleanupHandlers\/\*\.\{ts,tsx\}/m);
-    assert.match(plan.intake.content, /^add src\/features\/core\/payment\/enricher\.replace\.\{ts,tsx\}/m);
-    commitAll(parent, "receptacles");
-
-    const fork = makeFork(parent);
-    write(fork, "src/features/core/user/cleanupHandlers/mine.ts", "export const handler = 2;\n");
-    write(fork, "src/features/core/user/cleanupHandlers/folder/index.ts", "export const handler = 3;\n");
-    write(fork, "src/features/core/payment/enricher.replace.ts", "export function enrich() {}\n");
-    write(fork, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.replace";\n');
-    commitAll(fork, "plain items");
-    let result = runCheck(fork);
-    const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
-    assert.equal(reasonOf("src/features/core/user/cleanupHandlers/mine.ts"), "added");
-    assert.equal(reasonOf("src/features/core/user/cleanupHandlers/folder/index.ts"), "added");
-    assert.equal(reasonOf("src/features/core/payment/enricher.replace.ts"), "added");
-    assert.equal(reasonOf("src/features/core/payment/enricher.ts"), "outside-intake", "スイッチの書き換えは手書きの edit の行(この fixture には無い)");
-
-    write(fork, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.default";\n');
-    write(fork, "src/features/core/user/helper.ts", "export const x = 1;\n");
-    commitAll(fork, "outside");
-    result = runCheck(fork);
-    assert.equal(reasonOf("src/features/core/user/helper.ts"), "core-add");
-    assert.equal(reasonOf("src/features/core/user/cleanupHandlers/mine.ts"), "added");
-  });
-
   test("fork の追加と受け口の中の書き換えだけなら合格(0)", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/config/app.config.ts", "export const app = { name: 'child' };\n");
@@ -456,7 +341,7 @@ describe("ownership:check", () => {
 
   test("親を取得できない → 未検証", () => {
     const fork = makeFork(makeParent());
-    git(fork, "remote", "set-url", "upstream", join(tmp, "missing"));
+    git(fork, "remote", "set-url", "upstream", join(tmpRoot(), "missing"));
     const result = runCheck(fork, { branch: "main" });
     assert.equal(result.status, "unverified");
     assert.match(result.reason, /取得できない/);
@@ -485,8 +370,8 @@ describe("ownership:check", () => {
 
   /** 下の Tier を作る: 親を clone、名前の宣言と、取り込んだ親の版を upstream: に書いた台帳 */
   const makeTier = (upper, name) => {
-    const root = join(tmp, `${name}-${(counter += 1)}`);
-    git(tmp, "clone", "-q", upper, root);
+    const root = join(tmpRoot(), `${name}-${nextId()}`);
+    git(tmpRoot(), "clone", "-q", upper, root);
     git(root, "remote", "rename", "origin", "upstream");
     git(root, "remote", "add", "origin", `git@github.com:acme/${name}.git`);
     write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${name}\ndownstream: yes\n`);

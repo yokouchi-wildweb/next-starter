@@ -17,7 +17,7 @@ import type { FieldDataType, FieldDataTypeFirestore } from "@/components/Form/Fi
 import { isCheckGroupFieldType } from "@/components/Form/Field/Configured/checkGroupFieldTypes";
 import { isCheckboxArray } from "@/components/Form/Field/Configured/inputResolver";
 import { FIELD_TYPES } from "@/lib/domain/fields/fieldTypes.mjs";
-import { FORM_INPUTS } from "../../../../scripts/structure/domain/spec/formInputs.mjs";
+import { FORM_INPUTS } from "@/lib/domain/fields/fieldFormInputs.mjs";
 
 import { buildFormDefaultValues } from "./defaultValueBuilder";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
@@ -233,7 +233,7 @@ type TableNotInUnion = Exclude<TableFieldType, FieldDataType | FieldDataTypeFire
 const unionCovered: [UnionNotInTable] extends [never] ? true : UnionNotInTable = true;
 const tableCovered: [TableNotInUnion] extends [never] ? true : TableNotInUnion = true;
 
-// spec/formInputs.mjs の表（domain.json の検査が照らす型）が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
+// src/lib/domain/fields/fieldFormInputs.mjs の表（domain.json の検査が照らす型）が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
 type MissingNeon = Exclude<keyof (typeof FORM_INPUTS)["Neon"], FieldDataType>;
 type MissingFirestore = Exclude<keyof (typeof FORM_INPUTS)["Firestore"], FieldDataTypeFirestore>;
 const neonCovered: [MissingNeon] extends [never] ? true : MissingNeon = true;

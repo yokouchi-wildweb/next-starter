@@ -31,20 +31,19 @@ import { join, relative, resolve, sep } from "node:path";
 import { getTableName, is } from "drizzle-orm";
 import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
 
-import { serviceRegistry } from "../../registry/serviceRegistry.ts";
-import { isGenericApiClosed } from "../../lib/domain/definition/apiAccess.ts";
-import { APP_FEATURES } from "../../config/app/app-features.config.ts";
-// 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
-import { alwaysOnExceptions, alwaysOnRegistries, configRules as featureGateRules, gatedSchema as applySchemaGate } from "../node.ts";
-import { forkAddedFiles } from "../../lib/forkOwnership/check.mjs";
-import { itemsOf, planExtensions } from "../../../scripts/structure/extensions/extensions.mjs";
-import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "./alwaysOnEntries.mjs";
-import { findOpenGenericApis, findOpenRouteImports, rulesWithFeatures } from "./routeImports.mjs";
-import { matchesPath, patternCoversRoute } from "../../lib/pathPattern/index.mjs";
+import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
+import { isGenericApiClosed } from "../../../src/lib/domain/definition/apiAccess.ts";
+import { APP_FEATURES } from "../../../src/config/app/app-features.config.ts";
+import { alwaysOnExceptions, alwaysOnRegistries, gatedSchema as applySchemaGate, rules as featureGateRules } from "../../../src/featureGate/node.ts";
+import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
+import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
+import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
+import { findOpenGenericApis, findOpenRouteImports, rulesWithFeatures } from "../../../src/featureGate/checks/routeImports.mjs";
+import { matchesPath, patternCoversRoute } from "../../../src/lib/pathPattern/index.mjs";
 
 // schemaRegistry は `export *` の再 export だけで構成されるため、ESM の namespace import では
 // 名前を拾えない（CJS として読まれ default しか見えない）。db:push と同じく require で全 export を得る
-const schema = createRequire(import.meta.url)("../../registry/schemaRegistry.ts");
+const schema = createRequire(import.meta.url)("../../../src/registry/schemaRegistry.ts");
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 const APP_DIR = join(ROOT, "src/app");

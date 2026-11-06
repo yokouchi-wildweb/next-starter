@@ -1,5 +1,5 @@
 // 検査: 項目（型と入力欄の組・選択肢・既定値）。
-// 型と入力欄の組は spec/formInputs.mjs の表、既定値を持てるか・値の形は型の表（src/lib/domain/fields/fieldTypes.mjs）が正。
+// 型と入力欄の組は src/lib/domain/fields/fieldFormInputs.mjs の表、既定値を持てるか・値の形は型の表（src/lib/domain/fields/fieldTypes.mjs）が正。
 // 生成器は合わない組・空の選択肢（z.enum([]) と空の pgEnum）・既定値を持てない型の .default(...) を黙って書くので、生成前に止める。
 // 表に無い型は扱わない（今の扱い = 語彙の警告だけ。checks/vocabulary.mjs）。
 // 型と入力欄の組の外れ・入力欄（select など）の選択肢の無さは、実行時に別の場所から補う使い方があるので警告だけ（fieldsWarnings）
@@ -14,7 +14,7 @@ import {
   isTextFieldType,
   tsType,
 } from "../spec/fieldTypes.mjs";
-import { FORM_INPUTS } from "../spec/formInputs.mjs";
+import { FORM_INPUTS } from "../../../../src/lib/domain/fields/fieldFormInputs.mjs";
 
 /** 選択肢（options）が要る入力欄。checkbox は値が配列の型のときだけ */
 const CHOICE_INPUTS = new Set(["select", "radio", "multiSelect"]);
@@ -81,7 +81,7 @@ export function fieldsIssues(config) {
 }
 
 /**
- * 止めない警告: 型と入力欄の組が dc の表（spec/formInputs.mjs）に無い、選択肢が要る入力欄に options が無い
+ * 止めない警告: 型と入力欄の組が dc の表（src/lib/domain/fields/fieldFormInputs.mjs）に無い、選択肢が要る入力欄に options が無い
  * @param {object} config domain.json
  * @returns {string[]}
  */
@@ -92,7 +92,7 @@ export function fieldsWarnings(config, registeredInputs = new Set()) {
     const where = `fields "${field.name}"`;
     const inputs = allowedInputs(config.dbEngine, field.fieldType);
     if (inputs && field.formInput !== undefined && !inputs.has(field.formInput) && !registeredInputs.has(field.formInput)) {
-      warnings.push(`${where}: fieldType "${field.fieldType}" に formInput "${field.formInput}" は表（spec/formInputs.mjs）に無い組です（${[...inputs].join(" / ")}）`);
+      warnings.push(`${where}: fieldType "${field.fieldType}" に formInput "${field.formInput}" は表（src/lib/domain/fields/fieldFormInputs.mjs）に無い組です（${[...inputs].join(" / ")}）`);
     }
     if (isEnumFieldType(field.fieldType) && field.formInput === "switchInput" && Array.isArray(field.options) && field.options.length !== 2) {
       warnings.push(`${where}: enum の formInput "switchInput" は options がちょうど 2 つのときだけ働きます（1 つ目 = オン、2 つ目 = オフ。今 ${field.options.length} つ。select か radio にするか、選択肢を 2 つに）`);

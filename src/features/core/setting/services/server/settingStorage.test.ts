@@ -10,7 +10,6 @@ import { test } from "node:test";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-import { COLUMN_EXISTS_SQL, COPY_SQL, VERIFY_SQL, task } from "../../../../../../scripts/tasks/setting-copy-list-per-page";
 import { fields } from "../../extensions/fields";
 import { sections } from "../../extensions/sections";
 import { publicSettingKeys, settingKeysFor } from "./access";
@@ -94,13 +93,6 @@ test("上流のキーの既定: adminListPerPage 100、メンテナンスは無�
   assert.equal(values.adminListPerPage, 100);
   assert.equal(values.maintenanceEnabled, false);
   assert.equal(values.maintenanceStartAt, null);
-});
-
-test("写す task: 既にあるキーを書き換えない、一致の確かめ、列が無ければ何もしない", () => {
-  assert.equal(task.name, "setting-copy-list-per-page");
-  assert.match(COPY_SQL, /WHERE NOT \(COALESCE\(extended, '\{\}'::jsonb\) \? 'adminListPerPage'\)/);
-  assert.match(VERIFY_SQL, /IS DISTINCT FROM admin_list_per_page::text/);
-  assert.match(COLUMN_EXISTS_SQL, /admin_list_per_page/);
 });
 
 test("権限: キーの allowRoles → セクションの allowRoles → 管理カテゴリ全員", () => {

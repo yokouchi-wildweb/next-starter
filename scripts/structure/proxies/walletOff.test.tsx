@@ -1,4 +1,4 @@
-// src/featureGate/checks/walletOff.test.tsx
+// scripts/structure/proxies/walletOff.test.tsx
 // wallet と payment を閉じたとき、core を編集せずにウォレット・購入まわりが何も動かないこと(L1.15、routed 20261105-070903-wallet-purchase-pluggable)。
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:feature-gate:client
 // (a) cron のタスク: 住所が閉じ discover の closedBy が付く(route・pnpm task・vercel.json から外れる)
@@ -21,9 +21,9 @@ import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "
 import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
 import { configRules, rules } from "@/featureGate/node";
 
-import { folderSourcePattern, gatedImports } from "./alwaysOnEntries.mjs";
-import { loadCronTasks } from "../../../scripts/structure/cron/discover";
-import { planExtensions } from "../../../scripts/structure/extensions/extensions.mjs";
+import { folderSourcePattern, gatedImports } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
+import { loadCronTasks } from "../cron/discover";
+import { planExtensions } from "../extensions/extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 const OFF: FeatureName[] = ["wallet", "payment"];

@@ -16,7 +16,7 @@ const FRAME_OVERRIDE = /^src\/app\/(?:.*\/)?frame\.override\.tsx?$/;
 /** 空白とコメントだけのソースか(cron・serviceRegistry の生成器と同じ判定) */
 export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
 
-/** override のファイルか(<対象>.override.ts(x)。素の override.ts は override ではない: cron の旧名は scripts/structure/cron/discover.ts が止める) */
+/** override のファイルか(<対象>.override.ts(x)。素の override.ts は override ではない: cron の旧名は src/lib/cron/discover.ts が止める) */
 const isOverridePath = (path) => {
   const name = path.slice(path.lastIndexOf("/") + 1);
   if (!OVERRIDE_FILE.test(name)) return false;

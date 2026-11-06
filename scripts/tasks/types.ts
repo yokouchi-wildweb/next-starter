@@ -1,9 +1,2 @@
-// scripts/tasks/types.ts
-
-/** ワンショット・任意タスク(scripts/tasks/<name>.ts の export const task)。定期実行はされない */
-export type OneShotTask = {
-  /** pnpm task <name> の名前。ファイル名の <name> と同じ */
-  name: string;
-  /** 重い依存は run の中で動的 import する */
-  run: () => Promise<Record<string, unknown>>;
-};
+// scripts/tasks/types.ts — 型の中継(上流と fork のタスクが `./types` から読むため残す。型の本体は src/lib/task。計画書 07 で定義を移す時に消す)
+export type { OneShotTask } from "../../src/lib/task";
