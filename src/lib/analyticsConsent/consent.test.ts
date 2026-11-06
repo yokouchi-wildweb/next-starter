@@ -3,21 +3,24 @@
 // アクセス解析の送信の門の検査（Firebase 不要）。
 // 1. 設定と同意の組み合わせ（decideAnalyticsAllowed）
 // 2. 同意の状態の購読
-// 3. Firebase Analytics は許可が出るまで getAnalytics を呼ばず、page_view / trackEvent を送らない。取り消しで収集を止める
+// 3. Firebase Analytics は許可が出るまで初期化(initializeAnalytics)せず、page_view / trackEvent を送らない。取り消しで収集を止める
+// 4. 初期化は send_page_view: false(gtag の自動の page_view を止め、page_view は <FirebaseAnalytics /> の 1 回だけ)
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const sdk = {
-  getAnalytics: 0,
+  initialized: 0,
+  initOptions: [] as unknown[],
   events: [] as string[],
   collection: [] as boolean[],
 };
 mock.module(pathToFileURL(require.resolve("firebase/analytics")).href, {
   namedExports: {
-    getAnalytics: () => {
-      sdk.getAnalytics += 1;
+    initializeAnalytics: (_app: unknown, options: unknown) => {
+      sdk.initialized += 1;
+      sdk.initOptions.push(options);
       return { app: "mock" };
     },
     logEvent: (_instance: unknown, name: string) => void sdk.events.push(name),
@@ -80,25 +83,26 @@ test("setAnalyticsConsent は変わったときだけ購読者に知らせ、解
   assert.equal(consent.getAnalyticsConsent(), "granted");
 });
 
-test("無効の間は getAnalytics を呼ばず、page_view も trackEvent も送らない", () => {
+test("無効の間は初期化せず、page_view も trackEvent も送らない", () => {
   consent.setAnalyticsConsent("granted");
   firebase.trackPageView("/a");
   firebase.trackEvent("click");
   assert.equal(firebase.getFirebaseAnalytics(), null);
-  assert.equal(sdk.getAnalytics, 0);
+  assert.equal(sdk.initialized, 0);
   assert.deepEqual(sdk.events, []);
 });
 
 test("有効でも同意が出るまで送らず、同意で送り、取り消しで収集を止める", () => {
   config.enabled = true;
   firebase.trackPageView("/a");
-  assert.equal(sdk.getAnalytics, 0);
+  assert.equal(sdk.initialized, 0);
   assert.deepEqual(sdk.events, []);
 
   consent.setAnalyticsConsent("granted");
   firebase.trackPageView("/a");
   firebase.trackEvent("click");
-  assert.equal(sdk.getAnalytics, 1);
+  assert.equal(sdk.initialized, 1);
+  assert.deepEqual(sdk.initOptions, [{ config: { send_page_view: false } }], "初期化で自動の page_view を送らない");
   assert.deepEqual(sdk.events, ["page_view", "click"]);
 
   consent.setAnalyticsConsent("denied");

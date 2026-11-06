@@ -308,3 +308,4 @@
 - id:20261106-011616-create-from-provider | severity:info | checkpoint:create-from-provider
 - id:20261106-094557-shared-shelf-admin-header-band | severity:breaking | checkpoint:shared-shelf-admin-header-band | uses:scripts/codemods/admin-header.mjs, scripts/codemods/guarded-router.mjs
 - id:20261106-094821-shared-shelf-admin-header-portal | severity:breaking | checkpoint:shared-shelf-admin-header-portal | fixes:20261105-082025-frame-declarations | uses:scripts/codemods/admin-header.mjs, scripts/codemods/guarded-router.mjs | pick:-
+- id:20261106-105431-analytics-single-page-view | severity:info | checkpoint:analytics-single-page-view

@@ -111,7 +111,7 @@ localStorage.setItem('debug_mode', 'true');
 
 #### ページビューの自動トラッキング
 
-`src/app/layout.tsx` に `<FirebaseAnalytics />` コンポーネントが配置されており、送ってよいとき（上の 3.）はルート遷移時に自動で `page_view` イベントが送信されます。同意が後から出たときは、その時点のページの `page_view` を 1 回送ります。
+`src/app/layout.tsx` に `<FirebaseAnalytics />` コンポーネントが配置されており、送ってよいとき（上の 3.）はルート遷移時に自動で `page_view` イベントが送信されます。同意が後から出たときは、その時点のページの `page_view` を 1 回送ります。`page_view` を送るのはこのコンポーネントだけで、初期化は `send_page_view: false`（gtag が初期化のときに自分で送る page_view を止める。止めないと最初のページが 2 回数えられる）。GA4 のプロパティの拡張計測「ブラウザの履歴イベントに基づくページの変更」を有効にすると遷移ごとに gtag も送るので、無効にしておく
 
 ```tsx
 // src/app/layout.tsx（設定済み）

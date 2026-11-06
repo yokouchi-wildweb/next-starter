@@ -2,7 +2,7 @@
 
 import {
   type Analytics,
-  getAnalytics,
+  initializeAnalytics,
   logEvent,
   setAnalyticsCollectionEnabled,
 } from "firebase/analytics";
@@ -26,7 +26,7 @@ if (typeof window !== "undefined") {
  * - Firebase クライアント自体が未設定の場合は null を返す
  * - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID が未設定の場合は null を返す
  * - 送ってよくない（ANALYTICS_CONFIG.enabled が false、または同意が無い）場合は null を返す。
- *   getAnalytics は呼んだ時点で gtag を読み込むので、許可が出るまで初期化しない（@/lib/analyticsConsent）
+ *   初期化は呼んだ時点で gtag を読み込むので、許可が出るまで初期化しない（@/lib/analyticsConsent）
  */
 export function getFirebaseAnalytics(): Analytics | null {
   if (typeof window === "undefined") return null;
@@ -38,7 +38,9 @@ export function getFirebaseAnalytics(): Analytics | null {
   if (!isAnalyticsAllowed()) return null;
 
   if (!analytics) {
-    analytics = getAnalytics(app);
+    // send_page_view: false = 初期化で gtag が自分で page_view を送らない。page_view は <FirebaseAnalytics /> がルートごとに 1 回だけ送る
+    // (既定の true のままだと最初のページが 2 回数えられる)
+    analytics = initializeAnalytics(app, { config: { send_page_view: false } });
   }
 
   return analytics;
