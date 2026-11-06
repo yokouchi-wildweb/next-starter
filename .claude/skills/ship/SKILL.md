@@ -35,7 +35,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - `domain.json`・ロール定義(`*.role.json`)・`*.profile.json` → `pnpm forge`(生成と事後検査を 1 回で。生成物・`src/features/feature-map.txt`・ルート地図の変化を範囲に含める。表が変わった案内は報告に書く)
      - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
      - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)
-     - 上のどれでもない: 変えたファイルの隣にある `*.test.*` と、package.json の `test:*` のうち変えた領域の名前のもの
+     - 上のどれでもない: `pnpm test --changed`(範囲の変更に import で届くテスト + 同じフォルダのテスト。「依存を辿れなかった」と出たテストは同じフォルダの規則で選ばれている。DB のテストは回さない: `*.db.test.*` を変えたら `pnpm test --changed --db`。`scripts/runner/test/README.md`)
    - notice を含めるとき(手順 5 の後)は `pnpm check notices`(名前で呼ぶと watch を見ずに回す = test:notices)。
 3. **下流への影響を判定する**(下流を持つリポだけ): 次のどれかに当たれば notice が要る。当たらなければ「notice 不要: <理由>」を報告に 1 行書いて手順 6 へ。
    - fork が手を入れうるファイル(docs・README・registry・config・core の部品など)の削除・移動(`.notices/README.md`「削除・移動は notice と同じ commit で出す」)
