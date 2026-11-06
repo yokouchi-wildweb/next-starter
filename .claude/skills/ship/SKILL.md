@@ -24,16 +24,15 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - 部分的に編集しただけのファイルなら、`git diff HEAD -- <file>` でその変更を戻していないことを確かめる
      移したものは報告とコミット本文に書く。部分的な編集は作業ツリーが HEAD の上にあるので他の変更が自然に残り、消えるのは削除・移動・丸ごとの書き直しのときだけ。
 2. **検査**(落ちたら直して再実行。直し方が自明でなければ止まる):
+   - いつも: `pnpm check --gate=ship`(門 ship に乗る生成器・検査器の check を全部、順に回す: role・domain・registry・routes・cron・cycles・config・eslint。`scripts/runner/gates/README.md`)。落ちたら直して回し直す(生成のずれは `pnpm generate <対象>`)。
    - コード(`.ts` / `.tsx` / `.js` / `.mjs`)を変えた: `pnpm typecheck` と `pnpm exec eslint <変えたコードのファイル>`。
-   - 変えた場所に応じたもの(当たるものは全部):
+   - 変えた場所に応じたもの(当たるものは全部。門に乗った検査 = registry:check・routes:map --check・cron:check・test:config-module-load・eslint:required・test:cycles は上の `pnpm check --gate=ship` が回すので重ねない):
      - `CLAUDE.md`・`.claude/rules/core/` → `pnpm test:core-rules`
      - `src/lib/` の追加・削除・`src/lib/CATALOG.md` → `pnpm test:lib-catalog`
-     - `src/app/api/cron/` → `pnpm cron:check`
-     - `domainEntry.ts`・`domain.json` → `pnpm registry:check`(ずれていれば `pnpm registry:generate`)
+     - `domainEntry.ts`・`domain.json` → 登録表がずれていれば `pnpm generate registry`(= registry:generate)
      - `entities/drizzle.ts`・`src/registry/schemaRegistry.ts` → `pnpm test:schema-registry`。index を変えたら `pnpm db:push:check` が出す差分の説明を報告に書く(db:push 自体は実行しない)
      - `src/featureGate/rules/`・`src/proxies/*.ts` の項目・cron の `task.ts` → `pnpm extensions:check`(ずれていれば `pnpm extensions:generate`)と `FEATURE_GATE_CHECK=all pnpm test:feature-gate`
-     - `src/config/ui/` → `pnpm test:config-module-load`
-     - ページ・ルートの追加・削除・移動、loader・guard.ts の変更 → `pnpm routes:map` で地図(`src/app/route-map.jsonl`)を作り直して範囲に含め、`pnpm test:route-map`
+     - ページ・ルートの追加・削除・移動、loader・guard.ts の変更 → `pnpm routes:map` で地図(`src/app/route-map.jsonl`)を作り直して範囲に含め、`pnpm test:route-map`(地図の一致は check --gate=ship も見る)
      - `domain.json`・ロール定義(`*.role.json`)・`*.profile.json` → `pnpm forge`(生成と事後検査を 1 回で。生成物・`src/features/feature-map.txt`・ルート地図の変化を範囲に含める。表が変わった案内は報告に書く)
      - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
      - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)

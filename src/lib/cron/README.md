@@ -53,7 +53,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   個人情報の retention prune は機能を後から無効にしても既存行を消し続ける必要があるため、門の規則にも enabled にも載せない
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
-  （`pnpm build` の冒頭で `cron:check --vercel-build`）と `pnpm deploy:all` が止まる。漏れたまま本番が動き続けることはない
+  （`pnpm build` の冒頭の門 `pnpm check --gate=build` が cron の検査を `--vercel-build` で回す）と `pnpm deploy:all` が止まる。漏れたまま本番が動き続けることはない
 
 ## 時間予算付きバッチ（maxDuration で殺されないために）
 

@@ -1,6 +1,6 @@
 // scripts/structure/cycles/cycles.test.mjs
 // src 全体に静的な値の import の輪が無いこと(D24・D25)と、判定の契約。
-// 実行: pnpm test:cycles(build の冒頭でも走る)
+// 実行: pnpm test:cycles(build の冒頭の門 check --gate=build でも走る)
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

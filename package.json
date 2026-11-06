@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm test:cycles && pnpm registry:check && pnpm extensions:check && pnpm eslint:required && pnpm cron:check --vercel-build && next build && pnpm styles:check-build",
+    "build": "pnpm check --gate=build && pnpm extensions:check && next build && pnpm check --gate=build:post",
     "start": "next start",
     "lint": "eslint .",
     "eslint:required": "node scripts/structure/eslint/requiredRules.mjs",

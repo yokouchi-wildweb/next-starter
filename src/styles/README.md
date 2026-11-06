@@ -346,7 +346,7 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 
 - **症状**: パレット・角丸・書体が一斉に失われる(`--primary` / `--radius` / `--font-geist-sans` が未定義)。崩れた本番の CSS チャンク(`/_next/static/**/*.css`)を取得して `--primary:` を grep すると無い。ビルドログに `Restored build cache from previous deployment` がある
 - **起きやすい状況**: デプロイ頻度の低い fork が、CSS ファイルを足す上流 notice(palette.default.css / typography.default.css の導入、`core/` への入れ替えなど)を何件もまとめて取り込んだ直後の初回デプロイ
-- **ガード**: `pnpm build` の末尾で `pnpm styles:check-build` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
+- **ガード**: `pnpm build` の末尾の門 `pnpm check --gate=build:post` で `styles:check-build` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
 - **直し方**: キャッシュを使わずに再デプロイする。`pnpm deploy:all -- --prod --force`、またはダッシュボードの Redeploy で「Use existing Build Cache」を外す、または環境変数 `VERCEL_FORCE_NO_BUILD_CACHE=1` を一時的に置いて再デプロイし成功後に外す。キャッシュを常時無効にはしない(Hobby プランはビルド CPU が逼迫する)
 - **運用ルール**: CSS ファイルを足す・構成を変える notice を取り込んだ後の初回本番デプロイは、ガードの有無にかかわらずキャッシュ無しで行う
 - **目印の変数**: `@theme` の外に変数を持たない upstream のファイル(`core/` の theme / animations / base / components / admin)は、固有の目印 `--styles-marker-<名前>: 1`(枠の規則 frame.css は `--styles-marker-frame`)を宣言して検査対象にしている。`core/` に CSS を足すときも、固有の変数が無ければ目印を 1 つ置く

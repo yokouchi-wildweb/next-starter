@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/structure/bundle/clientChunks.mjs
 // next build の結果で、管理と debug を除くページの client chunk に、全ドメインの設定と列名が届いていないかを確かめる。
-// 実行: pnpm test:client-chunks(先に next build)。問題あり = exit 1、build の結果が無い = exit 2(未検証、通過ではない)。
+// 実行: pnpm build の末尾の門 pnpm check --gate=build:post で毎回 / 手で pnpm test:client-chunks(先に next build)。問題あり = exit 1、build の結果が無い = exit 2(未検証、通過ではない)。
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";

@@ -1,7 +1,7 @@
 // scripts/structure/eslint/requiredRules.mjs
 //
 // 全 Tier の必須の ESLint 規則(eslint-rules/required-rules.mjs)が、fork の eslint.config.fork.mjs を最後に読んだ
-// 最終の設定でも error のままかを確かめる。pnpm eslint:required(pnpm build から呼ぶ)。
+// 最終の設定でも error のままかを確かめる。pnpm eslint:required(pnpm build の門 check --gate=build が回す)。
 // 失敗: 規則が off / warn になっている・規則が設定に無い・代表のファイルが無い(example: true の行を除く)。
 // fork が規則を足す・一覧の外を緩めるのは止めない。
 
