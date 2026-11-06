@@ -6,7 +6,7 @@
 // - 管理者の調整: 省略 = 固定キー admin_adjustment、他の区分は種類なし、未登録の key は 400
 // - 上流のコードの静的な検査: requiresKey の区分(bonus)を書く上流のファイルは reasonKey を渡す
 // - 上流の種類の項目: coupon_attribution_reward(bonus)・admin_adjustment(admin_adjustment)
-// 実行: pnpm test:wallet-reason-key
+// 実行: pnpm test src/features/core/wallet/services/server/wrappers/reasonKey.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, test } from "node:test";
 import assert from "node:assert/strict";

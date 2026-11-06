@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm registry:generate が src/features/**/services/server/domainEntry.ts から生成する
+// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する
 // src/registry/serviceRegistry.ts
 //
 // ドメイン名からサービス・表・主キーを引く正式な仕組み（登録表）。ドメインを 1 つ作ると行が増える一覧で、
@@ -7,7 +7,7 @@
 // - core ドメイン・fork が core パスに作るドメイン: domainEntry.ts を手書き
 // - fork が core の access を変える: 隣に domainEntry.override.ts（fork 所有、access だけ）
 // サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。
-// 検査: pnpm registry:check / 詳細: src/lib/domain/README.md
+// 検査: pnpm check registry / 詳細: src/lib/domain/README.md
 
 import type { DomainRegistry } from "@/lib/domain/types";
 

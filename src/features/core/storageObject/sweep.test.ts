@@ -1,7 +1,7 @@
 // src/features/core/storageObject/sweep.test.ts
 // 掃除（storage-sweep）・照合（紐付け先の行が消えた ready）と、期限切れ put pending の枠返却（L1.13）の単体テスト
 // （memoryLedger + fake ポート + 偽の lookupService）。
-// 実行: pnpm test:storage-object
+// 実行: pnpm test src/features/core/storageObject/sweep.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

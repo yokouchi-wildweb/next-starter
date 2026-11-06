@@ -1,4 +1,4 @@
-// scripts/runner/gates/gates.test.mjs — 門の仕組み(scan.mjs・run.mjs・netGuard.mjs)を一時のフォルダの fixture で通す。実行: pnpm test:gates
+// scripts/runner/gates/gates.test.mjs — 門の仕組み(scan.mjs・run.mjs・netGuard.mjs)を一時のフォルダの fixture で通す。実行: pnpm test scripts/runner/gates/gates.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

@@ -1,7 +1,7 @@
 // useEditableCell の確定の回数の検査(jsdom の上でフックを動かす)。
 // Enter は確定してから入力欄の blur を呼び、続く onBlur がもう一度確定する = 同じ編集で handleCommit が 2 回呼ばれる。
 // それでも onValidChange(= onCellChange)は 1 回。編集し直せばまた確定する。検証で止まったら確定しない
-// 実行: pnpm test:unsaved-guard
+// 実行: pnpm test src/lib/tableSuite/EditableGridTable/components/EditableGridCell/hooks/useEditableCell.commit.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";

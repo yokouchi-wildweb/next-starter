@@ -1,4 +1,4 @@
-// 管理の枠の部位の data-slot と枠の表の結線の検査。実行: pnpm test:admin-layout
+// 管理の枠の部位の data-slot と枠の表の結線の検査。実行: pnpm test src/app/admin/_layout/AdminFrame.test.tsx
 //
 // 1. README の data-slot の一覧 = 管理の枠の部品(admin/_layout・(protected)/_layout・insane/_layout)の要素に付く data-slot(両方向)。
 //    一覧 = 部位の一覧(src/app/_layout/frame/parts.mjs の管理の枠)、shadcn の部品の data-slot と衝突しない、data-frame-part は残っていない

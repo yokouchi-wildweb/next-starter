@@ -4,7 +4,7 @@
 // gate.filter は '/' で始まる内部の住所で redirectTo の無い閉じた規則に当たる項目だけを除く(判定 hiddenHref.ts)。
 // clientGateState は全規則の開閉と、枠(user / admin)で絞った閉じた住所を返す。束の名前: client ⊆ server、server だけの名前は SERVER_ONLY に限る。
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。
-// 型の検査は pnpm typecheck(@ts-expect-error の行)、実行は pnpm test:feature-gate:tools
+// 型の検査は pnpm typecheck(@ts-expect-error の行)、実行は pnpm test src/featureGate/checks/gateTools.test.ts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

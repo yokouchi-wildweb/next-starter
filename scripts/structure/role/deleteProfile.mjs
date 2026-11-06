@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/structure/role/deleteProfile.mjs
-// 使い方: pnpm prof:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]
+// 使い方: pnpm generate role -- --delete-profile <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]
 // 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。entities/profiles/<roleId>/ は既定で消す（--keep-generated で残す）、
 // 設定の JSON は既定で残す（--remove-json で消す）。-i のときだけ今までの対話（選択・確認）
 // プロフィール関連のレジストリエントリを削除するスクリプト
@@ -19,7 +19,7 @@ const ROOT_DIR = path.resolve(__dirname, "../../..");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();
-const USAGE = "pnpm prof:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]";
+const USAGE = "pnpm generate role -- --delete-profile <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]";
 
 /**
  * プロフィール設定が存在するロールを取得
@@ -131,7 +131,7 @@ export default async function deleteProfile(roleIdArg, options = {}) {
   } else if (options.confirm !== selectedRoleId) {
     failUsage(
       `${options.confirm === undefined ? "削除するには --confirm でロール ID を渡してください" : `--confirm "${options.confirm}" がロール ID と一致しません`}` +
-        `（消すもの: プロフィールの登録${deleteEntity ? "・entities/profiles/" + selectedRoleId + "/" : ""}${deleteJson ? "・" + selectedRoleId + ".profile.json" : ""}）。実行: pnpm prof:delete ${selectedRoleId} --confirm ${selectedRoleId}`,
+        `（消すもの: プロフィールの登録${deleteEntity ? "・entities/profiles/" + selectedRoleId + "/" : ""}${deleteJson ? "・" + selectedRoleId + ".profile.json" : ""}）。実行: pnpm generate role -- --delete-profile ${selectedRoleId} --confirm ${selectedRoleId}`,
       USAGE,
     );
     return;

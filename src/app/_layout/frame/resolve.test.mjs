@@ -1,4 +1,4 @@
-// 実行: pnpm test:frame-declaration
+// 実行: pnpm test src/app/_layout/frame/resolve.test.mjs
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

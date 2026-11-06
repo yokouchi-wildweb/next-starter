@@ -1,6 +1,6 @@
 // src/app/api/cron/storage-sweep/task.ts
 // ファイル台帳の掃除（期限切れのアップロード・未採用のファイル・削除の再試行・紐付け先の行が消えた / 値から外れたファイルの照合）— cron タスク定義（実行時刻・有効条件・呼ぶ関数）
-// 処理本体はドメイン側（storageObject/services/server/sweep.ts）。vercel.json のエントリは pnpm cron:generate がこのファイルから生成する
+// 処理本体はドメイン側（storageObject/services/server/sweep.ts）。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
 

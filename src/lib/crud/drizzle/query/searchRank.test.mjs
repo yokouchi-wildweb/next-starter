@@ -1,5 +1,5 @@
 // searchRank（関連度ランキング）の契約テスト。
-// 実行: pnpm test:crud-search-rank （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
+// 実行: pnpm test src/lib/crud/drizzle/query/searchRank.test.mjs （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { pgTable, text, varchar, char, uuid, integer, pgEnum, PgDialect } from "drizzle-orm/pg-core";

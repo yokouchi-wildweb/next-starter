@@ -1,7 +1,7 @@
 // src/features/core/storageObject/dataMigrationResolver.test.ts
 // dataMigration に注入する resolver（src/app/api/data-migration/_shared/mediaResolver.ts）の単体テスト（memoryLedger + fake ポート）。
 // import の所有者 = 実行者、export の ref 解決（pub は公開 URL、priv は実行者で read 判定。admin の暗黙通過なし）。
-// 実行: pnpm test:data-migration
+// 実行: pnpm test src/features/core/storageObject/dataMigrationResolver.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

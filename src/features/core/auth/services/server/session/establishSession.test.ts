@@ -4,7 +4,7 @@
 // - 状態の分岐: security_locked・pending・withdrawn は 403、inactive は復帰の印、他は許可
 // - issueSessionToken: クレームは DB の値から、maxAge の既定は isDemo でデモ / 通常、明示すればその値
 // - establishSession: 拒否なら最終ログインも cookie も書かない。許可なら 最終ログイン(ip)→ 署名 → cookie の順
-// 実行: pnpm test:establish-session
+// 実行: pnpm test src/features/core/auth/services/server/session/establishSession.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

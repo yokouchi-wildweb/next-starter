@@ -1,5 +1,5 @@
 // src/features/core/user/services/server/helpers/selfUpdate.test.ts
-// 実行: pnpm test:user-self-update
+// 実行: pnpm test src/features/core/user/services/server/helpers/selfUpdate.test.ts
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

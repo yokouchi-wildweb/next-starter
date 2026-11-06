@@ -1,4 +1,4 @@
-// 実行: pnpm test:fork-ids
+// 実行: pnpm test src/lib/forkOwnership/dottedNames.test.mjs
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

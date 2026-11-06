@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/features/core/milestone/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/features/core/milestone/extensionPoints.ts から生成する
 // renderers: src/features/core/milestone/components/renderers/<名前>.ts(x) か <名前>/index.ts(x) の export const renderer(並びはファイル名の順)
 
 import type { MilestoneRendererDefinition } from "@/features/core/milestone/types/milestoneRenderer";

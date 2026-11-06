@@ -62,7 +62,7 @@ next-env.d.ts
 # playwright-mcp (ページスナップショットに秘密情報が混入する可能性があるためコミット禁止)
 .playwright-mcp/
 
-# エージェントの道具の手元の記録 (pnpm dev:tab の記録・起動スクリプト。チェックアウトごと)
+# エージェントの道具の手元の記録 (pnpm workflow dev-tab run の記録・起動スクリプト。チェックアウトごと)
 .agent/
 
 # Claude Code が生成する一時 worktree（リポジトリにコミットしない）

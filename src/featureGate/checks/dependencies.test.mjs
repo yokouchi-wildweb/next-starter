@@ -2,7 +2,7 @@
 // 依存の検査(D20(b)・L1.12): 閉じられるフォルダ(規則の features)を外から値で import するファイルは、
 // (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前で gate.enabled / gate.assert / useGate().enabled
 // (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前> (6) 例外、のどれかでなければ落とす。
-// 判定: ./dependencies.mjs。実行: pnpm test:feature-gate
+// 判定: ./dependencies.mjs。実行: pnpm test src/featureGate/checks/dependencies.test.mjs
 // - 例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts だけ(上流の項目は 0。上流の違反の縮む表は 0 行になって消した)
 // - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs が required/ を書き出す)
 

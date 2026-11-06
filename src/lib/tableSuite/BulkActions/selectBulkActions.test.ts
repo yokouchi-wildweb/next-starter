@@ -1,4 +1,4 @@
-// src/lib/tableSuite/BulkActions/selectBulkActions.test.ts — pnpm test:bulk-actions
+// src/lib/tableSuite/BulkActions/selectBulkActions.test.ts — pnpm test src/lib/tableSuite/BulkActions/selectBulkActions.test.ts
 // 一括操作の項目を絞って並べる(enabled・lists・access・order・key の重複)
 import { test } from "node:test";
 import assert from "node:assert/strict";

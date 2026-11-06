@@ -1,5 +1,5 @@
 // 登録表（serviceRegistry.ts）の書く前の検査: これから書く domainEntry.ts を重ねた見え方で検査し、作れなければ何も書かない。
-// 実行: pnpm test:dc-registry-precheck
+// 実行: pnpm test scripts/structure/domain/tests/registryPrecheck.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

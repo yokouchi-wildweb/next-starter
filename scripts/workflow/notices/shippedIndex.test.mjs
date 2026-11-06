@@ -1,4 +1,4 @@
-// scripts/workflow/notices/shippedIndex.test.mjs — 索引 .notices/shipped/<fork_id>.md の行の書式と、add / backfill / verify を小さなリポで通す。実行: pnpm test:notices
+// scripts/workflow/notices/shippedIndex.test.mjs — 索引 .notices/shipped/<fork_id>.md の行の書式と、add / backfill / verify を小さなリポで通す。実行: pnpm test scripts/workflow/notices/shippedIndex.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

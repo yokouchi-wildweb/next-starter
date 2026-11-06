@@ -1,5 +1,5 @@
 // 主の集まりの項目（mediaCollection）から従属ドメインの domain.json を組む純関数と、その write-once の書き出しの回帰テスト。
-// 実行: pnpm test:dc-child-domain
+// 実行: pnpm test scripts/structure/domain/tests/childDomain.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

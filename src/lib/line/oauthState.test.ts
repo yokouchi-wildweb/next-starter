@@ -4,8 +4,8 @@
 // - 発行した state を同じ cookie で照合すると ok と戻り先
 // - nonce の不一致・cookie なし・state なし・壊れた state・別の cookie 名は ok false
 // - 戻り先は同一オリジンのパスに sanitize される
-// - cookie の属性 (httpOnly・lax・path・10 分・secure は段階が development 以外のとき)
-// 実行: pnpm test:line-oauth-state
+// - cookie の属性 (httpOnly・lax・path・10 分・secure は APP_ENV production のとき)
+// 実行: pnpm test src/lib/line/oauthState.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

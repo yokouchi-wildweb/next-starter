@@ -1,6 +1,6 @@
 // dc:generate の serverServices: <domain>Service.ts は書き捨て（無いときだけ生成）、drizzleBase.ts は毎回生成する回帰テスト。
 // メディア列の storage binding 出力（Firestore・廃止した型は生成エラー）もここで見る。
-// 実行: pnpm test:dc-server-service
+// 実行: pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

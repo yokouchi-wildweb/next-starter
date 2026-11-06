@@ -1,5 +1,5 @@
 // ドメインの一覧（src/features/feature-map.txt）と、--only の名指し（generate: false は名指ししても書かない）の契約テスト。
-// 実行: pnpm test:dc-feature-map
+// 実行: pnpm test scripts/structure/domain/tests/featureMap.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -52,7 +52,7 @@ test("--check: 書いた直後は一致、フォルダの増減・generate の�
 });
 
 test("このリポの一覧は今のフォルダ・generate と一致する", () => {
-  assert.deepEqual(checkFeatureMap(repoRoot), [], `${FEATURE_MAP_FILE} を pnpm dc:feature-map で作り直してください`);
+  assert.deepEqual(checkFeatureMap(repoRoot), [], `${FEATURE_MAP_FILE} を pnpm generate domain -- --feature-map で作り直してください`);
 });
 
 test("--only = 今回はこのカテゴリだけ: generate: false は名指ししても何も無し、従属は従属のカテゴリの内", () => {

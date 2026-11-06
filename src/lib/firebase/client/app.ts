@@ -26,7 +26,7 @@ const firebaseConfig = {
 /**
  * クライアント側 Firebase が設定済み（API key と projectId が非空）かどうか。
  *
- * `pnpm env:init` 直後は NEXT_PUBLIC_FIREBASE_* が全て空で、その状態でも dev サーバーが
+ * `pnpm ops setup env` 直後は NEXT_PUBLIC_FIREBASE_* が全て空で、その状態でも dev サーバーが
  * 起動しトップページが表示できることを手順書で約束している。root layout に常時マウントされる
  * 経路（useFirebaseAuthSync / analytics）はこの判定で Firebase への接触をスキップする。
  *

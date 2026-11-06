@@ -2,7 +2,7 @@
 //
 // import の型変換（getFieldTypes / convertRecordTypes）のテスト。読み方は型の表（src/lib/domain/fields/fieldTypes.mjs）の
 // array 属性と importValue 属性で決まる（型名を小文字にして比べない）。行は人が承認した前後一覧（L1.25）のとおり。
-// 実行: pnpm test:data-migration
+// 実行: pnpm test src/lib/dataMigration/import/importChunk.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

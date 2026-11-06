@@ -1,5 +1,5 @@
 // .notices/20261103-095341-fork-name-markers-removed.fork-name-markers.test.mjs
-// 実行: pnpm test:codemods(一時フォルダの fixture。git は使わない: 基準の版のファイルは引数で渡す)
+// 実行: pnpm test .notices(一時フォルダの fixture。git は使わない: 基準の版のファイルは引数で渡す)
 
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

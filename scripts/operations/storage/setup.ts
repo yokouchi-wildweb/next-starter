@@ -1,11 +1,11 @@
 // scripts/operations/storage/setup.ts
 //
-// ファイル保存用の 2 バケット（新 pub / 新 priv）を冪等に用意する（pnpm storage:setup）。
+// ファイル保存用の 2 バケット（新 pub / 新 priv）を冪等に用意する（pnpm ops storage setup）。
 // 何度実行しても同じ状態になり、2 回目以降は「変更なし」になる。既存の設定と食い違うものは上書きせず、
 // 差分を表示して止まる（足すだけで済む公開読み取りの IAM だけは自動で足す）。
 //
 // 実行:
-//   pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin ...]
+//   pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin ...]
 //                        [--location asia-northeast1] [--dry-run]
 //   --pub / --priv を省略すると env の STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET を使う（env ファイルは書き換えない）
 //   ENV_FILE で読み込む env ファイルを変えられる（既定 .env.development）

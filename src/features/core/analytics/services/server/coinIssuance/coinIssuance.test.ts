@@ -4,7 +4,7 @@
 // - 登録の key: wallet_bonus_grant がある、その部分集合の referral_reward / coupon_attribution_reward は無い(二重計上しない)
 // - 数える区分は wallet-reason-category.config の countsAsIssuance から出る(上流の既定 = bonus だけ。other は数えない)
 // - 数える通貨は coin-issuance.config の COIN_ISSUANCE_WALLET_TYPES(既定 regular_coin)
-// 実行: pnpm test:coin-issuance
+// 実行: pnpm test src/features/core/analytics/services/server/coinIssuance/coinIssuance.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, test } from "node:test";
 import assert from "node:assert/strict";

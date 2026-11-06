@@ -1,7 +1,7 @@
 // src/lib/crud/client/apiClientFactory.test.ts
 // CRUD クライアントが組み立てるクエリと、操作ごとの timeout のテスト。
 // axios の adapter だけ差し替え、実際の直列化の結果をルートのパーサーに渡して確かめる。
-// 実行: pnpm test:crud-client
+// 実行: pnpm test src/lib/crud/client/apiClientFactory.test.ts
 
 import { afterEach, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";

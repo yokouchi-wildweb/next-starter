@@ -1,6 +1,6 @@
 // dc:compare（fork がドメインごとに generate を決める比較）の契約テスト。
 // 一時の git リポ（このリポの src と生成器の写し）で base の commit → fork の変更 → 比較し、分類の各欄を確かめる。
-// 実行: pnpm test:dc-compare
+// 実行: pnpm test scripts/structure/domain/tests/compare.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

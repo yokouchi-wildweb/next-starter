@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/structure/role/toggleRole.mjs
 // ロールのenable状態を切り替えるスクリプト
-// 使い方: pnpm role:toggle <roleId> --on|--off [-i]（既定は対話なし。--on / --off のどちらか 1 つが必須 = 何度回しても同じ結果。
+// 使い方: pnpm generate role -- --toggle <roleId> --on|--off [-i]（既定は対話なし。--on / --off のどちらか 1 つが必須 = 何度回しても同じ結果。
 // -i のときだけ今までの対話（ロールの選択・反転の確認））
 
 import fs from "fs";
@@ -12,7 +12,7 @@ import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { overrideFileName, readRoleOverride, requireOverride } from "./overrides.mjs";
 import { findRoleFile, isCoreRole, listRoleFiles } from "./rolePaths.mjs";
 
-const USAGE = "pnpm role:toggle <roleId> --on|--off [-i]";
+const USAGE = "pnpm generate role -- --toggle <roleId> --on|--off [-i]";
 
 const prompt = inquirer.createPromptModule();
 
@@ -48,7 +48,7 @@ function toggleRoleEnabled(roleId, newState) {
   // 上書きが enabled を決めているロールは JSON を書いても効かないので止める
   const roleFile = findRoleFile(roleId);
   if (requireOverride(readRoleOverride(roleFile)).enabled !== undefined) {
-    console.error(`エラー: ロール「${roleId}」の enabled は ${overrideFileName(roleFile.fileName)} が決めています。そのファイルを直してから pnpm role:generate を実行してください。`);
+    console.error(`エラー: ロール「${roleId}」の enabled は ${overrideFileName(roleFile.fileName)} が決めています。そのファイルを直してから pnpm generate role を実行してください。`);
     process.exit(1);
   }
 

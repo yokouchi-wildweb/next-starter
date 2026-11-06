@@ -11,7 +11,7 @@ import { extendTailwindMerge } from "tailwind-merge";
  * 「文字色の重複」と判定され、先の文字色が捨てられる（ラベルが背景と同色になる）。
  *
  * ⚠️ theme.css に `--text-*` トークンを追加したら必ずここにも追加する。
- *    ドリフトは pnpm test:cn（theme.css を解析して一致を検証）で検出される。
+ *    ドリフトは pnpm test src/lib/cn/cn.test.mjs（theme.css を解析して一致を検証）で検出される。
  */
 export const FLUID_TEXT_SIZES = [
   "fluid-xs",

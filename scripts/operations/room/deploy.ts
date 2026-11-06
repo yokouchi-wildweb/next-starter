@@ -1,9 +1,9 @@
 // scripts/operations/room/deploy.ts
 //
-// ルームサーバーのデプロイ (pnpm room:deploy)。
+// ルームサーバーのデプロイ (pnpm ops room deploy)。
 // 冪等分岐: どのフォークで実行しても正しい結果に落ちる。
 //   - config enabled=false          → skip (正常終了。使わないフォークで実行しても無害)
-//   - enabled=true, wrangler.toml 無 → 明示エラー (pnpm room:init を案内)
+//   - enabled=true, wrangler.toml 無 → 明示エラー (pnpm ops room init を案内)
 //   - Worker 名が既定 "room-server"  → 明示エラー (--allow-default-name で強行可)
 //   - enabled=true, 準備済み         → wrangler deploy (認証エラーは wrangler が明示する)
 
@@ -20,12 +20,12 @@ console.log("=== realtime room: deploy ===\n");
 
 if (!REALTIME_ROOM_CONFIG.enabled) {
   console.log("room: skipped (realtime-room.config enabled=false)");
-  console.log("有効化するには pnpm room:init を実行し、README の手順に従ってください");
+  console.log("有効化するには pnpm ops room init を実行し、README の手順に従ってください");
   process.exit(0);
 }
 
 if (!existsSync(path.join(roomDir, "wrangler.toml"))) {
-  console.error("✗ servers/room/wrangler.toml がありません。先に pnpm room:init を実行してください");
+  console.error("✗ servers/room/wrangler.toml がありません。先に pnpm ops room init を実行してください");
   process.exit(1);
 }
 
@@ -38,7 +38,7 @@ if (workerName === "room-server" && !process.argv.includes("--allow-default-name
   無言で置換するため、既定名のままのデプロイは拒否します。
   対処: servers/room/wrangler.toml の name をプロジェクト固有名 (例: "room-server-<プロジェクト名>")
   に変更してください (name を変えると Worker URL も変わるため REALTIME_ROOM_URL の更新も忘れずに)。
-  この名前が自分のものだと確信できる場合のみ: pnpm room:deploy --allow-default-name`);
+  この名前が自分のものだと確信できる場合のみ: pnpm ops room deploy --allow-default-name`);
   process.exit(1);
 }
 

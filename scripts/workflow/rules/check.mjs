@@ -1,4 +1,4 @@
-// scripts/workflow/rules/check.mjs — 門 ship の検査(gate.json): CLAUDE.md と .claude/rules/core の決まりのテスト(= pnpm test:core-rules)
+// scripts/workflow/rules/check.mjs — 門 ship の検査(gate.json): CLAUDE.md と .claude/rules/core の決まりのテスト(= pnpm check rules)
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 

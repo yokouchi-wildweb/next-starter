@@ -1,4 +1,4 @@
-// scripts/workflow/notices/checkpointCheck.test.mjs — 範囲の途中の区切りを fork の木で検査する(checkpointCheck.mjs)を小さなリポで通す。実行: pnpm test:notices
+// scripts/workflow/notices/checkpointCheck.test.mjs — 範囲の途中の区切りを fork の木で検査する(checkpointCheck.mjs)を小さなリポで通す。実行: pnpm test scripts/workflow/notices
 // 検査は --check の口で差し替える: OK = src/a.txt が bug を含まない、NEEDS_LIB = src/lib.txt がある
 import { test } from "node:test";
 import assert from "node:assert/strict";

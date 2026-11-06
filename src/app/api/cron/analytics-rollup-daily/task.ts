@@ -1,6 +1,6 @@
 // src/app/api/cron/analytics-rollup-daily/task.ts
 // 日次メトリクスロールアップ (analytics_daily_rollups) を計算する — cron タスク定義（実行時刻・有効条件・呼ぶ関数）
-// 処理本体はドメイン側。vercel.json のエントリは pnpm cron:generate がこのファイルから生成する
+// 処理本体はドメイン側。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
 

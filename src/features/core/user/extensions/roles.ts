@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm role:generate が src/features/core/user/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate role が src/features/core/user/extensionPoints.ts から生成する
 // src/features/core/user/extensions/roles.ts
 
 import type { RoleConfig } from "@/features/core/user/types";

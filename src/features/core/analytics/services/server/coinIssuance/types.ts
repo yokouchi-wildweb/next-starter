@@ -12,7 +12,7 @@
 //
 // 拡張方法:
 //  1. CoinIssuanceSource を満たす値を作る (sources/ 配下に追加)
-//  2. pnpm extensions:generate で一覧に入る(一覧の順 = ファイル名の順)
+//  2. pnpm generate extensions で一覧に入る(一覧の順 = ファイル名の順)
 //  3. (任意) labels.ts の src/config/app/coin-issuance.config.ts に表示名を足す
 //
 // 集計の符号規約:

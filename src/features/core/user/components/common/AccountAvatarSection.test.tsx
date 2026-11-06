@@ -1,5 +1,5 @@
 // AccountAvatarSection の検査: アップロードと保存が 1 つの操作なので、失敗したら保存を呼ばない(古い値で黙って保存しない)、
-// 欄にエラーを出し、選び直して成功すれば保存して消える。実行: pnpm test:standalone-upload-failure
+// 欄にエラーを出し、選び直して成功すれば保存して消える。実行: pnpm test src/features/core/user/components/common/AccountAvatarSection.test.tsx
 // (tsx + node:test のモジュールモック + jsdom。type: module が無いので tsx は CJS = top-level await 不可 → before() で import)
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";

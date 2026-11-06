@@ -1,5 +1,5 @@
 // withIdTiebreak（ORDER BY 末尾の id による並べ分け）と composeSearchOrderBy（search の ORDER BY 合成順）の契約テスト。
-// 実行: pnpm test:crud-search-rank （node:test + Node 組み込みの TypeScript type stripping）
+// 実行: pnpm test src/lib/crud/drizzle/query/withIdTiebreak.test.mjs （node:test + Node 組み込みの TypeScript type stripping）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { asc, desc, sql } from "drizzle-orm";

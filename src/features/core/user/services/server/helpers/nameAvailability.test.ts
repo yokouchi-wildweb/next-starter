@@ -3,7 +3,7 @@
 // (ガード要否の判定 / サフィックス採番の長さ予算 / isUserNamesTaken の JS 側厳密判定と予約名プロバイダの連鎖)
 // isUserNamesTaken は reservedProviders を明示して、下流がレジストリに登録したプロバイダから切り離す
 // 同時書き込みの直列化と SQL の判定スコープ (退会済み・デモ除外) は実 PostgreSQL が必要なため対象外
-// 実行: pnpm test:user-name-availability
+// 実行: pnpm test src/features/core/user/services/server/helpers/nameAvailability.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

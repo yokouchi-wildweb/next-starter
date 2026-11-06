@@ -1,5 +1,5 @@
 // ビルド済み CSS 検査(scripts/structure/styles/builtCss.ts)の純粋ロジックのテスト。
-// 実行: pnpm test:built-css
+// 実行: pnpm test scripts/structure/styles/builtCss.test.mjs
 //
 // 守りたい契約:
 // 1. @theme / @utility の中の変数は検査対象にしない(出力に残る保証が無い)

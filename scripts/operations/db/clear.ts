@@ -1,4 +1,4 @@
-// scripts/operations/db/clear.ts(pnpm db:clear / db:clear:all)
+// scripts/operations/db/clear.ts(pnpm ops db clear / db:clear:all)
 //
 // 選んだ表のデータを全部消す。
 // - 閉じた機能の表(@/featureGate/node の closedTables)には触れない。--include-closed のときだけ選べ・参照元に足せる
@@ -6,7 +6,7 @@
 // - DB にある閉じた表が消す表を参照していれば、何も消さずに並べて exit 1
 // - 1 文の TRUNCATE ... RESTRICT で消す(全部消えるか、何も消えないか。連鎖の削除は使わない)
 //
-// 計画は plan.ts(純関数、pnpm test:db-clear)。詳細: src/featureGate/README.md「db:clear と閉じた機能の表」
+// 計画は plan.ts(純関数、pnpm test scripts/operations/db/clear/plan.test.ts)。詳細: src/featureGate/README.md「db:clear と閉じた機能の表」
 //
 // フラグ: --all(選べる表を全部、対話なし) | --include-closed(閉じた機能の表も対象にする)
 

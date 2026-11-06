@@ -1,6 +1,6 @@
 // src/lib/url/sanitizeRedirectPath.test.mts
 // オープンリダイレクト対策（sanitizeRedirectPath / resolveReturnTo）の回帰テスト
-// 実行: pnpm test:sanitize-redirect
+// 実行: pnpm test src/lib/url/sanitizeRedirectPath.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

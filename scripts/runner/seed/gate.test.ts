@@ -1,4 +1,4 @@
-// scripts/runner/seed/gate.test.ts(pnpm test:db-seed)
+// scripts/runner/seed/gate.test.ts(pnpm test scripts/runner/seed/gate.test.ts)
 // seed と機能の門: 閉じた項目を飛ばす計算・表が無いエラーの見分け・閉じられるフォルダを import する項目の feature の検査。
 
 import assert from "node:assert/strict";

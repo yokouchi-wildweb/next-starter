@@ -1,6 +1,6 @@
 // core のドメイン（src/features/core/<domain>/domain.json）を business と同じに扱う契約テスト（D41）と、
 // 手で管理（generate: false）のドメインはどんな実行でも生成器を通さない契約（人の決定。検査もしない・何も書かない）。
-// 実行: pnpm test:dc-core-domain
+// 実行: pnpm test scripts/structure/domain/tests/coreDomain.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

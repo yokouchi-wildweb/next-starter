@@ -1,4 +1,4 @@
-// pnpm ownership:who(who.mjs / whoCli.mjs)の検査。一時の git リポジトリ(Tier1・中間 Tier・fork)を os.tmpdir に作る(ネットワーク不要)
+// pnpm workflow ownership who(who.mjs / whoCli.mjs)の検査。一時の git リポジトリ(Tier1・中間 Tier・fork)を os.tmpdir に作る(ネットワーク不要)
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -42,7 +42,7 @@ const INTAKE = [
   "edit .claude/rules/project.md  # fork の名前の宣言",
   "add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え",
   "edit src/features/**/services/server/domainEntry.override.ts  # access の上書き",
-  "generated src/features/feature-map.txt  # pnpm dc:feature-map",
+  "generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map",
   "debt src/features/core/user/debt.ts  # 案内 → 20260101-000000-debt-intake",
   "",
 ].join("\n");

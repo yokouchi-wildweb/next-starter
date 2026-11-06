@@ -50,14 +50,14 @@ test("buildDevCommand: PORT と APP_BASE_URL を合わせ、next dev には --po
   assert.equal(buildDevCommand("pnpm", "vite", 3003), "PORT=3003 APP_BASE_URL=http://localhost:3003 pnpm dev");
 });
 
-test("DEV_COMMAND_PATTERN: pnpm dev 等は当たり、pnpm dev:tab 自身や dev:xxx は当たらない", () => {
+test("DEV_COMMAND_PATTERN: pnpm dev 等は当たり、pnpm workflow dev-tab run 自身や dev:xxx は当たらない", () => {
   for (const command of ["pnpm dev", "pnpm dev --port 3001", "npm run dev", "yarn dev", "next dev --port 3001", "next-server (v16.1.1)"]) {
     assert.equal(DEV_COMMAND_PATTERN.test(command), true, command);
   }
   for (const command of [
-    "node /usr/bin/pnpm dev:tab",
-    "/bin/bash -c source snapshot.sh && pnpm dev:tab",
-    "pnpm dev:tab stop",
+    "node /usr/bin/pnpm workflow dev-tab run",
+    "/bin/bash -c source snapshot.sh && pnpm workflow dev-tab run",
+    "pnpm workflow dev-tab run stop",
     "npm run dev:setup",
   ]) {
     assert.equal(DEV_COMMAND_PATTERN.test(command), false, command);

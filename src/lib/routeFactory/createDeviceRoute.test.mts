@@ -1,6 +1,6 @@
 // src/lib/routeFactory/createDeviceRoute.test.mts
 // createDeviceRoute の主体判定の回帰テスト（端末認証・ユーザーの束を差し込んで実際のファクトリーを動かす）
-// 実行: pnpm test:device-route
+// 実行: pnpm test src/lib/routeFactory/createDeviceRoute.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

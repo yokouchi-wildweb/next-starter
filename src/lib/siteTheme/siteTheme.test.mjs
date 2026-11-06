@@ -1,5 +1,5 @@
 // サイトテーマ判定の契約テスト。
-// 実行: pnpm test:site-theme (node:test + tsx。.ts の拡張子無し import を解決するため tsx ランナーを使う)
+// 実行: pnpm test src/lib/siteTheme/siteTheme.test.mjs (node:test + tsx。.ts の拡張子無し import を解決するため tsx ランナーを使う)
 //
 // 検証すること:
 // 1. defineSiteThemeConfig の既定値が従来挙動(全エリアライト、管理のみ切替可)を再現する

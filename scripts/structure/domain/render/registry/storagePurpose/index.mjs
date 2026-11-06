@@ -1,5 +1,5 @@
 // services/server/storagePurposes.ts（毎回上書き）: domain.json のメディア項目のファイル用途。
-// src/registry/storagePurposeRegistry.ts はこのファイルの一覧（pnpm registry:generate が走査で作る）。
+// src/registry/storagePurposeRegistry.ts はこのファイルの一覧（pnpm generate registry が走査で作る）。
 // 検査（規則違反）は Output を作る時点で済ませ、例外で止める（書き込みの前）
 
 import path from "node:path";

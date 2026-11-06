@@ -1,4 +1,4 @@
-// src/featureGate/node/setEnabled.ts(入口 @/featureGate/node の planFeatureSet・applyFeatureSet。pnpm features:set が使う)
+// src/featureGate/node/setEnabled.ts(入口 @/featureGate/node の planFeatureSet・applyFeatureSet。pnpm ops features set が使う)
 //
 // 機能の入切を書き換える(L1.19)。書けるのは、規則の enabled が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み
 // (`enabled: () => X_CONFIG.enabled`、X_CONFIG は `@/features/<d>/config` からの import)、その config.ts の

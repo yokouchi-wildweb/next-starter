@@ -1,5 +1,5 @@
 // eslint-rules/no-server-action.test.mjs
-// 実行: pnpm test:no-server-action
+// 実行: pnpm test eslint-rules/no-server-action.test.mjs
 
 import { RuleTester } from "eslint";
 import { test } from "node:test";

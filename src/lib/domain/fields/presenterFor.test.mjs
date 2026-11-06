@@ -1,6 +1,6 @@
 // src/lib/domain/fields/presenterFor.test.mjs
 // presenterFor（項目を何で表示するか）のテスト。表の行ごとの答えと、順の境目（型の presenter が formInput より先、など）を固定する。
-// 実行: pnpm test:presenter-for
+// 実行: pnpm test src/lib/domain/fields/presenterFor.test.mjs
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 

@@ -33,7 +33,7 @@ export function inboundReferences(configs, folder) {
 /** 走査するコードの拡張子 */
 const CODE_FILE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 
-/** 走査しない場所（src 相対）: 生成物の一覧（pnpm registry:generate が残ったドメインから作り直す） */
+/** 走査しない場所（src 相対）: 生成物の一覧（pnpm generate registry が残ったドメインから作り直す） */
 const SKIPPED_PREFIXES = ["src/registry/"];
 
 /** 静的 import / export from / 動的 import() / require の from 先 */

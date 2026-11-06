@@ -1,5 +1,5 @@
 // ピッカー系ポップオーバーの「開く向き」判定の契約テスト。
-// 実行: pnpm test:popover-side （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
+// 実行: pnpm test src/components/Form/Input/Manual/AsyncOptionSource/popoverSide.test.mjs （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

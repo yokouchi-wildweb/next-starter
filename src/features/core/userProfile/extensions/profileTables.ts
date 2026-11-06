@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm role:generate が src/features/core/userProfile/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate role が src/features/core/userProfile/extensionPoints.ts から生成する
 // src/features/core/userProfile/extensions/profileTables.ts
 
 import type { PgTable } from "drizzle-orm/pg-core";

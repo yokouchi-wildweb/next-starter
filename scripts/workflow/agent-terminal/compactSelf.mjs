@@ -1,4 +1,4 @@
-// scripts/workflow/agent-terminal/compactSelf.mjs — pnpm compact:self "<残すこと>"
+// scripts/workflow/agent-terminal/compactSelf.mjs — pnpm workflow agent-terminal compactSelf "<残すこと>"
 //
 // エージェントが自分の会話の圧縮を頼むコマンド。どこで打っても使える(エージェントから見た約束は 1 つ):
 //   - 自分のペインに打てる(AGENT_TERMINAL=tmux・tmux の中・hook が動いている)→ この返答が終わったら `/compact <残すこと>`
@@ -25,7 +25,7 @@ export function planCompactSelf(env = process.env) {
 export function runCompactSelf(args, env = process.env, deps = { spawn, print: console.log }) {
   const focus = oneLine(args.join(" "));
   if (!focus) {
-    deps.print('使い方: pnpm compact:self "<圧縮の後も残すこと(1〜3 行)>"');
+    deps.print('使い方: pnpm workflow agent-terminal compactSelf "<圧縮の後も残すこと(1〜3 行)>"');
     return 1;
   }
   const plan = planCompactSelf(env);

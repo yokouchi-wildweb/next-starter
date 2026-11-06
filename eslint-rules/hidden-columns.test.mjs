@@ -1,5 +1,5 @@
 // eslint-rules/hidden-columns.test.mjs
-// 秘匿カラムの生 select / returning 検出規則の契約テスト。実行: pnpm test:hidden-columns-lint (node:test)
+// 秘匿カラムの生 select / returning 検出規則の契約テスト。実行: pnpm test eslint-rules/hidden-columns.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";

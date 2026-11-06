@@ -2,7 +2,7 @@
 // - サーバーがトークンを出さない(null)・クライアントの Firebase が未設定: signInWithCustomToken を呼ばず、ログインは進む
 // - 両方そろう: 今まで通り Firebase Auth にもサインインする
 // - signInWithCustomToken が呼んだ時点で投げても、ログインは進む
-// 実行: pnpm test:local-login
+// 実行: pnpm test src/features/core/auth/hooks/useAdminLogin.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

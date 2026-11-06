@@ -2,7 +2,7 @@
 // 汎用 Factory の契約の回帰テスト（利用者の束を差し込んで実際のファクトリーを動かす。DB は使わない）。
 // - 主体はリクエストごとに 1 回だけ解き、全 access で ctx.user に渡す（public は利用可能な status のときだけ）
 // - allowStatuses（fail-closed）・拒否の body の code と {domain, operation}・素の Response の素通し・DomainError の code/details・形の外の access は 500
-// 実行: pnpm test:route-factory
+// 実行: pnpm test src/lib/routeFactory/createApiRoute.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

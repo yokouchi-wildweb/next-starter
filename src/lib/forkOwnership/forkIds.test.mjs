@@ -1,4 +1,4 @@
-// fork ID の宣言の読み取りのテスト。実行: pnpm test:fork-ids (node:test)
+// fork ID の宣言の読み取りのテスト。実行: pnpm test src/lib/forkOwnership/forkIds.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";

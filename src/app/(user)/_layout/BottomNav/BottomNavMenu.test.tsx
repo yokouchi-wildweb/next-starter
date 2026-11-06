@@ -1,5 +1,5 @@
 // BottomNavMenu の開く向き(side)が ActionPopover に渡ることの検査(ActionPopover をモックするため UserParts.test.tsx と別ファイル)。
-// 省略時の DOM が今と同じことは UserParts.test.tsx。実行: pnpm test:user-layout
+// 省略時の DOM が今と同じことは UserParts.test.tsx。実行: pnpm test src/app/(user)/_layout/BottomNav/BottomNavMenu.test.tsx
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement, type ReactNode } from "react";

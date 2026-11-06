@@ -1,5 +1,5 @@
 // 一覧の読み込み失敗からの再試行の検査(useInfiniteScrollQuery の retry + InfiniteScrollList の onRetry)。
-// 実行: pnpm test:infinite-scroll(tsx + node:test。jsdom の上で実際に描画し、「再試行」ボタンを押す)
+// 実行: pnpm test src/hooks/useInfiniteScrollQuery.retry.test.tsx(tsx + node:test。jsdom の上で実際に描画し、「再試行」ボタンを押す)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";

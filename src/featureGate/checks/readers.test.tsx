@@ -2,7 +2,7 @@
 // 門番の読み手の回帰テスト: 管理のサイドバー(routed 20261103-140211)と /demo の一覧(routed 20261103-172638)。
 // - サイドバー: 管理の枠の値(clientGateState("admin"))の useGate().filter で、閉じた規則の住所の行を除き、行が 0 で href の無い節を描かない(L1.11)
 // - /demo: loader と同じ gate.filter(demoPages, demoHref)で閉じた住所のデモを除き、画面の数(一覧の長さ・カテゴリの数)もそこから数える
-// 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:feature-gate:client
+// 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test src/featureGate/checks/readers.test.tsx
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

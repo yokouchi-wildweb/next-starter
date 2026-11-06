@@ -1,4 +1,4 @@
-// src/utils/url.test.ts — pnpm test:utils-url
+// src/utils/url.test.ts — pnpm test src/utils/url.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

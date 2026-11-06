@@ -2,8 +2,8 @@
 // src/features/**/services/server/domainEntry.ts（と fork の domainEntry.override.ts）を走査し、
 // src/registry/serviceRegistry.ts の生成・検査に必要な情報を集める（一覧ファイルは持たない）。
 //
-// 利用者: ./generate.mjs（pnpm registry:generate）, ./check.mjs（pnpm registry:check）,
-//         ./serviceRegistry.test.mjs（pnpm test:service-registry）, scripts/structure/domain（dc:generate / dc:delete の最後）
+// 利用者: ./generate.mjs（pnpm generate registry）, ./check.mjs（pnpm check registry）,
+//         ./serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）, scripts/structure/domain（dc:generate / dc:delete の最後）
 // TS を実行せずテキストで読む（キーの一覧・import 行）。plain node で動くので dc:generate から直接呼べる。
 // サービスを実際に読み込む検査はテスト側（tsx）。
 
@@ -19,7 +19,7 @@ export const ENTRIES_EXPORT = "domainEntries";
 export const OVERRIDES_EXPORT = "domainEntryOverrides";
 export const REGISTRY_FILE = "src/registry/serviceRegistry.ts";
 /** 生成物の 1 行目（この行が無いファイル = 移行前の手書き登録表） */
-export const GENERATED_HEADER = "// 生成物・編集不可: pnpm registry:generate が src/features/**/services/server/domainEntry.ts から生成する";
+export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する";
 
 /** domainEntry.ts / domainEntry.override.ts が静的 import してよいモジュール */
 export const ALLOWED_STATIC_IMPORTS = ["@/lib/domain/types", "@/config/app/domain-api-access.config"];
@@ -127,7 +127,7 @@ export function readEntryTables(text, entryPath) {
     for (const name of ["table", "idColumn"]) {
       if (!(name in fields)) {
         errors.push(
-          `${where} に ${name} が無い（生成ドメインは pnpm dc:generate <domain> --yes --only registry、手書きは service の直後に ` +
+          `${where} に ${name} が無い（生成ドメインは pnpm generate domain -- <domain> --yes --only registry、手書きは service の直後に ` +
             `table: "<表の物理名>", idColumn: "id" を書く。表を持たない Firestore 版は両方 null）`,
         );
         continue;

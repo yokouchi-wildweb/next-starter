@@ -1,5 +1,5 @@
 // forge の契約テスト: 段の並び・止まり方・デプロイ先の検査・表の定義の hash の比較・引数。
-// 実行: pnpm test:forge
+// 実行: pnpm test scripts/structure/forge
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { parseForgeArgs } from "../run.mjs";
-import { buildSteps, runSteps } from "../steps.mjs";
+import { POST_TESTS, buildSteps, runSteps } from "../steps.mjs";
 import { changedTables, snapshotTables } from "../tables.mjs";
 
 const SILENT = { log: () => {}, error: () => {} };
@@ -23,22 +23,24 @@ test("段の並び: 門の forge:pre → 門の生成(forge:pre・forge:post)→
   assert.equal(order[0], "check --gate=forge:pre");
   assert.equal(order[1], "generate --gate=forge:pre,forge:post");
   assert.equal(order[2], "check --gate=forge:post");
-  assert.ok(at("check --gate=forge:post") < at("test:screens"));
-  assert.ok(at("test:wiring") < at("typecheck"));
-  assert.ok(!order.some((name) => name.startsWith("cron:generate")));
+  const screens = "test src/lib/screens/screens.test.mjs";
+  assert.ok(at("check --gate=forge:post") < at(screens));
+  assert.ok(at("test src/wiring/wiring.test.mjs") < at("typecheck"));
+  assert.deepEqual(buildSteps().filter((step) => step.script === "test").map((step) => step.args), POST_TESTS);
+  assert.ok(!order.some((name) => name.includes("cron")));
   assert.equal(order.at(-1), "check --gate=deploy");
   const withLint = names(buildSteps({ lint: true }));
   assert.equal(withLint.at(-2), "lint");
   assert.equal(withLint.at(-3), "typecheck");
 });
 
-test("デプロイ先の検査: 門 deploy(vercel.json が無ければ cron が飛ばして出す)、落ちたら cron:generate --plan を案内", () => {
+test("デプロイ先の検査: 門 deploy(vercel.json が無ければ cron が飛ばして出す)、落ちたら pnpm generate cron -- --plan を案内", () => {
   const check = buildSteps().at(-1);
   assert.equal(check.script, "check");
   assert.deepEqual(check.args, ["--gate=deploy"]);
   const errors = [];
   runSteps([check], { exec: () => false, io: { log: () => {}, error: (m) => errors.push(m) } });
-  assert.match(errors.join("\n"), /デプロイ先の検査「check --gate=deploy」.*pnpm cron:generate --plan hobby\|pro/);
+  assert.match(errors.join("\n"), /デプロイ先の検査「check --gate=deploy」.*pnpm generate cron -- --plan hobby\|pro/);
 });
 
 test("止まり方: 落ちた段で止まり、後の段を回さない（事前検査で落ちれば生成の段は 1 つも回らない）", () => {
@@ -47,8 +49,8 @@ test("止まり方: 落ちた段で止まり、後の段を回さない（事前
   assert.equal(failPre.ok, false);
   assert.equal(failPre.failed.phase, "pre");
   assert.ok(!failPre.ran.includes("generate --gate=forge:pre,forge:post"));
-  const failPost = runSteps(steps, { exec: (step) => step.name !== "test:screens", io: SILENT });
-  assert.equal(failPost.failed.name, "test:screens");
+  const failPost = runSteps(steps, { exec: (step) => step.name !== "test src/lib/screens/screens.test.mjs", io: SILENT });
+  assert.equal(failPost.failed.name, "test src/lib/screens/screens.test.mjs");
   assert.ok(!failPost.ran.includes("typecheck"));
   assert.equal(runSteps(steps, { exec: () => true, io: SILENT }).ok, true);
 });

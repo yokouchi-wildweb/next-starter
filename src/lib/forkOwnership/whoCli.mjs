@@ -1,4 +1,4 @@
-// pnpm ownership:who <path...> — パスごとの持ち主・できること・根拠(読むだけ)。終了コード: 0 = 答えた / 2 = 未検証・引数の誤り
+// pnpm workflow ownership who <path...> — パスごとの持ち主・できること・根拠(読むだけ)。終了コード: 0 = 答えた / 2 = 未検証・引数の誤り
 // 引数: --parent=<remote> --branch=<branch> --no-fetch --json。仕様: ./README.md「持ち主を調べる(ownership:who)」
 
 import { relative, resolve, sep } from "node:path";
@@ -25,7 +25,7 @@ function parseArgs(argv) {
     else if (arg.startsWith("--")) throw new Error(`不明な引数: ${arg}`);
     else options.paths.push(arg);
   }
-  if (options.paths.length === 0) throw new Error("使い方: pnpm ownership:who <path...> [--json] [--no-fetch] [--parent=<remote>] [--branch=<branch>]");
+  if (options.paths.length === 0) throw new Error("使い方: pnpm workflow ownership who <path...> [--json] [--no-fetch] [--parent=<remote>] [--branch=<branch>]");
   return options;
 }
 

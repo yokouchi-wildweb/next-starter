@@ -1,5 +1,5 @@
 // scripts/runner/preload/entries.test.mjs
-// 実行: pnpm test:script-entries
+// 実行: pnpm test scripts/runner/preload/entries.test.mjs
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -52,4 +52,18 @@ test("package.json の入口: server-only に届くものは stub を読む", as
     [],
     problems.map(({ name, path: chain }) => `${name}: ${chain.join(" > ")} > server-only`).join("\n"),
   );
+});
+
+test("門と道具の入口: ランナーが .ts の入口に必ず stub を付ける(pnpm check / generate・pnpm ops / workflow)", async () => {
+  const { command } = await import("../gates/run.mjs");
+  const [cmd, args] = command(process.cwd(), "scripts/structure/routes/check.ts", false);
+  assert.equal(cmd, "npx");
+  assert.ok(args.includes("./scripts/runner/preload/serverOnly.mjs"), args.join(" "));
+  const { run } = await import("../entries/run.mjs");
+  const spawned = [];
+  for (const argv of [["operations", "db", "seed"], ["workflow", "dev-tab", "run"]]) {
+    run(argv, { log: () => {}, spawn: (c, a) => (spawned.push([c, ...a]), 0) });
+  }
+  for (const line of spawned) assert.ok(line.includes("./scripts/runner/preload/serverOnly.mjs"), line.join(" "));
+  assert.equal(spawned.length, 2);
 });

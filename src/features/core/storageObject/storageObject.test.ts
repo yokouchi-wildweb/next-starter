@@ -4,7 +4,7 @@
 // 描き直しは既定で passThroughImageStrip（中身をそのまま返す）に差し替える。実 sharp で描き直す strip の流れは
 // 末尾の「metadata: strip の受け入れ」で確かめる。
 // SQL の原子性は test:storage-object-db（実 DB）で別に確かめる。
-// 実行: pnpm test:storage-object
+// 実行: pnpm test src/features/core/storageObject/storageObject.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

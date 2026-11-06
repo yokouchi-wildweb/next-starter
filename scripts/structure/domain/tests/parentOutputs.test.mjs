@@ -1,7 +1,7 @@
 // 主の集まりの項目（mediaCollection）の主の生成物の回帰テスト: 列を出さない・スキーマ・モデル・Fields の用途とファイルの条件、
 // 配線（collections.ts・drizzleBase の import と options・手書きの drizzleBase への案内）。
 // parity の fixture showcase（従属 showcase_photo はこの実行で書き出す）を一時の workspace で組ごと生成して見る。
-// 実行: pnpm test:dc-parent-outputs
+// 実行: pnpm test scripts/structure/domain/tests/parentOutputs.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

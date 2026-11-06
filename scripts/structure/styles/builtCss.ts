@@ -1,6 +1,6 @@
 // scripts/structure/styles/builtCss.ts
 //
-// ビルド済み CSS の検査(pnpm styles:check-build)の純粋ロジック。CLI は check-built-css.ts。
+// ビルド済み CSS の検査(pnpm check styles)の純粋ロジック。CLI は check-built-css.ts。
 //
 // 守りたい契約:
 //   global.css から @import で辿れる全ファイルが、ビルド出力(.next/static/**/*.css)に取り込まれている。

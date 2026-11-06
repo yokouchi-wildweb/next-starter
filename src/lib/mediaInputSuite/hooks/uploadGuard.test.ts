@@ -1,4 +1,4 @@
-// src/lib/mediaInputSuite/hooks/uploadGuard.test.ts — pnpm test:unsaved-guard
+// src/lib/mediaInputSuite/hooks/uploadGuard.test.ts — pnpm test src/lib/mediaInputSuite/hooks/uploadGuard.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

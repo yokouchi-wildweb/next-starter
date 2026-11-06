@@ -29,7 +29,8 @@ function featureStates(repo) {
   return JSON.parse(r.stdout);
 }
 
-function command(repo, file, offline) {
+/** 対象の入口の起動のしかた: .ts は tsx + server-only の下駄(scripts/runner/preload/entries.test.mjs が確かめる)、ほかは node */
+export function command(repo, file, offline) {
   const guard = offline ? ["--import", join(HERE, "netGuard.mjs")] : [];
   if (extname(file) === ".ts") return ["npx", ["tsx", ...guard, "--import", "./scripts/runner/preload/serverOnly.mjs", file]];
   return [process.execPath, [...guard, file]];

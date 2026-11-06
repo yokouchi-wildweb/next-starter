@@ -1,4 +1,4 @@
-// src/lib/sortableList/reorderGuard.test.ts — pnpm test:unsaved-guard
+// src/lib/sortableList/reorderGuard.test.ts — pnpm test src/lib/sortableList/reorderGuard.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

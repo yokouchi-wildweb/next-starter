@@ -1,6 +1,6 @@
-// ルート地図の見え方(pnpm routes:show の絞り込みと描画)のテスト。
+// ルート地図の見え方(pnpm check routes -- show の絞り込みと描画)のテスト。
 // 入力は手書きの地図 __fixtures__/route-map.sample.jsonl(本物と同じ形の 10 行。ページではないので tsc・next・test:screens は拾わない)。
-// 実行: pnpm test:route-map (node:test)
+// 実行: pnpm test src/lib/screens/routeMapView.test.mjs (node:test)
 // 設計: src/lib/screens/README.md §13
 import { test } from "node:test";
 import assert from "node:assert/strict";

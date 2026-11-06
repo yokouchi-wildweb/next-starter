@@ -5,7 +5,7 @@
 // - 境目より前の auth_time = 401、セッションを出さない(本登録はパスワードの書き換えにも進まない)
 // - Firebase の取り消しが失敗した場合 = verifyIdToken(checkRevoked) が通っても、境目で止まる(上と同じ形)
 // - 境目より後 / 境目が無い = 通る
-// 実行: pnpm test:establish-session
+// 実行: pnpm test src/features/core/auth/services/server/session/invalidationBoundary.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

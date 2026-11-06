@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/features/core/analytics/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/features/core/analytics/extensionPoints.ts から生成する
 // exclusionProviders: src/features/core/analytics/exclusionProviders/<名前>.ts(x) か <名前>/index.ts(x) の export const provider(並びはファイル名の順)
 
 import type { AnalyticsExclusionProvider } from "@/features/core/analytics/services/server/exclusion/types";

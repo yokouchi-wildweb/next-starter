@@ -1,5 +1,5 @@
 // 枠の表の共通の読み手 useFrameAttributes の検査(利用者・管理の枠の根が共有する。各根の検査は表の結線だけを見る)。
-// 実行: pnpm test:frame-declaration(tsx + node:test のモジュールモック + react-dom/server の静的描画)
+// 実行: pnpm test src/app/_layout/frame/useFrameAttributes.test.tsx(tsx + node:test のモジュールモック + react-dom/server の静的描画)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";

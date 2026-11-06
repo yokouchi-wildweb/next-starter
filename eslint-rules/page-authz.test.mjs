@@ -1,5 +1,5 @@
 // eslint-rules/page-authz.test.mjs
-// ページ層の認可の置き場所の検査(M3・M4)の契約テスト。実行: pnpm test:page-authz-lint (node:test)
+// ページ層の認可の置き場所の検査(M3・M4)の契約テスト。実行: pnpm test eslint-rules/page-authz.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";

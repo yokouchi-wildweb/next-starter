@@ -1,5 +1,5 @@
 // デザイントークンの「構造(theme.css)」と「上流既定値(palette.default.css)」の整合テスト。
-// 実行: pnpm test:style-tokens (node:test、追加依存なし)
+// 実行: pnpm test src/styles/core/styleTokens.test.mjs (node:test、追加依存なし)
 //
 // 守りたい契約:
 // 1. theme.css の @theme inline が参照する var(--x) は、上流のどこかの CSS で必ず定義されている

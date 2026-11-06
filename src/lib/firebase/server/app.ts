@@ -13,7 +13,7 @@ import { FirebaseNotConfiguredError } from "../errors";
 /**
  * サーバー側 Firebase Admin が設定済み（MY_SERVICE_ACCOUNT_KEY が非空）かどうか。
  *
- * `pnpm env:init` 直後は空で、その状態でも dev サーバーが起動することを手順書で約束している。
+ * `pnpm ops setup env` 直後は空で、その状態でも dev サーバーが起動することを手順書で約束している。
  * Firebase Admin を要する処理に未設定で到達すると FirebaseNotConfiguredError("server") が
  * 即座に投げられる（遅延初期化のため import だけでは失敗しない）。
  * 判定は「未設定」のみ。設定済みで初期化に失敗した場合は従来どおり理由付きの Error になる。

@@ -1,4 +1,4 @@
-// 実行: pnpm test:fork-ownership
+// 実行: pnpm test src/lib/forkOwnership/unitNames.test.mjs
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

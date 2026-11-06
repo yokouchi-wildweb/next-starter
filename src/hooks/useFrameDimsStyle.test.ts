@@ -1,4 +1,4 @@
-// src/hooks/useFrameDimsStyle.test.ts — pnpm test:frame-dims
+// src/hooks/useFrameDimsStyle.test.ts — pnpm test src/hooks/useFrameDimsStyle.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

@@ -1,5 +1,5 @@
 // src/config/app/screens.config.ts
-// `pnpm test:screens` の fork 所有の設定(構造の検査の除外)。
+// `pnpm test src/lib/screens/screens.test.mjs` の fork 所有の設定(構造の検査の除外)。
 //
 // test:screens は src/app 全体のページ(_ で始まるディレクトリと src/app/api を除く。fork の独自エリアも含む)を
 // 自動検出し、全てが「1 行スイッチ(+ _screen/ または _components/ の Screen)」であることを検査する。

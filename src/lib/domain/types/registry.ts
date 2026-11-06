@@ -2,7 +2,7 @@
 // serviceRegistry（ドメイン名 → サービス・表・主キーを引く正式な仕組み）の型
 //
 // 登録の単位は各ドメインの services/server/domainEntry.ts（1 ドメイン 1 ファイル、キー付きオブジェクト）。
-// src/registry/serviceRegistry.ts は pnpm registry:generate が全 domainEntry.ts を走査して生成する。
+// src/registry/serviceRegistry.ts は pnpm generate registry が全 domainEntry.ts を走査して生成する。
 // サービスは遅延読み込み（`service: () => import(...)`）なので、登録表を import しても各ドメインの
 // サービス・DB 接続は読み込まれない。詳細: src/lib/domain/README.md
 

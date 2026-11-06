@@ -1,4 +1,4 @@
-// 実行: pnpm test:style-tokens
+// 実行: pnpm test src/styles/core/frameHeaderHeight.test.mjs
 // ヘッダーの高さの初期値(frame.css の外枠ごと・端末ごとの --app-header-height)を確かめる(指令 15 AMENDMENT 1 (1)・指令 21 AMENDMENT 2)。
 // - 測る前の値が 0 でない(利用者・管理 × SP・PC)、値 = 今の行の高さ(利用者 53 / 73 = 部品のクラスの calc()、管理 52 / 88)
 // - 管理は行の高さの値 --admin-header-row-height(config.css、1 か所)をそのまま読む(子のクラスの calc() にしない)

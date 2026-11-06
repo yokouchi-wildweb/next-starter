@@ -1,6 +1,6 @@
 // src/lib/storage/client/pickerAccept.test.ts
 // pickerAcceptFor（ファイル選択の accept を用途の metadata に合わせる）の単体テスト。
-// 実行: pnpm test:storage-client
+// 実行: pnpm test src/lib/storage/client/pickerAccept.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

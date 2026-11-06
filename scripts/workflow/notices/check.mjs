@@ -1,4 +1,4 @@
-// scripts/workflow/notices/check.mjs — 門 ship の検査(gate.json): notice・出荷索引・取り込みの道具のテスト(= pnpm test:notices)
+// scripts/workflow/notices/check.mjs — 門 ship の検査(gate.json): notice・出荷索引・取り込みの道具のテスト(= pnpm check notices)
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 

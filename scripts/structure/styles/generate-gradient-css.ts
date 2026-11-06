@@ -5,7 +5,7 @@
 //   fork は core/ の下に差分を持たない。同じ key を customGradients に書けば、直下の gradient.css が後から読まれて上書きする
 //
 // 使い方:
-//   pnpm gradient:gen
+//   pnpm generate styles
 //
 // 方針（生成物コミット方式）:
 //   - 単一ソースは TS（tokens.base.ts ＋ config/app/gradients.config.ts）。
@@ -172,7 +172,7 @@ function main(): void {
         DEFAULT_OUTPUT_PATH,
         "【自動生成ファイル】直接編集しないでください。上流の既定(upstream 所有。fork でも上流と同じ中身)。",
         "生成元: src/lib/gradient/tokens.base.ts",
-        "再生成: pnpm gradient:gen(そのリポの分は直下の src/styles/gradient.css)",
+        "再生成: pnpm generate styles(そのリポの分は直下の src/styles/gradient.css)",
         ...USAGE,
       ],
       withAngles: true,
@@ -186,7 +186,7 @@ function main(): void {
         REPO_OUTPUT_PATH,
         "【自動生成ファイル】直接編集しないでください。このリポのグラデーション(fork 所有。global.css が読む)。",
         "生成元: src/config/app/gradients.config.ts の customGradients(空なら中身なし)",
-        "再生成: pnpm gradient:gen。上流の既定(core/gradient.default.css)の後に読まれ、同じ key は上書きする",
+        "再生成: pnpm generate styles。上流の既定(core/gradient.default.css)の後に読まれ、同じ key は上書きする",
       ],
       withAngles: false,
     }),

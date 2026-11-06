@@ -2,7 +2,7 @@
 // drizzleLedger の実 DB テスト（条件付き INSERT / UPDATE が並行実行でも一方だけ成功すること）。
 // 開発 DB の storage_objects に、用途 ID `test.*` とランダムな所有者でテスト用の行を作り、終了時に消す。
 // DATABASE_URL が無ければ全件 skip。テーブルが無ければ失敗する（先に pnpm db:push）。
-// 実行: pnpm test:storage-object-db
+// 実行: pnpm test --db src/features/core/storageObject/services/server/ledger/drizzleLedger.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

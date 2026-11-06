@@ -1,6 +1,6 @@
 // src/lib/storage/storageRef.test.ts
 // lib/storage 新基盤の単体テスト（ref / resolveStorageSrc / 配信規則 / スキーマ / fake ポート / 未設定時の挙動）
-// 実行: pnpm test:storage-ref
+// 実行: pnpm test src/lib/storage/storageRef.test.ts
 
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";

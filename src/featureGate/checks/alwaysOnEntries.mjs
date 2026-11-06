@@ -169,7 +169,7 @@ export function staleAlwaysOnFiles(rootNames, oldItems = []) {
     ...rootNames
       .filter((name) => name.startsWith(`${ALWAYS_ON_DIR}.`))
       .map((name) => `${oldMarkerProblem(`scripts/proxies/${name}`, `${ALWAYS_ON_DIR}/<名前>.mjs`)}。行ごとに 1 ファイル(export const exception か registry)に分け、置き場は ${NEW_PLACE}`),
-    ...oldItems.map((name) => `scripts/proxies/${ALWAYS_ON_DIR}/${name}: 置き場が ${NEW_PLACE} に移った(中身は同じ、拡張子を .ts にして型 AlwaysOnException を付け、pnpm extensions:generate)`),
+    ...oldItems.map((name) => `scripts/proxies/${ALWAYS_ON_DIR}/${name}: 置き場が ${NEW_PLACE} に移った(中身は同じ、拡張子を .ts にして型 AlwaysOnException を付け、pnpm generate extensions)`),
   ];
 }
 

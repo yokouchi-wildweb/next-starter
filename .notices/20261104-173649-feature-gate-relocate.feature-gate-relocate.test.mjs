@@ -1,5 +1,5 @@
 // .notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.test.mjs
-// 実行: pnpm test:codemods(一時フォルダの fixture。git は使わない)
+// 実行: pnpm test .notices(一時フォルダの fixture。git は使わない)
 
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";

@@ -1,5 +1,5 @@
 // eslint-rules/import-boundaries.test.mjs
-// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries)の契約テスト。実行: pnpm test:import-boundaries (node:test)
+// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries)の契約テスト。実行: pnpm test eslint-rules/import-boundaries.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";

@@ -1,5 +1,5 @@
 // RoomDurableObject の接続トークンの期限の検査(D18: ソケットはトークンの期限を超えて生きない)。
-// 実行: pnpm test:room(ルートから tsx + node:test のモジュールモック。Durable Object の state と WebSocket は偽物、トークンは本物の jose で署名)
+// 実行: pnpm test servers/room/src/core/room.test.ts(ルートから tsx + node:test のモジュールモック。Durable Object の state と WebSocket は偽物、トークンは本物の jose で署名)
 // 見るもの: 接続できる / 期限の無い・切れたトークンは 401 / 期限後は配信せず閉じる / 期限後の操作は受けずに閉じる
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";

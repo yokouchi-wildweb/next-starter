@@ -1,5 +1,5 @@
 // 主の集まりの項目（mediaCollection）の純関数（従属の既定の名前・snake_case の判定）の回帰テスト。
-// 実行: pnpm test:dc-collection-field
+// 実行: pnpm test scripts/structure/domain/tests/collectionField.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { defaultChildName, isSnakeCaseName } from "../spec/collectionField.mjs";

@@ -1,6 +1,6 @@
 // scripts/structure/extensions/intakeOwnership.test.mjs — 生成器の出力(受け口の一覧の生成区画)と所有の検査の継ぎ目
 // 実物の生成器 planExtensions で intake.txt の生成区画を書き、ownership:check がそれで判定することを確かめる
-// (もとは src/lib/forkOwnership/check.test.mjs の 1 件。lib のテストは道具を読まない、D78)。実行: pnpm test:fork-ownership
+// (もとは src/lib/forkOwnership/check.test.mjs の 1 件。lib のテストは道具を読まない、D78)。実行: pnpm test scripts/structure/extensions/intakeOwnership.test.mjs
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,7 +25,7 @@ test("受け口の行は生成区画(宣言から): core の受け口の印な�
   write(parent, "src/features/core/user/cleanupHandlers/base.ts", "export const handler = 1;\n");
   write(parent, "src/features/core/payment/enricher.default.ts", "export function enrich() {}\n");
   write(parent, "src/features/core/payment/enricher.ts", 'export { enrich } from "./enricher.default";\n');
-  // 生成区画は実物の生成器(pnpm extensions:generate の中身)で書く
+  // 生成区画は実物の生成器(pnpm generate extensions の中身)で書く
   const plan = planExtensions(parent);
   assert.deepEqual(plan.problems, []);
   write(parent, intakePath, plan.intake.content);

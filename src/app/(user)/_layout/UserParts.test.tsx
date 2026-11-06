@@ -1,6 +1,6 @@
 // User 枠の部品(Header・BottomNav・UserPage・Layout/Main)の slot / props と、守る印・属性(data-slot・寸法変数)の検査。
 // 全 Tier で見るのは印・属性を含むかの判定。fork の config の値や無害な追加で落とさない。固定の HTML は upstream(Tier1)でだけ見る。
-// 実行: pnpm test:user-layout(UserLayout.test.tsx と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
+// 実行: pnpm test src/app/(user)/_layout/UserParts.test.tsx(UserLayout.test.tsx と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // Header は useHeaderData・Brand・Pc / Sp のナビ部品を目印にモックし、HeaderShell と CTA の Button は本物を描く
 // (SpNavigation の目印は footer prop を子として描く = SP メニュー下部に何が渡ったかを見る)。

@@ -1,6 +1,6 @@
 // scripts/operations/setup/env.ts
 //
-// ローカル用 .env ファイルの初期生成 (pnpm env:init [ファイル名])。
+// ローカル用 .env ファイルの初期生成 (pnpm ops setup env [ファイル名])。
 // 冪等: 対象ファイルが既に存在すれば何もせず終了する (上書きしない)。
 //
 // やること:
@@ -94,6 +94,6 @@ console.log(`
   - NEXT_PUBLIC_FIREBASE_*       Firebase Auth / Firestore
   - MY_SERVICE_ACCOUNT_KEY       Firebase Admin SDK
   - STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET
-                                 ファイル保存のバケット → pnpm storage:setup (scripts/operations/storage/README.md)
+                                 ファイル保存のバケット → pnpm ops storage setup (scripts/operations/storage/README.md)
 手順: docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md
 `);

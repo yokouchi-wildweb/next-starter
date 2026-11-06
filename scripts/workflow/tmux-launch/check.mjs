@@ -11,8 +11,8 @@ try {
     if (!state.ok) {
       const what = state.stale ? "古い" : "まだ無い";
       console.log(
-        `[tmux-launch] このマシンでは claude を tmux で開く設定が${what}(pnpm setup:tmux-launch --check で詳細)。` +
-          "ユーザーに 1 回だけ伝え、承認をもらってから pnpm setup:tmux-launch を実行する" +
+        `[tmux-launch] このマシンでは claude を tmux で開く設定が${what}(pnpm workflow tmux-launch setup --check で詳細)。` +
+          "ユーザーに 1 回だけ伝え、承認をもらってから pnpm workflow tmux-launch setup を実行する" +
           (state.tmux ? "。" : "(tmux が無い: 先に ! sudo apt install tmux か ! brew install tmux を案内する)。") +
           "済んだら新しいターミナルで claude を打ち直してもらう(続きは claude --continue)。説明: scripts/workflow/tmux-launch/README.md",
       );

@@ -1,6 +1,6 @@
 // scripts/runner/test/run.mjs — テストの入口(pnpm test)
 // 実行: pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list]
-//   走査: git の追跡 + 未追跡のテストのファイル(scan.mjs、servers/・tests/e2e/・*.types.test.* は除く)を毎回。
+//   走査: git の追跡 + 未追跡のテストのファイル(scan.mjs、tests/e2e/・*.types.test.* は除く。servers/ は名指しの時だけ)を毎回。
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   --list: 選んだファイルを出すだけ(起動しない)。
@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, globToRegExp } from "../gates/changed.mjs";
 import { scanTree, selectChanged } from "./changed.mjs";
-import { GROUPS, groupOf, listTestFiles, readFlags } from "./scan.mjs";
+import { GROUPS, NAMED_ONLY, groupOf, listTestFiles, readFlags } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const BASE_ARGS = ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--experimental-test-module-mocks"];
@@ -35,9 +35,12 @@ export function parseArgs(argv) {
 const matches = (file, pattern) => (/[*?]/.test(pattern) ? globToRegExp(pattern).test(file) : file === pattern || file.startsWith(pattern.replace(/\/?$/, "/")));
 
 /** 選ぶ: { files, notes } か { problem } */
-export async function select(opts, { repo, files = listTestFiles(repo), changed = changedFiles, tree = scanTree }) {
+export async function select(opts, { repo, files, changed = changedFiles, tree = scanTree }) {
   const groups = opts.groups ?? (opts.db ? GROUPS : ["unit", "fork"]);
-  let picked = files.filter((f) => groups.includes(groupOf(f)));
+  // servers/ の下は引数のパス・glob がそこを名指しした時だけ(NAMED_ONLY)
+  const namedOnly = opts.patterns.some((p) => NAMED_ONLY.test(p));
+  const all = (files ?? listTestFiles(repo, { namedOnly })).filter((f) => namedOnly || !NAMED_ONLY.test(f));
+  let picked = all.filter((f) => groups.includes(groupOf(f)));
   if (opts.patterns.length) picked = picked.filter((f) => opts.patterns.some((p) => matches(f, p)));
   const notes = [];
   if (opts.changed) {

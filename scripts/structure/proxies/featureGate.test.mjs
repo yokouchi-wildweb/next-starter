@@ -1,12 +1,12 @@
 // Feature Gate（ルートゲート + スキーマゲート）の規律テスト。
-// 実行: pnpm test:feature-gate (node:test + tsx。config / registry の .ts を読むため tsx ランナーを使う)
+// 実行: pnpm test scripts/structure/proxies/featureGate.test.mjs (node:test + tsx。config / registry の .ts を読むため tsx ランナーを使う)
 //
 // 定義: src/featureGate/rules/<名前>.ts(一覧 src/featureGate/extensions/rules.ts、入口 @/featureGate/node)/ 設計: src/featureGate/README.md・src/proxies/README.md
 //
 // 検査の対象は「今 enabled: false のルール」だけ。有効な機能のルートは開いていて正しく、
 // 機能を切ったときに初めて「テーブルが無いのに開いているルート」が問題になるため。
 // upstream は全機能が有効なので、ゲート対象ドメインを触るときは FEATURE_GATE_CHECK=all で全ルールを無効とみなして検査する:
-//   FEATURE_GATE_CHECK=all pnpm test:feature-gate
+//   FEATURE_GATE_CHECK=all pnpm test scripts/structure/proxies/featureGate.test.mjs
 //
 // 守りたい契約:
 // 1. features のフォルダから導いた表名(生成一覧の tables)は schemaRegistry に実在する

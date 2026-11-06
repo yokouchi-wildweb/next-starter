@@ -5,7 +5,7 @@
 // .mjs なのは、tsx を通さない生成器（node）からも TypeScript からも import できるようにするため（relationOptions.mjs と同じ）。
 //
 // 新しい型を足すときは FIELD_TYPES に 1 行足し（formDefault は必ず書く）、src/lib/domain/fields/fieldFormInputs.mjs に入力種別を、
-// src/components/Form/Field/types.ts の union に型名を足す（ずれは pnpm test:form-defaults と typecheck が検知する）。
+// src/components/Form/Field/types.ts の union に型名を足す（ずれは pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts と typecheck が検知する）。
 // 表に無い型は「未知型」: 生成器は型名をそのまま列関数に出して警告、フォームの初期値は ""、日時変換も複数選択もしない。
 // 型名は小文字化せずにそのまま引く（"timestamp with time zone" は未知型）。
 //

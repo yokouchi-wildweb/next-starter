@@ -1,4 +1,4 @@
-// 実行: pnpm test:codemods
+// 実行: pnpm test .notices
 // 管理ヘッダーへ移す道具(./admin-header.mjs)の書き換え・止める一覧・区切りの決め方
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

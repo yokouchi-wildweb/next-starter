@@ -7,7 +7,7 @@ export const INTAKE_KINDS = ["edit", "add", "region", "marker", "append", "gener
 
 /** 受け口の一覧の置き場(リポジトリ直下からの相対) */
 export const INTAKE_FILE = "src/lib/forkOwnership/intake.txt";
-/** 受け口の行の生成区画(pnpm extensions:generate が拡張点の宣言・1 行スイッチから書く。生成器の区画なので所有の検査の対象外: regions.mjs) */
+/** 受け口の行の生成区画(pnpm generate extensions が拡張点の宣言・1 行スイッチから書く。生成器の区画なので所有の検査の対象外: regions.mjs) */
 export const INTAKE_BLOCK_START = "# === AUTO-GENERATED intake START ===";
 export const INTAKE_BLOCK_END = "# === AUTO-GENERATED intake END ===";
 

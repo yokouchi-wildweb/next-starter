@@ -1,4 +1,4 @@
-// src/lib/domain/relations/relationOptions.mjs の検査。実行: pnpm test:relation-options
+// src/lib/domain/relations/relationOptions.mjs の検査。実行: pnpm test src/lib/domain/relations/relationOptions.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

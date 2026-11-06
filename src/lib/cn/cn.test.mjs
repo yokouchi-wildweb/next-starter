@@ -1,5 +1,5 @@
 // cn() (tailwind-merge) のカスタムクラスグループ登録の契約テスト。
-// 実行: pnpm test:cn （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
+// 実行: pnpm test src/lib/cn/cn.test.mjs （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
 //
 // 背景: tailwind-merge は未知の `text-*` を文字色と分類するため、theme.css で
 // 定義した流体フォントサイズ text-fluid-* を font-size グループに登録しないと

@@ -3,8 +3,8 @@
 import { GENERATE_CATEGORIES } from "../spec/categories.mjs";
 
 /**
- * `pnpm dc:generate -- Sample` のように書くと pnpm は `--` をそのまま渡すため、
- * 単独の `--` を取り除いて `pnpm dc:generate Sample` と同じ引数列にする
+ * `pnpm generate domain -- Sample` のように書くと pnpm は `--` をそのまま渡すため、
+ * 単独の `--` を取り除いて `pnpm generate domain -- Sample` と同じ引数列にする
  */
 export function getCliArgs(argv = process.argv) {
   return argv.slice(2).filter((arg) => arg !== "--");

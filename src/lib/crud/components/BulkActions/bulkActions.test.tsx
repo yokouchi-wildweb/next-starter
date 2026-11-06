@@ -1,4 +1,4 @@
-// src/lib/crud/components/BulkActions/bulkActions.test.tsx — pnpm test:bulk-actions
+// src/lib/crud/components/BulkActions/bulkActions.test.tsx — pnpm test src/lib/crud/components/BulkActions/bulkActions.test.tsx
 // 作成関数が Bulk*Button に選択の ids・disabled・onSuccess(= onDone)を渡し、BulkActionItems が選択の解除と onDone を呼ぶ
 // (tsx + node:test のモジュールモック + react-dom/server の静的描画。ボタンは props を記録する代役に置き換える)
 import { before, mock, test } from "node:test";

@@ -1,7 +1,7 @@
 // scripts/structure/extensions/frames.mjs
 // 枠の宣言の生成器: src/app の frame.default.ts(ルートを作ったリポの既定)と frame.ts(その下のリポの宣言)を字面で読み
 // (declarations.literalOf、D2)、ルートの親の鎖を部位と端末ごとに解決した表を枠の根ごとに書く
-// (<枠の根>/_layout/extensions/frameTable.ts。pnpm extensions:generate が書き、extensions:check が照らす)。
+// (<枠の根>/_layout/extensions/frameTable.ts。pnpm generate extensions が書き、extensions:check が照らす)。
 // 範囲はキーで名指す(layout = 隣の layout.tsx の下全部、page = 隣の page.tsx だけ)。隣に何があるかで意味を変えない。
 // 重ねる順: 浅い段から layout(frame.default → frame)、葉の段で最後に page(frame.default → frame)。
 // git は使わない(親の物の隣の *.default.* は ownership:check の default-add)。仕組みと表の形: src/app/_layout/frame/README.md

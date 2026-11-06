@@ -1,5 +1,5 @@
 // eslint-rules/client-service-boundary.test.mjs
-// UI からの ClientService 直接 import 検出の契約テスト。実行: pnpm test:client-service-boundary (node:test)
+// UI からの ClientService 直接 import 検出の契約テスト。実行: pnpm test eslint-rules/client-service-boundary.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";

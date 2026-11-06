@@ -1,14 +1,14 @@
 // scripts/operations/room/secret.ts
 //
-// 共有署名鍵の生成と Worker への非対話登録 (pnpm room:secret)。
+// 共有署名鍵の生成と Worker への非対話登録 (pnpm ops room secret)。
 // 手動フロー (生成 → env 貼り付け → 対話 wrangler secret put) に残っていた 3 つの罠を排除する:
 //   - デプロイ前の secret put が対話プロンプト (Worker 新規作成確認) に落ちる → 未デプロイなら明示拒否
 //   - Worker 側と Next 側 env の同値が未検証 → 同じ値を「登録 + 表示」で一元化
 //   - 対話 put は CI / 無人実行できない → `wrangler secret bulk` (一時ファイル経由) で非対話化
 //
 // 使い方:
-//   pnpm room:secret            # 生成 + 登録 + Next 側 env 行の表示。登録済みなら拒否 (誤ローテ防止)
-//   pnpm room:secret --rotate   # 新しい鍵で再生成・再登録 (Next 側 env の差し替えを忘れないこと)
+//   pnpm ops room secret            # 生成 + 登録 + Next 側 env 行の表示。登録済みなら拒否 (誤ローテ防止)
+//   pnpm ops room secret --rotate   # 新しい鍵で再生成・再登録 (Next 側 env の差し替えを忘れないこと)
 //
 // 一時ファイルは chmod 600 で作成し、成否に関わらず即削除する (シェル履歴にも鍵を残さない)。
 
@@ -26,11 +26,11 @@ const rotate = process.argv.includes("--rotate");
 console.log("=== realtime room: secret ===\n");
 
 if (!existsSync(path.join(roomDir, "wrangler.toml"))) {
-  console.error("✗ servers/room/wrangler.toml がありません。先に pnpm room:init を実行してください");
+  console.error("✗ servers/room/wrangler.toml がありません。先に pnpm ops room init を実行してください");
   process.exit(1);
 }
 if (!existsSync(wranglerBin)) {
-  console.error("✗ servers/room の依存が未インストールです。先に pnpm room:init を実行してください");
+  console.error("✗ servers/room の依存が未インストールです。先に pnpm ops room init を実行してください");
   process.exit(1);
 }
 
@@ -58,7 +58,7 @@ try {
 } catch (error) {
   const detail = error instanceof Error && "stderr" in error ? String((error as { stderr?: unknown }).stderr ?? "") : "";
   console.error(`✗ Worker の secret 一覧を取得できません。Worker が未デプロイの可能性が高いです。
-  先に pnpm room:deploy で初回デプロイしてから再実行してください。
+  先に pnpm ops room deploy で初回デプロイしてから再実行してください。
 ${detail ? `  wrangler の出力: ${detail.trim().split("\n").slice(-3).join(" / ")}` : ""}`);
   process.exit(1);
 }
@@ -67,7 +67,7 @@ const alreadyRegistered = secretListOut.includes(SECRET_NAME);
 if (alreadyRegistered && !rotate) {
   console.error(`✗ ${SECRET_NAME} は既に Worker へ登録済みです。
   誤って鍵を差し替えると Next 側 env と食い違い、全接続が認証エラーになります。
-  意図的にローテーションする場合: pnpm room:secret --rotate (Next 側 env の差し替えとセットで)`);
+  意図的にローテーションする場合: pnpm ops room secret --rotate (Next 側 env の差し替えとセットで)`);
   process.exit(1);
 }
 

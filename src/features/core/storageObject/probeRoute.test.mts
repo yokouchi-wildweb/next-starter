@@ -3,7 +3,7 @@
 // - priv の ref は用途の read（この管理者で resolveRead）を通ったときだけ、その署名 URL を lib に渡す。admin の暗黙の通過なし
 // - storagePath は旧バケット内だけ。pub / priv の保存先と重なるパスは lib を呼ばずに 400
 // 判定（resolveRead・旧バケットの判定・probeMedia）をモックし、ルートの分岐を確かめる。
-// 実行: pnpm test:storage-object
+// 実行: pnpm test src/features/core/storageObject/probeRoute.test.mts
 
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";

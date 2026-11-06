@@ -1,5 +1,5 @@
 // dc:generate のドメインフォルダ名検査（フォルダ名 = camel(singular)）の回帰テスト。
-// 実行: pnpm test:dc-domain-folder
+// 実行: pnpm test scripts/structure/domain/tests/domainFolder.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

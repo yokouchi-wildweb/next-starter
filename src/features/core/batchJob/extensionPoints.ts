@@ -1,5 +1,5 @@
 // src/features/core/batchJob/extensionPoints.ts
-// batchJob の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
+// batchJob の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // バッチジョブハンドラ: jobHandlers/<名前>.ts の export const jobHandler

@@ -1,7 +1,7 @@
-// scripts/structure/cron/gate-check.ts — 門の入口(pnpm check cron): vercel.json の crons が task.ts からの生成結果と一致するか(= pnpm cron:check)
+// scripts/structure/cron/gate-check.ts — 門の入口(pnpm check cron): vercel.json の crons が task.ts からの生成結果と一致するか(= pnpm check cron)
 // build の門(GATE=build)では --vercel-build を付ける(Vercel 上のビルドの時だけ検査する、今の build と同じ)。
 // それ以外の門(ship・deploy・名前指定)は、vercel.json が無ければ飛ばして出す(forge のデプロイ先の検査と同じ。Vercel を使わないリポ)。
-// cron:generate は契約のプラン(--plan hobby|pro)を人が選ぶので generate の入口は置かない
+// generate の入口は gate-generate.ts(契約のプランを人が選ぶので --plan の無い呼び出しは飛ばす)
 import { existsSync } from "node:fs";
 
 if (process.env.GATE === "build") {

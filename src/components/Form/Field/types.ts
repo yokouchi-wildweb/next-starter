@@ -19,7 +19,7 @@ export interface RegisteredFormInputs {}
 /**
  * 枠(FormControl)が入力へ渡す 3 つ。入力部品(Form/Input)は受けて、フォーカスされる要素
  * (input・トリガーのボタン。選択肢の組は role="group" / "radiogroup" の入れ物)へ付ける。
- * ラベルの for・説明文・エラーがこれで入力と結び付く(検査: pnpm test:form-a11y-contract)
+ * ラベルの for・説明文・エラーがこれで入力と結び付く(検査: pnpm test src/components/Form/Input)
  */
 export type FormControlA11yProps = {
   id?: string;

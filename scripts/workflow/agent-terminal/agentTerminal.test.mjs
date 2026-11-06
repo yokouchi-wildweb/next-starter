@@ -1,4 +1,4 @@
-// scripts/workflow/agent-terminal/agentTerminal.test.mjs — pnpm test:agent-terminal
+// scripts/workflow/agent-terminal/agentTerminal.test.mjs — pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs
 //
 // - AGENT_TERMINAL の読み方(環境変数 → default.conf、無い・知らない値 = none)
 // - compact:self の 2 つの道(打てない → 代わりの 1 行・待つ役なし / tmux + hook の印あり → 待つ役を残す)

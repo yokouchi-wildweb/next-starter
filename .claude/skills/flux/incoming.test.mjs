@@ -1,4 +1,4 @@
-// .claude/skills/flux/incoming.test.mjs — 流入の発見と区間の組み立て(incoming.mjs)を一時の上流と fork で通す。実行: pnpm test:notices
+// .claude/skills/flux/incoming.test.mjs — 流入の発見と区間の組み立て(incoming.mjs)を一時の上流と fork で通す。実行: pnpm test .claude/skills/flux/incoming.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";

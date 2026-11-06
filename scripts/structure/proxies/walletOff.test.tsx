@@ -1,6 +1,6 @@
 // scripts/structure/proxies/walletOff.test.tsx
 // wallet と payment を閉じたとき、core を編集せずにウォレット・購入まわりが何も動かないこと(L1.15、routed 20261105-070903-wallet-purchase-pluggable)。
-// 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:feature-gate:client
+// 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test scripts/structure/proxies/walletOff.test.tsx
 // (a) cron のタスク: 住所が閉じ discover の closedBy が付く(route・pnpm task・vercel.json から外れる)
 // (b) 常時実行の拡張点(alwaysOn)の項目: wallet / payment の機能のフォルダを読む項目は enabled() が false
 // (c) 管理のサイドバー: wallet / payment の住所の行が無い

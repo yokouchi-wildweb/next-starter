@@ -1,5 +1,5 @@
 // src/proxies/extensionPoints.ts
-// proxy の拡張点の宣言(リテラルだけ。pnpm extensions:generate が字面で読み、src/proxies/extensions/<点>.ts を生成する)。
+// proxy の拡張点の宣言(リテラルだけ。pnpm generate extensions が字面で読み、src/proxies/extensions/<点>.ts を生成する)。
 // 書式: scripts/structure/extensions/README.md / proxy の枠と規則: ./README.md
 // ignore = 骨組み(index.ts が手書きで並べる上流の handler 4・decorator 2)と枠そのもの。項目として走査しない
 

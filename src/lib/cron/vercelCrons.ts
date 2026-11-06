@@ -1,8 +1,8 @@
 // src/lib/cron/vercelCrons.ts
 // vercel.json の crons をタスク定義から生成・検査する純関数（next / DB / fs 非依存）
 //
-// 利用者: scripts/structure/cron/generate.ts（pnpm cron:generate）, scripts/structure/cron/check.ts（pnpm cron:check / Vercel ビルド前の検査）,
-//         scripts/runner/task/run.ts（pnpm task --due）, scripts/structure/cron/cronWiring.test.mjs（pnpm test:cron-wiring）
+// 利用者: scripts/structure/cron/generate.ts（pnpm generate cron）, scripts/structure/cron/check.ts（pnpm check cron / Vercel ビルド前の検査）,
+//         scripts/runner/task/run.ts（pnpm task --due）, scripts/structure/cron/cronWiring.test.mjs（pnpm test scripts/structure/cron/cronWiring.test.mjs）
 //
 // vercel.json の crons は「src/app/api/cron/<name>/task.ts 1 つにつき 1 エントリ」で、人は手で書かない。
 // 各エントリの時刻 = task.ts の schedule。
@@ -104,7 +104,7 @@ export function checkVercelCrons(
   if (scheduleErrors.length > 0) return { plan: null, errors: scheduleErrors };
 
   if (!Array.isArray(crons)) {
-    return { plan: null, errors: ["crons が配列ではありません（pnpm cron:generate --plan hobby|pro で生成してください）"] };
+    return { plan: null, errors: ["crons が配列ではありません（pnpm generate cron -- --plan hobby|pro で生成してください）"] };
   }
 
   const errors: string[] = [];
@@ -147,6 +147,6 @@ export function checkVercelCrons(
       errors.push(`${path}: 生成結果にありません（消えたタスク、task.ts の置き忘れ、または task.override.ts で disabled にしたタスク）`);
     }
   }
-  errors.push(`直し方: pnpm cron:generate --plan ${guess}（プランが違うなら hobby|pro を指定し直す）`);
+  errors.push(`直し方: pnpm generate cron -- --plan ${guess}（プランが違うなら hobby|pro を指定し直す）`);
   return { plan: null, errors };
 }

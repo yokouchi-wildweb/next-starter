@@ -1,5 +1,5 @@
 // src/app/_layout/adminCommand/extensionPoints.ts
-// 管理者コマンドの拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
+// 管理者コマンドの拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 // 管理者のときだけ読み込む(load: lazy)。読み手は ./AdminCommandRoot.tsx → AdminCommandProvider
 
 export const extensionPoints = {

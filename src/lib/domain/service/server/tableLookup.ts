@@ -21,7 +21,7 @@ function tableIndexOf(registry: DomainRegistry): ReadonlyMap<string, string> {
     if (entry.table === null) continue;
     const owner = index.get(entry.table);
     if (owner !== undefined) {
-      throw new Error(`表 "${entry.table}" が登録表の 2 つのキー（"${owner}" と "${key}"）にある。1 つの表は 1 つのドメインだけに登録する（pnpm registry:check）`);
+      throw new Error(`表 "${entry.table}" が登録表の 2 つのキー（"${owner}" と "${key}"）にある。1 つの表は 1 つのドメインだけに登録する（pnpm check registry）`);
     }
     index.set(entry.table, key);
   }

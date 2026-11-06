@@ -15,7 +15,7 @@ export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts
 export const ADMIN_DATA_MENU_FILE = "src/registry/adminDataMenu.ts";
 export const STORAGE_PURPOSE_REGISTRY_FILE = "src/registry/storagePurposeRegistry.ts";
 
-const headerOf = (source) => `// 生成物・編集不可: pnpm registry:generate が ${source} から生成する`;
+const headerOf = (source) => `// 生成物・編集不可: pnpm generate registry が ${source} から生成する`;
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** src/features の全 domain.json(path 順) */
@@ -56,7 +56,7 @@ function renderSchemaRegistry(repoRoot) {
     `// ${SCHEMA_REGISTRY_FILE}`,
     "//",
     "// db:push の唯一のスキーマ入口。pgTable を持つファイルを走査して全部並べる(足し忘れが起きない)。",
-    "// 機能を閉じたときに外す表は 門番 src/featureGate/node/gatedSchema.ts(@/featureGate/node の gatedSchema)が別に見る。検査: pnpm registry:check / pnpm test:schema-registry",
+    "// 機能を閉じたときに外す表は 門番 src/featureGate/node/gatedSchema.ts(@/featureGate/node の gatedSchema)が別に見る。検査: pnpm check registry / pnpm test scripts/structure/registry",
     "",
     ...files.map((f) => `export * from "@/${f.slice("src/".length).replace(/\.tsx?$/, "")}";`),
     "",

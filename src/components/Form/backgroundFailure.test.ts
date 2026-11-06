@@ -1,5 +1,5 @@
 // src/components/Form/backgroundFailure.test.ts
-// 裏の処理が失敗した欄で送信を止める判定のテスト。実行: pnpm test:form-background-failure
+// 裏の処理が失敗した欄で送信を止める判定のテスト。実行: pnpm test src/components/Form/backgroundFailure.test.ts
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

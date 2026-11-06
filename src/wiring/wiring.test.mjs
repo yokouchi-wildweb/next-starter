@@ -1,5 +1,5 @@
 // src/wiring の配線テスト。
-// 実行: pnpm test:wiring (node:test。テキストで import を読むだけなので plain node)
+// 実行: pnpm test src/wiring/wiring.test.mjs (node:test。テキストで import を読むだけなので plain node)
 //
 // 守りたい契約(設計: src/wiring/README.md):
 // 1. 目録: Tier1 では src/wiring に置けるファイルは WIRING_FILES に書いたものだけ（upstream のファイルは勝手に増やさない。

@@ -1,4 +1,4 @@
-// src/lib/unsavedGuard/guard.test.ts — pnpm test:unsaved-guard
+// src/lib/unsavedGuard/guard.test.ts — pnpm test src/lib/unsavedGuard/guard.test.ts
 // 守りの本体(createUnsavedGuard)を DOM の道具なしの偽物で確かめる。実際のブラウザの 4 経路は tests/e2e/unsavedGuard/unsavedGuard.spec.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

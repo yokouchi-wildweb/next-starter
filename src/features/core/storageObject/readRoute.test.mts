@@ -2,7 +2,7 @@
 // GET /api/storage/objects/[id] の応答ヘッダーの回帰テスト。
 // 302 と失敗応答は private, no-store + Vary。失敗応答（401 / 404 / 500）には Location を付けない。
 // サービスの判定結果だけをモックし、ルートファクトリーと応答の組み立ては実物を動かす。
-// 実行: pnpm test:storage-object
+// 実行: pnpm test src/features/core/storageObject/readRoute.test.mts
 
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";

@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/app/(user)/demo/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/app/(user)/demo/extensionPoints.ts から生成する
 // demoPages: src/app/(user)/demo/*/_demo.ts の export const demo(folder = フォルダ名、並びはフォルダ名の順)
 
 import type { DemoPage } from "@/app/(user)/demo/_data/demoPages";

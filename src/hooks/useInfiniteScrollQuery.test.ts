@@ -1,4 +1,4 @@
-// src/hooks/useInfiniteScrollQuery.test.ts — pnpm test:infinite-scroll
+// src/hooks/useInfiniteScrollQuery.test.ts — pnpm test src/hooks/useInfiniteScrollQuery.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

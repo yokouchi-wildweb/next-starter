@@ -2,7 +2,7 @@
 //
 // インポートの進め方（importRun.ts）のテスト: 最初に失敗したチャンクで止め、後のチャンクと後に続くドメインは流さない。
 // 入ったもの・入っていないものを結果に分ける。
-// 実行: pnpm test:data-migration
+// 実行: pnpm test src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importRun.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

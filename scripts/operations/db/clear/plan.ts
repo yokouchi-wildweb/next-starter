@@ -1,6 +1,6 @@
 // scripts/operations/db/clear/plan.ts
 //
-// pnpm db:clear の「消す計画」を立てる純関数(DB には触れない。実行は run.ts)。
+// pnpm ops db clear の「消す計画」を立てる純関数(DB には触れない。実行は run.ts)。
 //
 // 考え方:
 // - 閉じた機能の表(@/featureGate/node の closedTables)には触れない。選べる表からも参照元からも外す

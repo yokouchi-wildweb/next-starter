@@ -1,6 +1,6 @@
 // dc:delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除・残るコードから import されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
 // 止まる経路は runDelete を直接呼ぶ（-i でなければ対話は出ない）。止まらない経路は判定が null であることを見る。
-// 実行: pnpm test:dc-delete-stop
+// 実行: pnpm test scripts/structure/domain/tests/deleteStop.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -169,7 +169,7 @@ test("--confirm: 無い・違うなら消すものの一覧と打てるコマン
   const missing = await deleteCapturing(workspace, "note");
   assert.equal(missing.exitCode, 1);
   assert.match(missing.stderr, /--confirm でドメイン名/);
-  assert.match(missing.stderr, /実行: pnpm dc:delete note --confirm note/);
+  assert.match(missing.stderr, /実行: pnpm generate domain -- --delete note --confirm note/);
   const wrong = await deleteCapturing(workspace, "note", { confirm: "notes" });
   assert.equal(wrong.exitCode, 1);
   assert.match(wrong.stderr, /--confirm "notes" がドメイン名 "note" と一致しません/);

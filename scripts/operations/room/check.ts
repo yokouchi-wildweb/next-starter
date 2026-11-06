@@ -1,14 +1,14 @@
 // scripts/operations/room/check.ts
 //
-// ルームサーバーの動作確認 (pnpm room:check)。
+// ルームサーバーの動作確認 (pnpm ops room check)。
 // デプロイ済み Worker に対して疎通〜認可〜リアルタイム配信〜永続化までを機械的に検証する。
 // 同梱の sample-counter namespace を使用し、ルームIDは実行ごとにユニーク (状態汚染なし)。
 //
 // 接続先: env の REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET
-//   (ENV_FILE で指定された環境ファイル、デフォルト .env.development。
-//    直接指定も可: REALTIME_ROOM_URL=... REALTIME_ROOM_AUTH_SECRET=... pnpm room:check)
+//   (APP_ENV で指定された環境ファイル、デフォルト .env.development。
+//    直接指定も可: REALTIME_ROOM_URL=... REALTIME_ROOM_AUTH_SECRET=... pnpm ops room check)
 // ローカル Worker (pnpm room:dev) に対しても実行できる:
-//   REALTIME_ROOM_URL=http://localhost:8787 REALTIME_ROOM_AUTH_SECRET=<.dev.varsの値> pnpm room:check
+//   REALTIME_ROOM_URL=http://localhost:8787 REALTIME_ROOM_AUTH_SECRET=<.dev.varsの値> pnpm ops room check
 //
 // 検証項目:
 //   1. /version 疎通 + プロトコルバージョン一致
@@ -35,7 +35,7 @@ const secretRaw = process.env.REALTIME_ROOM_AUTH_SECRET?.trim();
 
 if (!baseUrl || !secretRaw) {
   console.error(`✗ env が不足しています: REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET
-  例: REALTIME_ROOM_URL=https://room-server.xxx.workers.dev REALTIME_ROOM_AUTH_SECRET=... pnpm room:check`);
+  例: REALTIME_ROOM_URL=https://room-server.xxx.workers.dev REALTIME_ROOM_AUTH_SECRET=... pnpm ops room check`);
   process.exit(1);
 }
 

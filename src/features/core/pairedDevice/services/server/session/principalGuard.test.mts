@@ -1,7 +1,7 @@
 // src/features/core/pairedDevice/services/server/session/principalGuard.test.mts
 // principalGuard / requireCurrentPrincipal の判定順と、orUser のユーザー判定の回帰テスト
 // 端末・ユーザーのセッションと next/navigation をモックして実際のガードを動かす
-// 実行: pnpm test:device-route
+// 実行: pnpm test src/features/core/pairedDevice/services/server/session/principalGuard.test.mts
 
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";

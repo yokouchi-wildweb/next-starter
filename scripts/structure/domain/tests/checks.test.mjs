@@ -1,6 +1,6 @@
 // scripts/structure/domain/tests/checks.test.mjs
 // 生成前の検査（checks/ の names・required・relations・fields・media・viewConfig と index の集約）の契約テスト。
-// 良い例は止めず、悪い例は理由の文で止める（または警告だけにする）ことを確かめる。実行: pnpm test:dc-checks
+// 良い例は止めず、悪い例は理由の文で止める（または警告だけにする）ことを確かめる。実行: pnpm test scripts/structure/domain/tests/checks.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

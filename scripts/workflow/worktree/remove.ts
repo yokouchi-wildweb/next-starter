@@ -1,6 +1,6 @@
 // scripts/workflow/worktree/remove.ts
 //
-// pnpm worktree:remove <path>
+// pnpm workflow worktree remove <path>
 //   未コミットの変更・未追跡ファイルが無いことを確かめてから git worktree remove する。
 //   ブランチは消さない (コミットは残る)。gitignore 対象 (env / node_modules) はフォルダごと消える。
 
@@ -10,7 +10,7 @@ import { git, invocationDir, mainWorktreeRoot, worktreeRoot } from "./lib";
 
 const arg = process.argv[2];
 if (!arg || process.argv.length > 3) {
-  console.error("使い方: pnpm worktree:remove <path>");
+  console.error("使い方: pnpm workflow worktree remove <path>");
   process.exit(1);
 }
 

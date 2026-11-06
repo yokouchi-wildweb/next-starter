@@ -1,5 +1,5 @@
 // src/config/ui の config のうち部品を re-export するもの(`export { X } from "…"`)を、それぞれ別プロセスで最初に import して
-// モジュールの読み込みが落ちないことを確かめる。実行: pnpm test:config-module-load(notice の checkpoint を付ける commit で必ず通す。
+// モジュールの読み込みが落ちないことを確かめる。実行: pnpm test scripts/structure/config/moduleLoad.test.mjs(notice の checkpoint を付ける commit で必ず通す。
 // /ship の checkpoint の規則・.notices/README「上流側の責務」)
 //
 // 守りたい契約: config が部品を re-export すると、config を最初に読んだとき config → 部品 → hook → config(初期化の途中)の

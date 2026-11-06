@@ -1,4 +1,4 @@
-// 実行: pnpm test:codemods
+// 実行: pnpm test .notices
 // 守り付きの router へ移す道具(./guarded-router.mjs)の書き換え
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

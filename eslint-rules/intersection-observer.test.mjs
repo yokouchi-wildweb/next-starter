@@ -1,5 +1,5 @@
 // eslint-rules/intersection-observer.test.mjs
-// 実行: pnpm test:intersection-observer
+// 実行: pnpm test eslint-rules/intersection-observer.test.mjs
 
 import { RuleTester } from "eslint";
 import { test } from "node:test";

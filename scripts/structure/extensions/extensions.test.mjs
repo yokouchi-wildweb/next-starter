@@ -6,7 +6,7 @@
 // - 描画: eager の配列・key の Record・lazy の import・wiring の 1 本・共通のヘッダ
 // - check: ずれ・extensions/ の手で置いたファイル(ヘッダ無し)・宣言の消えた古い一覧
 // - 1 行スイッチ(./switches.mjs)の形と、上流は override を出荷しない(./overrides.mjs)
-// 実行: pnpm test:extensions
+// 実行: pnpm test scripts/structure/extensions/extensions.test.mjs
 
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -404,7 +404,7 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
   assert.ok(tier1.problems.every((p) => p.includes("上流(Tier1)は override を出荷しない")));
 });
 
-test("実リポ: 宣言・項目の問題が無く、生成一覧が一致し、extensions/ に手で置いたファイルが無い(ずれたら pnpm extensions:generate)", () => {
+test("実リポ: 宣言・項目の問題が無く、生成一覧が一致し、extensions/ に手で置いたファイルが無い(ずれたら pnpm generate extensions)", () => {
   const plan = planExtensions(repoRoot);
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   assert.deepEqual(staleOutputs(repoRoot, plan.outputs), []);

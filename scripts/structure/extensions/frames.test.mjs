@@ -1,4 +1,4 @@
-// 実行: pnpm test:extensions
+// 実行: pnpm test scripts/structure/extensions/frames.test.mjs
 // 枠の宣言の生成器(./frames.mjs)を一時フォルダの route の木で確かめる(指令 07 d1-d3、指令 08 AMENDMENT 1・2)。
 // - 試作(.frame-proto)の木: /x/[id] の宣言が /x/new に誤って効かない(静的な兄弟の行)、/x/[id]/edit・catch-all・layout の下の子
 // - 範囲はキー(layout / page)、名前の対 frame.default.ts(既定)/ frame.ts(既定の上に重なる)、重ねる順の全部の組み合わせ
@@ -258,7 +258,7 @@ test("全部の部位を隠す宣言は warn でルートグループを案内�
 test("宣言が無ければ表は空、枠の根が無いリポは表を書かない", () => {
   withTree({ "src/app/(user)/a/page.tsx": page }, (_root, plan) => {
     assert.deepEqual(plan.tables, { user: [], admin: [] });
-    assert.match(plan.outputs["src/app/(user)/_layout/extensions/frameTable.ts"], /^\/\/ 生成物・編集不可: pnpm extensions:generate が src\/app\/\(user\) の frame\.default\.ts \/ frame\.ts/);
+    assert.match(plan.outputs["src/app/(user)/_layout/extensions/frameTable.ts"], /^\/\/ 生成物・編集不可: pnpm generate extensions が src\/app\/\(user\) の frame\.default\.ts \/ frame\.ts/);
     assert.match(plan.outputs["src/app/(user)/_layout/extensions/frameTable.ts"], /export const frameTable = \[\] as const satisfies FrameTable;/);
   });
   const bare = mkdtempSync(join(tmpdir(), "frames-"));

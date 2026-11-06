@@ -1,7 +1,7 @@
 // src/lib/storage/client/privateMediaRecovery.test.ts
 // usePrivateMediaRecovery の先回り再読み込みの判定（isSignedReadStale）と再取得 query の単体テスト。
 // 要素への配線（loadstart / play / seeking）はブラウザで確かめる。
-// 実行: pnpm test:storage-client
+// 実行: pnpm test src/lib/storage/client/privateMediaRecovery.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

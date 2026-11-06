@@ -1,4 +1,4 @@
-// src/lib/tableSuite/shared/reorder/reorderGuard.test.ts — pnpm test:unsaved-guard
+// src/lib/tableSuite/shared/reorder/reorderGuard.test.ts — pnpm test src/lib/tableSuite/shared/reorder/reorderGuard.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

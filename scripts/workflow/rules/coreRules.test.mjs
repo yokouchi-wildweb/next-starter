@@ -1,5 +1,5 @@
 // scripts/workflow/rules/coreRules.test.mjs
-// CLAUDE.md と .claude/rules/core/*.md(パス指定ルール)の契約テスト。実行: pnpm test:core-rules (node:test)
+// CLAUDE.md と .claude/rules/core/*.md(パス指定ルール)の契約テスト。実行: pnpm test scripts/workflow/rules/coreRules.test.mjs (node:test)
 // ディレクトリの移動・改名で `paths:` がどのファイルにも当たらなくなると、ルールが黙って読み込まれなくなる。それを検出する。
 import { test } from "node:test";
 import assert from "node:assert/strict";

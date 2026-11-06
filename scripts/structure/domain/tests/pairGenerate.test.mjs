@@ -1,6 +1,6 @@
 // 主と従属の組の生成（組の解決・従属 → 主の順・書き出した従属をその場で生成・組の誤りは何も書かずに止める・最後の一覧）の回帰テスト。
 // 一時の workspace で entities カテゴリだけを生成して確かめる（--only entities）。
-// 実行: pnpm test:dc-pair-generate
+// 実行: pnpm test scripts/structure/domain/tests/pairGenerate.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

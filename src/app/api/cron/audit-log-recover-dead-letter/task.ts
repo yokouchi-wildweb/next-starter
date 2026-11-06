@@ -1,6 +1,6 @@
 // src/app/api/cron/audit-log-recover-dead-letter/task.ts
 // audit_logs_failed (dead-letter) に退避された行の再投入を定期実行する — cron タスク定義（実行時刻・有効条件・呼ぶ関数）
-// 処理本体はドメイン側。vercel.json のエントリは pnpm cron:generate がこのファイルから生成する
+// 処理本体はドメイン側。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
 

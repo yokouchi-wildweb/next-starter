@@ -1,5 +1,5 @@
 // dc:generate --dry-run（書かずに動作を一覧する）の回帰テスト。
-// 実行: pnpm test:dc-dry-run
+// 実行: pnpm test scripts/structure/domain/tests/dryRun.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

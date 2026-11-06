@@ -2,7 +2,7 @@
 // 端末の束と門番の結線(gateDeviceDeps)の回帰テスト。端末の機能(pairedDevice)が閉じている間、
 // createDeviceRoute のルートは端末として通らず閉じたまま失敗する(素通りしない)こと、開いていれば今まで通りであること。
 // 実際の Factory(lib/routeFactory の createRouteFactories)に、認証すれば必ず端末を返す束を差し込んで動かす。
-// 実行: pnpm test:device-route
+// 実行: pnpm test src/wiring/apiRoute.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

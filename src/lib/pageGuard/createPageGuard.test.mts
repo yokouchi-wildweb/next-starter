@@ -3,7 +3,7 @@
 // - 範囲は段の並びで親子 AND(子は狭めるだけ)。setup 誘導・未認証・status 別・権限不足の行き先、無ければ notFound
 // - loader は範囲とページの access を単独で評価し、拒否なら load を呼ばない。public の主体は利用可能な status のときだけ
 // - key が返すプリミティブが load に渡る
-// 実行: pnpm test:page-guard
+// 実行: pnpm test src/lib/pageGuard/createPageGuard.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

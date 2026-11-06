@@ -4,7 +4,7 @@
 // - 項目 0(上流): scope を渡しても条件は増えない(結果は今と同じ)
 // - flow の scope は flow だけ、stock の scope は stock だけを足す。enabled false・includeExcluded は足さない
 // - 項目に source・rowId・userId がそのまま渡る
-// 実行: pnpm test:analytics-exclusion
+// 実行: pnpm test src/features/core/analytics/services/server/exclusion/exclusion.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, test } from "node:test";
 import assert from "node:assert/strict";

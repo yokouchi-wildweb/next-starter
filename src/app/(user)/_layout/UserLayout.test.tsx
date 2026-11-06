@@ -1,5 +1,5 @@
 // UserLayout(ユーザー側の枠の既定の組み立て)の slot と、props なしの描画が 1 行スイッチ化の前と同じことの検査。
-// 実行: pnpm test:user-layout(tsx + node:test のモジュールモック + react-dom/server の静的描画)
+// 実行: pnpm test src/app/(user)/_layout/UserLayout.test.tsx(tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // 重い部品(既定の Header / Footer、BottomNav、未読モーダル)と useHeaderHeight は目印の要素にモックし、
 // 枠そのもの(BackgroundLayer・#user-app-container・#stretch-wrapper・並び順・表示制御の Provider)は本物を描く。

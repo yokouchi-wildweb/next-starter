@@ -1,5 +1,5 @@
 // .notices/20261101-000200-lib-boundaries.domain-display-buttons.test.mjs
-// 実行: pnpm test:codemods
+// 実行: pnpm test .notices
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

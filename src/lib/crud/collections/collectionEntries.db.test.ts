@@ -1,7 +1,7 @@
 // src/lib/crud/collections/collectionEntries.db.test.ts
 // 集まりのエントリ（従属の行 id 付き）の読み出しと、値 → 従属の行 id の解決の実 DB テスト。
 // 開発 DB に専用の表 test_crud_ent_* を作り、終了時に DROP する（それ以外には書かない）。DATABASE_URL が無ければ全件 skip。
-// 実行: pnpm test:crud-collections-db
+// 実行: pnpm test --db src/lib/crud/collections/collectionEntries.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

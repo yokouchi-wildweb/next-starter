@@ -1,5 +1,5 @@
 // page 層(page.tsx スイッチ + Screen + loader)の規律テスト。
-// 実行: pnpm test:screens (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
+// 実行: pnpm test src/lib/screens/screens.test.mjs (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
 //
 // 登録は不要。検査対象は自動検出する(M1):
 //   - src/app 全体のページ(./routeTree.mjs の discoverRoutes。`_` で始まるフォルダと src/app/api を除く、@slot は含む)から、

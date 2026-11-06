@@ -1,6 +1,6 @@
 // scripts/operations/storage/iam/iamGrant.test.ts
 //
-// storage:setup の 403 の案内（付与の 1 行）の組み立てを確かめる。pnpm test:storage-setup
+// storage:setup の 403 の案内（付与の 1 行）の組み立てを確かめる。pnpm test scripts/operations/storage/iam/iamGrant.test.ts
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

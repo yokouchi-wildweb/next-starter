@@ -1,6 +1,6 @@
 // ルート地図: 全ページの「守りの鎖」を 1 ページ 1 行の構造化データ(JSON Lines)にした生成物(src/app/route-map.jsonl にコミット)。
-// 主な読み手はエージェント(機械が読む)。人が見る形は pnpm routes:show。
-// 生成: pnpm routes:map / ずれ検査: pnpm routes:map --check と pnpm test:route-map / 詳細の表示: pnpm routes:show
+// 主な読み手はエージェント(機械が読む)。人が見る形は pnpm check routes -- show。
+// 生成: pnpm generate routes / ずれ検査: pnpm check routes と pnpm test src/lib/screens / 詳細の表示: pnpm check routes -- show
 // 鎖 = page.tsx → 採用 Screen → 同じルートの loader → 最寄りの guard.ts → extend の親 → root(defineRootGuard)。
 // 字面だけを読み、読めない鎖は生成失敗(problems に行と理由)。解析は checks.mjs(test:screens と共有)。
 // ここは純粋関数だけ(ファイルの読み込みは呼び出し側が read を渡す)。発見は routeTree.mjs と共有。設計: src/lib/screens/README.md §13

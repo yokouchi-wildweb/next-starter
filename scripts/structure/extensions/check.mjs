@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/structure/extensions/check.mjs
-// 全拡張点の生成一覧が宣言と項目に一致するかを検査する(pnpm extensions:check。build の冒頭で走る)。書き出さない。
+// 全拡張点の生成一覧が宣言と項目に一致するかを検査する(pnpm check extensions。build の冒頭で走る)。書き出さない。
 // 失敗: 宣言・項目の問題 / 1 行スイッチの形 / 上流の override / 枠の宣言(frame.ts)の形と置き場 / 一覧と受け口の一覧(intake.txt の生成区画)のずれ / extensions/ の宣言に無いファイル(ヘッダの無い = 手で置いた、ある = 古い一覧)。規則: ./README.md
 
 import { readFileSync } from "node:fs";
@@ -19,10 +19,10 @@ if (!noStale && plan.problems.length === 0 && plan.intake && readFileSync(join(r
 const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points).filter((s) => !(noStale && s.generated));
 const all = [
   ...plan.problems,
-  ...stale.map((path) => `${path}: 宣言・項目とずれている(pnpm extensions:generate で作り直してコミット)`),
+  ...stale.map((path) => `${path}: 宣言・項目とずれている(pnpm generate extensions で作り直してコミット)`),
   ...strays.map((s) =>
     s.generated
-      ? `${s.path}: 宣言の無い古い一覧(pnpm extensions:generate で消える)`
+      ? `${s.path}: 宣言の無い古い一覧(pnpm generate extensions で消える)`
       : `${s.path}: extensions/ は生成物の置き場(目印のヘッダが無い = 手で置いたファイル)。${s.hint}`,
   ),
 ];

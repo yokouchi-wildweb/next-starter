@@ -1,6 +1,6 @@
 // scripts/tasks/setting-copy-list-per-page.test.ts
 // 移行の task の SQL の確かめ(移行の側に置く: src は scripts を読まない、D78。もとは setting の settingStorage.test.ts の 1 件)
-// 実行: pnpm test:setting
+// 実行: pnpm test scripts/tasks/setting-copy-list-per-page.test.ts
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

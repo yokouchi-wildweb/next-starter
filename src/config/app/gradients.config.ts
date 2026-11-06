@@ -6,7 +6,7 @@
 //
 // 使い方:
 //   1. 下の配列にトークンを追加する。
-//   2. `pnpm gradient:gen` で src/styles/gradient.css(このリポの分。global.css が読む)を再生成し、生成物をコミットする。
+//   2. `pnpm generate styles` で src/styles/gradient.css(このリポの分。global.css が読む)を再生成し、生成物をコミットする。
 //      上流の既定 src/styles/core/gradient.default.css も同時に書き直されるが、中身は上流と同じ(fork の差分は出ない)。
 //   3. TS 側（listGradients() / getGradient() / <ColorValueInput>）には即座に反映される。
 //

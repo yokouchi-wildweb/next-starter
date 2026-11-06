@@ -3,7 +3,7 @@
 // - access は汎用 API と同じく serviceRegistry の entry から resolveAccessRule で操作ごとに解く
 // - key は params / searchParams から cache のキーのプリミティブを取り出す
 // - 関連選択肢: 関連先ごとに list の access を取得前に評価し、拒否はその関連だけ空・取得しない・開発環境だけログ 1 行
-// 実行: pnpm test:wiring-admin-parts
+// 実行: pnpm test src/wiring/adminScreenParts.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

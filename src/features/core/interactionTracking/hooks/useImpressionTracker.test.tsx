@@ -1,5 +1,5 @@
 // useImpressionTracker の検査(useInView の上で、表示されたら対象ごとに 1 回だけ記録する)。
-// 実行: pnpm test:impression-tracker(tsx + node:test のモジュールモック + jsdom の上で描画)
+// 実行: pnpm test src/features/core/interactionTracking/hooks/useImpressionTracker.test.tsx(tsx + node:test のモジュールモック + jsdom の上で描画)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

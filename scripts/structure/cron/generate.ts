@@ -3,11 +3,11 @@
 // vercel.json の crons を src/app/api/cron/<name>/task.ts から生成する（crons 以外のキーと /api/cron/ の外のエントリは保持）
 //
 // 使い方:
-//   pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
-//   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
+//   pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
+//   pnpm generate cron -- --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //
 // 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や task.override.ts を
-// 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/structure/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
+// 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/structure/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm check cron）で止まる。
 // 詳細: src/lib/cron/README.md
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -34,7 +34,7 @@ async function main() {
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
   const plan = readFlag(args, "plan");
   if (!plan || !isCronPlan(plan)) {
-    console.error(`Usage: pnpm cron:generate --plan <${CRON_PLANS.join("|")}>`);
+    console.error(`Usage: pnpm generate cron -- --plan <${CRON_PLANS.join("|")}>`);
     process.exit(1);
   }
 
@@ -79,7 +79,7 @@ async function main() {
   if (downgraded.length > 0) {
     console.warn(
       `  ⚠ Hobby は 1 日 1 回しか動かせないため、次のタスクを 1 日 1 回にしました: ${downgraded.join(", ")}\n` +
-        "    本来の頻度で動かすには Vercel Pro にして pnpm cron:generate --plan pro で再生成する",
+        "    本来の頻度で動かすには Vercel Pro にして pnpm generate cron -- --plan pro で再生成する",
     );
   }
   const disabled = allTasks.filter((task) => task.disabled).map((task) => task.name);

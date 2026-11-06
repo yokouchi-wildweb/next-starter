@@ -1,4 +1,4 @@
-// 基準の版のファイル一覧のテスト。実行: pnpm test:fork-ownership (node:test、一時フォルダの git リポ)
+// 基準の版のファイル一覧のテスト。実行: pnpm test src/lib/forkOwnership/baseFiles.test.mjs (node:test、一時フォルダの git リポ)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

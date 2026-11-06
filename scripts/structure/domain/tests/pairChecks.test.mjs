@@ -1,6 +1,6 @@
 // 主と従属の組の書く前の検査（checks/pairs.mjs・checks/accessRules.mjs）の回帰テスト。項目ごとに通る例と誤りの例を見る。
 // 誤りがあると全件を並べて止まり、何も書かれない。知らせるだけのものは止めない。
-// 実行: pnpm test:dc-pair-checks
+// 実行: pnpm test scripts/structure/domain/tests/pairChecks.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

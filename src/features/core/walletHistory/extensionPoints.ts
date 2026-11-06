@@ -1,5 +1,5 @@
 // src/features/core/walletHistory/extensionPoints.ts
-// walletHistory の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
+// walletHistory の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 付与の種類(reason key): reasonKeys/<名前>.ts の export const reasonKey(上流の項目 = 上流の書き手の分)

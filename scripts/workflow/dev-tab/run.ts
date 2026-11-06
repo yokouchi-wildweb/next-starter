@@ -1,8 +1,8 @@
 // scripts/workflow/dev-tab/run.ts
 //
-// pnpm dev:tab [start] [--port=<n>] [--session=<name>] [--socket=<name>]
-// pnpm dev:tab stop
-// pnpm dev:tab status
+// pnpm workflow dev-tab run [start] [--port=<n>] [--session=<name>] [--socket=<name>]
+// pnpm workflow dev-tab run stop
+// pnpm workflow dev-tab run status
 //
 // 終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗 / 2 = tmux が無い / 3 = 立てなかった(この道具の外で動いているサーバーがある)
 // 規則と使い方: scripts/workflow/dev-tab/README.md
@@ -38,7 +38,7 @@ import {
 } from "./lib";
 
 const USAGE =
-  "使い方: pnpm dev:tab [start] [--port=<n>] [--session=<name>] [--socket=<name>] | pnpm dev:tab stop | pnpm dev:tab status";
+  "使い方: pnpm workflow dev-tab run [start] [--port=<n>] [--session=<name>] [--socket=<name>] | pnpm workflow dev-tab run stop | pnpm workflow dev-tab run status";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -127,12 +127,12 @@ const start = async () => {
     launch,
     [
       "#!/usr/bin/env bash",
-      "# pnpm dev:tab が書いた起動スクリプト(scripts/workflow/dev-tab)。止めるのは pnpm dev:tab stop",
+      "# pnpm workflow dev-tab run が書いた起動スクリプト(scripts/workflow/dev-tab)。止めるのは pnpm workflow dev-tab run stop",
       `cd ${quoted(root)} || exit 1`,
       `printf '開発サーバー: %s\\n  http://localhost:%s\\n  %s\\n\\n' ${quoted(describeCheckout(root))} ${port} ${quoted(command)}`,
       command,
       "rc=$?",
-      `printf '\\n開発サーバーが止まりました(終了コード %s)。このタブは pnpm dev:tab stop で閉じます。\\n' "$rc"`,
+      `printf '\\n開発サーバーが止まりました(終了コード %s)。このタブは pnpm workflow dev-tab run stop で閉じます。\\n' "$rc"`,
       "exec bash",
       "",
     ].join("\n"),
@@ -194,7 +194,7 @@ const start = async () => {
 const stop = async () => {
   const state = liveState(root);
   if (!state) {
-    console.log(`${describeCheckout(root)} に pnpm dev:tab の開発サーバーは動いていません`);
+    console.log(`${describeCheckout(root)} に pnpm workflow dev-tab run の開発サーバーは動いていません`);
     return;
   }
   const line = describeState(state);
@@ -226,7 +226,7 @@ const status = async () => {
   }
   const outside = findDevProcesses(root);
   if (outside.length > 0) {
-    console.log(`${describeCheckout(root)}: pnpm dev:tab の開発サーバーはありません。この道具の外で動いているもの:`);
+    console.log(`${describeCheckout(root)}: pnpm workflow dev-tab run の開発サーバーはありません。この道具の外で動いているもの:`);
     for (const proc of outside.slice(0, 3)) console.log(`  ${proc.pid} ${proc.command}`);
     return;
   }

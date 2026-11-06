@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/features/core/batchJob/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/features/core/batchJob/extensionPoints.ts から生成する
 // jobHandlers: src/features/core/batchJob/jobHandlers/<名前>.ts(x) か <名前>/index.ts(x) の export const jobHandler(並びはファイル名の順)
 
 import type { BatchJobHandlerItem } from "@/features/core/batchJob/types";

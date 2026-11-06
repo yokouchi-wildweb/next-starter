@@ -3,7 +3,7 @@
 // 1) Input/Manual が公開する部品を全部歩く(表に無い部品が増えると落ちる)
 // 2) 組み込みの formInput を全部、枠(ConfiguredField)に入れて歩く(Controlled 版が枠の値を渡すか)
 // 3) 部品を包む core の picker(UserAsyncCombobox / UserAsyncMultiSelect)
-// 実行: pnpm test:form-a11y-contract
+// 実行: pnpm test src/components/Form/Input/a11yContract.test.tsx
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createElement, type ReactElement } from "react";

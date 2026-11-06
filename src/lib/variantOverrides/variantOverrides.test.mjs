@@ -1,5 +1,5 @@
 // variant オーバーライドの契約テスト。
-// 実行: pnpm test:variant-overrides (node:test + tsx)
+// 実行: pnpm test src/lib/variantOverrides/variantOverrides.test.mjs (node:test + tsx)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

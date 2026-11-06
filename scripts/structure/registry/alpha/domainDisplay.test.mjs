@@ -1,5 +1,5 @@
 // scripts/structure/registry/alpha/domainDisplay.test.mjs
-// 実行: pnpm test:domain-display
+// 実行: pnpm test scripts/structure/registry/alpha/domainDisplay.test.mjs
 
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";

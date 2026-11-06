@@ -2,7 +2,7 @@
 // テンプレートや生成器を変えたのにサンプルを再生成し忘れると落ちる（fork が手本にするサンプルの陳腐化防止）。
 // 作業ツリーを上書きしないよう、src/ と scripts/structure/domain/・scripts/structure/registry/ を一時ディレクトリへ複製して生成・比較する。
 // 対象ドメインが存在しなければスキップする（サンプルを削除した fork では何もしない）。
-// 実行: pnpm test:dc-sample-drift
+// 実行: pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -56,6 +56,6 @@ test("サンプルドメインを再生成しても差分が出ない", { skip: 
   assert.deepEqual(
     drifted,
     [],
-    `生成物がテンプレートと食い違っています。\`pnpm dc:generate <Domain> --yes\` で再生成してコミットしてください（対象: ${targets.join(", ")}）`,
+    `生成物がテンプレートと食い違っています。\`pnpm generate domain -- <Domain> --yes\` で再生成してコミットしてください（対象: ${targets.join(", ")}）`,
   );
 });

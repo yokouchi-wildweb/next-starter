@@ -1,6 +1,6 @@
 // scripts/structure/role/tests/checks.test.mjs
 // role:generate の前の検査（checks/ の role・profile・relations と index の集約）の契約テスト。
-// 良い例は止めず、悪い例は理由の文で止める（または警告だけにする）ことを確かめる。実行: pnpm test:role-config-checks
+// 良い例は止めず、悪い例は理由の文で止める（または警告だけにする）ことを確かめる。実行: pnpm test scripts/structure/role/tests/checks.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

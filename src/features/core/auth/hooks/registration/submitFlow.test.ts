@@ -1,7 +1,7 @@
 // src/features/core/auth/hooks/registration/submitFlow.test.ts
 //
 // 本登録の送信の流れ（submitFlow）の単体テスト。依存はすべて偽物を渡す。
-// 実行: pnpm test:auth-registration-flow
+// 実行: pnpm test src/features/core/auth/hooks/registration/submitFlow.test.ts
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

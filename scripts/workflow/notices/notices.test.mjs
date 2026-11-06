@@ -1,5 +1,5 @@
 // scripts/workflow/notices/notices.test.mjs
-// DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test:notices (node:test)
+// DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test scripts/workflow/notices/notices.test.mjs (node:test)
 // /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・pick・covers・moved・resolves)と食い違わないことを確かめる。
 // 索引 .notices/shipped/*.md の検査(追記だけ・行と本文・uses:・skip_checkpoint:)は scripts/workflow/notices/shippedIndex.mjs の checkAll を回す。
 // 仕様: .notices/README.md

@@ -2,7 +2,7 @@
 //
 // Firestore の where の読み替えの検査（実 Firestore 不要）。where 呼び出しを記録する偽の Query を渡す。
 // 対応する演算子は Firestore の where に写り、未対応の演算子は例外になる（黙って条件を捨てない）こと。
-// 実行: pnpm test:crud-firestore-where
+// 実行: pnpm test src/lib/crud/firestore/query/applyWhere.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

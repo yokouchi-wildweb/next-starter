@@ -1,7 +1,7 @@
 // useTableReorder の未保存の守りの結線の検査(jsdom の上でフックを動かす。lib/unsavedGuard は偽物で、渡された値を記録する)。
 // - 既定: useUnsavedTasks({ when: true, reason: "unsaved" })、行を落とすと onReorder の戻り値(保存待ちの Promise)を数える
 // - guardUnsaved={false}: when: false(守らない)
-// 実行: pnpm test:unsaved-guard
+// 実行: pnpm test src/lib/tableSuite/shared/reorder/useTableReorder.guard.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

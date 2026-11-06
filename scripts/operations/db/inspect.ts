@@ -142,7 +142,7 @@ async function main() {
   switch (command) {
     case "query":
       if (!param) {
-        console.error("使用法: npm run db:query \"SELECT * FROM table_name\"");
+        console.error("使用法: pnpm ops db inspect query \"SELECT * FROM table_name\"");
         process.exit(1);
       }
       await runQuery(param);
@@ -154,7 +154,7 @@ async function main() {
 
     case "describe":
       if (!param) {
-        console.error("使用法: npm run db:describe <table_name>");
+        console.error("使用法: pnpm ops db inspect describe <table_name>");
         process.exit(1);
       }
       await describeTable(param);
@@ -169,15 +169,15 @@ async function main() {
 データベースCLIツール
 
 使用法:
-  npm run db:query "SQL文"     SQLクエリを実行
-  npm run db:tables            テーブル一覧を表示
-  npm run db:describe <table>  テーブル構造を表示
-  npm run db:count [table]     行数を表示（テーブル省略で全テーブル）
+  pnpm ops db inspect query "SQL文"     SQLクエリを実行
+  pnpm ops db inspect tables            テーブル一覧を表示
+  pnpm ops db inspect describe <table>  テーブル構造を表示
+  pnpm ops db inspect count [table]     行数を表示（テーブル省略で全テーブル）
 
 例:
-  npm run db:query "SELECT * FROM users LIMIT 5"
-  npm run db:describe users
-  npm run db:count users
+  pnpm ops db inspect query "SELECT * FROM users LIMIT 5"
+  pnpm ops db inspect describe users
+  pnpm ops db inspect count users
 `);
       process.exit(1);
   }

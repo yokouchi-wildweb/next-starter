@@ -1,7 +1,7 @@
 // src/app/api/auth/session/route.test.mts
 // GET /api/auth/session の再発行が DB 照合 (強制失効・現在の role/status) を通ることの回帰テスト
 // （DB のユーザー取得と next/headers の Cookie だけをモックし、実際の JWT 署名・検証とルートファクトリーを動かす）
-// 実行: pnpm test:auth-session-refresh
+// 実行: pnpm test src/app/api/auth/session/route.test.mts
 
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";

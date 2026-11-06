@@ -1,7 +1,7 @@
 // src/lib/crud/presenters/domainColumns.test.ts
 // 写しから作る一覧の列が domain.json(正規化後)から作る列と同じこと、並べ替えの対象、presenters を渡していない列の表示を確かめる。
 // 値が配列の型(型の表の array 属性 = array・stringArray)の列は、sortableFields が true でも列名の指定でもソートしない。
-// 実行: pnpm test:crud-presenters
+// 実行: pnpm test src/lib/crud/presenters/domainColumns.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,8 +1,8 @@
 // scripts/workflow/tmux-launch/setup.mjs
 //
-// pnpm setup:tmux-launch            このマシンに入れる(入っていれば版を合わせ直す)
-// pnpm setup:tmux-launch --check    入り具合を出すだけ(全部そろっていれば exit 0、足りなければ 1)
-// pnpm setup:tmux-launch --remove   外す
+// pnpm workflow tmux-launch setup            このマシンに入れる(入っていれば版を合わせ直す)
+// pnpm workflow tmux-launch setup --check    入り具合を出すだけ(全部そろっていれば exit 0、足りなければ 1)
+// pnpm workflow tmux-launch setup --remove   外す
 //
 // 入れるもの: 中身 = <XDG_DATA_HOME|~/.local/share>/next-starter/claude-tmux.sh / シェルの設定(~/.bashrc か ~/.zshrc)の 1 行 /
 // ~/.tmux.conf の塊。どれも印で囲む。終了コード 2 = tmux が無い(何も入れない)
@@ -16,7 +16,7 @@ import { SOURCE, hasBlock, inspect, rcBody, removeBlock, tmuxConfBody, upsertBlo
 
 const arg = process.argv[2] ?? "";
 if (!["", "--check", "--remove"].includes(arg)) {
-  console.error("使い方: pnpm setup:tmux-launch [--check|--remove]");
+  console.error("使い方: pnpm workflow tmux-launch setup [--check|--remove]");
   process.exit(1);
 }
 
@@ -29,7 +29,7 @@ if (arg === "--check") {
   console.log(`中身: ${state.installedVersion === null ? "未" : `版 ${state.installedVersion}`}(リポの版 ${state.sourceVersion})${state.installedVersion !== null && !state.upToDate ? " → 古い" : ""} ${state.installed}`);
   console.log(`シェルの設定: ${mark(state.rcOk, read(state.rc))} ${state.rc}`);
   console.log(`tmux の設定: ${mark(state.tmuxConfOk, read(state.tmuxConf))} ${state.tmuxConf}`);
-  console.log(state.ok ? "→ 入っています" : "→ 足りません: pnpm setup:tmux-launch");
+  console.log(state.ok ? "→ 入っています" : "→ 足りません: pnpm workflow tmux-launch setup");
   process.exit(state.ok ? 0 : 1);
 }
 

@@ -1,7 +1,7 @@
 // src/features/core/setting/services/server/settingStorage.test.ts
 // fork でも走る: 動きの検査は全 Tier、上流のキー・セクションの組と既定の値の厳密な比較は Tier1 だけ
 // （fork はキー・セクションを足し、既定の値を書き換える。fork では上流のキー・セクションが残っていることを見る）
-// 実行: pnpm test:setting
+// 実行: pnpm test src/features/core/setting/services/server/settingStorage.test.ts
 
 import assert from "node:assert/strict";
 import { resolve } from "node:path";

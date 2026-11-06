@@ -1,5 +1,5 @@
 // mailbox.mjs の resolve（指令に答える共通の書き手）と from（発行元の書き方・読み方）の契約テスト。
-// 実行: pnpm test:order-mailbox （node:test。一時ディレクトリに受信箱と git リポジトリを作って確かめる。追加依存なし）
+// 実行: pnpm test .claude/skills/order/mailbox.test.mjs （node:test。一時ディレクトリに受信箱と git リポジトリを作って確かめる。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";

@@ -5,7 +5,7 @@
 // - たどる辺: 静的 import / export … from / 動的 import()。型だけの import(import type・export type・名前が全部 type)は数えない
 // - 解決: eslint-rules/resolve-import.mjs(tsconfig の paths・相対)+ 拡張子と index の補完。パッケージは葉(中に入らない)
 // 前例: src/wiring/wiring.test.mjs(テキストで import を読む)。node.ts は道具の入口なので対象外(drizzle を読んでよい)
-// 実行: pnpm test:feature-gate:reach(plain node)
+// 実行: pnpm test src/featureGate/checks/reachability.test.mjs(plain node)
 
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";

@@ -55,7 +55,7 @@ function resolveArguments(workspace, target, domain, searchDirs, listed, options
     console.error("消すもの:");
     listed(extras).forEach((p) => console.error(` - ${p}`));
     if (searchDirs.length > 0) console.error(`追加で消せるディレクトリ（--extra <path>）: ${[...known.keys()].join(", ")}`);
-    console.error(`実行: pnpm dc:delete ${domain} --confirm ${target.normalizedSnake}${options.removeConfig ? " --remove-config" : ""}（domain.json も消すなら --remove-config）`);
+    console.error(`実行: pnpm generate domain -- --delete ${domain} --confirm ${target.normalizedSnake}${options.removeConfig ? " --remove-config" : ""}（domain.json も消すなら --remove-config）`);
     process.exitCode = 1;
     return null;
   }

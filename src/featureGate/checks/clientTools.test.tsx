@@ -4,7 +4,7 @@
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作り、server が計算する値は clientGateState で作る(config の値に依らない)。
 // リンク: 棚の Link・LinkButton・GatedLink は「'/' で始まる内部の住所で、枠の中の redirectTo の無い閉」だけを描かない(D14)。
 // 枠の外・Provider の外・外部 URL・redirectTo 付きの閉は描く(throw しない)。server component(フックを持たない関数部品)の中から描いても同じ(L1.8)。
-// 実行: pnpm test:feature-gate:client(react-dom/server の静的描画で Provider を通す)
+// 実行: pnpm test src/featureGate/checks/clientTools.test.tsx(react-dom/server の静的描画で Provider を通す)
 
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";

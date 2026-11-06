@@ -3,9 +3,9 @@
 // src/ 配下の生成物・終了コード・標準出力/エラー（行の集合）を突き合わせる。生成器を触ったら必ず回す。
 //
 // 使い方（リポジトリのルートで）:
-//   pnpm dc:parity <git-ref>                              サンプル + 合成 fixture（成功系・失敗系）
-//   pnpm dc:parity <git-ref> --repo ../oripa-do            fork の domain.json 一式も fixture にする（複数可）
-//   pnpm dc:parity <git-ref> --fixtures samples,synthetic --modes each,all --variants fresh --keep
+//   pnpm check domain -- --parity <git-ref>                              サンプル + 合成 fixture（成功系・失敗系）
+//   pnpm check domain -- --parity <git-ref> --repo ../oripa-do            fork の domain.json 一式も fixture にする（複数可）
+//   pnpm check domain -- --parity <git-ref> --fixtures samples,synthetic --modes each,all --variants fresh --keep
 //
 // fixture: samples = このリポの src/ をそのまま | synthetic / synthetic-bad = tests/fixtures/parity/<name>/<domain>/domain.json を
 //   src/features に重ねる | --repo = そのリポの src/features/*/domain.json を重ねる（fresh = domain.json だけ、existing = ドメインフォルダ・
@@ -37,7 +37,7 @@ const option = (name, fallback) => {
   return i === -1 ? fallback : args[i + 1];
 };
 if (!ref) {
-  console.error("使い方: pnpm dc:parity <git-ref> [--repo <path>]... [--fixtures samples,synthetic,synthetic-bad] [--modes each,all,all2,only-registry,only-entities-hooks] [--variants fresh,existing] [--keep]");
+  console.error("使い方: pnpm check domain -- --parity <git-ref> [--repo <path>]... [--fixtures samples,synthetic,synthetic-bad] [--modes each,all,all2,only-registry,only-entities-hooks] [--variants fresh,existing] [--keep]");
   process.exit(1);
 }
 const repos = args.flatMap((a, i) => (a === "--repo" ? [args[i + 1]] : a.startsWith("--repo=") ? [a.slice(7)] : []));

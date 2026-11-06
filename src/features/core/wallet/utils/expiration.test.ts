@@ -1,6 +1,6 @@
 // src/features/core/wallet/utils/expiration.test.ts
 // resolveWalletLotsInitTypes（ロット初期化の対象通貨の決定）の単体テスト
-// 実行: pnpm test:wallet-expiration
+// 実行: pnpm test src/features/core/wallet/utils/expiration.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

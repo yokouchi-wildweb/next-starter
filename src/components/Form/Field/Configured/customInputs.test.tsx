@@ -1,6 +1,6 @@
 // src/components/Form/Field/Configured/customInputs.test.tsx
 // 登録された入力部品の解決と、枠あり / 枠なしの描画、枠が描く説明文(helperText)のテスト（遅延を解いた後の出力を見る）。
-// 実行: pnpm test:form-inputs
+// 実行: pnpm test src/components/Form/Field/Configured/customInputs.test.tsx
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Writable } from "node:stream";

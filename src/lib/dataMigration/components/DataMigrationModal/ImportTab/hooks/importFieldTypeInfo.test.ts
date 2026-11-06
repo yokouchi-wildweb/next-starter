@@ -1,6 +1,6 @@
 // src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importFieldTypeInfo.test.ts
 // インポート画面が送るフィールド情報のテスト
-// 実行: pnpm test:data-migration
+// 実行: pnpm test src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importFieldTypeInfo.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,5 +1,5 @@
 // /flux の打ち消し接触の判定スクリプト(lineage-touch.mjs)の契約テスト。
-// 実行: pnpm test:flux-relay （node:test。一時ディレクトリに git リポジトリを作り、取り込む前後の 2 版を commit で再現する）
+// 実行: pnpm test .claude/skills/flux/lineage-touch.test.mjs （node:test。一時ディレクトリに git リポジトリを作り、取り込む前後の 2 版を commit で再現する）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";

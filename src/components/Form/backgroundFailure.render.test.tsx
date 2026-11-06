@@ -1,6 +1,6 @@
 // 単体のアップローダーの欄(ControlledMediaField)が失敗したまま AppForm を送らないことの検査。
 // 失敗 → 送信を止めてトースト → やり直して成功 → 送れる。AdminNotificationSend の画像欄も同じ道。
-// 実行: pnpm test:form-background-failure(tsx + node:test のモジュールモック + jsdom の上で描画)
+// 実行: pnpm test src/components/Form/backgroundFailure.render.test.tsx(tsx + node:test のモジュールモック + jsdom の上で描画)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";

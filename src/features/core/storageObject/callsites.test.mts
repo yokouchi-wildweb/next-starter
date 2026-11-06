@@ -6,7 +6,7 @@
 // - core の保存（アバター・振込明細）が新 ref の検査を迂回しない: 実際の drizzleBase の binding 設定（fields / scope）を使う
 // core.ts の check は本物の判定関数（isChatParticipant / isOwnPendingPurchaseRequest）を通す。
 // 判定関数が読むデータ源（Firestore のルーム・購入リクエスト・振込レビュー）だけをモックする（下の注記）。
-// 実行: pnpm test:storage-object
+// 実行: pnpm test src/features/core/storageObject/callsites.test.mts
 
 import { describe, mock, test } from "node:test";
 import assert from "node:assert/strict";

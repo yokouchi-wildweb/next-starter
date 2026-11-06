@@ -1,4 +1,4 @@
-// src/features/core/user/entities/userName.test.ts — pnpm test:user-name
+// src/features/core/user/entities/userName.test.ts — pnpm test src/features/core/user/entities/userName.test.ts
 // sanitizeUserName の結果が共有スキーマ (UserNameSchema) を通ること・既存の検証は変わらないことの検査。
 import { test } from "node:test";
 import assert from "node:assert/strict";

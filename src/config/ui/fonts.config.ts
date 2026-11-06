@@ -11,7 +11,7 @@
  *
  * ⚠️ next/font の制約: ローダー呼び出しはモジュールのトップレベルで、引数はリテラルで書くこと
  *   (変数や import した定数を渡すとビルドエラー)。`variable` は下記の固定名をそのまま書く
- *   (別名を書いても型・実行時では検知できず黙って効かなくなる。pnpm test:fonts が静的に検査する)。
+ *   (別名を書いても型・実行時では検知できず黙って効かなくなる。pnpm test src/lib/fonts/fonts.test.mjs が静的に検査する)。
  * ⚠️ next/font/google / local は Next のコンパイラ外(scripts/、node --test 等)では動かない。
  *   ローダーを追加した後、このファイルを Next 外のスクリプトから import しないこと。
  *

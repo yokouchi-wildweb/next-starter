@@ -1,5 +1,5 @@
 // 遷移トークンのパス照合のテスト。
-// 実行: pnpm test:transition-guard (node:test + tsx)
+// 実行: pnpm test src/lib/transitionGuard/matchTargetPath.test.mjs (node:test + tsx)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

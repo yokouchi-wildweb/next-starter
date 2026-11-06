@@ -3,8 +3,8 @@
 // src/registry/serviceRegistry.ts を src/features/**/services/server/domainEntry.ts（+ domainEntry.override.ts）から丸ごと生成する
 //
 // 使い方:
-//   pnpm registry:generate            # 生成して書き出す（dc:generate / dc:delete の最後にも自動で走る）
-//   pnpm registry:check               # 生成せず一致を検査（./check.mjs。ビルドの冒頭と test でも走る）
+//   pnpm generate registry            # 生成して書き出す（dc:generate / dc:delete の最後にも自動で走る）
+//   pnpm check registry               # 生成せず一致を検査（./check.mjs。ビルドの冒頭と test でも走る）
 //
 // 書き出さず失敗する条件（./check.mjs の静的検査と同じ。キーと直し方を出す）:
 // - 移行前の手書き行（どの domainEntry.ts からも作られないキー）が、生成ヘッダの無い既存の serviceRegistry.ts にある
@@ -46,7 +46,7 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
     return `domain.json が "generate": false なので dc:generate は書かない → src/features/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
   }
   if (!dir.startsWith("core/") && fs.existsSync(domainJson)) {
-    return `access は domain.json の apiAccess に移し、pnpm dc:generate ${key} --yes --only registry で src/features/${dir}/services/server/${ENTRY_FILE} を生成する`;
+    return `access は domain.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/features/${dir}/services/server/${ENTRY_FILE} を生成する`;
   }
   return `src/features/${dir}/services/server/${ENTRY_FILE} を手書きする（core の access を fork で変えるなら隣に ${OVERRIDE_FILE}）`;
 }
@@ -69,7 +69,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
       errors.push(
         `src/features/${domain.dir}/services/server に drizzleBase.ts / firestoreBase.ts があるのに ${ENTRY_FILE} が無い` +
           (domain.hasDomainJson && !domain.isCore && !domain.handManaged
-            ? `（pnpm dc:generate ${domain.camel} --yes --only registry で生成する）`
+            ? `（pnpm generate domain -- ${domain.camel} --yes --only registry で生成する）`
             : domain.hasDomainJson && !domain.isCore
               ? `（domain.json が "generate": false なので dc:generate は書かない → 手書きする。形: src/lib/domain/README.md「generate: false の業務ドメイン」）`
               : `（手書きする。登録表に載せないドメインは scripts/structure/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
@@ -147,7 +147,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
     "// - core ドメイン・fork が core パスに作るドメイン: domainEntry.ts を手書き",
     `// - fork が core の access を変える: 隣に ${OVERRIDE_FILE}（fork 所有、access だけ）`,
     "// サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。",
-    "// 検査: pnpm registry:check / 詳細: src/lib/domain/README.md",
+    "// 検査: pnpm check registry / 詳細: src/lib/domain/README.md",
     "",
     'import type { DomainRegistry } from "@/lib/domain/types";',
     "",

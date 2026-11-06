@@ -1,4 +1,4 @@
-// fork の区画の印の形を固定する検査(pnpm test:fork-regions)
+// fork の区画の印の形を固定する検査(pnpm test src/lib/forkOwnership/regions.test.mjs)
 // - 受け口の一覧(intake.txt)で region に当たる全ファイル(src/registry・room と seed の登録点)で、
 //   印の対が閉じている・入れ子が無い・文言が正しい
 // - 古い下流の印(DOWNSTREAM / 上流は空。下流が追記 / FORK (手書き))が残っていない

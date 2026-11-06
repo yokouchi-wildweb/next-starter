@@ -3,7 +3,7 @@
 // サーバー用の getService 系（印なし = server 用。lib は登録表を import しないので、結ぶのはここ）。
 //
 // import してよい場所: src/app/**（API ルート・Screen・loader。cron のフォルダでは task.ts だけ）・src/proxies/**・src/proxy.ts。
-// features / lib / components からは import しない（検査: pnpm test:wiring。一覧と向きは src/wiring/README.md）。
+// features / lib / components からは import しない（検査: pnpm test src/wiring/wiring.test.mjs。一覧と向きは src/wiring/README.md）。
 // サービスは遅延読み込みなので、このファイルを import しても各ドメインのサービス・DB 接続は読み込まれない。
 
 import "server-only";

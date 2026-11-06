@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/features/core/user/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/features/core/user/extensionPoints.ts から生成する
 // adminBulkActions: src/features/core/user/adminBulkActions/<名前>.ts(x) か <名前>/index.ts(x) の export const bulkAction(並びはファイル名の順)
 
 import type { UserAdminBulkActionItem } from "@/features/core/user/types";

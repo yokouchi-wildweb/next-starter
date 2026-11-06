@@ -4,7 +4,7 @@
 //   fs を触る = domain/workspace.mjs（読む）、pipeline/apply.mjs・pipeline/remove/（書く）、pipeline/dryRun.mjs（読んで比べるだけ）、
 //            cli/（feature-map の書き出し・削除の対話）
 //   inquirer = cli/ だけ | process.exit = cli/ だけ | render/ は pipeline/ と cli/ を import しない
-// 実行: pnpm test:dc-structure
+// 実行: pnpm test scripts/structure/domain/tests/structure.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

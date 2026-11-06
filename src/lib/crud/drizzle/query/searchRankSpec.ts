@@ -2,7 +2,7 @@
 //
 // searchRank パラメータの正規化（純粋関数・drizzle 非依存・ランタイム import なし）。
 // SQL 生成は buildSearchRank.ts が担当し、ここは「どのフィールドをどの重みで採点するか」の
-// 解決のみを行う。テストは searchRank.test.mjs（pnpm test:crud-search-rank）。
+// 解決のみを行う。テストは searchRank.test.mjs（pnpm test src/lib/crud/drizzle/query）。
 // NOTE: node --test から .ts を直接読むため、ランタイム import（相対パス）を持たないこと。
 
 import type { SearchRankField, SearchRankSpec } from "../../types";

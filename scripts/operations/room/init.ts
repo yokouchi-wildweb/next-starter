@@ -1,6 +1,6 @@
 // scripts/operations/room/init.ts
 //
-// リアルタイムルーム基盤の有効化セットアップ (pnpm room:init)。
+// リアルタイムルーム基盤の有効化セットアップ (pnpm ops room init)。
 // 冪等: 何度実行しても安全 (既存の wrangler.toml は上書きしない)。
 //
 // やること:
@@ -86,19 +86,19 @@ console.log(`
 5. src/config/app/realtime-room.config.ts の enabled を true にする
 
 6. デプロイ:
-     pnpm deploy:all                # アプリ + Worker の統合デプロイ (手動運用の標準)
-     pnpm room:deploy               # Worker 単体 (要 wrangler login または CLOUDFLARE_API_TOKEN)
+     pnpm run deploy                # アプリ + Worker の統合デプロイ (手動運用の標準)
+     pnpm ops room deploy               # Worker 単体 (要 wrangler login または CLOUDFLARE_API_TOKEN)
    CI 経由 (git push 連動) を使うフォークのみ:
      cp .github/workflows/deploy-room.yml.example .github/workflows/deploy-room.yml
      GitHub Secrets に CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID を登録
 
 7. 共有鍵の生成と Worker への登録 (※ 必ず初回デプロイの後に):
-     pnpm room:secret               # 生成 + 非対話登録 + Next 側 env に貼る行を表示
+     pnpm ops room secret               # 生成 + 非対話登録 + Next 側 env に貼る行を表示
    表示された REALTIME_ROOM_AUTH_SECRET を Next 側 env に貼る (Vercel は Sensitive 推奨)。
-   secret は以後のデプロイでも保持される。ローテーションは pnpm room:secret --rotate
+   secret は以後のデプロイでも保持される。ローテーションは pnpm ops room secret --rotate
 
 8. 動作確認:
-     pnpm room:check                # 疎通〜認可〜WS配信〜永続化の11項目を機械検証
+     pnpm ops room check                # 疎通〜認可〜WS配信〜永続化の11項目を機械検証
    (初回は workers.dev 伝播待ちで最大60秒リトライ。最低限なら: curl https://<Worker URL>/version)
 
 ローカル動作確認 (Cloudflare アカウント不要):

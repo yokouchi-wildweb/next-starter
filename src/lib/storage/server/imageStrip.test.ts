@@ -1,7 +1,7 @@
 // src/lib/storage/server/imageStrip.test.ts
 // 画像の描き直し（stripImageMetadata）の単体テスト。実 sharp と合成画像で、メタデータの全除去・向き・
 // アニメーションの保持・申告との照合・画素数の上限を確かめる。
-// 実行: pnpm test:storage-strip
+// 実行: pnpm test src/lib/storage/server/imageStrip.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

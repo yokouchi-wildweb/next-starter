@@ -1,6 +1,6 @@
 // src/lib/storage/client/purposePolicy.test.ts
 // 用途の方針の取得と記憶（purposePolicy.ts）の単体テスト。HTTP は偽の client で置き換える。
-// 実行: pnpm test:storage-client
+// 実行: pnpm test src/lib/storage/client/purposePolicy.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

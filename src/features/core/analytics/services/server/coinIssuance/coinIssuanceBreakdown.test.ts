@@ -3,7 +3,7 @@
 // 内訳(breakdown)の検査(DB なし。ソースの一覧を差し替える)。
 // - aggregator は breakdown を合計に使わない(totalIssuance / finalProfit はソースの current だけ)。応答に changeRate 付きで載る
 // - toReasonKeyBreakdown: 合計 = 行の和、label = 種類の label / 未登録は key / null は「未分類」、並び = sortOrder → 未分類は最後
-// 実行: pnpm test:coin-issuance
+// 実行: pnpm test src/features/core/analytics/services/server/coinIssuance/coinIssuanceBreakdown.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";

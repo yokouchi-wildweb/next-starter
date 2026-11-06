@@ -4,7 +4,7 @@
 // - コイン創出のソース: enabled false は外す。上流の項目の組(一覧の順 = ファイル名の順)
 // - 読み込み: 項目と読み手が互いを読み合っても、どの入口から読んでも壊れない(入口ごとに別プロセス)
 // fork でも走る: 動きの検査は全 Tier、上流の項目の組と既定の値の厳密な比較は Tier1 だけ(fork は項目を足し、config を書き換え、スイッチの向きを変え、機能を閉じる)
-// 実行: pnpm test:extension-items
+// 実行: pnpm test scripts/structure/extensions/upstreamItems.test.mts
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";

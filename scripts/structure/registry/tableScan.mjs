@@ -3,8 +3,8 @@
 // Node 組み込みだけで動く .mjs(表の定義ファイルは import しない = drizzle・DB の依存を読み込まない)。
 //
 // 使い手: scripts/structure/extensions/derive/featureTables.mjs(機能を閉じる規則の features → tables の導出、D16・D20 K1)、
-//         scripts/structure/registry/tableScan.test.mjs(走査の集合 = schemaRegistry の全表、pnpm test:schema-registry)。
-//         ./alpha/index.mjs(pnpm registry:generate の schemaRegistry、親 D67)。
+//         scripts/structure/registry/tableScan.test.mjs(走査の集合 = schemaRegistry の全表、pnpm test scripts/structure/registry)。
+//         ./alpha/index.mjs(pnpm generate registry の schemaRegistry、親 D67)。
 //
 // 走査の範囲: src/features/** の .ts(*.test.* を除く)。entities/drizzle.ts の外(entities/notificationRead.ts、
 // userProfile/entities/profiles/<role>/drizzle.ts などの生成物)も拾う。

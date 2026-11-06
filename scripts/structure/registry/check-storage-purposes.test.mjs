@@ -4,7 +4,7 @@
 // - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し）と生成した storagePurposes.ts の本文
 // - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
 // - storage オプションのメディア列は systemColumns・hiddenColumns にできない（登録済みの全サービスが作れることも確かめる）
-// 実行: pnpm test:storage-purposes
+// 実行: pnpm test scripts/structure/registry/check-storage-purposes.test.mjs
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

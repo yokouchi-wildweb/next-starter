@@ -11,7 +11,7 @@
  *    upstream がトークンを追加しても、下流は何も追記しなくて済みます(既定値で動く)。
  *
  * ⚠️ 色を変えたら(upstream / custom どちらでも)メール用カラー定数を再生成してコミットしてください:
- *    pnpm mail:generate-colors
+ *    pnpm generate styles
  *    (palette.default.css + src/styles/palette.css の :root を合成して hex に変換します)
  *
  * 詳細: src/styles/README.md

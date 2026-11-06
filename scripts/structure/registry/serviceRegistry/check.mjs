@@ -3,12 +3,12 @@
 // src/registry/serviceRegistry.ts が src/features/**/services/server/domainEntry.ts からの生成結果と一致するか検査する
 //
 // 使い方:
-//   pnpm registry:check   # 手元で。build スクリプトの冒頭でも環境（VERCEL 等）に依らず必ず走る
+//   pnpm check registry   # 手元で。build スクリプトの冒頭でも環境（VERCEL 等）に依らず必ず走る
 //
 // 失敗する条件: ./generate.mjs の静的検査（手書き行・重複・定義なし・record_type・import の許可・読めない行）と、
 // 生成物との不一致（domainEntry.ts を足した・消した・override を置いたのに再生成していない）。直し方はどれも
-// `pnpm registry:generate`（手書き行は先に domainEntry.ts / domain.json / domainEntry.override.ts へ移す）。
-// サービスを実際に読み込む検査は pnpm test:service-registry（tsx）。
+// `pnpm generate registry`（手書き行は先に domainEntry.ts / domain.json / domainEntry.override.ts へ移す）。
+// サービスを実際に読み込む検査は pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs（tsx）。
 // 詳細: src/lib/domain/README.md
 
 import path from "node:path";
@@ -22,9 +22,9 @@ export function checkServiceRegistry(repoRoot) {
   const { text, errors, keys } = buildServiceRegistry(repoRoot);
   const existing = readExistingRegistry(repoRoot);
   if (!existing) {
-    errors.push(`${REGISTRY_FILE} が無い → pnpm registry:generate`);
+    errors.push(`${REGISTRY_FILE} が無い → pnpm generate registry`);
   } else if (errors.length === 0 && existing.text !== text) {
-    errors.push(`${REGISTRY_FILE} が domainEntry.ts からの生成結果と一致しない → pnpm registry:generate`);
+    errors.push(`${REGISTRY_FILE} が domainEntry.ts からの生成結果と一致しない → pnpm generate registry`);
   }
   return { errors, keys };
 }

@@ -1,5 +1,5 @@
 // 並列 trigger の契約テスト（React 非依存部分）。
-// 実行: pnpm test:crud-hooks  （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
+// 実行: pnpm test src/lib/crud/hooks/internal/*.test.mjs  （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createConcurrentMutation } from "./concurrentMutation.ts";

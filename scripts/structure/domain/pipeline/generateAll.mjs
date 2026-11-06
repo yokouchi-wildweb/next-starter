@@ -74,7 +74,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     regenerateServiceRegistry(workspace);
   }
   refreshFeatureMap(workspace, io);
-  if (registryGenerated) io.log("src/registry の一覧は pnpm registry:generate で作り直してください");
+  if (registryGenerated) io.log("src/registry の一覧は pnpm generate registry で作り直してください");
 
   if (summary.length) io.log("");
   summary.forEach((line) => io.log(line));

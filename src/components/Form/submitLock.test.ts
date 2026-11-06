@@ -1,6 +1,6 @@
 // src/components/Form/submitLock.test.ts
 // AppForm の二重送信ロックのテスト（送信中の 2 回目を捨てる・成功 / 失敗の後に外れる）。
-// 実行: pnpm test:form-submit-lock
+// 実行: pnpm test src/components/Form/submitLock.test.ts
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

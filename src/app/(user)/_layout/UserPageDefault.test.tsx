@@ -1,5 +1,5 @@
 // UserPage の幅の既定が config/ui/user-layout.config の USER_PAGE_CONTAINER_TYPE に従うことの検査
-// (config をモックするため UserParts.test.tsx と別ファイル。実行: pnpm test:user-layout)
+// (config をモックするため UserParts.test.tsx と別ファイル。実行: pnpm test src/app/(user)/_layout/UserPageDefault.test.tsx)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { type ReactNode } from "react";

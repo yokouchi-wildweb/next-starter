@@ -1,6 +1,6 @@
 // role:delete・prof:delete・role:toggle・prof:generate の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
 // コマンドはスクリプトの置き場からリポジトリのルートを決めるので、一時ディレクトリに要るものを写して、そこで実行する。
-// 標準入力は空にして、対話が出ない（待たない）ことも見る。実行: pnpm test:role-config-ops
+// 標準入力は空にして、対話が出ない（待たない）ことも見る。実行: pnpm test scripts/structure/role/tests/ops.test.mjs
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";

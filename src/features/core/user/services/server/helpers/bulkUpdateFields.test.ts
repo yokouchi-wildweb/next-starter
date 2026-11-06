@@ -1,5 +1,5 @@
 // src/features/core/user/services/server/helpers/bulkUpdateFields.test.ts
-// 実行: pnpm test:user-bulk-update
+// 実行: pnpm test src/features/core/user/services/server/helpers/bulkUpdateFields.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

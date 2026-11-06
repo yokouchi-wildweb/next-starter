@@ -1,7 +1,7 @@
 // src/lib/crud/presenters/media.test.ts
 //
 // 一覧表示のサムネイル（formatCollectionThumbnails = 主の集まり、formatMediaThumbnails = 旧来の複数メディア列）のテスト。
-// 実行: pnpm test:crud-presenters
+// 実行: pnpm test src/lib/crud/presenters/media.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

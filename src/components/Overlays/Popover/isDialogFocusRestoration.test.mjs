@@ -1,5 +1,5 @@
 // Dialog 内 Popover の「FocusScope フォーカス復帰で閉じない」判定の契約テスト。
-// 実行: pnpm test:popover-dismiss （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
+// 実行: pnpm test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs （node:test + Node 組み込みの TypeScript type stripping。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

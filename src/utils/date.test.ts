@@ -1,4 +1,4 @@
-// src/utils/date.test.ts — pnpm test:utils-date
+// src/utils/date.test.ts — pnpm test src/utils/date.test.ts
 // formatDateJa が実行環境の時間帯（サーバー = UTC、ブラウザ = 端末の時間帯）によらず同じ文字列を返すことの検査。
 // test:utils-date は TZ=UTC と TZ=Pacific/Auckland の 2 回走らせ、期待値はどちらも同じ（日本時間）。
 import { test } from "node:test";

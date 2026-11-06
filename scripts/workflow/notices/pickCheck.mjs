@@ -5,7 +5,8 @@
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
 //      required_actions 〜 manual_steps が、壊れた地点より後の notice を名指さない
 //   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: pickDroppingIndex.mjs)
-//   3. 載せた木で検査が通る(既定 pnpm typecheck・pnpm test:config-module-load・pnpm registry:check。その木の package.json に無い script は未実行と書いて飛ばす)
+//   3. 載せた木で検査が通る(既定 pnpm typecheck・pnpm test scripts/structure/config/moduleLoad.test.mjs・pnpm check registry。再編の前の木 = 入口が
+//      package.json に無ければ旧い名前 test:config-module-load・registry:check で回す。どちらも無い script は未実行と書いて飛ばす)
 //   4. 遅れた fork 向けの前提の検査(hotfixCheck.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない
 // notices:hotfix-check は存在の検査だけで型・merge の成立を見ないので、ここでは 4 の部品として呼ぶだけで、clean の根拠は 1〜4 の全部。
 //
@@ -18,7 +19,7 @@
 //   別の notice の pick:clean の修正も、fork が壊れた地点までに先に取っているもの(その修正の土台が壊れた地点かその祖先で、
 //   出荷済み(--at、既定 HEAD の祖先)で修正の後の履歴にないもの)は履歴順に先に載せてから試す(stackedPicks。土台 + 先に載せた修正 = fork の実際の木)。
 //
-// 実行: pnpm notices:pick-check <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]
+// 実行: pnpm workflow notices pickCheck <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]
 //   commit = 修正の notice を足した commit。--dry-run 以外は判定を自分の索引 .notices/shipped/<fork_id>.md のその notice の行の
 //   pick: に書く(作業ツリー。本文には書かない。行が無ければ書かずに exit 2: 先に shippedIndex.mjs add で行を足して commit する)。
 //   --at = 出荷する先端(既定 HEAD)。先に載せる別の clean な修正はこの祖先から選ぶ(脇の commit の修正は merge の後の先端で)
@@ -34,7 +35,15 @@ import { pickDroppingIndex } from "./pickDroppingIndex.mjs";
 import { indexPath, ownForkId, parseIndex, SHIPPED_DIR, writeRowPick } from "./shippedIndex.mjs";
 
 export const FORBIDDEN = ["pnpm-lock.yaml", "src/app/route-map.jsonl"];
-export const DEFAULT_CHECKS = ["pnpm typecheck", "pnpm test:config-module-load", "pnpm registry:check"];
+/**
+ * 既定の検査。{ run, legacy }: その木の package.json に run の入口(pnpm <script>)が無く legacy の script がある = scripts/ の再編の前の木
+ * では legacy で回す(途中の区切りが再編の前でも検査が減らない)。--check の文字列はそのまま
+ */
+export const DEFAULT_CHECKS = [
+  { run: "pnpm typecheck" },
+  { run: "pnpm test scripts/structure/config/moduleLoad.test.mjs", legacy: "pnpm test:config-module-load" },
+  { run: "pnpm check registry", legacy: "pnpm registry:check" },
+];
 const NOTICE_FILE = /^\.notices\/(?:done\/)?(\d{8}-\d{6}-[^/]+)\.md$/;
 const NOTICE_ID = /\b\d{8}-\d{6}-[a-z0-9][a-z0-9-]*\b/g;
 
@@ -194,9 +203,19 @@ export function commitConditions(files, noticePath) {
   return out;
 }
 
+const scriptOf = (cmd) => cmd.match(/^pnpm\s+(?:run\s+)?([\w:.-]+)/)?.[1] ?? null;
+
+/** 検査 1 つ(文字列か { run, legacy })→ その木で回すコマンド: run の script が無く legacy の script があれば legacy */
+export function pickCommand(check, scripts) {
+  if (typeof check === "string") return check;
+  const has = (cmd) => !scripts || !scriptOf(cmd) || scriptOf(cmd) in scripts;
+  return !has(check.run) && check.legacy && has(check.legacy) ? check.legacy : check.run;
+}
+
 export function runChecks(dir, checks, scripts) {
   const out = { failed: [], skipped: [] };
-  for (const cmd of checks) {
+  for (const check of checks) {
+    const cmd = pickCommand(check, scripts);
     const m = cmd.match(/^pnpm\s+(?:run\s+)?([\w:.-]+)/);
     if (m && scripts && !(m[1] in scripts)) {
       out.skipped.push(`${cmd}(その木の package.json に無い)`);
@@ -298,7 +317,7 @@ export function run(repo, argv, log = console.log) {
   const checks = argv.filter((a) => a.startsWith("--check=")).map((a) => a.slice(8));
   const at = argv.find((a) => a.startsWith("--at="))?.slice(5);
   if (!commit) {
-    console.error("usage: pnpm notices:pick-check <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]");
+    console.error("usage: pnpm workflow notices pickCheck <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]");
     return 2;
   }
   try {

@@ -1,4 +1,4 @@
-// 実行: pnpm test:codemods
+// 実行: pnpm test .notices
 // 枠の宣言へ移す道具(./frame-declarations.mjs)を一時フォルダの fork の木で確かめる(指令 11 d1・d2)。
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

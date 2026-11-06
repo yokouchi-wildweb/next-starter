@@ -2,7 +2,7 @@
 // - <domain>/extensionPoints.ts: 受け口 adminBulkActions の宣言(生成されるドメインの宣言は生成器が持つ。生成のたびに書き直す。
 //   別の受け口が要るドメインは generate: false にして手で持つ)
 // - <domain>/types/adminBulkAction.ts: 項目の型(BulkActionItem<Row, AdminBulkActionAccess>)
-// 一覧(<domain>/extensions/adminBulkActions.ts)は pnpm extensions:generate が書く(forge は続けて回す)。
+// 一覧(<domain>/extensions/adminBulkActions.ts)は pnpm generate extensions が書く(forge は続けて回す)。
 // 一覧の Table(Admin__Domain__List/Table.tsx)が一覧を読み、項目があれば選択の表と一括操作のバーを出す
 
 import path from "node:path";

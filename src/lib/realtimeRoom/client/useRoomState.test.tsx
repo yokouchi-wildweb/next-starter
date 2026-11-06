@@ -1,5 +1,5 @@
 // useRoomState の再接続の検査(接続トークンの期限で Worker が閉じたら、待たずに新しいトークンで再接続する)。
-// 実行: pnpm test:realtime-room(tsx + node:test のモジュールモック + jsdom。WebSocket は偽物)
+// 実行: pnpm test src/lib/realtimeRoom/client/useRoomState.test.tsx(tsx + node:test のモジュールモック + jsdom。WebSocket は偽物)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

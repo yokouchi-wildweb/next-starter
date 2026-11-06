@@ -1,7 +1,7 @@
 // .notices/20261105-112509-feature-gate-automation.feature-gate-s3.test.mjs
 // gate-s3 の fork の移行: 開いた規則の違反 → required/ を書く、閉じた規則の違反は書かず一覧、既存は触らない、違反なし → 何もしない。
 // cron の route.ts の import の付け替え(付け替え・混ざった import・既に済み・createCronRoute は止める)。
-// 実行: pnpm test:codemods(一時フォルダの fixture)
+// 実行: pnpm test .notices(一時フォルダの fixture)
 
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";

@@ -5,8 +5,8 @@
 // - 並びはファイル名の順、上流と fork の項目はどちらも印なしで同じ枠に入る
 // - 失敗: 旧い fork の名前の印(移し方を案内) / 両方 / どちらも無い / 名前の形
 // - 機能を閉じる規則(門番 src/featureGate/rules/、宣言は実物の src/featureGate/extensionPoints.ts): features のフォルダから tables を導き、名前を付ける(derive featureTables)、失敗の各条件
-// 生成一覧の一致(実リポ)は pnpm test:extensions と extensions:check
-// 実行: pnpm test:proxy-frame
+// 生成一覧の一致(実リポ)は pnpm test scripts/structure/extensions と extensions:check
+// 実行: pnpm test scripts/structure/proxies/proxyFrame.test.mjs
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";

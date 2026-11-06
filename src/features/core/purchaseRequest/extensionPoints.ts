@@ -1,5 +1,5 @@
 // src/features/core/purchaseRequest/extensionPoints.ts
-// purchaseRequest の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
+// purchaseRequest の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 購入完了戦略: services/server/completion/strategies/<名前>.ts の export const strategy

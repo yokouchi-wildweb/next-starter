@@ -1,5 +1,5 @@
 // 書体設定の契約テスト。
-// 実行: pnpm test:fonts (node:test + tsx)
+// 実行: pnpm test src/lib/fonts/fonts.test.mjs (node:test + tsx)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

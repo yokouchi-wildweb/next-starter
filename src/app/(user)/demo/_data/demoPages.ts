@@ -1,6 +1,6 @@
 // src/app/(user)/demo/_data/demoPages.ts
 // デモの一覧の型・カテゴリの定義と、組み立て。デモ本体の情報は各 route の _demo.ts(一覧 ../extensions/demoPages.ts は生成物)。
-// デモを足す = route のフォルダに _demo.ts を置いて pnpm extensions:generate。カテゴリの中はフォルダ名の順。
+// デモを足す = route のフォルダに _demo.ts を置いて pnpm generate extensions。カテゴリの中はフォルダ名の順。
 
 export type DemoCategoryKey =
   | "form"

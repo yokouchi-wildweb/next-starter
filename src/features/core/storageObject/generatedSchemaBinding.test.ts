@@ -2,7 +2,7 @@
 // 生成スキーマ（dc:generate の sample）と storage binding の組み合わせ（受入 T-GEN）。
 // 編集フォームは全項目を送るので、未変更の旧 URL は「スキーマを通る → binding が前と同値として通す」で保持される。
 // 新しい値として書けるのはアップロード済みの ref だけ（旧 URL の差し替え・create は binding が 400）。
-// 実行: pnpm test:storage-object
+// 実行: pnpm test src/features/core/storageObject/generatedSchemaBinding.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

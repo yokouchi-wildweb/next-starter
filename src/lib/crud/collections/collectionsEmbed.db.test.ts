@@ -2,7 +2,7 @@
 // 他ドメインの withRelations で埋め込まれた主の行に、主の集まりが載るかの実 DB テスト（belongsTo / hasMany / belongsToMany・深さ 2）。
 // 開発 DB に専用の表 test_crud_emb_* を作り、終了時に DROP する（それ以外には書かない）。DATABASE_URL が無ければ全件 skip。
 // 主のサービスは作らない（表の登録 defineTableCollections だけで、主のサービスを読まない画面と同じ条件にする）。
-// 実行: pnpm test:crud-collections-db
+// 実行: pnpm test --db src/lib/crud/collections/collectionsEmbed.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

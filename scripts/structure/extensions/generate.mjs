@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/structure/extensions/generate.mjs
-// 全拡張点の生成一覧(<持ち主>/extensions/<点>.ts・src/wiring/<lib>.ts)を宣言と項目から丸ごと書く(pnpm extensions:generate)。
+// 全拡張点の生成一覧(<持ち主>/extensions/<点>.ts・src/wiring/<lib>.ts)を宣言と項目から丸ごと書く(pnpm generate extensions)。
 // 問題があれば書き出さずに止まる。宣言が消えた古い一覧(目印のヘッダを持つ)は消す。手で置いたファイルは消さずに失敗を出す。
 // 書式と失敗の条件: ./README.md
 

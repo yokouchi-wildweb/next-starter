@@ -1,15 +1,16 @@
 // scripts/workflow/notices/hotfixCheck.mjs
 // 緊急修正(hotfix)が、遅れた fork の木で前提にしているものを持っているかを、出荷の前に確かめる(/ship hotfix)。
 // fork は間の変更を飛ばしてこの commit だけを cherry-pick するので、間で届くはずのパス・スクリプトに頼ると、
-// fork の検査(例: test:core-rules の paths:)や notice の手順がその木では通らない。
+// fork の検査(例: pnpm check rules が見る paths:)や notice の手順がその木では通らない。
 //
-// 実行: pnpm notices:hotfix-check <commit> [--base=<sha> ...] [--fleet-conf=<path>]
+// 実行: pnpm workflow notices hotfixCheck <commit> [--base=<sha> ...] [--fleet-conf=<path>]
 //   commit / base は呼んだリポで完全な sha に解決してから使う(HEAD・HEAD~1 等の相対 ref も可)
 //   base = 遅れた fork の位置(上流の commit)。省くと fleet.conf の各 fork の merge-base(上流からは fork の位置が見えないため)
 //     + その fork の台帳 .notices/applied/<name>.md(fork の HEAD の版)の picked:(先に取った修正)のうち merge-base の祖先でないもの
 //   各 base の上に picks を順に載せ、その上に commit を cherry-pick した木(一時の複製、作業ツリーには触れない)で見るもの:
 //     1. commit が足した・変えたパス指定ルール(.claude/rules/**/*.md)の paths: の各 glob が、その木のファイルに当たるか
 //     2. commit の notice の required_actions / verify / manual_steps にある `pnpm <script>` が、その木の package.json にあるか
+//        (入口の名指し pnpm workflow|ops <対象> <動作>・pnpm check|generate <対象>・pnpm test <パス> は、そのファイルがその木にあるか)
 //     3. その notice が名指すリポのパス(`…` と refs:)が、その木にあるか
 //   exit 0 = 見つからない | 1 = 見つかった(一覧) | 2 = 確かめられない(base が無い・commit が無い)
 import { execFileSync } from "node:child_process";
@@ -23,6 +24,7 @@ import { pickDroppingIndex } from "./pickDroppingIndex.mjs";
 // pnpm の組み込みコマンド(package.json の scripts ではない)
 const PNPM_BUILTIN = new Set(["install", "i", "add", "remove", "rm", "up", "update", "exec", "dlx", "run", "why", "list", "ls", "store", "env"]);
 const PATH_ROOTS = /^(src|scripts|docs|servers|public|\.claude|\.notices|\.fork-ownership)\//;
+const PATH_ROOTS_ANY = /^(src|scripts|servers|tests|eslint-rules|\.claude|\.notices)\//;
 
 /** notice の欄のうち、fork が手順として実行するもの(required_actions から refs: の前まで)と refs: の値 */
 export function noticeSections(text) {
@@ -45,6 +47,26 @@ export function pnpmScripts(text) {
   return [...out];
 }
 
+/** 入口の名指し(package.json の script ではなくファイルで決まる物): `pnpm workflow|ops <対象> <動作>` = scripts/<種類>/<対象>/<動作>.{mjs,js,ts}、
+ *  `pnpm check|generate <対象>` = scripts/<分類>/<対象>/gate.json、`pnpm test <パス>` = そのパス(glob は除く)。[{ label, ok(files) }] */
+export function pnpmEntries(text) {
+  const out = new Map();
+  const add = (label, ok) => out.has(label) || out.set(label, { label, ok });
+  for (const m of text.matchAll(/\bpnpm\s+(?:-s\s+|--silent\s+)?(?:run\s+)?(workflow|ops)\s+([\w.-]+)\s+([\w.-]+)/g)) {
+    const dir = `scripts/${m[1] === "ops" ? "operations" : "workflow"}/${m[2]}/`;
+    add(`${m[1]} ${m[2]} ${m[3]}`, (files) => [".mjs", ".js", ".ts"].some((x) => files.includes(`${dir}${m[3]}${x}`)));
+  }
+  for (const m of text.matchAll(/\bpnpm\s+(?:-s\s+|--silent\s+)?(?:run\s+)?(check|generate)\s+([a-z][\w-]*)/g)) {
+    add(`${m[1]} ${m[2]}`, (files) => files.some((f) => new RegExp(`^scripts/[^/]+/${m[2]}/gate\\.json$`).test(f)));
+  }
+  for (const m of text.matchAll(/\bpnpm\s+(?:-s\s+|--silent\s+)?(?:run\s+)?test((?:\s+(?:--[\w=,-]+|[\w./()-]+))+)/g)) {
+    for (const t of m[1].trim().split(/\s+/).filter((x) => !x.startsWith("--") && PATH_ROOTS_ANY.test(x))) {
+      add(`test ${t}`, (files) => files.some((f) => f === t || f.startsWith(t.replace(/\/$/, "") + "/")));
+    }
+  }
+  return [...out.values()];
+}
+
 /** notice が名指すリポのパス: `…` の中と refs: の ` | ` 区切り。glob・<…>・空白を含むものは除く */
 export function noticePaths(steps, refs) {
   const tokens = [...steps.matchAll(/`([^`\s]+)`/g)].map((m) => m[1]);
@@ -64,7 +86,7 @@ export function findGaps({ files, packageJson, rules, notice }) {
   if (notice) {
     const { steps, refs } = noticeSections(notice);
     const scripts = packageJson?.scripts ?? {};
-    gaps.scripts = pnpmScripts(steps).filter((s) => !(s in scripts));
+    gaps.scripts = [...pnpmScripts(steps).filter((s) => !(s in scripts)), ...pnpmEntries(steps).filter((e) => !e.ok(files)).map((e) => e.label)];
     gaps.paths = noticePaths(steps, refs).filter((p) => !files.some((f) => f === p || f.startsWith(p.replace(/\/$/, "") + "/")));
   }
   return gaps;
@@ -190,7 +212,7 @@ export function run(repo, argv, log = console.log) {
   const given = argv.filter((a) => a.startsWith("--base=")).map((a, i) => ({ name: `base${i + 1}`, sha: a.slice(7), picks: [] }));
   const conf = argv.find((a) => a.startsWith("--fleet-conf="))?.slice(13) ?? join(process.env.TEAM_BASE || join(homedir(), ".team"), "fleet.conf");
   if (!commitRef) {
-    console.error("usage: pnpm notices:hotfix-check <commit> [--base=<sha> ...] [--fleet-conf=<path>]");
+    console.error("usage: pnpm workflow notices hotfixCheck <commit> [--base=<sha> ...] [--fleet-conf=<path>]");
     return 2;
   }
   const commit = resolveCommit(repo, commitRef);

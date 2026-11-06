@@ -1,5 +1,5 @@
 // eslint-rules/core-ui-entry.test.mjs
-// core の部品の入口の規則の契約テスト。実行: pnpm test:core-ui-entry (node:test)
+// core の部品の入口の規則の契約テスト。実行: pnpm test eslint-rules/core-ui-entry.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";

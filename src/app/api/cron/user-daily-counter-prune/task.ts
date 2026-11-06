@@ -1,6 +1,6 @@
 // src/app/api/cron/user-daily-counter-prune/task.ts
 // 期限切れの per-user 日次カウンタ (user_daily_counters) を定期削除する — cron タスク定義（実行時刻・有効条件・呼ぶ関数）
-// 処理本体はドメイン側。vercel.json のエントリは pnpm cron:generate がこのファイルから生成する
+// 処理本体はドメイン側。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
 

@@ -1,5 +1,5 @@
 // parseLoaderGuard の access の読み方(ルート地図と test:screens が共有する解析)の契約テスト。
-// 実行: pnpm test:screens-checks (node:test。checks.mjs は依存なしの .mjs)
+// 実行: pnpm test src/lib/screens/checks.test.mjs (node:test。checks.mjs は依存なしの .mjs)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

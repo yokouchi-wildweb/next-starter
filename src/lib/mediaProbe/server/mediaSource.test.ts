@@ -3,7 +3,7 @@
 // - Range に 200（全体）が返ったとき、要求した長さを超える全体は読まずに中止する（R03）
 // - 旧バケットだけを署名し、pub / priv の保存先と重なる位置・storage ref は lib で扱わない
 // - Next のサーバー内の fetch（signal の無い GET の応答を tee する dedupe-fetch）でも止まらない。期限で通信を打ち切る
-// 実行: pnpm test:media-probe
+// 実行: pnpm test src/lib/mediaProbe/server/mediaSource.test.ts
 
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,4 +1,4 @@
-// src/featureGate/node/describe.ts(入口 @/featureGate/node の describeFeatures・readFeatureReport。pnpm features:list が使う)
+// src/featureGate/node/describe.ts(入口 @/featureGate/node の describeFeatures・readFeatureReport。pnpm ops features list が使う)
 //
 // 規則ごとの説明: 開閉・住所(手書き / 汎用 API の導出 / 設定の節の導出)・表・機能のフォルダ・
 // 依存(閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査 checks/dependencies.mjs の走査そのもの)・

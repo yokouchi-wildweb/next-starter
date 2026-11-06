@@ -1,5 +1,5 @@
 // PrepareProofImage の検査: アップロードが失敗したら親の値は null のまま(④の申告に進めない)、欄にエラーを残し、
-// 選び直し・削除で消える。実行: pnpm test:standalone-upload-failure(tsx + node:test のモジュールモック + jsdom)
+// 選び直し・削除で消える。実行: pnpm test src/features/core/purchaseRequest/components/BankTransferInstruction/PrepareProofImage.test.tsx(tsx + node:test のモジュールモック + jsdom)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";

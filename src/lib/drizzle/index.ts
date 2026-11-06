@@ -15,7 +15,7 @@ const globalForDb = globalThis as unknown as {
 /**
  * DATABASE_URL が設定済み（trim 後に非空）かどうか。
  *
- * `pnpm env:init` 直後の .env.development は `DATABASE_URL=''` のまま（= 未設定）。
+ * `pnpm ops setup env` 直後の .env.development は `DATABASE_URL=''` のまま（= 未設定）。
  * この状態でも dev サーバーが起動しトップページが表示できることを手順書で約束しているため、
  * DB を必須としない読み取り経路（settingService.getGlobalSetting 等）はこの判定で
  * 「DB 未構成モード」に分岐する。

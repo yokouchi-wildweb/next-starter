@@ -1,5 +1,5 @@
 // dc:generate の生成カテゴリ（domain.json の generate で決まるもの）と `--only <category>` の回帰テスト。
-// 実行: pnpm test:dc-only
+// 実行: pnpm test scripts/structure/domain/tests/onlyOption.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseOnlyOption } from "../cli/args.mjs";

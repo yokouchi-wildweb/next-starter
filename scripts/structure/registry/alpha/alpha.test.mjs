@@ -1,10 +1,10 @@
 // scripts/structure/registry/alpha/alpha.test.mjs
 // α 3 本の走査生成(./index.mjs)の回帰テスト。
-// - 実リポ: 生成結果と一致(pnpm registry:check と同じ)
+// - 実リポ: 生成結果と一致(pnpm check registry と同じ)
 // - fixture: pgTable を持つファイル全部・profile の生成物は一覧を通す・キーは snake_case・メニューは印だけ・
 //   読めない pgTable と JSON・フォルダ名の重なりは problems
 // - dc:generate の登録済み判定が当たる字面と、行を足す置き先が残っている
-// 実行: pnpm test:schema-registry
+// 実行: pnpm test scripts/structure/registry/alpha/alpha.test.mjs
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -25,7 +25,7 @@ function fixture(files) {
   return root;
 }
 
-test("実リポ: 4 本が走査の生成結果と一致する(ずれたら pnpm registry:generate)", () => {
+test("実リポ: 4 本が走査の生成結果と一致する(ずれたら pnpm generate registry)", () => {
   const { outputs, problems } = buildAlphaRegistries(ROOT);
   assert.deepEqual(problems, []);
   assert.deepEqual(staleAlphaRegistries(ROOT, outputs), []);
@@ -46,7 +46,7 @@ test("生成: 表の入口・ドメイン設定・メニュー", () => {
   const { outputs, problems } = buildAlphaRegistries(root);
   assert.deepEqual(problems, []);
   const schema = outputs[SCHEMA_REGISTRY_FILE];
-  assert.ok(schema.startsWith("// 生成物・編集不可: pnpm registry:generate が "));
+  assert.ok(schema.startsWith("// 生成物・編集不可: pnpm generate registry が "));
   assert.deepEqual(
     schema.split("\n").filter((l) => l.startsWith("export *")),
     [

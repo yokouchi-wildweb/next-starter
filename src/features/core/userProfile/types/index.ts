@@ -12,7 +12,7 @@ export type {
 } from "./fieldTag";
 
 /**
- * fork の上書き（profiles/<JSON の名前>.override.ts の export const override）。pnpm role:generate が読む。
+ * fork の上書き（profiles/<JSON の名前>.override.ts の export const override）。pnpm generate role が読む。
  * 表の形を変える fields は上書きできない
  */
 export type ProfileOverride = Partial<Pick<ProfileConfig, "tags" | "searchFields" | "audit">>;

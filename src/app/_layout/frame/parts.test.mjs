@@ -1,4 +1,4 @@
-// 実行: pnpm test:frame-declaration
+// 実行: pnpm test src/app/_layout/frame/parts.test.mjs
 // 部位の一覧(./parts.mjs)が 1 か所にあり、枠の実物と宣言の型に合うことを見る(指令 07 d5)。
 // 隠す CSS(src/styles/core/frame.css)の部位 = 部位の一覧(両方の枠、印は data-slot だけ)もここで見る。
 // 各枠の README の data-slot の一覧と実物(要素の data-slot)の照合は (user)/_layout の UserFrame.test・admin/_layout の AdminFrame.test

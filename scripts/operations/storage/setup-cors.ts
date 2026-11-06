@@ -1,8 +1,8 @@
 // scripts/operations/storage/setup-cors.ts
 //
 // Firebase Storage(GCS バケット)に CORS を設定するスクリプト。
-// 実行: pnpm storage:setup-cors            (origin は ["*"])
-//       pnpm storage:setup-cors https://example.com https://www.example.com  (origin を限定)
+// 実行: pnpm ops storage setup-cors            (origin は ["*"])
+//       pnpm ops storage setup-cors https://example.com https://www.example.com  (origin を限定)
 //
 // 目的: ブラウザの MSE(appendBuffer)/ Web Audio(decodeAudioData)は、ファイルの「中身(バイト列)」を
 // fetch() で読み取るため、別ドメイン(Firebase Storage)から読むには CORS の許可が必要になる。
@@ -41,7 +41,7 @@ async function main() {
 
   if (useOrigins.includes("*")) {
     console.warn("⚠ origin を '*' で設定します(誰でも fetch 可能)。本番では実ドメインを引数で指定してください。");
-    console.warn("  例: pnpm storage:setup-cors https://your-app.com https://www.your-app.com");
+    console.warn("  例: pnpm ops storage setup-cors https://your-app.com https://www.your-app.com");
   }
 
   const bucket = getServerStorage().bucket();

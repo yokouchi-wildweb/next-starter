@@ -2,7 +2,7 @@
 // SwitchInput の読み上げ: label の文字は読み上げの対象(aria-hidden の外)に 1 回だけ、input の名前は見える文字から、
 // 押す場所のトラック(label)は読み上げから外れていて名前の無い label を残さない。label が無いときも同じ形。
 // 実際のスクリーンリーダーではなく、描いた DOM の読み上げの対象を数える。
-// 実行: pnpm test:form-a11y-contract
+// 実行: pnpm test src/components/Form/Input/Manual/SwitchInput.a11y.test.tsx
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JSDOM } from "jsdom";

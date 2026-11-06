@@ -4,7 +4,7 @@
 // 方針を得られないとき・任意の描き直し。偽の codec）を確かめる。
 // 位置情報などの除去の保証はサーバー（commit の描き直し。storageObject のテスト）で、ここでは確かめない。
 // 本物のブラウザ（XHR の進捗・中止、canvas の描き直し）は MediaUploader の切替（T9）で確かめる。
-// 実行: pnpm test:storage-client
+// 実行: pnpm test src/lib/storage/client/uploadToStorage.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

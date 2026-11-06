@@ -1,5 +1,5 @@
 // src/lib/folderCatalog/catalog.test.mjs
-// フォルダ目録(CATALOG.md)の契約テスト。実行: pnpm test:lib-catalog (node:test)
+// フォルダ目録(CATALOG.md)の契約テスト。実行: pnpm test src/lib/folderCatalog/catalog.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

@@ -1,6 +1,6 @@
 // scripts/workflow/tmux-launch/lib.mjs
 //
-// pnpm setup:tmux-launch と SessionStart hook(check.mjs)の共通処理。
+// pnpm workflow tmux-launch setup と SessionStart hook(check.mjs)の共通処理。
 // マシンに入れるもの: 中身(claude-tmux.sh の写し)・シェルの設定の 1 行・~/.tmux.conf の塊。どれも印で囲み、何度入れても重ならない。
 // 説明: scripts/workflow/tmux-launch/README.md
 

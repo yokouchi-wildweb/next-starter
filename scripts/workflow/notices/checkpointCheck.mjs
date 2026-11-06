@@ -13,8 +13,8 @@
 //   台帳に載り区間にならないので merge しない。--no-picks = 修正を取らずに区切りだけで見る(壊れた区切りを探す時)。
 //
 // 実行: node scripts/workflow/notices/checkpointCheck.mjs <from>..<to> [--all] [--at=<ref>] [--no-picks] [--check=<cmd> ...]
-//   既定の検査 = pnpm typecheck・pnpm test:config-module-load・pnpm test:core-rules・pnpm registry:check(その木の package.json に
-//   無い script は未実行と書いて飛ばす)。--check = 差し替え(繰り返し可)。依存は pick-check と同じ(lock が同じなら借り、違えば入れる)。
+//   既定の検査 = pnpm typecheck・pnpm test scripts/structure/config/moduleLoad.test.mjs・pnpm check rules・pnpm check registry(再編の前の木 =
+//   入口が package.json に無ければ旧い名前 test:config-module-load・test:core-rules・registry:check で回す。どちらも無い script は未実行と書いて飛ばす)。--check = 差し替え(繰り返し可)。依存は pick-check と同じ(lock が同じなら借り、違えば入れる)。
 //   最初に壊れた区切りで止める(後の区切りはその上に載るため)。--all = 続けて全部見る。
 //   exit 0 = 全部通る(区切りが無いも含む)| 1 = 壊れた区切りがある | 2 = 判定できない(範囲が読めない・依存を入れられない)
 import { execFileSync } from "node:child_process";
@@ -22,10 +22,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { field, noticeIndex, parseFixes, provideDeps, runChecks, sourcesBase } from "./pickCheck.mjs";
+import { DEFAULT_CHECKS as PICK_DEFAULT_CHECKS, field, noticeIndex, parseFixes, provideDeps, runChecks, sourcesBase } from "./pickCheck.mjs";
 import { pickDroppingIndex, SHIPPED_PREFIX } from "./pickDroppingIndex.mjs";
 
-export const DEFAULT_CHECKS = ["pnpm typecheck", "pnpm test:config-module-load", "pnpm test:core-rules", "pnpm registry:check"];
+// 既定の検査(pick-check の DEFAULT_CHECKS + CLAUDE.md・core rules の検査)。再編の前の木では legacy の旧い名前で回す
+export const DEFAULT_CHECKS = [...PICK_DEFAULT_CHECKS.slice(0, 2), { run: "pnpm check rules", legacy: "pnpm test:core-rules" }, PICK_DEFAULT_CHECKS[2]];
 const ID = { name: "checkpoint-check", email: "checkpoint-check@local" };
 
 function git(cwd, args) {

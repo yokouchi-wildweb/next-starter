@@ -25,10 +25,10 @@ export const STORAGE_CORS_DOC_PATH =
   "docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md";
 
 /** CORS 設定コマンド(旧バケット用。引数なしで origin "*"、ドメイン指定で本番限定)。 */
-export const STORAGE_CORS_SETUP_COMMAND = "pnpm storage:setup-cors";
+export const STORAGE_CORS_SETUP_COMMAND = "pnpm ops storage setup-cors";
 
 /** 新基盤の公開・非公開バケットの準備コマンド(CORS を含む。origin はアプリの origin)。 */
-export const STORAGE_SETUP_COMMAND = "pnpm storage:setup -- --origin <アプリの origin>";
+export const STORAGE_SETUP_COMMAND = "pnpm ops storage setup -- --origin <アプリの origin>";
 
 /** Firebase Storage と判別しやすくするためのホストヒント(案内文の文言調整に使用)。 */
 const FIREBASE_STORAGE_HOST_HINTS = [

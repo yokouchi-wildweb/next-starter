@@ -1,5 +1,5 @@
 // eslint-rules/style-tokens.test.mjs
-// 生パレット色検出規則の契約テスト。実行: pnpm test:style-lint (node:test)
+// 生パレット色検出規則の契約テスト。実行: pnpm test eslint-rules/style-tokens.test.mjs (node:test)
 import { describe, it, test } from "node:test";
 import assert from "node:assert/strict";
 import { RuleTester } from "eslint";

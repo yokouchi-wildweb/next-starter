@@ -44,7 +44,7 @@ export type SeedConfig = {
   deps: SeedKey[];
   /**
    * この項目が書く機能(規則名)。1 つでも閉じていれば飛ばして名前を出す(scripts/runner/seed/gate.ts)。
-   * 閉じられるフォルダ(規則の features)を import する項目には必須(pnpm test:db-seed が落とす)
+   * 閉じられるフォルダ(規則の features)を import する項目には必須(pnpm test scripts/runner/seed/gate.test.ts が落とす)
    */
   feature?: FeatureName | FeatureName[];
   /** シード実行関数 */

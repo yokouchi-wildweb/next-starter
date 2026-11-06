@@ -1,5 +1,5 @@
 // eslint-rules/field-type-guard.test.mjs
-// 型の表の外での fieldType 名の決め打ち検出（番人）の契約テスト。実行: pnpm test:field-type-guard (node:test)
+// 型の表の外での fieldType 名の決め打ち検出（番人）の契約テスト。実行: pnpm test eslint-rules/field-type-guard.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";

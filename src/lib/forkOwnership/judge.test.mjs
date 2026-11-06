@@ -1,4 +1,4 @@
-// 受け口の一覧・判定の核・生成器の区画の検査(pnpm test:fork-ownership)
+// 受け口の一覧・判定の核・生成器の区画の検査(pnpm test src/lib/forkOwnership/judge.test.mjs)
 // - 実リポジトリの intake.txt の書式と、書かれた glob が実在のパスに当たること
 // - judge の各判定(fixture は文字列)
 // - 一時許可の書式・指紋・照合
@@ -21,7 +21,7 @@ const E = FORK_REGION_END;
 describe("実リポジトリの intake.txt", () => {
   const intakeText = readFileSync(join(ROOT, "src/lib/forkOwnership/intake.txt"), "utf8");
   const { rules, errors } = parseIntake(intakeText);
-  // 生成区画の行(pnpm extensions:generate が宣言から書く。項目 0 の受け口はフォルダが無いので鮮度の検査から外す)
+  // 生成区画の行(pnpm generate extensions が宣言から書く。項目 0 の受け口はフォルダが無いので鮮度の検査から外す)
   const generatedLines = parseGeneratorRegions(intakeText);
 
   test("書式の誤りが無い", () => {

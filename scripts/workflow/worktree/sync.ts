@@ -1,6 +1,6 @@
 // scripts/workflow/worktree/sync.ts
 //
-// pnpm worktree:sync [path] [--force]
+// pnpm workflow worktree sync [path] [--force]
 //   既存ワークツリーへ本体から scripts/workflow/worktree/include の対象 (env 等) を入れ直す。
 //   path 省略時は今いるワークツリー。既存ファイルは --force のときだけ上書き。
 
@@ -22,7 +22,7 @@ const { values, positionals } = parseArgs({
 });
 
 if (positionals.length > 1) {
-  console.error("使い方: pnpm worktree:sync [path] [--force]");
+  console.error("使い方: pnpm workflow worktree sync [path] [--force]");
   process.exit(1);
 }
 

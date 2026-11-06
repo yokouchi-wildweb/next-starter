@@ -1,5 +1,5 @@
 // scripts/structure/bundle/clientChunks.test.mjs
-// 実行: pnpm test:client-chunks
+// 実行: pnpm test scripts/structure/bundle/clientChunks.test.mjs
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

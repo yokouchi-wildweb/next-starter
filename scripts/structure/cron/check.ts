@@ -3,14 +3,14 @@
 // vercel.json の crons が src/app/api/cron/<name>/task.ts からの生成結果と一致するか検査する
 //
 // 使い方:
-//   pnpm cron:check                 # 手元で検査（pnpm deploy:all もデプロイ前に実行する）
-//   pnpm cron:check --vercel-build  # build の門(pnpm check --gate=build)から。Vercel 上のビルド（VERCEL=1）のときだけ検査し、それ以外は何もしない
+//   pnpm check cron                 # 手元で検査（pnpm run deploy もデプロイ前に実行する）
+//   pnpm check cron --vercel-build  # build の門(pnpm check --gate=build)から。Vercel 上のビルド（VERCEL=1）のときだけ検査し、それ以外は何もしない
 //
 // 失敗する条件:
 // - vercel.json が無い（cron タスクがあるのに本番で 1 本も動かない）
 // - task.ts があるのにエントリが無い（upstream から merge したタスクの配線漏れ等）/ 消えたタスクのエントリが残っている /
 //   時刻が生成結果と違う（手で書き換えた、task.ts の schedule を変えて再生成していない）/ task.ts の schedule が不正
-// 直し方はどれも `pnpm cron:generate --plan hobby|pro`。
+// 直し方はどれも `pnpm generate cron -- --plan hobby|pro`。
 // 定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 SKIP_CRON_CHECK=1 で検査を外す。
 // 詳細: src/lib/cron/README.md
 
@@ -36,7 +36,7 @@ async function main() {
     if (tasks.length === 0) return;
     console.error(
       `✗ vercel.json がありません。cron タスク ${tasks.length} 本（監査ログ・ログインイベント等の prune を含む）が本番で動きません。\n` +
-        "  pnpm cron:generate --plan hobby|pro で生成してコミットしてください",
+        "  pnpm generate cron -- --plan hobby|pro で生成してコミットしてください",
     );
     process.exit(1);
   }

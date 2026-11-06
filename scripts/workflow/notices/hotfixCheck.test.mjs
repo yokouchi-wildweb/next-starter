@@ -1,11 +1,11 @@
-// scripts/workflow/notices/hotfixCheck.test.mjs — pnpm notices:hotfix-check の部品と、小さなリポでの通し。実行: pnpm test:notices
+// scripts/workflow/notices/hotfixCheck.test.mjs — pnpm workflow notices hotfixCheck の部品と、小さなリポでの通し。実行: pnpm test scripts/workflow/notices
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkOnBase, findGaps, hasGaps, ledgerPicks, noticePaths, noticeSections, pnpmScripts, run } from "./hotfixCheck.mjs";
+import { checkOnBase, findGaps, hasGaps, ledgerPicks, noticePaths, noticeSections, pnpmEntries, pnpmScripts, run } from "./hotfixCheck.mjs";
 
 const NOTICE = `# DOWNSTREAM NOTICE id:x
 change: c
@@ -42,6 +42,16 @@ test("gaps: a rule glob, a script and a path the tree does not have", () => {
   assert.ok(hasGaps(g));
   const all = findGaps({ files: ["src/app/page.tsx", "src/lib/forkOwnership/README.md", "docs/x.md", ".claude/rules/core/extensions.md"], packageJson: { scripts: { lint: "", "test:core-rules": "", "ownership:check": "" } }, rules: [rule], notice: NOTICE });
   assert.equal(hasGaps(all), false);
+});
+
+test("gaps: entries named by file (pnpm workflow|ops <target> <action>, pnpm check|generate <target>, pnpm test <path>)", () => {
+  const steps = "- run `pnpm workflow ownership check`, `pnpm ops db seed --all`, `pnpm check registry`, `pnpm generate domain -- Sample`, `pnpm test scripts/structure/config/a.test.mjs --db`";
+  assert.deepEqual(pnpmEntries(steps).map((e) => e.label), ["workflow ownership check", "ops db seed", "check registry", "generate domain", "test scripts/structure/config/a.test.mjs"]);
+  const notice = `# DOWNSTREAM NOTICE id:y\nrequired_actions:\n${steps}\nrefs: -\n`;
+  const scripts = { workflow: "", ops: "", check: "", generate: "", test: "" };
+  const have = ["scripts/workflow/ownership/check.mjs", "scripts/operations/db/seed.ts", "scripts/structure/registry/gate.json", "scripts/structure/domain/gate.json", "scripts/structure/config/a.test.mjs"];
+  assert.deepEqual(findGaps({ files: have, packageJson: { scripts }, rules: [], notice }).scripts, []);
+  assert.deepEqual(findGaps({ files: have.slice(1, 3), packageJson: { scripts }, rules: [], notice }).scripts, ["workflow ownership check", "generate domain", "test scripts/structure/config/a.test.mjs"]);
 });
 
 test("through a repo: a hotfix whose rule names a folder only a later commit brings is reported on the old base", () => {

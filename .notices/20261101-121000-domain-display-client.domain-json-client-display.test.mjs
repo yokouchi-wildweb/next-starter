@@ -1,5 +1,5 @@
 // .notices/20261101-121000-domain-display-client.domain-json-client-display.test.mjs
-// 実行: pnpm test:codemods
+// 実行: pnpm test .notices
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

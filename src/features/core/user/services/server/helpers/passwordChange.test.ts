@@ -1,6 +1,6 @@
 // src/features/core/user/services/server/helpers/passwordChange.test.ts
 // planPasswordChange の単体テスト (newPassword → プロバイダー別書き込み先の写像)
-// 実行: pnpm test:user-password-change
+// 実行: pnpm test src/features/core/user/services/server/helpers/passwordChange.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

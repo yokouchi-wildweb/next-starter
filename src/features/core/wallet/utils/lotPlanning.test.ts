@@ -1,6 +1,6 @@
 // src/features/core/wallet/utils/lotPlanning.test.ts
 // planLotsFromHistory / planLastActivityLot の単体テスト
-// 実行: pnpm test:wallet-lot-planning
+// 実行: pnpm test src/features/core/wallet/utils/lotPlanning.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

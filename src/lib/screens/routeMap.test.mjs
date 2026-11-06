@@ -1,6 +1,6 @@
 // ルート地図(src/app/route-map.jsonl)の生成器のテストと、コミットされた地図のずれ検査。
 // 鎖(page → Screen → loader → 最寄りの guard.ts → 親 → root)を字面で辿れる行だけが verified、読めない鎖は problems(生成失敗)。
-// 実行: pnpm test:route-map (node:test)
+// 実行: pnpm test src/lib/screens/routeMap.test.mjs (node:test)
 //
 // fixture はテストの中で仮想のファイル木として組み立てる(ディスクに page.tsx を置くと tsc・next・test:screens が拾うため)。
 // 設計: src/lib/screens/README.md §13
@@ -286,17 +286,17 @@ test("parseLiteral: 字面のオブジェクト・配列・文字列を読み、
 // ずれ検査(コミットされた地図 = src/app からの生成結果)
 // ---------------------------------------------------------------------------
 
-test(`${ROUTE_MAP_FILE} が src/app からの生成結果と一致し、全行が verified(ずれたら pnpm routes:map で作り直してコミットする)`, () => {
+test(`${ROUTE_MAP_FILE} が src/app からの生成結果と一致し、全行が verified(ずれたら pnpm generate routes で作り直してコミットする)`, () => {
   const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
   const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read, gateRules: featureGateRules });
-  assert.deepEqual(problems, [], "鎖が読めないページがある(pnpm routes:map が行と理由を出す)");
+  assert.deepEqual(problems, [], "鎖が読めないページがある(pnpm generate routes が行と理由を出す)");
   assert.ok(rows.every((r) => r.state === ROUTE_STATE_VERIFIED));
   const file = join(repoRoot, ROUTE_MAP_FILE);
-  assert.ok(existsSync(file), `${ROUTE_MAP_FILE} が無い。pnpm routes:map で生成してコミットする`);
+  assert.ok(existsSync(file), `${ROUTE_MAP_FILE} が無い。pnpm generate routes で生成してコミットする`);
   assert.equal(
     readFileSync(file, "utf8"),
     formatRouteMap(rows),
-    `${ROUTE_MAP_FILE} が古い。pnpm routes:map で作り直し、差分(方針の変化)を確かめてコミットする(merge で衝突したときも同じ)`,
+    `${ROUTE_MAP_FILE} が古い。pnpm generate routes で作り直し、差分(方針の変化)を確かめてコミットする(merge で衝突したときも同じ)`,
   );
 });
 

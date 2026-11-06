@@ -20,7 +20,7 @@ type CreateProfileBaseOptions = {
   belongsToManyObjectRelations?: BelongsToManyObjectRelation[];
   /** カウント取得対象リレーション（withCount 用） */
   countableRelations?: CountableRelation[];
-  /** 監査ログの設定（createCrudService の audit をそのまま渡す。pnpm role:generate が profile.json から書く） */
+  /** 監査ログの設定（createCrudService の audit をそのまま渡す。pnpm generate role が profile.json から書く） */
   audit?: DrizzleCrudServiceOptions<any>["audit"];
 };
 

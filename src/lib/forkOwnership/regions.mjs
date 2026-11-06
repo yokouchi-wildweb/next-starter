@@ -75,7 +75,7 @@ export function parseForkRegions(text) {
 const GENERATOR_PAIRS = [
   { start: /^\s*\/\/ --- AUTO-GENERATED-START ---\s*$/, end: /^\s*\/\/ --- AUTO-GENERATED-END ---\s*$/ },
   { start: /^\s*\/\/ === AUTO-GENERATED (\S+) START ===\s*$/, end: /^\s*\/\/ === AUTO-GENERATED (\S+) END ===\s*$/ },
-  // # でコメントを書くファイル(intake.txt の受け口の行。pnpm extensions:generate が書く)
+  // # でコメントを書くファイル(intake.txt の受け口の行。pnpm generate extensions が書く)
   { start: /^# === AUTO-GENERATED (\S+) START ===\s*$/, end: /^# === AUTO-GENERATED (\S+) END ===\s*$/ },
   // 道具が丸ごと書き足す区画(upstream に無いことがある)。印の行と直前の空行も区画に含める
   // - next dev が AGENTS.md に書く Next の注意書き(Next の版で中身が変わるので upstream に固定で置けない)

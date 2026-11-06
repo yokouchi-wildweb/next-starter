@@ -1,4 +1,4 @@
-// src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importGuard.test.ts — pnpm test:unsaved-guard
+// src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importGuard.test.ts — pnpm test src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importGuard.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

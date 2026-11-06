@@ -2,7 +2,7 @@
 // bulkAddRelation / bulkRemoveRelation の実 DB テスト。
 // 開発 DB に専用の表 test_crud_rel_*（本体・関連先・中間）を作り、終了時に DROP する（それ以外には書かない）。
 // DATABASE_URL が無ければ全件 skip。
-// 実行: pnpm test:crud-bulk-relation-db
+// 実行: pnpm test --db src/lib/crud/drizzle/bulkRelation.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

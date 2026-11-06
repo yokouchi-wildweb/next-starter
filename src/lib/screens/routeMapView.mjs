@@ -1,5 +1,5 @@
 // src/lib/screens/routeMapView.mjs
-// ルート地図(route-map.jsonl の行)を人やエージェント向けに絞り込み・描画する(pnpm routes:show の中身)。
+// ルート地図(route-map.jsonl の行)を人やエージェント向けに絞り込み・描画する(pnpm check routes -- show の中身)。
 // 地図の形は routeMap.mjs が持つ。ここは読むだけで、形を変えない。
 // 設計: src/lib/screens/README.md §13「見る」
 import { formatRouteDetails, formatRouteMap } from "./routeMap.mjs";
@@ -8,7 +8,7 @@ const APP_DIR = "src/app";
 const VIEWS = ["details", "tree", "table", "mermaid", "jsonl"];
 const STATES = ["verified", "gated-off", "live"];
 
-export const SHOW_USAGE = `使い方: pnpm routes:show [<URL 接頭辞>] [オプション]
+export const SHOW_USAGE = `使い方: pnpm check routes -- show [<URL 接頭辞>] [オプション]
 
   <URL 接頭辞>        URL のセグメント単位で絞る(/admin は /admin・/admin/** に一致し、/administrator には一致しない)
   --view=<形>         details(既定。段ごとの鎖) | tree(URL の木) | table(Markdown の表) | mermaid(guard の範囲の図) | jsonl(絞った行をそのまま)

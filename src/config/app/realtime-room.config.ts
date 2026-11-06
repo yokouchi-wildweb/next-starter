@@ -8,13 +8,13 @@
  * 有効化 (downstream オプトイン):
  *   1. enabled を true にする
  *   2. env に REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET を設定する
- *   3. pnpm room:init → pnpm room:deploy (詳細: servers/room/README.md)
+ *   3. pnpm ops room init → pnpm ops room deploy (詳細: servers/room/README.md)
  *
  * enabled=false または env 未設定の間は全経路 fail-closed:
  *   - useRoomState は status:"disabled" を返す (通信しない)
  *   - /api/realtime-room/token は 503
  *   - createRoomClient は DomainError(503)
- *   - pnpm room:deploy は skip
+ *   - pnpm ops room deploy は skip
  */
 export const REALTIME_ROOM_CONFIG = {
   /** リアルタイムルーム基盤を有効化するか (既定: 無効) */

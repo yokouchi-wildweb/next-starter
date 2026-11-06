@@ -1,5 +1,5 @@
 // src/features/core/setting/extensionPoints.ts
-// setting の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
+// setting の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 設定のキー: fields/<キー>.ts の export const field(1 キー = Zod + .default() + public + 欄)。proxy・client の両方から読む

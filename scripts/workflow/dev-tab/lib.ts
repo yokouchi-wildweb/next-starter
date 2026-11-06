@@ -1,6 +1,6 @@
 // scripts/workflow/dev-tab/lib.ts
 //
-// pnpm dev:tab の共通処理。開発サーバーを tmux のタブ(window)で動かし、止め、様子を出す。
+// pnpm workflow dev-tab run の共通処理。開発サーバーを tmux のタブ(window)で動かし、止め、様子を出す。
 // - tmux の中から呼ぶと、今の tmux セッションにタブ「Dev」を足す($TMUX の socket に従うので、どの tmux サーバーでも同じ)
 // - tmux の外から呼ぶと、裏で tmux セッション dev-<フォルダ名> を作ってそこで動かす
 // - 記録は 1 チェックアウトに 1 つ(<チェックアウト>/.agent/dev-tab.json)。ワークツリーごとに別になる
@@ -19,7 +19,7 @@ export const DEFAULT_PORT_TRIES = 20;
 
 /**
  * 開発サーバーとみなすコマンドの形(外で動いているものの検出に使う)。
- * `pnpm dev` 等は dev の直後が空白か行末のときだけ当てる(`pnpm dev:tab` 自身や `dev:xxx` を外のサーバーと見誤らないため)。
+ * `pnpm dev` 等は dev の直後が空白か行末のときだけ当てる(`pnpm workflow dev-tab run` 自身や `dev:xxx` を外のサーバーと見誤らないため)。
  */
 export const DEV_COMMAND_PATTERN =
   /next dev|next-server|next\/dist\/bin\/next|vite|nuxt dev|astro dev|remix dev|webpack serve|(pnpm|npm|yarn|bun)( run)? dev(\s|$)/;
@@ -224,7 +224,7 @@ export const ancestorPids = (pid: number, parents: Map<number, number> = readPar
 
 /**
  * dir(とその下)を作業場所にしている開発サーバーのプロセス。Linux は /proc、それ以外は ps + lsof。
- * この道具自身とその祖先(pnpm dev:tab を呼んだシェル等)は除く。
+ * この道具自身とその祖先(pnpm workflow dev-tab run を呼んだシェル等)は除く。
  */
 export const findDevProcesses = (dir: string): DevProcess[] => {
   const target = path.resolve(dir);

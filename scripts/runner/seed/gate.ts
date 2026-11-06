@@ -4,7 +4,7 @@
 // - 項目の feature?(規則名 = FeatureName、1 つか配列)が 1 つでも閉じていれば飛ばす(partitionSeeds)
 // - feature の無い項目は走る。表が無い(PG 42P01)で失敗したときの見分け(isUndefinedTableError)
 // - 検査: 項目の fn が import する seed のファイルが閉じられるフォルダ(規則の features)を値で import するなら、
-//   その規則が項目の feature に要る(seedFilesByKey + missingSeedFeatures、pnpm test:db-seed)
+//   その規則が項目の feature に要る(seedFilesByKey + missingSeedFeatures、pnpm test scripts/runner/seed/gate.test.ts)
 //
 // 詳細: scripts/runner/seed/README.md「閉じた機能と seed」
 

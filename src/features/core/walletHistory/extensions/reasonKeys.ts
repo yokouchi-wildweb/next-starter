@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/features/core/walletHistory/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/features/core/walletHistory/extensionPoints.ts から生成する
 // reasonKeys: src/features/core/walletHistory/reasonKeys/<名前>.ts(x) か <名前>/index.ts(x) の export const reasonKey(並びはファイル名の順)
 
 import type { WalletReasonKeyItem } from "@/features/core/walletHistory/types/reasonKey";

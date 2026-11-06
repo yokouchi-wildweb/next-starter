@@ -62,7 +62,7 @@ export const domainDisplayPath = (domainJsonFile) => domainJsonFile.replace(/dom
 /** 写しのファイルの中身 */
 export function renderDomainDisplay(domainJsonFile, config, allConfigs = []) {
   return [
-    `// 生成物・編集不可: pnpm registry:generate が ${domainJsonFile} から生成する`,
+    `// 生成物・編集不可: pnpm generate registry が ${domainJsonFile} から生成する`,
     `// client に出す表示用の写し(秘密・内部の項目は持たない)。詳細: src/lib/domain/README.md`,
     "",
     `import type { DomainDisplay } from "@/lib/domain/types/display";`,

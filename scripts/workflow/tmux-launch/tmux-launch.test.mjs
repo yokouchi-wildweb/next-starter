@@ -141,7 +141,7 @@ test("シェル関数: 目印のあるリポでは tmux のセッションを作
   assert.match(runShim({ cwd: repo, env: { NO_TMUX_LAUNCH: "1" } }), /^claude $/m);
 });
 
-test("タブの中(run): claude が終わり、ほかに claude のタブが無ければ、そのセッションの dev:tab を止める", { skip: !hasTmux && "tmux が無い" }, async () => {
+test("タブの中(run): claude が終わり、ほかに claude のタブが無ければ、そのセッションの開発サーバーのタブ(dev-tab)を止める", { skip: !hasTmux && "tmux が無い" }, async () => {
   const repo = temp("tmux-launch-run-");
   const bin = temp("tmux-launch-runbin-");
   const log = path.join(bin, "log");
@@ -166,7 +166,17 @@ test("タブの中(run): claude が終わり、ほかに claude のタブが無�
     }
     const text = readFileSync(log, "utf8");
     assert.match(text, /^claude --continue$/m);
-    assert.match(text, /^pnpm -s dev:tab stop$/m);
+    assert.match(text, /^pnpm -s workflow dev-tab run stop$/m);
+    // 古い版のリポ(package.json に dev:tab がある)では旧い名前で止める
+    writeFileSync(path.join(repo, "package.json"), JSON.stringify({ scripts: { "dev:tab": "x" } }));
+    writeFileSync(log, "");
+    tmuxCmd("kill-server");
+    tmuxCmd("new-session", "-d", "-s", "s1", "-c", repo, `bash ${shim} run ${repo}; sleep 5`);
+    for (let i = 0; i < 50; i += 1) {
+      await new Promise((r) => setTimeout(r, 100));
+      if (/pnpm/.test(readFileSync(log, "utf8"))) break;
+    }
+    assert.match(readFileSync(log, "utf8"), /^pnpm -s dev:tab stop$/m);
   } finally {
     tmuxCmd("kill-server");
   }

@@ -3,7 +3,7 @@
 // なることの実 DB テスト。開発 DB に専用の表 test_crud_sort_coll / test_crud_sort_int を作り、終了時に DROP する。
 // C 以外の照合順序（ICU / glibc の en_US）が DB に無ければ、その照合順序のケースは明示して飛ばす。
 // DATABASE_URL が無ければ全件 skip。
-// 実行: pnpm test:crud-sort-collation-db
+// 実行: pnpm test --db src/lib/crud/drizzle/fractionalSort/sortCollation.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

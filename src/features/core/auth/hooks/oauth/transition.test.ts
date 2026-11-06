@@ -1,7 +1,7 @@
 // src/features/core/auth/hooks/oauth/transition.test.ts
 //
 // OAuth の phase → 遷移の決め方（resolveOAuthTransition）の単体テスト。
-// 実行: pnpm test:auth-registration-flow
+// 実行: pnpm test src/features/core/auth/hooks/oauth/transition.test.ts
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

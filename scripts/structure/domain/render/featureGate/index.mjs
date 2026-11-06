@@ -3,7 +3,7 @@
 //   汎用 API の住所 /api/<domain> は書かない(生成器 scripts/structure/extensions が features の domainEntry から導く)
 // - src/features/<camel>/config.ts: 入切の値の書き始め `export const <SNAKE>_CONFIG = { enabled }`。既定は Tier1 = false(上流の新しい機能は opt-in)、fork = true
 // どちらも既にあれば書かない(書き捨て)。書いた後の住所・値は手で直す。規則名(= FeatureName)はファイル名 = camel
-// 一覧への反映は pnpm extensions:generate(forge は続けて回す)。詳細: src/featureGate/README.md「fork での使い方」
+// 一覧への反映は pnpm generate extensions(forge は続けて回す)。詳細: src/featureGate/README.md「fork での使い方」
 
 import path from "node:path";
 
@@ -70,7 +70,7 @@ export function renderFeatureGate(ctx, workspace) {
   const enabled = !isTier1(workspace.rootDir);
   return [
     writeOnce(path.join(workspace.rootDir, "src", "featureGate", "rules", `${ctx.camel}.ts`), ruleContent(ctx), {
-      label: "閉じられる形の規則を生成しました(pnpm extensions:generate で一覧へ)",
+      label: "閉じられる形の規則を生成しました(pnpm generate extensions で一覧へ)",
       keptLabel: "既存のため生成しません（書き捨て）",
     }),
     writeOnce(path.join(ctx.dir ?? workspace.featurePath(ctx.camel), "config.ts"), configContent(ctx, enabled), {

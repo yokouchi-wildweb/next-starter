@@ -7,7 +7,7 @@
 // - 名前: 空なら既定名、unique 有効で使用中なら suffix、無効なら判定しない
 // - (provider_type, provider_uid) の unique 違反は引き直して既存として返す。他のエラーはそのまま
 // - tx を渡せばその中 (savepoint) で、渡さなければ自分で 1 つ開く
-// 実行: pnpm test:create-from-provider
+// 実行: pnpm test src/features/core/user/services/server/registration/createFromProvider.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

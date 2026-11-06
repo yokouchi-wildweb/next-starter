@@ -1,5 +1,5 @@
 // src/featureGate/extensionPoints.ts
-// 門番の拡張点の宣言(リテラルだけ。pnpm extensions:generate が字面で読み、src/featureGate/extensions/<点>.ts を生成する)。
+// 門番の拡張点の宣言(リテラルだけ。pnpm generate extensions が字面で読み、src/featureGate/extensions/<点>.ts を生成する)。
 // 書式: scripts/structure/extensions/README.md / 門番の置き場と規則: ./README.md
 
 export const extensionPoints = {

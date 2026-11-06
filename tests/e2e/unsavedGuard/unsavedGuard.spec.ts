@@ -1,12 +1,8 @@
-// tests/e2e/unsavedGuard/unsavedGuard.spec.ts — pnpm test:e2e:unsaved-guard(chromium・firefox・webkit、設定 playwright.config.default.ts)
-// 未保存の編集の守り(src/lib/unsavedGuard)の受入を、実際の画面で確かめる(テストだけのルートは作らない):
-// - 管理のサンプルタグ編集(AppForm、自動保存なし): 編集済みから棚の Link(サイドバー)・router.push(前後の項目へ移る ItemNavigator)・
-//   router.back の代わりのブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない
-// - デモの表(/demo/tables の EditableGridTable): 書きかけのセル × 戻る(留まる / 移る)・再読み込み
-// - 管理のサンプル一覧のデータの取り込み(DataMigrationModal): 取り込み中は「処理の途中です」、留まると画面も取り込みの表示もそのまま
-// - 管理のサンプルの並び替え(SortableList): 保存待ちの間は棚の Link に確認、保存が終われば聞かない
-// ログインは pnpm task dev-admin の管理者(開発用 DB)。サーバーに届かない・ログインできない・行が無いときは理由を出して skip する。
-// 手順: ./README.md
+// tests/e2e/unsavedGuard/unsavedGuard.spec.ts — pnpm e2e tests/e2e/unsavedGuard(chromium・firefox・webkit、設定 playwright.config.default.ts)
+// 未保存の編集の守り(src/lib/unsavedGuard)の受入: 編集済みのフォームから 4 つの経路(棚の Link・router.push・戻る / 進む・
+// 再読み込みと離脱)と素の <a> で離れようとすると確認が出て、留まるなら画面も住所も入力もそのまま、移るなら元の行き先へ進む。
+// fork の自作 2 つが受けない経路(router.push・戻る / 進む)もこの lib は受ける(比べの表: src/lib/unsavedGuard/README.md)。
+// ページは門番の規則 e2eFixtures(既定で閉じる)の /e2e/unsaved-guard。閉じている間は理由を出して skip する。開き方: ./README.md
 
 import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";

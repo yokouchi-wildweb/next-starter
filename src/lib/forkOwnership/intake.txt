@@ -42,7 +42,7 @@ edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx 
 
 # 受け口(拡張点の受け口のフォルダ・1 行スイッチと route の隣の丸ごと置き換え・scripts の受け口)。fork の項目は印なしの名前(D137)
 # === AUTO-GENERATED intake START ===
-# pnpm extensions:generate が拡張点の宣言(extensionPoints.ts)と 1 行スイッチから書く。手で編集しない(ずれは extensions:check が止める)
+# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)と 1 行スイッチから書く。手で編集しない(ずれは extensions:check が止める)
 add src/app/(user)/demo/*/_demo.ts  # 受け口 demoPages
 add src/app/_layout/adminCommand/categories/*.{ts,tsx}  # 受け口 categories
 add src/app/_layout/adminCommand/categories/*/**  # 受け口 categories(フォルダ形)
@@ -160,19 +160,19 @@ append .claude/rules/lineage.md  # 中間層の節を末尾に足すだけ(linea
 append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき」
 
 # 生成物(fork の設定・ドメインから生成し直される)
-generated src/registry/serviceRegistry.ts  # pnpm registry:generate
-generated src/registry/storagePurposeRegistry.ts  # pnpm registry:generate(走査で丸ごと)
-generated src/wiring/dbAgent.ts  # pnpm extensions:generate
-generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸ごと)
-generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)
-generated src/registry/adminDataMenu.ts  # pnpm registry:generate(走査で丸ごと)
-generated src/features/feature-map.txt  # pnpm dc:feature-map(forge・dc:generate が書き直す)
-generated src/features/core/*/entities/display.ts  # pnpm registry:generate(表示用の写し)
-generated src/app/route-map.jsonl  # pnpm routes:map
-generated vercel.json  # pnpm cron:generate(upstream には無い)
+generated src/registry/serviceRegistry.ts  # pnpm generate registry
+generated src/registry/storagePurposeRegistry.ts  # pnpm generate registry(走査で丸ごと)
+generated src/wiring/dbAgent.ts  # pnpm generate extensions
+generated src/registry/schemaRegistry.ts  # pnpm generate registry(走査で丸ごと)
+generated src/registry/domainConfigRegistry.ts  # pnpm generate registry(走査で丸ごと)
+generated src/registry/adminDataMenu.ts  # pnpm generate registry(走査で丸ごと)
+generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map(forge・dc:generate が書き直す)
+generated src/features/core/*/entities/display.ts  # pnpm generate registry(表示用の写し)
+generated src/app/route-map.jsonl  # pnpm generate routes
+generated vercel.json  # pnpm generate cron(upstream には無い)
 generated src/features/core/mail/constants/colors.ts  # scripts/structure/styles/generate-mail-colors.ts
-generated src/features/core/userProfile/entities/profiles/**  # pnpm role:generate
-generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。proxy の枠の項目と機能を閉じる規則も)
+generated src/features/core/userProfile/entities/profiles/**  # pnpm generate role
+generated src/**/extensions/**  # pnpm generate extensions(拡張点の一覧。proxy の枠の項目と機能を閉じる規則も)
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)

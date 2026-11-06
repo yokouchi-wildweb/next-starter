@@ -1,8 +1,8 @@
-// 生成物・編集不可: pnpm registry:generate が src/features/** の pgTable から生成する
+// 生成物・編集不可: pnpm generate registry が src/features/** の pgTable から生成する
 // src/registry/schemaRegistry.ts
 //
 // db:push の唯一のスキーマ入口。pgTable を持つファイルを走査して全部並べる(足し忘れが起きない)。
-// 機能を閉じたときに外す表は 門番 src/featureGate/node/gatedSchema.ts(@/featureGate/node の gatedSchema)が別に見る。検査: pnpm registry:check / pnpm test:schema-registry
+// 機能を閉じたときに外す表は 門番 src/featureGate/node/gatedSchema.ts(@/featureGate/node の gatedSchema)が別に見る。検査: pnpm check registry / pnpm test scripts/structure/registry
 
 export * from "@/features/core/analytics/entities/drizzle";
 export * from "@/features/core/auditLog/entities/drizzle";

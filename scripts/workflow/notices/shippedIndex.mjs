@@ -13,7 +13,7 @@
 //                    古い backfill が先に pick した親の notice を書いてしまった fork が 1 回走らせる(消した行は追記だけの検査が受け入れる)
 //   verify           全索引(.notices/shipped/*.md)について、追記だけ(前に push した版 = @{u} か origin/HEAD の行が先頭に同じ順で並ぶ)・
 //                    行と本文の一致(本文 1 本に行 1 本、未 commit の notice は自分の索引に。本文の無い行は通る: 本文は区間が閉じれば消してよい)・
-//                    uses: の実在と区切り・skip_checkpoint: の条件を見る(pnpm test:notices も同じ検査を回す)
+//                    uses: の実在と区切り・skip_checkpoint: の条件を見る(pnpm check notices も同じ検査を回す)
 //   exit 0 = 済み / 一致 | 1 = 食い違い(一覧) | 2 = できない(理由)
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";

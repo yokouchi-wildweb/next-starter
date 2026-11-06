@@ -110,7 +110,7 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
     regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   }
   if (!deferServiceRegistry) refreshFeatureMap(workspace, io);
-  if (gen.registry && !deferServiceRegistry) io.log("src/registry の一覧は pnpm registry:generate で作り直してください");
+  if (gen.registry && !deferServiceRegistry) io.log("src/registry の一覧は pnpm generate registry で作り直してください");
   return { registry: Boolean(gen.registry) };
 }
 
@@ -150,7 +150,7 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
   }
   if (registry && !dryRun) regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   if (!dryRun) refreshFeatureMap(workspace, io);
-  if (registry && !dryRun) io.log("src/registry の一覧は pnpm registry:generate で作り直してください");
+  if (registry && !dryRun) io.log("src/registry の一覧は pnpm generate registry で作り直してください");
   io.log("");
   for (const line of pairSummary(workspace, pairs, group, { registry, dryRun })) io.log(line);
   return { registry };

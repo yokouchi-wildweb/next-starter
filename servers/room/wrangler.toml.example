@@ -1,7 +1,7 @@
 # servers/room/wrangler.toml.example
 #
 # Cloudflare Workers デプロイ設定の雛形。
-# 有効化するフォークはこのファイルを wrangler.toml にコピーして使う (pnpm room:init が自動で行う)。
+# 有効化するフォークはこのファイルを wrangler.toml にコピーして使う (pnpm ops room init が自動で行う)。
 # アップストリームは .example のみを出荷する (vercel.json.example と同じ方式)。
 #
 # シークレットは wrangler.toml に書かず、以下で登録する:

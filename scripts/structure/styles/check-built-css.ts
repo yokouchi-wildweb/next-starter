@@ -4,9 +4,9 @@
 // `pnpm build` の末尾(next build の直後)で走り、抜けがあればビルドを落とす(fail-closed)。
 //
 // 使い方:
-//   pnpm styles:check-build                       # .next/static を検査
-//   pnpm styles:check-build -- --dir <出力dir>     # 出力ディレクトリを指定
-//   pnpm styles:check-build -- --verbose          # ファイルごとの宣言数を表示
+//   pnpm check styles                       # .next/static を検査
+//   pnpm check styles -- --dir <出力dir>     # 出力ディレクトリを指定
+//   pnpm check styles -- --verbose          # ファイルごとの宣言数を表示
 //
 // 背景・判定・限界は builtCss.ts 冒頭と src/styles/README.md「デプロイ後の確認(Vercel ビルドキャッシュ)」。
 
@@ -58,7 +58,7 @@ if (report.missing.length > 0) {
   典型的な原因: Vercel が古いビルドキャッシュを復元し、キャッシュ作成後に足された CSS ファイルを
   出力に反映できなかった(ローカルの next build は正常)。
   直し方: キャッシュを使わずに再デプロイする。
-    - vercel CLI:  pnpm deploy:all -- --prod --force
+    - vercel CLI:  pnpm run deploy -- --prod --force
     - ダッシュボード: Deployments → Redeploy で「Use existing Build Cache」を外す
     - 環境変数:  VERCEL_FORCE_NO_BUILD_CACHE=1 を一時的に設定して再デプロイし、成功後に外す
   ローカルで出た場合は .next を消して再ビルドする。詳細: src/styles/README.md

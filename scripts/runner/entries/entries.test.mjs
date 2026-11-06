@@ -1,4 +1,4 @@
-// scripts/runner/entries/entries.test.mjs — pnpm workflow / pnpm ops の入口(一時フォルダの fixture)。実行: pnpm test:entries
+// scripts/runner/entries/entries.test.mjs — pnpm workflow / pnpm ops の入口(一時フォルダの fixture)。実行: pnpm test scripts/runner/entries/entries.test.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

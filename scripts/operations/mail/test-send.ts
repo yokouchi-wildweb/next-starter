@@ -2,7 +2,7 @@
 // メールテンプレートのテスト送信スクリプト
 //
 // 使い方:
-//   npm run mail:test
+//   pnpm ops mail test-send
 //
 // テンプレートの追加方法:
 //   送る側のドメインの mail/ に <名前>Email.tsx を作成し(例 src/features/core/auth/mail/)、

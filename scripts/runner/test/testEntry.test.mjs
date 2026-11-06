@@ -1,18 +1,19 @@
-// scripts/runner/test/testEntry.test.mjs — pnpm test の入口(走査・群・test-flags・--changed・起動の束ね方)。実行: pnpm test:test-entry
+// scripts/runner/test/testEntry.test.mjs — pnpm test の入口(走査・群・test-flags・--changed・起動の束ね方)。実行: pnpm test scripts/runner/test
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { reachable, selectChanged } from "./changed.mjs";
 import { BASE_ARGS, parseArgs, run, select } from "./run.mjs";
-import { EXCLUDED, flagsOf, groupOf, TEST_FILE } from "./scan.mjs";
+import { EXCLUDED, flagsOf, groupOf, NAMED_ONLY, TEST_FILE } from "./scan.mjs";
 
 const FILES = ["src/a/a.test.ts", "src/a/b.db.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts", "scripts/x/x.test.mts"];
 const noRange = () => ({ files: null, why: "比べる上流の枝が無い" });
 
-test("走査の規則: テストの拡張子、servers/・tests/e2e/・型のテストは除く / 群は db・fork(tests/ の下)・unit", () => {
+test("走査の規則: テストの拡張子、tests/e2e/・型のテストは除く、servers/ は名指しの時だけ / 群は db・fork(tests/ の下)・unit", () => {
   const keep = (f) => TEST_FILE.test(f) && !EXCLUDED.some((re) => re.test(f));
   assert.ok(keep("src/a.test.tsx") && keep("scripts/a.test.cjs") && keep("tests/a.test.ts"));
-  assert.ok(!keep("servers/room/a.test.ts") && !keep("tests/e2e/a.test.ts") && !keep("src/x.types.test.ts") && !keep("src/a.ts"));
+  assert.ok(!keep("tests/e2e/a.test.ts") && !keep("src/x.types.test.ts") && !keep("src/a.ts"));
+  assert.ok(NAMED_ONLY.test("servers/room/a.test.ts") && !NAMED_ONLY.test("src/servers/a.test.ts"));
   assert.deepEqual(FILES.map(groupOf), ["unit", "db", "unit", "fork", "unit"]);
 });
 
@@ -37,6 +38,15 @@ test("選ぶ: 既定 = unit + fork、--db で全部、--group でその群、パ
   assert.deepEqual(await pick(["--group=db"]), ["src/a/b.db.test.ts"]);
   assert.deepEqual(await pick(["src/a"]), ["src/a/a.test.ts"]);
   assert.deepEqual(await pick(["**/*.mjs", "scripts/**"]), ["src/c/c.test.mjs", "scripts/x/x.test.mts"]);
+});
+
+test("servers/ の下: 既定と src/ のパスでは選ばない、servers/ を名指ししたパス・glob の時だけ選ぶ", async () => {
+  const files = [...FILES, "servers/room/src/core/room.test.ts"];
+  const pick = async (argv) => (await select(parseArgs(argv), { repo: "/r", files, changed: noRange })).files;
+  assert.ok(!(await pick([])).includes("servers/room/src/core/room.test.ts"));
+  assert.ok(!(await pick(["**/*.test.ts"])).includes("servers/room/src/core/room.test.ts"));
+  assert.deepEqual(await pick(["servers/room"]), ["servers/room/src/core/room.test.ts"]);
+  assert.deepEqual(await pick(["servers/**/*.test.ts"]), ["servers/room/src/core/room.test.ts"]);
 });
 
 test("--changed: import で届くテスト + 同じフォルダ、辿れないテストは同じフォルダだけで選び名前を出す、範囲が決まらなければ全部、変更 0 は 0 本", async () => {

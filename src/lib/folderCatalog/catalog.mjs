@@ -9,7 +9,7 @@
 //
 // 所有者 ID = 各リポの fork の名前(.claude/rules/project.md の fork_id:、読み手は forkOwnership/forkIds.mjs。D27)。
 // origin の URL からは導かない。
-// テスト(pnpm test:lib-catalog)と eslint.config.mjs(所有に応じた error / warn の振り分け)から使う。
+// テスト(pnpm test src/lib/folderCatalog/catalog.test.mjs)と eslint.config.mjs(所有に応じた error / warn の振り分け)から使う。
 // Node 組み込みだけで動くこと(eslint 設定の読み込み時に実行される)。
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";

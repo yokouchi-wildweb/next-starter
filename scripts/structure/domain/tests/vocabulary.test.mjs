@@ -1,5 +1,5 @@
 // domain.json の語彙検査（綴り違い・古いキー・その DB に無い型・知らない入力種別を警告する）の回帰テスト。
-// 実行: pnpm test:dc-vocabulary
+// 実行: pnpm test scripts/structure/domain/tests/vocabulary.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

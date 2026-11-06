@@ -1,7 +1,7 @@
 // src/lib/mediaInputSuite/hooks/pendingUploadTracker.test.ts
 // usePendingMediaUploads の中身（pendingUploadTracker）の単体テスト。
 // discard するのは「このセッションで上げて最終値に残らなかった storage ref」だけで、初期値・旧 URL・確定した値は送らないことを確かめる。
-// 実行: pnpm test:storage-client
+// 実行: pnpm test src/lib/mediaInputSuite/hooks/pendingUploadTracker.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

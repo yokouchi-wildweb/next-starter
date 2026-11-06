@@ -2,7 +2,7 @@
 // dataMigration の import の実 DB テスト（チャンクの TX・binding の attach・copy / putFromServer）。
 // 開発 DB に専用の表 test_dm_items を作り、終了時に DROP する。台帳には用途 ID `testDm.*` の行を作り、消す。
 // ストレージは fake ポート、旧バケットは env をテスト用の名前に差し替える。DATABASE_URL が無ければ全件 skip。
-// 実行: pnpm test:data-migration-db
+// 実行: pnpm test --db src/features/core/storageObject/dataMigrationImport.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

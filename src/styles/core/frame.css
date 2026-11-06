@@ -11,7 +11,7 @@
  * data-slot="<部位>" を付ければ従う。
  * :is() の中の id(#header など)は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に
  * ここからも一緒に外す(新しく狙う先を足すときは data-slot だけで書く)。
- * 部位の一覧と規則の一致は src/app/_layout/frame/parts.test.mjs(pnpm test:frame-declaration)が両方の枠で確かめる。
+ * 部位の一覧と規則の一致は src/app/_layout/frame/parts.test.mjs(pnpm test src/app/_layout/frame)が両方の枠で確かめる。
  * 部位の寸法変数は隠している間 0(外枠の inline の値に勝つため !important)。ヘッダーの高さの初期値は下の 1 か所。
  * layer に入れない = 部品の Tailwind ユーティリティ(sm:flex 等)より優先する。端末の境界 = Tailwind の sm(40rem)。
  */

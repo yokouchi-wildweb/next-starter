@@ -4,7 +4,7 @@
 // - トリガー user_registered を 1 回、利用者の id と payload(user・role・providerType・inviteCode)で、tx 付きで呼ぶ
 // - 定義が無ければ tx を開かない
 // - 評価・tx の失敗は throw しない(登録を止めない)
-// 実行: pnpm test:registration-milestone
+// 実行: pnpm test src/features/core/auth/services/server/postRegistrationMilestones.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

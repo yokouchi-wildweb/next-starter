@@ -3,7 +3,7 @@
 // メール / OAuth のログイン(createFirebaseSession)の最終ログインの更新の検査(DB・Firebase なし)。
 // 他のログインと同じ userService.updateLastAuthenticated(ip)を使う(user_login_events の記録・ロックアウトの数の解除)。
 // 拒否(403)なら呼ばない。トークンは通常の maxAge
-// 実行: pnpm test:establish-session
+// 実行: pnpm test src/features/core/auth/services/server/firebaseSession.lastAuth.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

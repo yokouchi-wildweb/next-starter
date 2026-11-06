@@ -2,7 +2,7 @@
 //
 // 全 Tier の必須の ESLint 規則の一覧(upstream の物)。
 // fork の eslint.config.fork.mjs は eslint.config.mjs の最後に読まれるので、ここに載る規則を off / warn にできてしまう。
-// pnpm eslint:required(scripts/structure/eslint/requiredRules.mjs、pnpm build から呼ぶ)が、fork の設定を含めた最終の設定で
+// pnpm check eslint(scripts/structure/eslint/requiredRules.mjs、pnpm build から呼ぶ)が、fork の設定を含めた最終の設定で
 // 各規則が代表のファイルに error のまま掛かっているかを確かめ、外れていれば止める。
 //
 // - 載せるのは tier で強さが変わらない error の規則だけ(守り・境界の規則)。tier で強さが変わる規則

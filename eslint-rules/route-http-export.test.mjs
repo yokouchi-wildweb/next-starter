@@ -1,5 +1,5 @@
 // eslint-rules/route-http-export.test.mjs
-// route.ts の HTTP の export の検査の契約テスト。実行: pnpm test:route-http-export (node:test)
+// route.ts の HTTP の export の検査の契約テスト。実行: pnpm test eslint-rules/route-http-export.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";

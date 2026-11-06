@@ -1,14 +1,14 @@
 # claude-tmux.sh — `claude` を tmux の中で開くシェル関数(next-starter 系のリポの中だけ)
 #
 # 2 つの使われ方:
-#   1. ~/.bashrc / ~/.zshrc から読み込まれ、シェル関数 `claude` を定義する(pnpm setup:tmux-launch が置く)
+#   1. ~/.bashrc / ~/.zshrc から読み込まれ、シェル関数 `claude` を定義する(pnpm workflow tmux-launch setup が置く)
 #   2. tmux のタブの中で `bash <このファイル> run <リポのルート> <claude の引数...>` として動き、claude を起動する
-#      claude が終わったら、そのセッションに claude のタブが残っていなければ pnpm dev:tab stop をする
+#      claude が終わったら、そのセッションに claude のタブが残っていなければ pnpm workflow dev-tab run stop をする
 # 普通のターミナルのタブと同じ振る舞い: claude 1 つにつき tmux のセッション 1 つ(destroy-unattached)。
 # ターミナルを閉じるとセッションごと終わり、中の claude も Dev タブのサーバーも止まる(裏に残らない)
 # 正本: next-starter の scripts/workflow/tmux-launch/claude-tmux.sh(ここを直したら版を上げる)。説明: scripts/workflow/tmux-launch/README.md
 
-NEXT_STARTER_CLAUDE_TMUX_VERSION=2
+NEXT_STARTER_CLAUDE_TMUX_VERSION=3
 
 # ---- 2. タブの中で動くとき ------------------------------------------------------------
 if [ "${1:-}" = "run" ] && [ -n "${2:-}" ]; then
@@ -22,7 +22,12 @@ if [ "${1:-}" = "run" ] && [ -n "${2:-}" ]; then
   __ct_others="$(tmux list-windows -t "$__ct_session" -F '#{@claude-tmux}' 2>/dev/null | grep -c '^1$')"
   if [ "${__ct_others:-0}" = 0 ] && [ -f "$__ct_root/.agent/dev-tab.json" ] &&
     grep -q "\"session\": \"$__ct_session\"" "$__ct_root/.agent/dev-tab.json" 2>/dev/null; then
-    (cd "$__ct_root" && pnpm -s dev:tab stop)
+    # 呼び方: 新しい入口(pnpm workflow dev-tab run)。package.json に dev:tab がある古い版のリポ(このマシンの別のリポ)は旧い名前で
+    if grep -q '"dev:tab"' "$__ct_root/package.json" 2>/dev/null; then
+      (cd "$__ct_root" && pnpm -s dev:tab stop)
+    else
+      (cd "$__ct_root" && pnpm -s workflow dev-tab run stop)
+    fi
   fi
   exit "$__ct_rc"
 fi

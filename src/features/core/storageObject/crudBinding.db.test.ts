@@ -2,7 +2,7 @@
 // createCrudService の storage オプションの実 DB テスト（業務行と台帳が同じ TX で動くこと）。
 // 開発 DB に専用の表 test_storage_binding_items を作り、終了時に DROP する。台帳には用途 ID `testItem.*` の行を作り、消す。
 // ストレージは fake ポート。DATABASE_URL が無ければ全件 skip。先に storage_objects が push 済みであること。
-// 実行: pnpm test:storage-binding-db
+// 実行: pnpm test --db src/features/core/storageObject/crudBinding.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm registry:generate が src/features/**/domain.json の addToAdminDataMenu から生成する
+// 生成物・編集不可: pnpm generate registry が src/features/**/domain.json の addToAdminDataMenu から生成する
 // src/registry/adminDataMenu.ts
 //
 // 管理画面「データ管理」のメニュー。ドメインを載せる = domain.json の addToAdminDataMenu: true。

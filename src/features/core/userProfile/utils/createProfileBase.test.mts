@@ -1,6 +1,6 @@
 // src/features/core/userProfile/utils/createProfileBase.test.mts
 // createProfileBase が audit を createCrudService に渡し、updateByUserId が base.update を通ることのテスト。
-// 実行: pnpm test:profile-base
+// 実行: pnpm test src/features/core/userProfile/utils/createProfileBase.test.mts
 
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";

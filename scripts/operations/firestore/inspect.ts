@@ -339,8 +339,8 @@ async function deleteDocument(docPath: string, force: boolean) {
     console.error(
       "エラー: ドキュメントパスは「コレクション/ドキュメントID」形式で指定してください",
     );
-    console.error(`  例: pnpm fs:delete users/abc123`);
-    console.error(`  例: pnpm fs:delete chat_rooms/abc123/messages/msg001`);
+    console.error(`  例: pnpm ops firestore inspect delete users/abc123`);
+    console.error(`  例: pnpm ops firestore inspect delete chat_rooms/abc123/messages/msg001`);
     process.exit(1);
   }
 
@@ -407,7 +407,7 @@ async function main() {
 
     case "describe":
       if (!param) {
-        console.error("使用法: pnpm fs:describe <collection_path>");
+        console.error("使用法: pnpm ops firestore inspect describe <collection_path>");
         process.exit(1);
       }
       await describeCollection(param);
@@ -416,7 +416,7 @@ async function main() {
     case "query": {
       if (!param) {
         console.error(
-          '使用法: pnpm fs:query <collection_path> [field op value ...]',
+          '使用法: pnpm ops firestore inspect query <collection_path> [field op value ...]',
         );
         process.exit(1);
       }
@@ -438,7 +438,7 @@ async function main() {
     case "delete": {
       if (!param) {
         console.error(
-          "使用法: pnpm fs:delete <collection/docId> [--force]",
+          "使用法: pnpm ops firestore inspect delete <collection/docId> [--force]",
         );
         process.exit(1);
       }
@@ -452,26 +452,26 @@ async function main() {
 Firestore CLIツール
 
 使用法:
-  pnpm fs:collections [doc_path]       コレクション一覧（サブコレクション対応）
-  pnpm fs:count [collection_path]      ドキュメント数を表示
-  pnpm fs:describe <collection_path>   コレクション構造を表示（サンプルから推測）
-  pnpm fs:query <collection> [条件]     ドキュメントを取得
-  pnpm fs:delete <collection/docId>    ドキュメントを削除
+  pnpm ops firestore inspect collections [doc_path]       コレクション一覧（サブコレクション対応）
+  pnpm ops firestore inspect count [collection_path]      ドキュメント数を表示
+  pnpm ops firestore inspect describe <collection_path>   コレクション構造を表示（サンプルから推測）
+  pnpm ops firestore inspect query <collection> [条件]     ドキュメントを取得
+  pnpm ops firestore inspect delete <collection/docId>    ドキュメントを削除
 
 クエリ例:
-  pnpm fs:query chat_rooms
-  pnpm fs:query chat_rooms status == active
-  pnpm fs:query chat_rooms createdAt > 2024-01-01 --limit 5
-  pnpm fs:query chat_rooms status in '["active","pending"]'
+  pnpm ops firestore inspect query chat_rooms
+  pnpm ops firestore inspect query chat_rooms status == active
+  pnpm ops firestore inspect query chat_rooms createdAt > 2024-01-01 --limit 5
+  pnpm ops firestore inspect query chat_rooms status in '["active","pending"]'
 
 削除例:
-  pnpm fs:delete users/abc123
-  pnpm fs:delete chat_rooms/abc123/messages/msg001
-  pnpm fs:delete users/abc123 --force    確認をスキップ
+  pnpm ops firestore inspect delete users/abc123
+  pnpm ops firestore inspect delete chat_rooms/abc123/messages/msg001
+  pnpm ops firestore inspect delete users/abc123 --force    確認をスキップ
 
 サブコレクション:
-  pnpm fs:collections chat_rooms/abc123
-  pnpm fs:describe chat_rooms/abc123/messages
+  pnpm ops firestore inspect collections chat_rooms/abc123
+  pnpm ops firestore inspect describe chat_rooms/abc123/messages
 `);
       process.exit(1);
   }

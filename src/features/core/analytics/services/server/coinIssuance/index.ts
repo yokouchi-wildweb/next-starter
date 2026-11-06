@@ -11,7 +11,7 @@
 //  - aggregator は kind による符号反転と Σ 計算、レスポンス整形のみを行う
 //
 // downstream 拡張:
-//  - sources/<名前>.ts に export const source を置き pnpm extensions:generate するだけで
+//  - sources/<名前>.ts に export const source を置き pnpm generate extensions するだけで
 //    レスポンスの sources にそのキーが自動で追加される
 
 import { coinIssuanceSources } from "@/features/core/analytics/extensions/coinIssuanceSources";

@@ -1,4 +1,4 @@
-// 利用者の枠の部位の印(data-slot)と表の結線の検査。実行: pnpm test:user-layout
+// 利用者の枠の部位の印(data-slot)と表の結線の検査。実行: pnpm test src/app/(user)/_layout/UserFrame.test.tsx
 //
 // 1. README の「data-slot の一覧」= 利用者の枠の部品と Main(src/components/Layout/Main.tsx)の要素の data-slot(片方にしか無い名前は失敗)
 //    = 部位の一覧(src/app/_layout/frame/parts.mjs)の利用者の枠と Main。隠せる部位 ⊂ 一覧。shadcn の部品の data-slot と衝突しない。data-frame-part は残らない

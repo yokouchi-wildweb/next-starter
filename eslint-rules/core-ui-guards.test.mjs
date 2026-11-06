@@ -1,5 +1,5 @@
 // eslint-rules/core-ui-guards.test.mjs
-// core の部品で useForm と守りの処理を直接持たない規則の契約テスト + 許可一覧の照合。実行: pnpm test:core-ui-guards (node:test)
+// core の部品で useForm と守りの処理を直接持たない規則の契約テスト + 許可一覧の照合。実行: pnpm test eslint-rules/core-ui-guards.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

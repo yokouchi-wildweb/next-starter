@@ -2,7 +2,7 @@
 // buildFormDefaultValues の単体テスト（fieldType ごとの既定値 / 作成フォームの既定値が schema を通るか）。
 // 初期値・checkbox の複数選択・編集時の日時変換は型の表（src/lib/domain/fields/fieldTypes.mjs）から引くので、
 // 表の行ごとの答えを期待値の literal で固定する。手書きで残る型の名前の union は表のキーと突き合わせる
-// 実行: pnpm test:form-defaults
+// 実行: pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";

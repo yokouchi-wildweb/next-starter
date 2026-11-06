@@ -25,7 +25,7 @@ export type RoleConfig = {
 };
 
 /**
- * fork の上書き（roles/<JSON の名前>.override.ts の export const override）。pnpm role:generate が読む
+ * fork の上書き（roles/<JSON の名前>.override.ts の export const override）。pnpm generate role が読む
  */
 export type RoleOverride = Partial<Pick<RoleConfig, "label" | "hasProfile" | "enabled">>;
 

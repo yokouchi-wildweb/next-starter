@@ -1,4 +1,4 @@
-// lineage.md の構造と打ち消しの検査のテスト。実行: pnpm test:fork-ownership (node:test)
+// lineage.md の構造と打ち消しの検査のテスト。実行: pnpm test src/lib/forkOwnership/lineage.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

@@ -1,7 +1,7 @@
 // scripts/workflow/agent-terminal/lib.mjs
 //
 // エージェントが動かす端末(AGENT_TERMINAL)の読み取りと、tmux のペインに打ち込む道具の共通処理。
-// 使い手: hook.mjs(.claude/settings.json の hook)、compactSelf.mjs(pnpm compact:self)、waiter.mjs(裏で待って打つ役)。
+// 使い手: hook.mjs(.claude/settings.json の hook)、compactSelf.mjs(pnpm workflow agent-terminal compactSelf)、waiter.mjs(裏で待って打つ役)。
 // 文脈(ルール・CLAUDE.md・hook の出力)には端末のことを書かない。端末による分かれ道はこのフォルダの中だけに置く。
 // 説明: scripts/workflow/agent-terminal/README.md
 

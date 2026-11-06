@@ -5,7 +5,7 @@
 // - demoMode: 有効時はデモ利用者だけ通す
 // - redirect: guestOnly / authedOnly / allowRoles の判定。規則に当たらない住所では ctx.user() を呼ばない
 // - 枠: 生成一覧の handler・decorator は骨組みの後で同じ ctx を受けて走り、骨組みが Response を返したら走らない
-// 実行: pnpm test:proxy
+// 実行: pnpm test src/proxies/proxy.test.mts
 
 import assert from "node:assert/strict";
 import { join } from "node:path";

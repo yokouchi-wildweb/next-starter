@@ -4,7 +4,7 @@
 // 開発 DB に専用の表 test_crud_sortidx_* を作り、終了時に DROP する。実行する文はその表を名指しするものだけ
 // （1 表だけの import では他の enum の DROP TYPE も提案される。それらは実行しない）。
 // DATABASE_URL が無ければ DB のケースは skip。
-// 実行: pnpm test:crud-sort-collation-db
+// 実行: pnpm test --db src/lib/crud/drizzle/fractionalSort/sortKeyIndex.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

@@ -2,7 +2,7 @@
 // createProfileBase の audit と updateByUserId の実 DB テスト（audit_logs に行が入ること、空の配列が null になること）。
 // 開発 DB に専用の表 test_profile_audit_items を作り、終了時に DROP する。audit_logs には target_type `testProfileAudit` の行を作り、終了時に消す。
 // DATABASE_URL が無ければ全件 skip。先に audit_logs が push 済みであること。
-// 実行: pnpm test:profile-base-db
+// 実行: pnpm test --db src/features/core/userProfile/utils/createProfileBase.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

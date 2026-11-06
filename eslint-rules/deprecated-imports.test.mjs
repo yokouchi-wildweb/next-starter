@@ -1,5 +1,5 @@
 // eslint-rules/deprecated-imports.test.mjs
-// 旧パス import 警告規則の契約テスト。実行: pnpm test:deprecated-imports (node:test)
+// 旧パス import 警告規則の契約テスト。実行: pnpm test eslint-rules/deprecated-imports.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RuleTester } from "eslint";

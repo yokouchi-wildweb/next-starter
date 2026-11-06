@@ -3,7 +3,7 @@
 // 管理者のローカルログイン(localLogin)は Firebase なしで完了する検査(DB・Firebase なし)。
 // - Firebase のサーバー側が未設定: カスタムトークンを作らず firebaseCustomToken: null、セッションは出る
 // - 設定済み: 今まで通りカスタムトークンを作る(uid = セッションの userId、claims { admin: true })
-// 実行: pnpm test:local-login
+// 実行: pnpm test src/features/core/auth/services/server/localLogin.firebase.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

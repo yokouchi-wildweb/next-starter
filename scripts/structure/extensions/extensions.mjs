@@ -1,5 +1,5 @@
 // scripts/structure/extensions/extensions.mjs
-// 拡張点の項目の走査と生成一覧の組み立て(pnpm extensions:generate / extensions:check の中身)。
+// 拡張点の項目の走査と生成一覧の組み立て(pnpm generate extensions / extensions:check の中身)。
 // Node 組み込み + typescript(宣言の構文木)だけで動く。項目のファイルは import しない(字面で名前と export を見るだけ)。
 // 項目の名前に fork の印は付けない(点つきの名前の分類は src/lib/forkOwnership/dottedNames.mjs)。
 // 書式・置き場・失敗の条件: ./README.md
@@ -18,7 +18,7 @@ import { planFrames } from "./frames.mjs";
 import { planIntake } from "./intake.mjs";
 import { checkSwitches } from "./switches.mjs";
 
-export const COMMAND = "pnpm extensions:generate";
+export const COMMAND = "pnpm generate extensions";
 /** 生成物の 1 行目(registry:generate と同じ形の目印) */
 export const headerFor = (source) => `// 生成物・編集不可: ${COMMAND} が ${source} から生成する`;
 const HEADER_PREFIX = "// 生成物・編集不可: ";

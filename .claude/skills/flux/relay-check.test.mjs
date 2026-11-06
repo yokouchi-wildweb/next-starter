@@ -1,5 +1,5 @@
 // /flux 中継判定スクリプト(relay-check.mjs)の契約テスト。
-// 実行: pnpm test:flux-relay （node:test。一時ディレクトリに git リポジトリを作って再現する。追加依存なし）
+// 実行: pnpm test .claude/skills/flux/relay-check.test.mjs （node:test。一時ディレクトリに git リポジトリを作って再現する。追加依存なし）
 //
 // 再現する形: P(上流の直前の区切り)→ Q(この notice の区切り)を上流の履歴とし、
 // Q の上に fork の既存の改変を積んだ commit を A(merge 直後の HEAD)とみなす。A からの未コミット変更 = この区間の適用作業。

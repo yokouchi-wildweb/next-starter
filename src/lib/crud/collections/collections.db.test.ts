@@ -4,7 +4,7 @@
 // 複製のケースは fake のストレージポートとテスト用の binding を使う（features には依存しない）。
 // C 以外の照合順序のケースは、DB にその照合順序（ICU / glibc の en_US）が無ければ明示して飛ばす。
 // DATABASE_URL が無ければ全件 skip。
-// 実行: pnpm test:crud-collections-db
+// 実行: pnpm test --db src/lib/crud/collections/collections.db.test.ts
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";

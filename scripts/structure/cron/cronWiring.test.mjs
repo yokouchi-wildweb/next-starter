@@ -1,5 +1,5 @@
 // 定期タスクの配線テスト。
-// 実行: pnpm test:cron-wiring (node:test + tsx。task.ts を読むため tsx ランナーを使う)
+// 実行: pnpm test scripts/structure/cron/cronWiring.test.mjs (node:test + tsx。task.ts を読むため tsx ランナーを使う)
 //
 // 登録は不要。src/app/api/cron/<name>/ を走査して検査する。守りたい契約(設計: src/lib/cron/README.md):
 // 1. cron のフォルダには route.ts と task.ts がある。task.ts は cronTask を export し、name = フォルダ名
@@ -116,7 +116,7 @@ test("README と task.ts / task.override.ts が @/lib/cron から import する�
 test("vercel.json(あれば)は task.ts からの生成結果と一致する", async (t) => {
   const file = join(repoRoot, "vercel.json");
   if (!existsSync(file)) {
-    t.skip("vercel.json なし(Vercel にデプロイするリポジトリは pnpm cron:generate --plan hobby|pro で生成する)");
+    t.skip("vercel.json なし(Vercel にデプロイするリポジトリは pnpm generate cron -- --plan hobby|pro で生成する)");
     return;
   }
   const tasks = scheduledCronTasks(await loadCronTasks(repoRoot));

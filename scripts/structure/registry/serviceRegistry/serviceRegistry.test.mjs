@@ -1,8 +1,8 @@
 // serviceRegistry（ドメイン名からサービス・表・主キーを引く登録表）の生成・検査と、登録された行の契約のテスト。
-// 実行: pnpm test:service-registry (node:test + tsx。登録表と各 domainEntry.ts を実際に読み込むため tsx ランナーを使う)
+// 実行: pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs (node:test + tsx。登録表と各 domainEntry.ts を実際に読み込むため tsx ランナーを使う)
 //
 // 守りたい契約(設計: src/lib/domain/README.md):
-// 1. src/registry/serviceRegistry.ts は domainEntry.ts からの生成結果と一致し、再生成しても変わらない（pnpm registry:check と同じ）
+// 1. src/registry/serviceRegistry.ts は domainEntry.ts からの生成結果と一致し、再生成しても変わらない（pnpm check registry と同じ）
 // 2. 静的検査: 手書き行（生成ヘッダの無い旧ファイル）・キーの重複・base があるのに domainEntry.ts が無い・record_type・許可外の import を検出する
 // 3. 登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ。
 //    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 ドメイン（D58）は registry:check
@@ -51,7 +51,7 @@ const NO_IMPORT_KEYS = ["user", "coupon", "userTag", "referral", "referralReward
 // 1. 実リポの登録表
 // ---------------------------------------------------------------------------
 
-test("serviceRegistry.ts は domainEntry.ts からの生成結果と一致する（pnpm registry:check）", () => {
+test("serviceRegistry.ts は domainEntry.ts からの生成結果と一致する（pnpm check registry）", () => {
   const { errors } = checkServiceRegistry(repoRoot);
   assert.deepEqual(errors, []);
   const text = fs.readFileSync(path.join(repoRoot, REGISTRY_FILE), "utf8");
@@ -267,7 +267,7 @@ export const serviceRegistry = {
   });
   const { errors } = checkServiceRegistry(root);
   assert.equal(errors.filter((error) => error.includes('手書きの行 "user"')).length, 0, "domainEntry.ts があるキーは手書き扱いしない");
-  assert.match(errors.find((error) => error.includes('手書きの行 "sample"')), /domain.json の apiAccess に移し、pnpm dc:generate sample --yes --only registry/);
+  assert.match(errors.find((error) => error.includes('手書きの行 "sample"')), /domain.json の apiAccess に移し、pnpm generate domain -- sample --yes --only registry/);
   assert.match(errors.find((error) => error.includes('手書きの行 "legacy"')), /対応するドメインが見つからない/);
   assert.throws(() => generateServiceRegistry(root), /手書きの行 "sample"/);
 
@@ -307,13 +307,13 @@ test("検査: 重複キー・base があるのに domainEntry.ts が無い・rec
   const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
   expect(/キー "user" が重複している/);
   expect(/core\/orphan\/services\/server に drizzleBase.ts .* domainEntry.ts が無い（手書きする/);
-  expect(/core\/business|business\/services\/server に drizzleBase.ts .*pnpm dc:generate business --yes --only registry/);
+  expect(/core\/business|business\/services\/server に drizzleBase.ts .*pnpm generate domain -- business --yes --only registry/);
   expect(/storageBindingFor\("orphanPhoto"\) の record_type が登録表のキーに無い/);
   assert.ok(!errors.some((error) => error.includes('"ignored"')), "*.test.* は走査しない");
   expect(/leak\/services\/server\/domainEntry.ts: "\.\/leakService" を静的 import している/);
   expect(/lonely\/services\/server\/domainEntry.override.ts: 隣に domainEntry.ts が無い/);
   expect(/broken\/services\/server\/domainEntry.ts: export const domainEntries が無い/);
-  expect(/serviceRegistry.ts が無い → pnpm registry:generate/);
+  expect(/serviceRegistry.ts が無い → pnpm generate registry/);
 });
 
 test("検査: table / idColumn の欠け・リテラル以外・形式違い・片方だけ null・同じ表が 2 キーは失敗、null / null は通る", () => {
@@ -362,7 +362,7 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
   const visitError = missing.find((error) => error.includes("src/features/visit/services/server"));
   assert.match(visitError, /"generate": false なので dc:generate は書かない → 手書きする。形: src\/lib\/domain\/README.md「generate: false の業務ドメイン」/);
   assert.doesNotMatch(visitError, /--only registry/, "generate: false には書かない命令を案内しない");
-  assert.match(missing.find((error) => error.includes("src/features/order/services/server")), /pnpm dc:generate order --yes --only registry/, "generate: true は今までどおり生成を案内する");
+  assert.match(missing.find((error) => error.includes("src/features/order/services/server")), /pnpm generate domain -- order --yes --only registry/, "generate: true は今までどおり生成を案内する");
 
   // 移行前の手書き行（旧 generateFiles.registry: false のドメイン）の移し先も手書きを案内する
   fs.mkdirSync(path.join(root, path.dirname(REGISTRY_FILE)), { recursive: true });

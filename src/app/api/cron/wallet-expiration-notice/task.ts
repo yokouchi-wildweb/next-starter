@@ -1,6 +1,6 @@
 // src/app/api/cron/wallet-expiration-notice/task.ts
 // ウォレット失効通知（失効予告 + 失効時の本通知）を送る — cron タスク定義（実行時刻・有効条件・呼ぶ関数）
-// 処理本体はドメイン側。vercel.json のエントリは pnpm cron:generate がこのファイルから生成する
+// 処理本体はドメイン側。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
 import { hasAnyExpirationNoticeConfig } from "@/features/core/wallet/utils/expiration";

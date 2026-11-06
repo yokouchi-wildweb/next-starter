@@ -1,5 +1,5 @@
 // src/lib/mediaInputSuite/components/uploadFailure.test.ts
-// 失敗した枠の判定のテスト。実行: pnpm test:media-upload-failure
+// 失敗した枠の判定のテスト。実行: pnpm test src/lib/mediaInputSuite/components/uploadFailure.test.ts
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

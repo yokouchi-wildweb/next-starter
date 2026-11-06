@@ -1,6 +1,6 @@
 // scripts/workflow/worktree/new.ts
 //
-// pnpm worktree:new <branch> [--from <base>] [--path <dir>]
+// pnpm workflow worktree new <branch> [--from <base>] [--path <dir>]
 //   1. git worktree add (ブランチが無ければ --from (既定: 今の HEAD) から作る)
 //   2. 本体から scripts/workflow/worktree/include の対象 (env 等) を複製
 //   3. pnpm install --frozen-lockfile
@@ -31,7 +31,7 @@ const { values, positionals } = parseArgs({
 
 const branch = positionals[0];
 if (!branch || positionals.length > 1) {
-  console.error("使い方: pnpm worktree:new <branch> [--from <base>] [--path <dir>]");
+  console.error("使い方: pnpm workflow worktree new <branch> [--from <base>] [--path <dir>]");
   process.exit(1);
 }
 
@@ -40,7 +40,7 @@ const mainRoot = mainWorktreeRoot(cwd);
 const target = values.path ? path.resolve(cwd, values.path) : defaultWorktreePath(mainRoot, branch);
 
 if (existsSync(target)) {
-  console.error(`✗ ${target} は既に存在します (既存のワークツリーへ env を入れ直すなら pnpm worktree:sync)`);
+  console.error(`✗ ${target} は既に存在します (既存のワークツリーへ env を入れ直すなら pnpm workflow worktree sync)`);
   process.exit(1);
 }
 
@@ -66,5 +66,5 @@ execFileSync("pnpm", ["install", "--frozen-lockfile"], { cwd: target, stdio: "in
 console.log(`
 ✓ 完了。作業を始めるには:
   cd ${target} && claude
-片付け: pnpm worktree:remove ${target}
+片付け: pnpm workflow worktree remove ${target}
 `);
