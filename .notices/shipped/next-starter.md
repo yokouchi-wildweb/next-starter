@@ -323,3 +323,4 @@
 - id:20261106-155246-unsaved-guard-root-moved | severity:info | checkpoint:unsaved-guard-root-moved | moved:src/wiring/UnsavedGuardWiring.tsx -> src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx
 - id:20261106-191203-switch-input-label-once | severity:info | checkpoint:switch-input-label-once | fixes:20261102-222255-frame-mobile-a11y | resolves:20261105-190039-switch-input-label-read-twice | pick:-
 - id:20261106-191458-analytics-consent-test-tier1-defaults | severity:info | checkpoint:analytics-consent-test-tier1-defaults | fixes:20261105-070608-analytics-opt-in-consent | resolves:20261106-155420-analytics-consent-test-fork-values | pick:clean
+- id:20261106-162527-auth-provider-ports | severity:action-required | checkpoint:auth-provider-ports | resolves:20261105-185727-auth-provider-public-ports

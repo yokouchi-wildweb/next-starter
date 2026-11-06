@@ -92,6 +92,20 @@ const { sessionUser, requiresReactivation, expiresAt } = await establishSession(
 - メール / OAuth のログイン（`createFirebaseSession`）も最終ログインの更新は `updateLastAuthenticated`（他のログインと同じ。`user_login_events` に行が残り、成功でパスワードのロックアウトの数が消える）
 - テスト: `pnpm test:establish-session`
 
+### 新しい認証手段の公開の口（契約表）
+
+fork が上流に無いログインの方法を足すときに呼ぶ口。守りの処理を写さない（写しは禁止。足りない口は上流に /order）。
+
+| 口 | 置き場（import） | 引数 → 戻り値 | tx | 失敗時 |
+|------|------|------|------|------|
+| `establishSession` | `@/features/core/auth/services/server/session/establishSession` | `{ cookies, user, ip? }` → `{ sessionUser, requiresReactivation, expiresAt }` | なし（最終ログインの更新は自分で書く） | `security_locked` / `pending` / `withdrawn` は 403 で何も書かない（[セッションを出す口](#セッションを出す口establishsession)） |
+| `userService.createFromProvider` | `@/features/core/user/services/server/userService` | `{ providerType, providerUid, displayName, ip?, role?, tx? }` → `{ user, isNewUser, isRejoin }` | 呼び手の tx（savepoint）か自分の 1 つ。ログインの記録 signup は tx の後 | 無いロールは 400。同時の作成の unique 違反は引き直して既存を返す。他の DB エラーは投げる（[user README](../user/README.md#外部の認証の身元から作る口createfromprovider)） |
+| `issueOAuthState` / `verifyOAuthState` | `@/lib/line` | `{ redirectAfter, cookieName? }` → `{ state, nonceCookie }` / `{ state, cookies, cookieName? }` → `{ ok, redirectAfter }` | なし | 照合の失敗は `{ ok: false }`（戻り先を信用せず `/` へ。cookie は呼び手が消す）（[lib/line README](../../../lib/line/README.md#oauth-の-state-と-nonce-cookieissueoauthstate--verifyoauthstate)） |
+| 名前の部品（`sanitizeUserName`・`lockUserName`・`isUserNameTaken`・`findAvailableSuffixedUserName`・`withUserNameGuard`） | `@/features/core/user/entities/userName`・`@/features/core/user/services/server/helpers/nameAvailability` | 名前の整形・ロック・使用中の判定・空き名 | `lockUserName` は tx の中で（終わりまで保持） | `withUserNameGuard` は使用中で 409。普通は `createFromProvider` に任せる（[user README](../user/README.md#名前の公開の部品)） |
+
+- 呼ぶ順: 身元の確認（fork）→ `createFromProvider` → `establishSession`（下の節）
+- 口に入れない物: 招待コード・流入の記録・プロフィール・登録の後の milestone（`user_registered`）。要るなら呼び手が `isNewUser` のときに行う（milestone は `runPostRegistrationMilestones`、`services/server/postRegistrationMilestones.ts`）
+
 ### 新しい認証手段（身元の確認 → createFromProvider → establishSession）
 
 fork が上流に無いログインの方法（LINE など）を足すときの組み方。守りの処理（状態の分岐・`SessionUser`・署名・利用者の作成・状態の履歴）は写さず、公開の口を順に呼ぶ。
