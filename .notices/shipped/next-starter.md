@@ -310,3 +310,4 @@
 - id:20261106-094821-shared-shelf-admin-header-portal | severity:breaking | checkpoint:shared-shelf-admin-header-portal | fixes:20261105-082025-frame-declarations | uses:scripts/codemods/admin-header.mjs, scripts/codemods/guarded-router.mjs | pick:-
 - id:20261106-105431-analytics-single-page-view | severity:info | checkpoint:analytics-single-page-view
 - id:20261106-110435-agent-dev-server-tools | severity:action-required | checkpoint:agent-dev-server-tools
+- id:20261106-112252-dev-tab-self-detection | severity:info | checkpoint:dev-tab-self-detection | fixes:20261106-110435-agent-dev-server-tools | pick:clean

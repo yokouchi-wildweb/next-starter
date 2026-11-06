@@ -11,6 +11,8 @@ import path from "node:path";
 import { after, test } from "node:test";
 
 import {
+  DEV_COMMAND_PATTERN,
+  ancestorPids,
   buildDevCommand,
   detectPackageManager,
   hasTmux,
@@ -46,6 +48,26 @@ test("buildDevCommand: PORT と APP_BASE_URL を合わせ、next dev には --po
     "PORT=3002 APP_BASE_URL=http://localhost:3002 npm run dev -- --port 3002",
   );
   assert.equal(buildDevCommand("pnpm", "vite", 3003), "PORT=3003 APP_BASE_URL=http://localhost:3003 pnpm dev");
+});
+
+test("DEV_COMMAND_PATTERN: pnpm dev 等は当たり、pnpm dev:tab 自身や dev:xxx は当たらない", () => {
+  for (const command of ["pnpm dev", "pnpm dev --port 3001", "npm run dev", "yarn dev", "next dev --port 3001", "next-server (v16.1.1)"]) {
+    assert.equal(DEV_COMMAND_PATTERN.test(command), true, command);
+  }
+  for (const command of [
+    "node /usr/bin/pnpm dev:tab",
+    "/bin/bash -c source snapshot.sh && pnpm dev:tab",
+    "pnpm dev:tab stop",
+    "npm run dev:setup",
+  ]) {
+    assert.equal(DEV_COMMAND_PATTERN.test(command), false, command);
+  }
+});
+
+test("ancestorPids: 自分から親へたどり、輪になっていても止まる", () => {
+  assert.deepEqual(ancestorPids(30, new Map([[30, 20], [20, 10], [10, 1], [1, 0]])), [30, 20, 10, 1]);
+  assert.deepEqual(ancestorPids(5, new Map([[5, 6], [6, 5]])), [5, 6]);
+  assert.equal(ancestorPids(process.pid).includes(process.pid), true);
 });
 
 test("isUnder: 同じフォルダと下のフォルダだけ", () => {

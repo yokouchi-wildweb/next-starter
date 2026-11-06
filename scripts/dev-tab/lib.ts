@@ -17,9 +17,12 @@ export const LAUNCH_FILE = ".agent/dev-tab-launch.sh";
 export const DEFAULT_FIRST_PORT = 3000;
 export const DEFAULT_PORT_TRIES = 20;
 
-/** 開発サーバーとみなすコマンドの形(外で動いているものの検出に使う) */
+/**
+ * 開発サーバーとみなすコマンドの形(外で動いているものの検出に使う)。
+ * `pnpm dev` 等は dev の直後が空白か行末のときだけ当てる(`pnpm dev:tab` 自身や `dev:xxx` を外のサーバーと見誤らないため)。
+ */
 export const DEV_COMMAND_PATTERN =
-  /next dev|next-server|next\/dist\/bin\/next|vite|nuxt dev|astro dev|remix dev|webpack serve|(pnpm|npm|yarn|bun)( run)? dev/;
+  /next dev|next-server|next\/dist\/bin\/next|vite|nuxt dev|astro dev|remix dev|webpack serve|(pnpm|npm|yarn|bun)( run)? dev(\s|$)/;
 
 export type DevTabState = {
   dir: string;
@@ -196,13 +199,40 @@ export const liveState = (root: string): DevTabState | null => {
 
 export type DevProcess = { pid: number; command: string };
 
-/** dir(とその下)を作業場所にしている開発サーバーのプロセス。Linux は /proc、それ以外は ps + lsof */
+/** ps から pid → ppid の対応 */
+const readParents = (): Map<number, number> => {
+  const parents = new Map<number, number>();
+  const ps = spawnSync("ps", ["-axo", "pid=,ppid="], { encoding: "utf8" });
+  for (const line of (ps.stdout ?? "").split("\n")) {
+    const [pid, ppid] = line.trim().split(/\s+/).map(Number);
+    if (!pid || Number.isNaN(ppid)) continue;
+    parents.set(pid, ppid);
+  }
+  return parents;
+};
+
+/** pid とその祖先すべて(自分 → 親 → … の順) */
+export const ancestorPids = (pid: number, parents: Map<number, number> = readParents()): number[] => {
+  const result: number[] = [];
+  let current: number | undefined = pid;
+  while (current && !result.includes(current)) {
+    result.push(current);
+    current = parents.get(current);
+  }
+  return result;
+};
+
+/**
+ * dir(とその下)を作業場所にしている開発サーバーのプロセス。Linux は /proc、それ以外は ps + lsof。
+ * この道具自身とその祖先(pnpm dev:tab を呼んだシェル等)は除く。
+ */
 export const findDevProcesses = (dir: string): DevProcess[] => {
   const target = path.resolve(dir);
+  const self = new Set(ancestorPids(process.pid));
   const found: DevProcess[] = [];
   if (existsSync("/proc/self/cwd")) {
     for (const entry of readdirSync("/proc")) {
-      if (!/^\d+$/.test(entry)) continue;
+      if (!/^\d+$/.test(entry) || self.has(Number(entry))) continue;
       try {
         const cwd = readlinkSync(`/proc/${entry}/cwd`);
         if (!isUnder(cwd, target)) continue;
@@ -217,7 +247,7 @@ export const findDevProcesses = (dir: string): DevProcess[] => {
   const ps = spawnSync("ps", ["-axo", "pid=,command="], { encoding: "utf8" });
   for (const line of (ps.stdout ?? "").split("\n")) {
     const match = line.trim().match(/^(\d+)\s+(.*)$/);
-    if (!match || !DEV_COMMAND_PATTERN.test(match[2])) continue;
+    if (!match || self.has(Number(match[1])) || !DEV_COMMAND_PATTERN.test(match[2])) continue;
     const lsof = spawnSync("lsof", ["-a", "-p", match[1], "-d", "cwd", "-Fn"], { encoding: "utf8" });
     const cwd = (lsof.stdout ?? "").split("\n").find((l) => l.startsWith("n"))?.slice(1);
     if (cwd && isUnder(cwd, target)) found.push({ pid: Number(match[1]), command: match[2].slice(0, 120) });
@@ -228,12 +258,7 @@ export const findDevProcesses = (dir: string): DevProcess[] => {
 /** pid とその子孫すべて(親 → 子の順) */
 export const processTree = (rootPid: number): number[] => {
   const children = new Map<number, number[]>();
-  const ps = spawnSync("ps", ["-axo", "pid=,ppid="], { encoding: "utf8" });
-  for (const line of (ps.stdout ?? "").split("\n")) {
-    const [pid, ppid] = line.trim().split(/\s+/).map(Number);
-    if (!pid || Number.isNaN(ppid)) continue;
-    children.set(ppid, [...(children.get(ppid) ?? []), pid]);
-  }
+  for (const [pid, ppid] of readParents()) children.set(ppid, [...(children.get(ppid) ?? []), pid]);
   const result: number[] = [];
   const queue = [rootPid];
   while (queue.length > 0) {
