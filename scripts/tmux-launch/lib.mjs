@@ -14,8 +14,21 @@ export const SOURCE = path.join(path.dirname(fileURLToPath(import.meta.url)), "c
 export const BLOCK_START = "# >>> next-starter claude-tmux >>>";
 export const BLOCK_END = "# <<< next-starter claude-tmux <<<";
 
+/** 通常セッションの色(チームツールの各チームの色と重ならない緑。guild=208 / fleet=39 / council=135 / quest=117) */
+export const SESSION_COLOUR = "colour114";
+
+// 状態の行の 1 つのタブ / 今のタブ(#{W:a,b} の中ではカンマが枝の区切りなので、#[...] には属性を 1 つずつ書く)
+const TAB = " #[range=window|#{window_index}]#[fg=colour250]#{window_index} #{window_name}#[norange] #[fg=colour240]│";
+const CUR = ` #[range=window|#{window_index}]#[bg=${SESSION_COLOUR}]#[fg=black]#[bold]▌#{window_index} #{window_name}▐#[norange]#[bg=colour236]#[nobold] #[fg=colour240]│`;
+const HINT = "F1-F12 タブ移動 ・ Shift+←→ 前後 ・ タブはクリックでも移動 ・ ターミナルを閉じると終わる";
+
 /**
- * Claude Code の文書(terminal-config)が tmux に勧める設定 + マウスでのスクロール。
+ * ~/.tmux.conf の塊に書く設定。
+ * - Claude Code の文書(terminal-config)が tmux に勧める設定(通知・Shift+Enter)
+ * - タブの移動と見た目はチームツール(~/.team/_bin/lib/teamkit.sh の tk_apply_keys / tk_apply_style)と同じにする:
+ *   F1-F12 でそのタブへ、Shift+←→ で前後、タブは 1 から、下に 2 行(セッション名とタブの並び / 操作の案内)、
+ *   各タブの上の枠に名札(「▶ <番号>  <名前>」)、マウス、履歴 50000 行、truecolor
+ *   (チームのセッションはセッションごと・タブごとに自分の色で上書きするので、ここは既定として効く)
  * どれも -q を付ける: その版の tmux が知らない設定(allow-passthrough は 3.3 から、extended-keys は 3.2 から)を
  * エラーにせず黙って飛ばす。-q が無いと、tmux サーバーの起動時(最初の 1 回)に設定のエラーが最初のタブに重なって出る
  */
@@ -25,6 +38,22 @@ export const TMUX_CONF_LINES = [
   "set -sq extended-keys on",
   "set -asq terminal-features 'xterm*:extkeys'",
   "set -gq mouse on",
+  "set -gq history-limit 50000",
+  'set -gq default-terminal "tmux-256color"',
+  "set -agq terminal-overrides ',xterm-256color:RGB'",
+  "set -gq base-index 1",
+  "set -gq renumber-windows on",
+  ...Array.from({ length: 12 }, (_, i) => `bind-key -n F${i + 1} select-window -t :${i + 1}`),
+  "bind-key -n S-Left previous-window",
+  "bind-key -n S-Right next-window",
+  "set -gq status 2",
+  'set -gq status-style "bg=colour236,fg=white"',
+  `set -gq status-format[0] "#[align=left]#[bg=${SESSION_COLOUR},fg=black,bold] #{session_name} #[bg=colour236,fg=colour240,nobold] │#{W:${TAB},${CUR}}"`,
+  `set -gq status-format[1] "#[align=left]#[fg=colour245] ${HINT}"`,
+  "set -gwq pane-border-status top",
+  'set -gwq pane-border-style "fg=colour240"',
+  `set -gwq pane-active-border-style "fg=${SESSION_COLOUR}"`,
+  `set -gwq pane-border-format "#[fg=${SESSION_COLOUR},bold] ▶ #{window_index}  #{?@desc,#{@desc},#{window_name}} #[default]"`,
 ];
 
 /** 置き場所(HOME・XDG_DATA_HOME・SHELL から決まる) */

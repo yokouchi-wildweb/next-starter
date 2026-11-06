@@ -22,6 +22,10 @@ const temp = (prefix) => {
 };
 after(() => temps.forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 
+// このファイルの tmux はすべて一時フォルダの socket を使う(子プロセスにも引き継ぐ)。
+// tmux は kill-server の後も socket のファイルを残すことがあるので、フォルダごと消して /tmp/tmux-<uid>/ に溜めない
+process.env.TMUX_TMPDIR = temp("tmux-launch-sock-");
+
 test("upsertBlock / removeBlock: 足す・差し替える・外すと元に戻る", () => {
   const original = "alias C='claude'\n";
   const once = upsertBlock(original, "line 1");
