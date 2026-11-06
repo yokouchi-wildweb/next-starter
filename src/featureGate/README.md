@@ -127,7 +127,7 @@ export const rule: FeatureGateRule = {
 
 ### db:clear と閉じた機能の表
 
-`pnpm db:clear`（`scripts/db/clear/`、計画は純関数 `plan.ts`、検査 `pnpm test:db-clear`）は閉じた機能の表（`@/featureGate/node` の `closedTables`）に触れない。
+`pnpm db:clear`（`scripts/operations/db/clear/`、計画は純関数 `plan.ts`、検査 `pnpm test:db-clear`）は閉じた機能の表（`@/featureGate/node` の `closedTables`）に触れない。
 
 - 選べる表（対話の選択肢と `--all`）から閉じた表を外し、外した表は名前を出す
 - 選んだ表を参照する表を schemaRegistry の外部キーから推移的に足し、確認の前に「選んだ表 / 足した参照元 / 外した表（DB に無い・閉じた）」を見せる
@@ -191,7 +191,7 @@ export const rule: FeatureGateRule = {
 
 ### features:list / features:set
 
-道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/features/`）。
+道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/operations/features/`）。
 
 - `pnpm features:list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
 - `pnpm features:set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、その `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（`closable` のひな形の形、L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1

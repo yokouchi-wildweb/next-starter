@@ -1,4 +1,4 @@
-# scripts/storage
+# scripts/operations/storage
 
 ファイル保存の新基盤（[src/lib/storage/README.md](../../src/lib/storage/README.md)）が使うバケットを用意するスクリプト。
 

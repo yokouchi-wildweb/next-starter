@@ -271,7 +271,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - strip の画像は公開の用途でも priv で受け取るので、`STORAGE_PRIVATE_BUCKET` が無いと公開の用途の画像の発行も失敗する
 - **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには新しいファイルを置かない（配備の順序によっては旧バケットに緩いルールが残っている期間がある）
 - 新しい 2 つのバケットは Firebase に登録しない（クライアント SDK からの経路を作らない）
-- バケットの作成・権限・CORS は `pnpm storage:setup` で行う（priv の CORS は受け取り領域へのアップロードにも使われる）。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/storage/README.md](../../../scripts/storage/README.md)
+- バケットの作成・権限・CORS は `pnpm storage:setup` で行う（priv の CORS は受け取り領域へのアップロードにも使われる）。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/operations/storage/README.md](../../../scripts/operations/storage/README.md)
 
 ## 旧 URL: `server/legacy.ts`
 

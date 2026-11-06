@@ -50,7 +50,7 @@ src/lib/firebase/
 
 - `getServerApp()` / `getServerAuth()` / `getServerFirestore()` / `getServerStorage()`
 
-ファイルの保存・読み取り・削除は `src/lib/storage`（[Storage の使い方](../storage/README.md)）を使います。`getServerStorage()` はその GCS 実装（`src/lib/storage/server/gcs.ts`）と `scripts/storage/` が使うだけで、業務コードから直接バケットを操作しません。Firebase Storage のクライアント SDK の経路はありません（リポ直下の `storage.rules` は全拒否）。
+ファイルの保存・読み取り・削除は `src/lib/storage`（[Storage の使い方](../storage/README.md)）を使います。`getServerStorage()` はその GCS 実装（`src/lib/storage/server/gcs.ts`）と `scripts/operations/storage/` が使うだけで、業務コードから直接バケットを操作しません。Firebase Storage のクライアント SDK の経路はありません（リポ直下の `storage.rules` は全拒否）。
 
 `server/authAdmin.ts`（Firebase Auth ユーザー操作。`uid` は users の providerUid）
 

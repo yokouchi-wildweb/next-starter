@@ -141,7 +141,7 @@ pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> 
 pnpm storage:setup-cors https://your-app.com
 ```
 
-手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [scripts/storage/README.md](storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
+手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [scripts/operations/storage/README.md](storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
 
 ### 定期タスク (task / cron)
 

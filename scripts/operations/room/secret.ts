@@ -1,4 +1,4 @@
-// scripts/room/secret.ts
+// scripts/operations/room/secret.ts
 //
 // 共有署名鍵の生成と Worker への非対話登録 (pnpm room:secret)。
 // 手動フロー (生成 → env 貼り付け → 対話 wrangler secret put) に残っていた 3 つの罠を排除する:
@@ -17,7 +17,7 @@ import { execSync } from "node:child_process";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
 const wranglerBin = path.join(roomDir, "node_modules/.bin/wrangler");
 const SECRET_NAME = "REALTIME_ROOM_AUTH_SECRET";

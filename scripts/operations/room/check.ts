@@ -1,4 +1,4 @@
-// scripts/room/check.ts
+// scripts/operations/room/check.ts
 //
 // ルームサーバーの動作確認 (pnpm room:check)。
 // デプロイ済み Worker に対して疎通〜認可〜リアルタイム配信〜永続化までを機械的に検証する。
@@ -26,7 +26,7 @@
 import dotenv from "dotenv";
 import { SignJWT } from "jose";
 
-import { ROOM_PROTOCOL_VERSION } from "../../src/lib/realtimeRoom/protocol";
+import { ROOM_PROTOCOL_VERSION } from "../../../src/lib/realtimeRoom/protocol";
 
 dotenv.config({ path: process.env.ENV_FILE || ".env.development" });
 

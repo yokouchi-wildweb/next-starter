@@ -38,7 +38,7 @@ canvas に取り込んで画像として書き出したりすると、バケッ�
 
 | バケット | 設定のしかた | 内容 |
 | --- | --- | --- |
-| 新しい公開バケット・非公開バケット（`STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`） | `pnpm storage:setup` が作成時に設定する。追加の作業なし | `--origin` に並べたアプリの Origin、`GET` / `HEAD` / `PUT`、`Content-Range` / `Accept-Ranges` / `Range` などの応答ヘッダー（手順: [scripts/storage/README.md](../../scripts/storage/README.md)） |
+| 新しい公開バケット・非公開バケット（`STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`） | `pnpm storage:setup` が作成時に設定する。追加の作業なし | `--origin` に並べたアプリの Origin、`GET` / `HEAD` / `PUT`、`Content-Range` / `Accept-Ranges` / `Range` などの応答ヘッダー（手順: [scripts/operations/storage/README.md](../../scripts/operations/storage/README.md)） |
 | 旧バケット（Firebase の既定バケット、`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`） | 旧 URL のバイトを読む機能を使う場合だけ `pnpm storage:setup-cors` | 下記 4 |
 
 非公開のファイル（`/api/storage/objects/<id>`）は、非公開バケットの短期署名 URL への 302 で配信されます。ブラウザはリダイレクト先（非公開バケット）の CORS で判定するので、これも `storage:setup` の設定で足ります。
@@ -62,7 +62,7 @@ pnpm storage:setup-cors
 pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 ```
 
-設定される内容（`scripts/storage/setup-cors.ts`）:
+設定される内容（`scripts/operations/storage/setup-cors.ts`）:
 
 - `method`: `GET`, `HEAD`
 - `responseHeader`: `Content-Type`, `Content-Length`, `Content-Range`, `Accept-Ranges`, `Range`
@@ -91,6 +91,6 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 ## 6. 関連
 
-- スクリプト: `scripts/storage/setup.ts`（新しい 2 バケット）、`scripts/storage/setup-cors.ts`（旧バケット）。説明は [scripts/storage/README.md](../../scripts/storage/README.md)
+- スクリプト: `scripts/operations/storage/setup.ts`（新しい 2 バケット）、`scripts/operations/storage/setup-cors.ts`（旧バケット）。説明は [scripts/operations/storage/README.md](../../scripts/operations/storage/README.md)
 - 採用ライブラリ例: `src/lib/seamlessVideo/README.md`（URL 再生時に CORS が前提）
 - 自己診断: `src/lib/storageCors/README.md`

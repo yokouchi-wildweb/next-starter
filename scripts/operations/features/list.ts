@@ -1,5 +1,5 @@
-// scripts/features/list.ts(pnpm features:list [--name <規則名>] [--json])
-// 機能を閉じる規則ごとの開閉(全開スイッチで開いていれば「閉 → 開(スイッチ)」、--json は configEnabled / openedBySwitch)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
+// scripts/operations/features/list.ts(pnpm features:list [--name <規則名>] [--json])
+// 機能を閉じる規則ごとの開閉・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
 // 中身は門番の道具 @/featureGate/node の readFeatureReport。詳細: src/featureGate/README.md「features:list / features:set」
 
 import { dependencyExceptions, readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";

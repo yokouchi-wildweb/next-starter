@@ -1,4 +1,4 @@
-// scripts/env/init.ts
+// scripts/operations/setup/env.ts
 //
 // ローカル用 .env ファイルの初期生成 (pnpm env:init [ファイル名])。
 // 冪等: 対象ファイルが既に存在すれば何もせず終了する (上書きしない)。
@@ -19,9 +19,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { AppEnv } from "@/lib/appEnv";
-
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const examplePath = path.join(repoRoot, ".env.example");
 
 const targetName = process.argv[2] ?? ".env.development";
@@ -96,6 +94,6 @@ console.log(`
   - NEXT_PUBLIC_FIREBASE_*       Firebase Auth / Firestore
   - MY_SERVICE_ACCOUNT_KEY       Firebase Admin SDK
   - STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET
-                                 ファイル保存のバケット → pnpm storage:setup (scripts/storage/README.md)
+                                 ファイル保存のバケット → pnpm storage:setup (scripts/operations/storage/README.md)
 手順: docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md
 `);

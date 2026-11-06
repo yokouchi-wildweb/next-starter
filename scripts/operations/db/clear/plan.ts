@@ -1,4 +1,4 @@
-// scripts/db/clear/plan.ts
+// scripts/operations/db/clear/plan.ts
 //
 // pnpm db:clear の「消す計画」を立てる純関数(DB には触れない。実行は run.ts)。
 //

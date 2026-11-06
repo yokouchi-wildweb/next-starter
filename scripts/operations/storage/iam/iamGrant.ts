@@ -1,4 +1,4 @@
-// scripts/storage/iamGrant.ts
+// scripts/operations/storage/iam/iamGrant.ts
 //
 // storage:setup が権限不足（HTTP 403）で止まったときに表示する案内を作る。
 // サービスアカウントは自分に役割を付けられないため、付与は人の資格情報（プロジェクトのオーナー）で行う。

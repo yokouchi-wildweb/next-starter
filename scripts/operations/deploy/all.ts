@@ -1,4 +1,4 @@
-// scripts/deploy.ts
+// scripts/operations/deploy/all.ts
 //
 // 統合デプロイ (pnpm deploy:all)。手動デプロイ運用の標準コマンド。
 // アプリ (Vercel) とルームサーバー (Cloudflare Workers) を 1 コマンドで揃えてデプロイする。
@@ -9,7 +9,7 @@
 //   アプリ側はプロトコル不一致を明示エラーにするため (ROOM_PROTOCOL_VERSION)、
 //   先に Worker を最新化してからアプリを出すことでスキュー窓を最小にする。
 //
-// 冪等分岐 (room 部分は scripts/room/deploy.ts と同一):
+// 冪等分岐 (room 部分は scripts/operations/room/deploy.ts と同一):
 //   - realtime-room.config enabled=false → Worker は skip してアプリのみデプロイ
 //     (使わないフォークでもこのコマンド 1 つで従来通り運用できる)
 //   - enabled=true で未初期化 → 明示エラー (アプリのデプロイにも進まない)
@@ -23,7 +23,7 @@
 import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";
 
-const repoRoot = path.resolve(import.meta.dirname, "..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
 console.log("=== deploy:all (room → app) ===\n");
 

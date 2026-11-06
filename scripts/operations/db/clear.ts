@@ -1,4 +1,4 @@
-// scripts/db/clear/run.ts(pnpm db:clear / db:clear:all)
+// scripts/operations/db/clear.ts(pnpm db:clear / db:clear:all)
 //
 // 選んだ表のデータを全部消す。
 // - 閉じた機能の表(@/featureGate/node の closedTables)には触れない。--include-closed のときだけ選べ・参照元に足せる
@@ -33,7 +33,7 @@ async function main() {
     import("@/lib/drizzle"),
     import("@/registry/schemaRegistry"),
     import("@/featureGate/node"),
-    import("./plan"),
+    import("./clear/plan"),
   ]);
 
   const graph = plan.readTableGraph(schema);

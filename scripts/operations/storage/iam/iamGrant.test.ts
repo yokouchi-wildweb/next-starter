@@ -1,4 +1,4 @@
-// scripts/storage/iamGrant.test.ts
+// scripts/operations/storage/iam/iamGrant.test.ts
 //
 // storage:setup の 403 の案内（付与の 1 行）の組み立てを確かめる。pnpm test:storage-setup
 

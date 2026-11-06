@@ -1,4 +1,4 @@
-// scripts/room/init.ts
+// scripts/operations/room/init.ts
 //
 // リアルタイムルーム基盤の有効化セットアップ (pnpm room:init)。
 // 冪等: 何度実行しても安全 (既存の wrangler.toml は上書きしない)。
@@ -16,7 +16,7 @@ import { execSync } from "node:child_process";
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
 const tomlExample = path.join(roomDir, "wrangler.toml.example");
 const toml = path.join(roomDir, "wrangler.toml");

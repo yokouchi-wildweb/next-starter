@@ -1,4 +1,4 @@
-// scripts/room/deploy.ts
+// scripts/operations/room/deploy.ts
 //
 // ルームサーバーのデプロイ (pnpm room:deploy)。
 // 冪等分岐: どのフォークで実行しても正しい結果に落ちる。
@@ -11,9 +11,9 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { REALTIME_ROOM_CONFIG } from "../../src/config/app/realtime-room.config";
+import { REALTIME_ROOM_CONFIG } from "../../../src/config/app/realtime-room.config";
 
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
 
 console.log("=== realtime room: deploy ===\n");

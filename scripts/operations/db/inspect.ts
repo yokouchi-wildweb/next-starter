@@ -1,4 +1,4 @@
-// scripts/db/cli.ts
+// scripts/operations/db/inspect.ts
 // データベースCLIツール - クエリ実行、テーブル一覧、構造確認
 
 import { config } from "dotenv";

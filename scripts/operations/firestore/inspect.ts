@@ -1,4 +1,4 @@
-// scripts/firestore/cli.ts
+// scripts/operations/firestore/inspect.ts
 // Firestore CLIツール - コレクション一覧、ドキュメント数、構造確認、クエリ実行
 
 import { config } from "dotenv";

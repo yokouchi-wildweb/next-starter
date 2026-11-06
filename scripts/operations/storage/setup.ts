@@ -1,4 +1,4 @@
-// scripts/storage/setup.ts
+// scripts/operations/storage/setup.ts
 //
 // ファイル保存用の 2 バケット（新 pub / 新 priv）を冪等に用意する（pnpm storage:setup）。
 // 何度実行しても同じ状態になり、2 回目以降は「変更なし」になる。既存の設定と食い違うものは上書きせず、
@@ -16,7 +16,7 @@
 // - priv: 公開アクセス防止を enforced、allUsers / allAuthenticatedUsers の権限なし
 // 旧バケット（Firebase の既定バケット）には触れない。新しい 2 バケットは Firebase に登録しない。
 // 必要な権限: サービスアカウント（MY_SERVICE_ACCOUNT_KEY）に「Storage 管理者」。
-// 足りず HTTP 403 で止まったときは、値を埋めた付与の 1 行（gcloud）を表示する（実行はしない）。詳細: scripts/storage/README.md
+// 足りず HTTP 403 で止まったときは、値を埋めた付与の 1 行（gcloud）を表示する（実行はしない）。詳細: scripts/operations/storage/README.md
 
 import dotenv from "dotenv";
 
@@ -24,7 +24,7 @@ dotenv.config({ path: process.env.ENV_FILE || ".env.development", quiet: true })
 
 import { getServerStorage } from "@/lib/firebase/server/app";
 
-import { formatIamGrantGuide, resolveIamGrantTarget } from "./iamGrant";
+import { formatIamGrantGuide, resolveIamGrantTarget } from "./iam/iamGrant";
 
 const PUBLIC_READER_ROLE = "roles/storage.legacyObjectReader";
 const PUBLIC_MEMBERS = ["allUsers", "allAuthenticatedUsers"];
@@ -70,7 +70,7 @@ function parseArgs(argv: string[]): Options {
     }
     const match = /^--(pub|priv|origin|location)$/.exec(arg);
     if (!match || argv[i + 1] === undefined) {
-      throw new SetupStop(`不明な引数です: ${arg}（使い方は scripts/storage/README.md）`);
+      throw new SetupStop(`不明な引数です: ${arg}（使い方は scripts/operations/storage/README.md）`);
     }
     (values[match[1]] ??= []).push(argv[++i]);
   }

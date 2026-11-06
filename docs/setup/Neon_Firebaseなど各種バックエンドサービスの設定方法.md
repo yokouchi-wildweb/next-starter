@@ -79,7 +79,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 
 ファイルの保存・読み取り・削除はアプリのサーバーが判定し、ブラウザは署名付き URL で GCS に直接送ります（[src/lib/storage/README.md](../../src/lib/storage/README.md)）。Firebase Storage のクライアント SDK の経路は使いません。
 
-1. **バケット（既定 = 新しい公開バケット + 新しい非公開バケット）**: `pnpm storage:setup` で 2 つを用意します。UBLA・公開側の allUsers 読み取り（get のみ）・非公開側の公開アクセス防止・CORS まで冪等に設定します。手順・前提（サービスアカウントに Storage 管理者）・組織のポリシーで止まった場合・location の選び方は [scripts/storage/README.md](../../scripts/storage/README.md) にあります。新しい 2 バケットは Firebase に登録しません。
+1. **バケット（既定 = 新しい公開バケット + 新しい非公開バケット）**: `pnpm storage:setup` で 2 つを用意します。UBLA・公開側の allUsers 読み取り（get のみ）・非公開側の公開アクセス防止・CORS まで冪等に設定します。手順・前提（サービスアカウントに Storage 管理者）・組織のポリシーで止まった場合・location の選び方は [scripts/operations/storage/README.md](../../scripts/operations/storage/README.md) にあります。新しい 2 バケットは Firebase に登録しません。
 2. **環境変数**: `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`（必須）、`STORAGE_PUBLIC_PREFIX` / `STORAGE_PRIVATE_PREFIX`（任意）、`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`（公開ファイルの配信元）をローカルの env と Vercel に設定します（雛形は `.env.example`）。`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` はビルド時に埋め込まれるので、変えたら再ビルド / 再起動します。未設定でも起動はしますが、アップロードなどファイルの経路は `StorageNotConfiguredError` で止まります。
 3. **旧バケット（Firebase の既定バケット）**: `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`。新しいファイルは置かず、過去の URL の読み取りと、サーバー内部の旧位置（import・複製のコピー元など）としてだけ使います。
    - 代替: 旧バケットを新しいバケットの代わりに再利用するのは、匿名で取得できないこと・既存の設定が変わらないことを確かめた場合だけにします。組織のポリシーで公開できない場合は、公開側の切替を保留します（個別の ACL や `makePublic` で回避しない）。

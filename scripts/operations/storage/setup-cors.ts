@@ -1,4 +1,4 @@
-// scripts/storage/setup-cors.ts
+// scripts/operations/storage/setup-cors.ts
 //
 // Firebase Storage(GCS バケット)に CORS を設定するスクリプト。
 // 実行: pnpm storage:setup-cors            (origin は ["*"])
