@@ -1,8 +1,10 @@
-// src/wiring/UnsavedGuardWiring.tsx
+// src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx
 // 未保存の編集の守り(src/lib/unsavedGuard)の既定の結線: 確認 = Overlays の Dialog(lib は見た目を持たず確認の関数を値で受ける)、
 // 文は理由ごとに src/config/ui/unsaved-guard.config.ts から(立っている理由が複数なら lib の pickConfirmReason = 処理の途中が勝つ)、
 // 守りを棚の Navigation の口(Link の移動の判定・棚の router・AppForm の編集済みの元)へ入れる(棚は lib を読まない、D50)。
-// 門番の口(GateProvider → LinkVisibilityProvider)と同じ置き方。AppProviders が 1 か所で描く
+// 門番の口(GateProvider → LinkVisibilityProvider)と同じ置き方。AppProviders(server)が 1 か所で描く。
+// 確認の開閉に state を持つのでクライアント側の部品になり、server の入れ子 AppProviders には書けない → root の layout の部品
+// (管理コマンドの AdminCommandRoot と同じ置き場)。wiring には置かない(wiring どうしは import しない)
 
 "use client";
 
@@ -36,7 +38,7 @@ function NavigationPortBridge({ children }: Readonly<{ children: ReactNode }>) {
   return <NavigationPortProvider value={value}>{children}</NavigationPortProvider>;
 }
 
-export function UnsavedGuardWiring({ children }: Readonly<{ children: ReactNode }>) {
+export function UnsavedGuardRoot({ children }: Readonly<{ children: ReactNode }>) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<UnsavedReason>("unsaved");
   const resolveRef = useRef<((leave: boolean) => void) | null>(null);

@@ -320,3 +320,4 @@
 - id:20261106-142215-tablesuite-commit-once-reorder-guard | severity:info | checkpoint:tablesuite-commit-once-reorder-guard
 - id:20261106-143026-exchange-auth-time-invalidation | severity:info | checkpoint:exchange-auth-time-invalidation
 - id:20261106-145807-agent-terminal-self-compact | severity:info | checkpoint:agent-terminal-self-compact
+- id:20261106-155246-unsaved-guard-root-moved | severity:info | checkpoint:unsaved-guard-root-moved | moved:src/wiring/UnsavedGuardWiring.tsx -> src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx

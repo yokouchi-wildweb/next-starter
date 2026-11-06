@@ -12,7 +12,7 @@
 ## 使い方
 
 ```tsx
-// アプリの結線(src/wiring/UnsavedGuardWiring.tsx が AppProviders の中で 1 か所)
+// アプリの結線(src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx が AppProviders の中で 1 か所)
 <UnsavedGuardProvider confirm={(request) => openDialog(request)}>{children}</UnsavedGuardProvider>
 
 // 編集済みの間守る(AppForm は既定で入る。ほかの編集画面はこれを呼ぶ)
