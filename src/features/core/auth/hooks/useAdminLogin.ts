@@ -8,7 +8,7 @@ import { signInWithCustomToken } from "firebase/auth";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/core/auth/services/client/localLogin";
-import { auth } from "@/lib/firebase/client/app";
+import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client/app";
 import { err } from "@/lib/errors";
 
 type AdminLoginParams = {
@@ -43,7 +43,14 @@ export function useAdminLogin() {
         // Firebase Storage のセキュリティルールを通すため、Firebase Auth にもサインインする。
         // 管理者ログインに必須ではないため、失敗してもログインフローは中断しない。
         // 失敗時は useFirebaseAuthSync が自動的に再試行する。
-        signInWithCustomToken(auth, result.firebaseCustomToken).catch(() => {});
+        // Firebase が未設定(サーバーがトークンを出さない・クライアントの env が空)なら auth に触れない
+        if (result.firebaseCustomToken && isFirebaseClientConfigured()) {
+          try {
+            signInWithCustomToken(auth, result.firebaseCustomToken).catch(() => {});
+          } catch {
+            // 呼んだ時点で投げることがある(.catch の前)。ログインは続ける
+          }
+        }
 
         if (result.requiresReactivation) {
           router.push("/reactivate");

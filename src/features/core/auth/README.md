@@ -35,6 +35,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 - `provider_type` は Firebase Auth の `providerId` をそのまま採用（`google.com` / `yahoo.com` 等）。クライアント/サーバー間で追加マッピングが要らないため。値の一覧は `user/constants/provider.ts` (`USER_PROVIDER_TYPES`)。
   - `email`: Firebase Email Link 登録。`provider_uid` = Firebase UID
   - `local`: 管理画面で作るアカウント（管理者）。Firebase に依存せず、アプリでハッシュ化した `local_password` で認証
+    - **Firebase なしで完了する**: Firebase のサーバー側が未設定（`isFirebaseServerConfigured()` が false）ならカスタムトークンを作らず `firebaseCustomToken: null` を返し、`useAdminLogin` は null かクライアントの Firebase が未設定なら Firebase Auth に触れない。設定済みなら今まで通りカスタムトークンでサインインする（Storage のルール・chatRoom・`useFirebaseAuthSync` 用）。設定済みで失敗したときはログインも失敗する（障害を隠さない）。検査: `pnpm test:local-login`
   - サードパーティ（Google / Yahoo! / Facebook / X(twitter.com) 等）: Firebase の `signInWithRedirect` 経由。有効化は `APP_FEATURES.auth.thirdPartyProviders`
 - 管理者と一般ユーザーは **単一の `users` テーブル**で管理する（別テーブル・別ドメインを作らない）。区別は `role`（ロールカテゴリ admin / user）で、`provider_type` とは独立。
 - スキーマの分担: user ドメインがユーザー属性のスキーマを持ち、auth はそれを拡張して認証文脈の検証（パスワード確認・認証情報の整合性など）を加える（`entities/schema.ts`）。

@@ -20,7 +20,8 @@ export type LocalLoginResponse = {
     expiresAt: string;
   };
   requiresReactivation: boolean;
-  firebaseCustomToken: string;
+  /** Firebase のサーバー側が未設定なら null(サーバーの LocalLoginResult と同じ) */
+  firebaseCustomToken: string | null;
 };
 
 export async function localLogin(payload: LocalLoginPayload): Promise<LocalLoginResponse> {

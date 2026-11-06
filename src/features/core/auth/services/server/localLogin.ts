@@ -10,7 +10,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { recordLoginFailure } from "./loginAudit";
 import { invalidateSessionsForUser } from "./sessionInvalidation";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth, isFirebaseServerConfigured } from "@/lib/firebase/server/app";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { User } from "@/features/core/user/entities";
 import { getRoleCategory } from "@/features/core/user/constants";
@@ -40,7 +40,11 @@ export type LocalLoginResult = {
     maxAge: number;
   };
   requiresReactivation: boolean;
-  firebaseCustomToken: string;
+  /**
+   * Firebase Auth にもサインインするためのカスタムトークン(Storage のルール・chatRoom の私用 app・useFirebaseAuthSync の材料)。
+   * Firebase のサーバー側が未設定なら null(ローカルログインは Firebase なしで完了する。UNCONFIGURED_BACKENDS)
+   */
+  firebaseCustomToken: string | null;
 };
 
 // 管理者カテゴリのアカウントであることを確認し、一般ユーザーのログインを遮断する。
@@ -179,10 +183,10 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   });
 
   // Firebase Storage のセキュリティルールで認証を通すためのカスタムトークンを生成する。
-  const firebaseCustomToken = await getServerAuth().createCustomToken(
-    sessionUser.userId,
-    { admin: true },
-  );
+  // Firebase のサーバー側が未設定なら作らない(ログインの前提にしない)。設定済みで失敗したときは今まで通り失敗させる(障害を隠さない)
+  const firebaseCustomToken = isFirebaseServerConfigured()
+    ? await getServerAuth().createCustomToken(sessionUser.userId, { admin: true })
+    : null;
 
   // 呼び出し元へセッション情報とユーザー情報をまとめて返す。
   return {
