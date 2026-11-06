@@ -65,8 +65,12 @@ const fail = (message: string, code = 1): never => {
 
 /** --socket=<name>(tmux -L <name>)を socket のパスに直す。tmux サーバーがまだ無くても決まる */
 const socketPathOf = (name: string): string => {
-  const base = process.env.TMUX_TMPDIR ?? "/tmp";
-  return path.join(base, `tmux-${process.getuid?.() ?? 0}`, name);
+  const base = process.env.TMUX_TMPDIR || "/tmp";
+  const dir = path.join(base, `tmux-${process.getuid?.() ?? 0}`);
+  // tmux -S <path> は親のフォルダが無いと何も作らず、エラーも出さずに終わる(tmux -L なら tmux 自身が作る)。
+  // tmux を一度も使っていないマシンや、別の TMUX_TMPDIR でも動くよう、tmux と同じ権限 700 で先に作る
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  return path.join(dir, name);
 };
 
 const start = async () => {
@@ -160,6 +164,9 @@ const start = async () => {
     return;
   }
   const [socketPath, sessionName, windowId, windowIndex] = created.split("\t");
+  if (!socketPath || !sessionName || !windowId || !windowIndex) {
+    fail(`dev:tab: tmux がタブの情報を返しませんでした(socket: ${socket ?? "既定"})。タブは開いていない可能性があります`);
+  }
   const state: DevTabState = {
     dir: root,
     port,

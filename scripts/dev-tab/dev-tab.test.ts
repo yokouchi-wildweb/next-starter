@@ -86,9 +86,17 @@ test("socketFromTmuxEnv / sessionSlug", () => {
 const socketName = `devtab-test-${process.pid}`;
 let dir: string | null = null;
 
+// このファイルの tmux はすべて一時フォルダの socket を使う(子プロセスにも引き継ぐ)。
+// tmux は kill-server の後も socket のファイルを残すことがあるので、フォルダごと消して /tmp/tmux-<uid>/ に溜めない
+// この一時フォルダには tmux-<uid>/ がまだ無いので、--socket=<名前> がその親のフォルダを作れること(作らないと tmux -S が
+// 黙って何もしない)も通しのテストで確かめている
+const tmuxTmp = realpathSync(mkdtempSync(path.join(tmpdir(), "devtab-sock-")));
+process.env.TMUX_TMPDIR = tmuxTmp;
+
 after(() => {
   spawnSync("tmux", ["-L", socketName, "kill-server"], { stdio: "ignore" });
   if (dir) rmSync(dir, { recursive: true, force: true });
+  rmSync(tmuxTmp, { recursive: true, force: true });
 });
 
 test("通し: tmux の外から立てる → もう一度は立てない → status → stop", { skip: !hasTmux() && "tmux が無い" }, async () => {
