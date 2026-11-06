@@ -314,3 +314,4 @@
 - id:20261106-112710-tmux-launch-conf-quiet | severity:action-required | checkpoint:tmux-launch-conf-quiet | fixes:20261106-110435-agent-dev-server-tools | pick:-
 - id:20261106-121228-tmux-launch-close-ends | severity:action-required | checkpoint:tmux-launch-close-ends
 - id:20261106-122708-tmux-launch-team-keys | severity:action-required | checkpoint:tmux-launch-team-keys
+- id:20261106-125717-running-app-terminal-line | severity:info | checkpoint:running-app-terminal-line

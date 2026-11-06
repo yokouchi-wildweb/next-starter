@@ -24,4 +24,5 @@
 - check_needing_the_running_app: ask the user's go once, in one line (what to check, where) → start it yourself with `pnpm dev:tab` | never ask the user to start a server | `pnpm dev:tab stop` when the checks are done | ref: scripts/dev-tab/README.md
 - browser_check: Playwright MCP, run by the agent itself (no separate instruction needed once the go above is given)
 - login: `pnpm task dev-admin` → admin test account on the development DB, log in at /admin/login yourself | an admin also reaches (user)/(protected) pages | ref: scripts/tasks/README.md
-- out_of_scope: recon (investigation) never starts a server | /ship does not run scripts that need a dev server
+- out_of_scope: /ship does not run scripts that need a dev server
+- terminal: normal sessions usually run inside tmux (opened via `pnpm setup:tmux-launch`)
