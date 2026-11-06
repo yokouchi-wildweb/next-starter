@@ -1,0 +1,1 @@
+{ "check": "check.mjs", "gates": ["ship"], "watch": [".notices/**", "scripts/workflow/notices/**", ".claude/skills/ship/**", ".claude/skills/flux/**", ".claude/rules/project.md", "src/lib/forkOwnership/forkIds.mjs", "src/lib/forkOwnership/check.mjs"] }

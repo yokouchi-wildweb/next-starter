@@ -11,7 +11,8 @@
     },
     "ship": {
       "runs": "/ship の検査(commit の前)",
-      "offline": false
+      "offline": false,
+      "watch": true
     },
     "forge:pre": {
       "runs": "pnpm forge の生成の前(何も書かない検査)",
@@ -45,7 +46,10 @@
     "workflow": [
       "worktree",
       "rules",
-      "notices"
+      "notices",
+      "dev-tab",
+      "tmux-launch",
+      "agent-terminal"
     ]
   }
 }

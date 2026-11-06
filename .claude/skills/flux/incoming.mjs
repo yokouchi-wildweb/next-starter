@@ -4,8 +4,8 @@
 //
 // 自己完結(このファイルの外を import しない): /flux は手順書と付属ファイルを上流の先端の版で読むので、
 //   git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > <一時ファイル> && node <一時ファイル> --upstream=<upstream>/<branch>
-// で、索引や scripts/notices がまだ届いていない遅れた fork でも先端の判定で動く(cwd = fork のリポ)。
-// 行の書式は scripts/notices/shippedIndex.mjs と同じ(- id:<id> | key:value …、本文にある欄だけ。仕様 .notices/README.md)。
+// で、索引や scripts/workflow/notices がまだ届いていない遅れた fork でも先端の判定で動く(cwd = fork のリポ)。
+// 行の書式は scripts/workflow/notices/shippedIndex.mjs と同じ(- id:<id> | key:value …、本文にある欄だけ。仕様 .notices/README.md)。
 //
 // 実行: node .claude/skills/flux/incoming.mjs --upstream=<remote>/<branch> [--json] [--from=index|bodies]
 //   --from=bodies = 索引の代わりに先端の .notices の本文(直下と done/)の欄から同じ行を作る(索引の導入前の方法。比べる用)

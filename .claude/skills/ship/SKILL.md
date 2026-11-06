@@ -24,10 +24,9 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - 部分的に編集しただけのファイルなら、`git diff HEAD -- <file>` でその変更を戻していないことを確かめる
      移したものは報告とコミット本文に書く。部分的な編集は作業ツリーが HEAD の上にあるので他の変更が自然に残り、消えるのは削除・移動・丸ごとの書き直しのときだけ。
 2. **検査**(落ちたら直して再実行。直し方が自明でなければ止まる):
-   - いつも: `pnpm check --gate=ship`(門 ship に乗る生成器・検査器の check を全部、順に回す: role・domain・registry・routes・cron・cycles・config・eslint。`scripts/runner/gates/README.md`)。落ちたら直して回し直す(生成のずれは `pnpm generate <対象>`)。
+   - いつも: `pnpm check --gate=ship`(門 ship に乗る生成器・検査器の check を全部、順に回す: role・domain・registry・routes・cron・cycles・config・eslint と、watch つきの rules(`CLAUDE.md`・`.claude/rules/` を変えた時の test:core-rules)・notices(`.notices/`・ship / flux のスキルを変えた時の test:notices)。watch に当たらない対象は飛ばして 1 行出す、`--all` で全部。`scripts/runner/gates/README.md`)。落ちたら直して回し直す(生成のずれは `pnpm generate <対象>`)。
    - コード(`.ts` / `.tsx` / `.js` / `.mjs`)を変えた: `pnpm typecheck` と `pnpm exec eslint <変えたコードのファイル>`。
-   - 変えた場所に応じたもの(当たるものは全部。門に乗った検査 = registry:check・routes:map --check・cron:check・test:config-module-load・eslint:required・test:cycles は上の `pnpm check --gate=ship` が回すので重ねない):
-     - `CLAUDE.md`・`.claude/rules/core/` → `pnpm test:core-rules`
+   - 変えた場所に応じたもの(当たるものは全部。門に乗った検査 = registry:check・routes:map --check・cron:check・test:config-module-load・eslint:required・test:cycles・test:core-rules・test:notices は上の `pnpm check --gate=ship` が回すので重ねない):
      - `src/lib/` の追加・削除・`src/lib/CATALOG.md` → `pnpm test:lib-catalog`
      - `domainEntry.ts`・`domain.json` → 登録表がずれていれば `pnpm generate registry`(= registry:generate)
      - `entities/drizzle.ts`・`src/registry/schemaRegistry.ts` → `pnpm test:schema-registry`。index を変えたら `pnpm db:push:check` が出す差分の説明を報告に書く(db:push 自体は実行しない)
@@ -37,7 +36,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
      - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)
      - 上のどれでもない: 変えたファイルの隣にある `*.test.*` と、package.json の `test:*` のうち変えた領域の名前のもの
-   - notice を含めるとき(手順 5 の後)は `pnpm test:notices`。
+   - notice を含めるとき(手順 5 の後)は `pnpm check notices`(名前で呼ぶと watch を見ずに回す = test:notices)。
 3. **下流への影響を判定する**(下流を持つリポだけ): 次のどれかに当たれば notice が要る。当たらなければ「notice 不要: <理由>」を報告に 1 行書いて手順 6 へ。
    - fork が手を入れうるファイル(docs・README・registry・config・core の部品など)の削除・移動(`.notices/README.md`「削除・移動は notice と同じ commit で出す」)
    - fork の既存コードが新しい仕様とずれる: export の削除・改名、引数・props・戻り値の型の変更、config のキーの増減、生成器の出力・命名・置き場の規約の変更
@@ -53,7 +52,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - `fixes:` を付けるのは、修正元の区切りに留まった fork で、ビルド・起動・挙動・データのどれかに害がある(検査が落ちる・自前で直す・同じ不具合を再オーダーする原因になる)ときだけ。/flux はその区切りの手前で全 fork を止めて聞くので、害の無いもの(上流側の道具・スキル・文書の書き方の改善)は修正として扱わない(notice の要否は手順 3 の他の項目で判断する)
 
    修正元の特定: 変えた行の元を辿る。変更前の行に `git blame -L <範囲> HEAD -- <file>` をかけ(または `git log -L`)、出てきた commit が最近の notice の区間に入っているか(`git log --diff-filter=A --format=%H -- .notices/` の各 notice の追加 commit との前後)を見る。会話の文脈(不具合の報告・指令の need)と合わせて、前の出荷の不具合を直すものなら `fixes:` の候補にする。修正元に notice があればその id、無ければ `commit:<短 sha>`。この修正に fork の追随作業が無くても、`fixes:` を伝えるために notice を出す(`severity: info`、`required_actions: none`)。
-5. **notice を書く**(要るときだけ。事前確認は取らずに書き出す。下記「notice の合成」)。書いたら**索引の行を足す**: `node scripts/notices/shippedIndex.mjs add .notices/<id>.md`(自分の索引 `.notices/shipped/<fork_id>.md` の末尾に本文から 1 行。手で書かない・既存の行を直さない。`.notices/README.md`「出荷索引と本文の読み方」)。自分の索引がまだ無く自分の notice が既にあるリポ(索引の導入前から notice を出していた fork)は、先に `node scripts/notices/shippedIndex.mjs backfill`(親の索引に載る notice は飛ばす)。その後に手順 2 の `pnpm test:notices` を通す(索引の検査を含む)。
+5. **notice を書く**(要るときだけ。事前確認は取らずに書き出す。下記「notice の合成」)。書いたら**索引の行を足す**: `node scripts/workflow/notices/shippedIndex.mjs add .notices/<id>.md`(自分の索引 `.notices/shipped/<fork_id>.md` の末尾に本文から 1 行。手で書かない・既存の行を直さない。`.notices/README.md`「出荷索引と本文の読み方」)。自分の索引がまだ無く自分の notice が既にあるリポ(索引の導入前から notice を出していた fork)は、先に `node scripts/workflow/notices/shippedIndex.mjs backfill`(親の索引に載る notice は飛ばす)。その後に手順 2 の `pnpm test:notices` を通す(索引の検査を含む)。
 6. **コミットする**:
    - 自分のファイルだけを入れる(他のセッションのステージを巻き込まない)。notice は変更本体と同じコミットに入れる:
      - `git add` には作業ツリーにあるパスだけを渡す(削除・移動元は渡すと pathspec エラーで止まる。削除は `git rm` でステージするか、次の commit の pathspec に含める)。
@@ -68,7 +67,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - 「未実行: <検査>」(その土台の木に script が無い)は報告に書く
    - `hotfix` のとき、commit の後・push の前に **pick できるか確かめる**(`.notices/README.md`「緊急修正(hotfix)」): `pnpm test:notices` を通し直す。`fixes:` があれば上の `pnpm notices:pick-check` がその確かめを兼ねる: `-` の理由が衝突・検査の失敗・後の notice への依存なら push せず止まる(「止まるとき」)。`fixes:` が無ければ省く(どの版に当てるかが決まらないため。報告に「未確認: 修正元なし」)。
      続けて **遅れた fork で前提が揃うか確かめる**: `pnpm notices:hotfix-check <この commit>`。fleet.conf の各 fork の位置(merge-base)に pick した木で、この commit が足した・変えたパス指定ルールの `paths:`、notice の手順の `pnpm <script>`、notice が名指すパスがあるかを見る(間の変更で届くものに頼っていないか)。exit 1 → push せず止まる(「止まるとき」)。exit 2(fork の位置が分からない)→ 報告に「未確認: 遅れた fork の位置」と書いて進む。位置が分かれば `--base=<sha>` で渡せる。
-   - push の前に **途中の区切りを確かめる**(`.notices/README.md`「区切り(checkpoint)と区間適用」の「途中の区切りの検査」): 範囲 `origin/<branch>..HEAD` に先端の commit 以外で足した区切りの notice があれば、`node scripts/notices/checkpointCheck.mjs origin/<branch>..HEAD`。fork が区間ごとに merge し、直後に取る `pick: clean` の修正も取って持つ木で各区切りに typecheck・test:config-module-load・test:core-rules・registry:check を通す。
+   - push の前に **途中の区切りを確かめる**(`.notices/README.md`「区切り(checkpoint)と区間適用」の「途中の区切りの検査」): 範囲 `origin/<branch>..HEAD` に先端の commit 以外で足した区切りの notice があれば、`node scripts/workflow/notices/checkpointCheck.mjs origin/<branch>..HEAD`。fork が区間ごとに merge し、直後に取る `pick: clean` の修正も取って持つ木で各区切りに typecheck・test:config-module-load・test:core-rules・registry:check を通す。
      - exit 1(壊れた区切りがある): push せずに止まる。その区切りが push 前の自分の commit なら、その commit を直して(rebase で直す・本体と notice と索引の行を揃える)検査を通し直す。push 済みの区切り(sha を保つ必要がある脇の commit を含む)なら、`fixes: <その notice>` の修正を出して pick-check で `pick: clean` にする
      - exit 2(判定できない: 依存を入れられない等): 報告に「途中の区切り未確認: <理由>」と書いて進む
 7. **push する**(`no-push` のときはしない): `git push`。できなかったら取り繕わず理由を報告する。
@@ -115,7 +114,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
    - `<slug>` は change から短い英語のケバブ。保存先は `.notices/<ts>-<slug>.md`。
    - `pick:` は本文に書かない(手順 6 の pick-check が索引の行に書く)。値に ` | ` を含めない(索引の行の区切り。`shippedIndex.mjs add` が止まる)。
    - **`uses:`**: required_actions が実行する移行(`src/features/<domain>/scripts/migrations/`)・codemod(`.notices/<id>.<名前>.mjs`)を列挙し、同じ commit に入れる。`uses:` を持つ notice は `checkpoint:` をラベルにする(`-` 不可)。`pnpm test:notices` が実在と区切りを見る(`.notices/README.md`「使う移行・codemod の欄」)。
-   - **`skip_checkpoint:`**: `fixes:` の修正元の区切りが動かない(その区切りで fork の検査が落ちる)のに、手順 6 の pick-check が `-` のときだけ、修正元の id を書く(各 id は `fixes:` にあること。修正の notice 自身はラベルの区切り)。修正元が `uses:` を持つなら外せない。pick-check の後に本文へ足したら、push 前の行を本文から作り直す: `node scripts/notices/shippedIndex.mjs refresh .notices/<id>.md`(行の `pick:` は保つ。push 済みの行は拒否。手で直さない)→ `git commit --amend --no-edit -- .notices/<id>.md .notices/shipped/<fork_id>.md` → `pnpm test:notices`(`.notices/README.md`「区切りを外す欄」)。
+   - **`skip_checkpoint:`**: `fixes:` の修正元の区切りが動かない(その区切りで fork の検査が落ちる)のに、手順 6 の pick-check が `-` のときだけ、修正元の id を書く(各 id は `fixes:` にあること。修正の notice 自身はラベルの区切り)。修正元が `uses:` を持つなら外せない。pick-check の後に本文へ足したら、push 前の行を本文から作り直す: `node scripts/workflow/notices/shippedIndex.mjs refresh .notices/<id>.md`(行の `pick:` は保つ。push 済みの行は拒否。手で直さない)→ `git commit --amend --no-edit -- .notices/<id>.md .notices/shipped/<fork_id>.md` → `pnpm test:notices`(`.notices/README.md`「区切りを外す欄」)。
    - `fixes:` の notice の required_actions・verify・refs は、壊れた地点の木に無いパス・script(その後に足した道具など)を名指さない(fork は壊れた地点の直後に取るので、pick-check の前提の検査が `-` にする)。後の道具に触れたい時は notes に書く(notes は前提の検査が読まない)。
    - `hotfix:` の notice の required_actions は、間の変更と後の notice を前提にせず書く(fork は間を飛ばして適用する)。`pnpm-lock.yaml`・`src/app/route-map.jsonl` を commit に含めない(fork ごとに中身が違う。`pnpm test:notices` が検査)。
    - **required_actions は「下流の Claude が承認 1 回で止まらずに実行できる具体度」**で書く。DB マイグレーション・バックフィル・再生成・データ移行も全部ここ。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]`。ドメインの再生成は `pnpm dc:generate <Domain>`(既定で対話なし。`[user-run]` を付けない)で、必要なカテゴリだけ `--only` で指定する。設定を足した fork 側の一括の作り直しは `pnpm forge`。

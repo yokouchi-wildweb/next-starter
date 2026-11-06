@@ -6,6 +6,9 @@
 //   引数は入口にそのまま渡し、env GATE=<門 | ->を付ける。
 //   features の機能が閉じていれば飛ばし「機能 <名前> が閉じているので飛ばした」を必ず出す。
 //   offline の門(build・build:post)に乗る対象の check は、DB・外部の env を空にし netGuard.mjs を preload して起動し、外に届こうとしたら落とす。
+//   watch の門(gates.json の "watch": true、今は ship)で選んだ対象のうち gate.json に watch を持つ物は、範囲(上流の追跡先か
+//   origin/<枝>、無ければ origin/HEAD との分岐点から HEAD まで + 作業ツリー・未追跡)の変更が watch の glob に当たらなければ飛ばし、
+//   飛ばしたことを 1 行出す。範囲が決まらなければ回す。--all で watch を見ずに全部回す。名前で呼んだ対象は watch を見ない。
 //   exit 0 = 全部通る(対象なし含む)| 1 = 落ちた・外に届いた | 2 = 宣言の誤り(知らない門・欄・入口のファイル・after の循環)
 import { spawnSync } from "node:child_process";
 import { dirname, extname, join } from "node:path";
@@ -14,6 +17,42 @@ import { MARK } from "./netGuard.mjs";
 import { GateError, loadGates, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** watch の glob(** = 何段でも、* = 1 段の中、? = 1 文字)を正規表現に。リポジトリ直下からの相対パスに丸ごと当てる */
+export function globToRegExp(glob) {
+  let re = "";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === "*" && glob[i + 1] === "*") {
+      if (glob[i + 2] === "/") {
+        re += "(?:.*/)?";
+        i += 2;
+      } else {
+        re += ".*";
+        i += 1;
+      }
+    } else if (c === "*") re += "[^/]*";
+    else if (c === "?") re += "[^/]";
+    else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${re}$`);
+}
+
+const git = (repo, args) => {
+  const r = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+  return r.status === 0 ? r.stdout.trim() : null;
+};
+
+/** 範囲の変更したファイル(リポジトリ直下からの相対)。範囲が決まらなければ { files: null, why } */
+export function changedFiles(repo) {
+  const branch = git(repo, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const candidates = ["@{upstream}", branch && branch !== "HEAD" ? `origin/${branch}` : null, "origin/HEAD", "origin/main"].filter(Boolean);
+  const base = candidates.find((ref) => git(repo, ["rev-parse", "--verify", "-q", `${ref}^{commit}`]) !== null);
+  if (!base) return { files: null, why: "比べる上流の枝が無い" };
+  const lists = [["diff", "--name-only", `${base}...HEAD`], ["diff", "--name-only", "HEAD"], ["ls-files", "--others", "--exclude-standard"]].map((a) => git(repo, a));
+  if (lists.some((l) => l === null)) return { files: null, why: "git の差分が読めない" };
+  return { files: [...new Set(lists.flatMap((l) => l.split("\n").filter(Boolean)))], base };
+}
 export const OFFLINE_ENV = /^(DATABASE_URL.*|MY_SERVICE_ACCOUNT_KEY|NEXT_PUBLIC_FIREBASE_.*|FIREBASE_.*|GOOGLE_APPLICATION_CREDENTIALS|GCS_.*|ANTHROPIC_API_KEY|RESEND_.*|SENDGRID_.*|SMTP_.*|CLOUDFLARE_.*)$/;
 
 /** 機能の開閉: env GATES_FEATURES(JSON、テスト用)か features.ts を tsx で */
@@ -31,10 +70,10 @@ function command(repo, file, offline) {
 }
 
 /** 本体: { code, lines }(テストは scriptsDir・repo・log を渡す) */
-export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(repo, "scripts"), log = console.log } = {}) {
+export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(repo, "scripts"), log = console.log, changed = changedFiles } = {}) {
   const mode = argv[0];
   if (mode !== "check" && mode !== "generate") {
-    console.error("usage: pnpm check|generate [<対象>] [--gate=<門>] [-- <入口への引数>]");
+    console.error("usage: pnpm check|generate [<対象>] [--gate=<門>] [--all] [-- <入口への引数>]");
     return 2;
   }
   const sep = argv.indexOf("--");
@@ -43,6 +82,7 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   const gate = own.find((a) => a.startsWith("--gate="))?.slice(7) ?? null;
   const gateList = gate ? gate.split(",").map((g) => g.trim()).filter(Boolean) : null;
   const name = own.find((a) => !a.startsWith("--")) ?? null;
+  const all = own.includes("--all");
   let gates;
   let targets;
   try {
@@ -77,6 +117,14 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
     }
   }
   const offlineGates = Object.entries(gates.gates).filter(([, g]) => g.offline).map(([n]) => n);
+  // watch の門で選んだ時だけ範囲の変更を読む(1 回)
+  const watchGates = (gateList ?? []).filter((g) => gates.gates[g]?.watch);
+  let range = null;
+  const watched = (t) => !all && !name && t.decl.watch?.length && watchGates.some((g) => (t.decl.gates ?? []).includes(g));
+  if (picked.some(watched)) {
+    range = changed(repo);
+    if (range.files === null) log(`gates: watch: ${range.why}ので watch を見ずに全部回す`);
+  }
   let code = 0;
   for (const t of picked) {
     const label = `${t.kind}/${t.name}`;
@@ -89,6 +137,13 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
     if (closed.length) {
       log(`gates: ${label}: 機能 ${closed.join(", ")} が閉じているので飛ばした`);
       continue;
+    }
+    if (watched(t) && range?.files) {
+      const res = t.decl.watch.map(globToRegExp);
+      if (!range.files.some((f) => res.some((re) => re.test(f)))) {
+        log(`gates: ${label}: 変更が watch に当たらないので飛ばした(--all で回す)`);
+        continue;
+      }
     }
     const offline = mode === "check" && (t.decl.gates ?? []).some((g) => offlineGates.includes(g));
     const env = { ...process.env, GATE: gateList?.find((g) => (t.decl.gates ?? []).includes(g)) ?? "-" };

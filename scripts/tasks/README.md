@@ -33,6 +33,6 @@ export const task: OneShotTask = {
 - メール `agent-admin@example.test` / ロール `admin`。管理者カテゴリなので `(user)/(protected)` のページにも入れる
 - パスワードは `AUTH_JWT_SECRET` から決まる(出力に出る)。env はワークツリーにも複製されるので、本体とワークツリーで同じ値
 - 何度実行してもよい: 無ければ作る(監査に system として残る)/ あればそのまま使い、パスワードが合わなければ合わせ直し、ロックが掛かっていれば外す
-- 止まる: 段階(env ファイルの `APP_ENV`、`@/lib/appEnv`)が `development` でない / `ENV_FILE` が `.env.development*` でない / `AUTH_JWT_SECRET` が無い / DB 未設定
-- ログイン: `/admin/login` を開き、メールとパスワードを入れて送信する(開発サーバーは `pnpm dev:tab`、`scripts/dev-tab/README.md`)
+- 止まる: `NODE_ENV=production` / `APP_ENV` が `.env.development*` でない / `AUTH_JWT_SECRET` が無い / DB 未設定
+- ログイン: `/admin/login` を開き、メールとパスワードを入れて送信する(開発サーバーは `pnpm dev:tab`、`scripts/workflow/dev-tab/README.md`)
 - テスト: `pnpm test:dev-admin`(純粋な部品だけ。DB には触らない)

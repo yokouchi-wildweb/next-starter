@@ -5,19 +5,21 @@
 ## 入口
 
 ```
-pnpm check [<対象>] [--gate=<門>] [-- <入口への引数>]
+pnpm check [<対象>] [--gate=<門>] [--all] [-- <入口への引数>]
 pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 ```
 
 - 対象なし = gate.json を持つ全部の対象の check(generate)を順に回す
 - `<対象>` = その対象フォルダ 1 つ(フォルダ名)
 - `--gate=<門>` = その門に乗る対象だけ
+- `--all` = watch を見ずに全部回す(下の「watch」)
 - exit 0 = 全部通る(対象なしも含む)/ 1 = 落ちた・build の検査が外に届いた / 2 = 宣言の誤り
 
 ## 門の一覧(gates.json、上流だけが持つ)
 
 - `gates`: 門の名前 → `runs`(どこで回るか)・`offline`(true = DB・外部に届いてはいけない)。今の門: `build`(offline、next build の前)・`build:post`(offline、next build の後に組み上がった物を見る)・`ship`・`forge:pre`・`forge:post`・`deploy`
 - `upstreamFolders`: 上流の対象フォルダの名簿(`structure` / `workflow`)。順序で上流と fork を分けるのに使う。上流が対象フォルダを足したらここにも 1 行足す
+- `watch: true` の門(ship)は対象の watch を使う(下の「watch」)
 - `explicit: true` の門(build:post)だけに乗る対象は、全部を回す時(対象も --gate も無し)は飛ばして出す。その門か対象の名前で呼んだ時だけ回す
 - 知らない門の名前は止める(gate.json の誤り)。門を増やすのは上流
 
@@ -32,9 +34,17 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 - `check` / `generate`: このフォルダの中の入口のファイル名(どちらか必須)。`.mjs` / `.js` は node、`.ts` は tsx(+ server-only の下駄)で起動する。env `GATE=<門 | ->` が付く
 - `gates`: 乗る門(gates.json にある名前だけ)
 - `after`: 先に回る対象のフォルダ名。順序 = after を満たす順。同じ段では上流(名簿にある物)が先で名前順、名簿に無い fork のフォルダは上流の全部の後に名前順。上流の対象が fork の対象の後を求める宣言と循環は止める
-- `watch`: 変更を見るパスの glob(`pnpm test --changed` 等が後で読む)
+- `watch`: 変更を見るパスの glob(リポジトリ直下からの相対、`**` = 何段でも・`*` = 1 段の中・`?` = 1 文字)。watch の門で選んだ時に使う(下)
 - `features`: 機能名(src/featureGate の規則名)。どれかが閉じていれば飛ばし、「機能 <名前> が閉じているので飛ばした」を必ず出す。知らない機能名は止める
 - 知らない欄は止める
+
+## watch(関係ない変更で無駄な検査を回さない)
+
+`watch: true` の門(今は ship)で選んだ対象のうち、gate.json に `watch` を持つ物は、範囲の変更が watch のどれにも当たらなければ飛ばし、「変更が watch に当たらないので飛ばした(--all で回す)」を 1 行出します。
+
+- 範囲 = 比べる枝(上流の追跡先 → `origin/<今の枝>` → `origin/HEAD` → `origin/main` の最初にある物)との分岐点から HEAD まで + 作業ツリーの変更 + 未追跡のファイル
+- 回す: watch の無い対象・対象の名前で呼んだ時・`--all`・watch の門でない時・範囲が決まらない時(理由を 1 行出す)
+- watch は「この対象の検査を落としうる変更」の glob。迷ったら広めに書く(足りないと壊れた変更が素通りする)
 
 ## build の守り
 

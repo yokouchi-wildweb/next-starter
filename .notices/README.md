@@ -21,7 +21,7 @@
 
 ## 使い方
 
-- **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ 索引の行を `node scripts/notices/shippedIndex.mjs add <notice>` で足す → `pnpm test:notices` → 変更本体と同じコミットで push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/notices/notices.test.mjs`・索引の欄の並び(`scripts/notices/shippedIndex.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`)を同じコミットで直す)。
+- **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ 索引の行を `node scripts/workflow/notices/shippedIndex.mjs add <notice>` で足す → `pnpm test:notices` → 変更本体と同じコミットで push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/workflow/notices/notices.test.mjs`・索引の欄の並び(`scripts/workflow/notices/shippedIndex.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`)を同じコミットで直す)。
 - **中継(中間 Tier)**: 下流を持つ fork(`.claude/rules/project.md` の `downstream: yes`)の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/flux relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 全区間の概観(1 行ずつ)と**次の区間だけ**の詳細な適用計画を提示 → 承認 → その区間の merge・コード修正・DB 操作・検証・台帳記録・コミット・push → 次の区間の計画を出して止まる。承認は区間ごと(区間の終わりの `go` = 次の区間の計画の承認)で、`/flux all` は最初の区間の承認の後、区間ごとに計画と実行を繰り返して最後まで進める(`/flux next` は既定の別名)。fork が移動元を編集した大きな `moved:` の移植を含む区間は、`all` の途中でも手前で止まる。`/flux status` で状態確認のみ。notice の有無にかかわらず区間の上流差分から使い方の変わった部品・lib・core を洗い出し、fork 側の使用箇所を同じ区間で揃え、区間ごとに typecheck / lint を通してから commit する(古い使い方を残すのはユーザーが判断したときだけ)。notice が無いのに追従が要った変更は「上流への所見」で notice 漏れとして返る。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/order <上流リポ> 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
@@ -74,13 +74,13 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 
 - 索引は出荷したリポごとに 1 ファイル、notice ごとに 1 行。書くのはそのリポだけ(台帳 `applied/<名前>.md` を fork ごとに分けたのと同じ理由: 多段の merge で追記が重ならない)。ファイル名の fork 名は台帳と同じ例外。上流の索引は merge で下流に届くが、下流は書かない
 - 行 = `- id:<id>` に本文の欄を決まった順で ` | key:value`(`severity`・`checkpoint`・`covers`・`moved`・`fixes`・`resolves`・`hotfix`・`uses`・`pick`・`skip_checkpoint`)。**本文にある欄だけ**を写す(`checkpoint:` の欄が無い旧 notice は行でも欄なし = 区切り。`-` で埋めない)。`hotfix:` は理由の文でなく `yes`。値に ` | ` は書けない
-- 行は `/ship` が `node scripts/notices/shippedIndex.mjs add <notice>` で本文から作り、notice と同じ commit に入れる。手で書かない。出荷する commit 自身の sha は行に書かない(行を書く時に決まっていない)。notice を足した commit は履歴から引く
+- 行は `/ship` が `node scripts/workflow/notices/shippedIndex.mjs add <notice>` で本文から作り、notice と同じ commit に入れる。手で書かない。出荷する commit 自身の sha は行に書かない(行を書く時に決まっていない)。notice を足した commit は履歴から引く
 - 追記だけ: push した行は変えない・消さない・並べ替えない(`pnpm test:notices` が前に push した版と比べる)。push 前の行は直してよい(`pick:` の書き込み・本文を直した後の `refresh`。push 前の自分の commit は本体・notice・行とも自由に直す: 下記「区切り(checkpoint)と区間適用」)
 - 正: 欄の値は索引、本文はその notice を**足した commit の版**(`git show <足した commit>:.notices/<id>.md`)。区間の merge 先や上流の先端の版で代用しない
 - 読む側: `/flux` の流入の発見と区間(`.claude/skills/flux/incoming.mjs`)・`pnpm ownership:check` の「台帳に無い notice」と `resolves:`・`pnpm test:notices` は索引を読む。索引の無い版(導入前の上流・fork 成立点)は本文も読み、両方の和をとる
 - 止まる: 浅い clone・索引に行があるのに足した commit が履歴に無い(履歴の書き換え・食い違い)ときは、未適用ゼロとして進まずに止まる
-- 導入: 上流は今ある全 notice の行を `node scripts/notices/shippedIndex.mjs backfill` で 1 回起こした。自分の notice を出す fork は、最初に同じ backfill で自分の notice だけの索引を作る(他のリポの notice は飛ばす: 親の索引に載る・本文の `from:` が自分の origin でない・台帳に `picked:` = 親から先に取った修正)
-- 片付け: 古い backfill が、親から先に pick した notice(その時の親の索引にまだ行が無かった物)を自分の索引に書いてしまった fork は、`node scripts/notices/shippedIndex.mjs repair` を 1 回走らせて commit する(自分の索引から他のリポの物の行だけを消す。何度走らせても同じ)。消えたその行は追記だけの検査が受け入れる(自分の notice の push 済みの行は今どおり書き換えない)
+- 導入: 上流は今ある全 notice の行を `node scripts/workflow/notices/shippedIndex.mjs backfill` で 1 回起こした。自分の notice を出す fork は、最初に同じ backfill で自分の notice だけの索引を作る(他のリポの notice は飛ばす: 親の索引に載る・本文の `from:` が自分の origin でない・台帳に `picked:` = 親から先に取った修正)
+- 片付け: 古い backfill が、親から先に pick した notice(その時の親の索引にまだ行が無かった物)を自分の索引に書いてしまった fork は、`node scripts/workflow/notices/shippedIndex.mjs repair` を 1 回走らせて commit する(自分の索引から他のリポの物の行だけを消す。何度走らせても同じ)。消えたその行は追記だけの検査が受け入れる(自分の notice の push 済みの行は今どおり書き換えない)
 
 ## 使う移行・codemod の欄(uses)
 
@@ -127,7 +127,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 形式: `skip_checkpoint: <notice id>, ...`。修正の notice の欄で、各 id は同じ notice の `fixes:` にあること
 - 意味: 名指した notice の `checkpoint` のラベルを `-` とみなす(その notice は次の区切りまで同じ区間に入る)。外す向きだけで、区切りを足す・戻すには使えない
 - 条件(`pnpm test:notices`): 相手の checkpoint がラベル / 相手が `uses:` を持たない / 修正の notice 自身は区切り / 修正の行の `pick:` が `clean` でない(先に取れるなら外す理由が無い)
-- `/ship` がこの欄を新しい notice の索引の行に写す(pick-check の後に足したら、push 前の行を `node scripts/notices/shippedIndex.mjs refresh <notice>` で作り直す)。修正元の本文と既存の行は書き換えない。`/flux` は上流の先端の索引のどの行の `skip_checkpoint:` も区間の組み立てに使う
+- `/ship` がこの欄を新しい notice の索引の行に写す(pick-check の後に足したら、push 前の行を `node scripts/workflow/notices/shippedIndex.mjs refresh <notice>` で作り直す)。修正元の本文と既存の行は書き換えない。`/flux` は上流の先端の索引のどの行の `skip_checkpoint:` も区間の組み立てに使う
 
 ## 区切り(checkpoint)と区間適用
 
@@ -139,7 +139,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - /flux は区間ごとに「その区間の merge 先(区切り notice の追加 commit、末尾区間は上流 HEAD)まで merge → 区間内 notice を適用 → verify → 台帳 → commit → push」を繰り返す。途中で止まっても fork は直前の区切りに居るので、再実行すれば続きから進む(状態は下記の集合演算で毎回導出されるため、追加の記録は不要)。詳しく計画するのは次の区間だけで、区間の終わりごとに次の区間の計画を出して止まる(`all` で止まらずに進む)。区間の終わりの報告は次の区間に必要なこと(ここまでの sha・人間の判断・次の merge 先・残作業)だけを持つので、セッションを閉じても `/flux` で続きから計画し直せる。
 - merge commit は区間数ぶん増える。これは意図した代償(区切りごとに fork が整合する)。追随を小刻みに続けている fork は今までと同じ。
 - 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りの commit は動く状態であること: その commit で `pnpm typecheck` と `pnpm test:config-module-load` が通る(push 前の自分の commit なら、その commit を直して(amend・rebase)通し直す。通らない区切りを push してしまったら、出荷済みの本文と索引の行は書き換えず、修正の notice を出す。修正が先に取れれば `pick: clean` で修正元の区間の直後に取られ、取れなければ修正の notice に `skip_checkpoint: <その notice の id>` を書いて修正元の区切りを外す: 上記「区切りを外す欄」、下記「修正(fixes)」)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
-- 途中の区切りの検査(`node scripts/notices/checkpointCheck.mjs <from>..<to>`、/ship が push の前に走らせる): ふだんの検査は先端の木しか見ないので、出荷する範囲の途中の区切りが壊れていても気づかない(脇のブランチを main に載せ直して出した範囲で、途中の区切りが型検査に落ちていた)。この道具は区切りを /flux と同じ順(先端の `rev-list --topo-order`)に並べ、範囲の起点から各区切りの commit を順に merge した木 = fork がその区間で実際に持つ木(直線の履歴ではその commit の木、脇のブランチを merge した範囲では先に並ぶ側を merge 済みの木)で、`pnpm typecheck`・`test:config-module-load`・`test:core-rules`・`registry:check` を通す。merge の衝突も壊れたと数える(出荷索引だけの衝突は除く)。fork が区切りの直後に取る `pick: clean` の修正(出荷の先端 `--at` の索引から、土台がその区切りかそれより前の物)は取ってから検査し、取った修正の区切りは merge しない(`--no-picks` で区切りだけを見る)。最初に壊れた区切りで止まる(`--all` で続ける)。壊れた区切りが push 前の自分の commit なら、その commit を直して通し直す。push 済み(脇の commit を他のリポが持つ等で sha を保つ必要がある時を含む)なら、`fixes: <その notice>` の修正を出し、pick-check で `pick: clean` になる形にする
+- 途中の区切りの検査(`node scripts/workflow/notices/checkpointCheck.mjs <from>..<to>`、/ship が push の前に走らせる): ふだんの検査は先端の木しか見ないので、出荷する範囲の途中の区切りが壊れていても気づかない(脇のブランチを main に載せ直して出した範囲で、途中の区切りが型検査に落ちていた)。この道具は区切りを /flux と同じ順(先端の `rev-list --topo-order`)に並べ、範囲の起点から各区切りの commit を順に merge した木 = fork がその区間で実際に持つ木(直線の履歴ではその commit の木、脇のブランチを merge した範囲では先に並ぶ側を merge 済みの木)で、`pnpm typecheck`・`test:config-module-load`・`test:core-rules`・`registry:check` を通す。merge の衝突も壊れたと数える(出荷索引だけの衝突は除く)。fork が区切りの直後に取る `pick: clean` の修正(出荷の先端 `--at` の索引から、土台がその区切りかそれより前の物)は取ってから検査し、取った修正の区切りは merge しない(`--no-picks` で区切りだけを見る)。最初に壊れた区切りで止まる(`--all` で続ける)。壊れた区切りが push 前の自分の commit なら、その commit を直して通し直す。push 済み(脇の commit を他のリポが持つ等で sha を保つ必要がある時を含む)なら、`fixes: <その notice>` の修正を出し、pick-check で `pick: clean` になる形にする
 
 ## 移動・改名(moved)
 
@@ -185,7 +185,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 修正の修正(`fixes:` の先が修正): 前の修正が `pick: clean` のときだけ、その土台に前の修正を載せた木で試す。前の修正が clean でなければ `-`(fork も前の修正を先に取っていない)
 - 別の notice の clean な修正も先に載せる: 出荷済み(出荷する先端の索引にある。壊れた地点の脇の commit で出した修正も含む)で修正の後の履歴にない `pick: clean` の修正のうち、その土台が壊れた地点かその祖先で、壊れた地点の祖先でないもの(fork が壊れた地点に着くまでに先に取っているもの)を、履歴順に壊れた地点へ先に載せてから試す(土台 + 先に載せた修正 = fork の実際の木)。載らなければ `-`。載せた修正は pick-check の出力(土台の説明)に出し、索引の行には残さない(/flux も同じ順で取るので同じ木になる)
 - /flux: 直接の親が出した `pick: clean` の修正を、`fixes:` の参照先のどれかが適用済みになった直後(修正元の区間の commit の後、push の前)に `git cherry-pick -x` で取り、修正の verify と区間の検査を通してから区間と一緒に push する。台帳は緊急修正と同じ `picked:` の行。修正元の区間の手前の問い(進めるか止めるか)はしない。衝突・検査の失敗は戻して、その問いに戻る。多段では祖父 notice の `pick:` は読まない(`.claude/skills/flux/relay.md`)
-- 出荷索引は pick の外: 修正の commit は notice の索引の行(`.notices/shipped/<fork_id>.md`)を含むが、索引は追記だけの上流の帳簿で、索引の無い・短い土台では必ず衝突する。pick-check・hotfix-check は索引の変更を捨てて載せ(`scripts/notices/pickDroppingIndex.mjs`)、/flux も衝突が `.notices/shipped/` だけなら fork 側を採って続ける(fork が無ければ消す)。fork は pick の時点で上流の索引を要らない(未適用の判定は上流の先端の索引を読む)。索引は後の merge で届く
+- 出荷索引は pick の外: 修正の commit は notice の索引の行(`.notices/shipped/<fork_id>.md`)を含むが、索引は追記だけの上流の帳簿で、索引の無い・短い土台では必ず衝突する。pick-check・hotfix-check は索引の変更を捨てて載せ(`scripts/workflow/notices/pickDroppingIndex.mjs`)、/flux も衝突が `.notices/shipped/` だけなら fork 側を採って続ける(fork が無ければ消す)。fork は pick の時点で上流の索引を要らない(未適用の判定は上流の先端の索引を読む)。索引は後の merge で届く
 - 脇の commit で出した修正: 修正を壊れた地点の脇の commit で出して merge すると、その修正を取らなかった fork では脇の commit が区間の merge 先になり、merge すると上流との merge-base が 2 つになる(所有の検査が判定できない)。/flux はその区間を見つけ(`incoming.mjs` の `offLine`)、merge の前に止まって取り方(修正を pick する・ユーザーに聞く)を出す。所有の検査はこの形を判定するように作り直さない(fork は常に pick する前提)
 - 緊急修正との違い: `hotfix:` は人が宣言して全部の区間の前に割り込む。`pick: clean` は機械の印で、修正元の区間の直後に取るだけで前には出ない
 

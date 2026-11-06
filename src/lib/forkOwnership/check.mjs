@@ -57,7 +57,7 @@ const noticeIds = (lsTreeOutput) =>
     .filter((id) => id && id !== "README");
 
 /**
- * ref の消えない索引 .notices/shipped/*.md の行: [{ id, fields }](書式 = scripts/notices/shippedIndex.mjs。src/lib は scripts を
+ * ref の消えない索引 .notices/shipped/*.md の行: [{ id, fields }](書式 = scripts/workflow/notices/shippedIndex.mjs。src/lib は scripts を
  * import しないので、行を読む数行をここに置く: `- id:<id> | key:value …`)。索引の無い版(導入前)は空
  */
 function indexRows(repoRoot, ref) {

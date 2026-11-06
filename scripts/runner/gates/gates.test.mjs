@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { run } from "./run.mjs";
+import { globToRegExp, run } from "./run.mjs";
 import { GateError, loadGates, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -23,9 +23,9 @@ function fixture(t) {
     writeFileSync(join(dir, "gate.json"), typeof decl === "string" ? decl : JSON.stringify(decl));
     for (const [f, text] of Object.entries(files)) writeFileSync(join(dir, f), text);
   };
-  const exec = (argv) => {
+  const exec = (argv, opts = {}) => {
     const lines = [];
-    const code = run(argv, { repo, scriptsDir, log: (l) => lines.push(l) });
+    const code = run(argv, { repo, scriptsDir, log: (l) => lines.push(l), ...opts });
     return { code, out: lines.join("\n") };
   };
   return { repo, scriptsDir, add, exec };
@@ -149,4 +149,44 @@ test("--gate に複数の門: どれかに乗る対象を after の順に 1 回�
   assert.equal(r.code, 0);
   assert.deepEqual(r.out.match(/structure\/\w+: check 通る/g), ["structure/role: check 通る", "structure/domain: check 通る", "structure/routes: check 通る"]);
   assert.equal(f.exec(["check", "--gate=forge:pre,nightly"]).code, 2);
+});
+
+test("watch の glob: ** は何段でも(0 段も)、* は 1 段の中、? は 1 文字、ほかの字はそのまま、パス全体に当てる", () => {
+  const m = (g, p) => globToRegExp(g).test(p);
+  assert.ok(m(".claude/rules/**", ".claude/rules/core/a.md"));
+  assert.ok(m("src/**/domain.json", "src/domain.json"));
+  assert.ok(m("src/**/domain.json", "src/features/a/domain.json"));
+  assert.ok(m("CLAUDE.md", "CLAUDE.md"));
+  assert.ok(!m("CLAUDE.md", "CLAUDExmd"));
+  assert.ok(!m("CLAUDE.md", "docs/CLAUDE.md"));
+  assert.ok(m("src/*.ts", "src/a.ts"));
+  assert.ok(!m("src/*.ts", "src/x/a.ts"));
+  assert.ok(m("a?.md", "ab.md"));
+  assert.ok(!m(".notices/**", ".noticesX/a"));
+});
+
+test("watch: 門 ship で選んだ watch つきの対象は、範囲の変更が当たらなければ飛ばして 1 行出す / 当たれば回す / watch の無い対象・名前で呼んだ時・--all・範囲が決まらない時は回す", (t) => {
+  const f = fixture(t);
+  f.add("workflow", "rules", { check: "check.mjs", gates: ["ship"], watch: ["CLAUDE.md", ".claude/rules/**"] });
+  f.add("workflow", "notices", { check: "check.mjs", gates: ["ship", "forge:post"], watch: [".notices/**"] });
+  f.add("structure", "routes", { check: "check.mjs", gates: ["ship"] });
+  const changed = (files) => ({ changed: () => ({ files, base: "origin/main" }) });
+  const none = f.exec(["check", "--gate=ship"], changed([]));
+  assert.equal(none.code, 0);
+  assert.match(none.out, /workflow\/rules: 変更が watch に当たらないので飛ばした\(--all で回す\)/);
+  assert.match(none.out, /workflow\/notices: 変更が watch に当たらないので飛ばした/);
+  assert.match(none.out, /structure\/routes: check 通る/);
+  const rules = f.exec(["check", "--gate=ship"], changed([".claude/rules/core/x.md"]));
+  assert.match(rules.out, /workflow\/rules: check 通る/);
+  assert.match(rules.out, /workflow\/notices: 変更が watch に当たらないので飛ばした/);
+  for (const argv of [["check", "--gate=ship", "--all"], ["check", "notices"], ["check", "--gate=forge:post"]]) {
+    const out = f.exec(argv, changed([])).out;
+    assert.doesNotMatch(out, /飛ばした/, argv.join(" "));
+  }
+  const unknown = f.exec(["check", "--gate=ship"], { changed: () => ({ files: null, why: "比べる上流の枝が無い" }) });
+  assert.match(unknown.out, /比べる上流の枝が無いので watch を見ずに全部回す/);
+  assert.match(unknown.out, /workflow\/rules: check 通る/);
+  let calls = 0;
+  f.exec(["check", "--gate=forge:post"], { changed: () => (calls++, { files: [] }) });
+  assert.equal(calls, 0, "watch の門でなければ範囲を読まない");
 });

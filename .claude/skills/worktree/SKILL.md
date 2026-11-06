@@ -5,7 +5,7 @@ argument-hint: "[new <やること or ブランチ名> | sync [path] | remove <p
 ---
 
 ワークツリーの作成・env の入れ直し・片付けを、`pnpm worktree:*` コマンドで行います。
-コマンドの仕様・注意点は `scripts/worktree/README.md` が正。ここに git の手順を書き足さない(処理はコマンド側だけに置く)。
+コマンドの仕様・注意点は `scripts/workflow/worktree/README.md` が正。ここに git の手順を書き足さない(処理はコマンド側だけに置く)。
 
 引数: $ARGUMENTS
 

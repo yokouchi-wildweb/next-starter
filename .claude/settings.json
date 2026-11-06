@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/tmux-launch/check.mjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/tmux-launch/check.mjs\""
           }
         ]
       },
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/agent-terminal/hook.mjs\" start",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/agent-terminal/hook.mjs\" start",
             "timeout": 10
           }
         ]
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/agent-terminal/hook.mjs\" busy",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/agent-terminal/hook.mjs\" busy",
             "timeout": 10
           }
         ]
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/agent-terminal/hook.mjs\" stop",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/agent-terminal/hook.mjs\" stop",
             "timeout": 10
           }
         ]
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/agent-terminal/hook.mjs\" precompact",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/agent-terminal/hook.mjs\" precompact",
             "timeout": 10
           }
         ]

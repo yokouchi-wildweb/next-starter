@@ -32,7 +32,7 @@ pnpm worktree:sync [path] [--force]
 pnpm worktree:remove <path>
 ```
 
-複製するファイルの一覧は `scripts/worktree/include`。DB は本体と共有になる点に注意。詳細: [worktree/README.md](./worktree/README.md)
+複製するファイルの一覧は `scripts/workflow/worktree/include`。DB は本体と共有になる点に注意。詳細: [worktree/README.md](./worktree/README.md)
 
 ### 開発サーバーのタブ (dev:tab)
 
