@@ -78,7 +78,8 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 正: 欄の値は索引、本文はその notice を**足した commit の版**(`git show <足した commit>:.notices/<id>.md`)。区間の merge 先や上流の先端の版で代用しない
 - 読む側: `/flux` の流入の発見と区間(`.claude/skills/flux/incoming.mjs`)・`pnpm ownership:check` の「台帳に無い notice」と `resolves:`・`pnpm test:notices` は索引を読む。索引の無い版(導入前の上流・fork 成立点)は本文も読み、両方の和をとる
 - 止まる: 浅い clone・索引に行があるのに足した commit が履歴に無い(履歴の書き換え・食い違い)ときは、未適用ゼロとして進まずに止まる
-- 導入: 上流は今ある全 notice の行を `node scripts/notices/shippedIndex.mjs backfill` で 1 回起こした。自分の notice を出す fork は、最初に同じ backfill で自分の notice だけの索引を作る(親の索引に載る notice は飛ばす)
+- 導入: 上流は今ある全 notice の行を `node scripts/notices/shippedIndex.mjs backfill` で 1 回起こした。自分の notice を出す fork は、最初に同じ backfill で自分の notice だけの索引を作る(他のリポの notice は飛ばす: 親の索引に載る・本文の `from:` が自分の origin でない・台帳に `picked:` = 親から先に取った修正)
+- 片付け: 古い backfill が、親から先に pick した notice(その時の親の索引にまだ行が無かった物)を自分の索引に書いてしまった fork は、`node scripts/notices/shippedIndex.mjs repair` を 1 回走らせて commit する(自分の索引から他のリポの物の行だけを消す。何度走らせても同じ)。消えたその行は追記だけの検査が受け入れる(自分の notice の push 済みの行は今どおり書き換えない)
 
 ## 使う移行・codemod の欄(uses)
 
@@ -131,6 +132,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 
 - 形式: `fixes: <notice id>, commit:<sha>`。修正元に notice があればその id、notice の無い変更なら commit(短 sha 可)。複数可。
 - 書くのは修正側だけ。修正元の notice は編集しない(出荷済みの notice を書き換えず、判断の根拠を 1 か所に保つ)。
+- 前後の検査(`pnpm test:notices`): `fixes:` の参照先は履歴で修正より前に足した notice であること。足した commit は全部見る(修正元を親から先に pick した fork では、上流の元の add と fork の cherry-pick の 2 本がある)ので、参照先のどれかの add が修正の add の祖先なら前とみなす。前を指す(参照先がどれも祖先でない)`fixes:` は止める。
 - 修正に fork 側の追随作業が無くても、`fixes:` を伝えるために `severity: info` + `required_actions: none` の notice を出す。
 - 修正かどうかは出荷する側(/ship)が決める。/flux は宣言を信じ、自分では判定しない。
 - /flux の扱い:

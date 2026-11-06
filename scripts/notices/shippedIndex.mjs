@@ -3,11 +3,14 @@
 // 行は手で書かない。書くのは索引の持ち主のリポだけ(台帳 .notices/applied/<fork_id>.md と同じ理由: 多段の merge で追記が重ならない)。
 // 仕様: .notices/README.md
 //
-// 実行: node scripts/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | verify>
+// 実行: node scripts/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | repair | verify>
 //   add <notice>...  自分の索引の末尾に、その notice の行を 1 本ずつ足す(/ship が notice を出荷する commit の前に)
 //   refresh <notice>... push 前の自分の行を本文から作り直す(skip_checkpoint: を pick-check の後に足したとき。pick: は行の値を保つ。
 //                    push 済みの行・push した版が分からないときは拒否)
-//   backfill         .notices/ 直下と done/ の notice(他のリポの索引に載る物 = 親の notice は除く)の行を、最初に足した commit の履歴順(同じ commit は id 順)に起こす(索引の導入時に 1 回)
+//   backfill         .notices/ 直下と done/ の notice のうち自分の物の行を、最初に足した commit の履歴順(同じ commit は id 順)に起こす(索引の導入時に 1 回)。
+//                    除く = 他のリポの物(他のリポの索引に載る・本文の from: が自分の origin でない・台帳に picked: = 親から先に取った修正)
+//   repair           自分の索引から他のリポの物の行(上の「除く」に当たる行)を消す(何度走らせても同じ)。
+//                    古い backfill が先に pick した親の notice を書いてしまった fork が 1 回走らせる(消した行は追記だけの検査が受け入れる)
 //   verify           全索引(.notices/shipped/*.md)について、追記だけ(前に push した版 = @{u} か origin/HEAD の行が先頭に同じ順で並ぶ)・
 //                    行と本文の一致(本文 1 本に行 1 本、未 commit の notice は自分の索引に。本文の無い行は通る: 本文は区間が閉じれば消してよい)・
 //                    uses: の実在と区切り・skip_checkpoint: の条件を見る(pnpm test:notices も同じ検査を回す)
@@ -219,8 +222,8 @@ export function backfill(repo) {
   const forkId = ownForkId(repo);
   const path = indexPath(repo, forkId);
   if (existsSync(path)) throw new Error(`${SHIPPED_DIR}/${forkId}.md が既にある(起こすのは導入時の 1 回だけ。足すのは add)`);
-  const others = new Set(readIndexes(repo).flatMap((ix) => ix.rows.map((r) => r.id)));
-  const files = new Map([...noticeFiles(repo)].filter(([id]) => !others.has(id)));
+  const foreign = foreignNoticeIds(repo, forkId);
+  const files = new Map([...noticeFiles(repo)].filter(([id]) => !foreign.has(id)));
   const order = historyOrder(repo, new Set(files.keys()));
   const rows = order.map((id) => formatRow(rowFieldsFromNotice(readFileSync(join(repo, files.get(id)), "utf8"))));
   mkdirSync(dirname(path), { recursive: true });
@@ -228,10 +231,101 @@ export function backfill(repo) {
   return rows;
 }
 
-/** 追記だけ: 前に push した版の行が、今の版の先頭に同じ順・同じ文字で並ぶこと(行でない頭書きは見ない)。[理由] */
-export function checkAppendOnly(prevText, curText, file = "") {
-  const prev = prevText.split("\n").filter((l) => l.startsWith("- id:"));
-  const cur = curText.split("\n").filter((l) => l.startsWith("- id:"));
+/** origin の URL を比べられる形に(git@host:path / https://host/path / 末尾の .git を揃える)。無ければ null */
+export function normalizeRepoUrl(url) {
+  if (!url) return null;
+  const m = url.trim().match(/^(?:[a-z+]+:\/\/)?(?:[^@/]+@)?([^:/]+)[:/](.+?)(?:\.git)?\/?$/i);
+  return m ? `${m[1]}/${m[2]}`.toLowerCase() : url.trim().toLowerCase();
+}
+
+/** 自分の origin(比べられる形)。無ければ null */
+export function ownOrigin(repo) {
+  try {
+    return normalizeRepoUrl(git(repo, ["remote", "get-url", "origin"]).trim());
+  } catch {
+    return null;
+  }
+}
+
+/** 台帳 .notices/applied/<fork_id>.md の行のうち picked: のある id(親から先に取った修正) */
+export function pickedNoticeIds(repo, forkId) {
+  const path = join(repo, ".notices/applied", `${forkId}.md`);
+  if (!existsSync(path)) return new Set();
+  return new Set([...readFileSync(path, "utf8").matchAll(/^- id:(\S+?)\s*\|.*\|\s*picked:[0-9a-f]{7,40}\b/gm)].map((m) => m[1]));
+}
+
+/**
+ * 他のリポの物の notice の id: 他のリポの索引に載る・本文の from: が自分の origin でない(origin が分かるときだけ比べる)・台帳に picked:。
+ * backfill はこれを書かず、repair はこれを自分の索引から消し、追記だけの検査は消えたこれの行を受け入れる
+ */
+export function foreignNoticeIds(repo, forkId) {
+  const out = new Set(readIndexes(repo).filter((ix) => ix.owner !== forkId).flatMap((ix) => ix.rows.map((r) => r.id)));
+  for (const id of pickedNoticeIds(repo, forkId)) out.add(id);
+  const origin = ownOrigin(repo);
+  if (origin) {
+    for (const [id, p] of noticeFiles(repo)) {
+      const from = readFileSync(join(repo, p), "utf8").match(/^from:\s*(\S+)/m)?.[1];
+      if (from && from.includes("/") && normalizeRepoUrl(from) !== origin) out.add(id);
+    }
+  }
+  return out;
+}
+
+/** 自分の索引から他のリポの物の行を消す。消した id を返す(無ければ空、ファイルも書かない) */
+export function repair(repo) {
+  const forkId = ownForkId(repo);
+  const path = indexPath(repo, forkId);
+  if (!existsSync(path)) return [];
+  const foreign = foreignNoticeIds(repo, forkId);
+  const text = readFileSync(path, "utf8");
+  const removed = [];
+  const kept = text.split("\n").filter((l) => {
+    if (!l.startsWith("- id:")) return true;
+    const id = parseRow(l).id;
+    if (!foreign.has(id)) return true;
+    removed.push(id);
+    return false;
+  });
+  if (removed.length) writeFileSync(path, kept.join("\n"));
+  return removed;
+}
+
+/** notice を足した commit を全部(--full-history: 親から先に pick した fork では上流の元の add と fork の cherry-pick の両方)。新しい順 */
+export function noticeAddCommits(repo, id) {
+  const out = git(repo, ["log", "--full-history", "--diff-filter=A", "--format=%H", "HEAD", "--", `.notices/${id}.md`, `.notices/done/${id}.md`]).trim();
+  return out ? out.split("\n") : [];
+}
+
+const isAncestorIn = (repo, a, b) => {
+  try {
+    git(repo, ["merge-base", "--is-ancestor", a, b]);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * fixes: の参照先 ref が、修正の notice own より履歴で前に出荷されたか。ref の add のどれかが own の add のどれかの祖先なら前
+ * (pick した fork でも上流の元の add が祖先になる)。own が未 commit なら ref が commit 済みであればよい。ref が未 commit なら前ではない
+ */
+export function fixesPointsBack(repo, refId, ownId) {
+  const refs = noticeAddCommits(repo, refId);
+  if (!refs.length) return false;
+  const owns = noticeAddCommits(repo, ownId);
+  if (!owns.length) return true;
+  return refs.some((r) => owns.some((o) => r !== o && isAncestorIn(repo, r, o)));
+}
+
+/**
+ * 追記だけ: 前に push した版の行が、今の版の先頭に同じ順・同じ文字で並ぶこと(行でない頭書きは見ない)。[理由]
+ * removable = 消してよい id(自分の索引に紛れた他のリポの物、repair が消す)。消えたその行だけは比べない
+ */
+export function checkAppendOnly(prevText, curText, file = "", removable = new Set()) {
+  const curAll = curText.split("\n").filter((l) => l.startsWith("- id:"));
+  const curIds = new Set(curAll.map((l) => parseRow(l).id));
+  const prev = prevText.split("\n").filter((l) => l.startsWith("- id:") && !(removable.has(parseRow(l).id) && !curIds.has(parseRow(l).id)));
+  const cur = curAll;
   const problems = [];
   for (let i = 0; i < prev.length; i++) {
     if (cur[i] === prev[i]) continue;
@@ -263,6 +357,13 @@ export function pushedRef(repo) {
 export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
   if (!ref) return { unverified: "前に push した版が分からない(@{u} も origin/HEAD も無い)", problems: [] };
   const problems = [];
+  let own = null;
+  try {
+    own = ownForkId(repo);
+  } catch {
+    own = null;
+  }
+  const foreign = own ? foreignNoticeIds(repo, own) : new Set();
   for (const ix of readIndexes(repo)) {
     let prev = "";
     try {
@@ -270,7 +371,7 @@ export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
     } catch {
       prev = ""; // まだ push していないファイル
     }
-    problems.push(...checkAppendOnly(prev, ix.text, ix.file));
+    problems.push(...checkAppendOnly(prev, ix.text, ix.file, ix.owner === own ? foreign : new Set()));
   }
   return { problems };
 }
@@ -412,6 +513,11 @@ export function run(repo, argv, log = console.log) {
       for (const r of refresh(repo, rest)) log(`shipped-index: 作り直した ${r.length > 120 ? `${r.slice(0, 117)}...` : r}`);
       return 0;
     }
+    if (cmd === "repair") {
+      const removed = repair(repo);
+      log(removed.length ? `shipped-index: 他のリポの物の行を消した: ${removed.join(", ")}` : "shipped-index: 消す行は無い");
+      return 0;
+    }
     if (cmd === "backfill") {
       log(`shipped-index: ${backfill(repo).length} 行を起こした`);
       return 0;
@@ -426,7 +532,7 @@ export function run(repo, argv, log = console.log) {
     log(`shipped-index: できない — ${e.message}`);
     return 2;
   }
-  log("usage: node scripts/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | verify>");
+  log("usage: node scripts/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | repair | verify>");
   return 2;
 }
 

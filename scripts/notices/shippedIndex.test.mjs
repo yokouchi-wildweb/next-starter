@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkAll, checkAppendOnly, checkRows, checkSkipCheckpoint, checkUses, formatRow, parseIndex, parseRow, refresh, rowFieldsFromNotice, rowFromNotice, run, writeRowPick } from "./shippedIndex.mjs";
+import { checkAll, checkAppendOnly, checkRows, checkSkipCheckpoint, checkUses, fixesPointsBack, foreignNoticeIds, formatRow, normalizeRepoUrl, parseIndex, parseRow, refresh, repair, rowFieldsFromNotice, rowFromNotice, run, writeRowPick } from "./shippedIndex.mjs";
 
 function notice(id, extra = []) {
   return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "date: x", "severity: info", ...extra, "change: c", "why: w", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
@@ -246,4 +246,82 @@ test("refresh: a pushed row, a missing row or an unknown pushed version is refus
   const out = [];
   assert.equal(run(r.dir, ["refresh", ".notices/20990101-000002-b.md"], (l) => out.push(l)), 2);
   assert.match(out.join(), /分からない/);
+});
+
+// 親から先に pick した fork の形(受信箱 20261105-140157・20261106-162044):
+// 親 = up、fork = child。親が修正元 S を出し、fork が S の commit を cherry-pick(台帳 picked:)、親が S の修正 F(fixes: S)を出し、fork が親を merge
+const UP = "git@github.com:acme/up.git";
+const noticeFrom = (id, from, extra = []) => notice(id, extra).replace("from: up", `from: ${from} | branch:main | commit:-`);
+
+function pickShaped(t) {
+  const up = repo(t);
+  const S = "20990101-000001-src";
+  const F = "20990101-000003-fix";
+  const sha = up.commit({ [`.notices/${S}.md`]: noticeFrom(S, UP, ["checkpoint: s", "hotfix: yes"]), "src/a.ts": "a2\n" }, "src");
+  const fork = mkdtempSync(join(tmpdir(), "shipped-fork-"));
+  t.after(() => rmSync(fork, { recursive: true, force: true }));
+  const g = (...a) => execFileSync("git", ["-C", fork, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  g("init", "-q", "-b", "main");
+  g("config", "user.email", "t@t");
+  g("config", "user.name", "t");
+  g("remote", "add", "upstream", up.dir);
+  g("fetch", "-q", "upstream");
+  g("reset", "-q", "--hard", `${sha}~1`);
+  g("remote", "add", "origin", "git@github.com:acme/child.git");
+  writeFileSync(join(fork, ".claude/rules/project.md"), "fork_id: child\n");
+  g("add", "-A");
+  g("commit", "-qm", "fork start");
+  g("cherry-pick", "-x", sha);
+  mkdirSync(join(fork, ".notices/applied"), { recursive: true });
+  writeFileSync(join(fork, ".notices/applied/child.md"), `# APPLIED LEDGER\n- id:${S} | date:x | commit:- | upstream:${sha.slice(0, 9)} | picked:${sha}\n`);
+  g("add", "-A");
+  g("commit", "-qm", "ledger");
+  up.commit({ [`.notices/${F}.md`]: noticeFrom(F, UP, ["checkpoint: f", `fixes: ${S}`]), "src/a.ts": "a3\n" }, "fix");
+  return { up, fork, g, S, F };
+}
+
+test("fixes: の前後: 親から先に pick した fork でも、後から届いた修正の fixes: を通す(上流の元の add が祖先)。前を指す fixes: は止める", (t) => {
+  const { fork, g, S, F } = pickShaped(t);
+  g("fetch", "-q", "upstream");
+  g("merge", "-q", "--no-edit", "-X", "theirs", "upstream/main");
+  assert.equal(fixesPointsBack(fork, S, F), true);
+  assert.equal(fixesPointsBack(fork, F, S), false);
+  // pick していない普通の履歴: 前は通り、後ろ(未来)を指せば止まる
+  const r = repo(t);
+  r.commit({ ".notices/20990101-000001-a.md": notice("20990101-000001-a") });
+  r.commit({ ".notices/20990101-000002-b.md": notice("20990101-000002-b") });
+  assert.equal(fixesPointsBack(r.dir, "20990101-000001-a", "20990101-000002-b"), true);
+  assert.equal(fixesPointsBack(r.dir, "20990101-000002-b", "20990101-000001-a"), false);
+  // 修正の notice が未 commit: 参照先が commit 済みなら通す、参照先も未 commit なら止める
+  r.put({ ".notices/20990101-000009-new.md": notice("20990101-000009-new") });
+  assert.equal(fixesPointsBack(r.dir, "20990101-000002-b", "20990101-000009-new"), true);
+  assert.equal(fixesPointsBack(r.dir, "20990101-000008-nope", "20990101-000009-new"), false);
+});
+
+test("backfill / repair: 親から先に pick した notice(from: が自分の origin でない・台帳に picked:)は自分の索引に書かない。紛れた行は repair が消し、追記だけの検査は消したその行を受け入れる(自分の行は今どおり)", (t) => {
+  assert.equal(normalizeRepoUrl("git@github.com:Acme/Up.git"), normalizeRepoUrl("https://github.com/acme/up/"));
+  const { fork, g, S } = pickShaped(t);
+  const own = "20990101-000002-own";
+  writeFileSync(join(fork, `.notices/${own}.md`), noticeFrom(own, "git@github.com:acme/child.git", ["checkpoint: o"]));
+  g("add", "-A");
+  g("commit", "-qm", "own");
+  assert.deepEqual([...foreignNoticeIds(fork, "child")], [S]);
+  assert.equal(run(fork, ["backfill"], quiet), 0);
+  assert.deepEqual(rows(fork, "child").map((l) => parseRow(l).id), [own]);
+  // 古い backfill が書いてしまった fork: S の行を前に push した版に持つ
+  const rowS = formatRow(rowFieldsFromNotice(noticeFrom(S, UP, ["checkpoint: s", "hotfix: yes"])));
+  const rowOwn = rows(fork, "child")[0];
+  const pushed = `# SHIPPED child\n\n${rowS}\n${rowOwn}\n`;
+  const removable = foreignNoticeIds(fork, "child");
+  assert.deepEqual(checkAppendOnly(pushed, `# SHIPPED child\n\n${rowOwn}\n`, "child.md", removable), []);
+  assert.equal(checkAppendOnly(pushed, `# SHIPPED child\n\n${rowS}\n`, "child.md", removable).length, 1, "自分の行が消えたら止める");
+  writeFileSync(join(fork, ".notices/shipped/child.md"), pushed);
+  assert.deepEqual(repair(fork), [S]);
+  assert.deepEqual(rows(fork, "child").map((l) => parseRow(l).id), [own]);
+  assert.deepEqual(repair(fork), [], "2 回目は何もしない");
+  // 親の索引が同じ id を持ち込んでも 2 本にならない
+  g("fetch", "-q", "upstream");
+  mkdirSync(join(fork, ".notices/shipped"), { recursive: true });
+  writeFileSync(join(fork, ".notices/shipped/up.md"), `# SHIPPED up\n\n${rowS}\n`);
+  assert.deepEqual(checkRows({ indexes: [{ owner: "up", file: ".notices/shipped/up.md", rows: parseIndex(readFileSync(join(fork, ".notices/shipped/up.md"), "utf8")) }, { owner: "child", file: ".notices/shipped/child.md", rows: parseIndex(readFileSync(join(fork, ".notices/shipped/child.md"), "utf8")) }], notices: new Map(), own: "child" }).filter((p) => p.includes("2 本")), []);
 });

@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkAll, readIndexes } from "./shippedIndex.mjs";
+import { checkAll, fixesPointsBack, readIndexes } from "./shippedIndex.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const NOTICES = ".notices";
@@ -74,15 +74,6 @@ function addCommit(id) {
   return out ? out.split("\n").at(-1) : null;
 }
 
-function isAncestor(a, b) {
-  try {
-    git(["merge-base", "--is-ancestor", a, b]);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function commitExists(sha) {
   try {
     git(["cat-file", "-e", `${sha}^{commit}`]);
@@ -143,15 +134,14 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
     if (n.fields.fixes === undefined) continue;
     const { ids, commits } = parseFixes(n.fields.fixes);
     if (!ids.length && !commits.length) problems.push(`${n.path}: fixes: が空です`);
-    // 未コミットの新しい notice は追加 commit が無い(参照先がコミット済みであることだけを見る)
-    const own = addCommit(n.id);
+    // 前後は足した commit の祖先関係(fixesPointsBack: 未コミットの新しい notice は参照先がコミット済みであることだけを見る。
+    // 修正元を親から先に pick した fork では、上流の元の add が修正の add の祖先になる)
     for (const id of ids) {
       if (!allIds.has(id)) {
         problems.push(`${n.path}: fixes: ${id} が .notices/ にも done/ にもありません`);
         continue;
       }
-      const ref = addCommit(id);
-      if (id === n.id || !ref || (own && (ref === own || !isAncestor(ref, own)))) {
+      if (id === n.id || !fixesPointsBack(repoRoot, id, n.id)) {
         problems.push(`${n.path}: fixes: ${id} は履歴上で自分より前に出荷された notice ではありません`);
       }
     }
