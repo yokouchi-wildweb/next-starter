@@ -296,7 +296,7 @@ test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めな
   hasAll(classesOf(html, /<x-darkmode class="([^"]*)">/), ["shrink-0"]);
 });
 
-test("名前のとても長い項目の編集: 明暗の切り替えは行の中・操作の後に描き、選択欄は SP だけ最小幅を外して … で省く(ラベルは SP で見た目だけ隠す)、PC の大きさは前のまま", () => {
+test("名前のとても長い項目の編集: 明暗の切り替えは行の中・操作の後に描き、選択欄は SP だけ最小幅を外し、値はどの画面幅でも … で省く(ラベルは SP で見た目だけ隠す)、PC の大きさは前のまま", () => {
   const html = page(
     <AdminPage title="T" actions={<AdminEditItemNavigator domain={{ singular: "sample", plural: "samples" } as never} current={{ id: "a" }} />}>
       CHILD
@@ -308,7 +308,7 @@ test("名前のとても長い項目の編集: 明暗の切り替えは行の中
   const sw = header.indexOf("<x-darkmode");
   assert.ok(right > 0 && sw > right, header);
   assert.ok(header.indexOf("<button", right) < sw, "選択欄は切り替えの前");
-  // 選択欄(SelectTrigger): PC の幅(160〜240px)は前のまま、SP だけ縮んで値を … で省く
+  // 選択欄(SelectTrigger): PC の幅(160〜240px)は前のまま、SP だけ縮む。値の … は ItemNavigator の決まり(どの画面幅でも)
   const trigger = classesOf(header, /<button[^>]* class="([^"]*)"/);
   hasAll(trigger, [
     "min-w-[160px]",
@@ -317,9 +317,9 @@ test("名前のとても長い項目の編集: 明暗の切り替えは行の中
     "max-sm:py-0",
     "max-sm:min-w-0",
     "max-sm:max-w-none",
-    "max-sm:*:data-[slot=select-value]:block",
-    "max-sm:*:data-[slot=select-value]:min-w-0",
-    "max-sm:*:data-[slot=select-value]:truncate",
+    "*:data-[slot=select-value]:block",
+    "*:data-[slot=select-value]:min-w-0",
+    "*:data-[slot=select-value]:truncate",
   ]);
   // ラベル「切り替え」は SP で見た目だけ隠す(読み上げには残る)。PC は出す
   hasAll(classesOf(header, /<span class="([^"]*)">切り替え<\/span>/), ["shrink-0", "max-sm:sr-only"]);

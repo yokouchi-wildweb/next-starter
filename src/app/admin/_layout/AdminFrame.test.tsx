@@ -285,6 +285,20 @@ test("AdminPage actions に置いた ItemNavigator は行の右の位置(data-sl
   assert.ok(html.indexOf("L-A") < html.indexOf("L-B") || !html.includes("L-B"), "候補の順");
 });
 
+test("ItemNavigator の長い項目名: 閉じた値はどの画面幅でも … で省き、開いた一覧は画面の幅 − 左右 16px までで項目名を折り返す", () => {
+  const long = "長".repeat(198);
+  const html = render(<ItemNavigator items={[{ id: "a" }]} currentId="a" getPath={(id) => `/admin/x/${id}/edit`} getLabel={() => long} />);
+  // 選択欄(閉じた状態)に値の省略のクラス。max-sm: の付かない形 = PC でも効く
+  for (const cls of ["*:data-[slot=select-value]:block", "*:data-[slot=select-value]:min-w-0", "*:data-[slot=select-value]:truncate"]) {
+    assert.ok(html.includes(` ${cls}`) || html.includes(`"${cls}`), `選択欄に ${cls}`);
+  }
+  // 開いた一覧はポータルで描くので、部品が SelectInput に渡す contentClassName を字面で見る
+  const source = read(`${NAV_DIR}/ItemNavigator.tsx`);
+  assert.match(source, /contentClassName=\{LIST_BOUNDED\}/);
+  assert.match(source, /max-w-\[calc\(100vw-2rem\)\]/);
+  assert.match(source, /\[&_\[data-slot=select-item\]\]:whitespace-normal/);
+});
+
 test("上流の編集画面(core 3・サンプル 3・管理の _template)は AdminPage actions に AdminEditItemNavigator を置き", () => {
   const screens = [
     "src/app/admin/_template/__domains__/[id]/edit/_screen/Admin__Domain__EditScreen.tsx",
@@ -302,11 +316,11 @@ test("上流の編集画面(core 3・サンプル 3・管理の _template)は Ad
   const part = read("src/app/admin/_layout/AdminEditItemNavigator.tsx");
   assert.match(part, /useDomainItemNavigation\(options\)/);
   assert.match(part, /<ItemNavigator \{\.\.\.navigation\}/);
-  // ヘッダーの行(SP 52px・中身 36px)に収める: SP だけ選択欄を h-8 に詰めて縮め(… で省く)、ラベルは見た目だけ隠す。PC は既定の大きさのまま
+  // ヘッダーの行(SP 52px・中身 36px)に収める: SP だけ選択欄を h-8 に詰めて縮め、ラベルは見た目だけ隠す。PC は既定の大きさのまま(… は ItemNavigator の決まり)
   assert.match(part, /const SP_FIT =\s*"max-sm:!h-8 max-sm:py-0 max-sm:min-w-0 /);
   assert.match(part, /const SP_LABEL = "max-sm:sr-only";/);
   assert.match(part, /labelClassName=\{SP_LABEL\} selectClassName=\{SP_FIT\}/);
-  assert.match(read(`${NAV_DIR}/ItemNavigator.tsx`), /className=\{cn\("min-w-\[160px\] max-w-\[240px\]", selectClassName\)\}/);
+  assert.match(read(`${NAV_DIR}/ItemNavigator.tsx`), /className=\{cn\("min-w-\[160px\] max-w-\[240px\]", VALUE_TRUNCATE, selectClassName\)\}/);
   const hook = read("src/lib/crud/hooks/useDomainItemNavigation.ts");
   assert.match(hook, /createApiClient<T>\(`\/api\/\$\{domain\.singular\}`\)/);
   assert.match(hook, /getAdminPaths\(domain\.plural\)\.edit/);
