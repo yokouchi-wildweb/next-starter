@@ -20,7 +20,7 @@ tmux が無ければ何も入れずに止まる(exit 2)。先に入れる: Debia
 - **シェルの設定**: `~/.bashrc`(`$SHELL` が zsh なら `~/.zshrc`)に、中身を読み込む 1 行
 - **`~/.tmux.conf`**: Claude Code の文書(terminal-config)が tmux に勧める設定 + タブの移動と見た目
   - `allow-passthrough on`(通知・進み具合が外のターミナルに届く)/ `focus-events on` / `extended-keys on` + `terminal-features 'xterm*:extkeys'`(Shift+Enter で改行)/ `mouse on`
-  - タブの移動と見た目はチームツールと同じ: F1-F12 でそのタブへ、Shift+←→ で前後、タブはクリックでも移動、タブは 1 から(claude = F1、`pnpm dev:tab` の Dev = F2)。下に 2 行(セッション名とタブの並び / 操作の案内)、各タブの上の枠に名札、履歴 50000 行、truecolor。色は緑(`colour114`。チームの色と重ならない)
+  - タブの移動と見た目はチームツールと同じ: F1-F12 でそのタブへ、Shift+←→ で前後、タブはクリックでも移動、タブは 1 から(claude = F1、`pnpm dev:tab` の Dev = F2)。下に 2 行(セッション名とタブの並び / 操作の案内)、各タブの上の枠に名札、履歴 50000 行、truecolor。色は Claude のテーマ色のオレンジ(`#d97757`。チームの色と重ならない)
   - 既定(`-g`)として書くので、チームツールのセッションは自分の色で上書きしたまま変わらない
   - 動いている tmux サーバーがあれば `tmux source-file` で読み直させる
   - どれも `-q` 付き(その版の tmux が知らない設定は黙って飛ばす。`allow-passthrough` は tmux 3.3 から。`-q` が無いと、tmux サーバーの起動時 = 最初の 1 回だけ、設定のエラーが最初のタブに重なって出て claude が隠れる)

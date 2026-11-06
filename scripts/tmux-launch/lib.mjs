@@ -14,8 +14,8 @@ export const SOURCE = path.join(path.dirname(fileURLToPath(import.meta.url)), "c
 export const BLOCK_START = "# >>> next-starter claude-tmux >>>";
 export const BLOCK_END = "# <<< next-starter claude-tmux <<<";
 
-/** 通常セッションの色(チームツールの各チームの色と重ならない緑。guild=208 / fleet=39 / council=135 / quest=117) */
-export const SESSION_COLOUR = "colour114";
+/** 通常セッションの色(Claude のテーマ色。チームツールの各チームの色と重ならない。guild=172 / hq=214 / fleet=39 / council=135 / quest=117 / lounge=109) */
+export const SESSION_COLOUR = "#d97757";
 
 // 状態の行の 1 つのタブ / 今のタブ(#{W:a,b} の中ではカンマが枝の区切りなので、#[...] には属性を 1 つずつ書く)
 const TAB = " #[range=window|#{window_index}]#[fg=colour250]#{window_index} #{window_name}#[norange] #[fg=colour240]│";
