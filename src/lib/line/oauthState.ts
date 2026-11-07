@@ -1,5 +1,6 @@
 // src/lib/line/oauthState.ts
 
+import { isDevelopment } from "@/lib/appEnv";
 import { randomBytes } from "crypto";
 
 import { sanitizeRedirectPath } from "@/lib/url";
@@ -70,7 +71,7 @@ export function issueOAuthState({
       name: cookieName,
       value: nonce,
       httpOnly: true,
-      secure: process.env.APP_ENV === "production",
+      secure: !isDevelopment(),
       sameSite: "lax",
       path: "/",
       maxAge: LINE_OAUTH_STATE_MAX_AGE_SECONDS,

@@ -285,7 +285,7 @@ if (!verified.ok) { /* invalid_state で "/" へ。cookie は消す */ }
 ```
 
 - state = base64url の JSON `{ nonce, redirectAfter }`、nonce = ランダム 16 byte の hex
-- cookie: `httpOnly`・`sameSite: lax`・`path: /`・10 分（`LINE_OAUTH_STATE_MAX_AGE_SECONDS`）・`secure` は `APP_ENV === "production"` のとき
+- cookie: `httpOnly`・`sameSite: lax`・`path: /`・10 分（`LINE_OAUTH_STATE_MAX_AGE_SECONDS`）・`secure` は段階が development 以外のとき（`!isDevelopment()`、`@/lib/appEnv`）
 - `cookieName` の既定は `LINE_OAUTH_NONCE_COOKIE`（上流の連携の流れ）。別の流れ（ログインなど）は別の名前にすれば同時に進んでも互いの nonce を上書きしない
 - 照合の後（成功・失敗とも）、呼び手が `response.cookies.delete(cookieName)` で cookie を消す
 - 利用者を引く・作る・セッションを出すのは auth README「新しい認証手段」（createFromProvider → establishSession）

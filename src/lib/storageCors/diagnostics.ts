@@ -6,7 +6,7 @@
 // 背景:
 //   ドキュメントを整備しても、辿り着かなかった開発者は CORS 未設定のまま実装を進め、
 //   本番で初めて `Failed to fetch`(MSE/fetch) や tainted canvas(SecurityError) に直面する。
-//   これらの素のエラーは原因が分かりにくい。そこで開発時(NODE_ENV !== "production")に限り、
+//   これらの素のエラーは原因が分かりにくい。そこで開発時(段階が development、@/lib/appEnv)に限り、
 //   「CORS 未設定の可能性」と対処コマンド・一次ドキュメントへの導線を console に案内する。
 //
 // 重要な設計方針:
@@ -17,6 +17,7 @@
 //   - 新基盤の 2 バケットも診断する: 公開バケットは publicStorageHosts / 公開 base(lib/storage/ref)から、
 //     非公開バケットは固定 URL /api/storage/objects/<id>(同一 origin だが 302 で非公開バケットへ飛ぶ)から判別する。
 
+import { isDevelopment } from "@/lib/appEnv";
 import { isPrivateObjectPath, isPublicStorageUrl, publicStorageHosts } from "@/lib/storage/ref";
 
 /** 一次ドキュメント(設定手順・前提・判定ルール・トラブルシュートの集約先)。 */
@@ -41,7 +42,7 @@ const FIREBASE_STORAGE_HOST_HINTS = [
 const warnedKeys = new Set<string>();
 
 function isDev(): boolean {
-  return process.env.NODE_ENV !== "production";
+  return isDevelopment();
 }
 
 function isBrowser(): boolean {

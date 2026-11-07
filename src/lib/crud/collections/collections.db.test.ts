@@ -18,7 +18,7 @@ import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
 import type { CrudStorageBinding } from "@/lib/crud/storageIntegration/types";
 
-const envFile = resolve(process.cwd(), process.env.APP_ENV ?? ".env.development");
+const envFile = resolve(process.cwd(), process.env.ENV_FILE ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
 
 const skip = (process.env.DATABASE_URL ?? "").trim().length === 0;

@@ -92,7 +92,7 @@ pnpm db:setup
 pnpm test:schema-registry
 
 # push の読み取り専用ドライラン: スキーマと DB を比較し、実行される SQL を表示 (1 文でもあれば exit 1)
-# (index を追加・変更したら db:push 後に差分ゼロを確認。APP_ENV=.env.production で本番の事前確認にも)
+# (index を追加・変更したら db:push 後に差分ゼロを確認。ENV_FILE=.env.production で本番の事前確認にも)
 pnpm db:push:check
 ```
 
@@ -159,7 +159,7 @@ pnpm cron:generate --plan pro     # Vercel Pro: task.ts の schedule どおり
 pnpm cron:check
 ```
 
-- `pnpm task` は env ファイルを読む（`APP_ENV`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
+- `pnpm task` は env ファイルを読む（`ENV_FILE`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
 - タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/test/serverOnlyStub.mjs`、下記「テスト」）を付けている。
 
 定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:

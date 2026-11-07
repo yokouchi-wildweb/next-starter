@@ -1,3 +1,4 @@
+import { isDevelopment } from "@/lib/appEnv";
 import type { NextRequest, NextResponse } from 'next/server';
 
 import { APP_FEATURES } from '@/config/app/app-features.config';
@@ -32,7 +33,7 @@ export const inviteLinkDecorator: ProxyResponseDecorator = (
   response.cookies.set(INVITE_LINK_COOKIE_NAME, code, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: !isDevelopment(),
     path: '/',
     maxAge: INVITE_LINK_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60,
   });

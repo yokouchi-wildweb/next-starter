@@ -10,8 +10,8 @@
 //   - 本番 DB に対して「これから何が実行されるか」を安全に事前確認する。
 //
 // 実行:
-//   pnpm db:push:check                         # .env.development (APP_ENV 未指定時の既定)
-//   APP_ENV=.env.production pnpm db:push:check # 任意の env ファイル (drizzle.config.ts と同じ規約)
+//   pnpm db:push:check                         # .env.development (ENV_FILE 未指定時の既定)
+//   ENV_FILE=.env.production pnpm db:push:check # 任意の env ファイル (drizzle.config.ts と同じ規約)
 //   pnpm db:push:check -- --allow-defaults     # SET/DROP DEFAULT 行だけを無視 (fork 固有の default 事情向け退避口)
 //
 // 前提: drizzle-kit/api の pushSchema はバインドパラメータを捨てるバグがあるため、
@@ -21,10 +21,10 @@ import { resolve } from "node:path";
 
 import { config as loadEnv } from "dotenv";
 
-const envFile = process.env.APP_ENV ?? ".env.development";
+const envFile = process.env.ENV_FILE ?? ".env.development";
 const envFilePath = resolve(process.cwd(), envFile);
 if (!existsSync(envFilePath)) {
-  console.error(`APP_ENV="${envFile}" で指定された環境変数ファイルが見つかりません。`);
+  console.error(`ENV_FILE="${envFile}" で指定された環境変数ファイルが見つかりません。`);
   process.exit(2);
 }
 loadEnv({ path: envFilePath });

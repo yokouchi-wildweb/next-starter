@@ -1,5 +1,6 @@
 // src/lib/userDirty/context.ts
 
+import { isDevelopment } from "@/lib/appEnv";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 /**
@@ -56,7 +57,7 @@ export function markUserDirty(userId: string | null | undefined): void {
 
   const store = userDirtyStore.getStore();
   if (!store) {
-    if (process.env.NODE_ENV !== "production") {
+    if (isDevelopment()) {
       console.warn(
         "[userDirty] markUserDirty がトラッキングスコープ外で呼ばれました。無視します（日次安全網で補正される想定）:",
         userId,

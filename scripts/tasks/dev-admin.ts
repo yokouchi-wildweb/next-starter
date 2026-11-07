@@ -5,11 +5,13 @@
 // - パスワード = AUTH_JWT_SECRET から HMAC で決まる値。env はワークツリーにも複製されるので本体と同じ値になり、記録ファイルが要らない
 // - 無ければ userService.createAdmin で作る(runAsSystem の中なので監査に system として残る)
 // - あればそのまま使う。パスワードが合わなければ合わせ直し、ロックが掛かっていれば外す。論理削除済みなら createAdmin の復元に任せる
-// - 止まる: NODE_ENV=production / APP_ENV が .env.development* でない / AUTH_JWT_SECRET が無い / DB 未設定
+// - 止まる: 段階(APP_ENV、@/lib/appEnv)が development でない / ENV_FILE が .env.development* でない / AUTH_JWT_SECRET が無い / DB 未設定
 // 使い方: scripts/tasks/README.md「エージェントの確認用の管理者」
 
 import { createHmac } from "node:crypto";
 import path from "node:path";
+
+import { parseAppEnv } from "@/lib/appEnv";
 
 import type { OneShotTask } from "./types";
 
@@ -22,9 +24,10 @@ export const devAdminPassword = (secret: string): string =>
 
 /** 開発環境でないなら理由、開発環境なら null */
 export const notDevelopmentReason = (env: NodeJS.ProcessEnv): string | null => {
-  if (env.NODE_ENV === "production") return "NODE_ENV=production では動きません";
-  const appEnv = path.basename(env.APP_ENV || ".env.development");
-  if (!appEnv.startsWith(".env.development")) return `APP_ENV=${env.APP_ENV} では動きません(.env.development* だけ)`;
+  const stage = parseAppEnv(env.APP_ENV);
+  if (stage !== "development") return `段階が ${stage} では動きません(env ファイルの APP_ENV=development だけ。無い・知らない値は production)`;
+  const envFile = path.basename(env.ENV_FILE || ".env.development");
+  if (!envFile.startsWith(".env.development")) return `ENV_FILE=${env.ENV_FILE} では動きません(.env.development* だけ)`;
   if (!env.AUTH_JWT_SECRET) return "AUTH_JWT_SECRET がありません(pnpm env:init)";
   return null;
 };

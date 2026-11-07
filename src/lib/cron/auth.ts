@@ -7,7 +7,9 @@
 // 環境変数:
 //   CRON_SECRET     本番/ステージング用のシークレット（必須）
 //
-// 開発環境では認証をバイパスする（ローカル開発の利便性のため）。
+// 開発環境(段階が development、@/lib/appEnv)では認証をバイパスする（ローカル開発の利便性のため）。
+
+import { isDevelopment } from "@/lib/appEnv";
 
 /**
  * cron リクエストを検証する
@@ -18,7 +20,7 @@
  * CRON_SECRET が未設定の場合は本番でも false を返す（fail-closed）。
  */
 export function verifyCronRequest(req: Request): boolean {
-  if (process.env.NODE_ENV === "development") {
+  if (isDevelopment()) {
     return true;
   }
 

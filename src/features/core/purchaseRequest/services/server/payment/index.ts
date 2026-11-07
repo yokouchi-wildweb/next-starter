@@ -1,5 +1,6 @@
 // src/features/core/purchaseRequest/services/server/payment/index.ts
 
+import { isDevelopment } from "@/lib/appEnv";
 import type { PaymentProvider } from "@/features/core/purchaseRequest/types/payment";
 import { dummyPaymentProvider } from "./dummyProvider";
 import { fincodePaymentProvider } from "./fincode";
@@ -31,8 +32,8 @@ export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square" | "s
 export function getPaymentProvider(providerName: PaymentProviderName): PaymentProvider {
   switch (providerName) {
     case "dummy":
-      if (process.env.NODE_ENV === "production") {
-        throw new Error("Dummy payment provider is not allowed in production");
+      if (!isDevelopment()) {
+        throw new Error("Dummy payment provider is allowed only in development (APP_ENV=development)");
       }
       return dummyPaymentProvider;
 

@@ -7,7 +7,7 @@
 //
 // 実行:
 //   pnpm db:push                                        # .env.development 固定
-//   APP_ENV=.env.production pnpm exec tsx scripts/registry/push.ts   # 任意の env ファイル
+//   ENV_FILE=.env.production pnpm exec tsx scripts/registry/push.ts   # 任意の env ファイル
 //   ... --force                                         # データ消失を伴う文も確認なしで実行
 //
 // 挙動は drizzle-kit push に合わせる:
@@ -22,10 +22,10 @@ import { createInterface } from "node:readline/promises";
 
 import { config as loadEnv } from "dotenv";
 
-const envFile = process.env.APP_ENV ?? ".env.development";
+const envFile = process.env.ENV_FILE ?? ".env.development";
 const envFilePath = resolve(process.cwd(), envFile);
 if (!existsSync(envFilePath)) {
-  console.error(`APP_ENV="${envFile}" で指定された環境変数ファイルが見つかりません。`);
+  console.error(`ENV_FILE="${envFile}" で指定された環境変数ファイルが見つかりません。`);
   process.exit(2);
 }
 loadEnv({ path: envFilePath });

@@ -1,5 +1,6 @@
 // src/lib/errors/httpError.ts
 
+import { isDevelopment } from "@/lib/appEnv";
 import axios from "axios";
 
 export type HttpErrorParams = {
@@ -68,7 +69,7 @@ const DEFAULT_FALLBACK_MESSAGE = "リクエストに失敗しました";
  * サーバーがボディに載せる domain / operation があれば併記する（ドメインルートのみ）。
  */
 function warnAuthDenialInDev(status: number, url: string | undefined, responseData: unknown): void {
-  if (process.env.NODE_ENV === "production") return;
+  if (!isDevelopment()) return;
   if (typeof window === "undefined") return;
 
   const info =

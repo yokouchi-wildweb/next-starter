@@ -11,8 +11,8 @@
 
 import dotenv from "dotenv";
 
-// APP_ENV で指定された環境ファイルを読み込む(デフォルト: .env.development)
-dotenv.config({ path: process.env.APP_ENV || ".env.development" });
+// ENV_FILE で指定された環境ファイルを読み込む(デフォルト: .env.development)
+dotenv.config({ path: process.env.ENV_FILE || ".env.development" });
 
 import { getServerStorage } from "@/lib/firebase/server/app";
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { isDevelopment } from "@/lib/appEnv";
 import React from "react";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
 import { ChevronDownIcon } from "lucide-react";
@@ -61,7 +62,7 @@ export function EditableGridCell<T>({
 
   // 開発時警告: readonly 以外で cellAction を指定した場合
   React.useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && column.cellAction && !flags.isReadOnly) {
+    if (isDevelopment() && column.cellAction && !flags.isReadOnly) {
       console.warn(
         `EditableGridCell: cellAction は editorType: "readonly" の場合のみ有効です。field: "${column.field}" では無視されます。`,
       );

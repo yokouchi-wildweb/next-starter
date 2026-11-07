@@ -5,7 +5,7 @@
 // 同梱の sample-counter namespace を使用し、ルームIDは実行ごとにユニーク (状態汚染なし)。
 //
 // 接続先: env の REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET
-//   (APP_ENV で指定された環境ファイル、デフォルト .env.development。
+//   (ENV_FILE で指定された環境ファイル、デフォルト .env.development。
 //    直接指定も可: REALTIME_ROOM_URL=... REALTIME_ROOM_AUTH_SECRET=... pnpm room:check)
 // ローカル Worker (pnpm room:dev) に対しても実行できる:
 //   REALTIME_ROOM_URL=http://localhost:8787 REALTIME_ROOM_AUTH_SECRET=<.dev.varsの値> pnpm room:check
@@ -28,7 +28,7 @@ import { SignJWT } from "jose";
 
 import { ROOM_PROTOCOL_VERSION } from "../../src/lib/realtimeRoom/protocol";
 
-dotenv.config({ path: process.env.APP_ENV || ".env.development" });
+dotenv.config({ path: process.env.ENV_FILE || ".env.development" });
 
 const baseUrl = process.env.REALTIME_ROOM_URL?.trim().replace(/\/$/, "");
 const secretRaw = process.env.REALTIME_ROOM_AUTH_SECRET?.trim();

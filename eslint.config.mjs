@@ -9,6 +9,7 @@ import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
+import appEnvPlugin from "./eslint-rules/app-env.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
@@ -276,6 +277,17 @@ const config = [
     plugins: { "intersection-observer": intersectionObserverPlugin },
     rules: {
       "intersection-observer/via-use-in-view": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  // 段階の読み手は 1 つだけ(本部 D178。詳細: eslint-rules/app-env.mjs, src/lib/appEnv/README.md)。process.env.APP_ENV / NODE_ENV を
+  // 直接読まず @/lib/appEnv を通す。テストも対象(差し替えは withAppEnv)。対象外 = 読み手の src/lib/appEnv/ だけ。
+  // 強さはリポジトリ単位: 上流リポ = error、fork = warn
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}", "servers/**/*.{ts,mts,mjs}", "*.config.{ts,mjs}"],
+    ignores: ["src/lib/appEnv/**"],
+    plugins: { "app-env": appEnvPlugin },
+    rules: {
+      "app-env/single-reader": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // 秘匿カラム (defineHiddenColumns) を生 drizzle の select / returning で取り出さない。

@@ -8,7 +8,7 @@
 //   pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin ...]
 //                        [--location asia-northeast1] [--dry-run]
 //   --pub / --priv を省略すると env の STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET を使う（env ファイルは書き換えない）
-//   APP_ENV で読み込む env ファイルを変えられる（既定 .env.development）
+//   ENV_FILE で読み込む env ファイルを変えられる（既定 .env.development）
 //
 // 用意する状態:
 // - 共通: UBLA（均一なバケットレベルのアクセス）有効、CORS（--origin、GET / HEAD / PUT、署名 PUT と再開可能アップロードのヘッダー）
@@ -20,7 +20,7 @@
 
 import dotenv from "dotenv";
 
-dotenv.config({ path: process.env.APP_ENV || ".env.development", quiet: true });
+dotenv.config({ path: process.env.ENV_FILE || ".env.development", quiet: true });
 
 import { getServerStorage } from "@/lib/firebase/server/app";
 

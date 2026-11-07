@@ -4,6 +4,8 @@ import crypto from "node:crypto";
 import path from "node:path";
 import type { NextConfig } from "next";
 
+import { getAppEnv } from "./src/lib/appEnv";
+
 // ビルドごとに一意なID（デプロイ検知用）
 const buildId = crypto.randomUUID();
 
@@ -68,6 +70,8 @@ const nextConfig: NextConfig = {
   generateBuildId: () => buildId,
   env: {
     NEXT_BUILD_ID: buildId,
+    // 段階(@/lib/appEnv)。正規化した値(無い・知らない値 = production)をビルドに埋め込み、client でも同じ答えにする
+    APP_ENV: getAppEnv(),
   },
   serverExternalPackages: ["firebase-admin", "mediainfo.js"],
   // mediaProbe（@/lib/mediaProbe）が使う mediainfo.js の WASM をサーバーレス関数バンドルへ

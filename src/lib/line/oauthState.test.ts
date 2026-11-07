@@ -4,10 +4,12 @@
 // - 発行した state を同じ cookie で照合すると ok と戻り先
 // - nonce の不一致・cookie なし・state なし・壊れた state・別の cookie 名は ok false
 // - 戻り先は同一オリジンのパスに sanitize される
-// - cookie の属性 (httpOnly・lax・path・10 分・secure は APP_ENV production のとき)
+// - cookie の属性 (httpOnly・lax・path・10 分・secure は段階が development 以外のとき)
 // 実行: pnpm test:line-oauth-state
 import { test } from "node:test";
 import assert from "node:assert/strict";
+
+import { withAppEnv } from "@/lib/appEnv";
 
 import { LINE_OAUTH_NONCE_COOKIE } from "./constants";
 import {
@@ -80,10 +82,8 @@ test("戻り先は同一オリジンのパスに sanitize される (外は '/')
   }
 });
 
-test("cookie の属性: httpOnly・lax・path / ・10 分、secure は APP_ENV production のとき", () => {
-  const original = process.env.APP_ENV;
-  try {
-    process.env.APP_ENV = "development";
+test("cookie の属性: httpOnly・lax・path / ・10 分、secure は段階が development 以外のとき", () => {
+  withAppEnv("development", () => {
     const dev = issueOAuthState({ redirectAfter: "/" }).nonceCookie;
     assert.equal(dev.httpOnly, true);
     assert.equal(dev.sameSite, "lax");
@@ -91,11 +91,11 @@ test("cookie の属性: httpOnly・lax・path / ・10 分、secure は APP_ENV p
     assert.equal(dev.maxAge, 600);
     assert.equal(LINE_OAUTH_STATE_MAX_AGE_SECONDS, 600);
     assert.equal(dev.secure, false);
-
-    process.env.APP_ENV = "production";
+  });
+  withAppEnv("staging", () => {
     assert.equal(issueOAuthState({ redirectAfter: "/" }).nonceCookie.secure, true);
-  } finally {
-    if (original === undefined) delete process.env.APP_ENV;
-    else process.env.APP_ENV = original;
-  }
+  });
+  withAppEnv("production", () => {
+    assert.equal(issueOAuthState({ redirectAfter: "/" }).nonceCookie.secure, true);
+  });
 });

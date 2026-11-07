@@ -38,7 +38,7 @@ pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> 
 ```
 
 - `--origin` はアプリの Origin（scheme + host、末尾の `/` なし）。1 つ以上必須で、本番・プレビュー・ローカルなど、ブラウザから直接アップロードする Origin をすべて並べる。`*` は受け付けない
-- `--pub` / `--priv` を省略すると env の `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET` を使う。env ファイルは書き換えない。`APP_ENV` で読む env ファイルを変えられる（既定 `.env.development`）
+- `--pub` / `--priv` を省略すると env の `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET` を使う。env ファイルは書き換えない。`ENV_FILE` で読む env ファイルを変えられる（既定 `.env.development`）
 - 旧バケット（`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`）の名前と、pub / priv に同じ名前は指定できない
 
 ### 用意する状態

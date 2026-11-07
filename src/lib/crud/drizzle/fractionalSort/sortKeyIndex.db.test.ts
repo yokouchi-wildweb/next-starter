@@ -16,7 +16,7 @@ import { getTableConfig, index, integer, pgTable, text, uuid } from "drizzle-orm
 
 import { sortKeyIndexColumn } from "./sortKeyOrder";
 
-const envFile = resolve(process.cwd(), process.env.APP_ENV ?? ".env.development");
+const envFile = resolve(process.cwd(), process.env.ENV_FILE ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
 
 const skip = (process.env.DATABASE_URL ?? "").trim().length === 0;

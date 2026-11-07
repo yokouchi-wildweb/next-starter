@@ -1,6 +1,6 @@
 // src/featureGate/checks/clientTools.test.tsx
 // client の受け渡しの回帰テスト(D5・D23): useGate() の enabled・path・filter は、範囲(枠)の中では server の gate と同じ答え。
-// 範囲の外の住所・Provider の外は dev(NODE_ENV !== "production")で throw、本番は閉。
+// 範囲の外の住所・Provider の外は dev(段階が development、@/lib/appEnv)で throw、本番は閉。
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作り、server が計算する値は clientGateState で作る(config の値に依らない)。
 // リンク: 棚の Link・LinkButton・GatedLink は「'/' で始まる内部の住所で、枠の中の redirectTo の無い閉」だけを描かない(D14)。
 // 枠の外・Provider の外・外部 URL・redirectTo 付きの閉は描く(throw しない)。server component(フックを持たない関数部品)の中から描いても同じ(L1.8)。
@@ -18,12 +18,16 @@ import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCar
 import { GatedLink, GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";
 import { clientTools } from "@/featureGate/tools/client";
+import { setAppEnv, type AppEnv } from "@/lib/appEnv";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
-const env = process.env as Record<string, string | undefined>;
-const ORIGINAL_ENV = env.NODE_ENV;
+// 段階の差し替え(@/lib/appEnv)。各テストの後に差し替える前へ戻す
+const restores: Array<() => void> = [];
+const stage = (value: AppEnv) => {
+  restores.push(setAppEnv(value));
+};
 afterEach(() => {
-  env.NODE_ENV = ORIGINAL_ENV;
+  while (restores.length > 0) restores.pop()?.();
 });
 
 function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void) {
@@ -60,7 +64,7 @@ const underAdmin = (pathname: string) => matchesPath(pathname, "/admin");
 const underApi = (pathname: string) => matchesPath(pathname, "/api");
 
 test("範囲の中: 規則を 1 つずつ閉じ、useGate の enabled・path・filter が server の gate と同じ答え", () => {
-  env.NODE_ENV = "development";
+  stage("development");
   for (const rule of rules) {
     withRules({ [rule.name]: false }, () => {
       const userGate = captureGate(clientGateState("user"));
@@ -87,12 +91,12 @@ test("範囲の外: dev は throw、本番は閉(path は rule: null、filter �
   withRules({}, () => {
     const userGate = captureGate(clientGateState("user"));
     const adminGate = captureGate(clientGateState("admin"));
-    env.NODE_ENV = "development";
+    stage("development");
     assert.throws(() => userGate.path("/admin/users"), /範囲の外/);
     assert.throws(() => adminGate.path("/api/wallet"), /範囲の外/);
     assert.throws(() => userGate.filter([{ href: "/admin" }]), /範囲の外/);
     assert.deepEqual(adminGate.path("/admin/users"), { open: true });
-    env.NODE_ENV = "production";
+    stage("production");
     assert.deepEqual(userGate.path("/admin/users"), { open: false, rule: null });
     const items = [{ href: "/" }, { href: "/admin/users" }, { href: "https://example.com/admin" }, { href: undefined }];
     assert.deepEqual(userGate.filter(items), [items[0], items[2], items[3]]);
@@ -102,11 +106,11 @@ test("範囲の外: dev は throw、本番は閉(path は rule: null、filter �
 test("Provider の外: dev は throw、本番は閉(enabled false・path rule: null・filter は内部の住所を除く)", () => {
   const outside = captureGate(null);
   const name = rules[0].name;
-  env.NODE_ENV = "development";
+  stage("development");
   assert.throws(() => outside.enabled(name), /GateProvider の外/);
   assert.throws(() => outside.path("/"), /GateProvider の外/);
   assert.throws(() => outside.filter([{ href: "/" }]), /GateProvider の外/);
-  env.NODE_ENV = "production";
+  stage("production");
   assert.equal(outside.enabled(name), false);
   assert.deepEqual(outside.path("/"), { open: false, rule: null });
   const items = [{ href: "/" }, { href: "https://example.com/" }, { href: undefined }];
@@ -116,7 +120,7 @@ test("Provider の外: dev は throw、本番は閉(enabled false・path rule: n
 test("未知の名前は型で落ち、実行時は throw(本番も)", () => {
   withRules({}, () => {
     const userGate = captureGate(clientGateState("user"));
-    env.NODE_ENV = "production";
+    stage("production");
     // @ts-expect-error 規則の無い名前は FeatureName に無い
     assert.throws(() => userGate.enabled("noSuchFeature"), /未知の機能の名前 "noSuchFeature"/);
     assert.throws(() => clientTools.enabled(clientGateState("user"), "constructor" as FeatureName), /未知の機能の名前/);
@@ -130,7 +134,7 @@ test("getHref: href を持たない型は getHref が必須、順は保つ", () 
   assert.ok(closedPath);
   withRules({ wallet: false }, () => {
     const userGate = captureGate(clientGateState("user"));
-    env.NODE_ENV = "development";
+    stage("development");
     const rows = [{ to: "/" }, { to: closedPath }, { to: "/x" }];
     assert.deepEqual(userGate.filter(rows, (row) => row.to), [rows[0], rows[2]]);
     // @ts-expect-error href を持たない型は getHref が必須
@@ -192,7 +196,7 @@ test("リンク: gate prop(always は閉でも描く・hide は描かない)、P
   const closedPath = pathOf(wallet.pathPatterns.find((p) => !underApi(pathOf(p)) && !underAdmin(pathOf(p))) ?? "");
   withRules({ wallet: false }, () => {
     const state = clientGateState("user");
-    env.NODE_ENV = "development";
+    stage("development");
     assert.ok(hasAnchor(renderIn(state, <Link href={closedPath} gate="always">x</Link>), closedPath));
     assert.ok(hasAnchor(renderIn(state, <LinkButton href={closedPath} gate="always">x</LinkButton>), closedPath));
     assert.equal(renderIn(state, <Link href="/__open__" gate="hide">x</Link>), "");

@@ -1,5 +1,6 @@
 // src/app/api/auth/x/login/route.ts
 
+import { isDevelopment } from "@/lib/appEnv";
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
@@ -69,7 +70,7 @@ export const GET = createApiRoute(
     // nonce 付き stateValue は CSRF 検証用
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.APP_ENV === "production",
+      secure: !isDevelopment(),
       sameSite: "lax" as const,
       path: "/",
       maxAge: 600, // 10分

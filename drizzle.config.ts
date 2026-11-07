@@ -6,14 +6,14 @@ import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-const specifiedEnvFile = process.env.APP_ENV;
+const specifiedEnvFile = process.env.ENV_FILE;
 
 if (specifiedEnvFile) {
   const envFilePath = resolve(process.cwd(), specifiedEnvFile);
 
   if (!existsSync(envFilePath)) {
     throw new Error(
-      `APP_ENV="${specifiedEnvFile}" で指定された環境変数ファイルが見つかりません。`
+      `ENV_FILE="${specifiedEnvFile}" で指定された環境変数ファイルが見つかりません。`
     );
   }
 

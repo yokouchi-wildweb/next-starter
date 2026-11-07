@@ -1,3 +1,4 @@
+import { isDevelopment } from "@/lib/appEnv";
 import type { NextRequest, NextResponse } from 'next/server';
 
 import { ACQUISITION_CONFIG } from '@/config/app/acquisition.config';
@@ -48,7 +49,7 @@ export const attributionDecorator: ProxyResponseDecorator = (
   response.cookies.set(ACQUISITION_COOKIE_NAME, serializeAttributionCookie(appended), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: !isDevelopment(),
     path: '/',
     // 追記のたびにリフレッシュ = 最終タッチから cookieMaxAgeDays 日有効
     maxAge: ACQUISITION_CONFIG.cookieMaxAgeDays * 24 * 60 * 60,

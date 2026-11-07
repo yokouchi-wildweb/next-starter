@@ -1,5 +1,6 @@
 "use client";
 
+import { isDevelopment } from "@/lib/appEnv";
 import React from "react";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
 import { createCommitOnce } from "../../../utils/commitOnce";
@@ -182,7 +183,7 @@ export function useEditableCell<T>({
           onValidChange?.(nextValue);
         })
         .catch((error) => {
-          if (process.env.NODE_ENV !== "production") {
+          if (isDevelopment()) {
             console.error("EditableGridTable: switch toggle request failed", error);
           }
         });

@@ -59,9 +59,9 @@ function createConfiguredDb(): Database {
   const queryClient =
     globalForDb.queryClient ?? postgres(process.env.DATABASE_URL!, { prepare: false, max: 3 });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.queryClient = queryClient;
-  }
+  // 段階に関わらず globalThis に持つ(開発サーバーの HMR でモジュールが読み直されても接続を作り直さない。
+  // 本番でも同じプロセスで 1 つを使い回すだけで害がないので、段階の判断を置かない)
+  globalForDb.queryClient = queryClient;
 
   return drizzle(queryClient);
 }

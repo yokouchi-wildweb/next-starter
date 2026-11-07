@@ -2,6 +2,7 @@
 
 "use client";
 
+import { isDevelopment } from "@/lib/appEnv";
 import { useCallback, useEffect, useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 
@@ -33,7 +34,7 @@ export function useSiteThemeStore() {
   const setDark = useCallback(
     (next: boolean) => {
       if (!switchable) {
-        if (process.env.NODE_ENV !== "production") {
+        if (isDevelopment()) {
           console.warn(`[siteTheme] エリア "${areaKey ?? "?"}" は switchable ではないため setDark は無視されました`);
         }
         return;

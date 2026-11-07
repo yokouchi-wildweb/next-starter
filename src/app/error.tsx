@@ -1,5 +1,6 @@
 "use client";
 
+import { isDevelopment } from "@/lib/appEnv";
 import { useEffect } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
@@ -32,7 +33,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
       <Para tone="muted" align="center">
         予期しないエラーが発生しました。
       </Para>
-      {process.env.NODE_ENV === "development" && (
+      {isDevelopment() && (
         <Para tone="destructive" size="sm">
           {error.message}
         </Para>

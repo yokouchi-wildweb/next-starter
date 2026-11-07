@@ -81,7 +81,7 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 ### 開発時の自己診断（自動案内）
 
-上記エラーは原因が分かりにくいため、**開発時（`NODE_ENV !== "production"`）に限り**、エラー発生地点で
+上記エラーは原因が分かりにくいため、**開発時（段階が development、`@/lib/appEnv` の `isDevelopment()`）に限り**、エラー発生地点で
 「CORS 未設定の可能性」と対処コマンド・本ドキュメントへの導線を `console.warn` で自動案内する仕組みがあります。
 
 - 実装: `src/lib/storageCors`（`fetchStorageBytes` / `canvasToBlobSafe` ほか）

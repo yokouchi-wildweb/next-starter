@@ -5,18 +5,21 @@
 //
 // やること:
 //   1. .env.example → .env.development (引数で変更可) のコピー
-//   2. 最小構成で dev サーバーを起動するのに必要な値を埋める
+//   2. 段階の印 APP_ENV をファイル名に合わせて書く (.env.staging* → staging / .env.production* → production / ほか → development。@/lib/appEnv)
+//   3. 最小構成で dev サーバーを起動するのに必要な値を埋める
 //      - APP_BASE_URL     = http://localhost:3000
 //      - AUTH_JWT_SECRET  = ランダム 32 バイト (base64)
 //      - ENCRYPTION_KEY   = ランダム 32 バイト (hex 64 文字)
 //      .env.example 側で既に値が入っている行は触らない (空の行だけ埋める)
-//   3. 残りの任意設定 (Firebase / DB 等) のチェックリスト表示
+//   4. 残りの任意設定 (Firebase / DB 等) のチェックリスト表示
 //
 // 生成した秘密値は表示しない (ターミナルログに残さないため)。
 
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+import type { AppEnv } from "@/lib/appEnv";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const examplePath = path.join(repoRoot, ".env.example");
@@ -27,6 +30,17 @@ if (!/^\.env(\..+)?$/.test(targetName) || targetName === ".env.example") {
   process.exit(1);
 }
 const targetPath = path.join(repoRoot, targetName);
+
+/** ファイル名から段階の印を決める(.env.staging* → staging / .env.production* → production / ほか → development) */
+const stageOf = (name: string): AppEnv =>
+  name.startsWith(".env.production") ? "production" : name.startsWith(".env.staging") ? "staging" : "development";
+
+/** APP_ENV の行を段階に書き換える(無ければ先頭に足す)。.env.example の development をそのまま本番のファイルに写さない */
+const setStage = (lines: string[], stage: AppEnv): void => {
+  const index = lines.findIndex((line) => /^APP_ENV=/.test(line));
+  if (index >= 0) lines[index] = `APP_ENV=${stage}`;
+  else lines.unshift(`APP_ENV=${stage}`);
+};
 
 /** 空の行にだけ値を入れる。キーが無ければ末尾に追記する */
 const fillIfEmpty = (lines: string[], key: string, value: string): "filled" | "kept" | "appended" => {
@@ -57,6 +71,9 @@ if (existsSync(targetPath)) {
 
 const lines = readFileSync(examplePath, "utf8").split("\n");
 
+const stage = stageOf(targetName);
+setStage(lines, stage);
+
 const results = {
   APP_BASE_URL: fillIfEmpty(lines, "APP_BASE_URL", "http://localhost:3000"),
   AUTH_JWT_SECRET: fillIfEmpty(lines, "AUTH_JWT_SECRET", randomBytes(32).toString("base64")),
@@ -66,6 +83,7 @@ const results = {
 writeFileSync(targetPath, lines.join("\n"), { mode: 0o600 });
 
 console.log(`✓ ${targetName} を作成しました\n`);
+console.log(`  ${"APP_ENV".padEnd(16)} ${stage} (ファイル名から)`);
 for (const [key, result] of Object.entries(results)) {
   const label = result === "kept" ? ".env.example の値を維持" : result === "appended" ? "末尾に追記" : "生成値を設定";
   console.log(`  ${key.padEnd(16)} ${label}`);

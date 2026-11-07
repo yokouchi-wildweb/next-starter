@@ -5,8 +5,8 @@
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 
-// APP_ENV で指定された環境ファイルを読み込む（デフォルト: .env.development）
-const envFile = process.env.APP_ENV || '.env.development';
+// ENV_FILE で指定された環境ファイルを読み込む（デフォルト: .env.development）
+const envFile = process.env.ENV_FILE || '.env.development';
 dotenv.config({ path: envFile });
 
 async function testConnection() {

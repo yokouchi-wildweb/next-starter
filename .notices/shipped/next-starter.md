@@ -325,3 +325,4 @@
 - id:20261106-191458-analytics-consent-test-tier1-defaults | severity:info | checkpoint:analytics-consent-test-tier1-defaults | fixes:20261105-070608-analytics-opt-in-consent | resolves:20261106-155420-analytics-consent-test-fork-values | pick:clean
 - id:20261106-162527-auth-provider-ports | severity:action-required | checkpoint:auth-provider-ports | resolves:20261105-185727-auth-provider-public-ports
 - id:20261106-192912-notices-picked-fixes-and-index | severity:action-required | checkpoint:notices-picked-fixes-and-index | fixes:commit:e56a21e8, 20261103-144217-notice-shipped-index | resolves:20261105-140157-notices-test-fixes-after-pick, 20261106-162044-shipped-index-backfill-picked-notice | pick:-
+- id:20261107-111435-app-env-single-reader | severity:action-required | checkpoint:app-env-single-reader

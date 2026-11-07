@@ -5,6 +5,7 @@
 // 関連先の access(list)と service は外から受け(登録表は読まない。結ぶのは src/wiring/adminScreenParts.ts)、
 // 関連先ごとに access を取得前に評価する。拒否された関連先は取得せず空にする(その関連だけ空)。一覧・規則: ./README.md
 
+import { isDevelopment } from "@/lib/appEnv";
 import "server-only";
 
 import type { DomainApiAccessRule } from "@/lib/domain";
@@ -59,7 +60,7 @@ export async function fetchAdminRelationOptions(
     domains.map(async (domain) => {
       const target = deps.resolveTarget(domain);
       if (!deps.allows(target.access)) {
-        if (process.env.NODE_ENV === "development") {
+        if (isDevelopment()) {
           console.info(`[admin] 関連選択肢 "${domain}" は list の access で拒否したため取得しません(選択肢は空)`);
         }
         return [];

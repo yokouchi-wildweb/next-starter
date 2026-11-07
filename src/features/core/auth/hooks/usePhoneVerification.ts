@@ -2,6 +2,7 @@
 
 "use client";
 
+import { isDevelopment } from "@/lib/appEnv";
 import { useState, useCallback, useRef } from "react";
 import {
   RecaptchaVerifier,
@@ -60,7 +61,7 @@ const FIREBASE_AUTH_READY_TIMEOUT = 5000;
 
 // デバッグ用ログ関数（開発環境のみ出力）
 // uid / email / 電話番号 / verificationId などの個人情報・認証情報は渡さないこと
-const DEBUG = process.env.NODE_ENV === "development";
+const DEBUG = isDevelopment();
 const debugLog = (message: string, data?: unknown) => {
   if (DEBUG) {
     console.log(`[PhoneVerification] ${message}`, data ?? "");

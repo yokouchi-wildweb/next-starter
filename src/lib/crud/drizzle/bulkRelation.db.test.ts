@@ -14,7 +14,7 @@ import { config as loadEnv } from "dotenv";
 import { sql } from "drizzle-orm";
 import { pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-const envFile = resolve(process.cwd(), process.env.APP_ENV ?? ".env.development");
+const envFile = resolve(process.cwd(), process.env.ENV_FILE ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
 
 const skip = (process.env.DATABASE_URL ?? "").trim().length === 0;

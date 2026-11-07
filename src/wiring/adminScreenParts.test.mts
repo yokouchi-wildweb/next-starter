@@ -10,6 +10,7 @@ import { test } from "node:test";
 
 import { fetchAdminRelationOptions } from "@/features/core/admin/services/server/screenData/adminRelationOptions";
 // `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
+import { withAppEnv } from "@/lib/appEnv";
 import { resolveAccessRule } from "@/lib/domain/definition/apiAccess";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 
@@ -68,24 +69,21 @@ test("関連選択肢: 拒否された関連先は取得せず空、許可され
 test("関連選択肢: 拒否のログは開発環境だけ 1 行(ドメイン名だけ)", async () => {
   const logs: string[] = [];
   const original = console.info;
-  const env = process.env as Record<string, string | undefined>;
-  const originalEnv = env.NODE_ENV;
   console.info = (message: string) => logs.push(message);
   try {
     const deps = {
       resolveTarget: () => ({ access: "none" as const, list: async () => [] }),
       allows: () => false,
     };
-    env.NODE_ENV = "production";
-    await fetchAdminRelationOptions({ relations: [relationConfig.relations[0]] }, deps);
+    for (const stage of ["production", "staging", undefined]) {
+      await withAppEnv(stage, () => fetchAdminRelationOptions({ relations: [relationConfig.relations[0]] }, deps));
+    }
     assert.equal(logs.length, 0);
-    env.NODE_ENV = "development";
-    await fetchAdminRelationOptions({ relations: [relationConfig.relations[0]] }, deps);
+    await withAppEnv("development", () => fetchAdminRelationOptions({ relations: [relationConfig.relations[0]] }, deps));
     assert.equal(logs.length, 1);
     assert.match(logs[0], /"sample_category"/);
   } finally {
     console.info = original;
-    env.NODE_ENV = originalEnv;
   }
 });
 
