@@ -5,9 +5,15 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 import { getAppEnv } from "./src/lib/appEnv";
+import { readForkIdentity } from "./src/lib/forkOwnership/forkIds.mjs";
 
 // ビルドごとに一意なID（デプロイ検知用）
 const buildId = crypto.randomUUID();
+
+// 門番の全開スイッチ FEATURE_GATE_OPEN を本番のビルドで効かせてよいか(Tier1 = fork_id が next-starter のときだけ)。
+// 実行時には .claude/rules/project.md を読めないので build 時に計算して inline する(fork の build では fork の project.md から "false")。
+// env の inline が勝つので Vercel の環境変数では上書きできない。読み手: src/featureGate/openSwitch.ts
+export const featureGateTier1 = String(readForkIdentity(__dirname).isTier1);
 
 // 画像最適化 (next/image) の有効化スイッチ。
 // IMAGE_OPTIMIZATION=enabled のときだけ Next/Vercel の画像最適化（リサイズ・WebP変換・srcset）を有効にする。
@@ -72,6 +78,7 @@ const nextConfig: NextConfig = {
     NEXT_BUILD_ID: buildId,
     // 段階(@/lib/appEnv)。正規化した値(無い・知らない値 = production)をビルドに埋め込み、client でも同じ答えにする
     APP_ENV: getAppEnv(),
+    FEATURE_GATE_TIER1: featureGateTier1,
   },
   serverExternalPackages: ["firebase-admin", "mediainfo.js"],
   // mediaProbe（@/lib/mediaProbe）が使う mediainfo.js の WASM をサーバーレス関数バンドルへ

@@ -5,11 +5,11 @@
 
 import { isPatternInArea } from "./area";
 import { closedPathEntries } from "./evaluate";
-import { rules } from "./extensions/rules";
+import { ruleEnabled, rules } from "./ruleList";
 import type { ClientGateArea, ClientGateState, FeatureName } from "./types";
 
 export function clientGateState(area: ClientGateArea): ClientGateState {
-  const enabled = Object.fromEntries(rules.map((rule) => [rule.name, rule.enabled()])) as Record<FeatureName, boolean>;
+  const enabled = Object.fromEntries(rules.map((rule) => [rule.name, ruleEnabled(rule)])) as Record<FeatureName, boolean>;
   const closed = closedPathEntries().filter((entry) => isPatternInArea(entry.pattern, area));
   return { area, enabled, closed };
 }

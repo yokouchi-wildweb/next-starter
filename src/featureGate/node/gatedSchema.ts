@@ -1,7 +1,7 @@
 // src/featureGate/node/gatedSchema.ts(入口 @/featureGate/node の gatedSchema・closedTables)
 //
 // スキーマゲート: 機能を閉じる規則(src/featureGate/rules/、一覧 src/featureGate/extensions/rules.ts)で
-// enabled() が false の機能のテーブルを push 対象から外す。
+// enabled() が false の機能(ruleList.ts の包み = 全開スイッチを通した値)のテーブルを push 対象から外す。
 // pnpm db:push（push.ts）と pnpm db:push:check（check-schema-roundtrip.ts）が共通で使う。
 //
 // 外し方（両側から外すのが要点。片側だけだと事故になる）:
@@ -14,6 +14,7 @@
 import { getTableName, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 
+import { ruleEnabled } from "../ruleList";
 import type { GatedFeatureRule } from "../types";
 
 export type SchemaGateResult = {
@@ -27,7 +28,7 @@ export type SchemaGateResult = {
 
 /** 今閉じている(enabled() が false の)機能の表名(一覧の順、重複なし) */
 export function closedTables(rules: readonly GatedFeatureRule[]): string[] {
-  return [...new Set(rules.filter((rule) => !rule.enabled()).flatMap((rule) => rule.tables))];
+  return [...new Set(rules.filter((rule) => !ruleEnabled(rule)).flatMap((rule) => rule.tables))];
 }
 
 /**

@@ -10,6 +10,7 @@ import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
+import { ruleEnabled } from "../ruleList";
 import type { GatedFeatureRule } from "../types";
 
 export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null;
@@ -41,7 +42,7 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
     const derived = rule.domainApiPaths.length + rule.settingPaths.length;
     return {
       name: rule.name,
-      enabled: rule.enabled(),
+      enabled: ruleEnabled(rule),
       required: facts.required[rule.name] ?? null,
       paths: {
         handWritten: rule.pathPatterns.slice(0, rule.pathPatterns.length - derived),
