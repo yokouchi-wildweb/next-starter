@@ -74,6 +74,12 @@ pnpm ops features list
 # 機能の入切（規則がドメインの config の <X>_CONFIG.enabled を読む形だけ書く。他は場所を案内して exit 2。必須は off にしない）
 pnpm ops features set <規則名> on|off
 
+# 管理メニューをロールごとの木で出す（行ごとに当たる規則か 常時・重複・描かない物と理由。--role <ロール>、--closed now|all|none）
+pnpm admin-menu:show
+
+# 管理メニューの受け口の点検（build の冒頭でも走る。中身: src/features/core/admin/menu/README.md）
+pnpm admin-menu:check
+
 # データ削除（インタラクティブ。閉じた機能の表は選べない・参照元は外部キーから足して一覧 → 確認 → 1 文の TRUNCATE ... RESTRICT）
 # (閉じた機能の表も消す: pnpm ops db clear --include-closed。計画の検査: pnpm test scripts/operations/db/clear/plan.test.ts。詳細: src/featureGate/README.md「pnpm ops db clear と閉じた機能の表」)
 pnpm ops db clear

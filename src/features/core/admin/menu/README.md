@@ -36,3 +36,12 @@
 - 上流の物を変える・隠す: その隣に `<名前>.override.ts`（`export const override = { … }`）。カテゴリー = `hidden`・`label`・`icon`・`allowRoles`・`order`、項目 = それに `category` を足したもの。相手の無い上書き・挙げていない属性は `extensions:check` が落とす。`allowRoles` は絞るだけ（広げない）
 - ドメインをデータ管理に出さない: その `domain.json` の `addToAdminDataMenu: false`（行は出どころで消す。メニュー側で行を消さない）
 - 上流は override を出荷しない（`scripts/extensions/README.md`）
+
+## 道具（`scripts/admin-menu/`）
+
+| コマンド | すること |
+|---|---|
+| `pnpm admin-menu:show` | ロールごとにカテゴリーと行の木を出す。行ごとに当たる門番の規則（今の開閉）か `常時`、重複、描かない物と理由。`--role <ロール>` で 1 ロール、`--closed now`（既定・今の開閉）/ `all`（全部閉じた）/ `none`（全部開いた）。fork の取り込みの前後比較にも使う |
+| `pnpm admin-menu:check` | 置き間違いを止める（build の冒頭、`extensions:check` の後）: 知らないカテゴリー（上書きで移した先も）・管理一覧に無いドメイン・相手の無い上書き・上流より `allowRoles` を広げる上書き（空も広げる扱い）・`/admin` の住所でページが `src/app/route-map.jsonl` に無いもの（動的セグメントも照らす）・`key` とファイル名の食い違い |
+
+テスト: `pnpm test:admin-menu`（組み立て器・上流の中身・点検）。中身は純関数 `scripts/admin-menu/inspect.ts`、読むのは `collect.ts`（受け口は生成の一覧でなく素のファイルを読む: 上書きの前の上流の値と比べるため）
