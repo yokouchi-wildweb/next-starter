@@ -6,6 +6,7 @@ export {
   isGoogleTagEnabled,
   trackGoogleAdsConversion,
   type GoogleAdsConversionKey,
+  type GoogleTagChannelDefinition,
   type GoogleTagInitOptions,
 } from "./googleTag";
 export { GoogleTag } from "./GoogleTag";

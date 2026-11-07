@@ -6,13 +6,18 @@
 // - 紹介リワードの「機能」（プリフィル / 本登録時の自動適用）はこの専用 cookie が担い、
 //   gate.enabled("referral") のみでゲートされる
 // - 流入経路の「解析」（タッチ記録・source/medium 集計）は userAcquisition が担い、
-//   ACQUISITION_CONFIG.enabled でゲートされる
-// 招待リンクは解析機能のオンオフに関係なく動作する。
+//   その記録の opt-in でゲートされる
+// 招待リンクは解析機能のオンオフに関係なく動作する。パラメータ名 INVITE_LINK_PARAM は referral の物で、
+// userAcquisition はその名前を判別表の行(userAcquisition/channels/invite.ts)として読むだけ。
 //
 // proxy（蓄積側）と API ルート（読み取り側）の両方から import されるため、
 // このファイルは drizzle / postgres 等のサーバー専用モジュールを import しないこと。
 
-import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
+/**
+ * 招待リンクの URL パラメータ名。例: https://example.com/lp?invite=ABC123
+ * 流入経路の解析(userAcquisition の extras キー・GA4 の招待キャンペーン)も同じ名前を使う。
+ */
+export const INVITE_LINK_PARAM = "invite";
 
 /**
  * 保留中の招待コードを保持する cookie 名。
@@ -29,11 +34,10 @@ export const INVITE_LINK_COOKIE_MAX_AGE_DAYS = 30;
 
 /**
  * URL から招待コードを取り出す。
- * パラメータ名の語彙は解析側（userAcquisition の extras キー）と揃えるため
- * ACQUISITION_CONFIG.referralParam.param を共有定義として参照する。
+ * パラメータ名は INVITE_LINK_PARAM（解析側の userAcquisition も同じ名前を読む）。
  */
 export function readInviteLinkParam(url: URL): string | null {
-  const value = url.searchParams.get(ACQUISITION_CONFIG.referralParam.param)?.trim();
+  const value = url.searchParams.get(INVITE_LINK_PARAM)?.trim();
   if (!value) return null;
   // 異常値の cookie / DB 流入を防ぐため切り詰める（コードの実在検証は redeem 側が担う）
   return value.slice(0, 200);
@@ -50,5 +54,5 @@ export function readInviteLinkParam(url: URL): string | null {
  */
 export function appendInviteLinkParam(url: string, code: string): string {
   const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}${ACQUISITION_CONFIG.referralParam.param}=${encodeURIComponent(code)}`;
+  return `${url}${separator}${INVITE_LINK_PARAM}=${encodeURIComponent(code)}`;
 }

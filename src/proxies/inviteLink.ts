@@ -14,7 +14,7 @@ import { gate } from "@/featureGate";
 /**
  * 紹介リワード: 招待リンク（?invite=CODE）の招待コードを専用 cookie へ保存するデコレーター。
  *
- * ゲートは referral 機能フラグのみ。流入経路解析（ACQUISITION_CONFIG.enabled）とは独立して動く
+ * ゲートは referral 機能フラグのみ。流入経路解析（記録の opt-in）とは独立して動く
  * （解析も有効な場合は attributionDecorator が同じパラメータをタッチとしても記録する）。
  * 新しい招待リンクを踏むたびに上書き = last-touch の招待者が優先される。
  * cookie はサインアップ本登録の完了時に削除される。

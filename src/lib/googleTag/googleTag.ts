@@ -5,9 +5,9 @@
  * - すべて NEXT_PUBLIC_* env 駆動。未設定なら完全 no-op
  * - Firebase Analytics と window.gtag / dataLayer を共存（既存があれば再利用・上書き禁止）
  * - クライアント専用（SSR では何もしない）
+ * - 流入経路の判別表は持たない: 呼び出し側が channels で渡す（root layout は src/wiring/GoogleTag.tsx 経由で
+ *   userAcquisition の getChannelDefinitions を渡す）。渡されなければ招待などの手動キャンペーン値は送らない
  */
-
-import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
 
 const GOOGLE_TAG_ID = process.env.NEXT_PUBLIC_GOOGLE_TAG_ID; // GA4: G-XXXXXXX
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID; // Ads: AW-XXXXXXX
@@ -73,7 +73,22 @@ const DEFAULT_IGNORE_REFERRER_DOMAINS: string[] = [
   "access.line.me",
 ];
 
+/**
+ * 流入経路の判別表の 1 行（lib 自身の型。userAcquisition の AcquisitionChannelDefinition と同じ形）
+ * - clickId: GA / 広告が自分で判別するクリック ID（あれば手動のキャンペーン値は送らない）
+ * - link: GA が判別しない独自のリンクの印（招待など。UTM もクリック ID も無いとき channel を送る）
+ */
+export type GoogleTagChannelDefinition = {
+  param: string;
+  kind: "clickId" | "link";
+  channel: { source: string; medium: string } | null;
+};
+
 export type GoogleTagInitOptions = {
+  /**
+   * 流入経路の判別表（並び = 優先順位）。省略 = 空（手動のキャンペーン値を送らない）
+   */
+  channels?: GoogleTagChannelDefinition[];
   /**
    * リファラーを無視するパスの追加パターン（デフォルトにマージ）
    * downstream が独自の外部リダイレクト戻りルートを持つ場合に指定
@@ -120,7 +135,8 @@ function shouldIgnoreReferrer(
 }
 
 /**
- * 招待リンク（?invite=CODE）のみで流入した場合の GA4 手動キャンペーン値を解決する。
+ * 独自のリンクの印（判別表の link の行。既定は招待リンク ?invite=CODE）だけで流入した場合の
+ * GA4 手動キャンペーン値を解決する。
  *
  * 背景: GA4 は utm_* / クリック ID しか流入元判定に使わず、独自の invite
  * パラメータは無視される。X 等でシェアされた招待リンクからの流入が
@@ -128,34 +144,36 @@ function shouldIgnoreReferrer(
  * campaign_source / campaign_medium を config で明示し、独自チャンネル
  * （既定: invite / invite）としてセッションを分類させる。
  *
- * 優先順位はサービス側 DB 解析（attributionCookie の source/medium 補完）と同一:
- * UTM > クリック ID > 招待リンク。UTM またはクリック ID がある場合は
+ * 優先順位はサービス側 DB 解析（userAcquisition の classifyVisit）と同一:
+ * UTM > クリック ID > link の行。UTM またはクリック ID がある場合は
  * GA 本来の判定（あるいは招待リンクへの utm 併記）を尊重して何もしない。
- * 語彙は ACQUISITION_CONFIG.referralParam を共有（downstream の変更に両側が追随）。
+ * 判別表は呼び出し側が渡す（userAcquisition の getChannelDefinitions と同じ表）。
  *
  * 注意: これはセッションの参照元/メディアの割り当てまで。GA4 のチャンネル
  * グループ表示で「invite」を独自チャンネルとしてまとめたい場合は、GA 側で
  * source=invite を条件にしたカスタムチャンネルグループを別途作成する（任意）。
  */
-export function resolveInviteCampaign(
-  search: string
+export function resolveLinkCampaign(
+  search: string,
+  channels: GoogleTagChannelDefinition[]
 ): { campaign_source: string; campaign_medium: string } | null {
   const params = new URLSearchParams(search);
+  const has = (param: string) => Boolean(params.get(param)?.trim());
 
-  if (!params.get(ACQUISITION_CONFIG.referralParam.param)?.trim()) return null;
+  // 値のある link の行のうち表の先の行（channel の無い行は補わない）
+  const link = channels.find((row) => row.kind === "link" && row.channel && has(row.param));
+  if (!link?.channel) return null;
 
   // UTM 明示指定が最優先（招待リンクに utm を併記する運用も尊重）
   if (params.get("utm_source") || params.get("utm_medium") || params.get("utm_campaign")) {
     return null;
   }
   // クリック ID があれば広告流入として GA / Ads の自動判定に任せる
-  for (const clickIdParam of Object.keys(ACQUISITION_CONFIG.clickIdParams)) {
-    if (params.get(clickIdParam)) return null;
-  }
+  if (channels.some((row) => row.kind === "clickId" && params.get(row.param))) return null;
 
   return {
-    campaign_source: ACQUISITION_CONFIG.referralParam.source,
-    campaign_medium: ACQUISITION_CONFIG.referralParam.medium,
+    campaign_source: link.channel.source,
+    campaign_medium: link.channel.medium,
   };
 }
 
@@ -221,12 +239,12 @@ export function initGoogleTag(options?: GoogleTagInitOptions): void {
     ga4Params.ignore_referrer = true;
   }
 
-  // 招待リンクのみでの流入は独自チャンネル（invite/invite）としてセッションを分類。
+  // 招待リンク（判別表の link の行）のみでの流入は独自チャンネル（既定 invite/invite）としてセッションを分類。
   // リファラー（t.co 等）による上書きを防ぐため ignore_referrer も併せて付与
-  const inviteCampaign = resolveInviteCampaign(win.location.search);
-  if (inviteCampaign) {
-    ga4Params.campaign_source = inviteCampaign.campaign_source;
-    ga4Params.campaign_medium = inviteCampaign.campaign_medium;
+  const linkCampaign = resolveLinkCampaign(win.location.search, options?.channels ?? []);
+  if (linkCampaign) {
+    ga4Params.campaign_source = linkCampaign.campaign_source;
+    ga4Params.campaign_medium = linkCampaign.campaign_medium;
     ga4Params.ignore_referrer = true;
   }
 

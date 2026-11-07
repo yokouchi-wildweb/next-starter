@@ -1,15 +1,19 @@
 import { isDevelopment } from "@/lib/appEnv";
 import type { NextRequest, NextResponse } from 'next/server';
 
-import { ACQUISITION_CONFIG } from '@/config/app/acquisition.config';
 import { gate } from '@/featureGate';
+
 import { ACQUISITION_COOKIE_NAME } from '@/features/core/userAcquisition/constants';
 import {
   appendTouch,
-  buildTouchFromNavigation,
   parseAttributionCookie,
   serializeAttributionCookie,
 } from '@/features/core/userAcquisition/lib/attributionCookie';
+import {
+  classifyVisit,
+  getAttributionCookieMaxAgeSeconds,
+  isAcquisitionRecordingEnabled,
+} from '@/features/core/userAcquisition/lib/classifyVisit';
 import type { ProxyResponseDecorator } from './types';
 
 /** アセット配信など、ページナビゲーションでないパスの拡張子 (.js / .png / .ico 等) */
@@ -18,7 +22,7 @@ const FILE_EXTENSION_PATTERN = /\.[^/]+$/;
 /**
  * サインアップ流入経路計測: 流入タッチを cookie へ蓄積するデコレーター。
  *
- * UTM パラメータ / 広告クリック ID / 外部リファラーを伴うページ閲覧を
+ * UTM パラメータ / 判別表の行(広告クリック ID・招待など) / 外部リファラーを伴うページ閲覧を
  * 「タッチ」として httpOnly cookie に追記する。DB への書き込みは行わず、
  * サインアップ本登録時（/api/auth/register）に cookie を読み取って確定保存する。
  *
@@ -29,13 +33,13 @@ export const attributionDecorator: ProxyResponseDecorator = (
   request: NextRequest,
   response: NextResponse,
 ) => {
-  // 閉じる値(門番の規則 userAcquisition)と記録の opt-in(ACQUISITION_CONFIG.enabled)は別。どちらかが閉なら何もしない(L1.8)
+  // 閉じる値(門番の規則 userAcquisition)と記録の opt-in は別。どちらかが閉なら何もしない(L1.8)
   if (!gate.enabled("userAcquisition")) return;
-  if (!ACQUISITION_CONFIG.enabled) return;
+  if (!isAcquisitionRecordingEnabled()) return;
   if (request.method !== 'GET') return;
   if (!isPageNavigation(request)) return;
 
-  const touch = buildTouchFromNavigation({
+  const touch = classifyVisit({
     url: request.nextUrl,
     referrer: request.headers.get('referer'),
     now: new Date(),
@@ -52,7 +56,7 @@ export const attributionDecorator: ProxyResponseDecorator = (
     secure: !isDevelopment(),
     path: '/',
     // 追記のたびにリフレッシュ = 最終タッチから cookieMaxAgeDays 日有効
-    maxAge: ACQUISITION_CONFIG.cookieMaxAgeDays * 24 * 60 * 60,
+    maxAge: getAttributionCookieMaxAgeSeconds(),
   });
 };
 

@@ -5,23 +5,18 @@
 // proxy（蓄積側）と /api/auth/register（確定保存側）の両方から import されるため、
 // このファイルは drizzle / postgres 等のサーバー専用モジュールを import しないこと
 // （edge runtime バンドルに含まれる）。
+// 訪問の分類（URL・リファラー → タッチ）は ./classifyVisit.ts の classifyVisit。
 
 import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
 import {
   ACQUISITION_COOKIE_MAX_BYTES,
   ACQUISITION_COOKIE_VERSION,
-  REFERRAL_MEDIUM,
 } from "@/features/core/userAcquisition/constants";
 import {
   AttributionCookiePayloadSchema,
   type AttributionCookieTouch,
 } from "@/features/core/userAcquisition/entities/schema";
 import type { AcquisitionTouch } from "@/features/core/userAcquisition/entities/model";
-
-/** UTM のうち集計軸として型付きカラムに昇格させるパラメータ */
-const UTM_PRIMARY_PARAMS = ["utm_source", "utm_medium", "utm_campaign"] as const;
-/** UTM のうち extras(jsonb) に保存するロングテールパラメータ */
-const UTM_EXTRA_PARAMS = ["utm_term", "utm_content"] as const;
 
 /**
  * cookie 生値からタッチ配列を復元する。
@@ -80,95 +75,6 @@ export function appendTouch(
   return next;
 }
 
-export type NavigationSignal = {
-  /** リクエスト URL（クエリパラメータ含む） */
-  url: URL;
-  /** Referer ヘッダー生値（無ければ null） */
-  referrer: string | null;
-  /** タッチ発生日時 */
-  now: Date;
-};
-
-/**
- * ナビゲーションリクエストから流入タッチを導出する。
- *
- * タッチとみなす条件（いずれか）:
- * - utm_* パラメータがある
- * - 既知の広告クリック ID パラメータがある
- * - 外部リファラーがある（自ホストからの遷移は対象外）
- *
- * タッチ条件（いずれか）:
- * - utm_* パラメータがある
- * - 既知の広告クリック ID パラメータがある
- * - 招待リンクパラメータ（referralParam）がある
- * - 外部リファラーがある（自ホストからの遷移は対象外）
- *
- * source / medium の補完は GA の慣例に準拠（優先順位: UTM > クリック ID > 招待リンク > リファラー）:
- * UTM 無し + クリック ID → クリック ID 由来の source/medium、
- * UTM 無し + 招待リンク → referralParam の source/medium（medium は "referral" と別語彙）、
- * UTM 無し + 外部リファラーのみ → source=リファラーホスト, medium="referral"
- *
- * @returns タッチ。流入シグナルが無い場合は null
- */
-export function buildTouchFromNavigation(signal: NavigationSignal): AttributionCookieTouch | null {
-  const params = signal.url.searchParams;
-
-  const utmSource = readParam(params, "utm_source");
-  const utmMedium = readParam(params, "utm_medium");
-  const utmCampaign = readParam(params, "utm_campaign");
-
-  const extras: Record<string, string> = {};
-  for (const key of UTM_EXTRA_PARAMS) {
-    const value = readParam(params, key);
-    if (value) extras[key] = value;
-  }
-
-  let clickIdChannel: { source: string; medium: string } | null = null;
-  let hasClickId = false;
-  for (const [param, channel] of Object.entries(ACQUISITION_CONFIG.clickIdParams)) {
-    const value = readParam(params, param);
-    if (!value) continue;
-    extras[param] = value;
-    hasClickId = true;
-    clickIdChannel ??= channel;
-  }
-
-  // 招待リンク（紹介リワード）。コードは extras に保存し、本登録時の自動適用にも使う
-  const inviteCode = readParam(params, ACQUISITION_CONFIG.referralParam.param);
-  if (inviteCode) extras[ACQUISITION_CONFIG.referralParam.param] = inviteCode;
-
-  const referrerHost = resolveExternalReferrerHost(signal.referrer, signal.url.host);
-
-  const hasUtm = Boolean(utmSource || utmMedium || utmCampaign);
-  if (!hasUtm && !hasClickId && !inviteCode && !referrerHost) return null;
-
-  // source / medium の補完（UTM 明示指定が常に優先）
-  let source = utmSource;
-  let medium = utmMedium;
-  if (!source && clickIdChannel) {
-    source = clickIdChannel.source;
-    medium ??= clickIdChannel.medium;
-  }
-  if (!source && inviteCode) {
-    source = ACQUISITION_CONFIG.referralParam.source;
-    medium ??= ACQUISITION_CONFIG.referralParam.medium;
-  }
-  if (!source && referrerHost) {
-    source = referrerHost;
-    medium ??= REFERRAL_MEDIUM;
-  }
-
-  return {
-    t: Math.floor(signal.now.getTime() / 1000),
-    ...(source ? { s: source } : {}),
-    ...(medium ? { m: medium } : {}),
-    ...(utmCampaign ? { c: utmCampaign } : {}),
-    ...(referrerHost ? { r: referrerHost } : {}),
-    l: signal.url.pathname,
-    ...(Object.keys(extras).length > 0 ? { x: extras } : {}),
-  };
-}
-
 /**
  * cookie 上の圧縮表現をドメイン内部の正規化表現へ復元する。
  */
@@ -209,29 +115,6 @@ export function extractGaClientId(rawValue: string | undefined): string | null {
  */
 function isSameChannel(a: AttributionCookieTouch, b: AttributionCookieTouch): boolean {
   return a.s === b.s && a.m === b.m && a.c === b.c && a.r === b.r;
-}
-
-function readParam(params: URLSearchParams, key: string): string | null {
-  const value = params.get(key)?.trim();
-  if (!value) return null;
-  // cookie 肥大と異常値の DB 流入を防ぐため個別値も切り詰める
-  return value.slice(0, 200);
-}
-
-/**
- * Referer ヘッダーから外部リファラーのホストを取り出す。
- * 自ホスト（サイト内遷移）や不正な URL は null。
- */
-function resolveExternalReferrerHost(referrer: string | null, ownHost: string): string | null {
-  if (!referrer) return null;
-
-  try {
-    const host = new URL(referrer).host;
-    if (!host || host === ownHost) return null;
-    return host.slice(0, 255);
-  } catch {
-    return null;
-  }
 }
 
 function byteLength(value: string): number {

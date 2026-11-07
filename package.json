@@ -54,6 +54,7 @@
     "test:intersection-observer": "node --test eslint-rules/intersection-observer.test.mjs",
     "test:app-env-lint": "node --test eslint-rules/app-env.test.mjs",
     "test:app-env": "npx tsx --test src/lib/appEnv/appEnv.test.ts",
+    "test:user-acquisition": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/userAcquisition/lib/classifyVisit.test.ts",
     "test:impression-tracker": "npx tsx --experimental-test-module-mocks --test src/features/core/interactionTracking/hooks/useImpressionTracker.test.tsx",
     "test:hidden-columns-lint": "node --test eslint-rules/hidden-columns.test.mjs",
     "test:page-authz-lint": "node --test eslint-rules/page-authz.test.mjs",

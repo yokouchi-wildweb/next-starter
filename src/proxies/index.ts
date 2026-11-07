@@ -26,7 +26,7 @@ const skeletonHandlers: ProxyHandler[] = [
  * ハンドラーがインターセプトした場合は実行されない。
  */
 const skeletonDecorators: ProxyResponseDecorator[] = [
-  attributionDecorator, // 流入タッチの cookie 蓄積（解析: ACQUISITION_CONFIG.enabled でゲート）
+  attributionDecorator, // 流入タッチの cookie 蓄積（解析: 記録の opt-in でゲート）
   inviteLinkDecorator,  // 招待コードの cookie 保存（機能: referral フラグでゲート、解析とは独立）
 ];
 

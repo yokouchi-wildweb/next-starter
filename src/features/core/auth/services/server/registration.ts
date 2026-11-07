@@ -162,7 +162,7 @@ export async function register(
   }
 
   // 流入経路の確定保存（recordSignupAcquisition は bestEffort 仕様のため登録をブロックしない）。
-  // 流入経路の機能が閉じているときは保存しない（閉じる値。記録の opt-in ACQUISITION_CONFIG.enabled とは別、L1.8）
+  // 流入経路の機能が閉じているときは保存しない（閉じる値。記録の opt-in とは別、L1.8）
   if (acquisition && acquisition.touches.length > 0 && gate.enabled("userAcquisition")) {
     await recordSignupAcquisition({
       userId: user.id,

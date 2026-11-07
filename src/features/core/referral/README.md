@@ -97,9 +97,11 @@
   last-touch 優先で上書き）にコードが保持され、登録フォームの招待コード欄へプリフィルされる。
   フォーム未指定（undefined）なら本登録時にフォールバック適用、プリフィルを消して送信したら
   明示的拒否（`""`）として適用しない（手入力が常に優先）。登録完了時に cookie は削除される。
-  ゲートは `APP_FEATURES.marketing.referral.enabled` のみ（流入経路解析 `ACQUISITION_CONFIG.enabled` とは独立。
+  ゲートは `APP_FEATURES.marketing.referral.enabled` のみ（流入経路解析の記録の opt-in とは独立。
   解析も有効なら紹介流入が獲得チャンネルとしても集計される）。
-  実装: `lib/inviteLinkCookie.ts`（cookie 定義）/ `src/proxies/inviteLink.ts`(保存) /
+  パラメータ名 `INVITE_LINK_PARAM`（`"invite"`、`lib/inviteLinkCookie.ts`）は本ドメインの物。userAcquisition は
+  その名前を判別表の行（`userAcquisition/channels/invite.ts`、紹介が閉じている間は出ない）として分類と GA4 に使うだけ。
+  実装: `lib/inviteLinkCookie.ts`（パラメータ名・cookie 定義）/ `src/proxies/inviteLink.ts`(保存) /
   `GET /api/referral/pending-invite-code` + `hooks/usePendingInviteCode`(取得) /
   auth `useInviteCodePrefill`(プリフィル)。リンク生成レシピは `src/features/core/userAcquisition/README.md`
 - **ブラウザまたぎ対応（アプリ内ブラウザ → デフォルトブラウザ）**: X 等のアプリ内ブラウザで招待リンクを

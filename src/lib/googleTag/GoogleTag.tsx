@@ -7,6 +7,11 @@ import { initGoogleTag, type GoogleTagInitOptions } from "./googleTag";
 
 type GoogleTagProps = {
   /**
+   * 流入経路の判別表（招待などの独自のリンクの印を GA4 の campaign_source / medium にする）。
+   * root layout は src/wiring/GoogleTag.tsx 経由で userAcquisition の表を渡す。省略 = 送らない
+   */
+  channels?: GoogleTagInitOptions["channels"];
+  /**
    * リファラーを無視するパスの追加パターン（デフォルトの決済戻りルートにマージ）
    * downstream が独自の外部リダイレクト戻りルートを持つ場合に指定
    */
@@ -22,14 +27,15 @@ type GoogleTagProps = {
  * Google tag 初期化コンポーネント
  * - マウント時に gtag.js を初期化
  * - NEXT_PUBLIC_GOOGLE_TAG_ID / NEXT_PUBLIC_GOOGLE_ADS_ID が未設定なら何もしない
- * - ルートレイアウト body 内に配置する
+ * - ルートレイアウト body 内に配置する（root layout は判別表を結んだ src/wiring/GoogleTag.tsx を描く）
  */
 export function GoogleTag({
+  channels,
   ignoreReferrerPaths,
   ignoreReferrerDomains,
 }: GoogleTagProps) {
   useEffect(() => {
-    initGoogleTag({ ignoreReferrerPaths, ignoreReferrerDomains });
+    initGoogleTag({ channels, ignoreReferrerPaths, ignoreReferrerDomains });
     // 初期化は冪等かつ初回ランディング時の 1 回で確定するため依存は空
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

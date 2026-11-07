@@ -3,7 +3,7 @@
 ユーザーがサインアップ完了するまでの流入タッチ（UTM パラメータ / 広告クリック ID / 外部リファラー）を
 サービス側 DB に保存する core ドメイン。GA に依存せず first-touch / last-touch / パス分析を自前データで行える。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/userAcquisition.ts`、今は常に開)。閉じる値と処理の値は別: `acquisition.config.ts` の `enabled` は記録の opt-in(既定 false)で、規則は読まない。流入経路の proxy・本登録の route・本登録の保存は両方(`gate.enabled("userAcquisition")` と `ACQUISITION_CONFIG.enabled`)が開のときだけ動く。閉じると表も push から外れる。
+閉じられる機能(門番の規則 `src/featureGate/rules/userAcquisition.ts`、今は常に開)。閉じる値と処理の値は別: `acquisition.config.ts` の `enabled` は記録の opt-in(既定 false)で、規則は読まない。流入経路の proxy・本登録の route・本登録の保存は両方(`gate.enabled("userAcquisition")` と公開の口 `isAcquisitionRecordingEnabled()`)が開のときだけ動く。閉じると表も push から外れ、GA4 へ判別表も渡さない。
 
 **デフォルト無効（オプトイン）。** 必要になった downstream が `acquisition.config.ts` の `enabled: true` で有効化する。
 有効化した時点以降のサインアップから蓄積される（過去のサインアップには遡及できない）。
@@ -24,7 +24,39 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
 - **cookie 蓄積**: `src/proxies/attribution.ts`（proxy のレスポンスデコレーター）
 - **cookie コーデック**: `lib/attributionCookie.ts`（edge-safe。drizzle を import しないこと）
 - **確定保存**: `services/server/recordSignupAcquisition.ts`（bestEffort — 失敗しても登録をブロックしない）
-- **設定**: `src/config/app/acquisition.config.ts`（enabled / cookieMaxAgeDays=30 / maxTouches=15 / clickIdParams）
+- **訪問の分類と判別表**: `lib/classifyVisit.ts`（edge-safe。下の「公開の口」）
+- **設定**: `src/config/app/acquisition.config.ts`（enabled / cookieMaxAgeDays=30 / maxTouches=15 / referralParam の source・medium / clickIdParams）。**読むのはこのドメインの中だけ**。外は下の公開の口を使う
+
+## 公開の口（edge-safe、`@/features/core/userAcquisition/lib/classifyVisit`）
+
+| 関数 | 返すもの | 使い手 |
+| --- | --- | --- |
+| `classifyVisit({ url, referrer, now }, definitions?)` | 流入タッチ（cookie の圧縮表現）か null | `src/proxies/attribution.ts` |
+| `getChannelDefinitions()` | 判別表 `AcquisitionChannelDefinition[]`（シリアライズできる値） | `src/wiring/GoogleTag.tsx`（GA4 へ） |
+| `isAcquisitionRecordingEnabled()` | 記録の opt-in（`enabled`）。閉じる値 `gate.enabled("userAcquisition")` は呼ぶ側が一緒に確かめる | proxy・`/api/auth/register` |
+| `getAttributionCookieMaxAgeSeconds()` | タッチ cookie の maxAge（秒） | proxy |
+
+cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionCookie.ts`、cookie 名は `constants`。
+
+## 判別表（獲得経路の定義）
+
+1 行 = 「この URL パラメータが付いていたら、この source / medium の流入」（型 `types/channel.ts`）:
+
+```ts
+{ param: "gclid", kind: "clickId", channel: { source: "google", medium: "cpc" } }
+{ param: "invite", kind: "link", channel: { source: "invite", medium: "invite" } }
+```
+
+- `kind`: `clickId` = 広告のクリック ID（GA / 広告が自分で判別する）| `link` = 独自のリンクの印（招待など。GA4 は判別しないので lib/googleTag が campaign_source / medium を送る）
+- `channel: null` = 値を extras に保存するだけで source / medium は補わない
+- 並び = 優先順位: clickId の行 → link の行。同じ種類の中は表の順（先の行が source を決める）
+- UTM と外部リファラーは行ではなく分類の判定のルール（UTM が常に最優先、リファラーは最後）
+- 行の出どころ:
+  - clickId の行 = config の `clickIdParams`（値は fork が config で変える）
+  - それ以外 = 受け口 `channels/<名前>.ts` の `export const channel: AcquisitionChannelItem`（`pnpm extensions:generate` → `extensions/channels.ts`、鍵 = `param`）。上流の項目は招待 `channels/invite.ts` 1 つ
+- 項目の `enabled?: () => boolean`: 持ち主の機能が閉じている間は行を出さない。招待の行は `gate.enabled("referral")`（パラメータ名は referral の `INVITE_LINK_PARAM`、source / medium は config の `referralParam`）
+- 同じ `param` が config と項目の両方にあると `getChannelDefinitions()` が例外（項目どうしの重複は一覧の読み込みで例外）
+- fork が独自の印（例: 自前のアフィリエイト `?aff=`）を経路にする: `channels/<名前>.ts` に項目を 1 つ置いて `pnpm extensions:generate`（core の編集は不要）
 
 ## テーブル設計
 
@@ -44,8 +76,9 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
 ## タッチの記録ルール（cookie 側）
 
 - 対象: GET のページナビゲーションのみ（/api/・/_next/・アセットは除外）
-- タッチ条件: `utm_*` あり / 既知のクリック ID あり / 招待リンクパラメータ（`invite`）あり / 外部リファラーあり
-- source/medium 補完の優先順位: **UTM > クリック ID > 招待リンク > 外部リファラー**。UTM 無し+クリック ID → config の対応表、UTM 無し+招待リンク → `source=invite, medium=invite`、UTM 無し+外部リファラーのみ → `source=リファラーホスト, medium=referral`
+- タッチ条件: `utm_*` あり / 判別表の行のパラメータ（クリック ID・招待リンク `invite` など）あり / 外部リファラーあり
+- source/medium 補完の優先順位: **UTM > クリック ID（clickId の行）> 招待リンクなど（link の行）> 外部リファラー**。UTM 無し+クリック ID → その行の channel、UTM 無し+招待リンク → `source=invite, medium=invite`、UTM 無し+外部リファラーのみ → `source=リファラーホスト, medium=referral`
+- 回帰テスト: `pnpm test:user-acquisition`（`lib/classifyVisit.test.ts`。URL・リファラー → タッチの表、GA4 の招待キャンペーン、紹介が閉じたときの行）
 - 招待リンクの medium を `referral` にしない理由: GA が外部サイトからの自然リンク流入を `referral` に自動分類するため、混ざらないよう別語彙（`invite`）にしている（config で変更可）
 - 重複抑止: 直前タッチと同一チャンネル（source/medium/campaign/referrer_host）は追記しない
 - 上限: `maxTouches`（既定 15）超過・4KB 逼迫時は **first-touch を必ず保持**して古い中間タッチから間引く
@@ -62,10 +95,10 @@ import {
 
 ## 招待リンク連携（referral / referralReward）
 
-`ACQUISITION_CONFIG.referralParam`（既定: `invite`）付きの URL を踏んだときの扱いは、
+referral の招待リンクのパラメータ（`INVITE_LINK_PARAM` = `invite`）付きの URL を踏んだときの扱いは、
 **解析と機能で系統が分かれており、それぞれ独立にオンオフできる**:
 
-- **解析（本ドメイン、`ACQUISITION_CONFIG.enabled` でゲート）**: タッチとして記録され、
+- **解析（本ドメイン、記録の opt-in `enabled` でゲート。判別表の招待の行は紹介の機能が開いている間だけ出る）**: タッチとして記録され、
   紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。コード自体は extras（`extras.invite`）に
   残るため「どの紹介者経由のサインアップか」まで追える
 - **機能（referral ドメイン、`APP_FEATURES.marketing.referral.enabled` でゲート）**: コードが
@@ -75,7 +108,7 @@ import {
   `src/proxies/inviteLink.ts` / `GET /api/referral/pending-invite-code`、
   挙動の詳細（プリフィル・明示的拒否の意味論）は referral README を参照
 
-パラメータ名の語彙（`referralParam.param`）だけが両系統の共有定義。
+パラメータ名は referral の物（`referral/lib/inviteLinkCookie.ts` の `INVITE_LINK_PARAM`）。本ドメインはその名前を判別表の行（`channels/invite.ts`）として分類に使うだけで、招待リンクの cookie は referral が自分の名前だけで動かす。
 
 ### 招待リンクの生成レシピ（downstream 実装用）
 

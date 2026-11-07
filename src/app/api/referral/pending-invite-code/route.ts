@@ -7,7 +7,7 @@
 // クライアント JS から直接読めないため、この公開エンドポイントがサーバーサイドで返す。
 // リクエスト元自身の cookie の中身を返すだけなので認可は不要（access: "public"）。
 //
-// ゲートは referral 機能フラグのみ。流入経路解析（ACQUISITION_CONFIG.enabled）とは独立。
+// ゲートは referral 機能フラグのみ。流入経路解析（記録の opt-in）とは独立。
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";

@@ -16,7 +16,7 @@ import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
-import { GoogleTag } from "@/lib/googleTag";
+import { GoogleTag } from "@/wiring/GoogleTag";
 import { seoConfig } from "@/config/seo.config";
 import { AppProviders } from "@/wiring/AppProviders";
 import { clientGateState } from "@/featureGate";

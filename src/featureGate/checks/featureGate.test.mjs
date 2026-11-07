@@ -290,7 +290,9 @@ const ALWAYS_ON_EXCEPTIONS = {
   "src/wiring/apiRoute.ts":
     "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
   "src/proxies/attribution.ts":
-    "proxy の項目。読むのは userAcquisition の constants と lib/attributionCookie(edge で動く cookie の読み書きだけ、表に届かない)。処理は先頭の gate.enabled(\"userAcquisition\") で閉じる",
+    "proxy の項目。読むのは userAcquisition の constants と lib/attributionCookie・lib/classifyVisit(edge で動く cookie の読み書きと訪問の分類だけ、表に届かない)。処理は先頭の gate.enabled(\"userAcquisition\") で閉じる",
+  "src/wiring/GoogleTag.tsx":
+    "root layout が描く GoogleTag に判別表を結ぶだけ。読むのは userAcquisition の lib/classifyVisit(config と受け口の項目から表を作る値だけ、表に届かない)。gate.enabled(\"userAcquisition\") が閉なら空の表を渡す",
   "src/proxies/inviteLink.ts":
     "proxy の項目。読むのは referral の lib/inviteLinkCookie(edge で動く cookie 名と URL の読み取りだけ、表に届かない)。処理は先頭の gate.enabled(\"referral\") で閉じる",
 };

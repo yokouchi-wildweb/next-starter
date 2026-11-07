@@ -30,25 +30,25 @@ export const ACQUISITION_CONFIG = {
   maxTouches: 15,
 
   /**
-   * ユーザー紹介（referral / referralReward）の招待リンク用 URL パラメータ。
+   * ユーザー紹介（referral / referralReward）の招待リンクから来た訪問の source / medium。
    * 例: https://example.com/lp?invite=ABC123
    *
-   * ここで定義するのは「解析」側の扱い: このパラメータ付き訪問をタッチとして記録し、
-   * UTM 無指定なら下記 source / medium を補完する。medium は GA が外部サイト流入に
-   * 自動分類する "referral" と混ざらないよう別語彙にしている。
-   * コード自体は extras[param] に保存され「どの紹介者経由か」まで追える。
+   * パラメータ名（"invite"）は referral の物（referral/lib/inviteLinkCookie.ts の INVITE_LINK_PARAM）。
+   * ここで決めるのは「解析」側の扱い: UTM 無指定なら下記 source / medium を補完する
+   * （判別表の行 userAcquisition/channels/invite.ts。紹介の機能が閉じている間は行を出さない）。
+   * medium は GA が外部サイト流入に自動分類する "referral" と混ざらないよう別語彙にしている。
+   * コード自体は extras[<パラメータ名>] に保存され「どの紹介者経由か」まで追える。
    *
    * 紹介リワードの「機能」（フォームプリフィル / 本登録時の自動適用）は referral 側の
-   * 専用 cookie が担い、本 config の enabled とは独立して動く
-   * （param 名の語彙だけ referral/lib/inviteLinkCookie.ts と共有される）。
+   * 専用 cookie が担い、本 config の enabled とは独立して動く。
    */
   referralParam: {
-    param: "invite",
     source: "invite",
     medium: "invite",
   },
 
   /**
+   * 判別表の広告クリック ID の行（並び = 表の順。先の行が source / medium を決める）。
    * 広告クリック ID として認識する URL パラメータと、
    * UTM が無い場合に補完する source / medium（GA の慣例に準拠）。
    * 値の null は「クリック ID は extras に保存するが source/medium は導出しない」の意。
