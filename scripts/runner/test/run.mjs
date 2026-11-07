@@ -5,7 +5,7 @@
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   --list: 選んだファイルを出すだけ(起動しない)。
 //   起動: npx tsx --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
-//   (node --test と同じく 1 ファイル 1 プロセス)。db の群は env APP_ENV=.env.development(未設定なら)。
+//   (node --test と同じく 1 ファイル 1 プロセス)。db の群は env ENV_FILE=.env.development(未設定なら)。
 //   exit 0 = 全部通る(0 本も含む)| 1 = 落ちた | 2 = 引数・フラグの誤り
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -92,7 +92,7 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
   let code = 0;
   for (const b of batches.values()) {
     const env = { ...process.env };
-    if (b.db && !env.APP_ENV) env.APP_ENV = ".env.development";
+    if (b.db && !env.ENV_FILE) env.ENV_FILE = ".env.development";
     log(`test: ${b.files.length} 本${b.db ? "(db)" : ""}${b.flags.length ? ` ${b.flags.join(" ")}` : ""}`);
     if (spawn([...BASE_ARGS, ...b.flags, "--test", ...b.files], env, repo) !== 0) code = 1;
   }

@@ -1,7 +1,7 @@
 // src/lib/appEnv/appEnv.test.ts
 //
 // 段階の読み手の検査: 3 つの値・値なし・空・知らない値(→ production)・前後の空白、withAppEnv / setAppEnv の差し替えと復元。
-// 実行: pnpm test:app-env
+// 実行: pnpm test src/lib/appEnv/appEnv.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

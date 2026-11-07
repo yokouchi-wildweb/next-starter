@@ -25,7 +25,7 @@
 3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
 4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）
 
-他環境への push は `pnpm db:push` ではなく `APP_ENV=<env ファイル> pnpm exec tsx scripts/operations/db/push.ts`（`db:push` スクリプトは `APP_ENV=.env.development` を固定で設定するため）。本番 push のタイミングは下記「運用方針」に従う。
+他環境への push は `pnpm db:push` ではなく `ENV_FILE=<env ファイル> pnpm exec tsx scripts/operations/db/push.ts`（`db:push` スクリプトは `ENV_FILE=.env.development` を固定で設定するため）。本番 push のタイミングは下記「運用方針」に従う。
 
 ## db:push:check（push の読み取り専用ドライラン）
 

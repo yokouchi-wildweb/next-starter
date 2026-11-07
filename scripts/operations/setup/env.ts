@@ -19,6 +19,8 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import type { AppEnv } from "@/lib/appEnv";
+
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const examplePath = path.join(repoRoot, ".env.example");
 

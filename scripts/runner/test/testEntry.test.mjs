@@ -71,16 +71,16 @@ test("--changed: import で届くテスト + 同じフォルダ、辿れない�
   assert.match(unknown.notes[0], /比べる上流の枝が無いので選んだ全部を回す/);
 });
 
-test("起動: 下駄と module mocks を常に付け、群(db は APP_ENV)とフラグごとに束ねて 1 回ずつ、落ちたら exit 1、許可されないフラグは起動せず exit 2", async () => {
+test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)とフラグごとに束ねて 1 回ずつ、落ちたら exit 1、許可されないフラグは起動せず exit 2", async () => {
   const calls = [];
   const flags = { "scripts/x/x.test.mts": { flags: ["--a"] } };
   const deps = { repo: "/r", files: FILES, changed: noRange, log: () => {}, readFlags: (_r, f) => flags[f] ?? { flags: [] } };
-  const code = await run(["--db"], { ...deps, spawn: (args, env) => (calls.push({ args, app: env.APP_ENV }), args.includes("src/a/b.db.test.ts") ? 1 : 0) });
+  const code = await run(["--db"], { ...deps, spawn: (args, env) => (calls.push({ args, app: env.ENV_FILE }), args.includes("src/a/b.db.test.ts") ? 1 : 0) });
   assert.equal(code, 1);
   assert.deepEqual(calls.map((c) => [c.args.slice(BASE_ARGS.length), c.app === ".env.development"]), [
-    [["--test", "src/a/a.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts"], process.env.APP_ENV === ".env.development"],
+    [["--test", "src/a/a.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts"], process.env.ENV_FILE === ".env.development"],
     [["--test", "src/a/b.db.test.ts"], true],
-    [["--a", "--test", "scripts/x/x.test.mts"], process.env.APP_ENV === ".env.development"],
+    [["--a", "--test", "scripts/x/x.test.mts"], process.env.ENV_FILE === ".env.development"],
   ]);
   for (const c of calls) assert.deepEqual(c.args.slice(0, BASE_ARGS.length), ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--experimental-test-module-mocks"]);
   let spawned = 0;

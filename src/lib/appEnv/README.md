@@ -5,7 +5,7 @@
 ## 決まり
 
 - 段階 = env ファイルに書く `APP_ENV` の 1 つだけ: `development` | `staging` | `production`
-- **値が無い・知らない値は `production`**(危ない側を開けない)。`.env.development` には必ず `APP_ENV=development` を書く(`.env.example` と `pnpm env:init` が書く)
+- **値が無い・知らない値は `production`**(危ない側を開けない)。`.env.development` には必ず `APP_ENV=development` を書く(`.env.example` と `pnpm ops setup env` が書く)
 - **`NODE_ENV` はプロジェクトの決まりに使わない**: env に書かず、プロジェクトのコードから読まない。Next の外(scripts・`node --test`)では空になり、staging でも `production` になるので段階を表せない。Next・React の内部の使い方はそのまま
 - `process.env.APP_ENV` / `process.env.NODE_ENV` を直接読むのはこのフォルダだけ。外で読むと lint `app-env/single-reader` が落とす(上流 = error、fork = warn。`eslint-rules/app-env.mjs`)
 
@@ -41,5 +41,5 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 
 ## テスト
 
-- `pnpm test:app-env` — 3 つの値・値なし・空・知らない値・空白・withAppEnv / setAppEnv の復元
-- `pnpm test:app-env-lint` — lint 規則
+- `pnpm test src/lib/appEnv/appEnv.test.ts` — 3 つの値・値なし・空・知らない値・空白・withAppEnv / setAppEnv の復元
+- `pnpm test eslint-rules/app-env.test.mjs` — lint 規則

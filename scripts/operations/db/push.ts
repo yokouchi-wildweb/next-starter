@@ -7,7 +7,7 @@
 //
 // 実行:
 //   pnpm db:push                                        # .env.development 固定
-//   APP_ENV=.env.production pnpm exec tsx scripts/operations/db/push.ts   # 任意の env ファイル
+//   ENV_FILE=.env.production pnpm exec tsx scripts/operations/db/push.ts   # 任意の env ファイル
 //   ... --force                                         # データ消失を伴う文も確認なしで実行
 //
 // 挙動は drizzle-kit push に合わせる:

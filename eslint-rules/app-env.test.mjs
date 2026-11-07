@@ -1,5 +1,5 @@
 // eslint-rules/app-env.test.mjs
-// 実行: pnpm test:app-env-lint
+// 実行: pnpm test eslint-rules/app-env.test.mjs
 
 import { RuleTester } from "eslint";
 import { test } from "node:test";

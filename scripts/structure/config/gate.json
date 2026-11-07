@@ -1,1 +1,1 @@
-{ "check": "moduleLoad.test.mjs", "gates": ["ship"] }
+{ "check": "moduleLoad.test.mjs", "gates": ["ship"], "watch": ["src/**", "scripts/structure/config/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }

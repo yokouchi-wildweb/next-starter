@@ -60,7 +60,7 @@ pnpm workflow tmux-launch setup
 
 ```bash
 # マイグレーション生成(package.json の入口は無い。drizzle-kit を直に呼ぶ)
-npx cross-env APP_ENV=.env.development drizzle-kit generate
+npx cross-env ENV_FILE=.env.development drizzle-kit generate
 
 # スキーマをDBに反映
 pnpm db:push
@@ -159,7 +159,7 @@ pnpm generate cron -- --plan pro     # Vercel Pro: task.ts の schedule どお�
 pnpm check cron
 ```
 
-- `pnpm task` は env ファイルを読む（`APP_ENV`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
+- `pnpm task` は env ファイルを読む（`ENV_FILE`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
 - タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/runner/preload/serverOnly.mjs`、下記「テスト」）を付けている。
 
 定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:

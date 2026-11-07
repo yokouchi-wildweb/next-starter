@@ -24,9 +24,10 @@ export const devAdminPassword = (secret: string): string =>
 
 /** 開発環境でないなら理由、開発環境なら null */
 export const notDevelopmentReason = (env: NodeJS.ProcessEnv): string | null => {
-  if (env.NODE_ENV === "production") return "NODE_ENV=production では動きません";
-  const appEnv = path.basename(env.APP_ENV || ".env.development");
-  if (!appEnv.startsWith(".env.development")) return `APP_ENV=${env.APP_ENV} では動きません(.env.development* だけ)`;
+  const stage = parseAppEnv(env.APP_ENV);
+  if (stage !== "development") return `段階が ${stage} では動きません(env ファイルの APP_ENV=development だけ。無い・知らない値は production)`;
+  const envFile = path.basename(env.ENV_FILE || ".env.development");
+  if (!envFile.startsWith(".env.development")) return `ENV_FILE=${env.ENV_FILE} では動きません(.env.development* だけ)`;
   if (!env.AUTH_JWT_SECRET) return "AUTH_JWT_SECRET がありません(pnpm ops setup env)";
   return null;
 };

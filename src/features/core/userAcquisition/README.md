@@ -53,10 +53,10 @@ cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionC
 - UTM と外部リファラーは行ではなく分類の判定のルール（UTM が常に最優先、リファラーは最後）
 - 行の出どころ:
   - clickId の行 = config の `clickIdParams`（値は fork が config で変える）
-  - それ以外 = 受け口 `channels/<名前>.ts` の `export const channel: AcquisitionChannelItem`（`pnpm extensions:generate` → `extensions/channels.ts`、鍵 = `param`）。上流の項目は招待 `channels/invite.ts` 1 つ
+  - それ以外 = 受け口 `channels/<名前>.ts` の `export const channel: AcquisitionChannelItem`（`pnpm generate extensions` → `extensions/channels.ts`、鍵 = `param`）。上流の項目は招待 `channels/invite.ts` 1 つ
 - 項目の `enabled?: () => boolean`: 持ち主の機能が閉じている間は行を出さない。招待の行は `gate.enabled("referral")`（パラメータ名は referral の `INVITE_LINK_PARAM`、source / medium は config の `referralParam`）
 - 同じ `param` が config と項目の両方にあると `getChannelDefinitions()` が例外（項目どうしの重複は一覧の読み込みで例外）
-- fork が独自の印（例: 自前のアフィリエイト `?aff=`）を経路にする: `channels/<名前>.ts` に項目を 1 つ置いて `pnpm extensions:generate`（core の編集は不要）
+- fork が独自の印（例: 自前のアフィリエイト `?aff=`）を経路にする: `channels/<名前>.ts` に項目を 1 つ置いて `pnpm generate extensions`（core の編集は不要）
 
 ## テーブル設計
 
@@ -78,7 +78,7 @@ cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionC
 - 対象: GET のページナビゲーションのみ（/api/・/_next/・アセットは除外）
 - タッチ条件: `utm_*` あり / 判別表の行のパラメータ（クリック ID・招待リンク `invite` など）あり / 外部リファラーあり
 - source/medium 補完の優先順位: **UTM > クリック ID（clickId の行）> 招待リンクなど（link の行）> 外部リファラー**。UTM 無し+クリック ID → その行の channel、UTM 無し+招待リンク → `source=invite, medium=invite`、UTM 無し+外部リファラーのみ → `source=リファラーホスト, medium=referral`
-- 回帰テスト: `pnpm test:user-acquisition`（`lib/classifyVisit.test.ts`。URL・リファラー → タッチの表、GA4 の招待キャンペーン、紹介が閉じたときの行）
+- 回帰テスト: `pnpm test src/features/core/userAcquisition/lib/classifyVisit.test.ts`（`lib/classifyVisit.test.ts`。URL・リファラー → タッチの表、GA4 の招待キャンペーン、紹介が閉じたときの行）
 - 招待リンクの medium を `referral` にしない理由: GA が外部サイトからの自然リンク流入を `referral` に自動分類するため、混ざらないよう別語彙（`invite`）にしている（config で変更可）
 - 重複抑止: 直前タッチと同一チャンネル（source/medium/campaign/referrer_host）は追記しない
 - 上限: `maxTouches`（既定 15）超過・4KB 逼迫時は **first-touch を必ず保持**して古い中間タッチから間引く

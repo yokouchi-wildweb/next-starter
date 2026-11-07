@@ -1,1 +1,1 @@
-{ "check": "gate-check.ts", "generate": "gate-generate.ts", "gates": ["build", "ship", "deploy"] }
+{ "check": "gate-check.ts", "generate": "gate-generate.ts", "gates": ["build", "ship", "deploy"], "watch": ["src/**", "vercel.json", "eslint-rules/resolve-import.mjs", "scripts/structure/cron/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }

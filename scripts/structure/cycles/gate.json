@@ -1,1 +1,1 @@
-{ "check": "cycles.test.mjs", "gates": ["build", "ship"] }
+{ "check": "cycles.test.mjs", "gates": ["build", "ship"], "watch": ["src/**", "scripts/structure/cycles/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }

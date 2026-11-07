@@ -2,7 +2,7 @@
 
 ```
 pnpm test                       # unit + fork の群を全部
-pnpm test --db                  # db の群も(DB に届く。APP_ENV 未設定なら .env.development)
+pnpm test --db                  # db の群も(DB に届く。ENV_FILE 未設定なら .env.development)
 pnpm test --group=db            # その群だけ(unit / fork / db、カンマで複数)
 pnpm test src/lib/crud          # パス(前方一致)か glob(src/**/x.test.ts)で絞る
 pnpm test --changed             # 範囲の変更に関係するテストだけ(/ship が使う)

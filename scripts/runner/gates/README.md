@@ -45,6 +45,8 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 - 範囲 = 比べる枝(上流の追跡先 → `origin/<今の枝>` → `origin/HEAD` → `origin/main` の最初にある物)との分岐点から HEAD まで + 作業ツリーの変更 + 未追跡のファイル
 - 回す: watch の無い対象・対象の名前で呼んだ時・`--all`・watch の門でない時・範囲が決まらない時(理由を 1 行出す)
 - watch は「この対象の検査を落としうる変更」の glob。迷ったら広めに書く(足りないと壊れた変更が素通りする)
+- 上流の対象は門 ship に乗る物すべてが watch を持つ(structure の 9 つと workflow の notices・rules)。structure の対象の範囲は `watchCoverage.test.mjs` が縛る: 検査の入口から dpdm で届くファイルと、入口が fs で読むデータ(表 READS)の全部が watch に当たらなければ落ちる。入口に読む物を足したら表と watch を一緒に直す
+- 共通に入れる物: `tsconfig.json`・`package.json`・`pnpm-lock.yaml`(依存と解決)・`scripts/runner/gates/**`・`scripts/runner/preload/**`(起動のしかた)。src 全体を読む検査(cycles・config・cron・extensions・registry・routes)は `src/**`
 
 ## build の守り
 
@@ -62,3 +64,4 @@ offline の門(build・build:post)に乗る対象の check は、DB・外部の 
 - `netGuard.mjs` build の検査に付ける preload
 - `features.ts` 機能の開閉を JSON で出す(features を持つ対象がある時だけ子プロセスで呼ぶ)
 - `gates.test.mjs` テスト(pnpm test scripts/runner/gates/gates.test.mjs)
+- `watchCoverage.test.mjs` 上流の対象の watch が読む物を覆うかのテスト(pnpm test scripts/runner/gates/watchCoverage.test.mjs)

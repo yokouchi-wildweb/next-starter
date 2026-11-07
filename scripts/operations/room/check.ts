@@ -5,7 +5,7 @@
 // 同梱の sample-counter namespace を使用し、ルームIDは実行ごとにユニーク (状態汚染なし)。
 //
 // 接続先: env の REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET
-//   (APP_ENV で指定された環境ファイル、デフォルト .env.development。
+//   (ENV_FILE で指定された環境ファイル、デフォルト .env.development。
 //    直接指定も可: REALTIME_ROOM_URL=... REALTIME_ROOM_AUTH_SECRET=... pnpm ops room check)
 // ローカル Worker (pnpm ops room dev) に対しても実行できる:
 //   REALTIME_ROOM_URL=http://localhost:8787 REALTIME_ROOM_AUTH_SECRET=<.dev.varsの値> pnpm ops room check

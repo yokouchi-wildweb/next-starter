@@ -3,7 +3,7 @@
 // 流入の分類の動きを表で固定する: 同じ URL・リファラーから同じ source / medium / campaign / extras が出ること。
 // UTM・クリック ID・招待・外部リファラーとその優先順位(UTM > クリック ID > 招待 > リファラー)、
 // GA4 へ送る招待キャンペーンの判定、招待パラメータの読み書き。
-// 実行: pnpm test:user-acquisition
+// 実行: pnpm test src/features/core/userAcquisition/lib/classifyVisit.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
