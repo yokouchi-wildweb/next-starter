@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { ADMIN_DATA_MENU_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, STORAGE_PURPOSE_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
+import { ADMIN_DATA_MENU_FILE, ADMIN_DOMAINS_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, STORAGE_PURPOSE_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../../..");
 
@@ -25,7 +25,7 @@ function fixture(files) {
   return root;
 }
 
-test("実リポ: 4 本が走査の生成結果と一致する(ずれたら pnpm generate registry)", () => {
+test("実リポ: 5 本が走査の生成結果と一致する(ずれたら pnpm generate registry)", () => {
   const { outputs, problems } = buildAlphaRegistries(ROOT);
   assert.deepEqual(problems, []);
   assert.deepEqual(staleAlphaRegistries(ROOT, outputs), []);
@@ -91,4 +91,24 @@ test("problems: 字面で読めない pgTable・読めない domain.json・フ�
   assert.ok(problems.some((p) => p.includes("b/domain.json") && p.includes("JSON")));
   assert.ok(problems.some((p) => p.includes("foo/domain.json") && p.includes("重なる")));
   assert.ok(problems.some((p) => p.includes("a/entities/drizzle.ts") && p.includes("文字列リテラルでない")));
+});
+
+test("管理一覧の一覧: 一覧の画面があるドメインだけ(generate: false も)、キー = フォルダ名、印の無い addToAdminDataMenu は false", () => {
+  const root = fixture({
+    "src/features/core/chatRoom/domain.json": '{ "generate": false, "label": "チャット", "plural": "chat_rooms" }',
+    "src/features/sample/domain.json": '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }',
+    "src/features/sampleImage/domain.json": '{ "label": "画像", "plural": "sample_images", "addToAdminDataMenu": true }',
+    "src/features/core/coupon/domain.json": '{ "generate": false, "label": "クーポン", "plural": "coupons" }',
+    "src/app/admin/(protected)/chat-rooms/page.tsx": "export {};\n",
+    "src/app/admin/(protected)/samples/page.tsx": "export {};\n",
+    "src/app/admin/(protected)/coupons/official/page.tsx": "export {};\n",
+  });
+  const { outputs, problems } = buildAlphaRegistries(root);
+  assert.deepEqual(problems, []);
+  const rows = outputs[ADMIN_DOMAINS_FILE].split("\n").filter((l) => l.startsWith("  "));
+  assert.deepEqual(rows, [
+    '  chatRoom: { label: "チャット", href: "/admin/chat-rooms", addToAdminDataMenu: false },',
+    '  sample: { label: "サンプル", href: "/admin/samples", addToAdminDataMenu: true },',
+  ]);
+  assert.match(outputs[ADMIN_DOMAINS_FILE], /\nexport type AdminDomainName = keyof typeof adminDomains;\n$/);
 });

@@ -1,5 +1,5 @@
 // scripts/structure/registry/alpha/index.mjs
-// src/registry の α 4 本(schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry)を走査から丸ごと組み立てる(親 D67)。
+// src/registry の α 5 本(schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry・adminDomains)を走査から丸ごと組み立てる(親 D67)。
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
 
@@ -14,6 +14,9 @@ export const SCHEMA_REGISTRY_FILE = "src/registry/schemaRegistry.ts";
 export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts";
 export const ADMIN_DATA_MENU_FILE = "src/registry/adminDataMenu.ts";
 export const STORAGE_PURPOSE_REGISTRY_FILE = "src/registry/storagePurposeRegistry.ts";
+export const ADMIN_DOMAINS_FILE = "src/registry/adminDomains.ts";
+/** ドメインの管理一覧の画面が置かれる route group(一覧 = <ここ>/<kebab 複数形>/page.tsx) */
+export const ADMIN_LIST_ROUTE_DIR = "src/app/admin/(protected)";
 
 const headerOf = (source) => `// 生成物・編集不可: pnpm generate registry が ${source} から生成する`;
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -109,6 +112,31 @@ function renderAdminDataMenu(domains) {
   ].join("\n");
 }
 
+/** ドメインの管理一覧の住所(adminDataMenu と同じ字面: /admin/<kebab 複数形>) */
+const adminListHref = (d) => `/admin/${toKebabCase(toCamelCase(d.config.plural ?? d.camel))}`;
+
+/**
+ * 管理一覧の画面を持つ全ドメイン(generate: false も含む)のキー付き一覧。キー = ドメインのフォルダ名(camelCase)。
+ * 画面を持つ = ADMIN_LIST_ROUTE_DIR/<kebab 複数形>/page.tsx がある(domain.json に印は無い)。管理メニューの項目 domain:"<名前>" と出どころ dataMenu が読む
+ */
+function renderAdminDomains(repoRoot, domains) {
+  const listed = domains.filter((d) => existsSync(join(repoRoot, ADMIN_LIST_ROUTE_DIR, adminListHref(d).slice("/admin/".length), "page.tsx")));
+  return [
+    headerOf(`${FEATURES_DIR}/**/domain.json と ${ADMIN_LIST_ROUTE_DIR}/<kebab 複数形>/page.tsx`),
+    `// ${ADMIN_DOMAINS_FILE}`,
+    "//",
+    "// 管理一覧の画面を持つドメインの一覧(キー = フォルダ名)。管理メニューの項目 domain:\"<名前>\" が題名と住所を引き、",
+    "// 出どころ dataMenu が addToAdminDataMenu: true の行を展開する(src/features/core/admin/menu/)。",
+    "",
+    "export const adminDomains = {",
+    ...listed.map((d) => `  ${d.camel}: { label: ${JSON.stringify(d.config.label ?? d.camel)}, href: ${JSON.stringify(adminListHref(d))}, addToAdminDataMenu: ${d.config.addToAdminDataMenu === true} },`),
+    "} as const satisfies Record<string, { label: string; href: string; addToAdminDataMenu: boolean }>;",
+    "",
+    "export type AdminDomainName = keyof typeof adminDomains;",
+    "",
+  ].join("\n");
+}
+
 /** src/features の全 services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き) */
 function readStoragePurposeFiles(repoRoot) {
   const found = [];
@@ -149,7 +177,7 @@ function renderStoragePurposeRegistry(repoRoot) {
 }
 
 /**
- * α 4 本の中身を組み立てる
+ * α 5 本の中身を組み立てる
  * @param {string} repoRoot
  * @returns {{ outputs: Record<string, string>, problems: string[] }}
  */
@@ -163,6 +191,7 @@ export function buildAlphaRegistries(repoRoot) {
       [ADMIN_DATA_MENU_FILE]: renderAdminDataMenu(domains),
       ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
       [STORAGE_PURPOSE_REGISTRY_FILE]: renderStoragePurposeRegistry(repoRoot),
+      [ADMIN_DOMAINS_FILE]: renderAdminDomains(repoRoot, domains),
     },
     problems: [...domainProblems, ...schema.problems],
   };

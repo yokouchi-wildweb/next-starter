@@ -4,7 +4,7 @@
 
 | ファイル | 作られ方 |
 |---|---|
-| `serviceRegistry.ts`・`schemaRegistry.ts`・`domainConfigRegistry.ts`・`adminDataMenu.ts`・`storagePurposeRegistry.ts` | `pnpm generate registry` が丸ごと生成(`scripts/structure/registry/README.md`)。build の冒頭の `pnpm check registry` が一致を見る |
+| `serviceRegistry.ts`・`schemaRegistry.ts`・`domainConfigRegistry.ts`・`adminDataMenu.ts`・`storagePurposeRegistry.ts`・`adminDomains.ts` | `pnpm generate registry` が丸ごと生成(`scripts/structure/registry/README.md`)。build の冒頭の `pnpm check registry` が一致を見る |
 
 ## 足したいとき
 

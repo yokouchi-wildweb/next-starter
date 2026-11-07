@@ -5,9 +5,9 @@
 | コマンド | 何をするか | DB 接続 |
 |---|---|---|
 | `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/operations/db/push.ts`） | 必要・書き込む |
-| `pnpm test scripts/structure/registry/` | 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
+| `pnpm test scripts/structure/registry/` | 走査の表の集合 = schemaRegistry の全 pgTable、α 5 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
 | `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
-| `pnpm generate registry` / `pnpm check registry` | `src/registry` の α 5 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル。プロフィールの `entities/profiles/<名前>/drizzle.ts` も）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
+| `pnpm generate registry` / `pnpm check registry` | `src/registry` の α 6 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル。プロフィールの `entities/profiles/<名前>/drizzle.ts` も）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）・`adminDomains`（管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン、`generate: false` も。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む: `src/features/core/admin/menu/`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
 
 ## スキーマ変更を DB に反映する（push）
 
