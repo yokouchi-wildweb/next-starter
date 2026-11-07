@@ -128,8 +128,10 @@ export async function planS3(root) {
   const debtModule = existsSync(debtPath) ? await import(debtPath) : null;
   const exceptionFiles = exceptionFilesOf(debtModule, node.dependencyExceptions);
   const existingRequired = Object.keys(await node.readRequired(root));
-  const violations = selectViolations(scanDependencies({ root, rules: node.rules, exceptionFiles, requiredNames: [] }), debtModule);
-  const required = planRequired(violations, node.rules, existingRequired);
+  // 規則の値だけの一覧(fork の config の今の値。全開スイッチは通さない、L2.3)。configRules の無い旧い門番は rules
+  const gateRules = node.configRules ?? node.rules;
+  const violations = selectViolations(scanDependencies({ root, rules: gateRules, exceptionFiles, requiredNames: [] }), debtModule);
+  const required = planRequired(violations, gateRules, existingRequired);
   const cron = [];
   const manual = [];
   for (const rel of cronRouteFiles(root)) {

@@ -19,7 +19,7 @@ import { buildSidebarSections } from "@/app/admin/(protected)/_layout/Sidebar/si
 import { adminMenu } from "@/config/ui/admin-global-menu.config";
 import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
 import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
-import { rules } from "@/featureGate/node";
+import { configRules, rules } from "@/featureGate/node";
 
 import { folderSourcePattern, gatedImports } from "./alwaysOnEntries.mjs";
 import { loadCronTasks } from "../../../scripts/cron/discover";
@@ -28,10 +28,10 @@ import { planExtensions } from "../../../scripts/extensions/extensions.mjs";
 const ROOT = resolve(import.meta.dirname, "../../..");
 const OFF: FeatureName[] = ["wallet", "payment"];
 
-/** 一覧の規則の enabled を差し替えて fn を走らせる(OFF は false、他は true) */
+/** 一覧の規則の enabled を差し替えて fn を走らせる(OFF は false、他は true)。規則の値の一覧 configRules(cron の discover が読む)も同じに */
 async function withWalletOff<T>(fn: () => T | Promise<T>, off: readonly FeatureName[] = OFF): Promise<T> {
   const saved = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
-  for (const rule of rules) {
+  for (const rule of [...rules, ...configRules]) {
     saved.set(rule, rule.enabled);
     rule.enabled = () => !off.includes(rule.name);
   }

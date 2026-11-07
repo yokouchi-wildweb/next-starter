@@ -16,7 +16,8 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 | `extensions/` | 生成物 | `pnpm extensions:generate` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
 | `client.ts` | 上流 | 入口(client): `useGate`・`GatedLink`・配線用の `GateProvider` と型 |
-| `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`・`gatedSchema`・`closedTables`・例外の一覧 |
+| `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`(全開スイッチを通した一覧)・`configRules` / `configEnabled` / `configPath`(規則の値だけ)・`isOpenedBySwitch`・`gatedSchema`・`closedTables`・例外の一覧 |
+| `ruleList.ts`・`openSwitch.ts` | 上流 | 判定の入口(生成一覧を全開スイッチで包む。門番の中で生成一覧を値で読み、規則の `enabled()` を直に呼ぶのはここだけ)と全開スイッチ(「全開スイッチ」の節) |
 | `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`area.ts`・`clientState.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定・`area.ts` = 枠の判定の純関数で server と client が共有、`clientState.ts` = client に渡す値の計算)・1 道具 1 ファイルと束・道具の中身 |
 | `checks/` | 上流 | 検査(`pnpm test:feature-gate`・`:reach`・`:tools`・`:client`) |
 
@@ -219,6 +220,35 @@ export const rule: FeatureGateRule = {
 - 他のドメインの画面の中の細かい出し分け(欄・ボタン・文言の一部): その画面が `useGate().enabled` / `gate.enabled` で確かめる
 - API を通らない書き込み・読み出し: client から直に Firestore に書く処理、外部サービスの webhook を自前で受ける処理など(住所で閉じないので、規則の住所の外で動く)
 - 規則の `enabled` の式が本当にその機能の入切かは見ない
+
+## 全開スイッチ(FEATURE_GATE_OPEN)
+
+閉じた機能を env 1 つで開ける(上流の開発・デモで全機能を見る、fork の開発で sample を見る)。規則の値(config)は書き換えない。
+
+```bash
+FEATURE_GATE_OPEN=all              # 全規則を開く
+FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , と空白。名前 = rules/<名前>.ts)
+```
+
+- 未設定・空 = 規則の値のまま。未知の名前は判定のたびに throw(打ち間違いを黙って閉じたままにしない。proxy では全リクエストが失敗するので、置いたらすぐ気付く)
+- 効く条件: 段階(`@/lib/appEnv` の `getAppEnv()`、決まりは [src/lib/appEnv/README.md](../lib/appEnv/README.md))が `development` なら全 Tier。staging・production(値なし・知らない値も)は **Tier1 だけ**。効かない所(fork の本番など)では値を読まない(置かれていても落とさない)
+- Tier1 の判別(`openSwitch.ts` の `isTier1Build` 1 つ): Next のビルドは `next.config.ts` が fork_id(`readForkIdentity().isTier1`)から計算して埋め込む `FEATURE_GATE_TIER1`(fork の build では `"false"`。埋め込みが勝つので Vercel の env では上書きできない)。注入の無い node(scripts・テスト)は `node.ts` が読むだけで渡す読み手 `node/tier1.ts`。`openSwitch.ts` は proxy の束に載るので `node:` を読まない
+- 判定の入口は `ruleList.ts` の 1 つ: 生成一覧の各規則の `enabled` を「スイッチで開いていれば true、でなければ規則の `enabled()`」に差し替えた `rules`。門番の口・`clientGateState` はこれを読み、client は server の答えを受け取るだけ(client で env を読み直さない)
+
+道具ごとの効く範囲(L2.3):
+
+| 道具 | スイッチ | 読む物 | 理由 |
+|---|---|---|---|
+| 門番の口(`gate.*`)・proxy・`useGate()` | 効く | `rules` | 開けた機能の画面・API を見る |
+| `pnpm db:push` / `db:push:check` の表 | 効く | `rules` | 開けた機能の表を作る(開発の DB だけ。`ENV_FILE` の env ファイルの `APP_ENV` で決まる: `.env.development` なら全 Tier、`APP_ENV=production` か値なしのファイルなら Tier1 だけ) |
+| `pnpm db:seed`・`pnpm db:clear` | 効く | node の `gate.enabled`・`closedTables(rules)` | 表と同じ答え |
+| `pnpm features:list` | 見せ方 | `rules` + `configEnabled` + `isOpenedBySwitch` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。`--json` は `enabled`・`configEnabled`・`openedBySwitch` |
+| `pnpm cron:generate` / `cron:check`・`pnpm task` | 効かない | `configPath` | `vercel.json` と照合が env で揺れない。スイッチで開けた機能の cron は `vercel.json` に載らない(route は開くので手で叩けば動く) |
+| `pnpm routes:map` | 効かない | `configRules` | コミットする `route-map.jsonl` が env で揺れない |
+| `FEATURE_GATE_CHECK` の検査・依存の検査・codemod `feature-gate-s3` | 効かない | `configRules` | 検査の答えが env で揺れない |
+| `pnpm features:set`・`required/` | 関わらない | config の字面 | 規則の値を書く道具 |
+
+検査: `checks/openSwitch.test.ts`(値・効く条件・Tier1 の判別・範囲の表・入口の字面の検査・`next.config.ts` の注入)。
 
 ## 守り
 

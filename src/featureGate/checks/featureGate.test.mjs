@@ -34,7 +34,8 @@ import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
 import { serviceRegistry } from "../../registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../../lib/domain/definition/apiAccess.ts";
 import { APP_FEATURES } from "../../config/app/app-features.config.ts";
-import { alwaysOnExceptions, alwaysOnRegistries, gatedSchema as applySchemaGate, rules as featureGateRules } from "../node.ts";
+// 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
+import { alwaysOnExceptions, alwaysOnRegistries, configRules as featureGateRules, gatedSchema as applySchemaGate } from "../node.ts";
 import { forkAddedFiles } from "../../lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../../../scripts/extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "./alwaysOnEntries.mjs";

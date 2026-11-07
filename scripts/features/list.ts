@@ -1,5 +1,5 @@
 // scripts/features/list.ts(pnpm features:list [--name <規則名>] [--json])
-// 機能を閉じる規則ごとの開閉・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
+// 機能を閉じる規則ごとの開閉(全開スイッチで開いていれば「閉 → 開(スイッチ)」、--json は configEnabled / openedBySwitch)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
 // 中身は門番の道具 @/featureGate/node の readFeatureReport。詳細: src/featureGate/README.md「features:list / features:set」
 
 import { dependencyExceptions, readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";
@@ -18,9 +18,15 @@ function label(dep: FeatureDescription["dependents"][number]): string {
   return "未(依存の検査で違反)";
 }
 
+/** 開閉の見せ方: 規則の値どおりなら「開」「閉」、全開スイッチで開いていれば「閉 → 開(スイッチ)」 */
+function state(d: FeatureDescription): string {
+  if (d.openedBySwitch && !d.configEnabled) return "閉 → 開(スイッチ)";
+  return d.enabled ? "開" : "閉";
+}
+
 function detail(d: FeatureDescription): string[] {
   const lines = [
-    `${d.name}  ${d.enabled ? "開" : "閉"}${d.required !== null ? `  必須(${d.required})` : ""}`,
+    `${d.name}  ${state(d)}${d.required !== null ? `  必須(${d.required})` : ""}`,
     `  住所(手書き): ${d.paths.handWritten.join(", ") || "-"}`,
     `  住所(汎用 API の導出): ${d.paths.domainApi.join(", ") || "-"}`,
     `  住所(設定の節の導出): ${d.paths.setting.join(", ") || "-"}`,
@@ -55,9 +61,10 @@ async function main() {
   for (const d of picked) {
     const paths = d.paths.handWritten.length + d.paths.domainApi.length + d.paths.setting.length;
     const open = d.dependents.filter((dep) => dep.allowedBy === null).length;
-    console.log(`${d.name} | ${d.enabled ? "開" : "閉"} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${open}) | ${d.callSites.length}`);
+    console.log(`${d.name} | ${state(d)} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${open}) | ${d.callSites.length}`);
   }
-  console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length})。詳細: pnpm features:list --name <名前>`);
+  const bySwitch = picked.filter((d) => d.openedBySwitch && !d.configEnabled).length;
+  console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length}${bySwitch > 0 ? `・スイッチで開 ${bySwitch}(FEATURE_GATE_OPEN)` : ""})。詳細: pnpm features:list --name <名前>`);
 }
 
 main().catch((error) => {

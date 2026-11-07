@@ -5,14 +5,15 @@
 // task.ts の run は動的 import なので、ここで読み込んでも DB などの依存は読み込まれない。
 // fork が置いた task.override.ts（任意。task.ts の一部の上書き = <対象>.override.ts の形）があれば、schedule の差し替えと
 // disabled をここで反映する。空(空白とコメントだけ)は不在と同じ。旧名の override.ts が残っていれば改名を案内して止める。
-// 機能の門: タスクの住所 /api/cron/<name> を門番（@/featureGate/node の gate.path）に聞き、閉じていれば closedBy に規則の名前を付ける
+// 機能の門: タスクの住所 /api/cron/<name> を門番（@/featureGate/node の configPath = 規則の値の gate.path）に聞き、閉じていれば closedBy に規則の名前を付ける
+// 全開スイッチ FEATURE_GATE_OPEN は通さない(vercel.json と照合が env で揺れないため、L2.3)。スイッチで開いた機能の cron は route を手で叩けば動く
 // （定期実行から外す・pnpm task で飛ばす。route 側は src/wiring/cronRoute.ts が同じ住所で判定する）。
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { gate } from "@/featureGate/node";
+import { configPath } from "@/featureGate/node";
 import { isValidCronExpression } from "@/lib/cron/cronExpression";
 import type { CronTaskDefinition, CronTaskOverride } from "@/lib/cron/types";
 import { cronTaskPath } from "@/lib/cron/vercelCrons";
@@ -36,9 +37,9 @@ export type LoadedCronTask = CronTaskDefinition & {
 /** 住所 → 閉じている規則の名前（開いていれば null） */
 export type CronPathClosedBy = (pathname: string) => string | null;
 
-/** 既定の判定: 門番の gate.path（今の config の値で評価する） */
+/** 既定の判定: 門番の configPath（今の config の値で評価する。全開スイッチは通さない） */
 export const gateClosedBy: CronPathClosedBy = (pathname) => {
-  const result = gate.path(pathname);
+  const result = configPath(pathname);
   return result.open ? null : result.rule;
 };
 

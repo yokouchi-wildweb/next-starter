@@ -10,7 +10,7 @@ import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
-import { ruleEnabled } from "../ruleList";
+import { configEnabled, isOpenedBySwitch, ruleEnabled } from "../ruleList";
 import type { GatedFeatureRule } from "../types";
 
 export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null;
@@ -18,7 +18,12 @@ export type FeatureDependent = { file: string; folder: string; allowedBy: Depend
 
 export type FeatureDescription = {
   name: string;
+  /** 今の開閉(全開スイッチを通した値。門番の口と同じ答え) */
   enabled: boolean;
+  /** 規則の値(config。スイッチを通さない) */
+  configEnabled: boolean;
+  /** 全開スイッチ FEATURE_GATE_OPEN で開いているか */
+  openedBySwitch: boolean;
   /** 必須(required/<名前>.ts)なら reason、でなければ null */
   required: string | null;
   paths: { handWritten: string[]; domainApi: string[]; setting: string[] };
@@ -34,15 +39,21 @@ export type FeatureFacts = {
   callSites: Record<string, string[]>;
   /** 規則名 → 必須の理由 */
   required: Record<string, string>;
+  /** 規則名 → 規則の値と全開スイッチ(無い規則は enabled の値・スイッチなしとみなす) */
+  switchState?: Record<string, { configEnabled: boolean; openedBySwitch: boolean }>;
 };
 
 /** 規則と集めた事実から説明を組む(純関数。並びは一覧の順) */
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
   return rules.map((rule) => {
     const derived = rule.domainApiPaths.length + rule.settingPaths.length;
+    const enabled = ruleEnabled(rule);
+    const state = facts.switchState?.[rule.name];
     return {
       name: rule.name,
-      enabled: ruleEnabled(rule),
+      enabled,
+      configEnabled: state?.configEnabled ?? enabled,
+      openedBySwitch: state?.openedBySwitch ?? false,
       required: facts.required[rule.name] ?? null,
       paths: {
         handWritten: rule.pathPatterns.slice(0, rule.pathPatterns.length - derived),
@@ -118,5 +129,8 @@ export async function readFeatureReport(
     requiredNames: Object.keys(required),
   });
   const callSites = findCallSites(root, rules.map((rule) => rule.name));
-  return describeFeatures(rules, { dependencies, callSites, required });
+  const switchState = Object.fromEntries(
+    rules.map((rule) => [rule.name, { configEnabled: configEnabled(rule.name), openedBySwitch: isOpenedBySwitch(rule.name) }]),
+  );
+  return describeFeatures(rules, { dependencies, callSites, required, switchState });
 }

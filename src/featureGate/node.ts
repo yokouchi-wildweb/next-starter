@@ -1,6 +1,8 @@
 // src/featureGate/node.ts
 // 門番の道具の入口(scripts と test だけが読む。proxy・アプリからは読まない)。
-// - rules: 規則の一覧(生成一覧を全開スイッチで包んだ物。名前・tables 付き、ruleList.ts)
+// - rules: 規則の一覧(生成一覧を全開スイッチで包んだ物。名前・tables 付き、ruleList.ts)。db:push・seed・db:clear・features:list が読む
+// - configRules / configEnabled / configPath: 規則の値だけ(スイッチを通さない)。cron・routes:map・検査・codemod が読む(L2.3)
+// - isOpenedBySwitch: 全開スイッチで開いているか(features:list の見せ方)
 // - gatedSchema: db:push / db:push:check に渡す入力(閉じた機能の表を両側から外す)
 // - closedTables: 今閉じている機能の表名
 // - dependencyExceptions: 依存の検査の例外(fork の受け口)
@@ -13,7 +15,8 @@
 import "./node/tier1";
 
 export { serverTools as gate } from "./tools/server";
-export { rules } from "./ruleList";
+export { configEnabled, configRules, isOpenedBySwitch, rules } from "./ruleList";
+export { configPath } from "./node/configPath";
 export { alwaysOnExceptions } from "./extensions/alwaysOnExceptions";
 export { alwaysOnRegistries } from "./extensions/alwaysOnRegistries";
 export { dependencyExceptions } from "./extensions/dependencyExceptions";

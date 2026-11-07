@@ -5,6 +5,8 @@
 // - Tier1 の判別: 注入 FEATURE_GATE_TIER1 があればそれ、無ければ readForkIdentity().isTier1
 // - 入口: 門番の中で生成一覧 extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのも ruleList.ts だけ(字面の検査、テストは除く)
 // - next.config.ts の FEATURE_GATE_TIER1 = readForkIdentity(repoRoot).isTier1
+// - 効く範囲(L2.3): 効かせる = 門番の口・useGate・db:push / db:push:check の表・seed・db:clear・features:list の開閉 /
+//   効かせない(規則の値) = cron:generate / cron:check・routes:map・FEATURE_GATE_CHECK の検査・codemod(features:set と required/ は config を書く道具で開閉を読まない)
 // 閉じた状態は生成一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:feature-gate:tools
 
 import assert from "node:assert/strict";
@@ -14,11 +16,13 @@ import { test } from "node:test";
 
 import { clientGateState, gate, type GatedFeatureRule } from "@/featureGate";
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
-import { closedTables, rules } from "@/featureGate/node";
+import { closedTables, configPath, configRules, gate as nodeGate, readFeatureReport, rules } from "@/featureGate/node";
 import { isOpenSwitchActive, isTier1Build, parseOpenSwitch, resolveOpenSwitch } from "@/featureGate/openSwitch";
 import { configEnabled } from "@/featureGate/ruleList";
 import { setAppEnv } from "@/lib/appEnv";
 import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+
+import { gateClosedBy } from "../../../scripts/cron/discover";
 
 const repoRoot = resolve(__dirname, "../../..");
 const known = new Set(generatedRules.map((rule) => rule.name));
@@ -123,6 +127,63 @@ test("段階と Tier: development は fork でも効き、staging・production�
   withEnv({ FEATURE_GATE_OPEN: "wallet", APP_ENV: "development", FEATURE_GATE_TIER1: "false" }, () => {
     assert.deepEqual(openNames(), ["wallet"], "fork でも development では効く");
   });
+});
+
+// ---- 効く範囲(L2.3) ----
+
+test("範囲: 効かせない道具は規則の値で見る(configRules・configPath・cron の gateClosedBy はスイッチで揺れない)", () => {
+  withEnv({ FEATURE_GATE_OPEN: "all", APP_ENV: "development" }, () => {
+    assert.ok(configRules.every((rule) => !rule.enabled()), "configRules はスイッチを通さない");
+    const wallet = configRules.find((rule) => rule.name === "wallet");
+    assert.ok(wallet);
+    const pathname = wallet.pathPatterns[0].replace(/^=/, "");
+    assert.deepEqual(configPath(pathname), { open: false, rule: "wallet", redirectTo: wallet.redirectTo });
+    assert.equal(gate.path(pathname).open, true, "門番の口は開く");
+    assert.equal(gateClosedBy(pathname), "wallet", "cron:generate / cron:check は規則の値");
+  });
+});
+
+test("範囲: 効かせる道具はスイッチで開いた機能を開とみなす(rules・closedTables・node の gate)", () => {
+  withEnv({ FEATURE_GATE_OPEN: "wallet", APP_ENV: "development" }, () => {
+    assert.equal(nodeGate.enabled("wallet"), true, "seed は node の gate.enabled で見る");
+    const tables = closedTables(rules);
+    for (const table of rules.find((rule) => rule.name === "wallet")?.tables ?? []) assert.ok(!tables.includes(table), `${table} は db:push の対象`);
+    assert.ok(closedTables(configRules).includes("wallets"), "規則の値では閉じたまま");
+  });
+});
+
+const read = (rel: string) => readFileSync(join(repoRoot, rel), "utf8");
+
+test("範囲: 読み手がどちらの一覧を読むか(字面)", () => {
+  assert.match(read("scripts/routes/map.mjs"), /import \{ configRules as featureGateRules \} from "\.\.\/\.\.\/src\/featureGate\/node\.ts"/);
+  assert.match(read("src/featureGate/checks/featureGate.test.mjs"), /configRules as featureGateRules/);
+  assert.match(read("scripts/cron/discover.ts"), /import \{ configPath \} from "@\/featureGate\/node"/);
+  assert.match(read("scripts/codemods/feature-gate-s3.mjs"), /node\.configRules \?\? node\.rules/);
+  for (const rel of ["scripts/registry/push.ts", "scripts/registry/check-schema-roundtrip.ts"]) {
+    assert.match(read(rel), /\{ rules, gatedSchema \}/, `${rel}: 表はスイッチを通した rules で外す`);
+  }
+  assert.match(read("scripts/db/clear/run.ts"), /closedTables\(gateNode\.rules\)/);
+  assert.match(read("scripts/db/seed/run.ts"), /gate\.enabled\(feature\)/);
+});
+
+test("features:list: 規則の値とスイッチを分けて出す(configEnabled・openedBySwitch)", async () => {
+  const wallet = rules.filter((rule) => rule.name === "wallet");
+  let report: Awaited<ReturnType<typeof readFeatureReport>> = [];
+  const restore = setAppEnv("development");
+  const saved = process.env.FEATURE_GATE_OPEN;
+  const savedEnabled = generatedRules.find((rule) => rule.name === "wallet")!.enabled;
+  generatedRules.find((rule) => rule.name === "wallet")!.enabled = () => false;
+  process.env.FEATURE_GATE_OPEN = "wallet";
+  try {
+    report = await readFeatureReport(repoRoot, wallet);
+  } finally {
+    generatedRules.find((rule) => rule.name === "wallet")!.enabled = savedEnabled;
+    if (saved === undefined) delete process.env.FEATURE_GATE_OPEN;
+    else process.env.FEATURE_GATE_OPEN = saved;
+    restore();
+  }
+  assert.equal(report.length, 1);
+  assert.deepEqual([report[0].enabled, report[0].configEnabled, report[0].openedBySwitch], [true, false, true]);
 });
 
 // ---- 判定の入口の字面の検査(門番の中だけ。テストは除く) ----

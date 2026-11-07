@@ -2,6 +2,8 @@
 // 判定の入口(門番の中で 1 つ): 生成一覧 extensions/rules を包み、各規則の enabled を「全開スイッチで開いていれば true、
 // でなければ規則の enabled()」に差し替えた一覧 rules を出す。門番の判定(evaluate・clientState・node の道具)と
 // node.ts の rules を受け取る外の読み手(routes:map・検査)は、この一覧と ruleEnabled だけを通る。
+// 規則の値だけの一覧 configRules(スイッチを通さない): コミットされるファイルと検査が env で揺れない道具が読む(L2.3。
+// cron:generate / cron:check・routes:map・FEATURE_GATE_CHECK の検査・codemod。node.ts の configRules / configPath)
 // 守り(checks/openSwitch.test.ts): 門番の中で extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのもこのファイルだけ
 // スイッチ: ./openSwitch.ts / 詳細: ./README.md
 
@@ -22,6 +24,12 @@ export function isOpenedBySwitch(name: FeatureName): boolean {
 export const rules: GatedFeatureRule[] = generatedRules.map((rule) => ({
   ...rule,
   enabled: () => isOpenedBySwitch(rule.name) || rule.enabled(),
+}));
+
+/** 規則の値だけの一覧(生成一覧の順)。enabled() = 規則の enabled()(スイッチを通さない、呼ぶたびに読む) */
+export const configRules: GatedFeatureRule[] = generatedRules.map((rule) => ({
+  ...rule,
+  enabled: () => rule.enabled(),
 }));
 
 /** 規則が開いているか(門番の判定はこれを呼ぶ。渡すのはこの一覧の規則か、テストの作り物) */
