@@ -6,7 +6,7 @@ import type { UserRoleType } from "@/features/core/user/types";
 
 /** 1 カテゴリーの定義(categories/<key>.ts の export const category) */
 export type AdminMenuCategoryDefinition = {
-  /** 一意の名前(kebab-case)。項目の category が指す */
+  /** 一意の名前 = ファイル名(英字始まりの英数字、camelCase)。項目の category が指す */
   key: string;
   /** 見出し */
   label: string;
@@ -26,7 +26,7 @@ export type AdminMenuCategoryOverride = Partial<Pick<AdminMenuCategoryDefinition
 export type AdminMenuSourceName = "dataMenu" | "settingSections";
 
 type AdminMenuItemBase = {
-  /** 一意の名前(kebab-case) */
+  /** 一意の名前 = ファイル名(英字始まりの英数字、camelCase)。override の対象もこの名前 */
   key: string;
   /** 置くカテゴリーの key */
   category: string;
