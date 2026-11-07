@@ -7,7 +7,10 @@
 // - describeFeatures / readFeatureReport: 規則ごとの説明(pnpm features:list)
 // - planFeatureSet / applyFeatureSet: 入切の書き換え(pnpm features:set。ドメインの config の <X>_CONFIG.enabled の形だけ)
 // - readRequired: 必須の機能(required/)
+// - Tier1 の判別: 注入(next.config の FEATURE_GATE_TIER1)の無い node で全開スイッチが Tier1 を知る読み手を渡す(node/tier1.ts、読むだけで効く)
 // - gate: server の道具の束(@/featureGate の gate と同じ物。scripts から gate.path・gate.enabled を呼ぶ。例 cron のタスクの住所の判定 scripts/cron/discover.ts)
+
+import "./node/tier1";
 
 export { serverTools as gate } from "./tools/server";
 export { rules } from "./ruleList";

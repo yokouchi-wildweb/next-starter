@@ -1,7 +1,8 @@
 // src/featureGate/checks/openSwitch.test.ts
 // 全開スイッチ FEATURE_GATE_OPEN と判定の入口の回帰テスト:
 // - 値: 未設定 = 規則の値のまま / all = 全開 / 名前の並び = その名前だけ開く / 未知の名前 = throw
-// - 効く条件: 開発とテスト(NODE_ENV が production でない)は全 Tier、本番は Tier1(FEATURE_GATE_TIER1="true")だけ
+// - 効く条件: APP_ENV が development なら全 Tier、staging・production・値なし・知らない値は Tier1 だけ
+// - Tier1 の判別: 注入 FEATURE_GATE_TIER1 があればそれ、無ければ readForkIdentity().isTier1
 // - 入口: 門番の中で生成一覧 extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのも ruleList.ts だけ(字面の検査、テストは除く)
 // - next.config.ts の FEATURE_GATE_TIER1 = readForkIdentity(repoRoot).isTier1
 // 閉じた状態は生成一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:feature-gate:tools
@@ -14,34 +15,36 @@ import { test } from "node:test";
 import { clientGateState, gate, type GatedFeatureRule } from "@/featureGate";
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { closedTables, rules } from "@/featureGate/node";
-import { isOpenSwitchActive, parseOpenSwitch, resolveOpenSwitch } from "@/featureGate/openSwitch";
+import { isOpenSwitchActive, isTier1Build, parseOpenSwitch, resolveOpenSwitch } from "@/featureGate/openSwitch";
 import { configEnabled } from "@/featureGate/ruleList";
+import { setAppEnv } from "@/lib/appEnv";
 import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(__dirname, "../../..");
 const known = new Set(generatedRules.map((rule) => rule.name));
-const ENV_KEYS = ["FEATURE_GATE_OPEN", "NODE_ENV", "FEATURE_GATE_TIER1"] as const;
-type EnvKey = (typeof ENV_KEYS)[number];
+const SWITCH_KEYS = ["FEATURE_GATE_OPEN", "FEATURE_GATE_TIER1"] as const;
+type SwitchEnv = Partial<Record<(typeof SWITCH_KEYS)[number] | "APP_ENV", string>>;
 
-/** env を一時的に差し替え、生成一覧の規則を全部閉じて fn を走らせる(終われば戻す) */
-function withEnv(env: Partial<Record<EnvKey, string>>, fn: () => void) {
-  const savedEnv = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
+/** env を一時的に差し替え(APP_ENV は @/lib/appEnv の setAppEnv)、生成一覧の規則を全部閉じて fn を走らせる(終われば戻す) */
+function withEnv(env: SwitchEnv, fn: () => void) {
+  const savedEnv = new Map(SWITCH_KEYS.map((key) => [key, process.env[key]]));
   const savedRules = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
   for (const rule of generatedRules) {
     savedRules.set(rule, rule.enabled);
     rule.enabled = () => false;
   }
-  const writable = process.env as Record<string, string | undefined>;
-  for (const key of ENV_KEYS) {
-    if (env[key] === undefined) delete writable[key];
-    else writable[key] = env[key];
+  for (const key of SWITCH_KEYS) {
+    if (env[key] === undefined) delete process.env[key];
+    else process.env[key] = env[key];
   }
+  const restoreAppEnv = setAppEnv(env.APP_ENV);
   try {
     fn();
   } finally {
+    restoreAppEnv();
     for (const [key, value] of savedEnv) {
-      if (value === undefined) delete writable[key];
-      else writable[key] = value;
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
     }
     for (const [rule, enabled] of savedRules) rule.enabled = enabled;
   }
@@ -57,15 +60,21 @@ test("値の読み: 空 = なし / all / 名前の並び(, と空白)/ 未知の
   assert.throws(() => parseOpenSwitch("coupon,noSuchFeature", known), /FEATURE_GATE_OPEN に未知の機能の名前 "noSuchFeature"/);
 });
 
-test("効く条件: 開発・テストは全 Tier、本番は Tier1 だけ(fork の本番では値を読まない)", () => {
-  assert.equal(isOpenSwitchActive({ nodeEnv: "development", tier1: "false" }), true);
-  assert.equal(isOpenSwitchActive({ nodeEnv: "test", tier1: undefined }), true);
-  assert.equal(isOpenSwitchActive({ nodeEnv: undefined, tier1: undefined }), true);
-  assert.equal(isOpenSwitchActive({ nodeEnv: "production", tier1: "true" }), true);
-  assert.equal(isOpenSwitchActive({ nodeEnv: "production", tier1: "false" }), false);
-  assert.equal(isOpenSwitchActive({ nodeEnv: "production", tier1: undefined }), false);
-  assert.equal(resolveOpenSwitch({ open: "noSuchFeature", nodeEnv: "production", tier1: "false" }, known), null);
-  assert.throws(() => resolveOpenSwitch({ open: "noSuchFeature", nodeEnv: "production", tier1: "true" }, known), /未知の機能の名前/);
+test("効く条件: development は全 Tier、staging・production・値なし・知らない値は Tier1 だけ(効かなければ値を読まない)", () => {
+  assert.equal(isOpenSwitchActive({ appEnv: "development", tier1: false }), true);
+  assert.equal(isOpenSwitchActive({ appEnv: "development", tier1: true }), true);
+  for (const appEnv of ["staging", "production"] as const) {
+    assert.equal(isOpenSwitchActive({ appEnv, tier1: true }), true, `${appEnv} Tier1`);
+    assert.equal(isOpenSwitchActive({ appEnv, tier1: false }), false, `${appEnv} fork`);
+  }
+  assert.equal(resolveOpenSwitch({ open: "noSuchFeature", appEnv: "production", tier1: false }, known), null);
+  assert.throws(() => resolveOpenSwitch({ open: "noSuchFeature", appEnv: "production", tier1: true }, known), /未知の機能の名前/);
+});
+
+test("Tier1 の判別: 注入があればそれ、無ければ node の入口が渡した readForkIdentity().isTier1", () => {
+  withEnv({ FEATURE_GATE_TIER1: "true" }, () => assert.equal(isTier1Build(), true));
+  withEnv({ FEATURE_GATE_TIER1: "false" }, () => assert.equal(isTier1Build(), false));
+  withEnv({}, () => assert.equal(isTier1Build(), readForkIdentity(process.cwd()).isTier1));
 });
 
 test("未設定: 規則の値のまま(全部閉じた規則は閉じたまま)", () => {
@@ -78,7 +87,7 @@ test("未設定: 規則の値のまま(全部閉じた規則は閉じたまま)"
 });
 
 test("all: 全開(gate・clientGateState・closedTables が揃う)", () => {
-  withEnv({ FEATURE_GATE_OPEN: "all" }, () => {
+  withEnv({ FEATURE_GATE_OPEN: "all", APP_ENV: "development" }, () => {
     assert.deepEqual(openNames(), rules.map((rule) => rule.name));
     const state = clientGateState("admin");
     assert.ok(Object.values(state.enabled).every(Boolean));
@@ -89,28 +98,30 @@ test("all: 全開(gate・clientGateState・closedTables が揃う)", () => {
 });
 
 test("名前の並び: 名前の物だけ開く / 未知の名前は判定で throw", () => {
-  withEnv({ FEATURE_GATE_OPEN: "coupon,wallet" }, () => {
+  withEnv({ FEATURE_GATE_OPEN: "coupon,wallet", APP_ENV: "development" }, () => {
     assert.deepEqual(openNames().sort(), ["coupon", "wallet"]);
     assert.equal(clientGateState("user").enabled.wallet, true);
     assert.equal(clientGateState("user").enabled.referral, false);
   });
-  withEnv({ FEATURE_GATE_OPEN: "wallet,noSuchFeature" }, () => {
+  withEnv({ FEATURE_GATE_OPEN: "wallet,noSuchFeature", APP_ENV: "development" }, () => {
     assert.throws(() => gate.enabled("wallet"), /FEATURE_GATE_OPEN に未知の機能の名前 "noSuchFeature"/);
   });
 });
 
-test("本番: Tier1 なら効き、fork なら効かない(fork では未知の名前でも落とさない)", () => {
-  withEnv({ FEATURE_GATE_OPEN: "all", NODE_ENV: "production", FEATURE_GATE_TIER1: "true" }, () => {
-    assert.deepEqual(openNames(), rules.map((rule) => rule.name));
+test("段階と Tier: development は fork でも効き、staging・production・値なし・env ファイルの名前は Tier1 だけ", () => {
+  for (const APP_ENV of ["staging", "production", undefined, ".env.production"]) {
+    withEnv({ FEATURE_GATE_OPEN: "all", APP_ENV, FEATURE_GATE_TIER1: "true" }, () => {
+      assert.deepEqual(openNames(), rules.map((rule) => rule.name), `${APP_ENV} Tier1`);
+    });
+    withEnv({ FEATURE_GATE_OPEN: "all", APP_ENV, FEATURE_GATE_TIER1: "false" }, () => {
+      assert.deepEqual(openNames(), [], `${APP_ENV} fork`);
+    });
+  }
+  withEnv({ FEATURE_GATE_OPEN: "noSuchFeature", APP_ENV: "production", FEATURE_GATE_TIER1: "false" }, () => {
+    assert.deepEqual(openNames(), [], "fork の本番では未知の名前でも落とさない");
   });
-  withEnv({ FEATURE_GATE_OPEN: "all", NODE_ENV: "production", FEATURE_GATE_TIER1: "false" }, () => {
-    assert.deepEqual(openNames(), []);
-  });
-  withEnv({ FEATURE_GATE_OPEN: "noSuchFeature", NODE_ENV: "production", FEATURE_GATE_TIER1: "false" }, () => {
-    assert.deepEqual(openNames(), []);
-  });
-  withEnv({ FEATURE_GATE_OPEN: "wallet", NODE_ENV: "development", FEATURE_GATE_TIER1: "false" }, () => {
-    assert.deepEqual(openNames(), ["wallet"], "fork でも開発では効く");
+  withEnv({ FEATURE_GATE_OPEN: "wallet", APP_ENV: "development", FEATURE_GATE_TIER1: "false" }, () => {
+    assert.deepEqual(openNames(), ["wallet"], "fork でも development では効く");
   });
 });
 
