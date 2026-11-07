@@ -327,3 +327,4 @@
 - id:20261106-192912-notices-picked-fixes-and-index | severity:action-required | checkpoint:notices-picked-fixes-and-index | fixes:commit:e56a21e8, 20261103-144217-notice-shipped-index | resolves:20261105-140157-notices-test-fixes-after-pick, 20261106-162044-shipped-index-backfill-picked-notice | pick:-
 - id:20261107-111435-app-env-single-reader | severity:action-required | checkpoint:app-env-single-reader
 - id:20261107-114509-user-acquisition-channels | severity:action-required | checkpoint:user-acquisition-channels
+- id:20261107-190430-remove-e2e-fixture-route | severity:action-required | checkpoint:remove-e2e-fixture-route

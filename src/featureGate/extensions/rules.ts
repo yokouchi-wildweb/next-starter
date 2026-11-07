@@ -14,7 +14,6 @@ import { rule as rules_coupon } from "@/featureGate/rules/coupon";
 import { rule as rules_demoLogin } from "@/featureGate/rules/demoLogin";
 import { rule as rules_demoPages } from "@/featureGate/rules/demoPages";
 import { rule as rules_deviceFingerprint } from "@/featureGate/rules/deviceFingerprint";
-import { rule as rules_e2eFixtures } from "@/featureGate/rules/e2eFixtures";
 import { rule as rules_fingerprintChallenge } from "@/featureGate/rules/fingerprintChallenge";
 import { rule as rules_interactionTracking } from "@/featureGate/rules/interactionTracking";
 import { rule as rules_milestone } from "@/featureGate/rules/milestone";
@@ -47,7 +46,7 @@ import { rule as rules_userXProfile } from "@/featureGate/rules/userXProfile";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "e2eFixtures" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GatedFeatureRule[] = [
@@ -62,7 +61,6 @@ export const rules: GatedFeatureRule[] = [
   { ...rules_demoLogin, name: "demoLogin", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_demoPages, name: "demoPages", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_deviceFingerprint, name: "deviceFingerprint", tables: ["device_fingerprints"], domainApiPaths: ["/api/deviceFingerprint"], settingPaths: [], pathPatterns: [...rules_deviceFingerprint.pathPatterns, "/api/deviceFingerprint"] },
-  { ...rules_e2eFixtures, name: "e2eFixtures", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], pathPatterns: [...rules_fingerprintChallenge.pathPatterns, "/api/fingerprintChallenge"] },
   { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], pathPatterns: [...rules_interactionTracking.pathPatterns, "/api/interactionEvent"] },
   { ...rules_milestone, name: "milestone", tables: ["milestones"], domainApiPaths: ["/api/milestone"], settingPaths: [], pathPatterns: [...rules_milestone.pathPatterns, "/api/milestone"] },
