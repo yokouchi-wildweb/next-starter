@@ -1,7 +1,7 @@
 // src/lib/firebase/errors.ts
 
 /**
- * Firebase が未設定（env:init 直後など、環境変数が空）の状態で Firebase を要する処理に
+ * Firebase が未設定（pnpm ops setup env 直後など、環境変数が空）の状態で Firebase を要する処理に
  * 到達した時に投げられるエラー。
  *
  * - client: NEXT_PUBLIC_FIREBASE_API_KEY / NEXT_PUBLIC_FIREBASE_PROJECT_ID が空

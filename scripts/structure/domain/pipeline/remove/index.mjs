@@ -1,4 +1,4 @@
-// dc:delete の本体（対話は cli/delete.mjs）: 削除対象の解決 → ディレクトリの削除 → レジストリの掃除。DB のテーブルは消さない
+// pnpm generate domain -- --delete の本体（対話は cli/delete.mjs）: 削除対象の解決 → ディレクトリの削除 → レジストリの掃除。DB のテーブルは消さない
 
 import fs from "node:fs";
 import path from "node:path";

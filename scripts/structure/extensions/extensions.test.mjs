@@ -352,7 +352,7 @@ test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ
   assert.match(reason(fork, "e/v.default.ts"), /スイッチ v\.ts\(x\) が無い/);
   assert.match(reason(fork, "f/u.ts"), /re-export 1 文だけ/);
   assert.match(reason(fork, "h/only.replace.ts"), /孤立した \.replace/);
-  assert.ok(!fork.problems.some((p) => p.includes("_layout")), "route の隣は test:screens の側");
+  assert.ok(!fork.problems.some((p) => p.includes("_layout")), "route の隣は pnpm test src/lib/screens/screens.test.mjs の側");
   assert.equal(fork.problems.length, 7, fork.problems.join("\n"));
 
   const tier1 = checkSwitches(root, { isTier1: true });

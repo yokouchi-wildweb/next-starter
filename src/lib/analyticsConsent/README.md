@@ -56,4 +56,4 @@ export function AnalyticsConsentBanner() {
 
 ## テスト
 
-`pnpm test:analytics-consent`（判定の組み合わせ・購読・Firebase Analytics が許可まで初期化しないこと）
+`pnpm test src/lib/analyticsConsent/consent.test.ts`（判定の組み合わせ・購読・Firebase Analytics が許可まで初期化しないこと）

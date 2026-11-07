@@ -146,7 +146,7 @@ export const maxDuration = 300;
 export const GET = createCronTaskRoute(cronTask);
 ```
 
-フォルダを足したら `pnpm cron:generate --plan <hobby|pro>` で `vercel.json` を再生成する。`pnpm task user-metrics-refresh` はフォルダを置いた時点で使える。
+フォルダを足したら `pnpm generate cron -- --plan <hobby|pro>` で `vercel.json` を再生成する。`pnpm task user-metrics-refresh` はフォルダを置いた時点で使える。
 
 ### 5. 既存の全件再計算からの移行
 

@@ -1,14 +1,14 @@
-# 拡張点の生成器(extensions:generate / extensions:check)
+# 拡張点の生成器(pnpm generate extensions / pnpm check extensions)
 
-機能ごとの「差し込み口(拡張点)」を持ち主が宣言し、そこへ置かれた項目の一覧を生成する仕組み。上流の既定の項目も fork の項目も同じ受け口に置き、同じ一覧に並ぶ。ファイル名に fork の名前の印は付けない(D137)。fork の物か上流の物かは名前でなく git の分岐点(merge-base)で `pnpm ownership:check` が見る(`src/lib/forkOwnership/README.md`)。
+機能ごとの「差し込み口(拡張点)」を持ち主が宣言し、そこへ置かれた項目の一覧を生成する仕組み。上流の既定の項目も fork の項目も同じ受け口に置き、同じ一覧に並ぶ。ファイル名に fork の名前の印は付けない(D137)。fork の物か上流の物かは名前でなく git の分岐点(merge-base)で `pnpm workflow ownership check` が見る(`src/lib/forkOwnership/README.md`)。
 
 | コマンド | すること |
 |---|---|
-| `pnpm extensions:generate` | 全宣言を読み、全一覧と受け口の一覧(`intake.txt`)の生成区画を丸ごと書く(問題があれば書かずに止まる)。宣言の消えた古い一覧(目印のヘッダ付き)は消す |
-| `pnpm extensions:check` | 一覧と生成区画が宣言・項目と一致するか、1 行スイッチの形、孤立した `.replace` / `.override`、上流が override を持たないかを見る(build の冒頭で走る)。書かない |
-| `pnpm test:extensions` | 生成器の回帰テスト(fixture)と実リポの一致 |
+| `pnpm generate extensions` | 全宣言を読み、全一覧と受け口の一覧(`intake.txt`)の生成区画を丸ごと書く(問題があれば書かずに止まる)。宣言の消えた古い一覧(目印のヘッダ付き)は消す |
+| `pnpm check extensions` | 一覧と生成区画が宣言・項目と一致するか、1 行スイッチの形、孤立した `.replace` / `.override`、上流が override を持たないかを見る(build の冒頭で走る)。書かない |
+| `pnpm test scripts/structure/extensions/` | 生成器の回帰テスト(fixture)と実リポの一致 |
 
-src/registry の α(serviceRegistry など)は `registry:generate` / `registry:check` の側で、ここでは扱わない。
+src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm check registry` の側で、ここでは扱わない。
 
 ## 宣言(extensionPoints.ts)
 
@@ -37,8 +37,8 @@ export const extensionPoints = {
   - `shape: "object"` … 一覧を `{ <項目の名前>: 項目 }` の null プロトタイプの object で出す(キーを型に残す。`key`・`load`・`files` とは併用不可)。同じ名前は失敗
   - `pureImports: true` … 項目から値 import を推移的に辿り、`zod` と src の下の純関数・値以外(react・next・server-only・サービス・部品・DB の定義)へ届いたら失敗。型だけの import は辿らない(`pureImports.mjs`)
   - `requireText: "<字面>"` … 項目のファイルにその字面が無ければ失敗(setting の `.default(`)
-  - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `ownership:check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
-  - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test:feature-gate`)
+  - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `pnpm workflow ownership check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
+  - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`)
   - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダ(ドメインの位置 `core/<名前>` か `<名前>`。無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`、項目の `pathPatterns` の後ろにも足す)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)を導き、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
@@ -56,15 +56,15 @@ export const extensionPoints = {
 
 失敗(書き出さない): 旧い fork の名前の印(`<名前>.<x>.ts`・`<名前>.<x>/`。印なしの名前への改名と移し方 = 共有の棚の印の移行の notice を案内する)/ 印(export)が無い(受け口に置くのは項目だけ。部品は責務のドメインへ)/ 同じ受け口の 2 つの点の印を両方持つ / index の無いフォルダ / 同じ名前のファイルとフォルダ / 名前の形。テスト(`*.test.*`)・`.d.ts`・`.ts(x)` 以外・`extensions/`・ほかの点の受け口のフォルダは見ない。
 
-上流と同じ単位名(`x.ts` と `x.tsx`、ファイルとフォルダ)の fork の追加は、生成器ではなく `ownership:check` の unit-clash が止める(git の分岐点が要るため。build の生成器は git を使わない)。
+上流と同じ単位名(`x.ts` と `x.tsx`、ファイルとフォルダ)の fork の追加は、生成器ではなく `pnpm workflow ownership check` の unit-clash が止める(git の分岐点が要るため。build の生成器は git を使わない)。
 
 鍵の重複: 項目の一意の名前(`key` の点のほか purchaseType・jobType・rewardKey・用途 ID など)が 2 つあれば読み手が例外を投げる。ファイル名の順で後が勝つ差し替えは無い。上流の組み込み項目を差し替えたい fork は、上流へ 1 行スイッチを依頼する(`/order`)。
 
 ## 一覧(生成物)
 
-- 置き場: `<持ち主>/extensions/<点>.ts`(`target: "wiring"` は `src/wiring/<lib>.ts`)。中身は全部生成物で、1 行目は共通の目印「`// 生成物・編集不可: pnpm extensions:generate が <宣言のファイル> から生成する`」
+- 置き場: `<持ち主>/extensions/<点>.ts`(`target: "wiring"` は `src/wiring/<lib>.ts`)。中身は全部生成物で、1 行目は共通の目印「`// 生成物・編集不可: pnpm generate extensions が <宣言のファイル> から生成する`」
 - 項目の import は `@/…` の形(拡張子・フォルダの index を除く)。import の別名は `<点の名前>_<項目の名前>`(1 本の wiring に別の点の同じ名前の項目が混ざっても、予約語の項目名でも衝突しない)
-- `extensions/` の下に宣言に無いファイルがあれば `extensions:check` が失敗する: 目印の無いもの = 手で置いたファイル(「受け口は <dir>」と示す)、目印のあるもの = 宣言の消えた古い一覧(`extensions:generate` が消す)
+- `extensions/` の下に宣言に無いファイルがあれば `pnpm check extensions` が失敗する: 目印の無いもの = 手で置いたファイル(「受け口は <dir>」と示す)、目印のあるもの = 宣言の消えた古い一覧(`pnpm generate extensions` が消す)
 - 生成物はコミットする。/flux で上流を取り込んだら作り直してコミットし、衝突はどちらかを採って作り直す
 - 所有: `src/**/extensions/**` は intake の generated 行。受け口のフォルダへの fork の追加は intake の生成区画の add 行(下)
 
@@ -78,35 +78,35 @@ export const extensionPoints = {
 | `<名前>.default.ts(x)` | 上流の既定の実装 | 上流 |
 | `<名前>.replace.ts(x)` | fork の丸ごと置き換え(既定と同じ export の形) | 足した Tier |
 
-- 検査(`extensions:check`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 隣に `<名前>.default` の無い `<名前>.replace` は孤立で失敗(route の隣 `_layout` / `_screen` / `_components` は `test:screens` の側)
+- 検査(`pnpm check extensions`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 隣に `<名前>.default` の無い `<名前>.replace` は孤立で失敗(route の隣 `_layout` / `_screen` / `_components` は `pnpm test src/lib/screens/screens.test.mjs` の側)
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
 - `.default` は作ったリポが出す既定の共通の印(D171)で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
-- page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`test:screens`)
+- page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test src/lib/screens/screens.test.mjs`)
 
 ## override(既定を変える隣のファイル)
 
 - 一部の上書き(丸ごと置き換えは `.replace`、D136)。対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`・`user.role.override.ts`・`user.profile.override.ts`)、cron は task.ts の隣の `src/app/api/cron/<name>/task.override.ts`(旧名の素の `override.ts` は `scripts/structure/cron/discover.ts` が改名を案内して止める)。Tier 別・fork の名前付きのファイルは作らない
-- 隣に対象(`<対象>.<拡張子>` か `<対象>/`)の無い override は孤立で失敗(全 Tier、`overrides.mjs`。受け口の中は項目と照らす `extensions.mjs` の側)。上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `ownership:check` の override-own
+- 隣に対象(`<対象>.<拡張子>` か `<対象>/`)の無い override は孤立で失敗(全 Tier、`overrides.mjs`。受け口の中は項目と照らす `extensions.mjs` の側)。上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `pnpm workflow ownership check` の override-own
 - 足した Tier の物。下の Tier は同じファイルを書き換える: 受け継ぐ = 触らない / 既定へ戻す = キーを消すかファイルを消す / 全部を戻す = 空(空白とコメントだけ = 不在と同じ)。合成は git の merge だけ
-- **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `extensions:check`(`overrides.mjs`)
+- **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `pnpm check extensions`(`overrides.mjs`)
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry/discover.mjs`)
 
 ## 枠の表(frame.default.ts / frame.ts の宣言から)
 
 - `src/app` の `frame.default.ts`(ルートを作ったリポの既定、`frameDefault`)と `frame.ts`(その下のリポの宣言、`frame`。既定の上に重なる)を `frames.mjs` が字面で読み(`literalOf`)、親の鎖を解決した表を枠の根ごとに `<枠の根>/_layout/extensions/frameTable.ts` へ書く(`src/app/(user)`・`src/app/admin`。一覧の数に入る)。範囲はキー `layout` / `page` で名指す。宣言の書き方・重ねる順・表の形: `src/app/_layout/frame/README.md`
 - 失敗: 枠の外・隣に layout / page が無い・`layout:` / `page:` の相手が無い・キーが無い・知らないキー・private / @slot / intercepting の下・形の違う値・宣言にない部位・ほかの名前(`frame.override.ts` など)・上流(Tier1)の `frame.ts`。全部の部位を隠す宣言は warn(止めない)
-- 親の物の隣に `*.default.*` を足す・親の既定を書き換えるのは `ownership:check` の default-add / default-edit(git の分岐点が要るので生成器は見ない)。親のルートの隣に `frame.ts` を足すのは intake の `add` 行
+- 親の物の隣に `*.default.*` を足す・親の既定を書き換えるのは `pnpm workflow ownership check` の default-add / default-edit(git の分岐点が要るので生成器は見ない)。親のルートの隣に `frame.ts` を足すのは intake の `add` 行
 
 ## 受け口の一覧の生成区画(intake.txt)
 
-`src/lib/forkOwnership/intake.txt` の `# === AUTO-GENERATED intake START ===` 〜 `END` の間は `pnpm extensions:generate` が書き、ずれは `extensions:check` が止める(`intake.mjs`、区画の差し替えは `src/lib/forkOwnership/intake.mjs`)。行は全部 `add`(fork が足すのは可、基準にあるファイルの書き換えは違反):
+`src/lib/forkOwnership/intake.txt` の `# === AUTO-GENERATED intake START ===` 〜 `END` の間は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(`intake.mjs`、区画の差し替えは `src/lib/forkOwnership/intake.mjs`)。行は全部 `add`(fork が足すのは可、基準にあるファイルの書き換えは違反):
 
 - 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
 - 1 行スイッチの置き換え: `add <dir>/<名前>.replace.{ts,tsx}`
 - route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`
 - scripts の受け口: `scripts/tasks/*.ts`(常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
-区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `ownership:check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。
+区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `pnpm workflow ownership check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。
 
 ## ファイル
 

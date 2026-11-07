@@ -1,4 +1,4 @@
-// dc:generate のドメインフォルダ名検査（フォルダ名 = camel(singular)）の回帰テスト。
+// pnpm generate domain のドメインフォルダ名検査（フォルダ名 = camel(singular)）の回帰テスト。
 // 実行: pnpm test scripts/structure/domain/tests/domainFolder.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";

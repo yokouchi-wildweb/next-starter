@@ -1,4 +1,4 @@
-// src/app の全ページの発見(M1)。test:screens とルート地図(routeMap.mjs)が共有する。
+// src/app の全ページの発見(M1)。pnpm test src/lib/screens/screens.test.mjs とルート地図(routeMap.mjs)が共有する。
 // 固定の走査範囲は持たない: src/app 全体を見て、`_` で始まるフォルダ(private folder)と src/app/api だけを外す。
 // @slot(parallel routes)は外さない(URL には出ないが、ページとして描かれる)。
 // discoverRoutes は純粋関数(ファイル一覧を引数で受け取る)。ディスクを読むのは listAppFiles だけ。

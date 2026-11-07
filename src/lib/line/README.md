@@ -149,7 +149,7 @@ await broadcast([textMessage("キャンペーン開催中！")]);
 
 ### Webhook イベント処理
 
-イベントごとの処理は `src/features/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm extensions:generate` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持ち、編集しない。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
+イベントごとの処理は `src/features/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持ち、編集しない。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
 
 ```ts
 // src/features/core/userLineProfile/webhookHandlers/follow.ts
@@ -289,7 +289,7 @@ if (!verified.ok) { /* invalid_state で "/" へ。cookie は消す */ }
 - `cookieName` の既定は `LINE_OAUTH_NONCE_COOKIE`（上流の連携の流れ）。別の流れ（ログインなど）は別の名前にすれば同時に進んでも互いの nonce を上書きしない
 - 照合の後（成功・失敗とも）、呼び手が `response.cookies.delete(cookieName)` で cookie を消す
 - 利用者を引く・作る・セッションを出すのは auth README「新しい認証手段」（createFromProvider → establishSession）
-- テスト: `pnpm test:line-oauth-state`
+- テスト: `pnpm test src/lib/line/oauthState.test.ts`
 
 ## セキュリティ
 

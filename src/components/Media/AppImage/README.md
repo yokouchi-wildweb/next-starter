@@ -68,7 +68,7 @@ import { AppImage } from "@/components/Media/AppImage";
   - 解析できない ref・公開 base 未設定の公開 ref は `fallbackSrc` に落ちます
 - ref 以外の値(旧 URL・`/` 始まり・`blob:` / `data:`)は従来どおりそのまま使います
 - 固定 URL(`/api/storage/` 宛て)は、`unoptimized={false}` を渡しても**必ず最適化を外します**(認可済みの画像を最適化キャッシュに載せないため)
-- 判定は純関数 `source.ts` の `resolveAppImageSource`(テスト: `pnpm test:storage-ref`)
+- 判定は純関数 `source.ts` の `resolveAppImageSource`(テスト: `pnpm test src/lib/storage/storageRef.test.ts`)
 
 ## クラッシュガード(unoptimized の自動判定)
 

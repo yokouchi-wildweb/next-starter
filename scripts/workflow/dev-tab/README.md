@@ -1,14 +1,14 @@
-# scripts/workflow/dev-tab(pnpm dev:tab)
+# scripts/workflow/dev-tab(pnpm workflow dev-tab run)
 
 開発サーバーを tmux のタブで立てる・止める・様子を見る道具。エージェントが動いているアプリで確かめるときに、自分で立てて自分で止めるためのもの(人に立ち上げを頼まない)。人が使ってもよい。
 
 ## コマンド
 
 ```bash
-pnpm dev:tab            # 立てる(= start)。もう動いていれば URL を出すだけ
-pnpm dev:tab --port=3005
-pnpm dev:tab stop       # 止めてタブを閉じる
-pnpm dev:tab status     # どこで動いているか・応答するか
+pnpm workflow dev-tab run            # 立てる(= start)。もう動いていれば URL を出すだけ
+pnpm workflow dev-tab run --port=3005
+pnpm workflow dev-tab run stop       # 止めてタブを閉じる
+pnpm workflow dev-tab run status     # どこで動いているか・応答するか
 ```
 
 出力は 1 行: `http://localhost:<port> — <本体のチェックアウト or ワークツリー>(ブランチ)、タブ <番号>(セッション <名前>)`
@@ -34,7 +34,7 @@ pnpm dev:tab status     # どこで動いているか・応答するか
 
 ## エージェントの使い方
 
-- 動いているアプリでの確認が要る → 承認を 1 回取って `pnpm dev:tab` → 出た URL を Playwright で開く → 済んだら `pnpm dev:tab stop`
+- 動いているアプリでの確認が要る → 承認を 1 回取って `pnpm workflow dev-tab run` → 出た URL を Playwright で開く → 済んだら `pnpm workflow dev-tab run stop`
 - ログインが要る → `pnpm task dev-admin`(テスト用の管理者。`scripts/tasks/README.md`)
 - 決まりそのもの(いつ立てるか・承認の取り方)は各リポの `.claude/rules/behavior.md`(fork が変えてよい)
 
@@ -44,4 +44,4 @@ pnpm dev:tab status     # どこで動いているか・応答するか
 
 ## テスト
 
-`pnpm test:dev-tab`(純粋な部品 + tmux があるときだけ、専用の tmux サーバーで小さな HTTP サーバーを立てて止める通し)
+`pnpm test scripts/workflow/dev-tab/dev-tab.test.ts`(純粋な部品 + tmux があるときだけ、専用の tmux サーバーで小さな HTTP サーバーを立てて止める通し)

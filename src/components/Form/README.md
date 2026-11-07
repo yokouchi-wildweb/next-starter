@@ -108,7 +108,7 @@ const [notify, setNotify] = useState(false);
 
 - 見えるラベルを出さないスイッチ・チェックボックス(一覧の行内トグル等)は `aria-label="〇〇を有効にする"` を渡して読み上げ用の名前を付ける(input にそのまま渡る)。Field 経由なら FormLabel が名前になるので不要
 - Field(ControlledField / ConfiguredField)の入力の `aria-describedby` は、実際に描画した説明文(`description`)とエラーだけを指す(`Form/Field/FieldControl.tsx`)。`_shadcn/form` の `FormControl` を直接使わない
-- 入力部品の約束: Form/Input の部品は `id`・`aria-describedby`・`aria-invalid`(`FormControlA11yProps`)を受け、フォーカスされる要素(input・トリガーのボタン)へ付ける。選択肢の組・複合の部品(radio・checkGroup・ColorValueInput)は `role="group"` / `"radiogroup"` の入れ物へ付ける。部品を足したら `src/components/Form/Input/a11yContract.test.tsx` の表に描き方を足す(`pnpm test:form-a11y-contract`。表に無い部品・3 つを落とす部品で落ちる)
+- 入力部品の約束: Form/Input の部品は `id`・`aria-describedby`・`aria-invalid`(`FormControlA11yProps`)を受け、フォーカスされる要素(input・トリガーのボタン)へ付ける。選択肢の組・複合の部品(radio・checkGroup・ColorValueInput)は `role="group"` / `"radiogroup"` の入れ物へ付ける。部品を足したら `src/components/Form/Input/a11yContract.test.tsx` の表に描き方を足す(`pnpm test src/components/Form/Input/`。表に無い部品・3 つを落とす部品で落ちる)
 
 ---
 

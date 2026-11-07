@@ -1,5 +1,5 @@
 // scripts/structure/extensions/intakeOwnership.test.mjs — 生成器の出力(受け口の一覧の生成区画)と所有の検査の継ぎ目
-// 実物の生成器 planExtensions で intake.txt の生成区画を書き、ownership:check がそれで判定することを確かめる
+// 実物の生成器 planExtensions で intake.txt の生成区画を書き、pnpm workflow ownership check がそれで判定することを確かめる
 // (もとは src/lib/forkOwnership/check.test.mjs の 1 件。lib のテストは道具を読まない、D78)。実行: pnpm test scripts/structure/extensions/intakeOwnership.test.mjs
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";

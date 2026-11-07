@@ -44,7 +44,7 @@ disable-model-invocation: true
 - `vercel.json` の Vercel プラン(hobby / pro)
 - 初期コミットの件名: `chore: <name> フォーク初期設定`
 - push 先: `origin main`
-- このマシンの tmux で開く設定(`pnpm setup:tmux-launch --check` の結果): 未設定なら承認後に `pnpm setup:tmux-launch` を実行する(`~/.bashrc` か `~/.zshrc` に 1 行、`~/.tmux.conf` に設定の塊)。済んでいれば何もしない
+- このマシンの tmux で開く設定(`pnpm workflow tmux-launch setup --check` の結果): 未設定なら承認後に `pnpm workflow tmux-launch setup` を実行する(`~/.bashrc` か `~/.zshrc` に 1 行、`~/.tmux.conf` に設定の塊)。済んでいれば何もしない
 
 ## 実行(承認後、途中確認なし)
 1. `gh repo create <owner>/<name> --private --description "<name>: <一言説明>"`(既存ならスキップ。既存で description が空なら `gh repo edit --description` で設定する。README は全リポ共通のため、GitHub 上のプロジェクト名はこの欄が担う)。
@@ -52,21 +52,21 @@ disable-model-invocation: true
 3. `pnpm install`(`node_modules` が無い場合のみ)。
 4. フォーク固有ファイルの書き換え(文書の手順 4 の順):
    a. `.claude/rules/project.md`: 同じディレクトリの `project.template.md`(本スキルに同梱)をコピーし、`<...>` を事前確認で得た内容で埋めて置き換える。節の追加・削除はしない(未定の節は `TBD`)。先頭のコメントブロックは削除する。英語・箇条書き。
-   b. 名前をそろえる(同じ値): `.claude/rules/project.md` の TIER 節の `fork_id: <名前>` と、その次の `downstream: <yes|none>`(雛形の行。事前確認 5 の答え。無いと `pnpm ownership:check` が未検証 = exit 2、`/ship` も止まる)/ 台帳 `.notices/applied/<名前>.md` = ヘッダ `# APPLIED LEDGER fork:<origin url>` + 1 行 `- id:fork-init | date:<ISO8601> | commit:- | upstream:<フォーク元の版の完全な sha> | notes:fork start`(`pnpm ownership:check` が Tier1 の版をここからたどる。無いと exit 2)/ `src/lib/CATALOG.md` の末尾に空の節 `## <名前>`(自分の lib を足したらここに 1 行)
+   b. 名前をそろえる(同じ値): `.claude/rules/project.md` の TIER 節の `fork_id: <名前>` と、その次の `downstream: <yes|none>`(雛形の行。事前確認 5 の答え。無いと `pnpm workflow ownership check` が未検証 = exit 2、`/ship` も止まる)/ 台帳 `.notices/applied/<名前>.md` = ヘッダ `# APPLIED LEDGER fork:<origin url>` + 1 行 `- id:fork-init | date:<ISO8601> | commit:- | upstream:<フォーク元の版の完全な sha> | notes:fork start`(`pnpm workflow ownership check` が Tier1 の版をここからたどる。無いと exit 2)/ `src/lib/CATALOG.md` の末尾に空の節 `## <名前>`(自分の lib を足したらここに 1 行)
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
-   e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。
+   e. `vercel.json`: `pnpm generate cron -- --plan <hobby|pro>` で生成し、`pnpm check cron` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。
    f. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
-   g. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
+   g. `.env.development`: `pnpm ops setup env` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
 5. `pnpm typecheck` の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
 6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
 7. `git push -u origin main`。
-8. tmux で開く設定(文書の手順 4「tmux で開く設定」): 計画で未設定だったときだけ `pnpm setup:tmux-launch` を実行する。exit 2(tmux が無い)なら止めずに報告へ回し、入れ方(`! sudo apt install tmux` / `! brew install tmux`)と、入れた後に `pnpm setup:tmux-launch` を実行することを案内する。
+8. tmux で開く設定(文書の手順 4「tmux で開く設定」): 計画で未設定だったときだけ `pnpm workflow tmux-launch setup` を実行する。exit 2(tmux が無い)なら止めずに報告へ回し、入れ方(`! sudo apt install tmux` / `! brew install tmux`)と、入れた後に `pnpm workflow tmux-launch setup` を実行することを案内する。
 
 ## 報告(日本語)
 - 作成したリポジトリ URL、リモート構成、コミット sha
 - `.env.development` に生成した値は**表示しない**(ファイルにあることだけ伝える)
-- 次にユーザーがやること: (tmux で開く設定を入れた・入れてあるなら)新しいターミナルを開き、新リポのディレクトリで `claude` を打ち直す(tmux の中で開く。起動の確認はエージェントが `pnpm dev:tab` で行うので人が `pnpm dev` を打つ必要はない)。Vercel にデプロイする前に環境変数 `CRON_SECRET` を登録する(未登録だと定期タスクが全部 401 で止まる。必須の次作業として明示する)。tmux で開く設定が入っていなければその入れ方も添える
+- 次にユーザーがやること: (tmux で開く設定を入れた・入れてあるなら)新しいターミナルを開き、新リポのディレクトリで `claude` を打ち直す(tmux の中で開く。起動の確認はエージェントが `pnpm workflow dev-tab run` で行うので人が `pnpm dev` を打つ必要はない)。Vercel にデプロイする前に環境変数 `CRON_SECRET` を登録する(未登録だと定期タスクが全部 401 で止まる。必須の次作業として明示する)。tmux で開く設定が入っていなければその入れ方も添える
 - バックエンドを後で接続する場合の導線: 文書の手順 3「機能別に必要なバックエンド」と `Neon_Firebaseなど各種バックエンドサービスの設定方法.md`
 
 ## 言語ルール

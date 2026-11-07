@@ -19,17 +19,17 @@ argument-hint: "[new <やること or ブランチ名> | sync [path] | remove <p
    - ユーザーが指定していればそのまま使う
    - 無ければ依頼内容から `<area>/<短い英語の説明>` を提案し、確認を取ってから作る
 2. 起点: 指定が無ければ実行した場所の HEAD。main から切るべき依頼なら `--from main` を付ける(迷ったら確認する)
-3. `pnpm worktree:new <branch> [--from <base>]` を実行する
+3. `pnpm workflow worktree new <branch> [--from <base>]` を実行する
 4. 結果を伝える
    - 作成したパスとブランチ、複製されたファイル
    - 次の一手: 新しいターミナルで `cd <path> && claude`
    - DB は本体と共有であること(スキーマ変更を伴う作業なら、`db:push` が本体の開発 DB にも効くと一言添える)
 
 ## sync(env の入れ直し)
-1. `pnpm worktree:sync <path>` を実行する(`--force` は付けない)
+1. `pnpm workflow worktree sync <path>` を実行する(`--force` は付けない)
 2. 「内容が違うため未変更」が出たら、ファイル名を示し、上書きしてよいか確認する。了承があれば `--force` で再実行
 
 ## remove(片付け)
 1. 対象ブランチが main へマージ済みかを確認する(`git branch --merged main` など)。未マージなら、その旨を伝えて続けるか確認する
-2. `pnpm worktree:remove <path>` を実行する。未コミットの変更で止まったら、内容を示して判断を仰ぐ(勝手にコミット・破棄しない)
+2. `pnpm workflow worktree remove <path>` を実行する。未コミットの変更で止まったら、内容を示して判断を仰ぐ(勝手にコミット・破棄しない)
 3. ブランチ削除(`git branch -d`)はユーザーの確認を取ってから

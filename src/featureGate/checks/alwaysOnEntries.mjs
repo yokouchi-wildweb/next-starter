@@ -4,7 +4,7 @@
 // 機能を閉じる規則(features を持つもの)の機能が無効なら、その表は db:push で作られない。それでも常に動く処理が
 // その機能のフォルダを import していたら、無効なときに無い表を読む。そこで常時実行の入口ごとに「閉じられるか」を見る:
 // - cron の task.ts(種類 cronTask): タスクの住所 /api/cron/<name> を、import した機能のフォルダを features に持つ規則の全部が
-//   pathPatterns で覆う(閉じた機能のタスクは route・pnpm task・cron:generate が住所で飛ばす。enabled は見ない)
+//   pathPatterns で覆う(閉じた機能のタスクは route・pnpm task・pnpm generate cron が住所で飛ばす。enabled は見ない)
 // - 宣言の alwaysOn: true の点の項目(後片付け・照合、種類 alwaysOnItem): enabled(config を読む同期関数)がある(式の中身までは見ない)
 // - fork の手書きの登録表: import した名前の使い所(import 行以外)が全部 `...(<条件> ? [ ... ] : [])` の内側
 // - それ以外(常に読み込まれる結線など): 理由付きの例外表にある
@@ -86,8 +86,8 @@ export function rulesNotCoveringCronTask(taskPath, sources, rules) {
 }
 
 // 規則のファイル(src/featureGate/rules/)が自分の機能のドメインの config(src/features/<d>/config.ts、入切の値だけ)を読むのは閉じ漏れでない
-// (L1.18: 入切の値は各機能のドメインの config。dc:generate の closable のひな形がこの形を書く)。config が値以外に届くかは到達の検査
-// (test:feature-gate:reach: 入口から services・drizzle・server-only に届かない)が見る
+// (L1.18: 入切の値は各機能のドメインの config。pnpm generate domain の closable のひな形がこの形を書く)。config が値以外に届くかは到達の検査
+// (pnpm test src/featureGate/checks/reachability.test.mjs: 入口から services・drizzle・server-only に届かない)が見る
 const RULE_FILE = /^src\/featureGate\/rules\//;
 const DOMAIN_CONFIG = /^@\/features\/(?:core\/)?[^/]+\/config$/;
 export const isRuleConfigImport = (path, source) => RULE_FILE.test(path) && DOMAIN_CONFIG.test(source);

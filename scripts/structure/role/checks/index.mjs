@@ -1,5 +1,5 @@
-// role:generate の前の検査（何も書く前に止めるもの）。ロール設定とプロフィール設定の決まりを集め、全件を並べて例外にする。
-// 対話で作っていた頃に質問の中にあった決まりをここに移した（role.json・profile.json は手で書き、role:generate で生成する）。
+// pnpm generate role の前の検査（何も書く前に止めるもの）。ロール設定とプロフィール設定の決まりを集め、全件を並べて例外にする。
+// 対話で作っていた頃に質問の中にあった決まりをここに移した（role.json・profile.json は手で書き、pnpm generate role で生成する）。
 // 止めない食い違いは roleConfigWarnings（生成は進める）
 
 import { auditIssues } from "../../domain/checks/audit.mjs";
@@ -35,7 +35,7 @@ export function roleConfigIssues({ fileName, role, profile, overrideProblems = [
   return issues;
 }
 
-/** 問題があれば全件を並べて例外を投げる（role:generate の入口） */
+/** 問題があれば全件を並べて例外を投げる（pnpm generate role の入口） */
 export function assertRoleConfig(input) {
   const issues = roleConfigIssues(input);
   if (issues.length > 0) throw new Error(issues.join("\n"));

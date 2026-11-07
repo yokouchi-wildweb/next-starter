@@ -22,7 +22,7 @@ CLI 側のランナーは `pnpm task <task-name>`（`scripts/runner/task/run.ts`
 - `index.ts` — 公開エントリ
 
 周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）・`task.override.ts`（fork の上書き、任意）/ `src/wiring/cronRoute.ts`（門番を結んだ `createCronTaskRoute`）/
-`scripts/structure/cron/`（`discover.ts` = `@/lib/cron/discover` に門番を結ぶ呼び手、`cron:generate` / `cron:check`、`cronWiring.test.mjs` = `pnpm test:cron-wiring`）
+`scripts/structure/cron/`（`discover.ts` = `@/lib/cron/discover` に門番を結ぶ呼び手、`pnpm generate cron` / `pnpm check cron`、`cronWiring.test.mjs` = `pnpm test scripts/structure/cron/cronWiring.test.mjs`）
 
 ## 仕組み
 
@@ -31,7 +31,7 @@ src/app/api/cron/<name>/
   task.ts   … cronTask = { name, description, schedule, enabled?, run }（run はドメインの関数を動的 import で呼ぶだけ）
   route.ts  … export const GET = createCronTaskRoute(cronTask)（@/wiring/cronRoute から）
 
-pnpm cron:generate ── フォルダを走査 ──▶ vercel.json の crons（タスクごとに 1 エントリ）
+pnpm generate cron ── フォルダを走査 ──▶ vercel.json の crons（タスクごとに 1 エントリ）
 Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 ```
 
@@ -47,14 +47,14 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **機能の門（自動）**: タスクの住所は名前から組んだ `/api/cron/<name>`。閉じられる機能のタスクは、その住所を機能の規則の
   `pathPatterns`（`src/featureGate/rules/<名前>.ts`）に載せるだけでよい。規則が閉じていると、route は本体を呼ばずに
   `{ ok: true, skipped: true, reason: "closed" }` を返し（proxy が先に 404 にする。route の判定は proxy を通らない呼び出しの安全網）、
-  `pnpm task` は `--due` でも名前指定でも飛ばし、`cron:generate` は vercel.json に載せない（機能を閉じた・開いたら再生成する）。
+  `pnpm task` は `--due` でも名前指定でも飛ばし、`pnpm generate cron` は vercel.json に載せない（機能を閉じた・開いたら再生成する）。
   判定はどれも門番の `gate.path`（route = `src/wiring/cronRoute.ts`、CLI と生成 = `scripts/structure/cron/discover.ts` の `closedBy`）。
   fork のタスクも同じ（自分の規則の pathPatterns に住所を書く）。task.ts に機能の入切（`gate.enabled` など）は書かない
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。config だけを見る同期関数（DB に触れない）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   個人情報の retention prune は機能を後から無効にしても既存行を消し続ける必要があるため、門の規則にも enabled にも載せない
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
-  （`pnpm build` の冒頭の門 `pnpm check --gate=build` が cron の検査を `--vercel-build` で回す）と `pnpm deploy:all` が止まる。漏れたまま本番が動き続けることはない
+  （`pnpm build` の冒頭の門 `pnpm check --gate=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
 
 ## 時間予算付きバッチ（maxDuration で殺されないために）
 
@@ -75,7 +75,7 @@ serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中
 
 ## 新しい定期タスクを追加する
 
-フォルダを 1 つ足し、`vercel.json` を再生成する。漏れは `pnpm test:cron-wiring` と Vercel 上のビルドが検出する。
+フォルダを 1 つ足し、`vercel.json` を再生成する。漏れは `pnpm test scripts/structure/cron/cronWiring.test.mjs` と Vercel 上のビルドが検出する。
 
 ### 1. task.ts
 
@@ -98,8 +98,8 @@ export const cronTask: CronTaskDefinition = {
 ```
 
 - 閉じられる機能のタスクなら、その機能の規則の `pathPatterns` に `/api/cron/my-task` を足す（上の「機能の門」）
-- `run` は動的 import にする（`cron:generate` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まないため）
-- ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domainRegistry.ts` を動的 import して渡す（例: storage-sweep の `lookupService`）。wiring を import してよいのは cron のフォルダでは task.ts だけ（task.override.ts は不可。`pnpm test:wiring`）
+- `run` は動的 import にする（`pnpm generate cron` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まないため）
+- ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domainRegistry.ts` を動的 import して渡す（例: storage-sweep の `lookupService`）。wiring を import してよいのは cron のフォルダでは task.ts だけ（task.override.ts は不可。`pnpm test src/wiring/wiring.test.mjs`）
 - 長い運用説明は、処理本体があるドメインの README に書く
 
 ### 2. route.ts（1 行）
@@ -117,14 +117,14 @@ export const GET = createCronTaskRoute(cronTask);
 ### 3. vercel.json を再生成
 
 ```bash
-pnpm cron:generate --plan <hobby|pro>
+pnpm generate cron -- --plan <hobby|pro>
 ```
 
 `pnpm task my-task` はフォルダを置いた時点で使える。タスクを消すときもフォルダを消して再生成する。
-upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:generate` を `required_actions` に書いた notice を同じ commit で出す(`/ship` で出荷すると判定と起票まで行う)
+upstream でタスクを足す・消すときは、fork 向けに `pnpm generate cron` を `required_actions` に書いた notice を同じ commit で出す(`/ship` で出荷すると判定と起票まで行う)
 （CLAUDE.md `cron_wiring`）。
 
-### `pnpm test:cron-wiring` が検査すること
+### `pnpm test scripts/structure/cron/cronWiring.test.mjs` が検査すること
 
 - cron のフォルダに `task.ts` と `route.ts` があり、`route.ts` が `./task` の `cronTask` を `@/wiring/cronRoute` の `createCronTaskRoute` で読む
 - `task.ts` の `name` = フォルダ名・ケバブケース、`schedule` が正しい cron 式、`description` あり、`enabled` が boolean を返す
@@ -134,7 +134,7 @@ upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:gen
 - 機能の門: 閉じた住所のタスクは `closedBy` が付いて生成と検査から外れる、route の作り手は閉なら認証の後・本体の前に skipped
 - task.ts が門番（`@/featureGate`）を読まない（機能の入切は住所で自動。Tier1 は失敗、fork は一覧を出すだけ）
 
-閉じられる機能のフォルダを import する task.ts の住所が規則の `pathPatterns` に載っているかは、`FEATURE_GATE_CHECK=all pnpm test:feature-gate` の常時実行の入口の検査が見る（`src/featureGate/README.md`）。
+閉じられる機能のフォルダを import する task.ts の住所が規則の `pathPatterns` に載っているかは、`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies` の常時実行の入口の検査が見る（`src/featureGate/README.md`）。
 
 ## upstream のタスクを外す・時刻を変える（fork）
 
@@ -154,9 +154,9 @@ export const cronOverride: CronTaskOverride = {
 - `schedule`: vercel.json と `pnpm task --due` はこちらの時刻を使う
 - `disabled: true`: vercel.json に載らず、`pnpm task --due` でも動かない。`pnpm task <name>` の手動実行はできる。
   機能を閉じたいだけなら要らない（閉じた機能のタスクは自動で外れる）。機能以外の理由で外すときに使う
-- 置いた・変えたら `pnpm cron:generate --plan <hobby|pro>` で再生成する（忘れると Vercel のビルドで止まる）
-- upstream がそのタスクを消すと `task.override.ts` だけが残り、`cron:check` / `test:cron-wiring` が失敗する → `task.override.ts` も消す
-- 名前は `task.ts` の一部の上書き = 他の上書きと同じ `<対象>.override.ts` の形（`scripts/structure/extensions/README.md`「override」）。旧名の `override.ts` が残っていると `cron:check` / `cron:generate` / `pnpm task` が改名を案内して止まる（`git mv <dir>/override.ts <dir>/task.override.ts`、中身はそのまま）
+- 置いた・変えたら `pnpm generate cron -- --plan <hobby|pro>` で再生成する（忘れると Vercel のビルドで止まる）
+- upstream がそのタスクを消すと `task.override.ts` だけが残り、`pnpm check cron` / `pnpm test scripts/structure/cron/cronWiring.test.mjs` が失敗する → `task.override.ts` も消す
+- 名前は `task.ts` の一部の上書き = 他の上書きと同じ `<対象>.override.ts` の形（`scripts/structure/extensions/README.md`「override」）。旧名の `override.ts` が残っていると `pnpm check cron` / `pnpm generate cron` / `pnpm task` が改名を案内して止まる（`git mv <dir>/override.ts <dir>/task.override.ts`、中身はそのまま）
 - 個人情報を含むデータの削除タスク（`audit-log-prune` / `user-login-event-prune` / `device-fingerprint-prune` /
   `fingerprint-challenge-access-prune`）を外すと保持期限が守られなくなる。外すのは、その機能を使っておらず対象テーブルが空のときだけ
 - `pnpm task --list` に上書きの状態（`(task.override.ts)` / `[off: task.override.ts]`）と、機能が閉じたタスクの `[closed: <規則>]` が出る
@@ -183,8 +183,8 @@ export const cronOverride: CronTaskOverride = {
 ### Vercel（推奨）
 
 ```bash
-pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
-pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
+pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
+pnpm generate cron -- --plan pro     # Vercel Pro:   task.ts の schedule どおり
 ```
 
 `vercel.json` の `crons` だけを書き換える（他のキーと `/api/cron/` の外のエントリは残す）。生成した `vercel.json` をコミットし、
@@ -192,8 +192,8 @@ Vercel の環境変数に `CRON_SECRET` を登録する（Vercel Cron は `Autho
 新規 fork は `/fork-init` がこれを済ませる。upstream は `vercel.json` を持たない（各リポジトリが自分のフォルダから生成する）。
 
 - **再生成が要るとき**: タスクのフォルダが増減したとき・schedule を変えたとき（どちらも upstream からの merge を含む）・`task.override.ts` を置いた・変えたとき・プランを変えたとき
-- **検査**: `pnpm cron:check` が `vercel.json` と生成結果を突き合わせる（無い・エントリの漏れ・消えたタスクの残骸・時刻の手書き → 失敗）。
-  `pnpm build` は Vercel 上（`VERCEL=1`）でだけ冒頭にこれを実行し、`pnpm deploy:all` もデプロイ前に実行する。
+- **検査**: `pnpm check cron` が `vercel.json` と生成結果を突き合わせる（無い・エントリの漏れ・消えたタスクの残骸・時刻の手書き → 失敗）。
+  `pnpm build` は Vercel 上（`VERCEL=1`）でだけ冒頭にこれを実行し、`pnpm live` 系もデプロイ前に実行する。
   定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 `SKIP_CRON_CHECK=1` で外す
 - **上限**: Vercel の cron は 1 プロジェクト 100 本まで（全プラン共通）。Hobby は 1 日 1 回より細かい式でデプロイが失敗し、
   起動時刻も指定時刻から最大 59 分ずれる。`--plan hobby` は 1 日 1 回より細かいタスクを 19:00 UTC から 5 分ずつずらして 1 日 1 回にし、

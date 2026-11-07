@@ -14,11 +14,11 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 | 骨組み（順序に意味がある上流の 4 + 2） | `src/proxies/index.ts`・各 `<名前>.ts` | 上流だけ（fork は index.ts を編集しない） |
 | 枠の項目 | `src/proxies/<名前>.ts`（上流も fork も印なし）。フォルダ形 `<名前>/index.ts` も可 | 1 項目 1 つ `export const handler` か `export const decorator` |
 | 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators の 2 点。機能を閉じる規則は門番 `src/featureGate/extensionPoints.ts`） | 上流だけ |
-| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts` | `pnpm extensions:generate`（手で編集しない。仕組み: `scripts/structure/extensions/README.md`） |
-| 検査 | `pnpm extensions:check`（build の冒頭）・`pnpm test:proxy-frame` | — |
+| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts` | `pnpm generate extensions`（手で編集しない。仕組み: `scripts/structure/extensions/README.md`） |
+| 検査 | `pnpm check extensions`（build の冒頭）・`pnpm test scripts/structure/proxies/proxyFrame.test.mjs` | — |
 
 - 項目は骨組みの**後ろ**で、ファイル名の順に走る（Tier 順は使わない）。項目どうしは互いに依存しない（前の項目の結果を読まない）。骨組みより前で走らせたい項目は作らない（要るなら上流へ依頼し、骨組みに吸収する）
-- 名前に fork の印は付けない（旧い印は止めて移し方 = 共有の棚の印の移行の notice を案内する。上流と同じ単位名は `ownership:check` の unit-clash）。旧い印・`handler` と `decorator` の両方・どちらも無い直下の `.ts`・名前の形の違い・一覧のずれは `extensions:generate` / `extensions:check` が止める
+- 名前に fork の印は付けない（旧い印は止めて移し方 = 共有の棚の印の移行の notice を案内する。上流と同じ単位名は `pnpm workflow ownership check` の unit-clash）。旧い印・`handler` と `decorator` の両方・どちらも無い直下の `.ts`・名前の形の違い・一覧のずれは `pnpm generate extensions` / `pnpm check extensions` が止める
 - 印は字面で読む（`export const handler` / `export const decorator` / `export const rule` の形で書く。`export { x as handler }` は拾わない）。項目のファイルは生成器から import しない
 - 判定の中身は責務のドメインのサービスを呼ぶ（項目のファイルに業務の判定を書き込まない）。項目の入切は各項目が config の値で持つ（多段での並べ替え・置き換えの口は無い）
 - **転送された旧 URL（redirect が Response を返したリクエスト）では枠の項目は走らない**。骨組みが打ち切ったリクエストも同じ
@@ -45,4 +45,4 @@ export const handler: ProxyHandler = async (request, ctx) => {
 
 ### fork での使い方(proxy の項目)
 
-- fork の handler・decorator: `src/proxies/<名前>.ts`(上流の項目と違う名前。同じ単位名は `ownership:check` の unit-clash)に置き、`pnpm extensions:generate` で一覧をコミット
+- fork の handler・decorator: `src/proxies/<名前>.ts`(上流の項目と違う名前。同じ単位名は `pnpm workflow ownership check` の unit-clash)に置き、`pnpm generate extensions` で一覧をコミット

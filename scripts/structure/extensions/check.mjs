@@ -11,7 +11,7 @@ import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const plan = planExtensions(repoRoot);
-// --no-stale: 宣言・項目の問題だけを見る(一覧のずれは extensions:generate で直るので見ない。forge の事前検査)
+// --no-stale: 宣言・項目の問題だけを見る(一覧のずれは pnpm generate extensions で直るので見ない。forge の事前検査)
 const noStale = process.argv.includes("--no-stale");
 const stale = noStale || plan.problems.length > 0 ? [] : staleOutputs(repoRoot, plan.outputs);
 // 受け口の一覧の生成区画(intake.txt)のずれ
@@ -26,11 +26,11 @@ const all = [
       : `${s.path}: extensions/ は生成物の置き場(目印のヘッダが無い = 手で置いたファイル)。${s.hint}`,
   ),
 ];
-for (const warning of plan.warnings) console.warn(`[extensions:check] warn: ${warning}`);
+for (const warning of plan.warnings) console.warn(`[check extensions] warn: ${warning}`);
 if (all.length > 0) {
-  console.error(`[extensions:check] 失敗(${all.length} 件):\n${all.map((p) => `  - ${p}`).join("\n")}`);
+  console.error(`[check extensions] 失敗(${all.length} 件):\n${all.map((p) => `  - ${p}`).join("\n")}`);
   process.exit(1);
 }
 console.log(
-  `[extensions:check] OK(点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length} / 項目 ${[...plan.itemsByPoint.values()].reduce((n, items) => n + items.length, 0)} / スイッチ ${plan.switches.length} / override ${plan.overrides.length} / 枠の表 ${plan.frames.tables} / 枠の宣言 ${plan.frames.declarations})`,
+  `[check extensions] OK(点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length} / 項目 ${[...plan.itemsByPoint.values()].reduce((n, items) => n + items.length, 0)} / スイッチ ${plan.switches.length} / override ${plan.overrides.length} / 枠の表 ${plan.frames.tables} / 枠の宣言 ${plan.frames.declarations})`,
 );

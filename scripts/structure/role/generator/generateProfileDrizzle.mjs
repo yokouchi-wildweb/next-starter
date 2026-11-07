@@ -287,7 +287,7 @@ ${belongsTo.lines.join("\n")}\n`
 // ${roleConfig.label}（${roleId}）ロール用のプロフィールテーブル
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { ${Array.from(imports).join(", ")}, pgTable } from "drizzle-orm/pg-core";${relationImportBlock}

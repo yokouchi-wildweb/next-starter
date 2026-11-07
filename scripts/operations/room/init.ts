@@ -43,7 +43,7 @@ if (existsSync(toml)) {
   if (currentName === "room-server") {
     console.warn(`⚠ Worker 名が既定の "room-server" のままです。同一アカウント同居時に他プロジェクトの
   Worker を無言で上書きする危険があるため、wrangler.toml の name をプロジェクト固有名
-  (例: "${derived.name}") に変更してください (room:deploy は既定名を拒否します)`);
+  (例: "${derived.name}") に変更してください (pnpm ops room deploy は既定名を拒否します)`);
   }
 } else {
   const content = readFileSync(tomlExample, "utf8").replace(/^name\s*=\s*"room-server"/m, `name = "${derived.name}"`);
@@ -69,7 +69,7 @@ console.log(`
 1. Worker 名を確認する (上記で wrangler.toml に書き込み済み):
    同一 Cloudflare アカウントに複数プロジェクトが同居する場合、wrangler deploy は
    同名 Worker を無言で置換するため、名前の一意性は必ず確認すること
-   (既定名 "room-server" のままのデプロイは room:deploy が拒否する)
+   (既定名 "room-server" のままのデプロイは pnpm ops room deploy が拒否する)
 
 2. workers.dev サブドメインを登録する (アカウントごとに1回だけ):
      Cloudflare ダッシュボード → Workers & Pages → 右カラム「workers.dev サブドメイン」
@@ -86,7 +86,7 @@ console.log(`
 5. src/config/app/realtime-room.config.ts の enabled を true にする
 
 6. デプロイ:
-     pnpm run deploy                # アプリ + Worker の統合デプロイ (手動運用の標準)
+     pnpm live:all                # アプリ + Worker の統合デプロイ (手動運用の標準)
      pnpm ops room deploy               # Worker 単体 (要 wrangler login または CLOUDFLARE_API_TOKEN)
    CI 経由 (git push 連動) を使うフォークのみ:
      cp .github/workflows/deploy-room.yml.example .github/workflows/deploy-room.yml
@@ -102,7 +102,7 @@ console.log(`
    (初回は workers.dev 伝播待ちで最大60秒リトライ。最低限なら: curl https://<Worker URL>/version)
 
 ローカル動作確認 (Cloudflare アカウント不要):
-     pnpm room:dev                  # wrangler dev でローカル起動
+     pnpm ops room dev                  # wrangler dev でローカル起動
 
 詳細: servers/room/README.md
 `);

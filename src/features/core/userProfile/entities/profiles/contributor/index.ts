@@ -2,7 +2,7 @@
 // src/features/core/userProfile/entities/profiles/contributor/index.ts
 // 投稿者プロフィールのエクスポート
 //
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 export * from "./drizzle";
 export * from "./schema";

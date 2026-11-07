@@ -11,7 +11,7 @@ import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, mak
 const CLI = resolve(import.meta.dirname, "cli.mjs");
 const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
 
-describe("ownership:check", () => {
+describe("pnpm workflow ownership check", () => {
   before(() => {
     openTmp();
   });

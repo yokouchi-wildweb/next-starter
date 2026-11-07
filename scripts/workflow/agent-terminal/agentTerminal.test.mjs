@@ -1,7 +1,7 @@
 // scripts/workflow/agent-terminal/agentTerminal.test.mjs — pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs
 //
 // - AGENT_TERMINAL の読み方(環境変数 → default.conf、無い・知らない値 = none)
-// - compact:self の 2 つの道(打てない → 代わりの 1 行・待つ役なし / tmux + hook の印あり → 待つ役を残す)
+// - pnpm workflow agent-terminal compactSelf の 2 つの道(打てない → 代わりの 1 行・待つ役なし / tmux + hook の印あり → 待つ役を残す)
 // - hook の標準出力: tmux の値 + tmux の中の SessionStart だけ端末の案内、ほかは空。記録と、手で打った圧縮の後だけ続きの待つ役を残すこと
 // - 入力欄の読み取り(空・下書き・薄い案内・確認の画面)
 
@@ -74,7 +74,7 @@ test("currentPane: tmux の値・tmux の中・別の道具のタブでない、
   assert.equal(currentPane(tmuxEnv({ LOUNGE_ROLE: "grace" })), null);
 });
 
-test("compact:self 打てないとき: 代わりの 1 行を出し、待つ役を残さない(exit 0)", () => {
+test("pnpm workflow agent-terminal compactSelf 打てないとき: 代わりの 1 行を出し、待つ役を残さない(exit 0)", () => {
   for (const env of [tmuxEnv({ AGENT_TERMINAL: "none" }), tmuxEnv({ TMUX: "", TMUX_PANE: "" }), tmuxEnv()]) {
     // 3 つ目 = tmux の中でも hook の印が無い(hook が動いていない)
     const { calls, deps } = recorder();
@@ -85,7 +85,7 @@ test("compact:self 打てないとき: 代わりの 1 行を出し、待つ役�
   }
 });
 
-test("compact:self 打てるとき: 返答の終わりの印を添えて待つ役を残す", () => {
+test("pnpm workflow agent-terminal compactSelf 打てるとき: 返答の終わりの印を添えて待つ役を残す", () => {
   const env = tmuxEnv();
   const dir = paneDir(currentPane(env), env);
   writeMark(dir, "session", "s-1");
@@ -103,7 +103,7 @@ test("compact:self 打てるとき: 返答の終わりの印を添えて待つ�
   assert.match(calls.printed[0], /予約しました/);
 });
 
-test("compact:self 残すことが空なら使い方を出して exit 1", () => {
+test("pnpm workflow agent-terminal compactSelf 残すことが空なら使い方を出して exit 1", () => {
   const { calls, deps } = recorder();
   assert.equal(runCompactSelf([], tmuxEnv(), deps), 1);
   assert.deepEqual(calls.spawned, []);

@@ -3,8 +3,8 @@
 // src/registry/serviceRegistry.ts の生成・検査に必要な情報を集める（一覧ファイルは持たない）。
 //
 // 利用者: ./generate.mjs（pnpm generate registry）, ./check.mjs（pnpm check registry）,
-//         ./serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）, scripts/structure/domain（dc:generate / dc:delete の最後）
-// TS を実行せずテキストで読む（キーの一覧・import 行）。plain node で動くので dc:generate から直接呼べる。
+//         ./serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）, scripts/structure/domain（pnpm generate domain / pnpm generate domain -- --delete の最後）
+// TS を実行せずテキストで読む（キーの一覧・import 行）。plain node で動くので pnpm generate domain から直接呼べる。
 // サービスを実際に読み込む検査はテスト側（tsx）。
 
 import fs from "node:fs";
@@ -79,7 +79,7 @@ export function readObjectKeys(text, exportName) {
   }
 }
 
-/** 登録の table / idColumn に書ける値（PostgreSQL の識別子の上限 63 文字。値の正しさは test:service-registry が実物と比べる） */
+/** 登録の table / idColumn に書ける値（PostgreSQL の識別子の上限 63 文字。値の正しさは pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs が実物と比べる） */
 const MAX_IDENTIFIER_LENGTH = 63;
 
 /**
@@ -165,7 +165,7 @@ export function readEntryTables(text, entryPath) {
  */
 
 /**
- * ファイルの見え方。既定はディスクそのまま。dc:generate は「これから書くファイル」を重ねた見え方で、
+ * ファイルの見え方。既定はディスクそのまま。pnpm generate domain は「これから書くファイル」を重ねた見え方で、
  * 書く前に登録表の検査を通す（createOverlayView）
  * @typedef {{ exists: (file: string) => boolean, read: (file: string) => string }} FileView
  */

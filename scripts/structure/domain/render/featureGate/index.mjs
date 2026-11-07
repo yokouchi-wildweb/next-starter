@@ -30,7 +30,7 @@ export function ruleContent(ctx) {
   const folder = featureRel(ctx).replace(/^src\/features\//, "");
   const constName = configConstName(ctx);
   return `// src/featureGate/rules/${ctx.camel}.ts
-// ${ctx.label}(dc:generate が domain.json の closable: true から書いた書き捨て。以後は手で直す)
+// ${ctx.label}(pnpm generate domain が domain.json の closable: true から書いた書き捨て。以後は手で直す)
 // 汎用 API の住所 /api/<domain> は書かない(features のフォルダの domainEntry から生成器が導く)。書き方: src/featureGate/README.md
 
 import { ${constName} } from "@/features/${folder.replace(/^core\//, "")}/config";
@@ -51,7 +51,7 @@ export const rule: FeatureGateRule = {
 
 export function configContent(ctx, enabled) {
   return `// ${featureRel(ctx)}/config.ts
-// ${ctx.label}の設定(dc:generate が domain.json の closable: true から書いた書き捨て)。
+// ${ctx.label}の設定(pnpm generate domain が domain.json の closable: true から書いた書き捨て)。
 // enabled: false にすると門番の規則 src/featureGate/rules/${ctx.camel}.ts がこの機能の画面・API を閉じ、db:push は表を作らない(既存の表は消さない)
 
 export const ${configConstName(ctx)} = {

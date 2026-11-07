@@ -401,7 +401,7 @@ downstream が種別に属さない派生クーポンの専用画面（例: フ�
 ### downstream レシピ
 
 ```typescript
-// 1. src/features/core/coupon/adminSectionTabs/friendCoupon.ts → pnpm extensions:generate
+// 1. src/features/core/coupon/adminSectionTabs/friendCoupon.ts → pnpm generate extensions
 export const tab: PageTabItem = { value: "friend-coupon", label: "フレンドクーポン", href: "/admin/coupons/friend-coupon" };
 
 // 2. src/app/admin/(protected)/coupons/friend-coupon/_screen/AdminFriendCouponScreen.tsx（downstream 実装）
@@ -488,7 +488,7 @@ import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCateg
 ```
 src/features/core/coupon/
 ├── README.md
-├── domain.json                  # ドメイン設定（dc:generate の入力）
+├── domain.json                  # ドメイン設定（pnpm generate domain の入力）
 ├── presenters.ts                # フィールド表示フォーマッター
 │
 ├── entities/                    # 生成ファイル

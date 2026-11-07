@@ -1,4 +1,4 @@
-// dc:generate:all: ドメインを選び（既定は全件）、各 domain.json の generate か手動選択（保存しない）で一括生成する
+// pnpm generate domain: ドメインを選び（既定は全件）、各 domain.json の generate か手動選択（保存しない）で一括生成する
 
 import { pickCategories } from "./pickCategories.mjs";
 import { runGenerateAll } from "../pipeline/generateAll.mjs";

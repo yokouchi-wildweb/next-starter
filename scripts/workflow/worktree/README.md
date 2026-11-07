@@ -8,12 +8,12 @@ Claude に任せるときは worktree スキル (`.claude/skills/worktree/`) が
 ## コマンド
 
 ```bash
-pnpm worktree:new <branch> [--from <base>] [--path <dir>]
-pnpm worktree:sync [path] [--force]
-pnpm worktree:remove <path>
+pnpm workflow worktree new <branch> [--from <base>] [--path <dir>]
+pnpm workflow worktree sync [path] [--force]
+pnpm workflow worktree remove <path>
 ```
 
-### worktree:new
+### pnpm workflow worktree new
 
 1. `git worktree add` を実行
    - 置き場所の既定: 本体の隣の `../<repo名>.wt-<branch>` (`/` などは `-` に置き換え)
@@ -23,14 +23,14 @@ pnpm worktree:remove <path>
 
 終わったら `cd <path> && claude` で、新しいターミナルから作業を始めます。
 
-### worktree:sync
+### pnpm workflow worktree sync
 
 本体の env を更新したときなど、既存ワークツリーへ入れ直します。path 省略時は今いるワークツリー。
 
 - 既にあるファイルは上書きしない。内容が違うものは一覧に出すだけ
 - `--force` を付けたときだけ上書き (ワークツリー側で書き換えた値は消える)
 
-### worktree:remove
+### pnpm workflow worktree remove
 
 - `git status --short` が空でないと止まる (コミットするか片付けてから)
 - gitignore 対象 (env / node_modules) はフォルダごと消える
@@ -42,14 +42,14 @@ pnpm worktree:remove <path>
 - 複製されるのは「一覧に一致し、かつ gitignore 対象」のファイルだけ。git 管理のファイルは対象外 (ブランチから展開されるため)
 - 判定は git 自身 (`git ls-files --exclude-from` と `git check-ignore`) に任せている
 - 読むのは常に本体側の一覧。ワークツリーの中から実行しても同じ結果になる
-- `node_modules` は入れない (`worktree:new` が `pnpm install` する)
+- `node_modules` は入れない (`pnpm workflow worktree new` が `pnpm install` する)
 - fork が足すものは `# --- fork entries below ---` より下に書く (merge で衝突しにくくするため)
 
 ### Claude Code の `.worktreeinclude` との関係
 
 Claude Code は、自分で作るワークツリー (`claude --worktree` / サブエージェントの worktree 分離 / デスクトップ版の並列セッション) に、リポジトリ直下の `.worktreeinclude` を同じ規則で読んで複製します。
 
-このリポジトリでは直下にファイルを増やさないため、一覧を `scripts/workflow/worktree/include` に置き、Claude Code の仕組みには乗せていません。ワークツリーは明示したときだけ `worktree:new` で作る運用のためです。Claude Code 側のワークツリーを常用するようになったら、一覧を直下の `.worktreeinclude` に移し、`lib.ts` の `INCLUDE_FILE` を書き換えます。
+このリポジトリでは直下にファイルを増やさないため、一覧を `scripts/workflow/worktree/include` に置き、Claude Code の仕組みには乗せていません。ワークツリーは明示したときだけ `pnpm workflow worktree new` で作る運用のためです。Claude Code 側のワークツリーを常用するようになったら、一覧を直下の `.worktreeinclude` に移し、`lib.ts` の `INCLUDE_FILE` を書き換えます。
 
 Claude Code のワークツリーは `.claude/worktrees/` (リポジトリの内側) にできるため、`eslint.config.mjs` で除外しています (tsc はドットで始まるフォルダを拾わないので不要)。
 
@@ -62,14 +62,14 @@ Claude Code のワークツリーは `.claude/worktrees/` (リポジトリの内
 
 - **DB は本体と共有**: env を複製するので同じ DB を指す。ワークツリーで `db:push` すると本体の開発 DB も変わる
 - **同じブランチは 2 か所で同時にチェックアウトできない** (git が拒否する)
-- **dev サーバーを同時に立てるとき**: `pnpm dev:tab` で立てる (空いているポートを選び、`APP_BASE_URL` もそのポートに合わせる。[dev-tab/README.md](../dev-tab/README.md))
+- **dev サーバーを同時に立てるとき**: `pnpm workflow dev-tab run` で立てる (空いているポートを選び、`APP_BASE_URL` もそのポートに合わせる。[dev-tab/README.md](../dev-tab/README.md))
 - **Claude Code の自動メモリはフォルダごとに別**: ワークツリーで起動したセッションからは本体のメモリが見えない。`CLAUDE.md` と `.claude/rules/` は git 管理なのでどちらでも読まれる
 - `servers/room/` は独立した package なので、使うならワークツリー側で別途 install する
 
 ## テスト
 
 ```bash
-pnpm test:worktree
+pnpm test scripts/workflow/worktree/worktree.test.ts
 ```
 
 一時ディレクトリに作った git リポジトリで、持ち込み対象の判定・複製 (上書きしない / `--force`)・ワークツリーからの本体特定を確かめます。

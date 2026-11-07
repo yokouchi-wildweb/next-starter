@@ -7,7 +7,7 @@
 ```
 src/app/(user)/_layout/
 ├── UserLayout.tsx       # 枠全体の既定の組み立て(export UserLayout = slot 付き)。(user)/layout.tsx の 1 行スイッチ先
-├── UserLayout.test.tsx  # slot と「props なしの描画が 1 行スイッチ化の前と同じ」の検査(pnpm test:user-layout)
+├── UserLayout.test.tsx  # slot と「props なしの描画が 1 行スイッチ化の前と同じ」の検査(pnpm test 'src/app/(user)/_layout/')
 ├── UserParts.test.tsx   # 部品の slot / props と「props なしの描画が部品 slot 化の前と同じ」の検査(同上)
 ├── UserPageDefault.test.tsx # UserPage の幅の既定が config に従うことの検査(同上)
 ├── BackgroundLayer.tsx  # 背景画像・オーバーレイ
@@ -21,7 +21,7 @@ src/app/(user)/_layout/
 ├── Footer/index.tsx     # フッター(既定。export UserFooter)
 ├── BottomNav/           # スマホ用ボトムナビ(index・BottomNavItem・BottomNavMenu・BottomNavSpacer・types・useBottomNavItems)
 ├── hooks/               # useHeaderData・useFooterData(ヘッダー・フッターの表示データと状態)
-└── extensions/frameTable.ts # 枠の表(生成物。各ルートの frame.default.ts / frame.ts から pnpm extensions:generate)
+└── extensions/frameTable.ts # 枠の表(生成物。各ルートの frame.default.ts / frame.ts から pnpm generate extensions)
 ```
 
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
@@ -33,7 +33,7 @@ src/app/(user)/_layout/
 ## 所有
 
 - このフォルダの既定の部品 = 提供者(upstream)の所有。fork は直接編集しない(core と同じ扱い。CLAUDE.md CORE_FILES)
-- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `UserLayout.replace.tsx`・`Header/index.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(所有は git の分岐点で見る。名前に fork の印は付けない)。隣に置き換える既定の無い `.replace` は孤立で失敗(`pnpm test:screens`)
+- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `UserLayout.replace.tsx`・`Header/index.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(所有は git の分岐点で見る。名前に fork の印は付けない)。隣に置き換える既定の無い `.replace` は孤立で失敗(`pnpm test src/lib/screens/screens.test.mjs`)
 - upstream はここ(と `_screen/`)に点つきの名前のファイルを作らない(Tier1 でだけ検査、fork では skip)。点つきの名前で許すのは `.replace` と `.test` だけ(旧い fork の名前の印は全 Tier で失敗。移し方 = 共有の棚の印の移行の notice)
 - lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens/no-raw-palette・style-tokens/span-in-heading・client-service-boundary/no-direct-import が error)。丸ごと置き換え(`*.replace.tsx`)は app/ の画面と同じ warn。page-authz(layout はサーバー側でデータを取らない)は両方に error
 
@@ -41,7 +41,7 @@ src/app/(user)/_layout/
 
 ## layout.tsx と slot(枠の差し替え)
 
-- `src/app/(user)/layout.tsx` は 1 行スイッチ: `export { UserLayout as default } from "./_layout/UserLayout";`。page.tsx と同じく採用者(fork)所有・write-once で、upstream は作成後に編集しない。`pnpm test:screens` が page.tsx と同じ検査関数(`src/lib/screens/checks.mjs` の parseSwitchLayout)で全 Tier に対し検査する
+- `src/app/(user)/layout.tsx` は 1 行スイッチ: `export { UserLayout as default } from "./_layout/UserLayout";`。page.tsx と同じく採用者(fork)所有・write-once で、upstream は作成後に編集しない。`pnpm test src/lib/screens/screens.test.mjs` が page.tsx と同じ検査関数(`src/lib/screens/checks.mjs` の parseSwitchLayout)で全 Tier に対し検査する
 - `(protected)/mypage/layout.tsx` も同じ形で `mypage/_layout/MyPageLayout.tsx`(UserPage narrowStack + Stack + PageTransition)を指す
 - 既定の組み立て `UserLayout` の slot(すべて省略可能な props):
 
@@ -98,7 +98,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
 3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `useFrameAttributes(frameTable)` の属性、部位の `data-slot` は残す。無いと枠の宣言が効かない)
-- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm routes:map`、src/lib/screens/README.md §13)
+- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/README.md §13)
 
 ## 枠の部位を隠す・fill(枠の宣言)
 
@@ -115,12 +115,12 @@ export const frameDefault = {
 
 - 隠せる部位: `header` / `headerNav`(ヘッダーは残る)/ `footer` / `bottomNav`(スペーサーごと)。端末 `sp` = 40rem 未満 / `pc` = 40rem 以上
 - 枠の全体の既定 = `src/app/(user)/frame.default.ts` の `layout:`(上流: ボトムナビを PC で隠す = スマホだけ。同じファイルの `page:` はトップページ / の fill)。fork が変えるときは隣に `frame.ts`
-- 仕組み: `pnpm extensions:generate` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。部品はアンマウントしない
+- 仕組み: `pnpm generate extensions` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。部品はアンマウントしない
 - 効く時点: 属性は外枠そのものに付くので初回の HTML に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
 - 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)だけで全部隠せる。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
 - frame.css の `:is()` に残る既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に一緒に外す
 - 寸法変数: ボトムナビを隠している間、外枠の `--app-bottom-nav-height` は 0px
-- 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test:frame-declaration`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test:user-layout`)
+- 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test src/app/_layout/frame/`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test 'src/app/(user)/_layout/'`)
 - フッターの基本の表示は config の `FOOTER_VISIBILITY` の固定の class のまま
 
 ## data-slot の一覧
@@ -459,7 +459,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - 以前の Hide* は "use client" の部品で、useEffect で表示制御の context に書き、枠の部品が context を読んで class を付けていた。そのため hydration まで枠が一瞬見え、Hide* のあるページ同士の遷移では旧ページの後始末が新ページの指定を消す競合が起きた(呼び出し元ごとの上書き setOverride で直した。その notice の「setVisibility + reset を setOverride へ」は印で置き換わる)
 - 印は DOM にある間だけ効き、旧ページの印は旧ページと一緒に消える = 後始末の処理そのものが無いので競合が起きない
 - Hide* の名前・props・export・パスは変えていない(fork の呼び出しの書き換えなし)。表示方向(`pc={false}` = 表示)は使用例が無く捨てた
-- 生成 CSS は global.css が config.css の後に読む。layer に入れない(部品の `sm:flex` 等のユーティリティより優先)。目印の変数 `--frame-controls-generated` を持つので、ビルド出力からこのファイルが抜けると `pnpm build` の styles:check-build が落ちる
+- 生成 CSS は global.css が config.css の後に読む。layer に入れない(部品の `sm:flex` 等のユーティリティより優先)。目印の変数 `--frame-controls-generated` を持つので、ビルド出力からこのファイルが抜けると `pnpm build` の pnpm check styles が落ちる
 - 既定の DOM の差分(test で固定): 外枠に `data-frame-root`、Header・Footer・BottomNav・スペーサー・ナビの部品に `data-frame-part`(後の data-slot の区切りで `data-slot` に置き換わった)
 - ブラウザでの確かめ(区切り 3 の確認): JS 有効では印の到着と本文の到着が同じフレームで、その後に枠が見えたフレームは 0。通信を遅くした client 遷移でも、loading の間は枠が出て本文と同時に隠れる。JS 無効では本文が Suspense の隠し領域(外枠の外)に残り、ページ側の印は効かない(外枠の基本の印は効く)
 

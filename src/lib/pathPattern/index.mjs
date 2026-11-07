@@ -1,5 +1,5 @@
 // src/lib/pathPattern/index.mjs
-// 住所のパターン照合(純粋関数)。門番の判定(src/featureGate/evaluate.ts)・ルート地図(src/lib/screens/routeMap.mjs)・test:feature-gate が共有する。詳細: ./README.md
+// 住所のパターン照合(純粋関数)。門番の判定(src/featureGate/evaluate.ts)・ルート地図(src/lib/screens/routeMap.mjs)・pnpm test src/featureGate scripts/structure/proxies が共有する。詳細: ./README.md
 //
 // 書き方:
 // - "/demo"   = セグメント境界の前方一致("/demo" と "/demo/**"。"/demo-login" は含まない)。末尾スラッシュは同義

@@ -22,7 +22,7 @@
 
 増やすときは、このテーブルと `wiring.test.mjs` の `WIRING_FILES` に足す。将来の API 用・管理画面用の wiring は自分で登録表を結ぶ（wiring どうしは import しない。共有するのは lib の汎用版と登録表だけ）。
 
-wiring どうしの import の例外は次の 2 つだけ（`pnpm test:wiring` の `isReceptacleImport` / `isFormInputsBundleImport` と同じ）:
+wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wiring/wiring.test.mjs` の `isReceptacleImport` / `isFormInputsBundleImport` と同じ）:
 
 - 受け口: 生成物 `wiring/<束>.ts` → その束の受け口の項目 `wiring/<束>/<受け口>/…`（受け口 = `wiring/<束>/extensionPoints.ts` が宣言した `dir`）と、同じ受け口の中の項目どうし。項目は fork が足した物を含み、名前に fork の印は付けない。例: 生成物 `dbAgent.ts` → `dbAgent/extraTools/<名前>.ts`・`dbAgent/promptFragments/<名前>.ts`
 - 入力部品の束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、`formInputs/` の中どうし（受け口 `formInputs/inputs/` の項目を含む）
@@ -30,7 +30,7 @@ wiring どうしの import の例外は次の 2 つだけ（`pnpm test:wiring` �
 ## fork の wiring
 
 - fork は `src/wiring/<名前>.ts(x)`（client 用は `<名前>.client.tsx`）を足せる（fork が足したファイル = fork の物。名前に fork の印は付けない）。例: fork 独自の主体（店舗の会員など）の API の Factory を、`lib/routeFactory` の汎用版から自分の束で作る
-- 目録（`WIRING_FILES` との完全一致）は Tier1 だけで検査する。fork の所有は git の分岐点で `pnpm ownership:check` が見る（上流と同じ単位名は unit-clash）。旧い fork の名前の印つきの名前は全 Tier で `pnpm test:wiring` が止め、移し方 = 共有の棚の印の移行の notice を案内する
+- 目録（`WIRING_FILES` との完全一致）は Tier1 だけで検査する。fork の所有は git の分岐点で `pnpm workflow ownership check` が見る（上流と同じ単位名は unit-clash）。旧い fork の名前の印つきの名前は全 Tier で `pnpm test src/wiring/wiring.test.mjs` が止め、移し方 = 共有の棚の印の移行の notice を案内する
 - 向き・データ到達・wiring どうし不可は fork のファイルにも同じに掛かる
 - 上流の wiring のファイルを置き換える口（`<対象>.override.ts`）は無い。上流の結び方を変えたいときは `/order <upstream>`
 - 差し込む値の束は持ち主のドメインが 1 つ export する（利用者 = `features/core/auth` の `apiRouteUserDeps` 等）。全項目必須
@@ -48,7 +48,7 @@ wiring どうしの import の例外は次の 2 つだけ（`pnpm test:wiring` �
 - root の `src/app/layout.tsx` は `@/wiring/AppProviders` だけ（データに届くのは中の AuthSessionProvider = 名前付き例外）
 - Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
-検査: `pnpm test:wiring`（目録・旧い印・向き・鎖・データに届く wiring の import の場所）。受け口の宣言は `src/lib/forkOwnership/declarations.mjs` で読む。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
+検査: `pnpm test src/wiring/wiring.test.mjs`（目録・旧い印・向き・鎖・データに届く wiring の import の場所）。受け口の宣言は `src/lib/forkOwnership/declarations.mjs` で読む。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
 
 ## dbAgent
 

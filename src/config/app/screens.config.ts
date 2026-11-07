@@ -1,7 +1,7 @@
 // src/config/app/screens.config.ts
 // `pnpm test src/lib/screens/screens.test.mjs` の fork 所有の設定(構造の検査の除外)。
 //
-// test:screens は src/app 全体のページ(_ で始まるディレクトリと src/app/api を除く。fork の独自エリアも含む)を
+// pnpm test src/lib/screens/screens.test.mjs は src/app 全体のページ(_ で始まるディレクトリと src/app/api を除く。fork の独自エリアも含む)を
 // 自動検出し、全てが「1 行スイッチ(+ _screen/ または _components/ の Screen)」であることを検査する。
 // 新しいページを作るときも、新しいエリアを作るときも登録は不要。
 // upstream は全て空で出荷し、以後このファイルの中身を編集しない(src/styles 直下の fork の CSS と同じ扱い。export の追加だけは

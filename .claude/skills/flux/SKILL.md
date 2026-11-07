@@ -31,7 +31,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - **区間単位で進める**: 未適用 notice を区切り(`checkpoint:`)ごとの区間に分け、区間ごとに「merge → 適用 → verify → 台帳 → commit → push」を完結させる。**既定は notice 1 件 = 区切り 1 つ**(`checkpoint: -` と上流が例外宣言した notice、後の修正の `skip_checkpoint:` に名指された notice だけが次の区切りまで同じ区間に入る。欄が無い旧 schema は区切り扱い = 安全側)。途中で止まっても fork は直前の区切りに居て、再実行すれば続きから進む(状態は集合演算で導出されるので追加の記録は不要)。
 - **区間ごとに fork をクリーンに揃える**: 区間を commit するとき、その区間の上流の変更に fork 側のコードが追従しきっていること。notice があるかどうかは問わない(上流が notice を出し忘れた変更も同じ)。部品・lib・core の使い方が変わったら、fork 内の使用箇所を全部探して新しい使い方に揃える。「古い使い方のままでも動くから残す」はしない(下記「上流の変更点の洗い出し」、手順 6)。
 - **区間の完了**: required_actions の各項目が、済み / 該当なし(理由つき)/ 残す、のどれかなら完了。残せるのは、検査の対象なら order id つきの一時許可(`open: <項目> | order:<id>`)、検査の外なら人の理由つきの判断(`open: <項目> | human:<理由>`)だけ。台帳の `notes:` に書き、次の `/flux` の最初の報告に一覧で出す。片付いたらその `open:` を消す。
-- **所有の検査を通らない区間は閉じない**: 基準に `src/lib/forkOwnership/intake.txt` がある区間は、commit の後に `pnpm ownership:check` が 0 になるまで push しない(手順 7c)。違反はその場で受け口へ移す・元に戻す・一時許可のどれかで片付ける(猶予は置かない)。
+- **所有の検査を通らない区間は閉じない**: 基準に `src/lib/forkOwnership/intake.txt` がある区間は、commit の後に `pnpm workflow ownership check` が 0 になるまで push しない(手順 7c)。違反はその場で受け口へ移す・元に戻す・一時許可のどれかで片付ける(猶予は置かない)。
 - **適用計画の承認 = DB 操作を含む全ステップの明示的実行指示とみなす**。このスキル実行中は「DB 操作はユーザーに依頼する」系の一般ルールより本規約が優先される。ただし対話プロンプトを出すコマンド(`[user-run]` マーカー付き、db push 等)だけは Claude では実行できないため、下記の in-session ユーザー実行で合流する。
 - **チャットは人向け、台本と識別子は作業メモ**: 止まるたびの報告は `.claude/skills/fmt/flux-stop.md` の書式で書く(手順 8)。ファイル名・sha・notice id・適用手順・判定根拠はチャットに出さず、下記「作業メモ」に書く。
 
@@ -54,7 +54,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - 区間の検査(手順 6 の typecheck / lint)が落ち、直し方が自明でない(既知の失敗は除く: 下記「修正(fixes)」)
 - merge 結果が区間の上流差分の外のファイルを変えた(手順 5d「区間外変更の検査」。git の改名推定が fork の無関係なディレクトリへ上流ファイルを流し込む・fork のファイルを消す等)
 - 流入する `.claude/rules/lineage.md` の変更が自分の打ち消し(`overrides:`)の鍵に触れた(手順 5a の `lineage-touch.mjs` が 1)。祖先が規則の中身・`(default)` を変えたので、打ち消しをそのまま残すか・直すか・消すかを人に確かめる(選択肢: 打ち消しを新しい鍵の行に合わせて直す / 打ち消しを消して祖先の規則に従う / 上流に報告して待つ)。鍵の行の前後は作業メモに
-- 所有の検査(手順 7c の `pnpm ownership:check`)が 1(違反)か 2(未検証)を返した。この停止は commit の後・push の前で起きる: 区間の commit は残したまま push せず、片付け・直しを追加の commit で積んで検査し直す(`git merge --abort` はしない)
+- 所有の検査(手順 7c の `pnpm workflow ownership check`)が 1(違反)か 2(未検証)を返した。この停止は commit の後・push の前で起きる: 区間の commit は残したまま push せず、片付け・直しを追加の commit で積んで検査し直す(`git merge --abort` はしない)
 
 止まり方: merge 途中(未 commit)なら `git merge --abort` で区間開始前に戻す。適用途中なら変更をそのまま残し、何を変えたかを示す。そのうえで「何を見つけたか / 根拠(ファイル・差分・出力)/ 選択肢(手で直して続行・上記「区間の完了」の条件で残す・上流に報告して待つ)」を提示して**待つ**。勝手にスキップも押し切りもしない。再開はユーザーの指示で(同じセッションならその返事で、閉じた後なら `/flux` や notice id 指定で続きから)。
 
@@ -73,7 +73,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - **先に取れる修正(pick: clean)**: 上流が `/ship` で判定して索引の行に `pick:clean` を書いた修正 notice(古い notice は本文の `pick: clean`。`.notices/README.md`「修正(fixes)」の「先に取れる印(pick)」)は、修正元の区間を取り込んだ直後に cherry-pick する。壊れた区切りのまま push しないため。`pick: -`・欄なし(古い notice を含む)は上の今の動きのまま。
   - 対象: 未適用で、`fixes:` の参照先のどれかが適用済み(この出撃で merge・pick したものを含む)になった直後で、修正の追加 commit がまだ HEAD の祖先でないもの。直接の親が出した notice だけ(祖父 notice の `pick:` は読まない → relay.md「緊急修正」)。修正の修正は、前の修正が適用済み・pick 済みのときだけ対象になる(上流の判定もその木で試している)。修正元がこの出撃の前から適用済みなら、最初の区間の前に取る(最初の区間の merge 先に含まれるなら merge で届くので取らない)。複数なら履歴順に 1 件ずつ。
   - 計画: 修正元の区間の詳細計画に、修正 notice の全文を読んで「直後に <修正 notice> を取る」と required_actions・verify を載せる。その区間の承認がこの pick の承認を兼ねる(`all` も止まらない)。pick を伴う区間は軽い区間にしない。
-  - 実行: 修正元の区間の手順 7b の commit の後、7c の前に、下の「緊急修正(hotfix)」の実行 1〜3 と同じ(`git cherry-pick -x <修正の追加 commit>` → 修正の required_actions・区間の検査・verify → 追従と台帳を別 commit。台帳の行も同じ形で `picked:` を書き、`notes:` は `pick-clean after <修正元 id>`)。続けて 7c の `pnpm ownership:check`(`picked:` の分は合格)→ 7d で区間と一緒に push。
+  - 実行: 修正元の区間の手順 7b の commit の後、7c の前に、下の「緊急修正(hotfix)」の実行 1〜3 と同じ(`git cherry-pick -x <修正の追加 commit>` → 修正の required_actions・区間の検査・verify → 追従と台帳を別 commit。台帳の行も同じ形で `picked:` を書き、`notes:` は `pick-clean after <修正元 id>`)。続けて 7c の `pnpm workflow ownership check`(`picked:` の分は合格)→ 7d で区間と一緒に push。
   - 取れなかったとき: cherry-pick の衝突(`.notices/shipped/` だけの衝突は上の実行 1 のとおり fork 側を採って続け、取れなかったに数えない)→ `git cherry-pick --abort`。検査・verify の失敗 → この pick で作った未 push の commit を戻す(`git reset --keep <区間の 7b の commit>`。push 済みの commit は戻さない)。どちらも台帳の修正元の行の `notes:` に `pick failed: <理由>` を書き足して commit し(修正が脇の commit なら、後でその区間は手順 5a の「脇の commit の確かめ」で止まる)、上の「修正元が未適用」の問い(1 区間ずつ進める / ここで止める)をして待つ。「上流への所見」(b) に 1 行出す(上流の判定は通ったのに fork で通らなかった)。
   - 後の区間: 台帳に記録済みの id は区切りにならない(緊急修正と同じ)。後の merge でその箇所が衝突したら、fork の編集が無ければ上流側を採る。
 - **修正元が適用済み**: 止まらない。概観で修正の区間に「適用済み <修正元> の修正」と印を付ける(本番に不具合が出ているかもしれないので、ユーザーが優先度を決める材料)。その区間の詳細計画では、台帳の修正元の行の `notes:` と fork 側の差分から当時の回避策を探し、修正が入った後に要らなくなるものを掃討の対象に載せる。
@@ -88,8 +88,8 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
   1. `git cherry-pick -x <元の commit>`。衝突が `.notices/shipped/` だけなら fork 側を採って続ける(`git checkout --ours -- <path>`、fork に無いファイルは `git rm -q -- <path>` → `git cherry-pick --continue --no-edit`。上流の索引は後の merge で届き、未適用の判定は上流の先端の索引を読むので pick には要らない。`.notices/README.md`「先に取れる印」)。それ以外の衝突は `git cherry-pick --abort` で戻して止まり、選択肢を出す(手で解いて続行・この緊急修正を飛ばす・元の commit まで区間で進める)。
   2. notice の required_actions・区間の検査(typecheck / lint)・verify を行う。
   3. 追従の変更と台帳を、pick の commit とは別の commit にする(下の段が pick の commit だけを取れるように)。台帳の行は `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`。`upstream:` を元の commit にしない(所有の検査が Tier1 の版を読み違える)。下流を持つ fork は `relay:` も書く。
-  4. 手順 7c の `pnpm ownership:check`(基準 + pick と同じ中身は `picked` で合格)→ push → 報告。pick には merge 先が無いので、7c の「intake.txt が無ければ飛ばす」の代わりに次で決める:
-     - 検査が無い(`package.json` に `ownership:check` が無い)→ 飛ばす。報告と台帳の notes に「所有の検査なし(後の区間で届く)」と書く。止めない
+  4. 手順 7c の `pnpm workflow ownership check`(基準 + pick と同じ中身は `picked` で合格)→ push → 報告。pick には merge 先が無いので、7c の「intake.txt が無ければ飛ばす」の代わりに次で決める:
+     - 検査が無い(`package.json` に `pnpm workflow ownership check` が無い)→ 飛ばす。報告と台帳の notes に「所有の検査なし(後の区間で届く)」と書く。止めない
      - 検査が古い(`git diff --quiet HEAD <upstream>/<branch> -- src/lib/forkOwnership/` が差分あり)→ 走らせるが、1・2 でも pick は止めない(古い検査は pick を知らないことがある)。結果を報告と台帳の notes に書く
      - 上流と同じ版 → 7c のとおり(1・2 は停止条件)
      どれも艦隊の worker の「無い・版の違う道具の手順は飛ばし、止めない」と同じ扱い。
@@ -107,7 +107,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - (b) notice と実態のズレ(手順が合わない、verify が通らない、書かれていない影響があった)。**notice が無いのに fork 側の追従が要った上流の変更**(下記「上流の変更点の洗い出し」で見つかったもの)は notice 漏れとして必ずここに出す(上流は「追従が要る変更には notice を出す」が必須)
 - (c) この fork で必要になった修正のうち、他 fork でも同じ修正が要りそうな汎用性のあるもの(= /order <上流リポ> 候補)
 - (d) 設計上の懸念
-- (e) 一時許可の放置: `pnpm ownership:check --json` の entries のうち permit が refresh / expired-resolved / expired-base の行と leftovers(残骸)、許可の依頼の状況(`/wen permits` と同じ確かめ方)。却下された依頼の行は「戻す・受け口へ移す・別の方針で許可し直す」を必須として出す。検査が使えない(基準に src/lib/forkOwnership が無い)なら省く
+- (e) 一時許可の放置: `pnpm workflow ownership check --json` の entries のうち permit が refresh / expired-resolved / expired-base の行と leftovers(残骸)、許可の依頼の状況(`/wen permits` と同じ確かめ方)。却下された依頼の行は「戻す・受け口へ移す・別の方針で許可し直す」を必須として出す。検査が使えない(基準に src/lib/forkOwnership が無い)なら省く
 - (f) project.md の所有の規則との矛盾: fork の `.claude/rules/project.md` の行のうち、upstream の所有の規則(`src/lib/forkOwnership/README.md`・CLAUDE.md CORE_FILES)と食い違う物(例: upstream のファイル・ルートを削除 / rename してよい、core の中を直接編集してよい、受け口の外を変えてよい と読める行)を引用して指摘する。**失敗にしない・直さない**(project.md は fork の持ち物、D34)。食い違いが無ければ「なし」
 
 (a)(c) の文案を出す前に、上流で既に直っていないかを確かめる: 流入予定の notice の `fixes:`、その箇所のファイルに対する上流の未取り込みの commit(`git log HEAD..<upstream>/<branch> -- <file>`)。直っていれば文案は出さず「上流で修正済み(区間 K / commit <sha>)」と書く。
@@ -119,7 +119,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 2. 自 fork 台帳 = `.notices/applied/<名前>.md`、一時許可 = `.fork-ownership/<名前>.permits.txt`、`src/lib/CATALOG.md` の自分の節の見出しも同じ名前。台帳が無ければ未適用ゼロ記録として扱う(初回適用時に作成)。origin 由来の旧い名前(`<owner>--<repo>`)の台帳・一時許可・節の見出しが残っていれば、名前の notice の手順で `git mv` して改名する。
 3. `.notices/applied/` 内の他の名前のファイルは中間 Tier や他 fork の台帳(merge で流れてきたもの)。**自分の状態と混同しない**。参考情報として読むのは可。
 4. **中間 Tier の名前** = 直上 upstream の版(`<upstream>/<branch>`)の `.claude/rules/project.md` の `fork_id:`。その版に `.notices/applied/<中間 Tier の名前>.md` があれば、直上 Tier は自分自身も下流として上流を追随している中間 Tier(→ relay.md)。無ければ直上 upstream は最上流(Tier1)で、祖父 notice は存在しない。
-5. **下流の有無** = `.claude/rules/project.md` の `downstream: yes|none`(`fork_id:` と同じ節の 1 行。読み手は `forkIds.mjs` だけ): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`。`yes` = 下流を持つ(中継判定をする → relay.md)、`none` = 末端。それ以外(宣言が無い・誤り)は文面から推し量らずに止まり、ユーザーに宣言を足してもらう(`pnpm ownership:check` も未検証で止まる)。
+5. **下流の有無** = `.claude/rules/project.md` の `downstream: yes|none`(`fork_id:` と同じ節の 1 行。読み手は `forkIds.mjs` だけ): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`。`yes` = 下流を持つ(中継判定をする → relay.md)、`none` = 末端。それ以外(宣言が無い・誤り)は文面から推し量らずに止まり、ユーザーに宣言を足してもらう(`pnpm workflow ownership check` も未検証で止まる)。
 
 ## upstream の特定
 1. `git remote -v` で origin 以外の remote(通常 `upstream`)を探す。
@@ -173,7 +173,7 @@ notice(上流の先端の索引の行。索引の無い上流ではツリーの�
    - 以降、流入予定を履歴順に走査し、**区切り notice**(`checkpoint:` が `-` 以外、または欄が無い旧 schema。ただし上流の先端の索引のどれかの行の `skip_checkpoint:` に名指された notice は `-` とみなす)の**直後で区間を閉じる**。閉じた区間の merge 先 = その区切り notice の区切り点 commit。`checkpoint: -` の notice は次の区切りまで同じ区間に入る(上流の例外宣言。理由は notes: にある)。
    - 最後の区切り以降の notice(無ければ空)+ 残りのコミットが**末尾区間**。merge 先 = `<upstream>/<branch>`。notice が無くても未マージコミットがあれば末尾区間は存在する(merge のみ)。
    - 結果として通常は notice 1 件 = 1 区間。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続する(merge は 1 回目で完了し、2 回目以降は「既に最新」になるだけ。正常)。
-6. 区間ごとに持つ情報(概観): 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / `moved:` の有無 / 修正の関係(上記「修正(fixes)」の印)/ `resolves:` のうち自分の一時許可(`.fork-ownership/<名前>.permits.txt` の `upreq:`)に当たる番号。当たる行は、その区間の merge の後に許可が失効する(全番号が解決した行)ので、計画で「受け口へ移す・元に戻す」を示す(`.notices/README.md`「解決(resolves)」、`pnpm ownership:check` が expired-resolved で示す)。衝突の予測・移動元の編集・上流の変更点は**次の区間だけ**(下記 2 節)。
+6. 区間ごとに持つ情報(概観): 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / `moved:` の有無 / 修正の関係(上記「修正(fixes)」の印)/ `resolves:` のうち自分の一時許可(`.fork-ownership/<名前>.permits.txt` の `upreq:`)に当たる番号。当たる行は、その区間の merge の後に許可が失効する(全番号が解決した行)ので、計画で「受け口へ移す・元に戻す」を示す(`.notices/README.md`「解決(resolves)」、`pnpm workflow ownership check` が expired-resolved で示す)。衝突の予測・移動元の編集・上流の変更点は**次の区間だけ**(下記 2 節)。
 
 ## 衝突の事前予測(次の区間の計画時、読み取りのみ)
 次の区間の merge で衝突しそうなファイルを承認前に出す。index・作業ツリーは変更しない。
@@ -234,7 +234,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    c. コンフリクトは自分で解消する(上流の意図と自 fork の改変の両立を判断。判断が本当に割れるものだけユーザーに確認)。プロジェクトごとのファイルの採り方:
       - `.claude/rules/project.md` と `behavior.md`: fork 側を採り、上流の追加はこの fork に当てはまるものだけ取り込む。
       - `.claude/rules/shortcuts.md` と `term-aliases.md`: `fork entries below` マーカーより上を上流側、下を fork 側で採る。
-      - 生成物 `src/app/route-map.jsonl`(ルート地図。旧 `route-map.txt` が残っていれば消す): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm routes:map` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。生成物 `src/features/feature-map.txt`(ドメインの一覧)も同じ扱いで、作り直しは `pnpm dc:feature-map`。
+      - 生成物 `src/app/route-map.jsonl`(ルート地図。旧 `route-map.txt` が残っていれば消す): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm generate routes` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。生成物 `src/features/feature-map.txt`(ドメインの一覧)も同じ扱いで、作り直しは `pnpm generate domain -- --feature-map`。
       - 中間 Tier の物(Tier1 の版に無いファイル。自分が下の Tier で、親の fork が足したもの)を自分が消した・書き換えた後に、親がそのファイルを変えて衝突した: 自分(下の Tier)の判断を保つ(消したものは消したまま、書き換えたものは自分の版)。上流の変更を取り込まなかったことを区間の報告と台帳の `notes:` に残す(D30 K7。所有の検査はこれらを合格の参考一覧に出す)
    d. **区間外変更の検査**(必須。c と移植の後、merge コミットの前。読み取りのみ):
       - 許可集合 = `git diff --no-renames --name-only $(git merge-base <pre> <区間の merge 先>) <区間の merge 先>` + 区間の `moved:` の移動先(ディレクトリならその配下)。
@@ -244,7 +244,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
       - fast-forward になった場合は merge の推定が働かないので検査は不要。
    e. 通れば `git commit --no-edit` で merge コミットを作る。merge 後にツリーの notice を再走査し、区間の想定と食い違えば報告して止める。
 6. **実行**: その区間の計画の順に実施。
-   - 通常ステップ: Claude が実行(コード修正、`pnpm dc:generate` 等のコマンド、バックフィル task、データ移行)。
+   - 通常ステップ: Claude が実行(コード修正、`pnpm generate domain` 等のコマンド、バックフィル task、データ移行)。
    - 掃討と追従: 計画に載せた fork 固有コード(notice の掃討と「上流の変更点の洗い出し」の両方)を同じ区間で新しい使い方へ揃え、「上流が持つパスでの fork の編集の見直し」で a にしたものを fork の持ち物の場所へ移す。旧 API の呼び出し・互換 shim や旧名・旧パスへの依存・不要になった独自実装を残さない。merge の後に洗い出しをやり直して見つかった分も同じ区間で揃える。揃え方に fork 固有の判断が要るものは停止条件として止める(ユーザーが「残す」と決めたら、上記「区間の完了」の `open:` に書く)。notice の無い追従、notice に目印が無く掃討しきれなかったものは「上流への所見」(b) に出す。
    - **区間の検査**(notice の有無を問わず、merge だけの区間も含めて毎区間、commit の前に必ず): `pnpm typecheck`(全体)と、区間で変わったファイル(merge と追従で変わった `.ts` / `.tsx` / `.js` / `.mjs`)に絞った `pnpm exec eslint <files>`。落ちたら、その区間の追従として直してから commit する(修正元の区間で、修正が控えている箇所の失敗は直さない: 上記「修正(fixes)」)。区間の前から fork にあった指摘は区間の失敗にしない(必要なら merge 前の HEAD で同じ検査をして比べる)。ただし、そのうち上流の持ち物(CLAUDE.md の CORE_FILES・祖先リポの lib)のファイルにあるものは「上流への所見」(a) に出す(どのファイルの何件か + 検査の出力。全 fork が受け継いでいる可能性が高い)。直し方が自明でなければ停止条件。
    - `[user-run]` ステップ: 「プロンプトに `! <コマンド>` と打ってください」と依頼して待つ。`!` プレフィックスはセッション内実行で出力が会話に流れ込むので、**出力を確認し、成功を判定してから**後続を再開する。失敗していたら取り繕わず対処を提示する。
@@ -258,9 +258,9 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
       # APPLIED LEDGER fork:<own origin url>
       - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | upstream:<区間の merge 先の完全な sha> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
       ```
-      `upstream:` 欄は全 fork が毎行書く(その区間で取り込んだ上流の版。過去の行は書き換えない)。`pnpm ownership:check` がこの欄で Tier1 の版を決める: 自分の台帳の最後の `upstream:` の版から、その版の(その版のリポの `fork_id:` の名前の)台帳の最後の `upstream:` へ … と `.notices/applied/` の無い版(Tier1)までたどる(段数に依らない。多段の所有の判定、`src/lib/forkOwnership/README.md`)。台帳の名前は `fork_id:` にそろえる(途中の版で名前の違う台帳は辿れず exit 2)。`relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
+      `upstream:` 欄は全 fork が毎行書く(その区間で取り込んだ上流の版。過去の行は書き換えない)。`pnpm workflow ownership check` がこの欄で Tier1 の版を決める: 自分の台帳の最後の `upstream:` の版から、その版の(その版のリポの `fork_id:` の名前の)台帳の最後の `upstream:` へ … と `.notices/applied/` の無い版(Tier1)までたどる(段数に依らない。多段の所有の判定、`src/lib/forkOwnership/README.md`)。台帳の名前は `fork_id:` にそろえる(途中の版で名前の違う台帳は辿れず exit 2)。`relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
    b. 差分(適用実装+台帳+この区間で下書きした中継 notice)をコミットする(push はまだしない)。メッセージ: 1行サマリ + 空行 + `downstream-notice: <id>`(区間内の全 id、1 行ずつ)+ 環境指定の Co-Authored-By トレーラー。ブランチ運用は自リポの方針に従う。
-   c. **所有の検査**(その区間の merge 先に `src/lib/forkOwnership/intake.txt` があるときだけ。無ければ飛ばす): `pnpm ownership:check`。検査は commit 済みの HEAD だけを見る(台帳・一時許可・片付けも HEAD から読む)ので、b の commit の後・push の前に走らせる。下流を持つ中間 Tier も同じ
+   c. **所有の検査**(その区間の merge 先に `src/lib/forkOwnership/intake.txt` があるときだけ。無ければ飛ばす): `pnpm workflow ownership check`。検査は commit 済みの HEAD だけを見る(台帳・一時許可・片付けも HEAD から読む)ので、b の commit の後・push の前に走らせる。下流を持つ中間 Tier も同じ
       - 0 → d へ
       - 1(違反)→ 停止条件。push せずに違反の一覧を示し、片付ける(受け口へ移す・元に戻す・一時許可。直し方は `src/lib/forkOwnership/README.md`「導入の段階」と、片付けの notice `fork-ownership-cleanup` の required_actions)。片付けは追加の commit で積み、検査し直して 0 になってから d へ。違反を残したまま push して区間を閉じない
       - 2(未検証)→ 停止条件。push せずに理由を直す(台帳に無い notice = 台帳の追記漏れ・台帳が無い / 台帳に `upstream:` の行が無い = この区間の行に書き足す・その sha が辿れない / 親の版に `fork_id:` が無い / 名前の宣言の問題 / 親の remote が無い・取得できない / shallow)。直したら commit して検査し直す

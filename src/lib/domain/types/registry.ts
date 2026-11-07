@@ -69,12 +69,12 @@ export type DomainRegistryEntry = {
   access: DomainApiAccessConfig;
   /**
    * 表の物理名（サービスを読み込まずに引くため。サービスの getTableName() と同じ値）。
-   * null は表を持たない Firestore 版のドメインだけ。業務ドメインは dc:generate が書き、core は手書き
+   * null は表を持たない Firestore 版のドメインだけ。業務ドメインは pnpm generate domain が書き、core は手書き
    */
   table: string | null;
   /**
    * 主キー列の物理名（サービスの getIdColumnName() と同じ値。論理名は常に lib/crud の CRUD_ID_FIELD = "id"）。
-   * null は表を持たない Firestore 版のドメインだけ。業務ドメインは dc:generate が書き、core は手書き
+   * null は表を持たない Firestore 版のドメインだけ。業務ドメインは pnpm generate domain が書き、core は手書き
    */
   idColumn: string | null;
   /**

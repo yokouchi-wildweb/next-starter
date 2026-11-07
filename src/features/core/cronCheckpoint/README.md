@@ -65,5 +65,5 @@ if (result.exhausted) await advanceCheckpoint(NAME, startedAt);
 
 - 巻き戻し: `resetCheckpoint("<name>", new Date("2026-08-01T00:00:00Z"))` を `pnpm task` のワンショットタスクか
   スクリプトから呼ぶ。次回 cron がその時刻以降を再処理する（recompute が冪等であること）。
-- 確認: `pnpm db:query "SELECT * FROM cron_checkpoints ORDER BY name"`
+- 確認: `pnpm ops db inspect query "SELECT * FROM cron_checkpoints ORDER BY name"`
 - DB 反映: `cron_checkpoints` テーブルは schemaRegistry 登録済み。導入時に `pnpm db:push`。

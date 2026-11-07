@@ -64,7 +64,7 @@ describe("登録表", () => {
         if (!(id in storagePurposeRegistry)) missing.push(id);
       }
     }
-    assert.deepEqual(missing, [], `未登録の用途: ${missing.join(", ")}（dc:generate を実行するか、core の手書きは storageObject/purposes/ に書く）`);
+    assert.deepEqual(missing, [], `未登録の用途: ${missing.join(", ")}（pnpm generate domain を実行するか、core の手書きは storageObject/purposes/ に書く）`);
   });
 
   test("core の手書き用途がそろっている", () => {

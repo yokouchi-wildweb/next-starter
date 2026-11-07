@@ -1,4 +1,4 @@
-// role:delete・prof:delete・role:toggle・prof:generate の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
+// pnpm generate role -- --delete・pnpm generate role -- --delete-profile・pnpm generate role -- --toggle・pnpm generate role -- --profile の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
 // コマンドはスクリプトの置き場からリポジトリのルートを決めるので、一時ディレクトリに要るものを写して、そこで実行する。
 // 標準入力は空にして、対話が出ない（待たない）ことも見る。実行: pnpm test scripts/structure/role/tests/ops.test.mjs
 import { after, before, test } from "node:test";
@@ -37,7 +37,7 @@ const rolePath = (file) => path.join(root, "src/features/core/user/roles", file)
 const coreRolePath = (file) => path.join(root, "src/features/core/user/coreRoles", file);
 const readRole = (file) => JSON.parse(fs.readFileSync(rolePath(file), "utf8"));
 
-test("role:toggle: ID と --on|--off が必須（無い・両方 = 1）、--on / --off は何度回しても同じ結果", () => {
+test("pnpm generate role -- --toggle: ID と --on|--off が必須（無い・両方 = 1）、--on / --off は何度回しても同じ結果", () => {
   assert.equal(run("toggleRole.mjs").status, 1);
   const noFlag = run("toggleRole.mjs", "contributor");
   assert.equal(noFlag.status, 1);
@@ -52,7 +52,7 @@ test("role:toggle: ID と --on|--off が必須（無い・両方 = 1）、--on /
   assert.equal(run("toggleRole.mjs", "contributor", "--bogus").status, 1);
 });
 
-test("上書き: role:generate が重ね、JSON は変えない。不正・隣に対象なしは止まり、空は通る。toggle と hasProfile の書き戻しは止まり、--remove-json は一緒に消す", () => {
+test("上書き: pnpm generate role が重ね、JSON は変えない。不正・隣に対象なしは止まり、空は通る。toggle と hasProfile の書き戻しは止まり、--remove-json は一緒に消す", () => {
   const rolesFile = path.join(root, "src/features/core/user/extensions/roles.ts");
   const profileDir = path.join(root, "src/features/core/userProfile/profiles");
   const extensions = path.join(root, "src/features/core/userProfile/extensions");
@@ -159,7 +159,7 @@ test("上書き: role:generate が重ね、JSON は変えない。不正・隣�
   assert.equal(fs.readFileSync(rolePath("auditor.role.json"), "utf8"), debuggerBefore);
   fs.unlinkSync(rolePath("auditor.role.override.ts"));
 
-  // hasProfile を上書きしていると prof:delete は消さず止まる
+  // hasProfile を上書きしていると pnpm generate role -- --delete-profile は消さず止まる
   const stopped = run("deleteProfile.mjs", "user", "--confirm", "user");
   assert.equal(stopped.status, 1);
   assert.match(stopped.stderr, /user\.role\.override\.ts が決めています/);
@@ -170,13 +170,13 @@ test("上書き: role:generate が重ね、JSON は変えない。不正・隣�
   assert.equal(run("generate.mjs", "auditor").status, 0);
   assert.equal(run("deleteRole.mjs", "auditor", "--confirm", "auditor", "--remove-json").status, 0);
   assert.equal(fs.existsSync(rolePath("auditor.role.override.ts")), false);
-  // core ロールの上書きは消さずに直す。プロフィールは prof:delete --remove-json が上書きごと消す
+  // core ロールの上書きは消さずに直す。プロフィールは pnpm generate role -- --delete-profile --remove-json が上書きごと消す
   fs.unlinkSync(coreRolePath("user.role.override.ts"));
   assert.equal(run("deleteProfile.mjs", "user", "--confirm", "user", "--remove-json").status, 0);
   assert.equal(fs.existsSync(profileOverride), false);
 });
 
-test("prof:generate: ID か --all が必須、見つからない = 1", () => {
+test("pnpm generate role -- --profile: ID か --all が必須、見つからない = 1", () => {
   assert.equal(run("generateProfile.mjs").status, 1);
   const missing = run("generateProfile.mjs", "nobody");
   assert.equal(missing.status, 1);
@@ -184,7 +184,7 @@ test("prof:generate: ID か --all が必須、見つからない = 1", () => {
   assert.equal(run("generateProfile.mjs", "contributor", "--all").status, 1);
 });
 
-test("role:delete / prof:delete: ID 必須、--confirm が無い・違うなら消さずに 1、一致で消す（JSON は --remove-json のときだけ）", () => {
+test("pnpm generate role -- --delete / pnpm generate role -- --delete-profile: ID 必須、--confirm が無い・違うなら消さずに 1、一致で消す（JSON は --remove-json のときだけ）", () => {
   for (const script of ["deleteRole.mjs", "deleteProfile.mjs"]) {
     assert.equal(run(script).status, 1, script);
     const missing = run(script, "contributor");

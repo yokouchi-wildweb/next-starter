@@ -2,26 +2,26 @@
 
 エージェントが自分の会話の端末(今は tmux)に 1 行打ち込む道具。今あるのは 2 つ:
 
-- `pnpm compact:self "<残すこと>"` — エージェントが自分の会話の圧縮を頼む。今の返答が終わったら `/compact <残すこと>` が入力される
+- `pnpm workflow agent-terminal compactSelf "<残すこと>"` — エージェントが自分の会話の圧縮を頼む。今の返答が終わったら `/compact <残すこと>` が入力される
 - 圧縮の後の続き — 人が手で打った `/compact`(上の予約も含む)が終わったら、入力欄に「続けてください」が入力され、会話はその時の文脈で続く(人が「続けて」と言ったのと同じ。承認の扱いは変わらない)
 
 端末による分かれ道はこのフォルダの中だけに置く。ルール・CLAUDE.md には端末のことを書かない(エージェントはコマンドの名前だけを知り、使えない端末ではコマンドが代わりの 1 行を出す)。その端末でできることは、その端末で動いているときだけ SessionStart の hook が案内のファイル(`AGENT_TERMINAL.<値>.md`)を文脈に入れる。
 
 ## 入り切り: `AGENT_TERMINAL`
 
-エージェントがどの端末を動かすかの値。端末に頼る道具はすべてこの 1 つの値で入り切りする(`pnpm dev:tab` も後でこの値に乗る)。
+エージェントがどの端末を動かすかの値。端末に頼る道具はすべてこの 1 つの値で入り切りする(`pnpm workflow dev-tab run` も後でこの値に乗る)。
 
 | 値 | 意味 |
 |---|---|
 | `tmux` | tmux のペインに打ち込む(tmux の外で動いている会話には何もしない) |
-| `none` | 何もしない。hook は記録もせず、`compact:self` は代わりの 1 行を出す |
+| `none` | 何もしない。hook は記録もせず、`pnpm workflow agent-terminal compactSelf` は代わりの 1 行を出す |
 
 - 読む順: プロセスの環境変数 `AGENT_TERMINAL` → `scripts/workflow/agent-terminal/default.conf`(git に入るプロジェクトの既定値。今は `tmux`)
 - 無い・知らない値 = `none`
 - 人ごとに切る: シェルの設定で `export AGENT_TERMINAL=none`(hook とスクリプトは Next の `.env*` を読まない)
 - 別の端末に対応するときは値を 1 つ足す(on/off ではなく端末の名前)
 
-## `pnpm compact:self "<残すこと>"`
+## `pnpm workflow agent-terminal compactSelf "<残すこと>"`
 
 - 打てるとき(`AGENT_TERMINAL=tmux`・tmux の中・下の hook がこのペインで動いている): 裏に待つ役を残し「予約しました…ここで返答を終えてください」と出す。返答が終わると `/compact <残すこと>` が Enter 付きで入力される
 - 打てないとき: 「次の 1 行をユーザーに打ってもらってください: /compact <残すこと>」と出す(exit 0。エラーにしない)
@@ -40,7 +40,7 @@
 ## 案内のファイル `AGENT_TERMINAL.<値>.md`
 
 - 値ごとに 1 つ(`none` には無い)。別の端末に対応するときは値と一緒に 1 つ足す
-- 中身 = その端末でエージェントができること(自分の圧縮の予約・`pnpm dev:tab`・`/msg` があればチームの統括への連絡・よい使い方)。エージェント向けに短く、経緯は書かない
+- 中身 = その端末でエージェントができること(自分の圧縮の予約・`pnpm workflow dev-tab run`・`/msg` があればチームの統括への連絡・よい使い方)。エージェント向けに短く、経緯は書かない
 - `.claude/rules/` の外に置く(Claude Code が自動で読み込まない。その端末のときだけ hook が入れる)
 
 ## 待つ役(waiter.mjs)の決まり
@@ -57,4 +57,4 @@
 
 ## テスト
 
-`pnpm test:agent-terminal`(値の読み方、`compact:self` の 2 つの道、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)
+`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の 2 つの道、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)

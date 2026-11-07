@@ -106,15 +106,15 @@
 - `POST /api/data-migration/import`（サーバー ZIP 経路、UI 未使用）
 
 ## テスト
-- `pnpm test:data-migration`: 値の分類・解決、export のメディア取得、注入する resolver（DB なし）
-- `pnpm test:data-migration-db`: 実 DB の import（旧 URL の copy・同梱・外部 URL の失敗と巻き戻し・copy 失敗・同じ値の保持・bulkUpsert にメディア列が渡らない）
+- `pnpm test src/lib/dataMigration src/features/core/storageObject/dataMigrationResolver.test.ts`: 値の分類・解決、export のメディア取得、注入する resolver（DB なし）
+- `pnpm test --db src/features/core/storageObject/dataMigrationImport.db.test.ts`: 実 DB の import（旧 URL の copy・同梱・外部 URL の失敗と巻き戻し・copy 失敗・同じ値の保持・bulkUpsert にメディア列が渡らない）
 
 ## 未保存の守り(取り込み中)
 
 取り込み中は、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。自前の `beforeunload` は持たない。
 
 - 外す: `guardUnsaved={false}`(`DataMigrationButton` / `DataMigrationModal` / `useImportHandler`、既定 true)
-- 何を守るかの判定: `ImportTab/hooks/importGuard.ts`(テスト `pnpm test:unsaved-guard`)
+- 何を守るかの判定: `ImportTab/hooks/importGuard.ts`(テスト `pnpm test src/lib/`)
 - モーダルを閉じる操作は移動ではないので聞かない(閉じても取り込みは続く)
 
 ## 依存(読む lib)

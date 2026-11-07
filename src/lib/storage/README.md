@@ -18,7 +18,7 @@
 
 ## 全体の流れ
 
-1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>.ts` の `export const purposes`、生成するドメインは dc:generate がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm registry:generate`。無い用途は拒否）
+1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>.ts` の `export const purposes`、生成するドメインは pnpm generate domain がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm generate registry`。無い用途は拒否）
 2. サーバーがアップロード権を発行する。台帳に pending の行を作り、上書き不可の署名 PUT か GCS の再開可能セッションを返す
    - **strip の用途の画像**は、本来の保存先ではなく非公開の受け取り領域（priv バケットの `incoming/`）への権利を返す
 3. ブラウザが GCS へ直接送る
@@ -163,8 +163,8 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - **省略 = strip**（`resolvePurposeMetadata`）。画像を含む用途は既定で strip になる
 - 画像以外の型（動画・音声・一般ファイル）には効かない。strip の用途でも受け取ったまま保存する
   - 画像と動画が混ざった用途（`image/*,video/*` など）は、宣言なし（strip）のまま同じ欄で、画像だけを描き直す
-- **`user.avatar` は常に strip**。登録表の fork の区画で keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test:storage-purposes` も keep を問題にする
-- domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/features/README.md](../../features/README.md)「ファイルの保存（storage）」）。dc:generate が登録表の AUTO に明示値で書き出す
+- **`user.avatar` は常に strip**。登録表の fork の区画で keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` も keep を問題にする
+- domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/features/README.md](../../features/README.md)「ファイルの保存（storage）」）。pnpm generate domain が登録表の AUTO に明示値で書き出す
 - core 用途の値（`src/features/core/storageObject/purposes/`）
 
 | 用途 | metadata |
@@ -204,7 +204,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - HEIC / HEIF・SVG・TIFF など、サーバーが描き直せない画像の型は、contentTypes に書いてあっても発行で 400
   - 判定は `isAcceptableForPurpose(purpose, contentType)`。発行・commit・putFromServer・copy の照合はすべてこれを使う
 - これらを受けたい用途は keep を明示する
-- 検査（`listStoragePurposeProblems` / dc:generate）: strip（省略を含む）の contentTypes に描き直せない画像の型を書くとエラー、画像の型が無い用途に strip を明示するとエラー
+- 検査（`listStoragePurposeProblems` / pnpm generate domain）: strip（省略を含む）の contentTypes に描き直せない画像の型を書くとエラー、画像の型が無い用途に strip を明示するとエラー
 
 ### 描き直し: `stripImageMetadata(body, contentType)`（`server/imageStrip.ts`、server-only）
 
@@ -271,7 +271,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - strip の画像は公開の用途でも priv で受け取るので、`STORAGE_PRIVATE_BUCKET` が無いと公開の用途の画像の発行も失敗する
 - **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには新しいファイルを置かない（配備の順序によっては旧バケットに緩いルールが残っている期間がある）
 - 新しい 2 つのバケットは Firebase に登録しない（クライアント SDK からの経路を作らない）
-- バケットの作成・権限・CORS は `pnpm storage:setup` で行う（priv の CORS は受け取り領域へのアップロードにも使われる）。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/operations/storage/README.md](../../../scripts/operations/storage/README.md)
+- バケットの作成・権限・CORS は `pnpm ops storage setup` で行う（priv の CORS は受け取り領域へのアップロードにも使われる）。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/operations/storage/README.md](../../../scripts/operations/storage/README.md)
 
 ## 旧 URL: `server/legacy.ts`
 
@@ -417,7 +417,7 @@ const metadata = usePurposeMetadata(purpose);
 
 ## テスト
 
-- `pnpm test:storage-ref`
+- `pnpm test src/lib/storage/storageRef.test.ts`
   - ref と resolve の純関数
   - inline / attachment の判定（HTML・SVG・画像・一般ファイル）
   - メディア列のスキーマ
@@ -425,9 +425,9 @@ const metadata = usePurposeMetadata(purpose);
   - 未設定のときの挙動
   - 旧 URL の解析
   - 用途の引き当て
-- `pnpm test:storage-strip`: 実 sharp での描き直し（GPS 入り EXIF・XMP・IPTC・ICC の全除去と sRGB、各形式、静止画とアニメーションの向き、GIF / WebP のフレーム・ループ・間隔・透過、形式違い、HEIC / SVG、画素数の上限）
-- `pnpm test:storage-client`: axios の adapter を差し替えて、ルートと GCS を偽物にする。下ごしらえ（方針の問い合わせ・HEIC の変換と unsupported-image・keep での型付け）、方針の記憶、`pickerAcceptFor`、先回りの読み直しの判定（`isSignedReadStale`）、MediaUploader の未採用分の追跡（lib/mediaInputSuite の `pendingUploadTracker`）も同じコマンドで走る
-- `pnpm test:storage-purposes`: 用途表の検査（metadata の規則を含む）
+- `pnpm test src/lib/storage/server/imageStrip.test.ts`: 実 sharp での描き直し（GPS 入り EXIF・XMP・IPTC・ICC の全除去と sRGB、各形式、静止画とアニメーションの向き、GIF / WebP のフレーム・ループ・間隔・透過、形式違い、HEIC / SVG、画素数の上限）
+- `pnpm test src/lib/storage/client src/lib/mediaInputSuite`: axios の adapter を差し替えて、ルートと GCS を偽物にする。下ごしらえ（方針の問い合わせ・HEIC の変換と unsupported-image・keep での型付け）、方針の記憶、`pickerAcceptFor`、先回りの読み直しの判定（`isSignedReadStale`）、MediaUploader の未採用分の追跡（lib/mediaInputSuite の `pendingUploadTracker`）も同じコマンドで走る
+- `pnpm test scripts/structure/registry/check-storage-purposes.test.mjs`: 用途表の検査（metadata の規則を含む）
 - 本物のブラウザ（XHR の進捗・中止、canvas、HEIC の変換と iOS の accept、動画の読み直し）は手で確かめる
 - 単体テストで `createStorageObjectService` にダミーのバイト列を流すときは、`stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
 

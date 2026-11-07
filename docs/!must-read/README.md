@@ -68,7 +68,7 @@
 
 | 仕組み | 何のためにあるか | 詳細 |
 |---|---|---|
-| コード生成（`dc:generate`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/features/README.md` |
+| コード生成（`pnpm generate domain`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/features/README.md` |
 | 汎用 CRUD（`createCrudService`） | 一覧・検索・作成・更新・削除・並び替えなどを全ドメイン共通の実装で提供する。ドメインごとの差分だけを書けば済む | `src/lib/crud/README.md` |
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 3 つのファクトリーのどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
@@ -87,7 +87,7 @@
 | 対象 | 上流が持つもの | 下流が持つもの |
 |---|---|---|
 | 画面 | 既定の画面（`_screen/`）、loader | `page.tsx` の向き先、差し替えた画面と専用部品（`_components/`） |
-| スタイル | トークンの構造（`theme.css`）と既定値（`*.default.css`） | 変えたい値だけ（`src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`。グラデーションは `pnpm gradient:gen` が直下の `gradient.css` に。upstream の CSS は `src/styles/core/`） |
+| スタイル | トークンの構造（`theme.css`）と既定値（`*.default.css`） | 変えたい値だけ（`src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`。グラデーションは `pnpm generate styles` が直下の `gradient.css` に。upstream の CSS は `src/styles/core/`） |
 | UI の設定 | 部品の既定値とその型 | 上書きする値（`src/config/ui/*.config.ts`） |
 | 拡張 | 生成器（`scripts/structure/registry`・`scripts/structure/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く印のない `<名前>.ts`、上流の既定を丸ごと置き換える `<名前>.replace.ts` |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |

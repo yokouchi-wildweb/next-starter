@@ -15,4 +15,4 @@ Node 組み込みだけで動く純粋な `.mjs`（`eslint.config.mjs` の読み
 
 ## テスト
 
-`pnpm test:lib-catalog`（`catalog.test.mjs`）= 実リポジトリの `src/lib/CATALOG.md` の検査 + 部品の単体テスト（`fixtures/CATALOG.sample.md`）。
+`pnpm test src/lib/folderCatalog/catalog.test.mjs`（`catalog.test.mjs`）= 実リポジトリの `src/lib/CATALOG.md` の検査 + 部品の単体テスト（`fixtures/CATALOG.sample.md`）。

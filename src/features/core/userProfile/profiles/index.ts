@@ -47,6 +47,6 @@ export type ProfileConfig = {
   searchFields?: string[];
   /** リレーション設定（domain.json と同じフォーマット） */
   relations?: ProfileRelationConfig[];
-  /** 監査ログの設定（createCrudService の audit のうち JSON で書ける部分。recorder は role:generate が渡す） */
+  /** 監査ログの設定（createCrudService の audit のうち JSON で書ける部分。recorder は pnpm generate role が渡す） */
   audit?: Partial<Omit<AuditConfig, "recorder">>;
 };

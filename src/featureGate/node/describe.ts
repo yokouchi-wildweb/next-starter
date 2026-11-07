@@ -3,7 +3,7 @@
 // 規則ごとの説明: 開閉・住所(手書き / 汎用 API の導出 / 設定の節の導出)・表・機能のフォルダ・
 // 依存(閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査 checks/dependencies.mjs の走査そのもの)・
 // 名前の呼び出し箇所(gate.enabled / gate.assert / useGate().enabled の字面の "<名前>")・必須(required/<名前>.ts の reason)。
-// 限界: 呼び出し箇所は字面の "<名前>" だけ(変数で渡す名前は見えない)。詳細: src/featureGate/README.md「features:list / features:set」
+// 限界: 呼び出し箇所は字面の "<名前>" だけ(変数で渡す名前は見えない)。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -115,7 +115,7 @@ export async function readRequired(root: string): Promise<Record<string, string>
   return result;
 }
 
-/** repo を読んで説明を作る(features:list の入口) */
+/** repo を読んで説明を作る(pnpm ops features list の入口) */
 export async function readFeatureReport(
   root: string,
   rules: readonly GatedFeatureRule[],

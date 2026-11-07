@@ -1,4 +1,4 @@
-// dc:compare の作業ツリー: fork の src の写しに片方の生成器を載せ、domain.json を「全部生成する」形に書き換えて、
+// pnpm check domain -- --compare の作業ツリー: fork の src の写しに片方の生成器を載せ、domain.json を「全部生成する」形に書き換えて、
 // ドメインを 1 つずつ --dry-run（生成器が扱うパスと動作）→ 生成（中身）の順に回す。書くのは一時ディレクトリだけ（fork のリポには書かない）
 
 import fs from "node:fs";

@@ -1,11 +1,11 @@
 ---
 name: route-map
-description: ルート地図(全ページの守りの鎖 = page → Screen → loader の access → guard.ts)を見せて説明する。「admin のページを guard ごとに」「公開ページの一覧」「止めているページ」「図で」など、ページの守り・範囲・公開状態を聞かれたときに使う。地図は pnpm routes:show に描かせ、このスキルは依頼を引数に直すことと結果の説明だけを持つ
+description: ルート地図(全ページの守りの鎖 = page → Screen → loader の access → guard.ts)を見せて説明する。「admin のページを guard ごとに」「公開ページの一覧」「止めているページ」「図で」など、ページの守り・範囲・公開状態を聞かれたときに使う。地図は pnpm check routes -- show に描かせ、このスキルは依頼を引数に直すことと結果の説明だけを持つ
 argument-hint: "[見たいもの(例: admin を guard ごとに / 公開ページを表で / /mypage 配下を図で)]"
 ---
 
-ルート地図を `pnpm routes:show` で絞り込んで描き、その結果を説明します。
-地図の形・読み方・オプションの仕様は `src/lib/screens/README.md` §13 と `pnpm routes:show --help` が正。
+ルート地図を `pnpm check routes -- show` で絞り込んで描き、その結果を説明します。
+地図の形・読み方・オプションの仕様は `src/lib/screens/README.md` §13 と `pnpm check routes -- show --help` が正。
 
 依頼: $ARGUMENTS
 
@@ -32,14 +32,14 @@ argument-hint: "[見たいもの(例: admin を guard ごとに / 公開ペー�
 
 - 同じオプションを重ねると OR、別のオプションどうしは AND
 - `(` `)` `@` を含む値(範囲・URL)はシェルで `'…'` で囲む
-- 依頼が曖昧なら既定は `--view=table`。範囲の名前が分からなければ、先に `pnpm routes:show --view=tree` で範囲(scope=)を見る
+- 依頼が曖昧なら既定は `--view=table`。範囲の名前が分からなければ、先に `pnpm check routes -- show --view=tree` で範囲(scope=)を見る
 - mermaid は全ページだと大きい。範囲か URL 接頭辞で絞ってから出す。描いた結果は ```mermaid のコードブロックでそのまま見せる
 
 ## 2. 実行する
-`pnpm routes:show <引数>` を 1 回実行する(表示を変えるなら引数を変えてもう 1 回)。
+`pnpm check routes -- show <引数>` を 1 回実行する(表示を変えるなら引数を変えてもう 1 回)。
 - exit 2 = 引数の誤り。出た説明を見て直す
-- exit 1 = 鎖が読めないページがある(✗ の行)。地図は描けないので、その行をそのまま見せ、直す場所(行の file)と `pnpm routes:map` で確かめられることを伝える(規則: README §13「生成失敗」)
-- `! 地図が古い` の行 = コミットされた地図が src/app とずれている。表示は今の src/app の値。コミットするなら `pnpm routes:map` で作り直すよう伝える
+- exit 1 = 鎖が読めないページがある(✗ の行)。地図は描けないので、その行をそのまま見せ、直す場所(行の file)と `pnpm generate routes` で確かめられることを伝える(規則: README §13「生成失敗」)
+- `! 地図が古い` の行 = コミットされた地図が src/app とずれている。表示は今の src/app の値。コミットするなら `pnpm generate routes` で作り直すよう伝える
 
 ## 3. 説明する
 出力をそのまま貼るだけで終えない。依頼に答えたうえで、次に当たるものがあれば挙げる(なければ「気になる点なし」):

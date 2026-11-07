@@ -13,7 +13,7 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { profileTables } from "@/features/core/userProfile/extensions/profileTables";
 
 // 氏名（lastName / firstName）を持つプロファイルテーブルをプロジェクト構成から動的検出する。
-// プロファイルは role:generate でプロジェクト毎に生成されるため、列の有無を実行時に判定し、
+// プロファイルは pnpm generate role でプロジェクト毎に生成されるため、列の有無を実行時に判定し、
 // 該当プロファイルが無いプロジェクトでは氏名 null（UI 上は「—」）で返す。
 const NameProfileTable = Object.values(profileTables).find(
   (table) => "lastName" in table && "firstName" in table,

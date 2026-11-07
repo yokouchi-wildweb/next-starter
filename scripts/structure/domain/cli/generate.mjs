@@ -1,4 +1,4 @@
-// dc:generate <Domain>: 生成方法の選択（domain.json どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
+// pnpm generate domain -- <Domain>: 生成方法の選択（domain.json どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
 
 import { pickCategories } from "./pickCategories.mjs";
 import { ALL_GENERATE_OPTIONS, isHandManaged } from "../spec/categories.mjs";

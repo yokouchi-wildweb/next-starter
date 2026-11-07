@@ -134,7 +134,7 @@ export default async function generate(roleId, options = {}) {
     // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
     console.log("\n[1/4] 既存エントリをクリーンアップ中...");
     // hasProfile: false でもプロフィール設定が残っているロールは、プロフィールの生成物を消さない（警告だけ）。
-    // 消すと一覧が消えたファイルを読み続けて型検査が壊れる。プロフィールを消すのは role:delete / prof:delete
+    // 消すと一覧が消えたファイルを読み続けて型検査が壊れる。プロフィールを消すのは pnpm generate role -- --delete / pnpm generate role -- --delete-profile
     const keepProfile = !roleConfig.hasProfile && checkInput.profile !== null;
     cleanupRole(roleId, { includeProfile: !keepProfile, deleteEntity: true, updateHasProfile: false, silent: true });
     console.log("✓ クリーンアップ完了");

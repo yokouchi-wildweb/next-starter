@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// dc:compare: fork がドメインごとに generate を true / false に決めるための比較（読み取りだけ。本体は cli/compare/）。
+// pnpm check domain -- --compare: fork がドメインごとに generate を true / false に決めるための比較（読み取りだけ。本体は cli/compare/）。
 //   pnpm check domain -- --compare                     # 全 business ドメイン。base = upstream の remote との merge-base
 //   pnpm check domain -- --compare <Domain>... --detail  # 名指しのドメインをファイルごとに
 //   pnpm check domain -- --compare --base <ref> --json <file>

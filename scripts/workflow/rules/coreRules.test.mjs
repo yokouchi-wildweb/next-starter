@@ -77,7 +77,7 @@ test("staticPrefix / parsePaths の部品", () => {
 });
 
 test(`${LINEAGE_FILE}: 書式(frontmatter なし・区切り行がちょうど 1 つ・各節は fork の名前の ## 見出しで区切り行で閉じる)`, () => {
-  // 並び・鍵・打ち消しは祖先の名前が要るので ownership:check(fork)が見る。ここは全 repo の書式だけ
+  // 並び・鍵・打ち消しは祖先の名前が要るので pnpm workflow ownership check(fork)が見る。ここは全 repo の書式だけ
   const path = join(repoRoot, LINEAGE_FILE);
   assert.ok(existsSync(path), `${LINEAGE_FILE} が無い(Tier1 が前置きを出す)`);
   const problems = formatProblems(parseLineage(readFileSync(path, "utf8")));

@@ -1,6 +1,6 @@
 // pnpm workflow ownership who の本体: パスごとに持ち主・できること・根拠を答える(読むだけ。リポのファイルは書かない)。
-// 判定は ownership:check と同じ部品(resolveForkContext・judgeFork・judge・受け口の一覧)を使い、規則の表を別に持たない。
-// 表示と終了コードは whoCli.mjs。仕様: ./README.md「持ち主を調べる(ownership:who)」
+// 判定は pnpm workflow ownership check と同じ部品(resolveForkContext・judgeFork・judge・受け口の一覧)を使い、規則の表を別に持たない。
+// 表示と終了コードは whoCli.mjs。仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
 
 import { execFileSync } from "node:child_process";
 
@@ -181,7 +181,7 @@ export function whoOwns(repoRoot, paths, options = {}) {
   return { status: "ok", ownerId, remote, branch, base, tier1, results };
 }
 
-/** そのパスを足したときの判定(judge + 中間 Tier の付け替え。ownership:check と同じ) */
+/** そのパスを足したときの判定(judge + 中間 Tier の付け替え。pnpm workflow ownership check と同じ) */
 function addJudge(snapshot, intake, tier1Files) {
   return (path) => {
     const { entries } = judge({

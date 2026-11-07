@@ -1,4 +1,4 @@
-// dc:delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除・残るコードから import されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
+// pnpm generate domain -- --delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除・残るコードから import されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
 // 止まる経路は runDelete を直接呼ぶ（-i でなければ対話は出ない）。止まらない経路は判定が null であることを見る。
 // 実行: pnpm test scripts/structure/domain/tests/deleteStop.test.mjs
 import { after, test } from "node:test";
@@ -57,7 +57,7 @@ test("主: 従属の domain.json が残っていれば一覧と直す順を出�
   const { stderr, exitCode } = await deleteCapturing(workspace, "album");
   assert.equal(exitCode, 1);
   assert.match(stderr, /album は集まりの従属（albumPhoto）を持っているため削除できません/);
-  assert.match(stderr, /album\/domain\.json の集まりの項目 "photos" を外し、従属を dc:delete --remove-config してから album を消してください/);
+  assert.match(stderr, /album\/domain\.json の集まりの項目 "photos" を外し、従属を pnpm generate domain -- --delete --remove-config してから album を消してください/);
   assert.deepEqual(snapshot(root), before);
 });
 

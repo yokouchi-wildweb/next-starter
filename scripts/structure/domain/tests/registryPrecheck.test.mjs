@@ -49,7 +49,7 @@ test("重ねた見え方: これから書く domainEntry.ts のキーが見え�
   assert.equal(overlayFromOutputs(plannedOutputs(root), workspace).has(path.join(root, "src", "features", "foo", "services", "server", "fooService.ts")), false);
 });
 
-test("作れる状態なら通り、書いた後に registry:generate が同じ結論になる", () => {
+test("作れる状態なら通り、書いた後に pnpm generate registry が同じ結論になる", () => {
   const root = project();
   const workspace = createWorkspace(root);
   const outputs = plannedOutputs(root);

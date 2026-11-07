@@ -76,7 +76,7 @@ Next サーバー経由 (`createRoomClient`) にすること。** クライア�
    - reducer は純粋関数 (I/O・乱数・現在時刻の直接参照禁止。時刻は action payload で渡す)
    - import 制約は ESLint `realtime-room/purity` が強制 (相対 / protocol / import type のみ)
 2. **登録する**: `servers/room/src/registry.ts` (下流編集点) に namespace 名で登録
-3. **デプロイ**: `pnpm room:deploy` (または git push で CI)
+3. **デプロイ**: `pnpm ops room deploy` (または git push で CI)
 4. サーバーから使う: ServerService で `createRoomClient<S, A>("<namespace>")`
 5. クライアントから使う: `useRoomState<S, A>("<namespace>", roomId)`
 
@@ -85,14 +85,14 @@ SDK の使用例: `src/lib/realtimeRoom/README.md`
 ## セットアップ (downstream 有効化手順)
 
 ```bash
-pnpm room:init   # wrangler.toml 生成 + 依存インストール + チェックリスト表示
+pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェックリスト表示
 ```
 
 以降は init が表示するチェックリスト通り:
 
 1. Cloudflare アカウント登録 (無料で開始可。本番規模の WebSocket 接続数は Workers Paid ~$5/月)
-2. **Worker 名の確認**: room:init は `room-server-<package名>` を wrangler.toml に書き込む。
-   既定名 `room-server` のままのデプロイは room:deploy が拒否する (同一アカウント同居時、
+2. **Worker 名の確認**: pnpm ops room init は `room-server-<package名>` を wrangler.toml に書き込む。
+   既定名 `room-server` のままのデプロイは pnpm ops room deploy が拒否する (同一アカウント同居時、
    wrangler deploy は同名 Worker を**無言で置換**するため。過去に他プロジェクトの検証 Worker を
    上書きしかけた実事例あり)
 3. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
@@ -101,12 +101,12 @@ pnpm room:init   # wrangler.toml 生成 + 依存インストール + チェッ�
 4. Next 側 env に `REALTIME_ROOM_URL` を登録 (公開情報なので通常の env でよい)
 5. `src/config/app/realtime-room.config.ts` の `enabled: true`
 6. デプロイ (下記)
-7. **共有鍵の生成と登録 (必ず初回デプロイの後に)**: `pnpm room:secret`
+7. **共有鍵の生成と登録 (必ず初回デプロイの後に)**: `pnpm ops room secret`
    — 鍵生成 → `wrangler secret bulk` で Worker へ非対話登録 → Next 側 env に貼る
    `REALTIME_ROOM_AUTH_SECRET` 行を表示 (Vercel では Sensitive 指定を推奨)。
    未デプロイ Worker へは明示拒否する (対話プロンプトの罠のツール化)。登録済み鍵の誤上書きも拒否
-   (意図的なローテーションは `pnpm room:secret --rotate`)。secret は以後のデプロイでも保持される
-8. 動作確認: `pnpm room:check` — 疎通・認可 fail-closed・WS 配信・永続化の 11 項目を機械検証
+   (意図的なローテーションは `pnpm ops room secret --rotate`)。secret は以後のデプロイでも保持される
+8. 動作確認: `pnpm ops room check` — 疎通・認可 fail-closed・WS 配信・永続化の 11 項目を機械検証
    (初回は workers.dev の伝播待ちで最大 60 秒リトライする。最低限なら `curl https://<Worker URL>/version`)
 
 補足:
@@ -116,7 +116,7 @@ pnpm room:init   # wrangler.toml 生成 + 依存インストール + チェッ�
 - 本番で独自ドメインを使う場合は Worker に Custom Domain を割り当て、`REALTIME_ROOM_URL` を差し替えるだけでよい
 - **dev から本番 Worker を共有しない**: ルーム状態は ns/roomId 単位で共有されるため、dev と本番が
   同じ Worker を向くと、同じ roomId への dev の dispatch が本番ユーザーの見ている状態を書き換え得る。
-  原則: dev は `pnpm room:dev` (localhost:8787)。本番 Worker の共有は roomId が衝突しない検証に限る
+  原則: dev は `pnpm ops room dev` (localhost:8787)。本番 Worker の共有は roomId が衝突しない検証に限る
 
 **有効/無効の判定は config enabled + env の 1 点に集約されている。** 揃っていなければ
 useRoomState は `status:"disabled"`、API は 503、deploy は skip — どのフォークで何を実行しても安全 (冪等)。
@@ -125,10 +125,11 @@ useRoomState は `status:"disabled"`、API は 503、deploy は skip — どの�
 
 | 経路 | コマンド | 用途 |
 |------|---------|------|
-| **統合 (手動運用の標準)** | `pnpm deploy:all` | **アプリ (Vercel) + Worker を 1 コマンドで揃えてデプロイ** (Worker → アプリの順)。room 無効フォークでは Worker を skip してアプリのみ — どのフォークでも常にこの 1 コマンドでよい。引数は vercel CLI へ透過 (無指定なら `--prod`)。要 vercel CLI + `wrangler login` or `CLOUDFLARE_API_TOKEN` |
-| Worker 単体 | `pnpm room:deploy` | Worker だけ直した時の単体デプロイ。enabled=false なら skip |
+| **統合 (手動運用の標準)** | `pnpm live:all` | **アプリ (Vercel) + Worker を 1 コマンドで揃えてデプロイ** (Worker → アプリの順)。room 無効フォークでは Worker を skip してアプリのみ — どのフォークでも常にこの 1 コマンドでよい。引数は vercel CLI へ透過 (無指定なら `--prod`)。要 vercel CLI + `wrangler login` or `CLOUDFLARE_API_TOKEN` |
+| アプリ単体 | `pnpm live` (= `pnpm live:app`) | アプリ (Vercel) だけのデプロイ。Worker には触れない。プロトコル (ROOM_PROTOCOL_VERSION) を変えた回は使わず `pnpm live:all` |
+| Worker 単体 | `pnpm live:room` | Worker だけ直した時の単体デプロイ (中身は `pnpm ops room deploy`)。enabled=false なら skip |
 | CI (オプション) | `git push` 連動 | git 連携デプロイのフォーク向け。`.github/workflows/deploy-room.yml.example` をコピーし GitHub Secrets 登録。Secrets 未登録なら skip でグリーン |
-| ローカル開発 | `pnpm room:dev` | **Cloudflare アカウント不要**。wrangler dev で DO 込みのローカル実行。Next 側は `REALTIME_ROOM_URL=http://localhost:8787` を指す |
+| ローカル開発 | `pnpm ops room dev` | **Cloudflare アカウント不要**。servers/room の wrangler dev を呼ぶ (引数は wrangler dev へ)。wrangler dev で DO 込みのローカル実行。Next 側は `REALTIME_ROOM_URL=http://localhost:8787` を指す |
 
 Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 servers/room を触ったか」を人間が判断する必要はない。
 
@@ -152,12 +153,12 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 有効化コミット (`enabled: true` + wrangler.toml) は**下流フォークにもそのまま伝播する**。下流側では:
 
 - wrangler.toml ごと引いたフォークは、**中間層の Worker 名のまま自アカウントへデプロイ**してしまう
-  (room:deploy の既定名ガードは固有名に変更済みの名前を検知できない)
-- `enabled: true` だけ引いて wrangler.toml が無いフォークは、`deploy:all` が明示エラーで止まる
+  (pnpm ops room deploy の既定名ガードは固有名に変更済みの名前を検知できない)
+- `enabled: true` だけ引いて wrangler.toml が無いフォークは、`pnpm live:all` が明示エラーで止まる
   (fail-closed としては正しいが、下流にとっては突然の変化)
 
 対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE を出す**(`/ship` で出荷すると判定と起票まで行う)こと。
-内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (room:init 手順) or
+内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (pnpm ops room init 手順) or
 使わないなら `enabled: false` へ戻す」の二択を明示する。
 
 ## 高頻度ルーム向けオプション

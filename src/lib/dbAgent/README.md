@@ -126,9 +126,9 @@ downstream がツールを追加する際はこの境界を壊さないこと (�
 
 ## downstream 拡張ポイント
 
-1. **ドメイン知識** — `src/wiring/dbAgent/promptFragments/<名前>.ts` に `export const fragment` を置き `pnpm extensions:generate`
+1. **ドメイン知識** — `src/wiring/dbAgent/promptFragments/<名前>.ts` に `export const fragment` を置き `pnpm generate extensions`
    (テーブルの意味・集計の定石。スキーマ全文は不要 — エージェントが自力で引ける)
-2. **ドメインツール** — `src/wiring/dbAgent/extraTools/<名前>.ts` に `export const tool: AgentToolDefinition` を置き `pnpm extensions:generate`
+2. **ドメインツール** — `src/wiring/dbAgent/extraTools/<名前>.ts` に `export const tool: AgentToolDefinition` を置き `pnpm generate extensions`
    (読取専用の操作に限定すること)
 3. **実行時の運営追加指示** — `dbAgentSystemSuffixProviders` にプロバイダを登録 (次節)
 

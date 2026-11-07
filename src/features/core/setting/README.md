@@ -19,7 +19,7 @@ src/features/core/setting/
 ├── extensionPoints.ts        # 拡張点 fields・sections の宣言
 ├── fields/<キー>.ts          # 1 キーの定義
 ├── sections/<名前>.ts        # 1 セクションの定義
-├── extensions/               # 生成された一覧(pnpm extensions:generate)
+├── extensions/               # 生成された一覧(pnpm generate extensions)
 ├── types/definition.ts       # キーとセクションの型
 ├── menu.ts                   # 管理メニューの項目を作る
 ├── utils/sectionForm.ts      # セクションの並びとフォームの組み立て
@@ -39,7 +39,7 @@ src/features/core/setting/
 
 ## キーを足す
 
-`fields/<キー>.ts` を置き、`pnpm extensions:generate` を実行する。ファイル名がキーの名前になる(上流も fork も同じ形。名前に fork の印は付けない)。DB の変更は要らない。
+`fields/<キー>.ts` を置き、`pnpm generate extensions` を実行する。ファイル名がキーの名前になる(上流も fork も同じ形。名前に fork の印は付けない)。DB の変更は要らない。
 
 ```ts
 import { z } from "zod";
@@ -66,7 +66,7 @@ export const field = {
 
 ## セクションを足す
 
-`sections/<名前>.ts`(上流も fork も同じ形)を置き、`pnpm extensions:generate` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
+`sections/<名前>.ts`(上流も fork も同じ形)を置き、`pnpm generate extensions` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
 
 ```ts
 import { Sliders } from "lucide-react";
@@ -172,4 +172,4 @@ await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロー
 
 ## テスト
 
-`pnpm test:setting`(読み・保存・権限・フォーム)、`pnpm extensions:check`(生成物の一致)。
+`pnpm test src/features/core/setting/services/server/settingStorage.test.ts scripts/tasks/setting-copy-list-per-page.test.ts`(読み・保存・権限・フォーム)、`pnpm check extensions`(生成物の一致)。

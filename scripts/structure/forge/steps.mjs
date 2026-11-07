@@ -1,5 +1,5 @@
 // forge の段の並び（純粋）と、段を順に回す runner（段の実行は差し替えられる = テスト用）。
-// 順は依存から: 事前検査（何も書かない。作り直せる一覧のずれは見ない）→ 生成（role → dc → 一覧 → extensions → routes:map、門の after の順）
+// 順は依存から: 事前検査（何も書かない。作り直せる一覧のずれは見ない）→ 生成（role → dc → 一覧 → extensions → pnpm generate routes、門の after の順）
 // → 事後検査（門の検査 → テスト → typecheck → lint）→ デプロイ先の検査（生成とは別の段。今は Vercel だけ: vercel.json があるときの cron の検査）。
 // cron は生成しない（pnpm generate cron -- --plan <plan> は別に人が回す）。
 // 生成直後に落ちうる検査は route-map だけ（pnpm generate routes で作り直してから見る）。調べた所要時間: typecheck 10〜13 秒、lint 全体 32 秒、ほかは 1 秒前後

@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { scanFeatureTables } from "../registry/tableScan.mjs";
 
-/** 表の定義のファイル: src/features の pgTable を持つ全ファイル（core・business・プロフィールの生成物。registry:generate の schemaRegistry と同じ走査） */
+/** 表の定義のファイル: src/features の pgTable を持つ全ファイル（core・business・プロフィールの生成物。pnpm generate registry の schemaRegistry と同じ走査） */
 function tableFiles(rootDir) {
   return [...new Set(scanFeatureTables(rootDir).tables.map((table) => path.join(rootDir, table.file)))].sort();
 }

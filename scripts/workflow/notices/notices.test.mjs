@@ -152,7 +152,7 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-// pick: = 修正を先に取れるかの印。/ship が notices:pick-check で機械で書く(.notices/README.md「修正(fixes)」)
+// pick: = 修正を先に取れるかの印。/ship が pnpm workflow notices pickCheck で機械で書く(.notices/README.md「修正(fixes)」)
 test("pick: は clean か - で、fixes: のある notice にだけ付く(索引の行。古い版の pick-check が本文に書いた物も見る)", () => {
   const problems = [];
   const items = [

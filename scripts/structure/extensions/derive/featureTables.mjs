@@ -6,7 +6,7 @@
 // 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
 // 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキーから /api/<key> を導き(字面、
 // scripts/structure/registry/serviceRegistry/discover.mjs の readObjectKeys)、項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
-// domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は test:feature-gate が重なりとして知らせる。
+// domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は pnpm test src/featureGate scripts/structure/proxies が重なりとして知らせる。
 // 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導き settingPaths として同じく足す(./gateSettingPaths.mjs、L1.17)。
 
 import { existsSync, readFileSync } from "node:fs";

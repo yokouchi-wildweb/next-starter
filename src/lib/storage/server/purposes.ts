@@ -36,7 +36,7 @@ export function resolveStoragePurpose(map: StoragePurposeMap, purposeId: string)
 }
 
 /**
- * 用途表の形式の問題を列挙する（空配列 = 問題なし）。test:storage-purposes などの検査から使う。
+ * 用途表の形式の問題を列挙する（空配列 = 問題なし）。pnpm test scripts/structure/registry/check-storage-purposes.test.mjs などの検査から使う。
  * - ID が `<domain>.<field>` の形式
  * - maxBytes が 1 以上の整数、contentTypes が 1 件以上
  * - private の用途に read がある

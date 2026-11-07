@@ -1,7 +1,7 @@
 // scripts/operations/features/set.ts(pnpm ops features set <規則名> on|off)
 // 機能の入切を書き換える(L1.19): 規則の enabled が機能のドメインの config の <X>_CONFIG.enabled を読む形だけ、その 1 行を書く。
 // 必須(src/featureGate/required/)の機能を off にしようとすると何も書かずに exit 1。書けない形は値を読む場所を出して exit 2。
-// db:push・extensions:generate は打たない。中身は門番の道具 @/featureGate/node の planFeatureSet。詳細: src/featureGate/README.md
+// db:push・pnpm generate extensions は打たない。中身は門番の道具 @/featureGate/node の planFeatureSet。詳細: src/featureGate/README.md
 
 import { applyFeatureSet, planFeatureSet, readRequired, rules } from "@/featureGate/node";
 

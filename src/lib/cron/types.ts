@@ -21,7 +21,7 @@ export type CronTaskDefinition<T extends CronTaskResult = CronTaskResult> = {
   /**
    * 機能以外の追加の実行条件。false ならルートと `pnpm task` は本体を呼ばずに skipped を返す（vercel.json には載る）。
    * 機能の入切は書かない: タスクの住所 `/api/cron/<name>` を規則の pathPatterns に載せれば、門番が閉じた機能のタスクを
-   * route・`pnpm task` で飛ばし、cron:generate が vercel.json から外す（src/lib/cron/README.md）。
+   * route・`pnpm task` で飛ばし、pnpm generate cron が vercel.json から外す（src/lib/cron/README.md）。
    * config だけを見る同期関数にする（DB・外部 I/O に触れない = 無効なときのコストをほぼゼロにするため）。
    * 省略時は常に有効。
    */

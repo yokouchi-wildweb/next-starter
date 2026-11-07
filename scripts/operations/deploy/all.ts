@@ -1,7 +1,7 @@
 // scripts/operations/deploy/all.ts
 //
-// 統合デプロイ (pnpm run deploy)。手動デプロイ運用の標準コマンド。
-// アプリ (Vercel) とルームサーバー (Cloudflare Workers) を 1 コマンドで揃えてデプロイする。
+// 全部のデプロイ (pnpm live:all)。アプリ (Vercel) とルームサーバー (Cloudflare Workers) を 1 コマンドで揃えて出す。
+// アプリだけ = pnpm live(= pnpm live:app、scripts/operations/deploy/app.ts)| ルームサーバーだけ = pnpm live:room(room.ts)
 //
 // 事前検査: pnpm check cron（vercel.json の crons が src/app/api/cron/*/task.ts と食い違えば何もデプロイせず止まる）
 //
@@ -15,56 +15,15 @@
 //   - enabled=true で未初期化 → 明示エラー (アプリのデプロイにも進まない)
 //
 // 引数はそのまま vercel CLI へ渡す。無指定なら --prod。
-//   pnpm run deploy                        # vercel --prod
-//   pnpm run deploy -- --target=preview    # プレビューデプロイ等、任意の vercel 引数
+//   pnpm live:all                        # vercel --prod
+//   pnpm live:all -- --target=preview    # プレビューデプロイ等、任意の vercel 引数
 // ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
 //    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
 
-import { execSync, spawnSync } from "node:child_process";
-import path from "node:path";
+import { argsOf, checkCron, deployApp, deployRoom } from "./lib";
 
-const repoRoot = path.resolve(import.meta.dirname, "../../..");
-
-console.log("=== deploy:all (room → app) ===\n");
-
-// --- 0. 事前検査: cron の配線（vercel.json の crons が全タスクの生成結果と一致するか） ---
-// 配線漏れのまま本番に出すと prune 系が動かずテーブルが無制限に増えるため、デプロイ前に止める
-try {
-  execSync("pnpm check cron", { cwd: repoRoot, stdio: "inherit" });
-} catch {
-  console.error("\n✗ cron の配線に問題があるため、デプロイを中止します（src/lib/cron/README.md 参照）");
-  process.exit(1);
-}
-
-// --- 1. Worker (servers/room) ---
-// skip (enabled=false) は exit 0 で返るため、そのままアプリへ進む
-try {
-  execSync("pnpm ops room deploy", { cwd: repoRoot, stdio: "inherit" });
-} catch {
-  console.error("\n✗ ルームサーバーのデプロイに失敗したため、アプリのデプロイを中止します");
-  process.exit(1);
-}
-
-// --- 2. アプリ (Vercel) ---
-const versionCheck = spawnSync("vercel", ["--version"], { shell: false });
-if (versionCheck.error || versionCheck.status !== 0) {
-  console.error(`
-✗ vercel CLI が見つかりません。インストールしてください:
-    npm i -g vercel
-  初回はプロジェクトのリンクが必要です:
-    vercel link
-`);
-  process.exit(1);
-}
-
-const vercelArgs = process.argv.slice(2);
-const args = vercelArgs.length > 0 ? vercelArgs : ["--prod"];
-
-console.log(`\n→ vercel ${args.join(" ")} を実行します...\n`);
-const result = spawnSync("vercel", args, { cwd: repoRoot, stdio: "inherit", shell: false });
-if (result.status !== 0) {
-  console.error("\n✗ アプリのデプロイに失敗しました");
-  process.exit(result.status ?? 1);
-}
-
+console.log("=== live:all (room → app) ===\n");
+checkCron();
+deployRoom();
+deployApp(argsOf(process.argv.slice(2)));
 console.log("\n✓ デプロイ完了 (room + app)");

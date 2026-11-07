@@ -49,7 +49,7 @@ export function createCrudService<
 >(collectionPath: string, options: CreateCrudServiceOptions<TCreate> = {}) {
   // Firestore の解決は構築時ではなく初回メソッド呼び出し時に行う（memoize）。
   // createCrudService は serviceRegistry 経由で全 API ルートの module 評価時に走るため、
-  // 構築時に getServerFirestore() を呼ぶと Firebase 未設定（env:init 直後）で全ルートが落ちる。
+  // 構築時に getServerFirestore() を呼ぶと Firebase 未設定（pnpm ops setup env 直後）で全ルートが落ちる。
   // 設定済み時の挙動は従来と同一（初回アクセスで 1 回だけ初期化）。
   let firestoreRef: FirebaseFirestore.Firestore | undefined;
   const getDb = (): FirebaseFirestore.Firestore => (firestoreRef ??= getServerFirestore());

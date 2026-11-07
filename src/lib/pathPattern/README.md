@@ -17,6 +17,6 @@
 
 - 門番の判定 `src/featureGate/evaluate.ts`(機能を閉じる規則の `pathPatterns`、`gate.path`)
 - ルート地図 `src/lib/screens/routeMap.mjs`(止めたページの `gatedOff`)
-- 検査 `src/featureGate/checks/`(`pnpm test:feature-gate`)
+- 検査 `src/featureGate/checks/`(`pnpm test src/featureGate scripts/structure/proxies`)
 
 .mjs なのは、tsx を通さない Node の道具からも同じ物を読むため。

@@ -4,7 +4,7 @@
 // (`enabled: () => X_CONFIG.enabled`、X_CONFIG は `@/features/<d>/config` からの import)、その config.ts の
 // `export const X_CONFIG = { … enabled: true|false … }` にリテラルの enabled が 1 つだけあるときだけ(closable のひな形・値の移動の後の形)。
 // それ以外は書かずに、規則の enabled の字面(値を読む場所)を返す。必須(required/)の機能を off にはしない。
-// db:push・extensions:generate は打たない(開けたら db:push が要ると案内する)。詳細: src/featureGate/README.md「features:list / features:set」
+// db:push・pnpm generate extensions は打たない(開けたら db:push が要ると案内する)。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -75,7 +75,7 @@ export function planFeatureSetFromText(input: {
 const ruleFileOf = (root: string, name: string) =>
   [join(root, "src/featureGate/rules", `${name}.ts`), join(root, "src/featureGate/rules", name, "index.ts")].find(existsSync) ?? null;
 
-/** repo を読んで計画を立てる(features:set の入口。書かない) */
+/** repo を読んで計画を立てる(pnpm ops features set の入口。書かない) */
 export function planFeatureSet(root: string, name: string, value: boolean, required: Readonly<Record<string, string>>): FeatureSetPlan {
   const ruleFile = ruleFileOf(root, name);
   if (!ruleFile) return { kind: "unwritable", why: `規則 src/featureGate/rules/${name}.ts が無い`, enabledSource: "-" };

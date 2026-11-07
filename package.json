@@ -18,8 +18,10 @@
     "e2e": "playwright test -c playwright.config.default.ts",
     "db:push": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/runner/preload/serverOnly.mjs scripts/operations/db/push.ts",
     "db:push:check": "npx tsx --import ./scripts/runner/preload/serverOnly.mjs scripts/operations/db/check-schema-roundtrip.ts",
-    "deploy": "npx tsx scripts/operations/deploy/all.ts",
-    "room:dev": "pnpm -C servers/room dev"
+    "live": "npx tsx scripts/operations/deploy/app.ts",
+    "live:app": "npx tsx scripts/operations/deploy/app.ts",
+    "live:room": "npx tsx scripts/operations/deploy/room.ts",
+    "live:all": "npx tsx scripts/operations/deploy/all.ts"
   },
   "engines": {
     "node": "24"

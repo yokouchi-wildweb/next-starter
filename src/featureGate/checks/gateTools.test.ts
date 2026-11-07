@@ -191,7 +191,7 @@ test("束の名前の一致: client の束の名前 ⊆ server の束、server �
   assert.deepEqual(server.filter((name) => !client.includes(name)), [...SERVER_ONLY].sort(), "server だけの名前が SERVER_ONLY と違う");
 });
 
-// ── features:list / features:set の道具(node/describe.ts・node/setEnabled.ts、L1.19) ──
+// ── pnpm ops features list / pnpm ops features set の道具(node/describe.ts・node/setEnabled.ts、L1.19) ──
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -235,7 +235,7 @@ test("findCallSites: gate.enabled / gate.assert / useGate().enabled の字面の
 const RULE_WRITABLE = 'import { SHOP_CONFIG } from "@/features/shop/config";\n\nexport const rule = {\n  pathPatterns: ["/admin/shops"],\n  enabled: () => SHOP_CONFIG.enabled,\n};\n';
 const CONFIG = "export const SHOP_CONFIG = {\n  /** この機能を使うか */\n  enabled: true,\n  limit: 3,\n};\n";
 
-test("features:set の計画: 書ける形は config の enabled の 1 行だけを書き換える", () => {
+test("pnpm ops features set の計画: 書ける形は config の enabled の 1 行だけを書き換える", () => {
   const files: Record<string, string> = { "src/features/shop/config.ts": CONFIG };
   const plan = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: (f) => `src/features/${f}/config.ts`, readConfig: (f) => files[f] ?? null, value: false, requiredReason: null });
   assert.equal(plan.kind, "write");
@@ -246,7 +246,7 @@ test("features:set の計画: 書ける形は config の enabled の 1 行だけ
   assert.ok(same.kind === "write" && same.changed === false);
 });
 
-test("features:set の計画: 必須は off にしない(on はよい)、書けない形は理由と enabled の字面", () => {
+test("pnpm ops features set の計画: 必須は off にしない(on はよい)、書けない形は理由と enabled の字面", () => {
   const read = () => CONFIG;
   const cfg = (f: string) => `src/features/${f}/config.ts`;
   assert.deepEqual(planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: read, value: false, requiredReason: "中心" }), { kind: "required", reason: "中心" });
@@ -261,7 +261,7 @@ test("features:set の計画: 必須は off にしない(on はよい)、書け�
   assert.ok(expr.kind === "unwritable" && /リテラル/.test(expr.why));
 });
 
-test("features:set の読み取り: core のドメイン・入れ子の enabled は書かない", () => {
+test("pnpm ops features set の読み取り: core のドメイン・入れ子の enabled は書かない", () => {
   assert.deepEqual(readRuleConfigTarget('import { W_CONFIG } from "@/features/core/wallet/config";\nexport const rule = { enabled: () => W_CONFIG.enabled };\n'), { constName: "W_CONFIG", folder: "core/wallet" });
   assert.equal(rewriteConfigEnabled("export const S_CONFIG = { enabled: true, sub: { enabled: false } };\n", "S_CONFIG", false), null);
   assert.equal(rewriteConfigEnabled("export const OTHER = { enabled: true };\n", "S_CONFIG", false), null);

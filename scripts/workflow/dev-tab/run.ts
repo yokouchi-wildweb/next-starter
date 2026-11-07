@@ -76,7 +76,7 @@ const socketPathOf = (name: string): string => {
 const start = async () => {
   if (!hasTmux()) {
     fail(
-      "dev:tab: tmux がありません。入れてからもう一度(Debian/Ubuntu/WSL: sudo apt install tmux、macOS: brew install tmux)",
+      "pnpm workflow dev-tab run: tmux がありません。入れてからもう一度(Debian/Ubuntu/WSL: sudo apt install tmux、macOS: brew install tmux)",
       2,
     );
   }
@@ -88,14 +88,14 @@ const start = async () => {
   }
 
   const packageJson = path.join(root, "package.json");
-  if (!existsSync(packageJson)) fail(`dev:tab: ${root} に package.json がありません`);
+  if (!existsSync(packageJson)) fail(`pnpm workflow dev-tab run: ${root} に package.json がありません`);
   const devScript: string | undefined = JSON.parse(readFileSync(packageJson, "utf8")).scripts?.dev;
-  if (!devScript) fail(`dev:tab: ${root} の package.json に dev スクリプトがありません`);
+  if (!devScript) fail(`pnpm workflow dev-tab run: ${root} の package.json に dev スクリプトがありません`);
 
   const outside = findDevProcesses(root);
   if (outside.length > 0) {
     console.error(
-      `dev:tab: ${describeCheckout(root)} ではこの道具の外で開発サーバーが動いています(立てません。そのまま使うか、止めてからもう一度):`,
+      `pnpm workflow dev-tab run: ${describeCheckout(root)} ではこの道具の外で開発サーバーが動いています(立てません。そのまま使うか、止めてからもう一度):`,
     );
     for (const proc of outside.slice(0, 3)) console.error(`  ${proc.pid} ${proc.command}`);
     process.exit(3);
@@ -109,13 +109,13 @@ const start = async () => {
 
   let port: number;
   if (values.port) {
-    if (!/^\d+$/.test(values.port)) fail(`dev:tab: --port は数字: ${values.port}`);
+    if (!/^\d+$/.test(values.port)) fail(`pnpm workflow dev-tab run: --port は数字: ${values.port}`);
     port = Number(values.port);
-    if (await isPortBound(port)) fail(`dev:tab: ポート ${port} は使われています(--port を外せば空きを選びます)`);
+    if (await isPortBound(port)) fail(`pnpm workflow dev-tab run: ポート ${port} は使われています(--port を外せば空きを選びます)`);
   } else {
     const tries = Number(process.env.DEV_TAB_PORTS ?? 20);
     const picked = await pickPort(isPortBound, 3000, tries);
-    if (picked === null) fail(`dev:tab: 3000〜${3000 + tries - 1} に空いているポートがありません(--port=<n> で指定)`);
+    if (picked === null) fail(`pnpm workflow dev-tab run: 3000〜${3000 + tries - 1} に空いているポートがありません(--port=<n> で指定)`);
     port = picked as number;
   }
 
@@ -160,12 +160,12 @@ const start = async () => {
       }
     }
   } catch (error) {
-    fail(`dev:tab: tmux のタブを開けませんでした: ${(error as Error).message}`);
+    fail(`pnpm workflow dev-tab run: tmux のタブを開けませんでした: ${(error as Error).message}`);
     return;
   }
   const [socketPath, sessionName, windowId, windowIndex] = created.split("\t");
   if (!socketPath || !sessionName || !windowId || !windowIndex) {
-    fail(`dev:tab: tmux がタブの情報を返しませんでした(socket: ${socket ?? "既定"})。タブは開いていない可能性があります`);
+    fail(`pnpm workflow dev-tab run: tmux がタブの情報を返しませんでした(socket: ${socket ?? "既定"})。タブは開いていない可能性があります`);
   }
   const state: DevTabState = {
     dir: root,
@@ -239,4 +239,4 @@ const main = async () => {
   else await start();
 };
 
-main().catch((error) => fail(`dev:tab: ${(error as Error).message}`));
+main().catch((error) => fail(`pnpm workflow dev-tab run: ${(error as Error).message}`));

@@ -10,7 +10,7 @@
 // origin の URL からは導かない(導く実装は持たない)。
 // - 下流の有無: project.md の `downstream: yes|none` の 1 行(fork_id: と同じ ## 節)。読み手はここだけ(/ship・/flux・
 //   lineage.md の検査もこの値を使う)。欠落・2 行以上・yes / none 以外・fork_id: と別の節は downstreamError。
-//   errors には入れない: ownership:check と lineage.md の検査だけが未検証(exit 2)にし、ビルド(extensions:check)は止めない
+//   errors には入れない: pnpm workflow ownership check と lineage.md の検査だけが未検証(exit 2)にし、ビルド(pnpm check extensions)は止めない
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -76,7 +76,7 @@ export function catalogSectionNames(text) {
  * 自分の名前・祖先の名前・Tier1 か・下流の有無を読む
  * @param {string} repoRoot リポジトリ直下
  * @returns {{ own: string | null, ancestors: string[], isTier1: boolean, downstream: "yes" | "none" | null, downstreamError: string | null, errors: string[] }}
- *   downstreamError = downstream: の宣言の誤り(errors と別。読むのは ownership:check と lineage.md の検査だけ)
+ *   downstreamError = downstream: の宣言の誤り(errors と別。読むのは pnpm workflow ownership check と lineage.md の検査だけ)
  */
 export function readForkIdentity(repoRoot) {
   const errors = [];

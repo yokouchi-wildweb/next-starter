@@ -38,10 +38,10 @@ canvas に取り込んで画像として書き出したりすると、バケッ�
 
 | バケット | 設定のしかた | 内容 |
 | --- | --- | --- |
-| 新しい公開バケット・非公開バケット（`STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`） | `pnpm storage:setup` が作成時に設定する。追加の作業なし | `--origin` に並べたアプリの Origin、`GET` / `HEAD` / `PUT`、`Content-Range` / `Accept-Ranges` / `Range` などの応答ヘッダー（手順: [scripts/operations/storage/README.md](../../scripts/operations/storage/README.md)） |
-| 旧バケット（Firebase の既定バケット、`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`） | 旧 URL のバイトを読む機能を使う場合だけ `pnpm storage:setup-cors` | 下記 4 |
+| 新しい公開バケット・非公開バケット（`STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`） | `pnpm ops storage setup` が作成時に設定する。追加の作業なし | `--origin` に並べたアプリの Origin、`GET` / `HEAD` / `PUT`、`Content-Range` / `Accept-Ranges` / `Range` などの応答ヘッダー（手順: [scripts/operations/storage/README.md](../../scripts/operations/storage/README.md)） |
+| 旧バケット（Firebase の既定バケット、`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`） | 旧 URL のバイトを読む機能を使う場合だけ `pnpm ops storage setup-cors` | 下記 4 |
 
-非公開のファイル（`/api/storage/objects/<id>`）は、非公開バケットの短期署名 URL への 302 で配信されます。ブラウザはリダイレクト先（非公開バケット）の CORS で判定するので、これも `storage:setup` の設定で足ります。
+非公開のファイル（`/api/storage/objects/<id>`）は、非公開バケットの短期署名 URL への 302 で配信されます。ブラウザはリダイレクト先（非公開バケット）の CORS で判定するので、これも `pnpm ops storage setup` の設定で足ります。
 
 ---
 
@@ -56,10 +56,10 @@ canvas に取り込んで画像として書き出したりすると、バケッ�
 
 ```bash
 # origin "*"（検証用）。まず疎通確認したいときはこれ
-pnpm storage:setup-cors
+pnpm ops storage setup-cors
 
 # origin を実ドメインに限定（本番推奨）
-pnpm storage:setup-cors https://your-app.com https://www.your-app.com
+pnpm ops storage setup-cors https://your-app.com https://www.your-app.com
 ```
 
 設定される内容（`scripts/operations/storage/setup-cors.ts`）:
@@ -76,7 +76,7 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 | 症状（ブラウザのエラー） | 主な原因 | 対処 |
 | --- | --- | --- |
-| `TypeError: Failed to fetch`（Chromium）<br>`NetworkError ...`（Firefox）<br>`Load failed`（Safari） | 別ドメインのバイトを fetch したが CORS 未設定、または Origin が許可に無い<br>（※ ネットワーク断・URL 誤り・認証失敗でも同じ表示） | 新しいバケット: `pnpm storage:setup` に今の Origin を `--origin` で足して再実行（既存の CORS と違えば差分を表示して止まるので、表示に従って直す）<br>旧バケット: `pnpm storage:setup-cors` |
+| `TypeError: Failed to fetch`（Chromium）<br>`NetworkError ...`（Firefox）<br>`Load failed`（Safari） | 別ドメインのバイトを fetch したが CORS 未設定、または Origin が許可に無い<br>（※ ネットワーク断・URL 誤り・認証失敗でも同じ表示） | 新しいバケット: `pnpm ops storage setup` に今の Origin を `--origin` で足して再実行（既存の CORS と違えば差分を表示して止まるので、表示に従って直す）<br>旧バケット: `pnpm ops storage setup-cors` |
 | `SecurityError: ... Tainted canvases may not be exported`（`toBlob`/`toDataURL`/`getImageData`） | 別ドメインのメディアを CORS 未許可で canvas に取り込み汚染された | ①取り込み元に `crossOrigin="anonymous"` を付与 ②上の行と同じくバケットの CORS を設定 |
 
 ### 開発時の自己診断（自動案内）

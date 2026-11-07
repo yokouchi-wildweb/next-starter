@@ -119,7 +119,7 @@ redirect 型の 1〜6 に加えて以下を行う。
 2. `VERCEL_ENV=preview` のとき `https://${VERCEL_URL}`
 3. `businessConfig.url`（プレースホルダー `https://example.com` のままなら throw）
 
-ローカルは 1 を使う。`pnpm env:init` が `.env.development` に `APP_BASE_URL=http://localhost:3000` を入れる（ポートは実際の dev サーバーに合わせる）。これでプロバイダからの戻り（success / cancel）はローカルに着地する。
+ローカルは 1 を使う。`pnpm ops setup env` が `.env.development` に `APP_BASE_URL=http://localhost:3000` を入れる（ポートは実際の dev サーバーに合わせる）。これでプロバイダからの戻り（success / cancel）はローカルに着地する。
 
 ### Webhook まで通す（ngrok 等）
 

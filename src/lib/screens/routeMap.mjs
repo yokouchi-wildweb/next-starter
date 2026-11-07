@@ -2,7 +2,7 @@
 // 主な読み手はエージェント(機械が読む)。人が見る形は pnpm check routes -- show。
 // 生成: pnpm generate routes / ずれ検査: pnpm check routes と pnpm test src/lib/screens / 詳細の表示: pnpm check routes -- show
 // 鎖 = page.tsx → 採用 Screen → 同じルートの loader → 最寄りの guard.ts → extend の親 → root(defineRootGuard)。
-// 字面だけを読み、読めない鎖は生成失敗(problems に行と理由)。解析は checks.mjs(test:screens と共有)。
+// 字面だけを読み、読めない鎖は生成失敗(problems に行と理由)。解析は checks.mjs(pnpm test src/lib/screens/screens.test.mjs と共有)。
 // ここは純粋関数だけ(ファイルの読み込みは呼び出し側が read を渡す)。発見は routeTree.mjs と共有。設計: src/lib/screens/README.md §13
 import {
   barrelTarget,
@@ -213,14 +213,14 @@ export function formatRouteMap(rows) {
   return sorted.map((r) => JSON.stringify({ path: r.path, slot: r.slot, state: r.state, gatedOff: r.gatedOff, chain: r.chain })).join("\n") + "\n";
 }
 
-/** access の短い表示(routes:show 用) */
+/** access の短い表示(pnpm check routes -- show 用) */
 export function formatAccess(access) {
   if (typeof access === "string") return access;
   if (access && typeof access === "object" && "registry" in access) return `registry:${access.registry}`;
   return JSON.stringify(access);
 }
 
-/** routes:show の表示(コミットしない。人が読む形) */
+/** pnpm check routes -- show の表示(コミットしない。人が読む形) */
 export function formatRouteDetails(rows) {
   const out = [];
   for (const r of rows) {

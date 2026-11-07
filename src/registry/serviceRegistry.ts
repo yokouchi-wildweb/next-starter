@@ -3,7 +3,7 @@
 //
 // ドメイン名からサービス・表・主キーを引く正式な仕組み（登録表）。ドメインを 1 つ作ると行が増える一覧で、
 // 下流が中身を足す登録口ではない。新しい用途で独自の対応表を作らず、この表を引く（src/wiring/domainRegistry.ts の getService 系）。
-// - 業務ドメイン: dc:generate が domain.json から domainEntry.ts を生成 → この表に載る
+// - 業務ドメイン: pnpm generate domain が domain.json から domainEntry.ts を生成 → この表に載る
 // - core ドメイン・fork が core パスに作るドメイン: domainEntry.ts を手書き
 // - fork が core の access を変える: 隣に domainEntry.override.ts（fork 所有、access だけ）
 // サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。

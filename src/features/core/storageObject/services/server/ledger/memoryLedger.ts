@@ -2,7 +2,7 @@
 //
 // StorageLedger のメモリ実装（単体テスト用）。drizzleLedger と同じ条件で行を更新する。
 // 各操作は await を挟まず一度に判定と更新をするので、並行に呼んでも一方だけが成功する。
-// SQL の原子性そのものは test:storage-object-db（実 DB）で確かめる。
+// SQL の原子性そのものは pnpm test --db src/features/core/storageObject/services/server/ledger/drizzleLedger.db.test.ts（実 DB）で確かめる。
 
 import type { StorageObject } from "../../../entities/model";
 import type { StorageLedger } from "./types";

@@ -294,7 +294,7 @@ test("検出範囲: src/app 全体(wallet(あれば)・管理画面・debug・�
   assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_screen/StarterHomeScreen)が検出されていない");
   assert.ok([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/")), "生成された管理画面ルートが検出されていない");
   assert.ok(pageDirs.has("src/app/(user)/demo"), "デモ(構造の検査の対象)が検出されていない");
-  // 手書きの管理画面(dc:generate 由来でない)と管理画面のデモも検出し、生成テンプレートは外す
+  // 手書きの管理画面(pnpm generate domain 由来でない)と管理画面のデモも検出し、生成テンプレートは外す
   for (const dir of ["src/app/admin/(protected)", "src/app/admin/login", "src/app/admin/(protected)/users/general"]) {
     assert.ok(pageDirs.has(dir), `${dir} が検出されていない`);
   }

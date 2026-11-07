@@ -1,5 +1,5 @@
 // src/features/sample/types/adminBulkAction.ts
-// サンプルの管理一覧の一括操作の項目の型(dc:generate が生成する。手で編集しない)
+// サンプルの管理一覧の一括操作の項目の型(pnpm generate domain が生成する。手で編集しない)
 
 import type { BulkActionItem } from "@/lib/tableSuite";
 import type { Sample } from "@/features/sample/entities";

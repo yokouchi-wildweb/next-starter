@@ -3,7 +3,7 @@
 // 投稿者（contributor）ロール用のプロフィールテーブル
 //
 // 元情報: src/features/core/userProfile/profiles/contributor.profile.json
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { uuid, timestamp, boolean, text, pgTable } from "drizzle-orm/pg-core";

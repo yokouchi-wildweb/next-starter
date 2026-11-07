@@ -1,4 +1,4 @@
-// dc:compare の出力: ドメインごとに 1〜2 行の要約と見込み、--detail でファイルごと、最後に見込みの内訳
+// pnpm check domain -- --compare の出力: ドメインごとに 1〜2 行の要約と見込み、--detail でファイルごと、最後に見込みの内訳
 
 import { VERDICTS } from "./classify.mjs";
 
@@ -19,7 +19,7 @@ function summaryLine(s) {
  * @param {{ base: string, legacy: boolean, results: { name: string, summary: object, files: object[], forkFiles: string[], wrapperFiles: string[] }[], detail: boolean }} report
  */
 export function printReport({ base, legacy, results, detail }, io = console) {
-  io.log(`dc:compare: base = ${base}（${legacy ? "generateFiles で読む生成器" : "generate の旗で読む生成器"}）、今 = 作業ツリーの生成器。${results.length} ドメイン`);
+  io.log(`pnpm check domain -- --compare: base = ${base}（${legacy ? "generateFiles で読む生成器" : "generate の旗で読む生成器"}）、今 = 作業ツリーの生成器。${results.length} ドメイン`);
   io.log("（今のファイル ／ base の生成器の出力 ／ 今の生成器の出力。fork のリポには書きません）\n");
   for (const { name, summary: s, files, forkFiles, wrapperFiles } of results) {
     io.log(`${name}  [${s.verdict}]  ${summaryLine(s)}`);

@@ -114,7 +114,7 @@ test("upstream の画面を止めるスイッチ: 各規則のパターンが実
   assert.deepEqual(stale, [], `ページの無いパターン: ${stale.join(", ")}`);
 });
 
-test("features から導いた表名は schemaRegistry に実在する(導出は extensions:generate、走査の一致は test:schema-registry)", () => {
+test("features から導いた表名は schemaRegistry に実在する(導出は pnpm generate extensions、走査の一致は pnpm test scripts/structure/registry/)", () => {
   const unknown = rulesWithTables.flatMap((rule) => rule.tables.filter((name) => !schemaTableNames.has(name)));
   assert.deepEqual(unknown, [], `schemaRegistry に無いテーブル名: ${unknown.join(", ")}`);
 });
@@ -202,7 +202,7 @@ const gateRuleFiles = () => {
   return { rules: itemsOf(plan, "src/featureGate", "rules"), problems: plan.problems };
 };
 
-test("一覧は規則ファイルと同じ並び・同じ数(extensions:generate のずれは extensions:check でも止まる)", () => {
+test("一覧は規則ファイルと同じ並び・同じ数(pnpm generate extensions のずれは pnpm check extensions でも止まる)", () => {
   const { rules, problems } = gateRuleFiles();
   assert.deepEqual(problems, []);
   assert.equal(rules.length, featureGateRules.length);

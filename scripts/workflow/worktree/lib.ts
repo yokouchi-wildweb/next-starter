@@ -1,6 +1,6 @@
 // scripts/workflow/worktree/lib.ts
 //
-// worktree:new / worktree:sync / worktree:remove の共通処理。
+// pnpm workflow worktree new / pnpm workflow worktree sync / pnpm workflow worktree remove の共通処理。
 // 持ち込み対象 = 「scripts/workflow/worktree/include のパターンに一致」かつ「gitignore 対象」のファイルだけ
 // (Claude Code の .worktreeinclude と同じ規則。直下に置かないため Claude Code 自身は読まない)。
 // パターン解釈は git 自身に任せる (自前の gitignore パーサーを持たない)。

@@ -1,4 +1,4 @@
-// dc:generate の entities/drizzle.ts: domain.json indexes の using（方式）/ opclass（演算子クラス）出力の回帰テスト。
+// pnpm generate domain の entities/drizzle.ts: domain.json indexes の using（方式）/ opclass（演算子クラス）出力の回帰テスト。
 // 実行: pnpm test scripts/structure/domain/tests/drizzleIndexes.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";

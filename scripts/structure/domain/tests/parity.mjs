@@ -49,7 +49,7 @@ const keep = args.includes("--keep");
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 const cp = (src, dest) => fs.cpSync(src, dest, { recursive: true, dereference: false });
 
-/** <ref> の生成器と、それが import する src のフォルダ（cli/compare/refGenerator.mjs。dc:compare と共有） */
+/** <ref> の生成器と、それが import する src のフォルダ（cli/compare/refGenerator.mjs。pnpm check domain -- --compare と共有） */
 const extractOld = () => extractGeneratorAt(repoRoot, ref, "dc-parity-old-");
 
 /** domain.json を持つドメインフォルダ（features ディレクトリ直下） */

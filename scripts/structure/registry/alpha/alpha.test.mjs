@@ -3,7 +3,7 @@
 // - 実リポ: 生成結果と一致(pnpm check registry と同じ)
 // - fixture: pgTable を持つファイル全部・profile の生成物は一覧を通す・キーは snake_case・メニューは印だけ・
 //   読めない pgTable と JSON・フォルダ名の重なりは problems
-// - dc:generate の登録済み判定が当たる字面と、行を足す置き先が残っている
+// - pnpm generate domain の登録済み判定が当たる字面と、行を足す置き先が残っている
 // 実行: pnpm test scripts/structure/registry/alpha/alpha.test.mjs
 
 import assert from "node:assert/strict";

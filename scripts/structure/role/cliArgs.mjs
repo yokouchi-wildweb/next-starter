@@ -1,4 +1,4 @@
-// role:delete / prof:delete / role:toggle / prof:generate の引数の解釈（共通）。
+// pnpm generate role -- --delete / pnpm generate role -- --delete-profile / pnpm generate role -- --toggle / pnpm generate role -- --profile の引数の解釈（共通）。
 // 既定は対話なし（引数で決める）。-i / --interactive のときだけ今までの対話
 
 /**

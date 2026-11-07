@@ -69,8 +69,8 @@ export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
 export const override = { enabled: false };
 ```
 
-- 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・dc:generate で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
-- 項目を置いた・消したら `pnpm extensions:generate`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
+- 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・pnpm generate domain で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
+- 項目を置いた・消したら `pnpm generate extensions`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
 
 `bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
 
@@ -108,11 +108,11 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 - 表は確定した値の未保存の状態を持たない。手元に変更をためて後でまとめて保存する画面は、その画面が `useUnsavedGuard` を呼ぶ
 - 確定は編集 1 回につき 1 回(Enter・Tab・フォーカスが外れる、のどれで閉じても。Enter の後の blur でもう一度 `onCellChange` を呼ばない。`EditableGridTable/utils/commitOnce.ts`)
 - 行の並び替えの保存待ちは下の「行の並び替えの未保存の守り」(同じ `guardUnsaved` で外れる)
-- 判定: `EditableGridTable/utils/editGuard.ts`(テスト `pnpm test:unsaved-guard`)
+- 判定: `EditableGridTable/utils/editGuard.ts`(テスト `pnpm test src/lib/`)
 
 #### 行の並び替えの未保存の守り(DataTable / RecordSelectionTable / EditableGridTable)
 
-`reorderable.onReorder` が返した Promise が終わるまで(並びの保存待ち)、理由「未保存」で守る(`lib/sortableList` と同じ決まり。`shared/reorder/reorderGuard.ts`、テスト `pnpm test:unsaved-guard`)。
+`reorderable.onReorder` が返した Promise が終わるまで(並びの保存待ち)、理由「未保存」で守る(`lib/sortableList` と同じ決まり。`shared/reorder/reorderGuard.ts`、テスト `pnpm test src/lib/`)。
 
 - 外す: `guardUnsaved={false}`(既定 true。EditableGridTable は編集の守りと同じ prop)
 - `void` を返す `onReorder` は守らない(保存待ちが無い)

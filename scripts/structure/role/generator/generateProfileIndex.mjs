@@ -41,7 +41,7 @@ export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstant
 // src/features/core/userProfile/entities/profiles/${roleId}/index.ts
 // ${roleConfig.label}プロフィールのエクスポート
 //
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 ${exports.join("\n")}
 `;

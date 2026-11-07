@@ -1,4 +1,4 @@
-// dc:generate のレジストリ更新（domainEntry.ts の生成 / schemaRegistry / domainConfigRegistry / objectEntry）の回帰テスト。
+// pnpm generate domain のレジストリ更新（domainEntry.ts の生成 / schemaRegistry / domainConfigRegistry / objectEntry）の回帰テスト。
 // serviceRegistry.ts 自体の生成・検査は scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）。
 // 実行: pnpm test scripts/structure/domain/tests/registry.test.mjs
 import { after, test } from "node:test";
@@ -190,7 +190,7 @@ test("renderDomainEntry: 遅延 import のキー付きオブジェクトと、�
   assert.match(text, /service: \(\) => import\("\.\/sampleService"\)\.then\(\(m\) => m\.sampleService\),/);
   assert.match(text, /\.\.\.PUBLIC_READ,\n\s+operations: \{\n\s+truncateAll: ADMIN_RULE,\n\s+export: "none",\n\s+import: "none",/);
   assert.match(text, /\} satisfies DomainEntries;\n$/);
-  // 静的 import は許可された 2 モジュールだけ（registry:check が縛る契約）
+  // 静的 import は許可された 2 モジュールだけ（pnpm check registry が縛る契約）
   const imports = [...text.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]);
   assert.deepEqual(imports, ["@/lib/domain/types", "@/config/app/domain-api-access.config"]);
 });

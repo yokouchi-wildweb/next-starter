@@ -31,7 +31,7 @@
 - **処理や状態を握るのはできるだけ上位**（セクションコンテナ）
 - **下位の要素で行う処理は上位から props で渡す**
 - **副作用（API 操作、通知表示など）をコンポーネントと混在させない**
-- **Screen が import してよいのは `features/<domain>/components/<Name>` まで**（部品を直接読まない。`pnpm test:screens` が検査）
+- **Screen が import してよいのは `features/<domain>/components/<Name>` まで**（部品を直接読まない。`pnpm test src/lib/screens/screens.test.mjs` が検査）
 
 ---
 
@@ -55,7 +55,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 ```
 
-`dynamic` 等のセグメント設定は page.tsx に書きます。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test:screens` が page.tsx を自動検出して検査。登録は不要）。
+`dynamic` 等のセグメント設定は page.tsx に書きます。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
 
 ### `_screen/<Name>Screen.tsx`（ページ層の本体）
 
@@ -187,7 +187,7 @@ export const useMyWalletBalances = (userId?: string | null, { fallbackData }: { 
 **Screen が直接配置するコンポーネント**です。hook と状態を握り、部品を組み立てます。これ以外の条件（`<Section>` タグの有無、フォルダの有無）は定義に含みません。逆に、`components/` 直下の `AdminWalletAdjustModal/` のように `dir/index.tsx` の形でも、Screen が直接描かなければ部品です。
 1 つのルート（Screen）に対して 1 つ以上のセクションコンテナを配置します。同じセクションコンテナを別のルートから呼び出すことも許可されます。
 
-### Screen から見える公開パス（`pnpm test:screens` が検査）
+### Screen から見える公開パス（`pnpm test src/lib/screens/screens.test.mjs` が検査）
 
 Screen が import するのは **セクションコンテナそのもの** です。実体は次のどちらかです。
 

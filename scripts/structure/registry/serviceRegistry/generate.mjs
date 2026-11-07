@@ -3,14 +3,14 @@
 // src/registry/serviceRegistry.ts を src/features/**/services/server/domainEntry.ts（+ domainEntry.override.ts）から丸ごと生成する
 //
 // 使い方:
-//   pnpm generate registry            # 生成して書き出す（dc:generate / dc:delete の最後にも自動で走る）
+//   pnpm generate registry            # 生成して書き出す（pnpm generate domain / pnpm generate domain -- --delete の最後にも自動で走る）
 //   pnpm check registry               # 生成せず一致を検査（./check.mjs。ビルドの冒頭と test でも走る）
 //
 // 書き出さず失敗する条件（./check.mjs の静的検査と同じ。キーと直し方を出す）:
 // - 移行前の手書き行（どの domainEntry.ts からも作られないキー）が、生成ヘッダの無い既存の serviceRegistry.ts にある
 // - キーの重複 / drizzleBase.ts・firestoreBase.ts があるのに domainEntry.ts が無い（例外表 ENTRY_EXCEPTIONS を除く）
 // - storageBindingFor の第 1 引数（record_type）がキーに無い / domainEntry.ts が読めない・許可外の静的 import
-// 生成ヘッダ付きの既存ファイルから消えるキー（dc:delete 後）は正当な除去として通す。
+// 生成ヘッダ付きの既存ファイルから消えるキー（pnpm generate domain -- --delete 後）は正当な除去として通す。
 // 詳細: src/lib/domain/README.md
 
 import fs from "node:fs";
@@ -43,7 +43,7 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
   }
   const domainJson = path.join(features, dir, "domain.json");
   if (!dir.startsWith("core/") && fs.existsSync(domainJson) && readHandManaged(diskView, domainJson)) {
-    return `domain.json が "generate": false なので dc:generate は書かない → src/features/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
+    return `domain.json が "generate": false なので pnpm generate domain は書かない → src/features/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
   }
   if (!dir.startsWith("core/") && fs.existsSync(domainJson)) {
     return `access は domain.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/features/${dir}/services/server/${ENTRY_FILE} を生成する`;
@@ -54,7 +54,7 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
 /**
  * 生成物のテキストと検査結果を作る（ファイルは書かない）
  * @param {string} repoRoot
- * @param {{ view?: import("./discover.mjs").FileView }} [options] view = ファイルの見え方。dc:generate が「これから書く
+ * @param {{ view?: import("./discover.mjs").FileView }} [options] view = ファイルの見え方。pnpm generate domain が「これから書く
  *   domainEntry.ts / drizzleBase.ts」を重ねて渡し、書く前に検査する（createOverlayView）
  * @returns {{ text: string, errors: string[], keys: string[], domains: import("./discover.mjs").DomainEntryInfo[] }}
  */
@@ -71,7 +71,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
           (domain.hasDomainJson && !domain.isCore && !domain.handManaged
             ? `（pnpm generate domain -- ${domain.camel} --yes --only registry で生成する）`
             : domain.hasDomainJson && !domain.isCore
-              ? `（domain.json が "generate": false なので dc:generate は書かない → 手書きする。形: src/lib/domain/README.md「generate: false の業務ドメイン」）`
+              ? `（domain.json が "generate": false なので pnpm generate domain は書かない → 手書きする。形: src/lib/domain/README.md「generate: false の業務ドメイン」）`
               : `（手書きする。登録表に載せないドメインは scripts/structure/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
       );
     }
@@ -143,7 +143,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
     "//",
     "// ドメイン名からサービス・表・主キーを引く正式な仕組み（登録表）。ドメインを 1 つ作ると行が増える一覧で、",
     "// 下流が中身を足す登録口ではない。新しい用途で独自の対応表を作らず、この表を引く（src/wiring/domainRegistry.ts の getService 系）。",
-    "// - 業務ドメイン: dc:generate が domain.json から domainEntry.ts を生成 → この表に載る",
+    "// - 業務ドメイン: pnpm generate domain が domain.json から domainEntry.ts を生成 → この表に載る",
     "// - core ドメイン・fork が core パスに作るドメイン: domainEntry.ts を手書き",
     `// - fork が core の access を変える: 隣に ${OVERRIDE_FILE}（fork 所有、access だけ）`,
     "// サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。",
@@ -178,7 +178,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
   return { text: lines.join("\n"), errors, keys: [...keyOwners.keys()], domains };
 }
 
-/** 検査エラーの文面（dc:generate の書く前の検査も同じ文面を出す） */
+/** 検査エラーの文面（pnpm generate domain の書く前の検査も同じ文面を出す） */
 export function formatRegistryErrors(errors) {
   return `${REGISTRY_FILE} を生成できません:\n${errors.map((error) => `  - ${error}`).join("\n")}`;
 }

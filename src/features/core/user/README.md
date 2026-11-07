@@ -16,7 +16,7 @@ src/features/core/user/
 │   └── form.ts           # フォーム用型定義
 ├── coreRoles/            # core ロール admin・user・debugger の JSON（消せない・無効にできない）
 ├── roles/                # 追加ロールの JSON
-├── extensions/roles.ts   # ロールの一覧（pnpm role:generate が書く）
+├── extensions/roles.ts   # ロールの一覧（pnpm generate role が書く）
 ├── constants/
 │   ├── index.ts          # 再エクスポート
 │   ├── role.ts           # ロール派生定数
@@ -59,7 +59,7 @@ roles/                    # 追加ロール
 └── contributor.role.json
 ```
 
-- `role:delete`・`role:toggle` は core ロールで止まる。`roles/` に core と同じ ID、`coreRoles/` に 3 つ以外のファイル、`isCore` を書いた JSON は `role:generate` と forge の事前検査で止まる
+- `pnpm generate role -- --delete`・`pnpm generate role -- --toggle` は core ロールで止まる。`roles/` に core と同じ ID、`coreRoles/` に 3 つ以外のファイル、`isCore` を書いた JSON は `pnpm generate role` と forge の事前検査で止まる
 - fork が core ロールで変えられるのは `label`・`hasProfile` だけ（`coreRoles/<id>.role.override.ts`、`src/features/core/userProfile/README.md`「fork の上書き」）
 
 **{role}.role.json の構造:**
@@ -83,7 +83,7 @@ roles/                    # 追加ロール
 
 ### 2. ロール読み込み
 
-`pnpm role:generate`（forge が回す）が `extensions/roles.ts` に一覧を書き、`constants` が `ALL_ROLES` として再 export する。手で直さない。
+`pnpm generate role`（forge が回す）が `extensions/roles.ts` に一覧を書き、`constants` が `ALL_ROLES` として再 export する。手で直さない。
 
 一覧の並びは DB の enum `user_role` の順そのもの（`entities/drizzle.ts`）。生成は今の並びを保ち、新しいロールを末尾に足す。
 
@@ -158,7 +158,7 @@ pnpm db:push
 >
 > **検証の失敗**: スキーマが書いた文はそのまま返し、Zod の既定の文（"Invalid url" など）は `src/config/app/user-update.config.ts` の固定文に置き換える。失敗した項目の path と code だけを server にログ（値は出さない）。
 >
-> **パスワード変更の契約（`newPassword`）**: `userService.update(id, { newPassword })` は **プロバイダー非依存の「このユーザーのパスワードをこれにする」** 契約。UI（`AdminUserManageModal` 認証タブ等）は保存先を知らず、`services/server/helpers/passwordChange.ts` の `planPasswordChange` がサーバー側で振り分ける: `local` → `localPassword` としてスキーマ入力にマージ（hash 変換・ロックアウトカウンタリセット・全セッション失効は既存経路がそのまま動く）| `email` → Firebase Auth へ同期 | それ以外（OAuth/OIDC/SAML 等）→ **DomainError 400**（パスワード経路が無いのに成功を返す「無言 no-op」を禁止）。`localPassword` を直接渡す旧経路も引き続き有効。回帰テスト: `pnpm test:user-password-change`。
+> **パスワード変更の契約（`newPassword`）**: `userService.update(id, { newPassword })` は **プロバイダー非依存の「このユーザーのパスワードをこれにする」** 契約。UI（`AdminUserManageModal` 認証タブ等）は保存先を知らず、`services/server/helpers/passwordChange.ts` の `planPasswordChange` がサーバー側で振り分ける: `local` → `localPassword` としてスキーマ入力にマージ（hash 変換・ロックアウトカウンタリセット・全セッション失効は既存経路がそのまま動く）| `email` → Firebase Auth へ同期 | それ以外（OAuth/OIDC/SAML 等）→ **DomainError 400**（パスワード経路が無いのに成功を返す「無言 no-op」を禁止）。`localPassword` を直接渡す旧経路も引き続き有効。回帰テスト: `pnpm test src/features/core/user/services/server/helpers/passwordChange.test.ts`。
 >
 > **IP データの所在に注意**: ログイン / サインアップの IP は `signupIp` 列・`metadata.loginHistory` (JSONB)・専用テーブル `user_login_events` の **3 箇所に併存** している。同一 IP のアカウント横断検索など IP 集計を行う場合は、JSONB をスキャンせず [`userLoginEvent` ドメイン](../userLoginEvent/README.md) の検索 API (`countDistinctUsersByIp` / `findUsersBySameIp` / `findUsersBySubnet`、端末受け渡し検出は `findSessionHandoffsByUser` / `findSessionHandoffsByIp`) を使うこと。明示ログアウト (logout / pause / withdraw) も同テーブルに `logout` 行として入る。併存の理由と移行方針は同 README を参照。
 
@@ -312,7 +312,7 @@ export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
 
 自前の UI なら `useBulkAddUserTags` の `trigger` を `ChecklistPopover` の `onConfirm` から呼ぶ。
 
-テスト: `pnpm test:user-name-availability`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
+テスト: `pnpm test src/features/core/user/services/server/helpers/nameAvailability.test.ts`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
 
 一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
 を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。
@@ -321,7 +321,7 @@ export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
 
 ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、
 「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
-`src/features/core/user/reservedNames/<名前>.ts` に `export const provider` を置き `pnpm extensions:generate`（上流は項目 0 = 挙動変化なし）。
+`src/features/core/user/reservedNames/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`（上流は項目 0 = 挙動変化なし）。
 
 ```ts
 // 例: 静的な予約語リスト
@@ -494,7 +494,7 @@ const result = await userClient.searchWithProfile("contributor", {
 
 ```
 cleanupHandlers/<名前>.ts      ← 項目（export const handler: UserCleanupItem）
-extensions/cleanupHandlers.ts                 ← 一覧（生成物、pnpm extensions:generate）
+extensions/cleanupHandlers.ts                 ← 一覧（生成物、pnpm generate extensions）
 services/server/cleanup.ts                    ← 項目の型と実行（必須 → 任意）
 services/server/executeCleanup.ts             ← 呼び手の入口
 ```
@@ -507,13 +507,13 @@ services/server/executeCleanup.ts             ← 呼び手の入口
 | `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録） |
 | `optionalHandlers` | `console.error` に記録して続行 | `cancelPendingPurchaseRequests`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
 
-`required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は必須、`test:feature-gate`）。
+`required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は必須、`pnpm test src/featureGate scripts/structure/proxies`）。
 
 **ハンドラの追加手順**
 
 1. 対象ドメインの `services/server/` に `UserCleanupHandler` 型 `(userId: string, tx: DbTransaction) => Promise<void>` の関数を作る
    - DB 操作は必ず渡された `tx` で行う（独自にトランザクションを開始しない）
-2. `src/features/core/user/cleanupHandlers/<名前>.ts` に項目を置き `pnpm extensions:generate`:
+2. `src/features/core/user/cleanupHandlers/<名前>.ts` に項目を置き `pnpm generate extensions`:
    `export const handler: UserCleanupItem = { required: true, enabled: () => <フラグ>, run: cleanupOnWithdraw };`
 
 ```typescript
@@ -566,7 +566,7 @@ const { user, isNewUser, isRejoin } = await userService.createFromProvider({
 - 戻り値の `user` は公開の列だけ（`localPassword` は含まない）
 - 退会者を断りたい fork は、呼ぶ前に `userService.findByProvider` で状態を見てこの口を呼ばない（口の中に選択肢を足さない）
 - 入れない物: 招待コード・流入の記録・プロフィール（呼び手がこの後に行う）。Firebase Auth のアカウントは作らない
-- テスト: `pnpm test:create-from-provider`
+- テスト: `pnpm test src/features/core/user/services/server/registration/createFromProvider.test.ts`
 
 ### 名前の公開の部品
 

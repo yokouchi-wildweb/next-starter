@@ -6,15 +6,15 @@
 
 ## domain.json スキーマ定義
 
-この決まりは `pnpm dc:generate` の生成前の検査（`scripts/structure/domain/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・Firestore の文字列でない列の検索など）は `[domain.json]` の警告として出る。
+この決まりは `pnpm generate domain` の生成前の検査（`scripts/structure/domain/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・Firestore の文字列でない列の検索など）は `[domain.json]` の警告として出る。
 
 ### トップレベルプロパティ
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
 | domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.3"`） |
-| singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`）。ドメインフォルダ名はこの camelCase（例: `sampleCategory/`）でなければならず、ずれていると dc:generate が止まる |
-| plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`）。テーブル名とルートになる。無いと dc:generate が止まる |
+| singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`）。ドメインフォルダ名はこの camelCase（例: `sampleCategory/`）でなければならず、ずれていると pnpm generate domain が止まる |
+| plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`）。テーブル名とルートになる。無いと pnpm generate domain が止まる |
 | label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
 | dbEngine | `"Neon"` \| `"Firestore"` | 🟢 Yes | 使用するDB。原則 `"Neon"`。`"Firestore"` はリアルタイム配信が本質要件のドメインのみ（`docs/!must-read/バックエンド構成ドクトリン.md`） |
 | idType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 主キーの型 |
@@ -37,11 +37,11 @@
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
-| hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `dc:generate` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
+| hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `pnpm generate domain` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
-| closable | boolean | ⚪ No | 閉じられる形のひな形を頼む（省略 = false、Neon のみ）。true なら dc:generate が門番の規則 `src/featureGate/rules/<domain>.ts` と入切の値 `config.ts`（`<SNAKE>_CONFIG.enabled`、既定 Tier1 = false・fork = true）を write-once で書く。以後は手で直す。詳細: `src/featureGate/README.md`「fork での使い方」 |
+| closable | boolean | ⚪ No | 閉じられる形のひな形を頼む（省略 = false、Neon のみ）。true なら pnpm generate domain が門番の規則 `src/featureGate/rules/<domain>.ts` と入切の値 `config.ts`（`<SNAKE>_CONFIG.enabled`、既定 Tier1 = false・fork = true）を write-once で書く。以後は手で直す。詳細: `src/featureGate/README.md`「fork での使い方」 |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
-| generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `dc:generate` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（後述「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm dc:compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
+| generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `pnpm generate domain` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（後述「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm check domain -- --compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
 | $comment | string \| string[] | ⚪ No | 開発者のメモ（JSON にはコメントが無いため）。トップレベル・Relation・Field・collection・FieldGroup のどこにでも書ける（下の「開発者のメモ（$comment）」） |
 
 #### 開発者のメモ（$comment）
@@ -90,7 +90,7 @@
 
 #### onDelete（削除時の挙動）
 
-belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/structure/domain/domain/relations.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`、出力は `render/entities/drizzle/foreignKeys.mjs`）。
+belongsTo の外部キーに付く参照先削除時の挙動。`pnpm generate domain` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/structure/domain/domain/relations.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`、出力は `render/entities/drizzle/foreignKeys.mjs`）。
 
 | 値 | 参照先が削除されたとき | 生成される Drizzle 設定 |
 |---|---|---|
@@ -101,12 +101,12 @@ belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` �
 - 適用対象は belongsTo のみ（FK が自テーブルにあるため）。hasOne / hasMany は FK が相手側なので設定しない。belongsToMany の中間テーブルは両側 CASCADE 固定
 - 解決順: `onDelete` があればそれ → 旧形式 `onDeleteCascade: true` なら CASCADE → それ以外（`onDeleteCascade: false` / 未指定）は RESTRICT
 - 既定を RESTRICT にしているのは、意図しない連鎖削除を防ぎ、CASCADE / SET_NULL を明示的な選択にするため
-- `SET_NULL` と `required: true` は矛盾する（NOT NULL 列を NULL にできない）ため、`dc:generate` がエラー終了する
+- `SET_NULL` と `required: true` は矛盾する（NOT NULL 列を NULL にできない）ため、`pnpm generate domain` がエラー終了する
 - FK 制約が働くのは物理削除のみ。ソフトデリート（`deleted_at` 設定）では onDelete は発火しない
 
 #### hasMany と withRelations
 
-hasMany リレーションを定義すると、`dc:generate` 時に drizzleBase.ts へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
+hasMany リレーションを定義すると、`pnpm generate domain` 時に drizzleBase.ts へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
 
 - 親あたりのデフォルト取得上限: 100件
 - 呼び出し側で `hasManyLimit` を指定してオーバーライド可能（例: `search({ withRelations: 1, hasManyLimit: 20 })`）
@@ -224,7 +224,7 @@ custom リレーションの UI 実装例:
 | mediaUploader | メディアアップロード用 |
 | mediaCollection | 主の集まり（従属ドメインのメディアの行の並び。列を持たない。formInput は `mediaUploaderMulti`） |
 
-`mediaUploaderMulti`（1 列の text[] に複数のメディアを持つ型）は廃止した。domain.json に残っていると dc:generate が集まりへの移行を案内するエラーで止まる。複数のメディアは mediaCollection で持つ（formInput の `mediaUploaderMulti` は集まりの入力欄の名前として残る）
+`mediaUploaderMulti`（1 列の text[] に複数のメディアを持つ型）は廃止した。domain.json に残っていると pnpm generate domain が集まりへの移行を案内するエラーで止まる。複数のメディアは mediaCollection で持つ（formInput の `mediaUploaderMulti` は集まりの入力欄の名前として残る）
 
 #### FieldType（Firestore）
 
@@ -362,14 +362,14 @@ import { ControlledField } from "@/components/Form/Field";
 - 必須 = `required`、並べ替え = `reorderable`（既存のキー。省略 = true）
 - ファイルの条件（slug・mediaTypePreset・accept・validationRule・storage）は主に書かず、従属ドメインのメディア項目に書く
 - 語彙の検査（`[domain.json]` の警告）は collection の下位キーの型を見る
-- dc:generate は、従属ドメインの domain.json（`src/features/<collection.domain の camelCase>/domain.json`）が**無いときだけ**書き出す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
+- pnpm generate domain は、従属ドメインの domain.json（`src/features/<collection.domain の camelCase>/domain.json`）が**無いときだけ**書き出す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
   - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、それ以外は singular の複数形、label = 主の項目の label、Neon、idType = 主と同じ（外部キーの型は idType number なら integer）
   - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
   - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
   - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false。従属の生成カテゴリは生成器が決める: entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う。domain.json には書かない）
   - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・主が `generate: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
   - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
-- 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/structure/domain/README.md](../../scripts/structure/domain/README.md)「dc:generate」）
+- 従属が守ること（pnpm generate domain が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/structure/domain/README.md](../../scripts/structure/domain/README.md)「pnpm generate domain」）
   - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
   - メディア項目（mediaUploader）はちょうど 1 つ。mediaCollection は持たない。ファイルの条件はここに書く（主の項目には書かない）
   - `sortOrderField` とその項目を持ち、`systemColumns` に入れる（集まりの並びを持つ列。主の項目が reorderable: false でも要る）
@@ -385,13 +385,13 @@ import { ControlledField } from "@/components/Form/Field";
 |-----------|-----|------|------|
 | slug | string | 🟢 Yes | ハンドラ識別子（camelCase） |
 | mediaTypePreset | `"images"` \| `"videos"` \| `"imagesAndVideos"` \| `"all"` | 🟢 Yes | 許可ファイル種別 |
-| accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`）。受け付ける型を必ず列挙する（`"all"` の preset でも空にしない。空だと dc:generate が止まる。lib は `*/*` を受けない）。preset の目安: images = `image/*`、videos = `video/*`、imagesAndVideos = `image/*,video/*` |
+| accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`）。受け付ける型を必ず列挙する（`"all"` の preset でも空にしない。空だと pnpm generate domain が止まる。lib は `*/*` を受けない）。preset の目安: images = `image/*`、videos = `video/*`、imagesAndVideos = `image/*,video/*` |
 | validationRule | object | ⚪ No | バリデーション設定 |
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
 | helperText | string | ⚪ No | 欄の説明文。フィールドの枠がラベルの下に描く（メディア以外の欄でも同じ。`src/components/Form/README.md`「設定駆動フィールドの使い分け」） |
 | metadataBinding | object | ⚪ No | メタデータを別フィールドに保存 |
 | storage | object | ⚪ No | ファイル用途の設定（下の「ファイルの保存（storage）」） |
-| storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると dc:generate がエラーで止まる） |
+| storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると pnpm generate domain がエラーで止まる） |
 | storage.upload | アクセスルール（`"public"` 以外） | ⚪ No | アップロードしてよい人。省略時は apiAccess の create と update の許可者の和 |
 | storage.read | アクセスルール（`"public"` を含む） | ⚪ No | 読んでよい人。省略時は apiAccess の get の規則 |
 | storage.metadata | `"strip"` \| `"keep"` | ⚪ No | 画像の位置情報などのメタデータの扱い。省略 = `"strip"`（サーバーが描き直して消す）。原本のまま残す項目（書類・明細など）だけ `"keep"` |
@@ -405,7 +405,7 @@ mimeType, src, durationSec, durationFormatted
 
 #### ファイルの保存（storage）
 
-dc:generate は、メディア項目ごとにファイル用途（`<domain>.<field>`）を ドメインの `services/server/storagePurposes.ts` に書く（`--only registry` でも書く。`pnpm registry:generate` がその一覧 `src/registry/storagePurposeRegistry.ts` を作る）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
+pnpm generate domain は、メディア項目ごとにファイル用途（`<domain>.<field>`）を ドメインの `services/server/storagePurposes.ts` に書く（`--only registry` でも書く。`pnpm generate registry` がその一覧 `src/registry/storagePurposeRegistry.ts` を作る）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
 
 - 用途 ID は `<domain>.<field>`。ref とオブジェクトのパスに入るため、使い始めた後はドメイン名・項目名を変えない
 - contentTypes は accept から作る
@@ -422,8 +422,8 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
   - 管理者だけがアップロードできる項目 → 読める人（`storage.read`、無ければ apiAccess の get）が `"public"` なら public、それ以外は private
 - private の用途には read.allow として読める人（`storage.read`、無ければ apiAccess の get の規則）を付ける。`storage.read` の `"public"` も書ける（visibility を private と明示した項目でもそのまま出す）
 - 同じ ID が項目(`src/features/core/storageObject/purposes/`)にもあると、用途表を合成するときに例外になる（`purposeSource.ts`）。AUTO から外したい用途は項目へ移す。手書きの定義（check 関数付きなど）が優先される
-- 項目を消して再生成すると、そのファイルから消える（メディア項目が 1 つも無くなるとファイルは書かれず、前の版が残るので手で消す）。dc:delete はフォルダごと消す
-- core ドメインの domain.json（notification / coupon など）は、手で管理（`generate: false`）の間は `src/features/core/storageObject/purposes/` に手で書く。`generate: true` にすると同じ ID は重複の例外になるので、そちらからは消す。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
+- 項目を消して再生成すると、そのファイルから消える（メディア項目が 1 つも無くなるとファイルは書かれず、前の版が残るので手で消す）。pnpm generate domain -- --delete はフォルダごと消す
+- core ドメインの domain.json（notification / coupon など）は、手で管理（`generate: false`）の間は `src/features/core/storageObject/purposes/` に手で書く。`generate: true` にすると同じ ID は重複の例外になるので、そちらからは消す。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
 ---
 
@@ -532,7 +532,7 @@ PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエ
 
 #### using / opclass を使うときの注意
 
-- **拡張機能は前提**: `gin_trgm_ops` は `pg_trgm`、ベクトル系は `vector` などの拡張が DB に入っている必要がある。dc:generate / db:push は拡張を作らないので、先にユーザーが `pnpm db:query "CREATE EXTENSION IF NOT EXISTS pg_trgm"` を実行する（無いと push が失敗する）
+- **拡張機能は前提**: `gin_trgm_ops` は `pg_trgm`、ベクトル系は `vector` などの拡張が DB に入っている必要がある。pnpm generate domain / db:push は拡張を作らないので、先にユーザーが `pnpm ops db inspect query "CREATE EXTENSION IF NOT EXISTS pg_trgm"` を実行する（無いと push が失敗する）
 - **演算子クラスは push で比較されない**: drizzle-kit の index 比較キーに opclass は含まれない（`using` = 方式は含まれる。`scripts/structure/registry/README.md` の round-trip 節）。宣言済みの opclass を後から変えても DB は作り直されないので、変えるときは `name` も変えて別 index として作り直す
 - 典型例: 部分一致検索（`ILIKE '%…%'`）= `gin` + `gin_trgm_ops` | jsonb の包含検索（`@>`）= `gin` + `jsonb_path_ops`（既定の `jsonb_ops` なら opclass 不要） | 前方一致（`LIKE 'abc%'`、C 以外の照合順序）= btree + `text_pattern_ops`
 
@@ -563,12 +563,12 @@ drizzle-kit は特定の書き方の index を DB から正しく読み戻せず
 
 ### core ドメインへの indexes 反映について
 
-core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が business と同じに扱う（違いはフォルダだけ。`scripts/structure/domain/README.md`）。今ある core の domain.json は `generate: false`（手で管理）なので、`indexes` を追加・変更する場合は以下のいずれかで反映する:
+core ドメイン (`src/features/core/<domain>/domain.json`) も pnpm generate domain が business と同じに扱う（違いはフォルダだけ。`scripts/structure/domain/README.md`）。今ある core の domain.json は `generate: false`（手で管理）なので、`indexes` を追加・変更する場合は以下のいずれかで反映する:
 
 1. **手書きで `entities/drizzle.ts` を直接編集** (推奨、変更が小さい場合)
    - `domain.json` の `indexes` 宣言も同時に更新する (将来の整合性のため)
    - 手書きの形式は generator 出力と完全一致させる
-2. **一時的に `generate` を true にして `pnpm dc:generate <domain> --only entities` で entities だけ書き、false に戻す**（false のままでは名指ししても書かない）
+2. **一時的に `generate` を true にして `pnpm generate domain -- <domain> --only entities` で entities だけ書き、false に戻す**（false のままでは名指ししても書かない）
    - 手で直していた entities/ の差分を git diff で確かめ、要る手書きを戻してからコミットする。true の間は生成前の検査が掛かる（落ちれば直してから）
 
 ---
@@ -585,7 +585,7 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が
 | clientServices | - | axios クライアント |
 | serverServices | - | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
 | adminRoutes | - | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
-| registry | - | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm registry:generate` が serviceRegistry.ts を作り直す） |
+| registry | - | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm generate registry` が serviceRegistry.ts を作り直す） |
 | fieldConstants | - | options を持つフィールドの定数/型 |
 | presenters | - | テーブル表示用フォーマッタ |
 
@@ -597,11 +597,11 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が
 判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
 
 > **実行時ソースは serviceRegistry**: domain.json の `apiAccess` は editing source で、
-> `dc:generate` が `services/server/domainEntry.ts` のエントリの `access` に展開し（`{ service, access, table, idColumn }`、型必須）、
+> `pnpm generate domain` が `services/server/domainEntry.ts` のエントリの `access` に展開し（`{ service, access, table, idColumn }`、型必須）、
 > `src/registry/serviceRegistry.ts` はそこから生成される。実行時の認可は registry の access を参照する。
 > コアドメインは domainEntry.ts に直接 access を書く。管理データ操作（`truncateAll` / `export` / `import`）は
-> `operations` に明示したときだけ開く（dc:generate が truncateAll = 管理者、export / import = `useImportExport` から書く）。
-> エントリは表の物理名と主キー列名（`table` / `idColumn`、型必須）も持ち、dc:generate が書く（`generate: false` で
+> `operations` に明示したときだけ開く（pnpm generate domain が truncateAll = 管理者、export / import = `useImportExport` から書く）。
+> エントリは表の物理名と主キー列名（`table` / `idColumn`、型必須）も持ち、pnpm generate domain が書く（`generate: false` で
 > 手書きしている domainEntry.ts は自分で書く。Firestore は `null`）。
 > 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（domainEntry.ts の `access`）」、`src/lib/domain/README.md`
 
@@ -624,7 +624,7 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が
 
 `list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkAddRelation` `bulkRemoveRelation` `bulkDeleteByIds` `bulkDeleteByQuery` `replaceByQuery`
 
-管理データ操作（汎用ルートではなく管理画面の専用ルートが評価する。未指定 = `"none"`）: `truncateAll` `export` `import`。domain.json では書かない（dc:generate が `useImportExport` から domainEntry.ts に書く）
+管理データ操作（汎用ルートではなく管理画面の専用ルートが評価する。未指定 = `"none"`）: `truncateAll` `export` `import`。domain.json では書かない（pnpm generate domain が `useImportExport` から domainEntry.ts に書く）
 
 #### フォールバック（fail-closed）
 
@@ -693,10 +693,10 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も dc:generate が
 - フォーム固有の入力（確認用パスワード、一時的に分けた入力欄など）は、そのフォームの隣の `formEntities.ts` に置く。使う範囲が限られるので短い名前でよい: `FormSchema`（resolver に渡す Zod スキーマ。`schema.ts` を拡張して作るのが基本）/ `FormValues`（`useForm` の型）/ `DefaultValues`
 - 同じ構造のフォームが複数要るときは、スキーマではなくフォームコンポーネントを再利用する
 
-business ドメインの `entities/` は `dc:generate` が生成するので手で編集しない。上の規約は主に core ドメインと `formEntities.ts` を書くときに使う。
+business ドメインの `entities/` は `pnpm generate domain` が生成するので手で編集しない。上の規約は主に core ドメインと `formEntities.ts` を書くときに使う。
 
 ---
 
 ## 関連コマンド
 
-domain.json を手で書いて `pnpm forge`（検査 → 生成 → 事後検査）。個別には `dc:generate <Domain> [--only <categories>]` / `dc:generate:all` / `dc:delete <Domain> --confirm <snake_name>`（既定は対話なし、`-i` で対話）。generate の旗・生成物と上書きの扱い・典型的な流れは [`scripts/structure/domain/README.md`](../../scripts/structure/domain/README.md)。
+domain.json を手で書いて `pnpm forge`（検査 → 生成 → 事後検査）。個別には `pnpm generate domain -- <Domain> [--only <categories>]` / `pnpm generate domain` / `pnpm generate domain -- --delete <Domain> --confirm <snake_name>`（既定は対話なし、`-i` で対話）。generate の旗・生成物と上書きの扱い・典型的な流れは [`scripts/structure/domain/README.md`](../../scripts/structure/domain/README.md)。

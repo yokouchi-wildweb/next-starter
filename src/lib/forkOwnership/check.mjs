@@ -271,7 +271,7 @@ export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) 
 
 /**
  * 版 rev のツリーを judge に渡す形にする(中身の読み手・ファイルの一覧・単位名の場所・lib・core の有無)。
- * runCheck は基準(merge-base)で、ownership:who は Tier1 で HEAD を基準に見立てて使う
+ * runCheck は基準(merge-base)で、pnpm workflow ownership who は Tier1 で HEAD を基準に見立てて使う
  * @param {string} repoRoot
  * @param {string} rev
  */
@@ -293,7 +293,7 @@ export function treeSnapshot(repoRoot, rev) {
 }
 
 /**
- * fork の検査の前提をそろえる(runCheck と ownership:who の共通の入口)。順に: 名前の宣言 → Tier1 なら打ち切り →
+ * fork の検査の前提をそろえる(runCheck と pnpm workflow ownership who の共通の入口)。順に: 名前の宣言 → Tier1 なら打ち切り →
  * 直接の親との基準 → 基準の受け口の一覧 → 鮮度(台帳に無い notice)→ Tier1 の版。どこかで欠ければ unverified(exit 2)
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
@@ -438,7 +438,7 @@ export function judgeFork(repoRoot, context) {
 export function runCheck(repoRoot, options = {}) {
   const context = resolveForkContext(repoRoot, options);
   if (context.status === "unverified") return context;
-  // 下流の有無の誤りで止めるのは ownership:check(と lineage の検査)だけ。ownership:who とビルドは止めない(L1.2)
+  // 下流の有無の誤りで止めるのは pnpm workflow ownership check(と lineage の検査)だけ。pnpm workflow ownership who とビルドは止めない(L1.2)
   const { downstreamError } = readForkIdentity(repoRoot);
   if (downstreamError) return unverified(`下流の有無の宣言に問題がある: ${downstreamError}`, { ownerId: context.ownerId });
   if (context.status === "tier1") {

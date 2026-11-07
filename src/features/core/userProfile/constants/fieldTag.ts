@@ -1,5 +1,5 @@
 // src/features/core/userProfile/constants/fieldTag.ts
-// プロフィールフィールドのタグ定数。値の正は fieldTags.mjs（role:generate の検査も読む）。
+// プロフィールフィールドのタグ定数。値の正は fieldTags.mjs（pnpm generate role の検査も読む）。
 // タグを足す・消すときは fieldTags.mjs を編集する
 
 export {

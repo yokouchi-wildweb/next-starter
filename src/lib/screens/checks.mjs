@@ -70,7 +70,7 @@ export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 
 /**
  * DEFAULT_IMPL_DIRS 配下の点つきの名前のファイル(拡張子を除いた名前に "." を含む: `UserLayout.replace.tsx`)を返す。
- * 点つきの名前 = fork の置き換え(.replace)なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)。
+ * 点つきの名前 = fork の置き換え(.replace)なので、upstream はこれを作らない(pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する)。
  * `*.test.*` と 1 行スイッチの既定 `<名前>.default.*` は除く(どちらも置き換えではない)
  * @param {string[]} files repo 相対パス
  */
@@ -120,7 +120,7 @@ export const FORK_OWNED_DIR = "_components";
 /**
  * src/app 配下で FORK_OWNED_DIR のセグメントを持つファイルを返す。
  * `_` の意味は場所で違う: `_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有。
- * upstream が `_components/` に置くと fork の置き場と衝突するので、test:screens が Tier1 でだけ検査する
+ * upstream が `_components/` に置くと fork の置き場と衝突するので、pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する
  * @param {string[]} files repo 相対パス
  */
 export function findForkOwnedDirFiles(files) {
@@ -522,7 +522,7 @@ export function checkLoaderFile(source, options) {
 }
 
 // ---------------------------------------------------------------------------
-// 守りの鎖の解析(ルート地図の verified と test:screens の D21 が共有する。字面だけを読む)
+// 守りの鎖の解析(ルート地図の verified と pnpm test src/lib/screens/screens.test.mjs の D21 が共有する。字面だけを読む)
 // page.tsx → 採用 Screen → 同じルートの loader → 最寄りの guard.ts → extend の親 → root(defineRootGuard)
 // ---------------------------------------------------------------------------
 

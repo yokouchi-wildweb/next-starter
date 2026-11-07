@@ -63,7 +63,7 @@ export function contentTypeFromFilename(filename: string): string {
   return CONTENT_TYPE_BY_EXTENSION[ext] ?? "application/octet-stream";
 }
 
-/** 用途 ID の規約 `<camelCase のドメイン>.<列名>`（dc:generate の用途 registry と同じ） */
+/** 用途 ID の規約 `<camelCase のドメイン>.<列名>`（pnpm generate domain の用途 registry と同じ） */
 export function mediaPurposeOf(camelDomain: string, fieldName: string): string {
   return `${camelDomain}.${fieldName}`;
 }

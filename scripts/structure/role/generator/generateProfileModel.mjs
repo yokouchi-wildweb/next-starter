@@ -73,7 +73,7 @@ export function generateProfileModel(roleConfig, profileConfig) {
 // ${roleConfig.label}プロフィールのモデル型定義
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 /**
  * ${roleConfig.label}プロフィールモデル

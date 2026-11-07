@@ -153,7 +153,7 @@ function describeTarget(url?: string): string {
   }
 }
 
-/** 対処の案内(新基盤の 2 バケットは storage:setup、それ以外は旧バケット用の設定コマンド) */
+/** 対処の案内(新基盤の 2 バケットは pnpm ops storage setup、それ以外は旧バケット用の設定コマンド) */
 function setupGuidance(url?: string): string {
   const kind = url ? classifyStorageUrl(url) : "other";
   if (kind === "public" || kind === "private") {

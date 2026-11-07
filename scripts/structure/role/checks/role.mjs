@@ -58,7 +58,7 @@ export function roleIssues({ fileName, role, profileExists }) {
  */
 export function roleWarnings({ role, profileExists }) {
   if (role?.hasProfile === false && profileExists) {
-    return [`hasProfile: false ですがプロフィール設定 ${role.id}.profile.json があります（生成し直さず、今ある生成物は残します。使うなら hasProfile を true に、使わないなら prof:delete で消す）`];
+    return [`hasProfile: false ですがプロフィール設定 ${role.id}.profile.json があります（生成し直さず、今ある生成物は残します。使うなら hasProfile を true に、使わないなら pnpm generate role -- --delete-profile で消す）`];
   }
   return [];
 }

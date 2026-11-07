@@ -26,7 +26,7 @@ export function generateProfileForm(roleConfig, profileConfig) {
 // ${roleConfig.label}プロフィールのフォーム型定義
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 import { z } from "zod";
 import { ${rolePascal}ProfileSchema } from "./schema";

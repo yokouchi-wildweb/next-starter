@@ -161,7 +161,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - detach は ready・紐付け（行と列）一致の条件付き更新。並行して置換・別の行や列へ付け替えた紐付けは外れない
 - `record_field` が null の古い紐付けは値を見ない
 - メディア列は hiddenColumns にできない（サービスの戻り値で null になり、値の照合が誤るため。createCrudService が組み立て時に throw する）
-- 確かめ方: `pnpm task storage-sweep` の戻り値の `reconcile.unreferenced`（本実行なので、`"detach"` のときは消える）。台帳側は `pnpm db:query "select record_type, record_field, count(*) from storage_objects where status = 'ready' group by 1, 2"`
+- 確かめ方: `pnpm task storage-sweep` の戻り値の `reconcile.unreferenced`（本実行なので、`"detach"` のときは消える）。台帳側は `pnpm ops db inspect query "select record_type, record_field, count(*) from storage_objects where status = 'ready' group by 1, 2"`
 
 ### 照合が止まったとき（skipped）
 
@@ -169,16 +169,16 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 | reason | 意味 | 確かめ方・直し方 |
 |---|---|---|
-| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm registry:check` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める |
+| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める |
 | `load_failed` | サービスの読み込みが失敗した | detail（例外のメッセージ）とサーバーのログ |
 | `unsupported` | サービスが searchWithDeleted を持たない（Firestore 版など） | 照合の対象外。必要ならそのドメインの削除の流れで detach する |
-| `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm db:query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `STORAGE_CONFIG.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
+| `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `STORAGE_CONFIG.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
 | `detach_limit` | 1 回の上限 `maxDetachPerRun` に達した | 次の実行で続きから片付く。続くなら原因（大量削除）を確かめる |
 
 - 紐付いた行と旧 URL（台帳に無い）は対象にならない
 - 物理削除の前に条件付き UPDATE で採用できない状態にする。掃除の取得と削除の間に attach が成功しても、採用された物は消えない
 - GCS の 404 は成功扱い。重ねて・並行に実行しても、時間予算で途中終了しても安全（次回に続きを拾う）
-- schedule は毎時。`pnpm cron:generate --plan hobby` では 1 日 1 回になる
+- schedule は毎時。`pnpm generate cron -- --plan hobby` では 1 日 1 回になる
 - **アップロード権はアプリの期限後も cloud 側でしばらく生きうる**
   - session URI は約 1 週間
   - 単発 PUT の署名 URL は期限まで、削除後の同じ key への再送も通る（実機で確認）
@@ -214,13 +214,13 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## テスト
 
-- `pnpm test:storage-object`: memoryLedger と fake ポートを使った単体テスト。読み取りルートのヘッダーのテストも含む
+- `pnpm test src/features/core/storageObject`: memoryLedger と fake ポートを使った単体テスト。読み取りルートのヘッダーのテストも含む
   - 往復: issue → commit → attach → detach → 掃除対象化
   - strip の受け入れ（実 sharp）: 受け取り領域への発行・最終 ref、commit 後に本来の位置だけに処理済み、原本の削除、途中で止まった commit の再 commit、取り消し・期限切れで両方削除、`type_mismatch` / `process_failed`、HEIC / SVG / TIFF の拒否と keep での受け付け、動画は直送、putFromServer・copy の描き直し、`user.avatar` の固定、`describePurpose`
   - 描き直しを伴わないテストは `stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
   - 発行・commit・取り消し・読み取りの受入項目
   - storage オプションの規則（`crudBinding.test.ts`）、掃除・照合（行が消えた紐付けの detach、引けない record_type、大量一致、上限、予算切れからの続き、一巡、値の照合の off / report / detach・held・列も条件にした detach）・ユーザーの物理削除の `discardAllOwnedBy`・期限切れ put pending の枠返却（`sweep.test.ts`）
-- `pnpm test:storage-object-db`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる
+- `pnpm test --db src/features/core/storageObject/services/server/ledger/drizzleLedger.db.test.ts`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる
   - 開発 DB に `test.*` の行を作り、終了時に消す
   - DATABASE_URL が無ければ skip する
   - 先に `pnpm db:push` が必要

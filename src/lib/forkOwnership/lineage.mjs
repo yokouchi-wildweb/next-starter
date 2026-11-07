@@ -6,7 +6,7 @@
 // - 打ち消し: `overrides: <fork_id>.<key> = <value> | why: <理由>`(行頭の `- ` 可)。project.md(その repo だけ)と自分の節(下流にも)に書く。
 //   名指せるのは祖先の節の (default) の鍵だけ。同じ project.md か同じ節で同じ対象を 2 回 = 失敗。勝ち負け(近い層が勝つ)は読み手の規則で、検査はしない
 // - 接触(touchedOverrides)は /flux が取り込む前後の lineage.md で見る(.claude/skills/flux/lineage-touch.mjs)。自分の打ち消しが名指す鍵が変わったら止める
-// - 書式(formatProblems)は test:core-rules が全 repo で、並び・鍵・打ち消し(checkLineageStructure / checkOverrides)は ownership:check が fork で見る
+// - 書式(formatProblems)は pnpm check rules が全 repo で、並び・鍵・打ち消し(checkLineageStructure / checkOverrides)は pnpm workflow ownership check が fork で見る
 
 import { FORK_ID_PATTERN } from "./forkIds.mjs";
 
@@ -99,7 +99,7 @@ export function parseLineage(text) {
 }
 
 /**
- * 書式の誤り(並び・祖先の名前を知らなくても言えるもの)。test:core-rules と ownership:check の両方が使う
+ * 書式の誤り(並び・祖先の名前を知らなくても言えるもの)。pnpm check rules と pnpm workflow ownership check の両方が使う
  * @param {ReturnType<typeof parseLineage>} parsed
  * @returns {string[]}
  */
@@ -118,7 +118,7 @@ export function formatProblems(parsed) {
 }
 
 /**
- * 構造の検査(fork の ownership:check)
+ * 構造の検査(fork の pnpm workflow ownership check)
  * @param {{ parsed: ReturnType<typeof parseLineage>, ancestorsOldestFirst: string[], own: string, downstream: "yes" | "none" | null }} input
  *   ancestorsOldestFirst = 節を持ちうる祖先(Tier1 を除く中間層)の名前、古い順
  * @returns {string[]} 失敗
@@ -148,7 +148,7 @@ export function checkLineageStructure({ parsed, ancestorsOldestFirst, own, downs
 }
 
 /**
- * 打ち消しの検査(fork の ownership:check)
+ * 打ち消しの検査(fork の pnpm workflow ownership check)
  * @param {{ parsed: ReturnType<typeof parseLineage>, projectText: string, own: string, projectFile?: string }} input
  * @returns {{ failures: string[], warnings: string[] }}
  */
@@ -214,7 +214,7 @@ export function touchedOverrides({ before, after, projectText, own }) {
   const touched = [];
   for (const { owner, key, where } of targets) {
     const was = keyOf(beforeParsed, owner, key);
-    if (!was) continue; // 取り込む前から名指し先が無い = ownership:check が打ち消しの誤りとして出す
+    if (!was) continue; // 取り込む前から名指し先が無い = pnpm workflow ownership check が打ち消しの誤りとして出す
     const now = keyOf(afterParsed, owner, key);
     const change = !now ? "removed" : was.isDefault && !now.isDefault ? "default-removed" : was.text !== now.text ? "changed" : null;
     if (change) touched.push({ target: `${owner}.${key}`, where, change, before: was.text, after: now?.text ?? null });

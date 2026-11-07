@@ -88,7 +88,7 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 
 1. **報酬グループ・定義を追加**: `rewardGroups/<名前>.ts` に `export const group: ReferralRewardGroupItem`（`key`・`label`・`rewards`）
 2. **ハンドラーを作成**: `services/server/handlers/<名前>.ts` に `export const handler: RewardHandlerItem`（`rewardKey`・`handler`）
-3. **一覧を作る**: `pnpm extensions:generate`
+3. **一覧を作る**: `pnpm generate extensions`
 4. **トリガー呼び出し**: 任意のタイミングで `referralRewardService.triggerRewards("trigger_name", referral, context?, tx?)` を呼ぶ
 
 サインアップ時の `triggerRewards("signup_completed", referral)` は既にベースリポジトリの登録フロー内で呼ばれている。ハンドラーが未登録の場合はスキップされる。
@@ -110,5 +110,5 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 - エンティティ: `entities/drizzle.ts`, `entities/schema.ts`, `entities/model.ts`
 - サーバーサービス: `services/server/referralRewardService.ts`, `services/server/wrappers/*`
 - 読み手: `services/server/rewardHandlerRegistry.ts`
-- 受け口: `rewardGroups/`・`services/server/handlers/`（下流でファイル追加、`pnpm extensions:generate`）
+- 受け口: `rewardGroups/`・`services/server/handlers/`（下流でファイル追加、`pnpm generate extensions`）
 - 設定: `rewardDefinitions.ts`

@@ -76,7 +76,7 @@ export function configTargets(ctx, pairs, only, io = console) {
   return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel) }), only, io);
 }
 
-/** ドメインの一覧（src/features/feature-map.txt）を書き直し、変わったら知らせる（dc:generate の書き込みの最後） */
+/** ドメインの一覧（src/features/feature-map.txt）を書き直し、変わったら知らせる（pnpm generate domain の書き込みの最後） */
 export function refreshFeatureMap(workspace, io = console) {
   const content = buildFeatureMap(workspace.featureListing());
   if (workspace.readFeatureMap() === content) return false;
@@ -115,7 +115,7 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
 }
 
 /**
- * 1 ドメインの dc:generate。組に属さなければ generateDomain と同じ。組なら全員を plan してから登録表の事前検査をまとめて行い、
+ * 1 ドメインの pnpm generate domain。組に属さなければ generateDomain と同じ。組なら全員を plan してから登録表の事前検査をまとめて行い、
  * 従属 → 主の順に書き、serviceRegistry.ts を最後に 1 回作り直して一覧を出す。
  * 対象の生成カテゴリ（gen）は対象だけに使い、組の他の員は自分の generate で決まるカテゴリを --only で絞ったもの
  * @param {{ only?: string[] | null, dryRun?: boolean, io?: { log: Function, warn: Function }, pairs?: import("./pairs.mjs").PairIndex }} [options]

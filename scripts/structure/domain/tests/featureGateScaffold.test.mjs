@@ -1,4 +1,4 @@
-// dc:generate の featureGate: domain.json の closable: true のときだけ、閉じられる形のひな形(規則と入切の値)を書き捨てで書く(L1.18)。
+// pnpm generate domain の featureGate: domain.json の closable: true のときだけ、閉じられる形のひな形(規則と入切の値)を書き捨てで書く(L1.18)。
 // 既定値は Tier1 = false・fork = true、既存は上書きしない、closable の検査(boolean・Neon だけ)。
 // 実行: pnpm test scripts/structure/domain/tests/featureGateScaffold.test.mjs
 import { after, test } from "node:test";

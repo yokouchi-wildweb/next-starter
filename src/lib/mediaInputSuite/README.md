@@ -118,7 +118,7 @@ src/lib/mediaInputSuite
 - 外す: `guardUnsaved={false}`(既定 true)
 - フォームの中でも特別な扱いはしない: 守りの元が 1 つ増えるだけで、1 回の移動に確認は 1 回(送信中なら「処理の途中」の文)
 - アップロードが済んで保存前の値は、フォームの編集済み(AppForm の守り)が受ける。ここでは守らない(未採用分の追跡で守ると、保存の後の移動で聞いてしまう: 確定は送信の後に走る)
-- 判定: `hooks/uploadGuard.ts`(テスト `pnpm test:unsaved-guard`)
+- 判定: `hooks/uploadGuard.ts`(テスト `pnpm test src/lib/`)
 
 ### 依存(読む lib)
 

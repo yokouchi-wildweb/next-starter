@@ -94,7 +94,7 @@ src/styles/
 ├── palette.css             下流      変えたい色だけ書く(出荷時はこの README を指す 1 行のコメントだけ)
 ├── typography.css          下流      変えたい書体・サイズだけ書く(同上)
 ├── overrides.css           下流      要素の既定・@keyframes・data-slot の規則(同上)
-├── gradient.css            下流      このリポのグラデーション。gradient:gen が src/config/app/gradients.config.ts から生成(手で書かない。出荷時は空)
+├── gradient.css            下流      このリポのグラデーション。pnpm generate styles が src/config/app/gradients.config.ts から生成(手で書かない。出荷時は空)
 ├── README.md               upstream  このファイル(所有はファイル単位)
 └── core/                   upstream  ★ fork は編集しない(値の変更は直下のファイルで上書き)
     ├── index.css           upstream  @layer の順序・tailwindcss・tw-animate-css と upstream の CSS の import だけ
@@ -103,14 +103,14 @@ src/styles/
     ├── typography.default.css   upstream  書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
     ├── config.css          upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
     ├── z-layer.css         upstream  z-index トークン
-    ├── gradient.default.css     upstream  gradient:gen で生成(上流の既定 src/lib/gradient/tokens.base.ts と角度ユーティリティ。fork でも上流と同じ中身)
+    ├── gradient.default.css     upstream  pnpm generate styles で生成(上流の既定 src/lib/gradient/tokens.base.ts と角度ユーティリティ。fork でも上流と同じ中身)
     ├── frame.css           upstream  枠の部位を隠す・fill の規則(手書き。外枠の属性 data-frame-hide / data-frame-fill を読む)
     ├── animations.css / base.css / components.css / utilities.css / admin.css   upstream
-    └── styleTokens.test.mjs      upstream  pnpm test:style-tokens
+    └── styleTokens.test.mjs      upstream  pnpm test src/styles/core/
 ```
 
 - upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。説明は fork 所有のファイルに書かず、この README か `.claude/rules/core/style.md` に書く。fork が直下に足した CSS も fork の物
-- グラデーションは既定と実効の対: `pnpm gradient:gen` が上流の既定を `core/gradient.default.css` に、そのリポの分(`src/config/app/gradients.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
+- グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.default.css` に、そのリポの分(`src/config/app/gradients.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
 - 名前の印: `core/` = upstream の物(`src/features/core/` と同じ印)、`<名前>.default.css` = 上流の既定、印なし = そのリポの実効(直下の `palette.css` 等)
 - 置き場の経緯: docs/journal/2026-11-04--next-starter--styles-readme-history.md
 
@@ -128,10 +128,10 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 
 色の唯一の正は `core/palette.default.css`(既定)と直下の `palette.css`(上書き)。派生物はそこから生成する:
 
-- メール用 hex 定数: `pnpm mail:generate-colors`(両ファイルの `:root` を合成して `src/features/core/mail/constants/colors.ts` を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
-- gradient トークン: `pnpm gradient:gen`(`tokens.base.ts` → `core/gradient.default.css`、`src/config/app/gradients.config.ts` → 直下の `gradient.css`。palette には依存しない)
+- メール用 hex 定数: `pnpm generate styles`(両ファイルの `:root` を合成して `src/features/core/mail/constants/colors.ts` を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
+- gradient トークン: `pnpm generate styles`(`tokens.base.ts` → `core/gradient.default.css`、`src/config/app/gradients.config.ts` → 直下の `gradient.css`。palette には依存しない)
 
-枠の部位を隠す規則: `core/frame.css`(手書きの静的な規則。各ルートの枠の宣言(`frame.default.ts` / `frame.ts`)を UserLayout が外枠の属性にし、その属性で部位を隠す)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。部位の一覧との一致は `pnpm test:user-layout`。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す・fill(枠の宣言)」
+枠の部位を隠す規則: `core/frame.css`(手書きの静的な規則。各ルートの枠の宣言(`frame.default.ts` / `frame.ts`)を UserLayout が外枠の属性にし、その属性で部位を隠す)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。部位の一覧との一致は `pnpm test 'src/app/(user)/_layout/'`。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す・fill(枠の宣言)」
 
 shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま直下の `palette.css` に貼れば効く。
 
@@ -211,7 +211,7 @@ const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable
 export const FONTS_CONFIG = defineFontsConfig({ sans });
 ```
 
-next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test:fonts` が `fonts.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、ローダーを追加した後は `fonts.config.ts` を Next 外から import しない。
+next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test src/lib/fonts/fonts.test.mjs` が `fonts.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、ローダーを追加した後は `fonts.config.ts` を Next 外から import しない。
 
 ```css
 /* src/styles/typography.css */
@@ -303,7 +303,7 @@ upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/
 | SSR | `src/app/layout.tsx` | `x-pathname`(proxy.ts 付与)からエリアを判定し `<html class="dark" data-area="...">` を出力。初回描画がエリアの既定で確定する |
 | bootstrap | 同 layout の `<head>` 内 inline script | localStorage の保存値と OS 設定を body 描画前に反映(フラッシュ防止)。`@/lib/siteTheme/bootstrapScript.ts` が設定を埋め込んで生成 |
 | クライアント | `SiteThemeSync`(`src/components/Fanctional`、root layout に常駐) | クライアント遷移・切替操作・OS 設定変化のたびに再解決して `<html>` を更新する唯一の書き手 |
-| 判定ロジック | `@/lib/siteTheme`(純関数) | 上の 3 箇所が同じ判定を共有する。bootstrap script は手書き JS だが `pnpm test:site-theme` が同一ケース集で一致を検証 |
+| 判定ロジック | `@/lib/siteTheme`(純関数) | 上の 3 箇所が同じ判定を共有する。bootstrap script は手書き JS だが `pnpm test src/lib/siteTheme/siteTheme.test.mjs` が同一ケース集で一致を検証 |
 | 設定 | `src/config/ui/site-theme.config.ts`(下流所有) | `defineSiteThemeConfig({ ...差分 })`。既定値は `@/lib/siteTheme/defaults.ts` |
 
 ### 設定の意味
@@ -346,8 +346,8 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 
 - **症状**: パレット・角丸・書体が一斉に失われる(`--primary` / `--radius` / `--font-geist-sans` が未定義)。崩れた本番の CSS チャンク(`/_next/static/**/*.css`)を取得して `--primary:` を grep すると無い。ビルドログに `Restored build cache from previous deployment` がある
 - **起きやすい状況**: デプロイ頻度の低い fork が、CSS ファイルを足す上流 notice(palette.default.css / typography.default.css の導入、`core/` への入れ替えなど)を何件もまとめて取り込んだ直後の初回デプロイ
-- **ガード**: `pnpm build` の末尾の門 `pnpm check --gate=build:post` で `styles:check-build` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
-- **直し方**: キャッシュを使わずに再デプロイする。`pnpm deploy:all -- --prod --force`、またはダッシュボードの Redeploy で「Use existing Build Cache」を外す、または環境変数 `VERCEL_FORCE_NO_BUILD_CACHE=1` を一時的に置いて再デプロイし成功後に外す。キャッシュを常時無効にはしない(Hobby プランはビルド CPU が逼迫する)
+- **ガード**: `pnpm build` の末尾の門 `pnpm check --gate=build:post` で `pnpm check styles` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
+- **直し方**: キャッシュを使わずに再デプロイする。`pnpm live -- --prod --force`、またはダッシュボードの Redeploy で「Use existing Build Cache」を外す、または環境変数 `VERCEL_FORCE_NO_BUILD_CACHE=1` を一時的に置いて再デプロイし成功後に外す。キャッシュを常時無効にはしない(Hobby プランはビルド CPU が逼迫する)
 - **運用ルール**: CSS ファイルを足す・構成を変える notice を取り込んだ後の初回本番デプロイは、ガードの有無にかかわらずキャッシュ無しで行う
 - **目印の変数**: `@theme` の外に変数を持たない upstream のファイル(`core/` の theme / animations / base / components / admin)は、固有の目印 `--styles-marker-<名前>: 1`(枠の規則 frame.css は `--styles-marker-frame`)を宣言して検査対象にしている。`core/` に CSS を足すときも、固有の変数が無ければ目印を 1 つ置く
 - **ガードの限界**: 他のファイルが宣言している名前だけを上書きするファイル(`palette.css` で `--primary` だけ変える等)は、抜けても名前が残るので検出できない(警告のみ)。fork 独自の変数(例 `--brand-accent`)を 1 つ宣言すれば検査対象になる。`@theme` 内の変数と `@utility` の中身は出力に残る保証が無いため検査しない
@@ -356,13 +356,13 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 
 | コマンド | 内容 |
 |---|---|
-| `pnpm styles:check-build` | ビルド済み CSS に global.css から辿れる全ファイルの変数が揃っているか(`pnpm build` が自動で実行) |
-| `pnpm test:built-css` | 上記の判定ロジック(@theme / @utility の除外、相対 import の走査、missing / unverifiable の判定) |
-| `pnpm test:site-theme` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
-| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が typography.default.css にある / `core/index.css` と `global.css` の import 順 / upstream が出荷する直下の 3 ファイルはコメントだけ(upstream のみ) |
-| `pnpm test:fonts` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、typography.default.css の loaded 変数参照 |
-| `pnpm test:cn` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
-| `pnpm test:variant-overrides` | オーバーライド無しで cva と同一出力 / 結合順(cva → オーバーライド → className)/ 既定 variant の解決 / 出荷時の variants.config.ts が空 |
-| `pnpm test:style-lint` | 生パレット色検出規則の検出・非検出ケース |
+| `pnpm check styles` | ビルド済み CSS に global.css から辿れる全ファイルの変数が揃っているか(`pnpm build` が自動で実行) |
+| `pnpm test scripts/structure/styles/builtCss.test.mjs` | 上記の判定ロジック(@theme / @utility の除外、相対 import の走査、missing / unverifiable の判定) |
+| `pnpm test src/lib/siteTheme/siteTheme.test.mjs` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
+| `pnpm test src/styles/core/` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が typography.default.css にある / `core/index.css` と `global.css` の import 順 / upstream が出荷する直下の 3 ファイルはコメントだけ(upstream のみ) |
+| `pnpm test src/lib/fonts/fonts.test.mjs` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、typography.default.css の loaded 変数参照 |
+| `pnpm test src/lib/cn/cn.test.mjs` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
+| `pnpm test src/lib/variantOverrides/variantOverrides.test.mjs` | オーバーライド無しで cva と同一出力 / 結合順(cva → オーバーライド → className)/ 既定 variant の解決 / 出荷時の variants.config.ts が空 |
+| `pnpm test eslint-rules/style-tokens.test.mjs` | 生パレット色検出規則の検出・非検出ケース |
 
 直下の fork のファイルは中身を検証しない(fork が自由に書く場所。入口の形と出荷時の中身だけを upstream で見る)。

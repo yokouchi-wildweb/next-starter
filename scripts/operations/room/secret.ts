@@ -34,7 +34,7 @@ if (!existsSync(wranglerBin)) {
   process.exit(1);
 }
 
-// 認証プリフライト (room:deploy と同方式。whoami は未認証でも exit 0 のため出力文字列で判定)
+// 認証プリフライト (pnpm ops room deploy と同方式。whoami は未認証でも exit 0 のため出力文字列で判定)
 if (!process.env.CLOUDFLARE_API_TOKEN) {
   let whoami = "";
   try {

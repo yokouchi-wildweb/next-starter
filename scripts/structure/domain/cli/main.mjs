@@ -1,4 +1,4 @@
-// dc:generate / dc:generate:all / dc:delete の振り分け（index.mjs の本体）。domain.json は手で書く（対話で組み立てる入口は無い）
+// pnpm generate domain [-- <Domain>] / pnpm generate domain -- --delete の振り分け（index.mjs の本体）。domain.json は手で書く（対話で組み立てる入口は無い）
 
 import { createWorkspace } from "../domain/workspace.mjs";
 import { getCliArgs, parseOnlyOption, takeValueOption } from "./args.mjs";

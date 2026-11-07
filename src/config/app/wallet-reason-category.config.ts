@@ -19,7 +19,7 @@ export type ReasonCategoryConfig = {
   countsAsIssuance?: boolean;
   /**
    * この区分の書き込みは付与の種類(reasonKey、受け口 walletHistory/reasonKeys)を渡すべきか(省略 = 要らない)。
-   * 渡さないと console.warn(書き込みは止めない)。上流のコードは静的な検査(test:wallet-reason-key)で必ず渡す
+   * 渡さないと console.warn(書き込みは止めない)。上流のコードは静的な検査(pnpm test src/features/core/wallet/services/server/wrappers/reasonKey.test.ts)で必ず渡す
    */
   requiresKey?: boolean;
 };

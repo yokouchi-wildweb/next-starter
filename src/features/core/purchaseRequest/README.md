@@ -135,7 +135,7 @@ wrappers/
 ### 3.6 期限切れ
 
 - `expirePendingRequests()`: `status='pending' AND expires_at < now` を `expired` に（`processing` は対象外）+ `releaseQuota`
-- 実行: Vercel Cron が 15 分ごとに `GET /api/cron/expire-pending-purchases`（`CRON_SECRET` 認証）を呼ぶ（Vercel Hobby では 1 日 1 回。`vercel.json` のエントリは `pnpm cron:generate` が生成）。手動は `pnpm task expire-pending-purchases`。セットアップは [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
+- 実行: Vercel Cron が 15 分ごとに `GET /api/cron/expire-pending-purchases`（`CRON_SECRET` 認証）を呼ぶ（Vercel Hobby では 1 日 1 回。`vercel.json` のエントリは `pnpm generate cron` が生成）。手動は `pnpm task expire-pending-purchases`。セットアップは [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
 
 ---
 
@@ -172,7 +172,7 @@ wrappers/
 
 1. `src/config/app/purchaseType.config.ts` の `PURCHASE_TYPE_CONFIG` にエントリを追加（`label`, `requiresWalletType`）。enum が変わるので `pnpm db:push`
 2. `services/server/completion/strategies/<name>.ts` に `export const strategy: PurchaseCompletionStrategy` を実装
-3. `pnpm extensions:generate`
+3. `pnpm generate extensions`
 4. 呼び出し側で `initiatePurchase({ purchaseType: "<name>", walletType: null, amount, paymentAmount, paymentMethod, baseUrl, metadata, ... })`
 
 ```ts
@@ -217,6 +217,6 @@ export const strategy: PurchaseCompletionStrategy = {
 
 ### 6.4 購入完了ポストフック
 
-`services/server/hooks/definitions/<名前>.ts` に `export const hook: PurchaseCompleteHook`（`{ key, priority?, handler }`）を置き `pnpm extensions:generate`。`walletResult.history` は非ウォレット型で `null` になるため、ウォレット加算前提のフックは冒頭で `if (purchaseRequest.purchase_type !== "wallet_topup") return;` とする。
+`services/server/hooks/definitions/<名前>.ts` に `export const hook: PurchaseCompleteHook`（`{ key, priority?, handler }`）を置き `pnpm generate extensions`。`walletResult.history` は非ウォレット型で `null` になるため、ウォレット加算前提のフックは冒頭で `if (purchaseRequest.purchase_type !== "wallet_topup") return;` とする。
 
 `purchase_type` 導入時（2026-04）の下流移行手順の記録: [docs/journal/2026-04-21--next-starter--purchase-type-migration.md](../../../../docs/journal/2026-04-21--next-starter--purchase-type-migration.md)

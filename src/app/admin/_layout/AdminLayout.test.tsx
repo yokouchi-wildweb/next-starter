@@ -1,7 +1,7 @@
 // 管理画面の枠(AdminLayout・AdminProtectedLayout・InsaneProtectedLayout)とページ枠部品(AdminPage・AdminHeader)の
 // slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の根の data-frame-root・部位の data-slot="admin-*"・
 // insane の data-admin-main-wrapper だけ。data-slot の一覧と枠の表の結線は ./AdminFrame.test.tsx)。
-// 実行: pnpm test src/app/admin/_layout/AdminLayout.test.tsx(test:user-layout と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
+// 実行: pnpm test src/app/admin/_layout/AdminLayout.test.tsx(pnpm test 'src/app/(user)/_layout/' と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // 重い部品(BaseSidebar・InsaneSidebar・DarkModeSwitch・Button)と useHeaderHeight・useAuthSession は目印にモックし、
 // 枠そのもの(外枠・Header・受け口・サイドバーの殻・リサイズのつまみ・Footer・並び順)は本物を描く。

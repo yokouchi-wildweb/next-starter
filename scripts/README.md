@@ -9,10 +9,10 @@
 ```bash
 # .env.example → .env.development を生成し、最小起動に必要な値を自動設定
 # (APP_BASE_URL=localhost / AUTH_JWT_SECRET / ENCRYPTION_KEY をランダム生成。既存なら何もしない)
-pnpm env:init
+pnpm ops setup env
 
 # 別名のファイルを作る場合
-pnpm env:init .env.local
+pnpm ops setup env .env.local
 ```
 
 用途: フォーク直後やクローン直後の最初の一歩。Firebase / DB 未設定でも dev サーバーが起動する状態を作る。一次情報:
@@ -23,35 +23,35 @@ pnpm env:init .env.local
 
 ```bash
 # 本体の隣 (../<repo名>.wt-<branch>) にワークツリーを作り、env 等を複製して pnpm install
-pnpm worktree:new <branch> [--from <base>] [--path <dir>]
+pnpm workflow worktree new <branch> [--from <base>] [--path <dir>]
 
 # 既存ワークツリーへ env 等を入れ直す (既定は上書きしない。--force で上書き)
-pnpm worktree:sync [path] [--force]
+pnpm workflow worktree sync [path] [--force]
 
 # 未コミットの変更が無いことを確かめて外す (ブランチは残す)
-pnpm worktree:remove <path>
+pnpm workflow worktree remove <path>
 ```
 
 複製するファイルの一覧は `scripts/workflow/worktree/include`。DB は本体と共有になる点に注意。詳細: [workflow/worktree/README.md](./workflow/worktree/README.md)
 
-### 開発サーバーのタブ (dev:tab)
+### 開発サーバーのタブ (pnpm workflow dev-tab run)
 
 ```bash
 # tmux のタブ「Dev」で開発サーバーを立てる (ポートは 3000 から空きを選ぶ。tmux の外なら裏でセッションを作る)
-pnpm dev:tab [--port=<n>]
+pnpm workflow dev-tab run [--port=<n>]
 
 # 止めてタブを閉じる / どこで動いているか
-pnpm dev:tab stop
-pnpm dev:tab status
+pnpm workflow dev-tab run stop
+pnpm workflow dev-tab run status
 ```
 
 1 チェックアウトに 1 つ (本体とワークツリーで同時に立てられる)。詳細: [workflow/dev-tab/README.md](./workflow/dev-tab/README.md)
 
-### 通常セッションを tmux で開く (setup:tmux-launch)
+### 通常セッションを tmux で開く (pnpm workflow tmux-launch setup)
 
 ```bash
 # マシンごとに 1 回: ターミナルで打った claude が tmux の中で開くようにする (--check で確かめる、--remove で外す)
-pnpm setup:tmux-launch
+pnpm workflow tmux-launch setup
 ```
 
 詳細: [workflow/tmux-launch/README.md](./workflow/tmux-launch/README.md)
@@ -59,37 +59,37 @@ pnpm setup:tmux-launch
 ### データベース (db)
 
 ```bash
-# マイグレーション生成
-pnpm db:generate
+# マイグレーション生成(package.json の入口は無い。drizzle-kit を直に呼ぶ)
+npx cross-env APP_ENV=.env.development drizzle-kit generate
 
 # スキーマをDBに反映
 pnpm db:push
 
 # シーダー実行（インタラクティブ）
-pnpm db:seed
+pnpm ops db seed
 
 # 全シーダー実行
-pnpm db:seed:all
+pnpm ops db seed --all
 
 # 機能を閉じる規則の一覧（開閉・必須・住所・表・依存・呼び出し。--name <規則名> で詳細、--json）
-pnpm features:list
+pnpm ops features list
 
 # 機能の入切（規則がドメインの config の <X>_CONFIG.enabled を読む形だけ書く。他は場所を案内して exit 2。必須は off にしない）
-pnpm features:set <規則名> on|off
+pnpm ops features set <規則名> on|off
 
 # データ削除（インタラクティブ。閉じた機能の表は選べない・参照元は外部キーから足して一覧 → 確認 → 1 文の TRUNCATE ... RESTRICT）
-# (閉じた機能の表も消す: pnpm db:clear --include-closed。計画の検査: pnpm test:db-clear。詳細: src/featureGate/README.md「db:clear と閉じた機能の表」)
-pnpm db:clear
+# (閉じた機能の表も消す: pnpm ops db clear --include-closed。計画の検査: pnpm test scripts/operations/db/clear/plan.test.ts。詳細: src/featureGate/README.md「pnpm ops db clear と閉じた機能の表」)
+pnpm ops db clear
 
 # 選べる表のデータを全部削除（対話なし。閉じた機能の表は除く）
-pnpm db:clear:all
+pnpm ops db clear --all
 
 # DB構築 + 全シード（初期セットアップ）
-pnpm db:setup
+pnpm db:push && pnpm ops db seed --all
 
 # core ドメインの drizzle.ts が全て schemaRegistry に登録されているか検証
 # (登録漏れ = db:push でテーブルが作られない。core ドメイン追加時に実行)
-pnpm test:schema-registry
+pnpm test scripts/structure/registry/
 
 # push の読み取り専用ドライラン: スキーマと DB を比較し、実行される SQL を表示 (1 文でもあれば exit 1)
 # (index を追加・変更したら db:push 後に差分ゼロを確認。ENV_FILE=.env.production で本番の事前確認にも)
@@ -104,10 +104,10 @@ pnpm db:push:check
 
 ```bash
 pnpm forge                                   # 手で書いた domain.json / role.json / profile.json から生成 + 検査（普段はこれ）
-pnpm dc:generate <Domain> [--only <cats>]    # 1 ドメインの生成（既定は対話なし、-i で対話）
-pnpm dc:generate:all                         # 全ドメインの一括生成
-pnpm dc:delete <Domain> --confirm <snake>    # ドメイン削除
-pnpm dc:feature-map [--check]                # ドメインの一覧 src/features/feature-map.txt
+pnpm generate domain -- <Domain> [--only <cats>]    # 1 ドメインの生成（既定は対話なし、-i で対話）
+pnpm generate domain                         # 全ドメインの一括生成
+pnpm generate domain -- --delete <Domain> --confirm <snake>    # ドメイン削除
+pnpm generate domain -- --feature-map [--check]                # ドメインの一覧 src/features/feature-map.txt
 ```
 
 詳細: [structure/domain/README.md](./structure/domain/README.md)、[structure/forge/README.md](./structure/forge/README.md)
@@ -116,17 +116,17 @@ pnpm dc:feature-map [--check]                # ドメインの一覧 src/feature
 
 ```bash
 # テストメール送信
-pnpm mail:test
+pnpm ops mail test-send
 
 # カラーパレット生成
-pnpm mail:generate-colors
+pnpm generate styles
 ```
 
 ### Claude API
 
 ```bash
 # API接続確認
-pnpm claude:test
+pnpm ops claude test
 ```
 
 事前設定: `.env.development` に `ANTHROPIC_API_KEY` を設定
@@ -135,10 +135,10 @@ pnpm claude:test
 
 ```bash
 # ファイル保存の新しい公開バケット(pub)と非公開バケット(priv)を冪等に用意(UBLA・公開設定・CORS まで)
-pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com --dry-run
+pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com --dry-run
 
 # 旧バケット(Firebase の既定バケット)の CORS。旧 URL のバイトをブラウザで読む機能を使う場合だけ
-pnpm storage:setup-cors https://your-app.com
+pnpm ops storage setup-cors https://your-app.com
 ```
 
 手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [operations/storage/README.md](./operations/storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
@@ -152,11 +152,11 @@ pnpm task --list               # 一覧(頻度・有効/無効・説明)
 pnpm task --due                # 今の分(UTC)に schedule が一致する定期タスクを実行(Vercel 以外のスケジューラから毎分呼ぶ)
 
 # vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
-pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
-pnpm cron:generate --plan pro     # Vercel Pro: task.ts の schedule どおり
+pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
+pnpm generate cron -- --plan pro     # Vercel Pro: task.ts の schedule どおり
 
-# vercel.json の crons が task.ts と一致するか検査(deploy:all と Vercel 上の pnpm build が先に実行)
-pnpm cron:check
+# vercel.json の crons が task.ts と一致するか検査(pnpm live 系と Vercel 上の pnpm build が先に実行)
+pnpm check cron
 ```
 
 - `pnpm task` は env ファイルを読む（`APP_ENV`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
@@ -166,16 +166,18 @@ pnpm cron:check
 
 ➡ [src/lib/cron/README.md](../src/lib/cron/README.md)
 
-### デプロイ (統合)
+### デプロイ
 
 ```bash
 # アプリ(Vercel) + ルームサーバー(Cloudflare) を1コマンドで揃えてデプロイ(手動運用の標準)
 # room 無効フォークでは Worker を skip しアプリのみ。引数は vercel CLI へ透過(無指定なら --prod)
-pnpm deploy:all
-pnpm deploy:all -- --target=preview
+pnpm live:all
+pnpm live:all -- --target=preview
+pnpm live                      # アプリ(Vercel)だけ(= pnpm live:app)
+pnpm live:room                 # ルームサーバーだけ(中身は pnpm ops room deploy)
 ```
 
-事前に `pnpm cron:check` を実行し、`vercel.json` の crons が `task.ts` と食い違えば何もデプロイせず止まる。
+どれも事前に `pnpm check cron` を実行し、`vercel.json` の crons が `task.ts` と食い違えば何もデプロイせず止まる。
 
 ※ vercel CLI に `--preview` フラグは無い(`--prod` は `--target=production` の短縮形)。プレビューは `--target=preview` を明示する
 
@@ -183,36 +185,36 @@ pnpm deploy:all -- --target=preview
 
 ```bash
 # 有効化セットアップ(wrangler.toml 生成 + 依存インストール + チェックリスト表示。冪等)
-pnpm room:init
+pnpm ops room init
 
 # Worker 単体デプロイ(config enabled=false なら skip。既定Worker名 "room-server" は拒否。冪等)
-pnpm room:deploy
+pnpm ops room deploy
 
 # 共有鍵の生成 + Worker への非対話登録 + Next側env行の表示(未デプロイWorkerと登録済み鍵の上書きは拒否)
-pnpm room:secret
-pnpm room:secret --rotate   # 鍵ローテーション(Next側envの差し替えとセットで)
+pnpm ops room secret
+pnpm ops room secret --rotate   # 鍵ローテーション(Next側envの差し替えとセットで)
 
 # デプロイ済み Worker の動作確認(疎通・認可・WS配信・永続化の11項目。env から接続先を読む)
-pnpm room:check
+pnpm ops room check
 
 # ローカル実行(Cloudflare アカウント不要。wrangler dev)
-pnpm room:dev
+pnpm ops room dev
 ```
 
 用途: ホットパス・リアルタイム基盤 `servers/room` (Cloudflare Durable Objects) の運用コマンド。オプトイン既定無効。手順・env・CI 連携の一次情報:
 
 ➡ [servers/room/README.md](../servers/room/README.md)
 
-### ESLint の必須規則 (eslint:required)
+### ESLint の必須規則 (pnpm check eslint)
 
 ```bash
 # 全 Tier の必須の ESLint 規則が、fork の設定を最後に読んだ最終の設定でも error のままか
-pnpm eslint:required
+pnpm check eslint
 ```
 
 - 一覧 = `eslint-rules/required-rules.mjs`(upstream の物。規則名と、その規則が掛かる代表のファイル)。tier で強さが変わらない守り・境界の規則だけを載せる
 - `eslint.config.fork.mjs` は `eslint.config.mjs` の最後に読まれるので、ここで一覧の規則を off / warn にすると止まる。規則を足す・一覧の外を緩めるのは自由。行ごとの例外は理由付きの eslint-disable
-- `pnpm build` の門 `pnpm check --gate=build` が回す(fork の Vercel のビルドと /flux の build 検査でも走る)。試験: `pnpm test:eslint-required`
+- `pnpm build` の門 `pnpm check --gate=build` が回す(fork の Vercel のビルドと /flux の build 検査でも走る)。試験: `pnpm test scripts/structure/eslint/requiredRules.test.mjs`
 
 ### テスト (tsx で動かすもの)
 
@@ -225,7 +227,7 @@ npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <テストファ
 - 理由: `import "server-only"` は Next のバンドラーだけが解決する。テストが serviceRegistry などから server コードへ import をたどると、素の tsx では `Cannot find module 'server-only'` で全件落ちる（依存の import 連鎖次第なので、今通っているテストもドメイン追加で落ち始める）。
 - preload はテスト実行時だけ `server-only` を空モジュールに差し替える。ソース側の `import "server-only"` は消さない。
 - `server-only` を devDependencies に入れても解決しない（本物は react-server 条件以外では import 時に throw する）。
-- `--experimental-test-module-mocks`（`mock.module`）を使うテストでも同じ preload で足りる。module mocks を有効にすると CJS の require が import のフックを通らないため、preload は `Module._resolveFilename` も包んでいる。回帰テスト: `pnpm test:server-only-stub`。
+- `--experimental-test-module-mocks`（`mock.module`）を使うテストでも同じ preload で足りる。module mocks を有効にすると CJS の require が import のフックを通らないため、preload は `Module._resolveFilename` も包んでいる。回帰テスト: `pnpm test scripts/runner/preload/serverOnly.test.mts`。
 - `mock.module` は後から読み込むモジュールにしか効かない。モックの影響を受けるモジュールは `mock.module` の後に動的 import する（例: `src/features/core/storageObject/callsites.test.mts`）。
 
 ## 置き場の境目(lint、全 Tier で error)
@@ -233,7 +235,7 @@ npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <テストファ
 - `import-boundaries/src-no-scripts`: `src/**`(テストも)は `scripts/**` を import しない。アプリと道具が両方使う物は `src/lib` に置く(例 `src/lib/cron/discover.ts`・`src/lib/task`)。道具の側を確かめるテストは `scripts` の側に置く
 - `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/features/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使うときは run の中で `await import("@/wiring/…")`
 - `import-boundaries/tools-no-db-write`: ドメインの `scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義 `entities/drizzle`・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行(`src/features/<domain>/scripts/migrations/`)
-- 3 本とも必須の規則の一覧(`eslint-rules/required-rules.mjs`)に載る: fork の `eslint.config.fork.mjs` で off / warn にすると `pnpm build`(`pnpm eslint:required`)が止まる。行ごとの例外は理由付きの eslint-disable
+- 3 本とも必須の規則の一覧(`eslint-rules/required-rules.mjs`)に載る: fork の `eslint.config.fork.mjs` で off / warn にすると `pnpm build`(`pnpm check eslint`)が止まる。行ごとの例外は理由付きの eslint-disable
 
 ## ディレクトリ構成
 
@@ -251,7 +253,7 @@ scripts/
 ├── room/                  # リアルタイムルーム基盤の init / deploy
 ├── test/                  # テスト実行用の preload (server-only の差し替え)
 ├── worktree/              # ワークツリーの作成・env 複製・片付け
-├── dev-tab/               # 開発サーバーを tmux のタブで立てる・止める (pnpm dev:tab)
-├── tmux-launch/           # ターミナルの claude を tmux で開く仕組み (pnpm setup:tmux-launch)
+├── dev-tab/               # 開発サーバーを tmux のタブで立てる・止める (pnpm workflow dev-tab run)
+├── tmux-launch/           # ターミナルの claude を tmux で開く仕組み (pnpm workflow tmux-launch setup)
 └── tasks/                 # 運用タスクの CLI ランナーとワンショットタスク (pnpm task、tasks/README.md)
 ```

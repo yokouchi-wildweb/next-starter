@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-`/flux` が各区間のコミットの後・push の前に `pnpm ownership:check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)、拡張点の宣言の読み手(`declarations.mjs`、生成器 `scripts/structure/extensions` も使う)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)、基準の版のファイル一覧(`baseFiles.mjs` の `readBaseFiles`・`lastUpstreamSha`。notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口、テスト `pnpm test:fork-ownership`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+`/flux` が各区間のコミットの後・push の前に `pnpm workflow ownership check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)、拡張点の宣言の読み手(`declarations.mjs`、生成器 `scripts/structure/extensions` も使う)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)、基準の版のファイル一覧(`baseFiles.mjs` の `readBaseFiles`・`lastUpstreamSha`。notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口、テスト `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -54,14 +54,14 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
 
 - 載せている物(手書き): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチの素の名前(page.tsx・枠の layout.tsx・core の 1 行スイッチ)/ `_components/**` / cron の `task.override.ts` / `domainEntry.override.ts`・ロールとプロフィールの override / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
-- 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm extensions:generate` が拡張点の宣言と 1 行スイッチから書き、ずれは `pnpm extensions:check` が止める(手で編集しない、`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。行は全部 `add`: 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)・1 行スイッチの `<名前>.replace`・`_layout` / `_screen` の隣の `*.replace`・`scripts/tasks/*.ts`。区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても合格(検査は基準の区画を読む)。既知の穴: フォルダ形の行は上流のフォルダ項目の中への fork のファイル追加も通す(第 2 段の棚の検査へ)
-- 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す。生成区画の行は見ない(項目 0 の受け口はフォルダが無い)
+- 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm generate extensions` が拡張点の宣言と 1 行スイッチから書き、ずれは `pnpm check extensions` が止める(手で編集しない、`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。行は全部 `add`: 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)・1 行スイッチの `<名前>.replace`・`_layout` / `_screen` の隣の `*.replace`・`scripts/tasks/*.ts`。区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても合格(検査は基準の区画を読む)。既知の穴: フォルダ形の行は上流のフォルダ項目の中への fork のファイル追加も通す(第 2 段の棚の検査へ)
+- 一覧の鮮度: `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す。生成区画の行は見ない(項目 0 の受け口はフォルダが無い)
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(ただし `next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は、印の行ごと生成器の区画として除く。Next の版で中身が変わるので upstream に固定で置けない)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す
   - 載せる基準: 案内が「core の中のこのファイルを fork が編集・差し替える」で、受け口(edit / region・fork が足すファイル・`src/config/**`)で済まない物。登録の API(`register*()`)を fork のファイルから呼べる物、fork が新しいファイルを足すだけの置き場は載せない
   - 理由の欄 = 案内の所在 → 受け口づくりの依頼の番号(`upreq:<id>`)。fork がその箇所を書き換えるときは、この番号を書いた一時許可で通す
-  - 件数: Tier1 で `pnpm ownership:check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、`pnpm test:fork-ownership` が diagnostic で出す。`/inbox` の一覧の先頭にも出る
-  - 負債の行が実在しないファイルを指す・依頼の番号が無いと `pnpm test:fork-ownership` が失敗する
+  - 件数: Tier1 で `pnpm workflow ownership check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、`pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs` が diagnostic で出す。`/inbox` の一覧の先頭にも出る
+  - 負債の行が実在しないファイルを指す・依頼の番号が無いと `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs` が失敗する
 - 中間 Tier の一覧にも「下流が消してよい」行は作らない。要らない物は持ち主が自分で消し、merge で流す
 - API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `replaceIntakeBlock(text, rows)` → 生成区画を入れ替えたテキスト / `judge({ changes, baseText, headText, baseLibs, baseHasCore, baseHasGate, intake, places, baseUnits })` → `{ entries: [{ status, path, from, kind, reason, verdict, clash }], counts }`(`places` = `unitPlaces(基準のファイル, 基準の中身)`、`baseUnits` = `unitIndex(基準のファイル)`。渡さなければ単位名の検査をしない。`clash` = unit-clash の相手の基準のパス)
 
@@ -93,7 +93,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | same-as-base(残骸) | 基準と同じに戻った | 失敗(行を消す) |
   | unused(残骸) | 違反の無いファイルの行 | 失敗(行を消す) |
 
-- 依頼の解決: 親が依頼を片付けて出荷するとき、notice の `resolves:` 欄に依頼の番号を書く(下流から来た依頼なら必ず。`.notices/README.md`「解決(resolves)」)。`pnpm ownership:check` は基準(取り込み済み)の消えない索引 `.notices/shipped/*.md` の行と本文(`.notices/` と `done/`)の `resolves:` を集め(和をとる。親が本文を片付けても索引の行で失効は変わらない)、すべての番号が解決した許可を expired-resolved にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の許可に当たる行を示す
+- 依頼の解決: 親が依頼を片付けて出荷するとき、notice の `resolves:` 欄に依頼の番号を書く(下流から来た依頼なら必ず。`.notices/README.md`「解決(resolves)」)。`pnpm workflow ownership check` は基準(取り込み済み)の消えない索引 `.notices/shipped/*.md` の行と本文(`.notices/` と `done/`)の `resolves:` を集め(和をとる。親が本文を片付けても索引の行で失効は変わらない)、すべての番号が解決した許可を expired-resolved にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の許可に当たる行を示す
 - 却下: 親は却下・取り下げで閉じた依頼にも `resolves:` を書くので、許可は失効する。fork は元に戻す・受け口へ移す・別の方針で許可し直す、のどれかを必須にする(`/flux`・`/wen` が一覧に出す)
 - 修正だけ先に取り込めるのは、親が `hotfix:` を宣言した notice の commit と、親が索引の行に `pick:clean` を付けた修正の notice の commit だけ(下の「緊急修正の pick」。台帳の `picked:` の扱いは同じ)
 - API: `parsePermits(text)` → `{ permits, errors }` / `blobId(text)` / `fingerprint(text, kind)` / `checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs })` → `{ entries(permit・verdict 付き), leftovers }` / `permitsPath(forkId)`
@@ -128,21 +128,21 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 - 文言は `.claude/rules/` の marker(`fork entries below (upstream never edits below this line)`)と語を揃えている
 - upstream は対の中を編集しない。区画を足す・動かすときは notice で知らせる
 - 生成器の区画(`AUTO-GENERATED` 系)は fork の区画ではない(生成器の印の統一は別の論点)
-- 古い下流の印 3 通り(`// --- DOWNSTREAM (downstream で追加) ---` / `// --- ここに…（上流は空。下流が追記） ---` / `// --- FORK (手書き) ---`)は、`regions.mjs` が移行のために読める(終わりは字下げの浅い閉じ括弧)。ただし `pnpm test:fork-regions` は残っていれば失敗にする
+- 古い下流の印 3 通り(`// --- DOWNSTREAM (downstream で追加) ---` / `// --- ここに…（上流は空。下流が追記） ---` / `// --- FORK (手書き) ---`)は、`regions.mjs` が移行のために読める(終わりは字下げの浅い閉じ括弧)。ただし `pnpm test src/lib/forkOwnership/regions.test.mjs` は残っていれば失敗にする
 - API(`regions.mjs`、Node 組み込みだけの `.mjs`)
   - `parseForkRegions(text)` → `{ regions: [{ start, end, legacy }], errors: [{ line, message }] }`(行は 1 始まり、start / end は印の行)
   - `isInForkRegion(regions, line)`: その行が区画の中(印の行を除く)か
   - `FORK_REGION_START` / `FORK_REGION_END` / `LEGACY_FORK_MARKERS`
 - 生成器の区画の読み取りも同じファイル: `parseGeneratorRegions(text)` / `stripOwnedRegions(text, { fork })`
-- 検査: `pnpm test:fork-regions`(`regions.test.mjs`)= 受け口の一覧で region の全ファイルの対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
+- 検査: `pnpm test src/lib/forkOwnership/regions.test.mjs`(`regions.test.mjs`)= 受け口の一覧で region の全ファイルの対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
 
 ## 使い方
 
 ```sh
-pnpm ownership:check            # fork の中で。commit 済みの HEAD を見る(作業ツリーの未 commit は見ない)
-pnpm ownership:check --json     # 機械向け(CI・集計)
-pnpm ownership:check --verbose  # 合格したパスも並べる
-pnpm ownership:check --parent=upstream --branch=main
+pnpm workflow ownership check            # fork の中で。commit 済みの HEAD を見る(作業ツリーの未 commit は見ない)
+pnpm workflow ownership check --json     # 機械向け(CI・集計)
+pnpm workflow ownership check --verbose  # 合格したパスも並べる
+pnpm workflow ownership check --parent=upstream --branch=main
 ```
 
 - 終了コード: 0 = 合格(Tier1 は「親なし: 対象外」)/ 1 = 違反あり / 2 = 未検証・設定の不足(合格にしない)
@@ -157,17 +157,17 @@ pnpm ownership:check --parent=upstream --branch=main
   4. Tier1 の版(下の「多段の Tier」)を台帳からたどる
   5. 判定: `git diff --name-status -M <base> HEAD` を judge に、Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替え、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む
 
-## 持ち主を調べる(ownership:who)
+## 持ち主を調べる(pnpm workflow ownership who)
 
-ファイルの持ち主は git の分岐点で決まる(D137)ので、名前を見ても分からない。`pnpm ownership:who` はパスごとに、持ち主・できること・根拠を答える。読むだけ(リポのファイルは書かない。親の取得 `git fetch` は remote の ref だけを動かす)。
+ファイルの持ち主は git の分岐点で決まる(D137)ので、名前を見ても分からない。`pnpm workflow ownership who` はパスごとに、持ち主・できること・根拠を答える。読むだけ(リポのファイルは書かない。親の取得 `git fetch` は remote の ref だけを動かす)。
 
 ```sh
-pnpm ownership:who <path...>          # フォルダは中のファイル(HEAD ∪ 基準)に広げて 1 ファイルずつ答える
-pnpm ownership:who <path...> --json   # 機械向け(エージェント・集計)
-pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
+pnpm workflow ownership who <path...>          # フォルダは中のファイル(HEAD ∪ 基準)に広げて 1 ファイルずつ答える
+pnpm workflow ownership who <path...> --json   # 機械向け(エージェント・集計)
+pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 ```
 
-- 判定の規則は持たない: 前提(名前・基準・受け口の一覧・鮮度・Tier1 の版)は `ownership:check` と同じ `resolveForkContext`、今の差分は同じ `judgeFork`(judge → 中間 Tier の付け替え → pick → 一時許可)、「足したら」の答えは同じ `judge` に仮の A を渡して出す(`check.mjs`)
+- 判定の規則は持たない: 前提(名前・基準・受け口の一覧・鮮度・Tier1 の版)は `pnpm workflow ownership check` と同じ `resolveForkContext`、今の差分は同じ `judgeFork`(judge → 中間 Tier の付け替え → pick → 一時許可)、「足したら」の答えは同じ `judge` に仮の A を渡して出す(`check.mjs`)
 - 持ち主(`owner.kind`)
   - `tier1` = Tier1 の版にある / `middle` = 基準にあるが Tier1 の版に無い(`owner.forkId` = その版を持つ、Tier1 に最も近い中間 Tier の `fork_id:`。台帳の鎖でたどれなければ基準の project.md の `fork_id:`)/ `fork` = 基準に無く HEAD にある(この fork が足した)/ `generated` = 受け口の一覧の generated の行に当たる(`owner.tier` に元の持ち主)/ `missing` = 基準にも HEAD にも無い
 - できること(`allowed`、無ければ `none`)
@@ -176,10 +176,10 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
   - `replace`: `<名前>.replace.ts(x)`(`<名前>.default` の隣も同じ名前)を名指しする add の行があり、足しても合格のとき。1 行スイッチを向け替える
   - `override`: `<対象>.override.ts`(cron のフォルダは `task.override.ts`)を名指しする行があり、足しても合格のとき。`src/config/**` のような広い edit の行では上書きの口があるとは言わない
   - `none` = 受け口が無い → `/order <直接の親>`(要るまでの間は一時許可、上の「一時許可」)。`blocked` に止まる理由(`outside-intake`・`debt` など)
-- 根拠(`evidence`): 基準・Tier1 の版・HEAD にあるか / 当たった受け口の行(行番号・kind・glob・理由)/ 今の差分(`ownership:check` と同じ status・reason・合否、違反なら一時許可の行の下書き)/ 自分の一時許可の行(行番号・依頼の番号・状態)。冒頭に基準(remote・branch・merge-base)と Tier1 の版(台帳の鎖)
+- 根拠(`evidence`): 基準・Tier1 の版・HEAD にあるか / 当たった受け口の行(行番号・kind・glob・理由)/ 今の差分(`pnpm workflow ownership check` と同じ status・reason・合否、違反なら一時許可の行の下書き)/ 自分の一時許可の行(行番号・依頼の番号・状態)。冒頭に基準(remote・branch・merge-base)と Tier1 の版(台帳の鎖)
 - Tier1 では「直接の fork から見たら」を答える(基準 = HEAD、受け口の一覧 = HEAD の版)。冒頭に「このリポ = Tier1: 自由に編集できる」
-- 終了コード: 0 = 答えた / 2 = 未検証(`ownership:check` の「鮮度」と同じ条件。台帳に無い notice があるときも)・引数の誤り
-- テスト: `who.test.mjs`(`pnpm test:fork-ownership`)
+- 終了コード: 0 = 答えた / 2 = 未検証(`pnpm workflow ownership check` の「鮮度」と同じ条件。台帳に無い notice があるときも)・引数の誤り
+- テスト: `who.test.mjs`(`pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs`)
 
 ## CI
 
@@ -201,7 +201,7 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
 - 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit` は付け替えない(どの段でも止める)
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
-- override: Tier1 は override(`<対象>.override.ts`。cron は `src/app/api/cron/<name>/task.override.ts`)を出荷しない(`pnpm extensions:check` が検査、`scripts/structure/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
+- override: Tier1 は override(`<対象>.override.ts`。cron は `src/app/api/cron/<name>/task.override.ts`)を出荷しない(`pnpm check extensions` が検査、`scripts/structure/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
 - 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`・`src/app/_providers/ForkProviders.tsx`)だけで、並べ替えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
 - 規則と実装の分担(D10): `.claude/rules/lineage.md` の祖先の節 = その祖先の下流への契約で、下の Tier は誤字も直さず `/order <その節の持ち主>`。中間 Tier が足したファイル(lineage.md の外) = 実装で、下の Tier が直せる。ただし親の `<名前>.default.<拡張子>` は除く(既定はそれを作ったリポの物。下の Tier は隣の印なしのファイルに重ねる)。書き換えは `default-edit` がどの段でも止める。中間 Tier の既定の削除・rename はまだ `middle-tier`(合格)で、止めるのは棚の議会の側
@@ -214,16 +214,16 @@ pnpm ownership:who <path...> --no-fetch --parent=upstream --branch=main
 - 打ち消し(`checkOverrides`): `overrides: <fork_id>.<key> = <value> | why: <理由>` は project.md(そのリポだけ)と自分の節(下流にも)に書く。名指せるのは祖先の節の `(default)` の鍵だけ。鍵が無い・`(default)` でない・同じ project.md か同じ節で同じ対象を 2 回 = 失敗。祖先の鍵と同じ名前の鍵が project.md に overrides の行なしである = 警告
 - 接触(`touchedOverrides`): `/flux` が取り込む前後の lineage.md を比べ、自分の打ち消しが名指す鍵が変わったら止める(`.claude/skills/flux/lineage-touch.mjs`)
 - `runCheck` の `lineage` 欄 = `{ checked, failures, warnings }`(lineage.md の無い版は `checked: false` で検査しない)。failures は違反と同じく exit 1、件数は reason `lineage`。祖先の部分が基準どおりかは受け口 `append .claude/rules/lineage.md` の判定が見る
-- 書式(`formatProblems`): `pnpm test:core-rules` が全リポで同じ parser を使って見る(前置きの終わりの印・節の閉じ・節の中の鍵の重複)
+- 書式(`formatProblems`): `pnpm check rules` が全リポで同じ parser を使って見る(前置きの終わりの印・節の閉じ・節の中の鍵の重複)
 
 ## fork の名前の宣言
 
-各リポの名前の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test:fork-ids`)。名前を使うのは台帳・一時許可・`src/lib/CATALOG.md` の節の見出し・受信箱だけで、受け口のファイル名には使わない(D137。fork の物の見分けは git の分岐点)。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
+各リポの名前の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test src/lib/forkOwnership/`)。名前を使うのは台帳・一時許可・`src/lib/CATALOG.md` の節の見出し・受信箱だけで、受け口のファイル名には使わない(D137。fork の物の見分けは git の分岐点)。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
 
 - 自分の名前: `.claude/rules/project.md` の `fork_id: <名前>` の 1 行。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前(`-` の印は廃止)
 - 親(上の Tier)の名前: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれる)。fork が書くのは自分の `fork_id:` の 1 行だけ
-- 使える形: 小文字・数字・ハイフン(台帳・一時許可のファイル名になるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(ownership:check は exit 2)
-- 下流の有無: 同じ `project.md` の `fork_id:` と同じ節に `downstream: yes|none` の 1 行(yes = 下流の fork を持つ・持つ予定)。読み手は `forkIds.mjs` だけで、`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う。欠落・2 行以上・yes / none 以外・`fork_id:` と別の節は `downstreamError`(名前の誤りの `errors` とは別の欄)。止めるのは ownership:check(未検証 = exit 2)と lineage.md の検査だけで、`extensions:check`(`pnpm build`)は止めない。散文で下流を説明する行は別の鍵名(Tier1 は `downstream_users:`)
+- 使える形: 小文字・数字・ハイフン(台帳・一時許可のファイル名になるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(pnpm workflow ownership check は exit 2)
+- 下流の有無: 同じ `project.md` の `fork_id:` と同じ節に `downstream: yes|none` の 1 行(yes = 下流の fork を持つ・持つ予定)。読み手は `forkIds.mjs` だけで、`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う。欠落・2 行以上・yes / none 以外・`fork_id:` と別の節は `downstreamError`(名前の誤りの `errors` とは別の欄)。止めるのは pnpm workflow ownership check(未検証 = exit 2)と lineage.md の検査だけで、`pnpm check extensions`(`pnpm build`)は止めない。散文で下流を説明する行は別の鍵名(Tier1 は `downstream_users:`)
 - API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, downstream, downstreamError, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)` / `parseDownstreamDeclaration(text)`
 - origin の URL から導く実装は持たない(D27)
 

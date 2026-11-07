@@ -47,7 +47,7 @@ export function unitPlaces(baseFiles, readBase) {
   for (const path of baseFiles) {
     if (!DECLARATION.test(path)) continue;
     const owner = dirOf(path);
-    // 宣言の唯一の読み手で読む(形の誤りのある宣言は点 0。止めるのは extensions:check)
+    // 宣言の唯一の読み手で読む(形の誤りのある宣言は点 0。止めるのは pnpm check extensions)
     for (const point of Object.values(readDeclaration(path, readBase(path) ?? "").points)) {
       if (typeof point.dir === "string") direct.add(normalize(`${owner}/${point.dir}`));
     }

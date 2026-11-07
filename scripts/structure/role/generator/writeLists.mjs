@@ -1,6 +1,6 @@
 // scripts/structure/role/generator/writeLists.mjs
 // ロール・プロフィールの一覧（user/extensions/roles.ts・userProfile/extensions/profile*.ts）を丸ごと書く。
-// 宣言: user・userProfile の extensionPoints.ts（writer: "role:generate"。extensions:generate は書かない）
+// 宣言: user・userProfile の extensionPoints.ts（writer: "role:generate"。pnpm generate extensions は書かない）
 
 import fs from "fs";
 import path, { dirname } from "path";

@@ -38,7 +38,7 @@ fetch 側 / canvas 側で対称な「診断プリミティブ + ラッパー」�
 - `private`: 同一 origin の固定 URL `/api/storage/objects/<id>`。302 先が非公開バケットなので、同一 origin でも診断の対象にする
 - `public`: 公開 base(`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`)の配下、または公開 base の独自ホスト(`publicStorageHosts`)
 - `legacy`: 旧 Firebase Storage のホスト(公開 base の配下以外。非公開バケットの署名 URL を直接渡した場合もここ)
-- 案内の対処は `public` / `private` なら `pnpm storage:setup`、それ以外は旧バケット用の `pnpm storage:setup-cors`
+- 案内の対処は `public` / `private` なら `pnpm ops storage setup`、それ以外は旧バケット用の `pnpm ops storage setup-cors`
 
 ## 使い方
 

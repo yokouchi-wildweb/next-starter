@@ -495,11 +495,11 @@ for (let i = 0; i < 10; i++) {
 区分（`reason_category`: bonus / admin_adjustment …）より細かい「どの施策の付与か」を、機械向けの名前で行に持たせる（管理画面のコイン創出の施策ごとの内訳に使う）。`reason` の文や `meta` を集計の軸にしない。
 
 - **施策を足す = 種類の項目 1 つ + 書き込みで `reasonKey` を渡す**:
-  1. `src/features/core/walletHistory/reasonKeys/<名前>.ts` に `export const reasonKey: WalletReasonKeyItem = { key, label, category, sortOrder? }` → `pnpm extensions:generate`（型: `walletHistory/types/reasonKey.ts`。key の重複は一覧の読み込みで例外）
+  1. `src/features/core/walletHistory/reasonKeys/<名前>.ts` に `export const reasonKey: WalletReasonKeyItem = { key, label, category, sortOrder? }` → `pnpm generate extensions`（型: `walletHistory/types/reasonKey.ts`。key の重複は一覧の読み込みで例外）
   2. 書き込み（`adjustBalance` / `consumeReservedBalance` / `debitBalance` / `bulkAdjustByType` / `bulkAdjustByUsers` / `createWalletBulkAdjustJob`）で `reasonKey: "<key>"` を渡す
 - **区分は種類から決まる**: `reasonKey` を渡せば `reason_category` は項目の `category`。`reasonCategory` も渡して食い違う・未登録の key は書き手の誤りとして `DomainError` 500（`code: wallet_reason_key_mismatch | wallet_reason_key_unknown`）
 - `reasonKey` なしは今まで通り（`reasonCategory ?? "other"`、`reason_key` は null）
-- **requiresKey**: 区分の config の `requiresKey: true`（上流の既定 = `bonus`）の書き込みに `reasonKey` が無いと `console.warn`（書き込みは止めない）。上流のコードは `pnpm test:wallet-reason-key` の静的な検査で必ず渡す
+- **requiresKey**: 区分の config の `requiresKey: true`（上流の既定 = `bonus`）の書き込みに `reasonKey` が無いと `console.warn`（書き込みは止めない）。上流のコードは `pnpm test src/features/core/wallet/services/server/wrappers/reasonKey.test.ts` の静的な検査で必ず渡す
 - **管理者の調整**: `/api/admin/wallet/[userId]/adjust`・`bulk/adjust-by-type` は `reasonKey` を受ける。省略して区分も省略（または `admin_adjustment`）なら固定キー `admin_adjustment`。他の区分を選んだ調整は種類なし。未登録の key は 400
 - 上流の項目: `coupon_attribution_reward`（bonus、クーポン帰属報酬の付与）・`admin_adjustment`（admin_adjustment、管理者の調整）
 - **過去の行に種類を埋める**（冪等・時間予算付き・dry-run あり）: `backfillWalletReasonKeys(rules, { dryRun, deadline?, chunkSize? })`（`walletHistory/services/server/reasonKeyBackfill.ts`）
@@ -742,7 +742,7 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
    - dry-run の `overdueAmount` は没収見込み額の上限。実際の没収額は locked_balance 保護によりこれ以下になる
 3. 失効スイープと prune のスケジュール: `wallet-expire-lots`（失効の没収）と `wallet-lots-prune`（消費済みロットの掃除）は
    `src/app/api/cron/` に配線済みで、1 で `expirationDays` / `sweepEnabled` を設定した時点から日次で本体が動く
-   （**追加作業なし**。設定前は呼ばれても即 skipped を返す）。前提は cron の配線（`vercel.json` を `pnpm cron:generate` で生成済み、
+   （**追加作業なし**。設定前は呼ばれても即 skipped を返す）。前提は cron の配線（`vercel.json` を `pnpm generate cron` で生成済み、
    Vercel 以外は `pnpm task --due` を毎分。[cron 基盤 README](../../../lib/cron/README.md#スケジュールのセットアップ) 参照）。
 
    失効通知を送る場合は `wallet-expiration-notice`（毎時）も必要。設定は「失効通知」節を参照。
@@ -926,8 +926,8 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 - 失効スイープ: `services/server/lots/sweepExpiredLots.ts`
 - 初期化（導入日から数える）: `services/server/lots/initWalletLots.ts`
 - 初期化（実際の付与日から数える）: `services/server/lots/initWalletLotsFromHistory.ts`
-  （復元ロジックの純粋関数: `utils/lotPlanning.ts` / テスト: `pnpm test:wallet-lot-planning`）
-- 初期化の対象通貨の決定: `utils/expiration.ts` の `resolveWalletLotsInitTypes`（テスト: `pnpm test:wallet-expiration`）
+  （復元ロジックの純粋関数: `utils/lotPlanning.ts` / テスト: `pnpm test src/features/core/wallet/utils/lotPlanning.test.ts`）
+- 初期化の対象通貨の決定: `utils/expiration.ts` の `resolveWalletLotsInitTypes`（テスト: `pnpm test src/features/core/wallet/utils/expiration.test.ts`）
 - 照会: `services/server/lots/getExpiringLots.ts`
 - 失効通知の cron 本体: `services/server/notification/sendWalletExpirationNotices.ts`
   （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`）

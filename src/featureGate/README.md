@@ -11,15 +11,15 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 | `rules/<名前>.ts` | 上流・fork(受け口) | 機能を閉じる規則(1 機能 1 ファイル、`export const rule`)。名前 = ファイル名 = `FeatureName` |
 | `alwaysOnExceptions/<名前>.ts` | fork(受け口、上流の項目は 0) | 常時実行の入口の例外(`export const exception` か `export const registry`) |
 | `dependencyExceptions/<名前>.ts` | fork(受け口、上流の項目は 0) | 依存の検査の例外(`export const exception: DependencyException`) |
-| `required/<機能名>.ts` | fork(受け口) | この fork が必ず使う機能(`export const required: RequiredFeature`)。依存の検査はこの機能のフォルダを外から読むことを通す。features:set / list での働きは次の区切り |
+| `required/<機能名>.ts` | fork(受け口) | この fork が必ず使う機能(`export const required: RequiredFeature`)。依存の検査はこの機能のフォルダを外から読むことを通す。pnpm ops features set / list での働きは次の区切り |
 | `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`alwaysOnExceptions`・`alwaysOnRegistries`・`dependencyExceptions`・`required`) |
-| `extensions/` | 生成物 | `pnpm extensions:generate` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
+| `extensions/` | 生成物 | `pnpm generate extensions` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
 | `client.ts` | 上流 | 入口(client): `useGate`・`GatedLink`・配線用の `GateProvider` と型 |
 | `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`(全開スイッチを通した一覧)・`configRules` / `configEnabled` / `configPath`(規則の値だけ)・`isOpenedBySwitch`・`gatedSchema`・`closedTables`・例外の一覧 |
 | `ruleList.ts`・`openSwitch.ts` | 上流 | 判定の入口(生成一覧を全開スイッチで包む。門番の中で生成一覧を値で読み、規則の `enabled()` を直に呼ぶのはここだけ)と全開スイッチ(「全開スイッチ」の節) |
 | `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`area.ts`・`clientState.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定・`area.ts` = 枠の判定の純関数で server と client が共有、`clientState.ts` = client に渡す値の計算)・1 道具 1 ファイルと束・道具の中身 |
-| `checks/` | 上流 | 検査(`pnpm test:feature-gate`・`:reach`・`:tools`・`:client`) |
+| `checks/` | 上流 | 検査(`pnpm test src/featureGate scripts/structure/proxies`・`:reach`・`:tools`・`:client`) |
 
 ## 入口と gate の口
 
@@ -83,7 +83,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 | ルートゲート | `src/proxies/featureGate.ts`(`gate.path` を呼ぶ) | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
 | API の部品工場 | `src/wiring/apiRoute.ts` が `gate.path` を Factory の口 `gate` に結ぶ | API のリクエストごと | 閉じた住所の API は Factory も 404(proxy の安全網。`src/lib/routeFactory/README.md`) |
 | スキーマゲート | `node/gatedSchema.ts`（`@/featureGate/node` の `gatedSchema`、`pnpm db:push` / `db:push:check`） | push のとき | 導いた表を push 対象から外す |
-| 検査 | `pnpm test:feature-gate`・`pnpm extensions:check` | CI / 手元 | 書き漏れ・書き間違い・常時実行の入口の閉じ漏れ |
+| 検査 | `pnpm test src/featureGate scripts/structure/proxies`・`pnpm check extensions` | CI / 手元 | 書き漏れ・書き間違い・常時実行の入口の閉じ漏れ |
 
 ### 規則の書き方
 
@@ -100,14 +100,14 @@ export const rule: FeatureGateRule = {
 };
 ```
 
-- `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/lib/pathPattern`（門番の判定・ルート地図・test:feature-gate が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
+- `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/lib/pathPattern`（門番の判定・ルート地図・pnpm test src/featureGate scripts/structure/proxies が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
 - **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
-- `features` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。無いフォルダ・ドメインの位置でない書き方（`core/wallet/entities` のような深い場所・`core` そのもの）は生成器が止める。表名は書かない: `extensions:generate`（宣言の `derive: "featureTables"`）がフォルダの下の全 `pgTable` から導く（`scripts/structure/registry/tableScan.mjs`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
-- **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、一覧の項目の `domainApiPaths` と `pathPatterns` の後ろに足す（全部の読み手に効く）。`domainEntry.ts` の無いフォルダは何も足さない。手書きと重なると `test:feature-gate` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm extensions:generate`（ずれは `extensions:check` が止める）
+- `features` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。無いフォルダ・ドメインの位置でない書き方（`core/wallet/entities` のような深い場所・`core` そのもの）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）がフォルダの下の全 `pgTable` から導く（`scripts/structure/registry/tableScan.mjs`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
+- **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、一覧の項目の `domainApiPaths` と `pathPatterns` の後ろに足す（全部の読み手に効く）。`domainEntry.ts` の無いフォルダは何も足さない。手書きと重なると `pnpm test src/featureGate scripts/structure/proxies` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
 - **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器がその規則の `settingPaths` と `pathPatterns` に足す（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - `enabled` は config の値を読む同期関数（値の置き場は config）
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）
-- 住所の重なりは許す（OR）。**行き先の違う重なりは、ファイル名の順で最初の無効な規則の `redirectTo`**。上流の規則どうしの行き先の違う重なりは `test:feature-gate` で失敗、fork の規則と上流の重なりは表示だけ
+- 住所の重なりは許す（OR）。**行き先の違う重なりは、ファイル名の順で最初の無効な規則の `redirectTo`**。上流の規則どうしの行き先の違う重なりは `pnpm test src/featureGate scripts/structure/proxies` で失敗、fork の規則と上流の重なりは表示だけ
 - 上流の規則を fork が上書き・無効化する口は無い（fork は閉じる規則を足すだけ）
 
 ### スキーマゲートは作る方向にしか働かない
@@ -125,9 +125,9 @@ export const rule: FeatureGateRule = {
 - `drizzle-kit push` を直接叩くとゲートを通らない（全テーブルが作られる。消えはしない）。push は必ず `pnpm db:push` で行う
 - 外す表を残す表が外部キーで参照していると例外（導いた表に掛かる）
 
-### db:clear と閉じた機能の表
+### pnpm ops db clear と閉じた機能の表
 
-`pnpm db:clear`（`scripts/operations/db/clear/`、計画は純関数 `plan.ts`、検査 `pnpm test:db-clear`）は閉じた機能の表（`@/featureGate/node` の `closedTables`）に触れない。
+`pnpm ops db clear`（`scripts/operations/db/clear/`、計画は純関数 `plan.ts`、検査 `pnpm test scripts/operations/db/clear/plan.test.ts`）は閉じた機能の表（`@/featureGate/node` の `closedTables`）に触れない。
 
 - 選べる表（対話の選択肢と `--all`）から閉じた表を外し、外した表は名前を出す
 - 選んだ表を参照する表を schemaRegistry の外部キーから推移的に足し、確認の前に「選んだ表 / 足した参照元 / 外した表（DB に無い・閉じた）」を見せる
@@ -137,33 +137,33 @@ export const rule: FeatureGateRule = {
 
 ### seed と閉じた機能
 
-`pnpm db:seed` の項目（`scripts/runner/seed/data/registry.ts`）は省略可の `feature?: FeatureName | FeatureName[]` を持ち、1 つでも閉じていれば飛ばして名前を出す。閉じられるフォルダを import する項目に `feature` が無いと `pnpm test:db-seed` が落とす。詳細: `scripts/runner/seed/README.md`「閉じた機能と seed」
+`pnpm ops db seed` の項目（`scripts/runner/seed/data/registry.ts`）は省略可の `feature?: FeatureName | FeatureName[]` を持ち、1 つでも閉じていれば飛ばして名前を出す。閉じられるフォルダを import する項目に `feature` が無いと `pnpm test scripts/runner/seed/gate.test.ts` が落とす。詳細: `scripts/runner/seed/README.md`「閉じた機能と seed」
 
 ### 決まりごと
 
-- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test:feature-gate` が次を検査する:
-  - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test:schema-registry`）
+- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test src/featureGate scripts/structure/proxies` が次を検査する:
+  - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test scripts/structure/registry/`）
   - **今 `enabled()` が false の規則について**、その規則の `features` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている（判定 `checks/routeImports.mjs`。`features` の無い規則は対象外）
   - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
   - 現在のフラグで、外す表を残す表が外部キーで参照していない
   - 常時実行の入口の閉じ漏れ（下）
 - **有効な機能のルートは検査しない。** 開いていて正しいので、その機能を土台にした fork は何も宣言しなくてよい。機能を切ると、その機能に依存するルートと外部キーがテストで一覧になる（= 切る前に直す場所）
-- **`FEATURE_GATE_CHECK=all pnpm test:feature-gate` は upstream も fork も実行する。** 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`、fork の例外は `alwaysOnExceptions/<名前>.ts` に理由付きで書く
+- **`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies` は upstream も fork も実行する。** 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`、fork の例外は `alwaysOnExceptions/<名前>.ts` に理由付きで書く
 - **サンプルのドメイン**（`sampleDomain`、`APP_FEATURES.adminConsole.enableSampleDomain`）: 既定 `true`（上流のデモ用）。権限は公開読み・ログイン済みの更新・子の画像のログイン済みアップロードのままで厳しくしない → **実際の利用者がいる fork は `false` にする**: 管理画面・`/api/sample*` の汎用 API・サンプルを読むデモ画面 4 つが 404、5 表（samples ほか）は db:push で作らない（既存の表と行は消さない）。管理のメニューの行は残る
 - **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）
 
 ### 常時実行の入口
 
-ゲートが閉じるのはその機能自身のルートとテーブルだけ。常に動く処理（cron・退会の後片付け・集計の照合・常に読み込まれる結線）が無効な機能を使うと、テーブルが無くて失敗する。`test:feature-gate` が全規則を無効とみなして次を見る（判定: `checks/alwaysOnEntries.mjs`）:
+ゲートが閉じるのはその機能自身のルートとテーブルだけ。常に動く処理（cron・退会の後片付け・集計の照合・常に読み込まれる結線）が無効な機能を使うと、テーブルが無くて失敗する。`pnpm test src/featureGate scripts/structure/proxies` が全規則を無効とみなして次を見る（判定: `checks/alwaysOnEntries.mjs`）:
 
 | 入口 | 閉じ方 |
 |---|---|
-| cron の `src/app/api/cron/<name>/task.ts` | タスクの住所 `/api/cron/<name>` を、import する機能のフォルダを `features` に持つ規則の全部が `pathPatterns` で覆う（閉じた機能のタスクは route = `@/wiring/cronRoute`・`pnpm task`・`cron:generate` が住所で飛ばす。task.ts に機能の入切は書かない。`src/lib/cron/README.md`「機能の門」） |
+| cron の `src/app/api/cron/<name>/task.ts` | タスクの住所 `/api/cron/<name>` を、import する機能のフォルダを `features` に持つ規則の全部が `pathPatterns` で覆う（閉じた機能のタスクは route = `@/wiring/cronRoute`・`pnpm task`・`pnpm generate cron` が住所で飛ばす。task.ts に機能の入切は書かない。`src/lib/cron/README.md`「機能の門」） |
 | 宣言に `alwaysOn: true` の拡張点の項目（`cleanupHandlers`・`coinIssuanceSources`・`rollupMetrics`） | 項目に `enabled` |
 | fork の手書きの登録表（下の `registries`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
 | 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`・`src/featureGate/**`） | import しない。避けられないものは理由付きの例外表 |
 
-- 規則のファイル（`rules/<名前>.ts`）が機能のドメインの入切の値 `@/features/<d>/config`（`config.ts`、値だけ）を読むのは閉じ漏れに数えない（入切の値の置き場はそのドメインの config。`closable` のひな形がこの形）。`config.ts` が値の外（services・drizzle・server-only）に届くと到達の検査 `test:feature-gate:reach` が止める
+- 規則のファイル（`rules/<名前>.ts`）が機能のドメインの入切の値 `@/features/<d>/config`（`config.ts`、値だけ）を読むのは閉じ漏れに数えない（入切の値の置き場はそのドメインの config。`closable` のひな形がこの形）。`config.ts` が値の外（services・drizzle・server-only）に届くと到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs` が止める
 
 - 上流の例外表はテスト内の `ALWAYS_ON_EXCEPTIONS`（縮む表。当たらなくなった行は失敗）
 - **fork の分は 1 項目 1 ファイルの受け口に理由つきで**: `alwaysOnExceptions/<名前>.ts`(名前は英字始まりの英数字、fork の印は付けない。宣言の点 `alwaysOnExceptions`・`alwaysOnRegistries`)
@@ -183,24 +183,24 @@ export const rule: FeatureGateRule = {
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない
 - upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、`APP_FEATURES.pages`（マイページ全体と account の各画面・/entry・/services・規約 3 種）か `adminConsole` のスイッチ（サンプルのドメイン・チャットルームの管理・通知テンプレート・デモユーザー）を false にする。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
 - スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork の規則で upstream の画面を止めない（upstream の規則と重なり、merge のたびに見直しになる）
-- 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。dc:generate が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts` の `<SNAKE>_CONFIG.enabled`（既定 fork = true・Tier1 = false）を書き捨てで書く。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
-- fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm extensions:generate`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
-- 機能を切ったら `pnpm test:feature-gate` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
-- ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`checks/walletOff.test.tsx`、`test:feature-gate:client`)
+- 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。pnpm generate domain が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts` の `<SNAKE>_CONFIG.enabled`（既定 fork = true・Tier1 = false）を書き捨てで書く。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
+- fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm generate extensions`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
+- 機能を切ったら `pnpm test src/featureGate scripts/structure/proxies` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
+- ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`checks/walletOff.test.tsx`、`pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx`)
 - 区切り gate-s3 の取り込み: 依存の検査が fork でも落ちる。codemod `.notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs` が今開いている機能の違反を `required/` に書き出し、cron の route.ts の import を直す(`.notices/README.md` の codemod の節)
 
-### features:list / features:set
+### pnpm ops features list / pnpm ops features set
 
 道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/operations/features/`）。
 
-- `pnpm features:list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
-- `pnpm features:set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、その `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（`closable` のひな形の形、L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
-- `features:set` は `db:push`・`extensions:generate` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
-- 上流の規則は今どれも共有の config（`APP_FEATURES` など）を読むので `features:set` は場所の案内だけになる。入切の値がドメインの config へ移った規則から書けるようになる
+- `pnpm ops features list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
+- `pnpm ops features set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、その `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（`closable` のひな形の形、L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
+- `pnpm ops features set` は `db:push`・`pnpm generate extensions` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
+- 上流の規則は今どれも共有の config（`APP_FEATURES` など）を読むので `pnpm ops features set` は場所の案内だけになる。入切の値がドメインの config へ移った規則から書けるようになる
 
 ### 依存の検査
 
-閉じられるフォルダ(規則の `features`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test:feature-gate` が落ちる(判定: `checks/dependencies.mjs`):
+閉じられるフォルダ(規則の `features`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test src/featureGate scripts/structure/proxies` が落ちる(判定: `checks/dependencies.mjs`):
 
 1. 自分のドメインの `services/server/domainEntry.ts` の `requires` に相手のドメインがある(`requires: ["wallet"]`、文字列リテラルの配列で書く。字面で読む)
 2. ファイルが規則の名前で確かめる: `gate.enabled("wallet")`・`gate.assert("wallet")`・`useGate().enabled("wallet")`
@@ -254,9 +254,9 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 ## 守り
 
 - lint `import-boundaries/feature-gate-entries`: 外からは入口 3 つだけ・lib は読まない・`node.ts` は scripts とテストだけ・配線用の `clientGateState`・`GateProvider` は配線の 4 ファイルだけ(`eslint-rules/import-boundaries.mjs`)
-- 到達の検査 `pnpm test:feature-gate:reach`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)
+- 到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)
 - lint `page-authz/session-api-callsite` は `src/featureGate/**` にも掛かる(規則と判定はセッションを解かない)
-- 所有の検査(`pnpm ownership:check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`dependencyExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
+- 所有の検査(`pnpm workflow ownership check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`dependencyExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
 
 ## 旧い置き場からの移行(fork)
 

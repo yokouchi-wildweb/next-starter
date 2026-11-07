@@ -6,13 +6,13 @@
 
 ```bash
 # インタラクティブモード（チェックボックスで選択）
-npm run db:seed
+pnpm ops db seed
 
 # 全シードを実行（CI/CD用）
-npm run db:seed:all
+pnpm ops db seed --all
 
 # DB作成 + 全シード実行
-npm run db:setup
+pnpm db:push && pnpm ops db seed --all
 ```
 
 ## ファイル構成
@@ -20,7 +20,7 @@ npm run db:setup
 ```
 scripts/runner/seed/
 ├── run.ts               # メインスクリプト（実行エントリーポイント）
-├── gate.ts              # 閉じた機能の項目を飛ばす・feature の検査（pnpm test:db-seed）
+├── gate.ts              # 閉じた機能の項目を飛ばす・feature の検査（pnpm test scripts/runner/seed/gate.test.ts）
 ├── README.md            # このファイル
 └── data/
     ├── index.ts         # エクスポート集約
@@ -126,7 +126,7 @@ export type { SeedNewDomainResult } from "./newDomain";
 },
 ```
 
-- 閉じられるフォルダ（規則の `features`）を import する seed のファイルの項目には `feature` が要る。`pnpm test:db-seed` が registry.ts の各項目の `import("./x")` からファイルを引き、その値 import を見て、規則が `feature` に無ければ落とす（fork の項目も同じ registry なので入る）
+- 閉じられるフォルダ（規則の `features`）を import する seed のファイルの項目には `feature` が要る。`pnpm test scripts/runner/seed/gate.test.ts` が registry.ts の各項目の `import("./x")` からファイルを引き、その値 import を見て、規則が `feature` に無ければ落とす（fork の項目も同じ registry なので入る）
 - 限界: seed のファイルの直接の import だけを見る（別の seed のファイルを経由した到達は見ない）。項目の `fn` は `import("./<file>")` の形で書く
 - `feature` の無い項目は今までどおり走る。書き込む表が DB に無い（PostgreSQL 42P01）と、項目名と直し方（閉じた機能の表なら `feature` を付ける）を出して止まる
 - 飛ばした項目に頼る項目は、依存先を選ばなかったときと同じく `deps.xxx` が `undefined` で走る

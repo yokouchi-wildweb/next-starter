@@ -49,7 +49,7 @@ export const STORAGE_CONFIG = {
 
   /**
    * domain.json のメディア項目に validationRule.maxSizeBytes が無いときに使う上限（バイト）。
-   * キーは mediaTypePreset。dc:generate がこの値を用途に入れ、警告を出す。
+   * キーは mediaTypePreset。pnpm generate domain がこの値を用途に入れ、警告を出す。
    */
   defaultMaxBytesByPreset: {
     images: 20 * MiB,

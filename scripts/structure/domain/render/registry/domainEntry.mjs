@@ -1,5 +1,5 @@
 // services/server/domainEntry.ts（毎回上書き）: domain.json の apiAccess / useImportExport から access を、表名と id 列を書く。
-// src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（dc:generate の最後に自動で走る）
+// src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（pnpm generate domain の最後に自動で走る）
 
 import path from "node:path";
 import { domainTableName } from "../../domain/names.mjs";
@@ -47,8 +47,8 @@ export function renderDomainEntry({ camel, config, isCore = false }) {
   const dir = `src/features/${isCore ? "core/" : ""}${camel}`;
   const out = [
     `// ${dir}/services/server/domainEntry.ts`,
-    "// dc:generate が domain.json から生成する。手で直すときは domain.json の generate を false にする（そのドメインは生成しなくなる）。",
-    "// 登録表 src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（dc:generate の最後に自動で走る）。",
+    "// pnpm generate domain が domain.json から生成する。手で直すときは domain.json の generate を false にする（そのドメインは生成しなくなる）。",
+    "// 登録表 src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（pnpm generate domain の最後に自動で走る）。",
     "// access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md",
     "",
     'import type { DomainEntries } from "@/lib/domain/types";',

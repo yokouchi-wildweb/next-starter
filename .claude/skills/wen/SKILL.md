@@ -33,7 +33,7 @@ argument-hint: "[指令の id / ファイルパス(省略でこのセッショ�
   - 対応済み(done): 親の notice に `resolves:` が来ているか(`git grep -n "^resolves:.*<id>" <upstream>/<branch> -- .notices`、未取り込みなら「取り込めば失効」)。全 id が解決した行は「受け口へ移す・元に戻す」を求める
   - 却下(rejected): 「戻す・受け口へ移す・別の方針で許可し直す」のどれかを**必須**として示す(行をそのままにしない)
   - 見つからない: 受信箱が手元に無い(別のマシン・組織の親)なら「確かめられない」と出す(合格扱いにしない)
-- 最後に `pnpm ownership:check` の許可の状態(refresh / expired-*、残骸)を 1 行で添える
+- 最後に `pnpm workflow ownership check` の許可の状態(refresh / expired-*、残骸)を 1 行で添える
 
 ## 言語ルール
 - ユーザーとの会話は日本語。

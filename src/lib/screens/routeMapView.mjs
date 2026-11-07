@@ -40,7 +40,7 @@ export function normalizeScope(value) {
 const ACCESS_TOKEN = /^(public|authenticated|statuses|registry(:[\w.-]+)?|role:[\w-]+|category:[\w-]+)$/;
 
 /**
- * routes:show の引数(show の後ろ)を読む。
+ * pnpm check routes -- show の引数(show の後ろ)を読む。
  * @returns {{ ok: true, opts: ShowOptions } | { ok: false, error: string }}
  */
 export function parseShowArgs(argv) {

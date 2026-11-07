@@ -35,7 +35,7 @@ test("サンプルドメインを再生成しても差分が出ない", { skip: 
 
   fs.cpSync(path.join(rootDir, "src"), path.join(tempRoot, "src"), { recursive: true });
   fs.cpSync(generatorDir, path.join(tempRoot, "scripts", generatorName), { recursive: true });
-  // dc:generate の最後に走る serviceRegistry の生成器（scripts/structure/registry/serviceRegistry/）も複製する
+  // pnpm generate domain の最後に走る serviceRegistry の生成器（scripts/structure/registry/serviceRegistry/）も複製する
   fs.cpSync(path.join(rootDir, "scripts", "structure", "registry"), path.join(tempRoot, "scripts", "structure", "registry"), { recursive: true });
   fs.symlinkSync(path.join(rootDir, "node_modules"), path.join(tempRoot, "node_modules"), "dir");
 

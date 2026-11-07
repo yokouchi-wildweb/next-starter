@@ -134,7 +134,7 @@ await db.transaction(async (tx) => {
 
 - CLI: `pnpm task user-daily-counter-prune`
 - HTTP: `GET /api/cron/user-daily-counter-prune`（Bearer `CRON_SECRET`）
-- スケジュール: 日次（`vercel.json` のエントリは `pnpm cron:generate` が生成）
+- スケジュール: 日次（`vercel.json` のエントリは `pnpm generate cron` が生成）
 - 削除対象は**日次行のみ**。累計（user_counters）は消えない
 
 ## マイグレーション

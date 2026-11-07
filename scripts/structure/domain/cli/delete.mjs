@@ -1,4 +1,4 @@
-// dc:delete <Domain>: 組を壊す削除・他のドメインから参照されているドメインの削除なら止める → 確認 → 削除とレジストリの掃除。
+// pnpm generate domain -- --delete <Domain>: 組を壊す削除・他のドメインから参照されているドメインの削除なら止める → 確認 → 削除とレジストリの掃除。
 // 既定は対話なし: --confirm <snake_name> が一致したときだけ消す（名前の打ち直しの安全装置を引数にしたもの）。
 // 追加で消すディレクトリは --extra <path>（findExtraDirs の候補だけ、何度でも）、domain.json は --remove-config のときだけ消す。
 // -i（--interactive）のときだけ今までの対話（名前の再入力 → 追加ディレクトリの選択 → domain.json を消すか → 確認）

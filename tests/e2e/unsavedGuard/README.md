@@ -13,10 +13,11 @@
 
 ## 走らせ方
 
-1. `pnpm task dev-admin`(確認用の管理者を用意する。何度打ってもよい)
-2. dev server を立てる(`pnpm dev:tab`。`scripts/dev-tab/README.md`)
-3. `E2E_BASE_URL=http://localhost:<port> pnpm test:e2e:unsaved-guard`
-   - 1 つのブラウザだけ: `E2E_BASE_URL=… pnpm exec playwright test -c playwright.config.default.ts tests/e2e/unsavedGuard --project=chromium`(`pnpm test:e2e:unsaved-guard -- --project=…` では絞れない)
+1. 受入のページを開く: `src/config/app/app-features.config.ts` の `e2e.fixtures` を `true` にする(コミットしない。終わったら戻す)。閉じたまま走らせると全部 skip になり、理由が出る
+2. dev server を立てる(エージェントは自分で立てない: 人か guild dev が立て、住所を受け取る)
+3. `E2E_BASE_URL=http://localhost:<port> pnpm e2e tests/e2e/unsavedGuard`
+   - 1 つのブラウザだけ: `E2E_BASE_URL=… pnpm exec playwright test -c playwright.config.default.ts tests/e2e/unsavedGuard --project=chromium`(`pnpm e2e tests/e2e/unsavedGuard -- --project=…` では絞れない)
+4. `e2e.fixtures` を `false` に戻す
 
 - CI だけ `webServer` で `pnpm dev` を立てる(`CI` があるとき)
 - ブラウザの準備: `pnpm exec playwright install chromium firefox webkit`(webkit は OS のライブラリが要る)

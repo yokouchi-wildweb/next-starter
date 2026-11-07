@@ -48,7 +48,7 @@ export type DomainConfigOptionals = {
   // 詳細は src/lib/crud/README.md を参照。
   systemColumns?: string[];
   // 秘匿カラム（サービスの全戻り値・withRelations 展開から null 置換、Neon のみ）。
-  // dc:generate が entities/drizzle.ts に defineHiddenColumns() を出力する。
+  // pnpm generate domain が entities/drizzle.ts に defineHiddenColumns() を出力する。
   // 詳細は src/lib/crud/README.md の hiddenColumns 節を参照。
   hiddenColumns?: string[];
   // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
@@ -58,7 +58,7 @@ export type DomainConfigOptionals = {
     write?: string | { roles?: string[]; roleCategories?: string[] };
     operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
   };
-  // false = 手で管理し dc:generate は何も書かない（省略 = true）。生成器だけが読む
+  // false = 手で管理し pnpm generate domain は何も書かない（省略 = true）。生成器だけが読む
   generate?: boolean;
   // 開発者のメモ（どの階層にも書ける。生成器も client の写しも読まず、動作に効かない）
   $comment?: string | string[];

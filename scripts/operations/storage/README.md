@@ -2,10 +2,10 @@
 
 ファイル保存の新基盤（[src/lib/storage/README.md](../../../src/lib/storage/README.md)）が使うバケットを用意するスクリプト。
 
-- `setup.ts`（`pnpm storage:setup`）: 新しい公開バケット（pub）と非公開バケット（priv）を冪等に用意する
-- `setup-cors.ts`（`pnpm storage:setup-cors`）: 旧バケット（Firebase の既定バケット）の CORS 設定。新しい 2 バケットには使わない（`storage:setup` が CORS まで設定する）
+- `setup.ts`（`pnpm ops storage setup`）: 新しい公開バケット（pub）と非公開バケット（priv）を冪等に用意する
+- `setup-cors.ts`（`pnpm ops storage setup-cors`）: 旧バケット（Firebase の既定バケット）の CORS 設定。新しい 2 バケットには使わない（`pnpm ops storage setup` が CORS まで設定する）
 
-## pnpm storage:setup
+## pnpm ops storage setup
 
 ### 前提
 
@@ -28,13 +28,13 @@
 
 ```bash
 # 1. 予定だけを表示（読み取りのみ。何も変えない）
-pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com --dry-run
+pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com --dry-run
 
 # 2. 実行
-pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin http://localhost:3000] [--location asia-northeast1]
+pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin http://localhost:3000] [--location asia-northeast1]
 
 # 3. もう一度実行して、全項目が「変更なし」になることを確かめる
-pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin http://localhost:3000]
+pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin http://localhost:3000]
 ```
 
 - `--origin` はアプリの Origin（scheme + host、末尾の `/` なし）。1 つ以上必須で、本番・プレビュー・ローカルなど、ブラウザから直接アップロードする Origin をすべて並べる。`*` は受け付けない

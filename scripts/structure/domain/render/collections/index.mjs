@@ -1,6 +1,6 @@
 // 主の集まりの項目（mediaCollection）ごとに、従属ドメインの domain.json を無いときだけ書き出す（write-once。既にあれば触らない）。
 // 生成カテゴリではなく主の宣言なので、--only に関わらず出す（主が generate: false なら plan が何も出さない）。
-// 手で管理する主（generate: false）の drizzleBase.ts が collections を渡し忘れたら test:collection-wiring が見つける
+// 手で管理する主（generate: false）の drizzleBase.ts が collections を渡し忘れたら pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs が見つける
 
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import formatDomainConfig from "../../spec/format.mjs";

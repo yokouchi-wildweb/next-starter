@@ -1,7 +1,7 @@
 // src/lib/dataMigration/dataMigrationMedia.test.ts
 // dataMigration のメディア列の単体テスト（DB なし）。import の値の分類・解決と、export のメディア取得（ref の解決・skipped）。
 // 集まりの項目（collections オプション）の取り込みの拒否・書き出しの除外も、偽のサービスで確かめる。
-// ファイル台帳の操作は偽の resolver。実 DB の往復は test:data-migration-db、resolver の実装は storageObject 側のテスト。
+// ファイル台帳の操作は偽の resolver。実 DB の往復は pnpm test --db src/features/core/storageObject/dataMigrationImport.db.test.ts、resolver の実装は storageObject 側のテスト。
 // 実行: pnpm test src/lib/dataMigration/dataMigrationMedia.test.ts
 
 import { after, before, describe, test } from "node:test";

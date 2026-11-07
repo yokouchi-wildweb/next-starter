@@ -19,7 +19,7 @@ src/features/core/userProfile/
 │   ├── RoleProfileFields.tsx   # プロフィールフィールド（汎用）
 │   └── index.ts
 ├── constants/                  # 定数
-│   ├── fieldTags.mjs           # フィールドタグの値（正。role:generate の検査も読む）
+│   ├── fieldTags.mjs           # フィールドタグの値（正。pnpm generate role の検査も読む）
 │   └── fieldTag.ts             # fieldTags.mjs を型付きで再 export
 ├── entities/profiles/{role}/   # 自動生成ファイル [DO NOT EDIT]
 │   ├── drizzle.ts              # Drizzle テーブル定義
@@ -72,7 +72,7 @@ src/features/core/userProfile/
 
 ## 一覧（extensions/）
 
-プロフィールの一覧は `extensions/` にあり、`pnpm role:generate` が全件を書き直す。ロールの一覧は `src/features/core/user/extensions/roles.ts`。
+プロフィールの一覧は `extensions/` にあり、`pnpm generate role` が全件を書き直す。ロールの一覧は `src/features/core/user/extensions/roles.ts`。
 
 | ファイル | 用途 | 環境 |
 |---------|------|------|
@@ -143,8 +143,8 @@ roles/
 
 **tags の構造:**
 - トップレベルにオブジェクトとして定義
-- キー: タグ名（`registration`, `selfEdit`, `adminEdit`, `notification`）。タグを足す・消すときは `constants/fieldTags.mjs` を編集する（知らないタグは role:generate が止める）
-- 値: そのタグに属するフィールド名の配列（fields の name か relations の fieldName。無い名前は role:generate が止める）
+- キー: タグ名（`registration`, `selfEdit`, `adminEdit`, `notification`）。タグを足す・消すときは `constants/fieldTags.mjs` を編集する（知らないタグは pnpm generate role が止める）
+- 値: そのタグに属するフィールド名の配列（fields の name か relations の fieldName。無い名前は pnpm generate role が止める）
 
 **searchFields（オプション）:**
 - keyword 検索対象のカラム名を配列で指定（camelCase）
@@ -154,7 +154,7 @@ roles/
 
 **メディア項目（mediaUploader）は使えない:**
 - プロフィールのテーブル（createProfileBase）はファイル台帳への紐付け（createCrudService の `storage` オプション）に対応していない。上げたファイルが業務行に紐付かず、掃除 cron で消える
-- そのため profile.json に mediaUploader / mediaCollection の項目があると `role:generate`（forge）の検査が止める
+- そのため profile.json に mediaUploader / mediaCollection の項目があると `pnpm generate role`（forge）の検査が止める
 - プロフィールに画像が要る場合は、用途を登録した別ドメインの列に置くか、プロフィールの binding 対応を upstream に依頼する（/order <上流リポ>）
 
 ### リレーション設定
@@ -200,7 +200,7 @@ roles/
 - `model.ts`: FK フィールドの型定義
 - `extensions/profileBases.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
 
-**書き方:** role.json・profile.json は手で書き（対話で組み立てるコマンドは無い）、`pnpm forge` で生成する。リレーションの決まり（belongsTo / belongsToMany だけ、fieldName 必須、fieldType は省略か uuid、SET_NULL は required と両立しない、formInput）は生成前の検査が止める（下の「role:generate」）。
+**書き方:** role.json・profile.json は手で書き（対話で組み立てるコマンドは無い）、`pnpm forge` で生成する。リレーションの決まり（belongsTo / belongsToMany だけ、fieldName 必須、fieldType は省略か uuid、SET_NULL は required と両立しない、formInput）は生成前の検査が止める（下の「pnpm generate role」）。
 
 ## fork の上書き
 
@@ -220,9 +220,9 @@ export const override: CoreRoleOverride = { hasProfile: true };
 ```
 
 - 実行せず字面で読む。書けるのは `import type`（相対パス）と `export const override = { … }` だけで、値はリテラルにする
-- 未知キー・値の型違い・隣に JSON の無い上書きは `role:generate` と forge の事前検査が止める。空（空白とコメントだけ）と不在は上書きなし
-- 上流は上書きを持てない（`extensions:check`）。下の Tier は同じファイルを書き換える
-- `role:toggle` は上書きが `enabled` を決めていると止まる。`prof:delete`・`role:delete` は上書きが `hasProfile` を決めていると止まる（`--remove-json` の `role:delete` は上書きごと消す）
+- 未知キー・値の型違い・隣に JSON の無い上書きは `pnpm generate role` と forge の事前検査が止める。空（空白とコメントだけ）と不在は上書きなし
+- 上流は上書きを持てない（`pnpm check extensions`）。下の Tier は同じファイルを書き換える
+- `pnpm generate role -- --toggle` は上書きが `enabled` を決めていると止まる。`pnpm generate role -- --delete-profile`・`pnpm generate role -- --delete` は上書きが `hasProfile` を決めていると止まる（`--remove-json` の `pnpm generate role -- --delete` は上書きごと消す）
 
 ## 監査ログ
 
@@ -230,7 +230,7 @@ export const override: CoreRoleOverride = { hasProfile: true };
 
 ## 自動生成ファイル
 
-設定 JSON から以下が自動生成される（`role:generate` スクリプト）。
+設定 JSON から以下が自動生成される（`pnpm generate role` スクリプト）。
 
 ### entities/profiles/{role}/drizzle.ts
 
@@ -726,18 +726,18 @@ export const FormSchema = z
 
 ## スクリプト
 
-### role:generate
+### pnpm generate role
 
 ロールとプロフィールの自動生成。
 
 ```bash
-pnpm role:generate -- <roleId>
-pnpm role:generate -- --all      # 全 *.role.json（user/extensions/roles.ts の今の並び順で回す）
+pnpm generate role -- -- <roleId>
+pnpm generate role -- -- --all      # 全 *.role.json（user/extensions/roles.ts の今の並び順で回す）
 ```
 
-書く前に検査する（`scripts/structure/role/checks/`、テスト `pnpm test:role-config-checks`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
+書く前に検査する（`scripts/structure/role/checks/`、テスト `pnpm test scripts/structure/role/tests/checks.test.mjs`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
 - 止める: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`）、`isCore` のキー、core ロールの置き場（`roles/` に core の ID、`coreRoles/` に 3 つ以外）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）、ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、リレーションの relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」） 型の表に無い fieldType（`hasProfile: true` のとき）も止める。
-- 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `prof:delete`）、型と入力欄の組が表（`src/lib/domain/fields/fieldFormInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
+- 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `pnpm generate role -- --delete-profile`）、型と入力欄の組が表（`src/lib/domain/fields/fieldFormInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
 
 実行内容:
 1. user/extensions/roles.ts 更新
@@ -749,13 +749,13 @@ pnpm role:generate -- --all      # 全 *.role.json（user/extensions/roles.ts �
 既定は対話なし（引数で決める）。`-i` のときだけ今までの対話。ロール・プロフィールを作る・項目を足すのは JSON を手で書いて `pnpm forge`。
 
 ```bash
-pnpm prof:generate <roleId>                    # プロフィールだけ生成（--all = プロフィールのある全ロール）
-pnpm prof:delete <roleId> --confirm <roleId>   # プロフィールの生成物と登録を消す（--keep-generated / --remove-json）
-pnpm role:delete <roleId> --confirm <roleId>   # ロールを消す（同上）
-pnpm role:toggle <roleId> --on|--off           # 有効 / 無効（反転は -i）
-pnpm role:list
+pnpm generate role -- --profile <roleId>                    # プロフィールだけ生成（--all = プロフィールのある全ロール）
+pnpm generate role -- --delete-profile <roleId> --confirm <roleId>   # プロフィールの生成物と登録を消す（--keep-generated / --remove-json）
+pnpm generate role -- --delete <roleId> --confirm <roleId>   # ロールを消す（同上）
+pnpm generate role -- --toggle <roleId> --on|--off           # 有効 / 無効（反転は -i）
+pnpm check role -- --list
 ```
 
 ## entities/profiles/package.json
 
-`entities/profiles/package.json` の `"sideEffects": false` は、client が `entities/profiles/<role>` の入口からスキーマだけを読むときに、同じ入口の `drizzle.ts`(表の定義と列名)を bundle へ入れないための印。消すと公開ページの client chunk に列名が届く(検査: `pnpm test:client-chunks`)。
+`entities/profiles/package.json` の `"sideEffects": false` は、client が `entities/profiles/<role>` の入口からスキーマだけを読むときに、同じ入口の `drizzle.ts`(表の定義と列名)を bundle へ入れないための印。消すと公開ページの client chunk に列名が届く(検査: `pnpm check bundle`)。

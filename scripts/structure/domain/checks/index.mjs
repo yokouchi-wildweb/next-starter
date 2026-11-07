@@ -1,6 +1,6 @@
 // 生成前の検査（何も書く前に止めるもの）。各検査はエラー文（文字列・配列）か null を返す。ここで集めて、全件を並べて例外にする。
 // domain.json の決まり（名前の形・必須キー・リレーション・型と入力欄・選択肢・既定値・メディア・一覧の設定）はここで止める。
-// 対話で作っていた頃に質問の中にあった決まりもここに移した（domain.json は手で書き、pnpm forge か dc:generate で生成する）
+// 対話で作っていた頃に質問の中にあった決まりもここに移した（domain.json は手で書き、pnpm forge か pnpm generate domain で生成する）
 //
 // 生成の最中に見つかる検査（SET_NULL + required、hiddenColumns、index 名の長さ、ファイル用途の規則）は
 // render/ の各生成器が例外を投げる。pipeline は全カテゴリの Output を集めてから書くので、どちらも書きかけを残さない。
@@ -50,7 +50,7 @@ export function preflightIssues(ctx, registeredInputs = new Set()) {
   ].filter(Boolean);
 }
 
-/** 問題があれば全件を並べて例外を投げる（dc:generate の入口） */
+/** 問題があれば全件を並べて例外を投げる（pnpm generate domain の入口） */
 export function assertPreflight(ctx, registeredInputs = new Set()) {
   const issues = preflightIssues(ctx, registeredInputs);
   if (issues.length > 0) throw new Error(issues.join("\n"));

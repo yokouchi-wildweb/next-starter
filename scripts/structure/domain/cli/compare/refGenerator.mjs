@@ -1,4 +1,4 @@
-// git ref の時点の生成器を一時ディレクトリに組み立てる（dc:parity の旧側・dc:compare の base 側で共有）。
+// git ref の時点の生成器を一時ディレクトリに組み立てる（pnpm test scripts/structure/domain/tests の旧側・pnpm check domain -- --compare の base 側で共有）。
 // 生成器 = scripts/structure/domain と scripts/structure/registry。生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も
 // import するので、ref の生成器の相対 import を辿り切って、それらのフォルダも ref から取り出す（ref に無いフォルダは missing）。
 // テンプレート（src/features/_template・src/app/admin/_template）も生成器の一部として ref から取り出す（parts に入る）。

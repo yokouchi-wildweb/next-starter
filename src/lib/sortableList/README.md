@@ -1,6 +1,6 @@
 # sortableList — ドラッグ&ドロップ並び替えリスト
 
-`@dnd-kit` + `@tanstack/react-virtual` による縦一列の並び替えリスト。管理画面の専用ソート画面（`AdminXxxSort`、dc:generate が生成）や、モーダル内の編集リストの並び替えに使う。
+`@dnd-kit` + `@tanstack/react-virtual` による縦一列の並び替えリスト。管理画面の専用ソート画面（`AdminXxxSort`、pnpm generate domain が生成）や、モーダル内の編集リストの並び替えに使う。
 
 - 既存の一覧テーブルに並び替えを足したいだけなら tableSuite の `reorderable`（`src/lib/tableSuite/README.md`）を使う。本ライブラリは「並び替えが主目的の専用リスト」向け。
 
@@ -73,7 +73,7 @@ import { SortableList, type ReorderResult } from "@/lib/sortableList";
 
 - 外す: `guardUnsaved={false}`(既定 true)
 - リストは未保存の並びを持たない(落とすたびに使い手が保存する)。手元で並びをためて後でまとめて保存する画面は、その画面が `useUnsavedGuard(並びが変わった)` を呼ぶ
-- 判定: `reorderGuard.ts`(テスト `pnpm test:unsaved-guard`)
+- 判定: `reorderGuard.ts`(テスト `pnpm test src/lib/`)
 
 ## 依存(読む lib)
 

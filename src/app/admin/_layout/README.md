@@ -16,9 +16,9 @@ src/app/admin/_layout/                  # admin/layout.tsx の枠 + admin 全体
 ├── AdminPageTitle.tsx      # 題の部品(本文の大見出し AdminPageTitleBody・ヘッダーの圧縮の題 AdminPageTitleCompact・見た目 adminPageTitleVariants)。AdminPage が使う
 ├── Sidebar/MenuButton.tsx  # サイドバーのボタン(通常 / insane の両サイドバーが使う)
 ├── Sidebar/AdminSidebarFrame.tsx  # サイドバーの殻が中身に渡す状態(useAdminSidebarFrame)
-├── extensions/frameTable.ts  # 枠の宣言の表(生成物。pnpm extensions:generate)
-├── AdminLayout.test.tsx    # pnpm test:admin-layout(slot と既定の DOM)
-├── AdminFrame.test.tsx     # pnpm test:admin-layout(data-slot の一覧と要素の照合・枠の表の結線)
+├── extensions/frameTable.ts  # 枠の宣言の表(生成物。pnpm generate extensions)
+├── AdminLayout.test.tsx    # pnpm test src/app/admin/_layout/(slot と既定の DOM)
+├── AdminFrame.test.tsx     # pnpm test src/app/admin/_layout/(data-slot の一覧と要素の照合・枠の表の結線)
 └── stores/adminLayout/     # 枠固有の store(下の「store」)
 
 src/app/admin/(protected)/_layout/      # admin/(protected)/layout.tsx の枠
@@ -41,16 +41,16 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 ## 所有
 
 - このフォルダ(と `(protected)/_layout/`・`insane/_layout/`)の既定の部品 = 提供者(upstream)の所有。fork は直接編集しない(core と同じ扱い。CLAUDE.md CORE_FILES)
-- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `AdminHeader.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(名前に fork の印は付けない)。upstream はここに点つきの名前のファイルを作らない(`pnpm test:screens` が Tier1 でだけ検査)。隣に既定の無い `.replace`・旧い fork の名前の印は全 Tier で失敗
+- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `AdminHeader.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(名前に fork の印は付けない)。upstream はここに点つきの名前のファイルを作らない(`pnpm test src/lib/screens/screens.test.mjs` が Tier1 でだけ検査)。隣に既定の無い `.replace`・旧い fork の名前の印は全 Tier で失敗
 - lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens・client-service-boundary が error)。`*.replace.tsx` は app/ の画面と同じ warn。page-authz は両方に error
-- `admin/layout.tsx` は採用者所有の 1 行スイッチ(`export { AdminLayout as default } from "./_layout/AdminLayout";`、write-once。`pnpm test:screens` が全 Tier で検査)
+- `admin/layout.tsx` は採用者所有の 1 行スイッチ(`export { AdminLayout as default } from "./_layout/AdminLayout";`、write-once。`pnpm test src/lib/screens/screens.test.mjs` が全 Tier で検査)
 - `admin/(protected)/layout.tsx`・`admin/insane/layout.tsx` はガードと同居するので提供者所有。枠の部品は sidebar / footer の props を持つが、fork から渡す口は proxy の /admin 関所の区切り(F2)まで無い(渡すには提供者所有の layout.tsx を編集することになるため)
 - 差し替え部品の置き場: `useAdminSidebarFrame` を使う差し替え部品(ヘッダー・サイドバーの中身)は `src/app/admin/**` の中(この `_layout/` の隣の `<名前>.replace`)に置く。`src/app/<X>/_layout/**` を import してよいのは `src/app/<X>/**` だけ、という規則を後の区切りで検査にするため(features/** に置くとそこで落ちる)
 
 ## AdminLayout と AdminHeader(差し替えの口)
 
 - AdminLayout はヘッダーを描かない器(props は children・className だけ。`className`: 外枠に足すクラス名)。ヘッダーの行は各ページの AdminPage が描く
-- ヘッダーの行を丸ごと差し替える口 = 1 行スイッチ(既存の `.default` / `.replace` の仕組み、新しい仕組みは作らない D171): 上流は `AdminHeader.default.tsx`(部品)と、それを指す re-export 1 文の `AdminHeader.tsx` を出す。fork は隣に `AdminHeader.replace.tsx` を置き、`AdminHeader.tsx` の 1 行をそちらへ向ける(検査: `pnpm extensions:check`・`pnpm test:screens`)
+- ヘッダーの行を丸ごと差し替える口 = 1 行スイッチ(既存の `.default` / `.replace` の仕組み、新しい仕組みは作らない D171): 上流は `AdminHeader.default.tsx`(部品)と、それを指す re-export 1 文の `AdminHeader.tsx` を出す。fork は隣に `AdminHeader.replace.tsx` を置き、`AdminHeader.tsx` の 1 行をそちらへ向ける(検査: `pnpm check extensions`・`pnpm test src/lib/screens/screens.test.mjs`)
 - 差し替えの約束: 名前 `AdminHeader`、props `{ title?, center?, actions?, className? }`(className = AdminPage が渡す置き方のクラス。`<header>` に付ける)。部位の印は `data-slot`(下の一覧)と `id="header"`(高さの測定・枠の宣言の橋)を残す
 - fork が `admin/layout.tsx` を丸ごと置き換えるときは `_layout/AdminLayout.replace.tsx` へ向ける(器の作りを変えたいとき)
 
@@ -88,7 +88,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 ## 枠の宣言(部位の出し入れと fill)
 
 - ページ・ルートの隣の枠の宣言(上流 = ルートを作ったリポの `frame.default.ts` の `frameDefault` / 下のリポ = `frame.ts` の `frame`、型 `AdminFrameDeclaration`)に、隠す部位(`header`・`sidebar`・`footer` × `sp` / `pc`)と `fill` を書く。書式・重ねる順・生成する表: [src/app/_layout/frame/README.md](../../_layout/frame/README.md)
-- 仕組み: `pnpm extensions:generate` が `extensions/frameTable.ts` を作り、AdminLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠の属性 `data-frame-root` + `data-frame-hide="admin-<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書き、`:has()` なし)がその属性で部位を `display: none` にする。部品はアンマウントしない
+- 仕組み: `pnpm generate extensions` が `extensions/frameTable.ts` を作り、AdminLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠の属性 `data-frame-root` + `data-frame-hide="admin-<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書き、`:has()` なし)がその属性で部位を `display: none` にする。部品はアンマウントしない
 - 部位の印 = 要素の `data-slot`(下の「data-slot の一覧」)。frame.css は `[data-slot="admin-<部位>"]` と id(`#header`・`#footer`・`#admin-sidebar-toggle`。部品を差し替えた fork 向けの一時の橋渡し)を狙う。ヘッダー・フッターを差し替えるときは id を残すか同じ data-slot を付ける
 - fill: 外枠は前から確定高さ。`[data-admin-main-wrapper]`(ResizableArea・InsaneResizableArea の本文の直接の親)を flex-col + min-height:0 の束縛モードにし、直下のページの本文 `#main`(AdminPage の Main)を flex-1 min-h-0 の flex-col + 余白トークン(`--admin-page-padding-inline` / `--admin-page-padding-block`)にする。前の `<AdminPage fill>` と同じ見た目。fill の子は `h-full min-h-0 overflow-y-auto` で内部スクロールする
 - 上流の管理のページは宣言を持たない(表は空)。端末の境界は 40rem(枠の宣言の約束。サイドバーの PC / SP の切り替えは md だが、隠すのは印の付いた物の全部)
@@ -120,7 +120,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 - 綴り: 旧 `Sections/SIdebar/` は移動先で `Sidebar/` に直した
 - 移し方: 移動だけの区切り。中身は移動で壊れる相対 import の行だけを書き換え、旧パス 18 か所に `@deprecated 旧パス互換` の re-export shim を残した(default export の AdminPage・PageTitle は `export { default }` も)。`src/stores/adminLayout` は index.ts だけ shim。fork の差分は /flux が notice の `moved:` で新パスへ当て直す
 - 移動の区切りで旧パスのまま残した物(3 つの admin の layout.tsx の import、AdminOuterLayout.tsx・InsaneProtectedLayout.tsx の `@/stores/adminLayout` import、各ファイル先頭の旧パスのコメント)は、slot 化の区切り(notice frame-slots-admin)で新パスに直した
-- slot 化: User の枠(notice frame-slots-user・frame-parts-user)と同じ形に揃えた。admin/layout.tsx を 1 行スイッチにし、外枠を AdminLayout(header slot)に、(protected)・insane の枠に sidebar / footer、AdminPage に tabs、ページの題の既定をヘッダーに(報告書 D1: ヘッダーに出す指定が upstream で 45 か所、指定なしは repo あたり 1〜2 件)。props なしの DOM は前と同じ(test:admin-layout が slot 化の前の HTML で固定)
+- slot 化: User の枠(notice frame-slots-user・frame-parts-user)と同じ形に揃えた。admin/layout.tsx を 1 行スイッチにし、外枠を AdminLayout(header slot)に、(protected)・insane の枠に sidebar / footer、AdminPage に tabs、ページの題の既定をヘッダーに(報告書 D1: ヘッダーに出す指定が upstream で 45 か所、指定なしは repo あたり 1〜2 件)。props なしの DOM は前と同じ(pnpm test src/app/admin/_layout/ が slot 化の前の HTML で固定)
 - shim と eslint `deprecated-imports/no-deprecated-path` の旧パス一覧、旧名の互換 AdminOuterLayout / AdminLayoutClientProps は、区切り 2 を全 fork が取り込んだことを確かめた後の「旧入口撤去」の区切り(notice old-entry-removal)で削除した
 
 ## 採らなかった案

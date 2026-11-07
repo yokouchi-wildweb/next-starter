@@ -3,7 +3,7 @@
 // vercel.json の crons が src/app/api/cron/<name>/task.ts からの生成結果と一致するか検査する
 //
 // 使い方:
-//   pnpm check cron                 # 手元で検査（pnpm run deploy もデプロイ前に実行する）
+//   pnpm check cron                 # 手元で検査（pnpm live 系もデプロイ前に実行する）
 //   pnpm check cron --vercel-build  # build の門(pnpm check --gate=build)から。Vercel 上のビルド（VERCEL=1）のときだけ検査し、それ以外は何もしない
 //
 // 失敗する条件:

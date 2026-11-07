@@ -225,7 +225,7 @@ export const coinClosingBalanceMetric: RollupMetricConfig = {
 ```
 
 ```typescript
-// src/features/core/analytics/rollupMetrics/coinClosingBalance.ts に置き pnpm extensions:generate
+// src/features/core/analytics/rollupMetrics/coinClosingBalance.ts に置き pnpm generate extensions
 import { coinClosingBalanceMetric } from "@/features/wallet/analytics/rollup/coinClosingBalance";
 
 export const metric = coinClosingBalanceMetric;
@@ -236,7 +236,7 @@ export const metric = coinClosingBalanceMetric;
 
 ### 運用（cron / バックフィル）
 
-- 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm cron:generate` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日を冪等に再計算し、遅延到着データと実行漏れを自己修復する
+- 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm generate cron` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日を冪等に再計算し、遅延到着データと実行漏れを自己修復する
 - 新規メトリクス登録時・遡及修正時: `pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]`（from 省略時 = `backfillFrom`、to 省略時 = 昨日）
 - **集計除外の遡及適用**: 専用機構はない。compute が除外を織り込んでいる前提で、該当期間のバックフィルを再実行すれば整合する（書き込みは日単位 delete → insert の冪等 upsert）
 - 書き込み後は同一インスタンスの `withAnalyticsCache` キャッシュを自動 invalidate する（他インスタンスは TTL 満了で追随）
@@ -285,7 +285,7 @@ excludeDemo パラメータ:
 
 不正だった期間の行や不正だった人を管理画面の集計から外す条件を、fork が差し込む口。上流は口だけ（項目 0）で、除外の表・判定・解除の運用は fork が持つ。項目が無い間は集計の結果は変わらない。
 
-- 項目: `exclusionProviders/<名前>.ts` の `export const provider: AnalyticsExclusionProvider` → `pnpm extensions:generate`（型: `services/server/exclusion/types.ts`。`key` の重複は一覧の読み込みで例外）
+- 項目: `exclusionProviders/<名前>.ts` の `export const provider: AnalyticsExclusionProvider` → `pnpm generate extensions`（型: `services/server/exclusion/types.ts`。`key` の重複は一覧の読み込みで例外）
 - 集計の性質ごとに呼び手が scope を渡し、項目の対応する方だけが呼ばれる（返す SQL = 残す行の条件、AND で足す。関係なければ `undefined`）:
   - `flow`（期間の事実の行: 収支・購入・DAU・付与）→ `flow({ source, rowId, userId })`。除外した**行**だけを落とす
   - `stock`（残高・流通量など人ごとの状態）→ `stock({ userId })`。不正なコインは除外の期間の外の残高にも残るので、除外した**人**を丸ごと落とす
@@ -293,7 +293,7 @@ excludeDemo パラメータ:
 - 自前の集計: `buildUserFilterConditions(userIdColumn, params, scope)`（roles / excludeDemo と一緒に）か `buildExclusionConditions(userIdColumn, params, scope)`（除外だけ）。scope を省くと除外は足さない（今まで通り）
 - `includeExcluded: true`（クエリ `includeExcluded=true`）で足さない。比べる検証用で、通常の画面は指定しない
 - 実行時機: 各集計のクエリを組み立てるとき（同期・読みだけ・tx なし）。項目の throw はその集計の 500。fork の除外の表が無いことがある間（機能を閉じた fork）は `enabled` で止める
-- **core の表に列・部分 index を足さない**（`wallet_histories.analytics_exclusion_id` のような形は上流の表を書き換えるので ownership:check で止まる）。行の除外は fork の衛星表と行の id で突き合わせる:
+- **core の表に列・部分 index を足さない**（`wallet_histories.analytics_exclusion_id` のような形は上流の表を書き換えるので pnpm workflow ownership check で止まる）。行の除外は fork の衛星表と行の id で突き合わせる:
 
 ```ts
 // fork: src/features/analyticsExclusion/entities/drizzle.ts（fork の表。主キー (source, row_id) が NOT EXISTS の索引）
@@ -303,7 +303,7 @@ export const AnalyticsExcludedRowTable = pgTable("analytics_excluded_rows", {
   exclusion_id: uuid("exclusion_id").notNull(),
 }, (t) => [primaryKey({ columns: [t.source, t.row_id] })]);
 
-// fork: src/features/core/analytics/exclusionProviders/fraudRollback.ts → pnpm extensions:generate
+// fork: src/features/core/analytics/exclusionProviders/fraudRollback.ts → pnpm generate extensions
 import { and, eq, sql } from "drizzle-orm";
 import type { AnalyticsExclusionProvider } from "@/features/core/analytics/services/server/exclusion/types";
 import { AnalyticsExcludedRowTable as x, AnalyticsExclusionTable as ex } from "@/features/analyticsExclusion/entities/drizzle";
@@ -458,7 +458,7 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 ### ソース追加の手順 (downstream)
 
 1. `CoinIssuanceSource` を満たす値を作成する
-2. `services/server/coinIssuance/sources/<名前>.ts` に `export const source` を置き `pnpm extensions:generate`（閉じられる機能を読むソースは `enabled` が必須）
+2. `services/server/coinIssuance/sources/<名前>.ts` に `export const source` を置き `pnpm generate extensions`（閉じられる機能を読むソースは `enabled` が必須）
    - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
 3. (任意) `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_LABELS` に表示名を足す
 

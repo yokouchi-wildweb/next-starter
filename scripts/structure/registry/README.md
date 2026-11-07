@@ -5,9 +5,9 @@
 | コマンド | 何をするか | DB 接続 |
 |---|---|---|
 | `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/operations/db/push.ts`） | 必要・書き込む |
-| `pnpm test:schema-registry` | 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
+| `pnpm test scripts/structure/registry/` | 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
 | `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
-| `pnpm registry:generate` / `pnpm registry:check` | `src/registry` の α 5 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル。プロフィールの `entities/profiles/<名前>/drizzle.ts` も）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
+| `pnpm generate registry` / `pnpm check registry` | `src/registry` の α 5 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`）・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル。プロフィールの `entities/profiles/<名前>/drizzle.ts` も）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`adminDataMenu`（`addToAdminDataMenu: true`）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）（`alpha/`）。手書きの区画は無い。手書きのメニューの行は `src/config/ui/admin-global-menu.config.ts`。ドメインをメニューから外す = `domain.json` の `addToAdminDataMenu: false`(手で消しても次の生成で戻る) | 不要 |
 
 ## スキーマ変更を DB に反映する（push）
 
@@ -20,8 +20,8 @@
 - データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する。`--force` で省略。
 - `drizzle-kit push` を直接叩くとスキーマゲートを通らない（無効な機能のテーブルも作られる）。使わない。
 
-1. `entities/drizzle.ts` を変更する（business ドメインは `domain.json` → `pnpm dc:generate`）
-2. 新しい表・新しいドメインを足したら `pnpm forge`（単独なら `pnpm registry:generate`）を走らせてコミットする（core も同じ。`dc:generate` は一覧を書かないので、この実行まで `registry:check` が止める）
+1. `entities/drizzle.ts` を変更する（business ドメインは `domain.json` → `pnpm generate domain`）
+2. 新しい表・新しいドメインを足したら `pnpm forge`（単独なら `pnpm generate registry`）を走らせてコミットする（core も同じ。`pnpm generate domain` は一覧を書かないので、この実行まで `pnpm check registry` が止める）
 3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
 4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）
 
@@ -59,7 +59,7 @@ drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を
 
 - 本番 push はメンテナンスモード中（maintenanceProxy / maintenance.config.ts）または低トラフィック時に行う。
 - 大規模テーブルへの CREATE INDEX は通常の push ではそのテーブルの書き込みを止める。許容できるタイミングで push すればよい。
-- 無停止で index を追加したい fork 向けの任意テクニック: push 前に `pnpm db:query "CREATE INDEX CONCURRENTLY IF NOT EXISTS <同名> ON ..."` で先に作っておくと、drizzle-kit は既存 index として認識し push では何もしない（pandora の user_items 2300 万行で約 10 秒・書き込み停止なしを確認済み）。定義は `db:push:check` の出力をそのまま使い `CONCURRENTLY` を足す。
+- 無停止で index を追加したい fork 向けの任意テクニック: push 前に `pnpm ops db inspect query "CREATE INDEX CONCURRENTLY IF NOT EXISTS <同名> ON ..."` で先に作っておくと、drizzle-kit は既存 index として認識し push では何もしない（pandora の user_items 2300 万行で約 10 秒・書き込み停止なしを確認済み）。定義は `db:push:check` の出力をそのまま使い `CONCURRENTLY` を足す。
 - データ消失を伴う文（DROP COLUMN / DROP TABLE / 型変更）は `pnpm db:push` が y/N で確認を求める。
 - 実行する SQL は毎回全文表示される（drizzle-kit CLI の `--verbose` 相当が既定）。
 

@@ -52,7 +52,7 @@ milestone/
 
 ### 1. マイルストーン定義ファイルを作成
 
-`services/server/definitions/<名前>.ts` を作成し、`pnpm extensions:generate` で一覧に入れる。
+`services/server/definitions/<名前>.ts` を作成し、`pnpm generate extensions` で一覧に入れる。
 
 ```ts
 // services/server/definitions/firstPurchase.ts
@@ -92,7 +92,7 @@ export const milestone: MilestoneDefinition = {
 
 ### 2. 一覧を作る
 
-`pnpm extensions:generate`（`extensions/definitions.ts` に入る）。
+`pnpm generate extensions`（`extensions/definitions.ts` に入る）。
 
 これだけで `evaluateMilestones()` 呼び出し時に自動的に評価される。
 
@@ -167,7 +167,7 @@ evaluate: async ({ userId, payload }, tx) => {
 
 ```ts
 // 1. src/features/core/setting/fields/signupBonusCoinAmount.ts（setting の項目の受け口。書式は setting README）
-// 2. src/features/core/milestone/services/server/definitions/signupBonus.ts → pnpm extensions:generate
+// 2. src/features/core/milestone/services/server/definitions/signupBonus.ts → pnpm generate extensions
 import { gate } from "@/featureGate";
 import type { MilestoneDefinition } from "@/features/core/milestone/types/milestone";
 import { settingService } from "@/features/core/setting/services/server/settingService";
@@ -317,7 +317,7 @@ export const renderer: MilestoneRendererDefinition = {
 };
 ```
 
-→ `pnpm extensions:generate`。受け口に置くのは項目だけ(部品は責務のドメインへ)。
+→ `pnpm generate extensions`。受け口に置くのは項目だけ(部品は責務のドメインへ)。
 
 これだけで `PurchaseComplete` ページにマイルストーン達成通知が自動的に表示される。
 

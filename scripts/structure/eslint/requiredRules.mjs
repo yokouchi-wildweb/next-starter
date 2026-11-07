@@ -55,10 +55,10 @@ async function main() {
   const problems = await checkRequiredRules(eslint, REQUIRED_ESLINT_RULES, repoRoot);
   const fileCount = REQUIRED_ESLINT_RULES.reduce((n, entry) => n + entry.files.length, 0);
   if (problems.length === 0) {
-    console.log(`[eslint:required] OK(規則 ${REQUIRED_ESLINT_RULES.length} / ファイル ${fileCount})`);
+    console.log(`[check eslint] OK(規則 ${REQUIRED_ESLINT_RULES.length} / ファイル ${fileCount})`);
     return;
   }
-  console.error("[eslint:required] 全 Tier の必須の ESLint 規則が error ではありません(eslint-rules/required-rules.mjs):");
+  console.error("[check eslint] 全 Tier の必須の ESLint 規則が error ではありません(eslint-rules/required-rules.mjs):");
   for (const { rule, file, problem } of problems) console.error(`  - ${rule} @ ${file}: ${problem}`);
   console.error("  fork の eslint.config.fork.mjs でこの規則を off / warn にしていないか確かめてください。行ごとの例外は理由付きの eslint-disable で。");
   process.exit(1);

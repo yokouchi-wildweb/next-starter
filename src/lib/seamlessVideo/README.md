@@ -217,7 +217,7 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 URL ソースの再生は MSE(`appendBuffer`)/ Web Audio(`decodeAudioData`)がバイト列を `fetch()` で読むため、
 別ドメイン(ファイル保存の GCS バケット等)のバケットに CORS 設定が無いと再生時に `Failed to fetch` になる。
 これは seamlessVideo 固有ではなく **「別ドメインの Storage バイトを読む全機能の共通基盤前提」** で、
-設定はバケット単位で一度きり(新しい 2 バケットは `pnpm storage:setup` が設定済み、旧バケットは `pnpm storage:setup-cors`)。**判定ルール・前提(権限/env)・手順・トラブルシュートは一次情報を参照**:
+設定はバケット単位で一度きり(新しい 2 バケットは `pnpm ops storage setup` が設定済み、旧バケットは `pnpm ops storage setup-cors`)。**判定ルール・前提(権限/env)・手順・トラブルシュートは一次情報を参照**:
 
 ➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../../../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
 

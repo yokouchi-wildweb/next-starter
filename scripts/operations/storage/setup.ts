@@ -210,7 +210,7 @@ async function ensureBucket(kind: Kind, name: string, options: Options): Promise
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
-  console.log(options.dryRun ? "storage:setup（dry run: 読み取りだけで、何も変えません）" : "storage:setup");
+  console.log(options.dryRun ? "pnpm ops storage setup（dry run: 読み取りだけで、何も変えません）" : "pnpm ops storage setup");
   for (const kind of ["pub", "priv"] as const) {
     await ensureBucket(kind, options.buckets[kind], options);
   }

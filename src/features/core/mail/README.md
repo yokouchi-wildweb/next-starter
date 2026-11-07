@@ -143,7 +143,7 @@ await WelcomeEmail.send(
 テンプレートを選択してテストメールを送信できます:
 
 ```bash
-npm run mail:test
+pnpm ops mail test-send
 ```
 
 実行すると以下のような対話式プロンプトが表示されます:
@@ -203,7 +203,7 @@ src/features/core/mail/constants/colors.ts (自動生成)
 1. `src/styles/palette.css` を編集(上流側の既定値を変える場合は `palette.default.css`。所有権は `src/styles/README.md`)
 2. 以下のコマンドを実行:
    ```bash
-   pnpm mail:generate-colors
+   pnpm generate styles
    ```
 3. 生成された `src/features/core/mail/constants/colors.ts` をコミット
 

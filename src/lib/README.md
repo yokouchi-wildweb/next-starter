@@ -19,11 +19,11 @@
 
 1. `src/lib/<name>/` を作る（名前は camelCase。入口は `index.ts` を推奨）
 2. [CATALOG.md](./CATALOG.md) の**自分の節**に `- src/lib/<name> — <一行説明>` を足す。自分の節が無ければ末尾に `## <自分の所有者 ID>` を作る。他の節は編集しない
-3. `pnpm test:lib-catalog` を通す
+3. `pnpm test src/lib/folderCatalog/catalog.test.mjs` を通す
 
 所有者 ID = 各リポの fork の名前（`.claude/rules/project.md` の `fork_id:`、読み手は `src/lib/forkOwnership/forkIds.mjs`）。origin の URL からは導かない。`.notices/applied/<fork_id>.md` の名前と同じ。
 
-## 目録の検査（`pnpm test:lib-catalog`）
+## 目録の検査（`pnpm test src/lib/folderCatalog/catalog.test.mjs`）
 
 - `src/lib` 直下のディレクトリがすべて目録に載っている（載せ忘れ）
 - 目録のパスがすべて実在する（上流のライブラリを消していないことの保証も兼ねる）
@@ -34,7 +34,7 @@
 
 ## 読み込みの輪
 
-静的な値の import で閉じる輪は全部禁止(`pnpm test:cycles`、build の冒頭でも走る。src 全体・全 Tier、例外の一覧は作らない)。型だけの輪と `import()` で閉じる輪は対象外。
+静的な値の import で閉じる輪は全部禁止(`pnpm test scripts/structure/cycles/cycles.test.mjs`、build の冒頭でも走る。src 全体・全 Tier、例外の一覧は作らない)。型だけの輪と `import()` で閉じる輪は対象外。
 
 輪を消すために `import type` や `import()` へ書き換えたら、**コミットに理由を書く**(実体の依存が残っていないか読み手が確かめるため)。普通は共通の部分を別のファイルへ切り出すか、入口でなく実ファイルを読む。
 

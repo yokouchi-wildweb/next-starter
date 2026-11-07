@@ -1,5 +1,5 @@
 // scripts/operations/db/clear/plan.test.ts(pnpm test scripts/operations/db/clear/plan.test.ts)
-// db:clear の計画(参照元の推移・自己参照・閉じた参照元・DB に無い表・--include-closed)と TRUNCATE の文を確かめる。
+// pnpm ops db clear の計画(参照元の推移・自己参照・閉じた参照元・DB に無い表・--include-closed)と TRUNCATE の文を確かめる。
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

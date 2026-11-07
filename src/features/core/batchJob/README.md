@@ -63,7 +63,7 @@ const progress = await batchJobService.getProgress(job.id);
 
 ### 1. ハンドラを定義
 
-`src/features/core/batchJob/jobHandlers/<名前>.ts` に置き、`pnpm extensions:generate` で一覧に入れる（処理が機能を閉じる規則のフォルダを読むなら `enabled` が必須）。
+`src/features/core/batchJob/jobHandlers/<名前>.ts` に置き、`pnpm generate extensions` で一覧に入れる（処理が機能を閉じる規則のフォルダを読むなら `enabled` が必須）。
 
 ```typescript
 import { defineBatchJobHandler } from "@/features/core/batchJob/types";

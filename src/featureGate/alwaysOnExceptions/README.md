@@ -10,4 +10,4 @@ export const exception: AlwaysOnException = { file: "src/wiring/foo.ts", reason:
 // export const registry: AlwaysOnException = { file: "src/registry/fooCleanup.ts", reason: "<常に読まれる理由>" };
 ```
 
-どちらか 1 つ、reason は必須、当たらない行は失敗(縮む表)。検査: `pnpm test:feature-gate`
+どちらか 1 つ、reason は必須、当たらない行は失敗(縮む表)。検査: `pnpm test src/featureGate scripts/structure/proxies`

@@ -4,7 +4,7 @@
 新しく覚える語は **2 つだけ**: `_screen/`（page 層の本体を置く場所）と **loader**（page 層が呼ぶサーバー側ロジック）。
 残りは既存の UI レイヤー（ページ / セクションコンテナ / 部品）そのままです。
 
-この構造は上流のルートだけでなく、**fork が作るユーザー向けページにも原則として適用**します（§7）。登録作業はありません。page.tsx を 1 行にして `_screen/` に本体を置けば、`pnpm test:screens` が自動で検出して検査します。
+この構造は上流のルートだけでなく、**fork が作るユーザー向けページにも原則として適用**します（§7）。登録作業はありません。page.tsx を 1 行にして `_screen/` に本体を置けば、`pnpm test src/lib/screens/screens.test.mjs` が自動で検出して検査します。
 
 このディレクトリの中身:
 
@@ -12,12 +12,12 @@
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形） |
 | `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkAdminPageScreen` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`・守りの鎖の解析 `checkScreenLoaderCall`（D21）/ `parseLoaderGuard` / `parseGuardFile` / `layoutCallsGuard` / `parseLiteral`（地図と共有）（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
-| `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
-| `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/structure/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
-| `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
-| `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
-| `routeMapView.mjs` | ルート地図を見る側（`routes:show` の引数・絞り込み・tree / table / mermaid / jsonl の描画。地図の形は変えない。純粋関数、§13「見る」） |
-| `routeMapView.test.mjs` | `pnpm test:route-map` に含む — 手書きの地図 `__fixtures__/route-map.sample.jsonl` で全部の形と絞り込みを検査 |
+| `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。pnpm test src/lib/screens/screens.test.mjs とルート地図が共有する（§9・§13） |
+| `routeMap.mjs` | ルート地図の生成（鎖を辿って verified を付ける。読めない鎖は生成失敗。純粋関数）。CLI は `scripts/structure/routes/map.mjs`（`pnpm generate routes` / `pnpm check routes -- show`） |
+| `screens.test.mjs` | `pnpm test src/lib/screens/screens.test.mjs` — page.tsx と loader を自動検出して検査（未移行の例外リストは無い、§10） |
+| `routeMap.test.mjs` | `pnpm test 'src/lib/screens/routeMap*.test.mjs'` — 生成器の fixture テストと、コミットされた地図のずれ検査・全行 verified（§13） |
+| `routeMapView.mjs` | ルート地図を見る側（`pnpm check routes -- show` の引数・絞り込み・tree / table / mermaid / jsonl の描画。地図の形は変えない。純粋関数、§13「見る」） |
+| `routeMapView.test.mjs` | `pnpm test 'src/lib/screens/routeMap*.test.mjs'` に含む — 手書きの地図 `__fixtures__/route-map.sample.jsonl` で全部の形と絞り込みを検査 |
 | `src/app/route-map.jsonl` | ルート地図（生成物。1 ページ 1 行の守りの鎖の JSON。手で編集しない。§13） |
 | `src/config/app/screens.config.ts` | 構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9） |
 
@@ -32,7 +32,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 │   ├── WalletBalanceScreen.tsx
 │   ├── loader.ts     最寄りの guard.ts の createLoader で作る(データが無くても access の loader を置く)。既定 Screen も差し替え Screen もこれを呼ぶ
 │   └── <部品>        既定 Screen 専用の部品(あるときだけ。直下でもサブディレクトリでも可。契約外)
-└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、下流の page 専用の部品。上流は src/app のどこにも置かない(test:screens、Tier1)
+└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、下流の page 専用の部品。上流は src/app のどこにも置かない(pnpm test src/lib/screens/screens.test.mjs、Tier1)
 ```
 
 | 対象 | 置き場 | 所有 | 規則 |
@@ -43,7 +43,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（§4） |
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
-| 管理画面の取得本体 | `src/features/core/admin/services/server/screenData/` | 上流 | dc:generate の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/adminScreenParts.ts` の共通部品の組を通して使う |
+| 管理画面の取得本体 | `src/features/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/adminScreenParts.ts` の共通部品の組を通して使う |
 | セクションコンテナ / 部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
 
@@ -64,14 +64,14 @@ src/app/(user)/
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける（コピーしてよいかは `.claude/rules/core/extensions.md` で判定）。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 1（データの無いページも access だけの loader を持つ）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
-- 対象外: API だけ。デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）も管理画面（`/admin/**`、手書きも dc:generate 由来も）も対象
+- 対象外: API だけ。デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）も管理画面（`/admin/**`、手書きも pnpm generate domain 由来も）も対象
 
 ## 2. 既存の UI レイヤーとの対応
 
 | UI レイヤー（CLAUDE.md `ui_layers` / must-read） | 実体 | 補足 |
 |---|---|---|
 | page / ページ | `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体） | 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ |
-| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（旧 `*Page` 名は checkpoint ui-layers-rename で改名済み。旧パスの shim は ui-layers-shim-removal で削除済み）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen はコンテナ自体を import し、内側は読まない（`pnpm test:screens` が検査。§6） |
+| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（旧 `*Page` 名は checkpoint ui-layers-rename で改名済み。旧パスの shim は ui-layers-shim-removal で削除済み）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen はコンテナ自体を import し、内側は読まない（`pnpm test src/lib/screens/screens.test.mjs` が検査。§6） |
 | part / 部品 | コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/` | 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ |
 | （新規）loader | `src/app/<route>/_screen/loader.ts` | page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（must-read §3） |
 
@@ -195,14 +195,14 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 - Next は default export に page props をそのまま渡すので、re-export で `params` / `searchParams` が Screen に届く
 - **Screen は Server Component**。`"use client"` は付けない（テストが弾く）。hook や状態が必要な部分は client のセクションコンテナか `_screen/` の client 部品に下ろし、Screen はそれを描くだけにする
 - グループごとに形が違う: `mypage` 配下は layout が `UserPage` + `Stack` + `PageTransition` を巻くので Screen は fragment を返す。`wallet` は Screen が `UserPage` を持つ
-- **Screen は同じルートの loader を import し、本体の最上位（最初の `return` より前）で `await` する**（D21。データの無い Screen も access だけの loader を await する）。条件分岐・try・コールバックの中や JSX の中で呼ばない。`test:screens` とルート地図（§13）が同じ解析で検査する。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）を呼ぶ
+- **Screen は同じルートの loader を import し、本体の最上位（最初の `return` より前）で `await` する**（D21。データの無い Screen も access だけの loader を await する）。条件分岐・try・コールバックの中や JSX の中で呼ばない。`pnpm test src/lib/screens/screens.test.mjs` とルート地図（§13）が同じ解析で検査する。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）を呼ぶ
 - Screen はサーバーのデータを自分で取らない（services/server・DB の値 import は lint `page-authz/layout-no-server-data` が止める）。表示用の利用者は client の `useAuthSession`（root の `AuthSessionProvider`）
 - 差し替えは「同じルート内」が基本条件（範囲の guard.ts と root の Provider を前提にする）
 - `metadata` は Screen 側に書いて page.tsx から `export { XScreen as default, metadata } from "./_screen/XScreen"` と re-export してもよい（`generateMetadata` / `viewport` も同様）。`dynamic` 等のセグメント設定は Next が静的解析するため page.tsx 自体に書く
 
 ## 6. セクションコンテナの条件（契約 D）
 
-- Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test:screens` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）。fork が `components/Admin/<Name>` のようにグループ分けするのは自由
+- Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test src/lib/screens/screens.test.mjs` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）。fork が `components/Admin/<Name>` のようにグループ分けするのは自由
 - 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
 - `"use client"` のファイルからは関数（コンポーネント・hook）だけを export する。定数やオブジェクトを Screen・loader（server）から import すると client reference になり undefined で届く（型検査も lint も通る。例: スラッグ表が undefined で常に `notFound()`）。server と共有する値は `"use client"` の無い中立ファイルに置く
@@ -224,7 +224,7 @@ src/app/(user)/(protected)/points/
     └── loader.ts                 最寄りの guard.ts の createLoader({ access, key?, load })(データが無くても access だけの loader を置く)
 ```
 
-登録は不要。`pnpm test:screens` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。`pnpm routes:map` が鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗になる。
+登録は不要。`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。`pnpm generate routes` が鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗になる。
 新しい範囲（別の方針）が要るなら、その範囲の dir に子の guard.ts（最寄りの親の `extend`）と、`await guard()` の 1 行の layout.tsx を置く（§4）。
 
 ### 上流の画面を変えたい（例: `/wallet/[slug]`）
@@ -249,10 +249,10 @@ src/app/(user)/(protected)/points/
 
 ルートは削除・移動・rename しない（`_` 付きへの rename による無効化も同じ）。止めるときはスイッチを使う。
 
-- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは機能を閉じる規則（`src/featureGate/rules/<名前>.ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm routes:map`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
+- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは機能を閉じる規則（`src/featureGate/rules/<名前>.ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm generate routes`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
 - 置き換える: 自分の画面は `_components/` に別名で作り、page.tsx の 1 行スイッチをそこへ向ける（上の「上流の画面を変えたい」）。別の URL に作るなら自分のルートとして足す
 - スイッチも feature-gate のルールも当たらないページ: 削除せず、直接の親に `/order` で止める口を頼み、それまでは一時許可で通す（`src/lib/forkOwnership/README.md`「一時許可」）
-- 削除・rename は `pnpm ownership:check` が違反にする（`/flux` の区間が閉じない）。以前に消したルートは、止めてから `git checkout upstream/main -- <path>` で戻す
+- 削除・rename は `pnpm workflow ownership check` が違反にする（`/flux` の区間が閉じない）。以前に消したルートは、止めてから `git checkout upstream/main -- <path>` で戻す
 
 ### やってはいけないこと
 
@@ -263,7 +263,7 @@ src/app/(user)/(protected)/points/
 
 ### それでも core を編集したとき（上流の呼び出し側と互換を保つ）
 
-core の編集は受け口の外なので、直接の親への依頼と一時許可が要る（`src/lib/forkOwnership/README.md`「一時許可」。許可が無いと `pnpm ownership:check` が違反にする）。許可のある間も次の互換を守る。
+core の編集は受け口の外なので、直接の親への依頼と一時許可が要る（`src/lib/forkOwnership/README.md`「一時許可」。許可が無いと `pnpm workflow ownership check` が違反にする）。許可のある間も次の互換を守る。
 
 page.tsx を `_components/` に向けて上流の既定 Screen を使っていなくても、`_screen/*` のファイルは残るので **fork の `tsc` の検査対象のまま**になる。core のコンポーネント・hook・service を非互換に変えると、上流がそれを呼ぶ Screen を足したり切り替えたりした merge で `tsc` が落ちる。
 
@@ -326,7 +326,7 @@ import { BalanceCard } from "./BalanceCard";
 
 ---
 
-## 9. 仕組みによる保護（`pnpm test:screens`）
+## 9. 仕組みによる保護（`pnpm test src/lib/screens/screens.test.mjs`）
 
 検査対象は自動検出する。登録は不要。
 
@@ -342,12 +342,12 @@ import { BalanceCard } from "./BalanceCard";
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（§13）が見る。補助関数は `utils/` へ | 失敗 |
 | Screen → loader（D21） | `checkScreenLoaderCall`: 同じルートの loader を import し、本体の最上位（最初の `return` より前）で await する | 失敗 |
-| 管理のページは AdminPage を描く | `checkAdminPageScreen`: `src/app/admin` の下の全ページの Screen が `AdminPage`(`@/app/admin/_layout/AdminPage` か相対の `…/_layout/AdminPage`)を import して `<AdminPage …>` を描く。管理のヘッダーの行は AdminPage が描くので、描かないページにはヘッダーが出ない(D134)。字面で Screen のファイル自身を読む: 子の部品の中で AdminPage を描く形は読まずに止める(Screen が AdminPage を描き、子はその中に置く)。ヘッダーを出さないページも AdminPage で包み、隣の `frame.ts` の宣言でヘッダーを隠す。全 Tier・例外なし。ルート地図(`pnpm routes:map`)も同じ関数で行の問題にする | 失敗 |
+| 管理のページは AdminPage を描く | `checkAdminPageScreen`: `src/app/admin` の下の全ページの Screen が `AdminPage`(`@/app/admin/_layout/AdminPage` か相対の `…/_layout/AdminPage`)を import して `<AdminPage …>` を描く。管理のヘッダーの行は AdminPage が描くので、描かないページにはヘッダーが出ない(D134)。字面で Screen のファイル自身を読む: 子の部品の中で AdminPage を描く形は読まずに止める(Screen が AdminPage を描き、子はその中に置く)。ヘッダーを出さないページも AdminPage で包み、隣の `frame.ts` の宣言でヘッダーを隠す。全 Tier・例外なし。ルート地図(`pnpm generate routes`)も同じ関数で行の問題にする | 失敗 |
 | 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>` か `./_layout/<X>.replace`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
 | upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に点つきの名前（fork の丸ごと置き換え `.replace`）が無い（1 行スイッチの既定 `<名前>.default`、例 `admin/_layout/AdminHeader.default.tsx` は作ったリポの物なので数えない）。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
-| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `extensions:check` の `switches.mjs`）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findOrphanReplaceFiles` = `<名前>.replace` の隣に置き換える既定（`<名前>.ts(x)` か `<名前>/index.ts(x)`）がある | 失敗 |
+| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `pnpm check extensions` の `switches.mjs`）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findOrphanReplaceFiles` = `<名前>.replace` の隣に置き換える既定（`<名前>.ts(x)` か `<名前>/index.ts(x)`）がある | 失敗 |
 
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 
@@ -361,7 +361,7 @@ export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 
 ## 10. 未移行ルートの扱い（例外リストは無い）
 
-スイッチ形でない page.tsx は `pnpm test:screens` が失敗にし、ルート地図（§13）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リスト（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES`）は仕組みごと廃止した（upstream も 8 fork も 0 件、多段ティア D30 K11）。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
+スイッチ形でない page.tsx は `pnpm test src/lib/screens/screens.test.mjs` が失敗にし、ルート地図（§13）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リスト（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES`）は仕組みごと廃止した（upstream も 8 fork も 0 件、多段ティア D30 K11）。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
 
 ## 11. 不採用の案（理由を残す）
 
@@ -376,14 +376,14 @@ export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 - **`cache()` 不要の印（コメントマーカー）**: 覚える印が増え、印を付けたまま取得処理を足すと二重取得が黙って起きる。一律に包む
 - **差し替え画面専用のディレクトリ名（`_override/` 等）**: 新語が 3 つになり、fork 自身の部品と画面が別フォルダに割れる。`_components/<Name>Screen.tsx` の命名で区別する
 
-## 12. 生成される管理画面ルート（dc:generate）
+## 12. 生成される管理画面ルート（pnpm generate domain）
 
-`dc:generate` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/`、`new/`、`[id]/edit/`、`sort/`）も同じ構造で生成される。
+`pnpm generate domain` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/`、`new/`、`[id]/edit/`、`sort/`）も同じ構造で生成される。
 テンプレートは `src/app/admin/_template/__domains__/`、生成器は `scripts/structure/domain/render/adminRoutes/`。
 
 ```
 src/app/admin/(protected)/samples/
-├── page.tsx                          write-once。初回だけ生成、以後 dc:generate は上書きしない(fork 所有)
+├── page.tsx                          write-once。初回だけ生成、以後 pnpm generate domain は上書きしない(fork 所有)
 │                                     export const dynamic = "force-dynamic";
 │                                     export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";
 ├── _screen/AdminSampleListScreen.tsx 毎回再生成(手で編集しない)。metadata もここ(ラベル変更が再生成で反映される)
@@ -397,21 +397,21 @@ src/app/admin/(protected)/samples/
 | fork | `_components/` | 触らない |
 
 - `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/wiring/adminScreenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/features/core/admin/services/server/screenData/README.md`
-- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
-- 生成ルートも `test:screens` が自動検出して検査する（domain.json から導出）
+- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `pnpm generate domain` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
+- 生成ルートも `pnpm test src/lib/screens/screens.test.mjs` が自動検出して検査する（domain.json から導出）
 
 ## 13. ルート地図（`src/app/route-map.jsonl`）
 
-全ページの「守りの鎖」を 1 ページ 1 行の JSON（JSON Lines）にした生成物で、コミットする。主な読み手はエージェント（機械が読む構造化データ）。人が読む形は `pnpm routes:show`。発見は §9 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
+全ページの「守りの鎖」を 1 ページ 1 行の JSON（JSON Lines）にした生成物で、コミットする。主な読み手はエージェント（機械が読む構造化データ）。人が読む形は `pnpm check routes -- show`。発見は §9 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
 
 | コマンド | 用途 |
 |---|---|
-| `pnpm routes:map` | 地図を書き出す。ページ・Screen・loader・guard.ts を変えたら実行してコミットする。鎖が読めないページがあれば行と理由を出して exit 1（地図は書かない）。feature-gate の config（.ts）を読むので tsx で動く |
-| `pnpm routes:map --check` | 地図が生成結果と一致するか検査する（ずれていれば exit 1） |
-| `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 + 全行 verified + 見る側（`routeMapView`）のテスト |
-| `pnpm routes:show [<URL 接頭辞>] [オプション]` | 地図を絞り込んで描く（下の「見る」）。引数なし・URL 接頭辞だけは段ごとの鎖（page → Screen → loader の access → guard.ts の段ごとの access と行き先） |
+| `pnpm generate routes` | 地図を書き出す。ページ・Screen・loader・guard.ts を変えたら実行してコミットする。鎖が読めないページがあれば行と理由を出して exit 1（地図は書かない）。feature-gate の config（.ts）を読むので tsx で動く |
+| `pnpm check routes` | 地図が生成結果と一致するか検査する（ずれていれば exit 1） |
+| `pnpm test 'src/lib/screens/routeMap*.test.mjs'` | 生成器の fixture テスト + 同じずれ検査 + 全行 verified + 見る側（`routeMapView`）のテスト |
+| `pnpm check routes -- show [<URL 接頭辞>] [オプション]` | 地図を絞り込んで描く（下の「見る」）。引数なし・URL 接頭辞だけは段ごとの鎖（page → Screen → loader の access → guard.ts の段ごとの access と行き先） |
 
-見る（`pnpm routes:show`、`--help` で一覧。人に説明させるときはスキル `/route-map` が依頼を引数に直して結果を読み解く）:
+見る（`pnpm check routes -- show`、`--help` で一覧。人に説明させるときはスキル `/route-map` が依頼を引数に直して結果を読み解く）:
 
 - 入力: 既定は src/app から作り直した値（コミット前の変更も映る。鎖が読めないと exit 1）。コミットされた地図とずれていれば stderr に `! 地図が古い` の 1 行。`--file=<path>` は地図ファイル（JSON Lines）をそのまま読む（fixture・別の版の地図）
 - `--view=`: `details`（既定。段ごとの鎖）/ `tree`（URL の木。ページの行に access・最寄りの範囲・gated-off）/ `table`（Markdown の表。page.tsx のフォルダ = route group が見える列、guard は最寄り → root）/ `mermaid`（guard.ts の範囲を extend の親子で入れ子の subgraph、ページは最寄りの範囲の箱、止めたページは点線）/ `jsonl`（絞った行を地図と同じ形で。エージェント向け）
@@ -436,14 +436,14 @@ src/app/admin/(protected)/samples/
 - `chain`: 段の並び = page.tsx → 採用 Screen（1 行スイッチの先）→ 同じルートの loader → 最寄りの guard.ts → extend の親 → root（`defineRootGuard`）。親子は AND
   - loader の `access` = `createLoader({ access })` の字面。管理画面の共通部品の組（`adminListParts("sample")` 等）は `{"registry":"sample.search"}`（serviceRegistry の entry から操作ごとに解く）。自前の load を書く loader も `access: <組>.access` なら同じ値に読む（同じファイルで 1 回だけ `const x = adminListParts("sample")` と束ねた `x.access`、またはインラインの `adminListParts("sample").access`。組の関数は `@/wiring/adminScreenParts` から import、domain は文字列の字面）。access を手書きの字面にすると domain の access が変わっても追随しないので、組を使う loader はこちらにする。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
   - guard の `policy` = `defineRootGuard({…})` / 親の `extend({…})` の字面（`access`・`allowStatuses`・`redirectTo`・`forbiddenRedirectTo`・`returnBack`・`statusRedirects`・`setupRedirectTo` の順）
-- 生成失敗（`pnpm routes:map` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（D21。`test:screens` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
-- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`parseLiteral`）で、地図と `test:screens` が共有する
-- 既知の限界: 字面だけを読む。import の別名（`createLoader as x`）・変数に入れた方針・スプレッドは読めない（生成失敗になる）。組の access も上の 2 形だけ: 分割代入・別ファイルから import した組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式は生成失敗（`test:screens-checks`）。Screen の `return` の後（JSX の中）の await は数えない
-- fork の merge で地図が衝突したら、どちらの版も採らずに `pnpm routes:map` で作り直してコミットする（地図は生成物なので、手で解決しない）
+- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（D21。`pnpm test src/lib/screens/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
+- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`parseLiteral`）で、地図と `pnpm test src/lib/screens/screens.test.mjs` が共有する
+- 既知の限界: 字面だけを読む。import の別名（`createLoader as x`）・変数に入れた方針・スプレッドは読めない（生成失敗になる）。組の access も上の 2 形だけ: 分割代入・別ファイルから import した組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式は生成失敗（`pnpm test src/lib/screens/checks.test.mjs`）。Screen の `return` の後（JSX の中）の await は数えない
+- fork の merge で地図が衝突したら、どちらの版も採らずに `pnpm generate routes` で作り直してコミットする（地図は生成物なので、手で解決しない）
 
 決定の経緯（評議会 20261019-213253 §4 M1・§7、親 D71 K1、legate L1.21）:
 
-- **採った形 = 機械が読む構造化データ**: 主な読み手はエージェント。段ごとの access と方針の値を持ち、差分がページ単位・段単位で読める。人向けの図（ツリー・表・Mermaid）は CLI（`routes:show --view=`）が描き、スキル `/route-map` が依頼を引数に直して読み解く
+- **採った形 = 機械が読む構造化データ**: 主な読み手はエージェント。段ごとの access と方針の値を持ち、差分がページ単位・段単位で読める。人向けの図（ツリー・表・Mermaid）は CLI（`pnpm check routes -- show --view=`）が描き、スキル `/route-map` が依頼を引数に直して読み解く
 - **不採用: 1 行のテキスト（出どころ + 関数名#hash）**: 初版の形。hash は方針の中身を読めず、Factory の方針（guard.ts・createLoader）を辿れない
 - **不採用: 地図をコミットしない（コマンドで見るだけ）**: 方針の付け外しがレビューの差分に出ず、ずれ検査も作れない
 - **不採用: 固定リストの走査（`SCAN_ROOTS` 等）**: リストの外のページが黙って地図から抜ける（§11）

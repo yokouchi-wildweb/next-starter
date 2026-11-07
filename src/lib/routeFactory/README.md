@@ -182,7 +182,7 @@ export const GET = createDomainRoute<any, { domain: string }>(
 アクセスポリシーは各ドメインの `domainEntry.ts` の `{ service, access }` で宣言する（型必須）:
 
 ```ts
-// src/features/sample/services/server/domainEntry.ts（業務ドメインは dc:generate が domain.json から生成）
+// src/features/sample/services/server/domainEntry.ts（業務ドメインは pnpm generate domain が domain.json から生成）
 export const domainEntries = {
   sample: {
     service: () => import("./sampleService").then((m) => m.sampleService),
@@ -194,7 +194,7 @@ export const domainEntries = {
 } satisfies DomainEntries;
 ```
 
-- 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`dc:generate` / forge が domainEntry.ts に展開）。
+- 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
   コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
@@ -329,7 +329,7 @@ export const POST = createApiRoute(
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
-テスト: `pnpm test:route-factory`（Factory の契約）/ `test:route-http-export` / `test:import-boundaries` / `test:device-route` / `test:collection-entries-route`。
+テスト: `pnpm test src/lib/routeFactory/createApiRoute.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/features/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/lib/routeFactory/collectionEntriesRoute.test.mts`。
 
 ---
 

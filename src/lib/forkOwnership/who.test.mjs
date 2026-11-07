@@ -81,7 +81,7 @@ function makeFork(parent, forkId) {
   return root;
 }
 
-describe("ownership:who", () => {
+describe("pnpm workflow ownership who", () => {
   before(() => {
     tmp = mkdtempSync(join(tmpdir(), "fork-ownership-who-"));
   });

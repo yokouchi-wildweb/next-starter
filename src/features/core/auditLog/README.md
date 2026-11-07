@@ -309,7 +309,7 @@ export const AUDIT_ACTION_LABELS: Readonly<Record<string, string>> = {
 | `audit-log-prune` | daily | `created_at + retention_days` を過ぎた行を削除。1000 件 × 最大 100 反復 / 回、`FOR UPDATE SKIP LOCKED`。上限到達時は `truncated: true` で次回に持ち越し |
 | `audit-log-recover-dead-letter` | hourly | `audit_logs_failed` を古い順に最大 500 件再投入し、成功分を削除 |
 
-- 配線: `src/app/api/cron/<task>/`（task.ts + route.ts）。`vercel.json` のエントリは `pnpm cron:generate` が生成する。手動は `pnpm task <task>`
+- 配線: `src/app/api/cron/<task>/`（task.ts + route.ts）。`vercel.json` のエントリは `pnpm generate cron` が生成する。手動は `pnpm task <task>`
 - dead-letter が減らない場合は `audit_logs_failed.error_message` を確認する（schema 不整合・payload 形状不一致など）
 - 再投入時は payload の `subjectUserId` / `batchId` も書き戻す（キーの無い旧 payload は NULL）
 

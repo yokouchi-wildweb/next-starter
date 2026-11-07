@@ -26,7 +26,7 @@ export const DOMAIN_API_ACCESS_CONFIG = {
 
 /**
  * domainEntry.ts の access で再利用するアクセスポリシーのプリセット。
- * domainEntry.ts が静的 import してよいのは、このファイルと @/lib/domain/types だけ（registry:check が検査）。
+ * domainEntry.ts が静的 import してよいのは、このファイルと @/lib/domain/types だけ（pnpm check registry が検査）。
  */
 
 /** 管理者カテゴリのみを許可する単一ルール（operations の上書きに使う） */

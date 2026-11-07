@@ -3,7 +3,7 @@
 // 投稿者プロフィールのフォーム型定義
 //
 // 元情報: src/features/core/userProfile/profiles/contributor.profile.json
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは pnpm generate role によって自動生成されました
 
 import { z } from "zod";
 import { ContributorProfileSchema } from "./schema";

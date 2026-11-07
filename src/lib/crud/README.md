@@ -14,7 +14,7 @@ src/lib/crud/
 ├── index.ts                  # バレルエクスポート
 ├── client/                   # クライアント層（createApiClient, イベント）
 ├── components/               # CRUD 用 UI ボタン群（入口 @/lib/crud/components。@/lib/crud は UI を持たない。domain は写しを受ける）
-├── hooks/                    # 汎用フック（dc:generate で各ドメインに展開）
+├── hooks/                    # 汎用フック（pnpm generate domain で各ドメインに展開）
 │   └── internal/             # mutation 共通実装（useDomainMutation / concurrentMutation + テスト）
 ├── presenters/               # カラムメタデータ・フォーマッタ
 ├── storageIntegration/       # ストレージ連携（ファイル削除・複製）
@@ -161,7 +161,7 @@ await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date
 - belongsToMany リレーション同期は対象外
 - **サービス層限定の特権**。汎用 HTTP ルート（`/api/[domain]/**`）には配線されておらず、
   今後も配線しないこと。HTTP 入力の安全網は従来どおり Zod strip
-- business ドメインは domain.json の `systemColumns` に宣言して `dc:generate` で反映、
+- business ドメインは domain.json の `systemColumns` に宣言して `pnpm generate domain` で反映、
   core ドメインは drizzleBase の `createCrudService` オプションに直接宣言する
 
 ### hiddenColumns（秘匿カラム — サービス境界の外に出さない）
@@ -225,7 +225,7 @@ defineHiddenColumns(UserTable, ["localPassword"]);
   - 対象テーブルは `src/**/entities/drizzle.ts` の `defineHiddenColumns` 宣言から自動で集める（手書きの一覧なし）
   - `services/server/finders/` と `entities/` は対象外。それ以外の正当な例外は理由付き eslint-disable
   - 限界: テーブルは識別子名で照合（import 別名・変数経由は追わない）、relational query（`db.query.*`）は対象外
-- テスト: `pnpm test:hidden-columns-lint`
+- テスト: `pnpm test eslint-rules/hidden-columns.test.mjs`
 
 ---
 
@@ -355,7 +355,7 @@ const inserted = await service.replaceByQuery(
 
 **useSWRMutation を使わない理由**: swr/mutation は「最後に開始した trigger」以外の結果を捨てる（`ditchMutationsUntilRef`）。並列時に先行分が成功でも失敗でも state 更新・onSuccess・throw を行わず undefined で resolve するため、一括保存の途中失敗が「全件成功」に見える無言のデータ欠損を起こす（tier3 本番で発生）。
 
-**テスト**: `pnpm test:crud-hooks`（node:test + Node 組み込みの TypeScript type stripping、追加依存なし）。React 非依存の中核 `concurrentMutation.ts` を検証する。
+**テスト**: `pnpm test src/lib/crud/hooks/internal/*.test.mjs`（node:test + Node 組み込みの TypeScript type stripping、追加依存なし）。React 非依存の中核 `concurrentMutation.ts` を検証する。
 
 **独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` の直接利用は禁止（同じ握りつぶしを再発させる）。
 
@@ -363,7 +363,7 @@ const inserted = await service.replaceByQuery(
 
 ## storage オプション（ファイル台帳との連動）
 
-`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。メディア列の書き込みはこの binding か `storageObjectService.attach` だけで行い、生 SQL・systemUpdate・ref の別表への複写はしない（共有は copy）。dc:generate はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`）。指定しないサービスの挙動は変わらない。
+`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。メディア列の書き込みはこの binding か `storageObjectService.attach` だけで行い、生 SQL・systemUpdate・ref の別表への複写はしない（共有は copy）。pnpm generate domain はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`）。指定しないサービスの挙動は変わらない。
 
 ```ts
 import { storageBindingFor } from "@/features/core/storageObject/services/server";
@@ -518,9 +518,9 @@ export const productService = createCrudService(ProductTable, {
 - 集まりごとに呼び出し 1 回で 1 クエリ（主の id の IN）。呼び出し元の tx の外（`db`）で読む。複製の 1 段目の読み出しも同じ
 - TS 側の先頭 1 件は配列の `[0]`
 - 他ドメインの withRelations で埋め込まれた主の行（belongsTo / hasMany / belongsToMany、深さ 2 まで）にも、主の読み出しと同じ規則（全件・並び順・従属が無ければ `[]`）で集まりの配列を載せる
-  - 埋め込む側のサービスは主のサービスを読まないので、表に集まりを登録して引く: 主の `entities/drizzle.ts` の `defineTableCollections(<Domain>Table, () => import("@/features/<domain>/services/server/collections").then((m) => m.collections))`（`dc:generate` が出す。遅延 import = drizzle.ts ↔ collections.ts ↔ 従属の表の循環を避ける）。主のサービス（`createCrudService` の `collections`）を作ったときも同じ表に登録する
+  - 埋め込む側のサービスは主のサービスを読まないので、表に集まりを登録して引く: 主の `entities/drizzle.ts` の `defineTableCollections(<Domain>Table, () => import("@/features/<domain>/services/server/collections").then((m) => m.collections))`（`pnpm generate domain` が出す。遅延 import = drizzle.ts ↔ collections.ts ↔ 従属の表の循環を避ける）。主のサービス（`createCrudService` の `collections`）を作ったときも同じ表に登録する
   - 埋め込んだ行の集まりは、リレーション 1 つ・深さ 1 つごとに、集まり 1 つにつき 1 クエリ（埋め込んだ主の id の IN）。登録の無い表の埋め込みはクエリも動きも変わらない
-  - `entities/drizzle.ts` を手書きする主は、この 1 行を自分で足す（`pnpm test:collection-wiring` が、サービスを読まずに表の登録があるかを確かめる）。無いと、主のサービスを読まない画面の埋め込みで配列が欠ける
+  - `entities/drizzle.ts` を手書きする主は、この 1 行を自分で足す（`pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が、サービスを読まずに表の登録があるかを確かめる）。無いと、主のサービスを読まない画面の埋め込みで配列が欠ける
   - 埋め込みの配列は全件（先頭だけの省略はしない）なので、埋め込んだ行から作ったフォームを保存しても集まりは減らない
   - 直接の drizzle の select（`db.select()...`）は対象外。先頭 1 件を SQL で使うなら下の「先頭 1 件の SQL」
 - 一覧の表示: `formatCollectionThumbnails(value)`（`@/lib/crud`。先頭 1 件のサムネイルと、残りがあれば `+N`。解決できない値は数えず、0 件は null）。生成の presenters は主の集まりの項目（`mediaCollection`）にこれを使う。旧来の複数メディア列（mediaUploaderMulti）は `formatMediaThumbnails`（先頭 3 件を重ねて `+N`）のまま
@@ -598,11 +598,11 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 ### 生成器からの配線
 
-- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）から、`dc:generate` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
+- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）から、`pnpm generate domain` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
   - `fieldName` = 項目名（domain.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
 - 生成の drizzleBase.ts は `import { collections } from "./collections"` して `createCrudService` の options に `collections` を渡す
-- drizzleBase.ts を手書きする主（`generate: false` のドメイン）は、この 2 行を自分で足す（渡し忘れは `pnpm test:collection-wiring` が見つける）
-- 突き合わせ: `pnpm test:collection-wiring` が、全 domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
+- drizzleBase.ts を手書きする主（`generate: false` のドメイン）は、この 2 行を自分で足す（渡し忘れは `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が見つける）
+- 突き合わせ: `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が、全 domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
 - 生成器を使わないドメインは、手書きのサービスで `createCrudService` に `collections` を渡す（宣言の形は同じ `CrudCollectionConfig`）
 
 ### 既存の mediaUploaderMulti 列からの移行
@@ -613,7 +613,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 - 基盤に移行の仕組み（移行ヘルパー・移行専用の書き込み口・台帳の付け替え関数）は無い。移行はそのドメインを持つリポが行う
 - 一度きりのデータ移行では DB を直接クエリで操作してよい（領域ごとの規則より上位の原則）。サービスを通すと binding がファイルを消す経路に当たるので、値の移し替えは直接 SQL で行う（下の「やってはいけないこと」）
-- 生成器の fieldType `mediaUploaderMulti` は廃止した。domain.json に残っていると dc:generate が止まるので、生成し直す前にこの手順で集まりへ移す（lib の `multi: true` の binding は残っているので、生成済みのサービスと列は移行するまで動く）。新しく足す項目は集まりにする（[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）
+- 生成器の fieldType `mediaUploaderMulti` は廃止した。domain.json に残っていると pnpm generate domain が止まるので、生成し直す前にこの手順で集まりへ移す（lib の `multi: true` の binding は残っているので、生成済みのサービスと列は移行するまで動く）。新しく足す項目は集まりにする（[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）
 
 使う名前（プレースホルダ）:
 
@@ -628,13 +628,13 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 #### 中間の形（元の列を残して並べる）
 
-- 主の domain.json に、元の multi の項目を残したまま集まりの項目を足し、`pnpm dc:generate <Parent>` で従属を作る（従属の domain.json の書き出し・生成・配線まで。従属の表は `[user-run] pnpm db:push`）
+- 主の domain.json に、元の multi の項目を残したまま集まりの項目を足し、`pnpm generate domain -- <Parent>` で従属を作る（従属の domain.json の書き出し・生成・配線まで。従属の表は `[user-run] pnpm db:push`）
 - 前例: `src/features/sample/domain.json` の `gallery_images`（multi）と `images`（集まり、従属 `sampleImage`）
 - 移行が終わるまで元の列と集まりは並んで在る。画面の切り替え（どちらを表示・入力するか）はドメインの事情で決める
 
 #### 手順
 
-0. 移行の前、書き込みを止める前に数える（読み取りだけ。`pnpm db:query "<SQL>"` で流せる）
+0. 移行の前、書き込みを止める前に数える（読み取りだけ。`pnpm ops db inspect query "<SQL>"` で流せる）
    - 書き込みを止める前に流すのは、見つかった重複の解消に管理画面が要るから
    - fork が足す事前の検査も同じ時点で流すので、後の `db:push` で作られる列（手順 4 の FK など）を読まない形にする
 
@@ -714,7 +714,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
      3. `db:push` を流す。列と index は在るものとして飛ばされるが、FK の追加は表を走査するので、この push も書き込み停止の間か低トラフィック時に流す
 5. 元の列を直接 SQL で空にするか、列ごと落とす（その前に記録の表を消す: `DROP TABLE <migration_log>;`。ここで戻せなくなるので、手順 6 を確かめてから）
    - 空にする: `UPDATE <parent_table> SET <field> = '{}';`（サービスの保存では空にしない）
-   - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent>`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
+   - 落とす: 主の domain.json から元の項目を外して `pnpm generate domain -- <Parent>`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
    - ここから先は戻せない。手順 6 の数え上げを、空にする・落とす前にも一度流す
 6. 確かめる（読み取りの SQL の数え上げ）
 
@@ -941,7 +941,7 @@ searchRank?: boolean | { fields?: Array<string | { field: string; weight?: numbe
 
 // サービス側（createCrudService オプション）— 「どう並べるか」の既定のみ。ON/OFF は呼び出し側が決める
 defaultSearchRank?: { fields: [{ field: "name", weight: 3 }, "email"] }
-// ビジネスドメインは domain.json の `searchRank` キーに同じ形で宣言 → dc:generate が drizzleBase に展開
+// ビジネスドメインは domain.json の `searchRank` キーに同じ形で宣言 → pnpm generate domain が drizzleBase に展開
 ```
 
 採点式（フィールドごとに算出し合算。複数フィールド一致は合算で自然に加点）:
@@ -1130,7 +1130,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
   index("items_parent_sort_idx").on(table.parent_id, sortKeyIndexColumn(table.sort_order));
   ```
   - integer の列には何も足さない。昇順 NULLS LAST のみ（lib の読み方と同じ。降順は後ろから読めば同じ index で足りる）
-  - 仕組み: drizzle の opclass 欄に `COLLATE "C"` を書く。drizzle-kit は opclass をそのまま SQL に出し、push の比較には使わない。drizzle-kit の更新で変わると `pnpm test:crud-sort-collation-db` が落ちる
+  - 仕組み: drizzle の opclass 欄に `COLLATE "C"` を書く。drizzle-kit は opclass をそのまま SQL に出し、push の比較には使わない。drizzle-kit の更新で変わると `pnpm test --db src/lib/crud/drizzle/fractionalSort/` が落ちる
   - 使わない書き方:
     - `` sql`${table.sort_order} COLLATE "C"` ``: 単一列でも複合でも、全列 sql でも、push のたびに DROP + CREATE になる
     - 普通の `.on(table.sort_order)`: 新しい環境では C にならず、並びに使われない
@@ -1193,12 +1193,12 @@ PostgreSQL 制約違反を `DomainError` に変換:
 
 - 中間テーブルを手で操作し、`belongsToMany` の管理と二重になる → `belongsToManyRelations` に任せる
 - ページングを自前で実装し、`total` の仕様が汎用 search とずれる → `search()` / `base.query()` を使う
-- 生成ファイルを直接編集し、次の `dc:generate` で上書きされる → `wrappers/` で拡張する
+- 生成ファイルを直接編集し、次の `pnpm generate domain` で上書きされる → `wrappers/` で拡張する
 - Firestore で `or` を使って例外になる → 上の「Firestore 版との差異」を先に確認する
 
 ## ライブラリ拡張時の注意事項
 
 1. **後方互換性の維持** — SearchParams 等の共通型への追加はオプショナルプロパティに限定する
 2. **Firestore 側の考慮** — Drizzle 固有機能を追加した場合、Firestore 側では無視するかエラーにするか決める
-3. **生成コードへの影響** — `hooks/` 配下は `dc:generate` で各ドメインに展開されるため、シグネチャ変更は全ドメインに波及する
+3. **生成コードへの影響** — `hooks/` 配下は `pnpm generate domain` で各ドメインに展開されるため、シグネチャ変更は全ドメインに波及する
 4. **query/ 配下の純粋関数化** — クエリビルダーは DB アクセスを持たない純粋関数として実装する

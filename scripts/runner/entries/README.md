@@ -12,6 +12,5 @@ pnpm ops <対象> <動作> [<引数>...]                # 手で使う操作・�
 - 動作にならない物 = `*.test.*`・`lib.*`・下のフォルダの中。動作の間で共有する部品はここに置く(例 `operations/db/clear/plan.ts`・`operations/storage/iam/`)
 - 終了コードは動作のもの。省くと一覧(exit 0)、知らない種類・対象・動作は止める(exit 2)
 - 例: `pnpm workflow worktree new <branch>` / `pnpm workflow notices shippedIndex verify` / `pnpm ops db inspect tables` / `pnpm ops features list`
-- 旧いコマンド名(`pnpm worktree:new`・`pnpm db:tables`・`pnpm features:list` など)は package.json の整理まで残る
 - 門に乗る検査(gate.json)は `pnpm check`(`scripts/runner/gates/README.md`)。この入口は検査を回す場所ではない
-- テスト: `pnpm test:entries`(`entries.test.mjs`)
+- テスト: `pnpm test scripts/runner/entries/entries.test.mjs`(`entries.test.mjs`)

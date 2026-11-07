@@ -7,7 +7,7 @@
 // 接続先: env の REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET
 //   (APP_ENV で指定された環境ファイル、デフォルト .env.development。
 //    直接指定も可: REALTIME_ROOM_URL=... REALTIME_ROOM_AUTH_SECRET=... pnpm ops room check)
-// ローカル Worker (pnpm room:dev) に対しても実行できる:
+// ローカル Worker (pnpm ops room dev) に対しても実行できる:
 //   REALTIME_ROOM_URL=http://localhost:8787 REALTIME_ROOM_AUTH_SECRET=<.dev.varsの値> pnpm ops room check
 //
 // 検証項目:
@@ -58,7 +58,7 @@ const finish = (aborted?: string) => {
   console.log(results.join("\n"));
   if (aborted) console.error(`\n✗ 中断: ${aborted}`);
   const failed = aborted || results.some((r) => r.startsWith("✗"));
-  console.log(failed ? "\n✗ room:check 失敗" : `\n✓ room:check 全 ${results.length} 項目 PASS (${baseUrl})`);
+  console.log(failed ? "\n✗ pnpm ops room check 失敗" : `\n✓ pnpm ops room check 全 ${results.length} 項目 PASS (${baseUrl})`);
   process.exit(failed ? 1 : 0);
 };
 
@@ -110,7 +110,7 @@ const dispatchRes = await fetch(`${baseUrl}/rooms/${NS}/${ROOM}/dispatch`, {
   body: JSON.stringify({ action: { type: "increment", payload: { amount: 5 } }, userId: "check-server" }),
 });
 if (dispatchRes.status === 404) {
-  finish(`namespace "${NS}" が Worker に登録されていません (servers/room/src/registry.ts から削除されている場合、room:check は使えません)`);
+  finish(`namespace "${NS}" が Worker に登録されていません (servers/room/src/registry.ts から削除されている場合、pnpm ops room check は使えません)`);
 }
 const dispatched = (await dispatchRes.json()) as { state?: { count?: number }; stateVersion?: number };
 check("2. サーバー dispatch", dispatchRes.ok && dispatched.state?.count === 5, JSON.stringify(dispatched));
@@ -213,6 +213,6 @@ finish();
 };
 
 main().catch((error) => {
-  console.error("✗ room:check 実行エラー:", error instanceof Error ? error.message : error);
+  console.error("✗ pnpm ops room check 実行エラー:", error instanceof Error ? error.message : error);
   process.exit(1);
 });

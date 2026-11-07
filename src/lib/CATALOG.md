@@ -5,7 +5,7 @@
 - 節 = 所有者(作ったリポジトリ)。見出しはそのリポの fork の名前(`.claude/rules/project.md` の `fork_id:`。`.notices/applied/` の台帳名と同じ)。節は上流から順に並べる(先頭 = Tier1)
 - 1 行 = 1 ライブラリ: `- src/lib/<name> — <一行説明>`
 - ライブラリを足したら**自分の節に 1 行足す**(自分の節が無ければ末尾に作る)。他の節は編集しない
-- 検査: `pnpm test:lib-catalog`(実在との不一致・重複・説明の欠落で失敗する)
+- 検査: `pnpm test src/lib/folderCatalog/catalog.test.mjs`(実在との不一致・重複・説明の欠落で失敗する)
 
 ## next-starter
 - src/lib/ai — Claude API を使う汎用エージェント基盤(runAgent のツール実行ループ、型付きイベント、SSE)
@@ -30,7 +30,7 @@
 - src/lib/firebase — Firebase SDK のクライアント / サーバー初期化とユーティリティ、未設定判定
 - src/lib/firestore — Firestore のクライアント操作レイヤー
 - src/lib/folderCatalog — フォルダ目録(CATALOG.md)の読み込み・検査・所有判定
-- src/lib/forkOwnership — fork の所有の検査 pnpm ownership:check(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)
+- src/lib/forkOwnership — fork の所有の検査 pnpm workflow ownership check(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)
 - src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
 - src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル
@@ -47,7 +47,7 @@
 - src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)
-- src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(routes:map)
+- src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(pnpm generate routes)
 - src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)
 - src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(defineSiteThemeConfig)
 - src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI

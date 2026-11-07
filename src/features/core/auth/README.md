@@ -35,7 +35,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 - `provider_type` は Firebase Auth の `providerId` をそのまま採用（`google.com` / `yahoo.com` 等）。クライアント/サーバー間で追加マッピングが要らないため。値の一覧は `user/constants/provider.ts` (`USER_PROVIDER_TYPES`)。
   - `email`: Firebase Email Link 登録。`provider_uid` = Firebase UID
   - `local`: 管理画面で作るアカウント（管理者）。Firebase に依存せず、アプリでハッシュ化した `local_password` で認証
-    - **Firebase なしで完了する**: Firebase のサーバー側が未設定（`isFirebaseServerConfigured()` が false）ならカスタムトークンを作らず `firebaseCustomToken: null` を返し、`useAdminLogin` は null かクライアントの Firebase が未設定なら Firebase Auth に触れない。設定済みなら今まで通りカスタムトークンでサインインする（Storage のルール・chatRoom・`useFirebaseAuthSync` 用）。設定済みで失敗したときはログインも失敗する（障害を隠さない）。検査: `pnpm test:local-login`
+    - **Firebase なしで完了する**: Firebase のサーバー側が未設定（`isFirebaseServerConfigured()` が false）ならカスタムトークンを作らず `firebaseCustomToken: null` を返し、`useAdminLogin` は null かクライアントの Firebase が未設定なら Firebase Auth に触れない。設定済みなら今まで通りカスタムトークンでサインインする（Storage のルール・chatRoom・`useFirebaseAuthSync` 用）。設定済みで失敗したときはログインも失敗する（障害を隠さない）。検査: `pnpm test src/features/core/auth/`
   - サードパーティ（Google / Yahoo! / Facebook / X(twitter.com) 等）: Firebase の `signInWithRedirect` 経由。有効化は `APP_FEATURES.auth.thirdPartyProviders`
 - 管理者と一般ユーザーは **単一の `users` テーブル**で管理する（別テーブル・別ドメインを作らない）。区別は `role`（ロールカテゴリ admin / user）で、`provider_type` とは独立。
 - スキーマの分担: user ドメインがユーザー属性のスキーマを持ち、auth はそれを拡張して認証文脈の検証（パスワード確認・認証情報の整合性など）を加える（`entities/schema.ts`）。
@@ -66,7 +66,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 - **JWT のみのセッション**。セッションテーブルは持たない。Cookie 名は `__session`（`APP_FEATURES.auth.session.cookieName`。もともと Firebase Hosting が転送する唯一の Cookie 名に合わせたもの）。`SameSite=Lax` / `HttpOnly` / `Secure` / `path=/`（`constants/session.ts`）
 - 有効期限は既定 7 日、デモユーザー 10 分（`APP_FEATURES.auth.session`）。`GET /api/auth/session` で再発行するローリングセッション。再発行も `resolveSessionUser`（DB 照合・強制失効チェック）を通し、新トークンは DB の現在値から `refreshSessionCookie` で署名する（失効済み / ユーザー不在 → 401 + Cookie 削除）。旧トークンのクレームで再署名しないこと（失効済みトークンを有効トークンへ洗浄できてしまう）
 - **JWT は身元証明（userId）だけに使い、status / role / name 等の権威は DB**。`resolveSessionUser`（`services/server/session/token.ts`）が JWT 検証後に DB から現在値を引いて `SessionUser` を組み立てる。管理画面でのステータス・ロール変更は次のリクエストで反映される。DB 障害時は null（安全側）
-- **強制失効あり**: `invalidateSessionsForUser`（`services/server/sessionInvalidation.ts`）が `users.sessions_invalidated_at` を更新し、それより前に発行された JWT（`iat < sessions_invalidated_at`）を `resolveSessionUser` が拒否する。Firebase の ID トークンをセッションに替えるとき(`createFirebaseSession`・`register`)も、`auth_time`(その Firebase のセッションの認証時刻)が境目より前なら 401(Firebase の取り消しが失敗していても止まる。比較は `services/server/session/invalidationBoundary.ts` の 1 か所、検査 `pnpm test:establish-session`)。Firebase のリフレッシュトークンも best-effort で revoke し、監査ログ `auth.session.invalidated` を残す。発火元はパスワード変更・`banned` / `security_locked` への遷移（user の update / changeStatus wrapper、ログインロックアウト）
+- **強制失効あり**: `invalidateSessionsForUser`（`services/server/sessionInvalidation.ts`）が `users.sessions_invalidated_at` を更新し、それより前に発行された JWT（`iat < sessions_invalidated_at`）を `resolveSessionUser` が拒否する。Firebase の ID トークンをセッションに替えるとき(`createFirebaseSession`・`register`)も、`auth_time`(その Firebase のセッションの認証時刻)が境目より前なら 401(Firebase の取り消しが失敗していても止まる。比較は `services/server/session/invalidationBoundary.ts` の 1 か所、検査 `pnpm test src/features/core/auth/services/server`)。Firebase のリフレッシュトークンも best-effort で revoke し、監査ログ `auth.session.invalidated` を残す。発火元はパスワード変更・`banned` / `security_locked` への遷移（user の update / changeStatus wrapper、ログインロックアウト）
 - `getTokenOnlySession` は JWT クレームのみ（DB を引かない stale な値）。監査ログの actor 抽出やデモ判定など、**認可と無関係な高頻度処理専用**。認可には使わない
 - JWT の署名・検証・Cookie 抽出の汎用部分は [lib/jwt](../../../lib/jwt/README.md)
 
@@ -90,7 +90,7 @@ const { sessionUser, requiresReactivation, expiresAt } = await establishSession(
 - 退会者（`withdrawn`）は 403 = 上流の既定（戻るには仮登録 → 本登録の再登録の道）。さらに拒否の条件を足すのは fork の呼び手（`establishSession` の前で）
 - 部品 2 つ（`services/server/session/sessionToken.ts`）: `assertSessionStatus(user)` と `issueSessionToken(user, { maxAge? })`。上流のログイン 5 か所（`firebaseSession`・`localLogin`・`demoLogin`・`registration`・`refreshSessionCookie`）もこれを使う（route が Cookie を書く形のため、route と service の戻り値は変えていない）。ローカルログインの状態の分岐は失敗の記録とロックアウトを伴う別の物
 - メール / OAuth のログイン（`createFirebaseSession`）も最終ログインの更新は `updateLastAuthenticated`（他のログインと同じ。`user_login_events` に行が残り、成功でパスワードのロックアウトの数が消える）
-- テスト: `pnpm test:establish-session`
+- テスト: `pnpm test src/features/core/auth/services/server`
 
 ### 新しい認証手段の公開の口（契約表）
 
@@ -159,9 +159,9 @@ URL ルール              ロール + ステータス + 行き先(親子 AND)  
   - 名前付き例外は `AuthSessionProvider`（root layout の Provider。Cookie の解析とセッション解決）
 - **セッション・ガード API をページ層・UI・API で import しない**（`page-authz/session-api-callsite`）: `getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・削除済みの `authGuard`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`（fork の古い import を止めるため名前は残す）・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
   - 対象: `src/app` 全体（page・Screen・layout・`_layout/`・loader・guard.ts・`_components/`・API の route と補助ファイル）と UI 側。許可の場所は無い（ページの主体は createLoader の `ctx.user`、API の主体は Factory の `ctx.user`）。`AuthSessionProvider` は名前付き例外
-- データに届く wiring の import の場所（`pnpm test:wiring`）・`@/lib/pageGuard` の値 import は wiring だけ（lint `import-boundaries/page-guard-via-wiring`）・features の index.ts は services/server を値で再 export しない（`import-boundaries/features-index-no-server-reexport`）
+- データに届く wiring の import の場所（`pnpm test src/wiring/wiring.test.mjs`）・`@/lib/pageGuard` の値 import は wiring だけ（lint `import-boundaries/page-guard-via-wiring`）・features の index.ts は services/server を値で再 export しない（`import-boundaries/features-index-no-server-reexport`）
 - 不採用の案: 下流（fork）では warn にする案（セキュリティの検査は所有で強さを変えない、前例 hidden-columns）
-- 限界: 直接の import だけを見る。仕様の本文と判定は `eslint-rules/page-authz.mjs`、テストは `pnpm test:page-authz-lint`
+- 限界: 直接の import だけを見る。仕様の本文と判定は `eslint-rules/page-authz.mjs`、テストは `pnpm test eslint-rules/page-authz.test.mjs`
 
 API ルート側の認可はファクトリーが構造的に強制する（`createDomainRoute` は serviceRegistry の `access`、`createApiRoute` は `access` 必須（public / authenticated / { roles, roleCategories } + allowStatuses）、本人データは `createMeRoute`）→ [routeFactory README](../../../lib/routeFactory/README.md)。主体はリクエストごとに 1 回だけ DB 同期の `getSessionUser` で解き（`apiRouteUserDeps`）、ハンドラには `ctx.user` で渡す。セッションの確認と再発行（`GET /api/auth/session`）は `session/refreshSessionResponse.ts`。
 
@@ -178,7 +178,7 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 認証の守り（reCAPTCHA・ID トークン・セッション更新・遷移）と form の処理は `hooks/` 直下の公開 hook が持ち、既定の部品は hook を呼んで描くだけ。fork が画面を作り替えるときは処理を写さず同じ hook を呼び、返る `form` を `AppForm` + 任意の markup（`FieldRenderer` 等）で描く。契約 = hook の名前・引数・戻り値・form の項目名（変えるときは notice）。
 
 - `hooks/registration/`・`hooks/signup/` は公開 hook の内部（送信の流れ `submitFlow.ts` / `sendFlow.ts`・共通の送信 hook・formEntities）。`hooks/oauth/transition.ts`（OAuth の遷移の決め方）も内部。部品・fork はここを import しない
-- 送信の流れの単体テスト: `pnpm test:auth-registration-flow`
+- 送信の流れの単体テスト: `pnpm test src/features/core/auth/hooks/`
 
 ### 本登録 form（`/signup/register`）
 

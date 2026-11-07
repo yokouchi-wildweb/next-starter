@@ -9,6 +9,6 @@
 
 1. 隣に `MarketingLayout.replace.tsx` を置き、`MarketingLayout` を named export する(default export はしない。`"use client"` は可)
 2. `../layout.tsx` を `export { MarketingLayout as default } from "./_layout/MarketingLayout.replace";` に向ける
-3. 確認: `pnpm test:screens`(スイッチの形と指す先)、`pnpm ownership:check`
+3. 確認: `pnpm test src/lib/screens/screens.test.mjs`(スイッチの形と指す先)、`pnpm workflow ownership check`
 
 既定の素通しは upstream が維持する。upstream がここに枠の部品や slot を足すときは notice で知らせる。

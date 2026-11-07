@@ -41,7 +41,7 @@ test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目�
   assert.equal(placeUnitOf("src/lib/x/index.ts", places), null);
 });
 
-test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは extensions:check)・overrideTargetUnit・unitIndex", () => {
+test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは pnpm check extensions)・overrideTargetUnit・unitIndex", () => {
   const places = unitPlaces(["src/x/extensionPoints.ts"], () => 'export const extensionPoints = { a: { dir: DIR } };\n');
   assert.ok(![...places.direct].some((d) => d.startsWith("src/x")));
   assert.equal(overrideTargetUnit("src/features/core/setting/fields/a.override.ts"), "src/features/core/setting/fields/a");

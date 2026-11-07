@@ -1,4 +1,4 @@
-// dc:delete の名前解決: 入力のドメイン名から、ドメインフォルダ・管理画面ルート・レジストリの候補名を広く集める
+// pnpm generate domain -- --delete の名前解決: 入力のドメイン名から、ドメインフォルダ・管理画面ルート・レジストリの候補名を広く集める
 // （単数・複数、camel / Pascal / kebab の揺れを吸収する）。レジストリのキーの決定は registries.mjs
 
 import fs from "node:fs";

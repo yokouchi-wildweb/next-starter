@@ -1,4 +1,4 @@
-// dc:generate のメディア列の生成出力（スキーマ・presenters・Fields コンポーネント）の回帰テスト。
+// pnpm generate domain のメディア列の生成出力（スキーマ・presenters・Fields コンポーネント）の回帰テスト。
 // ファイル用途の登録表のエントリ（storage.read → read.allow）もここで見る。
 // drizzleBase の storage binding と Firestore の生成エラーは serverServiceWriteOnce.test.mjs で見る。
 // 実行: pnpm test scripts/structure/domain/tests/storageOutput.test.mjs

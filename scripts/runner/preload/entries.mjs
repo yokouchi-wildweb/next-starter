@@ -3,7 +3,7 @@
 // 入口 = package.json の scripts(tsx を直に呼ぶ物)+ 門の入口(pnpm check / generate の .ts)と道具の入口(pnpm ops / workflow の .ts)。
 // 後の 2 つはランナー(scripts/runner/gates/run.mjs の command・scripts/runner/entries/run.mjs)が必ず下駄を付ける = テストはランナーの起動の形を見る。
 // server-only は Next のバンドラーだけが解決するので、tsx の入口は scripts/runner/preload/serverOnly.mjs を読まないと落ちる。
-// 届く判定は import() の辺も辿る(db:seed の `await import("./data")` のように実行時に評価されるため)。
+// 届く判定は import() の辺も辿る(pnpm ops db seed の `await import("./data")` のように実行時に評価されるため)。
 // 届かない入口には求めない。実行: pnpm test scripts/runner/preload/entries.test.mjs
 
 import { parseDependencyTree } from "dpdm";

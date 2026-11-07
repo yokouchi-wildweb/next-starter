@@ -40,4 +40,4 @@ src/app/<範囲>/layout.tsx = await guard() の 1 行
   - `load({ user, allows }, ...key)`: `allows(rule)` は別の access を同じ利用者・status で評価する(取得前の追加の判定。例: 管理画面の関連先ごとの list の access)。`user` は DB 同期の利用者(リクエスト内 1 回)。`access: "public"` では Cookie があり利用可能な status(ページか最寄りの段の `allowStatuses`、無ければ既定)のときだけ非 null
   - `key(props)` は params / searchParams から cache のキーのプリミティブを取り出す(データは取らない)。Factory がそのプリミティブで React `cache()` を張る(Next は page と generateMetadata に別の props を渡すため)
 
-テスト: `pnpm test:page-guard`(stub の束で各分岐)。ページの書き方・地図・検査は `src/lib/screens/README.md`。
+テスト: `pnpm test src/lib/pageGuard/createPageGuard.test.mts`(stub の束で各分岐)。ページの書き方・地図・検査は `src/lib/screens/README.md`。

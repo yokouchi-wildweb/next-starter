@@ -5,7 +5,7 @@
 // 1. src/registry/serviceRegistry.ts は domainEntry.ts からの生成結果と一致し、再生成しても変わらない（pnpm check registry と同じ）
 // 2. 静的検査: 手書き行（生成ヘッダの無い旧ファイル）・キーの重複・base があるのに domainEntry.ts が無い・record_type・許可外の import を検出する
 // 3. 登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ。
-//    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 ドメイン（D58）は registry:check
+//    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 ドメイン（D58）は pnpm check registry
 // 4. 管理データ操作（truncateAll / export / import）は operations に明示したときだけ開く（未指定 = none。read/write/既定に落ちない）
 // 5. core 7 キー（auditLog・auditLogFailed・bankTransferReview・pairedDevice・userLineProfile・userLoginEvent・userXProfile）は
 //    登録されているが、全件削除の一覧・データ移行・汎用 API（/api/<key>）のどれにも出ない
@@ -249,7 +249,7 @@ export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEnt
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
-test("検査: 生成ヘッダの無い旧ファイルの手書き行は失敗し、移し先を出す。生成ヘッダ付きなら dc:delete 後の除去として通す", (t) => {
+test("検査: 生成ヘッダの無い旧ファイルの手書き行は失敗し、移し先を出す。生成ヘッダ付きなら pnpm generate domain -- --delete 後の除去として通す", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
     "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
@@ -360,7 +360,7 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
   });
   const missing = checkServiceRegistry(root).errors;
   const visitError = missing.find((error) => error.includes("src/features/visit/services/server"));
-  assert.match(visitError, /"generate": false なので dc:generate は書かない → 手書きする。形: src\/lib\/domain\/README.md「generate: false の業務ドメイン」/);
+  assert.match(visitError, /"generate": false なので pnpm generate domain は書かない → 手書きする。形: src\/lib\/domain\/README.md「generate: false の業務ドメイン」/);
   assert.doesNotMatch(visitError, /--only registry/, "generate: false には書かない命令を案内しない");
   assert.match(missing.find((error) => error.includes("src/features/order/services/server")), /pnpm generate domain -- order --yes --only registry/, "generate: true は今までどおり生成を案内する");
 
@@ -371,7 +371,7 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
     `import { visitService } from "@/features/visit/services/server/visitService";\nexport const serviceRegistry = {\n  visit: { service: visitService, access: ADMIN_ONLY },\n};\n`,
   );
   const legacy = checkServiceRegistry(root).errors.find((error) => error.includes('手書きの行 "visit"'));
-  assert.match(legacy, /"generate": false なので dc:generate は書かない → src\/features\/visit\/services\/server\/domainEntry.ts を手書きし/);
+  assert.match(legacy, /"generate": false なので pnpm generate domain は書かない → src\/features\/visit\/services\/server\/domainEntry.ts を手書きし/);
   fs.rmSync(path.join(root, REGISTRY_FILE));
 
   // README の例をそのまま置く → 登録・検査が通る

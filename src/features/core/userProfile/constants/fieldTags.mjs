@@ -1,6 +1,6 @@
 // src/features/core/userProfile/constants/fieldTags.mjs
 // プロフィールフィールドのタグの値（正）。画面（fieldTag.ts が型を付けて再 export）と
-// role:generate の検査（scripts/structure/role/checks/）の両方がここを読むので .mjs に置く
+// pnpm generate role の検査（scripts/structure/role/checks/）の両方がここを読むので .mjs に置く
 
 /**
  * コアタグ（システム必須、削除不可）

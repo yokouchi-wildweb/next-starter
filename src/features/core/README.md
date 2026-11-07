@@ -77,7 +77,7 @@ README があるものはリンク先が一次資料。README が無いものは
 
 ## エンティティに列を追加・変更するとき
 
-core ドメインは手で保守するため、`entities/drizzle.ts` だけを変えると型・検証・画面が取り残される（業務ドメインは `dc:generate` が同期するので対象外）。先に `grep -rln "<エンティティ名>" src/` で使っている場所を全部洗い出し、次を確かめる。
+core ドメインは手で保守するため、`entities/drizzle.ts` だけを変えると型・検証・画面が取り残される（業務ドメインは `pnpm generate domain` が同期するので対象外）。先に `grep -rln "<エンティティ名>" src/` で使っている場所を全部洗い出し、次を確かめる。
 
 1. `entities/drizzle.ts`（テーブル定義）
 2. `entities/model.ts`（TypeScript の型）

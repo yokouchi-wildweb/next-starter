@@ -3,7 +3,7 @@
 
 import ts from "typescript";
 
-/** 項目のソースから name のリテラルを読む。読めなければ null（項目の形は extensions:check が見る） */
+/** 項目のソースから name のリテラルを読む。読めなければ null（項目の形は pnpm check extensions が見る） */
 export function formInputNameOf(text) {
   const source = ts.createSourceFile("item.ts", text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   for (const statement of source.statements) {

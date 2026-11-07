@@ -1,6 +1,6 @@
 // src/features/core/storageObject/crudBinding.test.ts
 // storageBindingFor（createCrudService の storage オプション）の規則の単体テスト（memoryLedger + fake ポート）。
-// 実際の TX（巻き戻し・同一 TX の差し替え）は test:storage-binding-db で確かめる。
+// 実際の TX（巻き戻し・同一 TX の差し替え）は pnpm test --db src/features/core/storageObject/crudBinding.db.test.ts で確かめる。
 // 実行: pnpm test src/features/core/storageObject/crudBinding.test.ts
 
 import { describe, test } from "node:test";

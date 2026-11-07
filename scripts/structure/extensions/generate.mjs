@@ -13,11 +13,11 @@ import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const plan = planExtensions(repoRoot);
 if (plan.problems.length > 0) {
-  console.error(`[extensions:generate] 書き出しを止めました(${plan.problems.length} 件):\n${plan.problems.map((p) => `  - ${p}`).join("\n")}`);
+  console.error(`[generate extensions] 書き出しを止めました(${plan.problems.length} 件):\n${plan.problems.map((p) => `  - ${p}`).join("\n")}`);
   process.exit(1);
 }
 
-for (const warning of plan.warnings) console.warn(`[extensions:generate] warn: ${warning}`);
+for (const warning of plan.warnings) console.warn(`[generate extensions] warn: ${warning}`);
 
 const stale = staleOutputs(repoRoot, plan.outputs);
 for (const path of stale) {
@@ -36,11 +36,11 @@ for (const stray of removed) rmSync(join(repoRoot, stray.path));
 const handMade = strays.filter((s) => !s.generated);
 
 console.log(
-  `[extensions:generate] 点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length}(うち枠の表 ${plan.frames.tables}、宣言 ${plan.frames.declarations})` +
+  `[generate extensions] 点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length}(うち枠の表 ${plan.frames.tables}、宣言 ${plan.frames.declarations})` +
     (stale.length > 0 ? `、書き出し: ${stale.join(", ")}` : "、変更なし") +
     (removed.length > 0 ? `、古い一覧を削除: ${removed.map((s) => s.path).join(", ")}` : ""),
 );
 if (handMade.length > 0) {
-  console.error(`[extensions:generate] extensions/ に手で置いたファイル(${handMade.length} 件、消していない):\n${handMade.map((s) => `  - ${s.path}: 生成物の置き場。${s.hint}`).join("\n")}`);
+  console.error(`[generate extensions] extensions/ に手で置いたファイル(${handMade.length} 件、消していない):\n${handMade.map((s) => `  - ${s.path}: 生成物の置き場。${s.hint}`).join("\n")}`);
   process.exit(1);
 }

@@ -15,7 +15,7 @@ const featureImport = (ctx) => `@/features/${featureRel(ctx).replace(/^src\/feat
 
 export function extensionPointsContent(ctx) {
   return `// ${featureRel(ctx)}/extensionPoints.ts
-// ${ctx.label}の拡張点の宣言(dc:generate が生成する。生成のたびに書き直すので手で編集しない。
+// ${ctx.label}の拡張点の宣言(pnpm generate domain が生成する。生成のたびに書き直すので手で編集しない。
 // 別の受け口が要るなら domain.json を generate: false にして手で持つ)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
@@ -34,7 +34,7 @@ export const extensionPoints = {
 
 export function adminBulkActionTypeContent(ctx) {
   return `// ${featureRel(ctx)}/types/adminBulkAction.ts
-// ${ctx.label}の管理一覧の一括操作の項目の型(dc:generate が生成する。手で編集しない)
+// ${ctx.label}の管理一覧の一括操作の項目の型(pnpm generate domain が生成する。手で編集しない)
 
 import type { BulkActionItem } from "@/lib/tableSuite";
 import type { ${ctx.pascal} } from "${featureImport(ctx)}/entities";

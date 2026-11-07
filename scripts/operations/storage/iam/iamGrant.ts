@@ -1,6 +1,6 @@
 // scripts/operations/storage/iam/iamGrant.ts
 //
-// storage:setup が権限不足（HTTP 403）で止まったときに表示する案内を作る。
+// pnpm ops storage setup が権限不足（HTTP 403）で止まったときに表示する案内を作る。
 // サービスアカウントは自分に役割を付けられないため、付与は人の資格情報（プロジェクトのオーナー）で行う。
 // ここではコマンドを実行せず、値を埋めた gcloud の 1 行と GCP コンソールの URL を組み立てるだけ。
 // Firebase の初期化に依存しない純粋関数にしてあるのは、テストから読み込めるようにするため。

@@ -1,4 +1,4 @@
-// dc:generate の生成カテゴリ（domain.json の generate で決まるもの）と `--only <category>` の回帰テスト。
+// pnpm generate domain の生成カテゴリ（domain.json の generate で決まるもの）と `--only <category>` の回帰テスト。
 // 実行: pnpm test scripts/structure/domain/tests/onlyOption.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -13,7 +13,7 @@
 //
 // 有効なのは upstream(目録の先頭の節)だけ。fork では off(eslint.config.mjs)。
 // option allow = 今残る部品の許可一覧(repo 相対パス)。縮める一方:
-//   部品を hook 化したら、どの legate・どの作業でもその行を消す。一覧の行が当たらなくなると test:core-ui-guards が落ちる。
+//   部品を hook 化したら、どの legate・どの作業でもその行を消す。一覧の行が当たらなくなると pnpm test eslint-rules/core-ui-guards.test.mjs が落ちる。
 
 import { repoRelative } from "./resolve-import.mjs";
 

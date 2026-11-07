@@ -10,7 +10,7 @@
 // - DB に無い表は文を失敗させるので外す(無い表には制約も無いので、その先の参照元もたどらない)
 // - DB にある閉じた表が消す表を参照していると RESTRICT で失敗する → 何も消さずに全部並べて止める
 //
-// 詳細: src/featureGate/README.md「db:clear と閉じた機能の表」
+// 詳細: src/featureGate/README.md「pnpm ops db clear と閉じた機能の表」
 
 import { getTableName, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";

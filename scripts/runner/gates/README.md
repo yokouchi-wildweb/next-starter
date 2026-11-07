@@ -61,4 +61,4 @@ offline の門(build・build:post)に乗る対象の check は、DB・外部の 
 - `run.mjs` 入口(pnpm check / generate)
 - `netGuard.mjs` build の検査に付ける preload
 - `features.ts` 機能の開閉を JSON で出す(features を持つ対象がある時だけ子プロセスで呼ぶ)
-- `gates.test.mjs` テスト(pnpm test:gates)
+- `gates.test.mjs` テスト(pnpm test scripts/runner/gates/gates.test.mjs)

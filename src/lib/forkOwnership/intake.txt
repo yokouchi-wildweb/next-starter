@@ -42,7 +42,7 @@ edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx 
 
 # 受け口(拡張点の受け口のフォルダ・1 行スイッチと route の隣の丸ごと置き換え・scripts の受け口)。fork の項目は印なしの名前(D137)
 # === AUTO-GENERATED intake START ===
-# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)と 1 行スイッチから書く。手で編集しない(ずれは extensions:check が止める)
+# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)と 1 行スイッチから書く。手で編集しない(ずれは pnpm check extensions が止める)
 add src/app/(user)/demo/*/_demo.ts  # 受け口 demoPages
 add src/app/_layout/adminCommand/categories/*.{ts,tsx}  # 受け口 categories
 add src/app/_layout/adminCommand/categories/*/**  # 受け口 categories(フォルダ形)
@@ -147,7 +147,7 @@ region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編�
 region scripts/runner/seed/data/registry.ts  # seed の登録点
 region scripts/runner/seed/data/index.ts  # seed の export
 edit scripts/runner/seed/data/demoUser.ts  # デモの利用者の値
-edit servers/room/wrangler.toml  # room:init が作る fork の Worker の設定(upstream には無い。.example だけ)
+edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker の設定(upstream には無い。.example だけ)
 
 # 規則(PER_PROJECT)
 edit .claude/rules/project.md  # CLAUDE.md PER_PROJECT
@@ -166,7 +166,7 @@ generated src/wiring/dbAgent.ts  # pnpm generate extensions
 generated src/registry/schemaRegistry.ts  # pnpm generate registry(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm generate registry(走査で丸ごと)
 generated src/registry/adminDataMenu.ts  # pnpm generate registry(走査で丸ごと)
-generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map(forge・dc:generate が書き直す)
+generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map(forge・pnpm generate domain が書き直す)
 generated src/features/core/*/entities/display.ts  # pnpm generate registry(表示用の写し)
 generated src/app/route-map.jsonl  # pnpm generate routes
 generated vercel.json  # pnpm generate cron(upstream には無い)
