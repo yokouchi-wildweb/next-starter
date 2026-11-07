@@ -11,7 +11,7 @@
 // ========================================
 // Core（コンポーネント・フック）
 // ========================================
-export { AdminCommandProvider, useAdminCommand } from "./base";
+export { AdminCommandGateBridge, AdminCommandProvider, useAdminCommand } from "./base";
 
 // ========================================
 // Core Types
@@ -22,6 +22,7 @@ export type {
   CategoryConfig,
   AdminCommandPlugin,
   AdminCommandContextValue,
+  NavigationFilter,
 } from "./base";
 
 // ========================================

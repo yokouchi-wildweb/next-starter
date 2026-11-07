@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 import { ArrowLeftIcon } from "lucide-react";
 
@@ -16,6 +16,7 @@ import {
 } from "@/components/Overlays/CommandPrimitives";
 import { cn } from "@/lib/cn";
 import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
+import { useAdminCommand } from "@/features/core/adminCommand/base/context";
 import { filterSearchInput } from "../../utils";
 import { navigationItems } from "./items";
 
@@ -25,6 +26,9 @@ import { navigationItems } from "./items";
 export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
+  // 管理の枠の中では閉じた機能の住所の行を除く(AdminCommandGateBridge が登録)。外では絞らない(L2.4)
+  const { navigationFilter } = useAdminCommand();
+  const items = useMemo(() => (navigationFilter ? navigationFilter(navigationItems) : navigationItems), [navigationFilter]);
 
   // 検索入力のハンドラ（半角英数字のみに変換）
   const handleSearchChange = useCallback((value: string) => {
@@ -83,7 +87,7 @@ export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
       <CommandList>
         <CommandEmpty>項目が見つかりません</CommandEmpty>
         <CommandGroup heading="ナビゲーション">
-          {navigationItems.map((item) => (
+          {items.map((item) => (
             <CommandItem
               key={item.id}
               className={cn("group", item.className)}

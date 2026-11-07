@@ -3,6 +3,7 @@
 // Components
 export { AdminCommandProvider } from "./AdminCommandProvider";
 export { AdminCommandPalette } from "./AdminCommandPalette";
+export { AdminCommandGateBridge } from "./AdminCommandGateBridge";
 
 // Context
 export { useAdminCommand } from "./context";
@@ -15,4 +16,5 @@ export type {
   AdminCommandPlugin,
   AdminCommandContextValue,
   LazyItem,
+  NavigationFilter,
 } from "./types";

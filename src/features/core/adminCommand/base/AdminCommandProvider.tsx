@@ -10,7 +10,7 @@ import { getRoleCategory } from "@/features/core/user/constants";
 import { AdminCommandContext } from "./context";
 import { AdminCommandPalette } from "./AdminCommandPalette";
 import { type AdminCommandLists, loadForAdmin, type LoadedAdminCommand } from "./loadForAdmin";
-import type { AdminCommandContextValue } from "./types";
+import type { AdminCommandContextValue, NavigationFilter } from "./types";
 
 type AdminCommandProviderProps = AdminCommandLists & {
   children: React.ReactNode;
@@ -29,6 +29,9 @@ export function AdminCommandProvider({ children, categories, plugins }: AdminCom
 
   const isAdmin = getRoleCategory(user?.role ?? "") === "admin";
   const [loaded, setLoaded] = useState<LoadedAdminCommand | null>(null);
+  // 移動の候補の絞り込み(管理の枠の中の AdminCommandGateBridge が登録する。外では null = 絞らない)
+  const [navigationFilter, setNavigationFilterState] = useState<NavigationFilter | null>(null);
+  const setNavigationFilter = useCallback((filter: NavigationFilter | null) => setNavigationFilterState(() => filter), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,8 +80,10 @@ export function AdminCommandProvider({ children, categories, plugins }: AdminCom
       closePalette,
       togglePalette,
       isOpen,
+      navigationFilter,
+      setNavigationFilter,
     }),
-    [openPalette, closePalette, togglePalette, isOpen]
+    [openPalette, closePalette, togglePalette, isOpen, navigationFilter, setNavigationFilter]
   );
 
   // パレット + GlobalComponents。プラグインの Provider はここだけを包む（読み込み後に画面全体を作り直さないため）

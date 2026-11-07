@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 
 import { clientGateState } from "@/featureGate";
+import { AdminCommandGateBridge } from "@/features/core/adminCommand";
 import { GateProvider } from "@/featureGate/client";
 
 import { InsaneProtectedLayout } from "./_layout";
@@ -18,6 +19,8 @@ export default async function InsaneLayout({
   // 門番の管理の枠: 守りの後で /admin の下の閉じた住所を足した値で包み直す(公開ページの HTML に管理の住所を出さない)
   return (
     <GateProvider state={clientGateState("admin")}>
+      {/* 管理のコマンドパレットの移動の候補もこの枠の値で絞る(L2.4) */}
+      <AdminCommandGateBridge />
       <InsaneProtectedLayout>{children}</InsaneProtectedLayout>
     </GateProvider>
   );

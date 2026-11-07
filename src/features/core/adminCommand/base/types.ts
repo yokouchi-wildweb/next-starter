@@ -3,6 +3,8 @@
 import type { ComponentType, ReactNode } from "react";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 
+import type { NavigationItem } from "../types";
+
 /** 遅延読み込みの一覧の項目(生成物 src/app/_layout/adminCommand/extensions/) */
 export type LazyItem<T> = {
   name: string;
@@ -72,4 +74,14 @@ export type AdminCommandContextValue = {
   togglePalette: () => void;
   /** パレットが開いているかどうか */
   isOpen: boolean;
+  /**
+   * 移動の候補の絞り込み(管理の枠の門番 useGate().filter)。null = 絞らない(管理の枠の外: 候補をそのまま出す、L2.4)。
+   * 登録は AdminCommandGateBridge だけ(admin の守りの layout 2 つの中)
+   */
+  navigationFilter: NavigationFilter | null;
+  /** 絞り込みを登録する(null で外す)。AdminCommandGateBridge だけが呼ぶ */
+  setNavigationFilter: (filter: NavigationFilter | null) => void;
 };
+
+/** 移動の候補の絞り込み(閉じた機能の住所の行を除く。順は保つ) */
+export type NavigationFilter = (items: readonly NavigationItem[]) => NavigationItem[];

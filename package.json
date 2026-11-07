@@ -93,7 +93,7 @@
     "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/featureGate.test.mjs src/featureGate/checks/dependencies.test.mjs",
     "test:feature-gate:reach": "node --test src/featureGate/checks/reachability.test.mjs",
     "test:feature-gate:tools": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/gateTools.test.ts src/featureGate/checks/openSwitch.test.ts",
-    "test:feature-gate:client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/featureGate/checks/clientTools.test.tsx src/featureGate/checks/readers.test.tsx src/featureGate/checks/walletOff.test.tsx",
+    "test:feature-gate:client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/featureGate/checks/clientTools.test.tsx src/featureGate/checks/readers.test.tsx src/featureGate/checks/walletOff.test.tsx src/features/core/adminCommand/base/navigationGate.test.tsx",
     "test:proxy-frame": "node --test scripts/proxies/proxyFrame.test.mjs",
     "test:extensions": "node --test scripts/extensions/extensions.test.mjs scripts/extensions/frames.test.mjs",
     "test:frame-declaration": "node --test src/app/_layout/frame/parts.test.mjs src/app/_layout/frame/resolve.test.mjs && npx tsx --experimental-test-module-mocks --test src/app/_layout/frame/useFrameAttributes.test.tsx",

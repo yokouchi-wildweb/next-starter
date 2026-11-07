@@ -18,6 +18,16 @@ fork は上流のファイルを編集せず、受け口にファイルを置い
 
 ---
 
+## 閉じた機能の候補を隠す(門番)
+
+ナビゲーション先の候補は、管理の枠の門番(`useGate().filter`、サイドバー・棚の Link と同じ判定)で絞る。閉じた機能の住所を指す行は出ない(`redirectTo` 付きの閉・外部 URL・開いた住所は残る)。fork が足す行も同じ。
+
+- パレットはアプリ全体(`src/wiring/AppProviders.tsx`、利用者の枠の門番の内)に置かれ、管理の枠の値は admin の守りの layout 2 つ(`src/app/admin/(protected)/layout.tsx`・`src/app/admin/insane/layout.tsx`)が children だけを包む。そこに置いた橋 `AdminCommandGateBridge` が絞り込みを Context(`navigationFilter`)に登録し、外れたら外す
+- 管理の枠の外(利用者の画面)で開いたときは絞らず、候補をそのまま出す(棚の Link と同じ。移動の先が閉じていれば proxy が 404)。管理の枠の値を root で計算しない(公開ページの HTML に管理の住所を出さない)
+- 検査: `base/navigationGate.test.tsx`(`pnpm test:feature-gate:client`)
+
+---
+
 ## ディレクトリ構成
 
 ```
