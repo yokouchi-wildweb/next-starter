@@ -2,6 +2,7 @@
 // 閉じた lib の中を読む import を入口へ書き換える codemod の契約テスト。fixture の repo は一時フォルダに作る。
 // 実行: pnpm test scripts/structure/lib-package/codemod.test.mjs (node:test)
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -165,7 +166,7 @@ test("runCodemod: dry-run は書かず、--apply で書き、もう一度回す�
 
 test("閉じた lib が無い repo では何もしない", () => {
   const root = makeRepo({ "src/lib/loose/index.ts": "export {};\n", "src/a.ts": 'import { y } from "@/lib/loose/deep";\n' });
-  assert.deepEqual(planCodemod(root), { scanned: 0, changes: [], stops: [] });
+  assert.deepEqual(planCodemod(root), { scanned: 0, rows: [], changes: [], stops: [] });
 });
 
 test("上流で回すと書き換え 0(閉じた lib の中を読む import は手で直してある)", () => {
@@ -173,4 +174,61 @@ test("上流で回すと書き換え 0(閉じた lib の中を読む import は�
   const plan = planCodemod(repoRoot);
   assert.deepEqual(plan.changes, []);
   assert.ok(plan.scanned > 0);
+});
+
+/** git の見本: <base> で src/hooks/useThing.ts、<head> でそれを閉じた lib thing へ移す(呼び手は古い書き方のまま = fork の物) */
+function makeMovedRepo() {
+  const root = makeRepo({
+    "src/hooks/useThing.ts": "export function useThing() { return 1; }\nexport const thingOnly = 1;\n",
+    "src/features/f/F.tsx": [
+      'import { useThing } from "@/hooks/useThing";',
+      'import type { useThing as T } from "../../hooks/useThing";',
+      'import { thingOnly } from "@/hooks/useThing";',
+      'import useThingDefault from "@/hooks/useThing";',
+      'const m = await import("@/hooks/useThing");',
+      'import { x } from "@/hooks/other";',
+      "",
+    ].join("\n"),
+    "src/hooks/other.ts": "export const x = 1;\n",
+  });
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" } });
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-q", "-m", "base");
+  const base = git("rev-parse", "HEAD").trim();
+  mkdirSync(path.join(root, "src/lib/thing"), { recursive: true });
+  git("mv", "src/hooks/useThing.ts", "src/lib/thing/useThing.ts");
+  writeFileSync(path.join(root, "src/lib/thing/index.ts"), 'export { useThing } from "./useThing";\n');
+  writeFileSync(path.join(root, "src/lib/thing/package.json"), JSON.stringify({ exports: { ".": "./index.ts" } }));
+  git("add", "-A");
+  git("commit", "-q", "-m", "head");
+  clearLibPackageCache();
+  return { root, base };
+}
+
+test("--base: moved の imports: の行(lib の外から閉じた lib へ移ったファイルの古い書き方)も入口へ書き換える", () => {
+  const { root, base } = makeMovedRepo();
+  const plan = planCodemod(root, { base });
+  assert.deepEqual(plan.rows, [{ from: "@/hooks/useThing", to: "@/lib/thing" }]);
+  assert.deepEqual(
+    plan.changes.map((c) => `${c.line} ${c.text}`),
+    ['1 import { useThing } from "@/lib/thing";', '2 import type { useThing as T } from "@/lib/thing";'],
+  );
+  assert.deepEqual(
+    plan.stops.map((s) => `${s.line} ${s.kind}`),
+    ["3 notExported", "4 default", "5 dynamic"],
+    "入口に無い名前・default・動的は止まる",
+  );
+});
+
+test("--base なしでは古い指定子は触らない。runCodemod --base で書き、2 回目は 0", () => {
+  const { root, base } = makeMovedRepo();
+  assert.deepEqual(planCodemod(root).changes, []);
+  const lines = [];
+  const stdout = { write: (s) => lines.push(s) };
+  assert.equal(runCodemod(root, ["--base", base, "--apply"], { stdout }), 0);
+  assert.match(lines.join(""), /古い指定子の行 1/);
+  assert.match(readFileSync(path.join(root, "src/features/f/F.tsx"), "utf8"), /^import \{ useThing \} from "@\/lib\/thing";/);
+  assert.equal(planCodemod(root, { base }).changes.length, 0, "2 回目は 0");
+  assert.equal(runCodemod(root, ["--base"], { stdout }), 2, "--base に値が無いと 2");
 });

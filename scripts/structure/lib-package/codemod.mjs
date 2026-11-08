@@ -11,6 +11,10 @@
 // - 書き換えない(止まる一覧): notExported(入口から出ていない名前が 1 つでもある文は丸ごと)・default・namespace(import * as)・
 //   exportAll(export * from / export * as)・sideEffect(import "x")・dynamic(import()・require)・unparsable(元のファイルが無い)
 // - 走査するファイルは閉じたかの検査の数え方と同じ(closed.mjs の scanFiles)。lib の中のファイルは書き換えない
+// - --base <rev>: moved の imports: の行(<rev> で使われていた指定子のうち、lib の外から閉じた lib へ移ったファイルを指す物 →
+//   その入口。moved.mjs の movedRows を使う)も当てる。古い指定子は別名・相対・"src/…" のどの書き方でも実パスで照らす。
+//   名前は新しい入口の名前と照らし、無ければ notExported。fork は notice に書かれた上流の sha を渡す
+// - 移行の間だけの道具: 全部の lib が閉じた段(D101 (6))で moved とともに消す
 // - exit 0(止まる物があっても。落とすのは pnpm lint の lib-entry)/ 2 = 引数の誤り
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -21,6 +25,7 @@ import ts from "typescript";
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 import { LIB_DIR, findEntry, libOfPath, listDeclaredLibs, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
 import { scanFiles } from "./closed.mjs";
+import { movedRows } from "./moved.mjs";
 
 const EXTENSIONS = ["ts", "tsx", "mts", "mjs", "js", "jsx", "cjs"];
 const EXT_RE = /\.(ts|tsx|mts|mjs|js|jsx|cjs)$/;
@@ -172,11 +177,14 @@ function statementText(keyword, typeOnly, items, specifier) {
   return `${keyword}${typeOnly ? " type" : ""} { ${list} } from "${specifier}";`;
 }
 
+const bare = (p) => p.replace(EXT_RE, "").replace(/\/index$/, "");
+
 /**
  * 書き換えの計画を作る(ファイルは書かない)
- * @returns {{ scanned: number, changes: { file, line, from, to, names, start, end, text }[], stops: { file, line, specifier, kind, detail }[] }}
+ * @param {{ base?: string }} [opts] base = moved の imports: の行を当てる比べの起点(無ければ中を読む import だけ)
+ * @returns {{ scanned: number, rows: { from, to }[], changes: { file, line, from, to, names, start, end, text }[], stops: { file, line, specifier, kind, detail }[] }}
  */
-export function planCodemod(root) {
+export function planCodemod(root, { base } = {}) {
   const reader = createExportReader(root);
   const closed = new Map();
   for (const lib of listDeclaredLibs(root)) {
@@ -188,6 +196,14 @@ export function planCodemod(root) {
     if (!indexes.has(lib)) indexes.set(lib, entryIndex(root, lib, reader));
     return indexes.get(lib);
   };
+  // 古い指定子の行: 古い実パス(拡張子・index なし)→ { from, to, lib }。中を読む import として扱える物は先にそちらで当たる
+  const rows = base && closed.size > 0 ? movedRows(root, { base }).imports.map(({ from, to }) => ({ from, to })) : [];
+  const rowByPath = new Map();
+  for (const row of rows) {
+    const resolved = resolveImport(row.from, path.join(root, "src/__codemod__.ts"), root);
+    const lib = libOfPath(resolveImport(row.to, path.join(root, "src/__codemod__.ts"), root) ?? "");
+    if (resolved && lib) rowByPath.set(bare(resolved), { ...row, lib });
+  }
   const changes = [];
   const stops = [];
   const files = closed.size === 0 ? [] : scanFiles(root);
@@ -195,17 +211,24 @@ export function planCodemod(root) {
     const importerLib = libOfPath(file);
     const abs = path.join(root, file);
     const text = readFileSync(abs, "utf8");
-    if (![...closed.keys()].some((lib) => text.includes(lib))) continue;
+    if (rows.length === 0 && ![...closed.keys()].some((lib) => text.includes(lib))) continue;
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKindOf(file));
 
-    /** 指定子が閉じた lib の中(入口でない)なら { lib, resolved }、でなければ null */
+    /**
+     * 指定子が閉じた lib の中(入口でない)なら { lib, resolved }、古い指定子の行に当たれば { lib, row }、でなければ null
+     */
     const innerOf = (spec) => {
       if (spec.startsWith("@lib-config/")) return null;
       const resolved = resolveImport(spec, abs, root);
-      const lib = resolved ? libOfPath(resolved) : null;
-      if (!lib || lib === importerLib || !closed.has(lib)) return null;
-      if (findEntry(closed.get(lib), resolved)) return null;
-      return { lib, resolved };
+      if (!resolved) return null;
+      const lib = libOfPath(resolved);
+      if (lib && closed.has(lib)) {
+        if (lib === importerLib || findEntry(closed.get(lib), resolved)) return null;
+        return { lib, resolved };
+      }
+      const row = rowByPath.get(bare(resolved));
+      if (row && row.lib !== importerLib) return { lib: row.lib, row };
+      return null;
     };
     const stop = (node, specifier, kind, detail) => stops.push({ file, line: lineOf(sf, node), specifier, kind, detail });
 
@@ -259,18 +282,25 @@ export function planCodemod(root) {
         items = st.exportClause.elements.map((el) => ({ inner: (el.propertyName ?? el.name).text, local: el.name.text, isType: el.isTypeOnly }));
       }
 
-      const innerFile = probeFile(root, inner.resolved);
-      const names = innerFile ? reader.exportsOf(innerFile) : null;
-      if (!names) {
-        stop(st, spec, "unparsable", `中のファイル ${inner.resolved} を読めない`);
-        continue;
-      }
       const index = indexOf(inner.lib);
+      let names = null;
+      let innerFile = null;
+      if (inner.row) {
+        // 古い指定子: 新しい入口の名前と照らす(元のファイルは移って無い)
+      } else {
+        innerFile = probeFile(root, inner.resolved);
+        names = innerFile ? reader.exportsOf(innerFile) : null;
+        if (!names) {
+          stop(st, spec, "unparsable", `中のファイル ${inner.resolved} を読めない`);
+          continue;
+        }
+      }
       const missing = [];
       const byEntry = new Map();
       for (const item of items) {
-        const origin = names.get(item.inner) ?? { file: innerFile, name: item.inner };
-        const target = targetOf(index, origin, item.inner);
+        const target = inner.row
+          ? index.find((r) => r.specifier === inner.row.to && r.name === item.inner) ?? null
+          : targetOf(index, names.get(item.inner) ?? { file: innerFile, name: item.inner }, item.inner);
         if (!target) {
           missing.push(item.inner);
           continue;
@@ -299,7 +329,7 @@ export function planCodemod(root) {
       });
     }
   }
-  return { scanned: files.length, changes, stops };
+  return { scanned: files.length, rows, changes, stops };
 }
 
 /** 計画をファイルに書く(後ろから置き換えるので位置がずれない) */
@@ -321,31 +351,35 @@ export function applyCodemod(root, plan) {
   return [...byFile.keys()];
 }
 
-const USAGE = "pnpm check lib-package -- codemod [--apply] [--json]";
+const USAGE = "pnpm check lib-package -- codemod [--base <rev>] [--apply] [--json]";
 
 /** check.mjs の `-- codemod` から呼ぶ。exit code を返す */
 export function runCodemod(root, argv = [], { stdout = process.stdout } = {}) {
   const flags = new Set();
-  for (const arg of argv) {
+  let base;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
     if (arg === "--apply" || arg === "--json") flags.add(arg);
+    else if (arg === "--base" && argv[i + 1] && !argv[i + 1].startsWith("--")) base = argv[++i];
+    else if (arg.startsWith("--base=") && arg.length > 7) base = arg.slice(7);
     else if (arg !== "--") {
       stdout.write(`lib-package codemod: 知らない引数 ${arg}(${USAGE})\n`);
       return 2;
     }
   }
   const apply = flags.has("--apply");
-  const plan = planCodemod(root);
+  const plan = planCodemod(root, { base });
   if (apply) applyCodemod(root, plan);
   if (flags.has("--json")) {
     const strip = ({ start, end, text, ...rest }) => ({ ...rest, text });
-    stdout.write(`${JSON.stringify({ apply, scanned: plan.scanned, changes: plan.changes.map(strip), stops: plan.stops }, null, 2)}\n`);
+    stdout.write(`${JSON.stringify({ apply, base: base ?? null, scanned: plan.scanned, rows: plan.rows, changes: plan.changes.map(strip), stops: plan.stops }, null, 2)}\n`);
     return 0;
   }
   for (const c of plan.changes) stdout.write(`${c.file}:${c.line} ${c.from} -> ${c.to} { ${c.names.join(", ")} }\n`);
   for (const s of plan.stops) stdout.write(`止まる ${s.kind} ${s.file}:${s.line} ${s.specifier}(${s.detail})\n`);
   const files = new Set(plan.changes.map((c) => c.file)).size;
   stdout.write(
-    `lib-package codemod: ${apply ? "書き換えた" : "書き換える(dry-run、書くのは --apply)"} ${plan.changes.length} 文 / ${files} ファイル・止まる ${plan.stops.length}(走査 ${plan.scanned}、閉じた lib の中: ${LIB_DIR}/<名前>)\n`,
+    `lib-package codemod: ${apply ? "書き換えた" : "書き換える(dry-run、書くのは --apply)"} ${plan.changes.length} 文 / ${files} ファイル・止まる ${plan.stops.length}(走査 ${plan.scanned}、閉じた lib の中: ${LIB_DIR}/<名前>${base ? `、古い指定子の行 ${plan.rows.length}(--base ${base})` : ""})\n`,
   );
   return 0;
 }
