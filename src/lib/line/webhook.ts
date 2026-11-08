@@ -1,13 +1,15 @@
 // src/lib/line/webhook.ts
 
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 import { getLineMessagingConfig } from "./env";
 import type { LineWebhookBody, LineWebhookEvent } from "./types";
 
 /**
- * LINE Webhook の署名を検証する。
- * リクエストボディの HMAC-SHA256 ダイジェストと x-line-signature ヘッダーを比較する。
+ * LINE Webhook の署名を検証する（タイミングセーフ比較）。
+ * リクエストボディの HMAC-SHA256 ダイジェスト（base64）と x-line-signature ヘッダーを比較する。
+ * base64 の文字列どうしを比べる（デコードし直すと不正な文字が黙って捨てられ、別の文字列が一致しうるため）。
+ * 長さが違う・空の署名は例外を出さずに false。
  *
  * @param body - リクエストボディ（生の文字列）
  * @param signature - x-line-signature ヘッダーの値
@@ -18,7 +20,12 @@ export function verifySignature(body: string, signature: string): boolean {
   const digest = createHmac("SHA256", channelSecret)
     .update(body)
     .digest("base64");
-  return digest === signature;
+  const expected = Buffer.from(digest);
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length) {
+    return false;
+  }
+  return timingSafeEqual(expected, actual);
 }
 
 /**
