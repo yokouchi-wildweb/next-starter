@@ -11,7 +11,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
 import { useReorderSample } from "@/features/sample/hooks/useReorderSample";
-import { useLoadingToast } from "@/lib/toast/useLoadingToast";
+import { useLoadingToast } from "@/lib/toast";
 
 type Props = {
   initialSamples: Sample[];

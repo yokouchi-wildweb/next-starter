@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import { useIsClient } from "@/hooks/useIsClient";
+import { useIsClient } from "@/lib/isClient";
 
 /**
  * 任意のコンポーネントやフックから `<head>` 要素へ要素を差し込むためのポータル。

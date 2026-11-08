@@ -24,7 +24,7 @@ import {
   defaultRangeExtractor,
   type Range,
 } from "@tanstack/react-virtual";
-import { useIsClient } from "@/hooks/useIsClient";
+import { useIsClient } from "@/lib/isClient";
 import { cn } from "@/lib/cn";
 import { HeaderRow, SortableItem, StaticItem } from "./components";
 import type {

@@ -4,7 +4,7 @@
 
 import { createPortal } from "react-dom";
 
-import { useIsClient } from "@/hooks/useIsClient";
+import { useIsClient } from "@/lib/isClient";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { useGlobalLoaderStore } from "@/stores/globalLoader";
 

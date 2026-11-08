@@ -25,7 +25,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
-import { useIsClient } from "@/hooks/useIsClient";
+import { useIsClient } from "@/lib/isClient";
 import { cn } from "@/lib/cn";
 
 /**

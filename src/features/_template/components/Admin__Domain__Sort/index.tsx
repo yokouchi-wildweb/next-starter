@@ -11,7 +11,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
 import { useReorder__Domain__ } from "@/features/__domain__/hooks/useReorder__Domain__";
-import { useLoadingToast } from "@/lib/toast/useLoadingToast";
+import { useLoadingToast } from "@/lib/toast";
 
 type Props = {
   initial__Domains__: __Domain__[];
