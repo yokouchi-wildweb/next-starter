@@ -57,7 +57,7 @@ src/lib/mediaInputSuite
 - HEIC など、サーバーが描き直せない画像を strip の用途へ選んだときは、送る前に端末で JPEG にする。開けないブラウザでは `storage/unsupported-image` のエラーを表示する（`uploadToStorage`）。
 - **送る前の縮小**: 用途の宣言に画像の縮小の指定（`image: { maxDimension, quality? }`）があれば、サイズの検査の前に `shrinkImageForPurpose`（`@/lib/storage/client`）で長い辺を縮める。fork の画面のコードは要らない（宣言だけで有効。この部品・欄に縮小の指定は無い）。縮められなかった物は元のまま検査へ進む（失敗に数えない。失敗はアップロードの失敗だけ）。その用途では HEIC なども検査の前に JPEG にする。指定・形・守り方: `src/lib/storage/README.md`「画像の縮小の指定」「送る前の縮小」
 - `prepareFile?`（任意）: 呼び出し側の整え（切り抜きなど）。これが先、用途の縮小が後（縮小の約束は残る）。投げたら元のまま
-- 大きさ・縮小の案内文は欄の `helperText` に書く（フィールドの枠が描く。部品の中には足さない）
+- 大きさ・縮小の案内文は欄の `helperText` に書く（フィールドの枠が描く。部品の中には足さない）。例: 「大きな写真は長い辺 2048px まで自動で縮小してから送ります」。数値は用途の宣言（`image.maxDimension`）と揃える
 - `reencodeImage`（既定 `false`）: 送る前にブラウザで jpeg / png / webp を描き直す任意の前処理（通信量を減らしたいとき）。位置情報の除去の保証には数えない。
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。

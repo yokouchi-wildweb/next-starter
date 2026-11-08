@@ -419,6 +419,7 @@ pnpm generate domain は、メディア項目ごとにファイル用途（`<dom
 - image は `storage.image` を明示値で書き出す（省略 = 書き出さない = 縮めない）。縮小の指定はこの用途に 1 か所で、validationRule・FieldConfig には書かない。ブラウザが送る前に縮め、サーバーが描き直しで守らせる（[src/lib/storage/README.md](../lib/storage/README.md)「画像の縮小の指定」）
   - **生成エラー**: 形・範囲の誤り（maxDimension は 1 以上の整数、quality は 1〜100 の整数、ほかのキーは書けない）/ 画像の型が accept に無い / `storage.metadata: "keep"`（keep はサーバーが描き直さず守らせられない）
   - 写真の集まり（collection）の写真は、主の項目ではなく従属のドメインの `file` 項目の `storage.image` に書く（集まりを作るときに主の項目から写す口は無い）
+  - 利用者への案内は欄の `helperText` に書く（フィールドの枠が描く。部品の中には案内を足さない）。例: `"helperText": "大きな写真は長い辺 2048px まで自動で縮小してから送ります"`。数値は `storage.image.maxDimension` と揃える
 - maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/config/app/storage.config.ts` の `defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
 - upload.allow は `storage.upload` を使う。無ければ apiAccess の create と update の許可者の和にする
   - どちらかが `"public"` か `"authenticated"` なら `"authenticated"`（アップロードは常にログインが要る）

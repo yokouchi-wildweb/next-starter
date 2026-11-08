@@ -309,7 +309,7 @@ type StoragePurpose = {
 
 - 縮小は**用途ごとに 1 か所**で宣言する（手書きの用途は `purposes/` の項目、生成の用途は domain.json の field.storage）。入力部品の欄（validationRule・FieldConfig）には持たない
 - `maxDimension` = 長い辺の上限（px、1 以上の整数）。超える画像だけを縦横比を保って縮める（小さい画像は描き直さない）。`quality` = 縮めて書き出すときの画質（1〜100 の整数）。省略 = `storage.config` の `imageStrip.quality`
-- 省略 = 縮めない（今までどおり）。上流の core の用途（`user.avatar` ほか）には指定を置かない: 値は fork の画面の都合で決まるので、fork が自分の用途・上書きで宣言する
+- 省略 = 縮めない（今までどおり）。上流の core の用途（`user.avatar` ほか）には指定を置かない: 値は fork の画面の都合で決まるので、fork は自分の用途（purposes/ の項目・domain.json）で宣言する。core の用途の値は fork から変えられない（用途の受け口に上書きの口は無く、同じ ID は例外）→ core の用途へ送る前に縮めたい fork は `shrinkImageFile(file, spec)` を直に呼ぶ（例: アバターの切り抜きの後）
 - strip（省略を含む）の画像の用途にだけ書ける。`metadata: "keep"` の用途・画像の型が無い用途に書くと `listStoragePurposeProblems` のエラー（keep はサーバーが描き直さないので、縮小を守らせられない）
 - 守り方: ブラウザが送る前にこの指定で縮め（「送る前の縮小」）、サーバーは描き直しで同じ指定を守らせる（「描き直し」の縮め直し。最後の守り）。どちらも用途の方針（`GET /api/storage/purposes/[purpose]` の `image`）と用途表の同じ値を読む
 
