@@ -351,3 +351,4 @@
 - id:20261108-184447-peer | severity:info | checkpoint:peer
 - id:20261108-190036-lib-close-drizzle | severity:action-required | checkpoint:lib-close-drizzle
 - id:20261108-190010-lib-close-wave1-declare-only | severity:action-required | checkpoint:lib-close-wave1-declare-only
+- id:20261108-191005-config-common-c1 | severity:action-required | checkpoint:config-common-c1
