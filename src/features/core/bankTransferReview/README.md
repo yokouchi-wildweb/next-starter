@@ -388,11 +388,22 @@
 |---|---|---|
 | 一覧画面(status ごとのタブ) | `src/app/admin/(protected)/bank-transfer-reviews/[status]/page.tsx` → `_screen/AdminBankTransferReviewsScreen.tsx` | URL のスラッグ(`STATUS_VALUE_BY_SLUG`)で status を決め、タブ・一覧・ページング・検索・CSV 一括判定 |
 | タブ | `_screen/StatusTabs.tsx` | status 別件数付きのタブ(`useAdminBankTransferReviewStatusCounts`) |
-| 一覧 | `_screen/BankTransferReviewListPanel.tsx` + `BankTransferReviewTable.tsx` | `useAdminBankTransferReviewList` と `useAdminBankTransferReviewMemo` を呼んで描く。一斉送信は表の一括操作 |
+| 一覧 | `_screen/BankTransferReviewListPanel.tsx` + `BankTransferReviewTable.tsx` | `useAdminBankTransferReviewList` と `useAdminBankTransferReviewMemo` を呼んで描く。一括操作は受け口 `adminBulkActions` の項目(既定 = メール一斉送信) |
 | 詳細モーダル | `_screen/BankTransferReviewDetailModal.tsx` | `useAdminBankTransferReview` の詳細、`useAdminBankTransferReviewDecision` の承認 / 拒否 / 検証中への移行、管理者メモ |
 | CSV 取り込み | `_screen/BankTransferReviewCsvImportDialog.tsx` | `useAdminBankTransferReviewCsvImport` を呼んで振込明細 CSV の dry-run と一括判定を描く |
 
 `_screen` 部品は上流専用・約束なし(引数は足さない)。見た目を変える fork は同じルートの `_components/` の Screen で下の公開 hook を呼び、自分の markup で描く(処理は写さない)。
+
+### 管理一覧の一括操作(受け口 `adminBulkActions`)
+
+一覧の表の一括操作は受け口 `src/features/core/bankTransferReview/adminBulkActions/<名前>.tsx` の `export const bulkAction`(型 `BankTransferReviewAdminBulkActionItem` = `BulkActionItem<AdminBankTransferReviewListItem, AdminBulkActionAccess>`)。表は `useBankTransferReviewAdminBulkActions()` の項目を `BulkActionItems` で描くだけ。作り方は `src/lib/tableSuite/README.md`「一括操作の受け口」。
+
+- 上流の既定の項目: `sendEmail`(order 100)= 選んだレビューの申告者へのメール一斉送信(`adminBulkSendBankTransferReviewEmail`、送付履歴は管理者メモへ追記)。送り方・文面・記録は連絡の議会の結論まで今のまま
+- fork: 項目を足す(例: 一括承認・一括拒否 = fork の route と hook を呼ぶ部品)、上流の項目を `sendEmail.override.ts` で外す・並べ替える(書けるのは `enabled`・`order`)
+- 時機: 管理者が表で行を選んだ後に押す。選択は表示中のページ内だけ(ページ・タブ・検索語が変わると空になる)
+- トランザクション: 受け口は持たない。1 回の操作の中身(API・サービスの tx)は項目が呼ぶ API の側
+- 失敗: 項目の部品が toast などで出す。`onDone` は成功したときだけ呼ぶ(選択を外し、一覧と件数を取り直す)。権限の守りは API の側で、`access` は見せ方だけ
+- 項目を置いた・消したら `pnpm generate extensions`(`extensions/adminBulkActions.ts` と intake の行)。テスト: `pnpm test src/features/core/bankTransferReview/hooks/adminBankTransferReviewBulkActions.test.tsx`
 
 ### 管理画面の公開 hook
 

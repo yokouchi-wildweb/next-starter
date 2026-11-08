@@ -1,8 +1,8 @@
 // src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewTable.tsx
 //
 // 銀行振込レビュー一覧テーブル。
-// 行クリックで複数行を選択でき、選択時はバルクアクション「メール一斉送信」を
-// 表示する。承認/拒否などの判定は最右の操作列「承認作業」ボタンから
+// 行クリックで複数行を選択でき、選択時は一括操作(受け口 adminBulkActions の項目。上流の既定 = メール一斉送信、
+// fork は項目を足す)を表示する。承認/拒否などの判定は最右の操作列「承認作業」ボタンから
 // 詳細モーダルを開いて行う。
 // レビュー側の status はタブで切り替えるため列としては表示しない。
 
@@ -11,17 +11,16 @@
 import { useMemo, type Key } from "react";
 import { Pencil } from "lucide-react";
 
-import { RecordSelectionTable, type DataTableColumn } from "@/lib/tableSuite";
+import { BulkActionItems, RecordSelectionTable, type DataTableColumn } from "@/lib/tableSuite";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { PromptPopover } from "@/components/Overlays/Popover";
-import { BulkSendEmailButton } from "@/components/BulkSendEmail";
-import {
-  adminBulkSendBankTransferReviewEmail,
-  type AdminBankTransferReviewListItem,
-  type BankTransferReviewMode,
-  type BankTransferReviewStatus,
+import type {
+  AdminBankTransferReviewListItem,
+  BankTransferReviewMode,
+  BankTransferReviewStatus,
 } from "@/features/core/bankTransferReview";
+import { useBankTransferReviewAdminBulkActions } from "@/features/core/bankTransferReview/hooks/useBankTransferReviewAdminBulkActions";
 
 import {
   approvalSourceBadgeVariant,
@@ -267,6 +266,9 @@ export function BankTransferReviewTable({
     ],
   );
 
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 = メール一斉送信 + fork の項目。D86)
+  const bulkActionItems = useBankTransferReviewAdminBulkActions();
+
   return (
     <RecordSelectionTable
       items={items}
@@ -278,21 +280,9 @@ export function BankTransferReviewTable({
       selectedKeys={selectedKeys}
       onSelectionChange={(keys) => onSelectionChange(keys)}
       bulkActionsAlwaysVisible
-      bulkActionsEmptyMessage="レビューを選択するとメールを一斉送信できます"
+      bulkActionsEmptyMessage="レビューを選択すると一括操作できます"
       bulkActions={(selection) => (
-        <BulkSendEmailButton
-          ids={selection.selectedIds}
-          onSend={adminBulkSendBankTransferReviewEmail}
-          recordNoun="振込レビュー"
-          defaultNotificationTitle="お振込に関するお知らせ"
-          defaultNotificationBody={`お振込のご確認に関する重要なお知らせをメールにて送付しております。
-お手数をおかけいたしますが、ご確認のほどお願いいたします。`}
-          subjectPlaceholder="例: お振込内容の確認のお願い"
-          onSuccess={() => {
-            selection.clear();
-            onBulkActionDone();
-          }}
-        />
+        <BulkActionItems items={bulkActionItems} selection={selection} onDone={onBulkActionDone} />
       )}
     />
   );

@@ -68,6 +68,8 @@ add src/features/core/analytics/rollupMetrics/*.{ts,tsx}  # 受け口 rollupMetr
 add src/features/core/analytics/rollupMetrics/*/**  # 受け口 rollupMetrics(フォルダ形)
 add src/features/core/analytics/services/server/coinIssuance/sources/*.{ts,tsx}  # 受け口 coinIssuanceSources
 add src/features/core/analytics/services/server/coinIssuance/sources/*/**  # 受け口 coinIssuanceSources(フォルダ形)
+add src/features/core/bankTransferReview/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
+add src/features/core/bankTransferReview/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
 add src/features/core/batchJob/jobHandlers/*.{ts,tsx}  # 受け口 jobHandlers
 add src/features/core/batchJob/jobHandlers/*/**  # 受け口 jobHandlers(フォルダ形)
 add src/features/core/coupon/adminSectionTabs/*.{ts,tsx}  # 受け口 sectionTabs
