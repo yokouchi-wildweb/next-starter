@@ -12,7 +12,7 @@ const argsOf = (args?: string[]) => (args ?? process.argv.slice(3)).filter((arg)
 
 /** サービスの DomainError(確かめで止めた・transaction ごと戻った)を「書く前に止まった」にする */
 async function notStartedOnDomainError<T>(work: () => Promise<T>): Promise<T> {
-  const { DomainError } = await import("@/lib/errors/domainError");
+  const { DomainError } = await import("@/lib/errors");
   try {
     return await work();
   } catch (error) {

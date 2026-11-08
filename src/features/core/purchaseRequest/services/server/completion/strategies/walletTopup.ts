@@ -5,7 +5,7 @@
 // 挙動は従来と完全に同一。完全互換を優先しており、新しい振る舞いは加えていない。
 
 import { CURRENCY_CONFIG } from "@/config/app/currency.config";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { PurchaseCompletionStrategy } from "../types";

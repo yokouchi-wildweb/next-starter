@@ -13,7 +13,7 @@ import { PURCHASE_QUOTA_ACTIVE_STATUSES } from "@/features/core/purchaseQuota/co
 import { PurchaseQuotaLedgerTable } from "@/features/core/purchaseQuota/entities/drizzle";
 import type { PurchaseQuotaLedger } from "@/features/core/purchaseQuota/entities/model";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 // ============================================================================
 // 型定義

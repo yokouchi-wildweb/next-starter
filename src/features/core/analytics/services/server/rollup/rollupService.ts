@@ -15,7 +15,7 @@ import { and, eq } from "drizzle-orm";
 import { AnalyticsDailyRollupTable } from "@/features/core/analytics/entities/drizzle";
 import { DEFAULT_TIMEZONE } from "@/features/core/analytics/constants";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { rollupMetrics } from "@/features/core/analytics/extensions/rollupMetrics";
 import { invalidateAnalyticsCache } from "../utils/analyticsCache";
 import { formatDateKeyTz, resolveDayBounds } from "../utils/dateRange";

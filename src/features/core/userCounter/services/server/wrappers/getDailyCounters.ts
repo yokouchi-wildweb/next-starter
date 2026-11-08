@@ -6,7 +6,7 @@ import { USER_COUNTER_CONFIG } from "@/config/app/user-counter.config";
 import { UserDailyCounterTable } from "@/features/core/userCounter/entities/drizzle";
 import type { UserDailySeriesPoint } from "@/features/core/userCounter/entities/model";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 

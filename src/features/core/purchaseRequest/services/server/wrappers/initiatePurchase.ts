@@ -17,7 +17,7 @@ import { reserveQuota } from "@/features/core/purchaseQuota/services/server/wrap
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { assertHoldingLimit } from "@/features/core/wallet/services/server/wrappers/checkHoldingLimit";
 import { userService } from "@/features/core/user/services/server/userService";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { gate } from "@/featureGate";

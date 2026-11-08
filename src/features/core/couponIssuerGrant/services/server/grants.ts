@@ -10,7 +10,7 @@
 // 当期クーポンへの反映（停止時の無効化・設定変更時のパッチ）は issuance.ts に委譲する。
 
 import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import type { CouponIssuerGrant } from "@/features/core/couponIssuerGrant/entities/model";
 import { couponIssuerGrantBase } from "./drizzleBase";
 import { getGrantByUser, requireGrantForUpdate as requireGrant } from "./queries";

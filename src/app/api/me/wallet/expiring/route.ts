@@ -11,7 +11,7 @@
 import { createMeRoute } from "@/wiring/apiRoute";
 import { getExpiringLots } from "@/features/core/wallet/services/server/lots";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 const DEFAULT_WITHIN_DAYS = 30;
 const MAX_WITHIN_DAYS = 365;

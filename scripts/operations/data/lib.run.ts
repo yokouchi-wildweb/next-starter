@@ -55,7 +55,7 @@ export async function runRecordedWrite(input: {
         // 書く前に止めた = 鍵を取らずに failed(直して打ち直せる)
         if (error instanceof DataUsageError) throw new TaskNotStartedError(error.message);
         // サービスの DomainError(検証・守りで拒否): 書き込みは 1 回の呼び出し = 1 つの transaction / 1 文なので何も書いていない
-        const { DomainError } = await import("@/lib/errors/domainError");
+        const { DomainError } = await import("@/lib/errors");
         if (error instanceof DomainError) throw new TaskNotStartedError(error.message);
         throw error;
       }

@@ -15,7 +15,7 @@ import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { getAuditContext } from "@/lib/audit";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { MessageDispatchTable } from "../../entities/drizzle";
 import type { MessagingChannel } from "../../constants/channels";

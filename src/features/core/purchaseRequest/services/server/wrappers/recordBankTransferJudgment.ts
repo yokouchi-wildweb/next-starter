@@ -10,7 +10,7 @@
 // 並行性: metadata は read-modify-write でマージする。同一 purchase_request の判定は
 // 本人のみが直列に実行する（レート制限あり）ため、実用上の競合は発生しない。
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import {
   BANK_TRANSFER_JUDGMENT_METADATA_KEY,
   type BankTransferImageJudgmentRecord,

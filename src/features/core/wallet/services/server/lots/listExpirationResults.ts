@@ -13,7 +13,7 @@
 
 import { and, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import type {
   ListExpirationResultsParams,

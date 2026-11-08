@@ -4,7 +4,7 @@ import type { AdjustWalletParams, WalletAdjustmentResult, AdjustBalanceOptions }
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import {
   consumeLotsFifo,

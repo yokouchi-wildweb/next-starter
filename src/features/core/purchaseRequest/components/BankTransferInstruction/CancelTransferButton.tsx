@@ -24,7 +24,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks";
 import { Stack } from "@/components/Layout/Stack";
 import { useToast } from "@/lib/toast";
-import { err } from "@/lib/errors/httpError";
+import { err } from "@/lib/errors";
 import { sanitizeRedirectPath } from "@/lib/url";
 
 import { useCancelPurchase } from "@/features/core/purchaseRequest/hooks/useCancelPurchase";

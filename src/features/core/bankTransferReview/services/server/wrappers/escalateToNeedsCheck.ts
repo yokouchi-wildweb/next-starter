@@ -12,7 +12,7 @@
 // - confirm/reject と同様に監査ログを同一トランザクションで atomic に
 // - 通貨操作は一切行わない（mode に関わらず通貨は触らない。最終判断は人間が行う）
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 

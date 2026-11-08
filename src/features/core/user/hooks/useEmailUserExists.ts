@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { normalizeHttpError, type HttpError } from "@/lib/errors/httpError";
+import { normalizeHttpError, type HttpError } from "@/lib/errors";
 import { userClient } from "../services/client/userClient";
 
 type CheckResult = {

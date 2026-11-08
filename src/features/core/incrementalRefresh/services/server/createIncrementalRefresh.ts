@@ -21,7 +21,7 @@ import { sql, type SQL } from "drizzle-orm";
 
 import { createDeadline, runBudgetedBatches } from "@/lib/cron";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { advanceCheckpoint, getCheckpoint } from "@/features/core/cronCheckpoint/services/server";
 

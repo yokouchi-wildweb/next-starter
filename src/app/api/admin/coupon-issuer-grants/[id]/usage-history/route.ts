@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import {
   couponIssuerGrantBase,
   getIssuerUsageHistory,

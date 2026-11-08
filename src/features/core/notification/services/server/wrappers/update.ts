@@ -1,7 +1,7 @@
 // src/features/core/notification/services/server/wrappers/update.ts
 // 公開済み（published_at <= now()）のお知らせは編集不可。予約中のみ更新可能。
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { base } from "../drizzleBase";
 

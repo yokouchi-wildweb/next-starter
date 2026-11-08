@@ -9,8 +9,7 @@ import { mock, test } from "node:test";
 
 import { NextRequest } from "next/server";
 
-// `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 type FakeUser = { userId: string; role: string; status: string; isDemo: boolean };
 let currentUser: FakeUser | null = null;

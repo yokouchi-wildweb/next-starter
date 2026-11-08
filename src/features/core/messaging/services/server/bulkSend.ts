@@ -15,7 +15,7 @@
 import { inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
 

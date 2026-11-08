@@ -16,7 +16,7 @@
 // 管理者が再度 confirm を押せば completePurchase は冪等（completed なら早期リターン）で
 // 動き、レビュー更新だけ走る。これでリトライによる回復が保証される。
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { base as purchaseRequestBase } from "@/features/purchaseRequest/services/server/drizzleBase";

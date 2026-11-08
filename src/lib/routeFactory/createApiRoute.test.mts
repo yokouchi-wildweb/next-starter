@@ -10,8 +10,7 @@ import { test } from "node:test";
 import { NextRequest } from "next/server";
 
 import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
-// `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { createRouteFactories } from "./createRouteFactories.ts";
 

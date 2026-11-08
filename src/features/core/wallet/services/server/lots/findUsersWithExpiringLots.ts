@@ -12,7 +12,7 @@
 
 import { and, eq, gt, gte, lt, min, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { WalletTable, WalletLotTable } from "@/features/core/wallet/entities/drizzle";
 import { isExpirationEnabled } from "@/features/core/wallet/utils/expiration";
 import type {

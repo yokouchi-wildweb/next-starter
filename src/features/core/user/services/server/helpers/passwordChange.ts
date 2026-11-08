@@ -14,7 +14,7 @@
 // 成功トースト付きの no-op になっていた (upstream-request
 // 20260930-151349-fix-admin-local-password-change-noop)。
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import type { UserProviderType } from "@/features/core/user/types";
 
 export type PasswordChangePlan = {

@@ -25,7 +25,7 @@
 //   永久に付与されない）
 
 import { paymentConfig } from "@/config/app/payment.config";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { readBankTransferJudgmentFromMetadata } from "@/features/core/purchaseRequest/constants/bankTransferJudgment";

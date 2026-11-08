@@ -16,7 +16,7 @@
 // 備考: PayPal は order_id が createSession 時点で確定し、initiatePurchase が
 //   payment_session_id に保存済み。よって Paidy と違い payment_session_id の追記更新は不要。
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import { completePurchase } from "@/features/core/purchaseRequest/services/server/wrappers/completePurchase";

@@ -21,7 +21,7 @@ import {
   type Granularity,
   type ResolvedDateRange,
 } from "@/features/core/analytics/types/common";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 // ============================================================================
 // 公開 API

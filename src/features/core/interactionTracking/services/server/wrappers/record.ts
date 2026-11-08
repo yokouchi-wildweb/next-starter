@@ -10,7 +10,7 @@ import {
 } from "@/features/core/interactionTracking/entities/drizzle";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 export type RecordInteractionInput = {
   /** 対象種別（例: "bulletin"）。語彙の採番は消費側ドメインの責務 */

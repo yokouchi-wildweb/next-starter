@@ -8,7 +8,7 @@
 // - IP / サブネットのハイブリッドレート制限でボットによる水増しを緩和
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { InteractionIngestSchema } from "@/features/core/interactionTracking/entities/schema";
 import { record } from "@/features/core/interactionTracking/services/server";
 import { targetRules } from "@/features/core/interactionTracking/extensions/targetRules";

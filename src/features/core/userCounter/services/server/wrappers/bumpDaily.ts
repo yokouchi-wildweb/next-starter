@@ -6,7 +6,7 @@ import { USER_COUNTER_CONFIG } from "@/config/app/user-counter.config";
 import { UserDailyCounterTable } from "@/features/core/userCounter/entities/drizzle";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { bump } from "./bump";
 
 export type BumpDailyOptions = {

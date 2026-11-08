@@ -2,7 +2,7 @@
 // Webhook処理
 
 import { getPaymentProvider } from "../payment";
-import { isDomainError } from "@/lib/errors/domainError";
+import { isDomainError } from "@/lib/errors";
 import { completePurchase } from "./completePurchase";
 import { failPurchase } from "./failPurchase";
 import type { HandleWebhookParams, HandleWebhookResult } from "./purchaseService";

@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { userClient } from "../services/client/userClient";
 import type { UserProviderType } from "@/features/core/user/types";
-import { normalizeHttpError, type HttpError } from "@/lib/errors/httpError";
+import { normalizeHttpError, type HttpError } from "@/lib/errors";
 
 type CheckResult = {
   /** 登録済みユーザーが存在するか（status が登録済みのもののみ true） */

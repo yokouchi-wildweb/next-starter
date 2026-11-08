@@ -15,7 +15,7 @@ import { and, eq, sql } from "drizzle-orm";
 
 import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { markUserDirty } from "@/lib/userDirty";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";

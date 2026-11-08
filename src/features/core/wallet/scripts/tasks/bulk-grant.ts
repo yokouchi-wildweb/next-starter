@@ -18,7 +18,7 @@ export const task: OneShotTask = {
   run: async () => {
     const parsed = readBulkGrantArgs(argsOf());
     const { walletService } = await import("@/features/core/wallet/services/server/walletService");
-    const { DomainError } = await import("@/lib/errors/domainError");
+    const { DomainError } = await import("@/lib/errors");
     let result;
     try {
       result = await walletService.bulkGrant({ ...parsed, walletType: parsed.walletType as never });

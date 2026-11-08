@@ -6,7 +6,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { initiatePurchase } from "../services/client/purchaseRequestClient";
 import { executePaymentLaunch } from "../services/client/launchers";
-import { err } from "@/lib/errors/httpError";
+import { err } from "@/lib/errors";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 
 // CURRENCY_CONFIG の最初のキーをデフォルト値として使用

@@ -28,7 +28,7 @@ import {
 } from "./utils/dateRange";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import { changeRate } from "./utils/aggregation";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 /**
  * DAU が対応する集計粒度。

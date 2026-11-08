@@ -15,7 +15,7 @@
 import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { formatDateJa } from "@/utils/date";
 
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";

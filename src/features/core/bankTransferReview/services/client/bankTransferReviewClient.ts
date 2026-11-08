@@ -15,7 +15,7 @@
 
 import axios from "axios";
 
-import { normalizeHttpError } from "@/lib/errors/httpError";
+import { normalizeHttpError } from "@/lib/errors";
 import type {
   BulkSendEmailInput,
   BulkSendEmailResult,

@@ -18,7 +18,7 @@
 import { and, sql, gt, inArray, eq } from "drizzle-orm";
 import { WalletLotTable } from "@/features/core/wallet/entities/drizzle";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import {
   calcExpiresAt,
   getExpirationBasis,

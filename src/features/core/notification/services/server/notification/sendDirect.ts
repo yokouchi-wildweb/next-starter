@@ -5,7 +5,7 @@
 // 未紐付けの ref だけが通り、新しい旧 URL・外部 URL は 400。null はそのまま
 
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import type { Notification } from "@/features/core/notification/entities/model";
 import { storageBinding } from "@/features/core/notification/services/server/drizzleBase";

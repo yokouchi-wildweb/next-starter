@@ -9,7 +9,7 @@
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 const calls: string[] = [];
 const signed: Array<{ subject: string; claims: Record<string, unknown>; options: { maxAge: number } }> = [];

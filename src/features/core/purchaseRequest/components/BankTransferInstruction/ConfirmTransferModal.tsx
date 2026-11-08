@@ -30,7 +30,7 @@ import { Textarea } from "@/components/Form/Input/Manual/Textarea";
 import { Para, Span } from "@/components/TextBlocks";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useToast } from "@/lib/toast";
-import { err } from "@/lib/errors/httpError";
+import { err } from "@/lib/errors";
 import { sanitizeRedirectPath } from "@/lib/url";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 

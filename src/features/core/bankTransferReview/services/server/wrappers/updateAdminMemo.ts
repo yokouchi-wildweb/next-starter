@@ -8,7 +8,7 @@
 // - 監査ログに変更前後を記録（運用追跡用）
 // - 発送リクエストの admin_memo と同等の運用方針
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 

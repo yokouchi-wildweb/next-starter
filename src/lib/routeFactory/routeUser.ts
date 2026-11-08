@@ -4,7 +4,7 @@
 // 束の契約: null = 未ログイン・失効・削除（「利用者がいない」と分かった）、throw = 分からない（DB 障害など）。
 // 分からないときは 401（未ログイン）とも JWT のクレームでの通過とも区別し、503 の RouteUserUnavailableError にする。
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import type { RouteUserBase, RouteUserDeps } from "./deps";
 

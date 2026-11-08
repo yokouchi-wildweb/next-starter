@@ -5,7 +5,7 @@ import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import { InteractionDailyCounterTable } from "@/features/core/interactionTracking/entities/drizzle";
 import type { InteractionDailySeriesPoint } from "@/features/core/interactionTracking/entities/model";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 

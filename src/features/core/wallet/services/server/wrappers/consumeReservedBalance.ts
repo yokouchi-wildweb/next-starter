@@ -4,7 +4,7 @@ import type { ConsumeReservationParams, WalletAdjustmentResult, WalletOperationO
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { consumeLotsFifo } from "@/features/core/wallet/services/server/lots/lotAccounting";
 import { isExpirationEnabled } from "@/features/core/wallet/utils/expiration";
 import {

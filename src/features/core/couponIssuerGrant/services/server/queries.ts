@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { CouponIssuerGrantTable } from "@/features/core/couponIssuerGrant/entities/drizzle";
 import type { CouponIssuerGrant } from "@/features/core/couponIssuerGrant/entities/model";
 

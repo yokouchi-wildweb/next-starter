@@ -1,7 +1,7 @@
 // src/features/core/analytics/services/server/rollup/rollupRegistry.ts
 // 登録済みメトリクスを有効なものと無効なものに分ける（DB に触れない純粋関数。rollupService が生成一覧を渡す）
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import type { RollupMetricConfig } from "./types";
 
 export type RollupRegistry = {

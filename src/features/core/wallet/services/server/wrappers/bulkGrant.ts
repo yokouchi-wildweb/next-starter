@@ -19,7 +19,7 @@ import { VALID_WALLET_TYPES } from "@/features/core/wallet/utils/currency";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { bulkAdjustByUsers } from "./bulkAdjustByUsers";
 import { runWithTransaction } from "./utils";

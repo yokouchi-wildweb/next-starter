@@ -14,7 +14,7 @@
 // - mode=approval_required: failPurchase を実行して purchase_request を failed に
 //   遷移させ、レビュー status を rejected に更新
 
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { base as purchaseRequestBase } from "@/features/purchaseRequest/services/server/drizzleBase";

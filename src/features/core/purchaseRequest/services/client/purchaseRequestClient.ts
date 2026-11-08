@@ -8,7 +8,7 @@ import type {
   PurchaseRequestCreateFields,
   PurchaseRequestUpdateFields,
 } from "@/features/core/purchaseRequest/entities/form";
-import { normalizeHttpError } from "@/lib/errors/httpError";
+import { normalizeHttpError } from "@/lib/errors";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import type { LaunchInstruction } from "@/features/core/purchaseRequest/types/payment";
 

@@ -15,7 +15,7 @@ import { and, desc, eq, gte, lt, lte, type SQL } from "drizzle-orm";
 import { AnalyticsDailyRollupTable } from "@/features/core/analytics/entities/drizzle";
 import type { Granularity, ResolvedDateRange } from "@/features/core/analytics/types/common";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import {
   assertGranularitySupported,
   formatDateKeyTz,

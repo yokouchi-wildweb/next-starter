@@ -6,7 +6,7 @@
 
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
-import { isDomainError } from "@/lib/errors/domainError";
+import { isDomainError } from "@/lib/errors";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { messagingService } from "@/features/core/messaging/services/server/messagingService";
 import type { MessagingSource } from "@/features/core/messaging/constants/sources";

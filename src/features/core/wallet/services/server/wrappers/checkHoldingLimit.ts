@@ -6,7 +6,7 @@ import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 /**
  * ウォレットの保有残高が `maxHoldingAmount` 以上なら DomainError を投げる。

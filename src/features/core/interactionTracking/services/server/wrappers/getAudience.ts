@@ -14,7 +14,7 @@ import type {
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import type { PaginatedResult } from "@/lib/crud/types";
 import { db } from "@/lib/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 const MAX_LIMIT = 100;
 

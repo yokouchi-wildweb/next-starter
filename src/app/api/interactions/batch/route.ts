@@ -11,7 +11,7 @@
 //   sendBeacon で届くため、Content-Type は application/json 前提で req.json() で読む
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 import { InteractionBatchIngestSchema } from "@/features/core/interactionTracking/entities/schema";
 import { recordBatch, type RecordBatchEntry } from "@/features/core/interactionTracking/services/server";
 import { targetRules } from "@/features/core/interactionTracking/extensions/targetRules";

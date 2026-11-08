@@ -18,7 +18,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Wallet } from "@/features/core/wallet/entities";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 import { adjustBalance } from "./adjustBalance";
 import { resolveWalletReason } from "./reasonKey";

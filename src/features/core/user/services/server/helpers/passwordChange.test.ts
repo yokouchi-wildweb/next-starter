@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { planPasswordChange } from "./passwordChange";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError } from "@/lib/errors";
 
 test("local ユーザー: newPassword は localPassword へ写像される (回帰: 無言 no-op 防止)", () => {
   const plan = planPasswordChange({ providerType: "local", newPassword: "  secret123  " });
