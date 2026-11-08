@@ -1,0 +1,116 @@
+// scripts/structure/districtMap/districtMap.test.mjs — 地区の地図を今の木の正本と突き合わせる + 生成器・検査器の振る舞い
+// 実行: pnpm test scripts/structure/districtMap
+// 正本: ドメインの一覧と domainEntry のキー = scripts/structure/registry/serviceRegistry/discover.mjs、表 = tableScan.mjs(schemaRegistry の元)、
+// 門の features = @/featureGate/node の configRules、受け口 = forkOwnership の collectPoints、lib = src/lib 直下のフォルダ
+import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { test } from "node:test";
+
+import { configRules } from "../../../src/featureGate/node.ts";
+import { DISTRICT_MAP_FILE } from "../../../src/lib/districtMap/index.mjs";
+import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
+import { collectPoints } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { scanFeatureTables } from "../registry/tableScan.mjs";
+import { ENTRIES_EXPORT, listDomainDirs, readObjectKeys } from "../registry/serviceRegistry/discover.mjs";
+import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } from "./map.mjs";
+
+const { districts, problems } = readDistrictMapAt(repoRoot);
+const features = districts.filter((d) => d.kind === "features");
+const folderOf = (d) => d.dir.slice("src/features/".length);
+
+test("今の木に問題が無い", () => {
+  assert.deepEqual(problems, []);
+});
+
+test("features = src/features と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies 1、枠 = frame: の宣言", () => {
+  assert.deepEqual(features.map(folderOf).sort(), listDomainDirs(repoRoot));
+  assert.ok(!features.some((d) => d.name.startsWith("_")));
+  const libs = readdirSync(join(repoRoot, "src/lib"), { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
+  assert.deepEqual(districts.filter((d) => d.kind === "lib").map((d) => d.name), libs);
+  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies"]);
+  // 枠の宣言(_layout/config.ts の frame:)は後半で書く。今は 0(L1.13)
+  assert.deepEqual(districts.filter((d) => d.kind === "frame"), []);
+});
+
+test("apiKeys = 各ドメインの domainEntry.ts のキー(登録表の生成と同じ読み方)", () => {
+  for (const d of features) {
+    let text = null;
+    try {
+      text = readFileSync(join(repoRoot, d.dir, "services/server/domainEntry.ts"), "utf8");
+    } catch {
+      assert.deepEqual(d.apiKeys, [], d.dir);
+      continue;
+    }
+    assert.deepEqual(d.apiKeys, readObjectKeys(text, ENTRIES_EXPORT).keys, d.dir);
+  }
+});
+
+test("tables = schemaRegistry の元の表の全部を features の地区に 1 回ずつ割り振る(雛形 _template の外に漏れなし・二重なし)", () => {
+  const { tables } = scanFeatureTables(repoRoot);
+  const expected = tables.filter((t) => !t.file.startsWith("src/features/_")).map((t) => t.name).sort();
+  const mapped = features.flatMap((d) => d.tables).sort();
+  assert.deepEqual(mapped, expected);
+  assert.equal(new Set(mapped).size, mapped.length);
+});
+
+test("requires = domainEntry の requires(今の上流は 5 ドメイン)", () => {
+  assert.deepEqual(
+    features.filter((d) => d.requires.length > 0).map((d) => `${d.name}:${d.requires.join(",")}`),
+    ["couponAttributionReward:wallet", "fingerprintChallenge:deviceFingerprint", "notification:notificationTemplate", "purchaseRequest:wallet,walletHistory", "referral:coupon"],
+  );
+});
+
+test("gates = 門の規則の features の逆引き", () => {
+  const expected = new Map();
+  for (const rule of configRules) for (const folder of rule.features ?? []) expected.set(folder, [...(expected.get(folder) ?? []), rule.name].sort());
+  for (const d of features) assert.deepEqual(d.gates, expected.get(folderOf(d)) ?? [], d.dir);
+  assert.equal(features.flatMap((d) => d.gates).length, [...expected.values()].flat().length);
+});
+
+test("receptacles = 地区の中の extensionPoints.ts の点(地区の外の宣言は載らない)", () => {
+  const { points } = collectPoints(repoRoot);
+  for (const d of districts) {
+    const inside = points.filter((p) => p.owner === d.dir || p.owner.startsWith(`${d.dir}/`)).map((p) => p.name).sort();
+    assert.deepEqual(d.receptacles, inside, d.dir);
+  }
+  const outside = points.filter((p) => !districts.some((d) => p.owner === d.dir || p.owner.startsWith(`${d.dir}/`))).map((p) => p.owner);
+  assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/app/_layout/adminCommand", "src/featureGate", "src/wiring/dbAgent", "src/wiring/formInputs"]);
+});
+
+test("config・上書き: 今の地区は config.ts も上書きも持たない(後半で作る)", () => {
+  assert.deepEqual(districts.filter((d) => d.config.exists || d.override.exists).map((d) => d.dir), []);
+});
+
+test("district-map.jsonl は今の木と一致(pnpm check districtMap)", () => {
+  assert.equal(readFileSync(join(repoRoot, DISTRICT_MAP_FILE), "utf8"), buildDistrictMap(repoRoot).text);
+  assert.equal(checkDistrictMap(repoRoot).ok, true);
+});
+
+test("生成器と検査器: 作る → 一致、手で直す・無い → 失敗、問題があれば書かない", () => {
+  const root = mkdtempSync(join(tmpdir(), "district-map-"));
+  const put = (rel, text) => {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), text);
+  };
+  try {
+    put("src/features/core/wallet/index.ts", "");
+    put("src/lib/crud/index.ts", "");
+    mkdirSync(join(root, "src/registry"), { recursive: true });
+    assert.equal(checkDistrictMap(root).ok, false); // 無い
+    assert.equal(generateDistrictMap(root).ok, true);
+    assert.equal(checkDistrictMap(root).ok, true);
+    const path = join(root, DISTRICT_MAP_FILE);
+    writeFileSync(path, readFileSync(path, "utf8").replace('"wallet"', '"walletX"'));
+    const stale = checkDistrictMap(root);
+    assert.equal(stale.ok, false);
+    assert.match(stale.lines[0], /pnpm generate districtMap/);
+    put("src/features/wallet/index.ts", ""); // core と業務の同名
+    writeFileSync(path, "keep\n");
+    assert.equal(generateDistrictMap(root).ok, false);
+    assert.equal(readFileSync(path, "utf8"), "keep\n");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -42,7 +42,8 @@
       "bundle",
       "cycles",
       "config",
-      "eslint"
+      "eslint",
+      "districtMap"
     ],
     "workflow": [
       "worktree",

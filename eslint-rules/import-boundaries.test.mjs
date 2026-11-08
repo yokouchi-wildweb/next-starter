@@ -399,6 +399,22 @@ test("rule src-no-scripts: src(テストも)から scripts への import・型�
   });
 });
 
+test("rule src-no-district-map: src(テストも)から district-map.jsonl を import・import()・require で読むのを止め、scripts の側と読み手の lib は通す(目録 D12)", () => {
+  ruleTester.run("src-no-district-map", plugin.rules["src-no-district-map"], {
+    valid: [
+      { code: `import { readDistrictMap } from "@/lib/districtMap";`, filename: at("src/featureGate/checks/a.ts") },
+      { code: `import map from "../../src/registry/district-map.jsonl";`, filename: at("scripts/structure/x/a.mjs") },
+      { code: `import { x } from "@/registry/serviceRegistry";`, filename: at("src/wiring/a.ts") },
+    ],
+    invalid: [
+      { code: `import map from "@/registry/district-map.jsonl";`, filename: at("src/wiring/a.ts"), errors: [{ messageId: "srcDistrictMap" }] },
+      { code: `import map from "../../registry/district-map.jsonl";`, filename: at("src/lib/x/a.test.mjs"), errors: [{ messageId: "srcDistrictMap" }] },
+      { code: `const m = await import("@/registry/district-map.jsonl");`, filename: at("src/features/sample/a.ts"), errors: [{ messageId: "srcDistrictMap" }] },
+      { code: `const m = require("../registry/district-map.jsonl");`, filename: at("src/lib/x.ts"), errors: [{ messageId: "srcDistrictMap" }] },
+    ],
+  });
+});
+
 test("rule scripts-no-static-wiring: 道具から wiring の静的 import(別名も相対も、型も)を止め、import()・require と道具の外は通す(D79)", () => {
   assert.ok(isToolFile("scripts/a.ts") && isToolFile("src/features/sample/scripts/tasks/x.ts") && isToolFile(".notices/20260101-000000-a.tool.mjs"));
   assert.ok(!isToolFile("src/wiring/a.ts") && !isToolFile(".notices/README.md") && !isToolFile("src/features/sample/services/server/a.ts"));

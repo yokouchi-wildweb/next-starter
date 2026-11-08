@@ -102,6 +102,7 @@ const config = [
   },
   // 置き場の境目(計画書 06、全 Tier error、場所の判定は規則の中):
   // - src-no-scripts: src/**(テストも)→ scripts/** の import 禁止(D78)
+  // - src-no-district-map: src/**(テストも)→ src/registry/district-map.jsonl の import 禁止(地区の地図の写し、目録 D12)
   // - scripts-no-static-wiring: 道具(scripts・ドメインの scripts・.notices の codemod)→ src/wiring の静的 import 禁止、import() は可(D79)
   // - seed-reader: ドメインのシード src/features/**/seed.ts を読むのは scripts/runner/seed だけ(D52)
   // - tools-no-db-write: ドメインの scripts/tasks・scripts/operations(db を除く)・seed.ts・scripts/workflow/dev-admin → DB を直接書く部品の import 禁止、移行は例外(D75・D90)
@@ -110,6 +111,7 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/src-no-scripts": "error",
+      "import-boundaries/src-no-district-map": "error",
       "import-boundaries/scripts-no-static-wiring": "error",
       "import-boundaries/tools-no-db-write": "error",
       "import-boundaries/seed-reader": "error",

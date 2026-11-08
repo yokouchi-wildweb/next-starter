@@ -20,6 +20,7 @@
 - src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築)
 - src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)と、ハッシュ照合用のランダムトークン・短いコード生成
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース
+- src/lib/districtMap — 地区(lib・ドメイン・枠・proxies)の地図の読み手: 4 種の見つけ方と各地区の欄(config と上書きの有無・API のキー・表・requires・門・受け口)を字面で読み、集約 src/registry/district-map.jsonl を作る(pnpm generate districtMap)
 - src/lib/dataMigration — CSV + ZIP のエクスポート / インポート(管理画面・チャンク処理)
 - src/lib/date — dayjs ラッパと柔軟な日付パース
 - src/lib/dbAgent — 自然言語で PostgreSQL を調べる管理者向け DB 調査エージェントのデータレイヤ

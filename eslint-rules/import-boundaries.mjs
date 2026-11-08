@@ -51,6 +51,10 @@
 // src/**(テストを含む)から scripts/** を import しない(値も型も、import()・require も)。道具とアプリが両方使う物は lib に置く
 // (例 src/lib/cron/discover.ts・src/lib/task)。道具の側のテストは scripts の側に置く(scripts → src は可)。
 //
+// ── src-no-district-map(目録 D12) ──
+// src/**(テストを含む)から地区の地図の集約ファイル src/registry/district-map.jsonl を import しない(どの形も)。
+// あれは人・agent・/ship と /flux の差分のための写し。道具・lint・生成は毎回読み手 src/lib/districtMap を呼ぶ(他の生成の入力にもしない)。
+//
 // ── scripts-no-static-wiring(D79) ──
 // 道具(scripts/**・src/features/**/scripts/**・.notices/<id>.<名前>.mjs の codemod)は src/wiring/** を静的に import しない
 // (import / export … from、値も型も)。run の中の動的 import()・require は可(読み込みのたびに結線の束を立ち上げないため。
@@ -382,6 +386,28 @@ const seedReader = {
   },
 };
 
+/** 地区の地図の集約ファイルを指す import か(目録 D12。解決できない書き方も字面で見る) */
+export const DISTRICT_MAP_JSONL = /(^|\/)district-map\.jsonl$/;
+export const isSrcDistrictMapImport = (importerRel, source, resolved) => isUnder(importerRel, "src") && (DISTRICT_MAP_JSONL.test(source) || DISTRICT_MAP_JSONL.test(resolved ?? ""));
+
+const srcNoDistrictMap = {
+  meta: {
+    type: "problem",
+    docs: { description: "src/** から地区の地図の集約ファイル district-map.jsonl を import しない(テストも、目録 D12)" },
+    messages: {
+      srcDistrictMap: '"{{source}}" は地区の地図の写し(人と agent・差分用)です。src のコードは import しません。地区の一覧が要るときは読み手 src/lib/districtMap を呼びます(道具・検査・生成だけ。src/lib/districtMap/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      if (isSrcDistrictMapImport(importerRel, source, resolveImport(source, context.filename, repoRoot))) context.report({ node, messageId: "srcDistrictMap", data: { source } });
+    });
+  },
+};
+
 const srcNoScripts = {
   meta: {
     type: "problem",
@@ -609,6 +635,7 @@ const plugin = {
     "link-via-shelf": linkViaShelf,
     "router-via-guard": routerViaGuard,
     "src-no-scripts": srcNoScripts,
+    "src-no-district-map": srcNoDistrictMap,
     "seed-reader": seedReader,
     "scripts-no-static-wiring": scriptsNoStaticWiring,
     "tools-no-db-write": toolsNoDbWrite,
