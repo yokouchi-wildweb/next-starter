@@ -28,6 +28,7 @@ export default { source: "sample" } satisfies BusinessFile; // 上流の出荷�
 ```
 
 - `sample` = `@/business` は例の値を返す。本番(`@/lib/appEnv` の `isProduction`、APP_ENV が無いときも本番)でビルドすると門 build の `pnpm check business` が止める。Tier1(fork_id = next-starter、上流のデモ)だけ警告
+- 判定の部品 `sampleReleaseLevel({ hasSample, production, tier1 })`(sample が無いか本番でなければ ok、あれば error、Tier1 は warn)は法務の文書の検査(`src/features/core/legal` の `checkLegalRelease`、`pnpm check legal`)も使う
 - `own` = `values` の全部の欄が必須(書き忘れは `pnpm typecheck` で落ちる)
 
 ## 初期化の道具

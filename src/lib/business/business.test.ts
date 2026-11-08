@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { EXAMPLE_BUSINESS, checkBusinessRelease, resolveBusiness, type BusinessValues } from "./index";
+import { EXAMPLE_BUSINESS, checkBusinessRelease, resolveBusiness, sampleReleaseLevel, type BusinessValues } from "./index";
 
 const own: BusinessValues = { ...EXAMPLE_BUSINESS, serviceName: "My Service" };
 
@@ -23,4 +23,11 @@ test("本番の検査: sample のまま本番は失敗、Tier1 は警告、own �
   assert.deepEqual(checkBusinessRelease({ source: "sample", production: false, tier1: false }), { level: "ok", message: null });
   assert.deepEqual(checkBusinessRelease({ source: "own", production: true, tier1: false }), { level: "ok", message: null });
   assert.match(checkBusinessRelease({ source: "sample", production: true, tier1: false }).message ?? "", /pnpm ops business from-example/);
+});
+
+test("判定の部品 sampleReleaseLevel: sample が無いか本番でなければ ok、あれば error、Tier1 は warn(法務の文書の検査も使う)", () => {
+  assert.equal(sampleReleaseLevel({ hasSample: false, production: true, tier1: false }), "ok");
+  assert.equal(sampleReleaseLevel({ hasSample: true, production: false, tier1: false }), "ok");
+  assert.equal(sampleReleaseLevel({ hasSample: true, production: true, tier1: false }), "error");
+  assert.equal(sampleReleaseLevel({ hasSample: true, production: true, tier1: true }), "warn");
 });

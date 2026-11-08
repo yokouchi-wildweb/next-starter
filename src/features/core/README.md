@@ -57,6 +57,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [milestone](milestone/README.md) | 条件達成の検知と記録 |
 | [deviceFingerprint](deviceFingerprint/README.md) | デバイス軸の突き合わせ（不正の疑い） |
 | [fingerprintChallenge](fingerprintChallenge/README.md) | 疑わしいユーザーへの回答フォーム送付と提出時の収集 |
+| [legal](legal/README.md) | 法務の文書(利用規約・プライバシーポリシー・特商法の表示)の例文・印 sample / own・差し込み済みの文書・本番の検査(表なし) |
 | [rateLimit](rateLimit/README.md) | IP ベースのリクエスト制限 |
 
 どれを使うか迷ったら CLAUDE.md の COUNTING を先に見る。

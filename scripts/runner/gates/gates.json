@@ -46,7 +46,8 @@
       "district-map",
       "lib-package",
       "config-overrides",
-      "business"
+      "business",
+      "legal"
     ],
     "workflow": [
       "worktree",
