@@ -334,3 +334,4 @@
 - id:20261108-132256-flux-segment-gate-migration-order | severity:info | checkpoint:flux-segment-gate-migration-order
 - id:20261108-132903-flux-segment-check-entry | severity:info | checkpoint:flux-segment-check-entry
 - id:20261108-133453-flux-gate-before-commit | severity:info | checkpoint:flux-gate-before-commit
+- id:20261108-132759-screen-flow-hooks | severity:action-required | checkpoint:screen-flow-hooks | resolves:20261101-200104-email-verify-back-link-label, 20261101-174100-screens-split-flow-from-looks
