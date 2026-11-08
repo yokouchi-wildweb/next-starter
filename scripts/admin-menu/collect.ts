@@ -7,8 +7,7 @@ import { join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { rules } from "@/featureGate/node";
-import { listSections, settingSectionHref } from "@/features/core/setting/utils/sectionForm";
-import { sections } from "@/features/core/setting/extensions/sections";
+import { settingSectionRows } from "@/features/core/admin/menu/sources";
 import type { AdminMenuRow } from "@/features/core/admin/menu/types";
 
 import type { GateRuleView, MenuEntry, MenuSnapshot, OrphanOverride } from "./inspect";
@@ -97,10 +96,4 @@ export function readRoutePaths(repoRoot = REPO_ROOT): string[] {
 export const readGateRules = (): GateRuleView[] =>
   rules.map((rule) => ({ name: rule.name, pathPatterns: rule.pathPatterns, enabled: rule.enabled() }));
 
-export const readSettingRows = (): AdminMenuRow[] =>
-  listSections(sections).map((s) => ({
-    label: s.label,
-    href: settingSectionHref(s.key),
-    icon: s.icon,
-    allowRoles: s.allowRoles,
-  }));
+export const readSettingRows = (): AdminMenuRow[] => settingSectionRows();

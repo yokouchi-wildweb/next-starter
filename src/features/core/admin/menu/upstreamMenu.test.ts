@@ -9,27 +9,25 @@ import { test } from "node:test";
 
 import { menuCategories } from "@/features/core/admin/extensions/menuCategories";
 import { menuItems } from "@/features/core/admin/extensions/menuItems";
-import { sections } from "@/features/core/setting/extensions/sections";
-import { listSections, settingSectionHref } from "@/features/core/setting/utils/sectionForm";
 import { rules } from "@/featureGate/extensions/rules";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 import { adminDomains } from "@/registry/adminDomains";
 
-import { buildAdminMenu, dataMenuRows } from "./buildAdminMenu";
+import { buildAdminMenu } from "./buildAdminMenu";
+import { adminMenuSources } from "./sources";
 import type { BuildAdminMenuInput } from "./types";
-
-const settingRows = listSections(sections).map((s) => ({ label: s.label, href: settingSectionHref(s.key), icon: s.icon, allowRoles: s.allowRoles }));
 
 const input = (isClosed: (href: string) => boolean): BuildAdminMenuInput => ({
   categories: menuCategories,
   items: menuItems,
   domains: adminDomains,
-  sources: { dataMenu: dataMenuRows(adminDomains), settingSections: settingRows },
+  sources: adminMenuSources(),
   role: "admin",
   isClosed,
 });
 
-const shape = (menu: ReturnType<typeof buildAdminMenu>) => menu.categories.map((c) => [c.label, c.rows.map((r) => r.label)]);
+const shape = (menu: ReturnType<typeof buildAdminMenu>) =>
+  menu.categories.map((c) => [c.label, c.rows.map((r) => r.label)]);
 
 test("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
   const menu = buildAdminMenu(input(() => false));
@@ -47,10 +45,21 @@ test("全部開いた admin: マーケティング → リクエスト管理 →
     assert.ok(category.icon, `カテゴリー ${category.key} にアイコンが無い`);
     for (const row of category.rows) assert.ok(row.icon, `行 ${row.key} にアイコンが無い`);
   }
-  assert.deepEqual(Object.values(menuCategories).map((c) => [c.key, c.order]).sort((a, b) => Number(a[1]) - Number(b[1])), [
-    ["marketing", 100], ["requests", 200], ["data", 300], ["users", 400], ["community", 500], ["system", 900],
-  ]);
-  for (const category of Object.values(menuCategories)) assert.equal(category.allowRoles, undefined, `上流のカテゴリー ${category.key} に allowRoles`);
+  assert.deepEqual(
+    Object.values(menuCategories)
+      .map((c) => [c.key, c.order])
+      .sort((a, b) => Number(a[1]) - Number(b[1])),
+    [
+      ["marketing", 100],
+      ["requests", 200],
+      ["data", 300],
+      ["users", 400],
+      ["community", 500],
+      ["system", 900],
+    ],
+  );
+  for (const category of Object.values(menuCategories))
+    assert.equal(category.allowRoles, undefined, `上流のカテゴリー ${category.key} に allowRoles`);
 });
 
 test("門番の規則を全部閉じた admin: 規則の無い住所の行だけが残る", () => {

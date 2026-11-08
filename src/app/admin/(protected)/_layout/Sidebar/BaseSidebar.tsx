@@ -4,32 +4,24 @@
 
 import { Link } from "@/components/Navigation";
 import { cva } from "class-variance-authority";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
-import {
-  adminMenu,
-  ADMIN_MENU_ICONS_ENABLED,
-  ADMIN_LOGOUT_ICON,
-} from "@/config/ui/admin-global-menu.config";
-import { useGate } from "@/featureGate/client";
+import { useAdminMenu } from "@/features/core/admin/hooks/useAdminMenu";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { MenuButton, adminSidebarButtonClassName } from "@/app/admin/_layout/Sidebar/MenuButton";
 
-import { buildSidebarSections } from "./sidebarSections";
+import { ADMIN_HOME_LINK, ADMIN_LOGOUT_ICON, ADMIN_MENU_ICONS_ENABLED, ADMIN_SITE_LINK } from "./frameValues";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
 
-const sidebarContainer = cva(
-  "h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg",
-);
+const sidebarContainer = cva("h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg");
 
 const submenuVariants = cva(
   "modal-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
@@ -82,14 +74,8 @@ export function BaseSidebar({
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
   const { showToast } = useToast();
-  const { user } = useAuthSession();
-
-  // ユーザーロールと門番(管理の枠の値。閉じた機能の住所の行・空になった節を除く)でメニューを絞る
-  const gate = useGate();
-  const sidebarSections = useMemo(
-    () => buildSidebarSections(adminMenu, user?.role, gate.filter),
-    [user?.role, gate],
-  );
+  // メニューの中身(受け口のカテゴリーと項目。ロールと門番で絞り、行の無いカテゴリーは来ない)
+  const categories = useAdminMenu();
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -137,109 +123,82 @@ export function BaseSidebar({
       <Stack space={2} className="w-full mb-0">
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
-            {sidebarSections.map((section, i) => {
-              const hasSubMenu = section.items.length > 0;
+            <li className="relative w-full">
+              <MenuButton asChild>
+                <Link
+                  href={ADMIN_HOME_LINK.href}
+                  onClick={() => {
+                    closeSubmenuImmediately();
+                    onNavigate?.();
+                  }}
+                >
+                  {ADMIN_MENU_ICONS_ENABLED && <ADMIN_HOME_LINK.icon className="size-4 shrink-0" />}
+                  {ADMIN_HOME_LINK.label}
+                </Link>
+              </MenuButton>
+            </li>
+            {categories.map((category, i) => {
               const isOpen = openIndex === i;
-
-              const handlePrimaryFocus = () => {
-                if (!hasSubMenu) return;
-                focusIndex(i);
-              };
 
               return (
                 <li
-                  key={section.title}
+                  key={category.key}
                   className="relative w-full group"
                   onMouseEnter={() => {
-                    if (!hasSubMenu) return;
                     clearCloseTimeout();
                     setOpenIndex(i);
                   }}
                   onMouseLeave={() => {
-                    if (!hasSubMenu) return;
                     scheduleClose();
                   }}
                 >
-                  {section.href ? (
-                    <MenuButton asChild>
-                      <Link
-                        href={section.href}
-                        onClick={() => {
-                          closeSubmenuImmediately();
-                          onNavigate?.();
-                        }}
-                        onFocus={handlePrimaryFocus}
-                        aria-haspopup={hasSubMenu || undefined}
-                        aria-expanded={hasSubMenu ? isOpen : undefined}
-                      >
-                        {ADMIN_MENU_ICONS_ENABLED && section.icon && (
-                          <section.icon className="size-4 shrink-0" />
-                        )}
-                        {section.title}
-                      </Link>
-                    </MenuButton>
-                  ) : (
-                    <Span
-                      tabIndex={hasSubMenu ? 0 : -1}
-                      role={hasSubMenu ? "menuitem" : undefined}
-                      aria-haspopup={hasSubMenu || undefined}
-                      aria-expanded={hasSubMenu ? isOpen : undefined}
-                      onFocus={handlePrimaryFocus}
-                      onClick={() => {
-                        if (!hasSubMenu) return;
+                  <Span
+                    tabIndex={0}
+                    role="menuitem"
+                    aria-haspopup
+                    aria-expanded={isOpen}
+                    onFocus={() => focusIndex(i)}
+                    onClick={() => focusIndex(i)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
                         focusIndex(i);
-                      }}
-                      onKeyDown={(event) => {
-                        if (!hasSubMenu) return;
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          focusIndex(i);
-                        }
-                      }}
-                      className={cn(
-                        adminSidebarButtonClassName,
-                        "cursor-default outline-none focus-visible:bg-sidebar-primary focus-visible:text-sidebar-primary-foreground",
-                      )}
-                    >
-                      {ADMIN_MENU_ICONS_ENABLED && section.icon && (
-                        <section.icon className="size-4 shrink-0" />
-                      )}
-                      {section.title}
-                    </Span>
-                  )}
-                  {hasSubMenu && (
-                    <ul
-                      className={cn(
-                        submenuVariants({
-                          open: isOpen,
-                          placement: submenuPlacement,
-                          size: submenuVariant,
-                        }),
-                        "list-none m-0",
-                      )}
-                    >
-                      {section.items.map((item) => (
-                        <li key={`${section.title}-${item.title}`}>
-                          <Link
-                            href={item.href}
-                            className={cn(
-                              itemLink({ size: submenuVariant }),
-                              "w-full flex items-center gap-2",
-                            )}
-                            onClick={() => {
-                              closeSubmenuImmediately();
-                              onNavigate?.();
-                            }}
-                          >
-                            {ADMIN_MENU_ICONS_ENABLED && item.icon && (
-                              <item.icon className="size-4 shrink-0" />
-                            )}
-                            {item.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                      }
+                    }}
+                    className={cn(
+                      adminSidebarButtonClassName,
+                      "cursor-default outline-none focus-visible:bg-sidebar-primary focus-visible:text-sidebar-primary-foreground",
+                    )}
+                  >
+                    {ADMIN_MENU_ICONS_ENABLED && category.icon && <category.icon className="size-4 shrink-0" />}
+                    {category.label}
+                  </Span>
+                  <ul
+                    className={cn(
+                      submenuVariants({
+                        open: isOpen,
+                        placement: submenuPlacement,
+                        size: submenuVariant,
+                      }),
+                      "list-none m-0",
+                    )}
+                  >
+                    {category.rows.map((row) => (
+                      <li key={row.key}>
+                        <Link
+                          href={row.href}
+                          className={cn(itemLink({ size: submenuVariant }), "w-full flex items-center gap-2")}
+                          onClick={() => {
+                            closeSubmenuImmediately();
+                            onNavigate?.();
+                          }}
+                        >
+                          {ADMIN_MENU_ICONS_ENABLED && row.icon && <row.icon className="size-4 shrink-0" />}
+                          {row.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               );
             })}
@@ -247,11 +206,15 @@ export function BaseSidebar({
         </nav>
       </Stack>
       <Stack space={2} className="w-full mt-0">
+        <MenuButton asChild>
+          <Link href={ADMIN_SITE_LINK.href} onClick={() => onNavigate?.()}>
+            {ADMIN_MENU_ICONS_ENABLED && <ADMIN_SITE_LINK.icon className="size-4 shrink-0" />}
+            {ADMIN_SITE_LINK.label}
+          </Link>
+        </MenuButton>
         <div className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
-            {ADMIN_MENU_ICONS_ENABLED && ADMIN_LOGOUT_ICON && (
-              <ADMIN_LOGOUT_ICON className="size-4 shrink-0" />
-            )}
+            {ADMIN_MENU_ICONS_ENABLED && <ADMIN_LOGOUT_ICON className="size-4 shrink-0" />}
             ログアウト
           </MenuButton>
         </div>
