@@ -1,4 +1,4 @@
-// domain.json のメディア項目 → ファイル用途のエントリ（`<domain>.<field>`: { visibility, maxBytes, contentTypes, metadata, upload, read }）。
+// domain.json のメディア項目 → ファイル用途のエントリ（`<domain>.<field>`: { visibility, maxBytes, contentTypes, metadata, image, upload, read }）。
 // 導出の規則: src/features/README.md「ファイルの保存（storage）」。ファイルには触れない
 
 import { MEDIA_FIELD_TYPES } from "../../../spec/fieldTypes.mjs";
@@ -58,6 +58,36 @@ function validateStorageRules(id, storage, contentTypes) {
 }
 
 /**
+ * storage.image（画像の縮小の指定）の規則。src/lib/storage/server/purposes.ts の listImageSpecProblems と同じ規則
+ * （形・範囲・画像の型の無い項目・keep の項目には書けない）。問題があればエラー文、無ければ null
+ */
+function validateImageSpec(id, storage, contentTypes) {
+  const image = storage.image;
+  if (image === undefined) return null;
+  if (typeof image !== "object" || image === null || Array.isArray(image)) {
+    return `${id}: storage.image は { "maxDimension": <長い辺の上限 px>, "quality": <1〜100、省略可> } にしてください`;
+  }
+  const { maxDimension, quality } = image;
+  if (!Number.isInteger(maxDimension) || maxDimension < 1) {
+    return `${id}: storage.image.maxDimension は 1 以上の整数（長い辺の上限 px）にしてください`;
+  }
+  if (quality !== undefined && (!Number.isInteger(quality) || quality < 1 || quality > 100)) {
+    return `${id}: storage.image.quality は 1〜100 の整数にしてください（省略 = storage.config の imageStrip.quality）`;
+  }
+  const unknownKeys = Object.keys(image).filter((key) => key !== "maxDimension" && key !== "quality");
+  if (unknownKeys.length > 0) {
+    return `${id}: storage.image に知らないキー ${unknownKeys.join(", ")} があります（書けるのは maxDimension・quality）`;
+  }
+  if (!contentTypes.some(isImagePattern)) {
+    return `${id}: 画像の型が accept に無い項目に storage.image は書けません（縮小は画像にだけ効きます）`;
+  }
+  if (storage.metadata === "keep") {
+    return `${id}: storage.metadata: "keep" の項目に storage.image は書けません（keep はサーバーが描き直さないので縮小を守らせられない。縮めるなら metadata を strip に）`;
+  }
+  return null;
+}
+
+/**
  * @returns {{ entries: { id: string, value: string }[], warnings: string[], errors: string[] }}
  */
 export function buildStoragePurposeEntries({ camel, config, roleCategories = new Map() }) {
@@ -84,7 +114,7 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
     const maxBytes = resolveMaxBytes(id, field, warnings);
 
     const storage = field.storage ?? {};
-    const ruleError = validateStorageRules(id, storage, contentTypes);
+    const ruleError = validateStorageRules(id, storage, contentTypes) ?? validateImageSpec(id, storage, contentTypes);
     if (ruleError) {
       errors.push(ruleError);
       continue;
@@ -110,6 +140,7 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
       `maxBytes: ${maxBytes}`,
       `contentTypes: ${serializeStringArray(contentTypes)}`,
       ...(metadata ? [`metadata: ${JSON.stringify(metadata)}`] : []),
+      ...(storage.image ? [`image: ${serializeImageSpec(storage.image)}`] : []),
       `upload: { allow: ${serializeRule(uploadAllow)} }`,
     ];
     if (visibility === "private") parts.push(`read: { allow: ${serializeRule(readRule)} }`);
@@ -117,4 +148,10 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
   }
 
   return { entries, warnings, errors };
+}
+
+/** 縮小の指定を用途の値の文字列に（maxDimension、quality は書いたときだけ） */
+function serializeImageSpec(image) {
+  const keys = [`maxDimension: ${image.maxDimension}`, ...(image.quality !== undefined ? [`quality: ${image.quality}`] : [])];
+  return `{ ${keys.join(", ")} }`;
 }

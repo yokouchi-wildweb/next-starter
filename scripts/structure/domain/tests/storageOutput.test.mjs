@@ -109,3 +109,61 @@ test("用途: storage.read が規則でなければ生成エラー", () => {
   assert.equal(entries.length, 0);
   assert.match(errors.join("\n"), /storage\.read は "public" \/ "authenticated" \/ "none"/);
 });
+
+// ---- 画像の縮小の指定（storage.image → 用途の image） ----
+
+const imagePurposeOf = (storage, { accept = "image/*" } = {}) => {
+  const field = { name: "photo", label: "写真", fieldType: "mediaUploader", formInput: "mediaUploader", accept, validationRule: { maxSizeBytes: 1000 } };
+  return buildStoragePurposeEntries({
+    camel: "album",
+    config: { apiAccess: { read: "public", write: { roleCategories: ["admin"] } }, fields: [{ ...field, storage: { visibility: "public", ...storage } }] },
+  });
+};
+
+test("用途: storage.image を明示値で書き出す（quality は書いたときだけ）、省略なら書き出さない", () => {
+  const withQuality = imagePurposeOf({ image: { maxDimension: 2048, quality: 80 } });
+  assert.deepEqual(withQuality.errors, []);
+  assert.match(withQuality.entries[0].value, /metadata: "strip", image: \{ maxDimension: 2048, quality: 80 \}/);
+  assert.match(imagePurposeOf({ image: { maxDimension: 1024 } }).entries[0].value, /image: \{ maxDimension: 1024 \}, upload/);
+  assert.doesNotMatch(imagePurposeOf({}).entries[0].value, /image:/);
+});
+
+test("用途: storage.image の誤りは生成エラー（形・範囲・知らないキー・画像の無い項目・keep）", () => {
+  const cases = [
+    [{ image: 2048 }, /storage\.image は \{ "maxDimension"/],
+    [{ image: [2048] }, /storage\.image は \{ "maxDimension"/],
+    [{ image: { maxDimension: 0 } }, /storage\.image\.maxDimension は 1 以上の整数/],
+    [{ image: { maxDimension: "2048" } }, /storage\.image\.maxDimension は 1 以上の整数/],
+    [{ image: { maxDimension: 2048, quality: 0 } }, /storage\.image\.quality は 1〜100 の整数/],
+    [{ image: { maxDimension: 2048, quality: 101 } }, /storage\.image\.quality は 1〜100 の整数/],
+    [{ image: { maxDimension: 2048, width: 10 } }, /知らないキー width/],
+    [{ metadata: "keep", image: { maxDimension: 2048 } }, /"keep" の項目に storage\.image は書けません/],
+  ];
+  for (const [storage, message] of cases) {
+    const { entries, errors } = imagePurposeOf(storage);
+    assert.equal(entries.length, 0, JSON.stringify(storage));
+    assert.match(errors.join("\n"), message, JSON.stringify(storage));
+  }
+  const noImage = imagePurposeOf({ image: { maxDimension: 2048 } }, { accept: "application/pdf" });
+  assert.match(noImage.errors.join("\n"), /画像の型が accept に無い項目に storage\.image は書けません/);
+});
+
+test("用途: 書き出した image は lib の用途の検査（listStoragePurposeProblems）でも問題なし", async () => {
+  const { listStoragePurposeProblems } = await import("../../../../src/lib/storage/server/purposes.ts");
+  for (const image of [{ maxDimension: 2048 }, { maxDimension: 640, quality: 1 }, { maxDimension: 1, quality: 100 }]) {
+    const { entries } = imagePurposeOf({ image });
+    // 生成のエントリの値は TS の式（数・文字列・配列・オブジェクトだけ）なので、そのまま評価して用途の項目にする
+    const purpose = new Function(`return (${entries[0].value});`)();
+    assert.deepEqual(listStoragePurposeProblems({ [entries[0].id]: purpose }), [], JSON.stringify(image));
+  }
+});
+
+test("用途: 写真の集まりの従属の file.storage.image も同じ生成で通る", () => {
+  const field = { name: "file", label: "写真", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "image/*", validationRule: { maxSizeBytes: 1000 } };
+  const { entries, errors } = buildStoragePurposeEntries({
+    camel: "albumPhoto",
+    config: { fields: [{ ...field, storage: { visibility: "private", upload: { roleCategories: ["admin"] }, read: "authenticated", image: { maxDimension: 1600 } } }] },
+  });
+  assert.deepEqual(errors, []);
+  assert.match(entries[0].value, /image: \{ maxDimension: 1600 \}/);
+});

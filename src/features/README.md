@@ -397,6 +397,7 @@ import { ControlledField } from "@/components/Form/Field";
 | storage.upload | アクセスルール（`"public"` 以外） | ⚪ No | アップロードしてよい人。省略時は apiAccess の create と update の許可者の和 |
 | storage.read | アクセスルール（`"public"` を含む） | ⚪ No | 読んでよい人。省略時は apiAccess の get の規則 |
 | storage.metadata | `"strip"` \| `"keep"` | ⚪ No | 画像の位置情報などのメタデータの扱い。省略 = `"strip"`（サーバーが描き直して消す）。原本のまま残す項目（書類・明細など）だけ `"keep"` |
+| storage.image | `{ "maxDimension": number, "quality"?: number }` | ⚪ No | 画像の縮小の指定。長い辺が `maxDimension`（px）を超える画像を縮める。`quality` = 1〜100（省略 = `storage.config` の `imageStrip.quality`）。省略 = 縮めない。strip の画像の項目だけ（下の「ファイルの保存（storage）」） |
 
 #### metadataBinding キー
 
@@ -415,6 +416,9 @@ pnpm generate domain は、メディア項目ごとにファイル用途（`<dom
   - strip（省略を含む）の項目は、画像を jpeg / png / webp / gif / avif だけ受け付ける（`image/*` はこの 5 型に読み替え）。端末の写真選択も 5 型に絞られ、iOS は HEIC を JPEG にして渡す
   - **生成エラー**: strip（省略を含む）の accept にサーバーで描き直せない画像の型（`image/heic`・`image/svg+xml`・`image/tiff` など）がある / 画像の型が無い項目に `"strip"` を明示した。直し方 = `"storage": { "metadata": "keep" }` を書くか、accept を 5 型か `image/*` にする
   - strip の約束の範囲（動画・keep・導入前のファイルは対象外）と公開文書に書いてよい表現: [src/lib/storage/README.md](../lib/storage/README.md)「位置情報の約束」
+- image は `storage.image` を明示値で書き出す（省略 = 書き出さない = 縮めない）。縮小の指定はこの用途に 1 か所で、validationRule・FieldConfig には書かない。ブラウザが送る前に縮め、サーバーが描き直しで守らせる（[src/lib/storage/README.md](../lib/storage/README.md)「画像の縮小の指定」）
+  - **生成エラー**: 形・範囲の誤り（maxDimension は 1 以上の整数、quality は 1〜100 の整数、ほかのキーは書けない）/ 画像の型が accept に無い / `storage.metadata: "keep"`（keep はサーバーが描き直さず守らせられない）
+  - 写真の集まり（collection）の写真は、主の項目ではなく従属のドメインの `file` 項目の `storage.image` に書く（集まりを作るときに主の項目から写す口は無い）
 - maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/config/app/storage.config.ts` の `defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
 - upload.allow は `storage.upload` を使う。無ければ apiAccess の create と update の許可者の和にする
   - どちらかが `"public"` か `"authenticated"` なら `"authenticated"`（アップロードは常にログインが要る）
