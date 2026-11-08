@@ -3,6 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { toCamelCase, toKebabCase } from "../../../../../src/utils/stringCase.mjs";
+import { createDomainContext } from "../../domain/context.mjs";
+import { isClosable, overrideRel, ruleContent } from "../../render/featureGate/index.mjs";
 import { cleanupRegistries } from "./registries.mjs";
 import { findDomainDirs, resolveDeleteTarget, resolveDir } from "./names.mjs";
 
@@ -36,17 +38,37 @@ export function findExtraDirs(workspace, target, adminDir) {
   return findDomainDirs(path.join(workspace.rootDir, "src", "app"), [...target.searchNameSet]).filter((d) => !adminDir || d !== adminDir);
 }
 
-/** 削除するパスの一覧（表示用、rootDir からの相対） */
-export function listDeletePaths(workspace, { featureDir, adminDir, extras }) {
+/**
+ * 閉じられるドメイン(domain.json の closable: true)の門番の規則と上書きの後始末(設定の議会 L1.20 (2)・L1.27)。
+ * domain.json も消す削除で一緒に消す物と、消さずに案内する物を返す(domain.json を残す削除 = 作り直す前提では呼び手が使わない)。
+ * - 上書き src/config/features/<camel>.config.ts: 消す(持ち主の config.ts が消えるので読まれない。fork の値が入っていても一覧に出してから消す)
+ * - 規則 src/featureGate/rules/<camel>.ts: 生成器が今書く中身と同じときだけ消す。手で直してあれば消さずに案内(手で消す)
+ * @returns {{ remove: string[], keep: string[] }} どちらも絶対パス(keep = 案内だけ)
+ */
+export function gateLeftovers(workspace, featureDir) {
+  const ctx = createDomainContext(workspace, path.basename(featureDir));
+  if (!isClosable(ctx.config)) return { remove: [], keep: [] };
+  const remove = [];
+  const keep = [];
+  const overrideFile = path.join(workspace.rootDir, overrideRel(ctx));
+  if (fs.existsSync(overrideFile)) remove.push(overrideFile);
+  const ruleFile = path.join(workspace.rootDir, "src", "featureGate", "rules", `${ctx.camel}.ts`);
+  if (fs.existsSync(ruleFile)) (fs.readFileSync(ruleFile, "utf8") === ruleContent(ctx) ? remove : keep).push(ruleFile);
+  return { remove, keep };
+}
+
+/** 削除するパスの一覧（表示用、rootDir からの相対）。gateFiles = 一緒に消す門番の規則・上書き(domain.json も消す削除だけ) */
+export function listDeletePaths(workspace, { featureDir, adminDir, extras, gateFiles = [] }) {
   const paths = [];
   if (fs.existsSync(featureDir)) paths.push(path.relative(workspace.rootDir, featureDir));
   if (adminDir && fs.existsSync(adminDir)) paths.push(path.relative(workspace.rootDir, adminDir));
   paths.push(...extras.map((d) => path.relative(workspace.rootDir, d)));
+  paths.push(...gateFiles.map((f) => path.relative(workspace.rootDir, f)));
   return paths;
 }
 
 /** ディレクトリを消し、レジストリを掃除する。@returns 手で直すレジストリの一覧 */
-export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, extras, removeConfig }, io = console) {
+export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, extras, removeConfig, gateFiles = [] }, io = console) {
   const { featureDir } = target;
   if (adminDir && fs.existsSync(adminDir)) fs.rmSync(adminDir, { recursive: true, force: true });
 
@@ -64,5 +86,7 @@ export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, ex
   for (const dir of extras) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+  // 閉じられるドメインの規則・上書き(domain.json も消す削除だけ。呼び手が gateLeftovers の remove を渡す)
+  if (removeConfig) for (const file of gateFiles) fs.rmSync(file, { force: true });
   return cleanupRegistries(workspace, io);
 }
