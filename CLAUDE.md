@@ -35,7 +35,7 @@ detail (guards, want → means, copy mark, receptacle limits) → .claude/rules/
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | reader src/lib/districtMap, list src/registry/district-map.jsonl (generated, never imported from src)
-library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo; format: src/lib/README.md; test: pnpm test src/lib/folderCatalog/catalog.test.mjs)
+library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo; format: src/lib/README.md; test: pnpm test src/lib/folderCatalog/catalog.test.mjs) | closed lib = package.json exports + libs + own tsconfig.json, read via exports only (lint lib-entry), config @lib-config/\<name\> → src/config/lib/ | closing one → src/lib/README.md
 - new lib (any tier): add its line to YOUR section only | fork lib proven generic → promote upstream, then drop own copy + line
 - lib owned by an ancestor repo: public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /order <upstream> | a fork file added inside it fails pnpm workflow ownership check → put it in your own lib and re-export
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
