@@ -91,10 +91,12 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 
 ### drizzle-kit を更新するとき
 
-パッチは `drizzle-kit@0.31.8` に紐づく。バージョンを上げる場合:
+パッチは `drizzle-kit@0.31.8` に紐づく。package.json の `drizzle-kit` は範囲でなく `"0.31.8"` ぴったりに固定する(範囲だと別の版が入りパッチが外れる)。`pnpm check registry`(門 build / ship)が package.json の値とパッチのキーの版を比べ、違えば止める(`drizzleKitPin.mjs`)。**fork は版を変えない**(上げるのは上流で、下の手順)。
+
+バージョンを上げる場合(上流):
 
 1. `pnpm patch drizzle-kit@<new>` → 表示された編集ディレクトリの api.js / api.mjs / bin.cjs に同じ 4 修正を当て直す（`[next-starter patch]` コメントで検索）→ `pnpm patch-commit <dir>`。
-2. package.json の `patchedDependencies` キーを新バージョンに差し替え、旧 patch ファイルを削除。
+2. package.json の `drizzle-kit` の値と `patchedDependencies` キーを新バージョンに差し替え、旧 patch ファイルを削除。`drizzleKitPin.mjs` の `DRIZZLE_KIT_VERSION` も同じ版に。
 3. `pnpm db:push` → `pnpm db:push:check` で差分ゼロを確認。
 
 上流で修正済みのバージョンなら該当項目のパッチを落とす。0.31.11 時点では 4 点とも未修正。4 は 1.0 系（1.0.0-rc.4 で確認）で読み取り処理が作り直され解消済み（conkey 順）。1.0 へ移るときは 4 を落とせる。

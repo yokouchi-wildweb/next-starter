@@ -41,6 +41,11 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 - **本番だけの動き**: `!isDevelopment()` か `isProduction()` を意味で選ぶ。staging でも効かせたいなら `!isDevelopment()`(例: cookie の `secure`)
 - 判断が「開発サーバーかビルドか」(HMR など)の意味しか持たないなら、段階で分けずに済む形にする(例: `src/lib/drizzle` の接続の使い回しは常に行う)
 
+## cookie の secure
+
+- 形は 2 つだけ: ログインのセッション・端末トークン = 常に `secure: true`(共通オプション `SESSION_COOKIE_BASE_OPTIONS`。localhost はブラウザが secure 扱いにするので開発でも通る) | それ以外(OAuth の state・流入元・招待リンク・画面の通知) = `secure: !isDevelopment()`
+- `NODE_ENV` で決めない。cookie を書く場所を足したら、判定を決めて `cookieSecure.test.mjs` の一覧に足す(一覧に無い場所は落ちる)
+
 ## どこでも同じ答え
 
 - **server / scripts / テスト**: 実行時の `process.env.APP_ENV` を読む。scripts は env ファイル(`ENV_FILE`、既定 `.env.development`)を dotenv で読んだ後の値
@@ -50,4 +55,5 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 ## テスト
 
 - `pnpm test src/lib/appEnv/appEnv.test.ts` — 3 つの値・値なし・空・知らない値・空白・withAppEnv / setAppEnv の復元
+- `pnpm test src/lib/appEnv/cookieSecure.test.mjs` — cookie を書く場所の一覧と secure の判定の形
 - `pnpm test eslint-rules/app-env.test.mjs` — lint 規則

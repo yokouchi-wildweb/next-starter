@@ -300,7 +300,7 @@ importers:
         specifier: 3.14.0
         version: 3.14.0
       drizzle-kit:
-        specifier: ^0.31.4
+        specifier: 0.31.8
         version: 0.31.8(patch_hash=fdfb6bf81e8941a9bb79bcd9ce016ab4dca7f651cc59d72df83d5b7ea1ce2c28)
       eslint:
         specifier: ^9
