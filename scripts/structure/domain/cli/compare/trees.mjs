@@ -40,6 +40,8 @@ export function generateAllConfig(config, { legacy, categories }) {
 export function buildTree({ repoRoot, scriptsDir, partsRoot, parts = [], domains, categories, prefix }) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   cp(path.join(repoRoot, "src"), path.join(root, "src"));
+  // 登録表の検査(domainEntry の静的 import の決まり)が読む tsconfig の paths と指定子の解き方(base 側の版は parts が上書きする)
+  for (const rel of ["tsconfig.json", "eslint-rules"]) if (fs.existsSync(path.join(repoRoot, rel))) cp(path.join(repoRoot, rel), path.join(root, rel));
   // 生成器の置き場は版で違う(scripts/registry → scripts/structure/registry)。載せる側の版にある方を、その版の並びのまま写す
   for (const dir of GENERATOR_DIRS) {
     const rel = generatorDirIn(scriptsDir, dir);

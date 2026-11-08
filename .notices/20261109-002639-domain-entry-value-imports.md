@@ -1,0 +1,12 @@
+# DOWNSTREAM NOTICE id:20261109-002639-domain-entry-value-imports
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:legate/20261023-175358-config-redesign.1 | commit:- (this commit)
+date: 2026-11-09T00:26:39+09:00
+severity: info
+checkpoint: domain-entry-value-imports
+change: pnpm check registry's static import rule for domainEntry.ts / domainEntry.override.ts is now a property rule instead of the two-module allow list (ALLOWED_STATIC_IMPORTS removed; listStaticImports removed, new checkEntryStaticImports in scripts/structure/registry/serviceRegistry/discover.mjs) | type-only imports (import type, all names type) may come from anywhere | value imports only from value-only files, judged by content and followed transitively: statements = type-only imports, value imports / re-exports from value-only files, type / interface declarations, `const <name> = <value>`, `export default <value>`, `export { <name> }`; value = literals, references to this file's consts or imported names (and their .property), object / array / spread of those (`as` / `satisfies` unwrapped); a function, call, new, side-effect import, let / var, enum or class fails, so does an unresolvable specifier (package or missing file) | @/lib/domain/types and @/lib/domain/accessPresets pass by this rule | pnpm check domain --compare work trees now also copy tsconfig.json and eslint-rules/ (the rule resolves specifiers with eslint-rules/resolve-import.mjs)
+why: a fork can now keep its own access presets (e.g. staff only) as constants in a value-only file of its own (e.g. src/features/<domain>/constants/access.ts) and import them from its domainEntry.ts, instead of spreading the literal; the domainEntry.ts files of all five forks pass the new rule unchanged
+required_actions: none
+verify: pnpm check registry | pnpm test scripts/structure/registry
+manual_steps: -
+refs: src/lib/domain/README.md, .claude/rules/core/api-routes.md, scripts/structure/registry/serviceRegistry/discover.mjs, council 20261023-175358-config-redesign decision D63 L1.23, legate:l1 order:30
+notes: checked at the fork HEADs when writing (their domainEntry*.ts against the new rule, with their current imports): oripa-do 84 files, TriQ 43, boardgame-site 38, next-vnx 31, 88-base 30 — 0 problems each. | supersedes the line in notice 20261108-192503-access-presets-to-lib notes that said the allow list names only the two lib/domain modules.

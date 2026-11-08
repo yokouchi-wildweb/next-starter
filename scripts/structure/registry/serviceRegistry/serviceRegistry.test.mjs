@@ -3,7 +3,7 @@
 //
 // 守りたい契約(設計: src/lib/domain/README.md):
 // 1. src/registry/serviceRegistry.ts は domainEntry.ts からの生成結果と一致し、再生成しても変わらない（pnpm check registry と同じ）
-// 2. 静的検査: 手書き行（生成ヘッダの無い旧ファイル）・キーの重複・base があるのに domainEntry.ts が無い・record_type・許可外の import を検出する
+// 2. 静的検査: 手書き行（生成ヘッダの無い旧ファイル）・キーの重複・base があるのに domainEntry.ts が無い・record_type・静的 import の決まり(型はどこからでも、値は値だけのファイルからだけ、推移的)に合わない import を検出する
 // 3. 登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ。
 //    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 ドメイン（D58）は pnpm check registry
 // 4. 管理データ操作（truncateAll / export / import）は operations に明示したときだけ開く（未指定 = none。read/write/既定に落ちない）
@@ -18,7 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { GENERATED_HEADER, REGISTRY_FILE, discoverDomainEntries, listStaticImports, readObjectKeys } from "./discover.mjs";
+import { GENERATED_HEADER, REGISTRY_FILE, checkEntryStaticImports, discoverDomainEntries, readObjectKeys } from "./discover.mjs";
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
 import { renderDomainEntry } from "../../domain/render/registry/domainEntry.mjs";
@@ -59,17 +59,14 @@ test("serviceRegistry.ts は domainEntry.ts からの生成結果と一致する
   assert.equal(buildServiceRegistry(repoRoot).text, text, "再生成しても差分 0");
 });
 
-test("domainEntry.ts の静的 import は @/lib/domain/types と access のプリセットだけ", () => {
+test("実リポの domainEntry.ts / override は静的 import の決まりに合い、satisfies DomainEntries を付ける", () => {
   const domains = discoverDomainEntries(repoRoot).filter((domain) => domain.entryPath);
   assert.ok(domains.length >= 26);
+  const memo = new Map();
   for (const domain of domains) {
+    assert.deepEqual(checkEntryStaticImports(domain.entryPath, repoRoot, undefined, memo), [], domain.entryPath);
+    if (domain.overridePath) assert.deepEqual(checkEntryStaticImports(domain.overridePath, repoRoot, undefined, memo), [], domain.overridePath);
     const text = fs.readFileSync(path.join(repoRoot, domain.entryPath), "utf8");
-    for (const source of listStaticImports(text)) {
-      assert.ok(
-        ["@/lib/domain/types", "@/lib/domain/accessPresets"].includes(source),
-        `${domain.entryPath}: ${source}`,
-      );
-    }
     assert.match(text, /satisfies DomainEntries;/, `${domain.entryPath}: satisfies DomainEntries を付ける`);
   }
 });
@@ -212,10 +209,19 @@ export const domainEntries = {
 } satisfies DomainEntries;
 `;
 
+/** 一時の木に必ず写す実物: tsconfig(paths で @/ を解く)と、domainEntry が値で読む lib/domain の 2 つ */
+function baseFiles() {
+  const real = (rel) => fs.readFileSync(path.join(repoRoot, rel), "utf8");
+  const typeFiles = Object.fromEntries(
+    fs.readdirSync(path.join(repoRoot, "src/lib/domain/types")).map((name) => [`src/lib/domain/types/${name}`, real(`src/lib/domain/types/${name}`)]),
+  );
+  return { "tsconfig.json": real("tsconfig.json"), "src/lib/domain/accessPresets.ts": real("src/lib/domain/accessPresets.ts"), ...typeFiles };
+}
+
 function makeRoot(files) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "service-registry-"));
   tempRoots.push(root);
-  for (const [rel, content] of Object.entries(files)) {
+  for (const [rel, content] of Object.entries({ ...baseFiles(), ...files })) {
     const abs = path.join(root, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, content);
@@ -290,7 +296,7 @@ test("override: 空(空白とコメントだけ)の domainEntry.override.ts は�
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
-test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・許可外 import・override の不整合・読めない行", () => {
+test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・決まりに合わない import・override の不整合・読めない行", () => {
   const root = makeRoot({
     "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
     "src/features/core/dup/services/server/domainEntry.ts": ENTRY("user"),
@@ -310,7 +316,7 @@ test("検査: 重複キー・base があるのに domainEntry.ts が無い・rec
   expect(/core\/business|business\/services\/server に drizzleBase.ts .*pnpm generate domain -- business --yes --only registry/);
   expect(/storageBindingFor\("orphanPhoto"\) の record_type が登録表のキーに無い/);
   assert.ok(!errors.some((error) => error.includes('"ignored"')), "*.test.* は走査しない");
-  expect(/leak\/services\/server\/domainEntry.ts: "\.\/leakService" を静的 import している/);
+  expect(/leak\/services\/server\/domainEntry.ts: "\.\/leakService" を値で import している\(解けない指定子/);
   expect(/lonely\/services\/server\/domainEntry.override.ts: 隣に domainEntry.ts が無い/);
   expect(/broken\/services\/server\/domainEntry.ts: export const domainEntries が無い/);
   expect(/serviceRegistry.ts が無い → pnpm generate registry/);
@@ -386,6 +392,105 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
   // README の例 = 生成器が同じ domain.json から書く本文（先頭のコメントを除く）。生成器の形が変われば README も直す
   const rendered = renderDomainEntry({ camel: "visit", config: JSON.parse(domainJson) });
   assert.equal(example, rendered.slice(rendered.indexOf("import type")));
+});
+
+// ---------------------------------------------------------------------------
+// 静的 import の決まり(D63・L1.23): 型はどこからでも、値は値だけのファイルからだけ(中身で判定、推移的)
+// ---------------------------------------------------------------------------
+
+/** 一時の木(makeRoot)に domainEntry 1 本と相手のファイルを置く */
+function makeImportRoot(entryImports, files = {}) {
+  return makeRoot({
+    ...files,
+    "src/features/shop/services/server/domainEntry.ts": `import type { DomainEntries } from "@/lib/domain/types";
+${entryImports}
+export const domainEntries = {
+  shop: { service: () => import("./shopService").then((m) => m.shopService), table: "shops", idColumn: "id", access: {} },
+} satisfies DomainEntries;
+`,
+  });
+}
+
+const ENTRY_PATH = "src/features/shop/services/server/domainEntry.ts";
+
+test("静的 import の決まり: 通る例(lib/domain の 2 つ・fork の constants/ の定型・型だけの import・推移と循環)", () => {
+  const cases = {
+    "lib/domain の定型": `import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domain/accessPresets";`,
+    "lib/domain/types の値の import(型だけのファイルの再 export)": `import { DOMAIN_DATA_OPERATIONS } from "@/lib/domain/types";`,
+    "fork の constants/ の定型(spread・参照・as const・satisfies)": `import { STAFF_ONLY } from "@/features/shop/constants/access";`,
+    "相対の値の import": `import { STAFF_ONLY } from "../../constants/access";`,
+    "型だけの import はどこからでも(services・drizzle・パッケージ)": [
+      `import type { ShopService } from "./shopService";`,
+      `import { type ShopTable } from "@/features/shop/entities/drizzle";`,
+      `import type { NextRequest } from "next/server";`,
+    ].join("\n"),
+    "値だけのファイルが値だけのファイルを読む(推移)・循環しても止まる": `import { CHAIN } from "@/features/shop/constants/chain";`,
+  };
+  const files = {
+    "src/features/shop/constants/access.ts": `import type { DomainApiAccessConfig } from "@/lib/domain/types";
+import { ADMIN_RULE } from "@/lib/domain/accessPresets";
+
+/** 店舗の関係者だけ */
+const STAFF_RULE = { roles: ["staff"], roleCategories: ["admin"] } as const;
+export const STAFF_ONLY = { read: { ...STAFF_RULE }, write: ADMIN_RULE, list: [STAFF_RULE, ...[1, -2, \`x\`]], none: null, flag: true } satisfies DomainApiAccessConfig;
+export type StaffRule = typeof STAFF_RULE;
+export interface Staff { id: string }
+export { STAFF_RULE };
+export default STAFF_ONLY;
+`,
+    "src/features/shop/constants/chain.ts": `import { LOOP } from "./loop";\nimport { STAFF_ONLY } from "./access";\nexport const CHAIN = { ...STAFF_ONLY, loop: LOOP.a };\n`,
+    // chain → loop → chain の循環
+    "src/features/shop/constants/loop.ts": `import { CHAIN } from "./chain";\nexport const LOOP = { a: 1 };\nexport const BACK = CHAIN;\n`,
+  };
+  for (const [name, imports] of Object.entries(cases)) {
+    const root = makeImportRoot(imports, files);
+    assert.deepEqual(checkEntryStaticImports(ENTRY_PATH, root), [], name);
+  }
+});
+
+test("静的 import の決まり: 落ちる例(services・drizzle・entities の値・副作用の import・関数や呼び出し・推移の先・解けない指定子)", () => {
+  const cases = [
+    ["services の値", `import { shopService } from "./shopService";`, { "src/features/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud";\nexport const shopService = createCrudService({});\n` }, /"\.\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
+    ["drizzle の値", `import { ShopTable } from "@/features/shop/entities/drizzle";`, { "src/features/shop/entities/drizzle.ts": `import { pgTable } from "drizzle-orm/pg-core";\nexport const ShopTable = pgTable("shops", {});\n` }, /"drizzle-orm\/pg-core" を値で import している\(解けない指定子/],
+    ["entities の関数", `import { toShop } from "@/features/shop/entities/model";`, { "src/features/shop/entities/model.ts": `export function toShop() { return 1; }\n` }, /model\.ts: 値だけのファイルに置けない文がある\(関数/],
+    ["副作用の import", `import "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = 1;\n` }, /"@\/features\/shop\/constants\/access" を副作用の import している/],
+    ["呼び出しを持つ定数", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = Object.freeze({ a: 1 });\n` }, /const A が 値の式でない/],
+    ["new", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = new Set([1]);\n` }, /const A が 値の式でない/],
+    ["アロー関数のキー", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = { f: () => 1 };\n` }, /const A が 値の式でない/],
+    ["メソッドのキー", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = { f() { return 1; } };\n` }, /関数・getter のキー/],
+    ["let", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export let A = 1;\n` }, /let \/ var \/ declare/],
+    ["enum", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export enum A { x }\n` }, /値だけのファイルに置けない文/],
+    ["知らない名前の参照(process)", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = { env: process.env.X };\n` }, /名前 process/],
+    ["推移の先が値でない", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `import { B } from "./b";\nexport const A = { b: B };\n`, "src/features/shop/constants/b.ts": `export const B = Math.max(1, 2);\n` }, /"\.\/b" → src\/features\/shop\/constants\/b\.ts: const B が 値の式でない/],
+    ["値の再 export の先が値でない", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export { B as A } from "./b";\n`, "src/features/shop/constants/b.ts": `export const B = Date.now();\n` }, /b\.ts: const B が 値の式でない/],
+    ["無いファイル", `import { A } from "@/features/shop/constants/missing";`, {}, /"@\/features\/shop\/constants\/missing" を値で import している\(解けない指定子/],
+    ["パッケージの値", `import { z } from "zod";`, {}, /"zod" を値で import している\(解けない指定子/],
+  ];
+  for (const [name, imports, files, pattern] of cases) {
+    const errors = checkEntryStaticImports(ENTRY_PATH, makeImportRoot(imports, files));
+    assert.ok(errors.length > 0 && errors.every((error) => error.startsWith(`${ENTRY_PATH}: `)), `${name}: ${errors.join("\n")}`);
+    assert.ok(errors.some((error) => pattern.test(error)), `${name}: ${pattern} が無い:\n${errors.join("\n")}`);
+  }
+});
+
+test("静的 import の決まり: override も同じ決まりで pnpm check registry が見る。生成器の domainEntry の出力も通る", () => {
+  const root = makeImportRoot(`import { ADMIN_ONLY } from "@/lib/domain/accessPresets";`, {
+    "src/features/shop/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain/types";
+import { shopService } from "./shopService";
+export const domainEntryOverrides = { shop: { read: "public", write: "none" } } satisfies DomainEntryOverrides;
+`,
+    "src/features/shop/services/server/shopService.ts": `export const shopService = createThing();\n`,
+  });
+  const [shop] = discoverDomainEntries(root);
+  assert.ok(shop.overrideErrors.some((error) => /domainEntry\.override\.ts: "\.\/shopService" → .*const shopService が 値の式でない/.test(error)), shop.overrideErrors.join("\n"));
+  assert.deepEqual(shop.entryErrors, []);
+
+  for (const config of [{}, { apiAccess: { read: "public", write: "admin", operations: { export: "admin" } } }]) {
+    const rendered = renderDomainEntry({ camel: "shop", config });
+    const generated = makeImportRoot("", { [ENTRY_PATH]: rendered });
+    fs.writeFileSync(path.join(generated, ENTRY_PATH), rendered);
+    assert.deepEqual(checkEntryStaticImports(ENTRY_PATH, generated), [], JSON.stringify(config));
+  }
 });
 
 // ---------------------------------------------------------------------------

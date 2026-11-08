@@ -33,6 +33,18 @@ export function makeProject({ templates = [], domains = [], configs = {}, cleanu
   return root;
 }
 
+/**
+ * 登録表の検査(domainEntry の静的 import の決まり)が読む物を一時プロジェクトへ写す:
+ * tsconfig.json(@/ の paths)と、生成された domainEntry.ts が値で読む src/lib/domain/accessPresets.ts・型の src/lib/domain/types/
+ */
+export function copyRegistryBase(root) {
+  fs.cpSync(path.join(repoRoot, "tsconfig.json"), path.join(root, "tsconfig.json"));
+  fs.mkdirSync(path.join(root, "src", "lib", "domain"), { recursive: true });
+  fs.cpSync(path.join(repoRoot, "src", "lib", "domain", "accessPresets.ts"), path.join(root, "src", "lib", "domain", "accessPresets.ts"));
+  fs.cpSync(path.join(repoRoot, "src", "lib", "domain", "types"), path.join(root, "src", "lib", "domain", "types"), { recursive: true });
+  return root;
+}
+
 /** 一時プロジェクトの workspace と domain context */
 export function contextFor(root, domain) {
   const workspace = createWorkspace(root);

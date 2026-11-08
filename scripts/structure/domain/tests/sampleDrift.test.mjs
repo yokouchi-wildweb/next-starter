@@ -37,6 +37,8 @@ test("サンプルドメインを再生成しても差分が出ない", { skip: 
   fs.cpSync(generatorDir, path.join(tempRoot, "scripts", generatorName), { recursive: true });
   // pnpm generate domain の最後に走る serviceRegistry の生成器（scripts/structure/registry/serviceRegistry/）も複製する
   fs.cpSync(path.join(rootDir, "scripts", "structure", "registry"), path.join(tempRoot, "scripts", "structure", "registry"), { recursive: true });
+  // その検査(domainEntry の静的 import の決まり)が指定子を解く部品と tsconfig の paths
+  for (const rel of ["eslint-rules/resolve-import.mjs", "tsconfig.json"]) fs.cpSync(path.join(rootDir, rel), path.join(tempRoot, rel));
   fs.symlinkSync(path.join(rootDir, "node_modules"), path.join(tempRoot, "node_modules"), "dir");
 
   for (const domain of targets) {

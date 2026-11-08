@@ -10,7 +10,7 @@ import { applyOutputs } from "../pipeline/apply.mjs";
 import { overlayFromOutputs, precheckServiceRegistry } from "../pipeline/serviceRegistry.mjs";
 import { file, writeOnce } from "../render/output.mjs";
 import { renderDomainEntry } from "../render/registry/domainEntry.mjs";
-import { makeProject, removeAll } from "./helpers.mjs";
+import { copyRegistryBase, makeProject, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -19,7 +19,7 @@ const API_ACCESS = { read: "public", write: { roleCategories: ["admin"] } };
 
 /** 登録表が空の最小リポ + foo（domain.json だけ） */
 function project() {
-  const root = makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup });
+  const root = copyRegistryBase(makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup }));
   fs.mkdirSync(path.join(root, "src", "registry"), { recursive: true });
   fs.writeFileSync(path.join(root, "src", "registry", "serviceRegistry.ts"), `${GENERATED_HEADER}\nexport const serviceRegistry: DomainRegistry = {\n};\n`);
   return root;

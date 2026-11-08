@@ -10,6 +10,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import ts from "typescript";
+
+import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
@@ -21,9 +24,6 @@ export const OVERRIDES_EXPORT = "domainEntryOverrides";
 export const REGISTRY_FILE = "src/registry/serviceRegistry.ts";
 /** 生成物の 1 行目（この行が無いファイル = 移行前の手書き登録表） */
 export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する";
-
-/** domainEntry.ts / domainEntry.override.ts が静的 import してよいモジュール */
-export const ALLOWED_STATIC_IMPORTS = ["@/lib/domain/types", "@/lib/domain/accessPresets"];
 
 /**
  * drizzleBase.ts / firestoreBase.ts があるのに domainEntry.ts を持たなくてよいドメイン（features 相対のディレクトリ名）。
@@ -48,16 +48,199 @@ function stripComments(text) {
   return text.replace(/^[ \t]*\/\/[^\n]*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
-/** 静的 import 文の from 先（`import type` を含む。動的 import() は含まない） */
-export function listStaticImports(text) {
-  const sources = [];
-  for (const match of stripComments(text).matchAll(/^\s*import\s[^;]*?from\s*["']([^"']+)["']/gm)) {
-    sources.push(match[1]);
+// ---------------------------------------------------------------------------
+// domainEntry.ts / domainEntry.override.ts の静的 import の決まり(設定の議会 D63・L1.23)
+// 目的: 登録表 serviceRegistry.ts は全ドメインの domainEntry を静的に読むので、domainEntry は軽く副作用なしに保つ
+// (サービスは service: () => import(...) で遅延読み込み)。決まりは置き場や名前でなく中身で見る:
+// - 型だけの import(`import type`・名前がすべて type)はどこからでも可(実行時に消える)
+// - 値の import は「値だけのファイル」からだけ。値だけのファイル = 文が次だけのファイル:
+//   型だけの import / 値だけのファイルからの値の import と再 export / 型の宣言(type・interface) /
+//   `const <名> = <値の式>`(export の有無は問わない) / `export default <値の式>` / `export { <名> }`
+//   値の式 = リテラル・このファイルの定数か import した名前の参照(とその .プロパティ)・それらの object / 配列 / spread
+//   (`as` / `satisfies` / 括弧は外して見る)。関数・呼び出し・new・副作用の import・let / var・enum・class は不可
+// - 値の import は先のファイルも同じ決まりで推移的に確かめる。解けない指定子(パッケージ・無いファイル)は不可
+// ---------------------------------------------------------------------------
+
+const SOURCE_CANDIDATES = (base) => [base, `${base}.ts`, `${base}.tsx`, `${base}.mts`, `${base}/index.ts`, `${base}/index.tsx`];
+const SOURCE_FILE = /\.(ts|tsx|mts)$/;
+
+/** 名前付きがすべて type の import 句か(`import type` も) */
+function isTypeOnlyClause(clause) {
+  if (!clause) return false;
+  if (clause.isTypeOnly) return true;
+  const named = clause.namedBindings;
+  return !clause.name && Boolean(named) && ts.isNamedImports(named) && named.elements.length > 0 && named.elements.every((element) => element.isTypeOnly);
+}
+
+/** `as` / `satisfies` / 括弧 / `!` を外した式 */
+function unwrapExpression(node) {
+  let current = node;
+  while (
+    ts.isAsExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isTypeAssertionExpression(current) ||
+    ts.isNonNullExpression(current)
+  ) {
+    current = current.expression;
   }
-  for (const match of stripComments(text).matchAll(/^\s*import\s*["']([^"']+)["']/gm)) {
-    sources.push(match[1]);
+  return current;
+}
+
+/**
+ * 値の式か。だめなら理由、よければ null
+ * @param {ts.Expression} node
+ * @param {Set<string>} names このファイルで値として使える名前(定数・値の import)
+ */
+function valueExpressionProblem(node, names, source) {
+  const expression = unwrapExpression(node);
+  const text = () => expression.getText(source).split("\n")[0].slice(0, 60);
+  if (
+    ts.isStringLiteral(expression) ||
+    ts.isNumericLiteral(expression) ||
+    ts.isBigIntLiteral(expression) ||
+    ts.isNoSubstitutionTemplateLiteral(expression) ||
+    expression.kind === ts.SyntaxKind.TrueKeyword ||
+    expression.kind === ts.SyntaxKind.FalseKeyword ||
+    expression.kind === ts.SyntaxKind.NullKeyword
+  ) {
+    return null;
   }
-  return sources;
+  if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(expression.operand)) return null;
+  if (ts.isIdentifier(expression)) {
+    return expression.text === "undefined" || names.has(expression.text) ? null : `このファイルの定数でも import した値でもない名前 ${expression.text}`;
+  }
+  if (ts.isPropertyAccessExpression(expression)) return valueExpressionProblem(expression.expression, names, source);
+  if (ts.isTemplateExpression(expression)) {
+    for (const span of expression.templateSpans) {
+      const problem = valueExpressionProblem(span.expression, names, source);
+      if (problem) return problem;
+    }
+    return null;
+  }
+  if (ts.isArrayLiteralExpression(expression)) {
+    for (const element of expression.elements) {
+      const problem = valueExpressionProblem(ts.isSpreadElement(element) ? element.expression : element, names, source);
+      if (problem) return problem;
+    }
+    return null;
+  }
+  if (ts.isObjectLiteralExpression(expression)) {
+    for (const property of expression.properties) {
+      let problem;
+      if (ts.isPropertyAssignment(property)) {
+        problem = ts.isComputedPropertyName(property.name) ? `計算されたキー ${property.name.getText(source)}` : valueExpressionProblem(property.initializer, names, source);
+      } else if (ts.isShorthandPropertyAssignment(property)) {
+        problem = valueExpressionProblem(property.name, names, source);
+      } else if (ts.isSpreadAssignment(property)) {
+        problem = valueExpressionProblem(property.expression, names, source);
+      } else {
+        problem = `関数・getter のキー ${property.getText(source).split("\n")[0].slice(0, 60)}`;
+      }
+      if (problem) return problem;
+    }
+    return null;
+  }
+  return `値の式でない(関数・呼び出し・new・演算など): ${text()}`;
+}
+
+/**
+ * import / 再 export の指定子を実ファイル(repo 相対)に解く。解けなければ null
+ * @param {FileView} view
+ */
+function resolveSourceFile(specifier, importerAbs, repoRoot, view) {
+  const resolved = resolveImport(specifier, importerAbs, repoRoot);
+  if (resolved === null) return null;
+  return SOURCE_CANDIDATES(resolved).find((candidate) => SOURCE_FILE.test(candidate) && view.exists(path.join(repoRoot, candidate))) ?? null;
+}
+
+/**
+ * ファイルの静的 import が決まりに合うかを見て、合わない点を返す。
+ * entry = true は domainEntry.ts / domainEntry.override.ts 自身(文は自由、import だけ見る)。
+ * false は値の import の先(中身が値だけのファイルか)。結果は memo に覚え、循環は止まる。
+ * @param {string} file repo 相対
+ * @param {{ repoRoot: string, view: FileView, memo: Map<string, string[]> }} context
+ * @returns {string[]} 問題の文(先頭は file から見た経路)
+ */
+function staticImportProblems(file, entry, context) {
+  const { repoRoot, view, memo } = context;
+  if (!entry && memo.has(file)) return memo.get(file);
+  if (!entry) memo.set(file, []); // 循環: 辿り中のファイルは通す(同じファイルの他の文が判定する)
+  const abs = path.join(repoRoot, file);
+  const source = ts.createSourceFile(file, view.read(abs), ts.ScriptTarget.Latest, true);
+  const problems = [];
+  const names = new Set();
+  /** 値の import / 再 export の先を確かめる */
+  const follow = (specifier) => {
+    const target = resolveSourceFile(specifier, abs, repoRoot, view);
+    if (!target) {
+      problems.push(`"${specifier}" を値で import している(解けない指定子: パッケージか、無いファイル。値は値だけのファイルからだけ。サービスは service: () => import(...) で遅延読み込みにする)`);
+      return;
+    }
+    for (const problem of staticImportProblems(target, false, context)) problems.push(`"${specifier}" → ${problem}`);
+  };
+  for (const statement of source.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      const specifier = ts.isStringLiteral(statement.moduleSpecifier) ? statement.moduleSpecifier.text : statement.moduleSpecifier.getText(source);
+      const clause = statement.importClause;
+      if (isTypeOnlyClause(clause)) continue;
+      if (!clause) {
+        problems.push(`"${specifier}" を副作用の import している(値だけのファイルにならない)`);
+        continue;
+      }
+      if (clause.name) names.add(clause.name.text);
+      if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) names.add(clause.namedBindings.name.text);
+      if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+        for (const element of clause.namedBindings.elements) if (!element.isTypeOnly) names.add(element.name.text);
+      }
+      follow(specifier);
+      continue;
+    }
+    if (ts.isExportDeclaration(statement)) {
+      if (statement.isTypeOnly) continue;
+      if (statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)) follow(statement.moduleSpecifier.text);
+      continue;
+    }
+    if (entry) continue;
+    if (ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement) || ts.isEmptyStatement(statement)) continue;
+    if (ts.isVariableStatement(statement)) {
+      if (!(statement.declarationList.flags & ts.NodeFlags.Const) || statement.modifiers?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword)) {
+        problems.push(`${file}: let / var / declare の宣言がある(値だけのファイルは const だけ)`);
+        continue;
+      }
+      for (const declaration of statement.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name) || !declaration.initializer) {
+          problems.push(`${file}: 分割代入か値の無い const がある`);
+          continue;
+        }
+        const problem = valueExpressionProblem(declaration.initializer, names, source);
+        if (problem) problems.push(`${file}: const ${declaration.name.text} が ${problem}`);
+        names.add(declaration.name.text);
+      }
+      continue;
+    }
+    if (ts.isExportAssignment(statement)) {
+      const problem = valueExpressionProblem(statement.expression, names, source);
+      if (problem) problems.push(`${file}: export default が ${problem}`);
+      continue;
+    }
+    problems.push(`${file}: 値だけのファイルに置けない文がある(関数・class・enum・式の文など): ${statement.getText(source).split("\n")[0].slice(0, 60)}`);
+  }
+  if (!entry) memo.set(file, problems);
+  return problems;
+}
+
+/**
+ * domainEntry.ts / domainEntry.override.ts の静的 import の決まり(上の説明)に合わない点を返す。
+ * 型だけの import はどこからでも可、値の import は値だけのファイルからだけ(推移的に確かめる)
+ * @param {string} file repo 相対(domainEntry.ts か domainEntry.override.ts)
+ * @param {string} repoRoot
+ * @param {FileView} [view]
+ * @param {Map<string, string[]>} [memo] 同じ走査の中で同じファイルを二度読まない
+ * @returns {string[]} `<file>: <問題>` の文
+ */
+export function checkEntryStaticImports(file, repoRoot, view = diskView, memo = new Map()) {
+  return staticImportProblems(file, true, { repoRoot, view, memo }).map((problem) => `${file}: ${problem}`);
 }
 
 /** `export const <name> = {` 直下のキー一覧。無い・壊れていれば error */
@@ -195,6 +378,8 @@ export function readHandManaged(view, file) {
 export function discoverDomainEntries(repoRoot, view = diskView) {
   /** @type {DomainEntryInfo[]} */
   const domains = [];
+  /** 値の import の先の判定(ファイル → 問題)。全ドメインで共有して同じファイルを二度読まない */
+  const importMemo = new Map();
   for (const dir of listDomainDirs(repoRoot)) {
     const serverDir = path.join(repoRoot, "src", "features", dir, "services", "server");
     const entryFile = path.join(serverDir, ENTRY_FILE);
@@ -233,13 +418,7 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
         info.tables = read.tables;
         info.entryErrors.push(...read.errors);
       }
-      for (const source of listStaticImports(text)) {
-        if (!ALLOWED_STATIC_IMPORTS.includes(source)) {
-          info.entryErrors.push(
-            `${info.entryPath}: "${source}" を静的 import している（許可: ${ALLOWED_STATIC_IMPORTS.join(", ")}。サービスは service: () => import(...) で遅延読み込みにする）`,
-          );
-        }
-      }
+      info.entryErrors.push(...checkEntryStaticImports(info.entryPath, repoRoot, view, importMemo));
     }
     // 空(空白とコメントだけ)の上書きは不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)
     if (view.exists(overrideFile) && !isBlankSource(view.read(overrideFile))) {
@@ -249,11 +428,7 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
       const { keys, error } = readObjectKeys(text, OVERRIDES_EXPORT);
       if (error) info.overrideErrors.push(`${info.overridePath}: ${error}`);
       else info.overrideKeys = keys;
-      for (const source of listStaticImports(text)) {
-        if (!ALLOWED_STATIC_IMPORTS.includes(source)) {
-          info.overrideErrors.push(`${info.overridePath}: "${source}" を静的 import している（許可: ${ALLOWED_STATIC_IMPORTS.join(", ")}）`);
-        }
-      }
+      info.overrideErrors.push(...checkEntryStaticImports(info.overridePath, repoRoot, view, importMemo));
       if (!info.entryPath) {
         info.overrideErrors.push(`${info.overridePath}: 隣に ${ENTRY_FILE} が無い（上書きだけでは登録できない）`);
       } else {

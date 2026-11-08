@@ -75,6 +75,8 @@ test("実地: base で生成 → fork が手を入れる → 分類。generateFi
   cleanup.push(root);
   fs.cpSync(path.join(repoRoot, "src"), path.join(root, "src"), { recursive: true });
   for (const dir of ["scripts/structure/domain", "scripts/structure/registry"]) fs.cpSync(path.join(repoRoot, dir), path.join(root, dir), { recursive: true });
+  // 登録表の検査(domainEntry の静的 import の決まり)が指定子を解く部品と tsconfig の paths
+  for (const rel of ["eslint-rules/resolve-import.mjs", "tsconfig.json"]) fs.cpSync(path.join(repoRoot, rel), path.join(root, rel));
   fs.symlinkSync(path.join(repoRoot, "node_modules"), path.join(root, "node_modules"), "dir");
   fs.writeFileSync(path.join(root, ".gitignore"), "node_modules\n");
   const memoDir = path.join(root, "src/features/memo");

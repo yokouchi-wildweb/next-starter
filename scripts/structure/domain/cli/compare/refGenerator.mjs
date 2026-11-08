@@ -22,7 +22,10 @@ export const domainDirIn = (scriptsDir) => generatorDirIn(scriptsDir, "scripts/s
 export const TEMPLATE_DIRS = ["src/features/_template", "src/app/admin/_template"];
 const RELATIVE_IMPORT = /from\s+["']((?:\.\.?\/)+[^"']+)["']/g;
 
-/** dir 以下の .mjs（tests/ と *.test.mjs を除く）が相対 import する、root/src 配下のフォルダ（root 相対） */
+/** 生成器が src の外で相対 import してよい所(登録表の検査が指定子を解く部品 eslint-rules/resolve-import.mjs) */
+const OUTSIDE_SRC_IMPORT_DIRS = ["eslint-rules"];
+
+/** dir 以下の .mjs（tests/ と *.test.mjs を除く）が相対 import する、root/src 配下のフォルダと eslint-rules（root 相対） */
 export function srcImportDirs(root, dir) {
   const out = new Set();
   const walk = (d) => {
@@ -33,7 +36,7 @@ export function srcImportDirs(root, dir) {
       } else if (e.name.endsWith(".mjs") && !e.name.endsWith(".test.mjs")) {
         for (const m of fs.readFileSync(abs, "utf8").matchAll(RELATIVE_IMPORT)) {
           const rel = path.relative(root, path.resolve(path.dirname(abs), m[1]));
-          if (rel.startsWith(`src${path.sep}`)) out.add(path.dirname(rel));
+          if (rel.startsWith(`src${path.sep}`) || OUTSIDE_SRC_IMPORT_DIRS.some((d) => rel.startsWith(`${d}${path.sep}`))) out.add(path.dirname(rel));
         }
       }
     }

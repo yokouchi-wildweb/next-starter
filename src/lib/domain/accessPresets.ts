@@ -15,7 +15,8 @@ export const DEFAULT_ACCESS_RULE: DomainApiAccessRule = { roleCategories: ["admi
 
 /**
  * domainEntry.ts の access で再利用するアクセスポリシーのプリセット。
- * domainEntry.ts が静的 import してよいのは、このファイルと @/lib/domain/types だけ（pnpm check registry が検査）。
+ * domainEntry.ts は値だけのファイルから値を import できる（このファイルもその 1 つ。値の式と型だけで書き、関数・呼び出しを置かない）。
+ * 決まりと検査: src/lib/domain/README.md・pnpm check registry。
  */
 
 /** 管理者カテゴリのみを許可する単一ルール（operations の上書きに使う） */
