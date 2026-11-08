@@ -1,5 +1,5 @@
 // 受け口のファイル名の点つきの形の分類(共通の判定。Node 組み込みも使わない純関数の .mjs)。
-// 受け口(拡張口の項目・1 行スイッチ・拡張点の宣言・src/wiring 直下・scripts/tasks・常時実行の例外・_layout / _screen の隣)は
+// 受け口(拡張口の項目・1 行スイッチ・拡張点の宣言・src/wiring 直下・ドメインのタスク(src/features/<ドメイン>/scripts/{tasks,migrations})・常時実行の例外・_layout / _screen の隣)は
 // 名前に fork の印を持たない。許す形は次だけで、それ以外の点つきの名前は旧い fork の名前の印として止める:
 // - 印なし <名前>.<拡張子>                     plain
 // - 既定 <名前>.default.<拡張子>              default(上流の既定。隣の素の名前がスイッチ)

@@ -22,7 +22,7 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 | --- | --- |
 | `getAppEnv()` | 今の段階(呼ぶたびに読む。キャッシュしない) |
 | `isDevelopment()` / `isStaging()` / `isProduction()` | その段階か |
-| `parseAppEnv(raw)` | 文字列を段階に直す(無い・知らない値 → `production`)。`process.env` 以外の env の束を受け取る関数用(例 `scripts/tasks/dev-admin.ts`) |
+| `parseAppEnv(raw)` | 文字列を段階に直す(無い・知らない値 → `production`)。`process.env` 以外の env の束を受け取る関数用(例 `scripts/workflow/dev-admin/lib.ts`) |
 | `withAppEnv(value, fn)` | テスト用。段階を一時的に差し替えて `fn` を実行し、元に戻す(`undefined` = 値なし。Promise は決着後に戻す) |
 | `setAppEnv(value)` | テスト用。段階を差し替え、差し替える前に戻す関数を返す(1 つのテストで何度も切り替えるとき) |
 | `APP_ENVS` / `AppEnv` | 段階の一覧と型 |

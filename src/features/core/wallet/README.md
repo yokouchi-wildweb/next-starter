@@ -505,16 +505,16 @@ for (let i = 0; i < 10; i++) {
 - **過去の行に種類を埋める**（冪等・時間予算付き・dry-run あり）: `backfillWalletReasonKeys(rules, { dryRun, deadline?, chunkSize? })`（`walletHistory/services/server/reasonKeyBackfill.ts`）
   - 規則 = `{ key, reasonPatterns, fromCategories?, includeNullReason? }` の配列（種類の項目には持たせない: 1 回きりの移行の物）。対象 = `reason_key IS NULL` かつ区分が `fromCategories`（既定 = 種類の category）かつ `reason` がどれかの LIKE（`%` は規則に書く）に一致
   - 2 つ以上の規則に一致する行は書かずに `conflicts` に数える。`unmatchedRequiresKey` = requiresKey の区分で種類の無いまま残る行
-  - 上流の分: `pnpm task wallet-reason-key-backfill -- --dry-run` → dry-run なしで実行（締切で止まったら再実行で続きから）。規則 `UPSTREAM_REASON_KEY_BACKFILL_RULES`（クーポン帰属報酬・管理者の調整）
-  - fork の分: fork の 1 回きりの task `scripts/tasks/<名前>.ts` で自分の規則を渡す（済んだら消してよい）
+  - 上流の分: `pnpm task walletHistory:reason-key-backfill -- --dry-run` → dry-run なしで実行（締切で止まったら再実行で続きから）。規則 `UPSTREAM_REASON_KEY_BACKFILL_RULES`（クーポン帰属報酬・管理者の調整）
+  - fork の分: fork 自身のドメインの 1 回きりの移行 `src/features/<ドメイン>/scripts/migrations/<名前>.ts` で自分の規則を渡す（済んだら消してよい。書き方: `src/lib/task/README.md`）
   - **区分の書き換え**は fork が明示して選ぶ別のやり方: `fromCategories` に別の区分（reason_category の導入前は全部 `other`）を入れると、その行の区分も種類の category に書き換わり、**過去の期間の合計（コイン創出の `wallet_bonus_grant` など）が変わる**。dry-run の `categoryRewrites` で件数を見てから流す
   - 文の解釈（LIKE）はこの移行の中だけ。集計の時に `reason` を解かない
 
 ```ts
-// fork: scripts/tasks/oripa-reason-key-backfill.ts（1 回きり）
-import type { OneShotTask } from "./types";
+// fork: src/features/campaign/scripts/migrations/reason-key-backfill.ts（fork のドメイン campaign の 1 回きりの移行）
+import type { OneShotTask } from "@/lib/task";
 export const task: OneShotTask = {
-  name: "oripa-reason-key-backfill",
+  name: "campaign:reason-key-backfill",
   run: async () => {
     const { backfillWalletReasonKeys } = await import("@/features/core/walletHistory/services/server/reasonKeyBackfill");
     return backfillWalletReasonKeys(
@@ -686,8 +686,8 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 - **失効間近の照会・失効通知・スイープ**は数え方によらず同じに動く。失効日が延びた場合、予告は新しい失効日に対して改めて届く
   （予告の冪等性は失効日ごとのため）
 - **locked_balance 保護との関係**: 予約中で失効しきれなかった分は期限切れロットに残り、次の残高変更（予約分の消費を含む）で失効日が延びる
-- **初期化**: `wallet-lots-init` は数え方によらず「実行日 + expirationDays」の1本を作る。
-  `wallet-lots-init-from-history` は残高全額を「最後の残高変更 + expirationDays」の1本にする
+- **初期化**: `wallet:lots-init` は数え方によらず「実行日 + expirationDays」の1本を作る。
+  `wallet:lots-init-from-history` は残高全額を「最後の残高変更 + expirationDays」の1本にする
   （直近 expirationDays の `wallet_histories` から、失効の没収（reason_category: `expiration`）を除いた最新の行を使う。
   範囲内に行が無ければ全額が期限を過ぎた分になる）
 - **運用中の通貨で数え方を切り替える**: ロットの作り直しは要らない。`"grant"` → `"lastActivity"` では、
@@ -707,16 +707,16 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 
    | 方式 | タスク | 既存残高の扱い | 導入直後の失効 |
    |---|---|---|---|
-   | 導入日から数える | `wallet-lots-init` | 全額を「実行日取得扱い」の初期ロット1本に変換 | expirationDays の間は何も失効しない |
-   | 実際の付与日から数える | `wallet-lots-init-from-history` | 付与履歴（`wallet_histories`）からロットを復元 | 既に expirationDays を超えて残っている分は次回スイープで没収される |
+   | 導入日から数える | `wallet:lots-init` | 全額を「実行日取得扱い」の初期ロット1本に変換 | expirationDays の間は何も失効しない |
+   | 実際の付与日から数える | `wallet:lots-init-from-history` | 付与履歴（`wallet_histories`）からロットを復元 | 既に expirationDays を超えて残っている分は次回スイープで没収される |
 
    ```bash
    # 導入日から数える
-   pnpm task wallet-lots-init -- --wallet-type regular_coin
+   pnpm task wallet:lots-init -- --wallet-type regular_coin
 
    # 実際の付与日から数える（先に dry-run で対象件数と没収見込み額を確認する）
-   pnpm task wallet-lots-init-from-history -- --wallet-type regular_coin --dry-run
-   pnpm task wallet-lots-init-from-history -- --wallet-type regular_coin
+   pnpm task wallet:lots-init-from-history -- --wallet-type regular_coin --dry-run
+   pnpm task wallet:lots-init-from-history -- --wallet-type regular_coin
    ```
    **注意**: config 有効化から初期化完了までの間、その通貨の消費はロット不整合エラー（500）になる（どちらの方式でも同じ。
    影響は初期化を待っている通貨だけ）。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
@@ -724,9 +724,9 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
    **運用中の構成に通貨を足す**（すでに別の通貨で失効を運用している）場合は、**足した通貨だけを `--wallet-type` で指定する**。
    `--all` は運用中の通貨のロットも作り直し、その通貨の全ユーザーの失効カウントが実行日から数え直しになる
    （失効間近だった残高も expirationDays 延びる）。手順は 1 → デプロイ → 足した通貨だけを初期化、で導入時と同じ。
-   通貨ごとに違う方式（`wallet-lots-init` / `wallet-lots-init-from-history`）を選んでもよい
+   通貨ごとに違う方式（`wallet:lots-init` / `wallet:lots-init-from-history`）を選んでもよい
 
-   `wallet-lots-init-from-history` を選ぶ場合の前提と注意:
+   `wallet:lots-init-from-history` を選ぶ場合の前提と注意:
    - **直近 expirationDays ぶんの `wallet_histories` が欠けていないこと**。履歴を残さない残高変更
      （`adjustBalance` の `skipHistory: true`、DB の直接更新など）があると、その分だけ復元結果がずれる
      （履歴に無い付与は「期限を過ぎた分」として扱われる）
@@ -757,11 +757,11 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 
 - **初期化は指定した通貨のロットだけを作り直す**。他の通貨のロットには触れない。`--all` は有効な全通貨が対象になるため、
   運用中の通貨がある構成では使わず、作り直す通貨を `--wallet-type` で指定する
-- **wallet-lots-init の再実行は対象通貨の失効カウントをリセットする**。導入時の1回だけ実行し、再実行は障害復旧時に限る
-- **wallet-lots-init-from-history の再実行は、その時点の残高と履歴からロットを作り直す**。既に没収された分は
+- **wallet:lots-init の再実行は対象通貨の失効カウントをリセットする**。導入時の1回だけ実行し、再実行は障害復旧時に限る
+- **wallet:lots-init-from-history の再実行は、その時点の残高と履歴からロットを作り直す**。既に没収された分は
   残高から引かれているので二重に没収されることはない。導入時と違う方式で再実行すると失効日が変わる点に注意
 - **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ずその通貨を指定して初期化
-  （`wallet-lots-init` / `wallet-lots-init-from-history` のどちらか）を再実行して re-baseline すること
+  （`wallet:lots-init` / `wallet:lots-init-from-history` のどちらか）を再実行して re-baseline すること
 - **sweepEnabled: false**: ロット記録と失効間近照会だけ先行させ、没収は行わない（規約告知期間などに使用）
 - **locked_balance 保護**: 失効額は利用可能残高（`balance - locked_balance`）が上限。予約中の分は失効せず次回スイープに持ち越し
 - 規約側の文言は数え方に合わせる: `"grant"` = 「失効は取得が古い順に充当（FIFO）」、`"lastActivity"` = 「最後の残高変更から○日で全額失効」
@@ -876,7 +876,7 @@ regular_coin: {
 
 - 調整は `sendConcurrency` と cron の実行間隔の2つで行う（cron を予告用と本通知用に分けても処理量は変わらない）。
   `sendConcurrency` はメール基盤の流量制限と DB の同時接続数に収まる範囲で上げる
-- **`wallet-lots-init` の直後は既存の全残高が同じ日に失効するロットになる**ため、最初の失効日（init から
+- **`wallet:lots-init` の直後は既存の全残高が同じ日に失効するロットになる**ため、最初の失効日（init から
   expirationDays 日後）に通知が全ユーザーぶん集中する。ユーザー数が数万規模なら、既定値のままでは送りきるのに
   数日かかる。**失効日を迎える前に `sendConcurrency` の引き上げと実行間隔の短縮を済ませておくこと**
 - 本通知は数日かけて送りきっても実害は小さいが、予告は段の日数が猶予の上限になる（1日前の段は1日で送りきる必要がある）

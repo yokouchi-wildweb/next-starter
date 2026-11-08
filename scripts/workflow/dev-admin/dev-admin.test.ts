@@ -1,11 +1,11 @@
-// scripts/tasks/dev-admin.test.ts
+// scripts/workflow/dev-admin/dev-admin.test.ts
 //
 // dev-admin の純粋な部品: パスワードが秘密から決まること、開発環境以外で止まること(DB には触らない)。
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { devAdminPassword, notDevelopmentReason } from "./dev-admin";
+import { devAdminPassword, notDevelopmentReason } from "./lib";
 
 test("devAdminPassword: 同じ秘密なら同じ値、違う秘密なら違う値", () => {
   const a = devAdminPassword("secret-a");

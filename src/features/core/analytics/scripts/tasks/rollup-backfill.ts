@@ -1,10 +1,10 @@
-// scripts/tasks/analytics-rollup-backfill.ts
-// 使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+// src/features/core/analytics/scripts/tasks/rollup-backfill.ts
+// 使い方: pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
 
-import type { OneShotTask } from "./types";
+import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
-  name: "analytics-rollup-backfill",
+  name: "analytics:rollup-backfill",
   run: async () => {
     const { backfillRollup } = await import(
       "@/features/core/analytics/services/server/rollup"
@@ -14,7 +14,7 @@ export const task: OneShotTask = {
     const metricKey = args[0];
     if (!metricKey || metricKey.startsWith("--")) {
       throw new Error(
-        "使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
+        "使い方: pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
       );
     }
     const readFlag = (name: string): string | undefined => {

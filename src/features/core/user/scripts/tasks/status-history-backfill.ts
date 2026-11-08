@@ -1,10 +1,10 @@
-// scripts/tasks/user-status-history-backfill.ts
+// src/features/core/user/scripts/tasks/status-history-backfill.ts
 // 導入時1回だけの過去分復元（定期実行しない。冪等なので再実行は安全）
 
-import type { OneShotTask } from "./types";
+import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
-  name: "user-status-history-backfill",
+  name: "user:status-history-backfill",
   run: async () => {
     const { backfillStatusHistoryFromAuditLogs } = await import(
       "@/features/core/user/services/server/statusHistoryBackfill"

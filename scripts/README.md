@@ -150,8 +150,9 @@ pnpm ops storage setup-cors https://your-app.com
 
 ```bash
 # 運用タスクを CLI から実行(定期タスク + ワンショット)
-pnpm task <task-name>
-pnpm task --list               # 一覧(頻度・有効/無効・説明)
+pnpm task <task-name>          # 定期タスク(平らな名前)
+pnpm task <ドメイン>:<名前>     # ドメインのタスク・移行(例 wallet:lots-init、src/lib/task/README.md)
+pnpm task --list               # 一覧(頻度・有効/無効・説明、ドメインのタスクと移行を分けて出す)
 pnpm task --due                # 今の分(UTC)に schedule が一致する定期タスクを実行(Vercel 以外のスケジューラから毎分呼ぶ)
 
 # vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
@@ -237,7 +238,7 @@ npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <テストファ
 
 - `import-boundaries/src-no-scripts`: `src/**`(テストも)は `scripts/**` を import しない。アプリと道具が両方使う物は `src/lib` に置く(例 `src/lib/cron/discover.ts`・`src/lib/task`)。道具の側を確かめるテストは `scripts` の側に置く
 - `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/features/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使うときは run の中で `await import("@/wiring/…")`
-- `import-boundaries/tools-no-db-write`: ドメインの `scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義 `entities/drizzle`・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行(`src/features/<domain>/scripts/migrations/`)
+- `import-boundaries/tools-no-db-write`: ドメインの `scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts`・DB に書く開発の道具 `scripts/workflow/dev-admin` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義 `entities/drizzle`・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行(`src/features/<domain>/scripts/migrations/`)
 - 3 本とも必須の規則の一覧(`eslint-rules/required-rules.mjs`)に載る: fork の `eslint.config.fork.mjs` で off / warn にすると `pnpm build`(`pnpm check eslint`)が止まる。行ごとの例外は理由付きの eslint-disable
 
 ## ディレクトリ構成
@@ -258,5 +259,5 @@ scripts/
 ├── worktree/              # ワークツリーの作成・env 複製・片付け
 ├── dev-tab/               # 開発サーバーを tmux のタブで立てる・止める (pnpm workflow dev-tab run)
 ├── tmux-launch/           # ターミナルの claude を tmux で開く仕組み (pnpm workflow tmux-launch setup)
-└── tasks/                 # 運用タスクの CLI ランナーとワンショットタスク (pnpm task、tasks/README.md)
+└── dev-admin/             # 確認用の管理者を開発用 DB に用意する (pnpm workflow dev-admin run)
 ```

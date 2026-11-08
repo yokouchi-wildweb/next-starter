@@ -52,7 +52,7 @@ export function getExpirationEnabledWalletTypes(): WalletType[] {
 }
 
 /**
- * ロット初期化（wallet-lots-init / wallet-lots-init-from-history）の対象通貨の指定。
+ * ロット初期化（wallet:lots-init / wallet:lots-init-from-history）の対象通貨の指定。
  * "all" = ロット管理が有効な全通貨。通貨名の配列 = その通貨だけ（他の通貨のロットには触れない）。
  * 初期化は失効カウントを作り直す取り消せない操作のため、全通貨か特定の通貨かを必ず明示させる。
  */

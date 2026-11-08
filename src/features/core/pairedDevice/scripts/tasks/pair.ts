@@ -1,13 +1,13 @@
-// scripts/tasks/paired-device-pair.ts
+// src/features/core/pairedDevice/scripts/tasks/pair.ts
 // 登録端末のペアリングコードを CLI から発行する（管理画面を作る前の最初の 1 台・復旧用）。
 // 新しい端末を登録して発行するか、既存の端末（--device）に発行する（再ペアリング）。
-// 使い方: pnpm task paired-device-pair -- --kind <kind> --label <表示名> [--scope '<JSON>']
-//        pnpm task paired-device-pair -- --device <端末 id>
+// 使い方: pnpm task pairedDevice:pair -- --kind <kind> --label <表示名> [--scope '<JSON>']
+//        pnpm task pairedDevice:pair -- --device <端末 id>
 
-import type { OneShotTask } from "./types";
+import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
-  name: "paired-device-pair",
+  name: "pairedDevice:pair",
   run: async () => {
     const { runAsSystem } = await import("@/lib/audit");
     const { createPairedDevice, issuePairingCode } = await import(
@@ -19,7 +19,7 @@ export const task: OneShotTask = {
       return index >= 0 ? args[index + 1] : undefined;
     };
     const usage =
-      "使い方: pnpm task paired-device-pair -- --kind <kind> --label <表示名> [--scope '<JSON>'] | --device <端末 id>";
+      "使い方: pnpm task pairedDevice:pair -- --kind <kind> --label <表示名> [--scope '<JSON>'] | --device <端末 id>";
     return await runAsSystem(async () => {
       let deviceId = readFlag("device");
       if (!deviceId) {

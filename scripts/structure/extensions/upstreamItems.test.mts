@@ -42,7 +42,7 @@ import { buildBody, buildTitle } from "@/features/core/wallet/services/server/no
 import { seoConfig } from "@/config/seo.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
+import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
@@ -178,40 +178,20 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
   if (isTier1) assert.deepEqual(webhookHandlers, []);
 });
 
-test("タスクの走査: 上流の 10 本、名前の一致と読み込み", async () => {
-  const tasks = listOneShotTasks(ROOT);
-  assertUpstreamItems(tasks.map((t) => t.name), [
-    "analytics-rollup-backfill",
-    "dev-admin",
-    "paired-device-pair",
-    "purchase-quota-cleanup",
-    "setting-copy-list-per-page",
-    "user-name-dedup",
-    "user-status-history-backfill",
-    "wallet-lots-init",
-    "wallet-lots-init-from-history",
-    "wallet-reason-key-backfill",
+test("タスクの走査: 上流のドメインのタスク・移行 9 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
+  const tasks = listOneShotTasks(ROOT).filter((t) => t.file.startsWith("src/features/core/"));
+  assert.deepEqual(tasks.map((t) => t.name), [
+    "analytics:rollup-backfill",
+    "pairedDevice:pair",
+    "purchaseQuota:cleanup",
+    "setting:copy-list-per-page",
+    "user:name-dedup",
+    "user:status-history-backfill",
+    "wallet:lots-init",
+    "wallet:lots-init-from-history",
+    "walletHistory:reason-key-backfill",
   ]);
   for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
-});
-
-test("タスクの走査: 足した項目は印なし、旧い fork の印は止める、失敗の形", () => {
-  const root = mkdtempSync(join(tmpdir(), "tasks-"));
-  const dir = join(root, "scripts/tasks");
-  mkdirSync(join(dir, "_shared"), { recursive: true });
-  const put = (name: string) => writeFileSync(join(dir, name), "export const task = {};\n");
-  try {
-    for (const name of ["types.ts", "a-b.ts", "c.ts", "d.test.ts", "_shared/x.ts", "notes.md"]) put(name);
-    assert.deepEqual(listOneShotTasks(root).map((t) => t.name), ["a-b", "c"]);
-    assert.throws(() => assertNoCronOverlap(listOneShotTasks(root), ["c"]), /src\/app\/api\/cron/);
-    put("e-f.acme.ts");
-    assert.throws(() => listOneShotTasks(root), /印なしの e-f\.ts に改名.*shared-shelf marker migration notice/);
-    rmSync(join(dir, "e-f.acme.ts"));
-    put("Bad_name.ts");
-    assert.throws(() => listOneShotTasks(root), /ファイル名/);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
 });
 
 test("メール: テンプレートは送る側のドメインの mail/ にある", () => {

@@ -133,25 +133,23 @@ describe("pnpm workflow ownership check", () => {
       write(parent, "src/wiring/apiRoute.ts", "export const x = 1;\n");
       write(parent, "src/wiring/dbAgent/index.ts", "export const x = 1;\n");
       write(parent, "src/app/(user)/_layout/Header/index.tsx", "export const Header = 1;\n");
-      write(parent, "scripts/tasks/a-b.ts", "export const task = 1;\n");
       commitAll(parent, "places");
       return parent;
     }
 
-    test("同じ単位の追加(.ts と .tsx・ファイルとフォルダ、受け口・wiring・route の隣・scripts/tasks)と自分の項目への override は違反(1)", () => {
+    test("同じ単位の追加(.ts と .tsx・ファイルとフォルダ、受け口・wiring・route の隣)と自分の項目への override は違反(1)", () => {
       const fork = makeFork(parentWithPlaces());
       write(fork, "src/features/core/setting/fields/a.tsx", "export const field = 2;\n");
       write(fork, "src/wiring/apiRoute.tsx", "export const x = 2;\n");
       write(fork, "src/wiring/dbAgent.ts", "export const x = 2;\n");
       write(fork, "src/app/(user)/_layout/Header.tsx", "export const Header = 2;\n");
-      write(fork, "scripts/tasks/a-b/index.ts", "export const task = 2;\n");
       write(fork, "src/features/core/setting/fields/mine.ts", "export const field = 3;\n");
       write(fork, "src/features/core/setting/fields/mine.override.ts", "export const override = {};\n");
       commitAll(fork, "clash");
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
       const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
-      for (const path of ["src/features/core/setting/fields/a.tsx", "src/wiring/apiRoute.tsx", "src/wiring/dbAgent.ts", "src/app/(user)/_layout/Header.tsx", "scripts/tasks/a-b/index.ts"]) {
+      for (const path of ["src/features/core/setting/fields/a.tsx", "src/wiring/apiRoute.tsx", "src/wiring/dbAgent.ts", "src/app/(user)/_layout/Header.tsx"]) {
         assert.equal(reasonOf(path), "unit-clash", path);
       }
       assert.equal(result.entries.find((entry) => entry.path === "src/wiring/dbAgent.ts").clash, "src/wiring/dbAgent/index.ts");
@@ -169,7 +167,7 @@ describe("pnpm workflow ownership check", () => {
       write(fork, "src/features/core/setting/fields/a.override.ts", "export const override = {};\n");
       write(fork, "src/wiring/mine.ts", "export const x = 2;\n");
       write(fork, "src/app/(user)/_layout/Header.replace.tsx", "export const Header = 2;\n");
-      write(fork, "scripts/tasks/mine.ts", "export const task = 2;\n");
+      write(fork, "src/features/shop/scripts/tasks/mine.ts", "export const task = 2;\n");
       commitAll(fork, "plain");
       const result = runCheck(fork);
       assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));

@@ -16,7 +16,7 @@
 //     前提: 直近 expirationDays ぶんの wallet_histories が欠けていないこと。
 //     運用中の構成に通貨を足すときは、足した通貨だけを指定する（"all" だと運用中の通貨も作り直される）。
 //
-// 実行方法: pnpm task wallet-lots-init-from-history -- --wallet-type <通貨>[,<通貨>...] | --all
+// 実行方法: pnpm task wallet:lots-init-from-history -- --wallet-type <通貨>[,<通貨>...] | --all
 //          （先に --dry-run で確認 → dry-run なしで実行）
 
 import { and, desc, eq, gt, gte, inArray, max, ne } from "drizzle-orm";

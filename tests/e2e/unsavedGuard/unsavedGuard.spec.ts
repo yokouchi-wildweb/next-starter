@@ -5,7 +5,7 @@
 // - デモの表(/demo/tables の EditableGridTable): 書きかけのセル × 戻る(留まる / 移る)・再読み込み
 // - 管理のサンプル一覧のデータの取り込み(DataMigrationModal): 取り込み中は「処理の途中です」、留まると画面も取り込みの表示もそのまま
 // - 管理のサンプルの並び替え(SortableList): 保存待ちの間は棚の Link に確認、保存が終われば聞かない
-// ログインは pnpm task dev-admin の管理者(開発用 DB)。サーバーに届かない・ログインできない・行が無いときは理由を出して skip する。
+// ログインは pnpm workflow dev-admin run の管理者(開発用 DB)。サーバーに届かない・ログインできない・行が無いときは理由を出して skip する。
 // 手順: ./README.md
 
 import { createHash } from "node:crypto";
@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { type BrowserContext, chromium, expect, type Page, test as base } from "@playwright/test";
 import { config as loadEnv } from "dotenv";
 
-import { DEV_ADMIN_EMAIL, devAdminPassword } from "../../../scripts/tasks/dev-admin";
+import { DEV_ADMIN_EMAIL, devAdminPassword } from "../../../scripts/workflow/dev-admin/lib";
 import { skipWhileClosed } from "../featureGate";
 
 // パスワードは AUTH_JWT_SECRET から決まる(dev-admin と同じ式)。env ファイルの場所は ENV_FILE(既定 .env.development)
@@ -84,7 +84,7 @@ const test = base.extend<{ admin: void }, { adminState: AdminState }>({
           .then(() => true)
           .catch(() => false);
         if (!loggedIn) {
-          await provide({ skip: `dev-admin の管理者でログインできない(応答 ${status ?? "なし"}。先に pnpm task dev-admin)` });
+          await provide({ skip: `dev-admin の管理者でログインできない(応答 ${status ?? "なし"}。先に pnpm workflow dev-admin run)` });
           return;
         }
         const state = await context.storageState();

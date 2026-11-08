@@ -10,7 +10,7 @@
 //     通常は導入時の1回だけ実行し、再実行は障害復旧（無効化→再有効化）の場合に限ること。
 //     運用中の構成に通貨を足すときは、足した通貨だけを指定する（"all" だと運用中の通貨も作り直される）。
 //
-// 実行方法: pnpm task wallet-lots-init -- --wallet-type <通貨>[,<通貨>...] | --all
+// 実行方法: pnpm task wallet:lots-init -- --wallet-type <通貨>[,<通貨>...] | --all
 // 詳細な導入手順: src/features/core/wallet/README.md
 
 import { and, eq, gt, inArray } from "drizzle-orm";

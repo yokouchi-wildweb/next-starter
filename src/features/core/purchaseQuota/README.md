@@ -159,7 +159,7 @@ cleanupOldLedger(retentionDays = 90): Promise<number>
 ## cron
 
 ```bash
-pnpm task purchase-quota-cleanup
+pnpm task purchaseQuota:cleanup
 ```
 - 推奨: 1 日 1 回（深夜帯）
 - 90 日より古い ledger 行を物理削除

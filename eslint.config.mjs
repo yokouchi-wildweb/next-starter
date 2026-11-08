@@ -103,7 +103,7 @@ const config = [
   // 置き場の境目(計画書 06、全 Tier error、場所の判定は規則の中):
   // - src-no-scripts: src/**(テストも)→ scripts/** の import 禁止(D78)
   // - scripts-no-static-wiring: 道具(scripts・ドメインの scripts・.notices の codemod)→ src/wiring の静的 import 禁止、import() は可(D79)
-  // - tools-no-db-write: ドメインの scripts/tasks・scripts/operations(db を除く)・seed.ts → DB を直接書く部品の import 禁止、移行は例外(D75・D90)
+  // - tools-no-db-write: ドメインの scripts/tasks・scripts/operations(db を除く)・seed.ts・scripts/workflow/dev-admin → DB を直接書く部品の import 禁止、移行は例外(D75・D90)
   {
     files: ["src/**/*.{ts,tsx,mts,mjs,js,cjs}", "scripts/**/*.{ts,mts,mjs,js,cjs}", ".notices/*.mjs"],
     plugins: { "import-boundaries": importBoundariesPlugin },

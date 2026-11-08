@@ -170,10 +170,10 @@ await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロー
 
 ## 実列 admin_list_per_page から jsonb への移行
 
-順番を変えない: 旧版の書き込みを止める → `pnpm task setting-copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
+順番を変えない: 旧版の書き込みを止める → `pnpm task setting:copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
 
 `adminListPerPage` の既定値はキーの定義の 1 か所で 100。
 
 ## テスト
 
-`pnpm test src/features/core/setting/services/server/settingStorage.test.ts scripts/tasks/setting-copy-list-per-page.test.ts`(読み・保存・権限・フォーム)、`pnpm check extensions`(生成物の一致)。
+`pnpm test src/features/core/setting/services/server/settingStorage.test.ts src/features/core/setting/scripts/migrations/copy-list-per-page.test.ts`(読み・保存・権限・フォーム)、`pnpm check extensions`(生成物の一致)。

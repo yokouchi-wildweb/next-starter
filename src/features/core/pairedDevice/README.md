@@ -215,8 +215,8 @@ const targets = await listPairedDevicesByScope({ scope: { storeId } }, { actor: 
 管理画面を作る前の最初の 1 台や復旧には CLI を使う:
 
 ```bash
-pnpm task paired-device-pair -- --kind staff_tablet --label "店舗A タブレット" --scope '{"storeId":"..."}'
-pnpm task paired-device-pair -- --device <端末 id>   # 既存の端末に再発行
+pnpm task pairedDevice:pair -- --kind staff_tablet --label "店舗A タブレット" --scope '{"storeId":"..."}'
+pnpm task pairedDevice:pair -- --device <端末 id>   # 既存の端末に再発行
 ```
 
 ## 画面の組み立て（downstream）

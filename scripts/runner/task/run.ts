@@ -5,7 +5,8 @@
 //
 // 使い方:
 //   pnpm task <task-name>
-//   pnpm task expire-pending-purchases
+//   pnpm task expire-pending-purchases      # 定期タスク（平らな名前）
+//   pnpm task wallet:lots-init -- --all      # ドメインのタスク・移行（<ドメイン>:<名前>）
 //   pnpm task --list            # 登録済みタスク一覧
 //   pnpm task --due             # 今の分（UTC）に schedule が一致する定期タスクを順に実行
 //
@@ -15,22 +16,21 @@
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/structure/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
-// ワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスクは scripts/tasks/<name>.ts を走査する（scripts/tasks/README.md）。
+// ワンショット・任意タスクはドメインの src/features/<ドメイン>/scripts/tasks/<名前>.ts、1 回きりの移行は scripts/migrations/<名前>.ts を走査する
+// （名前 = <ドメイン>:<名前>、src/lib/task/README.md）。
 //
 // package.json の task スクリプトは scripts/runner/preload/serverOnly.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
 
 import path from "node:path";
 
-import dotenv from "dotenv";
-
-// env ファイルを読む（ENV_FILE で指定、既定 .env.development）。タスク本体は動的 import なので、ここで読めば間に合う。
-// 既に設定済みの環境変数は上書きしない。ファイルが無い環境（本番ホストで env を直接渡す場合）はそのまま進む。
-dotenv.config({ path: process.env.ENV_FILE || ".env.development", quiet: true });
-
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
 import { type LoadedCronTask, loadCronTasks } from "../../structure/cron/discover";
-import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile, TASKS_DIR } from "./discover";
+import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile } from "./discover";
+import { loadEnvFile } from "./prepare";
+
+// env ファイルを読む（prepare.ts）。タスク本体は動的 import なので、ここで読めば間に合う。
+loadEnvFile();
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 
@@ -64,9 +64,13 @@ function printList(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[])
     const overridden = task.overridden && !task.disabled ? " (task.override.ts)" : "";
     console.log(`  - ${task.name} [${task.schedule}]${overridden}${state}: ${task.description}`);
   }
-  console.log(`\nOne-shot / optional tasks (${TASKS_DIR}/<name>.ts):`);
-  for (const { name } of oneShotTasks) {
+  console.log("\nDomain tasks (src/features/<domain>/scripts/tasks/<name>.ts):");
+  for (const { name } of oneShotTasks.filter((task) => task.kind === "task")) {
     console.log(`  - ${name}`);
+  }
+  console.log("\nMigrations, one-off (src/features/<domain>/scripts/migrations/<name>.ts):");
+  for (const { name } of oneShotTasks.filter((task) => task.kind === "migration")) {
+    console.log(`  - ${name} [migration]`);
   }
 }
 

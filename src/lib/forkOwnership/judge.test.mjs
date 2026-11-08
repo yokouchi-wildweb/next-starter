@@ -83,7 +83,7 @@ describe("実リポジトリの intake.txt", () => {
       ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.ts", "add"],
       ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts", "edit"],
       ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.default.ts", null],
-      ["scripts/tasks/mine.ts", "add"],
+      ["src/features/core/user/scripts/tasks/mine.ts", null],
       ["src/featureGate/alwaysOnExceptions/mine.ts", "add"],
       ["src/features/core/user/extensionPoints.acme.ts", null],
       ["src/features/core/user/coreRoles/user.role.override.ts", "edit"],

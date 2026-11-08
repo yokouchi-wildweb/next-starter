@@ -1,4 +1,4 @@
-// scripts/tasks/_shared/walletLotsSelection.ts
+// src/features/core/wallet/scripts/tasks/lib.walletLotsSelection.ts
 
 /**
  * ウォレットロット初期化の対象通貨を CLI 引数から読む。

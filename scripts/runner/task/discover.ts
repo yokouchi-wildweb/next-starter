@@ -1,49 +1,35 @@
 // scripts/runner/task/discover.ts
-// scripts/tasks 直下の <name>.ts を走査してワンショット・任意タスクを集める(一覧ファイルは持たない)。
-//
-// タスク名はファイル名で決まるので、一覧と名前の検査はファイルを読み込まない。実行するタスクのファイルだけを読み込む。
+// ドメインのタスク・移行(src/features/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts)を集め、実行するファイルだけを読み込む。
+// 走査そのものは scan.mjs(一覧ファイルは持たない。一覧と名前の検査はファイルを読み込まない)。
 // 利用者: scripts/runner/task/run.ts(pnpm task)
 
-import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
+import { scanTasks } from "./scan.mjs";
 
 import type { OneShotTask } from "../../../src/lib/task";
 
-export const TASKS_DIR = "scripts/tasks";
-
-/** 受け口の直下にある、タスクでないファイル */
-const RUNNER_FILES = new Set(["types.ts"]);
-const TASK_FILE = /^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\.ts$/;
+export type OneShotTaskKind = "task" | "migration";
 
 export type OneShotTaskFile = {
+  /** <ドメイン>:<名前> */
   name: string;
+  domain: string;
+  /** task = scripts/tasks/、migration = scripts/migrations/ */
+  kind: OneShotTaskKind;
   /** リポジトリ直下からの相対 */
   file: string;
 };
 
-/** タスクのファイルを名前順に返す(名前に fork の印は付けない。旧い <name>.<fork の名前>.ts は止めて移し方を案内する) */
+/** タスクと移行を名前順に返す。置き方の誤り(名前の形・同じ名前・古い置き場 scripts/tasks の残り)は全部並べて止める */
 export function listOneShotTasks(repoRoot: string): OneShotTaskFile[] {
-  const root = path.join(repoRoot, TASKS_DIR);
-  if (!existsSync(root)) return [];
-  const byName = new Map<string, string>();
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isFile() || RUNNER_FILES.has(entry.name) || /\.test\.[cm]?ts$/.test(entry.name) || !entry.name.endsWith(".ts")) continue;
-    const file = `${TASKS_DIR}/${entry.name}`;
-    const match = TASK_FILE.exec(entry.name);
-    if (!match) {
-      const shape = classifyDottedName(entry.name);
-      if (shape.kind === "marker" && TASK_FILE.test(`${shape.base}.ts`)) throw new Error(oldMarkerProblem(file, `${shape.base}.ts`));
-      throw new Error(`${file}: タスクのファイル名は <kebab-case の名前>.ts`);
-    }
-    byName.set(match[1], file);
-  }
-  return [...byName.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, file]) => ({ name, file }));
+  const { tasks, problems } = scanTasks(repoRoot) as { tasks: OneShotTaskFile[]; problems: string[] };
+  if (problems.length > 0) throw new Error(problems.join("\n"));
+  return tasks;
 }
 
-/** 定期タスクと同じ名前のタスクがあれば失敗 */
+/** 定期タスクと同じ名前のタスクがあれば失敗(ドメインのタスクは <ドメイン>:<名前> なので、平らな名前の定期タスクとは本来重ならない) */
 export function assertNoCronOverlap(tasks: readonly OneShotTaskFile[], cronNames: readonly string[]): void {
   for (const task of tasks) {
     if (cronNames.includes(task.name)) {
@@ -52,11 +38,11 @@ export function assertNoCronOverlap(tasks: readonly OneShotTaskFile[], cronNames
   }
 }
 
-/** タスクのファイルを読み込む(export const task と名前を確かめる) */
+/** タスクのファイルを読み込む(export const task と、task.name = <ドメイン>:<ファイル名> を確かめる) */
 export async function loadOneShotTask(repoRoot: string, { name, file }: OneShotTaskFile): Promise<OneShotTask> {
   const mod = (await import(pathToFileURL(path.join(repoRoot, file)).href)) as { task?: OneShotTask };
   const task = mod.task;
   if (!task || typeof task.run !== "function") throw new Error(`${file} が export const task を持っていません`);
-  if (task.name !== name) throw new Error(`${file} の task.name "${task.name}" がファイル名の "${name}" と違います`);
+  if (task.name !== name) throw new Error(`${file} の task.name "${task.name}" が "${name}"(<ドメイン>:<ファイル名>)と違います`);
   return task;
 }

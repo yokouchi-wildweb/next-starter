@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { cronTaskNames, scanTasks, taskNamesIn } from "../../runner/task/scan.mjs";
 import { checkAll, fixesPointsBack, readIndexes } from "./shippedIndex.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -228,6 +229,20 @@ test("出荷前の notice の moved: が作業ツリーと合う(移動先があ
       const [from, to] = pair;
       if (!existsSync(join(repoRoot, to))) problems.push(`${n.path}: moved: 移動先 ${to} がありません`);
       if (existsSync(join(repoRoot, from))) problems.push(`${n.path}: moved: 移動元 ${from} がまだあります`);
+    }
+  }
+  assert.deepEqual(problems, [], problems.join("\n"));
+});
+
+test("出荷前の notice が案内する pnpm task <名前> がこの木に実在する(ドメインのタスク・移行・定期タスク。D32)", () => {
+  const shipped = new Set(readIndexes(repoRoot).flatMap((ix) => ix.rows.map((r) => r.id)));
+  const known = new Set([...scanTasks(repoRoot).tasks.map((t) => t.name), ...cronTaskNames(repoRoot)]);
+  const problems = [];
+  for (const n of active) {
+    if (!pending.has(n.path) && shipped.has(n.id)) continue;
+    const text = readFileSync(join(repoRoot, n.path), "utf8");
+    for (const name of taskNamesIn(text)) {
+      if (!known.has(name)) problems.push(`${n.path}: pnpm task ${name} がありません(タスクは <ドメイン>:<名前>、src/lib/task/README.md)`);
     }
   }
   assert.deepEqual(problems, [], problems.join("\n"));

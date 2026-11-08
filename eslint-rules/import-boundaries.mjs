@@ -59,7 +59,7 @@
 // ── tools-no-db-write(D75・D90) ──
 // DB を直接書く部品(@/lib/drizzle の db、表の定義 **/entities/drizzle、drizzle-orm の生 SQL sql・接続のドライバ、postgres 等)を
 // import しない(どの形も): src/features/**/scripts/tasks/**・scripts/operations/**(scripts/operations/db/** を除く)・
-// src/features/**/seed.ts。書くのはドメインのサービスを通す。移行 src/features/**/scripts/migrations/**(.local.ts を含む)は例外(直接の SQL・db を許す)。
+// src/features/**/seed.ts・scripts/workflow/dev-admin/**(DB に書く開発の道具)。書くのはドメインのサービスを通す。移行 src/features/**/scripts/migrations/**(.local.ts を含む)は例外(直接の SQL・db を許す)。
 
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 
@@ -340,6 +340,8 @@ export function isDbWriteGuardedFile(rel) {
   if (/^src\/features\/.+\/scripts\/migrations\//.test(rel)) return false;
   if (/^src\/features\/.+\/scripts\/tasks\//.test(rel)) return true;
   if (/^src\/features\/.+\/seed\.ts$/.test(rel)) return true;
+  // DB に書く開発の道具(利用者を userService で作る。L1.30)
+  if (isUnder(rel, "scripts/workflow/dev-admin")) return true;
   return isUnder(rel, "scripts/operations") && !isUnder(rel, "scripts/operations/db");
 }
 

@@ -18,7 +18,7 @@ export type UserNameDedupResult = {
 };
 
 /**
- * 既存の重複表示名を一括解消する one-shot タスク (pnpm task user-name-dedup)。
+ * 既存の重複表示名を一括解消する one-shot タスク (pnpm task user:name-dedup)。
  *
  * USER_NAME_CONFIG.unique を有効化する際の移行手順として実行する:
  * 1. unique.enabled: true でデプロイ (以後の新規書き込みは検証される)
@@ -106,7 +106,7 @@ export async function dedupUserNames(
 
     if (remaining.length > 0) {
       console.warn(
-        `[user-name-dedup] 実行後も重複が残っています (実行中の同時書き込みの可能性): ${remaining
+        `[user:name-dedup] 実行後も重複が残っています (実行中の同時書き込みの可能性): ${remaining
           .map((row) => row.norm)
           .join(", ")}。再実行してください`,
       );

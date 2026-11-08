@@ -2,7 +2,7 @@
 // 過去の wallet_histories の行に付与の種類(reason_key)を埋める(冪等・時間予算付き・dry-run あり)。
 //
 // 規則は引数で受ける(種類の項目には持たせない: 対応表は 1 回きりの移行の物で、済んだら消せるように)。
-// 上流の分の規則 = scripts/tasks/wallet-reason-key-backfill.ts、fork の分 = fork の 1 回きりの task ファイル。
+// 上流の分の規則 = src/features/core/walletHistory/scripts/tasks/reason-key-backfill.ts、fork の分 = fork の 1 回きりの task ファイル。
 // - 対象: reason_key IS NULL かつ reason_category ∈ fromCategories(既定 [その種類の category])かつ reason がどれかの
 //   reasonPatterns(SQL の LIKE。% は規則に書く)に一致する行
 // - 2 つ以上の規則に一致する行は書かずに conflicts に数える(どちらの種類か決められない)

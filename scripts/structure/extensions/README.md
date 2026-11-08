@@ -104,7 +104,7 @@ export const extensionPoints = {
 - 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
 - 1 行スイッチの置き換え: `add <dir>/<名前>.replace.{ts,tsx}`
 - route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`
-- scripts の受け口: `scripts/tasks/*.ts`(常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
+- scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/features/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
 区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `pnpm workflow ownership check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。
 
