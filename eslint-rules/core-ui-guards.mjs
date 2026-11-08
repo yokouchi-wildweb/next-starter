@@ -1,19 +1,24 @@
 // eslint-rules/core-ui-guards.mjs
 //
-// core の部品は form の状態と守りの処理を直接持たない(CLAUDE.md COMPONENTS core_ui / FORK_EXTENSION)。
+// core の部品(src/features/core/**/components/)と既定 Screen の部品(src/app/**/_screen/)は form の状態と
+// 守りの処理を直接持たない(CLAUDE.md COMPONENTS core_ui / FORK_EXTENSION / SCREENS)。
 // それらは持ち主ドメインの features/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにする。
-// fork が部品の見た目を写しても、守り(reCAPTCHA・ID トークン・セッション更新・遷移の守り)を写さずに済むようにするため。
+// fork が部品の見た目を写しても、守り(reCAPTCHA・ID トークン・セッション更新・遷移の守り・コンバージョン計測)を
+// 写さずに済むようにするため。
 //
 // 検出するもの:
 //   - import: react-hook-form の useForm / @/lib/recaptcha の useRecaptcha・getRecaptchaToken・useRecaptchaV2Challenge /
-//     @/lib/transitionGuard の useGuardedNavigation(型だけの import は対象外)
+//     @/lib/transitionGuard の useGuardedNavigation・useTransitionGuard / @/lib/googleTag の useGoogleAdsConversion
+//     (型だけの import は対象外)
 //   - 呼び出し: <x>.getIdToken()(Firebase の ID トークン)
 //   - useAuthSession() から refreshSession を取り出す(分割代入・メンバー参照)
 //     セッションの持ち主(AuthSessionClientProvider)が refreshSession を定義するのは対象外(取り出しではないので当たらない)
+// 検出しないもの: mount の effect での処理の発火・timer での遷移など、import の形で見分けられない処理(lint では守らない)
 //
-// 有効なのは upstream(目録の先頭の節)だけ。fork では off(eslint.config.mjs)。
+// 有効なのは upstream(目録の先頭の節)だけ。fork では off(eslint.config.mjs)。demo のページは対象外(lib の使い方の見本)。
 // option allow = 今残る部品の許可一覧(repo 相対パス)。縮める一方:
 //   部品を hook 化したら、どの legate・どの作業でもその行を消す。一覧の行が当たらなくなると pnpm test eslint-rules/core-ui-guards.test.mjs が落ちる。
+//   行を足すのは規則(対象・検出)を広げて既存の部品が当たった時だけ。
 
 import { repoRelative } from "./resolve-import.mjs";
 
@@ -26,7 +31,11 @@ export const GUARDED_IMPORTS = [
   },
   {
     match: (source) => source === "@/lib/transitionGuard" || source.startsWith("@/lib/transitionGuard/"),
-    names: ["useGuardedNavigation"],
+    names: ["useGuardedNavigation", "useTransitionGuard"],
+  },
+  {
+    match: (source) => source === "@/lib/googleTag" || source.startsWith("@/lib/googleTag/"),
+    names: ["useGoogleAdsConversion"],
   },
 ];
 
@@ -43,10 +52,10 @@ const propertyName = (node) => {
 const rule = {
   meta: {
     type: "problem",
-    docs: { description: "core の部品で useForm と守りの処理を直接呼ばない(持ち主ドメインの公開 hook に置く)" },
+    docs: { description: "core の部品・既定 Screen の部品で useForm と守りの処理を直接呼ばない(持ち主ドメインの公開 hook に置く)" },
     messages: {
       guarded:
-        '{{what}} は core の部品で直接使えません。持ち主ドメインの features/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにしてください(CLAUDE.md COMPONENTS core_ui。例: auth の useEmailRegistrationForm)',
+        '{{what}} は core の部品・既定 Screen の部品(_screen)で直接使えません。持ち主ドメインの features/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにしてください(CLAUDE.md COMPONENTS core_ui。例: auth の useEmailRegistrationForm)',
     },
     schema: [
       {

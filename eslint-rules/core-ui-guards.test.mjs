@@ -1,5 +1,5 @@
 // eslint-rules/core-ui-guards.test.mjs
-// core の部品で useForm と守りの処理を直接持たない規則の契約テスト + 許可一覧の照合。実行: pnpm test eslint-rules/core-ui-guards.test.mjs (node:test)
+// core の部品・既定 Screen の部品で useForm と守りの処理を直接持たない規則の契約テスト + 許可一覧の照合。実行: pnpm test eslint-rules/core-ui-guards.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -13,6 +13,7 @@ const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@type
 const root = process.cwd();
 const at = (rel) => `${root}/${rel}`;
 const PART = at("src/features/core/auth/components/X/index.tsx");
+const SCREEN_PART = at("src/app/(user)/(auth)/x/_screen/XSection.tsx");
 
 const tester = new RuleTester({
   languageOptions: {
@@ -27,6 +28,11 @@ tester.run("core-ui-guards/no-guard-in-part", plugin.rules["no-guard-in-part"], 
   valid: [
     // 公開 hook を呼ぶだけ
     { filename: PART, code: 'import { useEmailRegistrationForm } from "@/features/core/auth/hooks/useEmailRegistrationForm";' },
+    // 既定 Screen の部品も公開 hook を呼ぶだけなら当たらない
+    { filename: SCREEN_PART, code: 'import { useSignupComplete } from "@/features/core/auth/hooks/useSignupComplete";' },
+    // 遷移の守り・計測の lib から型・他の名前だけを読むのは対象外
+    { filename: PART, code: 'import { issueToken, type UseTransitionGuardResult } from "@/lib/transitionGuard";' },
+    { filename: PART, code: 'import { GoogleTag } from "@/lib/googleTag";' },
     // 表示部品・型だけの import は対象外
     { filename: PART, code: 'import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";' },
     { filename: PART, code: 'import type { UseFormReturn } from "react-hook-form";' },
@@ -52,6 +58,12 @@ tester.run("core-ui-guards/no-guard-in-part", plugin.rules["no-guard-in-part"], 
     // lib の中のファイルを直に読んでも同じ
     { filename: PART, code: 'import { useRecaptcha } from "@/lib/recaptcha/hooks/useRecaptcha";', errors: [{ messageId: "guarded" }] },
     { filename: PART, code: 'import { useGuardedNavigation } from "@/lib/transitionGuard";', errors: [{ messageId: "guarded" }] },
+    { filename: PART, code: 'import { useTransitionGuard } from "@/lib/transitionGuard";', errors: [{ messageId: "guarded" }] },
+    { filename: PART, code: 'import { useGoogleAdsConversion } from "@/lib/googleTag";', errors: [{ messageId: "guarded" }] },
+    { filename: PART, code: 'import { useGoogleAdsConversion } from "@/lib/googleTag/useGoogleAdsConversion";', errors: [{ messageId: "guarded" }] },
+    // 既定 Screen の部品にも同じ規則
+    { filename: SCREEN_PART, code: 'import { useTransitionGuard } from "@/lib/transitionGuard";', errors: [{ messageId: "guarded" }] },
+    { filename: SCREEN_PART, code: 'import { useForm } from "react-hook-form";', errors: [{ messageId: "guarded" }] },
     { filename: PART, code: "async function f(u) { return u.getIdToken(); }", errors: [{ messageId: "guarded" }] },
     { filename: PART, code: "const { user, refreshSession } = useAuthSession();", errors: [{ messageId: "guarded" }] },
     { filename: PART, code: "const r = useAuthSession().refreshSession;", errors: [{ messageId: "guarded" }] },
@@ -65,7 +77,7 @@ tester.run("core-ui-guards/no-guard-in-part", plugin.rules["no-guard-in-part"], 
   ],
 });
 
-test("許可一覧: 各行が core の部品で、今も規則に当たる(当たらない行 = hook 化済み → 一覧から消す)", () => {
+test("許可一覧: 各行が core の部品か既定 Screen の部品で、今も規則に当たる(当たらない行 = hook 化済み → 一覧から消す)", () => {
   const linter = new Linter({ configType: "flat" });
   const config = [
     {
@@ -82,7 +94,11 @@ test("許可一覧: 各行が core の部品で、今も規則に当たる(当�
   ];
   const stale = [];
   for (const rel of CORE_UI_GUARDS_ALLOW) {
-    assert.match(rel, /^src\/features\/core\/[^/]+\/components\/.+\.tsx$/, `core の部品ではない: ${rel}`);
+    assert.match(
+      rel,
+      /^(src\/features\/core\/[^/]+\/components\/.+|src\/app\/.+\/_screen\/.+)\.tsx$/,
+      `core の部品・既定 Screen の部品ではない: ${rel}`,
+    );
     const code = readFileSync(at(rel), "utf8");
     const messages = linter.verify(code, config, { filename: at(rel) });
     const fatal = messages.filter((m) => m.fatal);
@@ -100,6 +116,17 @@ test("01〜03 で hook 化した部品は許可一覧に無い", () => {
     "src/features/core/auth/components/Signup/EmailVarification/sendForm.tsx",
     "src/features/core/auth/components/Signup/EarlyRegistration/SendForm.tsx",
     "src/features/core/auth/components/OAuth/index.tsx",
+  ]) {
+    assert.ok(!CORE_UI_GUARDS_ALLOW.includes(rel), rel);
+  }
+});
+
+test("l2 指令 22 で hook 化した既定 Screen の部品は許可一覧に無い", () => {
+  for (const rel of [
+    "src/app/(user)/(auth)/email/verify/_screen/EmailChangeVerification.tsx",
+    "src/app/(user)/(auth)/logout/_screen/LogoutSection.tsx",
+    "src/app/(user)/(auth)/signup/complete/_screen/SignupCompleteSection.tsx",
+    "src/app/(user)/maintenance/_screen/MaintenanceAutoRedirect.tsx",
   ]) {
     assert.ok(!CORE_UI_GUARDS_ALLOW.includes(rel), rel);
   }
