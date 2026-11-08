@@ -159,7 +159,7 @@ export const POST = createApiRoute(
 | `access` | `RouteAccess` | **必須**。上の語彙表 |
 | `allowStatuses` | `readonly UserStatus[]` | 通す status（省略時は利用可能な status だけ） |
 | `skipForDemo` | `boolean` | 下の表 |
-| `rateLimit` / `rateLimitSubnet` | `RateLimitCategory` | IP / サブネット（/24）単位のレート制限（`src/config/app/rate-limit.config.ts`） |
+| `rateLimit` / `rateLimitSubnet` | `TCategory`(wiring が `RateLimitCategory` を渡す) | IP / サブネット（/24）単位のレート制限(カテゴリの持ち主 `src/features/core/rateLimit/config.ts`。lib はカテゴリの名前を知らず、`createRouteFactories` の型引数 `TCategory` で受ける) |
 | `recaptcha` | `RecaptchaConfig` | reCAPTCHA v3（中間スコアは v2 チャレンジ） |
 
 `skipForDemo`: 省略 = `operationType: "write"` なら自動スキップ / `true` = 常にスキップ / `false` = デモでも実行（ログイン処理・決済の戻り先など）。スキップ時の応答は `{ success: true, demo: true }`。認可はデモスキップより**前**に評価する（権限の無いデモ利用者に偽の成功を返さない）。

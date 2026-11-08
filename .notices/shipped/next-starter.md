@@ -367,3 +367,4 @@
 - id:20261109-065317-stopgap-permit-recite | severity:action-required | checkpoint:stopgap-permit-recite | resolves:20261108-102030-resolves-keeps-stopgap-permits
 - id:20261109-065309-date-default-fallback | severity:info | checkpoint:date-default-fallback
 - id:20261109-071019-provider-profile-image-drop | severity:action-required | checkpoint:provider-profile-image-drop
+- id:20261109-071953-rate-limit-config-home | severity:breaking | checkpoint:config-rate-limit | moved:src/config/app/rate-limit.config.ts -> src/features/core/rateLimit/config.ts

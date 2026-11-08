@@ -8,6 +8,7 @@ IPアドレスベースのリクエスト制限機能。スパム登録や過剰
 
 ```
 src/features/core/rateLimit/
+├── config.ts                  # カテゴリと制限の既定・型 RateLimitRule / RateLimitCategory・合成(上書きと Extra)
 ├── constants/
 │   └── index.ts              # 型定義、キー生成関数
 ├── entities/                  # Drizzleスキーマ（自動生成）
@@ -17,29 +18,31 @@ src/features/core/rateLimit/
 │           └── rateLimitHelper.ts  # 汎用ヘルパー
 └── README.md
 
-src/config/app/
-└── rate-limit.config.ts       # ルール設定（ユーザー編集用）
+src/config/features/
+└── rateLimit.config.ts        # 上書き(fork が値を変える・カテゴリを足す。config.ts だけが読む)
 ```
 
 ---
 
 ## 使い方
 
-### 1. ルール追加
+### 1. ルール追加・値の変更
 
-`src/config/app/rate-limit.config.ts` にカテゴリを追加:
+上流のカテゴリは `config.ts` の既定(上流が足す)。fork は上書き `src/config/features/rateLimit.config.ts` で値を変え、自分のカテゴリを足す(足す名前は `Extra` 型で宣言する。値はリテラル):
 
 ```ts
-export const RATE_LIMIT_CONFIG = {
-  // 既存のルール...
+// src/config/features/rateLimit.config.ts
+import type { RateLimitOverride, RateLimitRule } from "@/features/rateLimit/config";
 
-  // 新規追加例: API一般
-  apiGeneral: {
-    windowSeconds: 60,    // 1分間
-    maxRequests: 100,     // 100回まで
-  },
-} as const;
+export type Extra = { winReportVerify: RateLimitRule };
+
+export default {
+  login: { maxRequests: 10 }, // 上流のカテゴリの値を変える
+  winReportVerify: { windowSeconds: 300, maxRequests: 5 }, // 自分のカテゴリ(5 分に 5 回)
+} satisfies RateLimitOverride<Extra>;
 ```
+
+`RateLimitCategory`(上流 + `Extra` の名前)は `src/wiring/apiRoute.ts` が `lib/routeFactory` に型引数で渡す(lib は features の型を読まない、設定の議会 L1.25)。route の `rateLimit: "<名前>"` に知らない名前を書くと型で落ちる。
 
 ### 2. APIルートに適用
 

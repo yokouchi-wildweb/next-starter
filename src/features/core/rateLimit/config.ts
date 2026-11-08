@@ -1,10 +1,21 @@
-// src/config/app/rate-limit.config.ts
+// src/features/core/rateLimit/config.ts
+// レート制限のカテゴリと制限の値(既定 + 上書き、設定の議会 L1.25)。上書きは src/config/features/rateLimit.config.ts(このファイルだけが読む)。
+// 置き方: src/config/README.md。合成: @/lib/defineConfig。fork はカテゴリの値を変え、自分のカテゴリを足せる:
+// 足すカテゴリは上書きのファイルで `export type Extra = { <名前>: RateLimitRule }` を宣言し、値を書く(RateLimitCategory に入る)。
+// カテゴリの名前の型 RateLimitCategory は src/wiring/apiRoute.ts が lib/routeFactory に型引数で渡す(lib は features の型を読まない)
 
-/**
- * レート制限ルール設定
- * カテゴリごとに制限ルールを定義
- */
-export const RATE_LIMIT_CONFIG = {
+import override, { type Extra } from "@/config/features/rateLimit.config";
+import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
+
+/** 1 カテゴリの制限: windowSeconds 秒の窓に maxRequests 回まで */
+export type RateLimitRule = {
+  /** 窓の長さ(秒) */
+  windowSeconds: number;
+  /** 窓の中で許す回数 */
+  maxRequests: number;
+};
+
+const defaults = {
   /**
    * サインアップ: メール送信系
    * 同一IPから1時間に7回まで
@@ -199,6 +210,18 @@ export const RATE_LIMIT_CONFIG = {
     windowSeconds: 60,
     maxRequests: 30,
   },
-} as const;
+} satisfies Record<string, RateLimitRule>;
 
-export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG;
+/** 上流のカテゴリと制限 */
+export type RateLimitDefaults = { [K in keyof typeof defaults]: RateLimitRule };
+
+export const rateLimitConfigDef = defineConfig<RateLimitDefaults>(defaults, { label: "rateLimit" });
+
+/** 上書きのファイルの型(`export default { ... } satisfies RateLimitOverride<Extra>`) */
+export type RateLimitOverride<E extends object = Record<never, never>> = OverrideOf<typeof rateLimitConfigDef, E>;
+
+/** 合成済みの設定(上流のカテゴリ + 上書きで足したカテゴリ) */
+export const RATE_LIMIT_CONFIG = rateLimitConfigDef.compose<Extra>(override);
+
+/** レート制限のカテゴリの名前(上流 + 上書きの Extra) */
+export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG & string;

@@ -80,10 +80,10 @@ function ensureSupports<TService>(
  * 認可は URL のドメイン名から登録表の行を引き、domainEntry.ts の access でドメインごとに強制する。
  * ctx.user は Factory が解いた利用者（access が "public" の操作では null 可）。
  */
-export function makeDomainRoutes<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
+export function makeDomainRoutes<TUser extends RouteUserBase<TStatus>, TStatus extends string, TCategory extends string = string>(
   deps: RouteUserDeps<TUser, TStatus>,
   registry: DomainRegistry,
-  runRoute: RouteCore,
+  runRoute: RouteCore<TCategory>,
 ) {
   function createDomainRoute<
     TService = any,

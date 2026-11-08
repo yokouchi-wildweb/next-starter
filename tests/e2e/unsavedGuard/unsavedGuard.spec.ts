@@ -27,7 +27,7 @@ type AdminState = { storageState: StorageState } | { skip: string };
 
 /**
  * ログインした cookie の置き場(OS の一時フォルダ。test-results は実行ごとに消える)。
- * ログインには回数の上限(rate-limit.config.ts の login: 15 分に 5 回)があるので、実行・ブラウザ・ワーカーをまたいで 30 分使い回す
+ * ログインには回数の上限(src/features/core/rateLimit/config.ts の login: 15 分に 5 回)があるので、実行・ブラウザ・ワーカーをまたいで 30 分使い回す
  */
 const authFile = (baseURL: string) =>
   join(tmpdir(), `next-starter-e2e-dev-admin-${createHash("sha256").update(baseURL).digest("hex").slice(0, 12)}.json`);

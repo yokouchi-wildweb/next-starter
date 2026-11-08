@@ -8,7 +8,6 @@
 
 import type { NextRequest, NextResponse } from "next/server";
 
-import type { RateLimitCategory } from "@/config/app/rate-limit.config";
 import type { DomainApiAccessRule, DomainRegistry } from "@/lib/domain";
 
 /**
@@ -54,13 +53,13 @@ export type RouteUserDeps<TUser extends RouteUserBase<TStatus>, TStatus extends 
 export type RouteAuthenticatedDevice<TDevice = unknown> = { device: TDevice & { deviceId: string; kind: string } };
 
 /** 登録端末の束（features/core/pairedDevice が export する） */
-export type RouteDeviceDeps<TAuthenticated extends RouteAuthenticatedDevice = RouteAuthenticatedDevice> = {
+export type RouteDeviceDeps<TAuthenticated extends RouteAuthenticatedDevice = RouteAuthenticatedDevice, TCategory extends string = string> = {
   /** リクエストの Cookie から端末を認証する（無い・失効・期限切れなら null） */
   authenticateRequestDevice: (req: NextRequest) => Promise<TAuthenticated | null>;
   /** 端末への応答の Cookie の期限を DB の期限に合わせて書き直す */
   syncPairedDeviceCookie: (response: NextResponse, req: NextRequest, authenticated: TAuthenticated) => NextResponse;
   /** 主体（端末 id / ユーザー id）単位のレート制限。超えていれば 429 の応答 */
-  checkPairedDeviceRateLimit: (category: RateLimitCategory, identifier: string) => Promise<NextResponse | null>;
+  checkPairedDeviceRateLimit: (category: TCategory, identifier: string) => Promise<NextResponse | null>;
   /** 端末の領域のエラーを応答にする（該当しなければ null） */
   pairedDeviceErrorResponse: (error: unknown) => NextResponse | null;
 };
@@ -71,10 +70,10 @@ export type RouteRateLimitResult = {
   resetAt: Date;
 };
 
-/** レート制限の束（features/core/rateLimit が export する） */
-export type RouteRateLimitDeps = {
+/** レート制限の束（features/core/rateLimit が export する）。TCategory = カテゴリの名前(wiring が渡す、既定 string) */
+export type RouteRateLimitDeps<TCategory extends string = string> = {
   /** IP・サブネット単位の判定。呼ぶとカウントが進む */
-  checkRateLimit: (category: RateLimitCategory, identifier: string) => Promise<RouteRateLimitResult>;
+  checkRateLimit: (category: TCategory, identifier: string) => Promise<RouteRateLimitResult>;
 };
 
 /**
@@ -90,10 +89,11 @@ export type RouteFactoryDeps<
   TUser extends RouteUserBase<TStatus>,
   TStatus extends string,
   TAuthenticated extends RouteAuthenticatedDevice = RouteAuthenticatedDevice,
+  TCategory extends string = string,
 > = {
   user: RouteUserDeps<TUser, TStatus>;
-  device: RouteDeviceDeps<TAuthenticated>;
-  rateLimit: RouteRateLimitDeps;
+  device: RouteDeviceDeps<TAuthenticated, TCategory>;
+  rateLimit: RouteRateLimitDeps<TCategory>;
   /** 汎用 CRUD（/api/[domain]/**）がドメイン名から行（access・遅延 service）を引く登録表 */
   domains: DomainRegistry;
   /** 門番の口(省略時 = 住所では閉じない) */

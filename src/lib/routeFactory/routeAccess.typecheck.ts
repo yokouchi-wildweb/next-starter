@@ -4,6 +4,7 @@
 // - ハンドラの ctx に token だけのセッション（session）は無い。主体は ctx.user
 // - ctx.user は "public" だけ null 可
 // - user: "skip"（利用者の DB 引きを省く）は "public" だけ書ける
+// - レート制限のカテゴリは型引数 TCategory の名前だけ(wiring がレート制限の持ち主の RateLimitCategory を渡す、L1.25)
 
 import type { ApiRouteConfig, ApiRouteContext, ApiRouteUser, RouteAccess } from "./createApiRoute";
 
@@ -28,3 +29,8 @@ export const authenticatedCannotSkipUser: ApiRouteConfig<"authenticated"> = { ..
 export const roleCannotSkipUser: ApiRouteConfig<{ roles: string[] }> = { ...base, access: { roles: ["admin"] }, user: "skip" };
 // @ts-expect-error "skip" 以外の語は無い
 export const unknownUserResolution: ApiRouteConfig<"public"> = { ...base, access: "public", user: "lazy" };
+
+type Category = "login" | "signupEmail";
+export const knownCategory: ApiRouteConfig<"public", string, Category> = { ...base, access: "public", rateLimit: "login", rateLimitSubnet: "signupEmail" };
+// @ts-expect-error 知らないカテゴリの名前は書けない
+export const unknownCategory: ApiRouteConfig<"public", string, Category> = { ...base, access: "public", rateLimit: "nope" };

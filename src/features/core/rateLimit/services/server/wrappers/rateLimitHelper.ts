@@ -2,7 +2,7 @@
 
 import { eq, lt } from "drizzle-orm";
 
-import { RATE_LIMIT_CONFIG, type RateLimitCategory } from "@/config/app/rate-limit.config";
+import { RATE_LIMIT_CONFIG, type RateLimitCategory } from "@/features/rateLimit/config";
 import { RateLimitTable } from "@/features/core/rateLimit/entities/drizzle";
 import { buildRateLimitKey, type RateLimitResult } from "@/features/core/rateLimit/constants";
 import { db } from "@/lib/drizzle";

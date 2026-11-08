@@ -25,7 +25,7 @@ export type MeRouteHandler<TParams = Record<string, string>, TResult = unknown, 
   ctx: MeRouteContext<TParams, TUser>,
 ) => Promise<TResult>;
 
-export type MeRouteConfig<TStatus extends string = string> = ApiRouteBaseConfig & {
+export type MeRouteConfig<TStatus extends string = string, TCategory extends string = string> = ApiRouteBaseConfig<TCategory> & {
   /**
    * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ = 現行動作）。
    * 「利用制限中でも本人が完了すべき手続き」（不正疑いチャレンジの回答・異議申立て・
@@ -42,11 +42,11 @@ export type MeRouteConfig<TStatus extends string = string> = ApiRouteBaseConfig 
  *
  * access は固定（"authenticated"）のため、config では受け取らない。
  */
-export function makeCreateMeRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
-  createApiRoute: CreateApiRoute<TUser, TStatus>,
+export function makeCreateMeRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string, TCategory extends string = string>(
+  createApiRoute: CreateApiRoute<TUser, TStatus, TCategory>,
 ) {
   return function createMeRoute<TParams = Record<string, string>, TResult = unknown>(
-    config: MeRouteConfig<TStatus>,
+    config: MeRouteConfig<TStatus, TCategory>,
     handler: MeRouteHandler<TParams, TResult, TUser>,
   ) {
     return createApiRoute<TParams, TResult, "authenticated">({ ...config, access: "authenticated" }, handler);

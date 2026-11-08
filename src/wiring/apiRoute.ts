@@ -11,6 +11,7 @@ import type { AuthenticatedDevice } from "@/features/core/pairedDevice/services/
 import type { SessionDeviceOf } from "@/features/core/pairedDevice/services/server/session";
 import type { PairedDeviceKind } from "@/features/core/pairedDevice/types/kinds";
 import { apiRouteRateLimitDeps } from "@/features/core/rateLimit/services/server/apiRouteRateLimitDeps";
+import type { RateLimitCategory } from "@/features/rateLimit/config";
 import type { UserStatus } from "@/features/core/user/types";
 import { gate } from "@/featureGate";
 import { createRouteFactories } from "@/lib/routeFactory";
@@ -20,6 +21,7 @@ import type {
   ApiRouteHandler as GenericApiRouteHandler,
   ApiRouteUser as GenericApiRouteUser,
   DeviceOrUserRouteConfig as GenericDeviceOrUserRouteConfig,
+  DeviceRouteConfig as GenericDeviceRouteConfig,
   DeviceOrUserRouteHandler as GenericDeviceOrUserRouteHandler,
   DevicePrincipalContext as GenericDevicePrincipalContext,
   DeviceRouteHandler as GenericDeviceRouteHandler,
@@ -44,14 +46,18 @@ type DevicesByKind = { [K in PairedDeviceKind]: SessionDeviceOf<K> };
  * 端末だけのルートは端末として通らず 401 で失敗し(素通りしない)、orUser のルートは利用者の枝だけが動く。
  * 判定はリクエストごと。レート制限・エラーの応答の束はそのまま(利用者の枝も使う)。テスト: apiRoute.test.mts
  */
-export function gateDeviceDeps<T extends RouteAuthenticatedDevice>(deps: RouteDeviceDeps<T>, isOpen: () => boolean): RouteDeviceDeps<T> {
+export function gateDeviceDeps<T extends RouteAuthenticatedDevice, C extends string = string>(
+  deps: RouteDeviceDeps<T, C>,
+  isOpen: () => boolean,
+): RouteDeviceDeps<T, C> {
   return {
     ...deps,
     authenticateRequestDevice: (req) => (isOpen() ? deps.authenticateRequestDevice(req) : Promise.resolve(null)),
   };
 }
 
-const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, AuthenticatedDevice>({
+// レート制限のカテゴリの名前は持ち主 features/core/rateLimit の型を渡す(lib は features の型を読まない、L1.25)
+const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, AuthenticatedDevice, RateLimitCategory>({
   user: apiRouteUserDeps,
   // 端末の機能(pairedDevice)が閉じている間は端末を認証しない(門番の依存の検査: 結線が閉じられる機能を確かめてから使う)
   device: gateDeviceDeps(apiRouteDeviceDeps, () => gate.enabled("pairedDevice")),
@@ -77,23 +83,24 @@ export const enforceAccessRule = factories.enforceAccessRule;
 export { ownerWhere } from "@/lib/routeFactory";
 export type {
   AccessDenialContext,
-  DeviceRouteConfig,
   OperationType,
   RouteAccess,
 } from "@/lib/routeFactory";
+export type { RateLimitCategory };
 
 // 汎用の型を主体の具体の型で結んだもの
 export type ApiRouteUser<A extends RouteAccess = RouteAccess> = GenericApiRouteUser<A, SessionUser>;
-export type ApiRouteConfig<A extends RouteAccess = RouteAccess> = GenericApiRouteConfig<A, UserStatus>;
+export type ApiRouteConfig<A extends RouteAccess = RouteAccess> = GenericApiRouteConfig<A, UserStatus, RateLimitCategory>;
 export type ApiRouteContext<TParams = Record<string, string>, TUser = SessionUser | null> = GenericApiRouteContext<TParams, TUser>;
 export type ApiRouteHandler<TParams = Record<string, string>, TResult = unknown, TUser = SessionUser | null> = GenericApiRouteHandler<TParams, TResult, TUser>;
 export type DomainRouteConfig<TService> = GenericDomainRouteConfig<TService, UserStatus>;
 export type DomainRouteContext<TService, TParams> = GenericDomainRouteContext<TService, TParams, SessionUser>;
 export type EnforceAccessOptions = GenericEnforceAccessOptions<UserStatus>;
-export type MeRouteConfig = GenericMeRouteConfig<UserStatus>;
+export type MeRouteConfig = GenericMeRouteConfig<UserStatus, RateLimitCategory>;
 export type MeRouteContext<TParams = Record<string, string>> = GenericMeRouteContext<TParams, SessionUser>;
 export type MeRouteHandler<TParams = Record<string, string>, TResult = unknown> = GenericMeRouteHandler<TParams, TResult, SessionUser>;
-export type DeviceOrUserRouteConfig<K extends string> = GenericDeviceOrUserRouteConfig<K, UserStatus>;
+export type DeviceRouteConfig<K extends string> = GenericDeviceRouteConfig<K, RateLimitCategory>;
+export type DeviceOrUserRouteConfig<K extends string> = GenericDeviceOrUserRouteConfig<K, UserStatus, RateLimitCategory>;
 export type DevicePrincipalContext<K extends PairedDeviceKind, TParams> = GenericDevicePrincipalContext<SessionDeviceOf<K>, TParams>;
 export type UserPrincipalContext<TParams> = GenericUserPrincipalContext<TParams, SessionUser>;
 export type DeviceRouteHandler<K extends PairedDeviceKind, TParams, TResult> = GenericDeviceRouteHandler<SessionDeviceOf<K>, TParams, TResult>;

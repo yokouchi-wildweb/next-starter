@@ -179,7 +179,7 @@ await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロー
 - 未認証(`access: "public"`)だが **ワンショット**: `initializeAdminSetup` が冒頭で `checkAdminUserExists()` を確認し、管理者が 1 人でも存在すれば 409 で拒否する(fail-closed、画面側の redirect は UI 補助にすぎない)
 - `role` はクライアント入力を無視して `admin` 固定(セットアップ UI にロール選択は存在しない)
 - 設定の行を作るだけで、既定値は書かない
-- レート制限 `adminSetup`(同一 IP 1 時間 10 回、`src/config/app/rate-limit.config.ts`)。レスポンスは `{ success: true }` のみで、作成したユーザー行は返さない
+- レート制限 `adminSetup`(同一 IP 1 時間 10 回、`src/features/core/rateLimit/config.ts`)。レスポンスは `{ success: true }` のみで、作成したユーザー行は返さない
 - 既知の受容リスク: 管理者が 1 人もいない間は、このルートを最初に叩いた人が管理者になる(デプロイ直後にセットアップを済ませる運用が前提)
 - 既知の受容リスク: 存在チェックと作成が同一トランザクションでないため、初回セットアップ完了前のみ同時リクエストによる複数管理者作成の競合窓が理論上ある。セットアップ時点では実運用開始前のためリスク受容とし、advisory lock 等での厳密化は意図的に見送っている(判断根拠は `settingService.ts` の `initializeAdminSetup` コメント参照)
 

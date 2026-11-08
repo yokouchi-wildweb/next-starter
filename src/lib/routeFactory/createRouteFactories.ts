@@ -12,7 +12,8 @@ import { makeEnforceAccessRule } from "./enforceAccess";
 
 /**
  * API ルートの Factory 群を作る。
- * - TDevices: 端末の種類 → ハンドラに渡す端末の型 / TUser・TStatus: 利用者と status / TAuthenticated: 認証済みの端末（全部 wiring が具体の型を渡す）
+ * - TDevices: 端末の種類 → ハンドラに渡す端末の型 / TUser・TStatus: 利用者と status / TAuthenticated: 認証済みの端末 /
+ *   TCategory: レート制限のカテゴリの名前（全部 wiring が具体の型を渡す。lib は features の型を読まない）
  * - 主体はリクエストごとに 1 回だけ deps.user.resolveUser で解き、全 access で ctx.user に渡す
  */
 export function createRouteFactories<
@@ -20,12 +21,13 @@ export function createRouteFactories<
   TUser extends RouteUserBase<TStatus>,
   TStatus extends string,
   TAuthenticated extends RouteAuthenticatedDevice,
->(deps: RouteFactoryDeps<TUser, TStatus, TAuthenticated>) {
-  const runRoute = makeRouteCore(deps.user, deps.rateLimit, deps.gate);
-  const createApiRoute = makeCreateApiRoute(deps.user, runRoute);
-  const { createDomainRoute, createDomainIdRoute } = makeDomainRoutes(deps.user, deps.domains, runRoute);
+  TCategory extends string = string,
+>(deps: RouteFactoryDeps<TUser, TStatus, TAuthenticated, TCategory>) {
+  const runRoute = makeRouteCore<TCategory>(deps.user, deps.rateLimit, deps.gate);
+  const createApiRoute = makeCreateApiRoute<TUser, TStatus, TCategory>(deps.user, runRoute);
+  const { createDomainRoute, createDomainIdRoute } = makeDomainRoutes<TUser, TStatus, TCategory>(deps.user, deps.domains, runRoute);
   const createMeRoute = makeCreateMeRoute(createApiRoute);
-  const createDeviceRoute = makeCreateDeviceRoute<TDevices, TUser, TStatus, TAuthenticated>(deps.user, deps.device, runRoute);
+  const createDeviceRoute = makeCreateDeviceRoute<TDevices, TUser, TStatus, TAuthenticated, TCategory>(deps.user, deps.device, runRoute);
   const enforceAccessRule = makeEnforceAccessRule(deps.user);
 
   return {
@@ -43,4 +45,5 @@ export type RouteFactories<
   TUser extends RouteUserBase<TStatus>,
   TStatus extends string,
   TAuthenticated extends RouteAuthenticatedDevice,
-> = ReturnType<typeof createRouteFactories<TDevices, TUser, TStatus, TAuthenticated>>;
+  TCategory extends string = string,
+> = ReturnType<typeof createRouteFactories<TDevices, TUser, TStatus, TAuthenticated, TCategory>>;

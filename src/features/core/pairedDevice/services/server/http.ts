@@ -7,7 +7,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import type { RateLimitCategory } from "@/config/app/rate-limit.config";
+import type { RateLimitCategory } from "@/features/rateLimit/config";
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
 import { getAppBaseUrl } from "@/lib/url";
 

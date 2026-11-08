@@ -13,7 +13,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import type { RateLimitCategory } from "@/config/app/rate-limit.config";
 import { getAuditContext, runWithAuditContext } from "@/lib/audit";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
@@ -45,8 +44,8 @@ export type UserPrincipalContext<TParams, TUser = RouteUserBase> = {
   operator: null;
 };
 
-type BaseDeviceRouteConfig<K extends string> = Omit<
-  ApiRouteBaseConfig,
+type BaseDeviceRouteConfig<K extends string, TCategory extends string = string> = Omit<
+  ApiRouteBaseConfig<TCategory>,
   "rateLimit" | "rateLimitSubnet" | "recaptcha"
 > & {
   /** 通す端末の種類。省略時は登録済みのすべての種類 */
@@ -55,15 +54,15 @@ type BaseDeviceRouteConfig<K extends string> = Omit<
    * 主体（端末 id またはユーザー id）単位のレート制限。
    * 店舗の端末は同じ回線（同じ IP）から来るため、IP 単位の制限は使わない
    */
-  rateLimit?: RateLimitCategory;
+  rateLimit?: TCategory;
 };
 
-export type DeviceRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
+export type DeviceRouteConfig<K extends string, TCategory extends string = string> = BaseDeviceRouteConfig<K, TCategory> & {
   /** 端末専用（orUser を付けるとハンドラに user が渡るので DeviceOrUserRouteHandler の形になる） */
   orUser?: never;
 };
 
-export type DeviceOrUserRouteConfig<K extends string, TStatus extends string = string> = BaseDeviceRouteConfig<K> & {
+export type DeviceOrUserRouteConfig<K extends string, TStatus extends string = string, TCategory extends string = string> = BaseDeviceRouteConfig<K, TCategory> & {
   /** 端末でない場合に、このルールに合うログインユーザーを通す（"authenticated" またはロール指定） */
   orUser: Exclude<RouteAccess, "public">;
   /**
@@ -123,36 +122,37 @@ export function makeCreateDeviceRoute<
   TUser extends RouteUserBase<TStatus>,
   TStatus extends string,
   TAuthenticated extends RouteAuthenticatedDevice,
+  TCategory extends string = string,
 >(
   userDeps: RouteUserDeps<TUser, TStatus>,
-  deviceDeps: RouteDeviceDeps<TAuthenticated>,
-  runRoute: RouteCore,
+  deviceDeps: RouteDeviceDeps<TAuthenticated, TCategory>,
+  runRoute: RouteCore<TCategory>,
 ) {
   type TKind = keyof TDevices & string;
 
-  const rateLimited = async (category: RateLimitCategory | undefined, identifier: string) => {
+  const rateLimited = async (category: TCategory | undefined, identifier: string) => {
     if (!category) return null;
     return deviceDeps.checkPairedDeviceRateLimit(category, identifier);
   };
 
   function createDeviceRoute<K extends TKind = TKind, TParams = Record<string, string>, TResult = unknown>(
-    config: DeviceOrUserRouteConfig<K, TStatus>,
+    config: DeviceOrUserRouteConfig<K, TStatus, TCategory>,
     handler: DeviceOrUserRouteHandler<TDevices[K], TParams, TResult, TUser>,
   ): NextRouteHandler<TParams>;
   function createDeviceRoute<K extends TKind = TKind, TParams = Record<string, string>, TResult = unknown>(
-    config: DeviceRouteConfig<K>,
+    config: DeviceRouteConfig<K, TCategory>,
     handler: DeviceRouteHandler<TDevices[K], TParams, TResult>,
   ): NextRouteHandler<TParams>;
   function createDeviceRoute<K extends TKind, TParams, TResult>(
-    config: DeviceRouteConfig<K> | DeviceOrUserRouteConfig<K, TStatus>,
+    config: DeviceRouteConfig<K, TCategory> | DeviceOrUserRouteConfig<K, TStatus, TCategory>,
     rawHandler:
       | DeviceRouteHandler<TDevices[K], TParams, TResult>
       | DeviceOrUserRouteHandler<TDevices[K], TParams, TResult, TUser>,
   ): NextRouteHandler<TParams> {
     // user のコンテキストは orUser 指定時（= DeviceOrUserRouteHandler のオーバーロード）にしか渡さない
     const handler = rawHandler as DeviceOrUserRouteHandler<TDevices[K], TParams, TResult, TUser>;
-    const { kinds, rateLimit, orUser, allowStatuses, skipForDemo, ...apiConfig } = config as DeviceRouteConfig<K> &
-      Partial<Pick<DeviceOrUserRouteConfig<K, TStatus>, "orUser" | "allowStatuses">>;
+    const { kinds, rateLimit, orUser, allowStatuses, skipForDemo, ...apiConfig } = config as DeviceRouteConfig<K, TCategory> &
+      Partial<Pick<DeviceOrUserRouteConfig<K, TStatus, TCategory>, "orUser" | "allowStatuses">>;
     // デモユーザーの書き込みスキップは user 枝だけに適用する（createApiRoute と同じ既定）
     const shouldSkipForDemo = skipForDemo ?? apiConfig.operationType === "write";
 

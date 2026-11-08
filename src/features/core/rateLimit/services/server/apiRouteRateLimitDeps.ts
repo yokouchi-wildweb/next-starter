@@ -4,6 +4,8 @@
 
 import type { RouteRateLimitDeps } from "@/lib/routeFactory";
 
+import type { RateLimitCategory } from "../../config";
+
 import { checkRateLimit } from "./wrappers/rateLimitHelper";
 
-export const apiRouteRateLimitDeps: RouteRateLimitDeps = { checkRateLimit };
+export const apiRouteRateLimitDeps: RouteRateLimitDeps<RateLimitCategory> = { checkRateLimit };

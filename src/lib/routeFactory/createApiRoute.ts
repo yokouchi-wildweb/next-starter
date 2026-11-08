@@ -3,7 +3,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import type { RateLimitCategory } from "@/config/app/rate-limit.config";
 import {
   runWithAuditContext,
   type AuditActorType,
@@ -97,7 +96,11 @@ export type RecaptchaConfig = {
 };
 
 /** 認可を除いた共通の設定（Factory どうしで共有する） */
-export type ApiRouteBaseConfig = {
+/**
+ * 全 Factory 共通の設定。TCategory = レート制限のカテゴリの名前(lib は名前を知らない。wiring がレート制限の持ち主
+ * features/core/rateLimit の RateLimitCategory を渡す、設定の議会 L1.25。既定 string)
+ */
+export type ApiRouteBaseConfig<TCategory extends string = string> = {
   /** 操作名（ログ・デバッグ用） */
   operation: string;
   /** 操作の種類 */
@@ -112,15 +115,15 @@ export type ApiRouteBaseConfig = {
   /**
    * レート制限カテゴリ
    * 指定するとIPベースのレート制限が適用される
-   * カテゴリは src/config/app/rate-limit.config.ts で定義
+   * カテゴリはレート制限の持ち主 src/features/core/rateLimit/config.ts が定義する(型は wiring が TCategory で渡す)
    */
-  rateLimit?: RateLimitCategory;
+  rateLimit?: TCategory;
   /**
    * サブネット単位（/24）のレート制限カテゴリ
    * 指定するとIPの上位3オクテットでレート制限が適用される
    * iCloud Private Relay 等でIPが分散する攻撃に有効
    */
-  rateLimitSubnet?: RateLimitCategory;
+  rateLimitSubnet?: TCategory;
   /**
    * reCAPTCHA v3 検証設定
    * 指定するとリクエストボディのrecaptchaTokenを検証する
@@ -131,7 +134,7 @@ export type ApiRouteBaseConfig = {
 /**
  * APIルートの設定
  */
-export type ApiRouteConfig<A extends RouteAccess = RouteAccess, TStatus extends string = string> = ApiRouteBaseConfig &
+export type ApiRouteConfig<A extends RouteAccess = RouteAccess, TStatus extends string = string, TCategory extends string = string> = ApiRouteBaseConfig<TCategory> &
   ApiRouteUserResolutionConfig<A> & {
   /**
    * アクセスポリシー（必須）。createApiRoute が認可を強制する。
@@ -212,13 +215,13 @@ export function toRouteResponse(result: unknown): Response {
  * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
  * 門番の口（gate、省略可）があれば最初に要求の住所を聞き、閉なら not_found の 404（主体の解決・認可・ハンドラの前）。
  */
-export function makeRouteCore(
+export function makeRouteCore<TCategory extends string = string>(
   deps: { resolveTokenSession: () => Promise<RouteUserBase | null> },
-  rateLimit: RouteRateLimitDeps,
+  rateLimit: RouteRateLimitDeps<TCategory>,
   gate?: RouteGateDeps,
 ) {
   return function runRoute<TParams, TGrant>(
-    config: ApiRouteBaseConfig,
+    config: ApiRouteBaseConfig<TCategory>,
     authorize: RouteAuthorizer<TParams, TGrant>,
     handler: (req: NextRequest, base: { params: TParams }, grant: TGrant) => Promise<unknown>,
   ): NextRouteHandler<TParams> {
@@ -409,7 +412,7 @@ export function makeRouteCore(
   };
 }
 
-export type RouteCore = ReturnType<typeof makeRouteCore>;
+export type RouteCore<TCategory extends string = string> = ReturnType<typeof makeRouteCore<TCategory>>;
 
 /**
  * access が RouteAccess の形か（実行時の確認）。
@@ -470,16 +473,16 @@ export function authorizeRouteUser<TUser extends RouteUserBase<TStatus>, TStatus
  * - エラーハンドリング（DomainError → { message, code?, details? } + status）
  * - ハンドラが返した Response はそのまま返す（NextResponse 以外も）
  */
-export function makeCreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string>(
+export function makeCreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string, TCategory extends string = string>(
   deps: RouteUserDeps<TUser, TStatus>,
-  runRoute: RouteCore,
+  runRoute: RouteCore<TCategory>,
 ) {
   return function createApiRoute<
     TParams = Record<string, string>,
     TResult = unknown,
     A extends RouteAccess = RouteAccess,
   >(
-    config: ApiRouteConfig<A, TStatus>,
+    config: ApiRouteConfig<A, TStatus, TCategory>,
     handler: ApiRouteHandler<TParams, TResult, ApiRouteUser<A, TUser>>,
   ): NextRouteHandler<TParams> {
     const { access, allowStatuses, user: userResolution, ...baseConfig } = config;
@@ -500,6 +503,6 @@ export function makeCreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus
   };
 }
 
-export type CreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string> = ReturnType<
-  typeof makeCreateApiRoute<TUser, TStatus>
+export type CreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus extends string, TCategory extends string = string> = ReturnType<
+  typeof makeCreateApiRoute<TUser, TStatus, TCategory>
 >;

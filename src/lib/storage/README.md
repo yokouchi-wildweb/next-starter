@@ -419,7 +419,7 @@ const metadata = usePurposeMetadata(purpose);
 - 未採用の猶予 24 時間 / maxPending の既定 20 / セッションに切り替える閾値 16MiB
 - `defaultMaxBytesByPreset`（maxSizeBytes の無いメディア項目の既定）/ 掃除 cron の予算
 - `imageStrip`（strip の描き直しの画素数の上限と品質。「位置情報の約束」）
-- アップロード権の発行のレート制限は `rate-limit.config.ts` の `storageIssue`
+- アップロード権の発行のレート制限は `src/features/core/rateLimit/config.ts` の `storageIssue`
 
 ## 未設定のとき（UNCONFIGURED_BACKENDS）
 
