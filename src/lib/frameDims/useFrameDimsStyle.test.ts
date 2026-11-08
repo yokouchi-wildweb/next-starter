@@ -1,8 +1,9 @@
-// src/hooks/useFrameDimsStyle.test.ts — pnpm test src/hooks/useFrameDimsStyle.test.ts
+// src/lib/frameDims/useFrameDimsStyle.test.ts — pnpm test src/lib/frameDims
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { FRAME_DIM_VARS, FRAME_OBSERVE_OPTIONS, readFrameDimsStyle, subscribeFrameDims } from "./useFrameDimsStyle";
+import { frameDimsConfig } from "./config";
+import { FRAME_OBSERVE_OPTIONS, readFrameDimsStyle, subscribeFrameDims } from "./useFrameDimsStyle";
 
 const frameRoot = { tagName: "DIV" } as unknown as Element;
 
@@ -38,8 +39,28 @@ test("隠している間に 0 になった値もそのまま写す", () => {
   assert.deepEqual(style, { "--app-bottom-nav-height": "0px" });
 });
 
-test("部位の名前は枠の部位一覧に合わせる", () => {
-  assert.deepEqual(Object.keys(FRAME_DIM_VARS), ["header", "app-banner", "bottom-nav"]);
+test("既定の設定 = 外枠の印と枠の部位一覧の寸法変数(src/styles/core/frame.css の名前)", () => {
+  assert.deepEqual(frameDimsConfig, {
+    rootSelector: "[data-frame-root]",
+    vars: {
+      header: "--app-header-height",
+      "app-banner": "--app-banner-height",
+      "bottom-nav": "--app-bottom-nav-height",
+    },
+  });
+});
+
+test("上書きした外枠の印と変数の名前で読む", () => {
+  const customRoot = { tagName: "MAIN" } as unknown as Element;
+  const style = readFrameDimsStyle(
+    { querySelector: (selector: string) => (selector === "#shell" ? customRoot : null) },
+    (element) => {
+      assert.equal(element, customRoot);
+      return { getPropertyValue: (name: string) => ({ "--shell-top": "48px", "--app-header-height": "56px" })[name] ?? "" };
+    },
+    { rootSelector: "#shell", vars: { header: "--shell-top", "app-banner": "--shell-banner", "bottom-nav": "--shell-bottom" } },
+  );
+  assert.deepEqual(style, { "--shell-top": "48px" });
 });
 
 /** subscribe の環境の偽物: observe の呼び方を記録し、変化を手で起こせる */

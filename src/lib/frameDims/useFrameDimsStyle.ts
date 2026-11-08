@@ -1,28 +1,17 @@
-// src/hooks/useFrameDimsStyle.ts
+// src/lib/frameDims/useFrameDimsStyle.ts
 
 "use client";
 
 import type { CSSProperties } from "react";
 import { useSyncExternalStore } from "react";
 
-/**
- * 枠の寸法変数(部位の名前 → 変数名)。部位の名前は枠の部位一覧(src/app/_layout/frame/parts.mjs の data-slot: header / app-banner / bottom-nav)に合わせる。
- * 値の意味と書く所: src/app/(user)/_layout/README.md「寸法の CSS 変数」
- */
-export const FRAME_DIM_VARS = {
-  header: "--app-header-height",
-  "app-banner": "--app-banner-height",
-  "bottom-nav": "--app-bottom-nav-height",
-} as const;
+import { frameDimsConfig, type FrameDimsConfig, type FrameDimVar } from "./config";
 
-export type FrameDimPart = keyof typeof FRAME_DIM_VARS;
-type FrameDimVar = (typeof FRAME_DIM_VARS)[FrameDimPart];
+/** 部位の名前(設定の vars のキー: header / app-banner / bottom-nav) */
+export type FrameDimPart = keyof FrameDimsConfig["vars"];
 
 /** 枠の寸法変数を写した style(外枠に書かれている変数だけを持つ) */
 export type FrameDimsStyle = CSSProperties & { [K in FrameDimVar]?: string };
-
-/** 外枠の印(UserLayout・AdminLayout の外枠の公開の属性) */
-const FRAME_ROOT_SELECTOR = "[data-frame-root]";
 
 const EMPTY_STYLE: FrameDimsStyle = Object.freeze({});
 
@@ -31,14 +20,19 @@ type ReadStyle = (element: Element) => { getPropertyValue(name: string): string 
 
 /**
  * 外枠の寸法変数の計算値を style に写す(純関数。hook の中身と test 用)。外枠が無い時(枠の外のページ)は空。
+ * 外枠の印と変数の名前は設定(config.ts、上書き = src/config/lib/frameDims.config.ts)から読む。
  * 隠している部位の変数は、隠す側の CSS が 0 にした計算値をそのまま写す(何が 0 にしたかは見ない)。
  */
-export function readFrameDimsStyle(root: FrameRootLookup, readStyle: ReadStyle): FrameDimsStyle {
-  const frameRoot = root.querySelector(FRAME_ROOT_SELECTOR);
+export function readFrameDimsStyle(
+  root: FrameRootLookup,
+  readStyle: ReadStyle,
+  dims: FrameDimsConfig = frameDimsConfig,
+): FrameDimsStyle {
+  const frameRoot = root.querySelector(dims.rootSelector);
   if (!frameRoot) return EMPTY_STYLE;
   const computed = readStyle(frameRoot);
   const style: FrameDimsStyle = {};
-  for (const name of Object.values(FRAME_DIM_VARS)) {
+  for (const name of Object.values(dims.vars)) {
     const value = computed.getPropertyValue(name).trim();
     if (value) style[name] = value;
   }
@@ -82,7 +76,7 @@ export function subscribeFrameDims(onChange: () => void, { doc, win, createObser
       onChange();
     });
   };
-  const frameRoot = doc.querySelector(FRAME_ROOT_SELECTOR);
+  const frameRoot = doc.querySelector(frameDimsConfig.rootSelector);
   const observer = frameRoot ? createObserver(schedule) : null;
   if (frameRoot && observer) observer.observe(frameRoot, FRAME_OBSERVE_OPTIONS);
   win.addEventListener("resize", schedule);
@@ -100,7 +94,7 @@ const subscribe = (onChange: () => void) =>
  * body 直下へ portal する部品が、枠の寸法変数(--app-header-height / --app-banner-height / --app-bottom-nav-height)を
  * 外枠と同じ値で使うための style。portal した部品の一番外の要素に付け、中では外枠の中と同じく var() で書く。
  *
- * - 値 = 外枠 [data-frame-root] の計算値。部位を隠している間(ページの印・出さないデバイス)は 0 になった値
+ * - 値 = 外枠(既定 [data-frame-root])の計算値。部位を隠している間(ページの印・出さないデバイス)は 0 になった値
  * - 隠す・出すの切り替え、画面幅の変化に表示中も追随する。外枠が無い時(admin の一部・枠の外)は空 = :root の既定(0px)
  * - safe-area(--app-safe-area-*)は :root にあるので写さない。--app-bottom-nav-height は safe-area を含むので足さない
  * - SSR / hydration 中は空(hydration 不一致を起こさない)

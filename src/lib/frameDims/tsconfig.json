@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@lib-config/frameDims": ["../../config/lib/frameDims.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

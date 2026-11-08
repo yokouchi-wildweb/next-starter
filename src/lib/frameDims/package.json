@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.ts"
+  },
+  "libs": ["defineConfig"],
+  "sideEffects": false
+}

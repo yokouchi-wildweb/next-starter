@@ -1,4 +1,4 @@
-// src/hooks/useIsClient.ts
+// src/lib/isClient/useIsClient.ts
 
 "use client";
 

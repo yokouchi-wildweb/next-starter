@@ -34,8 +34,10 @@
 - src/lib/folderCatalog — フォルダ目録(CATALOG.md)の読み込み・検査・所有判定
 - src/lib/forkOwnership — fork の所有の検査 pnpm workflow ownership check(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)
 - src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
+- src/lib/frameDims — body 直下へ portal する部品に外枠の寸法変数(ヘッダー・バナー・下のナビの高さ)を写す useFrameDimsStyle(変数の名前と外枠の印は @lib-config で上書き)
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
 - src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル
+- src/lib/isClient — クライアントで描画できる状態か(ハイドレーション後に true)を返す useIsClient
 - src/lib/jwt — JWT の署名・検証・Cookie 抽出の薄いラッパ
 - src/lib/libPackage — lib の package.json(入口 exports・読む lib の一覧 libs・棚 peers・sideEffects)の唯一の読み手と形の検査(lint lib-entry・単体用 tsconfig・閉じたかの検査が読む)
 - src/lib/line — LINE 連携(Push 通知・Bot 応答・LIFF・Webhook 検証)
