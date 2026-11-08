@@ -34,7 +34,7 @@ import {
   formatPurchaseRequestStatusLabel,
   modeBadgeVariant,
   purchaseRequestStatusBadgeVariant,
-} from "./formatters";
+} from "@/features/core/bankTransferReview/presenters";
 
 type Props = {
   /** 現在表示中のタブ。要確認タブのときは「理由」列を出す */

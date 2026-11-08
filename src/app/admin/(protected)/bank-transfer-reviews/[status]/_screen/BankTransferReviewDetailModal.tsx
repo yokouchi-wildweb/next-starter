@@ -6,7 +6,6 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
-import useSWR from "swr";
 
 import Modal from "@/components/Overlays/Modal";
 import Dialog from "@/components/Overlays/Dialog";
@@ -21,13 +20,10 @@ import { ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { resolveStorageSrc } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { useGate } from "@/featureGate/client";
 import {
-  adminGetBankTransferReview,
   adminConfirmBankTransferReview,
   adminRejectBankTransferReview,
   adminInvestigateBankTransferReview,
-  adminUpdateBankTransferReviewAdminMemo,
   type BankTransferReviewApprovalSource,
   type BankTransferReviewDto,
   type BankTransferReviewMode,
@@ -38,6 +34,8 @@ import {
   CURRENCY_CONFIG,
   type WalletType,
 } from "@/features/core/wallet";
+import { useAdminBankTransferReview } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReview";
+import { useAdminBankTransferReviewMemo } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
 
 import {
   approvalSourceBadgeVariant,
@@ -52,7 +50,7 @@ import {
   modeBadgeVariant,
   purchaseRequestStatusBadgeVariant,
   statusBadgeVariant,
-} from "./formatters";
+} from "@/features/core/bankTransferReview/presenters";
 
 const REJECT_REASON_MAX = 500;
 const ADMIN_MEMO_MAX = 2000;
@@ -68,13 +66,9 @@ type Props = {
 export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone }: Props) {
   const open = reviewId !== null;
 
-  // reviewId が変わるたびに 1 回だけ取得 (再取得は明示的に refresh() を呼ぶ)
-  const { data, isLoading, error, mutate } = useSWR(
-    reviewId ? (["adminGetBankTransferReview", reviewId] as const) : null,
-    async ([, id]) => adminGetBankTransferReview(id),
-  );
+  // reviewId が変わるたびに 1 回だけ取得 (再取得は refresh)。ウォレットの門番の読み取りも公開 hook が返す
+  const { data, review, isLoading, error, refresh, walletEnabled } = useAdminBankTransferReview(reviewId);
 
-  const review = data?.review;
   const status = review?.status as BankTransferReviewStatus | undefined;
   const mode = review?.mode as BankTransferReviewMode | undefined;
   // pending_review / needs_check / investigating はすべて管理者の判定対象。承認/拒否ボタンを出す。
@@ -112,6 +106,7 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
             purchaseRequest={data.purchaseRequest}
             review={review}
             user={data.user}
+            walletEnabled={walletEnabled}
           />
 
           {review?.needs_check_reason ? (
@@ -132,10 +127,7 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
             <AdminMemoSection
               reviewId={reviewId}
               initialMemo={review?.admin_memo ?? null}
-              onSaved={() => {
-                onActionDone();
-                void mutate();
-              }}
+              onSaved={onActionDone}
             />
           ) : null}
 
@@ -146,7 +138,7 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
               canEscalateToInvestigating={canEscalateToInvestigating}
               onSuccess={() => {
                 onActionDone();
-                void mutate();
+                void refresh();
               }}
             />
           ) : null}
@@ -178,10 +170,12 @@ function PurchaseRequestSection({
   purchaseRequest,
   review,
   user,
+  walletEnabled,
 }: {
   purchaseRequest: Record<string, unknown> | null;
   review: BankTransferReviewDto | undefined;
   user: { id: string; name: string | null; email: string | null } | null;
+  walletEnabled: boolean;
 }) {
   if (!purchaseRequest) {
     return (
@@ -223,7 +217,12 @@ function PurchaseRequestSection({
         </Flex>
       </DefinitionRow>
       <DefinitionRow label="金額">
-        <AmountInline amount={pr.amount} paymentAmount={pr.payment_amount} walletType={pr.wallet_type} />
+        <AmountInline
+          amount={pr.amount}
+          paymentAmount={pr.payment_amount}
+          walletType={pr.wallet_type}
+          walletOpen={walletEnabled}
+        />
       </DefinitionRow>
       <DefinitionRow label="振込識別子">
         {pr.provider_order_id ?? "-"}
@@ -248,12 +247,14 @@ function AmountInline({
   amount,
   paymentAmount,
   walletType,
+  walletOpen,
 }: {
   amount: number | undefined;
   paymentAmount: number | undefined;
   walletType: string | null | undefined;
+  /** ウォレットの機能が開いているか(useAdminBankTransferReview の walletEnabled) */
+  walletOpen: boolean;
 }) {
-  const walletOpen = useGate().enabled("wallet");
   const isKnownWalletType = walletOpen && walletType != null && walletType in CURRENCY_CONFIG;
   const hasAmount = typeof amount === "number";
   const hasPaymentAmount = typeof paymentAmount === "number";
@@ -709,14 +710,17 @@ function AdminMemoSection({
   initialMemo: string | null;
   onSaved: () => void;
 }) {
-  const { showToast } = useToast();
+  // 保存・toast・一覧と詳細の取り直しは公開 hook。ここは下書きと文字数の表示だけ
+  const { save, savingId } = useAdminBankTransferReviewMemo();
   const [draft, setDraft] = useState(initialMemo ?? "");
-  const [saving, setSaving] = useState(false);
+  const saving = savingId === reviewId;
 
-  // reviewId 切り替え時 / 親で再取得時に最新値へ追従
-  useEffect(() => {
+  // reviewId 切り替え時 / 親で再取得時に最新値へ追従(effect 内の setState を避け、レンダー中に前回の値と比べる)
+  const [synced, setSynced] = useState({ reviewId, initialMemo });
+  if (synced.reviewId !== reviewId || synced.initialMemo !== initialMemo) {
+    setSynced({ reviewId, initialMemo });
     setDraft(initialMemo ?? "");
-  }, [reviewId, initialMemo]);
+  }
 
   const normalizedDraft = draft.trim();
   const normalizedInitial = (initialMemo ?? "").trim();
@@ -725,19 +729,8 @@ function AdminMemoSection({
 
   const handleSave = async () => {
     if (!dirty || overflow) return;
-    setSaving(true);
-    try {
-      await adminUpdateBankTransferReviewAdminMemo({
-        reviewId,
-        adminMemo: normalizedDraft === "" ? null : normalizedDraft,
-      });
-      showToast("管理者メモを保存しました", "success");
-      onSaved();
-    } catch (e) {
-      showToast(err(e, "管理者メモの保存に失敗しました"), "error");
-    } finally {
-      setSaving(false);
-    }
+    const saved = await save(reviewId, draft);
+    if (saved) onSaved();
   };
 
   return (

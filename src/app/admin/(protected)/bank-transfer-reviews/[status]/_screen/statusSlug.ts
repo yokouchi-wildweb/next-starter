@@ -1,22 +1,7 @@
 // src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/statusSlug.ts
 //
-// URL に出すスラッグ (kebab-case) と、API/型で扱う status enum 値 (snake_case) の対応表。
-// server / client 両方から使うため、副作用も "use client" 指示も持たない純粋なユーティリティ。
+// スラッグと status の対応表はドメインへ移した(@/features/core/bankTransferReview の STATUS_SLUG_BY_VALUE・
+// STATUS_VALUE_BY_SLUG、constants/statusSlug.ts)。ここは今までの import 先を壊さないための再 export。
+// 新しく書く物はドメインから import する(_screen は上流専用で、約束の外)。
 
-import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
-
-export const STATUS_SLUG_BY_VALUE: Record<BankTransferReviewStatus, string> = {
-  pending_review: "pending-review",
-  needs_check: "needs-check",
-  investigating: "investigating",
-  confirmed: "confirmed",
-  rejected: "rejected",
-};
-
-export const STATUS_VALUE_BY_SLUG: Record<string, BankTransferReviewStatus> = {
-  "pending-review": "pending_review",
-  "needs-check": "needs_check",
-  investigating: "investigating",
-  confirmed: "confirmed",
-  rejected: "rejected",
-};
+export { STATUS_SLUG_BY_VALUE, STATUS_VALUE_BY_SLUG } from "@/features/core/bankTransferReview/constants/statusSlug";

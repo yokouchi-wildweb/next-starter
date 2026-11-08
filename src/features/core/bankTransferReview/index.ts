@@ -16,6 +16,25 @@ export {
   BANK_TRANSFER_REVIEW_APPROVAL_SOURCES,
 } from "./entities/schema";
 
+// 管理画面の URL のスラッグ ↔ status(server からも読む純粋な表。server 側は constants/statusSlug を直に import してよい)
+export { STATUS_SLUG_BY_VALUE, STATUS_VALUE_BY_SLUG } from "./constants/statusSlug";
+
+// 表示整形
+export {
+  formatBankTransferDate,
+  formatJpyAmount,
+  formatModeLabel,
+  modeBadgeVariant,
+  formatStatusLabel,
+  statusBadgeVariant,
+  formatNeedsCheckReasonLabel,
+  formatNeedsCheckContextSummary,
+  formatApprovalSourceLabel,
+  approvalSourceBadgeVariant,
+  formatPurchaseRequestStatusLabel,
+  purchaseRequestStatusBadgeVariant,
+} from "./presenters";
+
 // クライアント側 API
 // 注: サーバー側 service (bankTransferReviewService) は import するとサーバー専用依存
 // (drizzle, db) を巻き込むため barrel には含めない。サーバー側で必要な場合は

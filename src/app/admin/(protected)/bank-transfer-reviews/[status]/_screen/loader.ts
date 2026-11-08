@@ -11,7 +11,7 @@ import { notFound } from "next/navigation";
 import type { ScreenProps } from "@/lib/screens/types";
 import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
 
-import { STATUS_VALUE_BY_SLUG } from "./statusSlug";
+import { STATUS_VALUE_BY_SLUG } from "@/features/core/bankTransferReview/constants/statusSlug";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export type AdminBankTransferReviewsScreenParams = { status: string };

@@ -1,15 +1,14 @@
 // src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewListPanel.tsx
 //
 // 銀行振込レビュー管理画面のメインコンテナ。
-// status タブ・ページング・モーダル開閉などの状態を一括で管理する。
-// status タブは Screen が AdminPage の center に置く(./StatusTabs の BankTransferStatusTabs)。件数は ./useStatusCounts を共有する。
+// モーダル開閉の状態を持ち、一覧・ページ・選択・管理者メモの保存は公開 hook(useAdminBankTransferReviewList・useAdminBankTransferReviewMemo)を呼ぶ。
+// status タブは Screen が AdminPage の center に置く(./StatusTabs の BankTransferStatusTabs)。件数は同じキーの公開 hook useAdminBankTransferReviewStatusCounts。
 // CSV 一括取込ボタンは全タブ共通でページ上部に常設する。
 
 "use client";
 
-import { useCallback, useMemo, useState, type Key } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import useSWR from "swr";
+import { useCallback, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Upload } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
@@ -18,18 +17,14 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
-import {
-  adminListBankTransferReviews,
-  adminUpdateBankTransferReviewAdminMemo,
-  type BankTransferReviewStatus,
-} from "@/features/core/bankTransferReview";
+import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
+import { useAdminBankTransferReviewList } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewList";
+import { useAdminBankTransferReviewMemo } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
 import { err } from "@/lib/errors";
-import { useToast } from "@/lib/toast";
 
 import { BankTransferReviewTable } from "./BankTransferReviewTable";
 import { BankTransferReviewDetailModal } from "./BankTransferReviewDetailModal";
 import { BankTransferReviewCsvImportDialog } from "./BankTransferReviewCsvImportDialog";
-import { useStatusCounts } from "./useStatusCounts";
 
 const PAGE_LIMIT = 100;
 
@@ -39,82 +34,43 @@ type Props = {
 };
 
 export function BankTransferReviewListPanel({ status }: Props) {
-  const params = useSearchParams();
   const pathname = usePathname();
-  const { showToast } = useToast();
-  // SearchBox は URL クエリ駆動なので、ここでは読み取り側として使う
-  const searchQuery = params.get("searchQuery") ?? "";
 
-  const [page, setPage] = useState(1);
   const [detailReviewId, setDetailReviewId] = useState<string | null>(null);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
-  // バルクアクション用にチェックボックスで選択中の行キー（review.id）
-  const [selectedKeys, setSelectedKeys] = useState<Key[]>([]);
 
-  // タブ・検索が変わったら 1 ページ目に戻し、ページを含むスコープが変わったら
-  // 選択を解除する。振込レビューはページングのため、ページを跨いだ選択は保持
-  // しない（一斉送信の対象は表示中ページ内の最大 PAGE_LIMIT 件）。effect 内
-  // setState を避けるため、レンダー中に前回スコープと比較する（React 推奨パターン）。
-  const [prevSelectionScope, setPrevSelectionScope] = useState({
-    status,
-    searchQuery,
+  // 一覧・ページ・選択(範囲が変わると初期化)と、一覧 + status 別件数の取り直し(refresh)は公開 hook が持つ。
+  // 一斉送信の対象は表示中ページ内の最大 PAGE_LIMIT 件
+  const {
+    data,
+    items,
+    total,
+    totalPages,
     page,
-  });
-  if (
-    prevSelectionScope.status !== status ||
-    prevSelectionScope.searchQuery !== searchQuery
-  ) {
-    setPrevSelectionScope({ status, searchQuery, page: 1 });
-    setPage(1);
-    setSelectedKeys([]);
-  } else if (prevSelectionScope.page !== page) {
-    setPrevSelectionScope({ status, searchQuery, page });
-    setSelectedKeys([]);
-  }
+    setPage,
+    selectedKeys,
+    setSelectedKeys,
+    isLoading,
+    error,
+    refresh,
+  } = useAdminBankTransferReviewList({ status, limit: PAGE_LIMIT });
+  const { save: saveAdminMemo } = useAdminBankTransferReviewMemo();
 
-  const swrKey = useMemo(
-    () => ["adminListBankTransferReviews", status, searchQuery, page] as const,
-    [status, searchQuery, page],
-  );
-
-  const { data, isLoading, error, mutate } = useSWR(swrKey, async () => {
-    return adminListBankTransferReviews({
-      status,
-      searchQuery: searchQuery || undefined,
-      page,
-      limit: PAGE_LIMIT,
-    });
-  });
-
-  // status 別件数(ヘッダーの行の中央のタブと同じ SWR のキー)。一覧の操作の後の mutate でタブの件数も取り直す
-  const { mutate: mutateStatusCounts } = useStatusCounts();
-
-  const handleCsvImportDone = useCallback(() => {
-    void mutate();
-    void mutateStatusCounts();
-  }, [mutate, mutateStatusCounts]);
+  const handleRefresh = useCallback(() => {
+    void refresh();
+  }, [refresh]);
 
   // 一覧の「管理者メモ」列のインライン編集（発送リクエスト一覧と同じ運用）。
   // メール一斉送信での送付履歴追記もこの列に反映される。
   const handleAdminMemoChange = useCallback(
     async (reviewId: string, memo: string) => {
-      showToast({
-        message: "メモを保存中…",
-        variant: "loading",
-        mode: "persistent",
+      await saveAdminMemo(reviewId, memo, {
+        saving: "メモを保存中…",
+        success: "管理者メモを更新しました",
+        failure: "管理者メモの更新に失敗しました",
       });
-      try {
-        await adminUpdateBankTransferReviewAdminMemo({
-          reviewId,
-          adminMemo: memo,
-        });
-        showToast("管理者メモを更新しました", "success");
-        void mutate();
-      } catch (error) {
-        showToast(err(error, "管理者メモの更新に失敗しました"), "error");
-      }
     },
-    [mutate, showToast],
+    [saveAdminMemo],
   );
 
   // SearchBox 用: 現在のパスを保ちつつ URLSearchParams を差し替えるリンク生成器
@@ -126,9 +82,6 @@ export function BankTransferReviewListPanel({ status }: Props) {
     [pathname],
   );
 
-  const items = data?.items ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
   const start = total === 0 ? 0 : (page - 1) * PAGE_LIMIT + 1;
   const end = Math.min(page * PAGE_LIMIT, total);
   const hasItems = items.length > 0;
@@ -207,9 +160,7 @@ export function BankTransferReviewListPanel({ status }: Props) {
             onSelect={setDetailReviewId}
             selectedKeys={selectedKeys}
             onSelectionChange={setSelectedKeys}
-            onBulkActionDone={() => {
-              void mutate();
-            }}
+            onBulkActionDone={handleRefresh}
             onAdminMemoChange={handleAdminMemoChange}
           />
         ) : (
@@ -226,18 +177,13 @@ export function BankTransferReviewListPanel({ status }: Props) {
       <BankTransferReviewDetailModal
         reviewId={detailReviewId}
         onClose={() => setDetailReviewId(null)}
-        onActionDone={() => {
-          // 一覧と詳細の両方を再取得する。詳細モーダル側でも自身の SWR を refresh する。
-          // status 遷移を伴うアクションでタブ件数も変わるので併せて mutate する。
-          void mutate();
-          void mutateStatusCounts();
-        }}
+        onActionDone={handleRefresh}
       />
 
       <BankTransferReviewCsvImportDialog
         open={csvDialogOpen}
         onOpenChange={setCsvDialogOpen}
-        onImportDone={handleCsvImportDone}
+        onImportDone={handleRefresh}
       />
     </>
   );

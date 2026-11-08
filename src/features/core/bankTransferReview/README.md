@@ -288,8 +288,9 @@
 - `adminGetBankTransferReview(id)`
 - `adminConfirmBankTransferReview(id)`
 - `adminRejectBankTransferReview({ reviewId, rejectReason })`
+- ほか `adminInvestigateBankTransferReview` / `adminGetBankTransferReviewStatusCounts` / `adminUpdateBankTransferReviewAdminMemo` / `adminBulkImportBankTransferReviewCsv` / `adminBulkSendBankTransferReviewEmail`
 
-`normalizeHttpError` を統一適用済み。UI 側は axios を直接書かない。
+管理画面の部品は client 関数を直に呼ばず、8 章の公開 hook を呼ぶ。`normalizeHttpError` を統一適用済み。UI 側は axios を直接書かない。
 
 ---
 
@@ -383,10 +384,32 @@
 
 ### 管理者側
 
-| 画面 | パス | 役割 | 実装状況 |
-|---|---|---|---|
-| 一覧画面 | `src/app/admin/(protected)/bank-transfer-reviews/page.tsx` | status/mode フィルタ + ページネーション | **未実装** |
-| 詳細モーダル | 上記内 | 画像拡大表示 + 承認/拒否アクション | **未実装** |
+| 画面 / 部品 | パス | 役割 |
+|---|---|---|
+| 一覧画面(status ごとのタブ) | `src/app/admin/(protected)/bank-transfer-reviews/[status]/page.tsx` → `_screen/AdminBankTransferReviewsScreen.tsx` | URL のスラッグ(`STATUS_VALUE_BY_SLUG`)で status を決め、タブ・一覧・ページング・検索・CSV 一括判定 |
+| タブ | `_screen/StatusTabs.tsx` | status 別件数付きのタブ(`useAdminBankTransferReviewStatusCounts`) |
+| 一覧 | `_screen/BankTransferReviewListPanel.tsx` + `BankTransferReviewTable.tsx` | `useAdminBankTransferReviewList` と `useAdminBankTransferReviewMemo` を呼んで描く。一斉送信は表の一括操作 |
+| 詳細モーダル | `_screen/BankTransferReviewDetailModal.tsx` | `useAdminBankTransferReview` の詳細と、承認 / 拒否 / 検証中への移行・管理者メモ |
+| CSV 取り込み | `_screen/BankTransferReviewCsvImportDialog.tsx` | 振込明細 CSV の dry-run と一括判定 |
+
+`_screen` 部品は上流専用・約束なし(引数は足さない)。見た目を変える fork は同じルートの `_components/` の Screen で下の公開 hook を呼び、自分の markup で描く(処理は写さない)。
+
+### 管理画面の公開 hook(読む側)
+
+`@/features/core/bankTransferReview/hooks/<名前>` から import する。SWR のキーは `hooks/adminBankTransferReviewKeys.ts`(`ADMIN_BANK_TRANSFER_REVIEW_KEYS` と組み立て関数、`refreshAdminBankTransferReviewCaches(mutate, kinds)`)の 1 か所。
+
+| hook | 引数 | 戻り値 |
+| --- | --- | --- |
+| `useAdminBankTransferReviewStatusCounts({ searchQuery? })` | `searchQuery?: string`(省略 = URL の `?searchQuery=`) | SWR の戻り値(`data?.counts` = status ごとの件数) |
+| `useAdminBankTransferReviewList({ status, searchQuery?, limit? })` | `status: BankTransferReviewStatus` / `searchQuery?: string`(省略 = URL の `?searchQuery=`) / `limit?: number`(既定 20、最大 100) | `{ data, items, total, totalPages, page, setPage, selectedKeys, setSelectedKeys, searchQuery, isLoading, error, refresh }` |
+| `useAdminBankTransferReview(reviewId)` | `reviewId: string \| null`(null の間は取得しない) | `{ data, review, isLoading, error, refresh, walletEnabled }` |
+| `useAdminBankTransferReviewMemo()` | なし | `{ save(reviewId, memo, messages?), savingId, isSaving }` |
+
+- `useAdminBankTransferReviewList`: status か検索語が変わると 1 ページ目に戻して選択を空にし、ページを移ると選択を空にする(ページを跨いだ選択は持たない)。`refresh()` = 一覧と status 別件数を取り直す(承認・CSV 取り込み・一斉送信の後)
+- `useAdminBankTransferReview`: `data` = 詳細 API の応答(`purchaseRequest` / `user` / `reviewer`)。`walletEnabled` = ウォレットの機能が開いているか(閉じているときは通貨の部品を使わず付与額を数字で出す)
+- `useAdminBankTransferReviewMemo`: `save` はメモの前後の空白を落とし空なら null(削除)で送り、成功で success の toast と一覧・詳細の取り直しをして `true`、失敗は error の toast で `false`(投げない)。`messages = { saving?, success?, failure? }` で文言を替える(`saving` を渡すと保存中の loading の toast を出す)
+- スラッグと status の対応表 `STATUS_SLUG_BY_VALUE` / `STATUS_VALUE_BY_SLUG`(`constants/statusSlug.ts`、server からも読める)と表示整形(`presenters.ts`: `formatBankTransferDate` / `formatJpyAmount` / `formatStatusLabel` / `statusBadgeVariant` ほか)は `@/features/core/bankTransferReview` から import する(`_screen` の `statusSlug.ts` / `formatters.ts` / `useStatusCounts.ts` は今までの import 先を壊さないための再 export)
+- 単体テスト: `pnpm test src/features/core/bankTransferReview/hooks/adminBankTransferReviewHooks.test.tsx`
 
 ---
 

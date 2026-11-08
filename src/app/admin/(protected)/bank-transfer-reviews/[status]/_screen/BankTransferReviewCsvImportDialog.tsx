@@ -35,7 +35,7 @@ import {
   type BankTransferReviewImportRowDto,
 } from "@/features/core/bankTransferReview";
 
-import { formatJpyAmount } from "./formatters";
+import { formatJpyAmount } from "@/features/core/bankTransferReview/presenters";
 
 type Props = {
   open: boolean;
