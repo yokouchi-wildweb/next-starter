@@ -78,15 +78,16 @@ export default { duration: 5000 } satisfies ToastOverride;
 
 lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 クエスト = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の右の確かめが通ってから次へ進む。
 
-0. **始める前**: 同じ lib を他の作業(受信箱の指令・クエスト・ギルド)が触っていないか確かめる。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
+0. **始める前**: 同じ lib を他の作業(受信箱の指令・クエスト・ギルド)が触っていないか確かめる(受信箱 `~/.team/orders/<repo-id>/` の指令に lib の名前が出ないか・進行中の作業の範囲に lib のフォルダが入っていないか)。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
 1. **依存を洗い出す**: lib の中から外を読む import を一覧にし、lib / 棚(`@/components`)/ hooks・utils / `@/config` / features・app に仕分ける。features・app・`@/config` は読めない(D83)→ 引数・注入で受けるか、値なら手順 6 の設定にする
    - 確かめ: `git grep -nE "from ['\"]@/" -- src/lib/<name>` と、相対で lib の外へ出る `git grep -n "from ['\"]\.\./\.\./" -- src/lib/<name>`
 2. **hooks / utils**: 読んでいる hooks・utils が他の lib や外からも使われる → 独立した小さな lib にする(`isClient`・`frameDims` の形で、この手順を先にその lib に当てる)。この lib だけが使う → lib の中へ移す(D93)。移したら呼び手を新しい場所へ直し、古いファイルは消す(`git mv`)
    - 確かめ: `git grep -n "@/hooks/<x>" -- src scripts` が 0
 3. **自分を相対で読む**: lib の中で自分を `@/lib/<name>` で読む import を相対パスに直す(D100。宣言の後は lint `lib-self-relative` が止める)
-   - 確かめ: `git grep -n "@/lib/<name>" -- src/lib/<name>` が 0
+   - 確かめ: `git grep -nE "@/lib/<name>(/|['\"])" -- src/lib/<name>` が 0(区切りを付ける: `@/lib/request` だけだと `@/lib/requestMemo` にも当たる)
 4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = 別の指令)。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・上の「lib の package.json(宣言の形)」
-   - 確かめ: `pnpm check lib-package`(形の問題が 0)
+   - 確かめ: `pnpm check lib-package`(形の問題が 0。tsconfig.json が無い問題は残るので手順 5 で直す)
+   - package.json を置いた時から lint `lib-entry` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
 5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
    - 確かめ: `pnpm check lib-package`(その lib の単体の型検査が通る)
 6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む。上流の空の上書き `src/config/lib/<name>.config.ts` を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す(L1.23)。上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: 上の「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)
@@ -95,7 +96,8 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
    - 確かめ: `pnpm lint`(lib-entry の innerImport が 0)・`git grep -n "@/lib/<name>/" -- src scripts` が 0
 8. **sideEffects**(D86): 既定は書かない。読み込んだだけで動く物(store を作る・登録を呼ぶ・CSS を読む)がある lib に `false` を置くと検査が止める。書くのは読み込み量を測って増えた所だけ
 9. **検査を回す**: `pnpm check lib-package -- --list`(その lib が `closed`)・`pnpm lint`・`pnpm typecheck`・`pnpm test src/lib/<name>`・`pnpm check --gate=ship`。client で読む lib・設定を持つ lib は `pnpm build` も
-10. **moved: の行を書く**: 消えた・動いた古い指定子ごとに `moved: <古い指定子> -> <新しい入口>` を、コミットの本文とクエストの RESOLUTION の notes: に書く(fork への notice の材料)。名前を消した・変えたときはその名前と代わりも書く
+   - テストの無い lib は `pnpm test src/lib/<name>` が「選んだテストは 0 本」で通る(exit 0)。閉じる作業でテストを足す決まりは無い(手順 6 の上書きのテストは別)
+10. **moved: の行を書く**: 消えた・動いた古い指定子ごとに `moved: <古い指定子> -> <新しい入口>` を、コミットの本文とクエストの RESOLUTION の notes: に書く(fork への notice の材料)。ギルドなら竣工報告の notes: に書く。名前を消した・変えたときはその名前と代わりも書く
     - 例: `moved: @/hooks/useIsClient -> @/lib/isClient` | `moved: @/lib/toast/useToast -> @/lib/toast` | `moved: TOAST_DEFAULT_DURATION(@/lib/toast/constants) -> src/config/lib/toast.config.ts の duration`
 
 落とし穴:
