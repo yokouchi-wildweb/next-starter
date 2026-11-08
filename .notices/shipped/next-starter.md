@@ -328,3 +328,4 @@
 - id:20261107-111435-app-env-single-reader | severity:action-required | checkpoint:app-env-single-reader
 - id:20261107-114509-user-acquisition-channels | severity:action-required | checkpoint:user-acquisition-channels
 - id:20261107-190430-remove-e2e-fixture-route | severity:action-required | checkpoint:remove-e2e-fixture-route
+- id:20261108-095729-feature-gate-open-switch | severity:info | checkpoint:feature-gate-open-switch
