@@ -197,9 +197,9 @@ export const rule: FeatureGateRule = {
 道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/operations/features/`）。
 
 - `pnpm ops features list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
-- `pnpm ops features set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、その `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（`closable` のひな形の形、L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
+- `pnpm ops features set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、書き先は持ち主の形で決まる: その `config.ts` が上書き `@/config/features/<名前>.config` を合成する持ち主なら、上書き `src/config/features/<名前>.config.ts` の `export default { … }` の直下の `enabled` を書く(無ければ先頭に足す。値はいつも `true|false` を書き、既定と同じでも消さない。型の行・他のキーはそのまま。目録 D19・L1.26)。上書きを持たない持ち主は `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
 - `pnpm ops features set` は `db:push`・`pnpm generate extensions` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
-- 上流の規則は今どれも共有の config（`APP_FEATURES` など）を読むので `pnpm ops features set` は場所の案内だけになる。入切の値がドメインの config へ移った規則から書けるようになる
+- 上流の規則の多くはまだ共有の config（`APP_FEATURES` など）を読むので、それらは場所の案内だけになる。入切の値が持ち主の config(と上書き)へ移った規則から書ける(今は `sampleDomain` → `src/config/features/sample.config.ts`)
 
 ### 依存の検査
 

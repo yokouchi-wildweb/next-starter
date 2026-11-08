@@ -368,3 +368,4 @@
 - id:20261109-065309-date-default-fallback | severity:info | checkpoint:date-default-fallback
 - id:20261109-071019-provider-profile-image-drop | severity:action-required | checkpoint:provider-profile-image-drop
 - id:20261109-071953-rate-limit-config-home | severity:breaking | checkpoint:config-rate-limit | moved:src/config/app/rate-limit.config.ts -> src/features/core/rateLimit/config.ts
+- id:20261109-073132-features-set-override | severity:info | checkpoint:features-set-override

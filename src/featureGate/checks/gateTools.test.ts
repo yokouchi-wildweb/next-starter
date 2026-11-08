@@ -198,7 +198,7 @@ import { join } from "node:path";
 
 import { describeFeatures, planFeatureSetFromText, readFeatureReport } from "@/featureGate/node";
 import { findCallSites } from "@/featureGate/node/describe";
-import { readRuleConfigTarget, rewriteConfigEnabled } from "@/featureGate/node/setEnabled";
+import { readOverrideFile, readRuleConfigTarget, rewriteConfigEnabled, rewriteOverrideEnabled } from "@/featureGate/node/setEnabled";
 
 const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
   ({ name, pathPatterns: ["/x", "/api/x", "/admin/settings/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
@@ -265,6 +265,44 @@ test("pnpm ops features set の読み取り: core のドメイン・入れ子の
   assert.deepEqual(readRuleConfigTarget('import { W_CONFIG } from "@/features/core/wallet/config";\nexport const rule = { enabled: () => W_CONFIG.enabled };\n'), { constName: "W_CONFIG", folder: "core/wallet" });
   assert.equal(rewriteConfigEnabled("export const S_CONFIG = { enabled: true, sub: { enabled: false } };\n", "S_CONFIG", false), null);
   assert.equal(rewriteConfigEnabled("export const OTHER = { enabled: true };\n", "S_CONFIG", false), null);
+});
+
+const OWNER_CONFIG = 'import override from "@/config/features/shop.config";\nimport { defineConfig } from "@/lib/defineConfig";\n\nconst defaults = { enabled: true };\nexport const SHOP_CONFIG = defineConfig(defaults).compose(override);\n';
+const OVERRIDE_HEAD = '// 上書き\nimport type { ShopOverride } from "@/features/shop/config";\n\n';
+
+test("pnpm ops features set の計画: 上書きを合成する持ち主は上書きの enabled を書く(目録 D19、L1.26 = いつも true|false)", () => {
+  const cfg = (f: string) => `src/features/${f}/config.ts`;
+  const plan = (override: string | null, value: boolean) =>
+    planFeatureSetFromText({
+      ruleText: RULE_WRITABLE,
+      configFile: cfg,
+      readConfig: (f) => ({ "src/features/shop/config.ts": OWNER_CONFIG, "src/config/features/shop.config.ts": override })[f] ?? null,
+      value,
+      requiredReason: null,
+    });
+  // 空の上書き → { enabled: false }。既定と同じ on でも書く
+  const empty = plan(`${OVERRIDE_HEAD}export default {} satisfies ShopOverride;\n`, false);
+  assert.ok(empty.kind === "write" && empty.configFile === "src/config/features/shop.config.ts");
+  if (empty.kind === "write") assert.equal(empty.after, `${OVERRIDE_HEAD}export default { enabled: false } satisfies ShopOverride;\n`);
+  const on = plan(`${OVERRIDE_HEAD}export default {} satisfies ShopOverride;\n`, true);
+  assert.ok(on.kind === "write" && on.changed && on.after.includes("{ enabled: true }"));
+  // 既にある enabled を書き換え、他のキー・型の行・文字列の中の括弧はそのまま
+  const existing = `${OVERRIDE_HEAD}export type Extra = { note: string };\n\nexport default {\n  limit: 5,\n  enabled: true,\n  note: "{{X}} } {",\n  sub: { enabled: true },\n} satisfies ShopOverride<Extra>;\n`;
+  const rewritten = plan(existing, false);
+  assert.ok(rewritten.kind === "write");
+  if (rewritten.kind === "write") assert.equal(rewritten.after, existing.replace("  enabled: true,\n  note", "  enabled: false,\n  note"));
+  // 複数行の上書きに enabled が無ければ先頭に足す(入れ子の enabled は数えない)
+  const multi = plan(`${OVERRIDE_HEAD}export default {\n  limit: 5,\n  sub: { enabled: true },\n} satisfies ShopOverride;\n`, false);
+  assert.ok(multi.kind === "write" && multi.after.includes("export default {\n  enabled: false,\n  limit: 5,\n  sub: { enabled: true },"));
+  // 上書きが無い・default export がオブジェクトでない → 書かない
+  const missing = plan(null, false);
+  assert.ok(missing.kind === "unwritable" && /shop\.config\.ts が無い/.test(missing.why));
+  const notObject = plan(`${OVERRIDE_HEAD}const x = {};\nexport default x;\n`, false);
+  assert.ok(notObject.kind === "unwritable" && /オブジェクトのリテラル/.test(notObject.why));
+  // 上書きを持たない持ち主は今どおり config.ts のリテラル
+  assert.equal(readOverrideFile(CONFIG), null);
+  assert.equal(readOverrideFile(OWNER_CONFIG), "src/config/features/shop.config.ts");
+  assert.equal(rewriteOverrideEnabled("export default { enabled: true, a: { enabled: false }, enabled: false };\n", true), null);
 });
 
 test("readFeatureReport: 上流の全規則で動く(依存は依存の検査の走査と同じ物)", async () => {

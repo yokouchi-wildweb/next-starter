@@ -2,7 +2,9 @@
 //
 // 機能の入切を書き換える(L1.19)。書けるのは、規則の enabled が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み
 // (`enabled: () => X_CONFIG.enabled`、X_CONFIG は `@/features/<d>/config` からの import)、その config.ts の
-// `export const X_CONFIG = { … enabled: true|false … }` にリテラルの enabled が 1 つだけあるときだけ(closable のひな形・値の移動の後の形)。
+// `export const X_CONFIG = { … enabled: true|false … }` にリテラルの enabled が 1 つだけあるとき(上書きを持たない持ち主)、または
+// その config.ts が上書き `@/config/features/<名前>.config` を合成する持ち主のとき(closable のひな形・値の移動の後の形、目録 D19)。
+// 上書きを持つ持ち主は上書きの default export の直下の enabled を書く(無ければ足す)。値はいつも true|false を書く(L1.26: 既定と同じでも消さない)。
 // それ以外は書かずに、規則の enabled の字面(値を読む場所)を返す。必須(required/)の機能を off にはしない。
 // db:push・pnpm generate extensions は打たない(開けたら db:push が要ると案内する)。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
@@ -51,6 +53,72 @@ export function rewriteConfigEnabled(configText: string, constName: string, valu
   return configText.slice(0, open) + replaced + configText.slice(end + 1);
 }
 
+/** config.ts が合成する上書き(`import x from "@/config/features/<名前>.config"`)の repo 相対のパス。無ければ null */
+export function readOverrideFile(configText: string): string | null {
+  const match = /^\s*import\s+[A-Za-z_$][\w$]*\s*(?:,\s*\{[^}]*\})?\s*from\s*["']@\/config\/features\/([^"']+)\.config["']/m.exec(stripComments(configText));
+  return match ? `src/config/features/${match[1]}.config.ts` : null;
+}
+
+/** text の open の位置の { に対応する } の位置(文字列・template・コメントは飛ばす)。直下(深さ 1)の範囲も返す。合わなければ null */
+function scanObject(text: string, open: number): { end: number; topLevel: Array<[number, number]> } | null {
+  let depth = 0;
+  let segmentStart = open + 1;
+  const topLevel: Array<[number, number]> = [];
+  for (let i = open; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      for (i += 1; i < text.length && text[i] !== ch; i += 1) if (text[i] === "\\") i += 1;
+      continue;
+    }
+    if (ch === "/" && text[i + 1] === "/") {
+      i = text.indexOf("\n", i);
+      if (i < 0) return null;
+      continue;
+    }
+    if (ch === "/" && text[i + 1] === "*") {
+      i = text.indexOf("*/", i + 2) + 1;
+      if (i <= 0) return null;
+      continue;
+    }
+    if (ch === "{" || ch === "[" || ch === "(") {
+      if (depth === 1) topLevel.push([segmentStart, i]);
+      depth += 1;
+    } else if (ch === "}" || ch === "]" || ch === ")") {
+      depth -= 1;
+      if (depth === 1) segmentStart = i + 1;
+      if (depth === 0) {
+        topLevel.push([segmentStart, i]);
+        return { end: i, topLevel };
+      }
+    }
+  }
+  return null;
+}
+
+/** 上書きの本文の default export の直下の enabled を value にした本文(無ければ先頭に足す)。default export がオブジェクトのリテラルでなければ null */
+export function rewriteOverrideEnabled(overrideText: string, value: boolean): string | null {
+  const head = /export\s+default\s*\{/.exec(overrideText);
+  if (!head) return null;
+  const open = head.index + head[0].length - 1;
+  const scanned = scanObject(overrideText, open);
+  if (!scanned) return null;
+  const hits: Array<{ start: number; end: number }> = [];
+  for (const [from, to] of scanned.topLevel) {
+    const piece = overrideText.slice(from, to);
+    for (const m of piece.matchAll(/(^|[\s{,])enabled\s*:\s*(true|false)\b/g)) {
+      const start = from + m.index + m[1].length;
+      hits.push({ start, end: from + m.index + m[0].length });
+    }
+  }
+  if (hits.length > 1) return null;
+  if (hits.length === 1) return overrideText.slice(0, hits[0].start) + `enabled: ${value}` + overrideText.slice(hits[0].end);
+  const inner = overrideText.slice(open + 1, scanned.end);
+  if (inner.trim() === "") return `${overrideText.slice(0, open)}{ enabled: ${value} }${overrideText.slice(scanned.end + 1)}`;
+  const newline = /^[ \t]*\n([ \t]*)/.exec(inner);
+  const insert = newline ? `\n${newline[1]}enabled: ${value},` : ` enabled: ${value},`;
+  return overrideText.slice(0, open + 1) + insert + overrideText.slice(open + 1);
+}
+
 /** 入切の計画(純関数): 規則の本文・config の本文(無ければ null)・必須の理由(無ければ null) */
 export function planFeatureSetFromText(input: {
   ruleText: string;
@@ -65,6 +133,17 @@ export function planFeatureSetFromText(input: {
   const configFile = input.configFile(target.folder);
   const before = input.readConfig(configFile);
   if (before === null) return { kind: "unwritable", why: `${configFile} が無い`, enabledSource: `${target.constName}.enabled` };
+  // 上書きを合成する持ち主: 書き先は上書き(目録 D19・L1.26)
+  const overrideFile = readOverrideFile(before);
+  if (overrideFile !== null) {
+    const overrideBefore = input.readConfig(overrideFile);
+    if (overrideBefore === null) return { kind: "unwritable", why: `${overrideFile} が無い`, enabledSource: `${target.constName}.enabled` };
+    const overrideAfter = rewriteOverrideEnabled(overrideBefore, input.value);
+    if (overrideAfter === null) {
+      return { kind: "unwritable", why: `${overrideFile} の default export がオブジェクトのリテラルでないか、直下の enabled: true|false が 2 つ以上ある`, enabledSource: `${target.constName}.enabled` };
+    }
+    return { kind: "write", configFile: overrideFile, before: overrideBefore, after: overrideAfter, changed: overrideBefore !== overrideAfter };
+  }
   const after = rewriteConfigEnabled(before, target.constName, input.value);
   if (after === null) {
     return { kind: "unwritable", why: `${configFile} の ${target.constName} にリテラルの enabled: true|false が 1 つだけ無い`, enabledSource: `${target.constName}.enabled` };

@@ -46,6 +46,10 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。
 
+## 機能の入切の道具
+
+閉じられる機能の入切(`enabled`)は上書き `features/<名前>.config.ts` に書く。手で書いてもよく、`pnpm ops features set <規則名> on|off` も同じ所に `enabled: true|false` を書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)。
+
 ## 移行中のもの
 
 `app/`・`ui/` と直下の `business.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻。法務の文書は `features/legal.config.ts`(持ち主 `src/features/core/legal`)へ移った。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 4 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。
