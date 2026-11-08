@@ -8,7 +8,7 @@
 // - 載せるのは tier で強さが変わらない error の規則だけ(守り・境界の規則)。tier で強さが変わる規則
 //   (field-type-guard・core-ui-guards・style-tokens・client-service-boundary)と warn の規則は載せない
 // - fork が規則を足す・一覧の外の規則を緩めるのは自由。行ごとの理由付き eslint-disable も今まで通り使える
-// - 統一の入口の lint(棚の議会 D82)は実装したときにここへ足す
+// - lib の入口の lint(棚の議会 D82)= lib-entry・lib-self-relative(package.json を持つ lib にだけ効くが、設定は全ファイルに掛かる)
 // - files = その規則が掛かる代表のファイル(repo 相対)。example: true の行は、upstream にまだ該当ファイルが無い置き場の例
 //   (パスで設定を引くので、ファイルが無くても判定できる)
 
@@ -28,6 +28,11 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "import-boundaries/scripts-no-static-wiring", files: ["scripts/runner/task/run.ts", "src/features/sample/scripts/tasks/example.ts", ".notices/20261101-000200-lib-boundaries.crud-entry-split.mjs"], example: true },
   { rule: "import-boundaries/seed-reader", files: ["src/features/sample/components/x.tsx", "scripts/runner/seed/run.ts"], example: true },
   { rule: "import-boundaries/tools-no-db-write", files: ["scripts/operations/features/set.ts", "src/features/sample/scripts/tasks/example.ts", "src/features/sample/seed.ts"], example: true },
+  {
+    rule: "import-boundaries/lib-entry",
+    files: ["src/features/core/auth/services/server/registration.ts", "src/lib/drizzle/index.ts", "scripts/runner/task/run.ts", "eslint.config.mjs"],
+  },
+  { rule: "import-boundaries/lib-self-relative", files: ["src/lib/drizzle/index.ts"] },
   { rule: "page-authz/layout-no-server-data", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   {
     rule: "page-authz/session-api-callsite",

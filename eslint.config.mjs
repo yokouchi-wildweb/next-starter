@@ -117,6 +117,18 @@ const config = [
       "import-boundaries/seed-reader": "error",
     },
   },
+  // lib の入口(全 Tier error、package.json を持つ lib にだけ効く。L1.21。宣言の読み手 src/lib/libPackage):
+  // - lib-entry: 外からは exports の入口だけ、宣言済みの lib は "libs" の lib の入口・"peers" の棚・@lib-config/<自分> だけを読む(D80・D83・D84)
+  // - lib-self-relative: 宣言済みの lib の中で自分を @/lib/<自分> で読まない(相対パスで読む。D100)
+  // scripts・テスト・.notices・eslint 設定からの読みも対象(D84)
+  {
+    files: ["**/*.{ts,tsx,mts,mjs,js,cjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/lib-entry": "error",
+      "import-boundaries/lib-self-relative": "error",
+    },
+  },
   // - link-via-shelf: next/link を直接 import しない(棚の Link が閉じた機能の住所を自動で隠す。D14・L1.9)。
   //   強さは field-type-guard と同じく Tier で切り替える(libOwnership.isRoot = src/lib/CATALOG.md の先頭の節が自分):
   //   Tier1 は全部 error、fork は閉じられる住所の字面を持つファイルだけ warn。テストは対象外

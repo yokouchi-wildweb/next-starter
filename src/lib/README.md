@@ -25,6 +25,33 @@ lib の 1 つ 1 つは地区(district)の 1 種(ほかはドメイン・枠・pr
 
 所有者 ID = 各リポの fork の名前（`.claude/rules/project.md` の `fork_id:`、読み手は `src/lib/forkOwnership/forkIds.mjs`）。origin の URL からは導かない。`.notices/applied/<fork_id>.md` の名前と同じ。
 
+## lib の package.json(宣言の形)
+
+lib は `src/lib/<name>/package.json` で「外から読める入口」と「自分が読む物」を宣言する。読み手は 1 つ [`libPackage/`](./libPackage/README.md)(lint・単体用 tsconfig の検査・閉じたかの検査が同じものを読む)。
+
+```json
+{
+  "exports": { ".": "./index.ts", "./server": "./server.ts" },
+  "libs": ["cn"],
+  "peers": ["components"],
+  "sideEffects": false
+}
+```
+
+- `exports`(必須): 入口の一覧。**鍵 = 実パス**(`"."` = `./index.<ext>`、`"./x"` = `./x.<ext>` か `./x/index.<ext>`)。値は lib の中の実在するファイル 1 つ。パターン `./*`・条件分け(`import` / `default` など)・配列は使わない
+- `libs`: この lib が読む他の lib の名前(`src/lib/<name>`)。読むのはその lib の入口だけ
+- `peers`: 共有の同一性が要る棚(今は `components` = `src/components` だけ)
+- `sideEffects`: 書かないのが既定。測って要る所だけ `false` か副作用のあるファイルの一覧(副作用を持つ lib に `false` を置くのはテストで止める)
+- `name`・`dependencies` など他のキーは書かない(lib は `@/lib/<name>` で読む。`dependencies` は npm の更新の道具が本物の依存と読み違える)
+- 上書き(設定)は指定子 `@lib-config/<自分>` だけで読む
+
+lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
+
+- `lib-entry`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>` と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
+- `lib-self-relative`: 宣言済みの lib の中では自分を `@/lib/<自分>` で読まず相対パスで読む
+
+今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す(全部閉じた段で error)。本当に要る例外は理由つきの `eslint-disable`。
+
 ## 目録の検査（`pnpm test src/lib/folderCatalog/catalog.test.mjs`）
 
 - `src/lib` 直下のディレクトリがすべて目録に載っている（載せ忘れ）
