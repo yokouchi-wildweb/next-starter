@@ -18,6 +18,11 @@ export type MilestoneEventContext = {
   trigger: string;
   /** イベント固有のデータ（呼び出し元が自由に渡す） */
   payload: Record<string, unknown>;
+  /**
+   * この評価(1 回の evaluateMilestones)で先に達成した鍵。後に評価する定義・段階が前の達成を見るのに使う。
+   * エンジンが渡す(呼び出し元は渡さない)。評価の外から呼んだときは undefined
+   */
+  achievedInThisEvaluation?: ReadonlySet<string>;
 };
 
 /**
@@ -27,7 +32,13 @@ export type MilestoneAchievedParams = {
   userId: string;
   milestoneKey: string;
   context: MilestoneEventContext;
+  /** 達成の記録と同じトランザクション(エンジンは記録を確定してから onAchieved を呼ぶ。呼び出しに tx が無くても渡す) */
   tx?: TransactionClient;
+  /**
+   * シリーズの段階のとき: どの段階で達成したか。sequential で上の段が達成したために下の段を達成させたときは
+   * viaHigherStage が true(reachedStageKey = その評価で達成した一番上の段)。付与を省くかは項目が決める
+   */
+  series?: MilestoneSeriesMarker & { reachedStageKey: string; viaHigherStage: boolean };
 };
 
 /**

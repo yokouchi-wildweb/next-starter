@@ -15,13 +15,19 @@
   ↓
 evaluateMilestones(trigger, { userId, payload }, tx?)
   ↓
-登録済みマイルストーンのうち、該当 trigger を持つものをループ
+登録済みマイルストーン(シリーズは段階ごとに展開済み)のうち、該当 trigger を持つものをループ
   ↓ 各マイルストーンについて:
   ① milestones テーブルで達成済みか確認 → 済みならスキップ
   ② evaluate(context, tx?) で条件を評価 → false ならスキップ
-  ③ onAchieved() を実行（報酬付与など）
-  ④ milestones に記録（user_id + milestone_key のユニーク制約で冪等性を保証）
+  ③ 記録を確定: milestones に insert … on conflict (user_id, milestone_key) do nothing
+     → 行が返らなければ並走が先に記録した = ④ を呼ばない(二重の付与を防ぐ)
+  ④ onAchieved()（報酬付与など。記録と同じ tx）→ 戻り値を metadata に保存
+  ③④ は 1 件ごとに SAVEPOINT(tx あり)か db.transaction(tx なし)の中。④ が投げると記録も戻る
 ```
+
+- **シリーズの評価の順**: `order: "sequential"` は段階の並び順に評価し、段階が達成したら、その下に残る未達成の段を**下から順に先に**達成させる(1 回の購入でランクを 2 つ越えたら下の段も記録・付与)。その下の段の `onAchieved` の `params.series` は `{ …印, reachedStageKey: 達成した上の段, viaHigherStage: true }`。下の段の付与を省きたいシリーズは `viaHigherStage` を見て省く(記録はされる)。`"unordered"` と普通の定義は各々独立に評価する
+- **この評価で達成済みの鍵**: `context.achievedInThisEvaluation`(`ReadonlySet<string>`)に、同じ評価で先に達成した鍵が入る(後の定義・段階の evaluate が前の達成を見るとき)
+- テスト: `pnpm test src/features/core/milestone/services/server/wrappers/evaluateMilestones.test.ts`、実 DB(同時実行・巻き戻し・飛ばし): `pnpm test --db src/features/core/milestone/services/server/wrappers/evaluateMilestones.db.test.ts`
 
 ---
 
@@ -383,9 +389,9 @@ export const renderer: MilestoneRendererDefinition = {
 
 ## 設計上の注意点
 
-- **冪等性**: `user_id + milestone_key` のユニーク制約で、同じマイルストーンが二重に記録されることはない
+- **冪等性**: `user_id + milestone_key` のユニーク制約で、同じマイルストーンが二重に記録されることはない。記録を確定してから `onAchieved` を呼ぶので、同時に 2 回評価されても付与は 1 回(記録を取れた側だけが呼ぶ)
 - **エラー分離**: 個別マイルストーンの evaluate/onAchieved でエラーが発生しても、他のマイルストーンの評価は継続する。tx がある場合は PostgreSQL の SAVEPOINT で分離されるため、DB エラーがトランザクション全体を汚染しない
-- **トランザクション**: `completePurchase` から呼ばれる場合は既存の tx が渡される。マイルストーンの記録と購入処理が同一トランザクションで実行される。evaluate にも tx が渡されるため、トランザクション内の最新状態を参照可能
+- **トランザクション**: `completePurchase` から呼ばれる場合は既存の tx が渡される。マイルストーンの記録と購入処理が同一トランザクションで実行される。evaluate にも tx が渡されるため、トランザクション内の最新状態を参照可能。tx を渡さない呼び出しでも記録と `onAchieved` は 1 件ごとの `db.transaction` の中で、`onAchieved` の `params.tx` にそれが渡る(付与は `params.tx` で書く)。メールなど DB の外の副作用は戻らないので、tx の後で送る形にする
 - **パフォーマンス**: 登録マイルストーンが0件の場合、`evaluateMilestones` は即座に空配列を返す（オーバーヘッドなし）
 - **user_id に FK なし**: ユーザー削除後も達成記録は保持される
 
