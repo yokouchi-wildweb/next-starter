@@ -1,7 +1,8 @@
 // scripts/workflow/agent-terminal/agentTerminal.test.mjs — pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs
 //
 // - AGENT_TERMINAL の読み方(環境変数 → default.conf、無い・知らない値 = none)
-// - pnpm workflow agent-terminal compactSelf の 2 つの道(打てない → 代わりの 1 行・待つ役なし / tmux + hook の印あり → 待つ役を残す)
+// - pnpm workflow agent-terminal compactSelf の 3 つの道(打てない → 代わりの 1 行・待つ役なし / tmux + hook の印あり → 待つ役を残す /
+//   チームの道具のタブ → <チーム> compact に渡す)
 // - hook の標準出力: tmux の値 + tmux の中の SessionStart だけ端末の案内、ほかは空。記録と、手で打った圧縮の後だけ続きの待つ役を残すこと
 // - 入力欄の読み取り(空・下書き・薄い案内・確認の画面)
 
@@ -101,6 +102,32 @@ test("pnpm workflow agent-terminal compactSelf 打てるとき: 返答の終わ�
   assert.equal(text, "/compact 残す こと 2 行目");
   assert.equal(prevIdle, "100");
   assert.match(calls.printed[0], /予約しました/);
+});
+
+test("pnpm workflow agent-terminal compactSelf チームの道具のタブ: 自分では打たず <チーム> compact に残すことを渡す", () => {
+  const env = tmuxEnv({ TK_TEAM: "quest", TK_INSTANCE: "20261108-103730", TK_TAB: "seeker" });
+  assert.equal(planCompactSelf(env).mode, "team");
+  const { calls, deps } = recorder();
+  const ran = [];
+  deps.run = (cmd, args, runEnv) => {
+    ran.push({ cmd, args, focus: runEnv.TK_COMPACT_FOCUS });
+    return { status: 0, stdout: "compact: seeker — queued: /compact is typed when this turn ends\n", stderr: "" };
+  };
+  assert.equal(runCompactSelf(["引き継ぎ", "a.md"], env, deps), 0);
+  assert.deepEqual(ran, [{ cmd: "quest", args: ["compact", "20261108-103730", "seeker"], focus: "引き継ぎ a.md" }]);
+  assert.deepEqual(calls.spawned, []);
+  assert.deepEqual(calls.printed, ["compact: seeker — queued: /compact is typed when this turn ends"]);
+});
+
+test("pnpm workflow agent-terminal compactSelf チームの道具を呼べない・渡し先の分からないチームのタブ: 代わりの 1 行", () => {
+  const { calls, deps } = recorder();
+  deps.run = () => ({ status: null, error: new Error("ENOENT"), stdout: "", stderr: "" });
+  assert.equal(runCompactSelf(["x"], tmuxEnv({ TK_TEAM: "quest", TK_INSTANCE: "i", TK_TAB: "seeker" }), deps), 0);
+  assert.match(calls.printed[0], /渡せませんでした.*\/compact x$/);
+  const other = recorder();
+  assert.equal(runCompactSelf(["x"], tmuxEnv({ LOUNGE_ROLE: "grace" }), other.deps), 0);
+  assert.deepEqual(other.calls.spawned, []);
+  assert.match(other.calls.printed[0], /チームの道具が動かしています.*\/compact x$/);
 });
 
 test("pnpm workflow agent-terminal compactSelf 残すことが空なら使い方を出して exit 1", () => {

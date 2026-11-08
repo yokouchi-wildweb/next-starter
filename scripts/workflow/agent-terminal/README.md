@@ -24,6 +24,10 @@
 ## `pnpm workflow agent-terminal compactSelf "<残すこと>"`
 
 - 打てるとき(`AGENT_TERMINAL=tmux`・tmux の中・下の hook がこのペインで動いている): 裏に待つ役を残し「予約しました…ここで返答を終えてください」と出す。返答が終わると `/compact <残すこと>` が Enter 付きで入力される
+- チームの道具のタブ(環境変数 `TK_TEAM` / `TK_INSTANCE` / `TK_TAB` がそろう): 自分では打たない。`<TK_TEAM> compact <TK_INSTANCE> <TK_TAB>` を、残すことを env `TK_COMPACT_FOCUS` に入れて呼び、その出力をそのまま出す
+  - 打ち込むのはそのタブを動かすチームの道具だけ(道具の通知・合図の打ち込みとぶつからない)。統括のタブなら道具が残すことを focus ファイルに書き、返答の終わりに `/compact` を打つ。手下のタブは道具が断る(手下の圧縮は統括が決める)
+  - チームの道具は next-starter の仲間のリポと必ず一緒に使う追加の道具(`~/.team/_bin/README.md`)。どのタブでもエージェントが覚えるのはこのコマンド 1 つ
+  - 呼べない・渡し先の分からない古い形のタブ(`LOUNGE_ROLE` など): 代わりの 1 行を出す
 - 打てないとき: 「次の 1 行をユーザーに打ってもらってください: /compact <残すこと>」と出す(exit 0。エラーにしない)
 - 残すこと = 圧縮の後に何も読み直さなくても要ること(作業中のファイルのパス、未完了の手順など)を 1〜3 行。改行は空白に直す
 - 省略語 coffee-break(`.claude/rules/shortcuts.md`)はこのコマンドを使う
@@ -59,4 +63,4 @@
 
 ## テスト
 
-`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の 2 つの道、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)
+`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の 3 つの道、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)
