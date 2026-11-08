@@ -4,7 +4,7 @@
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
 import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/config/app/domain-api-access.config";
+import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   // 回答チャレンジ。発行 / 状態遷移は /api/admin/fingerprint-challenges (専用アクション)、

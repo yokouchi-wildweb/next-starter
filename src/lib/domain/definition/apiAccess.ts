@@ -6,7 +6,7 @@
 // （access は呼び出し側＝server の routeFactory / 管理ルートが渡す）。
 // ルールの評価（セッション照合）は呼び出し側（routeFactory の enforceAccessRule）が行う。
 
-import { DOMAIN_API_ACCESS_CONFIG } from "@/config/app/domain-api-access.config";
+import { DEFAULT_ACCESS_RULE } from "../accessPresets";
 import {
   DOMAIN_CRUD_OPERATIONS,
   DOMAIN_DATA_OPERATIONS,
@@ -73,7 +73,7 @@ export function resolveAccessRule(
   const categoryRule = normalizeRule(access[operationType]);
   if (categoryRule) return categoryRule;
 
-  return DOMAIN_API_ACCESS_CONFIG.defaultRule;
+  return DEFAULT_ACCESS_RULE;
 }
 
 const READ_OPERATIONS: ReadonlySet<string> = new Set(["list", "get", "search", "count"]);

@@ -22,7 +22,7 @@
 ```ts
 // src/features/core/auditLog/services/server/domainEntry.ts
 import type { DomainEntries } from "@/lib/domain/types";
-import { INTERNAL_ONLY } from "@/config/app/domain-api-access.config";
+import { INTERNAL_ONLY } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   auditLog: {
@@ -45,7 +45,7 @@ export const domainEntries = {
 - `service` は CRUD の全メソッドを持つサービスを返す（通常は `<domain>Service` = base + wrappers）。`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` が Drizzle 版の全エントリに `getTableName` / `getIdColumnName` / `truncateAll` / `searchWithDeleted` を求める。**base の一部だけを見せる入口のサービス（読み取り専用など）は通らないので、`service` は base を指す**（上の例の auditLogFailed と同じ `import("./drizzleBase").then((m) => m.<x>Base)`）。足りないメソッドを検査のためだけに入口へ足さない
   - base を指すと、登録表を通る全経路（汎用 API `/api/<key>/**`・全件削除・データ移行・サーバー内の `getService`）が base 全体を使い、入口の絞り込みは効かない → `access` は `INTERNAL_ONLY` にするか、base 全体に許してよい操作だけを開く。入口のサービスはそのドメイン専用のルートから使い続ける
 - `table` / `idColumn` は型で必須（`string | null`）。service の直後に、**文字列リテラルか `null` で**書く（生成器はファイルを文字として読むので、定数・式は `pnpm check registry` が失敗にする）。表を持たない Firestore 版は両方 `null`
-- 静的 import してよいのは `@/lib/domain/types` と `@/config/app/domain-api-access.config`（プリセット）だけ。`pnpm check registry` が縛る
+- 静的 import してよいのは `@/lib/domain/types` と `@/lib/domain/accessPresets`（プリセット）だけ。`pnpm check registry` が縛る
 - 業務ドメイン: `pnpm generate domain`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。`table` = 表の定義の生成器と同じ決め方（`scripts/structure/domain/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
 - core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` が実物と比べる。core のファイルは fork が編集しない。業務ドメインの写せる形は下の「generate: false の業務ドメイン」
 - fork が core の access を変える: 隣に `domainEntry.override.ts`（fork 所有）。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む
@@ -56,7 +56,7 @@ export const domainEntries = {
 
 ```ts
 import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_ONLY, ADMIN_RULE } from "@/config/app/domain-api-access.config";
+import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   visit: {
@@ -102,7 +102,7 @@ export const domainEntries = {
 
 **管理データ操作** `truncateAll` / `export` / `import`（`DOMAIN_DATA_OPERATIONS`）は `operations` に明示したときだけ開く。未指定・不正なら `"none"` で、read / write / 既定には倒れない。登録しただけで全件削除やデータ移行の対象にならないようにするため。管理の各ルートは自分の門（access `{ roleCategories: ["admin"] }`、全件削除は + 本人パスワード）に加えて、この規則を同じ評価器で AND で掛ける（1 つでも拒否なら要求全体を拒否）。
 
-プリセット（`src/config/app/domain-api-access.config.ts`）:
+プリセット（`src/lib/domain/accessPresets.ts`、lib/domain の公開の定数。上書きできる設定にしない、設定の議会 D63）。既定 `DEFAULT_ACCESS_RULE`（admin カテゴリだけ）は access の書き漏れの fail-closed:
 
 | 名前 | 意味 |
 |---|---|

@@ -135,9 +135,9 @@ test("removeObjectEntry: 無いキーは何も変えない・末尾カンマ無�
   assert.equal(removeObjectEntry(text, { objectName: "serviceRegistry", key: "b" }).text, "export const serviceRegistry = {\n  a: 1,\n};\n");
 });
 
-test("presetAccess: プリセットの写しが domain-api-access.config.ts と一致する", async () => {
+test("presetAccess: プリセットの写しが accessPresets.ts と一致する", async () => {
   const { tsImport } = await import("tsx/esm/api");
-  const config = await tsImport(path.resolve(import.meta.dirname, "../../../../src/config/app/domain-api-access.config.ts"), import.meta.url);
+  const config = await tsImport(path.resolve(import.meta.dirname, "../../../../src/lib/domain/accessPresets.ts"), import.meta.url);
   for (const [name, value] of Object.entries({ ...ACCESS_PRESETS, ...PRESET_RULES })) {
     assert.deepEqual(value, config[name], `${name} が TS 側と食い違っています`);
   }
@@ -186,13 +186,13 @@ test("buildDomainEntryAccess: apiAccess 未宣言は ADMIN_ONLY、truncateAll �
 test("renderDomainEntry: 遅延 import のキー付きオブジェクトと、使うプリセットだけの import 行", () => {
   const text = renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: false } });
   assert.match(text, /^import type \{ DomainEntries \} from "@\/lib\/domain\/types";$/m);
-  assert.match(text, /^import \{ ADMIN_RULE, PUBLIC_READ \} from "@\/config\/app\/domain-api-access\.config";$/m);
+  assert.match(text, /^import \{ ADMIN_RULE, PUBLIC_READ \} from "@\/lib\/domain\/accessPresets";$/m);
   assert.match(text, /service: \(\) => import\("\.\/sampleService"\)\.then\(\(m\) => m\.sampleService\),/);
   assert.match(text, /\.\.\.PUBLIC_READ,\n\s+operations: \{\n\s+truncateAll: ADMIN_RULE,\n\s+export: "none",\n\s+import: "none",/);
   assert.match(text, /\} satisfies DomainEntries;\n$/);
   // 静的 import は許可された 2 モジュールだけ（pnpm check registry が縛る契約）
   const imports = [...text.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]);
-  assert.deepEqual(imports, ["@/lib/domain/types", "@/config/app/domain-api-access.config"]);
+  assert.deepEqual(imports, ["@/lib/domain/types", "@/lib/domain/accessPresets"]);
 });
 
 test("renderDomainEntry: table / idColumn を service の直後に書く（表名は plural、無ければ snake_case。Firestore は null）", () => {

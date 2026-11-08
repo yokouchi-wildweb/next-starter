@@ -4,7 +4,7 @@
 // - read / write がプリセットと構造的に一致すればプリセットの spread（`...PUBLIC_READ`）を、一致しなければ JSON リテラルを出力する
 // - 管理データ操作（truncateAll / export / import）は operations に必ず明示する（未指定 = none のため、生成物で意図を読めるようにする）
 
-// src/config/app/domain-api-access.config.ts のプリセットの写し。
+// src/lib/domain/accessPresets.ts のプリセットの写し。
 // 値の一致は registry.test.mjs が TS 側を読み込んで検証する（片方だけ変えるとテストが落ちる）。
 const ADMIN_RULE = { roleCategories: ['admin'] };
 const ADMIN_OR_DEBUGGER_RULE = { roles: ['debugger'], roleCategories: ['admin'] };
@@ -15,7 +15,7 @@ export const ACCESS_PRESETS = {
   INTERNAL_ONLY: { read: 'none', write: 'none' },
 };
 export const PRESET_RULES = { ADMIN_RULE, ADMIN_OR_DEBUGGER_RULE };
-export const PRESET_MODULE = '@/config/app/domain-api-access.config';
+export const PRESET_MODULE = '@/lib/domain/accessPresets';
 
 // キー順を問わない構造比較（配列は順序込み）
 export function deepEqual(a, b) {

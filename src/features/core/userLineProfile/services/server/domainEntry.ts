@@ -4,7 +4,7 @@
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
 import type { DomainEntries } from "@/lib/domain/types";
-import { INTERNAL_ONLY } from "@/config/app/domain-api-access.config";
+import { INTERNAL_ONLY } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   // LINE 連携プロフィール。本人・管理の操作は専用ルートだけ（汎用 API・全件削除・データ移行には出さない）。

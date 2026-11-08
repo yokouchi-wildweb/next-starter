@@ -23,7 +23,7 @@ export const REGISTRY_FILE = "src/registry/serviceRegistry.ts";
 export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する";
 
 /** domainEntry.ts / domainEntry.override.ts が静的 import してよいモジュール */
-export const ALLOWED_STATIC_IMPORTS = ["@/lib/domain/types", "@/config/app/domain-api-access.config"];
+export const ALLOWED_STATIC_IMPORTS = ["@/lib/domain/types", "@/lib/domain/accessPresets"];
 
 /**
  * drizzleBase.ts / firestoreBase.ts があるのに domainEntry.ts を持たなくてよいドメイン（features 相対のディレクトリ名）。

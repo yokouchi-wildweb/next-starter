@@ -4,7 +4,7 @@
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
 import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/config/app/domain-api-access.config";
+import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   // ユーザー所有データ。オーナーシップ強制の /api/me/ 専用ルートへ移行するまで汎用 API は admin 限定に維持する。

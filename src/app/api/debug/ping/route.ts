@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 
-import { ADMIN_OR_DEBUGGER_RULE } from "@/config/app/domain-api-access.config";
+import { ADMIN_OR_DEBUGGER_RULE } from "@/lib/domain/accessPresets";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(

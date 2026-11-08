@@ -48,7 +48,7 @@ import { createApiRoute, createDomainRoute, createDomainIdRoute, createMeRoute, 
 |---|---|---|---|
 | `"public"` | 誰でも | Cookie があり**利用可能な status**（または宣言した `allowStatuses`）のときだけ利用者、他は `null` | createApiRoute・domainEntry.ts |
 | `"authenticated"` | ログイン中で利用可能な status | 必ずいる | createApiRoute・createDeviceRoute の `orUser`・domainEntry.ts（createMeRoute は固定でこれ） |
-| `{ roles?, roleCategories? }` | 指定ロール / ロールカテゴリ | 必ずいる | 同上。プリセット `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE`（`src/config/app/domain-api-access.config.ts`） |
+| `{ roles?, roleCategories? }` | 指定ロール / ロールカテゴリ | 必ずいる | 同上。プリセット `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE`（`src/lib/domain/accessPresets.ts`） |
 | `"none"` | 誰も（存在しない扱いの 404） | — | **汎用 CRUD の domainEntry.ts だけ** |
 
 - 拒否: 未認証 → 401、権限不足・利用できない status → 403（JSON に `code: "unauthenticated" | "forbidden"`）。`"none"`・未登録のドメインは 404（`text/plain`、存在を隠す）
@@ -198,10 +198,10 @@ export const domainEntries = {
   コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
-- 解決順: `operations[操作名]` → `read` / `write` → `defaultRule`（`resolveAccessRule`、`src/lib/domain/definition/apiAccess.ts`）。
-  空 `{}` や部分宣言でも `defaultRule`（admin カテゴリのみ）に倒れる（fail-closed）
+- 解決順: `operations[操作名]` → `read` / `write` → `DEFAULT_ACCESS_RULE`(`src/lib/domain/accessPresets.ts`)（`resolveAccessRule`、`src/lib/domain/definition/apiAccess.ts`）。
+  空 `{}` や部分宣言でも `DEFAULT_ACCESS_RULE`（admin カテゴリのみ）に倒れる（fail-closed）
 - 拒否の body には `{ domain, operation }` が載る（どの操作が拒否されたかをクライアントで観測できる。規則の中身は出さない）
-- プリセット（`src/config/app/domain-api-access.config.ts`）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER` / `INTERNAL_ONLY`（汎用 API・管理データ操作とも閉じる。登録表には載せる）。
+- プリセット（`src/lib/domain/accessPresets.ts`）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER` / `INTERNAL_ONLY`（汎用 API・管理データ操作とも閉じる。登録表には載せる）。
   単一ルール版 `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える。`ADMIN_DATA_OPERATIONS` = 管理データ操作 3 つを管理者に開く断片
 - **公開 read の判断基準**: `"public"` にしてよいのは「全レコードが公開情報」のドメインのみ（公開記事・商品マスタ等）。search / count / withRelations 展開も含めて全件見える前提で判断する
 - **`authenticated` はオーナーシップを守らない**: where の `user_id` がクライアント任せなので他人のレコードも読める。ユーザー所有データの汎用 API は admin 限定にし、本人向けは createMeRoute で出す

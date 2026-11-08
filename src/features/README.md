@@ -636,7 +636,7 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も pnpm generate d
 #### フォールバック（fail-closed）
 
 - domainEntry.ts の `access` は型必須のため、登録時に宣言を省略できない（書き忘れはコンパイルエラー）
-- `read` / `write` / `operations` が当該操作をカバーしない（部分宣言・空 `{}`）場合、グローバル既定値（`src/config/app/domain-api-access.config.ts`、初期値: admin カテゴリのみ）が適用される
+- `read` / `write` / `operations` が当該操作をカバーしない（部分宣言・空 `{}`）場合、既定（`src/lib/domain/accessPresets.ts` の `DEFAULT_ACCESS_RULE`、admin カテゴリのみ。上書きできる設定ではない）が適用される
 - **書き忘れても安全側（admin-only）に倒れる**
 
 #### 例

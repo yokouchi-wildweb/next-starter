@@ -4,7 +4,7 @@
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
 import type { DomainEntries } from "@/lib/domain/types";
-import { INTERNAL_ONLY } from "@/config/app/domain-api-access.config";
+import { INTERNAL_ONLY } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   // pnpm task の実行の記録。書き手はタスクのランナーだけで、HTTP・管理画面には出さない。登録表に載せるのはサーバー内部でドメイン名から表を引くため。

@@ -4,7 +4,7 @@
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
 import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_RULE, PUBLIC_READ } from "@/config/app/domain-api-access.config";
+import { ADMIN_RULE, PUBLIC_READ } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   sample: {

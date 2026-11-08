@@ -26,7 +26,7 @@ import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
 import { domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
 import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../../src/lib/domain/types/apiAccess.ts";
 import { isGenericApiClosed, resolveAccessRule } from "../../../../src/lib/domain/definition/apiAccess.ts";
-import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../../src/config/app/domain-api-access.config.ts";
+import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../../src/lib/domain/accessPresets.ts";
 // `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
 import { getDomainList } from "../../../../src/lib/domain/service/server/getDomainList.ts";
 import { getService, hasService, lookupDomainService } from "../../../../src/lib/domain/service/server/getService.ts";
@@ -66,7 +66,7 @@ test("domainEntry.ts の静的 import は @/lib/domain/types と access のプ�
     const text = fs.readFileSync(path.join(repoRoot, domain.entryPath), "utf8");
     for (const source of listStaticImports(text)) {
       assert.ok(
-        ["@/lib/domain/types", "@/config/app/domain-api-access.config"].includes(source),
+        ["@/lib/domain/types", "@/lib/domain/accessPresets"].includes(source),
         `${domain.entryPath}: ${source}`,
       );
     }
@@ -205,7 +205,7 @@ after(() => {
 });
 
 const ENTRY = (key, service = `${key}Service`, table = `"${key}s", idColumn: "id"`) => `import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_ONLY } from "@/config/app/domain-api-access.config";
+import { ADMIN_ONLY } from "@/lib/domain/accessPresets";
 
 export const domainEntries = {
   ${key}: { service: () => import("./${service}").then((m) => m.${service}), table: ${table}, access: ADMIN_ONLY },
@@ -230,7 +230,7 @@ test("生成: core → 業務の順に並び、override は access だけ差し�
     "src/features/core/user/services/server/drizzleBase.ts": "",
     "src/features/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
     "src/features/core/userTag/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain/types";
-import { PUBLIC_READ } from "@/config/app/domain-api-access.config";
+import { PUBLIC_READ } from "@/lib/domain/accessPresets";
 export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEntryOverrides;
 `,
     "src/features/article/services/server/domainEntry.ts": ENTRY("article"),

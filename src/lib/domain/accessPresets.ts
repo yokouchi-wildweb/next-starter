@@ -1,28 +1,17 @@
-// src/config/app/domain-api-access.config.ts
+// src/lib/domain/accessPresets.ts
+//
+// 汎用ドメイン API (/api/[domain]/**) の権限の定型(設定の議会 D63)。上書きできる設定ではなく lib/domain の公開の定数。
+// 読み手: 各ドメインの domainEntry.ts の access・定型を使う route(createApiRoute の access)・既定の解決(definition/apiAccess.ts)。
+// 生成器の写し: scripts/structure/domain/render/registry/presetAccess.mjs(値の一致は registry.test.mjs が確かめる)。
+// 詳細: src/lib/domain/README.md、src/lib/routeFactory/README.md
 
-import type {
-  DomainApiAccessConfig,
-  DomainApiAccessRule,
-  DomainApiRoleRule,
-  DomainDataOperation,
-} from "@/lib/domain/types";
+import type { DomainApiAccessConfig, DomainApiAccessRule, DomainApiRoleRule, DomainDataOperation } from "./types";
 
 /**
- * 汎用ドメイン API (/api/[domain]/**) アクセス制御のグローバル設定
- *
- * 各ドメインのアクセスポリシーは domainEntry.ts の登録エントリ（access）で宣言する
- * （serviceRegistry は domainEntry.ts から生成される）。
- * ここでは、access に当該 CRUD 操作のルールが宣言されていない場合のフォールバック（fail-closed）を定義する。
- * 管理データ操作（truncateAll / export / import）はこの既定に倒れず、未指定なら "none"。
- * 詳細: src/lib/routeFactory/README.md、src/lib/domain/README.md
+ * access が当該 CRUD 操作のルールを宣言していないときの既定(fail-closed)。安全側に倒して admin カテゴリだけ許す。
+ * 管理データ操作(truncateAll / export / import)はこの既定に倒れず、未指定なら "none"。
  */
-export const DOMAIN_API_ACCESS_CONFIG = {
-  /**
-   * access が当該 CRUD 操作をカバーしない場合の既定ルール
-   * 安全側に倒すため admin カテゴリのみ許可
-   */
-  defaultRule: { roleCategories: ["admin"] } as DomainApiAccessRule,
-} as const;
+export const DEFAULT_ACCESS_RULE: DomainApiAccessRule = { roleCategories: ["admin"] };
 
 /**
  * domainEntry.ts の access で再利用するアクセスポリシーのプリセット。
