@@ -1,4 +1,4 @@
-// .claude/skills/flux/incoming.mjs — /flux の流入の発見と区間の組み立て(手順 SKILL.md「未適用判定」「区間の組み立て」、多段 relay.md)
+// .claude/skills/flux/incoming.mjs — /flux の流入の発見と区間の組み立て(手順 SKILL.md「UNAPPLIED JUDGMENT」「BUILDING SEGMENTS」、多段 relay.md)
 // 上流の先端の消えない索引 .notices/shipped/*.md(1 notice = 1 行)と、notice を足した commit の履歴だけで決める。
 // notice の本文は読まない(本文を読む場所 <足した commit>:<パス> を出すだけ)ので、区間が閉じた本文が消えても答えは変わらない。
 //

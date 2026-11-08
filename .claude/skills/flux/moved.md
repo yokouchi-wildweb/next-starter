@@ -1,18 +1,21 @@
-# /flux 付属: 移動・改名の移植(`moved:`)
+# /flux attachment: porting moves / renames (`moved:`)
 
-SKILL.md「付属ファイル」の条件に当たったときに読む。仕様: `.notices/README.md`「移動・改名(moved)」。
+read when the condition of SKILL.md ATTACHED FILES hits | spec: `.notices/README.md` section `移動・改名(moved)`
 
-上流が `git mv` ではなく「新規作成 + 古いパスを shim に置換」で移動すると、git は改名と認識せず、fork が古いパスで行った編集は shim との衝突になるか上流版で上書きされる。notice の `moved: <old> -> <new>; ...` を使って /flux が移植する。
+why: when upstream moves by "create new + replace the old path with a shim" instead of `git mv`, git does not see a rename, and the fork's edits at the old path become conflicts with the shim or are overwritten by upstream's version | /flux ports them using the notice's `moved: <old> -> <new>; ...`
 
-## 手順
-0. 対象の組 = 区間内の notice(covers 側・covered 側の両方)の `moved:` を合わせたもの(同じ組は 1 つにまとめる)。
-1. **計画時**(SKILL.md 手順 2): 対象の各組について `git diff --name-only <base> HEAD -- <old>` を取り、空でなければ作業メモの台本に「fork が編集した移動元: <old> → <new>(ファイル数・規模)」と出す。無ければ「なし」。チャットには flux-stop の「fork の追従」として、何を(役割で)・どれだけ・どんな作業か・どこに影響しうるかを出す。
-2. **merge 前**(SKILL.md 手順 5a): 編集のある各組について fork 側の差分を保存する: `git diff --binary <base> HEAD -- <old> > <scratch>/moved-<n>.patch`。
-3. **merge 後**(SKILL.md 手順 5b の直後、区間外変更の検査より前): 古いパスの衝突は上流版を採る(`git checkout --theirs -- <old>`、上流で削除済みなら `git rm`)。保存した差分のパス(`diff --git a/<old>... b/<old>...`・`--- a/`・`+++ b/` 行)を `<new>` に書き換え(ディレクトリはプレフィックスを置換)、`git apply --3way <書き換えた patch>` で当てる。
-   - 書き換えるのはこの見出し行だけで、中身の行(コンテキスト・`+`・`-` 行)には触れない。移動したファイルは旧パスを書いた冒頭コメントを残していることがあり、patch 全体を置換するとその行も変わって当たらなくなる。例: `sed -E '/^(diff --git |--- a\/|\+\+\+ b\/)/s#<old>#<new>#g'`
-4. 当たらなかった hunk は衝突マーカーとして残る。上流側の変更と fork の意図を両立できる形で解消し、自明でなければ停止条件として止める。
-5. 移植した組・ファイル・手で解消した箇所を台帳の `notes:` に書き、verify で新しいパス側に fork の編集が入っていることを確認する(`git diff <merge 先> -- <new>` に fork の変更が出る)。
+## STEPS
+0. target pairs = the `moved:` of the segment's notices (both covers side and covered side) combined (the same pair merged into one)
+1. **when planning** (SKILL.md step 2): for each target pair take `git diff --name-only <base> HEAD -- <old>` | not empty → put `fork が編集した移動元: <old> → <new>(ファイル数・規模)` in the work memo's script | none → `なし` | chat: under flux-stop's `fork の追従`, what (by role), how much, what kind of work, where it may affect
+2. **before the merge** (SKILL.md step 5a): save the fork-side diff of each pair with edits: `git diff --binary <base> HEAD -- <old> > <scratch>/moved-<n>.patch`
+3. **after the merge** (right after SKILL.md step 5b, before the out-of-segment check): take upstream's version for conflicts at the old path (`git checkout --theirs -- <old>`; deleted upstream → `git rm`)
+   - rewrite the paths of the saved diff (`diff --git a/<old>... b/<old>...`, `--- a/`, `+++ b/` lines) to `<new>` (directories: replace the prefix) and apply it with `git apply --3way <書き換えた patch>`
+   - rewrite only those header lines, never the content lines (context, `+`, `-` lines) | a moved file may keep a header comment naming the old path, and replacing across the whole patch changes that line too so it no longer applies | e.g. `sed -E '/^(diff --git |--- a\/|\+\+\+ b\/)/s#<old>#<new>#g'`
+4. hunks that did not apply remain as conflict markers | resolve them in a form that reconciles upstream's change with the fork's intent | not obvious → stop as a stop condition
+5. write the ported pairs, files and spots resolved by hand in the ledger `notes:`, and confirm by verify that the fork's edits are in on the new-path side (`git diff <merge 先> -- <new>` shows the fork's changes)
 
-## エッジケース
-- `moved:` の旧パスがディレクトリで、fork がその配下にファイルを足していた: 足したファイルも同じプレフィックス置換で新しいディレクトリへ移す(差分に「新規ファイル」として含まれるので手順は同じ)。移動先が上流の持ち物(上流ルートの `_layout/` `_screen/` など)なら、そのまま置かず、同じ区間で丸ごと置き換え(`<Name>.replace.tsx`)にするか fork の持ち物の場所へ出す。コピーに変えない処理や守りが付いてくるなら出さず order + 一時許可で通す(SKILL.md「上流が持つパスでの fork の編集の見直し」。import の書き換えも同じ区間で)。
-- `moved:` に書かれた旧パスが merge-base に存在しない(fork 成立が移動より後など): 移植対象なしとして扱う。
+## EDGE CASES
+- the old path of `moved:` is a directory and the fork added files under it: move the added files to the new directory by the same prefix replacement (they are in the diff as "new files", so the steps are the same)
+  - the destination is upstream-owned (`_layout/` `_screen/` of upstream routes, etc.) → do not put them there as is; in the same segment make them a whole replacement (`<Name>.replace.tsx`) or move them out to a fork-owned place
+  - processing / guards that must not turn into a copy come along → do not move them out; pass by order + temporary permit (SKILL.md REVIEW OF FORK EDITS IN UPSTREAM-OWNED PATHS; rewrite imports in the same segment too)
+- the old path written in `moved:` does not exist at the merge-base (the fork was founded after the move, etc.): treat as no porting target

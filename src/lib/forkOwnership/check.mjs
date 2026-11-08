@@ -32,7 +32,7 @@ const show = (repoRoot, rev, path) => tryGit(repoRoot, ["show", `${rev}:${path}`
 
 const unverified = (reason, extra = {}) => ({ status: "unverified", reason, ...extra });
 
-/** 親の remote(/flux の「upstream の特定」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
+/** 親の remote(/flux の「FINDING THE UPSTREAM」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
 function resolveParentRemote(repoRoot, requested) {
   const remotes = (tryGit(repoRoot, ["remote"]) ?? "").split("\n").filter(Boolean);
   const wanted = requested ?? process.env[PARENT_ENV] ?? null;

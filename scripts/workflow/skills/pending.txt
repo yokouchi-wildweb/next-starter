@@ -1,3 +1,2 @@
 # 書式(.claude/rules/core/skills.md)にまだ書き直していないスキル。1 行 1 スキル名
 # 書き直したらその行を消す。pnpm check skills はここにあるスキルを「書き直し待ち」と出し、落とさない
-flux

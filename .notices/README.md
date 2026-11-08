@@ -237,7 +237,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
   - covered された notice の追加 commit・台帳記録 commit は区切りにしない。区間は covers 側 notice の追加 commit まで伸び、covered notice が履歴上先に届いていても単独の区間を作らない。
   - 区間内の covers 側・covered 側の `moved:` はすべて合わせて移植に使う(中継 notice 側にも合わせたものを書くのが原則だが、書き漏れの保険)。
   - `covers:` に書かれた id が上流の先端のどの索引にも無ければ報告する(黙って飛ばさない)。
-- 後方互換: `covers:` を知らない旧 /flux でも中継 notice が安全に動くよう、中継 notice の合成(`.claude/skills/flux/relay.md`「中継 notice の合成」)は required_actions に「この notice の commit まで 1 区間で merge し、covered notice の commit で止まらない」「covered id を台帳に記録する」の 2 行を必ず入れる(新 /flux では no-op)。
+- 後方互換: `covers:` を知らない旧 /flux でも中継 notice が安全に動くよう、中継 notice の合成(`.claude/skills/flux/relay.md`「RELAY NOTICE COMPOSITION」)は required_actions に「この notice の commit まで 1 区間で merge し、covered notice の commit で止まらない」「covered id を台帳に記録する」の 2 行を必ず入れる(新 /flux では no-op)。
 - 状態の見える化: `/flux status --chain` が祖父 notice ごとに「中間 Tier が適用済みか → 中継 notice に covered されているか(または `relay:none`)→ 自分が適用済みか」を 1 行ずつ出す。
 
 ### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
@@ -245,13 +245,13 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 - 対象 fork: `.claude/rules/project.md` の `downstream: yes` の fork(読み手は `src/lib/forkOwnership/forkIds.mjs` だけ。宣言が無い・誤りは止まる)。`downstream: none` の末端 fork は判定しない。
 - 中継の義務(CLAUDE.md DOWNSTREAM_NOTICES relay): `/flux` の中継未判定の報告が 0 でない間は flux 未完(助言ではない)。中継を忘れたら次の commit で他の作業より先に入れる。
 - 対象 notice: 区間内で適用した、自分の索引に無い notice(covered id は covers 側と一緒に判定)。
-- 判定(区間の verify 後、commit 前): `Q` = その notice の区切り点、`P` = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点。どちらも `incoming.mjs` の出力の `point`)、`A` = 区間の merge 直後の HEAD。次のどれか 1 つで中継が必要、どれも無ければ中継不要(①② は `.claude/skills/flux/relay-check.mjs` が出す。詳細と限界は `.claude/skills/flux/relay.md`「中継判定」):
+- 判定(区間の verify 後、commit 前): `Q` = その notice の区切り点、`P` = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点。どちらも `incoming.mjs` の出力の `point`)、`A` = 区間の merge 直後の HEAD。次のどれか 1 つで中継が必要、どれも無ければ中継不要(①② は `.claude/skills/flux/relay-check.mjs` が出す。詳細と限界は `.claude/skills/flux/relay.md`「RELAY JUDGMENT」):
   - ① ハンクの重なり: 上流が P→Q で変えた行範囲と、作業ツリーが Q と食い違う行範囲が重なるか接する。同じファイルでも離れた場所の fork 独自の追加は数えない。
   - ② 適用作業での上流変更ファイル外の変更: A から作業ツリーまでに、上流が変えていないファイルを変えた(掃討・改名など)。
   - ③ required_actions からの逸脱: 手順を実行しなかった・変えて実行した(台帳 `notes:` に書く逸脱)。差分の有無を問わない。
   - `.notices/` と lock ファイルは ①② の対象外。
 - 結果は台帳の各行の `relay:` 欄に明示する: `relay:none`(中継不要)/ `relay:<中継 notice id>`(中継した)。欄が無い = 判定導入前の未判定。
-- 中継が必要な notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `.claude/skills/flux/relay.md`「中継 notice の合成」、判定の根拠 = ①② の該当ファイル・行範囲と ③ の逸脱を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
+- 中継が必要な notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `.claude/skills/flux/relay.md`「RELAY NOTICE COMPOSITION」、判定の根拠 = ①② の該当ファイル・行範囲と ③ の逸脱を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
 - 中身の無い中継 notice は作らない。中継不要の notice は `relay:none` だけで閉じる。
 - 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/flux relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
 

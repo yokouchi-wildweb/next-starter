@@ -1,4 +1,4 @@
-// /flux: 取り込む上流の変更が、自分の打ち消し(overrides:)が名指す祖先の鍵に触れたかを見る(SKILL.md「停止条件」)。
+// /flux: 取り込む上流の変更が、自分の打ち消し(overrides:)が名指す祖先の鍵に触れたかを見る(SKILL.md「STOP CONDITIONS」)。
 // 判定の中身は src/lib/forkOwnership/lineage.mjs の touchedOverrides(純関数)。ここは git から 2 版の lineage.md を読むだけ。
 //
 // 使い方: node .claude/skills/flux/lineage-touch.mjs --before <ref> --after <ref> [--json]

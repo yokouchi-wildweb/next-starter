@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// /flux 中継判定の機械部分(relay.md「中継判定」の ① ハンクの重なり と ② 適用作業での上流変更ファイル外の変更)。
+// /flux 中継判定の機械部分(relay.md「RELAY JUDGMENT」の ① ハンクの重なり と ② 適用作業での上流変更ファイル外の変更)。
 // ③ required_actions からの逸脱 は適用したセッションが知っている事実なので、呼び出し側(/flux)が足す。
 //
 // 使い方: node .claude/skills/flux/relay-check.mjs --p <P> --q <Q> --applied-from <A> [--json]

@@ -152,7 +152,7 @@ pnpm workflow ownership check --parent=upstream --branch=main
 - 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<名前>.permits.txt` に貼り、commit してから検査し直す
 - 手順(`check.mjs` の `runCheck`)
   1. 名前と Tier1 の判定: `forkIds.mjs` の `readForkIdentity`(project.md の `fork_id:`。宣言なし・形違い・祖先と同名は未検証 = exit 2)。自分の名前が `src/lib/CATALOG.md` の先頭の節の見出しなら Tier1 で対象外。remote の有無・origin の URL では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
-  2. 親の remote: `--parent` > 環境変数 `FORK_OWNERSHIP_PARENT` > origin 以外の remote が 1 つならそれ(`/flux` の「upstream の特定」と同じ)。ブランチ = `git ls-remote --symref <remote> HEAD`(`--branch` で上書き)
+  2. 親の remote: `--parent` > 環境変数 `FORK_OWNERSHIP_PARENT` > origin 以外の remote が 1 つならそれ(`/flux` の「FINDING THE UPSTREAM」と同じ)。ブランチ = `git ls-remote --symref <remote> HEAD`(`--branch` で上書き)
   3. 鮮度(下の節)
   4. Tier1 の版(下の「多段の Tier」)を台帳からたどる
   5. 判定: `git diff --name-status -M <base> HEAD` を judge に、Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替え、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む

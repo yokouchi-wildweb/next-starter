@@ -23,7 +23,7 @@ reader_goal: from this text alone, the reader can tell where things are now, wha
 `問い` (question) | required | add the reply vocabulary | final report: the declaration of the end and the remaining segments
 
 ## CONTRACT
-- reply vocabulary: first approval = `go` / `go last` / `いいえ` | segment end = `go` / `go last` / `再計画` / `ここで終える` | in both: `再計画 移行は別の依頼` (rebuild the plan without the migration and the draft order text, then ask again; flux SKILL.md section `移行を別の依頼に切り出す`)
+- reply vocabulary: first approval = `go` / `go last` / `いいえ` | segment end = `go` / `go last` / `再計画` / `ここで終える` | in both: `再計画 移行は別の依頼` (rebuild the plan without the migration and the draft order text, then ask again; flux SKILL.md section SPLIT A MIGRATION INTO ANOTHER ORDER)
 - work memo: what is not put in chat goes to flux's work memo | place and lifetime decided by flux SKILL.md | answer from there when asked
   - contents: script = application steps, conflict forecast, check items / decision grounds = relay criteria, excluded counts / aligned, kept_old / for resuming = sha per segment, next merge target, decisions the human made / number ↔ checkpoint label ↔ sha mapping / every upstream finding with its grounds
 - vocabulary for "what kind of work" in `fork の追従`: `置き換え` (replacement: only align call names / placement) / `作り直し` (rebuild: move the fork's implementation onto the new mechanism; needs a behavior check) / `判断が要る` (needs judgment: upstream's and the fork's intents collide, some spot needs the human's decision)

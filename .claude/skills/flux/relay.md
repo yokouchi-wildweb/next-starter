@@ -1,89 +1,117 @@
-# /flux 付属: 中継(3 段以上の Tier)
+# /flux attachment: relay (3 or more Tiers)
 
-SKILL.md「付属ファイル」の条件に当たったときに読む。ここに書いた規則は SKILL.md の同名の節に**追加で**効く(SKILL.md の規則を置き換えない)。仕様: `.notices/README.md`「中継(relay)」。
+read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **in addition to** SKILL.md's sections of the same name (they never replace SKILL.md's rules) | spec: `.notices/README.md` section `中継(relay)`
 
-## 用語と索引
-- 道具: 祖父 notice の判定・区切り点・covers 索引・covered の吸収は、上流の先端の `incoming.mjs`(SKILL.md「流入の発見の道具」)が出す(各 notice の `owner`・`grandparent`・`point`・`covered`、区切り点の無い祖父 notice は `warnings`)。以下はその規則と、道具の無い上流での手作業。
-- **祖父 notice** = 自分の索引でも直上 Tier の索引でもない索引の行(`.notices/shipped/<名前>.md` のファイル名 = 出荷したリポ)。索引の無い上流では、`from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice(URL 比較は未適用判定と同じく表記差を無視)。中間 Tier の名前の台帳(SKILL.md「自 fork の識別と台帳」4)が無いときは祖父 notice を判定しない(従来どおり)。
-- **covers 索引**: 上流の先端の全索引の行(自分の索引を除く。索引の無い上流ではツリー内と流入予定の本文)の `covers:` を読み、`covered id → covers 側 id` の対応を作る。同じ id を複数の notice が covers していたら、履歴上最も早い covers 側を採る。
-- **祖父 notice の区切り点** = 中間 Tier の台帳にその id が記録された commit: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` の最古(`--reverse` で先頭)。台帳の `commit:` 欄は使わない。見つからなければ追加 commit を区切り点とし、計画に「中間 Tier が未適用: T1 の生 commit で区切る」と警告する。
-- 祖父 notice で covered されていないものは、中間 Tier の台帳のその id の行の `relay:` 欄で分ける:
-  - `relay:none` → 中間 Tier が差分で「中継不要」と判定済み(下記「中継判定」)。上流 notice をそのまま適用する(注記・写像なし)。
-  - 欄が無い(旧台帳)→ 計画に「<直上 upstream> からの中継 notice なし。required_actions は中間 Tier の状態を前提に書かれている」と注記し、中間 Tier の台帳の `notes:`(その id の行)を読んで自 fork の実情へ写像する。
-  - `relay:<id>` なのにその中継 notice がまだ届いていない → 中継 notice は台帳記録と同じ commit で出荷されるので通常起きない。起きたら報告に含め、欄が無い場合と同じ扱いにする。
+## TERMS AND INDEXES
+- tool: grandparent-notice judgment, checkpoint points, the covers index and absorbing covered ones are produced by the upstream tip's `incoming.mjs` (SKILL.md INCOMING TOOL) (each notice's `owner`, `grandparent`, `point`, `covered`; grandparent notices without a checkpoint point in `warnings`) | below = its rules, and the manual work for upstream without the tool
+- **grandparent notice** = a line of an index that is neither your own index nor the direct Tier's (file name of `.notices/shipped/<名前>.md` = the repo that shipped it)
+  - upstream without an index: a notice whose `from:` repo matches neither your origin nor the direct upstream's URL (URL comparison ignores notation differences, as in the unapplied judgment)
+  - no ledger with the middle Tier's name (SKILL.md OWN FORK IDENTITY AND LEDGER 4) → do not judge grandparent notices (as before)
+- **covers index**: read `covers:` of every index line at the upstream tip (excluding your own index; upstream without an index: the in-tree and incoming bodies) and build `covered id → covers-side id` | the same id covered by several notices → take the covers side earliest in history
+- **grandparent notice's checkpoint point** = the commit where that id was recorded in the middle Tier's ledger: the oldest of `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` (first with `--reverse`) | never use the ledger's `commit:` field | not found → use the adding commit as the checkpoint point and warn in the plan `中間 Tier が未適用: T1 の生 commit で区切る`
+- grandparent notices not covered are split by the `relay:` field of that id's line in the middle Tier's ledger:
+  - `relay:none` → the middle Tier judged "no relay needed" by diff (RELAY JUDGMENT below) | apply the upstream notice as is (no note, no mapping)
+  - no field (old ledger) → note in the plan `<直上 upstream> からの中継 notice なし。required_actions は中間 Tier の状態を前提に書かれている`, read `notes:` of that id's line in the middle Tier's ledger and map onto this fork's reality
+  - `relay:<id>` but that relay notice has not arrived yet → normally impossible, since a relay notice ships in the same commit as the ledger record | if it happens, include it in the report and treat it like the no-field case
 
-## 未適用判定への追加
-- covered 側の id は、covers 側 notice が適用済みなら適用済み。covers 側が未適用なら未適用のまま covers 側の区間に吸収される(単独では適用しない)。
+## ADDITIONS TO UNAPPLIED JUDGMENT
+- a covered-side id is applied when its covers-side notice is applied | covers side unapplied → stays unapplied and is absorbed into the covers side's segment (never applied alone)
 
-## 区間の組み立てへの追加(SKILL.md の同節の番号に対応)
-- 2: 祖父 notice の区切り点は通常の追加 commit ではなく、上記「祖父 notice の区切り点」(中間 Tier の台帳記録 commit)。
-- 3: covered 側の notice(covers 索引にある id)を流入予定の並びから外し、covers 側 notice の区間に入れる(区切り点にしない)。covers 側が既に適用済みなら covered 側も適用済み扱い(上記「未適用判定への追加」)。covers 側がまだ届いていない祖父 notice は covered と分からないので、通常の祖父 notice として扱う(区切り点 = 中間 Tier の台帳記録 commit)。
-- 5: covers 側 notice の区間には、それが covers する id も「covered」として並べる。
-- 6: 区間の notice 一覧で、covered id・祖父 notice はその旨を添える。
-- `moved:` の対象の組には covers 側・covered 側の両方の `moved:` を合わせる(`moved.md` 手順 0)。
+## ADDITIONS TO BUILDING SEGMENTS (numbers match SKILL.md's section of the same name)
+- 2: a grandparent notice's checkpoint point is not the normal adding commit but the "grandparent notice's checkpoint point" above (the middle Tier's ledger-record commit)
+- 3: drop covered-side notices (ids in the covers index) from the incoming order and put them in the covers-side notice's segment (no checkpoint point)
+  - covers side already applied → covered side treated as applied too (ADDITIONS TO UNAPPLIED JUDGMENT above) | a grandparent notice whose covers side has not arrived yet cannot be known as covered → treat it as a normal grandparent notice (checkpoint point = the middle Tier's ledger-record commit)
+- 5: in the covers-side notice's segment, also list the ids it covers as `covered`
+- 6: in the segment's notice list, mark covered ids and grandparent notices as such
+- for `moved:` target pairs, combine the `moved:` of both covers side and covered side (`moved.md` step 0)
 
-## 緊急修正(SKILL.md「緊急修正(hotfix)」)
-- 祖父 notice の `hotfix:` の元の commit = 直上 Tier が pick した commit(`git show <upstream>/<branch>:.notices/applied/<中間 Tier の名前>.md` のその id の行の `commit:`)。Tier1 の commit を直接取らない。
-- 直上 Tier の台帳に行が無い(まだ pick していない)なら、取れないと概観に 1 行出して通常の区間へ進む。
-- 先に取れる修正(SKILL.md「修正(fixes)」の pick: clean)は直接の親が出した notice だけを取る。祖父 notice の `pick:` は読まない(その印は Tier1 の木で試したもので、直上 Tier の木を試していない)。直上 Tier が先に取っていれば、その pick は直上 Tier の台帳の順に通常の区間で届く。
+## HOTFIX (SKILL.md HOTFIX)
+- original commit of a grandparent notice's `hotfix:` = the commit the direct Tier picked (`commit:` of that id's line in `git show <upstream>/<branch>:.notices/applied/<中間 Tier の名前>.md`) | never take the Tier1 commit directly
+- the direct Tier's ledger has no line (not picked yet) → one line in the overview that it cannot be taken, and go on to the normal segments
+- pick-clean fixes (SKILL.md FIXES `pick: clean`) are taken only for notices the direct parent issued | never read a grandparent notice's `pick:` (that mark was tried on Tier1's tree, not the direct Tier's) | when the direct Tier took it ahead, that pick arrives in normal segments in the order of the direct Tier's ledger
 
-## 台帳への追加(SKILL.md 手順 7a)
-- covers 側 notice を記録したら、その covered id も 1 行ずつ記録する(`notes:covered by <covers 側 id>`。既に台帳にある id は重ねない)。
-- `relay:` 欄は下流を持つ fork だけが書き(下記「中継判定」の結果。covered id には covers 側と同じ値)、末端 fork は欄ごと省く。
+## LEDGER ADDITIONS (SKILL.md step 7a)
+- after recording a covers-side notice, record each of its covered ids on its own line too (`notes:covered by <covers 側 id>`; never duplicate an id already in the ledger)
+- the `relay:` field is written only by forks with downstream (the result of RELAY JUDGMENT below; covered ids get the same value as the covers side) | leaf forks omit the whole field
 
-## status --chain
-状態報告のみ(`status` と同じく merge も適用もしない)。祖父 notice ごとに 1 行: `<id> | 中間 Tier: applied <台帳記録 commit 短 sha> / not applied | relay: covered by <id> / none / not judged | me: applied / unapplied / inherited`(`none` = 中間 Tier の台帳が `relay:none`、`not judged` = covered されておらず台帳に `relay:` 欄も無い)。最後に、自分が中間 Tier として未判定の件数(下記「中継判定」の未判定)を 1 行。中間 Tier が無い(直上 upstream が最上流)なら「祖父 notice なし」とだけ出す。
+## STATUS --CHAIN
+- state report only (no merge, no application, like `status`)
+- one line per grandparent notice: `<id> | 中間 Tier: applied <台帳記録 commit 短 sha> / not applied | relay: covered by <id> / none / not judged | me: applied / unapplied / inherited` (`none` = the middle Tier's ledger says `relay:none`; `not judged` = not covered and no `relay:` field in the ledger)
+- last, one line with your own count of unjudged ones as a middle Tier (unjudged of RELAY JUDGMENT below)
+- no middle Tier (the direct upstream is the top) → print only `祖父 notice なし`
 
-## 中継判定(下流を持つ fork のみ)
-自分が中間 Tier として、適用した上流 notice を下流へ中継する必要があるかを **git の差分だけで**機械的に決める(文面の解釈で判断しない)。
-- **対象 fork**: `.claude/rules/project.md` の `downstream: yes` の fork(読み方は SKILL.md「自 fork の識別と台帳」5、読み手は `forkIds.mjs` だけ)。`downstream: none` は末端 fork として何もしない。宣言が無い・誤りなら文面から推し量らずに止まる(SKILL.md の同じ項)。
-- **対象 notice**: 区間内で適用した notice のうち自分の索引の行でないもの(索引の無い上流では `from:` が自分の origin でないもの。祖父 notice・上流の中継 notice を含む)。covered id は covers 側と一緒に 1 件として判定する。
-- **判定**(区間の手順 6 の verify 後、手順 7 の前。notice ごとに。次の ①〜③ のどれか 1 つでも当たれば中継が必要、どれにも当たらなければ `relay:none`):
-  - 基準点: `Q` = その notice の区切り点(区間の組み立ての区切り点 = `incoming.mjs` の出力の `point`。区間 0 なら追加 commit。祖父 notice なら中間 Tier の台帳記録 commit)、`P` = 上流履歴上でその直前にある notice の区切り点(前の notice の `point`。無ければ fork 成立点 = 出力の `forkPoint`)、`A` = この区間の手順 5 を終えた直後の HEAD(merge コミット。fast-forward ならその到達点、区間 0 なら区間開始時の HEAD)。
-  - ①② はスクリプトで出す(ハンクを手で読み比べない): `node .claude/skills/flux/relay-check.mjs --p <P> --q <Q> --applied-from <A>`。exit 0 = ①② とも該当なし / 1 = 該当あり(`overlap:` / `outside:` 行が根拠)/ 2 = エラー(停止条件として止める)。
-  - **① ハンクの重なり**: 上流が P→Q で変えた行範囲と、作業ツリーが Q と食い違う行範囲が、同じファイルで重なるか接している。接触も数えるのは git の 3-way merge が衝突とみなす基準と揃えるため。上流が追加・削除したファイル、バイナリはファイル全体を範囲とみなす。同じファイルでも離れた場所にある fork 独自の追加(package.json の fork スクリプト、registry の fork エントリ等)は数えない。
-  - **② 適用作業での上流変更ファイル外の変更**: `A` から作業ツリー(未追跡を含む)までに変わったファイルのうち、上流が P→Q で変えていないもの(この区間の掃討・改名など)。区間の notice すべてを該当にする(区間は通常 notice 1 件)。
-  - **③ required_actions からの逸脱**: この区間で、その notice の required_actions のどれかを実行しなかった、または変えて実行した(手順 7a で台帳 `notes:` に書く逸脱そのもの)。差分の有無を問わない。逸脱が無ければ下流は上流 notice どおりの作業で済むが、逸脱があると下流は上流の手順をそのまま実行してしまうため。`covered by` や push 失敗の記録は逸脱に数えない。
-  - 対象外: `.notices/`、lock ファイル(`pnpm-lock.yaml` 等。package.json から生成される派生物)、fork ごとの規約ファイル(`.claude/rules/project.md`・`behavior.md`。各 fork が自分の版を持ち、下流へは届かない)は ①② で数えない。印付きファイル(`shortcuts.md`・`term-aliases.md`)は印より上を上流と共有するので数える。
-- **中継 notice の下書き**(区間内に中継が必要な notice が 1 件以上): 区間につき 1 件、`.notices/<ts>-relay-<slug>.md` に書き出す。合成規則は下記「中継 notice の合成」(`covers:` = この区間で中継が必要な id と、その covered id)。加えて `notes:` に判定の根拠をそのまま載せる: ① はスクリプトの `overlap:` 行(ファイルと行範囲)、② は `outside:` 行、③ は台帳 `notes:` に書く逸脱。下書きはこの区間の適用コミットに含める(中継 notice の追加 commit = 台帳記録 commit になり、下流の区切り点が一致する)。
-- **台帳**: 手順 7a で各 id の行に `relay:none` か `relay:<中継 notice id>` を書く。
-- **報告**: チャットは flux-stop の「中継」の節で、あり / なし + 下流がすべきこと + 理由を役割の言葉で(「fork が既定を変えた画面スイッチの設定が上流の変更と重なるため、下流も値を見直す必要がある」)。notice の id・中継 id・根拠(①<files> / ②<files> / ③逸脱)は作業メモに書く。作成した中継 notice は「中身は判定根拠・台帳 notes から組み立てた下書き。下流へ出す前に確認・編集してよい」と添える。
-- **判定の限界**(機械判定のため): ② は notice の手順自体が生む fork 側の変更(pnpm generate domain による fork ドメインの再生成等)も拾う(見逃しより安全側の誤検知)。マーカーファイルのように fork の行が上流の変更のすぐ隣に来る形は ① の接触で拾う。行範囲が離れていても意味の上で依存し合う変更は拾えない。
-- **未判定**(この仕組み導入前の旧台帳行): 自台帳の id のうち、`relay:` 欄が無く、自分の索引の行でなく、自分の索引の行のどの `covers:` にも含まれないもの(継承済み・どの索引にも行の無い id は除く。索引の無い版では `from:` が自分の origin でない・自分の origin の notice の `covers:`・notice ファイルが無い id、で同じことを見る)。1 件以上あれば報告に 1 行: 「中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きします」。**未判定が 0 でない間は flux 未完**(助言ではなく止まる理由。CLAUDE.md DOWNSTREAM_NOTICES relay): 同じ出撃で `/flux relay` を回して閉じるか、閉じないなら完了と報告しない。0 件なら何も出さない。
-- **中継を忘れた**(区間の commit に中継の下書きが入らなかった・判定を飛ばした)と気づいたら、次の commit で他の作業より先に中継の判定と下書きを入れる。
+## RELAY JUDGMENT (forks with downstream only)
+as a middle Tier, decide mechanically **by git diffs only** whether applied upstream notices must be relayed downstream (never judge by interpreting the text)
+- **target forks**: forks with `downstream: yes` in `.claude/rules/project.md` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `downstream: none` = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
+- **target notices**: notices applied in the segment that are not lines of your own index (upstream without an index: `from:` is not your origin; grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
+- **judgment** (after verify of the segment's step 6, before step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
+  - reference points:
+    - `Q` = that notice's checkpoint point (the checkpoint point of BUILDING SEGMENTS = `point` of `incoming.mjs`'s output; segment 0 → the adding commit; grandparent notice → the middle Tier's ledger-record commit)
+    - `P` = the checkpoint point of the notice right before it in upstream's history (the previous notice's `point`; none → the fork founding point = the output's `forkPoint`)
+    - `A` = HEAD right after this segment's step 5 (the merge commit; fast-forward → where it arrived; segment 0 → HEAD at the segment start)
+  - ①② come from the script (never compare hunks by hand): `node .claude/skills/flux/relay-check.mjs --p <P> --q <Q> --applied-from <A>` | exit 0 = neither ① nor ② | 1 = hit (`overlap:` / `outside:` lines are the grounds) | 2 = error (stop as a stop condition)
+  - **① hunk overlap**: the line ranges upstream changed P→Q and the line ranges where the work tree differs from Q overlap or touch in the same file
+    - touching counts too, to match the standard that git's 3-way merge treats as a conflict | files upstream added / deleted and binaries count as whole-file ranges
+    - fork-own additions far away in the same file (fork scripts in package.json, fork entries in registries, etc.) do not count
+  - **② changes outside upstream-changed files in the application work**: files changed from `A` to the work tree (untracked included) that upstream did not change P→Q (this segment's sweep, renames, etc.) | every notice of the segment counts as a ② hit (a segment is normally 1 notice)
+  - **③ deviation from required_actions**: in this segment, some required_action of that notice was not run, or was run changed (exactly the deviation written in the ledger `notes:` in step 7a) | regardless of diffs
+    - why: without deviation, downstream gets by with the upstream notice's work; with one, downstream would run upstream's steps as they are | `covered by` and push-failure records do not count as deviations
+  - excluded: `.notices/`, lock files (`pnpm-lock.yaml` etc.; derived from package.json), per-fork convention files (`.claude/rules/project.md`, `behavior.md`; each fork keeps its own version, never reaching downstream) do not count in ①② | marker files (`shortcuts.md`, `term-aliases.md`) share the part above the marker with upstream, so they count
+- **drafting the relay notice** (one or more notices in the segment need relay): one per segment, written to `.notices/<ts>-relay-<slug>.md`
+  - composition rules = RELAY NOTICE COMPOSITION below (`covers:` = the ids needing relay in this segment and their covered ids)
+  - also put the judgment grounds as they are in `notes:`: ① the script's `overlap:` lines (files and line ranges), ② the `outside:` lines, ③ the deviation written in the ledger `notes:`
+  - include the draft in this segment's application commit (the relay notice's adding commit = the ledger-record commit, so downstream's checkpoint point matches)
+- **ledger**: in step 7a write `relay:none` or `relay:<中継 notice id>` on each id's line
+- **report**:
+  - chat: under flux-stop's `中継` section, `あり` / `なし` + what downstream must do + why, by role (e.g. `fork が既定を変えた画面スイッチの設定が上流の変更と重なるため、下流も値を見直す必要がある`)
+  - notice ids, relay ids and grounds (`①<files> / ②<files> / ③逸脱`) go to the work memo
+  - with a relay notice created, add `中身は判定根拠・台帳 notes から組み立てた下書き。下流へ出す前に確認・編集してよい`
+- **limits of the judgment** (being mechanical): ② also catches fork-side changes the notice's own steps produce (regenerating fork domains by pnpm generate domain, etc.) (a false positive on the safe side rather than a miss)
+  - shapes where fork lines sit right next to upstream's change, like marker files, are caught by ①'s touching | changes depending on each other semantically with distant line ranges are not caught
+- **unjudged** (old ledger lines from before this mechanism):
+  - ids of your ledger with no `relay:` field, not lines of your own index, and in no `covers:` of your own index's lines (inherited ids and ids with no line in any index excluded; versions without an index check the same by: `from:` is not your origin / `covers:` of notices from your origin / no notice file)
+  - one or more → one line in the report:
+    ```
+    中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きします
+    ```
+  - **while unjudged is not 0, flux is not done** (a reason to stop, not advice; CLAUDE.md DOWNSTREAM_NOTICES relay): close it by running `/flux relay` in the same sortie, or else never report completion | 0 → print nothing
+- **relay forgotten** (the segment's commit lacked the relay draft / the judgment was skipped) noticed → in the next commit, put the relay judgment and draft before any other work
 
-## 中継 notice の合成
-中継判定で下書きするときと、下記「relay モード」で共通の規則。スキーマと書き方の一般則は `.claude/skills/ship/SKILL.md`「NOTICE COMPOSITION」(英語・機械間ファイル、事前確認なしで書き出す)。材料は推測せず、次から集める:
-- 上流 notice 本文(change / required_actions / moved / verify)
-- 自台帳のその id の行の `notes:`(逸脱・移植した移動・解消した衝突・足した hook 等)
-- 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<名前>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」
-- 自分が上流ファイルに加えている編集のうち、その notice が触ったファイルに当たるもの: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>`(下流がこの fork の版を受け取る箇所)
+## RELAY NOTICE COMPOSITION
+- rules shared by drafting in RELAY JUDGMENT and RELAY MODE below | schema and general writing rules: `.claude/skills/ship/SKILL.md` NOTICE COMPOSITION (English, machine-to-machine file, written out without asking first)
+- never guess the material; collect it from:
+  - the upstream notice body (change / required_actions / moved / verify)
+  - `notes:` of that id's line in your ledger (deviations, ported moves, resolved conflicts, added hooks, etc.)
+  - the commit recorded in the ledger: the first of `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<名前>.md` | that commit and the merge commit right before it = the "resolved point" downstream receives
+  - your edits to upstream files that hit files that notice touched: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>` (spots where downstream receives this fork's version)
 
-合成:
-- `covers:` = 中継判定から渡された id(relay モードでは未判定 id 全件、履歴順)。
-- `moved:` = covered 全件の `moved:` + 自分が中継対象の作業で行った移動(台帳 notes と `git diff -M --name-status` で確認)を合わせたもの。
-- `fixes:` = covered 側に `fixes:` があれば合わせて載せる(下流の /flux が修正の関係を先読みできるように)。
-- `change:` = 「<自分> applied N <上流> notices: <id> in <sha>, ...」+ 下流に影響する自分側の差分(移植先・自分固有の移動・新しい拡張点)。
-- `why:` = 下流から見て何が残っているか(上流のコード作業はこの fork で済んでいる。残りは下流自身のカスタマイズと旧パス参照等)。
-- `required_actions:` の先頭 2 行は**必ず**次を入れる(`covers:` を知らない旧 /flux 向けの互換。新 /flux では no-op):
-  `1. Merge <自分の repo> up to THIS notice's commit in ONE segment; do NOT stop at the covered notices' commits (<covered 側の上流 commit 短 sha 列>) — they are raw <上流> commits without <自分>'s conflict resolutions.`
-  `2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your fork_id: name>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<名前>.md.`
-  以降に、上流 notice の required_actions のうち下流にも残る作業を、この fork の状態(移植先・自分固有のパス)に合わせて書き直したもの。
-- `verify:` = covered 側の verify のうち下流で意味があるもの + この fork の検証結果(実際に取った数値のみ)。
-- `checkpoint:` = ラベル必須(中継 notice は下流にとって 1 つの休憩点)。
-- `refs:` = covered の上流 notice パス、台帳記録 commit、自台帳パス。
-- 書き出したら `pnpm check notices` を通す。
+composition:
+- `covers:` = ids passed from RELAY JUDGMENT (relay mode: every unjudged id, in history order)
+- `moved:` = every covered one's `moved:` + the moves you made in the relayed work (check with ledger notes and `git diff -M --name-status`)
+- `fixes:` = the covered side's `fixes:`, if any, included (so downstream /flux can read fix relations ahead)
+- `change:` = `<自分> applied N <上流> notices: <id> in <sha>, ...` + your side's diffs that affect downstream (port destinations, your own moves, new extension points)
+- `why:` = what remains, seen from downstream (upstream's code work is done in this fork; what remains is downstream's own customizations, old-path references, etc.)
+- the first 2 lines of `required_actions:` are **always** the following (compat for old /flux that does not know `covers:`; a no-op for new /flux):
+  ```
+  1. Merge <自分の repo> up to THIS notice's commit in ONE segment; do NOT stop at the covered notices' commits (<covered 側の上流 commit 短 sha 列>) — they are raw <上流> commits without <自分>'s conflict resolutions.
+  2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your fork_id: name>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<名前>.md.
+  ```
+  then the work of the upstream notice's required_actions that also remains downstream, rewritten for this fork's state (port destinations, your own paths)
+- `verify:` = the covered side's verify items meaningful downstream + this fork's verification results (only numbers actually taken)
+- `checkpoint:` = a label is required (a relay notice is one resting point for downstream)
+- `refs:` = the covered upstream notice paths, the ledger-record commit, your ledger path
+- after writing, pass `pnpm check notices`
 
-## relay モード(`/flux relay`)
-中継判定の導入前に適用した**未判定**の旧 notice を、中継 notice にまとめて閉じる(基準点が古く差分判定できないため)。merge も適用もしない。
-1. 自 fork 台帳(SKILL.md「自 fork の識別と台帳」)が無ければ「中継対象なし」と報告して終える。
-2. 未判定 id(上記「中継判定」の未判定)を求める。0 件なら「未判定の notice はありません」と報告して終える(書き出さない)。
-3. 上記「中継 notice の合成」で 1 件の中継 notice に書き出す。旧 notice は機械判定できないので、追随作業の無いものも含めて covers する。
-4. 報告: 書き出したパスと covers した id。「中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください(コミットは /ship)」と添える。covers に入った id は未判定から外れる(台帳は書き換えない)。
+## RELAY MODE (`/flux relay`)
+close **unjudged** old notices applied before relay judgment existed by bundling them into a relay notice (their reference points are old, so no diff judgment is possible) | no merge, no application
+1. no own fork ledger (SKILL.md OWN FORK IDENTITY AND LEDGER) → report `中継対象なし` and end
+2. compute the unjudged ids (unjudged of RELAY JUDGMENT above) | 0 → report `未判定の notice はありません` and end (write nothing)
+3. write them out as one relay notice by RELAY NOTICE COMPOSITION above | old notices cannot be judged mechanically, so cover them all, those without follow-up work included
+4. report: the written path and the covered ids, with `中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください(コミットは /ship)` | ids put in covers drop out of unjudged (the ledger is not rewritten)
 
-## エッジケース
-- `covers:` の id が上流の先端のどの索引にも無い(索引の無い上流では merge 後のツリーの現役・`done/` のどこにも無い): その id を報告に含める(黙って飛ばさない)。covers 側 notice の適用自体は続け、その id は台帳に記録しない。
-- 祖父 notice の中間 Tier 台帳記録 commit が covers 側 notice の追加 commit より後: covers 側の区間の merge 先をその記録 commit まで伸ばす(区間内で最も後の点を merge 先にする)。
-- 自分の origin の notice が `covers:` を持つ(自分が出した中継 notice): 未適用判定の対象外なのは従来どおり。covers 索引には入れず、中継判定の未判定の計算にだけ使う。
-- 中継判定で `P` と `Q` の間に上流の変更ファイルが無い(`severity: info` の区切りだけの notice 等): ① は該当なし。②③ に当たらなければ `relay:none`。
-- 区間を停止条件で止めた: その区間の notice は台帳に記録されないので中継判定もしない(再開時に判定する)。
+## EDGE CASES
+- an id in `covers:` is in no index at the upstream tip (upstream without an index: nowhere among the live ones and `done/` in the post-merge tree): include that id in the report (never skip silently) | applying the covers-side notice itself goes on; that id is not recorded in the ledger
+- a grandparent notice's middle-Tier ledger-record commit is later than the covers-side notice's adding commit: extend the covers side's segment merge target to that record commit (the latest point in the segment becomes the merge target)
+- a notice from your own origin has `covers:` (a relay notice you issued): out of the unapplied judgment as before | not put in the covers index; used only to compute RELAY JUDGMENT's unjudged
+- in RELAY JUDGMENT, no upstream-changed files between `P` and `Q` (a checkpoint-only notice with `severity: info`, etc.): ① no hit | if ② ③ do not hit either → `relay:none`
+- the segment stopped on a stop condition: its notices are not recorded in the ledger, so no relay judgment either (judged on resuming)
