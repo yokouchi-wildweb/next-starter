@@ -81,7 +81,7 @@ target: $ARGUMENTS
 4. the user says `対応完了` (done) → steps a-d:
    - **the completion report and commit & push always go together** | `対応完了` doubles as the explicit commit / push instruction
    - **run a-d in a row with no confirmation, question or AskUserQuestion to the user in between** | `対応完了` is the only and sufficient approval; waiting for another approval is prohibited
-   a. **ship with `/ship`** (before the RESOLUTION, to fix the substance and get an exact commit sha): follow `.claude/skills/ship/SKILL.md` with the argument `order:<order id>` (range, checks, notice judgment and composition, commit, push; it stops only when it hits /ship's section `止まるとき`) | a change for which the proposal decided to ship a notice → /ship's judgment follows that
+   a. **ship with `/ship`** (before the RESOLUTION, to fix the substance and get an exact commit sha): follow `.claude/skills/ship/SKILL.md` with the argument `order:<order id>` (range, checks, notice judgment and composition, commit, push; it stops only when it hits /ship's section STOP CASES) | a change for which the proposal decided to ship a notice → /ship's judgment follows that
       - an order of checks / investigation only with no diff → no /ship, no commit (RESOLUTION `commit:- | pushed:-`)
       - rejecting (rejected) an order from a downstream fork → write in the RESOLUTION notes what the sender does with its temporary permit (revert / move to the intake point / re-permit under another policy) (the sender's /wen permits shows it) | even a resolution without a diff, when the sender is a downstream fork → ship a resolves: notice per /ship's judgment
       - already committed inside a team procedure → make no new commit, use the current HEAD

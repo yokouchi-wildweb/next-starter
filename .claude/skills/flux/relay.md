@@ -53,7 +53,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
 - **中継を忘れた**(区間の commit に中継の下書きが入らなかった・判定を飛ばした)と気づいたら、次の commit で他の作業より先に中継の判定と下書きを入れる。
 
 ## 中継 notice の合成
-中継判定で下書きするときと、下記「relay モード」で共通の規則。スキーマと書き方の一般則は `.claude/skills/ship/SKILL.md`「notice の合成」(英語・機械間ファイル、事前確認なしで書き出す)。材料は推測せず、次から集める:
+中継判定で下書きするときと、下記「relay モード」で共通の規則。スキーマと書き方の一般則は `.claude/skills/ship/SKILL.md`「NOTICE COMPOSITION」(英語・機械間ファイル、事前確認なしで書き出す)。材料は推測せず、次から集める:
 - 上流 notice 本文(change / required_actions / moved / verify)
 - 自台帳のその id の行の `notes:`(逸脱・移植した移動・解消した衝突・足した hook 等)
 - 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<名前>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」

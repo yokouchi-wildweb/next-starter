@@ -53,7 +53,7 @@ notes: <anything else>
 ```
 
 - `required_actions` は下流の Claude が計画の承認だけで区間の中を途中確認なしに実行できる具体度で書く(fail-auto)。対話プロンプトを出すコマンドのみ `[user-run]` マーカーを付け、/flux がセッション内ユーザー実行(`!` プレフィックス)で合流する。ドメイン再生成は `pnpm generate domain -- <Domain>` / `pnpm generate domain` が既定で対話なしなので `[user-run]` を付けない(`-i` は使わない。scripts/structure/domain/README.md)。再生成は必要なカテゴリだけを `--only` で指定する(例: レジストリ書き換え = `pnpm generate domain -- --only registry`)。全カテゴリ再生成は手編集した生成物を上書きするため、避けられない場合は一時 worktree での実行を指示する。
-- 管理画面全体に効く変更の notice は、生成の管理画面の再生成だけで終わらせず、`"adminRoutes": false` のドメインの手書きの管理ページと fork の `_components/` を探す `git grep` と、揃える手順・確かめ方を required_actions に書く(書き方は `/ship`「notice の合成」の「管理画面全体に効く変更」)
+- 管理画面全体に効く変更の notice は、生成の管理画面の再生成だけで終わらせず、`"adminRoutes": false` のドメインの手書きの管理ページと fork の `_components/` を探す `git grep` と、揃える手順・確かめ方を required_actions に書く(書き方は `/ship`「NOTICE COMPOSITION」の「a change that acts on the whole admin」)
 - 人間にしかできない作業(Vercel 環境変数、外部ダッシュボード等)だけ `manual_steps` に分離する。
 - `verify` の型チェックは `pnpm typecheck` と書く(`tsc --noEmit` は使わない)。`tsc --noEmit` は `tsconfig.json` の include にある `.next/dev/types` / `.next/types` まで読み、dev サーバーや過去の build が生成した古い `validator.ts`(移動・削除したページを import している)で TS2307 を出す。`pnpm typecheck`(`tsconfig.typecheck.json`)はこれらを外して型チェックし、ルート全体の型の検証は `next build` に任せる。
 - `moved` はファイル・ディレクトリを移動・改名する notice では**必須**(それ以外は欄ごと省略)。下記「移動・改名(moved)」参照。
