@@ -5,7 +5,6 @@ export type UserLineProfile = {
   userId: string;
   lineUserId: string;
   displayName: string | null;
-  pictureUrl: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };

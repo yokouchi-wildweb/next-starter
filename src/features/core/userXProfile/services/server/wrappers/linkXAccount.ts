@@ -34,8 +34,6 @@ export type LinkXAccountOptions = {
   username?: string;
   /** 表示名 */
   displayName?: string;
-  /** プロフィール画像URL */
-  profileImageUrl?: string;
   /** OAuth 2.0 アクセストークン（平文で渡す→内部で暗号化） */
   accessToken: string;
   /** OAuth 2.0 リフレッシュトークン（平文で渡す→内部で暗号化） */
@@ -79,7 +77,6 @@ export async function linkXAccount(
         .set({
           username: options.username ?? null,
           displayName: options.displayName ?? null,
-          profileImageUrl: options.profileImageUrl ?? null,
           accessTokenEncrypted,
           refreshTokenEncrypted,
           tokenExpiresAt,
@@ -110,7 +107,6 @@ export async function linkXAccount(
           xUserId: options.xUserId,
           username: options.username ?? null,
           displayName: options.displayName ?? null,
-          profileImageUrl: options.profileImageUrl ?? null,
           accessTokenEncrypted,
           refreshTokenEncrypted,
           tokenExpiresAt,
@@ -144,7 +140,6 @@ export async function linkXAccount(
         xUserId: options.xUserId,
         username: options.username ?? null,
         displayName: options.displayName ?? null,
-        profileImageUrl: options.profileImageUrl ?? null,
         accessTokenEncrypted,
         refreshTokenEncrypted,
         tokenExpiresAt,

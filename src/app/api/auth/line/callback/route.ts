@@ -70,7 +70,7 @@ export const GET = createApiRoute(
       const callbackUrl = new URL("/api/auth/line/callback", req.nextUrl.origin).toString();
       const linkResult = await processCallback(code, callbackUrl, friendshipStatusChanged);
 
-      // ユーザーに LINE userId + 表示名を紐付け（画像の URL は LINE の CDN で後に切れるため保存しない）
+      // ユーザーに LINE userId + 表示名を紐付け（プロフィール画像は保存しない: 外部ログインの画像はどの provider でも持たない）
       await userLineProfileService.linkLineAccount(sessionUser.userId, linkResult.lineUserId, {
         displayName: linkResult.displayName,
       });

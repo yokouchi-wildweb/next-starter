@@ -14,7 +14,6 @@ export const UserXProfileTable = pgTable(
     xUserId: text("x_user_id").notNull(),
     username: text("username"),
     displayName: text("display_name"),
-    profileImageUrl: text("profile_image_url"),
     accessTokenEncrypted: text("access_token_encrypted").notNull(),
     refreshTokenEncrypted: text("refresh_token_encrypted").notNull(),
     tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }).notNull(),

@@ -101,16 +101,14 @@ export const GET = createApiRoute(
         await exchangeXCodeForToken(code, codeVerifier, callbackUrl);
 
       // X ユーザー情報を取得
-      const { data: xUser } = await client.v2.me({
-        "user.fields": ["profile_image_url"],
-      });
+      // プロフィール画像は取らない(外部ログインの画像はどの provider でも保存しない)
+      const { data: xUser } = await client.v2.me();
 
       // ユーザーに X プロフィール + 暗号化トークンを紐付け
       await userXProfileService.linkXAccount(sessionUser.userId, {
         xUserId: xUser.id,
         username: xUser.username,
         displayName: xUser.name,
-        profileImageUrl: xUser.profile_image_url,
         accessToken,
         refreshToken: refreshToken ?? "",
         tokenExpiresAt: Date.now() + expiresIn * 1000,

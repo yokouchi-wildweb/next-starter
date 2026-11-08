@@ -13,7 +13,6 @@ export const UserLineProfileTable = pgTable(
       .references(() => UserTable.id, { onDelete: "cascade" }),
     lineUserId: text("line_user_id").notNull(),
     displayName: text("display_name"),
-    pictureUrl: text("picture_url"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

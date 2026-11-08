@@ -96,7 +96,6 @@ export async function verifyIdToken(idToken: string): Promise<LineIdTokenPayload
   return {
     sub: payload.sub,
     name: payload.name,
-    picture: payload.picture,
     email: payload.email,
   };
 }
@@ -135,7 +134,6 @@ export async function processCallback(
   return {
     lineUserId: idTokenPayload.sub,
     displayName: idTokenPayload.name,
-    pictureUrl: idTokenPayload.picture,
     friendshipStatusChanged,
     isFriend,
   };

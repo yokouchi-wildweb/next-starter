@@ -10,7 +10,6 @@ import { DomainError } from "@/lib/errors";
 /** LINE連携時のプロフィール情報（任意） */
 export type LinkLineAccountOptions = {
   displayName?: string;
-  pictureUrl?: string;
 };
 
 /**
@@ -37,7 +36,6 @@ export async function linkLineAccount(
         .update(UserLineProfileTable)
         .set({
           displayName: options?.displayName ?? null,
-          pictureUrl: options?.pictureUrl ?? null,
         })
         .where(eq(UserLineProfileTable.id, existingByLineId.id))
         .returning();
@@ -60,7 +58,6 @@ export async function linkLineAccount(
       .set({
         lineUserId,
         displayName: options?.displayName ?? null,
-        pictureUrl: options?.pictureUrl ?? null,
       })
       .where(eq(UserLineProfileTable.id, existingByUserId.id))
       .returning();
@@ -74,7 +71,6 @@ export async function linkLineAccount(
       userId,
       lineUserId,
       displayName: options?.displayName ?? null,
-      pictureUrl: options?.pictureUrl ?? null,
     })
     .returning();
   return created;

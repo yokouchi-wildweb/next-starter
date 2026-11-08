@@ -6,7 +6,6 @@ export type UserXProfile = {
   xUserId: string;
   username: string | null;
   displayName: string | null;
-  profileImageUrl: string | null;
   accessTokenEncrypted: string;
   refreshTokenEncrypted: string;
   tokenExpiresAt: Date;

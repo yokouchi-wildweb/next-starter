@@ -20,8 +20,6 @@ export type LineIdTokenPayload = {
   sub: string;
   /** 表示名 */
   name?: string;
-  /** プロフィール画像URL */
-  picture?: string;
   /** メールアドレス（scope に email が含まれる場合） */
   email?: string;
 };
@@ -166,7 +164,6 @@ export type LineWebhookBody = {
 export type LineLinkResult = {
   lineUserId: string;
   displayName?: string;
-  pictureUrl?: string;
   friendshipStatusChanged: boolean;
   isFriend: boolean;
 };

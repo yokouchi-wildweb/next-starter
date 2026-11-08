@@ -56,10 +56,11 @@ user_line_profiles
 ├── user_id (uuid, FK → users, unique)  ← 1:1
 ├── line_user_id (text, unique)
 ├── display_name (text, nullable)
-├── picture_url (text, nullable)  ← コールバックは保存しない（LINE の CDN の URL は後に切れる）
 ├── created_at
 └── updated_at
 ```
+
+プロフィール画像は保存しない(URL も画像も持たない。外部ログインの画像はどの provider でも保存しない)。
 
 ## ダウンストリームでの実装
 
@@ -230,7 +231,7 @@ LINE Platform からの Webhook 受信。`x-line-signature` ヘッダーで HMAC
 
 | メソッド | 説明 |
 |---------|------|
-| `linkLineAccount(userId, lineUserId, options?)` | LINE userId を紐付け（渡された displayName/pictureUrl も保存、渡さなければ null。コールバックは displayName だけ渡す。重複時は 409） |
+| `linkLineAccount(userId, lineUserId, options?)` | LINE userId を紐付け（渡された displayName を保存、渡さなければ null。重複時は 409） |
 | `unlinkLineAccount(userId)` | LINE 連携を解除（レコード物理削除） |
 | `findByLineUserId(lineUserId)` | LINE userId から連携プロフィール検索 |
 | `findByUserId(userId)` | ユーザーIDから連携プロフィール検索 |

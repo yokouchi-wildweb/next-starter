@@ -85,13 +85,14 @@ user_x_profiles
 ├── x_user_id (text, unique)               ← X のユーザーID
 ├── username (text, nullable)              ← @スクリーンネーム
 ├── display_name (text, nullable)
-├── profile_image_url (text, nullable)
 ├── access_token_encrypted (text)          ← AES-256-GCM 暗号化
 ├── refresh_token_encrypted (text)         ← AES-256-GCM 暗号化
 ├── token_expires_at (timestamp)           ← 期限管理
 ├── scopes (text[], nullable)              ← 認可スコープ
 ├── created_at / updated_at
 ```
+
+プロフィール画像は取らず保存もしない(外部ログインの画像はどの provider でも保存しない)。
 
 ## ダウンストリームでの実装
 

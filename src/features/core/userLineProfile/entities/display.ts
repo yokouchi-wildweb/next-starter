@@ -21,13 +21,6 @@ export const domainDisplay: DomainDisplay = {
       "fieldType": "string",
       "formInput": "none",
       "required": false
-    },
-    {
-      "name": "picture_url",
-      "label": "LINEプロフィール画像URL",
-      "fieldType": "string",
-      "formInput": "none",
-      "required": false
     }
   ],
   "relations": [

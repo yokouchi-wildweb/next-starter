@@ -7,7 +7,6 @@ export const UserXProfileCreateSchema = z.object({
   xUserId: z.string().min(1),
   username: z.string().nullish(),
   displayName: z.string().nullish(),
-  profileImageUrl: z.string().url().nullish(),
   accessTokenEncrypted: z.string().min(1),
   refreshTokenEncrypted: z.string().min(1),
   tokenExpiresAt: z.date(),
@@ -17,7 +16,6 @@ export const UserXProfileCreateSchema = z.object({
 export const UserXProfileUpdateSchema = z.object({
   username: z.string().nullish(),
   displayName: z.string().nullish(),
-  profileImageUrl: z.string().url().nullish(),
   accessTokenEncrypted: z.string().min(1).optional(),
   refreshTokenEncrypted: z.string().min(1).optional(),
   tokenExpiresAt: z.date().optional(),
