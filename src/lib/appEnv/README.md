@@ -44,7 +44,7 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 ## cookie の secure
 
 - 形は 2 つだけ: ログインのセッション・端末トークン = 常に `secure: true`(共通オプション `SESSION_COOKIE_BASE_OPTIONS`。localhost はブラウザが secure 扱いにするので開発でも通る) | それ以外(OAuth の state・流入元・招待リンク・画面の通知) = `secure: !isDevelopment()`
-- `NODE_ENV` で決めない。cookie を書く場所を足したら、判定を決めて `cookieSecure.test.mjs` の一覧に足す(一覧に無い場所は落ちる)
+- `NODE_ENV` で決めない。`cookieSecure.test.mjs` が src の cookie を書く場所を全部走査し、判定の形が無ければ落とす。上流の場所はその一覧(`COOKIE_WRITERS`)にも足す(fork は自分の cookie に判定を付けるだけで、一覧には足さない)
 
 ## どこでも同じ答え
 

@@ -3,7 +3,8 @@
 // cookie の secure の判定の一覧(README.md「cookie の secure」)。src の cookie を書く場所を全部ここに載せ、判定の形を縛る。
 // - 形は 2 つだけ: 常に secure: true(セッションの共通オプション SESSION_COOKIE_BASE_OPTIONS)/ secure: !isDevelopment()(@/lib/appEnv)
 // - NODE_ENV で判定しない
-// - 一覧に無い cookie を書く場所が増えたら落ちる(判定を決めて一覧に足す)
+// - 一覧に無い cookie を書く場所(上流で足した物・fork が足した物)は、判定の形を持っていれば通り、無ければ落ちる
+//   (この一覧は上流の物。fork は自分の cookie に判定を付けるだけで、ここには足さない)
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -50,8 +51,17 @@ const writers = () =>
 
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 
-test("cookie を書く場所は全部一覧にある(増えたら判定を決めて COOKIE_WRITERS に足す)", () => {
-  assert.deepEqual(writers().sort(), Object.keys(COOKIE_WRITERS).sort());
+test("一覧の場所は今も cookie を書いている(消えた・移った場所を一覧に残さない)", () => {
+  const found = new Set(writers());
+  for (const rel of Object.keys(COOKIE_WRITERS)) assert.ok(found.has(rel), `${rel} は cookie を書いていない(一覧から外す・移し先に直す)`);
+});
+
+test("一覧に無い cookie を書く場所も判定を持つ: secure: !isDevelopment()(@/lib/appEnv)か SESSION_COOKIE_BASE_OPTIONS。NODE_ENV は使わない", () => {
+  for (const rel of writers().filter((file) => !(file in COOKIE_WRITERS))) {
+    const text = read(rel);
+    assert.doesNotMatch(text, /NODE_ENV/, rel);
+    assert.ok(/secure: !isDevelopment\(\)/.test(text) || /\.\.\.SESSION_COOKIE_BASE_OPTIONS/.test(text), `${rel}: cookie の secure の判定がありません(secure: !isDevelopment() を @/lib/appEnv から、またはセッションの共通オプション)`);
+  }
 });
 
 test("判定の形: 常に secure(セッションの共通オプション)か !isDevelopment()(@/lib/appEnv)。NODE_ENV は使わない", () => {
