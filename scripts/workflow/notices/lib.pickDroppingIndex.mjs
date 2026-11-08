@@ -2,7 +2,7 @@
 // 修正・緊急修正の commit を一時の木へ cherry-pick するとき、出荷索引(.notices/shipped/)の変更だけを捨てる(pick-check・hotfix-check が使う)。
 // /ship は notice の索引の行を本体と同じ commit に入れるが、索引は追記だけの上流の帳簿で、索引が無い・短い土台では必ず衝突する。
 // fork は pick の時点で上流の索引を要らない(未適用の判定は上流の先端の索引を読む。索引は後の merge で届く)ので、
-// /flux も同じく索引だけの衝突は fork 側を採って続ける(.claude/skills/flux/SKILL.md・.notices/README.md「修正(fixes)」)。
+// /flux も同じく索引だけの衝突は fork 側を採って続ける(.claude/skills/flux/SKILL.md の FIXES・.notices/README.md「修正(fixes)」)。
 // 判定・判定の材料はどちらも「索引を除いた中身が載るか」で、索引の変更は木に残さない(衝突しなくても土台の索引のまま)。
 import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
