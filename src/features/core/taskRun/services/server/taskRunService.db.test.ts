@@ -56,6 +56,20 @@ describe("taskRunService(実 DB)", { skip }, () => {
     assert.deepEqual((await service.findKeyHolders([KEY, "other"])).map((r) => r.id), [run.id]);
   });
 
+  test("git に入れない移行: 全文を source に残し、同じ名前・同じ中身の成功した dry-run だけを findDryRunOf が返す", async () => {
+    const source = "export const task = {};\n";
+    const hash = `h-${randomUUID()}`;
+    assert.equal(await service.findDryRunOf(NAME, hash), null);
+    const dry = await service.startRun({ ...META, fileHash: hash, source, name: NAME, kind: "migration", args: ["--dry-run"], dryRun: true, stopKeys: [] });
+    assert.equal(dry.source, source);
+    assert.equal(await service.findDryRunOf(NAME, hash), null, "running の dry-run はまだ条件にならない");
+    await service.finishRun(dry.id, { status: "succeeded" });
+    assert.equal((await service.findDryRunOf(NAME, hash))?.id, dry.id);
+    assert.equal(await service.findDryRunOf(NAME, `${hash}-other`), null, "中身が違えば別");
+    const plain = await service.startRun({ ...META, name: NAME, kind: "task", args: [], dryRun: false, stopKeys: [] });
+    assert.equal(plain.source, null);
+  });
+
   test("resolve: unknown の行を人が failed にすると鍵を放す。succeeded の行は書き直せない", async () => {
     const key = `${KEY}:resolve`;
     const run = await service.startRun({ ...META, name: NAME, kind: "migration", args: [], dryRun: false, stopKeys: [key] });

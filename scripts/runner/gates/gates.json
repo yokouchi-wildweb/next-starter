@@ -50,7 +50,8 @@
       "notices",
       "dev-tab",
       "tmux-launch",
-      "agent-terminal"
+      "agent-terminal",
+      "local-migrations"
     ]
   }
 }

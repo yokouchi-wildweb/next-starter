@@ -79,3 +79,6 @@ TODO.md
 .tmpref
 .next-lab
 pglite-debug.log
+
+# git に入れない移行(緊急のデータ修正など下流に流さない物。pnpm task で走らせ、記録は task_runs と docs/journal。src/lib/task/README.md)
+src/features/**/scripts/migrations/*.local.ts

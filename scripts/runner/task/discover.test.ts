@@ -35,22 +35,38 @@ test("core と業務のドメインのタスク・移行を <ドメイン>:<名�
     "src/features/shop/scripts/tasks/lots-init.ts": taskBody("shop:lots-init"),
   });
   assert.deepEqual(listOneShotTasks(root), [
-    { name: "setting:copy-list-per-page", domain: "setting", kind: "migration", file: "src/features/core/setting/scripts/migrations/copy-list-per-page.ts" },
-    { name: "shop:lots-init", domain: "shop", kind: "task", file: "src/features/shop/scripts/tasks/lots-init.ts" },
-    { name: "wallet:lots-init", domain: "wallet", kind: "task", file: "src/features/core/wallet/scripts/tasks/lots-init.ts" },
+    { name: "setting:copy-list-per-page", domain: "setting", kind: "migration", file: "src/features/core/setting/scripts/migrations/copy-list-per-page.ts", local: false },
+    { name: "shop:lots-init", domain: "shop", kind: "task", file: "src/features/shop/scripts/tasks/lots-init.ts", local: false },
+    { name: "wallet:lots-init", domain: "wallet", kind: "task", file: "src/features/core/wallet/scripts/tasks/lots-init.ts", local: false },
   ]);
 });
 
-test("lib.*・テスト・下のフォルダ・.local.ts・.ts 以外はタスクに数えない", () => {
+test("lib.*・テスト・下のフォルダ・tasks の .local.ts・.ts 以外はタスクに数えない", () => {
   const root = tree({
     "src/features/core/wallet/scripts/tasks/lots-init.ts": taskBody("wallet:lots-init"),
     "src/features/core/wallet/scripts/tasks/lib.walletLotsSelection.ts": "export const x = 1;\n",
     "src/features/core/wallet/scripts/tasks/lots-init.test.ts": "\n",
     "src/features/core/wallet/scripts/tasks/parts/inner.ts": "\n",
     "src/features/core/wallet/scripts/tasks/README.md": "\n",
-    "src/features/core/wallet/scripts/migrations/fix-rows.local.ts": "\n",
+    "src/features/core/wallet/scripts/tasks/fix-rows.local.ts": "\n",
   });
   assert.deepEqual(listOneShotTasks(root).map((t) => t.name), ["wallet:lots-init"]);
+});
+
+test("git に入れない移行: migrations/<名前>.local.ts は local の移行 <ドメイン>:<名前>、notice を持たない。同じ名前の .ts と並ぶと止める", async () => {
+  const root = tree({
+    "src/features/core/wallet/scripts/migrations/fix-rows.local.ts": taskBody("wallet:fix-rows"),
+    "src/features/core/wallet/scripts/migrations/with-notice.local.ts": 'export const task = { name: "wallet:with-notice", notice: "20261031-141531-setting-fields-core-ui", run: async () => ({}) };\n',
+  });
+  const files = listOneShotTasks(root);
+  assert.deepEqual(files.map((f) => [f.name, f.kind, f.local]), [["wallet:fix-rows", "migration", true], ["wallet:with-notice", "migration", true]]);
+  assert.equal((await loadOneShotTask(root, files[0])).name, "wallet:fix-rows");
+  await assert.rejects(loadOneShotTask(root, files[1]), /git に入れない移行は notice: を持ちません/);
+  const clash = tree({
+    "src/features/shop/scripts/migrations/fix.ts": taskBody("shop:fix"),
+    "src/features/shop/scripts/migrations/fix.local.ts": taskBody("shop:fix"),
+  });
+  assert.match(scanTasks(clash).problems.join("\n"), /タスク名 "shop:fix" が .*fix\.(local\.)?ts と .*fix\.(local\.)?ts/);
 });
 
 test("止まる置き方を全部並べる: 名前の形・同じ名前・古い置き場 scripts/tasks の残り", () => {

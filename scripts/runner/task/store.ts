@@ -10,6 +10,9 @@ import type { TaskRunStore } from "./execute";
 /** 移行の止める鍵(常に掛かる) */
 export const migrationKey = (notice: string, name: string): string => `migration:${notice}:${name}`;
 
+/** git に入れない移行の止める鍵(同じ中身は二度と本実行しない。中身が変われば別の鍵) */
+export const localMigrationKey = (name: string, fileHash: string): string => `migration:local:${name}:${fileHash}`;
+
 /** postgres の「表が無い」(42P01)を pnpm db:push の案内に直す */
 function explain(error: unknown): Error {
   const code = (error as { code?: string; cause?: { code?: string } })?.code ?? (error as { cause?: { code?: string } })?.cause?.code;
@@ -29,6 +32,7 @@ export async function dbTaskRunStore(): Promise<TaskRunStore> {
   const service = await import("@/features/core/taskRun/services/server");
   return {
     findKeyHolders: (keys) => wrap(() => service.findKeyHolders(keys)),
+    findDryRunOf: (name, fileHash) => wrap(() => service.findDryRunOf(name, fileHash)),
     start: (input) => wrap(() => service.startRun(input)),
     finish: (id, input) => wrap(() => service.finishRun(id, input)),
   };

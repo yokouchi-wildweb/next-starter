@@ -54,3 +54,15 @@ export const task: OneShotTask = {
 - 結果不明: 止める鍵のある実行が走り出してから落ちた = `unknown`(自動では二度と走らない)。`TaskNotStartedError` は `failed`(打ち直せる)。確かめたら `pnpm task --resolve <runId> succeeded|failed`
 - dry-run(引数 `--dry-run`)は記録に印を付け、鍵を取らず、鍵に止められない
 - 立ち上げの例外: `task_runs` を作る最初の `pnpm db:push` と DB の無い初期化は記録なし(`pnpm task` を通らない)
+
+## git に入れない移行(.local.ts)
+
+下流に流さない緊急のデータ修正(運用のミス・トラブル)は、持ち主のドメインの `src/features/<ドメイン>/scripts/migrations/<名前>.local.ts` に置く(`.gitignore` に上流が 1 行。コミットしない)。名前は同じ `<ドメイン>:<名前>`、`notice:` は持たない。型検査・lint(`tools-no-db-write` は移行として扱う = 直接の SQL・db を許す)・記録はふつうの移行と同じに効く。
+
+- 事前のレビューの代わり: 同じ中身(ファイルの sha256)の dry-run が成功してから本実行できる(`pnpm task <名前> -- --dry-run` → `pnpm task <名前>`)。中身を変えたら dry-run からやり直し
+- 止める鍵 `migration:local:<名前>:<sha256>`: 同じ中身は二度と本実行しない
+- 実行した中身の全文を dry-run も本実行も `task_runs.source` に残す
+- 本実行の後、ランナーが作業の記録の下書き `docs/journal/<日付>--<fork_id>--local-migration-<ドメイン>-<名前>.md` を書く(コミットしない)。人が「なぜ・確かめたこと」を書き足してコミットする
+- dry-run を自分で扱うのはファイルの役目(`process.argv` の `--dry-run` を見て書き込まない)
+- コミット・ステージされていれば門 ship(`pnpm check local-migrations`、/ship)が止める。終わったら人が消す
+- 下流にも要ると分かったら `.local` を外して `notice:` を付ける(ふつうの移行になる)

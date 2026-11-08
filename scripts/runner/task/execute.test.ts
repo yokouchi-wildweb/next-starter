@@ -22,9 +22,12 @@ function memoryStore(): TaskRunStore & { rows: TaskRun[]; failStart?: boolean } 
     async findKeyHolders(keys: readonly string[]) {
       return rows.filter((r) => !r.dryRun && ["running", "succeeded", "unknown"].includes(r.status) && r.stopKeys.some((k) => keys.includes(k)));
     },
+    async findDryRunOf(name: string, fileHash: string) {
+      return rows.find((r) => r.name === name && r.fileHash === fileHash && r.dryRun && r.status === "succeeded") ?? null;
+    },
     async start(input: Parameters<TaskRunStore["start"]>[0]) {
       if (store.failStart) throw new Error("表 task_runs がありません");
-      const row: TaskRun = { ...input, id: `run-${rows.length + 1}`, status: "running", result: null, error: null, startedAt: new Date(), finishedAt: null, resolvedAt: null };
+      const row: TaskRun = { ...input, source: input.source ?? null, id: `run-${rows.length + 1}`, status: "running", result: null, error: null, startedAt: new Date(), finishedAt: null, resolvedAt: null };
       rows.push(row);
       return row;
     },
@@ -136,4 +139,27 @@ test("記録を書くのは名指しの 1 回だけ: pnpm task <名前>(定期�
   assert.equal(invocationOf(["--list"]).recorded, false);
   assert.equal(invocationOf([]).recorded, false);
   assert.deepEqual(invocationOf(["--resolve", "id", "failed"]), { kind: "resolve", rest: ["id", "failed"], recorded: false });
+});
+
+test("git に入れない移行: 同じ中身の dry-run が成功するまで本実行しない、全文を両方の行に残す、同じ中身は二度と本実行しない", async () => {
+  const store = memoryStore();
+  const local = { fileHash: "hash-1", source: "export const task = {};\n" };
+  const keys = () => ["migration:local:wallet:fix:hash-1"];
+  const base = { name: "wallet:fix", kind: "migration" as const, stopKeys: keys, local, meta: { ...META, fileHash: "hash-1" } };
+  assert.deepEqual(await executeTask(input(store, base)), { kind: "needs-dry-run", fileHash: "hash-1" });
+  assert.equal(store.rows.length, 0);
+  const dry = await executeTask(input(store, { ...base, args: ["--dry-run"] }));
+  assert.ok(dry.kind === "ran" && dry.status === "succeeded");
+  const real = await executeTask(input(store, base));
+  assert.ok(real.kind === "ran" && real.status === "succeeded");
+  assert.deepEqual(store.rows.map((r) => [r.dryRun, r.source]), [[true, local.source], [false, local.source]]);
+  assert.equal((await executeTask(input(store, base))).kind, "refused", "同じ中身の本実行は二度目を拒否");
+  const edited = { fileHash: "hash-2", source: "changed\n" };
+  assert.deepEqual(await executeTask(input(store, { ...base, local: edited, stopKeys: () => ["migration:local:wallet:fix:hash-2"], meta: { ...META, fileHash: "hash-2" } })), { kind: "needs-dry-run", fileHash: "hash-2" }, "中身を変えたら dry-run からやり直し");
+});
+
+test("ふつうのタスクの行の source は null", async () => {
+  const store = memoryStore();
+  await executeTask(input(store));
+  assert.equal(store.rows[0].source, null);
 });

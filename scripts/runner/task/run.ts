@@ -25,16 +25,19 @@
 // package.json の task スクリプトは scripts/runner/preload/serverOnly.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
 
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
 import { type LoadedCronTask, loadCronTasks } from "../../structure/cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile } from "./discover";
-import { type ExecuteOutcome, executeTask } from "./execute";
+import { type ExecuteOutcome, executeTask, isDryRun } from "./execute";
 import { invocationOf } from "./invocation";
 import { asSystem, loadEnvFile, requireDatabase } from "./prepare";
 import { collectRunMeta } from "./record";
-import { dbTaskRunStore, migrationKey, resolveByHand } from "./store";
+import { writeJournalDraft } from "./journal";
+import { dbTaskRunStore, localMigrationKey, migrationKey, resolveByHand } from "./store";
 
 // env ファイルを読む（prepare.ts）。タスク本体は動的 import なので、ここで読めば間に合う。
 loadEnvFile();
@@ -75,9 +78,9 @@ function printList(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[])
   for (const { name } of oneShotTasks.filter((task) => task.kind === "task")) {
     console.log(`  - ${name}`);
   }
-  console.log("\nMigrations, one-off (src/features/<domain>/scripts/migrations/<name>.ts):");
-  for (const { name } of oneShotTasks.filter((task) => task.kind === "migration")) {
-    console.log(`  - ${name} [migration]`);
+  console.log("\nMigrations, one-off (src/features/<domain>/scripts/migrations/<name>.ts, uncommitted <name>.local.ts):");
+  for (const { name, local } of oneShotTasks.filter((task) => task.kind === "migration")) {
+    console.log(`  - ${name} [migration${local ? ", local" : ""}]`);
   }
 }
 
@@ -128,6 +131,7 @@ async function runNamed(repoRoot: string, name: string, named: NamedTask, args: 
   let stopKeys: () => string[] | Promise<string[]>;
   let file: string;
   let kind: "task" | "migration" | "cron";
+  let local: { fileHash: string; source: string } | undefined;
   if (named.kind === "cron") {
     const cron = named.task;
     run = cron.run;
@@ -139,25 +143,66 @@ async function runNamed(repoRoot: string, name: string, named: NamedTask, args: 
     run = task.run;
     file = named.file.file;
     kind = named.file.kind;
-    stopKeys = named.file.kind === "migration" ? () => [migrationKey(task.notice as string, name)] : () => (task.stopKeys ? task.stopKeys(args) : []);
+    if (named.file.local) {
+      // git に入れない移行: 読んだ中身そのもののハッシュで鍵と dry-run 済みの条件を決め、全文を記録に残す
+      const source = readFileSync(path.join(repoRoot, file), "utf8");
+      const fileHash = createHash("sha256").update(source).digest("hex");
+      local = { fileHash, source };
+      stopKeys = () => [localMigrationKey(name, fileHash)];
+    } else {
+      stopKeys = named.file.kind === "migration" ? () => [migrationKey(task.notice as string, name)] : () => (task.stopKeys ? task.stopKeys(args) : []);
+    }
   }
+  const meta = { ...collectRunMeta(repoRoot, file), ...(local ? { fileHash: local.fileHash } : {}) };
   const startedAt = Date.now();
   const outcome = await executeTask({
     name,
     kind,
     args,
-    meta: collectRunMeta(repoRoot, file),
+    meta,
     stopKeys,
     run,
     asSystem: (requestId, fn) => asSystem(fn, requestId),
     store: await dbTaskRunStore(),
+    local,
   });
-  return report(name, outcome, Date.now() - startedAt);
+  const code = report(name, outcome, Date.now() - startedAt);
+  if (local && outcome.kind === "ran" && !isDryRun(args)) {
+    // 本実行の後: 作業の記録の下書き(コミットしない。人が書き足してコミットする)
+    const draft = writeJournalDraft(repoRoot, {
+      runId: outcome.runId,
+      name,
+      status: outcome.status,
+      args,
+      file,
+      fileHash: local.fileHash,
+      source: local.source,
+      result: outcome.result,
+      error: outcome.error,
+      actor: meta.actor,
+      stage: meta.stage,
+      dbTarget: meta.dbTarget,
+      gitSha: meta.gitSha,
+      startedAt: new Date(startedAt),
+    });
+    log("info", { task: name, journalDraft: draft, note: "作業の記録の下書きです。なぜ・確かめたことを書き足してコミットし、終わった .local.ts は消します" });
+  }
+  return code;
 }
 
 function report(name: string, outcome: ExecuteOutcome, durationMs: number): number {
   if (outcome.kind === "not-recorded") {
     log("error", { task: name, ok: false, error: `実行の記録(task_runs)が書けないので走らせません: ${outcome.error}` });
+    return 1;
+  }
+  if (outcome.kind === "needs-dry-run") {
+    log("error", {
+      task: name,
+      ok: false,
+      refused: true,
+      error: `git に入れない移行は、同じ中身の dry-run が成功してから本実行します(先に pnpm task ${name} -- --dry-run。中身を変えたら dry-run からやり直し)`,
+      fileHash: outcome.fileHash,
+    });
     return 1;
   }
   if (outcome.kind === "refused") {

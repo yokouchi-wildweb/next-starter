@@ -20,6 +20,8 @@ export type OneShotTaskFile = {
   kind: OneShotTaskKind;
   /** リポジトリ直下からの相対 */
   file: string;
+  /** git に入れない移行(scripts/migrations/<名前>.local.ts)。notice は持たない */
+  local: boolean;
 };
 
 /** タスクと移行を名前順に返す。置き方の誤り(名前の形・同じ名前・古い置き場 scripts/tasks の残り)は全部並べて止める */
@@ -42,14 +44,17 @@ const NOTICE_ID = /^\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /**
  * タスクのファイルを読み込む(export const task と、task.name = <ドメイン>:<ファイル名> を確かめる)。
- * 移行は notice(案内する notice の id)が必須、タスクは notice を持たない
+ * 移行は notice(案内する notice の id)が必須(git に入れない移行 .local.ts は持たない)、タスクは notice を持たない
  */
-export async function loadOneShotTask(repoRoot: string, { name, file, kind }: OneShotTaskFile): Promise<OneShotTask> {
+export async function loadOneShotTask(repoRoot: string, { name, file, kind, local }: OneShotTaskFile): Promise<OneShotTask> {
   const mod = (await import(pathToFileURL(path.join(repoRoot, file)).href)) as { task?: OneShotTask };
   const task = mod.task;
   if (!task || typeof task.run !== "function") throw new Error(`${file} が export const task を持っていません`);
   if (task.name !== name) throw new Error(`${file} の task.name "${task.name}" が "${name}"(<ドメイン>:<ファイル名>)と違います`);
-  if (kind === "migration" && !(typeof task.notice === "string" && NOTICE_ID.test(task.notice))) {
+  if (kind === "migration" && local && task.notice !== undefined) {
+    throw new Error(`${file}: git に入れない移行は notice: を持ちません(下流に流すなら .local を外して notice を付ける)`);
+  }
+  if (kind === "migration" && !local && !(typeof task.notice === "string" && NOTICE_ID.test(task.notice))) {
     throw new Error(`${file}: 移行は notice: "<案内する notice の id>" を持ちます(止める鍵 migration:<notice の id>:${name} に使う)`);
   }
   if (kind === "task" && task.notice !== undefined) throw new Error(`${file}: notice: は移行(scripts/migrations/)だけが持ちます`);

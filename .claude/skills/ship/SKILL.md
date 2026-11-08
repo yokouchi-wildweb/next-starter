@@ -18,6 +18,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
 1. **範囲を確定する**:
    - `git status --short` と `git diff --cached --name-only`。同じ作業ツリーで他のセッションがステージしていることがある。出荷するのはこの会話で自分が変えたファイルだけ(会話で触ったファイルと照合する)。どちらか分からないファイルがあれば止まる。
    - 範囲が空なら「出荷するものなし」とだけ報告して終える(コミットも push もしない)。
+   - **git に入れない移行 `src/features/**/scripts/migrations/*.local.ts` は範囲に入れない**(下流に流さない緊急のデータ修正、`.gitignore` の 1 行)。ステージ・追跡されていれば止まる(門 ship の `pnpm check local-migrations` も落ちる。外すのは `git rm --cached <path>`、下流にも要るなら `.local` を外して `notice:` を付けた普通の移行にする)。
    - 削除・改名を洗い出す: `git status --short` の `D` / `R` 行と、作業ツリーで消したファイル。手順 3 の判定と `moved:` に使う。
    - **他のセッションのコミットと重ならないか確かめる**: 基準 = 会話の冒頭の HEAD(環境の gitStatus の最新コミット。無ければ作業を始めたときに自分が見た HEAD)。`git log --format='%h %(trailers:key=Claude-Session,valueonly,separator=) %s' <基準>..HEAD -- <範囲のファイル(削除したものを含む)>` から、この会話のコミット(`Claude-Session:` がこの会話の session URL のもの)を除く。残りが空なら次へ。残ったコミットごとに `git show <sha> -- <file>` を読み、
      - 自分が削除・移動したファイル、または丸ごと書き直したファイルなら、その変更を移し先に移す(移せないなら止まる)

@@ -5,6 +5,8 @@
 //   → running の行を書く(書けなければ走らせない)→ runAsSystem({ requestId: 行の id }) の中で走らせる → 結果を書く。
 // 結果: 成功 = succeeded | TaskNotStartedError = failed(鍵を取らない)| ほかの失敗 = 鍵があれば unknown、無ければ failed | dry-run の失敗 = failed。
 // dry-run(引数 --dry-run)は鍵を取らず、鍵に止められない。
+// git に入れない移行(local): 本実行は同じ名前・同じ中身(file_hash)の成功した dry-run があることが条件(無ければ needs-dry-run)。
+//   中身の全文を dry-run も本実行も行の source に残す。
 // 利用者: scripts/runner/task/run.ts
 
 import type { TaskRunKind, TaskRunStatus } from "@/features/core/taskRun/constants";
@@ -14,6 +16,8 @@ import type { RunMeta } from "./record";
 
 export type TaskRunStore = {
   findKeyHolders(keys: readonly string[]): Promise<TaskRun[]>;
+  /** 同じ名前・同じ中身の成功した dry-run の行(git に入れない移行の本実行の条件) */
+  findDryRunOf(name: string, fileHash: string): Promise<TaskRun | null>;
   start(input: TaskRunStartInput): Promise<{ id: string }>;
   finish(id: string, input: TaskRunFinishInput): Promise<unknown>;
 };
@@ -29,11 +33,14 @@ export type ExecuteInput = {
   /** 監査の文脈を system にして走らせる(requestId = 記録の行の id) */
   asSystem: <T>(requestId: string, fn: () => Promise<T>) => Promise<T>;
   store: TaskRunStore;
+  /** git に入れない移行(.local.ts)の中身。本実行の条件と記録の全文に使う */
+  local?: { fileHash: string; source: string };
 };
 
 export type ExecuteOutcome =
   | { kind: "ran"; runId: string; status: Exclude<TaskRunStatus, "running">; result?: Record<string, unknown>; error?: string; recordWritten: boolean }
   | { kind: "refused"; keys: string[]; holders: TaskRun[] }
+  | { kind: "needs-dry-run"; fileHash: string }
   | { kind: "not-recorded"; error: string };
 
 export const isDryRun = (args: readonly string[]): boolean => args.includes("--dry-run");
@@ -46,7 +53,7 @@ const notStarted = (error: unknown): boolean => error instanceof Error && error.
 export async function executeTask(input: ExecuteInput): Promise<ExecuteOutcome> {
   const { name, kind, args, meta, store } = input;
   const dryRun = isDryRun(args);
-  const base = { name, kind, args, dryRun, ...meta };
+  const base = { name, kind, args, dryRun, ...meta, source: input.local?.source ?? null };
 
   let keys: string[];
   try {
@@ -66,6 +73,10 @@ export async function executeTask(input: ExecuteInput): Promise<ExecuteOutcome> 
   if (!dryRun && keys.length > 0) {
     const holders = await store.findKeyHolders(keys);
     if (holders.length > 0) return { kind: "refused", keys, holders };
+  }
+
+  if (!dryRun && input.local && !(await store.findDryRunOf(name, input.local.fileHash))) {
+    return { kind: "needs-dry-run", fileHash: input.local.fileHash };
   }
 
   let runId: string;

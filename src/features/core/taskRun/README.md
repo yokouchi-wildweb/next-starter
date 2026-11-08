@@ -19,6 +19,7 @@ table: `task_runs`(1 実行 = 1 行)
 - `stop_keys text[]` … 止める鍵。dry-run でない `running` / `succeeded` / `unknown` の行が持つ鍵と同じ鍵の実行は拒否される
 - `result jsonb` / `error` … タスクの返り値・失敗の文
 - `git_sha` / `git_dirty`(未コミットの変更があったか)/ `actor`(OS のユーザー名@ホスト名)/ `stage`(`@/lib/appEnv`)/ `db_target`(接続先の host と DB 名だけ、資格情報は持たない)/ `file_hash`(タスクのファイルの sha256)
+- `source` … git に入れない移行(`.local.ts`)の中身の全文(dry-run も本実行も。ほかの実行は null)
 - `started_at` / `finished_at` / `resolved_at`(人が `pnpm task --resolve` で書き直した時)
 
 ## 関数(`@/features/core/taskRun/services/server`)
@@ -26,6 +27,7 @@ table: `task_runs`(1 実行 = 1 行)
 - `startRun(input)` … `running` の行を書く(書けなければランナーは走らせない)
 - `finishRun(id, { status, result, error })` … `running` の行にだけ結果を書く
 - `findKeyHolders(keys)` … 鍵を持つ行を新しい順に
+- `findDryRunOf(name, fileHash)` … 同じ名前・同じ中身の成功した dry-run の行(git に入れない移行の本実行の条件)
 - `resolveRun(id, "succeeded" | "failed", note)` … `running` / `unknown` の行を人が確かめた結果に書き直す(`succeeded` = 鍵を持ち続ける / `failed` = 鍵を放して打ち直せる)
 
 ## 立ち上げ

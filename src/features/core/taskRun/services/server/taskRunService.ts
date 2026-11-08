@@ -4,6 +4,7 @@
 // - startRun: 走る前に running の行を書く(書けなければ呼び手はタスクを走らせない)
 // - finishRun: running の行に結果を書く(running でない行は書き換えない)
 // - findKeyHolders: 鍵を持つ行(dry-run でない running / succeeded / unknown)を新しい順に返す
+// - findDryRunOf: 同じ名前・同じ中身(file_hash)の成功した dry-run の行(git に入れない移行の本実行の条件)
 // - resolveRun: 人が確かめた結果で running / unknown の行を succeeded / failed に書き直す
 //
 // Date を sql テンプレートに直接埋めないこと(drizzle の set / values 経由で渡す)。
@@ -49,6 +50,17 @@ export async function findKeyHolders(keys: readonly string[]): Promise<TaskRun[]
     .where(and(arrayOverlaps(t.stopKeys, [...keys]), eq(t.dryRun, false), inArray(t.status, [...TASK_RUN_KEY_HOLDING_STATUSES])))
     .orderBy(desc(t.startedAt));
   return rows.map(toModel);
+}
+
+/** 同じ名前・同じ中身(file_hash)の成功した dry-run の行のうち新しい物。無ければ null */
+export async function findDryRunOf(name: string, fileHash: string): Promise<TaskRun | null> {
+  const [row] = await db
+    .select()
+    .from(t)
+    .where(and(eq(t.name, name), eq(t.fileHash, fileHash), eq(t.dryRun, true), eq(t.status, "succeeded")))
+    .orderBy(desc(t.startedAt))
+    .limit(1);
+  return row ? toModel(row) : null;
 }
 
 export async function findRun(id: string): Promise<TaskRun | null> {

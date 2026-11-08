@@ -19,6 +19,7 @@ export type TaskRun = {
   stage: string;
   dbTarget: string | null;
   fileHash: string | null;
+  source: string | null;
   startedAt: Date;
   finishedAt: Date | null;
   resolvedAt: Date | null;
@@ -28,7 +29,10 @@ export type TaskRun = {
 export type TaskRunStartInput = Pick<
   TaskRun,
   "name" | "kind" | "args" | "dryRun" | "stopKeys" | "gitSha" | "gitDirty" | "actor" | "stage" | "dbTarget" | "fileHash"
->;
+> & {
+  /** git に入れない移行の全文(ほかは省く = null) */
+  source?: string | null;
+};
 
 /** 終わりに書く結果 */
 export type TaskRunFinishInput = {

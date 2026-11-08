@@ -18,6 +18,7 @@ export const TaskRunCreateSchema = z.object({
   stage: z.string().min(1),
   dbTarget: z.string().nullable(),
   fileHash: z.string().nullable(),
+  source: z.string().nullable().optional(),
 });
 
 /** CRUD ベースの update。結果を書くのは taskRunService.finishRun / resolveRun だけ */

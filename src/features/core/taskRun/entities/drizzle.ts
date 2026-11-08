@@ -35,6 +35,8 @@ export const TaskRunTable = pgTable(
     dbTarget: text("db_target"),
     /** タスクのファイルの中身の sha256 */
     fileHash: text("file_hash"),
+    /** git に入れない移行(.local.ts)の中身の全文(ほかの実行は null。事前のレビューの代わりに残す) */
+    source: text("source"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     /** 人が結果を確かめて書き直した時(pnpm task --resolve) */
