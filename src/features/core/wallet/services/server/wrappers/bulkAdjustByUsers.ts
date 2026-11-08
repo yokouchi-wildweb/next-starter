@@ -15,7 +15,7 @@ import {
   rebaselineLotsBulk,
 } from "@/features/core/wallet/services/server/lots/lotAccounting";
 import { normalizeAmount, sanitizeMeta, resolveRequestBatchId } from "./utils";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { resolveWalletReason } from "./reasonKey";
 

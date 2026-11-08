@@ -2,7 +2,7 @@
 
 import { UserCounterTable } from "@/features/core/userCounter/entities/drizzle";
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 import { sql } from "drizzle-orm";
 

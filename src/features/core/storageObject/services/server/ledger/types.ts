@@ -4,7 +4,7 @@
 // 条件付きの更新（「この状態のときだけ」）はすべてここで 1 回の操作にまとめ、
 // 並行する要求のどちらか一方だけが成功するようにする。
 
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 import type {
   StorageObject,

@@ -8,7 +8,7 @@
 import type { Coupon } from "../entities/model";
 import type { CouponHistory } from "@/features/core/couponHistory/entities/model";
 import type { FieldConfig } from "@/components/Form/Field/types";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /**
  * ハンドラーに渡されるコンテキスト

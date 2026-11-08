@@ -25,7 +25,7 @@
 import { completeHooks } from "@/features/core/purchaseRequest/extensions/completeHooks";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import type { WalletHistory } from "@/features/core/walletHistory/entities/model";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /**
  * ポストフックに渡されるパラメータ

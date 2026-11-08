@@ -4,7 +4,7 @@ import { db } from "@/lib/drizzle";
 import { ReferralTable } from "../../../entities/drizzle";
 import type { Referral } from "../../../entities/model";
 import type { Coupon } from "@/features/core/coupon/entities/model";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { eq } from "drizzle-orm";
 
 /**

@@ -11,7 +11,7 @@
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { runWithTransaction, type TransactionClient } from "@/lib/drizzle/transaction";
+import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import type { Coupon } from "@/features/core/coupon/entities/model";

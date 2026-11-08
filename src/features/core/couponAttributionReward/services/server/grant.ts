@@ -13,7 +13,7 @@
 
 import { and, eq, sql } from "drizzle-orm";
 
-import { runWithTransaction, type TransactionClient } from "@/lib/drizzle/transaction";
+import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { markUserDirty } from "@/lib/userDirty";
 import { DomainError } from "@/lib/errors/domainError";
 import { walletService } from "@/features/core/wallet/services/server/walletService";

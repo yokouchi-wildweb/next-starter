@@ -37,7 +37,7 @@ import {
   type LotHistoryEntry,
   type LotPlan,
 } from "@/features/core/wallet/utils/lotPlanning";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import type { WalletType } from "@/config/app/currency.config";
 import { resolveRequestBatchId } from "../wrappers/utils";
 import type { Wallet } from "@/features/core/wallet/entities";

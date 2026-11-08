@@ -8,7 +8,7 @@ import { and, asc, eq, gt, inArray, isNotNull, isNull, lte, notInArray, or, sql 
 
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 import { StorageObjectTable } from "../../../entities/drizzle";
 import type { StorageObject } from "../../../entities/model";

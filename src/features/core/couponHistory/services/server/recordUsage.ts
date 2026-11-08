@@ -4,7 +4,7 @@ import { db } from "@/lib/drizzle";
 import { CouponHistoryTable } from "../../entities/drizzle";
 import type { CouponHistory } from "../../entities/model";
 import type { CouponSnapshot, CouponUsageMetadata } from "../../types/metadata";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 type RecordUsageParams = {
   couponId: string;

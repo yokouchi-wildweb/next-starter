@@ -7,10 +7,10 @@ import type { UsabilityCheckOptions, UsabilityReason } from "../../../types/rede
 import { eq } from "drizzle-orm";
 
 // トランザクション関連は共通モジュールから re-export
-export type { TransactionClient } from "@/lib/drizzle/transaction";
-export { runWithTransaction } from "@/lib/drizzle/transaction";
+export type { TransactionClient } from "@/lib/drizzle";
+export { runWithTransaction } from "@/lib/drizzle";
 
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /**
  * 静的バリデーション結果の型

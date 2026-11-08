@@ -2,7 +2,7 @@
 
 import { eq, and, sql, inArray, lt } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 import { isPgUniqueViolation } from "@/lib/crud/drizzle/service";
 import { BatchJobTable, BatchJobItemTable } from "@/features/batchJob/entities/drizzle";

@@ -25,7 +25,7 @@ import {
   getExpirationDays,
   isExpirationEnabled,
 } from "@/features/core/wallet/utils/expiration";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /** ロット合計と残高の不整合（初期化漏れ等）を検知した際の共通エラー */
 function lotMismatchError(walletIds: string[]): DomainError {

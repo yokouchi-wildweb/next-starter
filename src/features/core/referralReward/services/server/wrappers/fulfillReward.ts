@@ -7,7 +7,7 @@ import type { Referral } from "@/features/core/referral/entities/model";
 import { getRewardDefinition } from "../../../utils/rewardDefinitionLookup";
 import { getRewardHandler } from "../rewardHandlerRegistry";
 import { markUserDirty } from "@/lib/userDirty";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { eq, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 

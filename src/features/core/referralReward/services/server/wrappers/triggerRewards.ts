@@ -3,7 +3,7 @@
 import type { Referral } from "@/features/core/referral/entities/model";
 import { getRewardKeysByTrigger } from "./getRewardKeysByTrigger";
 import { fulfillReward, type FulfillResult } from "./fulfillReward";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /**
  * トリガー実行結果

@@ -1,0 +1,16 @@
+# DOWNSTREAM NOTICE id:20261108-190036-lib-close-drizzle
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-08T10:00:36Z
+severity: action-required
+checkpoint: lib-close-drizzle
+change: src/lib/drizzle is a closed lib: package.json { exports: { ".": "./index.ts" } } (no libs, no peers, no sideEffects: the entry creates the connection on load) + tsconfig.json | runWithTransaction and TransactionClient moved from src/lib/drizzle/transaction.ts into the entry src/lib/drizzle/index.ts (same names, same signatures) | src/lib/drizzle/transaction.ts stays only as a one-line re-export marker so the codemod can resolve the old specifier; it is not on the exports, so lint lib-entry rejects @/lib/drizzle/transaction | upstream callers (41 files, 46 statements) now import from @/lib/drizzle
+why: after this version every fork import of @/lib/drizzle/transaction fails pnpm lint (import-boundaries/lib-entry); forks read it in 27-73 places each
+required_actions:
+1. Merge upstream up to this checkpoint. Conflicts in src/lib/drizzle/index.ts: keep your own edits of the connection (e.g. pool options in createConfiguredDb) and take upstream's new block at the end of the file (runWithTransaction / TransactionClient). Take upstream's src/lib/drizzle/transaction.ts, package.json and tsconfig.json as they are.
+2. Rewrite imports: `pnpm check lib-package -- codemod` (dry-run), then `pnpm check lib-package -- codemod --apply`. Every `@/lib/drizzle/transaction` import becomes `@/lib/drizzle`.
+3. Tests that replace the module with node:test `mock.module("@/lib/drizzle/transaction", …)`: point them at `mock.module("@/lib/drizzle", …)` (the code under test now reads runWithTransaction from the entry, so the old mock no longer applies). Find them: git grep -n 'mock.module("@/lib/drizzle/transaction"' -- src scripts tests
+4. `pnpm typecheck` → `pnpm lint` → `pnpm check lib-package` → `pnpm test`.
+verify: `pnpm check lib-package -- codemod` reports 0 statements and 0 stops | `git grep -n "@/lib/drizzle/" -- src scripts tests` shows only the comment in src/lib/drizzle/transaction.ts | `pnpm check lib-package -- --list` shows drizzle closed | pnpm typecheck | pnpm lint | pnpm test
+manual_steps: -
+refs: src/lib/README.md 「lib を閉じる手順」, scripts/structure/lib-package/README.md, notice 20261108-172627-shared-shelf-lib-close-base, order 20261108-184003-lib-close-drizzle
+notes: imports: @/lib/drizzle/transaction -> @/lib/drizzle. moved: none (no file left the lib). `pnpm check lib-package -- moved --base 75dd03a4` lists @/lib/drizzle/transaction under unresolved: (the marker file is not reachable from the entry); the codemod resolves it through the marker's re-export, checked on upstream (46 statements rewritten, 0 stops). The marker is removed in a later notice once forks have run the codemod. No config for drizzle in this step: pool options via config are order 20261101-111956-config-drizzle-pool (routed to a legate). Per fork (read-only git grep of @/lib/drizzle/transaction under src and scripts): 88-base 44, TriQ 48, boardgame-site 49, next-vnx 44, oripa-do 73, pandora 70, voranowa 27; oripa-do edits src/lib/drizzle/index.ts (pool max 50 / idle_timeout / connect_timeout) — keep it in step 1. Codemod not run in any fork.

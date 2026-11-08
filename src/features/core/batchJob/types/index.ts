@@ -1,6 +1,6 @@
 // src/features/core/batchJob/types/index.ts
 
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 // --- ステータス ---
 

@@ -12,7 +12,7 @@
 import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import type { WalletHistory } from "@/features/core/walletHistory/entities/model";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import type { InitiatePurchaseParams } from "../wrappers/purchaseService";
 
 /**

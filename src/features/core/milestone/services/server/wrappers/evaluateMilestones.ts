@@ -13,7 +13,7 @@
 
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { MilestoneTable } from "@/features/core/milestone/entities/drizzle";
 import { getMilestonesByTrigger } from "../milestoneRegistry";
 import type {

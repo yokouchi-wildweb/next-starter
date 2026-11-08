@@ -1,8 +1,8 @@
 // 招待コード専用ヘルパー（1ユーザー1コード制約）
 
 import type { Coupon } from "../../../entities/model";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
-import { runWithTransaction } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
+import { runWithTransaction } from "@/lib/drizzle";
 import { getCodesByOwner } from "./getCodesByOwner";
 import { issueCodeForOwner } from "./issueCodeForOwner";
 

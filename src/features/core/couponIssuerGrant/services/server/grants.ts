@@ -9,7 +9,7 @@
 // 書き込みは base.create / base.update を通す（CRUD 自動監査で before/after が残る）。
 // 当期クーポンへの反映（停止時の無効化・設定変更時のパッチ）は issuance.ts に委譲する。
 
-import { runWithTransaction, type TransactionClient } from "@/lib/drizzle/transaction";
+import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 import type { CouponIssuerGrant } from "@/features/core/couponIssuerGrant/entities/model";
 import { couponIssuerGrantBase } from "./drizzleBase";

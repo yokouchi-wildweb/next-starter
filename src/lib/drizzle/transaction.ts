@@ -1,25 +1,6 @@
 // src/lib/drizzle/transaction.ts
+// 中身は入口(./index.ts)へ移した。外からは @/lib/drizzle だけを読む(package.json の exports)。
+// このファイルは古い指定子 @/lib/drizzle/transaction を codemod が入口へ書き換えるための印として残す
+// (fork は上流を merge してから pnpm check lib-package -- codemod --apply を回す。codemod は中のファイルの re-export を辿って入口を求める)
 
-import "server-only";
-
-import { db } from "./index";
-
-/**
- * トランザクションクライアントの型
- * db.transaction() のコールバック引数の型を抽出
- */
-export type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/**
- * トランザクション実行ユーティリティ
- * tx が渡されればそのまま使用し、なければ新規トランザクションを開始
- */
-export async function runWithTransaction<T>(
-  tx: TransactionClient | undefined,
-  handler: (tx: TransactionClient) => Promise<T>,
-): Promise<T> {
-  if (tx) {
-    return handler(tx);
-  }
-  return db.transaction(async (innerTx) => handler(innerTx));
-}
+export { runWithTransaction, type TransactionClient } from "./index";

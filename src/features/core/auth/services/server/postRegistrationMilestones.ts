@@ -14,7 +14,7 @@ import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities
 import { MILESTONE_TRIGGER_USER_REGISTERED } from "@/features/core/milestone/constants/triggers";
 import { getMilestonesByTrigger } from "@/features/core/milestone/services/server/milestoneRegistry";
 import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
-import { runWithTransaction } from "@/lib/drizzle/transaction";
+import { runWithTransaction } from "@/lib/drizzle";
 
 /** user_registered のマイルストーンに渡す payload(定義の context.payload) */
 export type UserRegisteredPayload = {

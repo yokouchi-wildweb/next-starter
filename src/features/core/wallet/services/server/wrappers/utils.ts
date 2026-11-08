@@ -11,9 +11,9 @@ import { and, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 // トランザクション関連は共通モジュールから import & re-export
-import type { TransactionClient as TxClient } from "@/lib/drizzle/transaction";
-export type { TransactionClient } from "@/lib/drizzle/transaction";
-export { runWithTransaction } from "@/lib/drizzle/transaction";
+import type { TransactionClient as TxClient } from "@/lib/drizzle";
+export type { TransactionClient } from "@/lib/drizzle";
+export { runWithTransaction } from "@/lib/drizzle";
 
 type TransactionClient = TxClient;
 

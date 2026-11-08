@@ -10,7 +10,7 @@
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { runWithTransaction, type TransactionClient } from "@/lib/drizzle/transaction";
+import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 
 import { CronCheckpointTable } from "@/features/core/cronCheckpoint/entities/drizzle";

@@ -3,7 +3,7 @@
 import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { CouponAttributionRewardTable } from "@/features/core/couponAttributionReward/entities/drizzle";
 import type {
   CouponAttributionReward,

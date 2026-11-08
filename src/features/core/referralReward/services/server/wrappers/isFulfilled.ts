@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/drizzle";
 import { ReferralRewardTable } from "../../../entities/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { eq, and } from "drizzle-orm";
 
 /**

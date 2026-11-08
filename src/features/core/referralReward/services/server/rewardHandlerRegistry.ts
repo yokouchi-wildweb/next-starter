@@ -14,7 +14,7 @@
 
 import { rewardHandlers } from "@/features/core/referralReward/extensions/rewardHandlers";
 import type { Referral } from "@/features/core/referral/entities/model";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /**
  * 報酬ハンドラーに渡されるパラメータ

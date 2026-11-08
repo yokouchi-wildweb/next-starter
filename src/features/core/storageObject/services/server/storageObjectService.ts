@@ -42,7 +42,7 @@ import {
   type ObjectLocation,
   type StoragePort,
 } from "@/lib/storage/server";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 import type { StorageObject, StorageObjectDeleteReason, StorageObjectStore } from "../../entities/model";
 import { drizzleLedger } from "./ledger/drizzleLedger";

@@ -5,7 +5,7 @@ import type { Coupon } from "../../../entities/model";
 import { generateCouponCode } from "../../../utils/generateCode";
 import { isPgUniqueViolation } from "@/lib/crud/drizzle/service";
 import { DomainError } from "@/lib/errors/domainError";
-import { runWithTransaction, type TransactionClient } from "@/lib/drizzle/transaction";
+import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { isStorageRef } from "@/lib/storage";
 import { storageObjectService } from "@/features/core/storageObject/services/server/storageObjectService";
 

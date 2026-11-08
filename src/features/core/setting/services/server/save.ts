@@ -6,7 +6,7 @@ import { sql, type SQL } from "drizzle-orm";
 import { USER_UPDATE_VALIDATION } from "@/config/app/user-update.config";
 import { userFacingValidationMessage } from "@/features/core/user/services/server/helpers/validationMessage";
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 
 import { settingTable } from "../../entities/drizzle";

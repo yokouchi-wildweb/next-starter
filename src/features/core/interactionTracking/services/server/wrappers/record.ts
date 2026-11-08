@@ -9,7 +9,7 @@ import {
   InteractionEventTable,
 } from "@/features/core/interactionTracking/entities/drizzle";
 import { db } from "@/lib/drizzle";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 
 export type RecordInteractionInput = {

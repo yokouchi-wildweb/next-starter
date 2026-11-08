@@ -8,7 +8,7 @@ import { redeem } from "../redemption/redeem";
 import "../../../handlers/init";
 import { getCouponHandler } from "../../../handlers/registry";
 import type { RedeemOptions, RedeemWithEffectResult } from "../../../types/redeem";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 
 /**
  * クーポンを使用し、ハンドラーの追加処理を実行する

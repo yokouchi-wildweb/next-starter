@@ -31,7 +31,7 @@ mock.module("@/features/core/milestone/services/server/wrappers/evaluateMileston
     },
   },
 });
-mock.module("@/lib/drizzle/transaction", {
+mock.module("@/lib/drizzle", {
   namedExports: {
     runWithTransaction: async (_tx: unknown, handler: (tx: unknown) => Promise<unknown>) => {
       txOpened += 1;

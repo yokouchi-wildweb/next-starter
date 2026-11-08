@@ -4,7 +4,7 @@ import { db } from "@/lib/drizzle";
 import { CouponTable } from "../../../entities/drizzle";
 import type { Coupon } from "../../../entities/model";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
-import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { TransactionClient } from "@/lib/drizzle";
 import type { CouponTypeWithOwner } from "./issueCodeForOwner";
 
 export type GetCodesByOwnerParams = {
