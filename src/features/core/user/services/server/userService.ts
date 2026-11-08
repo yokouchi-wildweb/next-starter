@@ -21,6 +21,7 @@ import { restore } from "./wrappers/restore";
 import { update, updateSelf } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
+import { bulkChangeStatus } from "./wrappers/bulkChangeStatus";
 import { changeRole } from "./wrappers/changeRole";
 import { softDelete } from "./wrappers/softDelete";
 import { searchWithProfile } from "./wrappers/searchWithProfile";
@@ -67,6 +68,8 @@ export const userService = {
   // wrappers
   updateLastAuthenticated,
   changeStatus,
+  /** ステータスの一括変更(1 人 1 transaction、dryRun あり。README「ステータスの一括変更」) */
+  bulkChangeStatus,
   changeRole,
   softDelete,
   searchWithProfile,

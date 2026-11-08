@@ -23,7 +23,7 @@ export type RecordStatusTransitionInput = {
  * - 集計用の恒久データ。保持期限つきの audit_logs とは責務が別（こちらは prune されない）
  *
  * 【重要】users.status を書き換える処理を新設・変更したら、必ず本関数の呼び出しを追加すること。
- * 既存の記録箇所: withdraw / pause / reactivate / softDelete / changeStatus / activate /
+ * 既存の記録箇所: withdraw / pause / reactivate / softDelete / changeStatus(bulkChangeStatus もこれを通る) / activate /
  * setPending / restore / createAdmin / createGeneralUser / createDemoUser / createFromProvider /
  * createGuestDemoUser / lockoutPolicy(recordFailedLogin)
  */
