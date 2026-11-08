@@ -2,6 +2,8 @@
 
 ドメイン別の機能を格納するディレクトリ。各ドメインは `domain.json` を持ち、コード生成の設定を定義する。
 
+ドメイン = `src/features/` と `src/features/core/` の直下の `_` で始まらないフォルダで、地区(district)の 1 種(ほかは lib・枠・proxies)。名前はフォルダ名、core と業務で同名は失敗。一覧(domain.json の有無・generate を含む)は地区の地図 `src/registry/district-map.jsonl`(`pnpm generate district-map`、地区の定義と欄: [src/lib/districtMap/README.md](../lib/districtMap/README.md))。
+
 ---
 
 ## domain.json スキーマ定義

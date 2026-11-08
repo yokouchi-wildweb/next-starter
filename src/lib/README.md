@@ -4,6 +4,8 @@
 
 **何があるか・誰が作ったかは [CATALOG.md](./CATALOG.md)（目録）を見る。** 新しいユーティリティや基盤を作る前に、目録で同等品が無いか確認する（重複実装の防止）。各ライブラリの詳しい仕様は、そのディレクトリの `README.md`。
 
+lib の 1 つ 1 つは地区(district)の 1 種(ほかはドメイン・枠・proxies。定義と一覧: [districtMap/README.md](./districtMap/README.md)・`src/registry/district-map.jsonl`)。地区は何があり何を持つかの単位で、誰の物か(所有)は下の目録の側。
+
 ## ライブラリは「パッケージのような単位」
 
 所有はフォルダ（`src/lib`）ではなく、**ライブラリ 1 つずつ**に付く。持ち主 = そのライブラリを作ったリポジトリ（Tier1 の upstream か、fork か）。目録の節がそれを表す。
