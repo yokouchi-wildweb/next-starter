@@ -1,10 +1,10 @@
 // src/featureGate/ruleList.ts
 // 判定の入口(門番の中で 1 つ): 生成一覧 extensions/rules を包み、各規則の enabled を「全開スイッチで開いていれば true、
 // でなければ規則の enabled()」に差し替えた一覧 rules を出す。門番の判定(evaluate・clientState・node の道具)と
-// node.ts の rules を受け取る外の読み手(routes:map・検査)は、この一覧と ruleEnabled だけを通る。
+// node.ts の rules を受け取る外の読み手(pnpm generate routes・検査)は、この一覧と ruleEnabled だけを通る。
 // 規則の値だけの一覧 configRules(スイッチを通さない): コミットされるファイルと検査が env で揺れない道具が読む(L2.3。
-// cron:generate / cron:check・routes:map・FEATURE_GATE_CHECK の検査・codemod。node.ts の configRules / configPath)
-// 守り(checks/openSwitch.test.ts): 門番の中で extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのもこのファイルだけ
+// pnpm generate cron / pnpm check cron・pnpm generate routes・FEATURE_GATE_CHECK の検査・codemod。node.ts の configRules / configPath)
+// 守り(scripts/structure/proxies/openSwitch.test.ts): 門番の中で extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのもこのファイルだけ
 // スイッチ: ./openSwitch.ts / 詳細: ./README.md
 
 import { rules as generatedRules } from "./extensions/rules";
@@ -37,7 +37,7 @@ export function ruleEnabled(rule: Pick<GatedFeatureRule, "enabled">): boolean {
   return rule.enabled();
 }
 
-/** 規則の値そのもの(スイッチを通さない。features:list の見せ方用)。未知の名前は throw */
+/** 規則の値そのもの(スイッチを通さない。pnpm ops features list の見せ方用)。未知の名前は throw */
 export function configEnabled(name: FeatureName): boolean {
   const rule = generatedByName.get(name);
   if (!rule) throw new Error(`featureGate: 未知の機能の名前 "${String(name)}"(src/featureGate/rules/<名前>.ts が無い)`);

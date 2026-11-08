@@ -17,7 +17,8 @@ import path from "node:path";
 import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap } from "../../../src/lib/screens/routeMap.mjs";
 import { SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap } from "../../../src/lib/screens/routeMapView.mjs";
 import { listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
-import { rules as featureGateRules } from "../../../src/featureGate/node.ts";
+// 規則の値だけの一覧(全開スイッチを通さない: コミットする route-map.jsonl が env で揺れないため、L2.3)
+import { configRules as featureGateRules } from "../../../src/featureGate/node.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const args = process.argv.slice(2).filter((arg) => arg !== "--");

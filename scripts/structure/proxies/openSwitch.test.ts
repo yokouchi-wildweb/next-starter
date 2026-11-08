@@ -1,13 +1,13 @@
-// src/featureGate/checks/openSwitch.test.ts
+// scripts/structure/proxies/openSwitch.test.ts
 // 全開スイッチ FEATURE_GATE_OPEN と判定の入口の回帰テスト:
 // - 値: 未設定 = 規則の値のまま / all = 全開 / 名前の並び = その名前だけ開く / 未知の名前 = throw
 // - 効く条件: APP_ENV が development なら全 Tier、staging・production・値なし・知らない値は Tier1 だけ
 // - Tier1 の判別: 注入 FEATURE_GATE_TIER1 があればそれ、無ければ readForkIdentity().isTier1
 // - 入口: 門番の中で生成一覧 extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのも ruleList.ts だけ(字面の検査、テストは除く)
 // - next.config.ts の FEATURE_GATE_TIER1 = readForkIdentity(repoRoot).isTier1
-// - 効く範囲(L2.3): 効かせる = 門番の口・useGate・db:push / db:push:check の表・seed・db:clear・features:list の開閉 /
-//   効かせない(規則の値) = cron:generate / cron:check・routes:map・FEATURE_GATE_CHECK の検査・codemod(features:set と required/ は config を書く道具で開閉を読まない)
-// 閉じた状態は生成一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:feature-gate:tools
+// - 効く範囲(L2.3): 効かせる = 門番の口・useGate・db:push / db:push:check の表・seed・pnpm ops db clear・pnpm ops features list の開閉 /
+//   効かせない(規則の値) = pnpm generate cron / pnpm check cron・pnpm generate routes・FEATURE_GATE_CHECK の検査・codemod(pnpm ops features set と required/ は config を書く道具で開閉を読まない)
+// 閉じた状態は生成一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test scripts/structure/proxies/openSwitch.test.ts(src から scripts を読めないので、道具の配線も見るこのテストは scripts/ の側に置く)
 
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -22,7 +22,7 @@ import { configEnabled } from "@/featureGate/ruleList";
 import { setAppEnv } from "@/lib/appEnv";
 import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 
-import { gateClosedBy } from "../../../scripts/cron/discover";
+import { gateClosedBy } from "../cron/discover";
 
 const repoRoot = resolve(__dirname, "../../..");
 const known = new Set(generatedRules.map((rule) => rule.name));
@@ -139,7 +139,7 @@ test("範囲: 効かせない道具は規則の値で見る(configRules・config
     const pathname = wallet.pathPatterns[0].replace(/^=/, "");
     assert.deepEqual(configPath(pathname), { open: false, rule: "wallet", redirectTo: wallet.redirectTo });
     assert.equal(gate.path(pathname).open, true, "門番の口は開く");
-    assert.equal(gateClosedBy(pathname), "wallet", "cron:generate / cron:check は規則の値");
+    assert.equal(gateClosedBy(pathname), "wallet", "pnpm generate cron / pnpm check cron は規則の値");
   });
 });
 
@@ -155,18 +155,18 @@ test("範囲: 効かせる道具はスイッチで開いた機能を開とみな
 const read = (rel: string) => readFileSync(join(repoRoot, rel), "utf8");
 
 test("範囲: 読み手がどちらの一覧を読むか(字面)", () => {
-  assert.match(read("scripts/routes/map.mjs"), /import \{ configRules as featureGateRules \} from "\.\.\/\.\.\/src\/featureGate\/node\.ts"/);
-  assert.match(read("src/featureGate/checks/featureGate.test.mjs"), /configRules as featureGateRules/);
-  assert.match(read("scripts/cron/discover.ts"), /import \{ configPath \} from "@\/featureGate\/node"/);
-  assert.match(read("scripts/codemods/feature-gate-s3.mjs"), /node\.configRules \?\? node\.rules/);
-  for (const rel of ["scripts/registry/push.ts", "scripts/registry/check-schema-roundtrip.ts"]) {
+  assert.match(read("scripts/structure/routes/map.mjs"), /import \{ configRules as featureGateRules \} from "\.\.\/\.\.\/\.\.\/src\/featureGate\/node\.ts"/);
+  assert.match(read("scripts/structure/proxies/featureGate.test.mjs"), /configRules as featureGateRules/);
+  assert.match(read("scripts/structure/cron/discover.ts"), /import \{ configPath \} from "@\/featureGate\/node"/);
+  assert.match(read(".notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs"), /node\.configRules \?\? node\.rules/);
+  for (const rel of ["scripts/operations/db/push.ts", "scripts/operations/db/check-schema-roundtrip.ts"]) {
     assert.match(read(rel), /\{ rules, gatedSchema \}/, `${rel}: 表はスイッチを通した rules で外す`);
   }
-  assert.match(read("scripts/db/clear/run.ts"), /closedTables\(gateNode\.rules\)/);
-  assert.match(read("scripts/db/seed/run.ts"), /gate\.enabled\(feature\)/);
+  assert.match(read("scripts/operations/db/clear.ts"), /closedTables\(gateNode\.rules\)/);
+  assert.match(read("scripts/runner/seed/run.ts"), /gate\.enabled\(feature\)/);
 });
 
-test("features:list: 規則の値とスイッチを分けて出す(configEnabled・openedBySwitch)", async () => {
+test("pnpm ops features list: 規則の値とスイッチを分けて出す(configEnabled・openedBySwitch)", async () => {
   const wallet = rules.filter((rule) => rule.name === "wallet");
   let report: Awaited<ReturnType<typeof readFeatureReport>> = [];
   const restore = setAppEnv("development");

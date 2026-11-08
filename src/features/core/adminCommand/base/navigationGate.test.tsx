@@ -3,7 +3,7 @@
 // - 管理の枠の GateProvider の内に AdminCommandGateBridge があれば、閉じた機能の住所の行が消える(厳密な gate.path: redirectTo 付きの閉も消える。外部 URL・開は残る、L2.5)
 // - 橋の無い所(利用者の画面)では絞らない(navigationFilter = null、throw しない。棚の Link の D14 と同じ)
 // - 橋が外れたら絞りも外れる
-// 実行: pnpm test:feature-gate:client(--experimental-test-module-mocks)
+// 実行: pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx(--experimental-test-module-mocks)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";

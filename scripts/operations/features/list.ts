@@ -1,5 +1,5 @@
 // scripts/operations/features/list.ts(pnpm ops features list [--name <規則名>] [--json])
-// 機能を閉じる規則ごとの開閉・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
+// 機能を閉じる規則ごとの開閉(全開スイッチで開いていれば「閉 → 開(スイッチ)」、--json は configEnabled / openedBySwitch)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
 // 中身は門番の道具 @/featureGate/node の readFeatureReport。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
 import { dependencyExceptions, readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";
@@ -63,7 +63,8 @@ async function main() {
     const open = d.dependents.filter((dep) => dep.allowedBy === null).length;
     console.log(`${d.name} | ${state(d)} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${open}) | ${d.callSites.length}`);
   }
-  console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length})。詳細: pnpm ops features list --name <名前>`);
+  const bySwitch = picked.filter((d) => d.openedBySwitch && !d.configEnabled).length;
+  console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length}${bySwitch > 0 ? `・スイッチで開 ${bySwitch}(FEATURE_GATE_OPEN)` : ""})。詳細: pnpm ops features list --name <名前>`);
 }
 
 main().catch((error) => {

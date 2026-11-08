@@ -242,14 +242,14 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 |---|---|---|---|
 | 門番の口(`gate.*`)・proxy・`useGate()` | 効く | `rules` | 開けた機能の画面・API を見る |
 | `pnpm db:push` / `db:push:check` の表 | 効く | `rules` | 開けた機能の表を作る(開発の DB だけ。`ENV_FILE` の env ファイルの `APP_ENV` で決まる: `.env.development` なら全 Tier、`APP_ENV=production` か値なしのファイルなら Tier1 だけ) |
-| `pnpm db:seed`・`pnpm db:clear` | 効く | node の `gate.enabled`・`closedTables(rules)` | 表と同じ答え |
-| `pnpm features:list` | 見せ方 | `rules` + `configEnabled` + `isOpenedBySwitch` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。`--json` は `enabled`・`configEnabled`・`openedBySwitch` |
-| `pnpm cron:generate` / `cron:check`・`pnpm task` | 効かない | `configPath` | `vercel.json` と照合が env で揺れない。スイッチで開けた機能の cron は `vercel.json` に載らない(route は開くので手で叩けば動く) |
-| `pnpm routes:map` | 効かない | `configRules` | コミットする `route-map.jsonl` が env で揺れない |
+| `pnpm ops db seed`・`pnpm ops db clear` | 効く | node の `gate.enabled`・`closedTables(rules)` | 表と同じ答え |
+| `pnpm ops features list` | 見せ方 | `rules` + `configEnabled` + `isOpenedBySwitch` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。`--json` は `enabled`・`configEnabled`・`openedBySwitch` |
+| `pnpm generate cron` / `pnpm check cron`・`pnpm task` | 効かない | `configPath` | `vercel.json` と照合が env で揺れない。スイッチで開けた機能の cron は `vercel.json` に載らない(route は開くので手で叩けば動く) |
+| `pnpm generate routes` | 効かない | `configRules` | コミットする `route-map.jsonl` が env で揺れない |
 | `FEATURE_GATE_CHECK` の検査・依存の検査・codemod `feature-gate-s3` | 効かない | `configRules` | 検査の答えが env で揺れない |
-| `pnpm features:set`・`required/` | 関わらない | config の字面 | 規則の値を書く道具 |
+| `pnpm ops features set`・`required/` | 関わらない | config の字面 | 規則の値を書く道具 |
 
-検査: `checks/openSwitch.test.ts`(値・効く条件・Tier1 の判別・範囲の表・入口の字面の検査・`next.config.ts` の注入)。
+検査: `scripts/structure/proxies/openSwitch.test.ts`(値・効く条件・Tier1 の判別・範囲の表・入口の字面の検査・`next.config.ts` の注入)。
 
 ## 守り
 

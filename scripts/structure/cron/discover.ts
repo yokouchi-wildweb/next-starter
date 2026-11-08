@@ -1,6 +1,7 @@
 // scripts/structure/cron/discover.ts — cron の task を探す処理(src/lib/cron/discover.ts)に門番を結ぶ薄い呼び手
+// 機能の門: タスクの住所を門番の configPath(規則の値の gate.path)に聞く。全開スイッチ FEATURE_GATE_OPEN は通さない(vercel.json と照合が env で揺れないため、L2.3)
 // 利用者: scripts/structure/cron/generate.ts, check.ts, cronWiring.test.mjs, scripts/runner/task/run.ts（pnpm task）, scripts/structure/proxies/walletOff.test.tsx
-import { gate } from "@/featureGate/node";
+import { configPath } from "@/featureGate/node";
 import {
   type CronPathClosedBy,
   type LoadCronTasksOptions,

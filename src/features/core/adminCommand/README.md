@@ -24,7 +24,7 @@ fork は上流のファイルを編集せず、受け口にファイルを置い
 
 - パレットはアプリ全体(`src/wiring/AppProviders.tsx`、利用者の枠の門番の内)に置かれ、管理の枠の値は admin の守りの layout 2 つ(`src/app/admin/(protected)/layout.tsx`・`src/app/admin/insane/layout.tsx`)が children だけを包む。そこに置いた橋 `AdminCommandGateBridge` が絞り込みを Context(`navigationFilter`)に登録し、外れたら外す
 - 管理の枠の外(利用者の画面)で開いたときは絞らず、候補をそのまま出す(棚の Link と同じ。移動の先が閉じていれば proxy が 404)。管理の枠の値を root で計算しない(公開ページの HTML に管理の住所を出さない)
-- 検査: `base/navigationGate.test.tsx`(`pnpm test:feature-gate:client`)
+- 検査: `base/navigationGate.test.tsx`(`pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx`)
 
 ---
 
