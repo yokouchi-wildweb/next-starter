@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkAll, checkAppendOnly, checkRows, checkSkipCheckpoint, checkUses, fixesPointsBack, foreignNoticeIds, formatRow, normalizeRepoUrl, parseIndex, parseRow, refresh, repair, rowFieldsFromNotice, rowFromNotice, run, writeRowPick } from "./shippedIndex.mjs";
+import { appendOnlyBase, checkAll, checkAppendOnly, checkRows, checkSkipCheckpoint, checkUses, fixesPointsBack, foreignNoticeIds, formatRow, normalizeRepoUrl, parseIndex, parseRow, refresh, repair, rowFieldsFromNotice, rowFromNotice, run, writeRowPick } from "./shippedIndex.mjs";
 
 function notice(id, extra = []) {
   return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "date: x", "severity: info", ...extra, "change: c", "why: w", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
@@ -151,6 +151,34 @@ test("append only through a repo: compared with the pushed ref, no ref → unver
   r.put({ ".notices/shipped/up.md": `# SHIPPED up\n\n${B}\n` });
   assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000001-a: push 済みの行が変わった/);
   assert.match(checkAll(r.dir).unverified, /分からない/);
+});
+
+test("append only, a tree behind the pushed ref: compared at merge-base(HEAD, ref) — behind only passes, rows the tree's history had still fail", (t) => {
+  const r = repo(t);
+  const old = r.commit({ ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n` });
+  const pushed = r.commit({ ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n${B}\n` });
+  r.g("checkout", "-q", "-b", "behind", old);
+  // 古いだけ: B は分かれ目の後に出荷された行で、手元の履歴に無い
+  assert.deepEqual(checkAll(r.dir, { ref: pushed }).problems, []);
+  // 枝分かれして古い側に自分の commit: まだ通る
+  r.commit({ "x.txt": "x" });
+  assert.deepEqual(checkAll(r.dir, { ref: pushed }).problems, []);
+  // 分かれ目にあった行の書き換え・削除は落ちる(作業ツリーでも commit でも)
+  r.put({ ".notices/shipped/up.md": `# SHIPPED up\n\n${A} | pick:-\n` });
+  assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000001-a: push 済みの行が変わった/);
+  r.commit({ ".notices/shipped/up.md": `# SHIPPED up\n\n${C}\n` });
+  assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000001-a: push 済みの行が変わった・消えた/);
+  // 先にいる手元(ref を含む)は今までどおり ref と比べる
+  r.g("checkout", "-q", "main");
+  r.put({ ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n` });
+  assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000002-b: push 済みの行が変わった・消えた/);
+  // 分かれ目が求まらない(つながらない履歴)→ ref と比べる(強い側)
+  r.g("checkout", "-q", "--orphan", "lone");
+  r.commit({ ".claude/rules/project.md": "fork_id: up\n", ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n` });
+  assert.equal(appendOnlyBase(r.dir, pushed), pushed);
+  assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000002-b: push 済みの行が変わった・消えた/);
+  // push した版が分からない → 未確認(今までどおり)
+  assert.match(checkAll(r.dir, { ref: null }).unverified ?? "", /分からない/);
 });
 
 test("rows ↔ bodies across every index: one row per body in any repo's index, uncommitted notices in the own index", () => {

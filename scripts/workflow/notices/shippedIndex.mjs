@@ -353,9 +353,23 @@ export function pushedRef(repo) {
   return null;
 }
 
-/** 全索引の追記だけの検査。ref が無ければ { unverified } */
+/**
+ * 追記だけの検査で比べる版: HEAD と前に push した版 ref の分かれ目(merge-base)。
+ * 手元が ref と同じか先 → ref そのもの(今までと同じ)| 手元が古いだけ → HEAD(後から出荷された行は手元の履歴に無いので求めない)|
+ * 枝分かれ → 分かれ目(その時点にあった行の書き換え・削除は落ちる)| 分かれ目が求まらない(履歴がつながらない)→ ref(強い側)
+ */
+export function appendOnlyBase(repo, ref) {
+  try {
+    return git(repo, ["merge-base", "HEAD", ref]).trim() || ref;
+  } catch {
+    return ref;
+  }
+}
+
+/** 全索引の追記だけの検査(HEAD と ref の分かれ目の版と比べる: appendOnlyBase)。ref が無ければ { unverified } */
 export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
   if (!ref) return { unverified: "前に push した版が分からない(@{u} も origin/HEAD も無い)", problems: [] };
+  const base = appendOnlyBase(repo, ref);
   const problems = [];
   let own = null;
   try {
@@ -367,9 +381,9 @@ export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
   for (const ix of readIndexes(repo)) {
     let prev = "";
     try {
-      prev = git(repo, ["show", `${ref}:${ix.file}`]);
+      prev = git(repo, ["show", `${base}:${ix.file}`]);
     } catch {
-      prev = ""; // まだ push していないファイル
+      prev = ""; // まだ push していない(分かれ目の版に無い)ファイル
     }
     problems.push(...checkAppendOnly(prev, ix.text, ix.file, ix.owner === own ? foreign : new Set()));
   }

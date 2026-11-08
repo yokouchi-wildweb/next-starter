@@ -75,7 +75,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 索引は出荷したリポごとに 1 ファイル、notice ごとに 1 行。書くのはそのリポだけ(台帳 `applied/<名前>.md` を fork ごとに分けたのと同じ理由: 多段の merge で追記が重ならない)。ファイル名の fork 名は台帳と同じ例外。上流の索引は merge で下流に届くが、下流は書かない
 - 行 = `- id:<id>` に本文の欄を決まった順で ` | key:value`(`severity`・`checkpoint`・`covers`・`moved`・`fixes`・`resolves`・`hotfix`・`uses`・`pick`・`skip_checkpoint`)。**本文にある欄だけ**を写す(`checkpoint:` の欄が無い旧 notice は行でも欄なし = 区切り。`-` で埋めない)。`hotfix:` は理由の文でなく `yes`。値に ` | ` は書けない
 - 行は `/ship` が `node scripts/workflow/notices/shippedIndex.mjs add <notice>` で本文から作り、notice と同じ commit に入れる。手で書かない。出荷する commit 自身の sha は行に書かない(行を書く時に決まっていない)。notice を足した commit は履歴から引く
-- 追記だけ: push した行は変えない・消さない・並べ替えない(`pnpm check notices` が前に push した版と比べる)。push 前の行は直してよい(`pick:` の書き込み・本文を直した後の `refresh`。push 前の自分の commit は本体・notice・行とも自由に直す: 下記「区切り(checkpoint)と区間適用」)
+- 追記だけ: push した行は変えない・消さない・並べ替えない(`pnpm check notices` が前に push した版(`@{u}`、無ければ `origin/HEAD`)と手元の HEAD の分かれ目(merge-base)の版と比べる。手元が古いだけの枝・ワークツリーは、分かれ目の後に出荷された行を求められない。分かれ目にあった行の書き換え・削除は落ちる。分かれ目が求まらなければ前に push した版そのものと比べる)。push 前の行は直してよい(`pick:` の書き込み・本文を直した後の `refresh`。push 前の自分の commit は本体・notice・行とも自由に直す: 下記「区切り(checkpoint)と区間適用」)
 - 正: 欄の値は索引、本文はその notice を**足した commit の版**(`git show <足した commit>:.notices/<id>.md`)。区間の merge 先や上流の先端の版で代用しない
 - 読む側: `/flux` の流入の発見と区間(`.claude/skills/flux/incoming.mjs`)・`pnpm workflow ownership check` の「台帳に無い notice」と `resolves:`・`pnpm check notices` は索引を読む。索引の無い版(導入前の上流・fork 成立点)は本文も読み、両方の和をとる
 - 止まる: 浅い clone・索引に行があるのに足した commit が履歴に無い(履歴の書き換え・食い違い)ときは、未適用ゼロとして進まずに止まる
