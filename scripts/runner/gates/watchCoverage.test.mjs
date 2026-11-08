@@ -61,6 +61,11 @@ const READS = {
   "admin-menu": { entries: ["scripts/structure/admin-menu/check.ts"], data: ["src/features/core/admin/menu/**", "src/app/route-map.jsonl"] },
   // 宣言した lib の package.json・tsconfig.json・config.ts と、型検査が辿る lib・棚・上書き(--list の repo 全体の走査は落とす道でないので含めない)
   "lib-package": { entries: ["scripts/structure/lib-package/check.mjs"], data: ["src/lib/**", "src/components/**", "src/config/lib/**"] },
+  // 上書きと持ち主の対: 地区の地図が読む木(4 種の地区・門の規則)と src/config の種類のフォルダ・lib の package.json
+  "config-overrides": {
+    entries: ["scripts/structure/config-overrides/check.mjs"],
+    data: ["src/features/**", "src/lib/**", "src/proxies/**", "src/app/**/_layout/**", "src/featureGate/rules/*.ts", "src/config/**"],
+  },
 };
 
 const gates = JSON.parse(readFileSync(join(repo, "scripts/runner/gates/gates.json"), "utf8"));
@@ -117,7 +122,7 @@ for (const name of Object.keys(READS)) {
 test("関係ない変更では対象が飛び、対象の入力を変えると回る(実物の gate.json)", () => {
   const runs = (changedFiles) => shipTargets.filter((name) => changedFiles.some(covered(declOf(name).watch)));
   assert.deepEqual(runs(["docs/setup/x.md", "README.md", "servers/room/src/index.ts", "scripts/operations/db/inspect.ts"]), []);
-  assert.deepEqual(runs(["src/features/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "cron", "cycles", "district-map", "domain", "extensions", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
+  assert.deepEqual(runs(["src/features/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "config-overrides", "cron", "cycles", "district-map", "domain", "extensions", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
   assert.deepEqual(runs(["eslint-rules/page-authz.mjs"]), ["eslint"]);
   assert.deepEqual(runs(["scripts/structure/domain/render/index.mjs"]).sort(), ["domain", "eslint", "extensions", "registry", "role"].sort());
   assert.deepEqual(runs(["src/app/(user)/page.tsx"]).sort(), ["admin-menu", "config", "cron", "cycles", "extensions", "registry", "routes"].sort());

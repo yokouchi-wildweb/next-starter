@@ -85,6 +85,30 @@ test("欄: config・上書きのパスと有無、apiKeys・requires・tables・
   assert.deepEqual(by["proxies:proxies"].receptacles, ["handlers"]);
 });
 
+test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと有無(L1.18)", () => {
+  const files = {
+    ...BASE,
+    "src/features/core/wallet/config.ui.ts": "export const WALLET_UI = {};",
+    "src/config/features/wallet.ui.config.ts": "export default {};",
+    "src/config/layout/admin.ui.config.ts": "export default {};",
+  };
+  const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
+  assert.deepEqual(by["features:wallet"].uiConfig, { path: "src/features/core/wallet/config.ui.ts", exists: true });
+  assert.deepEqual(by["features:wallet"].uiOverride, { path: "src/config/features/wallet.ui.config.ts", exists: true });
+  assert.deepEqual(by["frame:admin"].uiConfig, { path: "src/app/admin/_layout/config.ui.ts", exists: false });
+  assert.deepEqual(by["frame:admin"].uiOverride, { path: "src/config/layout/admin.ui.config.ts", exists: true });
+  assert.deepEqual(by["lib:cron"].uiOverride, { path: "src/config/lib/cron.ui.config.ts", exists: false });
+  assert.deepEqual(by["proxies:proxies"].uiConfig, { path: "src/proxies/config.ui.ts", exists: false });
+});
+
+test("lib の見つけ方は libPackage の listLibsFrom と同じ(src/lib 直下のフォルダ、ファイルは数えない)", async () => {
+  const { listLibsFrom } = await import("../libPackage/index.mjs");
+  const source = memorySource({ ...BASE, "src/lib/README.md": "", "src/lib/CATALOG.md": "" });
+  const libs = readDistrictMap(source).districts.filter((d) => d.kind === "lib").map((d) => d.name);
+  assert.deepEqual(libs, listLibsFrom(source.listDir));
+  assert.deepEqual(libs, ["cron", "crud"]);
+});
+
 test("名前の一意: core と業務の同名は業務の側を直す文、枠の frame: の重複は両方のパス", () => {
   const files = { ...BASE, "src/features/wallet/index.ts": "", "src/app/(marketing)/_layout/config.ts": `export const c = { frame: "user" };` };
   const { problems } = readDistrictMap(memorySource(files));
@@ -123,7 +147,7 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
   const text = toJsonl(districts);
   assert.equal(text.split("\n").length, districts.length + 1);
   assert.deepEqual(JSON.parse(text.split("\n")[0]), districts[0]);
-  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "apiKeys", "tables", "requires", "gates", "receptacles", "frame"]);
+  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "uiConfig", "uiOverride", "apiKeys", "tables", "requires", "gates", "receptacles", "frame"]);
   assert.equal(toJsonl([]), "");
 });
 

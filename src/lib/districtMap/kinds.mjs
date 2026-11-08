@@ -9,8 +9,8 @@ export const DISTRICT_KINDS = /** @type {const} */ (["features", "lib", "frame",
 export const FEATURES_ROOT = "src/features";
 /** core の地区を探すフォルダ(FEATURES_ROOT の直下の core は地区でなく core の置き場) */
 export const CORE_DIR_NAME = "core";
-/** lib の地区を探すフォルダ(直下のフォルダ = 1 地区) */
-export const LIB_ROOT = "src/lib";
+/** lib の地区を探すフォルダ(直下のフォルダ = 1 地区)。見つけ方の決まりは src/lib/libPackage の listLibsFrom(L1.14) */
+export { LIB_DIR as LIB_ROOT } from "../libPackage/index.mjs";
 /** proxies の地区(全体で 1 つ、設定 D36) */
 export const PROXIES_DIR = "src/proxies";
 export const PROXIES_NAME = "proxies";
@@ -21,6 +21,8 @@ export const FRAME_KEY = "frame";
 
 /** 地区の config(既定値と型)のファイル名。地区の dir の直下 */
 export const CONFIG_FILE = "config.ts";
+/** 地区の描画専用の config(アイコン・部品など、設定 D38)のファイル名。地区の dir の直下。持つ地区だけ */
+export const UI_CONFIG_FILE = "config.ui.ts";
 /** 上書きの置き場(src/config/<種類のフォルダ>/<名前>.config.ts、設定 D11・D36・D75) */
 export const OVERRIDE_ROOT = "src/config";
 export const OVERRIDE_FOLDERS = /** @type {const} */ ({ features: "features", lib: "lib", frame: "layout", proxies: "proxies" });
@@ -45,3 +47,10 @@ export const DISTRICT_MAP_FILE = "src/registry/district-map.jsonl";
  * @param {string} name
  */
 export const overridePathOf = (kind, name) => `${OVERRIDE_ROOT}/${OVERRIDE_FOLDERS[kind]}/${name}.config.ts`;
+
+/**
+ * 地区の描画専用の上書きファイルのパス(src/config/<種類のフォルダ>/<名前>.ui.config.ts、設定 D38)
+ * @param {(typeof DISTRICT_KINDS)[number]} kind
+ * @param {string} name
+ */
+export const uiOverridePathOf = (kind, name) => `${OVERRIDE_ROOT}/${OVERRIDE_FOLDERS[kind]}/${name}.ui.config.ts`;

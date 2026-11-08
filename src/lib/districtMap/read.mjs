@@ -4,6 +4,7 @@
 // 宣言は今の置き場が正本(domain.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
+import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
 import { readDomainEntry, readFrameName, readRuleFeatures, readTableNames } from "./fields.mjs";
 import {
@@ -21,7 +22,9 @@ import {
   PROXIES_NAME,
   RECEPTACLE_FILE,
   SKIP_DIRS,
+  UI_CONFIG_FILE,
   overridePathOf,
+  uiOverridePathOf,
 } from "./kinds.mjs";
 
 /**
@@ -30,7 +33,7 @@ import {
  * @typedef {{ path: string, exists: boolean }} FileSlot
  * @typedef {{
  *   kind: "features" | "lib" | "frame" | "proxies", name: string, core: boolean | null, dir: string,
- *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, apiKeys: string[], tables: string[], requires: string[],
+ *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, uiConfig: FileSlot, uiOverride: FileSlot, apiKeys: string[], tables: string[], requires: string[],
  *   gates: string[], receptacles: string[], frame: string | null,
  * }} District
  */
@@ -63,7 +66,8 @@ function discover(source, problems) {
       }
     } else found.push({ kind: "features", name: entry.name, core: false, dir: join(FEATURES_ROOT, entry.name) });
   }
-  for (const entry of dirsOf(source, LIB_ROOT)) found.push({ kind: "lib", name: entry.name, core: null, dir: join(LIB_ROOT, entry.name) });
+  // lib の見つけ方は libPackage の決まり 1 つ(二重に解かない、L1.14)
+  for (const name of listLibsFrom(source.listDir)) found.push({ kind: "lib", name, core: null, dir: join(LIB_ROOT, name) });
   const walkApp = (rel) => {
     for (const entry of dirsOf(source, rel)) {
       if (SKIP_DIRS.includes(entry.name)) continue;
@@ -146,6 +150,8 @@ export function readDistrictMap(source) {
   const districts = found.map((d) => {
     const configPath = d.kind === "proxies" ? join(PROXIES_DIR, CONFIG_FILE) : join(d.dir, CONFIG_FILE);
     const overridePath = overridePathOf(d.kind, d.name);
+    const uiConfigPath = d.kind === "proxies" ? join(PROXIES_DIR, UI_CONFIG_FILE) : join(d.dir, UI_CONFIG_FILE);
+    const uiOverridePath = uiOverridePathOf(d.kind, d.name);
     const files = filesUnder(source, d.dir);
     /** @type {District} */
     const district = {
@@ -157,6 +163,9 @@ export function readDistrictMap(source) {
       generate: null,
       config: { path: configPath, exists: source.readText(configPath) !== null },
       override: { path: overridePath, exists: source.readText(overridePath) !== null },
+      // 描画専用の config と上書き(設定 D38、L1.18)。持つ地区だけ exists: true
+      uiConfig: { path: uiConfigPath, exists: source.readText(uiConfigPath) !== null },
+      uiOverride: { path: uiOverridePath, exists: source.readText(uiOverridePath) !== null },
       apiKeys: [],
       tables: [],
       requires: [],

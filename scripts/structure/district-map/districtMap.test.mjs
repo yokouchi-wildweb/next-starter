@@ -93,9 +93,9 @@ test("domainJson・generate = 各ドメインの domain.json の有無と genera
   assert.ok(features.some((d) => d.generate === false) && features.some((d) => d.generate === true) && features.some((d) => d.generate === null));
 });
 
-test("config・上書き: 欄の有無は木のファイルの有無と同じ", () => {
+test("config・上書き: 欄の有無は木のファイルの有無と同じ(対の揃い方は pnpm check config-overrides)", () => {
   for (const d of districts) {
-    for (const slot of [d.config, d.override]) assert.equal(slot.exists, existsSync(join(repoRoot, slot.path)), slot.path);
+    for (const slot of [d.config, d.override, d.uiConfig, d.uiOverride]) assert.equal(slot.exists, existsSync(join(repoRoot, slot.path)), slot.path);
   }
   assert.ok(districts.some((d) => d.kind === "lib" && d.config.exists && d.override.exists), "閉じた lib(toast など)の config と上書きが載る");
 });

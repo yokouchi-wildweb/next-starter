@@ -44,7 +44,8 @@
       "config",
       "eslint",
       "district-map",
-      "lib-package"
+      "lib-package",
+      "config-overrides"
     ],
     "workflow": [
       "worktree",

@@ -25,14 +25,26 @@ const cache = new Map();
 
 const toPosix = (p) => p.split(path.sep).join("/");
 
-/** src/lib 直下の lib の名前の一覧(フォルダだけ、名前順) */
-export function listLibs(root) {
-  const dir = path.join(root, LIB_DIR);
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+/**
+ * src/lib 直下の lib の名前の一覧(フォルダだけ、名前順)。読み方を注入する形(node:fs を使わない)。
+ * lib の見つけ方の唯一の決まりで、listLibs(root) と地区の地図(src/lib/districtMap)が使う
+ * @param {(rel: string) => { name: string, isDir: boolean }[]} listDir フォルダの直下(repo 相対の posix、無ければ [])
+ * @returns {string[]}
+ */
+export function listLibsFrom(listDir) {
+  return listDir(LIB_DIR)
+    .filter((entry) => entry.isDir)
     .map((entry) => entry.name)
     .sort();
+}
+
+/** src/lib 直下の lib の名前の一覧(フォルダだけ、名前順)。今の木を node:fs で読む */
+export function listLibs(root) {
+  return listLibsFrom((rel) => {
+    const dir = path.join(root, rel);
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir, { withFileTypes: true }).map((entry) => ({ name: entry.name, isDir: entry.isDirectory() }));
+  });
 }
 
 /** その lib が package.json を持つか */

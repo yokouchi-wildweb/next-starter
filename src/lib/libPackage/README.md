@@ -7,6 +7,7 @@ lib の package.json(宣言)の唯一の読み手と形の検査。Node 組み�
 `root` = repo の根(絶対パス)。パスは repo 相対の posix。
 
 - `listLibs(root)` … `src/lib` 直下の lib の名前(フォルダだけ、名前順)
+- `listLibsFrom(listDir)` … 同じ一覧を、読み方を注入して返す(`listDir(rel)` = フォルダの直下の `{ name, isDir }[]`、無ければ `[]`。node:fs を使わない)。lib の見つけ方の決まりはこの 1 つで、`listLibs` と地区の地図(`src/lib/districtMap`)が使う
 - `hasLibPackage(root, lib)` / `listDeclaredLibs(root)` … package.json を持つか / 持つ lib の一覧
 - `readLibPackage(root, lib)` … 無ければ `null`。有れば `{ lib, dir, file, exports, libs, peers, sideEffects, problems }`
   - `exports` = `{ key, target, keyPath, targetPath }[]`(問題の無い行だけ。`keyPath` = 拡張子と `/index` を落とした lib の中のパス、`"."` は `""`)

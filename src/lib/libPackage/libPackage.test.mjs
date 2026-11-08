@@ -16,6 +16,7 @@ import {
   libOfPath,
   listDeclaredLibs,
   listLibs,
+  listLibsFrom,
   readLibPackage,
 } from "./index.mjs";
 
@@ -70,6 +71,22 @@ test("listLibs / hasLibPackage / listDeclaredLibs: src/lib 直下のフォルダ
   assert.equal(hasLibPackage(root, "ok"), true);
   assert.ok(!listDeclaredLibs(root).includes("plain"));
   assert.ok(listDeclaredLibs(root).includes("ok"));
+});
+
+test("listLibsFrom: 注入した listDir の src/lib 直下のフォルダだけを名前順に(listLibs と同じ結果)", () => {
+  const seen = [];
+  const listDir = (rel) => {
+    seen.push(rel);
+    return [
+      { name: "zeta", isDir: true },
+      { name: "README.md", isDir: false },
+      { name: "alpha", isDir: true },
+    ];
+  };
+  assert.deepEqual(listLibsFrom(listDir), ["alpha", "zeta"]);
+  assert.deepEqual(seen, ["src/lib"]);
+  assert.deepEqual(listLibsFrom(() => []), []);
+  assert.deepEqual(listLibs(path.join(root, "missing")), []);
 });
 
 test("readLibPackage: 宣言の無い lib は null、正しい形は問題 0 で一覧を返す", () => {
