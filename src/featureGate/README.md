@@ -138,7 +138,7 @@ export const rule: FeatureGateRule = {
 
 ### seed と閉じた機能
 
-`pnpm ops db seed` の項目（`scripts/runner/seed/data/registry.ts`）は省略可の `feature?: FeatureName | FeatureName[]` を持ち、1 つでも閉じていれば飛ばして名前を出す。閉じられるフォルダを import する項目に `feature` が無いと `pnpm test scripts/runner/seed/gate.test.ts` が落とす。詳細: `scripts/runner/seed/README.md`「閉じた機能と seed」
+`pnpm ops db seed` は各ドメインの `seed.ts` を走査し、そのドメインのフォルダを `features` に持つ規則が閉じていれば飛ばして名前を出す(宣言は要らない)。閉じたドメインを `after` に持つ開いたシードは理由を出して止める。詳細: `scripts/runner/seed/README.md`「閉じた機能とシード」
 
 ### 決まりごと
 

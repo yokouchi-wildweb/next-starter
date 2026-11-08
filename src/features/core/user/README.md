@@ -229,7 +229,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 ### バリデーション（常時適用）
 
 共有スキーマ `entities/userName.ts` を全書き込み経路（サインアップ・本登録・マイページ・管理画面）で使用する。
-デモユーザーの作成経路（`createDemoUser` / `createGuestDemoUser` / `scripts/runner/seed/data/demoUser.ts`）は
+デモユーザーの作成経路（`createDemoUser` / `createGuestDemoUser` / シードの `seedCreate`(`src/features/core/user/seed.ts`、デモの利用者だけを作る)）は
 `isDemo = true` で一意性の判定スコープ外のため、一意性ガードを通さない（意図した設計）。
 
 | スキーマ | 用途 |

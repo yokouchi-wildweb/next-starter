@@ -12,6 +12,7 @@ import {
   createDemoUser,
   createGuestDemoUser,
 } from "./creation";
+import { seedCreate } from "./creation/seedCreate";
 import { registerFromAuth, preRegisterFromAuth, createFromProvider } from "./registration";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
@@ -80,6 +81,8 @@ export const userService = {
   createGeneralUser,
   createDemoUser,
   createGuestDemoUser,
+  // シード(pnpm ops db seed)の行を入れる入口: デモの利用者だけ
+  seedCreate,
   // registration (auth)
   registerFromAuth,
   preRegisterFromAuth,

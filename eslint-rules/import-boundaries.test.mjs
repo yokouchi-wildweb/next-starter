@@ -421,7 +421,7 @@ test("rule scripts-no-static-wiring: 道具から wiring の静的 import(別名
 test("rule tools-no-db-write: ドメインのタスク・operations(db を除く)・seed.ts で db・表の定義・生 SQL・ドライバを止め、移行・operations/db・型・サービスは通す(D75・D90)", () => {
   assert.ok(isDbWriteGuardedFile("src/features/sample/scripts/tasks/x.ts") && isDbWriteGuardedFile("scripts/operations/features/set.ts") && isDbWriteGuardedFile("src/features/sample/seed.ts") && isDbWriteGuardedFile("scripts/workflow/dev-admin/run.ts"));
   assert.ok(!isDbWriteGuardedFile("src/features/sample/scripts/migrations/001.ts") && !isDbWriteGuardedFile("src/features/sample/scripts/migrations/001.local.ts"));
-  assert.ok(!isDbWriteGuardedFile("scripts/operations/db/push.ts") && !isDbWriteGuardedFile("scripts/workflow/dev-tab/run.ts") && !isDbWriteGuardedFile("scripts/runner/seed/data/a.ts"));
+  assert.ok(!isDbWriteGuardedFile("scripts/operations/db/push.ts") && !isDbWriteGuardedFile("scripts/workflow/dev-tab/run.ts") && !isDbWriteGuardedFile("scripts/runner/seed/run.ts"));
   ruleTester.run("tools-no-db-write", plugin.rules["tools-no-db-write"], {
     valid: [
       { code: `import { sampleService } from "@/features/sample/services/server/sampleService";`, filename: at("src/features/sample/scripts/tasks/x.ts") },
@@ -438,6 +438,22 @@ import { sql } from "drizzle-orm";`, filename: at("src/features/sample/scripts/m
       { code: `import * as orm from "drizzle-orm";`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
       { code: `import postgres from "postgres";`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
       { code: `const m = await import("drizzle-orm/postgres-js");`, filename: at("src/features/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
+    ],
+  });
+});
+
+test("rule seed-reader: ドメインのシード seed.ts を読むのはシードのランナーだけ(静的・動的とも、D52)", () => {
+  ruleTester.run("seed-reader", plugin.rules["seed-reader"], {
+    valid: [
+      { code: `const m = await import("../../../src/features/sample/seed");`, filename: at("scripts/runner/seed/run.ts") },
+      { code: `import { seed } from "@/features/sample/seed";`, filename: at("scripts/runner/seed/seed.test.ts") },
+      { code: `import { sampleService } from "@/features/sample/services/server/sampleService";`, filename: at("src/features/sample/components/x.tsx") },
+      { code: `import { x } from "@/features/sample/seedHelpers";`, filename: at("src/features/sample/components/x.tsx") },
+    ],
+    invalid: [
+      { code: `import { seed } from "@/features/sample/seed";`, filename: at("src/features/sample/components/x.tsx"), errors: [{ messageId: "seedReader" }] },
+      { code: `const m = await import("@/features/core/user/seed");`, filename: at("scripts/operations/db/clear.ts"), errors: [{ messageId: "seedReader" }] },
+      { code: `import { seed } from "./seed";`, filename: at("src/features/sample/index.ts"), errors: [{ messageId: "seedReader" }] },
     ],
   });
 });

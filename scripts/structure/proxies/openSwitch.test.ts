@@ -163,7 +163,7 @@ test("範囲: 読み手がどちらの一覧を読むか(字面)", () => {
     assert.match(read(rel), /\{ rules, gatedSchema \}/, `${rel}: 表はスイッチを通した rules で外す`);
   }
   assert.match(read("scripts/operations/db/clear.ts"), /closedTables\(gateNode\.rules\)/);
-  assert.match(read("scripts/runner/seed/run.ts"), /gate\.enabled\(feature\)/);
+  assert.match(read("scripts/runner/seed/run.ts"), /const \{ rules \} = await import\("@\/featureGate\/node"\)[\s\S]*closedByOf\(rules\)/, "シードはスイッチを通した rules で閉じたドメインを飛ばす");
 });
 
 test("pnpm ops features list: 規則の値とスイッチを分けて出す(configEnabled・openedBySwitch)", async () => {

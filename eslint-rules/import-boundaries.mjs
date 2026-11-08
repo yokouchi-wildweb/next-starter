@@ -62,6 +62,10 @@
 // src/features/**/seed.ts・scripts/workflow/dev-admin/**(DB に書く開発の道具)。書くのはドメインのサービスを通す。移行 src/features/**/scripts/migrations/**(.local.ts を含む)は例外(直接の SQL・db を許す)。
 
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
+//
+// ── seed-reader(D52) ──
+// ドメインのシード src/features/**/seed.ts(データだけ)を読むのはシードのランナー scripts/runner/seed/** だけ(静的・動的とも)。
+// アプリ・ほかの道具はシードを読まない(デモのデータが本番の経路に混ざらないため)。
 
 // ── link-via-shelf(D14、L1.9) ──
 // next/link を直接 import しない。リンクは棚の Link(src/components/Navigation/Link、閉じた機能の住所を自動で隠す)を使う。
@@ -356,6 +360,28 @@ export function classifyDbWriteImport(source, resolved, specifiers) {
   return null;
 }
 
+/** ドメインのシード(src/features/<ドメイン>/seed.ts)を、シードのランナーの外から読む import か */
+export const isSeedReaderViolation = (importerRel, resolved) =>
+  Boolean(resolved) && /^src\/features\/(?:.+\/)?seed(?:\.ts)?$/.test(resolved) && !isUnder(importerRel, "scripts/runner/seed");
+
+const seedReader = {
+  meta: {
+    type: "problem",
+    docs: { description: "ドメインのシード(seed.ts)を読むのはシードのランナーだけ(D52)" },
+    messages: {
+      seedReader: '"{{source}}" はドメインのシード(データだけ)です。読むのはシードのランナー scripts/runner/seed だけです(pnpm ops db seed、src/lib/seed/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      if (isSeedReaderViolation(importerRel, resolveImport(source, context.filename, repoRoot))) context.report({ node, messageId: "seedReader", data: { source } });
+    });
+  },
+};
+
 const srcNoScripts = {
   meta: {
     type: "problem",
@@ -583,6 +609,7 @@ const plugin = {
     "link-via-shelf": linkViaShelf,
     "router-via-guard": routerViaGuard,
     "src-no-scripts": srcNoScripts,
+    "seed-reader": seedReader,
     "scripts-no-static-wiring": scriptsNoStaticWiring,
     "tools-no-db-write": toolsNoDbWrite,
   },

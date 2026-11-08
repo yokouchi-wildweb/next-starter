@@ -13,6 +13,7 @@ import { renderFieldConstants } from "../render/fieldConstants/index.mjs";
 import { renderHooks } from "../render/hooks/index.mjs";
 import { renderPresenters } from "../render/presenters/index.mjs";
 import { renderRegistry } from "../render/registry/index.mjs";
+import { renderSeed } from "../render/seed/index.mjs";
 import { renderServerServices } from "../render/serverServices/index.mjs";
 
 /**
@@ -30,6 +31,8 @@ export function planDomain(ctx, workspace, gen) {
   if (gen.hooks) outputs.push(...renderHooks(ctx, workspace));
   if (gen.clientServices) outputs.push(...renderClientServices(ctx, workspace));
   if (gen.serverServices) outputs.push(...renderServerServices(ctx, workspace));
+  // シードの雛形(write-once)。入れるのはサーバーサービスなので同じカテゴリで出す
+  if (gen.serverServices) outputs.push(...renderSeed(ctx));
   if (gen.fieldConstants && hasOptionFields(ctx.config)) outputs.push(...renderFieldConstants(ctx));
   if (gen.adminRoutes) outputs.push(...renderAdminRoutes(ctx, workspace));
   if (gen.entities) outputs.push(...renderEntities(ctx, workspace));

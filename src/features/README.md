@@ -583,7 +583,7 @@ core ドメイン (`src/features/core/<domain>/domain.json`) も pnpm generate d
 | components | - | 管理画面コンポーネント |
 | hooks | - | CRUD フック |
 | clientServices | - | axios クライアント |
-| serverServices | - | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
+| serverServices | - | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` とシードの雛形 `seed.ts`（Drizzle のドメインだけ。書き方 `src/lib/seed/README.md`）は無いときだけ生成） |
 | adminRoutes | - | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
 | registry | - | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm generate registry` が serviceRegistry.ts を作り直す） |
 | fieldConstants | - | options を持つフィールドの定数/型 |

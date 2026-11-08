@@ -25,6 +25,7 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "import-boundaries/lib-no-features", files: ["src/lib/drizzle/index.ts"] },
   { rule: "import-boundaries/src-no-scripts", files: ["src/lib/cron/discover.ts", "src/featureGate/checks/dependencies.test.mjs"] },
   { rule: "import-boundaries/scripts-no-static-wiring", files: ["scripts/runner/task/run.ts", "src/features/sample/scripts/tasks/example.ts", ".notices/20261101-000200-lib-boundaries.crud-entry-split.mjs"], example: true },
+  { rule: "import-boundaries/seed-reader", files: ["src/features/sample/components/x.tsx", "scripts/runner/seed/run.ts"], example: true },
   { rule: "import-boundaries/tools-no-db-write", files: ["scripts/operations/features/set.ts", "src/features/sample/scripts/tasks/example.ts", "src/features/sample/seed.ts"], example: true },
   { rule: "page-authz/layout-no-server-data", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   {

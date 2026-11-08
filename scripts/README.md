@@ -250,7 +250,7 @@ scripts/
 ├── README.md              # このファイル
 ├── test-claude-api.ts     # Claude API 接続確認
 ├── db/                    # データベース関連
-│   ├── seed/              # シーダー
+│   ├── seed/              # シーダー(各ドメインの seed.ts を走査、src/lib/seed)
 │   └── clear/             # データ削除
 ├── cron/                  # vercel.json の cron 生成・検査
 ├── domain-config/         # ドメイン設定生成

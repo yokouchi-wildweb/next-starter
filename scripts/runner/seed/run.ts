@@ -1,105 +1,90 @@
-// scripts/runner/seed/run.ts
+// scripts/runner/seed/run.ts — pnpm ops db seed [--all] の本体(入口は scripts/operations/db/seed.ts)
 //
-// 閉じた機能の項目(feature の規則が 1 つでも閉じている)は選択肢と --all から外し、名前を出す(scripts/runner/seed/gate.ts)。
-// feature の無い項目は走る。表が無くて失敗したら項目名と直し方を出す。詳細: scripts/runner/seed/README.md「閉じた機能と seed」
+// ドメインのシード src/features/<ドメイン>/seed.ts(defineSeed、src/lib/seed)を走査し、after の順に各ドメインのサービスで入れる。
+// - 既定は対話でドメインを選ぶ(選んだドメインが after で指すドメインは自動で足す)、--all で全部
+// - 閉じた機能のドメイン(そのフォルダを features に持つ規則が閉じている。スイッチを通した rules)は飛ばして名前を出し、
+//   それを after に持つシードは理由を出して止める
+// - DB が未設定なら何も入れずに止める。$unique の行は既にあれば使い回す(何度打っても同じ)
+// 書き方: src/lib/seed/README.md、ランナー: scripts/runner/seed/README.md
 
-import { config } from "dotenv";
+import path from "node:path";
+
 import { checkbox } from "@inquirer/prompts";
 
-// .env.development を読み込む（import文より先に実行）
-config({ path: ".env.development" });
+import { planSeeds } from "../../../src/lib/seed";
+import { loadEnvFile, requireDatabase } from "../task/prepare";
+import { isUndefinedTableError } from "./gate";
+import { insertSeeds, type SeedService } from "./insert";
+import { closedByOf, listSeedFiles, loadSeedEntries } from "./scan";
+
+loadEnvFile();
 
 async function main() {
   console.log("🌱 データベースのシード実行");
   console.log("");
+  await requireDatabase("pnpm ops db seed");
 
-  // 環境変数読み込み後に動的import
-  const [{ seedRegistry, resolveDependencyOrder }, { gate }, { partitionSeeds, isUndefinedTableError }] = await Promise.all([
-    import("./data"),
-    import("@/featureGate/node"),
-    import("./gate"),
-  ]);
-  type SeedKey = (typeof seedRegistry)[number]["key"];
-  type SeedResults = Partial<Record<SeedKey, unknown>>;
-
-  // 閉じた機能の項目は外す(選択肢にも --all にも出さない)
-  const { run: openSeeds, skipped } = partitionSeeds(seedRegistry, (feature) => gate.enabled(feature));
-  if (skipped.length > 0) {
-    console.log("🔒 閉じた機能の項目なので飛ばします:");
-    for (const { seed, closed } of skipped) console.log(`   ${seed.name}(${seed.key}): 閉じた機能 ${closed.join(", ")}`);
-    console.log("");
-  }
-  if (openSeeds.length === 0) {
+  const repoRoot = path.resolve(import.meta.dirname, "../../..");
+  const { rules } = await import("@/featureGate/node");
+  const entries = await loadSeedEntries(repoRoot, listSeedFiles(repoRoot), closedByOf(rules));
+  const open = entries.filter((entry) => entry.closedBy === null);
+  if (open.length === 0) {
     console.log("実行できるシードがありません。終了します。");
     process.exit(0);
   }
 
-  // --all フラグで全シードを実行（インタラクティブ選択をスキップ）
-  const runAll = process.argv.includes("--all");
-
-  let selectedKeys: SeedKey[];
-
-  if (runAll) {
-    selectedKeys = openSeeds.map((s) => s.key);
+  let selected: string[];
+  if (process.argv.includes("--all")) {
+    selected = entries.map((entry) => entry.domain);
     console.log("📋 全てのシードを実行します");
   } else {
-    // チェックボックスで実行するシードを選択
-    selectedKeys = await checkbox<SeedKey>({
-      message: "実行するシードを選択してください（スペースで選択、Enterで確定）",
-      choices: openSeeds.map((seed) => ({
-        name: seed.deps.length > 0 ? `${seed.name} (依存: ${seed.deps.join(", ")})` : seed.name,
-        value: seed.key,
-        checked: true, // デフォルトで全選択
+    selected = await checkbox<string>({
+      message: "シードを入れるドメインを選んでください（スペースで選択、Enterで確定。after のドメインは自動で足す）",
+      choices: open.map((entry) => ({
+        name: entry.seed.after?.length ? `${entry.domain} (after: ${entry.seed.after.join(", ")})` : entry.domain,
+        value: entry.domain,
+        checked: true,
       })),
     });
-  }
-
-  if (selectedKeys.length === 0) {
-    console.log("シードが選択されませんでした。終了します。");
-    process.exit(0);
-  }
-
-  // 依存関係を解決して実行順序を決定
-  const orderedKeys = resolveDependencyOrder(selectedKeys);
-  const selectedSet = new Set(selectedKeys);
-
-  console.log("");
-  console.log(`📋 実行順序: ${orderedKeys.join(" → ")}`);
-  console.log("");
-
-  // 各シードの実行結果を保持
-  const results: SeedResults = {};
-
-  // 順番にシードを実行
-  for (const key of orderedKeys) {
-    const seedConfig = seedRegistry.find((s) => s.key === key);
-    if (!seedConfig) continue;
-
-    console.log(`▶ ${seedConfig.name}`);
-
-    // 依存関係のデータを収集（選択されているもののみ）
-    const deps: SeedResults = {};
-    for (const depKey of seedConfig.deps) {
-      if (selectedSet.has(depKey) && results[depKey] !== undefined) {
-        deps[depKey] = results[depKey];
-      }
-    }
-
-    // シード実行
-    try {
-      results[key] = await seedConfig.fn(deps as any);
-    } catch (error) {
-      if (isUndefinedTableError(error)) {
-        console.error(`❌ ${seedConfig.name}(${key}): 書き込む表が DB にありません。`);
-        console.error("   閉じた機能の表なら registry.ts のこの項目に feature: \"<規則名>\" を付ける(閉じている間は飛ばす)。");
-        console.error("   開いた機能の表なら pnpm db:push で作る。");
-      }
-      throw error;
+    if (selected.length === 0) {
+      console.log("シードが選択されませんでした。終了します。");
+      process.exit(0);
     }
   }
 
+  const plan = planSeeds(entries, selected);
+  if (plan.skipped.length > 0) {
+    console.log("🔒 閉じた機能のドメインなので飛ばします:");
+    for (const { domain, closedBy } of plan.skipped) console.log(`   ${domain}: 閉じた機能 ${closedBy}`);
+    console.log("");
+  }
+  if (plan.problems.length > 0) {
+    console.error("❌ シードの置き方に誤りがあるので、何も入れずに止めます:");
+    for (const problem of plan.problems) console.error(`   ${problem}`);
+    process.exit(1);
+  }
+
+  console.log(`📋 実行順序: ${plan.order.map((entry) => entry.domain).join(" → ")}`);
   console.log("");
-  console.log("✅ シードの実行が完了しました");
+
+  // 表 → ドメインのサービス(serviceRegistry。結線は動的 import)
+  const { findDomainByTable, getService } = await import("@/wiring/domainRegistry");
+  const serviceOf = async (table: string): Promise<SeedService | null> => {
+    const domain = findDomainByTable(table);
+    return domain ? ((await getService(domain)) as SeedService | undefined) ?? null : null;
+  };
+
+  try {
+    const report = await insertSeeds(plan.order, serviceOf, (line) => console.log(line));
+    const created = report.filter((r) => r.action === "created").length;
+    console.log("");
+    console.log(`✅ シードの実行が完了しました(入れた ${created} 行 / 既にあった ${report.length - created} 行)`);
+  } catch (error) {
+    if (isUndefinedTableError(error)) {
+      console.error("❌ 書き込む表が DB にありません。開いた機能の表なら pnpm db:push で作る(閉じた機能の表はシードごと飛ばされる)。");
+    }
+    throw error;
+  }
   process.exit(0);
 }
 

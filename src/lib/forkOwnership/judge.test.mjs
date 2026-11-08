@@ -102,7 +102,7 @@ describe("実リポジトリの intake.txt", () => {
       ["AGENTS.md", null],
       ["public/assets/imgs/logos/default.png", "edit"],
       ["servers/room/src/registry.ts", "region"],
-      ["scripts/runner/seed/data/registry.ts", "region"],
+      ["src/features/core/user/seed.ts", null],
     ];
     for (const [path, kind] of cases) {
       assert.equal(matchIntake(rules, path)?.kind ?? null, kind, path);
