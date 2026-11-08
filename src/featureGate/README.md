@@ -256,7 +256,7 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 ## 守り
 
 - lint `import-boundaries/feature-gate-entries`: 外からは入口 3 つだけ・lib は読まない・`node.ts` は scripts とテストだけ・配線用の `clientGateState`・`GateProvider` は配線の 4 ファイルだけ(`eslint-rules/import-boundaries.mjs`)
-- 到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)
+- 到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs`: `index.ts`・`client.ts` から値の import をたどり、features の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)。proxies の鎖(`src/proxy.ts`・`src/proxies/index.ts`)からは、たどり着いた config(`src/config/**`・地区の `config.ts`・`*.config.ts`)の先だけを同じ禁止の先で見る(proxies の項目は任意のドメインの config を読んでよいが、config は値だけ。鎖そのものの services は判定しない。目録 D20)
 - lint `page-authz/session-api-callsite` は `src/featureGate/**` にも掛かる(規則と判定はセッションを解かない)
 - 所有の検査(`pnpm workflow ownership check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`dependencyExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
 

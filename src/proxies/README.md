@@ -20,7 +20,7 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 - 項目は骨組みの**後ろ**で、ファイル名の順に走る（Tier 順は使わない）。項目どうしは互いに依存しない（前の項目の結果を読まない）。骨組みより前で走らせたい項目は作らない（要るなら上流へ依頼し、骨組みに吸収する）
 - 名前に fork の印は付けない（旧い印は止めて移し方 = 共有の棚の印の移行の notice を案内する。上流と同じ単位名は `pnpm workflow ownership check` の unit-clash）。旧い印・`handler` と `decorator` の両方・どちらも無い直下の `.ts`・名前の形の違い・一覧のずれは `pnpm generate extensions` / `pnpm check extensions` が止める
 - 印は字面で読む（`export const handler` / `export const decorator` / `export const rule` の形で書く。`export { x as handler }` は拾わない）。項目のファイルは生成器から import しない
-- 判定の中身は責務のドメインのサービスを呼ぶ（項目のファイルに業務の判定を書き込まない）。項目の入切は各項目が config の値で持つ（多段での並べ替え・置き換えの口は無い）
+- 判定の中身は責務のドメインのサービスを呼ぶ（項目のファイルに業務の判定を書き込まない）。項目の入切は各項目が config の値で持つ（多段での並べ替え・置き換えの口は無い）。項目はどのドメインの config も読んでよい。読んだ config から services・drizzle・server-only・node: に届くと門番の到達の検査（`pnpm test src/featureGate/checks/reachability.test.mjs`）が落とす（edge で動くため。目録 D20）
 - **転送された旧 URL（redirect が Response を返したリクエスト）では枠の項目は走らない**。骨組みが打ち切ったリクエストも同じ
 - 項目も UNCONFIGURED_BACKENDS の契約に従う（DB・Firebase が未構成でも落ちない。既存の判定 `isDatabaseConfigured` 等を使う）
 

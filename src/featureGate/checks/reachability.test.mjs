@@ -4,6 +4,7 @@
 // - 落とす先: src/features/**/services/**・src/lib/drizzle/**・drizzle-orm / postgres・server-only・node:*
 // - たどる辺: 静的 import / export … from / 動的 import()。型だけの import(import type・export type・名前が全部 type)は数えない
 // - 解決: eslint-rules/resolve-import.mjs(tsconfig の paths・相対)+ 拡張子と index の補完。パッケージは葉(中に入らない)
+// - proxies の鎖(src/proxy.ts・src/proxies/index.ts)は、たどり着いた config の先だけを同じ禁止の先で見る(目録 D20、下の節)
 // 前例: src/wiring/wiring.test.mjs(テキストで import を読む)。node.ts は道具の入口なので対象外(drizzle を読んでよい)
 // 実行: pnpm test src/featureGate/checks/reachability.test.mjs(plain node)
 
@@ -83,6 +84,58 @@ export function findForbiddenReach(root, entries) {
   return problems;
 }
 
+// ── proxies の鎖(目録 D20) ──
+// proxies の地区の項目(handler・decorator、上流と fork)は任意のドメインの config の入口を読んでよい。edge で読めるかは機械で止める:
+// src/proxy.ts・src/proxies/index.ts から値の import をたどり(禁止の先と services の中には入らない)、たどり着いた config から
+// services・drizzle・server-only・node: に届いたら落とす。鎖そのもの(proxy.ts の proxyUserDeps・maintenance の settingService)は判定しない
+export const PROXY_ENTRIES = ["src/proxy.ts", "src/proxies/index.ts"];
+
+/** config のファイルか(src/config の下・地区の config.ts・*.config.ts) */
+export const isConfigFile = (rel) => rel.startsWith("src/config/") || /(^|\/)config\.(ts|mts|mjs)$/.test(rel) || /\.config\.(ts|mts|mjs)$/.test(rel);
+
+/**
+ * 入口から値の import をたどって config を集める(禁止の先・解決できない物には入らない。config の先もたどらない)
+ * @returns {{ config: string, chain: string[] }[]} chain = 入口 → … → config(root 相対)
+ */
+export function findConfigsReachedFrom(root, entries) {
+  const found = new Map();
+  const seen = new Set();
+  const queue = entries.map((entry) => ({ file: join(root, entry), chain: [entry] }));
+  while (queue.length > 0) {
+    const { file, chain } = queue.shift();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    for (const source of valueImportSources(readFileSync(file, "utf8"))) {
+      const resolvedRel = resolveImport(source, file, root);
+      if (!resolvedRel || forbiddenTarget(source, resolvedRel)) continue;
+      const next = completeFile(root, resolvedRel);
+      if (!next) continue;
+      const rel = toPosix(relative(root, next));
+      if (isConfigFile(rel)) {
+        if (!found.has(rel)) found.set(rel, [...chain, rel]);
+        continue;
+      }
+      queue.push({ file: next, chain: [...chain, rel] });
+    }
+  }
+  return [...found].sort(([a], [b]) => (a < b ? -1 : 1)).map(([config, chain]) => ({ config, chain }));
+}
+
+/** proxies の鎖が読む config から禁止の先に届く鎖(入口 → … → config → … → 先: 理由) */
+export function findProxyConfigReach(root, entries = PROXY_ENTRIES) {
+  return findConfigsReachedFrom(root, entries).flatMap(({ config, chain }) =>
+    findForbiddenReach(root, [config]).map((problem) => `${chain.slice(0, -1).join(" → ")} → ${problem}`),
+  );
+}
+
+test("実リポ: proxies の鎖(proxy.ts・proxies/index.ts)が読む config はデータの層・Node 専用の物に届かない(目録 D20)", () => {
+  for (const entry of PROXY_ENTRIES) assert.ok(existsSync(join(ROOT, entry)), `${entry} が無い`);
+  const configs = findConfigsReachedFrom(ROOT, PROXY_ENTRIES);
+  assert.ok(configs.length > 0, "proxies の鎖が config を 1 つも読んでいない(たどり方の誤り)");
+  const problems = findProxyConfigReach(ROOT);
+  assert.deepEqual(problems, [], `proxies の項目が読む config から届いてはいけない先(config は値だけにする):\n${problems.join("\n")}`);
+});
+
 test("実リポ: 門番の入口(index.ts・client.ts)はデータの層・Node 専用の物に届かない。client.ts は規則・評価・config にも届かない", () => {
   for (const entry of ENTRIES) assert.ok(existsSync(join(ROOT, entry)), `${entry} が無い`);
   const problems = findForbiddenReach(ROOT, ENTRIES);
@@ -147,4 +200,36 @@ test("fixture: client.ts から規則・評価・config に届くと落ちる(in
     assert.match(problems[0], /^src\/featureGate\/client\.ts → /);
     assert.match(problems[0], reason);
   }
+});
+
+/** 一時リポ: proxies の鎖(proxy.ts → proxies/index.ts → 項目)と、項目が読む config */
+function proxyFixture(itemBody, extra = {}) {
+  return fixture("export const rule = {};\n", {
+    "src/proxy.ts": 'import { runProxies } from "./proxies";\nexport const proxy = runProxies;\n',
+    "src/proxies/index.ts": 'import { handler } from "./item";\nexport const runProxies = handler;\n',
+    "src/proxies/item.ts": itemBody,
+    ...extra,
+  });
+}
+
+test("fixture: proxies の項目が読む config が services・drizzle・server-only・node: に届くと鎖つきで落ち、項目が直に読む services は対象外(目録 D20)", () => {
+  const item = 'import { SHOP_CONFIG } from "@/features/core/wallet/config";\nimport { walletService } from "@/features/core/wallet/services/server/walletService";\nexport const handler = () => [SHOP_CONFIG, walletService];\n';
+  assert.deepEqual(findProxyConfigReach(proxyFixture(item, { "src/features/core/wallet/config.ts": "export const SHOP_CONFIG = { enabled: true };\n" })), []);
+  const cases = {
+    services: ['import { walletService } from "./services/server/walletService";\n', /features の services/],
+    drizzle: ['import { db } from "@/lib/drizzle";\n', /src\/lib\/drizzle/],
+    serverOnly: ['import "server-only";\n', /server-only/],
+    node: ['import { readFileSync } from "node:fs";\n', /Node 組み込み/],
+  };
+  for (const [name, [body, reason]] of Object.entries(cases)) {
+    const root = proxyFixture(item, { "src/features/core/wallet/config.ts": `${body}export const SHOP_CONFIG = { enabled: true };\n` });
+    const problems = findProxyConfigReach(root);
+    assert.equal(problems.length, 1, `${name}: ${problems.join("\n")}`);
+    assert.match(problems[0], /^(src\/proxy\.ts → )?src\/proxies\/index\.ts → src\/proxies\/item\.ts → src\/features\/core\/wallet\/config\.ts → /);
+    assert.match(problems[0], reason);
+  }
+  // src/config の下と *.config.ts も config、型だけの import は数えない
+  const viaAppConfig = proxyFixture('import { FLAG } from "@/config/app/shop.config";\nexport const handler = () => FLAG;\n', { "src/config/app/shop.config.ts": 'import type { X } from "@/features/core/wallet/services/server/walletService";\nimport "server-only";\nexport const FLAG = true;\n' });
+  assert.match(findProxyConfigReach(viaAppConfig)[0] ?? "", /src\/config\/app\/shop\.config\.ts → server-only: server-only/);
+  assert.deepEqual(findConfigsReachedFrom(viaAppConfig, PROXY_ENTRIES).map((c) => c.config), ["src/config/app/shop.config.ts"]);
 });
