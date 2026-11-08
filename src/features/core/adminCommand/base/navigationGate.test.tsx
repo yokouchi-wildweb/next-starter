@@ -1,6 +1,6 @@
 // src/features/core/adminCommand/base/navigationGate.test.tsx
 // 管理のコマンドパレットの移動の候補の絞り込み(L2.4、jsdom の上で Provider と橋を動かす。Provider の外の認証は未ログイン = 項目を読まない、router は偽物):
-// - 管理の枠の GateProvider の内に AdminCommandGateBridge があれば、閉じた機能の住所の行が消える(redirectTo 付きの閉・外部 URL・開は残る)
+// - 管理の枠の GateProvider の内に AdminCommandGateBridge があれば、閉じた機能の住所の行が消える(厳密な gate.path: redirectTo 付きの閉も消える。外部 URL・開は残る、L2.5)
 // - 橋の無い所(利用者の画面)では絞らない(navigationFilter = null、throw しない。棚の Link の D14 と同じ)
 // - 橋が外れたら絞りも外れる
 // 実行: pnpm test:feature-gate:client(--experimental-test-module-mocks)
@@ -61,6 +61,8 @@ const ITEMS: NavigationItem[] = [
   { id: "closed", label: "closed", href: "/admin/wallet/history" },
   { id: "redirected", label: "redirected", href: "/signup" },
   { id: "external", label: "external", href: "https://example.com/admin/wallet" },
+  { id: "query", label: "query", href: "/admin/wallet?tab=1#x" },
+  { id: "protocolRelative", label: "protocolRelative", href: "//example.com/admin/wallet" },
 ];
 
 const state = (area: ClientGateState["area"]): ClientGateState =>
@@ -116,11 +118,11 @@ const adminTree = (probe: ReactNode) => (
 );
 const userTree = (probe: ReactNode) => <m.GateProvider state={state("user")}>{probe}</m.GateProvider>;
 
-test("管理の枠の中(橋あり): 閉じた機能の住所の行だけが消え、redirectTo 付き・外部・開いた住所は残る", () => {
+test("管理の枠の中(橋あり): 閉じた機能の住所の行が消え(redirectTo 付きの閉・? # 付きも)、外部・開いた住所は残る", () => {
   const view = render(adminTree);
   const filter = view.value()?.navigationFilter;
   assert.ok(filter, "橋が絞り込みを登録する");
-  assert.deepEqual(filter(ITEMS).map((item) => item.id), ["home", "redirected", "external"]);
+  assert.deepEqual(filter(ITEMS).map((item) => item.id), ["home", "external", "protocolRelative"]);
   view.unmount();
 });
 
