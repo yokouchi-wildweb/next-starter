@@ -35,6 +35,13 @@ pnpm test scripts/structure/lib-package/libPackage.test.mjs
 - `@lib-config/<自分>` = 常に書く。先(`src/config/lib/<自分>.config.ts`)が無い時は、読んだ時だけ型検査で落ちる(既定値で黙って通さない)。置き場の決まりは指令 24
 - 外部のパッケージはルートの node_modules から今までどおり解決する
 
+### @lib-config(設定の届け方の行)
+
+- ルートの tsconfig.json に `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)。候補は 1 つだけ
+- lib の tsconfig.json の `@lib-config/<自分>` の行は、この 1 行と同じ先を指す(ルートの paths は lib では置き換わるので、自分の行を書く)
+- 上書きのファイルが無い lib は、tsc(TS2307)・tsx(pnpm task / scripts の実行)・pnpm test のどれでも解決の失敗で止まる。空の上書き(`export default {};`)を置くと通る。lint の解決(eslint-rules/resolve-import.mjs)も同じ行で解く
+- 確かめ: `delivery.test.mjs`(一時フォルダの見本。行は本物の tsconfig.json から写す)。next build・Turbopack は最初の実物の lib(toast)で確かめる
+
 ## 2. 単体の型検査
 
 lib の tsconfig.json で型検査します(出力しない)。tsconfig.json が食い違う lib は型検査をしません(先に 1 を直す)。
@@ -60,3 +67,4 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - `standalone.mjs` `closureOf`・`expectedPaths`・`expectedTsconfig`・`compareTsconfig`・`typecheckLib`
 - `sideEffects.mjs` `sideEffectsInSource`・`findSideEffects`・`checkSideEffects`
 - `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト
+- `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること

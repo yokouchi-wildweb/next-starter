@@ -24,6 +24,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@lib-config/*": ["./src/config/lib/*.config.ts"],
       "@/features/admin/*": ["./src/features/core/admin/*"],
       "@/features/adminCommand/*": ["./src/features/core/adminCommand/*"],
       "@/features/analytics/*": ["./src/features/core/analytics/*"],
