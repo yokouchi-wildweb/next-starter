@@ -347,3 +347,4 @@
 - id:20261108-171814-config-lib-direction | severity:info | checkpoint:config-lib-direction
 - id:20261108-171854-seed-fork-files-move | severity:action-required | checkpoint:seed-fork-files-move | fixes:20261108-095310-scripts-four-folders | pick:-
 - id:20261108-172627-shared-shelf-lib-close-base | severity:action-required | checkpoint:shared-shelf-lib-close-base | moved:src/hooks/useIsClient.ts -> src/lib/isClient/useIsClient.ts; src/hooks/useFrameDimsStyle.ts -> src/lib/frameDims/useFrameDimsStyle.ts; src/hooks/useFrameDimsStyle.test.ts -> src/lib/frameDims/useFrameDimsStyle.test.ts
+- id:20261108-182611-district-map-test-closed-libs | severity:info | checkpoint:district-map-test-closed-libs | fixes:20261108-172627-shared-shelf-lib-close-base | pick:clean

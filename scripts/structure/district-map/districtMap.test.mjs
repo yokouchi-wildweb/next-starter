@@ -3,7 +3,7 @@
 // 正本: ドメインの一覧と domainEntry のキー = scripts/structure/registry/serviceRegistry/discover.mjs、表 = tableScan.mjs(schemaRegistry の元)、
 // 門の features = @/featureGate/node の configRules、受け口 = forkOwnership の collectPoints、lib = src/lib 直下のフォルダ
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -93,8 +93,11 @@ test("domainJson・generate = 各ドメインの domain.json の有無と genera
   assert.ok(features.some((d) => d.generate === false) && features.some((d) => d.generate === true) && features.some((d) => d.generate === null));
 });
 
-test("config・上書き: 今の地区は config.ts も上書きも持たない(後半で作る)", () => {
-  assert.deepEqual(districts.filter((d) => d.config.exists || d.override.exists).map((d) => d.dir), []);
+test("config・上書き: 欄の有無は木のファイルの有無と同じ", () => {
+  for (const d of districts) {
+    for (const slot of [d.config, d.override]) assert.equal(slot.exists, existsSync(join(repoRoot, slot.path)), slot.path);
+  }
+  assert.ok(districts.some((d) => d.kind === "lib" && d.config.exists && d.override.exists), "閉じた lib(toast など)の config と上書きが載る");
 });
 
 test("district-map.jsonl は今の木と一致(pnpm check district-map)", () => {
