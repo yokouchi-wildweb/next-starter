@@ -140,3 +140,33 @@ export function markIsValid(mark, { livePid, procStart = procStartOf } = {}) {
   if (livePid !== undefined && Number(livePid) !== Number(mark.pid)) return false;
   return String(procStart(mark.pid)) === String(mark.procStart);
 }
+
+/** /proc/<pid>/stat の親 pid と /proc/<pid>/comm。読めない = null */
+function procParent(pid) {
+  try {
+    const stat = readFileSync(`/proc/${Number(pid)}/stat`, "utf8");
+    return Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[1]);
+  } catch {
+    return null;
+  }
+}
+function procComm(pid) {
+  try {
+    return readFileSync(`/proc/${Number(pid)}/comm`, "utf8").trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * このプロセスを動かしている claude の pid(先祖をたどり、comm が claude の最初のもの)。見つからない = null。
+ * フックも Bash の道具も claude の子孫として動く
+ */
+export function claudePid(fromPid = process.pid, { parent = procParent, comm = procComm } = {}) {
+  let pid = fromPid;
+  for (let i = 0; i < 32 && pid && pid > 1; i += 1) {
+    if (comm(pid) === "claude") return pid;
+    pid = parent(pid);
+  }
+  return null;
+}

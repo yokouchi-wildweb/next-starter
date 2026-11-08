@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pnpm workflow peer send:*)",
+      "Bash(pnpm workflow peer reply:*)",
+      "Bash(pnpm workflow peer inbox:*)",
+      "Bash(pnpm workflow peer read:*)",
+      "Bash(pnpm workflow peer who:*)"
     ]
   },
   "hooks": {
@@ -23,6 +28,15 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs\" start",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -31,6 +45,15 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/agent-terminal/hook.mjs\" busy",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs\" prompt",
             "timeout": 10
           }
         ]
@@ -54,6 +77,18 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/agent-terminal/hook.mjs\" precompact",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "FileChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs\" bell",
+            "asyncRewake": true,
+            "timeout": 30
           }
         ]
       }

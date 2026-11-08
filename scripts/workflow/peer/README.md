@@ -46,10 +46,26 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - どのファイルも版 `v` を持つ(今は 1)。知らない版は読まない。形を変えたら版を上げる
 - 印は、その `pid` のプロセスが同じ起動の時刻(`/proc/<pid>/stat` の starttime = `procStart`)で生きていて、`claude agents --json` の行の pid とも合う時だけ有効(pid の使い回しを除く)。印の無い相手には受け箱に置くだけにして、送り手にそう返す
 
+## フック(.claude/settings.json)
+
+`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|prompt|bell>`。門(上の「使えるとき」)が閉じていれば、どれも何も出さず何も書かない(チームの道具のタブも)。失敗しても exit 0 で、セッションを止めない。
+
+| 動作 | イベント | すること |
+|---|---|---|
+| `start` | SessionStart(source を問わず毎回) | 印を書き、自分の受け箱を作って `watchPaths` に返す(見張るのは今の会話の箱だけ。--continue の新しいプロセスでも見張りが続くよう毎回返す)。未読があれば 1 行だけ文脈へ |
+| `prompt` | UserPromptSubmit | 印の `mode` を今の権限モード(`permission_mode`)に書き直す。送り手のモードが最新の人の番の値になる。何も出さない |
+| `bell` | FileChanged(matcher なし、`asyncRewake: true`、timeout 30) | 自分の受け箱に連絡が増えた(`add`)ときだけ、知らせの 1 行を stderr に出して exit 2 = 手すきのセッションを起こす。ほかの箱・tmp・change / unlink は黙って 0 |
+
+- 知らせの 1 行 = 送り元の名前とリポ・連絡 id・about・`pnpm workflow peer read <id>`。本文と送り手のモードは文脈に入れない(読むのはコマンドで、人に伝えるかはその後)
+- 印の `pid` = フックの先祖をたどって最初に見つかる claude のプロセス。見つからなければ印を書かない(相手からは「印が無い」に見え、受け箱に置くだけになる)
+- tmux への打ち込みは使わない(知らせはこの呼び鈴 1 本)
+- `.claude/settings.json` の `permissions.allow` に peer の 5 動作(send・reply・inbox・read・who)を入れてある。呼び鈴で起きるたびに読む許可を聞かれないため
+
 ## 部品
 
 - `lib.store.mjs` 受け箱・状態・印の読み書き
 - `lib.agents.mjs` `claude agents --json` の読み取りと名前の解決
 - `lib.gate.mjs` 使えるかの判定と自分のセッション id(`CLAUDE_CODE_SESSION_ID`)
 - `lib.cli.mjs` 動作の本体(動作のファイル `send.mjs` などはこれを呼ぶだけ)
+- `lib.hook.mjs` フックの本体(`hook.mjs` はこれを呼ぶだけ。`hook.mjs` はフォルダの直下にあるので `pnpm workflow peer hook` としても一覧に出る)
 - テスト: `pnpm test scripts/workflow/peer`
