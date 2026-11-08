@@ -1,33 +1,21 @@
 // src/app/(user)/(auth)/signup/complete/_screen/SignupCompleteSection.tsx
-// 本登録完了の本文(既定 Screen 専用、契約外)。遷移ガード(useTransitionGuard)と
-// コンバージョン計測(useGoogleAdsConversion)をここで呼ぶ。差し替え Screen は ../_screen/SignupCompleteSection を
-// import するか、hook 直結で作り直す
+// 本登録完了の本文(既定 Screen 専用、契約外)。処理(遷移の守りとコンバージョン計測 1 回)は公開 hook useSignupComplete が持ち、
+// この部品は見た目だけ。見た目を変える fork は同じルートの _components/ の Screen で hook を呼んで自分で描く
+// (処理は写さない。この部品に引数は足さない)
 
 "use client";
 
 import { Link } from "@/components/Navigation";
-import { useEffect } from "react";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { Para } from "@/components/TextBlocks";
-import { useGoogleAdsConversion } from "@/lib/googleTag";
-import { useTransitionGuard } from "@/lib/transitionGuard";
+import { useSignupComplete } from "@/features/core/auth/hooks/useSignupComplete";
 
 export function SignupCompleteSection() {
-  // 遷移ガード: register からのトークン付き遷移のみ許可
-  const { isChecking, isValidTransition } = useTransitionGuard({
-    allowedReferers: ["/signup/register"],
-    onFail: { action: "error" },
-  });
-
-  // サインアップ完了コンバージョン(正当な遷移時のみ・mount あたり 1 回。env 未設定なら no-op)
-  const { fire } = useGoogleAdsConversion();
-  useEffect(() => {
-    if (isValidTransition) fire("signup");
-  }, [isValidTransition, fire]);
+  const { isChecking } = useSignupComplete();
 
   if (isChecking) {
     return <ScreenLoader mode="local" className="min-h-[300px]" />;

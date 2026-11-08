@@ -4,7 +4,6 @@
 
 "use client";
 
-import { useSearchParams, usePathname } from "next/navigation";
 import { Link } from "@/components/Navigation";
 import { CheckCircleIcon, XCircleIcon, LoaderIcon, MailIcon, LockIcon } from "lucide-react";
 
@@ -14,15 +13,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { useEmailChangeVerification } from "@/features/core/auth/hooks/useEmailChangeVerification";
 
 export function EmailChangeVerification() {
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const oobCode = searchParams.get("oobCode");
-
-  const { phase, newEmail, error } = useEmailChangeVerification({ oobCode });
-
-  // ログイン後に戻ってくるための URL を生成
-  const currentUrl = oobCode ? `${pathname}?oobCode=${encodeURIComponent(oobCode)}` : pathname;
-  const loginUrl = `/login?returnTo=${encodeURIComponent(currentUrl)}`;
+  const { phase, newEmail, error, loginHref } = useEmailChangeVerification();
 
   return (
     <Section className="w-full max-w-md">
@@ -46,7 +37,7 @@ export function EmailChangeVerification() {
             </p>
           </Stack>
           <Button asChild className="w-full">
-            <Link href={loginUrl}>ログインする</Link>
+            <Link href={loginHref}>ログインする</Link>
           </Button>
         </Stack>
       )}

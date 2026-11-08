@@ -59,7 +59,7 @@ GA4 config に `campaign_source` / `campaign_medium`（既定: `invite` / `invit
 
 ## 発火ポイント（core）
 
-- サインアップ完了 `app/(user)/(auth)/signup/complete/page.tsx`: `useTransitionGuard` の正当遷移時のみ `fire("signup")`
+- サインアップ完了 `features/core/auth/hooks/useSignupComplete`（/signup/complete の公開 hook）: `useTransitionGuard` の正当遷移時のみ `fire("signup")`
 - コイン購入完了 `features/core/purchaseRequest/components/PurchaseComplete`: `status==="completed"` で `fire("coinPurchase", { value, currency:"JPY", transactionId })`
 
 ## 新しいコンバージョンの追加

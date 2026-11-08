@@ -1,14 +1,13 @@
 // src/app/(user)/(auth)/logout/_screen/LogoutSection.tsx
-// ログアウトの自動実行部品(既定 Screen 専用、契約外)。mount 時に 1 回だけ hook(useLogout)を発火し、
-// 失敗時は再試行ボタンを出す。差し替え Screen は ../_screen/LogoutSection を import するか、hook 直結で作り直す
+// ログアウトの表示部品(既定 Screen 専用、契約外)。処理(mount で 1 回の自動ログアウト)は公開 hook useAutoLogout が持ち、
+// この部品は状態の見た目と失敗時の再試行ボタンだけ。
+// 見た目を変える fork は同じルートの _components/ の Screen で hook を呼んで自分で描く(この部品に引数は足さない)
 
 "use client";
 
-import { useEffect, useRef } from "react";
-
 import { Para } from "@/components/TextBlocks";
 import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
-import { useLogout } from "@/features/core/auth/hooks/useLogout";
+import { useAutoLogout } from "@/features/core/auth/hooks/useAutoLogout";
 
 type Props = {
   /** ログアウト後の遷移先(loader が内部パスに限定済み) */
@@ -16,16 +15,7 @@ type Props = {
 };
 
 export function LogoutSection({ redirectTo }: Props) {
-  const { logout, isLoading, error } = useLogout({ redirectTo });
-  const hasTriggered = useRef(false);
-
-  useEffect(() => {
-    if (hasTriggered.current) return;
-    hasTriggered.current = true;
-    logout().catch(() => {
-      // エラーは hook の error に入るので、ここでは握り潰す
-    });
-  }, [logout]);
+  const { isLoading, error } = useAutoLogout({ redirectTo });
 
   if (error) {
     return (

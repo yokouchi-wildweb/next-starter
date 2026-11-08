@@ -21,7 +21,7 @@ auth/
 │   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   │   └── phoneVerification/   # 電話番号の重複チェック・OTP 検証
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
-├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など
+├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow / useEmailChangeVerification / useAutoLogout / useSignupComplete (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など
 ├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin / PhoneVerification 等
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
 ```
@@ -222,6 +222,21 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 
 - 中で `useOAuthPhase`（認証の段階: initial / redirecting / processing / completed / alreadyRegistered / invalidProcess）を進め、段階が決まると移る: `completed` = `APP_FEATURES.auth.signup.afterVerificationPath?method=thirdParty` へ遷移ガード経由 / `alreadyRegistered` + 休会中 = `/reactivate` へ置き換え / `alreadyRegistered` = 成功トースト「登録済みユーザーでログインしました」+ `redirectTo` へ置き換え
 - 画面は `phase` ごとの表示（読み込み中・`InvalidProcessState`）だけを描く。`useOAuthPhase` は段階だけが要る呼び出し向けに残る（遷移はしない）
+
+### 画面の処理（`/email/verify`・`/logout`・`/signup/complete`）
+
+既定の `_screen` 部品はこの hook を呼んで描くだけ（部品は上流専用・約束なし、引数は足さない）。見た目や文言を変える fork は同じルートの `_components/` の Screen で hook を呼び、自分の markup で描く（処理は写さない）。
+
+| hook | 引数 | 戻り値 |
+| --- | --- | --- |
+| `useEmailChangeVerification({ oobCode? })` | `oobCode?: string \| null`（省略 = URL の `?oobCode=` を読む。`null` = コードなし） | `{ phase, newEmail, error, loginHref }` |
+| `useAutoLogout({ redirectTo })` | `redirectTo: string`（ログアウト後の遷移先。loader が内部パスに限定した値） | `{ isLoading, error, retry }` |
+| `useSignupComplete()` | なし | `{ isChecking, isValidTransition }` |
+
+- `useEmailChangeVerification`: `phase` = `initial` / `checking_auth` / `require_login` / `processing` / `completed` / `error`。ログイン済みなら確認コードの情報を引き → Firebase で変更を適用 → サーバーの DB を同期して `completed`。`loginHref` = `/login?returnTo=<今のパス + oobCode>`（未ログインのときのログインのリンク）。`error` は表示用の文言
+- `useAutoLogout`: mount で 1 回だけ `useLogout` の logout を呼ぶ（StrictMode の 2 回目の effect でも 1 回）。成功で `redirectTo` へ置き換え。失敗は `error`（`HttpError | null`）に入り、`retry()` で呼び直す（手動のボタンは `LogoutButton` でもよい）
+- `useSignupComplete`: 遷移の守り（`/signup/register` からのトークン付き遷移だけを通し、それ以外はエラー画面）と、正当な遷移でのサインアップ完了コンバージョン（mount あたり 1 回、env 未設定なら何もしない）。`isChecking` の間は読み込み中を描く
+- 単体テスト: `pnpm test src/features/core/auth/hooks/`（`useEmailChangeVerification` / `useAutoLogout` / `useSignupComplete` の `.test.tsx`）
 
 ## 関連
 

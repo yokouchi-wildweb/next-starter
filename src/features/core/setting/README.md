@@ -24,7 +24,7 @@ src/features/core/setting/
 ├── menu.ts                   # 管理メニューの項目を作る
 ├── utils/sectionForm.ts      # セクションの並びとフォームの組み立て
 ├── entities/                 # 表の定義と型(Setting・SettingValues)
-├── hooks/                    # useSetting・useUpdateSetting・usePublicSetting・useAdminSetup
+├── hooks/                    # useSetting・useUpdateSetting・usePublicSetting・useAdminSetup・useMaintenanceAutoRedirect
 └── services/
     ├── client/               # settingClient・adminSetupClient
     └── server/
@@ -118,6 +118,10 @@ const inMaintenance = await settingService.isMaintenanceActive();
 | 誰でも | `usePublicSetting` / `getPublicSetting()` | `public: true` のキー |
 
 公開するのは保存値だけ。計算した値(交換レート等)は持ち主のドメインの route と hook に置く。
+
+### メンテナンス画面の自動遷移
+
+`useMaintenanceAutoRedirect({ endTime, redirectTo }): void`(公開 hook、client)。`endTime` = 終了時刻(ISO8601、`maintenanceEndAt` を /maintenance の loader が渡す。`null` = 遷移しない)、`redirectTo` = 終了時の遷移先。終了時刻に `router.replace(redirectTo)`、過ぎていれば即時、unmount で timer を解く。既定の `_screen/MaintenanceAutoRedirect` はこれを呼ぶだけ。見た目を変える fork は自分の Screen の client 部品から呼ぶ。テスト: `pnpm test src/features/core/setting/hooks/`
 
 ## 保存する
 

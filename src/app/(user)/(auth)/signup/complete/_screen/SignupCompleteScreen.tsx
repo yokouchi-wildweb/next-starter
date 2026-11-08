@@ -3,8 +3,8 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける
 // (部品の import は ../_screen/SignupCompleteSection に直す)。手順: src/lib/screens/README.md
 //
-// loader は access の評価だけ(public)。/signup/register からの正当な遷移かどうかは referer ベースの client 側ガード
-// (useTransitionGuard)で判定するため、サーバー側の遷移制御は持たない。
+// loader は access の評価だけ(public)。/signup/register からの正当な遷移かどうかは公開 hook useSignupComplete の
+// client 側ガード(useTransitionGuard)で判定するため、サーバー側の遷移制御は持たない。
 
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPage } from "@/app/(user)/_layout/UserPage";

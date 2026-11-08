@@ -1,10 +1,10 @@
 // src/app/(user)/maintenance/_screen/MaintenanceAutoRedirect.tsx
-// メンテナンス画面専用の client 部品(契約外)。終了時刻は loader が渡す
+// メンテナンス画面専用の client 部品(契約外)。終了時刻は loader が渡し、自動遷移の処理は公開 hook
+// useMaintenanceAutoRedirect が持つ。差し替え Screen は hook を自分の client 部品から呼ぶ(この部品に引数は足さない)
 
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "@/lib/unsavedGuard";
+import { useMaintenanceAutoRedirect } from "@/features/core/setting/hooks/useMaintenanceAutoRedirect";
 
 type Props = {
   /** メンテナンス終了時刻（ISO8601形式） */
@@ -13,29 +13,7 @@ type Props = {
   redirectTo: string;
 };
 
-/**
- * メンテナンス終了時に自動的にリダイレクトするコンポーネント
- * endTime が設定されている場合、終了時刻にリダイレクトを発火する
- */
 export function MaintenanceAutoRedirect({ endTime, redirectTo }: Props) {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!endTime) return;
-
-    const remaining = new Date(endTime).getTime() - Date.now();
-
-    if (remaining <= 0) {
-      router.replace(redirectTo);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      router.replace(redirectTo);
-    }, remaining);
-
-    return () => clearTimeout(timer);
-  }, [endTime, redirectTo, router]);
-
+  useMaintenanceAutoRedirect({ endTime, redirectTo });
   return null;
 }
