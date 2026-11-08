@@ -204,7 +204,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 | 層 | 役目 | 置いてよいもの |
 |---|---|---|
-| `index.mjs` `feature-map.mjs` `generate-client.mjs` | `pnpm dc:*` の入口（package.json が指す） | |
+| `index.mjs` `feature-map.mjs` `generate-client.mjs` | `pnpm generate domain` の振り分け先（入口は gate.json → `generateAll.mjs`） | |
 | `cli/` | 引数の解釈（`args.mjs`: `--only`・値を取るオプション）、`main.mjs`（振り分け）、`generate` / `generateAll` / `delete` / `featureMap`、`-i` の対話（`prompts.mjs`・`pickCategories.mjs`）、`process.exit` | inquirer、process.exit |
 | `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry → feature-map。組なら `generateWithPairs`。カテゴリの決め方 `configTargets`）、`pairs.mjs`、`serviceRegistry.mjs`、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（pnpm generate domain -- --delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` は主の集まりの項目から従属の domain.json を組む）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`） | 読み取りは workspace 経由のみ |

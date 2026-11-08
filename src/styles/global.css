@@ -8,7 +8,7 @@
  *   palette.css     色(--primary 等)。エリア別は [data-area="user"] { ... }
  *   typography.css  書体・文字サイズ系
  *   overrides.css   ユーティリティが触らない領域(要素既定・scrollbar・selection・keyframes 等)
- *   gradient.css    このリポのグラデーション(pnpm gradient:gen が src/config/app/gradients.config.ts から生成。手で書かない)
+ *   gradient.css    このリポのグラデーション(pnpm generate styles が src/config/app/gradients.config.ts から生成。手で書かない)
  *
  * fork のファイルを足すときは、この直下(または好きな所)に置き、下に @import を足す(例: brand.css)。
  * Tier2 → Tier3 のように fork が多段のときは、@import の順序がそのまま優先順位。

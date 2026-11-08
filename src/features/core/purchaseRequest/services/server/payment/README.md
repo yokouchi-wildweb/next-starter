@@ -136,7 +136,7 @@ Webhook はインターネット経由なので `localhost` には届かない�
 
 ### dummy プロバイダ
 
-UI フローと完了画面の確認だけなら、`paymentMethods` の対象メソッドの `provider` を一時的に `"dummy"` にする。`/demo/dummy-payment` の擬似決済ページに遷移し、外部通信も Webhook 登録も不要（`signatureHeaders.dummy = null`）。`NODE_ENV=production` では `getPaymentProvider` が throw する。確認後は `provider` を戻す（コミット前に確認）。
+UI フローと完了画面の確認だけなら、`paymentMethods` の対象メソッドの `provider` を一時的に `"dummy"` にする。`/demo/dummy-payment` の擬似決済ページに遷移し、外部通信も Webhook 登録も不要（`signatureHeaders.dummy = null`）。段階が development(`@/lib/appEnv`)以外では `getPaymentProvider` が throw する。確認後は `provider` を戻す（コミット前に確認）。
 
 ### 使い分け
 

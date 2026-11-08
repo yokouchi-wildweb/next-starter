@@ -56,7 +56,7 @@ export const loadAdminSampleEditScreen = createLoader(
 
 - **どの関連を読むか** = `src/lib/domain/relations/relationOptions.mjs` の `getStaticRelations`（belongsTo と表側の belongsToMany のうち `asyncCombobox` / `asyncMultiSelect` / `custom` 以外）。クライアントの `useRelationOptions` と生成器が同じ判定を使う
 - **どのキーで渡すか** = 同じ helper の `relationOptionsKey`。`useRelationOptions` が同じキーで `useSWR` するので、SSR の結果が初回描画の選択肢になる
-- **関連先ごとの access** = 関連先の serviceRegistry の `list`（read）を、取得の前に loader の `ctx.allows` で評価する。拒否された関連先は取得せず空配列（その関連の選択肢だけ空。画面は出る）。拒否で飛ばしたとき開発環境（`NODE_ENV=development`）だけサーバーログに 1 行（関連先のドメイン名だけ。利用者・取得データは出さない。地図・lint には出さない）
+- **関連先ごとの access** = 関連先の serviceRegistry の `list`（read）を、取得の前に loader の `ctx.allows` で評価する。拒否された関連先は取得せず空配列（その関連の選択肢だけ空。画面は出る）。拒否で飛ばしたとき開発環境（段階が development、`@/lib/appEnv`）だけサーバーログに 1 行（関連先のドメイン名だけ。利用者・取得データは出さない。地図・lint には出さない）
 - 関連先の service は wiring が serviceRegistry から遅延読み込みで引く（クライアントが叩く `GET /api/<domain>` と同じ解決経路）
 
 ## 規則

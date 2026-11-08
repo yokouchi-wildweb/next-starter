@@ -159,7 +159,7 @@ wrappers/
 - `paymentMethod` は `isPaymentMethodSelectable` を通ったものだけ受け付ける（`coming_soon` / `disabled` の悪用防止）
 - 冪等キー検索は必ず `user_id` でスコープ
 - コールバック URL のオリジンは `getAppBaseUrl()`（`businessConfig.url` の直接参照・Host ヘッダ由来は禁止）
-- `dummy` プロバイダは `NODE_ENV=production` で `getPaymentProvider` が throw
+- `dummy` プロバイダは段階が development(`@/lib/appEnv`)のときだけ使え、それ以外では `getPaymentProvider` が throw
 - PII を含むペイロード全量ログは `paymentConfig.debugLog`（本番 false）
 
 ---

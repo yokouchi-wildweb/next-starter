@@ -1,16 +1,16 @@
 ---
 name: worktree
-description: ワークツリーを切る・env を入れ直す・片付ける。ユーザーが「ワークツリーで」「worktree を切って」などと明示したときだけ使う(並行作業に便利そうでも自分から提案・実行しない)。処理は pnpm worktree:* に任せ、このスキルは判断と段取りだけを持つ
+description: ワークツリーを切る・env を入れ直す・片付ける。ユーザーが「ワークツリーで」「worktree を切って」などと明示したときだけ使う(並行作業に便利そうでも自分から提案・実行しない)。処理は pnpm workflow worktree に任せ、このスキルは判断と段取りだけを持つ
 argument-hint: "[new <やること or ブランチ名> | sync [path] | remove <path>]"
 ---
 
-ワークツリーの作成・env の入れ直し・片付けを、`pnpm worktree:*` コマンドで行います。
+ワークツリーの作成・env の入れ直し・片付けを、`pnpm workflow worktree new|sync|remove` で行います。
 コマンドの仕様・注意点は `scripts/workflow/worktree/README.md` が正。ここに git の手順を書き足さない(処理はコマンド側だけに置く)。
 
 引数: $ARGUMENTS
 
 ## 共通
-- `git worktree add` / `git worktree remove` を直接打たない。必ず `pnpm worktree:*` を使う(env の複製・install・安全確認が抜けるため)
+- `git worktree add` / `git worktree remove` を直接打たない。必ず `pnpm workflow worktree` を使う(env の複製・install・安全確認が抜けるため)
 - `claude --worktree`、EnterWorktree、サブエージェントの worktree 分離は使わない(env が入らない置き場所にできるため)
 - このセッション自体はワークツリーへ移らない。作ったら「新しいターミナルで `cd <path> && claude`」を案内して終える
 

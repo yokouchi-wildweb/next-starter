@@ -10,7 +10,7 @@
 
 ドキュメントを整備しても、辿り着かなかった開発者は CORS 未設定のまま実装を進め、本番で初めて
 `Failed to fetch`(MSE/fetch) や tainted canvas(`SecurityError`) に直面する。素のエラーは原因が分かりにくい。
-そこで **開発時(`NODE_ENV !== "production"`)に限り**、原因の可能性・対処コマンド・一次ドキュメントへの導線を
+そこで **開発時(段階が development、`@/lib/appEnv`)に限り**、原因の可能性・対処コマンド・一次ドキュメントへの導線を
 `console.warn` で案内する。
 
 ## 設計方針
