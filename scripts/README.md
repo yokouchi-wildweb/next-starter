@@ -9,7 +9,7 @@ scripts/ は、アプリの外からこのフレームワークを作り・確�
 | 分類 | 置く物 | 呼び方 | 今の対象 |
 |---|---|---|---|
 | `structure/` | 生成器と検査器。全部どこかの門(gate.json)に乗る | `pnpm generate <対象>` / `pnpm check <対象>` | admin-menu・bundle・config・cron・cycles・district-map・domain・eslint・extensions・forge・proxies・registry・role・routes・styles |
-| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・dev-admin・dev-tab・local-migrations・notices・ownership・rules・tmux-launch・worktree |
+| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice とスキルの書式の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・dev-admin・dev-tab・local-migrations・notices・ownership・rules・skills・tmux-launch・worktree |
 | `runner/` | 入口と、テスト・運用コマンド・シードを動かすランナー、書く入口の守り | `pnpm test` / `pnpm task` / `pnpm check` / `pnpm ops db seed` の中身 | entries・gates・guard・preload・seed・task・test |
 | `operations/` | 手で行う操作と閲覧(DB・Firestore・データ・デプロイ・初期化・storage・ルーム・メール・機能の入切・Claude API) | `pnpm ops <対象> <動作>` | claude・data・db・deploy・features・firestore・mail・room・setup・storage |
 

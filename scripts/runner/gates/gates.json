@@ -52,7 +52,8 @@
       "dev-tab",
       "tmux-launch",
       "agent-terminal",
-      "local-migrations"
+      "local-migrations",
+      "skills"
     ]
   }
 }
