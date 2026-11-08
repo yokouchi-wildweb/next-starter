@@ -1,4 +1,4 @@
-// dc:* コマンドの引数の解釈
+// pnpm generate domain の引数の解釈
 
 import { GENERATE_CATEGORIES } from "../spec/categories.mjs";
 

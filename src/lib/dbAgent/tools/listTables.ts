@@ -1,7 +1,7 @@
 // src/lib/dbAgent/tools/listTables.ts
 //
 // list_tables: public スキーマのテーブル一覧 (名前・サイズ・行数目安)。
-// scripts/db (pnpm ops db inspect tables) の挙動をミラーし、行数目安 (reltuples) を追加している。
+// scripts/operations/db/inspect.ts (pnpm ops db inspect tables) の挙動をミラーし、行数目安 (reltuples) を追加している。
 
 import type { AgentToolDefinition } from "@/lib/ai";
 

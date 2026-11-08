@@ -1,4 +1,4 @@
-# ドメイン生成 CLI（dc:*）
+# ドメイン生成 CLI（pnpm generate domain）
 
 > 手で書いた `src/features/<domain>/domain.json` から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
 > `domain.json` のスキーマ（キー・型・リレーション・`generate` 等）は [`src/features/README.md`](../../../src/features/README.md) が正です。

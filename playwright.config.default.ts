@@ -1,6 +1,6 @@
 // playwright.config.default.ts
 // 実際のブラウザの受入のテスト(tests/e2e/<機能>/)の上流の設定。上流は素の playwright.config.ts を出さない(D171 の .default と素の組:
-// 素の名前は fork の物。fork は自分の playwright.config.ts でこれを読んで足す)。上流の package.json の test:e2e:* は -c でこれを指す。
+// 素の名前は fork の物。fork は自分の playwright.config.ts でこれを読んで足す)。上流の package.json の e2e は -c でこれを指す。
 // dev server は自分で立てない: 人(または guild dev)が立てたサーバーを E2E_BASE_URL で指す(reuseExistingServer)。CI だけ webServer で立てる。
 // 手順: tests/e2e/unsavedGuard/README.md
 

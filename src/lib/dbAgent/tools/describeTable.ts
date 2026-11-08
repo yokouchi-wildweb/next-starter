@@ -1,7 +1,7 @@
 // src/lib/dbAgent/tools/describeTable.ts
 //
 // describe_table: テーブル構造 (カラム・インデックス・外部キー) の取得。
-// scripts/db (pnpm ops db inspect describe) の挙動をミラーし、外部キー情報を追加している。
+// scripts/operations/db/inspect.ts (pnpm ops db inspect describe) の挙動をミラーし、外部キー情報を追加している。
 
 import { z } from "zod";
 
