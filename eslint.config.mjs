@@ -397,7 +397,8 @@ const config = [
     },
   },
   // core の部品と既定 Screen の部品(src/app/**/_screen/)は useForm と守りの処理(reCAPTCHA・ID トークン・
-  // セッション更新・遷移の守り・コンバージョン計測)を直接持たない。持ち主ドメインの公開 hook に置く(詳細: eslint-rules/core-ui-guards.mjs)。
+  // セッション更新・遷移の守り・コンバージョン計測)と取得・送信(SWR の hook・client 関数の import)を直接持たない。
+  // 持ち主ドメインの公開 hook に置く(詳細: eslint-rules/core-ui-guards.mjs)。
   // upstream(目録の先頭の節)だけ error、fork では off(fork に残る上流の旧版の部品で fork の lint を止めない)。
   // 除外: demo(lib の使い方の見本。useForm・getIdToken を直に使って見せる)。
   // 許可一覧 eslint-rules/core-ui-guards.allow.mjs は縮める一方(部品を hook 化したらその行を消す。足すのは規則を広げた時だけ)。

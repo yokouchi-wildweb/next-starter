@@ -9,7 +9,7 @@ import { useDauTracker } from "@/features/core/analytics/hooks/useDauTracker";
 import { useGate } from "@/featureGate/client";
 // このコンポーネントはセッション状態の持ち主(Context の提供元)で、refreshSession はその状態更新そのもの
 // (フック層に相当する)。利用側は useAuthSession / useSessionRefresh 経由で呼ぶので、例外として直接呼ぶ
-// eslint-disable-next-line client-service-boundary/no-direct-import
+// eslint-disable-next-line client-service-boundary/no-direct-import, core-ui-guards/no-guard-in-part -- セッションの持ち主(上の理由)。core-ui-guards も同じ理由
 import { fetchSession } from "@/features/core/auth/services/client/session";
 
 import type { AuthSessionValue } from "./AuthSessionContext";
