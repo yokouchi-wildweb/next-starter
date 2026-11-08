@@ -2,5 +2,5 @@
   "exports": {
     ".": "./index.ts"
   },
-  "libs": ["cn", "defineConfig", "frameDims", "isClient"]
+  "libs": ["appEnv", "cn", "defineConfig", "frameDims", "isClient"]
 }

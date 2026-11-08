@@ -2,6 +2,8 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "paths": {
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
       "@/lib/cn": ["../cn"],
       "@/lib/cn/*": ["../cn/*"],
       "@/lib/defineConfig": ["../defineConfig"],

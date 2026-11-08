@@ -23,7 +23,7 @@ export default { duration: 5000, position: "top-center" } satisfies ToastOverrid
 
 ## 依存
 
-`libs`: cn・defineConfig・frameDims(下のナビの上に出す枠の寸法)・isClient | 外部: react・react-dom・next・zustand・@use-gesture/react・lucide-react | sideEffects は書かない(読み込み時に zustand の store を作る)
+`libs`: appEnv(リダイレクトの cookie の secure)・cn・defineConfig・frameDims(下のナビの上に出す枠の寸法)・isClient | 外部: react・react-dom・next・zustand・@use-gesture/react・lucide-react | sideEffects は書かない(読み込み時に zustand の store を作る)
 
 ## テスト
 
