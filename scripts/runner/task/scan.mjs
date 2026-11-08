@@ -95,7 +95,35 @@ export function cronTaskNames(repoRoot) {
   return dirsIn(root).filter((name) => existsSync(path.join(root, name, "task.ts"))).sort();
 }
 
-/** 文の中の `pnpm task <名前>` の名前(--list などの旗と <名前> の型は除く) */
+/**
+ * 文の中の `pnpm task <名前>` の名前(--list などの旗と <名前> の型は除く)。
+ * コードの中(インラインコード・コードブロック・コマンドだけの行)はどの形の名前も拾う。
+ * 地の文では : か - を含む名前(<ドメイン>:<名前>、expire-pending-purchases)だけを拾い、
+ * 「pnpm task lists ...」のような普通の単語は名前と読まない。
+ */
 export function taskNamesIn(text) {
-  return [...new Set([...text.matchAll(/pnpm task ([A-Za-z][A-Za-z0-9]*(?::[a-z0-9]+(?:-[a-z0-9]+)*|(?:-[a-z0-9]+)*))/g)].map((m) => m[1]))];
+  const code = codeRanges(text);
+  const inCode = (i) => code.some(([from, to]) => i >= from && i < to);
+  const names = [];
+  for (const m of text.matchAll(/pnpm task ([A-Za-z][A-Za-z0-9]*(?::[a-z0-9]+(?:-[a-z0-9]+)*|(?:-[a-z0-9]+)*))/g)) {
+    if (/[:-]/.test(m[1]) || inCode(m.index)) names.push(m[1]);
+  }
+  return [...new Set(names)];
+}
+
+/** コードとして書かれた範囲 [始め, 終わり) の一覧(``` の塊・`…`・コマンドだけの行) */
+function codeRanges(text) {
+  const ranges = [];
+  const add = (re, source) => {
+    for (const m of source.matchAll(re)) ranges.push([m.index, m.index + m[0].length]);
+  };
+  add(/```[\s\S]*?(?:```|$)/g, text);
+  // インラインコードは塊の外だけで探す(塊を同じ長さの空白に置き換えて位置を保つ)
+  let outside = text;
+  for (const [from, to] of ranges) outside = outside.slice(0, from) + " ".repeat(to - from) + outside.slice(to);
+  add(/`[^`\n]+`/g, outside);
+  // コマンドだけの行(箇条書き・引用・番号・$ の後も可): 名前の後は行末か -- / - で始まる引数だけ。
+  // 「pnpm task lists the domain tasks.」のように単語が続く行は文として扱う
+  add(/^[ \t]*(?:(?:[-*+>]|\d+\.|\$)[ \t]+)*pnpm task [^\s`]+(?:[ \t]+-[^\n]*)?[ \t]*$/gm, text);
+  return ranges;
 }

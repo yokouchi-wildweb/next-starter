@@ -121,6 +121,25 @@ test("taskNamesIn: 文の中の pnpm task の名前(旗・型は除く)", () => 
   assert.deepEqual(taskNamesIn(text), ["wallet:lots-init", "expire-pending-purchases"]);
 });
 
+test("taskNamesIn: 地の文の普通の単語は名前と読まない(lists・日本語)", () => {
+  const text = "pnpm task lists the domain tasks. 名前は pnpm task が見つける。\nThe runner (pnpm task) reads them.";
+  assert.deepEqual(taskNamesIn(text), []);
+});
+
+test("taskNamesIn: コードの中の名前は形を問わず拾う(インライン・塊・コマンドだけの行)", () => {
+  const text = [
+    "run `pnpm task wallet:nope` first, and `pnpm task cleanup` too",
+    "```sh",
+    "pnpm task sweep",
+    "```",
+    "pnpm task wallet:nope2 -- --dry-run",
+    "- pnpm task listed",
+    "1. $ pnpm task numbered",
+    "pnpm task wallet:nope3 は無い名前",
+  ].join("\n");
+  assert.deepEqual(taskNamesIn(text), ["wallet:nope", "cleanup", "sweep", "wallet:nope2", "listed", "numbered", "wallet:nope3"]);
+});
+
 test("リポジトリの本物の木: 置き方の誤りが無く、全部のタスクが読み込めて名前が合う、定期タスクと名前が重ならない", async () => {
   const root = path.resolve(import.meta.dirname, "../../..");
   const tasks = listOneShotTasks(root);
