@@ -91,6 +91,7 @@ src/app/(user)/
 - **改名**: 旧名を再 export として残す。削除は `.notices` で移行手順と対象ステップを通知し、通知後の次ステップ以降にのみ行う
 - **非互換変更**（引数・返り値・必須 props）: 旧契約は残し、新名で追加する。旧を消す場合は改名と同じ手順
 - **挙動変更**（loader の redirect 先・notFound 条件）: `.notices` に明記
+- loader の固定の行き先（redirect 先・既定の戻り先）は loader の中の名前付きの定数に置き、export しない。fork が変える口（config・引数）は持たない: 別の行き先が要る fork は同じ guard.ts の `createLoader` で自分の loader を書き、差し替え Screen から呼ぶ（需要が来たら値の設定 1 か所で受ける）
 - **セクションコンテナの子構成変更**（部品の追加・削除・並び替え）: 契約外だが、複製した fork が追随判断できるよう informational な `.notices` に含める
 - loader の仕様（ルート・返り値・redirect 条件・使う hook）はファイル先頭のコメントに書く。一覧 README は作らない
 

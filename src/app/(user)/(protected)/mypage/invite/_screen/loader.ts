@@ -3,8 +3,10 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 範囲 (user)/(protected) の createLoader(access authenticated。未ログインは /login)。遷移制御だけ(Promise<void>)。
-// 紹介機能(gate.enabled("referral"))が無効なら /mypage へ redirect。
+// 紹介機能(gate.enabled("referral"))が無効なら MYPAGE_PATH(/mypage)へ redirect。
 // サーバー側の取得は無い(招待コードはセクションコンテナが hook で取得する)。
+// 行き先は下の名前付きの定数(export しない)。fork が変える口は持たない: 別の行き先が要る fork は同じ guard の
+// createLoader で自分の loader を書く(src/lib/screens/README.md §3)
 
 import "server-only";
 
@@ -13,11 +15,14 @@ import { redirect } from "next/navigation";
 import { gate } from "@/featureGate";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
+/** 紹介機能が無効なときの行き先 */
+const MYPAGE_PATH = "/mypage";
+
 export const loadMyPageInviteScreen = createLoader({
   access: "authenticated",
   load: async (): Promise<void> => {
     if (!gate.enabled("referral")) {
-      redirect("/mypage");
+      redirect(MYPAGE_PATH);
     }
   },
 });
