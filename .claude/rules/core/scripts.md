@@ -3,6 +3,7 @@ paths:
   - "scripts/**"
   - "src/features/**/scripts/**"
   - "**/seed.ts"
+  - ".notices/*.mjs"
 ---
 # SCRIPTS (tooling layer)
 > part of the CLAUDE.md contract (see CORE_RULES, CODE_PLACEMENT tool_deps): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
