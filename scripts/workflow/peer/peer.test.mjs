@@ -17,7 +17,7 @@ import { after, test } from "node:test";
 import { liveSessions, resolveName } from "./lib.agents.mjs";
 import { EXIT, runInbox, runRead, runReply, runSend, runWho } from "./lib.cli.mjs";
 import { checkGate, heldBoxes } from "./lib.gate.mjs";
-import { FORMAT_VERSION, boxDir, boxSegments, getState, isBoxKey, stateDir, listBox, markIsValid, newMessageId, putMessage, readMark, stateRoot, writeMark } from "./lib.store.mjs";
+import { FORMAT_VERSION, boxDir, boxSegments, deliver, getState, holderOf, isBoxKey, stateDir, listBox, markIsValid, newMessageId, putMessage, readMark, stateRoot, writeMark } from "./lib.store.mjs";
 
 const temps = [];
 const temp = () => {
@@ -61,7 +61,7 @@ test("受け箱の根: PEER_STATE_DIR → XDG_STATE_HOME → ~/.local/state、�
   assert.equal(stateRoot({ HOME: "/h" }), "/h/.local/state/next-starter/peer");
 });
 
-test("連絡は tmp/ に書いてから箱へ rename、版 v つき、id は送った順に並ぶ", () => {
+test("連絡は tmp/ に書いてから箱へ link で置く、版 v つき、id は送った秒の順に並ぶ", () => {
   const root = temp();
   const m = putMessage(root, B, { from: { name: "alpha", sessionId: A, cwd: "/w" }, senderMode: "plan", about: "件", replyTo: null, body: "本文" });
   const file = path.join(boxDir(root, B), `${m.id}.json`);
@@ -71,7 +71,7 @@ test("連絡は tmp/ に書いてから箱へ rename、版 v つき、id は送�
   assert.equal(saved.senderMode, "plan");
   assert.deepEqual(readdirSync(path.join(root, "tmp")), []);
   assert.ok(newMessageId(new Date("2026-01-01T00:00:00Z")) < newMessageId(new Date("2026-01-01T00:00:01Z")));
-  assert.match(m.id, /^m-\d{8}T\d{6}-[0-9a-f]{4}$/);
+  assert.match(m.id, /^m-\d{8}T\d{6}-[0-9a-f]{8}$/);
 });
 
 test("知らない版のファイルは読まない", () => {
@@ -137,7 +137,7 @@ test("送る: 完全一致 1 つ + 相手の印が有効 → 送った exit 0、
   h.mark(A, 101, "acceptEdits");
   h.mark(B, 202);
   assert.equal(runSend(["beta", "棚の", "件", "--about=棚"], h.deps), EXIT.done);
-  assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を送りました。相手は呼び鈴で起きて読みます/);
+  assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を送りました。受け持つセッションが呼び鈴で起きて読みます/);
   const [m] = listBox(h.root, B);
   assert.equal(m.body, "棚の 件");
   assert.equal(m.about, "棚");
@@ -145,15 +145,17 @@ test("送る: 完全一致 1 つ + 相手の印が有効 → 送った exit 0、
   assert.deepEqual(m.from, { name: "alpha", sessionId: A, cwd: "/w/repo-a" });
 });
 
-test("送る: 相手に印が無い・古い → 受け箱に置いただけ exit 3(送り手に返す)", () => {
+test("送る: 相手に印が無い・古い → 置いただけ(stored)で exit 0", () => {
   const rows = rowsOf().filter((r) => r.sessionId !== C);
   const h = harness({ rows });
-  assert.equal(runSend(["beta", "x"], h.deps), EXIT.notSent);
-  assert.match(h.out(), /呼び鈴のフックの印が無いので.*受け箱に置いただけ/);
+  assert.equal(runSend(["beta", "x"], h.deps), EXIT.done);
+  assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を置きました\(今その箱を受け持つ呼び鈴が無い/);
   assert.equal(listBox(h.root, B).length, 1);
   assert.equal(listBox(h.root, B)[0].senderMode, "unknown");
   writeMark(h.root, { sessionId: B, pid: 202, procStart: "start-old", cwd: "/", mode: "default" });
-  assert.equal(runSend(["beta", "y"], h.deps), EXIT.notSent);
+  h.printed.length = 0;
+  assert.equal(runSend(["beta", "y", "--json"], h.deps), EXIT.done);
+  assert.equal(JSON.parse(h.printed[0]).result, "stored");
 });
 
 test("送る: 同じ名前が複数・無い → 送らず新しい順の候補、exit 3", () => {
@@ -212,7 +214,7 @@ test("受け箱・読む・返す: 読んだ・返事したは箱の外、返事
 
   h.printed.length = 0;
   assert.equal(runReply([m.id, "答えです"], asB), EXIT.done);
-  assert.match(h.out(), /alpha\(repo:repo-a\)に m-.* を返しました/);
+  assert.match(h.out(), /alphaに m-.* を返しました。受け持つセッションが呼び鈴で起きて読みます/);
   const [r] = listBox(h.root, A);
   assert.equal(r.replyTo, m.id);
   assert.equal(r.about, "re: 棚");
@@ -224,16 +226,19 @@ test("受け箱・読む・返す: 読んだ・返事したは箱の外、返事
   assert.match(h.printed[1], /返事した/);
 });
 
-test("返す: 送り元のセッションがもういない → 返さない exit 3。知らない id も exit 3", () => {
+test("返す: 送り元のセッションが落ちていても、その会話の箱に置く(生死を問わない)。知らない id は exit 3", () => {
   const h = harness();
   h.mark(B, 202);
   putMessage(h.root, B, { from: { name: "gone", sessionId: "gone-9999", cwd: "/" }, body: "x" });
   const [m] = listBox(h.root, B);
-  assert.equal(runReply([m.id, "y"], h.as(B)), EXIT.notSent);
-  assert.match(h.out(), /もう動いていないので返していません/);
-  assert.equal(existsSync(boxDir(h.root, "gone-9999")), false);
+  assert.equal(runReply([m.id, "y"], h.as(B)), EXIT.done);
+  assert.match(h.out(), /goneに m-.* を置きました/);
+  assert.equal(listBox(h.root, "gone-9999")[0].replyTo, m.id);
   assert.equal(runReply(["m-nope", "y"], h.as(B)), EXIT.notSent);
   assert.equal(runRead(["m-nope"], h.as(B)), EXIT.notSent);
+  putMessage(h.root, B, { from: { name: "-" }, body: "x" });
+  const nobox = listBox(h.root, B).find((x) => !x.from.sessionId);
+  assert.equal(runReply([nobox.id, "y"], h.as(B)), EXIT.notSent);
 });
 
 test("候補の一覧: 生きている名前つきのセッションを新しい順に", () => {
@@ -287,4 +292,78 @@ test("インスタンス ID の箱にも連絡を置ける(tmp → rename、一�
   assert.ok(existsSync(path.join(root, "boxes", "council", "r1", `${m.id}.json`)));
   assert.deepEqual(listBox(root, "council/r1").map((x) => x.id), [m.id]);
   assert.deepEqual(readdirSync(path.join(root, "tmp")), []);
+});
+
+const UUID_B = "bbbbbbbb-2222-4222-8222-222222222222";
+
+test("送る: 箱の住所とセッション id へは生死を問わず置く(名前の解決なし、claude agents が読めなくても)", () => {
+  const h = harness();
+  h.deps.agents = () => null;
+  assert.equal(runSend(["council/r1", "箱へ", "--json"], h.deps), EXIT.done);
+  const r = JSON.parse(h.printed[0]);
+  assert.equal(r.result, "stored");
+  assert.equal(r.to, "council/r1");
+  assert.equal(listBox(h.root, "council/r1")[0].body, "箱へ");
+  h.printed.length = 0;
+  assert.equal(runSend([UUID_B, "会話へ"], h.deps), EXIT.done);
+  assert.equal(listBox(h.root, UUID_B).length, 1);
+  assert.match(h.out(), /session bbbbbbbbに m-.* を置きました/);
+  h.printed.length = 0;
+  assert.equal(runSend(["council/..", "x", "--json"], h.deps), EXIT.notSent);
+  assert.deepEqual(JSON.parse(h.printed[0]), { result: "not_sent", reason: "bad_key" });
+});
+
+test("鳴らした(rang)は、その箱を受け持つ生きた印があるときだけ", () => {
+  const h = harness();
+  writeMark(h.root, { sessionId: "lead-7777", pid: 707, procStart: "start-707", cwd: "/", mode: "default", boxes: ["council/r1"] });
+  assert.equal(holderOf(h.root, "council/r1", { procStart: h.deps.procStart }).sessionId, "lead-7777");
+  assert.equal(runSend(["council/r1", "x", "--json"], h.deps), EXIT.done);
+  assert.equal(JSON.parse(h.printed[0]).result, "rang");
+  writeMark(h.root, { sessionId: "lead-7777", pid: 707, procStart: "start-old", cwd: "/", mode: "default", boxes: ["council/r1"] });
+  h.printed.length = 0;
+  runSend(["council/r1", "y", "--json"], h.deps);
+  assert.equal(JSON.parse(h.printed[0]).result, "stored");
+});
+
+test("from.box: 受け持つ箱が送り元に書かれ、返事はその箱へ(会話が落ちていても)。--as で選ぶ", () => {
+  const h = harness({ rows: rowsOf().filter((r) => r.sessionId !== C), env: { PEER_BOXES: "council/r1 council/q1" } });
+  runSend(["beta", "統括から"], h.deps);
+  const sent = listBox(h.root, B).find((x) => x.body === "統括から");
+  assert.equal(sent.from.box, "council/r1");
+  runSend(["beta", "別の箱から", "--as=council/q1"], h.deps);
+  assert.equal(listBox(h.root, B).find((x) => x.body === "別の箱から").from.box, "council/q1");
+  assert.equal(runSend(["beta", "x", "--as=guild/g1"], h.deps), EXIT.usage);
+  // beta が返す: 送り元の会話(alpha)ではなく受け持つ箱 council/r1 へ
+  assert.equal(runReply([sent.id, "返事"], h.as(B)), EXIT.done);
+  const [r] = listBox(h.root, "council/r1");
+  assert.equal(r.replyTo, sent.id);
+  assert.equal(listBox(h.root, A).length, 0);
+});
+
+test("返す: 受け持つ箱に届いた連絡にも返せる", () => {
+  const h = harness({ env: { PEER_BOXES: "council/r1" } });
+  const m = putMessage(h.root, "council/r1", { from: { name: "beta", sessionId: B, cwd: "/" }, body: "統括へ" });
+  assert.equal(runReply([m.id, "受けた"], h.deps), EXIT.done);
+  assert.equal(listBox(h.root, B)[0].replyTo, m.id);
+  assert.ok(getState(h.root, "council/r1", m.id).replied);
+});
+
+test("番号: 上書きしない。同じ秒に 1,000 通 → 1,000 ファイル。--id の送り直しは二重に置かず exists", () => {
+  const root = temp();
+  const now = new Date("2026-11-08T10:00:00Z");
+  for (let i = 0; i < 1000; i += 1) deliver(root, "council/r1", { from: {}, body: String(i) }, now);
+  assert.equal(readdirSync(boxDir(root, "council/r1")).length, 1000);
+  assert.deepEqual(readdirSync(path.join(root, "tmp")), []);
+  const h = harness();
+  assert.equal(runSend(["council/r1", "一度目", "--id=m12", "--json"], h.deps), EXIT.done);
+  assert.equal(JSON.parse(h.printed[0]).result, "stored");
+  h.printed.length = 0;
+  assert.equal(runSend(["council/r1", "二度目", "--id=m12", "--json"], h.deps), EXIT.done);
+  assert.equal(JSON.parse(h.printed[0]).result, "exists");
+  assert.equal(listBox(h.root, "council/r1").length, 1);
+  assert.equal(listBox(h.root, "council/r1")[0].body, "一度目");
+  h.printed.length = 0;
+  runSend(["council/r1", "三度目", "--id=m12"], h.deps);
+  assert.match(h.out(), /m12 がもう置いてあるので、置き直していません/);
+  assert.equal(runSend(["council/r1", "x", "--id=.."], h.deps), EXIT.usage);
 });
