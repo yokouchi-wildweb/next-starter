@@ -10,7 +10,7 @@ import { basename, join, posix } from "node:path";
 import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
-import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "../../../src/lib/districtMap/declarations.mjs";
+import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints, isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
@@ -272,8 +272,8 @@ export function planExtensions(repoRoot) {
   const identity = readForkIdentity(repoRoot);
   const { points: declared, problems } = collectPoints(repoRoot);
   problems.unshift(...identity.errors);
-  // writer の点の一覧は別の生成器が書く: ここでは探さず書かない(宣言の数にだけ入る)
-  const points = declared.filter((p) => !p.spec.writer);
+  // writer の点の一覧は別の生成器が書く・overrides の点は一覧を持たない: ここでは探さず書かない(宣言の数にだけ入る)
+  const points = declared.filter((p) => isListPoint(p.spec));
   const dirOf = (p) => posix.normalize(posix.join(p.owner, p.spec.dir));
   const allDirs = new Set(points.map(dirOf));
   const groups = new Map();
@@ -351,7 +351,7 @@ export function staleOutputs(repoRoot, outputs) {
 export function strayExtensionFiles(repoRoot, outputs, points) {
   const strays = [];
   const writerOutputs = new Set(points.filter((p) => p.spec.writer).map(outputOf));
-  const listPoints = points.filter((p) => !p.spec.writer);
+  const listPoints = points.filter((p) => isListPoint(p.spec));
   const walk = (dir, inside) => {
     if (!existsSync(join(repoRoot, dir))) return;
     for (const entry of readdirSync(join(repoRoot, dir), { withFileTypes: true })) {

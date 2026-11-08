@@ -386,3 +386,19 @@ test("checkVercelCrons: 生成結果と一致すれば OK、漏れ・残骸・�
   // /api/cron/ の外のエントリは対象外
   assert.deepEqual(checkVercelCrons([...pro, { path: "/api/other", schedule: "0 1 * * *" }], tasks).errors, []);
 });
+
+test("task.override.ts: fork の今の形(boardgame-site の 4 本 = import type CronTaskOverride + { disabled: true })が通り、書ける鍵は宣言 src/lib/cron/extensionPoints.ts から", async () => {
+  const forkShape = 'import type { CronTaskOverride } from "@/lib/cron";\n\nexport const cronOverride: CronTaskOverride = {\n  disabled: true,\n};\n';
+  await withCronFixture(
+    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/task.override.ts": forkShape },
+    async (root) => {
+      const [task] = await loadCronTasks(root);
+      assert.equal(task.disabled, true);
+      assert.equal(task.overridden, true);
+    },
+  );
+  await withCronFixture(
+    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/task.override.ts": "export const cronOverride = { run: 1 };\n" },
+    async (root) => assert.rejects(loadCronTasks(root), /未知の項目があります: run（書けるのは schedule \/ disabled）/),
+  );
+});

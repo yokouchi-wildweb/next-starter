@@ -4,25 +4,23 @@
 //   import type { RoleOverride } from "../types";
 //   export const override: RoleOverride = { hasProfile: true };
 // 不在と空（空白とコメントだけ）は上書きなし（下の Tier が親の上書きを空にしてよい）。
-// 表の形を変える fields は上書きできない（書けるキーは下の KEYS）。上書きの正: src/features/core/user/README.md
+// 書けるキーは宣言(user の coreRoleDefinitions / roleDefinitions・userProfile の profileDefinitions の overrideOf)。
+// core ロールの enabled・表の形を変える fields は宣言に無いので書けない。上書きの正: src/features/core/user/README.md
 
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import { literalOf } from "../../../src/lib/districtMap/declarations.mjs";
+import { literalOf, overrideKeysOf } from "../../../src/lib/districtMap/declarations.mjs";
 import { isBlankSource } from "../extensions/overrides.mjs";
 
 const isString = (value) => typeof value === "string";
 const isStringArray = (value) => Array.isArray(value) && value.every(isString);
 
-const ROLE_KEYS = {
+// 書いてよい鍵は宣言から読む(user / userProfile の extensionPoints.ts の overrides の点)。ここは鍵ごとの値の検査だけを持つ
+const VALUE_CHECKS = {
   label: { check: (value) => isString(value) && value.length > 0, expected: "空でない文字列" },
   hasProfile: { check: (value) => typeof value === "boolean", expected: "true か false" },
   enabled: { check: (value) => typeof value === "boolean", expected: "true か false" },
-};
-// core ロールは無効にできない
-const { enabled: _enabled, ...CORE_ROLE_KEYS } = ROLE_KEYS;
-const PROFILE_KEYS = {
   tags: {
     check: (value) => typeof value === "object" && value !== null && !Array.isArray(value) && Object.values(value).every(isStringArray),
     expected: "{ タグ名: [項目名, ...] }",
@@ -31,6 +29,23 @@ const PROFILE_KEYS = {
   // 中身は checks の auditIssues が上書き後の値で見る
   audit: { check: (value) => typeof value === "object" && value !== null && !Array.isArray(value), expected: "{ targetType, actionPrefix, ... }" },
 };
+
+const USER_DECLARATION = "src/features/core/user/extensionPoints.ts";
+const PROFILE_DECLARATION = "src/features/core/userProfile/extensionPoints.ts";
+
+/**
+ * 宣言の鍵 → { 鍵: 値の検査 }。値の検査の無い鍵を宣言が開けたら止める(検査されない値を通さない)
+ * @param {string} declaredIn
+ * @param {string} pointName
+ */
+function keysOf(declaredIn, pointName) {
+  const keys = {};
+  for (const key of overrideKeysOf(declaredIn, pointName)) {
+    if (!Object.hasOwn(VALUE_CHECKS, key)) throw new Error(`${declaredIn} の ${pointName} の鍵 ${key} に値の検査が無い(scripts/structure/role/overrides.mjs の VALUE_CHECKS に足す)`);
+    keys[key] = VALUE_CHECKS[key];
+  }
+  return keys;
+}
 
 /** JSON のファイル名 → 隣の上書きのファイル名 */
 const overrideFileName = (jsonName) => jsonName.replace(/\.json$/, ".override.ts");
@@ -89,10 +104,11 @@ function readOverrideOf(dir, jsonName, keys) {
  * @param {import("./rolePaths.mjs").RoleFile} file
  * @returns {{ override: object, problems: string[] }}
  */
-export const readRoleOverride = ({ dir, fileName, isCore }) => readOverrideOf(dir, fileName, isCore ? CORE_ROLE_KEYS : ROLE_KEYS);
+export const readRoleOverride = ({ dir, fileName, isCore }) =>
+  readOverrideOf(dir, fileName, keysOf(USER_DECLARATION, isCore ? "coreRoleDefinitions" : "roleDefinitions"));
 
 /** @returns {{ override: object, problems: string[] }} jsonName = user.profile.json など */
-export const readProfileOverride = (profilesDir, jsonName) => readOverrideOf(profilesDir, jsonName, PROFILE_KEYS);
+export const readProfileOverride = (profilesDir, jsonName) => readOverrideOf(profilesDir, jsonName, keysOf(PROFILE_DECLARATION, "profileDefinitions"));
 
 /** 検査の後で読む所（一覧の書き出し・操作コマンド）: 問題があれば例外にして上書きを返す */
 export function requireOverride({ override, problems }) {

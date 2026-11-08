@@ -41,6 +41,9 @@ export const extensionPoints = {
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`)
   - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る。上書きが権限を広げないか(キー・セクションの `allowRoles` と `ui.section` を字面で読み、重ねる前と後の実効の権限を比べる)も見る(`derive/settingRoles.mjs`)
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダ(ドメインの位置 `core/<名前>` か `<名前>`。無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`、項目の `pathPatterns` の後ろにも足す)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `features` のフォルダに当たる → `/api/cron/<名>`。規則に手書きした `/api/cron/` は止める)を導き、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
+- 受け口でない点(一覧はこの生成器が書かない。受け口の一覧・`intake.txt` の生成区画にも入らない。判定 `isListPoint`):
+  - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
+  - `overrides: "<対象のファイルの glob>"` + `side` + `overrideOf: [...]` … 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 
 ## 項目

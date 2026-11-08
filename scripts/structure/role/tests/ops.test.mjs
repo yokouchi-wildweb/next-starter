@@ -23,6 +23,7 @@ const COPY = [
   "src/features/core/user/coreRoles",
   "src/features/core/userProfile",
   "src/features/core/user/extensions",
+  "src/features/core/user/extensionPoints.ts",
   "src/registry",
 ];
 let root;

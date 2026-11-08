@@ -4,6 +4,18 @@
 export const extensionPoints = {
   // ロールの一覧: coreRoles/・roles/ の *.role.json から pnpm generate role が ./extensions/roles.ts を書く
   roles: { writer: "role:generate", side: "shared" },
+  // 上書きの対象: core ロールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵(core ロールは無効にできない = enabled は無い)
+  coreRoleDefinitions: {
+    overrides: "src/features/core/user/coreRoles/*.role.json",
+    side: "shared",
+    overrideOf: ["label", "hasProfile"],
+  },
+  // 上書きの対象: 足したロールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵
+  roleDefinitions: {
+    overrides: "src/features/core/user/roles/*.role.json",
+    side: "shared",
+    overrideOf: ["label", "hasProfile", "enabled"],
+  },
   // 表示名の予約名プロバイダ: reservedNames/<名前>.ts の export const provider(上流の項目は 0)
   reservedNames: {
     dir: "reservedNames",

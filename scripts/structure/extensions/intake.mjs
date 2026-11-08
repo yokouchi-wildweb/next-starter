@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
+import { isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
 import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/intake.mjs";
 
 /** 宣言に依らない受け口(route の隣の丸ごと置き換え・枠の宣言)。ドメインのタスクは fork 自身のドメインに置くので受け口の行は無い */
@@ -17,13 +18,13 @@ const FIXED_ROWS = [
 
 /**
  * 生成区画の行
- * @param {{ owner: string, name: string, declaredIn: string, spec: object }[]} points 全拡張点(writer の点は受け口を持たない)
+ * @param {{ owner: string, name: string, declaredIn: string, spec: object }[]} points 全拡張点(writer の点・overrides の点は受け口を持たない)
  * @param {{ path: string }[]} switches 1 行スイッチ(<dir>/<名前>.ts(x))
  * @returns {string[]}
  */
 export function intakeRows(points, switches) {
   const byDir = new Map();
-  for (const point of points.filter((p) => !p.spec.writer)) {
+  for (const point of points.filter((p) => isListPoint(p.spec))) {
     const dir = posix.normalize(posix.join(point.owner, point.spec.dir));
     const entry = byDir.get(dir) ?? { names: [], files: new Set(), plain: false };
     entry.names.push(point.name);

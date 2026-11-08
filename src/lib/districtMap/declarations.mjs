@@ -1,5 +1,6 @@
 // 拡張点の宣言(extensionPoints.ts = 地区の受け口)の唯一の読み手。地区の地図(./read.mjs)・生成器(scripts/structure/extensions)・
-// 所有の検査の単位名(src/lib/forkOwnership/unitNames.mjs)・src/wiring の配線テスト・ロールの上書き(scripts/structure/role)が使う
+// 所有の検査の単位名(src/lib/forkOwnership/unitNames.mjs)・src/wiring の配線テスト・上書きの読み手(ロール scripts/structure/role・
+// cron src/lib/cron/discover.ts・登録表 scripts/structure/registry/serviceRegistry。上書きしてよい鍵は overrideKeysOf)が使う
 // (D2: 仕組みは src/lib に 1 本、scripts から import。目録 D13: 地区の発見の側に置き、所有の軸 forkOwnership はここを import する)。
 // 宣言を探して読む。fork の点は fork 自身のフォルダの extensionPoints.ts に書く
 // (旧い extensionPoints.<x>.ts は止めて移し方を案内する)。
@@ -8,6 +9,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
@@ -25,7 +27,9 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer"];
+const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides"];
+/** 上書きの対象の点(受け口でない)が持てるキー */
+const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -92,6 +96,17 @@ function checkPoint(name, point) {
   if (typeof point !== "object" || point === null || Array.isArray(point)) return [...problems, `${name}: 点は object で書く`];
   for (const key of Object.keys(point)) if (!KEYS.includes(key)) problems.push(`${name}: 未知のキー ${key}(使えるのは ${KEYS.join(" / ")})`);
   const isString = (v) => typeof v === "string" && v.length > 0;
+  // overrides: 受け口でない上書きの対象の点(ロールの JSON・cron の task.ts・domainEntry.ts など)。
+  // 対象のファイルの場所(リポジトリ直下からの glob)と、隣の <対象>.override.ts が書いてよい鍵だけを持つ
+  if (point.overrides !== undefined) {
+    if (!isString(point.overrides) || !point.overrides.startsWith(`${SEARCH_ROOT}/`) || point.overrides.split("/").includes("..")) {
+      problems.push(`${name}: overrides は対象のファイルのリポジトリ直下からの glob(${SEARCH_ROOT}/ 始まり、.. 無し)`);
+    }
+    if (!SIDES.includes(point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
+    if (!(Array.isArray(point.overrideOf) && point.overrideOf.length > 0 && point.overrideOf.every(isString))) problems.push(`${name}: overrideOf は上書きしてよい属性の名前の配列(overrides の点では必須)`);
+    for (const key of Object.keys(point)) if (KEYS.includes(key) && !OVERRIDE_TARGET_KEYS.includes(key)) problems.push(`${name}: overrides の点に ${key} は書けない(書けるのは ${OVERRIDE_TARGET_KEYS.join(" / ")})`);
+    return problems;
+  }
   // writer: 一覧を別の生成器が書く点。受け口・印・型は無く、持てるのは side だけ
   if (point.writer !== undefined) {
     if (!WRITERS.includes(point.writer)) problems.push(`${name}: writer は ${WRITERS.join(" | ")}`);
@@ -119,6 +134,36 @@ function checkPoint(name, point) {
   if (point.overrideOf !== undefined && !(Array.isArray(point.overrideOf) && point.overrideOf.length > 0 && point.overrideOf.every(isString))) problems.push(`${name}: overrideOf は上書きしてよい属性の名前の配列`);
   if (point.load === "lazy" && (point.key !== undefined || point.derive !== undefined)) problems.push(`${name}: load "lazy" は key・derive と一緒に使えない`);
   return problems;
+}
+
+/** 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点は違う */
+export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined;
+
+/** このモジュールの置き場から見たリポジトリ直下(src/lib/districtMap/ の 3 つ上) */
+const OWN_REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+const overrideKeysMemo = new Map();
+
+/**
+ * 上書きの対象の点(overrides の点)が宣言する、上書きしてよい鍵。読み手(ロール・cron・登録表)が自前の一覧を持たず、ここから読む。
+ * 宣言は上流の仕組みの物なので、fixture の根でなくこのリポジトリの宣言を読む
+ * @param {string} declaredIn 宣言のファイル(リポジトリ直下からの相対。例 src/lib/cron/extensionPoints.ts)
+ * @param {string} pointName 点の名前
+ * @param {string} [repoRoot] 既定 = このモジュールのリポジトリ(テストだけが差し替える)
+ * @returns {string[]}
+ */
+export function overrideKeysOf(declaredIn, pointName, repoRoot = OWN_REPO_ROOT) {
+  const memoKey = `${repoRoot}\0${declaredIn}\0${pointName}`;
+  if (overrideKeysMemo.has(memoKey)) return overrideKeysMemo.get(memoKey);
+  const file = join(repoRoot, declaredIn);
+  if (!existsSync(file)) throw new Error(`${declaredIn} が無い(上書きしてよい鍵の宣言)`);
+  const { points, problems } = readDeclaration(declaredIn, readFileSync(file, "utf8"));
+  if (problems.length > 0) throw new Error(problems.join("\n"));
+  const point = points[pointName];
+  if (!point) throw new Error(`${declaredIn} に点 ${pointName} が無い(上書きしてよい鍵の宣言)`);
+  if (point.overrides === undefined) throw new Error(`${declaredIn} の ${pointName} は overrides の点でない(上書きの対象の点は { overrides, side, overrideOf })`);
+  const keys = [...point.overrideOf];
+  overrideKeysMemo.set(memoKey, keys);
+  return keys;
 }
 
 /**

@@ -24,6 +24,7 @@ import {
   OVERRIDE_FILE,
   REGISTRY_FILE,
   discoverDomainEntries,
+  overrideAttribute,
   diskView,
   listStorageBindingRecordTypes,
   readExistingRegistry,
@@ -156,6 +157,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
     lines.push(`import { domainEntries as ${aliases.get(domain)} } from "${domain.importPath}";`);
   }
   const overridden = ordered.filter((domain) => domain.overridePath);
+  const attribute = overridden.length > 0 ? overrideAttribute() : null;
   if (overridden.length > 0) {
     lines.push("");
     for (const domain of overridden) {
@@ -167,7 +169,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
     const alias = aliases.get(domain);
     for (const key of domain.keys) {
       if (domain.overrideKeys.includes(key)) {
-        lines.push(`  ${key}: { service: ${alias}.${key}.service, access: ${alias}Overrides.${key} },`);
+        lines.push(`  ${key}: { service: ${alias}.${key}.service, ${attribute}: ${alias}Overrides.${key} },`);
       } else {
         lines.push(`  ${key}: ${alias}.${key},`);
       }

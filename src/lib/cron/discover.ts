@@ -10,6 +10,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { overrideKeysOf } from "../districtMap/declarations.mjs";
+
 import { isValidCronExpression } from "./cronExpression";
 import type { CronTaskDefinition, CronTaskOverride } from "./types";
 import { cronTaskPath } from "./vercelCrons";
@@ -17,6 +19,8 @@ import { cronTaskPath } from "./vercelCrons";
 export const CRON_ROUTE_DIR = "src/app/api/cron";
 /** fork の上書きのファイル名(task.ts の一部の上書き) */
 export const CRON_OVERRIDE_FILE = "task.override.ts";
+/** 上書きしてよい鍵の宣言 */
+const CRON_DECLARATION = "src/lib/cron/extensionPoints.ts";
 /** 旧名(残っていれば改名を案内して止める) */
 const LEGACY_OVERRIDE_FILE = "override.ts";
 
@@ -38,7 +42,6 @@ export type LoadCronTasksOptions = {
   closedBy: CronPathClosedBy;
 };
 
-const OVERRIDE_KEYS = new Set(["schedule", "disabled"]);
 
 /** src/app/api/cron 直下のディレクトリ名（= タスク名）を名前順に返す */
 export function listCronTaskDirs(repoRoot: string): string[] {
@@ -61,9 +64,11 @@ async function loadOverride(dir: string, file: string): Promise<CronTaskOverride
   if (!override || typeof override !== "object") {
     throw new Error(`${label} が cronOverride を export していません`);
   }
-  const unknown = Object.keys(override).filter((key) => !OVERRIDE_KEYS.has(key));
+  // 書いてよい鍵は宣言(./extensionPoints.ts の cronTasks)。値の検査はここ
+  const allowed = overrideKeysOf(CRON_DECLARATION, "cronTasks");
+  const unknown = Object.keys(override).filter((key) => !allowed.includes(key));
   if (unknown.length > 0) {
-    throw new Error(`${label} に未知の項目があります: ${unknown.join(", ")}（書けるのは schedule / disabled）`);
+    throw new Error(`${label} に未知の項目があります: ${unknown.join(", ")}（書けるのは ${allowed.join(" / ")}）`);
   }
   if (override.schedule !== undefined && !isValidCronExpression(override.schedule)) {
     throw new Error(`${label} の schedule "${override.schedule}" が cron 式（5 フィールド・UTC）として不正です`);

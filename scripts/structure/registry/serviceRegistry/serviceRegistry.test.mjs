@@ -18,7 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { GENERATED_HEADER, REGISTRY_FILE, checkEntryStaticImports, discoverDomainEntries, readObjectKeys } from "./discover.mjs";
+import { GENERATED_HEADER, REGISTRY_FILE, checkEntryStaticImports, discoverDomainEntries, overrideAttribute, readObjectKeys } from "./discover.mjs";
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
 import { renderDomainEntry } from "../../domain/render/registry/domainEntry.mjs";
@@ -548,4 +548,8 @@ test("getDomainList: サービスを読み込まずに登録表の table で一�
   const real = (await getDomainList(serviceRegistry, domainConfigMap)).map((domain) => domain.key).sort();
   const expected = Object.entries(serviceRegistry).filter(([, entry]) => entry.table !== null).map(([key]) => key).sort();
   assert.deepEqual(real, expected);
+});
+
+test("override が差し替える属性は宣言 src/lib/domain/extensionPoints.ts の domainEntries から(今は access だけ)", () => {
+  assert.equal(overrideAttribute(), "access");
 });

@@ -17,6 +17,7 @@ CLI 側のランナーは `pnpm task <task-name>`（`scripts/runner/task/run.ts`
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
 - `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）。省略可の依存 `gate`（住所 → 閉か）で機能の門を受ける。route.ts は直接読まず、門番を結んだ `@/wiring/cronRoute` を使う
 - `vercelCrons.ts` — `vercel.json` の crons の生成・検査（純関数）
+- `extensionPoints.ts` — 上書きの対象の点 `cronTasks` の宣言（`task.override.ts` が書いてよい鍵 = `schedule`・`disabled`。読み手は `discover.ts`、値の検査 = cron 式・真偽はそちら）
 - `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。node 用の 2 つ目の入口 `@/lib/cron/discover`（node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
 - `index.ts` — 公開エントリ

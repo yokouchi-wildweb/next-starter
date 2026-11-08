@@ -9,7 +9,7 @@
 // 実行: pnpm test scripts/structure/extensions/extensions.test.mjs
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -588,4 +588,47 @@ test("setting の上書きの権限: 絞る・権限に触れない・上流の�
   // 上流に絞りがある所で読めない書き方 = 確かめられないので止める
   const roles = rolePlan({ [`${F}keyRoles.override.ts`]: "const r = [\"admin\"];\nexport const override = { allowRoles: r };\n" });
   assert.ok(roles.problems.some((p) => p.includes("確かめられない")), roles.problems.join(" / "));
+});
+
+test("fork の今の受け口の override(oripa-do の 8 本: 管理メニューのカテゴリー 3・項目 4・設定のセクション 1)が実リポの宣言で通る(鍵の集合は変えない)", () => {
+  const declaration = (path) => readFileSync(join(repoRoot, path), "utf8");
+  const item = (exportName, key) => `export const ${exportName} = { key: "${key}" };\n`;
+  const files = {
+    "src/features/core/admin/extensionPoints.ts": declaration("src/features/core/admin/extensionPoints.ts"),
+    "src/features/core/setting/extensionPoints.ts": declaration("src/features/core/setting/extensionPoints.ts"),
+    "src/features/core/setting/sections/maintenance.ts": item("section", "maintenance"),
+    "src/features/core/setting/sections/maintenance.override.ts": 'import type { SettingSectionOverride } from "../types/definition";\n\nexport const override: SettingSectionOverride = { order: 30 };\n',
+  };
+  const categories = { users: '{ allowRoles: ["admin"] }', system: '{ label: "システム設定" }', data: "{ hidden: true }" };
+  for (const [name, body] of Object.entries(categories)) {
+    files[`src/features/core/admin/menu/categories/${name}.ts`] = item("category", name);
+    files[`src/features/core/admin/menu/categories/${name}.override.ts`] = `import type { AdminMenuCategoryOverride } from "../types";\n\nexport const override = ${body} satisfies AdminMenuCategoryOverride;\n`;
+  }
+  const items = { usersGeneral: ["User", "{ icon: User }"], usersSystem: ["Shield", "{ icon: Shield }"], usersDemo: ["UserCircle", "{ icon: UserCircle }"], notificationTemplates: [null, "{ hidden: true }"] };
+  for (const [name, [icon, body]] of Object.entries(items)) {
+    files[`src/features/core/admin/menu/items/${name}.ts`] = item("item", name);
+    const iconImport = icon ? `import { ${icon} } from "lucide-react";\n\n` : "";
+    files[`src/features/core/admin/menu/items/${name}.override.ts`] = `${iconImport}import type { AdminMenuItemOverride } from "../types";\n\nexport const override = ${body} satisfies AdminMenuItemOverride;\n`;
+  }
+  const plan = planExtensions(fixture(files));
+  assert.deepEqual(plan.problems.filter((p) => p.includes(".override.ts")), []);
+  const overridden = [...plan.itemsByPoint.values()].flat().filter((i) => i.override).map((i) => i.name).sort();
+  assert.deepEqual(overridden, ["data", "maintenance", "notificationTemplates", "system", "users", "usersDemo", "usersGeneral", "usersSystem"]);
+});
+
+test("宣言: overrides の点(受け口でない上書きの対象)は overrides・side・overrideOf だけ。受け口の一覧・intake の行にならない", () => {
+  const read = (body) => readDeclaration("x/extensionPoints.ts", point(body));
+  const OK = `  cronTasks: { overrides: "src/app/api/cron/*/task.ts", side: "server", overrideOf: ["schedule", "disabled"] },`;
+  assert.deepEqual(read(OK).problems, []);
+  assert.match(read(`  cronTasks: { overrides: "src/a/*.ts", side: "server" },`).problems[0], /overrideOf .*必須/);
+  assert.match(read(`  cronTasks: { overrides: "src/a/*.ts", side: "server", overrideOf: ["a"], dir: "a" },`).problems[0], /overrides の点に dir は書けない/);
+  assert.match(read(`  cronTasks: { overrides: "src/a/*.ts", side: "server", overrideOf: ["a"], writer: "role:generate" },`).problems[0], /overrides の点に writer は書けない/);
+  assert.match(read(`  cronTasks: { overrides: "../a/*.ts", side: "server", overrideOf: ["a"] },`).problems[0], /overrides は対象のファイル/);
+  assert.match(read(`  cronTasks: { overrides: "src/../a.ts", side: "server", overrideOf: ["a"] },`).problems[0], /overrides は対象のファイル/);
+  assert.match(read(`  cronTasks: { overrides: "src/a.ts", side: "edge", overrideOf: ["a"] },`).problems[0], /side は/);
+  const files = { "src/lib/cron/extensionPoints.ts": point(OK), "src/features/milestone/extensionPoints.ts": point(MILESTONES), "src/lib/forkOwnership/intake.txt": "# === AUTO-GENERATED intake START ===\n# === AUTO-GENERATED intake END ===\n" };
+  const plan = planExtensions(fixture(files));
+  assert.deepEqual(plan.problems, []);
+  assert.deepEqual(Object.keys(plan.outputs), ["src/features/milestone/extensions/definitions.ts"]);
+  assert.ok(!plan.intake.content.includes("cron"), "overrides の点は intake の行を作らない(行の生成は指令 30)");
 });

@@ -13,6 +13,7 @@ import path from "node:path";
 import ts from "typescript";
 
 import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
+import { overrideKeysOf } from "../../../../src/lib/districtMap/declarations.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
@@ -22,6 +23,20 @@ export const OVERRIDE_FILE = "domainEntry.override.ts";
 export const ENTRIES_EXPORT = "domainEntries";
 export const OVERRIDES_EXPORT = "domainEntryOverrides";
 export const REGISTRY_FILE = "src/registry/serviceRegistry.ts";
+/** 上書きしてよい鍵の宣言(src/lib/domain/extensionPoints.ts の domainEntries) */
+export const OVERRIDE_DECLARATION = "src/lib/domain/extensionPoints.ts";
+
+/**
+ * domainEntry.override.ts が差し替える属性(宣言の overrideOf)。上書きのファイルは { <キー>: <その属性の値> } なので、宣言の鍵はちょうど 1 つ
+ * @returns {string}
+ */
+export function overrideAttribute() {
+  const keys = overrideKeysOf(OVERRIDE_DECLARATION, "domainEntries");
+  if (keys.length !== 1) {
+    throw new Error(`${OVERRIDE_DECLARATION} の domainEntries の overrideOf は 1 つだけ(${OVERRIDE_FILE} は { <キー>: <値> } で 1 つの属性を差し替える。今: ${keys.join(" / ")})`);
+  }
+  return keys[0];
+}
 /** 生成物の 1 行目（この行が無いファイル = 移行前の手書き登録表） */
 export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する";
 

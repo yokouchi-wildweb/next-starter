@@ -6,4 +6,10 @@ export const extensionPoints = {
   profileConfigs: { writer: "role:generate", side: "shared" },
   profileSchemas: { writer: "role:generate", side: "shared" },
   profileTables: { writer: "role:generate", side: "server" },
+  // 上書きの対象: プロフィールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵(表の形を変える fields は無い)
+  profileDefinitions: {
+    overrides: "src/features/core/userProfile/profiles/*.profile.json",
+    side: "shared",
+    overrideOf: ["tags", "searchFields", "audit"],
+  },
 };
