@@ -1,7 +1,8 @@
 // src/featureGate/checks/dependencies.mjs
 // 依存の検査の判定(D20(b)・L1.12)。閉じられるフォルダ(規則の features)を、そのフォルダの外から値で import するファイルを集め、
 // 次の形のどれでもなければ違反として返す:
-//   (1) import する側のドメインの domainEntry.ts の requires に相手のドメインがある(字面で読む)
+//   (1) import する側のドメインの domainEntry.ts の requires に相手のドメインの名前(フォルダ名、目録 D4)がある
+//       (ドメインの見つけ方・requires・名前は地区の地図の読み手 src/lib/districtMap から)
 //   (2) ファイルが規則の名前で gate.enabled / gate.assert / useGate().enabled を呼ぶ(`.enabled("R")`・`.assert("R")` の字面)
 //   (3) ファイルが src/app の下で、その規則の pathPatterns が覆う住所にある(page・loader・route・_screen・_components…)
 //   (4) 同じ規則のフォルダどうし
@@ -14,6 +15,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
+import { readDistrictMapAt } from "../../lib/districtMap/node.mjs";
 import { patternCoversRoute } from "../../lib/pathPattern/index.mjs";
 import { valueImportSources } from "./importSources.mjs";
 
@@ -32,35 +34,21 @@ function walk(dir, out = []) {
   return out;
 }
 
-/** src/features の下のファイルが属するドメインのフォルダ(core は core/<d>、業務は <d>)。外なら null */
-export function domainFolderOf(rel) {
-  const m = /^src\/features\/(core\/[^/]+|[^/]+)\//.exec(rel);
-  if (!m || m[1] === "core") return null;
-  return m[1];
-}
-
-/** ドメインのフォルダの domainEntry.ts の requires(字面の文字列リテラル) */
-export function readRequires(root, folder) {
-  const file = join(root, "src/features", folder, "services/server/domainEntry.ts");
-  if (!existsSync(file)) return [];
-  const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  const names = [];
-  for (const m of text.matchAll(/\brequires\s*:\s*\[([\s\S]*?)\]/g)) {
-    for (const s of m[1].matchAll(/["']([^"']+)["']/g)) names.push(s[1]);
-  }
-  return names;
-}
-
-/** ドメインのフォルダが名乗る名前(フォルダ名の末尾と domainEntry.ts のキー) */
-export function domainNamesOf(root, folder) {
-  const names = new Set([folder.split("/").pop()]);
-  const file = join(root, "src/features", folder, "services/server/domainEntry.ts");
-  if (existsSync(file)) {
-    const text = readFileSync(file, "utf8");
-    const body = /domainEntries\s*=\s*\{([\s\S]*)\}\s*satisfies/.exec(text)?.[1] ?? "";
-    for (const m of body.matchAll(/^\s{2}(\w+)\s*:\s*\{/gm)) names.add(m[1]);
-  }
-  return [...names];
+/**
+ * ファイル → 属する features の地区(src/features からの相対のフォルダ "core/<d>" か "<d>" と、地区の名前・requires)
+ * @param {import("../../lib/districtMap/read.mjs").District[]} districts
+ */
+function domainLookup(districts) {
+  const domains = districts
+    .filter((d) => d.kind === "features")
+    .map((d) => ({ folder: d.dir.slice("src/features/".length), prefix: `${d.dir}/`, name: d.name, requires: d.requires }));
+  const byFolder = new Map(domains.map((d) => [d.folder, d]));
+  return {
+    /** src/features の下のファイルが属するドメイン。地区の外なら null */
+    of: (rel) => domains.find((d) => rel.startsWith(d.prefix)) ?? null,
+    /** 規則の features のフォルダが名乗る名前(地区の名前 = フォルダ名だけ。domainEntry のキーは資源の名前で名乗りに使わない、目録 D4) */
+    nameOf: (folder) => byFolder.get(folder)?.name ?? folder.split("/").pop(),
+  };
 }
 
 /** src/app の下のファイルの住所のセグメント(ルートグループ・_ で始まるフォルダ・ファイル名を除く)。外なら null */
@@ -95,8 +83,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
   for (const rule of rules) for (const folder of rule.features ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
   const folders = [...folderRules.keys()];
   const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/features/${f}` || resolved.startsWith(`src/features/${f}/`)) ?? null;
-  const requiresCache = new Map();
-  const namesCache = new Map();
+  const domains = domainLookup(readDistrictMapAt(root).districts);
   const exceptions = new Set(exceptionFiles);
   const found = [];
   const seen = new Set();
@@ -105,7 +92,8 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
     const rel = toPosix(relative(root, path));
     if (rel.startsWith("src/registry/") || rel.startsWith("src/featureGate/")) continue;
     const text = readFileSync(path, "utf8");
-    const ownFolder = domainFolderOf(rel);
+    const ownDomain = domains.of(rel);
+    const ownFolder = ownDomain?.folder ?? null;
     const ownRules = ownFolder ? (folderRules.get(folders.find((f) => ownFolder === f) ?? "") ?? []) : [];
     const segments = routeSegmentsOf(rel);
     for (const source of valueImportSources(text)) {
@@ -125,11 +113,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
           // (4) 同じ規則のフォルダどうし
           if (ownRules.some((r) => r.name === rule.name)) return "sameRule";
           // (1) requires
-          if (ownFolder) {
-            if (!requiresCache.has(ownFolder)) requiresCache.set(ownFolder, readRequires(root, ownFolder));
-            if (!namesCache.has(folder)) namesCache.set(folder, domainNamesOf(root, folder));
-            if (namesCache.get(folder).some((name) => requiresCache.get(ownFolder).includes(name))) return "requires";
-          }
+          if (ownDomain && ownDomain.requires.includes(domains.nameOf(folder))) return "requires";
           // (2) 規則の名前で確かめる
           if (callsGate(text, rule.name)) return "gate";
           // (3) その規則で閉じる住所の下

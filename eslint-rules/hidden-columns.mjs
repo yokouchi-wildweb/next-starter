@@ -25,7 +25,7 @@
 //   （このディレクトリは eslint.config.mjs で対象外）。それ以外の正当な例外は理由付き eslint-disable。
 //
 // 対象テーブル:
-//   eslint.config.mjs が collectHiddenColumns() で src/**/entities/drizzle.ts の
+//   eslint.config.mjs が collectHiddenColumns() で features の地区の entities/drizzle.ts(src/lib/districtMap の表の定義ファイル)の
 //   defineHiddenColumns(<Table>, [...]) を集めてオプションに渡す（手書きの一覧を持たない）。
 //
 // 限界:
@@ -34,6 +34,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
+
+import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 
 const SELECT_METHODS = new Set(["select", "selectDistinct", "selectDistinctOn"]);
 const WRITE_METHODS = new Set(["insert", "update", "delete"]);
@@ -53,32 +55,19 @@ export function parseHiddenColumnDeclarations(source) {
 }
 
 /**
- * rootDir 配下の entities/drizzle.ts を走査し、秘匿カラム宣言を集める。
- * node_modules / .next / 隠しディレクトリは辿らない。
+ * features の地区(src/lib/districtMap)の entities/drizzle.ts のうち表を定義するファイルから、秘匿カラム宣言を集める。
+ * どのファイルを読むかは地区の地図の表の定義ファイル(tableFiles)に任せる(走査を自前で持たない、目録 D1)。
+ * @param {string} repoRoot リポジトリ直下
  */
-export function collectHiddenColumns(rootDir) {
+export function collectHiddenColumns(repoRoot) {
   const result = {};
-  const walk = (dir) => {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
+  const files = [...new Set(readDistrictMapAt(repoRoot).tableFiles.map((t) => t.file))].filter((file) => file.endsWith("/entities/drizzle.ts"));
+  for (const file of files) {
+    const parsed = parseHiddenColumnDeclarations(fs.readFileSync(path.join(repoRoot, file), "utf8"));
+    for (const [table, props] of Object.entries(parsed)) {
+      result[table] = [...new Set([...(result[table] ?? []), ...props])];
     }
-    for (const entry of entries) {
-      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-      } else if (entry.name === "drizzle.ts" && path.basename(dir) === "entities") {
-        const parsed = parseHiddenColumnDeclarations(fs.readFileSync(full, "utf8"));
-        for (const [table, props] of Object.entries(parsed)) {
-          result[table] = [...new Set([...(result[table] ?? []), ...props])];
-        }
-      }
-    }
-  };
-  walk(rootDir);
+  }
   return result;
 }
 

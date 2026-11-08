@@ -22,8 +22,8 @@ test("parseHiddenColumnDeclarations: defineHiddenColumns の宣言を読み取�
   });
 });
 
-test("collectHiddenColumns: リポジトリの entities/drizzle.ts から宣言を集める（users.localPassword を含む）", () => {
-  const collected = collectHiddenColumns(path.join(import.meta.dirname, "..", "src"));
+test("collectHiddenColumns: features の地区の entities/drizzle.ts から宣言を集める（users.localPassword を含む）", () => {
+  const collected = collectHiddenColumns(path.join(import.meta.dirname, ".."));
   assert.ok(collected.UserTable?.includes("localPassword"));
 });
 

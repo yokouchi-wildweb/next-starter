@@ -71,6 +71,12 @@ test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
   assert.deepEqual(run({ [caller]: IMPORT_WALLET }), [`${caller} → core/wallet`]);
   // (1) requires(ドメイン名 = フォルダ名の末尾)
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, "src/features/core/purchase/services/server/domainEntry.ts": 'export const domainEntries = {\n  purchase: { requires: ["wallet"] },\n} satisfies X;\n' }), []);
+  // 名乗りはフォルダ名だけ(目録 D4): 相手の domainEntry のキー(資源の名前)で requires を書いても当たらない
+  const walletEntry = { "src/features/core/wallet/services/server/domainEntry.ts": 'export const domainEntries = {\n  wallet: { table: "wallets" },\n  walletLedger: { table: "ledgers" },\n} satisfies X;\n' };
+  const requiresOf = (name) => ({ "src/features/core/purchase/services/server/domainEntry.ts": `export const domainEntries = {\n  purchase: { requires: ["${name}"] },\n} satisfies X;\n` });
+  assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("walletLedger") }), [`${caller} → core/wallet`]);
+  assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("core/wallet") }), [`${caller} → core/wallet`]);
+  assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("wallet") }), []);
   // (2) 規則の名前で確かめる(名前が違えば落ちる)
   assert.deepEqual(run({ [caller]: IMPORT_WALLET + 'if (!gate.enabled("wallet")) throw 0;\n' }), []);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET + 'gate.assert("coupon");\n' }), [`${caller} → core/wallet`]);

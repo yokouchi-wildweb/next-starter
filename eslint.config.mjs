@@ -318,7 +318,7 @@ const config = [
     rules: {
       "hidden-columns/no-raw-select": [
         "error",
-        { hiddenColumns: collectHiddenColumns(`${import.meta.dirname}/src`) },
+        { hiddenColumns: collectHiddenColumns(import.meta.dirname) },
       ],
     },
   },
