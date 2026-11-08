@@ -1,9 +1,9 @@
 // 管理の枠の部位の data-slot と枠の表の結線の検査。実行: pnpm test src/app/admin/_layout/AdminFrame.test.tsx
 //
-// 1. README の data-slot の一覧 = 管理の枠の部品(admin/_layout・(protected)/_layout・insane/_layout)の要素に付く data-slot(両方向)。
+// 1. README の data-slot の一覧 = 管理の枠の部品(admin/_layout・(protected)/_layout)の要素に付く data-slot(両方向)。
 //    一覧 = 部位の一覧(src/app/_layout/frame/parts.mjs の管理の枠)、shadcn の部品の data-slot と衝突しない、data-frame-part は残っていない
 // 2. 外枠(AdminLayout)は管理の表を共通の読み手 useFrameAttributes に渡し、当たった行の属性が初回の静的描画に入る
-// 3. fill の的: 本文の直接の親 [data-admin-main-wrapper] が (protected) と insane にある
+// 3. fill の的: 本文の直接の親 [data-admin-main-wrapper] が (protected) にある
 // 読み手の行の選び方は src/app/_layout/frame/useFrameAttributes.test.tsx、frame.css の規則と部位の一覧は src/app/_layout/frame のテスト
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
@@ -46,7 +46,7 @@ before(async () => {
 });
 
 /** 管理の枠の部品のソース(テストを除く .tsx / .ts) */
-const FRAME_DIRS = ["src/app/admin/_layout", "src/app/admin/(protected)/_layout", "src/app/admin/insane/_layout"];
+const FRAME_DIRS = ["src/app/admin/_layout", "src/app/admin/(protected)/_layout"];
 const sourcesOf = (dir: string): string[] =>
   readdirSync(join(repo, dir), { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -84,23 +84,19 @@ test("README の data-slot の一覧 = 管理の枠の部品の要素の data-sl
   for (const { slot } of parts.hideableParts("admin")) assert.ok(found.has(slot), `隠せる部位 ${slot} の要素が無い`);
 });
 
-test("サイドバーの data-slot は PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタンの包みに付く(Button の data-slot は上書きしない)。(protected) と insane の両方", () => {
+test("サイドバーの data-slot は PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタンの包みに付く(Button の data-slot は上書きしない)", () => {
   const count = (file: string) => read(file).split('data-slot="admin-sidebar"').length - 1;
   for (const [file, n] of [
     ["src/app/admin/(protected)/_layout/Sidebar/PcSidebar.tsx", 1],
     ["src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx", 2],
     ["src/app/admin/(protected)/_layout/ResizableArea.tsx", 1],
     ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx", 1],
-    ["src/app/admin/insane/_layout/InsanePcSidebar.tsx", 1],
-    ["src/app/admin/insane/_layout/InsaneSpSidebar.tsx", 2],
-    ["src/app/admin/insane/_layout/InsaneResizableArea.tsx", 1],
-    ["src/app/admin/insane/_layout/InsaneProtectedLayout.tsx", 1],
   ] as const) {
     assert.equal(count(file), n, `${file} の admin-sidebar`);
   }
   // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない。
-  // id はサイドバーを差し替えた fork 向けの橋渡し(どちらか 1 つの layout だけが描く)
-  for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx", "src/app/admin/insane/_layout/InsaneProtectedLayout.tsx"]) {
+  // id はサイドバーを差し替えた fork 向けの橋渡し
+  for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx"]) {
     const toggle = /<div data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/div>/.exec(read(file));
     assert.ok(toggle, `${file}: 開閉ボタンが admin-sidebar の包みの直下に無い`);
     assert.ok(toggle[1].includes('id="admin-sidebar-toggle"'), `${file} の開閉ボタンの id`);
@@ -131,11 +127,10 @@ test("外枠(AdminLayout)は管理の表を共通の読み手に渡し、当た�
   assert.match(render(createElement(AdminLayout, null, "CHILD")), /data-frame-root="">/);
 });
 
-test("上流は管理の枠の宣言を持たない(表は空)。AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) と insane にある", () => {
+test("上流は管理の枠の宣言を持たない(表は空)。AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) にある", () => {
   assert.match(read("src/app/admin/_layout/extensions/frameTable.ts"), /export const frameTable = \[\] as const satisfies FrameTable;/);
   assert.equal(read("src/app/admin/_layout/AdminPage.tsx").includes("fill?:"), false);
   assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper'));
-  assert.ok(read("src/app/admin/insane/_layout/InsaneResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper=""'));
 });
 
 // ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 17) ----
@@ -201,13 +196,13 @@ test("上流の管理の画面(_template を含む)は題を AdminPage title で
     assert.equal(source.includes("_layout/PageTitle"), false, `${file} が PageTitle を使っている`);
     assert.equal(/\bplacement=/.test(source), false, `${file} に placement=`);
   }
-  // 題を持たない AdminPage = 前から題の無い insane の 2 画面だけ(本文の見出しは SecTitle。見た目を変えないので題を足さない)
+  // 題を持たない AdminPage は無い
   const untitled = adminPages()
     .map((p) => screenOf(p))
     .filter(({ source }) => !/<AdminPage\b[^>]*\btitle=/.test(source))
     .map(({ path }) => relative("src/app/admin", path))
     .sort();
-  assert.deepEqual(untitled, ["insane/_screen/InsaneDashboardScreen.tsx", "insane/truncate/_screen/InsaneTruncateScreen.tsx"]);
+  assert.deepEqual(untitled, []);
   for (const file of ["Admin__Domain__ListScreen.tsx", "new/_screen/Admin__Domain__CreateScreen.tsx", "[id]/edit/_screen/Admin__Domain__EditScreen.tsx", "sort/_screen/Admin__Domain__SortScreen.tsx"]) {
     const path = file.includes("/") ? `src/app/admin/_template/__domains__/${file}` : `src/app/admin/_template/__domains__/_screen/${file}`;
     assert.match(read(path), /<AdminPage title="__DomainLabel__[^"]+"/, `${path} の雛形が AdminPage title の形でない`);

@@ -58,7 +58,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 ```
 
 - 枠(範囲): 利用者の枠(`user`)= `/admin` と `/api` の下を除く住所。管理の枠(`admin`)= 利用者の枠 + `/admin` の下。`/api` の下はどの枠にも入らない
-- 配線: root の `src/app/layout.tsx` が `clientGateState("user")` を `src/wiring/AppProviders.tsx` に渡し、AppProviders が一番外で `GateProvider` で包む。admin の守りの layout(`src/app/admin/(protected)/layout.tsx`・`src/app/admin/insane/layout.tsx`)が guard の後に `clientGateState("admin")` で包み直す。管理の住所は守りの後にだけ渡すので、公開ページの HTML に出ない(`/admin/login`・`/admin/setup` は利用者の枠)。root layout はクライアント遷移で描き直されないので、枠の切替は入れ子の Provider で行う
+- 配線: root の `src/app/layout.tsx` が `clientGateState("user")` を `src/wiring/AppProviders.tsx` に渡し、AppProviders が一番外で `GateProvider` で包む。admin の守りの layout(`src/app/admin/(protected)/layout.tsx`)が guard の後に `clientGateState("admin")` で包み直す。管理の住所は守りの後にだけ渡すので、公開ページの HTML に出ない(`/admin/login`・`/admin/setup` は利用者の枠)。root layout はクライアント遷移で描き直されないので、枠の切替は入れ子の Provider で行う
 - `clientGateState`・`GateProvider` は配線用。使えるのは上の 4 ファイルだけ(lint `feature-gate-entries`)。画面・部品は `useGate()` を使う
 - 範囲の外の住所・Provider の外で聞くと、dev(`NODE_ENV !== "production"`)は throw(書き間違いに気づかせる)、本番は閉とみなす: `enabled` は false、`path` は `{ open: false, rule: null }`、`filter` は内部の住所の項目を除く(外部 URL・住所の無い項目は残す)
 - 値は deploy で決まる config から作るので、ページを開いた時点の値のまま(クライアント遷移では計算し直さない)

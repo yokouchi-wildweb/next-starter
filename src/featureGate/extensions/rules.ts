@@ -6,7 +6,6 @@ import type { GatedFeatureRule } from "@/featureGate";
 import { rule as rules_adminChatRooms } from "@/featureGate/rules/adminChatRooms";
 import { rule as rules_adminDemoUsers } from "@/featureGate/rules/adminDemoUsers";
 import { rule as rules_adminNotificationTemplates } from "@/featureGate/rules/adminNotificationTemplates";
-import { rule as rules_adminTabsDemo } from "@/featureGate/rules/adminTabsDemo";
 import { rule as rules_analytics } from "@/featureGate/rules/analytics";
 import { rule as rules_bankTransferReview } from "@/featureGate/rules/bankTransferReview";
 import { rule as rules_chatRoom } from "@/featureGate/rules/chatRoom";
@@ -46,14 +45,13 @@ import { rule as rules_userXProfile } from "@/featureGate/rules/userXProfile";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "adminTabsDemo" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GatedFeatureRule[] = [
   { ...rules_adminChatRooms, name: "adminChatRooms", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_adminDemoUsers, name: "adminDemoUsers", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_adminNotificationTemplates, name: "adminNotificationTemplates", tables: [], domainApiPaths: [], settingPaths: [] },
-  { ...rules_adminTabsDemo, name: "adminTabsDemo", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_analytics, name: "analytics", tables: ["user_daily_activities", "analytics_daily_rollups"], domainApiPaths: [], settingPaths: [] },
   { ...rules_bankTransferReview, name: "bankTransferReview", tables: [], domainApiPaths: [], settingPaths: [] },
   { ...rules_chatRoom, name: "chatRoom", tables: [], domainApiPaths: ["/api/chatRoom"], settingPaths: [], pathPatterns: [...rules_chatRoom.pathPatterns, "/api/chatRoom"] },

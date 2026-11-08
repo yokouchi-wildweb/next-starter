@@ -56,7 +56,7 @@ src/app/(user)/
     └── UserLayout.replace.tsx   下流の丸ごと置き換え(隣に置く)。layout.tsx をこちらへ向ける
 ```
 
-- 対象は upstream の枠を描く layout.tsx（今は `(user)/layout.tsx`・`(user)/(protected)/mypage/layout.tsx`・`admin/layout.tsx`・`(marketing)/layout.tsx`）。ガードと同居する layout（`admin/(protected)`・`admin/insane`）は提供者所有のまま、ガードの後に `./_layout/` の枠を素の import で描く（評議会 20261019-213253 §7）。スイッチの検出は `./_layout/` を指す re-export だけなので、この形は検査対象にならない
+- 対象は upstream の枠を描く layout.tsx（今は `(user)/layout.tsx`・`(user)/(protected)/mypage/layout.tsx`・`admin/layout.tsx`・`(marketing)/layout.tsx`）。ガードと同居する layout（`admin/(protected)`）は提供者所有のまま、ガードの後に `./_layout/` の枠を素の import で描く（評議会 20261019-213253 §7）。スイッチの検出は `./_layout/` を指す re-export だけなので、この形は検査対象にならない
 - slot の一覧と fork の手順は `src/app/(user)/_layout/README.md`・`src/app/admin/_layout/README.md`・`src/app/(marketing)/_layout/README.md`(LP の枠、既定は素通しで slot なし)
 
 1 対 1 の意味:
@@ -64,7 +64,7 @@ src/app/(user)/
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける（コピーしてよいかは `.claude/rules/core/extensions.md` で判定）。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 1（データの無いページも access だけの loader を持つ）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
-- 対象外: API だけ。デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）も管理画面（`/admin/**`、手書きも pnpm generate domain 由来も）も対象
+- 対象外: API だけ。デモ（`(user)/demo/**`）も管理画面（`/admin/**`、手書きも pnpm generate domain 由来も）も対象
 
 ## 2. 既存の UI レイヤーとの対応
 

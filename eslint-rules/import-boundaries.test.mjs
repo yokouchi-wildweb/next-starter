@@ -300,7 +300,6 @@ test("rule feature-gate-entries: 型も別名も相対も dynamic import も止�
       { code: `import { clientGateState } from "@/featureGate";`, filename: at("src/app/layout.tsx") },
       { code: `import { GateProvider, type ClientGateState } from "@/featureGate/client";`, filename: at("src/wiring/AppProviders.tsx") },
       { code: `import { GateProvider } from "@/featureGate/client";`, filename: at("src/app/admin/(protected)/layout.tsx") },
-      { code: `import { clientGateState } from "@/featureGate";`, filename: at("src/app/admin/insane/layout.tsx") },
       { code: `import { useGate, type ClientGateState } from "@/featureGate/client";`, filename: at("src/app/x/_components/Menu.tsx") },
       { code: `import { gate } from "@/featureGate";`, filename: at("src/app/x/page.tsx") },
     ],

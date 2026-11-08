@@ -1,9 +1,8 @@
-// 管理画面の枠(AdminLayout・AdminProtectedLayout・InsaneProtectedLayout)とページ枠部品(AdminPage・AdminHeader)の
-// slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の根の data-frame-root・部位の data-slot="admin-*"・
-// insane の data-admin-main-wrapper だけ。data-slot の一覧と枠の表の結線は ./AdminFrame.test.tsx)。
+// 管理画面の枠(AdminLayout・AdminProtectedLayout)とページ枠部品(AdminPage・AdminHeader)の
+// slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の根の data-frame-root・部位の data-slot="admin-*" だけ。data-slot の一覧と枠の表の結線は ./AdminFrame.test.tsx)。
 // 実行: pnpm test src/app/admin/_layout/AdminLayout.test.tsx(pnpm test 'src/app/(user)/_layout/' と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
-// 重い部品(BaseSidebar・InsaneSidebar・DarkModeSwitch・Button)と useHeaderHeight・useAuthSession は目印にモックし、
+// 重い部品(BaseSidebar・DarkModeSwitch・Button)と useHeaderHeight・useAuthSession は目印にモックし、
 // 枠そのもの(外枠・Header・受け口・サイドバーの殻・リサイズのつまみ・Footer・並び順)は本物を描く。
 // サイドバー幅の調整は有効(APP_FEATURES をモック)= fork の設定値に左右されない。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
@@ -60,14 +59,12 @@ mock.module("@/components/Form/Button/Button", {
 });
 mock.module("@/config/app/app-features.config", { namedExports: { APP_FEATURES: { adminConsole: { enableSidebarResizing: true } } } });
 mock.module(here("../(protected)/_layout/Sidebar/BaseSidebar.tsx"), { namedExports: { BaseSidebar: marker("basesidebar") } });
-mock.module(here("../insane/_layout/InsaneSidebar.tsx"), { namedExports: { InsaneSidebar: marker("insanesidebar") } });
 
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 let AdminLayout: typeof import("./AdminLayout").AdminLayout;
 let AdminHeader: typeof import("./AdminHeader").AdminHeader;
 let useAdminSidebarFrame: typeof import("./Sidebar/AdminSidebarFrame").useAdminSidebarFrame;
 let AdminProtectedLayout: typeof import("../(protected)/_layout/AdminProtectedLayout").AdminProtectedLayout;
-let InsaneProtectedLayout: typeof import("../insane/_layout").InsaneProtectedLayout;
 let AdminPage: typeof import("./AdminPage").default;
 let AdminEditItemNavigator: typeof import("./AdminEditItemNavigator").AdminEditItemNavigator;
 before(async () => {
@@ -77,7 +74,6 @@ before(async () => {
   ({ AdminHeader } = await import("./AdminHeader"));
   ({ useAdminSidebarFrame } = await import("./Sidebar/AdminSidebarFrame"));
   ({ AdminProtectedLayout } = await import("../(protected)/_layout/AdminProtectedLayout"));
-  ({ InsaneProtectedLayout } = await import("../insane/_layout"));
   AdminPage = (await import("./AdminPage")).default;
 });
 
@@ -105,8 +101,6 @@ const BEFORE_LOGO_PRELOAD = LOGO_PRELOAD("dark") + LOGO_PRELOAD("light");
 const BEFORE_OUTER = BEFORE_LOGO_PRELOAD + `<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground" style="--app-header-height:0px" data-slot="admin-app-container" data-frame-root="">` + BEFORE_HEADER + `<div class="flex-1 min-h-0 flex flex-col overflow-clip">CHILD</div></div>`;
 /** `<AdminProtectedLayout>CHILD</AdminProtectedLayout>` */
 const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-slot="admin-main" data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" data-slot="admin-footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><div data-slot="admin-sidebar" class="contents"><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false"></x-button></div>`;
-/** `<InsaneProtectedLayout>CHILD</InsaneProtectedLayout>` */
-const BEFORE_INSANE = `<div class="flex flex-1 flex-col min-h-0"><div class="flex flex-1 min-h-0 relative"><div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-insanesidebar data-nav=""></x-insanesidebar></div><div data-slot="admin-sidebar" class="hidden md:block" style="width:192px"><x-insanesidebar></x-insanesidebar></div><div data-slot="admin-sidebar" class="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div data-slot="admin-main" data-admin-main-wrapper="" class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">CHILD</div></div><div data-slot="admin-sidebar" class="contents"><x-button data-variant="destructive" aria-label="メニューを開く" aria-pressed="false"></x-button></div></div>`;
 /** `<AdminPage>CHILD</AdminPage>`(fill は枠の宣言 + frame.css に移った。AdminPage の DOM は通常のページのまま) */
 const BEFORE_PAGE = `<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">CHILD</main>`;
 /** `<PageTitle>T</PageTitle>`(当時の既定 = page)/ `<PageTitle placement="header">T</PageTitle>`(SSR では AdminHeaderPortal は何も描かない) */
@@ -156,11 +150,10 @@ test("className は外枠に足される(slot 化の前と同じ)", () => {
   assert.match(render(<AdminLayout className="invert">CHILD</AdminLayout>), /text-foreground invert"/);
 });
 
-// ---- (protected)・insane の sidebar / footer ----
+// ---- (protected) の sidebar / footer ----
 
-test("props なしの AdminProtectedLayout・InsaneProtectedLayout は slot 化の前と同じ DOM を描く", () => {
+test("props なしの AdminProtectedLayout は slot 化の前と同じ DOM を描く", () => {
   assert.equal(render(<AdminProtectedLayout>CHILD</AdminProtectedLayout>), BEFORE_PROTECTED);
-  assert.equal(render(<InsaneProtectedLayout>CHILD</InsaneProtectedLayout>), BEFORE_INSANE);
 });
 
 test("sidebar slot に要素を渡すと PC の列と SP のドロワーの両方の殻の中に既定の代わりに描く", () => {
@@ -168,17 +161,10 @@ test("sidebar slot に要素を渡すと PC の列と SP のドロワーの両�
     render(<AdminProtectedLayout sidebar={<nav id="s" />}>CHILD</AdminProtectedLayout>),
     BEFORE_PROTECTED.replace('<x-basesidebar data-nav=""></x-basesidebar>', '<nav id="s"></nav>').replace("<x-basesidebar></x-basesidebar>", '<nav id="s"></nav>'),
   );
-  assert.equal(
-    render(<InsaneProtectedLayout sidebar={<nav id="s" />}>CHILD</InsaneProtectedLayout>),
-    BEFORE_INSANE.replace('<x-insanesidebar data-nav=""></x-insanesidebar>', '<nav id="s"></nav>').replace("<x-insanesidebar></x-insanesidebar>", '<nav id="s"></nav>'),
-  );
 });
 
 test("sidebar = null はサイドバーの殻・リサイズのつまみ・SP の開閉ボタンを描かない", () => {
-  for (const html of [
-    render(<AdminProtectedLayout sidebar={null}>CHILD</AdminProtectedLayout>),
-    render(<InsaneProtectedLayout sidebar={null}>CHILD</InsaneProtectedLayout>),
-  ]) {
+  for (const html of [render(<AdminProtectedLayout sidebar={null}>CHILD</AdminProtectedLayout>)]) {
     assert.ok(!html.includes("navigation-layer"), "SP の殻が残っている");
     assert.ok(!html.includes("hidden md:block"), "PC の殻かつまみが残っている");
     assert.ok(!html.includes("<x-button"), "SP の開閉ボタンが残っている");
@@ -194,17 +180,13 @@ test("sidebar の中身は useAdminSidebarFrame() で殻の placement / width �
   const html = render(<AdminProtectedLayout sidebar={<Probe />}>CHILD</AdminProtectedLayout>);
   assert.ok(html.includes('<x-probe data-placement="sp" data-width="192"></x-probe>'));
   assert.ok(html.includes('<x-probe data-placement="pc" data-width="192"></x-probe>'));
-  const insane = render(<InsaneProtectedLayout sidebar={<Probe />}>CHILD</InsaneProtectedLayout>);
-  assert.ok(insane.includes('data-placement="sp"') && insane.includes('data-placement="pc"'));
   assert.throws(() => render(<Probe />), /サイドバーの殻/);
 });
 
-test("footer slot: (protected) は要素で置き換え / null で描かない。insane は既定で無し、要素のときだけ本文の後に描く", () => {
+test("footer slot: (protected) は要素で置き換え / null で描かない", () => {
   const footer = BEFORE_PROTECTED.match(/<footer id="footer"[^>]*>[^<]*<\/footer>/)![0];
   assert.equal(render(<AdminProtectedLayout footer={<i id="f" />}>CHILD</AdminProtectedLayout>), BEFORE_PROTECTED.replace(footer, '<i id="f"></i>'));
   assert.equal(render(<AdminProtectedLayout footer={null}>CHILD</AdminProtectedLayout>), BEFORE_PROTECTED.replace(footer, ""));
-  assert.equal(render(<InsaneProtectedLayout footer={<i id="f" />}>CHILD</InsaneProtectedLayout>), BEFORE_INSANE.replace("CHILD", 'CHILD<i id="f"></i>'));
-  assert.equal(render(<InsaneProtectedLayout footer={null}>CHILD</InsaneProtectedLayout>), BEFORE_INSANE);
 });
 
 // ---- AdminPage(ヘッダーの行)・PageTitle ----

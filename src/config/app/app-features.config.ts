@@ -220,7 +220,7 @@ export const APP_FEATURES = {
     },
   },
   demo: {
-    /** デモページ（/demo配下と管理画面のタブのデモ /admin/tabs-demo）を有効にする */
+    /** デモページ（/demo 配下）を有効にする */
     samplePages: true,
     /** デモログイン機能を有効にする */
     login: true,

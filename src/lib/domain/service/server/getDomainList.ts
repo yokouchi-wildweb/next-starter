@@ -1,6 +1,6 @@
 // src/lib/domain/service/server/getDomainList.ts
 // 登録表から「全件削除できるドメイン」の一覧を作る汎用関数（登録表・domain.json の一覧は引数で受ける）。
-// 管理者の全件削除画面（/admin/insane/truncate）が使う。access の評価は呼び手（API ルート）が行う。
+// 全件削除の一覧 API（GET /api/admin/domains）が使う(上流は画面を持たない)。access の評価は呼び手（API ルート）が行う。
 // 一覧はサービスを読み込まずに登録表の table で作る（table を持つ = Drizzle 版 = truncateAll を持つ。pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs が守る）。
 // 実行の直前の確認（isValidDomainKey / getInvalidDomainKeys）はサービスを読み込んで truncateAll を確かめる。
 

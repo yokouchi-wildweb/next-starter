@@ -50,7 +50,7 @@ export function AdminLayout({ children, className }: AdminLayoutProps) {
           checkbox（SwitchInput など）に focus が移った際のブラウザ自動 scrollIntoView で
           ここの scrollTop が動いてしまい、フォーム全体が画面外へ押し出される崩れが起きる。
           overflow-clip は CSS 仕様上 scroll container を作らないため focus 駆動の
-          スクロールも発火しない。配下（ResizableArea / InsaneResizableArea / login・setup の
+          スクロールも発火しない。配下（ResizableArea / login・setup の
           Screen が Main を包む overflow-y-auto の Block）が自前でスクロール可能領域を確保する前提。 */}
       {/* AdminPage の行は上端に固定なので、その高さ(--app-header-height)を上の余白で空ける(利用者の枠の UserLayout と同じ形) */}
       <div className="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">{children}</div>

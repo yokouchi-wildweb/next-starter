@@ -16,7 +16,7 @@ export type AdminSidebarFrame = {
 
 const AdminSidebarFrameContext = createContext<AdminSidebarFrame | null>(null);
 
-/** 殻(PcSidebar / SpSidebar・Insane 版)が中身を包む Provider。DOM は足さない */
+/** 殻(PcSidebar / SpSidebar)が中身を包む Provider。DOM は足さない */
 export function AdminSidebarFrameProvider({
   value,
   children,

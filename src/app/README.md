@@ -53,11 +53,9 @@ src/app/(user)/(protected)/wallet/[slug]/
 | グループ | 用途 | 例 |
 |----------|------|-----|
 | `(protected)/` | 認証必須ページ | users, samples, settings |
-| `insane/` | 特殊権限ページ | insane |
 | `login/` | ログインページ | - |
 | `setup/` | 初期設定 | - |
 | `_template/` | コード生成テンプレート | - |
-| `(protected)/tabs-demo/` | タブのデモ（他のページと同じ 1 行スイッチ + `_screen/` + loader） | - |
 
 ## api/ の構造
 
@@ -146,7 +144,7 @@ src/app/
 ├── (marketing)/
 │   ├── layout.tsx          ← (user) の枠の外の兄弟の枝(枠 = 1 行スイッチ → _layout/)
 │   └── _layout/            ← MarketingLayout(既定は素通し)
-├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/・insane/ の layout)
+├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/ の layout)
 └── debug/
     └── layout.tsx          ← 管理者カテゴリ + デバッガーのガード
 ```

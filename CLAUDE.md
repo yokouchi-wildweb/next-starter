@@ -117,7 +117,7 @@ principal: the Factory resolves the DB-synced user once per request → handlers
 ## ROLES & PAGE_GUARD
 roles: added roles src/features/core/user/roles/*.role.json, core (admin, user, debugger; a fork cannot delete or disable them) coreRoles/ → pnpm forge (or pnpm generate role -- \<id\> | --all) → src/features/core/user/extensions/roles.ts | category = admin or user | debugger role = user category, bypasses maintenance + opens /debug
 - list order = enum user_role order, keep it | fork changes values in \<json name\>.override.ts beside the JSON | ref: src/features/core/user/README.md
-page_guard: range policy = guard.ts beside the layout (root src/app/guard.ts from @/wiring/pageGuard, child = nearest parent's extend: AND, narrows only) | layout = `await guard()` one line | ranges: admin/(protected) + admin/insane (→ /admin/login) | (user)/(protected) (→ /login) | debug/ | ref: src/lib/pageGuard/README.md
+page_guard: range policy = guard.ts beside the layout (root src/app/guard.ts from @/wiring/pageGuard, child = nearest parent's extend: AND, narrows only) | layout = `await guard()` one line | ranges: admin/(protected) (→ /admin/login) | (user)/(protected) (→ /login) | debug/ | ref: src/lib/pageGuard/README.md
 - every page loader = nearest guard.ts createLoader({ access, key?, load }) (access required, principal = ctx.user, no session APIs) | route map src/app/route-map.jsonl verifies the chain
 flow: proxy → range guard.ts → loader access | debug pages go under src/app/debug/, never re-implement guards | UI places (Screen, page, layout, _components, components, hooks) never import services/server or DB, no session APIs in src/app (lint page-authz) | details → .claude/rules/core/screens.md
 

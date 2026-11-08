@@ -59,7 +59,7 @@ const exists = (path) => existsSync(resolve(repoRoot, path));
 
 /**
  * upstream の枠を描く layout.tsx(1 行スイッチ形であること。ファイルが無ければ = fork がルートを消した → 検査しない)。
- * ガードと同居する admin/(protected)・insane の layout.tsx は提供者所有のまま(報告書 §7)なので載せない
+ * ガードと同居する admin/(protected) の layout.tsx は提供者所有のまま(報告書 §7)なので載せない
  */
 export const FRAME_LAYOUTS = [
   "src/app/(user)/layout.tsx",
@@ -254,7 +254,7 @@ test("スイッチの検出: ./_layout/ への re-export だけを拾い、ガ�
   const guarded = `import { redirect } from "next/navigation";\nimport { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";\n` +
     `export default async function L({ children }) {\n  await ${"authGuard"}({});\n  return <AdminProtectedLayout>{children}</AdminProtectedLayout>;\n}`;
   assert.equal(SWITCH_REEXPORT.test(guarded), false);
-  for (const file of ["src/app/admin/(protected)/layout.tsx", "src/app/admin/insane/layout.tsx"]) {
+  for (const file of ["src/app/admin/(protected)/layout.tsx"]) {
     if (exists(file)) assert.equal(switchLayouts.includes(file), false, `${file} はガード付き(スイッチの検査対象外)`);
   }
 });
@@ -294,11 +294,10 @@ test("検出範囲: src/app 全体(wallet(あれば)・管理画面・debug・�
   assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_screen/StarterHomeScreen)が検出されていない");
   assert.ok([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/")), "生成された管理画面ルートが検出されていない");
   assert.ok(pageDirs.has("src/app/(user)/demo"), "デモ(構造の検査の対象)が検出されていない");
-  // 手書きの管理画面(pnpm generate domain 由来でない)と管理画面のデモも検出し、生成テンプレートは外す
+  // 手書きの管理画面(pnpm generate domain 由来でない)も検出し、生成テンプレートは外す
   for (const dir of ["src/app/admin/(protected)", "src/app/admin/login", "src/app/admin/(protected)/users/general"]) {
     assert.ok(pageDirs.has(dir), `${dir} が検出されていない`);
   }
-  assert.ok(pageDirs.has("src/app/admin/(protected)/tabs-demo/overview"), "管理画面のデモが検出されていない");
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/_template")), false);
   // 固定の走査範囲の外だった区域も検出する(M1)
   assert.ok(pageDirs.has("src/app/debug"), "src/app/debug が検出されていない");

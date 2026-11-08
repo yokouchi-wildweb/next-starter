@@ -20,7 +20,6 @@ core/cronCheckpoint	core	no	-
 core/deviceFingerprint	core	no	-
 core/fingerprintChallenge	core	no	-
 core/incrementalRefresh	core	no	-
-core/insane	core	no	-
 core/interactionTracking	core	no	-
 core/mail	core	no	-
 core/messaging	core	no	-

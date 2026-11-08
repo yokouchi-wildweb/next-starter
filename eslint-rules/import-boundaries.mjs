@@ -93,7 +93,6 @@ const FEATURE_GATE_WIRING_FILES = [
   "src/app/layout.tsx",
   "src/wiring/AppProviders.tsx",
   "src/app/admin/(protected)/layout.tsx",
-  "src/app/admin/insane/layout.tsx",
 ];
 
 /** 違反の判定(テストから直接呼ぶ)。違反なら messageId、無ければ null */
