@@ -134,6 +134,46 @@ export const milestone = defineMilestoneSeries({
 - `defineMilestoneSeries` は段階の型 `S` を推すための恒等関数(`export const milestone: MilestoneItem = …` と書いてもよい)。受け口の型は `MilestoneItem` = `MilestoneDefinition | MilestoneSeries`
 - テスト: `pnpm test src/features/core/milestone/services/server/milestoneRegistry.test.ts`
 
+### 1-c. シリーズの進み具合(server)
+
+`getMilestoneSeriesProgress(userId, seriesKey, tx?)`(`services/server/wrappers/getMilestoneSeriesProgress.ts`)は今の `stages()` と記録から返す。シリーズが無ければ `null`。
+
+| 欄 | 意味 |
+| --- | --- |
+| `stages` | `[{ stageKey, index, achieved, achievedAt }]`(今の並び。消した段階の記録は出ない) |
+| `achievedKeys` | 達成済みの段階の鍵(並び順。sequential なら最後が今の段) |
+| `next` | 次の段階の鍵(未達成の一番下 / 最初)。全部済みなら `null` |
+| `remaining` | 未達成の段階の数 |
+| `seriesKey` / `order` | シリーズの鍵と順 |
+
+数の残り(次の段まであと何円など)は段階ごとに意味が違うので持たない(段階の値から項目の側で計算する)。client から出すときは自分の route / loader から呼ぶ(上流は hook と API を持たない)。テスト: `pnpm test src/features/core/milestone/services/server/wrappers/getMilestoneSeriesProgress.test.ts`
+
+### レシピ: ランク(段階のあるシリーズ)
+
+```ts
+// services/server/definitions/rankUp.ts
+import { defineMilestoneSeries } from "@/features/core/milestone/types/milestone";
+import { getRankTiers } from "@/features/rankUp/services/server/rank/rankConfig";   // 設定のティア [{ key: "bronze", threshold, bonus }, …]
+
+export const milestone = defineMilestoneSeries({
+  kind: "series",
+  key: "rank_up",
+  triggers: ["purchase_completed"],
+  order: "sequential",
+  stages: () => getRankTiers().filter((tier) => tier.threshold > 0),   // 設定に足したティアは次の評価から入る
+  stageKey: (tier) => `rank_${tier.key}`,                              // 名前から(番号にしない。記録済みの rank_<名前> と同じ)
+  evaluate: async (tier, { userId }, tx) => (await totalPurchased(userId, tx)) >= tier.threshold,
+  onAchieved: async (tier, { userId, tx, series }) => {
+    // 一度に 2 段越えた下の段のボーナスも付ける(省くなら series?.viaHigherStage を見て return)
+    await walletService.adjustBalance({ userId, amount: tier.bonus, reasonKey: "rank_up_bonus" }, tx);
+    return { rank: tier.key, bonus: tier.bonus };
+  },
+});
+
+// 今のランクと次: const p = await getMilestoneSeriesProgress(userId, "rank_up"); p?.achievedKeys.at(-1) / p?.next
+// 通知: components/renderers/rankUp.tsx に key: "rank_up" のレンダラー 1 つ(seriesResults で越えた段を描く)
+```
+
 ### 2. 一覧を作る
 
 `pnpm generate extensions`（`extensions/definitions.ts` に入る）。
@@ -320,8 +360,12 @@ type PersistedMilestoneResult = {
   milestoneKey: string;        // マイルストーンキー
   achieved: boolean;           // 達成したかどうか（保存されるのは true のみ）
   metadata?: Record<string, unknown>; // onAchieved の戻り値
+  seriesKey?: string;          // シリーズの段階のとき: シリーズの鍵
+  stageKey?: string;           // シリーズの段階のとき: 段階の鍵(= milestoneKey)
 };
 ```
+
+`evaluateMilestones` の結果(`MilestoneEvaluationResult`)も段階のときは `series: { seriesKey, stageKey }` を持つ。`completePurchase` は保存する結果にこの 2 つを写す(普通の定義の結果の形は今と同じ)。
 
 ### レンダラーの登録（下流プロジェクト）
 
@@ -362,6 +406,17 @@ export const renderer: MilestoneRendererDefinition = {
 ```
 
 → `pnpm generate extensions`。受け口に置くのは項目だけ(部品は責務のドメインへ)。
+
+#### シリーズのレンダラー(段をまとめて描く)
+
+`key` にシリーズの鍵を書くと、そのシリーズの段の結果を 1 つにまとめて描く(1 回の購入でランクを 2 つ越えても通知は 1 つ)。`MilestoneNotifications` は段階の鍵 → シリーズの鍵の順で引き、**段階の鍵の項目が勝つ**(その段だけ別の演出にできる)。
+
+| props | シリーズの鍵のレンダラー | 段階の鍵・普通の定義の鍵のレンダラー |
+| --- | --- | --- |
+| `result` | その評価で達成した段のうち一番上の段 | その結果 |
+| `seriesResults` | その評価で達成した段の結果の全部(下から = 評価の順) | `undefined` |
+
+レンダラーの無い段は今と同じく 1 件ずつ既定の通知。テスト: `pnpm test src/features/core/milestone/components/MilestoneNotifications.render.test.tsx`
 
 これだけで `PurchaseComplete` ページにマイルストーン達成通知が自動的に表示される。
 

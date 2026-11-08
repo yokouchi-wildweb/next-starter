@@ -172,7 +172,14 @@ export async function evaluateMilestones(
       if (!outcome) return false;
       achievedKeys.add(definition.key);
       achievedInThisEvaluation.add(definition.key);
-      results.push({ key: definition.key, achieved: true, metadata: outcome.metadata });
+      results.push({
+        key: definition.key,
+        achieved: true,
+        metadata: outcome.metadata,
+        ...(definition.series
+          ? { series: { seriesKey: definition.series.seriesKey, stageKey: definition.series.stageKey } }
+          : {}),
+      });
       return true;
     } catch (error) {
       // 個別マイルストーンのエラーは他の評価をブロックしない

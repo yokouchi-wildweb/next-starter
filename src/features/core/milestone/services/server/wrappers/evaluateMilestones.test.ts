@@ -183,6 +183,7 @@ test("sequential: 1 回で 3 段を越えると下から 3 件", async () => {
   const result = await run();
   assert.deepEqual(result.results.map((r) => r.key), ["s1", "s2", "s3"]);
   assert.deepEqual(rows.map((r) => r.milestone_key), ["s1", "s2", "s3"]);
+  assert.deepEqual(result.results[0].series, { seriesKey: "rank", stageKey: "s1" }, "結果に段階の印");
 });
 
 test("unordered: 各々独立(下の段を補わない)、achievedInThisEvaluation は後の定義に渡る", async () => {

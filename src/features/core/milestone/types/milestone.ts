@@ -153,6 +153,8 @@ export type MilestoneEvaluationResult = {
   key: string;
   achieved: boolean;
   metadata?: Record<string, unknown> | void;
+  /** シリーズの段階のとき(普通の定義では undefined) */
+  series?: { seriesKey: string; stageKey: string };
 };
 
 /**
@@ -176,4 +178,31 @@ export type PersistedMilestoneResult = {
   achieved: boolean;
   /** onAchieved の戻り値（報酬情報等） */
   metadata?: Record<string, unknown>;
+  /** シリーズの段階のとき: シリーズの鍵(通知の部品がレンダラーを引く・まとめる) */
+  seriesKey?: string;
+  /** シリーズの段階のとき: 段階の鍵(= milestoneKey) */
+  stageKey?: string;
+};
+
+/** シリーズの段階 1 つの進み具合 */
+export type MilestoneSeriesStageProgress = {
+  stageKey: string;
+  /** stages() の中の位置(0 始まり) */
+  index: number;
+  achieved: boolean;
+  achievedAt: Date | null;
+};
+
+/** getMilestoneSeriesProgress の戻り値 */
+export type MilestoneSeriesProgress = {
+  seriesKey: string;
+  order: MilestoneSeriesOrder;
+  /** 今の stages() の並び(消した段階の記録は出ない) */
+  stages: MilestoneSeriesStageProgress[];
+  /** 達成済みの段階の鍵(stages の並び) */
+  achievedKeys: string[];
+  /** 次の段階の鍵: sequential = 未達成の一番下の段 / unordered = 未達成の最初。全部済みなら null */
+  next: string | null;
+  /** 未達成の段階の数 */
+  remaining: number;
 };

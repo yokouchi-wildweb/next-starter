@@ -247,6 +247,7 @@ export async function completePurchase(
         milestoneKey: r.key,
         achieved: true,
         ...(r.metadata && { metadata: r.metadata as Record<string, unknown> }),
+        ...(r.series && { seriesKey: r.series.seriesKey, stageKey: r.series.stageKey }),
       }));
 
     if (persistedResults.length > 0) {

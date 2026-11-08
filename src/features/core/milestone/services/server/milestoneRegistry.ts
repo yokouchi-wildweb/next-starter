@@ -106,3 +106,13 @@ export function getMilestoneByKey(key: string): MilestoneDefinition | undefined 
 export function getAllMilestones(): MilestoneDefinition[] {
   return [...registry().values()];
 }
+
+/**
+ * シリーズの項目を鍵で取得する(展開しない。進み具合の読み手が stages() を読む)
+ *
+ * @param seriesKey シリーズの鍵
+ * @returns シリーズ、無ければ undefined(普通の定義の鍵でも undefined)
+ */
+export function getMilestoneSeries(seriesKey: string): MilestoneSeries<unknown> | undefined {
+  return definitions.find((item): item is MilestoneSeries<unknown> => isMilestoneSeries(item) && item.key === seriesKey);
+}

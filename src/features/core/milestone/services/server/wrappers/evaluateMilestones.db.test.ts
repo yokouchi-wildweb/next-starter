@@ -12,7 +12,7 @@ import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import { and, eq, inArray } from "drizzle-orm";
 
-import type { MilestoneDefinition } from "../../../types/milestone";
+import type { MilestoneDefinition, MilestoneSeries } from "../../../types/milestone";
 
 const envFile = resolve(process.cwd(), process.env.ENV_FILE ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
@@ -20,12 +20,16 @@ if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
 const skip = (process.env.DATABASE_URL ?? "").trim().length === 0;
 
 let definitions: MilestoneDefinition[] = [];
-mock.module("../milestoneRegistry", { namedExports: { getMilestonesByTrigger: () => definitions } });
+let series: MilestoneSeries<{ key: string }> | undefined;
+mock.module("../milestoneRegistry", {
+  namedExports: { getMilestonesByTrigger: () => definitions, getMilestoneSeries: () => series },
+});
 
 describe("evaluateMilestones(実 DB)", { skip, timeout: 60000 }, () => {
   let db: typeof import("@/lib/drizzle").db;
   let MilestoneTable: typeof import("@/features/core/milestone/entities/drizzle").MilestoneTable;
   let evaluateMilestones: typeof import("./evaluateMilestones").evaluateMilestones;
+  let getMilestoneSeriesProgress: typeof import("./getMilestoneSeriesProgress").getMilestoneSeriesProgress;
   const users: string[] = [];
   let userId = "";
 
@@ -33,6 +37,7 @@ describe("evaluateMilestones(実 DB)", { skip, timeout: 60000 }, () => {
     ({ db } = await import("@/lib/drizzle"));
     ({ MilestoneTable } = await import("@/features/core/milestone/entities/drizzle"));
     ({ evaluateMilestones } = await import("./evaluateMilestones"));
+    ({ getMilestoneSeriesProgress } = await import("./getMilestoneSeriesProgress"));
   });
   beforeEach(() => {
     userId = randomUUID();
@@ -135,5 +140,26 @@ describe("evaluateMilestones(実 DB)", { skip, timeout: 60000 }, () => {
       .from(MilestoneTable)
       .where(and(eq(MilestoneTable.user_id, userId), eq(MilestoneTable.milestone_key, "test_db_r4")));
     assert.deepEqual(left, []);
+  });
+
+  test("進み具合: 記録した段から達成済み・次・残りを返す(tx の中の記録も読める)", { timeout: 40000 }, async () => {
+    series = {
+      kind: "series",
+      key: "test_db_rank",
+      triggers: ["t"],
+      order: "sequential",
+      stages: () => [{ key: "r1" }, { key: "r2" }, { key: "r3" }],
+      stageKey: (stage) => `test_db_${stage.key}`,
+      evaluate: async () => false,
+    };
+    await db.insert(MilestoneTable).values({ user_id: userId, milestone_key: "test_db_r1", achieved_at: new Date() });
+    const outside = await getMilestoneSeriesProgress(userId, "test_db_rank");
+    assert.deepEqual([outside?.achievedKeys, outside?.next, outside?.remaining], [["test_db_r1"], "test_db_r2", 2]);
+    await db.transaction(async (tx) => {
+      await tx.insert(MilestoneTable).values({ user_id: userId, milestone_key: "test_db_r2", achieved_at: new Date() });
+      const inside = await getMilestoneSeriesProgress(userId, "test_db_rank", tx);
+      assert.deepEqual([inside?.achievedKeys, inside?.next], [["test_db_r1", "test_db_r2"], "test_db_r3"]);
+    });
+    series = undefined;
   });
 });
