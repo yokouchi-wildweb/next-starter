@@ -1,7 +1,7 @@
 ---
 name: order
 description: 指定したリポ(自分自身も可)の受信箱に、単発の作業指示・確認依頼を起票する。self 宛て = 自リポが次にやる作業の予約。受け取ったリポは /inbox で自分の役目に照らして受理を判断する
-argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足メモ(任意)]"
+argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [quest] [補足メモ(任意)]"
 ---
 
 あなたは今 **ORDER**(指定したリポの受信箱に、単発の「これをやって / 確かめて」を書き込む起票)を行います。
@@ -12,11 +12,11 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
 - 受信箱に入るのは単発の指令だけ。連続した・グループ化された指令は council の legate の中で扱う
 - 宛先リポは自分の受信箱を `/inbox` で読む。起票したセッションは `/wen` で状況を確かめる
 - **指令の状態**(先頭の `status:`、1 つの値): `open` → `routed`(評議会・ギルド・legate の計画に振り分け済み。`routed_to:` / `routed_by:` / `routed_at:`)→ `taken`(担当が着手。`taken_by:` / `taken_at:`)→ 答え(done / partial / relayed / rejected / withdrawn、`done/` へ)。移り変わりは末尾の `## STATUS_LOG` に追記される。`status:` の無い古い指令は open。担当以外の着手・答えは mailbox.mjs が断る(使い方は `.claude/skills/inbox/SKILL.md` の「担当の守り」)
-- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox | name-check <名前> | route | take | release | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`me` = 担当として書かれる自分の名前。`route <指令> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = 振り分け、`take <指令> [--as=]` = 着手、`release <指令>` = 手放す。`name-check` = その名前を自リポの fork_id: にしてよいか(fleet.conf・手元のリポ・既存の受信箱と重ならないか。/fork-init が使う)。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。手順は `.claude/skills/inbox/SKILL.md` の 4)
+- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`me` = 担当として書かれる自分の名前。`route <指令> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = 振り分け、`take <指令> [--as=]` = 着手、`release <指令>` = 手放す。`name-check` = その名前を自リポの fork_id: にしてよいか(fleet.conf・手元のリポ・既存の受信箱と重ならないか。/fork-init が使う)。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。env `ORDER_RESOLVED_HOOK`(実行ファイルのパス)があれば、答えた後に done/ の指令のパスで呼ぶ(無ければ何もしない。チームのタブが依頼元への知らせに使う)。`inbox --quest` = クエスト(`kind: quest`)だけ。手順は `.claude/skills/inbox/SKILL.md` の 4)
 
 ## 使う材料
 - ここまでの会話の文脈(=何をしてほしいかは既に議論済みのはず)
-- 引数: $ARGUMENTS(先頭の語が宛先。残りは補足メモ。宛先に当たらない語で始まるときは、全体を補足メモとして扱い、宛先は省略とする)
+- 引数: $ARGUMENTS(先頭の語が宛先。宛先の次の語が `quest` ならクエストとして起票する(下の `kind:`)。残りは補足メモ。宛先に当たらない語で始まるときは、全体を補足メモとして扱い、宛先は省略とする)
 
 ## 手順
 1. **provenance を Bash で取得**(推測しない・手で組み立てない): `node .claude/skills/order/mailbox.mjs from` の `from:` 行をそのまま使う。
@@ -34,6 +34,7 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
    to: <target origin url> | box:<target fork-id>
    date: <ISO8601>
    status: open
+   kind: quest   (only when filed as a quest: the `quest` argument, or the requester asked for a quest; omit the line otherwise)
    title: <日本語の短い題(20 文字前後)>
    need: <one line — the work or check requested>
    why: <the situation driving it; for work that should live in the target repo, why it belongs there>
@@ -51,6 +52,7 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
    - self 宛てのとき: 後で読むのは文脈を持たない別のセッションなので、`why:` と `refs:` に今の会話で分かっていることを省かず書く(どこまで決まったか、未決の点、読むべきファイル)
    - `<slug>` は need から短いケバブ(英語)で作る
    - `title:` = 人が一覧(チームの起動画面・`mailbox.mjs inbox`)で読む日本語の短い題。何をするかが分かる名詞句で 20 文字前後(例: `チャットルームの UID 不一致を直す`)。一覧は「題 id」と並べるので、id や日付は題に入れない
+   - `kind: quest` = クエスト(`quest <id>` の 1 タブで片付ける依頼)の印。印の正はこの欄だけ: 題に【★クエスト】などの印を付けない(一覧・quest の起動画面・候補選びはこの欄を読む)。クエストが答えると、依頼元が評議会・ギルド・クエストの統括なら、チームの道具が自動で知らせる(依頼元が notes に「知らせて」と書かなくてよい)
    - `status:` は起票時 `open`。以後は mailbox.mjs だけが書き換える(route → routed、take → taken、release → 取る前の状態、resolve → RESOLUTION の status(done / partial / relayed / rejected / withdrawn)で done/ へ。手では書き換えない)
 4. **事前確認は取らず、そのままファイルを書き出す**(受信箱のフォルダが無ければ作成)。宛先が決まった後の「この内容で起票していいですか?」等の承認待ちは**禁止**(起票はただの md ファイルで、後から編集・移動・削除で直せるため):
    - パス: `<宛先の box>/<ts>-<slug>.md`

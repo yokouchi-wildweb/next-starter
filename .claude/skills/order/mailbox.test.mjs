@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { actorOf, forkIdOf, fromLine, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder } from "./mailbox.mjs";
+import { actorOf, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -159,6 +159,55 @@ test("CLI: inbox の一覧は title:（日本語の短い題）があれば need
   const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: dirname(dir) } });
   assert.match(out, /\n  from: .*\n  title: 題を出す\n  need: do x\n/);
   assert.match(out, /000001-y\.md\n  from: .*\n  need: do y\n/);
+});
+
+test("クエストの印: 先頭の kind: quest だけを読む（題の【★クエスト】・本文の kind: は印にしない）", () => {
+  assert.equal(isQuest("# ORDER id:a\nfrom: x\nstatus: open\nkind: quest\nneed: y\n"), true);
+  assert.equal(isQuest("# ORDER id:a\nfrom: x\nstatus: open\ntitle: 【★クエスト】題\nneed: y\n"), false);
+  assert.equal(isQuest("# ORDER id:a\nfrom: x\nneed: y\n\n## BODY\nkind: quest\n"), false);
+});
+
+test("CLI: inbox は kind: quest の行を出し、--quest でクエストだけに絞る", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
+  run("init", "-q", "-b", "main");
+  run("remote", "add", "origin", "git@github.com:Acme/App.git");
+  run("commit", "-q", "--allow-empty", "-m", "x");
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const { dir, file } = box();
+  writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: council c1 | role:Chair\nstatus: open\nkind: quest\ntitle: 題\nneed: do x\n");
+  writeFileSync(join(dir, "20260101-000001-y.md"), "# ORDER id:20260101-000001-y\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\nneed: do y\n");
+  const env = { ...clean, TEAM_ORDERS: dirname(dir) };
+  const all = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env });
+  assert.match(all, /000000-x\.md\n  from: council c1 Chair\n  kind: quest\n  title: 題\n  need: do x\n/);
+  assert.match(all, /000001-y\.md\n  from: .*\n  need: do y\n/);
+  const quests = execFileSync("node", [SCRIPT, "inbox", "--quest"], { cwd: repo, encoding: "utf8", env });
+  assert.match(quests, /000000-x\.md/);
+  assert.doesNotMatch(quests, /000001-y\.md/);
+});
+
+test("CLI: resolve の後の口 ORDER_RESOLVED_HOOK は答えた指令のパスで呼ばれ、落ちても答えは残る。無ければ何もしない", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
+  run("init", "-q", "-b", "main");
+  run("commit", "-q", "--allow-empty", "-m", "x");
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_") && k !== "ORDER_RESOLVED_HOOK"));
+  const bodyFile = join(repo, "..", `body-hook-${process.pid}.md`);
+  writeFileSync(bodyFile, BODY);
+  const log = join(repo, "..", `hook-${process.pid}.log`);
+  const hook = join(repo, "..", `hook-${process.pid}.sh`);
+  writeFileSync(hook, `#!/bin/sh\necho "$1" >> "${log}"\n`, { mode: 0o755 });
+  const a = box();
+  execFileSync("node", [SCRIPT, "resolve", a.file, "--status=done", `--body=${bodyFile}`, "--pushed=-"], { cwd: repo, encoding: "utf8", env: { ...clean, ORDER_RESOLVED_HOOK: hook } });
+  assert.equal(readFileSync(log, "utf8"), `${join(dirname(a.file), "done", "20260101-000000-x.md")}\n`);
+  const b = box();
+  const failing = join(repo, "..", `hook-fail-${process.pid}.sh`);
+  writeFileSync(failing, "#!/bin/sh\nexit 3\n", { mode: 0o755 });
+  execFileSync("node", [SCRIPT, "resolve", b.file, "--status=done", `--body=${bodyFile}`, "--pushed=-"], { cwd: repo, stdio: "pipe", env: { ...clean, ORDER_RESOLVED_HOOK: failing } });
+  assert.equal(existsSync(join(dirname(b.file), "done", "20260101-000000-x.md")), true);
+  const c = box();
+  execFileSync("node", [SCRIPT, "resolve", c.file, "--status=done", `--body=${bodyFile}`, "--pushed=-"], { cwd: repo, stdio: "pipe", env: clean });
+  assert.equal(readFileSync(log, "utf8").split("\n").filter(Boolean).length, 1);
 });
 
 // ---- 状態（open | routed | taken）と担当の守り ----

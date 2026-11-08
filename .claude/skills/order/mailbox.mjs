@@ -338,6 +338,11 @@ function appendLog(text, entry) {
   return lines.join("\n");
 }
 
+// クエストの印 = 先頭の `kind: quest`（/order の引数 quest・評議会の起票の道具が書く）。印の正はこの欄だけで、題の書き方では読まない
+export function isQuest(text) {
+  return headField(text, "kind") === "quest";
+}
+
 export function orderStatus(text) {
   const s = headField(text, "status");
   return LIVE.includes(s) || REQUIRED[s] ? s : "open";
@@ -487,7 +492,7 @@ function printOrder(path, actor, env) {
   let state = orderStatus(text);
   if (waits.length) state = waits.every((w) => w.state === "done") ? "resumable" : "waiting";
   const title = headField(text, "title");
-  console.log(`${state} ${path}\n  from: ${requester(field(text, "from")).label}${title ? `\n  title: ${title}` : ""}\n  need: ${field(text, "need")}`);
+  console.log(`${state} ${path}\n  from: ${requester(field(text, "from")).label}${isQuest(text) ? "\n  kind: quest" : ""}${title ? `\n  title: ${title}` : ""}\n  need: ${field(text, "need")}`);
   const to = headField(text, "routed_to");
   const by = headField(text, "taken_by");
   if (to) console.log(`  routed_to: ${to}${routedMatches(to, actor, undefined, env) ? " (you)" : ""}`);
@@ -497,6 +502,19 @@ function printOrder(path, actor, env) {
 
 // 直接実行されたときだけ CLI として動く（テストは resolveOrder などを import する）
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+
+// 答えた後の口: env ORDER_RESOLVED_HOOK = 実行ファイルのパス（シェルを通さない）。答えた指令（done/ の中）のパスを引数に呼ぶ。
+// 設定が無ければ何もしない（fork の既定）。チームのタブはここで依頼元の統括への知らせを付ける（~/.team/_bin）。
+// 口が落ちても答えは取り消さない（RESOLUTION と done/ は書き終わっている）: 理由を 1 行出して exit 0 のまま
+export function afterResolve(dest, env = process.env) {
+  const hook = env.ORDER_RESOLVED_HOOK;
+  if (!hook) return;
+  try {
+    execFileSync(hook, [dest], { stdio: "inherit", env });
+  } catch (e) {
+    console.error(`resolve: 答えた後の口（ORDER_RESOLVED_HOOK=${hook}）が落ちました: ${e.message.split("\n")[0]}`);
+  }
+}
 
 function opt(args, name) {
   const a = args.find((x) => x.startsWith(`--${name}=`));
@@ -544,8 +562,12 @@ function main() {
     console.log(`me: ${actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) })}`);
   } else if (cmd === "inbox") {
     const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
+    const questOnly = process.argv.slice(3).includes("--quest");
     console.log(`box: ${boxOf(self.repoId)}`);
-    for (const p of mdFiles(boxOf(self.repoId))) printOrder(p, actor, process.env);
+    for (const p of mdFiles(boxOf(self.repoId))) {
+      if (questOnly && !isQuest(readFileSync(p, "utf8"))) continue;
+      printOrder(p, actor, process.env);
+    }
   } else if (["route", "take", "release"].includes(cmd)) {
     const args = process.argv.slice(3);
     const file = args.find((a) => !a.startsWith("--"));
@@ -582,6 +604,7 @@ function main() {
         force: opt(args, "force"),
       });
       console.log(`resolved: ${dest}`);
+      afterResolve(dest, process.env);
     } catch (e) {
       console.error(`resolve: ${e.message}`);
       process.exit(1);
