@@ -427,6 +427,38 @@ describe("purposes", () => {
     assert.ok(problems.some((p) => p.includes("read")));
     assert.ok(problems.some((p) => p.includes("contentTypes")));
   });
+
+  describe("縮小の指定（image）の検査", () => {
+    const base = { visibility: "public", maxBytes: 1024, contentTypes: ["image/*"], upload: { allow: "authenticated" } } as const;
+    const problemsOf = (purpose: Record<string, unknown>) =>
+      listStoragePurposeProblems({ "album.photo": { ...base, ...purpose } as StoragePurposeMap[string] });
+
+    test("正しい形(maxDimension だけ・quality 付き)は問題なし", () => {
+      assert.deepEqual(problemsOf({ image: { maxDimension: 2048 } }), []);
+      assert.deepEqual(problemsOf({ image: { maxDimension: 1, quality: 100 } }), []);
+      assert.deepEqual(problemsOf({ metadata: "strip", image: { maxDimension: 800, quality: 1 } }), []);
+    });
+
+    test("maxDimension が 1 以上の整数でない", () => {
+      for (const maxDimension of [0, -1, 1.5, "2048", undefined]) {
+        const problems = problemsOf({ image: { maxDimension } });
+        assert.ok(problems.some((p) => p.includes("image.maxDimension")), String(maxDimension));
+      }
+      assert.ok(problemsOf({ image: null }).some((p) => p.includes("image は")));
+    });
+
+    test("quality が 1〜100 の整数でない", () => {
+      for (const quality of [0, 101, 80.5, "80"]) {
+        const problems = problemsOf({ image: { maxDimension: 2048, quality } });
+        assert.ok(problems.some((p) => p.includes("image.quality")), String(quality));
+      }
+    });
+
+    test("画像の型が無い用途・keep の用途には書けない", () => {
+      assert.ok(problemsOf({ contentTypes: ["video/*"], metadata: "keep", image: { maxDimension: 2048 } }).some((p) => p.includes("画像の型が contentTypes に無い")));
+      assert.ok(problemsOf({ metadata: "keep", image: { maxDimension: 2048 } }).some((p) => p.includes('"keep" の用途に image は書けません')));
+    });
+  });
 });
 
 describe("AppImage（表示 src と最適化の判定）", () => {

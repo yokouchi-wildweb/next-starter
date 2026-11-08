@@ -32,9 +32,10 @@ export type CommitUploadResponse = {
   contentType: string;
 };
 
-/** GET /api/storage/purposes/[purpose] の応答（用途の方針） */
+/** GET /api/storage/purposes/[purpose] の応答（用途の方針）。image = 用途の縮小の指定（無ければ null = 縮めない） */
 export type PurposePolicyResponse = {
   metadata: "strip" | "keep";
+  image: { maxDimension: number; quality?: number } | null;
 };
 
 /** uploadToStorage の完了時に渡す値 */

@@ -118,6 +118,7 @@ const PURPOSES: StoragePurposeMap = {
     upload: { allow: "authenticated" },
     read: { allow: "authenticated" },
     metadata: "strip",
+    image: { maxDimension: 2048, quality: 80 },
   },
 };
 
@@ -314,12 +315,15 @@ describe("issue", () => {
 });
 
 describe("describePurpose（用途の方針。GET /api/storage/purposes/[purpose]）", () => {
-  test("strip / keep / 省略（= strip）を返し、未登録・ID の形式違いは 404", () => {
+  test("strip / keep / 省略（= strip）と縮小の指定（無ければ null）を返し、未登録・ID の形式違いは 404", () => {
     const h = setup();
-    assert.deepEqual(h.service.describePurpose("album.photo"), { metadata: "strip" });
-    assert.deepEqual(h.service.describePurpose("profile.photo"), { metadata: "strip" }, "省略は strip");
-    assert.deepEqual(h.service.describePurpose("chatRoom.file"), { metadata: "keep" });
-    assert.deepEqual(h.service.describePurpose("purchaseRequest.bankProof"), { metadata: "keep" });
+    assert.deepEqual(h.service.describePurpose("album.photo"), {
+      metadata: "strip",
+      image: { maxDimension: 2048, quality: 80 },
+    });
+    assert.deepEqual(h.service.describePurpose("profile.photo"), { metadata: "strip", image: null }, "省略は strip");
+    assert.deepEqual(h.service.describePurpose("chatRoom.file"), { metadata: "keep", image: null });
+    assert.deepEqual(h.service.describePurpose("purchaseRequest.bankProof"), { metadata: "keep", image: null });
     assert.throws(() => h.service.describePurpose("user.cover"), rejectsWith(404));
     assert.throws(() => h.service.describePurpose("../etc"), rejectsWith(404));
     assert.throws(() => h.service.describePurpose("toString"), rejectsWith(404));
@@ -334,7 +338,7 @@ describe("describePurpose（用途の方針。GET /api/storage/purposes/[purpose
       now: () => new Date(),
       newId: () => "01920000-0000-7000-8000-000000000001",
     });
-    assert.deepEqual(service.describePurpose("user.avatar"), { metadata: "strip" });
+    assert.deepEqual(service.describePurpose("user.avatar"), { metadata: "strip", image: null });
   });
 });
 

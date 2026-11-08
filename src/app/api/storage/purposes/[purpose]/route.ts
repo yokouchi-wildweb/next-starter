@@ -1,7 +1,7 @@
 // src/app/api/storage/purposes/[purpose]/route.ts
 //
-// GET: 用途の方針（metadata: strip / keep）を返す。端末はこれで HEIC などを JPEG に変えるかと、
-//      写真選択の accept を受け付ける画像の型に狭めるかを決める（呼び出し側に strip / keep の指定を課さない）。
+// GET: 用途の方針（metadata: strip / keep と、画像の縮小の指定 image | null）を返す。端末はこれで HEIC などを JPEG に変えるか、
+//      写真選択の accept を受け付ける画像の型に狭めるか、送る前に画像を縮めるかを決める（呼び出し側に指定を課さない）。
 //      誰が聞いても同じ答えなので /api/me/ には置かない。アップロードはログイン必須なので authenticated。
 //      未登録は 404（fail-closed）。用途表はデプロイ単位でしか変わらないので、端末に短時間キャッシュさせる。
 

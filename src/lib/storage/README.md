@@ -300,12 +300,21 @@ type StoragePurpose = {
   maxPending?: number;               // 省略 = storage.config の defaultMaxPending
   attach?: false;                    // false = 業務行に紐付けない（チャット添付）
   metadata?: "strip" | "keep";       // 画像のメタデータの扱い。省略 = strip（「位置情報の約束」）
+  image?: { maxDimension: number; quality?: number }; // 画像の縮小の指定。省略 = 縮めない（下の「画像の縮小の指定」）
 };
 ```
 
+### 画像の縮小の指定: `image`（`StorageImageSpec`）
+
+- 縮小は**用途ごとに 1 か所**で宣言する（手書きの用途は `purposes/` の項目、生成の用途は domain.json の field.storage）。入力部品の欄（validationRule・FieldConfig）には持たない
+- `maxDimension` = 長い辺の上限（px、1 以上の整数）。超える画像だけを縦横比を保って縮める（小さい画像は描き直さない）。`quality` = 縮めて書き出すときの画質（1〜100 の整数）。省略 = `storage.config` の `imageStrip.quality`
+- 省略 = 縮めない（今までどおり）。上流の core の用途（`user.avatar` ほか）には指定を置かない: 値は fork の画面の都合で決まるので、fork が自分の用途・上書きで宣言する
+- strip（省略を含む）の画像の用途にだけ書ける。`metadata: "keep"` の用途・画像の型が無い用途に書くと `listStoragePurposeProblems` のエラー（keep はサーバーが描き直さないので、縮小を守らせられない）
+- 守り方: ブラウザが送る前にこの指定で縮め、サーバーは commit の描き直しで同じ指定を守らせる（最後の守り）。どちらも用途の方針（`GET /api/storage/purposes/[purpose]` の `image`）と用途表の同じ値を読む
+
 - allow（既存の DomainApiAccessRule の語彙）と check（任意の判定関数）は AND。暗黙に判定を通る道（admin・system の素通し）は無い
 - `resolveStoragePurpose(map, id)` は、未登録なら `StoragePurposeNotFoundError`（400）を投げる。`findStoragePurpose(map, id)` は未登録で undefined
-- `listStoragePurposeProblems(map)` は用途表の形式を検査する（metadata の値・描き直せない画像の型・画像の無い用途の strip・`user.avatar` の keep を含む）。用途の登録表との結線は `src/features/core/storageObject/services/server/purposeSource.ts` で行う
+- `listStoragePurposeProblems(map)` は用途表の形式を検査する（metadata の値・描き直せない画像の型・画像の無い用途の strip・`user.avatar` の keep・`image` の形と keep / 画像の無い用途への指定を含む）。用途の登録表との結線は `src/features/core/storageObject/services/server/purposeSource.ts` で行う
 
 ## クライアント: `uploadToStorage`
 
@@ -358,7 +367,7 @@ const { cancel } = uploadToStorage(file, {
 
 ### 用途の方針: `GET /api/storage/purposes/[purpose]`
 
-- 応答 `{ metadata: "strip" | "keep" }`（`storageObjectService.describePurpose`。`user.avatar` は常に strip）
+- 応答 `{ metadata: "strip" | "keep", image: { maxDimension, quality? } | null }`（`storageObjectService.describePurpose`。`user.avatar` は常に strip。`image` は用途の縮小の指定、無ければ null）
 - ログイン必須（createApiRoute `authenticated`）。未登録・ID の形式違いは 404。誰が聞いても同じ答えなので `/api/me/` には置かない
 - `Cache-Control: private, max-age=300`
 - クライアントは `purposeMetadataLoader`（`purposePolicy.ts`）が用途ごとに記憶する（ページの寿命の間。同時の呼び出しはまとめる。失敗は記憶せず次で取り直す）。`uploadToStorage` と `usePurposeMetadata` が同じ記憶を共有する

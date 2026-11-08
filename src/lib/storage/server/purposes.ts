@@ -63,6 +63,7 @@ export function listStoragePurposeProblems(map: StoragePurposeMap): string[] {
       problems.push(`${id}: maxPending は 1 以上の整数にしてください`);
     }
     problems.push(...listMetadataProblems(id, purpose));
+    problems.push(...listImageSpecProblems(id, purpose));
   }
   return problems;
 }
@@ -93,6 +94,28 @@ function listMetadataProblems(id: string, purpose: StoragePurpose): string[] {
   }
   if (metadata === "keep" && STRIP_ONLY_PURPOSE_IDS.includes(id)) {
     problems.push(`${id}: この用途は keep にできません（常に strip）`);
+  }
+  return problems;
+}
+
+/** 縮小の指定（image）の形式。strip の画像の用途にだけ書ける */
+function listImageSpecProblems(id: string, purpose: StoragePurpose): string[] {
+  const image: unknown = purpose.image;
+  if (image === undefined) return [];
+  if (typeof image !== "object" || image === null) return [`${id}: image は { maxDimension, quality? } にしてください`];
+  const { maxDimension, quality } = image as { maxDimension?: unknown; quality?: unknown };
+  const problems: string[] = [];
+  if (typeof maxDimension !== "number" || !Number.isInteger(maxDimension) || maxDimension < 1) {
+    problems.push(`${id}: image.maxDimension は 1 以上の整数（px）にしてください`);
+  }
+  if (quality !== undefined && (typeof quality !== "number" || !Number.isInteger(quality) || quality < 1 || quality > 100)) {
+    problems.push(`${id}: image.quality は 1〜100 の整数にしてください`);
+  }
+  if (!purpose.contentTypes.some((v) => v.trim().toLowerCase().startsWith("image/"))) {
+    problems.push(`${id}: 画像の型が contentTypes に無い用途に image は書けません`);
+  }
+  if (purpose.metadata === "keep") {
+    problems.push(`${id}: metadata: "keep" の用途に image は書けません（サーバーが描き直さないので縮小を守らせられない）`);
   }
   return problems;
 }

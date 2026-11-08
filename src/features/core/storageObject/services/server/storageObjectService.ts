@@ -25,6 +25,7 @@ import {
   requiresStrip,
   resolvePurposeMetadata,
   resolveStorageSrc,
+  type StorageImageSpec,
   type StorageMetadataPolicy,
   type StoragePurpose,
   type StoragePurposeMap,
@@ -79,9 +80,13 @@ export type CommitResult = {
   contentType: string;
 };
 
-/** GET /api/storage/purposes/[purpose] の応答（用途の方針。端末が変換の要否と写真選択の accept を決める） */
+/**
+ * GET /api/storage/purposes/[purpose] の応答（用途の方針。端末が変換の要否・写真選択の accept・送る前の縮小を決める）。
+ * image = 用途の縮小の指定（無ければ null = 縮めない）
+ */
 export type PurposePolicyResult = {
   metadata: StorageMetadataPolicy;
+  image: StorageImageSpec | null;
 };
 
 export type ReadResolution =
@@ -327,7 +332,7 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
     describePurpose(purposeId: string): PurposePolicyResult {
       const purpose = findStoragePurpose(purposes(), purposeId);
       if (!purpose) throw new DomainError("登録されていないアップロード用途です", { status: 404 });
-      return { metadata: resolvePurposeMetadata(purpose) };
+      return { metadata: resolvePurposeMetadata(purpose), image: purpose.image ?? null };
     },
 
     /** アップロード権を発行する（POST /api/me/storage/uploads） */

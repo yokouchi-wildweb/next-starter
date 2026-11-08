@@ -19,7 +19,7 @@ function fakeClient(answers: Record<string, PurposePolicyResponse["metadata"]>, 
         if (failures.has(purpose)) throw new Error("失敗");
         const metadata = answers[purpose];
         if (!metadata) throw new Error("404");
-        return { metadata };
+        return { metadata, image: null };
       },
     },
   };
