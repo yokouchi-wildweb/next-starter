@@ -250,7 +250,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
    c. コンフリクトは自分で解消する(上流の意図と自 fork の改変の両立を判断。判断が本当に割れるものだけユーザーに確認)。プロジェクトごとのファイルの採り方:
       - `.claude/rules/project.md` と `behavior.md`: fork 側を採り、上流の追加はこの fork に当てはまるものだけ取り込む。
       - `.claude/rules/shortcuts.md` と `term-aliases.md`: `fork entries below` マーカーより上を上流側、下を fork 側で採る。
-      - 生成物 `src/app/route-map.jsonl`(ルート地図。旧 `route-map.txt` が残っていれば消す): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm generate routes` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。生成物 `src/features/feature-map.txt`(ドメインの一覧)も同じ扱いで、作り直しは `pnpm generate domain -- --feature-map`。
+      - 生成物 `src/app/route-map.jsonl`(ルート地図。旧 `route-map.txt` が残っていれば消す): 衝突しても手で直さない。どちらかの版を採って他の衝突を先に解消し、最後に `pnpm generate routes` で作り直して `git add` する。衝突が無くても、区間の上流差分にこのファイルがあれば同じく作り直す(fork 独自のページの行が上流の生成結果に無いため)。5d の許可集合の内側の変更になる。生成物 `src/registry/district-map.jsonl`(地区の地図。ドメインの一覧を含む)も同じ扱いで、作り直しは `pnpm generate district-map`(旧 `src/features/feature-map.txt` が残っていれば消す)。
       - 中間 Tier の物(Tier1 の版に無いファイル。自分が下の Tier で、親の fork が足したもの)を自分が消した・書き換えた後に、親がそのファイルを変えて衝突した: 自分(下の Tier)の判断を保つ(消したものは消したまま、書き換えたものは自分の版)。上流の変更を取り込まなかったことを区間の報告と台帳の `notes:` に残す(D30 K7。所有の検査はこれらを合格の参考一覧に出す)
    d. **区間外変更の検査**(必須。c と移植の後、merge コミットの前。読み取りのみ):
       - 許可集合 = `git diff --no-renames --name-only $(git merge-base <pre> <区間の merge 先>) <区間の merge 先>` + 区間の `moved:` の移動先(ディレクトリならその配下)。

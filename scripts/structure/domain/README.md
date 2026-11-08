@@ -20,7 +20,6 @@
 | `pnpm generate domain -- <Domain>` | `index.mjs --generate` | 1 ドメイン（と主・従属の組の全員）を生成・再生成する |
 | `pnpm generate domain` | `index.mjs --generate --all` | 全ドメインを一括で再生成する |
 | `pnpm generate domain -- --delete <Domain> --confirm <snake_name>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
-| `pnpm generate domain -- --feature-map [--check]` | `feature-map.mjs` | ドメインの一覧 `src/features/feature-map.txt` を書き出す / 照らす |
 | `pnpm test scripts/structure/domain/tests <git-ref>` | `tests/parity.mjs` | 生成器の前後比較（下の「前後比較」） |
 | `pnpm check domain -- --compare [<Domain>...] [--base <ref>] [--detail] [--json <file>]` | `compare.mjs` | fork が generate を true / false に決めるための比較（下の「generate の旗を決める」）。読むだけ |
 
@@ -44,7 +43,7 @@
 - `false`: 手で管理。生成器は何も書かない（`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
 - `domainEntry.ts` を持たないまま `false` にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は登録表に載らず `pnpm check registry` が止まる → `domainEntry.ts` を手書きする（写せる形: [src/lib/domain/README.md](../../../src/lib/domain/README.md)「generate: false の業務ドメイン」）
 - `false` のドメインはどんな実行でも生成器を通さない: `pnpm generate domain`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
-- 一覧: 生成の書き込みの最後と `pnpm generate domain -- --delete` の後に `src/features/feature-map.txt`（`src/features` と `src/features/core` の全フォルダ。`_` 始まりを除く。kind / domain.json の有無 / generate）を書き直す。`pnpm check domain` がフォルダの増減・旗の切り替えのずれで落ちる。merge で衝突したら `pnpm generate domain -- --feature-map` で作り直す
+- 一覧: 生成の書き込みの最後と `pnpm generate domain -- --delete` の後に地区の地図 `src/registry/district-map.jsonl` を書き直す(features の行の `domainJson` = domain.json の有無・`generate` = 旗、無ければ null。中身: `src/lib/districtMap/README.md`)。ずれは `pnpm check district-map` が落とす。merge で衝突したら `pnpm generate district-map` で作り直す
 
 ### generate の旗を決める（`pnpm check domain -- --compare`）
 
@@ -80,7 +79,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 
 ## 生成の流れ（`pipeline/generate.mjs`）
 
-読む → 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる（主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す。`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../../src/features/README.md)「主の集まりの項目（mediaCollection）」）→ 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → feature-map を書き直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる。
+読む → 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる（主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す。`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../../src/features/README.md)「主の集まりの項目（mediaCollection）」）→ 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる。
 
 `pnpm generate domain` は全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。テンプレートを変えたあとの一括反映に使う。
 
@@ -123,7 +122,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 3. `--remove-config`: `domain.json` も消す（既定は `domain.json` だけ残してドメインディレクトリの中身を消す）
 4. `-i` のときは今までの対話（名前の再入力 → 追加ディレクトリの選択 → domain.json を消すか → 確認）
 
-削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、feature-map を書き直す。DB のテーブルは消さない。
+削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
 
 - `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`text/objectEntry.mjs` の `removeObjectEntry`）
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
@@ -190,7 +189,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 - `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput`、表に無い型と入力欄の組、選択肢の要る入力欄に options が無い、など（`checks/vocabulary.mjs` と各検査の `*Warnings`）。生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す。知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる。開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/features/README.md`「開発者のメモ（$comment）」）
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
-- `src/features/feature-map.txt` が `--check` で落ちる → `pnpm generate domain -- --feature-map`（または forge）で作り直してコミット
+- `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット
 
 ---
 
@@ -204,12 +203,12 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 | 層 | 役目 | 置いてよいもの |
 |---|---|---|
-| `index.mjs` `feature-map.mjs` `generate-client.mjs` | `pnpm generate domain` の振り分け先（入口は gate.json → `generateAll.mjs`） | |
-| `cli/` | 引数の解釈（`args.mjs`: `--only`・値を取るオプション）、`main.mjs`（振り分け）、`generate` / `generateAll` / `delete` / `featureMap`、`-i` の対話（`prompts.mjs`・`pickCategories.mjs`）、`process.exit` | inquirer、process.exit |
-| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry → feature-map。組なら `generateWithPairs`。カテゴリの決め方 `configTargets`）、`pairs.mjs`、`serviceRegistry.mjs`、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（pnpm generate domain -- --delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
+| `index.mjs` `generate-client.mjs` | `pnpm generate domain` の振り分け先（入口は gate.json → `generateAll.mjs`） | |
+| `cli/` | 引数の解釈（`args.mjs`: `--only`・値を取るオプション）、`main.mjs`（振り分け）、`generate` / `generateAll` / `delete`、`-i` の対話（`prompts.mjs`・`pickCategories.mjs`）、`process.exit` | inquirer、process.exit |
+| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry → 地区の地図。組なら `generateWithPairs`。カテゴリの決め方 `configTargets`）、`pairs.mjs`、`serviceRegistry.mjs`、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（pnpm generate domain -- --delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` は主の集まりの項目から従属の domain.json を組む）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`） | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、domain.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。`index.mjs` が全件を並べて止める。止めない食い違いは `*Warnings` と `vocabulary.mjs`。`pairs.mjs` = 組の検査、`accessRules.mjs` = アクセスルールの広さ。ロール・プロフィールの検査も `checks/fields.mjs` を共用する（`scripts/structure/role/checks/`） | |
-| `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + domain.json）、`names.mjs`（表名・FK 名・63 字）、`featureMap.mjs`（feature-map の中身）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
+| `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + domain.json）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
 | `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（キーの集合）、`collectionField.mjs`（従属の既定の名前・snake_case）(型と入力欄の組の表は `src/lib/domain/fields/fieldFormInputs.mjs`、アプリのテストも読むので lib)、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/structure/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
@@ -224,7 +223,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs` と `domain/`（`workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test scripts/structure/domain/tests/structure.test.mjs` `pnpm test scripts/structure/domain/tests/registry.test.mjs` `pnpm test scripts/structure/domain/tests/vocabulary.test.mjs` `pnpm test scripts/structure/domain/tests/checks.test.mjs` `pnpm test scripts/structure/domain/tests/featureMap.test.mjs` `pnpm test scripts/structure/domain/tests/dryRun.test.mjs` `pnpm test scripts/structure/domain/tests/registryPrecheck.test.mjs` `pnpm test scripts/structure/domain/tests/domainFolder.test.mjs` `pnpm test scripts/structure/domain/tests/onlyOption.test.mjs` `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs` `pnpm test scripts/structure/domain/tests/drizzleIndexes.test.mjs` `pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs` `pnpm test scripts/structure/domain/tests/storageOutput.test.mjs` `pnpm test scripts/structure/domain/tests/collectionField.test.mjs` `pnpm test scripts/structure/domain/tests/childDomain.test.mjs` `pnpm test scripts/structure/domain/tests/pairGenerate.test.mjs` `pnpm test scripts/structure/domain/tests/pairChecks.test.mjs` `pnpm test scripts/structure/domain/tests/deleteStop.test.mjs` `pnpm test scripts/structure/domain/tests/parentOutputs.test.mjs` `pnpm test scripts/structure/domain/tests/plural.test.mjs`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test scripts/structure/domain/tests/structure.test.mjs` `pnpm test scripts/structure/domain/tests/registry.test.mjs` `pnpm test scripts/structure/domain/tests/vocabulary.test.mjs` `pnpm test scripts/structure/domain/tests/checks.test.mjs` `pnpm test scripts/structure/domain/tests/generateTargets.test.mjs` `pnpm test scripts/structure/domain/tests/dryRun.test.mjs` `pnpm test scripts/structure/domain/tests/registryPrecheck.test.mjs` `pnpm test scripts/structure/domain/tests/domainFolder.test.mjs` `pnpm test scripts/structure/domain/tests/onlyOption.test.mjs` `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs` `pnpm test scripts/structure/domain/tests/drizzleIndexes.test.mjs` `pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs` `pnpm test scripts/structure/domain/tests/storageOutput.test.mjs` `pnpm test scripts/structure/domain/tests/collectionField.test.mjs` `pnpm test scripts/structure/domain/tests/childDomain.test.mjs` `pnpm test scripts/structure/domain/tests/pairGenerate.test.mjs` `pnpm test scripts/structure/domain/tests/pairChecks.test.mjs` `pnpm test scripts/structure/domain/tests/deleteStop.test.mjs` `pnpm test scripts/structure/domain/tests/parentOutputs.test.mjs` `pnpm test scripts/structure/domain/tests/plural.test.mjs`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm test scripts/structure/domain/tests <git-ref>`）
 

@@ -1,9 +1,0 @@
-#!/usr/bin/env node
-// pnpm generate domain -- --feature-map: ドメインの一覧 src/features/feature-map.txt を書き出す（本体は cli/featureMap.mjs）。
-//   pnpm generate domain -- --feature-map           # 書き出す（pnpm generate domain も書き込みの最後に書き直す）
-//   pnpm check domain   # 今のフォルダ・generate と一致するか（ずれていれば exit 1）
-import { runFeatureMap } from "./cli/featureMap.mjs";
-import { runCli } from "./cli/run.mjs";
-import { createWorkspace } from "./domain/workspace.mjs";
-
-runCli(() => runFeatureMap(createWorkspace(), { check: process.argv.slice(2).includes("--check") }));

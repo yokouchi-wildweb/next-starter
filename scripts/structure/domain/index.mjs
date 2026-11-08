@@ -10,7 +10,7 @@
  *   --only <categories> --generate と併用。今回はこのカテゴリだけ生成します（generate: false のドメインでも書く。例: --only registry）。
  *   --dry-run           --generate と併用。何も書かず、書くはずのファイルと動作（作成 / 上書き / 変更なし / 保持）を一覧します。
  *   --yes               受け付けて無視します（以前は対話なしにする旗。今は既定が対話なし）。
- *   書き込みの最後に src/features/feature-map.txt（ドメインの一覧）を書き直します。
+ *   書き込みの最後に地区の地図 src/registry/district-map.jsonl（ドメインの一覧を含む）を書き直します。
  *
  * 単独の `--` は無視します（`pnpm generate domain -- User` を許容するため）。
  * 失敗時は終了コード 1 で終了します。何も書く前に検査で止まり、書きかけのファイルは残しません。

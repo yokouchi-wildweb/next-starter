@@ -6,7 +6,7 @@ import { assertDomainFolderNames } from "../checks/domainFolder.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { isHandManaged } from "../spec/categories.mjs";
-import { configTargets, loadDomainForGenerate, narrowTargets, refreshFeatureMap } from "./generate.mjs";
+import { configTargets, loadDomainForGenerate, narrowTargets, refreshDistrictMap } from "./generate.mjs";
 import { assertPairs, collectionChildrenOf, groupOf, involvesPairs, orderWithPairs, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
@@ -73,7 +73,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     io.log("");
     regenerateServiceRegistry(workspace);
   }
-  refreshFeatureMap(workspace, io);
+  refreshDistrictMap(workspace, io);
   if (registryGenerated) io.log("src/registry の一覧は pnpm generate registry で作り直してください");
 
   if (summary.length) io.log("");

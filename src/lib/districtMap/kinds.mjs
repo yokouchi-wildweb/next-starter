@@ -25,6 +25,8 @@ export const CONFIG_FILE = "config.ts";
 export const OVERRIDE_ROOT = "src/config";
 export const OVERRIDE_FOLDERS = /** @type {const} */ ({ features: "features", lib: "lib", frame: "layout", proxies: "proxies" });
 
+/** ドメインの生成の入力(地区の dir の直下)。有無と generate を地図に載せる(L1.15) */
+export const DOMAIN_JSON_FILE = "domain.json";
 /** ドメインの登録(汎用 API・表のキーと requires)の置き場(地区の dir からの相対) */
 export const DOMAIN_ENTRY_FILE = "services/server/domainEntry.ts";
 /** 門の規則の置き場(1 ファイル 1 規則、名前 = ファイル名) */

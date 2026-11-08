@@ -110,7 +110,6 @@ pnpm forge                                   # 手で書いた domain.json / rol
 pnpm generate domain -- <Domain> [--only <cats>]    # 1 ドメインの生成（既定は対話なし、-i で対話）
 pnpm generate domain                         # 全ドメインの一括生成
 pnpm generate domain -- --delete <Domain> --confirm <snake>    # ドメイン削除
-pnpm generate domain -- --feature-map [--check]                # ドメインの一覧 src/features/feature-map.txt
 ```
 
 詳細: [structure/domain/README.md](./structure/domain/README.md)、[structure/forge/README.md](./structure/forge/README.md)

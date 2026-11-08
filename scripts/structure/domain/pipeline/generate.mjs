@@ -6,7 +6,8 @@ import path from "node:path";
 import { preflightIssues, preflightWarnings } from "../checks/index.mjs";
 import { readRegisteredFormInputs } from "../domain/formInputNames.mjs";
 import { createDomainContext } from "../domain/context.mjs";
-import { FEATURE_MAP_FILE, buildFeatureMap } from "../domain/featureMap.mjs";
+import { DISTRICT_MAP_FILE, toJsonl } from "../../../../src/lib/districtMap/index.mjs";
+import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { file } from "../render/output.mjs";
 import { generateTargets, isHandManaged, narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
@@ -76,11 +77,19 @@ export function configTargets(ctx, pairs, only, io = console) {
   return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel) }), only, io);
 }
 
-/** ドメインの一覧（src/features/feature-map.txt）を書き直し、変わったら知らせる（pnpm generate domain の書き込みの最後） */
-export function refreshFeatureMap(workspace, io = console) {
-  const content = buildFeatureMap(workspace.featureListing());
-  if (workspace.readFeatureMap() === content) return false;
-  applyOutputs([file(workspace.featureMapPath, content, { label: `✓ ${FEATURE_MAP_FILE} を書き直しました` })], io);
+/**
+ * 地区の地図(src/registry/district-map.jsonl)を今の木に合わせて書き直し、変わったら知らせる(pnpm generate domain の書き込みの最後と削除の後)。
+ * 地図に問題があれば書かずに知らせるだけ(止めるのは pnpm check district-map)。地図の中身: src/lib/districtMap/README.md
+ */
+export function refreshDistrictMap(workspace, io = console) {
+  const { districts, problems } = readDistrictMapAt(workspace.rootDir);
+  if (problems.length > 0) {
+    io.warn([`! ${DISTRICT_MAP_FILE} を作り直せない(pnpm check district-map で確かめて直す):`, ...problems.map((p) => `  - ${p}`)].join("\n"));
+    return false;
+  }
+  const text = toJsonl(districts);
+  if (workspace.readDistrictMap() === text) return false;
+  applyOutputs([file(workspace.districtMapPath, text, { label: `✓ ${DISTRICT_MAP_FILE} を書き直しました` })], io);
   return true;
 }
 
@@ -109,7 +118,7 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
   if (gen.registry && !deferServiceRegistry) {
     regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   }
-  if (!deferServiceRegistry) refreshFeatureMap(workspace, io);
+  if (!deferServiceRegistry) refreshDistrictMap(workspace, io);
   if (gen.registry && !deferServiceRegistry) io.log("src/registry の一覧は pnpm generate registry で作り直してください");
   return { registry: Boolean(gen.registry) };
 }
@@ -149,7 +158,7 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
     }
   }
   if (registry && !dryRun) regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
-  if (!dryRun) refreshFeatureMap(workspace, io);
+  if (!dryRun) refreshDistrictMap(workspace, io);
   if (registry && !dryRun) io.log("src/registry の一覧は pnpm generate registry で作り直してください");
   io.log("");
   for (const line of pairSummary(workspace, pairs, group, { registry, dryRun })) io.log(line);

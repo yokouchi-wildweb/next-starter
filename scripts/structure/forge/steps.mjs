@@ -30,7 +30,7 @@ export const POST_TESTS = [
  * 段の並び。生成器・検査器は門(scripts/runner/gates)で回す: 各道具の gate.json が乗る門と順序(after)を持つ
  *   pre = pnpm check --gate=forge:pre(role の宣言・domain の --dry-run・extensions の --no-stale)
  *   generate = pnpm generate --gate=forge:pre,forge:post(after の順 role → domain → registry → extensions → routes。cron は生成しない)
- *   post = pnpm check --gate=forge:post(domain の feature-map・registry・extensions・routes の地図)+ 門に乗らないテスト(pnpm test <パス>、POST_TESTS)と typecheck(・lint)
+ *   post = pnpm check --gate=forge:post(registry・extensions・地区の地図 district-map・routes の地図)+ 門に乗らないテスト(pnpm test <パス>、POST_TESTS)と typecheck(・lint)
  *   deploy = pnpm check --gate=deploy(vercel.json が無ければ cron が飛ばして出す)
  * @param {{ lint?: boolean }} options
  * @returns {Step[]}

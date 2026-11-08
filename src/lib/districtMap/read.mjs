@@ -12,6 +12,7 @@ import {
   CORE_DIR_NAME,
   DISTRICT_KINDS,
   DOMAIN_ENTRY_FILE,
+  DOMAIN_JSON_FILE,
   FEATURES_ROOT,
   GATE_RULES_DIR,
   LAYOUT_DIR_NAME,
@@ -29,7 +30,7 @@ import {
  * @typedef {{ path: string, exists: boolean }} FileSlot
  * @typedef {{
  *   kind: "features" | "lib" | "frame" | "proxies", name: string, core: boolean | null, dir: string,
- *   config: FileSlot, override: FileSlot, apiKeys: string[], tables: string[], requires: string[],
+ *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, apiKeys: string[], tables: string[], requires: string[],
  *   gates: string[], receptacles: string[], frame: string | null,
  * }} District
  */
@@ -152,6 +153,8 @@ export function readDistrictMap(source) {
       name: d.name,
       core: d.core,
       dir: d.dir,
+      domainJson: null,
+      generate: null,
       config: { path: configPath, exists: source.readText(configPath) !== null },
       override: { path: overridePath, exists: source.readText(overridePath) !== null },
       apiKeys: [],
@@ -162,6 +165,17 @@ export function readDistrictMap(source) {
       frame: d.kind === "frame" ? d.name : null,
     };
     if (d.kind === "features") {
+      // domain.json の有無と generate(省略 = true、domain.json なし = null。生成器 pnpm generate domain が書き直すか、L1.15)
+      const domainJsonPath = join(d.dir, DOMAIN_JSON_FILE);
+      const domainJsonText = source.readText(domainJsonPath);
+      district.domainJson = domainJsonText !== null;
+      if (domainJsonText !== null) {
+        try {
+          district.generate = JSON.parse(domainJsonText).generate !== false;
+        } catch (error) {
+          problems.push(`${domainJsonPath}: JSON として読めない(${error.message})`);
+        }
+      }
       const entryPath = join(d.dir, DOMAIN_ENTRY_FILE);
       const entryText = source.readText(entryPath);
       if (entryText !== null) {

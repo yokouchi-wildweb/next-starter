@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { codeReferenceStopMessage, deleteStopMessage, findExtraDirs, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
-import { refreshFeatureMap } from "../pipeline/generate.mjs";
+import { refreshDistrictMap } from "../pipeline/generate.mjs";
 import { confirm, prompt } from "./prompts.mjs";
 
 /** 対話で確認と追加の選択を聞く。中止なら null */
@@ -109,8 +109,8 @@ export async function runDelete(workspace, domain, options = {}) {
   }
 
   const failures = removeDomainFiles(workspace, { target, adminDir, pluralKebab, extras, removeConfig });
-  // ドメインの一覧（feature-map.txt）を今のフォルダに合わせる
-  refreshFeatureMap(workspace);
+  // 地区の地図(district-map.jsonl)を今のフォルダに合わせる
+  refreshDistrictMap(workspace);
   if (failures.length > 0) {
     console.error("以下のレジストリは自動で更新できませんでした。手で該当エントリを削除してください:");
     failures.forEach((f) => console.error(` - ${f}`));

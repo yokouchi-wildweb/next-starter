@@ -30,10 +30,10 @@ const READS = {
   },
   // 値の輪の走査は src 全体のソースを読む
   cycles: { entries: ["scripts/structure/cycles/cycles.test.mjs"], data: ["src/**/*.{ts,tsx,mts,mjs,js}"] },
-  // 生成の --dry-run(書く先の有無を見る)と feature-map.txt の照合
+  // 生成の --dry-run(書く先の有無を見る)
   domain: {
-    entries: ["scripts/structure/domain/check.mjs", "scripts/structure/domain/index.mjs", "scripts/structure/domain/feature-map.mjs"],
-    data: ["src/features/**/domain.json", "src/features/feature-map.txt", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/wiring/formInputs/inputs/*.ts", "src/features/core/user/roles/*.json"],
+    entries: ["scripts/structure/domain/check.mjs", "scripts/structure/domain/index.mjs"],
+    data: ["src/features/**/domain.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/wiring/formInputs/inputs/*.ts", "src/features/core/user/roles/*.json"],
   },
   // 規則の強さは設定とパスで決まる(代表のファイルは有無だけが効く)
   eslint: {

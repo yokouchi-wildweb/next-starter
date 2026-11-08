@@ -69,31 +69,9 @@ export function createWorkspace(rootDir = process.cwd()) {
     return [...new Set(names)].sort();
   }
 
-  /** フォルダ名（_ で始まるもの・ファイルは除く。ソート済み） */
-  const foldersIn = (dir, exclude = new Set()) =>
-    fs.existsSync(dir)
-      ? fs
-          .readdirSync(dir, { withFileTypes: true })
-          .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith("_") && !exclude.has(dirent.name))
-          .map((dirent) => dirent.name)
-          .sort()
-      : [];
-
-  /** ドメインの一覧（domain/featureMap.mjs）の材料: business・core のフォルダと generate（domain.json なし = null、壊れた JSON = "?"） */
-  function featureListing() {
-    const entry = (dir) => (name) => {
-      const file = path.join(dir, name, "domain.json");
-      if (!fs.existsSync(file)) return { name, generate: null };
-      const config = readConfigLenient(file);
-      return { name, generate: config === null ? "?" : config.generate !== false };
-    };
-    return { business: foldersIn(featuresDir, new Set(["core"])).map(entry(featuresDir)), core: foldersIn(coreDir).map(entry(coreDir)) };
-  }
-
-  const featureMapPath = path.join(rootDir, "src", "features", "feature-map.txt");
-
-  /** 今の feature-map.txt（無ければ null） */
-  const readFeatureMap = () => (fs.existsSync(featureMapPath) ? fs.readFileSync(featureMapPath, "utf8") : null);
+  /** 地区の地図(src/registry/district-map.jsonl)の場所と今の中身(無ければ null)。中身を作るのは scripts/structure/district-map */
+  const districtMapPath = path.join(rootDir, "src", "registry", "district-map.jsonl");
+  const readDistrictMap = () => (fs.existsSync(districtMapPath) ? fs.readFileSync(districtMapPath, "utf8") : null);
 
   /** テンプレート（src/features/_template/...）を読む。無ければ例外 */
   function readTemplate(...segments) {
@@ -106,9 +84,8 @@ export function createWorkspace(rootDir = process.cwd()) {
 
   return {
     rootDir,
-    featureMapPath,
-    featureListing,
-    readFeatureMap,
+    districtMapPath,
+    readDistrictMap,
     featuresDir,
     templateDir,
     adminTemplateDir: path.join(rootDir, "src", "app", "admin", "_template"),

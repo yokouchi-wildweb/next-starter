@@ -166,7 +166,7 @@ generated src/wiring/dbAgent.ts  # pnpm generate extensions
 generated src/registry/schemaRegistry.ts  # pnpm generate registry(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm generate registry(走査で丸ごと)
 generated src/registry/adminDomains.ts  # pnpm generate registry(走査で丸ごと: 管理一覧の画面を持つドメイン)
-generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map(forge・pnpm generate domain が書き直す)
+generated src/registry/district-map.jsonl  # pnpm generate district-map(地区の地図。forge・pnpm generate domain の最後・削除の後も書き直す)
 generated src/features/core/*/entities/display.ts  # pnpm generate registry(表示用の写し)
 generated src/app/route-map.jsonl  # pnpm generate routes
 generated vercel.json  # pnpm generate cron(upstream には無い)

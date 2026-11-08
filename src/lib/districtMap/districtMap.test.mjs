@@ -123,7 +123,7 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
   const text = toJsonl(districts);
   assert.equal(text.split("\n").length, districts.length + 1);
   assert.deepEqual(JSON.parse(text.split("\n")[0]), districts[0]);
-  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "config", "override", "apiKeys", "tables", "requires", "gates", "receptacles", "frame"]);
+  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "apiKeys", "tables", "requires", "gates", "receptacles", "frame"]);
   assert.equal(toJsonl([]), "");
 });
 
@@ -138,4 +138,15 @@ test("tableFiles: features の地区の表と定義ファイル(パス順 → �
   const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { features: ["core/ghost"] };` }));
   assert.deepEqual(broken.tableProblems, ["src/features/sample/entities/more.ts: pgTable の表名が文字列リテラルでない(字面で読めない)"]);
   assert.ok(broken.problems.length > broken.tableProblems.length);
+});
+
+test("domainJson・generate: features は domain.json の有無と generate(省略 = true、無し = null)、ほかの種類は null、壊れた JSON は問題", () => {
+  const files = { ...BASE, "src/features/sample/domain.json": '{ "name": "sample" }', "src/features/core/wallet/domain.json": '{ "generate": false }' };
+  const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
+  assert.deepEqual([by["features:sample"].domainJson, by["features:sample"].generate], [true, true]);
+  assert.deepEqual([by["features:wallet"].domainJson, by["features:wallet"].generate], [true, false]);
+  assert.deepEqual([by["features:purchaseRequest"].domainJson, by["features:purchaseRequest"].generate], [false, null]);
+  assert.deepEqual([by["lib:cron"].domainJson, by["lib:cron"].generate], [null, null]);
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/domain.json": "{ nope" }));
+  assert.ok(broken.problems.some((p) => /src\/features\/sample\/domain\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
 });

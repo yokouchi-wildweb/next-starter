@@ -42,7 +42,7 @@ const INTAKE = [
   "edit .claude/rules/project.md  # fork の名前の宣言",
   "add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え",
   "edit src/features/**/services/server/domainEntry.override.ts  # access の上書き",
-  "generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map",
+  "generated src/registry/district-map.jsonl  # pnpm generate district-map",
   "debt src/features/core/user/debt.ts  # 案内 → 20260101-000000-debt-intake",
   "",
 ].join("\n");
@@ -62,7 +62,7 @@ function makeTier1() {
   write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
   write(root, "src/features/core/user/debt.ts", "export const debt = 1;\n");
   write(root, "src/features/core/user/services/server/domainEntry.ts", "export const entry = 1;\n");
-  write(root, "src/features/feature-map.txt", "map\n");
+  write(root, "src/registry/district-map.jsonl", "{}\n");
   write(root, "src/app/admin/_screen/HomeScreen.tsx", "export const HomeScreen = 1;\n");
   write(root, ".notices/README.md", "# notices\n");
   write(root, "src/lib/forkOwnership/intake.txt", INTAKE);
@@ -109,7 +109,7 @@ describe("pnpm workflow ownership who", () => {
       "src/features/core/user/debt.ts",
       "src/app/admin/_screen/HomeScreen.tsx",
       "src/features/core/user/services/server/domainEntry.ts",
-      "src/features/feature-map.txt",
+      "src/registry/district-map.jsonl",
       "src/features/game/game.ts",
       "src/lib/crud/extra.ts",
     ]);
@@ -129,7 +129,7 @@ describe("pnpm workflow ownership who", () => {
     assert.equal(screen.allowed[0].path, "src/app/admin/_screen/HomeScreen.replace.tsx");
     assert.deepEqual(actions(resultOf(answer, "src/features/core/user/services/server/domainEntry.ts")), ["override"]);
 
-    const map = resultOf(answer, "src/features/feature-map.txt");
+    const map = resultOf(answer, "src/registry/district-map.jsonl");
     assert.equal(map.owner.kind, "generated");
     assert.equal(map.owner.tier, "tier1");
 

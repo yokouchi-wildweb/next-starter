@@ -79,6 +79,20 @@ test("receptacles = 地区の中の extensionPoints.ts の点(地区の外の宣
   assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/app/_layout/adminCommand", "src/featureGate", "src/wiring/dbAgent", "src/wiring/formInputs"]);
 });
 
+test("domainJson・generate = 各ドメインの domain.json の有無と generate(省略 = true)。生成器が書き直さないドメインが地図で分かる(L1.15)", () => {
+  for (const d of features) {
+    let config = null;
+    try {
+      config = JSON.parse(readFileSync(join(repoRoot, d.dir, "domain.json"), "utf8"));
+    } catch {
+      config = null;
+    }
+    assert.equal(d.domainJson, config !== null, d.dir);
+    assert.equal(d.generate, config === null ? null : config.generate !== false, d.dir);
+  }
+  assert.ok(features.some((d) => d.generate === false) && features.some((d) => d.generate === true) && features.some((d) => d.generate === null));
+});
+
 test("config・上書き: 今の地区は config.ts も上書きも持たない(後半で作る)", () => {
   assert.deepEqual(districts.filter((d) => d.config.exists || d.override.exists).map((d) => d.dir), []);
 });

@@ -33,7 +33,7 @@ argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
      - `entities/drizzle.ts`・`src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/`。index を変えたら `pnpm db:push:check` が出す差分の説明を報告に書く(db:push 自体は実行しない)
      - `src/featureGate/rules/`・`src/proxies/*.ts` の項目・cron の `task.ts` → `pnpm check extensions`(ずれていれば `pnpm generate extensions`)と `FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`
      - ページ・ルートの追加・削除・移動、loader・guard.ts の変更 → `pnpm generate routes` で地図(`src/app/route-map.jsonl`)を作り直して範囲に含め、`pnpm test 'src/lib/screens/routeMap*.test.mjs'`(地図の一致は check --gate=ship も見る)
-     - `domain.json`・ロール定義(`*.role.json`)・`*.profile.json` → `pnpm forge`(生成と事後検査を 1 回で。生成物・`src/features/feature-map.txt`・ルート地図の変化を範囲に含める。表が変わった案内は報告に書く)
+     - `domain.json`・ロール定義(`*.role.json`)・`*.profile.json` → `pnpm forge`(生成と事後検査を 1 回で。生成物・地区の地図 `src/registry/district-map.jsonl`・ルート地図の変化を範囲に含める。表が変わった案内は報告に書く)
      - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
      - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)
      - 上のどれでもない: `pnpm test --changed`(範囲の変更に import で届くテスト + 同じフォルダのテスト。「依存を辿れなかった」と出たテストは同じフォルダの規則で選ばれている。DB のテストは回さない: `*.db.test.*` を変えたら `pnpm test --changed --db`。`scripts/runner/test/README.md`)

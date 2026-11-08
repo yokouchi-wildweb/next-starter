@@ -3,7 +3,6 @@
 //   <Domain> [<旗>]     = そのドメインを生成(index.mjs --generate <Domain> <旗>。例: -- Sample --dry-run、-- Sample -i)
 //   --delete <Domain> --confirm <snake_name> = 生成物を消す(index.mjs --delete)
 //   --client <Domain>   = クライアントサービスだけ(generate-client.mjs)
-//   --feature-map       = ドメインの一覧 feature-map.txt だけ書き直す(feature-map.mjs)
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +13,6 @@ const without = (flag) => args.filter((a) => a !== flag);
 let argv;
 if (args.includes("--delete")) argv = [join(here, "index.mjs"), ...args];
 else if (args.includes("--client")) argv = [join(here, "generate-client.mjs"), ...without("--client")];
-else if (args.includes("--feature-map")) argv = [join(here, "feature-map.mjs"), ...without("--feature-map")];
 else if (args.length && !args[0].startsWith("-")) argv = [join(here, "index.mjs"), "--generate", ...args];
 else argv = [join(here, "index.mjs"), "--generate", ...(args.includes("--all") ? [] : ["--all"]), ...args];
 const r = spawnSync(process.execPath, argv, { stdio: "inherit" });
