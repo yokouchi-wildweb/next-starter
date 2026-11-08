@@ -155,6 +155,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 そこで移動の対応表を notice に書き、fork の編集の移植は /flux が行う:
 
 - 形式: `moved: <old> -> <new>; <old> -> <new>` 。リポジトリルートからの相対パス。ディレクトリも可(配下をまとめて対応づける)。
+- 書くのは移動元のパスが無くなった commit の notice だけ(`pnpm check notices` が移動元の残りを止める)。旧パスを再 export の shim として残す間は書かず、`notes:` と `required_actions` で新しいパスと import の直し方を伝え、shim を消す後の notice で `moved:` を書く。
 - /flux は計画時に、各組について fork が移動元を編集しているか(`git diff <merge-base> HEAD -- <old>`)を調べて計画に出す。merge 後、その差分のパスを新しいパスに書き換えて `git apply --3way` で当て直す。古いパス側の衝突は上流版(shim または削除)を採る。当て直せなかった部分は停止条件として止まる。
 - 欄が無い旧 notice・`moved:` を知らない旧 /flux では今までどおりの動作(merge するだけ)。
 
