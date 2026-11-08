@@ -8,7 +8,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
+import { oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
 import { stripComments } from "../../../src/lib/screens/checks.mjs";
 
 import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";

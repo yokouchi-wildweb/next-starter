@@ -344,3 +344,4 @@
 - id:20261108-164255-skill-format-rule | severity:info | checkpoint:skill-format-rule
 - id:20261108-171427-skill-format-flux | severity:info | checkpoint:skill-format-flux
 - id:20261108-170003-admin-screen-hooks | severity:action-required | checkpoint:admin-screen-hooks
+- id:20261108-171814-config-lib-direction | severity:info | checkpoint:config-lib-direction

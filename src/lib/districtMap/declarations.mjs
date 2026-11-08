@@ -11,7 +11,7 @@ import { dirname, join, relative } from "node:path";
 
 import ts from "typescript";
 
-import { classifyDottedName, oldMarkerProblem } from "../forkOwnership/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem } from "./dottedNames.mjs";
 
 export const DECLARATION_NAME = "extensionPoints";
 /** 宣言を探す範囲(リポジトリ直下からの相対) */

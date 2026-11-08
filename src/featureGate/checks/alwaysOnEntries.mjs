@@ -11,7 +11,7 @@
 // 限界: 直接の import だけを見る(別のモジュールを経由した到達は見ない)。型だけの import は数えない。
 // 使い手: scripts/structure/proxies/featureGate.test.mjs(実リポ)、scripts/structure/proxies/proxyFrame.test.mjs(fixture)
 
-import { oldMarkerProblem } from "../../lib/forkOwnership/dottedNames.mjs";
+import { oldMarkerProblem } from "../../lib/districtMap/dottedNames.mjs";
 import { matchesPath } from "../../lib/pathPattern/index.mjs";
 
 /** 機能のフォルダ(src/features からの相対)を import 元の印に。core は `@/features/core/<x>/` と `@/features/<x>/` の両方 */

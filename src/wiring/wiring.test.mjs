@@ -4,7 +4,7 @@
 // 守りたい契約(設計: src/wiring/README.md):
 // 1. 目録: Tier1 では src/wiring に置けるファイルは WIRING_FILES に書いたものだけ（upstream のファイルは勝手に増やさない。
 //    増やすなら README と一緒に）。fork は目録を見ない（fork が足したファイルは印なしの名前。所有は git の分岐点で pnpm workflow ownership check が見る）。
-//    名前に fork の印（旧い `<名前>[.client].<fork ID>.ts(x)`）は全 Tier で止める（src/lib/forkOwnership/dottedNames.mjs）。2〜4 は fork のファイルにも同じに掛かる
+//    名前に fork の印（旧い `<名前>[.client].<fork ID>.ts(x)`）は全 Tier で止める（src/lib/districtMap/dottedNames.mjs）。2〜4 は fork のファイルにも同じに掛かる
 // 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
 //    task.ts だけ（fork 所有の task.override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 
 import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
 import { readDeclaration } from "../lib/districtMap/declarations.mjs";
-import { classifyDottedName, oldMarkerProblem } from "../lib/forkOwnership/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../lib/districtMap/dottedNames.mjs";
 import { readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");

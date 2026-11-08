@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-`/flux` が各区間のコミットの後・push の前に `pnpm workflow ownership check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)は git に触れない純粋関数(拡張点の宣言の読み手は地区の地図の側 `src/lib/districtMap/declarations.mjs` へ移った。ここの `declarations.mjs` は再 export だけ)。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)、基準の版のファイル一覧(`baseFiles.mjs` の `readBaseFiles`・`lastUpstreamSha`。notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口、テスト `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+`/flux` が各区間のコミットの後・push の前に `pnpm workflow ownership check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)は git に触れない純粋関数(拡張点の宣言の読み手 `declarations.mjs` と点つきの名前の分類 `dottedNames.mjs` は地区の地図の側 `src/lib/districtMap/` へ移った。ここの同名の 2 つは再 export だけ。lib の import は forkOwnership → districtMap の一方向)。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)、基準の版のファイル一覧(`baseFiles.mjs` の `readBaseFiles`・`lastUpstreamSha`。notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口、テスト `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -227,9 +227,9 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 - API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, downstream, downstreamError, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)` / `parseDownstreamDeclaration(text)`
 - origin の URL から導く実装は持たない(D27)
 
-## 点つきの名前の分類(dottedNames.mjs)
+## 点つきの名前の分類
 
-受け口のファイル名の点つきの形の唯一の分類: 印なし `<名前>` / 既定 `<名前>.default` / 丸ごと置き換え `<名前>.replace` / 一部の上書き `<対象>.override`(`<対象>` は `user.role` のように `.` を含んでよい)/ client の口 `<名前>.client` / テスト `.test`・`.spec`・`.d` / それ以外 = 旧い fork の名前の印。生成器・タスク・常時実行の例外・`src/wiring` の目録・screens の検査が使い、旧い印は止めて共有の棚の印の移行の notice を案内する(`oldMarkerProblem`)。
+受け口のファイル名の点つきの形の分類は `src/lib/districtMap/dottedNames.mjs`(説明は [districtMap の README](../districtMap/README.md))。判定の核(`judge.mjs`)もそこを読む。ここの `dottedNames.mjs` は再 export だけで、予告の後に消す。
 
 ## folderCatalog との分担
 

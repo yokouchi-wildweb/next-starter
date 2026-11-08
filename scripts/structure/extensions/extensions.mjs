@@ -1,13 +1,13 @@
 // scripts/structure/extensions/extensions.mjs
 // 拡張点の項目の走査と生成一覧の組み立て(pnpm generate extensions / pnpm check extensions の中身)。
 // Node 組み込み + typescript(宣言の構文木)だけで動く。項目のファイルは import しない(字面で名前と export を見るだけ)。
-// 項目の名前に fork の印は付けない(点つきの名前の分類は src/lib/forkOwnership/dottedNames.mjs)。
+// 項目の名前に fork の印は付けない(点つきの名前の分類は src/lib/districtMap/dottedNames.mjs)。
 // 書式・置き場・失敗の条件: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "../../../src/lib/districtMap/declarations.mjs";

@@ -38,6 +38,8 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 - 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName` も出しています
 - 4 種と見つけ方の定数は `kinds.mjs`
 - 受け口の宣言(`extensionPoints.ts`)の唯一の読み手 `declarations.mjs` もここにある(`collectPoints`・`readDeclaration`・`literalOf`。生成器・所有の検査の単位名・配線のテストが読む)。古い置き場 `src/lib/forkOwnership/declarations.mjs` は再 export だけで、予告の後に消す
+- 点つきの名前の分類 `dottedNames.mjs` もここにある: 受け口のファイル名の点つきの形の唯一の分類。印なし `<名前>` / 既定 `<名前>.default` / 丸ごと置き換え `<名前>.replace` / 一部の上書き `<対象>.override`(`<対象>` は `user.role` のように `.` を含んでよい)/ client の口 `<名前>.client` / テスト `.test`・`.spec`・`.d` / それ以外 = 旧い fork の名前の印。生成器・タスク・常時実行の例外・`src/wiring` の目録・screens の検査・所有の検査が使い、旧い印は止めて共有の棚の印の移行の notice を案内する(`oldMarkerProblem`)。古い置き場 `src/lib/forkOwnership/dottedNames.mjs` は再 export だけで、予告の後に消す
+- import の向き: forkOwnership → districtMap の一方向。この lib の下(テストを含む)は `src/lib/forkOwnership` を import しない(`districtMap.test.mjs` が縛る)
 
 アプリのコードは地図を読みません(実行時に地区の一覧が要るコードはありません)。使い手は道具・lint・生成・検査です。lib は src 直下(門番・registry・wiring)を import しないので、この読み手は門の規則も字面で読みます。
 
