@@ -355,3 +355,4 @@
 - id:20261108-191541-lib-close-errors | severity:action-required | checkpoint:lib-close-errors
 - id:20261108-191117-milestone-series | severity:info | checkpoint:milestone-series | resolves:20261101-142143-extension-items-from-config
 - id:20261108-192350-lib-close-small-deps | severity:action-required | checkpoint:lib-close-small-deps
+- id:20261108-192503-access-presets-to-lib | severity:breaking | checkpoint:config-common-c3 | moved:src/config/app/domain-api-access.config.ts -> src/lib/domain/accessPresets.ts
