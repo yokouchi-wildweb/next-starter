@@ -3,11 +3,7 @@
 import React from "react";
 import dayjs from "dayjs";
 import { Input } from "@/components/Form/Input/Manual";
-import {
-  parseFlexibleDate,
-  parseFlexibleDatetime,
-  parseFlexibleTime,
-} from "@/lib/date/parseFlexible";
+import { parseFlexibleDate, parseFlexibleDatetime, parseFlexibleTime } from "@/lib/date";
 import type { BaseEditorProps } from "../types";
 
 // グリッドセル内では Popover/Calendar を開くと

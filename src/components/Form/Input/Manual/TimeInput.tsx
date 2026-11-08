@@ -28,7 +28,7 @@ import {
 } from "react";
 
 import { cn } from "@/lib/cn";
-import { parseFlexibleTime } from "@/lib/date/parseFlexible";
+import { parseFlexibleTime } from "@/lib/date";
 import { Button } from "@/components/Form/Button";
 import {
   PopoverRoot,

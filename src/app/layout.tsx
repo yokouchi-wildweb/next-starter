@@ -15,7 +15,7 @@ import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLo
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
-import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
+import { MicrosoftClarity } from "@/lib/clarity";
 import { GoogleTag } from "@/wiring/GoogleTag";
 import { seoConfig } from "@/config/seo.config";
 import { AppProviders } from "@/wiring/AppProviders";

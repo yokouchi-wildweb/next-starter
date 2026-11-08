@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 
 import { appendInviteLinkParam, readInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { resolveLinkCampaign } from "@/lib/googleTag/googleTag";
+import { resolveLinkCampaign } from "@/lib/googleTag";
 
 import { classifyVisit, getChannelDefinitions } from "./classifyVisit";
 

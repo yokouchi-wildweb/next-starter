@@ -4,6 +4,7 @@ export {
   GOOGLE_ADS_CONVERSIONS,
   initGoogleTag,
   isGoogleTagEnabled,
+  resolveLinkCampaign,
   trackGoogleAdsConversion,
   type GoogleAdsConversionKey,
   type GoogleTagChannelDefinition,

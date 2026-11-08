@@ -20,6 +20,6 @@ export async function requireDatabase(label: string): Promise<void> {
 
 /** 監査の文脈を system にして fn を走らせる(requestId = 実行の記録の行の id。省けば新しく作る) */
 export async function asSystem<T>(fn: () => Promise<T>, requestId?: string): Promise<T> {
-  const { runAsSystem } = await import("@/lib/audit/context");
+  const { runAsSystem } = await import("@/lib/audit");
   return runAsSystem(fn, requestId ? { requestId } : undefined);
 }

@@ -36,7 +36,7 @@ describe("bulkGrant(実 DB)", { skip }, () => {
   before(async () => {
     mod = await import("./bulkGrant");
     reverse = (await import("./reverseHistory")).reverseHistory;
-    const { runAsSystem } = await import("@/lib/audit/context");
+    const { runAsSystem } = await import("@/lib/audit");
     asSystem = (fn) => runAsSystem(fn);
     const { gate } = await import("@/featureGate");
     notificationOpen = gate.enabled("notification");

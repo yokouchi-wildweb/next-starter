@@ -41,7 +41,7 @@ let useSignupComplete: typeof import("./useSignupComplete").useSignupComplete;
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
-  const { useGoogleAdsConversion } = await import("@/lib/googleTag/useGoogleAdsConversion");
+  const { useGoogleAdsConversion } = await import("@/lib/googleTag");
   mock.module("@/lib/googleTag", { namedExports: { useGoogleAdsConversion } });
   ({ useSignupComplete } = await import("./useSignupComplete"));
 });

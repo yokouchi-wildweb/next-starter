@@ -4,13 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  formatShortCode,
-  generateShortCode,
-  hashSecretToken,
-  normalizeShortCode,
-  SHORT_CODE_ALPHABET,
-} from "@/lib/crypto/secretToken";
+import { formatShortCode, generateShortCode, hashSecretToken, normalizeShortCode, SHORT_CODE_ALPHABET } from "@/lib/crypto";
 import { isValidScopePattern, scopeContains } from "@/features/core/pairedDevice/utils/scopeContains";
 
 test("generateShortCode は指定の長さで文字集合内の文字だけを使う", () => {

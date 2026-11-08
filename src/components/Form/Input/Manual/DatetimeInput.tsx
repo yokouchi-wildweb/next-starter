@@ -36,7 +36,7 @@ import {
 } from "react";
 
 import { cn } from "@/lib/cn";
-import { parseFlexibleDatetime } from "@/lib/date/parseFlexible";
+import { parseFlexibleDatetime } from "@/lib/date";
 import { Button } from "@/components/Form/Button";
 import { Calendar } from "@/components/Overlays/Calendar";
 import {

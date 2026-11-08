@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@lib-config/clarity": ["../../config/lib/clarity.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

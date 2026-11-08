@@ -37,7 +37,7 @@ describe("reverseHistory(実 DB)", { skip }, () => {
   before(async () => {
     mod = await import("./reverseHistory");
     adjust = (await import("./adjustBalance")).adjustBalance;
-    const { runAsSystem } = await import("@/lib/audit/context");
+    const { runAsSystem } = await import("@/lib/audit");
     asSystem = (fn) => runAsSystem(fn);
     const { db } = await import("@/lib/drizzle");
     const { eq, and } = await import("drizzle-orm");

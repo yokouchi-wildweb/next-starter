@@ -5,7 +5,7 @@
 import { useEffect, useRef } from "react";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { collectFingerprintPayload } from "@/lib/fingerprint/collect";
+import { collectFingerprintPayload } from "@/lib/fingerprint";
 import { reportFingerprint } from "@/features/core/deviceFingerprint/services/client/fingerprintClient";
 
 const STORAGE_KEY = "fp_last_report";

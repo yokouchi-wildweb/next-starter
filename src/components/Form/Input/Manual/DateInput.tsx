@@ -29,7 +29,7 @@ import {
 } from "react";
 
 import { cn } from "@/lib/cn";
-import { parseFlexibleDate } from "@/lib/date/parseFlexible";
+import { parseFlexibleDate } from "@/lib/date";
 import { Button } from "@/components/Form/Button";
 import { Calendar } from "@/components/Overlays/Calendar";
 import {
