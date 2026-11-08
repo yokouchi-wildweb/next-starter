@@ -15,7 +15,7 @@ import {
   toAcquisitionTouch,
 } from "@/features/core/userAcquisition/lib/attributionCookie";
 import { isAcquisitionRecordingEnabled } from "@/features/core/userAcquisition/lib/classifyVisit";
-import { getClientIp } from "@/lib/request/getClientIp";
+import { getClientIp } from "@/lib/request";
 
 export const POST = createApiRoute(
   {

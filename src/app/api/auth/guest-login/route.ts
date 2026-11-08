@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { demoLogin } from "@/features/core/auth/services/server/demoLogin";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
-import { getClientIp } from "@/lib/request/getClientIp";
+import { getClientIp } from "@/lib/request";
 
 const DemoLoginRequestSchema = z.object({
   demoUserId: z.string().uuid().nullish(),

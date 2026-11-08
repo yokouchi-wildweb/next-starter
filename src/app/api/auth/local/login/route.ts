@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { localLogin } from "@/features/core/auth/services/server/localLogin";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
-import { getClientIp } from "@/lib/request/getClientIp";
+import { getClientIp } from "@/lib/request";
 
 export const POST = createApiRoute(
   {
