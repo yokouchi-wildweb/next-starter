@@ -24,7 +24,7 @@ src/features/core/setting/
 ├── menu.ts                   # 管理メニューの項目を作る
 ├── utils/sectionForm.ts      # セクションの並びとフォームの組み立て
 ├── entities/                 # 表の定義と型(Setting・SettingValues)
-├── hooks/                    # useSetting・useUpdateSetting・usePublicSetting・useAdminSetup・useMaintenanceAutoRedirect
+├── hooks/                    # useSetting・useUpdateSetting・usePublicSetting・useAdminSetup・useSettingSectionForm・useMaintenanceAutoRedirect
 └── services/
     ├── client/               # settingClient・adminSetupClient
     └── server/
@@ -138,6 +138,20 @@ await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロー
 - 配列は連結せず置き換える(キー単位で重ねる)
 - `create`・`upsert`・`remove` は 405。行を作るのは初回セットアップだけ
 - 注意: 旧版へ戻した間に保存すると、旧版の知らないキーの値が消える
+
+### 管理画面の編集フォームと初期セットアップ(公開 hook、client)
+
+既定の `_screen` 部品(`/admin/settings/[section]` の `EditSettingSectionForm`、`/admin/setup` の `AdminSetupForm`)は次の hook を呼んで描くだけ。見た目を変える fork は自分の Screen の client 部品から同じ hook を呼ぶ(form と送信を写さない)。
+
+| hook | 引数 | 戻り値 |
+| --- | --- | --- |
+| `useSettingSectionForm({ sectionKey, setting, redirectPath? })` | `sectionKey: string`(節の key)/ `setting: Setting`(そのロールに許されたキーだけの今の値)/ `redirectPath?: string`(保存の後の遷移先、既定 `"/"`) | `{ methods, section, fieldConfigs, submit, isMutating }` |
+| `useAdminSetup({ redirectTo? })` | `redirectTo?: string`(既定 `ADMIN_SETUP_REDIRECT_PATH` = `"/admin/login"`) | `{ trigger, submit, isMutating, error }` |
+
+- `useSettingSectionForm`: 欄は節のキーの定義(`setting/fields` の `ui`)から作り(`buildSectionForm`)、`useForm`(zodResolver)まで持つ。部品は `methods` を `AppForm` に、`fieldConfigs` と `section.groups` を `FieldRenderer` に渡す。`submit` を `AppForm` の `onSubmit` に渡す: 更新中の toast → 保存 → 成功の toast → `redirectPath` へ遷移
+- `useAdminSetup`: `submit(values)` = 送信 → 成功の toast → `redirectTo` へ遷移(初期設定の form の `customSubmit.handler` に渡す)。`trigger` は送信だけ
+- 失敗(両方): error の toast を出して**投げ直す**。`AppForm` は `onSubmit` が投げたときだけ未保存の守りを戻すので、投げずに返すと保存していないのに守りが外れる(src/lib/unsavedGuard/README.md「送信」)
+- テスト: `pnpm test src/features/core/setting/hooks/adminFormHooks.test.tsx`
 
 ## 権限
 

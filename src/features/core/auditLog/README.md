@@ -28,7 +28,7 @@ src/features/core/auditLog/
 │   ├── pruning.ts                 # pruneExpiredAuditLogs (cron)
 │   └── recoverDeadLetter.ts       # recoverDeadLetterAuditLogs (cron)
 ├── services/client/auditLogClient.ts  # search / searchByTarget / searchBySubjectUser / fetchMine
-├── hooks/                         # useAuditLogSearch / useAuditLogsByTarget / useAuditLogsBySubjectUser
+├── hooks/                         # useAuditLogSearch / useAuditLogSearchFilters / useAuditLogsByTarget / useAuditLogsBySubjectUser
 ├── components/common/             # AuditTimeline / UserActivityTimeline
 ├── presenters.ts                  # formatActionLabel 等(値は config/app/audit.config.ts)
 └── index.ts                       # client-safe バレル (server-only は非 export)
@@ -269,6 +269,7 @@ import { AuditTimeline, UserActivityTimeline } from "@/features/core/auditLog";
 - `UserActivityTimeline` は `subject_user_id` で絞るため、**subjectUserId を設定していない記録は出ない**。ユーザー詳細の操作履歴として組み込む前に、該当ドメインの記録が subject を持っているか確認する（上流のユーザー管理モーダル `user/components/admin/AdminUserManageModal/HistoryTabContent.tsx` は target 軸の `AuditTimeline targetType="user"` を使用）
 - 横断検索画面: `/admin/audit-logs`
 - データ取得: hooks `useAuditLogsByTarget` / `useAuditLogsBySubjectUser` / `useAuditLogSearch`（→ `auditLogClient` → `GET /api/admin/audit-logs/search`）
+- 横断検索の絞り込み: `useAuditLogSearchFilters(initial?)` → `{ draft, setDraftField(key, value), applied, apply, reset, where }`（公開 hook、client）。下書きは `apply` まで `where` を変えず、`reset` で下書きと適用の両方を空にする。`where` は `useAuditLogSearch({ where })` にそのまま渡す。組み立ては純粋な関数 `buildAuditLogSearchWhere(filters)`（`utils/searchWhere.ts`、`AuditLogSearchFilters` = `{ targetType, targetId, actorId, actionPrefix, batchId }`、空白だけの欄は使わない・前後の空白を落とす・操作名は前方一致・複数は and）。既定の `_screen/AuditLogSearchPanel` はこれを呼んで描くだけ。見た目を変える fork は自分の Screen の client 部品から呼ぶ（where を写さない）。テスト: `pnpm test src/features/core/auditLog/hooks/`
 
 ### ユーザー本人向け（`GET /api/me/audit-logs`、fail-closed）
 

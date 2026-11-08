@@ -20,53 +20,12 @@ import {
   formatAuditDate,
   type AuditLog,
 } from "@/features/core/auditLog";
-import type { WhereExpr } from "@/lib/crud";
 import { useAuditLogSearch } from "@/features/core/auditLog/hooks/useAuditLogSearch";
+import { useAuditLogSearchFilters } from "@/features/core/auditLog/hooks/useAuditLogSearchFilters";
 
 import { DiffView } from "@/features/core/auditLog/components/common/AuditTimeline";
 
-type Filters = {
-  targetType: string;
-  targetId: string;
-  actorId: string;
-  actionPrefix: string;
-  batchId: string;
-};
-
-const EMPTY_FILTERS: Filters = {
-  targetType: "",
-  targetId: "",
-  actorId: "",
-  actionPrefix: "",
-  batchId: "",
-};
-
 const PAGE_SIZE = 100;
-
-function buildWhere(filters: Filters): WhereExpr | undefined {
-  const conds: WhereExpr[] = [];
-  if (filters.targetType.trim()) {
-    conds.push({ field: "targetType", op: "eq", value: filters.targetType.trim() });
-  }
-  if (filters.targetId.trim()) {
-    conds.push({ field: "targetId", op: "eq", value: filters.targetId.trim() });
-  }
-  if (filters.actorId.trim()) {
-    conds.push({ field: "actorId", op: "eq", value: filters.actorId.trim() });
-  }
-  if (filters.actionPrefix.trim()) {
-    // "user.email" → "user.email%" 前方一致
-    conds.push({ field: "action", op: "startsWith", value: filters.actionPrefix.trim() });
-  }
-  if (filters.batchId.trim()) {
-    // recordMany / recordManyDiff で発番された共通 UUID。dead-letter 復旧時の
-    // トレースや、同バッチに含まれる全行の一括取得に使う
-    conds.push({ field: "batchId", op: "eq", value: filters.batchId.trim() });
-  }
-  if (conds.length === 0) return undefined;
-  if (conds.length === 1) return conds[0];
-  return { and: conds };
-}
 
 /**
  * 監査ログの横断検索 UI。
@@ -75,11 +34,9 @@ function buildWhere(filters: Filters): WhereExpr | undefined {
  * 未指定の場合は createdAt DESC 順で全件返る（無限スクロール）。
  */
 export function AuditLogSearchPanel() {
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
+  // 絞り込みの下書き・適用・where の組み立ては公開 hook
+  const { draft, setDraftField, apply, reset, where } = useAuditLogSearchFilters();
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
-
-  const where = useMemo(() => buildWhere(applied), [applied]);
 
   // ページ全体がスクロールするレイアウト (DataTable maxHeight="none") のため
   // IntersectionObserver の root はビューポートに任せる。
@@ -137,12 +94,6 @@ export function AuditLogSearchPanel() {
     return rows;
   }, [detailLog]);
 
-  const apply = () => setApplied(draft);
-  const reset = () => {
-    setDraft(EMPTY_FILTERS);
-    setApplied(EMPTY_FILTERS);
-  };
-
   return (
     <>
       <Stack space={4}>
@@ -151,31 +102,31 @@ export function AuditLogSearchPanel() {
             <FilterField
               label="対象ドメイン (target_type)"
               value={draft.targetType}
-              onChange={(v) => setDraft({ ...draft, targetType: v })}
+              onChange={(v) => setDraftField("targetType", v)}
               placeholder="例: user"
             />
             <FilterField
               label="対象ID (target_id)"
               value={draft.targetId}
-              onChange={(v) => setDraft({ ...draft, targetId: v })}
+              onChange={(v) => setDraftField("targetId", v)}
               placeholder="UUID 等"
             />
             <FilterField
               label="実行者ID (actor_id)"
               value={draft.actorId}
-              onChange={(v) => setDraft({ ...draft, actorId: v })}
+              onChange={(v) => setDraftField("actorId", v)}
               placeholder="UUID 等"
             />
             <FilterField
               label="action 前方一致"
               value={draft.actionPrefix}
-              onChange={(v) => setDraft({ ...draft, actionPrefix: v })}
+              onChange={(v) => setDraftField("actionPrefix", v)}
               placeholder="例: user.email"
             />
             <FilterField
               label="バッチID (batch_id)"
               value={draft.batchId}
-              onChange={(v) => setDraft({ ...draft, batchId: v })}
+              onChange={(v) => setDraftField("batchId", v)}
               placeholder="UUID (recordMany 由来)"
             />
           </Flex>

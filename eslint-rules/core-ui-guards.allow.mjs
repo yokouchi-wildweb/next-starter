@@ -31,7 +31,4 @@ export const CORE_UI_GUARDS_ALLOW = [
   "src/features/core/userTag/components/common/CreateUserTagForm.tsx",
   "src/features/core/userTag/components/common/EditUserTagForm.tsx",
   "src/features/core/wallet/components/AdminWalletAdjustModal/index.tsx",
-  // 既定 Screen の部品(対象を _screen へ広げた時に当たった)
-  // 管理の設定のセクションの編集 form(useForm。l2 計画書 09 の材料)
-  "src/app/admin/(protected)/settings/[section]/_screen/EditSettingSectionForm.tsx",
 ];
