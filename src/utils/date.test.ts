@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
-import { dayRangeInTimeZone, formatDateJa, startOfDayInTimeZone } from "./date";
+import { DEFAULT_FALLBACK, dayRangeInTimeZone, formatDateJa, startOfDayInTimeZone } from "./date";
 
 const TIME_ZONES = ["UTC", "Pacific/Auckland"];
 const CHILD = process.env.DATE_TEST_TZ;
@@ -27,6 +27,17 @@ if (!CHILD) {
 }
 
 const check = CHILD ? test : test.skip;
+
+// 既定の fallback は utils の定数(設定を読まない、設定の議会 D22 K2)。値は今までの実効値(管理の表の emptyFieldFallback の上流の値)と同じ
+check("値が無い・読めないときは既定の fallback、渡せばその値", () => {
+  assert.equal(DEFAULT_FALLBACK, "(未設定)");
+  assert.equal(formatDateJa(null), "(未設定)");
+  assert.equal(formatDateJa(undefined), "(未設定)");
+  assert.equal(formatDateJa("not a date"), "(未設定)");
+  assert.equal(formatDateJa({}), "(未設定)");
+  assert.equal(formatDateJa(null, { fallback: "-" }), "-");
+  assert.equal(formatDateJa(null, { fallback: null }), null);
+});
 
 // 2026-11-02T20:30:00Z = 日本時間 2026-11-03 05:30（UTC ではまだ 11/02、Auckland では 11/03 09:30）
 const INSTANT = "2026-11-02T20:30:00Z";

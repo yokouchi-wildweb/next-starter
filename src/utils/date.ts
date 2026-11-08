@@ -5,12 +5,11 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 // 既定ロケール "ja" をこのモジュールで読み込む（他所の副作用 import に頼るとサーバーとブラウザで曜日・月名の言語が食い違う）
 import "dayjs/locale/ja";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 
 export type FormatDateJaOptions = {
   /** Day.js へ渡す format 文字列。 */
   format?: string;
-  /** フォーマットに失敗した場合の返却値。 */
+  /** 値が無い・フォーマットできない場合の返却値。省略時は "(未設定)"(DEFAULT_FALLBACK)。 */
   fallback?: string | null;
   /** Day.js に渡すロケール。 */
   locale?: string;
@@ -22,9 +21,9 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const DEFAULT_FORMAT = "YYYY/MM/DD";
-const DEFAULT_FALLBACK = "(invalidToFormat)";
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const CONFIG_FALLBACK = adminDataTable?.emptyFieldFallback;
+// 値が無い・読めないときの既定の表示。単位の部品なので設定を読まず自分の定数で持つ(設定の議会 D22 K2)。
+// 管理の表など別の表示を使う呼び出しは fallback を渡す(管理の表は自分の設定の emptyFieldFallback を渡している)
+export const DEFAULT_FALLBACK = "(未設定)";
 const DEFAULT_LOCALE = "ja";
 // 実行環境（サーバー = Vercel は UTC、ブラウザ = 利用者の端末）の時間帯に左右されないよう、既定は日本時間で固定する
 const DEFAULT_TIME_ZONE = "Asia/Tokyo";
@@ -52,7 +51,7 @@ function resolveDateInput(date: unknown): ConfigType | undefined {
 export function formatDateJa(date: unknown, options: FormatDateJaOptions = {}): string | null {
   const {
     format = DEFAULT_FORMAT,
-    fallback = CONFIG_FALLBACK ?? DEFAULT_FALLBACK,
+    fallback = DEFAULT_FALLBACK,
     locale = DEFAULT_LOCALE,
     timeZone = DEFAULT_TIME_ZONE,
   } = options;
