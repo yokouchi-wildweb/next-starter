@@ -1,7 +1,8 @@
 // scripts/workflow/peer/peer.test.mjs — pnpm test scripts/workflow/peer
 //
 // - 受け箱の根の決まり(PEER_STATE_DIR → XDG_STATE_HOME → ~/.local/state)、書き込みは tmp/ から rename、版 v
-// - 門: AGENT_TERMINAL が tmux でない・tmux の外・チームの道具のタブ・自分の id が無い → 1 行、何も書かない、exit 3
+// - 門: AGENT_TERMINAL が tmux でない・tmux の外・自分の id が無い → 1 行、何も書かない、exit 3。チームの道具のタブは通す
+// - 箱の鍵: セッション id か <種類>/<ID>、段ごとに SAFE・. と .. を断る、種類はセッション id の形にできない。PEER_BOXES
 // - 名前の解決: 生きている行(名前・status あり)だけ、完全一致 1 つ = 送る、複数・なし = 新しい順の候補で止まる(exit 3)
 // - 印: 有効(pid・procStart が合う)= 送った exit 0 / 無い・古い = 受け箱に置いただけ exit 3
 // - 返事: 送り元が生きているかを確かめてから、reply_to つきで。状態(読んだ・返事した)は箱の外
@@ -15,8 +16,8 @@ import { after, test } from "node:test";
 
 import { liveSessions, resolveName } from "./lib.agents.mjs";
 import { EXIT, runInbox, runRead, runReply, runSend, runWho } from "./lib.cli.mjs";
-import { checkGate } from "./lib.gate.mjs";
-import { FORMAT_VERSION, boxDir, getState, listBox, markIsValid, newMessageId, putMessage, readMark, stateRoot, writeMark } from "./lib.store.mjs";
+import { checkGate, heldBoxes } from "./lib.gate.mjs";
+import { FORMAT_VERSION, boxDir, boxSegments, getState, isBoxKey, stateDir, listBox, markIsValid, newMessageId, putMessage, readMark, stateRoot, writeMark } from "./lib.store.mjs";
 
 const temps = [];
 const temp = () => {
@@ -93,18 +94,18 @@ test("印: pid・procStart が今のプロセスと合う時だけ有効(pid の
   assert.equal(markIsValid(null, { procStart }), false);
 });
 
-test("門: tmux の値 + tmux の中 + 自分の id だけ通す。チームの道具のタブは使わない", () => {
+test("門: tmux の値 + tmux の中 + 自分の id だけ通す。チームの道具のタブも通す", () => {
   const base = { AGENT_TERMINAL: "tmux", TMUX: "/s,1,0", TMUX_PANE: "%1", CLAUDE_CODE_SESSION_ID: A };
   assert.deepEqual(checkGate(base), { ok: true, selfId: A });
   assert.match(checkGate({ ...base, AGENT_TERMINAL: "none" }).reason, /AGENT_TERMINAL が tmux でない/);
   assert.match(checkGate({ ...base, TMUX: "" }).reason, /tmux の外/);
-  assert.match(checkGate({ ...base, TK_TEAM: "council" }).reason, /チームの道具のタブ/);
-  assert.match(checkGate({ ...base, LOUNGE_ROLE: "x" }).reason, /チームの道具のタブ/);
+  assert.deepEqual(checkGate({ ...base, TK_TEAM: "council" }), { ok: true, selfId: A });
+  assert.deepEqual(checkGate({ ...base, LOUNGE_ROLE: "x" }), { ok: true, selfId: A });
   assert.match(checkGate({ ...base, CLAUDE_CODE_SESSION_ID: "" }).reason, /セッション id/);
 });
 
 test("門で止まると 1 行・exit 3・何も書かない", () => {
-  for (const env of [{ AGENT_TERMINAL: "none" }, { TMUX: "" }, { TK_TEAM: "guild" }]) {
+  for (const env of [{ AGENT_TERMINAL: "none" }, { TMUX: "" }, { CLAUDE_CODE_SESSION_ID: "" }]) {
     const h = harness({ env });
     assert.equal(runSend(["beta", "x"], h.deps), EXIT.notSent);
     assert.equal(h.printed.length, 1);
@@ -253,4 +254,37 @@ test("使い方の誤り = exit 2", () => {
   assert.equal(runRead([], h.deps), EXIT.usage);
   assert.equal(runInbox(["x"], h.deps), EXIT.usage);
   assert.equal(runWho(["a", "b"], h.deps), EXIT.usage);
+});
+
+test("箱の鍵: セッション id(1 段)か <種類>/<ID>(2 段)、段ごとに SAFE、. と .. は断る", () => {
+  const root = "/r";
+  assert.equal(boxDir(root, A), "/r/boxes/aaaa-1111");
+  assert.equal(boxDir(root, "council/20261106-194949"), "/r/boxes/council/20261106-194949");
+  assert.equal(stateDir(root, "council/20261106-194949"), "/r/state/council/20261106-194949");
+  for (const bad of ["..", ".", "../x", "a/..", "./b", "a/b/c", "a:b", "council:1", "棚", "", "a/", "/b", "a b"]) {
+    assert.equal(isBoxKey(bad), false, bad);
+    assert.throws(() => boxDir(root, bad), /peer:/, bad);
+  }
+  // 種類はセッション id の形にできない(boxes/<セッション id> と同じフォルダにならない)
+  assert.throws(() => boxSegments("e594e3d5-25e3-4d20-8c4e-044c2c080ce3/x"), /セッション id の形/);
+  assert.deepEqual(boxSegments("e594e3d5-25e3-4d20-8c4e-044c2c080ce3"), ["e594e3d5-25e3-4d20-8c4e-044c2c080ce3"]);
+  // 種類は開いた名前(peer は値の一覧を持たない)
+  assert.deepEqual(boxSegments("anything.goes_1/id-2"), ["anything.goes_1", "id-2"]);
+});
+
+test("PEER_BOXES: <種類>/<ID> をカンマか空白で、使えない値と 1 段の鍵は外す、重なりは 1 つ", () => {
+  assert.deepEqual(heldBoxes({}), { keys: [], dropped: [] });
+  assert.deepEqual(heldBoxes({ PEER_BOXES: "council/r1, council/q1  guild/g1,council/r1" }), {
+    keys: ["council/r1", "council/q1", "guild/g1"],
+    dropped: [],
+  });
+  assert.deepEqual(heldBoxes({ PEER_BOXES: "council/r1 ../x aaaa-1111 a/b/c" }), { keys: ["council/r1"], dropped: ["../x", "aaaa-1111", "a/b/c"] });
+});
+
+test("インスタンス ID の箱にも連絡を置ける(tmp → rename、一覧も同じ読み手)", () => {
+  const root = temp();
+  const m = putMessage(root, "council/r1", { from: { name: "x", sessionId: A, cwd: "/" }, body: "b" });
+  assert.ok(existsSync(path.join(root, "boxes", "council", "r1", `${m.id}.json`)));
+  assert.deepEqual(listBox(root, "council/r1").map((x) => x.id), [m.id]);
+  assert.deepEqual(readdirSync(path.join(root, "tmp")), []);
 });

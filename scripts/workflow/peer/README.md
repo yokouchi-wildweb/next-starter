@@ -13,7 +13,7 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 ## 使えるとき
 
 - `AGENT_TERMINAL` の値が `tmux` で、tmux の中で動いているセッションだけ(読み手は `scripts/workflow/agent-terminal/lib.mjs` と同じ。別のスイッチは無い)
-- チームの道具のタブ(`TK_TEAM` など)では使わない。連絡はそのチームの道具が受け持つ
+- チームの道具のタブ(`TK_TEAM` など)でも使える(統括のタブも送受信する)
 - 使えないときは、理由と次にすることを 1 行出して何も書かない(終了コード 3)
 
 ## 宛先
@@ -36,25 +36,35 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 
 | 場所 | 中身 |
 |---|---|
-| `boxes/<セッション id>/<連絡 id>.json` | 受け箱。呼び鈴のフックが見張るのは今の会話の箱だけ |
+| `boxes/<セッション id>/<連絡 id>.json` | 会話の受け箱。呼び鈴のフックが見張るのは今の会話の箱と、受け持つ箱だけ |
+| `boxes/<種類>/<ID>/<連絡 id>.json` | インスタンス ID の箱(下の「箱」)。`PEER_BOXES` で受け持つセッションが見張る |
 | `tmp/` | 書きかけ。ここに書いてから受け箱へ rename する(見張りには add が 1 回だけ届く) |
-| `state/<セッション id>/<連絡 id>.json` | `{ v, read, replied }`。読んだ・返事したの 2 つ。箱の外に置くので、印を付けても呼び鈴は鳴らない |
-| `marks/<セッション id>.json` | 印 = フックが書く自分の記録 `{ v, sessionId, pid, procStart, cwd, mode, written }` |
+| `state/<箱の鍵>/<連絡 id>.json` | `{ v, read, replied }`。読んだ・返事したの 2 つ。箱の外に置くので、印を付けても呼び鈴は鳴らない |
+| `marks/<セッション id>.json` | 印 = フックが書く自分の記録 `{ v, sessionId, pid, procStart, cwd, mode, boxes, written }`(`boxes` = 受け持つ箱の鍵) |
 
 - 連絡 = `{ v, id, from: { name, sessionId, cwd }, senderMode, about, replyTo, body, sentAt }`。`senderMode` は送り手の権限モード(送り手の印の `mode`。印が無ければ `unknown`)
 - 連絡 id = `m-<UTC の yyyymmddThhmmss>-<16 進 4 桁>`。名前の順が送った順
 - どのファイルも版 `v` を持つ(今は 1)。知らない版は読まない。形を変えたら版を上げる
 - 印は、その `pid` のプロセスが同じ起動の時刻(`/proc/<pid>/stat` の starttime = `procStart`)で生きていて、`claude agents --json` の行の pid とも合う時だけ有効(pid の使い回しを除く)。印の無い相手には受け箱に置くだけにして、送り手にそう返す
 
+## 箱
+
+- 箱の鍵 = セッション id(1 段、会話の箱)か `<種類>/<ID>`(2 段、インスタンス ID の箱)。段ごとに `A-Z a-z 0-9 . _ -` だけで、`.` と `..` は断る
+- 種類は開いた名前(peer は値の一覧を持たず、どの道具の名前も知らない)。セッション id の形(UUID)にはできない(会話の箱と同じフォルダにならないように)
+- インスタンス ID の箱は、落ちても立ち上げ直しても変わらない宛先(立ち上げのたびに会話の id が変わる道具の受け箱に使う)
+- 受け持つ: 環境変数 `PEER_BOXES` に箱の鍵をカンマか空白で区切って渡す(例 `PEER_BOXES=kind/20261106-194949`)。フックは起動ごとにその箱も作って見張り、呼び鈴はそこへの連絡でも鳴る(行が受け持つ箱を名指す)。印の `boxes` に書く
+  - 使えない値と 1 段の鍵(ほかの会話の箱)は受け持たず、起動の時に 1 行で知らせる
+- `PEER_BOXES` は渡されたセッションだけのもの。立ち上げる道具は、そのセッションが開く子のタブ(手下の席など)に渡さない。渡されなかったセッションは自分の会話の箱だけを持つ
+
 ## フック(.claude/settings.json)
 
-`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|prompt|bell>`。門(上の「使えるとき」)が閉じていれば、どれも何も出さず何も書かない(チームの道具のタブも)。失敗しても exit 0 で、セッションを止めない。
+`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|prompt|bell>`。門(上の「使えるとき」)が閉じていれば、どれも何も出さず何も書かない。失敗しても exit 0 で、セッションを止めない。
 
 | 動作 | イベント | すること |
 |---|---|---|
-| `start` | SessionStart(source を問わず毎回) | 印を書き、自分の受け箱を作って `watchPaths` に返す(見張るのは今の会話の箱だけ。--continue の新しいプロセスでも見張りが続くよう毎回返す)。未読があれば 1 行だけ文脈へ |
+| `start` | SessionStart(source を問わず毎回) | 印を書き、自分の会話の箱と受け持つ箱を作って `watchPaths` に返す(見張るのはその箱だけ。--continue の新しいプロセスでも見張りが続くよう毎回返す)。未読があれば 1 行だけ文脈へ |
 | `prompt` | UserPromptSubmit | 印の `mode` を今の権限モード(`permission_mode`)に書き直す。送り手のモードが最新の人の番の値になる。何も出さない |
-| `bell` | FileChanged(matcher なし、`asyncRewake: true`、timeout 30) | 自分の受け箱に連絡が増えた(`add`)ときだけ、知らせの 1 行を stderr に出して exit 2 = 手すきのセッションを起こす。ほかの箱・tmp・change / unlink は黙って 0 |
+| `bell` | FileChanged(matcher なし、`asyncRewake: true`、timeout 30) | 自分の会話の箱か受け持つ箱に連絡が増えた(`add`)ときだけ、知らせの 1 行を stderr に出して exit 2 = 手すきのセッションを起こす。ほかの箱・tmp・change / unlink は黙って 0 |
 
 - 知らせの 1 行 = 送り元の名前とリポ・連絡 id・about・`pnpm workflow peer read <id>`。本文と送り手のモードは文脈に入れない(読むのはコマンドで、人に伝えるかはその後)
 - 印の `pid` = フックの先祖をたどって最初に見つかる claude のプロセス。見つからなければ印を書かない(相手からは「印が無い」に見え、受け箱に置くだけになる)

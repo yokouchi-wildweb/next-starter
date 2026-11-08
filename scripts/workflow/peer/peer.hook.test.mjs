@@ -3,7 +3,8 @@
 // - start: 印(pid・procStart・cwd・mode)を書き、自分の受け箱を作って watchPaths に返す。未読があるときだけ 1 行
 // - prompt: 印の mode を今の権限モードに書き直す。何も出さない
 // - bell: 自分の受け箱への add だけ stderr に知らせの 1 行(本文・送り手のモードは入れない)+ exit 2、ほかは黙って 0
-// - 門が閉じている(tmux でない・tmux の外・チームの道具のタブ・id なし)= どれも出さず書かず 0。実際の hook.mjs も同じ
+// - 門が閉じている(tmux でない・tmux の外・id なし)= どれも出さず書かず 0。チームの道具のタブでは動く。実際の hook.mjs も同じ
+// - PEER_BOXES: 受け持つ箱も見張り、印に書き、そこへの add でも鳴る。渡されなかったセッションは箱を持たない
 // - .claude/settings.json の行(SessionStart・UserPromptSubmit・FileChanged + asyncRewake)と peer の 5 動作の allow
 
 import assert from "node:assert/strict";
@@ -123,7 +124,7 @@ test("bell: 他人の箱・tmp・change / unlink・連絡でないファイル�
 });
 
 test("門が閉じている → start / prompt / bell とも出さず書かず 0", () => {
-  for (const extra of [{ AGENT_TERMINAL: "none" }, { TMUX: "" }, { TK_TEAM: "council" }, { CLAUDE_CODE_SESSION_ID: "" }]) {
+  for (const extra of [{ AGENT_TERMINAL: "none" }, { TMUX: "" }, { CLAUDE_CODE_SESSION_ID: "" }]) {
     const root = temp();
     for (const mode of ["start", "prompt", "bell"]) {
       assert.deepEqual(runHook(mode, { permission_mode: "plan", event: "add", file_path: "/x" }, depsFor(root, extra)), {
@@ -137,14 +138,16 @@ test("門が閉じている → start / prompt / bell とも出さず書かず 0
   }
 });
 
-test("hook.mjs そのもの: チームの道具のタブでは何も出さず 0、門が開けば start は JSON を出す", () => {
+test("hook.mjs そのもの: チームの道具のタブでも動き、PEER_BOXES を渡されたセッションだけが箱を受け持つ", () => {
   const root = temp();
   const run = (mode, env, input = {}) =>
     spawnSync(process.execPath, [path.join(here, "hook.mjs"), mode], { input: JSON.stringify(input), encoding: "utf8", env: { PATH: process.env.PATH, ...env } });
-  const team = run("start", { ...openEnv(root), TK_TEAM: "council" });
+  const team = run("start", { ...openEnv(root), TK_TEAM: "council", PEER_BOXES: "council/r1" });
   assert.equal(team.status, 0);
-  assert.equal(team.stdout, "");
-  assert.equal(existsSync(path.join(root, "boxes")), false);
+  assert.deepEqual(JSON.parse(team.stdout).hookSpecificOutput.watchPaths, [boxDir(root, SELF), boxDir(root, "council/r1")]);
+  // 席のタブ: 同じチームの環境でも PEER_BOXES を渡されなければ自分の会話の箱だけ
+  const seat = run("start", { ...openEnv(root), TK_TEAM: "council", CLAUDE_CODE_SESSION_ID: "seat-3333" });
+  assert.deepEqual(JSON.parse(seat.stdout).hookSpecificOutput.watchPaths, [boxDir(root, "seat-3333")]);
   const open = run("start", openEnv(root), { source: "startup" });
   assert.equal(open.status, 0);
   assert.deepEqual(JSON.parse(open.stdout).hookSpecificOutput.watchPaths, [boxDir(root, SELF)]);
@@ -174,4 +177,39 @@ test(".claude/settings.json: peer のフックの行と 5 動作の allow", () =
     undefined,
   );
   for (const a of ["send", "reply", "inbox", "read", "who"]) assert.ok(s.permissions.allow.includes(`Bash(pnpm workflow peer ${a}:*)`), a);
+});
+
+test("PEER_BOXES: start は受け持つ箱も作って見張り、印に書く。prompt も保つ。使えない値は 1 行", () => {
+  const root = temp();
+  const r = runHook("start", { permission_mode: "plan" }, depsFor(root, { PEER_BOXES: "council/r1 guild/g1 ../bad" }));
+  const out = JSON.parse(r.stdout).hookSpecificOutput;
+  assert.deepEqual(out.watchPaths, [boxDir(root, SELF), boxDir(root, "council/r1"), boxDir(root, "guild/g1")]);
+  assert.ok(existsSync(boxDir(root, "guild/g1")));
+  assert.deepEqual(readMark(root, SELF).boxes, ["council/r1", "guild/g1"]);
+  assert.match(out.additionalContext, /PEER_BOXES の値 \.\.\/bad は箱の鍵/);
+  runHook("prompt", { permission_mode: "default" }, depsFor(root, { PEER_BOXES: "council/r1 guild/g1" }));
+  assert.deepEqual(readMark(root, SELF).boxes, ["council/r1", "guild/g1"]);
+  runHook("start", {}, depsFor(root));
+  assert.deepEqual(readMark(root, SELF).boxes, []);
+});
+
+test("bell: 受け持つ箱への add でも鳴り、行は箱を名指す。受け持たない箱は黙る", () => {
+  const root = temp();
+  const env = { PEER_BOXES: "council/r1" };
+  const m = putMessage(root, "council/r1", { from, about: "件", body: "x" });
+  const r = runHook("bell", { event: "add", file_path: path.join(boxDir(root, "council/r1"), `${m.id}.json`) }, depsFor(root, env));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /連絡\(受け持つ箱 council\/r1 宛て\) m-/);
+  const o = putMessage(root, "council/q9", { from, body: "x" });
+  assert.equal(runHook("bell", { event: "add", file_path: path.join(boxDir(root, "council/q9"), `${o.id}.json`) }, depsFor(root, env)).code, 0);
+  assert.equal(runHook("bell", { event: "add", file_path: path.join(boxDir(root, "council/r1"), `${m.id}.json`) }, depsFor(root)).code, 0);
+});
+
+test("印の欄を足しても版は 1: 古い読み手(v === 1 を読み知らない欄は通す)で読める", () => {
+  const root = temp();
+  runHook("start", {}, depsFor(root, { PEER_BOXES: "council/r1" }));
+  const raw = JSON.parse(readFileSync(path.join(root, "marks", `${SELF}.json`), "utf8"));
+  assert.equal(raw.v, 1);
+  const oldReader = (d) => (d && d.v === 1 ? d : null);
+  assert.equal(oldReader(raw).pid, 4242);
 });

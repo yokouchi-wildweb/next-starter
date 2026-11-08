@@ -1,9 +1,10 @@
 // scripts/workflow/peer/lib.store.mjs
 //
 // 普通のセッション同士の連絡(peer)の受け箱。利用者ごとに 1 か所、リポの外(~/.team・~/.claude・リポの中には置かない)。
-//   <root>/boxes/<セッション id>/<連絡 id>.json  — 受け箱(呼び鈴のフックが見張るのは今の会話の箱だけ)
+//   <root>/boxes/<セッション id>/<連絡 id>.json  — 会話の受け箱(呼び鈴のフックが見張るのは今の会話の箱と、受け持つ箱だけ)
+//   <root>/boxes/<種類>/<ID>/<連絡 id>.json      — インスタンス ID の箱(PEER_BOXES で受け持つ。種類は開いた名前)
 //   <root>/tmp/                                   — 書きかけ。ここに書いてから受け箱へ rename(見張りには add が 1 回だけ届く)
-//   <root>/state/<セッション id>/<連絡 id>.json   — 読んだ・返事した(箱の外に置き、印を付けても呼び鈴が鳴らない)
+//   <root>/state/<箱の鍵>/<連絡 id>.json          — 読んだ・返事した(箱の外に置き、印を付けても呼び鈴が鳴らない)
 //   <root>/marks/<セッション id>.json             — 印 = フックが書く自分の記録(pid・procStart が今のプロセスと合う時だけ有効)
 // ファイルはどれも版 `v` を持つ。説明: scripts/workflow/peer/README.md
 
@@ -23,13 +24,45 @@ export function stateRoot(env = process.env) {
 }
 
 const SAFE = /^[A-Za-z0-9._-]+$/;
+/** 名前の 1 段: SAFE の文字だけ、`.` と `..` は断る(path.join が上のフォルダに正規化してしまうため) */
 const safe = (name, what) => {
-  if (!SAFE.test(name ?? "")) throw new Error(`peer: ${what} に使えない文字があります: ${name}`);
+  if (!SAFE.test(name ?? "") || name === "." || name === "..") throw new Error(`peer: ${what} に使えない名前です: ${name}`);
   return name;
 };
 
-export const boxDir = (root, sessionId) => path.join(root, "boxes", safe(sessionId, "セッション id"));
-export const stateDir = (root, sessionId) => path.join(root, "state", safe(sessionId, "セッション id"));
+/** セッション id の形(UUID)。箱の種類の段はこの形にできない(boxes/<セッション id> と boxes/<種類> が同じフォルダにならないように) */
+const SESSION_ID_FORM = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 箱の鍵: セッション id(1 段)か、インスタンス ID の箱 `<種類>/<ID>`(2 段)。種類は開いた名前(peer は値の一覧を持たない)。
+ * 戻り値 = 段の配列。使えない鍵は throw
+ */
+export function boxSegments(key) {
+  const parts = String(key ?? "").split("/");
+  if (parts.length === 1) return [safe(parts[0], "セッション id")];
+  if (parts.length === 2) {
+    const [kind, id] = [safe(parts[0], "箱の種類"), safe(parts[1], "箱の ID")];
+    if (SESSION_ID_FORM.test(kind)) throw new Error(`peer: 箱の種類はセッション id の形にできません: ${kind}`);
+    return [kind, id];
+  }
+  throw new Error(`peer: 箱の鍵は <セッション id> か <種類>/<ID> です: ${key}`);
+}
+
+/** 使える箱の鍵か(throw しない) */
+export function isBoxKey(key) {
+  try {
+    boxSegments(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** インスタンス ID の箱(2 段)か */
+export const isInstanceBox = (key) => isBoxKey(key) && String(key).includes("/");
+
+export const boxDir = (root, key) => path.join(root, "boxes", ...boxSegments(key));
+export const stateDir = (root, key) => path.join(root, "state", ...boxSegments(key));
 export const markFile = (root, sessionId) => path.join(root, "marks", `${safe(sessionId, "セッション id")}.json`);
 export const tmpDir = (root) => path.join(root, "tmp");
 
@@ -111,7 +144,7 @@ export function listBox(root, sessionId) {
     .map((m) => ({ ...m, state: getState(root, sessionId, m.id) }));
 }
 
-/** 印を書く(フックが使う)。mark = { sessionId, pid, procStart, cwd, mode } */
+/** 印を書く(フックが使う)。mark = { sessionId, pid, procStart, cwd, mode, boxes }(boxes = 受け持つインスタンス ID の箱の鍵) */
 export function writeMark(root, mark, now = new Date()) {
   const data = { v: FORMAT_VERSION, ...mark, written: now.toISOString() };
   writeAtomic(root, path.join(root, "marks"), `${safe(mark.sessionId, "セッション id")}.json`, data);
