@@ -1,1 +1,1 @@
-{ "check": "check.mjs", "gates": ["build", "ship"], "watch": ["src/lib/**", "src/components/**", "src/config/lib/**", "scripts/structure/lib-package/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }
+{ "check": "check.mjs", "gates": ["build", "ship"], "watch": ["src/lib/**", "src/components/**", "src/config/lib/**", "scripts/structure/lib-package/**", "eslint-rules/resolve-import.mjs", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }

@@ -1,13 +1,25 @@
-# scripts/structure/lib-package — 宣言した lib の単体の型検査と sideEffects の検査
+# scripts/structure/lib-package — 閉じたかの検査(宣言した lib の単体の型検査・sideEffects・設定・自前の合成)
 
-`package.json` を持つ lib(= 宣言した lib)ごとに、次の 3 つを確かめます。package.json の形そのもの(exports・libs・peers・sideEffects の書き方)は `src/lib/libPackage`(読み手と形の検査)と lint が見ます。形に問題がある lib はここでは飛ばして名前を出します。
+lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜5 の不備で落ち、宣言の無い lib は数えて一覧に出すだけで落としません(L1.21。error にするのは最後の段)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方)は `src/lib/libPackage`(読み手と形の検査)と lint が見ます。形に問題がある lib はここでは飛ばして名前を出します(state skipped)。
 
 ```
-pnpm check lib-package              # 門 build・ship でも回る
-pnpm test scripts/structure/lib-package/libPackage.test.mjs
+pnpm check lib-package               # 不備の行 + 1 行のまとめ(門 build・ship でも回る)
+pnpm check lib-package -- --list     # lib ごとの表(外から中を読む import の数も)
+pnpm check lib-package -- --json     # 同じものを JSON で({ rows, summary }、指令 27・クエスト向け)
+pnpm test scripts/structure/lib-package
 ```
 
-- exit 0 = 全部通る(package.json を持つ lib が 0 の時も)/ 1 = 問題あり(直す所を 1 行ずつ出す)
+- exit 0 = 宣言した lib に不備 0(package.json を持つ lib が 0 の時も)/ 1 = 不備あり(直す所を 1 行ずつ出す)/ 2 = 引数の誤り
+
+## 0. lib ごとの状態(--list / --json)
+
+- `state`: `closed`(宣言・不備 0)| `gaps`(宣言・不備あり)| `skipped`(package.json の形に問題)| `undeclared`(package.json 無し)
+- `declared`: `none` | `ok` | `problems:<数>`
+- `inner`: 外から lib の中を読む import の数。宣言した lib = exports の入口に当たらない import、宣言の無い lib = lib の根(index)以外に当たる import。lint の lib-entry と同じ部品(eslint-rules/resolve-import.mjs の resolveImport、src/lib/libPackage の libOfPath・findEntry)で判定する。走査 = lint と同じ所(git の追跡 + 未追跡、node_modules・.next・src/_stash 等を除く)、`@lib-config/…` は数えない
+  - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の lib-entry(1 つの規則)。だから門の watch にも repo 全体は入れない
+- `problems`: 下の 1〜5 の不備の数(宣言した lib だけ)
+- `config`: `none`(config.ts 無し)| `ok`(上書き src/config/lib/<名前>.config.ts あり)| `overrideMissing`
+- `merge`: 残っている自前の合成の名前(下の 5)
 
 ## 1. lib の tsconfig.json(手で書く)
 
@@ -61,10 +73,25 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 書いていない → 見ない(副作用ありとして扱われる)。sideEffects は測った所だけ書く(D86)
 - 判定は書き方だけで見る: 初期化の式の中に隠れた呼び出し(`export const x = register()`)は拾わない
 
+## 4. 設定の上書き
+
+- lib に `config.ts` があるなら、上書き `src/config/lib/<名前>.config.ts` が要る(無ければ落とす。空の上書きは `export default {};`)。置き方: src/lib/README.md「設定の届け方」
+
+## 5. 自前の合成の残り(L1.23)
+
+閉じた lib は設定の合成を `@/lib/defineConfig` の defineConfig で行います。lib ごとの一覧は持たず、形で見ます。
+
+- 自前の合成 = `@/lib/defineConfig` を読まない lib が、`define<名前>Config` を export する(defineFontsConfig・defineSiteThemeConfig)か、合成器と同じ名前のファイル `defineConfig.<ext>` で `define<名前>` を export する(defineVariantOverrides)
+- defineConfig を読んで作る薄い包み(`define<名前>Config = () => defineConfig(…)`)は自前の合成ではない
+- 合成器そのもの(契約 api.defineconfig が名指す lib `defineConfig` = `COMPOSER_LIB`)には掛けない
+- 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
+
 ## ファイル
 
-- `check.mjs` 入口(gate.json の check)。`checkLibs(root)` → `{ checked, skipped, problems }`
+- `check.mjs` 入口(gate.json の check)。`checkLibs(root)` → `{ checked, skipped, undeclared, problems }`、`libReport(root)` → `{ rows, summary }`(--list / --json)
+- `closed.mjs` `libStates`・`closedLibProblems`・`scanInnerImports`・`configStateOf`・`mergeHelpersOf`・`COMPOSER_LIB`
 - `standalone.mjs` `closureOf`・`expectedPaths`・`expectedTsconfig`・`compareTsconfig`・`typecheckLib`
 - `sideEffects.mjs` `sideEffectsInSource`・`findSideEffects`・`checkSideEffects`
 - `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト
+- `closed.test.mjs` 閉じたかの検査のテスト
 - `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること
