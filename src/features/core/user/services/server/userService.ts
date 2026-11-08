@@ -41,6 +41,9 @@ export {
 // サービス内部で必要な場合は base を直接使う (例: registration/setPending.ts の base.upsert)。
 // bulkUpdate / bulkUpdateByIds は副作用の無い列に限ったラッパーを公開する (wrappers/bulkUpdate.ts)。
 // 一括削除も softDelete (ステータス変更 / クリーンアップ / 監査ログ) を通らないため公開しない (該当ルートは 404)。
+// 条件での一括更新 bulkUpdateByQuery (列の制限なし) と物理の一括削除 bulkHardDeleteByIds も同じ理由で公開しない
+// (汎用のデータ操作のコマンド pnpm ops data もサービスに無い操作はしない。src/lib/domain の resolveDataCommand)。
+// systemBulkUpdateByQuery は許した systemColumns だけを書くサービス層の道具なので残す (HTTP・コマンドには出ない)。
 const {
   upsert: _upsert,
   bulkUpsert: _bulkUpsert,
@@ -48,6 +51,8 @@ const {
   duplicate: _duplicate,
   bulkDeleteByIds: _bulkDeleteByIds,
   bulkDeleteByQuery: _bulkDeleteByQuery,
+  bulkUpdateByQuery: _bulkUpdateByQuery,
+  bulkHardDeleteByIds: _bulkHardDeleteByIds,
   ...exposedBase
 } = base;
 

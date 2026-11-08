@@ -12,6 +12,7 @@ const FAIL_CLOSED_ACCESS = ACCESS_PRESETS.ADMIN_ONLY;
 /**
  * domain.json から domainEntry.ts の access を組む。
  * - read / write = apiAccess（無ければ ADMIN_ONLY）
+ * - commands = apiAccess.commands(データ操作のコマンドの上書き、書いた時だけ)
  * - operations = apiAccess.operations + 管理データ操作: truncateAll は管理者、export / import は useImportExport が true のときだけ管理者（書かなければ "none" = 閉じる）
  */
 export function buildDomainEntryAccess(config) {
@@ -27,6 +28,8 @@ export function buildDomainEntryAccess(config) {
       export: dataRule,
       import: dataRule,
     },
+    // データ操作のコマンド(pnpm ops data)の上書き。書いたドメインだけ出す(src/lib/domain/README.md)
+    ...(apiAccess?.commands ? { commands: apiAccess.commands } : {}),
   };
 }
 

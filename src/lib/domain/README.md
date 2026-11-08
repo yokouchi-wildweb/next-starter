@@ -113,6 +113,17 @@ export const domainEntries = {
 
 `isGenericApiClosed(access)` = 汎用 CRUD が全操作 `"none"` か（feature gate の検査が「閉じているべき `/api/<domain>`」から除くのに使う）。
 
+### データ操作のコマンド（pnpm ops data）の許可
+
+全ドメイン共通のデータ操作のコマンド `pnpm ops data <export|import|update|delete> <domain>` が、そのドメインで許されるか・どのサービスの関数を呼ぶかは `resolveDataCommand(access, command, service)`（`definition/dataCommand.ts`）が決める。
+
+- 対応: `export` → 操作 `export` / 関数 `search`、`import` → `import` / `bulkUpsert`、`update` → `bulkUpdate` / `bulkUpdate`、`delete` → `bulkDeleteByIds` / `bulkDeleteByIds`（`DATA_COMMAND_OPERATIONS`）
+- 許可: その操作の規則（`resolveAccessRule`）が `"none"` でなければ許す = 管理 API で何かしらのロールに許した操作はコマンドでも許す。`export` / `import` は上の管理データ操作の規則（書かなければ `"none"`）
+- 上書きの欄 `access.commands`（`{ export?, import?, update?, delete? }` = `"allow"` | `"deny"`）: API とコマンドで範囲を変えたいドメインだけ書く。core は `domainEntry.ts`（fork が core を変えるなら `domainEntry.override.ts`）、業務ドメインは domain.json の `apiAccess.commands`（`pnpm generate domain` が `domainEntry.ts` に写す）
+- fail-closed: 許されても、そのドメインのサービスに関数が無ければ止める（lib/crud を直接呼ばない）。例: user はサービスが `bulkDeleteByIds` を公開しないので `delete` は閉じる、`update` は列を限ったラッパー `userService.bulkUpdate`
+- 登録表で引けること（`getService`）は許可ではない。`INTERNAL_ONLY` のドメインは 4 つとも閉じる
+- 全ドメインの結果は `pnpm test scripts/structure/registry/dataCommands.test.mts`（user と INTERNAL_ONLY を固定）
+
 ### 引く（`src/lib/domain/server`、登録表は引数）
 
 | 関数 | 用途 |

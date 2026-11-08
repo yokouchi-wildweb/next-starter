@@ -36,7 +36,7 @@ export function serializeRule(rule) {
 
 /**
  * domainEntry.ts の access の本体（`{ ... }` の中身）を複数行で直列化する。
- * @param {{ read?: unknown, write?: unknown, operations?: Record<string, unknown> }} access read / write / operations（管理データ操作を含む）
+ * @param {{ read?: unknown, write?: unknown, operations?: Record<string, unknown>, commands?: Record<string, string> }} access read / write / operations（管理データ操作を含む）/ commands（データ操作のコマンドの上書き）
  * @returns {{ lines: string[], names: string[] }} lines = 1 行ずつ（インデントなし）、names = 参照したプリセット名（import に使う）
  */
 export function serializeAccess(access) {
@@ -59,6 +59,12 @@ export function serializeAccess(access) {
       if (expr in PRESET_RULES) names.add(expr);
       lines.push(`  ${operation}: ${expr},`);
     }
+    lines.push('},');
+  }
+  const commands = Object.entries(access.commands ?? {});
+  if (commands.length > 0) {
+    lines.push('commands: {');
+    for (const [command, value] of commands) lines.push(`  ${command}: ${JSON.stringify(value)},`);
     lines.push('},');
   }
   return { lines, names: [...names] };

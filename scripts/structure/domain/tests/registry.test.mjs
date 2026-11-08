@@ -229,3 +229,12 @@ test("domainEntry: domain.json から services/server/domainEntry.ts を書き�
   assert.equal(writeDomainEntry(root, "save"), 1);
   assert.match(read(root, "src/features/save/services/server/domainEntry.ts"), /\.\.\.ADMIN_ONLY,/);
 });
+
+test("domainEntry: apiAccess.commands(データ操作のコマンドの上書き)は書いた時だけ access.commands に出る", () => {
+  const without = buildDomainEntryAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] } } });
+  assert.equal("commands" in without, false);
+  const withCommands = buildDomainEntryAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] }, commands: { delete: "deny", export: "allow" } } });
+  assert.deepEqual(withCommands.commands, { delete: "deny", export: "allow" });
+  const text = renderDomainEntry({ camel: "sample", config: { apiAccess: { read: "public", write: { roleCategories: ["admin"] }, commands: { delete: "deny" } } } });
+  assert.match(text, /commands: \{\n\s+delete: "deny",\n\s+\},/);
+});

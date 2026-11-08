@@ -75,6 +75,13 @@ export type DomainApiAccessRule =
  * CRUD 操作で未宣言の項目はグローバル既定値（fail-closed: admin カテゴリのみ）にフォールバックする。
  * 管理データ操作（DOMAIN_DATA_OPERATIONS）は operations に明示したときだけ開く（未指定 = "none"）。
  */
+/** 全ドメイン共通のデータ操作のコマンド（pnpm ops data <command> <domain>）。許可は resolveDataCommand */
+export const DATA_COMMANDS = ["export", "import", "update", "delete"] as const;
+export type DataCommand = (typeof DATA_COMMANDS)[number];
+
+/** コマンドの許可の上書き（既定 = 管理 API で何かしらのロールに許した操作は許す） */
+export type DataCommandOverride = "allow" | "deny";
+
 export type DomainApiAccessConfig = {
   /** 読み取り操作（list, get, search, count）の既定ルール */
   read?: DomainApiAccessRule;
@@ -82,4 +89,9 @@ export type DomainApiAccessConfig = {
   write?: DomainApiAccessRule;
   /** 操作単位の上書き（read/write より優先）。truncateAll / export / import はここにだけ書ける */
   operations?: Partial<Record<DomainApiOperation, DomainApiAccessRule>>;
+  /**
+   * データ操作のコマンド（pnpm ops data）の許可の上書き。省略 = API の規則に従う（対応する操作の規則が "none" でなければ許す）。
+   * API とコマンドで範囲を変えたいドメインだけ書く。src/lib/domain/README.md「データ操作のコマンド（pnpm ops data）の許可」
+   */
+  commands?: Partial<Record<DataCommand, DataCommandOverride>>;
 };
