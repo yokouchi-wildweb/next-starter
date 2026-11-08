@@ -501,7 +501,7 @@ for (let i = 0; i < 10; i++) {
 - `reasonKey` なしは今まで通り（`reasonCategory ?? "other"`、`reason_key` は null）
 - **requiresKey**: 区分の config の `requiresKey: true`（上流の既定 = `bonus`）の書き込みに `reasonKey` が無いと `console.warn`（書き込みは止めない）。上流のコードは `pnpm test src/features/core/wallet/services/server/wrappers/reasonKey.test.ts` の静的な検査で必ず渡す
 - **管理者の調整**: `/api/admin/wallet/[userId]/adjust`・`bulk/adjust-by-type` は `reasonKey` を受ける。省略して区分も省略（または `admin_adjustment`）なら固定キー `admin_adjustment`。他の区分を選んだ調整は種類なし。未登録の key は 400
-- 上流の項目: `coupon_attribution_reward`（bonus、クーポン帰属報酬の付与）・`admin_adjustment`（admin_adjustment、管理者の調整）
+- 上流の項目: `coupon_attribution_reward`（bonus、クーポン帰属報酬の付与）・`admin_adjustment`（admin_adjustment、管理者の調整）・`compensation`（admin_adjustment、お詫び・補填。書き手 = 一括付与 `--kind compensation`。発行には数えない。返金 refund は本物の返金のために空けておく）
 - **過去の行に種類を埋める**（冪等・時間予算付き・dry-run あり）: `backfillWalletReasonKeys(rules, { dryRun, deadline?, chunkSize? })`（`walletHistory/services/server/reasonKeyBackfill.ts`）
   - 規則 = `{ key, reasonPatterns, fromCategories?, includeNullReason? }` の配列（種類の項目には持たせない: 1 回きりの移行の物）。対象 = `reason_key IS NULL` かつ区分が `fromCategories`（既定 = 種類の category）かつ `reason` がどれかの LIKE（`%` は規則に書く）に一致
   - 2 つ以上の規則に一致する行は書かずに `conflicts` に数える。`unmatchedRequiresKey` = requiresKey の区分で種類の無いまま残る行
@@ -589,6 +589,22 @@ ON wallet_histories USING gin ((meta ->> 'orderId'));
 - 取り消せない(何も書かずに止める): 残高を置き換えた行(SET。逆が後の行に依るので、手で `admin_adjustment` の調整をする)・額 0 の行・取り消しの行そのもの・既に取り消した行・今は書けない区分と種類(消した・付け替えた reason key)・利用可能な残高が足りない DECREMENT(付けた分を既に使った等)
 - ロット(有効期限): INCREMENT の取り消しは元のロットではなく古いロットから順に減らす(`consumeLotsFifo`)。DECREMENT の取り消しは今日付けの新しいロットになる
 - 他のドメインの状態(購入・クーポンの利用・紹介報酬)は戻さない。wallet の行だけ
+
+## 一括付与と補填
+
+複数のユーザーに同じ額か人ごとの額をまとめて付ける(キャンペーンの付与・障害のお詫び・報酬の配り直しなど)。
+
+- コマンド(運用者): `pnpm task wallet:bulk-grant -- --wallet-type <通貨> --kind grant|compensation (--users <id>[,<id>...] --amount <n> | --file <path> [--amount <既定の額>]) --reason "<理由>" [--notify] [--dry-run]`
+  - `--file`: 1 行 `id` か `id,額`(額の無い行は `--amount`)。空行と `#` の行は飛ばす
+  - 先に `--dry-run` で人数・合計・飛ばす人を確かめてから、外して打つ。本番は `--env production --confirm=production`
+  - 止める鍵: 中身(通貨・種類・理由・ユーザーと額の組)から 1 つ `wallet-grant:<hash>`。同じ付与を二度打つと拒否する(意図して同じ物をもう一度付けるなら理由を変える)
+  - 間違えた付与は束ごと取り消す: `pnpm task wallet:reverse-history -- --batch <結果の requestBatchId> --reason "<理由>"`(上の「取引の取り消し」)
+- サービス: `walletService.bulkGrant({ walletType, grants: [{ userId, amount }], kind, reason, notify?, dryRun })` → `{ requestBatchId, granted, skipped, total, notified, notifyFailed }`。管理画面から呼ぶときも同じ関数
+- 書き方: 全員を 1 つの transaction で `bulkAdjustByUsers` に通す(額ごとにまとめる、INCREMENT、`source_type` admin_action、1 つの `request_batch_id`、監査 `wallet.balance.bulk_adjusted_by_users` は額の組ごと)。1 人でも書けなければ全部戻す
+- 種類: `grant` = 付与の種類 `admin_adjustment`、`compensation` = `compensation`。区分はどちらも `admin_adjustment`(発行には数えない)
+- 飛ばす: 知らない id・削除済みのユーザー。先に止める: 額が正の整数でない・同じユーザーが 2 回・空・1 回 10,000 人超え(1 つの transaction で財布を行ロックするため。ファイルを分ける)・知らない通貨・理由なし
+- `--notify`: commit の後に 1 人ずつ残高変更のお知らせ(`sendAdjustmentNotification`、お知らせの機能が閉じていれば送らない)。送れなくても付与は戻さない
+- もっと大きな相手(全員・条件で選ぶ)は今までどおり一括の job(`createWalletBulkAdjustJob`)。このコマンドは id の並びだけを受ける
 
 ---
 

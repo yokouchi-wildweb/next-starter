@@ -30,6 +30,7 @@ import { listExpirationResults } from "./lots/listExpirationResults";
 import { adjustBalance } from "./wrappers/adjustBalance";
 import { bulkAdjustByType } from "./wrappers/bulkAdjustByType";
 import { bulkAdjustByUsers, type BulkAdjustByUsersParams } from "./wrappers/bulkAdjustByUsers";
+import { bulkGrant, type BulkGrantParams, type BulkGrantResult } from "./wrappers/bulkGrant";
 import { consumeReservedBalance } from "./wrappers/consumeReservedBalance";
 import { debitBalance } from "./wrappers/debitBalance";
 import { releaseReservation } from "./wrappers/releaseReservation";
@@ -105,6 +106,9 @@ export const walletService = {
     userIds: string[],
     params: BulkAdjustByUsersParams,
   ) => bulkAdjustByUsers(tx, userIds, params),
+
+  /** 一括付与と補填: 複数のユーザーに同じ額か人ごとの額を 1 transaction で付ける(dryRun・notify あり。README「一括付与と補填」) */
+  bulkGrant: (params: BulkGrantParams): Promise<BulkGrantResult> => bulkGrant(params),
 
   /** 失効間近ロットを失効日ごとに集約して取得（有効期限が無効な通貨では常に空） */
   getExpiringLots: (

@@ -109,7 +109,7 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
   assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), []);
   assertUpstreamItems(names("src/features/core/analytics", "exclusionProviders"), []);
-  assertUpstreamItems(names("src/features/core/walletHistory", "reasonKeys"), ["adminAdjustment", "couponAttributionReward"]);
+  assertUpstreamItems(names("src/features/core/walletHistory", "reasonKeys"), ["adminAdjustment", "compensation", "couponAttributionReward"]);
   assertUpstreamItems(names("src/features/core/user", "reservedNames"), []);
   assertUpstreamItems(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
   assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
@@ -178,7 +178,7 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
   if (isTier1) assert.deepEqual(webhookHandlers, []);
 });
 
-test("タスクの走査: 上流のドメインのタスク・移行 11 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
+test("タスクの走査: 上流のドメインのタスク・移行 12 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
   const tasks = listOneShotTasks(ROOT).filter((t) => t.file.startsWith("src/features/core/"));
   assert.deepEqual(tasks.map((t) => t.name), [
     "analytics:rollup-backfill",
@@ -188,6 +188,7 @@ test("タスクの走査: 上流のドメインのタスク・移行 11 本、�
     "user:bulk-change-status",
     "user:name-dedup",
     "user:status-history-backfill",
+    "wallet:bulk-grant",
     "wallet:lots-init",
     "wallet:lots-init-from-history",
     "wallet:reverse-history",

@@ -4,10 +4,12 @@
 import type { WalletReasonKeyItem } from "@/features/core/walletHistory/types/reasonKey";
 
 import { reasonKey as reasonKeys_adminAdjustment } from "@/features/core/walletHistory/reasonKeys/adminAdjustment";
+import { reasonKey as reasonKeys_compensation } from "@/features/core/walletHistory/reasonKeys/compensation";
 import { reasonKey as reasonKeys_couponAttributionReward } from "@/features/core/walletHistory/reasonKeys/couponAttributionReward";
 
 const reasonKeysList: WalletReasonKeyItem[] = [
   reasonKeys_adminAdjustment,
+  reasonKeys_compensation,
   reasonKeys_couponAttributionReward,
 ];
 export const reasonKeys: Readonly<Record<string, WalletReasonKeyItem>> = Object.assign(Object.create(null), Object.fromEntries(reasonKeysList.map((item) => [String(item.key), item])));
