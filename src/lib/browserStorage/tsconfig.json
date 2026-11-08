@@ -1,0 +1,26 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@lib-config/browserStorage": [
+        "../../config/lib/browserStorage.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

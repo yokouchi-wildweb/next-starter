@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@lib-config/userDirty": [
+        "../../config/lib/userDirty.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}
