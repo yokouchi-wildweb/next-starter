@@ -1,6 +1,6 @@
 // scripts/workflow/agent-terminal/hook.mjs <start|busy|stop|precompact> — .claude/settings.json の hook
 //
-// ペインごとに、今どの会話がいるか・返答の始まりと終わり・圧縮の起こり方を記録する(待つ役 waiter.mjs が読む)。
+// ペインごとに、今どの会話がいるか・返答の始まりと終わり・圧縮の起こり方を記録する(待つ役 lib.waiter.mjs が読む)。
 //   start (SessionStart)      — そのペインの会話の id と、端末の案内(AGENT_TERMINAL.<値>.md)を標準出力へ(= 文脈に入る)。手で打った /compact の後(source=compact、直前の PreCompact が manual)
 //                               なら、入力欄が空いたら「続けてください」を打つ待つ役を残す
 //   busy (UserPromptSubmit)   — 返答の始まりの時刻
@@ -46,7 +46,7 @@ try {
       const manual = readMark(dir, "precompact") === "manual";
       writeMark(dir, "precompact", "");
       if (input.source === "compact" && manual && session) {
-        const child = spawn(process.execPath, [path.join(HERE, "waiter.mjs"), "continue", CONTINUE_TEXT], {
+        const child = spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "continue", CONTINUE_TEXT], {
           detached: true,
           stdio: "ignore",
           env: process.env,

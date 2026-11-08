@@ -96,7 +96,7 @@ test("pnpm workflow agent-terminal compactSelf 打てるとき: 返答の終わ�
   assert.equal(runCompactSelf(["残す", "こと\n2 行目"], env, deps), 0);
   assert.equal(calls.spawned.length, 1);
   const [script, purpose, text, prevIdle] = calls.spawned[0];
-  assert.equal(path.basename(script), "waiter.mjs");
+  assert.equal(path.basename(script), "lib.waiter.mjs");
   assert.equal(purpose, "compact");
   assert.equal(text, "/compact 残す こと 2 行目");
   assert.equal(prevIdle, "100");
@@ -218,7 +218,7 @@ test("waiter(本物の tmux): 予約した返答が終わってから、空の�
     writeMark(pdir, "session", "s-1");
     writeMark(pdir, "busy", "1");
     writeMark(pdir, "idle", "0");
-    const waiter = spawnSync(process.execPath, [path.join(here, "waiter.mjs"), "compact", "/compact 残す", "0"], {
+    const waiter = spawnSync(process.execPath, [path.join(here, "lib.waiter.mjs"), "compact", "/compact 残す", "0"], {
       env,
       timeout: 1000,
     });
@@ -227,7 +227,7 @@ test("waiter(本物の tmux): 予約した返答が終わってから、空の�
     assert.throws(() => readFileSync(got));
 
     const { spawn } = await import("node:child_process");
-    const child = spawn(process.execPath, [path.join(here, "waiter.mjs"), "compact", "/compact 残す", "0"], { env, stdio: "ignore" });
+    const child = spawn(process.execPath, [path.join(here, "lib.waiter.mjs"), "compact", "/compact 残す", "0"], { env, stdio: "ignore" });
     await new Promise((r) => setTimeout(r, 300));
     writeMark(pdir, "idle", "2"); // 返答が終わった
     await new Promise((r) => child.on("exit", r));

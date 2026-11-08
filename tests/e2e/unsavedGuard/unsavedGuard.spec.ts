@@ -1,8 +1,12 @@
 // tests/e2e/unsavedGuard/unsavedGuard.spec.ts — pnpm e2e tests/e2e/unsavedGuard(chromium・firefox・webkit、設定 playwright.config.default.ts)
-// 未保存の編集の守り(src/lib/unsavedGuard)の受入: 編集済みのフォームから 4 つの経路(棚の Link・router.push・戻る / 進む・
-// 再読み込みと離脱)と素の <a> で離れようとすると確認が出て、留まるなら画面も住所も入力もそのまま、移るなら元の行き先へ進む。
-// fork の自作 2 つが受けない経路(router.push・戻る / 進む)もこの lib は受ける(比べの表: src/lib/unsavedGuard/README.md)。
-// ページは門番の規則 e2eFixtures(既定で閉じる)の /e2e/unsaved-guard。閉じている間は理由を出して skip する。開き方: ./README.md
+// 未保存の編集の守り(src/lib/unsavedGuard)の受入を、実際の画面で確かめる(テストだけのルートは作らない):
+// - 管理のサンプルタグ編集(AppForm、自動保存なし): 編集済みから棚の Link(サイドバー)・router.push(前後の項目へ移る ItemNavigator)・
+//   router.back の代わりのブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない
+// - デモの表(/demo/tables の EditableGridTable): 書きかけのセル × 戻る(留まる / 移る)・再読み込み
+// - 管理のサンプル一覧のデータの取り込み(DataMigrationModal): 取り込み中は「処理の途中です」、留まると画面も取り込みの表示もそのまま
+// - 管理のサンプルの並び替え(SortableList): 保存待ちの間は棚の Link に確認、保存が終われば聞かない
+// ログインは pnpm task dev-admin の管理者(開発用 DB)。サーバーに届かない・ログインできない・行が無いときは理由を出して skip する。
+// 手順: ./README.md
 
 import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
@@ -52,7 +56,7 @@ const test = base.extend<{ admin: void }, { adminState: AdminState }>({
       }
       const secret = process.env.AUTH_JWT_SECRET;
       if (!secret) {
-        await provide({ skip: "AUTH_JWT_SECRET が無い(pnpm env:init。dev-admin のパスワードが決まらない)" });
+        await provide({ skip: "AUTH_JWT_SECRET が無い(pnpm ops setup env。dev-admin のパスワードが決まらない)" });
         return;
       }
       // ログインはどのブラウザの回でも chromium で行う(webkit は http の住所で Secure のセッションの cookie を保存しないため、
@@ -355,7 +359,7 @@ test.describe("表", () => {
 // ---- 処理の途中: 管理のサンプル一覧のデータの取り込み(DataMigrationModal) ----
 // 取り込みの API(/api/data-migration/import-chunk)の要求を止めて「取り込み中」を作り、最後に中止する(サーバーには届かない = データは変わらない)。
 // 取り込むのは同じ画面でエクスポートした ZIP。取り込みが終わった後(守りが外れる)は確かめない: 開発サーバーでは取り込みの要求が
-// 長く返らないことがある(要求を止めずに 1 分半待っても終わらなかった)ため。終わった後の守りの外れ方は pnpm test:unsaved-guard の importGuard
+// 長く返らないことがある(要求を止めずに 1 分半待っても終わらなかった)ため。終わった後の守りの外れ方は pnpm test src/lib/ の importGuard
 
 test("取り込み: 取り込み中に棚の Link → 「処理の途中です」、留まると画面も取り込みの表示もそのまま", async ({ page }) => {
   await page.goto("/admin/samples");

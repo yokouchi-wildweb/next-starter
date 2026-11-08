@@ -59,9 +59,6 @@ pnpm workflow tmux-launch setup
 ### データベース (db)
 
 ```bash
-# マイグレーション生成(package.json の入口は無い。drizzle-kit を直に呼ぶ)
-npx cross-env ENV_FILE=.env.development drizzle-kit generate
-
 # スキーマをDBに反映
 pnpm db:push
 

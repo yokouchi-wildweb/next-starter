@@ -18,8 +18,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parsePaths, unmatchedPaths } from "../rules/rulePaths.mjs";
-import { pickDroppingIndex } from "./pickDroppingIndex.mjs";
+import { parsePaths, unmatchedPaths } from "../rules/lib.rulePaths.mjs";
+import { pickDroppingIndex } from "./lib.pickDroppingIndex.mjs";
 
 // pnpm の組み込みコマンド(package.json の scripts ではない)
 const PNPM_BUILTIN = new Set(["install", "i", "add", "remove", "rm", "up", "update", "exec", "dlx", "run", "why", "list", "ls", "store", "env"]);
@@ -172,7 +172,7 @@ export function checkOnBase(repo, commit, base, picks = []) {
   try {
     execFileSync("git", ["clone", "-q", "--shared", "--no-checkout", repo, dir], { stdio: "ignore" });
     git(dir, ["switch", "-q", "--detach", at]);
-    // 出荷索引の変更は捨てて載せる(fork の /flux も索引だけの衝突は fork 側を採る。pickDroppingIndex.mjs)
+    // 出荷索引の変更は捨てて載せる(fork の /flux も索引だけの衝突は fork 側を採る。lib.pickDroppingIndex.mjs)
     for (const p of picks) {
       try {
         if (pickDroppingIndex(dir, p).conflicts.length) throw new Error("conflict");

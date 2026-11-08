@@ -16,13 +16,23 @@ import {
   worktreeRoot,
 } from "./lib";
 
-const { values, positionals } = parseArgs({
-  allowPositionals: true,
-  options: { force: { type: "boolean", default: false } },
-});
+const USAGE = "使い方: pnpm workflow worktree sync [path] [--force]";
+
+let parsed: ReturnType<typeof parseArgs<{ allowPositionals: true; options: { force: { type: "boolean"; default: false } } }>>;
+try {
+  parsed = parseArgs({
+    allowPositionals: true,
+    options: { force: { type: "boolean", default: false } },
+  });
+} catch {
+  // 知らない引数(--help 含む)は例外の跡を出さず使い方で止める
+  console.error(USAGE);
+  process.exit(1);
+}
+const { values, positionals } = parsed;
 
 if (positionals.length > 1) {
-  console.error("使い方: pnpm workflow worktree sync [path] [--force]");
+  console.error(USAGE);
   process.exit(1);
 }
 

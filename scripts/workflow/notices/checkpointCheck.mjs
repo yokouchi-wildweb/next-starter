@@ -23,7 +23,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_CHECKS as PICK_DEFAULT_CHECKS, field, noticeIndex, parseFixes, provideDeps, runChecks, sourcesBase } from "./pickCheck.mjs";
-import { pickDroppingIndex, SHIPPED_PREFIX } from "./pickDroppingIndex.mjs";
+import { pickDroppingIndex, SHIPPED_PREFIX } from "./lib.pickDroppingIndex.mjs";
 
 // 既定の検査(pick-check の DEFAULT_CHECKS + CLAUDE.md・core rules の検査)。再編の前の木では legacy の旧い名前で回す
 export const DEFAULT_CHECKS = [...PICK_DEFAULT_CHECKS.slice(0, 2), { run: "pnpm check rules", legacy: "pnpm test:core-rules" }, PICK_DEFAULT_CHECKS[2]];

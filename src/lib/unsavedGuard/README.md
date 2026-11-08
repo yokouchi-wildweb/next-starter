@@ -75,4 +75,4 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 ## テスト
 
 - `pnpm test src/lib/` — 本体(`guard.ts`)を偽物の window / document で + 使い手の lib の判定(取り込み・アップロード・表・並べ替え)
-- `pnpm e2e tests/e2e/unsavedGuard` — 実際のブラウザで 4 経路 × 留まる / 移る(dev server が要る: `tests/e2e/unsavedGuard/README.md`。e2eFixtures が閉なら skip)
+- `pnpm e2e tests/e2e/unsavedGuard` — 実際のブラウザで、実際の画面(管理のサンプル編集・データの取り込み・サンプルの並び替え、デモの表)を 4 経路 × 留まる / 移る(dev server と `pnpm task dev-admin` の管理者が要る: `tests/e2e/unsavedGuard/README.md`。届かなければ理由を出して skip)

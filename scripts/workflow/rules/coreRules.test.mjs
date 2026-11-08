@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parsePaths, staticPrefix } from "./rulePaths.mjs";
+import { parsePaths, staticPrefix } from "./lib.rulePaths.mjs";
 import { formatProblems, LINEAGE_FILE, parseLineage } from "../../../src/lib/forkOwnership/lineage.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");

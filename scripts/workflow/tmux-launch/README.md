@@ -41,6 +41,8 @@ tmux が無ければ何も入れずに止まる(exit 2)。先に入れる: Debia
 
 `.claude/settings.json` の SessionStart hook(`check.mjs`)が、ターミナルの claude(`CLAUDE_CODE_ENTRYPOINT=cli`)を tmux の外で起動し、このマシンで未設定・古いときだけ、エージェントに 1 行で知らせる。エージェントはユーザーに 1 回伝え、承認をもらってから `pnpm workflow tmux-launch setup` を実行する。設定済み・tmux の中・VS Code 拡張・デスクトップアプリでは何も出さない。
 
+`check.mjs` は hook が呼ぶ入口(手で打たない)。`pnpm workflow tmux-launch` の一覧には動作として出るが、手で確かめるのは `pnpm workflow tmux-launch setup --check`。
+
 ## 版
 
 `claude-tmux.sh` の `NEXT_STARTER_CLAUDE_TMUX_VERSION` を、中身を直したら 1 上げる。マシンに置いた写しが古いと hook が知らせ、`pnpm workflow tmux-launch setup` で合わせ直す。

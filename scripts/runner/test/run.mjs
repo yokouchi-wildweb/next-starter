@@ -3,6 +3,7 @@
 //   走査: git の追跡 + 未追跡のテストのファイル(scan.mjs、tests/e2e/・*.types.test.* は除く。servers/ は名指しの時だけ)を毎回。
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
+//   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
 //   --list: 選んだファイルを出すだけ(起動しない)。
 //   起動: npx tsx --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
 //   (node --test と同じく 1 ファイル 1 プロセス)。db の群は env ENV_FILE=.env.development(未設定なら)。
@@ -37,14 +38,14 @@ const matches = (file, pattern) => (/[*?]/.test(pattern) ? globToRegExp(pattern)
 /** 選ぶ: { files, notes } か { problem } */
 export async function select(opts, { repo, files, changed = changedFiles, tree = scanTree }) {
   const groups = opts.groups ?? (opts.db ? GROUPS : ["unit", "fork"]);
-  // servers/ の下は引数のパス・glob がそこを名指しした時だけ(NAMED_ONLY)
-  const namedOnly = opts.patterns.some((p) => NAMED_ONLY.test(p));
+  // servers/ の下は引数のパス・glob がそこを名指しした時と、--changed の範囲に servers/ の下の変更がある時だけ(NAMED_ONLY)
+  const range = opts.changed ? changed(repo) : null;
+  const namedOnly = opts.patterns.some((p) => NAMED_ONLY.test(p)) || Boolean(range?.files?.some((f) => NAMED_ONLY.test(f)));
   const all = (files ?? listTestFiles(repo, { namedOnly })).filter((f) => namedOnly || !NAMED_ONLY.test(f));
   let picked = all.filter((f) => groups.includes(groupOf(f)));
   if (opts.patterns.length) picked = picked.filter((f) => opts.patterns.some((p) => matches(f, p)));
   const notes = [];
   if (opts.changed) {
-    const range = changed(repo);
     if (range.files === null) notes.push(`--changed: ${range.why}ので選んだ全部を回す`);
     else {
       const t = range.files.length ? await tree(repo, picked) : {};

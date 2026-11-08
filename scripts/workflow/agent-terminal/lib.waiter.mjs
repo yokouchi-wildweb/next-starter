@@ -1,4 +1,4 @@
-// scripts/workflow/agent-terminal/waiter.mjs <compact|continue> <text> [prev idle] — 裏で待って、自分のペインの入力欄に 1 行打つ役
+// scripts/workflow/agent-terminal/lib.waiter.mjs <compact|continue> <text> [prev idle] — 裏で待って、自分のペインの入力欄に 1 行打つ役
 //
 // hook.mjs(continue)と compactSelf.mjs(compact)が detached で残す。打つのは次がそろったときだけ:
 //   - compact: 予約したときの返答が終わった(Stop の印 idle が予約時の値 <prev idle> から変わった)

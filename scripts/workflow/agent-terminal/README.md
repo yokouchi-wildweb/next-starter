@@ -32,6 +32,8 @@
 
 `node scripts/workflow/agent-terminal/hook.mjs <start|busy|stop|precompact>` を SessionStart / UserPromptSubmit / Stop / PreCompact に登録している。
 
+`hook.mjs` は hook が呼ぶ入口(手で打たない)。`pnpm workflow agent-terminal` の一覧には動作として出るが、`pnpm workflow agent-terminal hook` で打つ物ではない。
+
 - 記録するもの(ペインごと): 今そのペインにいる会話の id、返答の始まりと終わりの時刻、圧縮の起こり方(手で打った / 自動)
 - 手で打った圧縮の後(SessionStart の source が compact で、直前の PreCompact が manual)だけ、続きの待つ役を残す。返答の途中で起きる自動の圧縮はそのまま続くので打たない
 - 標準出力に出すのは、`AGENT_TERMINAL=tmux` で tmux の中のときの SessionStart(どの source でも。圧縮の後も入れ直す)の案内 `AGENT_TERMINAL.tmux.md` だけ。ほかの hook・ほかの場合は何も出さない(UserPromptSubmit / SessionStart の出力は文脈に入るため)。標準エラーにも出さず、失敗しても黙って exit 0
@@ -43,7 +45,7 @@
 - 中身 = その端末でエージェントができること(自分の圧縮の予約・`pnpm workflow dev-tab run`・`/msg` があればチームの統括への連絡・よい使い方)。エージェント向けに短く、経緯は書かない
 - `.claude/rules/` の外に置く(Claude Code が自動で読み込まない。その端末のときだけ hook が入れる)
 
-## 待つ役(waiter.mjs)の決まり
+## 待つ役(lib.waiter.mjs)の決まり
 
 - 打つのは、入力欄が画面にあって空のときだけ(Claude Code が薄く描く案内は空とみなす)。人の下書き・確認の画面・作業中の表示(`esc to interrupt`)には打たない
 - やめるとき(打たない): そのペインの会話が変わった(`/clear`・別の claude)/ ペインが無くなった / 同じ種類の新しい予約に代わった / 人が自分の言葉を送った / 入力欄が空かないまま `AGENT_TERMINAL_WAIT` 秒(既定 600)

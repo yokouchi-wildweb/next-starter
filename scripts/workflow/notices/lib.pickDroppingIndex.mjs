@@ -1,4 +1,4 @@
-// scripts/workflow/notices/pickDroppingIndex.mjs
+// scripts/workflow/notices/lib.pickDroppingIndex.mjs
 // 修正・緊急修正の commit を一時の木へ cherry-pick するとき、出荷索引(.notices/shipped/)の変更だけを捨てる(pick-check・hotfix-check が使う)。
 // /ship は notice の索引の行を本体と同じ commit に入れるが、索引は追記だけの上流の帳簿で、索引が無い・短い土台では必ず衝突する。
 // fork は pick の時点で上流の索引を要らない(未適用の判定は上流の先端の索引を読む。索引は後の merge で届く)ので、

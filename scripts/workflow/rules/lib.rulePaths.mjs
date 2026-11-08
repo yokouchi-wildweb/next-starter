@@ -1,4 +1,4 @@
-// scripts/workflow/rules/rulePaths.mjs
+// scripts/workflow/rules/lib.rulePaths.mjs
 // パス指定ルール(.claude/rules/**/*.md の frontmatter `paths:`)を読む部品。
 // pnpm check rules(今の木の契約)と pnpm workflow notices hotfixCheck(遅れた fork の木で当たるか)が共有する。
 import { matchesGlob } from "node:path";

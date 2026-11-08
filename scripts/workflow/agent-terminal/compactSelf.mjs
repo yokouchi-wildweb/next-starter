@@ -2,7 +2,7 @@
 //
 // エージェントが自分の会話の圧縮を頼むコマンド。どこで打っても使える(エージェントから見た約束は 1 つ):
 //   - 自分のペインに打てる(AGENT_TERMINAL=tmux・tmux の中・hook が動いている)→ この返答が終わったら `/compact <残すこと>`
-//     を打つ待つ役(waiter.mjs)を残し、「予約した。ここで返答を終える」と出す
+//     を打つ待つ役(lib.waiter.mjs)を残し、「予約した。ここで返答を終える」と出す
 //   - 打てない → `/compact <残すこと>` をユーザーに打ってもらう 1 行を出す(エラーにしない)
 // 終了コード: 0(どちらも)/ 1 = 残すことが空。説明: scripts/workflow/agent-terminal/README.md
 
@@ -30,7 +30,7 @@ export function runCompactSelf(args, env = process.env, deps = { spawn, print: c
   }
   const plan = planCompactSelf(env);
   if (plan.mode === "queue") {
-    const child = deps.spawn(process.execPath, [path.join(HERE, "waiter.mjs"), "compact", `/compact ${focus}`, plan.prevIdle], {
+    const child = deps.spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "compact", `/compact ${focus}`, plan.prevIdle], {
       detached: true,
       stdio: "ignore",
       env,

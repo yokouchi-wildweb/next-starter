@@ -71,6 +71,16 @@ test("--changed: import で届くテスト + 同じフォルダ、辿れない�
   assert.match(unknown.notes[0], /比べる上流の枝が無いので選んだ全部を回す/);
 });
 
+test("--changed: servers/ の下の変更が範囲にある時だけ、その下のテストも候補にする(全体の走査は今どおり外す)", async () => {
+  const files = [...FILES, "servers/room/src/core/room.test.ts"];
+  const tree = { "servers/room/src/core/room.test.ts": [{ id: "servers/room/src/core/room.ts" }], "src/a/a.test.ts": [{ id: "src/lib/x.ts" }] };
+  const pick = async (changedFiles, argv = ["--changed"]) => (await select(parseArgs(argv), { repo: "/r", files, changed: () => ({ files: changedFiles }), tree: async () => tree })).files;
+  assert.deepEqual(await pick(["servers/room/src/core/room.ts"]), ["servers/room/src/core/room.test.ts"]);
+  assert.deepEqual(await pick(["servers/room/src/core/room.ts", "src/lib/x.ts"]), ["src/a/a.test.ts", "servers/room/src/core/room.test.ts"]);
+  assert.deepEqual(await pick(["src/lib/x.ts"]), ["src/a/a.test.ts"]);
+  assert.ok(!(await pick([], [])).includes("servers/room/src/core/room.test.ts"));
+});
+
 test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)とフラグごとに束ねて 1 回ずつ、落ちたら exit 1、許可されないフラグは起動せず exit 2", async () => {
   const calls = [];
   const flags = { "scripts/x/x.test.mts": { flags: ["--a"] } };

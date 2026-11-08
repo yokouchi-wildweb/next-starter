@@ -30,11 +30,15 @@ const FILES = {
   "scripts/operations/db/clear.ts": 'import("./clear/plan");\n',
   "scripts/operations/db/clear/plan.ts": "export const p = 1;\n",
   "scripts/operations/db/clear/plan.test.ts": 'import "./plan";\n',
+  "scripts/workflow/gated/gate.json": '{ "check": "check.mjs", "generate": "build.ts", "gates": ["ship"] }\n',
+  "scripts/workflow/gated/check.mjs": "console.log('gate');\n",
+  "scripts/workflow/gated/build.ts": "console.log('gate');\n",
+  "scripts/workflow/gated/report.mjs": "console.log('report');\n",
 };
 
-test("一覧: 対象はフォルダ名順(fork が足したフォルダも)、動作は直下のスクリプトから *.test.*・lib.*・下のフォルダの中を除いた物", () => {
+test("一覧: 対象はフォルダ名順(fork が足したフォルダも)、動作は直下のスクリプトから *.test.*・lib.*・gate.json が名指す門の入口・下のフォルダの中を除いた物", () => {
   const root = fixture(FILES);
-  assert.deepEqual(listTargets(join(root, "scripts/workflow")).map((t) => [t.name, t.actions.map((a) => a.name)]), [["empty", []], ["mine", ["hello"]], ["tool", ["go", "new"]]]);
+  assert.deepEqual(listTargets(join(root, "scripts/workflow")).map((t) => [t.name, t.actions.map((a) => a.name)]), [["empty", []], ["gated", ["report"]], ["mine", ["hello"]], ["tool", ["go", "new"]]]);
   assert.deepEqual(listTargets(join(root, "scripts/operations")).map((t) => [t.name, t.actions.map((a) => a.name)]), [["db", ["clear", "inspect"]]]);
 });
 

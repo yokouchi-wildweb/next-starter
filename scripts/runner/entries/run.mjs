@@ -1,11 +1,11 @@
 // scripts/runner/entries/run.mjs — 道具の入口(pnpm workflow = 開発の進め方の道具 / pnpm ops = 手で使う操作・閲覧の道具)
 // 実行: node scripts/runner/entries/run.mjs <workflow|operations> [<対象> [<動作> [<引数>...]]]
 //   <対象> = scripts/<種類>/<対象>/(fork が直下に足したフォルダも同じ規則)、<動作> = そのフォルダの直下の <動作>.{mjs,js,ts}。
-//   動作にならない物: *.test.* と lib.*、下のフォルダの中(部品の置き場。動作の間で共有する物はここへ)。
+//   動作にならない物: *.test.* と lib.*、そのフォルダの gate.json が名指す門の入口(pnpm check / generate で呼ぶ)、下のフォルダの中(部品の置き場。動作の間で共有する物はここへ)。
 //   .ts は tsx + server-only の下駄、.mjs / .js は node で起動し、残りの引数はそのまま渡す。終了コードは動作のものを返す。
 //   対象・動作を省くと一覧を出す(exit 0)。知らない種類・対象・動作は止める(exit 2)。
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,10 +14,23 @@ const EXTS = [".mjs", ".js", ".ts"];
 /** 種類 → pnpm のコマンド名 */
 export const KINDS = { workflow: "workflow", operations: "ops" };
 
+/** そのフォルダの gate.json が門の入口として名指すファイル(check / generate)。動作には数えない(pnpm check / generate で呼ぶ) */
+export function gateEntriesOf(dir) {
+  const file = join(dir, "gate.json");
+  if (!existsSync(file)) return [];
+  try {
+    const decl = JSON.parse(readFileSync(file, "utf8"));
+    return [decl.check, decl.generate].filter((v) => typeof v === "string");
+  } catch {
+    return [];
+  }
+}
+
 /** 対象 1 つの動作: [{ name, file }](名前順) */
 export function actionsOf(dir) {
+  const gateEntries = gateEntriesOf(dir);
   return readdirSync(dir)
-    .filter((f) => EXTS.includes(extname(f)) && !/\.test\./.test(f) && !/^lib\b/.test(f) && statSync(join(dir, f)).isFile())
+    .filter((f) => EXTS.includes(extname(f)) && !/\.test\./.test(f) && !/^lib\b/.test(f) && !gateEntries.includes(f) && statSync(join(dir, f)).isFile())
     .map((f) => ({ name: f.slice(0, -extname(f).length), file: f }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
