@@ -1,45 +1,43 @@
 ---
 name: journal
-description: 日付付きの記録(docs/journal/)を 1 件書く。このセッションの経緯(インシデントの切り分け・検証結果・決定の経緯・段階作業のログ)から下書きを作り、承認を得てから書き出す。ジャーナル向きでない内容は正しい置き場を提案する
+description: Write one dated record in docs/journal/, drafted from this session's history (incident triage, verification results, how a decision was reached, staged-work logs) and written only after approval | When something should be recorded as a dated record; content that does not fit a journal gets a proposal for its right place
 argument-hint: "[記録するテーマ(省略でこのセッションの経緯から決める)]"
 ---
 
-あなたは今、`docs/journal/` に記録を 1 件書きます。
+role: write one record in `docs/journal/`
+topic: $ARGUMENTS
 
-テーマ: $ARGUMENTS
+## FIRST
+1. Read `docs/journal/README.md` | file name, owner, one record per file and the split with other docs live there → never copy them into this skill
 
-## 最初に
-- `docs/journal/README.md` を Read する。ファイル名・owner・1 件 1 ファイル・ほかの文書との分担はそこが正。このスキルに書き写さない
+## SCOPE
+- topic empty: pick one event to record from this conversation's history | several candidates → list them; STOP: ask which one to write (one record per file)
+- topic given: pick up only the history tied to that topic
+- material: the conversation, this session's commits (`git log`), checked results (command output, counts, screen checks) | never add facts that are not in the conversation | unknown points → write `未確認` (unverified) or ask the user
 
-## 範囲を決める
-- テーマが空: この会話の経緯から、記録する出来事を 1 つ選ぶ。候補が複数あれば列挙して、どれを書くか聞く(1 件 1 ファイル)
-- テーマあり: そのテーマに関わる経緯だけを拾う
-- 材料: 会話の内容、このセッションのコミット(`git log`)、確かめた結果(コマンド出力・件数・画面確認)。会話に無い事実は足さない。分からない点は「未確認」と書くか、ユーザーに聞く
+## SORT (before writing)
+sort the content against the README section `ほかの文書との分担` (split with other docs):
+- history (what happened, what was checked, why it was decided so) → journal body
+- standing rules / decision criteria → add a proposal to distill them into one line in `.claude/rules/project.md` (the body stays in the journal, with `ref: docs/journal/<file>`)
+- feature spec / usage → add an update proposal for the README beside the code
+- a lesson about an upstream core part (while running in a fork) → propose `/order <upstream repo>`
+- the history fits in a commit body → no journal; say so and end
+- writes outside the journal are proposals only | doing them needs a separate approval
 
-## 振り分け(書く前に)
-README の「ほかの文書との分担」に照らして、内容を仕分ける
-- 経緯(何が起き、何を確かめ、なぜそう決めたか) → ジャーナル本文
-- 恒常ルール・判断基準 → `.claude/rules/project.md` へ 1 行で蒸留する案を添える(本文はジャーナルに残し `ref: docs/journal/<file>`)
-- 機能の仕様・使い方 → コード隣の README の更新案を添える
-- upstream の core 部品に関する教訓(フォークで実行中のとき) → `/order <上流リポ>` を提案する
-- 経緯がコミット本文で足りる量なら、ジャーナルにせずその旨を伝えて終える
-- ジャーナル以外への書き込みは提案だけ。実行は別途承認を得る
+## DRAFT
+- file name: `<today YYYY-MM-DD>--<owner>--<slug>.md`
+  - owner = last part of `git remote get-url origin` (without `.git`), lowercased
+  - slug = short kebab-case English naming the content
+  - same name exists → change the slug (never append to an existing file)
+- body shape:
+  - line 1 `# <date> <what this records>`
+  - after a blank line `> owner: <owner>`
+  - at the top: what this records, links to related commits or the README of the current spec
+  - then headings fitting the content (e.g. `経緯` / `確認した手順と結果` / `検討した選択肢と見送った理由` / `残った課題`)
+- body language: Japanese | dates are absolute (never `昨日` / `今週` = yesterday / this week)
 
-## 下書き
-- ファイル名: `<今日の日付 YYYY-MM-DD>--<owner>--<slug>.md`
-  - owner = `git remote get-url origin` の最後の部分(`.git` を除く)を小文字にしたもの
-  - slug = 内容を表す短い kebab-case の英語
-  - 同名ファイルがあれば slug を変える(既存ファイルに追記しない)
-- 本文の形:
-  - 1 行目 `# <日付> <何の記録か>`
-  - 空行のあと `> owner: <owner>`
-  - 冒頭に、何の記録か・関連コミットや現行仕様の README へのリンク
-  - 以降は内容に合わせた見出し(例: 経緯 / 確認した手順と結果 / 検討した選択肢と見送った理由 / 残った課題)
-- 本文は日本語。日付は絶対日付で書く(「昨日」「今週」は使わない)
+## APPROVE AND WRITE
+1. show the file path and the full body to the user; STOP: get approval | no Write before approval
+2. after approval → Write | commit only when the user says so
 
-## 承認と書き出し
-- 書き出す前に、ファイルパスと本文の全文をユーザーに見せて承認を得る。承認の前には Write しない
-- 承認後に Write する。コミットはユーザーが指示したときだけ行う
-
-## 言語ルール
-- ユーザーとの会話は日本語。
+reply: Japanese

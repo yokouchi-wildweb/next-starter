@@ -1,47 +1,49 @@
 ---
 name: ebb
-description: auto-memory を CLAUDE.md の定義(進行中の作業の引き継ぎ専用)に合わせて機械的に整理する。各メモについて事実(種類・重複・参照先・終わりの条件・日付)だけを集めて判定表に当てはめ、判定ごとにユーザーの承認を取って消す・移す・残すを実行する。定期的な掃除と、溜まった fork のメモリの初回整理に使う
+description: Tidy auto-memory mechanically to the CLAUDE.md definition (handoff of in-progress work only) - collect only facts per memo (type, duplicate, references, end condition, date), apply the decision table, then delete / move / keep with the user's approval per decision | Periodic cleanup, and the first tidy-up of a fork's accumulated memory
 argument-hint: "[補足(任意): 一度に扱う件数など]"
 disable-model-invocation: true
 ---
 
-これはメモリ整理の進め方のメモです。モードの切り替えではありません。ここまでの会話の文脈・方針・口調・制約はそのまま維持し、以下は骨子として扱ってください。補足: $ARGUMENTS
+role: a note on how to tidy memory, not a mode switch | keep the conversation's context, policy, tone and constraints as they are; treat what follows as a skeleton
+extra: $ARGUMENTS
+judging: apply the decision table below mechanically | never change a decision by "looks useful" or "seems important" | what the table does not decide → user decision, no recommendation (give one only when asked)
 
-判定は下の判定表に機械的に当てはめる。「役に立ちそうか」「大事そうか」で判定を変えない。表で決まらないものはユーザー判断に回し、推奨は出さない(求められたときだけ出す)。
+## PREMISES
+- definition source: CLAUDE.md head ROLE / PER_PROJECT and DOCS `memory` / `durable_info` | memory = handoff of in-progress work only | no durable rules, knowledge or environment facts
+- target: the working directory's memory only = `memory/` of the entry in `ls ~/.claude/projects/` matching the working directory path (non-alphanumerics become `-`) | index = `MEMORY.md`
 
-## 前提
-- 定義の正は CLAUDE.md 冒頭の ROLE / PER_PROJECT と DOCS の `memory` / `durable_info`。メモリ = 進行中の作業の引き継ぎだけ。恒久的なルール・知識・環境の事実は置かない
-- 対象は作業ディレクトリのメモリだけ: `ls ~/.claude/projects/` で作業ディレクトリのパスに当たるもの(英数字以外が `-` になった名前)の `memory/`。索引は `MEMORY.md`
+## 1. COLLECT FACTS (per memo, no judgment)
+- **type**: frontmatter `metadata.type` (old form: top-level `type`) | none → "no type"
+- **duplicate**: grep the body's proper terms (paths, function names, rule names, command names) in CLAUDE.md, .claude/rules/, .claude/skills/, READMEs, docs/ | note lines saying the same thing as `path:line` | none → "no duplicate"
+- **references**: do the files, directories and commits in the body still exist (all / some missing / all missing / no references)
+- **end condition**: written in the body? | written → check whether it is met with git log, files, code | the memo's state text may be stale → check the real thing, not the text
+- **date**: `metadata.modified`, else the file mtime
+- more than 30 memos → split this fact collection among subagents (same as /recon stage 1 | report one row per memo with the 5 items above)
 
-## 1. 事実を集める(1 件ごと。判断は加えない)
-- **種類**: frontmatter の `metadata.type`(古い書式では最上位の `type`)。無ければ「種類なし」
-- **重複**: 本文の固有語(パス・関数名・ルール名・コマンド名)で CLAUDE.md、.claude/rules/、.claude/skills/、README、docs/ を grep し、同じ内容を述べている行を `path:line` で控える。無ければ「重複なし」
-- **参照先**: 本文に出てくるファイル・ディレクトリ・commit が今もあるか(全部ある / 一部無い / 全部無い / 参照なし)
-- **終わりの条件**: 本文に書かれているか。書かれていれば、満たしたかを git log・ファイル・コードで確かめる。メモの状態の記述は古いことがあるので、記述ではなく実物で確かめる
-- **日付**: `metadata.modified`、無ければファイルの mtime
-- 30 件を超えるときは、この事実集めをサブエージェントに分けて任せる(/recon の一段目と同じ。報告は 1 件 1 行で上の 5 項目)
+## 2. DECISION TABLE (top to bottom, first match wins)
+1. references all missing → **delete (stale)**
+2. duplicate found → **delete (duplicate)** | attach the duplicate's location
+3. type project and end condition met → **delete (done)**
+4. type project and no end condition → **user decision** (add a condition and keep / delete)
+5. type project and end condition not met → **keep**
+6. anything else (feedback / user / reference / no type = by definition not memory) → **user decision** (move / delete)
+   - move-target candidates, mechanically from the type: feedback, user → behavior.md | reference → project.md | a trap of specific code → the README beside that code
+   - in a fork, a candidate owned upstream (CLAUDE.md, upstream code or README) → do not move, make it a `/order <upstream repo>` candidate
 
-## 2. 判定表(上から順に当てはめ、最初に当たったもの)
-1. 参照先が全部無い → **消す(陳腐化)**
-2. 重複あり → **消す(重複)**。重複先を添える
-3. 種類が project で、終わりの条件を満たした → **消す(完了)**
-4. 種類が project で、終わりの条件が無い → **ユーザー判断**(条件を足して残す / 消す)
-5. 種類が project で、終わりの条件が未達 → **残す**
-6. それ以外(feedback / user / reference / 種類なし = 定義上メモリに置かないもの) → **ユーザー判断**(移す / 消す)。移す先の候補は種類から機械的に出す: feedback・user → behavior.md、reference → project.md、特定のコードの罠 → そのコードの隣の README。fork で候補が上流の持ち物(CLAUDE.md、上流のコードや README)なら移さず /order <上流リポ> の候補にする
+## 3. PRESENT AND APPROVE
+- show counts and the list per decision | one row per memo: name, decision, the facts behind it
+- "delete" and "keep": STOP: approval per decision, in one batch each
+- "user decision": one memo at a time, with a summary of its content and the collected facts; STOP: let the user choose
+- decided "move": show the text to write first; STOP: get approval | form follows CLAUDE.md FORMAT_RULE and the target file
 
-## 3. 提示と承認
-- 判定ごとの件数と一覧を出す。1 件 1 行で、名前・判定・根拠の事実
-- 「消す」と「残す」は判定ごとにまとめて承認を取る
-- 「ユーザー判断」は 1 件ずつ、中身の要約と集めた事実を出して選んでもらう
-- 「移す」と決まったものは、書き込む文面を先に見せて承認を取る。書式は CLAUDE.md の FORMAT_RULE と移し先のファイルに合わせる
+## 4. EXECUTE
+- deleted memos → `mv` to `memory-archive/<YYYY-MM-DD>/` beside the memory directory (never auto-loaded) | never `rm`
+- fix the `[[links]]` to deleted memos and their index lines | last, match the index against the real files and fix files missing from the index and index lines without a file (no judgment needed, so within the approval already given)
 
-## 4. 実行
-- 消すものは、メモリのディレクトリの隣 `memory-archive/<YYYY-MM-DD>/` へ mv する(自動では読まれない)。rm はしない
-- 消したメモへの `[[リンク]]` と索引の行を直す。最後に索引と実ファイルを突き合わせ、索引に無いファイルとファイルの無い索引の行を直す(判断が要らないので承認済みの範囲で行う)
+## 5. REPORT
+- counts per decision (before / after), where things moved, `/order <upstream repo>` candidates, uncommitted repo changes; STOP | commit only when told (name the paths, only your changes)
 
-## 5. 報告
-- 判定ごとの件数(前後)、移した先、/order <上流リポ> の候補、未コミットのリポの変更を示して止まる。コミットは指示があるときだけ(パスを指定して自分の変更だけ)
-
-## 守ること
-- 他のプロジェクトのメモリは触らない
-- 承認の前に、メモリもリポも書き換えない
+## RULES
+- never touch other projects' memory
+- never rewrite memory or the repo before approval

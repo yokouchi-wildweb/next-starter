@@ -1,39 +1,40 @@
 ---
 name: wen
-description: 「さっき出した依頼、もう終わった…?(wen?)」を確認する。このセッションで /order で起票した指令だけを、受信箱のファイルで確かめて状況を伝える。対応済みは中身(RESOLUTION)まで提示
+description: Check whether the orders this session filed with /order are done ("wen?"), by reading the inbox files, and report their state; done ones are shown with their RESOLUTION | When the user asks whether an order filed earlier in this session has been handled, or (permits) to review the orders behind this fork's temporary permits
 argument-hint: "[指令の id / ファイルパス(省略でこのセッションで起票したもの全部)| permits(自分の一時許可の依頼をまとめて)]"
 ---
 
-あなたは今、**このセッションで自分が起票した指令**が終わったかを確かめます。
+role: check whether **orders you filed in this session** are done
+target: $ARGUMENTS
 
-対象指定: $ARGUMENTS
+## TARGET
+- args empty: collect every order path `/order` wrote in this conversation (the full path given in its filing report) | none → end with one line, the text below:
+  ```
+  このセッションで起票した指令はありません(別のセッションで出したものは `/wen <id か パス>` で確かめられます)
+  ```
+- args `permits`: every id in the `upreq:` of each line of your temporary permits (`.fork-ownership/<fork-id>.permits.txt`, fork-id by the same rule as /flux) (PERMITS below)
+- args given: that one id or path | id only → look for `<id>.md` in `*/` and `*/done/` of the mailbox root (`root:` of `node .claude/skills/order/mailbox.mjs self`)
 
-## 対象を決める
-- 引数が空: この会話の中で `/order` が書き出した指令のパス(起票の報告に書いたフルパス)をすべて拾う。1 件も無ければ「このセッションで起票した指令はありません(別のセッションで出したものは `/wen <id か パス>` で確かめられます)」の一行で終える
-- 引数 `permits`: 自分の一時許可(`.fork-ownership/<fork-id>.permits.txt`、fork-id は /flux と同じ規則)の各行の `upreq:` の id を全部(下の「一時許可の依頼」)
-- 引数あり: その id かパスの 1 件。id だけなら置き場(`node .claude/skills/order/mailbox.mjs self` の `root:`)の `*/` と `*/done/` から `<id>.md` を探す
+## STATE (per order)
+- a file at the filed path → **not handled** (`まだ…`) | give recipient and need in one line, plus the class from the head `status:` (old orders without it = open):
+  - `open`: nobody has picked it up yet
+  - `routed`: `振り分け済み → <routed_to:>` (routed) (council / guild / legate plan; add `routed_at:`)
+  - `taken`: `着手中 → <taken_by:>` (in progress) (add `taken_at:`) | an earlier taker existed → add one line from the trailing `## STATUS_LOG`
+- at `done/<same name>` beside the filed path → **handled** | Read the body and show the RESOLUTION:
+  - `status: done`: summarize implemented / consume / notes | `pushed: no` → add `宛先がまだ push していない` (the recipient has not pushed yet)
+  - `status: relayed`: the recipient handed it to another repo | check the `relayed_to:` target (`<root>/<relayed_to>`) the same way and show both states
+  - `status: rejected`: sent back | show the reason in `notes:` and how your repo keeps it
+  - `status: withdrawn`: withdrawn (a self-addressed plan no longer needed) | show the reason in `notes:`
+- in neither place → say `見つからない(手で移動・削除された可能性)` (not found, possibly moved or deleted by hand)
+- the recipient is waiting (the original order has `waiting_on:`) → treat as not handled, and add what it waits on
 
-## 状態の確かめ方(1 件ごと)
-- 起票したパスにファイルがある → **未対応**(まだ…)。宛先と need を 1 行で示し、先頭の `status:` で区分を添える(無い古い指令は open):
-  - `open`: 誰もまだ手を付けていない
-  - `routed`: 「振り分け済み → <routed_to:>」(評議会・ギルド・legate の計画。`routed_at:` も添える)
-  - `taken`: 「着手中 → <taken_by:>」(`taken_at:` も添える)。前に別の担当がいたら末尾の `## STATUS_LOG` から 1 行で添える
-- 起票したパスの隣の `done/<同じ名前>` にある → **対応済み**。本文を Read して RESOLUTION を示す:
-  - `status: done`: implemented / consume / notes を要約する。`pushed: no` なら「宛先がまだ push していない」と添える
-  - `status: relayed`: 宛先が別のリポへ引き渡した。`relayed_to:` の先(`<置き場>/<relayed_to>`)を同じ方法で確かめ、その状況を合わせて示す
-  - `status: rejected`: 差し戻し。`notes:` の理由と、自リポでどう持つかを示す
-  - `status: withdrawn`: 取り下げ(自分宛ての予定が不要になった)。`notes:` の理由を示す
-- どちらにも無い → 「見つからない(手で移動・削除された可能性)」と伝える
-- 宛先が待ちの状態(元の指令に `waiting_on:` がある)なら、まだ未対応として扱い、待っている先を添える
+## PERMITS (args `permits`)
+- a temporary permit of the ownership check = a line that holds until the order to the direct parent is settled (`src/lib/forkOwnership/README.md`, section `一時許可`) | makes neglect visible (D14: no explicit deadline, listed on every check)
+- no permit file / no lines → end with one line `一時許可はありません` (no temporary permits)
+- per line, check each id at `*/<id>.md` and `*/done/<id>.md` of the mailbox root, classify as in STATE, plus:
+  - handled (done): has the parent's notice brought `resolves:` (`git grep -n "^resolves:.*<id>" <upstream>/<branch> -- .notices`; not merged yet → `取り込めば失効` (merging it expires the permit)) | a line whose ids are all resolved → ask to move it to the intake point or revert it
+  - rejected: one of "revert / move to the intake point / re-permit under another policy" is **required** (never leave the line as is)
+  - not found: the mailbox is not local (another machine / an organization's parent) → say `確かめられない` (cannot verify; never treat as passed)
+- last, add one line with the permit state from `pnpm workflow ownership check` (refresh / expired-*, leftovers)
 
-## 一時許可の依頼(引数 `permits`)
-所有の検査の一時許可は、直接の親への依頼が片付くまでの行(`src/lib/forkOwnership/README.md`「一時許可」)。放置を見えるようにする(D14: 明示の期限は持たず、確かめるたびに一覧に出す)。
-- 許可ファイルが無い・行が無い: 「一時許可はありません」の一行で終える
-- 行ごとに、各 id を置き場の `*/<id>.md` と `*/done/<id>.md` で確かめ、上の「状態の確かめ方」と同じ区分で示す。加えて:
-  - 対応済み(done): 親の notice に `resolves:` が来ているか(`git grep -n "^resolves:.*<id>" <upstream>/<branch> -- .notices`、未取り込みなら「取り込めば失効」)。全 id が解決した行は「受け口へ移す・元に戻す」を求める
-  - 却下(rejected): 「戻す・受け口へ移す・別の方針で許可し直す」のどれかを**必須**として示す(行をそのままにしない)
-  - 見つからない: 受信箱が手元に無い(別のマシン・組織の親)なら「確かめられない」と出す(合格扱いにしない)
-- 最後に `pnpm workflow ownership check` の許可の状態(refresh / expired-*、残骸)を 1 行で添える
-
-## 言語ルール
-- ユーザーとの会話は日本語。
+reply: Japanese

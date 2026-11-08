@@ -1,35 +1,34 @@
 ---
 name: worktree
-description: ワークツリーを切る・env を入れ直す・片付ける。ユーザーが「ワークツリーで」「worktree を切って」などと明示したときだけ使う(並行作業に便利そうでも自分から提案・実行しない)。処理は pnpm workflow worktree に任せ、このスキルは判断と段取りだけを持つ
+description: Create a worktree, re-sync its env files, or remove it, through pnpm workflow worktree | Only when the user explicitly asks for a worktree (never propose or run it on your own, even when parallel work would benefit); the skill holds only the judgment and the order of steps, the processing stays in the command
 argument-hint: "[new <やること or ブランチ名> | sync [path] | remove <path>]"
 ---
 
-ワークツリーの作成・env の入れ直し・片付けを、`pnpm workflow worktree new|sync|remove` で行います。
-コマンドの仕様・注意点は `scripts/workflow/worktree/README.md` が正。ここに git の手順を書き足さない(処理はコマンド側だけに置く)。
+role: create / re-sync env / remove a worktree with `pnpm workflow worktree new|sync|remove`
+source_of_truth: command spec and caveats = scripts/workflow/worktree/README.md | never add git steps here (processing lives only in the command)
+args: $ARGUMENTS
 
-引数: $ARGUMENTS
+## COMMON
+- never run `git worktree add` / `git worktree remove` directly → always `pnpm workflow worktree` (else env copy, install and safety checks are skipped)
+- never use `claude --worktree`, EnterWorktree or subagent worktree isolation (they can create a place without env)
+- this session never moves into the worktree | after creating it → tell the user "in a new terminal: `cd <path> && claude`" and end
 
-## 共通
-- `git worktree add` / `git worktree remove` を直接打たない。必ず `pnpm workflow worktree` を使う(env の複製・install・安全確認が抜けるため)
-- `claude --worktree`、EnterWorktree、サブエージェントの worktree 分離は使わない(env が入らない置き場所にできるため)
-- このセッション自体はワークツリーへ移らない。作ったら「新しいターミナルで `cd <path> && claude`」を案内して終える
+## NEW (create)
+1. branch name:
+   - user named one → use it as is
+   - none → propose `<area>/<short English description>` from the request; STOP: create only after the user confirms
+2. base: none given → HEAD of the place it runs in | a request that should branch from main → add `--from main` (unsure → ask)
+3. run `pnpm workflow worktree new <branch> [--from <base>]`
+4. report:
+   - created path and branch, the files copied
+   - next move: in a new terminal `cd <path> && claude`
+   - the DB is shared with the main checkout (schema-changing work → add one line: `db:push` also hits the main checkout's development DB)
 
-## new(作成)
-1. ブランチ名を決める
-   - ユーザーが指定していればそのまま使う
-   - 無ければ依頼内容から `<area>/<短い英語の説明>` を提案し、確認を取ってから作る
-2. 起点: 指定が無ければ実行した場所の HEAD。main から切るべき依頼なら `--from main` を付ける(迷ったら確認する)
-3. `pnpm workflow worktree new <branch> [--from <base>]` を実行する
-4. 結果を伝える
-   - 作成したパスとブランチ、複製されたファイル
-   - 次の一手: 新しいターミナルで `cd <path> && claude`
-   - DB は本体と共有であること(スキーマ変更を伴う作業なら、`db:push` が本体の開発 DB にも効くと一言添える)
+## SYNC (re-copy env)
+1. run `pnpm workflow worktree sync <path>` (no `--force`)
+2. the output says files were left unchanged because their content differs (`内容が違うため未変更`) → name the files, ask whether to overwrite; STOP: rerun with `--force` only after the user agrees
 
-## sync(env の入れ直し)
-1. `pnpm workflow worktree sync <path>` を実行する(`--force` は付けない)
-2. 「内容が違うため未変更」が出たら、ファイル名を示し、上書きしてよいか確認する。了承があれば `--force` で再実行
-
-## remove(片付け)
-1. 対象ブランチが main へマージ済みかを確認する(`git branch --merged main` など)。未マージなら、その旨を伝えて続けるか確認する
-2. `pnpm workflow worktree remove <path>` を実行する。未コミットの変更で止まったら、内容を示して判断を仰ぐ(勝手にコミット・破棄しない)
-3. ブランチ削除(`git branch -d`)はユーザーの確認を取ってから
+## REMOVE (clean up)
+1. check the branch is merged into main (`git branch --merged main` etc.) | not merged → say so; STOP: continue only after the user confirms
+2. run `pnpm workflow worktree remove <path>` | stops on uncommitted changes → show them; STOP: ask the user (never commit or discard on your own)
+3. delete the branch (`git branch -d`): STOP: only after the user confirms
