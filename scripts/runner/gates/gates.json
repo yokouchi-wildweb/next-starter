@@ -43,7 +43,8 @@
       "cycles",
       "config",
       "eslint",
-      "district-map"
+      "district-map",
+      "lib-package"
     ],
     "workflow": [
       "worktree",

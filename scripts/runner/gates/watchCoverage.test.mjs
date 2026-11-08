@@ -59,6 +59,8 @@ const READS = {
     data: ["src/features/**", "src/lib/**", "src/proxies/**", "src/app/**/_layout/**", "src/featureGate/rules/*.ts", "src/config/**", "src/registry/district-map.jsonl"],
   },
   "admin-menu": { entries: ["scripts/structure/admin-menu/check.ts"], data: ["src/features/core/admin/menu/**", "src/app/route-map.jsonl"] },
+  // 宣言した lib の package.json・tsconfig.json と、型検査が辿る lib・棚・設定のファイル(src/config/lib は指令 24 で生まれる)
+  "lib-package": { entries: ["scripts/structure/lib-package/check.mjs"], data: ["src/lib/**", "src/components/**"] },
 };
 
 const gates = JSON.parse(readFileSync(join(repo, "scripts/runner/gates/gates.json"), "utf8"));

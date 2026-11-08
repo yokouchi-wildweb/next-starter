@@ -1,0 +1,160 @@
+// scripts/structure/lib-package/standalone.mjs
+//
+// 宣言した lib(package.json を持つ lib)の単体用 tsconfig.json を確かめ、その tsconfig で型検査する。
+// - tsconfig.json は lib の中に手で書く(道具は lib の中に書かない)。形 = expectedTsconfig(下)、説明 = README.md
+// - paths は package.json の libs・peers を辿った閉包 + @lib-config/<自分>。ルートの "@/*" は引き継がない
+//   (extends は paths を丸ごと置き換える)ので、宣言していない lib・棚を読むと解決できずに落ちる
+// - 相対パスで lib の外へ出る import は paths では止まらないので、自分のファイルの import を解いて別に見る
+// - 数えるのは自分のファイルの診断だけ。依存の lib・棚・設定のファイルの診断は数えない(依存はその lib の検査が見る)
+
+import { existsSync } from "node:fs";
+import path from "node:path";
+
+import ts from "typescript";
+
+import { LIB_DIR, PEER_DIRS, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+
+/** lib の設定(指令 24 の @lib-config/<自分>)の置き場(repo 相対)。<self> = lib の名前 */
+export const LIB_CONFIG_PATH = "src/config/lib/<self>.config.ts";
+/** 単体用 tsconfig の include(lib の中の全部の ts / tsx。テストも含む) */
+export const STANDALONE_INCLUDE = Object.freeze(["**/*.ts", "**/*.tsx"]);
+/** lib の中から見たルートの tsconfig.json */
+export const STANDALONE_EXTENDS = "../../../tsconfig.json";
+
+const toPosix = (p) => p.split(path.sep).join("/");
+const configPathOf = (lib) => LIB_CONFIG_PATH.replace("<self>", lib);
+
+/**
+ * 宣言の閉包: 自分の libs を辿り、辿った先の package.json の libs・peers も足す(package.json の無い lib は先へ辿らない)
+ * @returns {{ libs: string[], peers: string[] }}
+ */
+export function closureOf(root, lib) {
+  const libs = new Set();
+  const peers = new Set();
+  const queue = [lib];
+  const seen = new Set([lib]);
+  while (queue.length > 0) {
+    const pkg = readLibPackage(root, queue.shift());
+    if (!pkg) continue;
+    for (const peer of pkg.peers) peers.add(peer);
+    for (const dep of pkg.libs) {
+      if (dep !== lib) libs.add(dep);
+      if (!seen.has(dep)) {
+        seen.add(dep);
+        queue.push(dep);
+      }
+    }
+  }
+  return { libs: [...libs].sort(), peers: [...peers].sort() };
+}
+
+/** その lib の tsconfig.json に書く paths(鍵 → 値の配列 1 つ)。鍵の名前順 */
+export function expectedPaths(root, lib) {
+  const { libs, peers } = closureOf(root, lib);
+  const paths = {};
+  for (const dep of libs) {
+    paths[`@/lib/${dep}`] = [`../${dep}`];
+    paths[`@/lib/${dep}/*`] = [`../${dep}/*`];
+  }
+  for (const peer of peers) {
+    const peerDir = PEER_DIRS[peer];
+    paths[`@/${peer}/*`] = [`${toPosix(path.relative(`${LIB_DIR}/${lib}`, peerDir))}/*`];
+  }
+  paths[`@lib-config/${lib}`] = [toPosix(path.relative(`${LIB_DIR}/${lib}`, configPathOf(lib)))];
+  return Object.fromEntries(Object.entries(paths).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+/** その lib が持つべき tsconfig.json の中身 */
+export function expectedTsconfig(root, lib) {
+  return { extends: STANDALONE_EXTENDS, compilerOptions: { paths: expectedPaths(root, lib) }, include: [...STANDALONE_INCLUDE] };
+}
+
+const json = (value) => JSON.stringify(value);
+
+/**
+ * lib の tsconfig.json を package.json の宣言と比べる。問題の一覧(無ければ空)
+ * @returns {{ lib: string, code: string, message: string }[]}
+ */
+export function compareTsconfig(root, lib) {
+  const file = `${LIB_DIR}/${lib}/tsconfig.json`;
+  const expected = expectedTsconfig(root, lib);
+  const problem = (code, message) => ({ lib, code, message: `${file}: ${message}` });
+  if (!existsSync(path.join(root, file))) {
+    return [problem("tsconfigMissing", `ありません。次の中身で置きます:\n${JSON.stringify(expected, null, 2)}`)];
+  }
+  const read = ts.readConfigFile(path.join(root, file), ts.sys.readFile);
+  if (read.error) return [problem("tsconfigJson", `読めません: ${ts.flattenDiagnosticMessageText(read.error.messageText, "\n")}`)];
+  const actual = read.config ?? {};
+  const out = [];
+  for (const key of Object.keys(actual)) {
+    if (!Object.hasOwn(expected, key)) out.push(problem("tsconfigKey", `"${key}" は書きません(書くのは extends / compilerOptions.paths / include だけ)`));
+  }
+  if (actual.extends !== expected.extends) out.push(problem("tsconfigExtends", `"extends" は ${json(expected.extends)} にします`));
+  if (json(actual.include) !== json(expected.include)) out.push(problem("tsconfigInclude", `"include" は ${json(expected.include)} にします`));
+  const options = actual.compilerOptions ?? {};
+  for (const key of Object.keys(options)) {
+    if (key !== "paths") out.push(problem("tsconfigOption", `compilerOptions の "${key}" は書きません(ルートの tsconfig.json から引き継ぎます)`));
+  }
+  const actualPaths = options.paths ?? {};
+  for (const [key, value] of Object.entries(expected.compilerOptions.paths)) {
+    if (!Object.hasOwn(actualPaths, key)) out.push(problem("pathsMissing", `paths に ${json(key)}: ${json(value)} を足します`));
+    else if (json(actualPaths[key]) !== json(value)) out.push(problem("pathsValue", `paths の ${json(key)} は ${json(value)} にします`));
+  }
+  for (const key of Object.keys(actualPaths)) {
+    if (!Object.hasOwn(expected.compilerOptions.paths, key)) {
+      out.push(problem("pathsExtra", `paths の ${json(key)} を消します(package.json の libs・peers に無い)`));
+    }
+  }
+  return out;
+}
+
+/** 自分の lib から読んでよいファイルの根(絶対パス): 自分・閉包の lib・棚・設定のファイル */
+function allowedRoots(root, lib) {
+  const { libs, peers } = closureOf(root, lib);
+  const dirs = [lib, ...libs].map((name) => path.join(root, LIB_DIR, name) + path.sep);
+  for (const peer of peers) dirs.push(path.join(root, PEER_DIRS[peer]) + path.sep);
+  return { dirs, config: path.join(root, configPathOf(lib)) };
+}
+
+const isOwn = (file, ownDir) => path.resolve(file).startsWith(ownDir);
+
+/**
+ * lib の tsconfig.json で型検査する(出力しない)。問題の一覧(無ければ空)
+ * - diagnostic: 自分のファイル(とファイルの無い全体)の診断
+ * - escape: 自分のファイルの import が、読んでよい根の外(node_modules を除く)に解けた
+ */
+export function typecheckLib(root, lib) {
+  const configFile = path.join(root, LIB_DIR, lib, "tsconfig.json");
+  const ownDir = path.join(root, LIB_DIR, lib) + path.sep;
+  const rel = (file) => toPosix(path.relative(root, file));
+  const read = ts.readConfigFile(configFile, ts.sys.readFile);
+  if (read.error) return [{ lib, code: "tsconfigJson", message: ts.flattenDiagnosticMessageText(read.error.messageText, "\n") }];
+  const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, path.dirname(configFile), { noEmit: true, incremental: false }, configFile);
+  const out = [];
+  const format = (d) => {
+    const text = ts.flattenDiagnosticMessageText(d.messageText, "\n");
+    if (!d.file) return text;
+    const { line, character } = d.file.getLineAndCharacterOfPosition(d.start ?? 0);
+    return `${rel(d.file.fileName)}:${line + 1}:${character + 1} TS${d.code} ${text}`;
+  };
+  for (const d of parsed.errors) out.push({ lib, code: "diagnostic", message: format(d) });
+  const program = ts.createProgram({ rootNames: parsed.fileNames, options: parsed.options, projectReferences: parsed.projectReferences });
+  for (const d of [...program.getOptionsDiagnostics(), ...program.getGlobalDiagnostics(), ...program.getSyntacticDiagnostics(), ...program.getSemanticDiagnostics()]) {
+    if (d.file && !isOwn(d.file.fileName, ownDir)) continue;
+    out.push({ lib, code: "diagnostic", message: format(d) });
+  }
+  const allowed = allowedRoots(root, lib);
+  const host = ts.createCompilerHost(parsed.options);
+  for (const file of parsed.fileNames.filter((f) => isOwn(f, ownDir))) {
+    const { importedFiles } = ts.preProcessFile(ts.sys.readFile(file) ?? "", true, true);
+    for (const { fileName: spec } of importedFiles) {
+      const resolved = ts.resolveModuleName(spec, file, parsed.options, host).resolvedModule;
+      if (!resolved || resolved.isExternalLibraryImport) continue;
+      const target = path.resolve(resolved.resolvedFileName);
+      if (target.split(path.sep).includes("node_modules")) continue;
+      if (allowed.dirs.some((dir) => target.startsWith(dir)) || target === allowed.config) continue;
+      out.push({ lib, code: "escape", message: `${rel(file)}: "${spec}" が宣言の外 ${rel(target)} を読みます(package.json の libs・peers に足すか、読むのをやめます)` });
+    }
+  }
+  return out;
+}
