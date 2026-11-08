@@ -18,6 +18,7 @@ import { Manual } from "@/components/Form/Input";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { resolveStorageSrc } from "@/lib/storage";
+import { useGate } from "@/featureGate/client";
 import { err } from "@/lib/errors";
 import {
   ADMIN_MEMO_MAX,
@@ -63,8 +64,8 @@ type Props = {
 export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone }: Props) {
   const open = reviewId !== null;
 
-  // reviewId が変わるたびに 1 回だけ取得 (再取得は refresh)。ウォレットの門番の読み取りも公開 hook が返す
-  const { data, review, isLoading, error, refresh, walletEnabled } = useAdminBankTransferReview(reviewId);
+  // reviewId が変わるたびに 1 回だけ取得 (再取得は refresh)
+  const { data, review, isLoading, error, refresh } = useAdminBankTransferReview(reviewId);
 
   const status = review?.status as BankTransferReviewStatus | undefined;
   const mode = review?.mode as BankTransferReviewMode | undefined;
@@ -103,7 +104,6 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
             purchaseRequest={data.purchaseRequest}
             review={review}
             user={data.user}
-            walletEnabled={walletEnabled}
           />
 
           {review?.needs_check_reason ? (
@@ -167,12 +167,10 @@ function PurchaseRequestSection({
   purchaseRequest,
   review,
   user,
-  walletEnabled,
 }: {
   purchaseRequest: Record<string, unknown> | null;
   review: BankTransferReviewDto | undefined;
   user: { id: string; name: string | null; email: string | null } | null;
-  walletEnabled: boolean;
 }) {
   if (!purchaseRequest) {
     return (
@@ -218,7 +216,6 @@ function PurchaseRequestSection({
           amount={pr.amount}
           paymentAmount={pr.payment_amount}
           walletType={pr.wallet_type}
-          walletOpen={walletEnabled}
         />
       </DefinitionRow>
       <DefinitionRow label="振込識別子">
@@ -244,14 +241,14 @@ function AmountInline({
   amount,
   paymentAmount,
   walletType,
-  walletOpen,
 }: {
   amount: number | undefined;
   paymentAmount: number | undefined;
   walletType: string | null | undefined;
-  /** ウォレットの機能が開いているか(useAdminBankTransferReview の walletEnabled) */
-  walletOpen: boolean;
 }) {
+  // wallet の部品・設定を読むこのファイルの中で門番を確かめる(依存の検査 src/featureGate/checks/dependencies.mjs は
+  // import するファイルの字面の useGate().enabled("wallet") を見る。fork の Screen は useAdminBankTransferReview の walletEnabled でもよい)
+  const walletOpen = useGate().enabled("wallet");
   const isKnownWalletType = walletOpen && walletType != null && walletType in CURRENCY_CONFIG;
   const hasAmount = typeof amount === "number";
   const hasPaymentAmount = typeof paymentAmount === "number";

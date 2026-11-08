@@ -343,3 +343,4 @@
 - id:20261108-155553-image-shrink | severity:action-required | checkpoint:image-shrink | resolves:20261030-200000-media-input-image-compression
 - id:20261108-164255-skill-format-rule | severity:info | checkpoint:skill-format-rule
 - id:20261108-171427-skill-format-flux | severity:info | checkpoint:skill-format-flux
+- id:20261108-170003-admin-screen-hooks | severity:action-required | checkpoint:admin-screen-hooks
