@@ -155,28 +155,39 @@ test("タブの中(run): claude が終わり、ほかに claude のタブが無�
   const shim = path.join(here, "claude-tmux.sh");
   const tmuxCmd = (...args) => spawnSync("tmux", ["-L", socket, ...args], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
   try {
-    tmuxCmd("new-session", "-d", "-s", "s1", "-c", repo, `bash ${shim} run ${repo} --continue; sleep 5`);
-    for (let i = 0; i < 50; i += 1) {
-      await new Promise((r) => setTimeout(r, 100));
-      try {
-        if (/pnpm/.test(readFileSync(log, "utf8"))) break;
-      } catch {
-        // まだ
+    // 決まった時間ではなく、止める行が出るまで待つ(全体の検査で負荷が高いと 5 秒では足りない)
+    const waitForLog = async (pattern, what) => {
+      const deadline = Date.now() + 60_000;
+      let text = "";
+      while (Date.now() < deadline) {
+        try {
+          text = readFileSync(log, "utf8");
+        } catch {
+          text = ""; // まだ書かれていない
+        }
+        if (pattern.test(text)) return text;
+        await new Promise((r) => setTimeout(r, 100));
       }
-    }
-    const text = readFileSync(log, "utf8");
+      assert.fail(`60 秒待っても ${what} が呼ばれない(dev-tab を止めていない)。log:\n${text}`);
+    };
+    const startSession = (cmd) => {
+      const r = tmuxCmd("new-session", "-d", "-s", "s1", "-c", repo, cmd);
+      assert.equal(r.status, 0, `tmux new-session が失敗: ${r.stderr}`);
+    };
+    startSession(`bash ${shim} run ${repo} --continue; sleep 5`);
+    const text = await waitForLog(/^pnpm .*stop$/m, "pnpm … stop");
     assert.match(text, /^claude --continue$/m);
     assert.match(text, /^pnpm -s workflow dev-tab run stop$/m);
     // 古い版のリポ(package.json に dev:tab がある)では旧い名前で止める
     writeFileSync(path.join(repo, "package.json"), JSON.stringify({ scripts: { "dev:tab": "x" } }));
     writeFileSync(log, "");
     tmuxCmd("kill-server");
-    tmuxCmd("new-session", "-d", "-s", "s1", "-c", repo, `bash ${shim} run ${repo}; sleep 5`);
-    for (let i = 0; i < 50; i += 1) {
-      await new Promise((r) => setTimeout(r, 100));
-      if (/pnpm/.test(readFileSync(log, "utf8"))) break;
+    // kill-server の直後は前のサーバーが終わりきっておらず、負荷が高いと次のセッションが走らないことがある → 消えるまで待つ
+    for (const deadline = Date.now() + 10_000; Date.now() < deadline && tmuxCmd("list-sessions").status === 0; ) {
+      await new Promise((r) => setTimeout(r, 50));
     }
-    assert.match(readFileSync(log, "utf8"), /^pnpm -s dev:tab stop$/m);
+    startSession(`bash ${shim} run ${repo}; sleep 5`);
+    assert.match(await waitForLog(/^pnpm .*stop$/m, "pnpm … stop"), /^pnpm -s dev:tab stop$/m);
   } finally {
     tmuxCmd("kill-server");
   }
