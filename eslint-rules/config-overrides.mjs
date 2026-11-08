@@ -4,7 +4,7 @@
 // 全 Tier error(新しいフォルダだけが対象なので縮む表は無い)。置き方の決まり: src/config/README.md
 //
 // - literal-only(上書きファイルに掛ける): 値はリテラルだけ。読んでよいのは
-//     型だけの import(持ち主の入口・@/business・持ち主が宣言した指定子から)、process.env、@/business の値、
+//     型だけの import、process.env、@/business の値、@/lib/appEnv の段階の判定の引数なしの呼び出し(isProduction() など、設定 D87)、
 //     持ち主が自分の config.ts(描画用の上書きは config.ui.ts)で `export const overrideImports = [...] as const` と宣言した指定子(前方一致)の値。
 //   ファイルの文は import・export default・型の宣言(export type Extra など)だけ。関数・呼び出し・new・変数・export const は書けない。
 //   値の中で許す式: object / array(spread・計算されたキー・メソッド無し)・文字列 / 数 / 真偽 / null / undefined・式の無い template・
@@ -27,6 +27,9 @@ import { moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mj
 const FOLDERS = Object.values(OVERRIDE_FOLDERS);
 const OVERRIDE_PATH = new RegExp(`^${OVERRIDE_ROOT}/(${FOLDERS.join("|")})/[^/]+\\.config(\\.ts)?$`);
 const BUSINESS = "@/business";
+/** 段階の判定(本部 D178 の読み手、設定 D87)。引数なしの呼び出しだけを値として許す */
+const APP_ENV = "@/lib/appEnv";
+const STAGE_FUNCTIONS = new Set(["isProduction", "isStaging", "isDevelopment", "getAppEnv"]);
 
 const mapCache = new Map();
 
@@ -72,29 +75,34 @@ function isProcessEnv(node) {
   return node.type === "MemberExpression" && !node.computed && node.property.name === "env" && node.object.type === "Identifier" && node.object.name === "process";
 }
 
-/** 値の式を確かめる。許さない所の node を返す(全部よければ null) */
-function firstNonLiteral(node, allowedNames) {
+/**
+ * 値の式を確かめる。許さない所の node を返す(全部よければ null)
+ * @param {Set<string>} allowedNames 値として読める import の名前
+ * @param {Set<string>} [stageNames] 引数なしで呼べる段階の判定の名前(@/lib/appEnv)
+ */
+function firstNonLiteral(node, allowedNames, stageNames = new Set()) {
+  const next = (n) => firstNonLiteral(n, allowedNames, stageNames);
   if (!node) return null;
-  if (TS_WRAPPERS.has(node.type)) return firstNonLiteral(node.expression, allowedNames);
+  if (TS_WRAPPERS.has(node.type)) return next(node.expression);
   switch (node.type) {
     case "Literal":
       return node.regex ? node : null;
     case "TemplateLiteral":
       return node.expressions.length === 0 ? null : node;
     case "UnaryExpression":
-      return ["-", "+", "!"].includes(node.operator) ? firstNonLiteral(node.argument, allowedNames) : node;
+      return ["-", "+", "!"].includes(node.operator) ? next(node.argument) : node;
     case "ArrayExpression":
       for (const element of node.elements) {
         if (element === null) continue;
         if (element.type === "SpreadElement") return element;
-        const bad = firstNonLiteral(element, allowedNames);
+        const bad = next(element);
         if (bad) return bad;
       }
       return null;
     case "ObjectExpression":
       for (const property of node.properties) {
         if (property.type !== "Property" || property.computed || property.method || property.kind !== "init") return property;
-        const bad = firstNonLiteral(property.value, allowedNames);
+        const bad = next(property.value);
         if (bad) return bad;
       }
       return null;
@@ -108,13 +116,16 @@ function firstNonLiteral(node, allowedNames) {
       while (base.type === "MemberExpression" && !base.computed) base = base.object;
       return base.type === "Identifier" && allowedNames.has(base.name) ? null : node;
     }
+    case "CallExpression":
+      // 段階の判定(isProduction() など)だけ。引数あり・他の関数は止める
+      return node.callee.type === "Identifier" && stageNames.has(node.callee.name) && node.arguments.length === 0 && !node.optional ? null : node;
     case "BinaryExpression":
       if (!COMPARE.has(node.operator)) return node;
-      return firstNonLiteral(node.left, allowedNames) ?? firstNonLiteral(node.right, allowedNames);
+      return next(node.left) ?? next(node.right);
     case "LogicalExpression":
-      return firstNonLiteral(node.left, allowedNames) ?? firstNonLiteral(node.right, allowedNames);
+      return next(node.left) ?? next(node.right);
     case "ConditionalExpression":
-      return firstNonLiteral(node.test, allowedNames) ?? firstNonLiteral(node.consequent, allowedNames) ?? firstNonLiteral(node.alternate, allowedNames);
+      return next(node.test) ?? next(node.consequent) ?? next(node.alternate);
     default:
       return node;
   }
@@ -132,8 +143,9 @@ const literalOnly = {
       valueImport:
         '"{{source}}": 上書きで値として読めるのは @/business と、持ち主 {{owner}} が overrideImports で宣言した指定子だけです。型は import type で読みます(src/config/README.md)',
       sideEffect: '"{{source}}": 上書きに副作用の import は書けません',
+      stageImport: "@/lib/appEnv から上書きで読めるのは段階の判定 {{names}} だけです(引数なしで呼ぶ、設定 D87)",
       statement: "上書きのファイルに書けるのは import・export default・型の宣言(export type Extra など)だけです。値は export default の中にリテラルで書きます",
-      nonLiteral: "上書きの値はリテラルだけです(関数・呼び出し・new・変数・式の template は書けない。読めるのは process.env・@/business・宣言した import)",
+      nonLiteral: "上書きの値はリテラルだけです(関数・呼び出し・new・変数・式の template は書けない。読めるのは process.env・@/business・段階の判定 isProduction() など・宣言した import)",
       noDefault: "上書きは export default で値を 1 つ出します(空なら export default {} satisfies <持ち主の上書きの型>)",
     },
   },
@@ -150,6 +162,7 @@ const literalOnly = {
         }
         const declared = declaredImports(root, slot.owner);
         const allowedNames = new Set();
+        const stageNames = new Set();
         let hasDefault = false;
         for (const statement of program.body) {
           if (statement.type === "ImportDeclaration") {
@@ -160,6 +173,15 @@ const literalOnly = {
             if (typeOnly) continue;
             if (statement.specifiers.length === 0) {
               context.report({ node: statement, messageId: "sideEffect", data: { source } });
+              continue;
+            }
+            if (source === APP_ENV) {
+              const bad = statement.specifiers.find((sp) => !(sp.type === "ImportSpecifier" && (sp.importKind === "type" || STAGE_FUNCTIONS.has(sp.imported.name))));
+              if (bad) {
+                context.report({ node: bad, messageId: "stageImport", data: { names: [...STAGE_FUNCTIONS].join("・") } });
+                continue;
+              }
+              for (const sp of statement.specifiers) if (sp.importKind !== "type") stageNames.add(sp.local.name);
               continue;
             }
             if (source === BUSINESS || source.startsWith(`${BUSINESS}/`) || matchesPrefix(source, declared)) {
@@ -173,7 +195,7 @@ const literalOnly = {
           }
           if (statement.type === "ExportDefaultDeclaration") {
             hasDefault = true;
-            const bad = firstNonLiteral(statement.declaration, allowedNames);
+            const bad = firstNonLiteral(statement.declaration, allowedNames, stageNames);
             if (bad) context.report({ node: bad, messageId: "nonLiteral" });
             continue;
           }
