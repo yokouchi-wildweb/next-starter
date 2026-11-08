@@ -172,6 +172,7 @@ export const cronOverride: CronTaskOverride = {
 
 ドメインの `scripts/tasks/` か `scripts/migrations/` にだけあり、`src/app/api/cron/` にフォルダが無いタスク（vercel.json に載らない = 定期実行されない）。
 
+- `wallet:reverse-history -- --history <id>[,<id>...] | --batch <request_batch_id> --reason "<理由>" [--dry-run]` — 運用コマンド: 間違えた取引を逆向きの調整で打ち消す(行ごとの止める鍵で二度取り消さない)。詳細: `src/features/core/wallet/README.md` の「取引の取り消し」
 - `purchaseQuota:cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（定期タスクは平らな名前、ドメインのタスクは `<ドメイン>:<名前>` なので重ならない）。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
 - ワンショット（**定期実行してはいけない**。導入時などに手動で 1 回だけ実行する）:
   - `wallet:lots-init` — ウォレット有効期限の導入時のデータ移行。対象通貨の指定が必須（`-- --wallet-type <通貨>` か `-- --all`）。再実行は対象通貨の全ユーザーの失効カウントをリセットする

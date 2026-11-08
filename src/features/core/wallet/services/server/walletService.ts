@@ -34,6 +34,7 @@ import { consumeReservedBalance } from "./wrappers/consumeReservedBalance";
 import { debitBalance } from "./wrappers/debitBalance";
 import { releaseReservation } from "./wrappers/releaseReservation";
 import { reserveBalance } from "./wrappers/reserveBalance";
+import { reverseHistory, type ReverseHistoryParams, type ReverseHistoryResult } from "./wrappers/reverseHistory";
 import { getTotalBalancesByType } from "./wrappers/getTotalBalancesByType";
 import { getWallet, runWithTransaction, type TransactionClient } from "./wrappers/utils";
 
@@ -62,6 +63,10 @@ export const walletService = {
     tx?: TransactionClient,
     options?: WalletOperationOptions,
   ) => reserveBalance(params, tx, options),
+
+  /** 取引の取り消し: 履歴の行(id か request_batch_id)を逆向きの調整で打ち消す(1 transaction、dryRun あり。README「取引の取り消し」) */
+  reverseHistory: (params: ReverseHistoryParams, tx?: TransactionClient): Promise<ReverseHistoryResult> =>
+    reverseHistory(params, tx),
 
   /** 予約を解除 */
   releaseReservation: (

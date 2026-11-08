@@ -572,6 +572,26 @@ ON wallet_histories USING gin ((meta ->> 'orderId'));
 
 ---
 
+## 取引の取り消し
+
+間違えて入れた取引(付与の誤り・一括調整の誤り・交換の巻き戻しなど)を、逆向きの調整で打ち消す。行は消さず、取り消しの行を足す。
+
+- コマンド(運用者): `pnpm task wallet:reverse-history -- --history <行の id>[,<行の id>...] --reason "<理由>"` か `-- --batch <request_batch_id> --reason "<理由>"`(一括操作の 1 回分の全部の行)
+  - 先に `--dry-run` で計画(ユーザー・通貨・増減・残高の前後)を確かめてから、外して打つ
+  - 本番は `--env production --confirm=production`(書く入口の守り: `scripts/runner/guard/README.md`)
+  - 実行は `task_runs` に記録され、取り消す行ごとの止める鍵 `wallet-reverse:<行の id>` で同じ行を二度取り消さない
+- サービス: `walletService.reverseHistory({ historyIds | requestBatchId, reason, dryRun }, tx?)`(`services/server/wrappers/reverseHistory.ts`)。管理画面から呼ぶときも同じ関数
+- 打ち消し方:
+  - INCREMENT の行 → 同じ額の DECREMENT、DECREMENT の行 → INCREMENT(同じ通貨)。書き込みは `adjustBalance`(残高・ロット・履歴・監査 `wallet.balance.adjusted`)
+  - 取り消しの行は元の行と同じ `reason_category`・`reason_key` で書く。区分ごと・種類ごとの集計(コイン発行の内訳など)で元の行が打ち消される
+  - 取り消しの行の印: `meta.reversesHistoryId` = 元の行の id、`source_type` = `admin_action`、全部の行で 1 つの新しい `request_batch_id`、`reason` = 渡した理由
+  - 選んだ行は新しい行から順に戻す(後の操作を先に戻す)。全部を 1 つの transaction で書く(1 行でも止まれば何も書かない)
+- 取り消せない(何も書かずに止める): 残高を置き換えた行(SET。逆が後の行に依るので、手で `admin_adjustment` の調整をする)・額 0 の行・取り消しの行そのもの・既に取り消した行・今は書けない区分と種類(消した・付け替えた reason key)・利用可能な残高が足りない DECREMENT(付けた分を既に使った等)
+- ロット(有効期限): INCREMENT の取り消しは元のロットではなく古いロットから順に減らす(`consumeLotsFifo`)。DECREMENT の取り消しは今日付けの新しいロットになる
+- 他のドメインの状態(購入・クーポンの利用・紹介報酬)は戻さない。wallet の行だけ
+
+---
+
 ## 監査ログ（audit_logs）ポリシー
 
 ウォレットには「**業務台帳としての wallet_histories**」と「**統制ログとしての audit_logs**」の **2 系統**の記録があり、責務が異なる。混同しないこと。
