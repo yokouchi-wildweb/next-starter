@@ -1,4 +1,4 @@
-// scripts/admin-menu/collect.ts
+// scripts/structure/admin-menu/collect.ts
 // 管理メニューの受け口(src/features/core/admin/menu/{categories,items})・ルート地図・門番の規則・設定の節を集める(読むだけ)。
 // 受け口の項目は生成の一覧でなく素のファイルから読む(上書きの前の上流の値で allowRoles の広がりを見るため)。中身の判定は ./inspect.ts
 

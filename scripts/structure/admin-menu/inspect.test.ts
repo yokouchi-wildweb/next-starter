@@ -1,6 +1,6 @@
-// scripts/admin-menu/inspect.test.ts
+// scripts/structure/admin-menu/inspect.test.ts
 // 点検(checkAdminMenu)の失敗の種類ごと・ルート地図の照合・覆う規則・受け口の読み取り(相手の無い上書き)・実リポが通ること
-// 実行: pnpm test:admin-menu
+// 実行: pnpm test scripts/structure/admin-menu
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -187,6 +187,6 @@ test("受け口の読み取り: 上書きを相手に結び、相手の無い上
   ]);
 });
 
-test("実リポ: 点検が通る(pnpm admin-menu:check と同じ)", async () => {
+test("実リポ: 点検が通る(pnpm check admin-menu と同じ)", async () => {
   assert.deepEqual(checkAdminMenu(await readMenuSnapshot(), adminDomains, readRoutePaths()), []);
 });

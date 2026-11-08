@@ -1,8 +1,8 @@
-// scripts/admin-menu/inspect.ts
+// scripts/structure/admin-menu/inspect.ts
 // 管理メニューの点検と表示の中身(純関数。ファイルを読まない: 集めるのは ./collect.ts)。
-// 点検(admin-menu:check): 知らないカテゴリー・知らないドメイン・相手の無い上書き・allowRoles を広げる上書き・
+// 点検(pnpm check admin-menu): 知らないカテゴリー・知らないドメイン・相手の無い上書き・allowRoles を広げる上書き・
 //   route-map に無い住所・定義の key とファイル名の食い違い
-// 表示(admin-menu:show): ロールごとの木(行ごとに当たる規則か 常時)・重複・隠した物と理由
+// 表示(pnpm check admin-menu -- show): ロールごとの木(行ごとに当たる規則か 常時)・重複・隠した物と理由
 // 仕組み: src/features/core/admin/menu/README.md
 
 import { buildAdminMenu, dataMenuRows } from "@/features/core/admin/menu/buildAdminMenu";

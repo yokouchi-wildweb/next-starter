@@ -227,7 +227,7 @@ test("管理者コマンド: 非管理者は読み込まない、管理者は上
   assert.equal(calls, 0);
   assertUpstreamItems(categories.map((c) => c.name), ["navigation", "settings", "userSession"]);
   if (isTier1) assert.deepEqual(plugins, []);
-  assertUpstreamItems(navigationItems.map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings", "nav-admin-insane"]);
+  assertUpstreamItems(navigationItems.map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings"]);
 });
 
 test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテゴリの中はフォルダ名の順、閉じたデモは除く", () => {

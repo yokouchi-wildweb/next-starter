@@ -4,7 +4,7 @@
 // この部品を管理の枠の GateProvider の内に置くと、移動の候補の絞り込みを登録し、外れたら外す。
 // 判定は厳密な gate.path(管理メニューと同じ、メニューの議会 D22・L2.5): 住所が閉じた規則に当たれば redirectTo の有無に関わらず隠す。
 // 外部 URL・'/' で始まらない住所・開いた住所は残す。'?' と '#' の後ろは照合から外す
-// 置き場: src/app/admin/(protected)/layout.tsx・src/app/admin/insane/layout.tsx(管理の枠の値を root で計算しない: L1.7)
+// 置き場: src/app/admin/(protected)/layout.tsx(管理の枠の値を root で計算しない: L1.7)
 
 "use client";
 

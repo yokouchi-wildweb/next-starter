@@ -2,7 +2,7 @@
 // 上流の管理メニューの中身(categories/・items/ の生成の一覧)を組み立て器に通した形の回帰。
 // - 全部開いた admin: カテゴリーの並びと行
 // - 門番の規則を全部閉じた admin: 規則の住所の行が消え、行の無いカテゴリーは描かない(規則の pathPatterns をそのまま使う)
-// 実行: pnpm test:admin-menu
+// 実行: pnpm test src/features/core/admin
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

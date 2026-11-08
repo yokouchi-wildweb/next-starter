@@ -1,6 +1,6 @@
 // src/features/core/admin/menu/buildAdminMenu.test.ts
 // 組み立て器の手順ごとの回帰: ロール(AND)・閉じた住所(厳密)・展開・空カテゴリーの除去・並び・重複・未知のドメイン/カテゴリー
-// 実行: pnpm test:admin-menu
+// 実行: pnpm test src/features/core/admin
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

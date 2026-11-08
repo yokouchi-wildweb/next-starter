@@ -1,6 +1,6 @@
 // src/features/core/admin/hooks/useAdminMenu.test.tsx
 // サイドバーが描くメニューの回帰: 管理の枠の門番の値(clientGateState("admin"))とセッションのロールで絞る。
-// 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test:admin-menu
+// 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test src/features/core/admin
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

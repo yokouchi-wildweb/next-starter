@@ -1,0 +1,1 @@
+{ "check": "check.ts", "gates": ["build", "ship"], "after": ["extensions"], "watch": ["src/**", "eslint-rules/resolve-import.mjs", "scripts/structure/admin-menu/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }

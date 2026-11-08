@@ -1,5 +1,5 @@
 // src/features/core/admin/extensionPoints.ts
-// admin の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
+// admin の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
   // 管理メニューのカテゴリー: menu/categories/<key>.ts の export const category。fork は自分のカテゴリーを足し、上流の物は隣の <key>.override.ts で変える

@@ -1,5 +1,5 @@
 // src/features/core/admin/menu/buildAdminMenu.ts
-// 管理メニューの組み立て器(純関数。React を使わない。サイドバーと admin-menu:show が同じ物を呼ぶ)。
+// 管理メニューの組み立て器(純関数。React を使わない。サイドバーと pnpm check admin-menu -- show が同じ物を呼ぶ)。
 // 手順: カテゴリー・項目を解決(override は生成の一覧で重なり済み) → ロール(カテゴリー AND 項目 AND 行) →
 //       出どころの展開(項目の位置に行を並べる) → 閉じた住所の行を隠す(厳密) → 行の無いカテゴリーを除く → order・key 順。
 // 重複(同じ出どころ・同じ住所)は止めずに duplicates に出す。見え方は認可ではない(画面と API の守りは別)

@@ -95,10 +95,10 @@ export type AdminMenuHiddenReason =
   | "unknown-domain"
   | "empty-category";
 
-/** 描かなかった物と理由(admin-menu:show が出す) */
+/** 描かなかった物と理由(pnpm check admin-menu -- show が出す) */
 export type AdminMenuHiddenEntry = { kind: "category" | "item" | "row"; key: string; reason: AdminMenuHiddenReason; href?: string };
 
-/** 重複(止めない。admin-menu:show が出す) */
+/** 重複(止めない。pnpm check admin-menu -- show が出す) */
 export type AdminMenuDuplicate = { kind: "source"; source: AdminMenuSourceName; itemKeys: string[] } | { kind: "href"; href: string; rowKeys: string[] };
 
 export type BuiltAdminMenu = {

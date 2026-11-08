@@ -93,7 +93,7 @@ function renderDomainConfigRegistry(domains) {
   return lines.join("\n");
 }
 
-/** ドメインの管理一覧の住所(/admin/<kebab 複数形>。dc:generate の adminRoutes と同じ字面) */
+/** ドメインの管理一覧の住所(/admin/<kebab 複数形>。pnpm generate domain の adminRoutes と同じ字面) */
 const adminListHref = (d) => `/admin/${toKebabCase(toCamelCase(d.config.plural ?? d.camel))}`;
 
 /**

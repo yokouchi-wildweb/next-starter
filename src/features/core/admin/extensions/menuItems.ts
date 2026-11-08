@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm extensions:generate が src/features/core/admin/extensionPoints.ts から生成する
+// 生成物・編集不可: pnpm generate extensions が src/features/core/admin/extensionPoints.ts から生成する
 // menuItems: src/features/core/admin/menu/items/<名前>.ts(x) か <名前>/index.ts(x) の export const item(並びはファイル名の順)
 
 import type { AdminMenuItemDefinition } from "@/features/core/admin/menu/types";

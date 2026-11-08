@@ -36,6 +36,7 @@
       "extensions",
       "cron",
       "routes",
+      "admin-menu",
       "proxies",
       "styles",
       "bundle",

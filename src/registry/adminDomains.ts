@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm registry:generate が src/features/**/domain.json と src/app/admin/(protected)/<kebab 複数形>/page.tsx から生成する
+// 生成物・編集不可: pnpm generate registry が src/features/**/domain.json と src/app/admin/(protected)/<kebab 複数形>/page.tsx から生成する
 // src/registry/adminDomains.ts
 //
 // 管理一覧の画面を持つドメインの一覧(キー = フォルダ名)。管理メニューの項目 domain:"<名前>" が題名と住所を引き、

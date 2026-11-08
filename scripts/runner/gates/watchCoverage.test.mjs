@@ -53,6 +53,7 @@ const READS = {
   },
   // ルート地図: src/app のページ・Screen・loader・guard と地図そのもの
   routes: { entries: ["scripts/structure/routes/check.ts", "scripts/structure/routes/map.mjs"], data: ["src/app/**", "src/app/route-map.jsonl"] },
+  "admin-menu": { entries: ["scripts/structure/admin-menu/check.ts"], data: ["src/features/core/admin/menu/**", "src/app/route-map.jsonl"] },
 };
 
 const gates = JSON.parse(readFileSync(join(repo, "scripts/runner/gates/gates.json"), "utf8"));
@@ -109,10 +110,10 @@ for (const name of Object.keys(READS)) {
 test("関係ない変更では対象が飛び、対象の入力を変えると回る(実物の gate.json)", () => {
   const runs = (changedFiles) => shipTargets.filter((name) => changedFiles.some(covered(declOf(name).watch)));
   assert.deepEqual(runs(["docs/setup/x.md", "README.md", "servers/room/src/index.ts", "scripts/operations/db/inspect.ts"]), []);
-  assert.deepEqual(runs(["src/features/core/user/roles/editor.role.json"]).sort(), ["config", "cron", "cycles", "domain", "extensions", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
+  assert.deepEqual(runs(["src/features/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "cron", "cycles", "domain", "extensions", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
   assert.deepEqual(runs(["eslint-rules/page-authz.mjs"]), ["eslint"]);
   assert.deepEqual(runs(["scripts/structure/domain/render/index.mjs"]).sort(), ["domain", "eslint", "extensions", "registry", "role"].sort());
-  assert.deepEqual(runs(["src/app/(user)/page.tsx"]).sort(), ["config", "cron", "cycles", "extensions", "registry", "routes"].sort());
+  assert.deepEqual(runs(["src/app/(user)/page.tsx"]).sort(), ["admin-menu", "config", "cron", "cycles", "extensions", "registry", "routes"].sort());
   for (const name of shipTargets) assert.ok(runs([`scripts/structure/${name}/gate.json`]).includes(name), `${name}: 自分のフォルダの変更で回らない`);
 });
 
