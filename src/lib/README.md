@@ -52,6 +52,26 @@ lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 
 今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す(全部閉じた段で error)。本当に要る例外は理由つきの `eslint-disable`。
 
+## 設定の届け方
+
+lib の設定(fork が値を変える物)は、lib の外の 1 ファイルの上書きで受ける。
+
+- lib は上書きを指定子 `@lib-config/<自分>` だけで読む(lint `lib-entry` が他の書き方・他の lib の上書きを止める)。tsconfig.json の `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)が `src/config/lib/<名前>.config.ts` へ向ける。候補は 1 つ
+- 上書きのファイルが無いと tsc・tsx・テストが解決の失敗で止まる(黙って既定にならない)。上流は設定を持つ lib ごとに空の上書きを置く
+- 上書きのファイルの形: lib の入口から型だけを読み、値はリテラルで書く(読んでよいのは `process.env` と `@/business` だけ。段階は `@/lib/appEnv`。D34)
+
+```ts
+// src/config/lib/toast.config.ts
+import type { ToastOverride } from "@/lib/toast";
+
+export default { duration: 5000 } satisfies ToastOverride;
+// 上流の空の上書き: export default {} satisfies ToastOverride;
+// fork 独自のキー: export default { myKey: 1 } satisfies ToastOverride<{ myKey: number }>;
+```
+
+- lib の中の合成は共通の [`defineConfig`](./defineConfig/README.md)(既定 + 規則 → `compose(上書き)`)。lib は `defaults`・規則・`XxxOverride` の型・`compose` の結果を自分の config.ts に持つ
+- lib ごとの合成(`defineFontsConfig` など)は、その lib を閉じる段で `defineConfig` に置き換える
+
 ## 目録の検査（`pnpm test src/lib/folderCatalog/catalog.test.mjs`）
 
 - `src/lib` 直下のディレクトリがすべて目録に載っている（載せ忘れ）
