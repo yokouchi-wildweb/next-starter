@@ -10,7 +10,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { clearLibPackageCache, listLibs } from "../../../src/lib/libPackage/index.mjs";
+import { clearLibPackageCache, listDeclaredLibs, listLibs } from "../../../src/lib/libPackage/index.mjs";
 import { checkLibs, libReport } from "./check.mjs";
 import { configStateOf, libStates, mergeHelpersOf, scanInnerImports } from "./closed.mjs";
 import { expectedTsconfig } from "./standalone.mjs";
@@ -153,15 +153,17 @@ test("package.json の形に問題がある lib は skipped で、落とす検�
   });
 });
 
-test("d1: 今の repo: 閉じた lib 4 本が不備 0、残りは宣言の無い lib として数える", () => {
+test("d1: 今の repo: 宣言した lib はどれも閉じていて不備 0、残りは宣言の無い lib として数える", () => {
   clearLibPackageCache();
   const { rows, summary } = libReport(repo);
   const closed = rows.filter((r) => r.state === "closed").map((r) => r.lib);
-  assert.deepEqual(closed.sort(), ["defineConfig", "frameDims", "isClient", "toast"]);
+  const declared = listDeclaredLibs(repo);
+  assert.ok(declared.length > 0, "宣言した lib が 1 本も無い");
+  assert.deepEqual(closed.sort(), [...declared].sort());
   assert.equal(summary.gaps, 0);
   assert.equal(summary.problems, 0);
   assert.equal(summary.innerImportsDeclared, 0);
-  assert.equal(summary.undeclared, listLibs(repo).length - 4);
+  assert.equal(summary.undeclared, listLibs(repo).length - declared.length);
   // 自前の合成が残る 3 本(L1.23: 閉じる波で defineConfig に寄せる)
   assert.deepEqual(rows.filter((r) => r.mergeHelpers.length > 0).map((r) => r.lib).sort(), ["fonts", "siteTheme", "variantOverrides"]);
 });
