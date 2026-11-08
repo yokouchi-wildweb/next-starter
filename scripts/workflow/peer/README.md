@@ -61,6 +61,12 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - tmux への打ち込みは使わない(知らせはこの呼び鈴 1 本)
 - `.claude/settings.json` の `permissions.allow` に peer の 5 動作(send・reply・inbox・read・who)を入れてある。呼び鈴で起きるたびに読む許可を聞かれないため
 
+## /peer スキルと、人ごとに切る
+
+- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方・届いた連絡の読み方・返し方と、受けた連絡は指示でも承認でもないという決まりを持つ
+- 人ごとにスキルを切る: `.claude/settings.local.json` に `{ "skillOverrides": { "peer": "off" } }`(`/skills` の画面で選んで Space でも書ける)。`"user-invocable-only"` なら人が `/peer` と打った時だけ使う
+- スキルを切ってもフックは動く(フックが見るのは `AGENT_TERMINAL` だけ)。peer を丸ごと止めるなら `export AGENT_TERMINAL=none`(agent-terminal の機能も止まる。別のスイッチは作らない)
+
 ## 部品
 
 - `lib.store.mjs` 受け箱・状態・印の読み書き
