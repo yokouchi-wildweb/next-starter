@@ -333,3 +333,4 @@
 - id:20261108-102903-admin-menu-rebuild | severity:breaking | checkpoint:admin-menu-rebuild
 - id:20261108-132256-flux-segment-gate-migration-order | severity:info | checkpoint:flux-segment-gate-migration-order
 - id:20261108-132903-flux-segment-check-entry | severity:info | checkpoint:flux-segment-check-entry
+- id:20261108-133453-flux-gate-before-commit | severity:info | checkpoint:flux-gate-before-commit
