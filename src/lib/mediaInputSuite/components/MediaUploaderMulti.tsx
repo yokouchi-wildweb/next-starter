@@ -22,6 +22,7 @@ import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import {
   isStorageUploadCanceled,
   pickerAcceptFor,
+  shrinkImageForPurpose,
   uploadToStorage,
   usePurposeMetadata,
   type UploadProgress,
@@ -65,6 +66,12 @@ export type MediaUploaderMultiProps = {
   onRegisterPendingDelete?: (url: string | null) => void;
   validationRule?: MediaUploaderMultiValidationRule;
   onValidationError?: (error: FileValidationError) => void;
+  /**
+   * 選んだファイルをサイズの検査の前に整える呼び出し側の処理（任意。1 ファイルずつ）。
+   * その後に用途の宣言の画像の縮小（shrinkImageForPurpose、用途に image があるときだけ）を必ずかける。
+   * 投げたら元のファイルのまま（失敗に数えない。枠を error にするのはアップロードの失敗だけ）
+   */
+  prepareFile?: (file: File) => Promise<File>;
   accept?: string;
   helperText?: string;
   /** 並び替え可否（既定 true） */
@@ -105,6 +112,7 @@ export const MediaUploaderMulti = ({
   onRegisterPendingDelete,
   validationRule,
   onValidationError,
+  prepareFile,
   accept,
   helperText,
   reorderable = true,
@@ -252,12 +260,36 @@ export const MediaUploaderMulti = ({
     [purpose, reencodeImage, onRegisterPendingUpload],
   );
 
+  // 整えている途中のファイル数（件数の上限に数える。整える間に重ねて選ばれても上限を超えない）
+  const preparingRef = useRef(0);
+  const [preparingCount, setPreparingCount] = useState(0);
+  const slotsLengthRef = useRef(slots.length);
+  useEffect(() => {
+    slotsLengthRef.current = slots.length;
+  }, [slots.length]);
+
+  // サイズの検査の前: 呼び出し側の整え（任意）→ 用途の宣言の画像の縮小（失敗は元のまま）
+  const prepareOne = useCallback(
+    async (file: File) => {
+      let target = file;
+      if (prepareFile) {
+        try {
+          target = await prepareFile(file);
+        } catch (prepareError) {
+          console.warn("[mediaUploaderMulti] prepareFile が失敗したため、元のファイルのまま扱います", prepareError);
+        }
+      }
+      return shrinkImageForPurpose(target, purpose);
+    },
+    [prepareFile, purpose],
+  );
+
   const enqueueFiles = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       if (files.length === 0) return;
 
-      // 件数上限チェック（既存スロット + 新規分）
-      const remaining = Math.max(0, maxItems - slots.length);
+      // 件数上限チェック（既存スロット + 整え中 + 新規分）
+      const remaining = Math.max(0, maxItems - slotsLengthRef.current - preparingRef.current);
       const accepted = files.slice(0, remaining);
       const rejectedByCount = files.slice(remaining);
 
@@ -268,10 +300,21 @@ export const MediaUploaderMulti = ({
           maxSizeBytes: 0,
         });
       }
+      if (accepted.length === 0) return;
+
+      preparingRef.current += accepted.length;
+      setPreparingCount(preparingRef.current);
+      let prepared: File[];
+      try {
+        prepared = await Promise.all(accepted.map(prepareOne));
+      } finally {
+        preparingRef.current -= accepted.length;
+        setPreparingCount(preparingRef.current);
+      }
 
       // バリデーションを通過したファイルだけスロット追加
       const validSlots: Array<Extract<SlotState, { kind: "uploading" }>> = [];
-      for (const file of accepted) {
+      for (const file of prepared) {
         if (validationRule) {
           const error = validateFile(file, validationRule);
           if (error) {
@@ -292,10 +335,11 @@ export const MediaUploaderMulti = ({
       }
 
       if (validSlots.length === 0) return;
+      slotsLengthRef.current += validSlots.length;
       setSlots((prev) => [...prev, ...validSlots]);
       validSlots.forEach((s) => beginUpload(s.file, s.id));
     },
-    [beginUpload, maxItems, onValidationError, slots.length, validationRule],
+    [beginUpload, maxItems, onValidationError, prepareOne, validationRule],
   );
 
   const handleInputChange = useCallback(
@@ -303,7 +347,7 @@ export const MediaUploaderMulti = ({
       const list = event.target.files;
       if (!list || list.length === 0) return;
       const files = Array.from(list);
-      enqueueFiles(files);
+      void enqueueFiles(files);
       // 同じファイルを再選択できるように input をリセット
       event.target.value = "";
     },
@@ -364,7 +408,7 @@ export const MediaUploaderMulti = ({
       setIsDraggingFile(false);
       const files = Array.from(event.dataTransfer.files ?? []);
       if (files.length === 0) return;
-      enqueueFiles(files);
+      void enqueueFiles(files);
     },
     [disabled, enqueueFiles],
   );
@@ -396,7 +440,7 @@ export const MediaUploaderMulti = ({
     }
   }, []);
 
-  const reachedMax = slots.length >= maxItems;
+  const reachedMax = slots.length + preparingCount >= maxItems;
 
   const trailingSlot =
     !reachedMax && !disabled ? (
@@ -443,6 +487,7 @@ export const MediaUploaderMulti = ({
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
           {slots.length} / {maxItems}
+          {preparingCount > 0 ? <span role="status"> 画像を準備中…</span> : null}
         </span>
         {helperText ? <span className="text-right">{helperText}</span> : null}
       </div>

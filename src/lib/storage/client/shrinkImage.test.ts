@@ -146,4 +146,39 @@ describe("shrinkImageForPurpose", () => {
     assert.equal(await shrinkImageForPurpose(pdf, "album.plain", { loader, codec }), pdf);
     assert.deepEqual(calls, []);
   });
+
+  test("HEIC: strip で image がある用途では JPEG にしてから縮める（名前は .jpg）", async () => {
+    const { loader } = loaderOf({ "album.photo": { metadata: "strip", image: { maxDimension: 1600 } } });
+    const redraws: string[] = [];
+    const { codec, calls } = fakeCodec(4000, {
+      redraw: async (file, type) => {
+        redraws.push(type);
+        return new Blob([new Uint8Array(file.size)], { type });
+      },
+    });
+    const heic = fileOf("image/heic", 1000, "IMG_0001.HEIC");
+    const result = await shrinkImageForPurpose(heic, "album.photo", { loader, codec });
+    assert.deepEqual(redraws, ["image/jpeg"]);
+    assert.equal(calls[0].type, "image/jpeg");
+    assert.equal(result.type, "image/jpeg");
+    assert.equal(result.name, "IMG_0001.jpg");
+    assert.equal(result.size, 500);
+    // 型が空でも拡張子で HEIC と分かる物も同じ
+    const untyped = fileOf("", 1000, "IMG_0002.heic");
+    assert.equal((await shrinkImageForPurpose(untyped, "album.photo", { loader, codec })).name, "IMG_0002.jpg");
+  });
+
+  test("HEIC: image の無い用途・keep の用途では変換しない（今までどおり送る直前）、開けなければ元のまま", async () => {
+    const { loader } = loaderOf({
+      "album.plain": { metadata: "strip", image: null },
+      "album.keep": { metadata: "keep", image: { maxDimension: 10 } },
+      "album.photo": { metadata: "strip", image: { maxDimension: 1600 } },
+    });
+    const heic = fileOf("image/heic", 1000, "IMG_0001.HEIC");
+    const { codec } = fakeCodec(4000);
+    assert.equal(await shrinkImageForPurpose(heic, "album.plain", { loader, codec }), heic);
+    assert.equal(await shrinkImageForPurpose(heic, "album.keep", { loader, codec }), heic);
+    const broken = fakeCodec(4000, { redraw: async () => { throw new Error("decode"); } }).codec;
+    assert.equal(await shrinkImageForPurpose(heic, "album.photo", { loader, codec: broken }), heic);
+  });
 });

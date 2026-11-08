@@ -35,6 +35,12 @@ export type MediaInputProps = {
   containerOverlay?: ReactNode;
   resetSignal?: number;
   clearButtonDisabled?: boolean;
+  /**
+   * 選んだファイルを、サイズの検査（validationRule）の前に整える（例: MediaUploader が用途の宣言で画像を縮める）。
+   * 整えている間は欄に「画像を準備中…」を出す。投げたら元のファイルのまま検査へ進む（失敗に数えない）。
+   * 整えている間に選び直したら後の選択だけを採る。省略 = 整えない（今までどおり）
+   */
+  prepareFile?: (file: File) => Promise<File>;
 };
 
 export const MediaInput = ({
@@ -53,10 +59,14 @@ export const MediaInput = ({
   containerOverlay,
   resetSignal = 0,
   clearButtonDisabled = false,
+  prepareFile,
 }: MediaInputProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [validationError, setValidationError] = useState<FileValidationError | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  // 整える処理の番号。選び直し・クリア・リセットの後に終わった古い処理の結果は使わない
+  const prepareSeqRef = useRef(0);
   const inputId = useId();
 
   const { metadata: imageMetadata, handleImageLoad } = useImageMetadata({
@@ -80,20 +90,15 @@ export const MediaInput = ({
     [onFileChange],
   );
 
-  const handleFileChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0] ?? null;
-      if (!file) {
-        return;
-      }
+  /** 検査を通ったら選択にする（通らなければ onRejected で入力を戻す） */
+  const acceptChecked = useCallback(
+    (file: File, onRejected?: () => void) => {
       if (validationRule) {
         const error = validateFile(file, validationRule);
         if (error) {
           setValidationError(error);
           onValidationError?.(error);
-          if (inputRef.current) {
-            inputRef.current.value = "";
-          }
+          onRejected?.();
           return;
         }
       }
@@ -103,27 +108,60 @@ export const MediaInput = ({
     [handleSelect, onValidationError, validationRule],
   );
 
+  /** 整えて（prepareFile）から検査する。prepareFile が無ければ今までどおり同期で検査する */
+  const acceptFile = useCallback(
+    (file: File, onRejected?: () => void) => {
+      if (!prepareFile) {
+        acceptChecked(file, onRejected);
+        return;
+      }
+      const seq = ++prepareSeqRef.current;
+      setPreparing(true);
+      void prepareFile(file)
+        .catch((error: unknown) => {
+          console.warn("[mediaInput] ファイルを整えられなかったため、元のファイルのまま扱います", error);
+          return file;
+        })
+        .then((prepared) => {
+          if (seq !== prepareSeqRef.current) return;
+          setPreparing(false);
+          acceptChecked(prepared, onRejected);
+        });
+    },
+    [acceptChecked, prepareFile],
+  );
+
+  const handleFileChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      if (!file) {
+        return;
+      }
+      const target = event.target;
+      acceptFile(file, () => {
+        target.value = "";
+      });
+    },
+    [acceptFile],
+  );
+
+  /** 整えている途中の処理を捨てる（クリア・リセット） */
+  const abandonPreparing = useCallback(() => {
+    prepareSeqRef.current += 1;
+    setPreparing(false);
+  }, []);
+
   const handleClear = useCallback(() => {
+    abandonPreparing();
     if (inputRef.current) {
       inputRef.current.value = "";
     }
     handleSelect(null);
-  }, [handleSelect]);
+  }, [abandonPreparing, handleSelect]);
 
   const { isDragging, eventHandlers } = useDragAndDrop({
     disabled,
-    onDropFile: (file) => {
-      if (validationRule) {
-        const error = validateFile(file, validationRule);
-        if (error) {
-          setValidationError(error);
-          onValidationError?.(error);
-          return;
-        }
-      }
-      setValidationError(null);
-      handleSelect(file);
-    },
+    onDropFile: (file) => acceptFile(file),
   });
 
   const handleKeyDown = useCallback(
@@ -137,19 +175,28 @@ export const MediaInput = ({
   );
 
   useEffect(() => {
+    abandonPreparing();
     setSelectedFile(null);
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [resetSignal]);
+  }, [resetSignal, abandonPreparing]);
 
-  const hasContainerOverlay = Boolean(containerOverlay);
+  // 整えている間の表示（呼び出し側の containerOverlay があればそちらを出す）
+  const overlay =
+    containerOverlay ??
+    (preparing ? (
+      <p role="status" className="text-sm text-muted-foreground">
+        画像を準備中…
+      </p>
+    ) : null);
+  const hasContainerOverlay = Boolean(overlay);
 
   return (
     <div className="relative">
       {hasContainerOverlay ? (
         <div className="absolute inset-0 z-40 flex items-center justify-center rounded border-2 border-dashed border-border bg-background/80">
-          {containerOverlay}
+          {overlay}
         </div>
       ) : null}
       <div className={cn("flex flex-col gap-2", hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>

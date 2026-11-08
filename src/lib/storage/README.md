@@ -386,7 +386,8 @@ const avatar = await shrinkImageFile(cropped, { maxDimension: 512 }); // 指定�
 - 縮めるのは jpeg / png / webp の、長い辺が `maxDimension` を超える物だけ。縦横比を保ち、元と同じ型で書き出す（型・拡張子・透過を変えない）。名前と更新日時は元のまま。向きは EXIF どおりに補正してから測る
 - 画質 = `quality / 100`。省略 = `storage.config` の `imageStrip.quality`（jpeg / webp）。png は可逆
 - **元のまま返す**（投げない）: 画像以外・gif・svg・avif・HEIC などの対象外の型 / 長い辺が上限以下 / 縮められない環境 / 読めない・書き出せない（console に警告）/ 書き出しが別の型になった / 縮めた方が大きい。縮められなかった物はそのまま送り、サイズの検査とサーバーの描き直しが最後に守る
-- `shrinkImageForPurpose` は strip の用途で `image` があるときだけ縮める（方針は `purposeMetadataLoader.loadPolicy` の記憶。取得に失敗したら元のまま）。入力部品はサイズの検査の前にこれを呼ぶ
+- `shrinkImageForPurpose` は strip の用途で `image` があるときだけ縮める（方針は `purposeMetadataLoader.loadPolicy` の記憶。取得に失敗したら元のまま）。入力部品（MediaUploader / MediaUploaderMulti）はサイズの検査の前にこれを呼ぶ
+- その用途（strip + `image`）では、サーバーが描き直せない画像（HEIC など。`needsClientConversion`）を先に JPEG にしてから縮める（名前は `.jpg`。送る直前の変換を前へ出す。開けなければ元のまま = 送る段で今までどおり止まる）。`image` の無い用途では変換しない（今までどおり送る直前）
 - 描き直しの部品 `ImageCodec` の `resize`（省略可）を使う。`browserImageCodec` は createImageBitmap + OffscreenCanvas / canvas
 
 ### ファイル選択の accept: `pickerAcceptFor(accept, metadata)`

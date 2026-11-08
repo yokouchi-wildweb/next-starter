@@ -8,6 +8,7 @@ import { uploadUnsavedGuard } from "../hooks/uploadGuard";
 import {
   isStorageUploadCanceled,
   pickerAcceptFor,
+  shrinkImageForPurpose,
   uploadToStorage,
   usePurposeMetadata,
   type UploadProgress,
@@ -32,6 +33,11 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
    * 利用者が自分で中止したものは失敗に数えない。フォームはこれで送信を止める（AppForm）
    */
   onUploadFailedChange?: (failed: boolean) => void;
+  /**
+   * 選んだファイルをサイズの検査の前に整える呼び出し側の処理（切り抜きなど。任意）。
+   * その後に用途の宣言の画像の縮小（shrinkImageForPurpose、用途に image があるときだけ）を必ずかける
+   */
+  prepareFile?: (file: File) => Promise<File>;
   onRegisterPendingUpload?: (url: string | null) => void;
   onRegisterPendingDelete?: (url: string | null) => void;
   /** 送信中(アップロード中)のページの移動・再読み込みを未保存の守り(lib/unsavedGuard、理由 = 処理の途中)で止めるか(既定 true) */
@@ -50,6 +56,7 @@ export const MediaUploader = ({
   helperText,
   onUploadingChange,
   onUploadFailedChange,
+  prepareFile,
   onRegisterPendingUpload,
   onRegisterPendingDelete,
   guardUnsaved = true,
@@ -200,6 +207,22 @@ export const MediaUploader = ({
     [beginUpload, cancelUpload, progress, currentUrl, initialUrl, onRegisterPendingDelete, onUploadingChange],
   );
 
+  // サイズの検査の前: 呼び出し側の整え（任意）→ 用途の宣言の画像の縮小（失敗は元のまま。失敗に数えない）
+  const prepareForPurpose = useCallback(
+    async (file: File) => {
+      let target = file;
+      if (prepareFile) {
+        try {
+          target = await prepareFile(file);
+        } catch (prepareError) {
+          console.warn("[mediaUploader] prepareFile が失敗したため、元のファイルのまま扱います", prepareError);
+        }
+      }
+      return shrinkImageForPurpose(target, purpose);
+    },
+    [prepareFile, purpose],
+  );
+
   const overlay = useMemo(() => {
     if (!progress) return null;
     return (
@@ -234,6 +257,7 @@ export const MediaUploader = ({
         helperText={helperText}
         validationRule={validationRule}
         onValidationError={onValidationError}
+        prepareFile={prepareForPurpose}
         onMetadataChange={onMetadataChange}
         onFileChange={handleFileChange}
         previewUrl={currentUrl}

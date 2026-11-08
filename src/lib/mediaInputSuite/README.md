@@ -46,6 +46,7 @@ src/lib/mediaInputSuite
 - `validationRule` で MIME/拡張子/サイズを検証し、`formatValidationError` の文言で表示。
 - `onMetadataChange` は **選択中ファイルがあるときのみ** 発火（`previewUrl` のみの場合は発火しない）。
 - `statusOverlay` はプレビュー上のオーバーレイ、`containerOverlay` は全体を覆って操作を無効化。
+- `prepareFile?(file) => Promise<File>`: 選んだファイルを `validationRule` の検査の前に整える（MediaUploader / Multi が用途の宣言の画像の縮小を渡す）。整えている間は全体に「画像を準備中…」（`containerOverlay` があればそちら）。投げたら元のファイルのまま検査へ進む。整えている間に選び直したら後の選択だけを採る（クリア・`resetSignal` も途中の処理を捨てる）。省略 = 今までどおり同期で検査
 
 ### 2.2 MediaUploader (`src/lib/mediaInputSuite/components/MediaUploader.tsx`)
 
@@ -54,6 +55,9 @@ src/lib/mediaInputSuite
 - 画像の位置情報などのメタデータは、用途が strip（画像を含む用途の既定）ならサーバーが commit で消す。この部品に strip / keep の指定は無い（用途の宣言で決まる。`src/lib/storage/README.md`「位置情報の約束」）。
 - `accept`: 表示時に用途の方針をサーバーから得て（`usePurposeMetadata`）、strip の用途なら `image/*` を jpeg / png / webp / gif / avif の列挙に置き換え、それ以外の `image/〜`（HEIC など）を外す（`pickerAcceptFor`。iOS が HEIC を JPEG にして渡すため）。方針が分かるまで・取得に失敗したとき・keep の用途では変えない。
 - HEIC など、サーバーが描き直せない画像を strip の用途へ選んだときは、送る前に端末で JPEG にする。開けないブラウザでは `storage/unsupported-image` のエラーを表示する（`uploadToStorage`）。
+- **送る前の縮小**: 用途の宣言に画像の縮小の指定（`image: { maxDimension, quality? }`）があれば、サイズの検査の前に `shrinkImageForPurpose`（`@/lib/storage/client`）で長い辺を縮める。fork の画面のコードは要らない（宣言だけで有効。この部品・欄に縮小の指定は無い）。縮められなかった物は元のまま検査へ進む（失敗に数えない。失敗はアップロードの失敗だけ）。その用途では HEIC なども検査の前に JPEG にする。指定・形・守り方: `src/lib/storage/README.md`「画像の縮小の指定」「送る前の縮小」
+- `prepareFile?`（任意）: 呼び出し側の整え（切り抜きなど）。これが先、用途の縮小が後（縮小の約束は残る）。投げたら元のまま
+- 大きさ・縮小の案内文は欄の `helperText` に書く（フィールドの枠が描く。部品の中には足さない）
 - `reencodeImage`（既定 `false`）: 送る前にブラウザで jpeg / png / webp を描き直す任意の前処理（通信量を減らしたいとき）。位置情報の除去の保証には数えない。
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
@@ -65,7 +69,7 @@ src/lib/mediaInputSuite
 
 ### 2.3 MediaUploaderMulti (`src/lib/mediaInputSuite/components/MediaUploaderMulti.tsx`)
 
-- 複数枚アップロード版。`value: string[]`（storage ref の配列）を扱う。`purpose`（必須）・`reencodeImage`・`accept` の置き換えは単一版と同じ。
+- 複数枚アップロード版。`value: string[]`（storage ref の配列）を扱う。`purpose`（必須）・`reencodeImage`・`accept` の置き換え・送る前の縮小と `prepareFile` は単一版と同じ（1 ファイルずつ整えてから検査し、通った物だけ枠を作る。整えている間は件数の横に「画像を準備中…」、その分も件数の上限に数える）。
 - 並列アップロード（スロット毎の進捗・キャンセル）、追加スロット、削除、ドラッグ並び替え（`reorderable` で切替）。
 - `validationRule.maxItems`（既定 10） / `minItems` で件数制約。
 - `onUrlsChange` は利用者の操作（追加・削除・並べ替え・アップロード完了）で確定済 URL が変わったときだけ呼ばれる。初期値（mount 時）や外から `initialUrls` を入れ直したときは呼ばない（AutoSave が開いただけで保存しないため）。

@@ -37,6 +37,7 @@ mock.module("@/lib/storage/client", {
     },
     isStorageUploadCanceled: () => false,
     pickerAcceptFor: (accept: string | undefined) => accept,
+    shrinkImageForPurpose: async (file: File) => file,
     usePurposeMetadata: () => "strip",
     storageClient: { remove: async () => {} },
     usePrivateMediaRecovery: () => ({ status: "idle", onError: () => {}, src: undefined }),

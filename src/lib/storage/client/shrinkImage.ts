@@ -3,7 +3,7 @@
 // 送る前に画像をブラウザで縮める（画像の縮小の指定 StorageImageSpec。src/lib/storage/README.md「送る前の縮小」）。
 // - shrinkImageFile(file, spec): 指定で縮める（fork がアバターの切り抜きの後などで直に呼ぶ口）
 // - shrinkImageForPurpose(file, purpose): 用途の方針（GET /api/storage/purposes/[purpose]）の image で縮める。
-//   入力部品がサイズの検査の前に呼ぶ
+//   入力部品がサイズの検査の前に呼ぶ。この用途では HEIC なども先に JPEG にする
 // 縮めるのは jpeg / png / webp の、長い辺が maxDimension を超える物だけ。縦横比を保ち、元と同じ型で書き出す
 // （型・拡張子・透過を変えない）。名前と更新日時は元の File のまま。
 // 次の場合は縮めずに元の file を返す（失敗を投げない。縮められなくても送れる物は送り、サイズの検査と
@@ -16,6 +16,7 @@
 import { STORAGE_CONFIG } from "@/config/app/storage.config";
 
 import type { StorageImageSpec } from "../policy/types";
+import { needsClientConversion, prepareStripImage } from "./prepareStripImage";
 import { purposeMetadataLoader, type PurposeMetadataLoader } from "./purposePolicy";
 import { browserImageCodec, type ImageCodec } from "./reencodeImage";
 
@@ -59,17 +60,36 @@ export type ShrinkForPurposeDeps = {
   codec?: ImageCodec;
 };
 
+/** HEIC などを JPEG にした File（名前の拡張子を .jpg に）。開けなければ null */
+async function convertForStrip(file: File, codec: ImageCodec): Promise<File | null> {
+  try {
+    const converted = await prepareStripImage(file, codec);
+    const base = file.name.replace(/\.[^.]+$/, "");
+    const extension = converted.type === "image/jpeg" ? "jpg" : converted.type.split("/")[1] ?? "jpg";
+    return new File([converted], `${base}.${extension}`, { type: converted.type, lastModified: file.lastModified });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 用途の方針の image で縮める。strip の用途で image があるときだけ縮め、
- * image が無い・方針を得られない（取得の失敗）・purpose が無いときは元の file（失敗を投げない）
+ * image が無い・方針を得られない（取得の失敗）・purpose が無いときは元の file（失敗を投げない）。
+ * strip で image がある用途では、サーバーが描き直せない画像（HEIC など。needsClientConversion）を先に JPEG にしてから縮める
+ * （送る直前の変換を前へ出す。開けなければ元のまま = 今までどおり送る段で止まる）。image の無い用途では変換しない
  */
 export async function shrinkImageForPurpose(
   file: File,
   purpose: string | null | undefined,
   { loader = purposeMetadataLoader, codec = browserImageCodec }: ShrinkForPurposeDeps = {},
 ): Promise<File> {
-  if (!purpose || !canShrinkImageType(file.type)) return file;
+  if (!purpose) return file;
+  const convert = needsClientConversion(file);
+  if (!convert && !canShrinkImageType(file.type)) return file;
   const policy = await loader.loadPolicy(purpose).catch(() => null);
   if (!policy || policy.metadata !== "strip" || !policy.image) return file;
-  return shrinkImageFile(file, policy.image, codec);
+  if (!convert) return shrinkImageFile(file, policy.image, codec);
+  const converted = await convertForStrip(file, codec);
+  if (!converted) return file;
+  return shrinkImageFile(converted, policy.image, codec);
 }
