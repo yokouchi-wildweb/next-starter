@@ -94,6 +94,7 @@ export const section: SettingSectionDefinition = {
 
 - キー: `ui`・`public`・`default`・`allowRoles`(型と検証は変えられない)
 - セクション: `label`・`order`・`icon`・`allowRoles`・`description`・`groups`
+- 権限は絞るだけ(広げない。管理メニューの上書きと同じ決まり): 上書きを重ねた後のキーの実効の権限(キーの `allowRoles` → 所属セクションの `allowRoles` → どちらも無ければ管理カテゴリ全員)が、重ねる前の中に収まること。外のロール・空の配列・`allowRoles: undefined` で絞りを外す・絞りの無いセクションへ `ui` で移す、のどれも `pnpm check extensions` が止める。セクションの上書きの `allowRoles` も同じ。権限に関わる `allowRoles`・`ui.section` は文字列リテラル(の配列)で書く(上流に絞りがある所で読めない書き方は確かめられないので止める)。`groups` は画面の中の並びだけで権限に入らない。検査: `scripts/structure/extensions/derive/settingRoles.mjs`
 
 fork のファイルは、下の Tier が直接書き換える。
 

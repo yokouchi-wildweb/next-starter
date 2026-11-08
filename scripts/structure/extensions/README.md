@@ -39,7 +39,7 @@ export const extensionPoints = {
   - `requireText: "<字面>"` … 項目のファイルにその字面が無ければ失敗(setting の `.default(`)
   - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `pnpm workflow ownership check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`)
-  - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る
+  - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る。上書きが権限を広げないか(キー・セクションの `allowRoles` と `ui.section` を字面で読み、重ねる前と後の実効の権限を比べる)も見る(`derive/settingRoles.mjs`)
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダ(ドメインの位置 `core/<名前>` か `<名前>`。無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`、項目の `pathPatterns` の後ろにも足す)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `features` のフォルダに当たる → `/api/cron/<名>`。規則に手書きした `/api/cron/` は止める)を導き、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 
@@ -118,6 +118,7 @@ export const extensionPoints = {
 | `frames.mjs` | 枠の表(frame.default.ts / frame.ts の解決) |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables・domainApiPaths) |
 | `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingPaths) |
+| `derive/settingRoles.mjs` | setting の上書きは権限を絞るだけ(広げる上書きを止める) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
 | `switches.mjs` / `overrides.mjs` | 1 行スイッチの形・孤立した `.replace`、孤立した override と上流の override の検査 |
 | `generate.mjs` / `check.mjs` | コマンドの入口 |

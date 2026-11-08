@@ -534,3 +534,58 @@ test("writer の点: 別の生成器が書く一覧。持てるのは side だ�
   assert.equal(read('{ writer: "other", side: "shared" }').problems.length, 1);
   assert.equal(read('{ writer: "role:generate", side: "shared", dir: "roles" }').problems.length, 1);
 });
+
+// setting の上書きは権限を絞るだけ(derive/settingRoles.mjs)。上流 = 項目のファイル、上書き = 隣の .override.ts
+const ROLE_POINTS = point(`  fields: { dir: "fields", export: "field", type: { from: "@/t", name: "F" }, side: "shared", shape: "object", pureImports: true, requireText: ".default(", overrideOf: ["ui", "public", "default", "allowRoles"], derive: "settingSections" },
+  sections: { dir: "sections", export: "section", type: { from: "@/t", name: "S" }, side: "client", key: "key", overrideOf: ["label", "order", "icon", "allowRoles", "description", "groups"] },`);
+const roleField = (props) => `import { z } from "zod";\nexport const field = { schema: z.number().default(1), ${props} };\n`;
+const roleSection = (key, props = "") => `export const section = { key: "${key}", label: "x", order: 1${props ? `, ${props}` : ""} };\n`;
+const S = "src/features/core/setting/sections/";
+const F = "src/features/core/setting/fields/";
+const rolePlan = (files) =>
+  planExtensions(fixture({
+    "tsconfig.json": JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./src/*"] } } }),
+    "src/features/core/setting/extensionPoints.ts": ROLE_POINTS,
+    [`${S}locked.ts`]: roleSection("locked", 'allowRoles: ["admin"]'),
+    [`${S}open.ts`]: roleSection("open"),
+    [`${F}keyRoles.ts`]: roleField('allowRoles: ["admin", "editor"], ui: { section: "open" }'),
+    [`${F}inLocked.ts`]: roleField('ui: { section: "locked" }'),
+    [`${F}free.ts`]: roleField('ui: { section: "open" }'),
+    ...files,
+  }));
+const widened = (plan, file) => assert.ok(plan.problems.some((p) => p.startsWith(file) && p.includes("広げている")), `${file} の「広げている」が無い: ${plan.problems.join(" / ")}`);
+
+test("setting の上書きの権限: 広げる上書きは (a)〜(d) どれも止める", () => {
+  // (a) キーの allowRoles に上流の外のロール・空
+  widened(rolePlan({ [`${F}keyRoles.override.ts`]: 'export const override = { allowRoles: ["admin", "viewer"] };\n' }), `${F}keyRoles.override.ts`);
+  widened(rolePlan({ [`${F}keyRoles.override.ts`]: "export const override = { allowRoles: [] };\n" }), `${F}keyRoles.override.ts`);
+  // (a) キーに絞りが無くセクションに絞りがある: セクションの外のロール
+  widened(rolePlan({ [`${F}inLocked.override.ts`]: 'export const override = { allowRoles: ["admin", "editor"] };\n' }), `${F}inLocked.override.ts`);
+  // (b) セクションの上書きで広げる
+  widened(rolePlan({ [`${S}locked.override.ts`]: 'export const override = { allowRoles: ["admin", "editor"] };\n' }), `${S}locked.override.ts`);
+  widened(rolePlan({ [`${S}locked.override.ts`]: "export const override = { allowRoles: undefined };\n" }), `${S}locked.override.ts`);
+  // (c) 絞りの無いセクションへ移して広げる
+  widened(rolePlan({ [`${F}inLocked.override.ts`]: 'export const override = { ui: { section: "open", field: { label: "x" } } };\n' }), `${F}inLocked.override.ts`);
+  // (c) ui を外して所属を無くす = 絞りが消える
+  widened(rolePlan({ [`${F}inLocked.override.ts`]: "export const override = { ui: undefined };\n" }), `${F}inLocked.override.ts`);
+  // (d) 絞りを書かないことで外す(allowRoles: undefined → 絞りの無いセクションの権限になる)
+  widened(rolePlan({ [`${F}keyRoles.override.ts`]: "export const override = { allowRoles: undefined };\n" }), `${F}keyRoles.override.ts`);
+});
+
+test("setting の上書きの権限: 絞る・権限に触れない・上流の項目だけは通る、読めない書き方は止める", () => {
+  assert.deepEqual(rolePlan({}).problems, []);
+  // 絞る(部分集合)
+  assert.deepEqual(rolePlan({ [`${F}keyRoles.override.ts`]: 'export const override = { allowRoles: ["admin"] };\n' }).problems, []);
+  assert.deepEqual(rolePlan({ [`${S}locked.override.ts`]: 'export const override = { allowRoles: ["admin"] };\n' }).problems, []);
+  // allowRoles を書かない上書きは上流の絞りのまま(キーの絞りがセクションより優先: 移しても広がらない)
+  assert.deepEqual(rolePlan({ [`${F}keyRoles.override.ts`]: 'export const override = { public: true, ui: { section: "locked", field: { label: "x" } } };\n' }).problems, []);
+  assert.deepEqual(rolePlan({ [`${F}inLocked.override.ts`]: "export const override = { public: true };\n" }).problems, []);
+  // 絞りの無いキーは何をしても広がらない / 絞りのあるセクションへ移すのは絞る側
+  assert.deepEqual(rolePlan({ [`${F}free.override.ts`]: 'export const override = { allowRoles: ["viewer"] };\n' }).problems, []);
+  assert.deepEqual(rolePlan({ [`${F}free.override.ts`]: 'export const override = { ui: { section: "locked", field: { label: "x" } } };\n' }).problems, []);
+  // セクションの label などは見ない
+  assert.deepEqual(rolePlan({ [`${S}locked.override.ts`]: 'export const override = { label: "y", groups: [] };\n' }).problems, []);
+  // 上流に絞りがある所で読めない書き方 = 確かめられないので止める
+  const roles = rolePlan({ [`${F}keyRoles.override.ts`]: "const r = [\"admin\"];\nexport const override = { allowRoles: r };\n" });
+  assert.ok(roles.problems.some((p) => p.includes("確かめられない")), roles.problems.join(" / "));
+});

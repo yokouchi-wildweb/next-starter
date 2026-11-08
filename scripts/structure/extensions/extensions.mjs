@@ -12,6 +12,7 @@ import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "../../../src/lib/districtMap/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
+import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
@@ -201,8 +202,8 @@ function renderPoint(point, items) {
   return { imports, lines };
 }
 
-/** derive "settingSections": 項目の section の字面が、同じ持ち主の sections の key にあるか */
-function checkSettingSections(points, itemsByPoint) {
+/** derive "settingSections": 項目の section の字面が、同じ持ち主の sections の key にあるか・上書きが権限を広げないか */
+function checkSettingSections(repoRoot, points, itemsByPoint) {
   const problems = [];
   for (const point of points.filter((p) => p.spec.derive === "settingSections")) {
     const sections = points.find((p) => p.owner === point.owner && p.name === "sections");
@@ -219,6 +220,9 @@ function checkSettingSections(points, itemsByPoint) {
       const section = /\bsection:\s*["']([^"']+)["']/.exec(item.text)?.[1];
       if (section && !keys.has(section)) problems.push(`${item.path}: 無いセクション "${section}" を指している`);
     }
+    // 上書きは権限を絞るだけ(広げない)。決まりと比べ方: ./derive/settingRoles.mjs
+    const withOverrideText = (list) => list.map((i) => (i.override ? { ...i, overrideText: readFileSync(join(repoRoot, i.override), "utf8") } : i));
+    problems.push(...checkSettingRoles(withOverrideText(itemsByPoint.get(point)), withOverrideText(sectionItems)));
   }
   return problems;
 }
@@ -299,7 +303,7 @@ export function planExtensions(repoRoot) {
     }
   }
   if (featureTables) problems.unshift(...featureTables.problems);
-  problems.push(...checkSettingSections(points, itemsByPoint));
+  problems.push(...checkSettingSections(repoRoot, points, itemsByPoint));
 
   const files = new Map();
   for (const p of points) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
