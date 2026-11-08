@@ -80,6 +80,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   <path> upreq:<id>[,<id>…] base:<指紋|-> head:<指紋|->  # 理由
   ```
   - upreq = 直接の親の受信箱の指令 id(`<YYYYMMDD-HHMMSS>-<slug>`)を 1 つ以上
+  - 上流の作業ではない当座の書き換え(上流は受け口を出荷済みで、fork 自身のデータの移し替えなどが残る間)は、fork が自分宛てに出した指令 id を書いてよい。検査が見るのは id の形だけ(`permits.mjs` の `UPREQ_ID`)で、どの受信箱の指令かは見ない。自分宛ての指令は親の notice の `resolves:` に載らないので、fork が自分でその作業を終えて行を消すまで残る(親がファイルに触れば expired-base で見直す)
   - 指紋 = 区画の中身を除いたテキストの git blob id(`git hash-object --stdin` と同じ値)。kind が region のファイルは fork の区画と生成器の区画を、他は生成器の区画だけを除く。区画の中の書き換えでは許可し直しにならない
   - `-` = そのファイルが無い: D/R の head、祖先 lib への追加の base。R は移動元のパスに書く
 - 判定(`checkPermits`)

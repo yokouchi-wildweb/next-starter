@@ -214,6 +214,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 
 - 形式: `resolves: <指令 id>, ...`。指令 id = 受信箱のファイル名(`<YYYYMMDD-HHMMSS>-<slug>`)。複数可
 - 書く条件: `/ship` が `/inbox` から来た指令(`order:<id>`)を出荷し、その指令の依頼元(requester)が自リポ以外のリポ(下流の fork)のとき。上流からは、下流がその依頼に一時許可を書いているかが見えないので、**他に notice が要らなくても** `severity: info` + `required_actions: none` + `checkpoint:` の notice を出して `resolves:` を伝える
+- 閉じる依頼の番号を書いた一時許可を「残しておく」ように fork へ書かない(`resolves:` を取り込んだ時点でその許可は expired-resolved になり、指示と検査が食い違う)。fork 側の作業が残るとき(fork 自身のデータの移し替えなど)は、required_actions に「その許可の `upreq:` を、fork が自分宛てに出した指令の番号に書き換える(取り込む前か同じ区間で)」と書き、verify に `pnpm workflow ownership check` でその行が valid と書く(`src/lib/forkOwnership/README.md`「一時許可」の upreq)。この notice は `required_actions: none` にしない
 - 却下(rejected)・取り下げで閉じた依頼にも書く(閉じた = その番号の一時許可は失効する)。結果は `done/` の RESOLUTION にあり、下流は `/wen` で却下を知って、元に戻す・受け口へ移す・別の方針で許可し直す(失効した許可は `pnpm workflow ownership check` が違反に戻すので放置されない)
 - 下流の使い方: `pnpm workflow ownership check` が基準(取り込み済み)の索引の行と本文(直下と `done/`)の `resolves:` を集め(本文が消えても索引の行で失効は変わらない)、すべての番号が解決した一時許可を失効(expired-resolved)にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の一時許可に当たる行を示す
 - 書式は `pnpm check notices` が検査する(id の形・重複)。参照先の実在は見ない(受信箱は git の外)
