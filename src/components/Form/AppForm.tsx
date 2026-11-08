@@ -250,30 +250,31 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     return () => subscription.unsubscribe();
   }, [methods, releasedAfterSubmit]);
 
-  // 送信成功時にメディアをコミット
+  // 送信成功時にメディアをコミット。onSubmit かコミットのどちらが失敗しても守りを戻して投げる(失敗 = throw の約束)。
+  // 守りを外したままにするのは両方が済んだ後だけ
   const handleSubmitWithMediaCommit: SubmitHandler<TFieldValues> = React.useCallback(
     async (data, event) => {
       unsavedSource.set(false);
       try {
         await onSubmit(data, event);
+
+        if (!disableAutoCommitMedia) {
+          // FieldRenderer経由のメディアをコミット
+          if (effectiveFieldRendererState) {
+            await effectiveFieldRendererState.commitAll();
+          }
+
+          // 個別登録されたメディアをコミット
+          const individualEntries = Array.from(mediaHandlesRef.current.values());
+          if (individualEntries.length > 0) {
+            await Promise.all(individualEntries.map((entry) => entry.commit()));
+          }
+        }
       } catch (error) {
         unsavedSource.set(guardUnsaved && methods.formState.isDirty);
         throw error;
       }
       setReleasedAfterSubmit(true);
-
-      if (disableAutoCommitMedia) return;
-
-      // FieldRenderer経由のメディアをコミット
-      if (effectiveFieldRendererState) {
-        await effectiveFieldRendererState.commitAll();
-      }
-
-      // 個別登録されたメディアをコミット
-      const individualEntries = Array.from(mediaHandlesRef.current.values());
-      if (individualEntries.length > 0) {
-        await Promise.all(individualEntries.map((entry) => entry.commit()));
-      }
     },
     [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState, unsavedSource, guardUnsaved, methods],
   );
@@ -298,6 +299,16 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
       return submit(event);
     };
   }, [submitLock, handleSubmit, handleSubmitWithMediaCommit, onSubmitError, hasFailedBackground, showToast]);
+
+  // DOM の送信の口: 失敗はここで受け止め、AppForm の外へ未処理の reject として漏らさない。
+  // 報告は投げた側(onSubmit の toast)の役目なので、ここでは何も出さない。await する呼び手(submitLock の Promise・
+  // onSubmit の中の customSubmit など)には失敗がそのまま届く
+  const handleDomSubmit = React.useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      handleFormSubmit(event).catch(() => {});
+    },
+    [handleFormSubmit],
+  );
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLFormElement>) => {
@@ -404,7 +415,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
               data-submitting={isBusy ? "true" : "false"}
               data-saving={isSaving ? "true" : "false"}
               aria-busy={isBusy || isSaving}
-              onSubmit={handleFormSubmit}
+              onSubmit={handleDomSubmit}
               onKeyDown={handleKeyDown}
               {...formProps}
             >

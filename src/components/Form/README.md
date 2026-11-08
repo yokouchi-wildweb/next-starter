@@ -31,6 +31,8 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 `AppForm` は二重送信を同期のロックで防ぐ（`submitLock.ts`）。送信中（検証 → `onSubmit` → メディアのコミット）に来た 2 回目の送信は `onSubmit` を呼ばずに捨て、ロックは成功・失敗のどちらでも外れる。`isSubmitting` / `pending` は次の描画まで効かないため、同じフレームの連打はこのロックが止める。フォームの側で ref ロックを足す必要はない。
 
+送信の失敗は `onSubmit`（またはメディアのコミット）が投げて知らせる（失敗 = throw。`src/lib/unsavedGuard` の約束）。`AppForm` は失敗すると未保存の守りを戻し、成功の扱い（守りを外したままにする）をしない。失敗は `<form>` の送信の口で受け止めるので、未処理の reject として外へ漏れない。報告（エラーの toast）は投げた側が出し、`AppForm` は何も出さない。`onSubmit` の中で await する呼び手（`customSubmit` など）には失敗がそのまま届く。
+
 ---
 
 独自の入力部品は `src/wiring/formInputs/inputs/` に登録し、`formInput` に名前を書く（`FieldRenderer/README.md`「登録された入力部品」）。このフォルダは一覧を知らず、Context と型だけを持つ。

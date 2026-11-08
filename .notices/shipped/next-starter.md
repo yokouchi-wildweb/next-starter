@@ -361,3 +361,4 @@
 - id:20261108-205554-http-default-timeout | severity:action-required | checkpoint:http-default-timeout | resolves:20261104-164647-app-wide-http-default-timeout
 - id:20261109-002639-domain-entry-value-imports | severity:info | checkpoint:domain-entry-value-imports
 - id:20261109-002053-lib-drizzle-pool-config | severity:action-required | checkpoint:lib-drizzle-pool-config | resolves:20261101-111956-config-drizzle-pool
+- id:20261109-003730-appform-submit-reject-boundary | severity:info | checkpoint:appform-submit-reject-boundary | resolves:20261108-172032-appform-rethrow-unhandled-reject, 20261108-202459-appform-submit-reject-boundary
