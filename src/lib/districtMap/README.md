@@ -37,6 +37,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 - 使い手: 登録表の生成(ドメインの一覧・表・domain.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)
 - 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName` も出しています
 - 4 種と見つけ方の定数は `kinds.mjs`
+- 受け口の宣言(`extensionPoints.ts`)の唯一の読み手 `declarations.mjs` もここにある(`collectPoints`・`readDeclaration`・`literalOf`。生成器・所有の検査の単位名・配線のテストが読む)。古い置き場 `src/lib/forkOwnership/declarations.mjs` は再 export だけで、予告の後に消す
 
 アプリのコードは地図を読みません(実行時に地区の一覧が要るコードはありません)。使い手は道具・lint・生成・検査です。lib は src 直下(門番・registry・wiring)を import しないので、この読み手は門の規則も字面で読みます。
 

@@ -16,6 +16,7 @@ const COPY = [
   "scripts/structure/domain/domain",
   "scripts/structure/extensions",
   "src/lib/forkOwnership",
+  "src/lib/districtMap",
   "src/lib/domain/fields",
   "src/utils",
   "src/features/core/user/roles",

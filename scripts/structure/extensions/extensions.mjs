@@ -10,7 +10,7 @@ import { basename, join, posix } from "node:path";
 import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
-import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints } from "../../../src/lib/districtMap/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
@@ -25,7 +25,7 @@ const HEADER_PREFIX = "// 生成物・編集不可: ";
 const WIRING_DIR = "src/wiring";
 
 const ITEM_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
-// テスト・宣言(extensionPoints.<x>.ts の旧い形は宣言の読み手 src/lib/forkOwnership/declarations.mjs が止める)は項目でない
+// テスト・宣言(extensionPoints.<x>.ts の旧い形は宣言の読み手 src/lib/districtMap/declarations.mjs が止める)は項目でない
 const isSkippedFile = (name) => /\.(test|spec|d)\.[cm]?tsx?$/.test(name) || !/\.tsx?$/.test(name) || classifyDottedName(name).base === DECLARATION_NAME;
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const markOf = (exportName) => new RegExp(`^export\\s+const\\s+${exportName}\\b`, "m");

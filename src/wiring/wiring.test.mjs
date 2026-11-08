@@ -24,7 +24,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
-import { readDeclaration } from "../lib/forkOwnership/declarations.mjs";
+import { readDeclaration } from "../lib/districtMap/declarations.mjs";
 import { classifyDottedName, oldMarkerProblem } from "../lib/forkOwnership/dottedNames.mjs";
 import { readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
 
@@ -87,7 +87,7 @@ function isFormInputsBundleImport(from, to) {
 }
 
 /**
- * extensionPoints.ts の中身から受け口のフォルダ名（点の dir）を読む。読み手は宣言の唯一の読み手（src/lib/forkOwnership/declarations.mjs）
+ * extensionPoints.ts の中身から受け口のフォルダ名（点の dir）を読む。読み手は宣言の唯一の読み手（src/lib/districtMap/declarations.mjs）
  * @param {string} text
  * @returns {string[]}
  */

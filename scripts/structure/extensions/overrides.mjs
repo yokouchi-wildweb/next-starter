@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { SEARCH_ROOT } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
 
 // <対象> は user.role・user.profile のように . も含む
 const OVERRIDE_FILE = /^[A-Za-z_][\w.-]*\.override\.(ts|tsx)$/;

@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-`/flux` が各区間のコミットの後・push の前に `pnpm workflow ownership check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)、拡張点の宣言の読み手(`declarations.mjs`、生成器 `scripts/structure/extensions` も使う)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)、基準の版のファイル一覧(`baseFiles.mjs` の `readBaseFiles`・`lastUpstreamSha`。notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口、テスト `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+`/flux` が各区間のコミットの後・push の前に `pnpm workflow ownership check` を走らせる(下の「使い方」、`.claude/skills/flux/SKILL.md` 手順 7c)。部品: 受け口の一覧(`intake.txt`、読み取り `intake.mjs`)、判定の核(`judge.mjs`)、単位名(`unitNames.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)、点つきの名前の分類(`dottedNames.mjs`)は git に触れない純粋関数(拡張点の宣言の読み手は地区の地図の側 `src/lib/districtMap/declarations.mjs` へ移った。ここの `declarations.mjs` は再 export だけ)。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)、持ち主の問い合わせ(`who.mjs` と コマンド `whoCli.mjs`、下の「持ち主を調べる」)、基準の版のファイル一覧(`baseFiles.mjs` の `readBaseFiles`・`lastUpstreamSha`。notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口、テスト `pnpm test src/lib/forkOwnership scripts/structure/extensions/intakeOwnership.test.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -32,7 +32,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 印の代わりの同名の検査(計画書 01 S2)。単位名 = パスから最後の拡張子と末尾の `/index` を除いた名前(`.replace` / `.override` は名前に残す)。
 
 - 検査する場所(これだけ。components・hooks・utils・`src/lib` は対象外)
-  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`(門番の例外 `src/featureGate/alwaysOnExceptions` は宣言の受け口)
+  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `src/lib/districtMap/declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`(門番の例外 `src/featureGate/alwaysOnExceptions` は宣言の受け口)
   - その下全部: route の隣(`src/app/**/_layout`・`_screen`・`_components`)
 - `unit-clash`・`override-own`・`default-add`・`default-edit` は持ち主によらず止める(下の多段で `middle-tier` に付け替えない)
 - fork が足したファイルの一覧だけが要る検査(featureGate の規則の重なりなど)は `forkAddedFiles(repoRoot, { parent, branch, fetch })` を使う: Tier1 は git に触れず空、基準が求められなければ `unverified`(合格にしない)

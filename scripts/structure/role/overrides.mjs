@@ -9,7 +9,7 @@
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import { literalOf } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { literalOf } from "../../../src/lib/districtMap/declarations.mjs";
 import { isBlankSource } from "../extensions/overrides.mjs";
 
 const isString = (value) => typeof value === "string";

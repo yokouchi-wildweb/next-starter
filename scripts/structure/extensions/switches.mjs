@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { oldMarkerProblem } from "../../../src/lib/forkOwnership/dottedNames.mjs";
 import { stripComments } from "../../../src/lib/screens/checks.mjs";
 
-import { SEARCH_ROOT } from "../../../src/lib/forkOwnership/declarations.mjs";
+import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
 import { CLAIMED_DEFAULTS as FRAME_CLAIMS } from "./frames.mjs";
 
 /**

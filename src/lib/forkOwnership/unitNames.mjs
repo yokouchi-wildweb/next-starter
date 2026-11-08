@@ -1,4 +1,4 @@
-// 単位名(印の代わりの同名の検査、D137・計画書 01 S2)。git には触れない純関数の .mjs(宣言は ./declarations.mjs で読む)
+// 単位名(印の代わりの同名の検査、D137・計画書 01 S2)。git には触れない純関数の .mjs(宣言は ../districtMap/declarations.mjs で読む)
 // 仕様: ./README.md「判定」
 //
 // 単位名 = パスから最後の拡張子と末尾の /index を除いた名前(.replace / .override は名前の一部として残す)。
@@ -9,7 +9,7 @@
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
 // <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
 
-import { readDeclaration } from "./declarations.mjs";
+import { readDeclaration } from "../districtMap/declarations.mjs";
 
 const DIRECT_FIXED = ["src/wiring", "scripts"];
 const ROUTE_NEIGHBOUR = /^src\/app\/(?:.*\/)?(?:_layout|_screen|_components)\//;

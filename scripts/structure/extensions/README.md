@@ -12,7 +12,7 @@ src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm 
 
 ## 宣言(extensionPoints.ts)
 
-持ち主のフォルダの直下に手書きで 1 つ置く(そのフォルダの全拡張点の目次。1 フォルダ 1 宣言)。読み手は `src/lib/forkOwnership/declarations.mjs` の 1 か所で、生成器・所有の検査の単位名・`src/wiring` の配線テスト・ロールの上書きが同じものを使う(D2)。持ち主 = ドメイン(`src/features/**/<domain>/`)、画面側の点は持ち主の route の `_layout/` `_screen/`、proxy は `src/proxies/`、lib が持ち主の点は `src/lib/<lib>/`。宣言は src の下のどこに置いても読まれる(node_modules・`extensions/` の中は見ない)。
+持ち主のフォルダの直下に手書きで 1 つ置く(そのフォルダの全拡張点の目次。1 フォルダ 1 宣言)。読み手は `src/lib/districtMap/declarations.mjs` の 1 か所で、生成器・所有の検査の単位名・`src/wiring` の配線テスト・ロールの上書きが同じものを使う(D2)。持ち主 = ドメイン(`src/features/**/<domain>/`)、画面側の点は持ち主の route の `_layout/` `_screen/`、proxy は `src/proxies/`、lib が持ち主の点は `src/lib/<lib>/`。宣言は src の下のどこに置いても読まれる(node_modules・`extensions/` の中は見ない)。
 
 ```ts
 export const extensionPoints = {
@@ -112,7 +112,7 @@ export const extensionPoints = {
 
 | ファイル | 中身 |
 |---|---|
-| `src/lib/forkOwnership/declarations.mjs` | 宣言の探索とリテラルの読み取り(宣言の唯一の読み手。ここには置かない) |
+| `src/lib/districtMap/declarations.mjs` | 宣言の探索とリテラルの読み取り(宣言の唯一の読み手。ここには置かない) |
 | `extensions.mjs` | 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 |
 | `intake.mjs` | 受け口の一覧の生成区画の行 |
 | `frames.mjs` | 枠の表(frame.default.ts / frame.ts の解決) |

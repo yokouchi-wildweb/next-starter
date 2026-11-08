@@ -48,7 +48,7 @@ wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wirin
 - root の `src/app/layout.tsx` は `@/wiring/AppProviders` だけ（データに届くのは中の AuthSessionProvider = 名前付き例外）
 - Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
-検査: `pnpm test src/wiring/wiring.test.mjs`（目録・旧い印・向き・鎖・データに届く wiring の import の場所）。受け口の宣言は `src/lib/forkOwnership/declarations.mjs` で読む。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
+検査: `pnpm test src/wiring/wiring.test.mjs`（目録・旧い印・向き・鎖・データに届く wiring の import の場所）。受け口の宣言は `src/lib/districtMap/declarations.mjs` で読む。設計の全体は `src/lib/domain/README.md`、API の Factory は `src/lib/routeFactory/README.md`。
 
 ## dbAgent
 

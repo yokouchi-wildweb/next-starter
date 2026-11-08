@@ -4,7 +4,7 @@
 // 宣言は今の置き場が正本(domain.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
-import { readDeclaration } from "../forkOwnership/declarations.mjs";
+import { readDeclaration } from "./declarations.mjs";
 import { readDomainEntry, readFrameName, readRuleFeatures, readTableNames } from "./fields.mjs";
 import {
   APP_ROOT,
