@@ -33,6 +33,8 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 
 - `listDir(rel)` = フォルダの直下の `{ name, isDir }[]`(無ければ `[]`)、`readText(rel)` = 本文(無ければ `null`)。パスはリポジトリ直下からの相対
 - `problems` が空でなければ、地図は使わずに直します(生成器は書きません)
+- 戻り値には `tableFiles`(features の地区の表と定義ファイル、パス順 → 出現順。schemaRegistry が使う、jsonl には載せない)と `tableProblems`(表名を字面で読めない問題だけ)もあります
+- 使い手: 登録表の生成(ドメインの一覧・表・domain.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)
 - 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName` も出しています
 - 4 種と見つけ方の定数は `kinds.mjs`
 

@@ -3,9 +3,10 @@
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
+import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
 import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
@@ -20,18 +21,12 @@ export const ADMIN_LIST_ROUTE_DIR = "src/app/admin/(protected)";
 const headerOf = (source) => `// 生成物・編集不可: pnpm generate registry が ${source} から生成する`;
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** src/features の全 domain.json(path 順) */
+/** features の地区の直下の domain.json(path 順)。地区の見つけ方は src/lib/districtMap(地区の外の domain.json は読まない、目録 D1・D3) */
 function readDomains(repoRoot) {
-  const found = [];
-  const walk = (dir) => {
-    if (!existsSync(dir)) return;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name === "domain.json") found.push(relative(repoRoot, full).split(sep).join("/"));
-    }
-  };
-  walk(join(repoRoot, FEATURES_DIR));
+  const found = readDistrictMapAt(repoRoot)
+    .districts.filter((district) => district.kind === "features")
+    .map((district) => `${district.dir}/domain.json`)
+    .filter((file) => existsSync(join(repoRoot, file)));
   const problems = [];
   const domains = [];
   for (const file of found.sort(byString)) {
@@ -118,21 +113,13 @@ function renderAdminDomains(repoRoot, domains) {
   ].join("\n");
 }
 
-/** src/features の全 services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き) */
+/** features の地区の services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き)。地区の見つけ方は src/lib/districtMap */
 function readStoragePurposeFiles(repoRoot) {
-  const found = [];
-  const walk = (dir) => {
-    if (!existsSync(dir)) return;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name === "storagePurposes.ts" && full.split(sep).slice(-3, -1).join("/") === "services/server") {
-        found.push(relative(repoRoot, full).split(sep).join("/"));
-      }
-    }
-  };
-  walk(join(repoRoot, FEATURES_DIR));
-  return found.sort(byString);
+  return readDistrictMapAt(repoRoot)
+    .districts.filter((district) => district.kind === "features")
+    .map((district) => `${district.dir}/services/server/storagePurposes.ts`)
+    .filter((file) => existsSync(join(repoRoot, file)))
+    .sort(byString);
 }
 
 function renderStoragePurposeRegistry(repoRoot) {

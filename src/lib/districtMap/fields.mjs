@@ -88,7 +88,7 @@ function stringArray(node) {
 export function readDomainEntry(path, text) {
   const source = parse(path, text);
   const found = [...exportedConsts(source)].find((c) => c.name === "domainEntries");
-  if (!found || !ts.isObjectLiteralExpression(found.init)) return { keys: [], requires: [], problems: [`${path}: export const domainEntries = { … } が無い(キーを字面で読めない)`] };
+  if (!found || !ts.isObjectLiteralExpression(found.init)) return { keys: [], requires: [], problems: [`${path}: domainEntries が読めない(export const domainEntries = { … } が無い。キーを字面で読む)`] };
   const keys = [];
   const requires = [];
   const problems = [];

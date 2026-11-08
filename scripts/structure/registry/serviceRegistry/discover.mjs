@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
 import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
@@ -30,23 +31,15 @@ export const ALLOWED_STATIC_IMPORTS = ["@/lib/domain/types", "@/config/app/domai
  */
 export const ENTRY_EXCEPTIONS = {};
 
-/** `src/features/<dir>` または `src/features/core/<dir>` の一覧（`_` 始まりは雛形なので除く） */
+/**
+ * ドメインのフォルダの一覧(`src/features` からの相対 `<dir>` か `core/<dir>`、`_` 始まりの雛形は地区でないので含まない)。
+ * ドメインの見つけ方は地区の地図の読み手 src/lib/districtMap が持つ(目録 D1・D3)
+ */
 export function listDomainDirs(repoRoot) {
-  const featuresDir = path.join(repoRoot, "src", "features");
-  const result = [];
-  const visit = (base, prefix) => {
-    if (!fs.existsSync(base)) return;
-    for (const dirent of fs.readdirSync(base, { withFileTypes: true })) {
-      if (!dirent.isDirectory() || dirent.name.startsWith("_")) continue;
-      if (prefix === "" && dirent.name === "core") {
-        visit(path.join(base, "core"), "core/");
-        continue;
-      }
-      result.push(`${prefix}${dirent.name}`);
-    }
-  };
-  visit(featuresDir, "");
-  return result.sort();
+  return readDistrictMapAt(repoRoot)
+    .districts.filter((district) => district.kind === "features")
+    .map((district) => district.dir.slice("src/features/".length))
+    .sort();
 }
 
 /** 文字列・コメントを除いたテキスト（import 行や識別子の検出用） */

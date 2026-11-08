@@ -126,3 +126,16 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
   assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "config", "override", "apiKeys", "tables", "requires", "gates", "receptacles", "frame"]);
   assert.equal(toJsonl([]), "");
 });
+
+test("tableFiles: features の地区の表と定義ファイル(パス順 → 出現順、雛形とテストは除く)、tableProblems は表の問題だけ", () => {
+  const { tableFiles, tableProblems } = readDistrictMap(memorySource(BASE));
+  assert.deepEqual(tableFiles, [
+    { name: "samples", file: "src/features/sample/entities/drizzle.ts", dir: "src/features/sample" },
+    { name: "wallets", file: "src/features/core/wallet/entities/drizzle.ts", dir: "src/features/core/wallet" },
+    { name: "wallet_lots", file: "src/features/core/wallet/entities/drizzle.ts", dir: "src/features/core/wallet" },
+  ].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0)));
+  assert.deepEqual(tableProblems, []);
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { features: ["core/ghost"] };` }));
+  assert.deepEqual(broken.tableProblems, ["src/features/sample/entities/more.ts: pgTable の表名が文字列リテラルでない(字面で読めない)"]);
+  assert.ok(broken.problems.length > broken.tableProblems.length);
+});

@@ -128,10 +128,13 @@ function readGates(source, featuresByFolder, problems) {
 /**
  * 地区の地図を読む
  * @param {DistrictSource} source
- * @returns {{ districts: District[], problems: string[] }} districts の並び = 種類(DISTRICT_KINDS の順)→ 名前
+ * @returns {{ districts: District[], problems: string[], tableFiles: { name: string, file: string, dir: string }[], tableProblems: string[] }}
+ *   districts の並び = 種類(DISTRICT_KINDS の順)→ 名前。tableFiles = features の地区の表と定義ファイル(パス順 → 出現順。schemaRegistry が定義ファイルを使う。jsonl には載せない)、tableProblems = 表名を字面で読めない問題だけ(problems にも入る)
  */
 export function readDistrictMap(source) {
   const problems = [];
+  const tableFiles = [];
+  const tableProblems = [];
   const found = discover(source, problems);
   problems.push(...nameProblems(found));
   // 規則の features は src/features からの相対("core/<d>" か "<d>")
@@ -171,7 +174,9 @@ export function readDistrictMap(source) {
       for (const path of files.filter((f) => SOURCE_FILE.test(f) && !TEST_FILE.test(f)).sort()) {
         const read = readTableNames(path, source.readText(path) ?? "");
         problems.push(...read.problems);
+        tableProblems.push(...read.problems);
         district.tables.push(...read.tables);
+        for (const name of read.tables) tableFiles.push({ name, file: path, dir: d.dir });
       }
     }
     // 受け口: 地区の中の extensionPoints.ts の点の名前(宣言の誤りは pnpm check extensions が出すので、ここでは読めた点だけ)
@@ -188,7 +193,8 @@ export function readDistrictMap(source) {
   }
   const order = (d) => DISTRICT_KINDS.indexOf(d.kind);
   districts.sort((a, b) => order(a) - order(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  return { districts, problems };
+  tableFiles.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+  return { districts, problems, tableFiles, tableProblems };
 }
 
 /**

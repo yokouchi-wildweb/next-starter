@@ -153,17 +153,19 @@ test("規則の features: ドメインのフォルダの pgTable から表(0 で
   assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], pathPatterns: \[\.\.\.rules_tableless\.pathPatterns, "\/api\/empty"\] \},/);
 });
 
-test("このリポの全ドメイン(src/features/core/<名前>・src/features/<名前>)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
+test("このリポの全ドメイン(src/features/core/<名前>・src/features/<名前>、_ で始まる雛形を除く)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
   const featureTables = createFeatureTables(repoRoot);
   const domains = [
     ...readdirSync(join(repoRoot, "src/features/core"), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => `core/${e.name}`),
-    ...readdirSync(join(repoRoot, "src/features"), { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "core").map((e) => e.name),
+    ...readdirSync(join(repoRoot, "src/features"), { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "core" && !e.name.startsWith("_")).map((e) => e.name),
   ];
   assert.ok(domains.includes("core/chatRoom"), "表を持たない chatRoom も数える");
   const rule = (folder) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], features: ["${folder}"], enabled: () => true };\n`;
   const stopped = domains.map((folder) => featureTables.apply(folder, rule(folder), "x")).filter((r) => r.problem).map((r) => r.problem);
   assert.deepEqual(stopped, []);
   assert.deepEqual(featureTables.apply("chatRoom", rule("core/chatRoom"), "x").fields.tables, []);
+  // 雛形(_ で始まるフォルダ)は地区でないので features に書けない(src/lib/districtMap、目録 D3)
+  assert.match(featureTables.apply("_template", rule("_template"), "x").problem, /"_template" はドメインの位置でない/);
   // 今までの判定(表が 1 つ以上ある)で通っていた書き方は、表を持つフォルダかその上。どれもドメインのフォルダの中にある = ドメインの位置で書ける
   const outside = scanFeatureTables(repoRoot).tables.map((t) => t.file).filter((file) => !domains.some((d) => file.startsWith(`src/features/${d}/`)));
   assert.deepEqual(outside, []);
