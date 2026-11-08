@@ -6,7 +6,7 @@ export const extensionPoints = {
   sectionTabs: {
     dir: "adminSectionTabs",
     export: "tab",
-    type: { from: "@/components/Navigation", name: "PageTabItem" },
+    type: { from: "@/features/core/coupon/types/sectionTab", name: "CouponSectionTabItem" },
     side: "client",
   },
 };

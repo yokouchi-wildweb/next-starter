@@ -233,6 +233,17 @@ import { coinClosingBalanceMetric } from "@/features/wallet/analytics/rollup/coi
 export const metric = coinClosingBalanceMetric;
 ```
 
+依存する機能が閉じている間など、メトリクスを外したいときは `enabled: () => boolean` を足す（省略 = 常に有効）。
+false の間は登録が無いのと同じ: `listRollupMetricConfigs`・日次 cron・バックフィルの対象から外れ、`getRollupMetricConfig` / `readRolledDailySeries` で名指しすると 404 の DomainError。
+compute の中で `[]` を返して止めない（一覧に残り、空の行を焼き込み続ける）。読む画面も同じ条件で呼ぶのをやめる。key の重複は無効の項目も含めて例外。
+
+```typescript
+export const metric: RollupMetricConfig = {
+  ...gachaRevenueMetric,
+  enabled: () => gate.enabled("gacha"), // server 側なので gate(@/featureGate)を読める
+};
+```
+
 ディメンション分割が必要な場合は `compute` が `[{ value, dims: { walletType: "coin" } }, ...]` のように複数行を返す
 （dims はフラットなオブジェクトのみ。同一日内で dims の重複は不可）。
 

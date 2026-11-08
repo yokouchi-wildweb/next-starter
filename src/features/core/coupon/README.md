@@ -392,8 +392,9 @@ if (result.valid) {
 downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を
 `/admin/coupons/<slug>` に置く場合、受け口に項目を置けば core の全クーポン管理画面のタブに末尾追加される。
 
-- 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: PageTabItem`（一覧 `extensions/sectionTabs`、upstream は空 = 従来どおり 3 タブ）
-- 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 項目。value 重複は core 優先で除外
+- 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: CouponSectionTabItem`（`@/features/core/coupon/types/sectionTab` = `PageTabItem` + `enabled?`。一覧 `extensions/sectionTabs`、upstream は空 = 従来どおり 3 タブ）
+- 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 有効な項目（`PageTabItem[]`、`enabled` は残さない）。value の重複は例外（無効の項目も含めて判定）
+- 閉じる: 項目に `enabled: () => boolean` を足すと、false の間はタブの一覧から外れる（省略 = 常に出す）。`className: "hidden"` で隠さない（タブの一覧と DOM に残る）。組み立ては client（CouponSectionTabs）で走るので、enabled は client で読める値（config の値など）だけを見る。hook は呼べない
 - 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。置き場はページが決める: core ページ（official / invite / affiliate）は `<AdminPage center={<CouponSectionTabs variant="header" />}>`
 - **一覧コンポーネント（`AdminCouponList` / referral `AdminInviteList`）はタブを描画しない**。配置（本文 or ヘッダー）はページの関心事なので Screen が CouponSectionTabs を置く。これらを使う downstream の Screen も自分でタブを置くこと（置かなければタブなし）
 - DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
@@ -402,7 +403,13 @@ downstream が種別に属さない派生クーポンの専用画面（例: フ�
 
 ```typescript
 // 1. src/features/core/coupon/adminSectionTabs/friendCoupon.ts → pnpm generate extensions
-export const tab: PageTabItem = { value: "friend-coupon", label: "フレンドクーポン", href: "/admin/coupons/friend-coupon" };
+import type { CouponSectionTabItem } from "@/features/core/coupon/types/sectionTab";
+export const tab: CouponSectionTabItem = {
+  value: "friend-coupon",
+  label: "フレンドクーポン",
+  href: "/admin/coupons/friend-coupon",
+  enabled: () => friendCouponConfig.enabled, // 省略 = 常に出す
+};
 
 // 2. src/app/admin/(protected)/coupons/friend-coupon/_screen/AdminFriendCouponScreen.tsx（downstream 実装）
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";

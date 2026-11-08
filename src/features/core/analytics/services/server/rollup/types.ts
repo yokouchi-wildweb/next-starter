@@ -72,6 +72,12 @@ export type RollupMetricConfig = {
   backfillFrom?: string;
   /** バケット境界のタイムゾーン（省略時 DEFAULT_TIMEZONE） */
   timezone?: string;
+  /**
+   * 有効か（省略 = 常に有効）。false の間は登録が無いものとして扱い、
+   * 一覧・日次 cron・バックフィル・読み取りのどれからも外れる。
+   * 例: 依存する機能が閉じている間は外す `enabled: () => gate.enabled("<機能>")`
+   */
+  enabled?: () => boolean;
 };
 
 /** runDailyRollup の実行結果（メトリクス単位） */

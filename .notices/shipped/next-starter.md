@@ -339,3 +339,4 @@
 - id:20261108-151026-order-quest-kind-resolve-hook | severity:info | checkpoint:order-quest-kind-resolve-hook
 - id:20261108-152849-config-district-map | severity:breaking | checkpoint:config-district-map
 - id:20261108-153142-domain-ops-commands-data | severity:breaking | checkpoint:domain-ops-commands-data
+- id:20261108-160045-enabled-rollup-tabs | severity:action-required | checkpoint:enabled-rollup-tabs | resolves:20261101-142143-extension-enabled-rollup-tabs

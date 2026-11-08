@@ -19,6 +19,7 @@ import { DomainError } from "@/lib/errors/domainError";
 import { rollupMetrics } from "@/features/core/analytics/extensions/rollupMetrics";
 import { invalidateAnalyticsCache } from "../utils/analyticsCache";
 import { formatDateKeyTz, resolveDayBounds } from "../utils/dateRange";
+import { buildRollupRegistry } from "./rollupRegistry";
 import type {
   RollupDayContext,
   RollupMetricConfig,
@@ -36,37 +37,28 @@ const DEFAULT_ROLLUP_LOOKBACK_DAYS = 3;
 // ============================================================================
 
 /**
- * 登録済みメトリクス設定を key で引く。未登録・key 重複は設定ミスとして即エラー。
+ * 登録済み・有効なメトリクス設定を key で引く。未登録・key 重複は設定ミスとして即エラー。
+ * enabled() が false のメトリクスは 404（無効の間は登録が無いのと同じ。呼ぶ側が同じ条件で呼ばないこと）。
  */
 export function getRollupMetricConfig(metricKey: string): RollupMetricConfig {
-  const config = buildRegistryMap().get(metricKey);
-  if (!config) {
-    const known = [...buildRegistryMap().keys()].join(", ") || "(なし)";
-    throw new DomainError(
-      `ロールアップメトリクス "${metricKey}" は未登録です。登録済み: ${known}`,
-      { status: 400 },
-    );
+  const { active, disabledKeys } = buildRollupRegistry(rollupMetrics);
+  const config = active.get(metricKey);
+  if (config) return config;
+  if (disabledKeys.has(metricKey)) {
+    throw new DomainError(`ロールアップメトリクス "${metricKey}" は無効です（enabled() が false）。`, {
+      status: 404,
+    });
   }
-  return config;
+  const known = [...active.keys()].join(", ") || "(なし)";
+  throw new DomainError(
+    `ロールアップメトリクス "${metricKey}" は未登録です。登録済み: ${known}`,
+    { status: 400 },
+  );
 }
 
-/** 登録済みメトリクス設定の一覧（key 重複検証込み） */
+/** 登録済み・有効なメトリクス設定の一覧（key 重複検証込み。enabled() が false のものは含まない） */
 export function listRollupMetricConfigs(): RollupMetricConfig[] {
-  return [...buildRegistryMap().values()];
-}
-
-function buildRegistryMap(): Map<string, RollupMetricConfig> {
-  const map = new Map<string, RollupMetricConfig>();
-  for (const config of rollupMetrics) {
-    if (map.has(config.key)) {
-      throw new DomainError(
-        `rollupMetrics に key "${config.key}" が重複登録されています。`,
-        { status: 500 },
-      );
-    }
-    map.set(config.key, config);
-  }
-  return map;
+  return [...buildRollupRegistry(rollupMetrics).active.values()];
 }
 
 /** メトリクスに適用するタイムゾーン */
@@ -209,12 +201,12 @@ export type RunDailyRollupOptions = {
    * cron の実行漏れ（ギャップ）を同時に自己修復する。
    */
   lookbackDays?: number;
-  /** 対象メトリクスを絞る（省略時は登録済み全メトリクス） */
+  /** 対象メトリクスを絞る（省略時は登録済み・有効な全メトリクス。無効の key を名指しすると 404） */
   metricKeys?: string[];
 };
 
 /**
- * 登録済み全メトリクスの「昨日〜昨日-(lookbackDays-1)」を再計算する日次タスク。
+ * 登録済み・有効な全メトリクスの「昨日〜昨日-(lookbackDays-1)」を再計算する日次タスク。
  *
  * メトリクス単位で独立に実行し、一部の失敗が他メトリクスを止めない。
  * 1つでも失敗があれば全メトリクス処理後にエラーを投げる（監視でアラート可能にするため）。
