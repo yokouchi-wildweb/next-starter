@@ -10,6 +10,7 @@ import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
 import appEnvPlugin from "./eslint-rules/app-env.mjs";
+import configOverridesPlugin from "./eslint-rules/config-overrides.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
@@ -437,6 +438,24 @@ const config = [
     plugins: { "realtime-room": realtimeRoomPlugin },
     rules: {
       "realtime-room/purity": "error",
+    },
+  },
+  // 上書きファイル(src/config/{lib,features,layout,proxies})の 2 規則(設定 D34・D35・D38・L1.19。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
+  // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。古い src/config/app・ui・documents と直下のファイルには掛けない
+  // - literal-only: 上書きは値のリテラル。読めるのは型・process.env・@/business・持ち主が overrideImports で宣言した指定子だけ
+  // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は lib-entry の持ち分
+  {
+    files: ["src/config/{lib,features,layout,proxies}/*.config.ts"],
+    plugins: { "config-overrides": configOverridesPlugin },
+    rules: {
+      "config-overrides/literal-only": "error",
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
+    plugins: { "config-overrides": configOverridesPlugin },
+    rules: {
+      "config-overrides/owner-reads-only": "error",
     },
   },
   // fork が足す設定(業務の規則・追加の plugin)。eslint.config.fork.mjs は fork の物(upstream は空で出荷)

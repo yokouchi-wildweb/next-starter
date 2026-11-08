@@ -60,7 +60,7 @@ lib の設定(fork が値を変える物)は、lib の外の 1 ファイルの�
 
 - lib は上書きを指定子 `@lib-config/<自分>` だけで読む(lint `lib-entry` が他の書き方・他の lib の上書きを止める)。tsconfig.json の `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)が `src/config/lib/<名前>.config.ts` へ向ける。候補は 1 つ
 - 上書きのファイルが無いと tsc・tsx・テストが解決の失敗で止まる(黙って既定にならない)。上流は設定を持つ lib ごとに空の上書きを置く
-- 上書きのファイルの形: lib の入口から型だけを読み、値はリテラルで書く(読んでよいのは `process.env` と `@/business` だけ。段階は `@/lib/appEnv`。D34)
+- 上書きのファイルの形: lib の入口から型だけを読み、値はリテラルで書く(読んでよいのは `process.env` と `@/business` だけ。段階は `@/lib/appEnv`。D34)。lint `config-overrides/literal-only` が止める(形の全部: [src/config/README.md](../config/README.md))
 
 ```ts
 // src/config/lib/toast.config.ts

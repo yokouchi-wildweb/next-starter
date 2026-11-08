@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { readDistrictMap, readDomainEntry, readFrameName, readRuleFeatures, readTableNames, toJsonl } from "./index.mjs";
+import { readDistrictMap, readDomainEntry, readFrameName, readOverrideImports, readRuleFeatures, readTableNames, toJsonl } from "./index.mjs";
 
 /** パス → 本文 の表から source を作る(フォルダはパスから導く) */
 function memorySource(files) {
@@ -140,6 +140,13 @@ test("字面の読み手: requires の式・features の式・frame の式は問
   assert.deepEqual(readFrameName("c.ts", "export const c = { frame: NAME };").frame, null);
   assert.deepEqual(readFrameName("c.ts", "export const c = {};"), { frame: null, problems: [] });
   assert.deepEqual(readTableNames("t.ts", `/* pgTable("x") */ pgTable('y', {})`).tables, ["y"]);
+});
+
+test("readOverrideImports: export const overrideImports の文字列の配列を字面で読む(L1.19)", () => {
+  assert.deepEqual(readOverrideImports("c.ts", `export const overrideImports = ["next/font/google", "@/components/Icons"] as const;`), { imports: ["next/font/google", "@/components/Icons"], problems: [] });
+  assert.deepEqual(readOverrideImports("c.ts", "export const walletConfig = {};"), { imports: [], problems: [] });
+  assert.equal(readOverrideImports("c.ts", "export const overrideImports = LIST;").problems.length, 1);
+  assert.equal(readOverrideImports("c.ts", `export const overrideImports = ["a", b] as const;`).problems.length, 1);
 });
 
 test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {

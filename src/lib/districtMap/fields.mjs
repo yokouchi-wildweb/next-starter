@@ -142,3 +142,33 @@ export function readFrameName(path, text) {
   if (names.length > 1) problems.push(`${path}: frame の宣言が ${names.length} つある(1 ファイル 1 枠)`);
   return { frame: names.length === 1 ? names[0] : null, problems };
 }
+
+/** 持ち主が上書きに許す読み込みの宣言の名前(設定 D35・L1.19) */
+export const OVERRIDE_IMPORTS_EXPORT = "overrideImports";
+
+/**
+ * 持ち主の config.ts(部品は config.ui.ts)の `export const overrideImports = ["<指定子の前方一致>", …] as const`(設定 D35・L1.19)。
+ * その持ち主の上書きファイルでだけ、この指定子(か、その下の指定子)の値の import を許す。宣言は持ち主のファイルにだけ書ける(上書きの中に書いても効かない)
+ * @param {string} path
+ * @param {string} text
+ * @returns {{ imports: string[], problems: string[] }}
+ */
+export function readOverrideImports(path, text) {
+  const source = parse(path, text);
+  const imports = [];
+  const problems = [];
+  for (const { name, init } of exportedConsts(source)) {
+    if (name !== OVERRIDE_IMPORTS_EXPORT) continue;
+    let node = init;
+    while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
+    if (!ts.isArrayLiteralExpression(node)) {
+      problems.push(`${path}: ${OVERRIDE_IMPORTS_EXPORT} は指定子の文字列の配列で書く(字面で読む)`);
+      continue;
+    }
+    for (const element of node.elements) {
+      if ((ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element)) && element.text.length > 0) imports.push(element.text);
+      else problems.push(`${path}: ${OVERRIDE_IMPORTS_EXPORT} の項目は文字列リテラル(${element.getText(source)})`);
+    }
+  }
+  return { imports, problems };
+}

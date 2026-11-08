@@ -13,18 +13,37 @@
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
-- 上書きは持ち主の `config.ts`(描画用は `config.ui.ts`)だけが読む。他のコードは持ち主の入口から確定した値を読む
 
 ## 1 対 1
 
 - 上書きと持ち主はちょうど 1 本ずつ揃える。持ち主の無い上書き(余り)と、`config.ts` があるのに上書きが無い(欠落)は `pnpm check config-overrides` が落とす(門 build・ship)。中身: [scripts/structure/config-overrides/README.md](../../scripts/structure/config-overrides/README.md)
 - 上流は持ち主の `config.ts` と空の上書きを同じ commit で作る。持ち主を消す・改名するときは上書きも同じ commit で消す・改名する
 
-## 上書きの中身
+## 上書きの中身(lint `config-overrides/literal-only`、全 Tier error)
 
-- 持ち主の入口から型だけを読み、値はリテラルで書く。空の上書きは `export default {} satisfies <持ち主の上書きの型>;`
-- リテラル以外に読んでよいのは `process.env`・`@/business`(事業の素性)と、持ち主が自分の `config.ts` で宣言した読み込みだけ。client から読まれる設定に env を使うなら `NEXT_PUBLIC_` の付く名前でないと client では読めない
+- ファイルに書けるのは import・`export default`(値 1 つ)・型の宣言だけ。空の上書きは `export default {} satisfies <持ち主の上書きの型>;`
+- 値はリテラル: object・配列・文字列・数・真偽・null・式の無い template・`as const`・`satisfies`。関数・メソッド・呼び出し・`new`・spread・変数(`const`)・`export const` は書けない
+- リテラル以外に読んでよいもの:
+  - 型(`import type`、どこからでも)
+  - `process.env.<名前>` と、それを比べる・切り替える式(`===`・`!==`・`??`・`||`・`&&`・`? :`)。client から読まれる設定に env を使うなら `NEXT_PUBLIC_` の付く名前でないと client では読めない
+  - `@/business`(事業の素性)の値
+  - 持ち主が宣言した指定子の値(下)
 - fork 独自のキーは上書きの中で `export type Extra` を宣言し、持ち主の型引数で受ける
+
+### 持ち主の宣言 `overrideImports`
+
+リテラルで渡せない物(フォント・アイコンの部品・SDK の値)を受ける持ち主だけ、自分の `config.ts` に許す指定子を宣言します(前方一致、字面で読む)。部品(React)は値の `config.ts` に書けないので、部品の宣言は描画用の `config.ui.ts` に置き、`<名前>.ui.config.ts` でだけ効きます。
+
+```ts
+// src/features/core/wallet/config.ui.ts(持ち主の描画用)
+export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const;
+```
+
+- 宣言は上流(持ち主)の物で、上書きの中に書いても広がらない。処理(features の関数など)は宣言できず、上書きに書けない
+
+## 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
+
+上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。
 
 ## 移行中のもの
 

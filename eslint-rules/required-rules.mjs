@@ -33,6 +33,9 @@ export const REQUIRED_ESLINT_RULES = [
     files: ["src/features/core/auth/services/server/registration.ts", "src/lib/drizzle/index.ts", "scripts/runner/task/run.ts", "eslint.config.mjs"],
   },
   { rule: "import-boundaries/lib-self-relative", files: ["src/lib/drizzle/index.ts"] },
+  // 上書きファイルの 2 規則(設定 D34・D35・L1.19)。features の上書きはまだ upstream に無い置き場の例
+  { rule: "config-overrides/literal-only", files: ["src/config/lib/toast.config.ts", "src/config/features/wallet.config.ts"], example: true },
+  { rule: "config-overrides/owner-reads-only", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/services/server/registration.ts"] },
   { rule: "page-authz/layout-no-server-data", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   {
     rule: "page-authz/session-api-callsite",
