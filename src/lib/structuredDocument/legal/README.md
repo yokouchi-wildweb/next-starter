@@ -90,13 +90,6 @@ content 内で以下の記法が使用可能:
 
 ※ CSSカウンター（`.numbered-articles`, `.numbered-sections`）と連動
 
-## 設定ファイルの配置
+## 文書の置き場
 
-```
-src/config/documents/
-├── index.ts
-├── variables.ts      # 共通変数マップ
-├── terms.config.ts   # 利用規約
-├── privacy.config.ts # プライバシーポリシー
-└── commerce.config.ts # 特商法表記
-```
+このモジュールは型と描画だけを持つ。文書の中身(例文・プロジェクトの文面・差し込みの値)は法務のドメイン `src/features/core/legal` が持ち、画面は `getLegalDocument(kind)` の差し込み済みの文書をこのレンダラーに渡す(`variables` は渡さない)。形: [src/features/core/legal/README.md](../../../features/core/legal/README.md)

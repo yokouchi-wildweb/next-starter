@@ -5,7 +5,9 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { LEGAL_DOCUMENT_KINDS, LEGAL_EXAMPLES, type LegalDocumentKind } from "@/features/core/legal";
+import { LEGAL_DOCUMENT_KINDS } from "@/features/legal/constants";
+import { LEGAL_EXAMPLES } from "@/features/legal/documents";
+import type { LegalDocumentKind } from "@/features/legal/types";
 
 import { LEGAL_OVERRIDE_FILE, overrideFileText, withExamples } from "./lib";
 

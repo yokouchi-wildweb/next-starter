@@ -24,7 +24,7 @@
 - `getLegalDocument(kind)`: 差し込み済みの文書を返す。文面(sample = 例文、own = 上書き)の題名・本文・子の節の `{{NAME}}` を埋める: `SERVICE_NAME`・`DOMAIN`・`COMPANY_NAME`・`REPRESENTATIVE`・`POSTAL_CODE`・`ADDRESS`・`PHONE`・`EMAIL`(`@/business`)、`PAYMENT_METHODS`(legal)。利用規約・プライバシーポリシーは文面に `enactedAt` が無ければ `business.launchedAt`
 - `getLegalEnactedAtFormat()`: 日付の行の文言(`LegalDocumentRenderer` の `enactedAtFormat` に渡す)
 - `buildLegalDocument(kind, config, business, examples?)`: 上の純関数版(テスト・他の値で組むとき)
-- 読み手は `@/features/core/legal` の口を使い、`LEGAL_CONFIG` を直に読まない
+- 読み手は口(`@/features/legal/documents`、別名は tsconfig の `@/features/legal/*`)を使い、`LEGAL_CONFIG` を直に読まない(門番の規則 3 本は閉じる値 `pages` だけを `@/features/legal/config` から読む)
 
 ## テスト
 

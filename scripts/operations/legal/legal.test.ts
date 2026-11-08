@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { LEGAL_EXAMPLES } from "@/features/core/legal";
+import { LEGAL_EXAMPLES } from "@/features/legal/documents";
 
 import { overrideFileText, withExamples } from "./lib";
 
@@ -29,7 +29,7 @@ test("既に own の文書は --force が無い限り変えない", () => {
 test("書き出しはリテラルの export default と型の満たし方の行(上書きの lint literal-only を通る形)", () => {
   const text = overrideFileText(withExamples({}, ["tradelaw"], LEGAL_EXAMPLES, false).value);
   assert.match(text, /^\/\/ src\/config\/features\/legal\.config\.ts\n/);
-  assert.match(text, /import type \{ LegalOverride \} from "@\/features\/core\/legal\/config";\n\nexport default \{\n {2}documents: \{\n {4}tradelaw: \{\n {6}source: "own",\n {6}document: \{/);
+  assert.match(text, /import type \{ LegalOverride \} from "@\/features\/legal\/config";\n\nexport default \{\n {2}documents: \{\n {4}tradelaw: \{\n {6}source: "own",\n {6}document: \{/);
   assert.match(text, /\n\} satisfies LegalOverride;\n$/);
   assert.match(text, /id: "licenses",/);
 });

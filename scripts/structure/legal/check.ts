@@ -9,7 +9,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { checkLegalRelease, sampleLegalDocuments } from "@/features/core/legal";
+import { sampleLegalDocuments } from "@/features/legal/documents";
+import { checkLegalRelease } from "@/features/legal/release";
 import { isProduction } from "@/lib/appEnv";
 
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";

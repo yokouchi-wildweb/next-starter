@@ -207,12 +207,6 @@ export const APP_FEATURES = {
     entry: true,
     /** サービス紹介(/services) */
     services: true,
-    /** 規約のページ */
-    legal: {
-      privacyPolicy: true,
-      terms: true,
-      tradelaw: true,
-    },
   },
   demo: {
     /** デモページ（/demo 配下）を有効にする */

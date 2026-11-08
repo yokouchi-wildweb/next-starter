@@ -2,37 +2,60 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { privacyConfig, termsConfig, tradelawConfig } from "@/config/documents";
-import { legalConfigDef } from "@/features/core/legal/config";
+import { legalConfigDef } from "@/features/legal/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
 import type { LegalDocument } from "@/lib/structuredDocument/legal";
 
-import { buildLegalDocument, checkLegalRelease, LEGAL_DOCUMENT_KINDS, LEGAL_EXAMPLES, sampleLegalDocuments, type LegalConfig } from "./index";
+import { buildLegalDocument, checkLegalRelease, LEGAL_DOCUMENT_KINDS, LEGAL_EXAMPLES, legalVariables, sampleLegalDocuments, type LegalConfig } from "./index";
 
 const base: LegalConfig = legalConfigDef.compose({});
 const own: LegalDocument = { title: "{{SERVICE_NAME}} の規約", enactedAt: "2030年1月1日", sections: [{ title: "第一", content: ["{{COMPANY_NAME}} と {{PAYMENT_METHODS}}"], children: [{ content: ["{{EMAIL}}"] }] }] };
 
-test("例文は今の src/config/documents の 3 文書の文面そのまま(日付と、許認可の節の組み立てを除く)", () => {
-  const strip = ({ enactedAt: _e, lastUpdatedAt: _u, ...rest }: LegalDocument) => rest;
-  assert.deepEqual(LEGAL_EXAMPLES.terms, strip(termsConfig));
-  assert.deepEqual(LEGAL_EXAMPLES.privacy, strip(privacyConfig));
-  // 今の殻の licenses は空なので、今の表示に許認可の節は無い。例文は id "licenses" の空の節を持つ
-  assert.deepEqual(
-    LEGAL_EXAMPLES.tradelaw.sections.filter((section) => section.id !== "licenses"),
-    tradelawConfig.sections,
-  );
-  assert.deepEqual(LEGAL_EXAMPLES.tradelaw.sections.find((section) => section.id === "licenses"), { id: "licenses", title: "関連法令に基づく許認可" });
+/** 例文の形(31 で今までの src/config/documents の文面と一致を確かめて写した。形が変わったら examples/CHANGELOG.md と notice) */
+const EXAMPLE_SHAPES = {
+  terms: { title: "利用規約", numbering: "article", ids: [null, ...Array.from({ length: 23 }, (_, i) => `article-${i + 1}`)], names: ["COMPANY_NAME", "DOMAIN", "SERVICE_NAME"] },
+  privacy: {
+    title: "プライバシーポリシー",
+    numbering: "none",
+    ids: [null, "policy-overview", "collected-data", "usage-purpose", "sharing", "cookies", "retention", "user-rights", "contact", "policy-update"],
+    names: ["EMAIL", "SERVICE_NAME"],
+  },
+  tradelaw: {
+    title: "特定商取引法に基づく表示",
+    numbering: "numeric",
+    ids: ["price", "additional-cost", "payment-method", "payment-timing", "delivery-timing", "shipping", "return-policy", "quantity-limit", "licenses", "business-info"],
+    names: ["ADDRESS", "COMPANY_NAME", "EMAIL", "PAYMENT_METHODS", "PHONE", "POSTAL_CODE", "REPRESENTATIVE"],
+  },
+} as const;
+
+test("例文の形: 題名・番号の型・節の id・差し込みの名前(日付は持たない、許認可は id licenses の空の節)", () => {
   for (const kind of LEGAL_DOCUMENT_KINDS) {
-    assert.equal(LEGAL_EXAMPLES[kind].enactedAt, undefined, `${kind}: 例文は日付を持たない`);
-    assert.equal(LEGAL_EXAMPLES[kind].lastUpdatedAt, undefined, `${kind}: 例文は日付を持たない`);
+    const example = LEGAL_EXAMPLES[kind];
+    const shape = EXAMPLE_SHAPES[kind];
+    assert.equal(example.title, shape.title, kind);
+    assert.equal(example.sectionNumbering, shape.numbering, kind);
+    assert.deepEqual(example.sections.map((section) => section.id ?? null), shape.ids, kind);
+    const names = [...new Set([...JSON.stringify(example).matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]))].sort();
+    assert.deepEqual(names, [...shape.names], kind);
+    assert.equal(example.enactedAt, undefined, `${kind}: 例文は日付を持たない`);
+    assert.equal(example.lastUpdatedAt, undefined, `${kind}: 例文は日付を持たない`);
   }
+  assert.deepEqual(LEGAL_EXAMPLES.tradelaw.sections.find((section) => section.id === "licenses"), { id: "licenses", title: "関連法令に基づく許認可" });
+  for (const name of new Set(LEGAL_DOCUMENT_KINDS.flatMap((kind) => EXAMPLE_SHAPES[kind].names))) {
+    assert.ok(name in legalVariables(EXAMPLE_BUSINESS, base), `差し込みの名前 ${name} に値がある`);
+  }
+});
+
+test("閉じる値 pages: 既定は 3 ページとも開、上書きで閉じられる", () => {
+  assert.deepEqual(base.pages, { terms: true, privacyPolicy: true, tradelaw: true });
+  assert.equal(legalConfigDef.compose({ pages: { tradelaw: false } }).pages.tradelaw, false);
 });
 
 test("既定は 3 文書とも sample で、今の表示と同じ文書を返す(差し込み・制定日 = launchedAt・許認可の節なし)", () => {
   assert.deepEqual(sampleLegalDocuments(base), ["terms", "privacy", "tradelaw"]);
   const terms = buildLegalDocument("terms", base, EXAMPLE_BUSINESS);
   assert.equal(terms.enactedAt, EXAMPLE_BUSINESS.launchedAt);
-  assert.equal(terms.title, termsConfig.title);
+  assert.equal(terms.title, "利用規約");
   assert.ok(!JSON.stringify(terms).includes("{{"), "差し込みが残らない");
   assert.ok(JSON.stringify(terms).includes(EXAMPLE_BUSINESS.company.name));
   const tradelaw = buildLegalDocument("tradelaw", base, EXAMPLE_BUSINESS);

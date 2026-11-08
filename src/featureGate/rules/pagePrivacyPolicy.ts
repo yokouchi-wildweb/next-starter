@@ -1,11 +1,11 @@
 // src/featureGate/rules/pagePrivacyPolicy.ts
 // upstream の画面のスイッチ: プライバシーポリシー
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { LEGAL_CONFIG } from "@/features/legal/config";
 
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
   pathPatterns: ["=/privacy-policy"],
-  enabled: () => APP_FEATURES.pages.legal.privacyPolicy,
+  enabled: () => LEGAL_CONFIG.pages.privacyPolicy,
 };

@@ -1,11 +1,11 @@
 // src/featureGate/rules/pageTerms.ts
 // upstream の画面のスイッチ: 利用規約
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { LEGAL_CONFIG } from "@/features/legal/config";
 
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
   pathPatterns: ["=/terms"],
-  enabled: () => APP_FEATURES.pages.legal.terms,
+  enabled: () => LEGAL_CONFIG.pages.terms,
 };

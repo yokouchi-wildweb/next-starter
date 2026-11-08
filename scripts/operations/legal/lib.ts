@@ -3,14 +3,14 @@
 // 値はリテラルで書く(上書きの lint config-overrides/literal-only)。ファイルの注記は決まった頭に戻る(手で書いた注記は残らない)
 
 import type { LegalDocument } from "@/lib/structuredDocument/legal";
-import type { LegalDocumentKind } from "@/features/core/legal";
+import type { LegalDocumentKind } from "@/features/legal/types";
 
 export const LEGAL_OVERRIDE_FILE = "src/config/features/legal.config.ts";
 
 const HEADER = `// src/config/features/legal.config.ts
 // 法務の文書の設定の上書き(持ち主 src/features/core/legal/config.ts だけが読む)。値はリテラルで書く。キーと既定: 持ち主の config.ts
 // own の文書 = このプロジェクトの文面(例文は src/features/core/legal/examples/、変更履歴は examples/CHANGELOG.md)。形: src/features/core/legal/README.md
-import type { LegalOverride } from "@/features/core/legal/config";
+import type { LegalOverride } from "@/features/legal/config";
 `;
 
 type OverrideValue = Record<string, unknown> & { documents?: Partial<Record<LegalDocumentKind, { source: string }>> };
