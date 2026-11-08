@@ -9,13 +9,13 @@
 // - 使い方の誤り = exit 2
 
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
 import { liveSessions, resolveName } from "./lib.agents.mjs";
-import { EXIT, runInbox, runRead, runReply, runSend, runWho } from "./lib.cli.mjs";
+import { EXIT, runAck, runInbox, runRead, runReply, runSend, runWho } from "./lib.cli.mjs";
 import { checkGate, heldBoxes } from "./lib.gate.mjs";
 import { FORMAT_VERSION, boxDir, boxSegments, deliver, getState, holderOf, isBoxKey, stateDir, listBox, markIsValid, newMessageId, putMessage, readMark, stateRoot, writeMark } from "./lib.store.mjs";
 
@@ -138,7 +138,7 @@ test("送る: 完全一致 1 つ + 相手の印が有効 → 送った exit 0、
   h.mark(B, 202);
   assert.equal(runSend(["beta", "棚の", "件", "--about=棚"], h.deps), EXIT.done);
   assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を送りました。受け持つセッションが呼び鈴で起きて読みます/);
-  const [m] = listBox(h.root, B);
+  const [m] = listBox(h.root, B).messages;
   assert.equal(m.body, "棚の 件");
   assert.equal(m.about, "棚");
   assert.equal(m.senderMode, "acceptEdits");
@@ -150,8 +150,8 @@ test("送る: 相手に印が無い・古い → 置いただけ(stored)で exit
   const h = harness({ rows });
   assert.equal(runSend(["beta", "x"], h.deps), EXIT.done);
   assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を置きました\(今その箱を受け持つ呼び鈴が無い/);
-  assert.equal(listBox(h.root, B).length, 1);
-  assert.equal(listBox(h.root, B)[0].senderMode, "unknown");
+  assert.equal(listBox(h.root, B).messages.length, 1);
+  assert.equal(listBox(h.root, B).messages[0].senderMode, "unknown");
   writeMark(h.root, { sessionId: B, pid: 202, procStart: "start-old", cwd: "/", mode: "default" });
   h.printed.length = 0;
   assert.equal(runSend(["beta", "y", "--json"], h.deps), EXIT.done);
@@ -194,7 +194,7 @@ test("受け箱・読む・返す: 読んだ・返事したは箱の外、返事
   h.mark(B, 202, "plan");
   runSend(["beta", "質問です", "--about=棚"], h.deps);
   const asB = h.as(B);
-  const [m] = listBox(h.root, B);
+  const [m] = listBox(h.root, B).messages;
 
   h.printed.length = 0;
   assert.equal(runInbox([], asB), EXIT.done);
@@ -215,7 +215,7 @@ test("受け箱・読む・返す: 読んだ・返事したは箱の外、返事
   h.printed.length = 0;
   assert.equal(runReply([m.id, "答えです"], asB), EXIT.done);
   assert.match(h.out(), /alphaに m-.* を返しました。受け持つセッションが呼び鈴で起きて読みます/);
-  const [r] = listBox(h.root, A);
+  const [r] = listBox(h.root, A).messages;
   assert.equal(r.replyTo, m.id);
   assert.equal(r.about, "re: 棚");
   assert.equal(r.senderMode, "plan");
@@ -230,14 +230,14 @@ test("返す: 送り元のセッションが落ちていても、その会話の
   const h = harness();
   h.mark(B, 202);
   putMessage(h.root, B, { from: { name: "gone", sessionId: "gone-9999", cwd: "/" }, body: "x" });
-  const [m] = listBox(h.root, B);
+  const [m] = listBox(h.root, B).messages;
   assert.equal(runReply([m.id, "y"], h.as(B)), EXIT.done);
   assert.match(h.out(), /goneに m-.* を置きました/);
-  assert.equal(listBox(h.root, "gone-9999")[0].replyTo, m.id);
+  assert.equal(listBox(h.root, "gone-9999").messages[0].replyTo, m.id);
   assert.equal(runReply(["m-nope", "y"], h.as(B)), EXIT.notSent);
   assert.equal(runRead(["m-nope"], h.as(B)), EXIT.notSent);
   putMessage(h.root, B, { from: { name: "-" }, body: "x" });
-  const nobox = listBox(h.root, B).find((x) => !x.from.sessionId);
+  const nobox = listBox(h.root, B).messages.find((x) => !x.from.sessionId);
   assert.equal(runReply([nobox.id, "y"], h.as(B)), EXIT.notSent);
 });
 
@@ -290,7 +290,7 @@ test("インスタンス ID の箱にも連絡を置ける(tmp → rename、一�
   const root = temp();
   const m = putMessage(root, "council/r1", { from: { name: "x", sessionId: A, cwd: "/" }, body: "b" });
   assert.ok(existsSync(path.join(root, "boxes", "council", "r1", `${m.id}.json`)));
-  assert.deepEqual(listBox(root, "council/r1").map((x) => x.id), [m.id]);
+  assert.deepEqual(listBox(root, "council/r1").messages.map((x) => x.id), [m.id]);
   assert.deepEqual(readdirSync(path.join(root, "tmp")), []);
 });
 
@@ -303,10 +303,10 @@ test("送る: 箱の住所とセッション id へは生死を問わず置く(�
   const r = JSON.parse(h.printed[0]);
   assert.equal(r.result, "stored");
   assert.equal(r.to, "council/r1");
-  assert.equal(listBox(h.root, "council/r1")[0].body, "箱へ");
+  assert.equal(listBox(h.root, "council/r1").messages[0].body, "箱へ");
   h.printed.length = 0;
   assert.equal(runSend([UUID_B, "会話へ"], h.deps), EXIT.done);
-  assert.equal(listBox(h.root, UUID_B).length, 1);
+  assert.equal(listBox(h.root, UUID_B).messages.length, 1);
   assert.match(h.out(), /session bbbbbbbbに m-.* を置きました/);
   h.printed.length = 0;
   assert.equal(runSend(["council/..", "x", "--json"], h.deps), EXIT.notSent);
@@ -328,23 +328,23 @@ test("鳴らした(rang)は、その箱を受け持つ生きた印があると�
 test("from.box: 受け持つ箱が送り元に書かれ、返事はその箱へ(会話が落ちていても)。--as で選ぶ", () => {
   const h = harness({ rows: rowsOf().filter((r) => r.sessionId !== C), env: { PEER_BOXES: "council/r1 council/q1" } });
   runSend(["beta", "統括から"], h.deps);
-  const sent = listBox(h.root, B).find((x) => x.body === "統括から");
+  const sent = listBox(h.root, B).messages.find((x) => x.body === "統括から");
   assert.equal(sent.from.box, "council/r1");
   runSend(["beta", "別の箱から", "--as=council/q1"], h.deps);
-  assert.equal(listBox(h.root, B).find((x) => x.body === "別の箱から").from.box, "council/q1");
+  assert.equal(listBox(h.root, B).messages.find((x) => x.body === "別の箱から").from.box, "council/q1");
   assert.equal(runSend(["beta", "x", "--as=guild/g1"], h.deps), EXIT.usage);
   // beta が返す: 送り元の会話(alpha)ではなく受け持つ箱 council/r1 へ
   assert.equal(runReply([sent.id, "返事"], h.as(B)), EXIT.done);
-  const [r] = listBox(h.root, "council/r1");
+  const [r] = listBox(h.root, "council/r1").messages;
   assert.equal(r.replyTo, sent.id);
-  assert.equal(listBox(h.root, A).length, 0);
+  assert.equal(listBox(h.root, A).messages.length, 0);
 });
 
 test("返す: 受け持つ箱に届いた連絡にも返せる", () => {
   const h = harness({ env: { PEER_BOXES: "council/r1" } });
   const m = putMessage(h.root, "council/r1", { from: { name: "beta", sessionId: B, cwd: "/" }, body: "統括へ" });
   assert.equal(runReply([m.id, "受けた"], h.deps), EXIT.done);
-  assert.equal(listBox(h.root, B)[0].replyTo, m.id);
+  assert.equal(listBox(h.root, B).messages[0].replyTo, m.id);
   assert.ok(getState(h.root, "council/r1", m.id).replied);
 });
 
@@ -360,10 +360,74 @@ test("番号: 上書きしない。同じ秒に 1,000 通 → 1,000 ファイル
   h.printed.length = 0;
   assert.equal(runSend(["council/r1", "二度目", "--id=m12", "--json"], h.deps), EXIT.done);
   assert.equal(JSON.parse(h.printed[0]).result, "exists");
-  assert.equal(listBox(h.root, "council/r1").length, 1);
-  assert.equal(listBox(h.root, "council/r1")[0].body, "一度目");
+  assert.equal(listBox(h.root, "council/r1").messages.length, 1);
+  assert.equal(listBox(h.root, "council/r1").messages[0].body, "一度目");
   h.printed.length = 0;
   runSend(["council/r1", "三度目", "--id=m12"], h.deps);
   assert.match(h.out(), /m12 がもう置いてあるので、置き直していません/);
   assert.equal(runSend(["council/r1", "x", "--id=.."], h.deps), EXIT.usage);
+});
+
+/** 箱にファイルをそのまま置く(移した連絡・壊れた連絡の再現) */
+function rawPut(root, key, name, data) {
+  const dir = boxDir(root, key);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, name), typeof data === "string" ? data : JSON.stringify(data));
+}
+const msgOf = (id, sentAt, extra = {}) => ({ v: 1, id, from: { name: "x", sessionId: B, cwd: "/" }, senderMode: "default", about: "", replyTo: null, body: id, sentAt, ...extra });
+
+test("読めない連絡: JSON でない・別の版・id の欠け / 違い・body の欠けは飛ばして数え、一覧は止まらない", () => {
+  const root = temp();
+  rawPut(root, A, "m-ok-1.json", msgOf("m-ok-1", "2026-11-08T10:00:00Z"));
+  rawPut(root, A, "bad1.json", "not json");
+  rawPut(root, A, "bad2.json", { ...msgOf("bad2", "2026-11-08T10:00:00Z"), v: 2 });
+  rawPut(root, A, "bad3.json", { ...msgOf("x", "2026-11-08T10:00:00Z"), id: undefined });
+  rawPut(root, A, "bad4.json", msgOf("other", "2026-11-08T10:00:00Z"));
+  rawPut(root, A, "bad5.json", { ...msgOf("bad5", "2026-11-08T10:00:00Z"), body: undefined });
+  rawPut(root, A, "notes.txt", "ignored");
+  const box = listBox(root, A);
+  assert.deepEqual(box.messages.map((m) => m.id), ["m-ok-1"]);
+  assert.equal(box.broken, 5);
+  assert.equal(readdirSync(boxDir(root, A)).length, 7);
+});
+
+test("並び: 送った時刻の順。元の番号 m9 / m10 と m-… が混ざっても崩れない", () => {
+  const root = temp();
+  rawPut(root, "council/r1", "m10.json", msgOf("m10", "2026-11-01T00:00:10Z"));
+  rawPut(root, "council/r1", "m9.json", msgOf("m9", "2026-11-01T00:00:09Z"));
+  rawPut(root, "council/r1", "m-20261101T000005-aaaaaaaa.json", msgOf("m-20261101T000005-aaaaaaaa", "2026-11-01T00:00:05Z"));
+  assert.deepEqual(listBox(root, "council/r1").messages.map((m) => m.id), ["m-20261101T000005-aaaaaaaa", "m9", "m10"]);
+});
+
+test("inbox: 自分の会話の箱と受け持つ箱、新しい順、受け持つ箱は box 列、読めない連絡は 1 行", () => {
+  const h = harness({ env: { PEER_BOXES: "council/r1" } });
+  rawPut(h.root, A, "m-a.json", msgOf("m-a", "2026-11-08T10:00:01Z"));
+  rawPut(h.root, "council/r1", "m7.json", msgOf("m7", "2026-11-08T10:00:02Z"));
+  rawPut(h.root, "council/r1", "junk.json", "{");
+  assert.equal(runInbox([], h.deps), EXIT.done);
+  assert.match(h.printed[0], /未読 2 件/);
+  assert.match(h.printed[1], /^ {2}m7 {2}未読 .* {2}box:council\/r1$/);
+  assert.match(h.printed[2], /^ {2}m-a {2}未読 /);
+  assert.equal(h.printed[2].includes("box:"), false);
+  assert.match(h.printed[3], /読めない連絡 1 件\(council\/r1\)/);
+});
+
+test("read: 受け持つ箱の連絡も読め、既定で既読(状態は箱ごと)。--keep は見るだけ。ack は印だけ", () => {
+  const h = harness({ env: { PEER_BOXES: "council/r1" } });
+  rawPut(h.root, "council/r1", "m3.json", msgOf("m3", "2026-11-08T10:00:00Z"));
+  rawPut(h.root, "council/r1", "m4.json", msgOf("m4", "2026-11-08T10:00:01Z"));
+  assert.equal(runRead(["m3", "--keep"], h.deps), EXIT.done);
+  assert.match(h.out(), /# PEER MESSAGE m3 .*box:council\/r1/);
+  assert.match(h.out(), /--keep: 既読にしていない/);
+  assert.equal(getState(h.root, "council/r1", "m3").read, null);
+  assert.equal(runRead(["m3"], h.deps), EXIT.done);
+  assert.ok(getState(h.root, "council/r1", "m3").read);
+  assert.equal(existsSync(path.join(stateDir(h.root, "council/r1"), "m3.json")), true);
+  h.printed.length = 0;
+  assert.equal(runAck(["m4"], h.deps), EXIT.done);
+  assert.match(h.out(), /m4 を既読にしました\(box:council\/r1\)/);
+  assert.equal(h.out().includes("## BODY"), false);
+  assert.ok(getState(h.root, "council/r1", "m4").read);
+  assert.equal(runAck(["m4", "m-nope"], h.deps), EXIT.notSent);
+  assert.equal(runAck([], h.deps), EXIT.usage);
 });

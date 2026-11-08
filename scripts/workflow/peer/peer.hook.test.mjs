@@ -9,7 +9,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
@@ -212,4 +212,31 @@ test("印の欄を足しても版は 1: 古い読み手(v === 1 を読み知ら�
   assert.equal(raw.v, 1);
   const oldReader = (d) => (d && d.v === 1 ? d : null);
   assert.equal(oldReader(raw).pid, 4242);
+});
+
+test("start: 形の崩れた連絡(id の欠け)があっても watchPaths を返し、未読は受け持つ箱も数え、読めない件数を 1 行", () => {
+  const root = temp();
+  const env = { PEER_BOXES: "council/r1" };
+  mkdirSync(boxDir(root, SELF), { recursive: true });
+  writeFileSync(path.join(boxDir(root, SELF), "x.json"), JSON.stringify({ v: 1, body: "id なし" }));
+  mkdirSync(boxDir(root, "council/r1"), { recursive: true });
+  writeFileSync(path.join(boxDir(root, "council/r1"), "m5.json"), JSON.stringify({ v: 1, id: "m5", from, body: "移した連絡", sentAt: "2026-11-01T00:00:00Z" }));
+  const out = JSON.parse(runHook("start", {}, depsFor(root, env)).stdout).hookSpecificOutput;
+  assert.deepEqual(out.watchPaths, [boxDir(root, SELF), boxDir(root, "council/r1")]);
+  assert.match(out.additionalContext, /未読の連絡が 1 件.*m5/);
+  assert.match(out.additionalContext, /読めない連絡 1 件\(この会話の箱\)/);
+});
+
+test("bell: 元の番号 m<N> の連絡でも鳴る。読めない連絡では鳴らない", () => {
+  const root = temp();
+  const env = { PEER_BOXES: "council/r1" };
+  mkdirSync(boxDir(root, "council/r1"), { recursive: true });
+  const f = path.join(boxDir(root, "council/r1"), "m12.json");
+  writeFileSync(f, JSON.stringify({ v: 1, id: "m12", from, about: "移し", body: "x", sentAt: "2026-11-01T00:00:00Z" }));
+  const r = runHook("bell", { event: "add", file_path: f }, depsFor(root, env));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /連絡\(受け持つ箱 council\/r1 宛て\) m12/);
+  const g = path.join(boxDir(root, "council/r1"), "m13.json");
+  writeFileSync(g, "{ broken");
+  assert.equal(runHook("bell", { event: "add", file_path: g }, depsFor(root, env)).code, 0);
 });

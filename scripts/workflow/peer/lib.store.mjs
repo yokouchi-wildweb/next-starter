@@ -133,10 +133,18 @@ export function deliver(root, key, message, now = new Date(), { id } = {}) {
 /** deliver の連絡だけを返す形(id を渡さない置き方) */
 export const putMessage = (root, key, message, now = new Date()) => deliver(root, key, message, now).message;
 
-/** 連絡 1 通(無い・版が違う = null) */
-export function getMessage(root, sessionId, id) {
+/**
+ * 連絡として読める形か: 版 1、id が連絡 id でファイル名と同じ、body が文字列。ほか(JSON でない・別の版・id の欠け / 違い・
+ * body の欠け)は「読めない連絡」(数えるだけで、ファイルはそのまま)
+ */
+export const isValidMessage = (data, fileId) =>
+  !!data && data.v === FORMAT_VERSION && isMessageId(data.id) && data.id === fileId && typeof data.body === "string";
+
+/** 連絡 1 通(無い・読めない = null) */
+export function getMessage(root, key, id) {
   if (!isMessageId(id)) return null;
-  return readJson(path.join(boxDir(root, sessionId), `${id}.json`));
+  const data = readJson(path.join(boxDir(root, key), `${id}.json`));
+  return isValidMessage(data, id) ? data : null;
 }
 
 /** 連絡の状態 { read, replied }(どちらも ISO の時刻か null) */
@@ -152,20 +160,32 @@ export function setState(root, sessionId, id, key, now = new Date()) {
   return next;
 }
 
-/** 受け箱の連絡を新しい順に、状態つきで */
-export function listBox(root, sessionId) {
+/** 送った時刻の順(古い順)、同じ時刻は id の順 */
+const bySentAt = (a, b) => String(a.sentAt ?? "").localeCompare(String(b.sentAt ?? "")) || a.id.localeCompare(b.id);
+
+/**
+ * 箱の連絡を送った時刻の順(古い順)に、状態つきで。{ messages, broken }(broken = 読めない連絡の数。1 通の崩れで止めない)
+ * 状態は箱ごと(state/<箱の鍵>/)
+ */
+export function listBox(root, key) {
   let names;
   try {
-    names = readdirSync(boxDir(root, sessionId));
+    names = readdirSync(boxDir(root, key), { withFileTypes: true });
   } catch {
-    return [];
+    return { messages: [], broken: 0 };
   }
-  return names
-    .filter((n) => n.endsWith(".json"))
-    .map((n) => getMessage(root, sessionId, n.slice(0, -5)))
-    .filter(Boolean)
-    .sort((a, b) => b.id.localeCompare(a.id))
-    .map((m) => ({ ...m, state: getState(root, sessionId, m.id) }));
+  const messages = [];
+  let broken = 0;
+  for (const e of names) {
+    if (!e.isFile() || !e.name.endsWith(".json")) continue;
+    const m = getMessage(root, key, e.name.slice(0, -5));
+    if (!m) {
+      broken += 1;
+      continue;
+    }
+    messages.push({ ...m, box: key, state: getState(root, key, m.id) });
+  }
+  return { messages: messages.sort(bySentAt), broken };
 }
 
 /** 印を書く(フックが使う)。mark = { sessionId, pid, procStart, cwd, mode, boxes }(boxes = 受け持つインスタンス ID の箱の鍵) */

@@ -13,7 +13,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import { checkGate, heldBoxes } from "./lib.gate.mjs";
-import { boxDir, claudePid, getMessage, listBox, procStartOf, readMark, stateRoot, writeMark } from "./lib.store.mjs";
+import { boxDir, claudePid, getMessage, isMessageId, listBox, procStartOf, readMark, stateRoot, writeMark } from "./lib.store.mjs";
 
 const defaultDeps = () => ({ env: process.env, claudePid: () => claudePid(), procStart: procStartOf, now: () => new Date() });
 
@@ -59,15 +59,28 @@ export function runHook(mode, input = {}, deps = defaultDeps()) {
       const watch = [box, ...held.keys.map((k) => boxDir(root, k))];
       for (const dir of watch) mkdirSync(dir, { recursive: true });
       const lines = [];
-      const unread = listBox(root, selfId).filter((m) => !m.state.read);
+      // 未読と読めない連絡: 自分の会話の箱 + 受け持つ箱。1 つの箱の失敗で見張りを止めない
+      const unread = [];
+      const broken = [];
+      for (const key of [selfId, ...held.keys]) {
+        try {
+          const box = listBox(root, key);
+          unread.push(...box.messages.filter((m) => !m.state.read));
+          if (box.broken) broken.push(`${box.broken} 件(${key === selfId ? "この会話の箱" : key})`);
+        } catch {
+          // 読めない箱は飛ばす
+        }
+      }
+      unread.sort((a, b) => String(a.sentAt).localeCompare(String(b.sentAt)) || a.id.localeCompare(b.id));
       if (unread.length) {
         lines.push(
-          `peer: このセッションの受け箱に未読の連絡が ${unread.length} 件あります(新しい順: ${unread
+          `peer: このセッションの受け箱(受け持つ箱も)に未読の連絡が ${unread.length} 件あります(古い順: ${unread
             .slice(0, 5)
             .map((m) => m.id)
             .join(" ")})。人に 1 行で伝え、頼まれたら pnpm workflow peer inbox で見る`,
         );
       }
+      if (broken.length) lines.push(`peer: 読めない連絡 ${broken.join("・")}(飛ばした。ほかの連絡と呼び鈴はそのまま)`);
       if (held.dropped.length) {
         lines.push(`peer: PEER_BOXES の値 ${held.dropped.join(" ")} は箱の鍵(<種類>/<ID>)でないので受け持っていません`);
       }
@@ -86,7 +99,7 @@ export function runHook(mode, input = {}, deps = defaultDeps()) {
       const key = [selfId, ...held.keys].find((k) => path.dirname(file) === boxDir(root, k));
       if (!key) return silent;
       const name = path.basename(file);
-      if (!/^m-[A-Za-z0-9-]+\.json$/.test(name)) return silent;
+      if (!name.endsWith(".json") || !isMessageId(name.slice(0, -5))) return silent;
       const m = getMessage(root, key, name.slice(0, -5));
       if (!m) return silent;
       return { stdout: "", stderr: `${bellLine(m, key === selfId ? null : key)}\n`, code: 2 };
