@@ -46,11 +46,11 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 
 ## 集約ファイル `src/registry/district-map.jsonl`
 
-- `pnpm generate districtMap` が作り(1 行 1 地区、並びは種類 → 名前)、`pnpm check districtMap` が今の木と同じかを見ます(門 build・ship・forge:post)。手で直さず、ずれたら作り直します
+- `pnpm generate district-map` が作り(1 行 1 地区、並びは種類 → 名前)、`pnpm check district-map` が今の木と同じかを見ます(門 build・ship・forge:post)。手で直さず、ずれたら作り直します
 - 読み手は人と agent・/ship と /flux の差分の見張りです。src から import しません(lint `import-boundaries/src-no-district-map`、テストも)。他の生成の入力にもしません(道具は毎回この lib を呼ぶ)
-- 生成器と検査器: `scripts/structure/districtMap/`
+- 生成器と検査器: `scripts/structure/district-map/`
 
 ## テスト
 
 - `pnpm test src/lib/districtMap` — 注入した小さな木で 4 種・欄・名前の重なり・問題の文
-- `pnpm test scripts/structure/districtMap` — 今の木の正本(登録表の走査・表の走査・門の規則・受け口の宣言)との照合と、生成器・検査器の振る舞い
+- `pnpm test scripts/structure/district-map` — 今の木の正本(登録表の走査・表の走査・門の規則・受け口の宣言)との照合と、生成器・検査器の振る舞い

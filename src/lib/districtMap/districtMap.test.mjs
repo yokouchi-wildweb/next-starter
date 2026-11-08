@@ -1,5 +1,5 @@
 // src/lib/districtMap/districtMap.test.mjs — 地区の地図の読み手を、注入した小さな木で確かめる(node:fs を使わない)
-// 実行: pnpm test src/lib/districtMap(今の木との照合は scripts/structure/districtMap/districtMap.test.mjs)
+// 実行: pnpm test src/lib/districtMap(今の木との照合は scripts/structure/district-map/districtMap.test.mjs)
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

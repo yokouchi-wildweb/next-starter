@@ -1,5 +1,5 @@
-// scripts/structure/districtMap/districtMap.test.mjs — 地区の地図を今の木の正本と突き合わせる + 生成器・検査器の振る舞い
-// 実行: pnpm test scripts/structure/districtMap
+// scripts/structure/district-map/districtMap.test.mjs — 地区の地図を今の木の正本と突き合わせる + 生成器・検査器の振る舞い
+// 実行: pnpm test scripts/structure/district-map
 // 正本: ドメインの一覧と domainEntry のキー = scripts/structure/registry/serviceRegistry/discover.mjs、表 = tableScan.mjs(schemaRegistry の元)、
 // 門の features = @/featureGate/node の configRules、受け口 = forkOwnership の collectPoints、lib = src/lib 直下のフォルダ
 import assert from "node:assert/strict";
@@ -83,7 +83,7 @@ test("config・上書き: 今の地区は config.ts も上書きも持たない(
   assert.deepEqual(districts.filter((d) => d.config.exists || d.override.exists).map((d) => d.dir), []);
 });
 
-test("district-map.jsonl は今の木と一致(pnpm check districtMap)", () => {
+test("district-map.jsonl は今の木と一致(pnpm check district-map)", () => {
   assert.equal(readFileSync(join(repoRoot, DISTRICT_MAP_FILE), "utf8"), buildDistrictMap(repoRoot).text);
   assert.equal(checkDistrictMap(repoRoot).ok, true);
 });
@@ -105,7 +105,7 @@ test("生成器と検査器: 作る → 一致、手で直す・無い → 失�
     writeFileSync(path, readFileSync(path, "utf8").replace('"wallet"', '"walletX"'));
     const stale = checkDistrictMap(root);
     assert.equal(stale.ok, false);
-    assert.match(stale.lines[0], /pnpm generate districtMap/);
+    assert.match(stale.lines[0], /pnpm generate district-map/);
     put("src/features/wallet/index.ts", ""); // core と業務の同名
     writeFileSync(path, "keep\n");
     assert.equal(generateDistrictMap(root).ok, false);

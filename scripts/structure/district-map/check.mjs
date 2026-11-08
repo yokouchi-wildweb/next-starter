@@ -1,4 +1,4 @@
-// scripts/structure/districtMap/check.mjs — 門の入口(pnpm check districtMap): district-map.jsonl が今の木と同じか
+// scripts/structure/district-map/check.mjs — 門の入口(pnpm check district-map): district-map.jsonl が今の木と同じか
 import { checkDistrictMap } from "./map.mjs";
 
 const result = checkDistrictMap();

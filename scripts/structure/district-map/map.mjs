@@ -1,4 +1,4 @@
-// scripts/structure/districtMap/map.mjs
+// scripts/structure/district-map/map.mjs
 // 地区の地図の集約ファイル src/registry/district-map.jsonl を作る・照らす(生成器と検査器の共通の部品)。
 // 読み手は src/lib/districtMap(道具・lint・生成は毎回それを呼ぶ。この jsonl は人・agent・/ship と /flux の差分用で、他の生成の入力にしない、目録 D12)。
 
@@ -37,5 +37,5 @@ export function checkDistrictMap(root = repoRoot) {
   const current = existsSync(path) ? readFileSync(path, "utf8") : null;
   if (current === built.text) return { ok: true, lines: [`${DISTRICT_MAP_FILE}: 今の木と一致(${built.count} 地区)`] };
   const what = current === null ? "が無い" : "が今の木と違う(古いか手で直した)";
-  return { ok: false, lines: [`${DISTRICT_MAP_FILE} ${what}。pnpm generate districtMap で作り直す(手で直さない)`] };
+  return { ok: false, lines: [`${DISTRICT_MAP_FILE} ${what}。pnpm generate district-map で作り直す(手で直さない)`] };
 }
