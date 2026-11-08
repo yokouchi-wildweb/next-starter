@@ -370,9 +370,24 @@ const { cancel } = uploadToStorage(file, {
 - 応答 `{ metadata: "strip" | "keep", image: { maxDimension, quality? } | null }`（`storageObjectService.describePurpose`。`user.avatar` は常に strip。`image` は用途の縮小の指定、無ければ null）
 - ログイン必須（createApiRoute `authenticated`）。未登録・ID の形式違いは 404。誰が聞いても同じ答えなので `/api/me/` には置かない
 - `Cache-Control: private, max-age=300`
-- クライアントは `purposeMetadataLoader`（`purposePolicy.ts`）が用途ごとに記憶する（ページの寿命の間。同時の呼び出しはまとめる。失敗は記憶せず次で取り直す）。`uploadToStorage` と `usePurposeMetadata` が同じ記憶を共有する
+- クライアントは `purposeMetadataLoader`（`purposePolicy.ts`）が用途ごとに記憶する（ページの寿命の間。同時の呼び出しはまとめる。失敗は記憶せず次で取り直す）。`load` / `peek` は metadata、`loadPolicy` / `peekPolicy` は方針の全体（metadata と image）。`uploadToStorage`・`usePurposeMetadata`・`shrinkImageForPurpose` が同じ記憶を共有する
 - strip で受け付ける画像の型は、サーバーと同じ共有定数 `STRIP_IMAGE_TYPES`（client-safe）を端末が使う。応答には含めない
 - route を列挙・制限している仕組み（独自の proxy・WAF など）では、このパスを通す
+
+### 送る前の縮小: `shrinkImageFile` / `shrinkImageForPurpose`（`client/shrinkImage.ts`）
+
+```ts
+import { shrinkImageFile, shrinkImageForPurpose } from "@/lib/storage/client";
+
+const file = await shrinkImageForPurpose(selected, "album.photo"); // 用途の方針の image で縮める（無ければ元のまま）
+const avatar = await shrinkImageFile(cropped, { maxDimension: 512 }); // 指定で縮める（fork が直に呼ぶ口）
+```
+
+- 縮めるのは jpeg / png / webp の、長い辺が `maxDimension` を超える物だけ。縦横比を保ち、元と同じ型で書き出す（型・拡張子・透過を変えない）。名前と更新日時は元のまま。向きは EXIF どおりに補正してから測る
+- 画質 = `quality / 100`。省略 = `storage.config` の `imageStrip.quality`（jpeg / webp）。png は可逆
+- **元のまま返す**（投げない）: 画像以外・gif・svg・avif・HEIC などの対象外の型 / 長い辺が上限以下 / 縮められない環境 / 読めない・書き出せない（console に警告）/ 書き出しが別の型になった / 縮めた方が大きい。縮められなかった物はそのまま送り、サイズの検査とサーバーの描き直しが最後に守る
+- `shrinkImageForPurpose` は strip の用途で `image` があるときだけ縮める（方針は `purposeMetadataLoader.loadPolicy` の記憶。取得に失敗したら元のまま）。入力部品はサイズの検査の前にこれを呼ぶ
+- 描き直しの部品 `ImageCodec` の `resize`（省略可）を使う。`browserImageCodec` は createImageBitmap + OffscreenCanvas / canvas
 
 ### ファイル選択の accept: `pickerAcceptFor(accept, metadata)`
 

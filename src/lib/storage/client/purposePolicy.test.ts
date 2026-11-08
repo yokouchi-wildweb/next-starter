@@ -8,7 +8,11 @@ import assert from "node:assert/strict";
 import { createPurposeMetadataLoader } from "./purposePolicy";
 import type { PurposePolicyResponse } from "./transferTypes";
 
-function fakeClient(answers: Record<string, PurposePolicyResponse["metadata"]>, failures = new Set<string>()) {
+function fakeClient(
+  answers: Record<string, PurposePolicyResponse["metadata"]>,
+  failures = new Set<string>(),
+  images: Record<string, PurposePolicyResponse["image"]> = {},
+) {
   const calls: string[] = [];
   return {
     calls,
@@ -19,7 +23,7 @@ function fakeClient(answers: Record<string, PurposePolicyResponse["metadata"]>, 
         if (failures.has(purpose)) throw new Error("失敗");
         const metadata = answers[purpose];
         if (!metadata) throw new Error("404");
-        return { metadata, image: null };
+        return { metadata, image: images[purpose] ?? null };
       },
     },
   };
@@ -55,6 +59,29 @@ describe("用途の方針の取得と記憶", () => {
     const loader = createPurposeMetadataLoader(f.client);
     await assert.rejects(loader.load("unknown.field"));
     await assert.rejects(loader.load("unknown.field"));
+    assert.equal(f.calls.length, 2);
+  });
+
+  test("loadPolicy は方針の全体（metadata と image）を返し、load と 1 回の取得を共有する", async () => {
+    const f = fakeClient({ "album.photo": "strip", "user.avatar": "strip" }, new Set(), { "album.photo": { maxDimension: 2048, quality: 80 } });
+    const loader = createPurposeMetadataLoader(f.client);
+    assert.equal(loader.peekPolicy("album.photo"), undefined);
+    const [policy, metadata] = await Promise.all([loader.loadPolicy("album.photo"), loader.load("album.photo")]);
+    assert.deepEqual(policy, { metadata: "strip", image: { maxDimension: 2048, quality: 80 } });
+    assert.equal(metadata, "strip");
+    assert.deepEqual(loader.peekPolicy("album.photo"), policy);
+    assert.deepEqual(await loader.loadPolicy("user.avatar"), { metadata: "strip", image: null });
+    assert.deepEqual(f.calls, ["album.photo", "user.avatar"]);
+  });
+
+  test("loadPolicy の失敗も記憶せず取り直す（load の記憶とも共通）", async () => {
+    const f = fakeClient({ "album.photo": "strip" }, new Set(["album.photo"]));
+    const loader = createPurposeMetadataLoader(f.client);
+    await assert.rejects(loader.loadPolicy("album.photo"));
+    assert.equal(loader.peek("album.photo"), undefined);
+    f.failures.clear();
+    assert.equal(await loader.load("album.photo"), "strip");
+    assert.deepEqual(loader.peekPolicy("album.photo"), { metadata: "strip", image: null });
     assert.equal(f.calls.length, 2);
   });
 });

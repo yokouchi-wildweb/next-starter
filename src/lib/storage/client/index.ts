@@ -7,6 +7,8 @@ export type { UploadToStorageOptions, UploaderDeps } from "./uploadToStorage";
 export { storageClient, createStorageClient } from "./storageClient";
 export type { StorageClient, IssueUploadInput } from "./storageClient";
 export { reencodeImage, shouldReencode, browserImageCodec } from "./reencodeImage";
+export { shrinkImageFile, shrinkImageForPurpose, canShrinkImageType } from "./shrinkImage";
+export type { ShrinkForPurposeDeps } from "./shrinkImage";
 export {
   prepareStripImage,
   needsClientConversion,
@@ -14,7 +16,7 @@ export {
   UNSUPPORTED_IMAGE_MESSAGE,
 } from "./prepareStripImage";
 export { createPurposeMetadataLoader, purposeMetadataLoader } from "./purposePolicy";
-export type { PurposeMetadataLoader } from "./purposePolicy";
+export type { PurposeMetadataLoader, PurposePolicy } from "./purposePolicy";
 export { usePurposeMetadata } from "./usePurposeMetadata";
 export { pickerAcceptFor } from "./pickerAccept";
 export type { ImageCodec } from "./reencodeImage";
