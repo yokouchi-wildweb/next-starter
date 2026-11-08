@@ -17,35 +17,42 @@ import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWat
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity";
 import { GoogleTag } from "@/wiring/GoogleTag";
-import { seoConfig } from "@/config/seo.config";
+import { business } from "@/business";
 import { AppProviders } from "@/wiring/AppProviders";
 import { clientGateState } from "@/featureGate";
 
-export const viewport: Viewport = seoConfig.viewport;
+import { ROOT_LAYOUT_CONFIG } from "./_layout/config";
+
+// viewport は root の枠の設定(src/app/_layout/config.ts、上書き src/config/layout/root.config.ts)
+export const viewport: Viewport = ROOT_LAYOUT_CONFIG.viewport;
+
+// サイト名・URL・説明・OGP・言語は事業の素性(@/business)
+const { seo } = business;
+const twitterAccount = seo.twitterHandle ? `@${seo.twitterHandle}` : undefined;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(seoConfig.siteUrl),
+  metadataBase: new URL(business.url),
   title: {
-    default: seoConfig.siteName,
-    template: `%s | ${seoConfig.siteName}`,
+    default: business.serviceNameShort,
+    template: `%s | ${business.serviceNameShort}`,
   },
-  description: seoConfig.defaultDescription,
+  description: business.description,
   openGraph: {
-    siteName: seoConfig.siteName,
-    locale: seoConfig.locale,
+    siteName: business.serviceNameShort,
+    locale: seo.locale,
     images: [
       {
-        url: seoConfig.defaultOgImage,
-        width: seoConfig.ogImageSize.width,
-        height: seoConfig.ogImageSize.height,
+        url: seo.defaultOgImage,
+        width: seo.ogImageSize.width,
+        height: seo.ogImageSize.height,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    images: [seoConfig.defaultOgImage],
-    site: seoConfig.twitterHandle ? `@${seoConfig.twitterHandle}` : undefined,
-    creator: seoConfig.twitterHandle ? `@${seoConfig.twitterHandle}` : undefined,
+    images: [seo.defaultOgImage],
+    site: twitterAccount,
+    creator: twitterAccount,
   },
 };
 
@@ -77,7 +84,7 @@ export default async function RootLayout({
 
   return (
     <html
-      lang={seoConfig.htmlLang}
+      lang={business.htmlLang}
       suppressHydrationWarning
       className={htmlClassName || undefined}
       {...{ [SITE_THEME_AREA_ATTRIBUTE]: area.key }}

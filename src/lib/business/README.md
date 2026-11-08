@@ -1,6 +1,6 @@
 # src/lib/business — 事業の素性
 
-サービス名・説明・公式の URL・運営会社・ロゴ・メールの既定の差出人など、プロジェクトの素性(リリースまでに必ず自分の値にする物)の型・例の値・受付係の判定・本番の検査を持つ閉じた lib です(設定の議会 D20・D66・D88)。法務の文書だけが読む値(決済方法の表示・規約とポリシーの日付・許認可)はここに入れず legal へ移します(移すまでは古い `src/config/business.config.ts` の殻にあります)。
+サービス名・説明・公式の URL・運営会社・ロゴ・メールの既定の差出人・サイトの言語(`htmlLang`)・SEO と OGP の既定(`seo`)など、プロジェクトの素性(リリースまでに必ず自分の値にする物)の型・例の値・受付係の判定・本番の検査を持つ閉じた lib です(設定の議会 D20・D66・D88)。法務の文書だけが読む値(決済方法の表示・規約とポリシーの日付・許認可)はここに入れず legal へ移します(移すまでは古い `src/config/business.config.ts` の殻にあります)。
 
 ## 置き場と読み方
 
@@ -13,6 +13,8 @@
 
 - 読み手(features・app の枠・route・scripts・fork のコード)は `import { business } from "@/business"` だけを読む。scripts は `@/wiring` と同じく `await import("@/business")`(lint scripts-no-static-wiring)
 - lib と utils は `@/business` を読まず、値を引数で受ける(例 `logoPath(business.logo, "dark")`)。lib/mail・lib/url・lib/metadata は今は殻を読み、lib を閉じるときに自分の設定の上書きが `@/business` から写す(上書きファイルが `@/business` を読むのは lint `config-overrides/literal-only` の例外)
+- SEO のサイト名・URL・説明は `serviceNameShort`・`url`・`description` から作る(別の鍵を持たない)。viewport は事業の素性でなく root の枠の設定(`src/app/_layout/config.ts`)
+- `resolveBusiness(file, examples?)` の 2 つ目で例の値を差し替えられる(この lib を他のプロジェクトに組み込むとき)
 - 公式の URL(`business.url`)はメール・SEO 用。実行時の origin は `@/lib/url` の `getAppBaseUrl()`(Host ヘッダーから作らない)
 
 ## 印 `source`

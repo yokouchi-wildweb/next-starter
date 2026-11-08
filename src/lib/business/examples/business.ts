@@ -32,6 +32,13 @@ export const EXAMPLE_BUSINESS: BusinessValues = {
     },
     defaultVariant: "default",
   },
+  htmlLang: "ja",
+  seo: {
+    defaultOgImage: "/og-default.png",
+    ogImageSize: { width: 1200, height: 630 },
+    locale: "ja_JP",
+    twitterHandle: "",
+  },
   mail: {
     defaultFrom: "noreply@example.com",
     defaultFromName: "next-starter",

@@ -3,9 +3,12 @@
 import { EXAMPLE_BUSINESS } from "./examples/business";
 import type { BusinessFile, BusinessSource, BusinessValues } from "./types";
 
-/** src/business/business.ts の中身から、使う値を決める(sample = 例の値、own = 自分の値) */
-export function resolveBusiness(file: BusinessFile): BusinessValues {
-  return file.source === "own" ? file.values : EXAMPLE_BUSINESS;
+/**
+ * src/business/business.ts の中身から、使う値を決める(sample = 例の値、own = 自分の値)
+ * @param examples sample のときに返す例の値(既定 = 上流の例 EXAMPLE_BUSINESS。他のプロジェクトに組み込むときは自分の例を渡せる)
+ */
+export function resolveBusiness(file: BusinessFile, examples: BusinessValues = EXAMPLE_BUSINESS): BusinessValues {
+  return file.source === "own" ? file.values : examples;
 }
 
 /** 本番のビルドの検査の結果 */

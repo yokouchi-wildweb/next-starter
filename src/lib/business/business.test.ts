@@ -11,6 +11,12 @@ test("sample は例の値、own は自分の値を返す", () => {
   assert.equal(resolveBusiness({ source: "own", values: own }).serviceName, "My Service");
 });
 
+test("例の値は引数で差し替えられる(他のプロジェクトに組み込むとき)", () => {
+  const myExample: BusinessValues = { ...EXAMPLE_BUSINESS, serviceName: "Example Shop" };
+  assert.equal(resolveBusiness({ source: "sample" }, myExample), myExample);
+  assert.equal(resolveBusiness({ source: "own", values: own }, myExample).serviceName, "My Service");
+});
+
 test("本番の検査: sample のまま本番は失敗、Tier1 は警告、own と本番でない段階は通す", () => {
   assert.equal(checkBusinessRelease({ source: "sample", production: true, tier1: false }).level, "error");
   assert.equal(checkBusinessRelease({ source: "sample", production: true, tier1: true }).level, "warn");

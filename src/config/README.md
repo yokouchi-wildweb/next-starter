@@ -48,4 +48,4 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 ## 移行中のもの
 
-`app/`・`ui/`・`documents/` と直下の `business.config.ts`・`seo.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻 + 法務だけが読む値。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 4 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。
+`app/`・`ui/`・`documents/` と直下の `business.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻 + 法務だけが読む値。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 4 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。

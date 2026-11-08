@@ -47,7 +47,7 @@
    *                            ルートの宣言(frame.ts)で隠している間は
    *                            frame.css が 0px にする（inline に勝つため !important）
    * --app-safe-area-* は端末の切り欠き(CSS の env() の safe-area-inset-*)の別名（fork の CSS から上書き可）。env() を直接書くのは下の 4 行だけ。
-   * viewport-fit=cover が既定(src/config/seo.config.ts)なので、枠の部品(ヘッダーの上と左右・本文とフッターの左右・
+   * viewport-fit=cover が既定(src/app/_layout/config.ts の root の枠の viewport)なので、枠の部品(ヘッダーの上と左右・本文とフッターの左右・
    * ボトムナビの下と左右)がこの変数で端を避ける。切り欠きの無い画面では 0。
    * 枠の配下の部品・ページは枠の寸法を px で直書きせず、これらの変数を使う。
    */

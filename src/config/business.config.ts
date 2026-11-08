@@ -1,7 +1,7 @@
 // src/config/business.config.ts — 古い置き場の殻(締め 2 で消す。新しい読み手を足さない)
 // 事業の素性の正本は @/business(src/business/business.ts、決まり: src/lib/business/README.md)。この殻は @/business の値を写し、
 // 法務だけが読む値(決済方法の表示・規約とポリシーの日付・許認可)を legal の指令まで持つ(設定の議会 D88)。
-// 読み手: lib/mail・lib/url・seo.config.ts(lib は @/business を直に読まない。lib の設定の上書きが写す形は棚の lib を閉じるクエスト)と src/config/documents
+// 読み手: lib/mail・lib/url・lib/metadata(lib は @/business を直に読まない。lib の設定の上書きが写す形は棚の lib を閉じるクエスト)と src/config/documents
 import { business } from "@/business";
 import type { LegalDocumentDates } from "@/lib/structuredDocument/legal";
 
@@ -28,6 +28,14 @@ type License = {
  */
 export const businessConfig = {
   ...business,
+
+  // === SEO(lib/metadata が読む。値は @/business の seo と serviceNameShort・url・description から) ===
+  seo: {
+    ...business.seo,
+    siteName: business.serviceNameShort,
+    siteUrl: business.url,
+    defaultDescription: business.description,
+  },
 
   // === 決済情報 ===
 

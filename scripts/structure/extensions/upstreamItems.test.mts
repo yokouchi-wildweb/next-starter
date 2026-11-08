@@ -39,7 +39,8 @@ import { renderers } from "@/features/core/milestone/extensions/renderers";
 import { buildStrategyMap } from "@/features/core/purchaseRequest/services/server/completion/strategyRegistry";
 import { buildRewardHandlerMap } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
 import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
-import { seoConfig } from "@/config/seo.config";
+import { ROOT_LAYOUT_CONFIG } from "@/app/_layout/config";
+import { EXAMPLE_BUSINESS } from "@/lib/business";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
@@ -274,14 +275,14 @@ test("残高調整の通知: 既定の組み立ては今までと同じ形", tie
   assert.ok(lines[3].endsWith(": r"));
 });
 
-test("root の lang・viewport の既定: lang は ja で OGP の locale と揃う", tier1Only, () => {
-  assert.equal(seoConfig.htmlLang, "ja");
-  assert.equal(seoConfig.locale, "ja_JP");
-  assert.deepEqual(seoConfig.viewport, { width: "device-width", initialScale: 1, viewportFit: "cover" });
+test("root の lang・viewport の既定: 例の lang は ja で OGP の locale と揃う、viewport は root の枠の既定", tier1Only, () => {
+  assert.equal(EXAMPLE_BUSINESS.htmlLang, "ja");
+  assert.equal(EXAMPLE_BUSINESS.seo.locale, "ja_JP");
+  assert.deepEqual(ROOT_LAYOUT_CONFIG.viewport, { width: "device-width", initialScale: 1, viewportFit: "cover" });
 });
 
-test("root の lang・viewport: layout は config を読む", () => {
+test("root の lang・viewport: layout は事業の素性と root の枠の config を読む", () => {
   const layout = readFileSync(join(ROOT, "src/app/layout.tsx"), "utf8");
-  assert.match(layout, /lang=\{seoConfig\.htmlLang\}/);
-  assert.match(layout, /export const viewport: Viewport = seoConfig\.viewport;/);
+  assert.match(layout, /lang=\{business\.htmlLang\}/);
+  assert.match(layout, /export const viewport: Viewport = ROOT_LAYOUT_CONFIG\.viewport;/);
 });

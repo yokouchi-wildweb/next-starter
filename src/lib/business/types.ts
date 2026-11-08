@@ -39,6 +39,19 @@ export type BusinessValues = {
     variants: Record<LogoVariant, string>;
     defaultVariant: LogoVariant;
   };
+  /** サイトの言語(<html lang>、例 "ja") */
+  htmlLang: string;
+  /** SEO・OGP の既定(サイト名・URL・説明は serviceNameShort・url・description から作る) */
+  seo: {
+    /** 既定の OGP 画像のパス(絶対か / 始まりの相対) */
+    defaultOgImage: string;
+    /** OGP 画像の大きさ */
+    ogImageSize: { width: number; height: number };
+    /** OGP のロケール(例 "ja_JP") */
+    locale: string;
+    /** X(旧 Twitter)のアカウント(@ なし、空なら出さない) */
+    twitterHandle: string;
+  };
   /** メールの既定の送信元 */
   mail: {
     defaultFrom: string;

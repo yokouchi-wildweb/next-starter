@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
-import { seoConfig } from "@/config/seo.config";
+import { businessConfig } from "@/config/business.config";
+
+// SEO の既定は古い殻 business.config の seo(lib は @/business を直に読まない。lib を閉じるときに @lib-config/metadata の上書きが写す、設定の議会 D88 K3)
+const seoConfig = businessConfig.seo;
 
 /**
  * createMetadataの引数
