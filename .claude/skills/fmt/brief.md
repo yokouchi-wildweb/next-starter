@@ -1,21 +1,21 @@
 # brief
-when: 状況を伝えるだけで、返事を求めないとき(調査の結果、止まったときの状況、「いまこうなっている」の共有)
-not: 読み終わりに読み手が決めることがある(→ ask)| /flux の停止(→ flux-stop)
+when: only telling a situation, no reply wanted (results of an investigation, the situation when stopped, sharing "this is where things are now")
+not: the reader has something to decide at the end (→ ask) | /flux stopping (→ flux-stop)
 
-reader_goal: 読み手がこの文章だけで、何が起きていて、なぜそうなっているかを掴める
+reader_goal: from this text alone, the reader grasps what is happening and why
 
-## 構造
-背景          | 必須 | 何の話か。読み手が位置を掴むための前提
-問題          | 任意 | いま何が困っているか・どこが普通でないか
-体験のイメージ | 任意 | 使う人の画面・挙動ではどう見えるか
+## STRUCTURE (section name | required|optional | role)
+`背景` (background) | required | what this is about; the premise the reader needs to place it
+`問題` (problem) | optional | what is in trouble now, what is not normal
+`体験のイメージ` (experience) | optional | how it looks on the user's screen / in behavior
 
-## 指針
-- ファイル・コミット・識別子は名前ではなく役割で呼ぶ(「画面の有効/無効を決める設定」)。識別子は聞かれたら答える
-- 経緯ではなく現在地を書く。経緯が要るなら「いまの状態を説明する理由」として添える
-- 任意の節は、無いと把握が変わるときだけ書く。埋めるために書かない
-- 文章が自然に「どうしますか」で終わるなら、それは ask
+## GUIDELINES
+- call files, commits and identifiers by their role, not their name (e.g. `画面の有効/無効を決める設定`) | give identifiers when asked
+- write where things are now, not the history | history needed → add it as the reason that explains the current state
+- optional sections only when leaving them out changes the reader's grasp | never write to fill
+- the text naturally ends with "what shall we do?" → it is an ask
 
-## 例
+## EXAMPLE
 ```
 ログイン後のリダイレクト先が、設定した値ではなくトップに戻っています。
 原因は、ログイン画面の保護範囲の設定が、上流の新しい方式に合わせて直した際に、fork 独自の戻り先の指定を読まなくなったためです。

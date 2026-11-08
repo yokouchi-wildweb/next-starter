@@ -1,24 +1,24 @@
 # ask
-when: ユーザーに決めてもらうとき
-not: 返事が要らない(→ brief)| 問いが複数ある(→ 1 問ずつ。shortcuts の 1by1)| /flux の承認(→ flux-stop)
+when: having the user decide
+not: no reply needed (→ brief) | several questions (→ one at a time; 1by1 of shortcuts) | /flux approval (→ flux-stop)
 
-reader_goal: 読み手がこの文章だけで、前のやり取りを遡らずに選べる
+reader_goal: from this text alone, the reader can choose without scrolling back through the exchange
 
-## 構造
-背景          | 必須 | 何の話か。決めるのに要る前提
-問題          | 任意 | なぜ決める必要が生じたか
-体験のイメージ | 任意 | 選択によって使う人の画面・挙動がどう変わるか
-質問          | 必須 | 何を決めてほしいか。1 文 1 問
-選択肢        | 必須 | 推奨を 1 つ示す。各選択肢は「選ぶと何が起きるか」が分かる形
+## STRUCTURE (section name | required|optional | role)
+`背景` (background) | required | what this is about; the premises needed to decide
+`問題` (problem) | optional | why the decision became necessary
+`体験のイメージ` (experience) | optional | how the user's screen / behavior changes with the choice
+`質問` (question) | required | what to decide; one question per sentence
+`選択肢` (options) | required | show one recommendation | each option in a form that tells what happens when chosen
 
-## 指針
-- 推奨には理由を添える。推奨しない選択肢にも、それを選ぶ合理的な場面があるなら書く
-- 返事がラベル 1 語で済む形にする(A / B、はい / いいえ)
-- 足りない情報は判断を止め、余計な情報は判断を遅らせる。どちらも同じ失敗
-- ファイル・コミット・識別子は名前ではなく役割で呼ぶ。識別子は聞かれたら答える
-- 平文で書く(文字で返す経路でも答えられるように)
+## GUIDELINES
+- give the reason for the recommendation | a non-recommended option with a reasonable case for choosing it → write that case
+- make the reply a one-word label (A / B, `はい` / `いいえ`)
+- missing information stalls the decision, extra information delays it | both are the same failure
+- call files, commits and identifiers by their role, not their name | give identifiers when asked
+- write plain text (so it can be answered even through a text-only channel)
 
-## 例
+## EXAMPLE
 ```
 ユーザー名の一意性チェックを、登録時だけでなく変更時にも効かせる作業です。
 いまは変更画面から同名に変えられてしまい、一覧で区別が付かなくなります。

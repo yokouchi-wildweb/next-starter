@@ -1,17 +1,17 @@
 ---
 name: fmt
-description: ユーザーに伝わりやすい書き方の書式集。brief = 状況を伝える / ask = 決めてもらう / flux-stop = /flux が止まるときの報告。必要と感じたら 1 つ読んで使う。`/fmt <名前>` = 直前の返答をその書式で出し直す
+description: Formats for writing that reaches the user - brief = tell a situation / ask = have the user decide / flux-stop = the report when /flux stops; read one and use it when you feel it is needed | When a reply should follow one of these formats, or the user types /fmt NAME to redo the previous reply in that format
 argument-hint: "[brief | ask | flux-stop]"
 ---
 
-書式 = 伝わりやすい書き方の知識。規則ではない。使うかどうかはその場で判断する(/flux だけは手順で flux-stop を必須にしている)。
+role: a format = knowledge of how to write so it reaches the reader, not a rule | whether to use one is judged on the spot (only /flux makes flux-stop mandatory in its steps)
 
-## 一覧
-- brief(brief.md): 状況を伝えるだけで、返事を求めないとき
-- ask(ask.md): ユーザーに決めてもらうとき
-- flux-stop(flux-stop.md): /flux が止まって返事を待つとき・最終報告
+## LIST
+- brief (brief.md): only telling a situation, no reply wanted
+- ask (ask.md): having the user decide
+- flux-stop (flux-stop.md): /flux stops and waits for a reply, and the final report
 
-## 挙動
-- `/fmt <名前>`: その書式ファイルを読み、**直前の自分の返答**をその書式で出し直す。新しい調査や作業はしない。内容は変えず、配置と選別だけを変える。書式が求める情報が直前の返答に無ければ、埋めずに「不足」と書く
-- `/fmt`(引数なし): 上の一覧を示して終わる
-- 新しい書式を足す・直す → README.md(書式ファイルの書き方)を読む
+## BEHAVIOR
+- `/fmt <名前>`: read that format file and redo **your own previous reply** in that format | no new investigation or work | content unchanged, only arrangement and selection change | information the format asks for is missing from the previous reply → do not fill it, write `不足` (missing)
+- `/fmt` (no args): show the list above and end
+- adding / fixing a format → read README.md (how to write format files)

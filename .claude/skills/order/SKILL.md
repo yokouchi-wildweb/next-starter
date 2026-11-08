@@ -1,33 +1,42 @@
 ---
 name: order
-description: 指定したリポ(自分自身も可)の受信箱に、単発の作業指示・確認依頼を起票する。self 宛て = 自リポが次にやる作業の予約。受け取ったリポは /inbox で自分の役目に照らして受理を判断する
+description: File a one-off work order or check request into a named repo's inbox (this repo too; self = reserving this repo's next task); the receiving repo judges acceptance against its own role with /inbox | When the user asks to send a task or check to a repo, or to reserve a later task for this repo
 argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [quest] [補足メモ(任意)]"
 ---
 
-あなたは今 **ORDER**(指定したリポの受信箱に、単発の「これをやって / 確かめて」を書き込む起票)を行います。
+role: file an **ORDER** (write a one-off "do this / check this" into a named repo's inbox)
 
-## メールボックスの構成
-- 置き場: `~/.team/orders/`(このマシン上の共有フォルダ。git 管理外。実際の場所は `mailbox.mjs self` の `root:`)
-- **受信箱はリポごと**: `<置き場>/<fork-id>/`(未対応)と `<fork-id>/done/`(対応済み)。fork-id = そのリポの `.claude/rules/project.md` の `fork_id: <短い名前>`(小文字・数字・ハイフン)。未宣言(行なし・旧い `-`)のリポは移行中だけ旧い名前(origin URL のホスト以降から `.git` を除き `/` → `--`、小文字。origin が無ければ `local--<ディレクトリ名>`)。宣言済みのリポの受信箱は、mailbox.mjs が名前を読んだときに旧い名前の箱から移り、旧い名前は新しい箱へのリンクとして残る
-- 受信箱に入るのは単発の指令だけ。連続した・グループ化された指令は council の legate の中で扱う
-- 宛先リポは自分の受信箱を `/inbox` で読む。起票したセッションは `/wen` で状況を確かめる
-- **指令の状態**(先頭の `status:`、1 つの値): `open` → `routed`(評議会・ギルド・legate の計画に振り分け済み。`routed_to:` / `routed_by:` / `routed_at:`)→ `taken`(担当が着手。`taken_by:` / `taken_at:`)→ 答え(done / partial / relayed / rejected / withdrawn、`done/` へ)。移り変わりは末尾の `## STATUS_LOG` に追記される。`status:` の無い古い指令は open。担当以外の着手・答えは mailbox.mjs が断る(使い方は `.claude/skills/inbox/SKILL.md` の「担当の守り」)
-- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | resolve>`(リポのルートで実行。`from` = 起票する指令の `from:` 行。`me` = 担当として書かれる自分の名前。`route <指令> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = 振り分け、`take <指令> [--as=]` = 着手、`release <指令>` = 手放す。`name-check` = その名前を自リポの fork_id: にしてよいか(fleet.conf・手元のリポ・既存の受信箱と重ならないか。/fork-init が使う)。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。env `ORDER_RESOLVED_HOOK`(実行ファイルのパス)があれば、答えた後に done/ の指令のパスで呼ぶ(無ければ何もしない。チームのタブが依頼元への知らせに使う)。`inbox --quest` = クエスト(`kind: quest`)だけ。手順は `.claude/skills/inbox/SKILL.md` の 4)
+## MAILBOX LAYOUT
+- place: `~/.team/orders/` (shared folder on this machine; outside git; real place = `root:` of `mailbox.mjs self`)
+- **one inbox per repo**: `<root>/<fork-id>/` (unhandled) and `<fork-id>/done/` (handled)
+  - fork-id = `fork_id: <short name>` of that repo's `.claude/rules/project.md` (lowercase, digits, hyphens)
+  - undeclared repos (no line / old `-`) use the old name only during migration (origin URL from the host on, `.git` removed, `/` → `--`, lowercase; no origin → `local--<directory name>`)
+  - a declared repo's inbox moves from the old-name box when mailbox.mjs reads the name; the old name stays as a link to the new box
+- the inbox holds one-off orders only | serial / grouped orders are handled inside a council legate
+- the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
+- **order state** (head `status:`, one value): `open` → `routed` (routed to a council / guild / legate plan; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
+  - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
+- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | resolve>` (run at the repo root)
+  - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
+  - `route <order> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = route | `take <order> [--as=]` = take | `release <order>` = let go
+  - `name-check` = may this name become this repo's fork_id: (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
+  - `resolve` = answer an order: append the RESOLUTION and move to done/ | env `ORDER_RESOLVED_HOOK` (path of an executable) set → after answering it is called with the done/ order's path (unset → nothing; team tabs use it to notify the sender)
+  - `inbox --quest` = quests (`kind: quest`) only | steps: `.claude/skills/inbox/SKILL.md` step 4
 
-## 使う材料
-- ここまでの会話の文脈(=何をしてほしいかは既に議論済みのはず)
-- 引数: $ARGUMENTS(先頭の語が宛先。宛先の次の語が `quest` ならクエストとして起票する(下の `kind:`)。残りは補足メモ。宛先に当たらない語で始まるときは、全体を補足メモとして扱い、宛先は省略とする)
+## MATERIAL
+- the conversation's context so far (= what is wanted has already been discussed)
+- args: $ARGUMENTS | first word = target | the word after the target is `quest` → file as a quest (`kind:` below) | the rest = extra notes | starts with a word that is no target → all of it is extra notes, target omitted
 
-## 手順
-1. **provenance を Bash で取得**(推測しない・手で組み立てない): `node .claude/skills/order/mailbox.mjs from` の `from:` 行をそのまま使う。
-   - チーム(fleet・guild・council)のタブで実行すると、発行元はリポではなくそのチームの役職になる(タブの環境変数 `TK_TEAM` / `TK_INSTANCE` / `TK_LABEL` から作る)
-   - id 用タイムスタンプ: `date +%Y%m%d-%H%M%S`
-2. **宛先の受信箱を決める**:
-   - `self`(または「自分」): `node .claude/skills/order/mailbox.mjs self` の `box:`
-   - リポ名: `node .claude/skills/order/mailbox.mjs repos` の `repo:`(fork-id)か `path:` のディレクトリ名で照合し、その `box:`
-   - 省略: 会話の文脈から宛先を決め、`repos` で受信箱を引く
-   - 見つからない・複数当たる・会話から決めきれない: 候補を示して AskUserQuestion で聞く(推測で送らない)
-3. 会話内容と補足から、指令を**次のスキーマちょうど**に合成する(**機械間ファイルなので英語・簡潔。散文や表は使わない**。`title:` だけは例外で日本語):
+## STEPS
+1. **get provenance with Bash** (never guess, never assemble by hand): use the `from:` line of `node .claude/skills/order/mailbox.mjs from` as is
+   - run in a team (fleet, guild, council) tab → the issuer is that team's role, not the repo (built from the tab's env `TK_TEAM` / `TK_INSTANCE` / `TK_LABEL`)
+   - id timestamp: `date +%Y%m%d-%H%M%S`
+2. **pick the target inbox**:
+   - `self` (or `自分`): `box:` of `node .claude/skills/order/mailbox.mjs self`
+   - a repo name: match `repo:` (fork-id) or the directory name of `path:` in `node .claude/skills/order/mailbox.mjs repos`, take its `box:`
+   - omitted: decide the target from the conversation, look up the inbox with `repos`
+   - not found / several match / the conversation cannot decide: show the candidates and ask with AskUserQuestion; STOP (never send on a guess)
+3. compose the order from the conversation and notes into **exactly this schema** (**a machine-to-machine file: English, terse, no prose or tables**; only `title:` is the exception, in Japanese):
    ```
    # ORDER id:<ts>-<slug>
    from: <mailbox.mjs from の値>
@@ -44,35 +53,38 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [quest]
    notes: <anything else for the receiver | ->
    tried: <means checked — why not enough>   (only for extension requests; omit the line otherwise)
    ```
-   - 受け口・部品分割・値の追加を頼むときは、先に `.claude/rules/core/extensions.md` で手段を確かめて `tried:` に書く
-   - `from:` は先頭が発行元(3 通り。読み手は mailbox.mjs の `requester` で見分ける):
-     - リポのセッション = `<origin url> | branch:<branch> | cwd:<path>`
-     - チームの役職 = `<team> <instance> | role:<役職名> | repo:<origin url> | branch:<branch> | cwd:<path>`(例: `fleet 20261024-220119 | role:Admiral | …`。repo: は動いていたリポで、参考情報)
-     - 評議会の legate = `council <議題id> | …`(legate が自分で書く。role: 欄は無い)
-   - self 宛てのとき: 後で読むのは文脈を持たない別のセッションなので、`why:` と `refs:` に今の会話で分かっていることを省かず書く(どこまで決まったか、未決の点、読むべきファイル)
-   - `<slug>` は need から短いケバブ(英語)で作る
-   - `title:` = 人が一覧(チームの起動画面・`mailbox.mjs inbox`)で読む日本語の短い題。何をするかが分かる名詞句で 20 文字前後(例: `チャットルームの UID 不一致を直す`)。一覧は「題 id」と並べるので、id や日付は題に入れない
-   - `kind: quest` = クエスト(`quest <id>` の 1 タブで片付ける依頼)の印。印の正はこの欄だけ: 題に【★クエスト】などの印を付けない(一覧・quest の起動画面・候補選びはこの欄を読む)。クエストが答えると、依頼元が評議会・ギルド・クエストの統括なら、チームの道具が自動で知らせる(依頼元が notes に「知らせて」と書かなくてよい)
-   - `status:` は起票時 `open`。以後は mailbox.mjs だけが書き換える(route → routed、take → taken、release → 取る前の状態、resolve → RESOLUTION の status(done / partial / relayed / rejected / withdrawn)で done/ へ。手では書き換えない)
-4. **事前確認は取らず、そのままファイルを書き出す**(受信箱のフォルダが無ければ作成)。宛先が決まった後の「この内容で起票していいですか?」等の承認待ちは**禁止**(起票はただの md ファイルで、後から編集・移動・削除で直せるため):
-   - パス: `<宛先の box>/<ts>-<slug>.md`
-5. 書き出したら日本語で報告:
-   - **1 行目に宛先**: `宛先: <宛先リポ名>(<理由を短く>)`
-   - need / done_when の要約(1〜3 行)+ **保存パス(フルパス。/wen はこのパスで状況を確かめる)**
-   - 「宛先リポで `/inbox` を実行すると受け取れます。このセッションで `/wen` を打つと状況を確かめられます。宛先や内容を直すときはこのファイルを編集・移動します(言ってください)」
+   - asking for an intake point, a part split or an added value → first check the means in `.claude/rules/core/extensions.md` and write them in `tried:`
+   - head of `from:` = the issuer (3 kinds; readers tell them apart with mailbox.mjs `requester`):
+     - repo session = `<origin url> | branch:<branch> | cwd:<path>`
+     - team role = `<team> <instance> | role:<役職名> | repo:<origin url> | branch:<branch> | cwd:<path>` (e.g. `fleet 20261024-220119 | role:Admiral | …`; repo: = the repo it ran in, for reference)
+     - council legate = `council <議題id> | …` (written by the legate itself; no role: field)
+   - self-addressed: a later session without this context reads it → write everything known in this conversation into `why:` and `refs:` (how far it was decided, open points, files to read)
+   - `<slug>` = a short kebab (English) from need
+   - `title:` = a short Japanese title humans read in lists (team launch screens, `mailbox.mjs inbox`) | a noun phrase of about 20 chars saying what is done (e.g. `チャットルームの UID 不一致を直す`) | the list shows title and id side by side → no id or date in the title
+   - `kind: quest` = the mark of a quest (an order finished in one `quest <id>` tab) | this field is the only source of the mark: never put a mark like `【★クエスト】` in the title (lists, quest's launch screen and candidate picking read this field)
+     - when a quest answers and the sender is a council / guild / quest lead, the team tools notify it automatically (the sender need not write "notify me" in notes)
+   - `status:` = `open` at filing | afterwards only mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); never by hand)
+4. **write the file without asking first** (create the inbox folder if missing) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
+   - path: `<target box>/<ts>-<slug>.md`
+5. after writing, report in Japanese:
+   - **line 1 = the target**: `宛先: <宛先リポ名>(<理由を短く>)`
+   - summary of need / done_when (1-3 lines) + **the saved path (full path; /wen checks the state by this path)**
+   - the line:
+     ```
+     宛先リポで `/inbox` を実行すると受け取れます。このセッションで `/wen` を打つと状況を確かめられます。宛先や内容を直すときはこのファイルを編集・移動します(言ってください)
+     ```
 
-## 一時許可の依頼(fork が所有の検査の違反を通すとき)
-`pnpm workflow ownership check` の違反のうち、受け口へ移せない・元に戻せない物(upstream に無い機能、upstream のバグ・性能・セキュリティの修正)は、直接の親への依頼 + 一時許可で通す(`src/lib/forkOwnership/README.md`「一時許可」)。
-1. 宛先 = 直接の親(`.claude/rules/project.md` の TIER、無ければ origin 以外の remote の repo)。上の手順で起票する。need に違反のパスと upstream に要る物(受け口・修正)、refs に検査の違反の行と許可の下書きの行(`<path> upreq:<依頼の番号> base:… head:…`)、why に fork が今その書き換えを要る理由
-   - 削除・rename の許可の依頼は「止める受け口(feature-gate 等)を用意してほしい」、祖先 lib への追加は「その lib に入れてほしい / 受け口がほしい」に限る
-   - upstream の負債の箇所(intake.txt の debt)と、upstream が既に受けた依頼(受信箱の修正の依頼)は起票しない。intake.txt の debt の理由欄・依頼の id をそのまま使う
-2. 起票した id で下書きの `<依頼の番号>` と `<理由>` を埋め、`.fork-ownership/<fork-id>.permits.txt` に 1 ファイル 1 行で貼る(同じファイルに複数の依頼なら `upreq:<id>,<id>`)
-3. 許可ファイルを commit してから `pnpm workflow ownership check` を走らせ直し、その行が permitted になることを確かめる
-4. 依頼の状況は `/wen permits` で確かめる。解決(親の notice の `resolves:`)・却下を見たら、その行を外して受け口へ移すか元に戻す
+## TEMPORARY PERMIT REQUEST (a fork passing an ownership-check violation)
+- violations of `pnpm workflow ownership check` that cannot move to an intake point or be reverted (features upstream lacks, upstream bug / perf / security fixes) pass by an order to the direct parent + a temporary permit (`src/lib/forkOwnership/README.md` section `一時許可`)
+1. target = the direct parent (TIER of `.claude/rules/project.md`, else the repo of a remote other than origin) | file it by the steps above | need = the violating paths and what upstream needs (intake point, fix) | refs = the check's violation lines and the draft permit line (`<path> upreq:<依頼の番号> base:… head:…`) | why = why the fork needs that edit now
+   - a permit request for delete / rename is limited to "please provide an intake that switches it off (feature-gate etc.)"; an addition to an ancestor lib to "please take it into that lib / please add an intake point"
+   - never file for upstream debt spots (debt of intake.txt) or orders upstream already accepted (fix orders in its inbox) | use the reason field of the intake.txt debt / the order id as is
+2. fill the draft's `<依頼の番号>` and `<理由>` with the filed id, paste it into `.fork-ownership/<fork-id>.permits.txt`, one line per file (several orders on one file → `upreq:<id>,<id>`)
+3. commit the permit file, rerun `pnpm workflow ownership check`, confirm the line becomes permitted
+4. check the request state with `/wen permits` | resolved (the parent notice's `resolves:`) or rejected → drop the line and move to the intake point or revert
 
-## self 宛ての使いどころ
-- 今は着手しない次の作業を、このリポの作業待ちとして残す(会話を閉じても消えない。`/inbox` に一覧で出る)
-- 進行中の作業の引き継ぎ(状態・次の一手)は auto-memory の役目で、self 宛ての指令は「着手前の作業の予約」に使う
+## SELF-ADDRESSED USE
+- leave a next task you are not starting now as this repo's pending work (survives closing the conversation; listed by `/inbox`)
+- handoff of in-progress work (state, next move) is auto-memory's job | a self-addressed order = a reservation of work not yet started
 
-## 言語ルール
-- ファイル(指令書)の中身は英語・構造化。ユーザーとの会話は日本語。
+language: order files = English, structured | reply: Japanese

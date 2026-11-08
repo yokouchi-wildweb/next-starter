@@ -1,73 +1,78 @@
 ---
 name: fork-init
-description: upstream(next-starter 等)を clone した直後のリポジトリで、新規プロジェクトのフォーク初期設定を承認1回で完走する。GitHub リポ作成・リモート整理・pnpm install・フォーク固有ファイル(project.md / 台帳 / package 名 / business.config / vercel.json / .env.development)の書き換え・初期コミット・push まで
+description: Run a new project's fork setup to the end with one approval, in a repo just cloned from upstream (next-starter etc.) - GitHub repo creation, remote reshuffle, pnpm install, rewriting the fork's own files (project.md, ledger, package name, business.config, vercel.json, .env.development), initial commit and push | Right after cloning upstream for a new project
 argument-hint: "<name> [github-owner]  例: 88-base yokouchi-wildweb"
 disable-model-invocation: true
 ---
 
-あなたは今、**upstream を clone した直後のリポジトリの中で**、新規プロジェクトのフォーク初期設定を行います。
+role: run a new project's fork setup **inside a repo just cloned from upstream**
+source_of_truth: `docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md` | **read that doc first** | this skill carries out its step 2 (remote reshuffle on) to step 4 (initial commit and push) as the executor | doc and skill disagree → the doc wins; report the disagreement to the user
 
-手順の正は `docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md` です。**最初にその文書を読み**、本スキルは文書の手順 2(リモート整理以降)〜手順 4(初期コミットと push)を実行役として代行します。文書と本スキルが食い違ったら文書を優先し、食い違いをユーザーに報告してください。
+## PRINCIPLES
+- **one approval only, at the plan** | after approval run to the end without confirmations: GitHub repo creation, remote changes, file rewrites, commit, push | this approval includes the explicit commit and push instruction
+- **never fill by guessing** | project name, GitHub owner, the service's one-line description, Tier, backends: whatever args and conversation cannot fix → ask all of it in one question
+- **keep upstream's history** | shallow clone (`git rev-parse --is-shallow-repository` is true) → propose `git fetch --unshallow` and resolve it first
 
-## 大原則
-- **承認は計画提示時に1回だけ**。承認後は GitHub リポ作成・リモート変更・ファイル書き換え・コミット・push まで途中確認なしで完走する。この承認は「コミットと push の明示的指示」を含む。
-- **推測で埋めない**。プロジェクト名・GitHub owner・サービスの一言説明・Tier・バックエンドの有無は、引数と会話から確定できないものをまとめて1回で質問する。
-- **upstream の履歴は保持する**。shallow clone(`git rev-parse --is-shallow-repository` が true)なら `git fetch --unshallow` を提案して先に解消する。
+## PRE-CHECK (before presenting the plan)
+1. check `git remote -v` | expected: origin points to upstream (the fork source), no `upstream` remote yet
+   - an `upstream` remote already exists, or `.claude/rules/project.md` has its own `fork_id:` (a name other than the fork source's) and `.notices/applied/<that name>.md` exists → already initialized; say so and end (never break it by rerunning)
+   - no origin → ask the user for the fork source URL; STOP: wait for it
+2. take `<name>` and `[github-owner]` from `$ARGUMENTS` | owner omitted → `gh api user --jq .login`
+3. check login with `gh auth status` | not logged in → ask for `! gh auth login`; STOP: wait (the browser code entry = the terminal's one-time code)
+4. check the repo with `gh repo view <owner>/<name>` | exists → skip creation; not empty (`isEmpty` false) → STOP: confirm it is safe as the push target
+5. fix the following from the conversation | missing ones → one question for all (asked once step 6's overlap check is done):
+   - the service's one-line description (Japanese OK; written in English into project.md)
+   - the fork's name (`fork_id:`): default = `<name>` lowercased (present it after the overlap check of step 6)
+   - Tier: default "fork source's Tier + 1, no downstream"
+   - whether it plans downstream forks (`downstream:`; default `none`; has / plans → `yes`; may change later)
+   - backends: set up Firebase / Neon now, or start unconfigured (default: unconfigured)
+   - planned domain, direction (none → `TBD` is fine)
+   - Vercel plan: hobby / pro (default: hobby; hobby makes every cron once a day; can be regenerated later)
+6. fix the fork's name (`fork_id:`): default = the new repo name `<name>` lowercased (confirmed in the question of 5) | form = lowercase, digits, hyphens (`FORK_ID_PATTERN` of `src/lib/forkOwnership/forkIds.mjs`) | never derived from the origin URL | same name as any of these → STOP: ask for another name (D30 K3):
+   - the fork source's `fork_id:` in `.claude/rules/project.md`, ledger names in `.notices/applied/`, section headings of `src/lib/CATALOG.md` (ancestors' names)
+   - names in `~/.team/fleet.conf` (compared case-insensitively), inbox folder names in `~/.team/orders/` (skip each when missing)
+   - name decided → call `node .claude/skills/order/mailbox.mjs name-check <名前>` | an overlap reported → STOP: confirm another name with the human
+   - then ask the question of 5; STOP: wait for the answers
+7. fork source version = full sha of the current HEAD (`git rev-parse HEAD`; written to `upstream:` of the ledger's first line)
 
-## 事前確認(計画提示の前に行う)
-1. `git remote -v` を確認する。期待する状態は「origin が upstream(フォーク元)を指し、`upstream` リモートはまだ無い」。
-   - `upstream` リモートが既にある、または `.claude/rules/project.md` に自分の `fork_id:`(フォーク元と違う名前)があり `.notices/applied/<その名前>.md` がある → 初期化済み。その旨を伝えて終了する(再実行で壊さない)。
-   - origin が無い → ユーザーにフォーク元 URL を尋ねる。
-2. 引数 `$ARGUMENTS` から `<name>` と `[github-owner]` を取る。owner 省略時は `gh api user --jq .login` で取得する。
-3. `gh auth status` でログイン済みか確認する。未ログインなら `! gh auth login` を依頼して待つ(ブラウザのコード入力はターミナルのワンタイムコード)。
-4. `gh repo view <owner>/<name>` でリポジトリの有無を確認する。既存なら作成をスキップし、空でなければ(`isEmpty` が false)push 先として安全か確認を取る。
-5. 以下を会話から確定する。足りないものは1回の質問にまとめる:
-   - サービスの一言説明(日本語可。project.md には英語で書く)
-   - fork の名前(`fork_id:`): 既定は `<name>` の小文字(手順 6 の重なりの確認をしてから提示する)
-   - Tier: 既定は「フォーク元の Tier + 1、下流なし」
-   - 下流の fork を持つ予定か(`downstream:`。既定 `none`。持つ・持つ予定なら `yes`。後から変えてよい)
-   - バックエンド: Firebase / Neon を今設定するか、未設定で始めるか(既定: 未設定)
-   - 予定ドメイン・方向性(無ければ「TBD」で可)
-   - Vercel プラン: hobby / pro(既定: hobby。hobby は全 cron が 1 日 1 回になる。後から再生成できる)
-6. fork の名前(`fork_id:`)を決める: 既定 = 新しいリポ名 `<name>` の小文字(5 の質問にまとめて確認する)。形 = 小文字・数字・ハイフン(`src/lib/forkOwnership/forkIds.mjs` の `FORK_ID_PATTERN`)。origin の URL からは導かない。次のどれかと同じ名前なら止まり、別の名前を聞く(D30 K3):
-   - フォーク元の `.claude/rules/project.md` の `fork_id:`・`.notices/applied/` の台帳名・`src/lib/CATALOG.md` の節の見出し(祖先の名前)
-   - `~/.team/fleet.conf` の名前(大文字小文字を区別せず比べる)・`~/.team/orders/` の受信箱のフォルダ名(どちらも無ければ見ない)
-   - 名前を決めたら `node .claude/skills/order/mailbox.mjs name-check <名前>` を呼ぶ。重なりを報告されたら止まり、別の名前を人に確かめる
-7. フォーク元の版 = 今の HEAD の完全な sha(`git rev-parse HEAD`。台帳の最初の行の `upstream:` に書く)。
+## PLAN (get the approval)
+present the following as bullets; STOP: one approval:
+- the repo to create (`<owner>/<name>` private) / or that creation is skipped
+- remotes: origin = new repo, upstream = current origin
+- the fork's name (`fork_id:`, result of the overlap check) and what gets the same name (project.md line, ledger, CATALOG section)
+- list of files to rewrite (same items as the doc's step 4 checklist; README is not touched)
+- the Vercel plan of `vercel.json` (hobby / pro)
+- initial commit subject: `chore: <name> フォーク初期設定`
+- push target: `origin main`
+- tmux launch setup on this machine (result of `pnpm workflow tmux-launch setup --check`): not set → run `pnpm workflow tmux-launch setup` after approval (one line in `~/.bashrc` or `~/.zshrc`, a block in `~/.tmux.conf`) | already set → nothing
 
-## 計画提示(承認を取る)
-以下を箇条書きで提示し、承認を1回取る:
-- 作成するリポジトリ(`<owner>/<name>` private)/ スキップの場合はその旨
-- リモート: origin = 新リポ、upstream = 現 origin
-- fork の名前(`fork_id:`。重なりの確認の結果)と、同じ名前で作るもの(project.md の行・台帳・CATALOG の節)
-- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ項目。README は触らない)
-- `vercel.json` の Vercel プラン(hobby / pro)
-- 初期コミットの件名: `chore: <name> フォーク初期設定`
-- push 先: `origin main`
-- このマシンの tmux で開く設定(`pnpm workflow tmux-launch setup --check` の結果): 未設定なら承認後に `pnpm workflow tmux-launch setup` を実行する(`~/.bashrc` か `~/.zshrc` に 1 行、`~/.tmux.conf` に設定の塊)。済んでいれば何もしない
+## EXECUTE (after approval, no confirmations)
+1. `gh repo create <owner>/<name> --private --description "<name>: <一言説明>"` (exists → skip; exists with an empty description → set it with `gh repo edit --description`; README is shared by every repo, so this field carries the project name on GitHub)
+2. `git remote rename origin upstream` → `git remote add origin git@github.com:<owner>/<name>.git`
+3. `pnpm install` (only when `node_modules` is missing)
+4. rewrite the fork's own files (in the doc's step 4 order):
+   a. `.claude/rules/project.md`: copy `project.template.md` in this folder (shipped with this skill), fill `<...>` with what the pre-check got, replace the file | never add or remove sections (undecided sections = `TBD`) | delete the leading comment block | English, bullets
+   b. align the name (same value):
+      - `fork_id: <名前>` in the TIER section of `.claude/rules/project.md`, and the next line `downstream: <yes|none>` (template line; answer of pre-check 5; missing → `pnpm workflow ownership check` unverified = exit 2, `/ship` stops too)
+      - ledger `.notices/applied/<名前>.md` = header `# APPLIED LEDGER fork:<origin url>` + one line `- id:fork-init | date:<ISO8601> | commit:- | upstream:<full sha of the fork source version> | notes:fork start` (`pnpm workflow ownership check` walks the Tier1 version from here; missing → exit 2)
+      - an empty section `## <名前>` at the end of `src/lib/CATALOG.md` (add one line here when you add your own lib)
+   c. `package.json`: `name` → `<name>`
+   d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` based on `<name>` | `domain` / `url` / `mail.defaultFrom`: fixed → set them; undecided → placeholders without upstream's name (`example.com` etc.)
+   e. `vercel.json`: generate with `pnpm generate cron -- --plan <hobby|pro>`, confirm `pnpm check cron` passes (every task of `src/app/api/cron/*/task.ts` becomes an entry; never edit by hand)
+   f. `README.md`: **never touch** (shared by every repo; own info = project.md and the GitHub description field)
+   g. `.env.development`: generate with `pnpm ops setup env` (a copy of `.env.example` with `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` set automatically; exists → nothing) | confirm with `git status` it is gitignored, **never include it in the commit**
+5. no `pnpm typecheck` needed (config files only) | confirm with `git status --short` that only the intended files changed
+6. commit: subject `chore: <name> フォーク初期設定` + blank line + body (fork source, rewritten items, backends unconfigured if so) + the Co-Authored-By trailer the environment specifies
+7. `git push -u origin main`
+8. tmux launch setup (the doc's step 4 section `tmux で開く設定`): only when the plan found it unset → run `pnpm workflow tmux-launch setup` | exit 2 (no tmux) → do not stop, carry it to the report with how to install it (`! sudo apt install tmux` / `! brew install tmux`) and to run `pnpm workflow tmux-launch setup` after installing
 
-## 実行(承認後、途中確認なし)
-1. `gh repo create <owner>/<name> --private --description "<name>: <一言説明>"`(既存ならスキップ。既存で description が空なら `gh repo edit --description` で設定する。README は全リポ共通のため、GitHub 上のプロジェクト名はこの欄が担う)。
-2. `git remote rename origin upstream` → `git remote add origin git@github.com:<owner>/<name>.git`。
-3. `pnpm install`(`node_modules` が無い場合のみ)。
-4. フォーク固有ファイルの書き換え(文書の手順 4 の順):
-   a. `.claude/rules/project.md`: 同じディレクトリの `project.template.md`(本スキルに同梱)をコピーし、`<...>` を事前確認で得た内容で埋めて置き換える。節の追加・削除はしない(未定の節は `TBD`)。先頭のコメントブロックは削除する。英語・箇条書き。
-   b. 名前をそろえる(同じ値): `.claude/rules/project.md` の TIER 節の `fork_id: <名前>` と、その次の `downstream: <yes|none>`(雛形の行。事前確認 5 の答え。無いと `pnpm workflow ownership check` が未検証 = exit 2、`/ship` も止まる)/ 台帳 `.notices/applied/<名前>.md` = ヘッダ `# APPLIED LEDGER fork:<origin url>` + 1 行 `- id:fork-init | date:<ISO8601> | commit:- | upstream:<フォーク元の版の完全な sha> | notes:fork start`(`pnpm workflow ownership check` が Tier1 の版をここからたどる。無いと exit 2)/ `src/lib/CATALOG.md` の末尾に空の節 `## <名前>`(自分の lib を足したらここに 1 行)
-   c. `package.json`: `name` を `<name>` に。
-   d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
-   e. `vercel.json`: `pnpm generate cron -- --plan <hobby|pro>` で生成し、`pnpm check cron` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。
-   f. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
-   g. `.env.development`: `pnpm ops setup env` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
-5. `pnpm typecheck` の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
-6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
-7. `git push -u origin main`。
-8. tmux で開く設定(文書の手順 4「tmux で開く設定」): 計画で未設定だったときだけ `pnpm workflow tmux-launch setup` を実行する。exit 2(tmux が無い)なら止めずに報告へ回し、入れ方(`! sudo apt install tmux` / `! brew install tmux`)と、入れた後に `pnpm workflow tmux-launch setup` を実行することを案内する。
+## REPORT (Japanese)
+- created repo URL, remote layout, commit sha
+- **never show** the values generated into `.env.development` (say only that they are in the file)
+- the user's next moves:
+  - (tmux launch setup installed now or already) open a new terminal and type `claude` again in the new repo's directory (opens inside tmux; the agent checks startup with `pnpm workflow dev-tab run`, so the human need not type `pnpm dev`)
+  - register the env var `CRON_SECRET` before deploying to Vercel (unregistered → every scheduled task stops with 401; state it as a required next task)
+  - tmux launch setup not installed → add how to install it
+- path for connecting backends later: the doc's step 3 section `機能別に必要なバックエンド` and `Neon_Firebaseなど各種バックエンドサービスの設定方法.md`
 
-## 報告(日本語)
-- 作成したリポジトリ URL、リモート構成、コミット sha
-- `.env.development` に生成した値は**表示しない**(ファイルにあることだけ伝える)
-- 次にユーザーがやること: (tmux で開く設定を入れた・入れてあるなら)新しいターミナルを開き、新リポのディレクトリで `claude` を打ち直す(tmux の中で開く。起動の確認はエージェントが `pnpm workflow dev-tab run` で行うので人が `pnpm dev` を打つ必要はない)。Vercel にデプロイする前に環境変数 `CRON_SECRET` を登録する(未登録だと定期タスクが全部 401 で止まる。必須の次作業として明示する)。tmux で開く設定が入っていなければその入れ方も添える
-- バックエンドを後で接続する場合の導線: 文書の手順 3「機能別に必要なバックエンド」と `Neon_Firebaseなど各種バックエンドサービスの設定方法.md`
-
-## 言語ルール
-- ユーザーとの会話は日本語。`project.md` と台帳は英語。
+language: reply Japanese | `project.md` and the ledger English

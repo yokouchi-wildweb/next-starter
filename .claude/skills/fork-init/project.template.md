@@ -1,10 +1,10 @@
 # project
 
 <!--
-  fork 用 project.md 雛形。/fork-init がコピーして <...> を埋め、.claude/rules/project.md を置き換える。
-  手動でフォークする場合もこのファイルをコピーして使う。
-  記述ルール: 英語・箇条書き・キーバリュー (.claude/README.md 参照)。何を書くかは CLAUDE.md 冒頭の PER_PROJECT。
-  埋め終わったらこのコメントブロックは削除する。
+  project.md template for a fork: /fork-init copies it, fills <...> and replaces .claude/rules/project.md with it
+  forking by hand: copy this file as well
+  form: English, bullets, key: value (see .claude/README.md) | what to write: PER_PROJECT at the head of CLAUDE.md
+  delete this comment block once filled
 -->
 
 ## overview
