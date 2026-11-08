@@ -21,8 +21,8 @@ export async function requireDatabase(label: string): Promise<void> {
   if (!isDatabaseConfigured()) throw new Error(`${label}: DATABASE_URL が未設定です(DB を設定してから)`);
 }
 
-/** 監査の文脈を system にして fn を走らせる */
-export async function asSystem<T>(fn: () => Promise<T>): Promise<T> {
+/** 監査の文脈を system にして fn を走らせる(requestId = 実行の記録の行の id。省けば新しく作る) */
+export async function asSystem<T>(fn: () => Promise<T>, requestId?: string): Promise<T> {
   const { runAsSystem } = await import("@/lib/audit/context");
-  return runAsSystem(fn);
+  return runAsSystem(fn, requestId ? { requestId } : undefined);
 }

@@ -70,6 +70,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [storageObject](storageObject/README.md) | ファイル台帳（アップロード権の発行・commit・取り消し・非公開ファイルの都度認可の読み取り・業務行への紐付け） |
 | [batchJob](batchJob/README.md) | 大量データのチャンク分割処理 |
 | [cronCheckpoint](cronCheckpoint/README.md) | 差分 cron / 再開可能バッチのチェックポイント |
+| [taskRun](taskRun/README.md) | pnpm task の実行の記録（止める鍵・結果不明、HTTP なし） |
 | [incrementalRefresh](incrementalRefresh/README.md) | 派生テーブル（read-model）の差分再計算 |
 | [adminCommand](adminCommand/README.md) | 管理者用コマンドパレット |
 | admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/wiring/adminScreenParts.ts` の組を通して使う）とダッシュボード、管理メニューの受け口（`menu/`: カテゴリー・項目のファイルと組み立て器、`menu/README.md`） |

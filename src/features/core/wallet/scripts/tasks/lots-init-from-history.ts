@@ -4,11 +4,13 @@
 // 使い方: pnpm task wallet:lots-init-from-history -- (--wallet-type <通貨>[,<通貨>...] | --all) [--dry-run]
 //        --dry-run で対象確認 → dry-run なしで実行
 
-import { readWalletLotsInitSelection } from "./lib.walletLotsSelection";
+import { readWalletLotsInitSelection, walletLotsStopKeys } from "./lib.walletLotsSelection";
 import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "wallet:lots-init-from-history",
+  // 一度成功(または結果不明)した通貨は二度と自動では作り直さない(代わりの 1 本と同じ鍵)
+  stopKeys: (args) => walletLotsStopKeys("wallet:lots-init-from-history", args),
   run: async () => {
     const { initWalletLotsFromHistory } = await import(
       "@/features/core/wallet/services/server/lots/initWalletLotsFromHistory"

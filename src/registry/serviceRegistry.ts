@@ -29,6 +29,7 @@ import { domainEntries as purchaseRequestEntries } from "@/features/core/purchas
 import { domainEntries as referralEntries } from "@/features/core/referral/services/server/domainEntry";
 import { domainEntries as referralRewardEntries } from "@/features/core/referralReward/services/server/domainEntry";
 import { domainEntries as settingEntries } from "@/features/core/setting/services/server/domainEntry";
+import { domainEntries as taskRunEntries } from "@/features/core/taskRun/services/server/domainEntry";
 import { domainEntries as userEntries } from "@/features/core/user/services/server/domainEntry";
 import { domainEntries as userCounterEntries } from "@/features/core/userCounter/services/server/domainEntry";
 import { domainEntries as userLineProfileEntries } from "@/features/core/userLineProfile/services/server/domainEntry";
@@ -62,6 +63,7 @@ export const serviceRegistry: DomainRegistry = {
   referral: referralEntries.referral,
   referralReward: referralRewardEntries.referralReward,
   setting: settingEntries.setting,
+  taskRun: taskRunEntries.taskRun,
   user: userEntries.user,
   userCounter: userCounterEntries.userCounter,
   userLineProfile: userLineProfileEntries.userLineProfile,

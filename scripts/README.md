@@ -153,7 +153,8 @@ pnpm ops storage setup-cors https://your-app.com
 pnpm task <task-name>          # 定期タスク(平らな名前)
 pnpm task <ドメイン>:<名前>     # ドメインのタスク・移行(例 wallet:lots-init、src/lib/task/README.md)
 pnpm task --list               # 一覧(頻度・有効/無効・説明、ドメインのタスクと移行を分けて出す)
-pnpm task --due                # 今の分(UTC)に schedule が一致する定期タスクを実行(Vercel 以外のスケジューラから毎分呼ぶ)
+pnpm task --due                # 今の分(UTC)に schedule が一致する定期タスクを実行(Vercel 以外のスケジューラから毎分呼ぶ。記録しない)
+pnpm task --resolve <runId> succeeded|failed   # 結果不明・実行中のまま残った記録を人が確かめて書き直す
 
 # vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
 pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
@@ -163,6 +164,7 @@ pnpm generate cron -- --plan pro     # Vercel Pro: task.ts の schedule どお�
 pnpm check cron
 ```
 
+- 名指しの実行は毎回 `task_runs` に記録し、止める鍵・結果不明・dry-run を効かせる(`src/lib/task/README.md`「実行の記録」)。
 - `pnpm task` は env ファイルを読む（`ENV_FILE`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
 - タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/runner/preload/serverOnly.mjs`、下記「テスト」）を付けている。
 

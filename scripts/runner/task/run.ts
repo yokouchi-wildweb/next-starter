@@ -19,6 +19,9 @@
 // ワンショット・任意タスクはドメインの src/features/<ドメイン>/scripts/tasks/<名前>.ts、1 回きりの移行は scripts/migrations/<名前>.ts を走査する
 // （名前 = <ドメイン>:<名前>、src/lib/task/README.md）。
 //
+// 名指しの実行(ドメインのタスク・移行・定期タスク)は毎回 task_runs に記録し、止める鍵・結果不明・dry-run を効かせる（execute.ts、
+// src/lib/task/README.md「実行の記録」）。--due（毎分の自動の回し）は記録しない。記録の行が書けなければ走らせない。
+//
 // package.json の task スクリプトは scripts/runner/preload/serverOnly.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
 
@@ -27,23 +30,27 @@ import path from "node:path";
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
 import { type LoadedCronTask, loadCronTasks } from "../../structure/cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile } from "./discover";
-import { loadEnvFile } from "./prepare";
+import { type ExecuteOutcome, executeTask } from "./execute";
+import { invocationOf } from "./invocation";
+import { asSystem, loadEnvFile, requireDatabase } from "./prepare";
+import { collectRunMeta } from "./record";
+import { dbTaskRunStore, migrationKey, resolveByHand } from "./store";
 
 // env ファイルを読む（prepare.ts）。タスク本体は動的 import なので、ここで読めば間に合う。
 loadEnvFile();
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 
-/** pnpm task <name> で実行できる全タスク（定期 + ワンショット）。ワンショットは実行するときに該当のファイルだけ読み込む */
-function buildTaskMap(repoRoot: string, cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[]): Record<string, TaskFn> {
-  assertNoCronOverlap(oneShotTasks, cronTasks.map((task) => task.name));
-  const oneShot = oneShotTasks.map((file): [string, TaskFn] => [file.name, async () => (await loadOneShotTask(repoRoot, file)).run()]);
-  const cron = cronTasks.map((task): [string, TaskFn] => [task.name, task.closedBy === null ? task.run : closedTask(task.closedBy)]);
-  return { ...Object.fromEntries(cron), ...Object.fromEntries(oneShot) };
-}
+/** 名指しで打てる物: ドメインのタスク・移行(実行の記録あり)と定期タスク(名指しなら記録あり、--due は記録なし) */
+type NamedTask = { kind: "oneShot"; file: OneShotTaskFile } | { kind: "cron"; task: LoadedCronTask };
 
-/** 機能が閉じた定期タスクの代わり: 本体を呼ばずに飛ばした印を返す（終了コードは 0） */
-const closedTask = (rule: string): TaskFn => async () => ({ skipped: true, reason: "closed", rule });
+function buildNamedTasks(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[]): Map<string, NamedTask> {
+  assertNoCronOverlap(oneShotTasks, cronTasks.map((task) => task.name));
+  const named = new Map<string, NamedTask>();
+  for (const task of cronTasks) named.set(task.name, { kind: "cron", task });
+  for (const file of oneShotTasks) named.set(file.name, { kind: "oneShot", file });
+  return named;
+}
 
 function log(level: "info" | "error", payload: Record<string, unknown>) {
   const line = JSON.stringify({ level, scope: "task-cli", ...payload });
@@ -109,37 +116,114 @@ async function runDue(cronTasks: LoadedCronTask[]) {
   process.exit(failed > 0 ? 1 : 0);
 }
 
+/** 名指しの 1 回(実行の記録を書く)。終了コードを返す */
+async function runNamed(repoRoot: string, name: string, named: NamedTask, args: string[]): Promise<number> {
+  if (named.kind === "cron" && named.task.closedBy !== null) {
+    // 機能が閉じた定期タスク: 本体を呼ばずに飛ばす(走らないので記録もしない。今までどおり exit 0)
+    log("info", { task: name, ok: true, skipped: true, reason: "closed", rule: named.task.closedBy });
+    return 0;
+  }
+  await requireDatabase("pnpm task");
+  let run: TaskFn;
+  let stopKeys: () => string[] | Promise<string[]>;
+  let file: string;
+  let kind: "task" | "migration" | "cron";
+  if (named.kind === "cron") {
+    const cron = named.task;
+    run = cron.run;
+    stopKeys = () => [];
+    file = `src/app/api/cron/${cron.name}/task.ts`;
+    kind = "cron";
+  } else {
+    const task = await loadOneShotTask(repoRoot, named.file);
+    run = task.run;
+    file = named.file.file;
+    kind = named.file.kind;
+    stopKeys = named.file.kind === "migration" ? () => [migrationKey(task.notice as string, name)] : () => (task.stopKeys ? task.stopKeys(args) : []);
+  }
+  const startedAt = Date.now();
+  const outcome = await executeTask({
+    name,
+    kind,
+    args,
+    meta: collectRunMeta(repoRoot, file),
+    stopKeys,
+    run,
+    asSystem: (requestId, fn) => asSystem(fn, requestId),
+    store: await dbTaskRunStore(),
+  });
+  return report(name, outcome, Date.now() - startedAt);
+}
+
+function report(name: string, outcome: ExecuteOutcome, durationMs: number): number {
+  if (outcome.kind === "not-recorded") {
+    log("error", { task: name, ok: false, error: `実行の記録(task_runs)が書けないので走らせません: ${outcome.error}` });
+    return 1;
+  }
+  if (outcome.kind === "refused") {
+    const holders = outcome.holders.map((run) => ({ runId: run.id, status: run.status, startedAt: run.startedAt.toISOString(), keys: run.stopKeys }));
+    log("error", {
+      task: name,
+      ok: false,
+      refused: true,
+      keys: outcome.keys,
+      holders,
+      error: "同じ止める鍵の実行が成功済み・結果不明・実行中です。走らせません(確かめた結果は pnpm task --resolve <runId> succeeded|failed)",
+    });
+    return 1;
+  }
+  const ok = outcome.status === "succeeded";
+  const note = outcome.recordWritten ? {} : { recordNote: "結果を task_runs に書けませんでした(行は running のまま = 結果不明と同じに扱われる)" };
+  log(ok ? "info" : "error", { task: name, ok, status: outcome.status, runId: outcome.runId, durationMs, ...(ok ? outcome.result : { error: outcome.error }), ...note });
+  return ok ? 0 : 1;
+}
+
+/** pnpm task --resolve <runId> succeeded|failed: 人が確かめた結果で running / unknown の行を書き直す */
+async function runResolve(rest: string[]): Promise<number> {
+  const [runId, status] = rest;
+  if (!runId || (status !== "succeeded" && status !== "failed")) {
+    console.error("Usage: pnpm task --resolve <runId> succeeded|failed");
+    return 1;
+  }
+  await requireDatabase("pnpm task --resolve");
+  const row = await resolveByHand(runId, status, collectRunMeta(path.resolve(import.meta.dirname, "../../.."), null).actor);
+  log("info", { resolved: true, runId: row.id, task: row.name, status: row.status });
+  return 0;
+}
+
 async function main() {
   // pnpm は "--" をそのまま渡してくることがあるため除去する
-  const args = process.argv.slice(2).filter((arg) => arg !== "--");
-  const taskName = args[0];
+  const invocation = invocationOf(process.argv.slice(2).filter((arg) => arg !== "--"));
   const repoRoot = path.resolve(import.meta.dirname, "../../..");
   const cronTasks = await loadCronTasks(repoRoot);
   const oneShotTasks = listOneShotTasks(repoRoot);
-  const TASKS = buildTaskMap(repoRoot, cronTasks, oneShotTasks);
+  const NAMED = buildNamedTasks(cronTasks, oneShotTasks);
 
-  if (!taskName || taskName === "--list" || taskName === "-l") {
-    printList(cronTasks, oneShotTasks);
-    if (!taskName) {
-      console.log("\nUsage: pnpm task <task-name> | pnpm task --due");
-      process.exit(1);
+  switch (invocation.kind) {
+    case "list":
+      printList(cronTasks, oneShotTasks);
+      if (invocation.usage) {
+        console.log("\nUsage: pnpm task <task-name> [-- <args>] | pnpm task --due | pnpm task --resolve <runId> succeeded|failed");
+        process.exit(1);
+      }
+      return;
+    case "due":
+      // 毎分の自動の回し: 記録を書かない(L1.31)
+      await runDue(cronTasks);
+      return;
+    case "resolve":
+      process.exit(await runResolve(invocation.rest));
+      return;
+    case "named": {
+      const named = NAMED.get(invocation.name);
+      if (!named) {
+        console.error(`Unknown task: ${invocation.name}`);
+        console.error("Available tasks:", [...NAMED.keys()].join(", "));
+        process.exit(1);
+      }
+      process.exit(await runNamed(repoRoot, invocation.name, named, invocation.rest));
     }
-    return;
   }
-
-  if (taskName === "--due") {
-    await runDue(cronTasks);
-    return;
-  }
-
-  const task = TASKS[taskName];
-  if (!task) {
-    console.error(`Unknown task: ${taskName}`);
-    console.error("Available tasks:", Object.keys(TASKS).join(", "));
-    process.exit(1);
-  }
-
-  process.exit((await runTask(taskName, task)) ? 0 : 1);
 }
 
 main().catch((error) => {

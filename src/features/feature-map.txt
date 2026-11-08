@@ -34,6 +34,7 @@ core/referral	core	yes	false
 core/referralReward	core	yes	false
 core/setting	core	no	-
 core/storageObject	core	no	-
+core/taskRun	core	no	-
 core/user	core	yes	false
 core/userAcquisition	core	no	-
 core/userCounter	core	no	-

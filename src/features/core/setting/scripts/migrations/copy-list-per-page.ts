@@ -14,6 +14,7 @@ export const VERIFY_SQL = `SELECT id FROM settings WHERE (extended->>'adminListP
 
 export const task: OneShotTask = {
   name: "setting:copy-list-per-page",
+  notice: "20261031-141531-setting-fields-core-ui",
   run: async () => {
     const { db } = await import("@/lib/drizzle");
     const { sql } = await import("drizzle-orm");

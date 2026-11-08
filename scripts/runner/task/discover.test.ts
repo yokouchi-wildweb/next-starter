@@ -87,6 +87,19 @@ test("読み込み: task.name が <ドメイン>:<ファイル名> と違えば�
   await assert.rejects(loadOneShotTask(root, bad), /task\.name "bad" が "shop:bad"/);
 });
 
+test("移行は notice(notice の id)が必須、タスクは notice を持たない", async () => {
+  const mig = (body: string) => `export const task = { name: "shop:fix", ${body} run: async () => ({}) };\n`;
+  const root = tree({
+    "src/features/shop/scripts/migrations/fix.ts": mig(""),
+    "src/features/other/scripts/migrations/fix.ts": mig('notice: "20261031-141531-setting-fields-core-ui",').replace("shop:", "other:"),
+    "src/features/third/scripts/tasks/fix.ts": mig('notice: "20261031-141531-setting-fields-core-ui",').replace("shop:", "third:"),
+  });
+  const byName = new Map(listOneShotTasks(root).map((f) => [f.name, f]));
+  await assert.rejects(loadOneShotTask(root, byName.get("shop:fix")!), /移行は notice:/);
+  assert.equal((await loadOneShotTask(root, byName.get("other:fix")!)).notice, "20261031-141531-setting-fields-core-ui");
+  await assert.rejects(loadOneShotTask(root, byName.get("third:fix")!), /notice: は移行/);
+});
+
 test("taskNamesIn: 文の中の pnpm task の名前(旗・型は除く)", () => {
   const text = "run `pnpm task wallet:lots-init -- --all`, then pnpm task expire-pending-purchases; pnpm task --list; pnpm task <name>";
   assert.deepEqual(taskNamesIn(text), ["wallet:lots-init", "expire-pending-purchases"]);

@@ -1,7 +1,7 @@
 // src/features/core/analytics/scripts/tasks/rollup-backfill.ts
 // 使い方: pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
 
-import type { OneShotTask } from "@/lib/task";
+import { type OneShotTask, TaskNotStartedError } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "analytics:rollup-backfill",
@@ -13,7 +13,7 @@ export const task: OneShotTask = {
     const args = process.argv.slice(3).filter((arg) => arg !== "--");
     const metricKey = args[0];
     if (!metricKey || metricKey.startsWith("--")) {
-      throw new Error(
+      throw new TaskNotStartedError(
         "使い方: pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
       );
     }

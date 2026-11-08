@@ -4,12 +4,11 @@
 // 使い方: pnpm task pairedDevice:pair -- --kind <kind> --label <表示名> [--scope '<JSON>']
 //        pnpm task pairedDevice:pair -- --device <端末 id>
 
-import type { OneShotTask } from "@/lib/task";
+import { type OneShotTask, TaskNotStartedError } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "pairedDevice:pair",
   run: async () => {
-    const { runAsSystem } = await import("@/lib/audit");
     const { createPairedDevice, issuePairingCode } = await import(
       "@/features/core/pairedDevice/services/server"
     );
@@ -20,19 +19,18 @@ export const task: OneShotTask = {
     };
     const usage =
       "使い方: pnpm task pairedDevice:pair -- --kind <kind> --label <表示名> [--scope '<JSON>'] | --device <端末 id>";
-    return await runAsSystem(async () => {
-      let deviceId = readFlag("device");
-      if (!deviceId) {
-        const kind = readFlag("kind");
-        const label = readFlag("label");
-        if (!kind || !label) throw new Error(usage);
-        const scopeRaw = readFlag("scope");
-        const scope = scopeRaw ? (JSON.parse(scopeRaw) as unknown) : undefined;
-        const device = await createPairedDevice({ kind, label, scope }, "system");
-        deviceId = device.id;
-      }
-      const issued = await issuePairingCode(deviceId, "system");
-      return { deviceId, code: issued.code, expiresAt: issued.expiresAt.toISOString() };
-    });
+    // 監査の文脈(system、requestId = 実行の記録の id)はランナーが作る
+    let deviceId = readFlag("device");
+    if (!deviceId) {
+      const kind = readFlag("kind");
+      const label = readFlag("label");
+      if (!kind || !label) throw new TaskNotStartedError(usage);
+      const scopeRaw = readFlag("scope");
+      const scope = scopeRaw ? (JSON.parse(scopeRaw) as unknown) : undefined;
+      const device = await createPairedDevice({ kind, label, scope }, "system");
+      deviceId = device.id;
+    }
+    const issued = await issuePairingCode(deviceId, "system");
+    return { deviceId, code: issued.code, expiresAt: issued.expiresAt.toISOString() };
   },
 };

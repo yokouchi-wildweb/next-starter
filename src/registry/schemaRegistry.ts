@@ -30,6 +30,7 @@ export * from "@/features/core/referral/entities/drizzle";
 export * from "@/features/core/referralReward/entities/drizzle";
 export * from "@/features/core/setting/entities/drizzle";
 export * from "@/features/core/storageObject/entities/drizzle";
+export * from "@/features/core/taskRun/entities/drizzle";
 export * from "@/features/core/user/entities/drizzle";
 export * from "@/features/core/userAcquisition/entities/drizzle";
 export * from "@/features/core/userCounter/entities/drizzle";
