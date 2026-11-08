@@ -6,10 +6,41 @@ lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib
 pnpm check lib-package               # 不備の行 + 1 行のまとめ(門 build・ship でも回る)
 pnpm check lib-package -- --list     # lib ごとの表(外から中を読む import の数も)
 pnpm check lib-package -- --json     # 同じものを JSON で({ rows, summary }、指令 27・クエスト向け)
+pnpm check lib-package -- codemod …  # 動き: 中を読む import を入口へ書き換える(下の「動き」)
+pnpm check lib-package -- moved …    # 動き: notice の moved: と imports: の表(下の「動き」)
+pnpm check lib-package -- help       # 使い方
 pnpm test scripts/structure/lib-package
 ```
 
 - exit 0 = 宣言した lib に不備 0(package.json を持つ lib が 0 の時も)/ 1 = 不備あり(直す所を 1 行ずつ出す)/ 2 = 引数の誤り
+- `--` の後の最初の語が動き(action)。語が無ければ門の検査(scripts/structure/routes の `-- show` と同じ形)。動きの exit はその動きの物
+
+## 動き(action)
+
+どちらも lib の名前を持たず、作業ツリーで閉じた lib(package.json を持ち形に問題の無い lib)の宣言から求めます。閉じた lib が増えれば同じ道具がそのまま使え、fork は自分の木で回します。
+
+### codemod — 中を読む import を入口へ書き換える
+
+```
+pnpm check lib-package -- codemod [--apply] [--json] …
+```
+
+- 閉じた lib の中のファイルを読む import を、その名前を出す入口(package.json の exports、re-export を辿る)に書き換える。既定は dry-run(書かない)、`--apply` で書く、`--json` で機械向け
+- 書き換えない物は止まる一覧に種類つきで出す(入口から出ていない名前・default / 名前空間 / 副作用 / 動的な import)
+- 本体と引数の詳細: `codemod.mjs`(`-- codemod --help`)
+
+### moved — notice の moved: と imports: の表
+
+```
+pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
+```
+
+- `--base` = 付け替えの前の版(例: 閉じる波を始める前の main)、`--head` = 改名を比べる先(既定 HEAD)。宣言は作業ツリーから読む。git から読むので checkout しない
+- `moved:` = ファイルの行。`<base>`→`<head>` で git が改名と見た(-M)行のうち、新しいパスが閉じた lib の中で古いパスがその lib の外の物(例 `src/hooks/useIsClient.ts -> src/lib/isClient/useIsClient.ts`)。notice の moved: 欄にそのまま貼る(/flux が fork の編集を移す)
+- `imports:` = 指定子の行。`<base>` のソースにある `"@/…"` の指定子を lint と同じ解決(eslint-rules/resolve-import.mjs)で `<base>` のファイルに解き、`<head>` のファイル(同じパスか改名の先)が閉じた lib の入口でない中のファイルなら、それを出す入口(codemod の `entryForFile` と同じ求め方)と組にする(例 `@/hooks/useIsClient -> @/lib/isClient`)。notice の notes: と codemod の手順に使う
+- `deleted:` = 指定子の先が `<head>` で消え改名も無い物 / `unresolved:` = 閉じた lib の中のファイルだが、どの入口からも出ていない物。どちらも推し量らずに出す(notes: に書く・入口を足す材料)
+- 行にするのは `<base>` で上流が使っていた指定子だけ。fork だけが読む中のパスは fork の木で codemod を回して直す
+- `--json` = `{ base, head, moved: [{from,to}], imports: [{from,to,files}], deleted: [{from,file}], unresolved: [{from,file,lib}] }`
 
 ## 0. lib ごとの状態(--list / --json)
 
@@ -89,9 +120,12 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 ## ファイル
 
 - `check.mjs` 入口(gate.json の check)。`checkLibs(root)` → `{ checked, skipped, undeclared, problems }`、`libReport(root)` → `{ rows, summary }`(--list / --json)
+- `moved.mjs` moved の動き(`movedRows`・`formatMoved`・`runMoved`)
+- `codemod.mjs` codemod の動き(`runCodemod`・`entryForFile`)
 - `closed.mjs` `libStates`・`closedLibProblems`・`scanInnerImports`・`configStateOf`・`mergeHelpersOf`・`COMPOSER_LIB`
 - `standalone.mjs` `closureOf`・`expectedPaths`・`expectedTsconfig`・`compareTsconfig`・`typecheckLib`
 - `sideEffects.mjs` `sideEffectsInSource`・`findSideEffects`・`checkSideEffects`
 - `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト
 - `closed.test.mjs` 閉じたかの検査のテスト
+- `moved.test.mjs` moved の動き(一時フォルダの git repo)
 - `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること

@@ -12,7 +12,11 @@
 //   pnpm check lib-package                 不備の行 + 1 行のまとめ
 //   pnpm check lib-package -- --list       lib ごとの表(外から中を読む import の数も)
 //   pnpm check lib-package -- --json       同じものを JSON で(指令 27・クエスト向け)
-// exit 0 = 宣言した lib に不備 0(package.json を持つ lib 0 も含む)/ 1 = 不備あり / 2 = 引数の誤り
+// 動き(action。-- の後の最初の語。scripts/structure/routes の -- show と同じ形):
+//   pnpm check lib-package -- codemod [引数]  閉じた lib の中を読む import を入口へ書き換える(codemod.mjs。-- codemod --help)
+//   pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved: と imports: の表(moved.mjs)
+//   pnpm check lib-package -- help          使い方
+// exit 0 = 宣言した lib に不備 0(package.json を持つ lib 0 も含む)/ 1 = 不備あり / 2 = 引数の誤り(動きの exit はその動きの物)
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -73,12 +77,33 @@ function formatTable({ rows, summary }) {
   return out.join("\n");
 }
 
+export const USAGE = [
+  "pnpm check lib-package                         閉じたかの検査(門 build・ship)",
+  "pnpm check lib-package -- --list | --json      lib ごとの状態の表 / JSON",
+  "pnpm check lib-package -- codemod [引数]        閉じた lib の中を読む import を入口へ書き換える(既定 dry-run。-- codemod --help)",
+  "pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved:(ファイル)と imports:(指定子)の表",
+].join("\n");
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-  const args = process.argv.slice(2).filter((a) => a !== "--");
+  const argv = process.argv.slice(2);
+  const args = argv.filter((a) => a !== "--");
+  const action = args[0] && !args[0].startsWith("-") ? args[0] : null;
+  if (action === "help") {
+    console.log(USAGE);
+    process.exit(0);
+  }
+  if (action === "codemod") {
+    const { runCodemod } = await import("./codemod.mjs");
+    process.exit(await runCodemod(root, args.slice(1)));
+  }
+  if (action === "moved") {
+    const { runMoved } = await import("./moved.mjs");
+    process.exit(runMoved(root, args.slice(1)));
+  }
   const unknown = args.filter((a) => a !== "--list" && a !== "--json");
   if (unknown.length > 0) {
-    console.error(`lib-package: 知らない引数 ${unknown.join(" ")}(pnpm check lib-package [-- --list | --json])`);
+    console.error(`lib-package: 知らない引数 ${unknown.join(" ")}\n${USAGE}`);
     process.exit(2);
   }
   if (args.includes("--json") || args.includes("--list")) {
