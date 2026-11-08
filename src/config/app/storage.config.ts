@@ -86,7 +86,8 @@ export const STORAGE_CONFIG = {
    * metadata: "strip" の用途で、commit 時にサーバーが画像を描き直すときの上限と品質（src/lib/storage/server/imageStrip.ts）。
    * - maxFramePixels: 1 フレームの画素数の上限（幅 × 高さ）。超えたら 422
    * - maxTotalPixels: 全フレームの画素数の合計の上限（アニメーション GIF / WebP）。超えたら 422
-   * - quality: 出力の品質（1〜100）。png / gif は sharp の既定。縮小はしない
+   * - quality: 出力の品質（1〜100）。png / gif は sharp の既定。用途の image.quality があればそちら
+   * 縮小は用途ごとの image（画像の縮小の指定、src/lib/storage/README.md「画像の縮小の指定」）で決まる（ここには持たない）
    */
   imageStrip: {
     maxFramePixels: 100_000_000,

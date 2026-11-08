@@ -101,8 +101,8 @@ export type StorageObjectServiceDeps = {
   locate: (store: StorageObjectStore, objectKey: string) => ObjectLocation;
   now: () => Date;
   newId: () => string;
-  /** 画像の描き直し（省略 = stripImageMetadata。テストで差し替える） */
-  stripImage?: (body: Uint8Array, contentType: string) => Promise<ImageStripResult>;
+  /** 画像の描き直し（省略 = stripImageMetadata。テストで差し替える）。image = 用途の縮小の指定（無ければ null） */
+  stripImage?: (body: Uint8Array, contentType: string, image: StorageImageSpec | null) => Promise<ImageStripResult>;
 };
 
 /** 受け取り領域のキーの接頭辞（priv の中。用途 ID は必ず「.」を含むので、通常のキーとは衝突しない） */
@@ -180,7 +180,10 @@ const DISCARD_PAGE_SIZE = 100;
 
 export function createStorageObjectService(deps: StorageObjectServiceDeps) {
   const { ledger, port, purposes, locate, now, newId } = deps;
-  const stripImage = deps.stripImage ?? ((body: Uint8Array, contentType: string) => stripImageMetadata(body, contentType));
+  const stripImage =
+    deps.stripImage ??
+    ((body: Uint8Array, contentType: string, image: StorageImageSpec | null) =>
+      stripImageMetadata(body, contentType, undefined, image));
 
   const locationOfRow = (row: Pick<StorageObject, "store" | "key">) => locate(row.store, row.key);
 
@@ -231,9 +234,13 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
   }
 
   /** サーバー内の書き込み・複製の描き直し。描き直せない画像は DomainError 422 */
-  async function stripForServer(body: Uint8Array, contentType: string): Promise<ImageStripResult> {
+  async function stripForServer(
+    body: Uint8Array,
+    contentType: string,
+    image: StorageImageSpec | null,
+  ): Promise<ImageStripResult> {
     try {
-      return await stripImage(body, contentType);
+      return await stripImage(body, contentType, image);
     } catch (error) {
       if (error instanceof ImageStripError) throw stripFailureError(error);
       throw error;
@@ -291,7 +298,7 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
       let processed: ImageStripResult;
       try {
         const body = await port().read(incoming, { generation: head.generation, maxBytes: purpose.maxBytes });
-        processed = await stripImage(body, row.contentType);
+        processed = await stripImage(body, row.contentType, purpose.image ?? null);
       } catch (error) {
         if (!(error instanceof ImageStripError)) throw error;
         throw await fail(stripFailureReason(error), head.generation, stripFailureError(error));
@@ -629,7 +636,7 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
     }): Promise<{ objectId: string; ref: string }> {
       const purpose = resolveStoragePurpose(purposes(), input.purpose);
       const contentType = assertAcceptable(purpose, input.contentType, input.body.byteLength);
-      const body = requiresStrip(purpose, contentType) ? (await stripForServer(input.body, contentType)).body : input.body;
+      const body = requiresStrip(purpose, contentType) ? (await stripForServer(input.body, contentType, purpose.image ?? null)).body : input.body;
       const id = newId();
       const store = storeOf(purpose);
       const key = objectKeyOf({ store, purposeId: input.purpose, ledgerId: id, ext: extensionForContentType(contentType) });
@@ -703,7 +710,7 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
       let head;
       if (requiresStrip(purpose, contentType)) {
         const original = await port().read(source, { generation: sourceGeneration, maxBytes: purpose.maxBytes });
-        const processed = await stripForServer(original, contentType);
+        const processed = await stripForServer(original, contentType, purpose.image ?? null);
         head = await port().put(destination, processed.body, { contentType, cacheControl });
       } else {
         head = await port().copy(source, destination, { cacheControl, sourceGeneration });

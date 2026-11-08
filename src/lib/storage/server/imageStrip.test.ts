@@ -241,4 +241,58 @@ describe("照合と上限", () => {
     await stripImageMetadata(gif, "image/gif", { ...OPTIONS, maxTotalPixels: 96 });
     await assert.rejects(stripImageMetadata(gif, "image/gif", { ...OPTIONS, maxTotalPixels: 95 }), rejectsKind("too_large"));
   });
+
+  describe("縮小の指定（image）", () => {
+    const solid = (width: number, height: number) =>
+      sharp({ create: { width, height, channels: 3, background: { r: 30, g: 140, b: 200 } } });
+    const dims = async (body: Uint8Array) => {
+      const meta = await sharp(Buffer.from(body)).metadata();
+      return [meta.width, meta.height];
+    };
+
+    test("静止画の jpeg・png・webp の長い辺を maxDimension に縮め、形式は入力のまま", async () => {
+      for (const [type, input] of [
+        ["image/jpeg", await solid(4000, 3000).jpeg().toBuffer()],
+        ["image/png", await solid(3000, 4000).png().toBuffer()],
+        ["image/webp", await solid(4000, 1000).webp().toBuffer()],
+      ] as const) {
+        const result = await stripImageMetadata(new Uint8Array(input), type, OPTIONS, { maxDimension: 1600 });
+        assert.equal(result.contentType, type);
+        const expected = type === "image/jpeg" ? [1600, 1200] : type === "image/png" ? [1200, 1600] : [1600, 400];
+        assert.deepEqual(await dims(result.body), expected, type);
+      }
+    });
+
+    test("向き 6（横長の画素を縦に表示）は向きを直した後の寸法で縮める", async () => {
+      const input = await solid(4000, 2000).withMetadata({ orientation: 6 }).jpeg().toBuffer();
+      const result = await stripImageMetadata(new Uint8Array(input), "image/jpeg", OPTIONS, { maxDimension: 1000 });
+      assert.deepEqual(await dims(result.body), [500, 1000]);
+    });
+
+    test("上限以下・image なしは寸法そのまま（拡大しない）", async () => {
+      const input = new Uint8Array(await solid(800, 600).jpeg().toBuffer());
+      assert.deepEqual(await dims((await stripImageMetadata(input, "image/jpeg", OPTIONS, { maxDimension: 1600 })).body), [800, 600]);
+      assert.deepEqual(await dims((await stripImageMetadata(input, "image/jpeg", OPTIONS)).body), [800, 600]);
+    });
+
+    test("image.quality は画質に使う（低いほど小さい）", async () => {
+      const noisy = Buffer.alloc(1200 * 900 * 3);
+      for (let i = 0; i < noisy.length; i++) noisy[i] = (i * 2654435761) % 251;
+      const input = new Uint8Array(await sharp(noisy, { raw: { width: 1200, height: 900, channels: 3 } }).jpeg({ quality: 95 }).toBuffer());
+      const high = await stripImageMetadata(input, "image/jpeg", OPTIONS, { maxDimension: 2000, quality: 95 });
+      const low = await stripImageMetadata(input, "image/jpeg", OPTIONS, { maxDimension: 2000, quality: 30 });
+      assert.ok(low.body.byteLength < high.body.byteLength);
+    });
+
+    test("アニメーションは縮めない（フレームの寸法そのまま）", async () => {
+      const input = await animated("gif", [
+        [[255, 0, 0, 255], [0, 0, 255, 255]],
+        [[0, 255, 0, 255], [255, 255, 0, 255]],
+      ]);
+      const result = await stripImageMetadata(new Uint8Array(input), "image/gif", OPTIONS, { maxDimension: 2 });
+      const meta = await sharp(Buffer.from(result.body), { animated: true }).metadata();
+      assert.equal(meta.width, 8);
+      assert.equal(meta.pages, 2);
+    });
+  });
 });

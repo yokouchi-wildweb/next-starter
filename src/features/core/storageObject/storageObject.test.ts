@@ -835,6 +835,54 @@ describe("metadata: strip の受け入れ（実 sharp）", () => {
     );
   });
 
+  test("用途の image で縮め直す: commit・putFromServer・copy とも長い辺を maxDimension に（image の無い用途はそのまま）", async () => {
+    const h = setup({ realStrip: true });
+    const large = new Uint8Array(
+      await sharp({ create: { width: 3000, height: 2000, channels: 3, background: { r: 200, g: 120, b: 40 } } }).jpeg().toBuffer(),
+    );
+    const sizeOf = async (body: Uint8Array | undefined) => {
+      const { width, height } = await sharp(Buffer.from(body ?? new Uint8Array())).metadata();
+      return [width, height];
+    };
+
+    const issued = await issueAndSend(h, "album.photo", large);
+    await h.service.commit(alice, issued.objectId);
+    assert.deepEqual(await sizeOf(h.fake.objects.get(`priv-bucket/album.photo/${issued.objectId}.jpg`)?.body), [2048, 1365]);
+
+    const put = await h.service.putFromServer({ purpose: "album.photo", body: large, contentType: "image/jpeg", ownerUserId: null });
+    assert.deepEqual(await sizeOf(h.fake.objects.get(`priv-bucket/album.photo/${put.objectId}.jpg`)?.body), [2048, 1365]);
+
+    const original = await h.service.putFromServer({ purpose: "sample.original", body: large, contentType: "image/jpeg", ownerUserId: null });
+    const copied = await h.service.copy({ source: original.ref, purpose: "album.photo", ownerUserId: null });
+    assert.deepEqual(await sizeOf(h.fake.objects.get(`priv-bucket/album.photo/${copied.objectId}.jpg`)?.body), [2048, 1365]);
+
+    const plain = await h.service.putFromServer({ purpose: "profile.photo", body: large, contentType: "image/jpeg", ownerUserId: null });
+    assert.deepEqual(await sizeOf(h.fake.objects.get(`pub-bucket/profile.photo/${plain.objectId}.jpg`)?.body), [3000, 2000]);
+  });
+
+  test("描き直しの差し替えには用途の image（無ければ null）が届く", async () => {
+    const received: unknown[] = [];
+    const service = createStorageObjectService({
+      ledger: createMemoryLedger(),
+      port: () => createFakeStoragePort(),
+      purposes: () => PURPOSES,
+      locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
+      now: () => new Date(),
+      newId: (() => {
+        let n = 0;
+        return () => `01920000-0000-7000-8000-${String(++n).padStart(12, "0")}`;
+      })(),
+      stripImage: async (body, contentType, image) => {
+        received.push(image);
+        return { body, contentType };
+      },
+    });
+    const jpeg = new Uint8Array(await sharp({ create: { width: 4, height: 4, channels: 3, background: "#fff" } }).jpeg().toBuffer());
+    await service.putFromServer({ purpose: "album.photo", body: jpeg, contentType: "image/jpeg", ownerUserId: null });
+    await service.putFromServer({ purpose: "profile.photo", body: jpeg, contentType: "image/jpeg", ownerUserId: null });
+    assert.deepEqual(received, [{ maxDimension: 2048, quality: 80 }, null]);
+  });
+
   test("user.avatar は登録表で keep に上書きしても strip で扱う", async () => {
     const overridden = withFixedStripPurposes({
       "user.avatar": { ...PURPOSES["profile.photo"], metadata: "keep" },

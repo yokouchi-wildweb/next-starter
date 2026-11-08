@@ -211,7 +211,8 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - sharp で描き直す。sharp（ネイティブ）は初回の呼び出しで読み込む（`@/lib/storage/server` を使うだけのルートの起動を重くしない）
 - メタデータを書く API（`withMetadata` / `keepExif` / `keepIccProfile` など）は呼ばない。EXIF（位置情報を含む）・XMP・IPTC・ICC を残さない
 - **ICC**: sRGB に変換してから落とす（sharp の既定）。P3 などの広色域は、P3 画面での鮮やかさが少し落ちる。標準プロファイルへの置き換え（P3 保持）は持たない
-- 出力は入力と同じ形式（jpeg → jpeg … avif → avif）。縮小はしない
+- 出力は入力と同じ形式（jpeg → jpeg … avif → avif）
+- **縮め直し**: 用途に `image`（画像の縮小の指定）があれば、静止画の長い辺が `maxDimension` を超えるとき縦横比を保って縮める（向きを直した後の寸法で。拡大はしない。拒否はしない: ブラウザで縮められずに届いた物の最後の守り）。`image.quality` があれば jpeg / webp / avif の画質に使う（省略 = `imageStrip.quality`）。アニメーション（GIF / WebP の複数フレーム）は縮めない。commit・`putFromServer`・`copy` の 3 か所とも同じ（`stripImageMetadata(body, type, options, image)`）。発行の `maxBytes` の検査は原本の大きさで行う（縮め直しは上限を緩めない）
 - **向き**
   - 静止画: EXIF の向きどおりに回転してから向きのタグを捨てる
   - アニメーション: 向き 2〜4（反転・180 度）だけ補正する。5〜8（90 / 270 度回転を含む）は、sharp が複数ページの回転に対応しないため、**回転せずに向きの情報を捨てる**（表示が横倒しになりうる）
@@ -310,7 +311,7 @@ type StoragePurpose = {
 - `maxDimension` = 長い辺の上限（px、1 以上の整数）。超える画像だけを縦横比を保って縮める（小さい画像は描き直さない）。`quality` = 縮めて書き出すときの画質（1〜100 の整数）。省略 = `storage.config` の `imageStrip.quality`
 - 省略 = 縮めない（今までどおり）。上流の core の用途（`user.avatar` ほか）には指定を置かない: 値は fork の画面の都合で決まるので、fork が自分の用途・上書きで宣言する
 - strip（省略を含む）の画像の用途にだけ書ける。`metadata: "keep"` の用途・画像の型が無い用途に書くと `listStoragePurposeProblems` のエラー（keep はサーバーが描き直さないので、縮小を守らせられない）
-- 守り方: ブラウザが送る前にこの指定で縮め、サーバーは commit の描き直しで同じ指定を守らせる（最後の守り）。どちらも用途の方針（`GET /api/storage/purposes/[purpose]` の `image`）と用途表の同じ値を読む
+- 守り方: ブラウザが送る前にこの指定で縮め（「送る前の縮小」）、サーバーは描き直しで同じ指定を守らせる（「描き直し」の縮め直し。最後の守り）。どちらも用途の方針（`GET /api/storage/purposes/[purpose]` の `image`）と用途表の同じ値を読む
 
 - allow（既存の DomainApiAccessRule の語彙）と check（任意の判定関数）は AND。暗黙に判定を通る道（admin・system の素通し）は無い
 - `resolveStoragePurpose(map, id)` は、未登録なら `StoragePurposeNotFoundError`（400）を投げる。`findStoragePurpose(map, id)` は未登録で undefined

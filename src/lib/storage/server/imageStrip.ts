@@ -11,6 +11,9 @@
 //   逆になる。3・4 はフレームごとに補正して並べ直す（ループ・コマ間隔は元の値を付け直す）
 // - 実際の形式が申告と違えば ImageStripError("type_mismatch")、画素数の上限超えは "too_large"、
 //   読めない・処理できないものは "unprocessable"
+// - 用途に画像の縮小の指定（image: StorageImageSpec）があれば、静止画の長い辺が maxDimension を超えるとき縦横比を保って
+//   縮め直す（拒否しない。ブラウザで縮められずに届いた物の最後の守り）。image.quality があれば jpeg / webp / avif の画質に使う。
+//   アニメーションは縮めない（描き直すだけ）
 // 上限と品質の値: src/config/app/storage.config.ts の imageStrip
 // sharp（ネイティブ）は初回の呼び出しで読み込む（@/lib/storage/server を使うだけのルートの起動を重くしない）
 
@@ -21,6 +24,7 @@ import type { Metadata, Sharp, SharpOptions } from "sharp";
 import { STORAGE_CONFIG } from "@/config/app/storage.config";
 
 import { normalizeContentType } from "../contentTypes";
+import type { StorageImageSpec } from "../policy/types";
 import { STRIP_IMAGE_TYPES } from "../metadata";
 
 export type ImageStripErrorKind = "type_mismatch" | "too_large" | "unprocessable";
@@ -125,6 +129,7 @@ export async function stripImageMetadata(
   input: Uint8Array,
   declaredType: string,
   options: ImageStripOptions = STORAGE_CONFIG.imageStrip,
+  image: StorageImageSpec | null = null,
 ): Promise<ImageStripResult> {
   const type = normalizeContentType(declaredType);
   if (!type || !STRIP_TYPE_SET.has(type)) {
@@ -167,8 +172,12 @@ export async function stripImageMetadata(
       if (oriented.rebuilt) animation = { loop: metadata.loop, delay: metadata.delay };
     } else {
       pipeline = sharpOf({}).autoOrient();
+      // 長い辺を maxDimension の正方形の中に収める（向きを直した後の寸法で。小さい画像は拡大しない）
+      if (image) pipeline = pipeline.resize(image.maxDimension, image.maxDimension, { fit: "inside", withoutEnlargement: true });
     }
-    const output = await encode(pipeline, stripType, options.quality, animation).toBuffer();
+    const quality =
+      image?.quality !== undefined ? { jpeg: image.quality, webp: image.quality, avif: image.quality } : options.quality;
+    const output = await encode(pipeline, stripType, quality, animation).toBuffer();
     return {
       body: new Uint8Array(output.buffer, output.byteOffset, output.byteLength),
       contentType: stripType,
