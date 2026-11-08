@@ -1,276 +1,92 @@
-# Scripts
+# scripts/
 
-開発・運用で使用するスクリプト群です。
+scripts/ は、アプリの外からこのフレームワークを作り・確かめ・動かすための道具の置き場です。中身は 4 つに分かれます。構成を作り確かめる生成器と検査器(structure)、開発の進め方の道具(workflow)、テスト・運用コマンド・シードを動かすランナー(runner)、手で行う操作と閲覧の道具(operations)。ドメインの持ち物(運用コマンド・移行・シード)はそのドメインに置き、アプリが実行時に読むコードは置きません。
 
-## コマンド一覧
+編集する時の細かい決まり(gate.json の欄・書く入口の守り・タスクと移行・シード・テストの群・lint の範囲)は `.claude/rules/core/scripts.md`(scripts を開くと読まれる)。
 
-### 環境変数 (env)
+## 4 つの分類
 
-```bash
-# .env.example → .env.development を生成し、最小起動に必要な値を自動設定
-# (APP_BASE_URL=localhost / AUTH_JWT_SECRET / ENCRYPTION_KEY をランダム生成。既存なら何もしない)
-pnpm ops setup env
+| 分類 | 置く物 | 呼び方 | 今の対象 |
+|---|---|---|---|
+| `structure/` | 生成器と検査器。全部どこかの門(gate.json)に乗る | `pnpm generate <対象>` / `pnpm check <対象>` | admin-menu・bundle・config・cron・cycles・district-map・domain・eslint・extensions・forge・proxies・registry・role・routes・styles |
+| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・dev-admin・dev-tab・local-migrations・notices・ownership・rules・tmux-launch・worktree |
+| `runner/` | 入口と、テスト・運用コマンド・シードを動かすランナー、書く入口の守り | `pnpm test` / `pnpm task` / `pnpm check` / `pnpm ops db seed` の中身 | entries・gates・guard・preload・seed・task・test |
+| `operations/` | 手で行う操作と閲覧(DB・Firestore・データ・デプロイ・初期化・storage・ルーム・メール・機能の入切・Claude API) | `pnpm ops <対象> <動作>` | claude・data・db・deploy・features・firestore・mail・room・setup・storage |
 
-# 別名のファイルを作る場合
-pnpm ops setup env .env.local
-```
+- 対象 = 分類の下のフォルダ 1 つ。動作 = そのフォルダの直下の `<動作>.ts` / `.mjs`(`*.test.*`・`lib.*`・下のフォルダの中は動作にならない)。`pnpm ops` / `pnpm workflow` を引数なしで打つと一覧
+- 入口の仕組み: [runner/entries/README.md](./runner/entries/README.md)
 
-用途: フォーク直後やクローン直後の最初の一歩。Firebase / DB 未設定でも dev サーバーが起動する状態を作る。一次情報:
-
-➡ [新規プロジェクトの立ち上げ: フォークからデプロイまで](../docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md)
-
-### ワークツリー (worktree)
+## 入口(package.json)
 
 ```bash
-# 本体の隣 (../<repo名>.wt-<branch>) にワークツリーを作り、env 等を複製して pnpm install
-pnpm workflow worktree new <branch> [--from <base>] [--path <dir>]
-
-# 既存ワークツリーへ env 等を入れ直す (既定は上書きしない。--force で上書き)
-pnpm workflow worktree sync [path] [--force]
-
-# 未コミットの変更が無いことを確かめて外す (ブランチは残す)
-pnpm workflow worktree remove <path>
+pnpm dev | build | start | lint | typecheck
+pnpm test [<パス>|--changed|--db|--group=<群>]   # テスト(runner/test/README.md)
+pnpm check [<対象>|--gate=<門>] [--all]           # 検査器(門ごと、runner/gates/README.md)
+pnpm generate [<対象>]                           # 生成器
+pnpm task <ドメイン>:<名前> | <定期タスク> | --list | --due | --resolve <runId> succeeded|failed
+pnpm ops <対象> <動作> [<引数>...]               # 手で行う操作と閲覧
+pnpm workflow <対象> <動作> [<引数>...]          # 開発の進め方の道具
+pnpm forge                                       # domain.json / role.json / profile.json から生成 + 検査を一度に
+pnpm e2e                                         # 動いているアプリを外から見るテスト(tests/e2e、playwright)
+pnpm db:push | db:push:check                     # スキーマを DB に反映 / 読むだけの差分(push は人が打つ)
+pnpm live | live:app | live:room | live:all      # デプロイ(本番は確認が要る)
 ```
 
-複製するファイルの一覧は `scripts/workflow/worktree/include`。DB は本体と共有になる点に注意。詳細: [workflow/worktree/README.md](./workflow/worktree/README.md)
+- package.json の行はこれだけ。新しい道具は分類の下のフォルダに置けば入口が拾う(package.json に足さない)
+- 門(`build`・`build:post`・`ship`・`forge:pre`・`forge:post`・`deploy`)と gate.json: [runner/gates/README.md](./runner/gates/README.md)
 
-### 開発サーバーのタブ (pnpm workflow dev-tab run)
+## ドメインの持ち物(scripts/ の外、ランナーが探して動かす)
+
+- 運用コマンド: `src/features/<ドメイン>/scripts/tasks/<名前>.ts` = `pnpm task <ドメイン>:<名前>`(例 `pnpm task wallet:reverse-history`・`pnpm task user:bulk-change-status`)
+- 移行(notice が名指す 1 回きり): `src/features/<ドメイン>/scripts/migrations/<名前>.ts`。git に入れない緊急の修正は `<名前>.local.ts`
+- シード: `src/features/<ドメイン>/seed.ts`(`defineSeed`)= `pnpm ops db seed [--all]`
+- 実行は毎回 `task_runs`(core の taskRun)に記録し、止める鍵で二度流さない
+- 書き方: [src/lib/task/README.md](../src/lib/task/README.md)・[src/lib/seed/README.md](../src/lib/seed/README.md)・[runner/seed/README.md](./runner/seed/README.md)。ドメインに置く理由: [src/features/README.md](../src/features/README.md)「ドメインの運用コマンド・移行・シード」
+
+## 書く入口の守りと env
+
+- DB・外部に書く道具は全部、先頭で共通の守りを通る: 向き先の既定は開発(`.env.development`)、本番は `--env production` と確認(非対話は `--confirm=production`)、env ファイルの段階の印 `APP_ENV` と接続先を照らし合わせ、開発と本番が同じ DB なら止める
+- env ファイルは `.env.development` と `.env.production` の 2 つ(どちらにも `APP_ENV=<段階>` の 1 行、別の DB)。無ければ `pnpm ops setup env` が両方を作る(上書きしない)。個人の上書き・秘密は `.env.<段階>.local`
+- 詳細: [runner/guard/README.md](./runner/guard/README.md)・[src/lib/appEnv/README.md](../src/lib/appEnv/README.md)「env ファイルの規則」
+
+## よく使う操作
 
 ```bash
-# tmux のタブ「Dev」で開発サーバーを立てる (ポートは 3000 から空きを選ぶ。tmux の外なら裏でセッションを作る)
-pnpm workflow dev-tab run [--port=<n>]
-
-# 止めてタブを閉じる / どこで動いているか
-pnpm workflow dev-tab run stop
-pnpm workflow dev-tab run status
+pnpm ops setup env                                  # .env.development と .env.production を作る(最初の一歩)
+pnpm db:push && pnpm ops db seed --all              # DB を作ってシードを入れる
+pnpm ops db inspect tables | describe <表> | count [表] | query "SQL"
+pnpm ops db clear [--all]                           # データを消す(閉じた機能の表は選べない)
+pnpm ops data export|import|update|delete <domain>  # 全ドメイン共通のデータ操作(operations/data/README.md)
+pnpm ops features list | set <規則名> on|off        # 機能を閉じる規則の一覧と入切
+pnpm workflow worktree new <branch> | sync | remove <path>
+pnpm workflow dev-tab run [stop|status]             # 開発サーバーを tmux のタブで
+pnpm workflow dev-admin run                         # 確認用の管理者を開発用 DB に用意する
+pnpm ops room init | deploy | secret | check | dev  # リアルタイムルーム(servers/room/README.md)
+pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を作る
 ```
 
-1 チェックアウトに 1 つ (本体とワークツリーで同時に立てられる)。詳細: [workflow/dev-tab/README.md](./workflow/dev-tab/README.md)
+各対象の詳細はそのフォルダの README(例 [operations/data/README.md](./operations/data/README.md)・[operations/storage/README.md](./operations/storage/README.md)・[workflow/worktree/README.md](./workflow/worktree/README.md)・[structure/domain/README.md](./structure/domain/README.md)・[structure/registry/README.md](./structure/registry/README.md))。
 
-### 通常セッションを tmux で開く (pnpm workflow tmux-launch setup)
+## fork が足せる物
 
-```bash
-# マシンごとに 1 回: ターミナルで打った claude が tmux の中で開くようにする (--check で確かめる、--remove で外す)
-pnpm workflow tmux-launch setup
-```
+- 新しい対象のフォルダ 1 つ: 門に乗せる生成器・検査器は `structure/<名前>/`(gate.json を置く)、開発の道具は `workflow/<名前>/`、手で行う操作は `operations/<名前>/`。入口と門が拾う
+- 上流のフォルダの中にファイルを足さない(`pnpm workflow ownership check` が止める)。特定のドメインの道具はそのドメインの `scripts/` へ
+- 動いているアプリを外から見るテスト(E2E・アクセシビリティ)は fork の `tests/` へ(scripts/ に置かない)
 
-詳細: [workflow/tmux-launch/README.md](./workflow/tmux-launch/README.md)
+## 置かない物
 
-### データベース (db)
-
-```bash
-# スキーマをDBに反映
-pnpm db:push
-
-# シーダー実行（インタラクティブ）
-pnpm ops db seed
-
-# 全シーダー実行
-pnpm ops db seed --all
-
-# 機能を閉じる規則の一覧（開閉・必須・住所・表・依存・呼び出し。--name <規則名> で詳細、--json）
-pnpm ops features list
-
-# 機能の入切（規則がドメインの config の <X>_CONFIG.enabled を読む形だけ書く。他は場所を案内して exit 2。必須は off にしない）
-pnpm ops features set <規則名> on|off
-
-# 管理メニューをロールごとの木で出す（行ごとに当たる規則か 常時・重複・描かない物と理由。--role=<ロール>、--closed=now|all|none）
-pnpm check admin-menu -- show
-
-# 管理メニューの受け口の点検（門 build・ship に乗る。中身: src/features/core/admin/menu/README.md）
-pnpm check admin-menu
-
-# データ削除（インタラクティブ。閉じた機能の表は選べない・参照元は外部キーから足して一覧 → 確認 → 1 文の TRUNCATE ... RESTRICT）
-# (閉じた機能の表も消す: pnpm ops db clear --include-closed。計画の検査: pnpm test scripts/operations/db/clear/plan.test.ts。詳細: src/featureGate/README.md「pnpm ops db clear と閉じた機能の表」)
-pnpm ops db clear
-
-# 選べる表のデータを全部削除（対話なし。閉じた機能の表は除く）
-pnpm ops db clear --all
-
-# DB構築 + 全シード（初期セットアップ）
-pnpm db:push && pnpm ops db seed --all
-
-# core ドメインの drizzle.ts が全て schemaRegistry に登録されているか検証
-# (登録漏れ = db:push でテーブルが作られない。core ドメイン追加時に実行)
-pnpm test scripts/structure/registry/
-
-# push の読み取り専用ドライラン: スキーマと DB を比較し、実行される SQL を表示 (1 文でもあれば exit 1)
-# (index を追加・変更したら db:push 後に差分ゼロを確認。pnpm db:push:check -- --env production で本番の事前確認にも)
-pnpm db:push:check
-```
-
-詳細: [structure/registry/README.md](./structure/registry/README.md)
-
-詳細: [runner/seed/README.md](./runner/seed/README.md)
-
-### 全ドメイン共通のデータ操作 (data)
-
-```bash
-pnpm ops data export <domain> --out <file.jsonl> [--with-deleted] [--limit <n>]   # 書き出し(JSON Lines、読むだけ)
-pnpm ops data import <domain> --file <file.jsonl> [--dry-run]                     # 取り込み(bulkUpsert、id が同じなら上書き)
-pnpm ops data update <domain> --file <file.jsonl> [--dry-run]                     # 1 行 { id, ...変える列 }(bulkUpdate)
-pnpm ops data delete <domain> (--ids <id>[,...] | --file <file>) [--dry-run]       # bulkDeleteByIds
-```
-
-許可はドメインの access(管理 API で何かしらのロールに許した操作は許す、サービスに無い操作は止める)。書き込みは task_runs に記録して同じ中身を二度当てない。詳細: [operations/data/README.md](./operations/data/README.md)
-
-### ドメイン設定 (dc)
-
-```bash
-pnpm forge                                   # 手で書いた domain.json / role.json / profile.json から生成 + 検査（普段はこれ）
-pnpm generate domain -- <Domain> [--only <cats>]    # 1 ドメインの生成（既定は対話なし、-i で対話）
-pnpm generate domain                         # 全ドメインの一括生成
-pnpm generate domain -- --delete <Domain> --confirm <snake>    # ドメイン削除
-```
-
-詳細: [structure/domain/README.md](./structure/domain/README.md)、[structure/forge/README.md](./structure/forge/README.md)
-
-### メール (mail)
-
-```bash
-# テストメール送信
-pnpm ops mail test-send
-
-# カラーパレット生成
-pnpm generate styles
-```
-
-### Claude API
-
-```bash
-# API接続確認
-pnpm ops claude test
-```
-
-事前設定: `.env.development` に `ANTHROPIC_API_KEY` を設定
-
-### Storage (バケット)
-
-```bash
-# ファイル保存の新しい公開バケット(pub)と非公開バケット(priv)を冪等に用意(UBLA・公開設定・CORS まで)
-pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com --dry-run
-
-# 旧バケット(Firebase の既定バケット)の CORS。旧 URL のバイトをブラウザで読む機能を使う場合だけ
-pnpm ops storage setup-cors https://your-app.com
-```
-
-手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [operations/storage/README.md](./operations/storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
-
-### 定期タスク (task / cron)
-
-```bash
-# 運用タスクを CLI から実行(定期タスク + ワンショット)
-pnpm task <task-name>          # 定期タスク(平らな名前)
-pnpm task <ドメイン>:<名前>     # ドメインのタスク・移行(例 wallet:lots-init、src/lib/task/README.md)
-pnpm task --list               # 一覧(頻度・有効/無効・説明、ドメインのタスクと移行を分けて出す)
-pnpm task --due                # 今の分(UTC)に schedule が一致する定期タスクを実行(Vercel 以外のスケジューラから毎分呼ぶ。記録しない)
-pnpm task --resolve <runId> succeeded|failed   # 結果不明・実行中のまま残った記録を人が確かめて書き直す
-
-# vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
-pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
-pnpm generate cron -- --plan pro     # Vercel Pro: task.ts の schedule どおり
-
-# vercel.json の crons が task.ts と一致するか検査(pnpm live 系と Vercel 上の pnpm build が先に実行)
-pnpm check cron
-```
-
-- 向き先は書く入口の共通の守り(既定は開発、本番は `--env production` と確認、非対話は `--confirm=production`。`runner/guard/README.md`)。DB・外部に書く道具は全部これを通す。
-- 名指しの実行は毎回 `task_runs` に記録し、止める鍵・結果不明・dry-run を効かせる(`src/lib/task/README.md`「実行の記録」)。
-- `pnpm task` は env ファイルを読む（`ENV_FILE`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
-- タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/runner/preload/serverOnly.mjs`、下記「テスト」）を付けている。
-
-定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:
-
-➡ [src/lib/cron/README.md](../src/lib/cron/README.md)
-
-### デプロイ
-
-```bash
-# アプリ(Vercel) + ルームサーバー(Cloudflare) を1コマンドで揃えてデプロイ(手動運用の標準)
-# room 無効フォークでは Worker を skip しアプリのみ。引数は vercel CLI へ透過(無指定なら --prod)
-pnpm live:all
-pnpm live:all -- --target=preview
-pnpm live                      # アプリ(Vercel)だけ(= pnpm live:app)
-pnpm live:room                 # ルームサーバーだけ(中身は pnpm ops room deploy)
-```
-
-どれも事前に `pnpm check cron` を実行し、`vercel.json` の crons が `task.ts` と食い違えば何もデプロイせず止まる。
-
-※ vercel CLI に `--preview` フラグは無い(`--prod` は `--target=production` の短縮形)。プレビューは `--target=preview` を明示する
-
-### リアルタイムルーム (room)
-
-```bash
-# 有効化セットアップ(wrangler.toml 生成 + 依存インストール + チェックリスト表示。冪等)
-pnpm ops room init
-
-# Worker 単体デプロイ(config enabled=false なら skip。既定Worker名 "room-server" は拒否。冪等)
-pnpm ops room deploy
-
-# 共有鍵の生成 + Worker への非対話登録 + Next側env行の表示(未デプロイWorkerと登録済み鍵の上書きは拒否)
-pnpm ops room secret
-pnpm ops room secret --rotate   # 鍵ローテーション(Next側envの差し替えとセットで)
-
-# デプロイ済み Worker の動作確認(疎通・認可・WS配信・永続化の11項目。env から接続先を読む)
-pnpm ops room check
-
-# ローカル実行(Cloudflare アカウント不要。wrangler dev)
-pnpm ops room dev
-```
-
-用途: ホットパス・リアルタイム基盤 `servers/room` (Cloudflare Durable Objects) の運用コマンド。オプトイン既定無効。手順・env・CI 連携の一次情報:
-
-➡ [servers/room/README.md](../servers/room/README.md)
-
-### ESLint の必須規則 (pnpm check eslint)
-
-```bash
-# 全 Tier の必須の ESLint 規則が、fork の設定を最後に読んだ最終の設定でも error のままか
-pnpm check eslint
-```
-
-- 一覧 = `eslint-rules/required-rules.mjs`(upstream の物。規則名と、その規則が掛かる代表のファイル)。tier で強さが変わらない守り・境界の規則だけを載せる
-- `eslint.config.fork.mjs` は `eslint.config.mjs` の最後に読まれるので、ここで一覧の規則を off / warn にすると止まる。規則を足す・一覧の外を緩めるのは自由。行ごとの例外は理由付きの eslint-disable
-- `pnpm build` の門 `pnpm check --gate=build` が回す(fork の Vercel のビルドと /flux の build 検査でも走る)。試験: `pnpm test scripts/structure/eslint/requiredRules.test.mjs`
-
-### テスト (tsx で動かすもの)
-
-tsx で動かすテスト（`*.test.ts` / `*.test.mts`、TypeScript を import する `*.test.mjs`）の package.json スクリプトは、必ず `--import ./scripts/runner/preload/serverOnly.mjs` を付ける。
-
-```bash
-npx tsx --import ./scripts/runner/preload/serverOnly.mjs --test <テストファイル>
-```
-
-- 理由: `import "server-only"` は Next のバンドラーだけが解決する。テストが serviceRegistry などから server コードへ import をたどると、素の tsx では `Cannot find module 'server-only'` で全件落ちる（依存の import 連鎖次第なので、今通っているテストもドメイン追加で落ち始める）。
-- preload はテスト実行時だけ `server-only` を空モジュールに差し替える。ソース側の `import "server-only"` は消さない。
-- `server-only` を devDependencies に入れても解決しない（本物は react-server 条件以外では import 時に throw する）。
-- `--experimental-test-module-mocks`（`mock.module`）を使うテストでも同じ preload で足りる。module mocks を有効にすると CJS の require が import のフックを通らないため、preload は `Module._resolveFilename` も包んでいる。回帰テスト: `pnpm test scripts/runner/preload/serverOnly.test.mts`。
-- `mock.module` は後から読み込むモジュールにしか効かない。モックの影響を受けるモジュールは `mock.module` の後に動的 import する（例: `src/features/core/storageObject/callsites.test.mts`）。
+- アプリが実行時に読むコード・業務の処理(ドメインかライブラリ `src/lib` へ)
+- 特定のドメインの運用コマンド・移行・シード(そのドメインへ)
+- 道具とアプリが両方使う部品(`src/lib` へ。例 `src/lib/cron`・`src/lib/task`・`src/lib/seed`)
 
 ## 置き場の境目(lint、全 Tier で error)
 
-- `import-boundaries/src-no-scripts`: `src/**`(テストも)は `scripts/**` を import しない。アプリと道具が両方使う物は `src/lib` に置く(例 `src/lib/cron/discover.ts`・`src/lib/task`)。道具の側を確かめるテストは `scripts` の側に置く
-- `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/features/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使うときは run の中で `await import("@/wiring/…")`
-- `import-boundaries/tools-no-db-write`: ドメインの `scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts`・DB に書く開発の道具 `scripts/workflow/dev-admin` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義 `entities/drizzle`・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行(`src/features/<domain>/scripts/migrations/`)
-- 3 本とも必須の規則の一覧(`eslint-rules/required-rules.mjs`)に載る: fork の `eslint.config.fork.mjs` で off / warn にすると `pnpm build`(`pnpm check eslint`)が止まる。行ごとの例外は理由付きの eslint-disable
+- `import-boundaries/src-no-scripts`: `src/**`(テストも)は `scripts/**` を import しない。道具の側を確かめるテストは `scripts` の側に置く
+- `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/features/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使う時は run の中で `await import("@/wiring/…")`
+- `import-boundaries/tools-no-db-write`: ドメインの `src/features/<ドメイン>/scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts`・`scripts/workflow/dev-admin` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行
+- 3 本とも必須の規則(`eslint-rules/required-rules.mjs`)。fork が off / warn にすると `pnpm build` の `pnpm check eslint` が止まる。行ごとの例外は理由付きの eslint-disable
 
-## ディレクトリ構成
+## テスト
 
-```
-scripts/
-├── README.md              # このファイル
-├── test-claude-api.ts     # Claude API 接続確認
-├── db/                    # データベース関連
-│   ├── seed/              # シーダー(各ドメインの seed.ts を走査、src/lib/seed)
-│   └── clear/             # データ削除
-├── cron/                  # vercel.json の cron 生成・検査
-├── domain-config/         # ドメイン設定生成
-├── env/                   # .env 初期生成
-├── mail/                  # メール関連
-├── room/                  # リアルタイムルーム基盤の init / deploy
-├── test/                  # テスト実行用の preload (server-only の差し替え)
-├── worktree/              # ワークツリーの作成・env 複製・片付け
-├── dev-tab/               # 開発サーバーを tmux のタブで立てる・止める (pnpm workflow dev-tab run)
-├── tmux-launch/           # ターミナルの claude を tmux で開く仕組み (pnpm workflow tmux-launch setup)
-└── dev-admin/             # 確認用の管理者を開発用 DB に用意する (pnpm workflow dev-admin run)
-```
+- `pnpm test`(群・絞り方・フラグ: [runner/test/README.md](./runner/test/README.md))。server-only の下駄と module mocks は入口が常に付けるので、テストにも package.json にも書かない
+- この README の名指しが実在するかは `pnpm test scripts/runner/entries/readme.test.mjs`

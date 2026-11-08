@@ -89,6 +89,13 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - `uses:` を持つ notice は区切り(`checkpoint: -` にしない)。後の `skip_checkpoint:` でも外せない(区間が後ろにずれると、添付が消えた木に merge しうる)
 - 実行の手順は `required_actions`、確かめ方は `verify` に書く。後から取り込む fork は、添付を notice を足した commit の版から読む
 
+### 運用コマンド・移行を fork に打たせる
+
+- 打たせる物は `pnpm task <domain>:<名前>` で書く(移行も運用コマンドも同じ入口。本番で打たせるなら `--env production --confirm=production` まで書く)。実行は fork の `task_runs` に記録され、移行は一度きり(同じ notice の鍵で二度流れない)
+- 移行は `uses:` にも挙げる(上)。上流の運用コマンド(`src/features/<domain>/scripts/tasks/`)は上流に残る物なので `uses:` に挙げない
+- 全ドメイン共通のデータ操作を打たせるなら `pnpm ops data <command> <domain>`(`scripts/operations/data/README.md`)
+- 出荷前の検査(`pnpm check notices`、D32): notice が名指す `pnpm task <名前>` はその木に実在すること(ドメインのタスク・移行・定期タスク)。読み方: コードの中(インラインのコード・フェンスの塊・コマンドだけの行)はどの名前も確かめ、地の文の中は `:` か `-` を含む名前だけを確かめる(地の文の 1 語の平らな定期タスクの名前は確かめない)。読み手: `scripts/runner/task/scan.mjs` の `taskNamesIn`
+
 ### codemod(`.notices/<id>.<名前>.mjs`)
 
 上流の変更に合わせて fork のコードを機械的に書き換える 1 回きりの道具。案内する notice(最初に名指した notice)の隣に置き、本文と一緒に消す。

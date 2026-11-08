@@ -16,6 +16,7 @@ pnpm test --list                # 選んだファイルを出すだけ
 - `--changed`: 範囲(門の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/gates/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
 - exit 0 = 全部通る(0 本も)/ 1 = 落ちた / 2 = 引数・フラグの誤り
 - build はテストを回さない
+- テストの中で子の `node --test` / `tsx --test` を起動する時は、環境変数から `NODE_TEST_CONTEXT` を外す(親の node --test の印。残ると子は結果を親向けに流し、子が落ちても exit 0 になる。例 `src/utils/date.test.ts`)
 - 1 本・1 フォルダだけ回す: `pnpm test <パス>`(環境変数の要る物は前に付ける: `FEATURE_GATE_CHECK=all pnpm test scripts/structure/proxies/featureGate.test.mjs`)
 - テスト: `pnpm test scripts/runner/test`(`testEntry.test.mjs`)
 
