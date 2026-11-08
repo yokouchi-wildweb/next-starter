@@ -17,6 +17,7 @@ import { AuthSessionProvider } from "@/features/core/auth/components/AuthSession
 import { ForkProviders } from "@/app/_providers/ForkProviders";
 import { FormInputsRoot } from "@/wiring/formInputs/FormInputsRoot";
 import { GateProvider, type ClientGateState } from "@/featureGate/client";
+import { HttpDefaultsRoot } from "@/lib/httpDefaults/HttpDefaultsRoot";
 
 export function AppProviders({
   children,
@@ -24,6 +25,8 @@ export function AppProviders({
 }: Readonly<{ children: ReactNode; gate: ClientGateState }>) {
   return (
     <GateProvider state={gate}>
+      {/* client の既定の axios に既定のタイムアウト(src/lib/httpDefaults、設定が無ければ何もしない) */}
+      <HttpDefaultsRoot />
       <TooltipProvider>
         <RecaptchaProvider>
           <AuthSessionProvider>

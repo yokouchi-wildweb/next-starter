@@ -38,6 +38,7 @@
 - src/lib/frameDims — body 直下へ portal する部品に外枠の寸法変数(ヘッダー・バナー・下のナビの高さ)を写す useFrameDimsStyle(変数の名前と外枠の印は @lib-config で上書き)
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
 - src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル
+- src/lib/httpDefaults — client の HTTP の既定。既定の axios に、自分のタイムアウトを持たない呼び出しだけへ既定のタイムアウトを付ける interceptor(設定 @lib-config/httpDefaults の timeoutMs、既定 null = 付けない。外す印 defaultTimeout: false)
 - src/lib/isClient — クライアントで描画できる状態か(ハイドレーション後に true)を返す useIsClient
 - src/lib/jwt — JWT の署名・検証・Cookie 抽出の薄いラッパ
 - src/lib/libPackage — lib の package.json(入口 exports・読む lib の一覧 libs・棚 peers・sideEffects)の唯一の読み手と形の検査(lint lib-entry・単体用 tsconfig・閉じたかの検査が読む)

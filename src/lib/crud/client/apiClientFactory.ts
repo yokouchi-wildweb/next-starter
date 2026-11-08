@@ -1,6 +1,8 @@
 // src/lib/crud/client/apiClientFactory.ts
 
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
+// 呼び出しの設定の defaultTimeout(型の拡張)。既定のタイムアウトの持ち主: src/lib/httpDefaults
+import type {} from "@/lib/httpDefaults";
 import type {
   ApiClient,
   SearchParams,
@@ -54,6 +56,11 @@ async function handleRequest<R>(action: CrudAction, fn: () => Promise<R>): Promi
  * bulk*・replaceByQuery・duplicate は件数やファイルの数だけ時間がかかるので上限を付けない
  */
 const NORMAL_REQUEST = { timeout: 60_000 };
+
+/**
+ * 上限を付けない操作(bulk*・replaceByQuery・duplicate)。アプリ全体の既定のタイムアウト(src/lib/httpDefaults)も外す
+ */
+const UNBOUNDED_REQUEST: AxiosRequestConfig = { defaultTimeout: false };
 
 /**
  * WithOptionsをクエリパラメータ文字列に変換
@@ -133,12 +140,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
       }),
     bulkDeleteByIds: (ids) =>
       handleRequest("bulkDeleteByIds", async () => {
-        await axios.post(`${baseUrl}/bulk/delete-by-ids`, { ids });
+        await axios.post(`${baseUrl}/bulk/delete-by-ids`, { ids }, UNBOUNDED_REQUEST);
         return undefined;
       }),
     bulkDeleteByQuery: (where: WhereExpr) =>
       handleRequest("bulkDeleteByQuery", async () => {
-        await axios.post(`${baseUrl}/bulk/delete-by-query`, { where });
+        await axios.post(`${baseUrl}/bulk/delete-by-query`, { where }, UNBOUNDED_REQUEST);
         return undefined;
       }),
     upsert: (data: CreateData, options?: UpsertOptions<CreateData>) =>
@@ -150,43 +157,43 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
       handleRequest(
         "bulkUpsert",
         async () =>
-          (await axios.post<BulkUpsertResult<T>>(`${baseUrl}/bulk/upsert`, { records, options })).data,
+          (await axios.post<BulkUpsertResult<T>>(`${baseUrl}/bulk/upsert`, { records, options }, UNBOUNDED_REQUEST)).data,
       ),
     replaceByQuery: (where: WhereExpr, records: CreateData[], options?: ReplaceByQueryOptions) =>
       handleRequest(
         "replaceByQuery",
         async () =>
-          (await axios.post<T[]>(`${baseUrl}/bulk/replace-by-query`, { where, records, options })).data,
+          (await axios.post<T[]>(`${baseUrl}/bulk/replace-by-query`, { where, records, options }, UNBOUNDED_REQUEST)).data,
       ),
     bulkUpdate: (records: BulkUpdateRecord<UpdateData>[]) =>
       handleRequest(
         "bulkUpdate",
         async () =>
-          (await axios.post<BulkUpdateResult<T>>(`${baseUrl}/bulk/update`, { records })).data,
+          (await axios.post<BulkUpdateResult<T>>(`${baseUrl}/bulk/update`, { records }, UNBOUNDED_REQUEST)).data,
       ),
     bulkUpdateByIds: (ids: string[], data: UpdateData) =>
       handleRequest(
         "bulkUpdateByIds",
         async () =>
-          (await axios.post<{ count: number }>(`${baseUrl}/bulk/update-by-ids`, { ids, data })).data,
+          (await axios.post<{ count: number }>(`${baseUrl}/bulk/update-by-ids`, { ids, data }, UNBOUNDED_REQUEST)).data,
       ),
     bulkAddRelation: (field: string, ids: string[], targetIds: string[]) =>
       handleRequest(
         "bulkAddRelation",
         async () =>
-          (await axios.post<BulkRelationResult>(`${baseUrl}/bulk/add-relation`, { field, ids, targetIds })).data,
+          (await axios.post<BulkRelationResult>(`${baseUrl}/bulk/add-relation`, { field, ids, targetIds }, UNBOUNDED_REQUEST)).data,
       ),
     bulkRemoveRelation: (field: string, ids: string[], targetIds: string[]) =>
       handleRequest(
         "bulkRemoveRelation",
         async () =>
-          (await axios.post<BulkRelationResult>(`${baseUrl}/bulk/remove-relation`, { field, ids, targetIds })).data,
+          (await axios.post<BulkRelationResult>(`${baseUrl}/bulk/remove-relation`, { field, ids, targetIds }, UNBOUNDED_REQUEST)).data,
       ),
     duplicate: (id: string, options?: DuplicateOptions) =>
       handleRequest(
         "duplicate",
         async () =>
-          (await axios.post<T>(`${baseUrl}/${id}/duplicate`, options?.name !== undefined ? { name: options.name } : undefined)).data,
+          (await axios.post<T>(`${baseUrl}/${id}/duplicate`, options?.name !== undefined ? { name: options.name } : undefined, UNBOUNDED_REQUEST)).data,
       ),
     restore: (id: string) =>
       handleRequest(

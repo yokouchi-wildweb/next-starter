@@ -38,6 +38,8 @@ throw new DomainError("この操作は管理者のみ実行できます", { stat
 
 既定のフォールバック文言は `リクエストに失敗しました`。
 
+時間切れ: client の axios の呼び出しのタイムアウトは呼び出しごと(CRUD の通常の操作は 60 秒)。自分の値を持たない呼び出しへのアプリ全体の既定は [`src/lib/httpDefaults`](../httpDefaults/README.md)(設定 `timeoutMs`、既定は付けない。外す印 `defaultTimeout: false`)。時間切れも axios のエラーとして `normalizeHttpError` を通る。
+
 開発中のブラウザでは、`normalizeHttpError` が axios の 401 / 403 を `console.warn` に出す（本番とサーバー側では出ない。`rethrowStatuses` で再 throw するステータスも出ない）。認可の拒否が「データ 0 件」に見えて気づけないのを防ぐためで、ボディに `domain` / `operation` があれば併記する。ログアウト中のセッション確認など、想定内の 401 でも出る。
 
 ## 使い方

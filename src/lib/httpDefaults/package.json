@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.ts",
+    "./HttpDefaultsRoot": "./HttpDefaultsRoot.tsx"
+  },
+  "libs": ["defineConfig"]
+}

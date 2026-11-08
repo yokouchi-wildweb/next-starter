@@ -106,9 +106,10 @@ for (const [name, run] of NORMAL_OPERATIONS) {
 }
 
 for (const [name, run] of LONG_OPERATIONS) {
-  test(`timeout: ${name} は上限なし`, async () => {
+  test(`timeout: ${name} は上限なし(アプリ全体の既定のタイムアウトも外す印 defaultTimeout: false)`, async () => {
     await run();
     assert.equal(requests.at(-1)?.timeout, 0);
+    assert.equal(requests.at(-1)?.defaultTimeout, false);
   });
 }
 
