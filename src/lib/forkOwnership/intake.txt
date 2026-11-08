@@ -18,6 +18,7 @@ edit firebase.json  # fork の Firebase の配備設定(firestore のルール�
 
 # 値(config の再設計までは全体。値とキーを区別しない)
 edit src/config/**  # CLAUDE.md CORE_FILES config
+edit src/business/**  # 事業の素性(フォルダごと fork の物。上流は source: "sample" で出荷、設定の議会 D88)
 
 # スタイルと素材(直下の CSS = fork の入口。core/ は upstream)
 edit src/styles/*.css  # CLAUDE.md CORE_FILES downstream_owned

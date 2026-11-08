@@ -13,7 +13,7 @@ import {
   Text,
 } from "@react-email/components";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import { createMailTemplate } from "@/lib/mail";
 
 import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
@@ -35,7 +35,7 @@ function EarlyRegistrationEmailComponent({
   return (
     <Html>
       <Head />
-      <Preview>【{businessConfig.serviceNameShort}】事前登録のメールアドレス確認</Preview>
+      <Preview>【{business.serviceNameShort}】事前登録のメールアドレス確認</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Heading style={styles.heading}>事前登録のメールアドレス確認</Heading>
@@ -135,7 +135,7 @@ const styles = {
  * ```
  */
 export const EarlyRegistrationEmail = createMailTemplate({
-  subject: `【${businessConfig.serviceNameShort}】事前登録のメールアドレス確認`,
+  subject: `【${business.serviceNameShort}】事前登録のメールアドレス確認`,
   component: EarlyRegistrationEmailComponent,
   testProps: {
     verificationUrl: "https://example.com/early-register/verify?token=test-token-12345",

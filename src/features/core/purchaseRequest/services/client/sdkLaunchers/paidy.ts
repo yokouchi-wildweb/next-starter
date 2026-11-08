@@ -11,7 +11,7 @@
 
 "use client";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import type { SdkLauncher, SdkLaunchOutcome } from "./types";
 
 /**
@@ -308,7 +308,7 @@ export const paidySdkLauncher: SdkLauncher = {
       const payload: PaidyLaunchPayload = {
         amount,
         currency,
-        store_name: businessConfig.serviceName,
+        store_name: business.serviceName,
         buyer: {
           // name1 は Paidy 必須 + nonempty バリデーション対象。サーバー側で
           // userService.get から取得した名前 + フォールバック値が config 経由で渡る。

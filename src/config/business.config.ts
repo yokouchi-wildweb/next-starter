@@ -1,3 +1,8 @@
+// src/config/business.config.ts — 古い置き場の殻(締め 2 で消す。新しい読み手を足さない)
+// 事業の素性の正本は @/business(src/business/business.ts、決まり: src/lib/business/README.md)。この殻は @/business の値を写し、
+// 法務だけが読む値(決済方法の表示・規約とポリシーの日付・許認可)を legal の指令まで持つ(設定の議会 D88)。
+// 読み手: lib/mail・lib/url・seo.config.ts(lib は @/business を直に読まない。lib の設定の上書きが写す形は棚の lib を閉じるクエスト)と src/config/documents
+import { business } from "@/business";
 import type { LegalDocumentDates } from "@/lib/structuredDocument/legal";
 
 /**
@@ -19,99 +24,16 @@ type License = {
 };
 
 /**
- * 事業者・サービスの基本設定
- * サービス名、会社情報、法的ページ用の情報などを一元管理
+ * 事業者・サービスの基本設定(殻)。@/business の値 + 法務だけが読む値
  */
 export const businessConfig = {
-  // === サービス基本情報 ===
-
-  /** サービス名（正式名称） */
-  serviceName: "next-starter",
-
-  /** サービス名（略称・ロゴ横やタイトルで使用） */
-  serviceNameShort: "next-starter",
-
-  /** サービスの説明文（meta descriptionなどで使用） */
-  description: "next-starter is a Wildweb creation.",
-
-  /** 短い説明文（titleなどで使用） */
-  descriptionShort: "a Wildweb creation.",
-
-  /** ドメイン名（プロトコルなし） */
-  domain: "example.com",
-
-  /** サイトURL（プロトコル付き） */
-  url: "https://example.com",
-
-  /** サイト開設日（法的文書の制定日のデフォルト値として使用） */
-  launchedAt: "20XX年X月X日",
-
-  // === 運営会社情報 ===
-
-  company: {
-    /** 会社名（正式名称） */
-    name: "Wildweb Tokyo",
-
-    /** 代表者名 */
-    representative: "代表者名",
-
-    /** 郵便番号 */
-    postalCode: "〒000-0000",
-
-    /** 住所 */
-    address: "東京都○○区○○1-2-3",
-
-    /** 電話番号 */
-    phone: "03-0000-0000",
-
-    /** メールアドレス（サポート・お問い合わせ用） */
-    email: "support@example.com",
-  },
+  ...business,
 
   // === 決済情報 ===
 
   payment: {
     /** 利用可能な支払方法（カンマ区切りで列挙） */
     methods: "クレジット決済、銀行振込、コンビニ払い",
-  },
-
-  // === ロゴ設定 ===
-
-  logo: {
-    /** ロゴバリアント別パス（imgPath からの相対パス） */
-    variants: {
-      default: 'logos/default.png',
-      light: 'logos/light.png',        // 白系（暗い背景用）
-      dark: 'logos/dark.png',          // 黒系（明るい背景用）
-      primary: 'logos/primary.png',    // プライマリカラー
-      secondary: 'logos/secondary.png', // セカンダリカラー
-      mono: 'logos/mono.png',          // モノクロ
-    },
-    /** デフォルトで使用するバリアント */
-    defaultVariant: 'default' as const,
-  },
-
-  // === メール設定 ===
-
-  mail: {
-    /** デフォルト送信元アドレス */
-    defaultFrom: "noreply@example.com",
-
-    /** デフォルト送信者名 */
-    defaultFromName: "next-starter",
-  },
-
-  // === SNS・外部リンク（任意） ===
-
-  social: {
-    /** X（旧Twitter）のURL */
-    twitter: "",
-
-    /** InstagramのURL */
-    instagram: "",
-
-    /** LINE公式アカウントのURL */
-    line: "",
   },
 
   // === 法的ページ用情報 ===

@@ -11,6 +11,7 @@ import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { AppImage } from "@/components/Media/AppImage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { business } from "@/business";
 import { logoPath } from "@/utils/assets";
 
 // 行の高さは端末(SP / PC)ごとに決まった値 --admin-header-row-height(src/styles/core。枠の初期の --app-header-height も同じ値を読む)。
@@ -51,7 +52,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
             読み込みで行が動かない。ヘッダーはファーストビューなので両方 priority(隠れている方の 1 枚も先読みする) */}
         <AppImage
           mode="intrinsic"
-          src={logoPath("dark")}
+          src={logoPath(business.logo, "dark")}
           alt="管理画面ロゴ（ライトモード）"
           width={300}
           height={61}
@@ -60,7 +61,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
         />
         <AppImage
           mode="intrinsic"
-          src={logoPath("light")}
+          src={logoPath(business.logo, "light")}
           alt="管理画面ロゴ（ダークモード）"
           width={300}
           height={61}

@@ -3,12 +3,12 @@
 import Image from "next/image";
 import { Link } from "@/components/Navigation";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import { HEADER_LOGO_LINK } from "@/config/ui/user-header.config";
 import { logoPath } from "@/utils/assets";
 
 export const Brand = () => {
-  const hasLogo = (businessConfig.logo.variants.default as string) !== "";
+  const hasLogo = (business.logo.variants.default as string) !== "";
 
   return (
     <Link
@@ -21,8 +21,8 @@ export const Brand = () => {
         <Image
           id="header-brand-logo"
           data-slot="header-brand-logo"
-          src={logoPath()}
-          alt={businessConfig.serviceNameShort}
+          src={logoPath(business.logo)}
+          alt={business.serviceNameShort}
           width={160}
           height={40}
           className="h-9 w-auto sm:h-10"
@@ -30,7 +30,7 @@ export const Brand = () => {
         />
       ) : (
         <span id="header-brand-text" data-slot="header-brand-text" className="text-base font-semibold sm:text-lg">
-          {businessConfig.serviceNameShort}
+          {business.serviceNameShort}
         </span>
       )}
     </Link>

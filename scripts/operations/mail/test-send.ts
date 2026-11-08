@@ -22,7 +22,6 @@ import * as fs from "fs";
 import * as path from "path";
 import { createElement } from "react";
 
-import { businessConfig } from "../../../src/config/business.config";
 import { guardEntry } from "../../runner/guard";
 
 // 共通の守り: 向き先(既定は開発、本番は --env production と確認)・段階の印。メールを実際に送るので書く入口
@@ -33,9 +32,7 @@ const MAIL_PROVIDER = process.env.MAIL_PROVIDER || "resend";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
-// businessConfig からメール設定を取得
-const MAIL_FROM_ADDRESS = businessConfig.mail.defaultFrom;
-const MAIL_FROM_NAME = businessConfig.mail.defaultFromName;
+// メールの差出人は事業の素性(@/business)から読む。@/business は src/wiring の結びなので道具からは import() で読む(lint scripts-no-static-wiring)
 
 // テンプレートの置き場: src/features/**/mail/*Email.tsx
 const FEATURES_DIR = "src/features";
@@ -150,11 +147,14 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
 /**
  * 送信元アドレスをフォーマット
  */
-function formatFromAddress(): string {
-  if (MAIL_FROM_NAME) {
-    return `${MAIL_FROM_NAME} <${MAIL_FROM_ADDRESS}>`;
-  }
-  return MAIL_FROM_ADDRESS;
+async function readMailFrom(): Promise<{ address: string; name: string }> {
+  const { business } = await import("@/business");
+  return { address: business.mail.defaultFrom, name: business.mail.defaultFromName };
+}
+
+async function formatFromAddress(): Promise<string> {
+  const { address, name } = await readMailFrom();
+  return name ? `${name} <${address}>` : address;
 }
 
 /**
@@ -210,10 +210,11 @@ async function sendEmail(
   subject: string,
   html: string,
 ): Promise<void> {
-  const fromAddress = formatFromAddress();
+  const fromAddress = await formatFromAddress();
 
   if (MAIL_PROVIDER === "sendgrid") {
-    await sendWithSendGrid(to, subject, html, MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
+    const from = await readMailFrom();
+    await sendWithSendGrid(to, subject, html, from.address, from.name);
   } else {
     await sendWithResend(to, subject, html, fromAddress);
   }
@@ -274,7 +275,7 @@ async function main() {
   ]);
 
   const selectedTemplate = templates[templateIndex];
-  const fromAddress = formatFromAddress();
+  const fromAddress = await formatFromAddress();
 
   console.log("");
   console.log("=== 送信情報 ===");

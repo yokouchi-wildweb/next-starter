@@ -11,7 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import { createMailTemplate } from "@/lib/mail";
 import { logoPath } from "@/utils/assets";
 
@@ -27,14 +27,14 @@ function RegistrationCompleteEmailComponent({
   return (
     <Html>
       <Head />
-      <Preview>【{businessConfig.serviceNameShort}】会員登録が完了しました</Preview>
+      <Preview>【{business.serviceNameShort}】会員登録が完了しました</Preview>
       <Body style={s.body}>
         <Container style={s.container}>
           {/* ヘッダー: ロゴ + 登録完了 */}
           <Section style={s.headerSection}>
             <Img
-              src={`${businessConfig.url}${logoPath()}`}
-              alt={businessConfig.serviceNameShort}
+              src={`${business.url}${logoPath(business.logo)}`}
+              alt={business.serviceNameShort}
               width={120}
               style={s.logo}
             />
@@ -47,7 +47,7 @@ function RegistrationCompleteEmailComponent({
             {displayName} 様
             <br />
             <br />
-            この度は、{businessConfig.serviceNameShort}に
+            この度は、{business.serviceNameShort}に
             <br />
             ご登録いただき、
             <br />
@@ -62,7 +62,7 @@ function RegistrationCompleteEmailComponent({
           </Text>
 
           <Section style={s.buttonSection}>
-            <Button style={s.button} href={businessConfig.url}>
+            <Button style={s.button} href={business.url}>
               トップページへ
             </Button>
           </Section>
@@ -167,7 +167,7 @@ const s = {
  * ```
  */
 export const RegistrationCompleteEmail = createMailTemplate({
-  subject: `【${businessConfig.serviceNameShort}】会員登録が完了しました`,
+  subject: `【${business.serviceNameShort}】会員登録が完了しました`,
   component: RegistrationCompleteEmailComponent,
   testProps: {
     displayName: "テストユーザー",

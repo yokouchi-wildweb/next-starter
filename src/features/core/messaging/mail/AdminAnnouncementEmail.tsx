@@ -12,7 +12,7 @@ import {
   Text,
 } from "@react-email/components";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import { createMailTemplate } from "@/lib/mail";
 import { logoPath } from "@/utils/assets";
 
@@ -36,18 +36,18 @@ function AdminAnnouncementEmailComponent({
     <Html>
       <Head />
       <Preview>
-        【{businessConfig.serviceNameShort}】{subject}
+        【{business.serviceNameShort}】{subject}
       </Preview>
       <Body style={s.body}>
         <Container style={s.container}>
           <Section style={s.headerSection}>
             <Img
-              src={`${businessConfig.url}${logoPath()}`}
-              alt={businessConfig.serviceNameShort}
+              src={`${business.url}${logoPath(business.logo)}`}
+              alt={business.serviceNameShort}
               width={120}
               style={s.logo}
             />
-            <Text style={s.headerText}>{businessConfig.serviceNameShort} からのお知らせ</Text>
+            <Text style={s.headerText}>{business.serviceNameShort} からのお知らせ</Text>
           </Section>
 
           <Text style={s.greetingText}>{displayName} 様</Text>
@@ -146,7 +146,7 @@ const s = {
  * ```
  */
 export const AdminAnnouncementEmail = createMailTemplate({
-  subject: `【${businessConfig.serviceNameShort}】お知らせ`,
+  subject: `【${business.serviceNameShort}】お知らせ`,
   component: AdminAnnouncementEmailComponent,
   testProps: {
     displayName: "テストユーザー",

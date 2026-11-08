@@ -180,7 +180,7 @@ export class PaidyPaymentProvider implements PaymentProvider {
                 country: addr.country,
               }
             : undefined,
-          // 店舗名等のビジネス情報はクライアント側 sdkLauncher が businessConfig から取る。
+          // 店舗名等のビジネス情報はクライアント側 sdkLauncher が @/business から取る。
         },
       },
       expiresAt,

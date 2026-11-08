@@ -4,7 +4,7 @@ import { cva } from "class-variance-authority";
 
 import { APP_FOOTER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { cn } from "@/lib/cn";
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 
 const footerContainer = cva(
   "h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm",
@@ -12,7 +12,7 @@ const footerContainer = cva(
 
 export function Footer() {
   const year = new Date().getFullYear();
-  const footerText = `© ${year} ${businessConfig.serviceName}`;
+  const footerText = `© ${year} ${business.serviceName}`;
 
   return (
     <footer id={APP_FOOTER_ELEMENT_ID} data-slot="admin-footer" className={cn(footerContainer())}>

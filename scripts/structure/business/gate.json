@@ -1,0 +1,1 @@
+{ "check": "check.ts", "gates": ["build"], "watch": ["src/business/**", "src/lib/business/**", "scripts/structure/business/**", "src/lib/appEnv/**", "src/lib/forkOwnership/forkIds.mjs", ".claude/rules/project.md", "src/lib/CATALOG.md", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }

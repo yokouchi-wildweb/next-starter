@@ -49,7 +49,7 @@ import { AppImage } from "@/components/Media/AppImage";
 ロゴ・アイコンなどサイズが分かっているアセットは実寸を渡します(fill の箱は作られず、素の `next/image` 相当)。
 
 ```tsx
-<AppImage mode="intrinsic" src={logoPath("brand.png")} alt="ブランド名" width={120} height={40} />
+<AppImage mode="intrinsic" src={logoPath(business.logo, "primary")} alt="ブランド名" width={120} height={40} />
 ```
 
 ### フォールバック

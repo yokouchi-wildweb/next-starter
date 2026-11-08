@@ -7,7 +7,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { PageTitle, Para, Span } from "@/components/TextBlocks";
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 
 type HeroProps = {
   /** デモ機能が有効なときだけ「デモを見る」を出す */
@@ -32,7 +32,7 @@ export function Hero({ showDemoLink }: HeroProps) {
             align="center"
             className="text-4xl font-semibold tracking-tighter text-balance sm:text-5xl lg:text-6xl"
           >
-            {businessConfig.serviceName}
+            {business.serviceName}
           </PageTitle>
           <Para
             tone="muted"

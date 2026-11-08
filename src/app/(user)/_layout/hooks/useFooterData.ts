@@ -8,7 +8,7 @@
 
 import { useMemo } from "react";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import {
   COPYRIGHT_CUSTOM_TEXT,
   COPYRIGHT_ENABLED,
@@ -68,7 +68,7 @@ export type UseFooterDataReturn = {
  */
 function getCopyrightText(): string {
   const year = COPYRIGHT_YEAR;
-  const serviceName = businessConfig.serviceName;
+  const serviceName = business.serviceName;
 
   switch (COPYRIGHT_FORMAT) {
     case "simple":

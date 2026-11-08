@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createElement, type ReactNode } from "react";
 
-import { businessConfig } from "@/config/business.config";
+import { business } from "@/business";
 import { logoPath } from "@/utils/assets";
 
 // サイドバーの目印は onNavigate を受けたか(= SP の殻の中か)を data-nav で示す
@@ -78,7 +78,7 @@ before(async () => {
 });
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
-const FOOTER_TEXT = `© ${new Date().getFullYear()} ${businessConfig.serviceName}`;
+const FOOTER_TEXT = `© ${new Date().getFullYear()} ${business.serviceName}`;
 
 // ---- slot 化の前(a77da63d)の部品を同じモックで描いた HTML + 枠の部位の印。既定の DOM・id・順序の基準 ----
 
@@ -87,7 +87,7 @@ const FOOTER_TEXT = `© ${new Date().getFullYear()} ${businessConfig.serviceName
  * 本番で IMAGE_OPTIMIZATION が無効の間は unoptimized で素のパスが入る(ここでは見ない)
  */
 const logoOptimizedUrl = (variant: "dark" | "light", width: number) =>
-  `/_next/image?url=${encodeURIComponent(logoPath(variant))}&amp;w=${width}&amp;q=75`;
+  `/_next/image?url=${encodeURIComponent(logoPath(business.logo, variant))}&amp;w=${width}&amp;q=75`;
 const logoSrcSet = (variant: "dark" | "light") => `${logoOptimizedUrl(variant, 384)} 1x, ${logoOptimizedUrl(variant, 640)} 2x`;
 const LOGO_IMG = (variant: "dark" | "light", alt: string, className: string) =>
   `<img data-component="AppImage" alt="${alt}" width="300" height="61" decoding="async" data-nimg="1" class="${className}" style="color:transparent" srcSet="${logoSrcSet(variant)}" src="${logoOptimizedUrl(variant, 640)}"/>`;
