@@ -103,6 +103,17 @@ pnpm db:push:check
 
 詳細: [runner/seed/README.md](./runner/seed/README.md)
 
+### 全ドメイン共通のデータ操作 (data)
+
+```bash
+pnpm ops data export <domain> --out <file.jsonl> [--with-deleted] [--limit <n>]   # 書き出し(JSON Lines、読むだけ)
+pnpm ops data import <domain> --file <file.jsonl> [--dry-run]                     # 取り込み(bulkUpsert、id が同じなら上書き)
+pnpm ops data update <domain> --file <file.jsonl> [--dry-run]                     # 1 行 { id, ...変える列 }(bulkUpdate)
+pnpm ops data delete <domain> (--ids <id>[,...] | --file <file>) [--dry-run]       # bulkDeleteByIds
+```
+
+許可はドメインの access(管理 API で何かしらのロールに許した操作は許す、サービスに無い操作は止める)。書き込みは task_runs に記録して同じ中身を二度当てない。詳細: [operations/data/README.md](./operations/data/README.md)
+
 ### ドメイン設定 (dc)
 
 ```bash

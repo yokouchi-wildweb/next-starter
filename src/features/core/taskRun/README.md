@@ -10,7 +10,7 @@
 table: `task_runs`(1 実行 = 1 行)
 
 - `id uuid` … 実行の id。`runAsSystem` の `requestId` にも渡す(監査の行の `context.request_id` と突き合わせる)
-- `name` … `<ドメイン>:<名前>`(定期タスクは平らな名前) | `kind` … `task` / `migration` / `cron`
+- `name` … `<ドメイン>:<名前>`(定期タスクは平らな名前、データ操作は `data:<command>:<domain>`) | `kind` … `task` / `migration` / `cron` / `data`(`pnpm ops data` の import / update / delete、`scripts/operations/data/README.md`)
 - `args jsonb` … `pnpm task <名前>` の後ろの引数 | `dry_run` … 引数に `--dry-run` があったか
 - `status` … `running` → `succeeded` / `failed` / `unknown`
   - `failed` = 書き込みの前に止まった(`TaskNotStartedError`)、または止める鍵の無い実行の失敗、dry-run の失敗

@@ -108,8 +108,11 @@ const WRITE_ENTRIES = [
   "scripts/operations/storage/setup.ts",
   "scripts/operations/storage/setup-cors.ts",
   "scripts/operations/mail/test-send.ts",
+  "scripts/operations/data/import.ts",
+  "scripts/operations/data/update.ts",
+  "scripts/operations/data/delete.ts",
 ];
-const READ_ENTRIES = ["scripts/operations/db/check-schema-roundtrip.ts", "scripts/operations/db/inspect.ts", "scripts/operations/firestore/inspect.ts", "scripts/operations/room/check.ts", "scripts/operations/claude/test.ts"];
+const READ_ENTRIES = ["scripts/operations/data/export.ts", "scripts/operations/db/check-schema-roundtrip.ts", "scripts/operations/db/inspect.ts", "scripts/operations/firestore/inspect.ts", "scripts/operations/room/check.ts", "scripts/operations/claude/test.ts"];
 const PREPARE_USERS = ["scripts/runner/task/run.ts", "scripts/runner/seed/run.ts", "scripts/workflow/dev-admin/run.ts"];
 const DEPLOY_ENTRIES = ["scripts/operations/deploy/app.ts", "scripts/operations/deploy/all.ts", "scripts/operations/deploy/room.ts", "scripts/operations/room/deploy.ts", "scripts/operations/room/secret.ts"];
 

@@ -1,7 +1,7 @@
 // src/features/core/taskRun/constants/index.ts
 
-/** 実行の種類: ドメインのタスク(scripts/tasks)・移行(scripts/migrations)・名指しで手で打った定期タスク(cron) */
-export const TASK_RUN_KINDS = ["task", "migration", "cron"] as const;
+/** 実行の種類: ドメインのタスク(scripts/tasks)・移行(scripts/migrations)・名指しで手で打った定期タスク(cron)・全ドメイン共通のデータ操作の書き込み(data = pnpm ops data import / update / delete) */
+export const TASK_RUN_KINDS = ["task", "migration", "cron", "data"] as const;
 export type TaskRunKind = (typeof TASK_RUN_KINDS)[number];
 
 /**
