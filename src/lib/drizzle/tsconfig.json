@@ -2,6 +2,12 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "paths": {
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
       "@lib-config/drizzle": [
         "../../config/lib/drizzle.config.ts"
       ]

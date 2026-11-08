@@ -5,6 +5,11 @@ import "server-only";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { drizzleConfig } from "./config";
+import { createQueryClient } from "./pool";
+
+export type { DrizzleOverride } from "./config";
+
 // schema は渡さない(db.query は使わず db.select。lib は登録表を import しない、接続が全表の定義を読まない)
 type Database = PostgresJsDatabase;
 
@@ -57,7 +62,7 @@ function createUnconfiguredDb(): Database {
 
 function createConfiguredDb(): Database {
   const queryClient =
-    globalForDb.queryClient ?? postgres(process.env.DATABASE_URL!, { prepare: false, max: 3 });
+    globalForDb.queryClient ?? createQueryClient(process.env.DATABASE_URL!, drizzleConfig, postgres);
 
   // 段階に関わらず globalThis に持つ(開発サーバーの HMR でモジュールが読み直されても接続を作り直さない。
   // 本番でも同じプロセスで 1 つを使い回すだけで害がないので、段階の判断を置かない)
