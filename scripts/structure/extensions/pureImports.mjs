@@ -13,8 +13,8 @@ import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 const ALLOWED_PACKAGES = new Set(["zod"]);
 const FORBIDDEN_PATH = /^src\/app\/|(^|\/)(services|components|hooks|stores)(\/|$)|(^|\/)entities\/drizzle(\.|$)|^src\/lib\/drizzle(\/|$)|\.tsx$/;
 
-/** ファイルの値 import の指定子(型だけの import・export は除く) */
-function valueSpecifiers(path, text) {
+/** ファイルの値 import の指定子(型だけの import・export は除く。動的 import は数える)。cron の門の導出(derive/featureTables.mjs)も使う */
+export function valueSpecifiers(path, text) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
   const found = [];
   const visit = (node) => {

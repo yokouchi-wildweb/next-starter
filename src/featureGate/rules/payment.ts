@@ -15,7 +15,6 @@ export const rule: FeatureGateRule = {
     "/api/wallet/purchase",
     "/api/webhook/payment",
     "/api/admin/analytics/purchase",
-    "/api/cron/expire-pending-purchases",
     "/admin/bank-transfer-reviews",
     "/api/admin/bank-transfer-reviews",
     "/demo/dummy-payment",

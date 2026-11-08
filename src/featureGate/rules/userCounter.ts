@@ -5,9 +5,7 @@
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
-  pathPatterns: [
-    "/api/cron/user-daily-counter-prune",
-  ],
+  pathPatterns: [],
   features: [
     "core/userCounter",
   ],

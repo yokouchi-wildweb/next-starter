@@ -238,16 +238,16 @@ test(
 );
 
 // 汎用 API の住所(/api/<domain>)は生成器が features のフォルダの domainEntry.ts から導いて pathPatterns に足す(domainApiPaths)。
-// 設定の節の住所(/admin/settings/<key>)も節の feature から導く(settingPaths、L1.17)。
+// 設定の節の住所(/admin/settings/<key>)も節の feature から導く(settingPaths、L1.17)。cron の task の住所は task の import から導く(cronPaths、目録 D10)。
 // 規則に同じ住所を手書きすると重なる: 上流の規則は不可、fork の規則は表示だけ
 test(
-  "汎用 API と設定の節の住所は規則に手書きしない(生成器が domainApiPaths・settingPaths として pathPatterns に足す)",
+  "汎用 API・設定の節・cron の住所は規則に手書きしない(生成器が domainApiPaths・settingPaths・cronPaths として pathPatterns に足す)",
   { skip: forkAdded.status === "unverified" ? `fork の規則を見分けられない(${forkAdded.reason})` : false },
   () => {
     const { rules: files } = gateRuleFiles();
     const upstream = [];
     featureGateRules.forEach((rule, i) => {
-      const derived = [...rule.domainApiPaths, ...rule.settingPaths];
+      const derived = [...rule.domainApiPaths, ...rule.settingPaths, ...rule.cronPaths];
       const handWritten = rule.pathPatterns.slice(0, rule.pathPatterns.length - derived.length);
       const dup = handWritten.filter((pattern) => derived.includes(pattern));
       if (dup.length === 0) return;
@@ -255,7 +255,7 @@ test(
       if (forkAdded.added.has(files[i].path)) console.log(`[feature-gate] 生成器が導く住所を手書きしている(fork、消してよい): ${line}`);
       else upstream.push(line);
     });
-    assert.deepEqual(upstream, [], `汎用 API・設定の節の住所は生成器が導く。規則から消す:\n${upstream.join("\n")}`);
+    assert.deepEqual(upstream, [], `汎用 API・設定の節・cron の住所は生成器が導く。規則から消す:\n${upstream.join("\n")}`);
   },
 );
 

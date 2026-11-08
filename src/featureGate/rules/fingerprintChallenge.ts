@@ -9,7 +9,6 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     "/api/admin/fingerprint-challenges",
     "/api/me/fingerprint-challenges",
-    "/api/cron/fingerprint-challenge-access-prune",
   ],
   features: [
     "core/fingerprintChallenge",

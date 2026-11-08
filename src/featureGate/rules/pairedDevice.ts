@@ -9,7 +9,6 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     "/api/paired-device",
     "/api/paired-devices",
-    "/api/cron/paired-device-pairings-prune",
   ],
   features: [
     "core/pairedDevice",

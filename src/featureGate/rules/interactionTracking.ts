@@ -8,7 +8,6 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     "/api/interactions",
     "/api/admin/interactions",
-    "/api/cron/interaction-event-prune",
   ],
   features: [
     "core/interactionTracking",

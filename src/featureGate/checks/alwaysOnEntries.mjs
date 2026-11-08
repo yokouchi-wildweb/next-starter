@@ -4,7 +4,7 @@
 // 機能を閉じる規則(features を持つもの)の機能が無効なら、その表は db:push で作られない。それでも常に動く処理が
 // その機能のフォルダを import していたら、無効なときに無い表を読む。そこで常時実行の入口ごとに「閉じられるか」を見る:
 // - cron の task.ts(種類 cronTask): タスクの住所 /api/cron/<name> を、import した機能のフォルダを features に持つ規則の全部が
-//   pathPatterns で覆う(閉じた機能のタスクは route・pnpm task・pnpm generate cron が住所で飛ばす。enabled は見ない)
+//   pathPatterns で覆う(住所は生成器が task の import から cronPaths に導く。閉じた機能のタスクは route・pnpm task・pnpm generate cron が住所で飛ばす。enabled は見ない)
 // - 宣言の alwaysOn: true の点の項目(後片付け・照合、種類 alwaysOnItem): enabled(config を読む同期関数)がある(式の中身までは見ない)
 // - fork の手書きの登録表: import した名前の使い所(import 行以外)が全部 `...(<条件> ? [ ... ] : [])` の内側
 // - それ以外(常に読み込まれる結線など): 理由付きの例外表にある
@@ -118,7 +118,7 @@ export function judgeAlwaysOnEntries(entries, rules, exceptions) {
       }
       for (const name of rulesNotCoveringCronTask(taskPath, imports.map((i) => i.source), rules)) {
         problems.push(
-          `${entry.path}: ${sources} を import するのに、規則 ${name} の pathPatterns が ${taskPath} を覆わない(src/featureGate/rules/${name}.ts の pathPatterns に "${taskPath}" を足す。閉じた機能のタスクは住所で飛ぶ)`,
+          `${entry.path}: ${sources} を import するのに、規則 ${name} の pathPatterns が ${taskPath} を覆わない(住所は生成器が task の import から規則の cronPaths に導く: pnpm generate extensions。閉じた機能のタスクは住所で飛ぶ)`,
         );
       }
       continue;

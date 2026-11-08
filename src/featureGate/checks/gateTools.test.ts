@@ -201,10 +201,10 @@ import { findCallSites } from "@/featureGate/node/describe";
 import { readRuleConfigTarget, rewriteConfigEnabled } from "@/featureGate/node/setEnabled";
 
 const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
-  ({ name, pathPatterns: ["/x", "/api/x", "/admin/settings/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], ...over }) as GatedFeatureRule;
+  ({ name, pathPatterns: ["/x", "/api/x", "/admin/settings/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
 
 test("describeFeatures: 住所を手書き / 導出に分け、依存・呼び出し・必須を規則ごとに", () => {
-  const [x, y] = describeFeatures([fixtureRule("x"), fixtureRule("y", { pathPatterns: ["/y"], features: [], tables: [], domainApiPaths: [], settingPaths: [], enabled: () => true })], {
+  const [x, y] = describeFeatures([fixtureRule("x"), fixtureRule("y", { pathPatterns: ["/y"], features: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => true })], {
     dependencies: [
       { file: "src/a.ts", folder: "x", rule: "x", allowedBy: "gate" },
       { file: "src/b.ts", folder: "x", rule: "x", allowedBy: null },
@@ -212,7 +212,7 @@ test("describeFeatures: 住所を手書き / 導出に分け、依存・呼び�
     callSites: { x: ["src/a.ts"] },
     required: { y: "この fork の中心" },
   });
-  assert.deepEqual(x.paths, { handWritten: ["/x"], domainApi: ["/api/x"], setting: ["/admin/settings/x"] });
+  assert.deepEqual(x.paths, { handWritten: ["/x"], domainApi: ["/api/x"], setting: ["/admin/settings/x"], cron: [] });
   assert.equal(x.enabled, false);
   assert.equal(x.required, null);
   assert.deepEqual(x.dependents.map((d) => d.allowedBy), ["gate", null]);

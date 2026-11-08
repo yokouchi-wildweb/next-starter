@@ -227,11 +227,11 @@ function checkSettingSections(points, itemsByPoint) {
 const outputOf = (point) => (point.spec.target === "wiring" ? `${WIRING_DIR}/${basename(point.owner)}.ts` : `${point.owner}/${EXTENSIONS_DIR_NAME}/${point.name}.ts`);
 
 /** 1 つの出力ファイルを組み立てる(wiring は同じ lib の点を 1 本に) */
-// 生成器が付ける欄の描画。domainApiPaths・settingPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)
+// 生成器が付ける欄の描画。domainApiPaths・settingPaths・cronPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)
 function renderFields(alias, fields) {
   const literal = (v) => (Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v));
   const parts = Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`);
-  const extra = [...(fields.domainApiPaths ?? []), ...(fields.settingPaths ?? [])];
+  const extra = [...(fields.domainApiPaths ?? []), ...(fields.settingPaths ?? []), ...(fields.cronPaths ?? [])];
   if (extra.length > 0) parts.push(`pathPatterns: [...${alias}.pathPatterns, ${extra.map((x) => JSON.stringify(x)).join(", ")}]`);
   return parts.join(", ");
 }

@@ -26,7 +26,7 @@ export type FeatureDescription = {
   openedBySwitch: boolean;
   /** 必須(required/<名前>.ts)なら reason、でなければ null */
   required: string | null;
-  paths: { handWritten: string[]; domainApi: string[]; setting: string[] };
+  paths: { handWritten: string[]; domainApi: string[]; setting: string[]; cron: string[] };
   tables: string[];
   folders: string[];
   dependents: FeatureDependent[];
@@ -46,7 +46,7 @@ export type FeatureFacts = {
 /** 規則と集めた事実から説明を組む(純関数。並びは一覧の順) */
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
   return rules.map((rule) => {
-    const derived = rule.domainApiPaths.length + rule.settingPaths.length;
+    const derived = rule.domainApiPaths.length + rule.settingPaths.length + rule.cronPaths.length;
     const enabled = ruleEnabled(rule);
     const state = facts.switchState?.[rule.name];
     return {
@@ -59,6 +59,7 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
         handWritten: rule.pathPatterns.slice(0, rule.pathPatterns.length - derived),
         domainApi: [...rule.domainApiPaths],
         setting: [...rule.settingPaths],
+        cron: [...rule.cronPaths],
       },
       tables: [...rule.tables],
       folders: [...(rule.features ?? [])],

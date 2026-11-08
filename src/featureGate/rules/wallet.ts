@@ -13,9 +13,6 @@ export const rule: FeatureGateRule = {
     "/api/admin/analytics/wallet",
     "/api/admin/analytics/wallet-history",
     "/api/admin/analytics/coin-issuance",
-    "/api/cron/wallet-expiration-notice",
-    "/api/cron/wallet-expire-lots",
-    "/api/cron/wallet-lots-prune",
   ],
   features: [
     "core/wallet",

@@ -84,7 +84,7 @@ test("規則: src/featureGate/rules/ の export const rule をファイル名順
   assert.ok(plan.problems.some((p) => p.includes("beta.other.ts") && p.includes("印なしの beta.ts に改名")));
   assert.match(plan.outputs[GATE_RULES], /import \{ rule as rules_alpha \} from "@\/featureGate\/rules\/alpha";/);
   assert.match(plan.outputs[GATE_RULES], /export type FeatureName = "acmeShop" \| "alpha" \| "wallet";/);
-  assert.match(plan.outputs[GATE_RULES], /export const rules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\] \},\n\];/);
+  assert.match(plan.outputs[GATE_RULES], /export const rules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},\n\];/);
 });
 
 test("規則の features: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
@@ -147,10 +147,10 @@ test("規則の features: ドメインのフォルダの pgTable から表(0 で
   assert.equal(plan.problems.length, 8, plan.problems.join("\n"));
   assert.match(
     plan.outputs[GATE_RULES],
-    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
+    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\] \},/);
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], pathPatterns: \[\.\.\.rules_tableless\.pathPatterns, "\/api\/empty"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_tableless\.pathPatterns, "\/api\/empty"\] \},/);
 });
 
 test("このリポの全ドメイン(src/features/core/<名前>・src/features/<名前>、_ で始まる雛形を除く)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
@@ -169,6 +169,32 @@ test("このリポの全ドメイン(src/features/core/<名前>・src/features/<
   // 今までの判定(表が 1 つ以上ある)で通っていた書き方は、表を持つフォルダかその上。どれもドメインのフォルダの中にある = ドメインの位置で書ける
   const outside = scanFeatureTables(repoRoot).tables.map((t) => t.file).filter((file) => !domains.some((d) => file.startsWith(`src/features/${d}/`)));
   assert.deepEqual(outside, []);
+});
+
+test("cron の門(目録 D10): task.ts・task.override.ts の値の import(静的・動的・相対)が features のフォルダに当たる規則に cronPaths を足す。型だけ・lib だけは数えない、2 規則なら両方(論理積)、手書きの /api/cron/ は止める", () => {
+  const root = mkdtempSync(join(tmpdir(), "cron-gate-"));
+  const put = (path, text) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  put("tsconfig.json", JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./src/*"] } } }));
+  for (const d of ["core/wallet", "core/coupon", "core/audit"]) put(`src/features/${d}/services/server/s.ts`, "export const s = 1;\n");
+  put("src/lib/cron/index.ts", "export const runBudgetedBatches = 1;\n");
+  const task = (name, text, file = "task.ts") => put(`src/app/api/cron/${name}/${file}`, text);
+  task("static", 'import { s } from "@/features/core/wallet/services/server/s";\nexport const task = s;\n');
+  task("dynamic", 'export const task = { run: async () => (await import("@/features/core/coupon/services/server/s")).s };\n');
+  task("relative", 'import { s } from "../../../../features/core/wallet/services/server/s";\nexport const task = s;\n');
+  task("typeOnly", 'import type { S } from "@/features/core/wallet/services/server/s";\nimport { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');
+  task("both", 'import { s } from "@/features/core/wallet/services/server/s";\nimport { s as c } from "@/features/core/coupon/services/server/s";\nexport const task = [s, c];\n');
+  task("overridden", 'import { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');
+  task("overridden", 'import { s } from "@/features/core/coupon/services/server/s";\nexport const taskOverride = s;\n', "task.override.ts");
+  task("ungated", 'import { s } from "@/features/core/audit/services/server/s";\nexport const task = s;\n');
+  const featureTables = createFeatureTables(root);
+  const rule = (folders, extra = "") => `export const rule: FeatureGateRule = { pathPatterns: ["/x"${extra}], features: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
+  assert.deepEqual(featureTables.apply("wallet", rule(["core/wallet"]), "wallet").fields.cronPaths, ["/api/cron/both", "/api/cron/relative", "/api/cron/static"]);
+  assert.deepEqual(featureTables.apply("coupon", rule(["core/coupon"]), "coupon").fields.cronPaths, ["/api/cron/both", "/api/cron/dynamic", "/api/cron/overridden"]);
+  assert.deepEqual(featureTables.apply("plain", rule([]), "plain").fields.cronPaths, []);
+  assert.match(featureTables.apply("hand", rule(["core/wallet"], ', "/api/cron/static"'), "hand").problem, /cron の住所 \/api\/cron\/… を手書き/);
 });
 
 test("設定の節の feature: 字面で読む(1 つ・配列・複数行)、書けない形は problem", () => {
@@ -196,7 +222,7 @@ test("設定の節の feature から /admin/settings/<key> を規則の settingP
     itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.settingPaths.join("|")}`),
     ["payment:/admin/settings/shop", "plain:", "wallet:/admin/settings/coins|/admin/settings/shop"],
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
   assert.equal(plan.problems.length, 1, plan.problems.join("\n"));
   assert.match(plan.problems[0], /typo\.ts: feature の "walet" は機能を閉じる規則/);
 });
@@ -267,7 +293,7 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
       "w/unlisted.ts",
     ],
   );
-  assert.match(problems.find((p) => p.startsWith("src/app/api/cron/wallet-ng/")), /規則 wallet の pathPatterns が \/api\/cron\/wallet-ng を覆わない.*"\/api\/cron\/wallet-ng" を足す/);
+  assert.match(problems.find((p) => p.startsWith("src/app/api/cron/wallet-ng/")), /規則 wallet の pathPatterns が \/api\/cron\/wallet-ng を覆わない.*cronPaths に導く: pnpm generate extensions/);
   const oneMissing = judgeAlwaysOnEntries(
     [{ path: "src/app/api/cron/wallet-ok/task.ts", kind: "cronTask", text: walletTask }],
     [rules[0], { ...rules[1], pathPatterns: ["/admin/wallet"] }],

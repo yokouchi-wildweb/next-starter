@@ -44,12 +44,14 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   （例: `storage-sweep`。ファイルのアップロード権はアプリの期限後も cloud 側でしばらく生きうる。src/features/core/storageObject/README.md「掃除」）
 - **毎分など短い間隔のタスク**: 実行中（最大 maxDuration）に次の回が始まりうる。同じ対象を二重に処理しない作りにする
   （処理対象を DB の条件付き更新や次回実行時刻で取り合う等）。1 分より短い間隔は Vercel Cron では書けない（realtimeRoom 等の領域）
-- **機能の門（自動）**: タスクの住所は名前から組んだ `/api/cron/<name>`。閉じられる機能のタスクは、その住所を機能の規則の
-  `pathPatterns`（`src/featureGate/rules/<名前>.ts`）に載せるだけでよい。規則が閉じていると、route は本体を呼ばずに
+- **機能の門（自動）**: タスクの住所は名前から組んだ `/api/cron/<name>`。task.ts（と fork の task.override.ts）が閉じられる機能のフォルダ
+  （規則の `features`）を値で import すると（静的・動的、型だけは数えない、直に読む物だけ）、`pnpm generate extensions` がその規則に住所を
+  `cronPaths` として導いて `pathPatterns` に足す（規則に手書きしない。手書きは生成器が止める、目録 D10）。複数の機能のフォルダを読む
+  task はその全部の規則が住所を持つ = 全部が開いているときだけ動く。機能のフォルダを読まない（lib だけの）task は常に開く。規則が閉じていると、route は本体を呼ばずに
   `{ ok: true, skipped: true, reason: "closed" }` を返し（proxy が先に 404 にする。route の判定は proxy を通らない呼び出しの安全網）、
   `pnpm task` は `--due` でも名前指定でも飛ばし、`pnpm generate cron` は vercel.json に載せない（機能を閉じた・開いたら再生成する）。
   判定はどれも門番の `gate.path`（route = `src/wiring/cronRoute.ts`、CLI と生成 = `scripts/structure/cron/discover.ts` の `closedBy`）。
-  fork のタスクも同じ（自分の規則の pathPatterns に住所を書く）。task.ts に機能の入切（`gate.enabled` など）は書かない
+  fork のタスクも同じ（import から導く）。止めたくない task は fork の `required/`・常時の例外・`task.override.ts`。task.ts に機能の入切（`gate.enabled` など）は書かない
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。config だけを見る同期関数（DB に触れない）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   個人情報の retention prune は機能を後から無効にしても既存行を消し続ける必要があるため、門の規則にも enabled にも載せない
@@ -97,7 +99,7 @@ export const cronTask: CronTaskDefinition = {
 };
 ```
 
-- 閉じられる機能のタスクなら、その機能の規則の `pathPatterns` に `/api/cron/my-task` を足す（上の「機能の門」）
+- 閉じられる機能のタスクは、機能のフォルダを import すれば門が付く（`pnpm generate extensions` で規則の `cronPaths` に出る。上の「機能の門」）
 - `run` は動的 import にする（`pnpm generate cron` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まないため）
 - ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domainRegistry.ts` を動的 import して渡す（例: storage-sweep の `lookupService`）。wiring を import してよいのは cron のフォルダでは task.ts だけ（task.override.ts は不可。`pnpm test src/wiring/wiring.test.mjs`）
 - 長い運用説明は、処理本体があるドメインの README に書く

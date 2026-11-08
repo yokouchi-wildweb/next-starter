@@ -9,7 +9,6 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     "/api/admin/analytics",
     "/api/activity/dau",
-    "/api/cron/analytics-rollup-daily",
   ],
   features: [
     "core/analytics",

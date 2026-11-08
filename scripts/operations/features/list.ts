@@ -30,6 +30,7 @@ function detail(d: FeatureDescription): string[] {
     `  住所(手書き): ${d.paths.handWritten.join(", ") || "-"}`,
     `  住所(汎用 API の導出): ${d.paths.domainApi.join(", ") || "-"}`,
     `  住所(設定の節の導出): ${d.paths.setting.join(", ") || "-"}`,
+    `  住所(cron の task の import から導出): ${d.paths.cron.join(", ") || "-"}`,
     `  機能のフォルダ: ${d.folders.join(", ") || "-"}`,
     `  表: ${d.tables.join(", ") || "-"}`,
     `  依存(外から読むファイル ${d.dependents.length}):`,
@@ -59,7 +60,7 @@ async function main() {
   }
   console.log("名前 | 開閉 | 必須 | 住所 | 表 | 依存(うち未) | 呼び出し");
   for (const d of picked) {
-    const paths = d.paths.handWritten.length + d.paths.domainApi.length + d.paths.setting.length;
+    const paths = d.paths.handWritten.length + d.paths.domainApi.length + d.paths.setting.length + d.paths.cron.length;
     const open = d.dependents.filter((dep) => dep.allowedBy === null).length;
     console.log(`${d.name} | ${state(d)} | ${d.required !== null ? "必須" : "-"} | ${paths} | ${d.tables.length} | ${d.dependents.length}(${open}) | ${d.callSites.length}`);
   }
