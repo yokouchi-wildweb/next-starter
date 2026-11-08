@@ -94,7 +94,7 @@ export const APP_FEATURES = {
     /** チャットルームの管理画面(/admin/chat-rooms)を有効にする(利用者側のチャットは止めない) */
     enableChatRoomAdmin: true,
     /** 通知テンプレートの管理画面と API を有効にする */
-    enableNotificationTemplates: true,
+    enableNotificationTemplates: false,
     /**
      * 管理者メモ機能を有効にする
      * - true: 管理画面のユーザー一覧（General/Managerial/Demo）にメモ列が表示され、
