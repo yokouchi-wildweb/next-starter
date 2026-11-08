@@ -152,7 +152,7 @@ export const rule: FeatureGateRule = {
   - 常時実行の入口の閉じ漏れ（下）
 - **有効な機能のルートは検査しない。** 開いていて正しいので、その機能を土台にした fork は何も宣言しなくてよい。機能を切ると、その機能に依存するルートと外部キーがテストで一覧になる（= 切る前に直す場所）
 - **`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies` は upstream も fork も実行する。** 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`、fork の例外は `alwaysOnExceptions/<名前>.ts` に理由付きで書く
-- **サンプルのドメイン**（`sampleDomain`、`APP_FEATURES.adminConsole.enableSampleDomain`）: 既定 `true`（上流のデモ用）。権限は公開読み・ログイン済みの更新・子の画像のログイン済みアップロードのままで厳しくしない → **実際の利用者がいる fork は `false` にする**: 管理画面・`/api/sample*` の汎用 API・サンプルを読むデモ画面 4 つが 404、5 表（samples ほか）は db:push で作らない（既存の表と行は消さない）。管理のメニューの行は残る
+- **サンプルのドメイン**（`sampleDomain`、`src/features/sample/config.ts` の `enabled`、fork の上書きは `src/config/features/sample.config.ts`）: 既定 `true`（上流のデモ用）。権限は公開読み・ログイン済みの更新・子の画像のログイン済みアップロードのままで厳しくしない → **実際の利用者がいる fork は `false` にする**: 管理画面・`/api/sample*` の汎用 API・サンプルを読むデモ画面 4 つが 404、5 表（samples ほか）は db:push で作らない（既存の表と行は消さない）。管理のメニューの行は残る
 - **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）
 
 ### 常時実行の入口
@@ -186,7 +186,7 @@ export const rule: FeatureGateRule = {
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない
 - upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、`APP_FEATURES.pages`（マイページ全体と account の各画面・/entry・/services・規約 3 種）か `adminConsole` のスイッチ（サンプルのドメイン・チャットルームの管理・通知テンプレート・デモユーザー）を false にする。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
 - スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork の規則で upstream の画面を止めない（upstream の規則と重なり、merge のたびに見直しになる）
-- 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。pnpm generate domain が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts` の `<SNAKE>_CONFIG.enabled`（既定 fork = true・Tier1 = false）を書き捨てで書く。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
+- 新しいドメインを閉じられる形で作る: domain.json に `"closable": true`（Neon のみ）を書いて `pnpm forge`。pnpm generate domain が規則 `rules/<domain>.ts`（管理画面の住所・`features`・`enabled`）と入切の値 `src/features/<domain>/config.ts`（既定・型・上書きの合成、`<SNAKE>_CONFIG.enabled`、既定 fork = true・Tier1 = false）と空の上書き `src/config/features/<domain>.config.ts` を書き捨てで書く(fork が開閉を変えるのは上書きの側)。汎用 API の住所は導出に任せる。画面を足したら規則の `pathPatterns` に手で足す
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm generate extensions`。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: `enabled: () => APP_FEATURES.payment.enabled`）
 - 機能を切ったら `pnpm test src/featureGate scripts/structure/proxies` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
 - ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`checks/walletOff.test.tsx`、`pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx`)

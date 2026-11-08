@@ -1,7 +1,8 @@
 // src/featureGate/rules/sampleDomain.ts
 // サンプルのドメイン(管理画面と汎用 CRUD、サンプルを読むデモ画面、5 表)
+// 門の値の持ち主 = sample(features の先頭、目録 D14)。値は src/features/sample/config.ts の enabled、fork は src/config/features/sample.config.ts
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { SAMPLE_CONFIG } from "@/features/sample/config";
 
 import type { FeatureGateRule } from "@/featureGate";
 
@@ -22,5 +23,5 @@ export const rule: FeatureGateRule = {
     "sampleTag",
     "sampleImage",
   ],
-  enabled: () => APP_FEATURES.adminConsole.enableSampleDomain,
+  enabled: () => SAMPLE_CONFIG.enabled,
 };
