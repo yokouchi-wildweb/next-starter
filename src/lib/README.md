@@ -52,6 +52,8 @@ lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 
 今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す(全部閉じた段で error)。本当に要る例外は理由つきの `eslint-disable`。
 
+宣言の無い lib を閉じるときは下の「lib を閉じる手順」に従う。
+
 ## 設定の届け方
 
 lib の設定(fork が値を変える物)は、lib の外の 1 ファイルの上書きで受ける。
@@ -71,6 +73,38 @@ export default { duration: 5000 } satisfies ToastOverride;
 
 - lib の中の合成は共通の [`defineConfig`](./defineConfig/README.md)(既定 + 規則 → `compose(上書き)`)。lib は `defaults`・規則・`XxxOverride` の型・`compose` の結果を自分の config.ts に持つ
 - lib ごとの合成(`defineFontsConfig` など)は、その lib を閉じる段で `defineConfig` に置き換える
+
+## lib を閉じる手順
+
+lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 クエスト = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の右の確かめが通ってから次へ進む。
+
+0. **始める前**: 同じ lib を他の作業(受信箱の指令・クエスト・ギルド)が触っていないか確かめる。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
+1. **依存を洗い出す**: lib の中から外を読む import を一覧にし、lib / 棚(`@/components`)/ hooks・utils / `@/config` / features・app に仕分ける。features・app・`@/config` は読めない(D83)→ 引数・注入で受けるか、値なら手順 6 の設定にする
+   - 確かめ: `git grep -nE "from ['\"]@/" -- src/lib/<name>` と、相対で lib の外へ出る `git grep -n "from ['\"]\.\./\.\./" -- src/lib/<name>`
+2. **hooks / utils**: 読んでいる hooks・utils が他の lib や外からも使われる → 独立した小さな lib にする(`isClient`・`frameDims` の形で、この手順を先にその lib に当てる)。この lib だけが使う → lib の中へ移す(D93)。移したら呼び手を新しい場所へ直し、古いファイルは消す(`git mv`)
+   - 確かめ: `git grep -n "@/hooks/<x>" -- src scripts` が 0
+3. **自分を相対で読む**: lib の中で自分を `@/lib/<name>` で読む import を相対パスに直す(D100。宣言の後は lint `lib-self-relative` が止める)
+   - 確かめ: `git grep -n "@/lib/<name>" -- src/lib/<name>` が 0
+4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = 別の指令)。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・上の「lib の package.json(宣言の形)」
+   - 確かめ: `pnpm check lib-package`(形の問題が 0)
+5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
+   - 確かめ: `pnpm check lib-package`(その lib の単体の型検査が通る)
+6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む。上流の空の上書き `src/config/lib/<name>.config.ts` を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す(L1.23)。上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: 上の「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)
+   - 確かめ: `pnpm test src/lib/<name>`。上書きのファイルを一時的に外すと `pnpm check lib-package` が TS2307 で止まる
+7. **呼び手を入口へ**: 外から lib の中のファイルを読む import(`@/lib/<name>/<中のファイル>`)を入口に直す(今は手で。書き換えの codemod は指令 27 で入る予定)
+   - 確かめ: `pnpm lint`(lib-entry の innerImport が 0)・`git grep -n "@/lib/<name>/" -- src scripts` が 0
+8. **sideEffects**(D86): 既定は書かない。読み込んだだけで動く物(store を作る・登録を呼ぶ・CSS を読む)がある lib に `false` を置くと検査が止める。書くのは読み込み量を測って増えた所だけ
+9. **検査を回す**: `pnpm check lib-package -- --list`(その lib が `closed`)・`pnpm lint`・`pnpm typecheck`・`pnpm test src/lib/<name>`・`pnpm check --gate=ship`。client で読む lib・設定を持つ lib は `pnpm build` も
+10. **moved: の行を書く**: 消えた・動いた古い指定子ごとに `moved: <古い指定子> -> <新しい入口>` を、コミットの本文とクエストの RESOLUTION の notes: に書く(fork への notice の材料)。名前を消した・変えたときはその名前と代わりも書く
+    - 例: `moved: @/hooks/useIsClient -> @/lib/isClient` | `moved: @/lib/toast/useToast -> @/lib/toast` | `moved: TOAST_DEFAULT_DURATION(@/lib/toast/constants) -> src/config/lib/toast.config.ts の duration`
+
+落とし穴:
+
+- テストの中から子の `node --test` を起こすときは環境変数 `NODE_TEST_CONTEXT` を外す(外さないと子が黙ってテストを飛ばし exit 0 になる)
+- 読み込み時に zustand の store を作る lib(toast)に `sideEffects: false` を置かない
+- 型のテスト(`*.types.test.ts`)の注釈の文に `@ts-expect-error` の字を書かない(注釈も印として読まれ、使われない印で tsc が落ちる)
+- 依存を足すと tsconfig.json の閉包も変わる。`pnpm check lib-package` が足す / 消す行を名指しするのでそれに合わせる
+- 設定の値の検査(schema)に zod を使うと、その lib を読む画面の client の読み込み量が増えうる。型で足りるなら付けない
 
 ## 目録の検査（`pnpm test src/lib/folderCatalog/catalog.test.mjs`）
 
