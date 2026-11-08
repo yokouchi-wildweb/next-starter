@@ -177,8 +177,6 @@ export const APP_FEATURES = {
     maxRecordLimit: 1000,
   },
   marketing: {
-    /** 管理画面のメニューにマーケティングカテゴリーを表示する */
-    showInAdminMenu: true,
     coupon: {
       /** クーポン機能を有効にする */
       enabled: true,

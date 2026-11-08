@@ -15,12 +15,11 @@ import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { buildSidebarSections } from "@/app/admin/(protected)/_layout/Sidebar/sidebarSections";
-import { adminMenu } from "@/config/ui/admin-global-menu.config";
 import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
 import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
 import { configRules, rules } from "@/featureGate/node";
 
+import { adminSidebarHrefs } from "../../../src/featureGate/checks/adminSidebar";
 import { folderSourcePattern, gatedImports } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
 import { loadCronTasks } from "../cron/discover";
 import { planExtensions } from "../extensions/extensions.mjs";
@@ -106,7 +105,7 @@ test("(b) 常時実行の拡張点: wallet / payment のフォルダを読む項
 });
 
 test("(c)(d) 管理のサイドバーに wallet / payment の住所の行が無く、client の枠の値も閉", async () => {
-  const sidebarHrefs = () => buildSidebarSections(adminMenu, "admin", adminGate().filter).flatMap((s) => s.items.map((i) => i.href));
+  const sidebarHrefs = () => adminSidebarHrefs();
   const openHrefs = await withWalletOff(sidebarHrefs, []);
   const offHrefs = await withWalletOff(sidebarHrefs);
   const removed = openHrefs.filter((href) => !offHrefs.includes(href));

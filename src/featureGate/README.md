@@ -39,7 +39,8 @@ gate.filter(rows, (row) => row.link); // href を持たない型は住所の取�
 - `gate.path`: 一覧の順(ファイル名の順)で最初の閉じた規則に当たれば `{ open: false, rule, redirectTo }`。読み手は proxy の項目 `src/proxies/featureGate.ts`(応答を作る)と demo の loader(閉じたデモを一覧から外す)
 - `gate.filter`: メニュー・一覧から閉じた住所の行を隠すだけ(応答は proxy が作る)。除くのは「`/` で始まる内部の住所(`//` は別オリジンで対象外)で、閉じた住所の並びの順で最初に当たった規則に `redirectTo` が無い」項目だけ。`?` と `#` の後ろは照合から外す。外部 URL・`redirectTo` 付きの閉(行き先の画面がある。例: サインアップ → `/signup-closed`)・住所の無い項目(`getHref` が `undefined`)は残す。判定は `hiddenHref.ts` の純関数で、リンクの自動で隠す判定(client)も同じ関数を使う
 - 管理のコマンドパレットの移動の候補は、管理の枠の中の橋 `AdminCommandGateBridge` が渡す厳密な `useGate().path` の判定で絞る(`redirectTo` 付きの閉も隠す。枠の外では絞らない。`src/features/core/adminCommand/README.md`)
-- 既存の読み手(demo の loader・service の自己停止・管理メニュー)は `gate.assert` / `gate.filter` へ移す途中(まだ直読み・`gate.path` の箇所がある)
+- 管理メニューは `gate.filter` でなく `useGate().path` で隠す(厳密: `redirectTo` 付きの閉も隠す。行き先の画面があっても、閉じた機能の入口をメニューに出さない)。組み立ては `src/features/core/admin/hooks/useAdminMenu.ts`、仕組みは `src/features/core/admin/menu/README.md`。メニュー専用のスイッチや項目の `feature:` は持たない
+- 既存の読み手(demo の loader・service の自己停止)は `gate.assert` / `gate.filter` へ移す途中(まだ直読み・`gate.path` の箇所がある)
 - 中の名前(`isFeatureEnabled`・`resolvePath`)は外に出さない。道具を足すときは `tools/server/<名前>.ts` に 1 ファイル、束 `tools/server/index.ts` に 1 行(client でも使う道具は `tools/client/` にも同じ名前で。束の名前の一致は `checks/gateTools.test.ts`: client の名前 ⊆ server、server だけの名前は `assert` だけ)
 
 ## client の口(useGate)

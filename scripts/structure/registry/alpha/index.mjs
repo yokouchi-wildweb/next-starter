@@ -1,5 +1,5 @@
 // scripts/structure/registry/alpha/index.mjs
-// src/registry の α 5 本(schemaRegistry・domainConfigRegistry・adminDataMenu・storagePurposeRegistry・adminDomains)を走査から丸ごと組み立てる(親 D67)。
+// src/registry の α 4 本(schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains)を走査から丸ごと組み立てる(親 D67)。
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
 
@@ -12,7 +12,6 @@ import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
 
 export const SCHEMA_REGISTRY_FILE = "src/registry/schemaRegistry.ts";
 export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts";
-export const ADMIN_DATA_MENU_FILE = "src/registry/adminDataMenu.ts";
 export const STORAGE_PURPOSE_REGISTRY_FILE = "src/registry/storagePurposeRegistry.ts";
 export const ADMIN_DOMAINS_FILE = "src/registry/adminDomains.ts";
 /** ドメインの管理一覧の画面が置かれる route group(一覧 = <ここ>/<kebab 複数形>/page.tsx) */
@@ -94,25 +93,7 @@ function renderDomainConfigRegistry(domains) {
   return lines.join("\n");
 }
 
-function renderAdminDataMenu(domains) {
-  const items = domains
-    .filter((d) => d.config.addToAdminDataMenu === true)
-    .map((d) => `  { title: ${JSON.stringify(d.config.label ?? d.camel)}, href: ${JSON.stringify(`/admin/${toKebabCase(toCamelCase(d.config.plural ?? d.camel))}`)} },`);
-  return [
-    headerOf(`${FEATURES_DIR}/**/domain.json の addToAdminDataMenu`),
-    `// ${ADMIN_DATA_MENU_FILE}`,
-    "//",
-    "// 管理画面「データ管理」のメニュー。ドメインを載せる = domain.json の addToAdminDataMenu: true。",
-    "// それ以外の行(adminRoutes の無いドメインへの手書きのリンクなど)は src/config/ui/admin-global-menu.config.ts に書く。",
-    "",
-    "export const adminDataMenu: { title: string; href: string }[] = [",
-    ...items,
-    "];",
-    "",
-  ].join("\n");
-}
-
-/** ドメインの管理一覧の住所(adminDataMenu と同じ字面: /admin/<kebab 複数形>) */
+/** ドメインの管理一覧の住所(/admin/<kebab 複数形>。dc:generate の adminRoutes と同じ字面) */
 const adminListHref = (d) => `/admin/${toKebabCase(toCamelCase(d.config.plural ?? d.camel))}`;
 
 /**
@@ -177,7 +158,7 @@ function renderStoragePurposeRegistry(repoRoot) {
 }
 
 /**
- * α 5 本の中身を組み立てる
+ * α 4 本の中身を組み立てる
  * @param {string} repoRoot
  * @returns {{ outputs: Record<string, string>, problems: string[] }}
  */
@@ -188,7 +169,6 @@ export function buildAlphaRegistries(repoRoot) {
     outputs: {
       [SCHEMA_REGISTRY_FILE]: schema.text,
       [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(domains),
-      [ADMIN_DATA_MENU_FILE]: renderAdminDataMenu(domains),
       ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
       [STORAGE_PURPOSE_REGISTRY_FILE]: renderStoragePurposeRegistry(repoRoot),
       [ADMIN_DOMAINS_FILE]: renderAdminDomains(repoRoot, domains),

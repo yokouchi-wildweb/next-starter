@@ -26,7 +26,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../../..");
 const fixtureRoot = path.join(here, "fixtures", "parity");
 const SKIP_DIRS = new Set(["core", "_template"]);
-const REGISTRY_FILES = ["schemaRegistry.ts", "domainConfigRegistry.ts", "adminDataMenu.ts", "storagePurposeRegistry.ts", "serviceRegistry.ts"];
+const REGISTRY_FILES = ["schemaRegistry.ts", "domainConfigRegistry.ts", "storagePurposeRegistry.ts", "serviceRegistry.ts"];
 
 const args = process.argv.slice(2).filter((a) => a !== "--");
 const ref = args.find((a) => !a.startsWith("--"));

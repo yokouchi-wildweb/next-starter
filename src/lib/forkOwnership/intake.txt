@@ -169,7 +169,7 @@ generated src/registry/storagePurposeRegistry.ts  # pnpm generate registry(走�
 generated src/wiring/dbAgent.ts  # pnpm generate extensions
 generated src/registry/schemaRegistry.ts  # pnpm generate registry(走査で丸ごと)
 generated src/registry/domainConfigRegistry.ts  # pnpm generate registry(走査で丸ごと)
-generated src/registry/adminDataMenu.ts  # pnpm generate registry(走査で丸ごと)
+generated src/registry/adminDomains.ts  # pnpm generate registry(走査で丸ごと: 管理一覧の画面を持つドメイン)
 generated src/features/feature-map.txt  # pnpm generate domain -- --feature-map(forge・pnpm generate domain が書き直す)
 generated src/features/core/*/entities/display.ts  # pnpm generate registry(表示用の写し)
 generated src/app/route-map.jsonl  # pnpm generate routes

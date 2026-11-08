@@ -1,23 +1,22 @@
 // src/featureGate/checks/readers.test.tsx
 // 門番の読み手の回帰テスト: 管理のサイドバー(routed 20261103-140211)と /demo の一覧(routed 20261103-172638)。
-// - サイドバー: 管理の枠の値(clientGateState("admin"))の useGate().filter で、閉じた規則の住所の行を除き、行が 0 で href の無い節を描かない(L1.11)
+// - サイドバー: 管理の枠の値(clientGateState("admin"))の useGate().path で、閉じた規則の住所の行を除き(厳密: redirectTo 付きの閉も)、行が 0 のカテゴリーを描かない(useAdminMenu)
 // - /demo: loader と同じ gate.filter(demoPages, demoHref)で閉じた住所のデモを除き、画面の数(一覧の長さ・カテゴリの数)もそこから数える
 // 閉じた状態は一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test src/featureGate/checks/readers.test.tsx
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { renderToStaticMarkup } from "react-dom/server";
 
-import { buildSidebarSections } from "@/app/admin/(protected)/_layout/Sidebar/sidebarSections";
 import { demoHref, groupDemoPagesByCategory } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
-import { adminMenu } from "@/config/ui/admin-global-menu.config";
-import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
-import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
+import { gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
 import { rules } from "@/featureGate/node";
+import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
-function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void) {
+import { adminSidebar, adminSidebarHrefs } from "./adminSidebar";
+
+function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T): T {
   const saved = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
   for (const rule of rules) {
     saved.set(rule, rule.enabled);
@@ -25,67 +24,41 @@ function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void
     rule.enabled = () => state ?? true;
   }
   try {
-    fn();
+    return fn();
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
   }
 }
 
-function Probe({ onGate }: { onGate: (gate: ClientGate) => void }) {
-  onGate(useGate());
-  return null;
-}
+const closedBy = (rule: GatedFeatureRule, href: string) => rule.pathPatterns.some((p) => matchesPath(href.split(/[?#]/)[0], p));
 
-/** 管理の枠の値で useGate を取り出す */
-function adminGate(): ClientGate {
-  let captured: ClientGate | undefined;
-  renderToStaticMarkup(
-    <GateProvider state={clientGateState("admin")}>
-      <Probe onGate={(g) => (captured = g)} />
-    </GateProvider>,
-  );
-  assert.ok(captured);
-  return captured;
-}
-
-const menuHrefs = () => adminMenu.flatMap((section) => [section.href, ...section.items.map((item) => item.href)]).filter((h): h is string => !!h);
-const closedBy = (rule: GatedFeatureRule, href: string) => rule.redirectTo === undefined && rule.pathPatterns.some((p) => matchesPath(href.split(/[?#]/)[0], p));
-
-test("サイドバー: 規則を 1 つずつ閉じ、その住所の行が無く、他の行は全部開いたときと同じ。空になった href の無い節は描かない", () => {
-  let all: ReturnType<typeof buildSidebarSections> = [];
-  withRules({}, () => {
-    all = buildSidebarSections(adminMenu, "admin", adminGate().filter);
-  });
-  const allHrefs = all.flatMap((s) => s.items.map((i) => i.href));
+test("サイドバー: 規則を 1 つずつ閉じ、その住所の行が無く(redirectTo 付きも)、他の行は全部開いたときと同じ。行の無いカテゴリーは描かない", () => {
+  const allHrefs = withRules({}, () => adminSidebarHrefs());
   assert.ok(allHrefs.length > 0);
   for (const rule of rules) {
     withRules({ [rule.name]: false }, () => {
-      const sections = buildSidebarSections(adminMenu, "admin", adminGate().filter);
-      const hrefs = sections.flatMap((s) => s.items.map((i) => i.href));
-      assert.deepEqual(hrefs, allHrefs.filter((h) => !closedBy(rule, h)), rule.name);
-      for (const section of sections) {
-        assert.ok(section.items.length > 0 || section.href !== null, `${rule.name}: 空の節 ${section.title}`);
-        if (section.href) assert.ok(!closedBy(rule, section.href), `${rule.name}: 閉じた節の href ${section.href}`);
-      }
+      const categories = adminSidebar();
+      assert.deepEqual(categories.flatMap((c) => c.rows.map((r) => r.href)), allHrefs.filter((h) => !closedBy(rule, h)), rule.name);
+      for (const category of categories) assert.ok(category.rows.length > 0, `${rule.name}: 空のカテゴリー ${category.key}`);
     });
   }
 });
 
-test("サイドバー: sampleDomain を閉じると sample の行が無い(fork 側の絞り込みなし)", () => {
+test("サイドバー: sampleDomain を閉じると sample の行が無く、行の無くなった「データ管理」も描かない", () => {
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
   const isSample = (href: string) => sample.pathPatterns.some((p) => matchesPath(href, p));
-  assert.ok(menuHrefs().some(isSample), "メニューに sample の行がある前提");
+  assert.ok(withRules({}, () => adminSidebarHrefs()).some(isSample), "メニューに sample の行がある前提");
   withRules({ sampleDomain: false }, () => {
-    const hrefs = buildSidebarSections(adminMenu, "admin", adminGate().filter).flatMap((s) => s.items.map((i) => i.href));
-    assert.equal(hrefs.filter(isSample).length, 0);
+    assert.equal(adminSidebarHrefs().filter(isSample).length, 0);
+    assert.equal(adminSidebar().some((c) => c.key === "data"), false);
   });
 });
 
-test("サイドバー: 銀行振込レビューを閉じると「リクエスト管理」の節ごと描かない", () => {
+test("サイドバー: 銀行振込レビューを閉じると「リクエスト管理」のカテゴリーごと描かない", () => {
+  assert.ok(Object.values(menuItems).some((item) => item.category === "requests"), "上流の項目に requests がある前提");
   withRules({ bankTransferReview: false }, () => {
-    const titles = buildSidebarSections(adminMenu, "admin", adminGate().filter).map((s) => s.title);
-    assert.equal(titles.includes("リクエスト管理"), false);
+    assert.equal(adminSidebar().some((c) => c.key === "requests"), false);
   });
 });
 
@@ -122,14 +95,14 @@ test("設定の節(L1.17): 規則の settingPaths(節の feature から導く /a
   sample.settingPaths = [href];
   try {
     withRules({ sampleDomain: false }, () => {
-      const hrefs = buildSidebarSections(adminMenu, "admin", adminGate().filter).flatMap((s) => s.items.map((i) => i.href));
+      const hrefs = adminSidebarHrefs();
       assert.ok(!hrefs.includes(href));
       assert.ok(hrefs.includes(settingSectionHref("maintenance")));
       assert.equal(gate.path(href).open, false);
       assert.notEqual(firstOpenSection(sections, (h) => gate.path(h).open)?.key, "general");
     });
     withRules({}, () => {
-      assert.ok(buildSidebarSections(adminMenu, "admin", adminGate().filter).some((s) => s.items.some((i) => i.href === href)));
+      assert.ok(adminSidebarHrefs().includes(href));
     });
   } finally {
     sample.pathPatterns = savedPatterns;

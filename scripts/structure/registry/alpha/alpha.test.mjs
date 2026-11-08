@@ -1,7 +1,7 @@
 // scripts/structure/registry/alpha/alpha.test.mjs
-// α 3 本の走査生成(./index.mjs)の回帰テスト。
+// α 4 本の走査生成(./index.mjs)の回帰テスト。
 // - 実リポ: 生成結果と一致(pnpm check registry と同じ)
-// - fixture: pgTable を持つファイル全部・profile の生成物は一覧を通す・キーは snake_case・メニューは印だけ・
+// - fixture: pgTable を持つファイル全部・profile の生成物は一覧を通す・キーは snake_case・管理一覧は画面のあるドメインだけ・
 //   読めない pgTable と JSON・フォルダ名の重なりは problems
 // - pnpm generate domain の登録済み判定が当たる字面と、行を足す置き先が残っている
 // 実行: pnpm test scripts/structure/registry/alpha/alpha.test.mjs
@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { ADMIN_DATA_MENU_FILE, ADMIN_DOMAINS_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, STORAGE_PURPOSE_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
+import { ADMIN_DOMAINS_FILE, DOMAIN_CONFIG_REGISTRY_FILE, SCHEMA_REGISTRY_FILE, STORAGE_PURPOSE_REGISTRY_FILE, buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../../..");
 
@@ -25,13 +25,13 @@ function fixture(files) {
   return root;
 }
 
-test("実リポ: 5 本が走査の生成結果と一致する(ずれたら pnpm generate registry)", () => {
+test("実リポ: 4 本が走査の生成結果と一致する(ずれたら pnpm generate registry)", () => {
   const { outputs, problems } = buildAlphaRegistries(ROOT);
   assert.deepEqual(problems, []);
   assert.deepEqual(staleAlphaRegistries(ROOT, outputs), []);
 });
 
-test("生成: 表の入口・ドメイン設定・メニュー", () => {
+test("生成: 表の入口・ドメイン設定", () => {
   const root = fixture({
     "src/features/core/wallet/entities/drizzle.ts": 'export const A = pgTable("wallets", {});\n',
     "src/features/core/wallet/entities/lots.ts": 'export const B = pgTable("wallet_lots", {});\n',
@@ -61,8 +61,6 @@ test("生成: 表の入口・ドメイン設定・メニュー", () => {
   assert.match(config, /import chatRoomConfig from "@\/features\/core\/chatRoom\/domain\.json";/);
   assert.match(config, /import sampleConfig from "@\/features\/sample\/domain\.json";/);
   assert.match(config, /\n  chat_room: chatRoomConfig,\n  sample: sampleConfig,\n  sample_category: sampleCategoryConfig,\n  sample_image: sampleImageConfig,\n\} as const;/);
-  const menu = outputs[ADMIN_DATA_MENU_FILE];
-  assert.match(menu, /= \[\n  \{ title: "サンプル", href: "\/admin\/samples" \},\n  \{ title: "カテゴリ", href: "\/admin\/sample-categories" \},\n\];\n$/);
 });
 
 test("生成: ファイル用途の一覧は services/server/storagePurposes.ts を path 順に並べる(core も同じ)", () => {

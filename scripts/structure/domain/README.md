@@ -123,7 +123,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 3. `--remove-config`: `domain.json` も消す（既定は `domain.json` だけ残してドメインディレクトリの中身を消す）
 4. `-i` のときは今までの対話（名前の再入力 → 追加ディレクトリの選択 → domain.json を消すか → 確認）
 
-削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、feature-map を書き直す。DB のテーブルは消さない。
+削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、feature-map を書き直す。DB のテーブルは消さない。
 
 - `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`text/objectEntry.mjs` の `removeObjectEntry`）
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
@@ -157,7 +157,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | 初回だけ生成（write-once） | `closable: true` の規則 `src/featureGate/rules/<domain>.ts` と `config.ts`、管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
-| 作らない（`pnpm generate registry`） | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（走査で丸ごと） |
+| 作らない（`pnpm generate registry`） | `src/registry/` の schemaRegistry / domainConfigRegistry / storagePurposeRegistry / adminDomains（走査で丸ごと） |
 | 毎回上書き（生成物） | `services/server/domainEntry.ts`（`apiAccess` が無ければ fail-closed = `...ADMIN_ONLY`、`useImportExport: true` のときだけ export / import を開く。`table` = `domain/names.mjs` の `domainTableName`、`idColumn` = `"id"`、Firestore は両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm generate registry` が丸ごと生成。仕組みは `src/lib/domain/README.md`） |
 
 管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/README.md`](../../../src/lib/screens/README.md) §12。

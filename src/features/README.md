@@ -30,7 +30,7 @@
 | defaultOrderBy | [string, "ASC" \| "DESC"][] | ⚪ No | デフォルトソート順 |
 | tableFields | string[] | ⚪ No | 管理画面テーブルに表示するフィールド |
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
-| addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
+| addToAdminDataMenu | boolean | ⚪ No | 管理メニュー「データ管理」(出どころ `dataMenu`)に出す。管理一覧の画面があるドメインだけ(`src/registry/adminDomains.ts`) |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
 | useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式）。`true` のときだけ管理者に export / import を開く。省略・`false` = 閉じる（サーバー側のインポート処理も拒否する） |
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
