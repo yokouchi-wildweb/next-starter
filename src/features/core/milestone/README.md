@@ -90,6 +90,44 @@ export const milestone: MilestoneDefinition = {
 };
 ```
 
+### 1-b. 段階のあるシリーズ(1 項目で段階の並びを持つ)
+
+ランクのように「段階ごとに達成がある」物は、段階ごとのファイルを並べず 1 項目のシリーズにする。読み手(`milestoneRegistry`)が評価のたびに `stages()` を読み、段階ごとの定義へ展開する(`getMilestonesByTrigger` / `getMilestoneByKey` / `getAllMilestones` の戻りは展開後の `MilestoneDefinition`、段階のものは `series` の印付き)。
+
+| 欄 | 型 | 意味 |
+| --- | --- | --- |
+| `kind` | `"series"` | シリーズの印(普通の定義には書かない) |
+| `key` | `string` | シリーズの鍵(他のマイルストーン・段階の鍵と重ならない。達成の記録には使わない) |
+| `triggers` | `string[]` | 評価するイベント(段階のすべてに共通) |
+| `order` | `"sequential" \| "unordered"` | 段階どうしの順(ランク = sequential、解放の一覧 = unordered) |
+| `stages` | `() => readonly S[]` | 段階の一覧。評価のたびに呼ぶ(config・setting から読める)。並びがその時の評価の順 |
+| `stageKey` | `(stage: S) => string` | 段階 → 達成の鍵(`milestones.milestone_key` に記録される) |
+| `evaluate` | `(stage, context, tx?) => Promise<boolean>` | 段階の達成条件 |
+| `onAchieved?` | `(stage, params) => Promise<Record<string, unknown> \| void>` | 段階の達成時(付与・通知)。戻り値は metadata |
+| 展開後の `series` | `{ seriesKey, stageKey, index, order }` | 読み手が段階の定義に付ける印(項目には書かない) |
+
+```ts
+// services/server/definitions/rankUp.ts
+import { defineMilestoneSeries } from "@/features/core/milestone/types/milestone";
+
+export const milestone = defineMilestoneSeries({
+  kind: "series",
+  key: "rank_up",
+  triggers: ["purchase_completed"],
+  order: "sequential",
+  stages: () => getRankTiers(),                 // [{ key: "bronze", threshold: 3000, bonus: 100 }, …] を設定から
+  stageKey: (tier) => `rank_${tier.key}`,       // 段階の名前から(記録済みの鍵と同じ形を保つ)
+  evaluate: async (tier, { userId }, tx) => (await totalPurchased(userId, tx)) >= tier.threshold,
+  onAchieved: async (tier, { userId, tx }) => grantRankBonus(userId, tier, tx),
+});
+```
+
+- 鍵は段階の名前から作る。並びの番号では作らない(段階を足す・並べ替えると番号が変わり、記録済みの達成と合わなくなる)
+- 段階を消すと、その段階はもう評価されない。記録済みの達成は残る(今の項目のファイルを消したときと同じ)
+- 鍵の重複は読み手が例外にする: 普通の定義・段階の鍵・シリーズの鍵のどれどうしでも、シリーズをまたいでも。`stageKey` が空でも例外
+- `defineMilestoneSeries` は段階の型 `S` を推すための恒等関数(`export const milestone: MilestoneItem = …` と書いてもよい)。受け口の型は `MilestoneItem` = `MilestoneDefinition | MilestoneSeries`
+- テスト: `pnpm test src/features/core/milestone/services/server/milestoneRegistry.test.ts`
+
 ### 2. 一覧を作る
 
 `pnpm generate extensions`（`extensions/definitions.ts` に入る）。
