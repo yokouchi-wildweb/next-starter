@@ -350,3 +350,4 @@
 - id:20261108-182611-district-map-test-closed-libs | severity:info | checkpoint:district-map-test-closed-libs | fixes:20261108-172627-shared-shelf-lib-close-base | pick:clean
 - id:20261108-184447-peer | severity:info | checkpoint:peer
 - id:20261108-190036-lib-close-drizzle | severity:action-required | checkpoint:lib-close-drizzle
+- id:20261108-190010-lib-close-wave1-declare-only | severity:action-required | checkpoint:lib-close-wave1-declare-only
