@@ -1,13 +1,13 @@
 // scripts/operations/setup/env.ts
 //
-// ローカル用 .env ファイルの初期生成 (pnpm ops setup env [ファイル名])。
+// env ファイルの初期生成 (pnpm ops setup env [ファイル名])。引数なし = .env.development と .env.production の 2 つ(env の規則)。
 // 冪等: 対象ファイルが既に存在すれば何もせず終了する (上書きしない)。
 //
 // やること:
-//   1. .env.example → .env.development (引数で変更可) のコピー
+//   1. .env.example → .env.development と .env.production (引数で 1 つに絞れる) のコピー
 //   2. 段階の印 APP_ENV をファイル名に合わせて書く (.env.staging* → staging / .env.production* → production / ほか → development。@/lib/appEnv)
 //   3. 最小構成で dev サーバーを起動するのに必要な値を埋める
-//      - APP_BASE_URL     = http://localhost:3000
+//      - APP_BASE_URL     = http://localhost:3000 (開発だけ。本番は人が書く)
 //      - AUTH_JWT_SECRET  = ランダム 32 バイト (base64)
 //      - ENCRYPTION_KEY   = ランダム 32 バイト (hex 64 文字)
 //      .env.example 側で既に値が入っている行は触らない (空の行だけ埋める)
@@ -15,87 +15,52 @@
 //
 // 生成した秘密値は表示しない (ターミナルログに残さないため)。
 
-import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
-import type { AppEnv } from "@/lib/appEnv";
+import { createEnvFile, DEFAULT_ENV_FILES, isEnvFileName } from "./lib.env";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
-const examplePath = path.join(repoRoot, ".env.example");
 
-const targetName = process.argv[2] ?? ".env.development";
-if (!/^\.env(\..+)?$/.test(targetName) || targetName === ".env.example") {
-  console.error(`✗ 対象ファイル名は .env または .env.<name> の形式で指定してください: ${targetName}`);
-  process.exit(1);
-}
-const targetPath = path.join(repoRoot, targetName);
-
-/** ファイル名から段階の印を決める(.env.staging* → staging / .env.production* → production / ほか → development) */
-const stageOf = (name: string): AppEnv =>
-  name.startsWith(".env.production") ? "production" : name.startsWith(".env.staging") ? "staging" : "development";
-
-/** APP_ENV の行を段階に書き換える(無ければ先頭に足す)。.env.example の development をそのまま本番のファイルに写さない */
-const setStage = (lines: string[], stage: AppEnv): void => {
-  const index = lines.findIndex((line) => /^APP_ENV=/.test(line));
-  if (index >= 0) lines[index] = `APP_ENV=${stage}`;
-  else lines.unshift(`APP_ENV=${stage}`);
-};
-
-/** 空の行にだけ値を入れる。キーが無ければ末尾に追記する */
-const fillIfEmpty = (lines: string[], key: string, value: string): "filled" | "kept" | "appended" => {
-  const pattern = new RegExp(`^${key}=(.*)$`);
-  for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].match(pattern);
-    if (!match) continue;
-    const current = match[1].trim().replace(/^['"]|['"]$/g, "");
-    if (current.length > 0) return "kept";
-    lines[i] = `${key}=${value}`;
-    return "filled";
+const names = process.argv[2] ? [process.argv[2]] : [...DEFAULT_ENV_FILES];
+for (const name of names) {
+  if (!isEnvFileName(name)) {
+    console.error(`✗ 対象ファイル名は .env または .env.<name> の形式で指定してください: ${name}`);
+    process.exit(1);
   }
-  lines.push(`${key}=${value}`);
-  return "appended";
-};
+}
 
 console.log("=== env: init ===\n");
 
-if (!existsSync(examplePath)) {
+if (!existsSync(path.join(repoRoot, ".env.example"))) {
   console.error("✗ .env.example が見つかりません");
   process.exit(1);
 }
 
-if (existsSync(targetPath)) {
-  console.log(`✓ ${targetName} は既に存在するため何もしません (再生成する場合は削除してから実行)`);
-  process.exit(0);
+for (const name of names) {
+  const result = createEnvFile(repoRoot, name);
+  if (!result.created) {
+    console.log(`✓ ${name} は既に存在するため何もしません (再生成する場合は削除してから実行)`);
+    continue;
+  }
+  console.log(`✓ ${name} を作成しました`);
+  console.log(`  ${"APP_ENV".padEnd(16)} ${result.stage} (ファイル名から)`);
+  for (const [key, r] of Object.entries(result.results)) {
+    const label = r === "kept" ? ".env.example の値を維持" : r === "appended" ? "末尾に追記" : "生成値を設定";
+    console.log(`  ${key.padEnd(16)} ${label}`);
+  }
+  console.log("");
 }
 
-const lines = readFileSync(examplePath, "utf8").split("\n");
-
-const stage = stageOf(targetName);
-setStage(lines, stage);
-
-const results = {
-  APP_BASE_URL: fillIfEmpty(lines, "APP_BASE_URL", "http://localhost:3000"),
-  AUTH_JWT_SECRET: fillIfEmpty(lines, "AUTH_JWT_SECRET", randomBytes(32).toString("base64")),
-  ENCRYPTION_KEY: fillIfEmpty(lines, "ENCRYPTION_KEY", randomBytes(32).toString("hex")),
-};
-
-writeFileSync(targetPath, lines.join("\n"), { mode: 0o600 });
-
-console.log(`✓ ${targetName} を作成しました\n`);
-console.log(`  ${"APP_ENV".padEnd(16)} ${stage} (ファイル名から)`);
-for (const [key, result] of Object.entries(results)) {
-  const label = result === "kept" ? ".env.example の値を維持" : result === "appended" ? "末尾に追記" : "生成値を設定";
-  console.log(`  ${key.padEnd(16)} ${label}`);
-}
-
-console.log(`
+console.log(`env の規則: .env.development と .env.production を必ず置き(リリース前でも)、開発と本番は別の DB にする。
+書く道具は既定で開発に向き、本番は --env production と確認(scripts/runner/guard/README.md)。
 この状態で pnpm dev が起動します (Firebase / DB 未接続)。
 必要になったら以下を設定してください:
-  - DATABASE_URL                 Neon 等の接続文字列 → pnpm db:push
+  - DATABASE_URL                 Neon 等の接続文字列 → pnpm db:push(本番は別の DB / ブランチ)
   - NEXT_PUBLIC_FIREBASE_*       Firebase Auth / Firestore
   - MY_SERVICE_ACCOUNT_KEY       Firebase Admin SDK
   - STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET
                                  ファイル保存のバケット → pnpm ops storage setup (scripts/operations/storage/README.md)
+  - .env.production の APP_BASE_URL と秘密の値(ホスティング側に置くのを推奨)
 手順: docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md
 `);

@@ -8,8 +8,11 @@
 //   pnpm live:room
 //   pnpm live:room -- --allow-default-name
 
-import { argsOf, checkCron, deployRoom } from "./lib";
+import { guardDeploy } from "../../runner/guard";
+import { argsOf, checkCron, deployRoom, roomWillDeploy } from "./lib";
 
 console.log("=== live:room (room) ===\n");
+// Worker を出すなら確認(非対話は --confirm=production が要る)。何かを打つ前に止める
+guardDeploy("pnpm live:room(ルームの Worker を本番に出す)", roomWillDeploy());
 checkCron();
-deployRoom(argsOf(process.argv.slice(2)));
+deployRoom([...argsOf(process.argv.slice(2)), ...(roomWillDeploy() ? ["--confirm=production"] : [])]);

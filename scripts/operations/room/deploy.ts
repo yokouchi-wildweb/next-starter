@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { REALTIME_ROOM_CONFIG } from "../../../src/config/app/realtime-room.config";
+import { guardDeploy } from "../../runner/guard";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
@@ -28,6 +29,9 @@ if (!existsSync(path.join(roomDir, "wrangler.toml"))) {
   console.error("✗ servers/room/wrangler.toml がありません。先に pnpm ops room init を実行してください");
   process.exit(1);
 }
+
+// 本番の Worker に出す前の確認(共通の守り。非対話は --confirm=production が要る)
+guardDeploy("pnpm ops room deploy(ルームの Worker を本番に出す)", true);
 
 // 既定名ガード: wrangler deploy は同名 Worker を無言で置換するため、テンプレート既定名
 // "room-server" のままのデプロイは拒否する (同一アカウント同居の他プロジェクトを上書きする事故防止)

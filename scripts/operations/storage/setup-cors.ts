@@ -9,10 +9,10 @@
 // 画像/動画を <img>/<video> で表示するだけなら CORS は不要だが、バイト読み取りには必須。
 // このスクリプトでバケットに一度 CORS を設定すれば、配信は Firebase から直接(CDN)のまま読めるようになる。
 
-import dotenv from "dotenv";
+import { guardEntry } from "../../runner/guard";
 
-// ENV_FILE で指定された環境ファイルを読み込む(デフォルト: .env.development)
-dotenv.config({ path: process.env.ENV_FILE || ".env.development" });
+// 共通の守り: バケットの CORS を書くので書く入口(既定は開発、本番は --env production と確認。scripts/runner/guard)
+guardEntry({ write: true, what: "pnpm ops storage setup-cors" });
 
 import { getServerStorage } from "@/lib/firebase/server/app";
 

@@ -4,14 +4,14 @@
  * モデル = アプリの AI エージェントの設定(src/config/app/ai-agent.config.ts の AI_AGENT_CONFIG.model)。
  *   アプリが使うモデルに届くかを確かめる(fork が設定を差し替えればそれを見る)
  */
-import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 
 import { AI_AGENT_CONFIG } from '@/config/app/ai-agent.config';
 
-// ENV_FILE で指定された環境ファイルを読み込む（デフォルト: .env.development）
-const envFile = process.env.ENV_FILE || '.env.development';
-dotenv.config({ path: envFile });
+import { guardEntry } from '../../runner/guard';
+
+// 共通の守り(読む入口: 向き先と段階の印だけ。scripts/runner/guard)
+const { envFile } = guardEntry({ write: false, what: 'pnpm ops claude test' });
 
 async function testConnection() {
   if (!process.env.ANTHROPIC_API_KEY) {

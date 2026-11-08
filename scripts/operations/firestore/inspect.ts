@@ -1,10 +1,10 @@
 // scripts/operations/firestore/inspect.ts
 // Firestore CLIツール - コレクション一覧、ドキュメント数、構造確認、クエリ実行
 
-import { config } from "dotenv";
+import { guardEntry } from "../../runner/guard";
 
-// .env.development を読み込む
-config({ path: ".env.development" });
+// 共通の守り: 向き先(既定は開発)と段階の印。delete は書く入口(本番は確認)
+guardEntry({ write: process.argv[2] === "delete", what: `pnpm ops firestore inspect ${process.argv[2] ?? ""}`.trim() });
 
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import type { AppOptions } from "firebase-admin/app";

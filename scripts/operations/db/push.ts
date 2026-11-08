@@ -6,8 +6,8 @@
 // CLI はスキーマファイルの export をそのまま拾うので、コード側から外せない。
 //
 // 実行:
-//   pnpm db:push                                        # .env.development 固定
-//   ENV_FILE=.env.production pnpm exec tsx scripts/operations/db/push.ts   # 任意の env ファイル
+//   pnpm db:push                                        # 開発(.env.development)
+//   pnpm db:push -- --env production                    # 本番(確認あり。非対話は --confirm=production。共通の守り scripts/runner/guard)
 //   ... --force                                         # データ消失を伴う文も確認なしで実行
 //
 // 挙動は drizzle-kit push に合わせる:
@@ -16,19 +16,12 @@
 // - データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する（--force で省略）
 //
 // 詳細: scripts/structure/registry/README.md
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 
-import { config as loadEnv } from "dotenv";
+import { guardEntry } from "../../runner/guard";
 
-const envFile = process.env.ENV_FILE ?? ".env.development";
-const envFilePath = resolve(process.cwd(), envFile);
-if (!existsSync(envFilePath)) {
-  console.error(`ENV_FILE="${envFile}" で指定された環境変数ファイルが見つかりません。`);
-  process.exit(2);
-}
-loadEnv({ path: envFilePath });
+// 共通の守り: 向き先(既定は開発)・段階の印・本番の確認
+const { envFile } = guardEntry({ write: true, db: true, what: "pnpm db:push" });
 
 const force = process.argv.includes("--force");
 

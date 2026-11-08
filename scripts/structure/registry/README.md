@@ -31,7 +31,7 @@
 
 ```bash
 pnpm db:push:check                          # .env.development（ENV_FILE 未指定時の既定）
-ENV_FILE=.env.production pnpm db:push:check # 任意の env ファイル（drizzle.config.ts と同じ規約）
+pnpm db:push:check -- --env production     # 本番を読むだけ(向き先と段階の印は scripts/runner/guard)
 pnpm db:push:check -- --allow-defaults      # SET/DROP DEFAULT 行だけ無視（fork 固有の default 事情向け退避口）
 ```
 
@@ -43,7 +43,7 @@ pnpm db:push:check -- --allow-defaults      # SET/DROP DEFAULT 行だけ無視�
 ### いつ実行するか
 
 - **index を追加・変更したとき（必須）**: `pnpm db:push` → `pnpm db:push:check` が差分ゼロになることを確認してからコミットする。
-- **本番 push の前（任意）**: `ENV_FILE=.env.production pnpm db:push:check` で、実行される SQL を事前に見られる。
+- **本番 push の前（任意）**: `pnpm db:push:check -- --env production` で、実行される SQL を事前に見られる。
 - 日常の列追加・テーブル追加では不要。
 
 ### なぜ重要か

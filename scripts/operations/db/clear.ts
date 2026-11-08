@@ -10,11 +10,12 @@
 //
 // フラグ: --all(選べる表を全部、対話なし) | --include-closed(閉じた機能の表も対象にする)
 
-import { config } from "dotenv";
 import { checkbox, confirm } from "@inquirer/prompts";
 
-// .env.development を読み込む（import文より先に実行）
-config({ path: ".env.development" });
+import { guardEntry } from "../../runner/guard";
+
+// 共通の守り: 向き先(既定は開発、本番は --env production と確認)・段階の印(scripts/runner/guard)
+guardEntry({ write: true, db: true, what: "pnpm ops db clear" });
 
 const printList = (label: string, names: readonly string[]) => {
   console.log(`${label}(${names.length}件)${names.length > 0 ? `: ${names.join(", ")}` : ""}`);

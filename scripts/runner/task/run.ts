@@ -40,7 +40,7 @@ import { writeJournalDraft } from "./journal";
 import { dbTaskRunStore, localMigrationKey, migrationKey, resolveByHand } from "./store";
 
 // env ファイルを読む（prepare.ts）。タスク本体は動的 import なので、ここで読めば間に合う。
-loadEnvFile();
+loadEnvFile("pnpm task");
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 

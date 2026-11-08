@@ -20,10 +20,15 @@
 // ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
 //    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
 
-import { argsOf, checkCron, deployApp, deployRoom } from "./lib";
+import { guardDeploy } from "../../runner/guard";
+import { argsOf, checkCron, deployApp, deployRoom, isProductionVercel, roomWillDeploy } from "./lib";
 
 console.log("=== live:all (room → app) ===\n");
+// 本番に出すなら(アプリが --prod か、ルームの Worker を出すなら)確認を 1 回。非対話は --confirm=production が要る。何かを打つ前に止める
+const production = roomWillDeploy() || isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
+guardDeploy("pnpm live:all(ルームとアプリを本番に出す)", production);
 checkCron();
-deployRoom();
+// 確認は済んだので、子の pnpm ops room deploy には --confirm=production を渡す(二度聞かない)
+deployRoom(roomWillDeploy() ? ["--confirm=production"] : []);
 deployApp(argsOf(process.argv.slice(2)));
 console.log("\n✓ デプロイ完了 (room + app)");

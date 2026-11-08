@@ -8,7 +8,7 @@
 //   pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://app.example.com [--origin ...]
 //                        [--location asia-northeast1] [--dry-run]
 //   --pub / --priv を省略すると env の STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET を使う（env ファイルは書き換えない）
-//   ENV_FILE で読み込む env ファイルを変えられる（既定 .env.development）
+//   向き先は共通の守り(既定は開発、本番は --env production と確認。scripts/runner/guard)
 //
 // 用意する状態:
 // - 共通: UBLA（均一なバケットレベルのアクセス）有効、CORS（--origin、GET / HEAD / PUT、署名 PUT と再開可能アップロードのヘッダー）
@@ -18,9 +18,10 @@
 // 必要な権限: サービスアカウント（MY_SERVICE_ACCOUNT_KEY）に「Storage 管理者」。
 // 足りず HTTP 403 で止まったときは、値を埋めた付与の 1 行（gcloud）を表示する（実行はしない）。詳細: scripts/operations/storage/README.md
 
-import dotenv from "dotenv";
+import { guardEntry } from "../../runner/guard";
 
-dotenv.config({ path: process.env.ENV_FILE || ".env.development", quiet: true });
+// 共通の守り: バケットの設定を書くので書く入口
+guardEntry({ write: true, what: "pnpm ops storage setup" });
 
 import { getServerStorage } from "@/lib/firebase/server/app";
 

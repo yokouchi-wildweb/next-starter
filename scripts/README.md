@@ -95,7 +95,7 @@ pnpm db:push && pnpm ops db seed --all
 pnpm test scripts/structure/registry/
 
 # push の読み取り専用ドライラン: スキーマと DB を比較し、実行される SQL を表示 (1 文でもあれば exit 1)
-# (index を追加・変更したら db:push 後に差分ゼロを確認。ENV_FILE=.env.production で本番の事前確認にも)
+# (index を追加・変更したら db:push 後に差分ゼロを確認。pnpm db:push:check -- --env production で本番の事前確認にも)
 pnpm db:push:check
 ```
 
@@ -164,6 +164,7 @@ pnpm generate cron -- --plan pro     # Vercel Pro: task.ts の schedule どお�
 pnpm check cron
 ```
 
+- 向き先は書く入口の共通の守り(既定は開発、本番は `--env production` と確認、非対話は `--confirm=production`。`runner/guard/README.md`)。DB・外部に書く道具は全部これを通す。
 - 名指しの実行は毎回 `task_runs` に記録し、止める鍵・結果不明・dry-run を効かせる(`src/lib/task/README.md`「実行の記録」)。
 - `pnpm task` は env ファイルを読む（`ENV_FILE`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
 - タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/runner/preload/serverOnly.mjs`、下記「テスト」）を付けている。

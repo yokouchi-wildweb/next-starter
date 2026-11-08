@@ -48,7 +48,7 @@ async function ensureDevAdmin(): Promise<Record<string, unknown>> {
   };
 }
 
-loadEnvFile();
+loadEnvFile("pnpm workflow dev-admin run");
 ensureDevAdmin()
   .then((result) => {
     console.log(JSON.stringify({ level: "info", scope: "dev-admin", ok: true, ...result }));

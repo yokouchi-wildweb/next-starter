@@ -17,6 +17,8 @@ import { execSync } from "node:child_process";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { guardDeploy } from "../../runner/guard";
+
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
 const wranglerBin = path.join(roomDir, "node_modules/.bin/wrangler");
@@ -24,6 +26,9 @@ const SECRET_NAME = "REALTIME_ROOM_AUTH_SECRET";
 const rotate = process.argv.includes("--rotate");
 
 console.log("=== realtime room: secret ===\n");
+
+// 本番の Worker の秘密を書く前の確認(共通の守り。非対話は --confirm=production が要る)
+guardDeploy("pnpm ops room secret(ルームの Worker の秘密を書く)", true);
 
 if (!existsSync(path.join(roomDir, "wrangler.toml"))) {
   console.error("✗ servers/room/wrangler.toml がありません。先に pnpm ops room init を実行してください");

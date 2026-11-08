@@ -1,10 +1,10 @@
 // scripts/operations/db/inspect.ts
 // データベースCLIツール - クエリ実行、テーブル一覧、構造確認
 
-import { config } from "dotenv";
+import { guardEntry } from "../../runner/guard";
 
-// .env.development を読み込む
-config({ path: ".env.development" });
+// 共通の守り: 向き先(既定は開発)と段階の印。query は任意の SQL を通すので書く入口として扱う(本番は確認)
+guardEntry({ write: process.argv[2] === "query", db: true, what: `pnpm ops db inspect ${process.argv[2] ?? ""}`.trim() });
 
 import postgres from "postgres";
 

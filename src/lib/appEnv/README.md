@@ -27,6 +27,14 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 | `setAppEnv(value)` | テスト用。段階を差し替え、差し替える前に戻す関数を返す(1 つのテストで何度も切り替えるとき) |
 | `APP_ENVS` / `AppEnv` | 段階の一覧と型 |
 
+## env ファイルの規則(fork 共通)
+
+- 必ず置く: `.env.development` と `.env.production`(リリース前でも。`pnpm ops setup env` が両方作る)。各ファイルに段階の印 `APP_ENV=<段階>` を 1 行
+- 開発と本番は別の DB(Neon ならブランチ)。本番の `DATABASE_URL` が空(リリース前)は未設定として扱う
+- 拡張: `.env.staging`(`--env staging`)。個人の上書き・秘密は `.env.<段階>.local`(git に入れない)。preview はホスティング側の設定
+- 本番の秘密の値はホスティング側に置くのを推奨(必須ではない)
+- 書く道具(pnpm task・db:push・seed・clear・storage・mail 等)は既定で開発に向き、本番は `--env production` と確認(非対話は `--confirm=production`)。読んだファイルの印と接続先で本当の向き先を確かめる: `scripts/runner/guard/README.md`
+
 ## どの判断にどれを使うか
 
 - **開発用の補助**(警告・デバッグ表示・書き間違いの throw・認証の素通し・ダミーの決済など): `isDevelopment()`。staging は本番と同じ側に置く(本番に近い確かめの場なので、開発用の物は開けない)

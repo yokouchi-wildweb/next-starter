@@ -17,7 +17,7 @@ import { isUndefinedTableError } from "./gate";
 import { insertSeeds, type SeedService } from "./insert";
 import { closedByOf, listSeedFiles, loadSeedEntries } from "./scan";
 
-loadEnvFile();
+loadEnvFile("pnpm ops db seed");
 
 async function main() {
   console.log("🌱 データベースのシード実行");

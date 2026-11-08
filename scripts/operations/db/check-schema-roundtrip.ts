@@ -10,24 +10,16 @@
 //   - 本番 DB に対して「これから何が実行されるか」を安全に事前確認する。
 //
 // 実行:
-//   pnpm db:push:check                         # .env.development (ENV_FILE 未指定時の既定)
-//   ENV_FILE=.env.production pnpm db:push:check # 任意の env ファイル (drizzle.config.ts と同じ規約)
+//   pnpm db:push:check                         # 開発(.env.development)
+//   pnpm db:push:check -- --env production     # 本番を読むだけ(確認なし。向き先と印は共通の守り scripts/runner/guard で確かめる)
 //   pnpm db:push:check -- --allow-defaults     # SET/DROP DEFAULT 行だけを無視 (fork 固有の default 事情向け退避口)
 //
 // 前提: drizzle-kit/api の pushSchema はバインドパラメータを捨てるバグがあるため、
 // patches/drizzle-kit@*.patch で修正済み (pnpm install で自動適用)。詳細: scripts/structure/registry/README.md
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { guardEntry } from "../../runner/guard";
 
-import { config as loadEnv } from "dotenv";
-
-const envFile = process.env.ENV_FILE ?? ".env.development";
-const envFilePath = resolve(process.cwd(), envFile);
-if (!existsSync(envFilePath)) {
-  console.error(`ENV_FILE="${envFile}" で指定された環境変数ファイルが見つかりません。`);
-  process.exit(2);
-}
-loadEnv({ path: envFilePath });
+// 共通の守り(読むだけ): 向き先(既定は開発)と段階の印
+const { envFile } = guardEntry({ write: false, what: "pnpm db:push:check" });
 
 const allowDefaults = process.argv.includes("--allow-defaults");
 const DEFAULT_STATEMENT = /^ALTER TABLE .* ALTER COLUMN .* (SET|DROP) DEFAULT/;

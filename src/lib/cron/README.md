@@ -206,9 +206,11 @@ Vercel の環境変数に `CRON_SECRET` を登録する（Vercel Cron は `Autho
 （API ルートを経由しないので `CRON_SECRET` は不要、DB 等の環境変数は必要）。1 つ失敗しても残りは実行して最後に exit 1。
 
 ```cron
-# Docker + cron
-* * * * * cd /app && pnpm task --due
+# Docker + cron(本番ホスト。向き先は書く入口の共通の守り: 本番は --env production と、非対話なので --confirm=production が要る)
+* * * * * cd /app && pnpm task --due --env production --confirm=production
 ```
+
+env ファイルを置かずホストの環境変数で動かすときは、`APP_ENV=production` が環境変数にあれば `.env.production` が無くても進む(`scripts/runner/guard/README.md`「ホストの env」)。個別の `pnpm task <name>` も同じ旗を付ける。
 
 毎分起動できないスケジューラ（GitHub Actions は最短 5 分）では `--due` は使えない。個別に `pnpm task <name>` を登録する。
 登録済みタスクの一覧（schedule・有効/無効・説明つき）は `pnpm task --list`。

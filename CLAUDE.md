@@ -61,6 +61,7 @@ scope: cross-cutting bans only | area bans sit with their rule: ARCHITECTURE bou
 - businessConfig.url as runtime origin (it is the official business URL for mail/SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
 - lib/mail send() for admin→user messages → messagingService.send / bulkSend (@/features/messaging/services/server), which persists per-recipient audit + message_dispatches | lib/mail direct = system template mail only (password reset, verification, registration) | ref: src/features/core/messaging/README.md
 - stage from NODE_ENV or a direct process.env.APP_ENV read → @/lib/appEnv (development | staging | production, missing / unknown = production, lint app-env/single-reader) | env file location = ENV_FILE, not APP_ENV | ref: src/lib/appEnv/README.md
+  - env files: .env.development + .env.production with an APP_ENV marker, separate DBs | write tools default to development, production = --env production + confirm (non-interactive --confirm=production), ref: scripts/runner/guard/README.md
 
 ## UNCONFIGURED_BACKENDS (boots with DB / Firebase env empty)
 env: DATABASE_URL, MY_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_* may all be empty right after pnpm ops setup env

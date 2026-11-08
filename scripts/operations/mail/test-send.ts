@@ -16,7 +16,6 @@
 //     testDescription: "ウェルカムメール",
 //   });
 
-import { config } from "dotenv";
 import { render } from "@react-email/render";
 import inquirer from "inquirer";
 import * as fs from "fs";
@@ -24,9 +23,10 @@ import * as path from "path";
 import { createElement } from "react";
 
 import { businessConfig } from "../../../src/config/business.config";
+import { guardEntry } from "../../runner/guard";
 
-// .env.development を読み込む
-config({ path: ".env.development" });
+// 共通の守り: 向き先(既定は開発、本番は --env production と確認)・段階の印。メールを実際に送るので書く入口
+guardEntry({ write: true, what: "pnpm ops mail test-send" });
 
 // 環境変数の確認
 const MAIL_PROVIDER = process.env.MAIL_PROVIDER || "resend";

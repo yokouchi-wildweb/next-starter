@@ -2,9 +2,14 @@
 //
 // 段: checkCron(事前検査) → deployRoom(Worker) → deployApp(Vercel)。
 // どの段も失敗したら理由を出して exit 1 で止める(次の段に進まない)。
+// 本番に出す前の確認は共通の守り(scripts/runner/guard の guardDeploy): 手で打つなら「production」と打たせ、
+// 非対話(TTY なし・CI・エージェント)は --confirm=production が無ければ何もデプロイせず拒否。プレビュー(--prod でない vercel)は確認なし。
+// env ファイルは読まない(ホスティング側の env で動く)。
 
 import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";
+
+import { REALTIME_ROOM_CONFIG } from "../../../src/config/app/realtime-room.config";
 
 export const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
@@ -55,6 +60,18 @@ export function deployApp(vercelArgs: string[]): void {
     process.exit(result.status ?? 1);
   }
 }
+
+/** vercel の引数が本番に出すか(引数なし = --prod の既定・--prod・--target=production)。それ以外はプレビュー */
+export function isProductionVercel(vercelArgs: readonly string[]): boolean {
+  if (vercelArgs.length === 0) return true;
+  if (vercelArgs.includes("--prod")) return true;
+  const i = vercelArgs.indexOf("--target");
+  const target = vercelArgs.find((a) => a.startsWith("--target="))?.slice("--target=".length) ?? (i >= 0 ? vercelArgs[i + 1] : undefined);
+  return target === "production";
+}
+
+/** ルームサーバーを実際にデプロイするか(realtime-room.config enabled=false なら skip。デプロイ = 本番の Worker) */
+export const roomWillDeploy = (): boolean => REALTIME_ROOM_CONFIG.enabled;
 
 /** pnpm live -- <引数> の先頭の "--" を落とす(pnpm が素通しする場合がある) */
 export function argsOf(argv: string[]): string[] {

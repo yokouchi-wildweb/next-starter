@@ -5,7 +5,7 @@
 // 同梱の sample-counter namespace を使用し、ルームIDは実行ごとにユニーク (状態汚染なし)。
 //
 // 接続先: env の REALTIME_ROOM_URL / REALTIME_ROOM_AUTH_SECRET
-//   (ENV_FILE で指定された環境ファイル、デフォルト .env.development。
+//   (共通の守りで選んだ env ファイル、既定 .env.development、--env で選ぶ。scripts/runner/guard。
 //    直接指定も可: REALTIME_ROOM_URL=... REALTIME_ROOM_AUTH_SECRET=... pnpm ops room check)
 // ローカル Worker (pnpm ops room dev) に対しても実行できる:
 //   REALTIME_ROOM_URL=http://localhost:8787 REALTIME_ROOM_AUTH_SECRET=<.dev.varsの値> pnpm ops room check
@@ -23,12 +23,13 @@
 //  10. WebSocket: 不正トークンの接続拒否
 //  11. 永続化 (別経路 getState で状態一致)
 
-import dotenv from "dotenv";
 import { SignJWT } from "jose";
 
 import { ROOM_PROTOCOL_VERSION } from "../../../src/lib/realtimeRoom/protocol";
+import { guardEntry } from "../../runner/guard";
 
-dotenv.config({ path: process.env.ENV_FILE || ".env.development" });
+// 共通の守り(確かめの道具なので読む入口として扱う: 向き先と段階の印だけ)
+guardEntry({ write: false, what: "pnpm ops room check" });
 
 const baseUrl = process.env.REALTIME_ROOM_URL?.trim().replace(/\/$/, "");
 const secretRaw = process.env.REALTIME_ROOM_AUTH_SECRET?.trim();

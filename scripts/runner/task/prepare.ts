@@ -1,18 +1,15 @@
 // scripts/runner/task/prepare.ts
 // DB に届く道具の下準備(タスクのランナーと、DB に書く開発の道具 scripts/workflow/dev-admin が共有する。二重に作らない)。
-// - loadEnvFile: env ファイルを読む(ENV_FILE で指定、既定 .env.development。既に設定済みの環境変数は上書きしない。
-//   ファイルが無い環境 = 本番ホストで env を直接渡す場合はそのまま進む)
+// - loadEnvFile: 書く入口の共通の守り(scripts/runner/guard)を通して env ファイルを読む(既定は開発、本番は --env production と確認)
 // - requireDatabase: DB が未設定なら即座に止める(接続を待たない)
 // - asSystem: 監査の文脈を system にして走らせる(cron・CLI は routeFactory の文脈を持たない)
 // server-only の下駄(scripts/runner/preload/serverOnly.mjs)は起動する側が付ける(pnpm task・pnpm workflow の .ts)。
 
-import dotenv from "dotenv";
+import { guardEntry, type WriteTarget } from "../guard";
 
-/** env ファイルを読む。読んだファイルの名前を返す */
-export function loadEnvFile(): string {
-  const file = process.env.ENV_FILE || ".env.development";
-  dotenv.config({ path: file, quiet: true });
-  return file;
+/** 共通の守りを通して env ファイルを読む(通らなければ理由を出して exit 1)。向き先を返す */
+export function loadEnvFile(what: string): WriteTarget {
+  return guardEntry({ write: true, db: true, what });
 }
 
 /** DB が未設定(DATABASE_URL が空)なら止める */
