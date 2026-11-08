@@ -389,12 +389,12 @@
 | 一覧画面(status ごとのタブ) | `src/app/admin/(protected)/bank-transfer-reviews/[status]/page.tsx` → `_screen/AdminBankTransferReviewsScreen.tsx` | URL のスラッグ(`STATUS_VALUE_BY_SLUG`)で status を決め、タブ・一覧・ページング・検索・CSV 一括判定 |
 | タブ | `_screen/StatusTabs.tsx` | status 別件数付きのタブ(`useAdminBankTransferReviewStatusCounts`) |
 | 一覧 | `_screen/BankTransferReviewListPanel.tsx` + `BankTransferReviewTable.tsx` | `useAdminBankTransferReviewList` と `useAdminBankTransferReviewMemo` を呼んで描く。一斉送信は表の一括操作 |
-| 詳細モーダル | `_screen/BankTransferReviewDetailModal.tsx` | `useAdminBankTransferReview` の詳細と、承認 / 拒否 / 検証中への移行・管理者メモ |
-| CSV 取り込み | `_screen/BankTransferReviewCsvImportDialog.tsx` | 振込明細 CSV の dry-run と一括判定 |
+| 詳細モーダル | `_screen/BankTransferReviewDetailModal.tsx` | `useAdminBankTransferReview` の詳細、`useAdminBankTransferReviewDecision` の承認 / 拒否 / 検証中への移行、管理者メモ |
+| CSV 取り込み | `_screen/BankTransferReviewCsvImportDialog.tsx` | `useAdminBankTransferReviewCsvImport` を呼んで振込明細 CSV の dry-run と一括判定を描く |
 
 `_screen` 部品は上流専用・約束なし(引数は足さない)。見た目を変える fork は同じルートの `_components/` の Screen で下の公開 hook を呼び、自分の markup で描く(処理は写さない)。
 
-### 管理画面の公開 hook(読む側)
+### 管理画面の公開 hook
 
 `@/features/core/bankTransferReview/hooks/<名前>` から import する。SWR のキーは `hooks/adminBankTransferReviewKeys.ts`(`ADMIN_BANK_TRANSFER_REVIEW_KEYS` と組み立て関数、`refreshAdminBankTransferReviewCaches(mutate, kinds)`)の 1 か所。
 
@@ -404,12 +404,17 @@
 | `useAdminBankTransferReviewList({ status, searchQuery?, limit? })` | `status: BankTransferReviewStatus` / `searchQuery?: string`(省略 = URL の `?searchQuery=`) / `limit?: number`(既定 20、最大 100) | `{ data, items, total, totalPages, page, setPage, selectedKeys, setSelectedKeys, searchQuery, isLoading, error, refresh }` |
 | `useAdminBankTransferReview(reviewId)` | `reviewId: string \| null`(null の間は取得しない) | `{ data, review, isLoading, error, refresh, walletEnabled }` |
 | `useAdminBankTransferReviewMemo()` | なし | `{ save(reviewId, memo, messages?), savingId, isSaving }` |
+| `useAdminBankTransferReviewDecision({ reviewId, onDone? })` | `reviewId: string` / `onDone?: () => void`(判定の成功の後) | `{ openDialog, open(dialog), close, confirm, reject, investigate, rejectReason, setRejectReason, rejectError, investigateNote, setInvestigateNote, investigateError, confirming, rejecting, investigating, busy }` |
+| `useAdminBankTransferReviewCsvImport({ onDone? })` | `onDone?: () => void`(取り込みの実行の成功の後) | `{ csvText, fileName, fileResetKey, preview, errorRows, executed, isValidating, isSubmitting, selectFile(file), setText(text), removeFile, reset, validate, submit, downloadTemplate, downloadErrorRows }` |
 
 - `useAdminBankTransferReviewList`: status か検索語が変わると 1 ページ目に戻して選択を空にし、ページを移ると選択を空にする(ページを跨いだ選択は持たない)。`refresh()` = 一覧と status 別件数を取り直す(承認・CSV 取り込み・一斉送信の後)
 - `useAdminBankTransferReview`: `data` = 詳細 API の応答(`purchaseRequest` / `user` / `reviewer`)。`walletEnabled` = ウォレットの機能が開いているか(閉じているときは通貨の部品を使わず付与額を数字で出す)
 - `useAdminBankTransferReviewMemo`: `save` はメモの前後の空白を落とし空なら null(削除)で送り、成功で success の toast と一覧・詳細の取り直しをして `true`、失敗は error の toast で `false`(投げない)。`messages = { saving?, success?, failure? }` で文言を替える(`saving` を渡すと保存中の loading の toast を出す)
+- `useAdminBankTransferReviewDecision`: `openDialog` = 開いている確認(`"confirm"` / `"reject"` / `"investigate"` / null)。`close` はその確認の送信中は閉じない。reviewId が変わると確認・入力・誤りを初期化する。`reject` は拒否理由が空か `REJECT_REASON_MAX` 超えなら送らず `rejectError` に文言、`investigate` はメモが `INVESTIGATE_NOTE_MAX` 超えなら送らず `investigateError`(空は null で送る)。成功で success の toast・確認を閉じる・入力を空に・一覧 / 件数 / 詳細の取り直し・`onDone` で `true`、失敗は error の toast で `false`(確認は開いたまま)。確認文・警告文は部品の見た目
+- `useAdminBankTransferReviewCsvImport`: `validate` = dry-run(空の CSV は送らない)で `preview` に行ごとの判定、`executed` を解く。`submit` = 実行(`preview` があり未実行のときだけ)。`fatalError` なら `executed` を立てず error の toast、成功で `executed`・success の toast・一覧 / 件数 / 詳細の取り直し・`onDone`。`selectFile` / `setText` / `removeFile` / `reset` で `preview` と `executed` を解く。`fileResetKey` はファイルの入力欄の `resetKey` に渡す
+- 入力の上限 `REJECT_REASON_MAX`(500)/ `INVESTIGATE_NOTE_MAX`(500)/ `ADMIN_MEMO_MAX`(2000)は `constants/limits.ts`(barrel から export)。部品の「n / 上限」も同じ値を読む
 - スラッグと status の対応表 `STATUS_SLUG_BY_VALUE` / `STATUS_VALUE_BY_SLUG`(`constants/statusSlug.ts`、server からも読める)と表示整形(`presenters.ts`: `formatBankTransferDate` / `formatJpyAmount` / `formatStatusLabel` / `statusBadgeVariant` ほか)は `@/features/core/bankTransferReview` から import する(`_screen` の `statusSlug.ts` / `formatters.ts` / `useStatusCounts.ts` は今までの import 先を壊さないための再 export)
-- 単体テスト: `pnpm test src/features/core/bankTransferReview/hooks/adminBankTransferReviewHooks.test.tsx`
+- 単体テスト: `pnpm test src/features/core/bankTransferReview/hooks/`(読む側 `adminBankTransferReviewHooks.test.tsx`、操作 `adminBankTransferReviewActionHooks.test.tsx`)
 
 ---
 

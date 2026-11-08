@@ -16,7 +16,6 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
 import { Upload, Download, AlertCircle, CheckCircle2, ArrowRight, MinusCircle } from "lucide-react";
 
 import Modal from "@/components/Overlays/Modal";
@@ -26,14 +25,8 @@ import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
 import { Para } from "@/components/TextBlocks/Para";
 import { SolidBadge } from "@/components/Badge";
-import { useToast } from "@/lib/toast/useToast";
-import { buildCsv, downloadCsv, downloadCsvTemplate, formatYmd } from "@/lib/csv";
-import {
-  adminBulkImportBankTransferReviewCsv,
-  BANK_TRANSFER_REVIEW_IMPORT_HEADERS,
-  type AdminBulkImportBankTransferReviewCsvResponse,
-  type BankTransferReviewImportRowDto,
-} from "@/features/core/bankTransferReview";
+import type { BankTransferReviewImportRowDto } from "@/features/core/bankTransferReview";
+import { useAdminBankTransferReviewCsvImport } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewCsvImport";
 
 import { formatJpyAmount } from "@/features/core/bankTransferReview/presenters";
 
@@ -45,136 +38,30 @@ type Props = {
 };
 
 export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImportDone }: Props) {
-  const { showToast } = useToast();
+  // 読み込み・プレビュー(dry-run)・実行・ひな形とエラー行の CSV は公開 hook。ここは描くだけ
+  const {
+    csvText,
+    fileName,
+    fileResetKey,
+    preview,
+    executed,
+    isValidating,
+    isSubmitting,
+    selectFile,
+    setText,
+    removeFile,
+    reset,
+    validate,
+    submit,
+    downloadTemplate,
+    downloadErrorRows,
+  } = useAdminBankTransferReviewCsvImport({ onDone: onImportDone });
 
-  const [csvText, setCsvText] = useState("");
-  const [fileName, setFileName] = useState<string | undefined>(undefined);
-  const [fileResetKey, setFileResetKey] = useState(0);
-  const [preview, setPreview] = useState<AdminBulkImportBankTransferReviewCsvResponse | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // 実行完了フラグ。true の間は実行ボタンを無効化し、同じ CSV の誤再実行を防ぐ
-  // （再実行しても対象は処理済みのため全行エラー表示になり、成功した結果表が
-  // 上書きされて管理者を混乱させる）。CSV の差し替え・再プレビューで解除される。
-  const [executed, setExecuted] = useState(false);
+  const handleOpenChange = (next: boolean) => {
+    if (!next) reset();
+    onOpenChange(next);
+  };
 
-  const resetState = useCallback(() => {
-    setCsvText("");
-    setFileName(undefined);
-    setFileResetKey((k) => k + 1);
-    setPreview(null);
-    setIsValidating(false);
-    setIsSubmitting(false);
-    setExecuted(false);
-  }, []);
-
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (!next) resetState();
-      onOpenChange(next);
-    },
-    [onOpenChange, resetState],
-  );
-
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-    const text = await file.text();
-    setCsvText(text);
-    setPreview(null);
-    setExecuted(false);
-  }, []);
-
-  const handleRemoveFile = useCallback(() => {
-    setFileName(undefined);
-    setFileResetKey((k) => k + 1);
-    setCsvText("");
-    setPreview(null);
-    setExecuted(false);
-  }, []);
-
-  const handleDownloadTemplate = useCallback(() => {
-    downloadCsvTemplate({
-      filename: `銀行振込レビュー取込ひな形_${formatYmd()}.csv`,
-      headers: [...BANK_TRANSFER_REVIEW_IMPORT_HEADERS],
-    });
-  }, []);
-
-  const handleDownloadErrorRows = useCallback(() => {
-    if (!preview) return;
-    const errorRows = preview.rows.filter((r) => r.status === "error");
-    if (errorRows.length === 0) return;
-    // 後追い調査用の固定列。再取込用ではなく管理者の確認ログ目的。
-    const headers = [
-      "row_index",
-      "transfer_name",
-      "transfer_amount",
-      "parsed_identifier",
-      "error_message",
-    ];
-    const rows = errorRows.map((r) => [
-      String(r.rowIndex),
-      r.rawTransferName,
-      r.rawAmount,
-      r.parsedIdentifier ?? "",
-      r.message ?? "",
-    ]);
-    downloadCsv({
-      filename: `銀行振込CSV取込エラー_${formatYmd()}.csv`,
-      csvContent: buildCsv(headers, rows),
-    });
-  }, [preview]);
-
-  const handleValidate = useCallback(async () => {
-    if (!csvText.trim()) {
-      showToast("CSVが空です", "error");
-      return;
-    }
-    setIsValidating(true);
-    try {
-      const result = await adminBulkImportBankTransferReviewCsv({
-        csvText,
-        dryRun: true,
-      });
-      setPreview(result);
-      // 新しいプレビューは新しい判定根拠なので、実行完了フラグを解除する
-      setExecuted(false);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "検証に失敗しました", "error");
-    } finally {
-      setIsValidating(false);
-    }
-  }, [csvText, showToast]);
-
-  const handleSubmit = useCallback(async () => {
-    if (!preview) return;
-    setIsSubmitting(true);
-    showToast({ message: "取り込み中…", variant: "loading", mode: "persistent" });
-    try {
-      const result = await adminBulkImportBankTransferReviewCsv({
-        csvText,
-        dryRun: false,
-      });
-      setPreview(result);
-      if (result.fatalError) {
-        showToast(result.fatalError, "error");
-        return;
-      }
-      // fatalError 時は何も処理されていないため、フラグを立てず再実行を許す
-      setExecuted(true);
-      const summary = `承認 ${result.confirmedCount}件 / 要確認 ${result.needsCheckCount}件 / スキップ ${result.skipCount}件${result.errorCount > 0 ? ` / エラー ${result.errorCount}件` : ""}`;
-      showToast(`取り込み完了: ${summary}`, "success");
-      onImportDone();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "取り込みに失敗しました", "error");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [preview, csvText, showToast, onImportDone]);
-
-  // 実行可能性: プレビュー済み + 実行候補が1件以上ある（confirm/needs_check が 0 件なら無意味）
-  // + 未実行（実行完了後は CSV 差し替え or 再プレビューまで再実行不可）
   const executableCount = preview
     ? preview.confirmedCount + preview.needsCheckCount
     : 0;
@@ -203,7 +90,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         </Para>
 
         <Flex>
-          <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+          <Button variant="outline" size="sm" onClick={downloadTemplate}>
             <Download className="size-4 mr-1" />
             ひな形をダウンロード
           </Button>
@@ -213,9 +100,9 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           <label className="text-sm font-medium">CSVファイル</label>
           <Manual.FileInput
             accept=".csv,text/csv"
-            onChange={handleFileChange}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => void selectFile(e.target.files?.[0])}
             selectedFileName={fileName}
-            onRemove={handleRemoveFile}
+            onRemove={removeFile}
             resetKey={fileResetKey}
             className="cursor-pointer file:cursor-pointer"
           />
@@ -226,15 +113,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           <Manual.Textarea
             rows={6}
             value={csvText}
-            onChange={(e) => {
-              setCsvText(e.target.value);
-              setPreview(null);
-              setExecuted(false);
-              if (fileName) {
-                setFileName(undefined);
-                setFileResetKey((k) => k + 1);
-              }
-            }}
+            onChange={(e) => setText(e.target.value)}
             placeholder={"transfer_name,transfer_amount\n山田太郎12345678,1500"}
             className="font-mono text-xs"
           />
@@ -244,7 +123,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           <Button
             variant="outline"
             size="sm"
-            onClick={handleValidate}
+            onClick={() => void validate()}
             disabled={isValidating || !csvText.trim()}
           >
             <Upload className="size-4 mr-1" />
@@ -286,7 +165,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={handleDownloadErrorRows}
+                        onClick={downloadErrorRows}
                       >
                         <Download className="size-4 mr-1" />
                         エラー行をCSVでDL
@@ -310,7 +189,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           <Button
             variant="primary"
             size="sm"
-            onClick={handleSubmit}
+            onClick={() => void submit()}
             disabled={!canSubmit}
           >
             {isSubmitting

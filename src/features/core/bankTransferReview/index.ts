@@ -18,6 +18,7 @@ export {
 
 // 管理画面の URL のスラッグ ↔ status(server からも読む純粋な表。server 側は constants/statusSlug を直に import してよい)
 export { STATUS_SLUG_BY_VALUE, STATUS_VALUE_BY_SLUG } from "./constants/statusSlug";
+export { REJECT_REASON_MAX, INVESTIGATE_NOTE_MAX, ADMIN_MEMO_MAX } from "./constants/limits";
 
 // 表示整形
 export {

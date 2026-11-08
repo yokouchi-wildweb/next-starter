@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 
 import Modal from "@/components/Overlays/Modal";
 import Dialog from "@/components/Overlays/Dialog";
@@ -18,12 +18,11 @@ import { Manual } from "@/components/Form/Input";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { resolveStorageSrc } from "@/lib/storage";
-import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import {
-  adminConfirmBankTransferReview,
-  adminRejectBankTransferReview,
-  adminInvestigateBankTransferReview,
+  ADMIN_MEMO_MAX,
+  INVESTIGATE_NOTE_MAX,
+  REJECT_REASON_MAX,
   type BankTransferReviewApprovalSource,
   type BankTransferReviewDto,
   type BankTransferReviewMode,
@@ -35,6 +34,7 @@ import {
   type WalletType,
 } from "@/features/core/wallet";
 import { useAdminBankTransferReview } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReview";
+import { useAdminBankTransferReviewDecision } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewDecision";
 import { useAdminBankTransferReviewMemo } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
 
 import {
@@ -52,9 +52,6 @@ import {
   statusBadgeVariant,
 } from "@/features/core/bankTransferReview/presenters";
 
-const REJECT_REASON_MAX = 500;
-const ADMIN_MEMO_MAX = 2000;
-const INVESTIGATE_NOTE_MAX = 500;
 
 type Props = {
   reviewId: string | null;
@@ -386,105 +383,25 @@ function ActionSection({
   canEscalateToInvestigating: boolean;
   onSuccess: () => void;
 }) {
-  const { showToast } = useToast();
-
-  // モーダル状態
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [investigateOpen, setInvestigateOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
-  const [investigating, setInvestigating] = useState(false);
-
-  // 拒否理由 (拒否モーダル内で利用)
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectError, setRejectError] = useState<string | null>(null);
-
-  // 検証中メモ (検証中モーダル内で利用)
-  const [investigateNote, setInvestigateNote] = useState("");
-  const [investigateError, setInvestigateError] = useState<string | null>(null);
-
-  // モーダル外 (reviewId 切り替え) で state がリークしないようリセット
-  useEffect(() => {
-    setConfirmOpen(false);
-    setRejectOpen(false);
-    setInvestigateOpen(false);
-    setRejectReason("");
-    setRejectError(null);
-    setInvestigateNote("");
-    setInvestigateError(null);
-  }, [reviewId]);
-
-  const handleConfirm = async () => {
-    setConfirming(true);
-    try {
-      await adminConfirmBankTransferReview(reviewId);
-      showToast("レビューを承認しました", "success");
-      setConfirmOpen(false);
-      onSuccess();
-    } catch (e) {
-      showToast(err(e, "レビューの承認に失敗しました"), "error");
-    } finally {
-      setConfirming(false);
-    }
-  };
-
-  const validateReason = (raw: string): string | null => {
-    const trimmed = raw.trim();
-    if (!trimmed) return "拒否理由を入力してください。";
-    if (raw.length > REJECT_REASON_MAX) {
-      return `拒否理由は ${REJECT_REASON_MAX} 文字以内で入力してください。`;
-    }
-    return null;
-  };
-
-  const handleReject = async () => {
-    const error = validateReason(rejectReason);
-    if (error) {
-      setRejectError(error);
-      return;
-    }
-    setRejectError(null);
-    setRejecting(true);
-    try {
-      await adminRejectBankTransferReview({ reviewId, rejectReason: rejectReason.trim() });
-      showToast("レビューを拒否しました", "success");
-      setRejectOpen(false);
-      setRejectReason("");
-      onSuccess();
-    } catch (e) {
-      showToast(err(e, "レビューの拒否に失敗しました"), "error");
-    } finally {
-      setRejecting(false);
-    }
-  };
-
-  const handleInvestigate = async () => {
-    // 検証中メモは任意。文字数だけ検査する（空でも OK）。
-    if (investigateNote.length > INVESTIGATE_NOTE_MAX) {
-      setInvestigateError(
-        `メモは ${INVESTIGATE_NOTE_MAX} 文字以内で入力してください。`,
-      );
-      return;
-    }
-    setInvestigateError(null);
-    setInvestigating(true);
-    try {
-      const trimmed = investigateNote.trim();
-      await adminInvestigateBankTransferReview({
-        reviewId,
-        note: trimmed === "" ? null : trimmed,
-      });
-      showToast("レビューを検証中に移行しました", "success");
-      setInvestigateOpen(false);
-      setInvestigateNote("");
-      onSuccess();
-    } catch (e) {
-      showToast(err(e, "検証中への移行に失敗しました"), "error");
-    } finally {
-      setInvestigating(false);
-    }
-  };
+  // 確認の開閉・入力・検査・送信・toast・reviewId での初期化は公開 hook。ここは文言と描画だけ
+  const {
+    openDialog,
+    open: openDecision,
+    close: closeDecision,
+    confirm,
+    reject,
+    investigate,
+    rejectReason,
+    setRejectReason,
+    rejectError,
+    investigateNote,
+    setInvestigateNote,
+    investigateError,
+    confirming,
+    rejecting,
+    investigating,
+    busy: actionsBusy,
+  } = useAdminBankTransferReviewDecision({ reviewId, onDone: onSuccess });
 
   // mode による承認時の確認文言
   const confirmDescription =
@@ -498,8 +415,6 @@ function ActionSection({
       ? "即時付与モードのため、拒否しても既に付与済みの通貨はロールバックされません。残高調整やユーザー連絡は別途手動で対応してください。"
       : "手動付与モードのため、拒否すると関連する購入リクエストが failed になり、通貨は付与されません。";
 
-  const actionsBusy = confirming || rejecting || investigating;
-
   return (
     <>
       <Flex gap="sm" justify="end" wrap="wrap">
@@ -507,7 +422,7 @@ function ActionSection({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setInvestigateOpen(true)}
+            onClick={() => openDecision("investigate")}
             disabled={actionsBusy}
           >
             検証中に移行
@@ -516,7 +431,7 @@ function ActionSection({
         <Button
           type="button"
           variant="destructive"
-          onClick={() => setRejectOpen(true)}
+          onClick={() => openDecision("reject")}
           disabled={actionsBusy}
         >
           拒否
@@ -524,7 +439,7 @@ function ActionSection({
         <Button
           type="button"
           variant="success"
-          onClick={() => setConfirmOpen(true)}
+          onClick={() => openDecision("confirm")}
           disabled={actionsBusy}
         >
           承認
@@ -533,9 +448,9 @@ function ActionSection({
 
       {/* 承認確認モーダル */}
       <Dialog
-        open={confirmOpen}
+        open={openDialog === "confirm"}
         onOpenChange={(o) => {
-          if (!confirming) setConfirmOpen(o);
+          if (!o) closeDecision();
         }}
         title="レビューを承認しますか？"
         description={confirmDescription}
@@ -543,14 +458,14 @@ function ActionSection({
         cancelLabel="キャンセル"
         confirmVariant="success"
         confirmDisabled={confirming}
-        onConfirm={handleConfirm}
+        onConfirm={() => void confirm()}
       />
 
       {/* 拒否確認モーダル (理由入力フォーム付き) */}
       <Modal
-        open={rejectOpen}
+        open={openDialog === "reject"}
         onOpenChange={(o) => {
-          if (!rejecting) setRejectOpen(o);
+          if (!o) closeDecision();
         }}
         title="レビューを拒否しますか？"
         maxWidth={560}
@@ -567,10 +482,7 @@ function ActionSection({
               value={rejectReason}
               rows={4}
               placeholder="例: 振込明細画像と銀行口座入金履歴の照合ができないため"
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                setRejectReason(e.target.value);
-                if (rejectError) setRejectError(null);
-              }}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRejectReason(e.target.value)}
               aria-invalid={Boolean(rejectError)}
             />
             <span className="text-xs text-muted-foreground">
@@ -584,7 +496,7 @@ function ActionSection({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setRejectOpen(false)}
+              onClick={closeDecision}
               disabled={rejecting}
             >
               キャンセル
@@ -592,7 +504,7 @@ function ActionSection({
             <Button
               type="button"
               variant="destructive"
-              onClick={handleReject}
+              onClick={() => void reject()}
               disabled={rejecting}
             >
               {rejecting ? "拒否中..." : "拒否を確定"}
@@ -603,9 +515,9 @@ function ActionSection({
 
       {/* 検証中移行モーダル (メモは任意入力) */}
       <Modal
-        open={investigateOpen}
+        open={openDialog === "investigate"}
         onOpenChange={(o) => {
-          if (!investigating) setInvestigateOpen(o);
+          if (!o) closeDecision();
         }}
         title="検証中に移行しますか？"
         maxWidth={560}
@@ -625,10 +537,7 @@ function ActionSection({
               value={investigateNote}
               rows={4}
               placeholder="例: 同一画像での複数申告の疑いあり。ユーザーへ確認連絡中"
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                setInvestigateNote(e.target.value);
-                if (investigateError) setInvestigateError(null);
-              }}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInvestigateNote(e.target.value)}
               aria-invalid={Boolean(investigateError)}
             />
             <span className="text-xs text-muted-foreground">
@@ -642,7 +551,7 @@ function ActionSection({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setInvestigateOpen(false)}
+              onClick={closeDecision}
               disabled={investigating}
             >
               キャンセル
@@ -650,7 +559,7 @@ function ActionSection({
             <Button
               type="button"
               variant="primary"
-              onClick={handleInvestigate}
+              onClick={() => void investigate()}
               disabled={investigating}
             >
               {investigating ? "移行中..." : "検証中に移行"}
