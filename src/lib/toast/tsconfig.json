@@ -1,0 +1,17 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/cn": ["../cn"],
+      "@/lib/cn/*": ["../cn/*"],
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/frameDims": ["../frameDims"],
+      "@/lib/frameDims/*": ["../frameDims/*"],
+      "@/lib/isClient": ["../isClient"],
+      "@/lib/isClient/*": ["../isClient/*"],
+      "@lib-config/toast": ["../../config/lib/toast.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

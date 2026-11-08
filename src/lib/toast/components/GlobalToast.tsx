@@ -5,10 +5,11 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { useFrameDimsStyle } from "@/hooks/useFrameDimsStyle";
-import { useIsClient } from "@/hooks/useIsClient";
 import { cn } from "@/lib/cn";
+import { useFrameDimsStyle } from "@/lib/frameDims";
+import { useIsClient } from "@/lib/isClient";
 import { useToastStore } from "../stores";
+import { toastConfig } from "../config";
 import { TOAST_EXIT_ANIMATION_DURATION } from "../constants";
 import type { ToastPosition, ToastLayer, Toast } from "../types";
 import { ToastItem } from "./ToastItem";
@@ -139,7 +140,7 @@ export function GlobalToast() {
         POSITION_CLASSES[displayedToast.position],
       )}
       role="region"
-      aria-label="通知"
+      aria-label={toastConfig.ariaLabel}
     >
       <div className={animationClass}>
         <ToastItem
@@ -177,7 +178,7 @@ export function GlobalToast() {
 function FramedToastRegion({ className, children }: { className: string; children: ReactNode }) {
   const frameDims = useFrameDimsStyle();
   return (
-    <div className={className} style={frameDims} role="region" aria-label="通知">
+    <div className={className} style={frameDims} role="region" aria-label={toastConfig.ariaLabel}>
       {children}
     </div>
   );

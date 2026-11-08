@@ -26,3 +26,6 @@ export type {
 } from "./types";
 
 export type { RedirectToastPayload, RedirectToastVariant } from "./redirect";
+
+// 設定(上書きのファイル src/config/lib/toast.config.ts の型)
+export type { ToastConfig, ToastOverride } from "./config";
