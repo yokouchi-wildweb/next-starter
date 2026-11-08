@@ -353,3 +353,4 @@
 - id:20261108-190010-lib-close-wave1-declare-only | severity:action-required | checkpoint:lib-close-wave1-declare-only
 - id:20261108-191005-config-common-c1 | severity:action-required | checkpoint:config-common-c1
 - id:20261108-191541-lib-close-errors | severity:action-required | checkpoint:lib-close-errors
+- id:20261108-191117-milestone-series | severity:info | checkpoint:milestone-series | resolves:20261101-142143-extension-items-from-config
