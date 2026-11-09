@@ -372,3 +372,4 @@
 - id:20261109-073800-domain-delete-gate-override | severity:info | checkpoint:domain-delete-gate-override
 - id:20261109-080201-notification-templates-admin-off | severity:action-required | checkpoint:notification-templates-admin-off
 - id:20261109-125507-config-base-override-folder | severity:info | checkpoint:config-base-override-folder
+- id:20261109-133609-config-district-audit-labels | severity:action-required | checkpoint:config-district-audit-labels | moved:src/config/app/audit.config.ts -> src/config/features/auditLog.config.ts

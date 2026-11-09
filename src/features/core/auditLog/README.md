@@ -30,7 +30,7 @@ src/features/core/auditLog/
 ├── services/client/auditLogClient.ts  # search / searchByTarget / searchBySubjectUser / fetchMine
 ├── hooks/                         # useAuditLogSearch / useAuditLogSearchFilters / useAuditLogsByTarget / useAuditLogsBySubjectUser
 ├── components/common/             # AuditTimeline / UserActivityTimeline
-├── presenters.ts                  # formatActionLabel 等(値は config/app/audit.config.ts)
+├── presenters.ts                  # formatActionLabel 等(値は ./config.ts の actionLabels)
 └── index.ts                       # client-safe バレル (server-only は非 export)
 ```
 
@@ -274,15 +274,17 @@ import { AuditTimeline, UserActivityTimeline } from "@/features/core/auditLog";
 ### ユーザー本人向け（`GET /api/me/audit-logs`、fail-closed）
 
 - 対象 = 「`target_type='user'` かつ `target_id`=本人」または「`actor_id`=本人」の行（**subject_user_id は見ない** = 本人のウォレット等が target の介入は返らない）
-- さらに `src/config/app/audit.config.ts` の `USER_VISIBLE_AUDIT_ACTIONS` に登録された action だけを返す。上流は空 = 常に空結果（DB も照会しない）
+- さらに設定 `userVisibleActions`(持ち主 `config.ts`、fork は上書き `src/config/features/auditLog.config.ts` に書く)に登録された action だけを返す。上流は空 = 常に空結果（DB も照会しない）
 - 理由: 監査ログには covert な管理操作（不正フラグ・強制介入・制限措置）が before / after 込みで残るため、本人に見せてよい action を明示オプトインさせる
 
 ```ts
-// src/config/app/audit.config.ts（下流で編集）
-export const USER_VISIBLE_AUDIT_ACTIONS: readonly string[] = [
-  "wallet.balance.charged", // 完全一致
-  "user.profile.*",         // prefix（末尾 ".*" のみ。単独 "*" は無視される）
-];
+// src/config/features/auditLog.config.ts（下流で編集）
+export default {
+  userVisibleActions: [
+    "wallet.balance.charged", // 完全一致
+    "user.profile.*",         // prefix（末尾 ".*" のみ。単独 "*" は無視される）
+  ],
+} satisfies AuditLogOverride;
 ```
 
 - admin 側の経路（`/api/admin/audit-logs`、AuditTimeline / UserActivityTimeline）はこのレジストリの影響を受けない
@@ -290,13 +292,15 @@ export const USER_VISIBLE_AUDIT_ACTIONS: readonly string[] = [
 
 ### action ラベル
 
-未登録の action は名前がそのまま表示される。表示名は `src/config/app/audit.config.ts` の `AUDIT_ACTION_LABELS` に足す（AuditTimeline / 管理画面に反映）。
+未登録の action は名前がそのまま表示される。表示名は上書き `src/config/features/auditLog.config.ts` の `actionLabels` に足す（AuditTimeline / 管理画面に反映）。
 
 ```ts
-export const AUDIT_ACTION_LABELS: Readonly<Record<string, string>> = {
-  "post.created": "投稿を作成",
-  "post.status.changed": "投稿ステータス変更",
-};
+export default {
+  actionLabels: {
+    "post.created": "投稿を作成",
+    "post.status.changed": "投稿ステータス変更",
+  },
+} satisfies AuditLogOverride;
 ```
 
 ---

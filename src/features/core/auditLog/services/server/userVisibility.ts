@@ -1,13 +1,13 @@
 // src/features/core/auditLog/services/server/userVisibility.ts
 //
-// USER_VISIBLE_AUDIT_ACTIONS（許可リスト）から、本人開示用の action フィルタ
+// auditLogConfig.userVisibleActions（許可リスト、上書き src/config/features/auditLog.config.ts）から、本人開示用の action フィルタ
 // WhereExpr を組み立てる。GET /api/me/audit-logs が使用する。
 //
 // fail-closed: レジストリが空（= 何も許可されていない）場合は null を返し、
 // 呼び出し側は DB を照会せず空結果を返すこと。
 
 import type { WhereExpr } from "@/lib/crud";
-import { USER_VISIBLE_AUDIT_ACTIONS } from "@/config/app/audit.config";
+import { auditLogConfig } from "@/features/auditLog/config";
 
 /**
  * 許可リストを action フィルタの WhereExpr に変換する。
@@ -20,7 +20,7 @@ import { USER_VISIBLE_AUDIT_ACTIONS } from "@/config/app/audit.config";
  * 単独の "*" は全開示となりレジストリの趣旨に反するため無視する。
  */
 export function buildUserVisibleActionsWhere(
-  allowList: readonly string[] = USER_VISIBLE_AUDIT_ACTIONS,
+  allowList: readonly string[] = auditLogConfig.userVisibleActions,
 ): WhereExpr | null {
   const exact: string[] = [];
   const prefixes: string[] = [];

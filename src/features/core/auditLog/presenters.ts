@@ -1,16 +1,16 @@
 // src/features/core/auditLog/presenters.ts
 //
 // action 名 → 表示ラベル変換と、ログ表示時のフォーマッタ群。
-// ドメイン側で追加 action を表示したい場合は src/config/app/audit.config.ts の AUDIT_ACTION_LABELS に足す。
+// ドメイン側で追加 action を表示したい場合は src/config/features/auditLog.config.ts の actionLabels に足す。
 
-import { AUDIT_ACTION_LABELS } from "@/config/app/audit.config";
+import { auditLogConfig } from "@/features/auditLog/config";
 import type { AuditActorType } from "@/features/core/auditLog/constants";
 import { ACTOR_TYPE_LABELS } from "@/features/core/auditLog/constants";
 
 /**
  * 既定の action 名 → 日本語ラベル辞書。
  * テンプレートが同梱するドメインの主な action を含む。
- * 他ドメインの action ラベルは src/config/app/audit.config.ts の AUDIT_ACTION_LABELS に足す。
+ * 他ドメインの action ラベルは src/config/features/auditLog.config.ts の actionLabels に足す。
  */
 const DEFAULT_ACTION_LABELS: Record<string, string> = {
   // user lifecycle
@@ -64,7 +64,7 @@ const DEFAULT_ACTION_LABELS: Record<string, string> = {
  * action 名 → 表示ラベル（config の値が既定に勝つ）。未登録の action はそのまま返す。
  */
 export function formatActionLabel(action: string): string {
-  return AUDIT_ACTION_LABELS[action] ?? DEFAULT_ACTION_LABELS[action] ?? action;
+  return auditLogConfig.actionLabels[action] ?? DEFAULT_ACTION_LABELS[action] ?? action;
 }
 
 /**
