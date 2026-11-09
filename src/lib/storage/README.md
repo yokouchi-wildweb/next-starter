@@ -333,7 +333,7 @@ const { cancel } = uploadToStorage(file, {
 ```
 
 - **流れ**: 下ごしらえ（下記）→ アップロード権の発行（`POST /api/me/storage/uploads`）→ 種類に合うドライバーで GCS へ直接送る → commit
-  - ドライバーはサーバーが決める（`STORAGE_CONFIG.sessionThresholdBytes` = 16MiB 以下は単発 PUT、超えると GCS セッション）
+  - ドライバーはサーバーが決める（`storageObjectConfig.sessionThresholdBytes` = 16MiB 以下は単発 PUT、超えると GCS セッション）
   - 送り先（本来の位置か受け取り領域か）もサーバーが決める。クライアントは区別しない
   - 単発 PUT: 署名に含めたヘッダーをそのまま付けて送る。上書き不可・サイズ上限・型は署名で GCS が強制する
   - GCS セッション: 8MiB ずつ `Content-Range` を付けて送る（途中は 308）
@@ -411,14 +411,16 @@ const metadata = usePurposeMetadata(purpose);
 - 空を許す列は `.nullish()`、複数値の列は `z.array(storageMediaValueSchema)`
 - http(s) の値を新しい行に書いてよいかは、スキーマではなく CRUD 連動の側で判定する
 
-## 運用値: `src/config/app/storage.config.ts`
+## 運用値: `src/config/app/storage.config.ts` と `src/features/core/storageObject/config.ts`
 
-- 読み取り署名の TTL: 画像・ファイル 300 秒 / 動画・音声 900 秒 / probe 120 秒
+- `src/config/app/storage.config.ts`（lib/storage の側）
+  - 読み取り署名の TTL: 画像・ファイル 300 秒 / 動画・音声 900 秒 / probe 120 秒
+  - `imageStrip`（strip の描き直しの画素数の上限と品質。「位置情報の約束」）
+- 持ち主 `src/features/core/storageObject/config.ts`（`storageObjectConfig`、上書き `src/config/features/storageObject.config.ts`）
 - 発行期限: PUT 15 分 / セッション 24 時間
   - GCS のセッション URI 自体は約 1 週間生きるので、中止・期限切れではサーバーが URI を DELETE する
 - 未採用の猶予 24 時間 / maxPending の既定 20 / セッションに切り替える閾値 16MiB
 - `defaultMaxBytesByPreset`（maxSizeBytes の無いメディア項目の既定）/ 掃除 cron の予算
-- `imageStrip`（strip の描き直しの画素数の上限と品質。「位置情報の約束」）
 - アップロード権の発行のレート制限は `src/features/core/rateLimit/config.ts` の `storageIssue`
 
 ## 未設定のとき（UNCONFIGURED_BACKENDS）

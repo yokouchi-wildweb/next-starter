@@ -24,8 +24,8 @@ function resolveMaxBytes(id, field, warnings) {
   const declaredMax = field.validationRule?.maxSizeBytes;
   if (Number.isInteger(declaredMax) && declaredMax > 0) return String(declaredMax);
   const preset = PRESETS.has(field.mediaTypePreset) ? field.mediaTypePreset : "all";
-  const maxBytes = `STORAGE_CONFIG.defaultMaxBytesByPreset.${preset}`;
-  warnings.push(`${id}: validationRule.maxSizeBytes が無いため、既定の上限 ${maxBytes}（src/config/app/storage.config.ts）を使います`);
+  const maxBytes = `storageObjectConfig.defaultMaxBytesByPreset.${preset}`;
+  warnings.push(`${id}: validationRule.maxSizeBytes が無いため、既定の上限 ${maxBytes}（src/features/core/storageObject/config.ts）を使います`);
   return maxBytes;
 }
 

@@ -47,6 +47,7 @@
       "@/features/referral/*": ["./src/features/core/referral/*"],
       "@/features/referralReward/*": ["./src/features/core/referralReward/*"],
       "@/features/setting/*": ["./src/features/core/setting/*"],
+      "@/features/storageObject/*": ["./src/features/core/storageObject/*"],
       "@/features/user/*": ["./src/features/core/user/*"],
       "@/features/userAcquisition/*": ["./src/features/core/userAcquisition/*"],
       "@/features/userCounter/*": ["./src/features/core/userCounter/*"],

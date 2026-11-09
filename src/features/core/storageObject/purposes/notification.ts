@@ -3,13 +3,13 @@
 
 import "server-only";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageObjectConfig } from "@/features/storageObject/config";
 import type { StoragePurposeMap } from "@/lib/storage";
 
 export const purposes = {
   "notification.image": {
     visibility: "public",
-    maxBytes: STORAGE_CONFIG.defaultMaxBytesByPreset.images,
+    maxBytes: storageObjectConfig.defaultMaxBytesByPreset.images,
     contentTypes: ["image/*"],
     upload: { allow: { roleCategories: ["admin"] } },
     metadata: "strip",

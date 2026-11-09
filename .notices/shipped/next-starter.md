@@ -380,3 +380,4 @@
 - id:20261109-140342-config-district-user-counter | severity:action-required | checkpoint:config-district-user-counter | moved:src/config/app/user-counter.config.ts -> src/config/features/userCounter.config.ts
 - id:20261109-141026-config-district-paired-device | severity:action-required | checkpoint:config-district-paired-device
 - id:20261109-141306-config-district-maintenance | severity:action-required | checkpoint:config-district-maintenance | moved:src/config/app/maintenance.config.ts -> src/config/features/setting.config.ts
+- id:20261109-141311-config-district-storage-object | severity:action-required | checkpoint:config-district-storage-object

@@ -11,7 +11,7 @@
 //    record_type から lookupService で業務行のサービスを引き、searchWithDeleted で行の有無を調べ、
 //    無い行の紐付けを detach（reason record_removed）して実物を消す。論理削除済みの行は「ある」と数える。
 //    引けない record_type（未登録・読み込み失敗・searchWithDeleted が無い）は消さずに警告する。
-//    大量一致（STORAGE_CONFIG.sweep.reconcile.massMissingMin）と 1 回の上限（maxDetachPerRun）で止まる。
+//    大量一致（storageObjectConfig.sweep.reconcile.massMissingMin）と 1 回の上限（maxDetachPerRun）で止まる。
 //    行がある紐付けは、その列（record_field）の値にまだ ref が入っているかも見る（valueCheck）。
 //    列の削除・生 SQL や移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
 //    "report" は件数を結果と警告に出すだけ、"detach" は外して（reason unreferenced）実物を消す。
@@ -23,7 +23,7 @@
 // アップロード権（session URI・署名 URL）は、アプリの期限を過ぎても cloud 側でしばらく生きうる。
 // Vercel Hobby では cron が 1 日 1 回なので、期限直後に必ず消えるわけではない。
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageObjectConfig } from "@/features/storageObject/config";
 import { createDeadline, runBudgetedBatches } from "@/lib/cron";
 import { CRUD_ID_FIELD } from "@/lib/crud/types";
 import type { DomainService, DomainServiceLookup } from "@/lib/domain/types";
@@ -58,15 +58,15 @@ export type StorageSweepDeps = {
 };
 
 export type StorageSweepOptions = {
-  /** 1 回の実行の時間予算（ms）。既定 STORAGE_CONFIG.sweep.budgetMs */
+  /** 1 回の実行の時間予算（ms）。既定 storageObjectConfig.sweep.budgetMs */
   budgetMs?: number;
-  /** 1 チャンクの行数。既定 STORAGE_CONFIG.sweep.chunkSize */
+  /** 1 チャンクの行数。既定 storageObjectConfig.sweep.chunkSize */
   chunkSize?: number;
-  /** 1 回の実行で照合が片付けてよい行数。既定 STORAGE_CONFIG.sweep.reconcile.maxDetachPerRun */
+  /** 1 回の実行で照合が片付けてよい行数。既定 storageObjectConfig.sweep.reconcile.maxDetachPerRun */
   maxDetachPerRun?: number;
-  /** 大量一致とみなす ID 数。既定 STORAGE_CONFIG.sweep.reconcile.massMissingMin */
+  /** 大量一致とみなす ID 数。既定 storageObjectConfig.sweep.reconcile.massMissingMin */
   massMissingMin?: number;
-  /** 行はあるが値に ref が無い台帳行の扱い。既定 STORAGE_CONFIG.sweep.reconcile.valueCheck */
+  /** 行はあるが値に ref が無い台帳行の扱い。既定 storageObjectConfig.sweep.reconcile.valueCheck */
   valueCheck?: ReconcileValueCheck;
 };
 
@@ -75,7 +75,7 @@ export type ReconcileSkipReason = "unregistered" | "load_failed" | "unsupported"
 
 export type ReconcileSkip = { recordType: string; reason: ReconcileSkipReason; detail?: string };
 
-/** 照合の値の検査（valueCheck）の扱い。STORAGE_CONFIG.sweep.reconcile.valueCheck */
+/** 照合の値の検査（valueCheck）の扱い。storageObjectConfig.sweep.reconcile.valueCheck */
 export type ReconcileValueCheck = "off" | "report" | "detach";
 
 /**
@@ -304,10 +304,10 @@ export function createStorageSweep(deps: StorageSweepDeps) {
 
   return {
     async run(options: StorageSweepOptions = {}): Promise<StorageSweepResult> {
-      const deadline = createDeadline(options.budgetMs ?? STORAGE_CONFIG.sweep.budgetMs);
-      const chunkSize = options.chunkSize ?? STORAGE_CONFIG.sweep.chunkSize;
+      const deadline = createDeadline(options.budgetMs ?? storageObjectConfig.sweep.budgetMs);
+      const chunkSize = options.chunkSize ?? storageObjectConfig.sweep.chunkSize;
       const startedAt = now();
-      const readyBefore = new Date(startedAt.getTime() - STORAGE_CONFIG.unattachedGraceSec * 1000);
+      const readyBefore = new Date(startedAt.getTime() - storageObjectConfig.unattachedGraceSec * 1000);
       const excludePurposes = Object.entries(purposes())
         .filter(([, purpose]) => purpose.attach === false)
         .map(([id]) => id);
@@ -349,9 +349,9 @@ export function createStorageSweep(deps: StorageSweepDeps) {
       result.reconcile = { detached: 0, skipped: [], unreferenced: [] };
       if (!result.budgetExhausted) {
         const reconciled = await reconcile(deadline, chunkSize, {
-          maxDetachPerRun: options.maxDetachPerRun ?? STORAGE_CONFIG.sweep.reconcile.maxDetachPerRun,
-          massMissingMin: options.massMissingMin ?? STORAGE_CONFIG.sweep.reconcile.massMissingMin,
-          valueCheck: options.valueCheck ?? STORAGE_CONFIG.sweep.reconcile.valueCheck,
+          maxDetachPerRun: options.maxDetachPerRun ?? storageObjectConfig.sweep.reconcile.maxDetachPerRun,
+          massMissingMin: options.massMissingMin ?? storageObjectConfig.sweep.reconcile.massMissingMin,
+          valueCheck: options.valueCheck ?? storageObjectConfig.sweep.reconcile.valueCheck,
         });
         result.orphanedAttached = { processed: reconciled.processed, exhausted: reconciled.exhausted };
         result.reconcile = reconciled.reconcile;

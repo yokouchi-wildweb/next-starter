@@ -12,6 +12,7 @@ import "server-only";
 import { uuidv7 } from "uuidv7";
 
 import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageObjectConfig } from "@/features/storageObject/config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
 import {
@@ -371,9 +372,9 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
       const store: StorageObjectStore = strip ? "priv" : finalStore;
       const key = strip ? incomingKeyOf(finalStore, objectKeyOf(refParts)) : objectKeyOf(refParts);
       const location = locate(store, key);
-      const transferKind = input.size > STORAGE_CONFIG.sessionThresholdBytes ? "session" : "put";
+      const transferKind = input.size > storageObjectConfig.sessionThresholdBytes ? "session" : "put";
       const issuedAt = now();
-      const expiresAt = new Date(issuedAt.getTime() + STORAGE_CONFIG.issueTtlSec[transferKind] * 1000);
+      const expiresAt = new Date(issuedAt.getTime() + storageObjectConfig.issueTtlSec[transferKind] * 1000);
 
       const inserted = await ledger.insertPendingWithinLimit(
         {
@@ -389,7 +390,7 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
           expiresAt,
           createdAt: issuedAt,
         },
-        purpose.maxPending ?? STORAGE_CONFIG.defaultMaxPending,
+        purpose.maxPending ?? storageObjectConfig.defaultMaxPending,
         issuedAt,
       );
       if (!inserted) {
@@ -412,7 +413,7 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
             contentType,
             size: input.size,
             maxBytes: purpose.maxBytes,
-            ttlSec: STORAGE_CONFIG.issueTtlSec.put,
+            ttlSec: storageObjectConfig.issueTtlSec.put,
           });
         } catch (error) {
           await releaseUnissued();

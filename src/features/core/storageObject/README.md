@@ -128,7 +128,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## 掃除（cron `storage-sweep`）
 
-`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(STORAGE_CONFIG.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う。
+`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(storageObjectConfig.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う。
 
 | 種類 | 対象 | 処理 |
 |---|---|---|
@@ -141,11 +141,11 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 - 時間予算は上の 3 種と共有し、その後に回す（既存の片付けを飢えさせない。3 種が予算を使い切った回は照合しない）
 - 進み具合は台帳に列を持たず、`cron_checkpoints` の行 `storage-sweep.reconcile` に持つ（台帳 id = uuidv7 の時刻部分。同じミリ秒の行は次回もう一度見るが、照合は何度見ても安全）。最後まで行ったら行を消して先頭に戻る（一巡）。上限で止まった束では進めない
-- 上限は `STORAGE_CONFIG.sweep.reconcile`: `maxDetachPerRun`（既定 1000。1 回で片付ける行数）、`massMissingMin`（既定 50。大量一致の閾値）
+- 上限は `storageObjectConfig.sweep.reconcile`: `maxDetachPerRun`（既定 1000。1 回で片付ける行数）、`massMissingMin`（既定 50。大量一致の閾値）
 - detach は ready・紐付け一致の条件付き更新なので、並行する置換・付け替えが先なら外れない
 - cron の戻り値: `orphanedAttached { processed, exhausted }` と `reconcile { detached, skipped: [{ recordType, reason, detail? }], unreferenced: [...] }`。skipped と、報告だけの unreferenced は `console.warn` にも出る
 
-### 値の照合（`STORAGE_CONFIG.sweep.reconcile.valueCheck`）
+### 値の照合（`storageObjectConfig.sweep.reconcile.valueCheck`）
 
 行がある紐付けは、その列（`record_field`）の値にまだ ref が入っているかも見る（照合で読んだ行の値を、ref の中の台帳 ID で比べる。クエリは増えない）。列の削除（domain.json からメディア項目を消して db:push）・生 SQL や一度きりの移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
 
@@ -172,7 +172,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 | `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める |
 | `load_failed` | サービスの読み込みが失敗した | detail（例外のメッセージ）とサーバーのログ |
 | `unsupported` | サービスが searchWithDeleted を持たない（Firestore 版など） | 照合の対象外。必要ならそのドメインの削除の流れで detach する |
-| `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `STORAGE_CONFIG.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
+| `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `storageObjectConfig.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
 | `detach_limit` | 1 回の上限 `maxDetachPerRun` に達した | 次の実行で続きから片付く。続くなら原因（大量削除）を確かめる |
 
 - 紐付いた行と旧 URL（台帳に無い）は対象にならない

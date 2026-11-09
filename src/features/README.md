@@ -420,7 +420,7 @@ pnpm generate domain は、メディア項目ごとにファイル用途（`<dom
   - **生成エラー**: 形・範囲の誤り（maxDimension は 1 以上の整数、quality は 1〜100 の整数、ほかのキーは書けない）/ 画像の型が accept に無い / `storage.metadata: "keep"`（keep はサーバーが描き直さず守らせられない）
   - 写真の集まり（collection）の写真は、主の項目ではなく従属のドメインの `file` 項目の `storage.image` に書く（集まりを作るときに主の項目から写す口は無い）
   - 利用者への案内は欄の `helperText` に書く（フィールドの枠が描く。部品の中には案内を足さない）。例: `"helperText": "大きな写真は長い辺 2048px まで自動で縮小してから送ります"`。数値は `storage.image.maxDimension` と揃える
-- maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/config/app/storage.config.ts` の `defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
+- maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/features/core/storageObject/config.ts` の `storageObjectConfig.defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
 - upload.allow は `storage.upload` を使う。無ければ apiAccess の create と update の許可者の和にする
   - どちらかが `"public"` か `"authenticated"` なら `"authenticated"`（アップロードは常にログインが要る）
   - ロールの規則どうしは roles / roleCategories を合わせる。`"none"` は数えない

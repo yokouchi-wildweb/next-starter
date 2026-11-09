@@ -194,7 +194,7 @@ describe("生成器の導出", () => {
 
   test("maxSizeBytes が無ければ既定値の式と、項目名・採用値の警告", () => {
     const { entries, warnings } = build({ read: "public", write: ADMIN }, mediaField({ validationRule: {}, mediaTypePreset: "videos" }));
-    assert.match(entries[0].value, /maxBytes: STORAGE_CONFIG\.defaultMaxBytesByPreset\.videos/);
+    assert.match(entries[0].value, /maxBytes: storageObjectConfig\.defaultMaxBytesByPreset\.videos/);
     assert.equal(warnings.length, 1);
     assert.match(warnings[0], /item\.photo.*defaultMaxBytesByPreset\.videos/);
   });
@@ -260,13 +260,13 @@ describe("生成器の metadata", () => {
 
 describe("ドメインの storagePurposes.ts", () => {
   const ENTRIES = [
-    { id: "item.photo", value: '{ visibility: "public", maxBytes: STORAGE_CONFIG.defaultMaxBytesByPreset.images, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
+    { id: "item.photo", value: '{ visibility: "public", maxBytes: storageObjectConfig.defaultMaxBytesByPreset.images, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
     { id: "item.cover", value: '{ visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
   ];
 
-  test("STORAGE_CONFIG を使うときだけ import する", () => {
-    assert.match(renderStoragePurposesContent("src/features/item", ENTRIES), /^import \{ STORAGE_CONFIG \} from "@\/config\/app\/storage\.config";$/m);
-    assert.doesNotMatch(renderStoragePurposesContent("src/features/item", ENTRIES.slice(1)), /STORAGE_CONFIG/);
+  test("storageObjectConfig を使うときだけ import する", () => {
+    assert.match(renderStoragePurposesContent("src/features/item", ENTRIES), /^import \{ storageObjectConfig \} from "@\/features\/storageObject\/config";$/m);
+    assert.doesNotMatch(renderStoragePurposesContent("src/features/item", ENTRIES.slice(1)), /storageObjectConfig/);
   });
 
   test("上流の生成物は domain.json から作り直しても変わらず、値は移す前の 3 用途のまま", () => {

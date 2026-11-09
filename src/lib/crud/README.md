@@ -732,7 +732,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    SELECT count(*) FROM storage_objects WHERE status = 'ready' AND record_id IS NULL;
    ```
 
-   - 掃除（storage-sweep）に空実行は無い。`pnpm task storage-sweep` は本実行なので確かめには使わない。移行の後に掃除が走っても、台帳が従属の行を指していれば消さない（照合は record_type の登録表キーで従属の行の有無を見て、従属の行の値に ref が入っているかも見る）。台帳が元の主の列を指したまま値だけ移した行は、値の照合（`STORAGE_CONFIG.sweep.reconcile.valueCheck`）が「値に無い」として報告し、`"detach"` なら実物ごと消す。上の「元の列を指したままの ready は 0」を確かめてから掃除を走らせる（[src/features/core/storageObject/README.md](../../features/core/storageObject/README.md)「値の照合」）。台帳の紐付けが外れた ready（record_id が NULL）は、掃除が既定 24 時間後に実物ごと消す
+   - 掃除（storage-sweep）に空実行は無い。`pnpm task storage-sweep` は本実行なので確かめには使わない。移行の後に掃除が走っても、台帳が従属の行を指していれば消さない（照合は record_type の登録表キーで従属の行の有無を見て、従属の行の値に ref が入っているかも見る）。台帳が元の主の列を指したまま値だけ移した行は、値の照合（`storageObjectConfig.sweep.reconcile.valueCheck`）が「値に無い」として報告し、`"detach"` なら実物ごと消す。上の「元の列を指したままの ready は 0」を確かめてから掃除を走らせる（[src/features/core/storageObject/README.md](../../features/core/storageObject/README.md)「値の照合」）。台帳の紐付けが外れた ready（record_id が NULL）は、掃除が既定 24 時間後に実物ごと消す
 
 #### 並びの鍵（sort_order）
 
