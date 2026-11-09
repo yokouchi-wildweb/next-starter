@@ -12,6 +12,7 @@ import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints, isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
+import { checkDependsOnGraph } from "./derive/gateDependsOn.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrideKeys } from "./overrideKeys.mjs";
 import { checkOrphans, targetOf } from "./orphans.mjs";
@@ -233,7 +234,7 @@ function checkSettingSections(repoRoot, points, itemsByPoint) {
 const outputOf = (point) => (point.spec.target === "wiring" ? `${WIRING_DIR}/${basename(point.owner)}.ts` : `${point.owner}/${EXTENSIONS_DIR_NAME}/${point.name}.ts`);
 
 /** 1 つの出力ファイルを組み立てる(wiring は同じ lib の点を 1 本に) */
-// 生成器が付ける欄の描画。domainApiPaths・settingPaths・cronPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)
+// 生成器が付ける欄の描画。domainApiPaths・settingPaths・cronPaths(derive featureTables)は項目の pathPatterns の後ろにも足す(読み手は pathPatterns だけを見る)。dependsOn は規則の字面の写し
 function renderFields(alias, fields) {
   const literal = (v) => (Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v));
   const parts = Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`);
@@ -298,6 +299,9 @@ export function planExtensions(repoRoot) {
           else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, features: derived.features });
         }
         problems.push(...featureTables.unknownFeatures(items.map((item) => item.name)));
+        // dependsOn の未知の名前・輪(全規則で。読めなかった規則は名前だけ知っている物として数える)
+        const unread = items.filter((item) => !kept.some((k) => k.name === item.name)).map((item) => ({ path: item.path, name: item.name, dependsOn: [] }));
+        problems.push(...checkDependsOnGraph([...kept.map((item) => ({ path: item.path, name: item.name, dependsOn: item.fields.dependsOn })), ...unread]));
         itemsByPoint.set(p, kept);
       } else {
         itemsByPoint.set(p, items);

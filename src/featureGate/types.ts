@@ -27,18 +27,37 @@ export type FeatureGateRule = {
    * 書かない規則は表を外さない。enum は外さない
    */
   features?: string[];
-  /** この機能が有効か(config の値を読む同期関数。入切の値の置き場は config) */
-  enabled: () => boolean;
+  /**
+   * この機能が使う機能(機能の名前 = 規則のファイル名の並び、全部 AND)。機能が開く = 自分が開 && 依存先が全部開(推移的)。
+   * 文字列リテラルの配列で書く(生成器が字面で読み、未知の名前・自分・重複・輪を止める)。評価は ruleList.ts の 1 か所
+   */
+  dependsOn?: FeatureName[];
+  /** この機能が有効か(config の値を読む同期関数。入切の値の置き場は config)。省略 = 自分は開(依存先しだい) */
+  enabled?: () => boolean;
   /** ブロック時の rewrite 先(省略時: API は 404、ページは /404) */
   redirectTo?: string;
 };
 
 /**
- * 生成一覧の要素: 規則 + 生成器が付ける名前(ファイル名)と features から導いた表名・汎用 API の住所(features を書かない規則は空)。
+ * 生成一覧の要素(src/featureGate/extensions/rules.ts。門番の中で値で読むのは ruleList.ts だけ): 規則 + 生成器が付ける名前(ファイル名)と features から導いた表名・汎用 API の住所(features を書かない規則は空)。
  * domainApiPaths(/api/<features のフォルダの domainEntry のキー>)・settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)・
  * cronPaths(/api/cron/<features のフォルダを値で import する cron の task の名前>)は生成器が pathPatterns の後ろにも足す(規則に手書きしない)
  */
-export type GatedFeatureRule = FeatureGateRule & { name: FeatureName; tables: string[]; domainApiPaths: string[]; settingPaths: string[]; cronPaths: string[] };
+export type GeneratedFeatureRule = FeatureGateRule & {
+  name: FeatureName;
+  tables: string[];
+  domainApiPaths: string[];
+  settingPaths: string[];
+  cronPaths: string[];
+  /** 規則の dependsOn(書かない規則は空)。生成器が字面から写す */
+  dependsOn: FeatureName[];
+};
+
+/**
+ * 判定の一覧の要素(ruleList.ts の rules / configRules): 生成一覧の要素の enabled を、依存先まで解いた開閉に差し替えた物。
+ * enabled() = (全開スイッチ || 規則の enabled()、省略は開) && 依存先が全部開(推移的。configRules はスイッチを通さない)
+ */
+export type GatedFeatureRule = Omit<GeneratedFeatureRule, "enabled"> & { enabled: () => boolean };
 
 /**
  * 常時実行の入口の例外(1 項目 1 ファイル: src/featureGate/alwaysOnExceptions/<名前>.ts)。

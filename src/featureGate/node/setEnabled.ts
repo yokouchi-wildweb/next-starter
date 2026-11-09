@@ -5,15 +5,22 @@
 // `export const X_CONFIG = { … enabled: true|false … }` にリテラルの enabled が 1 つだけあるとき(上書きを持たない持ち主)、または
 // その config.ts が上書き `@/config/features/<名前>.config` を合成する持ち主のとき(closable のひな形・値の移動の後の形、目録 D19)。
 // 上書きを持つ持ち主は上書きの default export の直下の enabled を書く(無ければ足す)。値はいつも true|false を書く(L1.26: 既定と同じでも消さない)。
-// それ以外は書かずに、規則の enabled の字面(値を読む場所)を返す。必須(required/)の機能を off にはしない。
+// それ以外は書かずに、規則の enabled の字面(値を読む場所)を返す。必須(required/)の機能と、必須の機能が dependsOn で推移的に依存する機能を off にはしない(依存の連鎖を返す)。
+// on にした機能の依存先が規則の値で閉なら、書いた上でその名前を返す(依存先が閉なので閉のまま。L3.1)。
 // db:push・pnpm generate extensions は打たない(開けたら db:push が要ると案内する)。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { configRules, ruleEnabled, transitiveDependencies, type FeatureDependencyNode } from "../ruleList";
+import type { GatedFeatureRule } from "../types";
+
 export type FeatureSetPlan =
-  | { kind: "write"; configFile: string; before: string; after: string; changed: boolean }
+  /** closedDependencies = on にしたが規則の値で閉の直の依存先(書いても閉のまま)。off では空 */
+  | { kind: "write"; configFile: string; before: string; after: string; changed: boolean; closedDependencies: string[] }
   | { kind: "required"; reason: string }
+  /** chains = 必須の機能からこの機能までの依存の連鎖(各 [必須の機能, …, この機能]) */
+  | { kind: "requiredDependent"; chains: string[][] }
   | { kind: "unwritable"; why: string; enabledSource: string };
 
 const stripComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/[^\n]*$/gm, "");
@@ -119,15 +126,49 @@ export function rewriteOverrideEnabled(overrideText: string, value: boolean): st
   return overrideText.slice(0, open + 1) + insert + overrideText.slice(open + 1);
 }
 
-/** 入切の計画(純関数): 規則の本文・config の本文(無ければ null)・必須の理由(無ければ null) */
+/**
+ * 必須の機能からこの機能までの依存の連鎖(純関数): 必須の機能 R が dependsOn で推移的に name に依存すれば [R, …, name](最短、一覧の順)。
+ * name 自身が必須なのは含めない(kind "required" の側)
+ */
+export function requiredDependencyChains(list: readonly FeatureDependencyNode[], name: string, requiredNames: readonly string[]): string[][] {
+  const byName = new Map(list.map((node) => [node.name, node]));
+  const chains: string[][] = [];
+  for (const node of list) {
+    if (node.name === name || !requiredNames.includes(node.name)) continue;
+    if (!transitiveDependencies(list, node.name).includes(name)) continue;
+    // 最短の道(幅優先)
+    const prev = new Map<string, string>();
+    const queue = [node.name];
+    while (queue.length > 0 && !prev.has(name)) {
+      const current = queue.shift()!;
+      for (const dep of byName.get(current)?.dependsOn ?? []) {
+        if (dep === node.name || prev.has(dep)) continue;
+        prev.set(dep, current);
+        queue.push(dep);
+      }
+    }
+    const chain = [name];
+    while (chain[0] !== node.name) chain.unshift(prev.get(chain[0])!);
+    chains.push(chain);
+  }
+  return chains;
+}
+
+/** 入切の計画(純関数): 規則の本文・config の本文(無ければ null)・必須の理由(無ければ null)・依存の事実 */
 export function planFeatureSetFromText(input: {
   ruleText: string;
   configFile: (folder: string) => string;
   readConfig: (file: string) => string | null;
   value: boolean;
   requiredReason: string | null;
+  /** 必須の機能からこの機能までの依存の連鎖(requiredDependencyChains。無ければ空) */
+  requiredChains?: string[][];
+  /** 規則の値で閉の直の依存先(on のときに知らせる。無ければ空) */
+  closedDependencies?: string[];
 }): FeatureSetPlan {
   if (!input.value && input.requiredReason !== null) return { kind: "required", reason: input.requiredReason };
+  if (!input.value && (input.requiredChains?.length ?? 0) > 0) return { kind: "requiredDependent", chains: input.requiredChains! };
+  const closedDependencies = input.value ? [...(input.closedDependencies ?? [])] : [];
   const target = readRuleConfigTarget(input.ruleText);
   if ("why" in target) return { kind: "unwritable", why: target.why, enabledSource: target.enabledSource };
   const configFile = input.configFile(target.folder);
@@ -142,23 +183,39 @@ export function planFeatureSetFromText(input: {
     if (overrideAfter === null) {
       return { kind: "unwritable", why: `${overrideFile} の default export がオブジェクトのリテラルでないか、直下の enabled: true|false が 2 つ以上ある`, enabledSource: `${target.constName}.enabled` };
     }
-    return { kind: "write", configFile: overrideFile, before: overrideBefore, after: overrideAfter, changed: overrideBefore !== overrideAfter };
+    return { kind: "write", configFile: overrideFile, before: overrideBefore, after: overrideAfter, changed: overrideBefore !== overrideAfter, closedDependencies };
   }
   const after = rewriteConfigEnabled(before, target.constName, input.value);
   if (after === null) {
     return { kind: "unwritable", why: `${configFile} の ${target.constName} にリテラルの enabled: true|false が 1 つだけ無い`, enabledSource: `${target.constName}.enabled` };
   }
-  return { kind: "write", configFile, before, after, changed: before !== after };
+  return { kind: "write", configFile, before, after, changed: before !== after, closedDependencies };
 }
 
 const ruleFileOf = (root: string, name: string) =>
   [join(root, "src/featureGate/rules", `${name}.ts`), join(root, "src/featureGate/rules", name, "index.ts")].find(existsSync) ?? null;
 
-/** repo を読んで計画を立てる(pnpm ops features set の入口。書かない) */
-export function planFeatureSet(root: string, name: string, value: boolean, required: Readonly<Record<string, string>>): FeatureSetPlan {
+/**
+ * repo を読んで計画を立てる(pnpm ops features set の入口。書かない)。依存は規則の値の一覧(configRules、スイッチを通さない)で見る
+ * list は差し替え用(テスト)
+ */
+export function planFeatureSet(
+  root: string,
+  name: string,
+  value: boolean,
+  required: Readonly<Record<string, string>>,
+  list: readonly GatedFeatureRule[] = configRules,
+): FeatureSetPlan {
   const ruleFile = ruleFileOf(root, name);
   if (!ruleFile) return { kind: "unwritable", why: `規則 src/featureGate/rules/${name}.ts が無い`, enabledSource: "-" };
+  const self = list.find((rule) => rule.name === name);
+  const closedDependencies = (self?.dependsOn ?? []).filter((dep) => {
+    const rule = list.find((r) => r.name === dep);
+    return rule !== undefined && !ruleEnabled(rule);
+  });
   return planFeatureSetFromText({
+    requiredChains: requiredDependencyChains(list, name, Object.keys(required)),
+    closedDependencies,
     ruleText: readFileSync(ruleFile, "utf8"),
     configFile: (folder) => `src/features/${folder}/config.ts`,
     readConfig: (file) => (existsSync(join(root, file)) ? readFileSync(join(root, file), "utf8") : null),

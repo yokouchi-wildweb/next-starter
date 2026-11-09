@@ -9,7 +9,7 @@ import { SAMPLE_CONFIG, sampleConfigDef } from "./config";
 
 test("上流の空の上書き(src/config/features/sample.config.ts)では既定の開のまま", () => {
   assert.deepEqual(SAMPLE_CONFIG, { enabled: true });
-  assert.equal(rule.enabled(), true);
+  assert.equal(rule.enabled?.(), true);
 });
 
 test("上書き { enabled: false } で閉じる値になる", () => {

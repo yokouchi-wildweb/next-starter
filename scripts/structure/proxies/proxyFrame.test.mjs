@@ -84,7 +84,7 @@ test("規則: src/featureGate/rules/ の export const rule をファイル名順
   assert.ok(plan.problems.some((p) => p.includes("beta.other.ts") && p.includes("印なしの beta.ts に改名")));
   assert.match(plan.outputs[GATE_RULES], /import \{ rule as rules_alpha \} from "@\/featureGate\/rules\/alpha";/);
   assert.match(plan.outputs[GATE_RULES], /export type FeatureName = "acmeShop" \| "alpha" \| "wallet";/);
-  assert.match(plan.outputs[GATE_RULES], /export const rules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},\n\];/);
+  assert.match(plan.outputs[GATE_RULES], /export const rules: GeneratedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},\n\];/);
 });
 
 test("規則の features: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
@@ -147,10 +147,10 @@ test("規則の features: ドメインのフォルダの pgTable から表(0 で
   assert.equal(plan.problems.length, 8, plan.problems.join("\n"));
   assert.match(
     plan.outputs[GATE_RULES],
-    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
+    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\] \},/);
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_tableless\.pathPatterns, "\/api\/empty"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], pathPatterns: \[\.\.\.rules_tableless\.pathPatterns, "\/api\/empty"\] \},/);
 });
 
 test("このリポの全ドメイン(src/features/core/<名前>・src/features/<名前>、_ で始まる雛形を除く)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
@@ -222,7 +222,7 @@ test("設定の節の feature から /admin/settings/<key> を規則の settingP
     itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.settingPaths.join("|")}`),
     ["payment:/admin/settings/shop", "plain:", "wallet:/admin/settings/coins|/admin/settings/shop"],
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], dependsOn: \[\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
   // この fixture は setting の受け口(overrideOf)を宣言しないので、shop.override.ts は孤立の検査(orphans.mjs)にも止まる
   const problems = plan.problems.filter((p) => !p.startsWith("src/features/core/setting/sections/shop.override.ts: この上書きを受ける点が無い"));
   assert.equal(problems.length, 1, problems.join("\n"));

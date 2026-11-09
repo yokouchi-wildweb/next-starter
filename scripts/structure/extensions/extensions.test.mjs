@@ -6,6 +6,7 @@
 // - 描画: eager の配列・key の Record・lazy の import・wiring の 1 本・共通のヘッダ
 // - check: ずれ・extensions/ の手で置いたファイル(ヘッダ無し)・宣言の消えた古い一覧
 // - 1 行スイッチ(./switches.mjs)の形と、上流は override を出荷しない(./overrides.mjs)
+// - 門番の規則の dependsOn(./derive/gateDependsOn.mjs): 字面を一覧に写し、非リテラル・自分・重複・未知の名前・輪(推移的)を名前を出して止める
 // 実行: pnpm test scripts/structure/extensions/extensions.test.mjs
 
 import assert from "node:assert/strict";
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 import { readDeclaration } from "../../../src/lib/districtMap/declarations.mjs";
+import { checkDependsOnGraph, readDependsOn } from "./derive/gateDependsOn.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { CLAIMERS, checkSwitches, isClaimedDefault } from "./switches.mjs";
 import { intakeRows } from "./intake.mjs";
@@ -659,4 +661,71 @@ test("宣言: placement の点(置き場)は placement・kind(edit | append)だ�
   assert.ok(at("edit src/app/(user)/layout.tsx") < at("add src/features/milestone/milestones/*.{ts,tsx}"));
   assert.ok(at("add src/app/**/frame.ts  ".trim()) < at("region src/registry/**/*.ts"));
   assert.ok(at("region src/registry/**/*.ts") < at("generated src/registry/a.ts"), "同じファイルなら生成物が効く");
+
+// ---- 門番の規則の dependsOn(D24・D34) ----
+
+const GATE_DECLARATION = readFileSync(join(repoRoot, "src/featureGate/extensionPoints.ts"), "utf8");
+const gateRule = (body = "") => `export const rule: FeatureGateRule = {\n  pathPatterns: ["/x"],\n  ${body}\n};\n`;
+const gateFixture = (rules) =>
+  fixture({ "src/featureGate/extensionPoints.ts": GATE_DECLARATION, ...Object.fromEntries(Object.entries(rules).map(([name, text]) => [`src/featureGate/rules/${name}.ts`, text])) });
+
+test("dependsOn: 字面を一覧の項目に写す(書かない規則は空、enabled の省略も通る)、生成一覧に dependsOn の欄が載る", () => {
+  const plan = planExtensions(
+    gateFixture({
+      parent: gateRule("enabled: () => true,"),
+      child: gateRule('dependsOn: ["parent"],'),
+      grandchild: gateRule('// dependsOn: ["nowhere"] はコメント\n  dependsOn: [\n    "child",\n    \'parent\',\n  ],\n  enabled: () => false,'),
+    }),
+  );
+  assert.deepEqual(plan.problems, []);
+  assert.deepEqual(
+    itemsOf(plan, "src/featureGate", "rules").map((item) => `${item.name}:${item.fields.dependsOn.join("|")}`),
+    ["child:parent", "grandchild:child|parent", "parent:"],
+  );
+  const out = plan.outputs["src/featureGate/extensions/rules.ts"];
+  assert.match(out, /import type \{ GeneratedFeatureRule \} from "@\/featureGate";/);
+  assert.match(out, /\{ \.\.\.rules_child, name: "child", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \["parent"\] \},/);
+  assert.match(out, /\{ \.\.\.rules_parent, name: "parent", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/);
+});
+
+test("dependsOn: 非リテラル・自分・重複・未知の名前・輪(推移的)を規則の名前を出して止める", () => {
+  const plan = planExtensions(
+    gateFixture({
+      variable: gateRule("dependsOn: DEPS,"),
+      spread: gateRule('dependsOn: [...BASE, "ok"],'),
+      notName: gateRule('dependsOn: ["core/wallet"],'),
+      selfish: gateRule('dependsOn: ["selfish"],'),
+      twice: gateRule('dependsOn: ["ok", "ok"],'),
+      unknown: gateRule('dependsOn: ["nowhere"],'),
+      a: gateRule('dependsOn: ["b"],'),
+      b: gateRule('dependsOn: ["c"],'),
+      c: gateRule('dependsOn: ["a"],'),
+      ok: gateRule(),
+    }),
+  );
+  const of = (name) => plan.problems.filter((p) => p.includes(`rules/${name}.ts`)).join("\n");
+  assert.match(of("variable"), /dependsOn が文字列リテラルの配列でない/);
+  assert.match(of("spread"), /dependsOn の要素 \.\.\.BASE が機能の名前の文字列リテラルでない/);
+  assert.match(of("notName"), /dependsOn の要素 "core\/wallet" が機能の名前の文字列リテラルでない/);
+  assert.match(of("selfish"), /dependsOn に自分 "selfish" を書いている/);
+  assert.match(of("twice"), /dependsOn の "ok" が重複している/);
+  assert.match(of("unknown"), /dependsOn の "nowhere" は無い機能/);
+  assert.match(of("a"), /dependsOn が輪になっている\(a → b → c → a\)/);
+  assert.equal(plan.problems.length, 7, plan.problems.join("\n"));
+});
+
+test("dependsOn: 読み・輪の検査の単体(輪は 1 つにつき 1 回、読めなかった規則の名前は未知にしない)", () => {
+  assert.deepEqual(readDependsOn(gateRule(), "x"), { dependsOn: [] });
+  assert.deepEqual(readDependsOn(gateRule('dependsOn: [],'), "x"), { dependsOn: [] });
+  assert.deepEqual(readDependsOn('/* dependsOn: X */\n' + gateRule(), "x"), { dependsOn: [] });
+  const items = [
+    { path: "a.ts", name: "a", dependsOn: ["b"] },
+    { path: "b.ts", name: "b", dependsOn: ["a"] },
+    { path: "c.ts", name: "c", dependsOn: ["c2"] },
+    { path: "c2.ts", name: "c2", dependsOn: [] },
+  ];
+  assert.deepEqual(checkDependsOnGraph(items), ["a.ts: dependsOn が輪になっている(a → b → a)"]);
+  // 実リポの規則は輪も未知も無い
+  const real = planExtensions(repoRoot);
+  assert.ok(!real.problems.some((p) => p.includes("dependsOn")), real.problems.join("\n"));
 });

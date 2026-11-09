@@ -2,6 +2,7 @@
 //
 // 規則ごとの説明: 開閉・住所(手書き / 汎用 API の導出 / 設定の節の導出)・表・機能のフォルダ・
 // 依存(閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査 checks/dependencies.mjs の走査そのもの)・
+// 機能どうしの依存(dependsOn・推移的な依存先と依存元・閉の理由・全開スイッチの名前指定の足りない名前)・
 // 名前の呼び出し箇所(gate.enabled / gate.assert / useGate().enabled の字面の "<名前>")・必須(required/<名前>.ts の reason)。
 // 限界: 呼び出し箇所は字面の "<名前>" だけ(変数で渡す名前は見えない)。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
@@ -10,18 +11,41 @@ import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
-import { configEnabled, isOpenedBySwitch, ruleEnabled } from "../ruleList";
+import {
+  configEnabled,
+  isOpenedBySwitch,
+  ownEnabled,
+  ruleEnabled,
+  switchMissingDependencies,
+  transitiveDependencies,
+  transitiveDependents,
+} from "../ruleList";
 import type { GatedFeatureRule } from "../types";
 
 export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null;
 export type FeatureDependent = { file: string; folder: string; allowedBy: DependencyAllowedBy };
 
+/** 閉の理由: self = 自分の値が閉(スイッチにも無い)、dependencies = 閉じた直の依存先 */
+export type FeatureClosedBy = { self: boolean; dependencies: string[] };
+
 export type FeatureDescription = {
   name: string;
-  /** 今の開閉(全開スイッチを通した値。門番の口と同じ答え) */
+  /** 今の開閉(全開スイッチと依存先を通した値。門番の口と同じ答え) */
   enabled: boolean;
-  /** 規則の値(config。スイッチを通さない) */
+  /** 規則の値(config。スイッチを通さず、依存先は通す) */
   configEnabled: boolean;
+  /** 規則の enabled() そのもの(スイッチも依存先も通さない。省略 = 開) */
+  ownEnabled: boolean;
+  /** 規則の dependsOn(書いたまま) */
+  dependsOn: string[];
+  /** 推移的な依存先(近い順) */
+  dependsOnAll: string[];
+  /** 推移的な依存元(この機能に依存する機能、一覧の順) */
+  dependedOnBy: string[];
+  /** 閉なら理由、開なら null */
+  closedBy: FeatureClosedBy | null;
+  /** 全開スイッチの名前指定で開けたのに閉じた依存先(足りない名前)。無ければ空 */
+  switchMissing: string[];
   /** 全開スイッチ FEATURE_GATE_OPEN で開いているか */
   openedBySwitch: boolean;
   /** 必須(required/<名前>.ts)なら reason、でなければ null */
@@ -39,21 +63,36 @@ export type FeatureFacts = {
   callSites: Record<string, string[]>;
   /** 規則名 → 必須の理由 */
   required: Record<string, string>;
-  /** 規則名 → 規則の値と全開スイッチ(無い規則は enabled の値・スイッチなしとみなす) */
-  switchState?: Record<string, { configEnabled: boolean; openedBySwitch: boolean }>;
+  /** 規則名 → 規則の値と全開スイッチ(無い規則は enabled の値・スイッチなしとみなす)。ownEnabled 無し = configEnabled */
+  switchState?: Record<string, { configEnabled: boolean; openedBySwitch: boolean; ownEnabled?: boolean }>;
+  /** 規則名 → 全開スイッチの名前指定の足りない名前 */
+  switchMissing?: Record<string, string[]>;
 };
 
 /** 規則と集めた事実から説明を組む(純関数。並びは一覧の順) */
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
+  const enabledOf = new Map(rules.map((rule) => [rule.name as string, ruleEnabled(rule)]));
   return rules.map((rule) => {
     const derived = rule.domainApiPaths.length + rule.settingPaths.length + rule.cronPaths.length;
-    const enabled = ruleEnabled(rule);
+    const enabled = enabledOf.get(rule.name)!;
     const state = facts.switchState?.[rule.name];
+    const config = state?.configEnabled ?? enabled;
+    const openedBySwitch = state?.openedBySwitch ?? false;
+    const own = state?.ownEnabled ?? config;
+    const dependsOn = [...(rule.dependsOn ?? [])];
+    // 一覧に無い依存先(--name で 1 つだけ渡したとき)は開とみなさず、閉の理由に出さない
+    const closedDeps = dependsOn.filter((dep) => enabledOf.get(dep) === false);
     return {
       name: rule.name,
       enabled,
-      configEnabled: state?.configEnabled ?? enabled,
-      openedBySwitch: state?.openedBySwitch ?? false,
+      configEnabled: config,
+      ownEnabled: own,
+      dependsOn,
+      dependsOnAll: transitiveDependencies(rules, rule.name),
+      dependedOnBy: transitiveDependents(rules, rule.name),
+      closedBy: enabled ? null : { self: !(openedBySwitch || own), dependencies: closedDeps },
+      switchMissing: [...(facts.switchMissing?.[rule.name] ?? [])],
+      openedBySwitch,
       required: facts.required[rule.name] ?? null,
       paths: {
         handWritten: rule.pathPatterns.slice(0, rule.pathPatterns.length - derived),
@@ -131,7 +170,10 @@ export async function readFeatureReport(
   });
   const callSites = findCallSites(root, rules.map((rule) => rule.name));
   const switchState = Object.fromEntries(
-    rules.map((rule) => [rule.name, { configEnabled: configEnabled(rule.name), openedBySwitch: isOpenedBySwitch(rule.name) }]),
+    rules.map((rule) => [
+      rule.name,
+      { configEnabled: configEnabled(rule.name), openedBySwitch: isOpenedBySwitch(rule.name), ownEnabled: ownEnabled(rule.name) },
+    ]),
   );
-  return describeFeatures(rules, { dependencies, callSites, required, switchState });
+  return describeFeatures(rules, { dependencies, callSites, required, switchState, switchMissing: switchMissingDependencies() });
 }

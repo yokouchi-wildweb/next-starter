@@ -18,6 +18,7 @@ export type {
   FeatureGateRule,
   FeatureName,
   GatedFeatureRule,
+  GeneratedFeatureRule,
   GatePathResult,
   RequiredFeature,
 } from "./types";

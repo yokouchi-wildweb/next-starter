@@ -3,11 +3,11 @@
 // 書式: scripts/structure/extensions/README.md / 門番の置き場と規則: ./README.md
 
 export const extensionPoints = {
-  // 機能を閉じる規則: rules/<名前>.ts の export const rule。名前(= FeatureName)はファイル名、tables は features のフォルダから導く
+  // 機能を閉じる規則: rules/<名前>.ts の export const rule。名前(= FeatureName)はファイル名、tables は features のフォルダから導き、dependsOn は字面から写す
   rules: {
     dir: "rules",
     export: "rule",
-    type: { from: "@/featureGate", name: "GatedFeatureRule" },
+    type: { from: "@/featureGate", name: "GeneratedFeatureRule" },
     side: "shared",
     derive: "featureTables",
   },

@@ -3,6 +3,8 @@
 // - 値: 未設定 = 規則の値のまま / all = 全開 / 名前の並び = その名前だけ開く / 未知の名前 = throw
 // - 効く条件: APP_ENV が development なら全 Tier、staging・production・値なし・知らない値は Tier1 だけ
 // - Tier1 の判別: 注入 FEATURE_GATE_TIER1 があればそれ、無ければ readForkIdentity().isTier1
+// - 依存(dependsOn): 判定は ruleList.ts の 1 か所で依存先まで解く(rules・configRules の両方)。名前指定のスイッチは依存先を開けず、
+//   足りない名前を値ごとに 1 回 console.warn し pnpm ops features list に出す(D34・L3.1)
 // - 入口: 門番の中で生成一覧 extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのも ruleList.ts だけ(字面の検査、テストは除く)
 // - next.config.ts の FEATURE_GATE_TIER1 = readForkIdentity(repoRoot).isTier1
 // - 効く範囲(L2.3): 効かせる = 門番の口・useGate・db:push / db:push:check の表・seed・pnpm ops db clear・pnpm ops features list の開閉 /
@@ -14,9 +16,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { test } from "node:test";
 
-import { clientGateState, gate, type GatedFeatureRule } from "@/featureGate";
+import { clientGateState, gate, type GeneratedFeatureRule } from "@/featureGate";
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
-import { closedTables, configPath, configRules, gate as nodeGate, readFeatureReport, rules } from "@/featureGate/node";
+import { closedTables, configPath, configRules, gate as nodeGate, readFeatureReport, rules, switchMissingDependencies } from "@/featureGate/node";
 import { isOpenSwitchActive, isTier1Build, parseOpenSwitch, resolveOpenSwitch } from "@/featureGate/openSwitch";
 import { configEnabled } from "@/featureGate/ruleList";
 import { setAppEnv } from "@/lib/appEnv";
@@ -32,7 +34,7 @@ type SwitchEnv = Partial<Record<(typeof SWITCH_KEYS)[number] | "APP_ENV", string
 /** env を一時的に差し替え(APP_ENV は @/lib/appEnv の setAppEnv)、生成一覧の規則を全部閉じて fn を走らせる(終われば戻す) */
 function withEnv(env: SwitchEnv, fn: () => void) {
   const savedEnv = new Map(SWITCH_KEYS.map((key) => [key, process.env[key]]));
-  const savedRules = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
+  const savedRules = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
   for (const rule of generatedRules) {
     savedRules.set(rule, rule.enabled);
     rule.enabled = () => false;
@@ -127,6 +129,103 @@ test("段階と Tier: development は fork でも効き、staging・production�
   withEnv({ FEATURE_GATE_OPEN: "wallet", APP_ENV: "development", FEATURE_GATE_TIER1: "false" }, () => {
     assert.deepEqual(openNames(), ["wallet"], "fork でも development では効く");
   });
+});
+
+// ---- 依存(dependsOn、D24・D34) ----
+
+const generatedOf = (name: string) => generatedRules.find((rule) => rule.name === name)!;
+
+/** 生成一覧の規則の dependsOn と enabled を一時的に差し替えて fn を走らせる(withEnv の中で使う。終われば戻す) */
+function withDeps(deps: Record<string, string[]>, open: Record<string, boolean | undefined>, fn: () => void) {
+  const saved = new Map<GeneratedFeatureRule, Pick<GeneratedFeatureRule, "dependsOn" | "enabled">>();
+  for (const name of new Set([...Object.keys(deps), ...Object.keys(open)])) {
+    const rule = generatedOf(name);
+    saved.set(rule, { dependsOn: rule.dependsOn, enabled: rule.enabled });
+    if (deps[name]) rule.dependsOn = deps[name] as GeneratedFeatureRule["dependsOn"];
+    if (name in open) {
+      const value = open[name];
+      rule.enabled = value === undefined ? undefined : () => value;
+    }
+  }
+  try {
+    fn();
+  } finally {
+    for (const [rule, value] of saved) Object.assign(rule, value);
+  }
+}
+
+test("依存: 上流の規則はまだ dependsOn を書かない(開閉の答えは今と同じ)", () => {
+  assert.deepEqual(generatedRules.filter((rule) => rule.dependsOn.length > 0).map((rule) => rule.name), []);
+});
+
+test("依存: 親が閉 → 子・孫が閉(rules と configRules の両方)、enabled 省略の子は依存先しだい", () => {
+  withEnv({}, () => {
+    // wallet ← referral ← coupon、wallet ← payment(enabled 省略)
+    withDeps({ referral: ["wallet"], coupon: ["referral"], payment: ["wallet"] }, { wallet: false, referral: true, coupon: true, payment: undefined }, () => {
+      for (const list of [rules, configRules]) {
+        const open = (name: string) => list.find((rule) => rule.name === name)!.enabled();
+        assert.deepEqual(["wallet", "referral", "coupon", "payment"].map(open), [false, false, false, false]);
+      }
+      assert.equal(gate.enabled("coupon"), false);
+      assert.equal(gate.path("/admin/coupons").open, false, "閉じた孫の住所は閉");
+      assert.equal(configEnabled("coupon"), false);
+    });
+    withDeps({ referral: ["wallet"], coupon: ["referral"], payment: ["wallet"] }, { wallet: true, referral: true, coupon: true, payment: undefined }, () => {
+      assert.deepEqual(["wallet", "referral", "coupon", "payment"].map((name) => gate.enabled(name as never)), [true, true, true, true]);
+      assert.equal(clientGateState("user").enabled.payment, true, "enabled 省略 = 自分は開");
+    });
+  });
+});
+
+test("依存: 全開スイッチの名前指定は依存先を開けない(足りない名前を値ごとに 1 回 console.warn、features list に出す)", async () => {
+  const warned: string[] = [];
+  const savedWarn = console.warn;
+  console.warn = (message: string) => void warned.push(message);
+  try {
+    withEnv({ FEATURE_GATE_OPEN: "coupon", APP_ENV: "development" }, () => {
+      withDeps({ coupon: ["referral"], referral: ["wallet"] }, {}, () => {
+        assert.equal(gate.enabled("coupon"), false, "依存先 referral・wallet が閉なので閉のまま");
+        assert.equal(gate.enabled("coupon"), false);
+        assert.equal(clientGateState("user").enabled.coupon, false);
+        assert.deepEqual(switchMissingDependencies(), { coupon: ["referral", "wallet"] });
+        assert.equal(warned.length, 1, "同じ値では 1 回だけ");
+        assert.match(warned[0], /FEATURE_GATE_OPEN で開けた機能の依存先が閉じているため閉のまま.*coupon ← referral, wallet/);
+      });
+    });
+    withEnv({ FEATURE_GATE_OPEN: "coupon,referral,wallet", APP_ENV: "development" }, () => {
+      withDeps({ coupon: ["referral"], referral: ["wallet"] }, {}, () => {
+        assert.equal(gate.enabled("coupon"), true, "依存先も名前に足せば開く");
+        assert.deepEqual(switchMissingDependencies(), {});
+      });
+    });
+    assert.equal(warned.length, 1, "足りない名前の無い値では warn しない");
+    // pnpm ops features list(readFeatureReport)にも足りない名前が出る。全部閉じた状態は withEnv の外で作る
+    const restore = setAppEnv("development");
+    const saved = process.env.FEATURE_GATE_OPEN;
+    process.env.FEATURE_GATE_OPEN = "coupon";
+    const savedRules = generatedRules.map((rule) => [rule, rule.enabled] as const);
+    for (const rule of generatedRules) rule.enabled = () => false;
+    // 評価は生成一覧の dependsOn を読み、説明は渡した一覧(rules。読み込み時の写し)の dependsOn を読むので両方を差し替える
+    const coupon = generatedOf("coupon");
+    const wrapped = rules.find((rule) => rule.name === "coupon")!;
+    const savedDeps = coupon.dependsOn;
+    coupon.dependsOn = ["wallet"];
+    wrapped.dependsOn = ["wallet"];
+    try {
+      const report = await readFeatureReport(repoRoot, rules);
+      const row = report.find((d) => d.name === "coupon")!;
+      assert.deepEqual([row.enabled, row.openedBySwitch, row.switchMissing, row.closedBy], [false, true, ["wallet"], { self: false, dependencies: ["wallet"] }]);
+    } finally {
+      coupon.dependsOn = savedDeps;
+      wrapped.dependsOn = savedDeps;
+      for (const [rule, enabled] of savedRules) rule.enabled = enabled;
+      if (saved === undefined) delete process.env.FEATURE_GATE_OPEN;
+      else process.env.FEATURE_GATE_OPEN = saved;
+      restore();
+    }
+  } finally {
+    console.warn = savedWarn;
+  }
 });
 
 // ---- 効く範囲(L2.3) ----

@@ -17,7 +17,7 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
 | `client.ts` | 上流 | 入口(client): `useGate`・`GatedLink`・配線用の `GateProvider` と型 |
 | `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`(全開スイッチを通した一覧)・`configRules` / `configEnabled` / `configPath`(規則の値だけ)・`isOpenedBySwitch`・`gatedSchema`・`closedTables`・例外の一覧 |
-| `ruleList.ts`・`openSwitch.ts` | 上流 | 判定の入口(生成一覧を全開スイッチで包む。門番の中で生成一覧を値で読み、規則の `enabled()` を直に呼ぶのはここだけ)と全開スイッチ(「全開スイッチ」の節) |
+| `ruleList.ts`・`openSwitch.ts` | 上流 | 判定の入口(生成一覧を全開スイッチと依存先(dependsOn)で包む。門番の中で生成一覧を値で読み、規則の `enabled()` を直に呼ぶのはここだけ)と全開スイッチ(「全開スイッチ」の節) |
 | `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`area.ts`・`clientState.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定・`area.ts` = 枠の判定の純関数で server と client が共有、`clientState.ts` = client に渡す値の計算)・1 道具 1 ファイルと束・道具の中身 |
 | `checks/` | 上流 | 検査(`pnpm test src/featureGate scripts/structure/proxies`・`:reach`・`:tools`・`:client`) |
 
@@ -79,8 +79,8 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 
 | 部品 | 場所 | いつ効くか | やること |
 |---|---|---|---|
-| 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `features` / `enabled()` / `redirectTo` |
-| 一覧 | `extensions/rules.ts`（生成物） | — | 規則 + 名前 + `features` から導いた表名と汎用 API の住所(`domainApiPaths`)・設定の節の住所(`settingPaths`)・cron の task の住所(`cronPaths`、task の import から。どれも `pathPatterns` にも足す)。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
+| 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `features` / `dependsOn` / `enabled()` / `redirectTo` |
+| 一覧 | `extensions/rules.ts`（生成物、型 `GeneratedFeatureRule`） | — | 規則 + 名前 + `dependsOn`(字面の写し、書かない規則は空) + `features` から導いた表名と汎用 API の住所(`domainApiPaths`)・設定の節の住所(`settingPaths`)・cron の task の住所(`cronPaths`、task の import から。どれも `pathPatterns` にも足す)。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
 | ルートゲート | `src/proxies/featureGate.ts`(`gate.path` を呼ぶ) | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
 | API の部品工場 | `src/wiring/apiRoute.ts` が `gate.path` を Factory の口 `gate` に結ぶ | API のリクエストごと | 閉じた住所の API は Factory も 404(proxy の安全網。`src/lib/routeFactory/README.md`) |
 | スキーマゲート | `node/gatedSchema.ts`（`@/featureGate/node` の `gatedSchema`、`pnpm db:push` / `db:push:check`） | push のとき | 導いた表を push 対象から外す |
@@ -107,10 +107,32 @@ export const rule: FeatureGateRule = {
 - **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、一覧の項目の `domainApiPaths` と `pathPatterns` の後ろに足す（全部の読み手に効く）。`domainEntry.ts` の無いフォルダは何も足さない。手書きと重なると `pnpm test src/featureGate scripts/structure/proxies` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
 - **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器がその規則の `settingPaths` と `pathPatterns` に足す（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts が `features` のフォルダを値で import すると、生成器がその規則の `cronPaths` と `pathPatterns` に足す（`scripts/structure/extensions/derive/featureTables.mjs`、目録 D10）。規則に `/api/cron/` を手書きすると生成で失敗
-- `enabled` は config の値を読む同期関数（値の置き場は config）
+- `enabled` は config の値を読む同期関数（値の置き場は config）。省略 = 自分は開(依存先しだい。下の「機能どうしの依存」)
+- `dependsOn` = この機能が使う機能の名前(規則のファイル名)の並び。下の「機能どうしの依存(dependsOn)」
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）
 - 住所の重なりは許す（OR）。**行き先の違う重なりは、ファイル名の順で最初の無効な規則の `redirectTo`**。上流の規則どうしの行き先の違う重なりは `pnpm test src/featureGate scripts/structure/proxies` で失敗、fork の規則と上流の重なりは表示だけ
 - 上流の規則を fork が上書き・無効化する口は無い（fork は閉じる規則を足すだけ）
+
+### 機能どうしの依存(dependsOn)
+
+```ts
+// 紹介の報酬はウォレットを使う: ウォレットが閉なら報酬も閉(自分の値が開でも)
+export const rule: FeatureGateRule = {
+  pathPatterns: ["/mypage/invite/rewards"],
+  dependsOn: ["wallet"],
+  enabled: () => REWARD_CONFIG.enabled, // 例。省略すれば「自分は開、依存先しだい」
+};
+```
+
+- 機能が開く = 自分が開 && `dependsOn` の機能が全部開(推移的、全部 AND)。親が閉じれば子・孫も閉じ、その住所・表・汎用 API・設定の節・cron も閉じる(閉じた機能と同じ扱い)
+- 書き方: 文字列リテラルの配列(機能の名前を直接書く。型は `FeatureName[]`)。生成器(`pnpm generate extensions`、`scripts/structure/extensions/derive/gateDependsOn.mjs`)が字面で読み、**未知の名前・自分・重複・輪(推移的)・文字列リテラルの配列でない書き方**を規則の名前を出して止める
+- 評価は `ruleList.ts` の 1 か所(`resolveFeatureOpen`)。答えの意味:
+  - `ruleEnabled(rule)`(門番の口・`rules` の `enabled()`): (全開スイッチで開いている || 規則の `enabled()`、省略は開) && 依存先が全部開
+  - `configEnabled(name)`(`configRules` の `enabled()`): 規則の `enabled()` && 依存先の規則の値が全部開(スイッチを通さない)
+  - `ownEnabled(name)`: 規則の `enabled()` そのもの(スイッチも依存先も通さない。省略は開。`pnpm ops features list` の閉の理由)
+  - `isOpenedBySwitch(name)`: 全開スイッチがその名前を開けているか(依存先は見ない。開くかは `ruleEnabled`)
+- 全開スイッチの名前指定は依存先を開けない(「全開スイッチ」の節)
+- `pnpm ops features list` は依存先・依存元(推移的)・閉の理由を出し、`pnpm ops features set` は必須の機能が依存する機能の off を止める(下の節)
 
 ### スキーマゲートは作る方向にしか働かない
 
@@ -195,8 +217,8 @@ export const rule: FeatureGateRule = {
 
 道具は門番の `node.ts`（`readFeatureReport`・`planFeatureSet`、`node/describe.ts`・`node/setEnabled.ts`）。scripts はそれを呼ぶだけ（`scripts/operations/features/`）。
 
-- `pnpm ops features list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）。読むだけ
-- `pnpm ops features set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、書き先は持ち主の形で決まる: その `config.ts` が上書き `@/config/features/<名前>.config` を合成する持ち主なら、上書き `src/config/features/<名前>.config.ts` の `export default { … }` の直下の `enabled` を書く(無ければ先頭に足す。値はいつも `true|false` を書き、既定と同じでも消さない。型の行・他のキーはそのまま。目録 D19・L1.26)。上書きを持たない持ち主は `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1
+- `pnpm ops features list [--name <規則名>] [--json]`: 規則ごとに開閉・必須（`required/`）・住所（手書き / 汎用 API の導出 / 設定の節の導出）・機能のフォルダ・表・依存（閉じられるフォルダを外から値で読むファイルと、許された形。依存の検査の走査そのもの。許されていない依存は「未」と出る）・名前の呼び出し箇所（`gate.enabled` / `gate.assert` / `useGate().enabled` の字面の `"<名前>"`。変数で渡す名前は見えない）・機能どうしの依存(依存先 `dependsOn` とその推移 `dependsOnAll`・依存元(推移的)`dependedOnBy`・閉の理由 `closedBy` = 自分の値 / 閉じた依存先の名前。表の開閉は「閉(依存先 <名前> が閉)」と出す)・全開スイッチの名前指定の足りない名前(`switchMissing`)。どれも `--json` に載る(依存のファイルの欄 `dependents` とは別)。読むだけ
+- `pnpm ops features set <規則名> on|off`: 規則の `enabled` が機能のドメインの config の `<X>_CONFIG.enabled` だけを読み（`enabled: () => X_CONFIG.enabled`、`@/features/<d>/config` から import）、書き先は持ち主の形で決まる: その `config.ts` が上書き `@/config/features/<名前>.config` を合成する持ち主なら、上書き `src/config/features/<名前>.config.ts` の `export default { … }` の直下の `enabled` を書く(無ければ先頭に足す。値はいつも `true|false` を書き、既定と同じでも消さない。型の行・他のキーはそのまま。目録 D19・L1.26)。上書きを持たない持ち主は `config.ts` の `<X>_CONFIG` にリテラルの `enabled: true|false` が 1 つだけあるとき、その 1 行を書き換える（L1.19）。それ以外は何も書かず、規則の `enabled` の字面（値を読む場所）を出して exit 2（手で直す）。必須の機能を off にしようとすると何も書かずに exit 1。必須の機能が `dependsOn` で推移的に依存する機能の off も何も書かずに exit 1(必須の機能からの依存の連鎖を出す)。on にした機能の依存先が規則の値で閉なら、値は書いた上で「依存先 <名前> が閉なので閉のまま」と出す(L3.1)
 - `pnpm ops features set` は `db:push`・`pnpm generate extensions` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
 - 上流の規則の多くはまだ共有の config（`APP_FEATURES` など）を読むので、それらは場所の案内だけになる。入切の値が持ち主の config(と上書き)へ移った規則から書ける(今は `sampleDomain` → `src/config/features/sample.config.ts`)
 
@@ -236,7 +258,8 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 - 未設定・空 = 規則の値のまま。未知の名前は判定のたびに throw(打ち間違いを黙って閉じたままにしない。proxy では全リクエストが失敗するので、置いたらすぐ気付く)
 - 効く条件: 段階(`@/lib/appEnv` の `getAppEnv()`、決まりは [src/lib/appEnv/README.md](../lib/appEnv/README.md))が `development` なら全 Tier。staging・production(値なし・知らない値も)は **Tier1 だけ**。効かない所(fork の本番など)では値を読まない(置かれていても落とさない)
 - Tier1 の判別(`openSwitch.ts` の `isTier1Build` 1 つ): Next のビルドは `next.config.ts` が fork_id(`readForkIdentity().isTier1`)から計算して埋め込む `FEATURE_GATE_TIER1`(fork の build では `"false"`。埋め込みが勝つので Vercel の env では上書きできない)。注入の無い node(scripts・テスト)は `node.ts` が読むだけで渡す読み手 `node/tier1.ts`。`openSwitch.ts` は proxy の束に載るので `node:` を読まない
-- 判定の入口は `ruleList.ts` の 1 つ: 生成一覧の各規則の `enabled` を「スイッチで開いていれば true、でなければ規則の `enabled()`」に差し替えた `rules`。門番の口・`clientGateState` はこれを読み、client は server の答えを受け取るだけ(client で env を読み直さない)
+- **名前指定は依存先を開けない**(D34・L3.1): `FEATURE_GATE_OPEN=<子>` で親が閉なら子は閉のまま。足りない名前(名前で開けた機能の推移的な依存先のうち、スイッチにも無く規則の値も閉の物)を値ごとに 1 回 `console.warn` し、`pnpm ops features list` に出す(`switchMissing`)。開けるなら依存先も名前に足す(`all` は全部開くので関わらない)
+- 判定の入口は `ruleList.ts` の 1 つ: 生成一覧の各規則の `enabled` を「(スイッチで開いている || 規則の `enabled()`) && 依存先が全部開」に差し替えた `rules`。門番の口・`clientGateState` はこれを読み、client は server の答えを受け取るだけ(client で env を読み直さない)
 
 道具ごとの効く範囲(L2.3):
 
@@ -245,13 +268,13 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 | 門番の口(`gate.*`)・proxy・`useGate()` | 効く | `rules` | 開けた機能の画面・API を見る |
 | `pnpm db:push` / `db:push:check` の表 | 効く | `rules` | 開けた機能の表を作る(開発の DB だけ。`ENV_FILE` の env ファイルの `APP_ENV` で決まる: `.env.development` なら全 Tier、`APP_ENV=production` か値なしのファイルなら Tier1 だけ) |
 | `pnpm ops db seed`・`pnpm ops db clear` | 効く | node の `gate.enabled`・`closedTables(rules)` | 表と同じ答え |
-| `pnpm ops features list` | 見せ方 | `rules` + `configEnabled` + `isOpenedBySwitch` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。`--json` は `enabled`・`configEnabled`・`openedBySwitch` |
+| `pnpm ops features list` | 見せ方 | `rules` + `configEnabled` + `ownEnabled` + `isOpenedBySwitch` + `switchMissingDependencies` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。名前指定で開けたが依存先が閉なら足りない名前を出す。`--json` は `enabled`・`configEnabled`・`ownEnabled`・`openedBySwitch`・`switchMissing` |
 | `pnpm generate cron` / `pnpm check cron`・`pnpm task` | 効かない | `configPath` | `vercel.json` と照合が env で揺れない。スイッチで開けた機能の cron は `vercel.json` に載らない(route は開くので手で叩けば動く) |
 | `pnpm generate routes` | 効かない | `configRules` | コミットする `route-map.jsonl` が env で揺れない |
 | `FEATURE_GATE_CHECK` の検査・依存の検査・codemod `feature-gate-s3` | 効かない | `configRules` | 検査の答えが env で揺れない |
 | `pnpm ops features set`・`required/` | 関わらない | config の字面 | 規則の値を書く道具 |
 
-検査: `scripts/structure/proxies/openSwitch.test.ts`(値・効く条件・Tier1 の判別・範囲の表・入口の字面の検査・`next.config.ts` の注入)。
+検査: `scripts/structure/proxies/openSwitch.test.ts`(値・効く条件・Tier1 の判別・依存の連鎖と名前指定の足りない名前・範囲の表・入口の字面の検査・`next.config.ts` の注入)。依存の評価・説明・set の計画の単体は `src/featureGate/checks/dependsOn.test.ts`、生成器の検査は `scripts/structure/extensions/extensions.test.mjs`。
 
 ## 守り
 

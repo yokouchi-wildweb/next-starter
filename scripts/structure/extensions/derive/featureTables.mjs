@@ -9,6 +9,7 @@
 // 項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
 // domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は pnpm test src/featureGate scripts/structure/proxies が重なりとして知らせる。
 // 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導き settingPaths として同じく足す(./gateSettingPaths.mjs、L1.17)。
+// 機能どうしの依存: 規則の dependsOn を字面で読み dependsOn として項目に写す(書かない規則は空。./gateDependsOn.mjs。未知の名前・輪は extensions.mjs が全規則で)。
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -17,6 +18,7 @@ import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { FEATURES_DIR } from "../../registry/tableScan.mjs";
 import { valueSpecifiers } from "../pureImports.mjs";
+import { readDependsOn } from "./gateDependsOn.mjs";
 import { scanSettingSectionFeatures } from "./gateSettingPaths.mjs";
 
 const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
@@ -77,7 +79,7 @@ export function scanCronTaskImports(repoRoot) {
 /**
  * 変換を作る(表の走査は 1 回だけ)
  * @param {string} repoRoot
- * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[], cronPaths: string[] }, features: string[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[] }}
+ * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[], cronPaths: string[], dependsOn: string[] }, features: string[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[] }}
  */
 export function createFeatureTables(repoRoot) {
   const map = readDistrictMapAt(repoRoot);
@@ -91,6 +93,8 @@ export function createFeatureTables(repoRoot) {
     apply(label, text, name) {
       const read = readFeatures(text);
       if (read.problem) return { problem: `${label}: ${read.problem}` };
+      const depends = readDependsOn(text, name);
+      if (depends.problem) return { problem: `${label}: ${depends.problem}` };
       const tables = [];
       const domainApiPaths = [];
       for (const folder of read.features) {
@@ -112,7 +116,7 @@ export function createFeatureTables(repoRoot) {
       const cronPaths = cronTasks
         .filter((task) => task.targets.some((target) => prefixes.some((prefix) => target === prefix || target.startsWith(`${prefix}/`))))
         .map((task) => task.path);
-      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths }, features: read.features };
+      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn }, features: read.features };
     },
   };
 }
