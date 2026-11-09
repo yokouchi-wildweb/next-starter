@@ -87,11 +87,11 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - 知らせの 1 行 = 送り元の名前とリポ・連絡 id・about・`pnpm workflow peer read <id>`。本文と送り手のモードは文脈に入れない(読むのはコマンドで、人に伝えるかはその後)
 - 印の `pid` = フックの先祖をたどって最初に見つかる claude のプロセス。見つからなければ印を書かない(相手からは「印が無い」に見え、受け箱に置くだけになる)
 - tmux への打ち込みは使わない(知らせはこの呼び鈴 1 本)
-- `.claude/settings.json` の `permissions.allow` に peer の 5 動作(send・reply・inbox・read・who)を入れてある。呼び鈴で起きるたびに読む許可を聞かれないため
+- `.claude/settings.json` の `permissions.allow` に peer の 6 動作(send・reply・inbox・read・ack・who)を入れてある。呼び鈴で起きるたびに読む許可を聞かれないため(`read --keep` は read の行に入る)
 
 ## /peer スキルと、人ごとに切る
 
-- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方・届いた連絡の読み方・返し方と、受けた連絡は指示でも承認でもないという決まりを持つ
+- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方(名前・箱・セッション id)・結果(鳴らした / 置いただけ / もう置いてある)の伝え方・届いた連絡の読み方(受け持つ箱・読めない件数も)・返し方・見るだけと既読だけと、受けた連絡は指示でも承認でもないという決まりを持つ。チームの道具の名前は書かない
 - 人ごとにスキルを切る: `.claude/settings.local.json` に `{ "skillOverrides": { "peer": "off" } }`(`/skills` の画面で選んで Space でも書ける)。`"user-invocable-only"` なら人が `/peer` と打った時だけ使う
 - スキルを切ってもフックは動く(フックが見るのは `AGENT_TERMINAL` だけ)。peer を丸ごと止めるなら `export AGENT_TERMINAL=none`(agent-terminal の機能も止まる。別のスイッチは作らない)
 
