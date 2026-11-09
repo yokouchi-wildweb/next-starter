@@ -3,7 +3,7 @@
 //
 // コイン創出サマリーの合計には入れない(付与は wallet の bonus の行で、wallet_bonus_grant に含まれる。並べると二重計上)。
 // 内訳を見たい画面・fork のソースがこの関数を呼ぶ(referralAnalytics の aggregateReferralRewardCurrentVsPrev と対)。
-// クーポンの機能を閉じている間は表が無いことがあるので、閉じていれば 0 を返す(gate.enabled("coupon"))。
+// 紹介の報酬の機能を閉じている間は表が無いことがあるので、閉じていれば 0 を返す(gate.enabled("couponAttributionReward"))。
 //
 // 集計対象: coupon_attribution_rewards のうち status='fulfilled' の amount を fulfilled_at で期間集計する。
 // UserFilter・分析の除外: 受取人(recipient_user_id)に適用する(flow の scope、source coupon_attribution_rewards)。
@@ -29,7 +29,7 @@ export type AggregateCouponAttributionRewardCurrentVsPrevParams = {
 export async function aggregateCouponAttributionRewardCurrentVsPrev(
   params: AggregateCouponAttributionRewardCurrentVsPrevParams,
 ): Promise<{ current: number; previous: number }> {
-  if (!gate.enabled("coupon")) return { current: 0, previous: 0 };
+  if (!gate.enabled("couponAttributionReward")) return { current: 0, previous: 0 };
   const { range, prevRange } = params;
   const isCurrent = sql`(${r.fulfilled_at} >= ${range.dateFrom.toISOString()} AND ${r.fulfilled_at} <= ${range.dateTo.toISOString()})`;
   const isPrev = sql`(${r.fulfilled_at} >= ${prevRange.dateFrom.toISOString()} AND ${r.fulfilled_at} <= ${prevRange.dateTo.toISOString()})`;

@@ -10,13 +10,20 @@ import { rule as rules_analytics } from "@/featureGate/rules/analytics";
 import { rule as rules_bankTransferReview } from "@/featureGate/rules/bankTransferReview";
 import { rule as rules_chatRoom } from "@/featureGate/rules/chatRoom";
 import { rule as rules_coupon } from "@/featureGate/rules/coupon";
+import { rule as rules_couponAttributionReward } from "@/featureGate/rules/couponAttributionReward";
+import { rule as rules_demoDeviceFingerprint } from "@/featureGate/rules/demoDeviceFingerprint";
 import { rule as rules_demoLogin } from "@/featureGate/rules/demoLogin";
 import { rule as rules_demoPages } from "@/featureGate/rules/demoPages";
+import { rule as rules_demoPayment } from "@/featureGate/rules/demoPayment";
+import { rule as rules_demoSampleDomain } from "@/featureGate/rules/demoSampleDomain";
 import { rule as rules_deviceFingerprint } from "@/featureGate/rules/deviceFingerprint";
 import { rule as rules_fingerprintChallenge } from "@/featureGate/rules/fingerprintChallenge";
 import { rule as rules_interactionTracking } from "@/featureGate/rules/interactionTracking";
 import { rule as rules_milestone } from "@/featureGate/rules/milestone";
+import { rule as rules_mypageInvite } from "@/featureGate/rules/mypageInvite";
 import { rule as rules_mypageOther } from "@/featureGate/rules/mypageOther";
+import { rule as rules_mypagePause } from "@/featureGate/rules/mypagePause";
+import { rule as rules_mypageWithdraw } from "@/featureGate/rules/mypageWithdraw";
 import { rule as rules_notification } from "@/featureGate/rules/notification";
 import { rule as rules_notificationBroadcast } from "@/featureGate/rules/notificationBroadcast";
 import { rule as rules_pageEntry } from "@/featureGate/rules/pageEntry";
@@ -33,6 +40,7 @@ import { rule as rules_pageTradelaw } from "@/featureGate/rules/pageTradelaw";
 import { rule as rules_pairedDevice } from "@/featureGate/rules/pairedDevice";
 import { rule as rules_pause } from "@/featureGate/rules/pause";
 import { rule as rules_payment } from "@/featureGate/rules/payment";
+import { rule as rules_paymentAnalytics } from "@/featureGate/rules/paymentAnalytics";
 import { rule as rules_referral } from "@/featureGate/rules/referral";
 import { rule as rules_sampleDomain } from "@/featureGate/rules/sampleDomain";
 import { rule as rules_signup } from "@/featureGate/rules/signup";
@@ -42,9 +50,10 @@ import { rule as rules_userLineProfile } from "@/featureGate/rules/userLineProfi
 import { rule as rules_userTag } from "@/featureGate/rules/userTag";
 import { rule as rules_userXProfile } from "@/featureGate/rules/userXProfile";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
+import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -54,14 +63,21 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_analytics, name: "analytics", tables: ["user_daily_activities", "analytics_daily_rollups"], domainApiPaths: [], settingPaths: [], cronPaths: ["/api/cron/analytics-rollup-daily"], dependsOn: [] },
   { ...rules_bankTransferReview, name: "bankTransferReview", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["payment"] },
   { ...rules_chatRoom, name: "chatRoom", tables: [], domainApiPaths: ["/api/chatRoom"], settingPaths: [], cronPaths: [], dependsOn: [] },
-  { ...rules_coupon, name: "coupon", tables: ["coupons", "coupon_histories", "coupon_attribution_rewards", "coupon_issuer_grants"], domainApiPaths: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"], settingPaths: [], cronPaths: [], dependsOn: [] },
+  { ...rules_coupon, name: "coupon", tables: ["coupons", "coupon_histories", "coupon_issuer_grants"], domainApiPaths: ["/api/coupon", "/api/couponHistory", "/api/couponIssuerGrant"], settingPaths: [], cronPaths: [], dependsOn: [] },
+  { ...rules_couponAttributionReward, name: "couponAttributionReward", tables: ["coupon_attribution_rewards"], domainApiPaths: ["/api/couponAttributionReward"], settingPaths: [], cronPaths: [], dependsOn: ["wallet"] },
+  { ...rules_demoDeviceFingerprint, name: "demoDeviceFingerprint", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "deviceFingerprint"] },
   { ...rules_demoLogin, name: "demoLogin", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_demoPages, name: "demoPages", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
+  { ...rules_demoPayment, name: "demoPayment", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "payment"] },
+  { ...rules_demoSampleDomain, name: "demoSampleDomain", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "sampleDomain"] },
   { ...rules_deviceFingerprint, name: "deviceFingerprint", tables: ["device_fingerprints"], domainApiPaths: ["/api/deviceFingerprint"], settingPaths: [], cronPaths: ["/api/cron/device-fingerprint-prune"], dependsOn: [] },
   { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], cronPaths: ["/api/cron/fingerprint-challenge-access-prune"], dependsOn: [] },
   { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: ["/api/cron/interaction-event-prune"], dependsOn: [] },
   { ...rules_milestone, name: "milestone", tables: ["milestones"], domainApiPaths: ["/api/milestone"], settingPaths: [], cronPaths: [], dependsOn: [] },
+  { ...rules_mypageInvite, name: "mypageInvite", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "referral"] },
   { ...rules_mypageOther, name: "mypageOther", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"] },
+  { ...rules_mypagePause, name: "mypagePause", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "pause"] },
+  { ...rules_mypageWithdraw, name: "mypageWithdraw", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "withdraw"] },
   { ...rules_notification, name: "notification", tables: ["notifications", "notification_reads", "notification_read_states", "notification_templates"], domainApiPaths: ["/api/notification", "/api/notificationTemplate"], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_notificationBroadcast, name: "notificationBroadcast", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["notification"] },
   { ...rules_pageEntry, name: "pageEntry", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
@@ -78,6 +94,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_pairedDevice, name: "pairedDevice", tables: ["paired_devices", "device_pairings"], domainApiPaths: ["/api/pairedDevice"], settingPaths: [], cronPaths: ["/api/cron/paired-device-pairings-prune"], dependsOn: [] },
   { ...rules_pause, name: "pause", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_payment, name: "payment", tables: ["purchase_requests", "bank_transfer_reviews", "purchase_quota_ledger"], domainApiPaths: ["/api/purchaseRequest", "/api/bankTransferReview"], settingPaths: [], cronPaths: ["/api/cron/expire-pending-purchases"], dependsOn: ["wallet"] },
+  { ...rules_paymentAnalytics, name: "paymentAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics", "payment"] },
   { ...rules_referral, name: "referral", tables: ["referrals", "referral_rewards"], domainApiPaths: ["/api/referral", "/api/referralReward"], settingPaths: [], cronPaths: [], dependsOn: ["coupon"] },
   { ...rules_sampleDomain, name: "sampleDomain", tables: ["samples", "sample_to_sample_tag", "sample_categories", "sample_tags", "sample_images"], domainApiPaths: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_signup, name: "signup", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
@@ -87,6 +104,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_userTag, name: "userTag", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_userXProfile, name: "userXProfile", tables: ["user_x_profiles"], domainApiPaths: ["/api/userXProfile"], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_wallet, name: "wallet", tables: ["wallets", "wallet_lots", "wallet_histories"], domainApiPaths: ["/api/wallet", "/api/walletHistory"], settingPaths: [], cronPaths: ["/api/cron/wallet-expiration-notice", "/api/cron/wallet-expire-lots", "/api/cron/wallet-lots-prune"], dependsOn: [] },
+  { ...rules_walletAnalytics, name: "walletAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics", "wallet"] },
   { ...rules_withdraw, name: "withdraw", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [] },
 ];
 
@@ -96,7 +114,7 @@ export const domains: GatedDomain[] = [
   { folder: "core/bankTransferReview", tables: ["bank_transfer_reviews"], apiPaths: ["/api/bankTransferReview"], features: ["payment"] },
   { folder: "core/chatRoom", tables: [], apiPaths: ["/api/chatRoom"], features: ["chatRoom"] },
   { folder: "core/coupon", tables: ["coupons"], apiPaths: ["/api/coupon"], features: ["coupon"] },
-  { folder: "core/couponAttributionReward", tables: ["coupon_attribution_rewards"], apiPaths: ["/api/couponAttributionReward"], features: ["coupon"] },
+  { folder: "core/couponAttributionReward", tables: ["coupon_attribution_rewards"], apiPaths: ["/api/couponAttributionReward"], features: ["couponAttributionReward"] },
   { folder: "core/couponHistory", tables: ["coupon_histories"], apiPaths: ["/api/couponHistory"], features: ["coupon"] },
   { folder: "core/couponIssuerGrant", tables: ["coupon_issuer_grants"], apiPaths: ["/api/couponIssuerGrant"], features: ["coupon"] },
   { folder: "core/deviceFingerprint", tables: ["device_fingerprints"], apiPaths: ["/api/deviceFingerprint"], features: ["deviceFingerprint"] },

@@ -267,7 +267,8 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
   const derived = Object.fromEntries(featureGateRules.filter((rule) => rule.domainApiPaths.length > 0).map((rule) => [rule.name, rule.domainApiPaths]));
   assert.deepEqual(derived, {
     chatRoom: ["/api/chatRoom"],
-    coupon: ["/api/coupon", "/api/couponHistory", "/api/couponAttributionReward", "/api/couponIssuerGrant"],
+    coupon: ["/api/coupon", "/api/couponHistory", "/api/couponIssuerGrant"],
+    couponAttributionReward: ["/api/couponAttributionReward"],
     deviceFingerprint: ["/api/deviceFingerprint"],
     fingerprintChallenge: ["/api/fingerprintChallenge"],
     interactionTracking: ["/api/interactionEvent"],

@@ -1,5 +1,5 @@
 // src/featureGate/rules/wallet.ts
-// ウォレット(残高・履歴・ロット。決済は payment.ts)
+// ウォレット(残高・履歴・ロット。決済は payment.ts、集計の API は walletAnalytics.ts)
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
@@ -10,9 +10,6 @@ export const rule: FeatureGateRule = {
     "/wallet",
     "/api/me/wallet",
     "/api/admin/wallet",
-    "/api/admin/analytics/wallet",
-    "/api/admin/analytics/wallet-history",
-    "/api/admin/analytics/coin-issuance",
   ],
   features: [
     "core/wallet",

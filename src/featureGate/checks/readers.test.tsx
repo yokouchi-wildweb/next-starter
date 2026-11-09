@@ -9,8 +9,10 @@ import { test } from "node:test";
 
 import { demoHref, groupDemoPagesByCategory } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
-import { gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
+import { gate, type FeatureName, type GatedFeatureRule, type GeneratedFeatureRule } from "@/featureGate";
+import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { derivedPaths, rules } from "@/featureGate/node";
+import { coveredPatternsOf } from "@/featureGate/ruleList";
 import type { DerivedPath } from "@/featureGate/ruleList";
 import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
@@ -18,8 +20,9 @@ import { matchesPath } from "@/lib/pathPattern/index.mjs";
 import { adminSidebar, adminSidebarHrefs } from "./adminSidebar";
 
 function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T): T {
-  const saved = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
-  for (const rule of rules) {
+  // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
+  const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
+  for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
     const state = states[rule.name];
     rule.enabled = () => state ?? true;
@@ -31,7 +34,8 @@ function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T
   }
 }
 
-const closedBy = (rule: GatedFeatureRule, href: string) => rule.pathPatterns.some((p) => matchesPath(href.split(/[?#]/)[0], p));
+// 規則を閉じれば閉じる住所 = 自分の住所 + ドメインの導出の住所 + 依存元の住所(coveredPatternsOf)
+const closedBy = (rule: GatedFeatureRule, href: string) => coveredPatternsOf(rule).some((p) => matchesPath(href.split(/[?#]/)[0], p));
 
 test("サイドバー: 規則を 1 つずつ閉じ、その住所の行が無く(redirectTo 付きも)、他の行は全部開いたときと同じ。行の無いカテゴリーは描かない", () => {
   const allHrefs = withRules({}, () => adminSidebarHrefs());
@@ -48,7 +52,7 @@ test("サイドバー: 規則を 1 つずつ閉じ、その住所の行が無く
 test("サイドバー: sampleDomain を閉じると sample の行が無く、行の無くなった「データ管理」も描かない", () => {
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
-  const isSample = (href: string) => sample.pathPatterns.some((p) => matchesPath(href, p));
+  const isSample = (href: string) => coveredPatternsOf(sample).some((p) => matchesPath(href, p));
   assert.ok(withRules({}, () => adminSidebarHrefs()).some(isSample), "メニューに sample の行がある前提");
   withRules({ sampleDomain: false }, () => {
     assert.equal(adminSidebarHrefs().filter(isSample).length, 0);
@@ -66,7 +70,8 @@ test("サイドバー: 銀行振込レビューを閉じると「リクエスト
 test("/demo: sampleDomain を閉じると sample のデモが一覧と数から消える。どの規則を閉じても一覧に閉じた住所が無く、数は一覧と同じ", () => {
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
-  const sampleDemos = demoPages.filter((page) => sample.pathPatterns.some((p) => matchesPath(demoHref(page), p)));
+  // サンプルを読むデモ画面は小さな機能 demoSampleDomain(sampleDomain に dependsOn)の住所 = sampleDomain を閉じれば閉じる住所
+  const sampleDemos = demoPages.filter((page) => coveredPatternsOf(sample).some((p) => matchesPath(demoHref(page), p)));
   assert.ok(sampleDemos.length > 0, "sample のデモがある前提");
   withRules({ sampleDomain: false }, () => {
     const pages = gate.filter(demoPages, demoHref);

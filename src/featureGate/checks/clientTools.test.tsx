@@ -11,7 +11,8 @@ import { afterEach, test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
+import { clientGateState, gate, type FeatureName, type GatedFeatureRule, type GeneratedFeatureRule } from "@/featureGate";
+import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Link, LinkVisibilityProvider } from "@/components/Navigation";
 import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCard";
@@ -31,8 +32,9 @@ afterEach(() => {
 });
 
 function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void) {
-  const saved = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
-  for (const rule of rules) {
+  // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
+  const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
+  for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
     const state = states[rule.name];
     rule.enabled = () => state ?? true;

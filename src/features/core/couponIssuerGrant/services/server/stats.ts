@@ -127,20 +127,33 @@ function buildStatsSources(period: IssuancePeriod | null, couponScope: SQL[]) {
     .as("usage");
 
   // 帰属報酬（受取人別、fulfilled のみ。当期は fulfilled_at で区切る）
+  // 紹介の報酬の機能(couponAttributionReward、クーポンとは別の機能)が閉じているときは表を読まない（表が無いことがある）。
+  // 結合の形は保ち、行の無い副問い合わせに替えて報酬額を 0 にする
   const r = CouponAttributionRewardTable;
   const inPeriod = period
     ? sql`${r.fulfilled_at} >= ${period.start.toISOString()} AND ${r.fulfilled_at} < ${period.end.toISOString()}`
     : sql`false`;
-  const rewardSq = db
-    .select({
-      user_id: r.recipient_user_id,
-      rewardPaidTotal: sql<number>`COALESCE(SUM(${r.amount}), 0)`.as("reward_paid_total"),
-      rewardPaidCurrentPeriod: sql<number>`COALESCE(SUM(${r.amount}) FILTER (WHERE ${inPeriod}), 0)`.as("reward_paid_current"),
-    })
-    .from(r)
-    .where(eq(r.status, "fulfilled"))
-    .groupBy(r.recipient_user_id)
-    .as("reward");
+  const rewardSq = gate.enabled("couponAttributionReward")
+    ? db
+        .select({
+          user_id: r.recipient_user_id,
+          rewardPaidTotal: sql<number>`COALESCE(SUM(${r.amount}), 0)`.as("reward_paid_total"),
+          rewardPaidCurrentPeriod: sql<number>`COALESCE(SUM(${r.amount}) FILTER (WHERE ${inPeriod}), 0)`.as("reward_paid_current"),
+        })
+        .from(r)
+        .where(eq(r.status, "fulfilled"))
+        .groupBy(r.recipient_user_id)
+        .as("reward")
+    : db
+        .select({
+          user_id: CouponTable.attribution_user_id,
+          rewardPaidTotal: sql<number>`0`.as("reward_paid_total"),
+          rewardPaidCurrentPeriod: sql<number>`0`.as("reward_paid_current"),
+        })
+        .from(CouponTable)
+        .where(sql`false`)
+        .groupBy(CouponTable.attribution_user_id)
+        .as("reward");
 
   // 割引総額（発行者別）。purchase_requests.coupon_code → coupons.code で結合
   // 決済の機能が閉じているときは purchase_requests を読まない（表が無いことがある）。
@@ -320,10 +333,13 @@ export async function getGrantListWithStats(
       .from(CouponHistoryTable)
       .innerJoin(CouponTable, eq(CouponHistoryTable.coupon_id, CouponTable.id))
       .where(and(...couponScope)),
-    db
-      .select({ value: sql<number>`COALESCE(SUM(${CouponAttributionRewardTable.amount}), 0)` })
-      .from(CouponAttributionRewardTable)
-      .where(eq(CouponAttributionRewardTable.status, "fulfilled")),
+    // 紹介の報酬の機能が閉じているときは coupon_attribution_rewards を読まず 0
+    gate.enabled("couponAttributionReward")
+      ? db
+          .select({ value: sql<number>`COALESCE(SUM(${CouponAttributionRewardTable.amount}), 0)` })
+          .from(CouponAttributionRewardTable)
+          .where(eq(CouponAttributionRewardTable.status, "fulfilled"))
+      : Promise.resolve([{ value: 0 }]),
     // 決済の機能が閉じているときは purchase_requests を読まず 0
     gate.enabled("payment")
       ? db
@@ -440,6 +456,8 @@ export async function getIssuerRewardHistory(params: {
   const { userId, page = 1, limit = 20 } = params;
   const offset = (page - 1) * limit;
   const r = CouponAttributionRewardTable;
+  // 紹介の報酬の機能が閉じているときは表を読まない（表が無いことがある）
+  if (!gate.enabled("couponAttributionReward")) return { items: [], total: 0 };
 
   const [{ value: total }] = await db
     .select({ value: drizzleCount() })
