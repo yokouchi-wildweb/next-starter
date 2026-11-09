@@ -8,22 +8,13 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
+// override のファイルの名前の決まり(<対象> は user.role のように . も含む。src/app の frame.override.ts は枠の宣言で override ではない)の元
+import { isOverridePath } from "../../../src/lib/districtMap/extensionNames.mjs";
 
-// <対象> は user.role・user.profile のように . も含む
-const OVERRIDE_FILE = /^[A-Za-z_][\w.-]*\.override\.(ts|tsx)$/;
-const FRAME_OVERRIDE = /^src\/app\/(?:.*\/)?frame\.override\.tsx?$/;
+export { isOverridePath };
 
 /** 空白とコメントだけのソースか(cron・serviceRegistry の生成器と同じ判定) */
 export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
-
-/** override のファイルか(<対象>.override.ts(x)。素の override.ts は override ではない: cron の旧名は src/lib/cron/discover.ts が止める) */
-export const isOverridePath = (path) => {
-  const name = path.slice(path.lastIndexOf("/") + 1);
-  if (!OVERRIDE_FILE.test(name)) return false;
-  // src/app の frame.override.ts は override ではない(枠の宣言は frame.ts / frame.override.ts。止めるのは frames.mjs)
-  if (FRAME_OVERRIDE.test(path)) return false;
-  return true;
-};
 
 /**
  * override を集めて検査する

@@ -18,17 +18,9 @@ import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { isBlankSource } from "./overrides.mjs";
 import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
 
-export const FRAME_FILE = "frame.ts";
-export const FRAME_DEFAULT_FILE = "frame.default.ts";
-/** 下のリポの宣言(相手 = そのルート。ルートを作ったリポの宣言の上に重なる) */
-export const FRAME_OVERRIDE_FILE = "frame.override.ts";
-/**
- * この仕組みが名乗る .default のファイルの形(.default = 作ったリポが出す既定の共通の印、D171)。枠の宣言は .default を使わず、
- * frame.default.ts は frames.mjs が失敗にする(名乗るのは、1 行スイッチの検査が既定と取り違えてスイッチを求めないため)。
- * 1 行スイッチの検査(switches.mjs)はここに名乗った形をスイッチの既定として扱わない。
- * 形: { by: 持ち主, under: 走査の範囲(リポジトリ直下からの相対), name: ファイル名 | pattern: ファイル名の RegExp }
- */
-export const CLAIMED_DEFAULTS = [{ by: "scripts/structure/extensions/frames.mjs(枠の宣言の既定)", under: "src/app", name: FRAME_DEFAULT_FILE }];
+// 名前(frame.ts / frame.override.ts / frame.default.ts と .default の名乗り)の元は src/lib/districtMap/extensionNames.mjs
+export { CLAIMED_DEFAULTS, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/extensionNames.mjs";
+import { FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/extensionNames.mjs";
 /** 宣言の名前と export の名前(並び = 重ねる順): ルートを作ったリポの frame.ts → その下のリポの frame.override.ts */
 const SOURCES = [
   { file: FRAME_FILE, exportName: "frame", slot: "frame" },

@@ -24,8 +24,9 @@ const FIXED_ROWS = [
 /** 実在のパスを、そのパスだけに当たる glob にする(node:path の matchesGlob。[slug] などの字の組・* ? は [x] で包む。\ の逃がしは効かない) */
 export const literalGlob = (path) => path.replace(/[[\]*?]/g, (ch) => `[${ch}]`);
 
-/** 対象の glob → 隣の上書きの glob(最後の拡張子を .override.ts に: task.ts → task.override.ts、*.role.json → *.role.override.ts) */
-export const overrideGlobOf = (glob) => glob.replace(/\.[A-Za-z]+$/, ".override.ts");
+/** 対象の glob → 隣の上書きの glob(名前の決まりの元 src/lib/districtMap/extensionNames.mjs) */
+export { overrideGlobOf } from "../../../src/lib/districtMap/extensionNames.mjs";
+import { overrideGlobOf } from "../../../src/lib/districtMap/extensionNames.mjs";
 
 /**
  * 生成区画の行。並びは効く種類を決める(最後に当たった行が効く): 置き場 → 画面 → 受け口 → 1 行スイッチ → 上書き → route の隣 → 生成器の region → 生成物

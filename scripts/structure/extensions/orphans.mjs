@@ -11,10 +11,8 @@ import { join, matchesGlob } from "node:path";
 
 import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
 import { DEFAULT_IMPL_DIRS, FORK_OWNED_DIR, findRouteReplaceProblems } from "../../../src/lib/screens/checks.mjs";
-import { overrideGlobOf } from "./intake.mjs";
-import { isBlankSource, isOverridePath } from "./overrides.mjs";
-
-const REPLACE_FILE = /^(.+)\.replace\.(ts|tsx)$/;
+import { REPLACE_FILE, isOverridePath, overrideGlobOf, targetOfOverride } from "../../../src/lib/districtMap/extensionNames.mjs";
+import { isBlankSource } from "./overrides.mjs";
 
 /** src の下を 1 回だけ歩いて全ファイル(node_modules・. 始まりは降りない) */
 function listSrcFiles(repoRoot) {
@@ -33,7 +31,7 @@ function listSrcFiles(repoRoot) {
 }
 
 /** 上書きの対象の点の上書きのパス → 隣の対象のパス(最後の拡張子は対象の glob の物: task.override.ts → task.ts、user.role.override.ts → user.role.json) */
-export const targetOf = (path, point) => path.replace(/\.override\.tsx?$/, point.spec.overrides.slice(point.spec.overrides.lastIndexOf(".")));
+export const targetOf = (path, point) => targetOfOverride(path, point.spec.overrides);
 
 /**
  * @param {string} repoRoot

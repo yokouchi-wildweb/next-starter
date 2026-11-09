@@ -218,14 +218,34 @@ export function readDeclaration(path, text) {
  * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: object }[], problems: string[] }}
  */
 export function collectPoints(repoRoot) {
-  const points = [];
   const problems = [];
   const { files, stale } = findDeclarationFiles(repoRoot);
   for (const path of stale) {
     problems.push(`${oldMarkerProblem(path, `${DECLARATION_NAME}.ts`)}。fork の拡張点は fork 自身のフォルダの ${DECLARATION_NAME}.ts に宣言する`);
   }
-  for (const path of files) {
-    const read = readDeclaration(path, readFileSync(join(repoRoot, path), "utf8"));
+  const read = pointsFromFiles(files, (path) => readFileSync(join(repoRoot, path), "utf8"));
+  return { points: read.points, problems: [...problems, ...read.problems] };
+}
+
+/** 宣言のファイルのパスか(src の下の extensionPoints.ts。生成一覧 extensions/ と node_modules・隠しフォルダの中は除く) */
+export const isDeclarationPath = (path) =>
+  path.startsWith(`${SEARCH_ROOT}/`) &&
+  path.endsWith(`/${DECLARATION_NAME}.ts`) &&
+  !path.split("/").slice(0, -1).some((seg) => seg === "node_modules" || seg === EXTENSIONS_DIR_NAME || seg.startsWith("."));
+
+/**
+ * 宣言のファイルの一覧と読み方から点の一覧を作る(ファイルにも git にも触れない。git の版の木を読む pnpm workflow ownership who も使う)
+ * @param {Iterable<string>} files 宣言のファイル(リポジトリ直下からの相対。宣言でないパスは isDeclarationPath で除く)
+ * @param {(path: string) => string | null} readText
+ * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: object }[], problems: string[] }}
+ */
+export function pointsFromFiles(files, readText) {
+  const points = [];
+  const problems = [];
+  for (const path of [...files].filter(isDeclarationPath).sort()) {
+    const text = readText(path);
+    if (text === null) continue;
+    const read = readDeclaration(path, text);
     problems.push(...read.problems);
     for (const [name, spec] of Object.entries(read.points)) points.push({ owner: dirname(path), name, declaredIn: path, spec });
   }

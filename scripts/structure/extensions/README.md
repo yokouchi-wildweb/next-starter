@@ -56,7 +56,7 @@ export const extensionPoints = {
 
 受け口のフォルダが無い点は項目 0(一覧は空)。印 = `export const <export>` の形(字面で見る。`export { x as <export> }` は拾わない)。項目のファイルは生成器から import しない。
 
-点つきの名前の分類は `src/lib/districtMap/dottedNames.mjs` の 1 か所(`.default` / `.replace` / `.override` / `.client` / `.test` / それ以外 = 旧い fork の名前の印)。受け口で許すのは印なしの名前と、`overrideOf` の点の `<名前>.override.ts` だけ。`<名前>.replace` は 1 行スイッチの置き換えで、受け口の項目ではない(下の孤立の検査)。
+名前の決まり(1 行スイッチの `<名前>.default` ↔ 素の名前 ↔ `<名前>.replace`、ほかの仕組みが名乗る `.default`、`<対象>.override.ts` ↔ 対象、枠の宣言の `frame.ts` / `frame.override.ts`)の元は `src/lib/districtMap/extensionNames.mjs` の 1 か所(この下の検査と `pnpm workflow ownership who` が読む。who は scripts を読めないので src/lib に置く)。点つきの名前の分類は `src/lib/districtMap/dottedNames.mjs` の 1 か所(`.default` / `.replace` / `.override` / `.client` / `.test` / それ以外 = 旧い fork の名前の印)。受け口で許すのは印なしの名前と、`overrideOf` の点の `<名前>.override.ts` だけ。`<名前>.replace` は 1 行スイッチの置き換えで、受け口の項目ではない(下の孤立の検査)。
 
 失敗(書き出さない): 旧い fork の名前の印(`<名前>.<x>.ts`・`<名前>.<x>/`。印なしの名前への改名と移し方 = 共有の棚の印の移行の notice を案内する)/ 印(export)が無い(受け口に置くのは項目だけ。部品は責務のドメインへ)/ 同じ受け口の 2 つの点の印を両方持つ / index の無いフォルダ / 同じ名前のファイルとフォルダ / 名前の形。テスト(`*.test.*`)・`.d.ts`・`.ts(x)` 以外・`extensions/`・ほかの点の受け口のフォルダは見ない。
 

@@ -54,6 +54,27 @@ function filesUnder(source, rel, out = []) {
   return out;
 }
 
+/**
+ * 地区を見つけるだけ(欄は読まない。読むのは枠の _layout/config.ts と proxies の config.ts の有無だけ)。pnpm workflow ownership who が型 4 の置き場を引くのに使う
+ * @param {DistrictSource} source
+ * @returns {{ districts: { kind: string, name: string, core: boolean | null, dir: string }[], problems: string[] }}
+ */
+export function discoverDistricts(source) {
+  const problems = [];
+  return { districts: discover(source, problems), problems };
+}
+
+/**
+ * 地区の config と上書きの置き場(設定 D11・D38)
+ * @param {{ kind: (typeof DISTRICT_KINDS)[number], name: string, dir: string }} district
+ */
+export const configSlotsOf = (district) => ({
+  config: join(district.dir, CONFIG_FILE),
+  override: overridePathOf(district.kind, district.name),
+  uiConfig: join(district.dir, UI_CONFIG_FILE),
+  uiOverride: uiOverridePathOf(district.kind, district.name),
+});
+
 /** 地区の見つけ方(種類ごと)。{ kind, name, core, dir, frame? } の一覧 */
 function discover(source, problems) {
   const found = [];
@@ -152,10 +173,7 @@ export function readDistrictMap(source) {
   const apiKeyOwners = new Map();
 
   const districts = found.map((d) => {
-    const configPath = join(d.dir, CONFIG_FILE);
-    const overridePath = overridePathOf(d.kind, d.name);
-    const uiConfigPath = join(d.dir, UI_CONFIG_FILE);
-    const uiOverridePath = uiOverridePathOf(d.kind, d.name);
+    const { config: configPath, override: overridePath, uiConfig: uiConfigPath, uiOverride: uiOverridePath } = configSlotsOf(d);
     const files = filesUnder(source, d.dir);
     /** @type {District} */
     const district = {

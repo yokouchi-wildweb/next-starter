@@ -5,6 +5,8 @@
 import { execFileSync } from "node:child_process";
 
 import { existsAt, filesUnder, forkIdAt, INTAKE_PATH, judgeFork, reassignMiddleTier, resolveForkContext, treeSnapshot } from "./check.mjs";
+import { overridePathOfTarget } from "../districtMap/extensionNames.mjs";
+import { explainPath, explainView } from "./explain.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
 import { unitName } from "./unitNames.mjs";
@@ -39,13 +41,9 @@ export function replaceCandidate(path) {
 export function overrideCandidate(path) {
   const cron = /^(src\/app\/api\/cron\/[^/]+)\/[^/]+$/.exec(path);
   if (cron) return /\.override\.tsx?$/.test(path) ? null : `${cron[1]}/task.override.ts`;
-  const slash = path.lastIndexOf("/");
-  const name = path.slice(slash + 1);
-  const dot = name.lastIndexOf(".");
-  if (dot <= 0) return null;
-  const stem = path.slice(0, slash + 1 + dot);
-  if (/\.(override|replace)$/.test(stem)) return null;
-  return `${stem}.override.ts`;
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  if (name.lastIndexOf(".") <= 0 || /\.(override|replace)\.[^.]+$/.test(name)) return null;
+  return overridePathOfTarget(path);
 }
 
 /**
@@ -58,9 +56,10 @@ export function overrideCandidate(path) {
  *   entry: object | null,                // 基準との差分の判定(judgeFork の entries の 1 件、差分が無ければ null)
  *   permit: object | null,               // 自分の一時許可の行(parsePermits の 1 件)
  *   judgeAdd: (path: string) => { reason: string, verdict: string },  // そのパスを足したときの判定(中間 Tier の付け替え込み)
+ *   explain?: (path: string, who: { tier: string, addable: boolean }) => object,  // 型の答え(explain.mjs の explainPath を木と直接の親に結んだ物)
  * }} input
  */
-export function describePath({ path, inBase, inHead, inTier1, middleName, intake, entry, permit, judgeAdd }) {
+export function describePath({ path, inBase, inHead, inTier1, middleName, intake, entry, permit, judgeAdd, explain }) {
   const rule = matchIntake(intake, path);
   const tier = !inBase ? (inHead ? "fork" : "missing") : inTier1 ? "tier1" : "middle";
   const owner = { kind: rule?.kind === "generated" && tier !== "missing" ? "generated" : tier, tier, ...(tier === "middle" ? { forkId: middleName } : {}) };
@@ -107,7 +106,9 @@ export function describePath({ path, inBase, inHead, inTier1, middleName, intake
       ? { status: entry.status, ...(entry.from ? { from: entry.from } : {}), reason: entry.reason, verdict: entry.verdict, ...(entry.permitDraft ? { permitDraft: entry.permitDraft } : {}) }
       : null,
   };
-  return { path, owner, allowed, blocked, evidence };
+  // 型(1-4 | generated | own | none)・鍵・置くファイル: fork がこのパスを変えたいときにすること
+  const typed = explain ? explain(path, { tier, addable: tier === "missing" && judgeAdd(path).verdict === "ok" }) : null;
+  return { path, owner, ...(typed ?? {}), allowed, blocked, evidence };
 }
 
 /** 引数のパスを repo 相対のファイルに広げる(フォルダ = その下のファイル、HEAD ∪ 基準) */
@@ -149,8 +150,10 @@ export function whoOwns(repoRoot, paths, options = {}) {
     const snapshot = treeSnapshot(repoRoot, "HEAD");
     const files = new Set(snapshot.files);
     const judgeAdd = addJudge(snapshot, intake.rules, files);
+    const view = explainView({ files: snapshot.files, read: snapshot.read, intake: intake.rules });
+    const explain = (path, who) => explainPath(path, view, { ...who, parent: context.ownerId });
     const results = expandPaths(repoRoot, paths, ["HEAD"]).map((path) =>
-      describePath({ path, inBase: files.has(path), inHead: files.has(path), inTier1: files.has(path), middleName: null, intake: intake.rules, entry: null, permit: null, judgeAdd }),
+      describePath({ path, inBase: files.has(path), inHead: files.has(path), inTier1: files.has(path), middleName: null, intake: intake.rules, entry: null, permit: null, judgeAdd, explain }),
     );
     return { status: "tier1", ownerId: context.ownerId, results };
   }
@@ -160,6 +163,9 @@ export function whoOwns(repoRoot, paths, options = {}) {
   const judgeAdd = addJudge(snapshot, context.intake, context.tier1Files);
   const chain = [...context.tier1.chain].reverse(); // Tier1 に近い版から
   const middleNameOf = (path) => chain.find((step) => existsAt(repoRoot, step.sha, path))?.name ?? forkIdAt(repoRoot, context.base);
+  const view = explainView({ files: snapshot.files, read: snapshot.read, intake: context.intake });
+  const parent = forkIdAt(repoRoot, context.base) ?? context.remote;
+  const explain = (path, who) => explainPath(path, view, { ...who, parent });
 
   const results = expandPaths(repoRoot, paths, ["HEAD", context.base]).map((path) => {
     const inBase = baseFiles.has(path);
@@ -175,6 +181,7 @@ export function whoOwns(repoRoot, paths, options = {}) {
       entry,
       permit: permits.find((item) => item.path === path) ?? null,
       judgeAdd,
+      explain,
     });
   });
   const { ownerId, remote, branch, base, tier1 } = context;

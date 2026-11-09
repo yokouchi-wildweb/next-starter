@@ -12,21 +12,14 @@ import { oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
 import { stripComments } from "../../../src/lib/screens/checks.mjs";
 
 import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
-import { CLAIMED_DEFAULTS as FRAME_CLAIMS } from "./frames.mjs";
+import { CLAIMED_DEFAULTS, DEFAULT_FILE, isClaimedDefault } from "../../../src/lib/districtMap/extensionNames.mjs";
 
 /**
- * .default を使うほかの仕組みが名乗るファイルの形(仕組みごとに 1 か所で公開した一覧を足す。.ts / .tsx 以外の形も同じ形で足せる)
+ * .default を使うほかの仕組みが名乗るファイルの形(名前の決まりの元 src/lib/districtMap/extensionNames.mjs の CLAIMED_DEFAULTS)
  * @type {readonly { by: string, under: string, name?: string, pattern?: RegExp }[]}
  */
-export const CLAIMERS = [...FRAME_CLAIMS];
-
-/** path(リポジトリ直下からの相対)がどれかの仕組みの名乗った形か */
-export function isClaimedDefault(path, claims = CLAIMERS) {
-  const name = path.slice(path.lastIndexOf("/") + 1);
-  return claims.some((c) => path.startsWith(`${c.under}/`) && (c.name !== undefined ? name === c.name : c.pattern.test(name)));
-}
-
-const DEFAULT_FILE = /^([A-Za-z][A-Za-z0-9]*)\.default\.(ts|tsx)$/;
+export const CLAIMERS = CLAIMED_DEFAULTS;
+export { isClaimedDefault };
 const REEXPORT = /^export\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*["']\.\/([^"'/]+)["']\s*;?$/;
 
 /** src の下の <名前>.default.ts(x)(ほかの仕組みが名乗った形を除く)を集める */

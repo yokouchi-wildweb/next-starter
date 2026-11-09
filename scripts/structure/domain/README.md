@@ -161,6 +161,15 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 
 管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/README.md`](../../../src/lib/screens/README.md) §12。
 
+### 出力の種類のデータ（`outputs.json`）
+
+- 上の表のうち、ファイルごとの種類（`every-run` = 毎回書き直す / `write-once` = 無いときだけ書く）の唯一の元は [`outputs.json`](outputs.json) の `outputs`。1 行 = `{ glob, kind, source? }`
+  - `glob` は gate.json の `outputs` と同じリポジトリ直下からの glob。`{dir}` = ドメインのフォルダ・`{camel}` = フォルダ名・`{Pascal}` = その PascalCase・`{route}` = 管理画面のルートのフォルダ（複数形の kebab-case、決まりの元は `src/lib/districtMap/domainNames.mjs`）。`[id]` の `[` `]` は字そのもの
+  - `source` = その生成物を変えたいときに直す物（`{dir}/domain.json`・`{dir}/services/server/wrappers/`・`{dir}/adminBulkActions/`）
+- gate.json の `outputs` には書かない（そこに書いた物は受け口の一覧の generated の行になり、fork が上流のドメインの生成物を書き換えてよいことになる）
+- 読み手: `pnpm workflow ownership who`（`every-run` = 型 generated で直す元を案内、`write-once` と `"generate": false` のドメインは持ち主で own か none。`src/lib/forkOwnership/README.md`「型」）。当て方は `src/lib/districtMap/domainOutputs.mjs`
+- 照合: `pnpm test scripts/structure/domain/tests/outputs.test.mjs` が、このリポの全ドメイン（`generate: false` を除く）を全カテゴリで組み立て（何も書かない）、`file` の Output は `every-run` の行に、`writeOnce` は `write-once` の行に当たり、どの行もどれかの出力に当たることを見る。生成器が書くファイルを足したら、この行も同じコミットで足す
+
 ### 生成物を変えたいとき（生成ファイルは編集しない）
 
 - **項目・選択肢・表示列など** → `domain.json` を直して `pnpm forge`

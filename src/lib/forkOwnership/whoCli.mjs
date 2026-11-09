@@ -15,6 +15,17 @@ const OWNER_LABELS = {
 
 const TIER_LABELS = { tier1: "Tier1 の物", middle: "中間 Tier の物", fork: "この fork の物" };
 
+/** 型(fork がこのパスを変えたいときにすること) */
+const TYPE_LABELS = {
+  1: "型 1 丸ごと置き換え",
+  2: "型 2 重ね(一部の上書き)",
+  3: "型 3 受け口に足す",
+  4: "型 4 置き場",
+  generated: "生成物(作り直す)",
+  own: "自分の物(そのまま書き換える)",
+  none: "変えられない(依頼する)",
+};
+
 function parseArgs(argv) {
   const options = { json: false, fetch: true, paths: [] };
   for (const arg of argv) {
@@ -41,6 +52,13 @@ function ownerLine(owner) {
 function printResult(result) {
   const lines = [result.path];
   lines.push(`  持ち主: ${ownerLine(result.owner)}`);
+  if (result.type) {
+    lines.push(`  型: ${TYPE_LABELS[result.type] ?? result.type}${result.how ? ` — ${result.how}` : ""}`);
+    if (result.write) lines.push(`  置くファイル: ${result.write}`);
+    if (result.keys) lines.push(`  鍵: ${result.keys.join(", ")}`);
+    if (result.source) lines.push(`  元: ${result.source}`);
+    if (result.order) lines.push(`  依頼: ${result.order}`);
+  }
   for (const item of result.allowed) lines.push(`  できる: ${item.action} — ${item.how}`);
   for (const item of result.blocked) lines.push(`  できない: ${item.action}(${item.reason})`);
   const { evidence } = result;
