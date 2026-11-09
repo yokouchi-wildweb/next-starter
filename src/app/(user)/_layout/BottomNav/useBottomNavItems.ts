@@ -1,36 +1,27 @@
 /**
  * ボトムナビゲーションの状態を提供するhook
  *
- * 設定は src/config/user-bottom-menu.config.ts で管理
+ * 項目は枠の描画用の設定 ../config.ui.ts の bottomMenu、高さは ../config.ts の bottomMenu.height
+ * バッジは項目の badge で渡す
  */
 
 import { useMemo } from "react";
 
-import {
-  AUTHENTICATED_MENU_ITEMS,
-  BOTTOM_NAV_HEIGHT,
-  GUEST_MENU_ITEMS,
-  useBottomNavBadges,
-} from "@/config/ui/user-bottom-menu.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+
+import { userLayoutConfig } from "../config";
+import { userLayoutUiConfig } from "../config.ui";
 
 export const useBottomNavItems = () => {
   const { isAuthenticated } = useAuthSession();
-  const badgeMap = useBottomNavBadges();
 
   const items = useMemo(
-    () => {
-      const baseItems = isAuthenticated ? AUTHENTICATED_MENU_ITEMS : GUEST_MENU_ITEMS;
-      return baseItems.map((item) => ({
-        ...item,
-        badge: badgeMap[item.key] ?? item.badge,
-      }));
-    },
-    [isAuthenticated, badgeMap],
+    () => (isAuthenticated ? userLayoutUiConfig.bottomMenu.authenticatedMenuItems : userLayoutUiConfig.bottomMenu.guestMenuItems),
+    [isAuthenticated],
   );
 
   return {
     items,
-    height: BOTTOM_NAV_HEIGHT,
+    height: userLayoutConfig.bottomMenu.height,
   };
 };

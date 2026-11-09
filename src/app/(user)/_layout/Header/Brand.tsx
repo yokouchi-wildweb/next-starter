@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Link } from "@/components/Navigation";
 
 import { business } from "@/business";
-import { HEADER_LOGO_LINK } from "@/config/ui/user-header.config";
+import { userLayoutConfig } from "../config";
 import { logoPath } from "@/utils/assets";
 
 export const Brand = () => {
@@ -14,7 +14,7 @@ export const Brand = () => {
     <Link
       id="header-brand"
       data-slot="header-brand"
-      href={HEADER_LOGO_LINK}
+      href={userLayoutConfig.header.logoLink}
       className="flex items-center gap-2.5 text-base font-semibold sm:gap-3 sm:text-lg"
     >
       {hasLogo ? (

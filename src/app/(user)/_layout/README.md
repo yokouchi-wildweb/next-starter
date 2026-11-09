@@ -47,10 +47,10 @@ src/app/(user)/_layout/
 
 | slot | 既定(省略時) | 位置 |
 |------|----------------|------|
-| `background` | `BackgroundLayer`(値は `src/config/ui/user-layout.config.ts`) | 最背面(枠の外側の兄弟) |
+| `background` | `BackgroundLayer`(値は枠の設定 `layout.background`、`./config.ts`) | 最背面(枠の外側の兄弟) |
 | `banner` | なし(省略と `null` は同じ) | `#user-app-container` の先頭、header の前。`#app-banner`(fixed・top-0)の中に描く |
-| `header` | config/ui/user-header.config の `UserNavigation`(upstream では既定 Header) | `#user-app-container` の先頭 |
-| `footer` | config/ui/user-footer.config の `UserFooter`(upstream では既定 Footer) | `#stretch-wrapper` の後 |
+| `header` | `UserNavigation`(`./Header`、upstream では既定 Header) | `#user-app-container` の先頭 |
+| `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | `#stretch-wrapper` の後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
 | `notificationModal` | `UnreadNotificationModal` | 末尾 |
 
@@ -63,7 +63,7 @@ src/app/(user)/_layout/
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`[data-slot="header"]` / `[data-slot="admin-header"]`、id は一時の橋)の高さ。初期値 = 今の行の高さ(外枠ごと・端末ごと、測る前の最初の表示とページを移る間に使う)、測った値が上書きする。枠の宣言で隠している端末は 0px | 初期値と隠す間の 0 は `src/styles/core/frame.css`、測った値は UserLayout・AdminLayout の外枠の inline(`useHeaderHeight()` が値を返した時だけ) |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `calc(BOTTOM_NAV_HEIGHT px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`BOTTOM_NAV_HEIGHT` は `src/config/ui/user-bottom-menu.config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
+| `--app-bottom-nav-height` | `calc(bottomMenu.height px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`bottomMenu.height` は枠の設定 `./config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
 | `--app-safe-area-top/right/bottom/left` | 端末の切り欠き(CSS の env() の safe-area-inset-*、無ければ 0px)。env() を直接書くのはこの定義だけ | `src/styles/core/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/core/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
@@ -121,7 +121,7 @@ export const frameDefault = {
 - frame.css の `:is()` に残る既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に一緒に外す
 - 寸法変数: ボトムナビを隠している間、外枠の `--app-bottom-nav-height` は 0px
 - 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test src/app/_layout/frame/`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test 'src/app/(user)/_layout/'`)
-- フッターの基本の表示は config の `FOOTER_VISIBILITY` の固定の class のまま
+- フッターの基本の表示は枠の設定 `footer.visibility` の固定の class のまま
 
 ## data-slot の一覧
 
@@ -193,7 +193,7 @@ import { useFooterData } from "@/app/(user)/_layout/hooks";
 
 const {
   enabled,          // フッター機能が有効か
-  visibility,       // フッターの表示設定（SP/PC、config の FOOTER_VISIBILITY）
+  visibility,       // フッターの表示設定（SP/PC、枠の設定の footer.visibility）
   snsEnabled,       // SNSリンクが有効か
   socialLinks,      // SNSリンク一覧
   linksEnabled,     // フッターリンクが有効か
@@ -201,7 +201,7 @@ const {
   linkSeparator,    // フッターリンクのセパレーター
   copyrightEnabled, // コピーライトが有効か
   copyrightText,    // 生成済みコピーライトテキスト
-  visibilityClass,  // FOOTER_VISIBILITY から作る表示クラス(ページ単位で隠すのは枠の宣言)
+  visibilityClass,  // footer.visibility から作る表示クラス(ページ単位で隠すのは枠の宣言)
 } = useFooterData();
 ```
 
@@ -209,26 +209,20 @@ const {
 
 ## Header - ヘッダーナビゲーション
 
-### 設定ファイル
+### 設定
 
-**`src/config/ui/user-header.config.ts`**
+値は枠の設定 `header`(`./config.ts`、上書き `src/config/layout/user.config.ts`)、メニュー項目とログアウトのアイコンは描画用の `header`(`./config.ui.ts`、上書き `src/config/layout/user.ui.config.ts`)。部品の差し替えは UserLayout の header slot、ヘッダー・ナビの出し入れは枠の宣言の `header` / `headerNav`。
 
-値だけを持つ(部品の差し替えは UserLayout の header slot、ヘッダー・ナビの出し入れは枠の宣言の `header` / `headerNav`)。
+| 鍵 | 置き場 | 説明 |
+|------|------|------|
+| `header.logoLink` | config.ts | ロゴクリック時の遷移先 |
+| `header.menuIconsEnabled` | config.ts | メニューにアイコンを出すか |
+| `header.logout.show` / `.label` / `.redirectTo` | config.ts | ログアウトボタンの表示・ラベル・ログアウト後の遷移先 |
+| `header.logout.icon` | config.ui.ts | ログアウトボタンのアイコン |
+| `header.authenticatedMenuItems` | config.ui.ts | ログイン中ユーザー用メニュー(`HeaderMenuItem[]`) |
+| `header.guestMenuItems` | config.ui.ts | 未ログインユーザー用メニュー |
 
-```tsx
-// メニュー設定
-export const AUTHENTICATED_MENU_ITEMS: HeaderMenuItem[] = [...];
-export const GUEST_MENU_ITEMS: HeaderMenuItem[] = [...];
-```
-
-### 設定項目
-
-| 項目 | 説明 |
-|------|------|
-| `HEADER_LOGO_LINK` | ロゴクリック時の遷移先 |
-| `AUTHENTICATED_MENU_ITEMS` | ログイン中ユーザー用メニュー |
-| `GUEST_MENU_ITEMS` | 未ログインユーザー用メニュー |
-| `SHOW_LOGOUT_BUTTON` | ログアウトボタンの表示 |
+メニューの配列は上書きで丸ごと置き換わる。バッジは項目の `badge`(固定の ReactNode)で渡す。
 
 ### 部品の slot(UserNavigation の props)
 
@@ -255,42 +249,18 @@ slot で足りない構造の違いは `.replace` のコピーで持つ。
 
 ## Footer - フッター
 
-### 設定ファイル
+### 設定
 
-**`src/config/ui/user-footer.config.ts`**
+値は枠の設定 `footer`(`./config.ts`)、SNS リンクの一覧(react-icons の部品を持つ)だけ描画用の `footer.sns.links`(`./config.ui.ts`)。部品の差し替えは UserLayout の footer slot。
 
-値だけを持つ(部品の差し替えは UserLayout の footer slot)。
-
-```tsx
-// 表示設定
-export const FOOTER_ENABLED = true;
-export const FOOTER_VISIBILITY = { sp: true, pc: true };
-
-// SNSリンク設定
-export const SNS_ENABLED = true;
-export const SOCIAL_LINKS: SocialLinkItem[] = [...];
-
-// フッターリンク設定
-export const FOOTER_LINKS_ENABLED = true;
-export const FOOTER_LINKS: FooterLinkItem[] = [...];
-
-// コピーライト設定
-export const COPYRIGHT_ENABLED = true;
-export const COPYRIGHT_YEAR = "2025";
-export const COPYRIGHT_FORMAT = "simple";
-```
-
-### 設定項目
-
-| 項目 | 説明 |
-|------|------|
-| `FOOTER_ENABLED` | `false`でフッター全体を非表示 |
-| `FOOTER_VISIBILITY` | SP/PC別の表示制御 |
-| `SNS_ENABLED` | SNSリンクの表示 |
-| `SOCIAL_LINKS` | SNSリンク一覧（react-iconsを使用） |
-| `FOOTER_LINKS_ENABLED` | フッターリンクの表示 |
-| `FOOTER_LINKS` | リンク一覧（利用規約等） |
-| `COPYRIGHT_FORMAT` | `simple` / `allRights` / `full` / `custom` |
+| 鍵 | 置き場 | 説明 |
+|------|------|------|
+| `footer.enabled` | config.ts | `false` でフッター全体を非表示 |
+| `footer.visibility` | config.ts | SP/PC 別の表示制御(`{ sp, pc }`) |
+| `footer.sns.enabled` | config.ts | SNS リンクの表示 |
+| `footer.sns.links` | config.ui.ts | SNS リンク一覧(`SocialLinkItem[]`、react-icons を使用) |
+| `footer.linksEnabled` / `footer.links` / `footer.linkSeparator` | config.ts | フッターリンクの表示・一覧(利用規約等)・区切り |
+| `footer.copyright.enabled` / `.year` / `.format` / `.customText` | config.ts | コピーライト(format = `simple` / `allRights` / `full` / `custom`) |
 
 ---
 ## BottomNav - スマホ用ボトムナビゲーション
@@ -304,38 +274,38 @@ export const COPYRIGHT_FORMAT = "simple";
 - カレントページは色が変わる
 - Lucide-reactアイコンを使用
 
-### 設定ファイル
+### 設定
 
-**`src/config/ui/user-bottom-menu.config.ts`**
+高さとカレントの色は枠の設定 `bottomMenu`(`./config.ts`)、メニュー項目は描画用の `bottomMenu`(`./config.ui.ts`)。出し入れは枠の宣言の `bottomNav`(既定 = スマホだけ: `src/app/(user)/frame.default.ts`)。
 
 ```tsx
-// 基本設定(出し入れは枠の宣言の bottomNav。既定 = スマホだけ: src/app/(user)/frame.default.ts)
-export const BOTTOM_NAV_HEIGHT = 64;
-
-// メニュー設定(type 省略 = リンク項目)
-export const AUTHENTICATED_MENU_ITEMS: BottomNavItem[] = [
-  { key: "home", label: "ホーム", href: "/", icon: Home },
-  { type: "menu", key: "create", label: "作成", icon: Plus, menu: [{ key: "post", label: "投稿", href: "/posts/new" }] },
-  { key: "mypage", label: "マイページ", href: "/mypage", icon: User },
-];
-
-export const GUEST_MENU_ITEMS: BottomNavItem[] = [
-  { key: "home", label: "ホーム", href: "/", icon: Home },
-  { key: "login", label: "ログイン", href: "/login", icon: LogIn },
-];
+// src/config/layout/user.ui.config.ts(type 省略 = リンク項目。配列は丸ごと置き換わる)
+import { Home, LogIn, Plus, User } from "lucide-react";
+export default {
+  bottomMenu: {
+    authenticatedMenuItems: [
+      { key: "home", label: "ホーム", href: "/", icon: Home },
+      { type: "menu", key: "create", label: "作成", icon: Plus, menu: [{ key: "post", label: "投稿", href: "/posts/new" }] },
+      { key: "mypage", label: "マイページ", href: "/mypage", icon: User },
+    ],
+    guestMenuItems: [
+      { key: "home", label: "ホーム", href: "/", icon: Home },
+      { key: "login", label: "ログイン", href: "/login", icon: LogIn },
+    ],
+  },
+} satisfies UserLayoutUiOverride;
 ```
 
-### 設定項目
-
-| 項目 | 説明 |
-|------|------|
-| `BOTTOM_NAV_HEIGHT` | ナビの高さ（px） |
-| `AUTHENTICATED_MENU_ITEMS` | ログイン中ユーザー用メニュー |
-| `GUEST_MENU_ITEMS` | 未ログインユーザー用メニュー |
+| 鍵 | 置き場 | 説明 |
+|------|------|------|
+| `bottomMenu.height` | config.ts | ナビの高さ(px) |
+| `bottomMenu.activeColorType` | config.ts | カレントの色(primary / secondary / accent) |
+| `bottomMenu.authenticatedMenuItems` | config.ui.ts | ログイン中ユーザー用メニュー |
+| `bottomMenu.guestMenuItems` | config.ui.ts | 未ログインユーザー用メニュー |
 
 ### 項目の型(type: "link" | "menu")
 
-項目の型(`BottomNavItem` = `BottomNavLinkItem | BottomNavMenuItem`、`BottomNavMenuAction`)は config(`user-bottom-menu.config.ts`)で定義し、`_layout/BottomNav/types.ts` は re-export と判別関数 `isBottomNavMenuItem` だけを持つ(config → app の依存を作らない。HeaderMenuItem と同じ向き)。
+項目の型(`BottomNavItem` = `BottomNavLinkItem | BottomNavMenuItem`、`BottomNavMenuAction`)は描画用の設定 `./config.ui.ts` で項目の既定と一緒に定義し、`_layout/BottomNav/types.ts` は re-export と判別関数 `isBottomNavMenuItem` だけを持つ(HeaderMenuItem・SocialLinkItem も `./config.ui.ts`、FooterLinkItem は `./config.ts`)。
 
 | type | 必須 | 描き方 |
 |------|------|-------|
@@ -375,7 +345,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 ### 幅の既定と縦位置
 
-- `containerType` を渡さないときの幅は `src/config/ui/user-layout.config.ts` の `USER_PAGE_CONTAINER_TYPE`(既定 `"contentShell"` = Main の既定と同じ)。値はアプリ全体で 1 つ(layout ごとの既定は持たない)。ページが `containerType` を渡せばそちらが勝つ(fill のページは `plain` を渡す)
+- `containerType` を渡さないときの幅は枠の設定 `layout.pageContainerType`(`./config.ts`、上書き `src/config/layout/user.config.ts`。既定 `"contentShell"` = Main の既定と同じ)。値はアプリ全体で 1 つ(layout ごとの既定は持たない)。ページが `containerType` を渡せばそちらが勝つ(fill のページは `plain` を渡す)
 - 縦位置は Main の `verticalAlign`: `"center"`(既定、余白があれば縦中央)/ `"start"`(上揃え、縦に長いページ向け)。`<UserPage verticalAlign="start">` で渡せる
 
 ### fill のページ(本文が画面の高さを埋める)
@@ -440,7 +410,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - Header: `leading` / `actions` / `menuActions` を UserNavigation の props に。PC 右と SP メニュー下部を別々に上書き・片方だけ外せる
 - BottomNav: 項目に判別キー `type`(省略 = link)。名前(menu・menuTitle・BottomNavMenuAction)は fork の既存の自前実装に揃え、fork の書き換えを項目に `type: "menu"` を足すだけにした。項目の型は config へ移した(config → app の依存を作らない)
 - Main(core)に `verticalAlign`。名前と値は fork の既存の実装と同じ(fork の衝突は上流版を採るだけ)。center の class 文字列は従来と同じ並び
-- UserPage の幅の既定は config の値 `USER_PAGE_CONTAINER_TYPE`
+- UserPage の幅の既定は枠の設定の値 `layout.pageContainerType`
 - props を渡さない既定の DOM は前と同じ(id・class を含む。`UserParts.test.tsx` に前の HTML を固定)
 
 ## banner と寸法変数の経緯(notice frame-dims)

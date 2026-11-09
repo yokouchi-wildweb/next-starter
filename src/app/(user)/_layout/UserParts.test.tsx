@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createElement, type ReactNode } from "react";
 
-import type { BottomNavItem, BottomNavLinkItem } from "@/config/ui/user-bottom-menu.config";
+import type { BottomNavItem, BottomNavLinkItem } from "./config.ui";
 
 const marker = (name: string) => {
   const Marker = ({ footer }: { footer?: ReactNode }) => createElement(`x-${name}`, null, footer);
@@ -60,11 +60,12 @@ let BottomNavSpacer: typeof import("./BottomNav/BottomNavSpacer").BottomNavSpace
 let BottomNavMenu: typeof import("./BottomNav/BottomNavMenu").BottomNavMenu;
 let UserPage: typeof import("./UserPage").UserPage;
 let Main: typeof import("@/components/Layout/Main").Main;
-let USER_PAGE_CONTAINER_TYPE: typeof import("@/config/ui/user-layout.config").USER_PAGE_CONTAINER_TYPE;
-let ACTIVE_COLOR_TYPE: typeof import("@/config/ui/user-bottom-menu.config").ACTIVE_COLOR_TYPE;
+let USER_PAGE_CONTAINER_TYPE: typeof import("./config").userLayoutConfig.layout.pageContainerType;
+let ACTIVE_COLOR_TYPE: typeof import("./config").userLayoutConfig.bottomMenu.activeColorType;
 before(async () => {
-  ({ ACTIVE_COLOR_TYPE } = await import("@/config/ui/user-bottom-menu.config"));
-  ({ USER_PAGE_CONTAINER_TYPE } = await import("@/config/ui/user-layout.config"));
+  const { userLayoutConfig } = await import("./config");
+  ACTIVE_COLOR_TYPE = userLayoutConfig.bottomMenu.activeColorType;
+  USER_PAGE_CONTAINER_TYPE = userLayoutConfig.layout.pageContainerType;
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ UserNavigation } = await import("./Header"));
   ({ UserBottomNav } = await import("./BottomNav"));
@@ -180,7 +181,7 @@ const assertLinkItems = (html: string) => {
   assert.equal(hasClass(game, active), false);
   const items = tagOf(html, "bottom-nav-item-items");
   assert.ok(items.includes('href="/items"'));
-  assert.ok(hasClass(items, active), `カレントが ${active} でない(config の ACTIVE_COLOR_TYPE)`);
+  assert.ok(hasClass(items, active), `カレントが ${active} でない(枠の設定の bottomMenu.activeColorType)`);
   assert.equal(hasClass(items, "text-muted-foreground"), false);
 };
 
@@ -215,7 +216,7 @@ test("isBottomNavMenuItem は type で判別する(省略 = リンク)", () => {
   assert.equal(isBottomNavMenuItem({ type: "menu", key: "a", label: "A", icon: Icon, menu: [] }), true);
 });
 
-test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、safeArea は切り欠きの変数の padding を足すだけ", () => {
+test("props なしの UserPage は枠の設定 layout.pageContainerType の幅の Main を描き、safeArea は切り欠きの変数の padding を足すだけ", () => {
   assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
   assert.equal(render(<UserPage verticalAlign="center">CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
   const safe = render(<UserPage containerType="plain" safeArea className="x">CHILD</UserPage>);

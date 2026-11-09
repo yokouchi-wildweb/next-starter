@@ -1,7 +1,7 @@
 /**
  * カスタムヘッダー用のデータ・状態を提供するフック
  *
- * 設定ファイル: src/config/ui/user-header.config.ts
+ * 設定: 枠の設定 ../config.ts の header(値)と ../config.ui.ts の header(メニュー項目・ログアウトのアイコン)
  */
 
 "use client";
@@ -9,20 +9,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import {
-  AUTHENTICATED_MENU_ITEMS,
-  GUEST_MENU_ITEMS,
-  HEADER_LOGO_LINK,
-  HEADER_MENU_ICONS_ENABLED,
-  LOGOUT_ICON,
-  LOGOUT_LABEL,
-  LOGOUT_REDIRECT_TO,
-  SHOW_LOGOUT_BUTTON,
-  useHeaderMenuBadges,
-} from "@/config/ui/user-header.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
+import { userLayoutConfig } from "../config";
+import { userLayoutUiConfig } from "../config.ui";
 import type { NavigationMenuItem } from "../Header/types";
 
 // ============================================
@@ -73,7 +64,7 @@ export const useHeaderData = (): UseHeaderDataReturn => {
   // 認証・ログアウト
   const { isAuthenticated } = useAuthSession();
   const { logout, isLoading: isLogoutLoading } = useLogout({
-    redirectTo: LOGOUT_REDIRECT_TO,
+    redirectTo: userLayoutConfig.header.logout.redirectTo,
   });
 
   // メニュー開閉
@@ -156,37 +147,30 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     };
   }, [isMenuOpen]);
 
-  // バッジ
-  const badgeMap = useHeaderMenuBadges();
-
   // ナビゲーションメニュー項目
   const navItems = useMemo<HeaderNavItem[]>(() => {
     const baseItems: HeaderNavItem[] = isAuthenticated
-      ? [...AUTHENTICATED_MENU_ITEMS]
-      : [...GUEST_MENU_ITEMS];
+      ? [...userLayoutUiConfig.header.authenticatedMenuItems]
+      : [...userLayoutUiConfig.header.guestMenuItems];
 
     // ログアウトボタンを追加（認証済み＆フラグONの場合）
-    if (isAuthenticated && SHOW_LOGOUT_BUTTON) {
+    if (isAuthenticated && userLayoutConfig.header.logout.show) {
       baseItems.push({
         key: "logout",
-        label: LOGOUT_LABEL,
+        label: userLayoutConfig.header.logout.label,
         onClick: () => void logout(),
         disabled: isLogoutLoading,
-        icon: LOGOUT_ICON,
+        icon: userLayoutUiConfig.header.logout.icon,
       });
     }
 
-    // バッジをマージ
-    return baseItems.map((item) => ({
-      ...item,
-      badge: badgeMap[item.key] ?? item.badge,
-    }));
-  }, [isAuthenticated, isLogoutLoading, logout, badgeMap]);
+    return baseItems;
+  }, [isAuthenticated, isLogoutLoading, logout]);
 
   return {
     navItems,
-    logoLink: HEADER_LOGO_LINK,
-    showIcons: HEADER_MENU_ICONS_ENABLED,
+    logoLink: userLayoutConfig.header.logoLink,
+    showIcons: userLayoutConfig.header.menuIconsEnabled,
     isMenuOpen,
     openMenu,
     closeMenu,

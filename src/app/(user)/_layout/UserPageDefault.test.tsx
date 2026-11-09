@@ -1,10 +1,10 @@
-// UserPage の幅の既定が config/ui/user-layout.config の USER_PAGE_CONTAINER_TYPE に従うことの検査
-// (config をモックするため UserParts.test.tsx と別ファイル。実行: pnpm test src/app/(user)/_layout/UserPageDefault.test.tsx)
+// UserPage の幅の既定が枠の設定 layout.pageContainerType(上書き src/config/layout/user.config.ts で変えた値)に従うことの検査
+// (上書きをモックするため UserParts.test.tsx と別ファイル。実行: pnpm test src/app/(user)/_layout/UserPageDefault.test.tsx)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { type ReactNode } from "react";
 
-mock.module("@/config/ui/user-layout.config", { namedExports: { USER_PAGE_CONTAINER_TYPE: "narrowStack" } });
+mock.module("@/config/layout/user.config", { defaultExport: { layout: { pageContainerType: "narrowStack" } } });
 
 let render: (node: ReactNode) => string;
 let UserPage: typeof import("./UserPage").UserPage;
@@ -15,7 +15,7 @@ before(async () => {
   ({ Main } = await import("@/components/Layout/Main"));
 });
 
-test("containerType を渡さない UserPage は config の USER_PAGE_CONTAINER_TYPE の幅で描く", () => {
+test("containerType を渡さない UserPage は上書きした layout.pageContainerType の幅で描く", () => {
   assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType="narrowStack">CHILD</Main>));
 });
 

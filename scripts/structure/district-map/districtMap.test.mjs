@@ -31,7 +31,7 @@ test("features = src/features と core の直下の _ でないフォルダ(登�
   assert.deepEqual(districts.filter((d) => d.kind === "lib").map((d) => d.name), libs);
   assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies/demo"]);
   // 枠の宣言(_layout/config.ts の frame:)。今は root だけ(user・admin の枠は地区のクエストで書く、L1.13)
-  assert.deepEqual(districts.filter((d) => d.kind === "frame").map((d) => [d.name, d.dir]), [["root", "src/app/_layout"]]);
+  assert.deepEqual(districts.filter((d) => d.kind === "frame").map((d) => [d.name, d.dir]), [["root", "src/app/_layout"], ["user", "src/app/(user)/_layout"]]);
 });
 
 test("apiKeys = 各ドメインの domainEntry.ts のキー(登録表の生成と同じ読み方)", () => {

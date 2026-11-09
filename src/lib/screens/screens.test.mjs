@@ -584,9 +584,11 @@ test("findForkOwnedDirFiles: src/app 配下の _components/ のファイルだ�
   ]);
 });
 
-test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点つきの名前を拾う(*.test.* と 1 行スイッチの既定 .default は除く)、印は .replace 以外", () => {
+test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点つきの名前を拾う(*.test.*・1 行スイッチの既定 .default・枠の描画用の設定 config.ui.ts は除く)、印は .replace 以外", () => {
   const files = [
     "src/app/(user)/_layout/UserLayout.tsx",
+    "src/app/(user)/_layout/config.ui.ts",
+    "src/app/(user)/_layout/Header/config.ui.tsx",
     "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/UserLayout.test.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
@@ -602,13 +604,18 @@ test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点
     "src/app/route-map.jsonl",
   ];
   assert.deepEqual(findDotNamedFiles(files), [
+    "src/app/(user)/_layout/Header/config.ui.tsx",
     "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
     "src/app/admin/_layout/AdminHeader.replace.tsx",
     "src/app/(user)/wallet/_screen/WalletScreen.replace.tsx",
   ], "1 行スイッチの既定 AdminHeader.default.tsx は作ったリポの物(点つきの置き換えではない)");
   assert.deepEqual(findOrphanReplaceFiles(files), [], "AdminHeader.replace は隣のスイッチ AdminHeader.tsx を置き換える");
-  assert.deepEqual(findMarkerNamedFiles(files), ["src/app/(user)/_layout/Header/index.acme.tsx"]);
+  assert.deepEqual(
+    findMarkerNamedFiles(files),
+    ["src/app/(user)/_layout/Header/config.ui.tsx", "src/app/(user)/_layout/Header/index.acme.tsx"],
+    "除くのは枠の描画用の設定の名前 config.ui.ts そのものだけ(似た名前は印として止める)",
+  );
 });
 
 test("parseSwitchLayout: ./_layout/ への 1 行スイッチだけを許し、JSX 直書き・_screen 向き・複数の re-export を弾く", () => {

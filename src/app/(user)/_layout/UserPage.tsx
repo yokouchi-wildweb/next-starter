@@ -1,7 +1,7 @@
 // src/app/(user)/_layout/UserPage.tsx
 
 import { Main, type MainProps } from "@/components/TextBlocks";
-import { USER_PAGE_CONTAINER_TYPE } from "@/config/ui/user-layout.config";
+import { userLayoutConfig } from "./config";
 import { cn } from "@/lib/cn";
 
 export type UserPageProps = MainProps & {
@@ -19,7 +19,7 @@ export type UserPageProps = MainProps & {
  * 高さを埋めるページの本文は `flex-1 min-h-0`(とスクロールさせない `overflow-clip`)を自分で付ける
  */
 export function UserPage({ children, safeArea = false, className, padding, containerType, ...props }: UserPageProps) {
-  // 幅の既定は config/ui/user-layout.config の USER_PAGE_CONTAINER_TYPE(明示があればそちら)
+  // 幅の既定は枠の設定 layout.pageContainerType(./config.ts、明示があればそちら)
   return (
     <Main
       className={
@@ -31,7 +31,7 @@ export function UserPage({ children, safeArea = false, className, padding, conta
           : className
       }
       padding={padding}
-      containerType={containerType ?? USER_PAGE_CONTAINER_TYPE}
+      containerType={containerType ?? userLayoutConfig.layout.pageContainerType}
       {...props}
     >
       {children}

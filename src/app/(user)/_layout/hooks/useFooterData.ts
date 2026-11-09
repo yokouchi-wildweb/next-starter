@@ -1,7 +1,7 @@
 /**
  * カスタムフッター用のデータを提供するフック
  *
- * 設定ファイル: src/config/ui/user-footer.config.ts
+ * 設定: 枠の設定 ../config.ts の footer(値)と ../config.ui.ts の footer.sns.links(SNS リンク)
  */
 
 "use client";
@@ -9,21 +9,8 @@
 import { useMemo } from "react";
 
 import { business } from "@/business";
-import {
-  COPYRIGHT_CUSTOM_TEXT,
-  COPYRIGHT_ENABLED,
-  COPYRIGHT_FORMAT,
-  COPYRIGHT_YEAR,
-  FOOTER_ENABLED,
-  FOOTER_LINK_SEPARATOR,
-  FOOTER_LINKS,
-  FOOTER_LINKS_ENABLED,
-  FOOTER_VISIBILITY,
-  SNS_ENABLED,
-  SOCIAL_LINKS,
-  type FooterLinkItem,
-  type SocialLinkItem,
-} from "@/config/ui/user-footer.config";
+import { type FooterLinkItem, userLayoutConfig } from "../config";
+import { type SocialLinkItem, userLayoutUiConfig } from "../config.ui";
 
 // ============================================
 // 型定義
@@ -39,7 +26,7 @@ export type DeviceVisibility = {
 export type UseFooterDataReturn = {
   /** フッター機能が有効か */
   enabled: boolean;
-  /** フッターの表示設定（SP/PC、config の FOOTER_VISIBILITY。ページ単位で隠すのは Hide* の印の CSS） */
+  /** フッターの表示設定（SP/PC、枠の設定の footer.visibility。ページ単位で隠すのは Hide* の印の CSS） */
   visibility: DeviceVisibility;
   /** SNSリンクが有効か */
   snsEnabled: boolean;
@@ -55,7 +42,7 @@ export type UseFooterDataReturn = {
   copyrightEnabled: boolean;
   /** 生成済みコピーライトテキスト */
   copyrightText: string;
-  /** FOOTER_VISIBILITY から作る SP/PC の表示クラス */
+  /** footer.visibility から作る SP/PC の表示クラス */
   visibilityClass: string;
 };
 
@@ -67,10 +54,10 @@ export type UseFooterDataReturn = {
  * コピーライトテキストを生成
  */
 function getCopyrightText(): string {
-  const year = COPYRIGHT_YEAR;
+  const { year, format, customText } = userLayoutConfig.footer.copyright;
   const serviceName = business.serviceName;
 
-  switch (COPYRIGHT_FORMAT) {
+  switch (format) {
     case "simple":
       return year ? `© ${year} ${serviceName}` : `© ${serviceName}`;
     case "allRights":
@@ -82,7 +69,7 @@ function getCopyrightText(): string {
         ? `Copyright © ${year} ${serviceName}`
         : `Copyright © ${serviceName}`;
     case "custom":
-      return COPYRIGHT_CUSTOM_TEXT.replace("{year}", year).replace(
+      return customText.replace("{year}", year).replace(
         "{serviceName}",
         serviceName
       );
@@ -92,9 +79,7 @@ function getCopyrightText(): string {
 }
 
 /**
- * FOOTER_VISIBILITY から作る表示クラス。
- * 描画時に呼ぶこと: config(user-footer.config)が UserFooter を re-export しており、config → Footer → この hook → config の
- * 循環 import になるため、モジュールの読み込み時に FOOTER_VISIBILITY を読むと初期化前(TDZ)で落ちる
+ * footer.visibility から作る表示クラス(描画時に呼ぶ)。
  */
 const getFooterVisibilityClass = ({ sp, pc }: DeviceVisibility): string => {
   if (!sp && !pc) return "hidden";
@@ -109,21 +94,21 @@ const getFooterVisibilityClass = ({ sp, pc }: DeviceVisibility): string => {
 
 export const useFooterData = (): UseFooterDataReturn => {
   // 基本の表示は config の値(固定の class)。ページ単位で隠すのは Hide* の印の CSS
-  const visibility: DeviceVisibility = FOOTER_VISIBILITY;
+  const visibility: DeviceVisibility = userLayoutConfig.footer.visibility;
   const visibilityClass = getFooterVisibilityClass(visibility);
 
   // コピーライトテキスト（メモ化）
   const copyrightText = useMemo(() => getCopyrightText(), []);
 
   return {
-    enabled: FOOTER_ENABLED,
+    enabled: userLayoutConfig.footer.enabled,
     visibility,
-    snsEnabled: SNS_ENABLED,
-    socialLinks: SOCIAL_LINKS,
-    linksEnabled: FOOTER_LINKS_ENABLED,
-    footerLinks: FOOTER_LINKS,
-    linkSeparator: FOOTER_LINK_SEPARATOR,
-    copyrightEnabled: COPYRIGHT_ENABLED,
+    snsEnabled: userLayoutConfig.footer.sns.enabled,
+    socialLinks: userLayoutUiConfig.footer.sns.links,
+    linksEnabled: userLayoutConfig.footer.linksEnabled,
+    footerLinks: userLayoutConfig.footer.links,
+    linkSeparator: userLayoutConfig.footer.linkSeparator,
+    copyrightEnabled: userLayoutConfig.footer.copyright.enabled,
     copyrightText,
     visibilityClass,
   };

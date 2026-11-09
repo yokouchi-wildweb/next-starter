@@ -43,7 +43,7 @@
    *   --app-header-height    : 枠の外の 0。枠の外枠には frame.css が外枠ごと・端末ごとの初期値(今の行の高さ)を置き、
    *                            useHeaderHeight が測った値を外枠の inline で上書きする(測る前・ページを移る間も 0 にならない)
    *   --app-banner-height    : UserLayout の banner slot の実測の高さ（banner がない時は 0）
-   *   --app-bottom-nav-height: 既定のボトムナビが有効な時の BOTTOM_NAV_HEIGHT（config/ui/user-bottom-menu.config.ts）。
+   *   --app-bottom-nav-height: 既定のボトムナビが有効な時の bottomMenu.height（ユーザー側の枠の設定 src/app/(user)/_layout/config.ts）。
    *                            ルートの宣言(frame.ts)で隠している間は
    *                            frame.css が 0px にする（inline に勝つため !important）
    * --app-safe-area-* は端末の切り欠き(CSS の env() の safe-area-inset-*)の別名（fork の CSS から上書き可）。env() を直接書くのは下の 4 行だけ。

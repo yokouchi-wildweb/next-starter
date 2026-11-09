@@ -71,7 +71,7 @@ export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 /**
  * DEFAULT_IMPL_DIRS 配下の点つきの名前のファイル(拡張子を除いた名前に "." を含む: `UserLayout.replace.tsx`)を返す。
  * 点つきの名前 = fork の置き換え(.replace)なので、upstream はこれを作らない(pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する)。
- * `*.test.*` と 1 行スイッチの既定 `<名前>.default.*` は除く(どちらも置き換えではない)
+ * `*.test.*`・1 行スイッチの既定 `<名前>.default.*`・枠の描画用の設定 `config.ui.ts` は除く(どれも置き換えではない)
  * @param {string[]} files repo 相対パス
  */
 export function findDotNamedFiles(files) {
@@ -84,6 +84,8 @@ export function findDotNamedFiles(files) {
     if (/\.test$/.test(stem)) return false;
     // 1 行スイッチの既定 <名前>.default(`AdminHeader.default.tsx`)は作ったリポの物で、置き換えではない(隣の素の名前がスイッチ、switches.mjs)
     if (classifyDottedName(base).kind === "default") return false;
+    // 枠の描画用の設定 config.ui.ts(src/config/README.md「描画専用の値」、上書き <枠の名前>.ui.config.ts の持ち主)は枠の作り手の物で、置き換えではない
+    if (base === "config.ui.ts") return false;
     return stem.includes(".");
   });
 }

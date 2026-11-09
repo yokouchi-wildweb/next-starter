@@ -15,12 +15,7 @@ import { UserFooter } from "./Footer";
 import { UserNavigation } from "./Header";
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
 import { frameTable } from "./extensions/frameTable";
-import { BOTTOM_NAV_HEIGHT } from "@/config/ui/user-bottom-menu.config";
-import {
-  BACKGROUND_IMAGE_URL,
-  BACKGROUND_OVERLAY_COLOR,
-  BACKGROUND_OVERLAY_OPACITY,
-} from "@/config/ui/user-layout.config";
+import { userLayoutConfig } from "./config";
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;
@@ -46,7 +41,7 @@ export type UserLayoutProps = {
   readonly footer?: ReactNode;
   /** ボトムナビ(高さ分のスペーサーを含む)。既定 = BottomNavSpacer + UserBottomNav */
   readonly bottomNav?: ReactNode;
-  /** 最背面の背景。既定 = BackgroundLayer(config/ui/user-layout.config の 3 値) */
+  /** 最背面の背景。既定 = BackgroundLayer(枠の設定 layout.background の 3 値、./config.ts) */
   readonly background?: ReactNode;
   /** 未読お知らせのモーダル。既定 = UnreadNotificationModal(お知らせの機能が閉じていれば描かない。差し替えた物はそのまま描く) */
   readonly notificationModal?: ReactNode;
@@ -77,7 +72,7 @@ export function UserLayout({
   // 本文がヘッダーに重ならない)。測った値は初期値を上書きするだけ(隠している間の 0 も書く)
   const layoutStyle: LayoutStyle = {
     ...(headerHeight === null ? {} : { "--app-header-height": `${headerHeight}px` }),
-    ...(hasBottomNav ? { "--app-bottom-nav-height": `calc(${BOTTOM_NAV_HEIGHT}px + var(--app-safe-area-bottom))` } : {}),
+    ...(hasBottomNav ? { "--app-bottom-nav-height": `calc(${userLayoutConfig.bottomMenu.height}px + var(--app-safe-area-bottom))` } : {}),
     ...(hasBanner ? { "--app-banner-height": `${bannerHeight}px` } : {}),
   };
 
@@ -85,9 +80,9 @@ export function UserLayout({
     <>
       {background === undefined ? (
         <BackgroundLayer
-          imageUrl={BACKGROUND_IMAGE_URL || undefined}
-          overlayColor={BACKGROUND_OVERLAY_COLOR}
-          overlayOpacity={BACKGROUND_OVERLAY_OPACITY}
+          imageUrl={userLayoutConfig.layout.background.imageUrl || undefined}
+          overlayColor={userLayoutConfig.layout.background.overlayColor}
+          overlayOpacity={userLayoutConfig.layout.background.overlayOpacity}
         />
       ) : (
         background

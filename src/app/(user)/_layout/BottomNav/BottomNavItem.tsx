@@ -4,7 +4,7 @@ import { Link } from "@/components/Navigation";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
-import { ACTIVE_COLOR_TYPE } from "@/config/ui/user-bottom-menu.config";
+import { userLayoutConfig } from "../config";
 import { cn } from "@/lib/cn";
 
 import { BottomNavMenu } from "./BottomNavMenu";
@@ -64,7 +64,7 @@ const ItemContent = ({ item }: BottomNavItemProps) => {
 
 const BottomNavLinkEntry = ({ item }: { readonly item: BottomNavLinkItem }) => {
   const isActive = useIsActive(item);
-  const activeColorClass = ACTIVE_COLOR_CLASS_MAP[ACTIVE_COLOR_TYPE];
+  const activeColorClass = ACTIVE_COLOR_CLASS_MAP[userLayoutConfig.bottomMenu.activeColorType];
 
   return (
     <Link

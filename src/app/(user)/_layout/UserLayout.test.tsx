@@ -37,16 +37,14 @@ mock.module(here("./Footer/index.tsx"), { namedExports: { UserFooter: marker("fo
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 let UserLayout: typeof import("./UserLayout").UserLayout;
 let BackgroundLayer: typeof import("./BackgroundLayer").BackgroundLayer;
-let layoutConfig: typeof import("@/config/ui/user-layout.config");
-let bottomNavConfig: typeof import("@/config/ui/user-bottom-menu.config");
+let userLayoutConfig: typeof import("./config").userLayoutConfig;
 let rootHide: string;
 let rootFill: boolean;
 before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ UserLayout } = await import("./UserLayout"));
   ({ BackgroundLayer } = await import("./BackgroundLayer"));
-  layoutConfig = await import("@/config/ui/user-layout.config");
-  bottomNavConfig = await import("@/config/ui/user-bottom-menu.config");
+  ({ userLayoutConfig } = await import("./config"));
   const { matchFrame } = await import("@/app/_layout/frame");
   const { frameTable } = await import("./extensions/frameTable");
   ({ fill: rootFill } = matchFrame([], frameTable));
@@ -75,15 +73,15 @@ const BEFORE_SWITCH =
   "<x-footer></x-footer><x-spacer></x-spacer><x-bottomnav></x-bottomnav><x-modal></x-modal></div>";
 
 /**
- * 外枠の inline style の --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area)。
+ * 外枠の inline style の --app-bottom-nav-height(枠の設定の bottomMenu.height + 下の safe-area)。
  * 書くのはボトムナビがある時だけ(bottomNav={null} 以外)
  */
-const bottomNavValue = () => `calc(${bottomNavConfig.BOTTOM_NAV_HEIGHT}px + var(--app-safe-area-bottom))`;
+const bottomNavValue = () => `calc(${userLayoutConfig.bottomMenu.height}px + var(--app-safe-area-bottom))`;
 const bottomNavVar = (hasBottomNav = true) =>
   hasBottomNav ? `;--app-bottom-nav-height:${bottomNavValue()}` : "";
 /**
  * 寸法変数の区切り(notice frame-dims)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠の inline style に --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT + 下の safe-area)
+ * 外枠の inline style に --app-bottom-nav-height(枠の設定の bottomMenu.height + 下の safe-area)
  */
 const withBottomNavVar = (html: string) =>
   html.replace('style="--app-header-height:0px"', `style="--app-header-height:0px${bottomNavVar()}"`);
@@ -117,9 +115,9 @@ const render = (node: ReactNode) => renderToStaticMarkup(node);
 const configBackground = () =>
   render(
     <BackgroundLayer
-      imageUrl={layoutConfig.BACKGROUND_IMAGE_URL || undefined}
-      overlayColor={layoutConfig.BACKGROUND_OVERLAY_COLOR}
-      overlayOpacity={layoutConfig.BACKGROUND_OVERLAY_OPACITY}
+      imageUrl={userLayoutConfig.layout.background.imageUrl || undefined}
+      overlayColor={userLayoutConfig.layout.background.overlayColor}
+      overlayOpacity={userLayoutConfig.layout.background.overlayOpacity}
     />,
   );
 /** props なしの UserLayout の期待値 */
@@ -142,7 +140,7 @@ test("props なしの UserLayout は外枠の属性・高さ変数・部品の�
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
 });
 
-test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・枠の表の隠す印だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
+test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は枠の設定 layout.background の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・枠の表の隠す印だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(withFrameRoot(BEFORE_SWITCH), BEFORE_SWITCH);
   assert.equal(render(<UserLayout>CHILD</UserLayout>), defaultLayout());
 });
@@ -205,7 +203,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
   );
 });
 
-test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、外枠の隠す印も同じ(差し替えも枠の宣言に従う)", () => {
+test("bottomNav に要素を渡しても --app-bottom-nav-height は 枠の設定の bottomMenu.height で、外枠の隠す印も同じ(差し替えも枠の宣言に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
   assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
   assert.ok(tagOf(html, "user-app-container").includes(rootHideAttr()));
