@@ -199,7 +199,7 @@ test("失敗: 枠の外・隣に layout / page が無い・layout: / page: の�
       "src/app/(user)/t/page.tsx": page,
       "src/app/(user)/t/frame.tsx": frame({ page: {} }),
       "src/app/(user)/o/page.tsx": page,
-      "src/app/(user)/o/frame.override.ts": "export const override = { page: {} };\n",
+      "src/app/(user)/o/frame.local.ts": "export const frame = { page: {} };\n",
       "src/app/(user)/q/page.tsx": page,
       "src/app/(user)/q/frame.acme.ts": frame({ page: {} }),
     },
@@ -218,9 +218,9 @@ test("失敗: 枠の外・隣に layout / page が無い・layout: / page: の�
       has("src/app/(user)/k/frame.ts", /この枠の部位でない/);
       has("src/app/(user)/e/frame.ts", /リテラルでない値/);
       has("src/app/(user)/w/frame.ts", /export const frame = \{ … \} が無い/);
-      has("src/app/(user)/t/frame.tsx", /frame\.default\.ts.*か frame\.ts.*だけ/);
-      has("src/app/(user)/o/frame.override.ts", /frame\.default\.ts.*か frame\.ts.*だけ/);
-      has("src/app/(user)/q/frame.acme.ts", /frame\.default\.ts.*か frame\.ts.*だけ/);
+      has("src/app/(user)/t/frame.tsx", /frame\.default\.ts.*か frame\.override\.ts.*だけ/);
+      has("src/app/(user)/o/frame.local.ts", /frame\.default\.ts.*か frame\.override\.ts.*だけ/);
+      has("src/app/(user)/q/frame.acme.ts", /frame\.default\.ts.*か frame\.override\.ts.*だけ/);
       assert.equal(plan.problems.length, 16);
     },
   );
@@ -274,4 +274,31 @@ test("このリポ: 枠の根 2 つの表を書く", () => {
   assert.equal(plan.frames.tables, 2);
   assert.ok("src/app/(user)/_layout/extensions/frameTable.ts" in plan.outputs);
   assert.ok("src/app/admin/_layout/extensions/frameTable.ts" in plan.outputs);
+});
+
+test("移行中(1 段目): 下のリポの frame.override.ts(export override)は既定の上に重なり、旧い frame.ts と同じ所に両方は失敗、上流(Tier1)は持たない", () => {
+  withTree(
+    {
+      [`${U}/a/page.tsx`]: page,
+      [`${U}/a/frame.default.ts`]: frameDefault({ page: { hide: { footer: both } } }),
+      [`${U}/a/frame.override.ts`]: `export const override = ${JSON.stringify({ page: { hide: { footer: { sp: false, pc: false }, header: both } } })};\n`,
+      [`${U}/b/page.tsx`]: page,
+      [`${U}/b/frame.override.ts`]: `export const override = ${JSON.stringify({ page: { fill: true } })};\n`,
+    },
+    (root, plan) => {
+      assert.deepEqual(plan.problems, []);
+      const at = (seg) => matchFrame(["(public)", "frame-proto", seg], plan.tables.user);
+      assert.deepEqual(at("a").hide, ["header-sp", "header-pc"]);
+      assert.deepEqual(at("b"), { hide: [], fill: true });
+    },
+  );
+  withTree(
+    { [`${U}/a/page.tsx`]: page, [`${U}/a/frame.ts`]: frame({ page: { fill: true } }), [`${U}/a/frame.override.ts`]: "export const override = { page: { fill: true } };\n" },
+    (root, plan) => assert.ok(plan.problems.some((p) => p.includes(`${U}/a/frame.ts`) && p.includes("下のリポの宣言は 1 つ")), plan.problems.join("\n")),
+  );
+  withTree(
+    { [`${U}/a/page.tsx`]: page, [`${U}/a/frame.override.ts`]: "export const override = { page: { fill: true } };\n" },
+    (root, plan) => assert.ok(plan.problems.some((p) => p.includes("上流(Tier1)は frame.override.ts を持たない"))),
+    { isTier1: true },
+  );
 });

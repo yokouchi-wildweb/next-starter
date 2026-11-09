@@ -216,6 +216,16 @@ describe("judge", () => {
     assert.equal(run({ status: "A", path: "src/x/mine.override.ts" }, null, "x").reason, "added", "places を渡さなければ見ない");
   });
 
+  test("A: 枠の宣言の上書き frame.override.ts の相手はそのルート(基準の page / layout / 枠の宣言)。ルートの無いフォルダは override-own", () => {
+    const baseFiles = ["src/app/(user)/layout.tsx", "src/app/(user)/frame.default.ts", "src/app/(user)/mypage/account/email/page.tsx"];
+    const places = unitPlaces(baseFiles, () => null);
+    const baseUnits = unitIndex(baseFiles);
+    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
+    assert.equal(one("src/app/(user)/frame.override.ts").reason, "added", "上流の既定の上に重ねる");
+    assert.equal(one("src/app/(user)/mypage/account/email/frame.override.ts").reason, "added", "上流の宣言の無いルート(空の上)");
+    assert.equal(one("src/app/(user)/mine/frame.override.ts").reason, "override-own", "fork 自身のルートは frame.ts に書く");
+  });
+
   test("既定(*.default.*): 親のファイルのあるフォルダへの追加は default-add、親の既定の書き換えは default-edit、自分のフォルダの自分の既定と隣の frame.ts は合格", () => {
     const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(public)/news/frame.default.ts", "src/app/(user)/(protected)/layout.tsx", "src/features/core/x/services/server/enricher.default.ts"];
     const places = unitPlaces(baseFiles, () => null);

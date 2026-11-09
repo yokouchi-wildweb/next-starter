@@ -81,6 +81,10 @@ function judgeModified(rule, baseText, headText) {
 }
 
 const dirOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
+/** 枠の宣言の上書き(src/app の frame.override.ts)。相手はそのルート(隣の page / layout、ルートを作ったリポの frame の宣言)で、frame という単位ではない */
+const isFrameOverride = (path) => path.startsWith("src/app/") && path.endsWith("/frame.override.ts");
+/** 基準にそのフォルダのルート(page / layout)か枠の宣言があるか */
+const baseHasRoute = (baseUnits, dir) => ["page", "layout", "frame", "frame.default"].some((name) => baseUnits.has(`${dir}/${name}`));
 /** <名前>.default.<拡張子>(既定。D173: そこを作ったリポだけが書く) */
 const isDefaultName = (path) => classifyDottedName(path.slice(path.lastIndexOf("/") + 1)).kind === "default";
 
@@ -118,7 +122,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);
-      } else if (places && target !== null && !baseUnits.has(target)) reason = "override-own";
+      } else if (places && target !== null && (isFrameOverride(change.path) ? !baseHasRoute(baseUnits, dirOf(change.path)) : !baseUnits.has(target))) reason = "override-own";
       else reason = "added";
     } else if (status === "D") {
       reason = "deleted";

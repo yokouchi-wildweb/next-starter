@@ -20,9 +20,10 @@
 ## 名前の対
 
 - `frame.default.ts`(`export const frameDefault`)= ルートを作ったリポの既定。上流(Tier1)が出荷するのはこれだけ。中間 Tier も自分が作ったルートに下流向けの既定を出してよい
-- `frame.ts`(`export const frame`)= その下のリポ(fork・中間 Tier)の宣言。上流のルートでも自分のルートでも隣に置く。いつも既定の上に重なる(既定が無ければ空の上)
-- ほかの名前(`frame.override.ts`・`frame.<何か>.ts`・`frame.tsx`)は失敗。上流(Tier1)が `frame.ts` を持つのも失敗(`pnpm check extensions`)
-- 親の物の隣に `*.default.*` を足す・親の既定を書き換える = `pnpm workflow ownership check` の `default-add` / `default-edit`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.ts` に書く
+- `frame.override.ts`(`export const override`)= その下のリポ(fork・中間 Tier)の宣言。相手はそのルート。上流のルートでも自分のルートでも隣に置く。いつも既定の上に重なる(既定が無ければ空の上)
+- 移行中(notice shared-shelf-frame-override の 1 段目): 下のリポの旧い名前 `frame.ts`(`export const frame`)も読む。同じフォルダに `frame.ts` と `frame.override.ts` の両方は失敗。移し替えは `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv と export の名前の書き換え、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き): 親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`。2 段目で `frame.ts` はルートを作ったリポの名前に替わり、`frame.default.ts` は失敗になる
+- ほかの名前(`frame.<何か>.ts`・`frame.tsx`)は失敗。上流(Tier1)が `frame.ts` / `frame.override.ts` を持つのも失敗(`pnpm check extensions`)
+- 親の物の隣に `*.default.*` を足す・親の既定を書き換える = `pnpm workflow ownership check` の `default-add` / `default-edit`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く(相手 = 基準のルート。ルートの無いフォルダの `frame.override.ts` は `override-own`)
 - 空(空白とコメントだけ)のファイルは不在と同じ
 
 ## 書き方

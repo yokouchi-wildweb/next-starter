@@ -3,7 +3,7 @@
 // (declarations.literalOf、D2)、ルートの親の鎖を部位と端末ごとに解決した表を枠の根ごとに書く
 // (<枠の根>/_layout/extensions/frameTable.ts。pnpm generate extensions が書き、pnpm check extensions が照らす)。
 // 範囲はキーで名指す(layout = 隣の layout.tsx の下全部、page = 隣の page.tsx だけ)。隣に何があるかで意味を変えない。
-// 重ねる順: 浅い段から layout(frame.default → frame)、葉の段で最後に page(frame.default → frame)。
+// 重ねる順: 浅い段から layout(frame.default → frame / frame.override)、葉の段で最後に page(同じ順)。
 // git は使わない(親の物の隣の *.default.* は pnpm workflow ownership check の default-add)。仕組みと表の形: src/app/_layout/frame/README.md
 
 import { existsSync, readFileSync } from "node:fs";
@@ -20,18 +20,26 @@ import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../.
 
 export const FRAME_FILE = "frame.ts";
 export const FRAME_DEFAULT_FILE = "frame.default.ts";
+/** 下のリポの宣言(相手 = そのルート。ルートを作ったリポの宣言の上に重なる) */
+export const FRAME_OVERRIDE_FILE = "frame.override.ts";
 /**
  * この仕組みが持つ .default のファイルの形(.default = 作ったリポが出す既定の共通の印、D171)。
  * 1 行スイッチの検査(switches.mjs)はここに名乗った形をスイッチの既定として扱わない。
  * 形: { by: 持ち主, under: 走査の範囲(リポジトリ直下からの相対), name: ファイル名 | pattern: ファイル名の RegExp }
  */
 export const CLAIMED_DEFAULTS = [{ by: "scripts/structure/extensions/frames.mjs(枠の宣言の既定)", under: "src/app", name: FRAME_DEFAULT_FILE }];
-/** 宣言の 2 つの名前と export の名前(並び = 重ねる順) */
+/**
+ * 宣言の名前と export の名前(並び = 重ねる順)。移行中(shared-shelf-frame-override の 1 段目): 上流は frame.default.ts、
+ * 下のリポは frame.override.ts(新しい名前)か frame.ts(旧い名前。同じフォルダに両方は不可)。2 段目で frame.ts = ルートを作ったリポに替わる
+ */
 const SOURCES = [
   { file: FRAME_DEFAULT_FILE, exportName: "frameDefault", slot: "default" },
   { file: FRAME_FILE, exportName: "frame", slot: "frame" },
+  { file: FRAME_OVERRIDE_FILE, exportName: "override", slot: "override" },
 ];
-/** frame.ts・frame.default.ts 以外の frame.<何か> / frame.tsx など(frame.override.ts を含む) */
+/** 下のリポの宣言の 2 つの名前(移行中) */
+const LOWER_FILES = [FRAME_FILE, FRAME_OVERRIDE_FILE];
+/** frame.ts・frame.default.ts・frame.override.ts 以外の frame.<何か> / frame.tsx など */
 const FRAME_LIKE = /^frame(?:\.[^/]+)?\.(?:ts|tsx|js|jsx|mjs)$/;
 /** 照合の試しに使う動的な段の値(実際の URL に出ない文字) */
 const PROBE = "\u0000";
@@ -87,11 +95,15 @@ export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(rep
     const name = path.slice(path.lastIndexOf("/") + 1);
     const source = SOURCES.find((s) => s.file === name);
     if (!source) {
-      if (FRAME_LIKE.test(name)) problems.push(`${path}: 枠の宣言の名前は ${FRAME_DEFAULT_FILE}(ルートを作ったリポの既定)か ${FRAME_FILE}(その下のリポの宣言。既定の上に重なる)だけ`);
+      if (FRAME_LIKE.test(name)) problems.push(`${path}: 枠の宣言の名前は ${FRAME_DEFAULT_FILE}(ルートを作ったリポの既定)か ${FRAME_OVERRIDE_FILE}(その下のリポの宣言。既定の上に重なる、export const override)だけ(旧い ${FRAME_FILE} も移行中は読む)`);
       continue;
     }
-    if (source.file === FRAME_FILE && isTier1) {
-      problems.push(`${path}: 上流(Tier1)は ${FRAME_FILE} を持たない(ルートを作ったリポの既定は隣の ${FRAME_DEFAULT_FILE}、export const frameDefault)`);
+    if (LOWER_FILES.includes(source.file) && isTier1) {
+      problems.push(`${path}: 上流(Tier1)は ${source.file} を持たない(ルートを作ったリポの既定は隣の ${FRAME_DEFAULT_FILE}、export const frameDefault)`);
+      continue;
+    }
+    if (source.file === FRAME_FILE && files.includes(`${dirOf(path)}/${FRAME_OVERRIDE_FILE}`)) {
+      problems.push(`${path}: 隣に ${FRAME_OVERRIDE_FILE} がある(下のリポの宣言は 1 つ。旧い ${FRAME_FILE} の中身を ${FRAME_OVERRIDE_FILE} へまとめて消す)`);
       continue;
     }
     const dir = dirOf(path);
@@ -135,7 +147,7 @@ export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(rep
   for (const root of Object.keys(FRAME_ROOTS)) {
     const nodes = nodesByRoot[root];
     const sections = (node, scope) => SOURCES.map((s) => node[s.slot]?.[scope]).filter((v) => v !== undefined);
-    // 親の鎖: 浅い段から layout(frame.default → frame)、葉の段で最後に page(frame.default → frame)
+    // 親の鎖: 浅い段から layout(frame.default → frame / frame.override)、葉の段で最後に page(同じ順)
     const resolve = (segments, isPage) => {
       let value = emptyFrame();
       for (let i = 0; i <= segments.length; i += 1) {

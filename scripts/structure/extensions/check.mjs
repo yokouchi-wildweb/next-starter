@@ -10,6 +10,12 @@ import { fileURLToPath } from "node:url";
 import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+// 動作: pnpm check extensions -- frames-move [--base <rev>] [--apply] [--json](枠の宣言の名前の移し替え、./framesMove.mjs)
+const actionArgs = process.argv.slice(2).filter((a) => a !== "--");
+if (actionArgs[0] === "frames-move") {
+  const { runFramesMove } = await import("./framesMove.mjs");
+  process.exit(runFramesMove(repoRoot, actionArgs.slice(1)));
+}
 const plan = planExtensions(repoRoot);
 // --no-stale: 宣言・項目の問題だけを見る(一覧のずれは pnpm generate extensions で直るので見ない。forge の事前検査)
 const noStale = process.argv.includes("--no-stale");
