@@ -114,7 +114,7 @@ export type UserConfig = {
   account: {
     /**
      * 利用者が変えられる項目(アカウントのトップのメニューに出し、各画面はこの一覧に無ければトップへ戻す)。
-     * 配列は丸ごと置き換え。password はメール登録の利用者だけ、phone は SMS 認証の機能 phoneVerification が開のときだけ出る
+     * 配列は丸ごと置き換え。password はメール登録の利用者だけ。phone は SMS 認証の機能 phoneVerification が開なら SMS の手順、閉なら SMS なしの入力
      */
     editableItems: readonly AccountEditableItem[];
   };

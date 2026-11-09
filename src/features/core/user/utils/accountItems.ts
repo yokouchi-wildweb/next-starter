@@ -10,3 +10,14 @@ export function isAccountItemEditable(
 ): boolean {
   return editableItems.includes(item);
 }
+
+/**
+ * SMS 認証なしの電話番号の入力(PATCH /api/me/phone・電話番号の画面の入力)を受け付けるか(L1.39):
+ * 一覧に phone があり、かつ SMS 認証の機能 phoneVerification が閉のときだけ。開なら番号は SMS の手順でだけ変える
+ */
+export function isPhoneNumberInputOpen(
+  phoneVerificationOpen: boolean,
+  editableItems: readonly AccountEditableItem[] = userConfig.account.editableItems,
+): boolean {
+  return isAccountItemEditable("phone", editableItems) && !phoneVerificationOpen;
+}

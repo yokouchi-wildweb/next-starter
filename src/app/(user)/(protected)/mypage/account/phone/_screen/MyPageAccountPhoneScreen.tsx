@@ -14,7 +14,7 @@ export async function MyPageAccountPhoneScreen(props: ScreenProps) {
 
   return (
     <>
-      <UserPageTitle srOnly>電話番号認証</UserPageTitle>
+      <UserPageTitle srOnly>電話番号</UserPageTitle>
       <EditPhone phoneNumber={phoneNumber} phoneVerifiedAt={phoneVerifiedAt} />
     </>
   );

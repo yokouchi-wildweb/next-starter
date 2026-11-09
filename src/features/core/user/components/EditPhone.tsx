@@ -12,8 +12,10 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { PhoneVerification } from "@/features/core/phoneVerification/components/PhoneVerification";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
+import { useUpdateMyPhoneNumber } from "@/features/core/user/hooks/useUpdateMyPhoneNumber";
 
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
+import { PhoneNumberForm } from "@/features/core/user/components/common/PhoneNumberForm";
 
 type EditPhoneProps = {
   phoneNumber: string | null;
@@ -23,9 +25,37 @@ type EditPhoneProps = {
 export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
   const router = useRouter();
   const [isChanging, setIsChanging] = useState(false);
-  // SMS 認証の機能(phoneVerification)が閉なら何も出さない(画面の loader が先に /mypage/account へ戻す)
+  // SMS 認証の機能(phoneVerification)が開なら SMS の手順、閉なら SMS なしの入力(番号は未認証で保存、L1.39)
   const phoneVerificationOpen = useGate().enabled("phoneVerification");
-  if (!phoneVerificationOpen) return null;
+  // 保存・消去の後は SMS の手順の完了と同じくアカウントのトップへ戻り、表示を取り直す
+  const plainInput = useUpdateMyPhoneNumber({
+    onSaved: () => {
+      router.push("/mypage/account");
+      router.refresh();
+    },
+  });
+
+  if (!phoneVerificationOpen) {
+    return (
+      <Section>
+        <Stack space={4}>
+          <AccountPageHeader title="電話番号" backHref="/mypage/account" />
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <PhoneNumberForm
+              currentPhoneNumber={phoneNumber}
+              value={plainInput.value}
+              onValueChange={plainInput.setValue}
+              onSave={plainInput.save}
+              onClear={plainInput.clear}
+              onCancel={() => router.push("/mypage/account")}
+              isSaving={plainInput.isSaving}
+              error={plainInput.error}
+            />
+          </div>
+        </Stack>
+      </Section>
+    );
+  }
 
   return (
     <Section>

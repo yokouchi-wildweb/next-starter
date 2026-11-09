@@ -479,7 +479,11 @@ const result = await userClient.searchWithProfile("contributor", {
 
 - マイページのアカウント（`/mypage/account`）で利用者が変えられる項目は設定 `userConfig.account.editableItems`（`"email"`・`"password"`・`"profile"`・`"phone"`、既定 `["email", "password", "profile"]`）。fork は上書き `src/config/features/user.config.ts` に `account: { editableItems: [...] }` を書く（配列は丸ごと置き換え）
 - 判定は `isAccountItemEditable(item)`（`utils/accountItems.ts`）。アカウントのトップのメニュー（`AccountDetails`）は一覧の項目の行だけを出し、各画面の loader は一覧に無ければ `/mypage/account` へ戻す（レコードの取得より前）
-- 一覧のほかの条件: `password` はメール登録の利用者だけ、`phone` は SMS 認証の機能 `phoneVerification` が開のときだけ（今の電話番号の画面は SMS の手順だけ。`src/features/core/phoneVerification/README.md`）
+- 一覧のほかの条件: `password` はメール登録の利用者だけ
+- `phone`: 電話番号の画面は SMS 認証の機能 `phoneVerification` が開なら SMS の手順（`src/features/core/phoneVerification/README.md`）、閉なら SMS なしの入力（`EditPhone` が出し分け）。SMS なしの番号は DB だけに書き `phoneVerifiedAt` は null（未認証。Firebase の電話番号は SMS 認証で link したときだけ）
+  - 口: `PATCH /api/me/phone`（body `{ phoneNumber: E.164 | null }`、null で消す）→ `updateOwnPhoneNumber`（`services/server/phoneNumber`、重複は 409、同じ番号は書かない、`base.update` で監査を通す）。受け付けるのは `isPhoneNumberInputOpen`（一覧に phone があり、かつ phoneVerification が閉）のときだけ、それ以外は 404
+  - client: `updateMyPhoneNumber`（`services/client/phoneNumberClient.ts`）・`useUpdateMyPhoneNumber`（入力の値・保存・消去）・表示の部品 `components/common/PhoneNumberForm`
+  - 管理者が番号を変えると `phoneVerifiedAt` が今の時刻になる（`wrappers/update.ts`。既存の挙動）
 - アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
 
 ## 退会と削除

@@ -82,19 +82,23 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               }
             />
           )}
-          {isAccountItemEditable("phone") && gate.enabled("phoneVerification") && (
+          {isAccountItemEditable("phone") && (
             <AccountDetailItem
               href="/mypage/account/phone"
               icon={PhoneIcon}
               label="電話番号"
               value={
-                user.phoneVerifiedAt ? (
+                user.phoneNumber ? (
                   <>
-                    {formatForDisplay(user.phoneNumber ?? "")}
-                    <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
+                    {formatForDisplay(user.phoneNumber)}
+                    {user.phoneVerifiedAt ? (
+                      <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
+                    ) : (
+                      gate.enabled("phoneVerification") && "(未認証)"
+                    )}
                   </>
                 ) : (
-                  "未認証"
+                  gate.enabled("phoneVerification") ? "未認証" : "未登録"
                 )
               }
             />
