@@ -1,0 +1,16 @@
+# DOWNSTREAM NOTICE id:20261109-185533-shared-shelf-styles-core-names
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-09T18:55:33+09:00
+severity: action-required
+checkpoint: shared-shelf-styles-core-names
+moved: src/styles/core/palette.default.css -> src/styles/core/palette.css; src/styles/core/typography.default.css -> src/styles/core/typography.css; src/styles/core/gradient.default.css -> src/styles/core/gradient.css
+change: Upstream CSS defaults follow the placement split (type 4): core/<name>.css = upstream default, root src/styles/<name>.css = the repo's override. The 3 core/*.default.css were renamed (content unchanged); core/index.css imports ./palette.css ./typography.css ./gradient.css in the same order. pnpm generate styles now writes core/gradient.css; the mail colors generator reads core/palette.css. Generated headers (root src/styles/gradient.css, src/features/core/mail/constants/colors.ts) name the new paths. READMEs and comments use the new names.
+why: forks import only core/index.css (through global.css), so the build keeps working after the merge; the generated headers and fork-owned comments still name the old paths until regenerated / rewritten
+required_actions:
+1. Merge upstream up to this checkpoint. Forks still on src/styles/_base (before notice 20261105-105641-styles-core-rename) take that notice first; /flux order guarantees it. No fork edits core/*.default.css (checked), so the 3 renames merge cleanly; if one conflicts, take upstream's file at the new path and delete the old one.
+2. `pnpm generate styles` and commit its outputs in this segment (root src/styles/gradient.css and src/features/core/mail/constants/colors.ts get the new header line; core/gradient.css equals upstream's).
+3. Rewrite fork-owned mentions of the old names: `git grep -n -e "palette\.default\.css" -e "typography\.default\.css" -e "gradient\.default\.css" -- ':!.notices' ':!docs/journal'` -> `core/palette.css`, `core/typography.css`, `core/gradient.css` (fork CSS comments such as root palette.css / typography.css, fork scripts, docs). An upstream file listed there after the merge = unresolved conflict: take upstream's version. [判断] boardgame-site, oripa-do: root palette.css / typography.css comments. 88-base, TriQ, next-vnx: after styles-core-rename, same grep.
+verify: the grep of step 3 prints nothing | `git ls-files "src/styles/core/*.default.css"` is empty | `pnpm generate styles && git diff --exit-code src/styles src/features/core/mail/constants/colors.ts` | `git diff <upstream remote>/main -- src/styles/core` is empty | pnpm test src/styles/core scripts/structure/styles src/lib/fonts | pnpm build (the built CSS check confirms every import reached the output)
+manual_steps: -
+refs: src/styles/README.md (file map, name marks), src/styles/core/index.css, scripts/structure/styles/generate-gradient-css.ts, scripts/structure/styles/generate-mail-colors.ts, notice 20261105-105641-styles-core-rename
+notes: Names only: CSS values, tokens and the core/index.css import order are unchanged. src/config/app/gradients.config.ts and src/config/ui/fonts.config.ts changed comment lines only, away from the lines forks edit (trial merge with boardgame-site and oripa-do main: no conflict). Checked read-only in 88-base, TriQ, boardgame-site, next-vnx, oripa-do.
