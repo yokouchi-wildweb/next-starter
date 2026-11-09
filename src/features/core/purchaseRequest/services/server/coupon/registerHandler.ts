@@ -221,7 +221,7 @@ function parsePackageDiscounts(settings: Record<string, unknown>): PackageDiscou
 /**
  * purchaseAmount（購入数量）に対応する packageDiscount エントリを取得
  *
- * packageDiscounts の amount は currency.config.ts の amount（購入数量）に対応する。
+ * packageDiscounts の amount は wallet の config.ts の currency の amount（購入数量）に対応する。
  */
 function findPackageDiscount(
   packageDiscounts: PackageDiscount[],

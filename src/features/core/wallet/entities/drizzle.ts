@@ -3,10 +3,10 @@
 import { index, integer, pgEnum, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 
-// CURRENCY_CONFIG から動的に walletType の値を取得
-const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+// walletConfig.currency から動的に walletType の値を取得
+const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 export const WalletTypeEnum = pgEnum("wallet_type_enum", walletTypes);
 
@@ -39,7 +39,7 @@ export const WalletTable = pgTable(
  * 有効期限が有効な walletType でのみ行が作られる（無効な通貨は一切書き込まれない）。
  * 不変条件: SUM(remaining) = wallets.balance（有効化+初期化済みのウォレットに限る）。
  * 全てのロット操作は wallets 行ロックと同一トランザクション内で行うこと。
- * 設定: src/config/app/wallet-expiration.config.ts
+ * 設定: src/features/core/wallet/config.ts の expiration
  */
 export const WalletLotTable = pgTable(
   "wallet_lots",

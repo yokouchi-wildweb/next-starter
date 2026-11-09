@@ -6,7 +6,7 @@ import { WALLET_BULK_ADJUST_JOB_TYPE } from "../../../constants/batchJob";
 import type { BatchJob } from "@/features/batchJob/types";
 import type { WalletTypeValue } from "@/features/wallet/types/field";
 import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/features/walletHistory/types/field";
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 
 export { WALLET_BULK_ADJUST_JOB_TYPE };
 

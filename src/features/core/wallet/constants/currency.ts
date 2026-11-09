@@ -1,13 +1,13 @@
 // src/features/core/wallet/constants/currency.ts
 // 通貨設定から派生する定数（自動生成）
 
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 
 /**
  * WalletTypeOptions（セレクトボックス等で使用）
- * CURRENCY_CONFIG から自動生成
+ * walletConfig.currency から自動生成
  */
-export const WalletTypeOptions = Object.entries(CURRENCY_CONFIG).map(
+export const WalletTypeOptions = Object.entries(walletConfig.currency).map(
   ([value, config]) => ({
     value: value as WalletType,
     label: config.label,

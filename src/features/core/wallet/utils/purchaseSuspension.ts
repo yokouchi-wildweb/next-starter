@@ -1,12 +1,12 @@
 // src/features/core/wallet/utils/purchaseSuspension.ts
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { walletConfig } from "@/features/wallet/config";
 
 /**
  * 通貨購入が一時停止中かどうか判定
  */
 export function isPurchaseSuspended(): boolean {
-  const { enabled, schedule } = APP_FEATURES.wallet.purchaseSuspension;
+  const { enabled, schedule } = walletConfig.purchaseSuspension;
   if (!enabled) return false;
 
   const now = new Date();
@@ -21,7 +21,7 @@ export function isPurchaseSuspended(): boolean {
  */
 export function getPurchaseSuspensionMessage(): string {
   return (
-    APP_FEATURES.wallet.purchaseSuspension.message ??
+    walletConfig.purchaseSuspension.message ??
     "現在、決済機能はメンテナンス中です。しばらくお待ちください。"
   );
 }

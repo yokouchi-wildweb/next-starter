@@ -1,17 +1,12 @@
 // src/features/core/analytics/services/server/coinIssuance/issuanceCategories.ts
-// 発行 wallet_bonus_grant に数える reason_category(wallet-reason-category.config の countsAsIssuance の区分)
+// 発行 wallet_bonus_grant に数える reason_category(analytics の設定 issuanceReasonCategories、D74)
 
-import {
-  REASON_CATEGORY_CONFIG,
-  type ReasonCategory,
-  type ReasonCategoryConfig,
-} from "@/config/app/wallet-reason-category.config";
+import { analyticsConfig } from "@/features/analytics/config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 
-/** countsAsIssuance が true の区分(config の並び順) */
+/** 発行に数える区分(設定の並び順) */
 export function issuanceReasonCategories(
-  config: Readonly<Record<string, ReasonCategoryConfig>> = REASON_CATEGORY_CONFIG,
+  categories: readonly ReasonCategory[] = analyticsConfig.issuanceReasonCategories,
 ): ReasonCategory[] {
-  return Object.entries(config)
-    .filter(([, category]) => category.countsAsIssuance === true)
-    .map(([key]) => key as ReasonCategory);
+  return [...categories];
 }

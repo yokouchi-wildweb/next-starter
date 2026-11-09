@@ -5,13 +5,13 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getAppBaseUrl } from "@/lib/url";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { isPaymentMethodSelectable } from "@/config/app/payment.config";
 
-// currency.config.ts から動的に walletType の値を取得（型安全）
-const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+// wallet の config.ts の currency から動的に walletType の値を取得（型安全）
+const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 const InitiatePurchaseSchema = z.object({
   idempotencyKey: z.string().uuid({ message: "冪等キーはUUID形式で指定してください。" }),

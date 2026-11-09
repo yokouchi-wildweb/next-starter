@@ -6,7 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getCurrencyIcon } from "@/features/core/wallet/components/common/currencyIcons";
 import type { WalletIndexEntry } from "@/features/core/wallet/types/screen";
 
@@ -16,10 +16,10 @@ export type WalletListProps = {
 };
 
 function listAllWallets(): WalletIndexEntry[] {
-  return (Object.keys(CURRENCY_CONFIG) as WalletType[]).map((walletType) => ({
+  return (Object.keys(walletConfig.currency) as WalletType[]).map((walletType) => ({
     walletType,
-    slug: CURRENCY_CONFIG[walletType].slug,
-    label: CURRENCY_CONFIG[walletType].label,
+    slug: walletConfig.currency[walletType].slug,
+    label: walletConfig.currency[walletType].label,
   }));
 }
 
@@ -29,7 +29,7 @@ export function WalletList({ wallets }: WalletListProps) {
   return (
     <Stack space={0}>
       {entries.map((entry) => {
-        const config = CURRENCY_CONFIG[entry.walletType];
+        const config = walletConfig.currency[entry.walletType];
         const Icon = getCurrencyIcon(entry.walletType);
 
         return (

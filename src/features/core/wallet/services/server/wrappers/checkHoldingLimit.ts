@@ -2,7 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 import { db } from "@/lib/drizzle";
@@ -11,7 +11,7 @@ import { DomainError } from "@/lib/errors";
 /**
  * ウォレットの保有残高が `maxHoldingAmount` 以上なら DomainError を投げる。
  *
- * - `CURRENCY_CONFIG[walletType].maxHoldingAmount` が未設定の通貨は no-op
+ * - `walletConfig.currency[walletType].maxHoldingAmount` が未設定の通貨は no-op
  * - 判定対象は `balance` のみ (locked_balance は含めない)
  * - ウォレット未作成 (残高 0) のユーザーは常に通過
  *
@@ -24,10 +24,10 @@ export async function assertHoldingLimit(params: {
   userId: string;
   walletType: WalletType;
 }): Promise<void> {
-  // CURRENCY_CONFIG は `as const satisfies` で個別リテラル型に narrow されており、
+  // walletConfig.currency は `as const satisfies` で個別リテラル型に narrow されており、
   // 値を設定していない通貨では optional フィールドが見えなくなるため、
   // 仕様上の型 CurrencyConfig 経由で読み出す。
-  const config = CURRENCY_CONFIG[params.walletType] as CurrencyConfig;
+  const config = walletConfig.currency[params.walletType] as CurrencyConfig;
   const limit = config.maxHoldingAmount;
   if (limit === undefined) return;
 

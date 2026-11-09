@@ -4,7 +4,7 @@
 "use client";
 
 import useSWR, { type SWRConfiguration } from "swr";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import {
   fetchWalletStateSummary,
   type WalletStateClientUserFilter,

@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import type { PaginatedResult } from "@/lib/crud/types";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 
 export type WalletHistoryBatchQuery = {

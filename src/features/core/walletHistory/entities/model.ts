@@ -1,8 +1,8 @@
 // src/features/walletHistory/entities/model.ts
 
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
-import type { WalletType } from "@/config/app/currency.config";
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { WalletType } from "@/features/wallet/config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 
 export type WalletHistory = {
   id: string;

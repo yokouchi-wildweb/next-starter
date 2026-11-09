@@ -573,7 +573,7 @@ wallet: {
 }
 ```
 
-通知は `sendToUserSafe` で送信され、失敗しても残高操作には影響しない。文言は `src/config/app/wallet-notification.config.ts`、組み立てごと変えるなら 1 行スイッチ(`wallet/README.md`)。
+通知は `sendToUserSafe` で送信され、失敗しても残高操作には影響しない。文言は `src/features/core/wallet/config.ts` の `adjustmentNotification`、組み立てごと変えるなら 1 行スイッチ(`wallet/README.md`)。
 
 ---
 

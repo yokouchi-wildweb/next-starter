@@ -292,7 +292,7 @@ export async function initiatePurchase(
   // パッケージ照合（サーバー権威の金額検証）を再走させないと金額詐称の穴になる（セキュリティ要件）。
   await strategy.validateInitiation({ params });
 
-  // 2.5. ウォレット保有上限チェック (CURRENCY_CONFIG.maxHoldingAmount が設定されている通貨のみ)。
+  // 2.5. ウォレット保有上限チェック (walletConfig.currency の maxHoldingAmount が設定されている通貨のみ)。
   //      非ウォレット購入 (walletType=null) はスキップ。失敗時は 409 で早期 fail-fast。
   if (walletType) {
     await assertHoldingLimit({ userId, walletType });

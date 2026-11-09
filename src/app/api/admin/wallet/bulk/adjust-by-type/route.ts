@@ -5,13 +5,13 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { resolveAdminAdjustReason } from "@/features/core/wallet/services/server/wrappers/reasonKey";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
+import { REASON_CATEGORY_VALUES } from "@/features/walletHistory/config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
-import { REASON_CATEGORY_VALUES } from "@/config/app/wallet-reason-category.config";
 
-const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+const walletTypeValues = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 const BulkAdjustByTypePayloadSchema = z
   .object({

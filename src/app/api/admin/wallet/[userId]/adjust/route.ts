@@ -5,17 +5,16 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { resolveAdminAdjustReason } from "@/features/core/wallet/services/server/wrappers/reasonKey";
-import { APP_FEATURES } from "@/config/app/app-features.config";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
+import { REASON_CATEGORY_VALUES } from "@/features/walletHistory/config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import { sendAdjustmentNotification } from "@/features/core/wallet/services/server/notification/sendAdjustmentNotification";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
-import { REASON_CATEGORY_VALUES } from "@/config/app/wallet-reason-category.config";
 
 type Params = { userId: string };
 
-const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+const walletTypeValues = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 const WalletAdjustPayloadSchema = z
   .object({
@@ -88,7 +87,7 @@ export const POST = createApiRoute<Params, unknown, { roleCategories: string[] }
     });
 
     // 操作タイプに応じて通知を送信（Safe版: 失敗しても本体処理に影響しない）
-    const notifyFlags = APP_FEATURES.wallet.notifyOnAdjust;
+    const notifyFlags = walletConfig.notifyOnAdjust;
     const shouldNotify = notifyFlags[payload.changeMethod.toLowerCase() as keyof typeof notifyFlags] ?? false;
     if (shouldNotify) {
       await sendAdjustmentNotification({

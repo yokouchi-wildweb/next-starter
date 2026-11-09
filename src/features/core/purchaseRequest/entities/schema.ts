@@ -2,12 +2,12 @@
 
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { PURCHASE_TYPE_KEYS } from "@/config/app/purchaseType.config";
 import { nullableDatetime } from "@/lib/crud/utils";
 
-// CURRENCY_CONFIG から動的に walletType の値を取得
-const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+// walletConfig.currency から動的に walletType の値を取得
+const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 export const PurchaseRequestBaseSchema = z.object({
   user_id: z.string().trim().min(1, { message: "ユーザーは必須です。" }),

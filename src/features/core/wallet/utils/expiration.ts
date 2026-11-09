@@ -1,28 +1,21 @@
 // src/features/core/wallet/utils/expiration.ts
-// ウォレット有効期限設定（wallet-expiration.config.ts）の読み取りヘルパー
+// ウォレット有効期限設定（wallet の config.ts の expiration）の読み取りヘルパー
 
-import {
-  WALLET_EXPIRATION_CONFIG,
-  type WalletExpirationBasis,
-  type WalletExpirationConfig,
-  type WalletExpiredNotice,
-  type WalletPreExpiryNoticeStage,
-} from "@/config/app/wallet-expiration.config";
-import type { WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletExpirationBasis, type WalletExpirationConfig, type WalletExpiredNotice, type WalletPreExpiryNoticeStage, type WalletType } from "@/features/wallet/config";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 
 /**
  * 指定通貨の失効日数を返す。無効な通貨は null。
  */
 export function getExpirationDays(walletType: WalletTypeValue): number | null {
-  return WALLET_EXPIRATION_CONFIG[walletType as WalletType]?.expirationDays ?? null;
+  return walletConfig.expiration[walletType as WalletType]?.expirationDays ?? null;
 }
 
 /**
  * 指定通貨の失効日の数え方。省略時は "grant"（付与ごと）。
  */
 export function getExpirationBasis(walletType: WalletTypeValue): WalletExpirationBasis {
-  return WALLET_EXPIRATION_CONFIG[walletType as WalletType]?.expirationBasis ?? "grant";
+  return walletConfig.expiration[walletType as WalletType]?.expirationBasis ?? "grant";
 }
 
 /**
@@ -38,7 +31,7 @@ export function isExpirationEnabled(walletType: WalletTypeValue): boolean {
  * ロット管理が有効かつ sweepEnabled: true の場合のみ true。
  */
 export function isSweepEnabled(walletType: WalletTypeValue): boolean {
-  const config = WALLET_EXPIRATION_CONFIG[walletType as WalletType];
+  const config = walletConfig.expiration[walletType as WalletType];
   return config != null && config.expirationDays !== null && config.sweepEnabled;
 }
 
@@ -46,7 +39,7 @@ export function isSweepEnabled(walletType: WalletTypeValue): boolean {
  * ロット管理が有効な walletType の一覧を返す。
  */
 export function getExpirationEnabledWalletTypes(): WalletType[] {
-  return (Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]).filter((type) =>
+  return (Object.keys(walletConfig.expiration) as WalletType[]).filter((type) =>
     isExpirationEnabled(type),
   );
 }
@@ -67,7 +60,7 @@ export type WalletLotsInitSelection = readonly string[] | "all";
  */
 export function resolveWalletLotsInitTypes(
   selection: WalletLotsInitSelection,
-  config: Record<string, WalletExpirationConfig> = WALLET_EXPIRATION_CONFIG,
+  config: Record<string, WalletExpirationConfig> = walletConfig.expiration,
 ): WalletType[] {
   const knownTypes = Object.keys(config) as WalletType[];
   const enabledTypes = knownTypes.filter((type) => config[type]?.expirationDays != null);
@@ -87,7 +80,7 @@ export function resolveWalletLotsInitTypes(
   const disabled = requested.filter((type) => !enabledTypes.includes(type as WalletType));
   if (disabled.length > 0) {
     throw new Error(
-      `有効期限が無効（expirationDays: null）の通貨です: ${disabled.join(", ")}（wallet-expiration.config.ts で有効化してから実行する）`,
+      `有効期限が無効（expirationDays: null）の通貨です: ${disabled.join(", ")}（wallet の config.ts の expiration で有効化してから実行する）`,
     );
   }
   return requested as WalletType[];
@@ -97,7 +90,7 @@ export function resolveWalletLotsInitTypes(
  * スイープが有効な walletType の一覧を返す。
  */
 export function getSweepEnabledWalletTypes(): WalletType[] {
-  return (Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]).filter((type) =>
+  return (Object.keys(walletConfig.expiration) as WalletType[]).filter((type) =>
     isSweepEnabled(type),
   );
 }
@@ -105,7 +98,7 @@ export function getSweepEnabledWalletTypes(): WalletType[] {
 function assertNoticeChannels(walletType: WalletType, label: string, channels: unknown[]): void {
   if (channels.length === 0) {
     throw new Error(
-      `wallet-expiration.config: ${walletType} の ${label} の channels が空です（送らないなら設定自体を外してください）`,
+      `walletConfig.expiration: ${walletType} の ${label} の channels が空です（送らないなら設定自体を外してください）`,
     );
   }
 }
@@ -119,19 +112,19 @@ function assertNoticeChannels(walletType: WalletType, label: string, channels: u
  */
 export function getPreExpiryNoticeStages(walletType: WalletTypeValue): WalletPreExpiryNoticeStage[] {
   const type = walletType as WalletType;
-  const stages = WALLET_EXPIRATION_CONFIG[type]?.notice?.preExpiry ?? [];
+  const stages = walletConfig.expiration[type]?.notice?.preExpiry ?? [];
   if (stages.length === 0 || !isSweepEnabled(walletType)) return [];
 
   const seen = new Set<number>();
   for (const stage of stages) {
     if (!Number.isInteger(stage.daysBefore) || stage.daysBefore < 1) {
       throw new Error(
-        `wallet-expiration.config: ${type} の preExpiry.daysBefore は1以上の整数で指定してください: ${stage.daysBefore}`,
+        `walletConfig.expiration: ${type} の preExpiry.daysBefore は1以上の整数で指定してください: ${stage.daysBefore}`,
       );
     }
     if (seen.has(stage.daysBefore)) {
       throw new Error(
-        `wallet-expiration.config: ${type} の preExpiry.daysBefore が重複しています: ${stage.daysBefore}`,
+        `walletConfig.expiration: ${type} の preExpiry.daysBefore が重複しています: ${stage.daysBefore}`,
       );
     }
     seen.add(stage.daysBefore);
@@ -146,7 +139,7 @@ export function getPreExpiryNoticeStages(walletType: WalletTypeValue): WalletPre
  */
 export function getExpiredNotice(walletType: WalletTypeValue): WalletExpiredNotice | null {
   const type = walletType as WalletType;
-  const notice = WALLET_EXPIRATION_CONFIG[type]?.notice?.expired ?? null;
+  const notice = walletConfig.expiration[type]?.notice?.expired ?? null;
   if (notice) assertNoticeChannels(type, "expired", notice.channels);
   return notice;
 }
@@ -157,8 +150,8 @@ export function getExpiredNotice(walletType: WalletTypeValue): WalletExpiredNoti
  * 設定不備の検出は送信側（getPreExpiryNoticeStages / getExpiredNotice）が行う。
  */
 export function hasAnyExpirationNoticeConfig(): boolean {
-  return (Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]).some((type) => {
-    const notice = WALLET_EXPIRATION_CONFIG[type]?.notice;
+  return (Object.keys(walletConfig.expiration) as WalletType[]).some((type) => {
+    const notice = walletConfig.expiration[type]?.notice;
     return notice != null && (notice.expired != null || (notice.preExpiry?.length ?? 0) > 0);
   });
 }

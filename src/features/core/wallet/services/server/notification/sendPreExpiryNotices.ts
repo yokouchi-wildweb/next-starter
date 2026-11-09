@@ -1,22 +1,18 @@
 // src/features/core/wallet/services/server/notification/sendPreExpiryNotices.ts
 // 失効予告（失効の N 日前にユーザーへ知らせる）
 //
-// - 通貨ごとに wallet-expiration.config.ts の notice.preExpiry（段の配列）に従って送る。
+// - 通貨ごとに wallet の config.ts の expiration の notice.preExpiry（段の配列）に従って送る。
 //   sweepEnabled: true の通貨のみ（没収しない通貨に「失効します」と告げないため）
 // - 段ごとに「ここまでの失効日時は予告済み」の水位をチェックポイント（cron_checkpoints）で持つ。
 //   毎回の対象は (水位, 今日 + daysBefore 日の終わり]。cron が止まっていた日があっても、
 //   次回の窓が自動的に広がって回収される
-// - 窓の上限は暦日単位（WALLET_EXPIRATION_NOTICE_SETTINGS.dateTimeZone）。同じ日に失効する
+// - 窓の上限は暦日単位（walletConfig.expirationNoticeSettings.dateTimeZone）。同じ日に失効する
 //   ロットはその日の合計額として1通にまとまり、cron を毎時で回しても窓が動くのは1日1回
 // - 段を初めて実行するときの水位は「1つ短い段の窓の上限」（最短の段は現在時刻）。
 //   各段が自分の帯だけを担当するので、有効化した当日に同じユーザーへ全段ぶんが届くことはない
 
 import { runBudgetedBatches } from "@/lib/cron";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
-import {
-  WALLET_EXPIRATION_CONFIG,
-  WALLET_EXPIRATION_NOTICE_SETTINGS,
-} from "@/config/app/wallet-expiration.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { advanceCheckpoint, findCheckpoint } from "@/features/core/cronCheckpoint/services/server";
 import { MESSAGING_SOURCES } from "@/features/core/messaging/constants/sources";
 import { getPreExpiryNoticeStages } from "@/features/core/wallet/utils/expiration";
@@ -61,14 +57,14 @@ export async function sendPreExpiryNotices(options: {
 }): Promise<SendPreExpiryNoticesResult> {
   const counts = createExpirationNoticeCounts();
   const state = options.state ?? { consecutiveFailures: 0 };
-  const { dateTimeZone } = WALLET_EXPIRATION_NOTICE_SETTINGS;
+  const { dateTimeZone } = walletConfig.expirationNoticeSettings;
   // 窓は実行の最初に確定し、全ページで同じ値を使う（ページ間で窓がずれると境界の対象が欠落・重複する）
   const now = new Date();
   let exhausted = true;
 
-  for (const walletType of Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]) {
+  for (const walletType of Object.keys(walletConfig.expiration) as WalletType[]) {
     const stages = getPreExpiryNoticeStages(walletType);
-    const { label } = CURRENCY_CONFIG[walletType];
+    const { label } = walletConfig.currency[walletType];
 
     for (const [index, stage] of stages.entries()) {
       const name = checkpointName(walletType, stage.daysBefore);

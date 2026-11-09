@@ -7,7 +7,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { calculatePackageDiscount, formatPackageDiscountLabel } from "@/features/core/wallet/utils/discountCalculator";

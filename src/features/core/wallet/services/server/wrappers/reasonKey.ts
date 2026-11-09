@@ -4,12 +4,7 @@
 // - reasonKey なし: 今まで通り reasonCategory ?? 既定(other)。区分が requiresKey なら console.warn(止めない)
 // 詳細: src/features/core/walletHistory/README.md「付与の種類(reason key)」
 
-import {
-  DEFAULT_REASON_CATEGORY,
-  REASON_CATEGORY_CONFIG,
-  type ReasonCategory,
-  type ReasonCategoryConfig,
-} from "@/config/app/wallet-reason-category.config";
+import { DEFAULT_REASON_CATEGORY, walletHistoryConfig, type ReasonCategory, type ReasonCategoryConfig } from "@/features/walletHistory/config";
 import { getWalletReasonKey } from "@/features/core/walletHistory/utils/reasonKey";
 import type { WalletReasonKeyItem } from "@/features/core/walletHistory/types/reasonKey";
 import { DomainError } from "@/lib/errors";
@@ -28,7 +23,7 @@ export type ResolveWalletReasonDeps = {
 
 const defaultDeps: ResolveWalletReasonDeps = {
   lookup: getWalletReasonKey,
-  categories: REASON_CATEGORY_CONFIG,
+  categories: walletHistoryConfig.reasonCategory,
   warn: (message) => console.warn(message),
 };
 

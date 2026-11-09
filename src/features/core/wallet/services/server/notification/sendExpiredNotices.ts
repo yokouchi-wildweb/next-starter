@@ -1,18 +1,14 @@
 // src/features/core/wallet/services/server/notification/sendExpiredNotices.ts
 // 失効時の本通知（没収後にユーザーへ知らせる）
 //
-// - 通貨ごとに wallet-expiration.config.ts の notice.expired が設定されている場合のみ送る
+// - 通貨ごとに wallet の config.ts の expiration の notice.expired が設定されている場合のみ送る
 // - 失効スイープとは別に動く。スイープが wallet_histories に残した per-user の失効行を
 //   listExpirationResults で読み、チェックポイント（cron_checkpoints）で進捗を持つ
 // - 初回実行はチェックポイントを現在時刻で登録するだけで何も送らない
 //   （通知を後から有効化したとき、過去の失効分をさかのぼって一斉送信しないため）
 
 import { runBudgetedBatches } from "@/lib/cron";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
-import {
-  WALLET_EXPIRATION_CONFIG,
-  WALLET_EXPIRATION_NOTICE_SETTINGS,
-} from "@/config/app/wallet-expiration.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { advanceCheckpoint, findCheckpoint } from "@/features/core/cronCheckpoint/services/server";
 import { MESSAGING_SOURCES } from "@/features/core/messaging/constants/sources";
 import { getExpiredNotice } from "@/features/core/wallet/utils/expiration";
@@ -60,10 +56,10 @@ export async function sendExpiredNotices(options: {
 }): Promise<SendExpiredNoticesResult> {
   const counts = createExpirationNoticeCounts();
   const state = options.state ?? { consecutiveFailures: 0 };
-  const { dateTimeZone } = WALLET_EXPIRATION_NOTICE_SETTINGS;
+  const { dateTimeZone } = walletConfig.expirationNoticeSettings;
   let exhausted = true;
 
-  for (const walletType of Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]) {
+  for (const walletType of Object.keys(walletConfig.expiration) as WalletType[]) {
     const notice = getExpiredNotice(walletType);
     if (!notice) continue;
 
@@ -78,7 +74,7 @@ export async function sendExpiredNotices(options: {
     const createdUntil = new Date(Date.now() - SAFETY_LAG_MS);
     if (createdUntil.getTime() <= createdFrom.getTime()) continue;
 
-    const { label } = CURRENCY_CONFIG[walletType];
+    const { label } = walletConfig.currency[walletType];
 
     try {
       const result = await runBudgetedBatches<ExpirationNoticeJob, PageCursor>({

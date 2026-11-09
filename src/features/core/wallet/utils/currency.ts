@@ -1,18 +1,18 @@
 // src/features/core/wallet/utils/currency.ts
 // 通貨設定に関するユーティリティ関数
 
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import type { CurrencyConfig, CurrencyMetaFieldConfig } from "../types/currency";
 
 /**
  * 有効なスラッグの一覧
  */
-export const VALID_SLUGS = Object.values(CURRENCY_CONFIG).map((c) => c.slug) as string[];
+export const VALID_SLUGS = Object.values(walletConfig.currency).map((c) => c.slug) as string[];
 
 /**
  * 有効な walletType の一覧
  */
-export const VALID_WALLET_TYPES = Object.keys(CURRENCY_CONFIG) as WalletType[];
+export const VALID_WALLET_TYPES = Object.keys(walletConfig.currency) as WalletType[];
 
 /**
  * スラッグが有効かどうかを判定
@@ -32,7 +32,7 @@ export function isWalletType(value: unknown): value is WalletType {
  * スラッグから walletType を取得
  */
 export function getWalletTypeBySlug(slug: string): WalletType | null {
-  const entry = Object.entries(CURRENCY_CONFIG).find(
+  const entry = Object.entries(walletConfig.currency).find(
     ([, config]) => config.slug === slug
   );
   return entry ? (entry[0] as WalletType) : null;
@@ -47,7 +47,7 @@ export function getCurrencyConfigBySlug(
   const walletType = getWalletTypeBySlug(slug);
   if (!walletType) return null;
   return {
-    ...CURRENCY_CONFIG[walletType],
+    ...walletConfig.currency[walletType],
     walletType,
   };
 }
@@ -59,7 +59,7 @@ export function getCurrencyConfig(
   walletType: WalletType
 ): CurrencyConfig & { walletType: WalletType } {
   return {
-    ...CURRENCY_CONFIG[walletType],
+    ...walletConfig.currency[walletType],
     walletType,
   };
 }
@@ -68,21 +68,21 @@ export function getCurrencyConfig(
  * walletType から slug を取得
  */
 export function getSlugByWalletType(walletType: WalletType): string {
-  return CURRENCY_CONFIG[walletType].slug;
+  return walletConfig.currency[walletType].slug;
 }
 
 /**
  * walletType からメタフィールド定義を取得
  */
 export function getMetaFieldsByWalletType(walletType: WalletType): readonly CurrencyMetaFieldConfig[] {
-  return CURRENCY_CONFIG[walletType].metaFields;
+  return walletConfig.currency[walletType].metaFields;
 }
 
 /**
  * walletType からメタフィールド名の一覧を取得
  */
 export function getMetaFieldNamesByWalletType(walletType: WalletType): string[] {
-  return CURRENCY_CONFIG[walletType].metaFields.map((field) => field.name);
+  return walletConfig.currency[walletType].metaFields.map((field) => field.name);
 }
 
 /**
@@ -92,7 +92,7 @@ export function getMetaFieldNamesByWalletType(walletType: WalletType): string[] 
 export function getAllMetaFields(): CurrencyMetaFieldConfig[] {
   const allFields: CurrencyMetaFieldConfig[] = [];
 
-  Object.values(CURRENCY_CONFIG).forEach((config) => {
+  Object.values(walletConfig.currency).forEach((config) => {
     config.metaFields.forEach((field) => {
       allFields.push(field as CurrencyMetaFieldConfig);
     });

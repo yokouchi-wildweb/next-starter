@@ -5,7 +5,7 @@
 export { CurrencyDisplay } from './components/common/CurrencyDisplay';
 
 // 型
-export type { WalletType } from '@/config/app/currency.config';
+export type { WalletPurchaseRestriction, WalletType } from './config';
 export type { CurrencyConfig, CurrencyMetaFieldConfig } from './types/currency';
 export type {
   WalletAdjustmentResult,
@@ -33,8 +33,8 @@ export type {
 export type { TransactionClient } from './services/server/wrappers/utils';
 
 // 設定
-export { CURRENCY_CONFIG } from '@/config/app/currency.config';
-export { WALLET_EXPIRATION_CONFIG } from '@/config/app/wallet-expiration.config';
+// 通貨・有効期限・通知の値は walletConfig.<鍵>(currency・expiration …)。上書き: src/config/features/wallet.config.ts
+export { walletConfig } from './config';
 export type {
   WalletExpirationConfig,
   WalletExpirationNoticeConfig,
@@ -42,7 +42,7 @@ export type {
   WalletExpirationNoticeCopy,
   WalletPreExpiryNoticeStage,
   WalletExpiredNotice,
-} from '@/config/app/wallet-expiration.config';
+} from './config';
 
 // 派生定数
 export { WalletTypeOptions } from './constants/currency';

@@ -12,7 +12,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { walletConfig } from "@/features/wallet/config";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBalances";
@@ -118,7 +118,7 @@ export function WalletBalance({
 
   // 購入制限チェック: SMS認証が必要かどうか
   const requiresPhoneVerification =
-    APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+    walletConfig.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
 
   // 購入セクションの表示判定
   const renderPurchaseSection = () => {

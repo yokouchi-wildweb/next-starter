@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { WalletExpirationConfig } from "@/config/app/wallet-expiration.config";
+import type { WalletExpirationConfig } from "@/features/wallet/config";
 import { resolveWalletLotsInitTypes } from "./expiration";
 
 const CONFIG: Record<string, WalletExpirationConfig> = {

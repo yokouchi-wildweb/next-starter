@@ -16,13 +16,6 @@ export type SignupMode = "normal" | "earlyRegistration";
 export type EmailCheckMode = "disabled" | "full" | "strict";
 
 /**
- * ウォレット購入制限モード
- * - none: 制限なし
- * - phoneVerified: SMS認証済みユーザーのみ購入可能
- */
-export type WalletPurchaseRestriction = "none" | "phoneVerified";
-
-/**
  * Hide My Email（Apple「メールを非公開」）検知時のアクション
  * - disabled: チェックなし
  * - block: 検知時にサイレントブロック（メール送信しない）

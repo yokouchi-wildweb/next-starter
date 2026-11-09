@@ -11,7 +11,7 @@ export type DiscountMode = "flat" | "per_package";
 
 /** パッケージ別割引設定の1エントリ */
 export type PackageDiscount = {
-  /** パッケージの購入数量（currency.config.ts の amount に対応） */
+  /** パッケージの購入数量（wallet の config.ts の currency の amount に対応） */
   amount: number;
   /** 割引タイプ */
   discountType: "fixed" | "percentage";

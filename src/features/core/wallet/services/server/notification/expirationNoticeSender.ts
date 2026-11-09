@@ -2,7 +2,7 @@
 // 失効通知（予告・本通知）共通の送信処理
 //
 // 1ページ分の送信ジョブを受け取り、送信済みの除外 → 送信対象の絞り込み → 送信 を行う。
-// 文面は wallet-expiration.config.ts の copy（プレースホルダ付き文字列）を差し込んで作る。
+// 文面は wallet の config.ts の expiration の copy（プレースホルダ付き文字列）を差し込んで作る。
 
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
@@ -10,11 +10,7 @@ import { isDomainError } from "@/lib/errors";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { messagingService } from "@/features/core/messaging/services/server/messagingService";
 import type { MessagingSource } from "@/features/core/messaging/constants/sources";
-import {
-  WALLET_EXPIRATION_NOTICE_SETTINGS,
-  type WalletExpirationNoticeChannel,
-  type WalletExpirationNoticeCopy,
-} from "@/config/app/wallet-expiration.config";
+import { walletConfig, type WalletExpirationNoticeChannel, type WalletExpirationNoticeCopy } from "@/features/wallet/config";
 
 /**
  * 連続でこの件数失敗したら、その実行を打ち切る。
@@ -159,7 +155,7 @@ export async function sendExpirationNoticeJobs(
     .from(UserTable)
     .where(inArray(UserTable.id, [...new Set(pending.map((job) => job.userId))]));
   const userById = new Map(users.map((user) => [user.id, user]));
-  const targetStatuses = WALLET_EXPIRATION_NOTICE_SETTINGS.targetStatuses;
+  const targetStatuses = walletConfig.expirationNoticeSettings.targetStatuses;
 
   const sendable: { job: ExpirationNoticeJob; channels: WalletExpirationNoticeChannel[] }[] = [];
   for (const job of pending) {
@@ -187,7 +183,7 @@ export async function sendExpirationNoticeJobs(
   }
 
   // 3. 送信（sendConcurrency 件ずつ）
-  const concurrency = Math.max(1, Math.floor(WALLET_EXPIRATION_NOTICE_SETTINGS.sendConcurrency));
+  const concurrency = Math.max(1, Math.floor(walletConfig.expirationNoticeSettings.sendConcurrency));
   for (let i = 0; i < sendable.length; i += concurrency) {
     if (Date.now() >= deadline.getTime()) throw new ExpirationNoticeStopError("deadline");
     const slice = sendable.slice(i, i + concurrency);

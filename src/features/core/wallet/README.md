@@ -14,7 +14,7 @@
 | **通貨種別** | `regular_point`、`temporary_point`、`regular_coin` |
 | **残高管理** | `balance`（総残高）- `locked_balance`（予約済み）= 利用可能残高 |
 | **ウォレット作成** | 遅延作成（初回操作時に自動作成） |
-| **設定ファイル** | `src/config/app/currency.config.ts`（通貨の追加・変更はここで行う） |
+| **設定ファイル** | `src/features/core/wallet/config.ts` の `currency`（通貨の追加・変更はここで行う） |
 | **閉じた機能との連携（画面）** | 残高・購入画面は相手の入切を `useGate()` で見る: クーポン欄 `CouponInput` はクーポンか決済が閉じていれば描かない・`CurrencyPurchase` は決済が閉じていれば描かない・振込の案内 `ActiveTransferBanner` は決済が閉じていれば出さない |
 
 ### 基本操作
@@ -111,7 +111,7 @@ import type {
 | `source_type` | `enum` | `user_action` / `admin_action` / `system` |
 | `request_batch_id` | `string?` | バッチ処理ID |
 | `reason` | `string?` | 変更理由（人向けの文。集計に使わない） |
-| `reason_category` | `string` | 区分（`src/config/app/wallet-reason-category.config.ts`、既定 `other`） |
+| `reason_category` | `string` | 区分（`src/features/core/walletHistory/config.ts` の `reasonCategory`、既定 `other`） |
 | `reason_key` | `string?` | 付与の種類（受け口 `walletHistory/reasonKeys` の key。下の「付与の種類」） |
 | `meta` | `jsonb` | 追加メタ情報 |
 | `createdAt` | `Date` | 作成日時 |
@@ -192,7 +192,7 @@ wallet: {
 }
 ```
 
-通知の文言は `src/config/app/wallet-notification.config.ts`。組み立てごと変える fork は `adjustmentNotificationTemplate.replace.ts`(`buildTitle`・`buildBody` を export)を作り、1 行スイッチ `adjustmentNotificationTemplate.ts` の向きを書き換える。
+通知の文言は `src/features/core/wallet/config.ts` の `adjustmentNotification`。組み立てごと変える fork は `adjustmentNotificationTemplate.replace.ts`(`buildTitle`・`buildBody` を export)を作り、1 行スイッチ `adjustmentNotificationTemplate.ts` の向きを書き換える。
 
 #### reserveBalance
 
@@ -363,29 +363,31 @@ async function playGacha(userId: string, cost: number) {
 
 ### 設定ファイル
 
-**`src/config/app/currency.config.ts`** で通貨の追加・変更を行う。
+通貨の既定は **`src/features/core/wallet/config.ts` の `currency`**。fork は上書き **`src/config/features/wallet.config.ts`** で値を変え、通貨を足す(アイコンは `config.ui.ts` の `currencyIcons`、上書き `src/config/features/wallet.ui.config.ts`)。呼び手は `walletConfig.currency` を読む。
 
 ```typescript
-// src/config/app/currency.config.ts
-export const CURRENCY_CONFIG = {
-  regular_coin: {
-    slug: "coin",           // URLパス用（/wallet/coin）
-    label: "コイン",         // 表示名
-    unit: "コイン",          // 単位
-    color: "#F59E0B",       // テーマカラー
-    icon: CircleDollarSign, // アイコン（lucide-react）
-    packages: [             // 購入パッケージ
-      { amount: 500, price: 500 },
-      { amount: 1000, price: 1000 },
-    ],
-    metaFields: [           // 管理画面の補足入力フィールド
-      { name: "productId", label: "商品ID", formInput: "textInput" },
-      { name: "notes", label: "メモ", formInput: "textarea", rows: 2 },
-    ],
+// src/config/features/wallet.config.ts(fork の例: 通貨を 1 つ足す)
+import type { CurrencyConfig } from "@/features/wallet";
+import type { WalletOverride } from "@/features/wallet/config";
+
+export type Extra = { currency: { premium_ticket: CurrencyConfig } };
+
+export default {
+  currency: {
+    premium_ticket: {
+      slug: "premium-ticket",  // URLパス用（/wallet/premium-ticket）
+      label: "プレミアムチケット", // 表示名
+      unit: "枚",               // 単位
+      color: "#8B5CF6",         // テーマカラー
+      packages: [{ amount: 1, price: 300 }], // 購入パッケージ
+      metaFields: [],           // 管理画面の補足入力フィールド
+    },
   },
-  // 新しい通貨を追加する場合はここにエントリを追加
-};
+  expiration: { premium_ticket: { expirationDays: null, sweepEnabled: false } },
+} satisfies WalletOverride<Extra>;
 ```
+
+古い定数名との対応(設定の議会 D95): `CURRENCY_CONFIG` → `walletConfig.currency`・`WALLET_EXPIRATION_CONFIG` → `.expiration`・`WALLET_EXPIRATION_NOTICE_SETTINGS` → `.expirationNoticeSettings`・`WALLET_LOT_PRUNE_RETENTION_DAYS` → `.lotPruneRetentionDays`・`WALLET_PRE_EXPIRY_NOTICE_COPY` → `.preExpiryNoticeCopy`・`WALLET_EXPIRED_NOTICE_COPY` → `.expiredNoticeCopy`・`WALLET_ADJUSTMENT_NOTIFICATION` → `.adjustmentNotification`・`APP_FEATURES.wallet.{enableAdminBalanceAdjust,purchaseRestriction,purchaseSuspension,notifyOnAdjust}` → `walletConfig.<同じ鍵>`・`CURRENCY_ICONS` → `walletUiConfig.currencyIcons`(`config.ui.ts`)。機能の入切 `wallet.enabled` は門番の規則の持ち物で、ここには無い。
 
 ### 設定項目
 
@@ -395,7 +397,7 @@ export const CURRENCY_CONFIG = {
 | `label` | ✓ | UI表示名 |
 | `unit` | ✓ | 数値の単位（"pt", "コイン"など） |
 | `color` | ✓ | テーマカラー（HEX） |
-| `icon` | ✓ | lucide-reactアイコン |
+| `icon` | - | アイコンは `config.ui.ts` の `currencyIcons`(通貨と同じキー) |
 | `packages` | ✓ | 購入パッケージ配列 |
 | `metaFields` | ✓ | 管理画面用の補足フィールド（空配列可） |
 
@@ -733,7 +735,7 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 
 ### 導入手順（ダウンストリーム）
 
-1. `src/config/app/wallet-expiration.config.ts` で対象通貨を有効化:
+1. `src/features/core/wallet/config.ts` の `expiration` で対象通貨を有効化:
    ```typescript
    regular_coin: { expirationDays: 180, sweepEnabled: true },
    ```
@@ -787,7 +789,7 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 
    wallet-lots-prune は remaining = 0 になったロット行の物理削除。付与のたびに行が増えるため、
    **付与頻度が高いプロジェクトでは必須**（回さないと wallet_lots が単調増加する）。
-   保持日数は `WALLET_LOT_PRUNE_RETENTION_DAYS`（デフォルト30日）で調整可能。
+   保持日数は `walletConfig.lotPruneRetentionDays`（デフォルト30日）で調整可能。
 
 ### 運用ルール
 
@@ -828,30 +830,32 @@ UI レシピ例（ダウンストリームで実装）:
 （履歴行が残るだけ）。通貨ごとに「予告を送るか」「本通知を送るか」「どのチャネルで送るか」を設定できる。
 **デフォルトはどちらも送らない**。
 
-#### 設定（`src/config/app/wallet-expiration.config.ts` の1ファイルで完結）
+#### 設定(上書き `src/config/features/wallet.config.ts` の `expiration`。既定は `src/features/core/wallet/config.ts`)
 
 ```typescript
-regular_coin: {
-  expirationDays: 180,
-  sweepEnabled: true,
-  notice: {
-    // 失効予告: 段の配列。空配列 = 予告なし
-    preExpiry: [
-      { daysBefore: 30, channels: ["email"], copy: WALLET_PRE_EXPIRY_NOTICE_COPY },
-      { daysBefore: 7, channels: ["email", "inApp"], copy: WALLET_PRE_EXPIRY_NOTICE_COPY },
-    ],
-    // 失効時の本通知: null = 本通知なし
-    expired: { channels: ["inApp"], copy: WALLET_EXPIRED_NOTICE_COPY },
+// 上書きは値がリテラルだけなので、文面(copy)は定数を参照せず文字列を直に書く(既定の文面は walletConfig.preExpiryNoticeCopy / expiredNoticeCopy)
+expiration: {
+  regular_coin: {
+    expirationDays: 180,
+    sweepEnabled: true,
+    notice: {
+      // 失効予告: 段の配列。空配列 = 予告なし
+      preExpiry: [
+        { daysBefore: 30, channels: ["email"], copy: { emailSubject: "…", emailBody: "…", notificationTitle: "…", notificationBody: "…" } },
+      ],
+      // 失効時の本通知: null = 本通知なし
+      expired: { channels: ["inApp"], copy: { emailSubject: "…", emailBody: "…", notificationTitle: "…", notificationBody: "…" } },
+    },
   },
 },
 ```
 
 - `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
 - `channels`: `"email"` / `"inApp"` のどちらか、または両方。段ごと・通知ごとに選べる
-- **文言の編集**: 同じファイル上部の `WALLET_PRE_EXPIRY_NOTICE_COPY` / `WALLET_EXPIRED_NOTICE_COPY` の文字列を書き換えるだけ。
-  `{{currencyLabel}}` などのプレースホルダが送信時に差し込まれる（使える名前は同ファイルのコメント参照）。
-  段ごと・通貨ごとに文面を変えたい場合は、同じ形の定数を増やして `copy` に指定する
-- 全体設定 `WALLET_EXPIRATION_NOTICE_SETTINGS`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
+- **文言の編集**: 既定の文面は `config.ts` の `preExpiryNoticeCopy` / `expiredNoticeCopy`(上書きで同じ鍵を書けば変わる)。
+  `{{currencyLabel}}` などのプレースホルダが送信時に差し込まれる（使える名前は `config.ts` のコメント参照）。
+  段ごと・通貨ごとに文面を変えたい場合は、その段の `copy` に文字列を直に書く
+- 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
 - スケジュール登録は不要: `wallet-expiration-notice` は配線済みで、`notice` を設定した時点から毎時動く（Vercel Hobby では 1 日 1 回）。
   時刻は `src/app/api/cron/wallet-expiration-notice/task.ts`（毎時 15 分）。変えるなら同じフォルダに `task.override.ts` を置く（[cron 基盤 README](../../../lib/cron/README.md)「upstream のタスクを外す・時刻を変える」）
@@ -970,7 +974,7 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 - 通知用の対象抽出: `services/server/lots/findUsersWithExpiringLots.ts`
 - 通知用のスイープ結果照会: `services/server/lots/listExpirationResults.ts`
 - 消費済みロットの prune: `services/server/lots/pruneConsumedLots.ts`
-- 設定: `src/config/app/wallet-expiration.config.ts`
+- 設定: `src/features/core/wallet/config.ts` の `expiration`
 
 ---
 

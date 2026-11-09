@@ -1,7 +1,8 @@
 // パッケージ別割引設定の入力コンポーネント
 //
 // クーポンの discountMode が "per_package" の場合に表示する。
-// currency.config.ts のパッケージ一覧を元に、各パッケージの割引タイプ・割引値を入力する。
+// wallet の config.ts の currency のパッケージ一覧を元に、各パッケージの割引タイプ・割引値を入力する。
+// wallet を閉じた fork ではパッケージが無いので、この欄を出さない(門番の規則 wallet を確かめる、設定 D97)。
 
 "use client";
 
@@ -12,7 +13,8 @@ import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks";
 import { NumberInput } from "@/components/Form/Input/Manual";
-import { CURRENCY_CONFIG } from "@/config/app/currency.config";
+import { useGate } from "@/featureGate/client";
+import { walletConfig } from "@/features/wallet/config";
 import type { PackageDiscount } from "@/features/core/purchaseRequest/types/couponEffect";
 
 /**
@@ -23,16 +25,17 @@ import type { PackageDiscount } from "@/features/core/purchaseRequest/types/coup
  */
 export function PackageDiscountsInput() {
   const { watch, setValue } = useFormContext();
+  const walletOpen = useGate().enabled("wallet");
 
   const discountMode = watch("settings.discountMode");
   const packageDiscounts = (watch("settings.packageDiscounts") ?? []) as PackageDiscount[];
 
   // 全通貨のパッケージを統合（重複 amount は除外）
-  const allPackages = getAllPackages();
+  const allPackages = walletOpen ? getAllPackages() : [];
 
   // discountMode が per_package に切り替わった際に初期値を設定
   useEffect(() => {
-    if (discountMode !== "per_package") return;
+    if (!walletOpen || discountMode !== "per_package") return;
     if (packageDiscounts.length > 0) return;
 
     const initial: PackageDiscount[] = allPackages.map((pkg) => ({
@@ -44,7 +47,7 @@ export function PackageDiscountsInput() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [discountMode]);
 
-  if (discountMode !== "per_package") return null;
+  if (!walletOpen || discountMode !== "per_package") return null;
 
   const handleValueChange = (index: number, value: number) => {
     const updated = [...packageDiscounts];
@@ -109,7 +112,7 @@ function getAllPackages(): { amount: number; unit: string }[] {
   const seen = new Set<number>();
   const result: { amount: number; unit: string }[] = [];
 
-  for (const config of Object.values(CURRENCY_CONFIG)) {
+  for (const config of Object.values(walletConfig.currency)) {
     for (const pkg of config.packages) {
       if (!seen.has(pkg.amount)) {
         seen.add(pkg.amount);

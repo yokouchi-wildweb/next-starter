@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";

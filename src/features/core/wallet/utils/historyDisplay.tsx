@@ -10,13 +10,13 @@ import {
   WalletHistoryChangeMethodOptions,
   WalletHistorySourceTypeOptions,
 } from "@/features/core/walletHistory/constants/field";
-import { REASON_CATEGORY_CONFIG, type ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import { walletHistoryConfig, type ReasonCategory } from "@/features/walletHistory/config";
 import { getMetaFieldLabelMap } from "@/features/core/wallet/utils/currency";
 import { formatNumber, formatMetaValue } from "./formatters";
 
 // カテゴリラベルマップの作成
 const categoryLabelMap = new Map(
-  Object.entries(REASON_CATEGORY_CONFIG).map(([key, config]) => [key, config.label]),
+  Object.entries(walletHistoryConfig.reasonCategory).map(([key, config]) => [key, config.label]),
 );
 
 // ラベルマップの作成

@@ -18,7 +18,7 @@ import { markUserDirty } from "@/lib/userDirty";
 import { DomainError } from "@/lib/errors";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 import type { Coupon } from "@/features/core/coupon/entities/model";
 import type { CouponHistory } from "@/features/core/couponHistory/entities/model";
 import { CouponAttributionRewardTable } from "@/features/core/couponAttributionReward/entities/drizzle";

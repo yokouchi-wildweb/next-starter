@@ -4,7 +4,7 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックとテーブル作成の抑止は src/featureGate/rules/ の規則で自動制御されます。
 
-import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
+import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode } from "./types";
 
 export const APP_FEATURES = {
   auth: {
@@ -138,34 +138,7 @@ export const APP_FEATURES = {
      * @see src/featureGate/rules/wallet.ts
      */
     enabled: true,
-    /** 管理者による残高調整ボタンを有効にする */
-    enableAdminBalanceAdjust: false,
-    /**
-     * 購入制限モード
-     * - none: 制限なし
-     * - phoneVerified: SMS認証済みユーザーのみ購入可能
-     */
-    purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
-    /**
-     * 通貨購入の一時停止設定
-     * enabled: true かつスケジュール期間内の場合、全通貨の購入を停止する
-     * start/end が null の場合は制限なし（enabled: true + 両方 null = 無期限停止）
-     */
-    purchaseSuspension: {
-      enabled: false,
-      schedule: {
-        start: null as string | null, // 開始時刻（ISO8601形式）例: '2025-06-01T00:00:00+09:00'
-        end: null as string | null,   // 終了時刻（ISO8601形式）例: '2025-06-02T00:00:00+09:00'
-      },
-      /** 停止中に表示するメッセージ（nullでデフォルトメッセージを使用） */
-      message: null as string | null,
-    },
-    /** 管理者による残高変更時にユーザーへ通知を送信する（操作タイプ別） */
-    notifyOnAdjust: {
-      increment: false,
-      decrement: false,
-      set: false,
-    },
+    // 入切でない値(残高調整・購入制限・購入の一時停止・調整の通知)は src/features/core/wallet/config.ts(上書き src/config/features/wallet.config.ts)
   },
   dataMigration: {
     /** 最大レコード数制限（デフォルト: 1000） */

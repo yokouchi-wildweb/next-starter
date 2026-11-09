@@ -101,8 +101,8 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 test("上流のコード: requiresKey の区分(bonus)を書くファイルは reasonKey を渡す", async () => {
-  const { REASON_CATEGORY_CONFIG } = await import("@/config/app/wallet-reason-category.config");
-  const required = Object.entries(REASON_CATEGORY_CONFIG)
+  const { walletHistoryConfig } = await import("@/features/walletHistory/config");
+  const required = Object.entries(walletHistoryConfig.reasonCategory)
     .filter(([, c]) => (c as { requiresKey?: boolean }).requiresKey)
     .map(([key]) => key);
   assert.ok(required.includes("bonus"));

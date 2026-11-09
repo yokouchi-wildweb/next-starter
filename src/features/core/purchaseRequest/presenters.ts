@@ -11,11 +11,11 @@ import {
   formatDateValue,
 } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 
-// CURRENCY_CONFIG から動的にラベルマップを生成
+// walletConfig.currency から動的にラベルマップを生成
 const walletTypeLabels = Object.fromEntries(
-  Object.entries(CURRENCY_CONFIG).map(([key, config]) => [key, config.label])
+  Object.entries(walletConfig.currency).map(([key, config]) => [key, config.label])
 ) as Record<WalletType, string>;
 
 export type PurchaseRequestFieldPresenter = FieldPresenter<PurchaseRequest>;

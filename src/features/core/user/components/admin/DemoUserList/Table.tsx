@@ -14,6 +14,7 @@ import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { walletConfig } from "@/features/wallet/config";
 import { useGate } from "@/featureGate/client";
 import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
 
@@ -108,7 +109,7 @@ const createColumns = (
 
 export default function DemoUserListTable({ users }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
-  const enableWalletAdjust = useGate().enabled("wallet") && APP_FEATURES.wallet.enableAdminBalanceAdjust;
+  const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
   const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.demo;

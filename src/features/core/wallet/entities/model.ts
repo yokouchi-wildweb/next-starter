@@ -1,6 +1,6 @@
 // src/features/wallet/entities/model.ts
 
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 
 export type Wallet = {
   id: string;

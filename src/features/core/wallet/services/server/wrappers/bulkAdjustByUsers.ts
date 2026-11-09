@@ -6,7 +6,7 @@ import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizz
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/features/core/walletHistory/types/field";
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 import type { ChunkResult } from "@/features/batchJob/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import {

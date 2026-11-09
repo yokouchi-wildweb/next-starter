@@ -31,7 +31,7 @@ import {
 } from "@/features/core/bankTransferReview";
 import {
   CurrencyDisplay,
-  CURRENCY_CONFIG,
+  walletConfig,
   type WalletType,
 } from "@/features/core/wallet";
 import { useAdminBankTransferReview } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReview";
@@ -249,7 +249,7 @@ function AmountInline({
   // wallet の部品・設定を読むこのファイルの中で門番を確かめる(依存の検査 src/featureGate/checks/dependencies.mjs は
   // import するファイルの字面の useGate().enabled("wallet") を見る。fork の Screen は useAdminBankTransferReview の walletEnabled でもよい)
   const walletOpen = useGate().enabled("wallet");
-  const isKnownWalletType = walletOpen && walletType != null && walletType in CURRENCY_CONFIG;
+  const isKnownWalletType = walletOpen && walletType != null && walletType in walletConfig.currency;
   const hasAmount = typeof amount === "number";
   const hasPaymentAmount = typeof paymentAmount === "number";
 

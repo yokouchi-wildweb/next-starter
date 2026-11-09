@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { CountUp } from "@/components/Animation";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";
 import { currencyIcons } from "@/features/core/wallet/components/common/currencyIcons";
 

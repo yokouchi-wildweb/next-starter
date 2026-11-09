@@ -1,7 +1,7 @@
 // src/features/core/walletHistory/types/batch.ts
 
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 
 export type WalletHistoryBatchSummary = {
   batchId: string;

@@ -2,8 +2,8 @@
 // coinIssuance ソース: 購入以外で仕組みとしてユーザーに配ったコイン(販促・特典の付与)を台帳の純額で数える。
 //
 // 集計対象:
-//   wallet_histories のうち、type が COIN_ISSUANCE_WALLET_TYPES(src/config/app/coin-issuance.config.ts)で、
-//   reason_category が countsAsIssuance の区分(src/config/app/wallet-reason-category.config.ts。上流の既定 = bonus)
+//   wallet_histories のうち、type が analyticsConfig.coinIssuanceWalletTypes(src/features/core/analytics/config.ts)で、
+//   reason_category が analyticsConfig.issuanceReasonCategories の区分(上流の既定 = bonus)
 //   の行の純増減(balance_after - balance_before)の合計。
 //   付与元のドメインを問わず 1 本で数えるので、紹介報酬・クーポン帰属報酬・登録ボーナス・fork の施策も
 //   wallet の行を bonus で書けばここに入る。施策が増えても合計から黙って抜けない。
@@ -28,7 +28,7 @@
 
 import { and, between, inArray, sql } from "drizzle-orm";
 
-import { COIN_ISSUANCE_WALLET_TYPES } from "@/config/app/coin-issuance.config";
+import { analyticsConfig } from "@/features/analytics/config";
 import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
@@ -49,7 +49,7 @@ export const source: CoinIssuanceSource = {
 
   async aggregate({ range, prevRange, userFilter }) {
     const categories = issuanceReasonCategories();
-    if (categories.length === 0 || COIN_ISSUANCE_WALLET_TYPES.length === 0) {
+    if (categories.length === 0 || analyticsConfig.coinIssuanceWalletTypes.length === 0) {
       return { current: 0, previous: 0, breakdown: [] };
     }
 
@@ -67,7 +67,7 @@ export const source: CoinIssuanceSource = {
       .from(t)
       .where(and(
         between(t.createdAt, prevRange.dateFrom, range.dateTo),
-        inArray(t.type, [...COIN_ISSUANCE_WALLET_TYPES]),
+        inArray(t.type, [...analyticsConfig.coinIssuanceWalletTypes]),
         inArray(t.reason_category, categories),
         ...buildUserFilterConditions(t.user_id, userFilter, { kind: "flow", source: "wallet_histories", rowId: t.id }),
       ))

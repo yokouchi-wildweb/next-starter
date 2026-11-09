@@ -8,13 +8,13 @@
 // 付与のたびに行が増えるため、付与頻度が高いプロジェクトではこの prune を
 // 日次で回さないと wallet_lots が単調増加する。
 //
-// wallet-expiration.config.ts の有効/無効に関わらず動作する
+// wallet の config.ts の expiration の有効/無効に関わらず動作する
 // （機能を無効化した後に残った死んだロットも掃除できるようにするため）。
 
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { WalletLotTable } from "@/features/core/wallet/entities/drizzle";
-import { WALLET_LOT_PRUNE_RETENTION_DAYS } from "@/config/app/wallet-expiration.config";
+import { walletConfig } from "@/features/wallet/config";
 
 /** 1 反復あたりの削除件数。既存の audit_logs 等のプルーニングと同値で揃える */
 const DEFAULT_BATCH_SIZE = 1000;
@@ -52,7 +52,7 @@ export async function pruneConsumedWalletLots(
 ): Promise<PruneConsumedLotsResult> {
   const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
   const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
-  const retentionDays = options.retentionDays ?? WALLET_LOT_PRUNE_RETENTION_DAYS;
+  const retentionDays = options.retentionDays ?? walletConfig.lotPruneRetentionDays;
 
   let deletedCount = 0;
   let iterations = 0;

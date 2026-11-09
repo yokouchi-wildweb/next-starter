@@ -19,7 +19,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import { WalletTypeOptions } from "@/features/core/wallet/constants/field";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { WalletHistoryChangeMethodOptions } from "@/features/core/walletHistory/constants/field";
 import { useAdjustWallet } from "@/features/core/wallet/hooks/useAdjustWallet";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
@@ -121,7 +121,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
       meta: createMeta(values),
     };
 
-    const currencyLabel = CURRENCY_CONFIG[values.walletType].label;
+    const currencyLabel = walletConfig.currency[values.walletType].label;
 
     try {
       await trigger({ userId: user.id, payload });
@@ -138,7 +138,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
   const isProcessing = isSubmitting || isMutating;
 
   // 全通貨の残高を動的に取得・表示
-  const balanceDisplay = Object.entries(CURRENCY_CONFIG)
+  const balanceDisplay = Object.entries(walletConfig.currency)
     .map(([type, config]) => {
       const balance = walletBalances?.wallets.find((w) => w.type === type)?.balance ?? null;
       return `${config.label}: ${formatBalance(balance)}`;

@@ -3,11 +3,11 @@
 // /admin/bank-transfer-reviews は bankTransferReview.ts でも閉じるが、決済のテーブルを使うのでここでも閉じる
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { CURRENCY_CONFIG } from "@/config/app/currency.config";
+import { walletConfig } from "@/features/wallet/config";
 
 import type { FeatureGateRule } from "@/featureGate";
 
-const walletSlugs = Object.values(CURRENCY_CONFIG).map((currency) => currency.slug);
+const walletSlugs = Object.values(walletConfig.currency).map((currency) => currency.slug);
 
 export const rule: FeatureGateRule = {
   pathPatterns: [

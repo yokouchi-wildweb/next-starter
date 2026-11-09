@@ -6,7 +6,7 @@
 
 import "server-only";
 
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import type { WalletIndexEntry } from "@/features/core/wallet/types/screen";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
@@ -18,10 +18,10 @@ export type WalletIndexScreenData = {
 export const loadWalletIndexScreen = createLoader({
   access: "authenticated",
   load: async (): Promise<WalletIndexScreenData> => {
-    const wallets = (Object.keys(CURRENCY_CONFIG) as WalletType[]).map((walletType) => ({
+    const wallets = (Object.keys(walletConfig.currency) as WalletType[]).map((walletType) => ({
       walletType,
-      slug: CURRENCY_CONFIG[walletType].slug,
-      label: CURRENCY_CONFIG[walletType].label,
+      slug: walletConfig.currency[walletType].slug,
+      label: walletConfig.currency[walletType].label,
     }));
     return { wallets };
   },

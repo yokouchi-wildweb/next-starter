@@ -6,7 +6,7 @@ import { notificationService } from "@/features/notification/services/server/not
 import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
 import type { AdjustmentNotificationParams } from "./adjustmentNotificationFormat";
 import { buildBody, buildTitle } from "./adjustmentNotificationTemplate";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 
 type SendAdjustmentNotificationInput = {
   userId: string;

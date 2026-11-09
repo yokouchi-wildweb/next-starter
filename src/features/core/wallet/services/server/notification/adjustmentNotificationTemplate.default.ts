@@ -1,9 +1,8 @@
 // src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.default.ts
-// 管理者による残高変更通知の組み立ての既定。文言は src/config/app/wallet-notification.config.ts、
+// 管理者による残高変更通知の組み立ての既定。文言は src/features/core/wallet/config.ts の adjustmentNotification、
 // 組み立てごと変えるなら 1 行スイッチ(adjustmentNotificationTemplate.ts)
 
-import { CURRENCY_CONFIG } from "@/config/app/currency.config";
-import { WALLET_ADJUSTMENT_NOTIFICATION } from "@/config/app/wallet-notification.config";
+import { walletConfig } from "@/features/wallet/config";
 
 import {
   type AdjustmentNotificationParams,
@@ -14,8 +13,8 @@ import {
 
 /** 通知タイトルを生成 */
 export function buildTitle(params: AdjustmentNotificationParams): string {
-  const { label } = CURRENCY_CONFIG[params.walletType];
-  return `${label}${WALLET_ADJUSTMENT_NOTIFICATION.titleSuffix}`;
+  const { label } = walletConfig.currency[params.walletType];
+  return `${label}${walletConfig.adjustmentNotification.titleSuffix}`;
 }
 
 /** 通知本文を生成 */
@@ -24,7 +23,7 @@ export function buildBody(params: AdjustmentNotificationParams): string {
   const delta = formatDelta(params.changeMethod, params.amount, params.walletType);
   const after = formatAmount(params.balanceAfter, params.walletType);
 
-  const labels = WALLET_ADJUSTMENT_NOTIFICATION.bodyLabels;
+  const labels = walletConfig.adjustmentNotification.bodyLabels;
   const lines = [
     `${labels.method}: ${methodLabel}`,
     `${labels.amount}: ${delta}`,

@@ -4,7 +4,7 @@
 // 旧 completePurchase.ts 内にインライン記述されていたウォレット加算処理を戦略として切り出したもの。
 // 挙動は従来と完全に同一。完全互換を優先しており、新しい振る舞いは加えていない。
 
-import { CURRENCY_CONFIG } from "@/config/app/currency.config";
+import { walletConfig } from "@/features/wallet/config";
 import { DomainError } from "@/lib/errors";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
@@ -15,7 +15,7 @@ export const strategy: PurchaseCompletionStrategy = {
 
   /**
    * 購入パッケージ照合
-   * 旧 initiatePurchase.ts の CURRENCY_CONFIG[walletType] 検証と同等。
+   * 旧 initiatePurchase.ts の walletConfig.currency[walletType] 検証と同等。
    */
   validateInitiation: async ({ params }) => {
     const { walletType, amount, paymentAmount } = params;
@@ -27,7 +27,7 @@ export const strategy: PurchaseCompletionStrategy = {
       );
     }
 
-    const currencyConfig = CURRENCY_CONFIG[walletType as keyof typeof CURRENCY_CONFIG] as
+    const currencyConfig = walletConfig.currency[walletType as keyof typeof walletConfig.currency] as
       | { packages: ReadonlyArray<{ amount: number; price: number }> }
       | undefined;
     if (!currencyConfig?.packages?.length) {

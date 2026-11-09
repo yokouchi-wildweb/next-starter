@@ -6,7 +6,7 @@ import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { and, between, eq, inArray, lte, sql, type SQL } from "drizzle-orm";
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 import type {
   DateRangeParams,
   DailyAnalyticsResponse,

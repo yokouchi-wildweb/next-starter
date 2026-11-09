@@ -13,10 +13,7 @@
 
 import { and, asc, count, gt, inArray, isNull, like, or, sql, type SQL } from "drizzle-orm";
 
-import {
-  REASON_CATEGORY_CONFIG,
-  type ReasonCategory,
-} from "@/config/app/wallet-reason-category.config";
+import { walletHistoryConfig, type ReasonCategory } from "@/features/walletHistory/config";
 import { createDeadline, runBudgetedBatches, type BudgetedBatchesStopReason } from "@/lib/cron";
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
@@ -112,8 +109,8 @@ export async function backfillWalletReasonKeys(
   const deadline = options.deadline ?? createDeadline(240_000);
   const conditions = resolved.map(({ rule, fromCategories }) => backfillMatchCondition(rule, fromCategories));
   const matchCount = matchCountExpr(conditions);
-  const requiresKeyCategories = (Object.keys(REASON_CATEGORY_CONFIG) as ReasonCategory[]).filter(
-    (key) => (REASON_CATEGORY_CONFIG[key] as { requiresKey?: boolean }).requiresKey,
+  const requiresKeyCategories = (Object.keys(walletHistoryConfig.reasonCategory) as ReasonCategory[]).filter(
+    (key) => (walletHistoryConfig.reasonCategory[key] as { requiresKey?: boolean }).requiresKey,
   );
 
   const countWhere = async (where: SQL | undefined) =>

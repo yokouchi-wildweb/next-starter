@@ -18,7 +18,7 @@ import {
   DEFAULT_RANKING_LIMIT,
   MAX_RANKING_LIMIT,
 } from "@/features/core/analytics/constants";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import { buildBucketExpr } from "./utils/distribution";
 

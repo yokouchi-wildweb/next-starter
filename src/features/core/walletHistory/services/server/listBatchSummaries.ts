@@ -3,7 +3,7 @@
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import type { WalletHistoryBatchSummary } from "@/features/core/walletHistory/types/batch";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import { db } from "@/lib/drizzle";
 import { and, desc, eq } from "drizzle-orm";
 

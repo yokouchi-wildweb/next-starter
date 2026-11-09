@@ -5,7 +5,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import { useActiveBankTransfer } from "@/features/core/bankTransferReview/hooks/useActiveBankTransfer";

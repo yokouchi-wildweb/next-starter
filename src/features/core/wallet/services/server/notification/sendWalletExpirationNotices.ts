@@ -1,7 +1,7 @@
 // src/features/core/wallet/services/server/notification/sendWalletExpirationNotices.ts
 // 失効通知（予告 + 本通知）の cron タスク本体
 //
-// - 通知の設定（wallet-expiration.config.ts の notice）がどの通貨にも無ければ、クエリを発行せず即終了
+// - 通知の設定（wallet の config.ts の expiration の notice）がどの通貨にも無ければ、クエリを発行せず即終了
 // - 失効スイープ（wallet-expire-lots）とは別の cron。送信は外部通信で時間がかかるため、
 //   没収の実行時間とウォレット行ロックに影響させない
 // - 時間予算は本通知と予告で半分ずつ。本通知が大量に滞留していても、期日のある予告が後回しに
@@ -11,8 +11,7 @@
 
 import { createDeadline } from "@/lib/cron";
 import { runAsSystem } from "@/lib/audit";
-import type { WalletType } from "@/config/app/currency.config";
-import { WALLET_EXPIRATION_CONFIG } from "@/config/app/wallet-expiration.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getExpiredNotice, getPreExpiryNoticeStages } from "@/features/core/wallet/utils/expiration";
 import {
   createExpirationNoticeCounts,
@@ -60,7 +59,7 @@ function mergeExpired(
 export async function sendWalletExpirationNotices(
   options: SendWalletExpirationNoticesOptions = {},
 ): Promise<SendWalletExpirationNoticesResult> {
-  const walletTypes = Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[];
+  const walletTypes = Object.keys(walletConfig.expiration) as WalletType[];
   const hasNotice = walletTypes.some(
     (type) => getExpiredNotice(type) !== null || getPreExpiryNoticeStages(type).length > 0,
   );

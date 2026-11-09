@@ -5,7 +5,7 @@
 
 import axios from "axios";
 import { normalizeHttpError } from "@/lib/errors";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import type {
   WalletStateSummary,
   WalletStateRankingSortBy,

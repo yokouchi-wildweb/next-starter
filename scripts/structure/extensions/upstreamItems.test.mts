@@ -30,7 +30,7 @@ import { categories } from "@/app/_layout/adminCommand/extensions/categories";
 import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
 import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
 import { loadForAdmin } from "@/features/core/adminCommand/base/loadForAdmin";
 import { navigationItems } from "@/features/core/adminCommand/definitions/navigation/items";
@@ -265,8 +265,8 @@ test("同じ鍵: 購入完了の strategy と紹介報酬の rewardHandler は�
 });
 
 test("残高調整の通知: 既定の組み立ては今までと同じ形", tier1Only, () => {
-  const walletType = Object.keys(CURRENCY_CONFIG)[0] as WalletType;
-  const { label, unit } = CURRENCY_CONFIG[walletType];
+  const walletType = Object.keys(walletConfig.currency)[0] as WalletType;
+  const { label, unit } = walletConfig.currency[walletType];
   const params = { walletType, changeMethod: "INCREMENT", amount: 1000, balanceBefore: 0, balanceAfter: 1000, reason: "r" };
   assert.ok(buildTitle(params).startsWith(label));
   const lines = buildBody(params).split("\n");

@@ -5,12 +5,12 @@
 // 有効期限が無効な walletType では常に空（エラーにはしない。UI 側の分岐を単純にするため）。
 //
 // クエリ:
-// - walletType: 必須（currency.config.ts のキー）
+// - walletType: 必須（wallet の config.ts の currency のキー）
 // - withinDays: 任意（デフォルト 30、1〜365 にクランプ）
 
 import { createMeRoute } from "@/wiring/apiRoute";
 import { getExpiringLots } from "@/features/core/wallet/services/server/lots";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { DomainError } from "@/lib/errors";
 
 const DEFAULT_WITHIN_DAYS = 30;
@@ -26,7 +26,7 @@ export const GET = createMeRoute(
     const searchParams = new URL(req.url).searchParams;
 
     const walletType = searchParams.get("walletType");
-    if (!walletType || !(walletType in CURRENCY_CONFIG)) {
+    if (!walletType || !(walletType in walletConfig.currency)) {
       throw new DomainError("walletType が不正です。", { status: 400 });
     }
 

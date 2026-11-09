@@ -4,7 +4,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
-import type { WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/features/wallet/config";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";
 import { CurrencyDisplay } from "../common/CurrencyDisplay";
 

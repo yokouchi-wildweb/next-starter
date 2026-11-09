@@ -3,11 +3,11 @@
 import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { PURCHASE_TYPE_KEYS, type PurchaseTypeKey } from "@/config/app/purchaseType.config";
 
-// CURRENCY_CONFIG から動的に walletType の値を取得
-const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+// walletConfig.currency から動的に walletType の値を取得
+const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 // PURCHASE_TYPE_CONFIG から動的に purchaseType の値を取得
 const purchaseTypes = PURCHASE_TYPE_KEYS as [PurchaseTypeKey, ...PurchaseTypeKey[]];
 

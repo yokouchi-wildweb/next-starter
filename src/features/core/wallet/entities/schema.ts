@@ -1,10 +1,10 @@
 // src/features/wallet/entities/schemaRegistry.ts
 
 import { z } from "zod";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 
-// CURRENCY_CONFIG から動的に walletType の値を取得
-const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+// walletConfig.currency から動的に walletType の値を取得
+const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 export const WalletBaseSchema = z.object({
   user_id: z.string().trim().min(1, { message: "ユーザーは必須です。" }),

@@ -196,7 +196,7 @@ export const strategy: PurchaseCompletionStrategy = {
 - `amount` / `payment_amount` の意味は型依存（`wallet_topup`: 加算数 / 請求額、物販: 点数 / 販売価格）
 - `wallet_type = null` の型は `buildCallbackUrls` を必ず実装する（未定義だと wallet 既定 URL の slug が空になり壊れる）
 - 戦略未登録はサイレント skip せず `initiatePurchase` / `completePurchase` が `DomainError` を投げる（設定漏れの早期検知）
-- `wallet_type: "none"` のような非通貨マーカーを `CURRENCY_CONFIG` に足す案は不採用: `wallet_type` が「どのウォレットか」と「加算するか」の二重責務になり、非ウォレット型が増えるたびにマーカーが増えるため
+- `wallet_type: "none"` のような非通貨マーカーを通貨設定（`walletConfig.currency`）に足す案は不採用: `wallet_type` が「どのウォレットか」と「加算するか」の二重責務になり、非ウォレット型が増えるたびにマーカーが増えるため
 
 ### 6.2 ライフサイクルフック（すべて optional）
 

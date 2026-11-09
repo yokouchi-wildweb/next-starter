@@ -1,7 +1,7 @@
 // src/features/wallet/components/AdminWalletAdjustModal/formEntities.ts
 
 import { z } from "zod";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getAllMetaFields } from "@/features/core/wallet/utils/currency";
 
 // 全ウォレット種別のメタフィールドを取得（フォームスキーマは全フィールドを含む）
@@ -16,7 +16,7 @@ const metaFieldsSchemaShape = allMetaFields.reduce((shape, field) => {
   return { ...shape, [field.name]: schema };
 }, {} as Record<string, z.ZodType<string | undefined>>);
 
-const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+const walletTypeValues = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 export const WalletAdjustFormSchema = z
   .object({
@@ -49,8 +49,8 @@ const metaFieldsDefaults = allMetaFields.reduce(
   {} as Record<string, string>,
 );
 
-// CURRENCY_CONFIG の最初のキーをデフォルト値として使用
-const defaultWalletType = Object.keys(CURRENCY_CONFIG)[0] as WalletType;
+// walletConfig.currency の最初のキーをデフォルト値として使用
+const defaultWalletType = Object.keys(walletConfig.currency)[0] as WalletType;
 
 export const WalletAdjustDefaultValues: WalletAdjustFormValues = {
   walletType: defaultWalletType,

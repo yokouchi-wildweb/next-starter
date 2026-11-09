@@ -452,15 +452,15 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 | key | kind | 概要 |
 |---|---|---|
 | `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した分のうち `amount` に含まれるもの＝クーポン割引・購入パッケージの上乗せ等。別のウォレット行で払うボーナスは `wallet_bonus_grant` 側）|
-| `wallet_bonus_grant` | issuance | `wallet_histories` の `SUM(balance_after - balance_before)`。対象 = 数える通貨（`COIN_ISSUANCE_WALLET_TYPES`、既定 `regular_coin`）× `countsAsIssuance` の区分（既定 `bonus`）。付与元を問わず 1 本で数える（紹介報酬・クーポン帰属報酬・登録ボーナス・fork の施策も、wallet の行を `bonus` で書けば入る）。flow の scope（`wallet_histories`）で UserFilter と除外 |
+| `wallet_bonus_grant` | issuance | `wallet_histories` の `SUM(balance_after - balance_before)`。対象 = 数える通貨（`coinIssuanceWalletTypes`、既定 `regular_coin`）× 数える区分（`issuanceReasonCategories`、既定 `bonus`）。付与元を問わず 1 本で数える（紹介報酬・クーポン帰属報酬・登録ボーナス・fork の施策も、wallet の行を `bonus` で書けば入る）。flow の scope（`wallet_histories`）で UserFilter と除外 |
 
 **台帳の純額で 1 本に数える（二重計上しない）**:
 
 - 付与元の表ごとのソース（紹介報酬 `referral_rewards`・クーポン帰属報酬 `coupon_attribution_rewards` など）は `wallet_bonus_grant` の部分集合。`sources` に並べると `finalProfit` から二重に引かれるので、上流は登録しない（旧 `referral_reward` / `coupon_attribution_reward` は外した）。内訳を見たい画面は `aggregateReferralRewardCurrentVsPrev`（`referralAnalytics.ts`）・`aggregateCouponAttributionRewardCurrentVsPrev`（`couponAttributionAnalytics.ts`）を別に呼ぶ（合計には足さない）
-- **数える区分** = `src/config/app/wallet-reason-category.config.ts` の `countsAsIssuance: true`（上流の既定は `bonus` だけ）。fork のカテゴリにも同じ印を付けられる
+- **数える区分** = `src/features/core/analytics/config.ts` の `issuanceReasonCategories`（上流の既定は `["bonus"]`。何を創出と数えるかは分析の判断なので区分の表と分けて持つ、設定 D74）。fork のカテゴリも上書き `src/config/features/analytics.config.ts` の一覧に足す
   - `other` は既定で数えない: 区分を書かずに書いた行（`DEFAULT_REASON_CATEGORY`）と reason_category の導入前の行（全部 `other` で埋まっている）が入り、ガチャ・調整・退会の残高クリアなどの引き落としで純額が負になり得るため
-  - 区分なしで書かれた付与も拾いたい fork は自分の config で `other` に `countsAsIssuance: true` を付けられる（その場合、導入前の期間の値は信用しない）
-- **数える通貨** = `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_WALLET_TYPES`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
+  - 区分なしで書かれた付与も拾いたい fork は上書きの一覧に `"other"` を足せる（その場合、導入前の期間の値は信用しない）
+- **数える通貨** = `src/features/core/analytics/config.ts` の `coinIssuanceWalletTypes`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
 - **内訳（breakdown、表示だけ）**: `wallet_bonus_grant` は付与の種類（`reason_key`）ごとの行を `sources.wallet_bonus_grant.breakdown` に返す（`{ key, label, current, previous, changeRate }`、key null = 「未分類」、並び = 種類の sortOrder → 未分類は最後）。行の和 = そのソースの値。aggregator は合計（`totalIssuance` / `finalProfit`）に breakdown を使わない。画面は「販促・特典付与 = 合計」の下に行を並べる
   - 自前のソースも `aggregate()` の戻り値に `breakdown?: CoinIssuanceBreakdownRow[]` を返せる（規約: 表示だけ・行の和はソースの値と一致させる・どの行にも入らない分は key null に寄せる）
   - 過去の行は種類が無く「未分類」に入る。種類を埋める task は wallet README「付与の種類」
@@ -473,7 +473,7 @@ upstream / downstream の双方がソースを登録できるため、サービ�
 1. `CoinIssuanceSource` を満たす値を作成する
 2. `services/server/coinIssuance/sources/<名前>.ts` に `export const source` を置き `pnpm generate extensions`（閉じられる機能を読むソースは `enabled` が必須）
    - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
-3. (任意) `src/config/app/coin-issuance.config.ts` の `COIN_ISSUANCE_LABELS` に表示名を足す
+3. (任意) `src/features/core/analytics/config.ts` の `coinIssuanceLabels` に表示名を足す
 
 ### 実装テンプレート
 
@@ -523,7 +523,7 @@ export const source = gachaProfitSource;
 ```
 
 ```typescript
-// (任意) src/config/app/coin-issuance.config.ts の COIN_ISSUANCE_LABELS に足す
+// (任意) src/features/core/analytics/config.ts の coinIssuanceLabels に足す
   gacha_profit: "ガチャ収支",
 ```
 

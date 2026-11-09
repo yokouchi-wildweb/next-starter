@@ -4,7 +4,7 @@
 // 書き込みで reasonKey を渡せば reason_category は category になる(両方渡して食い違えば書き手の誤りとして例外)。
 // 詳細: src/features/core/walletHistory/README.md「付与の種類(reason key)」
 
-import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
+import type { ReasonCategory } from "@/features/walletHistory/config";
 
 export type WalletReasonKeyItem = {
   /** 機械向けの名前(wallet_histories.reason_key に入る。snake_case、重複は一覧の読み込みで例外) */
