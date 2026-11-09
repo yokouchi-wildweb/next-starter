@@ -9,7 +9,7 @@ import presenters from "@/features/core/coupon/presenters";
 import { useState } from "react";
 import CouponDetailModal from "../common/CouponDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
 
 export type AdminCouponListTableProps = {
@@ -20,8 +20,8 @@ export type AdminCouponListTableProps = {
   coupons?: Coupon[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
   config: couponDisplay,

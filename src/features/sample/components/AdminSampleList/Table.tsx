@@ -11,7 +11,7 @@ import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud/components
 import presenters from "@/features/sample/presenters";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 
 export type AdminSampleListTableProps = {
@@ -22,8 +22,8 @@ export type AdminSampleListTableProps = {
   samples?: Sample[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
   config: sampleDisplay,

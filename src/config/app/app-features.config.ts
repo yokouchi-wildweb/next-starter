@@ -48,19 +48,13 @@ export const APP_FEATURES = {
   },
   adminConsole: {
     // ダークモード切替の可否は src/config/ui/site-theme.config.ts(areas.admin.switchable)へ移動
-    enableSidebarResizing: true,
+    // サイドバーの幅の変更は管理の枠 src/app/admin/_layout/config.ts、ダッシュボードは src/features/core/admin/config.ts
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
     /** チャットルームの管理画面(/admin/chat-rooms)を有効にする(利用者側のチャットは止めない) */
     enableChatRoomAdmin: true,
     /** 通知テンプレートの管理画面と API を有効にする */
     enableNotificationTemplates: false,
-    dashboard: {
-      showMainMetrics: false,
-      showAdditionalMetrics: false,
-      // Higher values may increase productivity.
-      coffeeLevel: 180,
-    },
   },
   payment: {
     /**

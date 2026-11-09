@@ -6,7 +6,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
 import { Span } from "@/components/TextBlocks";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { adminConfig } from "@/features/admin/config";
 
 import { DeveloperMotivationChart } from "../parts/DeveloperMotivationChart";
 
@@ -14,7 +14,7 @@ import { DeveloperMotivationChart } from "../parts/DeveloperMotivationChart";
  * 追加の指標セクション。
  * テンプレート用のサンプルチャートを表示する。
  *
- * 機能フラグ `APP_FEATURES.adminConsole.dashboard.showAdditionalMetrics` で表示制御。
+ * 機能フラグ `adminConfig.dashboard.showAdditionalMetrics` で表示制御。
  * 無効時は何も描画しない。
  *
  * ダウンストリームでは:
@@ -22,7 +22,7 @@ import { DeveloperMotivationChart } from "../parts/DeveloperMotivationChart";
  * - セクションごと不要なら registry.ts から外す
  */
 export function AdditionalMetricsSection() {
-  if (!APP_FEATURES.adminConsole.dashboard.showAdditionalMetrics) {
+  if (!adminConfig.dashboard.showAdditionalMetrics) {
     return null;
   }
 
@@ -43,7 +43,7 @@ export function AdditionalMetricsSection() {
           <Block className="px-6">
             <Flex justify="center" align="center">
               <DeveloperMotivationChart
-                percentage={APP_FEATURES.adminConsole.dashboard.coffeeLevel}
+                percentage={adminConfig.dashboard.coffeeLevel}
               />
             </Flex>
           </Block>

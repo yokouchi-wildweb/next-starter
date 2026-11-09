@@ -10,7 +10,7 @@ import { DeleteButton } from "@/lib/crud/components";
 import { useNotificationAdminBulkActions } from "@/features/core/notification/hooks/useNotificationAdminBulkActions";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import NotificationDetailModal from "@/features/core/notification/components/common/NotificationDetailModal";
 import { domainDisplay as notificationDisplay } from "@/features/core/notification/entities/display";
 
@@ -24,8 +24,8 @@ export type AdminNotificationListTableProps = {
   readCounts?: Record<string, number>;
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 function buildColumns(readCounts: Record<string, number>): DataTableColumn<Notification>[] {
   const baseColumns = buildDomainColumns<Notification>({

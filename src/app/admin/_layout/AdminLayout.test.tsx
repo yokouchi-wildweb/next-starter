@@ -57,7 +57,7 @@ mock.module("@/components/Form/Button/Button", {
       createElement("x-button", { "data-variant": p.variant, "aria-label": p["aria-label"], "aria-pressed": String(p["aria-pressed"]) }),
   },
 });
-mock.module("@/config/app/app-features.config", { namedExports: { APP_FEATURES: { adminConsole: { enableSidebarResizing: true } } } });
+mock.module(here("./config.ts"), { namedExports: { adminLayoutConfig: { enableSidebarResizing: true, globalMenu: { submenuHideDelayMs: 639 } } } });
 mock.module(here("../(protected)/_layout/Sidebar/BaseSidebar.tsx"), { namedExports: { BaseSidebar: marker("basesidebar") } });
 
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;

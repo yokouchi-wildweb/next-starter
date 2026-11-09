@@ -9,7 +9,7 @@ import presenters from "@/features/core/chatRoom/presenters";
 import { useState } from "react";
 import ChatRoomDetailModal from "../common/ChatRoomDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 export type AdminChatRoomListTableProps = {
@@ -20,8 +20,8 @@ export type AdminChatRoomListTableProps = {
   chatRooms?: ChatRoom[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<ChatRoom>[] = buildDomainColumns<ChatRoom>({
   config: chatRoomDisplay,

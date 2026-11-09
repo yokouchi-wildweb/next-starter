@@ -10,7 +10,7 @@ import { useAdminBulkActionCan } from "@/features/core/user/hooks/useAdminBulkAc
 import { EditButton, DeleteButton } from "@/lib/crud/components";
 __DUPLICATE_IMPORT__import presenters from "@/features/__domain__/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
 
 export type Admin__Domain__ListTableProps = {
@@ -21,8 +21,8 @@ export type Admin__Domain__ListTableProps = {
   __domains__?: __Domain__[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
   config: __domain__Display,

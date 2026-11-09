@@ -3,7 +3,7 @@
 
 import "server-only";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { adminConfig } from "@/features/admin/config";
 import { userService } from "@/features/user/services/server/userService";
 import type { UserRoleType } from "@/features/user/types";
 import { dayRangeInTimeZone } from "@/utils/date";
@@ -17,10 +17,10 @@ export type MainMetricsData = {
 
 /**
  * ユーザー登録総数 / 本日(日本時間の日)のユーザー登録数を並列取得する。
- * 機能フラグ `APP_FEATURES.adminConsole.dashboard.showMainMetrics` が無効なら取得せず null(セクションは何も描かない)
+ * 機能フラグ `adminConfig.dashboard.showMainMetrics` が無効なら取得せず null(セクションは何も描かない)
  */
 export async function loadMainMetrics(): Promise<MainMetricsData | null> {
-  if (!APP_FEATURES.adminConsole.dashboard.showMainMetrics) {
+  if (!adminConfig.dashboard.showMainMetrics) {
     return null;
   }
 

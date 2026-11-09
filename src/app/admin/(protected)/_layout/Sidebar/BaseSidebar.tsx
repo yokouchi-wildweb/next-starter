@@ -14,12 +14,12 @@ import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
 import { useAdminMenu } from "@/features/core/admin/hooks/useAdminMenu";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminLayoutConfig } from "@/app/admin/_layout/config";
 import { MenuButton, adminSidebarButtonClassName } from "@/app/admin/_layout/Sidebar/MenuButton";
 
 import { ADMIN_HOME_LINK, ADMIN_LOGOUT_ICON, ADMIN_MENU_ICONS_ENABLED, ADMIN_SITE_LINK } from "./frameValues";
 
-const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
+const { globalMenu } = adminLayoutConfig;
 
 const sidebarContainer = cva("h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg");
 
@@ -89,7 +89,7 @@ export function BaseSidebar({
     closeTimeoutRef.current = setTimeout(() => {
       setOpenIndex(null);
       closeTimeoutRef.current = null;
-    }, adminGlobalMenu.submenuHideDelayMs);
+    }, globalMenu.submenuHideDelayMs);
   }, [clearCloseTimeout]);
 
   useEffect(() => {

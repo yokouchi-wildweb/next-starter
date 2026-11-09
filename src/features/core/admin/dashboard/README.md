@@ -51,7 +51,7 @@ src/features/core/admin/dashboard/
 ```tsx
 // services/server/revenue.ts
 export async function loadRevenue(): Promise<RevenueData | null> {
-  if (!APP_FEATURES.adminConsole.dashboard.showRevenue) return null;
+  if (!adminConfig.dashboard.showRevenue) return null;
   return revenueService.getMonthlySummary();
 }
 
@@ -113,7 +113,7 @@ loader の data(シリアライズできる値)を受けるか、hook 経由で�
 
 ## 機能フラグとの関係
 
-`APP_FEATURES.adminConsole.dashboard.*` のフラグは **取得(services/server)か Section 内部で参照する**。
+`adminConfig.dashboard.*` のフラグは **取得(services/server)か Section 内部で参照する**。
 登録 / 解除のメカニズムは `registry.ts` に一本化されており、フラグはあくまで
 「実装は残しつつ非表示にする」ための補助的手段として扱う。
 完全に廃止する場合は registry から外す方が適切。

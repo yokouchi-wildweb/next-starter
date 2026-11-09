@@ -10,7 +10,7 @@ import { useAdminBulkActionCan } from "@/features/core/user/hooks/useAdminBulkAc
 import { EditButton, DeleteButton } from "@/lib/crud/components";
 import presenters from "@/features/sampleCategory/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
 
 export type AdminSampleCategoryListTableProps = {
@@ -21,8 +21,8 @@ export type AdminSampleCategoryListTableProps = {
   sampleCategories?: SampleCategory[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCategory>({
   config: sampleCategoryDisplay,

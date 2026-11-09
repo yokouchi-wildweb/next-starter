@@ -9,7 +9,7 @@ import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdmin
 import { HardDeleteButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
@@ -22,8 +22,8 @@ type Props = {
   users: User[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const createColumns = (
   onAdjust: (user: User) => void,

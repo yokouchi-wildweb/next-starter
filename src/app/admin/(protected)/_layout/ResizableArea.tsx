@@ -3,7 +3,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { adminLayoutConfig } from "@/app/admin/_layout/config";
 import { Footer } from "./Footer";
 import { PcSidebar } from "./Sidebar/PcSidebar";
 import { SpSidebar } from "./Sidebar/SpSidebar";
@@ -26,7 +26,7 @@ export function ResizableArea({
   const hasSidebar = sidebar !== null;
   const [sidebarWidth, setSidebarWidth] = useState(192); // default 192px
   const dragging = useRef(false);
-  const isSidebarResizable = APP_FEATURES.adminConsole.enableSidebarResizing;
+  const isSidebarResizable = adminLayoutConfig.enableSidebarResizing;
 
   useEffect(() => {
     if (!isSidebarResizable || !hasSidebar) {

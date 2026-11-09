@@ -38,7 +38,7 @@ const chart1Decoration: MetricCardDecoration = {
  * - ユーザー登録総数 / 本日のユーザー登録数は data で受ける(取得は services/server/mainMetrics.ts。AdminHome の loader が実行)
  * - サンプル指標2つはダミー値 (テンプレート用)
  *
- * 機能フラグ `APP_FEATURES.adminConsole.dashboard.showMainMetrics` が無効なら取得側が null を返し、何も描画しない
+ * 機能フラグ `adminConfig.dashboard.showMainMetrics` が無効なら取得側が null を返し、何も描画しない
  * (registry から外したのと同等の見た目になる)。
  */
 export function MainMetricsSection({ data }: AdminDashboardSectionProps<MainMetricsData | null>) {

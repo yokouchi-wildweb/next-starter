@@ -7,7 +7,7 @@ import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSui
 import { EditButton, DeleteButton } from "@/lib/crud/components";
 import presenters from "@/features/core/notificationTemplate/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as notificationTemplateDisplay } from "@/features/core/notificationTemplate/entities/display";
 
 export type AdminNotificationTemplateListTableProps = {
@@ -18,8 +18,8 @@ export type AdminNotificationTemplateListTableProps = {
   notificationTemplates?: NotificationTemplate[];
 };
 
-const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
-const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<NotificationTemplate>[] = buildDomainColumns<NotificationTemplate>({
   config: notificationTemplateDisplay,
