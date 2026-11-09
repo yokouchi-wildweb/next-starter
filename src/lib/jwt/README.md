@@ -72,3 +72,7 @@ if (result) {
 ## 3. Cookie からの取得（parseSessionCookie）
 
 `parseSessionCookie` は `RequestCookies` / `ResponseCookies` からセッショントークン値を取得するためのヘルパーです。Next.js の API ルートやミドルウェアからトークンを読み出す際に利用できます。
+
+## 設定
+
+Cookie 名(`cookieName`、既定 `"__session"`)とセッションの既定の有効期限(`defaultMaxAgeSeconds`、既定 7 日)は `config.ts` が既定を持ち、fork は上書き `src/config/lib/jwt.config.ts`(`@lib-config/jwt`)に書く。公開の定数 `SESSION_COOKIE_NAME`・`SESSION_DEFAULT_MAX_AGE_SECONDS` はその値。

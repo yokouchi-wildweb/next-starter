@@ -2,8 +2,7 @@
 
 import MailChecker from "mailchecker";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
-
+import { spamGuardConfig, type SpamGuardConfig } from "./config";
 import { checkDebounce } from "./debounce";
 import { ALLOWED_TLDS, TRUSTED_DOMAINS } from "./whitelist";
 
@@ -59,12 +58,19 @@ function isTldAllowed(domain: string): boolean {
  * @returns true = 使い捨てメール（ブロック対象）, false = 正規メール（通過）
  */
 export async function isDisposableEmail(email: string): Promise<boolean> {
+  return checkDisposableEmail(email, spamGuardConfig);
+}
+
+/**
+ * isDisposableEmail の本体(設定を受ける形。入口からは出さない。上書きの値が効くことのテストが compose した設定を渡す)
+ */
+export async function checkDisposableEmail(email: string, config: SpamGuardConfig): Promise<boolean> {
   // ローカルパートの文字チェック（emailCheckModeに関係なく常に実行）
   if (hasSuspiciousLocalPart(email)) {
     return true;
   }
 
-  const mode = APP_FEATURES.auth.signup.emailCheckMode;
+  const mode = config.emailCheckMode;
 
   // disabled: チェックなし
   if (mode === "disabled") {

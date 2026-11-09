@@ -393,3 +393,4 @@
 - id:20261109-144911-config-district-admin-console | severity:action-required | checkpoint:config-district-admin-console | moved:src/config/ui/ui-behavior-config.ts -> src/config/features/admin.config.ts
 - id:20261109-145428-coupon-attribution-key-rename | severity:action-required | checkpoint:coupon-attribution-key-rename | fixes:20261109-140836-config-district-wallet-c | pick:-
 - id:20261109-152722-notification-template-gate-merge | severity:action-required | checkpoint:notification-template-gate-merge
+- id:20261109-153550-lib-close-jwt-spamguard | severity:action-required | checkpoint:lib-close-jwt-spamguard | moved:src/config/app/types.ts -> src/lib/spamGuard/config.ts

@@ -4,18 +4,10 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックとテーブル作成の抑止は src/featureGate/rules/ の規則で自動制御されます。
 
-import type { EmailCheckMode } from "./types";
-
 export const APP_FEATURES = {
   auth: {
     // サインアップの mode は src/features/core/user/config.ts の signupMode
     // 入切でない値(サードパーティの提供元・デモのセッション期限・本登録の画面と遷移・Hide My Email)は src/features/core/auth/config.ts(上書き src/config/features/auth.config.ts)
-    session: {
-      /** JWT セッション Cookie の名前 */
-      cookieName: "__session",
-      /** セッションの有効期限（秒）: 7日間 */
-      defaultMaxAgeSeconds: 60 * 60 * 24 * 7,
-    },
     signup: {
       /** サインアップ機能を有効にする（falseで完全ロック: 画面・API共にアクセス不可） */
       enabled: true,
@@ -28,13 +20,6 @@ export const APP_FEATURES = {
       recaptchaThreshold: 0.7,
       /** reCAPTCHA v2チャレンジ閾値（これ未満は即ブロック） */
       recaptchaV2Threshold: 0.3,
-      /**
-       * メールアドレスチェックモード
-       * - disabled: チェックなし
-       * - full: 4段階フルチェック（信頼ドメイン→TLD→OSS→DeBounce）
-       * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
-       */
-      emailCheckMode: "disabled" as EmailCheckMode,
     },
   },
   user: {
