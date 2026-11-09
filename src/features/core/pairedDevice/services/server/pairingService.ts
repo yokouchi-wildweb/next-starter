@@ -14,7 +14,7 @@
 
 import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
 
-import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DEVICE_PAIRING_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
 import { DevicePairingTable } from "@/features/core/pairedDevice/entities/drizzle";
@@ -55,7 +55,7 @@ import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 const MINUTE_MS = 60 * 1000;
 
 const newExpiry = (): Date =>
-  new Date(Date.now() + PAIRED_DEVICE_CONFIG.pairing.ttlMinutes * MINUTE_MS);
+  new Date(Date.now() + pairedDeviceConfig.pairing.ttlMinutes * MINUTE_MS);
 
 const hashCode = (code: string): string | null => {
   const normalized = normalizeShortCode(code);
@@ -139,7 +139,7 @@ export async function issuePairingCode(
 ): Promise<IssuedPairingCode> {
   const device = await getManagedPairedDevice(deviceId, actor);
   assertPairingFlowAllowed(device.kind, "admin_issued");
-  const rawCode = generateShortCode(PAIRED_DEVICE_CONFIG.pairing.codeLength);
+  const rawCode = generateShortCode(pairedDeviceConfig.pairing.codeLength);
   const expiresAt = newExpiry();
 
   const row = await db.transaction(async (tx) => {
@@ -276,7 +276,7 @@ export type StartedDevicePairing = {
 /** B. 端末がペアリングを始める（管理者の承認待ちのコードを発行する） */
 export async function startDevicePairing(request: DeviceRequestInfo): Promise<StartedDevicePairing> {
   assertPairedDeviceEnabled();
-  const rawCode = generateShortCode(PAIRED_DEVICE_CONFIG.pairing.codeLength);
+  const rawCode = generateShortCode(pairedDeviceConfig.pairing.codeLength);
   const pendingToken = generateSecretToken();
   const expiresAt = newExpiry();
 

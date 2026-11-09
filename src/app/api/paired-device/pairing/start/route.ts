@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 
-import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
 import {
   rejectCrossSiteRequest,
   startDevicePairing,
@@ -34,7 +34,7 @@ export const POST = createApiRoute(
       const response = NextResponse.json({
         code: started.code,
         expiresAt: started.expiresAt,
-        pollIntervalSeconds: PAIRED_DEVICE_CONFIG.pairing.pollIntervalSeconds,
+        pollIntervalSeconds: pairedDeviceConfig.pairing.pollIntervalSeconds,
       });
       setPendingPairingCookie(response.cookies, started.pendingToken, started.expiresAt);
       return response;

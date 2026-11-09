@@ -4,7 +4,7 @@
 
 import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 
-import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { getAuditContext } from "@/lib/audit";
 import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
@@ -34,7 +34,7 @@ export function resolveTokenMaxAgeDays(definition: PairedDeviceKindDefinition | 
     if (isPositiveDays(configured) && configured <= MAX_TOKEN_AGE_DAYS) return configured;
     console.warn(`[pairedDevice] invalid tokenMaxAgeDays (${configured}); using the config value`);
   }
-  return Math.min(PAIRED_DEVICE_CONFIG.token.maxAgeDays, MAX_TOKEN_AGE_DAYS);
+  return Math.min(pairedDeviceConfig.token.maxAgeDays, MAX_TOKEN_AGE_DAYS);
 }
 
 /** kind の無操作失効までの日数（null = 無効化しない）。不正な値は警告して config の値を使う */
@@ -45,7 +45,7 @@ export function resolveIdleRevokeDays(definition: PairedDeviceKindDefinition | n
     }
     console.warn(`[pairedDevice] invalid idleRevokeDays (${definition.idleRevokeDays}); using the config value`);
   }
-  return PAIRED_DEVICE_CONFIG.token.idleRevokeDays;
+  return pairedDeviceConfig.token.idleRevokeDays;
 }
 
 /**
@@ -53,7 +53,7 @@ export function resolveIdleRevokeDays(definition: PairedDeviceKindDefinition | n
  * 有効期間が閾値より短い kind で、アクセスのたびに延長（書き込み）が起きるのを防ぐ
  */
 function resolveRefreshThresholdDays(maxAgeDays: number): number {
-  return Math.min(PAIRED_DEVICE_CONFIG.token.refreshWhenRemainingDays, maxAgeDays / 4);
+  return Math.min(pairedDeviceConfig.token.refreshWhenRemainingDays, maxAgeDays / 4);
 }
 
 /** 長期間アクセスがなく無効になっているか */
@@ -221,7 +221,7 @@ async function touchDevice(
   },
 ): Promise<Date> {
   const { now } = state;
-  const throttleMs = PAIRED_DEVICE_CONFIG.lastSeenThrottleSeconds * 1000;
+  const throttleMs = pairedDeviceConfig.lastSeenThrottleSeconds * 1000;
   const shouldTouch = !state.lastSeenAt || state.lastSeenAt.getTime() + throttleMs <= now.getTime();
   const refreshThresholdMs = resolveRefreshThresholdDays(state.maxAgeDays) * DAY_MS;
   const shouldExtend =

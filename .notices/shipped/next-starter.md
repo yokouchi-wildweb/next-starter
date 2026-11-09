@@ -378,3 +378,4 @@
 - id:20261109-135810-config-district-chat-attachment | severity:action-required | checkpoint:config-district-chat-attachment | moved:src/config/app/chat-attachment.config.ts -> src/config/features/chatRoom.config.ts
 - id:20261109-140418-config-district-interaction-tracking | severity:action-required | checkpoint:config-district-interaction-tracking | moved:src/config/app/interaction-tracking.config.ts -> src/config/features/interactionTracking.config.ts
 - id:20261109-140342-config-district-user-counter | severity:action-required | checkpoint:config-district-user-counter | moved:src/config/app/user-counter.config.ts -> src/config/features/userCounter.config.ts
+- id:20261109-141026-config-district-paired-device | severity:action-required | checkpoint:config-district-paired-device

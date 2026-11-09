@@ -63,7 +63,7 @@ export type PairedDeviceKindDefinition<TScope = unknown> = {
    * 承認させる誘導が成り立つので、使う kind だけ明示的に足す
    */
   pairingFlows?: readonly DevicePairingFlow[];
-  /** 端末トークンの有効期間（日）。省略時は PAIRED_DEVICE_CONFIG.token.maxAgeDays */
+  /** 端末トークンの有効期間（日）。省略時は pairedDeviceConfig.token.maxAgeDays */
   tokenMaxAgeDays?: number;
   /** 最後のアクセスからこの日数で無効にする（null = 無効化しない）。省略時は config の値 */
   idleRevokeDays?: number | null;

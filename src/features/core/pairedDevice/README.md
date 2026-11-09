@@ -19,6 +19,8 @@
 無効の間は feature-gate が `/api/paired-device/**` `/api/paired-devices/**` を 404 にし、
 `getSessionDevice` は Cookie を読まずに常に null を返す。
 
+Cookie 名・端末トークンの期間・ペアリングコード・最終アクセスの間引きなどの値は、このドメインの `config.ts`（`pairedDeviceConfig`）が既定を持つ。変えるときは上書き `src/config/features/pairedDevice.config.ts` に書く（例 `export default { token: { maxAgeDays: 90 } } satisfies PairedDeviceOverride;`）。
+
 ## 端末の種類（kind）を登録する
 
 `kind` と `scope` の語彙・形は downstream が決める。アップストリームは scope の中身を解釈せず、

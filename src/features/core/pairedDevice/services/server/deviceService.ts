@@ -6,7 +6,7 @@
 
 import { and, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 
-import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import {
@@ -81,7 +81,7 @@ export function toPairedDeviceForAdmin(
   const online =
     state === "active" &&
     !!device.lastSeenAt &&
-    now.getTime() - device.lastSeenAt.getTime() <= PAIRED_DEVICE_CONFIG.onlineThresholdSeconds * 1000;
+    now.getTime() - device.lastSeenAt.getTime() <= pairedDeviceConfig.onlineThresholdSeconds * 1000;
   return {
     id: device.id,
     label: device.label,

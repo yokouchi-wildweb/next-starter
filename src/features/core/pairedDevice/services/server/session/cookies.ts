@@ -4,13 +4,13 @@
 
 import type { ResponseCookies } from "next/dist/compiled/@edge-runtime/cookies";
 
-import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
 import { SESSION_COOKIE_BASE_OPTIONS } from "@/features/core/auth/constants/session";
 
 type CookieReader = { get(name: string): { value: string } | undefined };
 
-export const PAIRED_DEVICE_COOKIE_NAME = PAIRED_DEVICE_CONFIG.cookie.name;
-export const PAIRED_DEVICE_PENDING_COOKIE_NAME = PAIRED_DEVICE_CONFIG.cookie.pendingPairingName;
+export const PAIRED_DEVICE_COOKIE_NAME = pairedDeviceConfig.cookie.name;
+export const PAIRED_DEVICE_PENDING_COOKIE_NAME = pairedDeviceConfig.cookie.pendingPairingName;
 
 const maxAgeSeconds = (expiresAt: Date): number =>
   Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
