@@ -11,7 +11,7 @@ import type { GatedFeatureRule } from "@/featureGate";
 
 import { checkBaseRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "./integrity.mjs";
 
-const rule = (name: string, features: string[] = [], dependsOn: string[] = []) => ({ name, features, dependsOn });
+const rule = (name: string, domains: string[] = [], dependsOn: string[] = []) => ({ name, domains, dependsOn });
 const domain = (folder: string, requires: string[] = [], tables: string[] = [`${folder.split("/").pop()}s`]) => ({ folder, name: folder.split("/").pop()!, requires, tables });
 const fk = (from: string, to: string) => ({ from, to });
 
@@ -64,8 +64,8 @@ test("共有のドメイン: 持つ機能の一部が閉で別の機能で開い
   assert.deepEqual(sharedDomainsOpen(list, ["core/userTag"], open([])), []);
   assert.deepEqual(sharedDomainsOpen(list, ["core/userTag"], open(["users", "demoUsers"])), []);
   // features list の説明: 閉じた機能の行に「別の機能で開いたまま」
-  const asRule = (name: string, features: string[], enabled: boolean) =>
-    ({ name, features, dependsOn: [], pathPatterns: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => enabled }) as unknown as GatedFeatureRule;
+  const asRule = (name: string, domains: string[], enabled: boolean) =>
+    ({ name, domains, dependsOn: [], pathPatterns: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => enabled }) as unknown as GatedFeatureRule;
   const [users, demoUsers] = describeFeatures([asRule("users", ["core/userTag"], true), asRule("demoUsers", ["core/userTag"], false)], { dependencies: [], callSites: {}, required: {} });
   assert.deepEqual(users.sharedDomainsOpen, []);
   assert.deepEqual(demoUsers.sharedDomainsOpen, [{ folder: "core/userTag", openBy: ["users"] }]);
@@ -79,5 +79,5 @@ test("規則を閉じれば閉じる住所(評価そのもの): 自分の住所�
     assert.ok(covered.includes(pattern), `wallet を閉じれば ${pattern} も閉じる`);
   }
   assert.ok(!covered.includes("/admin/coupons"), "依存しない機能の住所は入らない");
-  assert.deepEqual(coveredPatternsOf({ name: "noSuch" as never, pathPatterns: ["/x"], features: ["core/wallet"] }), ["/x"]);
+  assert.deepEqual(coveredPatternsOf({ name: "noSuch" as never, pathPatterns: ["/x"], domains: ["core/wallet"] }), ["/x"]);
 });

@@ -6,12 +6,12 @@ import type { FeatureGateRule } from "@/featureGate";
 export const rule: FeatureGateRule = {
   dependsOn: ["coupon"],
   pathPatterns: [
-    // /api/referral(と自前の /api/referral/**)・/api/referralReward は features から導く
+    // /api/referral(と自前の /api/referral/**)・/api/referralReward は domains から導く
     "/api/admin/referral",
     // 招待クーポン(type invite)の管理画面は紹介の画面(coupon の /admin/coupons の下。入れ子 = dependsOn coupon)
     "/admin/coupons/invite",
   ],
-  features: [
+  domains: [
     "core/referral",
     "core/referralReward",
   ],

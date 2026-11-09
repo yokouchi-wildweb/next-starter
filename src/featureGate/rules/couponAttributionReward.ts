@@ -10,7 +10,7 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     "/api/me/coupon-attribution-rewards",
   ],
-  features: [
+  domains: [
     "core/couponAttributionReward",
   ],
 };

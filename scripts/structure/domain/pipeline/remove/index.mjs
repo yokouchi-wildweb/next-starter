@@ -36,15 +36,15 @@ export function findExtraDirs(workspace, target, adminDir) {
   return findDomainDirs(path.join(workspace.rootDir, "src", "app"), [...target.searchNameSet]).filter((d) => !adminDir || d !== adminDir);
 }
 
-/** 規則ファイルの features: [...] の文字列リテラル(字面。生成器 scripts/structure/extensions/derive/featureTables.mjs の readFeatures と同じ読み方の最小形) */
-function readRuleFeatures(text) {
-  const match = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/.exec(text);
+/** 規則ファイルの domains: [...] の文字列リテラル(字面。生成器 scripts/structure/extensions/derive/featureTables.mjs の readDomains と同じ読み方の最小形) */
+function readRuleDomains(text) {
+  const match = /(?:^|[{,\s])domains\s*:\s*\[([\s\S]*?)\]/.exec(text);
   if (!match) return [];
   return match[1].split(",").map((part) => /^\s*["']([^"']+)["']\s*$/.exec(part)?.[1]).filter(Boolean);
 }
 
 /**
- * このドメインのフォルダを features に持つ門番の規則(src/featureGate/rules/<名前>.ts、字面で読む)。削除の前に止める材料(D26: ひな形の後始末はなくした)
+ * このドメインのフォルダを domains に持つ門番の規則(src/featureGate/rules/<名前>.ts、字面で読む)。削除の前に止める材料(D26: ひな形の後始末はなくした)
  * @returns {string[]} 規則のファイル(rootDir からの相対)
  */
 export function gateRuleHolders(workspace, featureDir) {
@@ -55,7 +55,7 @@ export function gateRuleHolders(workspace, featureDir) {
   for (const name of fs.readdirSync(dir).sort()) {
     const file = fs.statSync(path.join(dir, name)).isDirectory() ? path.join(dir, name, "index.ts") : path.join(dir, name);
     if (!/\.tsx?$/.test(file) || !fs.existsSync(file)) continue;
-    if (readRuleFeatures(fs.readFileSync(file, "utf8")).includes(folder)) files.push(path.relative(workspace.rootDir, file));
+    if (readRuleDomains(fs.readFileSync(file, "utf8")).includes(folder)) files.push(path.relative(workspace.rootDir, file));
   }
   return files;
 }
@@ -66,9 +66,9 @@ export function gateRuleStopMessage(workspace, featureDir) {
   if (holders.length === 0) return null;
   const folder = path.relative(path.join(workspace.rootDir, "src", "features"), featureDir).split(path.sep).join("/");
   return [
-    `門番の規則がこのドメイン(${folder})を features に持つので削除を止めました(何も消していません):`,
+    `門番の規則がこのドメイン(${folder})を domains に持つので削除を止めました(何も消していません):`,
     ...holders.map((file) => ` - ${file}`),
-    "規則の features から外す(規則ごと要らなければ規則のファイルを消す)→ pnpm generate extensions → もう一度削除",
+    "規則の domains から外す(規則ごと要らなければ規則のファイルを消す)→ pnpm generate extensions → もう一度削除",
   ].join("\n");
 }
 

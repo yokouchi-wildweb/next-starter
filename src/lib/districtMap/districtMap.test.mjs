@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { readDistrictMap, readDomainEntry, readFrameName, readOverrideImports, readRuleFeatures, readTableNames, toJsonl } from "./index.mjs";
+import { readDistrictMap, readDomainEntry, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
 
 /** パス → 本文 の表から source を作る(フォルダはパスから導く) */
 function memorySource(files) {
@@ -36,7 +36,7 @@ const BASE = {
   "src/features/core/wallet/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./w"), table: "wallets", idColumn: "id" },`),
   "src/features/core/wallet/config.ts": `export const WALLET_CONFIG = {};`,
   "src/features/core/purchaseRequest/services/server/domainEntry.ts": entry(`  purchaseRequest: { service: () => import("./p"), table: null, idColumn: null, requires: ["wallet", "walletHistory"] },\n  purchaseRequestLog: { service: () => import("./q"), table: null, idColumn: null, requires: ["wallet"] },`),
-  "src/featureGate/rules/wallet.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/wallet"], features: ["core/wallet"], enabled: () => true };`,
+  "src/featureGate/rules/wallet.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/wallet"], domains: ["core/wallet"], enabled: () => true };`,
   "src/featureGate/rules/signup.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/signup"], enabled: () => true };`,
   "src/featureGate/rules/README.md": "",
   "src/lib/crud/index.ts": "",
@@ -122,13 +122,13 @@ test("問題: frame: の無い枠の config・規則の features の行き先な
   const files = {
     ...BASE,
     "src/app/(marketing)/_layout/config.ts": `export const c = { title: "x" };`,
-    "src/featureGate/rules/ghost.ts": `export const rule = { pathPatterns: [], features: ["core/ghost"], enabled: () => true };`,
+    "src/featureGate/rules/ghost.ts": `export const rule = { pathPatterns: [], domains: ["core/ghost"], enabled: () => true };`,
     "src/features/sample/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
     "src/features/sample/entities/more.ts": `const n = "x"; export const t = pgTable(n, {});`,
   };
   const { problems } = readDistrictMap(memorySource(files));
   assert.ok(problems.some((p) => /\(marketing\)\/_layout\/config\.ts: 枠の config\.ts に frame: "<枠の名前>" が無い/.test(p)), problems.join("\n"));
-  assert.ok(problems.some((p) => /ghost\.ts: features の core\/ghost に当たる features の地区が無い/.test(p)));
+  assert.ok(problems.some((p) => /ghost\.ts: domains の core\/ghost に当たる features の地区が無い/.test(p)));
   assert.ok(problems.some((p) => /domainEntry のキー wallet が src\/features\/core\/wallet・src\/features\/sample で重なる/.test(p)));
   assert.ok(problems.some((p) => /more\.ts: pgTable の表名が文字列リテラルでない/.test(p)));
 });
@@ -136,8 +136,8 @@ test("問題: frame: の無い枠の config・規則の features の行き先な
 test("字面の読み手: requires の式・features の式・frame の式は問題、無い物は空", () => {
   assert.deepEqual(readDomainEntry("e.ts", entry(`  a: { requires: list },`)).problems.length, 1);
   assert.deepEqual(readDomainEntry("e.ts", "export const other = {};").keys, []);
-  assert.deepEqual(readRuleFeatures("r.ts", "export const rule = { features: names };").problems.length, 1);
-  assert.deepEqual(readRuleFeatures("r.ts", "export const rule = { pathPatterns: [] };"), { features: [], problems: [] });
+  assert.deepEqual(readRuleDomains("r.ts", "export const rule = { domains: names };").problems.length, 1);
+  assert.deepEqual(readRuleDomains("r.ts", "export const rule = { pathPatterns: [] };"), { domains: [], problems: [] });
   assert.deepEqual(readFrameName("c.ts", "export const c = { frame: NAME };").frame, null);
   assert.deepEqual(readFrameName("c.ts", "export const c = {};"), { frame: null, problems: [] });
   assert.deepEqual(readTableNames("t.ts", `/* pgTable("x") */ pgTable('y', {})`).tables, ["y"]);
@@ -167,7 +167,7 @@ test("tableFiles: features の地区の表と定義ファイル(パス順 → �
     { name: "wallet_lots", file: "src/features/core/wallet/entities/drizzle.ts", dir: "src/features/core/wallet" },
   ].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0)));
   assert.deepEqual(tableProblems, []);
-  const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { features: ["core/ghost"] };` }));
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { domains: ["core/ghost"] };` }));
   assert.deepEqual(broken.tableProblems, ["src/features/sample/entities/more.ts: pgTable の表名が文字列リテラルでない(字面で読めない)"]);
   assert.ok(broken.problems.length > broken.tableProblems.length);
 });

@@ -33,10 +33,10 @@ export function listSeedFiles(repoRoot: string): SeedFile[] {
 }
 
 /** 規則の一覧(features = src/features からの相対のフォルダ)から、閉じたドメインのフォルダを閉じている規則の名前を返す(開いたドメインは null) */
-export function closedByOf(rules: readonly { name: string; features?: readonly string[]; enabled: () => boolean }[]) {
+export function closedByOf(rules: readonly { name: string; domains?: readonly string[]; enabled: () => boolean }[]) {
   // ドメインの開閉(門番の README「ドメインの開閉」): 持つ規則が全部閉なら閉、答えは持ち主のうち一覧の順で最初。どの規則にも載らないドメインは開
   return (folder: string): string | null => {
-    const holders = rules.filter((rule) => (rule.features ?? []).includes(folder));
+    const holders = rules.filter((rule) => (rule.domains ?? []).includes(folder));
     return holders.length > 0 && holders.every((rule) => !rule.enabled()) ? holders[0].name : null;
   };
 }

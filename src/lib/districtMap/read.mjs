@@ -6,7 +6,7 @@
 
 import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
-import { readDomainEntry, readFrameName, readRuleFeatures, readTableNames } from "./fields.mjs";
+import { readDomainEntry, readFrameName, readRuleDomains, readTableNames } from "./fields.mjs";
 import {
   APP_ROOT,
   CONFIG_FILE,
@@ -123,11 +123,11 @@ function readGates(source, featuresByFolder, problems) {
     if (entry.isDir || !/\.ts$/.test(entry.name) || TEST_FILE.test(entry.name)) continue;
     const path = join(GATE_RULES_DIR, entry.name);
     const rule = entry.name.replace(/\.ts$/, "");
-    const read = readRuleFeatures(path, source.readText(path) ?? "");
+    const read = readRuleDomains(path, source.readText(path) ?? "");
     problems.push(...read.problems);
-    for (const folder of read.features) {
+    for (const folder of read.domains) {
       const dir = featuresByFolder.get(folder.replace(/\/+$/, ""));
-      if (!dir) problems.push(`${path}: features の ${folder} に当たる features の地区が無い`);
+      if (!dir) problems.push(`${path}: domains の ${folder} に当たる features の地区が無い`);
       else gates.set(dir, [...(gates.get(dir) ?? []), rule]);
     }
   }

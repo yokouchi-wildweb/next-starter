@@ -356,14 +356,14 @@ test("常時実行の入口: 規則の features の機能を import するなら
       .filter(code)
       .map((f) => ({ path: rel(f), kind: "wiring" })),
   ].map((entry) => ({ ...entry, text: readFileSync(join(ROOT, entry.path), "utf8") }));
-  assert.ok(featureGateRules.some((rule) => (rule.features ?? []).length > 0), "features を持つ規則が無い(features の読み取りを確認)");
+  assert.ok(featureGateRules.some((rule) => (rule.domains ?? []).length > 0), "domains を持つ規則が無い(domains の読み取りを確認)");
   const { problems, hits } = judgeAlwaysOnEntries(entries, featureGateRules, { ...ALWAYS_ON_EXCEPTIONS, ...fork.exceptions });
   assert.deepEqual(problems, [], `常時実行の入口の閉じ漏れ:\n${problems.join("\n")}\n該当: ${hits.join(" / ")}`);
 });
 
 // 表を持たないドメイン(Firestore 版の core/chatRoom など)の規則も、表のある規則と同じに見る(fixture。閉じるドメインは features のフォルダ)
 test("fixture: 表 0 のドメインの規則も、ルート・汎用 CRUD・常時実行の入口の検査に掛かる。features の無い規則は対象外", () => {
-  const chat = { name: "chatRoom", features: ["core/chatRoom"], tables: [], pathPatterns: ["/chat", "/api/chatRoom", "/api/cron/chat-sweep"] };
+  const chat = { name: "chatRoom", domains: ["core/chatRoom"], tables: [], pathPatterns: ["/chat", "/api/chatRoom", "/api/cron/chat-sweep"] };
   const plain = { name: "plain", pathPatterns: ["/plain"] };
   const IMPORT_CHAT = 'import { useChat } from "@/features/chatRoom/hooks/useChat";\nexport const x = useChat;\n';
   const routeFiles = [

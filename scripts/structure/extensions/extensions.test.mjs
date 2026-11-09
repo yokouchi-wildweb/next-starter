@@ -752,10 +752,10 @@ test("requires の被覆: 機能のドメインの requires の先が自分・�
     fixture({
       "src/featureGate/extensionPoints.ts": GATE_DECLARATION,
       ...domains,
-      "src/featureGate/rules/wallet.ts": r('features: ["core/wallet"],'),
-      "src/featureGate/rules/payment.ts": r('features: ["core/purchase"],'),
-      "src/featureGate/rules/bonus.ts": r('dependsOn: ["payment"],\n  features: ["core/reward"],'),
-      "src/featureGate/rules/logs.ts": r('features: ["core/log"],'),
+      "src/featureGate/rules/wallet.ts": r('domains: ["core/wallet"],'),
+      "src/featureGate/rules/payment.ts": r('domains: ["core/purchase"],'),
+      "src/featureGate/rules/bonus.ts": r('dependsOn: ["payment"],\n  domains: ["core/reward"],'),
+      "src/featureGate/rules/logs.ts": r('domains: ["core/log"],'),
     }),
   );
   const of = (name) => plan.problems.filter((p) => p.includes(`rules/${name}.ts`));
@@ -769,10 +769,10 @@ test("requires の被覆: 機能のドメインの requires の先が自分・�
     fixture({
       "src/featureGate/extensionPoints.ts": GATE_DECLARATION,
       ...domains,
-      "src/featureGate/rules/wallet.ts": r('features: ["core/wallet"],'),
-      "src/featureGate/rules/payment.ts": r('dependsOn: ["wallet"],\n  features: ["core/purchase"],'),
-      "src/featureGate/rules/bonus.ts": r('dependsOn: ["payment"],\n  features: ["core/reward"],'),
-      "src/featureGate/rules/logs.ts": r('features: ["core/log"],'),
+      "src/featureGate/rules/wallet.ts": r('domains: ["core/wallet"],'),
+      "src/featureGate/rules/payment.ts": r('dependsOn: ["wallet"],\n  domains: ["core/purchase"],'),
+      "src/featureGate/rules/bonus.ts": r('dependsOn: ["payment"],\n  domains: ["core/reward"],'),
+      "src/featureGate/rules/logs.ts": r('domains: ["core/log"],'),
     }),
   );
   assert.deepEqual(fixed.problems, []);
@@ -785,8 +785,8 @@ test("requires の被覆: 例外の表(機能:ドメイン→先)は通し、そ
     { folder: "core/notificationTemplate", name: "notificationTemplate", requires: [] },
   ];
   const items = [
-    { path: "n.ts", name: "notification", features: ["core/notification"], dependsOn: [] },
-    { path: "t.ts", name: "notificationTemplate", features: ["core/notificationTemplate"], dependsOn: [] },
+    { path: "n.ts", name: "notification", domains: ["core/notification"], dependsOn: [] },
+    { path: "t.ts", name: "notificationTemplate", domains: ["core/notificationTemplate"], dependsOn: [] },
   ];
   const key = "notification:core/notification→core/notificationTemplate";
   assert.deepEqual(checkRequiresCoverage(items, districts, { [key]: "理由" }), []);

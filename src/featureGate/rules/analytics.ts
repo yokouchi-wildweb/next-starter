@@ -10,7 +10,7 @@ export const rule: FeatureGateRule = {
     "/api/admin/analytics",
     "/api/activity/dau",
   ],
-  features: [
+  domains: [
     "core/analytics",
   ],
 };

@@ -1,5 +1,5 @@
 // src/featureGate/checks/dependencies.test.mjs
-// 依存の検査(D20(b)・L1.12): 閉じられるフォルダ(規則の features)を外から値で import するファイルは、
+// 依存の検査(D20(b)・L1.12): 閉じられるフォルダ(規則の domains)を外から値で import するファイルは、
 // (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前で gate.enabled / gate.assert / useGate().enabled
 // (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前> (6) 例外、のどれかでなければ落とす。
 // 判定: ./dependencies.mjs。実行: pnpm test src/featureGate/checks/dependencies.test.mjs
@@ -63,8 +63,8 @@ function fixture(files) {
   return root;
 }
 const fixtureRules = [
-  { name: "wallet", features: ["core/wallet", "core/walletHistory"], pathPatterns: ["/wallet", "/api/wallet"] },
-  { name: "coupon", features: ["core/coupon"], pathPatterns: ["/coupon"] },
+  { name: "wallet", domains: ["core/wallet", "core/walletHistory"], pathPatterns: ["/wallet", "/api/wallet"] },
+  { name: "coupon", domains: ["core/coupon"], pathPatterns: ["/coupon"] },
 ];
 const IMPORT_WALLET = 'import { walletService } from "@/features/core/wallet/services/server/walletService";\nexport const x = walletService;\n';
 const run = (files, opts = {}) => findDependencyViolations({ root: fixture(files), rules: fixtureRules, requiredNames: [], ...opts }).map(keyOf);
@@ -104,8 +104,8 @@ test("fixture: 型だけの import は数えず、動的 import・副作用 impo
 });
 
 test("fixture: 表を持たない閉じられるフォルダ(Firestore 版など)も、表のあるフォルダと同じに数える", () => {
-  // core/chatRoom は pgTable を持たない(domainEntry の table: null)。判定は規則の features だけを見る
-  const rules = [...fixtureRules, { name: "chatRoom", features: ["core/chatRoom"], pathPatterns: ["/chat"] }];
+  // core/chatRoom は pgTable を持たない(domainEntry の table: null)。判定は規則の domains だけを見る
+  const rules = [...fixtureRules, { name: "chatRoom", domains: ["core/chatRoom"], pathPatterns: ["/chat"] }];
   const tableless = {
     "src/features/core/chatRoom/services/server/chatRoomService.ts": "export const chatRoomService = {};\n",
     "src/features/core/chatRoom/services/server/domainEntry.ts": 'export const domainEntries = {\n  chatRoom: { table: null, idColumn: null },\n} satisfies X;\n',

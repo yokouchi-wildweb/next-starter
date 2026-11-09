@@ -21,7 +21,7 @@ want → means:
 - text, link, number, flag, color, icon, option list → config | per-call value → value prop | prop missing → /order
 - add a step to a process → receptacle item (extensionPoints.ts) | replace the single implementation → 1-line switch
 - change looks or layout → compose core parts in _components/, else copy (judge 2) | add a form input → formInputs item
-- stop a page or role → app-features / feature-gate / enabled:false | new feature → own route + domain
+- stop a page → close its feature (pnpm ops features set \<name\> off) | stop a role → enabled:false | new feature → own route + domain
 
 order: an extension request carries `tried: <means checked — why not enough>`
 copy_mark: line 1 `// copied-from: <upstream path>` | no sha, no ledger | unmarked copies are undetectable and accepted | /flux lists changed origins per segment, never stops

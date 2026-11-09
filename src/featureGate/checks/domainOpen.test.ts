@@ -1,6 +1,6 @@
 // src/featureGate/checks/domainOpen.test.ts
 // ドメインの開閉と導出の住所(D24・D34 K4)の回帰テスト:
-// - ドメインの開閉(ruleList.ts の closedDomainsOf・domainEnabled): 開 = そのドメインを features に持つ規則のどれかが開。どの規則にも載らないドメインは常に開
+// - ドメインの開閉(ruleList.ts の closedDomainsOf・domainEnabled): 開 = そのドメインを domains に持つ規則のどれかが開。どの規則にも載らないドメインは常に開
 // - 導出の住所(closedDerivedEntries): 汎用 API = ドメインが閉なら閉、cron = 読むドメインのどれかが閉なら閉、設定の節 = 名指す機能のどれかが閉なら閉。
 //   rule・redirectTo = 閉じた持ち主(と閉じた名指し)のうち一覧の順で最初
 // - 表(closedTables): 閉じたドメインの表だけ
@@ -16,8 +16,8 @@ import { closedTables } from "@/featureGate/node";
 import { closedDerivedEntries, closedDomainsOf, domainEnabled, type DerivedPath } from "@/featureGate/ruleList";
 import { patternSpecificity } from "@/lib/pathPattern/index.mjs";
 
-const rule = (name: string, features: string[], open: boolean, extra: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
-  ({ name, features, pathPatterns: [], dependsOn: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => open, ...extra }) as unknown as GatedFeatureRule;
+const rule = (name: string, domains: string[], open: boolean, extra: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
+  ({ name, domains, pathPatterns: [], dependsOn: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => open, ...extra }) as unknown as GatedFeatureRule;
 
 test("ドメインの開閉: 2 つの機能が持つドメインは片方が開なら開、両方閉なら閉(持ち主は一覧の順で最初)", () => {
   const both = [rule("users", ["core/wallet"], false), rule("demoUsers", ["core/wallet"], true)];

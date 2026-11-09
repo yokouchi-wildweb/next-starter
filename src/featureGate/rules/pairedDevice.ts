@@ -8,7 +8,7 @@ export const rule: FeatureGateRule = {
     "/api/paired-device",
     "/api/paired-devices",
   ],
-  features: [
+  domains: [
     "core/pairedDevice",
   ],
   defaultEnabled: false,

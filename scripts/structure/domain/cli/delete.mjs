@@ -74,7 +74,7 @@ export async function runDelete(workspace, domain, options = {}) {
   const searchDirs = findExtraDirs(workspace, target, adminDir);
   const withAdmin = (dirs) => [...(adminDir ? [adminDir] : []), ...dirs];
   // 消さずに残るコードからの import も止める。確認より前は追加ディレクトリの候補を全部除いて数え、選んだ後に選ばなかった候補を数える
-  // 門番の規則がこのドメインを features に持てば止める(規則の features から先に外す。D26)
+  // 門番の規則がこのドメインを domains に持てば止める(規則の domains から先に外す。D26)
   const stop =
     gateRuleStopMessage(workspace, target.featureDir) ??
     deleteStopMessage(workspace, path.basename(target.featureDir)) ??

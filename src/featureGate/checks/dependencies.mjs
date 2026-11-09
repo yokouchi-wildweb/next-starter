@@ -75,12 +75,12 @@ const callsGate = (text, ruleName) =>
 /**
  * 閉じられるフォルダを外から値で読むファイルを全部集め、どの形で許されたかを付ける(許されなければ allowedBy: null = 違反)。
  * pnpm ops features list(node/describe.ts)の依存の一覧と、違反の判定 findDependencyViolations が共有する
- * @param {{ root: string, rules: { name: string, features?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
  * @returns {{ file: string, folder: string, rule: string, allowedBy: "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null }[]}
  */
 export function scanDependencies({ root, rules, exceptionFiles = [], requiredNames = readRequiredNames(root) }) {
   const folderRules = new Map();
-  for (const rule of rules) for (const folder of rule.features ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
+  for (const rule of rules) for (const folder of rule.domains ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
   const folders = [...folderRules.keys()];
   const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/features/${f}` || resolved.startsWith(`src/features/${f}/`)) ?? null;
   const domains = domainLookup(readDistrictMapAt(root).districts);
@@ -130,7 +130,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
 
 /**
  * 違反を集める(scanDependencies の許されなかった物)
- * @param {{ root: string, rules: { name: string, features?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
  * @returns {{ file: string, folder: string, rule: string }[]}
  */
 export function findDependencyViolations(input) {

@@ -9,7 +9,7 @@ export const rule: FeatureGateRule = {
     "/api/me/coupon-issuer",
     "/api/admin/coupon-issuer-grants",
   ],
-  features: [
+  domains: [
     "core/coupon",
     "core/couponHistory",
     "core/couponIssuerGrant",

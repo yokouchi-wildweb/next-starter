@@ -1,8 +1,14 @@
 # src/featureGate — 門番(機能を閉じる仕組み)
 
-機能フラグ(`src/config/app/app-features.config.ts` ほか)を false にした機能を、**ルートとテーブルの両方から**閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
+機能(人が開け閉めする単位、規則 1 本)を閉じると、その住所と、どの開いた機能にも使われなくなったドメインの表・汎用 API・cron を閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
 
 src 直下の専用の基盤に置く(lib にも core のドメインにも置かない)。src 直下の基盤に置いてよいのは、ドメインの集合を横断する仕組みだけ(今は featureGate・registry・wiring)。maintenance・demoMode・cron のタスクなど、仕組みに従う側は置かない。
+
+## 言葉(D33)
+
+- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/features/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは基盤として常に開
+- **機能**(feature): 人が開け閉めする単位 = 規則 1 本(`rules/<名前>.ts`、名前 = `FeatureName`)。使うドメイン(`domains`)・自分の住所(`pathPatterns`)・依存する機能(`dependsOn` / `anyOf`)・自分のスイッチ(`defaultEnabled` と fork の `switches.config.ts`)を持つ
+- **門番**(featureGate): 機能の開閉を評価し、住所・表・汎用 API・cron・設定の節・リンクに及ぼす基盤(このフォルダ)。名前(`featureGate`・`FeatureName`・`gate` / `useGate`・設定の節の `feature:`・`pnpm ops features list / set`・`rules/`)はもとから機能の意味
 
 ## 置き場
 
@@ -75,11 +81,11 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 
 ## 機能を閉じる規則
 
-機能フラグ（`src/config/app/app-features.config.ts` ほか）を false にした機能を、**ルートとテーブルの両方から**閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
+機能(人が開け閉めする単位、規則 1 本)を閉じると、その住所と、どの開いた機能にも使われなくなったドメインの表・汎用 API・cron を**両方から**閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
 
 | 部品 | 場所 | いつ効くか | やること |
 |---|---|---|---|
-| 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `features` / `dependsOn` / `enabled()` / `redirectTo` |
+| 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `domains` / `dependsOn` / `enabled()` / `redirectTo` |
 | 一覧 | `extensions/rules.ts`（生成物、型 `GeneratedFeatureRule`・`GatedDomain`・`GatedCronTask`・`GatedSettingSection`） | — | 規則 + 名前 + `dependsOn`(字面の写し、書かない規則は空) + 説明用の表名・汎用 API・設定の節・cron の住所(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths`。`pathPatterns` には足さない)。ドメインの表 `domains`(表・汎用 API の住所・持つ機能)・cron の task の表 `cronTasks`(住所・読むドメイン)・設定の節の表 `settingSections`(住所・名指す機能)も出す。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
 | ルートゲート | `src/proxies/featureGate.ts`(`gate.path` を呼ぶ) | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
 | API の部品工場 | `src/wiring/apiRoute.ts` が `gate.path` を Factory の口 `gate` に結ぶ | API のリクエストごと | 閉じた住所の API は Factory も 404(proxy の安全網。`src/lib/routeFactory/README.md`) |
@@ -93,18 +99,18 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
-  pathPatterns: ["/wallet", "/api/me/wallet"], // 汎用 API の /api/wallet・/api/walletHistory は書かない(features から導く)
-  features: ["core/wallet", "core/walletHistory"],
+  pathPatterns: ["/wallet", "/api/me/wallet"], // 汎用 API の /api/wallet・/api/walletHistory は書かない(domains から導く)
+  domains: ["core/wallet", "core/walletHistory"], // この機能が使うドメインのフォルダ(D33 で features: から改名)
   defaultEnabled: true, // 入切の上流の既定(省略 = 開)。fork の値は src/config/featureGate/switches.config.ts
 };
 ```
 
 - `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/lib/pathPattern`（門番の判定・ルート地図・pnpm test src/featureGate scripts/structure/proxies が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
 - **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
-- `features` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。features の地区（`src/lib/districtMap` が見つけるドメイン）でない書き方（無いフォルダ・`core/wallet/entities` のような深い場所・`core` そのもの・`_` で始まる雛形）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）が地区の下の全 `pgTable` から導く（地区の地図の読み手 `src/lib/districtMap`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
-- **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、生成一覧の `domains` のそのドメインの `apiPaths` に載せる。住所はドメインに付き、ドメインの開閉で閉じる(下の「ドメインの開閉」。規則の `pathPatterns` には足さない、項目の `domainApiPaths` は説明用)。`domainEntry.ts` の無いフォルダは住所を持たない。手書きと重なると `pnpm test src/featureGate scripts/structure/proxies` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
+- `domains` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。features の地区（`src/lib/districtMap` が見つけるドメイン）でない書き方（無いフォルダ・`core/wallet/entities` のような深い場所・`core` そのもの・`_` で始まる雛形）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）が地区の下の全 `pgTable` から導く（地区の地図の読み手 `src/lib/districtMap`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
+- **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `domains` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、生成一覧の `domains` のそのドメインの `apiPaths` に載せる。住所はドメインに付き、ドメインの開閉で閉じる(下の「ドメインの開閉」。規則の `pathPatterns` には足さない、項目の `domainApiPaths` は説明用)。`domainEntry.ts` の無いフォルダは住所を持たない。手書きと重なると `pnpm test src/featureGate scripts/structure/proxies` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
 - **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(D34 K4。機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
-- **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts がどれかの規則の `features` のフォルダを値で import すると、生成器が生成一覧の `cronTasks`(住所・読むドメイン)に載せ、読むドメインが全部開のときだけ開く（`scripts/structure/extensions/derive/featureTables.mjs`、目録 D10・D34 K4。項目の `cronPaths` は説明用）。規則に `/api/cron/` を手書きすると生成で失敗
+- **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts がどれかの規則の `domains` のフォルダを値で import すると、生成器が生成一覧の `cronTasks`(住所・読むドメイン)に載せ、読むドメインが全部開のときだけ開く（`scripts/structure/extensions/derive/featureTables.mjs`、目録 D10・D34 K4。項目の `cronPaths` は説明用）。規則に `/api/cron/` を手書きすると生成で失敗
 - **入切の値**(D35): 上流の既定は規則の `defaultEnabled`(リテラル、省略 = 開)、fork の値は `src/config/featureGate/switches.config.ts`(上流は空 `{}` で出荷し出荷後に書かない、`{ <機能の名前>: true|false }` を並べる、型 `FeatureSwitches`、未知の名前・真偽でない値は読み込みで throw)。自分の値 = (switches の値 ?? `defaultEnabled` ?? 開) && `enabled()`。合成は `ruleList.ts` の 1 か所。ドメインの `config.ts` に入切を置かない(処理の切り替えはドメインの config のまま、設定 D92)
 - `enabled` は入切でない開く条件だけ(config の値から導いた値を読む同期関数。例 `bankTransferReview` の「自社振込が選べるか」)。省略 = 条件なし。入切そのもの(人が開け閉めする値)を書かない
 - `anyOf` = どれか 1 つが開なら開く機能の並び(OR、D36。例 `mypageOther` = 休会か退会)。`dependsOn` と両方あれば両方を満たすとき開
@@ -115,7 +121,7 @@ export const rule: FeatureGateRule = {
 
 ### ドメインの開閉(表・汎用 API・cron)と設定の節
 
-- ドメイン = どれかの規則の `features` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `features` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい。D24)。どの機能にも載らないドメインは基盤として常に開
+- ドメイン = どれかの規則の `domains` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `domains` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい。D24)。どの機能にも載らないドメインは基盤として常に開
 - ドメインの開閉で決まる物: 表(`pnpm db:push` / `db:push:check`・`pnpm ops db seed`・`pnpm ops db clear`)・汎用 API の住所(`apiPaths`)・cron の task(`cronTasks`、読むドメインが全部開のとき開)
 - 評価は `ruleList.ts`(`closedDomainsOf`・`domainEnabled`・`closedDerivedEntries`・`closedDomainTables`)。機能の開閉は渡した一覧で読む: `rules` なら全開スイッチを通し、`configRules` なら規則の値だけ
 - 設定の節(`settingSections`)は節自身の判定: 名指す機能が全部開のときだけ開く(導出の住所の 1 種、`closedDerivedEntries`)
@@ -139,11 +145,45 @@ export const rule: FeatureGateRule = {
   - `configEnabled(name)`(`configRules` の `enabled()`): 規則の値 && 依存先の規則の値が全部開(スイッチを通さない)
   - `ownEnabled(name)`: 規則の値そのもの = (switches の値 ?? `defaultEnabled` ?? 開) && `enabled()`(全開スイッチも依存先も通さない。`pnpm ops features list` の閉の理由)
   - `isOpenedBySwitch(name)`: 全開スイッチがその名前を開けているか(依存先は見ない。開くかは `ruleEnabled`)
-- **requires の被覆**(生成で止める、D24・D34 K5。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `features` のドメインが `requires`(domainEntry.ts)するドメインは、X の `features`・X の依存先(推移的)の `features`・基盤(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(今は 0 行)
+- **requires の被覆**(生成で止める、D24・D34 K5。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `domains` のドメインが `requires`(domainEntry.ts)するドメインは、X の `domains`・X の依存先(推移的)の `domains`・基盤(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(今は 0 行)
 - **住所の検査**(読み込み後の一覧で、`node/addressCheck.ts` の `checkAddresses`、検査は `pnpm test src/featureGate scripts/structure/proxies`): 同じ住所を 2 つの機能が持つ(手書き・汎用 API・cron・設定の節の全部で)、親の前方一致の下の住所の機能が親に `dependsOn` していない(推移的で可)、を止める(D25・D31)。fork の規則も同じ(上流の住所の下に足した規則は上流の機能に `dependsOn`)。依存の根拠が無い入れ子は両方に依存する小さな機能へ(D34 K3)。上流の例外は 0(理由つきの縮む表 `ADDRESS_EXCEPTIONS`)
 - **組み合わせの検査**(test で止める、`checks/integrity.mjs`、実物は `scripts/structure/proxies/featureGate.test.mjs`): 機能をまたぐ外部キー(ドメインの `requires` と機能の `dependsOn` の両方で覆う。規則の中の外部キーと参照先が基盤のものは対象外、設定 D56)・どの機能にも載らないドメイン(基盤)の `requires` の先が閉じうる・必須の機能(`required/`)が規則の値で閉、を止める。共有のドメインが別の機能で開いたままは落とさず warn し、`pnpm ops features list` の閉じた機能に出す(`sharedDomainsOpen`)。上流の例外は 0(テスト内の縮む表)
 - 全開スイッチの名前指定は依存先を開けない(「全開スイッチ」の節)
 - `pnpm ops features list` は依存先・依存元(推移的)・閉の理由を出し、`pnpm ops features set` は必須の機能が依存する機能の off を止める(下の節)
+
+### 例 4 つ(D30)
+
+```ts
+// 1. 単体のドメインの機能: 1 つのドメインと、その画面・API
+export const rule: FeatureGateRule = {
+  pathPatterns: ["/admin/milestones", "/api/me/milestones"],
+  domains: ["core/milestone"],
+};
+
+// 2. 複数のドメインを組む機能: 部品のドメインを並べ、使う機能に依存する
+export const rule: FeatureGateRule = {
+  dependsOn: ["wallet"], // 購入は残高に積む(purchaseRequest の requires と外部キーも覆う)
+  pathPatterns: ["/api/webhook/payment", "/api/wallet/purchase"],
+  domains: ["core/purchaseRequest", "core/bankTransferReview", "core/purchaseQuota"],
+  defaultEnabled: true,
+};
+
+// 3. 画面だけの機能: ドメインを持たず、住所だけを閉じる(=/ は完全一致で fork が下に足したページを巻き込まない)
+export const rule: FeatureGateRule = {
+  dependsOn: ["pageMypage"], // マイページの画面の一部
+  pathPatterns: ["=/mypage/account/email"],
+};
+
+// 4. fork が上流の機能の住所の一部を閉じる機能: 上流の住所の下に住所を持つので上流の機能に dependsOn する(住所の検査が求める)
+// src/featureGate/rules/friendCouponAdmin.ts(fork の名前)
+export const rule: FeatureGateRule = {
+  dependsOn: ["coupon"],
+  pathPatterns: ["/admin/coupons/friend-coupon"],
+  defaultEnabled: false,
+};
+```
+
+- 依存の根拠の無い入れ子(親の住所の下にあるが、子の機能は親に依存しない)は、親と子の両方に依存する小さな機能に住所を持たせる(`enabled`・`defaultEnabled` を書かない = 両方が開のとき開。例 `demoSampleDomain`・`walletAnalytics`・`mypageInvite`、D34 K3)
 
 ### スキーマゲートは作る方向にしか働かない
 
@@ -172,13 +212,13 @@ export const rule: FeatureGateRule = {
 
 ### seed と閉じた機能
 
-`pnpm ops db seed` は各ドメインの `seed.ts` を走査し、そのドメインのフォルダを `features` に持つ規則が閉じていれば飛ばして名前を出す(宣言は要らない)。閉じたドメインを `after` に持つ開いたシードは理由を出して止める。詳細: `scripts/runner/seed/README.md`「閉じた機能とシード」
+`pnpm ops db seed` は各ドメインの `seed.ts` を走査し、そのドメインのフォルダを `domains` に持つ規則が閉じていれば飛ばして名前を出す(宣言は要らない)。閉じたドメインを `after` に持つ開いたシードは理由を出して止める。詳細: `scripts/runner/seed/README.md`「閉じた機能とシード」
 
 ### 決まりごと
 
-- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `features` のフォルダから自動で入る）。`pnpm test src/featureGate scripts/structure/proxies` が次を検査する:
+- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `domains` のフォルダから自動で入る）。`pnpm test src/featureGate scripts/structure/proxies` が次を検査する:
   - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test scripts/structure/registry/`）
-  - **今 `enabled()` が false の規則について**、その規則の `features` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている（判定 `checks/routeImports.mjs`。`features` の無い規則は対象外）
+  - **今 `enabled()` が false の規則について**、その規則の `domains` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている（判定 `checks/routeImports.mjs`。`domains` の無い規則は対象外）
   - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
   - 現在のフラグで、外す表を残す表が外部キーで参照していない
   - 常時実行の入口の閉じ漏れ（下）
@@ -193,7 +233,7 @@ export const rule: FeatureGateRule = {
 
 | 入口 | 閉じ方 |
 |---|---|
-| cron の `src/app/api/cron/<name>/task.ts` | タスクの住所 `/api/cron/<name>` を、import する機能のフォルダを `features` に持つ規則の全部が `pathPatterns` で覆う。住所は生成器が task.ts・task.override.ts の import から導いて規則の `cronPaths` に足す（規則に手書きしない、目録 D10。閉じた機能のタスクは route = `@/wiring/cronRoute`・`pnpm task`・`pnpm generate cron` が住所で飛ばす。task.ts に機能の入切は書かない。`src/lib/cron/README.md`「機能の門」） |
+| cron の `src/app/api/cron/<name>/task.ts` | タスクの住所 `/api/cron/<name>` を、import する機能のフォルダを `domains` に持つ規則の全部が `pathPatterns` で覆う。住所は生成器が task.ts・task.override.ts の import から導いて規則の `cronPaths` に足す（規則に手書きしない、目録 D10。閉じた機能のタスクは route = `@/wiring/cronRoute`・`pnpm task`・`pnpm generate cron` が住所で飛ばす。task.ts に機能の入切は書かない。`src/lib/cron/README.md`「機能の門」） |
 | 宣言に `alwaysOn: true` の拡張点の項目（`cleanupHandlers`・`coinIssuanceSources`・`rollupMetrics`） | 項目に `enabled` |
 | fork の手書きの登録表（下の `registries`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
 | 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`・`src/featureGate/**`） | import しない。避けられないものは理由付きの例外表 |
@@ -218,7 +258,7 @@ export const rule: FeatureGateRule = {
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない
 - upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、その画面の機能(`pageMypage`・`pageMypageAccount*`・`pageEntry`・`pageServices`・`pageTerms` ほか規約 3 種・`adminChatRooms`・`adminNotificationTemplates`・`adminDemoUsers` など)を `pnpm ops features set <名前> off` で閉じる(`src/config/featureGate/switches.config.ts` に書かれる)。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
 - スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork の規則で upstream の画面を止めない（upstream の規則と重なり、merge のたびに見直しになる）
-- 新しいドメインを機能として閉じられるようにする: ドメインを作り(`pnpm forge`)、`rules/<機能の名前>.ts` に規則を手で書いて `features` にそのドメインのフォルダを入れる(管理画面の住所は `pathPatterns`、入切の既定は `defaultEnabled`)→ `pnpm generate extensions`。汎用 API・表・cron は導出に任せる。domain.json の `closable`(閉じられる形の印)と 1 対 1 のひな形はなくした(D26。書くと生成器が案内して止める)。どの機能にも載らないドメインは基盤として常に開
+- 新しいドメインを機能として閉じられるようにする: ドメインを作り(`pnpm forge`)、`rules/<機能の名前>.ts` に規則を手で書いて `domains` にそのドメインのフォルダを入れる(管理画面の住所は `pathPatterns`、入切の既定は `defaultEnabled`)→ `pnpm generate extensions`。汎用 API・表・cron は導出に任せる。domain.json の `closable`(閉じられる形の印)と 1 対 1 のひな形はなくした(D26。書くと生成器が案内して止める)。どの機能にも載らないドメインは基盤として常に開
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm generate extensions`。upstream の機能と一緒に開閉させるなら `dependsOn` に upstream の機能を書く（例: `dependsOn: ["payment"]`）。入切の既定は `defaultEnabled`、値を変えるのは `switches.config.ts`
 - 機能を切ったら `pnpm test src/featureGate scripts/structure/proxies` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
 - ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`checks/walletOff.test.tsx`、`pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx`)
@@ -234,7 +274,7 @@ export const rule: FeatureGateRule = {
 
 ### 依存の検査
 
-閉じられるフォルダ(規則の `features`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test src/featureGate scripts/structure/proxies` が落ちる(判定: `checks/dependencies.mjs`):
+閉じられるフォルダ(規則の `domains`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test src/featureGate scripts/structure/proxies` が落ちる(判定: `checks/dependencies.mjs`):
 
 1. 自分のドメインの `services/server/domainEntry.ts` の `requires` に相手のドメインの名前がある(`requires: ["wallet"]`、文字列リテラルの配列で書く。字面で読む)。名前はドメインのフォルダ名だけ(`core/` は付けない)。`domainEntries` のキーは汎用 API・表の資源の名前でドメインの名乗りにならない(フォルダ名と違うキー、例 `auditLogFailed` を書いても当たらない)。ドメイン・requires の読み手は `src/lib/districtMap`
 2. ファイルが規則の名前で確かめる: `gate.enabled("wallet")`・`gate.assert("wallet")`・`useGate().enabled("wallet")`

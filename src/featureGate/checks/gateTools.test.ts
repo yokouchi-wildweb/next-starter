@@ -236,10 +236,10 @@ import { describeFeatures, planFeatureSetFromText, readFeatureReport } from "@/f
 import { findCallSites } from "@/featureGate/node/describe";
 
 const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
-  ({ name, pathPatterns: ["/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
+  ({ name, pathPatterns: ["/x"], domains: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
 
 test("describeFeatures: 住所を手書き / 導出に分け、依存・呼び出し・必須を規則ごとに", () => {
-  const [x, y] = describeFeatures([fixtureRule("x"), fixtureRule("y", { pathPatterns: ["/y"], features: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => true })], {
+  const [x, y] = describeFeatures([fixtureRule("x"), fixtureRule("y", { pathPatterns: ["/y"], domains: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => true })], {
     dependencies: [
       { file: "src/a.ts", folder: "x", rule: "x", allowedBy: "gate" },
       { file: "src/b.ts", folder: "x", rule: "x", allowedBy: null },

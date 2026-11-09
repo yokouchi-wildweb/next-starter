@@ -9,7 +9,7 @@ export const rule: FeatureGateRule = {
     "/api/me/wallet",
     "/api/admin/wallet",
   ],
-  features: [
+  domains: [
     "core/wallet",
     "core/walletHistory",
   ],

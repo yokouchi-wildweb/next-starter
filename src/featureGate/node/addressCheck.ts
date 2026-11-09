@@ -16,7 +16,7 @@ import type { GatedFeatureRule } from "../types";
 /** 上流の例外: 住所(正規化) → 理由 */
 export const ADDRESS_EXCEPTIONS: Readonly<Record<string, string>> = {};
 
-type Rule = Pick<GatedFeatureRule, "name" | "pathPatterns" | "features" | "dependsOn">;
+type Rule = Pick<GatedFeatureRule, "name" | "pathPatterns" | "domains" | "dependsOn">;
 type Entry = { pattern: string; path: string; owners: string[]; source: string };
 
 const normalize = (pattern: string) => {
@@ -25,7 +25,7 @@ const normalize = (pattern: string) => {
 };
 
 function entriesOf(list: readonly Rule[], derived: readonly DerivedPath[]): Entry[] {
-  const holders = (folder: string) => list.filter((rule) => (rule.features ?? []).includes(folder)).map((rule) => rule.name);
+  const holders = (folder: string) => list.filter((rule) => (rule.domains ?? []).includes(folder)).map((rule) => rule.name);
   const entries: Entry[] = [];
   for (const rule of list) for (const pattern of rule.pathPatterns) entries.push({ pattern, path: normalize(pattern), owners: [rule.name], source: `${rule.name} の手書き` });
   for (const path of derived) {

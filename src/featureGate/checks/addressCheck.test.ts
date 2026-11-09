@@ -10,7 +10,7 @@ import { test } from "node:test";
 import { checkAddresses } from "@/featureGate/node";
 import type { DerivedPath } from "@/featureGate/ruleList";
 
-const rule = (name: string, pathPatterns: string[], dependsOn: string[] = [], features: string[] = []) => ({ name, pathPatterns, dependsOn, features }) as never;
+const rule = (name: string, pathPatterns: string[], dependsOn: string[] = [], domains: string[] = []) => ({ name, pathPatterns, dependsOn, domains }) as never;
 const none: DerivedPath[] = [];
 
 test("二重書き: 手書き同士・手書きと導出の住所を止める(共通の機能があれば通る)", () => {

@@ -6,7 +6,7 @@
 // 門番の判定(evaluate・clientState・node の道具)と node.ts の rules を受け取る外の読み手(pnpm generate routes・検査)は、この一覧と ruleEnabled だけを通る。
 // configRules: コミットされるファイルと検査が env で揺れない道具が読む(L2.3。
 // pnpm generate cron / pnpm check cron・pnpm generate routes・FEATURE_GATE_CHECK の検査・codemod。node.ts の configRules / configPath)
-// ドメインの開閉(D24・D34 K4): ドメイン = どれかの規則の features に載るフォルダ(生成一覧の domains)。開 = そのドメインを features に持つ規則のどれかが開。
+// ドメインの開閉(D24・D34 K4): ドメイン = どれかの規則の domains に載るフォルダ(生成一覧の domains)。開 = そのドメインを domains に持つ規則のどれかが開。
 //   表・汎用 API の住所(apiPaths)・cron の task(読むドメインが全部開のとき開)はドメインの開閉で決まる(closedDomainsOf・closedDerivedEntries)。
 //   設定の節(settingSections)は節自身の判定: 名指す機能が全部開のときだけ開く(closedDerivedEntries)
 //   渡した一覧(rules / configRules / テストの作り物)の開閉で解くので、スイッチの効く・効かないは一覧で決まる
@@ -177,7 +177,7 @@ export function switchMissingDependencies(): Record<string, string[]> {
 // ---- ドメインの開閉と導出の住所(D24・D34 K4) ----
 
 /** 規則の一覧の形(ドメインの開閉に要る物だけ) */
-type DomainHolder = Pick<GatedFeatureRule, "name" | "features" | "enabled" | "redirectTo">;
+type DomainHolder = Pick<GatedFeatureRule, "name" | "domains" | "enabled" | "redirectTo">;
 
 /**
  * 導出の住所: 汎用 API(ドメイン 1 つ)・cron の task(読むドメインの全部)・設定の節(名指す機能の全部)。
@@ -196,12 +196,12 @@ export const gatedDomains: readonly GatedDomain[] = domains;
 
 /**
  * 閉じたドメイン(純関数に近い: 開閉は渡した一覧の enabled で読む)。キー = フォルダ、値 = 閉じた持ち主のうち一覧の順で最初の規則。
- * 開 = 一覧の中でそのフォルダを features に持つ規則のどれかが開。一覧のどの規則も持たないフォルダは閉じない(基盤と同じ)
+ * 開 = 一覧の中でそのフォルダを domains に持つ規則のどれかが開。一覧のどの規則も持たないフォルダは閉じない(基盤と同じ)
  */
 export function closedDomainsOf<R extends DomainHolder>(list: readonly R[], domainList: readonly Pick<GatedDomain, "folder">[] = domains): Map<string, R> {
   const closed = new Map<string, R>();
   for (const domain of domainList) {
-    const holders = list.filter((rule) => (rule.features ?? []).includes(domain.folder));
+    const holders = list.filter((rule) => (rule.domains ?? []).includes(domain.folder));
     if (holders.length > 0 && holders.every((rule) => !ruleEnabled(rule))) closed.set(domain.folder, holders[0]);
   }
   return closed;
@@ -244,7 +244,7 @@ export function closedDomainTables(list: readonly DomainHolder[] = rules): strin
  * closedDerivedEntries)で数えるので、1 つのドメインを複数の機能が持てば、規則 1 本を閉じてもそのドメインの住所は入らない。
  * 読み手の検査(依存・常時実行の入口・ルートの被覆)が読む。生成一覧に無い規則(テストの作り物)は自分の手書きの住所だけ
  */
-export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">): string[] {
+export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPatterns" | "domains">): string[] {
   if (!generatedByName.has(rule.name)) return [...rule.pathPatterns];
   const open = resolveFeatureOpen(generatedRules, (name) => name !== rule.name);
   const list = generatedRules.map((r) => ({ ...r, enabled: () => open(r.name) }));
@@ -253,6 +253,6 @@ export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPat
 }
 
 /** 一覧の各規則の pathPatterns を coveredPatternsOf(手書き + 規則のドメインの導出の住所)にした写し(enabled はそのまま)。住所で覆うかを見る検査の入力 */
-export function withCoveredPatterns<R extends Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">>(list: readonly R[]): R[] {
+export function withCoveredPatterns<R extends Pick<GatedFeatureRule, "name" | "pathPatterns" | "domains">>(list: readonly R[]): R[] {
   return list.map((rule) => ({ ...rule, pathPatterns: coveredPatternsOf(rule) }));
 }

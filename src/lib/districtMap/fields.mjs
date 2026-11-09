@@ -105,20 +105,20 @@ export function readDomainEntry(path, text) {
 }
 
 /**
- * 門の規則のファイルの features(無ければ [])
+ * 門の規則のファイルの domains(機能が使うドメインのフォルダ、無ければ [])。古い名前 features は生成器(pnpm generate extensions)が止める
  * @param {string} path
  * @param {string} text
- * @returns {{ features: string[], problems: string[] }}
+ * @returns {{ domains: string[], problems: string[] }}
  */
-export function readRuleFeatures(path, text) {
+export function readRuleDomains(path, text) {
   const source = parse(path, text);
   const found = [...exportedConsts(source)].find((c) => c.name === "rule");
-  if (!found || !ts.isObjectLiteralExpression(found.init)) return { features: [], problems: [`${path}: export const rule = { … } が無い`] };
+  if (!found || !ts.isObjectLiteralExpression(found.init)) return { domains: [], problems: [`${path}: export const rule = { … } が無い`] };
   const field = propertiesOf(found.init);
-  if (!field.has("features")) return { features: [], problems: [] };
-  const features = stringArray(field.get("features"));
-  if (features === null) return { features: [], problems: [`${path}: features は文字列リテラルの配列で書く(字面で読む)`] };
-  return { features, problems: [] };
+  if (!field.has("domains")) return { domains: [], problems: [] };
+  const domains = stringArray(field.get("domains"));
+  if (domains === null) return { domains: [], problems: [`${path}: domains は文字列リテラルの配列で書く(字面で読む)`] };
+  return { domains, problems: [] };
 }
 
 /**

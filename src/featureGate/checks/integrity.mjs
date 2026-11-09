@@ -10,12 +10,12 @@
 // - 共有のドメイン(sharedDomainsOpen): 2 つ以上の機能が持つドメインで、持つ機能の一部が閉なのに別の機能で開いたまま(落とさない、list と warn)
 
 /**
- * @typedef {{ name: string, features?: readonly string[], dependsOn?: readonly string[] }} GateRule
+ * @typedef {{ name: string, domains?: readonly string[], dependsOn?: readonly string[] }} GateRule
  * 開閉は呼び手が isOpen(name) で渡す(門番の中で規則の enabled を直に呼ぶのは ruleList.ts だけ)
  * @typedef {{ folder: string, name: string, requires: readonly string[], tables: readonly string[] }} DomainFact
  */
 
-const holdersOf = (list, folder) => list.filter((rule) => (rule.features ?? []).includes(folder));
+const holdersOf = (list, folder) => list.filter((rule) => (rule.domains ?? []).includes(folder));
 
 /** 推移的な依存先(自分を含む) */
 function reachOf(list, name) {
@@ -49,7 +49,7 @@ export function checkForeignKeys({ list, domains, foreignKeys, exceptions = {} }
     if (eHolders.length === 0) continue; // 参照先は基盤(常に開)
     const dHolders = holdersOf(list, d.folder);
     // 規則の中の外部キー(T のドメインを持つ機能がどれも U のドメインも持つ = 一緒に閉じる)は対象外
-    if (dHolders.length > 0 && dHolders.every((h) => (h.features ?? []).includes(e.folder))) continue;
+    if (dHolders.length > 0 && dHolders.every((h) => (h.domains ?? []).includes(e.folder))) continue;
     const key = `${from}→${to}`;
     const reasons = [];
     if (!d.requires.some((name) => (folderOfName.get(name) ?? name) === e.folder)) reasons.push(`${d.folder} の requires に ${e.name} が無い`);

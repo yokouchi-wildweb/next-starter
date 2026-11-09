@@ -78,10 +78,10 @@ export function cronTaskPathOf(file) {
  * cron のタスクの住所を、import した機能のフォルダを持つ規則が全部閉じるか。覆わない規則の名前を返す
  * @param {string} taskPath /api/cron/<name>
  * @param {string[]} sources import 元(@/features/…)
- * @param {{ name: string, features?: string[], pathPatterns: string[] }[]} rules
+ * @param {{ name: string, domains?: string[], pathPatterns: string[] }[]} rules
  */
 export function rulesNotCoveringCronTask(taskPath, sources, rules) {
-  const owners = rules.filter((rule) => (rule.features ?? []).some((folder) => sources.some((source) => folderSourcePattern(folder).test(source))));
+  const owners = rules.filter((rule) => (rule.domains ?? []).some((folder) => sources.some((source) => folderSourcePattern(folder).test(source))));
   return owners.filter((rule) => !rule.pathPatterns.some((pattern) => matchesPath(taskPath, pattern))).map((rule) => rule.name);
 }
 
@@ -95,12 +95,12 @@ export const isRuleConfigImport = (path, source) => RULE_FILE.test(path) && DOMA
 /**
  * 入口の判定
  * @param {{ path: string, text: string, kind: "cronTask" | "alwaysOnItem" | "registry" | "wiring" }[]} entries
- * @param {{ name: string, features?: string[], pathPatterns: string[] }[]} rules 規則(features を持つものが対象。cronTask の住所の判定にも使う)
+ * @param {{ name: string, domains?: string[], pathPatterns: string[] }[]} rules 規則(features を持つものが対象。cronTask の住所の判定にも使う)
  * @param {Record<string, string>} exceptions 結線の例外表(path → 理由)
  * @returns {{ problems: string[], hits: string[], usedExceptions: string[] }} hits = 該当した入口(path: 種類)
  */
 export function judgeAlwaysOnEntries(entries, rules, exceptions) {
-  const folders = [...new Set(rules.flatMap((rule) => rule.features ?? []))];
+  const folders = [...new Set(rules.flatMap((rule) => rule.domains ?? []))];
   const patterns = folders.map(folderSourcePattern);
   const problems = [];
   const hits = [];

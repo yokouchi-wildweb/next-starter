@@ -9,7 +9,7 @@ export type { FeatureName };
  * 機能を閉じる規則(1 機能 1 ファイル: src/featureGate/rules/<名前>.ts の `export const rule`。名前 = ファイル名 = FeatureName)。
  * enabled() が false の規則は次の 2 か所で効く:
  * - ルートゲート(src/proxies/featureGate.ts が gate.path を呼ぶ): pathPatterns に一致するページ / API を 404(redirectTo があればそこへ rewrite)
- * - スキーマゲート(pnpm db:push / db:push:check、src/featureGate/node/gatedSchema.ts): features のフォルダの表を push 対象から外す
+ * - スキーマゲート(pnpm db:push / db:push:check、src/featureGate/node/gatedSchema.ts): 閉じたドメイン(domains のフォルダ、持つ機能が全部閉)の表を push 対象から外す
  *   作る方向にしか働かない。false の間は作らず、既にあるテーブルも消さない(true にした次の push で作られる)
  *   表名は書かない: 生成器がフォルダの pgTable から導き(scripts/structure/registry/tableScan.mjs)、生成一覧に文字列で書く
  * 一覧は生成物 src/featureGate/extensions/rules.ts(pnpm generate extensions、ファイル名の順)。読み手はこの一覧だけを読む。
@@ -22,11 +22,11 @@ export type FeatureGateRule = {
    */
   pathPatterns: string[];
   /**
-   * false の間 push 対象から外す表を持つ機能のフォルダ(src/features からの相対、例 "core/wallet"・"sample")。
-   * 文字列リテラルの配列で書く(生成器が字面で読む)。フォルダの下の全 pgTable が対象(fork が上流のフォルダに足した表も入る)。
-   * 書かない規則は表を外さない。enum は外さない
+   * この機能が使うドメインのフォルダ(src/features からの相対、例 "core/wallet"・"sample")。D33 で features: から改名(古い名前は生成器が止める)。
+   * 文字列リテラルの配列で書く(生成器が字面で読む)。ドメインは持つ機能のどれかが開なら開(D24)、閉なら表・汎用 API・cron が閉じる。
+   * フォルダの下の全 pgTable が対象(fork が上流のフォルダに足した表も入る)。1 つのドメインを複数の機能に書いてよい。enum は外さない
    */
-  features?: string[];
+  domains?: string[];
   /**
    * この機能が使う機能(機能の名前 = 規則のファイル名の並び、全部 AND)。機能が開く = 自分が開 && 依存先が全部開(推移的)。
    * 文字列リテラルの配列で書く(生成器が字面で読み、未知の名前・自分・重複・輪を止める)。評価は ruleList.ts の 1 か所
@@ -52,9 +52,9 @@ export type FeatureGateRule = {
 };
 
 /**
- * 生成一覧の要素(src/featureGate/extensions/rules.ts。門番の中で値で読むのは ruleList.ts だけ): 規則 + 生成器が付ける名前(ファイル名)と features から導いた表名・汎用 API の住所(features を書かない規則は空)。
- * tables・domainApiPaths(/api/<features のフォルダの domainEntry のキー>)・settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)・
- * cronPaths(/api/cron/<features のフォルダを値で import する cron の task の名前>)は説明用(pnpm ops features list)で pathPatterns に足さない:
+ * 生成一覧の要素(src/featureGate/extensions/rules.ts。門番の中で値で読むのは ruleList.ts だけ): 規則 + 生成器が付ける名前(ファイル名)と domains から導いた表名・汎用 API の住所(domains を書かない規則は空)。
+ * tables・domainApiPaths(/api/<domains のフォルダの domainEntry のキー>)・settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)・
+ * cronPaths(/api/cron/<domains のフォルダを値で import する cron の task の名前>)は説明用(pnpm ops features list)で pathPatterns に足さない:
  * 表・汎用 API・cron はドメインに、設定の節の住所は節に付き、開閉は GatedDomain・GatedCronTask・GatedSettingSection で決まる(D34 K4)
  */
 export type GeneratedFeatureRule = FeatureGateRule & {
@@ -70,7 +70,7 @@ export type GeneratedFeatureRule = FeatureGateRule & {
 };
 
 /**
- * どれかの規則の features に載るドメイン(生成一覧の domains)。開 = features(持つ機能)のどれかが開(D24)。どの規則にも載らないドメインは載らず常に開。
+ * どれかの規則の domains に載るドメイン(生成一覧の domains)。開 = features(持つ機能の名前)のどれかが開(D24)。どの規則にも載らないドメインは載らず常に開。
  * 表(db:push・seed・pnpm ops db clear)と汎用 API の住所(apiPaths = /api/<domainEntry のキー>)はこの開閉で決まる
  */
 export type GatedDomain = {
@@ -78,7 +78,7 @@ export type GatedDomain = {
   folder: string;
   tables: string[];
   apiPaths: string[];
-  /** このドメインを features に持つ機能(一覧の順) */
+  /** このドメインを domains に持つ機能の名前(一覧の順) */
   features: FeatureName[];
 };
 

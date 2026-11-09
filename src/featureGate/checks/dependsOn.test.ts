@@ -75,7 +75,7 @@ test("全開スイッチの名前指定: 名前で開けた機能の、自分が
 // ---- pnpm ops features list ----
 
 const rule = (name: string, dependsOn: string[], open: boolean): GatedFeatureRule =>
-  ({ name, dependsOn, pathPatterns: [], features: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => open }) as unknown as GatedFeatureRule;
+  ({ name, dependsOn, pathPatterns: [], domains: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => open }) as unknown as GatedFeatureRule;
 
 test("describeFeatures: dependsOn・推移的な依存先と依存元・閉の理由(自分の値 / 依存先)・足りない名前", () => {
   // parent は自分の値で閉、child は自分は開で依存先 parent が閉、grandchild はスイッチで開けたが依存先が閉

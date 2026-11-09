@@ -16,7 +16,7 @@ export const rule: FeatureGateRule = {
     "/api/wallet/purchase",
     "/api/webhook/payment",
   ],
-  features: [
+  domains: [
     "core/purchaseRequest",
     "core/bankTransferReview",
     "core/purchaseQuota",

@@ -11,16 +11,16 @@
 import { patternCoversRoute } from "../../lib/pathPattern/index.mjs";
 
 /** 規則の features のフォルダ → ドメイン名(フォルダ名の末尾。core/<x> は x) */
-export const domainsOfRule = (rule) => [...new Set((rule.features ?? []).map((folder) => folder.split("/").pop()))];
+export const domainsOfRule = (rule) => [...new Set((rule.domains ?? []).map((folder) => folder.split("/").pop()))];
 
 /** features を持つ規則だけ(閉じるドメインのある規則) */
-export const rulesWithFeatures = (rules) => rules.filter((rule) => (rule.features ?? []).length > 0);
+export const rulesWithFeatures = (rules) => rules.filter((rule) => (rule.domains ?? []).length > 0);
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * ルートの閉じ漏れ
- * @param {{ name: string, features?: string[], pathPatterns: string[] }[]} rules 検査する規則(無効なもの)
+ * @param {{ name: string, domains?: string[], pathPatterns: string[] }[]} rules 検査する規則(無効なもの)
  * @param {{ rel: string, segments: string[], text: string }[]} routeFiles rel = src/app 相対、segments = ルートの URL セグメント
  * @param {Record<string, string>} exceptions src/app 相対 → 理由
  * @returns {string[]} 閉じていないファイルの説明
@@ -34,7 +34,7 @@ export function findOpenRouteImports(rules, routeFiles, exceptions = {}) {
       const imported = domains.filter((domain) => new RegExp(`["']@/features/(core/)?${escape(domain)}/`).test(file.text));
       if (imported.length === 0) continue;
       if (!rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, file.segments))) {
-        problems.push(`${file.rel}（${imported.join(", ")} を import）が規則「${rule.name}」(features: ${rule.features.join(", ")})で閉じていない`);
+        problems.push(`${file.rel}（${imported.join(", ")} を import）が規則「${rule.name}」(domains: ${rule.domains.join(", ")})で閉じていない`);
       }
     }
   }
@@ -43,7 +43,7 @@ export function findOpenRouteImports(rules, routeFiles, exceptions = {}) {
 
 /**
  * 汎用 CRUD(/api/<domain>)の閉じ漏れ
- * @param {{ name: string, features?: string[], pathPatterns: string[] }[]} rules 検査する規則(無効なもの)
+ * @param {{ name: string, domains?: string[], pathPatterns: string[] }[]} rules 検査する規則(無効なもの)
  * @param {(domain: string) => boolean} hasOpenGenericApi 汎用 API の登録にあり、閉じていない(INTERNAL_ONLY でない)か
  * @returns {string[]} 覆われていない住所
  */

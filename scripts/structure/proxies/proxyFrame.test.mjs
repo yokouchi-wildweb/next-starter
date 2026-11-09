@@ -87,21 +87,21 @@ test("規則: src/featureGate/rules/ の export const rule をファイル名順
   assert.match(plan.outputs[GATE_RULES], /export const rules: GeneratedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},\n\];/);
 });
 
-test("規則の features: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
+test("規則の domains: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
   const rule = (body) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], ${body} enabled: () => true };\n`;
   const root = fixture({
-    "rules/wallet.ts": rule('features: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'),
+    "rules/wallet.ts": rule('domains: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'),
     "rules/plain.ts": rule(""),
     "rules/handWritten.ts": rule('tables: ["wallets"],'),
-    "rules/variable.ts": rule("features: FOLDERS,"),
-    "rules/notLiteral.ts": rule("features: [FOLDER],"),
-    "rules/missing.ts": rule('features: ["core/nowhere"],'),
-    "rules/tableless.ts": rule('features: ["core/empty"],'),
-    "rules/nested.ts": rule('features: ["core/wallet/entities"],'),
-    "rules/coreRoot.ts": rule('features: ["core"],'),
+    "rules/variable.ts": rule("domains: FOLDERS,"),
+    "rules/notLiteral.ts": rule("domains: [FOLDER],"),
+    "rules/missing.ts": rule('domains: ["core/nowhere"],'),
+    "rules/tableless.ts": rule('domains: ["core/empty"],'),
+    "rules/nested.ts": rule('domains: ["core/wallet/entities"],'),
+    "rules/coreRoot.ts": rule('domains: ["core"],'),
     "rules/handApi.ts": rule('domainApiPaths: ["/api/x"],'),
-    "rules/brokenEntry.ts": rule('features: ["core/broken"],'),
-    "rules/noEntry.ts": rule('features: ["core/quota"],'),
+    "rules/brokenEntry.ts": rule('domains: ["core/broken"],'),
+    "rules/noEntry.ts": rule('domains: ["core/quota"],'),
   });
   const feat = (name, tables) => {
     const d = join(root, "src/features", name, "entities");
@@ -160,8 +160,16 @@ test("規則の features: ドメインのフォルダの pgTable から表(0 で
   assert.doesNotMatch(plan.outputs[GATE_RULES], /pathPatterns: \[\.\.\.rules_/, "設定の節の無い fixture では規則の pathPatterns に何も足さない");
 });
 
+test("古いキー features:(D33 で domains: に改名)は受けず、規則の名前と直し方を出して止める(上流・fork の規則とも。コメントの中は数えない)", () => {
+  const rule = (body) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], ${body} };\n`;
+  const plan = planExtensions(fixture({ "rules/old.ts": rule('features: ["core/wallet"],'), "rules/commented.ts": `// 昔は features: ["x"] と書いた\n${rule("")}`, "rules/fine.ts": rule("") }));
+  const problems = plan.problems.filter((p) => p.includes("rules/"));
+  assert.equal(problems.length, 1, problems.join("\n"));
+  assert.match(problems[0], /rules\/old\.ts: features: は domains: に改めた\(中身のドメインのフォルダの並びはそのまま。D33\)。キーの名前を domains に直して pnpm generate extensions/);
+});
+
 test("ドメインの表: 1 つのドメインを 2 つの規則が持てば features に両方(一覧の順)、どの規則にも載らないドメインは載らない", () => {
-  const rule = (folders) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], features: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
+  const rule = (folders) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], domains: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
   const root = fixture({ "rules/users.ts": rule(["core/userTag"]), "rules/demoUsers.ts": rule(["core/userTag"]), "rules/plain.ts": rule([]) });
   for (const name of ["core/userTag", "core/base"]) {
     const d = join(root, "src/features", name, "entities");
@@ -180,11 +188,11 @@ test("このリポの全ドメイン(src/features/core/<名前>・src/features/<
     ...readdirSync(join(repoRoot, "src/features"), { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "core" && !e.name.startsWith("_")).map((e) => e.name),
   ];
   assert.ok(domains.includes("core/chatRoom"), "表を持たない chatRoom も数える");
-  const rule = (folder) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], features: ["${folder}"], enabled: () => true };\n`;
+  const rule = (folder) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], domains: ["${folder}"], enabled: () => true };\n`;
   const stopped = domains.map((folder) => featureTables.apply(folder, rule(folder), "x")).filter((r) => r.problem).map((r) => r.problem);
   assert.deepEqual(stopped, []);
   assert.deepEqual(featureTables.apply("chatRoom", rule("core/chatRoom"), "x").fields.tables, []);
-  // 雛形(_ で始まるフォルダ)は地区でないので features に書けない(src/lib/districtMap、目録 D3)
+  // 雛形(_ で始まるフォルダ)は地区でないので domains に書けない(src/lib/districtMap、目録 D3)
   assert.match(featureTables.apply("_template", rule("_template"), "x").problem, /"_template" はドメインの位置でない/);
   // 今までの判定(表が 1 つ以上ある)で通っていた書き方は、表を持つフォルダかその上。どれもドメインのフォルダの中にある = ドメインの位置で書ける
   const outside = scanFeatureTables(repoRoot).tables.map((t) => t.file).filter((file) => !domains.some((d) => file.startsWith(`src/features/${d}/`)));
@@ -210,7 +218,7 @@ test("cron の門(目録 D10): task.ts・task.override.ts の値の import(静�
   task("overridden", 'import { s } from "@/features/core/coupon/services/server/s";\nexport const taskOverride = s;\n', "task.override.ts");
   task("ungated", 'import { s } from "@/features/core/audit/services/server/s";\nexport const task = s;\n');
   const featureTables = createFeatureTables(root);
-  const rule = (folders, extra = "") => `export const rule: FeatureGateRule = { pathPatterns: ["/x"${extra}], features: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
+  const rule = (folders, extra = "") => `export const rule: FeatureGateRule = { pathPatterns: ["/x"${extra}], domains: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
   assert.deepEqual(featureTables.apply("wallet", rule(["core/wallet"]), "wallet").fields.cronPaths, ["/api/cron/both", "/api/cron/relative", "/api/cron/static"]);
   assert.deepEqual(featureTables.apply("coupon", rule(["core/coupon"]), "coupon").fields.cronPaths, ["/api/cron/both", "/api/cron/dynamic", "/api/cron/overridden"]);
   assert.deepEqual(featureTables.apply("plain", rule([]), "plain").fields.cronPaths, []);
@@ -266,9 +274,9 @@ test("設定の節の feature から /admin/settings/<key> を導き、生成一
 test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
   const { judgeAlwaysOnEntries, folderSourcePattern, cronTaskPathOf, rulesNotCoveringCronTask } = await import("../../../src/featureGate/checks/alwaysOnEntries.mjs");
   const rules = [
-    { name: "wallet", features: ["core/wallet"], pathPatterns: ["/wallet", "/api/cron/wallet-ok"] },
-    { name: "walletAdmin", features: ["core/wallet"], pathPatterns: ["/admin/wallet", "/api/cron/wallet-ok"] },
-    { name: "sample", features: ["sample"], pathPatterns: ["/sample", "/api/cron"] },
+    { name: "wallet", domains: ["core/wallet"], pathPatterns: ["/wallet", "/api/cron/wallet-ok"] },
+    { name: "walletAdmin", domains: ["core/wallet"], pathPatterns: ["/admin/wallet", "/api/cron/wallet-ok"] },
+    { name: "sample", domains: ["sample"], pathPatterns: ["/sample", "/api/cron"] },
     { name: "pageOnly", pathPatterns: ["/api/cron/wallet-partial"] },
   ];
   assert.ok(folderSourcePattern("core/wallet").test("@/features/wallet/x"));
@@ -386,6 +394,6 @@ test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExcep
   assert.match(stale[1], /scripts\/proxies\/alwaysOnExceptions\/deviceWiring\.mjs: 置き場が src\/featureGate\/alwaysOnExceptions\/<名前>\.ts に移った/);
 
   // fork の例外の行にも縮む表の規則(当たらない行は失敗)
-  const { problems } = judgeAlwaysOnEntries([], [{ name: "wallet", features: ["core/wallet"], pathPatterns: ["/wallet"] }], ok.exceptions);
+  const { problems } = judgeAlwaysOnEntries([], [{ name: "wallet", domains: ["core/wallet"], pathPatterns: ["/wallet"] }], ok.exceptions);
   assert.deepEqual(problems.map((p) => p.split(":")[0]), ["src/wiring/x.ts"]);
 });

@@ -31,10 +31,10 @@ test("走査: core と業務のドメインの seed.ts をドメイン名で集�
   }
 });
 
-test("閉じた機能: そのフォルダを features に持つ閉じた規則の名前、開いていれば null", () => {
+test("閉じた機能: そのフォルダを domains に持つ閉じた規則の名前、開いていれば null", () => {
   const closedBy = closedByOf([
-    { name: "shopRule", features: ["shop"], enabled: () => false },
-    { name: "walletRule", features: ["core/wallet"], enabled: () => true },
+    { name: "shopRule", domains: ["shop"], enabled: () => false },
+    { name: "walletRule", domains: ["core/wallet"], enabled: () => true },
   ]);
   assert.equal(closedBy("shop"), "shopRule");
   assert.equal(closedBy("core/wallet"), null);
@@ -42,7 +42,7 @@ test("閉じた機能: そのフォルダを features に持つ閉じた規則�
 });
 
 test("閉じたドメイン: 2 つの規則が持つドメインは片方が開なら開、両方閉なら一覧の順で最初の規則の名前", () => {
-  const rule = (name: string, open: boolean) => ({ name, features: ["core/userTag"], enabled: () => open });
+  const rule = (name: string, open: boolean) => ({ name, domains: ["core/userTag"], enabled: () => open });
   assert.equal(closedByOf([rule("users", false), rule("demoUsers", true)])("core/userTag"), null);
   assert.equal(closedByOf([rule("users", false), rule("demoUsers", false)])("core/userTag"), "users");
 });

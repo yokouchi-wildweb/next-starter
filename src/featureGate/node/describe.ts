@@ -78,7 +78,7 @@ export type FeatureFacts = {
 /** 規則と集めた事実から説明を組む(純関数。並びは一覧の順) */
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
   const enabledOf = new Map(rules.map((rule) => [rule.name as string, ruleEnabled(rule)]));
-  const folders = [...new Set(rules.flatMap((rule) => rule.features ?? []))];
+  const folders = [...new Set(rules.flatMap((rule) => rule.domains ?? []))];
   const shared = sharedDomainsOpen([...rules], folders, (name) => enabledOf.get(name) === true);
   return rules.map((rule) => {
     // pathPatterns は手書きだけ(汎用 API・cron はドメインに、設定の節は節に付き、pathPatterns に入らない)
@@ -113,7 +113,7 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
         cron: [...rule.cronPaths],
       },
       tables: [...rule.tables],
-      folders: [...(rule.features ?? [])],
+      folders: [...(rule.domains ?? [])],
       dependents: facts.dependencies
         .filter((d) => d.rule === rule.name)
         .map(({ file, folder, allowedBy }) => ({ file, folder, allowedBy })),

@@ -66,9 +66,9 @@ test("requires = domainEntry の requires(今の上流は 4 ドメイン)", () =
   );
 });
 
-test("gates = 門の規則の features の逆引き", () => {
+test("gates = 門の規則の domains の逆引き", () => {
   const expected = new Map();
-  for (const rule of configRules) for (const folder of rule.features ?? []) expected.set(folder, [...(expected.get(folder) ?? []), rule.name].sort());
+  for (const rule of configRules) for (const folder of rule.domains ?? []) expected.set(folder, [...(expected.get(folder) ?? []), rule.name].sort());
   for (const d of features) assert.deepEqual(d.gates, expected.get(folderOf(d)) ?? [], d.dir);
   assert.equal(features.flatMap((d) => d.gates).length, [...expected.values()].flat().length);
 });

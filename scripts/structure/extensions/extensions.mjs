@@ -315,7 +315,7 @@ export function planExtensions(repoRoot) {
         for (const item of items) {
           const derived = featureTables.apply(item.path, item.text, item.name);
           if (derived.problem) problems.push(derived.problem);
-          else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, features: derived.features, domains: derived.domains });
+          else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, domainFolders: derived.domainFolders, domains: derived.domains });
         }
         // 導出の表: ドメイン(持つ機能を集める、フォルダの順)と cron の task(住所の順)
         const domainMap = new Map();
@@ -338,7 +338,7 @@ export function planExtensions(repoRoot) {
         // requires の被覆(機能のドメインの requires の先が自分・依存先・基盤のどれか、D24。例外は上流の規則の縮む表で、fork にも同じ規則があるので全 Tier で数える)
         problems.push(
           ...checkRequiresCoverage(
-            kept.map((item) => ({ path: item.path, name: item.name, features: item.features, dependsOn: item.fields.dependsOn })),
+            kept.map((item) => ({ path: item.path, name: item.name, domains: item.domainFolders, dependsOn: item.fields.dependsOn })),
             featureTables.districts,
           ),
         );

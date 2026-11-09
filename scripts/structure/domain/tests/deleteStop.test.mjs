@@ -248,23 +248,23 @@ test("追加ディレクトリの候補の中の import: --extra で選べば一
   assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
 });
 
-/** 門番の規則がドメインのフォルダを features に持つ fork の状態 */
+/** 門番の規則がドメインのフォルダを domains に持つ fork の状態 */
 function gatedProject(features = '["shop"]') {
   const shop = base("shop");
   const root = makeProject({ configs: { shop }, cleanup });
   const workspace = createWorkspace(root);
   const rule = path.join(root, "src/featureGate/rules/shopping.ts");
   fs.mkdirSync(path.dirname(rule), { recursive: true });
-  fs.writeFileSync(rule, `export const rule: FeatureGateRule = {\n  pathPatterns: ["/admin/shops"],\n  features: ${features},\n};\n`);
+  fs.writeFileSync(rule, `export const rule: FeatureGateRule = {\n  pathPatterns: ["/admin/shops"],\n  domains: ${features},\n};\n`);
   return { root, workspace, rule };
 }
 
-test("門番の規則が features に持つドメインの削除は、何も消さずに規則の名前を出して止める(規則の features から先に外す、D26)", async () => {
+test("門番の規則が domains に持つドメインの削除は、何も消さずに規則の名前を出して止める(規則の domains から先に外す、D26)", async () => {
   const gated = gatedProject();
   const before = snapshot(gated.root);
   const run = await deleteCapturing(gated.workspace, "shop", { confirm: "shop", removeConfig: true });
   assert.equal(run.exitCode, 1);
-  assert.match(run.stderr, /門番の規則がこのドメイン\(shop\)を features に持つので削除を止めました[\s\S]*src\/featureGate\/rules\/shopping\.ts/);
+  assert.match(run.stderr, /門番の規則がこのドメイン\(shop\)を domains に持つので削除を止めました[\s\S]*src\/featureGate\/rules\/shopping\.ts/);
   assert.deepEqual(snapshot(gated.root), before);
 });
 

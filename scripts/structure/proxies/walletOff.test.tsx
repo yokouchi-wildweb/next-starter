@@ -67,7 +67,7 @@ function adminGate(): ClientGate {
 }
 
 const offRules = () => rules.filter((rule) => OFF.includes(rule.name));
-const offFolders = () => offRules().flatMap((rule) => rule.features ?? []);
+const offFolders = () => offRules().flatMap((rule) => rule.domains ?? []);
 
 test("(a) cron: wallet / payment のタスクは住所が閉じ、discover の closedBy が付く", async () => {
   const tasks = await withWalletOff(() => loadCronTasks(ROOT));

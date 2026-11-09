@@ -11,7 +11,7 @@ export const rule: FeatureGateRule = {
     "/admin/sample-tags",
     // サンプルを読むデモ画面は demoSampleDomain.ts(デモ × サンプル、サンプルを切ったら一緒に閉じる)
   ],
-  features: [
+  domains: [
     "sample",
     "sampleCategory",
     "sampleTag",

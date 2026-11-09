@@ -7,7 +7,7 @@ import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
   pathPatterns: [],
-  features: [
+  domains: [
     "core/userAcquisition",
   ],
 };

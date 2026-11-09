@@ -9,7 +9,7 @@
 export const REQUIRES_EXCEPTIONS = {};
 
 /**
- * @param {{ path: string, name: string, features: string[], dependsOn: string[] }[]} items 規則の項目(読めた物)
+ * @param {{ path: string, name: string, domains: string[], dependsOn: string[] }[]} items 規則の項目(読めた物)
  * @param {{ folder: string, name: string, requires: string[] }[]} districts features の地区(フォルダは src/features からの相対)
  * @param {Record<string, string>} [exceptions]
  * @returns {string[]} problems
@@ -20,7 +20,7 @@ export function checkRequiresCoverage(items, districts, exceptions = REQUIRES_EX
   const requiresOf = new Map(districts.map((d) => [d.folder, d.requires]));
   const byName = new Map(items.map((item) => [item.name, item]));
   const holders = new Map();
-  for (const item of items) for (const folder of item.features) holders.set(folder, [...(holders.get(folder) ?? []), item.name]);
+  for (const item of items) for (const folder of item.domains) holders.set(folder, [...(holders.get(folder) ?? []), item.name]);
   const reach = (name) => {
     const seen = new Set();
     const queue = [name];
@@ -35,8 +35,8 @@ export function checkRequiresCoverage(items, districts, exceptions = REQUIRES_EX
   const used = new Set();
   for (const item of items) {
     const reachable = reach(item.name);
-    const covered = new Set([...reachable].flatMap((name) => byName.get(name)?.features ?? []));
-    for (const folder of item.features) {
+    const covered = new Set([...reachable].flatMap((name) => byName.get(name)?.domains ?? []));
+    for (const folder of item.domains) {
       for (const requiredName of requiresOf.get(folder) ?? []) {
         const target = folderOfName.get(requiredName) ?? requiredName;
         if (!holders.has(target) || covered.has(target)) continue;
