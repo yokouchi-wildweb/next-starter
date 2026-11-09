@@ -14,7 +14,7 @@
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
 - 基盤の上書き(設定 D91): src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
-- `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル、設定 D92。ファイルは門番の議会が置く)
+- `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル、設定 D92)
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
 - **受け口か config か**: fork が互いに独立した行を足していく一覧(例: 転送の規則)は受け口(`extensionPoints.ts` の点、1 ファイル = 1 項目)。鍵で合わせて値を変える表(例: 通貨・区分)は config(上書きで鍵ごとに重ねる)
 
@@ -52,7 +52,7 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 ## 機能の入切の道具
 
-移行中: 入切の fork の値の置き場は `featureGate/switches.config.ts` に決まった(設定 D92)。門番の議会がそのファイルと `pnpm ops features set` の書き先を移すまで、閉じられる機能の入切(`enabled`)は今の形のまま上書き `features/<名前>.config.ts` に書く。手で書いてもよく、`pnpm ops features set <規則名> on|off` も同じ所に `enabled: true|false` を書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)。
+機能の入切の fork の値は `featureGate/switches.config.ts`(上流は空で出荷、`{ <機能の名前>: true|false }`、型 `FeatureSwitches`)。既定は門番の規則のファイルの `defaultEnabled`(設定 D92・門番 D35)。`pnpm ops features set <規則名> on|off` が fork ではここに書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)。サンプルのドメイン(`features/sample.config.ts` の `enabled`)だけは生成器のひな形と一緒に移す(次の区切り)
 
 ## 移行中のもの
 

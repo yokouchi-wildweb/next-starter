@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { appendInviteLinkParam, readInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { rules as gateRules } from "@/featureGate/extensions/rules";
 import { resolveLinkCampaign } from "@/lib/googleTag";
 
 import { classifyVisit, getChannelDefinitions } from "./classifyVisit";
@@ -156,9 +156,10 @@ test("招待パラメータの読み書き(referral の名前 invite)", () => {
 });
 
 test("紹介の機能が閉じている間は招待の行を出さず、invite は流入の印にならない", () => {
-  const referral = APP_FEATURES.marketing.referral as { enabled: boolean };
-  const saved = referral.enabled;
-  referral.enabled = false;
+  // 紹介の機能の入切の既定(門番の規則の defaultEnabled)を一時的に閉に
+  const referral = gateRules.find((rule) => rule.name === "referral")!;
+  const saved = referral.defaultEnabled;
+  referral.defaultEnabled = false;
   try {
     const definitions = getChannelDefinitions();
     assert.equal(definitions.some((d) => d.param === "invite"), false);
@@ -166,7 +167,7 @@ test("紹介の機能が閉じている間は招待の行を出さず、invite �
     assert.equal(classifyVisit({ url: new URL("https://example.com/lp?invite=ABC"), referrer: null, now: NOW }), null);
     assert.equal(resolveLinkCampaign("?invite=ABC", definitions), null);
   } finally {
-    referral.enabled = saved;
+    referral.defaultEnabled = saved;
   }
   assert.equal(getChannelDefinitions().some((d) => d.param === "invite"), true);
 });

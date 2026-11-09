@@ -1,8 +1,6 @@
 // src/featureGate/rules/referral.ts
 // マーケティング > 紹介(招待の画面は mypageInvite.ts。招待クーポンを使うのでクーポン coupon に dependsOn。referral の requires と同じ)
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
-
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
@@ -17,5 +15,5 @@ export const rule: FeatureGateRule = {
     "core/referral",
     "core/referralReward",
   ],
-  enabled: () => APP_FEATURES.marketing.referral.enabled,
+  defaultEnabled: true,
 };

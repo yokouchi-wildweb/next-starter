@@ -41,7 +41,7 @@ import { buildRewardHandlerMap } from "@/features/core/referralReward/services/s
 import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
 import { ROOT_LAYOUT_CONFIG } from "@/app/_layout/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { configEnabled } from "@/featureGate/node";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
@@ -150,7 +150,7 @@ const ENTRIES = [
 
 for (const [entry, rawFn, arg] of ENTRIES) {
   // ジョブのハンドラは wallet を閉じた fork では enabled で外れる
-  const fn = rawFn === "getHandler" && !APP_FEATURES.wallet.enabled ? null : rawFn;
+  const fn = rawFn === "getHandler" && !configEnabled("wallet") ? null : rawFn;
   test(`読み込み: ${entry} から読んでも壊れない${fn ? `、${fn}("${arg}") が引ける` : ""}`, () => {
     const code = `const m = await import(${JSON.stringify(`${ROOT}/${entry}`)});${fn ? `const r = m.${fn}(${JSON.stringify(arg)}); if (!r) throw new Error("not found");` : ""}process.exit(0);`;
     const result = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--input-type=module", "-e", code], { cwd: ROOT, encoding: "utf8", env: { ...process.env, DATABASE_URL: "" } });

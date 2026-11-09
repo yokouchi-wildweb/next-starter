@@ -38,8 +38,7 @@ test("上流の既定: 自社振込は disabled、セッションの有効期限
   assert.equal(getProviderSessionExpiryMinutes("inhouse"), 60 * 24 * 7);
 });
 
-test("bankTransferInhouseSelectable(門番の規則が読む値)は payment が開いているとき isPaymentMethodSelectable と同じ", async () => {
+test("bankTransferInhouseSelectable(門番の規則が読む値)は isPaymentMethodSelectable と同じ", async () => {
   const { bankTransferInhouseSelectable } = await import("@/features/purchaseRequest/config");
-  const { APP_FEATURES } = await import("@/config/app/app-features.config");
-  assert.equal(APP_FEATURES.payment.enabled && bankTransferInhouseSelectable, isPaymentMethodSelectable("bank_transfer_inhouse"));
+  assert.equal(bankTransferInhouseSelectable, isPaymentMethodSelectable("bank_transfer_inhouse"));
 });

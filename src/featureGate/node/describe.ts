@@ -27,7 +27,7 @@ import type { GatedFeatureRule } from "../types";
 export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null;
 export type FeatureDependent = { file: string; folder: string; allowedBy: DependencyAllowedBy };
 
-/** 閉の理由: self = 自分の値が閉(スイッチにも無い)、dependencies = 閉じた直の依存先 */
+/** 閉の理由: self = 自分の値が閉(スイッチにも無い)、dependencies = 閉じた直の依存先(anyOf が全部閉ならその名前も) */
 export type FeatureClosedBy = { self: boolean; dependencies: string[] };
 
 export type FeatureDescription = {
@@ -40,6 +40,8 @@ export type FeatureDescription = {
   ownEnabled: boolean;
   /** 規則の dependsOn(書いたまま) */
   dependsOn: string[];
+  /** 規則の anyOf(書いたまま、どれか 1 つが開なら開) */
+  anyOf: string[];
   /** 推移的な依存先(近い順) */
   dependsOnAll: string[];
   /** 推移的な依存元(この機能に依存する機能、一覧の順) */
@@ -87,13 +89,16 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
     const own = state?.ownEnabled ?? config;
     const dependsOn = [...(rule.dependsOn ?? [])];
     // 一覧に無い依存先(--name で 1 つだけ渡したとき)は開とみなさず、閉の理由に出さない
-    const closedDeps = dependsOn.filter((dep) => enabledOf.get(dep) === false);
+    const anyOf = [...(rule.anyOf ?? [])];
+    const anyOfClosed = anyOf.length > 0 && anyOf.every((dep) => enabledOf.get(dep) === false) ? anyOf : [];
+    const closedDeps = [...dependsOn.filter((dep) => enabledOf.get(dep) === false), ...anyOfClosed];
     return {
       name: rule.name,
       enabled,
       configEnabled: config,
       ownEnabled: own,
       dependsOn,
+      anyOf,
       dependsOnAll: transitiveDependencies(rules, rule.name),
       dependedOnBy: transitiveDependents(rules, rule.name),
       closedBy: enabled ? null : { self: !(openedBySwitch || own), dependencies: closedDeps },

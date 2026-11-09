@@ -34,14 +34,19 @@ const OFF: FeatureName[] = ["wallet", "payment"];
  */
 async function withWalletOff<T>(fn: () => T | Promise<T>, off: readonly FeatureName[] = OFF): Promise<T> {
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
+  const savedDefaults = new Map<GeneratedFeatureRule, boolean | undefined>();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
+    // 入切の既定(defaultEnabled)も外し、開閉は enabled の差し替えだけで決める
+    savedDefaults.set(rule, rule.defaultEnabled);
+    rule.defaultEnabled = undefined;
     rule.enabled = () => !off.includes(rule.name);
   }
   try {
     return await fn();
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
+    for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
   }
 }
 

@@ -7,7 +7,7 @@
 //   解決は resolveProviderForMethod() を経由する。
 // - プロバイダ別の API 名変換は payment.providers[*].methodMapping で表現。
 // - ダウンストリームでプロバイダや支払い方法を追加する場合は、上書きの payment.paymentMethods および payment.providers を書く（コードロジックの変更は不要）。
-// - 決済機能全体の有効/無効は門番の規則 payment(APP_FEATURES.payment.enabled、false でルート 404 + テーブル未作成)の持ち物で、ここには無い
+// - 決済機能全体の有効/無効は門番の規則 payment(defaultEnabled と fork の src/config/featureGate/switches.config.ts、閉でルート 404 + テーブル未作成)の持ち物で、ここには無い
 // - 購入タイプを足す fork は上書きで `export type Extra = { type: { <purchase_type>: PurchaseTypeConfig } }` を宣言して値を書く(PurchaseTypeKey に入る)
 //   [!!] 購入タイプの変更後は必ずマイグレーションが必要(purchase_type は DB の値)
 
@@ -355,8 +355,8 @@ export const PURCHASE_TYPE_KEYS = Object.keys(purchaseRequestConfig.type) as [Pu
 
 /**
  * 自社振込(bank_transfer_inhouse)が支払い方法として available で、担当プロバイダが enabled か(合成した値から導く。設定 D100)。
- * 門番の規則 bankTransferReview が APP_FEATURES.payment.enabled と合わせて読む(規則は地区の config だけを読むため、関数でなく値で渡す)。
- * 判定は utils/paymentMethods.ts の isPaymentMethodSelectable("bank_transfer_inhouse") から payment.enabled を除いたものと同じ
+ * 門番の規則 bankTransferReview が入切でない条件として読む(決済の入切は dependsOn payment。規則は地区の config だけを読むため、関数でなく値で渡す)。
+ * 判定は utils/paymentMethods.ts の isPaymentMethodSelectable("bank_transfer_inhouse") と同じ
  */
 export const bankTransferInhouseSelectable: boolean = (() => {
   const method = purchaseRequestConfig.payment.paymentMethods.find((m) => m.id === "bank_transfer_inhouse");

@@ -34,8 +34,12 @@ afterEach(() => {
 function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void) {
   // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
+  const savedDefaults = new Map<GeneratedFeatureRule, boolean | undefined>();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
+    // 入切の既定(defaultEnabled)も外し、開閉は enabled の差し替えだけで決める
+    savedDefaults.set(rule, rule.defaultEnabled);
+    rule.defaultEnabled = undefined;
     const state = states[rule.name];
     rule.enabled = () => state ?? true;
   }
@@ -43,6 +47,7 @@ function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void
     fn();
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
+    for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
   }
 }
 

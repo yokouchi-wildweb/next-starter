@@ -334,7 +334,7 @@ export function planExtensions(repoRoot) {
         problems.push(...featureTables.unknownFeatures(items.map((item) => item.name)));
         // dependsOn の未知の名前・輪(全規則で。読めなかった規則は名前だけ知っている物として数える)
         const unread = items.filter((item) => !kept.some((k) => k.name === item.name)).map((item) => ({ path: item.path, name: item.name, dependsOn: [] }));
-        problems.push(...checkDependsOnGraph([...kept.map((item) => ({ path: item.path, name: item.name, dependsOn: item.fields.dependsOn })), ...unread]));
+        problems.push(...checkDependsOnGraph([...kept.map((item) => ({ path: item.path, name: item.name, dependsOn: item.fields.dependsOn, anyOf: item.fields.anyOf })), ...unread]));
         // requires の被覆(機能のドメインの requires の先が自分・依存先・基盤のどれか、D24。例外は上流の規則の縮む表で、fork にも同じ規則があるので全 Tier で数える)
         problems.push(
           ...checkRequiresCoverage(

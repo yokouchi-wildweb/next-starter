@@ -1,5 +1,5 @@
 // src/app/(user)/demo/seamless-av/play/_screen/loader.ts
-// /demo/seamless-av/play(公開再生ページ)の loader。範囲 root の createLoader(access public。feature-gate の demo.samplePages で既定 404)。
+// /demo/seamless-av/play(公開再生ページ)の loader。範囲 root の createLoader(access public。門番の規則 demoPages で既定 404)。
 // 固定キーの最新マニフェストを読む(無ければ null)。
 
 import "server-only";

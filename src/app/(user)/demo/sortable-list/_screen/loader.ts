@@ -1,5 +1,5 @@
 // src/app/(user)/demo/sortable-list/_screen/loader.ts
-// /demo/sortable-list(デモ)の loader。範囲 root の createLoader(access public。feature-gate の demo.samplePages で既定 404)。
+// /demo/sortable-list(デモ)の loader。範囲 root の createLoader(access public。門番の規則 demoPages で既定 404)。
 // searchForSorting(sort_order が NULL のレコードを自動初期化してから検索)で sample の先頭 20 件を取る。
 
 import "server-only";

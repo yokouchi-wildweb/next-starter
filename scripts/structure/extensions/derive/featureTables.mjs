@@ -21,7 +21,7 @@ import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { FEATURES_DIR } from "../../registry/tableScan.mjs";
 import { valueSpecifiers } from "../pureImports.mjs";
-import { readDependsOn } from "./gateDependsOn.mjs";
+import { readAnyOf, readDependsOn } from "./gateDependsOn.mjs";
 import { scanSettingSectionFeatures } from "./gateSettingPaths.mjs";
 
 const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
@@ -109,6 +109,8 @@ export function createFeatureTables(repoRoot) {
       if (read.problem) return { problem: `${label}: ${read.problem}` };
       const depends = readDependsOn(text, name);
       if (depends.problem) return { problem: `${label}: ${depends.problem}` };
+      const any = readAnyOf(text, name);
+      if (any.problem) return { problem: `${label}: ${any.problem}` };
       const tables = [];
       const domainApiPaths = [];
       const domains = [];
@@ -128,7 +130,7 @@ export function createFeatureTables(repoRoot) {
       }
       // cron の門(説明用): この規則の features のフォルダを値で import する task の住所。開閉は cronTasks(読むドメインが全部開)で決まる
       const cronPaths = cronTasksReading(read.features).map((task) => task.path);
-      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn }, features: read.features, domains };
+      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn, anyOf: any.anyOf }, features: read.features, domains };
     },
     cronTasksFor: cronTasksReading,
   };

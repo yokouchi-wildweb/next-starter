@@ -2,7 +2,7 @@
 // 法務の文書(利用規約・プライバシーポリシー・特定商取引法に基づく表示)の設定(既定 + 上書き、設定の議会 D21・D23・L1.24)。
 // 上書きは src/config/features/legal.config.ts(このファイルだけが読む)。置き方: src/config/README.md。合成: @/lib/defineConfig。形: ./README.md
 // 既定は 3 文書とも sample(例文 ./examples/)。fork は pnpm ops legal from-example で例文を写して own にし、文面を直す
-// pages = 法務のページの閉じる値(門番の規則 page{Terms,PrivacyPolicy,Tradelaw} が読む、目録 D14)
+// 法務のページの入切は門番の規則 page{Terms,PrivacyPolicy,Tradelaw} の defaultEnabled と fork の src/config/featureGate/switches.config.ts(D35)
 
 import { z } from "zod";
 
@@ -12,7 +12,6 @@ import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 import type { LegalConfig, LegalDocumentEntry, LegalDocumentKind } from "./types";
 
 const defaults: LegalConfig = {
-  pages: { terms: true, privacyPolicy: true, tradelaw: true },
   documents: {
     terms: { source: "sample" },
     privacy: { source: "sample" },
@@ -43,7 +42,6 @@ const entrySchema = z.discriminatedUnion("source", [
 /** 合成した値の検査: own の文書は文面(題名と節)を持つ。sample は文面を持たない(深い合成で own の文面が残らないように) */
 const schema = z
   .object({
-    pages: z.object({ terms: z.boolean(), privacyPolicy: z.boolean(), tradelaw: z.boolean() }),
     documents: z.object({ terms: entrySchema, privacy: entrySchema, tradelaw: entrySchema }),
     paymentMethods: z.string(),
     licenses: z.array(z.object({ type: z.string(), label: z.string(), details: z.array(z.object({ key: z.string().optional(), value: z.string() })) })),

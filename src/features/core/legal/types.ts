@@ -27,18 +27,8 @@ export type LegalLicense = {
 
 /** legal の設定(既定は config.ts、上書きは src/config/features/legal.config.ts) */
 export type LegalConfig = {
-  /**
-   * 法務のページを出すか(閉じる値。false = そのページを 404、門番の規則 src/featureGate/rules/page{Terms,PrivacyPolicy,Tradelaw}.ts)。
-   * fork はページを消したり rename したりせず、ここで止める。fork が同じ URL の下に足したページは止まらない
-   */
-  pages: {
-    /** 利用規約(/terms) */
-    terms: boolean;
-    /** プライバシーポリシー(/privacy-policy) */
-    privacyPolicy: boolean;
-    /** 特定商取引法に基づく表示(/tradelaw) */
-    tradelaw: boolean;
-  };
+  // 法務のページを出すか(閉じる値)はここに置かない: 門番の規則 page{Terms,PrivacyPolicy,Tradelaw} の defaultEnabled と
+  // fork の src/config/featureGate/switches.config.ts(D35)。fork はページを消したり rename したりせず、そこで止める
   /** 文書ごとの印と文面 */
   documents: Record<LegalDocumentKind, LegalDocumentEntry>;
   /** 利用可能な支払方法の表示(文面の {{PAYMENT_METHODS}} に差し込む) */

@@ -12,7 +12,7 @@
 
 ## 有効化（オプトイン、既定は無効）
 
-1. `src/config/app/paired-device.config.ts` の `enabled` を `true` にする
+1. 機能を開く: fork は `pnpm ops features set pairedDevice on`(`src/config/featureGate/switches.config.ts` に `pairedDevice: true`)。既定は門番の規則 `src/featureGate/rules/pairedDevice.ts` の `defaultEnabled: false`
 2. `pnpm db:push`（`paired_devices` / `device_pairings` が作られる。無効の間は作られない）
 3. 端末の種類を `kinds/<名前>.ts` に置き `pnpm generate extensions`（下記）
 

@@ -684,8 +684,8 @@ test("dependsOn: 字面を一覧の項目に写す(書かない規則は空、en
   );
   const out = plan.outputs["src/featureGate/extensions/rules.ts"];
   assert.match(out, /import type \{ GatedCronTask, GatedDomain, GatedSettingSection, GeneratedFeatureRule \} from "@\/featureGate";/);
-  assert.match(out, /\{ \.\.\.rules_child, name: "child", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \["parent"\] \},/);
-  assert.match(out, /\{ \.\.\.rules_parent, name: "parent", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/);
+  assert.match(out, /\{ \.\.\.rules_child, name: "child", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \["parent"\], anyOf: \[\] \},/);
+  assert.match(out, /\{ \.\.\.rules_parent, name: "parent", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},/);
 });
 
 test("dependsOn: 非リテラル・自分・重複・未知の名前・輪(推移的)を規則の名前を出して止める", () => {
@@ -695,6 +695,8 @@ test("dependsOn: 非リテラル・自分・重複・未知の名前・輪(推�
       spread: gateRule('dependsOn: [...BASE, "ok"],'),
       notName: gateRule('dependsOn: ["core/wallet"],'),
       selfish: gateRule('dependsOn: ["selfish"],'),
+      anyUnknown: gateRule('anyOf: ["nowhere2"],'),
+      anyBoth: gateRule('dependsOn: ["ok"],\n  anyOf: ["ok"],'),
       twice: gateRule('dependsOn: ["ok", "ok"],'),
       unknown: gateRule('dependsOn: ["nowhere"],'),
       a: gateRule('dependsOn: ["b"],'),
@@ -711,13 +713,17 @@ test("dependsOn: 非リテラル・自分・重複・未知の名前・輪(推�
   assert.match(of("twice"), /dependsOn の "ok" が重複している/);
   assert.match(of("unknown"), /dependsOn の "nowhere" は無い機能/);
   assert.match(of("a"), /dependsOn が輪になっている\(a → b → c → a\)/);
-  assert.equal(plan.problems.length, 7, plan.problems.join("\n"));
+  assert.match(of("anyUnknown"), /anyOf の "nowhere2" は無い機能/);
+  assert.match(of("anyBoth"), /"ok" を dependsOn と anyOf の両方に書いている/);
+  assert.equal(plan.problems.length, 9, plan.problems.join("\n"));
 });
 
 test("dependsOn: 読み・輪の検査の単体(輪は 1 つにつき 1 回、読めなかった規則の名前は未知にしない)", () => {
   assert.deepEqual(readDependsOn(gateRule(), "x"), { dependsOn: [] });
   assert.deepEqual(readDependsOn(gateRule('dependsOn: [],'), "x"), { dependsOn: [] });
   assert.deepEqual(readDependsOn('/* dependsOn: X */\n' + gateRule(), "x"), { dependsOn: [] });
+  // anyOf も輪に数える(dependsOn と合わせた依存)
+  assert.deepEqual(checkDependsOnGraph([{ path: "p.ts", name: "p", dependsOn: [], anyOf: ["q"] }, { path: "q.ts", name: "q", dependsOn: ["p"] }]), ["p.ts: dependsOn・anyOf が輪になっている(p → q → p)"]);
   const items = [
     { path: "a.ts", name: "a", dependsOn: ["b"] },
     { path: "b.ts", name: "b", dependsOn: ["a"] },

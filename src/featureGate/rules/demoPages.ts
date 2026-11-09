@@ -1,8 +1,6 @@
 // src/featureGate/rules/demoPages.ts
 // デモページ(裏側の API ルートも併せて無効化する)
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
-
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
@@ -10,5 +8,5 @@ export const rule: FeatureGateRule = {
     "/demo",
     "/api/demo",
   ],
-  enabled: () => APP_FEATURES.demo.samplePages,
+  defaultEnabled: true,
 };

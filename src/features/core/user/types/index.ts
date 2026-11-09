@@ -57,4 +57,7 @@ export type AdminBulkActionAccess = { roles: readonly UserRoleType[] };
 export type UserAdminBulkActionItem = import("@/lib/tableSuite").BulkActionItem<
   import("@/features/core/user/entities").User,
   AdminBulkActionAccess
->;
+> & {
+  /** この機能(門番の規則の名前)が閉なら出さない(useGate、useUserAdminBulkActions が見る。機能の入切は門番の持ち物、D35) */
+  feature?: import("@/featureGate").FeatureName;
+};

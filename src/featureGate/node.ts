@@ -10,7 +10,7 @@
 // - closedTables: 今閉じている機能の表名
 // - dependencyExceptions: 依存の検査の例外(fork の受け口)
 // - describeFeatures / readFeatureReport: 規則ごとの説明(pnpm ops features list)
-// - planFeatureSet / applyFeatureSet: 入切の書き換え(pnpm ops features set。ドメインの config の <X>_CONFIG.enabled の形だけ。必須の機能が依存する機能の off は止める)
+// - planFeatureSet / applyFeatureSet: 入切の書き換え(pnpm ops features set。fork = src/config/featureGate/switches.config.ts、Tier1 = 規則の defaultEnabled。必須の機能が依存する機能の off は止める)
 // - readRequired: 必須の機能(required/)
 // - checkAddresses: 読み込み後の一覧の住所の検査(二重書き・入れ子の依存の欠け、D25・D31)
 // - gate: server の道具の束(@/featureGate の gate と同じ物。scripts から gate.path・gate.enabled を呼ぶ。cron のタスクの住所の判定は configPath)
@@ -39,4 +39,4 @@ export { alwaysOnRegistries } from "./extensions/alwaysOnRegistries";
 export { dependencyExceptions } from "./extensions/dependencyExceptions";
 export { applySchemaGate as gatedSchema, closedTables, type SchemaGateResult } from "./node/gatedSchema";
 export { describeFeatures, readFeatureReport, readRequired, type FeatureDescription } from "./node/describe";
-export { applyFeatureSet, planFeatureSet, planFeatureSetFromText, requiredDependencyChains, type FeatureSetPlan } from "./node/setEnabled";
+export { applyFeatureSet, planFeatureSet, planFeatureSetFromText, requiredDependencyChains, SWITCHES_FILE, type FeatureSetPlan } from "./node/setEnabled";

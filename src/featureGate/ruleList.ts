@@ -1,7 +1,8 @@
 // src/featureGate/ruleList.ts
 // 判定の入口(門番の中で 1 つ): 生成一覧 extensions/rules を包み、各規則の enabled を依存先まで解いた開閉に差し替えた一覧を出す。
-// - 自分の開閉: rules = 全開スイッチで開いていれば true、でなければ規則の enabled()(省略 = 開)/ configRules = 規則の enabled() だけ(スイッチを通さない)
-// - 機能が開く = 自分が開 && dependsOn の機能が全部開(推移的。D24・D34)。依存の解決はここ 1 か所(resolveFeatureOpen)
+// - 規則の値(ownValue): (src/config/featureGate/switches.config.ts の fork の値 ?? 規則の defaultEnabled ?? 開) && 規則の enabled()(入切でない条件、省略 = 開)。D35
+// - 自分の開閉: rules = 全開スイッチで開いていれば true、でなければ規則の値 / configRules = 規則の値だけ(全開スイッチを通さない)
+// - 機能が開く = 自分が開 && dependsOn の機能が全部開(推移的。D24・D34)&& anyOf を書けばどれか 1 つが開(D36)。依存の解決はここ 1 か所(resolveFeatureOpen)
 // 門番の判定(evaluate・clientState・node の道具)と node.ts の rules を受け取る外の読み手(pnpm generate routes・検査)は、この一覧と ruleEnabled だけを通る。
 // configRules: コミットされるファイルと検査が env で揺れない道具が読む(L2.3。
 // pnpm generate cron / pnpm check cron・pnpm generate routes・FEATURE_GATE_CHECK の検査・codemod。node.ts の configRules / configPath)
@@ -13,20 +14,35 @@
 // 守り(scripts/structure/proxies/openSwitch.test.ts): 門番の中で extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのもこのファイルだけ
 // スイッチ: ./openSwitch.ts / 詳細: ./README.md「機能どうしの依存(dependsOn)」
 
+import switches from "@/config/featureGate/switches.config";
+
 import { cronTasks, domains, rules as generatedRules, settingSections } from "./extensions/rules";
 import { currentOpenSwitch, type OpenSwitch } from "./openSwitch";
 import type { ClosedPathEntry, FeatureName, GatedDomain, GatedFeatureRule, GeneratedFeatureRule } from "./types";
 
-/** 依存の解決に要る形(名前と dependsOn だけ) */
-export type FeatureDependencyNode = { name: string; dependsOn: readonly string[] };
+/** 依存の解決に要る形(名前と dependsOn、anyOf は省略可) */
+export type FeatureDependencyNode = { name: string; dependsOn: readonly string[]; anyOf?: readonly string[] };
 
 const knownNames: ReadonlySet<string> = new Set(generatedRules.map((rule) => rule.name));
 const generatedByName = new Map<string, GeneratedFeatureRule>(generatedRules.map((rule) => [rule.name, rule]));
 
 const unknownName = (name: string) => new Error(`featureGate: 未知の機能の名前 "${name}"(src/featureGate/rules/<名前>.ts が無い)`);
 
+/** fork の入切の値の検査(純関数): 未知の機能の名前・真偽でない値を並べる(空 = 通る) */
+export function switchProblems(values: Readonly<Record<string, unknown>>, known: ReadonlySet<string>): string[] {
+  return Object.entries(values).flatMap(([name, value]) => [
+    ...(known.has(name) ? [] : [`未知の機能の名前 "${name}"(src/featureGate/rules/<名前>.ts が無い)`]),
+    ...(typeof value === "boolean" ? [] : [`"${name}" の値が true|false でない`]),
+  ]);
+}
+
+// fork の入切の値に未知の名前があれば読み込みで throw(打ち間違いを黙って既定のままにしない。型でも落ちる)
+const switchValues: Readonly<Record<string, boolean | undefined>> = switches;
+const switchErrors = switchProblems(switchValues, knownNames);
+if (switchErrors.length > 0) throw new Error(`featureGate: src/config/featureGate/switches.config.ts: ${switchErrors.join(" / ")}`);
+
 /**
- * 依存先まで解いた開閉(純関数): 開 = self(name) && dependsOn の全部が開(推移的)。
+ * 依存先まで解いた開閉(純関数): 開 = self(name) && dependsOn の全部が開(推移的)&& (anyOf が空 || anyOf のどれかが開)。
  * 輪は生成器が止める(pnpm generate extensions)。作り物の一覧で輪に当たれば throw
  */
 export function resolveFeatureOpen(list: readonly FeatureDependencyNode[], self: (name: string) => boolean): (name: string) => boolean {
@@ -35,7 +51,12 @@ export function resolveFeatureOpen(list: readonly FeatureDependencyNode[], self:
     const node = byName.get(name);
     if (!node) throw unknownName(name);
     if (trail.includes(name)) throw new Error(`featureGate: dependsOn が輪になっている(${[...trail, name].join(" → ")})`);
-    return self(name) && node.dependsOn.every((dep) => open(dep, [...trail, name]));
+    const anyOf = node.anyOf ?? [];
+    return (
+      self(name) &&
+      node.dependsOn.every((dep) => open(dep, [...trail, name])) &&
+      (anyOf.length === 0 || anyOf.some((dep) => open(dep, [...trail, name])))
+    );
   };
   return (name) => open(name, []);
 }
@@ -59,8 +80,8 @@ export function transitiveDependents(list: readonly FeatureDependencyNode[], nam
   return list.filter((node) => node.name !== name && transitiveDependencies(list, node.name).includes(name)).map((node) => node.name);
 }
 
-/** 規則の値そのもの(スイッチも依存先も通さない。enabled の省略 = 開) */
-const ownValue = (rule: GeneratedFeatureRule): boolean => rule.enabled?.() ?? true;
+/** 規則の値そのもの(全開スイッチも依存先も通さない): (fork の入切 ?? 規則の既定 ?? 開) && 入切でない条件(省略 = 開) */
+const ownValue = (rule: GeneratedFeatureRule): boolean => (switchValues[rule.name] ?? rule.defaultEnabled ?? true) && (rule.enabled?.() ?? true);
 
 /** 全開スイッチで開いているか(スイッチの値に未知の名前があれば throw)。依存先は見ない(開くかは ruleEnabled) */
 export function isOpenedBySwitch(name: FeatureName): boolean {
@@ -143,7 +164,7 @@ export function configEnabled(name: FeatureName): boolean {
   return openConfig(name);
 }
 
-/** 規則の値そのもの(スイッチも依存先も通さない。enabled の省略 = 開。pnpm ops features list の閉の理由)。未知の名前は throw */
+/** 規則の値そのもの(全開スイッチも依存先も通さない: fork の入切 ?? 規則の既定 ?? 開、かつ入切でない条件。pnpm ops features list の閉の理由)。未知の名前は throw */
 export function ownEnabled(name: FeatureName): boolean {
   return selfConfig(name);
 }

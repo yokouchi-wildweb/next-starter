@@ -3,7 +3,7 @@
 // 置き方: src/config/README.md。合成: @/lib/defineConfig。
 // 店舗に置くタブレットやキオスクなどの共有端末を、ユーザーアカウントとは別の認証主体として登録し、長期の端末トークン(httpOnly Cookie)で動かす。
 // kind ごとの scope・管理権限・追加検証は ./kinds/ の項目で宣言する。詳細: ./README.md
-// 機能の入切(enabled)はスイッチなので、門番の議会が移すまで src/config/app/paired-device.config.ts に残る
+// 機能の入切は門番の規則 pairedDevice の defaultEnabled(既定 false = opt-in)と fork の src/config/featureGate/switches.config.ts(D35)
 
 import override from "@/config/features/pairedDevice.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";

@@ -1,8 +1,7 @@
 // src/features/core/purchaseRequest/utils/paymentMethods.ts
 // 決済の設定(purchaseRequestConfig.payment)を読む関数(設定の議会 D3・D71: 値でなく処理なので config から出した。名前は今のまま)
-// 決済機能全体の有効/無効は APP_FEATURES.payment.enabled(門番の規則 payment の入切。設定の地区クエストでは触らない)
+// 決済機能全体の有効/無効は門番の規則 payment の入切(閉なら購入の住所は 404 で、ここを呼ぶ購入の処理に届かない。D35 で入切の読みを外した)
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
   purchaseRequestConfig,
   type BankTransferConfig,
@@ -32,12 +31,10 @@ export function getPaymentMethodById(methodId: string): PaymentMethodConfig | un
 }
 
 /**
- * 支払い方法 ID が選択可能か（決済機能が有効 かつ status="available" かつ provider が enabled）を判定
+ * 支払い方法 ID が選択可能か（status="available" かつ provider が enabled）を判定。
+ * 決済機能そのものの入切は門番の規則 payment(呼び手の購入の住所が閉じるので、ここでは見ない)
  */
 export function isPaymentMethodSelectable(methodId: string): boolean {
-  if (!APP_FEATURES.payment.enabled) {
-    return false;
-  }
   const method = getPaymentMethodById(methodId);
   if (!method || method.status !== "available" || !method.provider) {
     return false;

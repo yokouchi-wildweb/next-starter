@@ -46,9 +46,8 @@ test("例文の形: 題名・番号の型・節の id・差し込みの名前(�
   }
 });
 
-test("閉じる値 pages: 既定は 3 ページとも開、上書きで閉じられる", () => {
-  assert.deepEqual(base.pages, { terms: true, privacyPolicy: true, tradelaw: true });
-  assert.equal(legalConfigDef.compose({ pages: { tradelaw: false } }).pages.tradelaw, false);
+test("閉じる値は法務の設定に無い(門番の規則の defaultEnabled と switches.config.ts、D35)", () => {
+  assert.equal("pages" in base, false);
 });
 
 test("既定は 3 文書とも sample で、今の表示と同じ文書を返す(差し込み・制定日 = launchedAt・許認可の節なし)", () => {

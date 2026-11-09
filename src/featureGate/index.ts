@@ -17,6 +17,7 @@ export type {
   DependencyException,
   FeatureGateRule,
   FeatureName,
+  FeatureSwitches,
   GatedCronTask,
   GatedDomain,
   GatedFeatureRule,

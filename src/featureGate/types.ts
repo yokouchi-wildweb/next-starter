@@ -32,7 +32,20 @@ export type FeatureGateRule = {
    * 文字列リテラルの配列で書く(生成器が字面で読み、未知の名前・自分・重複・輪を止める)。評価は ruleList.ts の 1 か所
    */
   dependsOn?: FeatureName[];
-  /** この機能が有効か(config の値を読む同期関数。入切の値の置き場は config)。省略 = 自分は開(依存先しだい) */
+  /**
+   * どれか 1 つが開いていれば開く機能の並び(OR、D36)。dependsOn と両方あれば両方を満たすとき開。文字列リテラルの配列で書く(生成器が未知・自分・重複・輪を止める)。
+   * 例: その他の操作(休会・退会の入口)は休会か退会のどちらかが開なら開
+   */
+  anyOf?: FeatureName[];
+  /**
+   * 入切の上流の既定(リテラル。省略 = 開)。fork の値は src/config/featureGate/switches.config.ts(上流は空で出荷)が上書きする(D35)。
+   * 自分の値 = (switches の値 ?? defaultEnabled ?? true) && enabled()。合成は ruleList.ts の 1 か所。pnpm ops features set が書く(fork = switches、Tier1 = ここ)
+   */
+  defaultEnabled?: boolean;
+  /**
+   * 入切でない開く条件(config の値から導いた値を読む同期関数。例 銀行振込の方法が選べるか)。省略 = 条件なし。
+   * 入切そのもの(人が開け閉めする値)は defaultEnabled と switches.config.ts に置き、ここに書かない
+   */
   enabled?: () => boolean;
   /** ブロック時の rewrite 先(省略時: API は 404、ページは /404) */
   redirectTo?: string;
@@ -52,6 +65,8 @@ export type GeneratedFeatureRule = FeatureGateRule & {
   cronPaths: string[];
   /** 規則の dependsOn(書かない規則は空)。生成器が字面から写す */
   dependsOn: FeatureName[];
+  /** 規則の anyOf(書かない規則は空)。生成器が字面から写す */
+  anyOf: FeatureName[];
 };
 
 /**
@@ -121,6 +136,9 @@ export type RequiredFeature = {
   /** 必ず使う理由 */
   reason: string;
 };
+
+/** 機能の入切の fork の値(src/config/featureGate/switches.config.ts の default export。機能の名前 → 開閉。書かない名前は規則の defaultEnabled) */
+export type FeatureSwitches = Partial<Record<FeatureName, boolean>>;
 
 /** gate.path の答え(D23): 開いているか。閉じていれば一覧の順で最初の閉じた規則の名前(rule)と行き先 */
 export type GatePathResult =

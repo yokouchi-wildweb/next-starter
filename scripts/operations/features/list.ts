@@ -1,6 +1,6 @@
 // scripts/operations/features/list.ts(pnpm ops features list [--name <規則名>] [--json])
 // 機能を閉じる規則ごとの開閉(全開スイッチで開いていれば「閉 → 開(スイッチ)」、依存先で閉じていれば「閉(依存先 <名前> が閉)」、
-// --json は configEnabled / ownEnabled / openedBySwitch / dependsOn / dependsOnAll / dependedOnBy / closedBy / switchMissing / sharedDomainsOpen)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
+// --json は configEnabled / ownEnabled / openedBySwitch / dependsOn / anyOf / dependsOnAll / dependedOnBy / closedBy / switchMissing / sharedDomainsOpen)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
 // 中身は門番の道具 @/featureGate/node の readFeatureReport。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
 import { dependencyExceptions, readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";
@@ -38,6 +38,7 @@ function detail(d: FeatureDescription): string[] {
     `  住所(設定の節の導出): ${d.paths.setting.join(", ") || "-"}`,
     `  住所(cron の task の import から導出): ${d.paths.cron.join(", ") || "-"}`,
     `  依存先(dependsOn): ${d.dependsOn.join(", ") || "-"}${d.dependsOnAll.length > d.dependsOn.length ? `(推移的: ${d.dependsOnAll.join(", ")})` : ""}`,
+    ...(d.anyOf.length > 0 ? [`  どれか(anyOf): ${d.anyOf.join(", ")}`] : []),
     `  依存元(推移的): ${d.dependedOnBy.join(", ") || "-"}`,
     ...(d.switchMissing.length > 0 ? [`  全開スイッチ: 名前で開けたが依存先 ${d.switchMissing.join(", ")} が閉(FEATURE_GATE_OPEN に足す)`] : []),
     ...d.sharedDomainsOpen.map((s) => `  共有のドメイン ${s.folder} は ${s.openBy.join(", ")} で開いたまま(表・汎用 API は閉じない)`),

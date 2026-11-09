@@ -16,14 +16,19 @@ import { rules as generatedRules } from "@/featureGate/extensions/rules";
 /** 生成一覧の規則の enabled を一時的に差し替える(書いた名前だけ閉、ほかは開) */
 function withClosed(closed: FeatureName[], fn: () => void) {
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
+  const savedDefaults = new Map<GeneratedFeatureRule, boolean | undefined>();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
+    // 入切の既定(defaultEnabled)も外し、開閉は enabled の差し替えだけで決める
+    savedDefaults.set(rule, rule.defaultEnabled);
+    rule.defaultEnabled = undefined;
     rule.enabled = () => !closed.includes(rule.name);
   }
   try {
     fn();
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
+    for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
   }
 }
 

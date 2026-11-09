@@ -115,9 +115,8 @@ test("describeFeatures: dependsOn・推移的な依存先と依存元・閉の�
 
 // ---- pnpm ops features set ----
 
-const RULE_WRITABLE = 'import { SHOP_CONFIG } from "@/features/shop/config";\n\nexport const rule = {\n  pathPatterns: ["/admin/shops"],\n  enabled: () => SHOP_CONFIG.enabled,\n};\n';
-const CONFIG = "export const SHOP_CONFIG = {\n  enabled: true,\n};\n";
-const base = { ruleText: RULE_WRITABLE, configFile: (f: string) => `src/features/${f}/config.ts`, readConfig: () => CONFIG, requiredReason: null };
+const RULE = 'export const rule: FeatureGateRule = {\n  pathPatterns: ["/admin/shops"],\n};\n';
+const base = { name: "shop", tier1: false, ruleFile: "src/featureGate/rules/shop.ts", ruleText: RULE, switchesText: "export default {} satisfies FeatureSwitches;\n", requiredReason: null };
 
 test("必須の機能からの依存の連鎖: 推移的に依存する必須の機能ごとに最短の [必須, …, この機能]。自分が必須なのは含めない", () => {
   assert.deepEqual(requiredDependencyChains(GRAPH, "parent", ["grandchild"]), [["grandchild", "child", "parent"]]);
@@ -148,9 +147,66 @@ test("planFeatureSet: 一覧の dependsOn から連鎖と閉じた依存先を�
   const list = [rule("wallet", ["payment"], true), rule("payment", [], false), rule("referral", ["wallet"], true)];
   const off = planFeatureSet(process.cwd(), "wallet", false, { referral: "紹介が中心" }, list);
   assert.deepEqual(off, { kind: "requiredDependent", chains: [["referral", "wallet"]] });
-  // sampleDomain の規則は SAMPLE_CONFIG.enabled を読む書ける形(書き先は上書き)。書かずに計画だけ見る
+  // 書き先は Tier で決まる(ここは fork として計画だけ見る = switches.config.ts)
   const sample = [rule("sampleDomain", ["payment"], true), rule("payment", [], false)];
-  const on = planFeatureSet(process.cwd(), "sampleDomain" as FeatureName, true, {}, sample);
+  const on = planFeatureSet(process.cwd(), "sampleDomain" as FeatureName, true, {}, sample, false);
   assert.ok(on.kind === "write", JSON.stringify(on));
   assert.deepEqual(on.closedDependencies, ["payment"]);
+  assert.equal(on.configFile, "src/config/featureGate/switches.config.ts");
+});
+
+// ---- どれか 1 つ(anyOf、D36)と入切の値の合成(D35) ----
+
+test("評価: anyOf はどれか 1 つが開なら開(dependsOn と両方あれば両方を満たすとき)", async () => {
+  const { resolveFeatureOpen } = await import("@/featureGate/ruleList");
+  const graph = [
+    { name: "mypage", dependsOn: [] },
+    { name: "pause", dependsOn: [] },
+    { name: "withdraw", dependsOn: [] },
+    { name: "other", dependsOn: ["mypage"], anyOf: ["pause", "withdraw"] },
+  ];
+  const open = (closed: string[]) => resolveFeatureOpen(graph, (n) => !closed.includes(n))("other");
+  assert.equal(open([]), true);
+  assert.equal(open(["pause"]), true, "退会が開");
+  assert.equal(open(["pause", "withdraw"]), false, "どちらも閉");
+  assert.equal(open(["mypage"]), false, "dependsOn が閉");
+});
+
+test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled ?? 開) && 入切でない条件。rules・configRules・ownEnabled が通る", async () => {
+  const { default: switches } = await import("@/config/featureGate/switches.config");
+  const { rules: generated } = await import("@/featureGate/extensions/rules");
+  const { configEnabled, ownEnabled } = await import("@/featureGate/ruleList");
+  const values = switches as Record<string, boolean | undefined>;
+  const wallet = generated.find((r) => r.name === "wallet")!;
+  const savedDefault = wallet.defaultEnabled;
+  const savedEnabled = wallet.enabled;
+  try {
+    wallet.defaultEnabled = true;
+    assert.equal(ownEnabled("wallet"), true, "既定だけ");
+    values.wallet = false;
+    assert.equal(ownEnabled("wallet"), false, "fork の値が既定に勝つ");
+    assert.equal(configEnabled("payment"), false, "依存先が閉なら依存元も閉");
+    wallet.defaultEnabled = false;
+    values.wallet = true;
+    assert.equal(ownEnabled("wallet"), true, "fork の値で開ける");
+    wallet.enabled = () => false;
+    assert.equal(ownEnabled("wallet"), false, "入切でない条件が閉なら閉");
+    delete values.wallet;
+    wallet.defaultEnabled = undefined;
+    wallet.enabled = undefined;
+    assert.equal(ownEnabled("wallet"), true, "どれも書かなければ開");
+  } finally {
+    delete values.wallet;
+    wallet.defaultEnabled = savedDefault;
+    wallet.enabled = savedEnabled;
+  }
+});
+
+test("fork の入切の値の検査: 未知の名前・真偽でない値を並べる(読み込みで throw)。上流の switches.config.ts は空", async () => {
+  const { switchProblems } = await import("@/featureGate/ruleList");
+  const { default: switches } = await import("@/config/featureGate/switches.config");
+  const known = new Set(["wallet", "coupon"]);
+  assert.deepEqual(switchProblems({ wallet: false }, known), []);
+  assert.deepEqual(switchProblems({ walet: false, coupon: "no" }, known), ['未知の機能の名前 "walet"(src/featureGate/rules/<名前>.ts が無い)', '"coupon" の値が true|false でない']);
+  assert.deepEqual(switches, {});
 });

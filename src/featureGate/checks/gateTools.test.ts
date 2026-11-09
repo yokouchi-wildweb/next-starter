@@ -234,7 +234,6 @@ import { join } from "node:path";
 
 import { describeFeatures, planFeatureSetFromText, readFeatureReport } from "@/featureGate/node";
 import { findCallSites } from "@/featureGate/node/describe";
-import { readOverrideFile, readRuleConfigTarget, rewriteConfigEnabled, rewriteOverrideEnabled } from "@/featureGate/node/setEnabled";
 
 const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
   ({ name, pathPatterns: ["/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
@@ -268,77 +267,46 @@ test("findCallSites: gate.enabled / gate.assert / useGate().enabled の字面の
   assert.deepEqual(findCallSites(root, ["wallet", "payment"]), { wallet: ["src/app/a.ts"], payment: ["src/app/a.ts"] });
 });
 
-const RULE_WRITABLE = 'import { SHOP_CONFIG } from "@/features/shop/config";\n\nexport const rule = {\n  pathPatterns: ["/admin/shops"],\n  enabled: () => SHOP_CONFIG.enabled,\n};\n';
-const CONFIG = "export const SHOP_CONFIG = {\n  /** この機能を使うか */\n  enabled: true,\n  limit: 3,\n};\n";
+const RULE_TEXT = 'import type { FeatureGateRule } from "@/featureGate";\n\nexport const rule: FeatureGateRule = {\n  pathPatterns: ["/admin/shops"],\n};\n';
+const SWITCHES_EMPTY = 'import type { FeatureSwitches } from "@/featureGate";\n\nexport default {} satisfies FeatureSwitches;\n';
+const plan = (over: Partial<Parameters<typeof planFeatureSetFromText>[0]>) =>
+  planFeatureSetFromText({ name: "shop", tier1: false, ruleFile: "src/featureGate/rules/shop.ts", ruleText: RULE_TEXT, switchesText: SWITCHES_EMPTY, value: false, requiredReason: null, ...over });
 
-test("pnpm ops features set の計画: 書ける形は config の enabled の 1 行だけを書き換える", () => {
-  const files: Record<string, string> = { "src/features/shop/config.ts": CONFIG };
-  const plan = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: (f) => `src/features/${f}/config.ts`, readConfig: (f) => files[f] ?? null, value: false, requiredReason: null });
-  assert.equal(plan.kind, "write");
-  if (plan.kind !== "write") return;
-  assert.equal(plan.after, CONFIG.replace("enabled: true", "enabled: false"));
-  assert.equal(plan.changed, true);
-  const same = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: (f) => `src/features/${f}/config.ts`, readConfig: (f) => files[f] ?? null, value: true, requiredReason: null });
-  assert.ok(same.kind === "write" && same.changed === false);
+test("pnpm ops features set の計画(fork): switches.config.ts の 1 行を足す・書き換える(既定と同じでも消さない、L1.26)", () => {
+  const off = plan({});
+  assert.ok(off.kind === "write");
+  assert.equal(off.configFile, "src/config/featureGate/switches.config.ts");
+  assert.equal(off.after, SWITCHES_EMPTY.replace("export default {}", "export default { shop: false }"));
+  const multi = 'export default {\n  wallet: false,\n} satisfies FeatureSwitches;\n';
+  const added = plan({ switchesText: multi });
+  assert.ok(added.kind === "write" && added.after === 'export default {\n  shop: false,\n  wallet: false,\n} satisfies FeatureSwitches;\n');
+  const flipped = plan({ name: "wallet", switchesText: multi, value: true });
+  assert.ok(flipped.kind === "write" && flipped.after === multi.replace("wallet: false", "wallet: true") && flipped.changed);
+  const same = plan({ name: "wallet", switchesText: multi, value: false });
+  assert.ok(same.kind === "write" && !same.changed, "同じ値なら書き換えない(消さない)");
 });
 
-test("pnpm ops features set の計画: 必須は off にしない(on はよい)、書けない形は理由と enabled の字面", () => {
-  const read = () => CONFIG;
-  const cfg = (f: string) => `src/features/${f}/config.ts`;
-  assert.deepEqual(planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: read, value: false, requiredReason: "中心" }), { kind: "required", reason: "中心" });
-  assert.equal(planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: read, value: true, requiredReason: "中心" }).kind, "write");
-  const shared = planFeatureSetFromText({ ruleText: "export const rule = { enabled: () => APP_FEATURES.wallet.enabled };\n", configFile: cfg, readConfig: read, value: false, requiredReason: null });
-  assert.ok(shared.kind === "unwritable" && shared.enabledSource === "() => APP_FEATURES.wallet.enabled");
-  const notDomain = planFeatureSetFromText({ ruleText: 'import { SHOP_CONFIG } from "@/config/app/shop.config";\nexport const rule = { enabled: () => SHOP_CONFIG.enabled };\n', configFile: cfg, readConfig: read, value: false, requiredReason: null });
-  assert.ok(notDomain.kind === "unwritable" && /import されていない/.test(notDomain.why));
-  const missing = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: () => null, value: false, requiredReason: null });
-  assert.ok(missing.kind === "unwritable" && /が無い/.test(missing.why));
-  const expr = planFeatureSetFromText({ ruleText: RULE_WRITABLE, configFile: cfg, readConfig: () => "export const SHOP_CONFIG = { enabled: process.env.X === '1' };\n", value: false, requiredReason: null });
-  assert.ok(expr.kind === "unwritable" && /リテラル/.test(expr.why));
+test("pnpm ops features set の計画(Tier1): 規則のファイルの defaultEnabled を足す・書き換える", () => {
+  const off = plan({ tier1: true });
+  assert.ok(off.kind === "write");
+  assert.equal(off.configFile, "src/featureGate/rules/shop.ts");
+  assert.equal(off.after, RULE_TEXT.replace("export const rule: FeatureGateRule = {\n", "export const rule: FeatureGateRule = {\n  defaultEnabled: false,\n"));
+  const withDefault = RULE_TEXT.replace('  pathPatterns: ["/admin/shops"],\n', '  pathPatterns: ["/admin/shops"],\n  defaultEnabled: false,\n');
+  const on = plan({ tier1: true, ruleText: withDefault, value: true });
+  assert.ok(on.kind === "write" && on.after === withDefault.replace("defaultEnabled: false", "defaultEnabled: true"));
 });
 
-test("pnpm ops features set の読み取り: core のドメイン・入れ子の enabled は書かない", () => {
-  assert.deepEqual(readRuleConfigTarget('import { W_CONFIG } from "@/features/core/wallet/config";\nexport const rule = { enabled: () => W_CONFIG.enabled };\n'), { constName: "W_CONFIG", folder: "core/wallet" });
-  assert.equal(rewriteConfigEnabled("export const S_CONFIG = { enabled: true, sub: { enabled: false } };\n", "S_CONFIG", false), null);
-  assert.equal(rewriteConfigEnabled("export const OTHER = { enabled: true };\n", "S_CONFIG", false), null);
-});
-
-const OWNER_CONFIG = 'import override from "@/config/features/shop.config";\nimport { defineConfig } from "@/lib/defineConfig";\n\nconst defaults = { enabled: true };\nexport const SHOP_CONFIG = defineConfig(defaults).compose(override);\n';
-const OVERRIDE_HEAD = '// 上書き\nimport type { ShopOverride } from "@/features/shop/config";\n\n';
-
-test("pnpm ops features set の計画: 上書きを合成する持ち主は上書きの enabled を書く(目録 D19、L1.26 = いつも true|false)", () => {
-  const cfg = (f: string) => `src/features/${f}/config.ts`;
-  const plan = (override: string | null, value: boolean) =>
-    planFeatureSetFromText({
-      ruleText: RULE_WRITABLE,
-      configFile: cfg,
-      readConfig: (f) => ({ "src/features/shop/config.ts": OWNER_CONFIG, "src/config/features/shop.config.ts": override })[f] ?? null,
-      value,
-      requiredReason: null,
-    });
-  // 空の上書き → { enabled: false }。既定と同じ on でも書く
-  const empty = plan(`${OVERRIDE_HEAD}export default {} satisfies ShopOverride;\n`, false);
-  assert.ok(empty.kind === "write" && empty.configFile === "src/config/features/shop.config.ts");
-  if (empty.kind === "write") assert.equal(empty.after, `${OVERRIDE_HEAD}export default { enabled: false } satisfies ShopOverride;\n`);
-  const on = plan(`${OVERRIDE_HEAD}export default {} satisfies ShopOverride;\n`, true);
-  assert.ok(on.kind === "write" && on.changed && on.after.includes("{ enabled: true }"));
-  // 既にある enabled を書き換え、他のキー・型の行・文字列の中の括弧はそのまま
-  const existing = `${OVERRIDE_HEAD}export type Extra = { note: string };\n\nexport default {\n  limit: 5,\n  enabled: true,\n  note: "{{X}} } {",\n  sub: { enabled: true },\n} satisfies ShopOverride<Extra>;\n`;
-  const rewritten = plan(existing, false);
-  assert.ok(rewritten.kind === "write");
-  if (rewritten.kind === "write") assert.equal(rewritten.after, existing.replace("  enabled: true,\n  note", "  enabled: false,\n  note"));
-  // 複数行の上書きに enabled が無ければ先頭に足す(入れ子の enabled は数えない)
-  const multi = plan(`${OVERRIDE_HEAD}export default {\n  limit: 5,\n  sub: { enabled: true },\n} satisfies ShopOverride;\n`, false);
-  assert.ok(multi.kind === "write" && multi.after.includes("export default {\n  enabled: false,\n  limit: 5,\n  sub: { enabled: true },"));
-  // 上書きが無い・default export がオブジェクトでない → 書かない
-  const missing = plan(null, false);
-  assert.ok(missing.kind === "unwritable" && /shop\.config\.ts が無い/.test(missing.why));
-  const notObject = plan(`${OVERRIDE_HEAD}const x = {};\nexport default x;\n`, false);
-  assert.ok(notObject.kind === "unwritable" && /オブジェクトのリテラル/.test(notObject.why));
-  // 上書きを持たない持ち主は今どおり config.ts のリテラル
-  assert.equal(readOverrideFile(CONFIG), null);
-  assert.equal(readOverrideFile(OWNER_CONFIG), "src/config/features/shop.config.ts");
-  assert.equal(rewriteOverrideEnabled("export default { enabled: true, a: { enabled: false }, enabled: false };\n", true), null);
+test("pnpm ops features set の計画: 必須は off にしない(on はよい)、書けない形は理由", () => {
+  assert.deepEqual(plan({ requiredReason: "中心" }), { kind: "required", reason: "中心" });
+  assert.equal(plan({ requiredReason: "中心", value: true }).kind, "write");
+  const notLiteral = plan({ switchesText: "const x = {};\nexport default x;\n" });
+  assert.ok(notLiteral.kind === "unwritable" && /オブジェクトのリテラルでない/.test(notLiteral.why));
+  const expr = plan({ switchesText: "export default { shop: FLAG } satisfies FeatureSwitches;\n" });
+  assert.ok(expr.kind === "unwritable" && /リテラルの 1 つでない/.test(expr.why));
+  const missing = plan({ switchesText: null });
+  assert.ok(missing.kind === "unwritable" && /switches\.config\.ts が無い/.test(missing.why));
+  const noRule = plan({ tier1: true, ruleText: "export const x = 1;\n" });
+  assert.ok(noRule.kind === "unwritable");
 });
 
 test("readFeatureReport: 上流の全規則で動く(依存は依存の検査の走査と同じ物)", async () => {

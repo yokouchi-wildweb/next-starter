@@ -4,27 +4,28 @@
 
 import { Tags } from "lucide-react";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
 import { bulkRelationAction } from "@/lib/crud/components";
 import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
 import type { UserAdminBulkActionItem } from "@/features/core/user/types";
 
-export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
-  {
-    key: "userTags",
-    lists: ["general"],
-    // ユーザータグの機能を切っていれば出さない
-    enabled: () => APP_FEATURES.user.enableUserTag,
-    order: 10,
-  },
-  {
-    domain: userDisplay,
-    relation: "userTag",
-    mode: "replace",
-    icon: Tags,
-    label: "タグ設定",
-    searchable: true,
-    showSelectAll: true,
-    showClearAll: true,
-  },
-);
+export const bulkAction: UserAdminBulkActionItem = {
+  ...bulkRelationAction(
+    {
+      key: "userTags",
+      lists: ["general"],
+      order: 10,
+    },
+    {
+      domain: userDisplay,
+      relation: "userTag",
+      mode: "replace",
+      icon: Tags,
+      label: "タグ設定",
+      searchable: true,
+      showSelectAll: true,
+      showClearAll: true,
+    },
+  ),
+  // ユーザータグの機能(門番の規則 userTag)が閉なら出さない
+  feature: "userTag",
+};
