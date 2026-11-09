@@ -24,6 +24,9 @@ const FILES = {
   "src/app/admin/_layout/config.ts": `export const adminLayoutConfig = { frame: "admin" };\n`,
   "src/app/page.tsx": "",
   "src/proxies/index.ts": "",
+  // 基盤の上書きの持ち主(設定 D91): src/featureGate の中
+  "src/featureGate/switches.ts": "",
+  "src/featureGate/rules/wallet.ts": "",
 };
 for (const [rel, body] of Object.entries(FILES)) {
   mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
@@ -108,3 +111,30 @@ test("owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画
     ],
   });
 });
+
+const SWITCHES = at("src/config/featureGate/switches.config.ts");
+
+test("基盤の上書き src/config/featureGate/(設定 D91・L1.31): リテラルだけ、読めるのは src/featureGate の中だけ", () => {
+  ruleTester.run("literal-only", plugin.rules["literal-only"], {
+    valid: [
+      { filename: SWITCHES, options, code: `import type { FeatureSwitches } from "@/featureGate";\nexport default { wallet: false, coupon: true } satisfies FeatureSwitches;` },
+      { filename: SWITCHES, options, code: `import { isProduction } from "@/lib/appEnv";\nexport default { wallet: isProduction() };` },
+    ],
+    invalid: [
+      { filename: SWITCHES, options, code: `export default { wallet: Boolean(process.env.X) };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: SWITCHES, options, code: `import { WALLET } from "@/features/wallet/config";\nexport default { wallet: WALLET };`, errors: [{ messageId: "valueImport" }] },
+      { filename: SWITCHES, options, code: `export const x = 1;\nexport default {};`, errors: [{ messageId: "statement" }] },
+    ],
+  });
+  ruleTester.run("owner-reads-only", plugin.rules["owner-reads-only"], {
+    valid: [
+      { filename: at("src/featureGate/switches.ts"), options, code: `import switches from "@/config/featureGate/switches.config";` },
+      { filename: at("src/featureGate/rules/wallet.ts"), options, code: `import switches from "../../config/featureGate/switches.config";` },
+    ],
+    invalid: [
+      { filename: at("src/features/gacha/config.ts"), options, code: `import switches from "@/config/featureGate/switches.config";`, errors: [{ messageId: "notOwner" }] },
+      { filename: at("src/app/page.tsx"), options, code: `import type { Extra } from "@/config/featureGate/switches.config";`, errors: [{ messageId: "notOwner" }] },
+    ],
+  });
+});
+

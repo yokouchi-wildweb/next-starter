@@ -1,6 +1,7 @@
 // scripts/structure/config-overrides/pairing.mjs
 // 上書きと持ち主の 1 対 1 の検査(設定 D19・D38・D75)。地区の地図(src/lib/districtMap)の利用者。
-// 見る所は src/config の 4 つの種類のフォルダ(lib・features・layout・proxies)だけ。古い app/・ui/・documents/ と直下のファイルは見ない(移行中)。
+// 見る所は src/config の地区の 4 つの種類のフォルダ(lib・features・layout・proxies)と基盤の上書きのフォルダ(featureGate、設定 D91)だけ。
+// 古い app/・ui/ と直下のファイルは見ない(移行中)。
 //
 // 落とす物:
 //   余り   = 持ち主の地区が無い上書き / 持ち主の config.ts(ui は config.ui.ts)が無い上書き / フォルダの中の置けない名前・サブフォルダ
@@ -11,7 +12,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { DISTRICT_KINDS, OVERRIDE_FOLDERS, OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
+import { BASE_OVERRIDE_FOLDERS, DISTRICT_KINDS, OVERRIDE_FOLDERS, OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { hasLibPackage } from "../../../src/lib/libPackage/index.mjs";
 
@@ -85,6 +86,29 @@ export function checkOverridePairs(root) {
           `${path}: 持ち主 ${slot.d.dir} に ${owner.path.split("/").pop()} が無い上書き(余り)。${ui ? "描画専用の上書きは持ち主が描画用の config を持つときだけ置く(設定 D38)" : "持ち主の config.ts と同じ commit で作る"}(設定 D19)`,
         );
       }
+    }
+  }
+
+  // 基盤の上書き(設定 D91): 持ち主は固定のフォルダ。名前は中身の名前で、どれを置くかは持ち主の物なので欠落は数えない
+  for (const [base, ownerDir] of Object.entries(BASE_OVERRIDE_FOLDERS)) {
+    const folder = `${OVERRIDE_ROOT}/${base}`;
+    const ownerExists = existsSync(join(root, ownerDir)) && statSync(join(root, ownerDir)).isDirectory();
+    for (const entry of listFolder(root, folder)) {
+      const path = `${folder}/${entry.name}`;
+      if (entry.isDir) {
+        problems.push(`${path}/: 基盤の上書きのフォルダの中は平ら(サブフォルダを置かない、設定 D91)。上書きは ${folder}/<中身の名前>.config.ts`);
+        continue;
+      }
+      if (ALLOWED_OTHER.has(entry.name)) continue;
+      if (!OVERRIDE_FILE.test(entry.name)) {
+        problems.push(`${path}: 置けない名前。基盤の上書きは <中身の名前>.config.ts(設定 D91)`);
+        continue;
+      }
+      if (!ownerExists) {
+        problems.push(`${path}: 持ち主 ${ownerDir} が無い上書き(余り、読まれず黙って効かない)。要らない上書きなら消す(設定 D91)`);
+        continue;
+      }
+      pairs += 1;
     }
   }
 

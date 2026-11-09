@@ -26,6 +26,11 @@ export const UI_CONFIG_FILE = "config.ui.ts";
 /** 上書きの置き場(src/config/<種類のフォルダ>/<名前>.config.ts、設定 D11・D36・D75) */
 export const OVERRIDE_ROOT = "src/config";
 export const OVERRIDE_FOLDERS = /** @type {const} */ ({ features: "features", lib: "lib", frame: "layout", proxies: "proxies" });
+/**
+ * 基盤の上書きのフォルダ(src 直下の基盤の名前 → 持ち主のフォルダ、設定 D91)。地区でない(地図に載らない)。
+ * 中は平らに <中身の名前>.config.ts を並べ(例 featureGate/switches.config.ts)、持ち主は固定のフォルダ。読むのは持ち主のフォルダの中のファイルだけ
+ */
+export const BASE_OVERRIDE_FOLDERS = /** @type {const} */ ({ featureGate: "src/featureGate" });
 
 /** ドメインの生成の入力(地区の dir の直下)。有無と generate を地図に載せる(L1.15) */
 export const DOMAIN_JSON_FILE = "domain.json";

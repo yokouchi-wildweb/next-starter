@@ -1,8 +1,8 @@
 # src/config — プロジェクトが上流の既定を上書きする場所
 
-既定値と型は持ち主(地区 = lib・ドメイン・枠・proxies)の `config.ts` に置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
+既定値と型は持ち主(地区 = lib・ドメイン・枠・proxies、と src 直下の基盤)の `config.ts` などに置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
 
-## 4 つの種類のフォルダ(中は平ら)
+## 5 つのフォルダ(地区の 4 種 + 基盤の上書き、中は平ら)
 
 | フォルダ | 持ち主 | 上書き | 持ち主の既定 |
 |---|---|---|---|
@@ -10,8 +10,11 @@
 | `features/` | ドメイン(`src/features/<名前>`・`src/features/core/<名前>`) | `features/<名前>.config.ts` | `<ドメイン>/config.ts` |
 | `layout/` | 枠(`src/app/**/_layout/config.ts` の `frame: "<名前>"`) | `layout/<名前>.config.ts` | `<_layout>/config.ts` |
 | `proxies/` | `src/proxies`(1 つ) | `proxies/proxies.config.ts` | `src/proxies/config.ts` |
+| `featureGate/` | 基盤 `src/featureGate`(門番。固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
+- 基盤の上書き(設定 D91): src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
+- `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル、設定 D92。ファイルは門番の議会が置く)
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
 
 ## 1 対 1
@@ -44,12 +47,12 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 ## 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
 
-上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。
+上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。基盤の上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。
 
 ## 機能の入切の道具
 
-閉じられる機能の入切(`enabled`)は上書き `features/<名前>.config.ts` に書く。手で書いてもよく、`pnpm ops features set <規則名> on|off` も同じ所に `enabled: true|false` を書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)。
+移行中: 入切の fork の値の置き場は `featureGate/switches.config.ts` に決まった(設定 D92)。門番の議会がそのファイルと `pnpm ops features set` の書き先を移すまで、閉じられる機能の入切(`enabled`)は今の形のまま上書き `features/<名前>.config.ts` に書く。手で書いてもよく、`pnpm ops features set <規則名> on|off` も同じ所に `enabled: true|false` を書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)。
 
 ## 移行中のもの
 
-`app/`・`ui/` と直下の `business.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻。法務の文書は `features/legal.config.ts`(持ち主 `src/features/core/legal`)へ移った。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 4 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。
+`app/`・`ui/` と直下の `business.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻。法務の文書は `features/legal.config.ts`(持ち主 `src/features/core/legal`)へ移った。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。

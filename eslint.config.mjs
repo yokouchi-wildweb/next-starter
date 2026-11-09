@@ -11,7 +11,6 @@ import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
 import appEnvPlugin from "./eslint-rules/app-env.mjs";
 import configOverridesPlugin from "./eslint-rules/config-overrides.mjs";
-import gateRuleOwnerPlugin from "./eslint-rules/gate-rule-owner.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
@@ -441,12 +440,12 @@ const config = [
       "realtime-room/purity": "error",
     },
   },
-  // 上書きファイル(src/config/{lib,features,layout,proxies})の 2 規則(設定 D34・D35・D38・L1.19。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
+  // 上書きファイル(src/config/{lib,features,layout,proxies} と基盤の上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
   // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。古い src/config/app・ui・documents と直下のファイルには掛けない
   // - literal-only: 上書きは値のリテラル。読めるのは型・process.env・@/business・持ち主が overrideImports で宣言した指定子だけ
   // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は lib-entry の持ち分
   {
-    files: ["src/config/{lib,features,layout,proxies}/*.config.ts"],
+    files: ["src/config/{lib,features,layout,proxies,featureGate}/*.config.ts"],
     plugins: { "config-overrides": configOverridesPlugin },
     rules: {
       "config-overrides/literal-only": "error",
@@ -457,16 +456,6 @@ const config = [
     plugins: { "config-overrides": configOverridesPlugin },
     rules: {
       "config-overrides/owner-reads-only": "error",
-    },
-  },
-  // 門の規則が値で読むのは 1 つの地区の config.ts だけ(目録 D14。詳細: eslint-rules/gate-rule-owner.mjs, src/featureGate/README.md)。
-  // 規則が src/config/app を読む間は鳴るので全 Tier warn。値を各地区へ移すクエストの後、締め 1 で error にする
-  {
-    files: ["src/featureGate/rules/*.ts"],
-    ignores: ["src/featureGate/rules/*.test.ts"],
-    plugins: { "gate-rule-owner": gateRuleOwnerPlugin },
-    rules: {
-      "gate-rule-owner/one-district-config": "warn",
     },
   },
   // fork が足す設定(業務の規則・追加の plugin)。eslint.config.fork.mjs は fork の物(upstream は空で出荷)

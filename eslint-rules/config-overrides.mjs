@@ -1,6 +1,7 @@
 // eslint-rules/config-overrides.mjs
 //
-// 上書きファイル(src/config/{lib,features,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts)の 2 つの規則(設定 D34・D35・D38・L1.19)。
+// 上書きファイル(src/config/{lib,features,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts、基盤の上書き src/config/featureGate/<中身>.config.ts)の
+// 2 つの規則(設定 D34・D35・D38・D91・L1.19・L1.31)。
 // 全 Tier error(新しいフォルダだけが対象なので縮む表は無い)。置き方の決まり: src/config/README.md
 //
 // - literal-only(上書きファイルに掛ける): 値はリテラルだけ。読んでよいのは
@@ -15,16 +16,17 @@
 //   lib の中から自分の上書きを読む所は lint lib-entry の持ち分なので見ない(二重に落とさない)。
 //
 // 上書き → 持ち主は地区の地図(src/lib/districtMap)で引く(リポジトリごとに 1 回読んで覚える。地区を足したら eslint を起動し直す)。
+// 基盤の上書きの持ち主は固定のフォルダ(BASE_OVERRIDE_FOLDERS、例 src/featureGate)で、読めるのはその中のファイル。宣言(overrideImports)は持たない。
 // 持ち主の宣言の本文は毎回読む。
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { OVERRIDE_FOLDERS, OVERRIDE_ROOT, readOverrideImports } from "../src/lib/districtMap/index.mjs";
+import { BASE_OVERRIDE_FOLDERS, OVERRIDE_FOLDERS, OVERRIDE_ROOT, readOverrideImports } from "../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
-const FOLDERS = Object.values(OVERRIDE_FOLDERS);
+const FOLDERS = [...Object.values(OVERRIDE_FOLDERS), ...Object.keys(BASE_OVERRIDE_FOLDERS)];
 const OVERRIDE_PATH = new RegExp(`^${OVERRIDE_ROOT}/(${FOLDERS.join("|")})/[^/]+\\.config(\\.ts)?$`);
 const BUSINESS = "@/business";
 /** 段階の判定(本部 D178 の読み手、設定 D87)。引数なしの呼び出しだけを値として許す */
@@ -43,6 +45,14 @@ function overrideSlots(root) {
   }
   mapCache.set(root, slots);
   return slots;
+}
+
+/** 基盤の上書き(src/config/<基盤>/<名前>.config.ts)なら { ownerDir }(持ち主のフォルダが無ければ ownerDir: null = noOwner)。基盤の上書きでなければ null */
+function baseSlot(root, overridePath) {
+  const match = new RegExp(`^${OVERRIDE_ROOT}/([^/]+)/[^/]+\\.config\\.ts$`).exec(overridePath);
+  const ownerDir = match ? BASE_OVERRIDE_FOLDERS[match[1]] : undefined;
+  if (!ownerDir) return null;
+  return existsSync(path.join(root, ownerDir)) ? { ownerDir } : { ownerDir: null };
 }
 
 /** テスト用: 覚えた地図を捨てる */
@@ -153,14 +163,15 @@ const literalOnly = {
     const root = rootOf(context);
     const file = repoRelative(context.filename, root);
     if (!OVERRIDE_PATH.test(file)) return {};
-    const slot = overrideSlots(root).get(file);
+    const base = baseSlot(root, file);
+    const slot = base ? (base.ownerDir ? { owner: base.ownerDir, base: true } : undefined) : overrideSlots(root).get(file);
     return {
       Program(program) {
         if (!slot) {
           context.report({ node: program, messageId: "noOwner", data: { file } });
           return;
         }
-        const declared = declaredImports(root, slot.owner);
+        const declared = slot.base ? [] : declaredImports(root, slot.owner);
         const allowedNames = new Set();
         const stageNames = new Set();
         let hasDefault = false;
@@ -225,6 +236,12 @@ const ownerReadsOnly = {
     return moduleVisitors(({ node, source }) => {
       const override = asOverridePath(resolveImport(source, context.filename, root));
       if (!override) return;
+      const base = baseSlot(root, override);
+      if (base) {
+        if (!base.ownerDir) context.report({ node, messageId: "noOwner", data: { source, override } });
+        else if (!file.startsWith(`${base.ownerDir}/`)) context.report({ node, messageId: "notOwner", data: { source, override, owner: `${base.ownerDir}/ の中のファイル` } });
+        return;
+      }
       const slot = overrideSlots(root).get(override);
       if (!slot) {
         context.report({ node, messageId: "noOwner", data: { source, override } });

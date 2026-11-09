@@ -371,3 +371,4 @@
 - id:20261109-073132-features-set-override | severity:info | checkpoint:features-set-override
 - id:20261109-073800-domain-delete-gate-override | severity:info | checkpoint:domain-delete-gate-override
 - id:20261109-080201-notification-templates-admin-off | severity:action-required | checkpoint:notification-templates-admin-off
+- id:20261109-125507-config-base-override-folder | severity:info | checkpoint:config-base-override-folder

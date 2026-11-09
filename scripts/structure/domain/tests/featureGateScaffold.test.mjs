@@ -10,7 +10,6 @@ import { Linter } from "eslint";
 import { createRequire } from "node:module";
 
 import configOverridesPlugin, { clearConfigOverridesCache } from "../../../../eslint-rules/config-overrides.mjs";
-import gateRuleOwnerPlugin, { clearGateRuleOwnerCache } from "../../../../eslint-rules/gate-rule-owner.mjs";
 import { checkOverridePairs } from "../../config-overrides/pairing.mjs";
 import { closableIssues } from "../checks/closable.mjs";
 import { TOP_LEVEL_KEYS } from "../spec/domainJson.mjs";
@@ -71,7 +70,7 @@ test("closable: true(fork)なら規則と入切の値(既定 true)を書く。�
   assert.match(override, /export default \{\} satisfies ShopItemOverride;/);
 });
 
-test("書いた 2 本は上書きの 1 対 1・上書きの lint・規則の lint を通る", () => {
+test("書いた 2 本は上書きの 1 対 1・上書きの lint を通る", () => {
   const root = project({ ...base, closable: true });
   run(root);
   fs.writeFileSync(path.join(root, "tsconfig.json"), JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./src/*"] } } }));
@@ -79,7 +78,6 @@ test("書いた 2 本は上書きの 1 対 1・上書きの lint・規則の lin
   assert.deepEqual([...pairs.mapProblems, ...pairs.problems], []);
   assert.equal(pairs.pairs, 1);
   clearConfigOverridesCache();
-  clearGateRuleOwnerCache();
   const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
   const lint = (file, plugins, rules) =>
     new Linter({ configType: "flat", cwd: root }).verify(
@@ -90,7 +88,6 @@ test("書いた 2 本は上書きの 1 対 1・上書きの lint・規則の lin
   const opt = [{ root }];
   assert.deepEqual(lint("src/config/features/shopItem.config.ts", { "config-overrides": configOverridesPlugin }, { "config-overrides/literal-only": ["error", ...opt] }), []);
   assert.deepEqual(lint("src/features/shopItem/config.ts", { "config-overrides": configOverridesPlugin }, { "config-overrides/owner-reads-only": ["error", ...opt] }), []);
-  assert.deepEqual(lint("src/featureGate/rules/shopItem.ts", { "gate-rule-owner": gateRuleOwnerPlugin }, { "gate-rule-owner/one-district-config": ["error", ...opt] }), []);
 });
 
 test("Tier1 では入切の既定が false(上流の新しい機能は opt-in)", () => {
