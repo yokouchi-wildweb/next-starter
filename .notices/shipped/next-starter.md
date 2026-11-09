@@ -383,3 +383,4 @@
 - id:20261109-141311-config-district-storage-object | severity:action-required | checkpoint:config-district-storage-object
 - id:20261109-140836-config-district-wallet-c | severity:action-required | checkpoint:config-district-wallet-c | moved:src/config/app/coupon-attribution.config.ts -> src/config/features/couponAttributionReward.config.ts
 - id:20261109-141931-config-district-fingerprint | severity:action-required | checkpoint:config-district-fingerprint | moved:src/config/app/fingerprint.config.ts -> src/config/features/fingerprintChallenge.config.ts
+- id:20261109-141957-peer-boxes | severity:info | checkpoint:peer-boxes
