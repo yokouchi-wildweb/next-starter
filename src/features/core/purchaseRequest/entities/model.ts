@@ -1,7 +1,7 @@
 // src/features/purchaseRequest/entities/model.ts
 
 import type { WalletType } from "@/features/wallet/config";
-import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
+import type { PurchaseTypeKey } from "@/features/purchaseRequest/config";
 
 export type PurchaseRequest = {
   id: string;

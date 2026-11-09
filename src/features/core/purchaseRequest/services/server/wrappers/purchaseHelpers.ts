@@ -274,7 +274,7 @@ export async function expirePendingRequests(): Promise<number> {
 
   totalExpired += bulkRows.length;
 
-  // 一括 expire した分のクォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)。
+  // 一括 expire した分のクォータ台帳を released に遷移 (rules が空なら no-op)。
   // bulk 経路は onExpire を持たないため別 tx での release で十分 (購入レコードは確定済み)。
   if (bulkRows.length > 0) {
     await releaseQuota(bulkRows.map((row) => row.id));
@@ -316,7 +316,7 @@ export async function expirePendingRequests(): Promise<number> {
             purchaseRequest: updated as PurchaseRequest,
             tx,
           });
-          // クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+          // クォータ台帳を released に遷移 (rules が空なら no-op)
           await releaseQuota(updated.id, tx);
           totalExpired += 1;
         });

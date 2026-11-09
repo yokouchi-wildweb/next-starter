@@ -8,11 +8,8 @@ import {
   getPaymentProvider,
   type PaymentProviderName,
 } from "../payment";
-import {
-  getProviderSessionExpiryMinutes,
-  isPaymentMethodSelectable,
-  resolveProviderForMethod,
-} from "@/config/app/payment.config";
+import { getProviderSessionExpiryMinutes, isPaymentMethodSelectable, resolveProviderForMethod } from "@/features/purchaseRequest/utils/paymentMethods";
+import { purchaseRequestConfig, type PurchaseTypeKey } from "@/features/purchaseRequest/config";
 import { reserveQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { assertHoldingLimit } from "@/features/core/wallet/services/server/wrappers/checkHoldingLimit";
@@ -23,7 +20,6 @@ import { couponService } from "@/features/core/coupon/services/server/couponServ
 import { gate } from "@/featureGate";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 import { getPaymentSessionEnricher } from "../payment/getSessionEnricher";
-import { PURCHASE_TYPE_CONFIG, type PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import { getPurchaseCompletionStrategy } from "../completion";
 import {
   findByIdempotencyKey,
@@ -193,7 +189,7 @@ export async function initiatePurchase(
   const resolvedProvider = paymentProviderOverride ?? resolveProviderForMethod(paymentMethod);
   if (!resolvedProvider) {
     throw new DomainError(
-      `支払い方法 "${paymentMethod}" に対応するプロバイダを解決できませんでした。payment.config.ts を確認してください。`,
+      `支払い方法 "${paymentMethod}" に対応するプロバイダを解決できませんでした。purchaseRequest/config.ts の payment を確認してください。`,
       { status: 500 },
     );
   }
@@ -271,7 +267,7 @@ export async function initiatePurchase(
 
   // 2. purchase_type に対応する戦略を解決し、戦略固有の事前バリデーション（パッケージ照合等）を委譲
   //    戦略未登録 = 設定エラーなので明示的に失敗させる（サイレント skip は絶対に避ける）
-  const typeConfig = PURCHASE_TYPE_CONFIG[purchaseType];
+  const typeConfig = purchaseRequestConfig.type[purchaseType];
   if (!typeConfig) {
     throw new DomainError(`未知の purchase_type です: ${purchaseType}`, { status: 400 });
   }
@@ -337,7 +333,7 @@ export async function initiatePurchase(
   //    冪等キーが同じでも metadata が変わるケース（商品ID差し替え等）に追従するため。
   //
   //    クォータ予約 (reserveQuota) を同一 tx で行うため、全ケースを tx で包む。
-  //    PURCHASE_QUOTA_RULES が空ならクォータ予約は no-op で従来挙動と同一。
+  //    rules が空ならクォータ予約は no-op で従来挙動と同一。
   let purchaseRequest: PurchaseRequest;
   if (reuseTarget) {
     purchaseRequest = await db.transaction(async (tx) => {
@@ -390,8 +386,8 @@ export async function initiatePurchase(
       payment_method: paymentMethod,
       payment_provider: paymentProvider,
       status: "pending" as const,
-      // expires_at: プロバイダ別に有効期限を設定（payment.config.ts の sessionExpiryMinutes、
-      // 未指定時は PROVIDER_DEFAULT_SESSION_EXPIRY_MINUTES = 30 分）。
+      // expires_at: プロバイダ別に有効期限を設定（purchaseRequest の config.ts の payment. sessionExpiryMinutes、
+      // 未指定時は providerDefaultSessionExpiryMinutes = 30 分）。
       // 銀行振込のように振込確定までユーザーの実時間が必要なプロバイダは長めに設定する。
       expires_at: new Date(
         Date.now() + getProviderSessionExpiryMinutes(paymentProvider) * 60 * 1000,
@@ -406,7 +402,7 @@ export async function initiatePurchase(
       }),
     };
     // 新規作成: create + reserveQuota + (任意) afterInitiate を 1 tx で atomic に。
-    // reserveQuota は PURCHASE_QUOTA_RULES が空なら no-op。
+    // reserveQuota は rules が空なら no-op。
     // afterInitiate 内で throw されると create もロールバックされ、
     // 副次テーブルとの整合を保ったまま購入失敗として呼び出し元に伝播する。
     purchaseRequest = await db.transaction(async (tx) => {

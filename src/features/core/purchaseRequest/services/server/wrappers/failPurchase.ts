@@ -74,7 +74,7 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
         errorMessage: resolvedErrorMessage,
         tx,
       });
-      // クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+      // クォータ台帳を released に遷移 (rules が空なら no-op)
       await releaseQuota(updatedRecord.id, tx);
       return updatedRecord;
     });
@@ -105,7 +105,7 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
     return purchaseRequest;
   }
 
-  // クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+  // クォータ台帳を released に遷移 (rules が空なら no-op)
   await releaseQuota((updated as PurchaseRequest).id);
 
   return updated as PurchaseRequest;

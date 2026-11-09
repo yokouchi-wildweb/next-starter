@@ -18,7 +18,7 @@ type UseCoinPurchaseParams = {
   paymentAmount: number;
   /**
    * ユーザーが選択した支払い方法 ID。
-   * payment.config.ts の paymentMethods[i].id と一致する値（"credit_card" 等）。
+   * purchaseRequest の config.ts の payment. paymentMethods[i].id と一致する値（"credit_card" 等）。
    * サーバー側で provider 解決に使用されるため、UI 上で選択された値を必ず渡すこと。
    */
   paymentMethod: string;

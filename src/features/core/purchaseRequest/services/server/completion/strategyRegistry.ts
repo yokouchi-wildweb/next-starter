@@ -3,7 +3,7 @@
 //
 // 同じ type が複数あると例外。ビルトインを差し替えたい fork は上流へ 1 行スイッチを依頼する。
 
-import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
+import type { PurchaseTypeKey } from "@/features/purchaseRequest/config";
 import { completionStrategies } from "@/features/core/purchaseRequest/extensions/completionStrategies";
 import type { PurchaseCompletionStrategy } from "./types";
 

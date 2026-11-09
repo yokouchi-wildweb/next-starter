@@ -1,7 +1,7 @@
 // src/features/core/purchaseRequest/types/payment.ts
 
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
-import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
+import type { PurchaseTypeKey } from "@/features/purchaseRequest/config";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 
 /**
@@ -39,7 +39,7 @@ export type CreatePaymentSessionParams = {
   userId: string;
   /**
    * ユーザーが選択した支払い方法 ID。
-   * paymentConfig.paymentMethods[i].id と一致する値（例: "credit_card", "convenience_store"）。
+   * purchaseRequestConfig.payment.paymentMethods[i].id と一致する値（例: "credit_card", "convenience_store"）。
    * 各プロバイダはこの値を providerConfig.methodMapping 経由で API 固有 ID に変換して使用する。
    */
   paymentMethod: string;
@@ -168,7 +168,7 @@ export type PaymentResult = {
  */
 export type InitiationGuardContext = {
   userId: string;
-  /** ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id） */
+  /** ユーザーが選択した支払い方法 ID（purchaseRequest の config.ts の payment. paymentMethods[i].id） */
   paymentMethod: string;
   /** 購入の履行形態 */
   purchaseType: PurchaseTypeKey;

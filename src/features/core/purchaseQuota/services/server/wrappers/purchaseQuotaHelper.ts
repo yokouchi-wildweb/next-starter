@@ -3,11 +3,7 @@
 import { and, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
-import {
-  PURCHASE_QUOTA_LEDGER_RETENTION_DAYS,
-  PURCHASE_QUOTA_RULES,
-  type QuotaRule,
-} from "@/config/app/purchase-quota.config";
+import { purchaseQuotaConfig, type QuotaRule } from "@/features/purchaseQuota/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { PURCHASE_QUOTA_ACTIVE_STATUSES } from "@/features/core/purchaseQuota/constants";
 import { PurchaseQuotaLedgerTable } from "@/features/core/purchaseQuota/entities/drizzle";
@@ -34,7 +30,7 @@ type TxExecutor = TransactionClient;
 export type ReserveQuotaInput = {
   /** 集計キーとなるユーザー ID */
   userId: string;
-  /** 決済方法名 (payment.config.ts の paymentMethod と一致) */
+  /** 決済方法名 (purchaseRequest の config.ts の payment. paymentMethod と一致) */
   paymentMethod: string;
   /** 予約金額 (円単位の整数) */
   amount: number;
@@ -220,7 +216,7 @@ async function recordExceededAudit(params: {
 /**
  * クォータをチェックし、台帳に仮押さえ (reserved) 行を作成する。
  *
- * - PURCHASE_QUOTA_RULES が空なら no-op (デフォルト) で完全に既存挙動を維持
+ * - purchaseQuotaConfig.rules が空なら no-op (デフォルト) で完全に既存挙動を維持
  * - 同一ユーザーの同時実行は pg_advisory_xact_lock でシリアライズ
  * - 同一 purchase_request_id への再呼び出し (pending 再利用) は既存行を上書き
  * - いずれかのルールを超過した場合 PurchaseQuotaExceededError を throw
@@ -232,7 +228,7 @@ export async function reserveQuota(
   input: ReserveQuotaInput,
   tx: TxExecutor,
 ): Promise<void> {
-  if (PURCHASE_QUOTA_RULES.length === 0) return;
+  if (purchaseQuotaConfig.rules.length === 0) return;
 
   const { userId, paymentMethod, amount, purchaseRequestId } = input;
 
@@ -246,7 +242,7 @@ export async function reserveQuota(
   const now = new Date();
 
   // 各ルールを評価。再予約時 (existing 有) は自己除外して計算する。
-  for (const rule of PURCHASE_QUOTA_RULES) {
+  for (const rule of purchaseQuotaConfig.rules) {
     if (!ruleAppliesTo(rule, paymentMethod)) continue;
 
     const currentAmount = await sumUsage(
@@ -314,7 +310,7 @@ export async function commitQuota(
   purchaseRequestId: string,
   tx?: TxExecutor,
 ): Promise<void> {
-  if (PURCHASE_QUOTA_RULES.length === 0) return;
+  if (purchaseQuotaConfig.rules.length === 0) return;
 
   const executor = tx ?? db;
   await executor
@@ -345,7 +341,7 @@ export async function releaseQuota(
   purchaseRequestId: string | readonly string[],
   tx?: TxExecutor,
 ): Promise<void> {
-  if (PURCHASE_QUOTA_RULES.length === 0) return;
+  if (purchaseQuotaConfig.rules.length === 0) return;
 
   const ids = Array.isArray(purchaseRequestId)
     ? purchaseRequestId
@@ -375,12 +371,12 @@ export async function releaseQuota(
 export async function getQuotaUsage(
   userId: string,
 ): Promise<QuotaUsage[]> {
-  if (PURCHASE_QUOTA_RULES.length === 0) return [];
+  if (purchaseQuotaConfig.rules.length === 0) return [];
 
   const now = new Date();
   const results: QuotaUsage[] = [];
 
-  for (const rule of PURCHASE_QUOTA_RULES) {
+  for (const rule of purchaseQuotaConfig.rules) {
     const currentAmount = await sumUsage(db, rule, userId, now, null);
     const windowStart = new Date(now.getTime() - rule.windowSeconds * 1000);
     results.push({
@@ -402,7 +398,7 @@ export async function getQuotaUsage(
  * - 監査ログ用途で長期保管したい場合は retentionDays を大きくすること
  */
 export async function cleanupOldLedger(
-  retentionDays: number = PURCHASE_QUOTA_LEDGER_RETENTION_DAYS,
+  retentionDays: number = purchaseQuotaConfig.ledgerRetentionDays,
 ): Promise<number> {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 

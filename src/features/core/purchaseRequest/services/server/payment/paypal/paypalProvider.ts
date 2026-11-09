@@ -26,7 +26,7 @@ import type {
   PaymentStatusResult,
 } from "@/features/core/purchaseRequest/types/payment";
 import { PAYMENT_ERROR_CODES } from "@/features/core/purchaseRequest/constants/errorCodes";
-import { paymentConfig } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
 import {
   getPayPalConfig,
   getPayPalWebhookId,
@@ -238,7 +238,7 @@ export class PayPalPaymentProvider implements PaymentProvider {
   async createSession(params: CreatePaymentSessionParams): Promise<PaymentSession> {
     const config = this.getConfig();
 
-    if (paymentConfig.debugLog) {
+    if (purchaseRequestConfig.payment.debugLog) {
       console.log(
         `[PayPal] createSession: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`,
       );
@@ -330,7 +330,7 @@ export class PayPalPaymentProvider implements PaymentProvider {
     try {
       const payload = (await request.json()) as PayPalWebhookPayload;
 
-      if (paymentConfig.debugLog) {
+      if (purchaseRequestConfig.payment.debugLog) {
         console.log("[PayPal] Webhook payload:", JSON.stringify(payload, null, 2));
       } else {
         console.log(

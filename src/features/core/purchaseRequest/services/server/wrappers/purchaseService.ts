@@ -6,7 +6,7 @@ import type { PaymentProviderName } from "../payment";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
-import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
+import type { PurchaseTypeKey } from "@/features/purchaseRequest/config";
 import type { LaunchInstruction } from "@/features/core/purchaseRequest/types/payment";
 
 

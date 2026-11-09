@@ -21,7 +21,7 @@ import type {
   PaymentStatusResult,
 } from "@/features/core/purchaseRequest/types/payment";
 import { PAYMENT_ERROR_CODES } from "@/features/core/purchaseRequest/constants/errorCodes";
-import { paymentConfig } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
 import { userService } from "@/features/core/user/services/server/userService";
 import {
   PAIDY_EVENT_TYPE,
@@ -128,7 +128,7 @@ export class PaidyPaymentProvider implements PaymentProvider {
     const sessionId = params.purchaseRequestId;
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
-    if (paymentConfig.debugLog) {
+    if (purchaseRequestConfig.payment.debugLog) {
       console.log(
         `[Paidy] createSession: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`,
       );
@@ -198,7 +198,7 @@ export class PaidyPaymentProvider implements PaymentProvider {
     try {
       const payload = (await request.json()) as PaidyWebhookPayload;
 
-      if (paymentConfig.debugLog) {
+      if (purchaseRequestConfig.payment.debugLog) {
         console.log("[Paidy] Webhook payload:", JSON.stringify(payload, null, 2));
       } else {
         console.log(
@@ -304,7 +304,7 @@ export class PaidyPaymentProvider implements PaymentProvider {
    * 偽 Webhook 対策は verifyWebhook 側で payment_id 経由の GET /payments/{id} による
    * 二重確認に集約しているため、ここでは常に true を返す。
    *
-   * 将来 Paidy が署名機構を追加した場合はここを実装し、payment.config.ts の
+   * 将来 Paidy が署名機構を追加した場合はここを実装し、purchaseRequest の config.ts の payment.
    * webhook.signatureHeaders.paidy をヘッダー名にすることで自動的に有効化される。
    */
   async verifyWebhookSignature(_request: Request, _signature: string): Promise<boolean> {

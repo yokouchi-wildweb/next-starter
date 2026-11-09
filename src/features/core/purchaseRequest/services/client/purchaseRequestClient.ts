@@ -66,7 +66,7 @@ export type InitiatePurchaseRequest = {
   amount: number;
   paymentAmount: number;
   /**
-   * ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id と一致）。
+   * ユーザーが選択した支払い方法 ID（purchaseRequest の config.ts の payment. paymentMethods[i].id と一致）。
    * 例: "credit_card", "convenience_store", "bank_transfer"
    * サーバー側で provider 解決 (resolveProviderForMethod) に使用される。
    */

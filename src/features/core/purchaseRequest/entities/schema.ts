@@ -3,7 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
-import { PURCHASE_TYPE_KEYS } from "@/config/app/purchaseType.config";
+import { PURCHASE_TYPE_KEYS } from "@/features/purchaseRequest/config";
 import { nullableDatetime } from "@/lib/crud/utils";
 
 // walletConfig.currency から動的に walletType の値を取得

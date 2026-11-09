@@ -9,13 +9,13 @@ import {
   getPaymentProvider,
   type PaymentProviderName,
 } from "@/features/core/purchaseRequest/services/server/payment";
-import { paymentConfig } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
 
 /**
- * 設定済みプロバイダ名の集合（payment.config.ts から動的に導出）
+ * 設定済みプロバイダ名の集合（purchaseRequest/config.ts の payment から動的に導出）
  * Webhook URL の `?provider=<name>` バリデーションに使用する。
  */
-const CONFIGURED_PROVIDER_NAMES = new Set<string>(Object.keys(paymentConfig.providers));
+const CONFIGURED_PROVIDER_NAMES = new Set<string>(Object.keys(purchaseRequestConfig.payment.providers));
 
 /**
  * Webhook 署名を検証
@@ -25,7 +25,7 @@ async function verifySignature(
   request: Request,
   providerName: PaymentProviderName
 ): Promise<{ valid: boolean; signature?: string }> {
-  const signatureHeader = paymentConfig.webhook.signatureHeaders[providerName];
+  const signatureHeader = purchaseRequestConfig.payment.webhook.signatureHeaders[providerName];
 
   // 署名検証が不要なプロバイダ（dummy など）
   if (signatureHeader === null || signatureHeader === undefined) {

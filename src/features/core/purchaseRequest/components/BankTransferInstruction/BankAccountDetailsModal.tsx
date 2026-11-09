@@ -14,7 +14,7 @@
 
 import Modal from "@/components/Overlays/Modal";
 import { Stack } from "@/components/Layout/Stack";
-import type { BankTransferConfig } from "@/config/app/payment.config";
+import type { BankTransferConfig } from "@/features/purchaseRequest/config";
 
 import { AccountInfoDetails } from "./AccountInfoDetails";
 import { TransferIdentifierCard } from "./TransferIdentifierCard";
@@ -22,7 +22,7 @@ import { TransferIdentifierCard } from "./TransferIdentifierCard";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 振込先口座情報（payment.config.ts から取得） */
+  /** 振込先口座情報（purchaseRequest/config.ts の payment から取得） */
   account: BankTransferConfig["account"];
   /** 振込人名末尾に付与する識別子（数字 8 桁） */
   identifier: string;

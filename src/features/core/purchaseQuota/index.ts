@@ -8,7 +8,4 @@
 
 export * from "./constants";
 export type { PurchaseQuotaLedger } from "./entities/model";
-export type {
-  QuotaRule,
-  QuotaScope,
-} from "@/config/app/purchase-quota.config";
+export type { QuotaRule, QuotaScope } from "./config";

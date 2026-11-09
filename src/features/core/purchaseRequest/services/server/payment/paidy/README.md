@@ -99,7 +99,7 @@ Paidy Webhook ペイロードを検証して `PaymentResult` を返す。
 
 Paidy が署名機構を提供していないため**常に `true` を返す**。
 偽 Webhook 対策は `verifyWebhook` 内の `GET /payments/{id}` 二重確認に集約している。
-将来 Paidy が署名を追加した場合はここを実装し、`payment.config.ts` の
+将来 Paidy が署名を追加した場合はここを実装し、`purchaseRequest/config.ts` の `payment` の
 `webhook.signatureHeaders.paidy` にヘッダー名を設定すれば自動で有効化される。
 
 ### getPaymentStatus（ポーリング用）
@@ -181,7 +181,7 @@ client_sdk 型の決済では Webhook を待たず、クライアントから能
 
 ## PII ログ制御
 
-`paymentConfig.debugLog` が `true` の場合のみペイロード全体を出力する。
+`purchaseRequestConfig.payment.debugLog` が `true` の場合のみペイロード全体を出力する。
 `false` の場合は `event_type` / `status` / `payment_id` の最小限のみ。
 **本番環境では `false` 必須**（メアド・電話番号等の PII を含むため）。
 
@@ -236,9 +236,9 @@ Webhook 動作確認は同セクションの「Authorize Success」「Capture Su
 テストペイロードの `payment_id` は仮値（`pay_0000000000000001`）のため Paidy API 二重確認で 404 が返るが、
 これは設計通り（ルートが 200 を返し、`[Paidy] Webhook received` がログに出れば疎通 OK）。
 
-### 5. payment.config.ts の状態確認
+### 5. purchaseRequest の config.ts の payment.状態確認
 
-`src/config/app/payment.config.ts` で:
+`src/features/core/purchaseRequest/config.ts` の `payment`(上書き `src/config/features/purchaseRequest.config.ts`) で:
 
 ```ts
 providers: {

@@ -1,5 +1,5 @@
 // src/features/core/wallet/components/common/SupportedPaymentMethods/index.tsx
-// payment.config.ts の paymentMethods をベースに、対応支払い方法を選択可能なカードリストとして表示する。
+// purchaseRequest の config.ts の payment. paymentMethods をベースに、対応支払い方法を選択可能なカードリストとして表示する。
 // 表示対象は status が "available" / "coming_soon" のもの（disabled は除外）。
 //
 // available: ラジオ的に選択可能（primary カラーで強調）
@@ -19,15 +19,14 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
-import {
-  getVisiblePaymentMethods,
-  type PaymentMethodConfig,
-} from "@/config/app/payment.config";
+import { useGate } from "@/featureGate/client";
+import { getVisiblePaymentMethods } from "@/features/purchaseRequest/utils/paymentMethods";
+import type { PaymentMethodConfig } from "@/features/purchaseRequest/config";
 
 /**
- * payment.config.ts の icon 識別子 → Lucide アイコンへのマッピング
+ * purchaseRequest の config.ts の payment. icon 識別子 → Lucide アイコンへのマッピング
  *
- * [!!] payment.config.ts の paymentMethods に新しい icon を追加した場合はここも更新すること。
+ * [!!] purchaseRequest の config.ts の payment. paymentMethods に新しい icon を追加した場合はここも更新すること。
  * マッピング未登録の場合は汎用の Wallet アイコンにフォールバックする。
  */
 const PAYMENT_ICON_MAP: Record<string, LucideIcon> = {
@@ -230,7 +229,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
  *     重複申し込みを UI 側で先回りに防ぐ。
  */
 export type BlockedPaymentMethod = {
-  /** 対象の payment method ID（payment.config.ts の paymentMethods[].id と一致） */
+  /** 対象の payment method ID（purchaseRequest の config.ts の payment. paymentMethods[].id と一致） */
   id: string;
   /** 右端に出す info（シアン系）バッジのラベル（省略時 "進行中"） */
   badge?: string;
@@ -259,7 +258,7 @@ type SupportedPaymentMethodsProps = {
 /**
  * 対応している支払い方法の選択 UI
  *
- * payment.config.ts の paymentMethods をそのまま選択肢として表示する。
+ * purchaseRequest の config.ts の payment. paymentMethods をそのまま選択肢として表示する。
  * 表示順・ラベル・補足説明（対応ブランド等）・ステータスは全て config 側で制御可能。
  *
  * `value` / `onChange` を渡すと controlled として親が選択状態を管理する。
@@ -272,7 +271,8 @@ export function SupportedPaymentMethods({
   onChange,
   blockedMethods,
 }: SupportedPaymentMethodsProps = {}) {
-  const methods = getVisiblePaymentMethods();
+  // 決済(門番の規則 payment)を閉じた fork では支払い方法を出さない(設定 D97 と同じ扱い。決済の持ち主の値を読むので確かめる)
+  const methods = useGate().enabled("payment") ? getVisiblePaymentMethods() : [];
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const isControlled = value !== undefined;
   const selectedId = isControlled ? value : internalSelectedId;

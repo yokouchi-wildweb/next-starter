@@ -183,7 +183,7 @@ export async function cancelPurchase(
       });
     }
 
-    // 3e. 購入クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+    // 3e. 購入クォータ台帳を released に遷移 (rules が空なら no-op)
     await releaseQuota(current.id, tx);
 
     return { purchaseRequest: updated as PurchaseRequest };

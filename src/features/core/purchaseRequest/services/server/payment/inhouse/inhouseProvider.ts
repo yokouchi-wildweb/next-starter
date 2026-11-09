@@ -16,7 +16,7 @@
 import { and, desc, eq, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { getProviderSessionExpiryMinutes } from "@/config/app/payment.config";
+import { getProviderSessionExpiryMinutes } from "@/features/purchaseRequest/utils/paymentMethods";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -36,7 +36,7 @@ export const INHOUSE_PROVIDER_NAME = "inhouse" as const;
 
 /**
  * 自社銀行振込のメソッド ID。
- * payment.config.ts の paymentMethods[].id と一致する。
+ * purchaseRequest の config.ts の payment. paymentMethods[].id と一致する。
  * validateInitiation の検索 WHERE 句にも使われる。
  */
 export const INHOUSE_BANK_TRANSFER_METHOD_ID = "bank_transfer_inhouse" as const;
@@ -89,7 +89,7 @@ class InhousePaymentProvider implements PaymentProvider {
    *   - クライアントは window.location.href 代入でそのまま遷移できる。
    *
    * expiresAt:
-   *   - paymentConfig.providers.inhouse.sessionExpiryMinutes（デフォルト 7 日）から算出。
+   *   - purchaseRequestConfig.payment.providers.inhouse.sessionExpiryMinutes（デフォルト 7 日）から算出。
    */
   async createSession(params: CreatePaymentSessionParams): Promise<PaymentSession> {
     if (!params.walletType) {

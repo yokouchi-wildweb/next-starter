@@ -22,7 +22,7 @@
 
 ### 動作モード
 
-`paymentConfig.bankTransfer.autoComplete` で 2 モードを切り替える。レビューレコード作成時にモードが固定保存され、以後不変（途中で設定が変わっても既存レビューは作成時のモードで動く）。
+`purchaseRequestConfig.payment.bankTransfer.autoComplete` で 2 モードを切り替える。レビューレコード作成時にモードが固定保存され、以後不変（途中で設定が変わっても既存レビューは作成時のモードで動く）。
 
 | mode | 通貨付与のタイミング | 管理者承認の意味 | 拒否時の挙動 |
 |---|---|---|---|
@@ -108,12 +108,12 @@
 
 ### なぜ mode をレコード作成時に固定保存するか
 
-`paymentConfig.bankTransfer.autoComplete` の値は運用中に変更され得る。仮に「申告は即時モードで処理されたが、管理者承認時には設定が確認モードに変わっていた」場合、既存レビューの semantics が途中で変わってしまうとバグの温床になる。
+`purchaseRequestConfig.payment.bankTransfer.autoComplete` の値は運用中に変更され得る。仮に「申告は即時モードで処理されたが、管理者承認時には設定が確認モードに変わっていた」場合、既存レビューの semantics が途中で変わってしまうとバグの温床になる。
 
 レビュー作成時の `autoComplete` 値から決定した mode をレコードに固定することで、以下を保証:
 
 - 1 レビュー = 1 モードで一貫した処理
-- `paymentConfig.bankTransfer.autoComplete` の切り替えは **以後の新規申告にのみ影響** し、既存の pending_review レビューには影響しない
+- `purchaseRequestConfig.payment.bankTransfer.autoComplete` の切り替えは **以後の新規申告にのみ影響** し、既存の pending_review レビューには影響しない
 
 ### なぜ拒否時に通貨ロールバックしないか（即時モード）
 
@@ -306,9 +306,9 @@
 | Feature Gate (規則 `src/featureGate/rules/bankTransferReview.ts`・`payment.ts`。詳細 `src/featureGate/README.md`) | 管理画面は `/404` へ rewrite、管理 API は 404。決済機能（`APP_FEATURES.payment.enabled`）が無効ならテーブル `bank_transfer_reviews` も作られない |
 | ユーザー側 API（申告 / 進行中取得） | ゲート対象外。購入開始時点で選択不可メソッドが弾かれるため、進行中取得は `{ active: null }` を返すのみ |
 
-上流の既定値は `status: "disabled"`。利用する fork は `paymentConfig.paymentMethods` の `bank_transfer_inhouse` を `status: "available"` に変更する（これだけで購入画面・管理画面・API が揃って有効になる）。
+上流の既定値は `status: "disabled"`。利用する fork は `purchaseRequestConfig.payment.paymentMethods` の `bank_transfer_inhouse` を `status: "available"` に変更する（これだけで購入画面・管理画面・API が揃って有効になる）。
 
-### `paymentConfig.bankTransfer`
+### `purchaseRequestConfig.payment.bankTransfer`
 
 ```ts
 {
@@ -327,7 +327,7 @@
 
 `getBankTransferConfig()` ヘルパーで取得。
 
-### `paymentConfig.providers.inhouse`
+### `purchaseRequestConfig.payment.providers.inhouse`
 
 ```ts
 {
@@ -336,7 +336,7 @@
 }
 ```
 
-### `paymentConfig.paymentMethods`
+### `purchaseRequestConfig.payment.paymentMethods`
 
 ```ts
 {
@@ -475,11 +475,11 @@
 
 ### `autoComplete` 切替時の影響
 
-`paymentConfig.bankTransfer.autoComplete` の切り替えは **以後の新規申告のみに影響**。既存の pending_review レビューは作成時の mode で動き続ける（mode はレコードに固定保存されているため）。
+`purchaseRequestConfig.payment.bankTransfer.autoComplete` の切り替えは **以後の新規申告のみに影響**。既存の pending_review レビューは作成時の mode で動き続ける（mode はレコードに固定保存されているため）。
 
 ### 振込先口座の本番値設定
 
-`paymentConfig.bankTransfer.account` のデフォルトはサンプル値。本番リリース前に必ず事業者の正規口座情報に書き換えること。
+`purchaseRequestConfig.payment.bankTransfer.account` のデフォルトはサンプル値。本番リリース前に必ず事業者の正規口座情報に書き換えること。
 
 ---
 

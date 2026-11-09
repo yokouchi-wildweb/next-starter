@@ -18,7 +18,8 @@ import {
   isSuccessEvent,
   extractPaymentMethod,
 } from "./errorMapping";
-import { paymentConfig, getProviderApiMethodId } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
+import { getProviderApiMethodId } from "@/features/purchaseRequest/utils/paymentMethods";
 
 /**
  * Fincode 環境設定
@@ -126,10 +127,10 @@ export class FincodePaymentProvider implements PaymentProvider {
       // mapping が見つからない場合 getProviderApiMethodId は元の ID をそのまま返すため、
       // ここで Fincode 側に意図せぬ ID が渡らないよう守る。
       const mappingExists =
-        paymentConfig.providers.fincode?.methodMapping?.[params.paymentMethod];
+        purchaseRequestConfig.payment.providers.fincode?.methodMapping?.[params.paymentMethod];
       if (!mappingExists) {
         throw new Error(
-          `[Fincode] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+          `[Fincode] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。purchaseRequest/config.ts の payment を確認してください。`,
         );
       }
     }
@@ -164,7 +165,7 @@ export class FincodePaymentProvider implements PaymentProvider {
       ...(params.metadata && { metadata: params.metadata }),
     };
 
-    if (paymentConfig.debugLog) {
+    if (purchaseRequestConfig.payment.debugLog) {
       console.log("[Fincode] Request body:", JSON.stringify(requestBody, null, 2));
     } else {
       console.log(`[Fincode] Creating session: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`);
@@ -201,7 +202,7 @@ export class FincodePaymentProvider implements PaymentProvider {
     try {
       const body: FincodeWebhookPayload = await request.json();
 
-      if (paymentConfig.debugLog) {
+      if (purchaseRequestConfig.payment.debugLog) {
         console.log("[Fincode] Webhook payload:", JSON.stringify(body, null, 2));
       } else {
         console.log(`[Fincode] Webhook received: event=${body.event}, orderId=${body.order_id}`);
@@ -343,7 +344,7 @@ export class FincodePaymentProvider implements PaymentProvider {
 
       const data = (await response.json()) as FincodeSessionStatusResponse;
 
-      if (paymentConfig.debugLog) {
+      if (purchaseRequestConfig.payment.debugLog) {
         console.log("[Fincode] Payment status response:", JSON.stringify(data, null, 2));
       } else {
         console.log(

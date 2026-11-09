@@ -19,7 +19,7 @@ import {
   isFailurePaymentStatus,
   extractPaymentMethod,
 } from "./errorMapping";
-import { paymentConfig } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
 // Square Checkout API は payment_method_types のような明示指定を持たないため、
 // methodMapping は「Square が担当するメソッドかどうか」のバリデーション用途で参照する。
 
@@ -197,10 +197,10 @@ export class SquarePaymentProvider implements PaymentProvider {
     // （resolveProviderForMethod で正しく解決されていれば通常到達しないが、
     //  paymentProvider 引数で直接 "square" を指定された経路に対する防御。）
     const squareMappingExists =
-      paymentConfig.providers.square?.methodMapping?.[params.paymentMethod];
+      purchaseRequestConfig.payment.providers.square?.methodMapping?.[params.paymentMethod];
     if (!squareMappingExists) {
       throw new Error(
-        `[Square] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+        `[Square] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。purchaseRequest/config.ts の payment を確認してください。`,
       );
     }
 
@@ -243,7 +243,7 @@ export class SquarePaymentProvider implements PaymentProvider {
       payment_note: params.purchaseRequestId,
     };
 
-    if (paymentConfig.debugLog) {
+    if (purchaseRequestConfig.payment.debugLog) {
       console.log("[Square] Creating payment link:", JSON.stringify(requestBody, null, 2));
     } else {
       console.log(`[Square] Creating payment link: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`);
@@ -286,7 +286,7 @@ export class SquarePaymentProvider implements PaymentProvider {
     try {
       const body: SquareWebhookPayload = await request.json();
 
-      if (paymentConfig.debugLog) {
+      if (purchaseRequestConfig.payment.debugLog) {
         console.log("[Square] Webhook payload:", JSON.stringify(body, null, 2));
       } else {
         console.log(`[Square] Webhook received: type=${body.type}, paymentId=${body.data?.object?.payment?.id}`);

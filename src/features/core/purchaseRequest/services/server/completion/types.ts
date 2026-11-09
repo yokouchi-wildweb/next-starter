@@ -9,7 +9,7 @@
 // 下流で追加する戦略（例: direct_sale, subscription）は
 // ./strategies/<名前>.ts に export const strategy で置く。
 
-import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
+import type { PurchaseTypeKey } from "@/features/purchaseRequest/config";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import type { WalletHistory } from "@/features/core/walletHistory/entities/model";
 import type { TransactionClient } from "@/lib/drizzle";

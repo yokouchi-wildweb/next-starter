@@ -15,7 +15,7 @@
 
 - 完了時のみ `wallet_histories` が作られ、`wallet_histories.request_batch_id = purchase_requests.id`、`purchase_requests.wallet_history_id` で相互に紐づく（`wallet_topup` の場合）
 - `idempotency_key`: uuid, UNIQUE（二重購入防止の DB 層）
-- `payment_method`: `payment.config.ts` の `paymentMethods[i].id`。完了時、プロバイダが返した実際の方法で上書きされる
+- `payment_method`: `purchaseRequest/config.ts` の `payment` の `paymentMethods[i].id`。完了時、プロバイダが返した実際の方法で上書きされる
 - `payment_provider`: `resolveProviderForMethod()` で解決したプロバイダ名
 - `payment_session_id` / `provider_order_id`: Webhook・ステータス照会で行を逆引きする照合キー（どちらを使うかはプロバイダの `correlationKey`）
 - `purchase_type` / `metadata`: 「6. purchase_type と完了戦略」参照
@@ -78,7 +78,7 @@ wrappers/
    - `completed`: 完了画面へ誘導
    - `conflict`: 別プロバイダで進行中 → 409 / `failed`・`expired` → 400
 4. 新規作成時のみ `provider.validateInitiation`（inhouse の「未完了振込があれば既存案内へ戻す」等）
-5. `PURCHASE_TYPE_CONFIG` と完了戦略を解決し `strategy.validateInitiation`（`wallet_topup` は `CURRENCY_CONFIG` のパッケージ照合）。**reuse-pending でも必ず再実行**（金額更新の経路で照合を飛ばすと金額詐称の穴になる）
+5. `purchaseRequestConfig.type` と完了戦略を解決し `strategy.validateInitiation`（`wallet_topup` は `CURRENCY_CONFIG` のパッケージ照合）。**reuse-pending でも必ず再実行**（金額更新の経路で照合を飛ばすと金額詐称の穴になる）
 6. `walletType` があれば保有上限チェック（`assertHoldingLimit`）
 7. クーポン検証（`couponService.validateForCategory`、purchase_discount カテゴリ）→ 割引後金額 `<= 0` は 400。クーポンの機能が閉じている（`gate.enabled("coupon")` が false）ときにクーポンコード付きで来たら 400「クーポンは現在使えません。」で断る（黙って定価にしない）。完了側も閉なら redeem を飛ばし warn 1 行
 8. 1 tx で create（または pending 更新）+ `reserveQuota` +（新規時のみ）`strategy.afterInitiate`。新規作成の直前に `expireStaleClientSdkSessions(userId)` で同一ユーザーの放置 client_sdk processing を expired にする（best-effort）
@@ -160,7 +160,7 @@ wrappers/
 - 冪等キー検索は必ず `user_id` でスコープ
 - コールバック URL のオリジンは `getAppBaseUrl()`（`businessConfig.url` の直接参照・Host ヘッダ由来は禁止）
 - `dummy` プロバイダは段階が development(`@/lib/appEnv`)のときだけ使え、それ以外では `getPaymentProvider` が throw
-- PII を含むペイロード全量ログは `paymentConfig.debugLog`（本番 false）
+- PII を含むペイロード全量ログは `purchaseRequestConfig.payment.debugLog`（本番 false）
 
 ---
 
@@ -170,7 +170,7 @@ wrappers/
 
 ### 6.1 追加手順
 
-1. `src/config/app/purchaseType.config.ts` の `PURCHASE_TYPE_CONFIG` にエントリを追加（`label`, `requiresWalletType`）。enum が変わるので `pnpm db:push`
+1. 上書き `src/config/features/purchaseRequest.config.ts` の `purchaseType`(Extra で型も足す。既定は `src/features/core/purchaseRequest/config.ts`) にエントリを追加（`label`, `requiresWalletType`）。enum が変わるので `pnpm db:push`
 2. `services/server/completion/strategies/<name>.ts` に `export const strategy: PurchaseCompletionStrategy` を実装
 3. `pnpm generate extensions`
 4. 呼び出し側で `initiatePurchase({ purchaseType: "<name>", walletType: null, amount, paymentAmount, paymentMethod, baseUrl, metadata, ... })`

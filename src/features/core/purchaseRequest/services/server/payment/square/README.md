@@ -107,5 +107,5 @@ Square は決済フローで複数の Webhook イベントを送信する:
 
 ## PII ログ制御
 
-- `paymentConfig.debugLog` が `true` の場合のみペイロード全体を出力
+- `purchaseRequestConfig.payment.debugLog` が `true` の場合のみペイロード全体を出力
 - `false` の場合は `purchaseRequestId`, `amount`, `type`, `paymentId` 等の最小限のみ

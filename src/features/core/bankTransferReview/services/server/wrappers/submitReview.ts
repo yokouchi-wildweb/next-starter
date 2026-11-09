@@ -6,7 +6,7 @@
 // - 既存レビューが無ければ pending_review で新規作成
 // - 既存レビューが pending_review なら画像を差し替えて再申告として扱う
 // - 既存レビューが confirmed / rejected なら 400 (既に判定済み)
-// - mode は paymentConfig.bankTransfer.autoComplete から決定し、
+// - mode は purchaseRequestConfig.payment.bankTransfer.autoComplete から決定し、
 //   レコード作成時に固定する（後で設定が変わっても既存レビューの semantics は不変）
 // - mode=immediate ならその場で completePurchase を呼んで通貨を即時付与する
 // - mode=approval_required は通貨付与を保留（管理者の confirmReview を待つ）
@@ -24,7 +24,7 @@
 //   approval_required のときのみ付与するため、ここで immediate にすると管理者承認後も
 //   永久に付与されない）
 
-import { paymentConfig } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
@@ -123,7 +123,7 @@ export async function submitReview(
   //      judge-image が purchase_requests.metadata に保存した最新判定で合否を確定する。
   //      未判定（保存値なし）も不合格として扱う（判定をスキップした API 直叩き対策）。
   //      AI 判定が無効な構成では従来どおり検証なし（常に合格扱い）。
-  const aiJudgmentEnabled = paymentConfig.bankTransfer.aiImageJudgmentEnabled;
+  const aiJudgmentEnabled = purchaseRequestConfig.payment.bankTransfer.aiImageJudgmentEnabled;
   const judgment = aiJudgmentEnabled
     ? readBankTransferJudgmentFromMetadata(purchaseRequest.metadata)
     : null;
@@ -140,14 +140,14 @@ export async function submitReview(
 
   // 5. mode 決定
   //    既存レビューがあればその mode を維持（途中で変更しない）。
-  //    新規作成時は paymentConfig.bankTransfer.autoComplete から決定し、以後不変。
+  //    新規作成時は purchaseRequestConfig.payment.bankTransfer.autoComplete から決定し、以後不変。
   //    ただし判定不合格の申告は、設定が即時付与でも approval_required で固定する。
   //    通貨付与は管理者の confirmReview 時に行われる（confirmReview は
   //    approval_required のみ付与するため、ここで immediate にすると承認後も
   //    永久に付与されない）。
   const mode: BankTransferReviewMode =
     existing?.mode ??
-    (judgmentPassed && paymentConfig.bankTransfer.autoComplete
+    (judgmentPassed && purchaseRequestConfig.payment.bankTransfer.autoComplete
       ? "immediate"
       : "approval_required");
 

@@ -5,7 +5,7 @@
 // 設計方針:
 // - purchase_requests に銀行振込固有のカラムを生やさず、責務を分離した独立テーブルとして管理する。
 // - 1 purchase_request : 1 review の関係（UNIQUE 制約）。再申告は同一レコードを更新する想定。
-// - mode (immediate / approval_required) はレコード作成時の paymentConfig.bankTransfer.autoComplete から
+// - mode (immediate / approval_required) はレコード作成時の purchaseRequestConfig.payment.bankTransfer.autoComplete から
 //   決定して固定する。後から設定が変わってもレビューの semantics が一貫するように。
 // - reviewed_by は管理者退職時にユーザーが消えてもレビュー履歴自体は残せるよう ON DELETE SET NULL。
 // - 拡張用に metadata (jsonb) を持たせる（再レビュー履歴・追加コメント等の将来拡張余地）。
@@ -41,7 +41,7 @@ export const BankTransferReviewStatusEnum = pgEnum(
  * - approval_required: 管理者承認まで通貨付与を保留する（purchase_request は申告後も processing）。
  *   管理者承認時に completePurchase が走り通貨が付与される。拒否は failPurchase に連動。
  *
- * mode はレコード作成時の paymentConfig.bankTransfer.autoComplete から決定し、
+ * mode はレコード作成時の purchaseRequestConfig.payment.bankTransfer.autoComplete から決定し、
  * 以後不変（途中で設定が変わっても既存レビューは作成時のモードで動く）。
  */
 export const BankTransferReviewModeEnum = pgEnum(

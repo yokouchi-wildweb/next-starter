@@ -386,3 +386,4 @@
 - id:20261109-141957-peer-boxes | severity:info | checkpoint:peer-boxes
 - id:20261109-142400-config-district-auth | severity:action-required | checkpoint:config-district-auth | moved:src/config/ui/rate-limit-warning.config.ts -> src/config/features/auth.config.ts
 - id:20261109-142442-config-district-coupon-affiliate-description | severity:action-required | checkpoint:config-district-coupon-affiliate-description | resolves:20261101-180140-coupon-affiliate-description-text
+- id:20261109-142403-config-district-wallet-b | severity:action-required | checkpoint:config-district-wallet-b | moved:src/config/app/payment.config.ts -> src/config/features/purchaseRequest.config.ts; src/config/app/purchaseType.config.ts -> src/config/features/purchaseRequest.config.ts; src/config/app/purchase-quota.config.ts -> src/config/features/purchaseQuota.config.ts

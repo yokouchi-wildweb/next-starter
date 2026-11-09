@@ -15,7 +15,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Button } from "@/components/Form/Button/Button";
 import { Span } from "@/components/TextBlocks";
-import type { BankTransferConfig } from "@/config/app/payment.config";
+import type { BankTransferConfig } from "@/features/purchaseRequest/config";
 
 import { BankAccountDetailsModal } from "./BankAccountDetailsModal";
 import { ExpiryNotice } from "./ExpiryNotice";

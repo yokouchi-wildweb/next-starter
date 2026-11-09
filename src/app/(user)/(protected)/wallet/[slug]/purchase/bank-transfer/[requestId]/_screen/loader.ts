@@ -17,7 +17,8 @@
 import "server-only";
 import { notFound, redirect } from "next/navigation";
 
-import { getBankTransferConfig, type BankTransferConfig } from "@/config/app/payment.config";
+import { getBankTransferConfig } from "@/features/purchaseRequest/utils/paymentMethods";
+import type { BankTransferConfig } from "@/features/purchaseRequest/config";
 import type { ScreenProps } from "@/lib/screens/types";
 import {
   INHOUSE_BANK_TRANSFER_METHOD_ID,

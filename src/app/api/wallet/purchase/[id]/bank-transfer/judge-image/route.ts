@@ -7,7 +7,7 @@
 // /confirm エンドポイントはこの保存値で合否を検証する（クライアント申告は信用しない）。
 // purchase_request の status は変更しない。実際の振込完了申告は /confirm 側で行う。
 //
-// ストリクトモード（paymentConfig.bankTransfer.aiImageJudgmentStrictMode=true）:
+// ストリクトモード（purchaseRequestConfig.payment.bankTransfer.aiImageJudgmentStrictMode=true）:
 // 明細内で「振込人名・名前の前後の識別数字・振込金額」の 3 点が確認できなければ不合格。
 // 期待値はサーバー側で purchase_request（provider_order_id / payment_amount）から渡す。
 //
@@ -18,7 +18,7 @@
 
 import { NextResponse } from "next/server";
 
-import { getBankTransferConfig } from "@/config/app/payment.config";
+import { getBankTransferConfig } from "@/features/purchaseRequest/utils/paymentMethods";
 import {
   checkBankTransferReceipt,
   type SupportedImageMediaType,

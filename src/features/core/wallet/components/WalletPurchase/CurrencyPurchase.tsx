@@ -13,7 +13,7 @@ import { useGate } from "@/featureGate/client";
 
 import { SupportedPaymentMethods, type BlockedPaymentMethod } from "../common/SupportedPaymentMethods";
 
-// payment.config.ts の paymentMethods[].id と一致させる（自社銀行振込のメソッド ID）
+// purchaseRequest の config.ts の payment. paymentMethods[].id と一致させる（自社銀行振込のメソッド ID）
 const INHOUSE_BANK_TRANSFER_METHOD_ID = "bank_transfer_inhouse";
 
 import { PurchaseButton } from "./PurchaseButton";

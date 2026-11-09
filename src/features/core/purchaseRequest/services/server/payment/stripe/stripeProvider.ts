@@ -16,7 +16,8 @@ import {
   STRIPE_PAYMENT_STATUS,
   extractPaymentMethod,
 } from "./errorMapping";
-import { paymentConfig, getProviderApiMethodId } from "@/config/app/payment.config";
+import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
+import { getProviderApiMethodId } from "@/features/purchaseRequest/utils/paymentMethods";
 
 /**
  * Stripe 環境設定
@@ -175,10 +176,10 @@ export class StripePaymentProvider implements PaymentProvider {
     // mapping が存在しない場合は明示的にエラー（共通 ID をそのまま送ると Stripe が拒否するため）。
     const stripePaymentMethodType = getProviderApiMethodId("stripe", params.paymentMethod);
     const stripeMappingExists =
-      paymentConfig.providers.stripe?.methodMapping?.[params.paymentMethod];
+      purchaseRequestConfig.payment.providers.stripe?.methodMapping?.[params.paymentMethod];
     if (!stripeMappingExists) {
       throw new Error(
-        `[Stripe] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+        `[Stripe] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。purchaseRequest/config.ts の payment を確認してください。`,
       );
     }
 
@@ -210,7 +211,7 @@ export class StripePaymentProvider implements PaymentProvider {
 
     const formBody = this.encodeFormBody(body);
 
-    if (paymentConfig.debugLog) {
+    if (purchaseRequestConfig.payment.debugLog) {
       console.log("[Stripe] Creating checkout session:", formBody);
     } else {
       console.log(
@@ -262,7 +263,7 @@ export class StripePaymentProvider implements PaymentProvider {
     try {
       const event = (await request.json()) as StripeWebhookEvent;
 
-      if (paymentConfig.debugLog) {
+      if (purchaseRequestConfig.payment.debugLog) {
         console.log("[Stripe] Webhook event:", JSON.stringify(event, null, 2));
       } else {
         console.log(

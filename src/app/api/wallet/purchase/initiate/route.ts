@@ -8,7 +8,7 @@ import { purchaseRequestService } from "@/features/core/purchaseRequest/services
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getAppBaseUrl } from "@/lib/url";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
-import { isPaymentMethodSelectable } from "@/config/app/payment.config";
+import { isPaymentMethodSelectable } from "@/features/purchaseRequest/utils/paymentMethods";
 
 // wallet の config.ts の currency から動的に walletType の値を取得（型安全）
 const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
@@ -27,7 +27,7 @@ const InitiatePurchaseSchema = z.object({
     .int()
     .positive({ message: "支払い金額は1以上の整数で指定してください。" }),
   /**
-   * ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id）。
+   * ユーザーが選択した支払い方法 ID（purchaseRequest の config.ts の payment. paymentMethods[i].id）。
    * status="available" かつ provider が enabled のメソッドのみ受け付ける。
    */
   paymentMethod: z

@@ -17,7 +17,7 @@
 import { useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
-import type { BankTransferConfig } from "@/config/app/payment.config";
+import type { BankTransferConfig } from "@/features/purchaseRequest/config";
 
 import { AccountInfoCard } from "@/features/core/purchaseRequest/components/BankTransferInstruction/AccountInfoCard";
 import { AmountDisplay } from "@/features/core/purchaseRequest/components/BankTransferInstruction/AmountDisplay";
@@ -69,12 +69,12 @@ export type BankTransferInstructionProps = {
   expiresAt: Date | null;
   /**
    * AI 画像判定ステップの有効化フラグ。
-   * SSR ページから paymentConfig.bankTransfer.aiImageJudgmentEnabled が渡る。
+   * SSR ページから purchaseRequestConfig.payment.bankTransfer.aiImageJudgmentEnabled が渡る。
    */
   aiImageJudgmentEnabled: boolean;
   /**
    * AI 判定のストリクトモードフラグ（説明文の切替用）。
-   * SSR ページから paymentConfig.bankTransfer.aiImageJudgmentStrictMode が渡る。
+   * SSR ページから purchaseRequestConfig.payment.bankTransfer.aiImageJudgmentStrictMode が渡る。
    * 実際の厳格判定はサーバー側（judge-image API）で行われる。
    */
   aiImageJudgmentStrictMode: boolean;

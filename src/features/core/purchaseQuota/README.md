@@ -2,7 +2,7 @@
 
 1 ユーザーが特定の期間内に購入できる金額に上限を設ける汎用フレームワーク。
 
-ベースリポジトリでは**仕組みのみ**提供する。具体的なクォータルールは下流プロジェクトで `src/config/app/purchase-quota.config.ts` を編集して宣言する。
+ベースリポジトリでは**仕組みのみ**提供する。具体的なクォータルールは下流プロジェクトで `src/features/core/purchaseQuota/config.ts`、上書き `src/config/features/purchaseQuota.config.ts` を編集して宣言する。
 
 ---
 
@@ -48,13 +48,13 @@ purchaseQuota/
 
 ---
 
-## 設定 (`src/config/app/purchase-quota.config.ts`)
+## 設定 (`src/features/core/purchaseQuota/config.ts`、上書き `src/config/features/purchaseQuota.config.ts`)
 
-`PURCHASE_QUOTA_RULES` 配列にルールを並べるだけで有効化される。
+`rules` 配列にルールを並べるだけで有効化される。
 配列が空 (デフォルト) のときは完全に無効化され、既存挙動と完全互換。
 
 ```ts
-export const PURCHASE_QUOTA_RULES: readonly QuotaRule[] = [
+export const rules: readonly QuotaRule[] = [
   {
     key: "bank_transfer_hourly",
     label: "銀行振込: 1時間30万円",

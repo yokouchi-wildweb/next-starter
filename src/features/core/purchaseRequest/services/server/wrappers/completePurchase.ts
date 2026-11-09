@@ -113,7 +113,7 @@ export async function completePurchase(
     }
 
     // 購入クォータ台帳を reserved → committed に遷移 (集計値は不変、状態遷移のみ)。
-    // PURCHASE_QUOTA_RULES が空なら no-op。
+    // rules が空なら no-op。
     await commitQuota(purchaseRequest.id, tx);
 
     // 購入完了戦略をディスパッチ

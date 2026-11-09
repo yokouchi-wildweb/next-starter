@@ -9,7 +9,7 @@
 ## 1. 設計方針
 
 - **契約で抽象化**: プロバイダ差分は `PaymentProvider`（`types/payment.ts`）の中に閉じる。購入フロー側にプロバイダ名の分岐を書かない（照合キーは `correlationKey`、order ID は `deriveProviderOrderId`、再起動方法は `launchType` で宣言する）
-- **1 支払い方法 = 1 プロバイダ**: `payment.config.ts` の `paymentMethods[i].provider` が唯一の真実。`resolveProviderForMethod()` で解決し、担当の切替は config 書き換えだけで済む（選択用の環境変数は無い）
+- **1 支払い方法 = 1 プロバイダ**: `purchaseRequest/config.ts` の `payment` の `paymentMethods[i].provider` が唯一の真実。`resolveProviderForMethod()` で解決し、担当の切替は config 書き換えだけで済む（選択用の環境変数は無い）
 - **起動方式は値で多態化**: `createSession` は `LaunchInstruction`（`redirect` | `client_sdk`）を返し、クライアントの `executePaymentLaunch`（`services/client/launchers/`）が type で分岐する。新しい起動方式は union に variant + handler を足す
 - **Webhook は 3 分岐**: `PaymentResult.status` = `completed` / `failed` / `pending`。成功でも確定失敗でもないものは全部 `pending`（無視して 200）
 - **金額照合**: `verifyWebhook` は実課金額を `paidAmount` で返し、`completePurchase` が `payment_amount` と照合する
@@ -44,14 +44,14 @@
 ## 3. redirect 型の追加手順
 
 1. **実装**: `payment/<name>/<name>Provider.ts` に `PaymentProvider` を実装し、`payment/<name>/index.ts` から `export`（任意で `errorMapping.ts` に プロバイダのエラー → `PAYMENT_ERROR_CODES` の変換）
-   - `createSession`: `getProviderApiMethodId("<name>", params.paymentMethod)` で API 固有 ID に変換。`getProviderApiMethodId` は mapping が無いと元の ID をそのまま返すので、**`paymentConfig.providers.<name>.methodMapping?.[params.paymentMethod]` が無ければ自分で throw する**（誤ルートの fail-fast）
+   - `createSession`: `getProviderApiMethodId("<name>", params.paymentMethod)` で API 固有 ID に変換。`getProviderApiMethodId` は mapping が無いと元の ID をそのまま返すので、**`purchaseRequestConfig.payment.providers.<name>.methodMapping?.[params.paymentMethod]` が無ければ自分で throw する**（誤ルートの fail-fast）
    - `verifyWebhook`: 成功 → `{ success: true, status: "completed", paidAmount, ... }` / 確定失敗 → `{ success: false, status: "failed", errorCode }` / それ以外（AUTHORIZED, PROCESSING 等）→ `{ success: false, status: "pending" }`
 2. **ファクトリ登録**（`payment/index.ts`）: `PaymentProviderName` union に追加 + `getPaymentProvider` の switch に case を追加
-3. **config**（`src/config/app/payment.config.ts`）
+3. **config**（`src/features/core/purchaseRequest/config.ts` の `payment`(上書き `src/config/features/purchaseRequest.config.ts`)）
    - `providers.<name>`: `enabled`、`methodMapping`（担当する `paymentMethods[i].id` → API 固有 ID）、必要なら `sessionExpiryMinutes`（`expires_at` の分数、既定 30）
    - `webhook.signatureHeaders.<name>`: 署名ヘッダー名（署名機構が無ければ `null` = 検証スキップ。その場合は `verifyWebhook` 内でプロバイダ API への二重確認を行う。Paidy の例）
    - `paymentMethods[]`: 担当メソッドの `provider: "<name>"`。`id` は全体で一意、1 メソッドを複数プロバイダで担当しない、`status="available"` なら `provider` 必須
-   - Webhook URL の `?provider=` は `paymentConfig.providers` のキーで検証されるため、`providers` に無い名前は 400 になる
+   - Webhook URL の `?provider=` は `purchaseRequestConfig.payment.providers` のキーで検証されるため、`providers` に無い名前は 400 になる
 4. **照合キー**: Webhook が返す識別子が `createSession` の `sessionId` と違うなら、`deriveProviderOrderId` + `correlationKey: "order_id"` を宣言する。`findByWebhookIdentifier` は `payment_session_id` → UUID なら `id`（Square は `payment.note` に purchaseRequestId を入れてこれに当てる）→ `wrappers/purchaseHelpers.ts` の `webhookIdentifierResolvers[provider]` の順で引く。前 2 つで引けない形式だけリゾルバーを足す（Fincode が唯一の例）
 5. **環境変数**: API キー・Webhook シークレット等を `.env.development` / `.env.production` に追加
 6. **Webhook エンドポイント**: 新設不要。プロバイダのダッシュボードに `https://<origin>/api/webhook/payment?provider=<name>` を登録（route が `?provider` 検証 → 署名検証 → `handleWebhook`）
@@ -148,7 +148,7 @@ UI フローと完了画面の確認だけなら、`paymentMethods` の対象メ
 
 - Webhook が届かない: トンネル起動・ダッシュボードの URL（`?provider=` 含む）・購読イベントを確認
 - 401: 署名シークレットの環境変数、`signatureHeaders` のヘッダー名
-- 400 `invalid_provider`: `?provider=` が `paymentConfig.providers` のキーに無い
+- 400 `invalid_provider`: `?provider=` が `purchaseRequestConfig.payment.providers` のキーに無い
 - セッションが見つからない（200 で無視される）: `payment_session_id` / `provider_order_id` が保存されているか、`correlationKey` とリゾルバー
 - PENDING で失敗扱いになる: 未確定ステータスを `status: "pending"` で返していない
 - 金額不一致で failed: `paidAmount` がプロバイダの実課金額（割引後の `payment_amount`）を返しているか
@@ -157,6 +157,6 @@ UI フローと完了画面の確認だけなら、`paymentMethods` の対象メ
 
 ## 6. 本番前の確認
 
-- `paymentConfig.debugLog = false`（true だと PII を含むペイロード全量をログ出力）
+- `purchaseRequestConfig.payment.debugLog = false`（true だと PII を含むペイロード全量をログ出力）
 - dummy を担当にしたメソッドが残っていない
 - 各プロバイダの本番ダッシュボードに `https://<本番ドメイン>/api/webhook/payment?provider=<name>` を登録

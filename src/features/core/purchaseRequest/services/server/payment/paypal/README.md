@@ -70,9 +70,9 @@ src/app/api/webhook/payment/route.ts                       # 共通 Webhook 受�
 
 - **JPY はゼロ小数通貨**: `amount.value` は小数なしの整数文字列（"1000"）で送る。
 - **order_id が照合キー**: PayPal は createSession 時点で order_id が確定するため、Paidy と違い `payment_session_id` を確定 API で追記更新する必要がない。Webhook 照合（`findByWebhookIdentifier` の payment_session_id 一致）が初期化時点で成立する。
-- **Webhook 署名検証あり**: `payment.config.ts` の `webhook.signatureHeaders.paypal = "Paypal-Transmission-Sig"`。`verifyWebhookSignature` が verify-webhook-signature API でトランスミッション系ヘッダー + `PAYPAL_WEBHOOK_ID` + 生ペイロードを検証する。
+- **Webhook 署名検証あり**: `purchaseRequest/config.ts` の `payment` の `webhook.signatureHeaders.paypal = "Paypal-Transmission-Sig"`。`verifyWebhookSignature` が verify-webhook-signature API でトランスミッション系ヘッダー + `PAYPAL_WEBHOOK_ID` + 生ペイロードを検証する。
 - **冪等性**: Order 作成・capture とも `PayPal-Request-Id` ヘッダーを付与。capture が `ORDER_ALREADY_CAPTURED`（422）の場合は no-op として最新 Order を返す。
-- **PII ログ制御**: `paymentConfig.debugLog` が `true` の時のみペイロード全体を出力。**本番は `false` 必須**（メアド・電話番号等を含むため）。
+- **PII ログ制御**: `purchaseRequestConfig.payment.debugLog` が `true` の時のみペイロード全体を出力。**本番は `false` 必須**（メアド・電話番号等を含むため）。
 
 ## プロバイダメソッド
 
@@ -207,9 +207,9 @@ env を変更したら **再デプロイ**して反映させる。
    （任意で `PAYMENT.CAPTURE.PENDING` / `PAYMENT.CAPTURE.REFUNDED` も追加可）
 3. 保存後に表示される **Webhook ID** を `PAYPAL_WEBHOOK_ID` に設定。**必要なのは URL ではなく Webhook ID**。
 
-### 5. payment.config.ts の状態確認
+### 5. purchaseRequest の config.ts の payment.状態確認
 
-`src/config/app/payment.config.ts` で PayPal が有効か確認（upstream 既定で有効）:
+`src/features/core/purchaseRequest/config.ts` の `payment`(上書き `src/config/features/purchaseRequest.config.ts`) で PayPal が有効か確認（upstream 既定で有効）:
 
 ```ts
 providers: {

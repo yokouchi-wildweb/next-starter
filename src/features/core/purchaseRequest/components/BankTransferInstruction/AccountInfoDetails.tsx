@@ -11,7 +11,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
-import type { BankTransferConfig } from "@/config/app/payment.config";
+import type { BankTransferConfig } from "@/features/purchaseRequest/config";
 
 import { CopyButton } from "./CopyButton";
 
