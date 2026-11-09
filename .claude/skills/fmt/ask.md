@@ -4,12 +4,17 @@ not: no reply needed (→ brief) | several questions (→ one at a time; 1by1 of
 
 reader_goal: from this text alone, the reader can choose without scrolling back through the exchange
 
-## STRUCTURE (section name | required|optional | role)
-`背景` (background) | required | what this is about; the premises needed to decide
-`問題` (problem) | optional | why the decision became necessary
-`体験のイメージ` (experience) | optional | how the user's screen / behavior changes with the choice
-`質問` (question) | required | what to decide; one question per sentence
-`選択肢` (options) | required | show one recommendation | each option in a form that tells what happens when chosen
+## STRUCTURE (section name | required|optional | kind | role) — kind: verdict = a one-word judgment, exceptions only / delta = only what changed since the last text / body = as much as the reader needs
+`背景` (background) | required | body | what this is about; the premises needed to decide
+`問題` (problem) | optional | body | why the decision became necessary
+`体験のイメージ` (experience) | optional | body | how the user's screen / behavior changes with the choice
+`質問` (question) | required | body | what to decide; one question per sentence
+`選択肢` (options) | required | body | show one recommendation | each option in a form that tells what happens when chosen
+
+## OMIT (what not to write — as binding as the structure)
+- how you reached the options (your investigation, what you tried) — the reader decides on the options, not on the search
+- premises the reader already set in this conversation — repeating them buries the question
+- options nobody would choose — they only lengthen the choice
 
 ## GUIDELINES
 - give the reason for the recommendation | a non-recommended option with a reasonable case for choosing it → write that case
