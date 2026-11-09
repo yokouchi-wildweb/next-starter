@@ -3,7 +3,7 @@
 
 import "server-only";
 
-import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
+import { chatRoomConfig } from "@/features/chatRoom/config";
 import {
   FILE_MAX_SIZE,
   IMAGE_MAX_SIZE,
@@ -27,8 +27,8 @@ const chatAttachment = {
 } satisfies Omit<StoragePurpose, "maxBytes" | "contentTypes">;
 
 export const purposes = {
-  "chatRoom.image": { ...chatAttachment, maxBytes: IMAGE_MAX_SIZE, contentTypes: [...CHAT_ATTACHMENT_CONTENT_TYPES.image], metadata: "strip" },
-  "chatRoom.video": { ...chatAttachment, maxBytes: VIDEO_MAX_SIZE, contentTypes: [...CHAT_ATTACHMENT_CONTENT_TYPES.video] },
+  "chatRoom.image": { ...chatAttachment, maxBytes: IMAGE_MAX_SIZE, contentTypes: [...chatRoomConfig.attachmentContentTypes.image], metadata: "strip" },
+  "chatRoom.video": { ...chatAttachment, maxBytes: VIDEO_MAX_SIZE, contentTypes: [...chatRoomConfig.attachmentContentTypes.video] },
   // 「ファイルとして送る」は原本のまま渡す用途（.heic・.svg も送れる）
-  "chatRoom.file": { ...chatAttachment, maxBytes: FILE_MAX_SIZE, contentTypes: [...CHAT_ATTACHMENT_CONTENT_TYPES.file], metadata: "keep" },
+  "chatRoom.file": { ...chatAttachment, maxBytes: FILE_MAX_SIZE, contentTypes: [...chatRoomConfig.attachmentContentTypes.file], metadata: "keep" },
 } satisfies StoragePurposeMap;

@@ -31,7 +31,7 @@ import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
 import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
-import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
+import { chatRoomConfig } from "@/features/chatRoom/config";
 import { loadForAdmin } from "@/features/core/adminCommand/base/loadForAdmin";
 import { navigationItems } from "@/features/core/adminCommand/definitions/navigation/items";
 import { validateChatFile } from "@/features/core/chatRoom/utils/validation";
@@ -245,7 +245,7 @@ test("チャット添付: 既定の許可種別、種別が空は通す、サイ
   assert.equal(validateChatFile(file("application/pdf"), "file").valid, true);
   assert.equal(validateChatFile(file(""), "file").valid, true);
   assert.equal(validateChatFile(file("image/png", 1024 ** 3), "image").valid, false);
-  assert.deepEqual(CHAT_ATTACHMENT_CONTENT_TYPES.image, ["image/*"]);
+  assert.deepEqual(chatRoomConfig.attachmentContentTypes.image, ["image/*"]);
 });
 
 test("同じ鍵: コイン創出ソースと管理者コマンドは例外", async () => {

@@ -1,10 +1,10 @@
 // src/features/chatRoom/utils/validation.ts
 //
 // チャットメッセージの送信前バリデーション。
-// サイズ上限と、用途と同じ許可種別(src/config/app/chat-attachment.config.ts)を見る。
+// サイズ上限と、用途と同じ許可種別(src/features/core/chatRoom/config.ts の attachmentContentTypes)を見る。
 // 種別が空のファイル(ブラウザが判定できない)はここでは通し、サーバーの判定に任せる。
 
-import { CHAT_ATTACHMENT_CONTENT_TYPES } from "@/config/app/chat-attachment.config";
+import { chatRoomConfig } from "@/features/chatRoom/config";
 import {
   FILE_MAX_SIZE,
   IMAGE_MAX_SIZE,
@@ -19,8 +19,8 @@ export type ValidationResult =
 
 const REJECTED_TYPE: ValidationResult = { valid: false, reason: "この種類のファイルは送信できません。" };
 
-const isAllowedType = (file: File, type: keyof typeof CHAT_ATTACHMENT_CONTENT_TYPES) =>
-  file.type === "" || matchesContentType(file.type, CHAT_ATTACHMENT_CONTENT_TYPES[type]);
+const isAllowedType = (file: File, type: keyof typeof chatRoomConfig.attachmentContentTypes) =>
+  file.type === "" || matchesContentType(file.type, chatRoomConfig.attachmentContentTypes[type]);
 
 /** テキストメッセージのバリデーション */
 export function validateTextMessage(content: string): ValidationResult {
