@@ -3,7 +3,7 @@
  * 枠の部位の出し入れ(手書き・生成しない)。
  *
  * 外枠 [data-frame-root](利用者 = UserLayout の #user-app-container / 管理 = AdminLayout の外枠)に、今のルートの宣言
- * (各ルートの枠の宣言 frame.default.ts / frame.ts → 枠ごとの表)を読み手が属性で付ける
+ * (各ルートの枠の宣言 frame.ts / frame.override.ts → 枠ごとの表)を読み手が属性で付ける
  * (共通の読み手 src/app/_layout/frame/useFrameAttributes.ts。各枠の根が自分の表を渡す):
  *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
  * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠は接頭辞なし、管理の枠は admin-)。狙う先 = 部位の hideSlots の

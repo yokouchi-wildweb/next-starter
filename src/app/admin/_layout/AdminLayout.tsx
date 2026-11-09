@@ -21,7 +21,7 @@ export type AdminLayoutProps = {
 /**
  * 管理画面の外枠(ヘッダーを描かない器 + 子領域)の既定の組み立て。src/app/admin/layout.tsx が 1 行スイッチで default に束ねる。
  * ヘッダーの行は各ページの AdminPage が描く(./AdminPage)。
- * 外枠 = 枠の根(data-frame-root)。今のルートの枠の宣言(frame.default.ts / frame.ts → 管理の表 ./extensions/frameTable)を
+ * 外枠 = 枠の根(data-frame-root)。今のルートの枠の宣言(frame.ts / frame.override.ts → 管理の表 ./extensions/frameTable)を
  * 共通の読み手 useFrameAttributes が属性にし、src/styles/core/frame.css が部位(data-slot の admin-header・admin-sidebar・admin-footer)を
  * 隠す・fill で本文に残りの高さを埋めさせる
  */

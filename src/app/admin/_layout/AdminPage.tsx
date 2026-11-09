@@ -32,7 +32,7 @@ export type AdminPageProps = PropsWithChildren<{
  * 行の部品は ./AdminHeader(1 行スイッチ。fork の丸ごとの差し替えは AdminHeader.replace.tsx)。
  *
  * 本文を固定ヘッダー直下の残り高さちょうどにする(ページ自体はスクロールせず、内部スクロールは子に委譲する)ときは、
- * ページの隣の枠の宣言(上流 frame.default.ts の frameDefault / 下のリポ frame.ts の frame)に
+ * ページの隣の枠の宣言(上流 frame.ts の frame / 下のリポ frame.override.ts の override)に
  * `page: { fill: true }`(その下全部なら `layout: { fill: true }`)を書く。外枠の data-frame-fill を
  * src/styles/core/frame.css が読み、この Main(#main)を flex-1 min-h-0 の flex-col にし、余白を
  * --admin-page-padding-inline / --admin-page-padding-block トークンに替える(仕組み: src/app/_layout/frame/README.md)。

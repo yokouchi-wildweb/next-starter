@@ -1,7 +1,7 @@
 // src/app/(user)/_layout/config.ts — ユーザー側の枠(ヘッダー・下部メニュー・フッター・枠全体)の値の設定(既定 + 上書き)。設定の議会 D98
 // 上書きは src/config/layout/user.config.ts(このファイルだけが読む)。置き方: src/config/README.md。合成: @/lib/defineConfig
 // アイコン・部品を持つ値(メニュー項目・SNS リンク・ログアウトのアイコン)は ./config.ui.ts(同じ段の鍵)。
-// ヘッダー・ナビ・フッターを出す・隠す(端末ごと・ページごと)は各ルートの枠の宣言 frame.default.ts / frame.ts(src/app/_layout/frame/README.md)。
+// ヘッダー・ナビ・フッターを出す・隠す(端末ごと・ページごと)は各ルートの枠の宣言 frame.ts / frame.override.ts(src/app/_layout/frame/README.md)。
 // 部品の差し替えは config ではなく UserLayout の slot で行う(./README.md)
 
 import type { MainProps } from "@/components/Layout/Main";

@@ -56,8 +56,8 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 
 | 欲しいもの | 使うもの |
 |-----------|---------|
-| UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.default.ts` / `frame.ts`)の `page: { fill: true }`(枠も隠すなら `hide`)+ `UserPage`（[src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)「fill のページ」） |
-| AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.default.ts` / `frame.ts`)の `page: { fill: true }` + `AdminPage`（[src/app/admin/_layout/README.md](../../../app/admin/_layout/README.md)「AdminPage と PageTitle」） |
+| UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.ts` / `frame.override.ts`)の `page: { fill: true }`(枠も隠すなら `hide`)+ `UserPage`（[src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)「fill のページ」） |
+| AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.ts` / `frame.override.ts`)の `page: { fill: true }` + `AdminPage`（[src/app/admin/_layout/README.md](../../../app/admin/_layout/README.md)「AdminPage と PageTitle」） |
 | **レイアウトを持たない独立ルート群**のビューポート固定ページ枠 | `<KioskFrame>` |
 | 画面全体を覆う一時的なオーバーレイ（スプラッシュ・背景演出） | `<Main containerType="fullscreen">`（fixed オーバーレイ、z 層、body スクロールロック） |
 

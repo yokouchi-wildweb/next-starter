@@ -65,7 +65,7 @@ export function UserLayout({
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
   // bottomNav={null} の時は書かない(:root の 0px)。
-  // 隠している間(各ルートの枠の宣言 frame.default.ts / frame.ts)の 0 は styles/core/frame.css が作る
+  // 隠している間(各ルートの枠の宣言 frame.ts / frame.override.ts)の 0 は styles/core/frame.css が作る
   const hasBottomNav = bottomNav !== null;
 
   // ヘッダーの高さは測れた時だけ書く(null = 測る前。最初の HTML とページを移る間は styles/core/frame.css の初期値 = 今の行の高さが効き、
