@@ -1,0 +1,12 @@
+# DOWNSTREAM NOTICE id:20261109-201759-shared-shelf-explain-tool
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-09T20:17:59+09:00
+severity: info
+checkpoint: shared-shelf-explain-tool
+change: pnpm workflow ownership who <path...> [--json] now also answers what the fork does to change each path: type (1 replace = 1-line switch / page.tsx / frame layout.tsx | 2 overlay = <target>.override.ts, frame.override.ts | 3 add to a receptacle | 4 placement = district config override, placement globs, core/<name>.css -> root <name>.css | generated = regenerate, edit the source | own = this repo's file | none = /order <direct parent>), keys (the declared overrideOf), write (the file to create or edit), source (the declaration / switch / generator) and order. Owner, allowed, blocked, evidence, exit codes 0 / 2 and the ownership check verdicts are unchanged. Name rules (.default / switch / .replace, claimed .default, <target>.override.ts, frame.ts / frame.override.ts) have one source src/lib/districtMap/extensionNames.mjs (scripts/structure/extensions re-export them). pnpm generate domain declares its output kinds (every-run / write-once) as data in scripts/structure/domain/outputs.json, checked against the generator's real writes by scripts/structure/domain/tests/outputs.test.mjs; the domain plural rule moved to src/lib/districtMap/domainNames.mjs (generator output unchanged).
+why: forks can ask the tool which of the 4 types applies to an upstream file, which keys may be overlaid and where to write, instead of reading the declarations by hand
+required_actions: none
+verify: `pnpm workflow ownership who src/lib/cron/config.ts` prints 型 / 置くファイル (src/config/lib/cron.config.ts) | pnpm test src/lib/forkOwnership/who.test.mjs scripts/structure/domain/tests/outputs.test.mjs
+manual_steps: -
+refs: src/lib/forkOwnership/README.md (who, 型), src/lib/forkOwnership/explain.mjs, src/lib/districtMap/extensionNames.mjs, scripts/structure/domain/outputs.json, scripts/structure/domain/README.md (出力の種類のデータ)
+notes: Use: `pnpm workflow ownership who <path>` (text) or `--json`. Answers read the parent's tree (the base), so a declaration added only in this repo shows after it is merged upstream. Forks that import toPlural from scripts/structure/domain/domain/plural.mjs or the frame names from scripts/structure/extensions/frames.mjs keep working (re-exports).
