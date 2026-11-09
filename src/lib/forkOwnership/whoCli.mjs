@@ -59,8 +59,14 @@ function printResult(result) {
     if (result.source) lines.push(`  元: ${result.source}`);
     if (result.order) lines.push(`  依頼: ${result.order}`);
   }
-  for (const item of result.allowed) lines.push(`  できる: ${item.action} — ${item.how}`);
-  for (const item of result.blocked) lines.push(`  できない: ${item.action}(${item.reason})`);
+  // できる / できない = このファイル自体を書き換える・足すこと(型の答えがあるときは、そう分かるように名乗る)。
+  // 型が 1-4 / generated / own なら変え方は上の型にあるので、このファイル自体の「受け口が無い → /order」は出さない(--json は同じ)
+  const self = result.type ? "このファイル自体: " : "";
+  for (const item of result.allowed) {
+    if (item.action === "none" && result.type && result.type !== "none") lines.push(`  ${self}書き換えない(変え方は上の型)`);
+    else lines.push(`  ${self}できる: ${item.action} — ${item.how}`);
+  }
+  for (const item of result.blocked) lines.push(`  ${self}できない: ${item.action}(${item.reason})`);
   const { evidence } = result;
   const where = [`基準に${evidence.inBase ? "ある" : "無い"}`, `Tier1 の版に${evidence.inTier1 ? "ある" : "無い"}`, `HEAD に${evidence.inHead ? "ある" : "無い"}`];
   lines.push(`  根拠: ${where.join(" / ")}`);

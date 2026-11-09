@@ -148,15 +148,24 @@ function replaceOf(path, view) {
 const receptacleDirOf = (point) => (point.spec.dir === "." ? point.owner : `${point.owner}/${point.spec.dir.replace(/^\.\//, "").replace(/\/+$/, "")}`);
 const sourceOf = (point) => `${point.declaredIn} ${point.name}`;
 
+/** 対象の glob が「1 フォルダ = 1 単位」の形か(最後のフォルダが * 1 つで、ファイル名が決まっている: src/app/api/cron/*\/task.ts) */
+const isFolderUnitGlob = (glob) => {
+  const parts = glob.split("/");
+  return parts.length >= 3 && parts[parts.length - 2] === "*" && !/[*?[{]/.test(parts[parts.length - 1]);
+};
+
 /** 型 2 / 3: 上書きの対象の点・受け口の項目の上書き・枠の宣言・受け口に足す */
 function overlayOf(path, view) {
   const points = view.points();
   for (const point of points.filter((p) => p.spec.overrides !== undefined)) {
     const glob = point.spec.overrides;
     let target = matchesGlob(path, glob) ? path : null;
-    // 対象の名前が決まっている点(cron の task.ts): 同じフォルダのどのファイルもその対象を上書きする
-    const fixedName = baseName(glob);
-    if (!target && !/[*?[{]/.test(fixedName) && matchesGlob(`${dirOf(path)}/${fixedName}`, glob) && view.has(`${dirOf(path)}/${fixedName}`)) target = `${dirOf(path)}/${fixedName}`;
+    // 1 フォルダ = 1 単位の点(glob が <置き場>/*/<決まった名前>、cron の task.ts): そのフォルダのどのファイルも、その対象を上書きして変える。
+    // 決まった名前でもフォルダが単位でない点(domainEntry.ts の隣の userService.ts など)の隣のファイルは対象にしない
+    if (!target && isFolderUnitGlob(glob)) {
+      const candidate = `${dirOf(path)}/${baseName(glob)}`;
+      if (matchesGlob(candidate, glob) && view.has(candidate)) target = candidate;
+    }
     if (target) return answer("2", { keys: [...point.spec.overrideOf], write: overridePathOfTarget(target), source: sourceOf(point) });
   }
   if (path.startsWith(`${FRAME_SEARCH_ROOT}/`) && [FRAME_FILE, FRAME_OVERRIDE_FILE].includes(baseName(path))) {

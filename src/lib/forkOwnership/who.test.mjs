@@ -268,6 +268,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "src/app/api/cron/sweep/route.ts": "export const GET = 1;\n",
     "src/lib/domain/extensionPoints.ts": real("src/lib/domain/extensionPoints.ts"),
     "src/features/core/user/services/server/domainEntry.ts": "export const entry = 1;\n",
+    "src/features/core/user/services/server/userService.ts": "export const userService = 1;\n",
     "src/features/core/userProfile/extensionPoints.ts": real("src/features/core/userProfile/extensionPoints.ts"),
     "src/features/core/userProfile/profiles/shop.profile.json": "{}\n",
     // 置き場
@@ -302,6 +303,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["受け口の項目の上書き(overrideOf の鍵)", "src/features/core/admin/menu/items/users.ts", { type: "2", write: "src/features/core/admin/menu/items/users.override.ts", keys: ["hidden", "label", "icon", "allowRoles", "order", "category"], source: "src/features/core/admin/extensionPoints.ts menuItems" }],
     ["ロール", "src/features/core/user/roles/editor.role.json", { type: "2", write: "src/features/core/user/roles/editor.role.override.ts", keys: ["label", "hasProfile", "enabled"], source: "src/features/core/user/extensionPoints.ts roleDefinitions" }],
     ["プロフィール", "src/features/core/userProfile/profiles/shop.profile.json", { type: "2", write: "src/features/core/userProfile/profiles/shop.profile.override.ts", keys: ["tags", "searchFields", "audit"], source: "src/features/core/userProfile/extensionPoints.ts profileDefinitions" }],
+    ["cron の task.ts", "src/app/api/cron/sweep/task.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
     ["cron(フォルダのどのファイルも task.override.ts)", "src/app/api/cron/sweep/route.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
     ["domainEntry", "src/features/core/user/services/server/domainEntry.ts", { type: "2", write: "src/features/core/user/services/server/domainEntry.override.ts", keys: ["access"], source: "src/lib/domain/extensionPoints.ts domainEntries" }],
     ["枠の宣言(作ったリポの frame.ts がある)", "src/app/(user)/frame.ts", { type: "2", write: "src/app/(user)/frame.override.ts", keys: ["layout", "page"], source: "src/app/(user)/frame.ts" }],
@@ -321,6 +323,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["無いときだけ書く(上流の物)", "src/features/sample/seed.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
     ["generate: false のドメイン(上流の物)", "src/features/hand/entities/drizzle.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
     ["変える口が無い", "src/features/core/user/user.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
+    ["domainEntry.ts の隣のファイル(フォルダは単位でない)", "src/features/core/user/services/server/userService.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
     ["置き場の宣言のフォルダでも直下に対が無い", "src/styles/core/theme.css", { type: "none", write: null, keys: null, order: "/order parent" }],
   ];
   for (const [label, path, expected] of ROWS) {
@@ -344,6 +347,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       "src/app/(user)/frame.ts",
       "src/app/(user)/(protected)/mypage/_screen/MyPageScreen.tsx",
       "src/features/sample/entities/drizzle.ts",
+      "src/features/core/user/services/server/userService.ts",
     ]);
     assert.equal(answer.status, "tier1");
     const typeOf = (path) => {
@@ -357,5 +361,6 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     assert.deepEqual(typeOf("src/app/(user)/frame.ts"), ["2", "src/app/(user)/frame.override.ts"]);
     assert.deepEqual(typeOf("src/app/(user)/(protected)/mypage/_screen/MyPageScreen.tsx"), ["1", "src/app/(user)/(protected)/mypage/_components/"]);
     assert.deepEqual(typeOf("src/features/sample/entities/drizzle.ts"), ["generated", "src/features/sample/domain.json"]);
+    assert.deepEqual(typeOf("src/features/core/user/services/server/userService.ts"), ["none", null]);
   });
 });

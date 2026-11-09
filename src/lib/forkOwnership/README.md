@@ -196,7 +196,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
   - `generated`: 受け口の一覧の generated / region の行(`source` = `pnpm generate <名前>`)、または `pnpm generate domain` が毎回書くファイル(`generate: false` のドメインを除く。`write` = 直す元: `domain.json`・`wrappers/`・受け口。最後の手段は `"generate": false`)。own より先に見る
   - `own`: この fork が足した物・中間 Tier の物(`write` = そのパス)。`pnpm generate domain` が無いときだけ書くファイル(`<domain>Service.ts`・`seed.ts`・管理画面の `page.tsx` など)と `generate: false` のドメインは、ほかの型に当たらなければ持ち主で own か none
   - `1` 丸ごと置き換え: `<名前>.default.ts(x)` とその隣の素の名前 → `write` = `<名前>.replace.<拡張子>`、`source` = スイッチ。画面の `page.tsx`・枠の 1 行スイッチの `layout.tsx` と、その `_screen/**`・`_layout/**` の部品 → `write` = `<ルート>/_components/`、`source` = `page.tsx` / `layout.tsx`
-  - `2` 重ね: 上書きの対象の点(ロール・プロフィール・cron の `task.ts`(フォルダのどのファイルも)・`domainEntry.ts`)と、`overrideOf` を持つ受け口の項目 → `write` = `<対象>.override.ts`、`keys` = 宣言の `overrideOf`。src/app のルートの `frame.ts`(無くても) → `frame.override.ts`(`keys` = layout・page、`source` = 作ったリポの `frame.ts`、無ければ空の基準)
+  - `2` 重ね: 上書きの対象の点(ロール・プロフィール・cron の `task.ts`・`domainEntry.ts`。対象の glob が `<置き場>/*/<決まった名前>` = 1 フォルダ 1 単位の点(cron)だけ、そのフォルダのどのファイルも対象へ。`domainEntry.ts` の隣の `userService.ts` などは対象にしない)と、`overrideOf` を持つ受け口の項目 → `write` = `<対象>.override.ts`、`keys` = 宣言の `overrideOf`。src/app のルートの `frame.ts`(無くても) → `frame.override.ts`(`keys` = layout・page、`source` = 作ったリポの `frame.ts`、無ければ空の基準)
   - `3` 足す: 受け口のフォルダ → `write` = そのパス(既にある項目なら `<フォルダ>/<名前>.ts`)
   - `4` 置き場: 地区の `config.ts` / `config.ui.ts` → `src/config/<種類>/<名前>(.ui).config.ts`。placement の点の glob に当たる物 → そのパス。placement の点を宣言したフォルダの物で、直下に同じ名前の物がある → その直下の物(`src/styles/core/palette.css` → `src/styles/palette.css`)
   - `none`: どれでもない → `order` = `/order <直接の親>`
@@ -215,6 +215,7 @@ src/lib/cron/config.ts
   "source": "src/features/core/user/extensionPoints.ts roleDefinitions", "allowed": [...], "blocked": [], "evidence": {...} }
 ```
 
+- 文の出力: 型の行の下の `このファイル自体:` の行は、そのファイルを直接書き換える・足す話(上の「できること」)。型が none 以外なら、このファイル自体の「受け口が無い → /order」は出さず「書き換えない(変え方は上の型)」と書く(`--json` の `allowed` は同じ)
 - テスト: `who.test.mjs` の「型の答え」(代表のパスの表と、このリポの HEAD の代表のパス)
 
 ## CI
