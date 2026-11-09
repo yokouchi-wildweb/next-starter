@@ -110,7 +110,7 @@ export const rule: FeatureGateRule = {
 - `enabled` は config の値を読む同期関数（値の置き場は config）。省略 = 自分は開(依存先しだい。下の「機能どうしの依存」)
 - `dependsOn` = この機能が使う機能の名前(規則のファイル名)の並び。下の「機能どうしの依存(dependsOn)」
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）
-- 住所の重なりは許す（OR）。**答え(`rule` と `redirectTo`)は当たった閉じた住所のうち一番細かい一致**（同じ細かさはファイル名の順）。上流の規則どうしの行き先の違う重なりは `pnpm test src/featureGate scripts/structure/proxies` で失敗、fork の規則と上流の重なりは表示だけ
+- **同じ住所を 2 つの機能に書かない**(URL は 1 つの機能にだけ属する。D25): 親と子が同じ画面を閉じたいときは親から消して子が親に `dependsOn` する(親を閉じれば子も閉じる)。上流に残る組は理由つきの表だけ(`checks/ruleChains.test.ts`)。重なった住所の答え(`rule` と `redirectTo`)は当たった閉じた住所のうち一番細かい一致(同じ細かさはファイル名の順)。上流の規則どうしの行き先の違う重なりは `pnpm test src/featureGate scripts/structure/proxies` で失敗、fork の規則と上流の重なりは表示だけ
 - 上流の規則を fork が上書き・無効化する口は無い（fork は閉じる規則を足すだけ）
 
 ### ドメインの開閉(表・汎用 API・cron)と設定の節

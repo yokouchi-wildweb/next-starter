@@ -218,16 +218,25 @@ export function closedDomainTables(list: readonly DomainHolder[] = rules): strin
   return [...new Set(domains.filter((domain) => closed.has(domain.folder)).flatMap((domain) => domain.tables))];
 }
 
-/**
- * 規則が閉じる住所の全部(手書き + 規則の features のドメインの導出の住所 + 規則を名指す設定の節の住所)。読み手の検査(依存・常時実行の入口)が「この規則が閉じれば閉じる住所」として読む。
- * 1 つのドメインを複数の規則が持つときは、規則 1 本が閉じてもドメインは閉じないので近似(検査の作り直しは S4)
- */
-export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">): string[] {
+/** 規則 1 本の住所(手書き + 規則の features のドメインの導出の住所 + 規則を名指す設定の節の住所) */
+function ownPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">): string[] {
   const folders = new Set(rule.features ?? []);
   const derived = derivedPaths
     .filter((path) => path.folders.some((folder) => folders.has(folder)) || (path.features ?? []).includes(rule.name))
     .map((path) => path.pattern);
-  return [...rule.pathPatterns, ...derived.filter((pattern) => !rule.pathPatterns.includes(pattern))];
+  return [...rule.pathPatterns, ...derived];
+}
+
+/**
+ * 規則が閉じれば閉じる住所の全部: 規則 1 本の住所 + dependsOn でこの規則に(推移的に)依存する規則の住所(親を閉じれば子も閉じる)。
+ * 読み手の検査(依存・常時実行の入口・ルートの被覆)が読む。1 つのドメインを複数の規則が持つときは、規則 1 本が閉じてもドメインは閉じないので近似(検査の作り直しは S4)
+ */
+export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">): string[] {
+  const dependents = transitiveDependents(generatedRules, rule.name)
+    .map((name) => generatedByName.get(name))
+    .filter((r): r is GeneratedFeatureRule => r !== undefined);
+  const all = [...ownPatternsOf(rule), ...dependents.flatMap(ownPatternsOf)];
+  return [...new Set(all)];
 }
 
 /** 一覧の各規則の pathPatterns を coveredPatternsOf(手書き + 規則のドメインの導出の住所)にした写し(enabled はそのまま)。住所で覆うかを見る検査の入力 */

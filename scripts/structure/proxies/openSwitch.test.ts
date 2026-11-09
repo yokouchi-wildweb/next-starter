@@ -154,8 +154,24 @@ function withDeps(deps: Record<string, string[]>, open: Record<string, boolean |
   }
 }
 
-test("依存: 上流の規則はまだ dependsOn を書かない(開閉の答えは今と同じ)", () => {
-  assert.deepEqual(generatedRules.filter((rule) => rule.dependsOn.length > 0).map((rule) => rule.name), []);
+test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答えは src/featureGate/checks/ruleChains.test.ts)", () => {
+  assert.deepEqual(
+    Object.fromEntries(generatedRules.filter((rule) => rule.dependsOn.length > 0).map((rule) => [rule.name, rule.dependsOn])),
+    {
+      adminChatRooms: ["chatRoom"],
+      adminDemoUsers: ["demoLogin"],
+      bankTransferReview: ["payment"],
+      mypageOther: ["pageMypage"],
+      notificationBroadcast: ["notification"],
+      pageMypageAccount: ["pageMypage"],
+      pageMypageAccountEmail: ["pageMypage"],
+      pageMypageAccountPassword: ["pageMypage"],
+      pageMypageAccountPhone: ["pageMypage"],
+      pageMypageAccountProfile: ["pageMypage"],
+      payment: ["wallet"],
+      referral: ["coupon"],
+    },
+  );
 });
 
 test("依存: 親が閉 → 子・孫が閉(rules と configRules の両方)、enabled 省略の子は依存先しだい", () => {

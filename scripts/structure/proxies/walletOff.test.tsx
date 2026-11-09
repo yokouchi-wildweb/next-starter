@@ -15,9 +15,10 @@ import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { clientGateState, gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
+import { clientGateState, gate, type FeatureName, type GeneratedFeatureRule } from "@/featureGate";
+import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
-import { configRules, rules } from "@/featureGate/node";
+import { rules } from "@/featureGate/node";
 
 import { adminSidebarHrefs } from "../../../src/featureGate/checks/adminSidebar";
 import { folderSourcePattern, gatedImports } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
@@ -27,10 +28,13 @@ import { planExtensions } from "../extensions/extensions.mjs";
 const ROOT = resolve(import.meta.dirname, "../../..");
 const OFF: FeatureName[] = ["wallet", "payment"];
 
-/** 一覧の規則の enabled を差し替えて fn を走らせる(OFF は false、他は true)。規則の値の一覧 configRules(cron の discover が読む)も同じに */
+/**
+ * 生成一覧の規則の enabled(自分の値)を差し替えて fn を走らせる(OFF は false、他は true)。判定の一覧 rules と規則の値の一覧 configRules(cron の discover が読む)は
+ * どちらも生成一覧から依存先(dependsOn)まで解くので両方に効く(wallet を閉じれば dependsOn の payment・bankTransferReview も閉)
+ */
 async function withWalletOff<T>(fn: () => T | Promise<T>, off: readonly FeatureName[] = OFF): Promise<T> {
-  const saved = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
-  for (const rule of [...rules, ...configRules]) {
+  const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
+  for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
     rule.enabled = () => !off.includes(rule.name);
   }
