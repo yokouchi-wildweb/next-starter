@@ -8,7 +8,7 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
+import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 import { IssueChallengeSchema } from "@/features/core/fingerprintChallenge/entities/schema";
 import { issueChallenge } from "@/features/core/fingerprintChallenge/services/server";
 import { userService } from "@/features/core/user/services/server/userService";
@@ -20,9 +20,9 @@ export const POST = createApiRoute(
     access: { roleCategories: ["admin"] },
   },
   async (req, { user }) => {
-    if (!FINGERPRINT_CONFIG.challenge.enabled) {
+    if (!fingerprintChallengeConfig.challenge.enabled) {
       throw new DomainError(
-        "チャレンジ機能が無効です (FINGERPRINT_CONFIG.challenge.enabled)",
+        "チャレンジ機能が無効です (fingerprintChallengeConfig.challenge.enabled)",
         { status: 404 },
       );
     }

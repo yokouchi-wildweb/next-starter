@@ -9,7 +9,7 @@ import { getAuditContext } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { stableStringify } from "@/lib/fingerprint/hash";
-import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
+import { deviceFingerprintConfig } from "@/features/deviceFingerprint/config";
 
 import { DeviceFingerprintTable } from "@/features/core/deviceFingerprint/entities/drizzle";
 import {
@@ -74,7 +74,7 @@ export async function recordDeviceFingerprint(
 
   const rawSignals =
     payload.rawSignals !== undefined &&
-    JSON.stringify(payload.rawSignals).length <= FINGERPRINT_CONFIG.collection.maxRawSignalsBytes
+    JSON.stringify(payload.rawSignals).length <= deviceFingerprintConfig.collection.maxRawSignalsBytes
       ? payload.rawSignals
       : null;
 

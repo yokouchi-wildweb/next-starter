@@ -2,11 +2,11 @@
 //
 // 全ページ設置型フィンガープリント収集の ingest。
 // クライアントは useFingerprintReport (fire-and-forget) から 1 日 1 回送信する。
-// FINGERPRINT_CONFIG.collection.enabled が false の環境では 404 (fail-closed)。
+// deviceFingerprintConfig.collection.enabled が false の環境では 404 (fail-closed)。
 
 import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
+import { deviceFingerprintConfig } from "@/features/deviceFingerprint/config";
 import { recordDeviceFingerprint } from "@/features/core/deviceFingerprint/services/server";
 
 export const POST = createMeRoute(
@@ -15,7 +15,7 @@ export const POST = createMeRoute(
     operationType: "write",
   },
   async (req, { user }) => {
-    if (!FINGERPRINT_CONFIG.collection.enabled) {
+    if (!deviceFingerprintConfig.collection.enabled) {
       throw new DomainError("Not Found", { status: 404 });
     }
 

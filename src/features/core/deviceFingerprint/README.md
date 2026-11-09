@@ -3,7 +3,7 @@
 不正が疑われるユーザーを **デバイス軸** で突き合わせるための一次データ基盤。
 `userLoginEvent`（IP = ネットワーク軸）の兄弟で、両者を組み合わせて調査する。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/deviceFingerprint.ts`、今は常に開)。閉じる値と処理の値は別: `fingerprint.config.ts` の `collection.enabled` は収集の opt-in で、規則は読まない(閉じる値は土台の後にこのドメインの config.ts)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる。
+閉じられる機能(門番の規則 `src/featureGate/rules/deviceFingerprint.ts`、今は常に開)。閉じる値と処理の値は別: このドメインの `config.ts` の `collection.enabled` は収集の opt-in で、規則は読まない(閉じる値は土台の後にこのドメインの config.ts)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる。
 
 収集ロジック本体はドメイン非依存の `src/lib/fingerprint/` にあり、本ドメインは
 その **蓄積（device_fingerprints）と照合（成分別スコアリング）** を担う。
@@ -18,14 +18,13 @@
 
 ## オプトイン（デフォルト無効）
 
-`src/config/app/fingerprint.config.ts` の `collection.enabled` が全ページ収集の
+このドメインの `config.ts`（`deviceFingerprintConfig`）の `collection.enabled` が全ページ収集の
 ゲート。**デフォルト false**。有効化した時点以降のアクセスから蓄積される（遡及不可）。
+fork は上書き `src/config/features/deviceFingerprint.config.ts` に書く。チャレンジのゲートは fingerprintChallenge の設定（独立）。
 
 ```ts
-export const FINGERPRINT_CONFIG = {
-  collection: { enabled: false, retentionDays: 365, maxRawSignalsBytes: 32768 },
-  // challenge: { ... }  // fingerprintChallenge 側のゲート（独立）
-};
+// 既定: collection: { enabled: false, retentionDays: 365, maxRawSignalsBytes: 32768 }
+export default { collection: { enabled: true } } satisfies DeviceFingerprintOverride;
 ```
 
 ---

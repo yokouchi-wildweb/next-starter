@@ -2,7 +2,7 @@
 //
 // 管理者向け: チャレンジ別のアクセスイベント (本人が開いた日時 + IP + UA) を新しい順に
 // ページネーションで返す。IP を含む PII のため admin 限定。
-// FINGERPRINT_CONFIG.challenge.accessLog.enabled が false の環境でも過去分の閲覧は許可する
+// fingerprintChallengeConfig.challenge.accessLog.enabled が false の環境でも過去分の閲覧は許可する
 // (有効期間中に蓄積した行を後から確認できるようにするため。無ければ空)。
 //
 // GET /api/admin/fingerprint-challenges/[id]/access-events?page=1&limit=50

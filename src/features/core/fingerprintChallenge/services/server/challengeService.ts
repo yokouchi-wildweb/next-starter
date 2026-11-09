@@ -14,7 +14,7 @@ import { and, desc, eq, gt } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { auditLogger } from "@/features/core/auditLog/services/server";
-import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
+import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 
 import { recordDeviceFingerprint } from "@/features/core/deviceFingerprint/services/server";
 import { FingerprintChallengeTable } from "@/features/core/fingerprintChallenge/entities/drizzle";
@@ -73,7 +73,7 @@ export type IssueChallengeResult = {
 
 /**
  * チャレンジを発行する。呼び出し側 (admin ルート) で対象ユーザーの存在確認と
- * FINGERPRINT_CONFIG.challenge.enabled のゲートを済ませていること。
+ * fingerprintChallengeConfig.challenge.enabled のゲートを済ませていること。
  */
 export async function issueChallenge(
   input: IssueChallengeInput & { issuedBy: string | null },
@@ -84,7 +84,7 @@ export async function issueChallenge(
 
   const token = randomBytes(32).toString("base64url");
   const expiresInDays =
-    input.expiresInDays ?? FINGERPRINT_CONFIG.challenge.defaultExpiresInDays;
+    input.expiresInDays ?? fingerprintChallengeConfig.challenge.defaultExpiresInDays;
   const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
 
   const challenge = await db.transaction(async (tx) => {
@@ -203,7 +203,7 @@ export async function submitChallenge(
 
   const behavior =
     input.behavior !== undefined &&
-    JSON.stringify(input.behavior).length <= FINGERPRINT_CONFIG.challenge.maxBehaviorBytes
+    JSON.stringify(input.behavior).length <= fingerprintChallengeConfig.challenge.maxBehaviorBytes
       ? input.behavior
       : null;
 

@@ -1,6 +1,6 @@
 # fingerprintChallenge — 不正疑いユーザーへの回答チャレンジ
 
-閉じられる機能(門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、今は常に開、前提 `requires: ["deviceFingerprint"]`)。閉じる値と処理の値は別: `fingerprint.config.ts` の challenge の `enabled` は確認の opt-in で、規則は読まない。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・導出の `/api/fingerprintChallenge` が 404 で、表も push から外れる。
+閉じられる機能(門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、今は常に開、前提 `requires: ["deviceFingerprint"]`)。閉じる値と処理の値は別: このドメインの `config.ts` の `challenge.enabled` は確認の opt-in で、規則は読まない。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・導出の `/api/fingerprintChallenge` が 404 で、表も push から外れる。
 
 不正が疑われるユーザーに **専用フォームを送って回答させ、その提出時に
 デバイスフィンガープリント + 詳細な行動計測を強制的に採取する** ための基盤。
@@ -14,11 +14,13 @@ UI の部品を持たない（core の UI の決まりは CLAUDE.md `core_ui`）
 
 ## オプトイン（デフォルト無効）
 
-`src/config/app/fingerprint.config.ts` の `challenge.enabled` がゲート。**デフォルト
-false**。`deviceFingerprint` の `collection.enabled` とは **独立**（責務分離）。
+このドメインの `config.ts`（`fingerprintChallengeConfig`）の `challenge.enabled` がゲート。**デフォルト
+false**。`deviceFingerprint` の `collection.enabled` とは **独立**（責務分離）。fork は上書き
+`src/config/features/fingerprintChallenge.config.ts` に書く（例 `export default { challenge: { enabled: true } } satisfies FingerprintChallengeOverride;`）。
 
 ```ts
-export const FINGERPRINT_CONFIG = {
+// 既定
+const defaults = {
   challenge: {
     enabled: false,
     answerableStatuses: ["active", "suspended"], // 本人向けルートを通すユーザーステータス
@@ -156,7 +158,7 @@ const { data } = useFingerprintChallengeAccessEvents(challenge.id, { page: 1, li
 
 ## フォーム実装レシピ（downstream がコピーする完成形）
 
-`FINGERPRINT_CONFIG.challenge.enabled = true` にした上で、回答ページを作る。
+上書きで `challenge.enabled` を `true` にした上で、回答ページを作る。
 質問項目（`answers` の中身）は自由に差し替えてよい。
 
 ```tsx

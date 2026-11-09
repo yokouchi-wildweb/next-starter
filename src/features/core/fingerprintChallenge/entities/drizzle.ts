@@ -40,7 +40,7 @@ export const FingerprintChallengeStatusEnum = pgEnum("fingerprint_challenge_stat
  *   手動記録する (CRUD 自動監査は使わない)。
  * - エンゲージメント計測 (通知 → 初回閲覧 → N 回閲覧 → 最終閲覧 → 提出) を 1 行で
  *   追えるよう notified_at / first_viewed_at / last_viewed_at / view_count を持つ。
- *   閲覧系は FINGERPRINT_CONFIG.challenge.accessLog.enabled (既定 false) の時だけ更新される。
+ *   閲覧系は fingerprintChallengeConfig.challenge.accessLog.enabled (既定 false) の時だけ更新される。
  *   per-access の IP + UA は FingerprintChallengeAccessEventTable (retention 付き)。
  */
 export const FingerprintChallengeTable = pgTable(
@@ -116,7 +116,7 @@ defineHiddenColumns(FingerprintChallengeTable, ["tokenHash"]);
  * と異なるネットワークからの閲覧、bot 的な UA、未提出のまま多数回閲覧、等の材料になる。
  *
  * 設計ポイント:
- * - FINGERPRINT_CONFIG.challenge.accessLog.enabled が true の時だけ追記される (既定 false)。
+ * - fingerprintChallengeConfig.challenge.accessLog.enabled が true の時だけ追記される (既定 false)。
  * - dedupeSeconds 窓内の連続アクセスは 1 件にまとめる (親行の last_viewed_at で判定)。
  * - IP を含むため行単位 retention_days + 日次 cron prune (userLoginEvent と同じ運用)。
  * - 集計用の親行カウンタ (view_count 等) は fingerprint_challenges 側。本テーブルは詳細。

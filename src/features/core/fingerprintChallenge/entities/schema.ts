@@ -64,7 +64,7 @@ export const IssueChallengeSchema = z.object({
   userId: z.string().uuid(),
   /** 質問・文言。downstream のフォーム画面が解釈する自由形式 (上限 16KB 相当) */
   prompt: z.unknown().optional(),
-  /** 省略時は FINGERPRINT_CONFIG.challenge.defaultExpiresInDays */
+  /** 省略時は fingerprintChallengeConfig.challenge.defaultExpiresInDays */
   expiresInDays: z.number().int().positive().max(365).optional(),
 });
 

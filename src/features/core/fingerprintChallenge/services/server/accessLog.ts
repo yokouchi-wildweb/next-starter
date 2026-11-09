@@ -5,7 +5,7 @@
 // 呼ばれ、親行のカウンタ更新 + アクセスイベント追記を行う。
 //
 // 設計上の取り決め:
-// - FINGERPRINT_CONFIG.challenge.accessLog.enabled が false なら何もしない (既定・オプトイン)。
+// - fingerprintChallengeConfig.challenge.accessLog.enabled が false なら何もしない (既定・オプトイン)。
 // - fail-soft: 記録失敗は console.error のみで、読み取り本体を阻害しない
 //   (userLoginEvent.recordLoginEvent と同じ方針。監査整合性に関わるデータではない)。
 // - 追加 SELECT なし: dedupe 判定は UPDATE の WHERE 句 + RETURNING で行う
@@ -16,7 +16,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { getAuditContext } from "@/lib/audit";
-import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
+import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 
 import {
   FingerprintChallengeAccessEventTable,
@@ -44,7 +44,7 @@ export type RecordChallengeViewInput = {
  * 呼び出し元は await してよい (1 UPDATE + 1 INSERT の軽量処理) が、失敗は投げない。
  */
 export async function recordChallengeView(input: RecordChallengeViewInput): Promise<void> {
-  const config = FINGERPRINT_CONFIG.challenge.accessLog;
+  const config = fingerprintChallengeConfig.challenge.accessLog;
   if (!config.enabled) return;
 
   const alsContext = getAuditContext();

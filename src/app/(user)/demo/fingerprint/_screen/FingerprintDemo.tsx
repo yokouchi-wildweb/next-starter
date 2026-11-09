@@ -122,7 +122,7 @@ function DeviceSignalsSection() {
         {sendState.status === "error" && (
           <Para size="sm" className="text-destructive-text">
             送信できませんでした（{sendState.message}）。 サーバー送信には認証と
-            FINGERPRINT_CONFIG.collection.enabled が必要です。収集・計測自体はこの画面で完結します。
+            deviceFingerprintConfig.collection.enabled が必要です。収集・計測自体はこの画面で完結します。
           </Para>
         )}
 
