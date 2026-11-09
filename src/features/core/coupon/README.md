@@ -423,6 +423,13 @@ downstream 所有の official / affiliate ページを差し替えている場�
 CouponSectionTabs（内部で `buildCouponAdminSectionTabs()`）に寄せると core と downstream のタブ一覧が常に一致する。
 本文に置きたい場合は `center` ではなく本文に `<CouponSectionTabs />`(variant 省略)を置く。
 
+## 設定(`config.ts`)
+
+持ち主 `src/features/core/coupon/config.ts`(既定・型 `CouponOverride`・合成 `couponConfig`)、上書き `src/config/features/coupon.config.ts`(値はリテラル。置き方: `src/config/README.md`)。
+
+- `affiliateDescription: string | null`(既定 null): アフィリエイトクーポンの管理画面(`/admin/coupons/affiliate`)の説明文の下に、同じ見た目で 1 文足す。画面を `_components/` に写さずに文だけ変える受け口
+- 機能の入切(`marketing.coupon.enabled`)はここに置かない(門番の規則 `src/featureGate/rules/coupon.ts` が読むスイッチ)
+
 ---
 
 ## 使用可否判定の理由一覧

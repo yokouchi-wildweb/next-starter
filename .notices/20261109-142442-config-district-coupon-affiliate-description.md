@@ -1,0 +1,17 @@
+# DOWNSTREAM NOTICE id:20261109-142442-config-district-coupon-affiliate-description
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-09T05:24:42Z
+severity: action-required
+checkpoint: config-district-coupon-affiliate-description
+resolves: 20261101-180140-coupon-affiliate-description-text
+change: The coupon domain gains its owner config src/features/core/coupon/config.ts (defaults, types CouponConfig / CouponOverride, composed couponConfig) with the empty override src/config/features/coupon.config.ts. New key affiliateDescription: string | null (default null): the default screen /admin/coupons/affiliate (_screen/AdminCouponAffiliateListScreen) shows it as one more muted paragraph under its description when not null. Nothing moved; marketing.coupon.enabled (a switch) stays where it is.
+why: a fork that copied AdminCouponAffiliateListScreen into _components/ only to add one sentence (CLAUDE.md FORK_EXTENSION) can drop the copy and write the sentence into the override
+required_actions:
+1. Merge upstream up to this checkpoint (new files only; take them as they are).
+2. Find copies: `git grep -l "AdminCouponAffiliateListScreen" -- "src/app/admin/(protected)/coupons/affiliate/_components"`. No hit → done.
+3. For a copy whose only change against upstream's _screen version is the sentence under the description: write that sentence into src/config/features/coupon.config.ts as a literal: `export default { affiliateDescription: "<the sentence>" } satisfies CouponOverride;`, point src/app/admin/(protected)/coupons/affiliate/page.tsx back to upstream's screen (`export { AdminCouponAffiliateListScreen as default, metadata } from "./_screen/AdminCouponAffiliateListScreen";` with `export const dynamic = "force-dynamic";` kept), and delete the _components copy. A copy that also changes the layout (e.g. its own header / tabs placement) keeps that part: keep the copy, or move the layout to the current upstream frame parts first.
+4. [判断] oripa-do: its copy shows 「ユーザーが自分で発行するクーポンは「フレンドクーポン」タブで管理します。」 only while APP_FEATURES.marketing.friendCoupon.enabled (true today). The override takes literals only, so write the sentence as a fixed value and remove it from the override when friendCoupon is turned off. The rest of its copy equals upstream (comments and the CouponSectionTabs placement match) → step 3. pandora: its copy writes the same sentence unconditionally but also uses its own header (PageTitle placement="header", CouponSectionTabs placement="header") → write the sentence into the override, then decide per step 3 whether the header part still needs the copy. 88-base, TriQ, boardgame-site, next-vnx, voranowa: no copy → nothing to do.
+verify: pnpm check config-overrides passes | pnpm typecheck | pnpm lint | open /admin/coupons/affiliate as admin: the sentence shows under 「インフルエンサーにコードを配布し…」 | git grep from step 2 shows only copies you kept on purpose
+manual_steps: -
+refs: src/features/core/coupon/config.ts, src/config/features/coupon.config.ts, src/app/admin/(protected)/coupons/affiliate/_screen/AdminCouponAffiliateListScreen.tsx, src/features/core/coupon/README.md 「設定(config.ts)」, src/config/README.md, order 20261109-131138-config-district-coupon-affiliate-description (council 20261101-233830)
+notes: oripa-do's friendCoupon keys and marketing.coupon keys stay in its own district (not touched here).

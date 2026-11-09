@@ -3,7 +3,7 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。
 // 手順: src/lib/screens/README.md
 //
-// loader は access の評価だけ(準備中の案内だけ)。
+// loader は access の評価だけ(準備中の案内だけ)。説明文に足す 1 文は couponConfig.affiliateDescription(fork は上書きに書く)。
 
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminPage from "@/app/admin/_layout/AdminPage";
@@ -11,6 +11,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import { Para } from "@/components/TextBlocks/Para";
+import { couponConfig } from "@/features/coupon/config";
 import { Construction } from "lucide-react";
 
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
@@ -32,6 +33,9 @@ export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
           <Para tone="muted">
             インフルエンサーにコードを配布し、プロモーションを行うことができます。
           </Para>
+          {couponConfig.affiliateDescription !== null && (
+            <Para tone="muted">{couponConfig.affiliateDescription}</Para>
+          )}
           <Stack
             appearance="surface"
             padding="lg"
