@@ -59,10 +59,10 @@ test("tables = schemaRegistry の元の表の全部を features の地区に 1 �
   assert.equal(new Set(mapped).size, mapped.length);
 });
 
-test("requires = domainEntry の requires(今の上流は 5 ドメイン)", () => {
+test("requires = domainEntry の requires(今の上流は 4 ドメイン)", () => {
   assert.deepEqual(
     features.filter((d) => d.requires.length > 0).map((d) => `${d.name}:${d.requires.join(",")}`),
-    ["couponAttributionReward:wallet", "fingerprintChallenge:deviceFingerprint", "notification:notificationTemplate", "purchaseRequest:wallet,walletHistory", "referral:coupon"],
+    ["couponAttributionReward:wallet", "fingerprintChallenge:deviceFingerprint", "purchaseRequest:wallet,walletHistory", "referral:coupon"],
   );
 });
 

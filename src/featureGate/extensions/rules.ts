@@ -19,7 +19,6 @@ import { rule as rules_milestone } from "@/featureGate/rules/milestone";
 import { rule as rules_mypageOther } from "@/featureGate/rules/mypageOther";
 import { rule as rules_notification } from "@/featureGate/rules/notification";
 import { rule as rules_notificationBroadcast } from "@/featureGate/rules/notificationBroadcast";
-import { rule as rules_notificationTemplate } from "@/featureGate/rules/notificationTemplate";
 import { rule as rules_pageEntry } from "@/featureGate/rules/pageEntry";
 import { rule as rules_pageMypage } from "@/featureGate/rules/pageMypage";
 import { rule as rules_pageMypageAccount } from "@/featureGate/rules/pageMypageAccount";
@@ -45,7 +44,7 @@ import { rule as rules_userXProfile } from "@/featureGate/rules/userXProfile";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "notificationTemplate" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "demoLogin" | "demoPages" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageOther" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GatedFeatureRule[] = [
@@ -63,9 +62,8 @@ export const rules: GatedFeatureRule[] = [
   { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: ["/api/cron/interaction-event-prune"], pathPatterns: [...rules_interactionTracking.pathPatterns, "/api/interactionEvent", "/api/cron/interaction-event-prune"] },
   { ...rules_milestone, name: "milestone", tables: ["milestones"], domainApiPaths: ["/api/milestone"], settingPaths: [], cronPaths: [], pathPatterns: [...rules_milestone.pathPatterns, "/api/milestone"] },
   { ...rules_mypageOther, name: "mypageOther", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [] },
-  { ...rules_notification, name: "notification", tables: ["notifications", "notification_reads", "notification_read_states"], domainApiPaths: ["/api/notification"], settingPaths: [], cronPaths: [], pathPatterns: [...rules_notification.pathPatterns, "/api/notification"] },
+  { ...rules_notification, name: "notification", tables: ["notifications", "notification_reads", "notification_read_states", "notification_templates"], domainApiPaths: ["/api/notification", "/api/notificationTemplate"], settingPaths: [], cronPaths: [], pathPatterns: [...rules_notification.pathPatterns, "/api/notification", "/api/notificationTemplate"] },
   { ...rules_notificationBroadcast, name: "notificationBroadcast", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [] },
-  { ...rules_notificationTemplate, name: "notificationTemplate", tables: ["notification_templates"], domainApiPaths: ["/api/notificationTemplate"], settingPaths: [], cronPaths: [], pathPatterns: [...rules_notificationTemplate.pathPatterns, "/api/notificationTemplate"] },
   { ...rules_pageEntry, name: "pageEntry", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [] },
   { ...rules_pageMypage, name: "pageMypage", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [] },
   { ...rules_pageMypageAccount, name: "pageMypageAccount", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [] },

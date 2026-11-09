@@ -4,7 +4,7 @@
 
 設計思想・計算量特性・大規模化したときの拡張判断基準は [設計方針とスケーリング指針](#設計方針とスケーリング指針) を参照。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/notification.ts`、今は常に開)。前提 `requires: ["notificationTemplate"]`(テンプレートへの外部キー)。閉じたときの呼び手: 利用者の枠の既定の未読のモーダルを描かない・messaging の inApp チャネルは作らずに未作成で返す・ウォレットの調整のお知らせは送らない。
+閉じられる機能(門番の規則 `src/featureGate/rules/notification.ts`、今は常に開)。テンプレート(`core/notificationTemplate`)は同じ規則に載り、お知らせを閉じれば表・汎用 API・管理画面 `/admin/notification-templates` も一緒に閉じる(お知らせの行がテンプレートを外部キーで参照するため、別々には閉じない)。閉じたときの呼び手: 利用者の枠の既定の未読のモーダルを描かない・messaging の inApp チャネルは作らずに未作成で返す・ウォレットの調整のお知らせは送らない。
 
 ---
 

@@ -392,3 +392,4 @@
 - id:20261109-144721-config-district-user-frame | severity:action-required | checkpoint:config-district-user-frame | moved:src/config/ui/user-header.config.ts -> src/config/layout/user.config.ts; src/config/ui/user-footer.config.ts -> src/config/layout/user.config.ts; src/config/ui/user-bottom-menu.config.ts -> src/config/layout/user.ui.config.ts; src/config/ui/user-layout.config.ts -> src/config/layout/user.config.ts
 - id:20261109-144911-config-district-admin-console | severity:action-required | checkpoint:config-district-admin-console | moved:src/config/ui/ui-behavior-config.ts -> src/config/features/admin.config.ts
 - id:20261109-145428-coupon-attribution-key-rename | severity:action-required | checkpoint:coupon-attribution-key-rename | fixes:20261109-140836-config-district-wallet-c | pick:-
+- id:20261109-152722-notification-template-gate-merge | severity:action-required | checkpoint:notification-template-gate-merge
