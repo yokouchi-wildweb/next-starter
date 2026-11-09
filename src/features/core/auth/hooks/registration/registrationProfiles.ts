@@ -5,11 +5,11 @@
  * allowedRoles のうち、プロフィール設定を持つロールのみ対象
  */
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { profileConfigs } from "@/features/core/userProfile/extensions/profileConfigs";
 import type { ProfileConfig } from "@/features/core/userProfile/profiles";
 
-const allowedRoles = APP_FEATURES.auth.signup.allowedRoles;
+const allowedRoles = authConfig.signup.allowedRoles;
 
 export const REGISTRATION_PROFILES: Record<string, ProfileConfig> = Object.fromEntries(
   allowedRoles

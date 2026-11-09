@@ -11,7 +11,7 @@ import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration"
 import { useOAuthRegistrationForm } from "@/features/core/auth/hooks/useOAuthRegistrationForm";
 import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { useGate } from "@/featureGate/client";
 import {
   RoleSelector,
@@ -44,7 +44,7 @@ export function OAuthRegistrationForm() {
       className="flex flex-col gap-4"
       noValidate
     >
-        {APP_FEATURES.auth.signup.showRoleSelection && (
+        {authConfig.signup.showRoleSelection && (
           <RoleSelector
             control={form.control}
             name="role"

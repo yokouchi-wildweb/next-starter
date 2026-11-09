@@ -46,7 +46,7 @@ export function useEmailRegistrationForm() {
   return {
     form,
     ...core,
-    /** パスワード（確認）欄を出すか（APP_FEATURES.auth.signup.passwordInputMode === "double"） */
+    /** パスワード（確認）欄を出すか（authConfig.signup.passwordInputMode === "double"） */
     passwordConfirmationRequired: isDoubleMode,
   } as const;
 }

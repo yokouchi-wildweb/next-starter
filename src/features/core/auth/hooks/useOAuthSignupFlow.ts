@@ -10,7 +10,7 @@
 import { useEffect } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import type { UserProviderType } from "@/features/core/user/types";
 import { useToast } from "@/lib/toast";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
@@ -18,7 +18,7 @@ import { useGuardedNavigation } from "@/lib/transitionGuard";
 import { resolveOAuthTransition } from "./oauth/transition";
 import { useOAuthPhase } from "./useOAuthPhase";
 
-const { afterVerificationPath } = APP_FEATURES.auth.signup;
+const { afterVerificationPath } = authConfig.signup;
 
 const DEFAULT_REDIRECT_PATH = "/";
 

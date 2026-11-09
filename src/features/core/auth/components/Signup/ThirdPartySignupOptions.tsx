@@ -8,7 +8,7 @@ import { FaGoogle, FaYahoo, FaFacebook, FaXTwitter } from "react-icons/fa6";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { OAUTH_PROVIDER_IDS } from "@/features/core/user/constants";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 
 export type ThirdPartySignupOptionsProps = {
   redirectTo?: string;
@@ -17,7 +17,7 @@ export type ThirdPartySignupOptionsProps = {
 export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsProps) {
   const router = useRouter();
 
-  const thirdPartyConfig = APP_FEATURES.auth.thirdPartyProviders;
+  const thirdPartyConfig = authConfig.thirdPartyProviders;
 
   const options = [
     {

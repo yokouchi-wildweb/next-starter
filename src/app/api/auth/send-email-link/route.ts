@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { RECAPTCHA_ACTIONS, RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
@@ -34,7 +34,7 @@ export const POST = createApiRoute(
     }
 
     // Hide My Email 検知
-    const { hideMyEmailAction } = APP_FEATURES.auth.signup;
+    const { hideMyEmailAction } = authConfig.signup;
     if (hideMyEmailAction !== "disabled" && isHideMyEmail(email)) {
       // block: サイレントブロック（成功レスポンスを返すがメールは送信しない）
       if (hideMyEmailAction === "block") {

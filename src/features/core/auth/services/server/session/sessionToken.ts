@@ -5,7 +5,7 @@
 // - issueSessionToken: SessionUser の組み立てと署名(cookie は書かない)
 // 詳細: ./establishSession.ts、src/features/core/auth/README.md「セッション」
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { SessionUserSchema, type SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS, signUserToken } from "@/lib/jwt";
@@ -47,7 +47,7 @@ export function assertSessionStatus(user: Pick<SessionSubject, "status">): { req
 
 /**
  * SessionUser を組み立ててトークンを署名する。cookie は書かない(書くのは呼び手 = route か establishSession)。
- * maxAge の既定: isDemo ならデモの短い時間(APP_FEATURES.auth.session.demoMaxAgeSeconds)、他は通常
+ * maxAge の既定: isDemo ならデモの短い時間(authConfig.session.demoMaxAgeSeconds)、他は通常
  */
 export async function issueSessionToken(
   user: SessionSubject,
@@ -64,7 +64,7 @@ export async function issueSessionToken(
   });
   const maxAge =
     options.maxAge ??
-    (sessionUser.isDemo ? APP_FEATURES.auth.session.demoMaxAgeSeconds : SESSION_DEFAULT_MAX_AGE_SECONDS);
+    (sessionUser.isDemo ? authConfig.session.demoMaxAgeSeconds : SESSION_DEFAULT_MAX_AGE_SECONDS);
   const { token, expiresAt } = await signUserToken({
     subject: sessionUser.userId,
     claims: {

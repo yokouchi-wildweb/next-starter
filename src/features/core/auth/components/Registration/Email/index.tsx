@@ -12,7 +12,7 @@ import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration"
 import { useEmailRegistrationForm } from "@/features/core/auth/hooks/useEmailRegistrationForm";
 import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { useGate } from "@/featureGate/client";
 import {
   RoleSelector,
@@ -46,7 +46,7 @@ export function EmailRegistrationForm() {
       className="flex flex-col gap-4"
       noValidate
     >
-        {APP_FEATURES.auth.signup.showRoleSelection && (
+        {authConfig.signup.showRoleSelection && (
           <RoleSelector
             control={form.control}
             name="role"

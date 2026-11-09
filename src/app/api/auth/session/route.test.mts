@@ -47,7 +47,7 @@ mock.module("@/features/core/rateLimit/services/server/wrappers/rateLimitHelper"
 });
 
 const { signUserToken, verifyUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } = await import("@/lib/jwt");
-const { APP_FEATURES } = await import("@/config/app/app-features.config");
+const { authConfig } = await import("@/features/auth/config");
 const { AUTH_SESSION_COOKIE_NAME } = await import("@/features/core/auth/constants/session");
 const { GET } = await import("./route.ts");
 
@@ -151,5 +151,5 @@ test("デモユーザーは短いセッション時間のまま再発行され�
   dbUser = { ...baseUser(), isDemo: true };
   const res = await call(await tokenFor({ isDemo: true }));
   assert.equal(res.status, 200);
-  assert.equal(sessionCookieOf(res).maxAge, APP_FEATURES.auth.session.demoMaxAgeSeconds);
+  assert.equal(sessionCookieOf(res).maxAge, authConfig.session.demoMaxAgeSeconds);
 });

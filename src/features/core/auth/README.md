@@ -36,7 +36,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
   - `email`: Firebase Email Link 登録。`provider_uid` = Firebase UID
   - `local`: 管理画面で作るアカウント（管理者）。Firebase に依存せず、アプリでハッシュ化した `local_password` で認証
     - **Firebase なしで完了する**: Firebase のサーバー側が未設定（`isFirebaseServerConfigured()` が false）ならカスタムトークンを作らず `firebaseCustomToken: null` を返し、`useAdminLogin` は null かクライアントの Firebase が未設定なら Firebase Auth に触れない。設定済みなら今まで通りカスタムトークンでサインインする（Storage のルール・chatRoom・`useFirebaseAuthSync` 用）。設定済みで失敗したときはログインも失敗する（障害を隠さない）。検査: `pnpm test src/features/core/auth/`
-  - サードパーティ（Google / Yahoo! / Facebook / X(twitter.com) 等）: Firebase の `signInWithRedirect` 経由。有効化は `APP_FEATURES.auth.thirdPartyProviders`
+  - サードパーティ（Google / Yahoo! / Facebook / X(twitter.com) 等）: Firebase の `signInWithRedirect` 経由。有効化は `authConfig.thirdPartyProviders`
 - 管理者と一般ユーザーは **単一の `users` テーブル**で管理する（別テーブル・別ドメインを作らない）。区別は `role`（ロールカテゴリ admin / user）で、`provider_type` とは独立。
 - スキーマの分担: user ドメインがユーザー属性のスキーマを持ち、auth はそれを拡張して認証文脈の検証（パスワード確認・認証情報の整合性など）を加える（`entities/schema.ts`）。
 - LINE / X の `/api/auth/line/*`・`/api/auth/x/*` は **ログイン済みユーザーへの外部アカウント連携**（`userLineProfile` / `userXProfile` に紐付け）であり、ログイン手段・アカウント作成ではない。詳細は [lib/line](../../../lib/line/README.md) / [lib/x](../../../lib/x/README.md)。
@@ -220,7 +220,7 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 | --- | --- | --- |
 | `useOAuthSignupFlow({ provider, redirectTo })` | `provider?: UserProviderType`・`redirectTo?: string`（登録済みユーザーのログイン後の遷移先、既定 `"/"`） | `{ phase, requiresReactivation }` |
 
-- 中で `useOAuthPhase`（認証の段階: initial / redirecting / processing / completed / alreadyRegistered / invalidProcess）を進め、段階が決まると移る: `completed` = `APP_FEATURES.auth.signup.afterVerificationPath?method=thirdParty` へ遷移ガード経由 / `alreadyRegistered` + 休会中 = `/reactivate` へ置き換え / `alreadyRegistered` = 成功トースト「登録済みユーザーでログインしました」+ `redirectTo` へ置き換え
+- 中で `useOAuthPhase`（認証の段階: initial / redirecting / processing / completed / alreadyRegistered / invalidProcess）を進め、段階が決まると移る: `completed` = `authConfig.signup.afterVerificationPath?method=thirdParty` へ遷移ガード経由 / `alreadyRegistered` + 休会中 = `/reactivate` へ置き換え / `alreadyRegistered` = 成功トースト「登録済みユーザーでログインしました」+ `redirectTo` へ置き換え
 - 画面は `phase` ごとの表示（読み込み中・`InvalidProcessState`）だけを描く。`useOAuthPhase` は段階だけが要る呼び出し向けに残る（遷移はしない）
 
 ### 画面の処理（`/email/verify`・`/logout`・`/signup/complete`）

@@ -4,49 +4,22 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックとテーブル作成の抑止は src/featureGate/rules/ の規則で自動制御されます。
 
-import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode } from "./types";
+import type { EmailCheckMode, SelectionBehavior, SignupMode } from "./types";
 
 export const APP_FEATURES = {
   auth: {
-    thirdPartyProviders: {
-      google: false,
-      yahoo: false,
-      facebook: false,
-      twitter: false,
-    },
+    // 入切でない値(サードパーティの提供元・デモのセッション期限・本登録の画面と遷移・Hide My Email)は src/features/core/auth/config.ts(上書き src/config/features/auth.config.ts)
     session: {
       /** JWT セッション Cookie の名前 */
       cookieName: "__session",
       /** セッションの有効期限（秒）: 7日間 */
       defaultMaxAgeSeconds: 60 * 60 * 24 * 7,
-      /** デモユーザー用セッションの有効期限（秒）: 10分 */
-      demoMaxAgeSeconds: 60 * 10,
     },
     signup: {
       /** サインアップ機能を有効にする（falseで完全ロック: 画面・API共にアクセス不可） */
       enabled: true,
       /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
       mode: "normal" as SignupMode,
-      /** 認証完了後の遷移先パス */
-      afterVerificationPath: "/signup/register",
-      /** 本登録ページに進捗インディケーターを表示する */
-      showRegistrationSteps: true,
-      /** パスワード入力モード: "single"=確認なし, "double"=確認あり */
-      passwordInputMode: "single" as "single" | "double",
-      /**
-       * 本登録画面でロール選択を表示するか
-       */
-      showRoleSelection: false,
-      /**
-       * 本登録画面で選択可能なロール
-       * user カテゴリかつ enabled: true のロールのみ指定可能
-       * @see src/features/core/user/roles/
-       */
-      allowedRoles: ["user"] as const,
-      /** ロール選択非表示時のデフォルトロール（allowedRoles に含まれている必要あり） */
-      defaultRole: "user",
-      /** メール認証完了後の動作: "manual"=ボタン表示, "auto"=自動遷移 */
-      emailVerificationRedirect: "auto" as "manual" | "auto",
       /**
        * reCAPTCHA v3 スコア閾値（0.0〜1.0）
        * - スコア >= recaptchaThreshold → 通過
@@ -63,13 +36,6 @@ export const APP_FEATURES = {
        * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
        */
       emailCheckMode: "disabled" as EmailCheckMode,
-      /**
-       * Hide My Email（Apple「メールを非公開」）検知時のアクション
-       * - disabled: チェックなし
-       * - block: 検知時にサイレントブロック（メール送信しない）
-       * - challenge: 検知時にreCAPTCHA v2チャレンジを要求
-       */
-      hideMyEmailAction: "challenge" as HideMyEmailAction,
     },
   },
   user: {
@@ -184,5 +150,3 @@ export const APP_FEATURES = {
     login: true,
   },
 } as const;
-
-export type ThirdPartyProvider = keyof typeof APP_FEATURES.auth.thirdPartyProviders;

@@ -5,7 +5,7 @@
 import type { ComponentType } from "react";
 
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { useTransitionGuard } from "@/lib/transitionGuard";
 
 import { OAuthRegistrationForm } from "./OAuth"
@@ -38,7 +38,7 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
   });
 
   const Component = registrationComponentMap[method] ?? UnknownRegistrationForm;
-  const showSteps = APP_FEATURES.auth.signup.showRegistrationSteps;
+  const showSteps = authConfig.signup.showRegistrationSteps;
 
   // メール認証: 3番目のステップ（基本情報設定）
   // OAuth: 2番目のステップ（プロフィール入力）

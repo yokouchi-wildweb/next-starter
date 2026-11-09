@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { authConfig } from "@/features/auth/config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import { createProfileDataValidator } from "@/features/core/userProfile/utils";
@@ -75,7 +75,7 @@ const FormSchemaSingle = z
     validateProfileData(value, ctx);
   });
 
-export const isDoubleMode = APP_FEATURES.auth.signup.passwordInputMode === "double";
+export const isDoubleMode = authConfig.signup.passwordInputMode === "double";
 
 export const FormSchema = isDoubleMode ? FormSchemaDouble : FormSchemaSingle;
 

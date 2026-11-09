@@ -384,3 +384,4 @@
 - id:20261109-140836-config-district-wallet-c | severity:action-required | checkpoint:config-district-wallet-c | moved:src/config/app/coupon-attribution.config.ts -> src/config/features/couponAttributionReward.config.ts
 - id:20261109-141931-config-district-fingerprint | severity:action-required | checkpoint:config-district-fingerprint | moved:src/config/app/fingerprint.config.ts -> src/config/features/fingerprintChallenge.config.ts
 - id:20261109-141957-peer-boxes | severity:info | checkpoint:peer-boxes
+- id:20261109-142400-config-district-auth | severity:action-required | checkpoint:config-district-auth | moved:src/config/ui/rate-limit-warning.config.ts -> src/config/features/auth.config.ts
