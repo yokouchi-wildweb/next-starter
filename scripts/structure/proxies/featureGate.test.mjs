@@ -36,7 +36,7 @@ import { isGenericApiClosed } from "../../../src/lib/domain/definition/apiAccess
 import { APP_FEATURES } from "../../../src/config/app/app-features.config.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
 // 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
-import { alwaysOnExceptions, alwaysOnRegistries, configRules, gatedSchema as applySchemaGate, withCoveredPatterns } from "../../../src/featureGate/node.ts";
+import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configRules, gatedSchema as applySchemaGate, withCoveredPatterns } from "../../../src/featureGate/node.ts";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
@@ -285,6 +285,12 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
   });
   // 上流の設定の節は feature を持たない
   assert.deepEqual(featureGateRules.filter((rule) => rule.settingPaths.length > 0).map((rule) => rule.name), []);
+});
+
+// 住所の二重書きと入れ子の依存(D25・D31・D34 K5): 読み込み後の一覧(規則の値で組む住所・導出の住所も入る)で見る。fork の規則も同じに落とす
+// (fork が上流の住所の下に足した規則は上流の機能に dependsOn が要る。例外は上流の表 src/featureGate/node/addressCheck.ts の ADDRESS_EXCEPTIONS だけ)
+test("住所: 同じ住所を 2 つの機能に書かず、親の前方一致の下の住所の機能は親に dependsOn する(手書き・汎用 API・cron・設定の節の全部)", () => {
+  assert.deepEqual(checkAddresses(configRules), []);
 });
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)

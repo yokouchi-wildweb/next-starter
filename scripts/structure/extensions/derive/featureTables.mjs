@@ -102,6 +102,8 @@ export function createFeatureTables(repoRoot) {
     problems: [...map.tableProblems, ...sections.problems],
     unknownFeatures: sections.unknownFeatures,
     settingSections: sections.sections,
+    /** features の地区(フォルダ・名前・requires)。requires の被覆の検査(./gateRequires.mjs)が読む */
+    districts: [...districtOf].map(([folder, d]) => ({ folder, name: d.name, requires: [...d.requires] })),
     apply(label, text, name) {
       const read = readFeatures(text);
       if (read.problem) return { problem: `${label}: ${read.problem}` };

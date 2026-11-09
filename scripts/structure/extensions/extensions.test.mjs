@@ -729,3 +729,62 @@ test("dependsOn: 読み・輪の検査の単体(輪は 1 つにつき 1 回、�
   const real = planExtensions(repoRoot);
   assert.ok(!real.problems.some((p) => p.includes("dependsOn")), real.problems.join("\n"));
 });
+
+// ---- 門番の規則の requires の被覆(D24・D34 K5) ----
+
+test("requires の被覆: 機能のドメインの requires の先が自分・依存先(推移的)・基盤のどれにも無ければ止め、直し方(dependsOn に足す機能)を示す", () => {
+  const entry = (requires) => `export const domainEntries = {\n  x: { table: null${requires ? `, requires: ${JSON.stringify(requires)}` : ""} },\n} satisfies DomainEntries;\n`;
+  const domains = {
+    "src/features/core/wallet/services/server/domainEntry.ts": entry(),
+    "src/features/core/purchase/services/server/domainEntry.ts": entry(["wallet"]),
+    "src/features/core/reward/services/server/domainEntry.ts": entry(["wallet"]),
+    "src/features/core/audit/services/server/domainEntry.ts": entry(),
+    "src/features/core/log/services/server/domainEntry.ts": entry(["audit"]),
+  };
+  const r = (body) => gateRule(body);
+  const plan = planExtensions(
+    fixture({
+      "src/featureGate/extensionPoints.ts": GATE_DECLARATION,
+      ...domains,
+      "src/featureGate/rules/wallet.ts": r('features: ["core/wallet"],'),
+      "src/featureGate/rules/payment.ts": r('features: ["core/purchase"],'),
+      "src/featureGate/rules/bonus.ts": r('dependsOn: ["payment"],\n  features: ["core/reward"],'),
+      "src/featureGate/rules/logs.ts": r('features: ["core/log"],'),
+    }),
+  );
+  const of = (name) => plan.problems.filter((p) => p.includes(`rules/${name}.ts`));
+  assert.equal(of("payment").length, 1, plan.problems.join("\n"));
+  assert.match(of("payment")[0], /機能 payment のドメイン core\/purchase が requires する wallet\(core\/wallet、機能 wallet\)が、この機能・依存先\(dependsOn、推移的\)・基盤のどれにも無い。dependsOn に "wallet" を足す/);
+  assert.equal(of("bonus").length, 1, "依存先 payment は wallet を持たないので覆わない");
+  assert.deepEqual(of("logs"), [], "requires の先 audit はどの規則にも載らない基盤");
+  assert.deepEqual(of("wallet"), []);
+  // payment が wallet に依存すれば payment も bonus(推移的)も覆う
+  const fixed = planExtensions(
+    fixture({
+      "src/featureGate/extensionPoints.ts": GATE_DECLARATION,
+      ...domains,
+      "src/featureGate/rules/wallet.ts": r('features: ["core/wallet"],'),
+      "src/featureGate/rules/payment.ts": r('dependsOn: ["wallet"],\n  features: ["core/purchase"],'),
+      "src/featureGate/rules/bonus.ts": r('dependsOn: ["payment"],\n  features: ["core/reward"],'),
+      "src/featureGate/rules/logs.ts": r('features: ["core/log"],'),
+    }),
+  );
+  assert.deepEqual(fixed.problems, []);
+});
+
+test("requires の被覆: 例外の表(機能:ドメイン→先)は通し、その機能の規則があるのに当たらない行は止める", async () => {
+  const { checkRequiresCoverage } = await import("./derive/gateRequires.mjs");
+  const districts = [
+    { folder: "core/notification", name: "notification", requires: ["notificationTemplate"] },
+    { folder: "core/notificationTemplate", name: "notificationTemplate", requires: [] },
+  ];
+  const items = [
+    { path: "n.ts", name: "notification", features: ["core/notification"], dependsOn: [] },
+    { path: "t.ts", name: "notificationTemplate", features: ["core/notificationTemplate"], dependsOn: [] },
+  ];
+  const key = "notification:core/notification→core/notificationTemplate";
+  assert.deepEqual(checkRequiresCoverage(items, districts, { [key]: "理由" }), []);
+  assert.equal(checkRequiresCoverage(items, districts, {}).length, 1);
+  assert.match(checkRequiresCoverage([items[0], items[1]].map((i) => (i.name === "notification" ? { ...i, dependsOn: ["notificationTemplate"] } : i)), districts, { [key]: "理由" })[0], /例外 .* はもう当たらない/);
+  assert.deepEqual(checkRequiresCoverage([items[1]], districts, { [key]: "理由" }), [], "その機能の規則が無ければ数えない");
+});

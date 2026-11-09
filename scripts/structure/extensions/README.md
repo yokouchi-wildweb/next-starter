@@ -130,6 +130,7 @@ export const extensionPoints = {
 | `frames.mjs` | 枠の表(frame.default.ts / frame.ts の解決) |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables・domainApiPaths) |
 | `derive/gateDependsOn.mjs` | 規則の dependsOn の字面の読みと検査(未知・自分・重複・輪・非リテラル) |
+| `derive/gateRequires.mjs` | 規則の requires の被覆の検査(機能のドメインの requires の先が自分・依存先・基盤のどれか) |
 | `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingSections・説明用の settingPaths) |
 | `derive/settingRoles.mjs` | setting の上書きは権限を絞るだけ(広げる上書きを止める) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |

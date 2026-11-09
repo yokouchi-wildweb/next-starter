@@ -71,7 +71,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_demoPayment, name: "demoPayment", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "payment"] },
   { ...rules_demoSampleDomain, name: "demoSampleDomain", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "sampleDomain"] },
   { ...rules_deviceFingerprint, name: "deviceFingerprint", tables: ["device_fingerprints"], domainApiPaths: ["/api/deviceFingerprint"], settingPaths: [], cronPaths: ["/api/cron/device-fingerprint-prune"], dependsOn: [] },
-  { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], cronPaths: ["/api/cron/fingerprint-challenge-access-prune"], dependsOn: [] },
+  { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], cronPaths: ["/api/cron/fingerprint-challenge-access-prune"], dependsOn: ["deviceFingerprint"] },
   { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: ["/api/cron/interaction-event-prune"], dependsOn: [] },
   { ...rules_milestone, name: "milestone", tables: ["milestones"], domainApiPaths: ["/api/milestone"], settingPaths: [], cronPaths: [], dependsOn: [] },
   { ...rules_mypageInvite, name: "mypageInvite", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "referral"] },

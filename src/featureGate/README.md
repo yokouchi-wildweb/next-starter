@@ -139,6 +139,8 @@ export const rule: FeatureGateRule = {
   - `configEnabled(name)`(`configRules` の `enabled()`): 規則の `enabled()` && 依存先の規則の値が全部開(スイッチを通さない)
   - `ownEnabled(name)`: 規則の `enabled()` そのもの(スイッチも依存先も通さない。省略は開。`pnpm ops features list` の閉の理由)
   - `isOpenedBySwitch(name)`: 全開スイッチがその名前を開けているか(依存先は見ない。開くかは `ruleEnabled`)
+- **requires の被覆**(生成で止める、D24・D34 K5。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `features` のドメインが `requires`(domainEntry.ts)するドメインは、X の `features`・X の依存先(推移的)の `features`・基盤(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(お知らせ → テンプレートの 1 行、連絡の議会の後に消す)
+- **住所の検査**(読み込み後の一覧で、`node/addressCheck.ts` の `checkAddresses`、検査は `pnpm test src/featureGate scripts/structure/proxies`): 同じ住所を 2 つの機能が持つ(手書き・汎用 API・cron・設定の節の全部で)、親の前方一致の下の住所の機能が親に `dependsOn` していない(推移的で可)、を止める(D25・D31)。fork の規則も同じ(上流の住所の下に足した規則は上流の機能に `dependsOn`)。依存の根拠が無い入れ子は両方に依存する小さな機能へ(D34 K3)。上流の例外はテンプレートの組の 2 住所だけ
 - 全開スイッチの名前指定は依存先を開けない(「全開スイッチ」の節)
 - `pnpm ops features list` は依存先・依存元(推移的)・閉の理由を出し、`pnpm ops features set` は必須の機能が依存する機能の off を止める(下の節)
 

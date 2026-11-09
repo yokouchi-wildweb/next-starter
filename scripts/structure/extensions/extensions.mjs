@@ -13,6 +13,7 @@ import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints, isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkDependsOnGraph } from "./derive/gateDependsOn.mjs";
+import { checkRequiresCoverage } from "./derive/gateRequires.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrideKeys } from "./overrideKeys.mjs";
 import { checkOrphans, targetOf } from "./orphans.mjs";
@@ -334,6 +335,13 @@ export function planExtensions(repoRoot) {
         // dependsOn の未知の名前・輪(全規則で。読めなかった規則は名前だけ知っている物として数える)
         const unread = items.filter((item) => !kept.some((k) => k.name === item.name)).map((item) => ({ path: item.path, name: item.name, dependsOn: [] }));
         problems.push(...checkDependsOnGraph([...kept.map((item) => ({ path: item.path, name: item.name, dependsOn: item.fields.dependsOn })), ...unread]));
+        // requires の被覆(機能のドメインの requires の先が自分・依存先・基盤のどれか、D24。例外は上流の規則の縮む表で、fork にも同じ規則があるので全 Tier で数える)
+        problems.push(
+          ...checkRequiresCoverage(
+            kept.map((item) => ({ path: item.path, name: item.name, features: item.features, dependsOn: item.fields.dependsOn })),
+            featureTables.districts,
+          ),
+        );
         itemsByPoint.set(p, kept);
       } else {
         itemsByPoint.set(p, items);
