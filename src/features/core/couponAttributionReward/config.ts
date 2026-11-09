@@ -18,11 +18,11 @@ export type CouponAttributionRewardConfig = {
    * 消込者・購入に辿れる値を含むキーは登録しないこと。
    * 配列の上書きは丸ごと置き換え
    */
-  recipientVisibleAttributionRewardMetadataKeys: readonly string[];
+  recipientVisibleMetadataKeys: readonly string[];
 };
 
 const defaults: CouponAttributionRewardConfig = {
-  recipientVisibleAttributionRewardMetadataKeys: [],
+  recipientVisibleMetadataKeys: [],
 };
 
 export const couponAttributionRewardConfigDef = defineConfig<CouponAttributionRewardConfig>(defaults, {

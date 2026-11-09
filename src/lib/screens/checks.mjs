@@ -4,6 +4,7 @@
 // 設計: src/lib/screens/README.md
 
 import { classifyDottedName } from "../districtMap/dottedNames.mjs";
+import { UI_CONFIG_FILE } from "../districtMap/kinds.mjs";
 
 /**
  * コメントを除去する(行コメントとブロックコメント)。
@@ -68,38 +69,43 @@ export const SCREEN_DIRS = ["_screen", "_components"];
 /** 提供者(upstream)の既定の実装を置くディレクトリ。fork の丸ごと置き換えは隣に <名前>.replace.ts(x) で置く(W) */
 export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 
-/**
- * DEFAULT_IMPL_DIRS 配下の点つきの名前のファイル(拡張子を除いた名前に "." を含む: `UserLayout.replace.tsx`)を返す。
- * 点つきの名前 = fork の置き換え(.replace)なので、upstream はこれを作らない(pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する)。
- * `*.test.*`・1 行スイッチの既定 `<名前>.default.*`・枠の描画用の設定 `config.ui.ts` は除く(どれも置き換えではない)
- * @param {string[]} files repo 相対パス
- */
-export function findDotNamedFiles(files) {
-  return files.filter((file) => {
+/** DEFAULT_IMPL_DIRS 配下の点つきの名前(テストを除く)と、その形(dottedNames.mjs の classifyDottedName の kind) */
+function dottedInImplDirs(files) {
+  const out = [];
+  for (const file of files) {
     const segments = file.split("/");
     const base = segments.pop();
-    if (!segments.some((segment) => DEFAULT_IMPL_DIRS.includes(segment))) return false;
-    const stem = base.replace(/\.[^.]+$/, "");
-    // test(`UserLayout.test.tsx`)は置き換えではない(既定の隣に置いてよい)
-    if (/\.test$/.test(stem)) return false;
-    // 1 行スイッチの既定 <名前>.default(`AdminHeader.default.tsx`)は作ったリポの物で、置き換えではない(隣の素の名前がスイッチ、switches.mjs)
-    if (classifyDottedName(base).kind === "default") return false;
-    // 枠の描画用の設定 config.ui.ts(src/config/README.md「描画専用の値」、上書き <枠の名前>.ui.config.ts の持ち主)は枠の作り手の物で、置き換えではない
-    if (base === "config.ui.ts") return false;
-    return stem.includes(".");
-  });
+    if (!segments.some((segment) => DEFAULT_IMPL_DIRS.includes(segment))) continue;
+    const { kind } = classifyDottedName(base);
+    // 素の名前とテスト(`UserLayout.test.tsx`、既定の隣に置いてよい)は点つきの名前として扱わない
+    if (kind === "plain" || kind === "test") continue;
+    out.push({ file, kind, base, dir: segments[segments.length - 1] });
+  }
+  return out;
 }
 
 /**
- * DEFAULT_IMPL_DIRS 配下で許さない点つきの名前(.replace・.test・1 行スイッチの既定 .default 以外。旧い fork の名前の印 `UserLayout.acme.tsx` など)を返す。
- * 全 Tier で検査する(移し方は dottedNames.mjs の MARKER_MIGRATION_NOTICE)
+ * DEFAULT_IMPL_DIRS 配下の fork の置き換えの印(classifyDottedName が replace = 丸ごと置き換え・override = 一部の上書きと判定する名前)を返す。
+ * 置き換えの印は fork の物なので upstream はこれを作らない(pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する、設定 D101)。
+ * 点つきの名前を全部止めるのではない: 1 行スイッチの既定 `<名前>.default`・枠の描画用の設定 `config.ui.ts`(設定 D38)・テストは印でないので返さない
+ * @param {string[]} files repo 相対パス
+ */
+export function findDotNamedFiles(files) {
+  return dottedInImplDirs(files)
+    .filter(({ kind }) => kind === "replace" || kind === "override")
+    .map(({ file }) => file);
+}
+
+/**
+ * DEFAULT_IMPL_DIRS 配下で許さない点つきの名前を返す: 許すのは丸ごと置き換え `.replace`・テスト・1 行スイッチの既定 `.default` と、
+ * 枠の `_layout/` の直下の描画用の設定 `config.ui.ts`(地区の UI_CONFIG_FILE、設定 D38)だけ。旧い fork の名前の印(`UserLayout.acme.tsx`)・
+ * `.override` などは止める。全 Tier で検査する(移し方は dottedNames.mjs の MARKER_MIGRATION_NOTICE)
  * @param {string[]} files repo 相対パス
  */
 export function findMarkerNamedFiles(files) {
-  return findDotNamedFiles(files).filter((file) => {
-    const kind = classifyDottedName(file.split("/").pop()).kind;
-    return kind !== "replace" && kind !== "test";
-  });
+  return dottedInImplDirs(files)
+    .filter(({ kind, base, dir }) => kind !== "replace" && kind !== "default" && !(base === UI_CONFIG_FILE && dir === "_layout"))
+    .map(({ file }) => file);
 }
 
 /**

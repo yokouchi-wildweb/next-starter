@@ -584,14 +584,16 @@ test("findForkOwnedDirFiles: src/app 配下の _components/ のファイルだ�
   ]);
 });
 
-test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点つきの名前を拾う(*.test.*・1 行スイッチの既定 .default・枠の描画用の設定 config.ui.ts は除く)、印は .replace 以外", () => {
+test("findDotNamedFiles = fork の置き換えの印(.replace・.override)だけ。findMarkerNamedFiles = 許さない点つきの名前(旧い印・.override・枠の外の config.ui)", () => {
   const files = [
     "src/app/(user)/_layout/UserLayout.tsx",
     "src/app/(user)/_layout/config.ui.ts",
     "src/app/(user)/_layout/Header/config.ui.tsx",
+    "src/app/(user)/_layout/Header/config.ui.ts",
     "src/app/(user)/_layout/UserLayout.replace.tsx",
     "src/app/(user)/_layout/UserLayout.test.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
+    "src/app/(user)/_layout/userMenu.override.ts",
     "src/app/admin/_layout/AdminHeader.default.tsx",
     "src/app/admin/_layout/AdminHeader.tsx",
     "src/app/admin/_layout/AdminHeader.replace.tsx",
@@ -603,18 +605,26 @@ test("findDotNamedFiles / findMarkerNamedFiles: _screen/・_layout/ 配下の点
     "src/app/(user)/wallet/page.tsx",
     "src/app/route-map.jsonl",
   ];
-  assert.deepEqual(findDotNamedFiles(files), [
-    "src/app/(user)/_layout/Header/config.ui.tsx",
-    "src/app/(user)/_layout/UserLayout.replace.tsx",
-    "src/app/(user)/_layout/Header/index.acme.tsx",
-    "src/app/admin/_layout/AdminHeader.replace.tsx",
-    "src/app/(user)/wallet/_screen/WalletScreen.replace.tsx",
-  ], "1 行スイッチの既定 AdminHeader.default.tsx は作ったリポの物(点つきの置き換えではない)");
+  assert.deepEqual(
+    findDotNamedFiles(files),
+    [
+      "src/app/(user)/_layout/UserLayout.replace.tsx",
+      "src/app/(user)/_layout/userMenu.override.ts",
+      "src/app/admin/_layout/AdminHeader.replace.tsx",
+      "src/app/(user)/wallet/_screen/WalletScreen.replace.tsx",
+    ],
+    "印だけ: config.ui.ts・.default・テスト・旧い印は返さない(設定 D101)",
+  );
   assert.deepEqual(findOrphanReplaceFiles(files), [], "AdminHeader.replace は隣のスイッチ AdminHeader.tsx を置き換える");
   assert.deepEqual(
     findMarkerNamedFiles(files),
-    ["src/app/(user)/_layout/Header/config.ui.tsx", "src/app/(user)/_layout/Header/index.acme.tsx"],
-    "除くのは枠の描画用の設定の名前 config.ui.ts そのものだけ(似た名前は印として止める)",
+    [
+      "src/app/(user)/_layout/Header/config.ui.tsx",
+      "src/app/(user)/_layout/Header/config.ui.ts",
+      "src/app/(user)/_layout/Header/index.acme.tsx",
+      "src/app/(user)/_layout/userMenu.override.ts",
+    ],
+    "許すのは枠の _layout/ の直下の描画用の設定 config.ui.ts(地区の UI_CONFIG_FILE)だけ。下のフォルダの config.ui は印",
   );
 });
 

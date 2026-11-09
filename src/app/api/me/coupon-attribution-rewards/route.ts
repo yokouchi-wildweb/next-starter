@@ -41,7 +41,7 @@ export const GET = createMeRoute(
       const response: PaginatedResult<CouponAttributionRewardForRecipient> = {
         results: result.results.map((row) =>
           toCouponAttributionRewardForRecipient(row, {
-            metadataKeys: couponAttributionRewardConfig.recipientVisibleAttributionRewardMetadataKeys,
+            metadataKeys: couponAttributionRewardConfig.recipientVisibleMetadataKeys,
           }),
         ),
         total: result.total,
