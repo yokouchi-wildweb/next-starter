@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { demoModeConfig } from "@/config/app/demo-mode.config";
+import { demoConfig } from "./demo/config";
 
 import type { ProxyHandler } from "./types";
 
@@ -11,12 +11,12 @@ import type { ProxyHandler } from "./types";
  */
 const isAllowedPath = (pathname: string): boolean => {
   // 完全一致チェック
-  if (demoModeConfig.allowedPaths.includes(pathname)) {
+  if (demoConfig.allowedPaths.includes(pathname)) {
     return true;
   }
 
   // 前方一致チェック
-  return demoModeConfig.allowedPrefixes.some((prefix) =>
+  return demoConfig.allowedPrefixes.some((prefix) =>
     pathname.startsWith(prefix)
   );
 };
@@ -30,7 +30,7 @@ export const demoModeProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
 
   // デモモードが無効の場合、/demo-login へのアクセスは404
-  if (!demoModeConfig.enabled) {
+  if (!demoConfig.enabled) {
     if (pathname === '/demo-login') {
       return new NextResponse(null, { status: 404 });
     }
@@ -48,5 +48,5 @@ export const demoModeProxy: ProxyHandler = async (request, ctx) => {
   }
 
   // デモページにリダイレクト
-  return NextResponse.redirect(new URL(demoModeConfig.redirectTo, request.url));
+  return NextResponse.redirect(new URL(demoConfig.redirectTo, request.url));
 };

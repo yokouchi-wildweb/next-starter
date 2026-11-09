@@ -19,7 +19,6 @@ import {
   LAYOUT_DIR_NAME,
   LIB_ROOT,
   PROXIES_DIR,
-  PROXIES_NAME,
   RECEPTACLE_FILE,
   SKIP_DIRS,
   UI_CONFIG_FILE,
@@ -86,7 +85,12 @@ function discover(source, problems) {
     }
   };
   walkApp(APP_ROOT);
-  if (source.listDir(PROXIES_DIR).length > 0) found.push({ kind: "proxies", name: PROXIES_NAME, core: null, dir: PROXIES_DIR });
+  // proxies の地区 = src/proxies の直下のテーマのフォルダのうち config.ts を持つ物(1 テーマ 1 地区、設定 D93。上流は demo だけ)
+  for (const entry of dirsOf(source, PROXIES_DIR)) {
+    if (SKIP_DIRS.includes(entry.name)) continue;
+    const dir = `${PROXIES_DIR}/${entry.name}`;
+    if (source.readText(join(dir, CONFIG_FILE)) !== null) found.push({ kind: "proxies", name: entry.name, core: null, dir });
+  }
   return found;
 }
 
@@ -148,9 +152,9 @@ export function readDistrictMap(source) {
   const apiKeyOwners = new Map();
 
   const districts = found.map((d) => {
-    const configPath = d.kind === "proxies" ? join(PROXIES_DIR, CONFIG_FILE) : join(d.dir, CONFIG_FILE);
+    const configPath = join(d.dir, CONFIG_FILE);
     const overridePath = overridePathOf(d.kind, d.name);
-    const uiConfigPath = d.kind === "proxies" ? join(PROXIES_DIR, UI_CONFIG_FILE) : join(d.dir, UI_CONFIG_FILE);
+    const uiConfigPath = join(d.dir, UI_CONFIG_FILE);
     const uiOverridePath = uiOverridePathOf(d.kind, d.name);
     const files = filesUnder(source, d.dir);
     /** @type {District} */

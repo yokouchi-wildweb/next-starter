@@ -36,7 +36,7 @@ function listFolder(root, rel) {
 /** 持ち主が見つからない上書きの直し方(種類ごと) */
 function ownerHint(kind, name) {
   if (kind === "frame") return `枠の _layout/config.ts に frame: "${name}" の宣言が無い。枠の名前を確かめるか、要らない上書きなら消す(設定 D75)`;
-  if (kind === "proxies") return `proxies の上書きは proxies.config.ts(と proxies.ui.config.ts)だけ(設定 D36)`;
+  if (kind === "proxies") return `src/proxies/${name}/config.ts が無い。proxies の上書きはテーマのフォルダ(src/proxies/<テーマ>/config.ts)ごとに <テーマ>.config.ts(設定 D93)`;
   return `${KIND_LABEL[kind]} ${name} が無い(消された・改名された・打ち間違い)。持ち主の名前に合わせるか、要らない上書きなら消す`;
 }
 

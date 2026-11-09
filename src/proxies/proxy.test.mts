@@ -24,17 +24,19 @@ let maintenanceActive = true;
 mock.module(srcUrl("features/core/setting/services/server/settingService.ts"), {
   namedExports: { settingService: { isMaintenanceActive: async () => maintenanceActive } },
 });
-mock.module(srcUrl("config/app/demo-mode.config.ts"), {
+mock.module(srcUrl("proxies/demo/config.ts"), {
   namedExports: {
-    demoModeConfig: { enabled: true, allowedPaths: ["/demo"], allowedPrefixes: ["/_next", "/api"], redirectTo: "/demo" },
+    demoConfig: { enabled: true, allowedPaths: ["/demo"], allowedPrefixes: ["/_next", "/api"], redirectTo: "/demo" },
   },
 });
-mock.module(srcUrl("config/app/redirect.config.ts"), {
+mock.module(srcUrl("proxies/extensions/redirects.ts"), {
   namedExports: {
-    redirectRules: [
-      { sourcePaths: ["/guest-only"], destination: "/mypage", guestOnly: true },
-      { sourcePaths: ["/authed"], destination: "/home", authedOnly: true },
-      { sourcePaths: ["/admins"], destination: "/admin", allowRoles: ["admin"] },
+    redirects: [
+      [{ sourcePaths: ["/guest-only"], destination: "/mypage", guestOnly: true }],
+      [
+        { sourcePaths: ["/authed"], destination: "/home", authedOnly: true },
+        { sourcePaths: ["/admins"], destination: "/admin", allowRoles: ["admin"] },
+      ],
     ],
   },
 });
@@ -168,6 +170,18 @@ test("redirect: guestOnly・authedOnly・allowRoles の判定、規則に当た�
   const miss = ctxOf(user("admin"));
   assert.equal(location(await redirectProxy(req("/nothing-here"), miss.ctx)), "pass");
   assert.equal(miss.calls.count, 0);
+});
+
+test("redirect: 受け口の規則で同じ sourcePath が 2 つあると止める(どちらが効くかを並びで決めない)", async () => {
+  const { flattenRedirectRules } = await import("./redirect");
+  assert.deepEqual(
+    flattenRedirectRules([[{ sourcePaths: ["/a"], destination: "/x" }], [{ sourcePaths: ["/b"], destination: "/y" }]]).map((r) => r.destination),
+    ["/x", "/y"],
+  );
+  assert.throws(
+    () => flattenRedirectRules([[{ sourcePaths: ["/a"], destination: "/x" }], [{ sourcePaths: ["/c", "/a"], destination: "/y" }]]),
+    /sourcePath "\/a" が重複/,
+  );
 });
 
 test("枠: 生成一覧の項目は骨組みの後で走り、同じ ctx を受ける。骨組みが止めたら走らない", async () => {

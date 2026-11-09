@@ -3,7 +3,6 @@
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
 import { createGuestDemoUser } from "@/features/core/user/services/server/creation/createGuestDemoUser";
-import { demoModeConfig } from "@/config/app/demo-mode.config";
 import { authConfig } from "@/features/auth/config";
 import { onDemoUserCreated } from "./onDemoUserCreated";
 import { issueSessionToken } from "./session/sessionToken";

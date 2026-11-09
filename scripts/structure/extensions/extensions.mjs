@@ -69,7 +69,7 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
     if (entry.isFile() && classifyDottedName(entry.name).kind === "replace") continue;
     let itemFile;
     if (entry.isDirectory()) {
-      if (entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".") || otherDirs.has(posix.join(rel, entry.name))) continue;
+      if (entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".") || ignore.has(entry.name) || otherDirs.has(posix.join(rel, entry.name))) continue;
       const index = ["index.ts", "index.tsx"].find((f) => existsSync(join(abs, entry.name, f)));
       if (!index) {
         problems.push(`${label}: フォルダの項目は中に index.ts(x) を置く`);

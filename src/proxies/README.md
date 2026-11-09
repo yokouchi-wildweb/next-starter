@@ -13,8 +13,10 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 |---|---|---|
 | 骨組み（順序に意味がある上流の 4 + 2） | `src/proxies/index.ts`・各 `<名前>.ts` | 上流だけ（fork は index.ts を編集しない） |
 | 枠の項目 | `src/proxies/<名前>.ts`（上流も fork も印なし）。フォルダ形 `<名前>/index.ts` も可 | 1 項目 1 つ `export const handler` か `export const decorator` |
-| 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators の 2 点。機能を閉じる規則は門番 `src/featureGate/extensionPoints.ts`） | 上流だけ |
-| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts` | `pnpm generate extensions`（手で編集しない。仕組み: `scripts/structure/extensions/README.md`） |
+| 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators・redirects の 3 点。機能を閉じる規則は門番 `src/featureGate/extensionPoints.ts`） | 上流だけ |
+| 転送の規則 | `src/proxies/redirects/<名前>.ts`（1 ファイル = 規則の 1 組、`export const redirects: RedirectRuleGroup`。上流の項目は 0。読み手は `redirect.ts`、同じ sourcePath の重複は読み込みで止まる） | fork |
+| テーマの設定 | `src/proxies/<テーマ>/config.ts`（上流は `demo`、上書き `src/config/proxies/<テーマ>.config.ts`、設定 D93） | 上流(既定)・fork(上書き) |
+| 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts`・`redirects.ts` | `pnpm generate extensions`（手で編集しない。仕組み: `scripts/structure/extensions/README.md`） |
 | 検査 | `pnpm check extensions`（build の冒頭）・`pnpm test scripts/structure/proxies/proxyFrame.test.mjs` | — |
 
 - 項目は骨組みの**後ろ**で、ファイル名の順に走る（Tier 順は使わない）。項目どうしは互いに依存しない（前の項目の結果を読まない）。骨組みより前で走らせたい項目は作らない（要るなら上流へ依頼し、骨組みに吸収する）
@@ -22,6 +24,7 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 - 印は字面で読む（`export const handler` / `export const decorator` / `export const rule` の形で書く。`export { x as handler }` は拾わない）。項目のファイルは生成器から import しない
 - 判定の中身は責務のドメインのサービスを呼ぶ（項目のファイルに業務の判定を書き込まない）。項目の入切は各項目が config の値で持つ（多段での並べ替え・置き換えの口は無い）。項目はどのドメインの config も読んでよい。読んだ config から services・drizzle・server-only・node: に届くと門番の到達の検査（`pnpm test src/featureGate/checks/reachability.test.mjs`）が落とす（edge で動くため。目録 D20）
 - **転送された旧 URL（redirect が Response を返したリクエスト）では枠の項目は走らない**。骨組みが打ち切ったリクエストも同じ
+- **受け口か config か**: fork が互いに独立した行を足していく一覧（転送の規則）は受け口、鍵で合わせて値を変える表は config（`src/config/README.md`）
 - 項目も UNCONFIGURED_BACKENDS の契約に従う（DB・Firebase が未構成でも落ちない。既存の判定 `isDatabaseConfigured` 等を使う）
 
 ## 利用者（ctx.user）

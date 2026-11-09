@@ -71,12 +71,11 @@ test("余り: 持ち主の地区が無い上書き(ドメイン・lib・枠・pr
   one(run({ "src/config/features/ghost.config.ts": EMPTY }), /src\/config\/features\/ghost\.config\.ts: 持ち主の無い上書き.*ドメイン ghost が無い/);
   one(run({ "src/config/lib/gone.config.ts": EMPTY }), /src\/config\/lib\/gone\.config\.ts: 持ち主の無い上書き.*lib gone が無い/);
   one(run({ "src/config/layout/user.config.ts": EMPTY }), /src\/config\/layout\/user\.config\.ts: 持ち主の無い上書き.*frame: "user" の宣言が無い/);
-  one(run({ "src/config/proxies/redirect.config.ts": EMPTY }), /src\/config\/proxies\/redirect\.config\.ts: 持ち主の無い上書き.*proxies\.config\.ts/);
+  one(run({ "src/config/proxies/redirect.config.ts": EMPTY }), /src\/config\/proxies\/redirect\.config\.ts: 持ち主の無い上書き.*src\/proxies\/redirect\/config\.ts が無い/);
 });
 
 test("余り: 持ち主はいるが config.ts が無い上書き", () => {
   one(run({ "src/config/features/user.config.ts": EMPTY }), /src\/config\/features\/user\.config\.ts: 持ち主 src\/features\/core\/user に config\.ts が無い上書き/);
-  one(run({ "src/config/proxies/proxies.config.ts": EMPTY }), /proxies\.config\.ts: 持ち主 src\/proxies に config\.ts が無い/);
 });
 
 test("余り: 種類のフォルダのサブフォルダ・置けない名前", () => {
@@ -87,7 +86,7 @@ test("余り: 種類のフォルダのサブフォルダ・置けない名前", 
 test("欠落: features・枠・proxies は config.ts があるのに上書きが無いと落ちる", () => {
   one(run({ "src/config/features/gacha.config.ts": null }), /src\/features\/gacha\/config\.ts: 上書き src\/config\/features\/gacha\.config\.ts が無い/);
   one(run({ "src/config/layout/admin.config.ts": null }), /src\/app\/admin\/_layout\/config\.ts: 上書き src\/config\/layout\/admin\.config\.ts が無い/);
-  one(run({ "src/proxies/config.ts": "export const proxiesConfig = {};\n" }), /src\/proxies\/config\.ts: 上書き src\/config\/proxies\/proxies\.config\.ts が無い/);
+  one(run({ "src/proxies/demo/config.ts": "export const demoConfig = {};\n" }), /src\/proxies\/demo\/config\.ts: 上書き src\/config\/proxies\/demo\.config\.ts が無い/);
 });
 
 test("欠落: lib は package.json を宣言した lib なら数えない(pnpm check lib-package の持ち分)、宣言の無い lib は落とす", () => {

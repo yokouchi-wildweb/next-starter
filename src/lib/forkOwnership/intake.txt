@@ -119,6 +119,8 @@ add src/features/sampleTag/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkAct
 add src/features/sampleTag/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
 add src/proxies/*.{ts,tsx}  # 受け口 decorators・handlers
 add src/proxies/*/**  # 受け口 decorators・handlers(フォルダ形)
+add src/proxies/redirects/*.{ts,tsx}  # 受け口 redirects
+add src/proxies/redirects/*/**  # 受け口 redirects(フォルダ形)
 add src/wiring/dbAgent/extraTools/*.{ts,tsx}  # 受け口 extraTools
 add src/wiring/dbAgent/extraTools/*/**  # 受け口 extraTools(フォルダ形)
 add src/wiring/dbAgent/promptFragments/*.{ts,tsx}  # 受け口 promptFragments

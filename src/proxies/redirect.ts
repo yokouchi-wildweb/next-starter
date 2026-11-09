@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { userConfig } from "@/features/user/config";
-import { redirectRules, type RedirectRule } from "@/config/app/redirect.config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { setRedirectToastCookie } from "@/lib/toast";
 
-import type { ProxyHandler } from "./types";
+import { redirects } from "./extensions/redirects";
+import type { ProxyHandler, RedirectRule } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 内部リダイレクトルール（システム定義）
-// ユーザー設定ファイル（redirect.config.ts）とは分離して管理
+// fork の規則（受け口 src/proxies/redirects/<名前>.ts）とは分離して管理
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -36,8 +36,27 @@ const getInternalRedirectRules = (): RedirectRule[] => [
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * 受け口の規則を 1 本にし、同じ sourcePath が 2 つの規則に出たら止める(どちらが効くかが並びで黙って決まらないように)
+ */
+export function flattenRedirectRules(groups: readonly (readonly RedirectRule[])[]): RedirectRule[] {
+  const rules = groups.flat();
+  const seen = new Map<string, number>();
+  rules.forEach((rule, index) => {
+    for (const path of rule.sourcePaths) {
+      if (seen.has(path)) {
+        throw new Error(`[proxies] 転送の規則で sourcePath "${path}" が重複しています(src/proxies/redirects/ の項目を確かめてください)`);
+      }
+      seen.set(path, index);
+    }
+  });
+  return rules;
+}
+
+const configuredRedirectRules = flattenRedirectRules(redirects);
+
 const findRedirectRule = (pathname: string) => {
-  const allRules = [...getInternalRedirectRules(), ...redirectRules];
+  const allRules = [...getInternalRedirectRules(), ...configuredRedirectRules];
   return allRules.find((rule) => rule.sourcePaths.includes(pathname));
 };
 

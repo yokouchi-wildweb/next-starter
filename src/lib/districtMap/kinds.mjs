@@ -11,9 +11,8 @@ export const FEATURES_ROOT = "src/features";
 export const CORE_DIR_NAME = "core";
 /** lib の地区を探すフォルダ(直下のフォルダ = 1 地区)。見つけ方の決まりは src/lib/libPackage の listLibsFrom(L1.14) */
 export { LIB_DIR as LIB_ROOT } from "../libPackage/index.mjs";
-/** proxies の地区(全体で 1 つ、設定 D36) */
+/** proxies の地区を探すフォルダ。直下のテーマのフォルダで config.ts を持つ物が 1 地区(名前 = フォルダ名、上書き src/config/proxies/<テーマ>.config.ts、設定 D93) */
 export const PROXIES_DIR = "src/proxies";
-export const PROXIES_NAME = "proxies";
 /** 枠の地区を探す木。_layout/config.ts の frame: "<名前>" が 1 地区(設定 D75)。宣言の無い _layout は地区にならない */
 export const APP_ROOT = "src/app";
 export const LAYOUT_DIR_NAME = "_layout";

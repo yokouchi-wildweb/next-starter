@@ -44,6 +44,7 @@ const BASE = {
   "src/lib/cron/index.ts": "",
   "src/config/lib/cron.config.ts": "export const c = {};",
   "src/proxies/index.ts": "",
+  "src/proxies/demo/config.ts": "export const demoConfig = {};",
   "src/proxies/extensionPoints.ts": `export const extensionPoints = { handlers: { dir: ".", export: "handler", type: { from: "@/x", name: "H" }, side: "server" } };`,
   "src/app/(user)/_layout/config.ts": `export const userLayoutConfig = { frame: "user", other: 1 } as const;`,
   "src/app/(user)/(protected)/mypage/_layout/Menu.tsx": "",
@@ -55,7 +56,7 @@ test("4 種を見つけ、種類 → 名前で並べる。_ 始まり・core の
   assert.deepEqual(problems, []);
   assert.deepEqual(
     districts.map((d) => `${d.kind}:${d.name}`),
-    ["features:purchaseRequest", "features:sample", "features:wallet", "lib:cron", "lib:crud", "frame:admin", "frame:user", "proxies:proxies"],
+    ["features:purchaseRequest", "features:sample", "features:wallet", "lib:cron", "lib:crud", "frame:admin", "frame:user", "proxies:demo"],
   );
   const by = Object.fromEntries(districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.equal(by["features:wallet"].core, true);
@@ -63,7 +64,7 @@ test("4 種を見つけ、種類 → 名前で並べる。_ 始まり・core の
   assert.equal(by["lib:cron"].core, null);
   assert.equal(by["frame:user"].dir, "src/app/(user)/_layout");
   assert.equal(by["frame:user"].frame, "user");
-  assert.equal(by["proxies:proxies"].dir, "src/proxies");
+  assert.equal(by["proxies:demo"].dir, "src/proxies/demo");
 });
 
 test("欄: config・上書きのパスと有無、apiKeys・requires・tables・gates・receptacles", () => {
@@ -80,9 +81,9 @@ test("欄: config・上書きのパスと有無、apiKeys・requires・tables・
   assert.deepEqual(by["lib:cron"].override, { path: "src/config/lib/cron.config.ts", exists: true });
   assert.deepEqual(by["lib:crud"].receptacles, []);
   assert.deepEqual(by["frame:admin"].override, { path: "src/config/layout/admin.config.ts", exists: false });
-  assert.deepEqual(by["proxies:proxies"].config, { path: "src/proxies/config.ts", exists: false });
-  assert.deepEqual(by["proxies:proxies"].override, { path: "src/config/proxies/proxies.config.ts", exists: false });
-  assert.deepEqual(by["proxies:proxies"].receptacles, ["handlers"]);
+  assert.deepEqual(by["proxies:demo"].config, { path: "src/proxies/demo/config.ts", exists: true });
+  assert.deepEqual(by["proxies:demo"].override, { path: "src/config/proxies/demo.config.ts", exists: false });
+  assert.deepEqual(by["proxies:demo"].receptacles, [], "テーマの地区は src/proxies/<テーマ>/ の中だけを見る(枠の受け口は src/proxies 直下)");
 });
 
 test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと有無(L1.18)", () => {
@@ -98,7 +99,7 @@ test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと�
   assert.deepEqual(by["frame:admin"].uiConfig, { path: "src/app/admin/_layout/config.ui.ts", exists: false });
   assert.deepEqual(by["frame:admin"].uiOverride, { path: "src/config/layout/admin.ui.config.ts", exists: true });
   assert.deepEqual(by["lib:cron"].uiOverride, { path: "src/config/lib/cron.ui.config.ts", exists: false });
-  assert.deepEqual(by["proxies:proxies"].uiConfig, { path: "src/proxies/config.ui.ts", exists: false });
+  assert.deepEqual(by["proxies:demo"].uiConfig, { path: "src/proxies/demo/config.ui.ts", exists: false });
 });
 
 test("lib の見つけ方は libPackage の listLibsFrom と同じ(src/lib 直下のフォルダ、ファイルは数えない)", async () => {

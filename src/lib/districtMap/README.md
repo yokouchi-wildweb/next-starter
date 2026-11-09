@@ -11,7 +11,7 @@
 | `features`(ドメイン) | `src/features/` と `src/features/core/` の直下の `_` で始まらないフォルダ | フォルダ名(core は `core: true`) | `<dir>/config.ts` | `src/config/features/<名前>.config.ts` |
 | `lib` | `src/lib/` の直下のフォルダ(見つけ方は `src/lib/libPackage` の `listLibsFrom` と同じ 1 つの決まり) | フォルダ名 | `<dir>/config.ts` | `src/config/lib/<名前>.config.ts` |
 | `frame`(枠) | `src/app/**/_layout/config.ts` の `frame: "<名前>"` の宣言(宣言の無い `_layout` は地区でない) | 宣言の名前 | `<_layout>/config.ts` | `src/config/layout/<名前>.config.ts` |
-| `proxies` | `src/proxies/`(全体で 1 つ) | `proxies` | `src/proxies/config.ts` | `src/config/proxies/proxies.config.ts` |
+| `proxies` | `src/proxies/<テーマ>/`(直下のフォルダで `config.ts` を持つ物。上流は `demo`、設定 D93) | テーマのフォルダ名 | `src/proxies/<テーマ>/config.ts` | `src/config/proxies/<テーマ>.config.ts` |
 
 - 描画専用の値を持つ地区だけ、`config.ts` の隣に `config.ui.ts`、上書きは `<名前>.ui.config.ts`(同じフォルダ)を並べます。上書きの置き方と 1 対 1 の検査: [src/config/README.md](../../config/README.md)・`pnpm check config-overrides`
 - cron task・role・setting の項目・storage の用途などは地区ではなく、どこかの地区の受け口の項目です

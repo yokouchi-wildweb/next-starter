@@ -24,12 +24,12 @@ test("今の木に問題が無い", () => {
   assert.deepEqual(problems, []);
 });
 
-test("features = src/features と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies 1、枠 = frame: の宣言", () => {
+test("features = src/features と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = テーマのフォルダ(上流は demo)、枠 = frame: の宣言", () => {
   assert.deepEqual(features.map(folderOf).sort(), listDomainDirs(repoRoot));
   assert.ok(!features.some((d) => d.name.startsWith("_")));
   const libs = readdirSync(join(repoRoot, "src/lib"), { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
   assert.deepEqual(districts.filter((d) => d.kind === "lib").map((d) => d.name), libs);
-  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies"]);
+  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies/demo"]);
   // 枠の宣言(_layout/config.ts の frame:)。今は root だけ(user・admin の枠は地区のクエストで書く、L1.13)
   assert.deepEqual(districts.filter((d) => d.kind === "frame").map((d) => [d.name, d.dir]), [["root", "src/app/_layout"]]);
 });
@@ -76,7 +76,8 @@ test("receptacles = 地区の中の extensionPoints.ts の点(地区の外の宣
     assert.deepEqual(d.receptacles, inside, d.dir);
   }
   const outside = points.filter((p) => !districts.some((d) => p.owner === d.dir || p.owner.startsWith(`${d.dir}/`))).map((p) => p.owner);
-  assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/featureGate", "src/wiring/dbAgent", "src/wiring/formInputs"]);
+  // src/proxies = 枠(handlers・decorators・redirects)の受け口。proxies の地区はテーマのフォルダ(src/proxies/<テーマ>/、設定 D93)なので枠の直下は地区の外
+  assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/featureGate", "src/proxies", "src/wiring/dbAgent", "src/wiring/formInputs"]);
 });
 
 test("domainJson・generate = 各ドメインの domain.json の有無と generate(省略 = true)。生成器が書き直さないドメインが地図で分かる(L1.15)", () => {

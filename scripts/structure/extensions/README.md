@@ -32,7 +32,7 @@ export const extensionPoints = {
   - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
-  - `ignore: ["<ファイル名>", …]` … 受け口の直下にある、項目でないファイル(proxy の骨組みなど)
+  - `ignore: ["<ファイル名・フォルダ名>", …]` … 受け口の直下にある、項目でないファイルとフォルダ(proxy の骨組み・proxies のテーマのフォルダなど)
   - `files: "*/<ファイル名>"` … 受け口の 1 段下の決まった名前のファイルが項目(デモの `*/_demo.ts`)。項目名 = フォルダ名で、一覧の各項目に `folder: "<フォルダ名>"` が付く(一覧の型は `folder` を持つ)。ファイルの無いフォルダは項目でない。フォルダの名前に fork の印は付けない
   - `shape: "object"` … 一覧を `{ <項目の名前>: 項目 }` の null プロトタイプの object で出す(キーを型に残す。`key`・`load`・`files` とは併用不可)。同じ名前は失敗
   - `pureImports: true` … 項目から値 import を推移的に辿り、`zod` と src の下の純関数・値以外(react・next・server-only・サービス・部品・DB の定義)へ届いたら失敗。型だけの import は辿らない(`pureImports.mjs`)

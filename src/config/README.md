@@ -9,13 +9,14 @@
 | `lib/` | `src/lib/<名前>` | `lib/<名前>.config.ts` | `src/lib/<名前>/config.ts`(`@lib-config/<名前>` で読む。[src/lib/README.md](../lib/README.md)) |
 | `features/` | ドメイン(`src/features/<名前>`・`src/features/core/<名前>`) | `features/<名前>.config.ts` | `<ドメイン>/config.ts` |
 | `layout/` | 枠(`src/app/**/_layout/config.ts` の `frame: "<名前>"`) | `layout/<名前>.config.ts` | `<_layout>/config.ts` |
-| `proxies/` | `src/proxies`(1 つ) | `proxies/proxies.config.ts` | `src/proxies/config.ts` |
+| `proxies/` | `src/proxies` のテーマのフォルダ(`src/proxies/<テーマ>/config.ts`、上流は `demo` だけ) | `proxies/<テーマ>.config.ts` | `src/proxies/<テーマ>/config.ts` |
 | `featureGate/` | 基盤 `src/featureGate`(門番。固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
 - 基盤の上書き(設定 D91): src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
 - `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル、設定 D92。ファイルは門番の議会が置く)
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
+- **受け口か config か**: fork が互いに独立した行を足していく一覧(例: 転送の規則)は受け口(`extensionPoints.ts` の点、1 ファイル = 1 項目)。鍵で合わせて値を変える表(例: 通貨・区分)は config(上書きで鍵ごとに重ねる)
 
 ## 1 対 1
 

@@ -140,7 +140,7 @@ proxy (redirectProxy)  →  範囲の guard.ts(layout が guard() の 1 行)  �
 URL ルール              ロール + ステータス + 行き先(親子 AND)          ページの access を評価してから取得、主体は ctx.user
 ```
 
-1. **proxy** (`src/proxies/redirect.ts`): `src/config/app/redirect.config.ts` のルール（+ サインアップモードの内部ルール）で先制リダイレクト。セッション判定は `resolveSessionUser`
+1. **proxy** (`src/proxies/redirect.ts`): 受け口 `src/proxies/redirects/<名前>.ts` のルール（+ サインアップモードの内部ルール）で先制リダイレクト。セッション判定は `resolveSessionUser`
 2. **範囲の guard.ts**（layout の隣。root は `src/app/guard.ts`）: 方針（access・allowStatuses・redirectTo・forbiddenRedirectTo・returnBack・statusRedirects・setupRedirectTo）を字面で書き、layout は `await guard()` の 1 行。子は最寄りの親の `extend` で作る（親子 AND、狭めるだけ）
    - upstream の範囲: `(user)/(protected)`（利用者・管理者カテゴリ、`/login`、status 別の行き先）/ `admin/(protected)`（管理者カテゴリ、`/admin/login`、管理者 0 人なら `/admin/setup`）/ その `users`（admin ロール、`/admin`）/ `debug`（管理者カテゴリ + debugger、`/login`）
    - setup 誘導の判定は auth の `hasUserForAccess(access)`（範囲の access を満たしうる利用者が 1 人以上いるか、真偽値だけ）を wiring が作り手に渡す。guard.ts には行き先の値だけ

@@ -16,7 +16,7 @@ exit 0 = 余り 0・欠落 0 / 1 = 揃っていない、または地区の地図
 ## 落とす物
 
 - 余り(読まれず黙って効かない)
-  - 持ち主の地区が無い上書き(lib・ドメインの削除・改名・打ち間違い)。`layout/` は `_layout/config.ts` の `frame: "<名前>"` の宣言と照らし、`proxies/` は `proxies.config.ts` だけ
+  - 持ち主の地区が無い上書き(lib・ドメインの削除・改名・打ち間違い)。`layout/` は `_layout/config.ts` の `frame: "<名前>"` の宣言と照らし、`proxies/` は `src/proxies/<テーマ>/config.ts` を持つテーマのフォルダと照らす(設定 D93)
   - 持ち主はいるが `config.ts` が無い上書き / 持ち主が `config.ui.ts` を持たないのに置いた `<名前>.ui.config.ts`
 - 欠落
   - features・枠・proxies: `config.ts` があるのに上書きが無い(上書きを import していなければ tsc は落とさない。上流は空の上書きを同じ commit で置く、設定 D9)
