@@ -2,7 +2,7 @@
 
 import { sql } from "drizzle-orm";
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { runAsSystem } from "@/lib/audit";
 import { db } from "@/lib/drizzle";
@@ -20,7 +20,7 @@ export type UserNameDedupResult = {
 /**
  * 既存の重複表示名を一括解消する one-shot タスク (pnpm task user:name-dedup)。
  *
- * USER_NAME_CONFIG.unique を有効化する際の移行手順として実行する:
+ * userConfig.name.unique を有効化する際の移行手順として実行する:
  * 1. unique.enabled: true でデプロイ (以後の新規書き込みは検証される)
  * 2. 本タスクを --dry-run で実行して対象を確認
  * 3. dry-run なしで実行し、既存の重複をサフィックス付与で解消
@@ -37,7 +37,7 @@ export async function dedupUserNames(
   options: { dryRun?: boolean } = {},
 ): Promise<UserNameDedupResult> {
   const dryRun = options.dryRun ?? false;
-  const caseInsensitive = USER_NAME_CONFIG.unique.caseInsensitive;
+  const caseInsensitive = userConfig.name.unique.caseInsensitive;
 
   // 正規化式はランタイムチェック (nameAvailability.ts) の SQL 側と揃えること
   const normExpr = caseInsensitive

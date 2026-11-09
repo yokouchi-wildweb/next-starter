@@ -156,7 +156,7 @@ pnpm db:push
 >
 > **更新の入口**: `userService.update(id, data)` = 認可済みの呼び手用（汎用 API は管理者限定、サーバー内の処理。管理者のスキーマで検証し、セッションは読まない）。`userService.updateSelf(actor, data)` = 本人用（`actor` は route の `ctx.user`。本人のスキーマ、非管理者のローカル認証は 400）。利用者の入力を渡す route は必ず `updateSelf`。
 >
-> **検証の失敗**: スキーマが書いた文はそのまま返し、Zod の既定の文（"Invalid url" など）は `src/config/app/user-update.config.ts` の固定文に置き換える。失敗した項目の path と code だけを server にログ（値は出さない）。
+> **検証の失敗**: スキーマが書いた文はそのまま返し、Zod の既定の文（"Invalid url" など）は `src/features/core/user/config.ts の updateValidation` の固定文に置き換える。失敗した項目の path と code だけを server にログ（値は出さない）。
 >
 > **パスワード変更の契約（`newPassword`）**: `userService.update(id, { newPassword })` は **プロバイダー非依存の「このユーザーのパスワードをこれにする」** 契約。UI（`AdminUserManageModal` 認証タブ等）は保存先を知らず、`services/server/helpers/passwordChange.ts` の `planPasswordChange` がサーバー側で振り分ける: `local` → `localPassword` としてスキーマ入力にマージ（hash 変換・ロックアウトカウンタリセット・全セッション失効は既存経路がそのまま動く）| `email` → Firebase Auth へ同期 | それ以外（OAuth/OIDC/SAML 等）→ **DomainError 400**（パスワード経路が無いのに成功を返す「無言 no-op」を禁止）。`localPassword` を直接渡す旧経路も引き続き有効。回帰テスト: `pnpm test src/features/core/user/services/server/helpers/passwordChange.test.ts`。
 >
@@ -238,7 +238,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 `users.name` の仕様。マイページ等の UI ラベルでは「ユーザー名」、コード・スキーマ上は「表示名 (display name)」
 と呼んでいるが同一フィールドを指す。「ユーザー名の重複禁止」を検討している場合はこのセクションが該当する。
 
-設定: `src/config/app/user-name.config.ts`（`USER_NAME_CONFIG`）
+設定: `src/features/core/user/config.ts の name`（`userConfig.name`）
 
 ### バリデーション（常時適用）
 
@@ -261,7 +261,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 
 ### 一意性（オプトイン、既定は重複許容）
 
-`USER_NAME_CONFIG.unique.enabled: true` で表示名の重複を禁止できる。DB の unique 制約ではなく
+`userConfig.name.unique.enabled: true` で表示名の重複を禁止できる。DB の unique 制約ではなく
 **アプリケーションレイヤ**（`services/server/helpers/nameAvailability.ts`）で検証する。
 
 - 判定スコープ: `deleted_at IS NULL` かつ `is_demo = false`（退会済み・デモユーザーは名前を占有しない）
@@ -306,7 +306,7 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 | `name` / `email` / `phoneNumber` / パスワード | 1 人ずつ `useUpdateUser` | 一括の経路は無い |
 
 - 認可: 汎用 API の `ADMIN_ONLY`（管理者のみ）
-- 許可する列: `src/config/app/user-bulk-update.config.ts` の `USER_BULK_UPDATE.fields`。それ以外の列は黙って捨てず 400。副作用のある列（上の表の下 2 行、`isDemo`）は足さない
+- 許可する列: `src/features/core/user/config.ts の bulkUpdate` の `userConfig.bulkUpdate.fields`。それ以外の列は黙って捨てず 400。副作用のある列（上の表の下 2 行、`isDemo`）は足さない
 - 上限: 1 回 1000 ユーザー（超えたら 400）。タグの追加・削除はタグ 50 件まで。超える分はクライアントで分割して送る
 - タグの追加・削除の結果: `{ count, affectedIds, unknownIds, unknownTargetIds }`（`unknownTargetIds` = 存在しないタグ）。存在しない id（追加では論理削除済みも）はエラーにせず飛ばして返す
 - 監査: タグの追加・削除は変わったユーザーごとに `user.relation.added` / `user.relation.removed`（metadata に `field` と `targetIds`）。変化が無ければ記録しない
@@ -573,7 +573,7 @@ const { user, isNewUser, isRejoin } = await userService.createFromProvider({
 | `withdrawn` | 上流の再登録の規則で `active` に（`signupIp`・状態の履歴 `signup_activate`・監査 `user.rejoined`・ログインの記録 `signup`） | `isRejoin: true` |
 | その他（`active`・`inactive`・`suspended`・`security_locked` など） | 何も変えずに返す（判断は `establishSession` の状態の分岐） | `isNewUser: false` |
 
-- 名前: `sanitizeUserName(displayName)`、空なら既定名 `PROVIDER_USER_DEFAULT_NAME`（「ユーザー」）。`USER_NAME_CONFIG.unique.enabled` のとき
+- 名前: `sanitizeUserName(displayName)`、空なら既定名 `PROVIDER_USER_DEFAULT_NAME`（「ユーザー」）。`userConfig.name.unique.enabled` のとき
   `lockUserName` の後に使用中（予約名を含む）か見て、使用中なら `findAvailableSuffixedUserName`（「名前_2」…）。無効のときはそのまま（他の作成の道と同じ規則）
 - tx: 書き込み（引く・名前・作成または有効化・状態の履歴・監査）は 1 つの tx の中の savepoint で行う。呼び手の tx を渡せばそこで一緒に確定・巻き戻しする
 - 同時に 2 回来て `(provider_type, provider_uid)` の unique 違反になったら savepoint だけ巻き戻して引き直し、既存として返す（他の DB エラーはそのまま）
@@ -595,7 +595,7 @@ const { user, isNewUser, isRejoin } = await userService.createFromProvider({
 | `findAvailableSuffixedUserName(name, { executor?, reserved?, lockCandidates? })` | 同上 | 「名前_2」… の空き名を探す（`lockCandidates: true` で候補もロック） |
 | `withUserNameGuard({ name, excludeUserId? }, write)` | 同上 | 判定と書き込みを 1 つの tx で（使用中なら 409）。`unique.enabled` が false なら判定せず書く |
 
-- 一意性を見るのは `USER_NAME_CONFIG.unique.enabled` のときだけ（`lockUserName` と `isUserNameTaken` を自分で呼ぶときも、この設定を見てから呼ぶ）
+- 一意性を見るのは `userConfig.name.unique.enabled` のときだけ（`lockUserName` と `isUserNameTaken` を自分で呼ぶときも、この設定を見てから呼ぶ）
 - users.status を書くなら `recordStatusTransition` も（ステータス遷移履歴の節）
 
 ## ステータス遷移履歴（user_status_histories）

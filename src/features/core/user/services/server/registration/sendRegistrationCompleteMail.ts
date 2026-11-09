@@ -1,6 +1,6 @@
 // src/features/core/user/services/server/registration/sendRegistrationCompleteMail.ts
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { userConfig } from "@/features/user/config";
 import { EarlyRegistrationCompleteEmail } from "@/features/core/user/mail/EarlyRegistrationCompleteEmail";
 import { RegistrationCompleteEmail } from "@/features/core/user/mail/RegistrationCompleteEmail";
 import { DomainError } from "@/lib/errors";
@@ -18,7 +18,7 @@ export async function sendRegistrationCompleteMail({
   email,
   displayName,
 }: SendRegistrationCompleteMailParams): Promise<void> {
-  const { mode } = APP_FEATURES.auth.signup;
+  const mode = userConfig.signupMode;
 
   try {
     if (mode === "earlyRegistration") {

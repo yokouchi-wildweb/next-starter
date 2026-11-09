@@ -29,10 +29,10 @@ export const UserTable = pgTable(
     avatarUrl: text("avatar_url"),
     signupIp: text("signup_ip"),
     // 管理者がユーザー単位で自由記述メモを残すためのフィールド。
-    // 既定では UI 非表示。APP_FEATURES.adminConsole.enableUserMemo を true にすると
+    // 既定では UI 非表示。userConfig.enableUserMemo を true にすると
     // 管理画面のユーザー一覧から編集できる。
     adminMemo: text("admin_memo"),
-    // アカウントロックアウト関連フィールド (詳細: src/config/app/auth-lockout.config.ts)
+    // アカウントロックアウト関連フィールド (詳細: src/features/core/user/config.ts の authLockout)
     failedLoginCount: integer("failed_login_count").default(0).notNull(),
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
     lastFailedLoginAt: timestamp("last_failed_login_at", { withTimezone: true }),
@@ -58,7 +58,7 @@ export const UserTable = pgTable(
     // 管理画面の一覧の更新日順と、差分リフレッシュ（createIncrementalRefresh）の走査
     updatedAtIdx: index("users_updated_at_idx").on(table.updatedAt),
     // 表示名の重複チェック用 (services/server/helpers/nameAvailability.ts)。
-    // unique 制約ではなく検索用の expression index。一意性フラグ (USER_NAME_CONFIG.unique)
+    // unique 制約ではなく検索用の expression index。一意性フラグ (userConfig.name.unique)
     // とは独立に常設し、caseInsensitive の両モードで同じ index が効くよう lower() で正規化する
     nameNormIdx: index("users_name_norm_idx").on(sql`lower(btrim(${table.name}))`),
   }),

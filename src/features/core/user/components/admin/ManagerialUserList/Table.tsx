@@ -16,7 +16,7 @@ import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { userConfig } from "@/features/user/config";
 import { walletConfig } from "@/features/wallet/config";
 import { useGate } from "@/featureGate/client";
 import { useSoftDeleteUser } from "@/features/core/user/hooks/useSoftDeleteUser";
@@ -149,9 +149,9 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
   const { trigger: triggerDelete, isMutating } = useSoftDeleteUser();
 
   const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
-  const enableUserManagement = APP_FEATURES.adminConsole.enableUserManagement;
-  const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
-  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
+  const enableUserManagement = userConfig.enableUserManagement;
+  const enableUserMemo = userConfig.enableUserMemo;
+  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = userConfig.userListPage;
   const useSelectionTable = enableSelectionTable.managerial;
   // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
   const bulkActionItems = useUserAdminBulkActions("managerial");

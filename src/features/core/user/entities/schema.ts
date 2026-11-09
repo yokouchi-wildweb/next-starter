@@ -42,7 +42,7 @@ export const UserCoreSchema = z.object({
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
-  // アカウントロックアウト関連 (詳細: src/config/app/auth-lockout.config.ts)
+  // アカウントロックアウト関連 (詳細: src/features/core/user/config.ts の authLockout)
   // 認証フロー側で管理するため admin/self 編集スキーマには含めない。
   failedLoginCount: z.number().int().nonnegative().default(0),
   lockedUntil: z.coerce.date().nullish(),

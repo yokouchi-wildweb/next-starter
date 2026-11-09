@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { userConfig } from "@/features/user/config";
 import { redirectRules, type RedirectRule } from "@/config/app/redirect.config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { setRedirectToastCookie } from "@/lib/toast";
@@ -18,7 +18,7 @@ import type { ProxyHandler } from "./types";
  * - normal: /entry → /signup
  */
 const getSignupModeRules = (): RedirectRule[] => {
-  const { mode } = APP_FEATURES.auth.signup;
+  const mode = userConfig.signupMode;
 
   if (mode === "earlyRegistration") {
     return [{ sourcePaths: ["/signup"], destination: "/entry", authedOnly: false }];

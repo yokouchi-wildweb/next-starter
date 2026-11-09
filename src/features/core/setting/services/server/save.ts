@@ -3,7 +3,7 @@
 
 import { sql, type SQL } from "drizzle-orm";
 
-import { USER_UPDATE_VALIDATION } from "@/config/app/user-update.config";
+import { userConfig } from "@/features/user/config";
 import { userFacingValidationMessage } from "@/features/core/user/services/server/helpers/validationMessage";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle";
@@ -25,7 +25,7 @@ export function validateSettingInput(
     if (!field) throw new DomainError(`設定キー "${key}" はありません`, { status: 400 });
     const parsed = field.schema.safeParse(value);
     if (!parsed.success) {
-      throw new DomainError(userFacingValidationMessage(parsed.error.errors[0], USER_UPDATE_VALIDATION.fallbackMessage), { status: 400 });
+      throw new DomainError(userFacingValidationMessage(parsed.error.errors[0], userConfig.updateValidation.fallbackMessage), { status: 400 });
     }
     values[key] = parsed.data;
   }

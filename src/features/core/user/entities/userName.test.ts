@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 import { sanitizeUserName, UserNameSchema } from "./userName";
 
 test("使用できない文字を取り除き、前後の空白を削る", () => {
@@ -13,7 +13,7 @@ test("使用できない文字を取り除き、前後の空白を削る", () =>
 });
 
 test("上限を超える分は末尾を切り、サロゲートペアを割らない", () => {
-  const max = USER_NAME_CONFIG.maxLength;
+  const max = userConfig.name.maxLength;
   assert.equal(sanitizeUserName("あ".repeat(max + 5)), "あ".repeat(max));
   const emoji = "😀".repeat(max); // 1 文字 = UTF-16 で 2
   const out = sanitizeUserName(emoji);

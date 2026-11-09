@@ -2,7 +2,7 @@
 
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import type { ReservedUserNameProvider } from "@/features/core/user/types";
 import { normalizeUserNameForComparison } from "@/features/core/user/utils/userName";
@@ -133,7 +133,7 @@ export async function assertUserNameAvailable(
   name: string | null | undefined,
   params: UserNameAvailabilityParams = {},
 ): Promise<void> {
-  if (!USER_NAME_CONFIG.unique.enabled || !name || !name.trim()) {
+  if (!userConfig.name.unique.enabled || !name || !name.trim()) {
     return;
   }
 
@@ -195,7 +195,7 @@ export async function withUserNameGuard<T>(
   { name, excludeUserId }: { name: string | null | undefined; excludeUserId?: string },
   write: (tx?: DbTransaction) => Promise<T>,
 ): Promise<T> {
-  if (!USER_NAME_CONFIG.unique.enabled || !name || !name.trim()) {
+  if (!userConfig.name.unique.enabled || !name || !name.trim()) {
     return write();
   }
 
@@ -227,7 +227,7 @@ export async function findAvailableSuffixedUserName(
   }: { executor?: DbExecutor; reserved?: Set<string>; lockCandidates?: boolean } = {},
 ): Promise<string> {
   for (let n = 2; n < 1000; n++) {
-    const candidate = buildSuffixedUserName(baseName, n, USER_NAME_CONFIG.maxLength);
+    const candidate = buildSuffixedUserName(baseName, n, userConfig.name.maxLength);
     const normalized = normalizeUserNameForComparison(candidate);
 
     if (reserved?.has(normalized)) {

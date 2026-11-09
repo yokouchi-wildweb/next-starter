@@ -1,15 +1,15 @@
 // src/features/core/user/services/server/helpers/bulkUpdateFields.ts
 
 import { z } from "zod";
-import { USER_BULK_UPDATE } from "@/config/app/user-bulk-update.config";
+import { type UserBulkUpdateField, userConfig } from "@/features/user/config";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 
-const BULK_FIELDS: readonly string[] = USER_BULK_UPDATE.fields;
+const BULK_FIELDS: readonly string[] = userConfig.bulkUpdate.fields;
 
 const BulkUpdateSchema = UserCoreSchema.pick(
-  Object.fromEntries(USER_BULK_UPDATE.fields.map((field) => [field, true])) as {
-    [K in (typeof USER_BULK_UPDATE.fields)[number]]: true;
+  Object.fromEntries(userConfig.bulkUpdate.fields.map((field) => [field, true])) as {
+    [K in UserBulkUpdateField]: true;
   },
 ).partial();
 
@@ -39,7 +39,7 @@ export function assertBulkUpdateIds(ids: unknown): asserts ids is string[] {
   if (!z.array(z.string().uuid()).safeParse(ids).success) {
     throw new DomainError("対象のユーザー ID が不正です", { status: 400 });
   }
-  if ((ids as string[]).length > USER_BULK_UPDATE.maxIds) {
-    throw new DomainError(`一度に更新できるのは ${USER_BULK_UPDATE.maxIds} 件までです`, { status: 400 });
+  if ((ids as string[]).length > userConfig.bulkUpdate.maxIds) {
+    throw new DomainError(`一度に更新できるのは ${userConfig.bulkUpdate.maxIds} 件までです`, { status: 400 });
   }
 }

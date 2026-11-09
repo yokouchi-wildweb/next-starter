@@ -13,7 +13,7 @@ import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { userConfig } from "@/features/user/config";
 import { walletConfig } from "@/features/wallet/config";
 import { useGate } from "@/featureGate/client";
 import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
@@ -110,8 +110,8 @@ const createColumns = (
 export default function DemoUserListTable({ users }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
   const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
-  const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
-  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
+  const enableUserMemo = userConfig.enableUserMemo;
+  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = userConfig.userListPage;
   const useSelectionTable = enableSelectionTable.demo;
   // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
   const bulkActionItems = useUserAdminBulkActions("demo");

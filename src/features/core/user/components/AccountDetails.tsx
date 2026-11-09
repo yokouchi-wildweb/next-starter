@@ -6,7 +6,7 @@ import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRig
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { userConfig } from "@/features/user/config";
 import type { User } from "@/features/core/user/entities";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
@@ -51,7 +51,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
     <Section>
       <Stack space={4}>
         <AccountPageHeader title="アカウント基本情報" backHref="/mypage" />
-        {APP_FEATURES.user.avatarEnabled && (
+        {userConfig.avatarEnabled && (
           <AccountAvatarSection user={user} />
         )}
         <div className="grid grid-cols-1 gap-3">
@@ -76,7 +76,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               )
             }
           />
-          {APP_FEATURES.user.phoneVerificationEnabled && (
+          {userConfig.phoneVerificationEnabled && (
             <AccountDetailItem
               href="/mypage/account/phone"
               icon={PhoneIcon}

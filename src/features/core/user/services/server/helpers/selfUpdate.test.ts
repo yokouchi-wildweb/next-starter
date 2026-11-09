@@ -8,7 +8,7 @@ import { test } from "node:test";
 
 import { z } from "zod";
 
-import { USER_UPDATE_VALIDATION } from "@/config/app/user-update.config";
+import { userConfig } from "@/features/user/config";
 import { UserSelfUpdateSchema } from "@/features/core/user/entities";
 
 import { assertSelfUpdateAllowed, selfUpdateSchema } from "./selfUpdate";
@@ -36,7 +36,7 @@ test("update はセッションを読まない", () => {
 });
 
 test("検証の文: Zod の既定の文は固定文、スキーマが書いた文はそのまま", async () => {
-  const fallback = USER_UPDATE_VALIDATION.fallbackMessage;
+  const fallback = userConfig.updateValidation.fallbackMessage;
   const issueOf = (schema: z.ZodTypeAny, value: unknown) => {
     const result = schema.safeParse(value);
     assert.equal(result.success, false);

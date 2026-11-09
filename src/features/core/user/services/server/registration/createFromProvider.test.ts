@@ -25,7 +25,6 @@ const state = {
   audits: [] as Array<Record<string, unknown>>,
   loginEvents: [] as Array<Record<string, unknown>>,
 };
-const nameConfig = { maxLength: 30, unique: { enabled: false, caseInsensitive: true } };
 
 const makeTx = (label: string): Record<string, unknown> => {
   const tx: Record<string, unknown> = {
@@ -58,7 +57,6 @@ const makeTx = (label: string): Record<string, unknown> => {
   return tx;
 };
 
-mock.module("@/config/app/user-name.config", { namedExports: { USER_NAME_CONFIG: nameConfig } });
 mock.module("@/lib/drizzle", {
   namedExports: {
     db: {
@@ -126,8 +124,11 @@ mock.module("@/features/core/user/services/server/drizzleBase", {
 });
 
 let m: typeof import("./createFromProvider");
+/** 表示名の設定(合成済みの userConfig.name を書き換えて一意性の入切を切り替える) */
+let nameConfig: { unique: { enabled: boolean } };
 before(async () => {
   m = await import("./createFromProvider");
+  nameConfig = (await import("@/features/user/config")).userConfig.name;
 });
 
 beforeEach(() => {

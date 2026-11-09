@@ -2,7 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import type { UserRoleType } from "@/features/core/user/constants";
@@ -64,7 +64,7 @@ export type CreateFromProviderResult = {
  *     退会者を断りたい呼び手は先に userService.findByProvider で状態を見て、この口を呼ばない
  * - 新規: 名前の規則 → active で作成 → 状態の履歴 → 監査 user.registered を 1 つの tx で。
  *   tx の後にログインの記録 signup (best-effort)
- * - 名前の重複: USER_NAME_CONFIG.unique.enabled のとき使用中 (予約名を含む) なら "名前_n" で避ける。
+ * - 名前の重複: userConfig.name.unique.enabled のとき使用中 (予約名を含む) なら "名前_n" で避ける。
  *   無効のときはそのまま (他の作成の道と同じ規則)
  * - 同時に 2 回来て (provider_type, provider_uid) の unique 違反になったら、引き直して既存として返す
  *
@@ -240,7 +240,7 @@ async function resolveProviderUserName(
 ): Promise<string> {
   const name = sanitizeUserName(displayName ?? "") || PROVIDER_USER_DEFAULT_NAME;
 
-  if (!USER_NAME_CONFIG.unique.enabled) {
+  if (!userConfig.name.unique.enabled) {
     return name;
   }
 

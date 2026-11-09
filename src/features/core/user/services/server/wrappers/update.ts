@@ -17,7 +17,7 @@ import { resolveUserNameForGuard, withUserNameGuard } from "../helpers/nameAvail
 import { planPasswordChange } from "../helpers/passwordChange";
 import { assertSelfUpdateAllowed, selfUpdateSchema } from "../helpers/selfUpdate";
 import { userFacingValidationMessage } from "../helpers/validationMessage";
-import { USER_UPDATE_VALIDATION } from "@/config/app/user-update.config";
+import { userConfig } from "@/features/user/config";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -127,7 +127,7 @@ async function applyUpdate(
       result.error.errors.map((issue) => ({ path: issue.path.join("."), code: issue.code })),
     );
     throw new DomainError(
-      userFacingValidationMessage(result.error.errors[0], USER_UPDATE_VALIDATION.fallbackMessage),
+      userFacingValidationMessage(result.error.errors[0], userConfig.updateValidation.fallbackMessage),
       { status: 400 },
     );
   }

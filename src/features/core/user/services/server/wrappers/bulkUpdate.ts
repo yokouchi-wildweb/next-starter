@@ -7,7 +7,7 @@ import { base } from "../drizzleBase";
 import { assertBulkUpdateIds, parseBulkUpdateFields, type UserBulkUpdateFields } from "../helpers/bulkUpdateFields";
 
 /**
- * 副作用の無い列だけを一括で更新する(許可は USER_BULK_UPDATE.fields)。
+ * 副作用の無い列だけを一括で更新する(許可は userConfig.bulkUpdate.fields)。
  * update ラッパーのガード・履歴・Firebase 同期が要る列は入口で拒否するので、base を直接呼んでよい。
  */
 export async function bulkUpdateByIds(

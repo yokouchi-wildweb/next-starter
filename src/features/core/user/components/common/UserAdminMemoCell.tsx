@@ -23,7 +23,7 @@ type Props = {
  * 管理画面のユーザー一覧から adminMemo を編集できるセル。
  * - クリックで PromptPopover (textarea) が開き、保存すると useUpdateUser 経由で PATCH される。
  * - 監査ログには drizzleBase.audit.trackedFields の adminMemo として自動記録される。
- * - 機能フラグ APP_FEATURES.adminConsole.enableUserMemo の制御は呼び出し側 (列追加可否) で行う。
+ * - 機能フラグ userConfig.enableUserMemo の制御は呼び出し側 (列追加可否) で行う。
  */
 export function UserAdminMemoCell({
   userId,

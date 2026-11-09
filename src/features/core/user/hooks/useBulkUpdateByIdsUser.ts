@@ -5,7 +5,7 @@ import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
 import { userClient } from "../services/client/userClient";
 import type { UserBulkUpdateInput } from "../services/types";
 
-/** 複数ユーザーに同じ値を入れる。更新できる列は USER_BULK_UPDATE.fields のみ */
+/** 複数ユーザーに同じ値を入れる。更新できる列は userConfig.bulkUpdate.fields のみ */
 export const useBulkUpdateByIdsUser = () => {
   const bulkUpdateByIds = userClient.bulkUpdateByIds;
 

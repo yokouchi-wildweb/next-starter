@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
@@ -21,7 +21,7 @@ import {
  * (付け替えは base.update 経由なので audit_logs に name の変更として記録される)。
  */
 export async function restore(id: string): Promise<User> {
-  if (!USER_NAME_CONFIG.unique.enabled) {
+  if (!userConfig.name.unique.enabled) {
     return base.restore(id);
   }
 

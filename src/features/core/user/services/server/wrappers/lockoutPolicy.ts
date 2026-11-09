@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 
-import { AUTH_LOCKOUT_CONFIG } from "@/config/app/auth-lockout.config";
+import { userConfig } from "@/features/user/config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
@@ -17,7 +17,7 @@ import { base } from "../drizzleBase";
  * - 短期: locked_until フィールドに期限をセット (時間経過で自動解除)
  * - 永続: status を security_locked に遷移 (管理者解除のみ)
  *
- * 詳細仕様: src/config/app/auth-lockout.config.ts
+ * 詳細仕様: src/features/core/user/config.ts の authLockout
  */
 
 /** ロック状態の判定結果 */
@@ -66,7 +66,7 @@ export async function recordFailedLogin(
   user: Pick<User, "id" | "failedLoginCount" | "lastFailedLoginAt" | "status">,
 ): Promise<FailedLoginOutcome> {
   const now = new Date();
-  const resetWindowMs = AUTH_LOCKOUT_CONFIG.countResetWindowSeconds * 1000;
+  const resetWindowMs = userConfig.authLockout.countResetWindowSeconds * 1000;
 
   const baseCount =
     user.lastFailedLoginAt &&
@@ -75,7 +75,7 @@ export async function recordFailedLogin(
       : 0;
   const newCount = baseCount + 1;
 
-  if (newCount >= AUTH_LOCKOUT_CONFIG.permanentLockThreshold) {
+  if (newCount >= userConfig.authLockout.permanentLockThreshold) {
     await db
       .update(UserTable)
       .set({
@@ -113,9 +113,9 @@ export async function recordFailedLogin(
     return { kind: "permanent_locked", failedLoginCount: newCount };
   }
 
-  if (newCount >= AUTH_LOCKOUT_CONFIG.shortLockThreshold) {
+  if (newCount >= userConfig.authLockout.shortLockThreshold) {
     const lockedUntil = new Date(
-      now.getTime() + AUTH_LOCKOUT_CONFIG.shortLockDurationSeconds * 1000,
+      now.getTime() + userConfig.authLockout.shortLockDurationSeconds * 1000,
     );
     await db
       .update(UserTable)

@@ -43,8 +43,8 @@ const outcome = async (run: () => Promise<unknown>) => {
   }
 };
 
-const features = { user: { phoneVerificationEnabled: true } };
-mock.module("@/config/app/app-features.config", { namedExports: { APP_FEATURES: features } });
+const features = { phoneVerificationEnabled: true };
+mock.module("@/features/user/config", { namedExports: { userConfig: features } });
 const recordRedirects: string[] = [];
 const verifiedAt = new Date("2026-11-01T00:00:00Z");
 mock.module("@/features/core/user/services/server/userService", {
@@ -62,13 +62,13 @@ before(async () => {
 });
 beforeEach(() => {
   currentUser = { userId: "u1", status: "active" };
-  features.user.phoneVerificationEnabled = true;
+  features.phoneVerificationEnabled = true;
   recordRedirects.length = 0;
 });
 const run = () => outcome(() => load({} as never));
 
 test("無効 → /mypage/account、レコードは取らない", async () => {
-  features.user.phoneVerificationEnabled = false;
+  features.phoneVerificationEnabled = false;
   assert.deepEqual(await run(), { redirect: "/mypage/account" });
   assert.deepEqual(recordRedirects, []);
 });

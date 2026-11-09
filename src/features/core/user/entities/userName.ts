@@ -1,6 +1,6 @@
 // src/features/core/user/entities/userName.ts
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 import { z } from "zod";
 
 /**
@@ -11,8 +11,8 @@ import { z } from "zod";
 const USER_NAME_FORBIDDEN_CHARS = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
 
 const USER_NAME_MAX_LENGTH_RULE = {
-  limit: USER_NAME_CONFIG.maxLength,
-  message: `表示名は${USER_NAME_CONFIG.maxLength}文字以内で入力してください`,
+  limit: userConfig.name.maxLength,
+  message: `表示名は${userConfig.name.maxLength}文字以内で入力してください`,
 } as const;
 
 const USER_NAME_CHARS_RULE = {
@@ -25,7 +25,7 @@ const USER_NAME_FORBIDDEN_CHARS_GLOBAL = new RegExp(USER_NAME_FORBIDDEN_CHARS.so
 
 /**
  * 外から来た名前 (サインインプロバイダーの表示名など) を表示名の規則に合う形へ整える。
- * 使用できない文字を取り除き、前後の空白を削り、USER_NAME_CONFIG.maxLength に収まるよう末尾を切る
+ * 使用できない文字を取り除き、前後の空白を削り、userConfig.name.maxLength に収まるよう末尾を切る
  * (サロゲートペアの途中では切らない)。結果が空文字になることがある (既定名にするかは呼び出し側が決める)。
  * 一意性は見ない: 保存は従来どおり withUserNameGuard を通すこと。
  */
@@ -44,7 +44,7 @@ export function sanitizeUserName(raw: string): string {
  * 表示名の共有スキーマ (必須)。
  * サインアップ (RegistrationSchema)・本登録 (UserActivationSchema) など
  * 表示名が必須の経路はすべてこのスキーマを使うこと。
- * 文字数上限は USER_NAME_CONFIG.maxLength で調整する。
+ * 文字数上限は userConfig.name.maxLength で調整する。
  */
 export const UserNameSchema = z
   .string({ required_error: "表示名を入力してください" })

@@ -1,6 +1,6 @@
 // src/features/core/user/utils/userName.ts
 
-import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
+import { userConfig } from "@/features/user/config";
 
 /**
  * 表示名の重複比較用の正規化。
@@ -10,5 +10,5 @@ import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
  */
 export function normalizeUserNameForComparison(value: string): string {
   const trimmed = value.trim();
-  return USER_NAME_CONFIG.unique.caseInsensitive ? trimmed.toLowerCase() : trimmed;
+  return userConfig.name.unique.caseInsensitive ? trimmed.toLowerCase() : trimmed;
 }

@@ -4,10 +4,11 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックとテーブル作成の抑止は src/featureGate/rules/ の規則で自動制御されます。
 
-import type { EmailCheckMode, SelectionBehavior, SignupMode } from "./types";
+import type { EmailCheckMode } from "./types";
 
 export const APP_FEATURES = {
   auth: {
+    // サインアップの mode は src/features/core/user/config.ts の signupMode
     // 入切でない値(サードパーティの提供元・デモのセッション期限・本登録の画面と遷移・Hide My Email)は src/features/core/auth/config.ts(上書き src/config/features/auth.config.ts)
     session: {
       /** JWT セッション Cookie の名前 */
@@ -18,8 +19,6 @@ export const APP_FEATURES = {
     signup: {
       /** サインアップ機能を有効にする（falseで完全ロック: 画面・API共にアクセス不可） */
       enabled: true,
-      /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
-      mode: "normal" as SignupMode,
       /**
        * reCAPTCHA v3 スコア閾値（0.0〜1.0）
        * - スコア >= recaptchaThreshold → 通過
@@ -39,48 +38,23 @@ export const APP_FEATURES = {
     },
   },
   user: {
+    // 電話番号認証・アバター・管理画面のユーザー管理とメモ・一覧の挙動は src/features/core/user/config.ts(上書き src/config/features/user.config.ts)
     /** 休会機能を有効にする */
     pauseEnabled: false,
     /** 退会機能を有効にする */
     withdrawEnabled: false,
-    /** 電話番号認証機能を有効にする */
-    phoneVerificationEnabled: false,
-    /** アバター画像の変更機能を有効にする */
-    avatarEnabled: false,
     /** ユーザータグ機能を有効にする（false の場合はメニュー非表示・ページ 404・フォーム非表示） */
     enableUserTag: true,
   },
   adminConsole: {
     // ダークモード切替の可否は src/config/ui/site-theme.config.ts(areas.admin.switchable)へ移動
     enableSidebarResizing: true,
-    /** ユーザー管理モーダルを有効にする（false の場合は削除ボタンのみ表示） */
-    enableUserManagement: true,
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
     /** チャットルームの管理画面(/admin/chat-rooms)を有効にする(利用者側のチャットは止めない) */
     enableChatRoomAdmin: true,
     /** 通知テンプレートの管理画面と API を有効にする */
     enableNotificationTemplates: false,
-    /**
-     * 管理者メモ機能を有効にする
-     * - true: 管理画面のユーザー一覧（General/Managerial/Demo）にメモ列が表示され、
-     *         セル内のポップオーバーから自由記述メモを編集できる
-     * - false: メモ列は表示されない（DB の users.admin_memo 列は残存）
-     */
-    enableUserMemo: false,
-    /** ユーザー一覧ページの挙動設定 */
-    userListPage: {
-      /** セレクションテーブルの選択方式 */
-      selectionBehavior: "row" as SelectionBehavior,
-      /** バルクアクションバーを常に表示する */
-      bulkActionsAlwaysVisible: true,
-      /** セレクションテーブルを有効にするユーザー種別 */
-      enableSelectionTable: {
-        general: true,
-        managerial: false,
-        demo: false,
-      },
-    },
     dashboard: {
       showMainMetrics: false,
       showAdditionalMetrics: false,
