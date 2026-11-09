@@ -12,7 +12,7 @@ import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
 import { gate, type FeatureName, type GatedFeatureRule, type GeneratedFeatureRule } from "@/featureGate";
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { derivedPaths, rules } from "@/featureGate/node";
-import { coveredPatternsOf } from "@/featureGate/ruleList";
+import { coveredPatternsOf, overrideSwitches } from "@/featureGate/ruleList";
 import type { DerivedPath } from "@/featureGate/ruleList";
 import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
@@ -23,6 +23,8 @@ function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T
   // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
   const savedDefaults = new Map<GeneratedFeatureRule, boolean | undefined>();
+  // fork の switches.config.ts の値も外す(規則の値を作り物だけで決める)
+  const restoreSwitches = overrideSwitches();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
     // 入切の既定(defaultEnabled)も外し、開閉は enabled の差し替えだけで決める
@@ -36,6 +38,7 @@ function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
     for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
+    restoreSwitches();
   }
 }
 

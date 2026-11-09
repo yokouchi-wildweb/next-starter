@@ -210,3 +210,23 @@ test("fork の入切の値の検査: 未知の名前・真偽でない値を並�
   assert.deepEqual(switchProblems({ walet: false, coupon: "no" }, known), ['未知の機能の名前 "walet"(src/featureGate/rules/<名前>.ts が無い)', '"coupon" の値が true|false でない']);
   assert.deepEqual(switches, {});
 });
+
+test("テストの道具 overrideSwitches: fork の入切の値を一時的に差し替え(省けば全部外す)、戻す関数で元に戻る", async () => {
+  const { default: switches } = await import("@/config/featureGate/switches.config");
+  const { overrideSwitches, ownEnabled } = await import("@/featureGate/ruleList");
+  const values = switches as Record<string, boolean | undefined>;
+  values.coupon = false;
+  try {
+    const restore = overrideSwitches();
+    assert.equal(ownEnabled("coupon"), true, "外した間は規則の既定");
+    restore();
+    assert.equal(ownEnabled("coupon"), false, "戻せば fork の値");
+    const restoreWallet = overrideSwitches({ wallet: false });
+    assert.equal(ownEnabled("wallet"), false);
+    assert.equal(ownEnabled("coupon"), true);
+    restoreWallet();
+    assert.deepEqual({ ...values }, { coupon: false });
+  } finally {
+    delete values.coupon;
+  }
+});

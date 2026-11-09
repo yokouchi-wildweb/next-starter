@@ -20,7 +20,7 @@ import { clientGateState, gate, type GeneratedFeatureRule } from "@/featureGate"
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { closedTables, configPath, configRules, gate as nodeGate, readFeatureReport, rules, switchMissingDependencies } from "@/featureGate/node";
 import { isOpenSwitchActive, isTier1Build, parseOpenSwitch, resolveOpenSwitch } from "@/featureGate/openSwitch";
-import { configEnabled } from "@/featureGate/ruleList";
+import { configEnabled, overrideSwitches } from "@/featureGate/ruleList";
 import { setAppEnv } from "@/lib/appEnv";
 import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 
@@ -39,6 +39,8 @@ function withEnv(env: SwitchEnv, fn: () => void) {
     savedRules.set(rule, rule.enabled);
     rule.enabled = () => false;
   }
+  // fork の switches.config.ts の値も外す(全部閉の状態を作る)
+  const restoreSwitches = overrideSwitches();
   for (const key of SWITCH_KEYS) {
     if (env[key] === undefined) delete process.env[key];
     else process.env[key] = env[key];
@@ -53,6 +55,7 @@ function withEnv(env: SwitchEnv, fn: () => void) {
       else process.env[key] = value;
     }
     for (const [rule, enabled] of savedRules) rule.enabled = enabled;
+    restoreSwitches();
   }
 }
 
@@ -154,7 +157,7 @@ function withDeps(deps: Record<string, string[]>, open: Record<string, boolean |
   }
 }
 
-test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答えは src/featureGate/checks/ruleChains.test.ts)", () => {
+test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答えは src/featureGate/checks/ruleChains.test.ts)", { skip: readForkIdentity(repoRoot).isTier1 ? false : "Tier1 だけ(fork は自分の規則が足される)" }, () => {
   assert.deepEqual(
     Object.fromEntries(generatedRules.filter((rule) => rule.dependsOn.length > 0).map((rule) => [rule.name, rule.dependsOn])),
     {

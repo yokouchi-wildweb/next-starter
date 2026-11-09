@@ -12,11 +12,14 @@ import { test } from "node:test";
 
 import { gate, type FeatureName, type GeneratedFeatureRule } from "@/featureGate";
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
+import { overrideSwitches } from "@/featureGate/ruleList";
 
 /** 生成一覧の規則の enabled を一時的に差し替える(書いた名前だけ閉、ほかは開) */
 function withClosed(closed: FeatureName[], fn: () => void) {
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
   const savedDefaults = new Map<GeneratedFeatureRule, boolean | undefined>();
+  // fork の switches.config.ts の値も外す(規則の値を作り物だけで決める)
+  const restoreSwitches = overrideSwitches();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
     // 入切の既定(defaultEnabled)も外し、開閉は enabled の差し替えだけで決める
@@ -29,6 +32,7 @@ function withClosed(closed: FeatureName[], fn: () => void) {
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
     for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
+    restoreSwitches();
   }
 }
 

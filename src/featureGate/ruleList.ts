@@ -39,6 +39,21 @@ export function switchProblems(values: Readonly<Record<string, unknown>>, known:
 // fork の入切の値に未知の名前があれば読み込みで throw(打ち間違いを黙って既定のままにしない。型でも落ちる)
 const switchValues: Readonly<Record<string, boolean | undefined>> = switches;
 const switchErrors = switchProblems(switchValues, knownNames);
+
+/**
+ * fork の入切の値を一時的に差し替える(テストの道具: 規則の値を作り物にするとき fork の switches.config.ts の値を外す)。戻す関数を返す。
+ * values を省くと全部外す(既定と規則の enabled だけで決まる)
+ */
+export function overrideSwitches(values: Readonly<Record<string, boolean>> = {}): () => void {
+  const target = switchValues as Record<string, boolean | undefined>;
+  const saved = { ...target };
+  for (const key of Object.keys(target)) delete target[key];
+  Object.assign(target, values);
+  return () => {
+    for (const key of Object.keys(target)) delete target[key];
+    Object.assign(target, saved);
+  };
+}
 if (switchErrors.length > 0) throw new Error(`featureGate: src/config/featureGate/switches.config.ts: ${switchErrors.join(" / ")}`);
 
 /**

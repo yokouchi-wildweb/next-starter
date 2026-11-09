@@ -118,6 +118,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - `20261105-112509-feature-gate-automation.feature-gate-s3` — 依存の検査の違反のうち今開いている機能を `required/` に書き出し、cron の route.ts の import を `@/wiring/cronRoute` へ(tsx で走らせる)
 - `20261106-094557-shared-shelf-admin-header-band.admin-header` — 管理のヘッダーの題・クーポンのタブを AdminPage の props へ移し、ほかの差し込みを止める一覧に出す
 - `20261106-094557-shared-shelf-admin-header-band.guarded-router` — next/navigation の `useRouter` を守り付きの router(`@/lib/unsavedGuard`、棚は `useShelfRouter`)へ
+- `20261109-171458-feature-gate-foundation.feature-gate-l3` — 門番の規則の features: → domains:・fork の規則の入れ子の dependsOn・入切の値を switches.config.ts へ・domain.json の closable の撤去・required/couponAttributionReward(取り込みのコミットの前に走らせる)
 
 共有の棚の道具の順番(notice の区切りごとに、その区切りの道具を取り込みの後に走らせる。前の区切りの道具を先に):
 
