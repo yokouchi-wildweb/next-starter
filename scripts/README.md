@@ -19,7 +19,7 @@ scripts/ は、アプリの外からこのフレームワークを作り・確�
 ## 入口(package.json)
 
 ```bash
-pnpm dev | build | start | lint | typecheck
+pnpm dev | build | start | lint | typecheck        # typecheck = next typegen(next-env.d.ts と .next/types を作る)→ tsc
 pnpm test [<パス>|--changed|--db|--group=<群>]   # テスト(runner/test/README.md)
 pnpm check [<対象>|--gate=<門>] [--all]           # 検査器(門ごと、runner/gates/README.md)
 pnpm generate [<対象>]                           # 生成器
