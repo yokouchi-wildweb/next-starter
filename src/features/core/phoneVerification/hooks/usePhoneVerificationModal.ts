@@ -1,4 +1,4 @@
-// src/features/core/auth/hooks/usePhoneVerificationModal.ts
+// src/features/core/phoneVerification/hooks/usePhoneVerificationModal.ts
 
 "use client";
 

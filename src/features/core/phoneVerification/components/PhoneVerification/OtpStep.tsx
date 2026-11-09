@@ -1,4 +1,4 @@
-// src/features/core/auth/components/PhoneVerification/OtpStep.tsx
+// src/features/core/phoneVerification/components/PhoneVerification/OtpStep.tsx
 
 "use client";
 
@@ -10,7 +10,7 @@ import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import { PHONE_VERIFICATION_OTP_LENGTH } from "@/features/core/user/constants";
+import { PHONE_VERIFICATION_OTP_LENGTH } from "@/features/core/phoneVerification/constants";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
 export type OtpStepProps = {

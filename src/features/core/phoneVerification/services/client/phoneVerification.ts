@@ -1,12 +1,12 @@
-// src/features/core/auth/services/client/phoneVerification.ts
+// src/features/core/phoneVerification/services/client/phoneVerification.ts
 
 "use client";
 
 import axios from "axios";
 import { normalizeHttpError } from "@/lib/errors";
 
-const CHECK_ENDPOINT = "/api/auth/phone/check";
-const VERIFY_ENDPOINT = "/api/auth/phone/verify";
+const CHECK_ENDPOINT = "/api/phone-verification/check";
+const VERIFY_ENDPOINT = "/api/phone-verification/verify";
 
 export type CheckPhonePayload = {
   phoneNumber: string;

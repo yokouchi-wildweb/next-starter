@@ -19,6 +19,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | userLineProfile / userXProfile | LINE / X アカウント連携のプロフィール（ログイン手段ではなく紐付け。auth README 参照） |
 | [pairedDevice](pairedDevice/README.md) | 共有端末（店舗タブレット・キオスク）をユーザーとは別の認証主体として登録し、端末トークンで動かす（createDeviceRoute / deviceGuard） |
 | [userLoginEvent](userLoginEvent/README.md) | ログイン・サインアップ・ログアウトの記録（IP 軸の突き合わせ） |
+| [phoneVerification](phoneVerification/README.md) | SMS 認証（電話番号の認証、Firebase Phone Auth）。表なし、認証済みの印は user の列。機能 phoneVerification（上流の既定 閉） |
 | [userAcquisition](userAcquisition/README.md) | サインアップまでの流入経路（UTM・広告 ID・リファラー） |
 | [referral](referral/README.md) | 招待コードと紹介関係 |
 | [referralReward](referralReward/README.md) | 紹介成立時の報酬配布の状態管理 |

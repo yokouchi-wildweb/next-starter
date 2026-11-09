@@ -1,4 +1,4 @@
-// src/features/core/user/constants/phoneVerification.ts
+// src/features/core/phoneVerification/constants/index.ts
 
 /**
  * OTPコードの桁数

@@ -3,14 +3,15 @@
 "use client";
 
 import { useRouter } from "@/lib/unsavedGuard";
+import { useGate } from "@/featureGate/client";
 import { ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { SecTitle, Para } from "@/components/TextBlocks";
-import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification";
-import { usePhoneVerificationModal } from "@/features/core/auth/hooks/usePhoneVerificationModal";
+import { PhoneVerificationModal } from "@/features/core/phoneVerification/components/PhoneVerification";
+import { usePhoneVerificationModal } from "@/features/core/phoneVerification/hooks/usePhoneVerificationModal";
 
 type PhoneVerificationRequiredProps = {
   /** 現在の電話番号（変更モード時） */
@@ -22,6 +23,8 @@ export function PhoneVerificationRequired({
 }: PhoneVerificationRequiredProps) {
   const router = useRouter();
   const phoneModal = usePhoneVerificationModal();
+  // SMS 認証の機能(phoneVerification)が閉なら出さない(呼び手の WalletBalance も閉なら購入の欄を出す)
+  const phoneVerificationOpen = useGate().enabled("phoneVerification");
 
   const handleVerify = () => {
     phoneModal.open();
@@ -31,6 +34,8 @@ export function PhoneVerificationRequired({
     // 認証完了後、ページをリフレッシュして購入リストを表示
     router.refresh();
   };
+
+  if (!phoneVerificationOpen) return null;
 
   return (
     <>

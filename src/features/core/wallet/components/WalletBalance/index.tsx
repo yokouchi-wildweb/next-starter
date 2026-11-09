@@ -56,6 +56,7 @@ export function WalletBalance({
   });
   // 振込の案内は決済の機能(bankTransferReview は payment の規則のフォルダ)が開いているときだけ
   const showTransferBanner = useGate().enabled("payment");
+  const phoneVerificationOpen = useGate().enabled("phoneVerification");
 
   // クーポン状態管理
   const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
@@ -116,9 +117,9 @@ export function WalletBalance({
   // 購入一時停止チェック
   const purchaseSuspended = isPurchaseSuspended();
 
-  // 購入制限チェック: SMS認証が必要かどうか
+  // 購入制限チェック: SMS認証が必要かどうか(SMS 認証の機能 phoneVerification が閉なら求めない)
   const requiresPhoneVerification =
-    walletConfig.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+    walletConfig.purchaseRestriction === "phoneVerified" && phoneVerificationOpen && !phoneVerifiedAt;
 
   // 購入セクションの表示判定
   const renderPurchaseSection = () => {

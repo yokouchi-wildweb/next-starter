@@ -1,9 +1,9 @@
-// src/features/core/auth/services/server/phoneVerification/checkPhoneAvailability.ts
+// src/features/core/phoneVerification/services/server/checkPhoneAvailability.ts
 
 import {
   PhoneCheckSchema,
   type PhoneCheckInput,
-} from "@/features/core/auth/entities/phoneVerification";
+} from "@/features/core/phoneVerification/entities/phoneVerification";
 import { assertPhoneAvailability } from "@/features/core/user/services/server/helpers/assertPhoneAvailability";
 import { DomainError } from "@/lib/errors";
 

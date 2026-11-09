@@ -1,5 +1,5 @@
-// /mypage/account/phone の loader の行き先の検査(挙動の固定。guard・next/navigation・config・userService は偽物)。
-// - 電話番号認証が無効 → /mypage/account(レコードの取得より前)/ 有効 → 番号と認証日時、レコード取得の行き先は /login
+// /mypage/account/phone の loader の行き先の検査(挙動の固定。guard・next/navigation・門番・userService は偽物)。
+// - 機能 phoneVerification が閉 → /mypage/account(レコードの取得より前)/ 開 → 番号と認証日時、レコード取得の行き先は /login
 // 実行: pnpm test "src/app/(user)/(protected)/mypage/account/phone/_screen/loader.test.ts"
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -43,8 +43,18 @@ const outcome = async (run: () => Promise<unknown>) => {
   }
 };
 
-const features = { phoneVerificationEnabled: true };
-mock.module("@/features/user/config", { namedExports: { userConfig: features } });
+// 門番は偽物: 機能 phoneVerification の開閉だけを返す(呼ばれた名前を記録する)
+const gateState = { open: true, asked: [] as string[] };
+mock.module("@/featureGate", {
+  namedExports: {
+    gate: {
+      enabled: (name: string) => {
+        gateState.asked.push(name);
+        return gateState.open;
+      },
+    },
+  },
+});
 const recordRedirects: string[] = [];
 const verifiedAt = new Date("2026-11-01T00:00:00Z");
 mock.module("@/features/core/user/services/server/userService", {
@@ -62,18 +72,20 @@ before(async () => {
 });
 beforeEach(() => {
   currentUser = { userId: "u1", status: "active" };
-  features.phoneVerificationEnabled = true;
+  gateState.open = true;
+  gateState.asked.length = 0;
   recordRedirects.length = 0;
 });
 const run = () => outcome(() => load({} as never));
 
-test("無効 → /mypage/account、レコードは取らない", async () => {
-  features.phoneVerificationEnabled = false;
+test("閉 → /mypage/account、レコードは取らない", async () => {
+  gateState.open = false;
   assert.deepEqual(await run(), { redirect: "/mypage/account" });
+  assert.deepEqual(gateState.asked, ["phoneVerification"]);
   assert.deepEqual(recordRedirects, []);
 });
 
-test("有効 → 番号と認証日時。レコードが無いときの行き先は /login", async () => {
+test("開 → 番号と認証日時。レコードが無いときの行き先は /login", async () => {
   assert.deepEqual(await run(), { value: { phoneNumber: "+81000", phoneVerifiedAt: verifiedAt } });
   assert.deepEqual(recordRedirects, ["/login"]);
 });

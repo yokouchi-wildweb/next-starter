@@ -36,6 +36,7 @@
       "@/features/couponHistory/*": ["./src/features/core/couponHistory/*"],
       "@/features/interactionTracking/*": ["./src/features/core/interactionTracking/*"],
       "@/features/legal/*": ["./src/features/core/legal/*"],
+      "@/features/phoneVerification/*": ["./src/features/core/phoneVerification/*"],
       "@/features/mail/*": ["./src/features/core/mail/*"],
       "@/features/milestone/*": ["./src/features/core/milestone/*"],
       "@/features/notification/*": ["./src/features/core/notification/*"],

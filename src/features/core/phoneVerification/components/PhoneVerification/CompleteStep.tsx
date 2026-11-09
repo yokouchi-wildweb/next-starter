@@ -1,4 +1,4 @@
-// src/features/core/auth/components/PhoneVerification/CompleteStep.tsx
+// src/features/core/phoneVerification/components/PhoneVerification/CompleteStep.tsx
 
 "use client";
 
@@ -8,7 +8,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
-import type { PhoneVerificationMode } from "@/features/core/auth/hooks/usePhoneVerification";
+import type { PhoneVerificationMode } from "@/features/core/phoneVerification/hooks/usePhoneVerification";
 
 export type CompleteStepProps = {
   phoneNumber: string;

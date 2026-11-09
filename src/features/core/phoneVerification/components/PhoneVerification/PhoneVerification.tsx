@@ -1,9 +1,9 @@
-// src/features/core/auth/components/PhoneVerification/PhoneVerification.tsx
+// src/features/core/phoneVerification/components/PhoneVerification/PhoneVerification.tsx
 
 "use client";
 
 import { RecaptchaBadge } from "@/lib/recaptcha/components/RecaptchaBadge";
-import { usePhoneVerification, type PhoneVerificationMode } from "@/features/core/auth/hooks/usePhoneVerification";
+import { usePhoneVerification, type PhoneVerificationMode } from "@/features/core/phoneVerification/hooks/usePhoneVerification";
 import { PhoneNumberStep } from "./PhoneNumberStep";
 import { OtpStep } from "./OtpStep";
 import { CompleteStep } from "./CompleteStep";

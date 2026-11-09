@@ -1,17 +1,17 @@
-// src/app/api/auth/phone/verify/route.ts
+// src/app/api/phone-verification/verify/route.ts
 
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { verifyPhoneOtp } from "@/features/core/auth/services/server/phoneVerification";
+import { verifyPhoneOtp } from "@/features/core/phoneVerification/services/server";
 
 /**
  * 電話番号OTP検証を実行し、DBを更新する
- * POST /api/auth/phone/verify
+ * POST /api/phone-verification/verify
  */
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/phone/verify",
+    operation: "POST /api/phone-verification/verify",
     operationType: "write",
     access: "authenticated",
   },

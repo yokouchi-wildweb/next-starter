@@ -1,17 +1,17 @@
-// src/app/api/auth/phone/check/route.ts
+// src/app/api/phone-verification/check/route.ts
 
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { checkPhoneAvailability } from "@/features/core/auth/services/server/phoneVerification";
+import { checkPhoneAvailability } from "@/features/core/phoneVerification/services/server";
 
 /**
  * 電話番号が使用可能かどうかをチェックする
- * POST /api/auth/phone/check
+ * POST /api/phone-verification/check
  */
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/phone/check",
+    operation: "POST /api/phone-verification/check",
     operationType: "read",
     access: "authenticated",
   },

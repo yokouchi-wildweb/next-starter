@@ -1,9 +1,9 @@
-// src/features/core/auth/services/server/phoneVerification/verifyPhoneOtp.ts
+// src/features/core/phoneVerification/services/server/verifyPhoneOtp.ts
 
 import {
   PhoneVerificationSchema,
   type PhoneVerificationInput,
-} from "@/features/core/auth/entities/phoneVerification";
+} from "@/features/core/phoneVerification/entities/phoneVerification";
 import { updatePhoneVerified } from "@/features/core/user/services/server/phoneVerification";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";

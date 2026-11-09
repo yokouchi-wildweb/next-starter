@@ -1,4 +1,4 @@
-// src/features/core/user/utils/phoneVerificationGuard.ts
+// src/features/core/phoneVerification/utils/phoneVerificationGuard.ts
 
 import { DomainError } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";

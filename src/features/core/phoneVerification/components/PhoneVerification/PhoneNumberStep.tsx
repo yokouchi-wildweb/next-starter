@@ -1,4 +1,4 @@
-// src/features/core/auth/components/PhoneVerification/PhoneNumberStep.tsx
+// src/features/core/phoneVerification/components/PhoneVerification/PhoneNumberStep.tsx
 
 "use client";
 
@@ -10,7 +10,7 @@ import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import type { PhoneVerificationMode } from "@/features/core/auth/hooks/usePhoneVerification";
+import type { PhoneVerificationMode } from "@/features/core/phoneVerification/hooks/usePhoneVerification";
 
 export type PhoneNumberStepProps = {
   phoneNumber: string;

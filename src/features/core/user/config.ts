@@ -22,8 +22,6 @@ export type UserBulkUpdateField = "adminMemo" | "user_tag_ids";
 export type UserConfig = {
   /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
   signupMode: SignupMode;
-  /** 電話番号認証機能を有効にする */
-  phoneVerificationEnabled: boolean;
   /** アバター画像の変更機能を有効にする */
   avatarEnabled: boolean;
   /** ユーザー管理モーダルを有効にする（false の場合は削除ボタンのみ表示） */
@@ -113,7 +111,6 @@ export type UserConfig = {
 
 const defaults: UserConfig = {
   signupMode: "normal",
-  phoneVerificationEnabled: false,
   avatarEnabled: false,
   enableUserManagement: true,
   enableUserMemo: false,

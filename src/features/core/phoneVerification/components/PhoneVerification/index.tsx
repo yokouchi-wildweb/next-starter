@@ -1,4 +1,4 @@
-// src/features/core/auth/components/PhoneVerification/index.tsx
+// src/features/core/phoneVerification/components/PhoneVerification/index.tsx
 
 export { PhoneVerification, type PhoneVerificationProps } from "./PhoneVerification";
 export { PhoneVerificationModal, type PhoneVerificationModalProps } from "./Modal";

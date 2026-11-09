@@ -1,4 +1,4 @@
-// src/features/core/auth/components/PhoneVerification/Modal.tsx
+// src/features/core/phoneVerification/components/PhoneVerification/Modal.tsx
 
 "use client";
 

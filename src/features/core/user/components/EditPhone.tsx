@@ -4,12 +4,13 @@
 
 import { useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
+import { useGate } from "@/featureGate/client";
 import { CheckCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { PhoneVerification } from "@/features/core/auth/components/PhoneVerification";
+import { PhoneVerification } from "@/features/core/phoneVerification/components/PhoneVerification";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
@@ -22,6 +23,9 @@ type EditPhoneProps = {
 export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
   const router = useRouter();
   const [isChanging, setIsChanging] = useState(false);
+  // SMS 認証の機能(phoneVerification)が閉なら何も出さない(画面の loader が先に /mypage/account へ戻す)
+  const phoneVerificationOpen = useGate().enabled("phoneVerification");
+  if (!phoneVerificationOpen) return null;
 
   return (
     <Section>

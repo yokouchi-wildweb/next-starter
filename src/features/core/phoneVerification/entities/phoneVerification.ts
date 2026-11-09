@@ -1,4 +1,4 @@
-// src/features/core/auth/entities/phoneVerification.ts
+// src/features/core/phoneVerification/entities/phoneVerification.ts
 
 import { z } from "zod";
 import { E164_PHONE_REGEX } from "@/features/core/user/utils/phoneNumber";

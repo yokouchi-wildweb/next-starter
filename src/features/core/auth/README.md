@@ -6,7 +6,7 @@
 
 ```
 auth/
-├── entities/            # session.ts (SessionUser / TokenPayload), schema.ts (登録スキーマ: user のスキーマを拡張), registration.ts, phoneVerification.ts
+├── entities/            # session.ts (SessionUser / TokenPayload), schema.ts (登録スキーマ: user のスキーマを拡張), registration.ts
 ├── constants/           # session.ts (Cookie 共通オプション), registration.ts, loginFailure.ts, localStorage.ts
 ├── services/
 │   ├── server/
@@ -18,11 +18,10 @@ auth/
 │   │   ├── sessionInvalidation.ts # invalidateSessionsForUser (全セッション強制失効)
 │   │   ├── preRegistration.ts / registration.ts   # 仮登録 / 本登録
 │   │   ├── localLogin.ts / firebaseSession.ts / demoLogin.ts / loginAudit.ts
-│   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
-│   │   └── phoneVerification/   # 電話番号の重複チェック・OTP 検証
+│   │   └── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
 ├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow / useEmailChangeVerification / useAutoLogout / useSignupComplete (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など
-├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin / PhoneVerification 等
+├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin 等(SMS 認証の部品は core/phoneVerification)
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
 ```
 
@@ -246,4 +245,4 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 - [lib/screens](../../../lib/screens/README.md) — page / Screen / loader 構造
 - [referral](../referral/README.md) / [userAcquisition](../userAcquisition/README.md) — 招待コード・流入経路
 - [lib/firebase](../../../lib/firebase/README.md) — Firebase 設定・未設定モード
-- [PhoneVerification](./components/PhoneVerification/README.md) — 電話番号 SMS 認証コンポーネント
+- [phoneVerification](../phoneVerification/README.md) — SMS 認証(電話番号の認証)(部品・hook・API `/api/phone-verification/*`)

@@ -40,10 +40,10 @@ mock.module("@/features/core/user/services/server/phoneVerification", {
 });
 
 let preRegister: typeof import("./preRegistration").preRegister;
-let verifyPhoneOtp: typeof import("./phoneVerification/verifyPhoneOtp").verifyPhoneOtp;
+let verifyPhoneOtp: typeof import("@/features/core/phoneVerification/services/server/verifyPhoneOtp").verifyPhoneOtp;
 before(async () => {
   ({ preRegister } = await import("./preRegistration"));
-  ({ verifyPhoneOtp } = await import("./phoneVerification/verifyPhoneOtp"));
+  ({ verifyPhoneOtp } = await import("@/features/core/phoneVerification/services/server/verifyPhoneOtp"));
 });
 
 beforeEach(() => {

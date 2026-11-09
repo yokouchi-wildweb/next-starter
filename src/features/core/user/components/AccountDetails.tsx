@@ -6,6 +6,7 @@ import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRig
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { gate } from "@/featureGate";
 import { userConfig } from "@/features/user/config";
 import type { User } from "@/features/core/user/entities";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
@@ -76,7 +77,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               )
             }
           />
-          {userConfig.phoneVerificationEnabled && (
+          {gate.enabled("phoneVerification") && (
             <AccountDetailItem
               href="/mypage/account/phone"
               icon={PhoneIcon}

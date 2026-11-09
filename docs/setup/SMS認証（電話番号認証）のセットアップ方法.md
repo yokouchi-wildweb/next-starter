@@ -172,6 +172,7 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID
 
 セットアップ完了後、以下の項目を確認してください：
 
+- [ ] 機能 `phoneVerification` を開けた(`pnpm ops features set phoneVerification on`。上流の既定は閉。中身は `src/features/core/phoneVerification/README.md`)
 - [ ] Firebase Authentication で電話番号プロバイダが有効
 - [ ] Google Cloud Console で reCAPTCHA Enterprise API が有効
 - [ ] 承認済みドメインに `localhost` と本番ドメインが含まれている

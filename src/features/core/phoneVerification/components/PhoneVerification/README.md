@@ -2,7 +2,7 @@
 
 電話番号SMS認証コンポーネント。Firebase Phone Authenticationを使用。
 
-Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SMS認証（電話番号認証）のセットアップ方法](../../../../../../docs/setup/SMS認証（電話番号認証）のセットアップ方法.md) を参照。機能の有効化は `userConfig.phoneVerificationEnabled`。auth ドメイン全体は [auth README](../../README.md)。
+Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SMS認証（電話番号認証）のセットアップ方法](../../../../../../docs/setup/SMS認証（電話番号認証）のセットアップ方法.md) を参照。使うかどうかは機能 `phoneVerification` の入切(上流の既定 閉)。ドメイン全体は [phoneVerification README](../../README.md)。
 
 ## コンポーネント
 
@@ -11,7 +11,7 @@ Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SM
 基本コンポーネント。ページ内に直接埋め込む場合に使用。
 
 ```tsx
-import { PhoneVerification } from "@/features/core/auth/components/PhoneVerification";
+import { PhoneVerification } from "@/features/core/phoneVerification/components/PhoneVerification";
 
 // 新規登録
 <PhoneVerification
@@ -37,7 +37,7 @@ import { PhoneVerification } from "@/features/core/auth/components/PhoneVerifica
 モーダルでラップしたバージョン。特定アクション前の認証要求に使用。
 
 ```tsx
-import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification";
+import { PhoneVerificationModal } from "@/features/core/phoneVerification/components/PhoneVerification";
 
 <PhoneVerificationModal
   open={isOpen}
@@ -55,8 +55,8 @@ import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVer
 モーダル管理用フック。Promise based APIで認証フローを簡単に実装可能。
 
 ```tsx
-import { PhoneVerificationModal } from "@/features/core/auth/components/PhoneVerification";
-import { usePhoneVerificationModal } from "@/features/core/auth/hooks/usePhoneVerificationModal";
+import { PhoneVerificationModal } from "@/features/core/phoneVerification/components/PhoneVerification";
+import { usePhoneVerificationModal } from "@/features/core/phoneVerification/hooks/usePhoneVerificationModal";
 
 function CoinPurchasePage({ user }) {
   const phoneModal = usePhoneVerificationModal();
