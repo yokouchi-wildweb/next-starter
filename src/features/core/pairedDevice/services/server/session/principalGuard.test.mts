@@ -31,7 +31,7 @@ mock.module("next/navigation", {
 
 const { principalGuard, requireCurrentPrincipal } = await import("./principalGuard.ts");
 const { matchesPrincipalUserRule } = await import(
-  "@/features/core/pairedDevice/utils/principalUserRule.ts"
+  "@/features/pairedDevice/utils/principalUserRule.ts"
 );
 
 const staffTablet: FakeDevice = { deviceId: "d1", kind: "staff_tablet", label: "T", scope: { storeId: "s1" } };

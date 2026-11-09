@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { UserLoginEventTable } from "@/features/core/userLoginEvent/entities/drizzle";
+import { UserLoginEventTable } from "@/features/userLoginEvent/entities/drizzle";
 
 /**
  * 1 反復あたりの削除件数。長時間ロックを避けるためのバッチサイズ。

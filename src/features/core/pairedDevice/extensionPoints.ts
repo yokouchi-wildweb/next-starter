@@ -6,7 +6,7 @@ export const extensionPoints = {
   kinds: {
     dir: "kinds",
     export: "kind",
-    type: { from: "@/features/core/pairedDevice/types/kind", name: "AnyPairedDeviceKindDefinition" },
+    type: { from: "@/features/pairedDevice/types/kind", name: "AnyPairedDeviceKindDefinition" },
     side: "server",
     key: "kind",
     literalKeys: true,

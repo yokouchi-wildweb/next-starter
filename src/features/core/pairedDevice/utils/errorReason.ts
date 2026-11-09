@@ -3,7 +3,7 @@
 import {
   PAIRED_DEVICE_ERROR_REASONS,
   type PairedDeviceErrorReason,
-} from "@/features/core/pairedDevice/constants";
+} from "@/features/pairedDevice/constants";
 import { isHttpError } from "@/lib/errors";
 
 /**

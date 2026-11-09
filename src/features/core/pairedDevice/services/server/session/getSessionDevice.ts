@@ -7,7 +7,7 @@ import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 
-import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
+import type { SessionDevice } from "@/features/pairedDevice/entities/model";
 import { readClientIp } from "@/lib/request";
 
 import { authenticateDeviceToken, type AuthenticatedDevice, type DeviceRequestInfo } from "../deviceToken";

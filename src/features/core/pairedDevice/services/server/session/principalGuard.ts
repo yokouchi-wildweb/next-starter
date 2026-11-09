@@ -15,8 +15,8 @@ import { getSessionUser } from "@/features/core/auth/services/server/session/get
 import {
   matchesPrincipalUserRule,
   type PrincipalUserRule,
-} from "@/features/core/pairedDevice/utils/principalUserRule";
-import type { PairedDeviceKind } from "@/features/core/pairedDevice/types/kinds";
+} from "@/features/pairedDevice/utils/principalUserRule";
+import type { PairedDeviceKind } from "@/features/pairedDevice/types/kinds";
 
 import type { SessionDeviceOf } from "./deviceGuard";
 import { getSessionDevice } from "./getSessionDevice";

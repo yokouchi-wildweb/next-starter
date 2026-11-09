@@ -1,11 +1,11 @@
 // src/features/core/pairedDevice/services/server/drizzleBase.ts
 
-import { PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
+import { PairedDeviceTable } from "@/features/pairedDevice/entities/drizzle";
 import {
   PairedDeviceCreateSchema,
   PairedDeviceUpdateSchema,
   type PairedDeviceWriteInput,
-} from "@/features/core/pairedDevice/entities/schema";
+} from "@/features/pairedDevice/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 

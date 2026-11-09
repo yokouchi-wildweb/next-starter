@@ -6,7 +6,7 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { MAX_LOGIN_HISTORY } from "@/features/core/user/entities/model";
 import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
 import { db } from "@/lib/drizzle";
-import { recordLoginEvent } from "@/features/core/userLoginEvent/services/server";
+import { recordLoginEvent } from "@/features/userLoginEvent/services/server";
 import { base } from "../drizzleBase";
 
 export type UpdateLastAuthenticatedOptions = {

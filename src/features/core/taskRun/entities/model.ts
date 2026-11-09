@@ -1,6 +1,6 @@
 // src/features/core/taskRun/entities/model.ts
 
-import type { TaskRunKind, TaskRunStatus } from "@/features/core/taskRun/constants";
+import type { TaskRunKind, TaskRunStatus } from "@/features/taskRun/constants";
 
 /** task_runs の 1 行 */
 export type TaskRun = {

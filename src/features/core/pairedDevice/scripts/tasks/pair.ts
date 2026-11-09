@@ -10,7 +10,7 @@ export const task: OneShotTask = {
   name: "pairedDevice:pair",
   run: async () => {
     const { createPairedDevice, issuePairingCode } = await import(
-      "@/features/core/pairedDevice/services/server"
+      "@/features/pairedDevice/services/server"
     );
     const args = process.argv.slice(3).filter((arg) => arg !== "--");
     const readFlag = (name: string): string | undefined => {

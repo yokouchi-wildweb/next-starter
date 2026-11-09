@@ -79,7 +79,7 @@ import {
   countDistinctUsersByIp,
   findUsersBySameIp,
   findUsersBySubnet,
-} from "@/features/core/userLoginEvent/services/server";
+} from "@/features/userLoginEvent/services/server";
 ```
 
 ### countDistinctUsersByIp(ip)
@@ -129,7 +129,7 @@ import {
   findSessionHandoffsByUser,
   findSessionHandoffsByIp,
   type SessionHandoffRow,
-} from "@/features/core/userLoginEvent/services/server";
+} from "@/features/userLoginEvent/services/server";
 
 // 特定ユーザーが関与する受け渡し (渡した側 / 受けた側の両方向)
 const rows = await findSessionHandoffsByUser(userId, {

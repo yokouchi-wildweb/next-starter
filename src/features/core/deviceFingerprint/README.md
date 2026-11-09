@@ -142,7 +142,7 @@ const rows = await findUsersBySimilarFingerprint(suspectUserId, { minScore: 6, l
 ```ts
 // features/<yourAdminDomain>/services/server/fraudInvestigation.ts
 import { findUsersBySimilarFingerprint } from "@/features/core/deviceFingerprint/services/server";
-import { findUsersBySameIp } from "@/features/core/userLoginEvent/services/server";
+import { findUsersBySameIp } from "@/features/userLoginEvent/services/server";
 
 export async function investigate(userId: string, recentIp: string) {
   const [byDevice, byIp] = await Promise.all([

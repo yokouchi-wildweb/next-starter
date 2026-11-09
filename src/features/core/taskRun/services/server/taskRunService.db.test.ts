@@ -31,7 +31,7 @@ describe("taskRunService(実 DB)", { skip }, () => {
     service = await import("./taskRunService");
     const { db } = await import("@/lib/drizzle");
     const { eq } = await import("drizzle-orm");
-    const { TaskRunTable } = await import("@/features/core/taskRun/entities/drizzle");
+    const { TaskRunTable } = await import("@/features/taskRun/entities/drizzle");
     cleanup = async () => {
       await db.delete(TaskRunTable).where(eq(TaskRunTable.name, NAME));
       // 接続を閉じる(開いたままだとテストのプロセスが終わらない)

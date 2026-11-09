@@ -1,6 +1,6 @@
 // src/features/core/pairedDevice/entities/model.ts
 
-import type { DevicePairingFlow, DevicePairingStatus } from "@/features/core/pairedDevice/constants";
+import type { DevicePairingFlow, DevicePairingStatus } from "@/features/pairedDevice/constants";
 
 /**
  * paired_devices の 1 レコード（サービス内部・管理者向け）。

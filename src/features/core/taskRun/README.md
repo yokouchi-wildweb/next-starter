@@ -22,7 +22,7 @@ table: `task_runs`(1 実行 = 1 行)
 - `source` … git に入れない移行(`.local.ts`)の中身の全文(dry-run も本実行も。ほかの実行は null)
 - `started_at` / `finished_at` / `resolved_at`(人が `pnpm task --resolve` で書き直した時)
 
-## 関数(`@/features/core/taskRun/services/server`)
+## 関数(`@/features/taskRun/services/server`)
 
 - `startRun(input)` … `running` の行を書く(書けなければランナーは走らせない)
 - `finishRun(id, { status, result, error })` … `running` の行にだけ結果を書く

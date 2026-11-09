@@ -2,7 +2,7 @@
 
 import { foreignKey, index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
-import type { DevicePairingFlow, DevicePairingStatus } from "@/features/core/pairedDevice/constants";
+import type { DevicePairingFlow, DevicePairingStatus } from "@/features/pairedDevice/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
 

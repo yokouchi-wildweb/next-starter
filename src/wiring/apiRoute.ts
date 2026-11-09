@@ -6,10 +6,10 @@
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { apiRouteUserDeps } from "@/features/core/auth/services/server/apiRouteUserDeps";
-import { apiRouteDeviceDeps } from "@/features/core/pairedDevice/services/server/apiRouteDeviceDeps";
-import type { AuthenticatedDevice } from "@/features/core/pairedDevice/services/server/deviceToken";
-import type { SessionDeviceOf } from "@/features/core/pairedDevice/services/server/session";
-import type { PairedDeviceKind } from "@/features/core/pairedDevice/types/kinds";
+import { apiRouteDeviceDeps } from "@/features/pairedDevice/services/server/apiRouteDeviceDeps";
+import type { AuthenticatedDevice } from "@/features/pairedDevice/services/server/deviceToken";
+import type { SessionDeviceOf } from "@/features/pairedDevice/services/server/session";
+import type { PairedDeviceKind } from "@/features/pairedDevice/types/kinds";
 import { apiRouteRateLimitDeps } from "@/features/core/rateLimit/services/server/apiRouteRateLimitDeps";
 import type { RateLimitCategory } from "@/features/rateLimit/config";
 import type { UserStatus } from "@/features/core/user/types";

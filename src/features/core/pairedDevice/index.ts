@@ -2,8 +2,8 @@
 //
 // 登録端末ドメインの公開エントリーポイント (client-safe)。
 // server-only API はこのバレルから export しない:
-//   import { getSessionDevice } from "@/features/core/pairedDevice/services/server/session";
-//   import { issuePairingCode } from "@/features/core/pairedDevice/services/server";
+//   import { getSessionDevice } from "@/features/pairedDevice/services/server/session";
+//   import { issuePairingCode } from "@/features/pairedDevice/services/server";
 
 export type {
   PairedDevice,

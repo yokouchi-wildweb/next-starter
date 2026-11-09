@@ -14,18 +14,18 @@
 
 import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
 
-import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
+import { pairedDeviceConfig } from "@/features/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
-import { DEVICE_PAIRING_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
-import { DevicePairingTable } from "@/features/core/pairedDevice/entities/drizzle";
+import { DEVICE_PAIRING_AUDIT_TARGET } from "@/features/pairedDevice/constants";
+import { DevicePairingTable } from "@/features/pairedDevice/entities/drizzle";
 import type {
   DevicePairing,
   DevicePairingRequestForApprover,
   EffectiveDevicePairingStatus,
   PairedDevice,
   SessionDevice,
-} from "@/features/core/pairedDevice/entities/model";
-import type { ApproveDevicePairingInput } from "@/features/core/pairedDevice/entities/schema";
+} from "@/features/pairedDevice/entities/model";
+import type { ApproveDevicePairingInput } from "@/features/pairedDevice/entities/schema";
 import {
   formatShortCode,
   generateSecretToken,

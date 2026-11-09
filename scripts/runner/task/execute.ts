@@ -9,8 +9,8 @@
 //   中身の全文を dry-run も本実行も行の source に残す。
 // 利用者: scripts/runner/task/run.ts
 
-import type { TaskRunKind, TaskRunStatus } from "@/features/core/taskRun/constants";
-import type { TaskRun, TaskRunFinishInput, TaskRunStartInput } from "@/features/core/taskRun/entities/model";
+import type { TaskRunKind, TaskRunStatus } from "@/features/taskRun/constants";
+import type { TaskRun, TaskRunFinishInput, TaskRunStartInput } from "@/features/taskRun/entities/model";
 
 import type { RunMeta } from "./record";
 

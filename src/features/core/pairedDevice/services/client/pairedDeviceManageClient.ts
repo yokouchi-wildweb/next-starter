@@ -10,14 +10,14 @@ import type {
   DevicePairingDto,
   DevicePairingRequestForApproverDto,
   PairedDeviceForAdminDto,
-} from "@/features/core/pairedDevice/entities/model";
+} from "@/features/pairedDevice/entities/model";
 import type {
   ApproveDevicePairingInput,
   CreatePairedDeviceInput,
   ListPairedDevicesInput,
   UpdatePairedDeviceInput,
-} from "@/features/core/pairedDevice/entities/schema";
-import type { DevicePairingFlow } from "@/features/core/pairedDevice/constants";
+} from "@/features/pairedDevice/entities/schema";
+import type { DevicePairingFlow } from "@/features/pairedDevice/constants";
 import { normalizeHttpError } from "@/lib/errors";
 
 const BASE = "/api/paired-devices";

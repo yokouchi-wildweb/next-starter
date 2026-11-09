@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { UserLoginEventTable } from "@/features/core/userLoginEvent/entities/drizzle";
+import { UserLoginEventTable } from "@/features/userLoginEvent/entities/drizzle";
 
 /**
  * 同一 IP を利用している distinct user 数。

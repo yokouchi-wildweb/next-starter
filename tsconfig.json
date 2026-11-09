@@ -34,7 +34,6 @@
       "@/features/auth/*": ["./src/features/core/auth/*"],
       "@/features/coupon/*": ["./src/features/core/coupon/*"],
       "@/features/couponHistory/*": ["./src/features/core/couponHistory/*"],
-      "@/features/insane/*": ["./src/features/core/insane/*"],
       "@/features/interactionTracking/*": ["./src/features/core/interactionTracking/*"],
       "@/features/legal/*": ["./src/features/core/legal/*"],
       "@/features/mail/*": ["./src/features/core/mail/*"],
@@ -65,6 +64,9 @@
       "@/features/cronCheckpoint/*": ["./src/features/core/cronCheckpoint/*"],
       "@/features/incrementalRefresh/*": ["./src/features/core/incrementalRefresh/*"],
       "@/features/couponAttributionReward/*": ["./src/features/core/couponAttributionReward/*"],
+      "@/features/pairedDevice/*": ["./src/features/core/pairedDevice/*"],
+      "@/features/taskRun/*": ["./src/features/core/taskRun/*"],
+      "@/features/userLoginEvent/*": ["./src/features/core/userLoginEvent/*"],
       "@/features/couponIssuerGrant/*": ["./src/features/core/couponIssuerGrant/*"]
     }
   },

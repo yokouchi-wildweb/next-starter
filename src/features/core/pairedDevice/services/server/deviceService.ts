@@ -6,28 +6,28 @@
 
 import { and, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 
-import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
+import { pairedDeviceConfig } from "@/features/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import {
   PAIRED_DEVICE_AUDIT_TARGET,
   type DevicePairingFlow,
-} from "@/features/core/pairedDevice/constants";
-import { DevicePairingTable, PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
+} from "@/features/pairedDevice/constants";
+import { DevicePairingTable, PairedDeviceTable } from "@/features/pairedDevice/entities/drizzle";
 import type {
   PairedDevice,
   PairedDeviceForAdmin,
   PairedDeviceState,
-} from "@/features/core/pairedDevice/entities/model";
+} from "@/features/pairedDevice/entities/model";
 import type {
   CreatePairedDeviceInput,
   ListPairedDevicesInput,
   UpdatePairedDeviceInput,
-} from "@/features/core/pairedDevice/entities/schema";
+} from "@/features/pairedDevice/entities/schema";
 import type { DbTransaction } from "@/lib/crud/drizzle";
 import { db } from "@/lib/drizzle";
 
-import { isValidScopePattern } from "@/features/core/pairedDevice/utils/scopeContains";
+import { isValidScopePattern } from "@/features/pairedDevice/utils/scopeContains";
 
 import { pairedDeviceBase } from "./drizzleBase";
 import { isIdleExpired, resolveIdleRevokeDays } from "./deviceToken";

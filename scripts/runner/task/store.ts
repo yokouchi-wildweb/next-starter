@@ -3,7 +3,7 @@
 // 表が無い(db:push の前)なら止めて pnpm db:push を案内する。
 // 利用者: scripts/runner/task/run.ts
 
-import type { TaskRun } from "@/features/core/taskRun/entities/model";
+import type { TaskRun } from "@/features/taskRun/entities/model";
 
 import type { TaskRunStore } from "./execute";
 
@@ -29,7 +29,7 @@ const wrap = async <T>(fn: () => Promise<T>): Promise<T> => {
 };
 
 export async function dbTaskRunStore(): Promise<TaskRunStore> {
-  const service = await import("@/features/core/taskRun/services/server");
+  const service = await import("@/features/taskRun/services/server");
   return {
     findKeyHolders: (keys) => wrap(() => service.findKeyHolders(keys)),
     findDryRunOf: (name, fileHash) => wrap(() => service.findDryRunOf(name, fileHash)),
@@ -40,6 +40,6 @@ export async function dbTaskRunStore(): Promise<TaskRunStore> {
 
 /** 人が確かめた結果で running / unknown の行を書き直す(pnpm task --resolve) */
 export async function resolveByHand(runId: string, status: "succeeded" | "failed", actor: string): Promise<TaskRun> {
-  const service = await import("@/features/core/taskRun/services/server");
+  const service = await import("@/features/taskRun/services/server");
   return wrap(() => service.resolveRun(runId, status, `resolved by hand: ${status} (${actor})`));
 }

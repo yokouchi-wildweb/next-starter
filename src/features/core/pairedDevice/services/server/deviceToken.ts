@@ -4,13 +4,13 @@
 
 import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 
-import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
+import { pairedDeviceConfig } from "@/features/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { getAuditContext } from "@/lib/audit";
-import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
-import { PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
-import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
-import type { PairedDeviceKindDefinition } from "@/features/core/pairedDevice/types/kind";
+import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/pairedDevice/constants";
+import { PairedDeviceTable } from "@/features/pairedDevice/entities/drizzle";
+import type { SessionDevice } from "@/features/pairedDevice/entities/model";
+import type { PairedDeviceKindDefinition } from "@/features/pairedDevice/types/kind";
 import type { DbTransaction } from "@/lib/crud/drizzle";
 import { generateSecretToken, hashSecretToken } from "@/lib/crypto";
 import { db, isDatabaseConfigured } from "@/lib/drizzle";

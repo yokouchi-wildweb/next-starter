@@ -19,13 +19,13 @@ import { sql, type SQL } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { UserLoginEventTable } from "@/features/core/userLoginEvent/entities/drizzle";
+import { UserLoginEventTable } from "@/features/userLoginEvent/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import {
   DEFAULT_SESSION_HANDOFF_WINDOW_MINUTES,
   SESSION_END_EVENT_TYPES,
   SESSION_START_EVENT_TYPES,
-} from "@/features/core/userLoginEvent/constants";
+} from "@/features/userLoginEvent/constants";
 
 const T = UserLoginEventTable;
 

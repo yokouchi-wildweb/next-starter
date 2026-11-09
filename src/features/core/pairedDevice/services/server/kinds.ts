@@ -9,16 +9,16 @@ import {
   PAIRED_DEVICE_SCOPE_MAX_BYTES,
   type DevicePairingFlow,
   type PairedDeviceErrorReason,
-} from "@/features/core/pairedDevice/constants";
-import { PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
+} from "@/features/pairedDevice/constants";
+import { PairedDeviceTable } from "@/features/pairedDevice/entities/drizzle";
 import type {
   PairedDeviceKindDefinition,
   PairedDeviceManageableScopes,
-} from "@/features/core/pairedDevice/types/kind";
-import { isValidScopePattern, scopeContains } from "@/features/core/pairedDevice/utils/scopeContains";
+} from "@/features/pairedDevice/types/kind";
+import { isValidScopePattern, scopeContains } from "@/features/pairedDevice/utils/scopeContains";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { DomainError } from "@/lib/errors";
-import { kinds } from "@/features/core/pairedDevice/extensions/kinds";
+import { kinds } from "@/features/pairedDevice/extensions/kinds";
 import { gate } from "@/featureGate";
 
 /**

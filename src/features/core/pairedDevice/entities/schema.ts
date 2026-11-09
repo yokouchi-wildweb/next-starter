@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { PAIRED_DEVICE_LABEL_MAX_LENGTH } from "@/features/core/pairedDevice/constants";
+import { PAIRED_DEVICE_LABEL_MAX_LENGTH } from "@/features/pairedDevice/constants";
 
 const LabelSchema = z.string().trim().min(1).max(PAIRED_DEVICE_LABEL_MAX_LENGTH);
 const KindSchema = z.string().trim().min(1).max(64);

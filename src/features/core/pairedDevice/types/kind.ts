@@ -5,7 +5,7 @@
 
 import type { z } from "zod";
 
-import type { DevicePairingFlow } from "@/features/core/pairedDevice/constants";
+import type { DevicePairingFlow } from "@/features/pairedDevice/constants";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 

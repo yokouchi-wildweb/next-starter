@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "retention_days を過ぎたログインイベント（user_login_events、IP を含む）を削除する",
   schedule: "30 18 * * *", // 毎日 03:30 JST
   run: async () => {
-    const { pruneExpiredUserLoginEvents } = await import("@/features/core/userLoginEvent/services/server");
+    const { pruneExpiredUserLoginEvents } = await import("@/features/userLoginEvent/services/server");
     return await pruneExpiredUserLoginEvents();
   },
 };

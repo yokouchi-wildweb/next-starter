@@ -18,7 +18,7 @@ import {
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import type { UserProviderType } from "@/features/core/user/types";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
-import { recordLoginEvent } from "@/features/core/userLoginEvent/services/server";
+import { recordLoginEvent } from "@/features/userLoginEvent/services/server";
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { isPgUniqueViolation } from "@/lib/crud/drizzle/service";
 import type { DbExecutor, DbTransaction } from "@/lib/crud/drizzle/types";

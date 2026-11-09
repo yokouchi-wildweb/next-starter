@@ -100,7 +100,7 @@ mock.module("@/features/core/auditLog/services/server", {
     },
   },
 });
-mock.module("@/features/core/userLoginEvent/services/server", {
+mock.module("@/features/userLoginEvent/services/server", {
   namedExports: {
     recordLoginEvent: async (input: Record<string, unknown>) => {
       calls.push("loginEvent");

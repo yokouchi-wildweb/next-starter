@@ -1,6 +1,6 @@
 // src/features/core/userLoginEvent/entities/model.ts
 
-import type { UserLoginEventType } from "@/features/core/userLoginEvent/constants";
+import type { UserLoginEventType } from "@/features/userLoginEvent/constants";
 
 /**
  * user_login_events の 1 レコード。

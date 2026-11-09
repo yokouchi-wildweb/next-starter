@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { TaskNotStartedError } from "@/lib/task";
-import type { TaskRun } from "@/features/core/taskRun/entities/model";
+import type { TaskRun } from "@/features/taskRun/entities/model";
 
 import { type ExecuteInput, executeTask, type TaskRunStore } from "./execute";
 import { invocationOf } from "./invocation";

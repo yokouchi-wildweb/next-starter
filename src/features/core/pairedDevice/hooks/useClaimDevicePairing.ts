@@ -7,9 +7,9 @@
 
 import { useEffect, useRef } from "react";
 
-import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
-import { claimPairingCode } from "@/features/core/pairedDevice/services/client/pairedDeviceClient";
-import { getPairedDeviceErrorReason } from "@/features/core/pairedDevice/utils/errorReason";
+import type { SessionDevice } from "@/features/pairedDevice/entities/model";
+import { claimPairingCode } from "@/features/pairedDevice/services/client/pairedDeviceClient";
+import { getPairedDeviceErrorReason } from "@/features/pairedDevice/utils/errorReason";
 import { useDomainMutation } from "@/lib/crud/hooks";
 
 import { SESSION_DEVICE_KEY } from "./keys";

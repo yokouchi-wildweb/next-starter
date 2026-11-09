@@ -4,11 +4,11 @@
 
 import useSWR, { type SWRConfiguration } from "swr";
 
-import type { ListPairedDevicesInput } from "@/features/core/pairedDevice/entities/schema";
+import type { ListPairedDevicesInput } from "@/features/pairedDevice/entities/schema";
 import {
   listPairedDevices,
   type ListPairedDevicesResponse,
-} from "@/features/core/pairedDevice/services/client/pairedDeviceManageClient";
+} from "@/features/pairedDevice/services/client/pairedDeviceManageClient";
 
 import { PAIRED_DEVICES_LIST_KEY } from "./keys";
 

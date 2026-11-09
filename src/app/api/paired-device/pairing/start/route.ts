@@ -5,16 +5,16 @@
 
 import { NextResponse } from "next/server";
 
-import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
+import { pairedDeviceConfig } from "@/features/pairedDevice/config";
 import {
   rejectCrossSiteRequest,
   startDevicePairing,
   withPairedDeviceErrors,
-} from "@/features/core/pairedDevice/services/server";
+} from "@/features/pairedDevice/services/server";
 import {
   readDeviceRequestInfo,
   setPendingPairingCookie,
-} from "@/features/core/pairedDevice/services/server/session";
+} from "@/features/pairedDevice/services/server/session";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const POST = createApiRoute(

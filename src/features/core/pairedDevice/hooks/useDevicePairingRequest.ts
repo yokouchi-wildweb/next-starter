@@ -4,8 +4,8 @@
 
 import useSWR, { type SWRConfiguration } from "swr";
 
-import type { DevicePairingRequestForApproverDto } from "@/features/core/pairedDevice/entities/model";
-import { fetchDevicePairingRequest } from "@/features/core/pairedDevice/services/client/pairedDeviceManageClient";
+import type { DevicePairingRequestForApproverDto } from "@/features/pairedDevice/entities/model";
+import { fetchDevicePairingRequest } from "@/features/pairedDevice/services/client/pairedDeviceManageClient";
 
 import { DEVICE_PAIRING_REQUEST_KEY } from "./keys";
 

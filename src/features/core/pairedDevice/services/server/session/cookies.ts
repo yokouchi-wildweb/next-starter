@@ -4,7 +4,7 @@
 
 import type { ResponseCookies } from "next/dist/compiled/@edge-runtime/cookies";
 
-import { pairedDeviceConfig } from "@/features/core/pairedDevice/config";
+import { pairedDeviceConfig } from "@/features/pairedDevice/config";
 import { SESSION_COOKIE_BASE_OPTIONS } from "@/features/core/auth/constants/session";
 
 type CookieReader = { get(name: string): { value: string } | undefined };

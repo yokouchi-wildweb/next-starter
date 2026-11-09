@@ -3,7 +3,7 @@
 // 管理側: 端末のペアリングコードを発行する（端末で入力してもらう）。
 // その端末の未使用コードは取り消される。失効済みの端末に発行すると再ペアリングになる。
 
-import { issuePairingCode, withPairedDeviceErrors } from "@/features/core/pairedDevice/services/server";
+import { issuePairingCode, withPairedDeviceErrors } from "@/features/pairedDevice/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 type Params = { id: string };

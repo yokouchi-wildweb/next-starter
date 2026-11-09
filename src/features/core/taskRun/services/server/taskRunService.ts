@@ -14,9 +14,9 @@ import { and, arrayOverlaps, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 
-import { TASK_RUN_KEY_HOLDING_STATUSES, type TaskRunStatus } from "@/features/core/taskRun/constants";
-import { TaskRunTable } from "@/features/core/taskRun/entities/drizzle";
-import type { TaskRun, TaskRunFinishInput, TaskRunStartInput } from "@/features/core/taskRun/entities/model";
+import { TASK_RUN_KEY_HOLDING_STATUSES, type TaskRunStatus } from "@/features/taskRun/constants";
+import { TaskRunTable } from "@/features/taskRun/entities/drizzle";
+import type { TaskRun, TaskRunFinishInput, TaskRunStartInput } from "@/features/taskRun/entities/model";
 
 const t = TaskRunTable;
 

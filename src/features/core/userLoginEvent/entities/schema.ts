@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { USER_LOGIN_EVENT_TYPES } from "@/features/core/userLoginEvent/constants";
+import { USER_LOGIN_EVENT_TYPES } from "@/features/userLoginEvent/constants";
 
 /**
  * 書き込み入力のバリデーション。

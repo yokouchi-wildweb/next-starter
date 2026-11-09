@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
 import { USER_STATUSES } from "@/features/core/user/constants";
-import { recordLogoutEvent } from "@/features/core/userLoginEvent/services/server";
+import { recordLogoutEvent } from "@/features/userLoginEvent/services/server";
 
 export const POST = createApiRoute(
   {

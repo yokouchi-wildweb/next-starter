@@ -2,14 +2,14 @@
 //
 // 管理側: 端末の詳細（GET。未使用のペアリングコードを含む）と、名前変更・scope の付け替え（PATCH）。
 
-import { UpdatePairedDeviceSchema } from "@/features/core/pairedDevice/entities/schema";
+import { UpdatePairedDeviceSchema } from "@/features/pairedDevice/entities/schema";
 import {
   getManagedPairedDevice,
   listActivePairingsForDevice,
   toPairedDeviceForAdmin,
   updatePairedDevice,
   withPairedDeviceErrors,
-} from "@/features/core/pairedDevice/services/server";
+} from "@/features/pairedDevice/services/server";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

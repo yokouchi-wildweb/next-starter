@@ -6,7 +6,7 @@
 
 import axios from "axios";
 
-import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
+import type { SessionDevice } from "@/features/pairedDevice/entities/model";
 import { normalizeHttpError } from "@/lib/errors";
 
 const BASE = "/api/paired-device";

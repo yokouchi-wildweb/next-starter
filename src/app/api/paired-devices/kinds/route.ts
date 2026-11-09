@@ -5,7 +5,7 @@
 import {
   listManageablePairedDeviceKinds,
   withPairedDeviceErrors,
-} from "@/features/core/pairedDevice/services/server";
+} from "@/features/pairedDevice/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(

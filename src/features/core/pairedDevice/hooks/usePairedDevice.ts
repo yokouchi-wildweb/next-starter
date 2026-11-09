@@ -7,7 +7,7 @@ import useSWR, { type SWRConfiguration } from "swr";
 import {
   fetchPairedDevice,
   type PairedDeviceDetailResponse,
-} from "@/features/core/pairedDevice/services/client/pairedDeviceManageClient";
+} from "@/features/pairedDevice/services/client/pairedDeviceManageClient";
 
 import { PAIRED_DEVICES_DETAIL_KEY } from "./keys";
 

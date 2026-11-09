@@ -3,11 +3,11 @@
 import { db } from "@/lib/drizzle";
 import { getAuditContext } from "@/lib/audit";
 
-import { UserLoginEventTable } from "@/features/core/userLoginEvent/entities/drizzle";
+import { UserLoginEventTable } from "@/features/userLoginEvent/entities/drizzle";
 import {
   DEFAULT_LOGIN_EVENT_RETENTION_DAYS,
   type UserLoginEventType,
-} from "@/features/core/userLoginEvent/constants";
+} from "@/features/userLoginEvent/constants";
 
 export type RecordLoginEventInput = {
   userId: string;

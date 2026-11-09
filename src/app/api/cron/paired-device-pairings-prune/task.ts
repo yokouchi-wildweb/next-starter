@@ -11,7 +11,7 @@ export const cronTask: CronTaskDefinition = {
   // 機能の入切は書かない: 住所 /api/cron/paired-device-pairings-prune を規則 pairedDevice の pathPatterns が閉じる（src/featureGate/rules/pairedDevice.ts、src/lib/cron/README.md「機能の門」）
   run: async () => {
     const { pruneExpiredDevicePairings } = await import(
-      "@/features/core/pairedDevice/services/server"
+      "@/features/pairedDevice/services/server"
     );
     return await pruneExpiredDevicePairings();
   },

@@ -5,12 +5,12 @@
 // 管理側の mutation フック。成功すると一覧・詳細（pairedDevices/*）を再検証する。
 // 失敗の理由は getPairedDeviceErrorReason(error) で取り出せる。
 
-import type { PairedDeviceForAdminDto } from "@/features/core/pairedDevice/entities/model";
+import type { PairedDeviceForAdminDto } from "@/features/pairedDevice/entities/model";
 import type {
   ApproveDevicePairingInput,
   CreatePairedDeviceInput,
   UpdatePairedDeviceInput,
-} from "@/features/core/pairedDevice/entities/schema";
+} from "@/features/pairedDevice/entities/schema";
 import {
   approveDevicePairing,
   cancelDevicePairing,
@@ -19,7 +19,7 @@ import {
   revokePairedDevice,
   updatePairedDevice,
   type IssuedPairingCodeResponse,
-} from "@/features/core/pairedDevice/services/client/pairedDeviceManageClient";
+} from "@/features/pairedDevice/services/client/pairedDeviceManageClient";
 import { useDomainMutation } from "@/lib/crud/hooks";
 
 import { PAIRED_DEVICES_KEY } from "./keys";

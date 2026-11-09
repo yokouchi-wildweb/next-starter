@@ -7,7 +7,7 @@ import useSWR, { type SWRConfiguration } from "swr";
 import {
   listManageablePairedDeviceKinds,
   type ManageablePairedDeviceKind,
-} from "@/features/core/pairedDevice/services/client/pairedDeviceManageClient";
+} from "@/features/pairedDevice/services/client/pairedDeviceManageClient";
 
 import { PAIRED_DEVICES_KINDS_KEY } from "./keys";
 

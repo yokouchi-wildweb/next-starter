@@ -29,7 +29,7 @@ Cookie 名・端末トークンの期間・ペアリングコード・最終ア�
 ```ts
 // src/features/core/pairedDevice/kinds/tableTerminal.ts(1 種類 1 ファイル)
 import { z } from "zod";
-import { definePairedDeviceKind } from "@/features/core/pairedDevice/types/kind";
+import { definePairedDeviceKind } from "@/features/pairedDevice/types/kind";
 
 export const kind = definePairedDeviceKind({
   kind: "table_terminal", // paired_devices.kind の値
@@ -109,7 +109,7 @@ export const GET = createDeviceRoute(
 
 ```ts
 // src/app/terminal/layout.tsx（layout で守る）
-import { deviceGuard } from "@/features/core/pairedDevice/services/server/session";
+import { deviceGuard } from "@/features/pairedDevice/services/server/session";
 
 export default async function TerminalLayout({ children }: { children: React.ReactNode }) {
   await deviceGuard({ kinds: ["table_terminal"], redirectTo: "/device-pair" });
@@ -145,7 +145,7 @@ API の `createDeviceRoute`（`kinds` + `orUser`）と同じ語彙で、端末�
 
 ```ts
 // src/app/store/(protected)/layout.tsx
-import { principalGuard } from "@/features/core/pairedDevice/services/server/session";
+import { principalGuard } from "@/features/pairedDevice/services/server/session";
 
 await principalGuard({
   kinds: ["staff_tablet"],
@@ -174,7 +174,7 @@ scope の中身（店舗・テーブル等）は downstream のデータなの�
 `verify` で毎回 DB を引くと、短い間隔でポーリングする端末では負荷が増える。downstream の削除・移動の処理の中で止める:
 
 ```ts
-import { listPairedDevicesByScope, revokePairedDevicesByScope } from "@/features/core/pairedDevice/services/server";
+import { listPairedDevicesByScope, revokePairedDevicesByScope } from "@/features/pairedDevice/services/server";
 
 await db.transaction(async (tx) => {
   await tableService.remove(tableId, tx);
@@ -223,7 +223,7 @@ pnpm task pairedDevice:pair -- --device <端末 id>   # 既存の端末に再発
 
 ## 画面の組み立て（downstream）
 
-hooks はすべて `@/features/core/pairedDevice/hooks`。失敗の理由は `errorReason`
+hooks はすべて `@/features/pairedDevice/hooks`。失敗の理由は `errorReason`
 （`not_found` / `expired` / `used` / `rate_limited` / `forbidden` / `invalid_scope` / `disabled`）で、文言は自由に決めてよい。
 
 | 用途 | パーツ |
@@ -254,7 +254,7 @@ import {
   useDevicePairingCodeFromUrl,
   useSessionDevice,
   useStartDevicePairing,
-} from "@/features/core/pairedDevice/hooks";
+} from "@/features/pairedDevice/hooks";
 
 const REASON_MESSAGES = {
   not_found: "コードが違います",
@@ -368,7 +368,7 @@ const { code, expiresAt } = await issue.trigger(deviceId); // この応答でし
 | `POST /pairing-requests/approve` `{ code, deviceId }` or `{ code, device }` | B: 承認 |
 | `GET /kinds` | 管理できる端末の種類 |
 
-server-only の API は `@/features/core/pairedDevice/services/server`（サービス）と
+server-only の API は `@/features/pairedDevice/services/server`（サービス）と
 `.../services/server/session`（`getSessionDevice` / `deviceGuard` / `requireCurrentDevice` / Cookie）。
 サービスの `actor` に `"system"` を渡すと権限判定を省く（CLI・cron 用。HTTP ルートからは必ずユーザーを渡す）。
 

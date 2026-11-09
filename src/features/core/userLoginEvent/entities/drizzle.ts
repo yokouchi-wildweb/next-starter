@@ -2,7 +2,7 @@
 
 import { index, inet, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-import { USER_LOGIN_EVENT_TYPES } from "@/features/core/userLoginEvent/constants";
+import { USER_LOGIN_EVENT_TYPES } from "@/features/userLoginEvent/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
 export const UserLoginEventTypeEnum = pgEnum("user_login_event_type", [...USER_LOGIN_EVENT_TYPES]);

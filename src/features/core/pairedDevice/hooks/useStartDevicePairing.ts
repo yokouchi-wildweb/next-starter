@@ -12,13 +12,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 
-import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
+import type { SessionDevice } from "@/features/pairedDevice/entities/model";
 import {
   fetchSessionDevice,
   pollDevicePairing,
   startDevicePairing,
-} from "@/features/core/pairedDevice/services/client/pairedDeviceClient";
-import { getPairedDeviceErrorReason } from "@/features/core/pairedDevice/utils/errorReason";
+} from "@/features/pairedDevice/services/client/pairedDeviceClient";
+import { getPairedDeviceErrorReason } from "@/features/pairedDevice/utils/errorReason";
 import { useDomainMutation } from "@/lib/crud/hooks";
 import { isHttpError } from "@/lib/errors";
 

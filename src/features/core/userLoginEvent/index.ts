@@ -7,7 +7,7 @@
 //  クライアントバンドルへ流入することを防ぐため)。
 //
 // server コードからの利用は専用パスを使う:
-//   import { recordLoginEvent, countDistinctUsersByIp } from "@/features/core/userLoginEvent/services/server";
+//   import { recordLoginEvent, countDistinctUsersByIp } from "@/features/userLoginEvent/services/server";
 
 export type { UserLoginEvent, UserLoginEventCreateInput } from "./entities";
 export {
