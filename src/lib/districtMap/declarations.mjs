@@ -27,11 +27,11 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind"];
+const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy"];
 /** 置き場の点が名乗れる種類(受け口の一覧 intake.txt の行の kind) */
 export const PLACEMENT_KINDS = ["edit", "append"];
 /** 上書きの対象の点(受け口でない)が持てるキー */
-const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf", "addable"];
+const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf", "addable", "export", "keyedBy"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -117,6 +117,10 @@ function checkPoint(name, point) {
     }
     if (!SIDES.includes(point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
     if (!(Array.isArray(point.overrideOf) && point.overrideOf.length > 0 && point.overrideOf.every(isString))) problems.push(`${name}: overrideOf は上書きしてよい属性の名前の配列(overrides の点では必須)`);
+    if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は上書きのファイルが export する名前(例 override)`);
+    // keyedBy: 上書きが { <対象のキー>: <宣言した 1 つの属性の値> } の形(domainEntry)。値は対象のその export のキーの中だけ
+    if (point.keyedBy !== undefined && (!isString(point.keyedBy) || !IDENTIFIER.test(point.keyedBy))) problems.push(`${name}: keyedBy は対象のファイルが export する名前(キーの集合)`);
+    if (point.keyedBy !== undefined && Array.isArray(point.overrideOf) && point.overrideOf.length !== 1) problems.push(`${name}: keyedBy の点の overrideOf は 1 つ(キーごとに 1 つの属性を差し替える)`);
     if (point.addable !== undefined && point.addable !== true) problems.push(`${name}: addable は true だけ(fork が対象を足してよい点の印。足せない点は書かない)`);
     for (const key of Object.keys(point)) if (KEYS.includes(key) && !OVERRIDE_TARGET_KEYS.includes(key)) problems.push(`${name}: overrides の点に ${key} は書けない(書けるのは ${OVERRIDE_TARGET_KEYS.join(" / ")})`);
     return problems;
@@ -128,6 +132,7 @@ function checkPoint(name, point) {
     for (const key of Object.keys(point)) if (key !== "writer" && key !== "side") problems.push(`${name}: writer の点に ${key} は書けない`);
     return problems;
   }
+  if (point.keyedBy !== undefined) problems.push(`${name}: keyedBy は overrides の点だけ`);
   if (!isString(point.dir) || point.dir.startsWith("/") || point.dir.split("/").includes("..")) problems.push(`${name}: dir は持ち主のフォルダからの相対パス("." = 持ち主の直下)`);
   if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は項目が export する名前`);
   if (typeof point.type !== "object" || point.type === null || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {

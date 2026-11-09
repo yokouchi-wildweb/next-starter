@@ -296,7 +296,7 @@ test("override: 空(空白とコメントだけ)の domainEntry.override.ts は�
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
-test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・決まりに合わない import・override の不整合・読めない行", () => {
+test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・決まりに合わない import・読めない行(対象の無い override は orphans.mjs)", () => {
   const root = makeRoot({
     "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
     "src/features/core/dup/services/server/domainEntry.ts": ENTRY("user"),
@@ -317,7 +317,7 @@ test("検査: 重複キー・base があるのに domainEntry.ts が無い・rec
   expect(/storageBindingFor\("orphanPhoto"\) の record_type が登録表のキーに無い/);
   assert.ok(!errors.some((error) => error.includes('"ignored"')), "*.test.* は走査しない");
   expect(/leak\/services\/server\/domainEntry.ts: "\.\/leakService" を値で import している\(解けない指定子/);
-  expect(/lonely\/services\/server\/domainEntry.override.ts: 隣に domainEntry.ts が無い/);
+  assert.ok(!errors.some((error) => error.includes("lonely")), "対象の無い上書きは pnpm check extensions の孤立の検査(登録表には載らない)");
   expect(/broken\/services\/server\/domainEntry.ts: export const domainEntries が無い/);
   expect(/serviceRegistry.ts が無い → pnpm generate registry/);
 });

@@ -223,8 +223,10 @@ test("設定の節の feature から /admin/settings/<key> を規則の settingP
     ["payment:/admin/settings/shop", "plain:", "wallet:/admin/settings/coins|/admin/settings/shop"],
   );
   assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
-  assert.equal(plan.problems.length, 1, plan.problems.join("\n"));
-  assert.match(plan.problems[0], /typo\.ts: feature の "walet" は機能を閉じる規則/);
+  // この fixture は setting の受け口(overrideOf)を宣言しないので、shop.override.ts は孤立の検査(orphans.mjs)にも止まる
+  const problems = plan.problems.filter((p) => !p.startsWith("src/features/core/setting/sections/shop.override.ts: この上書きを受ける点が無い"));
+  assert.equal(problems.length, 1, problems.join("\n"));
+  assert.match(problems[0], /typo\.ts: feature の "walet" は機能を閉じる規則/);
 });
 
 test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {

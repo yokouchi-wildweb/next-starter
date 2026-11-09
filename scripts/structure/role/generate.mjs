@@ -22,8 +22,8 @@ import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
 import { readRegisteredFormInputs } from "../domain/domain/formInputNames.mjs";
 import { createWorkspace } from "../domain/domain/workspace.mjs";
 import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings, roleFolderIssues } from "./checks/index.mjs";
-import { readProfileOverride, readRoleOverride, strayOverrideIssues } from "./overrides.mjs";
-import { addedRoleFileNames, CORE_ROLES_DIR, coreRoleFileNames, findRoleFile, listRoleFiles, roleFileOf, ROLES_DIR } from "./rolePaths.mjs";
+import { readProfileOverride, readRoleOverride } from "./overrides.mjs";
+import { addedRoleFileNames, coreRoleFileNames, findRoleFile, listRoleFiles, roleFileOf } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../..");
@@ -201,11 +201,8 @@ export default async function generate(roleId, options = {}) {
   console.log("  pnpm db:push  # データベースに反映\n");
 }
 
-/** ファイルの置き場の問題（core ロールの置き場、隣に対象の無い上書き） */
-const placementIssues = () => [
-  ...roleFolderIssues({ coreFileNames: coreRoleFileNames(), addedFileNames: addedRoleFileNames() }),
-  ...strayOverrideIssues([CORE_ROLES_DIR, ROLES_DIR], PROFILES_DIR),
-];
+/** ファイルの置き場の問題（core ロールの置き場）。隣に対象の無い上書きは pnpm check extensions の孤立の検査（scripts/structure/extensions/orphans.mjs） */
+const placementIssues = () => roleFolderIssues({ coreFileNames: coreRoleFileNames(), addedFileNames: addedRoleFileNames() });
 
 const profileIds = () =>
   fs.existsSync(PROFILES_DIR)

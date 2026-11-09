@@ -41,6 +41,7 @@ import {
   findForkOwnedDirFiles,
   findMarkerNamedFiles,
   findOrphanReplaceFiles,
+  findRouteReplaceProblems,
   isReexportOnlyFile,
   parseSwitchLayout,
   parseSwitchPage,
@@ -539,8 +540,36 @@ test("_screen/・_layout/ の点つきの名前は .replace だけ(旧い fork �
   assert.deepEqual(findMarkerNamedFiles(listAppFiles(repoRoot)), []);
 });
 
-test("_screen/・_layout/ の .replace は置き換える既定が隣にある(孤立した .replace は不可、全 Tier)", () => {
-  assert.deepEqual(findOrphanReplaceFiles(listAppFiles(repoRoot)), []);
+test("_screen/・_layout/ の .replace は置き換える既定を持つ(孤立・既定の無い所の .replace は不可、全 Tier。pnpm check extensions も回す)", () => {
+  const files = listAppFiles(repoRoot);
+  assert.deepEqual(findRouteReplaceProblems(files, (f) => readFileSync(join(repoRoot, f), "utf8")), []);
+});
+
+test("findRouteReplaceProblems: スイッチの向け先と .default の隣は通り、隣に名前があるだけの部品の .replace は no-default、隣に何も無いのは orphan", () => {
+  const texts = {
+    "src/app/(user)/layout.tsx": 'export { UserLayout as default } from "./_layout/UserLayout.replace";\n',
+    "src/app/(user)/w/page.tsx": 'export { WScreen as default } from "./_screen/WScreen";\n',
+  };
+  const files = [
+    ...Object.keys(texts),
+    "src/app/(user)/_layout/UserLayout.tsx",
+    "src/app/(user)/_layout/UserLayout.replace.tsx",
+    "src/app/(user)/_layout/Header/index.tsx",
+    "src/app/(user)/_layout/Header/index.replace.tsx",
+    "src/app/(user)/_layout/BottomNav/BottomNavItem.tsx",
+    "src/app/(user)/_layout/BottomNav/BottomNavItem.replace.tsx",
+    "src/app/(user)/_layout/AdminHeader.default.tsx",
+    "src/app/(user)/_layout/AdminHeader.tsx",
+    "src/app/(user)/_layout/AdminHeader.replace.tsx",
+    "src/app/(user)/_layout/Gone.replace.tsx",
+    "src/app/(user)/w/_screen/WScreen.tsx",
+    "src/app/(user)/w/_screen/WScreen.replace.tsx",
+  ];
+  assert.deepEqual(findRouteReplaceProblems(files, (f) => texts[f] ?? null), [
+    { path: "src/app/(user)/_layout/BottomNav/BottomNavItem.replace.tsx", reason: "no-default" },
+    { path: "src/app/(user)/_layout/Gone.replace.tsx", reason: "orphan" },
+    { path: "src/app/(user)/_layout/Header/index.replace.tsx", reason: "no-default" },
+  ]);
 });
 
 test("findOrphanReplaceFiles: 隣に <名前>.ts(x) か <名前>/index.ts(x) の無い .replace だけを拾う", () => {

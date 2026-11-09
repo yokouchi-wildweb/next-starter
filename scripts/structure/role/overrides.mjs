@@ -116,18 +116,6 @@ export function requireOverride({ override, problems }) {
   return override;
 }
 
-/** 隣に対象の JSON が無い上書き（suffix = .role か .profile） */
-function strayIn(dir, suffix) {
-  if (!fs.existsSync(dir)) return [];
-  const names = fs.readdirSync(dir);
-  return names
-    .filter((name) => name.endsWith(`${suffix}.override.ts`) && !names.includes(name.replace(/\.override\.ts$/, ".json")))
-    .map((name) => `[${name}] 隣に対象の ${name.replace(/\.override\.ts$/, ".json")} がありません（ファイル名を直すか消す。core ロールは coreRoles/ に置く）`);
-}
-
-/** @returns {string[]} 問題（空なら無し） */
-export const strayOverrideIssues = (roleDirs, profilesDir) => [...roleDirs.flatMap((dir) => strayIn(dir, ".role")), ...strayIn(profilesDir, ".profile")];
-
 /** 消すときに上書きも一緒に消す。消したら true */
 export function removeOverride(dir, jsonName) {
   const filePath = path.join(dir, overrideFileName(jsonName));

@@ -122,6 +122,41 @@ export function findOrphanReplaceFiles(files) {
   });
 }
 
+/**
+ * DEFAULT_IMPL_DIRS 配下の <名前>.replace.ts(x) が置き換える既定を持つか(全 Tier。pnpm check extensions の孤立の検査 scripts/structure/extensions/orphans.mjs が回す)。
+ * 置き換えられる既定 = そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先(`./_screen/<名前>`・`./_layout/<名前>`、向け先が <名前>.replace でも同じ)か、
+ * 隣の 1 行スイッチの既定 <名前>.default.ts(x)。隣に印なしの <名前> があるだけの部品(枠の中の部品など)は置き換えの口でない:
+ * fork の部品はルートの _components/ に印なしの名前で置く
+ * @param {string[]} files repo 相対パス
+ * @param {(path: string) => string | null} readText page.tsx / layout.tsx の中身
+ * @returns {{ path: string, reason: "orphan" | "no-default" }[]} orphan = 隣に <名前> も無い / no-default = 隣にあるが既定でない
+ */
+export function findRouteReplaceProblems(files, readText) {
+  const present = new Set(files);
+  const targets = new Set();
+  for (const file of files) {
+    const name = file.slice(file.lastIndexOf("/") + 1);
+    const parse = /^page\.tsx?$/.test(name) ? parseSwitchPage : /^layout\.tsx?$/.test(name) ? parseSwitchLayout : null;
+    if (!parse || !file.startsWith("src/app/")) continue;
+    const target = parse(readText(file) ?? "").target;
+    if (target) targets.add(`${file.slice(0, file.lastIndexOf("/"))}/${target.screenDir}/${target.file.replace(/\.replace$/, "")}`);
+  }
+  const orphans = new Set(findOrphanReplaceFiles(files));
+  const problems = [];
+  for (const file of findDotNamedFiles(files)) {
+    const match = /^(.*)\/([^/]+)\.replace\.tsx?$/.exec(file);
+    if (!match) continue;
+    const [, dir, name] = match;
+    if (orphans.has(file)) {
+      problems.push({ path: file, reason: "orphan" });
+      continue;
+    }
+    const hasDefault = [`${name}.default.tsx`, `${name}.default.ts`].some((rel) => present.has(`${dir}/${rel}`));
+    if (!targets.has(`${dir}/${name}`) && !hasDefault) problems.push({ path: file, reason: "no-default" });
+  }
+  return problems.sort((a, b) => (a.path < b.path ? -1 : 1));
+}
+
 /** fork 所有のディレクトリ(下流の差し替え画面と page 専用部品)。upstream はここにファイルを置かない */
 export const FORK_OWNED_DIR = "_components";
 

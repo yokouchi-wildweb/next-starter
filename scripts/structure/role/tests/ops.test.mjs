@@ -54,7 +54,7 @@ test("pnpm generate role -- --toggle: ID と --on|--off が必須（無い・両
   assert.equal(run("toggleRole.mjs", "contributor", "--bogus").status, 1);
 });
 
-test("上書き: pnpm generate role が重ね、JSON は変えない。不正・隣に対象なしは止まり、空は通る。toggle と hasProfile の書き戻しは止まり、--remove-json は一緒に消す", () => {
+test("上書き: pnpm generate role が重ね、JSON は変えない。不正は止まり、空は通る(隣に対象なしは pnpm check extensions)。toggle と hasProfile の書き戻しは止まり、--remove-json は一緒に消す", () => {
   const rolesFile = path.join(root, "src/features/core/user/extensions/roles.ts");
   const profileDir = path.join(root, "src/features/core/userProfile/profiles");
   const extensions = path.join(root, "src/features/core/userProfile/extensions");
@@ -112,11 +112,9 @@ test("上書き: pnpm generate role が重ね、JSON は変えない。不正・
   assert.doesNotMatch(list("profileBases"), /contributor: .*audit/);
   fs.writeFileSync(profileOverride, "// 親の上書きを外す\n");
 
-  // 隣に対象なし（core ロールの上書きを roles/ に置いた）
+  // 隣に対象の無い上書きは pnpm check extensions の孤立の検査(scripts/structure/extensions/orphans.mjs)。生成は止めない
   writeRole("user.role.override.ts", typed("RoleOverride", "{}"));
-  const stray = run("generate.mjs", "editor");
-  assert.equal(stray.status, 1);
-  assert.match(stray.stderr, /\[user\.role\.override\.ts\] 隣に対象の user\.role\.json がありません/);
+  assert.equal(run("generate.mjs", "editor").status, 0);
   fs.unlinkSync(rolePath("user.role.override.ts"));
 
   // core ロールは enabled を上書きできない

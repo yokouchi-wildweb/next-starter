@@ -13,6 +13,8 @@ import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints, isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
+import { checkOverrideKeys } from "./overrideKeys.mjs";
+import { checkOrphans, targetOf } from "./orphans.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
@@ -315,8 +317,10 @@ export function planExtensions(repoRoot) {
   }
   const { isTier1 } = identity;
   const switchCheck = checkSwitches(repoRoot, { isTier1 });
-  const overrideCheck = checkOverrides(repoRoot, { isTier1, receptacleDirs: allDirs });
-  problems.push(...switchCheck.problems, ...overrideCheck.problems);
+  const overrideCheck = checkOverrides(repoRoot, { isTier1 });
+  // 孤立の検査は 1 つ(.override・.replace、D165)。上書きの対象の点が受けた上書きの鍵は宣言と照らす
+  const orphanCheck = checkOrphans(repoRoot, { points: declared, receptacleDirs: allDirs });
+  problems.push(...switchCheck.problems, ...overrideCheck.problems, ...orphanCheck.problems, ...checkOverrideKeys(repoRoot, orphanCheck.overrides, targetOf));
   const intakePlan = planIntake(repoRoot, declared, switchCheck.switches);
   if (intakePlan && "problem" in intakePlan) problems.push(intakePlan.problem);
   const intake = intakePlan && !("problem" in intakePlan) ? intakePlan : null;

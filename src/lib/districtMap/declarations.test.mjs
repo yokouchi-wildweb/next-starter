@@ -39,8 +39,8 @@ test("overrideKeysOf: 宣言が無い・点が無い・overrides の点でない
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), text);
     };
-    put("src/lib/a/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { overrides: "src/a/*.ts", side: "server", overrideOf: ["x"] },\n  roles: { writer: "role:generate", side: "shared" },\n};\n');
-    put("src/lib/b/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { overrides: "src/a/*.ts", side: "server" },\n};\n');
+    put("src/lib/a/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["x"] },\n  roles: { writer: "role:generate", side: "shared" },\n};\n');
+    put("src/lib/b/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { overrides: "src/a/*.ts", export: "override", side: "server" },\n};\n');
     assert.deepEqual(overrideKeysOf("src/lib/a/extensionPoints.ts", "tasks", root), ["x"]);
     assert.throws(() => overrideKeysOf("src/lib/none/extensionPoints.ts", "tasks", root), /が無い/);
     assert.throws(() => overrideKeysOf("src/lib/a/extensionPoints.ts", "gone", root), /点 gone が無い/);

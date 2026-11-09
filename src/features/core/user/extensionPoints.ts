@@ -7,6 +7,7 @@ export const extensionPoints = {
   // 上書きの対象: core ロールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵(core ロールは無効にできない = enabled は無い)
   coreRoleDefinitions: {
     overrides: "src/features/core/user/coreRoles/*.role.json",
+    export: "override",
     side: "shared",
     overrideOf: ["label", "hasProfile"],
   },
@@ -14,6 +15,7 @@ export const extensionPoints = {
   roleDefinitions: {
     overrides: "src/features/core/user/roles/*.role.json",
     addable: true,
+    export: "override",
     side: "shared",
     overrideOf: ["label", "hasProfile", "enabled"],
   },

@@ -10,6 +10,7 @@ export const extensionPoints = {
   profileDefinitions: {
     overrides: "src/features/core/userProfile/profiles/*.profile.json",
     addable: true,
+    export: "override",
     side: "shared",
     overrideOf: ["tags", "searchFields", "audit"],
   },

@@ -6,6 +6,7 @@ export const extensionPoints = {
   // 値の検査(cron 式・真偽)は読み手 ./discover.ts
   cronTasks: {
     overrides: "src/app/api/cron/*/task.ts",
+    export: "cronOverride",
     side: "server",
     overrideOf: ["schedule", "disabled"],
   },

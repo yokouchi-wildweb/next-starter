@@ -6,6 +6,8 @@ export const extensionPoints = {
   // 次の鍵の値を丸ごと差し替える(1 つのファイルで差し替えられる属性は 1 つなので、鍵は 1 つだけ)
   domainEntries: {
     overrides: "src/features/**/services/server/domainEntry.ts",
+    export: "domainEntryOverrides",
+    keyedBy: "domainEntries",
     side: "server",
     overrideOf: ["access"],
   },

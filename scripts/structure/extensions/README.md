@@ -5,7 +5,7 @@
 | コマンド | すること |
 |---|---|
 | `pnpm generate extensions` | 全宣言を読み、全一覧と受け口の一覧(`intake.txt`)の生成区画を丸ごと書く(問題があれば書かずに止まる)。宣言の消えた古い一覧(目印のヘッダ付き)は消す |
-| `pnpm check extensions` | 一覧と生成区画が宣言・項目と一致するか、1 行スイッチの形、孤立した `.replace` / `.override`、上流が override を持たないかを見る(build の冒頭で走る)。書かない |
+| `pnpm check extensions` | 一覧と生成区画が宣言・項目と一致するか、1 行スイッチの形、孤立した `.replace` / `.override`(1 つの孤立の検査 `orphans.mjs`)・宣言に無い鍵(`overrideKeys.mjs`)、上流が override を持たないかを見る(build の冒頭で走る)。書かない |
 | `pnpm test scripts/structure/extensions/` | 生成器の回帰テスト(fixture)と実リポの一致 |
 
 src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm check registry` の側で、ここでは扱わない。
@@ -44,7 +44,7 @@ export const extensionPoints = {
 - 受け口でない点(一覧はこの生成器が書かない。受け口のフォルダの行も無い。判定 `isListPoint`):
   - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
   - `placement: "<置き場の glob>"` + `kind: "edit" | "append"` … 置き場の点(型 4)。fork が書いてよい場所(リポジトリ直下から、`src/` 始まり)とその書き方。受け口の一覧の行になるだけ(項目も一覧も無い)
-  - `overrides: "<対象のファイルの glob>"` + `side` + `overrideOf: [...]` … 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。宣言は `as const` で書き、上書きの型(`RoleOverride` など)は `overrideOf` から引く(`(typeof extensionPoints.<点>.overrideOf)[number]`)。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
+  - `overrides: "<対象のファイルの glob>"` + `export: "<上書きの export の名前>"` + `side` + `overrideOf: [...]`(+ `keyedBy: "<対象の export>"`)… 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。宣言は `as const` で書き、上書きの型(`RoleOverride` など)は `overrideOf` から引く(`(typeof extensionPoints.<点>.overrideOf)[number]`)。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 
 ## 項目
@@ -82,7 +82,7 @@ export const extensionPoints = {
 | `<名前>.default.ts(x)` | 上流の既定の実装 | 上流 |
 | `<名前>.replace.ts(x)` | fork の丸ごと置き換え(既定と同じ export の形) | 足した Tier |
 
-- 検査(`pnpm check extensions`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 隣に `<名前>.default` の無い `<名前>.replace` は孤立で失敗(route の隣 `_layout` / `_screen` / `_components` は `pnpm test src/lib/screens/screens.test.mjs` の側)
+- 検査(`pnpm check extensions`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 孤立した `<名前>.replace` は下の孤立の検査
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
 - `.default` は作ったリポが出す既定の共通の印(D171)で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
 - page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test src/lib/screens/screens.test.mjs`)
@@ -90,7 +90,11 @@ export const extensionPoints = {
 ## override(既定を変える隣のファイル)
 
 - 一部の上書き(丸ごと置き換えは `.replace`、D136)。対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`・`user.role.override.ts`・`user.profile.override.ts`)、cron は task.ts の隣の `src/app/api/cron/<name>/task.override.ts`(旧名の素の `override.ts` は `scripts/structure/cron/discover.ts` が改名を案内して止める)。Tier 別・fork の名前付きのファイルは作らない
-- 隣に対象(`<対象>.<拡張子>` か `<対象>/`)の無い override は孤立で失敗(全 Tier、`overrides.mjs`。受け口の中は項目と照らす `extensions.mjs` の側)。上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `pnpm workflow ownership check` の override-own
+- 孤立の検査は 1 つ(`orphans.mjs`、全 Tier、D165): src の下の `<対象>.override.ts(x)` と `<名前>.replace.ts(x)` を 1 回の走査で集めて照らす
+  - `.override`: 受け口のフォルダ(`overrideOf` の点。項目と照らすのは `extensions.mjs`)か、上書きの対象の点(宣言の `overrides` の隣の glob)で隣に対象があること。どちらでもなければ「受ける点が無い」、対象が無ければ孤立。空は不在と同じで見ない
+  - `.replace`: route の `_layout` / `_screen` の中は、そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先か、隣に `<名前>.default` があること(`src/lib/screens` の `findRouteReplaceProblems`)。隣に印なしの部品があるだけの `.replace` は置き換えの口でない: fork の部品はルートの `_components/` に印なしの名前で置く。それ以外の場所は隣に `<名前>.default`。`_components/` の中は見ない
+  - 宣言に無い鍵(`overrideKeys.mjs`): 上書きの対象の点の上書きの export(宣言の `export`)のキーは `overrideOf` の中だけ。`keyedBy` の点(domainEntry)はキーが隣の対象のその export のキーの中だけ、値は宣言の 1 つの属性。値の検査は各読み手(ロール・cron・tsc)
+- 上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `pnpm workflow ownership check` の override-own
 - 足した Tier の物。下の Tier は同じファイルを書き換える: 受け継ぐ = 触らない / 既定へ戻す = キーを消すかファイルを消す / 全部を戻す = 空(空白とコメントだけ = 不在と同じ)。合成は git の merge だけ
 - **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `pnpm check extensions`(`overrides.mjs`)
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry/discover.mjs`)
@@ -128,5 +132,6 @@ export const extensionPoints = {
 | `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingPaths) |
 | `derive/settingRoles.mjs` | setting の上書きは権限を絞るだけ(広げる上書きを止める) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
-| `switches.mjs` / `overrides.mjs` | 1 行スイッチの形・孤立した `.replace`、孤立した override と上流の override の検査 |
+| `switches.mjs` / `overrides.mjs` | 1 行スイッチの形、上流の override の検査 |
+| `orphans.mjs` / `overrideKeys.mjs` | 孤立の検査(.override・.replace、1 つ)・上書きの対象の点の宣言に無い鍵 |
 | `generate.mjs` / `check.mjs` | コマンドの入口 |

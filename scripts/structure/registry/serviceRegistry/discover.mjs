@@ -444,15 +444,8 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
       if (error) info.overrideErrors.push(`${info.overridePath}: ${error}`);
       else info.overrideKeys = keys;
       info.overrideErrors.push(...checkEntryStaticImports(info.overridePath, repoRoot, view, importMemo));
-      if (!info.entryPath) {
-        info.overrideErrors.push(`${info.overridePath}: 隣に ${ENTRY_FILE} が無い（上書きだけでは登録できない）`);
-      } else {
-        for (const key of info.overrideKeys) {
-          if (!info.keys.includes(key)) {
-            info.overrideErrors.push(`${info.overridePath}: キー "${key}" は隣の ${ENTRY_FILE} に無い`);
-          }
-        }
-      }
+      // 隣に domainEntry.ts が無い・キーが domainEntry.ts に無いのは pnpm check extensions(孤立の検査 orphans.mjs・鍵の検査 overrideKeys.mjs)。
+      // 対象の無い上書きは登録表に載せない(載せる行は domainEntry.ts のキーから作る)
     }
     domains.push(info);
   }

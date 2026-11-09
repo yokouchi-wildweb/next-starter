@@ -67,13 +67,13 @@ export function checkPureImports(repoRoot, itemPath) {
   return problems;
 }
 
-/** override のファイルの export const override の object のキー。読めなければ null */
-export function overrideKeys(path, text) {
+/** override のファイルの export const <exportName>(既定 override)の object のキー。読めなければ null */
+export function overrideKeys(path, text, exportName = "override") {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement) || !statement.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
     for (const d of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(d.name) || d.name.text !== "override" || !d.initializer) continue;
+      if (!ts.isIdentifier(d.name) || d.name.text !== exportName || !d.initializer) continue;
       let node = d.initializer;
       while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
       if (!ts.isObjectLiteralExpression(node)) return null;
