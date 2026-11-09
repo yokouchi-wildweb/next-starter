@@ -10,7 +10,8 @@
 // 規則の項目の domainApiPaths は説明用(features list)で、pathPatterns には足さない。domainEntry の無いフォルダは住所を持たない。
 // cron の門(目録 D10・D34 K4): features のフォルダを値で import する task は生成一覧の cronTasks(住所・読むドメイン)に載り、読むドメインが全部開のとき開く。
 // 規則の項目の cronPaths は説明用。
-// 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導き settingPaths として同じく足す(./gateSettingPaths.mjs、L1.17)。
+// 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導く(./gateSettingPaths.mjs、L1.17)。生成一覧の settingSections(住所・名指す機能)に載り、
+// 名指す機能が全部開のときだけ開く(節自身の判定、D34 K4)。規則の項目の settingPaths は説明用で pathPatterns に足さない。
 // 機能どうしの依存: 規則の dependsOn を字面で読み dependsOn として項目に写す(書かない規則は空。./gateDependsOn.mjs。未知の名前・輪は extensions.mjs が全規則で)。
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -81,7 +82,7 @@ export function scanCronTaskImports(repoRoot) {
 /**
  * 変換を作る(表の走査は 1 回だけ)
  * @param {string} repoRoot
- * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[], cronPaths: string[], dependsOn: string[] }, features: string[], domains: { folder: string, tables: string[], apiPaths: string[] }[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[], cronTasksFor: (folders: string[]) => { path: string, folders: string[] }[] }}
+ * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[], cronPaths: string[], dependsOn: string[] }, features: string[], domains: { folder: string, tables: string[], apiPaths: string[] }[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[], settingSections: { path: string, features: string[] }[], cronTasksFor: (folders: string[]) => { path: string, folders: string[] }[] }}
  */
 export function createFeatureTables(repoRoot) {
   const map = readDistrictMapAt(repoRoot);
@@ -100,6 +101,7 @@ export function createFeatureTables(repoRoot) {
   return {
     problems: [...map.tableProblems, ...sections.problems],
     unknownFeatures: sections.unknownFeatures,
+    settingSections: sections.sections,
     apply(label, text, name) {
       const read = readFeatures(text);
       if (read.problem) return { problem: `${label}: ${read.problem}` };

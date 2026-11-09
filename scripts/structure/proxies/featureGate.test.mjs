@@ -240,18 +240,19 @@ test(
   },
 );
 
-// 汎用 API の住所(/api/<domain>)は生成器が features のフォルダの domainEntry.ts から導いて pathPatterns に足す(domainApiPaths)。
-// 設定の節の住所(/admin/settings/<key>)も節の feature から導く(settingPaths、L1.17)。cron の task の住所は task の import から導く(cronPaths、目録 D10)。
+// 汎用 API の住所(/api/<domain>)は生成器が features のフォルダの domainEntry.ts から導く(ドメインの表 domains、項目の domainApiPaths は説明用)。
+// 設定の節の住所(/admin/settings/<key>)も節の feature から導く(settingSections、L1.17)。cron の task の住所は task の import から導く(cronTasks、目録 D10)。
+// どれも規則の pathPatterns には入らない(D34 K4): 規則の pathPatterns = 手書きの住所
 // 規則に同じ住所を手書きすると重なる: 上流の規則は不可、fork の規則は表示だけ
 test(
-  "汎用 API・設定の節・cron の住所は規則に手書きしない(生成器が domainApiPaths・settingPaths・cronPaths として pathPatterns に足す)",
+  "汎用 API・設定の節・cron の住所は規則に手書きしない(生成器がドメイン・節・cron の task の表に導く)",
   { skip: forkAdded.status === "unverified" ? `fork の規則を見分けられない(${forkAdded.reason})` : false },
   () => {
     const { rules: files } = gateRuleFiles();
     const upstream = [];
-    featureGateRules.forEach((rule, i) => {
+    configRules.forEach((rule, i) => {
       const derived = [...rule.domainApiPaths, ...rule.settingPaths, ...rule.cronPaths];
-      const handWritten = rule.pathPatterns.slice(0, rule.pathPatterns.length - derived.length);
+      const handWritten = rule.pathPatterns;
       const dup = handWritten.filter((pattern) => derived.includes(pattern));
       if (dup.length === 0) return;
       const line = `${files[i].path}: ${dup.join(", ")}`;

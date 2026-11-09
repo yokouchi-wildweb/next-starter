@@ -10,7 +10,8 @@ import { test } from "node:test";
 import { demoHref, groupDemoPagesByCategory } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
 import { gate, type FeatureName, type GatedFeatureRule } from "@/featureGate";
-import { rules } from "@/featureGate/node";
+import { derivedPaths, rules } from "@/featureGate/node";
+import type { DerivedPath } from "@/featureGate/ruleList";
 import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
@@ -82,18 +83,18 @@ test("/demo: sampleDomain を閉じると sample のデモが一覧と数から�
   }
 });
 
-test("設定の節(L1.17): 規則の settingPaths(節の feature から導く /admin/settings/<key>)が閉じると、サイドバーの行が消え、既定の節は次の開いた節", async () => {
+test("設定の節(L1.17・D34 K4): 節の feature が名指す機能が閉じると節の住所(/admin/settings/<key>)が閉じ、サイドバーの行が消え、既定の節は次の開いた節", async () => {
   const { sections } = await import("@/features/core/setting/extensions/sections");
   const { firstOpenSection, settingSectionHref } = await import("@/features/core/setting/utils/sectionForm");
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
-  // fixture: general 節が feature: "sampleDomain" を持つときの生成一覧の項目(生成器が settingPaths を pathPatterns の後ろに足す)
-  const savedPatterns = sample.pathPatterns;
-  const savedSettingPaths = sample.settingPaths;
+  // fixture: general 節が feature: "sampleDomain" を持つときの導出の住所(生成一覧の settingSections から ruleList が作る項目)を一時的に足す
   const href = settingSectionHref("general");
-  sample.pathPatterns = [...savedPatterns, href];
-  sample.settingPaths = [href];
+  const paths = derivedPaths as DerivedPath[];
+  const added: DerivedPath = { pattern: href, kind: "setting", folders: [], features: ["sampleDomain"] };
+  paths.push(added);
   try {
+    assert.ok(!sample.pathPatterns.includes(href), "節の住所は機能の pathPatterns に入れない");
     withRules({ sampleDomain: false }, () => {
       const hrefs = adminSidebarHrefs();
       assert.ok(!hrefs.includes(href));
@@ -105,7 +106,6 @@ test("設定の節(L1.17): 規則の settingPaths(節の feature から導く /a
       assert.ok(adminSidebarHrefs().includes(href));
     });
   } finally {
-    sample.pathPatterns = savedPatterns;
-    sample.settingPaths = savedSettingPaths;
+    paths.splice(paths.indexOf(added), 1);
   }
 });

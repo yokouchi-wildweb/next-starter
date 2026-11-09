@@ -7,12 +7,13 @@
 // pnpm generate cron / pnpm check cron・pnpm generate routes・FEATURE_GATE_CHECK の検査・codemod。node.ts の configRules / configPath)
 // ドメインの開閉(D24・D34 K4): ドメイン = どれかの規則の features に載るフォルダ(生成一覧の domains)。開 = そのドメインを features に持つ規則のどれかが開。
 //   表・汎用 API の住所(apiPaths)・cron の task(読むドメインが全部開のとき開)はドメインの開閉で決まる(closedDomainsOf・closedDerivedEntries)。
+//   設定の節(settingSections)は節自身の判定: 名指す機能が全部開のときだけ開く(closedDerivedEntries)
 //   渡した一覧(rules / configRules / テストの作り物)の開閉で解くので、スイッチの効く・効かないは一覧で決まる
 // 全開スイッチの名前指定は依存先を開けない(D34): 閉じた依存先があれば開かず、足りない名前を値ごとに 1 回 console.warn(pnpm ops features list にも出る)
 // 守り(scripts/structure/proxies/openSwitch.test.ts): 門番の中で extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのもこのファイルだけ
 // スイッチ: ./openSwitch.ts / 詳細: ./README.md「機能どうしの依存(dependsOn)」
 
-import { cronTasks, domains, rules as generatedRules } from "./extensions/rules";
+import { cronTasks, domains, rules as generatedRules, settingSections } from "./extensions/rules";
 import { currentOpenSwitch, type OpenSwitch } from "./openSwitch";
 import type { ClosedPathEntry, FeatureName, GatedDomain, GatedFeatureRule, GeneratedFeatureRule } from "./types";
 
@@ -157,12 +158,16 @@ export function switchMissingDependencies(): Record<string, string[]> {
 /** 規則の一覧の形(ドメインの開閉に要る物だけ) */
 type DomainHolder = Pick<GatedFeatureRule, "name" | "features" | "enabled" | "redirectTo">;
 
-/** 導出の住所: 汎用 API(ドメイン 1 つ)と cron の task(読むドメインの全部)。並び = domains の順 → cronTasks の順 */
-export type DerivedPath = { pattern: string; kind: "domainApi" | "cron"; folders: readonly string[] };
+/**
+ * 導出の住所: 汎用 API(ドメイン 1 つ)・cron の task(読むドメインの全部)・設定の節(名指す機能の全部)。
+ * folders = 開に要るドメイン、features = 開に要る機能(どちらも全部開で開)。並び = domains の順 → cronTasks の順 → settingSections の順
+ */
+export type DerivedPath = { pattern: string; kind: "domainApi" | "cron" | "setting"; folders: readonly string[]; features?: readonly string[] };
 
 export const derivedPaths: readonly DerivedPath[] = [
   ...domains.flatMap((domain) => domain.apiPaths.map((pattern): DerivedPath => ({ pattern, kind: "domainApi", folders: [domain.folder] }))),
   ...cronTasks.map((task): DerivedPath => ({ pattern: task.path, kind: "cron", folders: task.folders })),
+  ...settingSections.map((section): DerivedPath => ({ pattern: section.path, kind: "setting", folders: [], features: section.features })),
 ];
 
 /** 生成一覧のドメインの表(フォルダの順) */
@@ -187,7 +192,8 @@ export function domainEnabled(folder: string, list: readonly DomainHolder[] = ru
 }
 
 /**
- * 閉じた導出の住所(汎用 API: ドメインが閉 / cron: 読むドメインのどれかが閉)。rule・redirectTo = 閉じたドメインの持ち主のうち一覧の順で最初の規則。
+ * 閉じた導出の住所(汎用 API: ドメインが閉 / cron: 読むドメインのどれかが閉 / 設定の節: 名指す機能のどれかが閉)。
+ * rule・redirectTo = 閉じたドメインの持ち主と閉じた名指しの機能のうち一覧の順で最初の規則(一覧に無い名指しは数えない)。
  * 並びは導出の住所の順(evaluate.ts が手書きの住所と合わせて一番細かい順に並べ直す)
  */
 export function closedDerivedEntries(list: readonly DomainHolder[] = rules, paths: readonly DerivedPath[] = derivedPaths): ClosedPathEntry[] {
@@ -195,7 +201,10 @@ export function closedDerivedEntries(list: readonly DomainHolder[] = rules, path
   const order = new Map(list.map((rule, index) => [rule.name, index]));
   const entries: ClosedPathEntry[] = [];
   for (const path of paths) {
-    const owners = path.folders.map((folder) => closed.get(folder)).filter((rule): rule is DomainHolder => rule !== undefined);
+    const owners = [
+      ...path.folders.map((folder) => closed.get(folder)),
+      ...(path.features ?? []).map((name) => list.find((rule) => rule.name === name && !ruleEnabled(rule))),
+    ].filter((rule): rule is DomainHolder => rule !== undefined);
     if (owners.length === 0) continue;
     const owner = owners.reduce((a, b) => ((order.get(b.name) ?? 0) < (order.get(a.name) ?? 0) ? b : a));
     entries.push(owner.redirectTo === undefined ? { pattern: path.pattern, rule: owner.name } : { pattern: path.pattern, rule: owner.name, redirectTo: owner.redirectTo });
@@ -210,16 +219,18 @@ export function closedDomainTables(list: readonly DomainHolder[] = rules): strin
 }
 
 /**
- * 規則が閉じる住所の全部(手書き + 規則の features のドメインの導出の住所)。読み手の検査(依存・常時実行の入口)が「この規則が閉じれば閉じる住所」として読む。
+ * 規則が閉じる住所の全部(手書き + 規則の features のドメインの導出の住所 + 規則を名指す設定の節の住所)。読み手の検査(依存・常時実行の入口)が「この規則が閉じれば閉じる住所」として読む。
  * 1 つのドメインを複数の規則が持つときは、規則 1 本が閉じてもドメインは閉じないので近似(検査の作り直しは S4)
  */
-export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "pathPatterns" | "features">): string[] {
+export function coveredPatternsOf(rule: Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">): string[] {
   const folders = new Set(rule.features ?? []);
-  const derived = derivedPaths.filter((path) => path.folders.some((folder) => folders.has(folder))).map((path) => path.pattern);
+  const derived = derivedPaths
+    .filter((path) => path.folders.some((folder) => folders.has(folder)) || (path.features ?? []).includes(rule.name))
+    .map((path) => path.pattern);
   return [...rule.pathPatterns, ...derived.filter((pattern) => !rule.pathPatterns.includes(pattern))];
 }
 
 /** 一覧の各規則の pathPatterns を coveredPatternsOf(手書き + 規則のドメインの導出の住所)にした写し(enabled はそのまま)。住所で覆うかを見る検査の入力 */
-export function withCoveredPatterns<R extends Pick<GatedFeatureRule, "pathPatterns" | "features">>(list: readonly R[]): R[] {
+export function withCoveredPatterns<R extends Pick<GatedFeatureRule, "name" | "pathPatterns" | "features">>(list: readonly R[]): R[] {
   return list.map((rule) => ({ ...rule, pathPatterns: coveredPatternsOf(rule) }));
 }

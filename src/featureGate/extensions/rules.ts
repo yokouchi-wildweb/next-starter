@@ -1,7 +1,7 @@
 // 生成物・編集不可: pnpm generate extensions が src/featureGate/extensionPoints.ts から生成する
 // rules: src/featureGate/rules/<名前>.ts(x) か <名前>/index.ts(x) の export const rule(並びはファイル名の順)
 
-import type { GatedCronTask, GatedDomain, GeneratedFeatureRule } from "@/featureGate";
+import type { GatedCronTask, GatedDomain, GatedSettingSection, GeneratedFeatureRule } from "@/featureGate";
 
 import { rule as rules_adminChatRooms } from "@/featureGate/rules/adminChatRooms";
 import { rule as rules_adminDemoUsers } from "@/featureGate/rules/adminDemoUsers";
@@ -135,3 +135,6 @@ export const cronTasks: GatedCronTask[] = [
   { path: "/api/cron/wallet-expire-lots", folders: ["core/wallet"] },
   { path: "/api/cron/wallet-lots-prune", folders: ["core/wallet"] },
 ];
+
+// settingSections = 機能を名指す設定の節(開 = 名指す機能 features が全部開。名指さない節は常に開)
+export const settingSections: GatedSettingSection[] = [];

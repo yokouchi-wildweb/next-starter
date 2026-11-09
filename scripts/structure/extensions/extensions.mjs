@@ -202,12 +202,12 @@ function renderPoint(point, items) {
   } else {
     lines.push(`export const ${point.name}: ${T}[] = ${array};`);
   }
-  if (spec.derive === "featureTables") lines.push(...renderGateTables(point.gateTables ?? { domains: [], cronTasks: [] }));
+  if (spec.derive === "featureTables") lines.push(...renderGateTables(point.gateTables ?? { domains: [], cronTasks: [], settingSections: [] }));
   return { imports, lines };
 }
 
 /** derive featureTables の導出の表: ドメイン(フォルダ・表・汎用 API の住所・持つ機能)と cron の task(住所・読むドメイン)。開閉は src/featureGate/ruleList.ts */
-function renderGateTables({ domains, cronTasks }) {
+function renderGateTables({ domains, cronTasks, settingSections = [] }) {
   const list = (v) => `[${v.map((x) => JSON.stringify(x)).join(", ")}]`;
   const block = (name, type, rows) => `export const ${name}: ${type}[] = ${rows.length === 0 ? "[]" : `[\n${rows.map((row) => `  ${row},`).join("\n")}\n]`};`;
   return [
@@ -217,6 +217,9 @@ function renderGateTables({ domains, cronTasks }) {
     "",
     "// cronTasks = domains のドメインを値で import する cron の task(開 = 読むドメイン folders が全部開。載らない task は常に開)",
     block("cronTasks", "GatedCronTask", cronTasks.map((t) => `{ path: ${JSON.stringify(t.path)}, folders: ${list(t.folders)} }`)),
+    "",
+    "// settingSections = 機能を名指す設定の節(開 = 名指す機能 features が全部開。名指さない節は常に開)",
+    block("settingSections", "GatedSettingSection", settingSections.map((t) => `{ path: ${JSON.stringify(t.path)}, features: ${list(t.features)} }`)),
   ];
 }
 
@@ -249,14 +252,11 @@ function checkSettingSections(repoRoot, points, itemsByPoint) {
 const outputOf = (point) => (point.spec.target === "wiring" ? `${WIRING_DIR}/${basename(point.owner)}.ts` : `${point.owner}/${EXTENSIONS_DIR_NAME}/${point.name}.ts`);
 
 /** 1 つの出力ファイルを組み立てる(wiring は同じ lib の点を 1 本に) */
-// 生成器が付ける欄の描画。settingPaths(derive featureTables)は項目の pathPatterns の後ろにも足す。domainApiPaths・cronPaths は説明用で足さない
-// (汎用 API と cron の住所はドメインに付き、生成一覧の domains・cronTasks で開閉が決まる。D34 K4)。dependsOn は規則の字面の写し
+// 生成器が付ける欄の描画。tables・domainApiPaths・settingPaths・cronPaths(derive featureTables)は説明用で項目の pathPatterns に足さない
+// (汎用 API・cron の住所はドメインに、設定の節の住所は節に付き、生成一覧の domains・cronTasks・settingSections で開閉が決まる。D34 K4)。dependsOn は規則の字面の写し
 function renderFields(alias, fields) {
   const literal = (v) => (Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v));
-  const parts = Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`);
-  const extra = [...(fields.settingPaths ?? [])];
-  if (extra.length > 0) parts.push(`pathPatterns: [...${alias}.pathPatterns, ${extra.map((x) => JSON.stringify(x)).join(", ")}]`);
-  return parts.join(", ");
+  return Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`).join(", ");
 }
 
 function renderFile(points, itemsByPoint) {
@@ -266,7 +266,7 @@ function renderFile(points, itemsByPoint) {
     const names = types.get(p.spec.type.from) ?? new Set();
     names.add(p.spec.type.name);
     // 導出の表の型(門番の規則の一覧だけ)
-    if (p.spec.derive === "featureTables") for (const extra of ["GatedCronTask", "GatedDomain"]) names.add(extra);
+    if (p.spec.derive === "featureTables") for (const extra of ["GatedCronTask", "GatedDomain", "GatedSettingSection"]) names.add(extra);
     types.set(p.spec.type.from, names);
   }
   const out = [
@@ -326,7 +326,10 @@ export function planExtensions(repoRoot) {
           }
         }
         const domains = [...domainMap.values()].sort((a, b) => byName(a.folder, b.folder));
-        p.gateTables = { domains, cronTasks: featureTables.cronTasksFor(domains.map((d) => d.folder)) };
+        // 設定の節(名指す機能が規則に無い節は unknownFeatures が止める。ここでは知っている名前だけの節を載せる)
+        const names = new Set(kept.map((item) => item.name));
+        const settingSections = featureTables.settingSections.filter((section) => section.features.every((name) => names.has(name)));
+        p.gateTables = { domains, cronTasks: featureTables.cronTasksFor(domains.map((d) => d.folder)), settingSections };
         problems.push(...featureTables.unknownFeatures(items.map((item) => item.name)));
         // dependsOn の未知の名前・輪(全規則で。読めなかった規則は名前だけ知っている物として数える)
         const unread = items.filter((item) => !kept.some((k) => k.name === item.name)).map((item) => ({ path: item.path, name: item.name, dependsOn: [] }));

@@ -1,8 +1,8 @@
 // scripts/structure/extensions/derive/gateSettingPaths.mjs
 // 変換 "featureTables" の一部: 設定の節(src/features/core/setting/sections/<名前>.ts か <名前>/index.ts の export const section)の
 // key と feature を字面で読み、規則名 → 閉じる住所 /admin/settings/<key> を導く(L1.17)。
-// 節が複数の feature を持てば、その全部の規則に住所を足す(1 つでも閉じていれば閉じる = 住所の OR)。
-// 規則の生成一覧の項目は settingPaths を持ち、pathPatterns の後ろにも足される(proxy・管理のサイドバー・地図が住所で効く)。
+// 節の住所は節自身の判定(D34 K4): 生成一覧の settingSections(住所・名指す機能)に載り、名指す機能が全部開のときだけ開く(src/featureGate/ruleList.ts)。
+// 規則の生成一覧の項目の settingPaths は説明用(pnpm ops features list)で、pathPatterns には足さない。
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -56,18 +56,20 @@ function sectionFiles(repoRoot) {
 
 /**
  * 設定の節を走査する(1 回だけ)
- * @returns {{ problems: string[], pathsOf: (ruleName: string) => string[], unknownFeatures: (ruleNames: string[]) => string[] }}
+ * @returns {{ problems: string[], pathsOf: (ruleName: string) => string[], sections: { path: string, features: string[] }[], unknownFeatures: (ruleNames: string[]) => string[] }}
  */
 export function scanSettingSectionFeatures(repoRoot) {
   const problems = [];
   const byFeature = new Map();
   const uses = [];
+  const sections = [];
   for (const file of sectionFiles(repoRoot)) {
     const read = readSectionFeature(readFileSync(join(repoRoot, file), "utf8"));
     if (read.problem) {
       problems.push(`${file}: ${read.problem}`);
       continue;
     }
+    if (read.features.length > 0) sections.push({ path: settingSectionHref(read.key), features: [...read.features] });
     for (const feature of read.features) {
       byFeature.set(feature, [...(byFeature.get(feature) ?? []), settingSectionHref(read.key)]);
       uses.push({ file, feature });
@@ -76,6 +78,7 @@ export function scanSettingSectionFeatures(repoRoot) {
   return {
     problems,
     pathsOf: (ruleName) => byFeature.get(ruleName) ?? [],
+    sections: sections.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
     unknownFeatures: (ruleNames) => {
       const known = new Set(ruleNames);
       return uses.filter((use) => !known.has(use.feature)).map((use) => `${use.file}: feature の "${use.feature}" は機能を閉じる規則(src/featureGate/rules/)の名前でない`);

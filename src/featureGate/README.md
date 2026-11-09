@@ -80,7 +80,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 | 部品 | 場所 | いつ効くか | やること |
 |---|---|---|---|
 | 規則 | `rules/<名前>.ts` の `export const rule` | — | 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `features` / `dependsOn` / `enabled()` / `redirectTo` |
-| 一覧 | `extensions/rules.ts`（生成物、型 `GeneratedFeatureRule`・`GatedDomain`・`GatedCronTask`） | — | 規則 + 名前 + `dependsOn`(字面の写し、書かない規則は空) + 設定の節の住所(`settingPaths`、`pathPatterns` にも足す) + 説明用の表名・汎用 API・cron の住所(`tables`・`domainApiPaths`・`cronPaths`)。ドメインの表 `domains`(表・汎用 API の住所・持つ機能)と cron の task の表 `cronTasks`(住所・読むドメイン)も出す。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
+| 一覧 | `extensions/rules.ts`（生成物、型 `GeneratedFeatureRule`・`GatedDomain`・`GatedCronTask`・`GatedSettingSection`） | — | 規則 + 名前 + `dependsOn`(字面の写し、書かない規則は空) + 説明用の表名・汎用 API・設定の節・cron の住所(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths`。`pathPatterns` には足さない)。ドメインの表 `domains`(表・汎用 API の住所・持つ機能)・cron の task の表 `cronTasks`(住所・読むドメイン)・設定の節の表 `settingSections`(住所・名指す機能)も出す。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む |
 | ルートゲート | `src/proxies/featureGate.ts`(`gate.path` を呼ぶ) | リクエストごと | `pathPatterns` に一致するページを `/404`、API を 404 にする |
 | API の部品工場 | `src/wiring/apiRoute.ts` が `gate.path` を Factory の口 `gate` に結ぶ | API のリクエストごと | 閉じた住所の API は Factory も 404(proxy の安全網。`src/lib/routeFactory/README.md`) |
 | スキーマゲート | `node/gatedSchema.ts`（`@/featureGate/node` の `gatedSchema`、`pnpm db:push` / `db:push:check`） | push のとき | 導いた表を push 対象から外す |
@@ -105,7 +105,7 @@ export const rule: FeatureGateRule = {
 - **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
 - `features` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。features の地区（`src/lib/districtMap` が見つけるドメイン）でない書き方（無いフォルダ・`core/wallet/entities` のような深い場所・`core` そのもの・`_` で始まる雛形）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）が地区の下の全 `pgTable` から導く（地区の地図の読み手 `src/lib/districtMap`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う。フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
 - **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `features` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、生成一覧の `domains` のそのドメインの `apiPaths` に載せる。住所はドメインに付き、ドメインの開閉で閉じる(下の「ドメインの開閉」。規則の `pathPatterns` には足さない、項目の `domainApiPaths` は説明用)。`domainEntry.ts` の無いフォルダは住所を持たない。手書きと重なると `pnpm test src/featureGate scripts/structure/proxies` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
-- **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器がその規則の `settingPaths` と `pathPatterns` に足す（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
+- **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(D34 K4。機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts がどれかの規則の `features` のフォルダを値で import すると、生成器が生成一覧の `cronTasks`(住所・読むドメイン)に載せ、読むドメインが全部開のときだけ開く（`scripts/structure/extensions/derive/featureTables.mjs`、目録 D10・D34 K4。項目の `cronPaths` は説明用）。規則に `/api/cron/` を手書きすると生成で失敗
 - `enabled` は config の値を読む同期関数（値の置き場は config）。省略 = 自分は開(依存先しだい。下の「機能どうしの依存」)
 - `dependsOn` = この機能が使う機能の名前(規則のファイル名)の並び。下の「機能どうしの依存(dependsOn)」
@@ -113,12 +113,13 @@ export const rule: FeatureGateRule = {
 - 住所の重なりは許す（OR）。**答え(`rule` と `redirectTo`)は当たった閉じた住所のうち一番細かい一致**（同じ細かさはファイル名の順）。上流の規則どうしの行き先の違う重なりは `pnpm test src/featureGate scripts/structure/proxies` で失敗、fork の規則と上流の重なりは表示だけ
 - 上流の規則を fork が上書き・無効化する口は無い（fork は閉じる規則を足すだけ）
 
-### ドメインの開閉(表・汎用 API・cron)
+### ドメインの開閉(表・汎用 API・cron)と設定の節
 
 - ドメイン = どれかの規則の `features` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `features` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい。D24)。どの機能にも載らないドメインは基盤として常に開
 - ドメインの開閉で決まる物: 表(`pnpm db:push` / `db:push:check`・`pnpm ops db seed`・`pnpm ops db clear`)・汎用 API の住所(`apiPaths`)・cron の task(`cronTasks`、読むドメインが全部開のとき開)
 - 評価は `ruleList.ts`(`closedDomainsOf`・`domainEnabled`・`closedDerivedEntries`・`closedDomainTables`)。機能の開閉は渡した一覧で読む: `rules` なら全開スイッチを通し、`configRules` なら規則の値だけ
-- 住所で覆うかを見る検査(依存の検査・常時実行の入口・ルートの被覆)は、規則の `pathPatterns` に規則のドメインの導出の住所を足した写し(`withCoveredPatterns`)で見る
+- 設定の節(`settingSections`)は節自身の判定: 名指す機能が全部開のときだけ開く(導出の住所の 1 種、`closedDerivedEntries`)
+- 住所で覆うかを見る検査(依存の検査・常時実行の入口・ルートの被覆)は、規則の `pathPatterns` に規則のドメインの導出の住所と規則を名指す節の住所を足した写し(`withCoveredPatterns`)で見る
 
 ### 機能どうしの依存(dependsOn)
 

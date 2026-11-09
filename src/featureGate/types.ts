@@ -40,9 +40,9 @@ export type FeatureGateRule = {
 
 /**
  * 生成一覧の要素(src/featureGate/extensions/rules.ts。門番の中で値で読むのは ruleList.ts だけ): 規則 + 生成器が付ける名前(ファイル名)と features から導いた表名・汎用 API の住所(features を書かない規則は空)。
- * settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)は生成器が pathPatterns の後ろにも足す(規則に手書きしない)。
- * tables・domainApiPaths(/api/<features のフォルダの domainEntry のキー>)・cronPaths(/api/cron/<features のフォルダを値で import する cron の task の名前>)は
- * 説明用(pnpm ops features list)で pathPatterns に足さない: 表・汎用 API・cron はドメインに付き、開閉は GatedDomain・GatedCronTask で決まる(D34 K4)
+ * tables・domainApiPaths(/api/<features のフォルダの domainEntry のキー>)・settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)・
+ * cronPaths(/api/cron/<features のフォルダを値で import する cron の task の名前>)は説明用(pnpm ops features list)で pathPatterns に足さない:
+ * 表・汎用 API・cron はドメインに、設定の節の住所は節に付き、開閉は GatedDomain・GatedCronTask・GatedSettingSection で決まる(D34 K4)
  */
 export type GeneratedFeatureRule = FeatureGateRule & {
   name: FeatureName;
@@ -73,6 +73,13 @@ export type GatedCronTask = {
   path: string;
   /** 読むドメインのフォルダ(domains の folder) */
   folders: string[];
+};
+
+/** 機能を名指す設定の節(生成一覧の settingSections、節の feature から)。開 = 名指す機能(features)が全部開。名指さない節は載らず常に開 */
+export type GatedSettingSection = {
+  /** /admin/settings/<key> */
+  path: string;
+  features: FeatureName[];
 };
 
 /**

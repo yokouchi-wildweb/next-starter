@@ -235,7 +235,7 @@ test("設定の節の feature: 字面で読む(1 つ・配列・複数行)、書
   assert.match(readSectionFeature('export const section = { key: KEY, feature: "wallet" };').problem, /key/);
 });
 
-test("設定の節の feature から /admin/settings/<key> を規則の settingPaths と pathPatterns に導き、規則名でない feature は止める", () => {
+test("設定の節の feature から /admin/settings/<key> を導き、生成一覧の settingSections(住所・名指す機能)に載せる(規則の pathPatterns には足さず settingPaths は説明用)。規則名でない feature は止める", () => {
   const R = 'export const rule: FeatureGateRule = { pathPatterns: ["/x"], enabled: () => true };\n';
   const root = fixture({ "rules/wallet.ts": R, "rules/payment.ts": R, "rules/plain.ts": R });
   const dir = join(root, "src/features/core/setting/sections");
@@ -250,7 +250,13 @@ test("設定の節の feature から /admin/settings/<key> を規則の settingP
     itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.settingPaths.join("|")}`),
     ["payment:/admin/settings/shop", "plain:", "wallet:/admin/settings/coins|/admin/settings/shop"],
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], dependsOn: \[\], pathPatterns: \[\.\.\.rules_payment\.pathPatterns, "\/admin\/settings\/shop"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], dependsOn: \[\] \},/);
+  // 名指しの読めない節(typo)は載せない。並びは住所の順
+  assert.match(
+    plan.outputs[GATE_RULES],
+    /export const settingSections: GatedSettingSection\[\] = \[\n  \{ path: "\/admin\/settings\/coins", features: \["wallet"\] \},\n  \{ path: "\/admin\/settings\/shop", features: \["wallet", "payment"\] \},\n\];/,
+  );
+  assert.doesNotMatch(plan.outputs[GATE_RULES], /pathPatterns: \[\.\.\.rules_/);
   // この fixture は setting の受け口(overrideOf)を宣言しないので、shop.override.ts は孤立の検査(orphans.mjs)にも止まる
   const problems = plan.problems.filter((p) => !p.startsWith("src/features/core/setting/sections/shop.override.ts: この上書きを受ける点が無い"));
   assert.equal(problems.length, 1, problems.join("\n"));

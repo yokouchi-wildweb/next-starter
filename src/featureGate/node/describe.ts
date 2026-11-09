@@ -74,8 +74,7 @@ export type FeatureFacts = {
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
   const enabledOf = new Map(rules.map((rule) => [rule.name as string, ruleEnabled(rule)]));
   return rules.map((rule) => {
-    // pathPatterns の後ろに足されているのは設定の節の住所だけ(汎用 API・cron はドメインに付き、pathPatterns に入らない)
-    const derived = rule.settingPaths.length;
+    // pathPatterns は手書きだけ(汎用 API・cron はドメインに、設定の節は節に付き、pathPatterns に入らない)
     const enabled = enabledOf.get(rule.name)!;
     const state = facts.switchState?.[rule.name];
     const config = state?.configEnabled ?? enabled;
@@ -97,7 +96,7 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
       openedBySwitch,
       required: facts.required[rule.name] ?? null,
       paths: {
-        handWritten: rule.pathPatterns.slice(0, rule.pathPatterns.length - derived),
+        handWritten: [...rule.pathPatterns],
         domainApi: [...rule.domainApiPaths],
         setting: [...rule.settingPaths],
         cron: [...rule.cronPaths],

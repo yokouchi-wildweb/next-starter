@@ -1,7 +1,8 @@
 // src/featureGate/checks/domainOpen.test.ts
 // ドメインの開閉と導出の住所(D24・D34 K4)の回帰テスト:
 // - ドメインの開閉(ruleList.ts の closedDomainsOf・domainEnabled): 開 = そのドメインを features に持つ規則のどれかが開。どの規則にも載らないドメインは常に開
-// - 導出の住所(closedDerivedEntries): 汎用 API = ドメインが閉なら閉、cron = 読むドメインのどれかが閉なら閉。rule・redirectTo = 閉じた持ち主のうち一覧の順で最初
+// - 導出の住所(closedDerivedEntries): 汎用 API = ドメインが閉なら閉、cron = 読むドメインのどれかが閉なら閉、設定の節 = 名指す機能のどれかが閉なら閉。
+//   rule・redirectTo = 閉じた持ち主(と閉じた名指し)のうち一覧の順で最初
 // - 表(closedTables): 閉じたドメインの表だけ
 // - 判定(resolvePath・closedPathEntries): 手書き + 導出、当たった閉じた住所のうち一番細かい一致(長い住所、同じ長さは = の完全一致)
 // 規則の一覧は作り物(ドメインは生成一覧の domains の実物 core/wallet・core/walletHistory・core/coupon を使う)。実行: pnpm test src/featureGate/checks/domainOpen.test.ts
@@ -91,4 +92,19 @@ test("判定: 当たった閉じた住所のうち一番細かい一致の rule 
   const open = list.map((r) => (r.name === "referral" ? rule("referral", [], true, { pathPatterns: ["/admin/coupons/invite"] }) : r));
   assert.deepEqual(resolvePath("/admin/coupons/invite", open), { open: false, rule: "coupon", redirectTo: "/coupon-closed" });
   assert.deepEqual(resolvePath("/elsewhere", list), { open: true });
+});
+
+test("設定の節: 名指す機能が全部開のときだけ開く(2 機能を名指す節は片方が閉なら閉)。rule = 閉じた名指しのうち一覧の順で最初、一覧に無い名指しは数えない", () => {
+  const paths: DerivedPath[] = [
+    { pattern: "/admin/settings/shop", kind: "setting", folders: [], features: ["wallet", "payment"] },
+    { pattern: "/admin/settings/coins", kind: "setting", folders: [], features: ["wallet"] },
+  ];
+  const at = (list: GatedFeatureRule[]) => closedDerivedEntries(list, paths).map((e) => `${e.pattern}:${e.rule}`);
+  assert.deepEqual(at([rule("payment", [], false), rule("wallet", [], true)]), ["/admin/settings/shop:payment"]);
+  assert.deepEqual(at([rule("payment", [], false), rule("wallet", [], false)]), ["/admin/settings/shop:payment", "/admin/settings/coins:wallet"]);
+  assert.deepEqual(at([rule("payment", [], true), rule("wallet", [], true)]), []);
+  assert.deepEqual(at([rule("wallet", [], true)]), [], "一覧に無い名指し(payment)は閉とみなさない");
+  // 判定: 節の住所は手書きの前方一致(/admin/settings)より細かい
+  const list = [rule("settingsAll", [], false, { pathPatterns: ["/admin/settings"] }), rule("payment", [], false), rule("wallet", [], true)];
+  assert.equal(closedPathEntries(list).find((e) => e.pattern === "/admin/settings/shop")?.rule, undefined, "既定の導出の住所(上流は節 0)には無い");
 });

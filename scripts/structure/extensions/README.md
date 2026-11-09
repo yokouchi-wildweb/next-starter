@@ -40,7 +40,7 @@ export const extensionPoints = {
   - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `pnpm workflow ownership check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`)
   - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る。上書きが権限を広げないか(キー・セクションの `allowRoles` と `ui.section` を字面で読み、重ねる前と後の実効の権限を比べる)も見る(`derive/settingRoles.mjs`)
-  - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダ(ドメインの位置 `core/<名前>` か `<名前>`。無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`。項目の `pathPatterns` の後ろにも足す)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `features` のフォルダに当たる → `/api/cron/<名>`。規則に手書きした `/api/cron/` は止める)を導き(`tables`・`domainApiPaths`・`cronPaths` は説明用で `pathPatterns` に足さない)、生成一覧にドメインの表 `domains`(フォルダ・表・汎用 API の住所・持つ機能)と cron の task の表 `cronTasks`(住所・読むドメイン)を出し(開閉はドメインの開閉、`src/featureGate/README.md`「ドメインの開閉」)、規則の `dependsOn`(機能の名前の文字列リテラルの配列)を字面で読んで `dependsOn` に写し(書かない規則は空。非リテラル・自分・重複・未知の名前・輪は止める、`derive/gateDependsOn.mjs`)、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
+  - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダ(ドメインの位置 `core/<名前>` か `<名前>`。無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `features` のフォルダに当たる → `/api/cron/<名>`。規則に手書きした `/api/cron/` は止める)を導き(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths` は説明用で `pathPatterns` に足さない)、生成一覧にドメインの表 `domains`(フォルダ・表・汎用 API の住所・持つ機能)・cron の task の表 `cronTasks`(住所・読むドメイン)・設定の節の表 `settingSections`(住所・名指す機能)を出し(開閉はドメインの開閉と節自身の判定、`src/featureGate/README.md`「ドメインの開閉」)、規則の `dependsOn`(機能の名前の文字列リテラルの配列)を字面で読んで `dependsOn` に写し(書かない規則は空。非リテラル・自分・重複・未知の名前・輪は止める、`derive/gateDependsOn.mjs`)、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - 受け口でない点(一覧はこの生成器が書かない。受け口のフォルダの行も無い。判定 `isListPoint`):
   - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
   - `placement: "<置き場の glob>"` + `kind: "edit" | "append"` … 置き場の点(型 4)。fork が書いてよい場所(リポジトリ直下から、`src/` 始まり)とその書き方。受け口の一覧の行になるだけ(項目も一覧も無い)
@@ -130,7 +130,7 @@ export const extensionPoints = {
 | `frames.mjs` | 枠の表(frame.default.ts / frame.ts の解決) |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables・domainApiPaths) |
 | `derive/gateDependsOn.mjs` | 規則の dependsOn の字面の読みと検査(未知・自分・重複・輪・非リテラル) |
-| `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingPaths) |
+| `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingSections・説明用の settingPaths) |
 | `derive/settingRoles.mjs` | setting の上書きは権限を絞るだけ(広げる上書きを止める) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
 | `switches.mjs` / `overrides.mjs` | 1 行スイッチの形、上流の override の検査 |
