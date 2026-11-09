@@ -12,7 +12,7 @@ mailbox: `~/.team/orders/` (shared folder; real place = `root:` of `mailbox.mjs 
 - **own inbox** = `<root>/<own fork-id>/` (fork-id = `fork_id:` of `.claude/rules/project.md`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
 - unhandled = `*.md` directly in the inbox | handled = moved to the inbox's `done/`
 - **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a council / guild / legate plan (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)
-  - transitions stay in the order's trailing `## STATUS_LOG` | never edit the state by hand → `mailbox.mjs route | take | release | resolve`
+  - transitions stay in the order's trailing `## STATUS_LOG` | never edit the state by hand → `mailbox.mjs route | take | release | unroute | resolve`
 - **owner guard**:
   - taking = when the human approves the first proposal after reading the order (HANDLE step 3) → record it with `node .claude/skills/order/mailbox.mjs take <order>` | reading, choosing or launching is not taking (quest and guild too)
   - open = anyone may take | routed = only the routed target (otherwise mailbox.mjs prints the owner and refuses)

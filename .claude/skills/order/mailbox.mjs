@@ -15,6 +15,7 @@
 //                            振り分ける: open | routed → routed（振り直し可）。着手中は断る
 //   node mailbox.mjs take <指令> [--as=<id>]      着手する: open → taken。routed は振り分け先の本人だけ（違えば担当を出して断る）
 //   node mailbox.mjs release <指令> [--as=<id>] [--force=<理由>]   手放す: taken → 取る前の状態（取った者だけ）
+//   node mailbox.mjs unroute <指令> [--as=<id>] [--force=<理由>]   振り分けを外す: routed → open（振り分け先か振り分けた者だけ）
 //   node mailbox.mjs name-check <名前>   その名前を自リポの fork_id: にしてよいか（形・fleet.conf・手元のリポ・既存の受信箱と
 //                            重ならないか。/fork-init が名前を決めるときに使う。重なれば理由を出して exit 1）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
@@ -441,6 +442,22 @@ export function releaseOrder(orderPath, { actor, as, force, now = isoNow() }) {
   return { from: s, to: back };
 }
 
+// 振り分けを外す: routed → open（routed_* は消える。ログに残る）。振り分け先の本人か振り分けた者だけ（force = 理由）。
+// 着手中は断る（取った者が release してから）
+export function unrouteOrder(orderPath, { actor, as, env = {}, force, now = isoNow() }) {
+  const text = liveOrder(orderPath);
+  const s = orderStatus(text);
+  if (s !== "routed") throw new Error(`振り分けられていません（${s === "taken" ? whoHas(text) : s}）${s === "taken" ? ": 外すなら取った者が release してから" : ""}`);
+  const to = headField(text, "routed_to");
+  const who = as || actor;
+  const mine = routedMatches(to, actor, as, env) || sameActor(headField(text, "routed_by"), who);
+  if (!mine && !force) throw new Error(`振り分け先は別の担当です: routed to ${to}（外すなら --force=<理由>）`);
+  const next = setHead(text, { status: "open", routed_to: null, routed_by: null, routed_at: null });
+  const why = mine ? "" : ` | forced:${force} (was routed to ${to})`;
+  writeAtomic(orderPath, appendLog(next, `- ${now} routed → open | to:${to} | by:${who}${why}`));
+  return { from: s, to: "open" };
+}
+
 // 答えてよいか: 他人の taken・別の振り分け先の routed は断る（force = 理由。RESOLUTION の forced: に残る）
 function resolveGuard(text, { actor, as, env, force }) {
   if (!actor) return "";
@@ -568,18 +585,20 @@ function main() {
       if (questOnly && !isQuest(readFileSync(p, "utf8"))) continue;
       printOrder(p, actor, process.env);
     }
-  } else if (["route", "take", "release"].includes(cmd)) {
+  } else if (["route", "take", "release", "unroute"].includes(cmd)) {
     const args = process.argv.slice(3);
     const file = args.find((a) => !a.startsWith("--"));
     const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
     try {
-      if (!file) throw new Error(`usage: node mailbox.mjs ${cmd} <指令ファイル> ${{ route: "--to=<id> [--by=]", take: "[--as=<id>]", release: "[--as=<id>] [--force=<理由>]" }[cmd]}`);
+      if (!file) throw new Error(`usage: node mailbox.mjs ${cmd} <指令ファイル> ${{ route: "--to=<id> [--by=]", take: "[--as=<id>]", release: "[--as=<id>] [--force=<理由>]", unroute: "[--as=<id>] [--force=<理由>]" }[cmd]}`);
       const path = file.replace(/^~(?=\/)/, homedir());
       const r = cmd === "route"
         ? routeOrder(path, { to: opt(args, "to"), by: opt(args, "by") || actor })
         : cmd === "take"
           ? takeOrder(path, { actor, as: opt(args, "as"), env: process.env })
-          : releaseOrder(path, { actor, as: opt(args, "as"), force: opt(args, "force") });
+          : cmd === "release"
+            ? releaseOrder(path, { actor, as: opt(args, "as"), force: opt(args, "force") })
+            : unrouteOrder(path, { actor, as: opt(args, "as"), env: process.env, force: opt(args, "force") });
       console.log(`${cmd}: ${r.from} → ${r.to} ${path}`);
     } catch (e) {
       console.error(`${cmd}: ${e.message}`);
@@ -610,7 +629,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | resolve <指令ファイル> --status=… --body=<ファイル>");
+    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | unroute <指令> | resolve <指令ファイル> --status=… --body=<ファイル>");
     process.exit(1);
   }
 }

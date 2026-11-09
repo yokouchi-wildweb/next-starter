@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { actorOf, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder } from "./mailbox.mjs";
+import { actorOf, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder, unrouteOrder } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -291,6 +291,28 @@ test("resolve の守り: 他人の taken・別の振り分け先は断る。--fo
   assert.doesNotMatch(text, /forced:/);
 });
 
+test("unroute: routed → open（振り分け先・振り分けた者だけ、--force は理由を残す）。着手中・未振り分けは断る", () => {
+  const { file } = box();
+  assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分けられていません（open）/);
+  routeOrder(file, { to: "guild:g1", by: "council c1 | role:Archon", now: "T1" });
+  assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分け先は別の担当です: routed to guild:g1/);
+  unrouteOrder(file, { actor: GUILD, env: GUILD_ENV, now: "T2" });
+  assert.equal(head(file, "status"), "open");
+  assert.equal(head(file, "routed_to"), undefined);
+  assert.equal(head(file, "routed_by"), undefined);
+  assert.equal(head(file, "routed_at"), undefined);
+  assert.match(readFileSync(file, "utf8"), /\n- T2 routed → open \| to:guild:g1 \| by:guild g1 \| role:Architect\n$/);
+  routeOrder(file, { to: "quest:qa", by: "council c1 | role:Archon", now: "T3" });
+  unrouteOrder(file, { actor: "council c1 | role:Archon", now: "T4" });
+  assert.equal(head(file, "status"), "open");
+  routeOrder(file, { to: "quest:qa", by: "council c1 | role:Archon" });
+  takeOrder(file, { actor: "quest qa | role:Seeker", env: { TK_TEAM: "quest", TK_INSTANCE: "qa" } });
+  assert.throws(() => unrouteOrder(file, { actor: "quest qa | role:Seeker", env: { TK_TEAM: "quest", TK_INSTANCE: "qa" } }), /振り分けられていません（taken by quest qa.*release してから/);
+  releaseOrder(file, { actor: "quest qa | role:Seeker" });
+  unrouteOrder(file, { actor: ME, force: "quest gone", now: "T9" });
+  assert.match(readFileSync(file, "utf8"), /- T9 routed → open \| to:quest:qa \| by:.* \| forced:quest gone \(was routed to quest:qa\)\n$/);
+});
+
 test("route / take / release は done/ の指令・答え済みの指令を断る", () => {
   const { file } = box();
   const dest = resolveOrder(file, { status: "withdrawn", body: "notes: x\n", by: BY });
@@ -318,6 +340,7 @@ test("CLI: take / route と inbox の状態・担当・(you)", () => {
   cli({}, "route", file, "--to=guild:g1");
   assert.match(cli(GUILD_ENV, "inbox"), /\nrouted .*\n[\s\S]*  routed_to: guild:g1 \(you\)\n/);
   assert.throws(() => cli({}, "take", file), (e) => /振り分け先が別です: routed to guild:g1/.test(e.stderr));
+  assert.match(cli(GUILD_ENV, "unroute", file), /^unroute: routed → open /);
 });
 
 // リポの名前 = project.md の fork_id:（~/.team/_bin の tk_fork_id_of と同じ規則）。未宣言は移行中だけ旧い導き方

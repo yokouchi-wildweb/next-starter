@@ -16,9 +16,9 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
 - **order state** (head `status:`, one value): `open` → `routed` (routed to a council / guild / legate plan; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
   - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
-- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | resolve>` (run at the repo root)
+- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | unroute | resolve>` (run at the repo root)
   - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
-  - `route <order> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = route | `take <order> [--as=]` = take | `release <order>` = let go
+  - `route <order> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = route | `take <order> [--as=]` = take | `release <order>` = let go | `unroute <order>` = take a route back (routed → open; the owner it was routed to or the one who routed it, else `--force=<reason>`)
   - `name-check` = may this name become this repo's fork_id: (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
   - `resolve` = answer an order: append the RESOLUTION and move to done/ | env `ORDER_RESOLVED_HOOK` (path of an executable) set → after answering it is called with the done/ order's path (unset → nothing; team tabs use it to notify the sender)
   - `inbox --quest` = quests (`kind: quest`) only | steps: `.claude/skills/inbox/SKILL.md` step 4
@@ -63,7 +63,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
    - `title:` = a short Japanese title humans read in lists (team launch screens, `mailbox.mjs inbox`) | a noun phrase of about 20 chars saying what is done (e.g. `チャットルームの UID 不一致を直す`) | the list shows title and id side by side → no id or date in the title
    - `kind: quest` = the mark of a quest (an order finished in one `quest <id>` tab) | this field is the only source of the mark: never put a mark like `【★クエスト】` in the title (lists, quest's launch screen and candidate picking read this field)
      - when a quest answers and the sender is a council / guild / quest lead, the team tools notify it automatically (the sender need not write "notify me" in notes)
-   - `status:` = `open` at filing | afterwards only mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); never by hand)
+   - `status:` = `open` at filing | afterwards only mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, unroute → open, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); never by hand)
 4. **write the file without asking first** (create the inbox folder if missing) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
    - path: `<target box>/<ts>-<slug>.md`
 5. after writing, report in Japanese:
