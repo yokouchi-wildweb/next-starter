@@ -15,8 +15,8 @@ import type { GatedFeatureRule } from "../types";
 
 /** 上流の例外: 住所(正規化) → 理由 */
 export const ADDRESS_EXCEPTIONS: Readonly<Record<string, string>> = {
-  "/admin/notification-templates": "テンプレートの管理画面 ↔ テンプレートの組は連絡の議会の直しの後(計画書の OUT_OF_SCOPE)",
-  "/api/notificationTemplate": "同上(テンプレートの管理画面の手書きと notificationTemplate の汎用 API の導出)",
+  "/api/notificationTemplate":
+    "テンプレートの汎用 API はお知らせ(notification)のドメインの導出で、管理画面の機能 adminNotificationTemplates(notification に dependsOn、既定で閉)も手書きで閉じる。管理画面を閉じれば API も閉じる今の答えを保つ(連絡の議会の次の区切り、テンプレートで送る機能・messaging への移行で見直す)",
 };
 
 type Rule = Pick<GatedFeatureRule, "name" | "pathPatterns" | "features" | "dependsOn">;

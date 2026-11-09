@@ -303,9 +303,7 @@ const foreignKeys = Object.values(schema)
   .filter((value) => is(value, PgTable))
   .flatMap((table) => getTableConfig(table).foreignKeys.map((fk) => ({ from: getTableName(table), to: getTableName(fk.reference().foreignTable) })));
 /** 上流の例外: "<表>→<参照先の表>" → 理由(当たらない行は失敗) */
-const FOREIGN_KEY_EXCEPTIONS = {
-  "notifications→notification_templates": "お知らせ ↔ テンプレートの組は連絡の議会の直しの後(計画書の OUT_OF_SCOPE)。それまではテンプレートの機能が常に開",
-};
+const FOREIGN_KEY_EXCEPTIONS = {};
 
 test("外部キー: 機能をまたぐ外部キーはドメインの requires と機能の dependsOn の両方で覆う(参照先だけが閉じて db:push が止まる組み合わせを作らない)", () => {
   assert.deepEqual(checkForeignKeys({ list: configRules, domains: domainFacts, foreignKeys, exceptions: FOREIGN_KEY_EXCEPTIONS }), []);

@@ -37,7 +37,7 @@ const CHAINS: { parent: FeatureName; children: FeatureName[]; path: string }[] =
   },
   { parent: "coupon", children: ["referral"], path: "/admin/coupons/invite" },
   { parent: "wallet", children: ["payment", "bankTransferReview"], path: "/admin/bank-transfer-reviews" },
-  { parent: "notification", children: ["notificationBroadcast"], path: "/admin/notifications" },
+  { parent: "notification", children: ["notificationBroadcast", "adminNotificationTemplates"], path: "/admin/notification-templates" },
   { parent: "chatRoom", children: ["adminChatRooms"], path: "/admin/chat-rooms" },
   { parent: "demoLogin", children: ["adminDemoUsers"], path: "/admin/users/demo" },
   { parent: "wallet", children: ["couponAttributionReward", "walletAnalytics"], path: "/api/me/coupon-attribution-rewards" },

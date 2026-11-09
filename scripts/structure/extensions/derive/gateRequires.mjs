@@ -6,10 +6,7 @@
 // 上流の例外は理由つきの縮む表(当たらない行は失敗)
 
 /** 上流の例外: "<機能>:<ドメインのフォルダ>→<requires の先のフォルダ>" → 理由 */
-export const REQUIRES_EXCEPTIONS = {
-  "notification:core/notification→core/notificationTemplate":
-    "お知らせ ↔ テンプレートの組は連絡の議会の直しの出荷の後に後追いの指令で(計画書の OUT_OF_SCOPE)。それまではテンプレートの機能が常に開",
-};
+export const REQUIRES_EXCEPTIONS = {};
 
 /**
  * @param {{ path: string, name: string, features: string[], dependsOn: string[] }[]} items 規則の項目(読めた物)
