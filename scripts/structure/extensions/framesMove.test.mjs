@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
+import { closeTmp, commitAll, git as tgit, makeFork, makeParent, openTmp, write } from "../../../src/lib/forkOwnership/testRepos.mjs";
 import { planFramesMove, runFramesMove } from "./framesMove.mjs";
 
 const page = "export default function Page() { return null; }\n";
@@ -86,7 +87,7 @@ test("止まる: 行き先が既にある・export が読めない。--json の�
     const out = [];
     assert.equal(runFramesMove(root, ["--base", base, "--json"], { stdout: { write: (t) => out.push(t) } }), 1);
     const json = JSON.parse(out.join(""));
-    assert.deepEqual(Object.keys(json), ["apply", "base", "moves", "stops"]);
+    assert.deepEqual(Object.keys(json), ["apply", "base", "upstreamTrees", "moves", "stops"]);
     assert.deepEqual(json.moves, []);
     assert.deepEqual(json.stops.map((s) => s.path), ["src/app/(user)/frame.ts", "src/app/(user)/mypage/account/email/frame.ts"]);
     assert.match(json.stops[0].why, /行き先 .*frame\.override\.ts が既にある/);
@@ -95,5 +96,43 @@ test("止まる: 行き先が既にある・export が読めない。--json の�
     assert.match(err.join(""), /基準の版が決まらない/);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("上流が改名した frame.ts は 0 件: 台帳の行を書く前(基準 = 前の区間)でも、取り込み中(MERGE_HEAD)も取り込んだ後(親との分岐点)も上流の物は挙げない", () => {
+  openTmp();
+  try {
+    const parent = makeParent();
+    write(parent, "src/app/(user)/layout.tsx", page);
+    write(parent, "src/app/(user)/frame.default.ts", "export const frameDefault = { layout: {} };\n");
+    write(parent, "src/app/(user)/maintenance/page.tsx", page);
+    write(parent, "src/app/(user)/maintenance/frame.default.ts", "export const frameDefault = { page: {} };\n");
+    commitAll(parent, "routes");
+    const fork = makeFork(parent);
+    // 前の区間の後(台帳の upstream: = この版)。fork 自身のルートの既定は 1 本
+    write(fork, "src/app/(user)/mine/page.tsx", page);
+    write(fork, "src/app/(user)/mine/frame.default.ts", "export const frameDefault = { page: { fill: true } };\n");
+    commitAll(fork, "own route");
+    // 上流が改名する(2 段目)
+    tgit(parent, "mv", "src/app/(user)/frame.default.ts", "src/app/(user)/frame.ts");
+    tgit(parent, "mv", "src/app/(user)/maintenance/frame.default.ts", "src/app/(user)/maintenance/frame.ts");
+    write(parent, "src/app/(user)/frame.ts", "export const frame = { layout: {} };\n");
+    write(parent, "src/app/(user)/maintenance/frame.ts", "export const frame = { page: {} };\n");
+    commitAll(parent, "rename");
+    tgit(fork, "fetch", "-q", "upstream");
+    const moved = (plan) => plan.moves.map((m) => m.from);
+    // 取り込み中(merge --no-commit、/flux の手順の時点)
+    tgit(fork, "merge", "--no-commit", "--no-ff", "-q", "upstream/main");
+    const during = planFramesMove(fork);
+    assert.deepEqual(moved(during), ["src/app/(user)/mine/frame.default.ts"], "上流の frame.ts 2 本は挙げない");
+    assert.deepEqual(during.stops, []);
+    assert.ok(during.upstreamTrees.some((t) => t.startsWith("MERGE_HEAD")));
+    // 取り込んだ後(台帳の行はまだ前の版)
+    tgit(fork, "commit", "-q", "--no-edit");
+    const after = planFramesMove(fork);
+    assert.deepEqual(moved(after), ["src/app/(user)/mine/frame.default.ts"]);
+    assert.ok(after.upstreamTrees.some((t) => t.startsWith("merge-base")));
+  } finally {
+    closeTmp();
   }
 });

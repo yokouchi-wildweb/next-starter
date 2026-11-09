@@ -20,7 +20,7 @@ export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").rep
 export const isOverridePath = (path) => {
   const name = path.slice(path.lastIndexOf("/") + 1);
   if (!OVERRIDE_FILE.test(name)) return false;
-  // src/app の frame.override.ts は override ではない(枠の宣言は frame.default.ts / frame.ts。止めるのは frames.mjs)
+  // src/app の frame.override.ts は override ではない(枠の宣言は frame.ts / frame.override.ts。止めるのは frames.mjs)
   if (FRAME_OVERRIDE.test(path)) return false;
   return true;
 };

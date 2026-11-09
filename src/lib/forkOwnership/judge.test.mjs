@@ -226,7 +226,19 @@ describe("judge", () => {
     assert.equal(one("src/app/(user)/mine/frame.override.ts").reason, "override-own", "fork 自身のルートは frame.ts に書く");
   });
 
-  test("既定(*.default.*): 親のファイルのあるフォルダへの追加は default-add、親の既定の書き換えは default-edit、自分のフォルダの自分の既定と隣の frame.ts は合格", () => {
+  test("A: 親のルートの隣に印なしの frame.ts を足すのは frame-plain(違反)、fork 自身のルートの frame.ts は added", () => {
+    const baseFiles = ["src/app/(user)/layout.tsx", "src/app/(user)/frame.ts", "src/app/(user)/mypage/account/email/page.tsx"];
+    const places = unitPlaces(baseFiles, () => null);
+    const baseUnits = unitIndex(baseFiles);
+    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
+    const plain = one("src/app/(user)/mypage/account/email/frame.ts");
+    assert.equal(plain.reason, "frame-plain");
+    assert.equal(plain.verdict, "violation");
+    assert.equal(one("src/app/(user)/mine/frame.ts").reason, "added", "fork 自身のルートはルートを作ったリポの名前");
+    assert.equal(one("src/app/(user)/mypage/account/email/frame.override.ts").reason, "added");
+  });
+
+  test("既定(*.default.*): 親のファイルのあるフォルダへの追加は default-add、親の既定の書き換えは default-edit、自分のフォルダの自分の既定と隣の frame.override.ts は合格", () => {
     const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(public)/news/frame.default.ts", "src/app/(user)/(protected)/layout.tsx", "src/features/core/x/services/server/enricher.default.ts"];
     const places = unitPlaces(baseFiles, () => null);
     const baseUnits = unitIndex(baseFiles);
@@ -238,8 +250,9 @@ describe("judge", () => {
     assert.equal(edit.reason, "default-edit");
     assert.equal(edit.verdict, "violation");
     assert.equal(one("M", "src/features/core/x/services/server/enricher.default.ts").reason, "default-edit");
-    assert.equal(one("A", "src/app/(user)/(public)/news/frame.ts").reason, "added", "上流のルートの隣の frame.ts");
-    assert.equal(one("A", "src/app/(user)/(protected)/frame.ts").reason, "added");
+    assert.equal(one("A", "src/app/(user)/(public)/news/frame.override.ts").reason, "added", "上流のルートの隣の frame.override.ts");
+    assert.equal(one("A", "src/app/(user)/(protected)/frame.override.ts").reason, "added");
+    assert.equal(one("A", "src/app/(user)/(protected)/frame.ts").reason, "frame-plain", "上流のルートの隣の印なしの frame.ts");
     assert.equal(one("A", "src/app/(user)/(public)/mine/frame.default.ts").reason, "added", "自分のフォルダの自分の既定(中間 Tier の既定)");
     assert.equal(one("A", "src/features/mine/x.default.ts").reason, "added");
     assert.equal(judge({ changes: [{ status: "M", path: "src/x/a.default.ts" }], baseText: () => "a", headText: () => "b", baseLibs: [], intake }).entries[0].reason === "default-edit", false, "places を渡さなければ見ない");

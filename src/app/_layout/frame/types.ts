@@ -1,6 +1,6 @@
 // src/app/_layout/frame/types.ts
-// 枠の宣言(frame.default.ts / frame.ts)と生成した表の型。キーの union は ./parts.mjs の hideableParts と同じ(./parts.test.mjs が照らす)。
-// 書き方: export const frame = { page: { hide: { bottomNav: { sp: true } } } } satisfies FrameDeclaration;(ルートを作ったリポの既定は frameDefault。admin の下は AdminFrameDeclaration)
+// 枠の宣言(frame.ts / frame.override.ts)と生成した表の型。キーの union は ./parts.mjs の hideableParts と同じ(./parts.test.mjs が照らす)。
+// 書き方: export const frame = { page: { hide: { bottomNav: { sp: true } } } } satisfies FrameDeclaration;(下のリポの frame.override.ts は export const override。admin の下は AdminFrameDeclaration)
 
 /** 端末ごとの隠す指定(省略 = 親のまま、false = 親の指定の取り消し) */
 export type FramePartSetting = { readonly sp?: boolean; readonly pc?: boolean };
@@ -27,7 +27,7 @@ type Declaration<K extends string> = {
 export type FrameValue = Value<UserFrameKey>;
 /** 管理の枠の 1 つの範囲の値 */
 export type AdminFrameValue = Value<AdminFrameKey>;
-/** 利用者の枠の宣言(frame.default.ts の frameDefault・frame.ts の frame) */
+/** 利用者の枠の宣言(frame.ts の frame・frame.override.ts の override) */
 export type FrameDeclaration = Declaration<UserFrameKey>;
 /** 管理の枠の宣言 */
 export type AdminFrameDeclaration = Declaration<AdminFrameKey>;

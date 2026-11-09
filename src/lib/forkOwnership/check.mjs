@@ -344,7 +344,7 @@ export function reassignMiddleTier(entries, tier1Files) {
   for (const entry of entries) {
     if (entry.verdict !== "violation") continue;
     // 同名・自分の項目への override・親の既定(*.default.*)の追加と書き換えは持ち主によらず止める(中間 Tier の物にしない。中間 Tier の既定も親の物、D169)
-    if (entry.reason === "unit-clash" || entry.reason === "override-own" || entry.reason === "default-add" || entry.reason === "default-edit") continue;
+    if (entry.reason === "unit-clash" || entry.reason === "override-own" || entry.reason === "default-add" || entry.reason === "default-edit" || entry.reason === "frame-plain") continue;
     const target = entry.status === "R" ? entry.from : entry.path;
     // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
     const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;

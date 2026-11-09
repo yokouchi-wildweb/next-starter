@@ -18,8 +18,7 @@ import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/
 const FIXED_ROWS = [
   "add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き換え(_layout の隣の <名前>.replace)",
   "add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)",
-  "add src/app/**/frame.ts  # 枠の宣言の旧い名前(移行中。下のリポの宣言は frame.override.ts、src/app/_layout/frame/README.md)",
-  "add src/app/**/frame.override.ts  # 枠の宣言(下のリポ。上流のルートの隣でも自分のルートでも。ルートを作ったリポの既定は frame.default.ts、src/app/_layout/frame/README.md)",
+  "add src/app/**/frame.override.ts  # 枠の宣言(下のリポ。相手 = 上流のルート。ルートを作ったリポの宣言は frame.ts、src/app/_layout/frame/README.md)",
 ];
 
 /** 実在のパスを、そのパスだけに当たる glob にする(node:path の matchesGlob。[slug] などの字の組・* ? は [x] で包む。\ の逃がしは効かない) */

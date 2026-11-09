@@ -1,7 +1,7 @@
 // src/app/_layout/frame/resolve.mjs
 // 枠の宣言の形の検査・親の鎖と override の重ね・表の照合(純関数。生成器と実行時の読み手が共有する)。
 // 宣言の形: { layout?: <値>, page?: <値> }、<値> = { hide?: { <キー>: { sp?: boolean, pc?: boolean } }, fill?: boolean }(キーは ./parts.mjs の hideableParts)
-// 重ね: 浅い段から layout(frame.default.ts → frame.ts)、葉の段で最後に page(frame.default.ts → frame.ts)。
+// 重ね: 浅い段から layout(frame.ts → frame.override.ts)、葉の段で最後に page(frame.ts → frame.override.ts)。
 // 部位と端末ごとに上書き(省略 = 親のまま、false = 親の指定の取り消し、後が勝つ)。
 // 表の行は生成時に解決済みの最終の値なので、照合は当たる行を 1 つ選ぶだけ(重ねない)。仕組み: ./README.md
 

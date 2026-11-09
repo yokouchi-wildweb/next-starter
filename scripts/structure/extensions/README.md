@@ -84,7 +84,7 @@ export const extensionPoints = {
 
 - 検査(`pnpm check extensions`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 孤立した `<名前>.replace` は下の孤立の検査
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
-- `.default` は作ったリポが出す既定の共通の印(D171)で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
+- `.default` は作ったリポが出す既定の共通の印(D171)で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`: 枠の宣言は `.default` を使わず frames.mjs が失敗にするが、スイッチの既定と取り違えさせないため名乗る。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
 - page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test src/lib/screens/screens.test.mjs`)
 
 ## override(既定を変える隣のファイル)
@@ -99,11 +99,12 @@ export const extensionPoints = {
 - **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `pnpm check extensions`(`overrides.mjs`)
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry/discover.mjs`)
 
-## 枠の表(frame.default.ts / frame.ts の宣言から)
+## 枠の表(frame.ts / frame.override.ts の宣言から)
 
-- `src/app` の `frame.default.ts`(ルートを作ったリポの既定、`frameDefault`)と `frame.ts`(その下のリポの宣言、`frame`。既定の上に重なる)を `frames.mjs` が字面で読み(`literalOf`)、親の鎖を解決した表を枠の根ごとに `<枠の根>/_layout/extensions/frameTable.ts` へ書く(`src/app/(user)`・`src/app/admin`。一覧の数に入る)。範囲はキー `layout` / `page` で名指す。宣言の書き方・重ねる順・表の形: `src/app/_layout/frame/README.md`
-- 失敗: 枠の外・隣に layout / page が無い・`layout:` / `page:` の相手が無い・キーが無い・知らないキー・private / @slot / intercepting の下・形の違う値・宣言にない部位・ほかの名前(`frame.override.ts` など)・上流(Tier1)の `frame.ts`。全部の部位を隠す宣言は warn(止めない)
-- 親の物の隣に `*.default.*` を足す・親の既定を書き換えるのは `pnpm workflow ownership check` の default-add / default-edit(git の分岐点が要るので生成器は見ない)。親のルートの隣に `frame.ts` を足すのは intake の `add` 行
+- `src/app` の `frame.ts`(ルートを作ったリポの宣言、`frame`)と `frame.override.ts`(その下のリポの宣言、`override`。相手 = そのルート、`frame.ts` の上に重なる)を `frames.mjs` が字面で読み(`literalOf`)、親の鎖を解決した表を枠の根ごとに `<枠の根>/_layout/extensions/frameTable.ts` へ書く(`src/app/(user)`・`src/app/admin`。一覧の数に入る)。範囲はキー `layout` / `page` で名指す。宣言の書き方・重ねる順・表の形: `src/app/_layout/frame/README.md`
+- 失敗: 枠の外・隣に layout / page が無い・`layout:` / `page:` の相手が無い・キーが無い・知らないキー・private / @slot / intercepting の下・形の違う値・宣言にない部位・`frame.default.ts`(どの Tier でも)・ほかの名前・上流(Tier1)の `frame.override.ts`。全部の部位を隠す宣言は warn(止めない)
+- 親のルートの隣に fork が印なしの `frame.ts` を足すのは `pnpm workflow ownership check` の frame-plain(git の分岐点が要るので生成器は見ない)。親のルートの隣の `frame.override.ts` は intake の `add` 行
+- 名前の移し替え: `pnpm check extensions -- frames-move [--base <rev>] [--apply] [--json]`(`framesMove.mjs`、既定 dry-run): 親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`
 
 ## 受け口の一覧の生成区画(intake.txt)
 
@@ -114,7 +115,7 @@ export const extensionPoints = {
 3. 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
 4. 1 行スイッチ: 素の名前 `edit <dir>/<名前>.ts(x)`(向け先を替える)と置き換え `add <dir>/<名前>.replace.{ts,tsx}`
 5. 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
-6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・枠の宣言 `frame.ts`
+6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・下のリポの枠の宣言 `frame.override.ts`
 7. 生成器: 各 `gate.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/gates/README.md`)
 - scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/features/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
@@ -127,7 +128,7 @@ export const extensionPoints = {
 | `src/lib/districtMap/declarations.mjs` | 宣言の探索とリテラルの読み取り(宣言の唯一の読み手。ここには置かない) |
 | `extensions.mjs` | 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 |
 | `intake.mjs` | 受け口の一覧の生成区画の行 |
-| `frames.mjs` | 枠の表(frame.default.ts / frame.ts の解決) |
+| `frames.mjs` / `framesMove.mjs` | 枠の表(frame.ts / frame.override.ts の解決)/ 名前の移し替えの道具(`pnpm check extensions -- frames-move`) |
 | `derive/featureTables.mjs` | 組み込みの変換(規則の features → tables・domainApiPaths) |
 | `derive/gateDependsOn.mjs` | 規則の dependsOn の字面の読みと検査(未知・自分・重複・輪・非リテラル) |
 | `derive/gateRequires.mjs` | 規則の requires の被覆の検査(機能のドメインの requires の先が自分・依存先・基盤のどれか) |

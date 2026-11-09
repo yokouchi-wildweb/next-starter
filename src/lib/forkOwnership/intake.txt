@@ -245,8 +245,7 @@ edit src/features/core/userProfile/profiles/*.profile.override.ts  # 上書き p
 add src/features/core/userProfile/profiles/*.profile.json  # fork が足す profileDefinitions(上流の物の変更は隣の .override.ts)
 add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き換え(_layout の隣の <名前>.replace)
 add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)
-add src/app/**/frame.ts  # 枠の宣言の旧い名前(移行中。下のリポの宣言は frame.override.ts、src/app/_layout/frame/README.md)
-add src/app/**/frame.override.ts  # 枠の宣言(下のリポ。上流のルートの隣でも自分のルートでも。ルートを作ったリポの既定は frame.default.ts、src/app/_layout/frame/README.md)
+add src/app/**/frame.override.ts  # 枠の宣言(下のリポ。相手 = 上流のルート。ルートを作ったリポの宣言は frame.ts、src/app/_layout/frame/README.md)
 region src/registry/**/*.ts  # 生成器 registry の fork の区画
 generated vercel.json  # 生成器 cron の出力
 generated src/features/core/userProfile/entities/profiles/**  # 生成器 role の出力

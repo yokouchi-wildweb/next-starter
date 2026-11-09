@@ -1,7 +1,7 @@
 // 実行: pnpm test scripts/structure/extensions/frames.test.mjs
 // 枠の宣言の生成器(./frames.mjs)を一時フォルダの route の木で確かめる(指令 07 d1-d3、指令 08 AMENDMENT 1・2)。
 // - 試作(.frame-proto)の木: /x/[id] の宣言が /x/new に誤って効かない(静的な兄弟の行)、/x/[id]/edit・catch-all・layout の下の子
-// - 範囲はキー(layout / page)、名前の対 frame.default.ts(既定)/ frame.ts(既定の上に重なる)、重ねる順の全部の組み合わせ
+// - 範囲はキー(layout / page)、名前の対 frame.ts(ルートを作ったリポ)/ frame.override.ts(下のリポ、その上に重なる)、重ねる順の全部の組み合わせ、7 つの形
 // - 失敗: 置き場・隣・形・キー・ファイル名(frame.override.ts など)・上流(Tier1)の frame.ts。全部を隠すと warn
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -26,8 +26,8 @@ function tree(files) {
   return root;
 }
 const page = "export default function Page() { return null; }\n";
+const override = (value) => `import type { FrameDeclaration } from "@/app/_layout/frame";\n\nexport const override = ${JSON.stringify(value)} satisfies FrameDeclaration;\n`;
 const frame = (value) => `import type { FrameDeclaration } from "@/app/_layout/frame";\n\nexport const frame = ${JSON.stringify(value)} satisfies FrameDeclaration;\n`;
-const frameDefault = (value) => `import type { FrameDeclaration } from "@/app/_layout/frame";\n\nexport const frameDefault = ${JSON.stringify(value)} satisfies FrameDeclaration;\n`;
 const both = { sp: true, pc: true };
 const U = "src/app/(user)/(public)/frame-proto";
 
@@ -44,21 +44,21 @@ test("試作の木: 宣言のあるルートだけの表は /x/new に /x/[id] �
   withTree(
     {
       [`${U}/static/page.tsx`]: page,
-      [`${U}/static/frame.default.ts`]: frameDefault({ page: { hide: { footer: both } } }),
+      [`${U}/static/frame.ts`]: frame({ page: { hide: { footer: both } } }),
       [`${U}/device/page.tsx`]: page,
-      [`${U}/device/frame.default.ts`]: frameDefault({ page: { hide: { footer: { sp: true } } } }),
+      [`${U}/device/frame.ts`]: frame({ page: { hide: { footer: { sp: true } } } }),
       [`${U}/x/[id]/page.tsx`]: page,
-      [`${U}/x/[id]/frame.default.ts`]: frameDefault({ page: { hide: { footer: both } } }),
+      [`${U}/x/[id]/frame.ts`]: frame({ page: { hide: { footer: both } } }),
       [`${U}/x/new/page.tsx`]: page,
       [`${U}/x/[id]/edit/page.tsx`]: page,
       [`${U}/c/[...slug]/page.tsx`]: page,
-      [`${U}/c/[...slug]/frame.default.ts`]: frameDefault({ page: { hide: { bottomNav: both } } }),
+      [`${U}/c/[...slug]/frame.ts`]: frame({ page: { hide: { bottomNav: both } } }),
       [`${U}/layouted/layout.tsx`]: page,
       [`${U}/layouted/page.tsx`]: page,
-      [`${U}/layouted/frame.default.ts`]: frameDefault({ layout: { hide: { header: both } } }),
+      [`${U}/layouted/frame.ts`]: frame({ layout: { hide: { header: both } } }),
       [`${U}/layouted/child/page.tsx`]: page,
       [`${U}/layouted/override/page.tsx`]: page,
-      [`${U}/layouted/override/frame.default.ts`]: frameDefault({ page: { hide: { header: { pc: false } } } }),
+      [`${U}/layouted/override/frame.ts`]: frame({ page: { hide: { header: { pc: false } } } }),
       [`${U}/plain/page.tsx`]: page,
     },
     (_root, plan) => {
@@ -88,16 +88,16 @@ test("範囲はキー: layout と page を同じフォルダに書ける、page 
   withTree(
     {
       "src/app/(user)/page.tsx": page,
-      "src/app/(user)/frame.default.ts": frameDefault({ layout: { hide: { bottomNav: { pc: true } } }, page: { fill: true } }),
+      "src/app/(user)/frame.ts": frame({ layout: { hide: { bottomNav: { pc: true } } }, page: { fill: true } }),
       "src/app/(user)/(protected)/layout.tsx": page,
       "src/app/(user)/(protected)/page.tsx": page,
-      "src/app/(user)/(protected)/frame.default.ts": frameDefault({ page: { hide: { footer: both } } }),
+      "src/app/(user)/(protected)/frame.ts": frame({ page: { hide: { footer: both } } }),
       "src/app/(user)/(protected)/x/[id]/page.tsx": page,
-      "src/app/(user)/(protected)/x/[id]/frame.default.ts": frameDefault({ page: { hide: { header: { sp: true } } } }),
+      "src/app/(user)/(protected)/x/[id]/frame.ts": frame({ page: { hide: { header: { sp: true } } } }),
       "src/app/(user)/(protected)/x/new/page.tsx": page,
       "src/app/(user)/(protected)/a/page.tsx": page,
       "src/app/admin/(protected)/layout.tsx": page,
-      "src/app/admin/(protected)/frame.default.ts": frameDefault({ layout: { hide: { sidebar: { sp: true } } } }),
+      "src/app/admin/(protected)/frame.ts": frame({ layout: { hide: { sidebar: { sp: true } } } }),
     },
     (_root, plan) => {
       assert.deepEqual(plan.problems, []);
@@ -114,20 +114,20 @@ test("範囲はキー: layout と page を同じフォルダに書ける、page 
   );
 });
 
-test("重ねる順(全部の組み合わせ): 祖先の layout(既定 → frame)→ 葉の layout(既定 → frame)→ 葉の page(既定 → frame)、後が勝つ", () => {
+test("重ねる順(全部の組み合わせ): 祖先の layout(frame → override)→ 葉の layout(frame → override)→ 葉の page(frame → override)、後が勝つ", () => {
   // 6 つの節(祖先 layout の既定・frame、葉 layout の既定・frame、葉 page の既定・frame)の有無の全部の組み合わせで、
   // 同じ部位と端末(footer.sp)に交互の値を書き、勝つのは並びで最後の節であることを確かめる
   const slots = [
-    ["anc", "default", "layout"],
     ["anc", "frame", "layout"],
-    ["leaf", "default", "layout"],
+    ["anc", "override", "layout"],
     ["leaf", "frame", "layout"],
-    ["leaf", "default", "page"],
+    ["leaf", "override", "layout"],
     ["leaf", "frame", "page"],
+    ["leaf", "override", "page"],
   ];
   for (let mask = 1; mask < 1 << slots.length; mask += 1) {
     const used = slots.map((slot, i) => ({ slot, on: (mask >> i) & 1, value: i % 2 === 0 }));
-    const decl = { anc: { default: {}, frame: {} }, leaf: { default: {}, frame: {} } };
+    const decl = { anc: { frame: {}, override: {} }, leaf: { frame: {}, override: {} } };
     for (const { slot: [where, name, scope], on, value } of used) if (on) decl[where][name][scope] = { hide: { footer: { sp: value } } };
     const files = {
       "src/app/(user)/a/layout.tsx": page,
@@ -136,8 +136,8 @@ test("重ねる順(全部の組み合わせ): 祖先の layout(既定 → frame)
     };
     for (const where of ["anc", "leaf"]) {
       const dir = where === "anc" ? "src/app/(user)/a" : "src/app/(user)/a/b";
-      if (Object.keys(decl[where].default).length > 0) files[`${dir}/frame.default.ts`] = frameDefault(decl[where].default);
       if (Object.keys(decl[where].frame).length > 0) files[`${dir}/frame.ts`] = frame(decl[where].frame);
+      if (Object.keys(decl[where].override).length > 0) files[`${dir}/frame.override.ts`] = override(decl[where].override);
     }
     const winner = used.filter((u) => u.on).at(-1);
     withTree(files, (_root, plan) => {
@@ -147,17 +147,17 @@ test("重ねる順(全部の組み合わせ): 祖先の layout(既定 → frame)
   }
 });
 
-test("frame.ts は既定の上に重なる(部位と端末ごと、下のリポが勝つ)・既定の無いルートにも書ける・空は不在", () => {
+test("frame.override.ts は frame.ts の上に重なる(部位と端末ごと、下のリポが勝つ)・frame.ts の無いルートにも書ける・空は不在", () => {
   withTree(
     {
       "src/app/(user)/a/page.tsx": page,
-      "src/app/(user)/a/frame.default.ts": frameDefault({ page: { hide: { footer: both, header: { sp: true } } } }),
-      "src/app/(user)/a/frame.ts": frame({ page: { hide: { footer: { pc: false }, bottomNav: { sp: true } } } }),
+      "src/app/(user)/a/frame.ts": frame({ page: { hide: { footer: both, header: { sp: true } } } }),
+      "src/app/(user)/a/frame.override.ts": override({ page: { hide: { footer: { pc: false }, bottomNav: { sp: true } } } }),
       "src/app/(user)/b/page.tsx": page,
-      "src/app/(user)/b/frame.ts": frame({ page: { fill: true } }),
+      "src/app/(user)/b/frame.override.ts": override({ page: { fill: true } }),
       "src/app/(user)/c/page.tsx": page,
-      "src/app/(user)/c/frame.default.ts": frameDefault({ page: { hide: { footer: { sp: true } } } }),
-      "src/app/(user)/c/frame.ts": "// 既定のまま\n",
+      "src/app/(user)/c/frame.ts": frame({ page: { hide: { footer: { sp: true } } } }),
+      "src/app/(user)/c/frame.override.ts": "// 既定のまま\n",
     },
     (_root, plan) => {
       assert.deepEqual(plan.problems, []);
@@ -168,34 +168,36 @@ test("frame.ts は既定の上に重なる(部位と端末ごと、下のリポ�
   );
 });
 
-test("失敗: 枠の外・隣に layout / page が無い・layout: / page: の相手が無い・キーが無い・知らないキー・private / @slot / intercepting・形・名前", () => {
+test("失敗: 枠の外・隣に layout / page が無い・layout: / page: の相手が無い・キーが無い・知らないキー・private / @slot / intercepting・形・名前(frame.default.ts はどの Tier でも)", () => {
   withTree(
     {
       "src/app/(marketing)/lp/page.tsx": page,
-      "src/app/(marketing)/lp/frame.ts": frame({ page: {} }),
-      "src/app/(user)/(public)/frame.ts": frame({ layout: {} }),
+      "src/app/(marketing)/lp/frame.override.ts": override({ page: {} }),
+      "src/app/(user)/(public)/frame.override.ts": override({ layout: {} }),
       "src/app/(user)/(public)/n/page.tsx": page,
       "src/app/(user)/p/page.tsx": page,
-      "src/app/(user)/p/frame.ts": frame({ layout: { fill: true } }),
+      "src/app/(user)/p/frame.override.ts": override({ layout: { fill: true } }),
       "src/app/(user)/l/layout.tsx": page,
-      "src/app/(user)/l/frame.ts": frame({ page: { fill: true } }),
+      "src/app/(user)/l/frame.override.ts": override({ page: { fill: true } }),
       "src/app/(user)/z/page.tsx": page,
-      "src/app/(user)/z/frame.ts": frame({}),
+      "src/app/(user)/z/frame.override.ts": override({}),
       "src/app/(user)/u/page.tsx": page,
-      "src/app/(user)/u/frame.ts": frame({ hide: { footer: both } }),
-      "src/app/(user)/_parts/frame.ts": frame({ page: {} }),
+      "src/app/(user)/u/frame.override.ts": override({ hide: { footer: both } }),
+      "src/app/(user)/_parts/frame.override.ts": override({ page: {} }),
       "src/app/(user)/@modal/m/page.tsx": page,
-      "src/app/(user)/@modal/m/frame.ts": frame({ page: {} }),
+      "src/app/(user)/@modal/m/frame.override.ts": override({ page: {} }),
       "src/app/(user)/(.)photo/page.tsx": page,
-      "src/app/(user)/(.)photo/frame.ts": frame({ page: {} }),
+      "src/app/(user)/(.)photo/frame.override.ts": override({ page: {} }),
       "src/app/(user)/v/page.tsx": page,
-      "src/app/(user)/v/frame.ts": frame({ page: { hide: { footer: true } } }),
+      "src/app/(user)/v/frame.override.ts": override({ page: { hide: { footer: true } } }),
       "src/app/(user)/k/page.tsx": page,
-      "src/app/(user)/k/frame.ts": frame({ page: { hide: { sidebar: both } } }),
+      "src/app/(user)/k/frame.override.ts": override({ page: { hide: { sidebar: both } } }),
       "src/app/(user)/e/page.tsx": page,
       "src/app/(user)/e/frame.ts": "const x = true;\nexport const frame = { page: { fill: x } };\n",
       "src/app/(user)/w/page.tsx": page,
       "src/app/(user)/w/frame.ts": "export const frameDefault = { page: {} };\n",
+      "src/app/(user)/d/page.tsx": page,
+      "src/app/(user)/d/frame.default.ts": "export const frameDefault = { page: {} };\n",
       "src/app/(user)/t/page.tsx": page,
       "src/app/(user)/t/frame.tsx": frame({ page: {} }),
       "src/app/(user)/o/page.tsx": page,
@@ -205,52 +207,90 @@ test("失敗: 枠の外・隣に layout / page が無い・layout: / page: の�
     },
     (_root, plan) => {
       const has = (path, re) => assert.ok(plan.problems.some((p) => p.startsWith(path) && re.test(p)), `${path} ${re}\n${plan.problems.join("\n")}`);
-      has("src/app/(marketing)/lp/frame.ts", /枠の layout の下だけ/);
-      has("src/app/(user)/(public)/frame.ts", /layout\.tsx か page\.tsx が要る/);
-      has("src/app/(user)/p/frame.ts", /layout: は隣に layout\.tsx があるフォルダだけ/);
-      has("src/app/(user)/l/frame.ts", /page: は隣に page\.tsx があるフォルダだけ/);
-      has("src/app/(user)/z/frame.ts", /範囲のキーが無い/);
-      has("src/app/(user)/u/frame.ts", /未知のキー hide/);
-      has("src/app/(user)/_parts/frame.ts", /private/);
-      has("src/app/(user)/@modal/m/frame.ts", /@slot/);
-      has("src/app/(user)/(.)photo/frame.ts", /intercepting/);
-      has("src/app/(user)/v/frame.ts", /page: hide\.footer は \{ sp\?: boolean, pc\?: boolean \}/);
-      has("src/app/(user)/k/frame.ts", /この枠の部位でない/);
+      has("src/app/(marketing)/lp/frame.override.ts", /枠の layout の下だけ/);
+      has("src/app/(user)/(public)/frame.override.ts", /layout\.tsx か page\.tsx が要る/);
+      has("src/app/(user)/p/frame.override.ts", /layout: は隣に layout\.tsx があるフォルダだけ/);
+      has("src/app/(user)/l/frame.override.ts", /page: は隣に page\.tsx があるフォルダだけ/);
+      has("src/app/(user)/z/frame.override.ts", /範囲のキーが無い/);
+      has("src/app/(user)/u/frame.override.ts", /未知のキー hide/);
+      has("src/app/(user)/_parts/frame.override.ts", /private/);
+      has("src/app/(user)/@modal/m/frame.override.ts", /@slot/);
+      has("src/app/(user)/(.)photo/frame.override.ts", /intercepting/);
+      has("src/app/(user)/v/frame.override.ts", /page: hide\.footer は \{ sp\?: boolean, pc\?: boolean \}/);
+      has("src/app/(user)/k/frame.override.ts", /この枠の部位でない/);
       has("src/app/(user)/e/frame.ts", /リテラルでない値/);
       has("src/app/(user)/w/frame.ts", /export const frame = \{ … \} が無い/);
-      has("src/app/(user)/t/frame.tsx", /frame\.default\.ts.*か frame\.override\.ts.*だけ/);
-      has("src/app/(user)/o/frame.local.ts", /frame\.default\.ts.*か frame\.override\.ts.*だけ/);
-      has("src/app/(user)/q/frame.acme.ts", /frame\.default\.ts.*か frame\.override\.ts.*だけ/);
-      assert.equal(plan.problems.length, 16);
+      has("src/app/(user)/t/frame.tsx", /frame\.ts.*か frame\.override\.ts.*だけ/);
+      has("src/app/(user)/o/frame.local.ts", /frame\.ts.*か frame\.override\.ts.*だけ/);
+      has("src/app/(user)/q/frame.acme.ts", /frame\.ts.*か frame\.override\.ts.*だけ/);
+      has("src/app/(user)/d/frame.default.ts", /frame\.default\.ts は使わない.*frames-move/);
+      assert.equal(plan.problems.length, 17);
     },
   );
 });
 
-test("上流(Tier1)は frame.ts を持たない(既定は frame.default.ts)。fork と中間 Tier は frame.default.ts も frame.ts も持てる", () => {
+test("上流(Tier1)は frame.override.ts を持たない(ルートを作ったリポは frame.ts)。fork と中間 Tier は frame.ts(自分のルート)も frame.override.ts も持てる", () => {
   const files = {
     "src/app/(user)/a/page.tsx": page,
-    "src/app/(user)/a/frame.default.ts": frameDefault({ page: { fill: true } }),
+    "src/app/(user)/a/frame.ts": frame({ page: { fill: true } }),
     "src/app/(user)/b/page.tsx": page,
-    "src/app/(user)/b/frame.ts": frame({ page: { fill: true } }),
+    "src/app/(user)/b/frame.override.ts": override({ page: { fill: true } }),
   };
   withTree(files, (_root, plan) => {
-    assert.deepEqual(plan.problems, ["src/app/(user)/b/frame.ts: 上流(Tier1)は frame.ts を持たない(ルートを作ったリポの既定は隣の frame.default.ts、export const frameDefault)"]);
+    assert.deepEqual(plan.problems, ["src/app/(user)/b/frame.override.ts: 上流(Tier1)は frame.override.ts を持たない(ルートを作ったリポの宣言は隣の frame.ts、export const frame)"]);
   }, { isTier1: true });
   withTree(files, (_root, plan) => assert.deepEqual(plan.problems, []), { isTier1: false });
+});
+
+test("7 つの形: {layout だけ, page だけ, 両方} × {ルートを作ったリポの frame.ts あり, なし} の frame.override.ts と、どちらも無いフォルダ(失敗)。隣に無い範囲のキーは形ごとに失敗", () => {
+  const ROUTE = "src/app/(user)/s";
+  const neighbours = { layout: { [`${ROUTE}/layout.tsx`]: page, [`${ROUTE}/c/page.tsx`]: page }, page: { [`${ROUTE}/page.tsx`]: page }, both: { [`${ROUTE}/layout.tsx`]: page, [`${ROUTE}/page.tsx`]: page, [`${ROUTE}/c/page.tsx`]: page } };
+  const base = { layout: { hide: { footer: both } }, page: { hide: { header: both } } };
+  const over = { layout: { hide: { footer: { sp: false } } }, page: { fill: true } };
+  const pick = (value, shape) => (shape === "both" ? value : { [shape]: value[shape] });
+  for (const shape of ["layout", "page", "both"]) {
+    for (const withBase of [true, false]) {
+      const files = { ...neighbours[shape], [`${ROUTE}/frame.override.ts`]: override(pick(over, shape)) };
+      if (withBase) files[`${ROUTE}/frame.ts`] = frame(pick(base, shape));
+      withTree(files, (_root, plan) => {
+        const label = `${shape} × ${withBase ? "frame.ts あり" : "frame.ts なし"}`;
+        assert.deepEqual(plan.problems, [], label);
+        if (shape !== "page") {
+          // layout の下の子: frame.ts の layout(footer 両方)の上に override(footer.sp を戻す)
+          assert.deepEqual(matchFrame(["s", "c"], plan.tables.user).hide, withBase ? ["footer-pc"] : [], `${label}: layout の下`);
+        }
+        if (shape !== "layout") {
+          const at = matchFrame(["s"], plan.tables.user);
+          assert.equal(at.fill, true, `${label}: page の fill`);
+          assert.ok(at.hide.includes("header-sp") === withBase, `${label}: frame.ts の page を継ぐ`);
+        }
+      });
+      // 隣に無い範囲のキー: layout だけ・page だけの形で、相手の無いキーを書くと失敗
+      if (shape !== "both") {
+        const other = shape === "layout" ? "page" : "layout";
+        withTree({ ...neighbours[shape], [`${ROUTE}/frame.override.ts`]: override({ [other]: over[other] }) }, (_root, plan) => {
+          assert.ok(plan.problems.some((p) => p.startsWith(`${ROUTE}/frame.override.ts`) && p.includes(`${other}: は隣に`)), `${shape}: ${other}: のキー`);
+        });
+      }
+    }
+  }
+  withTree({ "src/app/(user)/none/x.ts": "export const x = 1;\n", "src/app/(user)/none/frame.override.ts": override({ page: { fill: true } }) }, (_root, plan) => {
+    assert.ok(plan.problems.some((p) => p.startsWith("src/app/(user)/none/frame.override.ts") && p.includes("layout.tsx か page.tsx が要る")), "どちらも無いフォルダ");
+  });
 });
 
 test("全部の部位を隠す宣言は warn でルートグループを案内し、止めない", () => {
   withTree(
     {
       "src/app/(user)/game/page.tsx": page,
-      "src/app/(user)/game/frame.default.ts": frameDefault({ page: { hide: { header: both, headerNav: both, footer: both, bottomNav: both } } }),
+      "src/app/(user)/game/frame.ts": frame({ page: { hide: { header: both, headerNav: both, footer: both, bottomNav: both } } }),
       "src/app/(user)/half/page.tsx": page,
-      "src/app/(user)/half/frame.default.ts": frameDefault({ page: { hide: { header: both, headerNav: both, footer: both, bottomNav: { sp: true } } } }),
+      "src/app/(user)/half/frame.ts": frame({ page: { hide: { header: both, headerNav: both, footer: both, bottomNav: { sp: true } } } }),
     },
     (_root, plan) => {
       assert.deepEqual(plan.problems, []);
       assert.equal(plan.warnings.length, 1);
-      assert.match(plan.warnings[0], /^src\/app\/\(user\)\/game\/frame\.default\.ts\(page\): 枠の部位を全部隠している\(.*ルートグループ/);
+      assert.match(plan.warnings[0], /^src\/app\/\(user\)\/game\/frame\.ts\(page\): 枠の部位を全部隠している\(.*ルートグループ/);
     },
   );
 });
@@ -258,7 +298,7 @@ test("全部の部位を隠す宣言は warn でルートグループを案内�
 test("宣言が無ければ表は空、枠の根が無いリポは表を書かない", () => {
   withTree({ "src/app/(user)/a/page.tsx": page }, (_root, plan) => {
     assert.deepEqual(plan.tables, { user: [], admin: [] });
-    assert.match(plan.outputs["src/app/(user)/_layout/extensions/frameTable.ts"], /^\/\/ 生成物・編集不可: pnpm generate extensions が src\/app\/\(user\) の frame\.default\.ts \/ frame\.ts/);
+    assert.match(plan.outputs["src/app/(user)/_layout/extensions/frameTable.ts"], /^\/\/ 生成物・編集不可: pnpm generate extensions が src\/app\/\(user\) の frame\.ts \/ frame\.override\.ts/);
     assert.match(plan.outputs["src/app/(user)/_layout/extensions/frameTable.ts"], /export const frameTable = \[\] as const satisfies FrameTable;/);
   });
   const bare = mkdtempSync(join(tmpdir(), "frames-"));
@@ -276,29 +316,3 @@ test("このリポ: 枠の根 2 つの表を書く", () => {
   assert.ok("src/app/admin/_layout/extensions/frameTable.ts" in plan.outputs);
 });
 
-test("移行中(1 段目): 下のリポの frame.override.ts(export override)は既定の上に重なり、旧い frame.ts と同じ所に両方は失敗、上流(Tier1)は持たない", () => {
-  withTree(
-    {
-      [`${U}/a/page.tsx`]: page,
-      [`${U}/a/frame.default.ts`]: frameDefault({ page: { hide: { footer: both } } }),
-      [`${U}/a/frame.override.ts`]: `export const override = ${JSON.stringify({ page: { hide: { footer: { sp: false, pc: false }, header: both } } })};\n`,
-      [`${U}/b/page.tsx`]: page,
-      [`${U}/b/frame.override.ts`]: `export const override = ${JSON.stringify({ page: { fill: true } })};\n`,
-    },
-    (root, plan) => {
-      assert.deepEqual(plan.problems, []);
-      const at = (seg) => matchFrame(["(public)", "frame-proto", seg], plan.tables.user);
-      assert.deepEqual(at("a").hide, ["header-sp", "header-pc"]);
-      assert.deepEqual(at("b"), { hide: [], fill: true });
-    },
-  );
-  withTree(
-    { [`${U}/a/page.tsx`]: page, [`${U}/a/frame.ts`]: frame({ page: { fill: true } }), [`${U}/a/frame.override.ts`]: "export const override = { page: { fill: true } };\n" },
-    (root, plan) => assert.ok(plan.problems.some((p) => p.includes(`${U}/a/frame.ts`) && p.includes("下のリポの宣言は 1 つ")), plan.problems.join("\n")),
-  );
-  withTree(
-    { [`${U}/a/page.tsx`]: page, [`${U}/a/frame.override.ts`]: "export const override = { page: { fill: true } };\n" },
-    (root, plan) => assert.ok(plan.problems.some((p) => p.includes("上流(Tier1)は frame.override.ts を持たない"))),
-    { isTier1: true },
-  );
-});

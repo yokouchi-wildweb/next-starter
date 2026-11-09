@@ -201,15 +201,26 @@ describe("pnpm workflow ownership check", () => {
       assert.match(out.stdout, /\[default-add\] src\/app\/\(user\)\/\(protected\)\/frame\.default\.ts/);
     });
 
-    test("親のルートの隣の frame.ts と、自分のルートの frame.default.ts / frame.ts は合格(0)", () => {
+    test("親のルートの隣の frame.override.ts と、自分のルートの frame.ts は合格(0)", () => {
       const fork = makeFork(parentWithPages());
-      write(fork, "src/app/(user)/(public)/news/frame.ts", "export const frame = { page: { fill: true } };\n");
-      write(fork, "src/app/(user)/(protected)/frame.ts", "export const frame = { layout: {} };\n");
+      write(fork, "src/app/(user)/(public)/news/frame.override.ts", "export const override = { page: { fill: true } };\n");
+      write(fork, "src/app/(user)/(protected)/frame.override.ts", "export const override = { layout: {} };\n");
       write(fork, "src/app/(user)/(public)/mine/page.tsx", "export default 1;\n");
-      write(fork, "src/app/(user)/(public)/mine/frame.default.ts", "export const frameDefault = { page: {} };\n");
+      write(fork, "src/app/(user)/(public)/mine/frame.ts", "export const frame = { page: {} };\n");
       commitAll(fork, "frames ok");
       const result = runCheck(fork);
       assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));
+    });
+
+    test("親のルートの隣に足した印なしの frame.ts は frame-plain(1)、中間 Tier の物にしない", () => {
+      const fork = makeFork(parentWithPages());
+      write(fork, "src/app/(user)/(protected)/frame.ts", "export const frame = { layout: {} };\n");
+      commitAll(fork, "plain frame");
+      const result = runCheck(fork);
+      assert.equal(result.status, "fail");
+      assert.equal(result.entries.find((entry) => entry.path === "src/app/(user)/(protected)/frame.ts")?.reason, "frame-plain");
+      assert.deepEqual(result.middleTier, []);
+      assert.match(cli(fork).stdout, /\[frame-plain\] src\/app\/\(user\)\/\(protected\)\/frame\.ts/);
     });
   });
 

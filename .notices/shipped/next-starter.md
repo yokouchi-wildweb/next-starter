@@ -397,3 +397,4 @@
 - id:20261109-162006-shared-shelf-override-declarations | severity:action-required | checkpoint:shared-shelf-override-declarations
 - id:20261109-171458-feature-gate-foundation | severity:action-required | checkpoint:feature-gate-foundation | uses:.notices/20261109-171458-feature-gate-foundation.feature-gate-l3.mjs
 - id:20261109-175208-shared-shelf-frame-override-1 | severity:action-required | checkpoint:shared-shelf-frame-override-1
+- id:20261109-175947-shared-shelf-frame-override | severity:action-required | checkpoint:shared-shelf-frame-override | moved:src/app/(user)/frame.default.ts -> src/app/(user)/frame.ts; src/app/(user)/(auth)/signup/frame.default.ts -> src/app/(user)/(auth)/signup/frame.ts; src/app/(user)/(auth)/demo-login/frame.default.ts -> src/app/(user)/(auth)/demo-login/frame.ts; src/app/(user)/maintenance/frame.default.ts -> src/app/(user)/maintenance/frame.ts

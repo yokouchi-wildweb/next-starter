@@ -1,4 +1,4 @@
-# 枠の宣言(frame.default.ts / frame.ts)
+# 枠の宣言(frame.ts / frame.override.ts)
 
 ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm generate extensions` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout)と管理の枠(`admin` の AdminLayout)が、共通の読み手 `useFrameAttributes(<自分の表>)` でそれぞれの表を読み、外枠の属性 `data-frame-hide` / `data-frame-fill` にする。
 
@@ -19,20 +19,20 @@
 
 ## 名前の対
 
-- `frame.default.ts`(`export const frameDefault`)= ルートを作ったリポの既定。上流(Tier1)が出荷するのはこれだけ。中間 Tier も自分が作ったルートに下流向けの既定を出してよい
-- `frame.override.ts`(`export const override`)= その下のリポ(fork・中間 Tier)の宣言。相手はそのルート。上流のルートでも自分のルートでも隣に置く。いつも既定の上に重なる(既定が無ければ空の上)
-- 移行中(notice shared-shelf-frame-override の 1 段目): 下のリポの旧い名前 `frame.ts`(`export const frame`)も読む。同じフォルダに `frame.ts` と `frame.override.ts` の両方は失敗。移し替えは `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv と export の名前の書き換え、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き): 親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`。2 段目で `frame.ts` はルートを作ったリポの名前に替わり、`frame.default.ts` は失敗になる
-- ほかの名前(`frame.<何か>.ts`・`frame.tsx`)は失敗。上流(Tier1)が `frame.ts` / `frame.override.ts` を持つのも失敗(`pnpm check extensions`)
-- 親の物の隣に `*.default.*` を足す・親の既定を書き換える = `pnpm workflow ownership check` の `default-add` / `default-edit`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く(相手 = 基準のルート。ルートの無いフォルダの `frame.override.ts` は `override-own`)
+- `frame.ts`(`export const frame`)= ルートを作ったリポの宣言(上流の 4 本、中間 Tier・fork が自分で作ったルートの物)
+- `frame.override.ts`(`export const override`)= その下のリポ(fork・中間 Tier)の宣言。相手はそのルート。ルートを作ったリポの `frame.ts` の上に重なる(それが無ければ空の上)。`layout:` / `page:` は隣にある範囲だけ
+- `frame.default.ts` はどの Tier でも失敗(旧い名前)。ほかの名前(`frame.<何か>.ts`・`frame.tsx`)も失敗。上流(Tier1)が `frame.override.ts` を持つのも失敗(`pnpm check extensions`)
+- 親のルート(基準の page / layout / 枠の宣言のあるフォルダ)の隣に fork が印なしの `frame.ts` を足す = `pnpm workflow ownership check` の `frame-plain`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く。ルートの無いフォルダの `frame.override.ts` は `override-own`
+- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き)。親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`。上流の木(基準の版・取り込み中の MERGE_HEAD・親との分岐点)にあるファイルは動かさず挙げない(台帳の行を書く前に回しても上流の改名を取り違えない)。行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる(notice shared-shelf-frame-override-1 / shared-shelf-frame-override)
 - 空(空白とコメントだけ)のファイルは不在と同じ
 
 ## 書き方
 
 ```ts
-// src/app/(user)/(protected)/game/frame.default.ts(ルートを作ったリポ。下のリポは同じ形で frame.ts の export const frame)
+// src/app/(user)/(protected)/game/frame.ts(ルートを作ったリポ。下のリポは同じ形で frame.override.ts の export const override)
 import type { FrameDeclaration } from "@/app/_layout/frame";
 
-export const frameDefault = {
+export const frame = {
   layout: { hide: { bottomNav: { sp: true, pc: true } } },
   page: { hide: { footer: { sp: true } }, fill: true },
 } satisfies FrameDeclaration;
@@ -49,10 +49,10 @@ export const frameDefault = {
 
 ## 重ねる順
 
-- 浅い段から各段の `layout`(`frame.default.ts` → `frame.ts`)、葉の段で最後に `page`(`frame.default.ts` → `frame.ts`)。部位と端末ごとに後が勝つ
+- 浅い段から各段の `layout`(`frame.ts` → `frame.override.ts`)、葉の段で最後に `page`(`frame.ts` → `frame.override.ts`)。部位と端末ごとに後が勝つ
 - 枠の根の隣の宣言の `layout` = 枠の全体の既定(領域全体の入り切り)、`page` = トップページだけ(例 `/` の fill)
 - 置けない: 枠の外(枠が全部要らないページはルートグループに分けて枠の layout の外に置く)・private フォルダ(`_x`)・`@slot`・intercepting(`(.)x`)の下・隣に `layout.tsx` も `page.tsx` も無いフォルダ
-- テスト: `scripts/structure/extensions/frames.test.mjs` が全部の組み合わせで順を固定する
+- テスト: `scripts/structure/extensions/frames.test.mjs` が全部の組み合わせで順を固定し、7 つの形({layout だけ, page だけ, 両方} × {`frame.ts` あり, なし} + どちらも無いフォルダ)と隣に無い範囲のキーを確かめる
 
 ## 生成する表
 

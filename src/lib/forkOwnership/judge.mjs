@@ -26,7 +26,8 @@ export const REASONS = {
   "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
   "default-add": "violation", // fork が基準のファイルのあるフォルダに <名前>.default.* を足した(既定はそこを作ったリポの物。自分のフォルダの自分の既定は可)
-  "default-edit": "violation", // fork が基準の <名前>.default.* を書き換えた(既定の上に重ねる側のファイルに書く。例 frame.default.ts → 隣の frame.ts)
+  "default-edit": "violation", // fork が基準の <名前>.default.* を書き換えた(既定の上に重ねる側のファイルに書く。1 行スイッチは隣の <名前>.replace)
+  "frame-plain": "violation", // 親のルート(基準の page / layout / 枠の宣言のあるフォルダ)の隣に fork が印なしの frame.ts を足した(ルートを作ったリポの名前。fork は frame.override.ts)
   "outside-intake": "violation", // 受け口の外の書き換え
   "outside-region": "violation", // fork の区画の外も書き換えた
   "region-markers": "violation", // fork の区画の印が壊れている
@@ -83,6 +84,8 @@ function judgeModified(rule, baseText, headText) {
 const dirOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
 /** 枠の宣言の上書き(src/app の frame.override.ts)。相手はそのルート(隣の page / layout、ルートを作ったリポの frame の宣言)で、frame という単位ではない */
 const isFrameOverride = (path) => path.startsWith("src/app/") && path.endsWith("/frame.override.ts");
+/** 枠の宣言(src/app の frame.ts = ルートを作ったリポの名前) */
+const isFramePlain = (path) => path.startsWith("src/app/") && path.endsWith("/frame.ts");
 /** 基準にそのフォルダのルート(page / layout)か枠の宣言があるか */
 const baseHasRoute = (baseUnits, dir) => ["page", "layout", "frame", "frame.default"].some((name) => baseUnits.has(`${dir}/${name}`));
 /** <名前>.default.<拡張子>(既定。D173: そこを作ったリポだけが書く) */
@@ -119,6 +122,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
       else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
       else if (places && isDefaultName(change.path) && baseDirs.has(dirOf(change.path))) reason = "default-add";
+      else if (places && isFramePlain(change.path) && baseHasRoute(baseUnits, dirOf(change.path))) reason = "frame-plain";
       else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);

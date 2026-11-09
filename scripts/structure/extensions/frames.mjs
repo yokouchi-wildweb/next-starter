@@ -1,10 +1,10 @@
 // scripts/structure/extensions/frames.mjs
-// 枠の宣言の生成器: src/app の frame.default.ts(ルートを作ったリポの既定)と frame.ts(その下のリポの宣言)を字面で読み
+// 枠の宣言の生成器: src/app の frame.ts(ルートを作ったリポの宣言)と frame.override.ts(その下のリポの宣言。相手 = そのルート)を字面で読み
 // (declarations.literalOf、D2)、ルートの親の鎖を部位と端末ごとに解決した表を枠の根ごとに書く
 // (<枠の根>/_layout/extensions/frameTable.ts。pnpm generate extensions が書き、pnpm check extensions が照らす)。
 // 範囲はキーで名指す(layout = 隣の layout.tsx の下全部、page = 隣の page.tsx だけ)。隣に何があるかで意味を変えない。
-// 重ねる順: 浅い段から layout(frame.default → frame / frame.override)、葉の段で最後に page(同じ順)。
-// git は使わない(親の物の隣の *.default.* は pnpm workflow ownership check の default-add)。仕組みと表の形: src/app/_layout/frame/README.md
+// 重ねる順: 浅い段から layout(frame → frame.override)、葉の段で最後に page(同じ順)。frame.default.ts はどの Tier でも失敗(frame.ts へ改名、pnpm check extensions -- frames-move)。
+// git は使わない(親のルートの隣に下のリポが置いた印なしの frame.ts は pnpm workflow ownership check の frame-plain)。仕組みと表の形: src/app/_layout/frame/README.md
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -23,23 +23,18 @@ export const FRAME_DEFAULT_FILE = "frame.default.ts";
 /** 下のリポの宣言(相手 = そのルート。ルートを作ったリポの宣言の上に重なる) */
 export const FRAME_OVERRIDE_FILE = "frame.override.ts";
 /**
- * この仕組みが持つ .default のファイルの形(.default = 作ったリポが出す既定の共通の印、D171)。
+ * この仕組みが名乗る .default のファイルの形(.default = 作ったリポが出す既定の共通の印、D171)。枠の宣言は .default を使わず、
+ * frame.default.ts は frames.mjs が失敗にする(名乗るのは、1 行スイッチの検査が既定と取り違えてスイッチを求めないため)。
  * 1 行スイッチの検査(switches.mjs)はここに名乗った形をスイッチの既定として扱わない。
  * 形: { by: 持ち主, under: 走査の範囲(リポジトリ直下からの相対), name: ファイル名 | pattern: ファイル名の RegExp }
  */
 export const CLAIMED_DEFAULTS = [{ by: "scripts/structure/extensions/frames.mjs(枠の宣言の既定)", under: "src/app", name: FRAME_DEFAULT_FILE }];
-/**
- * 宣言の名前と export の名前(並び = 重ねる順)。移行中(shared-shelf-frame-override の 1 段目): 上流は frame.default.ts、
- * 下のリポは frame.override.ts(新しい名前)か frame.ts(旧い名前。同じフォルダに両方は不可)。2 段目で frame.ts = ルートを作ったリポに替わる
- */
+/** 宣言の名前と export の名前(並び = 重ねる順): ルートを作ったリポの frame.ts → その下のリポの frame.override.ts */
 const SOURCES = [
-  { file: FRAME_DEFAULT_FILE, exportName: "frameDefault", slot: "default" },
   { file: FRAME_FILE, exportName: "frame", slot: "frame" },
   { file: FRAME_OVERRIDE_FILE, exportName: "override", slot: "override" },
 ];
-/** 下のリポの宣言の 2 つの名前(移行中) */
-const LOWER_FILES = [FRAME_FILE, FRAME_OVERRIDE_FILE];
-/** frame.ts・frame.default.ts・frame.override.ts 以外の frame.<何か> / frame.tsx など */
+/** frame.ts・frame.override.ts 以外の frame.<何か> / frame.tsx など(frame.default.ts は別の言葉で止める) */
 const FRAME_LIKE = /^frame(?:\.[^/]+)?\.(?:ts|tsx|js|jsx|mjs)$/;
 /** 照合の試しに使う動的な段の値(実際の URL に出ない文字) */
 const PROBE = "\u0000";
@@ -74,7 +69,7 @@ function probesOf(pattern) {
  * 全部の枠の根の表を作る
  * @param {string} repoRoot
  * @param {(source: string) => string} headerFor 生成物のヘッダ(extensions.mjs の headerFor)
- * @param {{ isTier1?: boolean }} [identity] 省略 = readForkIdentity(上流(Tier1)は frame.ts を持たない、既定は frame.default.ts)
+ * @param {{ isTier1?: boolean }} [identity] 省略 = readForkIdentity(上流(Tier1)は frame.override.ts を持たない)
  * @returns {{ outputs: Record<string, string>, tables: Record<string, object[]>, problems: string[], warnings: string[], declarations: number }}
  */
 export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(repoRoot).isTier1 } = {}) {
@@ -95,15 +90,12 @@ export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(rep
     const name = path.slice(path.lastIndexOf("/") + 1);
     const source = SOURCES.find((s) => s.file === name);
     if (!source) {
-      if (FRAME_LIKE.test(name)) problems.push(`${path}: 枠の宣言の名前は ${FRAME_DEFAULT_FILE}(ルートを作ったリポの既定)か ${FRAME_OVERRIDE_FILE}(その下のリポの宣言。既定の上に重なる、export const override)だけ(旧い ${FRAME_FILE} も移行中は読む)`);
+      if (name === FRAME_DEFAULT_FILE) problems.push(`${path}: ${FRAME_DEFAULT_FILE} は使わない(ルートを作ったリポの宣言は ${FRAME_FILE}・export const frame、その下のリポは ${FRAME_OVERRIDE_FILE}・export const override。移し替え: pnpm check extensions -- frames-move)`);
+      else if (FRAME_LIKE.test(name)) problems.push(`${path}: 枠の宣言の名前は ${FRAME_FILE}(ルートを作ったリポ)か ${FRAME_OVERRIDE_FILE}(その下のリポ。相手 = そのルート、${FRAME_FILE} の上に重なる)だけ`);
       continue;
     }
-    if (LOWER_FILES.includes(source.file) && isTier1) {
-      problems.push(`${path}: 上流(Tier1)は ${source.file} を持たない(ルートを作ったリポの既定は隣の ${FRAME_DEFAULT_FILE}、export const frameDefault)`);
-      continue;
-    }
-    if (source.file === FRAME_FILE && files.includes(`${dirOf(path)}/${FRAME_OVERRIDE_FILE}`)) {
-      problems.push(`${path}: 隣に ${FRAME_OVERRIDE_FILE} がある(下のリポの宣言は 1 つ。旧い ${FRAME_FILE} の中身を ${FRAME_OVERRIDE_FILE} へまとめて消す)`);
+    if (source.file === FRAME_OVERRIDE_FILE && isTier1) {
+      problems.push(`${path}: 上流(Tier1)は ${FRAME_OVERRIDE_FILE} を持たない(ルートを作ったリポの宣言は隣の ${FRAME_FILE}、export const frame)`);
       continue;
     }
     const dir = dirOf(path);
@@ -147,7 +139,7 @@ export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(rep
   for (const root of Object.keys(FRAME_ROOTS)) {
     const nodes = nodesByRoot[root];
     const sections = (node, scope) => SOURCES.map((s) => node[s.slot]?.[scope]).filter((v) => v !== undefined);
-    // 親の鎖: 浅い段から layout(frame.default → frame / frame.override)、葉の段で最後に page(同じ順)
+    // 親の鎖: 浅い段から layout(frame → frame.override)、葉の段で最後に page(同じ順)
     const resolve = (segments, isPage) => {
       let value = emptyFrame();
       for (let i = 0; i <= segments.length; i += 1) {
@@ -200,8 +192,8 @@ export function planFrames(repoRoot, headerFor, { isTier1 = readForkIdentity(rep
 function renderTable(root, rows, headerFor) {
   const typeName = "FrameTable";
   const lines = [
-    headerFor(`${FRAME_ROOTS[root].dir} の ${FRAME_DEFAULT_FILE} / ${FRAME_FILE}`),
-    "// 枠の表: 行 = 解決済みの最終の値(親の鎖と frame.default → frame を重ねた物)。照合は matchFrame(静的が先・長い方が先、当たる 1 行)。仕組み: src/app/_layout/frame/README.md",
+    headerFor(`${FRAME_ROOTS[root].dir} の ${FRAME_FILE} / ${FRAME_OVERRIDE_FILE}`),
+    "// 枠の表: 行 = 解決済みの最終の値(親の鎖と frame → frame.override を重ねた物)。照合は matchFrame(静的が先・長い方が先、当たる 1 行)。仕組み: src/app/_layout/frame/README.md",
     "",
     `import type { ${typeName} } from "@/app/_layout/frame";`,
     "",

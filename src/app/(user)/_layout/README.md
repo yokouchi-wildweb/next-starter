@@ -21,7 +21,7 @@ src/app/(user)/_layout/
 ├── Footer/index.tsx     # フッター(既定。export UserFooter)
 ├── BottomNav/           # スマホ用ボトムナビ(index・BottomNavItem・BottomNavMenu・BottomNavSpacer・types・useBottomNavItems)
 ├── hooks/               # useHeaderData・useFooterData(ヘッダー・フッターの表示データと状態)
-└── extensions/frameTable.ts # 枠の表(生成物。各ルートの frame.default.ts / frame.ts から pnpm generate extensions)
+└── extensions/frameTable.ts # 枠の表(生成物。各ルートの frame.ts / frame.override.ts から pnpm generate extensions)
 ```
 
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
@@ -103,19 +103,19 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 
 ## 枠の部位を隠す・fill(枠の宣言)
 
-ページや layout の隣の枠の宣言で「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書く。ルートを作ったリポ(上流)は `frame.default.ts`(`export const frameDefault`)、その下のリポ(fork・中間 Tier)は上流のルートでも自分のルートでも `frame.ts`(`export const frame`、既定の上に重なる)。範囲はキーで名指す: `layout:` = 隣の layout.tsx の下全部、`page:` = 隣の page.tsx だけ。書式・重ね方・照合の順は [src/app/_layout/frame/README.md](../../_layout/frame/README.md)。
+ページや layout の隣の枠の宣言で「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書く。ルートを作ったリポ(上流、fork の自分のルート)は `frame.ts`(`export const frame`)、その下のリポ(fork・中間 Tier)は上流のルートの隣に `frame.override.ts`(`export const override`、`frame.ts` の上に重なる)。範囲はキーで名指す: `layout:` = 隣の layout.tsx の下全部、`page:` = 隣の page.tsx だけ。書式・重ね方・照合の順は [src/app/_layout/frame/README.md](../../_layout/frame/README.md)。
 
 ```ts
-// src/app/(user)/maintenance/frame.default.ts(上流。fork が変えるときは隣に frame.ts の export const frame)
+// src/app/(user)/maintenance/frame.ts(上流。fork が変えるときは隣に frame.override.ts の export const override)
 import type { FrameDeclaration } from "@/app/_layout/frame";
 
-export const frameDefault = {
+export const frame = {
   page: { hide: { headerNav: { sp: true, pc: true }, footer: { sp: true, pc: true }, bottomNav: { sp: true, pc: true } } },
 } satisfies FrameDeclaration;
 ```
 
 - 隠せる部位: `header` / `headerNav`(ヘッダーは残る)/ `footer` / `bottomNav`(スペーサーごと)。端末 `sp` = 40rem 未満 / `pc` = 40rem 以上
-- 枠の全体の既定 = `src/app/(user)/frame.default.ts` の `layout:`(上流: ボトムナビを PC で隠す = スマホだけ。同じファイルの `page:` はトップページ / の fill)。fork が変えるときは隣に `frame.ts`
+- 枠の全体の既定 = `src/app/(user)/frame.ts` の `layout:`(上流: ボトムナビを PC で隠す = スマホだけ。同じファイルの `page:` はトップページ / の fill)。fork が変えるときは隣に `frame.override.ts`
 - 仕組み: `pnpm generate extensions` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。部品はアンマウントしない
 - 効く時点: 属性は外枠そのものに付くので初回の HTML に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
 - 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)だけで全部隠せる。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
@@ -277,7 +277,7 @@ slot で足りない構造の違いは `.replace` のコピーで持つ。
 
 ### 設定
 
-高さとカレントの色は枠の設定 `bottomMenu`(`./config.ts`)、メニュー項目は描画用の `bottomMenu`(`./config.ui.ts`)。出し入れは枠の宣言の `bottomNav`(既定 = スマホだけ: `src/app/(user)/frame.default.ts`)。
+高さとカレントの色は枠の設定 `bottomMenu`(`./config.ts`)、メニュー項目は描画用の `bottomMenu`(`./config.ui.ts`)。出し入れは枠の宣言の `bottomNav`(既定 = スマホだけ: `src/app/(user)/frame.ts`)。
 
 ```tsx
 // src/config/layout/user.ui.config.ts(type 省略 = リンク項目。配列は丸ごと置き換わる)
@@ -356,7 +356,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 ページの隣の枠の宣言に `page: { fill: true }`(枠も隠すなら `hide`)を書き、本文は自分で `flex-1 min-h-0` を付ける。
 
 ```tsx
-// 隣の frame.default.ts(fork は frame.ts の frame): export const frameDefault = { page: { fill: true } } satisfies FrameDeclaration;
+// 隣の frame.ts(上流のルートに fork が書くなら frame.override.ts の override): export const frame = { page: { fill: true } } satisfies FrameDeclaration;
 <UserPage containerType="plain" padding="none" className="flex min-h-0 flex-1 flex-col overflow-clip overscroll-none">
   <Toolbar />                                   {/* 固有高さ */}
   <Block className="flex-1 min-h-0 overflow-y-auto">

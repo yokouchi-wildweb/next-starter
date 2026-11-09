@@ -21,7 +21,8 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
      - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`alwaysOnExceptions/`・`required/` の `<名前>.ts`)
      - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(下の「単位名」。`x.ts` と `x.tsx`、ファイルとフォルダの組。別の名前にするか、丸ごと置き換えは `<名前>.replace`)
      - `<対象>.override.ts(x)` で、対象が基準に無い → `override-own`(fork が自分で足した項目への override。fork の項目は直接書き換える。中間 Tier の項目は下の Tier の基準にあるので可)
-     - `<名前>.default.<拡張子>` で、同じフォルダに基準のファイルがある → `default-add`(既定はそこを作ったリポの物。fork は既定の上に重ねる側に書く、例 `frame.default.ts` の隣の `frame.ts`。自分のフォルダの自分の既定は可、中間 Tier も自分のルートに出してよい)
+     - `<名前>.default.<拡張子>` で、同じフォルダに基準のファイルがある → `default-add`(既定はそこを作ったリポの物。fork は既定の上に重ねる側に書く、例 1 行スイッチの `<名前>.replace`。自分のフォルダの自分の既定は可、中間 Tier も自分のルートに出してよい)
+     - src/app の印なしの `frame.ts` で、同じフォルダに基準のルート(page / layout / 枠の宣言)がある → `frame-plain`(`frame.ts` はルートを作ったリポの名前。fork は隣の `frame.override.ts` に書く、移し替え `pnpm check extensions -- frames-move`)。src/app の `frame.override.ts` の相手は基準のルートで、ルートの無いフォルダなら `override-own`
   2. D → `deleted`、R(元が基準にある)→ `renamed`。受け口の中でも違反(config の削除、`_` 付きへの rename も)
   3. M → 基準の `<名前>.default.<拡張子>` の書き換えは `default-edit`(違反、受け口の行より先に見る)。それ以外は受け口の一覧で当たった kind ごと(下の表)。どれにも当たらなければ、生成器の区画の中だけの差なら `generator-region`(合格)、それ以外は `outside-intake`(違反)
 - 生成器の区画(`AUTO-GENERATED-START/END`・`=== AUTO-GENERATED … START/END ===`・終わりの印の無い `// --- Auto-generated imports ---` = 続く import の行まで・道具が丸ごと書き足す `<!-- BEGIN:nextjs-agent-rules -->` 〜 END = 印の行と直前の空行ごと)は検査の対象外。生成器の印の統一は別の論点
@@ -34,7 +35,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 - 検査する場所(これだけ。components・hooks・utils・`src/lib` は対象外)
   - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `src/lib/districtMap/declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`(門番の例外 `src/featureGate/alwaysOnExceptions` は宣言の受け口)
   - その下全部: route の隣(`src/app/**/_layout`・`_screen`・`_components`)
-- `unit-clash`・`override-own`・`default-add`・`default-edit` は持ち主によらず止める(下の多段で `middle-tier` に付け替えない)
+- `unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は持ち主によらず止める(下の多段で `middle-tier` に付け替えない)
 - fork が足したファイルの一覧だけが要る検査(featureGate の規則の重なりなど)は `forkAddedFiles(repoRoot, { parent, branch, fetch })` を使う: Tier1 は git に触れず空、基準が求められなければ `unverified`(合格にしない)
 
 ## 受け口の一覧
@@ -55,7 +56,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 
 - 載せている物(手書き = src の外だけ): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)・firebase.json / ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT と marker・lineage.md(append)/ 負債(debt)。src の下の行は全部生成区画(下)
 - 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(手で編集しない、`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。src の下の行は全部ここで、出どころは 4 つの型(本部 D189):
-  - 画面の差し替え(型 1): ルートの `page.tsx`(ルートの地図と同じ見つけ方、上流のルートごと)・枠の 1 行スイッチの `layout.tsx` = `edit` / 1 行スイッチ(src の下の `<名前>.default` の隣の素の名前 = `edit`、`<名前>.replace` = `add`。`src/app/_providers/ForkProviders.tsx` もこれ)/ `_layout`・`_screen` の隣の `*.replace` と枠の宣言 `frame.ts` = `add`
+  - 画面の差し替え(型 1): ルートの `page.tsx`(ルートの地図と同じ見つけ方、上流のルートごと)・枠の 1 行スイッチの `layout.tsx` = `edit` / 1 行スイッチ(src の下の `<名前>.default` の隣の素の名前 = `edit`、`<名前>.replace` = `add`。`src/app/_providers/ForkProviders.tsx` もこれ)/ `_layout`・`_screen` の隣の `*.replace` と下のリポの枠の宣言 `frame.override.ts` = `add`
   - 受け口と上書き(型 2・3): 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)= `add` / 上書きの対象の点(宣言の `overrides`)の隣の `.override.ts`(cron の `task.override.ts`・`domainEntry.override.ts`・ロール / core ロール / プロフィール)= `edit`、`addable` の対象(ロール・プロフィールの JSON)= `add`
   - 置き場(型 4): 持ち主の `extensionPoints.ts` の placement の点 = `src/config/**`(src/lib/districtMap)・`src/styles/*.css`(src/styles/core)・`src/business/**`(src/lib/business)・`src/app/favicon.ico`(src/app/_layout)・`src/app/**/_components/**`(src/lib/screens)= `edit`、`src/lib/CATALOG.md`(src/lib/folderCatalog)= `append`
   - 生成物と区画: 生成器の `gate.json` の `outputs` = `generated`(registries・`src/wiring/dbAgent.ts`・地区の地図・ルートの地図・mail の色・profiles の entities・`src/**/extensions/**`・`vercel.json`)、`regions` = `region`(`src/registry/**/*.ts`)。区画の最後に並ぶ(同じファイルなら生成物が効く)
@@ -204,7 +205,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ## 多段の Tier(D29・D34)
 
-- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit` は付け替えない(どの段でも止める)
+- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は付け替えない(どの段でも止める)
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
 - override: Tier1 は override(`<対象>.override.ts`。cron は `src/app/api/cron/<name>/task.override.ts`)を出荷しない(`pnpm check extensions` が検査、`scripts/structure/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい

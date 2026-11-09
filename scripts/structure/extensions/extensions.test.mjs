@@ -171,7 +171,6 @@ test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(di
     "add src/features/core/payment/enricher.replace.{ts,tsx}",
     "add src/app/**/_layout/**/*.replace.{ts,tsx}",
     "add src/app/**/_screen/**/*.replace.{ts,tsx}",
-    "add src/app/**/frame.ts",
     "add src/app/**/frame.override.ts",
   ]);
   assert.ok(plan.intake.content.startsWith("edit src/config/**  # 値\n# === AUTO-GENERATED intake START ===\n"));
@@ -660,7 +659,7 @@ test("宣言: placement の点(置き場)は placement・kind(edit | append)だ�
   }
   assert.ok(at("edit src/config/**") < at("edit src/app/(user)/wallet/[[]slug[]]/page.tsx"));
   assert.ok(at("edit src/app/(user)/layout.tsx") < at("add src/features/milestone/milestones/*.{ts,tsx}"));
-  assert.ok(at("add src/app/**/frame.ts  ".trim()) < at("region src/registry/**/*.ts"));
+  assert.ok(at("add src/app/**/frame.override.ts") < at("region src/registry/**/*.ts"));
   assert.ok(at("region src/registry/**/*.ts") < at("generated src/registry/a.ts"), "同じファイルなら生成物が効く");
 });
 
