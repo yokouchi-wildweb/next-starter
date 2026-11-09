@@ -156,10 +156,6 @@ export const APP_FEATURES = {
     notification: {
       /** 管理者による全体配信を有効にする（false: 管理画面メニュー非表示・ページ404） */
       enableAdminBroadcast: false,
-      /** ユーザー側に未読通知モーダルを表示する */
-      showUnreadModal: false,
-      /** 未読通知モーダルを表示するパス一覧（完全一致。末尾 * で前方一致） */
-      unreadModalPaths: ["/"] as readonly string[],
     },
   },
   pages: {

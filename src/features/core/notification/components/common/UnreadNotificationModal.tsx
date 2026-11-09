@@ -11,13 +11,13 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useMyNotifications } from "@/features/notification/hooks/useMyNotifications";
 import { useMarkNotificationAsRead } from "@/features/notification/hooks/useMarkNotificationAsRead";
 import { useMarkAllNotificationsAsRead } from "@/features/notification/hooks/useMarkAllNotificationsAsRead";
+import { notificationConfig } from "@/features/notification/config";
 
-const { showUnreadModal, unreadModalPaths } = APP_FEATURES.marketing.notification;
+const { showUnreadModal, unreadModalPaths } = notificationConfig;
 
 /** 確認済み通知IDをsessionStorageに保存するキー */
 const CONFIRMED_IDS_KEY = "notification-modal-confirmed-ids";

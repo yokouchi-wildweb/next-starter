@@ -583,13 +583,13 @@ wallet: {
 
 ### 設定
 
-`app-features.config.ts` で制御:
+既定は通知ドメインの `config.ts`（`notificationConfig`、既定は表示しない・`["/"]`）。fork は上書き `src/config/features/notification.config.ts` に書く:
 
 ```typescript
-notification: {
+export default {
   showUnreadModal: true,
   unreadModalPaths: ["/", "/wallet/*"],
-}
+} satisfies NotificationOverride;
 ```
 
 ### パスマッチング
