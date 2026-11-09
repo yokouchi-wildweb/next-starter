@@ -1,6 +1,7 @@
 // src/features/core/userProfile/types/index.ts
 // プロフィール関連の型定義
 
+import type { extensionPoints } from "../extensionPoints";
 import type { ProfileConfig } from "../profiles";
 
 export type { ProfileBase } from "./profileBase";
@@ -13,9 +14,9 @@ export type {
 
 /**
  * fork の上書き（profiles/<JSON の名前>.override.ts の export const override）。pnpm generate role が読む。
- * 表の形を変える fields は上書きできない
+ * 書ける鍵は宣言（../extensionPoints.ts の profileDefinitions の overrideOf）から引く（表の形を変える fields は無い）
  */
-export type ProfileOverride = Partial<Pick<ProfileConfig, "tags" | "searchFields" | "audit">>;
+export type ProfileOverride = Partial<Pick<ProfileConfig, (typeof extensionPoints.profileDefinitions.overrideOf)[number]>>;
 
 /**
  * プロフィールデータの基本型

@@ -6,6 +6,8 @@
 // サービスは遅延読み込み（`service: () => import(...)`）なので、登録表を import しても各ドメインの
 // サービス・DB 接続は読み込まれない。詳細: src/lib/domain/README.md
 
+import type { extensionPoints } from "../extensionPoints";
+
 import type { DomainApiAccessConfig } from "./apiAccess";
 
 // サービスのメソッドはドメインごとに引数・戻り値が違うため、構造型では緩い関数型で受ける
@@ -90,9 +92,10 @@ export type DomainEntries = Record<string, DomainRegistryEntry>;
 
 /**
  * fork の上書き（domainEntry.override.ts、`export const domainEntryOverrides = { ... } satisfies DomainEntryOverrides`）。
- * キー = 隣の domainEntry.ts のキー、値 = access の丸ごと置き換え。生成器が読んで serviceRegistry に反映する
+ * キー = 隣の domainEntry.ts のキー、値 = 宣言（../extensionPoints.ts の domainEntries の overrideOf、今は access）の属性の丸ごと置き換え。
+ * 生成器が読んで serviceRegistry に反映する
  */
-export type DomainEntryOverrides = Record<string, DomainApiAccessConfig>;
+export type DomainEntryOverrides = Record<string, DomainRegistryEntry[(typeof extensionPoints.domainEntries.overrideOf)[number]]>;
 
 /** 生成された登録表（src/registry/serviceRegistry.ts の serviceRegistry） */
 export type DomainRegistry = Readonly<Record<string, DomainRegistryEntry>>;

@@ -158,6 +158,7 @@ test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(di
   const plan = planExtensions(fixture({ ...files, "src/lib/forkOwnership/intake.txt": INTAKE }));
   assert.deepEqual(plan.problems, []);
   assert.equal(plan.intake.path, "src/lib/forkOwnership/intake.txt");
+  assert.ok(plan.intake.content.includes("\nedit src/features/core/payment/enricher.ts  # 1 行スイッチ"), "1 行スイッチの素の名前は edit の行");
   const rows = plan.intake.content.split("\n").filter((l) => /^add /.test(l)).map((l) => l.split("  #")[0]);
   assert.deepEqual(rows, [
     "add src/app/demo/*/_demo.ts",
@@ -616,7 +617,7 @@ test("fork の今の受け口の override(oripa-do の 8 本: 管理メニュー
   assert.deepEqual(overridden, ["data", "maintenance", "notificationTemplates", "system", "users", "usersDemo", "usersGeneral", "usersSystem"]);
 });
 
-test("宣言: overrides の点(受け口でない上書きの対象)は overrides・side・overrideOf だけ。受け口の一覧・intake の行にならない", () => {
+test("宣言: overrides の点(受け口でない上書きの対象)は overrides・side・overrideOf・addable だけ。受け口の一覧にならず、intake は .override の edit の行と addable の add の行", () => {
   const read = (body) => readDeclaration("x/extensionPoints.ts", point(body));
   const OK = `  cronTasks: { overrides: "src/app/api/cron/*/task.ts", side: "server", overrideOf: ["schedule", "disabled"] },`;
   assert.deepEqual(read(OK).problems, []);
@@ -630,5 +631,17 @@ test("宣言: overrides の点(受け口でない上書きの対象)は override
   const plan = planExtensions(fixture(files));
   assert.deepEqual(plan.problems, []);
   assert.deepEqual(Object.keys(plan.outputs), ["src/features/milestone/extensions/definitions.ts"]);
-  assert.ok(!plan.intake.content.includes("cron"), "overrides の点は intake の行を作らない(行の生成は指令 30)");
+  const rowsOf = (content) => content.split("\n").filter((l) => /^(add|edit) /.test(l)).map((l) => l.split("  #")[0]);
+  assert.ok(rowsOf(plan.intake.content).includes("edit src/app/api/cron/*/task.override.ts"), "上書きの対象の点 = 隣の .override.ts の edit の行");
+  assert.ok(!rowsOf(plan.intake.content).includes("add src/app/api/cron/*/task.ts"), "addable の無い点は対象を足す add の行を作らない");
+  const ROLES = `  roleDefinitions: { overrides: "src/features/core/user/roles/*.role.json", addable: true, side: "shared", overrideOf: ["label"] },\n  coreRoleDefinitions: { overrides: "src/features/core/user/coreRoles/*.role.json", side: "shared", overrideOf: ["label"] },`;
+  const withRoles = planExtensions(fixture({ ...files, "src/features/core/user/extensionPoints.ts": point(ROLES) }));
+  assert.deepEqual(withRoles.problems, []);
+  const rows = rowsOf(withRoles.intake.content);
+  assert.deepEqual(rows.filter((r) => r.includes("user/")), [
+    "edit src/features/core/user/coreRoles/*.role.override.ts",
+    "edit src/features/core/user/roles/*.role.override.ts",
+    "add src/features/core/user/roles/*.role.json",
+  ]);
+  assert.match(read(`  roleDefinitions: { overrides: "src/a/*.json", addable: false, side: "shared", overrideOf: ["a"] },`).problems[0], /addable は true だけ/);
 });

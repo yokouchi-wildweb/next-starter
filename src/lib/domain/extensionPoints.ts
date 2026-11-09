@@ -9,4 +9,4 @@ export const extensionPoints = {
     side: "server",
     overrideOf: ["access"],
   },
-};
+} as const;

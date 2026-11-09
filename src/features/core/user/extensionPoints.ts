@@ -13,6 +13,7 @@ export const extensionPoints = {
   // 上書きの対象: 足したロールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵
   roleDefinitions: {
     overrides: "src/features/core/user/roles/*.role.json",
+    addable: true,
     side: "shared",
     overrideOf: ["label", "hasProfile", "enabled"],
   },
@@ -41,4 +42,4 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["enabled", "order"],
   },
-};
+} as const;

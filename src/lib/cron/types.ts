@@ -4,6 +4,8 @@
 // 1 タスク = 1 フォルダ src/app/api/cron/<name>/ に route.ts と task.ts を置く（一覧ファイルは持たない）。
 // task.ts がこの型の値 `cronTask` を export し、route.ts・CLI（pnpm task）・vercel.json の生成が同じ定義を読む。
 
+import type { extensionPoints } from "./extensionPoints";
+
 export type CronTaskResult = Record<string, unknown>;
 
 export type CronTaskDefinition<T extends CronTaskResult = CronTaskResult> = {
@@ -34,12 +36,19 @@ export type CronTaskDefinition<T extends CronTaskResult = CronTaskResult> = {
 };
 
 /**
+ * 上書きできる属性ごとの値の型（読み手 ./discover.ts の値の検査の型の側）。どの属性を書けるかは宣言 ./extensionPoints.ts の
+ * cronTasks の overrideOf が決める（宣言にあってここに無い鍵は CronTaskOverride の Pick で型エラーになる）
+ */
+export type CronTaskOverrideValues = {
+  /** task.ts の schedule の代わりに使う cron 式（5 フィールド・UTC） */
+  schedule: string;
+  /** true なら定期実行しない（vercel.json に載らず、pnpm task --due でも動かない。pnpm task <name> の手動実行は可） */
+  disabled: boolean;
+};
+
+/**
  * fork によるタスクの上書き。src/app/api/cron/<name>/task.override.ts が `cronOverride` として export する。
  * task.override.ts は fork 所有で、upstream は作らない（upstream の task.ts を編集せずに済ませるため）。
+ * 書ける鍵は宣言 ./extensionPoints.ts の cronTasks の overrideOf から引く
  */
-export type CronTaskOverride = {
-  /** task.ts の schedule の代わりに使う cron 式（5 フィールド・UTC） */
-  schedule?: string;
-  /** true なら定期実行しない（vercel.json に載らず、pnpm task --due でも動かない。pnpm task <name> の手動実行は可） */
-  disabled?: boolean;
-};
+export type CronTaskOverride = Partial<Pick<CronTaskOverrideValues, (typeof extensionPoints.cronTasks.overrideOf)[number]>>;
