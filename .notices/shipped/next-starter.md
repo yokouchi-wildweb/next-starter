@@ -395,3 +395,4 @@
 - id:20261109-152722-notification-template-gate-merge | severity:action-required | checkpoint:notification-template-gate-merge
 - id:20261109-153550-lib-close-jwt-spamguard | severity:action-required | checkpoint:lib-close-jwt-spamguard | moved:src/config/app/types.ts -> src/lib/spamGuard/config.ts
 - id:20261109-162006-shared-shelf-override-declarations | severity:action-required | checkpoint:shared-shelf-override-declarations
+- id:20261109-171458-feature-gate-foundation | severity:action-required | checkpoint:feature-gate-foundation | uses:.notices/20261109-171458-feature-gate-foundation.feature-gate-l3.mjs
