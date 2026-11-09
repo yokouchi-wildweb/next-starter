@@ -13,7 +13,7 @@ import {
   toCouponAttributionRewardForRecipient,
   type CouponAttributionRewardForRecipient,
 } from "@/features/core/couponAttributionReward/entities/model";
-import { RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS } from "@/config/app/coupon-attribution.config";
+import { couponAttributionRewardConfig } from "@/features/couponAttributionReward/config";
 import type { PaginatedResult, SearchParams } from "@/lib/crud";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 
@@ -41,7 +41,7 @@ export const GET = createMeRoute(
       const response: PaginatedResult<CouponAttributionRewardForRecipient> = {
         results: result.results.map((row) =>
           toCouponAttributionRewardForRecipient(row, {
-            metadataKeys: RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS,
+            metadataKeys: couponAttributionRewardConfig.recipientVisibleAttributionRewardMetadataKeys,
           }),
         ),
         total: result.total,
