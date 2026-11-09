@@ -1,7 +1,7 @@
 // src/app/debug/guard.ts
 //
 // デバッグ領域(/debug/**)。管理者カテゴリ + debugger ロール。debugger は user カテゴリのロールのため、
-// 行き先は /admin/login ではなく /login。debugger はメンテナンスのバイパス対象(maintenance.config.ts の bypassRoles)。
+// 行き先は /admin/login ではなく /login。debugger はメンテナンスのバイパス対象(設定ドメインの config の maintenance.bypassRoles)。
 
 import "server-only";
 

@@ -57,7 +57,7 @@ drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を
 
 **DB push はテーブルロックを伴いうる操作である。安全は「実行タイミングを選ぶ」ことで担保し、push のたびの個別判断は求めない。**
 
-- 本番 push はメンテナンスモード中（maintenanceProxy / maintenance.config.ts）または低トラフィック時に行う。
+- 本番 push はメンテナンスモード中（maintenanceProxy / 設定ドメインの config の maintenance）または低トラフィック時に行う。
 - 大規模テーブルへの CREATE INDEX は通常の push ではそのテーブルの書き込みを止める。許容できるタイミングで push すればよい。
 - 無停止で index を追加したい fork 向けの任意テクニック: push 前に `pnpm ops db inspect query "CREATE INDEX CONCURRENTLY IF NOT EXISTS <同名> ON ..."` で先に作っておくと、drizzle-kit は既存 index として認識し push では何もしない（pandora の user_items 2300 万行で約 10 秒・書き込み停止なしを確認済み）。定義は `db:push:check` の出力をそのまま使い `CONCURRENTLY` を足す。
 - データ消失を伴う文（DROP COLUMN / DROP TABLE / 型変更）は `pnpm db:push` が y/N で確認を求める。

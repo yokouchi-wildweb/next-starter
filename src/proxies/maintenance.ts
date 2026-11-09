@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { maintenanceConfig } from "@/config/app/maintenance.config";
+import { settingConfig } from "@/features/setting/config";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
 
@@ -13,12 +13,12 @@ import type { ProxyHandler } from "./types";
  */
 const isAllowedPath = (pathname: string): boolean => {
   // 完全一致チェック
-  if (maintenanceConfig.allowedPaths.includes(pathname)) {
+  if (settingConfig.maintenance.allowedPaths.includes(pathname)) {
     return true;
   }
 
   // 前方一致チェック
-  return maintenanceConfig.allowedPrefixes.some((prefix) =>
+  return settingConfig.maintenance.allowedPrefixes.some((prefix) =>
     pathname.startsWith(prefix)
   );
 };
@@ -34,8 +34,8 @@ export const maintenanceProxy: ProxyHandler = async (request, ctx) => {
 
   // メンテナンス時間外: /maintenance にいるユーザーをリダイレクト
   if (!inMaintenance) {
-    if (pathname === maintenanceConfig.redirectTo) {
-      return NextResponse.redirect(new URL(maintenanceConfig.redirectAfterEnd, request.url));
+    if (pathname === settingConfig.maintenance.redirectTo) {
+      return NextResponse.redirect(new URL(settingConfig.maintenance.redirectAfterEnd, request.url));
     }
     return;
   }
@@ -52,5 +52,5 @@ export const maintenanceProxy: ProxyHandler = async (request, ctx) => {
   }
 
   // メンテナンスページにリダイレクト
-  return NextResponse.redirect(new URL(maintenanceConfig.redirectTo, request.url));
+  return NextResponse.redirect(new URL(settingConfig.maintenance.redirectTo, request.url));
 };

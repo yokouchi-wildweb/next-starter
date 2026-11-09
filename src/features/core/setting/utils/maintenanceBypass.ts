@@ -1,6 +1,6 @@
 // src/features/core/setting/utils/maintenanceBypass.ts
 
-import { maintenanceConfig } from "@/config/app/maintenance.config";
+import { settingConfig } from "@/features/setting/config";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 
@@ -19,7 +19,5 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
  */
 export const canBypassMaintenance = (user: SessionUser | null): boolean => {
   if (!user) return false;
-  return maintenanceConfig.bypassRoles.includes(
-    user.role as (typeof maintenanceConfig.bypassRoles)[number],
-  );
+  return settingConfig.maintenance.bypassRoles.includes(user.role);
 };

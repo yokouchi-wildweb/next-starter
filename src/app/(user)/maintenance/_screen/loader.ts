@@ -2,13 +2,13 @@
 // /maintenance(メンテナンス中の案内)の loader。上流所有。下流は編集せず、既定 Screen も差し替え Screen もこれを呼ぶ。
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
-// 仕様: 範囲 root(src/app/guard.ts)の createLoader(access public)。グローバル設定からメンテナンス終了時刻(無ければ null)と、終了後の遷移先(maintenance.config)を返す。
+// 仕様: 範囲 root(src/app/guard.ts)の createLoader(access public)。グローバル設定からメンテナンス終了時刻(無ければ null)と、終了後の遷移先(設定ドメインの config の maintenance.redirectAfterEnd)を返す。
 // redirect / notFound は無い。メンテナンス時間外のサーバー側リダイレクトは Proxy 層(maintenanceProxy)が担い、
 // 開いたまま終了時刻を迎えたときのクライアント側リダイレクトは Screen の MaintenanceAutoRedirect が担う。
 
 import "server-only";
 
-import { maintenanceConfig } from "@/config/app/maintenance.config";
+import { settingConfig } from "@/features/setting/config";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { createLoader } from "@/app/guard";
 
@@ -24,6 +24,6 @@ export const loadMaintenanceScreen = createLoader({
   load: async (): Promise<MaintenanceScreenData> => {
     const { maintenanceEndAt } = await settingService.readSettingKeys(["maintenanceEndAt"]);
     const endTime = maintenanceEndAt ? new Date(maintenanceEndAt).toISOString() : null;
-    return { endTime, redirectTo: maintenanceConfig.redirectAfterEnd };
+    return { endTime, redirectTo: settingConfig.maintenance.redirectAfterEnd };
   },
 });
