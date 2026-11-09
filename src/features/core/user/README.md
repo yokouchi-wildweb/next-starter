@@ -475,6 +475,13 @@ const result = await userClient.searchWithProfile("contributor", {
 > API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
 > 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。`profileWhere` の DSL 詳細は `src/features/core/userProfile/README.md` を参照。
 
+## マイページのアカウントの項目（account.editableItems）
+
+- マイページのアカウント（`/mypage/account`）で利用者が変えられる項目は設定 `userConfig.account.editableItems`（`"email"`・`"password"`・`"profile"`・`"phone"`、既定 `["email", "password", "profile"]`）。fork は上書き `src/config/features/user.config.ts` に `account: { editableItems: [...] }` を書く（配列は丸ごと置き換え）
+- 判定は `isAccountItemEditable(item)`（`utils/accountItems.ts`）。アカウントのトップのメニュー（`AccountDetails`）は一覧の項目の行だけを出し、各画面の loader は一覧に無ければ `/mypage/account` へ戻す（レコードの取得より前）
+- 一覧のほかの条件: `password` はメール登録の利用者だけ、`phone` は SMS 認証の機能 `phoneVerification` が開のときだけ（今の電話番号の画面は SMS の手順だけ。`src/features/core/phoneVerification/README.md`）
+- アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
+
 ## 退会と削除
 
 ### 2 段階削除（ソフトデリート → 物理削除）

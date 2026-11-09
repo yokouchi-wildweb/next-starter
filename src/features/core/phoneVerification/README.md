@@ -7,7 +7,7 @@
 - 使うかどうかは機能 `phoneVerification` の入切だけ(規則 `src/featureGate/rules/phoneVerification.ts`、上流の既定 閉)。開けるのは `pnpm ops features set phoneVerification on`(fork は `src/config/featureGate/switches.config.ts` に書かれる)
 - 閉じると: API `/api/phone-verification/**` が 404、このフォルダを外から値で読むファイルは門番の依存の検査どおり入切を確かめる
 - 外の読み手(どれも自分で入切を確かめる): 電話番号の画面の loader(閉なら `/mypage/account` へ戻す)・マイページのアカウントの電話番号の行(`AccountDetails`)・`EditPhone`・財布の残高の「SMS 認証が要る」案内(`PhoneVerificationRequired`、閉なら出さず購入の欄を出す)
-- 電話番号の画面(規則 `pageMypageAccountPhone`)はこの機能に `dependsOn` しない: 電話番号は SMS 認証なしでも登録できる(設定 D122)。今の画面の中身は SMS の手順なので、閉の間は loader が戻す
+- 電話番号の画面(`/mypage/account/phone`、規則 `pageMypage` の住所)はこの機能に `dependsOn` しない: 電話番号は SMS 認証なしでも登録できる(設定 D122)。画面を出すかは user の設定 `account.editableItems` に `"phone"` があるか。今の画面の中身は SMS の手順なので、一覧にあってもこの機能が閉なら loader がアカウントのトップへ戻す(マイページの行も出さない)
 
 ## 中身
 

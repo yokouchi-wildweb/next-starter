@@ -1,5 +1,5 @@
-// /mypage/account/phone の loader の行き先の検査(挙動の固定。guard・next/navigation・門番・userService は偽物)。
-// - 機能 phoneVerification が閉 → /mypage/account(レコードの取得より前)/ 開 → 番号と認証日時、レコード取得の行き先は /login
+// /mypage/account/phone の loader の行き先の検査(挙動の固定。guard・next/navigation・門番・項目の判定・userService は偽物)。
+// - 項目 phone が一覧に無い、または機能 phoneVerification が閉 → /mypage/account(レコードの取得より前)/ 開 → 番号と認証日時、レコード取得の行き先は /login
 // 実行: pnpm test "src/app/(user)/(protected)/mypage/account/phone/_screen/loader.test.ts"
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -43,6 +43,12 @@ const outcome = async (run: () => Promise<unknown>) => {
   }
 };
 
+// 項目の判定は偽物: 変えられる一覧を test ごとに差し替える(本物の一覧は user の設定 account.editableItems)
+const editable = new Set<string>();
+mock.module("@/features/core/user/utils/accountItems", {
+  namedExports: { isAccountItemEditable: (item: string) => editable.has(item) },
+});
+
 // 門番は偽物: 機能 phoneVerification の開閉だけを返す(呼ばれた名前を記録する)
 const gateState = { open: true, asked: [] as string[] };
 mock.module("@/featureGate", {
@@ -74,6 +80,8 @@ beforeEach(() => {
   currentUser = { userId: "u1", status: "active" };
   gateState.open = true;
   gateState.asked.length = 0;
+  editable.clear();
+  editable.add("phone");
   recordRedirects.length = 0;
 });
 const run = () => outcome(() => load({} as never));
@@ -82,6 +90,12 @@ test("閉 → /mypage/account、レコードは取らない", async () => {
   gateState.open = false;
   assert.deepEqual(await run(), { redirect: "/mypage/account" });
   assert.deepEqual(gateState.asked, ["phoneVerification"]);
+  assert.deepEqual(recordRedirects, []);
+});
+
+test("項目 phone が一覧に無い → /mypage/account(機能が開でも)、レコードは取らない", async () => {
+  editable.clear();
+  assert.deepEqual(await run(), { redirect: "/mypage/account" });
   assert.deepEqual(recordRedirects, []);
 });
 

@@ -28,11 +28,6 @@ import { rule as rules_notification } from "@/featureGate/rules/notification";
 import { rule as rules_notificationBroadcast } from "@/featureGate/rules/notificationBroadcast";
 import { rule as rules_pageEntry } from "@/featureGate/rules/pageEntry";
 import { rule as rules_pageMypage } from "@/featureGate/rules/pageMypage";
-import { rule as rules_pageMypageAccount } from "@/featureGate/rules/pageMypageAccount";
-import { rule as rules_pageMypageAccountEmail } from "@/featureGate/rules/pageMypageAccountEmail";
-import { rule as rules_pageMypageAccountPassword } from "@/featureGate/rules/pageMypageAccountPassword";
-import { rule as rules_pageMypageAccountPhone } from "@/featureGate/rules/pageMypageAccountPhone";
-import { rule as rules_pageMypageAccountProfile } from "@/featureGate/rules/pageMypageAccountProfile";
 import { rule as rules_pagePrivacyPolicy } from "@/featureGate/rules/pagePrivacyPolicy";
 import { rule as rules_pageServices } from "@/featureGate/rules/pageServices";
 import { rule as rules_pageTerms } from "@/featureGate/rules/pageTerms";
@@ -54,7 +49,7 @@ import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pageMypageAccount" | "pageMypageAccountEmail" | "pageMypageAccountPassword" | "pageMypageAccountPhone" | "pageMypageAccountProfile" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -83,11 +78,6 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_notificationBroadcast, name: "notificationBroadcast", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["notification"], anyOf: [] },
   { ...rules_pageEntry, name: "pageEntry", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_pageMypage, name: "pageMypage", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
-  { ...rules_pageMypageAccount, name: "pageMypageAccount", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: [] },
-  { ...rules_pageMypageAccountEmail, name: "pageMypageAccountEmail", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: [] },
-  { ...rules_pageMypageAccountPassword, name: "pageMypageAccountPassword", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: [] },
-  { ...rules_pageMypageAccountPhone, name: "pageMypageAccountPhone", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: [] },
-  { ...rules_pageMypageAccountProfile, name: "pageMypageAccountProfile", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: [] },
   { ...rules_pagePrivacyPolicy, name: "pagePrivacyPolicy", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_pageServices, name: "pageServices", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_pageTerms, name: "pageTerms", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },

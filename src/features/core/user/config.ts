@@ -19,6 +19,9 @@ export type SelectionBehavior = "row" | "checkbox";
 /** 一括更新(userService.bulkUpdateByIds / bulkUpdate)で更新できる列(副作用の無い列だけ、UserCoreSchema の項目名) */
 export type UserBulkUpdateField = "adminMemo" | "user_tag_ids";
 
+/** マイページのアカウントで利用者が変えられる項目(画面 /mypage/account/<項目>) */
+export type AccountEditableItem = "email" | "password" | "profile" | "phone";
+
 export type UserConfig = {
   /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
   signupMode: SignupMode;
@@ -107,6 +110,14 @@ export type UserConfig = {
   updateValidation: {
     fallbackMessage: string;
   };
+  /** マイページのアカウント */
+  account: {
+    /**
+     * 利用者が変えられる項目(アカウントのトップのメニューに出し、各画面はこの一覧に無ければトップへ戻す)。
+     * 配列は丸ごと置き換え。password はメール登録の利用者だけ、phone は SMS 認証の機能 phoneVerification が開のときだけ出る
+     */
+    editableItems: readonly AccountEditableItem[];
+  };
 };
 
 const defaults: UserConfig = {
@@ -142,6 +153,9 @@ const defaults: UserConfig = {
   },
   updateValidation: {
     fallbackMessage: "入力内容を確認してください。",
+  },
+  account: {
+    editableItems: ["email", "password", "profile"],
   },
 };
 

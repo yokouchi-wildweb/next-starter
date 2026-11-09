@@ -41,8 +41,8 @@ const closedOf = (names: FeatureName[]) => names.filter((name) => !gate.enabled(
 const CHAINS: { parent: FeatureName; children: FeatureName[]; path: string }[] = [
   {
     parent: "pageMypage",
-    children: ["pageMypageAccount", "pageMypageAccountEmail", "pageMypageAccountPassword", "pageMypageAccountPhone", "pageMypageAccountProfile", "mypageOther"],
-    path: "/mypage/account/email",
+    children: ["mypageOther"],
+    path: "/mypage/other",
   },
   { parent: "coupon", children: ["referral"], path: "/admin/coupons/invite" },
   { parent: "wallet", children: ["payment", "bankTransferReview"], path: "/admin/bank-transfer-reviews" },

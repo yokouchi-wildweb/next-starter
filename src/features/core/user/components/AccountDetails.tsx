@@ -10,6 +10,7 @@ import { gate } from "@/featureGate";
 import { userConfig } from "@/features/user/config";
 import type { User } from "@/features/core/user/entities";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
+import { isAccountItemEditable } from "@/features/core/user/utils/accountItems";
 
 import { AccountAvatarSection } from "@/features/core/user/components/common/AccountAvatarSection";
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
@@ -56,28 +57,32 @@ export function AccountDetails({ user }: AccountDetailsProps) {
           <AccountAvatarSection user={user} />
         )}
         <div className="grid grid-cols-1 gap-3">
-          <AccountDetailItem
-            href="/mypage/account/profile"
-            icon={UserPenIcon}
-            label="プロフィール"
-            value={user.name ?? "未設定"}
-          />
-          <AccountDetailItem
-            href="/mypage/account/email"
-            icon={MailIcon}
-            label="メールアドレス"
-            value={
-              user.email ? (
-                <>
-                  {user.email}
-                  <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
-                </>
-              ) : (
-                "未設定"
-              )
-            }
-          />
-          {gate.enabled("phoneVerification") && (
+          {isAccountItemEditable("profile") && (
+            <AccountDetailItem
+              href="/mypage/account/profile"
+              icon={UserPenIcon}
+              label="プロフィール"
+              value={user.name ?? "未設定"}
+            />
+          )}
+          {isAccountItemEditable("email") && (
+            <AccountDetailItem
+              href="/mypage/account/email"
+              icon={MailIcon}
+              label="メールアドレス"
+              value={
+                user.email ? (
+                  <>
+                    {user.email}
+                    <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
+                  </>
+                ) : (
+                  "未設定"
+                )
+              }
+            />
+          )}
+          {isAccountItemEditable("phone") && gate.enabled("phoneVerification") && (
             <AccountDetailItem
               href="/mypage/account/phone"
               icon={PhoneIcon}
@@ -94,7 +99,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               }
             />
           )}
-          {user.providerType === "email" && (
+          {isAccountItemEditable("password") && user.providerType === "email" && (
             <AccountDetailItem
               href="/mypage/account/password"
               icon={LockIcon}

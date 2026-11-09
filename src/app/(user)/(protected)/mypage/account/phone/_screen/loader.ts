@@ -3,7 +3,7 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 範囲 (user)/(protected) の createLoader(access authenticated。未ログインは /login)。
-// 機能 phoneVerification(SMS 認証、src/featureGate/rules/phoneVerification.ts)が閉なら ACCOUNT_PATH(/mypage/account)へ redirect(レコードの取得より前)。
+// 項目 phone が user の設定 account.editableItems に無い、または機能 phoneVerification(SMS 認証、src/featureGate/rules/phoneVerification.ts)が閉なら ACCOUNT_PATH(/mypage/account)へ redirect(レコードの取得より前)。
 // 本人の電話番号と認証日時を返す。
 // 行き先は下の名前付きの定数(export しない)。fork が変える口は持たない: 別の行き先が要る fork は同じ guard の
 // createLoader で自分の loader を書く(src/lib/screens/README.md §3)
@@ -13,12 +13,13 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { gate } from "@/featureGate";
+import { isAccountItemEditable } from "@/features/core/user/utils/accountItems";
 import { requireUserRecord } from "@/features/core/user/services/server/userService";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 /** レコードが無い(未ログイン)ときの行き先 */
 const LOGIN_PATH = "/login";
-/** SMS 認証の機能が閉のときの行き先 */
+/** 項目が一覧に無い・SMS 認証の機能が閉のときの行き先 */
 const ACCOUNT_PATH = "/mypage/account";
 
 export type MyPageAccountPhoneScreenData = {
@@ -31,7 +32,7 @@ export type MyPageAccountPhoneScreenData = {
 export const loadMyPageAccountPhoneScreen = createLoader({
   access: "authenticated",
   load: async ({ user }): Promise<MyPageAccountPhoneScreenData> => {
-    if (!gate.enabled("phoneVerification")) {
+    if (!isAccountItemEditable("phone") || !gate.enabled("phoneVerification")) {
       redirect(ACCOUNT_PATH);
     }
     const record = await requireUserRecord(user, LOGIN_PATH);

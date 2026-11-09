@@ -1,5 +1,5 @@
-// /mypage/account/password の loader の行き先の検査(挙動の固定。guard・next/navigation・userService は偽物)。
-// - email 以外・メール無し → /mypage/account / email + メール有り → { email } / レコード取得の行き先は /login
+// /mypage/account/password の loader の行き先の検査(挙動の固定。guard・next/navigation・項目の判定・userService は偽物)。
+// - 項目 password が一覧に無い → /mypage/account(レコードの取得より前)/ email 以外・メール無し → /mypage/account / email + メール有り → { email } / レコード取得の行き先は /login
 // 実行: pnpm test "src/app/(user)/(protected)/mypage/account/password/_screen/loader.test.ts"
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -43,6 +43,12 @@ const outcome = async (run: () => Promise<unknown>) => {
   }
 };
 
+// 項目の判定は偽物: 変えられる一覧を test ごとに差し替える(本物の一覧は user の設定 account.editableItems)
+const editable = new Set<string>();
+mock.module("@/features/core/user/utils/accountItems", {
+  namedExports: { isAccountItemEditable: (item: string) => editable.has(item) },
+});
+
 let record: Record<string, unknown> = {};
 const recordRedirects: string[] = [];
 mock.module("@/features/core/user/services/server/userService", {
@@ -61,8 +67,17 @@ before(async () => {
 beforeEach(() => {
   currentUser = { userId: "u1", status: "active" };
   recordRedirects.length = 0;
+  editable.clear();
+  editable.add("password");
 });
 const run = () => outcome(() => load({} as never));
+
+test("項目 password が一覧に無い → /mypage/account、レコードは取らない", async () => {
+  editable.clear();
+  record = { providerType: "email", email: "a@example.test" };
+  assert.deepEqual(await run(), { redirect: "/mypage/account" });
+  assert.deepEqual(recordRedirects, []);
+});
 
 test("email 以外の認証 → /mypage/account", async () => {
   record = { providerType: "google", email: "a@example.test" };
