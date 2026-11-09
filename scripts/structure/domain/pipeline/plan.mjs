@@ -8,7 +8,6 @@ import { renderClientServices } from "../render/clientServices/index.mjs";
 import { renderChildDomainConfigs } from "../render/collections/index.mjs";
 import { renderComponents } from "../render/components/index.mjs";
 import { renderEntities } from "../render/entities/index.mjs";
-import { renderFeatureGate } from "../render/featureGate/index.mjs";
 import { renderFieldConstants } from "../render/fieldConstants/index.mjs";
 import { renderHooks } from "../render/hooks/index.mjs";
 import { renderPresenters } from "../render/presenters/index.mjs";
@@ -38,6 +37,5 @@ export function planDomain(ctx, workspace, gen) {
   if (gen.entities) outputs.push(...renderEntities(ctx, workspace));
   if (gen.registry) outputs.push(...renderRegistry(ctx, workspace));
   if (gen.presenters) outputs.push(...renderPresenters(ctx, workspace));
-  if (gen.featureGate) outputs.push(...renderFeatureGate(ctx, workspace));
   return outputs;
 }

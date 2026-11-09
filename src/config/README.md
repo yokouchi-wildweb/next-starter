@@ -52,7 +52,7 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 ## 機能の入切の道具
 
-機能の入切の fork の値は `featureGate/switches.config.ts`(上流は空で出荷、`{ <機能の名前>: true|false }`、型 `FeatureSwitches`)。既定は門番の規則のファイルの `defaultEnabled`(設定 D92・門番 D35)。`pnpm ops features set <規則名> on|off` が fork ではここに書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)。サンプルのドメイン(`features/sample.config.ts` の `enabled`)だけは生成器のひな形と一緒に移す(次の区切り)
+機能の入切の fork の値は `featureGate/switches.config.ts`(上流は空で出荷、`{ <機能の名前>: true|false }`、型 `FeatureSwitches`)。既定は門番の規則のファイルの `defaultEnabled`(設定 D92・門番 D35)。`pnpm ops features set <規則名> on|off` が fork ではここに書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)
 
 ## 移行中のもの
 

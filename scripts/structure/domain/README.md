@@ -120,8 +120,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 1. `--confirm` がドメイン名（snake_case）と一致したときだけ消す（名前の打ち直しの安全装置を引数にしたもの）。無い・違うなら、消すものの一覧・追加で消せるディレクトリの候補・そのまま打てるコマンドを出して終了コード 1
 2. `--extra <path>`（何度でも）: `src/app/` 配下で名前が一致する追加ディレクトリのうち、候補に出たものだけ受け付ける
 3. `--remove-config`: `domain.json` も消す（既定は `domain.json` だけ残してドメインディレクトリの中身を消す）
-   - 閉じられるドメイン（domain.json の `closable: true`）の後始末(設定の議会 L1.20 (2)・L1.27): `--remove-config` の削除は上書き `src/config/features/<camel>.config.ts` と門番の規則 `src/featureGate/rules/<camel>.ts` も消す(一覧に出してから)。上書きは fork の値が入っていても消す(持ち主の `config.ts` が消えるので読まれない)。規則は生成器が今書く中身と同じときだけ消し、手で直してあれば消さずに「手で消す」と出して終了コード 1(上書きとドメインは消える)。規則を消したら `pnpm generate extensions` で一覧を作り直す
-   - `domain.json` を残す削除(作り直す前提)は規則と上書きを残す(次の生成で `config.ts` が書き戻り、fork の `enabled` などの値が続く)。作り直すまでは `pnpm check config-overrides` と typecheck が落ちる
+   - 門番の規則(`src/featureGate/rules/<名前>.ts`)の `features` がこのドメインのフォルダを持てば、何も消さずに規則の名前を出して止める(終了コード 1)。規則の `features` から外す(規則ごと要らなければ規則を消す)→ `pnpm generate extensions` → もう一度削除
 4. `-i` のときは今までの対話（名前の再入力 → 追加ディレクトリの選択 → domain.json を消すか → 確認）
 
 削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
@@ -146,7 +145,6 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
 | `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く）、メディア列があれば `services/server/storagePurposes.ts`（毎回上書き）。主の集まりの項目があれば `services/server/collections.ts`（毎回上書き） |
 | `presenters` | `presenters.ts`（一覧・詳細表示のフォーマッタ。答えは `src/lib/domain/fields/presenterFor.mjs`。メディア列は `formatMediaThumbnail(s)`） |
-| `featureGate` | `closable: true` のときだけ（Neon のみ）: `src/featureGate/rules/<domain>.ts`（閉じる規則: `pathPatterns` = `/admin/<domains>`、`features` = ドメインのフォルダ、`enabled` = ドメインの config）と `config.ts`（`<SNAKE>_CONFIG = { enabled }`、既定 Tier1 = false・fork = true）。どちらも write-once（`render/featureGate/`、テスト `pnpm test scripts/structure/domain/tests/featureGateScaffold.test.mjs`）。一覧への反映は `pnpm generate extensions`（forge は続けて回す） |
 
 生成される client の部品（`components` カテゴリ）は domain.json を import せず、写し `entities/display.ts` の `domainDisplay` を読む（`pnpm generate registry` が書く。写す項目: [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)）。
 
@@ -155,7 +153,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 | 扱い | 対象 |
 |---|---|
 | 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む。`components` は一括操作の受け口の宣言 `extensionPoints.ts` と型 `types/adminBulkAction.ts` も書く（生成されるドメインの宣言は生成器が持つ。別の受け口が要るなら `"generate": false` にして手で持つ）。項目の `adminBulkActions/` は触らない |
-| 初回だけ生成（write-once） | `closable: true` の規則 `src/featureGate/rules/<domain>.ts` と `config.ts`、管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs`）。作り直すときはファイルを消してから生成する |
+| 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
 | 作らない（`pnpm generate registry`） | `src/registry/` の schemaRegistry / domainConfigRegistry / storagePurposeRegistry / adminDomains（走査で丸ごと） |
@@ -240,3 +238,5 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - 新しい形の domain.json を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す
 
 サンプルの陳腐化検査: `pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs` は `sample` / `sampleCategory` / `sampleTag` / `sampleImage` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。`sample.images` = 主の集まりの項目（mediaCollection）の例で、従属 `sampleImage` を持つ。存在しないサンプルドメインは対象から外し、全部無ければスキップする。
+
+- domain.json の `closable`(閉じられる形の印)は受けない(D26、`checks/closable.mjs`): 書けば true でも false でも生成の前に止めて、機能の規則の書き方を案内する(テスト `pnpm test scripts/structure/domain/tests/closableRetired.test.mjs`)。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書く(`src/featureGate/README.md`「規則の書き方」)

@@ -86,7 +86,7 @@ export function rulesNotCoveringCronTask(taskPath, sources, rules) {
 }
 
 // 規則のファイル(src/featureGate/rules/)が自分の機能のドメインの config(src/features/<d>/config.ts、入切の値だけ)を読むのは閉じ漏れでない
-// (L1.18: 入切の値は各機能のドメインの config。pnpm generate domain の closable のひな形がこの形を書く)。config が値以外に届くかは到達の検査
+// (入切でない条件の値、例 決済の自社振込が選べるか。入切そのものは規則の defaultEnabled と switches.config.ts、D35)。config が値以外に届くかは到達の検査
 // (pnpm test src/featureGate/checks/reachability.test.mjs: 入口から services・drizzle・server-only に届かない)が見る
 const RULE_FILE = /^src\/featureGate\/rules\//;
 const DOMAIN_CONFIG = /^@\/features\/(?:core\/)?[^/]+\/config$/;

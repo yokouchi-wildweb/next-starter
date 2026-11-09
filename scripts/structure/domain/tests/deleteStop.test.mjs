@@ -9,8 +9,6 @@ import { runDelete } from "../cli/delete.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { codeReferences, deleteStopMessage, inboundReferences } from "../pipeline/remove/index.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
-import { createDomainContext } from "../domain/context.mjs";
-import { configContent, overrideContent, overrideRel, ruleContent } from "../render/featureGate/index.mjs";
 import { makeProject, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
@@ -250,54 +248,31 @@ test("追加ディレクトリの候補の中の import: --extra で選べば一
   assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
 });
 
-/** closable: true のドメインに、生成器と同じ規則・config.ts・上書きを置く(生成の書き捨ての状態) */
-function closableProject() {
-  const shop = base("shop", [], { closable: true });
+/** 門番の規則がドメインのフォルダを features に持つ fork の状態 */
+function gatedProject(features = '["shop"]') {
+  const shop = base("shop");
   const root = makeProject({ configs: { shop }, cleanup });
   const workspace = createWorkspace(root);
-  const ctx = createDomainContext(workspace, "shop");
-  const files = {
-    rule: path.join(root, "src/featureGate/rules/shop.ts"),
-    config: path.join(root, "src/features/shop/config.ts"),
-    override: path.join(root, overrideRel(ctx)),
-  };
-  fs.mkdirSync(path.dirname(files.rule), { recursive: true });
-  fs.mkdirSync(path.dirname(files.override), { recursive: true });
-  fs.writeFileSync(files.rule, ruleContent(ctx));
-  fs.writeFileSync(files.config, configContent(ctx, true));
-  fs.writeFileSync(files.override, overrideContent(ctx).replace("export default {}", "export default { enabled: false }"));
-  return { root, workspace, files };
+  const rule = path.join(root, "src/featureGate/rules/shopping.ts");
+  fs.mkdirSync(path.dirname(rule), { recursive: true });
+  fs.writeFileSync(rule, `export const rule: FeatureGateRule = {\n  pathPatterns: ["/admin/shops"],\n  features: ${features},\n};\n`);
+  return { root, workspace, rule };
 }
 
-test("閉じられるドメイン: domain.json も消す削除は規則と上書きも消す(L1.27)。domain.json を残す削除は両方残す", async () => {
-  const kept = closableProject();
-  await deleteCapturing(kept.workspace, "shop", { confirm: "shop" });
-  assert.equal(fs.existsSync(kept.files.config), false, "config.ts はドメインのフォルダと一緒に消える");
-  assert.equal(fs.existsSync(kept.files.rule), true, "作り直す前提の削除は規則を残す");
-  assert.equal(fs.existsSync(kept.files.override), true, "作り直す前提の削除は上書き(fork の値)を残す");
-
-  const removed = closableProject();
-  const { exitCode } = await deleteCapturing(removed.workspace, "shop", { confirm: "shop", removeConfig: true });
-  assert.equal(exitCode, undefined);
-  assert.equal(fs.existsSync(removed.files.rule), false);
-  assert.equal(fs.existsSync(removed.files.override), false, "fork の値が入っていても持ち主が消えるので消す");
-  assert.equal(fs.existsSync(path.join(removed.root, "src/features/shop")), false);
-});
-
-test("閉じられるドメイン: 手で直した規則は消さずに案内し exit 1(上書きは消す)。--confirm が無い一覧にも一緒に消す物が出る", async () => {
-  const edited = closableProject();
-  fs.appendFileSync(edited.files.rule, "// fork が住所を足した\n");
-  const listing = await deleteCapturing(edited.workspace, "shop", { removeConfig: true });
-  assert.equal(listing.exitCode, 1);
-  assert.match(listing.stderr, /src\/config\/features\/shop\.config\.ts/);
-  const run = await deleteCapturing(edited.workspace, "shop", { confirm: "shop", removeConfig: true });
+test("門番の規則が features に持つドメインの削除は、何も消さずに規則の名前を出して止める(規則の features から先に外す、D26)", async () => {
+  const gated = gatedProject();
+  const before = snapshot(gated.root);
+  const run = await deleteCapturing(gated.workspace, "shop", { confirm: "shop", removeConfig: true });
   assert.equal(run.exitCode, 1);
-  assert.match(run.stderr, /手で直してあるので消しませんでした[\s\S]*src\/featureGate\/rules\/shop\.ts/);
-  assert.equal(fs.existsSync(edited.files.rule), true);
-  assert.equal(fs.existsSync(edited.files.override), false);
+  assert.match(run.stderr, /門番の規則がこのドメイン\(shop\)を features に持つので削除を止めました[\s\S]*src\/featureGate\/rules\/shopping\.ts/);
+  assert.deepEqual(snapshot(gated.root), before);
 });
 
-test("閉じられないドメインの削除は門番の規則・上書きに触れない(同じ名前のファイルがあっても)", async () => {
+test("門番の規則が持たないドメインの削除は規則にも上書きにも触れない(同じ名前のファイルがあっても)", async () => {
+  const other = gatedProject('["sample"]');
+  await deleteCapturing(other.workspace, "shop", { confirm: "shop", removeConfig: true });
+  assert.equal(fs.existsSync(other.rule), true);
+  assert.equal(fs.existsSync(path.join(other.root, "src/features/shop")), false);
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });
   const workspace = createWorkspace(root);
@@ -307,4 +282,3 @@ test("閉じられないドメインの削除は門番の規則・上書きに�
   await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
   assert.equal(fs.existsSync(stray), true);
 });
-

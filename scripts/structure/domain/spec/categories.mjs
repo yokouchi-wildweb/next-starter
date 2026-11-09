@@ -16,8 +16,6 @@ export const GENERATE_CATEGORIES = [
   "adminRoutes",
   "registry",
   "presenters",
-  // closable: true のときだけ書く(書き捨ての規則と入切の値。render/featureGate)
-  "featureGate",
 ];
 
 /** 全カテゴリを true にした選択（「すべてのファイルを生成」） */
