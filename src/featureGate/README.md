@@ -119,7 +119,7 @@ export const rule: FeatureGateRule = {
 - ドメインの開閉で決まる物: 表(`pnpm db:push` / `db:push:check`・`pnpm ops db seed`・`pnpm ops db clear`)・汎用 API の住所(`apiPaths`)・cron の task(`cronTasks`、読むドメインが全部開のとき開)
 - 評価は `ruleList.ts`(`closedDomainsOf`・`domainEnabled`・`closedDerivedEntries`・`closedDomainTables`)。機能の開閉は渡した一覧で読む: `rules` なら全開スイッチを通し、`configRules` なら規則の値だけ
 - 設定の節(`settingSections`)は節自身の判定: 名指す機能が全部開のときだけ開く(導出の住所の 1 種、`closedDerivedEntries`)
-- 住所で覆うかを見る検査(依存の検査・常時実行の入口・ルートの被覆)は、規則の `pathPatterns` に規則のドメインの導出の住所と規則を名指す節の住所を足した写し(`withCoveredPatterns`)で見る
+- 住所で覆うかを見る検査(依存の検査・常時実行の入口・ルートの被覆)は、その機能だけを閉じたときの閉じた住所(手書き・導出・依存元の住所、評価そのもの `coveredPatternsOf`)に `pathPatterns` を置き換えた写し(`withCoveredPatterns`)で見る。1 つのドメインを複数の機能が持てば、機能 1 つを閉じてもそのドメインの住所は数えない
 
 ### 機能どうしの依存(dependsOn)
 
@@ -141,6 +141,7 @@ export const rule: FeatureGateRule = {
   - `isOpenedBySwitch(name)`: 全開スイッチがその名前を開けているか(依存先は見ない。開くかは `ruleEnabled`)
 - **requires の被覆**(生成で止める、D24・D34 K5。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `features` のドメインが `requires`(domainEntry.ts)するドメインは、X の `features`・X の依存先(推移的)の `features`・基盤(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(お知らせ → テンプレートの 1 行、連絡の議会の後に消す)
 - **住所の検査**(読み込み後の一覧で、`node/addressCheck.ts` の `checkAddresses`、検査は `pnpm test src/featureGate scripts/structure/proxies`): 同じ住所を 2 つの機能が持つ(手書き・汎用 API・cron・設定の節の全部で)、親の前方一致の下の住所の機能が親に `dependsOn` していない(推移的で可)、を止める(D25・D31)。fork の規則も同じ(上流の住所の下に足した規則は上流の機能に `dependsOn`)。依存の根拠が無い入れ子は両方に依存する小さな機能へ(D34 K3)。上流の例外はテンプレートの組の 2 住所だけ
+- **組み合わせの検査**(test で止める、`checks/integrity.mjs`、実物は `scripts/structure/proxies/featureGate.test.mjs`): 機能をまたぐ外部キー(ドメインの `requires` と機能の `dependsOn` の両方で覆う。規則の中の外部キーと参照先が基盤のものは対象外、設定 D56)・どの機能にも載らないドメイン(基盤)の `requires` の先が閉じうる・必須の機能(`required/`)が規則の値で閉、を止める。共有のドメインが別の機能で開いたままは落とさず warn し、`pnpm ops features list` の閉じた機能に出す(`sharedDomainsOpen`)。上流の例外はお知らせ → テンプレートの外部キー 1 本
 - 全開スイッチの名前指定は依存先を開けない(「全開スイッチ」の節)
 - `pnpm ops features list` は依存先・依存元(推移的)・閉の理由を出し、`pnpm ops features set` は必須の機能が依存する機能の off を止める(下の節)
 

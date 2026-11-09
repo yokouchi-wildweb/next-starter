@@ -29,14 +29,16 @@ import { createRequire } from "node:module";
 import { join, relative, resolve, sep } from "node:path";
 
 import { getTableName, is } from "drizzle-orm";
-import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
+import { getTableConfig, isPgEnum, PgTable } from "drizzle-orm/pg-core";
 
 import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../../../src/lib/domain/definition/apiAccess.ts";
 import { APP_FEATURES } from "../../../src/config/app/app-features.config.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
 // 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
-import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configRules, gatedSchema as applySchemaGate, withCoveredPatterns } from "../../../src/featureGate/node.ts";
+import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configEnabled, configRules, gatedDomains, gatedSchema as applySchemaGate, readRequired, withCoveredPatterns } from "../../../src/featureGate/node.ts";
+import { checkBaseRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "../../../src/featureGate/checks/integrity.mjs";
+import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
@@ -291,6 +293,36 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
 // (fork が上流の住所の下に足した規則は上流の機能に dependsOn が要る。例外は上流の表 src/featureGate/node/addressCheck.ts の ADDRESS_EXCEPTIONS だけ)
 test("住所: 同じ住所を 2 つの機能に書かず、親の前方一致の下の住所の機能は親に dependsOn する(手書き・汎用 API・cron・設定の節の全部)", () => {
   assert.deepEqual(checkAddresses(configRules), []);
+});
+
+// 機能とドメインの組み合わせ(D24・D27・D34 K5・設定 D56。判定は src/featureGate/checks/integrity.mjs)
+const domainFacts = readDistrictMapAt(ROOT)
+  .districts.filter((d) => d.kind === "features")
+  .map((d) => ({ folder: d.dir.slice("src/features/".length), name: d.name, requires: d.requires, tables: d.tables }));
+const foreignKeys = Object.values(schema)
+  .filter((value) => is(value, PgTable))
+  .flatMap((table) => getTableConfig(table).foreignKeys.map((fk) => ({ from: getTableName(table), to: getTableName(fk.reference().foreignTable) })));
+/** 上流の例外: "<表>→<参照先の表>" → 理由(当たらない行は失敗) */
+const FOREIGN_KEY_EXCEPTIONS = {
+  "notifications→notification_templates": "お知らせ ↔ テンプレートの組は連絡の議会の直しの後(計画書の OUT_OF_SCOPE)。それまではテンプレートの機能が常に開",
+};
+
+test("外部キー: 機能をまたぐ外部キーはドメインの requires と機能の dependsOn の両方で覆う(参照先だけが閉じて db:push が止まる組み合わせを作らない)", () => {
+  assert.deepEqual(checkForeignKeys({ list: configRules, domains: domainFacts, foreignKeys, exceptions: FOREIGN_KEY_EXCEPTIONS }), []);
+});
+
+test("基盤の requires: どの機能にも載らないドメイン(常に開)は閉じうるドメインを requires しない", () => {
+  assert.deepEqual(checkBaseRequires({ list: configRules, domains: domainFacts }), []);
+});
+
+test("required/ の実効の閉: 必須の機能は規則の値(自分の値と依存先)で開", async () => {
+  assert.deepEqual(checkRequiredClosed({ list: configRules, required: await readRequired(ROOT), isOpen: configEnabled }), []);
+});
+
+test("共有のドメイン: 持つ機能の一部が閉で別の機能で開いたままなら知らせる(落とさない、pnpm ops features list にも出る)", () => {
+  for (const shared of sharedDomainsOpen(configRules, gatedDomains.map((d) => d.folder), configEnabled)) {
+    console.warn(`[featureGate] 共有のドメイン ${shared.folder} は ${shared.open.join("・")} で開いたまま(${shared.closed.join("・")} は閉)`);
+  }
 });
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)

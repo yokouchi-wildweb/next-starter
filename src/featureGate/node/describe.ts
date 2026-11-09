@@ -11,6 +11,7 @@ import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
+import { sharedDomainsOpen } from "../checks/integrity.mjs";
 import {
   configEnabled,
   isOpenedBySwitch,
@@ -47,6 +48,8 @@ export type FeatureDescription = {
   closedBy: FeatureClosedBy | null;
   /** 全開スイッチの名前指定で開けたのに閉じた依存先(足りない名前)。無ければ空 */
   switchMissing: string[];
+  /** この機能が閉なのに、別の機能で開いたままの共有のドメイン(フォルダと開けている機能)。無ければ空 */
+  sharedDomainsOpen: { folder: string; openBy: string[] }[];
   /** 全開スイッチ FEATURE_GATE_OPEN で開いているか */
   openedBySwitch: boolean;
   /** 必須(required/<名前>.ts)なら reason、でなければ null */
@@ -73,6 +76,8 @@ export type FeatureFacts = {
 /** 規則と集めた事実から説明を組む(純関数。並びは一覧の順) */
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
   const enabledOf = new Map(rules.map((rule) => [rule.name as string, ruleEnabled(rule)]));
+  const folders = [...new Set(rules.flatMap((rule) => rule.features ?? []))];
+  const shared = sharedDomainsOpen([...rules], folders, (name) => enabledOf.get(name) === true);
   return rules.map((rule) => {
     // pathPatterns は手書きだけ(汎用 API・cron はドメインに、設定の節は節に付き、pathPatterns に入らない)
     const enabled = enabledOf.get(rule.name)!;
@@ -93,6 +98,7 @@ export function describeFeatures(rules: readonly GatedFeatureRule[], facts: Feat
       dependedOnBy: transitiveDependents(rules, rule.name),
       closedBy: enabled ? null : { self: !(openedBySwitch || own), dependencies: closedDeps },
       switchMissing: [...(facts.switchMissing?.[rule.name] ?? [])],
+      sharedDomainsOpen: shared.filter((s) => s.closed.includes(rule.name)).map((s) => ({ folder: s.folder, openBy: s.open })),
       openedBySwitch,
       required: facts.required[rule.name] ?? null,
       paths: {
