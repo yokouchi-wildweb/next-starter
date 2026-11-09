@@ -44,7 +44,7 @@
 
 - 集計 2 テーブルの行数はユーザー数・クリック数に比例しない（対象数 × 語彙 × 日数でのみ増える）ため永久保持が成立する。**保持期限で失われるのは明細の粒度だけ**で、合計値と日別内訳は永久に残る
 - 集計はバッチではなく `record()` の**同一トランザクション内でその場で加算**される（3書き込み）。集計漏れが構造的に起きず、明細がいつ prune されても集計は完成している
-- 日次集計の日界は `aggregationTimeZone`（既定 Asia/Tokyo、`src/config/app/interaction-tracking.config.ts`）
+- 日次集計の日界は `aggregationTimeZone`（既定 Asia/Tokyo。持ち主 `config.ts`、上書き `src/config/features/interactionTracking.config.ts`）
 
 ### ホットカウンタ対策（シャーディング）
 

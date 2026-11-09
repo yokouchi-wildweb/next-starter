@@ -67,7 +67,7 @@ export const InteractionEventTable = pgTable(
  * - 単位は (target_type, target_id, action, shard)。読み取りは shard を SUM して合計する。
  * - shard はホットカウンタの行ロック競合対策。人気ターゲットへの同時クリックが
  *   単一行で直列化しないよう、書き込み時にランダムな shard 行へ分散させる
- *   （競合が理論上 1/N になる）。shard 数は INTERACTION_TRACKING_CONFIG.counterShardCount。
+ *   （競合が理論上 1/N になる）。shard 数は interactionTrackingConfig.counterShardCount。
  * - 加算は単一文の INSERT ... ON CONFLICT DO UPDATE（原子的・read-modify-write レース無し）。
  * - count は bigint。長期運用でも桁あふれしない（mode: number, 2^53 まで安全）。
  */
@@ -102,7 +102,7 @@ export const InteractionCounterTable = pgTable(
  *   （バッチ集計は無い。明細がいつ prune されても集計は最初から完成している）。
  * - 行数は「対象数 × アクション種 × 導線 × 日数」でしか増えず、
  *   ユーザー数・クリック数に比例しない。そのため prune 対象外・永久保持できる。
- * - date の日界は INTERACTION_TRACKING_CONFIG.aggregationTimeZone（既定 Asia/Tokyo）。
+ * - date の日界は interactionTrackingConfig.aggregationTimeZone（既定 Asia/Tokyo）。
  * - source は導線別内訳の集計軸。未指定イベントは '' に正規化する
  *   （Postgres の UNIQUE は NULL 同士を重複と見なさないため NULL を許容しない）。
  * - shard は累計カウンタと同じホット行競合対策。日付が変われば行も分かれるため

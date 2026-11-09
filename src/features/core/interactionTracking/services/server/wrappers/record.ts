@@ -2,7 +2,7 @@
 
 import { sql } from "drizzle-orm";
 
-import { INTERACTION_TRACKING_CONFIG } from "@/config/app/interaction-tracking.config";
+import { interactionTrackingConfig } from "@/features/interactionTracking/config";
 import {
   InteractionCounterTable,
   InteractionDailyCounterTable,
@@ -25,7 +25,7 @@ export type RecordInteractionInput = {
   userId?: string | null;
   /** 任意メタデータ（サーバー内部専用。公開 ingest からは渡らない） */
   metadata?: Record<string, unknown> | null;
-  /** イベント明細の保持日数。省略時は INTERACTION_TRACKING_CONFIG.defaultRetentionDays */
+  /** イベント明細の保持日数。省略時は interactionTrackingConfig.defaultRetentionDays */
   retentionDays?: number;
   /**
    * イベント明細（interaction_events）を記録するか。既定 true。
@@ -62,15 +62,15 @@ export async function record(input: RecordInteractionInput): Promise<void> {
   }
 
   const retentionDays =
-    input.retentionDays ?? INTERACTION_TRACKING_CONFIG.defaultRetentionDays;
+    input.retentionDays ?? interactionTrackingConfig.defaultRetentionDays;
   if (!Number.isInteger(retentionDays) || retentionDays <= 0) {
     throw new DomainError("保持日数は正の整数で指定してください。", { status: 400 });
   }
 
-  const shardCount = Math.max(1, INTERACTION_TRACKING_CONFIG.counterShardCount);
+  const shardCount = Math.max(1, interactionTrackingConfig.counterShardCount);
   const shard = Math.floor(Math.random() * shardCount);
   const source = input.source?.trim() || null;
-  const timeZone = INTERACTION_TRACKING_CONFIG.aggregationTimeZone;
+  const timeZone = interactionTrackingConfig.aggregationTimeZone;
   const recordDetail = input.recordDetail ?? true;
 
   const run = async (executor: TransactionClient) => {
