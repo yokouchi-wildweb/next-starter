@@ -36,7 +36,7 @@ export const UserCounterTable = pgTable("user_counters", {
  *   コンテンツ軸カウンタ（interaction_counters）のようなホット行競合が構造的に発生しない。
  * - ユーザー数 × 日数に比例して増えるため、行単位 retention_days（既定 730 日）で
  *   cron prune する（永久保持しない。累計側は prune 対象外なので合計は失われない）。
- * - date の日界は USER_COUNTER_CONFIG.dailyTimeZone（既定 Asia/Tokyo）。
+ * - date の日界は userCounterConfig.dailyTimeZone（既定 Asia/Tokyo）。
  */
 export const UserDailyCounterTable = pgTable("user_daily_counters", {
   id: uuid("id").defaultRandom().primaryKey(),

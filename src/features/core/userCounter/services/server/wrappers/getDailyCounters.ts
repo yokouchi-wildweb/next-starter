@@ -2,7 +2,7 @@
 
 import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 
-import { USER_COUNTER_CONFIG } from "@/config/app/user-counter.config";
+import { userCounterConfig } from "@/features/userCounter/config";
 import { UserDailyCounterTable } from "@/features/core/userCounter/entities/drizzle";
 import type { UserDailySeriesPoint } from "@/features/core/userCounter/entities/model";
 import { db } from "@/lib/drizzle";
@@ -17,7 +17,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
  * 変換して行うため、アプリサーバのタイムゾーン設定に依存しない。
  */
 export async function getTodayCount(userId: string, key: string): Promise<number> {
-  const timeZone = USER_COUNTER_CONFIG.dailyTimeZone;
+  const timeZone = userCounterConfig.dailyTimeZone;
 
   const rows = await db
     .select({ count: UserDailyCounterTable.count })

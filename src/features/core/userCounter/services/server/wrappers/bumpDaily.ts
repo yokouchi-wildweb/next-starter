@@ -2,7 +2,7 @@
 
 import { sql } from "drizzle-orm";
 
-import { USER_COUNTER_CONFIG } from "@/config/app/user-counter.config";
+import { userCounterConfig } from "@/features/userCounter/config";
 import { UserDailyCounterTable } from "@/features/core/userCounter/entities/drizzle";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle";
@@ -12,7 +12,7 @@ import { bump } from "./bump";
 export type BumpDailyOptions = {
   /** 加算量（既定 1）。整数 */
   by?: number;
-  /** 日次行の保持日数。省略時は USER_COUNTER_CONFIG.defaultRetentionDays */
+  /** 日次行の保持日数。省略時は userCounterConfig.defaultRetentionDays */
   retentionDays?: number;
   /** 呼び出し側トランザクションに合流させたい場合に渡す（ロールバック整合） */
   tx?: TransactionClient;
@@ -48,12 +48,12 @@ export async function bumpDaily(
     throw new DomainError("加算量は有限の整数で指定してください。", { status: 400 });
   }
 
-  const retentionDays = options.retentionDays ?? USER_COUNTER_CONFIG.defaultRetentionDays;
+  const retentionDays = options.retentionDays ?? userCounterConfig.defaultRetentionDays;
   if (!Number.isInteger(retentionDays) || retentionDays <= 0) {
     throw new DomainError("保持日数は正の整数で指定してください。", { status: 400 });
   }
 
-  const timeZone = USER_COUNTER_CONFIG.dailyTimeZone;
+  const timeZone = userCounterConfig.dailyTimeZone;
 
   const run = async (executor: TransactionClient): Promise<BumpDailyResult> => {
     const count = await bump(userId, key, delta, executor);
