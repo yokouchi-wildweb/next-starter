@@ -1,6 +1,6 @@
 // scripts/structure/styles/generate-gradient-css.ts
 // グラデーショントークンから CSS を 2 本生成する(既定と実効の対):
-//   - src/styles/core/gradient.default.css = 上流の既定(BASE_GRADIENTS)+ 角度ユーティリティ。upstream 所有、fork でも上流と同じ中身
+//   - src/styles/core/gradient.css = 上流の既定(BASE_GRADIENTS)+ 角度ユーティリティ。upstream 所有、fork でも上流と同じ中身
 //   - src/styles/gradient.css             = そのリポの分(src/config/app/gradients.config.ts の customGradients)。fork 所有、global.css が読む
 //   fork は core/ の下に差分を持たない。同じ key を customGradients に書けば、直下の gradient.css が後から読まれて上書きする
 //
@@ -21,7 +21,7 @@ import { BASE_GRADIENTS } from "@/lib/gradient/tokens.base";
 import type { GradientTokenInput } from "@/lib/gradient/types";
 import { customGradients } from "@/config/app/gradients.config";
 
-const DEFAULT_OUTPUT_PATH = "src/styles/core/gradient.default.css";
+const DEFAULT_OUTPUT_PATH = "src/styles/core/gradient.css";
 const REPO_OUTPUT_PATH = "src/styles/gradient.css";
 
 /** 角度ユーティリティ（静的）。0=上 / 90=右 / 135=右下(既定) / 180=下 … */
@@ -186,7 +186,7 @@ function main(): void {
         REPO_OUTPUT_PATH,
         "【自動生成ファイル】直接編集しないでください。このリポのグラデーション(fork 所有。global.css が読む)。",
         "生成元: src/config/app/gradients.config.ts の customGradients(空なら中身なし)",
-        "再生成: pnpm generate styles。上流の既定(core/gradient.default.css)の後に読まれ、同じ key は上書きする",
+        "再生成: pnpm generate styles。上流の既定(core/gradient.css)の後に読まれ、同じ key は上書きする",
       ],
       withAngles: false,
     }),

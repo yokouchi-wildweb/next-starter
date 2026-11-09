@@ -79,7 +79,7 @@ export default async function RootLayout({
   });
 
   // 書体: fonts.config.ts(next/font)で読み込んだフォントの variable クラスを <html> に当てる。
-  // 何も読み込んでいなければ空(typography.default.css の system スタックで表示)。
+  // 何も読み込んでいなければ空(core/typography.css の system スタックで表示)。
   const htmlClassName = [isDark ? "dark" : "", FONTS_CONFIG.className].filter(Boolean).join(" ");
 
   return (

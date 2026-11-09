@@ -1,11 +1,11 @@
-// デザイントークンの「構造(theme.css)」と「上流既定値(palette.default.css)」の整合テスト。
+// デザイントークンの「構造(theme.css)」と「上流既定値(core/palette.css)」の整合テスト。
 // 実行: pnpm test src/styles/core/styleTokens.test.mjs (node:test、追加依存なし)
 //
 // 守りたい契約:
 // 1. theme.css の @theme inline が参照する var(--x) は、上流のどこかの CSS で必ず定義されている
 //    (下流の直下のファイルに頼らない = 下流が何も書かなくても動く)
-// 2. palette.default.css の .dark は :root に無い変数を持ち込まない(ライトで未定義の変数を作らない)
-// 3. palette.default.css は値だけを持つ(@theme や @custom-variant などの構造を含まない)
+// 2. core/palette.css の .dark は :root に無い変数を持ち込まない(ライトで未定義の変数を作らない)
+// 3. core/palette.css は値だけを持つ(@theme や @custom-variant などの構造を含まない)
 // 4. core/index.css が upstream の CSS を読み、global.css はそれを最初に、fork の 4 ファイルを後に読む(後勝ちの上書き契約)
 //
 // 検証対象は src/styles/core/(upstream 所有)。src/styles/ 直下の CSS は下流所有(中身は fork ごとに自由)なので、
@@ -78,27 +78,27 @@ test("theme.css の @theme inline が参照する変数は上流 CSS で全て�
   assert.deepEqual(
     missing,
     [],
-    `theme.css が参照しているが上流 CSS(core/)に定義が無い変数: ${missing.join(", ")}。palette.default.css に既定値を追加すること`,
+    `theme.css が参照しているが上流 CSS(core/)に定義が無い変数: ${missing.join(", ")}。core/palette.css に既定値を追加すること`,
   );
 });
 
-test("palette.default.css の .dark は :root に無い変数を持ち込まない", () => {
-  const palette = read("palette.default.css");
+test("core/palette.css の .dark は :root に無い変数を持ち込まない", () => {
+  const palette = read("palette.css");
   const light = collectBlockDefinitions(palette, ":root");
   const dark = collectBlockDefinitions(palette, ".dark");
-  assert.ok(light.size > 0, "palette.default.css に :root の定義が無い");
+  assert.ok(light.size > 0, "core/palette.css に :root の定義が無い");
   const onlyInDark = [...dark].filter((name) => !light.has(name));
   assert.deepEqual(onlyInDark, [], `.dark にしか無い変数: ${onlyInDark.join(", ")}`);
 });
 
 test("意味色は 塗り / -foreground / -text の 3 変数で揃っている(片方だけ足した状態を出荷しない)", () => {
-  const palette = read("palette.default.css");
+  const palette = read("palette.css");
   const theme = stripComments(read("theme.css"));
   for (const name of ["success", "info", "warning", "destructive"]) {
     for (const block of [":root", ".dark"]) {
       const defined = collectBlockDefinitions(palette, block);
       for (const suffix of ["", "-foreground", "-text"]) {
-        assert.ok(defined.has(`${name}${suffix}`), `palette.default.css ${block} に --${name}${suffix} が無い`);
+        assert.ok(defined.has(`${name}${suffix}`), `core/palette.css ${block} に --${name}${suffix} が無い`);
         assert.ok(
           theme.includes(`--color-${name}${suffix}: var(--${name}${suffix});`),
           `theme.css に --color-${name}${suffix} の対応付けが無い`,
@@ -107,22 +107,22 @@ test("意味色は 塗り / -foreground / -text の 3 変数で揃っている(�
     }
   }
   for (const name of ["overlay", "overlay-foreground"]) {
-    assert.ok(collectBlockDefinitions(palette, ":root").has(name), `palette.default.css に --${name} が無い`);
+    assert.ok(collectBlockDefinitions(palette, ":root").has(name), `core/palette.css に --${name} が無い`);
     assert.ok(theme.includes(`--color-${name}: var(--${name});`), `theme.css に --color-${name} の対応付けが無い`);
   }
 });
 
-test("palette.default.css は値だけを持つ(構造は theme.css に置く)", () => {
-  const palette = stripComments(read("palette.default.css"));
+test("core/palette.css は値だけを持つ(構造は theme.css に置く)", () => {
+  const palette = stripComments(read("palette.css"));
   assert.equal(/@theme|@custom-variant|@layer|@import/.test(palette), false);
 });
 
-test("書体スタックは typography.default.css が持ち、palette.default.css には無い", () => {
-  const typography = collectBlockDefinitions(read("typography.default.css"), ":root");
+test("書体スタックは core/typography.css が持ち、core/palette.css には無い", () => {
+  const typography = collectBlockDefinitions(read("typography.css"), ":root");
   assert.ok(typography.has("font-geist-sans") && typography.has("font-geist-mono"));
-  const palette = collectDefinitions(read("palette.default.css"));
+  const palette = collectDefinitions(read("palette.css"));
   const fontsInPalette = [...palette].filter((name) => name.startsWith("font-"));
-  assert.deepEqual(fontsInPalette, [], `palette.default.css に書体変数がある: ${fontsInPalette.join(", ")}`);
+  assert.deepEqual(fontsInPalette, [], `core/palette.css に書体変数がある: ${fontsInPalette.join(", ")}`);
 });
 
 test("global.css は core/index.css を最初に、fork の 4 ファイルをその後に読み込む", () => {
@@ -136,14 +136,15 @@ test("global.css は core/index.css を最初に、fork の 4 ファイルをそ
 test("core/index.css は tailwindcss を読み、既定値の順序を保つ", () => {
   const imports = importsOf(read("index.css"));
   assert.equal(imports[0], "tailwindcss");
-  assert.ok(imports.includes("./palette.default.css"));
-  assert.ok(imports.indexOf("./theme.css") < imports.indexOf("./palette.default.css"));
-  assert.ok(imports.indexOf("./palette.default.css") < imports.indexOf("./typography.default.css"));
-  assert.ok(imports.includes("./gradient.default.css"), "core/index.css が上流の既定のグラデーションを読まない");
-  assert.ok(!imports.includes("./gradient.css"), "そのリポの分(直下の gradient.css)は global.css が読む");
+  assert.ok(imports.includes("./palette.css"));
+  assert.ok(imports.indexOf("./theme.css") < imports.indexOf("./palette.css"));
+  assert.ok(imports.indexOf("./palette.css") < imports.indexOf("./typography.css"));
+  assert.ok(imports.includes("./gradient.css"), "core/index.css が上流の既定のグラデーションを読まない");
+  const outside = imports.filter((name) => name.startsWith("../"));
+  assert.deepEqual(outside, [], "core/index.css は core/ の外を読まない(直下の gradient.css などそのリポの分は global.css が読む)");
 });
 
-test("theme.css に色の値が残っていない(値は palette.default.css へ)", () => {
+test("theme.css に色の値が残っていない(値は core/palette.css へ)", () => {
   const theme = stripComments(read("theme.css"));
   const colorValues = [...theme.matchAll(/--[a-z0-9-]+\s*:\s*(oklch|hsl|rgb|#)[^;]*/g)].map((m) => m[0]);
   assert.deepEqual(colorValues, [], `theme.css に色の値が残っている: ${colorValues.join(", ")}`);

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { defineFontsConfig, FONT_SANS_LOADED_VAR, FONT_MONO_LOADED_VAR } from "./defineConfig.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const typographyCss = readFileSync(resolve(here, "../../styles/core/typography.default.css"), "utf8");
+const typographyCss = readFileSync(resolve(here, "../../styles/core/typography.css"), "utf8");
 const fontsConfigSource = readFileSync(resolve(here, "../../config/ui/fonts.config.ts"), "utf8");
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
@@ -35,7 +35,7 @@ test("variable 無しのローダー結果は拒否する(className だけ渡し
   assert.throws(() => defineFontsConfig({ mono: { variable: "", className: "__cls" } }), /variable オプション/);
 });
 
-test("typography.default.css のスタックは loaded 変数をフォールバック付きで参照し、既定スタックは従来どおり", () => {
+test("core/typography.css のスタックは loaded 変数をフォールバック付きで参照し、既定スタックは従来どおり", () => {
   const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   assert.match(
     typographyCss,

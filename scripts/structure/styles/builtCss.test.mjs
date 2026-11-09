@@ -90,8 +90,8 @@ test("resolveImportGraph: 実リポの global.css から上流の既定値ファ
   const sources = resolveImportGraph(resolve(repoRoot, "src/styles/global.css"), repoRoot);
   const byFile = new Map(sources.map((s) => [s.file, s.names]));
   assert.ok(byFile.has("src/styles/global.css"));
-  assert.ok(byFile.get("src/styles/core/palette.default.css").includes("--primary"));
-  assert.ok(byFile.get("src/styles/core/typography.default.css").includes("--font-geist-sans"));
+  assert.ok(byFile.get("src/styles/core/palette.css").includes("--primary"));
+  assert.ok(byFile.get("src/styles/core/typography.css").includes("--font-geist-sans"));
   assert.ok(byFile.has("src/styles/core/index.css"), "core/index.css を入れ子で辿る");
   assert.ok(byFile.has("src/styles/palette.css"), "fork の palette.css も global.css から辿る");
   assert.ok(!byFile.get("src/styles/core/animations.css").some((n) => n.startsWith("--animate-")), "@theme 内は対象外");

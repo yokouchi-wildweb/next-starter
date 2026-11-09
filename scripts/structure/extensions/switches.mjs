@@ -15,7 +15,7 @@ import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
 import { CLAIMED_DEFAULTS as FRAME_CLAIMS } from "./frames.mjs";
 
 /**
- * .default を使うほかの仕組みが名乗るファイルの形(仕組みごとに 1 か所で公開した一覧を足す。.default.css なども同じ形で足せる)
+ * .default を使うほかの仕組みが名乗るファイルの形(仕組みごとに 1 か所で公開した一覧を足す。.ts / .tsx 以外の形も同じ形で足せる)
  * @type {readonly { by: string, under: string, name?: string, pattern?: RegExp }[]}
  */
 export const CLAIMERS = [...FRAME_CLAIMS];

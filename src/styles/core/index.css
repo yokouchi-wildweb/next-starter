@@ -24,9 +24,9 @@
 @import "tw-animate-css";
 @import "./animations.css";
 @import "./theme.css";
-@import "./palette.default.css";
-@import "./typography.default.css";
-@import "./gradient.default.css";
+@import "./palette.css";
+@import "./typography.css";
+@import "./gradient.css";
 @import "./config.css";
 @import "./frame.css";
 @import "./z-layer.css";

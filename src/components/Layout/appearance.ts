@@ -3,9 +3,9 @@
 // Layout 系(Block / Section / Stack / Flex / Grid / Main)の appearance。
 // 色は全てテーマトークン(card / border / muted / primary ...)で書く。生パレット色(slate-900 等)は
 // ブランド色に追従せず dark: 併記も必要になるため使わない(ESLint style-tokens/no-raw-palette)。
-// ダークモードの色はトークン側(palette.default.css の .dark)が持つので、透過率が変わる箇所だけ dark: を書く。
+// ダークモードの色はトークン側(core/palette.css の .dark)が持つので、透過率が変わる箇所だけ dark: を書く。
 // ダークの --border は白 10% と薄いため、輪郭線が主役の appearance は dark: で muted-foreground の透過に切り替える。
-// 影は appearance ごとのトークン --appearance-shadow-<name>(palette.default.css の :root / .dark が値を持つ)。
+// 影は appearance ごとのトークン --appearance-shadow-<name>(core/palette.css の :root / .dark が値を持つ)。
 // ここに影の値を直書きしない。fork は src/styles/palette.css で値を変える(src/styles/README.md)。
 
 export const appearance = {

@@ -4,7 +4,7 @@
 
 ## 背景・設計方針
 
-- 従来トークンは `src/styles/core/gradient.default.css` の CSS 変数 / `@utility` のみで、**JS/TS から列挙・inline適用・プリセット選択ができなかった**。
+- 従来トークンは `src/styles/core/gradient.css` の CSS 変数 / `@utility` のみで、**JS/TS から列挙・inline適用・プリセット選択ができなかった**。
 - 解決: **TS（`tokens.base.ts`＋`config/app/gradients.config.ts`）を単一ソース**にし、そこから `gradient.css` を **codegen で生成**する（生成物コミット方式）。
 - 用途の二段構成:
   - **実行時**（ピッカー / inline style / canvas）→ `listGradients()` の `cssValue` を直接使う（CSSクラス不要・SSR安全、`getComputedStyle` 非依存）。
@@ -15,7 +15,7 @@
 
 - upstream 標準: `src/lib/gradient/tokens.base.ts`（`BASE_GRADIENTS`）
 - downstream 固有: `src/config/app/gradients.config.ts`（`customGradients`、既定 空）
-- 値を変えたら **`pnpm generate styles`** で再生成し、生成物をコミットする。上流の既定(`tokens.base.ts`)→ `src/styles/core/gradient.default.css`、そのリポの分(`gradients.config.ts`)→ 直下の `src/styles/gradient.css`(global.css が読む)。fork の分は `core/` の下に出ない
+- 値を変えたら **`pnpm generate styles`** で再生成し、生成物をコミットする。上流の既定(`tokens.base.ts`)→ `src/styles/core/gradient.css`、そのリポの分(`gradients.config.ts`)→ 直下の `src/styles/gradient.css`(global.css が読む)。fork の分は `core/` の下に出ない
 - 同一キーは後勝ち（custom が base を上書き可能）。
 
 ```ts
@@ -76,5 +76,5 @@ const css = resolveColorValue(value, { resolveDefault: () => "var(--color-primar
 
 - `src/lib/gradient/` … トークン / レジストリ / カラー値モデル / 解析ヘルパー（純粋TS・React非依存）
 - `src/config/app/gradients.config.ts` … downstream 拡張ポイント
-- `scripts/structure/styles/generate-gradient-css.ts` … `core/gradient.default.css` と直下の `gradient.css` の生成（`pnpm generate styles`）
+- `scripts/structure/styles/generate-gradient-css.ts` … `core/gradient.css` と直下の `gradient.css` の生成（`pnpm generate styles`）
 - `src/components/Form/Input/{Manual,Controlled}/ColorValueInput.tsx` … ピッカーUI

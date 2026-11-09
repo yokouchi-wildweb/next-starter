@@ -15,7 +15,7 @@ export type LoadedFont = {
  * 下流が書く差分。渡したものだけ読み込まれ、渡さなければ Web フォント無し(system スタック)。
  * next/font のローダーは `variable` に下記の固定名を指定すること(リテラル必須):
  *   sans → "--font-sans-loaded" / mono → "--font-mono-loaded"
- * (src/styles/core/typography.default.css のスタックがこの変数名でフォールバック参照している)
+ * (src/styles/core/typography.css のスタックがこの変数名でフォールバック参照している)
  */
 export type FontsConfigInput = {
   sans?: LoadedFont | null;

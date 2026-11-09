@@ -1,5 +1,5 @@
 /*
- * src/styles/core/typography.default.css — 書体スタックの上流既定値(upstream 所有)
+ * src/styles/core/typography.css — 書体スタックの上流既定値(upstream 所有)
  *
  * ⚠️ 下流(fork)はこのファイルを編集しないでください。
  *    - system フォントの並びを変えたい → src/styles/typography.css に同名変数を書く(後勝ち)
