@@ -1,1 +1,1 @@
-{ "check": "check-built-css.ts", "generate": "generate.ts", "gates": ["build:post"] }
+{ "check": "check-built-css.ts", "generate": "generate.ts", "gates": ["build:post"], "outputs": ["src/features/core/mail/constants/colors.ts"] }

@@ -65,7 +65,9 @@ describe("実リポジトリの intake.txt", () => {
       ["src/config/app/app-features.config.ts", "edit"],
       ["src/styles/palette.css", "edit"],
       ["src/styles/core/global.css", null],
-      ["src/app/(user)/(public)/about/page.tsx", "edit"],
+      ["src/app/(user)/(legal)/terms/page.tsx", "edit"],
+      // page.tsx の行は上流のルートごと(ルートから生成)。上流に無いページは fork が足した物 = fork 所有で、行は要らない
+      ["src/app/(user)/(public)/about/page.tsx", null],
       ["src/app/(user)/_layout/UserLayout.replace.tsx", "add"],
       ["src/app/(user)/_layout/UserLayout.acme.tsx", null],
       ["src/app/(user)/_layout/UserLayout.test.tsx", null],

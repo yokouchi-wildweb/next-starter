@@ -27,7 +27,9 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable"];
+const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind"];
+/** 置き場の点が名乗れる種類(受け口の一覧 intake.txt の行の kind) */
+export const PLACEMENT_KINDS = ["edit", "append"];
 /** 上書きの対象の点(受け口でない)が持てるキー */
 const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf", "addable"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
@@ -96,6 +98,16 @@ function checkPoint(name, point) {
   if (typeof point !== "object" || point === null || Array.isArray(point)) return [...problems, `${name}: 点は object で書く`];
   for (const key of Object.keys(point)) if (!KEYS.includes(key)) problems.push(`${name}: 未知のキー ${key}(使えるのは ${KEYS.join(" / ")})`);
   const isString = (v) => typeof v === "string" && v.length > 0;
+  // placement: 置き場の点。fork が書いてよい場所(リポジトリ直下からの glob)と、その書き方(intake.txt の kind)だけを持つ
+  if (point.placement !== undefined) {
+    if (!isString(point.placement) || !point.placement.startsWith(`${SEARCH_ROOT}/`) || point.placement.split("/").includes("..")) {
+      problems.push(`${name}: placement は置き場のリポジトリ直下からの glob(${SEARCH_ROOT}/ 始まり、.. 無し)`);
+    }
+    if (!PLACEMENT_KINDS.includes(point.kind)) problems.push(`${name}: kind は ${PLACEMENT_KINDS.join(" | ")}`);
+    for (const key of Object.keys(point)) if (KEYS.includes(key) && key !== "placement" && key !== "kind") problems.push(`${name}: placement の点に ${key} は書けない(書けるのは placement / kind)`);
+    return problems;
+  }
+  if (point.kind !== undefined) problems.push(`${name}: kind は placement の点だけ`);
   // overrides: 受け口でない上書きの対象の点(ロールの JSON・cron の task.ts・domainEntry.ts など)。
   // 対象のファイルの場所(リポジトリ直下からの glob)と、隣の <対象>.override.ts が書いてよい鍵を持つ。
   // addable: true = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON。受け口の一覧 intake.txt の add の行になる)
@@ -138,8 +150,8 @@ function checkPoint(name, point) {
   return problems;
 }
 
-/** 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点は違う */
-export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined;
+/** 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点・placement の点は違う */
+export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined && spec.placement === undefined;
 
 /** このモジュールの置き場から見たリポジトリ直下(src/lib/districtMap/ の 3 つ上) */
 const OWN_REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));

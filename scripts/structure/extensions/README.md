@@ -43,6 +43,7 @@ export const extensionPoints = {
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `features` のフォルダ(ドメインの位置 `core/<名前>` か `<名前>`。無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`、項目の `pathPatterns` の後ろにも足す)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `features` のフォルダに当たる → `/api/cron/<名>`。規則に手書きした `/api/cron/` は止める)を導き、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
 - 受け口でない点(一覧はこの生成器が書かない。受け口のフォルダの行も無い。判定 `isListPoint`):
   - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
+  - `placement: "<置き場の glob>"` + `kind: "edit" | "append"` … 置き場の点(型 4)。fork が書いてよい場所(リポジトリ直下から、`src/` 始まり)とその書き方。受け口の一覧の行になるだけ(項目も一覧も無い)
   - `overrides: "<対象のファイルの glob>"` + `side` + `overrideOf: [...]` … 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。宣言は `as const` で書き、上書きの型(`RoleOverride` など)は `overrideOf` から引く(`(typeof extensionPoints.<点>.overrideOf)[number]`)。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 
@@ -102,12 +103,15 @@ export const extensionPoints = {
 
 ## 受け口の一覧の生成区画(intake.txt)
 
-`src/lib/forkOwnership/intake.txt` の `# === AUTO-GENERATED intake START ===` 〜 `END` の間は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(`intake.mjs`、区画の差し替えは `src/lib/forkOwnership/intake.mjs`)。行の種類は手書きだったときと同じ(下の Tier の書き換えの判定が変わらない。`intakeFromDeclarations.test.mjs`):
+`src/lib/forkOwnership/intake.txt` の `# === AUTO-GENERATED intake START ===` 〜 `END` の間は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(`intake.mjs`、区画の差し替えは `src/lib/forkOwnership/intake.mjs`)。src の下の行は全部ここ。行の種類は手書きだったときと同じ(下の Tier の書き換えの判定が変わらない。`intakeFromDeclarations.test.mjs`)。並び(最後に当たった行が効く):
 
-- 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
-- 1 行スイッチ: 素の名前 `edit <dir>/<名前>.ts(x)`(向け先を替える)と置き換え `add <dir>/<名前>.replace.{ts,tsx}`
-- 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
-- route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`
+1. 置き場(placement の点): `<kind> <glob>`
+2. 画面: ルートの `page.tsx`(`src/lib/screens/routeTree.mjs` の discoverRoutes = ルートの地図と同じ見つけ方を src/app から直に。`pnpm generate routes` を待たない)と枠の 1 行スイッチの `layout.tsx`(parseSwitchLayout)= `edit`。パスの `[slug]` などは `[[]`・`[]]` で包む(`literalGlob`、node:path の matchesGlob の字の組)
+3. 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
+4. 1 行スイッチ: 素の名前 `edit <dir>/<名前>.ts(x)`(向け先を替える)と置き換え `add <dir>/<名前>.replace.{ts,tsx}`
+5. 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
+6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・枠の宣言 `frame.ts`
+7. 生成器: 各 `gate.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/gates/README.md`)
 - scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/features/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
 区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `pnpm workflow ownership check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。

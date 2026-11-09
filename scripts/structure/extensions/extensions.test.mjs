@@ -645,3 +645,29 @@ test("宣言: overrides の点(受け口でない上書きの対象)は override
   ]);
   assert.match(read(`  roleDefinitions: { overrides: "src/a/*.json", addable: false, side: "shared", overrideOf: ["a"] },`).problems[0], /addable は true だけ/);
 });
+
+test("宣言: placement の点(置き場)は placement・kind(edit | append)だけ。intake は置き場 → 画面 → 受け口 → … → region → generated の順", () => {
+  const read = (body) => readDeclaration("x/extensionPoints.ts", point(body));
+  assert.deepEqual(read(`  values: { placement: "src/config/**", kind: "edit" },`).problems, []);
+  assert.deepEqual(read(`  catalog: { placement: "src/lib/CATALOG.md", kind: "append" },`).problems, []);
+  assert.match(read(`  values: { placement: "src/config/**", kind: "add" },`).problems[0], /kind は edit \| append/);
+  assert.match(read(`  values: { placement: "config/**", kind: "edit" },`).problems[0], /placement は置き場/);
+  assert.match(read(`  values: { placement: "src/a/**", kind: "edit", side: "server" },`).problems[0], /placement の点に side は書けない/);
+  assert.match(read(MILESTONES.replace('side: "server" }', 'side: "server", kind: "edit" }')).problems[0], /kind は placement の点だけ/);
+  const rows = intakeRows(
+    [
+      { owner: "src/lib/a", name: "values", declaredIn: "src/lib/a/extensionPoints.ts", spec: { placement: "src/config/**", kind: "edit" } },
+      { owner: "src/features/milestone", name: "definitions", declaredIn: "src/features/milestone/extensionPoints.ts", spec: { dir: "milestones", export: "m", type: { from: "a", name: "T" }, side: "server" } },
+    ],
+    [{ path: "src/features/core/payment/enricher.ts" }],
+    { pages: ["src/app/(user)/wallet/[slug]/page.tsx"], frameSwitches: ["src/app/(user)/layout.tsx"], generators: [{ name: "registry", outputs: ["src/registry/a.ts"], regions: ["src/registry/**/*.ts"] }] },
+  ).filter((r) => !r.startsWith("#")).map((r) => r.split("  #")[0]);
+  const at = (row) => rows.indexOf(row);
+  for (const row of ["edit src/config/**", "edit src/app/(user)/wallet/[[]slug[]]/page.tsx", "edit src/app/(user)/layout.tsx", "add src/features/milestone/milestones/*.{ts,tsx}", "edit src/features/core/payment/enricher.ts", "region src/registry/**/*.ts", "generated src/registry/a.ts"]) {
+    assert.ok(at(row) >= 0, `${row} が無い`);
+  }
+  assert.ok(at("edit src/config/**") < at("edit src/app/(user)/wallet/[[]slug[]]/page.tsx"));
+  assert.ok(at("edit src/app/(user)/layout.tsx") < at("add src/features/milestone/milestones/*.{ts,tsx}"));
+  assert.ok(at("add src/app/**/frame.ts  ".trim()) < at("region src/registry/**/*.ts"));
+  assert.ok(at("region src/registry/**/*.ts") < at("generated src/registry/a.ts"), "同じファイルなら生成物が効く");
+});

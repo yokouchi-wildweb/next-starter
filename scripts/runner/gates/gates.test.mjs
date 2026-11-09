@@ -55,6 +55,15 @@ test("gate.json の誤り: 知らない欄・知らない門・無い入口・ch
   assert.equal(f.exec(["check"]).code, 2);
 });
 
+test("gate.json の outputs / regions: 文字列の配列なら通り、それ以外は止める(受け口の一覧の generated / region の行の出どころ)", (t) => {
+  const ok = fixture(t);
+  ok.add("structure", "registry", { generate: "check.mjs", outputs: ["src/registry/a.ts"], regions: ["src/registry/**/*.ts"] });
+  assert.deepEqual(names(ok), ["registry"]);
+  const bad = fixture(t);
+  bad.add("structure", "registry", { generate: "check.mjs", outputs: "src/registry/a.ts", regions: [1] });
+  assert.throws(() => names(bad), (e) => /outputs は文字列の配列/.test(e.message) && /regions は文字列の配列/.test(e.message));
+});
+
 test("順序: after を満たし、同じ段は上流が先で名前順、名簿に無い fork のフォルダは上流の全部の後に名前順 / 循環は止める", (t) => {
   const f = fixture(t);
   f.add("structure", "routes", { check: "check.mjs", after: ["registry"] });

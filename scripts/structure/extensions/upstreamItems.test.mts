@@ -123,8 +123,8 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   assert.equal(await onDemoUserCreated("u1"), undefined);
   const plan = planExtensions(ROOT);
   // 上流のスイッチは全部 .default を指す(今と同じ振る舞い)。AdminHeader.default は管理のヘッダーの行の既定の部品
-  // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)
-  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["AdminHeader.default", "RateLimitWarningContent.default", "adjustmentNotificationTemplate.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
+  // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
+  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["AdminHeader.default", "ForkProviders.default", "RateLimitWarningContent.default", "adjustmentNotificationTemplate.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
 });
 
 test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", tier1Only, () => {

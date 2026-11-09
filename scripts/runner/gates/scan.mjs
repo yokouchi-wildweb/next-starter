@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 export const KINDS = ["structure", "workflow"];
-export const KEYS = ["check", "generate", "gates", "after", "watch", "features"];
+export const KEYS = ["check", "generate", "gates", "after", "watch", "features", "outputs", "regions"];
 
 export class GateError extends Error {}
 
@@ -30,7 +30,7 @@ export function validate(decl, dir, gateNames) {
     if (typeof decl[k] !== "string" || /[/\\]/.test(decl[k])) errs.push(`${k} はこのフォルダの中のファイル名(${JSON.stringify(decl[k])})`);
     else if (!existsSync(join(dir, decl[k]))) errs.push(`${k} のファイル ${decl[k]} が無い`);
   }
-  for (const k of ["gates", "after", "watch", "features"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
+  for (const k of ["gates", "after", "watch", "features", "outputs", "regions"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
   for (const g of decl.gates ?? []) if (!gateNames.includes(g)) errs.push(`知らない門 ${g}(門は ${gateNames.join(", ")})`);
   return errs;
 }

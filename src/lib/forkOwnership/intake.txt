@@ -16,27 +16,127 @@ edit eslint.config.fork.mjs  # fork の ESLint の設定(eslint.config.mjs が�
 edit firebase.json  # fork の Firebase の配備設定(firestore のルール・インデックスを足す。storage は upstream の全拒否のまま)
 # tsconfig.json は受け口の外(paths の不足は upstream で直す、L1.8)。AGENTS.md も外(Next が書き足す区画は生成器の区画として除く)
 
-# 値(config の再設計までは全体。値とキーを区別しない)
-edit src/config/**  # CLAUDE.md CORE_FILES config
-edit src/business/**  # 事業の素性(フォルダごと fork の物。上流は source: "sample" で出荷、設定の議会 D88)
-
-# スタイルと素材(直下の CSS = fork の入口。core/ は upstream)
-edit src/styles/*.css  # CLAUDE.md CORE_FILES downstream_owned
+# 素材(src の外)
 edit public/assets/imgs/logos/**  # ブランドのロゴ(logoPath で差し替える前提の素材)
-edit src/app/favicon.ico  # ブランドの favicon
 
-# 画面(1 行スイッチと fork の部品)
-edit src/app/**/page.tsx  # 1 行スイッチ
+# src の下の行は全部この生成区画(4 つの型: 画面の差し替え = ルート・1 行スイッチ / 受け口と上書き = 拡張点の宣言 / 置き場 = placement の宣言 / 生成物と区画 = 生成器の gate.json)。fork の項目は印なしの名前(D137)
+# === AUTO-GENERATED intake START ===
+# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・1 行スイッチ・生成器の gate.json から書く。手で編集しない(ずれは pnpm check extensions が止める)
+edit src/app/favicon.ico  # 置き場 appIcon(src/app/_layout/extensionPoints.ts)
+edit src/business/**  # 置き場 businessValues(src/lib/business/extensionPoints.ts)
+edit src/config/**  # 置き場 configValues(src/lib/districtMap/extensionPoints.ts)
+append src/lib/CATALOG.md  # 置き場 catalogSections(src/lib/folderCatalog/extensionPoints.ts)
+edit src/app/**/_components/**  # 置き場 forkScreenParts(src/lib/screens/extensionPoints.ts)
+edit src/styles/*.css  # 置き場 rootStyles(src/styles/core/extensionPoints.ts)
+edit src/app/(marketing)/entry/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/demo-login/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/email/verify/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/forgot-password/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/login/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/logout/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/password/reset/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/reactivate/complete/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/reactivate/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/restricted/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup-closed/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup/complete/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup/email-sent/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup/oauth/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup/register/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(auth)/signup/verify/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(legal)/privacy-policy/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(legal)/terms/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(legal)/tradelaw/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/account/email/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/account/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/account/password/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/account/phone/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/account/profile/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/invite/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/other/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/pause/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/withdraw/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/history/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/purchase/awaiting-review/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/purchase/bank-transfer/[[]requestId[]]/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/purchase/callback/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/purchase/complete/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/purchase/failed/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/[[]slug[]]/purchase/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/wallet/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(public)/services/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/async-picker-modal/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/bank-transfer-vision/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/block-appearance/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/dummy-payment/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/fade-slider/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/field-layout/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/fingerprint/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/form-components/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/google-popup/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/google-redirect/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/media-input/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/overlay/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/popover/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/scroll-slider/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/seamless-av/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/seamless-av/play/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/seamless-video/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/sortable-list/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/status-badge/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/demo/tables/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/maintenance/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/audit-logs/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/bank-transfer-reviews/[[]status[]]/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/chat-rooms/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/chat-rooms/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/chat-rooms/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/coupons/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/coupons/affiliate/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/coupons/invite/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/coupons/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/coupons/official/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/notification-templates/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/notification-templates/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/notification-templates/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/notifications/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/notifications/send/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/sample-categories/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/sample-categories/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/sample-categories/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/sample-tags/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/sample-tags/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/sample-tags/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/samples/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/samples/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/samples/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/samples/sort/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/settings/[[]section[]]/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/settings/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/user-tags/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/user-tags/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/user-tags/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/demo/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/demo/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/general/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/general/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/general/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/system/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/system/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/users/system/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/login/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/setup/page.tsx  # 画面の 1 行スイッチ
+edit src/app/debug/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(marketing)/layout.tsx  # 枠の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/(user)/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/admin/layout.tsx  # 枠の 1 行スイッチ
-edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
-edit src/app/(marketing)/layout.tsx  # 枠の 1 行スイッチ
-edit src/app/**/_components/**  # upstream のルートの fork の部品
-edit src/app/_providers/ForkProviders.tsx  # AppProviders の fork の口(D30 K8。上流は空、多段は同じファイルを書き換える)
-
-# 宣言から作れる行(拡張点の受け口のフォルダ・1 行スイッチの素の名前と丸ごと置き換え・route の隣の丸ごと置き換え・上書きの対象の点の .override と足してよい対象)。fork の項目は印なしの名前(D137)
-# === AUTO-GENERATED intake START ===
-# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)と 1 行スイッチから書く。手で編集しない(ずれは pnpm check extensions が止める)
 add src/app/(user)/demo/*/_demo.ts  # 受け口 demoPages
 add src/app/_layout/adminCommand/categories/*.{ts,tsx}  # 受け口 categories
 add src/app/_layout/adminCommand/categories/*/**  # 受け口 categories(フォルダ形)
@@ -122,12 +222,14 @@ add src/wiring/dbAgent/suffixProviders/*.{ts,tsx}  # 受け口 suffixProviders
 add src/wiring/dbAgent/suffixProviders/*/**  # 受け口 suffixProviders(フォルダ形)
 add src/wiring/formInputs/inputs/*.{ts,tsx}  # 受け口 inputs
 add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
+edit src/app/_providers/ForkProviders.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/app/admin/_layout/AdminHeader.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 1 行スイッチ src/app/_providers/ForkProviders.tsx の丸ごと置き換え
 add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え
 add src/features/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
 add src/features/core/auth/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/services/server/onDemoUserCreated.ts の丸ごと置き換え
@@ -144,10 +246,23 @@ add src/features/core/userProfile/profiles/*.profile.json  # fork が足す prof
 add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き換え(_layout の隣の <名前>.replace)
 add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)
 add src/app/**/frame.ts  # 枠の宣言(上流のルートの隣でも自分のルートでも。ルートを作ったリポの既定は frame.default.ts、src/app/_layout/frame/README.md)
+region src/registry/**/*.ts  # 生成器 registry の fork の区画
+generated vercel.json  # 生成器 cron の出力
+generated src/features/core/userProfile/entities/profiles/**  # 生成器 role の出力
+generated src/registry/serviceRegistry.ts  # 生成器 registry の出力
+generated src/registry/storagePurposeRegistry.ts  # 生成器 registry の出力
+generated src/registry/schemaRegistry.ts  # 生成器 registry の出力
+generated src/registry/domainConfigRegistry.ts  # 生成器 registry の出力
+generated src/registry/adminDomains.ts  # 生成器 registry の出力
+generated src/features/core/*/entities/display.ts  # 生成器 registry の出力
+generated src/registry/district-map.jsonl  # 生成器 district-map の出力
+generated src/wiring/dbAgent.ts  # 生成器 extensions の出力
+generated src/**/extensions/**  # 生成器 extensions の出力
+generated src/app/route-map.jsonl  # 生成器 routes の出力
+generated src/features/core/mail/constants/colors.ts  # 生成器 styles の出力
 # === AUTO-GENERATED intake END ===
 
 # 登録(fork entries の対の中だけ)
-region src/registry/**/*.ts  # .claude/rules/core/code-generation.md fork_region
 region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編集点】)
 edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker の設定(upstream には無い。.example だけ)
 
@@ -157,24 +272,6 @@ edit .claude/rules/behavior.md  # CLAUDE.md PER_PROJECT
 marker .claude/rules/shortcuts.md  # 印より下が fork
 marker .claude/rules/term-aliases.md  # 印より下が fork
 append .claude/rules/lineage.md  # 中間層の節を末尾に足すだけ(lineage.md の前置き)
-
-# 目録(自分の節の追記)
-append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき」
-
-# 生成物(fork の設定・ドメインから生成し直される)
-generated src/registry/serviceRegistry.ts  # pnpm generate registry
-generated src/registry/storagePurposeRegistry.ts  # pnpm generate registry(走査で丸ごと)
-generated src/wiring/dbAgent.ts  # pnpm generate extensions
-generated src/registry/schemaRegistry.ts  # pnpm generate registry(走査で丸ごと)
-generated src/registry/domainConfigRegistry.ts  # pnpm generate registry(走査で丸ごと)
-generated src/registry/adminDomains.ts  # pnpm generate registry(走査で丸ごと: 管理一覧の画面を持つドメイン)
-generated src/registry/district-map.jsonl  # pnpm generate district-map(地区の地図。forge・pnpm generate domain の最後・削除の後も書き直す)
-generated src/features/core/*/entities/display.ts  # pnpm generate registry(表示用の写し)
-generated src/app/route-map.jsonl  # pnpm generate routes
-generated vercel.json  # pnpm generate cron(upstream には無い)
-generated src/features/core/mail/constants/colors.ts  # scripts/structure/styles/generate-mail-colors.ts
-generated src/features/core/userProfile/entities/profiles/**  # pnpm generate role
-generated src/**/extensions/**  # pnpm generate extensions(拡張点の一覧。proxy の枠の項目と機能を閉じる規則も)
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)
