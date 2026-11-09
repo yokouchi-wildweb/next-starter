@@ -23,7 +23,7 @@ export type CronHandler<T extends Record<string, unknown> = Record<string, unkno
 
 /**
  * 機能の門の判定（省略可の依存）。lib は門番を読まないので、wiring（src/wiring/cronRoute.ts）が門番の gate.path で結ぶ。
- * 住所はタスクの名前から組んだ `/api/cron/<name>`（規則の pathPatterns に載せた住所で閉じる）
+ * 住所はタスクの名前から組んだ `/api/cron/<name>`（門番が task の読むドメインの開閉で閉じる）
  */
 export type CronRouteGate = {
   /** その住所の機能が閉じているか */

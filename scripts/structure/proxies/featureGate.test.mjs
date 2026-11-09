@@ -35,7 +35,8 @@ import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../../../src/lib/domain/definition/apiAccess.ts";
 import { APP_FEATURES } from "../../../src/config/app/app-features.config.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
-import { alwaysOnExceptions, alwaysOnRegistries, configRules as featureGateRules, gatedSchema as applySchemaGate } from "../../../src/featureGate/node.ts";
+// 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
+import { alwaysOnExceptions, alwaysOnRegistries, configRules, gatedSchema as applySchemaGate, withCoveredPatterns } from "../../../src/featureGate/node.ts";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
@@ -82,6 +83,8 @@ const toUrlSegments = (file) => {
 };
 
 // パターンがルートを覆うか(完全一致の `=` も含む)は門番と同じ src/lib/pathPattern
+
+const featureGateRules = withCoveredPatterns(configRules);
 
 // 表の実在を見る検査だけが使う(閉じるドメインは表ではなく features のフォルダから導く)
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);

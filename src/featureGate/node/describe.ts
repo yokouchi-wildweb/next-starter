@@ -17,6 +17,7 @@ import {
   ownEnabled,
   ruleEnabled,
   switchMissingDependencies,
+  withCoveredPatterns,
   transitiveDependencies,
   transitiveDependents,
 } from "../ruleList";
@@ -73,7 +74,8 @@ export type FeatureFacts = {
 export function describeFeatures(rules: readonly GatedFeatureRule[], facts: FeatureFacts): FeatureDescription[] {
   const enabledOf = new Map(rules.map((rule) => [rule.name as string, ruleEnabled(rule)]));
   return rules.map((rule) => {
-    const derived = rule.domainApiPaths.length + rule.settingPaths.length + rule.cronPaths.length;
+    // pathPatterns の後ろに足されているのは設定の節の住所だけ(汎用 API・cron はドメインに付き、pathPatterns に入らない)
+    const derived = rule.settingPaths.length;
     const enabled = enabledOf.get(rule.name)!;
     const state = facts.switchState?.[rule.name];
     const config = state?.configEnabled ?? enabled;
@@ -164,7 +166,8 @@ export async function readFeatureReport(
   const required = await readRequired(root);
   const dependencies = scanDependencies({
     root,
-    rules: [...rules],
+    // 住所の下にあるかは規則のドメインの導出の住所も含めて見る(依存の検査と同じ入力)
+    rules: withCoveredPatterns(rules),
     exceptionFiles: [...exceptionFiles],
     requiredNames: Object.keys(required),
   });

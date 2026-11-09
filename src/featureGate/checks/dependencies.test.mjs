@@ -12,7 +12,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { dependencyExceptions, rules } from "../node.ts";
+import { dependencyExceptions, rules as gateRules, withCoveredPatterns } from "../node.ts";
+
+// 住所の下にあるかは規則のドメインの導出の住所(汎用 API・cron)も含めて見る
+const rules = withCoveredPatterns(gateRules);
 import { findDependencyViolations } from "./dependencies.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");

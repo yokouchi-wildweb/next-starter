@@ -3,6 +3,8 @@
 // - rules: 規則の一覧(生成一覧を全開スイッチで包んだ物。名前・tables 付き、ruleList.ts)。db:push・seed・pnpm ops db clear・pnpm ops features list が読む
 // - configRules / configEnabled / configPath: 規則の値だけ(スイッチを通さない)。cron・pnpm generate routes・検査・codemod が読む(L2.3)
 // - isOpenedBySwitch: 全開スイッチで開いているか(pnpm ops features list の見せ方)
+// - gatedDomains / derivedPaths / closedDomainsOf / domainEnabled / closedDerivedEntries: ドメインの開閉と導出の住所(汎用 API・cron。D24・D34 K4)
+// - withCoveredPatterns: 規則の pathPatterns に規則のドメインの導出の住所を足した写し(住所で覆うかを見る検査の入力)
 // - ownEnabled / switchMissingDependencies: 規則の値そのもの(スイッチも依存先も通さない)・名前指定のスイッチの足りない依存先(同じく見せ方)
 // - gatedSchema: db:push / db:push:check に渡す入力(閉じた機能の表を両側から外す)
 // - closedTables: 今閉じている機能の表名
@@ -15,7 +17,20 @@
 import "./node/tier1";
 
 export { serverTools as gate } from "./tools/server";
-export { configEnabled, configRules, isOpenedBySwitch, ownEnabled, rules, switchMissingDependencies } from "./ruleList";
+export {
+  closedDerivedEntries,
+  closedDomainsOf,
+  configEnabled,
+  configRules,
+  derivedPaths,
+  domainEnabled,
+  gatedDomains,
+  isOpenedBySwitch,
+  ownEnabled,
+  rules,
+  switchMissingDependencies,
+  withCoveredPatterns,
+} from "./ruleList";
 export { configPath } from "./node/configPath";
 export { alwaysOnExceptions } from "./extensions/alwaysOnExceptions";
 export { alwaysOnRegistries } from "./extensions/alwaysOnRegistries";

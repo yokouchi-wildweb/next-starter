@@ -683,7 +683,7 @@ test("dependsOn: 字面を一覧の項目に写す(書かない規則は空、en
     ["child:parent", "grandchild:child|parent", "parent:"],
   );
   const out = plan.outputs["src/featureGate/extensions/rules.ts"];
-  assert.match(out, /import type \{ GeneratedFeatureRule \} from "@\/featureGate";/);
+  assert.match(out, /import type \{ GatedCronTask, GatedDomain, GeneratedFeatureRule \} from "@\/featureGate";/);
   assert.match(out, /\{ \.\.\.rules_child, name: "child", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \["parent"\] \},/);
   assert.match(out, /\{ \.\.\.rules_parent, name: "parent", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/);
 });

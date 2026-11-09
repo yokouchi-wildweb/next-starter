@@ -16,7 +16,7 @@ import { clientTools } from "@/featureGate/tools/client";
 import { serverTools } from "@/featureGate/tools/server";
 import { isDomainError } from "@/lib/errors";
 import { rules } from "@/featureGate/node";
-import { matchesPath } from "@/lib/pathPattern/index.mjs";
+import { matchesPath, patternSpecificity } from "@/lib/pathPattern/index.mjs";
 
 test("gate.enabled: 規則のファイル名で引け、規則の enabled() の答えを返す", () => {
   assert.ok(rules.length > 0);
@@ -31,15 +31,46 @@ test("gate.enabled: 未知の名前は型で落ち、実行時は throw", () => 
   assert.throws(() => gate.enabled("constructor" as FeatureName), /未知の機能の名前/);
 });
 
-test("gate.path: 閉じた規則の住所なら一覧の順で最初の閉じた規則の名前と redirectTo、開いていれば open:true", () => {
+test("gate.path: 閉じた規則の住所なら当たった閉じた住所のうち一番細かい一致の規則の名前と redirectTo、開いていれば open:true", () => {
   for (const rule of rules.filter((r) => !r.enabled())) {
     for (const pattern of rule.pathPatterns) {
       const pathname = pattern.replace(/^=/, "");
-      const first = rules.find((r) => !r.enabled() && r.pathPatterns.some((p) => matchesPath(pathname, p)));
-      assert.deepEqual(gate.path(pathname), { open: false, rule: first?.name, redirectTo: first?.redirectTo });
+      const hits = rules
+        .filter((r) => !r.enabled())
+        .flatMap((r) => r.pathPatterns.filter((p) => matchesPath(pathname, p)).map((p) => ({ r, s: patternSpecificity(p) })));
+      const best = hits.reduce((a, b) => (b.s > a.s ? b : a)).r;
+      assert.deepEqual(gate.path(pathname), { open: false, rule: best.name, redirectTo: best.redirectTo });
     }
   }
   assert.deepEqual(gate.path("/__no_such_gated_path__"), { open: true });
+});
+
+test("gate.path: 汎用 API と cron の住所はドメインの開閉で閉じる(規則の pathPatterns には無い)。持ち主が閉ならその名前", () => {
+  withRules({ wallet: false }, () => {
+    assert.ok(!ruleOf("wallet").pathPatterns.includes("/api/wallet"), "導出の住所は規則の pathPatterns に入れない");
+    assert.deepEqual(gate.path("/api/wallet"), { open: false, rule: "wallet", redirectTo: undefined });
+    assert.deepEqual(gate.path("/api/walletHistory/1"), { open: false, rule: "wallet", redirectTo: undefined });
+    assert.deepEqual(gate.path("/api/cron/wallet-lots-prune"), { open: false, rule: "wallet", redirectTo: undefined });
+  });
+  withRules({}, () => {
+    assert.deepEqual(gate.path("/api/wallet"), { open: true });
+    assert.deepEqual(gate.path("/api/cron/wallet-lots-prune"), { open: true });
+  });
+});
+
+const ruleAt = (pathname: string) => {
+  const result = gate.path(pathname);
+  return result.open ? null : result.rule;
+};
+
+test("gate.path: 入れ子は一番細かい一致(招待クーポンの管理画面 ⊂ クーポンの管理画面)", () => {
+  withRules({ coupon: false, referral: false }, () => {
+    assert.equal(ruleAt("/admin/coupons/invite"), "referral");
+    assert.equal(ruleAt("/admin/coupons"), "coupon");
+  });
+  withRules({ coupon: false }, () => {
+    assert.equal(ruleAt("/admin/coupons/invite"), "coupon", "子が開でも親の閉で閉");
+  });
 });
 
 /** 規則の enabled を一時的に差し替えて fn を走らせる(終われば戻す) */
@@ -163,11 +194,16 @@ test("clientGateState: 全規則の開閉と、枠で絞った閉じた住所(us
       assert.ok(state.closed.every((e) => !("redirectTo" in e) || typeof e.redirectTo === "string"), "redirectTo は無いか文字列");
     }
     assert.ok(user.closed.every((e) => !under(e.pattern, "/admin")), "利用者の枠に /admin の住所は出さない");
-    const expectAll = rules.flatMap((rule) => rule.pathPatterns.map((pattern) => ({ pattern, rule: rule.name })));
+    // 全部閉: 手書きの住所(一覧の順)+ 導出の住所(汎用 API・cron は /api の下なので枠に出ない)を、一番細かい順に並べ直した物
+    const expectAll = rules
+      .flatMap((rule) => rule.pathPatterns.map((pattern) => ({ pattern, rule: rule.name })))
+      .map((entry, index) => ({ entry, index, s: patternSpecificity(entry.pattern) }))
+      .sort((a, b) => b.s - a.s || a.index - b.index)
+      .map(({ entry }) => entry);
     assert.deepEqual(
       admin.closed.map((e) => ({ pattern: e.pattern, rule: e.rule })),
       expectAll.filter((e) => !under(e.pattern, "/api")),
-      "admin の枠 = /api を除く全部(一覧の順)",
+      "admin の枠 = /api を除く全部(一番細かい順、同じ細かさは一覧の順)",
     );
     assert.deepEqual(
       user.closed.map((e) => e.pattern),
@@ -201,7 +237,7 @@ import { findCallSites } from "@/featureGate/node/describe";
 import { readOverrideFile, readRuleConfigTarget, rewriteConfigEnabled, rewriteOverrideEnabled } from "@/featureGate/node/setEnabled";
 
 const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
-  ({ name, pathPatterns: ["/x", "/api/x", "/admin/settings/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
+  ({ name, pathPatterns: ["/x", "/admin/settings/x"], features: ["x"], enabled: () => false, tables: ["xs"], domainApiPaths: ["/api/x"], settingPaths: ["/admin/settings/x"], cronPaths: [], ...over }) as GatedFeatureRule;
 
 test("describeFeatures: 住所を手書き / 導出に分け、依存・呼び出し・必須を規則ごとに", () => {
   const [x, y] = describeFeatures([fixtureRule("x"), fixtureRule("y", { pathPatterns: ["/y"], features: [], tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], enabled: () => true })], {

@@ -5,9 +5,11 @@
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。ドメインの有無・表・汎用 API のキーは地区の地図の読み手
 // src/lib/districtMap の features の地区(dir・tables・apiKeys)から読む(目録 D1・D2)
 // 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
-// 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキー(地区の apiKeys)から /api/<key> を導き、
-// 項目の pathPatterns に足す(`[...rule.pathPatterns, ...]`)。
-// domainEntry の無いフォルダは何も足さない。規則に手書きした同じ住所は pnpm test src/featureGate scripts/structure/proxies が重なりとして知らせる。
+// 汎用 API の住所: features の各フォルダの services/server/domainEntry.ts の domainEntries のキー(地区の apiKeys)から /api/<key> を導く。
+// 住所はドメインに付く(D34 K4): 生成一覧の domains(フォルダ・表・汎用 API の住所・持つ機能)に載り、開閉はドメインの開閉(持つ機能のどれかが開)で決まる。
+// 規則の項目の domainApiPaths は説明用(features list)で、pathPatterns には足さない。domainEntry の無いフォルダは住所を持たない。
+// cron の門(目録 D10・D34 K4): features のフォルダを値で import する task は生成一覧の cronTasks(住所・読むドメイン)に載り、読むドメインが全部開のとき開く。
+// 規則の項目の cronPaths は説明用。
 // 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導き settingPaths として同じく足す(./gateSettingPaths.mjs、L1.17)。
 // 機能どうしの依存: 規則の dependsOn を字面で読み dependsOn として項目に写す(書かない規則は空。./gateDependsOn.mjs。未知の名前・輪は extensions.mjs が全規則で)。
 
@@ -79,7 +81,7 @@ export function scanCronTaskImports(repoRoot) {
 /**
  * 変換を作る(表の走査は 1 回だけ)
  * @param {string} repoRoot
- * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[], cronPaths: string[], dependsOn: string[] }, features: string[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[] }}
+ * @returns {{ problems: string[], apply: (label: string, text: string, name: string) => { fields: { tables: string[], domainApiPaths: string[], settingPaths: string[], cronPaths: string[], dependsOn: string[] }, features: string[], domains: { folder: string, tables: string[], apiPaths: string[] }[] } | { problem: string }, unknownFeatures: (ruleNames: string[]) => string[], cronTasksFor: (folders: string[]) => { path: string, folders: string[] }[] }}
  */
 export function createFeatureTables(repoRoot) {
   const map = readDistrictMapAt(repoRoot);
@@ -87,6 +89,14 @@ export function createFeatureTables(repoRoot) {
   const districtOf = new Map(map.districts.filter((d) => d.kind === "features").map((d) => [d.dir.slice(FEATURES_DIR.length + 1), d]));
   const sections = scanSettingSectionFeatures(repoRoot);
   const cronTasks = scanCronTaskImports(repoRoot);
+  /** folders(src/features からの相対)のどれかを値で import する task と、読むフォルダ(folders のうち当たる物、folders の順) */
+  const cronTasksReading = (folders) =>
+    cronTasks
+      .map((task) => ({
+        path: task.path,
+        folders: folders.filter((folder) => task.targets.some((target) => target === `${FEATURES_DIR}/${folder}` || target.startsWith(`${FEATURES_DIR}/${folder}/`))),
+      }))
+      .filter((task) => task.folders.length > 0);
   return {
     problems: [...map.tableProblems, ...sections.problems],
     unknownFeatures: sections.unknownFeatures,
@@ -97,6 +107,7 @@ export function createFeatureTables(repoRoot) {
       if (depends.problem) return { problem: `${label}: ${depends.problem}` };
       const tables = [];
       const domainApiPaths = [];
+      const domains = [];
       for (const folder of read.features) {
         const district = districtOf.get(folder);
         if (!district) {
@@ -109,14 +120,12 @@ export function createFeatureTables(repoRoot) {
         if (entryProblem) return { problem: `${label}: ${entryProblem}` };
         const paths = district.apiKeys.map((key) => `/api/${key}`);
         domainApiPaths.push(...paths.filter((path) => !domainApiPaths.includes(path)));
+        domains.push({ folder, tables: [...district.tables], apiPaths: paths });
       }
-      // cron の門(目録 D10): features のフォルダを値で import する task の住所。task が複数の規則のフォルダを読めば、その全部の規則が住所を持つ
-      // (= 実行してよいのは関係する規則の enabled の論理積)。features のフォルダを読まない task は常時開
-      const prefixes = read.features.map((folder) => `${FEATURES_DIR}/${folder}`);
-      const cronPaths = cronTasks
-        .filter((task) => task.targets.some((target) => prefixes.some((prefix) => target === prefix || target.startsWith(`${prefix}/`))))
-        .map((task) => task.path);
-      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn }, features: read.features };
+      // cron の門(説明用): この規則の features のフォルダを値で import する task の住所。開閉は cronTasks(読むドメインが全部開)で決まる
+      const cronPaths = cronTasksReading(read.features).map((task) => task.path);
+      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn }, features: read.features, domains };
     },
+    cronTasksFor: cronTasksReading,
   };
 }

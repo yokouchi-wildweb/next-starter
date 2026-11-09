@@ -147,10 +147,30 @@ test("規則の features: ドメインのフォルダの pgTable から表(0 で
   assert.equal(plan.problems.length, 8, plan.problems.join("\n"));
   assert.match(
     plan.outputs[GATE_RULES],
-    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], pathPatterns: \[\.\.\.rules_wallet\.pathPatterns, "\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\] \},/,
+    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/,
   );
   assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/);
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], pathPatterns: \[\.\.\.rules_tableless\.pathPatterns, "\/api\/empty"\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\] \},/);
+  // 汎用 API の住所と表はドメインに付く(D34 K4): 規則の pathPatterns に足さず、生成一覧の domains に載る(フォルダの順、持つ機能つき)
+  assert.match(
+    plan.outputs[GATE_RULES],
+    /export const domains: GatedDomain\[\] = \[\n  \{ folder: "core\/empty", tables: \[\], apiPaths: \["\/api\/empty"\], features: \["tableless"\] \},\n  \{ folder: "core\/quota", tables: \["quotas"\], apiPaths: \[\], features: \["noEntry"\] \},\n  \{ folder: "core\/wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras"\], apiPaths: \["\/api\/wallet"\], features: \["wallet"\] \},\n  \{ folder: "core\/walletHistory", tables: \["wallet_histories"\], apiPaths: \["\/api\/walletHistory", "\/api\/walletLot"\], features: \["wallet"\] \},\n\];/,
+  );
+  assert.match(plan.outputs[GATE_RULES], /export const cronTasks: GatedCronTask\[\] = \[\];/);
+  assert.doesNotMatch(plan.outputs[GATE_RULES], /pathPatterns: \[\.\.\.rules_/, "設定の節の無い fixture では規則の pathPatterns に何も足さない");
+});
+
+test("ドメインの表: 1 つのドメインを 2 つの規則が持てば features に両方(一覧の順)、どの規則にも載らないドメインは載らない", () => {
+  const rule = (folders) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], features: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
+  const root = fixture({ "rules/users.ts": rule(["core/userTag"]), "rules/demoUsers.ts": rule(["core/userTag"]), "rules/plain.ts": rule([]) });
+  for (const name of ["core/userTag", "core/base"]) {
+    const d = join(root, "src/features", name, "entities");
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "drizzle.ts"), `export const T = pgTable("${name.split("/")[1]}s", {});\n`);
+  }
+  const plan = planExtensions(root);
+  assert.deepEqual(plan.problems, []);
+  assert.match(plan.outputs[GATE_RULES], /export const domains: GatedDomain\[\] = \[\n  \{ folder: "core\/userTag", tables: \["userTags"\], apiPaths: \[\], features: \["demoUsers", "users"\] \},\n\];/);
 });
 
 test("このリポの全ドメイン(src/features/core/<名前>・src/features/<名前>、_ で始まる雛形を除く)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
@@ -194,6 +214,14 @@ test("cron の門(目録 D10): task.ts・task.override.ts の値の import(静�
   assert.deepEqual(featureTables.apply("wallet", rule(["core/wallet"]), "wallet").fields.cronPaths, ["/api/cron/both", "/api/cron/relative", "/api/cron/static"]);
   assert.deepEqual(featureTables.apply("coupon", rule(["core/coupon"]), "coupon").fields.cronPaths, ["/api/cron/both", "/api/cron/dynamic", "/api/cron/overridden"]);
   assert.deepEqual(featureTables.apply("plain", rule([]), "plain").fields.cronPaths, []);
+  // cron の task の表: 読むドメイン(渡したフォルダのうち当たる物)。読むドメインの全部が開のとき開く
+  assert.deepEqual(featureTables.cronTasksFor(["core/coupon", "core/wallet"]), [
+    { path: "/api/cron/both", folders: ["core/coupon", "core/wallet"] },
+    { path: "/api/cron/dynamic", folders: ["core/coupon"] },
+    { path: "/api/cron/overridden", folders: ["core/coupon"] },
+    { path: "/api/cron/relative", folders: ["core/wallet"] },
+    { path: "/api/cron/static", folders: ["core/wallet"] },
+  ]);
   assert.match(featureTables.apply("hand", rule(["core/wallet"], ', "/api/cron/static"'), "hand").problem, /cron の住所 \/api\/cron\/… を手書き/);
 });
 

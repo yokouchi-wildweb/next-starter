@@ -2,7 +2,7 @@
 //
 // cron の route の設定済みの作り手。lib/cron の createCronTaskRoute に門番（@/featureGate の gate.path）を結ぶ。
 // src/app/api/cron/<name>/route.ts はここから import する（@/lib/cron の作り手の値 import は wiring だけ: lint cron-route-via-wiring）。
-// タスクの住所 /api/cron/<name> が規則の pathPatterns で閉じていれば、本体を呼ばずに skipped（reason "closed"）を返す。
+// タスクの住所 /api/cron/<name> が門番で閉じていれば（task が読むドメインのどれかが閉、生成一覧の cronTasks。規則の手書きの住所も）、本体を呼ばずに skipped（reason "closed"）を返す。
 // 設計: src/wiring/README.md, src/lib/cron/README.md
 
 import { gate } from "@/featureGate";

@@ -12,6 +12,7 @@
 - `matchesPath(pathname, pattern)` … リクエストのパスがパターンに一致するか
 - `patternCoversRoute(pattern, routeSegments)` … パターンが src/app のルート(セグメントの配列、動的セグメント `[x]` はどの値にも一致しうる)を覆うか。完全一致のパターンは長さも同じときだけ覆う
 - `isExactPattern(pattern)` … `=` 付きの完全一致の書き方か
+- `patternSpecificity(pattern)` … パターンの細かさ(大きいほど細かい: 長い住所、同じ長さなら `=` の完全一致)。門番が当たった閉じた住所のうち一番細かい物を答えにするのに使う
 
 ## 使い手
 

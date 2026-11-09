@@ -13,6 +13,14 @@ const normalize = (pattern) => {
   return body.length > 1 && body.endsWith("/") ? body.slice(0, -1) : body;
 };
 
+/**
+ * パターンの細かさ(大きいほど細かい)。同じ住所に当たる 2 つのパターンでは、長い住所の方が細かく、同じ長さなら完全一致(=)が細かい。
+ * 門番は当たった閉じた住所のうち一番細かい物を答えにする(src/featureGate/evaluate.ts)
+ */
+export function patternSpecificity(pattern) {
+  return normalize(pattern).length * 2 + (isExactPattern(pattern) ? 1 : 0);
+}
+
 /** リクエストのパスがパターンに一致するか */
 export function matchesPath(pathname, pattern) {
   const path = normalize(pattern);

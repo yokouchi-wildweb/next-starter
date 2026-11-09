@@ -41,6 +41,12 @@ test("閉じた機能: そのフォルダを features に持つ閉じた規則�
   assert.equal(closedBy("core/user"), null);
 });
 
+test("閉じたドメイン: 2 つの規則が持つドメインは片方が開なら開、両方閉なら一覧の順で最初の規則の名前", () => {
+  const rule = (name: string, open: boolean) => ({ name, features: ["core/userTag"], enabled: () => open });
+  assert.equal(closedByOf([rule("users", false), rule("demoUsers", true)])("core/userTag"), null);
+  assert.equal(closedByOf([rule("users", false), rule("demoUsers", false)])("core/userTag"), "users");
+});
+
 const entry = (domain: string, seed: ReturnType<typeof defineSeed>, closedBy: string | null = null): SeedEntry => ({ domain, folder: domain, file: `src/features/${domain}/seed.ts`, seed, closedBy });
 
 /** 作り物のサービス: 入れた行を覚え、search は where の and/eq だけを見る */

@@ -32,9 +32,13 @@ export function listSeedFiles(repoRoot: string): SeedFile[] {
   return out.sort((a, b) => (a.domain < b.domain ? -1 : 1));
 }
 
-/** 閉じた機能の規則(features = src/features からの相対のフォルダ)から、フォルダを閉じている規則の名前を返す */
+/** 規則の一覧(features = src/features からの相対のフォルダ)から、閉じたドメインのフォルダを閉じている規則の名前を返す(開いたドメインは null) */
 export function closedByOf(rules: readonly { name: string; features?: readonly string[]; enabled: () => boolean }[]) {
-  return (folder: string): string | null => rules.find((rule) => !rule.enabled() && (rule.features ?? []).includes(folder))?.name ?? null;
+  // ドメインの開閉(門番の README「ドメインの開閉」): 持つ規則が全部閉なら閉、答えは持ち主のうち一覧の順で最初。どの規則にも載らないドメインは開
+  return (folder: string): string | null => {
+    const holders = rules.filter((rule) => (rule.features ?? []).includes(folder));
+    return holders.length > 0 && holders.every((rule) => !rule.enabled()) ? holders[0].name : null;
+  };
 }
 
 /** seed.ts を読み込む(export const seed) */
