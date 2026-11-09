@@ -23,8 +23,8 @@ export async function DemoFingerprintScreen(props: ScreenProps) {
           <Para tone="muted" size="sm">
             ブラウザフィンガープリント基盤（<code>src/lib/fingerprint</code>）の動作確認用デモです。
             デバイス信号の収集とフォーム操作の行動計測はすべてブラウザ内で完結するため、
-            ログインや機能フラグの有効化なしにその場で試せます。サーバー送信のみ認証と
-            <code>collection.enabled</code>(deviceFingerprint の設定)の有効化が必要です。
+            その場で試せます。サーバー送信のみログインが必要です(この画面は機能
+            <code>deviceFingerprint</code>(門番の規則、既定は閉)が開いているときだけ開きます)。
           </Para>
         </Stack>
       </Section>

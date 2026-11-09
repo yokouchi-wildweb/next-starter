@@ -1,8 +1,8 @@
 // src/features/core/fingerprintChallenge/config.ts
 // 不正疑いユーザーへの回答チャレンジ(fingerprintChallenge)の設定(既定 + 上書き)。上書きは src/config/features/fingerprintChallenge.config.ts
 // (このファイルだけが読む)。置き方: src/config/README.md。合成: @/lib/defineConfig。
-// challenge.enabled は確認の opt-in(処理の切り替え)で、門番の規則 src/featureGate/rules/fingerprintChallenge.ts は読まない(閉じる値とは別)。
-// 収集の collection.enabled(deviceFingerprint の config)とは独立したゲート(チャレンジ提出時のフィンガープリント記録はこちらの enabled のみで動く)
+// 使うかどうか(opt-in、既定は閉)は門番の規則 src/featureGate/rules/fingerprintChallenge.ts の入切だけで決める(この設定に入切の鍵は無い)。
+// 規則は収集の規則 deviceFingerprint に依存する(照合は集めた指紋が要る)。開けるのは fork の src/config/featureGate/switches.config.ts
 
 import override from "@/config/features/fingerprintChallenge.config";
 import type { UserStatus } from "@/features/user/types";
@@ -10,7 +10,6 @@ import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 
 export type FingerprintChallengeConfig = {
   challenge: {
-    enabled: boolean;
     /**
      * 本人向けルート(/api/me/fingerprint-challenges/**)の回答を許可するユーザーステータス。
      * チャレンジの主対象は「処分保留 (suspended)」のユーザーなので既定で含める。
@@ -43,7 +42,6 @@ export type FingerprintChallengeConfig = {
 
 const defaults: FingerprintChallengeConfig = {
   challenge: {
-    enabled: false,
     answerableStatuses: ["active", "suspended"],
     defaultExpiresInDays: 7,
     maxBehaviorBytes: 32768,

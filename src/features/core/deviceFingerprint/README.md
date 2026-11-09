@@ -3,7 +3,7 @@
 不正が疑われるユーザーを **デバイス軸** で突き合わせるための一次データ基盤。
 `userLoginEvent`（IP = ネットワーク軸）の兄弟で、両者を組み合わせて調査する。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/deviceFingerprint.ts`、今は常に開)。閉じる値と処理の値は別: このドメインの `config.ts` の `collection.enabled` は収集の opt-in で、規則は読まない(閉じる値は土台の後にこのドメインの config.ts)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる。
+閉じられる機能(門番の規則 `src/featureGate/rules/deviceFingerprint.ts`、既定は閉 = opt-in)。使うかどうかは規則の入切だけで決める(このドメインの `config.ts` に enabled は無く、残るのは保持期間などの処理の値)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる。
 
 収集ロジック本体はドメイン非依存の `src/lib/fingerprint/` にあり、本ドメインは
 その **蓄積（device_fingerprints）と照合（成分別スコアリング）** を担う。
@@ -18,13 +18,14 @@
 
 ## オプトイン（デフォルト無効）
 
-このドメインの `config.ts`（`deviceFingerprintConfig`）の `collection.enabled` が全ページ収集の
-ゲート。**デフォルト false**。有効化した時点以降のアクセスから蓄積される（遡及不可）。
-fork は上書き `src/config/features/deviceFingerprint.config.ts` に書く。チャレンジのゲートは fingerprintChallenge の設定（独立）。
+門番の規則 `deviceFingerprint` の入切が全ページ収集のゲート。**既定は閉**。開けた時点以降のアクセスから蓄積される（遡及不可）。
+fork は `src/config/featureGate/switches.config.ts` で開ける（`pnpm ops features set deviceFingerprint on`）。
+チャレンジは別の機能 `fingerprintChallenge`（この機能に依存する）。処理の値の上書きは `src/config/features/deviceFingerprint.config.ts`。
 
 ```ts
-// 既定: collection: { enabled: false, retentionDays: 365, maxRawSignalsBytes: 32768 }
-export default { collection: { enabled: true } } satisfies DeviceFingerprintOverride;
+// src/config/featureGate/switches.config.ts
+export default { deviceFingerprint: true } satisfies FeatureSwitches;
+// 処理の値の既定: collection: { retentionDays: 365, maxRawSignalsBytes: 32768 }
 ```
 
 ---
@@ -87,13 +88,13 @@ JOIN 必須条件にしている。**弱成分だけの一致（同一 OS が大
 import { useFingerprintReport } from "@/features/core/deviceFingerprint/hooks/useFingerprintReport";
 
 export function FingerprintReporter({ user }: { user: SessionUser | null }) {
-  useFingerprintReport(user); // config 無効時はサーバーが 404 を返し静かに無視
+  useFingerprintReport(user); // 機能が閉のときは 404 が返り静かに無視
   return null;
 }
 ```
 
-`collection.enabled` が false の間はサーバー側が 404 を返すだけなので、
-**フック設置自体は config と独立して常置できる**（有効化は config フラグのみ）。
+規則 `deviceFingerprint` が閉じている間はサーバー側が 404 を返すだけなので、
+**フック設置自体は機能の入切と独立して常置できる**（有効化は規則の入切のみ）。
 
 ### B. チャレンジ提出時（濃く狭く）
 

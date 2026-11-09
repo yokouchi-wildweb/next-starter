@@ -18,8 +18,8 @@ const STORAGE_KEY = "fp_last_report";
  *   useFingerprintReport(user);
  *
  * - fire-and-forget: 収集・送信の失敗はユーザー体験に影響しない
- * - サーバー側は deviceFingerprintConfig.collection.enabled が false なら 404 を
- *   返すだけなので、フック設置自体は config と独立して常置できる
+ * - 規則 deviceFingerprint が閉じていれば(既定)proxy が 404 を返すだけなので、
+ *   フック設置自体は機能の入切と独立して常置できる
  * - DB 側は (user_id, composite_hash) upsert で冪等なため、localStorage が
  *   消えて再送されても行は増えない
  */

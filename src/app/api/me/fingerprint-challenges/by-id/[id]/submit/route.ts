@@ -8,11 +8,10 @@
 // パスに by-id/ を挟む理由: Next.js は同一階層に [token] と [id] のような
 // 異なる名前の動的セグメントを共存させられない。トークン経路 /[token]/submit を
 // 据え置くため、id 経路は静的プレフィックスで分離する。
-// fingerprintChallengeConfig.challenge.enabled が false の環境では 404 (fail-closed)。
+// 門番の規則 fingerprintChallenge(既定は閉)が閉じていれば proxy が 404 を返す(ここまで届かない)。
 // skipForDemo / allowStatuses はトークン経路と同じ。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors";
 import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 import { submitChallenge } from "@/features/core/fingerprintChallenge/services/server";
 
@@ -26,10 +25,6 @@ export const POST = createMeRoute<Params>(
     allowStatuses: fingerprintChallengeConfig.challenge.answerableStatuses,
   },
   async (req, { params, user }) => {
-    if (!fingerprintChallengeConfig.challenge.enabled) {
-      throw new DomainError("Not Found", { status: 404 });
-    }
-
     const body = await req.json().catch(() => null);
     const challenge = await submitChallenge({
       id: params.id,

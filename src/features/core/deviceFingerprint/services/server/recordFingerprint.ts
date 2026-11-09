@@ -47,8 +47,8 @@ export type RecordDeviceFingerprintInput = {
  *   ip / user_agent は最新値で上書き、raw_signals は初回保存分を維持する。
  * - raw_signals が config の maxRawSignalsBytes を超える場合は null に落とす
  *   (検索軸のハッシュ列は常に保存される)。
- * - config の有効 / 無効はここでは判定しない。ゲートは呼び出し側
- *   (page ingest ルート = collection.enabled / challenge submit = challenge.enabled)。
+ * - 機能の入切はここでは判定しない。閉じるのは門番の規則が呼び出し側の住所で行う
+ *   (page ingest ルート = 規則 deviceFingerprint / challenge submit = 規則 fingerprintChallenge)。
  *
  * @returns upsert された行。入力不正は DomainError(400) を throw する
  *   (bestEffort にしたい呼び出し側で catch する)

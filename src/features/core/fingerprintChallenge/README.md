@@ -1,6 +1,6 @@
 # fingerprintChallenge — 不正疑いユーザーへの回答チャレンジ
 
-閉じられる機能(門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、今は常に開、前提 `requires: ["deviceFingerprint"]`)。閉じる値と処理の値は別: このドメインの `config.ts` の `challenge.enabled` は確認の opt-in で、規則は読まない。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・導出の `/api/fingerprintChallenge` が 404 で、表も push から外れる。
+閉じられる機能(門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、既定は閉 = opt-in、前提 `requires: ["deviceFingerprint"]`)。使うかどうかは規則の入切だけで決める(このドメインの `config.ts` に入切の鍵は無く、残るのは処理の値)。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・導出の `/api/fingerprintChallenge` が 404 で、表も push から外れる。
 
 不正が疑われるユーザーに **専用フォームを送って回答させ、その提出時に
 デバイスフィンガープリント + 詳細な行動計測を強制的に採取する** ための基盤。
@@ -14,15 +14,15 @@ UI の部品を持たない（core の UI の決まりは CLAUDE.md `core_ui`）
 
 ## オプトイン（デフォルト無効）
 
-このドメインの `config.ts`（`fingerprintChallengeConfig`）の `challenge.enabled` がゲート。**デフォルト
-false**。`deviceFingerprint` の `collection.enabled` とは **独立**（責務分離）。fork は上書き
-`src/config/features/fingerprintChallenge.config.ts` に書く（例 `export default { challenge: { enabled: true } } satisfies FingerprintChallengeOverride;`）。
+門番の規則 `fingerprintChallenge` の入切がゲート。**既定は閉**。収集の機能 `deviceFingerprint` とは別の機能で、
+それに依存する（照合は集めた指紋が要る。開けるときは両方を開ける）。fork は `src/config/featureGate/switches.config.ts` で開ける
+（`export default { deviceFingerprint: true, fingerprintChallenge: true } satisfies FeatureSwitches;`）。閉じるとチャレンジの API・
+管理の履歴（汎用 API `/api/fingerprintChallenge`）・掃除の cron が閉じる。処理の値の上書きは `src/config/features/fingerprintChallenge.config.ts`。
 
 ```ts
-// 既定
+// 処理の値の既定
 const defaults = {
   challenge: {
-    enabled: false,
     answerableStatuses: ["active", "suspended"], // 本人向けルートを通すユーザーステータス
     defaultExpiresInDays: 7,
     maxBehaviorBytes: 32768,
@@ -158,7 +158,7 @@ const { data } = useFingerprintChallengeAccessEvents(challenge.id, { page: 1, li
 
 ## フォーム実装レシピ（downstream がコピーする完成形）
 
-上書きで `challenge.enabled` を `true` にした上で、回答ページを作る。
+規則 `deviceFingerprint`・`fingerprintChallenge` を開けた上で、回答ページを作る。
 質問項目（`answers` の中身）は自由に差し替えてよい。
 
 ```tsx

@@ -5,19 +5,17 @@
 // 目的: 複数アカウント運用などの不正が疑われるユーザーを「デバイス軸」で突き合わせるための一次データ収集。
 // userLoginEvent(IP = ネットワーク軸)の兄弟基盤で、両者を組み合わせて調査する(README の調査レシピ)。
 // 注意: フィンガープリントはクライアント申告値であり偽装可能。「断定材料」ではなく「参考証拠」として扱う(README の脅威モデル)。
-// collection.enabled は収集の opt-in(処理の切り替え)で、門番の規則 src/featureGate/rules/deviceFingerprint.ts は読まない(閉じる値とは別)
+// 使うかどうか(opt-in、既定は閉)は門番の規則 src/featureGate/rules/deviceFingerprint.ts の入切だけで決める(この設定に入切の鍵は無い)。開けるのは fork の src/config/featureGate/switches.config.ts
 
 import override from "@/config/features/deviceFingerprint.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 
 export type DeviceFingerprintConfig = {
   /**
-   * 全ページ設置型の収集(useFingerprintReport → POST /api/me/fingerprint)。
-   * デフォルト無効。downstream で複垢検知が必要になったら true にする(オプトイン)。
-   * 有効化した時点以降のアクセスから蓄積される(過去には遡及できない)。
+   * 全ページ設置型の収集(useFingerprintReport → POST /api/me/fingerprint)の処理の値。
+   * 収集するかどうかは規則 deviceFingerprint の入切(既定は閉)。開けた時点以降のアクセスから蓄積される(遡及できない)。
    */
   collection: {
-    enabled: boolean;
     /** device_fingerprints 行の既定保持期間(日)。行単位 retention + 日次 cron prune */
     retentionDays: number;
     /**
@@ -30,7 +28,6 @@ export type DeviceFingerprintConfig = {
 
 const defaults: DeviceFingerprintConfig = {
   collection: {
-    enabled: false,
     retentionDays: 365,
     maxRawSignalsBytes: 32768,
   },

@@ -6,11 +6,10 @@
 //
 // ルーティング: 静的セグメント pending は動的 [token] より優先されるため、
 // "pending" という生トークンが来ても衝突しない (トークンは base64url 43 文字)。
-// fingerprintChallengeConfig.challenge.enabled が false の環境では 404 (fail-closed)。
+// 門番の規則 fingerprintChallenge(既定は閉)が閉じていれば proxy が 404 を返す(ここまで届かない)。
 // allowStatuses: fingerprintChallengeConfig.challenge.answerableStatuses (既定 active + suspended)。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors";
 import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 import { getPendingChallengeForUser } from "@/features/core/fingerprintChallenge/services/server";
 
@@ -21,10 +20,6 @@ export const GET = createMeRoute(
     allowStatuses: fingerprintChallengeConfig.challenge.answerableStatuses,
   },
   async (_req, { user }) => {
-    if (!fingerprintChallengeConfig.challenge.enabled) {
-      throw new DomainError("Not Found", { status: 404 });
-    }
-
     const challenge = await getPendingChallengeForUser(user.userId);
     return { challenge };
   },

@@ -11,7 +11,7 @@ const ENDPOINT = "/api/me/fingerprint";
 
 /**
  * 収集済みフィンガープリント payload をサーバーへ送信する。
- * deviceFingerprintConfig.collection.enabled が false の環境では 404 が返る
+ * 規則 deviceFingerprint が閉じている環境(既定)では 404 が返る
  * (呼び出し側の useFingerprintReport は静かに無視する)。
  */
 export async function reportFingerprint(payload: FingerprintPayload): Promise<void> {

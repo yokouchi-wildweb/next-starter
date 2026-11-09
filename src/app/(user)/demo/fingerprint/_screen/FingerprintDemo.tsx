@@ -116,13 +116,13 @@ function DeviceSignalsSection() {
 
         {sendState.status === "ok" && (
           <Para size="sm" className="text-emerald-600">
-            送信成功: device_fingerprints に upsert されました（要ログイン + collection.enabled）。
+            送信成功: device_fingerprints に upsert されました（要ログイン + 機能 deviceFingerprint が開）。
           </Para>
         )}
         {sendState.status === "error" && (
           <Para size="sm" className="text-destructive-text">
-            送信できませんでした（{sendState.message}）。 サーバー送信には認証と
-            deviceFingerprintConfig.collection.enabled が必要です。収集・計測自体はこの画面で完結します。
+            送信できませんでした（{sendState.message}）。 サーバー送信にはログインと
+            機能 deviceFingerprint が開いていることが必要です。収集・計測自体はこの画面で完結します。
           </Para>
         )}
 

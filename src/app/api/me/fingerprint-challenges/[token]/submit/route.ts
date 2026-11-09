@@ -2,7 +2,7 @@
 //
 // チャレンジ回答の提出。デバイスフィンガープリントの強制添付と状態遷移は
 // submitChallenge (同一トランザクション) が行う。
-// fingerprintChallengeConfig.challenge.enabled が false の環境では 404 (fail-closed)。
+// 門番の規則 fingerprintChallenge(既定は閉)が閉じていれば proxy が 404 を返す(ここまで届かない)。
 //
 // skipForDemo: false — デモユーザーにチャレンジを発行する運用は想定しないが、
 // 誤発行時に「成功したように見えて何も記録されない」より明示エラーの方が安全なため
@@ -10,7 +10,6 @@
 // allowStatuses: fingerprintChallengeConfig.challenge.answerableStatuses (既定 active + suspended)。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors";
 import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 import { submitChallenge } from "@/features/core/fingerprintChallenge/services/server";
 
@@ -24,10 +23,6 @@ export const POST = createMeRoute<Params>(
     allowStatuses: fingerprintChallengeConfig.challenge.answerableStatuses,
   },
   async (req, { params, user }) => {
-    if (!fingerprintChallengeConfig.challenge.enabled) {
-      throw new DomainError("Not Found", { status: 404 });
-    }
-
     const body = await req.json().catch(() => null);
     const challenge = await submitChallenge({
       token: params.token,

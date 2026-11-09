@@ -8,7 +8,6 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 import { IssueChallengeSchema } from "@/features/core/fingerprintChallenge/entities/schema";
 import { issueChallenge } from "@/features/core/fingerprintChallenge/services/server";
 import { userService } from "@/features/core/user/services/server/userService";
@@ -20,13 +19,6 @@ export const POST = createApiRoute(
     access: { roleCategories: ["admin"] },
   },
   async (req, { user }) => {
-    if (!fingerprintChallengeConfig.challenge.enabled) {
-      throw new DomainError(
-        "チャレンジ機能が無効です (fingerprintChallengeConfig.challenge.enabled)",
-        { status: 404 },
-      );
-    }
-
     const parsed = IssueChallengeSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
       throw new DomainError("リクエストの形式が不正です", { status: 400 });

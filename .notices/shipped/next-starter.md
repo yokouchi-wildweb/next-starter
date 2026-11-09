@@ -401,3 +401,4 @@
 - id:20261109-185533-shared-shelf-styles-core-names | severity:action-required | checkpoint:shared-shelf-styles-core-names | moved:src/styles/core/palette.default.css -> src/styles/core/palette.css; src/styles/core/typography.default.css -> src/styles/core/typography.css; src/styles/core/gradient.default.css -> src/styles/core/gradient.css
 - id:20261109-201759-shared-shelf-explain-tool | severity:info | checkpoint:shared-shelf-explain-tool
 - id:20261109-201343-core-domain-aliases | severity:info | checkpoint:core-domain-aliases
+- id:20261109-211240-fingerprint-switch-merge | severity:action-required | checkpoint:fingerprint-switch-merge

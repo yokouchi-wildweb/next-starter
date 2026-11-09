@@ -73,7 +73,7 @@ export type IssueChallengeResult = {
 
 /**
  * チャレンジを発行する。呼び出し側 (admin ルート) で対象ユーザーの存在確認と
- * fingerprintChallengeConfig.challenge.enabled のゲートを済ませていること。
+ * 機能の入切は門番の規則 fingerprintChallenge が住所で閉じる(ここでは判定しない)。
  */
 export async function issueChallenge(
   input: IssueChallengeInput & { issuedBy: string | null },
