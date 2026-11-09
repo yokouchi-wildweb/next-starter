@@ -78,14 +78,15 @@ src/app/(user)/_layout/
 ### fork の差し替え手順
 
 1. 値で済むもの(背景の 3 値、ヘッダー・フッター・ボトムナビの表示設定やメニュー)は `src/config/ui/*.config.ts` の値を変える
-2. 部品を替えるときは、隣に `UserLayout.replace.tsx` を置いて既定の UserLayout に slot を渡し、layout.tsx をそちらへ向ける
+2. 部品を替えるときは、fork の部品をルートの `_components/` に印なしの名前で置き(`src/app/(user)/_components/AcmeHeader.tsx`。`_layout/` の中の部品の隣に `.replace` を置かない: 置き換えられるのは 1 行スイッチの向け先と `<名前>.default` の隣だけで、それ以外は `pnpm check extensions` の孤立の検査が止める)、隣に `UserLayout.replace.tsx` を置いて既定の UserLayout に slot を渡し、layout.tsx をそちらへ向ける
 
 ```tsx
 // src/app/(user)/_layout/UserLayout.replace.tsx(fork 所有)
 import type { ReactNode } from "react";
 
+import { AcmeHeader } from "@/app/(user)/_components/AcmeHeader";
+
 import { UserLayout } from "./UserLayout";
-import { AcmeHeader } from "./Header/index.replace";
 
 export function AcmeUserLayout({ children }: { children: ReactNode }) {
   return <UserLayout header={<AcmeHeader />}>{children}</UserLayout>;
