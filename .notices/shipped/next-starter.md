@@ -415,3 +415,4 @@
 - id:20261110-121312-viewport-fit-caveat | severity:info | checkpoint:config-viewport-fit-caveat | fixes:20261108-202604-business-home | resolves:20261110-100046-viewport-fit-notice-caveat | pick:clean
 - id:20261110-121337-featuregate-switches-write | severity:action-required | checkpoint:featuregate-switches-write | fixes:20261109-171458-feature-gate-foundation | resolves:20261110-104442-features-set-writes-comment, 20261110-104750-featuregate-tests-fork-switches | pick:clean
 - id:20261110-121637-core-domain-aliases-slash-only | severity:action-required | checkpoint:core-domain-aliases-slash-only | fixes:20261109-201343-core-domain-aliases | resolves:20261110-104822-core-domain-aliases-bare-import | pick:-
+- id:20261110-132753-shared-shelf-four-types-rules | severity:action-required | checkpoint:shared-shelf-four-types-rules
