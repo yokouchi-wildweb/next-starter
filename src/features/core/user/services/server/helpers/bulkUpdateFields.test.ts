@@ -4,6 +4,8 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
+import { userConfig, userConfigDef } from "@/features/user/config";
+
 import { assertBulkUpdateIds, parseBulkUpdateFields } from "./bulkUpdateFields";
 
 const status = (error: unknown) => (error as { status?: number }).status;
@@ -49,7 +51,14 @@ describe("assertBulkUpdateIds", () => {
     }
   });
 
-  test("上限を超えたら 400", () => {
-    assert.throws(() => assertBulkUpdateIds(Array(1001).fill(UUID)), (e) => status(e) === 400);
+  // 上限は読み込んだ設定(上流 + 上書き)の値で見る。上流の既定は compose({}) で見る(fork が src/config/features/user.config.ts に書いた値で変わるため)
+  test("上流の既定の上限は 1000 件", () => {
+    assert.equal(userConfigDef.compose({}).bulkUpdate.maxIds, 1000);
+  });
+
+  test("上限ちょうどは通り、超えたら 400", () => {
+    const max = userConfig.bulkUpdate.maxIds;
+    assert.doesNotThrow(() => assertBulkUpdateIds(Array(max).fill(UUID)));
+    assert.throws(() => assertBulkUpdateIds(Array(max + 1).fill(UUID)), (e) => status(e) === 400);
   });
 });

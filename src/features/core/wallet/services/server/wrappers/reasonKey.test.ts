@@ -101,11 +101,16 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 test("上流のコード: requiresKey の区分(bonus)を書くファイルは reasonKey を渡す", async () => {
-  const { walletHistoryConfig } = await import("@/features/walletHistory/config");
-  const required = Object.entries(walletHistoryConfig.reasonCategory)
-    .filter(([, c]) => (c as { requiresKey?: boolean }).requiresKey)
-    .map(([key]) => key);
-  assert.ok(required.includes("bonus"));
+  const { walletHistoryConfig, walletHistoryConfigDef } = await import("@/features/walletHistory/config");
+  const requiredOf = (reasonCategory: object) =>
+    Object.entries(reasonCategory)
+      .filter(([, c]) => (c as { requiresKey?: boolean }).requiresKey)
+      .map(([key]) => key);
+  // 上流の既定は compose({}) で見る(読み込んだ設定は fork が src/config/features/walletHistory.config.ts に書いた値で変わる)
+  assert.ok(requiredOf(walletHistoryConfigDef.compose({}).reasonCategory).includes("bonus"));
+  // 検査する区分は読み込んだ設定(上流 + 上書き)の requiresKey。どれも無ければ検査することは無い
+  const required = requiredOf(walletHistoryConfig.reasonCategory);
+  if (required.length === 0) return;
   const pattern = new RegExp(`reasonCategory\\s*:\\s*[^,\\n]*"(${required.join("|")})"`);
   const offenders = walk("src")
     .filter((file) => !file.startsWith(path.join("src", "config")))

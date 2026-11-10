@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
+import { purchaseRequestConfig, purchaseRequestConfigDef } from "@/features/purchaseRequest/config";
 
 import {
   PLACEHOLDER_BANK_TRANSFER_ACCOUNT,
@@ -13,10 +13,13 @@ import {
   isPaymentMethodSelectable,
 } from "./paymentMethods";
 
+// 上流の既定は compose({}) で見る(読み込んだ purchaseRequestConfig は fork が src/config/features/purchaseRequest.config.ts に書いた値で変わる)
+const upstream = purchaseRequestConfigDef.compose({});
+
 const ownAccount = { ...PLACEHOLDER_BANK_TRANSFER_ACCOUNT, bankName: "みずほ銀行", accountNumber: "1234567" };
 
 test("上流の既定の口座は仮の値(検査が比べる値と同じ)", () => {
-  assert.deepEqual(purchaseRequestConfig.payment.bankTransfer.account, PLACEHOLDER_BANK_TRANSFER_ACCOUNT);
+  assert.deepEqual(upstream.payment.bankTransfer.account, PLACEHOLDER_BANK_TRANSFER_ACCOUNT);
 });
 
 test("本番 + 自社振込が選べる + 仮の口座のまま → 止める", () => {
@@ -33,9 +36,23 @@ test("本番でない、または自社振込を使わないなら仮の口座�
 });
 
 test("上流の既定: 自社振込は disabled、セッションの有効期限は既定 30 分・inhouse は 7 日", () => {
-  assert.equal(isPaymentMethodSelectable("bank_transfer_inhouse"), false);
-  assert.equal(getProviderSessionExpiryMinutes("fincode"), 30);
-  assert.equal(getProviderSessionExpiryMinutes("inhouse"), 60 * 24 * 7);
+  assert.equal(upstream.payment.paymentMethods.find((m) => m.id === "bank_transfer_inhouse")?.status, "disabled");
+  assert.equal(upstream.providerDefaultSessionExpiryMinutes, 30);
+  assert.equal(upstream.payment.providers.fincode?.sessionExpiryMinutes, undefined);
+  assert.equal(upstream.payment.providers.inhouse?.sessionExpiryMinutes, 60 * 24 * 7);
+});
+
+test("読む関数は読み込んだ設定(上流 + 上書き)の値を返す", () => {
+  const { payment, providerDefaultSessionExpiryMinutes } = purchaseRequestConfig;
+  for (const name of Object.keys(payment.providers)) {
+    assert.equal(getProviderSessionExpiryMinutes(name), payment.providers[name]?.sessionExpiryMinutes ?? providerDefaultSessionExpiryMinutes);
+  }
+  assert.equal(getProviderSessionExpiryMinutes("no_such_provider"), providerDefaultSessionExpiryMinutes);
+  for (const method of payment.paymentMethods) {
+    const expected = method.status === "available" && !!method.provider && Boolean(payment.providers[method.provider]?.enabled);
+    assert.equal(isPaymentMethodSelectable(method.id), expected, method.id);
+  }
+  assert.equal(isPaymentMethodSelectable("no_such_method"), false);
 });
 
 test("bankTransferInhouseSelectable(門番の規則が読む値)は isPaymentMethodSelectable と同じ", async () => {

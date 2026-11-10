@@ -429,3 +429,4 @@
 - id:20261110-153659-user-layout-readme-config-path | severity:info | checkpoint:user-layout-readme-config-path | resolves:20261110-130441-user-layout-readme-stale-config-path
 - id:20261110-154000-user-frame-test-tier1-only | severity:info | checkpoint:user-frame-test-tier1-only | resolves:20261110-130302-user-frame-test-tier1-only
 - id:20261110-164152-fork-providers-test-replace | severity:info | checkpoint:fork-providers-test-replace | fixes:20261109-162006-shared-shelf-override-declarations | resolves:20261110-132349-fork-providers-test-replace-switch | pick:clean
+- id:20261110-153453-feature-config-tests-fork-values | severity:info | checkpoint:feature-config-tests-fork-values | fixes:20261109-142403-config-district-wallet-b, 20261109-143705-config-district-user, 20261109-223134-account-editable-items, 20261109-135223-config-district-wallet-a | resolves:20261110-121329-feature-config-tests-fork-override-independent | pick:-

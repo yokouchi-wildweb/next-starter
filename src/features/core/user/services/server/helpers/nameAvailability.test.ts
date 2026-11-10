@@ -12,6 +12,7 @@ import {
   isUserNamesTaken,
   resolveUserNameForGuard,
 } from "./nameAvailability";
+import { userConfig, userConfigDef } from "@/features/user/config";
 import type { ReservedUserNameProvider } from "@/features/core/user/types";
 import type { DbExecutor } from "@/lib/crud/drizzle/types";
 
@@ -67,12 +68,18 @@ test("buildSuffixedUserName: 予算が尽きてもベース名を最低 1 文字
   assert.equal(buildSuffixedUserName("abc", 100, 3), "a_100");
 });
 
-test("isUserNamesTaken: 前後空白と大文字小文字を無視して使用中を判定する", async () => {
-  const taken = await isUserNamesTaken(["taro", "  TARO ", "Hanako"], {
+// 大文字小文字の扱いは読み込んだ設定(上流 + 上書き)の caseInsensitive に従う。上流の既定は compose({}) で見る
+test("上流の既定: 表示名の一意性は大文字小文字を無視する", () => {
+  assert.equal(userConfigDef.compose({}).name.unique.caseInsensitive, true);
+});
+
+test("isUserNamesTaken: 前後空白を無視し、大文字小文字は設定 caseInsensitive に従って使用中を判定する", async () => {
+  const taken = await isUserNamesTaken(["taro", "  TARO ", " Taro ", "Hanako"], {
     executor: fakeExecutor(["Taro", null]),
     reservedProviders: [],
   });
-  assert.deepEqual([...taken].sort(), ["  TARO ", "taro"]);
+  const expected = userConfig.name.unique.caseInsensitive ? [" Taro ", "  TARO ", "taro"] : [" Taro "];
+  assert.deepEqual([...taken].sort(), expected.sort());
 });
 
 test("isUserNamesTaken: users で空きの名前だけを予約名プロバイダへ順に照会する", async () => {

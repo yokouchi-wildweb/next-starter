@@ -3,15 +3,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { userConfig } from "@/features/user/config";
+import { userConfig, userConfigDef } from "@/features/user/config";
 import { isAccountItemEditable, isPhoneNumberInputOpen } from "./accountItems";
 
+// 上流の既定は compose({}) で見る(読み込んだ userConfig は fork が src/config/features/user.config.ts に書いた値で変わる)
 test("上流の既定は email・password・profile(phone は入れない)", () => {
-  assert.deepEqual([...userConfig.account.editableItems], ["email", "password", "profile"]);
-  assert.equal(isAccountItemEditable("email"), true);
-  assert.equal(isAccountItemEditable("password"), true);
-  assert.equal(isAccountItemEditable("profile"), true);
-  assert.equal(isAccountItemEditable("phone"), false);
+  assert.deepEqual([...userConfigDef.compose({}).account.editableItems], ["email", "password", "profile"]);
+});
+
+test("一覧を渡さなければ読み込んだ設定(上流 + 上書き)の一覧で判定する", () => {
+  const items = userConfig.account.editableItems;
+  for (const item of ["email", "password", "profile", "phone"] as const) {
+    assert.equal(isAccountItemEditable(item), items.includes(item), item);
+  }
 });
 
 test("渡した一覧で判定する(一覧に無い項目は false)", () => {
