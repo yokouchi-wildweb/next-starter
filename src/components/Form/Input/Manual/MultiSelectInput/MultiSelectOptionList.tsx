@@ -1,7 +1,7 @@
 // @/components/Form/Input/Manual/MultiSelectInput/MultiSelectOptionList.tsx
 
 import { Checkbox } from "@/components/Primitives/Checkbox";
-import { CommandEmpty, CommandItem, CommandList } from "@/components/_shadcn/command";
+import { CommandEmpty, CommandItem, CommandList } from "@/components/Primitives/Command";
 import {
   includesOptionValue,
   resolveOptionItemIdentity,

@@ -1,4 +1,4 @@
-// src/components/Overlays/Popover/isDialogFocusRestoration.ts
+// src/components/Primitives/Popover/isDialogFocusRestoration.ts
 
 /**
  * Dialog/Modal 内に入れ子になった Popover が「FocusScope のフォーカス復帰」で閉じるのを防ぐための判定。
@@ -16,7 +16,7 @@
  *   閉じる）。そのため「focusin かつ target がコンテナ自身」だけを抑止すれば、空のモーダル本体クリックで
  *   閉じる既存挙動は変わらない。子孫要素への focusin は従来どおり外側扱いのまま。
  *
- * React に依存しない純粋関数（node --test で検証: pnpm test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs）。
+ * React に依存しない純粋関数（node --test で検証: pnpm test src/components/Primitives/Popover/isDialogFocusRestoration.test.mjs）。
  */
 
 /** Dialog の FocusScope コンテナ（Radix が role と tabIndex=-1 を付与、shadcn が data-slot を付与）。

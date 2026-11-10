@@ -1,6 +1,6 @@
 // @/components/Form/Input/Manual/MultiSelectInput/MultiSelectSearchSection.tsx
 
-import { CommandInput } from "@/components/_shadcn/command";
+import { CommandInput } from "@/components/Primitives/Command";
 
 type Props = {
   placeholder?: string;

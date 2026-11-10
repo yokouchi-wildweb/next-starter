@@ -21,12 +21,12 @@ import {
 } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 
-import { Command, CommandInput, CommandItem, CommandSeparator } from "@/components/_shadcn/command";
+import { Command, CommandInput, CommandItem, CommandSeparator } from "@/components/Primitives/Command";
 import {
   PopoverContent,
   PopoverRoot,
   PopoverTrigger,
-} from "@/components/Overlays/Popover/PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 import { Button } from "@/components/Form/Button/Button";
 import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";

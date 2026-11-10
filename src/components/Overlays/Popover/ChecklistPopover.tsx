@@ -32,7 +32,7 @@ import {
   PopoverDescription,
   PopoverFooter,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 export type ChecklistOption = {
   /** 値（一意） */

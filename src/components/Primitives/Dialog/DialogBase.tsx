@@ -1,9 +1,9 @@
-// src/components/Shadcn/dialog.tsx
+// src/components/Primitives/Dialog/DialogBase.tsx
 
 "use client";
 
 import * as React from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog as DialogPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -37,6 +37,8 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
+        // _shadcn から移した既定の幕の色をそのまま残す(描画を変えない移動。トークン化は部品の整理の後の区切りで)
+        // eslint-disable-next-line style-tokens/no-raw-palette
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 bg-black/50",
         layerClassName,
         className,

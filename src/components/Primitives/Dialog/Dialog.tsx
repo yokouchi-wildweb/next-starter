@@ -1,4 +1,4 @@
-// src/components/Overlays/DialogPrimitives.tsx
+// src/components/Primitives/Dialog/Dialog.tsx
 
 "use client";
 
@@ -16,7 +16,7 @@ import {
   DialogFooter,
   DialogTitle as BaseDialogTitle,
   DialogDescription,
-} from "@/components/_shadcn/dialog";
+} from "./DialogBase";
 import { cn } from "@/lib/cn";
 
 export type DialogOverlayLayer =

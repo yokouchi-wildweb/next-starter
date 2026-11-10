@@ -7,7 +7,7 @@
 ## コンポーネント階層
 
 ```
-DialogPrimitives (低レベル部品)
+DialogPrimitives (低レベル部品、@/components/Primitives/Dialog)
     ├── Dialog (確認用)
     └── Modal (汎用)
          ├── TabbedModal (タブ付き)
@@ -485,10 +485,10 @@ const [open, setOpen] = useState(false);
 
 ---
 
-### DialogPrimitives
+### DialogPrimitives（`@/components/Primitives/Dialog`）
 
 低レベルの部品群。通常は直接使用せず、Dialog や Modal を使用する。
-カスタムのオーバーレイUI構築が必要な場合のみ使用。
+カスタムのオーバーレイUI構築が必要な場合のみ使用。本体は `src/components/Primitives/Dialog`（旧 `Overlays/DialogPrimitives` と `_shadcn/dialog` を 1 つにした物。Radix は `radix-ui` から読む）。
 
 ```tsx
 import {
@@ -497,7 +497,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/Overlays/DialogPrimitives";
+} from "@/components/Primitives/Dialog";
 
 <DialogPrimitives open={open} onOpenChange={setOpen}>
   <DialogContent>
@@ -521,12 +521,12 @@ import {
 - `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無
 - `maxWidth` / `minHeight` / `maxHeight` / `height`: サイズ調整。数値は `px` として解釈。
 
-### CommandPrimitives
+### Command（`@/components/Primitives/Command`）
 
-コマンドパレット（入力 + 候補リスト）を自前で組むための低レベル部品。`_shadcn/command` のプロジェクト向け入口で、`src/components` 外からは必ずここを経由する（直接 import は ESLint が止める）。
+コマンドパレット（入力 + 候補リスト）を自前で組むための低レベル部品（cmdk。旧 `_shadcn/command` と `Overlays/CommandPrimitives` を 1 つにした物）。
 
 ```tsx
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/Overlays/CommandPrimitives";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/Primitives/Command";
 ```
 
 フォームの選択入力には使わない。検索付き選択は `Form/Input/Manual` の `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput`、大量マスタからの選択は `AsyncPickerModal`。実例: `src/features/core/adminCommand`。

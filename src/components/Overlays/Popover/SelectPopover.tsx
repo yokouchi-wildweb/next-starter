@@ -19,7 +19,7 @@ import {
   PopoverDescription,
   PopoverFooter,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 const CLEAR_VALUE = "__POPOVER_CLEAR__";
 

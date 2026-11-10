@@ -1,13 +1,13 @@
-// src/components/Overlays/Popover/PopoverPrimitives.tsx
+// src/components/Primitives/Popover/Popover.tsx
 
 "use client";
 
 import * as React from "react";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { Popover as PopoverPrimitive } from "radix-ui";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { useIsNestedInDialog } from "@/components/Overlays/DialogPrimitives";
+import { useIsNestedInDialog } from "@/components/Primitives/Dialog";
 import { isDialogFocusRestoration } from "./isDialogFocusRestoration";
 
 // レイヤータイプ

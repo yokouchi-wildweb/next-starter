@@ -1,3 +1,5 @@
+// src/components/Primitives/Command/Command.tsx
+
 "use client"
 
 import * as React from "react"
@@ -11,7 +13,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/_shadcn/dialog"
+} from "../Dialog/DialogBase"
 
 function Command({
   className,
