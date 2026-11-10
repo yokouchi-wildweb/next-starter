@@ -40,6 +40,7 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 | `useLinkNavigateJudge()` | 棚の Link の `onNavigate` に渡す判定(結線が棚の Navigation の口へ入れる) |
 
 - 送信: AppForm は送信の直前に同期に外し(`onSubmit` の中の `router.push` を聞かない)、失敗(throw)なら戻す。成功の後は次の入力まで外したまま。`guardUnsaved={false}` で切る
+- 離れずに外れた(送信の直前に外した・元に戻した・フォームを閉じた)ときは番兵を外す(下の「番兵の後始末」)。送信の後の `router.replace` はフォームの履歴を置き換える
 - 「移る」を選んだ後は、住所が変わる(移動が終わる)か編集済みの元が無くなるまで聞かない
 
 ## 理由と確認の文
@@ -55,10 +56,18 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 | 棚の Link | `next/link` の `onNavigate`(押した時に棚の Navigation の口へ判定を聞く = 描いた後に編集済みになっても効く)。止めて確認し、移るなら元の href へ素の router で(replace / scroll も保つ) |
 | router.push / replace / back / forward | 守り付きの `useRouter`(lint で next/navigation の useRouter を止める: 上流 error・fork warn)。back の「移る」は今が番兵の履歴なら番兵を飛ばして 2 つ戻る |
 | 同じオリジンの素の `<a>` | document の click の capture(棚の Link の `<a>` は `data-navigation-port` の印で除く)。別のタブ・download・修飾キー・同じページの `#` は通す |
-| 戻る / 進む | popstate の番兵: 編集済みになった時に同じ住所の履歴を 1 つ積む(Next の `history.state` は残す)。留まるなら積み直し、移るなら番兵の先へもう 1 つ戻る |
+| 戻る / 進む | popstate の番兵: 編集済みになった時に同じ住所の履歴を 1 つ積む(Next の `history.state` は残し、`__unsavedGuardSentinel` にその守りの印を足す)。留まるなら積み直し、移るなら番兵の先へもう 1 つ戻る。離れずに外れたら番兵を外す |
 | 再読み込み・タブを閉じる・別のオリジン | `beforeunload`(ブラウザの確認。文言は変えられない) |
 
-限界: 編集済みの間は「進む」の履歴が番兵で消える(戻った先から進めない)。保存して留まったときは番兵が 1 つ残る(戻るで同じ住所に 1 回留まる)。
+### 番兵の後始末
+
+- 離れずに守りが外れた(編集済みの元が無くなった。「移る」と決めた後を除く)とき、今の履歴が自分の積んだ番兵なら `history.back()` で 1 つ戻って外す。確認は出さず、着いた popstate では何もしない(戻り続けない)
+- 外れ終わる(その popstate が着く)まで、守り付きの router(push / replace / back / forward)と棚の Link は止めて待ち、着いてから進む = 送信の後の `router.replace` は番兵ではなくフォームの履歴を置き換え、戻るで同じ住所に留まらない
+- 外す途中にまた編集済みになった(送信の失敗で戻した等)ら、着いてから番兵を積み直す
+- popstate が来なければ 500ms(`SENTINEL_REMOVAL_TIMEOUT_MS`)で待つのをやめて進む(移動を止めたままにしない)
+- 外すのは自分が積んだ番兵だけ(state の印で見分ける)。再読み込みの前に積んだ番兵は別の文書の履歴の上にあり、戻ると読み直しになるので残す
+
+限界: 編集済みの間は「進む」の履歴が番兵で消える(戻った先から進めない)。編集済みのまま再読み込みしたページでは、前の番兵が残る(戻るで同じ住所に 1 回留まる)。外れてから着くまでの数 ms に押した素の `<a>`(棚の Link でない)は待たない(別の文書の読み込みになるので履歴はずれない)。
 
 ### 捨てた案(調査 research/unsaved-guard-proto、chromium 142・firefox 144)
 

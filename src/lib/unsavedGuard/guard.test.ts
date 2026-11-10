@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { NAVIGATION_PORT_ATTR, SENTINEL_KEY, createTaskTracker, createUnsavedGuard, pickConfirmReason } from "./guard";
+import { NAVIGATION_PORT_ATTR, SENTINEL_KEY, SENTINEL_REMOVAL_TIMEOUT_MS, createTaskTracker, createUnsavedGuard, pickConfirmReason } from "./guard";
 import type { LeaveRequest } from "./types";
 
 type Fn = (event: never) => void;
@@ -55,6 +55,12 @@ function setup(answer: boolean) {
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
+/** 番兵を外す history.back が着いた(偽物の back は state を動かさないので、前のページの state にして popstate を出す) */
+function landBack(fake: ReturnType<typeof fakeEnv>) {
+  fake.env.win.history.state = { __NA: true };
+  (fake.listeners.get("popstate") as unknown as () => void)();
+}
+
 test("編集済みでなければ聞かずに進み、何も付けない", async () => {
   const { guard, fake, asked, moves } = setup(true);
   await guard.request({ kind: "push", href: "/a" }, () => moves.push("go"));
@@ -68,14 +74,19 @@ test("編集済みになると番兵を 1 つ積み(Next の state を残す)、
   const { guard, fake } = setup(true);
   const source = guard.createSource();
   source.set(true);
-  assert.deepEqual(fake.pushed, [{ __NA: true, [SENTINEL_KEY]: true }]);
+  assert.equal(fake.pushed.length, 1);
+  const sentinel = fake.pushed[0] as Record<string, unknown>;
+  assert.equal(sentinel.__NA, true, "Next の state を残す");
+  assert.equal(typeof sentinel[SENTINEL_KEY], "string", "印はこの守りの値");
   assert.deepEqual([...fake.listeners.keys()].sort(), ["beforeunload", "popstate"]);
   assert.deepEqual([...fake.docListeners.keys()], ["click"]);
   source.set(true);
   assert.equal(fake.pushed.length, 1, "番兵は 1 つだけ");
   source.dispose();
-  assert.equal(fake.listeners.size, 0);
+  assert.deepEqual([...fake.listeners.keys()], ["popstate"], "番兵を外す途中は popstate だけ聞く");
   assert.equal(fake.docListeners.size, 0);
+  landBack(fake);
+  assert.equal(fake.listeners.size, 0);
 });
 
 test("router: 留まるなら進まない、移るなら進み、移動が終わるまで二度と聞かない", async () => {
@@ -252,4 +263,136 @@ test("終わるまで守る仕事: 外す設定(guardUnsaved = false)の間は�
   await task;
   await tick();
   assert.equal(guard.isDirty(), false);
+});
+
+test("離れずに外れた(保存・元に戻した): 確認を出さずに自分の番兵を 1 つ戻って外し、着いたら popstate も外す", async () => {
+  const { guard, fake, asked } = setup(true);
+  const source = guard.createSource();
+  source.set(true);
+  source.set(false);
+  assert.equal(fake.backs(), 1, "番兵を history.back で外す");
+  landBack(fake);
+  await tick();
+  assert.deepEqual(asked, [], "確認は出さない");
+  assert.equal(fake.backs(), 1, "着いた popstate で戻り続けない");
+  assert.equal(fake.pushed.length, 1, "積み直さない");
+  assert.equal(fake.listeners.size, 0);
+});
+
+test("外した後の replace: 番兵が外れ終わるまで待ってから進む(ページの履歴を置き換える)", async () => {
+  const { guard, fake, moves } = setup(true);
+  const source = guard.createSource();
+  source.set(true);
+  source.set(false);
+  const done = guard.request({ kind: "replace", href: "/list" }, () => moves.push("replace /list"));
+  await tick();
+  assert.deepEqual(moves, [], "外れ終わるまで進まない");
+  landBack(fake);
+  assert.equal(await done, true);
+  assert.deepEqual(moves, ["replace /list"]);
+  assert.equal(fake.env.win.history.state?.[SENTINEL_KEY], undefined, "進むのはページの履歴の上");
+});
+
+test("外す途中の棚の Link: 止めて、外れてから元の href へ(聞かない)", async () => {
+  const { guard, fake, asked, moves } = setup(true);
+  const source = guard.createSource();
+  source.set(true);
+  source.set(false);
+  const handler = guard.judgeLink("/a", { replace: false, scroll: true });
+  assert.ok(handler);
+  let prevented = false;
+  handler({ preventDefault: () => (prevented = true) } as never);
+  assert.equal(prevented, true);
+  await tick();
+  assert.deepEqual(moves, []);
+  landBack(fake);
+  await tick();
+  assert.deepEqual(moves, ["push /a"]);
+  assert.deepEqual(asked, []);
+  assert.equal(guard.judgeLink("/a", { replace: false, scroll: true }), undefined, "外れ終われば止めない");
+});
+
+test("編集済みの間の戻るは今まで通り確認する(留まる = 積み直し、移る = 戻る)、どちらも番兵を外しに戻らない", async () => {
+  const stay = setup(false);
+  stay.guard.createSource().set(true);
+  stay.fake.env.win.history.state = { __NA: true };
+  (stay.fake.listeners.get("popstate") as unknown as () => void)();
+  await tick();
+  assert.equal(stay.asked.length, 1);
+  assert.equal(stay.fake.pushed.length, 2);
+  assert.equal(stay.fake.backs(), 0);
+
+  const leave = setup(true);
+  const source = leave.guard.createSource();
+  source.set(true);
+  (leave.fake.listeners.get("popstate") as unknown as () => void)();
+  await tick();
+  assert.equal(leave.asked.length, 1);
+  assert.equal(leave.fake.backs(), 1, "移るの 1 回だけ");
+  source.dispose(); // 移った先でフォームが消える
+  assert.equal(leave.fake.backs(), 1, "移ると決めた後は番兵を外しに戻らない");
+  assert.equal(leave.fake.listeners.size, 0);
+});
+
+test("router で「移る」の後に外れた(フォームが消えた): 番兵を外しに戻らない", async () => {
+  const { guard, fake, moves } = setup(true);
+  const source = guard.createSource();
+  source.set(true);
+  await guard.request({ kind: "push", href: "/a" }, () => moves.push("push /a"));
+  source.dispose();
+  assert.deepEqual(moves, ["push /a"]);
+  assert.equal(fake.backs(), 0);
+  assert.equal(fake.listeners.size, 0);
+});
+
+test("外す途中にまた編集済みになった: 確認を出さず、着いてから番兵を積み直す", async () => {
+  const { guard, fake, asked } = setup(true);
+  const source = guard.createSource();
+  source.set(true);
+  source.set(false); // 送信の直前に外す
+  source.set(true); // 送信が失敗して戻す
+  assert.equal(fake.pushed.length, 1, "着くまでは積まない(今の state はまだ番兵)");
+  landBack(fake);
+  await tick();
+  assert.deepEqual(asked, []);
+  assert.equal(fake.pushed.length, 2, "着いてから積み直す");
+  assert.deepEqual([...fake.listeners.keys()].sort(), ["beforeunload", "popstate"]);
+});
+
+test("自分が積んでいない番兵(再読み込みの前の番兵)・番兵でない履歴では戻らない", () => {
+  const foreign = setup(true);
+  foreign.fake.env.win.history.state = { __NA: true, [SENTINEL_KEY]: true };
+  const source = foreign.guard.createSource();
+  source.set(true);
+  assert.equal(foreign.fake.pushed.length, 0, "番兵の上には積まない");
+  source.set(false);
+  assert.equal(foreign.fake.backs(), 0);
+
+  const plain = setup(true);
+  const other = plain.guard.createSource();
+  other.set(true);
+  plain.fake.env.win.history.state = { __NA: true };
+  other.set(false);
+  assert.equal(plain.fake.backs(), 0);
+});
+
+test("編集済みにならないページは何も積まず、外しても戻らない", () => {
+  const { guard, fake } = setup(true);
+  const source = guard.createSource();
+  source.set(false);
+  source.dispose();
+  assert.equal(fake.pushed.length, 0);
+  assert.equal(fake.backs(), 0);
+});
+
+test("外す history.back の popstate が来なくても、待つのをやめて進む", async () => {
+  const { guard, fake, moves } = setup(true);
+  const source = guard.createSource();
+  source.set(true);
+  source.set(false);
+  const done = guard.request({ kind: "replace", href: "/list" }, () => moves.push("replace /list"));
+  await new Promise((resolve) => setTimeout(resolve, SENTINEL_REMOVAL_TIMEOUT_MS + 50));
+  assert.equal(await done, true);
+  assert.deepEqual(moves, ["replace /list"]);
+  assert.equal(fake.listeners.size, 0);
 });

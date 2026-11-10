@@ -4,14 +4,17 @@
 // - 棚の Link: onNavigate の判定(judgeLink)。止めて確認し、移るなら元の href へ素の router で進む
 // - router.push / replace / back / forward: 守り付きの router(request)
 // - 同じオリジンの素の <a>: click の capture(棚の Link が描く <a> は data-navigation-port で見分けて二重に聞かない)
-// - 戻る / 進む: popstate の番兵(編集済みになった時に同じ URL の履歴を 1 つ積む。留まるなら積み直す)
+// - 戻る / 進む: popstate の番兵(編集済みになった時に同じ URL の履歴を 1 つ積む。留まるなら積み直す。
+//   離れずに編集済みでなくなったら(保存・元に戻した)自分の番兵を history.back で外し、外れ終わるまで移動を待たせる)
 // - 再読み込み・タブを閉じる・別のオリジン: beforeunload(ブラウザの確認。文言は変えられない)
 // 「移る」を選んだ後は移動が終わるまで聞かない(leaving)。編集済みの元が無くなるか、住所が変わったら戻す。
 
 import type { ConfirmLeave, LeaveRequest, LinkNavigateJudge, UnsavedReason, UnsavedSource } from "./types";
 
-/** 番兵の履歴の印(history.state に足す。Next の state は残す) */
+/** 番兵の履歴の印(history.state に足す。Next の state は残す)。値はその守りの印(自分が積んだ番兵だけ外す) */
 export const SENTINEL_KEY = "__unsavedGuardSentinel";
+/** 番兵を外す history.back の popstate が来ないときに待つのをやめるまでの時間(移動を止めたままにしない) */
+export const SENTINEL_REMOVAL_TIMEOUT_MS = 500;
 /** 棚の Link が描く <a> の印(click の capture が二重に聞かない) */
 export const NAVIGATION_PORT_ATTR = "data-navigation-port";
 
@@ -56,6 +59,13 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
   let leaving = false;
   let asking = false;
   let attached = false;
+  // 番兵の印(この守りが積んだ番兵だけを外す。再読み込みの前の番兵は別の文書の履歴の上にあり、戻ると読み直しになる)
+  const sentinelToken = `g${Math.random().toString(36).slice(2)}`;
+  // 「移る」と決めた(次に編集済みになるまで)= 離れたので番兵を外さない
+  let departed = false;
+  // 番兵を外す途中(history.back の popstate を待つ)。done は外れ終わる(または待つのをやめる)と解ける
+  let removal: { done: Promise<void>; finish: () => void } | null = null;
+  let popAttached = false;
 
   const isDirty = () => active.size > 0 && !leaving;
   const reasons = (): UnsavedReason[] => {
@@ -65,6 +75,7 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
 
   /** 確認して、移るなら proceed。編集済みでなければそのまま進む。確認中の 2 回目は捨てる。元がいくつ立っていても確認は 1 回 */
   const request = async (input: LeaveInput, proceed: () => void): Promise<boolean> => {
+    if (!isDirty() && removal) await removal.done; // 番兵が外れてから進む(replace が番兵ではなくページの履歴を置き換える)
     if (!isDirty()) {
       proceed();
       return true;
@@ -79,6 +90,7 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
     }
     if (ok) {
       leaving = true;
+      departed = true;
       update();
       proceed();
     }
@@ -86,9 +98,44 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
   };
 
   const pushSentinel = () => {
+    if (removal) return; // 外す途中は今の state がまだ番兵を指す。外れ終わった時に積み直す(onPopState)
     const state = getEnv().win.history.state as Record<string, unknown> | null;
     if (state && state[SENTINEL_KEY]) return;
-    getEnv().win.history.pushState({ ...(state ?? {}), [SENTINEL_KEY]: true }, "", getEnv().win.location.href);
+    getEnv().win.history.pushState({ ...(state ?? {}), [SENTINEL_KEY]: sentinelToken }, "", getEnv().win.location.href);
+  };
+
+  /** popstate を聞くのは守っている間と番兵を外す途中 */
+  const syncPopListener = () => {
+    const want = attached || removal !== null;
+    if (want && !popAttached) getEnv().win.addEventListener("popstate", onPopState as Listener);
+    else if (!want && popAttached) getEnv().win.removeEventListener("popstate", onPopState as Listener);
+    popAttached = want;
+  };
+
+  /** 離れずに守りが外れた: 今が自分の番兵の履歴なら history.back で外す(確認は出さない) */
+  const removeSentinel = () => {
+    if (removal) return;
+    const state = getEnv().win.history.state as Record<string, unknown> | null;
+    if (!state || state[SENTINEL_KEY] !== sentinelToken) return;
+    let finish = () => {};
+    const done = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const current = {
+      done,
+      finish: () => {
+        if (removal !== current) return;
+        clearTimeout(timer);
+        removal = null;
+        syncPopListener();
+        if (isDirty()) pushSentinel(); // 外す途中にまた編集済みになった
+        finish();
+      },
+    };
+    const timer = setTimeout(current.finish, SENTINEL_REMOVAL_TIMEOUT_MS);
+    removal = current;
+    syncPopListener();
+    getEnv().win.history.back();
   };
 
   const onBeforeUnload = (event: { preventDefault: () => void; returnValue?: unknown }) => {
@@ -124,6 +171,10 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
   };
 
   const onPopState = () => {
+    if (removal) {
+      removal.finish(); // 番兵を外す history.back が着いた(聞かない・積み直しの輪にしない)
+      return;
+    }
     if (!isDirty()) return;
     void request({ kind: "popstate" }, () => getEnv().win.history.back()).then((ok) => {
       if (!ok) pushSentinel();
@@ -134,15 +185,17 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
     const shouldAttach = isDirty();
     if (shouldAttach && !attached) {
       attached = true;
+      departed = false;
       pushSentinel();
       getEnv().win.addEventListener("beforeunload", onBeforeUnload as Listener);
       getEnv().doc.addEventListener("click", onClick as Listener, true);
-      getEnv().win.addEventListener("popstate", onPopState as Listener);
+      syncPopListener();
     } else if (!shouldAttach && attached) {
       attached = false;
       getEnv().win.removeEventListener("beforeunload", onBeforeUnload as Listener);
       getEnv().doc.removeEventListener("click", onClick as Listener, true);
-      getEnv().win.removeEventListener("popstate", onPopState as Listener);
+      if (!departed && !leaving) removeSentinel();
+      syncPopListener();
     }
     for (const fn of listeners) fn();
   }
@@ -183,10 +236,10 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
     },
     /** 棚の Link の onNavigate の判定 */
     judgeLink: ((href, { replace, scroll }) => {
-      if (!isDirty()) return undefined;
+      if (!isDirty() && !removal) return undefined;
       return (event) => {
-        if (!isDirty()) return;
-        event.preventDefault();
+        if (!isDirty() && !removal) return;
+        event.preventDefault(); // 番兵を外す途中も止め、外れてから進む(request が待つ)
         void request({ kind: "link", href }, () => (replace ? router().replace(href, { scroll }) : router().push(href, { scroll })));
       };
     }) as LinkNavigateJudge,
