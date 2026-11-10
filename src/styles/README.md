@@ -16,7 +16,7 @@
 | 層 | 効く範囲 | 書く場所 | 原則 |
 |---|---|---|---|
 | 1. トークン | アプリ全体(全部品・全画面) | 直下の `palette.css` / `typography.css`(`:root` / `.dark` / `[data-area]`) | 原則 1 の中心 |
-| 2. 部品の型ごとの設定 | その部品の型を使う全部の場所 | `src/config/ui/*.config.ts`(`variants.config.ts` のバリアントの上書き・`fonts.config.ts`・枠の config) | 原則 1 |
+| 2. 部品の型ごとの設定 | その部品の型を使う全部の場所 | `src/config/ui/*.config.ts`(`variants.config.ts` のバリアントの上書き・`fonts.config.ts`) | 原則 1 |
 | 3. 枠 | その枠の全ページ(ユーザー / 管理 / LP) | 枠の差し替え(`src/app/<route>/_layout/` の README)・枠の config | 原則 1 |
 | 4. ページ | その 1 ページ | `page.tsx` の 1 行スイッチ → `_components/<X>Screen.tsx`(src/lib/screens/README.md) | 原則 2 |
 | 5. 部品の名前・余白の段 | その部品 1 つ | 部品と variant / size / `appearance` / 余白の prop を名前で選ぶ | 原則 2(効率) |
@@ -42,7 +42,7 @@
 | 書体(system の並び)・流体文字サイズ | `typography.css` | `:root { --font-geist-sans: ...; }` | 全画面 |
 | ボタン・バッジの形(角丸・枠線・寸法) | `src/config/ui/variants.config.ts` | `button: { base: "rounded-full" }` | その部品の全部 |
 | ライト / ダークの既定・切替 | `src/config/ui/site-theme.config.ts` | `fallback: { mode: "dark" }` | エリアごと |
-| 枠の中身(メニュー・リンク・幅) | `src/config/ui/user-*.config.ts` ほか | (各 config の冒頭) | その枠 |
+| 枠の中身(メニュー・リンク・幅・背景) | 枠の設定の上書き `src/config/layout/<枠>.config.ts`・`<枠>.ui.config.ts` | (各上書きファイルの冒頭) | その枠 |
 | 枠そのもの | 枠の差し替え | (user)/_layout・admin/_layout・(marketing)/_layout の README | その枠の全ページ |
 | LP に共通の枠(既定は枠なし) | `src/app/(marketing)/_layout/MarketingLayout.replace.tsx` | (marketing)/_layout の README | (marketing) の全ページ |
 | 1 ページの組み方 | `_components/<X>Screen.tsx` | (src/lib/screens/README.md) | その 1 ページ |

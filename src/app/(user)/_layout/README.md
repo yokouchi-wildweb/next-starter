@@ -77,7 +77,7 @@ src/app/(user)/_layout/
 
 ### fork の差し替え手順
 
-1. 値で済むもの(背景の 3 値、ヘッダー・フッター・ボトムナビの表示設定やメニュー)は `src/config/ui/*.config.ts` の値を変える
+1. 値で済むもの(背景の 3 値、ヘッダー・フッター・ボトムナビの表示設定やメニュー)は枠の設定の上書きに書く: 値は `src/config/layout/user.config.ts`、メニュー項目・SNS リンク・ログアウトのアイコンは `src/config/layout/user.ui.config.ts`(§設定ファイル)
 2. 部品を替えるときは、fork の部品をルートの `_components/` に印なしの名前で置き(`src/app/(user)/_components/AcmeHeader.tsx`。`_layout/` の中の部品の隣に `.replace` を置かない: 置き換えられるのは 1 行スイッチの向け先と `<名前>.default` の隣だけで、それ以外は `pnpm check extensions` の孤立の検査が止める)、隣に `UserLayout.replace.tsx` を置いて既定の UserLayout に slot を渡し、layout.tsx をそちらへ向ける
 
 ```tsx
@@ -151,14 +151,14 @@ export const frame = {
 
 ## 設定ファイル
 
-各セクションの設定は `src/config/ui/` にあります。
+枠の設定は持ち主(この `_layout/`)と上書き(`src/config/layout/`)の 2 つ組。キーは部位ごとにまとまり(`header` / `footer` / `bottomMenu` / `layout`)、上書きには変えたキーだけを書く。部位の出し入れは枠の宣言(`src/app/(user)/frame.ts`)。
 
-| ファイル | 説明 |
-|----------|------|
-| `user-layout.config.ts` | 枠全体の値(背景画像・オーバーレイの色と透明度) |
-| `user-header.config.ts` | ヘッダーの設定(コンポーネント切り替えは廃止予定 → header slot) |
-| `user-footer.config.ts` | フッターの設定(コンポーネント切り替えは廃止予定 → footer slot) |
-| `user-bottom-menu.config.ts` | ボトムナビの設定(高さ・メニュー。出し入れは枠の宣言) |
+| 持ち主(キーと既定) | 上書き(fork が書く) | 中身 |
+|----------|------|------|
+| `./config.ts`(`userLayoutConfig`) | `src/config/layout/user.config.ts` | 値: ヘッダーのロゴの遷移先・ログアウト、フッター、ボトムナビの高さとカレントの色、`layout.background`(背景画像・オーバーレイの色と透明度)、`layout.pageContainerType` |
+| `./config.ui.ts`(`userLayoutUiConfig`) | `src/config/layout/user.ui.config.ts` | 描画用: ヘッダーとボトムナビのメニュー項目、SNS リンク、ログアウトのアイコン、項目の型 |
+
+fork だけのキーは上書きファイルの `export type Extra` に型を足して書く(各上書きファイルの冒頭)。
 
 ---
 
@@ -393,14 +393,14 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - 理由: 枠の部品は特定の layout だけが描く物で、共有部品の棚(src/components)に置くと「誰の物か・どこで差し替えるか」が見えない。layout.tsx の隣に置けば、page.tsx ↔ `_screen/` と同じ形で layout.tsx ↔ `_layout/` が対になり、fork が差し替える場所も一つに決まる
 - 移し方: 最初の区切り(notice frame-move-user)は移動だけ。中身は移動で壊れる相対 import の行だけを書き換え、旧パス 27 か所に `@deprecated 旧パス互換` の re-export shim を残した(`grep -rl "@deprecated 旧パス互換" src`)。fork が旧パスで編集していた差分は /flux が notice の `moved:` で新パスへ当て直す。中身の変更(1 行スイッチ・slot 化・config を値だけにする等)は後の区切りで、新パス上の普通の変更として入る
 - shim と eslint `deprecated-imports/no-deprecated-path` の旧パス一覧は、区切り 2 を全 fork が取り込んだことを確かめた後の「旧入口撤去」の区切りで削除する(前例: ui-layers-rename → ui-layers-shim-removal)
-- 採用者所有のファイル(`src/app/(user)/layout.tsx`・`(protected)/mypage/layout.tsx`・`src/config/ui/user-*.config.ts`)は、移動の区切りでは旧パスのまま(shim 経由)にし、次の区切り(notice frame-slots-user)で扱った
+- 採用者所有のファイル(`src/app/(user)/layout.tsx`・`(protected)/mypage/layout.tsx`・当時の `src/config/ui/user-*.config.ts`。今は `src/config/layout/user.config.ts`・`user.ui.config.ts`)は、移動の区切りでは旧パスのまま(shim 経由)にし、次の区切り(notice frame-slots-user)で扱った
 - `Header/index.tsx` が自分の Pc / Sp 部品を旧パスの絶対 import で読んでいたのは、移動の区切りで中身を変えないため(fork の差分が当たりやすい)。部品の slot の区切り(notice frame-parts-user)で相対 import に直した
 
 ## 1 行スイッチと slot の経緯(notice frame-slots-user)
 
 - 報告書 §2 の差し替え方式 =「1 行スイッチ + 部品 props」。枠を描く layout.tsx は採用者所有・write-once の 1 行スイッチになり、提供者の既定の組み立て(`_layout/UserLayout.tsx`)が部品を省略可能な props(slot)で受ける。fork はふつう既定を包む数行のカスタムを書き、構造ごと変えるときだけコピーする。受け口の優先順は 値(config)→ slot / props → コピー
 - 以前は (user)/layout.tsx に背景の 3 値と UserAppLayout の呼び出しが直書きされ、fork はこの layout.tsx か config の部品切替(HeaderCustom / FooterCustom)を編集していた。upstream が枠を変えるたびにそれらが衝突した
-- 背景の 3 値は layout.tsx が 1 行になるので `src/config/ui/user-layout.config.ts`(枠全体の値の受け皿として新設)へ移した
+- 背景の 3 値は layout.tsx が 1 行になるので `src/config/ui/user-layout.config.ts`(枠全体の値の受け皿として新設)へ移した(今は枠の設定 `layout.background`: 持ち主 `./config.ts`、上書き `src/config/layout/user.config.ts`)
 - 移行の間の形: header / footer は config の経路を通して描くので、config を HeaderCustom に切り替えている fork も見た目が変わらない。UserAppLayout も旧 props のまま動く。どちらも旧入口撤去の区切り(notice old-entry-removal)で削除した
 - ルート地図(src/lib/screens/routeMap.mjs)は layout.tsx の本文しか読んでいなかったので、スイッチ先の `_layout/` を 1 段辿るようにした(fork がカスタムの組み立てに書いたガードを地図から落とさないため)
 - 部品そのものの slot は次の区切り(notice frame-parts-user)、banner・寸法の CSS 変数はその後の区切り(notice frame-dims)で入った
@@ -484,7 +484,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 - Header の actions を `{ pc, sp }` の 1 つの object で受ける: 平らな 2 つの props の方が「省略 = 既定 / null = なし」をそのまま書ける
 - actions を PC 専用の入れ物で包む: 通知ベル等を SP のヘッダー右に出せなくなる
-- UserPage の幅の既定を layout から context・CSS 変数・UserLayout の props で配る: UserPage は server component(Screen が server で描く)で useContext が使えない。CSS 変数は Main の inline の maxWidth を変える = 既定の DOM が変わる。UserLayout の props は Screen の子へ届かない。枠全体の値の受け皿(user-layout.config.ts)の 1 値にした
+- UserPage の幅の既定を layout から context・CSS 変数・UserLayout の props で配る: UserPage は server component(Screen が server で描く)で useContext が使えない。CSS 変数は Main の inline の maxWidth を変える = 既定の DOM が変わる。UserLayout の props は Screen の子へ届かない。枠全体の値の受け皿(当時の user-layout.config.ts。今は枠の設定 `layout.pageContainerType`)の 1 値にした
 - BottomNavItem 型を `_layout` に置いたまま config が import する: config → app の依存になる
 - menu の判別を `menu?: undefined` で行う: `type` キーなら省略時 link を型で表せ、判別が 1 か所に集まる
 - Main の `overflow-clip` を `overflow-x-clip` に同時に変える: 既定の class が変わる。必要が示されたら別に扱う
