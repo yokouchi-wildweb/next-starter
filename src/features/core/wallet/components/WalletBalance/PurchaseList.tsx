@@ -7,9 +7,11 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { SoftBadge } from "@/components/Badge";
 import type { WalletType } from "@/features/wallet/config";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
+import type { PurchaseBonus, PurchaseBonusPackageContext } from "@/features/core/wallet/types/purchaseBonus";
 import { calculatePackageDiscount, formatPackageDiscountLabel } from "@/features/core/wallet/utils/discountCalculator";
 import { CurrencyDisplay } from "../common/CurrencyDisplay";
 
@@ -20,9 +22,11 @@ type PurchaseListProps = {
   config: CurrencyConfig & { walletType: WalletType };
   /** 適用中のクーポン効果（割引条件） */
   couponEffect?: PurchaseDiscountEffect | null;
+  /** パッケージごとの特典(usePurchaseBonuses().forPackage を渡す。省略 = 出さない) */
+  packageBonuses?: (ctx: PurchaseBonusPackageContext) => PurchaseBonus[];
 };
 
-export function PurchaseList({ slug, config, couponEffect }: PurchaseListProps) {
+export function PurchaseList({ slug, config, couponEffect, packageBonuses }: PurchaseListProps) {
   const hasDiscount = couponEffect != null;
   const isPerPackage = couponEffect?.discountMode === "per_package";
 
@@ -45,6 +49,7 @@ export function PurchaseList({ slug, config, couponEffect }: PurchaseListProps) 
           const discountLabel = hasDiscount
             ? formatPackageDiscountLabel(couponEffect, isPerPackage ? pkg.amount : undefined)
             : null;
+          const bonuses = packageBonuses?.({ walletType: config.walletType, amount: pkg.amount }) ?? [];
 
           return (
             <Flex
@@ -65,6 +70,11 @@ export function PurchaseList({ slug, config, couponEffect }: PurchaseListProps) 
                     {pkg.bonus}
                   </Span>
                 )}
+                {bonuses.map((bonus, index) => (
+                  <SoftBadge key={bonus.key ?? index} variant="success" size="sm">
+                    {bonus.label}
+                  </SoftBadge>
+                ))}
               </Flex>
               <Flex align="center" gap="sm">
                 {isDiscountValid && discountLabel && (

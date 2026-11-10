@@ -5,6 +5,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
 import type { WalletType } from "@/features/wallet/config";
+import type { PurchaseBonus } from "@/features/core/wallet/types/purchaseBonus";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";
 import { CurrencyDisplay } from "../common/CurrencyDisplay";
 
@@ -17,7 +18,11 @@ type PurchaseSummaryCardProps = {
   discountAmount?: number;
   /** 割引前の金額（クーポン適用時） */
   originalPaymentAmount?: number;
+  /** 購入の特典(usePurchaseBonuses().forPurchase の結果。amount は購入後の残高に足す。省略 = 出さない) */
+  bonuses?: PurchaseBonus[];
 };
+
+const NO_BONUSES: PurchaseBonus[] = [];
 
 export function PurchaseSummaryCard({
   purchaseAmount,
@@ -26,9 +31,11 @@ export function PurchaseSummaryCard({
   walletType,
   discountAmount,
   originalPaymentAmount,
+  bonuses = NO_BONUSES,
 }: PurchaseSummaryCardProps) {
   const config = getCurrencyConfig(walletType);
-  const balanceAfterPurchase = currentBalance + purchaseAmount;
+  const bonusAmount = bonuses.reduce((sum, bonus) => sum + (bonus.amount ?? 0), 0);
+  const balanceAfterPurchase = currentBalance + purchaseAmount + bonusAmount;
   const hasDiscount = discountAmount != null && discountAmount > 0;
 
   return (
@@ -69,6 +76,17 @@ export function PurchaseSummaryCard({
             </Span>
           </Flex>
         )}
+        {bonuses.map((bonus, index) => (
+          <Flex key={bonus.key ?? index} justify="between" align="center" className="border-t border-border py-2">
+            <Span tone="muted">{bonus.label}</Span>
+            {bonus.amount != null && bonus.amount > 0 && (
+              <Span weight="bold" tone="success">
+                +{bonus.amount.toLocaleString()}
+                {config.unit}
+              </Span>
+            )}
+          </Flex>
+        ))}
         <Flex justify="between" align="center" className="border-t border-border py-2">
           <Span tone="muted">購入後の{config.label}残高</Span>
           <CurrencyDisplay

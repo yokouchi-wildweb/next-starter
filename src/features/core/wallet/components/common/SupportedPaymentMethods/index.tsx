@@ -19,9 +19,11 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
+import { SoftBadge } from "@/components/Badge";
 import { useGate } from "@/featureGate/client";
 import { getVisiblePaymentMethods } from "@/features/purchaseRequest/utils/paymentMethods";
 import type { PaymentMethodConfig } from "@/features/purchaseRequest/config";
+import type { PurchaseBonus } from "@/features/core/wallet/types/purchaseBonus";
 
 /**
  * purchaseRequest の config.ts の payment. icon 識別子 → Lucide アイコンへのマッピング
@@ -83,10 +85,12 @@ type CardProps = {
   isSelected: boolean;
   /** undefined なら通常表示。値が入っている時は選択不可（赤系の destructive 表示） */
   blocked?: BlockedPaymentMethod;
+  /** この方法の特典(選べるカードだけに出す。準備中・ブロック中には出さない) */
+  bonuses: PurchaseBonus[];
   onSelect: () => void;
 };
 
-function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps) {
+function PaymentMethodCard({ method, isSelected, blocked, bonuses, onSelect }: CardProps) {
   // モジュール定数の参照で決める(関数の戻り値だと react-hooks/static-components に掛かる)
   const Icon = PAYMENT_ICON_MAP[method.icon] ?? Wallet;
   const isComingSoon = method.status === "coming_soon";
@@ -164,9 +168,22 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
         <Icon aria-hidden className={`h-6 w-6 ${iconColorClass}`} strokeWidth={1.75} />
       </Flex>
       <Stack space={1} className="min-w-0 flex-1">
-        <Span weight={labelWeight} size="sm" className={labelToneClass}>
-          {method.label}
-        </Span>
+        {isInteractive && bonuses.length > 0 ? (
+          <Flex align="center" gap="xs" wrap="wrap">
+            <Span weight={labelWeight} size="sm" className={labelToneClass}>
+              {method.label}
+            </Span>
+            {bonuses.map((bonus, index) => (
+              <SoftBadge key={bonus.key ?? index} variant="success" size="sm">
+                {bonus.label}
+              </SoftBadge>
+            ))}
+          </Flex>
+        ) : (
+          <Span weight={labelWeight} size="sm" className={labelToneClass}>
+            {method.label}
+          </Span>
+        )}
         {descriptionText && (
           <Span size="xs" tone={isBlocked ? "info" : "muted"}>
             {descriptionText}
@@ -253,6 +270,11 @@ type SupportedPaymentMethodsProps = {
    * 選択不可になる。空配列または未指定なら通常通り全て選択可能。
    */
   blockedMethods?: BlockedPaymentMethod[];
+  /**
+   * 支払い方法ごとの特典(container が usePurchaseBonuses().forPaymentMethod を walletType で包んで渡す)。
+   * 選べるカードだけにバッジで出す。省略 = 出さない
+   */
+  methodBonuses?: (methodId: string) => PurchaseBonus[];
 };
 
 /**
@@ -270,6 +292,7 @@ export function SupportedPaymentMethods({
   value,
   onChange,
   blockedMethods,
+  methodBonuses,
 }: SupportedPaymentMethodsProps = {}) {
   // 決済(門番の規則 payment)を閉じた fork では支払い方法を出さない(設定 D97 と同じ扱い。決済の持ち主の値を読むので確かめる)
   const methods = useGate().enabled("payment") ? getVisiblePaymentMethods() : [];
@@ -311,6 +334,7 @@ export function SupportedPaymentMethods({
               method={method}
               isSelected={selectedId === method.id}
               blocked={blockedMap.get(method.id)}
+              bonuses={methodBonuses?.(method.id) ?? []}
               onSelect={() => handleSelect(method.id)}
             />
           ))}

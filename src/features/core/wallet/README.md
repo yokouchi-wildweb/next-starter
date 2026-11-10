@@ -985,6 +985,85 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 
 ---
 
+## 購入の特典の表示（拡張点 purchaseBonuses）
+
+購入画面にランク特典・支払い方法の特典などを出す受け口。**表示だけ**で、特典の付与はサーバーの購入完了ポストフック（purchaseRequest の受け口 `completeHooks`）が行う。上流の提供元は 0（特典を持たない fork の画面は今まで通り）。
+
+```
+purchaseBonuses/<key>.ts           ← 提供元（export const provider: PurchaseBonusProvider）。fork が置く
+purchaseBonuses/<key>.override.ts  ← 上の Tier の提供元の enabled・order を変える
+extensions/purchaseBonuses.ts      ← 一覧（生成物、pnpm generate extensions）
+hooks/usePurchaseBonuses.ts        ← 全提供元をまとめる hook（と純関数 orderedProviders / combinePurchaseBonusSources）
+types/purchaseBonus.ts             ← 提供元・特典・文脈の型
+```
+
+- 提供元: `{ key, order, enabled?, useSource() }`。`useSource` は hook（SWR などを呼んでよい）で、読み方 `{ forPackage?, forPaymentMethod?, forPurchase? }` を返す。各読み方は `PurchaseBonus | null`（null = その場所に出さない）
+- 特典: `{ key?, label, amount? }`。`label` が見せる文言、`amount` は追加で付く通貨の量（まとめの行と購入後の残高に足す）
+- `usePurchaseBonuses()` は使う提供元（`enabled` が false を除き order・key 順）の `useSource` を毎描画 1 回ずつ同じ順で呼び、`{ forPackage, forPaymentMethod, forPurchase, totalForPurchase }` を返す（同じ場所の特典は提供元の順に並ぶ）
+- 出る場所（container が hook を呼び、表示の部品へ省略可の props で渡す。渡さなければ今まで通り）
+
+| 読み方 | 文脈 | container → 部品の props | 見た目 |
+|--------|------|------------------------|--------|
+| `forPackage` | `{ walletType, amount }` | `WalletBalance` → `PurchaseList` の `packageBonuses` | パッケージの行に成功色のバッジ（`label`） |
+| `forPaymentMethod` | `{ walletType, method }`（`paymentMethods[].id`） | `CurrencyPurchase` → `SupportedPaymentMethods` の `methodBonuses`（`(methodId) => PurchaseBonus[]`） | 選べるカードの名前の横にバッジ。準備中・ブロック中のカードには出さない |
+| `forPurchase` | `{ walletType, purchaseAmount, paymentMethod }`（未選択 = null） | `CurrencyPurchase` → `PurchaseSummaryCard` の `bonuses` | まとめに 1 行ずつ（`label`、`amount` があれば `+N単位`）。購入後の残高 = 今の残高 + 購入数 + `amount` の合計 |
+
+- fork が container を自前で持つ（`_components/` にコピーした）ときは、その container で `usePurchaseBonuses()` を呼び、上の props を部品へ渡す
+- `enabled` は読み込み時に決まる値に限る（設定の値など）。描画ごとに変わる条件は読み方の中で null を返す
+
+**fork の例: 表示と付与で同じ計算を使う**
+
+特典の量の計算は fork のドメインに純関数で 1 つだけ置き、サーバーの付与（`completeHooks` の項目）と表示（提供元）の両方から呼ぶ。表示と付与の数がずれない。
+
+```typescript
+// src/features/rankBonus/utils/rankBonusAmount.ts（fork のドメイン。純関数）
+export function rankBonusAmount(purchaseAmount: number, ratePercent: number): number {
+  return Math.floor((purchaseAmount * ratePercent) / 100);
+}
+```
+
+```typescript
+// src/features/core/purchaseRequest/services/server/hooks/definitions/rankBonus.ts（付与。サーバー）
+import type { PurchaseCompleteHook } from "@/features/core/purchaseRequest/services/server/hooks/purchaseCompleteHookRegistry";
+import { rankBonusAmount } from "@/features/rankBonus/utils/rankBonusAmount";
+
+export const hook: PurchaseCompleteHook = {
+  key: "rank_bonus",
+  priority: 10,
+  handler: async ({ purchaseRequest, tx }) => {
+    const rate = await findRankRate(purchaseRequest.user_id, tx); // fork のサービス
+    const amount = rankBonusAmount(purchaseRequest.amount, rate);
+    // amount を walletService で付与する(tx を使う)
+  },
+};
+```
+
+```typescript
+// src/features/core/wallet/purchaseBonuses/rankBonus.ts（表示。クライアント）
+import type { PurchaseBonusProvider } from "@/features/core/wallet/types/purchaseBonus";
+import { useMyRankRate } from "@/features/rankBonus/hooks/useMyRankRate"; // fork の hook(SWR)
+import { rankBonusAmount } from "@/features/rankBonus/utils/rankBonusAmount";
+
+export const provider: PurchaseBonusProvider = {
+  key: "rankBonus",
+  order: 10,
+  useSource: () => {
+    const rate = useMyRankRate(); // 読み込み中・ランクなし = 0
+    return {
+      forPackage: ({ walletType, amount }) =>
+        walletType === "regular_coin" && rate > 0 ? { label: `ランク特典 +${rankBonusAmount(amount, rate)}` } : null,
+      forPurchase: ({ walletType, purchaseAmount }) =>
+        walletType === "regular_coin" && rate > 0
+          ? { label: "ランク特典", amount: rankBonusAmount(purchaseAmount, rate) }
+          : null,
+    };
+  },
+};
+```
+
+- 置いたら `pnpm generate extensions`。上の Tier の提供元を止める・並べ替えるのは隣に `<key>.override.ts`（`export const override: PurchaseBonusProviderOverride = { enabled: false }`）
+- 回帰: `pnpm test src/features/core/wallet`（`hooks/usePurchaseBonuses.test.ts(x)`・`components/WalletBalance/purchaseBonusParts.test.tsx`）
+
 ## 管理機能
 
 ### 管理API

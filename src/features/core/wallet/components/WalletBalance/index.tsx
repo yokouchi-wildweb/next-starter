@@ -16,6 +16,7 @@ import { walletConfig } from "@/features/wallet/config";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBalances";
+import { usePurchaseBonuses } from "@/features/core/wallet/hooks/usePurchaseBonuses";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
@@ -57,6 +58,9 @@ export function WalletBalance({
   // 振込の案内は決済の機能(bankTransferReview は payment の規則のフォルダ)が開いているときだけ
   const showTransferBanner = useGate().enabled("payment");
   const phoneVerificationOpen = useGate().enabled("phoneVerification");
+
+  // 購入の特典の表示(受け口 purchaseBonuses。提供元が 0 なら空 = 今まで通り)
+  const { forPackage: packageBonuses } = usePurchaseBonuses();
 
   // クーポン状態管理
   const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
@@ -139,6 +143,7 @@ export function WalletBalance({
           slug={slug}
           config={config}
           couponEffect={couponEffect}
+          packageBonuses={packageBonuses}
         />
       </>
     );

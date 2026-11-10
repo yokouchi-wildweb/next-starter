@@ -10,6 +10,7 @@ import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/typ
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import { useActiveBankTransfer } from "@/features/core/bankTransferReview/hooks/useActiveBankTransfer";
 import { useGate } from "@/featureGate/client";
+import { usePurchaseBonuses } from "@/features/core/wallet/hooks/usePurchaseBonuses";
 
 import { SupportedPaymentMethods, type BlockedPaymentMethod } from "../common/SupportedPaymentMethods";
 
@@ -76,6 +77,19 @@ function CurrencyPurchaseBody({
     setSelectedPaymentMethod(null);
   }
 
+  // 購入の特典の表示(受け口 purchaseBonuses。提供元が 0 なら空 = 今まで通り)
+  const purchaseBonuses = usePurchaseBonuses();
+  const summaryBonuses = purchaseBonuses.forPurchase({
+    walletType,
+    purchaseAmount,
+    paymentMethod: selectedPaymentMethod,
+  });
+  const { forPaymentMethod } = purchaseBonuses;
+  const methodBonuses = useCallback(
+    (method: string) => forPaymentMethod({ walletType, method }),
+    [forPaymentMethod, walletType],
+  );
+
   // 実際の支払い金額（割引適用後）
   const actualPaymentAmount = couponEffect?.finalPaymentAmount ?? paymentAmount;
 
@@ -113,6 +127,7 @@ function CurrencyPurchaseBody({
         walletType={walletType}
         discountAmount={couponEffect?.discountAmount}
         originalPaymentAmount={couponEffect ? paymentAmount : undefined}
+        bonuses={summaryBonuses}
       />
       <CouponInput
         paymentAmount={paymentAmount}
@@ -124,6 +139,7 @@ function CurrencyPurchaseBody({
         value={selectedPaymentMethod}
         onChange={setSelectedPaymentMethod}
         blockedMethods={blockedMethods}
+        methodBonuses={methodBonuses}
       />
       <PurchaseButton
         onPurchase={purchase}

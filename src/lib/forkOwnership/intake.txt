@@ -204,6 +204,8 @@ add src/features/core/userAcquisition/channels/*.{ts,tsx}  # 受け口 channels
 add src/features/core/userAcquisition/channels/*/**  # 受け口 channels(フォルダ形)
 add src/features/core/userLineProfile/webhookHandlers/*.{ts,tsx}  # 受け口 webhookHandlers
 add src/features/core/userLineProfile/webhookHandlers/*/**  # 受け口 webhookHandlers(フォルダ形)
+add src/features/core/wallet/purchaseBonuses/*.{ts,tsx}  # 受け口 purchaseBonuses
+add src/features/core/wallet/purchaseBonuses/*/**  # 受け口 purchaseBonuses(フォルダ形)
 add src/features/core/walletHistory/reasonKeys/*.{ts,tsx}  # 受け口 reasonKeys
 add src/features/core/walletHistory/reasonKeys/*/**  # 受け口 reasonKeys(フォルダ形)
 add src/features/sample/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
