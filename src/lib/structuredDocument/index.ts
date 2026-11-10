@@ -16,7 +16,7 @@
 
 // 共通ユーティリティ
 export type { VariableMap } from "./shared";
-export { replaceVariables, replaceVariablesInArray } from "./shared";
+export { listVariables, replaceVariables, replaceVariablesInArray } from "./shared";
 
 // リーガルドキュメント（再エクスポート）
 export type {

@@ -52,6 +52,14 @@ const termsConfig: LegalDocument = {
 />
 ```
 
+## 差し込み({{鍵}})
+
+`{{鍵}}` の差し込みはこの lib の 1 本だけ(`shared/variables.ts`)。連絡の欄(lib/messaging)もこれを使う。
+
+- `replaceVariables(text, map)`: 知っている鍵を差し込み、知らない鍵はそのまま残す
+- `listVariables(text)`: 出てくる鍵を順に重複なしで返す(定義の検査が使う)
+- 鍵は `\w+`(英数字と _)。点を含む鍵(`{{a.b}}`)は差し込まれない
+
 ## 新しい文書タイプの追加方法
 
 1. サブディレクトリを作成（例: `qa/`）

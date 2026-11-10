@@ -1,0 +1,91 @@
+# lib/messaging
+
+連絡(システム・管理者 → 宛先 1 人への一方向の連絡: メール・お知らせ・LINE・fork の経路)の仕組みの側。表を持たない(記録・宛先の解決・配信停止はドメイン messaging が持つ)。
+
+- 入口: `@/lib/messaging`(閉じた lib。package.json の exports だけを外から読む)
+- 今あるもの: 連絡の定義の型・上書きの型・定義の読み手の検査・経路の失敗の型
+- これから足すもの: 上書きの受け口の宣言(extensionPoints.ts)と生成の一覧の器、経路の受け口の型(連絡のドメインの作り直しの続きで足す)
+
+## 連絡の定義(defineMessage)
+
+連絡 1 本 = 起こすドメインの `messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。
+
+```ts
+import { z } from "zod";
+import { defineMessage } from "@/lib/messaging";
+
+export default defineMessage({
+  key: "auth.verification",
+  kind: "transactional",
+  category: "account",
+  vars: z.object({ verificationUrl: z.string().url() }),
+  required: true,
+  record: "meta",
+  defaultChannels: ["email"],
+  content: {
+    email: {
+      subject: "メールアドレスの確認",
+      heading: "メールアドレスの確認",
+      paragraphs: ["{{recipientName}} 様、{{serviceName}} への登録を受け付けました。"],
+      cta: { label: "確認する", url: "{{verificationUrl}}" },
+      footer: "心当たりがない場合は無視してください。",
+    },
+  },
+});
+```
+
+項目:
+
+- `key`: `<domain>.<name>`(英数字の camelCase)
+- `kind`: `transactional`(取引・認証。配信停止の好みを見ない)| `marketing` | `activity`
+- `category`: 種類(配信停止の好みの表の行)
+- `vars`: 呼び手が渡す値の zod
+- `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditable`・`throttle` を付けられない
+- `adminEditable`: 管理画面で直せる欄の名前(`<経路>.<欄>`)。required の連絡は空
+- `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
+- `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
+- `defaultChannels`: 既定で送る経路(content を持つ経路だけ)
+- `content`: 経路ごとの名前付きの欄(下)
+- `extras`: fork が足す欄の入れ物(メールの描き方の .replace が読む)
+
+## 経路ごとの欄(MessageContent)
+
+`MessageContent` = 経路の鍵の Record。欄の値は文字列で `{{鍵}}` を差し込める。上流の経路:
+
+- `email`: `subject`(必須)・`preheader`・`heading`・`paragraphs`(文字列の配列)・`cta`(`{ label, url }`)・`footer`
+- `inApp`: `title`(必須)・`body`・`image`(storage:// か URL)・`link`
+- `line`: `text`(必須)
+
+欄の zod は strict(定義に無い欄の名前は通らない)。fork の経路は経路の受け口で欄の zod を足し、`createDefineMessage<束>()` と `validateMessageDefinition(def, { channels: 束 })` に渡す(束は生成の一覧が作る予定)。
+
+## 差し込み({{鍵}})
+
+- 書式は `lib/structuredDocument` の差し込み 1 本(`replaceVariables`・`listVariables`)。鍵は `\w+`(英数字と _)で、点を含む鍵は差し込まれない
+- 差し込める鍵 = `vars` の鍵 ∪ 共通の文脈 `COMMON_CONTEXT_KEYS`(`recipientName`・`recipientEmail`・`serviceName`・`appBaseUrl`。送る口が埋める)∪ throttle のある連絡だけ `collapsedCount`
+
+## 上書き(MessageOverride)
+
+`messages/<名前>.override.ts`(データだけ)。変えられるのは欄の文言(経路ごとに欄を重ねる)・`extras`・`defaultChannels`・`enabled`・`adminEditable`・`category`・`record`・`throttle`(`null` で外す)。`key`・`kind`・`vars`・`required` は変えられない。
+
+- `defineMessageOverride({...})` で型を当てる
+- `applyMessageOverride(definition, override)` で重ねた結果(`enabled` つき)を得る。元の定義は変えない
+
+## 定義の読み手の検査(validateMessageDefinition)
+
+`validateMessageDefinition(definition, { override?, channels? })` → 問題の一覧(空 = 通る)。上書きを渡すと重ねた結果を検査する。
+
+- `invalid_key`: 鍵の形
+- `required_disabled` / `required_without_email` / `required_admin_editable` / `required_throttle`: required の守り
+- `unknown_channel` / `missing_content` / `invalid_content`: 経路と欄(欄の zod に合わない・defaultChannels の経路に欄が無い)
+- `unknown_admin_editable`: adminEditable が定義に無い欄
+- `unknown_variable`: 欄の `{{鍵}}` が vars ∪ 共通の文脈に無い
+- `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
+- `override_forbidden_key`: 上書きが key・kind・vars・required を持つ
+
+## 経路の失敗(ChannelError)
+
+経路の送信の失敗。`kind` = `transient`(一時)| `permanent`(恒久)| `unknown`(受付不明)で、lib/mail の `MailSendError` と同じ語彙(`src/lib/mail/errors.test.ts` が固定)。`channel`(経路の鍵)・`reason`(機械が読む理由)・`cause`。
+
+## テスト
+
+`pnpm test src/lib/messaging`
