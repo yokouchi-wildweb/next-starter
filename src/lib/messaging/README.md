@@ -3,8 +3,8 @@
 連絡(システム・管理者 → 宛先 1 人への一方向の連絡: メール・お知らせ・LINE・fork の経路)の仕組みの側。表を持たない(記録・宛先の解決・配信停止はドメイン messaging が持つ)。
 
 - 入口: `@/lib/messaging`(閉じた lib。package.json の exports だけを外から読む)
-- 今あるもの: 連絡の定義の型・上書きの型・上書きの点の宣言(extensionPoints.ts)・生成の一覧の型・定義の読み手の検査・経路の失敗の型
-- これから足すもの: 経路の受け口の型(連絡のドメインの作り直しの続きで足す)
+- 今あるもの: 連絡の定義の型・上書きの型・上書きの点の宣言(extensionPoints.ts)・生成の一覧の型・定義の読み手の検査・経路の失敗の型・messaging の受け口の項目の型
+- 読み手(送る口・記録・購読の cron)は連絡のドメイン messaging が持つ(作り直しの切り替えで作る)
 
 ## 連絡の定義(defineMessage)
 
@@ -109,6 +109,17 @@ export const messageOverride = {
 - `unknown_variable`: 欄の `{{鍵}}` が vars ∪ 共通の文脈に無い
 - `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
 - `override_forbidden_key`: 上書きが key・kind・vars・required を持つ
+
+## 受け口の項目(receptacles/types.ts)
+
+ドメイン messaging の受け口(`src/features/core/messaging/extensionPoints.ts`、表は `src/features/core/messaging/README.md`「受け口」)に置く項目の型。
+
+- `MessageChannel`(経路): `key`・`label`・`addressing`(`user` = 利用者から引く / `address` = 宛先を直に)・`fields`(経路の欄の zod)・`contentFrom?`(他の経路の欄から中身を作る宣言)・`resolveAddresses?`(既定は端末の帳簿)・`send(宛先の束)` → 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)・`webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ)
+- `MessageEnricher`(値): `key`・`messages`(`"*"` か連絡の鍵の配列)・`provides`(足す変数の zod)・`resolve(文脈)`
+- `MessageCategory`(配信停止の種類): `key`・`label`・`description?`・`kind`(`marketing` | `activity`。取引は好みを見ないので種類を持たない)
+- `MessageAudience`(宛先の集め方): `key`・`label`・`args`(zod)・`resolveUserIds(args, cursor)` → `{ userIds, nextCursor }`(keyset、`null` で終わり)
+- `MessageSource`(送り元): `key`・`label`
+- `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・経路)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
 ## 経路の失敗(ChannelError)
 

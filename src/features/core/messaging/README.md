@@ -185,6 +185,22 @@ const result = await messagingService.bulkSend({
 
 ---
 
+## 受け口(extensionPoints.ts)
+
+連絡の仕組みに fork が部品を足す受け口(型 3: 置くだけで載る)。項目は `<受け口>/<名前>.ts` に `export const <単数> = { … }` で置き、`pnpm generate extensions` が `extensions/<受け口>.ts`(鍵 → 項目)にする。項目の型は `@/lib/messaging`(`src/lib/messaging/README.md`「受け口の項目」)。
+
+| 受け口 | export | 型 | 何を足すか |
+|---|---|---|---|
+| `channels/` | `channel` | `MessageChannel` | 経路(プッシュ・SMS など。宛先の決め方・欄の zod・送る関数・webhook の表) |
+| `enrichers/` | `enricher` | `MessageEnricher` | 上流の連絡に足す値(当てる連絡・足す変数の zod・値を返す関数) |
+| `categories/` | `category` | `MessageCategory` | 配信停止の種類(基の種別 marketing / activity) |
+| `audiences/` | `audience` | `MessageAudience` | 管理の送信の宛先の集め方(引数の zod・keyset で利用者 id) |
+| `sources/` | `source` | `MessageSource` | 送り元の表示名 |
+| `subscribers/` | `subscriber` | `MessageSubscriber` | 送った後の購読(受ける事件・絞り・事件の束の処理、少なくとも 1 回) |
+
+- 今は上流の項目 0 で、一覧は空。読み手(送る口・購読の cron・管理画面)はまだ無く、項目を置いても送信の流れは変わらない。今の送信は上の「使い方」の `messagingService` と定数(`constants/channels.ts`・`constants/sources.ts`)のまま
+- 連絡のドメインの作り直しの切り替えで、上流の経路 email・inApp・line もこの受け口の項目になり、定数から付け替える
+
 ## 関連
 
 - [notification](../notification/README.md) … `inApp` チャネルの配信先。全体・ロール別のお知らせは notification を直接使う

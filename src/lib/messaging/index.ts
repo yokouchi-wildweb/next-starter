@@ -40,3 +40,20 @@ export {
   type MessageDefinitionProblem,
   type MessageDefinitionProblemCode,
 } from "./definition/validate";
+export type {
+  ChannelAddress,
+  ChannelSendResult,
+  ChannelSendTarget,
+  ChannelWebhook,
+  ChannelWebhookEvent,
+  MessageAudience,
+  MessageAudienceCursor,
+  MessageCategory,
+  MessageChannel,
+  MessageEnricher,
+  MessageEnricherContext,
+  MessageEvent,
+  MessageEventType,
+  MessageSource,
+  MessageSubscriber,
+} from "./receptacles/types";
