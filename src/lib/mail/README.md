@@ -108,6 +108,38 @@ const events = normalizeSendGridWebhook(
 
 どちらの provider も計測は provider 側の設定で入れる（Resend はドメインごとで既定は切、SendGrid はアカウントの Tracking の設定）。入れない限り `opened` / `clicked` は届かない。
 
+## メールの枠の部品（lib/mail/frame）
+
+メールの見た目の共通の部品。テンプレートごとに style を写さず、部品を並べて組む。
+
+```tsx
+import {
+  MailFrame,
+  MailHeading,
+  MailParagraph,
+  MailButton,
+  MailUrl,
+  MailFooter,
+} from "@/lib/mail";
+
+<MailFrame theme={mailTheme} preview="メールアドレスの確認">
+  <MailHeading>メールアドレスの確認</MailHeading>
+  <MailParagraph>以下のボタンを押して、確認を完了してください。</MailParagraph>
+  <MailButton href={url}>メールアドレスを確認する</MailButton>
+  <MailParagraph>ボタンが押せない場合は、以下の URL をブラウザに貼り付けてください。</MailParagraph>
+  <MailUrl href={url} />
+  <MailFooter>このメールに心当たりがない場合は、無視してください。</MailFooter>
+</MailFrame>
+```
+
+- 部品
+  - `MailFrame`: Html・Head・Preview・Body・Container。`theme`（色）・`preview`（受信一覧の下見の文）・`lang`（既定 ja）
+  - `MailHeading`（見出し）・`MailParagraph`（段落。`align`・`preWrap`）・`MailButton`（中央寄せのボタン。`tone` = primary | accent）・`MailUrl`（URL のリンク。children を省くと URL を出す）・`MailNote`（注記）・`MailFooter`（最後の注意書き）
+  - `MailDivider`（区切り線）・`MailHeader`（ロゴ + 文。ロゴは絶対 URL）・`MailInfoBox`（ラベルと値の箱）
+- style の既定値は上流のテンプレート（auth のメール）の値。細かい違いは各部品の `style`（既定に重ねる）で合わせる
+- 色: `MailFrame` の `theme`（`MailTheme`、src/styles の palette と同じ鍵）で渡し、部品は文脈から読む。今の色の生成物は features/core/mail/constants/colors.ts（`MAIL_THEME_COLORS`）にあり lib から読めないので、呼び手が渡す（色の生成物は lib/mail へ移る予定）
+- `MailFrame` の外で部品を使うと `useMailTheme` が投げる。react-email の `render` は描画の誤りを投げず、誤りの印（`server rendering errored`）だけの HTML を返すので、部品は必ず `MailFrame` の中に置く
+
 ## createMailTemplate
 
 件名・テンプレートの部品・テスト用の props をまとめ、`Template.send(to, props, options?)` で送る。戻り値は返さない（`Promise<void>`）。

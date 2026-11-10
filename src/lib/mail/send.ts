@@ -169,12 +169,11 @@ function readHeader(headers: unknown, name: string): string | null {
  * @example
  * ```ts
  * import { send } from "@/lib/mail";
- * import { VerificationEmail } from "@/features/core/auth/mail/VerificationEmail";
  *
  * const { provider, providerMessageId } = await send({
  *   to: "user@example.com",
  *   subject: "メールアドレスの確認",
- *   react: <VerificationEmail url={verificationUrl} />,
+ *   react: <SomeEmail url={verificationUrl} />, // React Email の部品(lib/mail/frame で組む)
  * });
  * ```
  */
