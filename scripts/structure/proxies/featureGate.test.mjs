@@ -37,6 +37,7 @@ import { isGenericApiClosed } from "../../../src/lib/domain/definition/apiAccess
 // 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
 import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configEnabled, configRules, gatedDomains, gatedSchema as applySchemaGate, readRequired, withCoveredPatterns } from "../../../src/featureGate/node.ts";
 import { checkBaseRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "../../../src/featureGate/checks/integrity.mjs";
+import { readRequiredNames } from "../../../src/featureGate/checks/dependencies.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
@@ -62,6 +63,21 @@ const ROUTE_EXCEPTIONS = {
 // FEATURE_GATE_CHECK=all: 全ルールを無効とみなして検査する（upstream 用）
 const CHECK_ALL = process.env.FEATURE_GATE_CHECK === "all";
 const CHECK_ALL_ONLY = "FEATURE_GATE_CHECK=all のときだけ実行（upstream 用）";
+
+// fork が src/featureGate/required/ で必須と宣言した機能と、その dependsOn の先(必須の機能が開いている間は閉じられない)。
+// pnpm ops features set はこれらを閉じないので、全部閉じる検査(CHECK_ALL)でも開いたまま扱う。上流は required/ が 0 件 = 空
+const openRequiredNames = (() => {
+  const byName = new Map(configRules.map((rule) => [rule.name, rule]));
+  const open = new Set();
+  const visit = (name) => {
+    if (open.has(name)) return;
+    open.add(name);
+    for (const dep of byName.get(name)?.dependsOn ?? []) visit(dep);
+  };
+  for (const name of readRequiredNames(ROOT)) visit(name);
+  return open;
+})();
+const isRequiredOpen = (rule) => openRequiredNames.has(rule.name);
 
 const walk = (dir, out = []) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -89,8 +105,8 @@ const featureGateRules = withCoveredPatterns(configRules);
 
 // 表の実在を見る検査だけが使う(閉じるドメインは表ではなく features のフォルダから導く)
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);
-// ルートの被覆を検査するルール（features を持ち、無効なもの。CHECK_ALL なら全部）
-const checkedRules = rulesWithFeatures(featureGateRules).filter((rule) => CHECK_ALL || !rule.enabled());
+// ルートの被覆を検査するルール（features を持ち、無効なもの。CHECK_ALL なら必須(openRequiredNames)以外の全部）
+const checkedRules = rulesWithFeatures(featureGateRules).filter((rule) => (CHECK_ALL ? !isRequiredOpen(rule) : !rule.enabled()));
 const schemaTableNames = new Set(
   Object.values(schema)
     .filter((value) => is(value, PgTable))
@@ -160,14 +176,14 @@ test("紹介機能はクーポン機能を前提にする（招待コードの�
 });
 
 test("全機能を無効にしてもスキーマゲートが成立する（外部キーが無効な機能の外へ出ていない）", { skip: !CHECK_ALL && CHECK_ALL_ONLY }, () => {
-  const allDisabled = featureGateRules.map((rule) => ({ ...rule, enabled: () => false }));
+  const allDisabled = featureGateRules.map((rule) => ({ ...rule, enabled: () => isRequiredOpen(rule) }));
   assert.doesNotThrow(() => applySchemaGate(schema, allDisabled));
 });
 
 test("スキーマゲートは無効なテーブルを両側から外し、enum は残す", { skip: !CHECK_ALL && CHECK_ALL_ONLY }, () => {
-  const rules = featureGateRules.map((rule) => ({ ...rule, enabled: () => false }));
+  const rules = featureGateRules.map((rule) => ({ ...rule, enabled: () => isRequiredOpen(rule) }));
   const gate = applySchemaGate(schema, rules);
-  const gatedNames = rules.flatMap((rule) => rule.tables ?? []);
+  const gatedNames = rules.filter((rule) => !rule.enabled()).flatMap((rule) => rule.tables ?? []);
 
   const keptTables = Object.values(gate.imports)
     .filter((value) => is(value, PgTable))
