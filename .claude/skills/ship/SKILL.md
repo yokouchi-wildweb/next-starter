@@ -29,7 +29,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - open, or your own → go on
 1. **fix the range**:
    - `git status --short` and `git diff --cached --name-only` | other sessions may have staged in the same work tree | ship only the files you changed in this conversation (match them against the files touched in the conversation) | any file you cannot tell → STOP
-   - range empty → HEAD has commits the push target lacks (COMMITTED RANGE below) → ship those | none → with `--safe`, SAFE POINT ONLY below | otherwise report only `出荷するものなし` (nothing to ship) and end (no commit, no push)
+   - range empty → HEAD has commits the push target lacks (COMMITTED RANGE below) → ship those | none → plain or `--safe`: SHIPPED TIP below | `--quick`: report only `出荷するものなし` (nothing to ship) and end (no commit, no push)
    - **never put migrations kept out of git `src/features/**/scripts/migrations/*.local.ts` in the range** (emergency data fixes not sent downstream; one `.gitignore` line) | staged or tracked → STOP (gate ship's `pnpm check local-migrations` fails too; remove with `git rm --cached <path>`; needed downstream too → drop `.local` and make it a normal migration with `notice:`)
    - list deletions and renames: the `D` / `R` lines of `git status --short` and files deleted in the work tree | used by the judgment of step 3 and by `moved:`
    - **check for overlap with other sessions' commits**:
@@ -149,12 +149,17 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
 - any condition fails → STOP
 
-## SAFE POINT ONLY (`--safe`, step 1's range is empty, HEAD = the push target)
-- a safe point added later to a tip already shipped (e.g. by a plain ship) | no commit, no notice, no push of commits
+## SHIPPED TIP (plain or `--safe`, step 1's range is empty, HEAD = the push target)
+- closes a tip already pushed (e.g. by `--quick` ships) without a new commit | no commit, no notice, no push of commits
 - `git fetch origin <branch>` → HEAD must equal the push target (`origin/<branch>`; WORKTREE ROUTE: `origin/main`) | HEAD behind or ahead → not this route (ahead = COMMITTED RANGE; behind → STOP: say so)
-- HEAD already carries an own safe tag (`pnpm workflow notices safePoint status` prints `at <tag>`) → report `セーフポイント: 既にある <tag>` and end
-- run step 6's full checks (`pnpm workflow notices safePoint check`) → step 7's tag (`pnpm workflow notices safePoint tag`) | exit codes as there
-- report: the tag name (or `セーフポイントなし: <理由>`) and the checks' result | an older commit than the tip → not covered here (needs a separate procedure)
+- plain:
+  - `pnpm workflow notices safePoint quickFiles` | `0 quick commits unchecked` → report `出荷するものなし(検査していない quick の分もなし)` and end
+  - else step 2's checks on those files (`pnpm check --gate=ship`, the code checks and the area checks they hit) | failed → fix in a new commit and ship it as a plain ship (step 1 onward) | the fix is not obvious → STOP
+  - all pass → `pnpm workflow notices safePoint quickChecked` (records HEAD; the next `quickFiles` stops there) → step 8's report with `safePoint status` (may propose a safe point)
+- `--safe`:
+  - HEAD already carries an own safe tag (`pnpm workflow notices safePoint status` prints `at <tag>`) → report `セーフポイント: 既にある <tag>` and end
+  - step 6's full checks (`pnpm workflow notices safePoint check`) → step 7's tag (`pnpm workflow notices safePoint tag`) | exit codes as there
+- report: the checks' result, the quick commits covered, the tag name (or `セーフポイントなし: <理由>`) | an older commit than the tip → not covered here (needs a separate procedure)
 
 ## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
 - the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. quests' `--quick no-push`, loaded by a caravan): their notices and index lines are in them

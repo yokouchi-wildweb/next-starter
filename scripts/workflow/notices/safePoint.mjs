@@ -19,7 +19,9 @@
 //                               /ship のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
 //   quickFiles                  HEAD から --first-parent でさかのぼり、`Ship: quick` の trailer がある commit が続く間(手元の自分の
 //                               safe tag の commit で止まる)を集め、1 行目に `<N> quick commits unchecked`、続けて変わったファイルを 1 行ずつ。
-//                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う
+//                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
+//   quickChecked                HEAD を「quick の分まで検査した」と記録する(<git common dir>/quick-checked。worktree をまたいで共有)。
+//                               commit の無いふつうの出荷が、push 済みの quick の先端を検査した後に使う
 //   exit 0 = 通った | 1 = 検査が落ちた・tag を付けられない | 2 = 回せない・確かめられない(理由を出す)
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -336,6 +338,27 @@ export const PROPOSE_COMMITS = 80;
 export const PROPOSE_DAYS = 3;
 export const QUICK_TRAILER = "Ship: quick";
 const QUICK_WALK_LIMIT = 1000;
+export const QUICK_CHECKED_FILE = "quick-checked";
+
+const quickCheckedPath = (repo) => resolve(repo, git(repo, ["rev-parse", "--git-common-dir"]), QUICK_CHECKED_FILE);
+
+/** quickChecked で記録した commit(無ければ null) */
+const readQuickChecked = (repo) => {
+  const path = quickCheckedPath(repo);
+  return existsSync(path) ? readFileSync(path, "utf8").trim() || null : null;
+};
+
+function runQuickChecked(repo, log) {
+  try {
+    const head = git(repo, ["rev-parse", "HEAD"]);
+    writeFileSync(quickCheckedPath(repo), `${head}\n`);
+    log(`quick-checked: ${short(head)} まで検査済みと記録した`);
+    return 0;
+  } catch (error) {
+    log(`safe-point: ${error.message}`);
+    return 2;
+  }
+}
 
 /** セーフポイントを作る提案の値: commits ÷ perCommits + days ÷ perDays(小数 2 桁) */
 export function proposeScore(commits, days, perCommits = PROPOSE_COMMITS, perDays = PROPOSE_DAYS) {
@@ -387,6 +410,7 @@ function runStatus(repo, argv, log) {
 
 function runQuickFiles(repo, log) {
   try {
+    const checked = readQuickChecked(repo);
     const identity = readForkIdentity(repo);
     const own = identity.own;
     const safeCommits = new Set(
@@ -403,7 +427,7 @@ function runQuickFiles(repo, log) {
     for (const row of rows) {
       const [sha, ...rest] = row.split(" ");
       const values = rest.join(" ").split(",").map((v) => v.trim());
-      if (safeCommits.has(sha) || !values.includes("quick")) {
+      if (safeCommits.has(sha) || sha === checked || !values.includes("quick")) {
         base = sha;
         break;
       }
@@ -436,8 +460,9 @@ export function run(repo, argv, { log = console.log } = {}) {
   if (action === "where") return runWhere(repo, rest, log);
   if (action === "status") return runStatus(repo, rest, log);
   if (action === "quickFiles") return runQuickFiles(repo, log);
+  if (action === "quickChecked") return runQuickChecked(repo, log);
   log(
-    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles",
+    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles | quickChecked",
   );
   return 2;
 }

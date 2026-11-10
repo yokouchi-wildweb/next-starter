@@ -332,3 +332,17 @@ test("quickFiles: Ship: quick が続く間のファイル、印の無い commit�
   assert.equal(run(fresh, ["quickFiles"], l), 2);
   assert.match(l.lines[0], /^safe-point: /);
 });
+
+test("quickChecked: 記録した HEAD で quickFiles が止まり、その後の quick だけを数える", () => {
+  const r = tier1(1);
+  const quick = () => {
+    const l = logs();
+    return { code: run(r.dir, ["quickFiles"], l), lines: l.lines };
+  };
+  commit(r.dir, "q1\n\nShip: quick", { "a.txt": "a" });
+  assert.equal(quick().lines[0], "1 quick commits unchecked");
+  assert.equal(run(r.dir, ["quickChecked"], logs()), 0);
+  assert.deepEqual(quick(), { code: 0, lines: ["0 quick commits unchecked"] });
+  commit(r.dir, "q2\n\nShip: quick", { "b.txt": "b" });
+  assert.deepEqual(quick(), { code: 0, lines: ["1 quick commits unchecked", "b.txt", "log.txt"] });
+});
