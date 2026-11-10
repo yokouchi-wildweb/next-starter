@@ -29,6 +29,6 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
 6. pushed → answer each departed order:
    - its commit: `git log -1 --format=%h --grep='^order: <id>$' HEAD`
    - its draft: `$(git rev-parse --git-common-dir)/quest/<id>.resolution.md` (or the path the caller gives) | missing → leave the order open, report it
-   - `node .claude/skills/order/mailbox.mjs resolve <the order file> --status=done --pushed=yes --commit=<sha> --body=<draft>` (council orders that stopped short: `--status=partial`) | then delete the draft
+   - `node .claude/skills/order/mailbox.mjs resolve <the order file> --status=done --pushed=yes --commit=<sha> --body=<draft>` (council orders that stopped short: `--status=partial`) | leave the draft: the caller removes it (never `rm` it here)
    - an order with no commit (an investigation) the caller names → the same with `--commit=- --pushed=-`
 7. report (Japanese): the safe point tag (or `セーフポイントなし: <理由>`), the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
