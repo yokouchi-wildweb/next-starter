@@ -54,6 +54,11 @@ export function overrideSwitches(values: Readonly<Record<string, boolean>> = {})
     Object.assign(target, saved);
   };
 }
+/** fork が src/config/featureGate/switches.config.ts で明示的に true にした機能の名前(一覧の順。明示的な子の検査 checks/explicitChildren.ts が読む、D121) */
+export function explicitlyOpened(): FeatureName[] {
+  return generatedRules.filter((rule) => switchValues[rule.name] === true).map((rule) => rule.name);
+}
+
 if (switchErrors.length > 0) throw new Error(`featureGate: src/config/featureGate/switches.config.ts: ${switchErrors.join(" / ")}`);
 
 /**
