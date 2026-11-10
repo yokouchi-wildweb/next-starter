@@ -1,4 +1,4 @@
-// src/features/core/auth/services/client/demoLogin.ts
+// src/features/core/demo/services/client/demoLogin.ts
 
 "use client";
 
@@ -7,7 +7,7 @@ import axios from "axios";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { normalizeHttpError } from "@/lib/errors";
 
-const ENDPOINT = "/api/auth/guest-login";
+const ENDPOINT = "/api/demo-login";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;

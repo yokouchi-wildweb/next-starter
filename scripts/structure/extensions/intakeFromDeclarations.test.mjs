@@ -91,9 +91,9 @@ test("効く種類(最後に当たった行)は生成区画へ移す前と同じ
     "src/features/core/user/roles/contributor.role.json": "add",
     "src/features/core/userProfile/profiles/user.profile.override.ts": "edit",
     "src/features/core/userProfile/profiles/user.profile.json": "add",
-    "src/features/core/auth/services/server/onDemoUserCreated.ts": "edit",
-    "src/features/core/auth/services/server/onDemoUserCreated.replace.ts": "add",
-    "src/features/core/auth/services/server/onDemoUserCreated.default.ts": null,
+    "src/features/core/demo/services/server/onDemoUserCreated.ts": "edit",
+    "src/features/core/demo/services/server/onDemoUserCreated.replace.ts": "add",
+    "src/features/core/demo/services/server/onDemoUserCreated.default.ts": null,
     // 意図した唯一の変化: 6 本目のスイッチ AdminHeader の素の名前に edit の行が付く(前は受け口の外 = null。指令 30 Q1)
     "src/app/admin/_layout/AdminHeader.tsx": "edit",
     "src/features/core/userProfile/entities/profiles/user.ts": "generated",

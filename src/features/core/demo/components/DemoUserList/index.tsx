@@ -1,9 +1,11 @@
-// src/features/core/user/components/admin/DemoUserList/index.tsx
+// src/features/core/demo/components/DemoUserList/index.tsx
 
 import type { User } from "@/features/core/user/entities";
 import { Section } from "@/components/Layout/Section";
-import UserListHeader from "../../common/UserListHeader";
+import UserListHeader from "@/features/core/user/components/common/UserListHeader";
 import Table from "./Table";
+
+export { default as DemoUserListTable } from "./Table";
 
 type Props = {
   users: User[];

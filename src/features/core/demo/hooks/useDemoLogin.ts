@@ -1,4 +1,4 @@
-// src/features/core/auth/hooks/useDemoLogin.ts
+// src/features/core/demo/hooks/useDemoLogin.ts
 
 "use client";
 
@@ -6,8 +6,8 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { demoLogin as demoLoginService } from "@/features/core/auth/services/client/demoLogin";
-import { DEMO_USER_ID_KEY } from "@/features/core/auth/constants/localStorage";
+import { demoLogin as demoLoginService } from "@/features/core/demo/services/client/demoLogin";
+import { DEMO_USER_ID_KEY } from "@/features/core/demo/constants";
 import {
   loadFromLocalStorage,
   saveToLocalStorage,

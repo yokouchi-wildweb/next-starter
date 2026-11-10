@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { onDemoUserCreated } from "@/features/core/auth/services/server/onDemoUserCreated";
+import { onDemoUserCreated } from "@/features/core/demo/services/server/onDemoUserCreated";
 import { getCouponIssuerProgram, isCouponIssuerProgramEnabled } from "@/features/core/couponIssuerGrant/services/server/program";
 import { getPaymentSessionEnricher } from "@/features/core/purchaseRequest/services/server/payment/getSessionEnricher";
 import { getAllCoinIssuanceLabels, getCoinIssuanceLabel } from "@/features/core/analytics/services/server/coinIssuance/labels";

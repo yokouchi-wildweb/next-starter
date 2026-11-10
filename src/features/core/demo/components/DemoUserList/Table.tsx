@@ -1,4 +1,4 @@
-// src/features/core/user/components/admin/DemoUserList/Table.tsx
+// src/features/core/demo/components/DemoUserList/Table.tsx
 
 "use client";
 

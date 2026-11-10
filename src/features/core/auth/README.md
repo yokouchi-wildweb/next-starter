@@ -17,7 +17,7 @@ auth/
 │   │   ├── apiRouteUserDeps.ts  # apiRouteUserDeps (API の Factory に差し込む利用者の束。結ぶのは src/wiring/apiRoute.ts)
 │   │   ├── sessionInvalidation.ts # invalidateSessionsForUser (全セッション強制失効)
 │   │   ├── preRegistration.ts / registration.ts   # 仮登録 / 本登録
-│   │   ├── localLogin.ts / firebaseSession.ts / demoLogin.ts / loginAudit.ts
+│   │   ├── localLogin.ts / firebaseSession.ts / loginAudit.ts(デモのログインは core/demo)
 │   │   └── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
 ├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow / useEmailChangeVerification / useAutoLogout / useSignupComplete (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など

@@ -157,7 +157,7 @@ export function makeCreateDeviceRoute<
     const shouldSkipForDemo = skipForDemo ?? apiConfig.operationType === "write";
 
     // 土台のデモ分岐は主体の判定より前に返るため、ここでは無効にする。
-    // そのままだと、デモユーザーの Cookie を持つブラウザ（公開の guest-login で誰でも作れる）の
+    // そのままだと、デモユーザーの Cookie を持つブラウザ（公開の /api/demo-login で誰でも作れる）の
     // 端末で、端末の認証も処理も通らずに書き込みが 200 で捨てられる。
     // 主体（端末 / ユーザー）の判定はハンドラの段で行う（端末の応答は Cookie を書き直す必要があるため）
     return runRoute<TParams, null>(

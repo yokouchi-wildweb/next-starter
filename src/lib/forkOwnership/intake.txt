@@ -227,15 +227,15 @@ add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
 edit src/app/_providers/ForkProviders.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/app/admin/_layout/AdminHeader.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/features/core/demo/services/server/onDemoUserCreated.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 1 行スイッチ src/app/_providers/ForkProviders.tsx の丸ごと置き換え
 add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え
 add src/features/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
-add src/features/core/auth/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/services/server/onDemoUserCreated.ts の丸ごと置き換え
 add src/features/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 1 行スイッチ src/features/core/couponIssuerGrant/services/server/programConfig.ts の丸ごと置き換え
+add src/features/core/demo/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/features/core/demo/services/server/onDemoUserCreated.ts の丸ごと置き換え
 add src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 1 行スイッチ src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts の丸ごと置き換え
 add src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)

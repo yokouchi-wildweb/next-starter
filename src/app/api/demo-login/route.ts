@@ -1,10 +1,10 @@
-// src/app/api/auth/guest-login/route.ts
+// src/app/api/demo-login/route.ts
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { demoLogin } from "@/features/core/auth/services/server/demoLogin";
+import { demoLogin } from "@/features/core/demo/services/server/demoLogin";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { getClientIp } from "@/lib/request";
 
@@ -14,7 +14,7 @@ const DemoLoginRequestSchema = z.object({
 
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/guest-login",
+    operation: "POST /api/demo-login",
     operationType: "write",
     access: "public",
     skipForDemo: false,

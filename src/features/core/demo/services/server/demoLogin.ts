@@ -1,10 +1,11 @@
-// src/features/core/auth/services/server/demoLogin.ts
+// src/features/core/demo/services/server/demoLogin.ts
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
+// デモ利用者の行を作るのは user(users への書き込み・状態の履歴・名前の規則は user の持ち物。D124)
 import { createGuestDemoUser } from "@/features/core/user/services/server/creation/createGuestDemoUser";
 import { onDemoUserCreated } from "./onDemoUserCreated";
-import { demoSessionMaxAgeSeconds, issueSessionToken } from "./session/sessionToken";
+import { demoSessionMaxAgeSeconds, issueSessionToken } from "@/features/core/auth/services/server/session/sessionToken";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;

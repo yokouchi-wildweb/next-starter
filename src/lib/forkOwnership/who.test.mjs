@@ -248,8 +248,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "scripts/structure/domain/outputs.json": real("scripts/structure/domain/outputs.json"),
     "src/registry/district-map.jsonl": "{}\n",
     // 1 行スイッチ
-    "src/features/core/auth/services/server/onDemoUserCreated.default.ts": "export const onDemoUserCreated = 1;\n",
-    "src/features/core/auth/services/server/onDemoUserCreated.ts": 'export * from "./onDemoUserCreated.default";\n',
+    "src/features/core/demo/services/server/onDemoUserCreated.default.ts": "export const onDemoUserCreated = 1;\n",
+    "src/features/core/demo/services/server/onDemoUserCreated.ts": 'export * from "./onDemoUserCreated.default";\n',
     // 画面と枠のスイッチ
     "src/app/(user)/layout.tsx": 'export { UserLayout as default } from "./_layout/UserLayout";\n',
     "src/app/(user)/_layout/UserLayout.tsx": "export function UserLayout() {}\n",
@@ -298,8 +298,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
 
   const ROWS = [
     // 型 1
-    ["1 行スイッチ(素の名前)", "src/features/core/auth/services/server/onDemoUserCreated.ts", { type: "1", write: "src/features/core/auth/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/auth/services/server/onDemoUserCreated.ts" }],
-    ["1 行スイッチ(既定)", "src/features/core/auth/services/server/onDemoUserCreated.default.ts", { type: "1", write: "src/features/core/auth/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/auth/services/server/onDemoUserCreated.ts" }],
+    ["1 行スイッチ(素の名前)", "src/features/core/demo/services/server/onDemoUserCreated.ts", { type: "1", write: "src/features/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/demo/services/server/onDemoUserCreated.ts" }],
+    ["1 行スイッチ(既定)", "src/features/core/demo/services/server/onDemoUserCreated.default.ts", { type: "1", write: "src/features/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/demo/services/server/onDemoUserCreated.ts" }],
     ["画面の page.tsx", "src/app/(user)/about/page.tsx", { type: "1", write: "src/app/(user)/about/_components/", keys: null, source: "src/app/(user)/about/page.tsx" }],
     ["_screen の部品 → page.tsx", "src/app/(user)/about/_screen/AboutScreen.tsx", { type: "1", write: "src/app/(user)/about/_components/", keys: null, source: "src/app/(user)/about/page.tsx" }],
     ["枠の layout.tsx → 既定の隣の .replace", "src/app/(user)/layout.tsx", { type: "1", write: "src/app/(user)/_layout/UserLayout.replace.tsx", keys: null, source: "src/app/(user)/layout.tsx" }],

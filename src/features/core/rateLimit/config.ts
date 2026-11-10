@@ -77,7 +77,7 @@ const defaults = {
   },
 
   /**
-   * ゲスト(デモ)ログイン（POST /api/auth/guest-login）
+   * ゲスト(デモ)ログイン（POST /api/demo-login）
    * 同一IPから1時間に5回まで
    * 認証不要・確認手段なしでデモユーザーを量産できてしまうため制限する
    */
