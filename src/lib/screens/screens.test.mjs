@@ -41,6 +41,7 @@ import {
   findForkOwnedDirFiles,
   findMarkerNamedFiles,
   findOrphanReplaceFiles,
+  describeRouteReplaceProblem,
   findRouteReplaceProblems,
   isReexportOnlyFile,
   parseSwitchLayout,
@@ -563,13 +564,49 @@ test("findRouteReplaceProblems: スイッチの向け先と .default の隣は�
     "src/app/(user)/_layout/AdminHeader.replace.tsx",
     "src/app/(user)/_layout/Gone.replace.tsx",
     "src/app/(user)/w/_screen/WScreen.tsx",
-    "src/app/(user)/w/_screen/WScreen.replace.tsx",
   ];
   assert.deepEqual(findRouteReplaceProblems(files, (f) => texts[f] ?? null), [
     { path: "src/app/(user)/_layout/BottomNav/BottomNavItem.replace.tsx", reason: "no-default" },
     { path: "src/app/(user)/_layout/Gone.replace.tsx", reason: "orphan" },
     { path: "src/app/(user)/_layout/Header/index.replace.tsx", reason: "no-default" },
   ]);
+});
+
+test("findRouteReplaceProblems: _screen/ の下の .replace は向け先でも .default の隣でも孤立でも in-screen、_layout/ の .replace は通る", () => {
+  const texts = {
+    "src/app/(user)/layout.tsx": 'export { UserLayout as default } from "./_layout/UserLayout.replace";\n',
+    "src/app/(user)/w/page.tsx": 'export { WScreen as default } from "./_screen/WScreen.replace";\n',
+  };
+  const files = [
+    ...Object.keys(texts),
+    "src/app/(user)/_layout/UserLayout.tsx",
+    "src/app/(user)/_layout/UserLayout.replace.tsx",
+    "src/app/(user)/_layout/AdminHeader.default.tsx",
+    "src/app/(user)/_layout/AdminHeader.tsx",
+    "src/app/(user)/_layout/AdminHeader.replace.tsx",
+    "src/app/(user)/w/_screen/WScreen.tsx",
+    "src/app/(user)/w/_screen/WScreen.replace.tsx",
+    "src/app/(user)/w/_screen/Part.default.tsx",
+    "src/app/(user)/w/_screen/Part.tsx",
+    "src/app/(user)/w/_screen/Part.replace.tsx",
+    "src/app/(user)/w/_screen/sub/Row.tsx",
+    "src/app/(user)/w/_screen/sub/Row.replace.tsx",
+    "src/app/(user)/w/_screen/Gone.replace.tsx",
+  ];
+  assert.deepEqual(findRouteReplaceProblems(files, (f) => texts[f] ?? null), [
+    { path: "src/app/(user)/w/_screen/Gone.replace.tsx", reason: "in-screen" },
+    { path: "src/app/(user)/w/_screen/Part.replace.tsx", reason: "in-screen" },
+    { path: "src/app/(user)/w/_screen/WScreen.replace.tsx", reason: "in-screen" },
+    { path: "src/app/(user)/w/_screen/sub/Row.replace.tsx", reason: "in-screen" },
+  ]);
+});
+
+test("describeRouteReplaceProblem: in-screen は <ルート>/_components/<X>Screen.tsx と page.tsx のスイッチを案内する", () => {
+  const message = describeRouteReplaceProblem({ path: "src/app/(user)/w/_screen/WScreen.replace.tsx", reason: "in-screen" });
+  assert.match(message, /src\/app\/\(user\)\/w\/_components\/WScreen\.tsx/);
+  assert.match(message, /src\/app\/\(user\)\/w\/page\.tsx の 1 行スイッチを \.\/_components\/WScreen に向け/);
+  assert.match(describeRouteReplaceProblem({ path: "src/app/(user)/_layout/Gone.replace.tsx", reason: "orphan" }), /孤立した \.replace/);
+  assert.match(describeRouteReplaceProblem({ path: "src/app/(user)/_layout/X/index.replace.tsx", reason: "no-default" }), /置き換えの口でない部品/);
 });
 
 test("findOrphanReplaceFiles: 隣に <名前>.ts(x) か <名前>/index.ts(x) の無い .replace だけを拾う", () => {

@@ -126,10 +126,13 @@ export function findOrphanReplaceFiles(files) {
  * DEFAULT_IMPL_DIRS 配下の <名前>.replace.ts(x) が置き換える既定を持つか(全 Tier。pnpm check extensions の孤立の検査 scripts/structure/extensions/orphans.mjs が回す)。
  * 置き換えられる既定 = そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先(`./_screen/<名前>`・`./_layout/<名前>`、向け先が <名前>.replace でも同じ)か、
  * 隣の 1 行スイッチの既定 <名前>.default.ts(x)。隣に印なしの <名前> があるだけの部品(枠の中の部品など)は置き換えの口でない:
- * fork の部品はルートの _components/ に印なしの名前で置く
+ * fork の部品はルートの _components/ に印なしの名前で置く。
+ * `_screen/` の下の .replace は向け先でも .default の隣でも全部 in-screen(_screen/ に fork の物を混ぜない。
+ * 画面の丸ごとの差し替えは <ルート>/_components/<X>Screen.tsx + page.tsx のスイッチ、README §1「fork の物は _components/」)
  * @param {string[]} files repo 相対パス
  * @param {(path: string) => string | null} readText page.tsx / layout.tsx の中身
- * @returns {{ path: string, reason: "orphan" | "no-default" }[]} orphan = 隣に <名前> も無い / no-default = 隣にあるが既定でない
+ * @returns {{ path: string, reason: "in-screen" | "orphan" | "no-default" }[]} in-screen = `_screen/` の下 /
+ *   orphan = 隣に <名前> も無い / no-default = 隣にあるが既定でない
  */
 export function findRouteReplaceProblems(files, readText) {
   const present = new Set(files);
@@ -147,6 +150,10 @@ export function findRouteReplaceProblems(files, readText) {
     const match = /^(.*)\/([^/]+)\.replace\.tsx?$/.exec(file);
     if (!match) continue;
     const [, dir, name] = match;
+    if (dir.split("/").includes("_screen")) {
+      problems.push({ path: file, reason: "in-screen" });
+      continue;
+    }
     if (orphans.has(file)) {
       problems.push({ path: file, reason: "orphan" });
       continue;
@@ -159,6 +166,23 @@ export function findRouteReplaceProblems(files, readText) {
 
 /** fork 所有のディレクトリ(下流の差し替え画面と page 専用部品)。upstream はここにファイルを置かない */
 export const FORK_OWNED_DIR = "_components";
+
+/**
+ * findRouteReplaceProblems の 1 件を直し方つきの文にする(pnpm test src/lib/screens と pnpm check extensions が同じ文を出す)
+ * @param {{ path: string, reason: "in-screen" | "orphan" | "no-default" }} problem
+ * @returns {string}
+ */
+export function describeRouteReplaceProblem({ path, reason }) {
+  if (reason === "in-screen") {
+    const segments = path.split("/");
+    const route = segments.slice(0, segments.indexOf("_screen")).join("/");
+    const name = segments[segments.length - 1].replace(/\.replace\.tsx?$/, "");
+    const screen = name.endsWith("Screen") ? name : `${name}Screen`;
+    return `${path}: _screen/ に fork の物は置かない(.replace も不可)。画面を丸ごと替えるなら ${route}/${FORK_OWNED_DIR}/${screen}.tsx に置いて ${route}/page.tsx の 1 行スイッチを ./${FORK_OWNED_DIR}/${screen} に向け、部品なら ${route}/${FORK_OWNED_DIR}/ に印なしの名前で置いて import を直す`;
+  }
+  if (reason === "orphan") return `${path}: 隣に置き換える既定が無い(孤立した .replace。既定の名前に合わせるか消す)`;
+  return `${path}: 置き換えの口でない部品の .replace(置き換えられるのは page.tsx / layout.tsx の 1 行スイッチの向け先と <名前>.default の隣だけ)。fork の部品はルートの ${FORK_OWNED_DIR}/ に印なしの名前で置き、import を直す`;
+}
 
 /**
  * src/app 配下で FORK_OWNED_DIR のセグメントを持つファイルを返す。

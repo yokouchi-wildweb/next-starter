@@ -51,7 +51,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - 画面を丸ごと替える = `src/app/<route>/_components/<X>Screen.tsx` に自分の Screen を置き、page.tsx の 1 行スイッチをそこへ向ける（手順は §7「上流の画面を変えたい」、コピーしてよいかは `.claude/rules/core/extensions.md`）
 - fork のそのページ専用の部品と自分の loader（`_components/loader.ts`）も同じ `_components/` に置く（部品は印なしの名前）
-- `_screen/` に fork の物を混ぜない（部品も Screen の置き換えも置かない）。`_screen/` はルートを作ったリポの既定 Screen・loader・その部品だけ
+- `_screen/` に fork の物を混ぜない（部品も Screen の置き換えも置かない）。`_screen/` はルートを作ったリポの既定 Screen・loader・その部品だけ（`_screen/` の下の `.replace` は全 Tier で失敗。§9「route の隣の点つきの名前」）
 - どこに書くかの確かめ: `pnpm workflow ownership who src/app/<route>/page.tsx`（型 1 の答え。`write` = `<route>/_components/`、`source` = page.tsx。`_screen/` の下のファイルを問うても同じ答え。`src/lib/forkOwnership/README.md`「持ち主を調べる」）
 
 枠を描く layout.tsx も同じ形（Screen と Layout は対: page.tsx ↔ layout.tsx、`_screen/` ↔ `_layout/`）:
@@ -346,7 +346,7 @@ import { BalanceCard } from "./BalanceCard";
 
 | 保護 | 検査 | 結果 |
 |---|---|---|
-| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>`（`<X>` は印なしの既定か丸ごと置き換えの `<X>.replace` だけ。旧い fork の印は失敗）からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
+| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>`（`<X>` は印なしの既定か丸ごと置き換えの `<X>.replace` だけ。旧い fork の印は失敗。`_screen/<X>.replace` はファイルが下の「route の隣の点つきの名前」で失敗する）からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（§13）が見る。補助関数は `utils/` へ | 失敗 |
@@ -356,7 +356,7 @@ import { BalanceCard } from "./BalanceCard";
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
 | upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に fork の置き換えの印（丸ごと置き換え `.replace`・一部の上書き `.override`、`classifyDottedName` の判定）が無い（点つきの名前を全部止めるのではない: 1 行スイッチの既定 `<名前>.default`、例 `admin/_layout/AdminHeader.default.tsx`・枠の描画用の設定 `config.ui.ts`・テストは印でないので数えない、設定 D101）。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
-| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `pnpm check extensions` の `switches.mjs`。枠の `_layout/` の直下の描画用の設定 `config.ui.ts` = 地区の `UI_CONFIG_FILE` も許す）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findRouteReplaceProblems` = `<名前>.replace` が置き換える既定を持つ（そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先か、隣の `<名前>.default`。隣に印なしの部品があるだけは不可。画面の fork の物の置き場は §1「fork の物は `_components/`」= 部品も Screen の置き換えも `_components/` に印なしの名前で。`pnpm check extensions` の孤立の検査も回す） | 失敗 |
+| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `pnpm check extensions` の `switches.mjs`。枠の `_layout/` の直下の描画用の設定 `config.ui.ts` = 地区の `UI_CONFIG_FILE` も許す）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findRouteReplaceProblems` = `_screen/` の下の `.replace` は向け先でも `.default` の隣でも全部失敗（in-screen。案内 = `<route>/_components/<X>Screen.tsx` に置いて page.tsx の 1 行スイッチを向ける。§1「fork の物は `_components/`」）、`_layout/` の `<名前>.replace` は置き換える既定を持つ（そのルートの layout.tsx の 1 行スイッチの向け先か、隣の `<名前>.default`。隣に印なしの部品があるだけは不可 = fork の部品は `_components/` に印なしの名前で。文は `describeRouteReplaceProblem`、`pnpm check extensions` も同じ文を出す。`pnpm check extensions` の孤立の検査も回す） | 失敗 |
 
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 

@@ -2,7 +2,7 @@
 // 孤立の検査(1 つ、D165): src の下の <対象>.override.ts(x) と <名前>.replace.ts(x) を 1 回の走査で集め、どれもそれを受ける宣言・既定があるかを見る。
 // - .override: 受け口のフォルダ(overrideOf の点。項目と照らすのは extensions.mjs)/ 上書きの対象の点(宣言の overrides の隣の glob)で隣に対象がある。
 //   どれでもなければ「受ける点が無い」、点はあるが対象が無ければ「孤立」。空(空白とコメントだけ)は不在と同じで見ない
-// - .replace: route の _layout / _screen は src/lib/screens の findRouteReplaceProblems(スイッチの向け先か .default の隣)、
+// - .replace: route の _layout / _screen は src/lib/screens の findRouteReplaceProblems(_layout はスイッチの向け先か .default の隣、_screen の下は全部不可)、
 //   それ以外は隣に 1 行スイッチの既定 <名前>.default.ts(x)。fork 所有の _components/ の中は見ない
 // pnpm check extensions(門 build / ship / forge)が回す。書式: ./README.md
 
@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 
 import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
-import { DEFAULT_IMPL_DIRS, FORK_OWNED_DIR, findRouteReplaceProblems } from "../../../src/lib/screens/checks.mjs";
+import { DEFAULT_IMPL_DIRS, FORK_OWNED_DIR, describeRouteReplaceProblem, findRouteReplaceProblems } from "../../../src/lib/screens/checks.mjs";
 import { REPLACE_FILE, isOverridePath, overrideGlobOf, targetOfOverride } from "../../../src/lib/districtMap/extensionNames.mjs";
 import { isBlankSource } from "./overrides.mjs";
 
@@ -65,13 +65,7 @@ export function checkOrphans(repoRoot, { points, receptacleDirs }) {
 
   const inRoute = (path) => path.startsWith("src/app/") && path.split("/").slice(0, -1).some((seg) => DEFAULT_IMPL_DIRS.includes(seg));
   const inForkDir = (path) => path.split("/").slice(0, -1).includes(FORK_OWNED_DIR);
-  for (const { path, reason } of findRouteReplaceProblems(files.filter((f) => f.startsWith("src/app/")), (f) => (present.has(f) ? readFileSync(join(repoRoot, f), "utf8") : null))) {
-    problems.push(
-      reason === "orphan"
-        ? `${path}: 隣に置き換える既定が無い(孤立した .replace。既定の名前に合わせるか消す)`
-        : `${path}: 置き換えの口でない部品の .replace(置き換えられるのは page.tsx / layout.tsx の 1 行スイッチの向け先と <名前>.default の隣だけ)。fork の部品はルートの ${FORK_OWNED_DIR}/ に印なしの名前で置き、import を直す`,
-    );
-  }
+  for (const problem of findRouteReplaceProblems(files.filter((f) => f.startsWith("src/app/")), (f) => (present.has(f) ? readFileSync(join(repoRoot, f), "utf8") : null))) problems.push(describeRouteReplaceProblem(problem));
   for (const path of files) {
     const name = path.slice(path.lastIndexOf("/") + 1);
     const match = REPLACE_FILE.exec(name);
