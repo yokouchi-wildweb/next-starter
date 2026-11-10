@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { readDistrictMap, readDomainEntry, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
+import { readDistrictMap, readDomainEntry, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
 
 /** パス → 本文 の表から source を作る(フォルダはパスから導く) */
 function memorySource(files) {
@@ -155,7 +155,7 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
   const text = toJsonl(districts);
   assert.equal(text.split("\n").length, districts.length + 1);
   assert.deepEqual(JSON.parse(text.split("\n")[0]), districts[0]);
-  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "uiConfig", "uiOverride", "apiKeys", "tables", "requires", "gates", "receptacles", "frame"]);
+  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "uiConfig", "uiOverride", "apiKeys", "tables", "requires", "gates", "receptacles", "frame", "featureRequirements"]);
   assert.equal(toJsonl([]), "");
 });
 
@@ -181,4 +181,23 @@ test("domainJson・generate: features は domain.json の有無と generate(省�
   assert.deepEqual([by["lib:cron"].domainJson, by["lib:cron"].generate], [null, null]);
   const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/domain.json": "{ nope" }));
   assert.ok(broken.problems.some((p) => /src\/features\/sample\/domain\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
+});
+
+test("readFeatureRequirements: export const featureRequirements のリテラルを読む・誤りは問題に(設定 D110)", () => {
+  const ok = readFeatureRequirements(
+    "c.ts",
+    `export const featureRequirements = [{ key: "purchaseRestriction", feature: "phoneVerification", off: "none" }, { key: "a.b", feature: "x", off: false, element: true }] as const satisfies readonly FeatureRequirement[];`,
+  );
+  assert.deepEqual(ok, {
+    requirements: [
+      { key: "purchaseRestriction", feature: "phoneVerification", off: "none" },
+      { key: "a.b", feature: "x", off: false, element: true },
+    ],
+    problems: [],
+  });
+  assert.deepEqual(readFeatureRequirements("c.ts", "export const other = 1;"), { requirements: [], problems: [] });
+  assert.equal(readFeatureRequirements("c.ts", "export const featureRequirements = LIST;").problems.length, 1);
+  assert.equal(readFeatureRequirements("c.ts", `export const featureRequirements = [{ key: "a", feature: "x" }];`).problems.length, 1, "off が無い");
+  assert.equal(readFeatureRequirements("c.ts", `export const featureRequirements = [{ key: "a", feature: "x", off: 0, extra: 1 }];`).problems.length, 1, "未知のキー");
+  assert.equal(readFeatureRequirements("c.ts", `export const featureRequirements = [{ key: "a b", feature: "x", off: 0 }];`).problems.length, 1, "鍵の形");
 });

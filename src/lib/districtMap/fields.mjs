@@ -172,3 +172,76 @@ export function readOverrideImports(path, text) {
   }
   return { imports, problems };
 }
+
+/** 機能を要する設定の値の宣言の名前(設定 D110) */
+export const FEATURE_REQUIREMENTS_EXPORT = "featureRequirements";
+
+const KEY_PATH = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/;
+
+/** 構文木の値をリテラルとして読む(文字列・数・真偽・null・配列・object)。リテラルでなければ undefined */
+function literalValue(node) {
+  while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return { value: node.text };
+  if (ts.isNumericLiteral(node)) return { value: Number(node.text) };
+  if (node.kind === ts.SyntaxKind.TrueKeyword) return { value: true };
+  if (node.kind === ts.SyntaxKind.FalseKeyword) return { value: false };
+  if (node.kind === ts.SyntaxKind.NullKeyword) return { value: null };
+  if (ts.isArrayLiteralExpression(node)) {
+    const value = [];
+    for (const element of node.elements) {
+      const read = literalValue(element);
+      if (!read) return undefined;
+      value.push(read.value);
+    }
+    return { value };
+  }
+  if (ts.isObjectLiteralExpression(node)) {
+    const value = {};
+    for (const property of node.properties) {
+      if (!ts.isPropertyAssignment(property)) return undefined;
+      if (!(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) return undefined;
+      const read = literalValue(property.initializer);
+      if (!read) return undefined;
+      value[property.name.text] = read.value;
+    }
+    return { value };
+  }
+  return undefined;
+}
+
+/**
+ * 持ち主の config.ts の `export const featureRequirements = [{ key, feature, off, element? }, …]`(設定 D110、リテラルだけ)。
+ * key = 合成した設定の点区切りの鍵、feature = 門番の機能の名前、off = その機能を使わない値、element: true = 値が配列で要素ごとに見る(要素が off 以外なら要する)。
+ * 判定(合成した値が off でないのに機能が閉なら失敗)は門番の検査 src/featureGate/checks/featureRequirements.ts
+ * @param {string} path
+ * @param {string} text
+ * @returns {{ requirements: { key: string, feature: string, off: unknown, element?: true }[], problems: string[] }}
+ */
+export function readFeatureRequirements(path, text) {
+  const source = parse(path, text);
+  const requirements = [];
+  const problems = [];
+  for (const { name, init } of exportedConsts(source)) {
+    if (name !== FEATURE_REQUIREMENTS_EXPORT) continue;
+    const read = literalValue(init);
+    if (!read || !Array.isArray(read.value)) {
+      problems.push(`${path}: ${FEATURE_REQUIREMENTS_EXPORT} はリテラルの配列で書く([{ key, feature, off }]、字面で読む)`);
+      continue;
+    }
+    for (const item of read.value) {
+      const where = `${path}: ${FEATURE_REQUIREMENTS_EXPORT} の項目 ${JSON.stringify(item)}`;
+      if (typeof item !== "object" || item === null || Array.isArray(item)) {
+        problems.push(`${where} は { key, feature, off } の object`);
+        continue;
+      }
+      const unknown = Object.keys(item).filter((k) => !["key", "feature", "off", "element"].includes(k));
+      if (unknown.length > 0) problems.push(`${where}: 未知のキー ${unknown.join("・")}(使えるのは key・feature・off・element)`);
+      else if (typeof item.key !== "string" || !KEY_PATH.test(item.key)) problems.push(`${where}: key は合成した設定の点区切りの鍵(例 "purchaseRestriction"・"name.unique.enabled")`);
+      else if (typeof item.feature !== "string" || item.feature.length === 0) problems.push(`${where}: feature は門番の機能の名前(src/featureGate/rules/<名前>.ts)`);
+      else if (!("off" in item)) problems.push(`${where}: off(その機能を使わない値)が無い`);
+      else if ("element" in item && item.element !== true) problems.push(`${where}: element は true だけ(配列の要素で見る)`);
+      else requirements.push(item.element === true ? { key: item.key, feature: item.feature, off: item.off, element: true } : { key: item.key, feature: item.feature, off: item.off });
+    }
+  }
+  return { requirements, problems };
+}

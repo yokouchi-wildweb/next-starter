@@ -6,7 +6,7 @@
 
 import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
-import { readDomainEntry, readFrameName, readRuleDomains, readTableNames } from "./fields.mjs";
+import { readDomainEntry, readFeatureRequirements, readFrameName, readRuleDomains, readTableNames } from "./fields.mjs";
 import {
   APP_ROOT,
   CONFIG_FILE,
@@ -34,7 +34,9 @@ import {
  *   kind: "features" | "lib" | "frame" | "proxies", name: string, core: boolean | null, dir: string,
  *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, uiConfig: FileSlot, uiOverride: FileSlot, apiKeys: string[], tables: string[], requires: string[],
  *   gates: string[], receptacles: string[], frame: string | null,
+ *   featureRequirements: { key: string, feature: string, off: unknown, element?: true }[],
  * }} District
+ *   featureRequirements = 持ち主の config.ts の機能を要する値の宣言(設定 D110。判定は門番の検査 src/featureGate/checks/featureRequirements.ts)
  */
 
 const SOURCE_FILE = /\.tsx?$/;
@@ -194,7 +196,15 @@ export function readDistrictMap(source) {
       gates: [...new Set(gates.get(d.dir) ?? [])].sort(),
       receptacles: [],
       frame: d.kind === "frame" ? d.name : null,
+      featureRequirements: [],
     };
+    // 機能を要する値の宣言(持ち主の config.ts の export const featureRequirements、設定 D110)
+    const configText = source.readText(configPath);
+    if (configText !== null) {
+      const read = readFeatureRequirements(configPath, configText);
+      problems.push(...read.problems);
+      district.featureRequirements = read.requirements;
+    }
     if (d.kind === "features") {
       // domain.json の有無と generate(省略 = true、domain.json なし = null。生成器 pnpm generate domain が書き直すか、L1.15)
       const domainJsonPath = join(d.dir, DOMAIN_JSON_FILE);

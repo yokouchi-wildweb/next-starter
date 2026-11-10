@@ -419,3 +419,4 @@
 - id:20261110-134545-rule-merge-admin-children | severity:breaking | checkpoint:config-rule-merge-admin
 - id:20261110-135737-shared-shelf-frame-guard-fixes | severity:action-required | checkpoint:shared-shelf-frame-guard-fixes | resolves:20261106-193519-user-frame-test-fork-declarations, 20261109-090000-unsaved-guard-sentinel-cleanup
 - id:20261110-142446-peer-cwd | severity:info | checkpoint:peer-cwd
+- id:20261110-142141-feature-requirements | severity:breaking | checkpoint:config-feature-requirements

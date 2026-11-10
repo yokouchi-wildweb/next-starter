@@ -5,6 +5,7 @@
 // デモのページ・デモログインの入切(demo.samplePages・demo.login)は門番の持ち物で、ここには無い
 
 import override from "@/config/proxies/demo.config";
+import type { FeatureRequirement } from "@/featureGate";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 
 export type DemoConfig = {
@@ -24,6 +25,9 @@ const defaults: DemoConfig = {
   allowedPrefixes: ["/_next", "/api", "/admin", "/assets"],
   redirectTo: "/demo",
 };
+
+/** 機能を要する値(設定 D110、門 build の pnpm check proxies が見る): デモモードを有効にするならデモのページ(機能 demoPages)が開いていること */
+export const featureRequirements = [{ key: "enabled", feature: "demoPages", off: false }] as const satisfies readonly FeatureRequirement[];
 
 export const demoConfigDef = defineConfig<DemoConfig>(defaults, { label: "proxies.demo" });
 

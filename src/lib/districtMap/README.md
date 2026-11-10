@@ -36,7 +36,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 - `problems` が空でなければ、地図は使わずに直します(生成器は書きません)
 - 戻り値には `tableFiles`(features の地区の表と定義ファイル、パス順 → 出現順。schemaRegistry が使う、jsonl には載せない)と `tableProblems`(表名を字面で読めない問題だけ)もあります
 - 使い手: 登録表の生成(ドメインの一覧・表・domain.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)・上書きと持ち主の 1 対 1 の検査(`scripts/structure/config-overrides`)
-- 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName`・`readOverrideImports`(持ち主の上書きに許す読み込みの宣言 `overrideImports`、lint `config-overrides/literal-only` が読む。地図には載せない)も出しています
+- 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName`・`readOverrideImports`(持ち主の上書きに許す読み込みの宣言 `overrideImports`、lint `config-overrides/literal-only` が読む。地図には載せない)・`readFeatureRequirements`(機能を要する値の宣言、地図の欄)も出しています
 - 4 種と見つけ方の定数は `kinds.mjs`
 - 受け口の宣言(`extensionPoints.ts`)の唯一の読み手 `declarations.mjs` もここにある(`collectPoints`・`pointsFromFiles`(ファイルの一覧と読み方を渡す形。git の版の木を読む `pnpm workflow ownership who` が使う)・`readDeclaration`・`literalOf`。生成器・所有の検査の単位名・配線のテストが読む)。古い置き場 `src/lib/forkOwnership/declarations.mjs` は再 export だけで、予告の後に消す
 - 拡張の名前の決まり `extensionNames.mjs` もここにある: 1 行スイッチ(`<名前>.default` ↔ 素の名前 ↔ `<名前>.replace`)・ほかの仕組みが名乗る `.default`・`<対象>.override.ts` ↔ 対象・枠の宣言の `frame.ts` / `frame.override.ts` の唯一の元。`scripts/structure/extensions` の検査と `pnpm workflow ownership who` が読む(who は scripts を読めない)
@@ -49,7 +49,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 
 ## 各地区の欄(`District`)
 
-`kind`・`name`・`core`(features だけ true / false、ほかは null)・`dir`・`config` と `override`(`{ path, exists }`)・`uiConfig` と `uiOverride`(描画専用の `config.ui.ts` と `<名前>.ui.config.ts`、同じ形)・`apiKeys`(domainEntry のキー)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(domainEntry の requires)・`gates`(features に自分を持つ規則の名前)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)。
+`kind`・`name`・`core`(features だけ true / false、ほかは null)・`dir`・`config` と `override`(`{ path, exists }`)・`uiConfig` と `uiOverride`(描画専用の `config.ui.ts` と `<名前>.ui.config.ts`、同じ形)・`apiKeys`(domainEntry のキー)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(domainEntry の requires)・`gates`(features に自分を持つ規則の名前)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)・`featureRequirements`(持ち主の config.ts の機能を要する値の宣言、設定 D110。判定は門番の検査、`src/config/README.md`)。
 
 載せない物: 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有。
 

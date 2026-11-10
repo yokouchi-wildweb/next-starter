@@ -13,6 +13,7 @@
 // - planFeatureSet / applyFeatureSet: 入切の書き換え(pnpm ops features set。fork = src/config/featureGate/switches.config.ts、Tier1 = 規則の defaultEnabled。必須の機能が依存する機能の off は止める)
 // - readRequired: 必須の機能(required/)
 // - checkAddresses: 読み込み後の一覧の住所の検査(二重書き・入れ子の依存の欠け、D25・D31)
+// - checkFeatureRequirements: 機能を要する設定の値の検査(設定 D110、門 build の pnpm check proxies)
 // - gate: server の道具の束(@/featureGate の gate と同じ物。scripts から gate.path・gate.enabled を呼ぶ。cron のタスクの住所の判定は configPath)
 // - Tier1 の判別: 注入(next.config の FEATURE_GATE_TIER1)の無い node で全開スイッチが Tier1 を知る読み手を渡す(node/tier1.ts、読むだけで効く)
 import "./node/tier1";
@@ -39,4 +40,5 @@ export { alwaysOnRegistries } from "./extensions/alwaysOnRegistries";
 export { dependencyExceptions } from "./extensions/dependencyExceptions";
 export { applySchemaGate as gatedSchema, closedTables, type SchemaGateResult } from "./node/gatedSchema";
 export { describeFeatures, readFeatureReport, readRequired, type FeatureDescription } from "./node/describe";
+export { checkFeatureRequirements } from "./checks/featureRequirements";
 export { applyFeatureSet, planFeatureSet, planFeatureSetFromText, requiredDependencyChains, SWITCHES_FILE, type FeatureSetPlan } from "./node/setEnabled";

@@ -46,6 +46,22 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 - 宣言は上流(持ち主)の物で、上書きの中に書いても広がらない。処理(features の関数など)は宣言できず、上書きに書けない
 
+### 持ち主の宣言 `featureRequirements`(機能を要する値、設定 D107・D110)
+
+設定の値が別の機能を前提にする(例 購入に SMS 認証を必須にする)なら、持ち主の config.ts にリテラルで宣言します。合成した値(既定 + この上書き)が `off` でないのに機能が閉なら、門 build の `pnpm check proxies` が失敗し、直し方 2 つ(機能を開ける / 上書きに `off` を書く)を出します。
+
+```ts
+import type { FeatureRequirement } from "@/featureGate";
+export const featureRequirements = [
+  { key: "purchaseRestriction", feature: "phoneVerification", off: "none" },
+] as const satisfies readonly FeatureRequirement[];
+```
+
+- `key` = 合成した設定の点区切りの鍵、`feature` = 門番の機能の名前、`off` = その機能を使わない値、`element: true` = 値が配列で、要素に `off` 以外があれば要する
+- 宣言するのは本当にその機能を要する値だけ(候補の一覧に入っているだけの物は書かない)。fork が足した持ち主も宣言できる。上書きの側には書かない
+- 読み手は地区の地図(`src/lib/districtMap`、欄 `featureRequirements`)、判定は門番の検査 `src/featureGate/checks/featureRequirements.ts`
+- 上流の宣言: wallet の `purchaseRestriction` → `phoneVerification`(off `"none"`)、proxies の demo の `enabled` → `demoPages`(off `false`)
+
 ## 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
 
 上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。基盤の上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。

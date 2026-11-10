@@ -137,6 +137,19 @@ export type RequiredFeature = {
   reason: string;
 };
 
+/**
+ * 機能を要する設定の値の宣言の 1 項目(設定 D107・D110)。持ち主の config.ts に
+ * `export const featureRequirements = [{ key, feature, off }] as const satisfies readonly FeatureRequirement[]` とリテラルで書く。
+ * 合成した値(key の点区切りの鍵)が off でないのに機能 feature が閉なら、門 build の検査(pnpm check proxies)が失敗する。
+ * element: true = 値が配列で、要素に off 以外が含まれれば要する。宣言するのは本当にその機能を要する値だけ(候補の一覧に入っているだけの物は書かない)
+ */
+export type FeatureRequirement = {
+  key: string;
+  feature: FeatureName;
+  off: string | number | boolean | null;
+  element?: true;
+};
+
 /** 機能の入切の fork の値(src/config/featureGate/switches.config.ts の default export。機能の名前 → 開閉。書かない名前は規則の defaultEnabled) */
 export type FeatureSwitches = Partial<Record<FeatureName, boolean>>;
 

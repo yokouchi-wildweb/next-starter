@@ -6,6 +6,7 @@
 // 機能の入切(wallet.enabled)は門番の規則 src/featureGate/rules/wallet.ts の持ち物で、ここには無い
 
 import override, { type Extra } from "@/config/features/wallet.config";
+import type { FeatureRequirement } from "@/featureGate";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 
 import type { CurrencyConfig } from "./types/currency";
@@ -252,7 +253,7 @@ export type WalletConfig = {
 
 const defaults: WalletConfig = {
   enableAdminBalanceAdjust: false,
-  purchaseRestriction: "phoneVerified",
+  purchaseRestriction: "none",
   purchaseSuspension: {
     enabled: false,
     schedule: { start: null, end: null },
@@ -337,6 +338,14 @@ const defaults: WalletConfig = {
     },
   },
 };
+
+/**
+ * 機能を要する値(設定 D107・D110、門 build の pnpm check proxies が見る): 購入に SMS 認証を求めるなら機能 phoneVerification が開いていること。
+ * 必須にしたい fork は上書きに purchaseRestriction: "phoneVerified" と書き、pnpm ops features set phoneVerification on
+ */
+export const featureRequirements = [
+  { key: "purchaseRestriction", feature: "phoneVerification", off: "none" },
+] as const satisfies readonly FeatureRequirement[];
 
 export const walletConfigDef = defineConfig<WalletConfig>(defaults, { label: "wallet" });
 
