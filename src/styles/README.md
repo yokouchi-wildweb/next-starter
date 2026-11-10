@@ -131,7 +131,7 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 - メール用 hex 定数: `pnpm generate styles`(両ファイルの `:root` を合成して `src/features/core/mail/constants/colors.ts` を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
 - gradient トークン: `pnpm generate styles`(`tokens.base.ts` → `core/gradient.css`、`src/config/app/gradients.config.ts` → 直下の `gradient.css`。palette には依存しない)
 
-枠の部位を隠す規則: `core/frame.css`(手書きの静的な規則。各ルートの枠の宣言(`frame.default.ts` / `frame.ts`)を UserLayout が外枠の属性にし、その属性で部位を隠す)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。部位の一覧との一致は `pnpm test 'src/app/(user)/_layout/'`。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す・fill(枠の宣言)」
+枠の部位を隠す規則: `core/frame.css`(手書きの静的な規則。各ルートの枠の宣言(ルートを作ったリポの `frame.ts` / 下のリポの `frame.override.ts`)を UserLayout が外枠の属性にし、その属性で部位を隠す)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。部位の一覧との一致は `pnpm test 'src/app/(user)/_layout/'`。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す・fill(枠の宣言)」
 
 shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま直下の `palette.css` に貼れば効く。
 

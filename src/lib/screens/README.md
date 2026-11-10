@@ -32,7 +32,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 │   ├── WalletBalanceScreen.tsx
 │   ├── loader.ts     最寄りの guard.ts の createLoader で作る(データが無くても access の loader を置く)。既定 Screen も差し替え Screen もこれを呼ぶ
 │   └── <部品>        既定 Screen 専用の部品(あるときだけ。直下でもサブディレクトリでも可。契約外)
-└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、下流の page 専用の部品。上流は src/app のどこにも置かない(pnpm test src/lib/screens/screens.test.mjs、Tier1)
+└── _components/      任意。fork の物の置き場 = 画面の丸ごとの差し替え(<Name>Screen.tsx)と fork のそのページ専用の部品(下の「fork の物は _components/」)。上流は src/app のどこにも置かない(pnpm test src/lib/screens/screens.test.mjs、Tier1)
 ```
 
 | 対象 | 置き場 | 所有 | 規則 |
@@ -42,10 +42,17 @@ src/app/(user)/(protected)/wallet/[slug]/
 | loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。最寄りの guard.ts の `createLoader` で作る page 入口（access の評価 → ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
 | 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（§4） |
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
-| 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
+| 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 下の「fork の物は `_components/`」。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
 | 管理画面の取得本体 | `src/features/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/adminScreenParts.ts` の共通部品の組を通して使う |
 | セクションコンテナ / 部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
+
+### fork の物は `_components/`（画面の差し替えの規則はここ 1 か所）
+
+- 画面を丸ごと替える = `src/app/<route>/_components/<X>Screen.tsx` に自分の Screen を置き、page.tsx の 1 行スイッチをそこへ向ける（手順は §7「上流の画面を変えたい」、コピーしてよいかは `.claude/rules/core/extensions.md`）
+- fork のそのページ専用の部品と自分の loader（`_components/loader.ts`）も同じ `_components/` に置く（部品は印なしの名前）
+- `_screen/` に fork の物を混ぜない（部品も Screen の置き換えも置かない）。`_screen/` はルートを作ったリポの既定 Screen・loader・その部品だけ
+- どこに書くかの確かめ: `pnpm workflow ownership who src/app/<route>/page.tsx`（型 1 の答え。`write` = `<route>/_components/`、`source` = page.tsx。`_screen/` の下のファイルを問うても同じ答え。`src/lib/forkOwnership/README.md`「持ち主を調べる」）
 
 枠を描く layout.tsx も同じ形（Screen と Layout は対: page.tsx ↔ layout.tsx、`_screen/` ↔ `_layout/`）:
 
@@ -61,7 +68,7 @@ src/app/(user)/
 
 1 対 1 の意味:
 - ユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。上流も fork も同じ
-- 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける（コピーしてよいかは `.claude/rules/core/extensions.md` で判定）。差し替え画面も 1 ページ 1 つ
+- 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける（上の「fork の物は `_components/`」）。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 1（データの無いページも access だけの loader を持つ）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
 - 対象外: API だけ。デモ（`(user)/demo/**`）も管理画面（`/admin/**`、手書きも pnpm generate domain 由来も）も対象
@@ -251,13 +258,14 @@ src/app/(user)/(protected)/points/
 ルートは削除・移動・rename しない（`_` 付きへの rename による無効化も同じ）。止めるときはスイッチを使う。
 
 - 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは機能を閉じる規則（`src/featureGate/rules/<名前>.ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm generate routes`）の行に `"gatedOff": "<pattern>"` と載る（鎖は verified のまま）
-- 置き換える: 自分の画面は `_components/` に別名で作り、page.tsx の 1 行スイッチをそこへ向ける（上の「上流の画面を変えたい」）。別の URL に作るなら自分のルートとして足す
+- 置き換える: 自分の画面は `_components/` に別名で作り、page.tsx の 1 行スイッチをそこへ向ける（上の「上流の画面を変えたい」、§1「fork の物は `_components/`」）。別の URL に作るなら自分のルートとして足す
 - スイッチも feature-gate のルールも当たらないページ: 削除せず、直接の親に `/order` で止める口を頼み、それまでは一時許可で通す（`src/lib/forkOwnership/README.md`「一時許可」）
 - 削除・rename は `pnpm workflow ownership check` が違反にする（`/flux` の区間が閉じない）。以前に消したルートは、止めてから `git checkout upstream/main -- <path>` で戻す
 
 ### やってはいけないこと
 
 - 上流のルートの `_screen/`（Screen も loader も）と `features/core` のコンポーネントを編集しない
+- `_screen/` に fork のファイルを足さない（部品も Screen の置き換えも `_components/` へ。§1）
 - loader を try/catch しない / client component から import しない
 - Screen に `"use client"` を付けない（hook はセクションコンテナへ）
 - loader を `features/<domain>/` に置かない（ルートの `_screen/loader.ts` へ。エンティティの無い「loader 置き場ドメイン」を作らない）
@@ -348,7 +356,7 @@ import { BalanceCard } from "./BalanceCard";
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
 | upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に fork の置き換えの印（丸ごと置き換え `.replace`・一部の上書き `.override`、`classifyDottedName` の判定）が無い（点つきの名前を全部止めるのではない: 1 行スイッチの既定 `<名前>.default`、例 `admin/_layout/AdminHeader.default.tsx`・枠の描画用の設定 `config.ui.ts`・テストは印でないので数えない、設定 D101）。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
-| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `pnpm check extensions` の `switches.mjs`。枠の `_layout/` の直下の描画用の設定 `config.ui.ts` = 地区の `UI_CONFIG_FILE` も許す）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findRouteReplaceProblems` = `<名前>.replace` が置き換える既定を持つ（そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先か、隣の `<名前>.default`。隣に印なしの部品があるだけは不可 = fork の部品は `_components/` に印なしの名前で。`pnpm check extensions` の孤立の検査も回す） | 失敗 |
+| route の隣の点つきの名前 | 全 Tier: `findMarkerNamedFiles` = `_screen/`・`_layout/` の点つきの名前は `<名前>.replace`（と `.test`、1 行スイッチの既定 `<名前>.default`。スイッチの形は `pnpm check extensions` の `switches.mjs`。枠の `_layout/` の直下の描画用の設定 `config.ui.ts` = 地区の `UI_CONFIG_FILE` も許す）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findRouteReplaceProblems` = `<名前>.replace` が置き換える既定を持つ（そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先か、隣の `<名前>.default`。隣に印なしの部品があるだけは不可。画面の fork の物の置き場は §1「fork の物は `_components/`」= 部品も Screen の置き換えも `_components/` に印なしの名前で。`pnpm check extensions` の孤立の検査も回す） | 失敗 |
 
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、§10）。fork がローカルに screens テストの写しを持つ必要はない。
 

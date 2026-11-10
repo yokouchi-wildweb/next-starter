@@ -424,7 +424,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 ## 印の経緯(notice frame-marks)
 
-> 印(Hide*)・生成 CSS・`:has()` は後の区切りで枠の宣言(frame.default.ts / frame.ts)に置き換わった(下の「宣言の経緯」)。以下はその前の記録
+> 印(Hide*)・生成 CSS・`:has()` は後の区切りで枠の宣言(今の名前は `frame.ts` / `frame.override.ts`)に置き換わった(下の「宣言の経緯」)。以下はその前の記録
 
 - 報告書 §2 の枠の制御 =「細部だけ違う → 1 行の印」(server で描く data-frame-* の空要素 + 外枠 1 か所の CSS `:has()`、client JS なし、どこからでも書ける、隠す方向のみ、足し算。CSS 規則と印の属性は 1 つの部位一覧から生成)
 - 以前の Hide* は "use client" の部品で、useEffect で表示制御の context に書き、枠の部品が context を読んで class を付けていた。そのため hydration まで枠が一瞬見え、Hide* のあるページ同士の遷移では旧ページの後始末が新ページの指定を消す競合が起きた(呼び出し元ごとの上書き setOverride で直した。その notice の「setVisibility + reset を setOverride へ」は印で置き換わる)
@@ -443,7 +443,9 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - contexts と Provider は `@deprecated` の互換で残した(fork の部品が直接呼んでも落ちない)。旧入口撤去の区切り(notice old-entry-removal-contexts)で削除した
 - 既定の DOM の差分(test で固定): 外枠の先頭に基本の印 `bottom-nav-pc`、スペーサーが 1 要素、Header の class 末尾の空白が無くなった
 
-## 宣言の経緯(frame.default.ts / frame.ts)
+## 宣言の経緯(当時の名前 frame.default.ts / frame.ts)
+
+> 記録。名前は後で 4 つの型の規則に合わせて変わった: ルートを作ったリポは `frame.ts`(`export const frame`)、下のリポは `frame.override.ts`(`export const override`)。旧い名前は失敗になり、移し替えは `pnpm check extensions -- frames-move`(src/app/_layout/frame/README.md)
 
 - 共有の棚の評議会(計画書 02)で、ページから枠を変える手段をルートの隣の宣言 1 つにした(ルートを作ったリポは `frame.default.ts`、その下のリポは `frame.ts`、範囲はキー `layout:` / `page:` で名指す)。Hide*(子が描く印を親が `:has()` で読む)・CSS の生成スクリプト(package.json の script ごと)・UserPage の `fill` / `immersive`・枠の設定の重なる切り替え 4 つ(ボトムナビの有効と表示する端末、ヘッダーの有効、ヘッダーのナビの表示する端末)を消した
 - 理由: 子が親を変える仕組みは、ページが外枠に何をしているかが外から読めない(どのページが何を隠すかは全ページを開かないと分からない)。宣言は生成した表 1 つに集まり、fork の宣言も隣の `frame.ts` で既定の上に部位ごとに重なる(隣に何があるかで意味を変えない)
