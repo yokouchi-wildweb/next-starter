@@ -5,7 +5,7 @@ import { join } from "node:path";
 const here = import.meta.dirname;
 const repo = join(here, "../../..");
 const files = [
-  ...["notices", "hotfixCheck", "pickCheck", "checkpointCheck", "shippedIndex"].map((n) => join(here, `${n}.test.mjs`)),
+  ...["notices", "hotfixCheck", "pickCheck", "safePoint", "shippedIndex"].map((n) => join(here, `${n}.test.mjs`)),
   join(repo, ".claude/skills/flux/incoming.test.mjs"),
 ];
 const r = spawnSync(process.execPath, ["--test", ...files], { cwd: repo, stdio: "inherit" });

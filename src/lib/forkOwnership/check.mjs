@@ -33,7 +33,7 @@ const show = (repoRoot, rev, path) => tryGit(repoRoot, ["show", `${rev}:${path}`
 const unverified = (reason, extra = {}) => ({ status: "unverified", reason, ...extra });
 
 /** 親の remote(/flux の「FINDING THE UPSTREAM」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
-function resolveParentRemote(repoRoot, requested) {
+export function resolveParentRemote(repoRoot, requested) {
   const remotes = (tryGit(repoRoot, ["remote"]) ?? "").split("\n").filter(Boolean);
   const wanted = requested ?? process.env[PARENT_ENV] ?? null;
   if (wanted) return remotes.includes(wanted) ? { remote: wanted } : { error: `remote ${wanted} が無い` };
@@ -43,7 +43,7 @@ function resolveParentRemote(repoRoot, requested) {
   return { error: `親の remote が決まらない(${others.join(", ")})。--parent か ${PARENT_ENV} で指定する` };
 }
 
-function resolveParentBranch(repoRoot, remote, requested) {
+export function resolveParentBranch(repoRoot, remote, requested) {
   if (requested) return requested;
   const out = tryGit(repoRoot, ["ls-remote", "--symref", remote, "HEAD"]);
   const match = out && /^ref: refs\/heads\/(\S+)\s+HEAD/m.exec(out);

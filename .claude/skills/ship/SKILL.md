@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship this repo's changes (fix the range → checks → judge downstream impact → write a DOWNSTREAM NOTICE when needed → commit → push); the pair of the receiving side's /flux | When the user tells you to commit, push or ship, and on /inbox's completion
-argument-hint: "[order:<指令 id>] [no-push] [hotfix] [補足メモ(任意)]"
+argument-hint: "[order:<指令 id>] [no-push] [hotfix] [--safe] [--quick] [補足メモ(任意)]"
 ---
 
 role: **ship** (commit and push this repo's changes; when downstream forks need follow-up work, put a DOWNSTREAM NOTICE in the same commit) | the receiving side is downstream's `/flux`; write notices to match how it reads them | spec: `.notices/README.md`
@@ -14,6 +14,9 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have the declaration added in the same section as `fork_id:` (`pnpm workflow ownership check` is unverified too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
+- `--safe` = a safe ship: the full checks on the tip, and a safe point tag when they pass (only when asked: the human, or an order / plan sheet that says so)
+  - use it for legate / guild segment ships and the last ship of a quest | forks stop /flux at a safe point before a production deploy; `--allow-unsafe=<reason>` for emergencies
+- `--quick` = a quick ship: skips even the light checks and makes no safe point (QUICK SHIP below)
 
 ## STEPS (run in a row without confirmation; stop only on STOP CASES below)
 0. **check the order's owner** (only with the argument `order:<id>`): find that id in the output of `node .claude/skills/order/mailbox.mjs inbox`
@@ -96,18 +99,23 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - no `fixes:` → skip it (which version to apply to cannot be decided; report `未確認: 修正元なし`)
      - next, **check the prerequisites hold in lagging forks**: `pnpm workflow notices hotfixCheck <this commit>` | on a tree picked onto each fork's position in fleet.conf (merge-base), it checks that the `paths:` of path-scoped rules this commit added or changed, the `pnpm <script>` of the notice's steps and the paths the notice names exist (not relying on what the changes in between bring)
      - exit 1 → no push; STOP (STOP CASES) | exit 2 (fork position unknown) → report `未確認: 遅れた fork の位置` and go on | a known position can be passed with `--base=<sha>`
-   - before push, **check the intermediate checkpoints** (`.notices/README.md` section `区切り(checkpoint)と区間適用`, part `途中の区切りの検査`):
-     - the range `origin/<branch>..HEAD` has checkpoint notices added in commits other than the tip → `node scripts/workflow/notices/checkpointCheck.mjs origin/<branch>..HEAD`
-     - on the tree a fork holds when it merges per segment and also takes the `pick: clean` fixes right after, it runs typecheck, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check rules, pnpm check registry at each checkpoint
-     - exit 1 (a broken checkpoint): no push; STOP | the checkpoint is your own commit before push → fix that commit (rebase, align change, notice and index line) and rerun the check | an already pushed checkpoint (including side commits whose sha must be kept) → ship a fix with `fixes: <that notice>` and make it `pick: clean` with the pick-check
-     - exit 2 (cannot judge: dependencies cannot be installed, etc.): report `途中の区切り未確認: <理由>` and go on
-7. **push** (not with `no-push`): `git push` | failed → never paper over it, report the reason
+   - before push, **with `--safe` only, run the full checks on the tip** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
+     - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the tip of a `--safe` ship gets the full checks
+     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by step 7's tag)
+     - exit 1 (a check failed): fix it in your own unpushed commit (amend; align notice and index line) and rerun | the fix is not obvious → STOP
+     - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` and go on (push without a tag)
+7. **push** (not with `no-push`): `git push` (with `--quick`: the push of QUICK SHIP below) | failed → never paper over it, report the reason
+   - then **tag the safe point** (`--safe` only, when step 6's `safePoint check` passed on this HEAD): `pnpm workflow notices safePoint tag`
+     - it confirms HEAD = the pushed `origin/<branch>` and HEAD = the sha the check recorded, creates the annotated tag `safe/<own fork_id>/<YYYYMMDD>-<n>` (n = the next free number for that fork_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
+     - exit 1 → no tag; write the reason in the report (the push stands; the next `--safe` ship tags its own tip)
+     - a middle tier (`downstream: yes`) tags its own repo the same way (same /ship, same tool, its own fork_id in the tag name)
 8. **report** (Japanese):
    - first line = downstream intake verdict (measured): `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen | no downstream → omit
    - commit short sha, push target (or why not pushed), check results, the notice id and a summary of change (none written → `notice 不要: <理由>`), the reference of `fixes:` if added, the order id of `resolves:` if added
    - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
+   - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
    - came from `/inbox` → do not stop here, return to the rest of `/inbox` step 4 (RESOLUTION) | use the commit sha and push result there
 
 ## STOP CASES
@@ -118,6 +126,16 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - `hotfix` where `pnpm workflow notices hotfixCheck` listed things missing from a lagging fork's tree (show that list and ask for a choice: remove the dependency / add to the notice's required_actions what fails in that fork and what to do / drop hotfix for a normal shipment / ship as is)
   - never change a rule's `paths:` just to pass the check (never change it without saying in which files it stops being loaded)
 - on stopping: show what you found and the options in plain text; STOP: wait
+
+## QUICK SHIP (`--quick`)
+- for a run of small ships where the full checks cost more than they protect | makes no safe point | a run of quick ships is closed by a `--safe` ship (its tip gets the full checks and the tag)
+- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck / hotfixCheck and full checks, step 7's tag
+- keeps: steps 0, 1, 3-5 (notice judgment and writing), commit
+- ship route (HQ D176; any condition fails → STOP):
+  - only from a linked worktree: `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`
+  - never touch the main checkout and never move its local `main` ref (no exception)
+  - `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies)
+  - push with `git push origin HEAD:main`
 
 ## NOTICE COMPOSITION
 1. **get provenance with Bash** (never guess): repo `git remote get-url origin` (none → `(no remote)`) / branch `git rev-parse --abbrev-ref HEAD` / commit `git rev-parse --short HEAD` (goes into the commit about to be made → `- (this commit)`) / id timestamp `date +%Y%m%d-%H%M%S`
@@ -178,8 +196,8 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      ```
    - the type check in verify is written `pnpm typecheck` (never `tsc --noEmit`; `.notices/README.md`)
    - **`checkpoint` = a label by default** (English kebab, no clash with existing ones; unsure → `<slug>`) | declares "applying up to this notice puts the fork at a consistent resting point"
-     - **the checkpoint commit must work**: in the commit that includes the notice, pass `pnpm typecheck` and `pnpm test scripts/structure/config/moduleLoad.test.mjs` (the circular-import check on first load of configs that re-export parts)
-       - fails → put the fix in the same commit (moving it to a later commit → `checkpoint: -` + notes) | a screen that crashes at a checkpoint makes every fork's /flux stop there and commit / push
+     - **a checkpoint is the author's declaration**: upstream does not verify intermediate checkpoints (each fork's /flux checks every segment on its side; only the pushed tip of a `--safe` ship gets the full checks, step 6) | label only a point where you expect the fork to work; a change whose fix lands in a later commit → `checkpoint: -` + notes
+       - a checkpoint found broken later (a fork's report) → a fix notice with `fixes:` (and `skip_checkpoint:` when it cannot be picked ahead)
      - `-` only when you can assert "an intermediate point where forks do not work without the following notice", with the reason in `notes:` (e.g. `notes: checkpoint:- because <id> (step 2) is required for the build to pass`) | unsure → never `-`
    - no follow-up work, only a checkpoint or `fixes:` to pass on → `severity: info` + `required_actions: none` + `checkpoint: <label>`
    - put the notice in the same commit as the change it should include in its checkpoint, or a later commit (shipped earlier, the merge target would not contain the change)

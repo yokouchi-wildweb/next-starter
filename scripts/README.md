@@ -29,7 +29,7 @@ pnpm workflow <対象> <動作> [<引数>...]          # 開発の進め方の�
 pnpm forge                                       # domain.json / role.json / profile.json から生成 + 検査を一度に
 pnpm e2e                                         # 動いているアプリを外から見るテスト(tests/e2e、playwright)
 pnpm db:push | db:push:check                     # スキーマを DB に反映 / 読むだけの差分(push は人が打つ)
-pnpm live | live:app | live:room | live:all      # デプロイ(本番は確認が要る)
+pnpm live | live:app | live:room | live:all      # デプロイ(本番は確認とセーフポイントが要る)
 ```
 
 - package.json の行はこれだけ。新しい道具は分類の下のフォルダに置けば入口が拾う(package.json に足さない)

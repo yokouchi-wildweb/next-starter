@@ -5,7 +5,7 @@ not: short in-progress reports while all / light runs on without stopping | deci
 reader_goal: from this text alone, the reader can tell where things are now, what happens next, and what to answer
 
 ## STRUCTURE (section name | required|optional | kind | role) — kind: verdict = a one-word judgment, exceptions only / delta = only what changed since the last stop / body = as much as the reader needs to decide
-`位置` (position) | required | verdict | segment k/N and its state (`承認待ち` / `停止` / `終了`) | first time: the scale (upstream commit count, notice count, segment count) and anything unusual (uncommitted changes, untraceable history, etc.)
+`位置` (position) | required | verdict | segment k/N and its state (`承認待ち` / `停止` / `終了`) | first time: the scale (upstream commit count, notice count, segment count) and anything unusual (uncommitted changes, untraceable history, etc.) | after a segment: the line `セーフポイント: …` (flux SKILL.md step 8; the safe tag name is the one identifier shown in chat)
 `区間の結果` (segment result) | optional | verdict | the finished segment (passed: it was planned and approved in detail before): one line on whether intake, application and checks went fine and it was pushed | add lines only for exceptions (kept by the human's policy, our own mistake, etc.)
 `中継` (relay) | optional | verdict | every time for a fork with downstream | `あり` = what downstream must do and why | `なし` = one-word reason
 `止まった理由` (why stopped) | optional | body | on a stop condition: what was found, evidence, the paths to choose from

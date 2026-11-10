@@ -421,6 +421,9 @@ merge and porting carry the fork's edits as they are | when the destination is u
    d. push | the segment's merge commit, if unpushed, is pushed with it | push failed → never paper over it, report, and reflect it honestly in the ledger `notes:`
 8. **report** (Japanese; at every stop and the final report): read `.claude/skills/fmt/flux-stop.md` and write in that format | chat keeps only the format's sections; script, identifiers, `aligned:` `kept_old:` and resume info go to the work memo (above) | mapping onto the format's sections:
    - `位置`: add the known unfixed one (the report of FIXES above; only when it applies) here
+     - at every segment end and in the final report, one safe point line: `pnpm workflow notices safePoint where --remote=<upstream> --at=<the upstream: sha of that segment's ledger line>` → write `セーフポイント: <その出力>`
+       - it prints `at safe/<parent>/<tag>` / `past safe/<parent>/<tag> (N commits unverified)` / `before safe/<parent>/<tag>` / `no safe point yet` (it fetches the direct parent's tags and looks only at `safe/<parent fork_id>/*`)
+     - exit 2 → `セーフポイント: 未確認(<理由>)` | the tool is missing from the tree → `セーフポイント: 確かめる道具なし(この区間の版には無い)` | a production deploy of the fork needs `at`
    - `区間の結果`: one line whether intake, application and checks (verify / check entry / typecheck / lint / ownership check) went fine and it was pushed | add lines only for exceptions: kept by the human's policy (the content of `kept_old:` by role), our own mistakes, etc.
    - `中継` (forks with downstream, → relay.md): `あり` / `なし` + what downstream must do + why, by role | decision grounds and ids in the work memo
    - `止まった理由` (stop conditions): what was found, grounds, the paths to choose | "how to stop" above

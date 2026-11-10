@@ -19,16 +19,19 @@
 //   pnpm live:all -- --target=preview    # プレビューデプロイ等、任意の vercel 引数
 // ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
 //    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
+// 本番ならセーフポイントの上でだけ出す(違えば止める。--allow-unsafe=<理由> で通す。scripts/runner/guard/README.md)
 
 import { guardDeploy } from "../../runner/guard";
-import { argsOf, checkCron, deployApp, deployRoom, isProductionVercel, roomWillDeploy } from "./lib";
+import { allowUnsafeArgs, argsOf, checkCron, deployApp, deployRoom, guardSafePoint, isProductionVercel, roomWillDeploy, takeAllowUnsafe } from "./lib";
 
 console.log("=== live:all (room → app) ===\n");
+const allowUnsafe = takeAllowUnsafe();
 // 本番に出すなら(アプリが --prod か、ルームの Worker を出すなら)確認を 1 回。非対話は --confirm=production が要る。何かを打つ前に止める
 const production = roomWillDeploy() || isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
 guardDeploy("pnpm live:all(ルームとアプリを本番に出す)", production);
+guardSafePoint(production, allowUnsafe);
 checkCron();
 // 確認は済んだので、子の pnpm ops room deploy には --confirm=production を渡す(二度聞かない)
-deployRoom(roomWillDeploy() ? ["--confirm=production"] : []);
+deployRoom(roomWillDeploy() ? ["--confirm=production", ...allowUnsafeArgs(allowUnsafe)] : []);
 deployApp(argsOf(process.argv.slice(2)));
 console.log("\n✓ デプロイ完了 (room + app)");

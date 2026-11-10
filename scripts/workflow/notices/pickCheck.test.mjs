@@ -7,7 +7,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { DEFAULT_CHECKS, judge, parseFixes, pickCommand, run, runChecks, writePick } from "./pickCheck.mjs";
-import { DEFAULT_CHECKS as CHECKPOINT_CHECKS } from "./checkpointCheck.mjs";
 import { rowFromNotice } from "./shippedIndex.mjs";
 
 const OK = `node -e "process.exit(require('fs').readFileSync('src/a.txt','utf8').includes('ok')?0:1)"`;
@@ -351,8 +350,6 @@ test("既定の検査: 新しい入口が package.json にある木はそれで�
   const old = { typecheck: "", "test:config-module-load": "", "registry:check": "", "test:core-rules": "" };
   assert.deepEqual(DEFAULT_CHECKS.map((c) => pickCommand(c, now)), ["pnpm typecheck", "pnpm test scripts/structure/config/moduleLoad.test.mjs", "pnpm check registry"]);
   assert.deepEqual(DEFAULT_CHECKS.map((c) => pickCommand(c, old)), ["pnpm typecheck", "pnpm test:config-module-load", "pnpm registry:check"]);
-  assert.deepEqual(CHECKPOINT_CHECKS.map((c) => pickCommand(c, old)), ["pnpm typecheck", "pnpm test:config-module-load", "pnpm test:core-rules", "pnpm registry:check"]);
-  assert.equal(pickCommand(CHECKPOINT_CHECKS[2], now), "pnpm check rules");
   assert.equal(pickCommand("pnpm lint", old), "pnpm lint");
   // どちらも無い木: 新しい入口の名前で「無い」と書いて飛ばす
   assert.deepEqual(runChecks("/nowhere", [DEFAULT_CHECKS[2]], {}).skipped, ["pnpm check registry(その木の package.json に無い)"]);

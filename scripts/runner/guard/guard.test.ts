@@ -123,6 +123,7 @@ test("入口の一覧: 書く・読む入口は guardEntry、prepare の利用�
   for (const rel of READ_ENTRIES) assert.match(read(rel), /guardEntry\(\{ write: /, rel);
   for (const rel of PREPARE_USERS) assert.match(read(rel), /loadEnvFile\("/, rel);
   for (const rel of DEPLOY_ENTRIES) assert.match(read(rel), /guardDeploy\(/, rel);
+  for (const rel of DEPLOY_ENTRIES.filter((r) => !r.endsWith("/secret.ts"))) assert.match(read(rel), /guardSafePoint\(/, rel);
   for (const rel of [...WRITE_ENTRIES, ...READ_ENTRIES, ...PREPARE_USERS, ...DEPLOY_ENTRIES]) assert.doesNotMatch(read(rel), /from ["']dotenv["']/, rel);
 });
 
@@ -149,7 +150,7 @@ test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は --
     t.skip("--confirm=production で進む側（ルームの Worker のデプロイが先に走る設定では確かめない。拒否する側は確かめた）");
     return;
   }
-  const allowed = run(["--confirm=production"]);
+  const allowed = run(["--confirm=production", "--allow-unsafe=テスト"]);
   assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr);
   assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), ["--version", "--prod"], "--confirm は vercel に渡さない");
 });
