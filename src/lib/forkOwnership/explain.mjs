@@ -58,7 +58,11 @@ export function explainView({ files, read, intake }) {
         const { routes } = discoverRoutes(list.filter((f) => f.startsWith(`${FRAME_SEARCH_ROOT}/`)));
         const pages = new Set(routes.map((r) => r.page));
         const layouts = [...new Set(routes.flatMap((r) => r.layouts))];
-        const frameSwitches = new Set(layouts.filter((path) => parseSwitchLayout(read(path) ?? "").target !== null));
+        // 枠の 1 行スイッチの layout.tsx → その向け先(parseSwitchLayout の target)
+        const frameSwitches = new Map(layouts.flatMap((path) => {
+          const target = parseSwitchLayout(read(path) ?? "").target;
+          return target ? [[path, target]] : [];
+        }));
         return { pages, frameSwitches };
       }),
     generators: () =>
@@ -122,7 +126,10 @@ function generatedOf(path, view) {
   return null;
 }
 
-/** 型 1: 1 行スイッチ(<名前>.default の組)と画面・枠のスイッチ(_screen / _layout の部品はルートの page.tsx / layout.tsx) */
+/**
+ * 型 1: 1 行スイッチ(<名前>.default の組)と画面・枠のスイッチ(_screen / _layout の部品はルートの page.tsx / layout.tsx)。
+ * 画面 = ルートの _components/ に置き換えの Screen を置く。枠 = 既定の隣の _layout/<Layout>.replace.tsx(<Layout> = layout.tsx の向け先の名前)
+ */
 function replaceOf(path, view) {
   const set = switchSetOf(path);
   const defaultPath = set?.defaults.find(view.has);
@@ -132,16 +139,30 @@ function replaceOf(path, view) {
     return answer("1", { write: `${set.dir}/${set.name}.replace.${ext}`, source: switchPath, how: `${baseName(switchPath)} の向け先を ./${set.name}.replace に替える` });
   }
   const { pages, frameSwitches } = view.routes();
-  const route = (dir, switchPath, kind) => answer("1", { write: `${dir}/${FORK_SCREEN_DIR}/`, source: switchPath, how: `${FORK_SCREEN_DIR}/ に置き換えを置き、${kind}の 1 行スイッチ ${baseName(switchPath)} を向け替える` });
-  if (pages.has(path)) return route(dirOf(path), path, "画面");
-  if (frameSwitches.has(path)) return route(dirOf(path), path, "枠");
+  const screen = (dir, switchPath) => answer("1", { write: `${dir}/${FORK_SCREEN_DIR}/`, source: switchPath, how: `${FORK_SCREEN_DIR}/ に置き換えを置き、画面の 1 行スイッチ ${baseName(switchPath)} を向け替える` });
+  const frame = (dir, switchPath) => {
+    const target = frameSwitches.get(switchPath);
+    // 向け先が既に <Layout>.replace(上の Tier が置き換え済み)でも同じファイルを答える
+    const stem = `${target.screenDir}/${target.file}`.replace(/\.replace$/, "");
+    return answer("1", {
+      write: `${dir}/${stem}.replace.tsx`,
+      source: switchPath,
+      how: `既定の隣に ${stem.split("/").pop()}.replace.tsx を置き、枠の 1 行スイッチ ${baseName(switchPath)} を ./${stem}.replace に向け替える(fork の枠の部品はルートの ${FORK_SCREEN_DIR}/ に印なしの名前)`,
+    });
+  };
+  if (pages.has(path)) return screen(dirOf(path), path);
+  if (frameSwitches.has(path)) return frame(dirOf(path), path);
   if (!path.startsWith(`${FRAME_SEARCH_ROOT}/`)) return null;
   const segments = path.split("/");
   const at = segments.findIndex((seg, i) => i > 1 && i < segments.length - 1 && SCREEN_PART_DIRS.includes(seg));
   if (at < 0) return null;
   const dir = segments.slice(0, at).join("/");
-  const want = segments[at] === "_screen" ? [...pages].find((p) => dirOf(p) === dir && PAGE_FILE_RE.test(baseName(p))) : [...frameSwitches].find((p) => dirOf(p) === dir && LAYOUT_FILE_RE.test(baseName(p)));
-  return want ? route(dir, want, segments[at] === "_screen" ? "画面" : "枠") : null;
+  if (segments[at] === "_screen") {
+    const page = [...pages].find((p) => dirOf(p) === dir && PAGE_FILE_RE.test(baseName(p)));
+    return page ? screen(dir, page) : null;
+  }
+  const layout = [...frameSwitches.keys()].find((p) => dirOf(p) === dir && LAYOUT_FILE_RE.test(baseName(p)));
+  return layout ? frame(dir, layout) : null;
 }
 
 /** 受け口の点のフォルダ(持ち主のフォルダ + dir、"." = 持ち主の直下) */
@@ -171,7 +192,7 @@ function overlayOf(path, view) {
   if (path.startsWith(`${FRAME_SEARCH_ROOT}/`) && [FRAME_FILE, FRAME_OVERRIDE_FILE].includes(baseName(path))) {
     const dir = dirOf(path);
     const { pages } = view.routes();
-    const routeHere = [...pages].some((p) => dirOf(p) === dir) || [...view.routes().frameSwitches].some((p) => dirOf(p) === dir) || view.has(`${dir}/layout.tsx`);
+    const routeHere = [...pages].some((p) => dirOf(p) === dir) || [...view.routes().frameSwitches.keys()].some((p) => dirOf(p) === dir) || view.has(`${dir}/layout.tsx`);
     if (routeHere) {
       const creator = view.has(`${dir}/${FRAME_FILE}`);
       return answer("2", { keys: FRAME_KEYS, write: `${dir}/${FRAME_OVERRIDE_FILE}`, source: creator ? `${dir}/${FRAME_FILE}` : null, how: creator ? `${FRAME_FILE} の上に重ねる` : `ルートを作ったリポの ${FRAME_FILE} が無い(空の基準に重ねる)` });

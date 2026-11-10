@@ -253,6 +253,11 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     // 画面と枠のスイッチ
     "src/app/(user)/layout.tsx": 'export { UserLayout as default } from "./_layout/UserLayout";\n',
     "src/app/(user)/_layout/UserLayout.tsx": "export function UserLayout() {}\n",
+    // 上の Tier が既に置き換えた枠(スイッチが <Layout>.replace を指す)
+    "src/app/admin/layout.tsx": 'export { AdminLayout as default } from "./_layout/AdminLayout.replace";\n',
+    "src/app/admin/_layout/AdminLayout.tsx": "export function AdminLayout() {}\n",
+    "src/app/admin/_layout/AdminLayout.replace.tsx": "export function AdminLayout() {}\n",
+    "src/app/admin/home/page.tsx": 'export { HomeScreen as default } from "./_screen/HomeScreen";\n',
     "src/app/(user)/frame.ts": "export const frame = {};\n",
     "src/app/(user)/about/page.tsx": 'export { AboutScreen as default } from "./_screen/AboutScreen";\n',
     "src/app/(user)/about/_screen/AboutScreen.tsx": "export function AboutScreen() {}\n",
@@ -297,8 +302,10 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["1 行スイッチ(既定)", "src/features/core/auth/services/server/onDemoUserCreated.default.ts", { type: "1", write: "src/features/core/auth/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/auth/services/server/onDemoUserCreated.ts" }],
     ["画面の page.tsx", "src/app/(user)/about/page.tsx", { type: "1", write: "src/app/(user)/about/_components/", keys: null, source: "src/app/(user)/about/page.tsx" }],
     ["_screen の部品 → page.tsx", "src/app/(user)/about/_screen/AboutScreen.tsx", { type: "1", write: "src/app/(user)/about/_components/", keys: null, source: "src/app/(user)/about/page.tsx" }],
-    ["枠の layout.tsx", "src/app/(user)/layout.tsx", { type: "1", write: "src/app/(user)/_components/", keys: null, source: "src/app/(user)/layout.tsx" }],
-    ["_layout の部品 → layout.tsx", "src/app/(user)/_layout/UserLayout.tsx", { type: "1", write: "src/app/(user)/_components/", keys: null, source: "src/app/(user)/layout.tsx" }],
+    ["枠の layout.tsx → 既定の隣の .replace", "src/app/(user)/layout.tsx", { type: "1", write: "src/app/(user)/_layout/UserLayout.replace.tsx", keys: null, source: "src/app/(user)/layout.tsx" }],
+    ["_layout の部品 → layout.tsx の向け先の .replace", "src/app/(user)/_layout/UserLayout.tsx", { type: "1", write: "src/app/(user)/_layout/UserLayout.replace.tsx", keys: null, source: "src/app/(user)/layout.tsx" }],
+    ["枠のスイッチが既に .replace を指す(同じファイル)", "src/app/admin/layout.tsx", { type: "1", write: "src/app/admin/_layout/AdminLayout.replace.tsx", keys: null, source: "src/app/admin/layout.tsx" }],
+    ["既に置き換えた枠の既定の部品", "src/app/admin/_layout/AdminLayout.tsx", { type: "1", write: "src/app/admin/_layout/AdminLayout.replace.tsx", keys: null, source: "src/app/admin/layout.tsx" }],
     // 型 2
     ["受け口の項目の上書き(overrideOf の鍵)", "src/features/core/admin/menu/items/users.ts", { type: "2", write: "src/features/core/admin/menu/items/users.override.ts", keys: ["hidden", "label", "icon", "allowRoles", "order", "category"], source: "src/features/core/admin/extensionPoints.ts menuItems" }],
     ["ロール", "src/features/core/user/roles/editor.role.json", { type: "2", write: "src/features/core/user/roles/editor.role.override.ts", keys: ["label", "hasProfile", "enabled"], source: "src/features/core/user/extensionPoints.ts roleDefinitions" }],
@@ -341,6 +348,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
   test("このリポ(Tier1、HEAD の木)の代表のパス", () => {
     const answer = whoOwns(REPO_ROOT, [
       "src/app/admin/_layout/AdminHeader.tsx",
+      "src/app/(user)/layout.tsx",
+      "src/app/admin/layout.tsx",
       "src/styles/core/palette.css",
       "src/lib/cron/config.ts",
       "src/features/core/user/coreRoles/admin.role.json",
@@ -355,6 +364,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       return [result.type, result.write];
     };
     assert.deepEqual(typeOf("src/app/admin/_layout/AdminHeader.tsx"), ["1", "src/app/admin/_layout/AdminHeader.replace.tsx"]);
+    assert.deepEqual(typeOf("src/app/(user)/layout.tsx"), ["1", "src/app/(user)/_layout/UserLayout.replace.tsx"]);
+    assert.deepEqual(typeOf("src/app/admin/layout.tsx"), ["1", "src/app/admin/_layout/AdminLayout.replace.tsx"]);
     assert.deepEqual(typeOf("src/styles/core/palette.css"), ["4", "src/styles/palette.css"]);
     assert.deepEqual(typeOf("src/lib/cron/config.ts"), ["4", "src/config/lib/cron.config.ts"]);
     assert.deepEqual(typeOf("src/features/core/user/coreRoles/admin.role.json"), ["2", "src/features/core/user/coreRoles/admin.role.override.ts"]);
