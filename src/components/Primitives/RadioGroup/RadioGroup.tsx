@@ -1,9 +1,9 @@
-// src/components/Shadcn/radio-group.tsx
+// src/components/Primitives/RadioGroup/RadioGroup.tsx
 
 "use client";
 
 import * as React from "react";
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
+import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 import { CircleIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";

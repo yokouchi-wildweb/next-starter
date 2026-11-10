@@ -1,4 +1,4 @@
-// src/components/Shadcn/input.tsx
+// src/components/Primitives/Input/Input.tsx
 
 import * as React from "react";
 

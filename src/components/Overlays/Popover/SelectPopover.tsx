@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 import { Input } from "@/components/Form/Input/Manual/Input";
-import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
+import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import {
   PopoverRoot,
   PopoverTrigger,

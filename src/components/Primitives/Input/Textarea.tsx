@@ -1,4 +1,4 @@
-// src/components/Shadcn/textarea.tsx
+// src/components/Primitives/Input/Textarea.tsx
 
 import * as React from "react";
 

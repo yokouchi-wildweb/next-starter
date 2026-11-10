@@ -114,9 +114,9 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景�
 });
 
 test("管理の枠の data-slot は shadcn の部品の data-slot と衝突せず、部位の印 data-frame-part は残っていない", () => {
-  const shadcnDir = "src/components/_shadcn";
+  // shadcn 由来の部品は _shadcn と Primitives(移した物)にある
   const shadcn = new Set(
-    sourcesOf(shadcnDir).flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
+    ["src/components/_shadcn", "src/components/Primitives"].flatMap(sourcesOf).flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
   );
   assert.ok(shadcn.has("button"), "shadcn の data-slot を読めていない");
   for (const name of slotsInSources().keys()) assert.equal(shadcn.has(name), false, `${name} は shadcn と衝突`);

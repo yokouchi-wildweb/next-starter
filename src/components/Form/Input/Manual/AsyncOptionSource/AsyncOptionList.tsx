@@ -11,7 +11,7 @@
 import { type ReactNode, type UIEvent } from "react";
 import { Check } from "lucide-react";
 
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { Checkbox } from "@/components/Primitives/Checkbox";
 import { CommandItem, CommandList } from "@/components/_shadcn/command";
 import {
   includesOptionValue,

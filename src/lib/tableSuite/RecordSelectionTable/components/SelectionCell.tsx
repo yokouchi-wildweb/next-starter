@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { Checkbox } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
 
 import { TableCell } from "../../shared";

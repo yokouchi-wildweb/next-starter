@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Slot } from "@/components/Primitives/Slot";
 
 import { cn } from "@/lib/cn";
 
@@ -16,7 +16,7 @@ type MenuButtonProps = React.ComponentPropsWithoutRef<"button"> & {
 
 export const MenuButton = React.forwardRef<HTMLButtonElement, MenuButtonProps>(
   ({ asChild, className, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+    const Comp = asChild ? Slot.Root : "button";
     return (
       <Comp
         ref={ref}

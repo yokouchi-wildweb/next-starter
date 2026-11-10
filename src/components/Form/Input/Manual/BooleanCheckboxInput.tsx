@@ -3,7 +3,7 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { Checkbox } from "@/components/Primitives/Checkbox";
 import { Label } from "@/components/Form/Label";
 
 const checkboxSizeVariants = cva("", {

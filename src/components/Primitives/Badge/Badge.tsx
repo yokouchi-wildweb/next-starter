@@ -1,7 +1,7 @@
-// src/components/Badge/BadgeCore.tsx
+// src/components/Primitives/Badge/Badge.tsx
 
 import * as React from "react";
-import { Slot, Slottable } from "@radix-ui/react-slot";
+import { Slot } from "radix-ui";
 import type { LucideIcon } from "lucide-react";
 
 export type BadgeCoreProps = React.ComponentPropsWithoutRef<"span"> & {
@@ -23,12 +23,12 @@ export type BadgeCoreProps = React.ComponentPropsWithoutRef<"span"> & {
  */
 export const BadgeCore = React.forwardRef<HTMLSpanElement, BadgeCoreProps>(
   ({ asChild = false, icon: Icon, children, ...props }, ref) => {
-    const Comp = asChild ? Slot : "span";
+    const Comp = asChild ? Slot.Root : "span";
 
     return (
       <Comp ref={ref} {...props}>
         {Icon && <Icon />}
-        <Slottable>{children}</Slottable>
+        <Slot.Slottable>{children}</Slot.Slottable>
       </Comp>
     );
   }

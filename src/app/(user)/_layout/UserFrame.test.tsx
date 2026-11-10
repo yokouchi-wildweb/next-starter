@@ -55,7 +55,8 @@ test("README の data-slot の一覧 = 枠の部品と Main の要素の data-sl
 });
 
 test("shadcn の部品の data-slot と名前が衝突せず、data-frame-part は残っていない", () => {
-  const shadcn = new Set(sourcesUnder("src/components/_shadcn").flatMap((file) => slotsIn(read(file))));
+  // shadcn 由来の部品は _shadcn と Primitives(移した物)にある
+  const shadcn = new Set(["src/components/_shadcn", "src/components/Primitives"].flatMap(sourcesUnder).flatMap((file) => slotsIn(read(file))));
   assert.ok(shadcn.has("button"), "shadcn の data-slot が読めていない");
   for (const name of readmeSlots()) assert.equal(shadcn.has(name), false, `${name} は shadcn の data-slot と同じ`);
   for (const file of [...sourcesUnder(LAYOUT), MAIN]) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);

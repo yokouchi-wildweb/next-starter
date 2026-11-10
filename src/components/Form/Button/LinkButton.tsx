@@ -1,6 +1,6 @@
 // src/components/Form/Button/LinkButton.tsx
 
-import { baseButtonClassName } from "@/components/_shadcn/button";
+import { baseButtonClassName } from "@/components/Primitives/Button";
 import { Link, type LinkProps } from "@/components/Navigation/Link";
 import { cn } from "@/lib/cn";
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { baseButtonClassName } from "@/components/_shadcn/button";
+import { baseButtonClassName } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
 import { buttonVariants, type ButtonStyleProps } from "./button-variants";
