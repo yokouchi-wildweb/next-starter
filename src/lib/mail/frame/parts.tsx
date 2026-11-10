@@ -1,25 +1,27 @@
 // src/lib/mail/frame/parts.tsx
 //
 // メールの共通の部品。style の既定値は上流のテンプレート(auth のメール)の値を写したもの。
-// 揃え・色の種類は props で選び、細かい値は style で上書きする。どれも MailFrame の中で使う。
+// 揃え・色の種類は props で選び、細かい値は style で上書きする。色は各部品の theme で受ける
+// (React の context は使わない。束ねるなら ./createMailParts.tsx)。
 
 import type { CSSProperties, ReactNode } from "react";
 
 import { Button, Heading, Hr, Img, Link, Section, Text } from "@react-email/components";
 
-import { useMailTheme } from "./theme";
+import type { MailTheme } from "./theme";
 
 export type MailAlign = "left" | "center";
 
 type BaseProps = {
+  /** メールの色 */
+  theme: MailTheme;
   children?: ReactNode;
   /** style の上書き(既定の値に重ねる) */
   style?: CSSProperties;
 };
 
 /** 見出し */
-export function MailHeading({ children, style }: BaseProps) {
-  const theme = useMailTheme();
+export function MailHeading({ theme, children, style }: BaseProps) {
   return (
     <Heading
       style={{
@@ -38,6 +40,7 @@ export function MailHeading({ children, style }: BaseProps) {
 
 /** 段落 */
 export function MailParagraph({
+  theme,
   children,
   style,
   align = "left",
@@ -47,7 +50,6 @@ export function MailParagraph({
   /** 改行をそのまま出す(管理者が書いた本文など) */
   preWrap?: boolean;
 }) {
-  const theme = useMailTheme();
   return (
     <Text
       style={{
@@ -67,6 +69,7 @@ export function MailParagraph({
 
 /** ボタン(中央寄せの段ごと) */
 export function MailButton({
+  theme,
   href,
   children,
   style,
@@ -79,7 +82,6 @@ export function MailButton({
   /** ボタンを囲む段の style の上書き */
   sectionStyle?: CSSProperties;
 }) {
-  const theme = useMailTheme();
   const colors =
     tone === "accent"
       ? { backgroundColor: theme.accent, color: theme.accentForeground }
@@ -106,8 +108,7 @@ export function MailButton({
 }
 
 /** URL をそのまま出すリンク(ボタンが押せないときの控え)。children を省くと URL を出す */
-export function MailUrl({ href, children, style }: BaseProps & { href: string }) {
-  const theme = useMailTheme();
+export function MailUrl({ theme, href, children, style }: BaseProps & { href: string }) {
   return (
     <Link
       href={href}
@@ -124,8 +125,7 @@ export function MailUrl({ href, children, style }: BaseProps & { href: string })
 }
 
 /** 注記(本文より小さく薄い補足) */
-export function MailNote({ children, style, align = "left" }: BaseProps & { align?: MailAlign }) {
-  const theme = useMailTheme();
+export function MailNote({ theme, children, style, align = "left" }: BaseProps & { align?: MailAlign }) {
   return (
     <Text
       style={{
@@ -143,8 +143,7 @@ export function MailNote({ children, style, align = "left" }: BaseProps & { alig
 }
 
 /** フッター(メールの最後の注意書き) */
-export function MailFooter({ children, style }: BaseProps) {
-  const theme = useMailTheme();
+export function MailFooter({ theme, children, style }: BaseProps) {
   return (
     <Text
       style={{
@@ -161,8 +160,7 @@ export function MailFooter({ children, style }: BaseProps) {
 }
 
 /** 区切り線 */
-export function MailDivider({ style }: Pick<BaseProps, "style">) {
-  const theme = useMailTheme();
+export function MailDivider({ theme, style }: Pick<BaseProps, "theme" | "style">) {
   return (
     <Hr
       style={{
@@ -177,6 +175,7 @@ export function MailDivider({ style }: Pick<BaseProps, "style">) {
 
 /** 頭(ロゴ + 文、中央寄せ) */
 export function MailHeader({
+  theme,
   logoSrc,
   logoAlt = "",
   logoWidth = 120,
@@ -191,7 +190,6 @@ export function MailHeader({
   /** 文の style の上書き */
   textStyle?: CSSProperties;
 }) {
-  const theme = useMailTheme();
   return (
     <Section style={{ textAlign: "center", marginBottom: "24px", ...style }}>
       {logoSrc ? (
@@ -221,8 +219,7 @@ export type MailInfoRow = {
 };
 
 /** 情報の箱(ラベルと値の並び。発生時刻・IP など) */
-export function MailInfoBox({ rows, style }: Pick<BaseProps, "style"> & { rows: MailInfoRow[] }) {
-  const theme = useMailTheme();
+export function MailInfoBox({ theme, rows, style }: Pick<BaseProps, "theme" | "style"> & { rows: MailInfoRow[] }) {
   return (
     <Section
       style={{

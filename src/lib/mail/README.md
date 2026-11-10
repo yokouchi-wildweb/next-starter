@@ -113,23 +113,20 @@ const events = normalizeSendGridWebhook(
 メールの見た目の共通の部品。テンプレートごとに style を写さず、部品を並べて組む。
 
 ```tsx
-import {
-  MailFrame,
-  MailHeading,
-  MailParagraph,
-  MailButton,
-  MailUrl,
-  MailFooter,
-} from "@/lib/mail";
+import { createMailParts } from "@/lib/mail";
 
-<MailFrame theme={mailTheme} preview="メールアドレスの確認">
-  <MailHeading>メールアドレスの確認</MailHeading>
-  <MailParagraph>以下のボタンを押して、確認を完了してください。</MailParagraph>
-  <MailButton href={url}>メールアドレスを確認する</MailButton>
-  <MailParagraph>ボタンが押せない場合は、以下の URL をブラウザに貼り付けてください。</MailParagraph>
-  <MailUrl href={url} />
-  <MailFooter>このメールに心当たりがない場合は、無視してください。</MailFooter>
-</MailFrame>
+const m = createMailParts(mailTheme); // 色を束ねた部品(theme を部品ごとに渡す形と同じ HTML)
+
+<m.Frame preview="メールアドレスの確認">
+  <m.Heading>メールアドレスの確認</m.Heading>
+  <m.Paragraph>以下のボタンを押して、確認を完了してください。</m.Paragraph>
+  <m.Button href={url}>メールアドレスを確認する</m.Button>
+  <m.Paragraph>ボタンが押せない場合は、以下の URL をブラウザに貼り付けてください。</m.Paragraph>
+  <m.Url href={url} />
+  <m.Footer>このメールに心当たりがない場合は、無視してください。</m.Footer>
+</m.Frame>
+
+// 束ねない形: <MailFrame theme={mailTheme}> <MailHeading theme={mailTheme}>…</MailHeading> …
 ```
 
 - 部品
@@ -137,8 +134,9 @@ import {
   - `MailHeading`（見出し）・`MailParagraph`（段落。`align`・`preWrap`）・`MailButton`（中央寄せのボタン。`tone` = primary | accent）・`MailUrl`（URL のリンク。children を省くと URL を出す）・`MailNote`（注記）・`MailFooter`（最後の注意書き）
   - `MailDivider`（区切り線）・`MailHeader`（ロゴ + 文。ロゴは絶対 URL）・`MailInfoBox`（ラベルと値の箱）
 - style の既定値は上流のテンプレート（auth のメール）の値。細かい違いは各部品の `style`（既定に重ねる）で合わせる
-- 色: `MailFrame` の `theme`（`MailTheme`、src/styles の palette と同じ鍵）で渡し、部品は文脈から読む。今の色の生成物は features/core/mail/constants/colors.ts（`MAIL_THEME_COLORS`）にあり lib から読めないので、呼び手が渡す（色の生成物は lib/mail へ移る予定）
-- `MailFrame` の外で部品を使うと `useMailTheme` が投げる。react-email の `render` は描画の誤りを投げず、誤りの印（`server rendering errored`）だけの HTML を返すので、部品は必ず `MailFrame` の中に置く
+- 色: 枠と各部品の `theme`（`MailTheme`、src/styles の palette と同じ鍵）で渡す。部品ごとに渡す手間は `createMailParts(theme)` で省ける（下）。今の色の生成物は features/core/mail/constants/colors.ts（`MAIL_THEME_COLORS`）にあり lib から読めないので、呼び手が渡す（色の生成物は lib/mail へ移る予定）
+- React の context は使わない: メールはサーバーで描き、`@/lib/mail` はサーバーの module（管理のページ → サービス → テンプレート）から読まれる。lib に `createContext` を置くと Next の build が落ちる（frame.test.tsx が固定）
+- react-email の `render` は描画の誤りを投げず、誤りの印（`server rendering errored`）だけの HTML を返す。部品の誤り（`theme` の渡し忘れなど）は空のメールになりうるので、型検査で止める（`theme` は必須の props）
 
 ## createMailTemplate
 

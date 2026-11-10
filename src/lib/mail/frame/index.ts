@@ -14,4 +14,5 @@ export {
   type MailAlign,
   type MailInfoRow,
 } from "./parts";
-export { MailThemeProvider, useMailTheme, type MailTheme } from "./theme";
+export { createMailParts, type MailParts } from "./createMailParts";
+export type { MailTheme } from "./theme";

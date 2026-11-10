@@ -43,7 +43,7 @@ const READS = {
   // 拡張点の宣言・項目・スイッチ・枠は src 全体に散る
   extensions: {
     entries: ["scripts/structure/extensions/gate-check.mjs", "scripts/structure/extensions/check.mjs"],
-    data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**"],
+    data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/features/**/messages/*.ts"],
   },
   // 登録表の走査(domainEntry・pgTable・用途)と storageBindingFor の呼び出し(src 全体)
   registry: { entries: ["scripts/structure/registry/check.mjs"], data: ["src/features/**", "src/registry/*.ts", "src/**/*.{ts,tsx,mts}"] },

@@ -4,13 +4,13 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { Body, Container, Head, Html, Preview } from "@react-email/components";
 
-import { MailThemeProvider, type MailTheme } from "./theme";
+import type { MailTheme } from "./theme";
 
 export const MAIL_FONT_FAMILY =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif';
 
 export type MailFrameProps = {
-  /** メールの色(部品はここから読む) */
+  /** メールの色(枠の背景と本文の箱。中の部品へは各部品の theme で渡す。束ねるなら createMailParts) */
   theme: MailTheme;
   /** 受信一覧に出る下見の文(preheader)。省略時は出さない */
   preview?: string;
@@ -24,7 +24,7 @@ export type MailFrameProps = {
 };
 
 /**
- * メールの共通の枠(Html・Head・Preview・Body・Container)。色は theme で受け、中の部品に渡す。
+ * メールの共通の枠(Html・Head・Preview・Body・Container)。色は theme で受ける。
  */
 export function MailFrame({
   theme,
@@ -35,30 +35,28 @@ export function MailFrame({
   containerStyle,
 }: MailFrameProps) {
   return (
-    <MailThemeProvider theme={theme}>
-      <Html lang={lang}>
-        <Head />
-        {preview ? <Preview>{preview}</Preview> : null}
-        <Body
+    <Html lang={lang}>
+      <Head />
+      {preview ? <Preview>{preview}</Preview> : null}
+      <Body
+        style={{
+          backgroundColor: theme.muted,
+          fontFamily: MAIL_FONT_FAMILY,
+          ...bodyStyle,
+        }}
+      >
+        <Container
           style={{
-            backgroundColor: theme.muted,
-            fontFamily: MAIL_FONT_FAMILY,
-            ...bodyStyle,
+            backgroundColor: theme.background,
+            margin: "0 auto",
+            padding: "40px 20px",
+            maxWidth: "560px",
+            ...containerStyle,
           }}
         >
-          <Container
-            style={{
-              backgroundColor: theme.background,
-              margin: "0 auto",
-              padding: "40px 20px",
-              maxWidth: "560px",
-              ...containerStyle,
-            }}
-          >
-            {children}
-          </Container>
-        </Body>
-      </Html>
-    </MailThemeProvider>
+          {children}
+        </Container>
+      </Body>
+    </Html>
   );
 }
