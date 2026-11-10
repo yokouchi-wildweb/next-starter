@@ -389,7 +389,7 @@ export default {
 
 古い定数名との対応(設定の議会 D95): `CURRENCY_CONFIG` → `walletConfig.currency`・`WALLET_EXPIRATION_CONFIG` → `.expiration`・`WALLET_EXPIRATION_NOTICE_SETTINGS` → `.expirationNoticeSettings`・`WALLET_LOT_PRUNE_RETENTION_DAYS` → `.lotPruneRetentionDays`・`WALLET_PRE_EXPIRY_NOTICE_COPY` → `.preExpiryNoticeCopy`・`WALLET_EXPIRED_NOTICE_COPY` → `.expiredNoticeCopy`・`WALLET_ADJUSTMENT_NOTIFICATION` → `.adjustmentNotification`・`APP_FEATURES.wallet.{enableAdminBalanceAdjust,purchaseRestriction,purchaseSuspension,notifyOnAdjust}` → `walletConfig.<同じ鍵>`・`CURRENCY_ICONS` → `walletUiConfig.currencyIcons`(`config.ui.ts`)。機能の入切 `wallet.enabled` は門番の規則の持ち物で、ここには無い。
 
-購入の制限 `purchaseRestriction`(`"none"` | `"phoneVerified"`、上流の既定 `"none"`、設定 D107・D109): `"phoneVerified"` は SMS 認証済みの利用者だけが購入できる。SMS 認証の機能 `phoneVerification` を要するので、config.ts の `featureRequirements` で宣言し、機能が閉のままなら門 build の `pnpm check proxies` が失敗する(直し方: `pnpm ops features set phoneVerification on` か上書きに `"none"`)。今は画面(`WalletBalance`)が表示に使う。サーバーでの強制は後の指令(D111)
+購入の制限 `purchaseRestriction`(`"none"` | `"phoneVerified"`、上流の既定 `"none"`、設定 D107・D109): `"phoneVerified"` は SMS 認証済みの利用者だけが購入できる。SMS 認証の機能 `phoneVerification` を要するので、config.ts の `featureRequirements` で宣言し、機能が閉のままなら門 build の `pnpm check proxies` が失敗する(直し方: `pnpm ops features set phoneVerification on` か上書きに `"none"`)。サーバーでも強制する(D111): 財布に入金する購入(purchaseRequest の type 設定 `requiresWalletType`)の開始・再利用・再開で `initiatePurchase` が `assertWalletPurchaseAllowed`(`services/server/wrappers/purchaseRestriction.ts`)を呼び、必須で未認証なら 403。財布を通らない購入(direct_sale 等)は止めない。画面(`WalletBalance`)は表示のためだけに同じ値を読む
 
 ### 設定項目
 

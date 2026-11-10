@@ -13,6 +13,7 @@ import { purchaseRequestConfig, type PurchaseTypeKey } from "@/features/purchase
 import { reserveQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { assertHoldingLimit } from "@/features/core/wallet/services/server/wrappers/checkHoldingLimit";
+import { assertWalletPurchaseAllowed } from "@/features/core/wallet/services/server/wrappers/purchaseRestriction";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
@@ -26,7 +27,7 @@ import {
   buildCompletedResult,
   buildRedirectResumeResult,
 } from "./purchaseHelpers";
-import { resolveInitiation } from "./resolveInitiation";
+import { resolveInitiation, restrictedPurchaseType } from "./resolveInitiation";
 import { expireStaleClientSdkSessions } from "./expireStaleSessions";
 import type { InitiatePurchaseParams, InitiatePurchaseResult } from "./purchaseService";
 
@@ -224,6 +225,13 @@ export async function initiatePurchase(
   }
   if (outcome.kind === "completed") {
     return buildCompletedResult(outcome.request);
+  }
+
+  // 2.1. 購入の制限(財布の purchaseRestriction、設定 D111): 財布に入金する購入の種類(requiresWalletType)なら、
+  //      新規・再利用・再開のどれでも財布の守りを通す(必須 + 未認証は 403)。財布を通らない購入(direct_sale 等)は止めない
+  const guardedType = restrictedPurchaseType(outcome, purchaseType);
+  if (guardedType && purchaseRequestConfig.type[guardedType as PurchaseTypeKey]?.requiresWalletType) {
+    await assertWalletPurchaseAllowed({ userId });
   }
   if (outcome.kind === "resume") {
     // redirect 型: 保存済み redirect_url を再利用する（createSession は再実行しない）。

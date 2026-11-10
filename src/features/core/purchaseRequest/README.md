@@ -77,6 +77,7 @@ wrappers/
    - `resume`: 同一プロバイダで `processing`。redirect 型は保存済み `redirect_url` を返す、client_sdk 型は `createSession` を再実行（プロバイダ契約で冪等）
    - `completed`: 完了画面へ誘導
    - `conflict`: 別プロバイダで進行中 → 409 / `failed`・`expired` → 400
+   - 購入の制限(財布の `purchaseRestriction`、D111): `create`・`reuse-pending`・`resume` で、購入の種類(再開は既存の行の種類、`restrictedPurchaseType`)の type 設定が `requiresWalletType` なら wallet の `assertWalletPurchaseAllowed` を通す(必須で SMS 未認証は 403)。`completed`・`conflict` と財布を通らない種類は通さない
 4. 新規作成時のみ `provider.validateInitiation`（inhouse の「未完了振込があれば既存案内へ戻す」等）
 5. `purchaseRequestConfig.type` と完了戦略を解決し `strategy.validateInitiation`（`wallet_topup` は `CURRENCY_CONFIG` のパッケージ照合）。**reuse-pending でも必ず再実行**（金額更新の経路で照合を飛ばすと金額詐称の穴になる）
 6. `walletType` があれば保有上限チェック（`assertHoldingLimit`）

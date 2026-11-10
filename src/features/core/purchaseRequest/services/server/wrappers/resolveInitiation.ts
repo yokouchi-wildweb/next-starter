@@ -70,3 +70,19 @@ export function resolveInitiation(args: {
       return assertNever(status);
   }
 }
+
+/**
+ * 購入の制限(財布の purchaseRestriction、設定 D111)を確かめる購入の種類(純粋関数)。
+ * create・reuse-pending は今回の購入の種類、resume は既存の行の種類(再開も守る)。completed(済みの結果を返すだけ)・conflict は null
+ */
+export function restrictedPurchaseType(outcome: InitiationOutcome, requestedType: string): string | null {
+  switch (outcome.kind) {
+    case "create":
+    case "reuse-pending":
+      return requestedType;
+    case "resume":
+      return outcome.request.purchase_type;
+    default:
+      return null;
+  }
+}
