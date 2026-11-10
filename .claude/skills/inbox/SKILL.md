@@ -36,6 +36,7 @@ target: $ARGUMENTS
 1. get the unhandled orders to this repo with `node .claude/skills/order/mailbox.mjs inbox` (first word of each = `open` / `routed` / `taken` / `waiting` / `resumable`; `routed_to:` / `taken_by:` lines = owner; trailing `(you)` = yourself)
 2. list them, using the output's `title:`, `need:`, `from:`:
    - `kind: quest` line = a quest → prefix the title with `クエスト` | quests only → `inbox --quest`
+   - `kind: browser-check` line = a browser check order → prefix the title with `ブラウザ確認` and add the item count from the `check_sheet:` line | its work = `/browser-check <id>` (HANDLE below)
    - **one-line summary (title / id / need / from; old orders without `title:` omit the title)** in Japanese, in 3 sections: **`未対応`** (open / waiting / resumable) | **`振り分け済み → <routed_to>`** (routed; yours → `自分の担当`) | **`着手中 → <taken_by>`** (taken; yourself → `自分が着手中`)
    - from: own repo → `自分宛て` | team role → team and role name, like `fleet の提督から` (mailbox.mjs lists team orders as `from: <team> <instance> <role name>`; never call them self-addressed even if they ran in this repo)
    - `waiting` → add `待ち（<待っている先>）` | `resumable` → add `再開可`
@@ -47,6 +48,7 @@ target: $ARGUMENTS
 
 ## HANDLE (args = an id / file name)
 1. read the order file in full | do not take it yet (take = when the human approves the step-3 proposal)
+   - `kind: browser-check` → no proposal of your own: say `/browser-check <id> で回せます（項目 <n>）` and STOP | an order with a `check_sheet:` line of another kind → read the sheet too; its items are part of done_when (check them with `/browser-check <id>` after the work)
    - already taken by someone else / routed to another owner (owner in the list or at the file head): give the summary and the owner; STOP: ask the human (owner guard above) | no proposal, no work
 2. **summarize in Japanese** (need / why / done_when / constraints)
    - `resumable` → also read the RESOLUTION of the `waiting_on:` targets (files moved to `done/`) and include it
@@ -129,6 +131,7 @@ target: $ARGUMENTS
 - **which relay** (state which, with the reason, in the proposal): the original order's `done_when` is met by the target's work alone → **hand off** | this repo has follow-up work after the target's result → **ask and wait**
 - **hand off** (closes the original order):
   a. write a new order into the target's inbox based on the original: new id (`date +%Y%m%d-%H%M%S`), `from:` stays the original sender, `to:` rewritten for the target, add the line `relayed_from: <original id> | via:<own fork-id>` after `to:` | other fields as they were (what this repo learned → add to `notes:`)
+     - the original has `check_sheet:` → drop that line from the copy, then `node .claude/skills/order/mailbox.mjs check attach <new order> --sheet=<original's sheet>`
   b. answer the original: write the body (`relayed_to: <target fork-id>/<new id>.md` and `notes: <why it was judged the target's>`) to a temp file, `node .claude/skills/order/mailbox.mjs resolve <original order> --status=relayed --body=<file>` (writes `by: <self fork-id> | commit:- | pushed:-` and moves it to `done/`)
   c. report in Japanese: the handed-off target and the new order's path
 - **ask and wait** (the original stays open):

@@ -1,7 +1,7 @@
 ---
 name: order
 description: File a one-off work order or check request into a named repo's inbox (this repo too; self = reserving this repo's next task); the receiving repo judges acceptance against its own role with /inbox | When the user asks to send a task or check to a repo, or to reserve a later task for this repo
-argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [quest] [補足メモ(任意)]"
+argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [quest | check] [補足メモ(任意)]"
 ---
 
 role: file an **ORDER** (write a one-off "do this / check this" into a named repo's inbox)
@@ -13,6 +13,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
   - undeclared repos (no line / old `-`) use the old name only during migration (origin URL from the host on, `.git` removed, `/` → `--`, lowercase; no origin → `local--<directory name>`)
   - a declared repo's inbox moves from the old-name box when mailbox.mjs reads the name; the old name stays as a link to the new box
 - the inbox holds one-off orders only | serial / grouped orders are handled inside a council legate
+- **check sheet** = `<order name>.check.md` beside an order (browser checks: pages, steps, expectations, results) + `<order name>.check/` (screenshots of ng items) | the order's head `check_sheet:` names it | not an order: lists skip it, `resolve` moves it to done/ with the order | format: `.claude/skills/order/checkSheet.mjs` head comment
 - the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
 - **order state** (head `status:`, one value): `open` → `routed` (routed to a council / guild / legate plan; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
   - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
@@ -22,10 +23,11 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
   - `name-check` = may this name become this repo's fork_id: (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
   - `resolve` = answer an order: append the RESOLUTION and move to done/ | env `ORDER_RESOLVED_HOOK` (path of an executable) set → after answering it is called with the done/ order's path (unset → nothing; team tabs use it to notify the sender)
   - `inbox --quest` = quests (`kind: quest`) only | steps: `.claude/skills/inbox/SKILL.md` step 4
+  - `check <add | file | attach | run | result | show>` = the check sheet (BROWSER CHECK ORDER below; options: mailbox.mjs head comment)
 
 ## MATERIAL
 - the conversation's context so far (= what is wanted has already been discussed)
-- args: $ARGUMENTS | first word = target | the word after the target is `quest` → file as a quest (`kind:` below) | the rest = extra notes | starts with a word that is no target → all of it is extra notes, target omitted
+- args: $ARGUMENTS | first word = target | the word after the target is `quest` → file as a quest (`kind:` below) | `check` → file a browser check order (BROWSER CHECK ORDER below) | the rest = extra notes | starts with a word that is no target → all of it is extra notes, target omitted
 
 ## STEPS
 1. **get provenance with Bash** (never guess, never assemble by hand): use the `from:` line of `node .claude/skills/order/mailbox.mjs from` as is
@@ -73,6 +75,16 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
      ```
      宛先リポで `/inbox` を実行すると受け取れます。このセッションで `/wen` を打つと状況を確かめられます。宛先や内容を直すときはこのファイルを編集・移動します(言ってください)
      ```
+
+## BROWSER CHECK ORDER (the `check` argument: things to see in the running app, run later by `/browser-check` in the target repo)
+- one item = one page + one expectation (`page:` path, `as:` guest | user | admin, `needs:` data or switches it stands on, `steps:`, `expect:`, `widths:` default 375,1280) | a long flow → several items
+- an item says what to see, never how the code works | write it so a session without this conversation can run it
+1. steps 1-2 above (provenance, target)
+2. collect the items from the conversation into a temp sheet (never inside a repo): per item `node .claude/skills/order/mailbox.mjs check add --sheet=<tmp>.md --page=/<path> --as=<who> --step=<step> [--step=…] --expect=<what is seen> [--needs=] [--source=<where it came from>]`
+3. `node .claude/skills/order/mailbox.mjs check file --sheet=<tmp>.md --to=<target fork-id> --title=<日本語の短い題> --why=<the situation>` → writes the order (`kind: browser-check`, `check_sheet:`) and its sheet into the target's inbox
+4. report as step 5 (the order's path) + the item count | the receiver runs it with `/browser-check <order id>`
+- a sheet on an ordinary order (e.g. a fix order whose done_when is "these items pass"): write the order by steps 1-4 above, then `node .claude/skills/order/mailbox.mjs check attach <order file> --sheet=<sheet> [--only=C<n>,…]` (`--only` = copy those items only, results cleared, the old result kept in `was:`)
+- tools (a team at its end) file sheets they collected with the same `check file` (no Claude session needed)
 
 ## TEMPORARY PERMIT REQUEST (a fork passing an ownership-check violation)
 - violations of `pnpm workflow ownership check` that cannot move to an intake point or be reverted (features upstream lacks, upstream bug / perf / security fixes) pass by an order to the direct parent + a temporary permit (`src/lib/forkOwnership/README.md` section `一時許可`)

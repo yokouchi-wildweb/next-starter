@@ -3,12 +3,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { actorOf, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder, unrouteOrder } from "./mailbox.mjs";
+import { addItem, parseSheet, readSheet, renderSheet, setResult, shotsDirOf, startRun, summarize } from "./checkSheet.mjs";
+import { actorOf, attachSheet, fileCheckOrder, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder, unrouteOrder } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -407,4 +408,95 @@ test("nameProblems: 形・fleet.conf の別のパス・手元の別のリポ・�
   mkdirSync(join(root, "app"));
   symlinkSync("app", join(root, "acme--app"));
   assert.deepEqual(nameProblems("app", { ...self, repoId: "acme--app" }, [], [], root), []);
+});
+
+// ---- ブラウザ確認のシート（checkSheet.mjs と mailbox.mjs check）----
+const ITEM = { page: "/admin/coupons", as: "admin", steps: ["一覧を開く", "保存"], expect: "行が増える" };
+
+test("シート: add は無ければ作り、同じ page・as・expect は 1 項目にまとめて source: を足す。形の違いは断る", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "sheet-")), "acc.md");
+  assert.deepEqual(addItem(path, { ...ITEM, source: "fleet:f1 segment:s3" }, { now: "T1", title: "題" }), { id: "C1", merged: false });
+  assert.deepEqual(addItem(path, { ...ITEM, steps: ["別"], source: "fleet:f1 segment:s4" }, { now: "T2" }), { id: "C1", merged: true });
+  assert.deepEqual(addItem(path, { ...ITEM, as: "guest" }, { now: "T3" }), { id: "C2", merged: false });
+  const sheet = readSheet(path);
+  assert.equal(sheet.head.title, "題");
+  assert.deepEqual(sheet.items[0].source, ["fleet:f1 segment:s3", "fleet:f1 segment:s4"]);
+  assert.deepEqual(sheet.items[0].steps, ["一覧を開く", "保存"]);
+  assert.equal(sheet.items[0].widths, "375,1280");
+  assert.equal(parseSheet(renderSheet(sheet)).items.length, 2);
+  assert.throws(() => addItem(path, { page: "x", as: "root", steps: [], expect: "" }, { now: "T4" }), /--page=.*--as=.*--step=.*--expect=/);
+});
+
+test("シート: run で runs が増え、result は ok / ng / skip（ng・skip は evidence が要る）", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "sheet-")), "acc.md");
+  addItem(path, ITEM, { now: "T1" });
+  addItem(path, { ...ITEM, page: "/" }, { now: "T1" });
+  assert.equal(startRun(path, { now: "T2" }), 1);
+  assert.throws(() => setResult(path, "C1", { result: "ng", now: "T3" }), /evidence/);
+  assert.throws(() => setResult(path, "C9", { result: "ok", now: "T3" }), /項目がありません/);
+  setResult(path, "C1", { result: "ng", evidence: "行が増えない", now: "T3" });
+  setResult(path, "C2", { result: "ok", now: "T3" });
+  const sheet = readSheet(path);
+  assert.equal(sheet.head.lastRun, "T2");
+  assert.equal(sheet.items[0].ran_at, "T3");
+  assert.deepEqual(summarize(sheet), { total: 2, ok: 1, ng: 1, skip: 0, pending: 0 });
+});
+
+test("指令とシート: file は kind: browser-check の指令とシートを並べて書き、一覧はシートを指令に数えず数を出す。resolve でシートと置き場も done/ へ", () => {
+  const { dir } = box();
+  const src = join(dirname(dir), "acc.md");
+  addItem(src, { ...ITEM, source: "fleet:f1 segment:s3" }, { now: "T1" });
+  const r = fileCheckOrder({ box: dir, to: "git@x:Acme/App.git | box:acme--app", from: "fleet f1 | role:Admiral", src, title: "確認", now: new Date(2026, 0, 2, 3, 4, 5) });
+  assert.equal(r.order, join(dir, "20260102-030405-browser-check.md"));
+  assert.equal(r.sheet, join(dir, "20260102-030405-browser-check.check.md"));
+  const text = readFileSync(r.order, "utf8");
+  assert.match(text, /\nstatus: open\nkind: browser-check\ncheck_sheet: 20260102-030405-browser-check\.check\.md\ntitle: 確認\n/);
+  assert.match(readFileSync(r.sheet, "utf8"), /^# CHECK SHEET order:20260102-030405-browser-check {2}repo:acme--app\n/);
+  assert.equal(existsSync(src), true);
+  const again = fileCheckOrder({ box: dir, to: "-", from: "-", src, title: "確認", now: new Date(2026, 0, 2, 3, 4, 5) });
+  assert.equal(again.order, join(dir, "20260102-030405-browser-check-2.md"));
+  mkdirSync(shotsDirOf(r.sheet));
+  writeFileSync(join(shotsDirOf(r.sheet), "C1-375.png"), "");
+  const dest = resolveOrder(r.order, { status: "partial", body: BODY, by: BY });
+  assert.equal(existsSync(join(dir, "done", "20260102-030405-browser-check.check.md")), true);
+  assert.equal(existsSync(join(dir, "done", "20260102-030405-browser-check.check", "C1-375.png")), true);
+  assert.equal(existsSync(r.sheet), false);
+  assert.match(dest, /done/);
+});
+
+test("指令とシート: attach --only は ng の項目だけを C1.. に写し、結果を消して was: に前の結果を残す。題は指令の題", () => {
+  const { dir, file } = box();
+  writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: x\nstatus: open\ntitle: 直す\nneed: fix\n");
+  const src = join(dirname(dir), "done.check.md");
+  addItem(src, ITEM, { now: "T1", title: "元" });
+  addItem(src, { ...ITEM, page: "/" }, { now: "T1" });
+  setResult(src, "C2", { result: "ng", evidence: "白い画面", now: "T2" });
+  const sheet = attachSheet(file, { src, only: ["C2"], now: "T3" });
+  assert.equal(sheet, join(dir, "20260101-000000-x.check.md"));
+  assert.match(readFileSync(file, "utf8"), /\nstatus: open\ncheck_sheet: 20260101-000000-x\.check\.md\ntitle: 直す\n/);
+  const s = readSheet(sheet);
+  assert.equal(s.head.title, "直す");
+  assert.equal(s.items.length, 1);
+  assert.equal(s.items[0].id, "C1");
+  assert.equal(s.items[0].result, "-");
+  assert.equal(s.items[0].was, "C2 ng — 白い画面");
+  assert.throws(() => attachSheet(file, { src, only: ["C7"], now: "T3" }), /写す項目がありません: C7/);
+});
+
+test("CLI: inbox はシートを指令に数えず、kind と check_sheet の数を出す", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
+  run("init", "-q", "-b", "main");
+  run("commit", "-q", "--allow-empty", "-m", "x");
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const { dir } = box();
+  rmSync(join(dir, "20260101-000000-x.md"));
+  const src = join(dirname(dir), "acc.md");
+  addItem(src, ITEM, { now: "T1" });
+  const boxName = execFileSync("node", [SCRIPT, "self"], { cwd: repo, encoding: "utf8", env: clean }).match(/^self: (\S+)/m)[1];
+  const mine = join(dirname(dir), boxName);
+  fileCheckOrder({ box: mine, to: "-", from: "x", src, title: "確認" });
+  const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: dirname(dir) } });
+  assert.match(out, /browser-check\.md\n  from: x\n  kind: browser-check\n  title: 確認\n  need: .*\n  check_sheet: .*\.check\.md \| 1 items \| ok 0 ng 0 skip 0 pending 1\n/);
+  assert.equal(out.match(/^open /gm).length, 1);
 });
