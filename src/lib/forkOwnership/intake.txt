@@ -257,6 +257,7 @@ generated src/registry/storagePurposeRegistry.ts  # 生成器 registry の出力
 generated src/registry/schemaRegistry.ts  # 生成器 registry の出力
 generated src/registry/domainConfigRegistry.ts  # 生成器 registry の出力
 generated src/registry/adminDomains.ts  # 生成器 registry の出力
+generated src/registry/messageRegistry.ts  # 生成器 registry の出力
 generated src/features/core/*/entities/display.ts  # 生成器 registry の出力
 generated src/registry/district-map.jsonl  # 生成器 district-map の出力
 generated src/wiring/dbAgent.ts  # 生成器 extensions の出力

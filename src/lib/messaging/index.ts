@@ -18,6 +18,12 @@ export {
   type ChannelErrorKind,
 } from "./definition/errors";
 export type {
+  MessageDefinitionModule,
+  MessageOverrideModule,
+  MessageRegistry,
+  MessageRegistryEntry,
+} from "./definition/registry";
+export type {
   MessageDefinition,
   MessageKey,
   MessageKind,

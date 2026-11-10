@@ -3,8 +3,8 @@
 連絡(システム・管理者 → 宛先 1 人への一方向の連絡: メール・お知らせ・LINE・fork の経路)の仕組みの側。表を持たない(記録・宛先の解決・配信停止はドメイン messaging が持つ)。
 
 - 入口: `@/lib/messaging`(閉じた lib。package.json の exports だけを外から読む)
-- 今あるもの: 連絡の定義の型・上書きの型・上書きの点の宣言(extensionPoints.ts)・定義の読み手の検査・経路の失敗の型
-- これから足すもの: 生成の一覧の器、経路の受け口の型(連絡のドメインの作り直しの続きで足す)
+- 今あるもの: 連絡の定義の型・上書きの型・上書きの点の宣言(extensionPoints.ts)・生成の一覧の型・定義の読み手の検査・経路の失敗の型
+- これから足すもの: 経路の受け口の型(連絡のドメインの作り直しの続きで足す)
 
 ## 連絡の定義(defineMessage)
 
@@ -88,6 +88,15 @@ export const messageOverride = {
 - 定義: `defaultChannels` に `"email"` が無い・`adminEditable` が空でない・`throttle` がある
 - 上書き: `enabled: false`・`"email"` の無い `defaultChannels`・空でない `adminEditable`・`throttle`(`null` で外すのは通す)
 - 守りに関わる値(定義の `required`・`defaultChannels`・`adminEditable`、上書きの `enabled`・`defaultChannels`・`adminEditable`)はリテラルで書く(変数・式は止まる)
+
+## 生成の一覧(src/registry/messageRegistry.ts)
+
+`pnpm generate registry` が全ドメインの `messages/<名前>.ts`(直下。`.override`・`.test` を除く)を字面で読み、鍵 → 項目の一覧を書く(`scripts/structure/registry/alpha/messageRegistry.mjs`)。送る口・管理画面・プレビューはこれを読む(server-only)。
+
+- 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/features/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
+- 項目 `MessageRegistryEntry` = `{ key, definition, override?, view? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`、`view` = `messages/views/<名前>.tsx` の 1 行スイッチ)
+- 定義の無い `views/<名前>.tsx` は止まる。ファイル名は英小文字始まりの camelCase(点や印は付けない)
+- 生成は字面だけを読み、定義を実行しない。欄・`{{鍵}}` などの値は送る口が `validateMessageDefinition` で見る
 
 ## 定義の読み手の検査(validateMessageDefinition)
 

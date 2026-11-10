@@ -25,9 +25,10 @@ const unwrap = (node) => {
 };
 
 /**
- * export const <name> = { … } か <関数>({ … }) の object のリテラル。export が無ければ undefined、形が違えば null
+ * export const <name> = { … } か <関数>({ … }) の object のリテラル。export が無ければ undefined、形が違えば null。
+ * 連絡の生成の一覧(scripts/structure/registry/alpha/messageRegistry.mjs)も定義の key をこれで読む
  */
-function exportedObject(path, text, name) {
+export function exportedObject(path, text, name) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement) || !statement.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
@@ -42,7 +43,7 @@ function exportedObject(path, text, name) {
 }
 
 /** 属性の値: 書いていない = { present: false }、リテラル = { present: true, value }、null = { present: true, value: null }、それ以外 = { present: true, problem } */
-function read(object, key) {
+export function readLiteralProperty(object, key) {
   for (const p of object.properties) {
     if (!(ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))) continue;
     if (!(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) || p.name.text !== key) continue;
@@ -89,9 +90,9 @@ export function checkMessageGuards(repoRoot, points, files) {
       problems.push(`${path}: 連絡の定義は export const ${MESSAGE_EXPORT} = defineMessage({ … }) の形で書く(点 ${point.name}、${point.declaredIn})`);
       continue;
     }
-    const required = read(definition, "required");
-    const defaultChannels = read(definition, "defaultChannels");
-    const adminEditable = read(definition, "adminEditable");
+    const required = readLiteralProperty(definition, "required");
+    const defaultChannels = readLiteralProperty(definition, "defaultChannels");
+    const adminEditable = readLiteralProperty(definition, "adminEditable");
     for (const r of [required, defaultChannels, adminEditable]) if (r.problem) problems.push(`${path}: ${r.problem}(required の守りを字面で確かめるため)`);
     if (required.problem || required.value !== true) continue;
 
@@ -107,9 +108,9 @@ export function checkMessageGuards(repoRoot, points, files) {
     if (!files.includes(overridePath) || !matchesGlob(overridePath, overrideGlob)) continue;
     const override = exportedObject(overridePath, readFileSync(join(repoRoot, overridePath), "utf8"), overrideExport);
     if (!override) continue; // 形の違い・空は ../overrideKeys.mjs と ../orphans.mjs が言う
-    const enabled = read(override, "enabled");
-    const oChannels = read(override, "defaultChannels");
-    const oEditable = read(override, "adminEditable");
+    const enabled = readLiteralProperty(override, "enabled");
+    const oChannels = readLiteralProperty(override, "defaultChannels");
+    const oEditable = readLiteralProperty(override, "adminEditable");
     for (const r of [enabled, oChannels, oEditable]) if (r.problem) problems.push(`${overridePath}: ${r.problem}(上書きの先が required の連絡のため)`);
     if (!enabled.problem && enabled.present && enabled.value !== true) problems.push(`${overridePath}: required の連絡は止められない(enabled: false にしない)`);
     if (!oChannels.problem && oChannels.present && !(isStringArray(oChannels.value) && oChannels.value.includes("email"))) {

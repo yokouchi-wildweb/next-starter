@@ -1,5 +1,5 @@
 // scripts/structure/registry/alpha/index.mjs
-// src/registry の α 4 本(schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains)を走査から丸ごと組み立てる(親 D67)。
+// src/registry の α(schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains・messageRegistry)を走査から丸ごと組み立てる(親 D67)。
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
 
@@ -10,6 +10,9 @@ import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
 import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
+import { MESSAGE_REGISTRY_FILE, renderMessageRegistry } from "./messageRegistry.mjs";
+
+export { MESSAGE_REGISTRY_FILE } from "./messageRegistry.mjs";
 
 export const SCHEMA_REGISTRY_FILE = "src/registry/schemaRegistry.ts";
 export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts";
@@ -152,6 +155,7 @@ function renderStoragePurposeRegistry(repoRoot) {
 export function buildAlphaRegistries(repoRoot) {
   const { domains, problems: domainProblems } = readDomains(repoRoot);
   const schema = renderSchemaRegistry(repoRoot);
+  const messages = renderMessageRegistry(repoRoot);
   return {
     outputs: {
       [SCHEMA_REGISTRY_FILE]: schema.text,
@@ -159,8 +163,9 @@ export function buildAlphaRegistries(repoRoot) {
       ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
       [STORAGE_PURPOSE_REGISTRY_FILE]: renderStoragePurposeRegistry(repoRoot),
       [ADMIN_DOMAINS_FILE]: renderAdminDomains(repoRoot, domains),
+      [MESSAGE_REGISTRY_FILE]: messages.text,
     },
-    problems: [...domainProblems, ...schema.problems],
+    problems: [...domainProblems, ...schema.problems, ...messages.problems],
   };
 }
 
