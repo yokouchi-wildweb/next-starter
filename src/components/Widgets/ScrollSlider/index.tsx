@@ -18,7 +18,7 @@ import {
   CarouselContent,
   CarouselItem,
   type CarouselApi,
-} from "@/components/_shadcn/carousel"
+} from "@/components/Primitives/Carousel"
 import { cn } from "@/lib/cn"
 import { SliderArrow } from "../_shared/SliderArrow"
 import { SliderDots } from "../_shared/SliderDots"

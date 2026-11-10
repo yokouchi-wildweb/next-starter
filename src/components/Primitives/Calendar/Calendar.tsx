@@ -1,4 +1,4 @@
-// src/components/_shadcn/calendar.tsx
+// src/components/Primitives/Calendar/Calendar.tsx
 //
 // shadcn/ui 準拠の Calendar 素体（react-day-picker v9）。
 // プロジェクト専用の挙動は src/components/Overlays/Calendar/Calendar.tsx で上書きする。

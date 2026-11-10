@@ -2,7 +2,7 @@
 
 import { Link } from "../Link"
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/_shadcn/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/Primitives/Tabs"
 import { Flex } from "@/components/Layout/Flex"
 import { Span } from "@/components/TextBlocks/Span"
 import { cn } from "@/lib/cn"
