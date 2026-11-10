@@ -13,7 +13,7 @@ type UseInViewOptions = {
   rootMargin?: string;
   /** true の場合、最初の交差で監視を停止し isInView を true に固定する。 */
   once?: boolean;
-  /** false の場合、監視を無効化する。デフォルト: true。 */
+  /** false の場合、監視を無効化する(見えている状態は false / entry は null に戻る)。デフォルト: true。 */
   enabled?: boolean;
 };
 
@@ -79,7 +79,14 @@ export function useInView(options: UseInViewOptions = {}): UseInViewResult {
     );
 
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      // 見張りをやめたら(ref が null / 別の要素・enabled: false・オプションの変更)見えている状態を戻す。
+      // 古い true を読ませない。次の観測は observe 直後のコールバックで入り直す。once で固定した true はそのまま
+      if (frozenRef.current) return;
+      setIsInView(false);
+      setEntry(null);
+    };
   }, [node, enabled, threshold, root, rootMargin, once]);
 
   return { ref, isInView, entry };

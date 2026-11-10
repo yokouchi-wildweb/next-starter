@@ -407,3 +407,4 @@
 - id:20261109-230221-phone-number-input | severity:info | checkpoint:config-phone-number-input
 - id:20261110-094112-rule-default-explicit | severity:breaking | checkpoint:config-rule-default-explicit
 - id:20261110-100118-lib-config-tests-fork-values | severity:info | checkpoint:lib-config-tests-fork-values | fixes:20261109-002053-lib-drizzle-pool-config, 20261108-205554-http-default-timeout | resolves:20261110-094607-lib-config-tests-fork-override-independent | pick:-
+- id:20261110-101132-use-in-view-reset | severity:info | checkpoint:use-in-view-reset | resolves:20261108-130357-use-in-view-reset-on-unobserve
