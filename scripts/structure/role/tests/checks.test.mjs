@@ -10,6 +10,7 @@ import { orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "../ch
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "../checks/profile.mjs";
 import { profileRelationIssues } from "../checks/relations.mjs";
 import { roleFolderIssues, roleIssues } from "../checks/role.mjs";
+import { readForkIdentity } from "../../../../src/lib/forkOwnership/forkIds.mjs";
 
 const role = (extra = {}) => ({ id: "reviewer", label: "審査", category: "user", hasProfile: true, ...extra });
 
@@ -136,12 +137,16 @@ test("置き場: coreRoles/ は上流の 3 つだけ・欠けは止める、role
   assert.match(joined(roleFolderIssues({ coreFileNames: core, addedFileNames: ["user.role.json"] })), /\[roles\/user\.role\.json\] core ロールと同じ ID/);
 });
 
-test("実リポジトリ: core 3 ロールの値は移す前と同じ、一覧の並び（= DB の enum user_role の順）は変えない", () => {
+test("実リポジトリ: core 3 ロールの値は移す前と同じ、一覧の並び（= DB の enum user_role の順）は変えない(並びは Tier1 だけ)", (t) => {
   const repo = path.resolve(import.meta.dirname, "../../../..");
   const read = (id) => JSON.parse(fs.readFileSync(path.join(repo, "src/features/core/user/coreRoles", `${id}.role.json`), "utf8"));
   assert.deepEqual(read("admin"), { id: "admin", label: "管理者", category: "admin", description: "システム全体を管理できる", hasProfile: false, enabled: true });
   assert.deepEqual(read("user"), { id: "user", label: "一般", category: "user", description: "一般ユーザー", hasProfile: false, enabled: true });
   assert.deepEqual(read("debugger"), { id: "debugger", label: "デバッガー", category: "user", description: "メンテナンスモードをバイパスしてユーザーアプリを使用可能", hasProfile: false, enabled: true });
+  if (!readForkIdentity(repo).isTier1) {
+    t.skip("ロールの一覧の並びの検査（Tier1 だけ。fork の並びは自分の DB の enum user_role に従う）");
+    return;
+  }
   const list = fs.readFileSync(path.join(repo, "src/features/core/user/extensions/roles.ts"), "utf8");
   assert.deepEqual([...list.matchAll(/^ {2}(\w+)Role as RoleConfig,$/gm)].map((m) => m[1]), ["admin", "user", "editor", "debugger", "contributor"]);
 });

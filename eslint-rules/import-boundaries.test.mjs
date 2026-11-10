@@ -21,6 +21,7 @@ import plugin, {
   readClosablePatterns,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
+import { readForkIdentity } from "../src/lib/forkOwnership/forkIds.mjs";
 
 const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
 const repoRoot = path.resolve(import.meta.dirname, "..");
@@ -362,9 +363,10 @@ test("readClosablePatterns: 実リポの規則から字面のパターンを読�
   assert.equal(closablePatternOf("//wallet", patterns), null);
 });
 
-test("config: link-via-shelf は Tier1 で error(テストは対象外)", async () => {
+test("config: link-via-shelf は Tier1 で error、fork で warn(テストは対象外)", async () => {
   const RAW = `import Link from "next/link";\nexport const x = Link;\n`;
-  assert.deepEqual(await lintAt("src/app/foo/_components/Part.tsx", RAW), ["import-boundaries/link-via-shelf:2"]);
+  const severity = readForkIdentity(repoRoot).isTier1 ? 2 : 1;
+  assert.deepEqual(await lintAt("src/app/foo/_components/Part.tsx", RAW), [`import-boundaries/link-via-shelf:${severity}`]);
   assert.deepEqual(await lintAt("src/app/foo/_components/Part.test.tsx", RAW), []);
 });
 

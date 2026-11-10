@@ -10,6 +10,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 
 import { confirmProduction, type GuardIO, parseGuardFlags, resolveTarget, stageOfFileName } from "./index";
+import { roomWillDeploy } from "../../operations/deploy/lib";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
 const dirs: string[] = [];
@@ -125,7 +126,7 @@ test("入口の一覧: 書く・読む入口は guardEntry、prepare の利用�
   for (const rel of [...WRITE_ENTRIES, ...READ_ENTRIES, ...PREPARE_USERS, ...DEPLOY_ENTRIES]) assert.doesNotMatch(read(rel), /from ["']dotenv["']/, rel);
 });
 
-test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は --confirm が無ければ何も打たずに拒否、付ければ vercel --prod に進む(偽の vercel)", () => {
+test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は --confirm が無ければ何も打たずに拒否、付ければ vercel --prod に進む(偽の vercel。進む側はルームが無効のときだけ)", (t) => {
   const bin = mkdtempSync(path.join(tmpdir(), "fake-vercel-"));
   dirs.push(bin);
   const log = path.join(bin, "calls.log");
@@ -143,6 +144,11 @@ test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は --
   assert.match(refused.stderr, /非対話では --confirm=production/);
   assert.doesNotMatch(refused.stdout, /pnpm check cron|vercel --prod/);
   assert.equal(existsSync(log), false, "vercel は一度も呼ばれない");
+  if (roomWillDeploy()) {
+    // ルームを有効にした fork では Worker のデプロイ(wrangler、偽物なし)が vercel より先に走り、本物の Cloudflare に触れる
+    t.skip("--confirm=production で進む側（ルームの Worker のデプロイが先に走る設定では確かめない。拒否する側は確かめた）");
+    return;
+  }
   const allowed = run(["--confirm=production"]);
   assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr);
   assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), ["--version", "--prod"], "--confirm は vercel に渡さない");

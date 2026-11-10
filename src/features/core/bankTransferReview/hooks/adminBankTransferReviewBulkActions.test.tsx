@@ -30,9 +30,14 @@ before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });
 
-test("受け口: 上流の既定の項目は sendEmail だけ", () => {
-  assert.deepEqual(Object.keys(adminBulkActions), ["sendEmail"]);
+test("受け口: 上流の既定の項目 sendEmail がある(order 100)。上流の項目が sendEmail だけなのは Tier1 で確かめる", async () => {
   assert.equal(adminBulkActions.sendEmail.order, 100);
+  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  const { join } = await import("node:path");
+  // fork は受け口に自分の項目を足せる(notice admin-screen-hooks の手順 3)ので、一覧が sendEmail だけなのは Tier1 だけの前提
+  if (readForkIdentity(join(__dirname, "../../../../..")).isTier1) {
+    assert.deepEqual(Object.keys(adminBulkActions), ["sendEmail"]);
+  }
 });
 
 test("受け口: override で enabled: false の既定は出ず、fork の項目は order で並ぶ", () => {

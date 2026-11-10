@@ -127,8 +127,16 @@ test("外枠(AdminLayout)は管理の表を共通の読み手に渡し、当た�
   assert.match(render(createElement(AdminLayout, null, "CHILD")), /data-frame-root="">/);
 });
 
-test("上流は管理の枠の宣言を持たない(表は空)。AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) にある", () => {
+test("上流は管理の枠の宣言を持たない(表は空。Tier1 だけ: fork は frame.ts で枠を宣言してよい)", async (t) => {
+  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  if (!readForkIdentity(repo).isTier1) {
+    t.skip("上流の枠の表が空であることの検査（Tier1 だけ。fork は自分の frame.ts の宣言を持つ）");
+    return;
+  }
   assert.match(read("src/app/admin/_layout/extensions/frameTable.ts"), /export const frameTable = \[\] as const satisfies FrameTable;/);
+});
+
+test("AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) にある", () => {
   assert.equal(read("src/app/admin/_layout/AdminPage.tsx").includes("fill?:"), false);
   assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper'));
 });
