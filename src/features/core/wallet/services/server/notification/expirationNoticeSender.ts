@@ -7,6 +7,7 @@
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { isDomainError } from "@/lib/errors";
+import { replaceVariables } from "@/lib/structuredDocument/shared";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { messagingService } from "@/features/core/messaging/services/server/messagingService";
 import type { MessagingSource } from "@/features/core/messaging/constants/sources";
@@ -84,9 +85,12 @@ export class ExpirationNoticeStopError extends Error {
   }
 }
 
-/** copy のプレースホルダ {{name}} を差し込む。未定義の名前はそのまま残す */
+/**
+ * copy のプレースホルダ {{name}} を差し込む。未定義の名前はそのまま残す。
+ * 書式は lib/structuredDocument の差し込み 1 本(replaceVariables)に任せる
+ */
 export function renderNoticeText(template: string, vars: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, name: string) => vars[name] ?? match);
+  return replaceVariables(template, vars);
 }
 
 async function sendOne(

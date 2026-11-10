@@ -860,7 +860,7 @@ expiration: {
 - `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
 - `channels`: `"email"` / `"inApp"` のどちらか、または両方。段ごと・通知ごとに選べる
 - **文言の編集**: 既定の文面は `config.ts` の `preExpiryNoticeCopy` / `expiredNoticeCopy`(上書きで同じ鍵を書けば変わる)。
-  `{{currencyLabel}}` などのプレースホルダが送信時に差し込まれる（使える名前は `config.ts` のコメント参照）。
+  `{{currencyLabel}}` などのプレースホルダが送信時に差し込まれる（使える名前は `config.ts` のコメント参照。書式は lib/structuredDocument の差し込み 1 本: 名前は英数字と _、知らない名前はそのまま残る）。
   段ごと・通貨ごとに文面を変えたい場合は、その段の `copy` に文字列を直に書く
 - 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
