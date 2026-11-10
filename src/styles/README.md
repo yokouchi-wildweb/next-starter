@@ -70,7 +70,7 @@
 
 - 原則: **className を渡せない所**(枠の部位・部品の内側)にだけ付ける。className を渡せる所は className とバリアントで足りる
 - 便宜上、className も data-slot も持つ要素がある。そこでは**常に data-slot(fork の CSS)が勝つ**(無レイヤーだから)。上流の画面がその要素に className で書いた値も、fork の data-slot の規則が上書きする
-- 両方を持つ要素の一覧(今): `main`(Layout/Main)・`page-title`(TextBlocks/PageTitle の h1)・`sec-title`(TextBlocks/SecTitle)・`admin-sec-title`(管理画面の SecTitle)
+- 両方を持つ要素の一覧(今): `main`(Layout/Main)・`page-title`(TextBlocks/PageTitle の h1)・`sec-title`(TextBlocks/SecTitle)・`admin-page-title`(管理のページの題の h1、`src/app/admin/_layout/AdminPageTitle.tsx`)・`admin-sec-title`(管理画面の SecTitle)。`user-page-title`(UserPageTitle の外側の header)は呼び手の className を受けない(className は中の h1 へ)ので入らない
 - この一覧に足す条件(3 つすべて): className を渡せる要素である / fork がサイト全体で揃えたい実例がある / バリアントの上書きの口では受けられない
 - 印の名前 = その要素を描く部品(または部位)の名前の kebab(`popover-content`・`header-shell`)。印の一覧は各部品・枠の README(枠 = `src/app/(user)/_layout/README.md` と `src/app/admin/_layout/README.md`)。一覧とコードの一致は印の一覧の検査で確かめる。印を消す・名前を変えるのは notice
 

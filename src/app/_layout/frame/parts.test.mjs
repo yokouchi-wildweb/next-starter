@@ -27,6 +27,16 @@ test("一覧: 31 名・重なりなし・kebab-case・管理の枠は admin-", (
   }
 });
 
+test("見出しの印: 5 つとも source(印を描く部品のファイル)があり、そのファイルが名前の字面を持つ(描画の照合は src/components/TextBlocks/headingSlots.test.tsx)", () => {
+  const headings = FRAME_SLOTS.filter((s) => s.area === "heading");
+  assert.deepEqual(headings.map((s) => s.name), ["user-page-title", "page-title", "admin-page-title", "sec-title", "admin-sec-title"]);
+  for (const s of headings) {
+    assert.ok(s.source, `${s.name}: source が無い`);
+    assert.ok(read(s.source).includes(`"${s.name}"`), `${s.name}: ${s.source} に名前が無い`);
+  }
+  for (const s of FRAME_SLOTS.filter((x) => x.area !== "heading")) assert.equal(s.source, undefined, `${s.name}: source は見出しだけ`);
+});
+
 test("隠せる部位: 利用者の 4 つ(D90)と管理の 3 つ、宣言のキーは接頭辞を除いた camelCase", () => {
   assert.deepEqual(hideableParts("user"), [
     { key: "header", slot: "header", hideSlots: ["header"] },

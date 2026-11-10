@@ -93,7 +93,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 
 ## data-slot の一覧
 
-管理の枠の部位に付ける `data-slot`(余白の議会の一覧の管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。今の id(`#header`・`#footer`)と `data-admin-main-wrapper` は今どおり残す(ヘッダーの題・中央・右の位置に id は無い)。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
+管理の枠の部位に付ける `data-slot`(余白の議会の一覧の管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)と、この枠の部品が描く見出しの印 `admin-page-title`(一覧の見出しのうち source がこのフォルダのもの)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。今の id(`#header`・`#footer`)と `data-admin-main-wrapper` は今どおり残す(ヘッダーの題・中央・右の位置に id は無い)。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
 
 - `admin-app-container` — AdminLayout の外枠(枠の根 `data-frame-root`)
 - `admin-header` — AdminHeader(AdminPage の行)の `<header id="header">`
@@ -103,6 +103,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 - `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ・SP の開閉ボタンの包み(AdminProtectedLayout)。開閉ボタンは Form/Button が自分の `data-slot="button"` を持つので上書きせず、箱を作らない包み(`display: contents`)が印を持つ。ボタンの `id="admin-sidebar-toggle"` はサイドバーを差し替えた fork 向けの一時の橋渡し(frame.css)
 - `admin-main` — ResizableArea の本文の親 `[data-admin-main-wrapper]`
 - `admin-footer` — (protected) の Footer の `<footer id="footer">`
+- `admin-page-title` — AdminPageTitle.tsx のページの題の h1(AdminPageTitleHeading、AdminPage の title の本文側 AdminPageTitleBody)。TextBlocks/PageTitle に `slot="admin-page-title"` を渡して付ける(照合はその字面と `src/components/TextBlocks/headingSlots.test.tsx` の描画)。sm 以上の `sm:sr-only` でも印は残る。ヘッダーの圧縮の題 AdminPageTitleCompact には付けない(見出しではない飾りの文字)。消す・名前を変えるのは notice
 
 ## store
 

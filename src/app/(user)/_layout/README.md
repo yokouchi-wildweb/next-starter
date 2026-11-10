@@ -126,7 +126,7 @@ export const frame = {
 
 ## data-slot の一覧
 
-利用者の枠の部位と Main に付ける `data-slot`(余白の議会の一覧の利用者の枠 15 名と Main 3 名 = `src/app/_layout/frame/parts.mjs` の利用者の枠と Main)。fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。今の id と `data-component`(Main)、外枠の `data-user-app-container` は今どおり残す。見出しの名前(`user-page-title` など)はまだ付けない。一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
+利用者の枠の部位と Main に付ける `data-slot`(余白の議会の一覧の利用者の枠 15 名と Main 3 名 = `src/app/_layout/frame/parts.mjs` の利用者の枠と Main)と、この枠の部品が描く見出しの印 `user-page-title`(一覧の見出しのうち source がこのフォルダのもの)。fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。今の id と `data-component`(Main)、外枠の `data-user-app-container` は今どおり残す。ほかの見出しの印(`page-title`・`sec-title` など)は TextBlocks の部品が付ける(`src/components/TextBlocks/README.md`)。一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
 
 - `app-container` — UserLayout の外枠 `#user-app-container`(枠の根 `data-frame-root`)
 - `app-banner` — Banner の `#app-banner`
@@ -146,6 +146,7 @@ export const frame = {
 - `main` — Main(`src/components/Layout/Main.tsx`、両方の枠)の `<main id="main">`
 - `main-layout` — Main の `#main-layout`(`data-component="Main:layout"`)
 - `main-container` — Main の `#main-container`(`data-component="Main:container"`)
+- `user-page-title` — UserPageTitle(`PageTitle.tsx`)の外側の `<header id="page-title">`(中の h1 は `page-title`)。`srOnly` の時は外側を描かないので付かない(h1 の `page-title` は残る)。id `page-title` も今どおり残す。消す・名前を変えるのは notice
 
 ---
 

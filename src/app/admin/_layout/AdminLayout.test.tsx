@@ -203,8 +203,8 @@ test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM
   assert.ok(!BEFORE_PAGE.includes("data-admin-fill"));
 });
 
-/** title="T" の本文側(h1 1 つ。SP で見え、PC は sm:sr-only)= 前の PageTitle の本文の大見出しの見た目 + sm:sr-only */
-const TITLE_BODY = BEFORE_TITLE_PAGE.replace("mb-8 sm:text-3xl", "mb-8 sm:text-3xl sm:sr-only");
+/** title="T" の本文側(h1 1 つ。SP で見え、PC は sm:sr-only)= 前の PageTitle の本文の大見出しの見た目 + sm:sr-only + 見出しの印 admin-page-title */
+const TITLE_BODY = BEFORE_TITLE_PAGE.replace("mb-8 sm:text-3xl", "mb-8 sm:text-3xl sm:sr-only").replace('">T</h1>', '" data-slot="admin-page-title">T</h1>');
 /** title="T" のヘッダー側 = 前の PageTitle の圧縮の題と同じクラスの飾りの文字(h1 ではない、aria-hidden) */
 const TITLE_COMPACT = `<p title="T" aria-hidden="true" class="relative min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`;
 
@@ -214,7 +214,7 @@ test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は�
   assert.ok(html.includes(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
   assert.ok(html.includes(`<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
   // 見た目の元: 前の PageTitle placement="header" の本文側(sm:hidden)と同じクラスに、PC で消す手段だけ sm:sr-only に替えた物
-  assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden"), BEFORE_TITLE_HEADER);
+  assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden").replace(' data-slot="admin-page-title"', ""), BEFORE_TITLE_HEADER);
 });
 
 test("AdminPage の center / actions は行の中央・右の位置(data-slot admin-header-center / -right の要素)に描く", () => {

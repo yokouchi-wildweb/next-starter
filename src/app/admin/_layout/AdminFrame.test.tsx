@@ -55,13 +55,22 @@ const sourcesOf = (dir: string): string[] =>
   });
 const FRAME_FILES = FRAME_DIRS.flatMap(sourcesOf);
 
-/** ソースの要素に付く data-slot="<名前>"(名前 → 付いているファイル) */
+/** 見出しの印のうち、source(印を描く部品のファイル)が管理の枠の中にあるもの(admin-page-title) */
+const headingSlotsInFrame = () => parts.FRAME_SLOTS.filter((s) => s.area === "heading" && s.source !== undefined && FRAME_FILES.includes(s.source));
+
+/**
+ * ソースの要素に付く data-slot="<名前>"(名前 → 付いているファイル)。見出しの印は下の部品に slot="<名前>" で渡すので、
+ * source のファイルにその字面があれば付いているとみなす(描画との照合は src/components/TextBlocks/headingSlots.test.tsx)
+ */
 const slotsInSources = () => {
   const found = new Map<string, string[]>();
   for (const file of FRAME_FILES) {
     for (const m of read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)) {
       found.set(m[1], [...(found.get(m[1]) ?? []), relative("src/app/admin", file)]);
     }
+  }
+  for (const slot of headingSlotsInFrame()) {
+    if (read(slot.source as string).includes(`slot="${slot.name}"`)) found.set(slot.name, [...(found.get(slot.name) ?? []), relative("src/app/admin", slot.source as string)]);
   }
   return found;
 };
@@ -79,7 +88,7 @@ test("README の data-slot の一覧 = 管理の枠の部品の要素の data-sl
   const found = slotsInSources();
   assert.deepEqual([...listed].sort(), [...found.keys()].sort(), `README ${listed.join(",")} / 要素 ${[...found.keys()].join(",")}`);
   assert.equal(new Set(listed).size, listed.length, "README の一覧に重複");
-  const adminSlots = parts.FRAME_SLOTS.filter((s) => s.area === "admin").map((s) => s.name);
+  const adminSlots = [...parts.FRAME_SLOTS.filter((s) => s.area === "admin"), ...headingSlotsInFrame()].map((s) => s.name);
   assert.deepEqual([...listed].sort(), [...adminSlots].sort(), "部位の一覧(parts.mjs)の管理の枠と一致しない");
   for (const { slot } of parts.hideableParts("admin")) assert.ok(found.has(slot), `隠せる部位 ${slot} の要素が無い`);
 });
