@@ -12,9 +12,11 @@ export const rootLayoutFrame = { frame: "root" } as const;
 
 export type RootLayoutConfig = {
   /**
-   * root の viewport(src/app/layout.tsx の export const viewport)。省略した項目は Next の既定。
+   * root の viewport(src/app/layout.tsx の export const viewport)。下の既定にも無い項目は Next の既定。
    * viewportFit "cover" = 画面の端(切り欠きの下)まで描く。枠の部品は --app-safe-area-*(src/styles/core/config.css)で端を避ける。
    * 枠の外で端に固定する要素も同じ変数で避ける(env() は直接書かない)
+   * 上書きは深い合成: 上書きに書かないキーは下の既定が残る(width・initialScale だけを書いても viewportFit "cover" は残る)。
+   * 端まで描かない(切り欠きの内側に収める)なら上書きに viewportFit: "auto" を明示する
    */
   viewport: Viewport;
 };

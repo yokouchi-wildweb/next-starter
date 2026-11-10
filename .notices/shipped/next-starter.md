@@ -412,3 +412,4 @@
 - id:20261110-100112-tier1-only-test-assertions | severity:info | checkpoint:tier1-only-test-assertions | resolves:20261108-165447-tier1-only-test-assertions-in-forks
 - id:20261110-101020-gate-client-test-fork-menu | severity:info | checkpoint:gate-client-test-fork-menu | resolves:20261108-092937-gate-client-test-fork-menu
 - id:20261110-101356-analytics-exclusion-test-fork-items | severity:info | checkpoint:analytics-exclusion-test-fork-items | resolves:20261108-101254-analytics-exclusion-test-fork-items
+- id:20261110-121312-viewport-fit-caveat | severity:info | checkpoint:config-viewport-fit-caveat | fixes:20261108-202604-business-home | resolves:20261110-100046-viewport-fit-notice-caveat | pick:clean
