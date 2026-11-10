@@ -16,7 +16,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 
 | 型 | 上流が置く物 | fork が書く物 | 見分け | who の type |
 |---|---|---|---|---|
-| 1 丸ごと替える(コード) | `<名前>.default.ts(x)` + 隣の素の `<名前>.ts(x)`(1 行スイッチ)/ 画面: `page.tsx`・枠の `layout.tsx` がスイッチ、既定は `_screen/`・`_layout/` | `<名前>.replace.ts(x)` にしてスイッチを向け替える / 画面: `<ルート>/_components/` に `<X>Screen.tsx`(と fork の部品)を置き、`page.tsx`・`layout.tsx` のスイッチを向け替える | 隣に `.default` がある・ルートの `page.tsx` / 枠の `layout.tsx` | `1` |
+| 1 丸ごと替える(コード) | `<名前>.default.ts(x)` + 隣の素の `<名前>.ts(x)`(1 行スイッチ)/ 画面: `page.tsx` がスイッチ、既定は `_screen/` / 枠: `layout.tsx` がスイッチ、既定は `_layout/<Layout>` | `<名前>.replace.ts(x)` にしてスイッチを向け替える / 画面: `<ルート>/_components/` に `<X>Screen.tsx`(と fork の部品)を置き、`page.tsx` を向け替える / 枠: 既定の隣に `_layout/<Layout>.replace.tsx` を置き、`layout.tsx` を向け替える(fork の枠の部品はルートの `_components/` に印なしの名前) | 隣に `.default` がある・ルートの `page.tsx` / 枠の `layout.tsx` | `1` |
 | 2 一部を重ねる(データ) | 素の実体 + 重ねてよい鍵の宣言(`extensionPoints.ts` の `overrideOf` / `overrides`)/ 枠: ルートを作ったリポが隣に `frame.ts` | `<対象>.override.ts`(宣言の鍵だけ)/ 枠: 下のリポは上流の `frame.ts` の有無に関わらず `frame.override.ts`(キー `layout`・`page` は隣にある範囲だけ) | 上位の `extensionPoints.ts` に上書きの宣言がある・src/app のルート | `2` |
 | 3 足す | 宣言された受け口のフォルダ(`extensionPoints.ts` の `dir`) | そのフォルダに素の新しい名前の項目 | 上位の `extensionPoints.ts` に受け口の宣言がある | `3` |
 | 4 置き場で分ける(値) | CSS: `src/styles/core/<名前>.css` / 設定: 持ち主の `config.ts`(`config.ui.ts`) | CSS: 直下の `src/styles/<名前>.css` / 設定: `src/config/{lib,features,layout,proxies}/<名前>.config.ts` に変えたいキーだけ | 宣言の `placement` に当たる・地区の `config.ts` | `4` |
@@ -102,7 +102,7 @@ export const extensionPoints = {
 - 検査(`pnpm check extensions`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 孤立した `<名前>.replace` は下の孤立の検査
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
 - `.default` は作ったリポが出す既定の共通の印(D171)で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`: 枠の宣言は `.default` を使わず frames.mjs が失敗にするが、スイッチの既定と取り違えさせないため名乗る。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
-- page.tsx・枠の layout.tsx の 1 行スイッチ(`_screen` / `_components` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test src/lib/screens/screens.test.mjs`)
+- page.tsx の 1 行スイッチ(`_screen` / `_components` を指す)・枠の layout.tsx の 1 行スイッチ(`_layout/<Layout>` / `_layout/<Layout>.replace` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test src/lib/screens/screens.test.mjs`)
 
 ## override(既定を変える隣のファイル)
 

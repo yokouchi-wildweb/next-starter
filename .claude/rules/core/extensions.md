@@ -24,7 +24,7 @@ want → means:
 - stop a page → close its feature (pnpm ops features set \<name\> off) | stop a role → enabled:false | new feature → own route + domain
 
 change_types (the only 4 ways to change an upstream thing | marks = .default / .replace / .override, upstream files are plain | table → scripts/structure/extensions/README.md「4 つの型」):
-- 1 whole (code): \<name\>.default + plain 1-line switch → fork \<name\>.replace, repoint the switch | screens: page.tsx / frame layout.tsx switch, default _screen/ _layout/ → fork _components/\<X\>Screen.tsx
+- 1 whole (code): \<name\>.default + plain 1-line switch → fork \<name\>.replace, repoint the switch | screens: page.tsx switch, default _screen/ → fork _components/\<X\>Screen.tsx | frame: layout.tsx switch → fork _layout/\<Layout\>.replace.tsx beside the default (fork frame parts → route's _components/, plain names)
 - 2 overlay (data): plain target + declared keys (overrideOf / overrides) → fork \<target\>.override.ts, declared keys only | frame: creator frame.ts → lower repo frame.override.ts
 - 3 add: plain new name in a declared receptacle folder | 4 placement (values): src/styles/core/\<name\>.css → src/styles/\<name\>.css, owner config.ts → src/config/{lib,features,layout,proxies}/\<name\>.config.ts
 - none → /order \<direct parent\> | no means to overlay part of code → upstream exposes it by value / receptacle / split
