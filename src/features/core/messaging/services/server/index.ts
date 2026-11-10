@@ -7,6 +7,8 @@ export { send } from "./send";
 export { bulkSend } from "./bulkSend";
 export { sendMessage, sendMessageToMany } from "./sendMessage";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
+export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
+export type { MessageEndpointDto, RegisterMessageEndpointInput } from "./endpoints";
 export type { ContinueSendingResult, RetentionResult, SendSweepResult } from "./sweep";
 export type {
   MessageAudienceSpec,
