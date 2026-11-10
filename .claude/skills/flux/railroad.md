@@ -21,6 +21,7 @@ what changes from FULL FLOW:
    - one option you may propose = provisional (`仮線`): take one side now, save the other side's hunks as a patch, the Ganger of the chunk holding that segment ports it
    - the patch: `<provisional_dir>/<checkpoint>.<n>.diff` + a 1-line intent in `<checkpoint>.<n>.md` (PROVISIONAL below)
    - `moved:` porting (moved.md) = application work: save the diff as moved.md step 2 says into `<provisional_dir>/`, do not port
+   - an ancestor's shipped index `.notices/shipped/<ancestor>.md` → the upstream side, as SKILL.md step 5c says (a row a hotfix pick added by hand drops; the check accepts it)
 4. segment 0 (in-tree unapplied notices, nothing to merge) → `git commit --allow-empty`, so every notice has its intake commit
 5. never merge main into the track: it carries the upstream's segments only
 6. skip steps 6-7 (no application, no checks beyond the merge's own, no ledger, no ownership check, no push)
