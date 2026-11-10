@@ -26,6 +26,4 @@ export const bulkAction: UserAdminBulkActionItem = {
       showClearAll: true,
     },
   ),
-  // ユーザータグの機能(門番の規則 userTag)が閉なら出さない
-  feature: "userTag",
 };

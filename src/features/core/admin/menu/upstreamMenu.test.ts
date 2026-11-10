@@ -79,7 +79,7 @@ upstreamTest("門番の規則を全部閉じた admin: 規則の無い住所の�
   const closedPatterns = rules.flatMap((rule) => rule.pathPatterns);
   const menu = buildAdminMenu(input((href) => closedPatterns.some((pattern) => matchesPath(href, pattern))));
   assert.deepEqual(shape(menu), [
-    ["ユーザー管理", ["登録ユーザー", "システム管理者"]],
+    ["ユーザー管理", ["登録ユーザー", "システム管理者", "ユーザータグ"]],
     ["システム", ["基本設定", "メンテナンス"]],
   ]);
 });

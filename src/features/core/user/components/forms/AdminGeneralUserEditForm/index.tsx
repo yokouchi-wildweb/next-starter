@@ -15,7 +15,6 @@ import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
 import { TAG_COLOR_STYLES } from "@/features/core/userTag/constants/colors";
-import { useGate } from "@/featureGate/client";
 import type { User } from "@/features/user/entities";
 import {
   RoleProfileFields,
@@ -45,8 +44,8 @@ export default function GeneralUserEditForm({
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateUser();
-  const enableUserTag = useGate().enabled("userTag");
-  const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
+  // ユーザータグは常時開の基盤(門番の規則を持たない、設定 D64・D115)
+  const { data: userTags = [] } = useUserTagList();
   const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 
   const submit = async (values: FormValues) => {
@@ -80,7 +79,7 @@ export default function GeneralUserEditForm({
       pending={isMutating}
       fieldSpace={6}
     >
-      {enableUserTag && tagOptions.length > 0 && (
+      {tagOptions.length > 0 && (
         <ControlledField
           control={control}
           name="user_tag_ids"

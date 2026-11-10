@@ -3,9 +3,7 @@
 
 import type { GatedCronTask, GatedDomain, GatedSettingSection, GeneratedFeatureRule } from "@/featureGate";
 
-import { rule as rules_adminChatRooms } from "@/featureGate/rules/adminChatRooms";
 import { rule as rules_adminDemoUsers } from "@/featureGate/rules/adminDemoUsers";
-import { rule as rules_adminNotificationTemplates } from "@/featureGate/rules/adminNotificationTemplates";
 import { rule as rules_analytics } from "@/featureGate/rules/analytics";
 import { rule as rules_bankTransferReview } from "@/featureGate/rules/bankTransferReview";
 import { rule as rules_chatRoom } from "@/featureGate/rules/chatRoom";
@@ -43,19 +41,16 @@ import { rule as rules_signup } from "@/featureGate/rules/signup";
 import { rule as rules_userAcquisition } from "@/featureGate/rules/userAcquisition";
 import { rule as rules_userCounter } from "@/featureGate/rules/userCounter";
 import { rule as rules_userLineProfile } from "@/featureGate/rules/userLineProfile";
-import { rule as rules_userTag } from "@/featureGate/rules/userTag";
 import { rule as rules_userXProfile } from "@/featureGate/rules/userXProfile";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminChatRooms" | "adminDemoUsers" | "adminNotificationTemplates" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userTag" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
-  { ...rules_adminChatRooms, name: "adminChatRooms", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["chatRoom"], anyOf: [] },
   { ...rules_adminDemoUsers, name: "adminDemoUsers", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoLogin"], anyOf: [] },
-  { ...rules_adminNotificationTemplates, name: "adminNotificationTemplates", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["notification"], anyOf: [] },
   { ...rules_analytics, name: "analytics", tables: ["user_daily_activities", "analytics_daily_rollups"], domainApiPaths: [], settingPaths: [], cronPaths: ["/api/cron/analytics-rollup-daily"], dependsOn: [], anyOf: [] },
   { ...rules_bankTransferReview, name: "bankTransferReview", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["payment"], anyOf: [] },
   { ...rules_chatRoom, name: "chatRoom", tables: [], domainApiPaths: ["/api/chatRoom"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
@@ -93,7 +88,6 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_userAcquisition, name: "userAcquisition", tables: ["user_acquisitions", "user_acquisition_touches"], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_userCounter, name: "userCounter", tables: ["user_counters", "user_daily_counters"], domainApiPaths: ["/api/userCounter"], settingPaths: [], cronPaths: ["/api/cron/user-daily-counter-prune"], dependsOn: [], anyOf: [] },
   { ...rules_userLineProfile, name: "userLineProfile", tables: ["user_line_profiles"], domainApiPaths: ["/api/userLineProfile"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
-  { ...rules_userTag, name: "userTag", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_userXProfile, name: "userXProfile", tables: ["user_x_profiles"], domainApiPaths: ["/api/userXProfile"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_wallet, name: "wallet", tables: ["wallets", "wallet_lots", "wallet_histories"], domainApiPaths: ["/api/wallet", "/api/walletHistory"], settingPaths: [], cronPaths: ["/api/cron/wallet-expiration-notice", "/api/cron/wallet-expire-lots", "/api/cron/wallet-lots-prune"], dependsOn: [], anyOf: [] },
   { ...rules_walletAnalytics, name: "walletAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics", "wallet"], anyOf: [] },

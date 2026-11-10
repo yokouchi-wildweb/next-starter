@@ -75,7 +75,7 @@ upstreamTest("全部開いた admin: 上流の 6 カテゴリーと行", () => {
 });
 
 upstreamTest("閉じた規則の住所の行は描かず、行の無いカテゴリーも描かない", () => {
-  const menu = withRules({ bankTransferReview: false, notificationBroadcast: false, adminChatRooms: false }, () => shape(menuFor("admin")));
+  const menu = withRules({ bankTransferReview: false, notificationBroadcast: false, chatRoom: false }, () => shape(menuFor("admin")));
   assert.deepEqual(menu, [
     ["marketing", ["notificationTemplates", "coupons"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],

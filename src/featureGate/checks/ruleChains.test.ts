@@ -46,8 +46,7 @@ const CHAINS: { parent: FeatureName; children: FeatureName[]; path: string }[] =
   },
   { parent: "coupon", children: ["referral"], path: "/admin/coupons/invite" },
   { parent: "wallet", children: ["payment", "bankTransferReview"], path: "/admin/bank-transfer-reviews" },
-  { parent: "notification", children: ["notificationBroadcast", "adminNotificationTemplates"], path: "/admin/notification-templates" },
-  { parent: "chatRoom", children: ["adminChatRooms"], path: "/admin/chat-rooms" },
+  { parent: "notification", children: ["notificationBroadcast"], path: "/admin/notifications" },
   { parent: "demoLogin", children: ["adminDemoUsers"], path: "/admin/users/demo" },
   { parent: "wallet", children: ["couponAttributionReward", "walletAnalytics"], path: "/api/me/coupon-attribution-rewards" },
 ];
@@ -119,7 +118,7 @@ test("連鎖: 紹介・休会・退会はマイページに依存しない(L3.2)
     assert.equal(gate.path("/api/auth/pause").open, true);
     assert.deepEqual(closedOf(["mypageInvite", "mypagePause", "mypageWithdraw"]), ["mypageInvite", "mypagePause", "mypageWithdraw"], "画面だけ閉じる");
   });
-  withClosed(["referral", "payment", "notificationBroadcast", "adminChatRooms", "adminDemoUsers", "mypageOther"], () => {
-    assert.deepEqual(closedOf(["coupon", "wallet", "notification", "chatRoom", "demoLogin", "pageMypage"]), []);
+  withClosed(["referral", "payment", "notificationBroadcast", "adminDemoUsers", "mypageOther"], () => {
+    assert.deepEqual(closedOf(["coupon", "wallet", "notification", "demoLogin", "pageMypage"]), []);
   });
 });

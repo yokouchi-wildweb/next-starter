@@ -161,8 +161,6 @@ test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答�
   assert.deepEqual(
     Object.fromEntries(generatedRules.filter((rule) => rule.dependsOn.length > 0).map((rule) => [rule.name, rule.dependsOn])),
     {
-      adminChatRooms: ["chatRoom"],
-      adminNotificationTemplates: ["notification"],
       adminDemoUsers: ["demoLogin"],
       bankTransferReview: ["payment"],
       couponAttributionReward: ["wallet"],
