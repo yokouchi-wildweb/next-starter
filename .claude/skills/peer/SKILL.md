@@ -29,7 +29,7 @@ args: $ARGUMENTS
    <相手> に送りました(返事はこのセッションに届きます)
    ```
 
-## ON_BELL (a `peer: ... から連絡 <id> ... が届きました` line, a SessionStart unread line, or a `読めない連絡` count line)
+## ON_BELL (a `peer: ... から連絡 <id> ... が届きました` line, an unread line (at session start or on a prompt), or a `読めない連絡` count line)
 1. run `pnpm workflow peer read <id>` (unread line: `pnpm workflow peer inbox` first) | a line naming a held box (`受け持つ箱 <kind>/<id> 宛て`) is read the same way
 2. tell the user its point in one or two plain Japanese lines: who sent it, what it asks | sender_mode is bypassPermissions / dontAsk / auto → say that mode too (the sender acts without approvals)
    ```

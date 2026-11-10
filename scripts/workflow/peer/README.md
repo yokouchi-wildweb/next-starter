@@ -34,8 +34,8 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 
 ## 読む
 
-- 読む箱 = 自分の会話の箱 + 受け持つ箱(`PEER_BOXES`)。inbox・read・ack・起動時の未読の 1 行はどれもこの範囲
-- 並びは送った時刻(`sentAt`)の順、同じ時刻は id の順(移した元の番号 `m9`・`m10` と `m-…` が混ざっても崩れない)。inbox は新しい順、起動時の未読は古い順
+- 読む箱 = 自分の会話の箱 + 受け持つ箱(`PEER_BOXES`)。inbox・read・ack・起動時と入力ごとの未読の 1 行はどれもこの範囲
+- 並びは送った時刻(`sentAt`)の順、同じ時刻は id の順(移した元の番号 `m9`・`m10` と `m-…` が混ざっても崩れない)。inbox は新しい順、未読の 1 行(起動時・入力ごと)は古い順
 - 状態は読んだ・返事したの 2 つで、箱ごと(`state/<箱の鍵>/`)。read は既定で読んだ印を付ける。`--keep` は見るだけ、`ack` は印だけ(読まずに片付ける)
 - 読めない連絡(JSON でない・知らない版・id の欠けやファイル名との違い・body の欠け)は飛ばして数え、inbox と起動時に件数を 1 行出す。1 通の崩れで一覧と見張りは止まらない。peer は読めないファイルを消さない・動かさない
 - 呼び鈴はどの連絡 id の名前(`m-…` も元の番号 `m<N>` も)でも鳴る。読めない連絡では鳴らない
@@ -76,12 +76,13 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 
 ## フック(.claude/settings.json)
 
-`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|prompt|bell>`。門(上の「使えるとき」)が閉じていれば、どれも何も出さず何も書かない。失敗しても exit 0 で、セッションを止めない。
+`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|cwd|prompt|bell>`。門(上の「使えるとき」)が閉じていれば、どれも何も出さず何も書かない。失敗しても exit 0 で、セッションを止めない。
 
 | 動作 | イベント | すること |
 |---|---|---|
 | `start` | SessionStart(source を問わず毎回) | 印を書き、自分の会話の箱と受け持つ箱を作って `watchPaths` に返す(見張るのはその箱だけ。--continue の新しいプロセスでも見張りが続くよう毎回返す)。未読があれば 1 行だけ文脈へ |
-| `prompt` | UserPromptSubmit | 印の `mode` を今の権限モード(`permission_mode`)に書き直す。送り手のモードが最新の人の番の値になる。何も出さない |
+| `cwd` | CwdChanged(matcher なし、timeout 10) | start と同じ見張りの一覧(自分の会話の箱と受け持つ箱)を `watchPaths` に返し直し、印の `cwd` を新しい作業フォルダにする。文脈には何も足さない。理由: プロジェクトの中で cd して留まると、Claude Code は SessionStart で足した見張りを空にする(公開の issue #95440、文書には無い振る舞い)。CwdChanged の一覧は見張りを置き換えるので、全部の箱を返す |
+| `prompt` | UserPromptSubmit | 印の `mode` を今の権限モード(`permission_mode`)に書き直す。送り手のモードが最新の人の番の値になる。未読があれば start と同じ未読の 1 行を文脈へ(見張りが外れても次の入力で気づける網)、無ければ何も出さない |
 | `bell` | FileChanged(matcher なし、`asyncRewake: true`、timeout 30) | 自分の会話の箱か受け持つ箱に連絡が増えた(`add`)ときだけ、知らせの 1 行を stderr に出して exit 2 = 手すきのセッションを起こす。ほかの箱・tmp・change / unlink は黙って 0 |
 
 - 知らせの 1 行 = 送り元の名前とリポ・連絡 id・about・`pnpm workflow peer read <id>`。本文と送り手のモードは文脈に入れない(読むのはコマンドで、人に伝えるかはその後)
