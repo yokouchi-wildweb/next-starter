@@ -445,3 +445,4 @@
 - id:20261110-200011-flow-copies-split | severity:info | checkpoint:flow-copies-split | resolves:20261108-193324-remaining-flow-copies-split
 - id:20261110-213606-ship-safe-points | severity:info | checkpoint:ship-safe-points | hotfix:yes
 - id:20261110-143000-frames-move-merge-head | severity:info | checkpoint:frames-move-merge-head | fixes:20261109-175947-shared-shelf-frame-override | resolves:20261110-140016-frame-override-rename-conflict-frames-move | pick:clean
+- id:20261111-051718-quest-skill-caravan-route | severity:info | checkpoint:quest-skill-caravan-route

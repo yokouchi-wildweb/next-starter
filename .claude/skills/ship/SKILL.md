@@ -9,6 +9,7 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
 ## WHEN TO USE
 - the user tells you to commit, push or ship (`コミットして`, `プッシュして`, `出荷して`) | no instruction → never use it (behavior.md: never commit without an instruction)
 - from `/inbox` step 4 (`対応完了`) | the argument `order:<id>` comes with it
+- from `/quest` (`--quick no-push order:<id>`: commit only) and its `caravan.md` departure (`--safe` on commits already made: COMMITTED RANGE below)
 - also in repos without downstream (leaf forks) | whether downstream exists = the one line `downstream: yes|none` of `.claude/rules/project.md` (only reader: `src/lib/forkOwnership/forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
   - `none` → skip steps 3-5 (notice)
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have the declaration added in the same section as `fork_id:` (`pnpm workflow ownership check` is unverified too)
@@ -25,7 +26,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - open, or your own → go on
 1. **fix the range**:
    - `git status --short` and `git diff --cached --name-only` | other sessions may have staged in the same work tree | ship only the files you changed in this conversation (match them against the files touched in the conversation) | any file you cannot tell → STOP
-   - range empty → report only `出荷するものなし` (nothing to ship) and end (no commit, no push)
+   - range empty → HEAD has commits the push target lacks (COMMITTED RANGE below) → ship those | none → report only `出荷するものなし` (nothing to ship) and end (no commit, no push)
    - **never put migrations kept out of git `src/features/**/scripts/migrations/*.local.ts` in the range** (emergency data fixes not sent downstream; one `.gitignore` line) | staged or tracked → STOP (gate ship's `pnpm check local-migrations` fails too; remove with `git rm --cached <path>`; needed downstream too → drop `.local` and make it a normal migration with `notice:`)
    - list deletions and renames: the `D` / `R` lines of `git status --short` and files deleted in the work tree | used by the judgment of step 3 and by `moved:`
    - **check for overlap with other sessions' commits**:
@@ -104,9 +105,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by step 7's tag)
      - exit 1 (a check failed): fix it in your own unpushed commit (amend; align notice and index line) and rerun | the fix is not obvious → STOP
      - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` and go on (push without a tag)
-7. **push** (not with `no-push`): `git push` (with `--quick`: the push of QUICK SHIP below) | failed → never paper over it, report the reason
+7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies (always with `--quick`) | failed → never paper over it, report the reason
    - then **tag the safe point** (`--safe` only, when step 6's `safePoint check` passed on this HEAD): `pnpm workflow notices safePoint tag`
-     - it confirms HEAD = the pushed `origin/<branch>` and HEAD = the sha the check recorded, creates the annotated tag `safe/<own fork_id>/<YYYYMMDD>-<n>` (n = the next free number for that fork_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
+     - it confirms HEAD = the pushed `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default) and HEAD = the sha the check recorded, creates the annotated tag `safe/<own fork_id>/<YYYYMMDD>-<n>` (n = the next free number for that fork_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
      - exit 1 → no tag; write the reason in the report (the push stands; the next `--safe` ship tags its own tip)
      - a middle tier (`downstream: yes`) tags its own repo the same way (same /ship, same tool, its own fork_id in the tag name)
 8. **report** (Japanese):
@@ -131,11 +132,23 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - for a run of small ships where the full checks cost more than they protect | makes no safe point | a run of quick ships is closed by a `--safe` ship (its tip gets the full checks and the tag)
 - runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck / hotfixCheck and full checks, step 7's tag
 - keeps: steps 0, 1, 3-5 (notice judgment and writing), commit
-- ship route (HQ D176; any condition fails → STOP):
-  - only from a linked worktree: `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`
-  - never touch the main checkout and never move its local `main` ref (no exception)
-  - `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies)
-  - push with `git push origin HEAD:main`
+- ship route: WORKTREE ROUTE below, required (not in a linked worktree → STOP)
+
+## WORKTREE ROUTE (HQ D176)
+- applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
+- never touch the main checkout and never move its local `main` ref (no exception)
+- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies; with `--safe` rerun step 6's full checks)
+- push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
+- any condition fails → STOP
+
+## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
+- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. quests' `--quick no-push`, loaded by a caravan): their notices and index lines are in them
+- skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
+- keep:
+  - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` on the unpushed index line) → commit the index change alone: `git commit -m "notices: pick marks" -- .notices/shipped/<fork_id>.md`
+  - a notice in the range → `pnpm check notices`
+  - `--safe` → step 6's full checks on the tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`)
+  - steps 7 and 8 (the report lists the commits shipped)
 
 ## NOTICE COMPOSITION
 1. **get provenance with Bash** (never guess): repo `git remote get-url origin` (none → `(no remote)`) / branch `git rev-parse --abbrev-ref HEAD` / commit `git rev-parse --short HEAD` (goes into the commit about to be made → `- (this commit)`) / id timestamp `date +%Y%m%d-%H%M%S`
