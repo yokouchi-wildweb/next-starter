@@ -106,7 +106,7 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   const plan = planExtensions(ROOT);
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   const names = (owner: string, point: string) => itemsOf(plan, owner, point).map((i: { name: string }) => i.name);
-  assertUpstreamItems(names("src/features/core/user", "cleanupHandlers"), ["purchaseRequest", "wallet"]);
+  assertUpstreamItems(names("src/features/core/user", "cleanupHandlers"), ["messagingEndpoints", "purchaseRequest", "wallet"]);
   assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
   assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), []);
   assertUpstreamItems(names("src/features/core/analytics", "exclusionProviders"), []);

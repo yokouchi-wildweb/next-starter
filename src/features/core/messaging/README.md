@@ -4,7 +4,7 @@
 
 **ユーザー宛の任意メッセージは必ず `messagingService.send` / `bulkSend` を経由する**（CLAUDE.md PROHIBITED）。各呼び出し元が `lib/mail` の `send()` を直接呼ぶと、受信者単位の記録や本文の保存が漏れる（実際に過去に漏れた）。`lib/mail` を直接使ってよいのは、パスワードリセット・メール認証・登録などのシステムテンプレートメールだけ。
 
-UI・API ルートは持たない。送信画面や送信 API は呼び出し側（各ドメインの wrappers、fork の `_components/` など）が用意し、サーバー側からこのサービスを呼ぶ。
+送信の UI・API ルートは持たない（端末の帳簿の `/api/me/messaging/endpoints` だけ持つ）。送信画面や送信 API は呼び出し側（各ドメインの wrappers、fork の `_components/` など）が用意し、サーバー側からこのサービスを呼ぶ。
 
 ---
 
@@ -34,6 +34,7 @@ src/features/core/messaging/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany + 古い send / bulkSend / findExistingIdempotencyKeys）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
     ├── sweep/                   # 送信の掃き出し・続きを送る・保持の掃除（cron messaging-send-sweep / messaging-retention）
+    ├── endpoints/               # 端末の帳簿（本人の宛先の登録・削除・一覧、退会の後片付け）
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -239,6 +240,20 @@ await messagingService.sendMessageToMany(campaign, {
   - 受け取り箱の利用者の API・既読・画面は受け取り箱の指令
 - `line`（`channels/line/`）: 既定は**切**（`config.ts` の `channels.line.enabled`。開ける fork は `src/config/features/messaging.config.ts` に `channels: { line: { enabled: true } }` を書き、LINE の Messaging API の env と機能 `userLineProfile` も開ける）。宛先 = `user_line_profiles.line_user_id`（機能 `userLineProfile` が閉じていれば宛先なし）。`lib/line` の push（テキスト）。状態は lib/line の誤りの文から読む（429・5xx → transient / 他の 4xx → permanent / 応答なし → unknown）。provider の冪等の鍵はまだ送れない
 - 経路の入切: 項目の `enabled: false` は項目が無い経路と同じ扱い（配達の行は `suppressed` + `channel_off`、送らない）。門の機能ではない
+
+---
+
+## 端末の帳簿（message_endpoints）
+
+利用者 × 経路 × 宛先（プッシュの購読トークン・電話番号など）の帳簿（D43・D45）。帳簿を読むのは、自前の宛先の引き方（`resolveAddresses`）を持たない経路の項目（送る口が `message_endpoints` の有効な行から宛先を引く）。
+
+- 受け付ける経路: 経路の受け口に項目があり、`enabled` で、`resolveAddresses` を持たない経路だけ。**上流の email・inApp・line は自前の帳簿なので受け付けない（今の上流では登録できる経路が 0 で、どれも 400）**。push・SMS などの経路を fork が足すと登録できる
+- API `/api/me/messaging/endpoints`（`createMeRoute`、本人に束ねる。機能の門は持たない = 送る口と同じく常に開）
+  - `GET` 本人の一覧 / `POST` 登録 `{ channel, address, kind?, metadata? }`（本人の同じ宛先は更新して有効に戻す。**他人が登録した宛先は付け替えず 409**）/ `DELETE ?id=` 本人の行を消す（他人の id は 404）
+  - 返すのは安全な DTO（`id`・`channel`・`kind`・`addressHint` = 宛先の末尾 6 文字・`isActive`・`lastUsedAt`・`createdAt`）。宛先の全体と `metadata` は返さない
+  - 入力はどの経路も同じ形（`address` 2048 文字まで、`kind` 32 文字まで、`metadata` は平らな値で 2KB まで・秘密は入れない）。経路ごとの形は後の指令
+- client: `services/client/endpointClient.ts`、hook `useMessageEndpoints()`（`{ endpoints, register, remove, … }`）。宛先を渡して登録するだけで、通知の許可・Service Worker・ネイティブの SDK は fork が持つ
+- 退会: user の後片付けの項目 `cleanupHandlers/messagingEndpoints.ts`（required: 個人の情報なので失敗したら退会ごと戻す）が本人の行を全部消す
 
 ---
 

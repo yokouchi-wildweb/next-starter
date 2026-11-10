@@ -4,6 +4,7 @@
 
 import { bulkSend } from "./bulkSend";
 import { findExistingIdempotencyKeys } from "./dispatch";
+import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { send } from "./send";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { continueSending } from "./sweep";
@@ -28,6 +29,10 @@ export const messagingService = {
   sendMessageToMany,
   /** 1 つの回を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */
   continueSending,
+  /** 端末の帳簿: 本人の宛先の登録・削除・一覧(/api/me/messaging/endpoints が呼ぶ) */
+  registerEndpoint,
+  removeEndpoint,
+  listEndpoints,
   send,
   bulkSend,
   /** 渡した冪等性キーのうち送信ジョブが既に存在するものを返す（バッチ送信の送信済み除外用） */

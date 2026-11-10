@@ -3,10 +3,12 @@
 
 import type { UserCleanupItem } from "@/features/core/user/services/server/cleanup";
 
+import { handler as cleanupHandlers_messagingEndpoints } from "@/features/core/user/cleanupHandlers/messagingEndpoints";
 import { handler as cleanupHandlers_purchaseRequest } from "@/features/core/user/cleanupHandlers/purchaseRequest";
 import { handler as cleanupHandlers_wallet } from "@/features/core/user/cleanupHandlers/wallet";
 
 export const cleanupHandlers: UserCleanupItem[] = [
+  cleanupHandlers_messagingEndpoints,
   cleanupHandlers_purchaseRequest,
   cleanupHandlers_wallet,
 ];
