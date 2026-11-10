@@ -317,6 +317,12 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 - **名前指定は依存先を開けない**(D34・L3.1): `FEATURE_GATE_OPEN=<子>` で親が閉なら子は閉のまま。足りない名前(名前で開けた機能の推移的な依存先のうち、スイッチにも無く規則の値も閉の物)を値ごとに 1 回 `console.warn` し、`pnpm ops features list` に出す(`switchMissing`)。開けるなら依存先も名前に足す(`all` は全部開くので関わらない)
 - 判定の入口は `ruleList.ts` の 1 つ: 生成一覧の各規則の `enabled` を「(スイッチで開いている || 規則の `enabled()`) && 依存先が全部開」に差し替えた `rules`。門番の口・`clientGateState` はこれを読み、client は server の答えを受け取るだけ(client で env を読み直さない)
 
+上流(Tier1)の開発の約束: 上流は付け足しの機能を閉じて出荷する(設定 D115)ので、上流の開発の env(`.env.development`、git に入らない)は `FEATURE_GATE_OPEN=all` を置く。
+
+- 置かずに `pnpm db:push` すると、閉じた機能のドメインの表は一覧に載らず、drizzle が DROP を提案する(push の前に `pnpm db:push:check` の差分を読む)
+- `route-map.jsonl` の閉(`gatedOff`)と cron(`vercel.json`)は規則の値(本番の値)で書く。スイッチで開けても揺れない
+- fork の既定は空(規則の値のまま)。fork は使う機能を `src/config/featureGate/switches.config.ts` で開け、スイッチは開発で sample を見るときだけ使う
+
 道具ごとの効く範囲(L2.3):
 
 | 道具 | スイッチ | 読む物 | 理由 |
@@ -324,6 +330,7 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 | 門番の口(`gate.*`)・proxy・`useGate()` | 効く | `rules` | 開けた機能の画面・API を見る |
 | `pnpm db:push` / `db:push:check` の表 | 効く | `rules` | 開けた機能の表を作る(開発の DB だけ。`ENV_FILE` の env ファイルの `APP_ENV` で決まる: `.env.development` なら全 Tier、`APP_ENV=production` か値なしのファイルなら Tier1 だけ) |
 | `pnpm ops db seed`・`pnpm ops db clear` | 効く | node の `gate.enabled`・`closedTables(rules)` | 表と同じ答え |
+| 受入のテスト `pnpm e2e` の skip(`tests/e2e/featureGate.ts`) | 効く | `rules` | サーバーと同じ答え。runner は `playwright.config.default.ts` で開発の env(`ENV_FILE`、既定 `.env.development`)を読む |
 | `pnpm ops features list` | 見せ方 | `rules` + `configEnabled` + `ownEnabled` + `isOpenedBySwitch` + `switchMissingDependencies` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。名前指定で開けたが依存先が閉なら足りない名前を出す。`--json` は `enabled`・`configEnabled`・`ownEnabled`・`openedBySwitch`・`switchMissing` |
 | `pnpm generate cron` / `pnpm check cron`・`pnpm task` | 効かない | `configPath` | `vercel.json` と照合が env で揺れない。スイッチで開けた機能の cron は `vercel.json` に載らない(route は開くので手で叩けば動く) |
 | `pnpm generate routes` | 効かない | `configRules` | コミットする `route-map.jsonl` が env で揺れない |

@@ -5,6 +5,11 @@
 // 手順: tests/e2e/unsavedGuard/README.md
 
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnv } from "dotenv";
+
+// runner は開発の env(ENV_FILE、既定 .env.development)を読む: 門番の全開スイッチ FEATURE_GATE_OPEN と段階 APP_ENV が
+// サーバーと同じ値になり、tests/e2e/featureGate.ts の skip の判定がサーバーの答えと揃う。既にある env は上書きしない。ファイルが無ければ何もしない
+loadEnv({ path: process.env.ENV_FILE ?? ".env.development", override: false, quiet: true });
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
