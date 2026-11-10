@@ -1,5 +1,5 @@
-// scripts/workflow/peer/hook.mjs <start|prompt|bell> — .claude/settings.json のフック(本体は lib.hook.mjs の runHook)
-//   start = SessionStart / prompt = UserPromptSubmit / bell = FileChanged(asyncRewake)。説明: scripts/workflow/peer/README.md
+// scripts/workflow/peer/hook.mjs <start|cwd|prompt|bell> — .claude/settings.json のフック(本体は lib.hook.mjs の runHook)
+//   start = SessionStart / cwd = CwdChanged / prompt = UserPromptSubmit / bell = FileChanged(asyncRewake)。説明: scripts/workflow/peer/README.md
 import { runHook } from "./lib.hook.mjs";
 
 const readStdin = async () => {

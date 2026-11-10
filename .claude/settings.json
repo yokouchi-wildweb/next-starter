@@ -93,6 +93,17 @@
           }
         ]
       }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs\" cwd",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

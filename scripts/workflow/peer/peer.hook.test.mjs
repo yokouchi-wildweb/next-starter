@@ -1,11 +1,12 @@
 // scripts/workflow/peer/peer.hook.test.mjs — pnpm test scripts/workflow/peer
 //
 // - start: 印(pid・procStart・cwd・mode)を書き、自分の受け箱を作って watchPaths に返す。未読があるときだけ 1 行
-// - prompt: 印の mode を今の権限モードに書き直す。何も出さない
+// - cwd: start と同じ見張りの一覧(受け持つ箱も)を CwdChanged の watchPaths に返し直し、印の cwd を新しい値にする
+// - prompt: 印の mode を今の権限モードに書き直す。未読があれば start と同じ未読の 1 行だけ文脈へ、無ければ何も出さない
 // - bell: 自分の受け箱への add だけ stderr に知らせの 1 行(本文・送り手のモードは入れない)+ exit 2、ほかは黙って 0
 // - 門が閉じている(tmux でない・tmux の外・id なし)= どれも出さず書かず 0。チームの道具のタブでは動く。実際の hook.mjs も同じ
 // - PEER_BOXES: 受け持つ箱も見張り、印に書き、そこへの add でも鳴る。渡されなかったセッションは箱を持たない
-// - .claude/settings.json の行(SessionStart・UserPromptSubmit・FileChanged + asyncRewake)と peer の 6 動作の allow
+// - .claude/settings.json の行(SessionStart・UserPromptSubmit・FileChanged + asyncRewake・CwdChanged)と peer の 6 動作の allow
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -123,10 +124,10 @@ test("bell: 他人の箱・tmp・change / unlink・連絡でないファイル�
   for (const input of cases) assert.deepEqual(runHook("bell", input, depsFor(root)), { stdout: "", stderr: "", code: 0 });
 });
 
-test("門が閉じている → start / prompt / bell とも出さず書かず 0", () => {
+test("門が閉じている → start / cwd / prompt / bell とも出さず書かず 0", () => {
   for (const extra of [{ AGENT_TERMINAL: "none" }, { TMUX: "" }, { CLAUDE_CODE_SESSION_ID: "" }]) {
     const root = temp();
-    for (const mode of ["start", "prompt", "bell"]) {
+    for (const mode of ["start", "cwd", "prompt", "bell"]) {
       assert.deepEqual(runHook(mode, { permission_mode: "plan", event: "add", file_path: "/x" }, depsFor(root, extra)), {
         stdout: "",
         stderr: "",
@@ -169,6 +170,9 @@ test(".claude/settings.json: peer のフックの行と 5 動作の allow", () =
   assert.ok(peer("SessionStart", "start"));
   assert.ok(cmds("SessionStart").some((h) => h.command.includes("agent-terminal/hook.mjs")));
   assert.ok(peer("UserPromptSubmit", "prompt"));
+  const cwd = peer("CwdChanged", "cwd");
+  assert.ok(cwd);
+  assert.equal(s.hooks.CwdChanged.find((g) => g.hooks.includes(cwd)).matcher, undefined);
   const bell = peer("FileChanged", "bell");
   assert.equal(bell.asyncRewake, true);
   assert.equal(bell.timeout, 30);
@@ -239,4 +243,54 @@ test("bell: 元の番号 m<N> の連絡でも鳴る。読めない連絡では�
   const g = path.join(boxDir(root, "council/r1"), "m13.json");
   writeFileSync(g, "{ broken");
   assert.equal(runHook("bell", { event: "add", file_path: g }, depsFor(root, env)).code, 0);
+});
+
+test("cwd: start と同じ見張りの一覧(受け持つ箱も)を CwdChanged で返し直し、印の cwd を新しい値にする。文脈には何も足さない", () => {
+  const root = temp();
+  const env = { PEER_BOXES: "council/r1" };
+  putMessage(root, SELF, { from, body: "未読があっても cwd は 1 行を出さない" });
+  const start = JSON.parse(runHook("start", { cwd: "/w/repo" }, depsFor(root, env)).stdout).hookSpecificOutput;
+  rmSync(boxDir(root, "council/r1"), { recursive: true, force: true });
+  const r = runHook("cwd", { cwd: "/w/repo/sub", old_cwd: "/w/repo", new_cwd: "/w/repo/sub" }, depsFor(root, env));
+  assert.equal(r.code, 0);
+  assert.equal(r.stderr, "");
+  const out = JSON.parse(r.stdout).hookSpecificOutput;
+  assert.deepEqual(out, { hookEventName: "CwdChanged", watchPaths: start.watchPaths });
+  assert.ok(existsSync(boxDir(root, "council/r1")));
+  assert.equal(readMark(root, SELF).cwd, "/w/repo/sub");
+  assert.deepEqual(readMark(root, SELF).boxes, ["council/r1"]);
+  // new_cwd が無ければ cwd の欄
+  runHook("cwd", { cwd: "/w/repo/other" }, depsFor(root, env));
+  assert.equal(readMark(root, SELF).cwd, "/w/repo/other");
+});
+
+test("prompt: 未読があれば start と同じ未読の 1 行(受け持つ箱も・古い順)、読めば出ない。読めない連絡があっても止まらない", () => {
+  const root = temp();
+  const env = { PEER_BOXES: "council/r1" };
+  runHook("start", {}, depsFor(root, env));
+  const a = putMessage(root, "council/r1", { from, body: "x" });
+  mkdirSync(boxDir(root, SELF), { recursive: true });
+  writeFileSync(path.join(boxDir(root, SELF), "x.json"), "{ not json");
+  const r = runHook("prompt", { permission_mode: "default" }, depsFor(root, env));
+  assert.equal(r.code, 0);
+  const out = JSON.parse(r.stdout).hookSpecificOutput;
+  assert.equal(out.hookEventName, "UserPromptSubmit");
+  assert.match(out.additionalContext, new RegExp(`未読の連絡が 1 件あります\\(古い順: ${a.id}\\)`));
+  assert.equal(out.additionalContext.includes("\n"), false);
+  const startLine = JSON.parse(runHook("start", {}, depsFor(root, env)).stdout).hookSpecificOutput.additionalContext.split("\n")[0];
+  assert.equal(out.additionalContext, startLine);
+  assert.equal(readMark(root, SELF).mode, "default");
+  setState(root, "council/r1", a.id, "read");
+  assert.deepEqual(runHook("prompt", {}, depsFor(root, env)), { stdout: "", stderr: "", code: 0 });
+});
+
+test("hook.mjs そのもの: cwd は CwdChanged の watchPaths を返す", () => {
+  const root = temp();
+  const r = spawnSync(process.execPath, [path.join(here, "hook.mjs"), "cwd"], {
+    input: JSON.stringify({ new_cwd: "/w/x" }),
+    encoding: "utf8",
+    env: { PATH: process.env.PATH, ...openEnv(root), PEER_BOXES: "guild/g1" },
+  });
+  assert.equal(r.status, 0);
+  assert.deepEqual(JSON.parse(r.stdout).hookSpecificOutput, { hookEventName: "CwdChanged", watchPaths: [boxDir(root, SELF), boxDir(root, "guild/g1")] });
 });
