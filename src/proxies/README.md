@@ -15,7 +15,7 @@ decorator: attribution → inviteLink → [枠: 項目をファイル名の順�
 | 枠の項目 | `src/proxies/<名前>.ts`（上流も fork も印なし）。フォルダ形 `<名前>/index.ts` も可 | 1 項目 1 つ `export const handler` か `export const decorator` |
 | 拡張点の宣言 | `src/proxies/extensionPoints.ts`（handlers・decorators・redirects の 3 点。機能を閉じる規則は門番 `src/featureGate/extensionPoints.ts`） | 上流だけ |
 | 転送の規則 | `src/proxies/redirects/<名前>.ts`（1 ファイル = 規則の 1 組、`export const redirects: RedirectRuleGroup`。上流の項目は 0。読み手は `redirect.ts`、同じ sourcePath の重複は読み込みで止まる） | fork |
-| テーマの設定 | `src/proxies/<テーマ>/config.ts`（上流は `demo`、上書き `src/config/proxies/<テーマ>.config.ts`、設定 D93） | 上流(既定)・fork(上書き) |
+| テーマの設定 | `src/proxies/<テーマ>/config.ts`（上流は値を持つテーマを持たない、設定 D113。デモモードの値は demo ドメインの設定。fork が足すテーマの上書きは `src/config/proxies/<テーマ>.config.ts`、設定 D93） | 上流(既定)・fork(上書き) |
 | 生成一覧 | `src/proxies/extensions/handlers.ts`・`decorators.ts`・`redirects.ts` | `pnpm generate extensions`（手で編集しない。仕組み: `scripts/structure/extensions/README.md`） |
 | 検査 | `pnpm check extensions`（build の冒頭）・`pnpm test scripts/structure/proxies/proxyFrame.test.mjs` | — |
 

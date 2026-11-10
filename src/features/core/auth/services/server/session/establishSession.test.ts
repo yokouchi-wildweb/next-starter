@@ -38,7 +38,7 @@ let m: typeof import("./establishSession");
 let demoMaxAge: number;
 before(async () => {
   m = await import("./establishSession");
-  ({ demoMaxAgeSeconds: demoMaxAge } = (await import("@/features/auth/config")).authConfig.session);
+  demoMaxAge = (await import("@/features/core/demo/config")).demoConfig.session.maxAgeSeconds;
 });
 
 beforeEach(() => {

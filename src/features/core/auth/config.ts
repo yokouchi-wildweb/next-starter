@@ -22,10 +22,6 @@ export type AuthConfig = {
     facebook: boolean;
     twitter: boolean;
   };
-  session: {
-    /** デモユーザー用セッションの有効期限（秒） */
-    demoMaxAgeSeconds: number;
-  };
   signup: {
     /** 認証完了後の遷移先パス */
     afterVerificationPath: string;
@@ -61,9 +57,6 @@ const defaults: AuthConfig = {
     yahoo: false,
     facebook: false,
     twitter: false,
-  },
-  session: {
-    demoMaxAgeSeconds: 60 * 10,
   },
   signup: {
     afterVerificationPath: "/signup/register",

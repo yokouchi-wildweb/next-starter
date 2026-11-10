@@ -185,7 +185,7 @@ export async function resolveSessionUserFromTokenOnly(
  * user は必ず DB の現在値 (resolveSessionUser / DB 行) から組み立てること。
  * 旧トークンのクレームをそのまま渡すと、強制失効 (sessions_invalidated_at) を
  * すり抜けた新トークンを発行してしまう。
- * デモユーザーは短いセッション時間 (demoMaxAgeSeconds) を維持する。
+ * デモユーザーは短いセッション時間 (demo の設定 session.maxAgeSeconds、sessionToken の demoSessionMaxAgeSeconds) を維持する。
  */
 export async function refreshSessionCookie(
   cookiesStore: ResponseCookies,

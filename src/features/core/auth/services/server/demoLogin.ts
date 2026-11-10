@@ -3,9 +3,8 @@
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
 import { createGuestDemoUser } from "@/features/core/user/services/server/creation/createGuestDemoUser";
-import { authConfig } from "@/features/auth/config";
 import { onDemoUserCreated } from "./onDemoUserCreated";
-import { issueSessionToken } from "./session/sessionToken";
+import { demoSessionMaxAgeSeconds, issueSessionToken } from "./session/sessionToken";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;
@@ -57,7 +56,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
 
   // セッションに格納する情報を組み立ててトークンを署名する(デモユーザーは短いセッション時間)。establishSession と同じ部品
   const { sessionUser, token, expiresAt, maxAge } = await issueSessionToken(user, {
-    maxAge: authConfig.session.demoMaxAgeSeconds,
+    maxAge: demoSessionMaxAgeSeconds(),
   });
 
   return {

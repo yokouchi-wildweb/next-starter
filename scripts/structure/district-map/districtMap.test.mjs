@@ -24,12 +24,12 @@ test("今の木に問題が無い", () => {
   assert.deepEqual(problems, []);
 });
 
-test("features = src/features と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = テーマのフォルダ(上流は demo)、枠 = frame: の宣言", () => {
+test("features = src/features と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = テーマのフォルダ(上流は持たない、D113)、枠 = frame: の宣言", () => {
   assert.deepEqual(features.map(folderOf).sort(), listDomainDirs(repoRoot));
   assert.ok(!features.some((d) => d.name.startsWith("_")));
   const libs = readdirSync(join(repoRoot, "src/lib"), { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
   assert.deepEqual(districts.filter((d) => d.kind === "lib").map((d) => d.name), libs);
-  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies/demo"]);
+  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), []);
   // 枠の宣言(_layout/config.ts の frame:)。admin・root・user(地区のクエストで書いた、L1.13)
   assert.deepEqual(districts.filter((d) => d.kind === "frame").map((d) => [d.name, d.dir]), [
     ["admin", "src/app/admin/_layout"],

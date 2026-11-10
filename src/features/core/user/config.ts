@@ -43,7 +43,7 @@ export type UserConfig = {
     /** バルクアクションバーを常に表示する */
     bulkActionsAlwaysVisible: boolean;
     /** セレクションテーブルを有効にするユーザー種別 */
-    enableSelectionTable: { general: boolean; managerial: boolean; demo: boolean };
+    enableSelectionTable: { general: boolean; managerial: boolean };
   };
   /**
    * アカウントロックアウト(連続ログイン失敗に対する 2 段階防御)
@@ -131,7 +131,6 @@ const defaults: UserConfig = {
     enableSelectionTable: {
       general: true,
       managerial: false,
-      demo: false,
     },
   },
   authLockout: {

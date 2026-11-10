@@ -16,6 +16,7 @@ import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAd
 import { userConfig } from "@/features/user/config";
 import { walletConfig } from "@/features/wallet/config";
 import { useGate } from "@/featureGate/client";
+import { demoConfig } from "@/features/core/demo/config";
 import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
 
 type Props = {
@@ -111,8 +112,9 @@ export default function DemoUserListTable({ users }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
   const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
   const enableUserMemo = userConfig.enableUserMemo;
-  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = userConfig.userListPage;
-  const useSelectionTable = enableSelectionTable.demo;
+  const { selectionBehavior, bulkActionsAlwaysVisible } = userConfig.userListPage;
+  // デモ利用者の一覧の選択のテーブルは demo の設定(設定 D112)。画面は機能 adminDemoUsers の住所なので閉なら出ない
+  const useSelectionTable = useGate().enabled("adminDemoUsers") && demoConfig.adminList.selectionTable;
   // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
   const bulkActionItems = useUserAdminBulkActions("demo");
 

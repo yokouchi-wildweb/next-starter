@@ -5,7 +5,8 @@
 // - issueSessionToken: SessionUser の組み立てと署名(cookie は書かない)
 // 詳細: ./establishSession.ts、src/features/core/auth/README.md「セッション」
 
-import { authConfig } from "@/features/auth/config";
+import { gate } from "@/featureGate";
+import { demoConfig } from "@/features/core/demo/config";
 import { SessionUserSchema, type SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS, signUserToken } from "@/lib/jwt";
@@ -46,8 +47,16 @@ export function assertSessionStatus(user: Pick<SessionSubject, "status">): { req
 }
 
 /**
+ * デモ利用者のセッションの長さ(秒): デモのログインの機能 demoLogin が開なら demo の設定 session.maxAgeSeconds、閉なら通常の長さ
+ * (閉ならデモ利用者は新しく作られない。設定の議会 D112・L1.47)
+ */
+export function demoSessionMaxAgeSeconds(): number {
+  return gate.enabled("demoLogin") ? demoConfig.session.maxAgeSeconds : SESSION_DEFAULT_MAX_AGE_SECONDS;
+}
+
+/**
  * SessionUser を組み立ててトークンを署名する。cookie は書かない(書くのは呼び手 = route か establishSession)。
- * maxAge の既定: isDemo ならデモの短い時間(authConfig.session.demoMaxAgeSeconds)、他は通常
+ * maxAge の既定: isDemo ならデモの短い時間(demoSessionMaxAgeSeconds)、他は通常
  */
 export async function issueSessionToken(
   user: SessionSubject,
@@ -64,7 +73,7 @@ export async function issueSessionToken(
   });
   const maxAge =
     options.maxAge ??
-    (sessionUser.isDemo ? authConfig.session.demoMaxAgeSeconds : SESSION_DEFAULT_MAX_AGE_SECONDS);
+    (sessionUser.isDemo ? demoSessionMaxAgeSeconds() : SESSION_DEFAULT_MAX_AGE_SECONDS);
   const { token, expiresAt } = await signUserToken({
     subject: sessionUser.userId,
     claims: {

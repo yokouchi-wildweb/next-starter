@@ -2,7 +2,8 @@
 
 import { NextResponse } from "next/server";
 
-import { demoConfig } from "./demo/config";
+import { gate } from "@/featureGate";
+import { demoConfig } from "@/features/core/demo/config";
 
 import type { ProxyHandler } from "./types";
 
@@ -11,12 +12,12 @@ import type { ProxyHandler } from "./types";
  */
 const isAllowedPath = (pathname: string): boolean => {
   // 完全一致チェック
-  if (demoConfig.allowedPaths.includes(pathname)) {
+  if (demoConfig.mode.allowedPaths.includes(pathname)) {
     return true;
   }
 
   // 前方一致チェック
-  return demoConfig.allowedPrefixes.some((prefix) =>
+  return demoConfig.mode.allowedPrefixes.some((prefix) =>
     pathname.startsWith(prefix)
   );
 };
@@ -29,8 +30,8 @@ const isAllowedPath = (pathname: string): boolean => {
 export const demoModeProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
 
-  // デモモードが無効の場合、/demo-login へのアクセスは404
-  if (!demoConfig.enabled) {
+  // デモモードが無効の場合(デモのページの機能 demoPages が閉でも同じ。有効 + 閉の組は門 build の検査が止める)、/demo-login へのアクセスは404
+  if (!demoConfig.mode.enabled || !gate.enabled("demoPages")) {
     if (pathname === '/demo-login') {
       return new NextResponse(null, { status: 404 });
     }
@@ -48,5 +49,5 @@ export const demoModeProxy: ProxyHandler = async (request, ctx) => {
   }
 
   // デモページにリダイレクト
-  return NextResponse.redirect(new URL(demoConfig.redirectTo, request.url));
+  return NextResponse.redirect(new URL(demoConfig.mode.redirectTo, request.url));
 };

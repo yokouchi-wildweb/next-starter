@@ -9,7 +9,7 @@
 | `lib/` | `src/lib/<名前>` | `lib/<名前>.config.ts` | `src/lib/<名前>/config.ts`(`@lib-config/<名前>` で読む。[src/lib/README.md](../lib/README.md)) |
 | `features/` | ドメイン(`src/features/<名前>`・`src/features/core/<名前>`) | `features/<名前>.config.ts` | `<ドメイン>/config.ts` |
 | `layout/` | 枠(`src/app/**/_layout/config.ts` の `frame: "<名前>"`) | `layout/<名前>.config.ts` | `<_layout>/config.ts` |
-| `proxies/` | `src/proxies` のテーマのフォルダ(`src/proxies/<テーマ>/config.ts`、上流は `demo` だけ) | `proxies/<テーマ>.config.ts` | `src/proxies/<テーマ>/config.ts` |
+| `proxies/` | `src/proxies` のテーマのフォルダ(`src/proxies/<テーマ>/config.ts`、上流は持たない、fork が足すテーマ) | `proxies/<テーマ>.config.ts` | `src/proxies/<テーマ>/config.ts` |
 | `featureGate/` | 基盤 `src/featureGate`(門番。固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
@@ -60,7 +60,7 @@ export const featureRequirements = [
 - `key` = 合成した設定の点区切りの鍵、`feature` = 門番の機能の名前、`off` = その機能を使わない値、`element: true` = 値が配列で、要素に `off` 以外があれば要する
 - 宣言するのは本当にその機能を要する値だけ(候補の一覧に入っているだけの物は書かない)。fork が足した持ち主も宣言できる。上書きの側には書かない
 - 読み手は地区の地図(`src/lib/districtMap`、欄 `featureRequirements`)、判定は門番の検査 `src/featureGate/checks/featureRequirements.ts`
-- 上流の宣言: wallet の `purchaseRestriction` → `phoneVerification`(off `"none"`)、proxies の demo の `enabled` → `demoPages`(off `false`)
+- 上流の宣言: wallet の `purchaseRestriction` → `phoneVerification`(off `"none"`)、demo の `mode.enabled` → `demoPages`(off `false`)
 
 ## 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
 

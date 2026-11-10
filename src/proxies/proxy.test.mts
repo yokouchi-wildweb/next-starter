@@ -24,9 +24,9 @@ let maintenanceActive = true;
 mock.module(srcUrl("features/core/setting/services/server/settingService.ts"), {
   namedExports: { settingService: { isMaintenanceActive: async () => maintenanceActive } },
 });
-mock.module(srcUrl("proxies/demo/config.ts"), {
+mock.module(srcUrl("features/core/demo/config.ts"), {
   namedExports: {
-    demoConfig: { enabled: true, allowedPaths: ["/demo"], allowedPrefixes: ["/_next", "/api"], redirectTo: "/demo" },
+    demoConfig: { mode: { enabled: true, allowedPaths: ["/demo"], allowedPrefixes: ["/_next", "/api"], redirectTo: "/demo" } },
   },
 });
 mock.module(srcUrl("proxies/extensions/redirects.ts"), {
