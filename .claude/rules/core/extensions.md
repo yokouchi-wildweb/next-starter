@@ -23,6 +23,16 @@ want → means:
 - change looks or layout → compose core parts in _components/, else copy (judge 2) | add a form input → formInputs item
 - stop a page → close its feature (pnpm ops features set \<name\> off) | stop a role → enabled:false | new feature → own route + domain
 
+change_types (the only 4 ways to change an upstream thing | marks = .default / .replace / .override, upstream files are plain | table → scripts/structure/extensions/README.md「4 つの型」):
+- 1 whole (code): \<name\>.default + plain 1-line switch → fork \<name\>.replace, repoint the switch | screens: page.tsx / frame layout.tsx switch, default _screen/ _layout/ → fork _components/\<X\>Screen.tsx
+- 2 overlay (data): plain target + declared keys (overrideOf / overrides) → fork \<target\>.override.ts, declared keys only | frame: creator frame.ts → lower repo frame.override.ts
+- 3 add: plain new name in a declared receptacle folder | 4 placement (values): src/styles/core/\<name\>.css → src/styles/\<name\>.css, owner config.ts → src/config/{lib,features,layout,proxies}/\<name\>.config.ts
+- none → /order \<direct parent\> | no means to overlay part of code → upstream exposes it by value / receptacle / split
+- tell: sibling .default = 1 | declaration above = 2 / 3 | placement declaration = 4 | none = cannot change
+- who: `pnpm workflow ownership who <path>` answers type 1-4 | generated | own | none (ref: src/lib/forkOwnership/README.md)
+- safety limits are never loosened: admin menu allowRoles narrow-only, core role enabled, profile fields, setting schema
+- violations: *.default.* beside a parent's file, editing a parent's .default, plain frame.ts beside an upstream route, frame.default.ts (fails) | own .default in own area OK (middle tier too)
+
 order: an extension request carries `tried: <means checked — why not enough>`
 copy_mark: line 1 `// copied-from: <upstream path>` | no sha, no ledger | unmarked copies are undetectable and accepted | /flux lists changed origins per segment, never stops
 - backfill: when a fork takes in this policy, it marks once the existing copies it knows it made | no check, /flux never stops on it | copies it does not know of stay unmarked (undetectable)

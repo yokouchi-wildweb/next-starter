@@ -10,6 +10,23 @@
 
 src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm check registry` の側で、ここでは扱わない。
 
+## fork が上流の物を変える 4 つの型
+
+fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印は `.default`・`.replace`・`.override` の 3 つで、上流が置く物は印なし(素の名前)。表はここだけに置き、ほかの README と `.claude/rules/core/extensions.md` はここを指す。
+
+| 型 | 上流が置く物 | fork が書く物 | 見分け | who の type |
+|---|---|---|---|---|
+| 1 丸ごと替える(コード) | `<名前>.default.ts(x)` + 隣の素の `<名前>.ts(x)`(1 行スイッチ)/ 画面: `page.tsx`・枠の `layout.tsx` がスイッチ、既定は `_screen/`・`_layout/` | `<名前>.replace.ts(x)` にしてスイッチを向け替える / 画面: `<ルート>/_components/` に `<X>Screen.tsx`(と fork の部品)を置き、`page.tsx`・`layout.tsx` のスイッチを向け替える | 隣に `.default` がある・ルートの `page.tsx` / 枠の `layout.tsx` | `1` |
+| 2 一部を重ねる(データ) | 素の実体 + 重ねてよい鍵の宣言(`extensionPoints.ts` の `overrideOf` / `overrides`)/ 枠: ルートを作ったリポが隣に `frame.ts` | `<対象>.override.ts`(宣言の鍵だけ)/ 枠: 下のリポは上流の `frame.ts` の有無に関わらず `frame.override.ts`(キー `layout`・`page` は隣にある範囲だけ) | 上位の `extensionPoints.ts` に上書きの宣言がある・src/app のルート | `2` |
+| 3 足す | 宣言された受け口のフォルダ(`extensionPoints.ts` の `dir`) | そのフォルダに素の新しい名前の項目 | 上位の `extensionPoints.ts` に受け口の宣言がある | `3` |
+| 4 置き場で分ける(値) | CSS: `src/styles/core/<名前>.css` / 設定: 持ち主の `config.ts`(`config.ui.ts`) | CSS: 直下の `src/styles/<名前>.css` / 設定: `src/config/{lib,features,layout,proxies}/<名前>.config.ts` に変えたいキーだけ | 宣言の `placement` に当たる・地区の `config.ts` | `4` |
+| 変えられない | — | 書かない → `/order <直接の親>`(要るまでは一時許可) | どれにも当たらない | `none` |
+
+- 見分けの順: 隣に `.default` = 丸ごと / 上位に宣言 = 重ね・足す / 置き場の宣言 = 置き場 / どれも無い = 変えられない。どのパスも `pnpm workflow ownership who <path>` で確かめる(答えの type = `1`〜`4` | `generated`(生成物: 直す元を直して作り直す)| `own`(自分の物・中間 Tier の物: そのまま書く)| `none`。判定の順と答えの形: `src/lib/forkOwnership/README.md`「型」)
+- コードの一部だけを重ねる手段は無い。要るなら上流が値(config・value prop)・受け口・部品の分割で外へ出す(`/order`)
+- 安全の制限は「宣言に鍵が無い」「広げる上書きを止める」で保ち、重ねでも弱めない: 管理メニューの `allowRoles` は絞るだけ・core ロールの `enabled` は不可・プロフィールの `fields` は不可・setting の schema は不可(setting の `allowRoles` は絞るだけ、`derive/settingRoles.mjs`)
+- 違反(`pnpm workflow ownership check`): 親の物の隣に `*.default.*` を足す(`default-add`)・親の `.default` を書き換える(`default-edit`)・上流のルートの隣に素の `frame.ts` を置く(`frame-plain`)。`frame.default.ts` はどの Tier でも生成器が失敗にする。自分の領域の自分の `.default` は中間の Tier も出してよい
+
 ## 宣言(extensionPoints.ts)
 
 持ち主のフォルダの直下に手書きで 1 つ置く(そのフォルダの全拡張点の目次。1 フォルダ 1 宣言)。読み手は `src/lib/districtMap/declarations.mjs` の 1 か所で、生成器・所有の検査の単位名・`src/wiring` の配線テスト・ロールの上書きが同じものを使う(D2)。持ち主 = ドメイン(`src/features/**/<domain>/`)、画面側の点は持ち主の route の `_layout/` `_screen/`、proxy は `src/proxies/`、lib が持ち主の点は `src/lib/<lib>/`。宣言は src の下のどこに置いても読まれる(node_modules・`extensions/` の中は見ない)。
@@ -74,7 +91,7 @@ export const extensionPoints = {
 
 ## 1 行スイッチ(画面以外の、1 つだけの実装を差し替える口)
 
-一覧に並べるのでなく「どれか 1 つ」を使う実装(決済の enricher など)は、既定の隣に 1 行のスイッチを置く。
+型 1(丸ごと替える、上の「4 つの型」)のコードの側。一覧に並べるのでなく「どれか 1 つ」を使う実装(決済の enricher など)は、既定の隣に 1 行のスイッチを置く。
 
 | ファイル | 中身 | 持ち主 |
 |---|---|---|
@@ -89,6 +106,8 @@ export const extensionPoints = {
 
 ## override(既定を変える隣のファイル)
 
+型 2(一部を重ねる、上の「4 つの型」)の仕組み。
+
 - 一部の上書き(丸ごと置き換えは `.replace`、D136)。対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`・`user.role.override.ts`・`user.profile.override.ts`)、cron は task.ts の隣の `src/app/api/cron/<name>/task.override.ts`(旧名の素の `override.ts` は `scripts/structure/cron/discover.ts` が改名を案内して止める)。Tier 別・fork の名前付きのファイルは作らない
 - 孤立の検査は 1 つ(`orphans.mjs`、全 Tier、D165): src の下の `<対象>.override.ts(x)` と `<名前>.replace.ts(x)` を 1 回の走査で集めて照らす
   - `.override`: 受け口のフォルダ(`overrideOf` の点。項目と照らすのは `extensions.mjs`)か、上書きの対象の点(宣言の `overrides` の隣の glob)で隣に対象があること。どちらでもなければ「受ける点が無い」、対象が無ければ孤立。空は不在と同じで見ない
@@ -100,6 +119,8 @@ export const extensionPoints = {
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry/discover.mjs`)
 
 ## 枠の表(frame.ts / frame.override.ts の宣言から)
+
+型 2 の枠の側(上の「4 つの型」)。
 
 - `src/app` の `frame.ts`(ルートを作ったリポの宣言、`frame`)と `frame.override.ts`(その下のリポの宣言、`override`。相手 = そのルート、`frame.ts` の上に重なる)を `frames.mjs` が字面で読み(`literalOf`)、親の鎖を解決した表を枠の根ごとに `<枠の根>/_layout/extensions/frameTable.ts` へ書く(`src/app/(user)`・`src/app/admin`。一覧の数に入る)。範囲はキー `layout` / `page` で名指す。宣言の書き方・重ねる順・表の形: `src/app/_layout/frame/README.md`
 - 失敗: 枠の外・隣に layout / page が無い・`layout:` / `page:` の相手が無い・キーが無い・知らないキー・private / @slot / intercepting の下・形の違う値・宣言にない部位・`frame.default.ts`(どの Tier でも)・ほかの名前・上流(Tier1)の `frame.override.ts`。全部の部位を隠す宣言は warn(止めない)
