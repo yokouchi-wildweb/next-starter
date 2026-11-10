@@ -421,3 +421,4 @@
 - id:20261110-142446-peer-cwd | severity:info | checkpoint:peer-cwd
 - id:20261110-142141-feature-requirements | severity:breaking | checkpoint:config-feature-requirements
 - id:20261110-154130-explicit-child-check | severity:info | checkpoint:config-explicit-child-check
+- id:20261110-153334-mypage-menu-items | severity:info | checkpoint:mypage-menu-items | resolves:20261101-180140-mypage-main-menu-items
