@@ -12,6 +12,7 @@ import { adminConfig } from "@/features/admin/config";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
 import { useGeneralUserListTable } from "@/features/core/user/hooks/useGeneralUserListTable";
+import { useGate } from "@/featureGate/client";
 
 import { createGeneralUserListColumns } from "./columns";
 
@@ -25,6 +26,8 @@ const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 export default function GeneralUserListTable({ users, editBasePath }: Props) {
   const table = useGeneralUserListTable();
+  // wallet の部品を読むファイル自身が機能の開閉を確かめる(featureGate の依存の検査 = 字面。canAdjustWallet も同じ gate を含む)
+  const walletEnabled = useGate().enabled("wallet");
   const { selection, bulkActions, onBulkDone, adjust, manage, remove, columnOptions } = table;
 
   const columns = useMemo(
@@ -52,7 +55,7 @@ export default function GeneralUserListTable({ users, editBasePath }: Props) {
           emptyValueFallback={adminDataTableFallback}
         />
       )}
-      {table.canAdjustWallet ? (
+      {walletEnabled && table.canAdjustWallet ? (
         <AdminWalletAdjustModal
           open={Boolean(adjust.target)}
           user={adjust.target}
