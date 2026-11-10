@@ -134,6 +134,17 @@ test("欄の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCoun
   assert.ok(problems.some((p) => p.message.includes("{{collapsedCount}}")));
 });
 
+test("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す", () => {
+  const def = defineMessage({
+    ...verification,
+    content: { email: { subject: "{{points}} {{unknownKey}}" } },
+  });
+  assert.deepEqual(codes(validateMessageDefinition(def)), ["unknown_variable", "unknown_variable"]);
+  const problems = validateMessageDefinition(def, { variableKeys: ["points"] });
+  assert.deepEqual(codes(problems), ["unknown_variable"]);
+  assert.ok(problems[0].message.includes("{{unknownKey}}"));
+});
+
 test("欄の検査: 欄の zod に合わない・defaultChannels に欄が無い・知らない経路・定義に無い adminEditable", () => {
   const def = defineMessage({
     ...reply,

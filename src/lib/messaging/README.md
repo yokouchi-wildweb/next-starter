@@ -40,6 +40,7 @@ export const message = defineMessage({
 - `kind`: `transactional`(取引・認証。配信停止の好みを見ない)| `marketing` | `activity`
 - `category`: 種類(配信停止の好みの表の行)
 - `vars`: 呼び手が渡す値の zod
+  - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditable`・`throttle` を付けられない
 - `adminEditable`: 管理画面で直せる欄の名前(`<経路>.<欄>`)。required の連絡は空
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
@@ -62,6 +63,7 @@ export const message = defineMessage({
 
 - 書式は `lib/structuredDocument` の差し込み 1 本(`replaceVariables`・`listVariables`)。鍵は `\w+`(英数字と _)で、点を含む鍵は差し込まれない
 - 差し込める鍵 = `vars` の鍵 ∪ 共通の文脈 `COMMON_CONTEXT_KEYS`(`recipientName`・`recipientEmail`・`serviceName`・`appBaseUrl`。送る口が埋める)∪ throttle のある連絡だけ `collapsedCount`
+- enrichers の `provides` の鍵は `validateMessageDefinition(def, { variableKeys })` で足して許す(送る口がその連絡に当たる enrichers の鍵を渡す)
 
 ## 上書き(MessageOverride)
 

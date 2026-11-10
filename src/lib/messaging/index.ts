@@ -11,6 +11,7 @@ export {
   type UpstreamChannelFields,
 } from "./definition/channels";
 export { createDefineMessage, defineMessage } from "./definition/defineMessage";
+export { isSecretVar, listSecretVarKeys, secretVar } from "./definition/secret";
 export { extensionPoints } from "./extensionPoints";
 export {
   CHANNEL_ERROR_KINDS,
