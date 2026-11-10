@@ -5,6 +5,7 @@
 // 実行: pnpm test src/features/core/messaging/channels/email
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHmac, randomBytes } from "node:crypto";
 import { Suspense } from "react";
 
 import { render } from "@react-email/render";
@@ -13,7 +14,8 @@ import { MailSendError, type SendMailOptions } from "@/lib/mail";
 
 import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
-import { createEmailChannel } from "./createEmailChannel";
+import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
+import { createEmailChannel, toChannelWebhookEvent } from "./createEmailChannel";
 import { hasRenderFallbackMarker } from "./fallback";
 
 const content = { subject: "件名", heading: "見出し", paragraphs: ["本文"], cta: { label: "開く", url: "https://x.test" } };
@@ -31,6 +33,7 @@ function setup(options: { html?: string; fail?: (to: string) => unknown } = {}) 
     },
     findEmails: async (userIds) => userIds.map((userId) => ({ userId, address: `${userId}@example.test` })),
     theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
   });
   return { channel, sent };
 }
@@ -56,6 +59,7 @@ test("既定の描き方は欄を描く(見出し・本文・ボタン)", async 
     send: async () => ({ provider: "resend", providerMessageId: null }),
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
   });
   await spy.send([target("a@example.test")]);
   assert.ok(html.includes("見出し") && html.includes("本文") && html.includes("https://x.test"));
@@ -114,6 +118,7 @@ test("好みに従う連絡: List-Unsubscribe のヘッダを渡し、本文に�
     },
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
   });
   const headers = {
     "List-Unsubscribe": "<https://app.example.test/api/messaging/unsubscribe?t=abc>",
@@ -137,4 +142,47 @@ test("category があるのに List-Unsubscribe が無い(鍵が無い)→ 送�
     ],
   );
   assert.deepEqual(sent.map((m) => [m.to, m.headers]), [["t@example.test", undefined]]);
+});
+
+test("送る時に配達の id を provider のタグで渡す(D36)", async () => {
+  const { channel, sent } = setup();
+  await channel.send([target("a@example.test", "d-123:1")]);
+  assert.deepEqual(sent[0].tags, { delivery_id: "d-123" });
+});
+
+test("webhook: Resend の署名を確かめ、経路の事件(bounced_hard / bounced_soft、タグの配達の id)に正規化する", async () => {
+  const secretBytes = randomBytes(24);
+  const channel = createEmailChannel({
+    render: async () => "<html></html>",
+    send: async () => ({ provider: "resend", providerMessageId: null }),
+    findEmails: async () => [],
+    theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => `whsec_${secretBytes.toString("base64")}`, sendgridPublicKey: () => null },
+  });
+  const body = JSON.stringify({
+    type: "email.bounced",
+    created_at: new Date().toISOString(),
+    data: { email_id: "re_1", to: ["a@example.test"], bounce: { type: "Permanent" }, tags: { delivery_id: "d-9" } },
+  });
+  const id = "msg_1";
+  const ts = String(Math.floor(Date.now() / 1000));
+  const signature = createHmac("sha256", secretBytes).update(`${id}.${ts}.${body}`).digest("base64");
+  const headers = new Headers({ "svix-id": id, "svix-timestamp": ts, "svix-signature": `v1,${signature}` });
+  const webhook = channel.webhooks!.resend;
+  const [event] = webhook.normalize(await webhook.verify({ rawBody: body, headers }));
+  assert.deepEqual(
+    { type: event.type, providerMessageId: event.providerMessageId, deliveryId: event.deliveryId, address: event.address },
+    { type: "bounced_hard", providerMessageId: "re_1", deliveryId: "d-9", address: "a@example.test" },
+  );
+  assert.throws(() => webhook.verify({ rawBody: `${body} `, headers }));
+  assert.equal(
+    toChannelWebhookEvent({ provider: "sendgrid", providerMessageId: null, providerEventId: "e", type: "bounced", bounce: "soft", address: null, occurredAt: new Date(0), raw: {} }).type,
+    "bounced_soft",
+  );
+});
+
+test("webhook: 鍵(env)が無ければ WebhookNotConfiguredError(受け口は 503)", () => {
+  const { channel } = setup();
+  assert.throws(() => channel.webhooks!.resend.verify({ rawBody: "{}", headers: new Headers() }), WebhookNotConfiguredError);
+  assert.throws(() => channel.webhooks!.sendgrid.verify({ rawBody: "[]", headers: new Headers() }), WebhookNotConfiguredError);
 });

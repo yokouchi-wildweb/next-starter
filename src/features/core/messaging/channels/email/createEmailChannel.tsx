@@ -5,6 +5,7 @@
 // - 送信: 宛先ごとに既定の描き方で描き、React のフォールバックの印があれば送らず permanent(L2.1)、
 //   無ければ lib/mail send()(冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
+// - webhook(D36・D44): resend / sendgrid の verify(鍵は env、無ければ WebhookNotConfiguredError)+ normalize(lib/mail/webhooks)
 // - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(marketing・activity)。
 //   List-Unsubscribe のヘッダもあれば、ヘッダを lib/mail に渡し本文の最後に停止のリンクを出す。
 //   category があるのに List-Unsubscribe が無い = 送る側に署名の鍵(MESSAGING_UNSUBSCRIBE_SECRET)が無い →
@@ -16,9 +17,25 @@ import {
   emailFieldsSchema,
   type ChannelAddress,
   type ChannelSendResult,
+  type ChannelWebhook,
+  type ChannelWebhookEvent,
   type MessageChannel,
 } from "@/lib/messaging";
-import { MailSendError, type MailTheme, type SendMailOptions, type SendMailResult } from "@/lib/mail";
+import {
+  MailSendError,
+  normalizeResendWebhook,
+  normalizeSendGridWebhook,
+  verifyResendWebhook,
+  verifySendGridWebhook,
+  type MailTheme,
+  type MailWebhookEvent,
+  type SendGridWebhookEvent,
+  type SendMailOptions,
+  type SendMailResult,
+  type VerifiedResendWebhook,
+} from "@/lib/mail";
+
+import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
 
 import { hasRenderFallbackMarker } from "./fallback";
 import { EmailView, type EmailViewContent } from "./view";
@@ -28,7 +45,50 @@ export type EmailChannelDeps = {
   send: (options: SendMailOptions) => Promise<SendMailResult>;
   findEmails: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
   theme: MailTheme;
+  /** provider の webhook の鍵(env。無ければ null → 受け口は 503) */
+  webhookKeys: { resendSecret: () => string | null; sendgridPublicKey: () => string | null };
 };
+
+/** 送る時に provider のタグで渡す配達の id の名前(webhook の事件で読み戻す) */
+export const DELIVERY_ID_TAG = "delivery_id";
+
+/**
+ * lib/mail の正規化した事件 → 経路の事件。種類の語彙(メールの経路):
+ * sent / delivered / deferred / bounced_hard / bounced_soft / complained / opened / clicked / dropped / unsubscribed / other
+ */
+export function toChannelWebhookEvent(event: MailWebhookEvent): ChannelWebhookEvent {
+  return {
+    provider: event.provider,
+    providerMessageId: event.providerMessageId,
+    providerEventId: event.providerEventId,
+    type: event.type === "bounced" ? (event.bounce === "hard" ? "bounced_hard" : "bounced_soft") : event.type,
+    address: event.address,
+    occurredAt: event.occurredAt,
+    raw: event.raw,
+    deliveryId: event.tags?.[DELIVERY_ID_TAG] ?? null,
+  };
+}
+
+function emailWebhooks(deps: EmailChannelDeps): Record<string, ChannelWebhook> {
+  return {
+    resend: {
+      verify: ({ rawBody, headers }) => {
+        const secret = deps.webhookKeys.resendSecret();
+        if (!secret) throw new WebhookNotConfiguredError("resend");
+        return verifyResendWebhook({ rawBody, headers, secret });
+      },
+      normalize: (verified) => normalizeResendWebhook(verified as VerifiedResendWebhook).map(toChannelWebhookEvent),
+    },
+    sendgrid: {
+      verify: ({ rawBody, headers }) => {
+        const publicKey = deps.webhookKeys.sendgridPublicKey();
+        if (!publicKey) throw new WebhookNotConfiguredError("sendgrid");
+        return verifySendGridWebhook({ rawBody, headers, publicKey });
+      },
+      normalize: (verified) => normalizeSendGridWebhook(verified as SendGridWebhookEvent[]).map(toChannelWebhookEvent),
+    },
+  };
+}
 
 export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
   return {
@@ -37,6 +97,7 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     addressing: "user",
     fields: emailFieldsSchema,
     resolveAddresses: (userIds) => deps.findEmails(userIds),
+    webhooks: emailWebhooks(deps),
     async send(targets) {
       const results: ChannelSendResult[] = [];
       for (const target of targets) {
@@ -72,6 +133,8 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
             subject: content.subject,
             react: element,
             idempotencyKey: target.idempotencyKey,
+            // 配達の id(冪等の鍵の ":" より前)を provider のタグで渡し、webhook の事件で配達を引けるようにする(D36)
+            tags: { [DELIVERY_ID_TAG]: target.idempotencyKey.split(":")[0] },
             ...(target.headers ? { headers: { ...target.headers } } : {}),
           });
           results.push({

@@ -273,3 +273,42 @@ test("SendGrid: 種類の写し", () => {
     assert.equal(event.type, expected, type);
   }
 });
+
+test("Resend: bounce の hard / soft(Permanent だけ hard)と tags の読み戻し", () => {
+  const kinds: Array<[unknown, string]> = [
+    [{ type: "Permanent" }, "hard"],
+    [{ type: "Transient" }, "soft"],
+    [{ type: "Undetermined" }, "soft"],
+    [undefined, "soft"],
+  ];
+  for (const [bounce, expected] of kinds) {
+    const [event] = normalizeResendWebhook({
+      svixId: "msg_b",
+      payload: { type: "email.bounced", created_at: "2026-11-10T09:00:00Z", data: { email_id: "re_1", bounce } },
+    });
+    assert.equal(event.bounce, expected);
+  }
+  const [delivered] = normalizeResendWebhook({
+    svixId: "msg_t",
+    payload: { type: "email.delivered", created_at: "2026-11-10T09:00:00Z", data: { tags: { delivery_id: "d-1" } } },
+  });
+  assert.equal(delivered.bounce, undefined);
+  assert.deepEqual(delivered.tags, { delivery_id: "d-1" });
+  const [listTags] = normalizeResendWebhook({
+    svixId: "msg_t2",
+    payload: { type: "email.sent", created_at: "2026-11-10T09:00:00Z", data: { tags: [{ name: "delivery_id", value: "d-2" }] } },
+  });
+  assert.deepEqual(listTags.tags, { delivery_id: "d-2" });
+});
+
+test("SendGrid: bounce の type blocked は soft、それ以外は hard。custom_args を tags で読み戻す", () => {
+  const [hard, soft, delivered] = normalizeSendGridWebhook([
+    { event: "bounce", type: "bounce", sg_event_id: "e1", timestamp: 0 },
+    { event: "bounce", type: "blocked", sg_event_id: "e2", timestamp: 0 },
+    { event: "delivered", sg_event_id: "e3", timestamp: 0, delivery_id: "d-9", "smtp-id": "<x>" },
+  ]);
+  assert.equal(hard.bounce, "hard");
+  assert.equal(soft.bounce, "soft");
+  assert.equal(delivered.bounce, undefined);
+  assert.deepEqual(delivered.tags, { delivery_id: "d-9" });
+});

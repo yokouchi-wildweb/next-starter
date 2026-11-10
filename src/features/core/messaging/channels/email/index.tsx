@@ -17,6 +17,10 @@ export const channel = createEmailChannel({
   render: (element) => render(element),
   send,
   theme: MAIL_THEME_COLORS,
+  webhookKeys: {
+    resendSecret: () => process.env.RESEND_WEBHOOK_SECRET?.trim() || null,
+    sendgridPublicKey: () => process.env.SENDGRID_WEBHOOK_PUBLIC_KEY?.trim() || null,
+  },
   async findEmails(userIds) {
     if (userIds.length === 0) return [];
     const rows = await db

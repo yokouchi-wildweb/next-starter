@@ -124,15 +124,38 @@ export function normalizeResendWebhook(verified: VerifiedResendWebhook): MailWeb
   const { svixId, payload } = verified;
   const data = payload.data ?? {};
   const occurred = new Date(payload.created_at ?? data.created_at ?? "");
+  const type = RESEND_TYPE_MAP[payload.type] ?? "other";
   return [
     {
       provider: "resend",
       providerMessageId: typeof data.email_id === "string" ? data.email_id : null,
       providerEventId: svixId,
-      type: RESEND_TYPE_MAP[payload.type] ?? "other",
+      type,
       address: Array.isArray(data.to) && typeof data.to[0] === "string" ? data.to[0] : null,
       occurredAt: Number.isNaN(occurred.getTime()) ? new Date(0) : occurred,
       raw: payload,
+      ...(type === "bounced" ? { bounce: resendBounceKind(data.bounce) } : {}),
+      tags: resendTags(data.tags),
     },
   ];
+}
+
+/** Resend の bounce の種類: Permanent だけ hard(Transient・Undetermined・無しは soft) */
+function resendBounceKind(bounce: unknown): "hard" | "soft" {
+  const type = bounce && typeof bounce === "object" ? (bounce as { type?: unknown }).type : undefined;
+  return typeof type === "string" && type.toLowerCase() === "permanent" ? "hard" : "soft";
+}
+
+/** Resend の tags(object か [{ name, value }])を名前 → 値に */
+function resendTags(tags: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (Array.isArray(tags)) {
+    for (const tag of tags) {
+      const { name, value } = (tag ?? {}) as { name?: unknown; value?: unknown };
+      if (typeof name === "string" && typeof value === "string") result[name] = value;
+    }
+  } else if (tags && typeof tags === "object") {
+    for (const [name, value] of Object.entries(tags)) if (typeof value === "string") result[name] = value;
+  }
+  return result;
 }

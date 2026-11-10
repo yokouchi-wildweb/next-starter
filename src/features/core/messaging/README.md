@@ -37,6 +37,7 @@ src/features/core/messaging/
     ├── sweep/                   # 送信の掃き出し・続きを送る・保持の掃除（cron messaging-send-sweep / messaging-retention）
     ├── endpoints/               # 端末の帳簿（本人の宛先の登録・削除・一覧、退会の後片付け）
     ├── unsubscribe/             # ワンクリックの配信停止（署名つきトークン・停止の記録）
+    ├── webhooks/                # provider の webhook の事件を記録と配達の行に当てる
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -279,6 +280,23 @@ D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵�
 - POST（RFC 8058 のワンクリック、ログイン不要）: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
 - GET: 状態を変えず、同じ URL へ POST するボタン 1 つの確認のページ（script なし）
 - 鍵 MESSAGING_UNSUBSCRIBE_SECRET は pnpm ops setup env が乱数で作る（既にある env ファイルにも足りなければ足す）。変えると送ったメールの停止のリンクは無効になる
+
+---
+
+## provider の webhook と計測の門
+
+D36・D44。受け口は 1 本 `POST /api/webhook/messaging/[channel]/[provider]`（`createApiRoute` public。門なし = 常に開）。例: `/api/webhook/messaging/email/resend`・`/api/webhook/messaging/email/sendgrid`。
+
+- 生の本文で経路の項目の `webhooks[provider].verify` → `normalize`（経路の事件 `ChannelWebhookEvent`）→ `services/server/webhooks` が当てる。知らない経路・provider は 404、鍵（env）が無ければ 503、署名の誤りは 401、当てる処理の誤りは 500（provider が送り直す）
+- メールの項目: Resend（`RESEND_WEBHOOK_SECRET`）と SendGrid（`SENDGRID_WEBHOOK_PUBLIC_KEY`）を lib/mail/webhooks の検証と正規化で並べる。送る時に配達の id を provider のタグ（`delivery_id`。Resend tags・SendGrid custom_args）で渡し、事件の `deliveryId` で読み戻す
+- 経路の事件の種類（メール）: `sent` / `delivered` / `deferred` / `bounced_hard` / `bounced_soft` / `complained` / `opened` / `clicked` / `dropped` / `unsubscribed` / `other`
+- 当て方:
+  - `message_events` に `UNIQUE(provider, provider_event_id)` で一度だけ入れる（provider の元の事件を `payload` に残す。30 日で消える。HTTP では返さない）
+  - 配達の行は provider の message id で引き、無ければタグの配達の id
+  - 状態は前にだけ進める（queued < sending・unknown < sent < delivered < bounced・failed。遅れて届いた古い事件で戻さない）。時刻（`delivered_at`・`failed_at`・`opened_at`・`clicked_at`・`complained_at`）は最初の 1 回だけ。`suppressed`・`canceled` の行の状態は変えない
+  - `bounced_hard`・`complained` → `message_suppressions`（reason `hard_bounce` / `complaint`、scope `'*'`、source `webhook:<provider>`）。`bounced_soft`（Resend の Transient・Undetermined、SendGrid の blocked）は停止しない。`dropped` → `failed`
+  - `unsubscribed`（provider の仕組みの停止）は記録だけで好みに書かない（provider の一括停止は使わない、D35）
+- 計測の機能 `messagingTracking`（`src/featureGate/rules/messagingTracking.ts`、既定 **閉**、住所・ドメインなし）: 閉の間、`opened`・`clicked` は記録も反映もしない。開ける fork は provider 側の開封・クリックの計測も入れる（秘密を差し込む連絡は計測しない、D33）
 
 ---
 
