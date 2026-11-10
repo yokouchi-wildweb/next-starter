@@ -3,7 +3,7 @@
 // cron が lease で取った配達の行を送る。中身は回の定義(生成の一覧の message_key)から描き直す:
 // 回の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。
 // - 定義が一覧に無い・検査に落ちる → failed(reason の符号だけ)
-// - 経路の項目が無い → suppressed + channel_off
+// - 経路の項目が無い・enabled: false → suppressed + channel_off
 // - 送った後の行の受信者ごとの値は回の record に従う(meta なら消す)。full なら描いた本文を残す
 // required・秘密の連絡はキューに置かれない(送る口が要求の中で送り切る)ので、ここには来ない
 
@@ -14,6 +14,7 @@ import type { MessageDeliveryTarget } from "../../../entities/schema";
 import { buildRecipientValues, channelContent, renderValue, toVariableMap } from "../sendMessage/context";
 import { resolveDefinition, type AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { sendDeliveries, type DeliveryJob } from "../sendMessage/deliver";
+import { activeChannel } from "../sendMessage/expand";
 import { recordPolicyOf, type RecordPolicy } from "../sendMessage/record";
 import type { MessageSweepDeps } from "./types";
 
@@ -86,7 +87,7 @@ export async function sendClaimed(
     const jobs: DeliveryJob[] = [];
     const bodies = new Map<string, Record<string, unknown>>();
     for (const row of group) {
-      const channel = deps.channels[row.channel];
+      const channel = activeChannel(deps.channels, row.channel);
       const addresses = addressesOf(row);
       if (!channel || addresses.length === 0) {
         await deps.sweepStore.updateClaimed(row.id, lockToken, {

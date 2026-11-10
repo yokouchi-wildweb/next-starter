@@ -14,6 +14,7 @@ UI・API ルートは持たない。送信画面や送信 API は呼び出し側
 src/features/core/messaging/
 ├── index.ts                     # 定数と型のみ再エクスポート（サービスは出さない）
 ├── config.ts                    # 送る口の処理の値（上書き: src/config/features/messaging.config.ts）
+├── channels/                    # 経路の受け口の上流の項目 email / inApp / line（<名前>/index.ts(x) の export const channel）
 ├── constants/
 │   ├── channels.ts              # MESSAGING_CHANNELS（email / inApp）
 │   ├── sources.ts               # MESSAGING_SOURCES（送信経路の識別子）
@@ -207,7 +208,7 @@ await messagingService.sendMessageToMany(campaign, {
 
 - 利用者の宛先は経路の `resolveAddresses`、無ければ端末の帳簿（`message_endpoints` の有効な行）から引く。宛先が複数なら 1 行の `targets` にまとめ、1 つでも送れたら `sent`
 - 選んだ宛先で宛先の無い受信者は `suppressed` + `reason: no_address` の行にして戻り値で返す。全員・ロールでは行を作らず `channel_counts.<経路>.skipped_no_address` に数える
-- 経路の項目が無い経路は `channel_off`。受信者の鍵は `user:<id>` か `addr:<正規化した宛先の sha256>`
+- 経路の項目が無い・`enabled: false` の経路は `channel_off`。受信者の鍵は `user:<id>` か `addr:<正規化した宛先の sha256>`
 
 送信の結果（ChannelError の分類）:
 
@@ -225,6 +226,21 @@ await messagingService.sendMessageToMany(campaign, {
 まだ効かないもの（後の指令）: 配信停止の好み・宛先の停止・間引き（throttle）、全員・ロール宛てのお知らせの共有の 1 行。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
 
 処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500
+
+## 上流の経路の項目（channels/）
+
+経路の受け口（`extensionPoints.ts` の `channels`）に上流が出す 3 本。fork の経路（push・SMS など）も同じ形で `channels/<名前>.ts` に足す。項目の形: `src/lib/messaging/README.md`「受け口の項目」。
+
+- `email`（`channels/email/`）: 宛先 = `users.email`（削除済みを除く）。既定の描き方（`view.tsx`: 欄 subject・preheader・heading・paragraphs・cta・footer を lib/mail の枠と部品で、色は `MAIL_THEME_COLORS`）で描き、`lib/mail` の `send()` へ（冪等の鍵 = 配達の id）。`MailSendError` の分類（transient / permanent / unknown）をそのまま結果にし、それ以外の例外は unknown
+  - 描画結果に React の「クライアントで描き直す」印（`<!--$!-->`・`$RX`）があれば送らず permanent（`render_fallback`）。部品が描画中に投げると `@react-email/render` は投げずにほぼ空のメールを返すため（L2.1、`fallback.ts`）
+  - 連絡ごとの描き方の切り替え（`messages/views/<名前>.tsx`）はまだ届かない（経路の項目に連絡の鍵が渡らない）。連絡を移す指令で足す
+- `inApp`（`channels/inApp/`）: お知らせ = `message_inbox_items`。宛先 = 利用者の id。選んだ宛先の送信と中身が受信者に依る送信は受信者ごとの行（同じ回 × 利用者の行が既にあれば書かない）
+  - 全員・ロール宛てで、お知らせの中身が受信者に依る鍵（`recipientName`・`recipientEmail`・enrichers の鍵など）を使わない送信は、cron の展開の最初の束で回に 1 行の共有の行（`user_id` null、`target_roles` = ロールか null）を書き、受信者ごとの inApp の配達の行は作らない（D32）。数は束ごとに `channel_counts.inApp` の targeted・sent へ足す
+  - 受け取り箱の利用者の API・既読・画面は受け取り箱の指令
+- `line`（`channels/line/`）: 既定は**切**（`config.ts` の `channels.line.enabled`。開ける fork は `src/config/features/messaging.config.ts` に `channels: { line: { enabled: true } }` を書き、LINE の Messaging API の env と機能 `userLineProfile` も開ける）。宛先 = `user_line_profiles.line_user_id`（機能 `userLineProfile` が閉じていれば宛先なし）。`lib/line` の push（テキスト）。状態は lib/line の誤りの文から読む（429・5xx → transient / 他の 4xx → permanent / 応答なし → unknown）。provider の冪等の鍵はまだ送れない
+- 経路の入切: 項目の `enabled: false` は項目が無い経路と同じ扱い（配達の行は `suppressed` + `channel_off`、送らない）。門の機能ではない
+
+---
 
 ## cron（送信の掃き出し・保持の掃除）と続きを送る
 

@@ -4,7 +4,7 @@
 // - 選んだ宛先(explicit): 宛先の無い受信者も suppressed + reason no_address の行にして呼び手へ返す(D46)
 // - 全員・ロール・audiences(broadcast): 宛先の無い利用者は行を作らず、経路ごとの数 skipped_no_address に数える(D46)
 //   束ごとの展開(expandBroadcastChunk / resolveAudienceChunk)は cron(次の指令)が呼ぶ
-// - 経路の項目が無い経路は channel_off(explicit は行、broadcast は suppressed に数える)
+// - 経路の項目が無い・enabled: false の経路は channel_off(explicit は行、broadcast は suppressed に数える)
 
 import { createHash } from "node:crypto";
 
@@ -26,6 +26,15 @@ export type PlannedDelivery = {
 
 /** 経路ごとの数の素(送る前) */
 export type ExpansionCounts = Record<string, { targeted: number; skippedNoAddress: number; suppressed: number }>;
+
+/** 送れる経路の項目(無い・enabled: false は undefined = channel_off) */
+export function activeChannel(
+  channels: Readonly<Record<string, MessageChannel>>,
+  key: string,
+): MessageChannel | undefined {
+  const channel = channels[key];
+  return channel && channel.enabled !== false ? channel : undefined;
+}
 
 export function userRecipientKey(userId: string): string {
   return `user:${userId}`;
@@ -97,7 +106,7 @@ export async function expandExplicit(
   const planned: PlannedDelivery[] = [];
   const counts = emptyCounts(channels);
   for (const channelKey of channels) {
-    const channel = deps.channels[channelKey];
+    const channel = activeChannel(deps.channels, channelKey);
     const addresses = channel ? await resolveUserAddresses(deps, channelKey, channel, knownUserIds) : new Map<string, string[]>();
     for (const recipient of recipients) {
       let userId: string | null = null;
@@ -137,7 +146,7 @@ export async function expandBroadcastChunk(
   const planned: PlannedDelivery[] = [];
   const counts = emptyCounts(params.channels);
   for (const channelKey of params.channels) {
-    const channel = deps.channels[channelKey];
+    const channel = activeChannel(deps.channels, channelKey);
     counts[channelKey].targeted += userIds.length;
     if (!channel) {
       counts[channelKey].suppressed += userIds.length;

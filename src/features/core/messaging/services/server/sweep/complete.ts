@@ -26,7 +26,9 @@ export async function completeDispatches(
         skipped_throttled: 0,
         suppressed: 0,
       };
-      counts[key] = { ...base, sent: 0, failed: 0 };
+      // 配達の行のある経路だけ数え直す(全員・ロール宛てのお知らせの共有の行は展開の時に数えた値のまま)
+      const hasRows = aggregate.some((entry) => entry.channel === key);
+      counts[key] = hasRows ? { ...base, sent: 0, failed: 0 } : { ...base };
     }
     let anyFailed = false;
     for (const { channel, status, count } of aggregate) {

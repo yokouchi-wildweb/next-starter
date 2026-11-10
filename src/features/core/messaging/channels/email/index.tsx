@@ -1,0 +1,28 @@
+// src/features/core/messaging/channels/email/index.tsx
+//
+// 上流の経路 email(経路の受け口の項目)。宛先は users.email、送信は lib/mail。中身: ./createEmailChannel.tsx
+
+import { render } from "@react-email/render";
+import { and, inArray, isNotNull, isNull } from "drizzle-orm";
+
+import { db } from "@/lib/drizzle";
+import { send } from "@/lib/mail";
+
+import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
+import { UserTable } from "@/features/core/user/entities/drizzle";
+
+import { createEmailChannel } from "./createEmailChannel";
+
+export const channel = createEmailChannel({
+  render: (element) => render(element),
+  send,
+  theme: MAIL_THEME_COLORS,
+  async findEmails(userIds) {
+    if (userIds.length === 0) return [];
+    const rows = await db
+      .select({ userId: UserTable.id, address: UserTable.email })
+      .from(UserTable)
+      .where(and(inArray(UserTable.id, [...userIds]), isNull(UserTable.deletedAt), isNotNull(UserTable.email)));
+    return rows.flatMap((row) => (row.address ? [{ userId: row.userId, address: row.address }] : []));
+  },
+});

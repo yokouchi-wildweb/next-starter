@@ -7,6 +7,7 @@ import type {
   MessageDeliveryInsert,
   MessageDispatch,
   MessageDispatchInsert,
+  MessageInboxItemInsert,
 } from "../../../entities/model";
 import type { MessageSendDeps } from "../sendMessage/types";
 
@@ -14,6 +15,8 @@ import type { MessageSendDeps } from "../sendMessage/types";
 export type ExpansionWrite = {
   rows: MessageDeliveryInsert[];
   patch: Partial<MessageDispatchInsert>;
+  /** 全員・ロール宛てのお知らせの共有の 1 行(回の最初の束で 1 度だけ、D32) */
+  inboxItem?: MessageInboxItemInsert;
 };
 
 /** 経路ごと・状態ごとの配達の行の数 */

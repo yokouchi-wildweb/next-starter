@@ -433,3 +433,14 @@ test("宛先を直に渡す受信者は addr:<hash> の鍵で送る", async () =
   assert.equal(channel.calls[0][0].userId, null);
   assert.equal(channel.calls[0][0].content.body, " 様 x");
 });
+
+test("enabled: false の経路は項目が無い経路と同じく channel_off で送らない", async () => {
+  const off = createTestChannel("test");
+  off.enabled = false;
+  const { sender, store } = setup({ channel: off });
+  const result = await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  assert.equal(result.deliveries[0].status, "suppressed");
+  assert.equal(result.deliveries[0].reason, "channel_off");
+  assert.equal(off.calls.length, 0);
+  assert.equal(store.dispatches[0].channel_counts?.test.suppressed, 1);
+});

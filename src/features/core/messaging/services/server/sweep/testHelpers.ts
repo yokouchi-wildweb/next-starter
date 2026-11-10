@@ -2,7 +2,7 @@
 //
 // 掃き出し・保持の単体テストの部品: 送る口のメモリの store に、掃き出しと保持の操作を足す(SQL と同じ規則)。テストだけが読む。
 
-import type { MessageDispatch, MessageDeliveryInsert } from "../../../entities/model";
+import type { MessageDispatch, MessageDeliveryInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import { createDeps, createMemoryStore, type MemoryStore } from "../sendMessage/testHelpers";
 import type { MessageSendDeps } from "../sendMessage/types";
@@ -15,6 +15,7 @@ export type MemoryWorld = {
   inboxDispatchIds: Set<string>;
   movedKeyRows: { idempotency_key: string; dispatch_id: string; createdAt: Date }[];
   events: { id: string; createdAt: Date }[];
+  inboxItems: MessageInboxItemInsert[];
 };
 
 const time = (value: Date | null | undefined) => (value ? value.getTime() : null);
@@ -24,6 +25,7 @@ export function createMemoryWorld(): MemoryWorld {
   const inboxDispatchIds = new Set<string>();
   const movedKeyRows: MemoryWorld["movedKeyRows"] = [];
   const events: MemoryWorld["events"] = [];
+  const inboxItems: MessageInboxItemInsert[] = [];
   const dispatches = () => store.dispatches as unknown as MessageDispatch[];
 
   const sweepStore: MessageSweepStore = {
@@ -45,6 +47,7 @@ export function createMemoryWorld(): MemoryWorld {
       if (!target) return false;
       const write = await step({ ...target });
       await store.insertDeliveries(write.rows as MessageDeliveryInsert[]);
+      if (write.inboxItem) inboxItems.push(write.inboxItem);
       Object.assign(target, write.patch);
       return true;
     },
@@ -155,7 +158,7 @@ export function createMemoryWorld(): MemoryWorld {
     },
   };
 
-  return { store, sweepStore, retentionStore, inboxDispatchIds, movedKeyRows, events };
+  return { store, sweepStore, retentionStore, inboxDispatchIds, movedKeyRows, events, inboxItems };
 }
 
 export function createSweepDeps(
