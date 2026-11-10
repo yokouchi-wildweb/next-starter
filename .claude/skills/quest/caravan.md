@@ -1,4 +1,4 @@
-role: **caravan** (load the commits quests made onto one line, the caravan; depart it to main once for many orders: the full checks, the push, the safe point, the answers) | read by the quest caravan, or a session the user tells to load / depart quest work
+role: **caravan** (load the commits quests made onto one line, the caravan; depart it to main once for many orders: the checks, the push, the answers; a safe point only when asked) | read by the quest caravan, or a session the user tells to load / depart quest work
 where: a linked worktree on the caravan's own branch | never the main checkout, never its local `main` ref (HQ D176; `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`, else STOP)
 words: load = put an order's commits on the caravan | depart = ship the caravan to main
 
@@ -16,11 +16,11 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the caravan (short sha)
 
-## DEPART (`depart`: only on the human's word)
+## DEPART (`depart [safe]`: only on the human's word; `safe` = the human asked for a safe departure)
 1. note the orders on the caravan: the `order: <id>` lines of `git log --format=%B origin/main..HEAD`
 2. `git fetch origin main` → `git rebase origin/main` | a conflict → CONFLICT RULES → `git rebase --continue`
-3. `/ship --safe` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; full checks on the tip, the worktree push route, the safe point tag)
-4. a full check failed:
+3. `/ship` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; the area checks of what the caravan carries, the worktree push route) | `safe` → `/ship --safe` instead (the full checks on the tip, the safe point tag)
+4. a check failed:
    - find the orders behind it: `git log --format='%h %s' origin/main..HEAD -- <files in the failure>` and their `order:` lines
    - where two orders' work meets (a type both changed, an import one removed) → fix it on the caravan as its own commit (`caravan: <the joint fix>`), back to 3
    - inside one order's own work → drop that order: `git rebase --onto <c>^ <c>` for each of its commits, newest first (an order whose commits stop applying without it goes too) | back to 3 with the rest
@@ -31,4 +31,4 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
    - its draft: `$(git rev-parse --git-common-dir)/quest/<id>.resolution.md` (or the path the caller gives) | missing → leave the order open, report it
    - `node .claude/skills/order/mailbox.mjs resolve <the order file> --status=done --pushed=yes --commit=<sha> --body=<draft>` (council orders that stopped short: `--status=partial`) | leave the draft: the caller removes it (never `rm` it here)
    - an order with no commit (an investigation) the caller names → the same with `--commit=- --pushed=-`
-7. report (Japanese): the safe point tag (or `セーフポイントなし: <理由>`), the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
+7. report (Japanese): `safe` → the safe point tag (or `セーフポイントなし: <理由>`), the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
