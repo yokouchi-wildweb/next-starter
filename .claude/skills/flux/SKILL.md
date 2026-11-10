@@ -14,7 +14,7 @@ the following files in this folder hold rules needed only by forks / segments th
   - any notice in the tree (applied ones included) or incoming has `covers:`
   - own `downstream:` is `yes` (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
   - mode is `status --chain` or `relay`
-- **`railroad.md`** (the railroad team tool): mode is `intake` or `apply` → read it before step 1
+- **`railroad.md`** (the railroad team tool): mode is `intake`, or the cue `apply J<k>` / `fix J<k>` → read it before step 1
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
 - notice id mode (no reconnaissance, no segment building): judge the same conditions for the target notice and this fork; when they hit, read before step 5
 
@@ -225,7 +225,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - **`status`**: state report only | list fetch + unmerged commit count + overview of all segments (one line each, as in step 2) + the results of inherited / ledger matching, then end | **never merge or apply anything** (no detailed plan either)
 - **`status --chain`**: report only the relay state per grandparent notice (no merge, no application) | output form → relay.md
 - **`relay`**: a middle Tier drafts relay notices bundling the unjudged old notices it applied before relay judgment existed (no merge, no application) | steps → relay.md RELAY MODE
-- **`intake [<n> | all] [to <位置>]`** / **`apply <area> to <checkpoint>`**: only inside the railroad team tool (its runtime header) | intake = merge ahead without application, apply = one area's follow-up up to a station | steps → railroad.md
+- **`intake [<n> | all] [to <位置>]`** / **`apply J<k>`** (and `fix J<k>`): only inside the railroad team tool (its runtime header) | intake = merge ahead without application, apply = one chunk's follow-up (a run of laid segments, whole fork) on its own branch | steps → railroad.md
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
 ## INCOMING TOOL (incoming.mjs)
