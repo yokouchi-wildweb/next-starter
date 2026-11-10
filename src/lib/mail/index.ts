@@ -13,3 +13,4 @@ export {
   type SendMailResult,
 } from "./send";
 export { MailSendError, type MailSendErrorKind } from "./errors";
+export * from "./webhooks";

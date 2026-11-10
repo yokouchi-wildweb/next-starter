@@ -60,6 +60,54 @@ const { provider, providerMessageId } = await send({
 - `status`: HTTP 状態（応答が無いときは `null`）
 - `cause`: プロバイダーの元の誤り
 
+## webhook の検証と正規化（lib/mail/webhooks）
+
+provider から届く事件（届いた・開かれた・跳ね返った…）を検証し、共通の形 `MailWebhookEvent` に直す。受け口（route）・秘密の置き場（環境変数）・事件の保存は使う側が持つ。lib は環境変数を読まず、秘密 / 公開鍵は引数で受ける。
+
+```ts
+import {
+  verifyResendWebhook,
+  normalizeResendWebhook,
+  verifySendGridWebhook,
+  normalizeSendGridWebhook,
+  MailWebhookVerifyError,
+} from "@/lib/mail";
+
+const rawBody = await request.text(); // 署名は生の本文で検証する（JSON を解析し直した物は渡さない）
+
+// Resend
+const events = normalizeResendWebhook(
+  verifyResendWebhook({ rawBody, headers: request.headers, secret: resendWebhookSecret }),
+);
+
+// SendGrid
+const events = normalizeSendGridWebhook(
+  verifySendGridWebhook({ rawBody, headers: request.headers, publicKey: sendgridPublicKey }),
+);
+```
+
+- 失敗は `MailWebhookVerifyError`（`reason` = `missing_header` | `bad_signature` | `stale_timestamp` | `bad_payload`）
+- `MailWebhookEvent` = `{ provider, providerMessageId, providerEventId, type, address, occurredAt, raw }`
+  - `providerMessageId` は送信時の `send()` の戻り値と同じ値（記録と結ぶ鍵）
+  - `providerEventId` は重複の除外の鍵（provider は再試行で同じ事件を何度も送る）
+  - `type` = `sent` | `delivered` | `deferred` | `bounced` | `complained` | `opened` | `clicked` | `dropped` | `unsubscribed` | `other`。元の種類名・クリックの URL などは `raw` から読む
+
+### provider ごとの違い
+
+- Resend
+  - 署名: Svix（`svix-id`・`svix-timestamp`・`svix-signature`）。秘密は webhook の設定に出る `whsec_…`。timestamp は既定で前後 5 分まで許す（`toleranceSec`）
+  - 本文: 1 本文 = 事件 1 件。`providerEventId` = `svix-id`、`providerMessageId` = `data.email_id`
+  - 種類: `email.sent` → sent、`email.delivery_delayed` → deferred、`email.failed` / `email.suppressed` → dropped、メール以外の事件（contact.* など）→ other
+  - SDK の `webhooks.verify` は Resend の client（API キー）を要するので使わず、node:crypto で検証する
+- SendGrid（Event Webhook）
+  - 署名: ECDSA（`X-Twilio-Email-Event-Webhook-Signature`・`-Timestamp`）。公開鍵は Signed Event Webhook を有効にすると出る値（base64 の DER。PEM も受ける）
+  - 本文: 事件の配列。`providerEventId` = `sg_event_id`（無い事件は飛ばす）、`providerMessageId` = `sg_message_id` の「.」より前（= 送信時の `X-Message-Id`。非同期のバウンスでは無いことがある）
+  - 種類: `processed` → sent、`blocked` → deferred（一時の拒否）、`spamreport` → complained、`unsubscribe` / `group_unsubscribe` → unsubscribed、`group_resubscribe` → other
+
+### 開封・クリック
+
+どちらの provider も計測は provider 側の設定で入れる（Resend はドメインごとで既定は切、SendGrid はアカウントの Tracking の設定）。入れない限り `opened` / `clicked` は届かない。
+
 ## createMailTemplate
 
 件名・テンプレートの部品・テスト用の props をまとめ、`Template.send(to, props, options?)` で送る。戻り値は返さない（`Promise<void>`）。
