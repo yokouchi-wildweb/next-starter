@@ -6,4 +6,10 @@ export type {
   MailTemplate,
   MailTemplateConfig,
 } from "./createMailTemplate";
-export { send, type MailProvider, type SendMailOptions } from "./send";
+export {
+  send,
+  type MailProvider,
+  type SendMailOptions,
+  type SendMailResult,
+} from "./send";
+export { MailSendError, type MailSendErrorKind } from "./errors";
