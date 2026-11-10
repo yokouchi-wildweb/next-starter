@@ -4,7 +4,7 @@
 
 ベースリポジトリでは**仕組みのみ**提供する。具体的なマイルストーン定義は下流プロジェクトで実装する。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/milestone.ts`、今は常に開)。閉じたときの統合ポイント: 決済の完了は評価せず結果は空・本登録の後(user_registered)は何もしない・購入完了の画面は達成の表示を描かない。新しい統合ポイントも `gate.enabled("milestone")` を確かめてから `evaluateMilestones` を呼ぶ。
+閉じられる機能(門番の規則 `src/featureGate/rules/milestone.ts`、今は常に開)。閉じたときの統合ポイント: 決済の完了は評価せず結果は空・本登録の後(user_registered)は何もしない。新しい統合ポイントも `gate.enabled("milestone")` を確かめてから `evaluateMilestones` を呼ぶ。
 
 ---
 
@@ -340,7 +340,7 @@ completePurchase() で milestone_results を jsonb に保存
   ↓
 /api/wallet/purchase/[id]/status のレスポンスに milestoneResults を含める
   ↓
-PurchaseComplete コンポーネントが MilestoneNotifications を描画
+表示する fork が自分の画面に置いた MilestoneNotifications が描画(上流の画面は描かない。下の「表示する場所」)
   ↓
 各マイルストーンについて:
   ① レンダラーレジストリから該当キーのレンダラーを検索
@@ -418,7 +418,20 @@ export const renderer: MilestoneRendererDefinition = {
 
 レンダラーの無い段は今と同じく 1 件ずつ既定の通知。テスト: `pnpm test src/features/core/milestone/components/MilestoneNotifications.render.test.tsx`
 
-これだけで `PurchaseComplete` ページにマイルストーン達成通知が自動的に表示される。
+描くのは `MilestoneNotifications` を置いた画面だけ(上流の画面はどこにも置かない。下の「表示する場所」)。
+
+### 表示する場所
+
+達成をどこで見せるかは業務の判断なので、上流の画面(購入完了の `PurchaseComplete` を含む)は `MilestoneNotifications` を描かない。達成の結果は購入の状態の API・`usePurchaseStatus` の `milestoneResults` にそのまま入る。
+
+- 画面に出す: fork の route の `_components/` の Screen に置く。機能が閉じたときは描かないよう門番を確かめる
+  ```tsx
+  const showMilestones = useGate().enabled("milestone");
+  {showMilestones && purchaseInfo?.milestoneResults?.length ? (
+    <MilestoneNotifications results={purchaseInfo.milestoneResults} />
+  ) : null}
+  ```
+- 画面に出さない: 定義の `onAchieved` で別の経路(アプリ内通知など)へ送る
 
 ### 表示モード（displayMode）
 
