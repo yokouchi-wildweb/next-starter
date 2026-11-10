@@ -19,11 +19,17 @@ function fakeConnect() {
   return { connect, calls };
 }
 
-test("上流の空の上書き(@lib-config/drizzle)では今と同じ { prepare: false, max: 3 }", () => {
-  assert.deepEqual(drizzleConfig, { max: 3 });
+// 上流の既定は compose({}) で見る(読み込んだ drizzleConfig は fork が src/config/lib/drizzle.config.ts に書いた値で変わる)
+test("上流の既定(空の上書き)では今と同じ { prepare: false, max: 3 }", () => {
+  const defaults = drizzleConfigDef.compose({});
+  assert.deepEqual(defaults, { max: 3 });
   const { connect, calls } = fakeConnect();
-  createQueryClient("postgres://x", drizzleConfig, connect);
+  createQueryClient("postgres://x", defaults, connect);
   assert.deepEqual(calls, [{ url: "postgres://x", options: { prepare: false, max: 3 } }]);
+});
+
+test("読み込んだ設定(@lib-config/drizzle)は検査を通った形", () => {
+  assert.equal(Number.isInteger(drizzleConfig.max) && drizzleConfig.max > 0, true);
 });
 
 test("上書きの値が postgres(...) のオプション(max / idle_timeout / connect_timeout)に届く", () => {

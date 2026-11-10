@@ -2,13 +2,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { frameDimsConfig } from "./config";
+import { frameDimsConfig, frameDimsConfigDef } from "./config";
 import { FRAME_OBSERVE_OPTIONS, readFrameDimsStyle, subscribeFrameDims } from "./useFrameDimsStyle";
 
 const frameRoot = { tagName: "DIV" } as unknown as Element;
 
-const lookup = (found: Element | null) => ({
-  querySelector: (selector: string) => (selector === "[data-frame-root]" ? found : null),
+// 上流の既定(読み込んだ frameDimsConfig は fork が src/config/lib/frameDims.config.ts に書いた値で変わる)。
+// readFrameDimsStyle の検査は既定を明示して渡し、subscribe は読み込んだ設定の外枠の印で引く
+const defaults = frameDimsConfigDef.compose({});
+
+const lookup = (found: Element | null, rootSelector = defaults.rootSelector) => ({
+  querySelector: (selector: string) => (selector === rootSelector ? found : null),
 });
 
 const readStyle = (values: Record<string, string>) => (element: Element) => {
@@ -17,7 +21,7 @@ const readStyle = (values: Record<string, string>) => (element: Element) => {
 };
 
 test("外枠が無い時は空", () => {
-  assert.deepEqual(readFrameDimsStyle(lookup(null), readStyle({})), {});
+  assert.deepEqual(readFrameDimsStyle(lookup(null), readStyle({}), defaults), {});
 });
 
 test("外枠に書かれた寸法変数の計算値を写す", () => {
@@ -27,6 +31,7 @@ test("外枠に書かれた寸法変数の計算値を写す", () => {
       "--app-header-height": " 56px",
       "--app-bottom-nav-height": "calc(64px + env(safe-area-inset-bottom, 0px))",
     }),
+    defaults,
   );
   assert.deepEqual(style, {
     "--app-header-height": "56px",
@@ -35,12 +40,12 @@ test("外枠に書かれた寸法変数の計算値を写す", () => {
 });
 
 test("隠している間に 0 になった値もそのまま写す", () => {
-  const style = readFrameDimsStyle(lookup(frameRoot), readStyle({ "--app-bottom-nav-height": "0px" }));
+  const style = readFrameDimsStyle(lookup(frameRoot), readStyle({ "--app-bottom-nav-height": "0px" }), defaults);
   assert.deepEqual(style, { "--app-bottom-nav-height": "0px" });
 });
 
 test("既定の設定 = 外枠の印と枠の部位一覧の寸法変数(src/styles/core/frame.css の名前)", () => {
-  assert.deepEqual(frameDimsConfig, {
+  assert.deepEqual(defaults, {
     rootSelector: "[data-frame-root]",
     vars: {
       header: "--app-header-height",
@@ -70,7 +75,7 @@ function fakeEnv(found: Element | null) {
   const frames: (() => void)[] = [];
   const listeners = new Map<string, () => void>();
   const env = {
-    doc: lookup(found),
+    doc: lookup(found, frameDimsConfig.rootSelector),
     win: {
       addEventListener: (type: string, fn: () => void) => listeners.set(type, fn),
       removeEventListener: (type: string) => listeners.delete(type),

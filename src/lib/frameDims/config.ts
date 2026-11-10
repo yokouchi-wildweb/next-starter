@@ -29,7 +29,7 @@ const defaults: FrameDimsConfig = {
   },
 };
 
-const frameDimsConfigDef = defineConfig(defaults, { label: "frameDims" });
+export const frameDimsConfigDef = defineConfig(defaults, { label: "frameDims" });
 
 /** 上書きのファイル(src/config/lib/frameDims.config.ts)の型 */
 export type FrameDimsOverride<E extends object = {}> = OverrideOf<typeof frameDimsConfigDef, E>;

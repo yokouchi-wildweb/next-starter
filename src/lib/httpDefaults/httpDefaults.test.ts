@@ -12,8 +12,10 @@ const adapter = async (config: InternalAxiosRequestConfig) => {
 };
 after(() => installHttpDefaults(axios, null));
 
+// 上流の既定は compose({}) で見る(読み込んだ httpDefaultsConfig は fork が src/config/lib/httpDefaults.config.ts に書いた値で変わる)
 test("既定は付けない(上流の空の上書き)、上書きで値が入る", () => {
-  assert.deepEqual(httpDefaultsConfig, { timeoutMs: null });
+  assert.deepEqual(httpDefaultsConfigDef.compose({}), { timeoutMs: null });
+  assert.deepEqual(Object.keys(httpDefaultsConfig), ["timeoutMs"]);
   assert.deepEqual(httpDefaultsConfigDef.compose({ timeoutMs: 30_000 }), { timeoutMs: 30_000 });
 });
 

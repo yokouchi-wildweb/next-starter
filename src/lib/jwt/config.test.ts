@@ -6,10 +6,14 @@ import assert from "node:assert/strict";
 import { jwtConfig, jwtConfigDef } from "./config";
 import { SESSION_COOKIE_NAME, SESSION_DEFAULT_MAX_AGE_SECONDS } from "./constants";
 
-test("上流の空の上書き(@lib-config/jwt)では既定のまま、公開の定数はその値", () => {
-  assert.deepEqual(jwtConfig, { cookieName: "__session", defaultMaxAgeSeconds: 604800 });
-  assert.equal(SESSION_COOKIE_NAME, "__session");
-  assert.equal(SESSION_DEFAULT_MAX_AGE_SECONDS, 604800);
+// 上流の既定は compose({}) で見る(読み込んだ jwtConfig は fork が src/config/lib/jwt.config.ts に書いた値で変わる)
+test("上流の空の上書きでは既定のまま", () => {
+  assert.deepEqual(jwtConfigDef.compose({}), { cookieName: "__session", defaultMaxAgeSeconds: 604800 });
+});
+
+test("公開の定数は読み込んだ設定(@lib-config/jwt)の値", () => {
+  assert.equal(SESSION_COOKIE_NAME, jwtConfig.cookieName);
+  assert.equal(SESSION_DEFAULT_MAX_AGE_SECONDS, jwtConfig.defaultMaxAgeSeconds);
 });
 
 test("上書きの値が cookie 名・有効期限に効き、書かないキーは既定のまま", () => {

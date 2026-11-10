@@ -6,8 +6,10 @@ import assert from "node:assert/strict";
 import { toastConfig, toastConfigDef } from "./config";
 import { createToastStore } from "./stores/internalStore";
 
-test("上流の空の上書き(@lib-config/toast)では既定のまま", () => {
-  assert.deepEqual(toastConfig, { duration: 3000, position: "bottom-center", size: "md", ariaLabel: "通知" });
+// 上流の既定は compose({}) で見る(読み込んだ toastConfig は fork が src/config/lib/toast.config.ts に書いた値で変わる)
+test("上流の空の上書きでは既定のまま、読み込んだ設定(@lib-config/toast)も同じキー", () => {
+  assert.deepEqual(Object.keys(toastConfig).sort(), Object.keys(toastConfigDef.compose({})).sort());
+  assert.deepEqual(toastConfigDef.compose({}), { duration: 3000, position: "bottom-center", size: "md", ariaLabel: "通知" });
 });
 
 test("上書きの値が show の既定の表示時間・位置・大きさに効く", () => {

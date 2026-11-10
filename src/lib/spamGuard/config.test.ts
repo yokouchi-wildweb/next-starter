@@ -7,8 +7,10 @@ import assert from "node:assert/strict";
 import { checkDisposableEmail } from "./checker";
 import { spamGuardConfig, spamGuardConfigDef } from "./config";
 
-test("上流の空の上書き(@lib-config/spamGuard)では既定の disabled", () => {
-  assert.deepEqual(spamGuardConfig, { emailCheckMode: "disabled" });
+// 上流の既定は compose({}) で見る(読み込んだ spamGuardConfig は fork が src/config/lib/spamGuard.config.ts に書いた値で変わる)
+test("上流の空の上書きでは既定の disabled", () => {
+  assert.deepEqual(spamGuardConfigDef.compose({}), { emailCheckMode: "disabled" });
+  assert.deepEqual(Object.keys(spamGuardConfig), ["emailCheckMode"]);
 });
 
 test("disabled はローカルパートの文字チェックだけ(信頼ドメイン以外も通す)", async () => {
