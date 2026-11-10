@@ -5,6 +5,7 @@
 import { bulkSend } from "./bulkSend";
 import { findExistingIdempotencyKeys } from "./dispatch";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
+import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
 import { send } from "./send";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { continueSending } from "./sweep";
@@ -33,6 +34,11 @@ export const messagingService = {
   registerEndpoint,
   removeEndpoint,
   listEndpoints,
+  /** 受け取り箱: 本人の見える行の一覧・未読数・既読(/api/me/messaging/inbox が呼ぶ) */
+  listInbox,
+  inboxUnreadCount,
+  markInboxRead,
+  markAllInboxRead,
   send,
   bulkSend,
   /** 渡した冪等性キーのうち送信ジョブが既に存在するものを返す（バッチ送信の送信済み除外用） */
