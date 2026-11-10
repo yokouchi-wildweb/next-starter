@@ -31,6 +31,14 @@ src/features/core/messaging/
 │   ├── idempotencyKey.ts        # message_idempotency_keys
 │   ├── schema.ts                # Zod（MessagingSendInputSchema / MessagingBulkSendInputSchema）
 │   └── model.ts                 # 入出力の型
+├── services/client/
+│   ├── endpointClient.ts        # 本人の端末の帳簿の API
+│   └── inboxClient.ts           # 本人の受け取り箱の API（一覧はカーソル）
+├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
+├── components/
+│   ├── InboxList/               # 入れ物: 受け取り箱の一覧（詳細・既読・すべて既読）
+│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。枠には置いていない）
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany + 古い send / bulkSend / findExistingIdempotencyKeys）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -309,7 +317,7 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - `GET /api/me/messaging/inbox/unread-count` → `{ count }`
 - `POST /api/me/messaging/inbox/[id]/read` → `{ ok: true }`（見える行だけ。見えない行・無い行は 404）
 - `POST /api/me/messaging/inbox/read-all` → `{ ok: true }`
-- `InboxItemDto` = `{ id, title, body, link, image, metadata, publishedAt (ISO), read }`。回の中身（宛先・数・記録）と他人の情報は返さない。`image` は保存した値のまま（`storage://` の ref か URL）で、表示の部品が `toStorageDisplaySrc`（lib/storage）で表示用にする
+- `InboxItemDto` = `{ id, title, body, link, image, metadata, publishedAt (ISO), read }`。回の中身（宛先・数・記録）と他人の情報は返さない。`image` は保存した値のまま（`storage://` の ref か URL）で、表示の部品（`AppImage` が内部で `toStorageDisplaySrc` 相当の解決をする）が表示用にする
 
 見える行（規則は `inbox/visibility.ts` の 1 か所。SQL と、テスト用の同じ判定）:
 
@@ -320,6 +328,20 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 取り下げた回の行は消えている（`retracted_at` は回にだけ残る）
 
 既読: `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`。全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の自分の個別の既読の行を掃く（watermark が覆うので既読のまま）。
+
+### 受け取り箱の画面（client・部品・ページ /messages）
+
+- client: `services/client/inboxClient.ts`（axios + `normalizeHttpError`）。一覧の応答は `@/hooks/cursorPage` の `CursorPage` と同じ形
+- hook（`hooks/index.ts` から）:
+  - `useInboxItems({ unreadOnly?, limit?, enabled?, revalidateOnFocus?, observerOptions? })` = `useInfiniteScrollQuery` のカーソルのモード。`total` は読み込み済みの件数（総数は数えない）
+  - `useInboxUnreadCount({ enabled? })` → `{ count }`（SWR `INBOX_UNREAD_COUNT_KEY`）
+  - `useMarkInboxItemRead()` → `markRead(id)` / `useMarkAllInboxRead()` → `markAllRead()`（`useDomainMutation`。成功で未読の数を取り直す。一覧の印は呼び手が `updateItems` で `read: true` にする）
+- 部品（core_ui、入口だけを import）:
+  - `components/common/InboxItemRow`（1 行。押すと `onOpen(item)`）・`InboxItemDetail`（1 件の中身。題は包む Modal が持つ）・`InboxUnreadMark`（未読の点）
+  - 入れ物 `components/InboxList`（`unreadOnly?`・`limit?`・`emptyText?`）と `components/InboxUnreadModal`
+- 未読のモーダル: 旧 `UnreadNotificationModal` と同じふるまい（指定の住所へ来たら未読を古い順に 1 件ずつ、見せた行は既読、次へ / スキップ = 全部既読 / 確認完了、確かめた id は sessionStorage）。値は `config.ts` の `inbox.showUnreadModal`（既定 false）・`inbox.unreadModalPaths`（既定 `["/"]`、末尾 `*` で前方一致）、上書きは `src/config/features/messaging.config.ts`。利用者の枠（UserLayout）には置いていない（旧部品の削除の指令で付け替える）
+- ページ `/messages`（`src/app/(user)/(protected)/messages/`）: `page.tsx` の 1 行スイッチ → `_screen/MessagesScreen.tsx`（題「お知らせ」+ `InboxList`）+ `_screen/loader.ts`（access authenticated、閉なら notFound）。初めの一覧もサーバーでは取らない（入れ物が hook で取る）
+- 門: 規則 `messagingInbox`（`src/featureGate/rules/messagingInbox.ts`、住所 `/messages`、既定 閉）。API と表は常に開（domains は持たない）。開ける fork は `src/config/featureGate/switches.config.ts`
 
 ---
 

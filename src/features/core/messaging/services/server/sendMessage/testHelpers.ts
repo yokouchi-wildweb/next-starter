@@ -173,6 +173,7 @@ export const testConfig: MessagingConfig = {
   channels: { line: { enabled: false } },
   sweep: { budgetMs: 60_000, deliveryChunkSize: 2, expandChunksPerRun: 5, leaseSeconds: 300 },
   retention: { eventsDays: 30, deliveriesDays: 90, dispatchesDays: 730, idempotencyKeyDays: null, chunkSize: 2, budgetMs: 60_000 },
+  inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
 };
 
 export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");

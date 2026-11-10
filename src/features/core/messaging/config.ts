@@ -46,6 +46,12 @@ export type MessagingConfig = {
     chunkSize: number;
     budgetMs: number;
   };
+  /**
+   * 受け取り箱の画面の値
+   * - showUnreadModal: 未読のお知らせのモーダル(InboxUnreadModal)を出す(既定 切)。部品を枠に置くのは別(今は置いていない)
+   * - unreadModalPaths: モーダルを出す住所(完全一致。末尾 * で前方一致)
+   */
+  inbox: { showUnreadModal: boolean; unreadModalPaths: readonly string[] };
 };
 
 const defaults: MessagingConfig = {
@@ -64,6 +70,7 @@ const defaults: MessagingConfig = {
     chunkSize: 1000,
     budgetMs: 240_000,
   },
+  inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
 };
 
 export const messagingConfigDef = defineConfig(defaults, { label: "messaging" });
