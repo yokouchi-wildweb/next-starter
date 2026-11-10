@@ -599,6 +599,117 @@ export function ProfileCard({ user }: { user: User }) {
 - 低い層の `useAvatarUpload`（`upload` / `discard`）と `useUpdateMyProfile` はそのまま公開（戻り値の形は変えない）。自前の前処理（縮小など）を挟む流れは低い層を使ってよい
 - 回帰: `pnpm test src/features/core/user`（`hooks/useAvatarChange.test.tsx`・`components/common/AccountAvatarSection.test.tsx`）
 
+## 管理画面の一般ユーザー一覧（useGeneralUserListTable / createGeneralUserListColumns）
+
+`/admin/users/general` の一覧（`components/admin/GeneralUserList` = `UserListHeader` + `Table`）は、処理と見た目を分けて公開している。fork が列・並び替え・行の押下を変えるときは、`_components/` に自前の Table を置いてこの 2 つを呼ぶ。削除の流れ・モーダルの対象・機能の開閉はコピーしない（CLAUDE.md FORK_EXTENSION 1）。
+
+- `useGeneralUserListTable({ onChanged? })`（`hooks/useGeneralUserListTable.ts`）: 一覧の処理。見た目を持たない
+- `createGeneralUserListColumns(options)`（入口 `components/admin` から）: 上流の列（並び・セルの中身）を `DataTableColumn<User>[]` で返す。fork は戻り値に自分の列を差し込む
+- `UserListHeader`（`components/common/UserListHeader`）: 並び替えの候補 `sortOptions` と既定値 `defaultSort` を渡せる
+
+### useGeneralUserListTable の戻り値
+
+| キー | 中身 |
+|------|------|
+| `canAdjustWallet` | ポイント操作を出すか（gate `wallet` が開いていて `walletConfig.enableAdminBalanceAdjust`） |
+| `canManage` | 管理モーダルを使うか（`userConfig.enableUserManagement`）。false = 削除の確認ダイアログ |
+| `canMemo` | メモの列を出すか（`userConfig.enableUserMemo`） |
+| `selection` | `{ enabled, behavior, bulkActionsAlwaysVisible }`（`userConfig.userListPage`。`enabled` = `enableSelectionTable.general`） |
+| `bulkActions` / `onBulkDone` | 一括操作の項目（受け口 `adminBulkActions` の `"general"`）と、`BulkActionItems` の `onDone` に渡す再読み込み |
+| `adjust` | `{ target, open(user), close, onAdjusted }`。`onAdjusted` は `AdminWalletAdjustModal` の `onSuccess` に渡す再読み込み |
+| `manage` | `{ target, open(user), close }`（`AdminUserManageModal` 用） |
+| `remove` | `{ target, request(user), cancel, confirm(), isDeleting }`。`confirm` = ソフトデリート → 成功トースト・閉じる・再読み込み / 失敗はエラートーストで開いたまま |
+| `refresh` | `router.refresh()` の後に `onChanged?.()` |
+| `columnOptions` | `createGeneralUserListColumns` に広げて渡す値（`canAdjustWallet` / `canManage` / `canMemo` / `isDeleting` / `onAdjust` / `onManage` / `onDelete`） |
+
+`createGeneralUserListColumns({ ...columnOptions, editBasePath })` の列: ステータス・ロール・表示名・認証方法・メールアドレス・登録日・（`canMemo` のとき）メモ・操作（ポイント操作 / 管理 か削除 / 編集 = `${editBasePath}/<id>/edit`）。
+
+### UserListHeader の並び替え
+
+- `sortOptions?: { label, value }[]`: 既定 = `DEFAULT_USER_LIST_SORT_OPTIONS`（登録日順 `createdAt`・更新日順 `updatedAt`）
+- `defaultSort?: string`: `?sortBy=` が無いときに選ばれている値（既定 `createdAt`）
+- 選んだ値は `?sortBy=` に乗るだけ。並べるのは loader（上流は `utils/adminUserListQuery.ts` の `buildAdminUserListQuery` が `updatedAt` 以外を `createdAt` で並べる）。値を足した fork は自前の loader でその値を解釈し、`defaultSort` は loader の既定の並びと揃える
+
+### fork の例
+
+`src/app/admin/(protected)/users/general/_components/GeneralUserListTable.tsx`（page.tsx の切り替えと Screen の置き換えは src/lib/screens/README.md）:
+
+```tsx
+"use client";
+
+import { useMemo, useState } from "react";
+
+import { BulkActionItems, DataTable, RecordSelectionTable, type DataTableColumn } from "@/lib/tableSuite";
+import Dialog from "@/components/Overlays/Dialog";
+import type { User } from "@/features/core/user/entities";
+import { AdminUserManageModal, createGeneralUserListColumns } from "@/features/core/user/components/admin";
+import { useGeneralUserListTable } from "@/features/core/user/hooks/useGeneralUserListTable";
+import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
+
+export function GeneralUserListTable({ users, coinBalanceMap }: { users: User[]; coinBalanceMap: Record<string, number> }) {
+  const t = useGeneralUserListTable();
+  const [historyUser, setHistoryUser] = useState<User | null>(null);
+
+  const columns = useMemo(() => {
+    const base = createGeneralUserListColumns({ ...t.columnOptions, editBasePath: "/admin/users/general" });
+    const coin: DataTableColumn<User> = { header: "保有コイン", render: (u) => coinBalanceMap[u.id] ?? 0 };
+    // 操作の列(最後)の前に差し込む
+    return [...base.slice(0, -1), coin, base[base.length - 1]];
+  }, [t.columnOptions, coinBalanceMap]);
+
+  const table = t.selection.enabled ? (
+    <RecordSelectionTable
+      items={users}
+      columns={columns}
+      getKey={(u) => u.id}
+      onRowClick={setHistoryUser}
+      selectionBehavior={t.selection.behavior}
+      bulkActionsAlwaysVisible={t.selection.bulkActionsAlwaysVisible}
+      bulkActions={(selection) => <BulkActionItems items={t.bulkActions} selection={selection} onDone={t.onBulkDone} />}
+    />
+  ) : (
+    <DataTable items={users} columns={columns} getKey={(u) => u.id} onRowClick={setHistoryUser} />
+  );
+
+  return (
+    <>
+      {table}
+      {t.canAdjustWallet ? (
+        <AdminWalletAdjustModal open={Boolean(t.adjust.target)} user={t.adjust.target} onClose={t.adjust.close} onSuccess={t.adjust.onAdjusted} />
+      ) : null}
+      {t.canManage ? (
+        <AdminUserManageModal open={Boolean(t.manage.target)} user={t.manage.target} onClose={t.manage.close} />
+      ) : (
+        <Dialog
+          open={Boolean(t.remove.target)}
+          onOpenChange={(open) => !open && t.remove.cancel()}
+          title="ユーザー削除"
+          description={`${t.remove.target?.name ?? "このユーザー"} を削除します。`}
+          confirmLabel="削除する"
+          cancelLabel="キャンセル"
+          onConfirm={t.remove.confirm}
+          confirmDisabled={t.remove.isDeleting}
+          confirmVariant="destructive"
+        />
+      )}
+      {/* historyUser で自前のモーダルを開く */}
+    </>
+  );
+}
+```
+
+ヘッダーに並び替えを足す（loader 側で `coinBalance` を解釈する）:
+
+```tsx
+import UserListHeader, { DEFAULT_USER_LIST_SORT_OPTIONS } from "@/features/core/user/components/common/UserListHeader";
+
+const SORT_OPTIONS = [...DEFAULT_USER_LIST_SORT_OPTIONS, { label: "保有コイン順", value: "coinBalance" }];
+// <UserListHeader {...props} sortOptions={SORT_OPTIONS} />
+```
+
+- 上流の `GeneralUserList` / `GeneralUserListTable` / `UserListHeader` の props は変わらない（足したものは省略できる）
+- 回帰: `pnpm test src/features/core/user`（`hooks/useGeneralUserListTable.test.tsx`・`components/admin/GeneralUserList/columns.test.tsx`・`components/common/UserListHeader.test.tsx`）
+
 ## 退会と削除
 
 ### 2 段階削除（ソフトデリート → 物理削除）

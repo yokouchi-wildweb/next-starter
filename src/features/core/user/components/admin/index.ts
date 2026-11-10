@@ -15,4 +15,5 @@ export { StatusTabContent } from "./AdminUserManageModal/StatusTabContent";
 export { SummaryTabContent } from "./AdminUserManageModal/SummaryTabContent";
 export { UserInfoHeader } from "./AdminUserManageModal/UserInfoHeader";
 export { default as GeneralUserListTable } from "./GeneralUserList/Table";
+export { createGeneralUserListColumns, type GeneralUserListColumnOptions } from "./GeneralUserList/columns";
 export { default as ManagerialUserListTable } from "./ManagerialUserList/Table";
