@@ -19,6 +19,8 @@ import {
   writeSwitch,
 } from "./20261109-171458-feature-gate-foundation.feature-gate-l3.mjs";
 
+// 上流の switches.config.ts の頭のコメント(例の行に `export default { … }` を含む)
+const SWITCHES_HEADER = "// 例: `export default { wallet: false, sampleDomain: false } satisfies FeatureSwitches;` / 書く道具: pnpm ops features set <名前> on|off\n";
 const rule = (body) => `import type { FeatureGateRule } from "@/featureGate";\n\nexport const rule: FeatureGateRule = {\n${body}};\n`;
 
 function fork(files) {
@@ -54,7 +56,7 @@ function sampleFork() {
     "src/featureGate/rules/shop.ts": OLD["src/featureGate/rules/shop.ts"],
     "src/featureGate/rules/friendCouponAdmin.ts": rule('  pathPatterns: ["/admin/coupons/friend-coupon"],\n  enabled: () => FRIEND_CONFIG.enabled && x(),\n'),
     "src/featureGate/rules/couponIssuerApplyClosed.ts": rule('  pathPatterns: ["/api/me/coupon-issuer/apply"],\n  defaultEnabled: false,\n'),
-    "src/config/featureGate/switches.config.ts": 'import type { FeatureSwitches } from "@/featureGate";\n\nexport default {} satisfies FeatureSwitches;\n',
+    "src/config/featureGate/switches.config.ts": `${SWITCHES_HEADER}import type { FeatureSwitches } from "@/featureGate";\n\nexport default {} satisfies FeatureSwitches;\n`,
     "src/features/shop/domain.json": '{\n  "singular": "shop",\n  "closable": true,\n  "fields": []\n}\n',
     "src/featureGate/required/coupon.ts": "export const required = { reason: 'x' };\n",
     "src/features/shop/legacy.ts": "if (APP_FEATURES.wallet.enabled) run();\nconst r = APP_FEATURES.marketing.referral;\nconst ok = APP_FEATURES.adminConsole.enableUserManagement;\n",
@@ -96,6 +98,8 @@ test("3. 入切の値の読み: APP_FEATURES の鍵・defineConfig の既定と�
   assert.equal(writeSwitch("export default {} satisfies FeatureSwitches;\n", "wallet", false), "export default { wallet: false } satisfies FeatureSwitches;\n");
   assert.equal(writeSwitch("export default { wallet: false } satisfies X;\n", "coupon", true), "export default { wallet: false, coupon: true } satisfies X;\n");
   assert.equal(writeSwitch("export default { wallet: true } satisfies X;\n", "wallet", false), "export default { wallet: false } satisfies X;\n");
+  // 上流のテンプレート: 頭のコメントの例には書かず、本物の default export に書く
+  assert.equal(writeSwitch(`${SWITCHES_HEADER}\nexport default {} satisfies FeatureSwitches;\n`, "wallet", false), `${SWITCHES_HEADER}\nexport default { wallet: false } satisfies FeatureSwitches;\n`);
 });
 
 test("4. closable を消す", () => {
@@ -118,6 +122,7 @@ test("走らせる: fork の 1〜6 をまとめて計画し、--apply 相当で�
   ]);
   // 上流の規則 wallet は fork の値 false が既定 true と違うので switches へ。coupon は既定と同じで書かない。mypageOther は入切でない
   assert.match(first.writes.get("src/config/featureGate/switches.config.ts"), /export default \{ wallet: false \} satisfies FeatureSwitches;/);
+  assert.ok(first.writes.get("src/config/featureGate/switches.config.ts").startsWith(SWITCHES_HEADER), "頭のコメントの例は変えない");
   // fork の規則 shop: features → domains、enabled → defaultEnabled: false(上書きの値)
   assert.match(first.writes.get("src/featureGate/rules/shop.ts"), /domains: \["shop"\],\n  defaultEnabled: false,/);
   assert.match(first.writes.get("src/featureGate/rules/friendCouponAdmin.ts"), /dependsOn: \["coupon"\]/);

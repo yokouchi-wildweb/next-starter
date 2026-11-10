@@ -188,9 +188,12 @@ export function oldSwitchValue(expr, ruleText, readOld) {
   return { problem: `${file} の ${constName}.${keys.join(".")} がリテラルの真偽でない` };
 }
 
-/** switches.config.ts の default export に `<名前>: value` を書く(あれば書き換え) */
+/**
+ * switches.config.ts の default export に `<名前>: value` を書く(あれば書き換え)。
+ * 行の頭の export default だけを見る(上流の頭のコメントの例 `export default { … }` には書かない。setEnabled.ts の rewriteSwitch と同じ)
+ */
 export function writeSwitch(text, name, value) {
-  const head = /export\s+default\s*\{/.exec(text);
+  const head = /^[ \t]*export\s+default\s*\{/m.exec(text);
   if (!head) return null;
   const open = head.index + head[0].length - 1;
   const close = text.indexOf("}", open);

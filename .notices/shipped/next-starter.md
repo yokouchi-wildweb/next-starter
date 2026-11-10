@@ -424,3 +424,4 @@
 - id:20261110-153334-mypage-menu-items | severity:info | checkpoint:mypage-menu-items | resolves:20261101-180140-mypage-main-menu-items
 - id:20261110-154848-purchase-restriction-server | severity:action-required | checkpoint:config-purchase-restriction-server
 - id:20261110-162433-demo-domain-config | severity:breaking | checkpoint:config-demo-domain | moved:src/config/proxies/demo.config.ts -> src/config/features/demo.config.ts; src/proxies/demo/config.ts -> src/features/core/demo/config.ts
+- id:20261110-153418-feature-gate-l3-switch-write | severity:action-required | checkpoint:feature-gate-l3-switch-write | fixes:20261109-171458-feature-gate-foundation | resolves:20261110-132442-feature-gate-l3-codemod-switch-write | pick:-
