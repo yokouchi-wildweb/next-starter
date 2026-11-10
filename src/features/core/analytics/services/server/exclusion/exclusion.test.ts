@@ -1,7 +1,7 @@
 // src/features/core/analytics/services/server/exclusion/exclusion.test.ts
 //
 // 分析の除外条件の口(buildExclusionConditions / buildUserFilterConditions の scope)の検査(DB なし)。
-// - 項目 0(上流): scope を渡しても条件は増えない(結果は今と同じ)
+// - 項目 0: 空の一覧を差し込めば scope を渡しても条件は増えない(どの段でも)。生成の一覧が空なのは上流だけ(Tier1 だけで確かめる)
 // - flow の scope は flow だけ、stock の scope は stock だけを足す。enabled false・includeExcluded は足さない
 // - 項目に source・rowId・userId がそのまま渡る
 // 実行: pnpm test src/features/core/analytics/services/server/exclusion/exclusion.test.ts
@@ -41,11 +41,23 @@ const providers = (enabled = true): Record<string, AnalyticsExclusionProvider> =
   },
 });
 
-test("項目 0 の上流: scope を渡しても条件は増えない", () => {
+test("項目 0: 空の一覧を差し込めば scope を渡しても条件は増えない。scope なしは除外の項目を読まない", () => {
   const t = WalletHistoryTable;
-  const base = userFilter.buildUserFilterConditions(t.user_id, {});
-  const flow = userFilter.buildUserFilterConditions(t.user_id, {}, { kind: "flow", source: "wallet_histories", rowId: t.id });
-  const stock = userFilter.buildUserFilterConditions(t.user_id, {}, { kind: "stock" });
+  assert.equal(userFilter.buildUserFilterConditions(t.user_id, {}).length, 0);
+  assert.equal(userFilter.buildExclusionConditions(t.user_id, {}, { kind: "flow", source: "wallet_histories", rowId: t.id }, {}).length, 0);
+  assert.equal(userFilter.buildExclusionConditions(t.user_id, {}, { kind: "stock" }, {}).length, 0);
+});
+
+test("項目 0 の上流(生成の一覧): scope を渡しても条件は増えない(Tier1 だけ: fork は受け口 exclusionProviders/ に項目を足せる)", async (t) => {
+  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  if (!readForkIdentity(process.cwd()).isTier1) {
+    t.skip("上流の生成の一覧が空であることの検査（Tier1 だけ。fork は notice analytics-exclusion-providers の手順で項目を足せる）");
+    return;
+  }
+  const table = WalletHistoryTable;
+  const base = userFilter.buildUserFilterConditions(table.user_id, {});
+  const flow = userFilter.buildUserFilterConditions(table.user_id, {}, { kind: "flow", source: "wallet_histories", rowId: table.id });
+  const stock = userFilter.buildUserFilterConditions(table.user_id, {}, { kind: "stock" });
   assert.equal(base.length, 0);
   assert.equal(flow.length, 0);
   assert.equal(stock.length, 0);
