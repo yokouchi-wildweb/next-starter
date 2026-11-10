@@ -171,6 +171,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - **writing the impact on a specific fork → never guess**
      - in that fork's repo, take the fork-side edits of the files this change touches (move sources included) as a diff and write the result as is: `git -C <fork> diff --name-only $(git -C <fork> merge-base HEAD <fork 内の upstream remote>/<branch>) HEAD -- <files>`
      - empty → `上流ファイルの編集なし`; not empty → file names and `--stat` scale | forks not examined → `not checked`
+     - a list of a fork's keys or values (currencies, categories, rules …) → enumerate them from that fork's file with a command and paste the output, never count by hand | write the command beside it so the fork can list them again (`.notices/README.md`)
    - **a change that adds / switches callers of core components, hooks or services (`_screen/*` Screens etc.) puts this standard line in verify**:
      ```
      pnpm typecheck passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen

@@ -63,6 +63,7 @@ notes: <anything else>
 - `uses` は notice の手順が実行する移行・codemod のパス(`,` 区切り)。下記「使う移行・codemod の欄(uses)」参照。
 - `skip_checkpoint` は先に取れない修正の notice でだけ書く。下記「区切りを外す欄(skip_checkpoint)」参照。
 - `notes` で特定の fork に触れるときは、その fork で実際に差分を取った結果だけを書く(推測で書かない。調べていない fork は `not checked`)。
+- 特定の fork の鍵や値の一覧(通貨・区分・規則など)を書くときは、その fork のファイルからコマンドで書き出した結果を貼る(手で数えない。漏れた鍵はそのまま fork の移し漏れになる)。書き出したコマンドも添え、fork の側で同じ一覧を出し直せるようにする。
 - config のキーを足させる notice は、`required_actions` に「無ければ足す」だけでなく、fork が同じキーを既に持つ場合の手順も書く: fork の分を消して upstream の行に揃える(値を変えているなら upstream の行で値を持つ)、探し方は `git grep -n "<key>" -- <config のファイル>`。fork と upstream が別の位置に足すと、git は衝突なしに両方を取り込み、オブジェクトに同じキーが 2 つ残るので、衝突を手がかりにしない。
 - fork が upstream の行に入れた振る舞いの無い編集(コメントだけの変更など)は、upstream の文面に戻してよい(残して次の取り込みで衝突させ、`pnpm workflow ownership check` の違反にもなるより、戻す方が安い)。出荷済みの notice の手順に「残して台帳に挙げる」とあっても同じで、戻したことを台帳の行に一言書く。
 - 書式は `pnpm check notices` で検査する(見出しの id とファイル名、必須の欄、checkpoint ラベルの重複、`fixes:` / `covers:` の参照先、`pick:` の値と `fixes:` の有無、出荷前の `moved:`、索引: 追記だけ・本文と行の一致・`uses:` の実在と区切り・`skip_checkpoint:` の条件)。`checkpoint:` と `manual_steps:` の必須は検査の導入以降の notice だけ(それより前は欄の無い旧 schema が残る)。

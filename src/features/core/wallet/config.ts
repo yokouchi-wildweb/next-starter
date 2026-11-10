@@ -1,7 +1,7 @@
 // src/features/core/wallet/config.ts
 // ウォレットの設定(既定 + 上書き、設定の議会 D11・D19・D95)。上書きは src/config/features/wallet.config.ts(このファイルだけが読む)。
 // 置き方: src/config/README.md。合成: @/lib/defineConfig。呼び手は walletConfig.<鍵> を読む(古い定数名の対応: ./README.md「設定」)。
-// 通貨を足す fork は上書きで `export type Extra = { currency: { <walletType>: CurrencyConfig } }` を宣言して値を書く(WalletType に入る)。
+// 通貨を足す fork は上書きで `export type Extra = { currency: { <walletType>: CurrencyConfig } }` を宣言して値を書く(WalletType に入る)。足した欄・リテラル型は Extra の型ごと残る(例 `CurrencyConfig & { isTicket: true }`、./README.md「設定ファイル」)。
 // [!!] 通貨の設定の変更後は必ずマイグレーションが必要(walletType は DB の値)
 // 機能の入切(wallet.enabled)は門番の規則 src/featureGate/rules/wallet.ts の持ち物で、ここには無い
 

@@ -387,6 +387,11 @@ export default {
 } satisfies WalletOverride<Extra>;
 ```
 
+Extra に書いた型は、既定の型と深く合成されてそのまま残る(`src/lib/defineConfig/README.md`「Extra」)。足す通貨は `CurrencyConfig` に限らず、自分の型で書ける:
+
+- 足した欄やリテラル型を後で型で読む通貨は、その型ごと書く。例: チケット通貨 `export type Extra = { currency: { premium_ticket: CurrencyConfig & { isTicket: true } } };` → fork のコードの `(typeof walletConfig.currency)[K] extends { isTicket: true }` が効く(`CurrencyConfig` だけで書くと `isTicket` が消え、チケットの種別の型が never になる)
+- 古い設定から移すときは、通貨のキーを手で数えずにコマンドで書き出し、全部を Extra と値に写す。移した後の確かめ: `npx tsx -e 'import("./src/features/core/wallet/config.ts").then((m) => console.log(Object.keys(m.walletConfig.currency).join("\n")))'`
+
 古い定数名との対応(設定の議会 D95): `CURRENCY_CONFIG` → `walletConfig.currency`・`WALLET_EXPIRATION_CONFIG` → `.expiration`・`WALLET_EXPIRATION_NOTICE_SETTINGS` → `.expirationNoticeSettings`・`WALLET_LOT_PRUNE_RETENTION_DAYS` → `.lotPruneRetentionDays`・`WALLET_PRE_EXPIRY_NOTICE_COPY` → `.preExpiryNoticeCopy`・`WALLET_EXPIRED_NOTICE_COPY` → `.expiredNoticeCopy`・`WALLET_ADJUSTMENT_NOTIFICATION` → `.adjustmentNotification`・`APP_FEATURES.wallet.{enableAdminBalanceAdjust,purchaseRestriction,purchaseSuspension,notifyOnAdjust}` → `walletConfig.<同じ鍵>`・`CURRENCY_ICONS` → `walletUiConfig.currencyIcons`(`config.ui.ts`)。機能の入切 `wallet.enabled` は門番の規則の持ち物で、ここには無い。
 
 購入の制限 `purchaseRestriction`(`"none"` | `"phoneVerified"`、上流の既定 `"none"`、設定 D107・D109): `"phoneVerified"` は SMS 認証済みの利用者だけが購入できる。SMS 認証の機能 `phoneVerification` を要するので、config.ts の `featureRequirements` で宣言し、機能が閉のままなら門 build の `pnpm check proxies` が失敗する(直し方: `pnpm ops features set phoneVerification on` か上書きに `"none"`)。サーバーでも強制する(D111): 財布に入金する購入(purchaseRequest の type 設定 `requiresWalletType`)の開始・再利用・再開で `initiatePurchase` が `assertWalletPurchaseAllowed`(`services/server/wrappers/purchaseRestriction.ts`)を呼び、必須で未認証なら 403。財布を通らない購入(direct_sale 等)は止めない。画面(`WalletBalance`)は表示のためだけに同じ値を読む
