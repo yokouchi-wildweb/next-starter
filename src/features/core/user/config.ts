@@ -4,7 +4,7 @@
 // 休会・退会・ユーザータグの入切は src/config/app/app-features.config.ts(門番の議会が移す)
 
 import override, { type Extra } from "@/config/features/user.config";
-import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
+import { defineConfig, type OverrideOf, type WithExtra } from "@/lib/defineConfig";
 
 /**
  * サインアップモード
@@ -164,4 +164,4 @@ export const userConfigDef = defineConfig(defaults, { label: "user" });
 export type UserOverride<E extends object = Record<never, never>> = OverrideOf<typeof userConfigDef, E>;
 
 /** 合成済みの設定(上流の値 + 上書き、fork が Extra で足した鍵も入る) */
-export const userConfig: UserConfig & Extra = userConfigDef.compose<Extra>(override);
+export const userConfig: WithExtra<UserConfig, Extra> = userConfigDef.compose<Extra>(override);

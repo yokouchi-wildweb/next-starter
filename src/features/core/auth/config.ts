@@ -4,7 +4,7 @@
 // サインアップの入切と mode・セッション Cookie・reCAPTCHA・メールチェックはまだ src/config/app/app-features.config.ts(門番の議会・棚の議会のクエストが移す)
 
 import override, { type Extra } from "@/config/features/auth.config";
-import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
+import { defineConfig, type OverrideOf, type WithExtra } from "@/lib/defineConfig";
 
 /**
  * Hide My Email（Apple「メールを非公開」）検知時のアクション
@@ -83,4 +83,4 @@ export type AuthOverride<E extends object = Record<never, never>> = OverrideOf<t
 export type ThirdPartyProvider = keyof AuthConfig["thirdPartyProviders"];
 
 /** 合成済みの設定(上流の値 + 上書き、fork が Extra で足した鍵も入る) */
-export const authConfig: AuthConfig & Extra = authConfigDef.compose<Extra>(override);
+export const authConfig: WithExtra<AuthConfig, Extra> = authConfigDef.compose<Extra>(override);

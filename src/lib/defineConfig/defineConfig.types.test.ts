@@ -39,6 +39,27 @@ const composed = def.compose<{ myKey: number }>(withExtra);
 export const title: string = composed.title;
 export const myKey: number = composed.myKey;
 
+// 通る: Extra で配列の項目に fork の欄を足す(既定と深く合成する。交差型にしない)
+type AreaWithIcon = Area & { icon?: string };
+type IconExtra = { areas: AreaWithIcon[]; nested: { mine: boolean } };
+export const withArrayExtra = {
+  areas: [{ key: "user", icon: "u" }],
+  nested: { mine: true },
+} satisfies SampleOverride<IconExtra>;
+const composedArrayExtra = def.compose<IconExtra>(withArrayExtra);
+export const icon: string | undefined = composedArrayExtra.areas.find((a) => a.key === "user")?.icon;
+export const nestedA: number = composedArrayExtra.nested.a;
+export const mine: boolean = composedArrayExtra.nested.mine;
+
+// @ts-expect-error Extra で宣言したキーは今までどおり必須
+export const missingExtra = { title: "x" } satisfies SampleOverride<IconExtra>;
+
+// @ts-expect-error 既定と重なる Extra は既定の型を広げるものだけ(型を変えるのは落ちる)
+export const narrowing = { title: 1 } satisfies SampleOverride<{ title: number }>;
+
+// @ts-expect-error 配列の項目の欄の型の違いも落ちる
+export const wrongItemField = { areas: [{ key: "user", mode: "light", match: [], icon: 1 }], nested: { mine: true } } satisfies SampleOverride<IconExtra>;
+
 // @ts-expect-error 知らないキー(綴りの誤り)は落ちる
 export const typo = { titel: "x" } satisfies SampleOverride;
 

@@ -33,7 +33,7 @@
   - `@/business`(事業の素性)の値
   - 段階の判定 `isProduction()`・`isStaging()`・`isDevelopment()`・`getAppEnv()`(`@/lib/appEnv` から、引数なしの呼び出しだけ。`process.env.APP_ENV` を直に読まない)
   - 持ち主が宣言した指定子の値(下)
-- fork 独自のキーは上書きの中で `export type Extra` を宣言し、持ち主の型引数で受ける
+- fork 独自のキーは上書きの中で `export type Extra` を宣言し、持ち主の型引数で受ける | Extra は既定の型と深く合成される: 既定の配列の項目に欄を足すのも Extra で書ける(`{ payment: { paymentMethods: (PaymentMethodConfig & { bonus?: … })[] } }`)。決まり: src/lib/defineConfig/README.md「Extra」
 
 ### 持ち主の宣言 `overrideImports`
 

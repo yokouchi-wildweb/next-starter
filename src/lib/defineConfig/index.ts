@@ -13,4 +13,5 @@ export type {
   StandardSchemaIssue,
   StandardSchemaResult,
   StandardSchemaV1,
+  WithExtra,
 } from "./types";

@@ -86,15 +86,50 @@ export type DeepOverride<D, A = undefined> = {
   readonly [K in keyof D]?: OverrideValue<NonNullable<D[K]>, RuleAt<A, K>> | (K extends OptionalKeys<D> ? null : never);
 };
 
-/** 上書きの型。Extra = fork 独自のキー(型引数で足す) */
-export type Override<D, A = undefined, Extra extends object = Record<never, never>> = DeepOverride<D, A> & Extra;
+type IsEmpty<E> = [keyof E] extends [never] ? true : false;
+
+type BothMergeable<DV, EV> = IsMergeable<NonNullable<DV>> extends true ? (IsMergeable<NonNullable<EV>> extends true ? true : false) : false;
+
+/** 既定の値と重なる Extra の値: 既定の型を広げる(既定の型に代入できる)ときだけ受ける。それ以外は never(上流のコードが読む形を守る) */
+type Widening<DV, EV> = EV extends DV ? EV : never;
+
+/**
+ * 既定 D に Extra を深く合成した型(compose<Extra> の結果)。
+ * - Extra にだけあるキー = Extra の型 | 両方がオブジェクトのキー = 中へ入って合成 | 配列などそれ以外 = Extra の型で置き換える(既定の型を広げるときだけ)
+ * - 配列の項目に fork の欄を足す: Extra = { payment: { paymentMethods: (PaymentMethodConfig & { bonus?: … })[] } }
+ */
+export type WithExtra<D, E> =
+  IsEmpty<E> extends true
+    ? D
+    : Omit<D, keyof E> & {
+        [K in keyof E]: K extends keyof D
+          ? BothMergeable<D[K], E[K]> extends true
+            ? WithExtra<NonNullable<D[K]>, NonNullable<E[K]>>
+            : Widening<D[K], E[K]>
+          : E[K];
+      };
+
+/** Extra を合成した上書き: Extra のキーは Extra の書き方どおり(必須なら必須)、既定だけのキーは DeepOverride のまま */
+type DeepOverrideWithExtra<D, A, E> =
+  IsEmpty<E> extends true
+    ? DeepOverride<D, A>
+    : Omit<DeepOverride<D, A>, keyof E> & {
+        readonly [K in keyof E]: K extends keyof D
+          ? BothMergeable<D[K], E[K]> extends true
+            ? DeepOverrideWithExtra<NonNullable<D[K]>, RuleAt<A, K>, NonNullable<E[K]>>
+            : OverrideValue<Widening<NonNullable<D[K]>, NonNullable<E[K]>>, RuleAt<A, K>>
+          : E[K];
+      };
+
+/** 上書きの型。Extra = fork 独自のキーと、既定の値を広げる型(型引数で足す。既定と深く合成する: WithExtra) */
+export type Override<D, A = undefined, Extra extends object = Record<never, never>> = DeepOverrideWithExtra<D, A, Extra>;
 
 /** defineConfig の返す定義 */
 export interface ConfigDefinition<D extends object, R extends ConfigRules<D>> {
   readonly defaults: D;
   readonly rules: R;
   /** 既定に上書きを合成し、検査して返す(既定は変えない) */
-  compose<Extra extends object = Record<never, never>>(override: NoInfer<Override<D, R["arrays"], Extra>>): D & Extra;
+  compose<Extra extends object = Record<never, never>>(override: NoInfer<Override<D, R["arrays"], Extra>>): WithExtra<D, NoInfer<Extra>>;
 }
 
 /** 定義から上書きの型を引く(lib は `export type XxxOverride<E extends object = {}> = OverrideOf<typeof xxxConfigDef, E>` を出す) */
