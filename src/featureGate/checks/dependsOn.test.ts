@@ -172,7 +172,7 @@ test("評価: anyOf はどれか 1 つが開なら開(dependsOn と両方あれ�
   assert.equal(open(["mypage"]), false, "dependsOn が閉");
 });
 
-test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled ?? 開) && 入切でない条件。rules・configRules・ownEnabled が通る", async () => {
+test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled) && 入切でない条件。rules・configRules・ownEnabled が通る", async () => {
   const { default: switches } = await import("@/config/featureGate/switches.config");
   const { rules: generated } = await import("@/featureGate/extensions/rules");
   const { configEnabled, ownEnabled } = await import("@/featureGate/ruleList");
@@ -192,9 +192,11 @@ test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled ?? �
     wallet.enabled = () => false;
     assert.equal(ownEnabled("wallet"), false, "入切でない条件が閉なら閉");
     delete values.wallet;
-    wallet.defaultEnabled = undefined;
+    wallet.defaultEnabled = true;
     wallet.enabled = undefined;
-    assert.equal(ownEnabled("wallet"), true, "どれも書かなければ開");
+    assert.equal(ownEnabled("wallet"), true, "既定が開で fork の値も条件も無ければ開");
+    wallet.defaultEnabled = false;
+    assert.equal(ownEnabled("wallet"), false, "既定が閉で fork の値も条件も無ければ閉");
   } finally {
     delete values.wallet;
     wallet.defaultEnabled = savedDefault;

@@ -22,14 +22,14 @@ import { adminSidebar, adminSidebarHrefs } from "./adminSidebar";
 function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T): T {
   // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
-  const savedDefaults = new Map<GeneratedFeatureRule, boolean | undefined>();
+  const savedDefaults = new Map<GeneratedFeatureRule, boolean>();
   // fork の switches.config.ts の値も外す(規則の値を作り物だけで決める)
   const restoreSwitches = overrideSwitches();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
-    // 入切の既定(defaultEnabled)も外し、開閉は enabled の差し替えだけで決める
+    // 入切の既定(defaultEnabled)は開にそろえ、開閉は enabled の差し替えだけで決める
     savedDefaults.set(rule, rule.defaultEnabled);
-    rule.defaultEnabled = undefined;
+    rule.defaultEnabled = true;
     const state = states[rule.name];
     rule.enabled = () => state ?? true;
   }

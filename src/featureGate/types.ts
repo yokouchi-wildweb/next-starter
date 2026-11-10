@@ -38,10 +38,10 @@ export type FeatureGateRule = {
    */
   anyOf?: FeatureName[];
   /**
-   * 入切の上流の既定(リテラル。省略 = 開)。fork の値は src/config/featureGate/switches.config.ts(上流は空で出荷)が上書きする(D35)。
-   * 自分の値 = (switches の値 ?? defaultEnabled ?? true) && enabled()。合成は ruleList.ts の 1 か所。pnpm ops features set が書く(fork = switches、Tier1 = ここ)
+   * 入切の上流の既定(必須、true か false のリテラル。設定 D103)。fork の値は src/config/featureGate/switches.config.ts(上流は空で出荷)が上書きする(D35)。
+   * 自分の値 = (switches の値 ?? defaultEnabled) && enabled()。合成は ruleList.ts の 1 か所。pnpm ops features set が書く(fork = switches、Tier1 = ここ)
    */
-  defaultEnabled?: boolean;
+  defaultEnabled: boolean;
   /**
    * 入切でない開く条件(config の値から導いた値を読む同期関数。例 銀行振込の方法が選べるか)。省略 = 条件なし。
    * 入切そのもの(人が開け閉めする値)は defaultEnabled と switches.config.ts に置き、ここに書かない

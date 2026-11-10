@@ -16,4 +16,5 @@ export const rule: FeatureGateRule = {
   ],
   // 入切でない条件: 銀行振込の方法が選べるか(決済そのものの入切は dependsOn payment。規則は地区の config の値だけを読む、設定 D100)
   enabled: () => bankTransferInhouseSelectable,
+  defaultEnabled: true,
 };

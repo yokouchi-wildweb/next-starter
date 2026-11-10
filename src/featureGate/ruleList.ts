@@ -1,6 +1,6 @@
 // src/featureGate/ruleList.ts
 // 判定の入口(門番の中で 1 つ): 生成一覧 extensions/rules を包み、各規則の enabled を依存先まで解いた開閉に差し替えた一覧を出す。
-// - 規則の値(ownValue): (src/config/featureGate/switches.config.ts の fork の値 ?? 規則の defaultEnabled ?? 開) && 規則の enabled()(入切でない条件、省略 = 開)。D35
+// - 規則の値(ownValue): (src/config/featureGate/switches.config.ts の fork の値 ?? 規則の defaultEnabled(必須、D103)) && 規則の enabled()(入切でない条件、省略 = 条件なし)。D35
 // - 自分の開閉: rules = 全開スイッチで開いていれば true、でなければ規則の値 / configRules = 規則の値だけ(全開スイッチを通さない)
 // - 機能が開く = 自分が開 && dependsOn の機能が全部開(推移的。D24・D34)&& anyOf を書けばどれか 1 つが開(D36)。依存の解決はここ 1 か所(resolveFeatureOpen)
 // 門番の判定(evaluate・clientState・node の道具)と node.ts の rules を受け取る外の読み手(pnpm generate routes・検査)は、この一覧と ruleEnabled だけを通る。
@@ -95,8 +95,8 @@ export function transitiveDependents(list: readonly FeatureDependencyNode[], nam
   return list.filter((node) => node.name !== name && transitiveDependencies(list, node.name).includes(name)).map((node) => node.name);
 }
 
-/** 規則の値そのもの(全開スイッチも依存先も通さない): (fork の入切 ?? 規則の既定 ?? 開) && 入切でない条件(省略 = 開) */
-const ownValue = (rule: GeneratedFeatureRule): boolean => (switchValues[rule.name] ?? rule.defaultEnabled ?? true) && (rule.enabled?.() ?? true);
+/** 規則の値そのもの(全開スイッチも依存先も通さない): (fork の入切 ?? 規則の既定) && 入切でない条件(省略 = 条件なし) */
+const ownValue = (rule: GeneratedFeatureRule): boolean => (switchValues[rule.name] ?? rule.defaultEnabled) && (rule.enabled?.() ?? true);
 
 /** 全開スイッチで開いているか(スイッチの値に未知の名前があれば throw)。依存先は見ない(開くかは ruleEnabled) */
 export function isOpenedBySwitch(name: FeatureName): boolean {

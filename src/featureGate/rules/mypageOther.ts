@@ -9,4 +9,5 @@ export const rule: FeatureGateRule = {
   // 休会か退会のどちらかが開なら開(どちらも閉なら中身が無い。D36)
   anyOf: ["pause", "withdraw"],
   pathPatterns: ["/mypage/other"],
+  defaultEnabled: true,
 };
