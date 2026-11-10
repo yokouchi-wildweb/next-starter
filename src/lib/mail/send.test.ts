@@ -231,3 +231,20 @@ test("SendGrid: 接続前の誤りは transient、タイムアウトなど送ら
   };
   await expectMailError(() => send(base), { kind: "unknown", provider: "sendgrid", status: null });
 });
+
+test("tags: Resend は tags([{ name, value }])、SendGrid は customArgs で渡し、無ければ渡さない", async () => {
+  await send({ ...base, tags: { delivery_id: "d-1" } });
+  assert.deepEqual(resendCalls[0].payload.tags, [{ name: "delivery_id", value: "d-1" }]);
+  await send(base);
+  assert.equal("tags" in resendCalls[1].payload, false);
+
+  process.env.MAIL_PROVIDER = "sendgrid";
+  try {
+    await send({ ...base, tags: { delivery_id: "d-2" } });
+    assert.deepEqual(sendgridCalls.at(-1)?.customArgs, { delivery_id: "d-2" });
+    await send(base);
+    assert.equal("customArgs" in (sendgridCalls.at(-1) ?? {}), false);
+  } finally {
+    delete process.env.MAIL_PROVIDER;
+  }
+});

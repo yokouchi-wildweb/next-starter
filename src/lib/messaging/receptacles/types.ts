@@ -53,6 +53,8 @@ export type ChannelSendResult =
 export type ChannelWebhookEvent = {
   provider: string;
   providerMessageId: string | null;
+  /** 送る時に provider のタグで渡した配達の id(読めなければ null。providerMessageId で引けない時に使う) */
+  deliveryId?: string | null;
   providerEventId: string;
   type: string;
   address: string | null;

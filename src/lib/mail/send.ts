@@ -36,6 +36,11 @@ export type SendMailOptions = {
    * Resend だけが使う（Idempotency-Key、24 時間保持）。SendGrid には同じ仕組みが無いので捨てる。
    */
   idempotencyKey?: string;
+  /**
+   * 送った後の webhook の事件で読み戻す値(例 { delivery_id: 配達の id })。Resend = tags([{ name, value }])、
+   * SendGrid = custom_args。名前と値は英数字・_・- にする(Resend の制約)
+   */
+  tags?: Record<string, string>;
 };
 
 /**
@@ -56,6 +61,7 @@ type ProviderSendParams = {
   fromName?: string;
   headers?: Record<string, string>;
   idempotencyKey?: string;
+  tags?: Record<string, string>;
 };
 
 /** Resend の誤りの名前のうち、4xx でも時間を置けば通るもの */
@@ -67,7 +73,7 @@ const RESEND_TRANSIENT_ERROR_NAMES = new Set(["concurrent_idempotent_requests"])
 async function sendWithResend(
   params: ProviderSendParams,
 ): Promise<SendMailResult> {
-  const { to, subject, react, fromAddress, fromName, headers, idempotencyKey } =
+  const { to, subject, react, fromAddress, fromName, headers, idempotencyKey, tags } =
     params;
   const resend = getResendClient();
   const fromField = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
@@ -79,6 +85,9 @@ async function sendWithResend(
       subject,
       react,
       ...(headers ? { headers } : {}),
+      ...(tags && Object.keys(tags).length > 0
+        ? { tags: Object.entries(tags).map(([name, value]) => ({ name, value })) }
+        : {}),
     },
     idempotencyKey ? { idempotencyKey } : undefined,
   );
@@ -113,7 +122,7 @@ async function sendWithResend(
 async function sendWithSendGrid(
   params: ProviderSendParams,
 ): Promise<SendMailResult> {
-  const { to, subject, react, fromAddress, fromName, headers } = params;
+  const { to, subject, react, fromAddress, fromName, headers, tags } = params;
   const sgMail = getSendGridClient();
   const html = await render(react);
 
@@ -124,6 +133,7 @@ async function sendWithSendGrid(
       subject,
       html,
       ...(headers ? { headers } : {}),
+      ...(tags && Object.keys(tags).length > 0 ? { customArgs: tags } : {}),
     });
     const messageId = readHeader(response?.headers, "x-message-id");
     return { provider: "sendgrid", providerMessageId: messageId };
@@ -178,7 +188,7 @@ function readHeader(headers: unknown, name: string): string | null {
  * ```
  */
 export async function send(options: SendMailOptions): Promise<SendMailResult> {
-  const { to, subject, react, from, fromName, headers, idempotencyKey } =
+  const { to, subject, react, from, fromName, headers, idempotencyKey, tags } =
     options;
 
   const fromAddress = from ?? businessConfig.mail.defaultFrom;
@@ -192,6 +202,7 @@ export async function send(options: SendMailOptions): Promise<SendMailResult> {
     fromName: senderName,
     headers,
     idempotencyKey,
+    tags,
   };
 
   if (getMailProvider() === "sendgrid") {

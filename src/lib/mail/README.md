@@ -41,6 +41,10 @@ const { provider, providerMessageId } = await send({
 
 追加のメールヘッダ。両プロバイダーへそのまま渡す（List-Unsubscribe など）。SendGrid は `x-sg-id`・`dkim-signature`・`subject` などを上書きできない。
 
+### tags
+
+`tags?: Record<string, string>`（例 `{ delivery_id }`）。Resend は `tags: [{ name, value }]`、SendGrid は `customArgs` で渡し、webhook の事件の `tags` で読み戻す。名前と値は英数字・`_`・`-`（Resend の制約）。
+
 ### idempotencyKey
 
 送り直しで二重に送らないための鍵（配信の記録の id を渡す想定）。
@@ -91,6 +95,8 @@ const events = normalizeSendGridWebhook(
   - `providerMessageId` は送信時の `send()` の戻り値と同じ値（記録と結ぶ鍵）
   - `providerEventId` は重複の除外の鍵（provider は再試行で同じ事件を何度も送る）
   - `type` = `sent` | `delivered` | `deferred` | `bounced` | `complained` | `opened` | `clicked` | `dropped` | `unsubscribed` | `other`。元の種類名・クリックの URL などは `raw` から読む
+  - `bounce` = `hard` | `soft`（`bounced` の時だけ）。Resend は `data.bounce.type` が `Permanent` なら hard（`Transient`・`Undetermined`・無しは soft）、SendGrid は bounce の `type` が `blocked` なら soft・ほかは hard。宛先の停止に入れるのは hard だけ（読み手 messaging）
+  - `tags` = 送る時に `send()` の `tags` で付けた値（Resend の `data.tags`、SendGrid の事件の標準でない文字列の欄 = custom_args）
 
 ### provider ごとの違い
 

@@ -112,6 +112,43 @@ function toProviderMessageId(sgMessageId: unknown): string | null {
   return head.length > 0 ? head : null;
 }
 
+/** SendGrid が事件に付ける標準の欄(これ以外の文字列の欄 = 送る時の custom_args) */
+const SENDGRID_STANDARD_FIELDS = new Set([
+  "email",
+  "timestamp",
+  "event",
+  "sg_event_id",
+  "sg_message_id",
+  "smtp-id",
+  "category",
+  "reason",
+  "status",
+  "response",
+  "attempt",
+  "type",
+  "bounce_classification",
+  "useragent",
+  "ip",
+  "url",
+  "url_offset",
+  "asm_group_id",
+  "tls",
+  "cert_err",
+  "marketing_campaign_id",
+  "marketing_campaign_name",
+  "sg_machine_open",
+  "sg_content_type",
+  "pool",
+]);
+
+function sendGridCustomArgs(event: SendGridWebhookEvent): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(event)) {
+    if (!SENDGRID_STANDARD_FIELDS.has(key) && typeof value === "string") result[key] = value;
+  }
+  return result;
+}
+
 /**
  * 検証済みの SendGrid の事件を正規化する(配列の 1 件 = 事件 1 件)。sg_event_id の無い事件は飛ばす。
  */
@@ -119,14 +156,18 @@ export function normalizeSendGridWebhook(events: SendGridWebhookEvent[]): MailWe
   const normalized: MailWebhookEvent[] = [];
   for (const event of events) {
     if (!event || typeof event !== "object" || typeof event.sg_event_id !== "string") continue;
+    const type = SENDGRID_TYPE_MAP[event.event] ?? "other";
     normalized.push({
       provider: "sendgrid",
       providerMessageId: toProviderMessageId(event.sg_message_id),
       providerEventId: event.sg_event_id,
-      type: SENDGRID_TYPE_MAP[event.event] ?? "other",
+      type,
       address: typeof event.email === "string" ? event.email : null,
       occurredAt: new Date(typeof event.timestamp === "number" ? event.timestamp * 1000 : 0),
       raw: event,
+      // bounce の type が blocked(受け手の一時の拒否)なら soft、それ以外の bounce は hard
+      ...(type === "bounced" ? { bounce: event.type === "blocked" ? ("soft" as const) : ("hard" as const) } : {}),
+      tags: sendGridCustomArgs(event),
     });
   }
   return normalized;

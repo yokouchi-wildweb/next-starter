@@ -41,6 +41,13 @@ export type MailWebhookEvent = {
   occurredAt: Date;
   /** provider の元の事件(元の種類名・クリックの URL などはここから読む) */
   raw: unknown;
+  /**
+   * bounced の時だけ: hard = 恒久(宛先が無い等。宛先の停止に入れる)/ soft = 一時・不確定(停止しない)。
+   * Resend = data.bounce.type が Permanent なら hard(Transient・Undetermined・無しは soft)、SendGrid = bounce の type が blocked なら soft
+   */
+  bounce?: "hard" | "soft";
+  /** 送る時に send() の tags で付けた値(Resend tags・SendGrid custom_args)。読めなければ空 */
+  tags?: Record<string, string>;
 };
 
 /** 検証の失敗の理由 */
