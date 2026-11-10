@@ -439,3 +439,4 @@
 - id:20261110-171242-avatar-change-hook | severity:info | checkpoint:avatar-change-hook | resolves:20261101-180140-avatar-change-flow-hook
 - id:20261110-173039-tier1-close-addons | severity:breaking | checkpoint:config-tier1-close
 - id:20261110-174703-fork-config-placement | severity:action-required | checkpoint:config-fork-placement
+- id:20261110-174550-purchase-bonus-display | severity:action-required | checkpoint:purchase-bonus-display | resolves:20261101-111956-intake-purchase-bonus-display
