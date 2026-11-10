@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { Pause } from "@/features/core/user/components/Pause";
+import { Pause } from "@/features/core/accountLifecycle/components/Pause";
 
 import { loadMyPagePauseScreen } from "./loader";
 

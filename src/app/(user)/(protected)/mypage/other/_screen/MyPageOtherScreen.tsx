@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { OtherActions } from "@/features/core/user/components/OtherActions";
+import { OtherActions } from "@/features/core/accountLifecycle/components/OtherActions";
 
 import { loadMyPageOtherScreen } from "./loader";
 

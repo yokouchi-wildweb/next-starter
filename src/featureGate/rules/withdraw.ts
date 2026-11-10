@@ -5,7 +5,7 @@ import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
   pathPatterns: [
-    "/api/auth/withdraw",
+    "/api/account-lifecycle/withdraw",
   ],
   defaultEnabled: false,
 };

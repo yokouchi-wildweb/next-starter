@@ -44,8 +44,8 @@ src/features/core/userLoginEvent/
 | ログイン成功 | `user/services/server/wrappers/updateLastAuthenticated.ts` | `login` |
 | サインアップ / 再入会成功 | `user/services/server/registration/preRegisterFromAuth.ts` | `signup` |
 | 明示ログアウト | `app/api/auth/logout/route.ts` | `logout` |
-| 休止 (pause) | `app/api/auth/pause/route.ts` | `logout` |
-| 退会 (withdraw) | `app/api/auth/withdraw/route.ts` | `logout` |
+| 休止 (pause) | `app/api/account-lifecycle/pause/route.ts` | `logout` |
+| 退会 (withdraw) | `app/api/account-lifecycle/withdraw/route.ts` | `logout` |
 
 いずれも `recordLoginEvent()` (logout 系は薄いラッパー `recordLogoutEvent(userId)`) を呼ぶ。設計上の取り決め:
 

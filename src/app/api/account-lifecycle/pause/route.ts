@@ -1,15 +1,15 @@
-// src/app/api/auth/pause/route.ts
+// src/app/api/account-lifecycle/pause/route.ts
 
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
-import { pause } from "@/features/core/user/services/server/pause";
+import { pause } from "@/features/core/accountLifecycle/services/server/pause";
 import { recordLogoutEvent } from "@/features/userLoginEvent/services/server";
 
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/pause",
+    operation: "POST /api/account-lifecycle/pause",
     operationType: "write",
     access: "authenticated",
     skipForDemo: true,

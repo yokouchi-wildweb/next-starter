@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { Withdraw } from "@/features/core/user/components/Withdraw";
+import { Withdraw } from "@/features/core/accountLifecycle/components/Withdraw";
 
 import { loadMyPageWithdrawScreen } from "./loader";
 

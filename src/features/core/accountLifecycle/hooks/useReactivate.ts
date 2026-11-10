@@ -1,4 +1,4 @@
-// src/features/core/auth/hooks/useWithdraw.ts
+// src/features/core/accountLifecycle/hooks/useReactivate.ts
 
 "use client";
 
@@ -6,44 +6,46 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { withdraw as withdrawService } from "@/features/core/auth/services/client/withdraw";
+import { reactivate as reactivateService } from "@/features/core/accountLifecycle/services/client/reactivate";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
+import { log } from "@/utils/log";
 
-type UseWithdrawOptions = {
+type UseReactivateOptions = {
   redirectTo?: string;
 };
 
-const DEFAULT_REDIRECT_PATH = "/";
+const DEFAULT_REDIRECT_PATH = "/reactivate/complete";
 
-export function useWithdraw({
+export function useReactivate({
   redirectTo = DEFAULT_REDIRECT_PATH,
-}: UseWithdrawOptions = {}) {
+}: UseReactivateOptions = {}) {
   const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
   const lockRef = useRef(false);
 
-  const handleWithdraw = useCallback(async () => {
+  const handleReactivate = useCallback(async () => {
     if (lockRef.current) return;
     lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
-    try {
-      await withdrawService();
+    log(3, "[useReactivate] starting reactivation");
 
-      try {
-        await refreshSession();
-      } catch {
-        // refreshSession は退会後に 401 を受け取る可能性がある。
-        // その際にも Context 内のユーザー情報は null へ更新されるため握り潰す。
-      }
+    try {
+      await reactivateService();
+      log(3, "[useReactivate] reactivation completed");
+
+      // セッションを更新して最新のステータスを反映
+      await refreshSession();
+      log(3, "[useReactivate] session refreshed");
 
       router.replace(redirectTo);
       router.refresh();
     } catch (unknownError) {
+      log(3, "[useReactivate] error", { error: unknownError });
       if (isHttpError(unknownError)) {
         setError(unknownError);
       } else {
@@ -57,7 +59,7 @@ export function useWithdraw({
   }, [redirectTo, refreshSession, router]);
 
   return {
-    withdraw: handleWithdraw,
+    reactivate: handleReactivate,
     isLoading,
     error,
   } as const;

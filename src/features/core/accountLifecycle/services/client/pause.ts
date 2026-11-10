@@ -1,4 +1,4 @@
-// src/features/core/auth/services/client/pause.ts
+// src/features/core/accountLifecycle/services/client/pause.ts
 
 "use client";
 
@@ -6,7 +6,7 @@ import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
 
-const ENDPOINT = "/api/auth/pause";
+const ENDPOINT = "/api/account-lifecycle/pause";
 
 export async function pause(): Promise<void> {
   try {

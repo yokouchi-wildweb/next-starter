@@ -27,6 +27,7 @@
       "@lib-config/*": ["./src/config/lib/*.config.ts"],
       "@/business": ["./src/wiring/business.ts"],
       "@/features/admin/*": ["./src/features/core/admin/*"],
+      "@/features/accountLifecycle/*": ["./src/features/core/accountLifecycle/*"],
       "@/features/adminCommand/*": ["./src/features/core/adminCommand/*"],
       "@/features/analytics/*": ["./src/features/core/analytics/*"],
       "@/features/auditLog/*": ["./src/features/core/auditLog/*"],

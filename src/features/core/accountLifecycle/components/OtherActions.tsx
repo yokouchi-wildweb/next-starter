@@ -1,4 +1,4 @@
-// src/features/core/user/components/OtherActions.tsx
+// src/features/core/accountLifecycle/components/OtherActions.tsx
 
 "use client";
 

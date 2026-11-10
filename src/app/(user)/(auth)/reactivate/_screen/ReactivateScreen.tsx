@@ -9,7 +9,7 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
-import { Reactivate } from "@/features/core/user/components/Reactivate";
+import { Reactivate } from "@/features/core/accountLifecycle/components/Reactivate";
 
 import { loadReactivateScreen } from "./loader";
 

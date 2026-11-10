@@ -1,4 +1,4 @@
-// src/features/core/user/components/Reactivate/index.tsx
+// src/features/core/accountLifecycle/components/Reactivate/index.tsx
 
 "use client";
 
@@ -8,7 +8,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para, SecTitle } from "@/components/TextBlocks";
-import { useReactivate } from "@/features/core/auth/hooks/useReactivate";
+import { useReactivate } from "@/features/core/accountLifecycle/hooks/useReactivate";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
 export function Reactivate() {

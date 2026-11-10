@@ -1,4 +1,4 @@
-// src/features/core/user/components/Withdraw/WithdrawDescription.tsx
+// src/features/core/accountLifecycle/components/Withdraw/WithdrawDescription.tsx
 
 import { Para } from "@/components/TextBlocks";
 

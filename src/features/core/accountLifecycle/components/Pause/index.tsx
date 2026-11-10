@@ -1,4 +1,4 @@
-// src/features/core/user/components/Withdraw/index.tsx
+// src/features/core/accountLifecycle/components/Pause/index.tsx
 
 "use client";
 
@@ -13,18 +13,18 @@ import Modal from "@/components/Overlays/Modal";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Para } from "@/components/TextBlocks";
-import { useWithdraw } from "@/features/core/auth/hooks/useWithdraw";
+import { usePause } from "@/features/core/accountLifecycle/hooks/usePause";
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
 
-import { WithdrawDescription } from "./WithdrawDescription";
+import { PauseDescription } from "./PauseDescription";
 
-export { WithdrawDescription } from "./WithdrawDescription";
+export { PauseDescription } from "./PauseDescription";
 
-export function Withdraw() {
+export function Pause() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAgreed, setIsAgreed] = useState(false);
-  const { withdraw, isLoading, error } = useWithdraw();
+  const { pause, isLoading, error } = usePause();
 
   const handleOpenModal = useCallback(() => {
     setIsModalOpen(true);
@@ -36,30 +36,30 @@ export function Withdraw() {
     setIsAgreed(false);
   }, []);
 
-  const handleWithdraw = useCallback(async () => {
+  const handlePause = useCallback(async () => {
     try {
-      await withdraw();
+      await pause();
     } catch {
-      // エラーは useWithdraw 内で処理済み
+      // エラーは usePause 内で処理済み
     }
-  }, [withdraw]);
+  }, [pause]);
 
   return (
     <Section>
       <Stack space={4}>
         <AccountPageHeader
-          title="退会"
+          title="休会"
           backHref="/mypage/other"
           backDisabled={isLoading}
         />
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <Stack space={4}>
-            <WithdrawDescription />
+            <PauseDescription />
             <Button
-              variant="destructive"
+              variant="outline"
               onClick={handleOpenModal}
             >
-              退会する
+              休会する
             </Button>
             <Button
               variant="outline"
@@ -74,12 +74,13 @@ export function Withdraw() {
       <Modal
         open={isModalOpen}
         onOpenChange={handleCloseModal}
-        title="退会の確認"
+        title="休会の確認"
         maxWidth={480}
       >
         <Flex direction="column" gap="lg">
           <Para tone="muted" size="sm" className="mt-0">
-            本当に退会しますか？この操作は取り消すことができません。
+            本当に休会しますか？休会中はサービスを利用できません。
+            いつでもログインして復帰することができます。
           </Para>
 
           <Label className="flex items-center gap-3 cursor-pointer">
@@ -88,7 +89,7 @@ export function Withdraw() {
               onChange={(checked) => setIsAgreed(Boolean(checked))}
               disabled={isLoading}
             />
-            <span className="text-sm">退会することに同意します</span>
+            <span className="text-sm">休会することに同意します</span>
           </Label>
 
           {error && (
@@ -106,11 +107,11 @@ export function Withdraw() {
               キャンセル
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleWithdraw}
+              variant="outline"
+              onClick={handlePause}
               disabled={!isAgreed || isLoading}
             >
-              {isLoading ? "処理中..." : "退会する"}
+              {isLoading ? "処理中..." : "休会する"}
             </Button>
           </Flex>
         </Flex>
@@ -119,4 +120,4 @@ export function Withdraw() {
   );
 }
 
-export default Withdraw;
+export default Pause;

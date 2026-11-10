@@ -1,4 +1,4 @@
-// src/features/core/auth/services/client/withdraw.ts
+// src/features/core/accountLifecycle/services/client/withdraw.ts
 
 "use client";
 
@@ -6,7 +6,7 @@ import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
 
-const ENDPOINT = "/api/auth/withdraw";
+const ENDPOINT = "/api/account-lifecycle/withdraw";
 
 export async function withdraw(): Promise<void> {
   try {

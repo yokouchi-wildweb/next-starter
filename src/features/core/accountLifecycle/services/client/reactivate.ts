@@ -1,4 +1,4 @@
-// src/features/core/auth/services/client/reactivate.ts
+// src/features/core/accountLifecycle/services/client/reactivate.ts
 
 "use client";
 
@@ -6,7 +6,7 @@ import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
 
-const ENDPOINT = "/api/auth/reactivate";
+const ENDPOINT = "/api/account-lifecycle/reactivate";
 
 export async function reactivate(): Promise<void> {
   try {

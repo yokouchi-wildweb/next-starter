@@ -1,4 +1,4 @@
-// src/features/core/user/components/Pause/PauseDescription.tsx
+// src/features/core/accountLifecycle/components/Pause/PauseDescription.tsx
 
 import { Para } from "@/components/TextBlocks";
 

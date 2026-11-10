@@ -1,15 +1,15 @@
-// src/app/api/auth/withdraw/route.ts
+// src/app/api/account-lifecycle/withdraw/route.ts
 
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
-import { withdraw } from "@/features/core/user/services/server/withdraw";
+import { withdraw } from "@/features/core/accountLifecycle/services/server/withdraw";
 import { recordLogoutEvent } from "@/features/userLoginEvent/services/server";
 
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/withdraw",
+    operation: "POST /api/account-lifecycle/withdraw",
     operationType: "write",
     access: "authenticated",
     skipForDemo: true,

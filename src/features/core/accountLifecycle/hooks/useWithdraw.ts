@@ -1,4 +1,4 @@
-// src/features/core/auth/hooks/usePause.ts
+// src/features/core/accountLifecycle/hooks/useWithdraw.ts
 
 "use client";
 
@@ -6,38 +6,38 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { pause as pauseService } from "@/features/core/auth/services/client/pause";
+import { withdraw as withdrawService } from "@/features/core/accountLifecycle/services/client/withdraw";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
 
-type UsePauseOptions = {
+type UseWithdrawOptions = {
   redirectTo?: string;
 };
 
 const DEFAULT_REDIRECT_PATH = "/";
 
-export function usePause({
+export function useWithdraw({
   redirectTo = DEFAULT_REDIRECT_PATH,
-}: UsePauseOptions = {}) {
+}: UseWithdrawOptions = {}) {
   const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
   const lockRef = useRef(false);
 
-  const handlePause = useCallback(async () => {
+  const handleWithdraw = useCallback(async () => {
     if (lockRef.current) return;
     lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
-      await pauseService();
+      await withdrawService();
 
       try {
         await refreshSession();
       } catch {
-        // refreshSession は休会後に 401 を受け取る可能性がある。
+        // refreshSession は退会後に 401 を受け取る可能性がある。
         // その際にも Context 内のユーザー情報は null へ更新されるため握り潰す。
       }
 
@@ -57,7 +57,7 @@ export function usePause({
   }, [redirectTo, refreshSession, router]);
 
   return {
-    pause: handlePause,
+    withdraw: handleWithdraw,
     isLoading,
     error,
   } as const;

@@ -1,4 +1,4 @@
-// src/features/core/user/services/server/withdraw.ts
+// src/features/core/accountLifecycle/services/server/withdraw.ts
 
 import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
@@ -6,7 +6,7 @@ import { executeCleanup } from "@/features/core/user/services/server/executeClea
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
-import { base } from "./drizzleBase";
+import { base } from "@/features/core/user/services/server/drizzleBase";
 
 export type WithdrawResult = {
   user: User;

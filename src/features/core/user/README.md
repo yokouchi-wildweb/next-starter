@@ -188,12 +188,12 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 | ステータス | ラベル | 意味 | 主な遷移元 |
 |-----------|--------|------|-----------|
 | `pending` | 仮登録 | 認証プロバイダ側の登録は済んだが本登録（プロフィール入力等）前 | 新規サインアップ / `withdrawn` からの再入会（`registration/preRegisterFromAuth.ts`） |
-| `active` | 有効 | 通常利用可能 | `pending`・`withdrawn` から本登録（`registration/activate.ts`）、`inactive` から復帰（`reactivate.ts`） |
-| `inactive` | 休会中 | ユーザー自身による一時休止 | `active` から本人操作（`pause.ts`） |
+| `active` | 有効 | 通常利用可能 | `pending`・`withdrawn` から本登録（`registration/activate.ts`）、`inactive` から復帰（accountLifecycle の `reactivate.ts`） |
+| `inactive` | 休会中 | ユーザー自身による一時休止 | `active` から本人操作（accountLifecycle の `pause.ts`） |
 | `suspended` | 処分保留 | 管理者による一時的な利用制限（復帰可能） | 管理者のステータス変更 |
 | `banned` | 永久追放 | 規約違反等による恒久的な利用停止 | 管理者のステータス変更 |
 | `security_locked` | セキュリティロック | 不正ログイン試行の検知等によるロック | ローカルログインのロックアウト（`wrappers/lockoutPolicy.ts`）等 |
-| `withdrawn` | 退会済み | 退会済み（再サインアップで `pending` に戻り再入会できる） | `active` から本人退会（`withdraw.ts`）、管理者のソフトデリート |
+| `withdrawn` | 退会済み | 退会済み（再サインアップで `pending` に戻り再入会できる） | `active` から本人退会（accountLifecycle の `withdraw.ts`）、管理者のソフトデリート |
 
 ### ステータスグループ（`constants/status.ts`）
 
@@ -557,7 +557,7 @@ export const override: MypageMenuItemOverride = { order: 90, title: "サイン�
 
 | 操作 | 実装 | 内容 |
 |------|------|------|
-| 本人退会 | `withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る。アバターなどのファイルも残す |
+| 本人退会 | accountLifecycle の `services/server/withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る。アバターなどのファイルも残す |
 | ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete`（汎用 `DELETE /api/user/:id` = `wrappers/remove.ts` も同じ） | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション）。ファイルは残す（復元できるように） |
 | 復元 | `wrappers/restore.ts`（汎用 `/api/user/[id]/restore`） | `deleted_at` を戻す（表示名衝突時は自動サフィックス） |
 | 物理削除（管理者） | `wrappers/hardDelete.ts` / `DELETE /api/admin/user/[userId]/hard-delete` | 削除前のユーザー情報全体を `before` に入れた監査ログ `user.hard_deleted` を記録 → user カテゴリなら Firebase Auth も削除 → DB 行を物理削除（アバターの実物も消える）→ その人の未使用のアップロードを取り消す |
@@ -589,7 +589,7 @@ services/server/cleanup.ts                    ← 項目の型と実行（必須
 services/server/executeCleanup.ts             ← 呼び手の入口
 ```
 
-- `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
+- accountLifecycle の `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
 - ステータス変更（`withdrawn` への更新）は項目の責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）
 
 | 種類 | 失敗時の挙動 | 上流の登録 |

@@ -1,4 +1,4 @@
-// src/features/core/auth/hooks/useReactivate.ts
+// src/features/core/accountLifecycle/hooks/usePause.ts
 
 "use client";
 
@@ -6,46 +6,44 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { reactivate as reactivateService } from "@/features/core/auth/services/client/reactivate";
+import { pause as pauseService } from "@/features/core/accountLifecycle/services/client/pause";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
-import { log } from "@/utils/log";
 
-type UseReactivateOptions = {
+type UsePauseOptions = {
   redirectTo?: string;
 };
 
-const DEFAULT_REDIRECT_PATH = "/reactivate/complete";
+const DEFAULT_REDIRECT_PATH = "/";
 
-export function useReactivate({
+export function usePause({
   redirectTo = DEFAULT_REDIRECT_PATH,
-}: UseReactivateOptions = {}) {
+}: UsePauseOptions = {}) {
   const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
   const lockRef = useRef(false);
 
-  const handleReactivate = useCallback(async () => {
+  const handlePause = useCallback(async () => {
     if (lockRef.current) return;
     lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
-    log(3, "[useReactivate] starting reactivation");
-
     try {
-      await reactivateService();
-      log(3, "[useReactivate] reactivation completed");
+      await pauseService();
 
-      // セッションを更新して最新のステータスを反映
-      await refreshSession();
-      log(3, "[useReactivate] session refreshed");
+      try {
+        await refreshSession();
+      } catch {
+        // refreshSession は休会後に 401 を受け取る可能性がある。
+        // その際にも Context 内のユーザー情報は null へ更新されるため握り潰す。
+      }
 
       router.replace(redirectTo);
       router.refresh();
     } catch (unknownError) {
-      log(3, "[useReactivate] error", { error: unknownError });
       if (isHttpError(unknownError)) {
         setError(unknownError);
       } else {
@@ -59,7 +57,7 @@ export function useReactivate({
   }, [redirectTo, refreshSession, router]);
 
   return {
-    reactivate: handleReactivate,
+    pause: handlePause,
     isLoading,
     error,
   } as const;

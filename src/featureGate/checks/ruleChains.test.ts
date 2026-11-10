@@ -115,7 +115,7 @@ test("連鎖: 親を閉じると子(孫)も閉じ、子の住所も閉じる。�
 test("連鎖: 紹介・休会・退会はマイページに依存しない(L3.2)。子を閉じても親は開", () => {
   withClosed(["pageMypage"], () => {
     assert.deepEqual(closedOf(["referral", "pause", "withdraw"]), [], "マイページを閉じても機能そのものは閉じない");
-    assert.equal(gate.path("/api/auth/pause").open, true);
+    assert.equal(gate.path("/api/account-lifecycle/pause").open, true);
     assert.deepEqual(closedOf(["mypageInvite", "mypagePause", "mypageWithdraw"]), ["mypageInvite", "mypagePause", "mypageWithdraw"], "画面だけ閉じる");
   });
   withClosed(["referral", "payment", "notificationBroadcast", "adminDemoUsers", "mypageOther"], () => {
