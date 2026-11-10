@@ -10,7 +10,7 @@ import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker, type DayPickerProps } from "react-day-picker";
 
 import { cn } from "@/lib/cn";
-import { baseButtonClassName } from "@/components/_shadcn/button";
+import { baseButtonClassName } from "@/components/Primitives/Button";
 
 export type CalendarProps = DayPickerProps;
 

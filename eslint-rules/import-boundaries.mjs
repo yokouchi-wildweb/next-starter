@@ -78,6 +78,10 @@
 //   住所の字面('/' で始まる文字列・テンプレートの頭)を持つファイルの import だけを報告する
 // 限界(closableOnly): 字面だけを見る。式で作る href・計算で作る規則の住所(payment の通貨 slug など)・別ファイルから渡る住所は見えない
 //
+// ── radix-unified(計画書 02 D108) ──
+// Radix は統合版の "radix-ui" から読む(import { Dialog as DialogPrimitive } from "radix-ui")。個別の @radix-ui/* パッケージ
+// (@radix-ui/react-dialog など)は値も型も読まない(依存から外した。radix-ui が入れる版と食い違わないように)。部品は src/components/Primitives
+//
 // ── lib-entry(D80・D81・D83・D84、L1.21) ──
 // package.json を持つ lib(宣言済みの lib)だけに効く。宣言の読み手は src/lib/libPackage(形: src/lib/README.md)。
 // - 外から宣言済みの lib を読む import は、その exports の先(入口)に当たること(値も型も。中のファイルを読むと error)
@@ -613,6 +617,26 @@ const routerViaGuard = {
   },
 };
 
+/** 個別の Radix のパッケージ(@radix-ui/<名前>。統合版の radix-ui は除く) */
+export const isScopedRadixSource = (source) => typeof source === "string" && source.startsWith("@radix-ui/");
+
+const radixUnified = {
+  meta: {
+    type: "problem",
+    docs: { description: "Radix は統合版の radix-ui から読む(個別の @radix-ui/* パッケージを読まない)" },
+    messages: {
+      scopedRadix:
+        '"{{source}}" は読みません。Radix は統合版の "radix-ui" から読みます(例: import { Dialog as DialogPrimitive } from "radix-ui"。Slot は名前空間 Slot.Root / Slot.Slottable)。部品は @/components/Primitives/<部品>',
+    },
+    schema: [],
+  },
+  create(context) {
+    return moduleVisitors(({ node, source }) => {
+      if (isScopedRadixSource(source)) context.report({ node, messageId: "scopedRadix", data: { source } });
+    });
+  },
+};
+
 const clientNoDomainJson = {
   meta: {
     type: "problem",
@@ -731,6 +755,7 @@ const plugin = {
     "feature-gate-entries": featureGateEntries,
     "link-via-shelf": linkViaShelf,
     "router-via-guard": routerViaGuard,
+    "radix-unified": radixUnified,
     "src-no-scripts": srcNoScripts,
     "src-no-district-map": srcNoDistrictMap,
     "seed-reader": seedReader,
