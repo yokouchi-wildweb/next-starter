@@ -20,6 +20,12 @@ src/features/core/messaging/
 │   └── limits.ts                # 文字数上限・バルクのチャンクサイズ
 ├── entities/
 │   ├── drizzle.ts               # message_dispatches テーブル
+│   ├── delivery.ts              # message_deliveries / message_events
+│   ├── inbox.ts                 # message_inbox_items / _reads / _read_states
+│   ├── template.ts              # message_templates / message_template_versions
+│   ├── preference.ts            # message_preferences / message_suppressions
+│   ├── endpoint.ts              # message_endpoints
+│   ├── idempotencyKey.ts        # message_idempotency_keys
 │   ├── schema.ts                # Zod（MessagingSendInputSchema / MessagingBulkSendInputSchema）
 │   └── model.ts                 # 入出力の型
 └── services/server/
@@ -163,6 +169,25 @@ const result = await messagingService.bulkSend({
 - `metadata` = `{ dispatchId, source, channels: { email, inApp } }`。`dispatchId` で message_dispatches の本文に辿れる
 - 保持期間は既定 730 日（通常の監査ログより長い）
 - `bestEffort: true` で記録する。INSERT に失敗しても送信は止めず、dead-letter に退避する
+
+---
+
+## 新しい連絡の基盤の表（定義だけ。使う側はまだない）
+
+新しい送る口・配達・受け取り箱のための表。今は定義と schemaRegistry への登録だけで、読み書きするサービス・API・cron はまだない（後の段で足す）。
+
+- `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
+- `message_deliveries`: 受信者 × 経路 の 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease は `locked_until` + `lock_token`、送り直しは `next_attempt_at`。複数の宛先は `targets` jsonb。利用者を消すと `user_id` は null（`recipient_key` は残る）
+- `message_events`: provider の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`
+- `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）
+- `message_inbox_reads` / `message_inbox_read_states`: 個別の既読と全既読のウォーターマーク（notification_reads / notification_read_states と同じ形）
+- `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`）
+- `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）。`UNIQUE(user_id, category, channel)`
+- `message_suppressions`: 宛先の停止（`address_hash` = 正規化した宛先の sha256）。`UNIQUE(channel, address_hash, scope)`、`scope` `'*'` = 全種類
+- `message_endpoints`: 端末の帳簿（利用者 × 経路 × 宛先）。`UNIQUE(channel, address)`
+- `message_idempotency_keys`: 保持の cron が回を消す時に冪等の鍵を移す先（回の行は消えるので FK なし）
+
+値の一覧（状態・理由）と jsonb の zod は `entities/schema.ts`、行の型は `entities/model.ts`。
 
 ---
 
