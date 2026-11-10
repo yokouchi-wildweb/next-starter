@@ -16,7 +16,8 @@ import { checkDependsOnGraph } from "./derive/gateDependsOn.mjs";
 import { checkRequiresCoverage } from "./derive/gateRequires.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrideKeys } from "./overrideKeys.mjs";
-import { checkOrphans, targetOf } from "./orphans.mjs";
+import { checkOrphans, listSrcFiles, targetOf } from "./orphans.mjs";
+import { checkMessageGuards } from "./derive/messageGuards.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
@@ -365,6 +366,8 @@ export function planExtensions(repoRoot) {
   // 孤立の検査は 1 つ(.override・.replace、D165)。上書きの対象の点が受けた上書きの鍵は宣言と照らす
   const orphanCheck = checkOrphans(repoRoot, { points: declared, receptacleDirs: allDirs });
   problems.push(...switchCheck.problems, ...overrideCheck.problems, ...orphanCheck.problems, ...checkOverrideKeys(repoRoot, orphanCheck.overrides, targetOf));
+  // 止められない連絡(required)の守り: 連絡の定義と上書きを字面で読む(./derive/messageGuards.mjs)
+  problems.push(...checkMessageGuards(repoRoot, declared, listSrcFiles(repoRoot)));
   const intakePlan = planIntake(repoRoot, declared, switchCheck.switches);
   if (intakePlan && "problem" in intakePlan) problems.push(intakePlan.problem);
   const intake = intakePlan && !("problem" in intakePlan) ? intakePlan : null;

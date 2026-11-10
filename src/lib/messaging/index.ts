@@ -10,11 +10,8 @@ export {
   type MessageFieldPath,
   type UpstreamChannelFields,
 } from "./definition/channels";
-export {
-  createDefineMessage,
-  defineMessage,
-  defineMessageOverride,
-} from "./definition/defineMessage";
+export { createDefineMessage, defineMessage } from "./definition/defineMessage";
+export { extensionPoints } from "./extensionPoints";
 export {
   CHANNEL_ERROR_KINDS,
   ChannelError,

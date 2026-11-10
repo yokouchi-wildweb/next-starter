@@ -3,18 +3,18 @@
 連絡(システム・管理者 → 宛先 1 人への一方向の連絡: メール・お知らせ・LINE・fork の経路)の仕組みの側。表を持たない(記録・宛先の解決・配信停止はドメイン messaging が持つ)。
 
 - 入口: `@/lib/messaging`(閉じた lib。package.json の exports だけを外から読む)
-- 今あるもの: 連絡の定義の型・上書きの型・定義の読み手の検査・経路の失敗の型
-- これから足すもの: 上書きの受け口の宣言(extensionPoints.ts)と生成の一覧の器、経路の受け口の型(連絡のドメインの作り直しの続きで足す)
+- 今あるもの: 連絡の定義の型・上書きの型・上書きの点の宣言(extensionPoints.ts)・定義の読み手の検査・経路の失敗の型
+- これから足すもの: 生成の一覧の器、経路の受け口の型(連絡のドメインの作り直しの続きで足す)
 
 ## 連絡の定義(defineMessage)
 
-連絡 1 本 = 起こすドメインの `messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。
+連絡 1 本 = 起こすドメインの `messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。`export const message = defineMessage({ … })` の形で書く(`pnpm check extensions` が字面で読む。default export・別名は止まる)。
 
 ```ts
 import { z } from "zod";
 import { defineMessage } from "@/lib/messaging";
 
-export default defineMessage({
+export const message = defineMessage({
   key: "auth.verification",
   kind: "transactional",
   category: "account",
@@ -67,8 +67,27 @@ export default defineMessage({
 
 `messages/<名前>.override.ts`(データだけ)。変えられるのは欄の文言(経路ごとに欄を重ねる)・`extras`・`defaultChannels`・`enabled`・`adminEditable`・`category`・`record`・`throttle`(`null` で外す)。`key`・`kind`・`vars`・`required` は変えられない。
 
-- `defineMessageOverride({...})` で型を当てる
+```ts
+// src/features/core/auth/messages/verification.override.ts(fork)
+import type { MessageOverride } from "@/lib/messaging";
+
+export const messageOverride = {
+  content: { email: { subject: "【{{serviceName}}】メールアドレスの確認" } },
+} satisfies MessageOverride;
+```
+
+- 上書きの点 = この lib の `extensionPoints.ts` の `messages`(`overrides: "src/features/**/messages/*.ts"`、直下だけ。`messages/views/` の描き方は 1 行スイッチの `.replace`)。書ける鍵は宣言の `overrideOf`(`MessageOverride` の鍵と同じ。テストが固定)
+- 形は `export const messageOverride = { … }`(`satisfies MessageOverride` 可)。関数で包むと字面で読めないので止まる
+- 上流(Tier1)は上書きを出荷しない(`pnpm check extensions`)
 - `applyMessageOverride(definition, override)` で重ねた結果(`enabled` つき)を得る。元の定義は変えない
+
+## 止められない連絡の守り(pnpm check extensions)
+
+`required: true` の連絡を、生成の前に字面で止める(`scripts/structure/extensions/derive/messageGuards.mjs`。実行時は送る口が同じ守りを `validateMessageDefinition` で見る):
+
+- 定義: `defaultChannels` に `"email"` が無い・`adminEditable` が空でない・`throttle` がある
+- 上書き: `enabled: false`・`"email"` の無い `defaultChannels`・空でない `adminEditable`・`throttle`(`null` で外すのは通す)
+- 守りに関わる値(定義の `required`・`defaultChannels`・`adminEditable`、上書きの `enabled`・`defaultChannels`・`adminEditable`)はリテラルで書く(変数・式は止まる)
 
 ## 定義の読み手の検査(validateMessageDefinition)
 

@@ -3,7 +3,7 @@
 import type { z } from "zod";
 
 import type { ChannelFieldSchemas, UpstreamChannelFields } from "./channels";
-import type { MessageDefinition, MessageOverride } from "./types";
+import type { MessageDefinition } from "./types";
 
 /**
  * 経路の束を決めた defineMessage を作る(fork の経路を足した束は S6 の生成の一覧が渡す)。
@@ -21,7 +21,8 @@ export function createDefineMessage<C extends ChannelFieldSchemas>() {
  *
  * @example
  * ```ts
- * export default defineMessage({
+ * // messages/verification.ts(定義は export const message。pnpm check extensions が字面で読む)
+ * export const message = defineMessage({
  *   key: "auth.verification",
  *   kind: "transactional",
  *   category: "account",
@@ -39,12 +40,3 @@ export function createDefineMessage<C extends ChannelFieldSchemas>() {
  * ```
  */
 export const defineMessage = createDefineMessage<UpstreamChannelFields>();
-
-/**
- * 上書きを書く(messages/<名前>.override.ts)。型を当てるだけで、値はそのまま返す。
- */
-export function defineMessageOverride<C extends ChannelFieldSchemas = UpstreamChannelFields>(
-  override: MessageOverride<C>,
-): MessageOverride<C> {
-  return override;
-}

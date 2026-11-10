@@ -14,9 +14,10 @@ import {
   applyMessageOverride,
   createDefineMessage,
   defineMessage,
-  defineMessageOverride,
+  extensionPoints,
   validateMessageDefinition,
   type MessageContent,
+  type MessageOverride,
 } from "./index";
 
 const verification = defineMessage({
@@ -76,12 +77,12 @@ test("required の守り: email の除外・adminEditable・throttle を止め�
 });
 
 test("上書きを重ねた結果を検査: required への enabled:false・email の除外・adminEditable の付与を止める", () => {
-  const override = defineMessageOverride({
+  const override: MessageOverride = {
     enabled: false,
     defaultChannels: ["inApp"],
     adminEditable: ["email.subject"],
     content: { inApp: { title: "確認", body: "" } },
-  });
+  };
   assert.deepEqual(codes(validateMessageDefinition(verification, { override })), [
     "required_admin_editable",
     "required_disabled",
@@ -238,4 +239,23 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
   });
   const content: MessageContent = { line: { text: "t" } };
   assert.ok(content);
+});
+
+// 上書きの型の鍵 = 宣言の overrideOf(どちらかに足すと型検査で落ちる)
+type DeclaredKeys = (typeof extensionPoints.messages.overrideOf)[number];
+type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const overrideKeysMatch: Equal<keyof MessageOverride, DeclaredKeys> = true;
+
+test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
+  assert.equal(overrideKeysMatch, true);
+  assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
+    "adminEditable",
+    "category",
+    "content",
+    "defaultChannels",
+    "enabled",
+    "extras",
+    "record",
+    "throttle",
+  ]);
 });

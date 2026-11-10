@@ -61,7 +61,7 @@ export const extensionPoints = {
 - 受け口でない点(一覧はこの生成器が書かない。受け口のフォルダの行も無い。判定 `isListPoint`):
   - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
   - `placement: "<置き場の glob>"` + `kind: "edit" | "append"` … 置き場の点(型 4)。fork が書いてよい場所(リポジトリ直下から、`src/` 始まり)とその書き方。受け口の一覧の行になるだけ(項目も一覧も無い)
-  - `overrides: "<対象のファイルの glob>"` + `export: "<上書きの export の名前>"` + `side` + `overrideOf: [...]`(+ `keyedBy: "<対象の export>"`)… 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。宣言は `as const` で書き、上書きの型(`RoleOverride` など)は `overrideOf` から引く(`(typeof extensionPoints.<点>.overrideOf)[number]`)。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
+  - `overrides: "<対象のファイルの glob>"` + `export: "<上書きの export の名前>"` + `side` + `overrideOf: [...]`(+ `keyedBy: "<対象の export>"`)… 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`・連絡の定義 `messages/*.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。宣言は `as const` で書き、上書きの型(`RoleOverride` など)は `overrideOf` から引く(`(typeof extensionPoints.<点>.overrideOf)[number]`)。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 
 ## 項目
@@ -155,6 +155,7 @@ export const extensionPoints = {
 | `derive/gateRequires.mjs` | 規則の requires の被覆の検査(機能のドメインの requires の先が自分・依存先・基盤のどれか) |
 | `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingSections・説明用の settingPaths) |
 | `derive/settingRoles.mjs` | setting の上書きは権限を絞るだけ(広げる上書きを止める) |
+| `derive/messageGuards.mjs` | 止められない連絡(required)の守り: 連絡の定義と上書きを字面で読み、enabled:false・email の除外・adminEditable・throttle を止める(点 = lib/messaging の messages) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
 | `switches.mjs` / `overrides.mjs` | 1 行スイッチの形、上流の override の検査 |
 | `orphans.mjs` / `overrideKeys.mjs` | 孤立の検査(.override・.replace、1 つ)・上書きの対象の点の宣言に無い鍵 |
