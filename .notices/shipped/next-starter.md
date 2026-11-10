@@ -417,3 +417,4 @@
 - id:20261110-121637-core-domain-aliases-slash-only | severity:action-required | checkpoint:core-domain-aliases-slash-only | fixes:20261109-201343-core-domain-aliases | resolves:20261110-104822-core-domain-aliases-bare-import | pick:-
 - id:20261110-132753-shared-shelf-four-types-rules | severity:action-required | checkpoint:shared-shelf-four-types-rules
 - id:20261110-134545-rule-merge-admin-children | severity:breaking | checkpoint:config-rule-merge-admin
+- id:20261110-135737-shared-shelf-frame-guard-fixes | severity:action-required | checkpoint:shared-shelf-frame-guard-fixes | resolves:20261106-193519-user-frame-test-fork-declarations, 20261109-090000-unsaved-guard-sentinel-cleanup
