@@ -645,9 +645,12 @@ import type { User } from "@/features/core/user/entities";
 import { AdminUserManageModal, createGeneralUserListColumns } from "@/features/core/user/components/admin";
 import { useGeneralUserListTable } from "@/features/core/user/hooks/useGeneralUserListTable";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
+import { useGate } from "@/featureGate/client";
 
 export function GeneralUserListTable({ users, coinBalanceMap }: { users: User[]; coinBalanceMap: Record<string, number> }) {
   const t = useGeneralUserListTable();
+  // wallet のモーダルを読むファイルは自分で開閉を確かめる(下の注)
+  const walletEnabled = useGate().enabled("wallet");
   const [historyUser, setHistoryUser] = useState<User | null>(null);
 
   const columns = useMemo(() => {
@@ -674,7 +677,7 @@ export function GeneralUserListTable({ users, coinBalanceMap }: { users: User[];
   return (
     <>
       {table}
-      {t.canAdjustWallet ? (
+      {walletEnabled && t.canAdjustWallet ? (
         <AdminWalletAdjustModal open={Boolean(t.adjust.target)} user={t.adjust.target} onClose={t.adjust.close} onSuccess={t.adjust.onAdjusted} />
       ) : null}
       {t.canManage ? (
@@ -707,6 +710,7 @@ const SORT_OPTIONS = [...DEFAULT_USER_LIST_SORT_OPTIONS, { label: "保有コイ�
 // <UserListHeader {...props} sortOptions={SORT_OPTIONS} />
 ```
 
+- wallet の部品（`AdminWalletAdjustModal`）を import するファイルは、そのファイルの中で `useGate().enabled("wallet")` を呼ぶ。`canAdjustWallet` も同じ gate を含むが、featureGate の依存の検査は import するファイルの字面だけを見るので、フックの中の確認は数えない（src/featureGate/README.md「依存の検査」の 2）。wallet を必ず使う fork は代わりに `required/wallet.ts` でもよい（同 5）
 - 上流の `GeneralUserList` / `GeneralUserListTable` / `UserListHeader` の props は変わらない（足したものは省略できる）
 - 回帰: `pnpm test src/features/core/user`（`hooks/useGeneralUserListTable.test.tsx`・`components/admin/GeneralUserList/columns.test.tsx`・`components/common/UserListHeader.test.tsx`）
 
