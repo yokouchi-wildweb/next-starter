@@ -99,6 +99,7 @@
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "^8.14.3",
     "postgres": "^3.4.7",
+    "radix-ui": "^1.8.1",
     "react": "^19.2.3",
     "react-chartjs-2": "^5.3.0",
     "react-day-picker": "^9.14.0",
