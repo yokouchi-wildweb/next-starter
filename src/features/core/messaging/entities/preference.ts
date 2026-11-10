@@ -1,0 +1,73 @@
+// src/features/core/messaging/entities/preference.ts
+//
+// 配信停止の表 2 つ（users に列を足さない）。
+// - message_preferences: 利用者が止めた 種類 × 経路（止めた時だけ行。全体は MESSAGE_ALL '*'）
+// - message_suppressions: 宛先の停止（hard_bounce / complaint / one_click / manual）
+
+import {
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+import { UserTable } from "@/features/user/entities/drizzle";
+
+import { MESSAGE_SUPPRESSION_REASONS } from "./schema";
+
+export const MessagePreferenceTable = pgTable(
+  "message_preferences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => UserTable.id, { onDelete: "cascade" }),
+    /** 種類の鍵。'*' = すべての種類 */
+    category: text("category").notNull(),
+    /** 経路の鍵。'*' = すべての経路 */
+    channel: text("channel").notNull(),
+    opted_out_at: timestamp("opted_out_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /** 止めた入口（好みの画面 / ワンクリック など） */
+    source: text("source").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_message_preferences_user_category_channel").on(
+      table.user_id,
+      table.category,
+      table.channel,
+    ),
+  ],
+);
+
+export const MessageSuppressionTable = pgTable(
+  "message_suppressions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    channel: text("channel").notNull(),
+    /** 正規化した宛先の sha256 */
+    address_hash: text("address_hash").notNull(),
+    reason: text("reason")
+      .$type<(typeof MESSAGE_SUPPRESSION_REASONS)[number]>()
+      .notNull(),
+    /** 範囲。'*' = すべての種類、one_click は種類の鍵 */
+    scope: text("scope").notNull().default("*"),
+    source: text("source"),
+    provider_event_id: text("provider_event_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_message_suppressions_channel_hash_scope").on(
+      table.channel,
+      table.address_hash,
+      table.scope,
+    ),
+  ],
+);
