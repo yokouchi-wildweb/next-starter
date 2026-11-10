@@ -3,8 +3,10 @@
 // 基準の版(台帳 .notices/applied/<fork_id>.md の最後の upstream:<sha>、--base で上書き)のファイルと照らして、
 // - 上流(親)のルートの隣に fork が置いた frame.ts → frame.override.ts(export const frame → export const override)
 // - fork 自身が置いた frame.default.ts → frame.ts(export const frameDefault → export const frame)
-// 上流の物は動かさない・挙げない: 基準の版に加えて、取り込み中の版(MERGE_HEAD)と直接の親との分岐点(親の remote との merge-base)の木に
+// 上流の物は動かさない・挙げない: 基準の版に加えて、直接の親の remote のブランチ(取得済みの ref)と親との分岐点(merge-base)の木に
 // あるファイルは上流の物(台帳の行を書く前に回しても、上流が今の区間で改名・追加した frame.ts を fork の物と取り違えない)。
+// 取り込み中の版(MERGE_HEAD)は親の ref の祖先のとき(上流の版を取り込んでいるとき)だけ数える: fork のコミット(railroad の
+// トラックなど)を取り込んでいる間は、その木にある fork 自身のルートや frame.ts を上流の物と数えない。
 // 止まる(動かさず挙げる): 行き先が既にある / export の名前が読めない・別の名前 / 基準の版が決まらない(exit 2)。
 // 名前の決まり: src/app/_layout/frame/README.md、notice shared-shelf-frame-override
 
@@ -38,22 +40,36 @@ function mergeHead(root) {
   }
 }
 
+/** rev が ref の祖先(同じ版を含む)か */
+function isAncestor(root, rev, ref) {
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", rev, ref], { cwd: root, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
- * 上流の物のファイル(基準の版・取り込み中の版・親との分岐点の木の和)。どれか 1 つの木にあれば上流の物
+ * 上流の物のファイル(基準の版・親の ref・親との分岐点・上流の版を取り込み中ならその版の木の和)。どれか 1 つの木にあれば上流の物
  * @returns {{ files: Set<string>, revs: string[] }}
  */
 export function upstreamFiles(root, baseFiles, baseRev) {
   const files = new Set(baseFiles);
   const revs = [baseRev];
-  const merging = mergeHead(root);
-  if (merging) {
-    for (const f of lsTree(root, merging)) files.add(f);
-    revs.push(`MERGE_HEAD ${merging.slice(0, 8)}`);
-  }
   const parent = forkAddedFiles(root, { fetch: false });
-  if (parent.status === "ok" && parent.base !== baseRev) {
+  if (parent.status !== "ok") return { files, revs };
+  for (const f of lsTree(root, parent.parentRef)) files.add(f);
+  revs.push(parent.parentRef);
+  if (parent.base !== baseRev) {
     for (const f of lsTree(root, parent.base)) files.add(f);
     revs.push(`merge-base ${parent.base.slice(0, 8)}`);
+  }
+  // 取り込み中の版は親の ref の祖先のときだけ(fork のコミットの取り込みでは数えない)
+  const merging = mergeHead(root);
+  if (merging && isAncestor(root, merging, parent.parentRef)) {
+    for (const f of lsTree(root, merging)) files.add(f);
+    revs.push(`MERGE_HEAD ${merging.slice(0, 8)}`);
   }
   return { files, revs };
 }

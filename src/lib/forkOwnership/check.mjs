@@ -255,7 +255,8 @@ function resolveParentBase(repoRoot, ownerId, { parent, branch, fetch }) {
  * Tier1 は git に触れず空の一覧を返す(全部が上流の物)。基準が求められなければ unverified(合格にしない)
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false = 取得済みの ref で判定する(テストの中など)
- * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, added: Set<string> } | { status: "unverified", reason: string }}
+ * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, parentRef: string, added: Set<string> } | { status: "unverified", reason: string }}
+ *   parentRef = 親の remote のブランチ(<remote>/<branch>、取得済みの ref)
  */
 export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) {
   const identity = readForkIdentity(repoRoot);
@@ -266,7 +267,7 @@ export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) 
   const where = resolveParentBase(repoRoot, identity.own, { parent, branch, fetch });
   if (where.status === "unverified") return where;
   const added = (tryGit(repoRoot, ["diff", "--name-only", "--no-renames", "--diff-filter=A", "-z", where.base, "HEAD"]) ?? "").split("\0").filter(Boolean);
-  return { status: "ok", base: where.base, added: new Set(added) };
+  return { status: "ok", base: where.base, parentRef: where.parentRef, added: new Set(added) };
 }
 
 /**

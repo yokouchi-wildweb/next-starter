@@ -136,3 +136,39 @@ test("上流が改名した frame.ts は 0 件: 台帳の行を書く前(基準 
     closeTmp();
   }
 });
+
+test("fork のコミット(railroad のトラックなど)を取り込み中: MERGE_HEAD の木は上流と数えず、fork 自身のルートの frame.ts を挙げない。上流の改名は親の ref で数える", () => {
+  openTmp();
+  try {
+    const parent = makeParent();
+    write(parent, "src/app/(user)/layout.tsx", page);
+    write(parent, "src/app/(user)/frame.default.ts", "export const frameDefault = { layout: {} };\n");
+    commitAll(parent, "routes");
+    const fork = makeFork(parent);
+    // fork 自身のルート(旧い名前の宣言)
+    write(fork, "src/app/(user)/own/page.tsx", page);
+    write(fork, "src/app/(user)/own/frame.default.ts", "export const frameDefault = { page: { fill: true } };\n");
+    commitAll(fork, "own route");
+    // 上流が改名する(2 段目)
+    tgit(parent, "mv", "src/app/(user)/frame.default.ts", "src/app/(user)/frame.ts");
+    write(parent, "src/app/(user)/frame.ts", "export const frame = { layout: {} };\n");
+    commitAll(parent, "rename");
+    tgit(fork, "fetch", "-q", "upstream");
+    // トラック: 上流を取り込む(fork 自身のルートは旧い名前のまま木にある)
+    tgit(fork, "switch", "-q", "-c", "track");
+    tgit(fork, "merge", "-q", "--no-edit", "upstream/main");
+    // 本線: fork 自身の宣言を作ったリポの名前に移した後
+    tgit(fork, "switch", "-q", "main");
+    tgit(fork, "mv", "src/app/(user)/own/frame.default.ts", "src/app/(user)/own/frame.ts");
+    write(fork, "src/app/(user)/own/frame.ts", "export const frame = { page: { fill: true } };\n");
+    commitAll(fork, "own frame.ts");
+    tgit(fork, "merge", "--no-commit", "--no-ff", "-q", "track");
+    const plan = planFramesMove(fork);
+    assert.deepEqual(plan.moves, [], "fork 自身の own/frame.ts も上流の (user)/frame.ts も挙げない");
+    assert.deepEqual(plan.stops, []);
+    assert.ok(!plan.upstreamTrees.some((t) => t.startsWith("MERGE_HEAD")), "トラックのコミットは上流の木に数えない");
+    assert.ok(plan.upstreamTrees.includes("upstream/main"));
+  } finally {
+    closeTmp();
+  }
+});
