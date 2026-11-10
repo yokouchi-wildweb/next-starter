@@ -427,3 +427,4 @@
 - id:20261110-153418-feature-gate-l3-switch-write | severity:action-required | checkpoint:feature-gate-l3-switch-write | fixes:20261109-171458-feature-gate-foundation | resolves:20261110-132442-feature-gate-l3-codemod-switch-write | pick:-
 - id:20261110-153751-purchase-complete-no-milestone-ui | severity:info | checkpoint:purchase-complete-no-milestone-ui | resolves:20261101-173617-purchase-complete-remove-milestone-ui
 - id:20261110-153659-user-layout-readme-config-path | severity:info | checkpoint:user-layout-readme-config-path | resolves:20261110-130441-user-layout-readme-stale-config-path
+- id:20261110-154000-user-frame-test-tier1-only | severity:info | checkpoint:user-frame-test-tier1-only | resolves:20261110-130302-user-frame-test-tier1-only
