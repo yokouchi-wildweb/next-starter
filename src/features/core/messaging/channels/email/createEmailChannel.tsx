@@ -5,6 +5,10 @@
 // - 送信: 宛先ごとに既定の描き方で描き、React のフォールバックの印があれば送らず permanent(L2.1)、
 //   無ければ lib/mail send()(冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
+// - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(marketing・activity)。
+//   List-Unsubscribe のヘッダもあれば、ヘッダを lib/mail に渡し本文の最後に停止のリンクを出す。
+//   category があるのに List-Unsubscribe が無い = 送る側に署名の鍵(MESSAGING_UNSUBSCRIBE_SECRET)が無い →
+//   送らず permanent(reason unsubscribe_key_missing)。category の無い連絡(取引・required)はヘッダなしで送る
 
 import type { ReactElement } from "react";
 
@@ -37,7 +41,14 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
       const results: ChannelSendResult[] = [];
       for (const target of targets) {
         const content = target.content as EmailViewContent;
-        const element = <EmailView content={content} theme={deps.theme} />;
+        const listUnsubscribe = target.headers?.["List-Unsubscribe"];
+        if (target.category && !listUnsubscribe) {
+          // 停止のヘッダを付けられない marketing・activity のメールは送らない(D57)
+          results.push({ address: target.address, kind: "permanent", reason: "unsubscribe_key_missing" });
+          continue;
+        }
+        const unsubscribeUrl = listUnsubscribe ? listUnsubscribe.replace(/^<|>$/g, "") : undefined;
+        const element = <EmailView content={content} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
         let html: string;
         try {
           html = await deps.render(element);
@@ -61,6 +72,7 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
             subject: content.subject,
             react: element,
             idempotencyKey: target.idempotencyKey,
+            ...(target.headers ? { headers: { ...target.headers } } : {}),
           });
           results.push({
             address: target.address,

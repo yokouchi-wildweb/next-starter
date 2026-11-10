@@ -6,12 +6,11 @@
 //   束ごとの展開(expandBroadcastChunk / resolveAudienceChunk)は cron(次の指令)が呼ぶ
 // - 経路の項目が無い・enabled: false の経路は channel_off(explicit は行、broadcast は suppressed に数える)
 
-import { createHash } from "node:crypto";
-
 import type { MessageAudienceCursor, MessageChannel } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageDeliveryInsert, MessageDeliveryReason } from "../../../entities/model";
+import { checkStops, hashAddress, type StopContext } from "./stops";
 import type { MessageAudienceSpec, MessageRecipient, MessageSendDeps, MessageUserRow } from "./types";
 
 /** 配達の行の計画 1 つ */
@@ -41,7 +40,7 @@ export function userRecipientKey(userId: string): string {
 }
 
 export function addressRecipientKey(address: string): string {
-  return `addr:${createHash("sha256").update(address.trim().toLowerCase()).digest("hex")}`;
+  return `addr:${hashAddress(address)}`;
 }
 
 export function recipientKeyOf(recipient: MessageRecipient): string {
@@ -80,8 +79,15 @@ function emptyCounts(channels: readonly string[]): ExpansionCounts {
  */
 export async function expandExplicit(
   deps: MessageSendDeps,
-  params: { channels: readonly string[]; recipients: readonly MessageRecipient[] },
-): Promise<{ planned: PlannedDelivery[]; users: Map<string, MessageUserRow>; unknownUserIds: string[]; counts: ExpansionCounts }> {
+  params: { channels: readonly string[]; recipients: readonly MessageRecipient[]; stops: StopContext },
+): Promise<{
+  planned: PlannedDelivery[];
+  users: Map<string, MessageUserRow>;
+  unknownUserIds: string[];
+  counts: ExpansionCounts;
+  /** どの経路でも好み・宛先の停止で外れた受信者の数(recipient_count から引く、D31) */
+  stoppedRecipients: number;
+}> {
   const { channels } = params;
   const seen = new Set<string>();
   const recipients = params.recipients.filter((recipient) => {
@@ -132,7 +138,59 @@ export async function expandExplicit(
       }
     }
   }
-  return { planned, users, unknownUserIds, counts };
+  await applyStops(deps, params.stops, planned, counts, "row");
+  const stoppedRecipients = countFullyStopped(planned);
+  return { planned, users, unknownUserIds, counts, stoppedRecipients };
+}
+
+const STOP_REASONS = new Set(["preference", "suppression"]);
+
+/** どの経路でも停止で外れた受信者の数 */
+function countFullyStopped(planned: readonly PlannedDelivery[]): number {
+  const byRecipient = new Map<string, boolean>();
+  for (const plan of planned) {
+    const stopped = plan.status === "suppressed" && STOP_REASONS.has(plan.reason ?? "");
+    byRecipient.set(plan.recipientKey, (byRecipient.get(plan.recipientKey) ?? true) && stopped);
+  }
+  return [...byRecipient.values()].filter(Boolean).length;
+}
+
+/**
+ * queued の計画に配信停止を当てる。mode row = 理由つきの suppressed の行にする(選んだ宛先)/
+ * drop = 計画から外す(全員・ロール・audiences、D46)。どちらも経路ごとの suppressed に数える
+ */
+async function applyStops(
+  deps: MessageSendDeps,
+  context: StopContext,
+  planned: PlannedDelivery[],
+  counts: ExpansionCounts,
+  mode: "row" | "drop",
+): Promise<PlannedDelivery[]> {
+  const queued = planned.filter((plan) => plan.status === "queued");
+  const verdicts = await checkStops(deps, context, queued);
+  const dropped = new Set<PlannedDelivery>();
+  const stopped: PlannedDelivery[] = [];
+  queued.forEach((plan, index) => {
+    const verdict = verdicts[index];
+    if (!verdict.stopped) {
+      plan.addresses = verdict.addresses;
+      return;
+    }
+    stopped.push(plan);
+    counts[plan.channel].suppressed += 1;
+    if (mode === "drop") {
+      dropped.add(plan);
+    } else {
+      plan.status = "suppressed";
+      plan.reason = verdict.reason;
+    }
+  });
+  if (dropped.size > 0) {
+    const kept = planned.filter((plan) => !dropped.has(plan));
+    planned.length = 0;
+    planned.push(...kept);
+  }
+  return stopped;
 }
 
 /**
@@ -140,8 +198,8 @@ export async function expandExplicit(
  */
 export async function expandBroadcastChunk(
   deps: MessageSendDeps,
-  params: { channels: readonly string[]; userIds: readonly string[] },
-): Promise<{ planned: PlannedDelivery[]; counts: ExpansionCounts }> {
+  params: { channels: readonly string[]; userIds: readonly string[]; stops: StopContext },
+): Promise<{ planned: PlannedDelivery[]; counts: ExpansionCounts; stoppedUserIds: Set<string> }> {
   const userIds = [...new Set(params.userIds)];
   const planned: PlannedDelivery[] = [];
   const counts = emptyCounts(params.channels);
@@ -169,7 +227,16 @@ export async function expandBroadcastChunk(
       });
     }
   }
-  return { planned, counts };
+  // どの経路でも停止で外れた利用者(宛先の無い経路がある利用者は停止で外れたことにしない)
+  const stopped = await applyStops(deps, params.stops, planned, counts, "drop");
+  const stoppedCount = new Map<string, number>();
+  for (const plan of stopped) {
+    if (plan.userId) stoppedCount.set(plan.userId, (stoppedCount.get(plan.userId) ?? 0) + 1);
+  }
+  const stoppedUserIds = new Set(
+    [...stoppedCount].filter(([, count]) => count === params.channels.length).map(([userId]) => userId),
+  );
+  return { planned, counts, stoppedUserIds };
 }
 
 /**

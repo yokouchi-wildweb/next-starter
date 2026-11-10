@@ -381,3 +381,31 @@ test("d3(D32): お知らせの中身が受信者に依れば、全員宛てで�
   assert.equal(world.store.deliveries.filter((row) => row.channel === "inApp").length, 3);
   assert.equal(inApp.calls.flat().length, 3);
 });
+
+test("配信停止(D35・D46): 全員宛ての展開で止めた利用者は行を作らず suppressed に数え、recipient_count から引く", async () => {
+  const { world, deps, sender } = setup({ users: 3 });
+  world.store.preferences.push({ userId: "u2", category: "*", channel: "*" });
+  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
+  for (let i = 0; i < 3; i += 1) await sweep(deps);
+  const dispatch = world.store.dispatches[0];
+  assert.deepEqual(world.store.deliveries.map((row) => row.user_id).sort(), ["u1", "u3"]);
+  assert.equal(dispatch.recipient_count, 2);
+  assert.equal(dispatch.channel_counts?.test.suppressed, 1);
+  assert.equal(dispatch.channel_counts?.test.sent, 2);
+  assert.equal(dispatch.status, "completed");
+});
+
+test("配信停止(D35): キューに置いた後で止めた人は、送る直前に外す(reason preference)", async () => {
+  const { world, deps, sender, channel } = setup({ users: 5 });
+  await sender.sendMessageToMany(notice, {
+    recipients: ["u1", "u2", "u3", "u4", "u5"].map((userId) => ({ userId })),
+    vars: { item: "x" },
+  });
+  // 最初の束(u1・u2)の後、u5 が止めた
+  world.store.preferences.push({ userId: "u5", category: "news", channel: "test" });
+  await sweep(deps);
+  const u5 = world.store.deliveries.find((row) => row.user_id === "u5")!;
+  assert.deepEqual([u5.status, u5.reason, u5.next_attempt_at, u5.lock_token], ["suppressed", "preference", null, null]);
+  assert.ok(!channel.calls.flat().some((target) => target.userId === "u5"));
+  assert.equal(world.store.dispatches[0].status, "completed");
+});

@@ -15,6 +15,7 @@ import { ChannelError, createDefineMessage, secretVar, type MessageRegistry } fr
 import { DomainError } from "@/lib/errors";
 
 import { expandBroadcastChunk, resolveAudienceChunk } from "./expand";
+import { hashAddress } from "./stops";
 import { createMessageSender } from "./sender";
 import { FIXED_NOW, createDeps, createMemoryStore, createTestChannel } from "./testHelpers";
 
@@ -137,7 +138,11 @@ test("d2: 全員・ロールの展開は宛先の無い利用者の行を作ら�
   assert.deepEqual(first.userIds, ["u1", "u2"]);
   const second = await resolveAudienceChunk(deps, { type: "all" }, first.nextCursor);
   assert.deepEqual(second.userIds, ["u3", "u4"]);
-  const chunk = await expandBroadcastChunk(deps, { channels: ["test"], userIds: second.userIds });
+  const chunk = await expandBroadcastChunk(deps, {
+    channels: ["test"],
+    userIds: second.userIds,
+    stops: { kind: "marketing", required: false, category: "news" },
+  });
   assert.deepEqual(chunk.planned.map((plan) => plan.recipientKey), ["user:u3"]);
   assert.deepEqual(chunk.counts.test, { targeted: 2, skippedNoAddress: 1, suppressed: 0 });
   const admins = await resolveAudienceChunk(deps, { type: "role", roles: ["admin"] }, null);
@@ -443,4 +448,49 @@ test("enabled: false の経路は項目が無い経路と同じく channel_off �
   assert.equal(result.deliveries[0].reason, "channel_off");
   assert.equal(off.calls.length, 0);
   assert.equal(store.dispatches[0].channel_counts?.test.suppressed, 1);
+});
+
+test("配信停止(D35): 選んだ宛先で止めた受信者は理由つきの suppressed の行、recipient_count から引く", async () => {
+  const { sender, store, channel } = setup();
+  store.preferences.push({ userId: "u1", category: "news", channel: "test" });
+  store.suppressions.push({ channel: "test", addressHash: hashAddress("addr-u2"), reason: "complaint", scope: "*" });
+  const result = await sender.sendMessageToMany(notice, {
+    recipients: [{ userId: "u1" }, { userId: "u2" }, { userId: "u3" }],
+    vars: { item: "x" },
+  });
+  const byUser = (id: string) => result.deliveries.find((row) => row.userId === id)!;
+  assert.deepEqual([byUser("u1").status, byUser("u1").reason], ["suppressed", "preference"]);
+  assert.deepEqual([byUser("u2").status, byUser("u2").reason], ["suppressed", "suppression"]);
+  assert.equal(byUser("u3").status, "sent");
+  assert.equal(store.dispatches[0].recipient_count, 1);
+  assert.equal(result.channelCounts.test.suppressed, 2);
+  assert.deepEqual(channel.calls.flat().map((t) => t.userId), ["u3"]);
+});
+
+test("配信停止(D35): 好みに従う連絡の宛先に category と List-Unsubscribe のヘッダが付き、取引の連絡には付かない", async () => {
+  const { sender, channel } = setup();
+  await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  const [sent] = channel.calls[0];
+  assert.equal(sent.category, "news");
+  assert.deepEqual(sent.headers, {
+    "List-Unsubscribe": "<https://example.test/u?r=user:u2&c=news&ch=test>",
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  });
+
+  const tx = setup();
+  await tx.sender.sendMessage({ ...notice, kind: "transactional" }, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  assert.equal(tx.channel.calls[0][0].category, undefined);
+  assert.equal(tx.channel.calls[0][0].headers, undefined);
+});
+
+test("配信停止(D57): 鍵が無い時は category だけ付き headers は付かない(経路が鍵の無い印として扱う)", async () => {
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: null });
+  store.endpoints.push({ userId: "u2", channel: "test", address: "addr-u2" });
+  const channel = createTestChannel();
+  const deps = createDeps({ store, channels: { test: channel } });
+  deps.unsubscribe = { configured: () => false, url: () => "never" };
+  await createMessageSender(deps).sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  assert.equal(channel.calls[0][0].category, "news");
+  assert.equal(channel.calls[0][0].headers, undefined);
 });

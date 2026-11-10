@@ -12,12 +12,15 @@ import { ChannelError, type ChannelSendResult, type ChannelSendTarget } from "@/
 import type { MessageDeliveryInsert, MessageDeliveryStatus } from "../../../entities/model";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
 import { activeChannel } from "./expand";
+import { hashAddress } from "./stops";
 import { errorText, type RecordPolicy } from "./record";
 import type { MessageSendDeps } from "./types";
 
 /** 送る配達の行 1 つ(content = その受信者へ描いた中身) */
 export type DeliveryJob = {
   deliveryId: string;
+  /** 受信者の鍵(配信停止の URL に入れる) */
+  recipientKey: string;
   channel: string;
   userId: string | null;
   addresses: string[];
@@ -60,6 +63,30 @@ async function callSend(
   }
 }
 
+/**
+ * 好みに従う連絡の宛先に付ける配信停止の欄: category と、鍵の env がある時だけ List-Unsubscribe・List-Unsubscribe-Post(RFC 8058)。
+ * 鍵が無い時は headers を付けない(メールの項目は「category があるのに List-Unsubscribe が無い」を鍵が無い印として送らない)
+ */
+function stopFields(
+  deps: MessageSendDeps,
+  job: DeliveryJob,
+  address: string,
+  category: string | undefined,
+): Pick<ChannelSendTarget, "category" | "headers"> {
+  if (!category) return {};
+  if (!deps.unsubscribe.configured()) return { category };
+  const url = deps.unsubscribe.url({
+    recipientKey: job.recipientKey,
+    category,
+    channel: job.channel,
+    ...(job.recipientKey.startsWith("addr:") ? { addressHash: hashAddress(address) } : {}),
+  });
+  return {
+    category,
+    headers: { "List-Unsubscribe": `<${url}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+  };
+}
+
 /** 行の宛先の状態から行の状態を決める */
 function rowStatus(states: readonly AddressState[]): MessageDeliveryStatus | "transient" {
   if (states.some((state) => state.status === "sent")) return "sent";
@@ -73,9 +100,16 @@ function rowStatus(states: readonly AddressState[]): MessageDeliveryStatus | "tr
  */
 export async function sendDeliveries(
   deps: MessageSendDeps,
-  params: { jobs: readonly DeliveryJob[]; policy: RecordPolicy; inRequestOnly: boolean },
+  params: {
+    jobs: readonly DeliveryJob[];
+    policy: RecordPolicy;
+    inRequestOnly: boolean;
+    /** 好みに従う連絡の種類の鍵(入っている時だけ宛先に category と配信停止のヘッダを付ける) */
+    category?: string;
+  },
 ): Promise<DeliveryResult[]> {
-  const { jobs, policy, inRequestOnly } = params;
+  const { jobs, policy, inRequestOnly, category } = params;
+  const stopOf = (job: DeliveryJob, address: string) => stopFields(deps, job, address, category);
   const now = deps.now;
   const states = new Map<string, AddressState[]>();
   const errors = new Map<string, string>();
@@ -120,7 +154,13 @@ export async function sendDeliveries(
         list.push({
           job,
           index,
-          target: { userId: job.userId, address: state.address, idempotencyKey: targetKey(job, index), content: job.content },
+          target: {
+            userId: job.userId,
+            address: state.address,
+            idempotencyKey: targetKey(job, index),
+            content: job.content,
+            ...stopOf(job, state.address),
+          },
         });
         byChannel.set(job.channel, list);
       });

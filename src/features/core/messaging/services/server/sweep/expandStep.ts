@@ -4,8 +4,10 @@
 // 再開の位置は message_dispatches.expand_cursor(null = まだ / keyset の印か "i:<番号>" = 途中 / MESSAGE_EXPAND_DONE = 終えた)。
 // - audience(全員・ロール・audiences): 宛先の無い利用者は行を作らず skipped_no_address に数える。recipient_count に束の人数を足す
 // - 選んだ宛先の一覧(audience.type = "recipients"): 宛先の無い受信者は suppressed + no_address の行。見つからない利用者は recipient_count から引く
+// - 配信停止(好み・宛先の停止)を当てる: 選んだ宛先は理由つきの suppressed の行、全員・ロール・audiences は行を作らず suppressed に数える
 // - 全員・ロール宛てのお知らせ(inApp)は、中身が受信者に依らなければ受信者ごとの行を作らず、最初の束で回に 1 行の共有の
-//   message_inbox_items(user_id null、target_roles = ロールか null)を書き、数は束ごとに targeted・sent へ足す(D32)
+//   message_inbox_items(user_id null、target_roles = ロールか null)を書き、数は束ごとに targeted・sent へ足す(D32)。
+//   共有の行は利用者ごとの inApp の好みを書く時には当てない(受け取り箱の利用者の API が回の category で見る人の好みを当てる)
 
 import { listVariables } from "@/lib/structuredDocument/shared";
 
@@ -13,6 +15,7 @@ import type { MessageDispatch, MessageInboxItemInsert } from "../../../entities/
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import { channelContent, renderValue, toVariableMap } from "../sendMessage/context";
 import { resolveDefinition } from "../sendMessage/definition";
+import type { StopContext } from "../sendMessage/stops";
 import {
   activeChannel,
   expandBroadcastChunk,
@@ -104,6 +107,8 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
     return { rows: [], patch: { expand_cursor: MESSAGE_EXPAND_DONE, updatedAt: now } };
   }
 
+  // 大きな送信・audience に required は来ない(送る口が拒む)
+  const stops: StopContext = { kind: dispatch.kind, required: false, category: dispatch.category };
   let planned: PlannedDelivery[];
   let counts: ExpansionCounts;
   let nextCursor: string;
@@ -118,10 +123,11 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
     const cursor = dispatch.expand_cursor;
     const start = cursor?.startsWith(INDEX_PREFIX) ? Number(cursor.slice(INDEX_PREFIX.length)) || 0 : 0;
     const slice = list.slice(start, start + deps.config.expandChunkSize);
-    const result = await expandExplicit(deps, { channels, recipients: slice });
+    const result = await expandExplicit(deps, { channels, recipients: slice, stops });
     planned = result.planned;
     counts = result.counts;
-    recipientCount -= result.unknownUserIds.length;
+    // 見つからない利用者と、どの経路でも止められた受信者を引く(D31)
+    recipientCount -= result.unknownUserIds.length + result.stoppedRecipients;
     const end = start + slice.length;
     nextCursor = end >= list.length ? MESSAGE_EXPAND_DONE : `${INDEX_PREFIX}${end}`;
   } else {
@@ -135,7 +141,7 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
         ? await sharedInAppContent(deps, dispatch)
         : null;
     const perRecipientChannels = shared ? channels.filter((key) => key !== IN_APP) : channels;
-    const result = await expandBroadcastChunk(deps, { channels: perRecipientChannels, userIds: chunk.userIds });
+    const result = await expandBroadcastChunk(deps, { channels: perRecipientChannels, userIds: chunk.userIds, stops });
     planned = result.planned;
     counts = result.counts;
     if (shared) {
@@ -154,7 +160,8 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
         };
       }
     }
-    recipientCount += userCount;
+    // どの経路でも止められた利用者は数えない(共有のお知らせが届く送信では全員に届くので引かない、D31)
+    recipientCount += userCount - (shared ? 0 : result.stoppedUserIds.size);
     nextCursor = chunk.nextCursor ?? MESSAGE_EXPAND_DONE;
   }
 

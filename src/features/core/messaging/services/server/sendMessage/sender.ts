@@ -34,6 +34,7 @@ import {
 import { sendDeliveries, type DeliveryJob } from "./deliver";
 import { expandExplicit, recipientKeyOf, type ExpansionCounts, type PlannedDelivery } from "./expand";
 import { omitKeys, recordPolicyOf, type RecordPolicy } from "./record";
+import { honoursPreferences, type StopContext } from "./stops";
 import { MessageIdempotencyConflict } from "./errors";
 import type {
   MessageDeliveryOutcome,
@@ -114,6 +115,11 @@ function finalDispatchStatus(statuses: readonly string[], queuedCount: number): 
 }
 
 type ManyOptions = { single?: boolean };
+
+/** 停止の確かめに要る連絡の性質 */
+export function stopContextOf(resolved: AnyResolvedMessageDefinition): StopContext {
+  return { kind: resolved.kind, required: Boolean(resolved.required), category: resolved.category };
+}
 
 export function createMessageSender(deps: MessageSendDeps) {
   async function prepare(definition: AnyMessageDefinition, input: SendMessageToManyInput) {
@@ -218,11 +224,13 @@ export function createMessageSender(deps: MessageSendDeps) {
     }
 
     // 小さな送信: 展開してから回を書く(見つからない利用者を先に知る)
-    const expansion = await expandExplicit(deps, { channels, recipients });
+    const stops = stopContextOf(resolved);
+    const expansion = await expandExplicit(deps, { channels, recipients, stops });
     if (options.single && expansion.unknownUserIds.length > 0) {
       throw new DomainError("送信先のユーザーが見つかりません", { status: 404 });
     }
-    const targetCount = uniqueCount - expansion.unknownUserIds.length;
+    // 送った時の対象 − その時点の停止(どの経路でも止められた受信者、D31)
+    const targetCount = uniqueCount - expansion.unknownUserIds.length - expansion.stoppedRecipients;
     const queueRest = !policy.noBody;
     const dispatchId = await insertDispatch(resolved, input, {
       channels,
@@ -289,10 +297,23 @@ export function createMessageSender(deps: MessageSendDeps) {
         toVariableMap(values),
       ) as Record<string, unknown>;
       bodies.set(row.id, content);
-      jobs.push({ deliveryId: row.id, channel: row.channel, userId: row.user_id, addresses: plan.addresses, attempts: row.attempts, content });
+      jobs.push({
+        deliveryId: row.id,
+        recipientKey: row.recipient_key,
+        channel: row.channel,
+        userId: row.user_id,
+        addresses: plan.addresses,
+        attempts: row.attempts,
+        content,
+      });
     }
 
-    const results = await sendDeliveries(deps, { jobs, policy, inRequestOnly: policy.noBody });
+    const results = await sendDeliveries(deps, {
+      jobs,
+      policy,
+      inRequestOnly: policy.noBody,
+      category: honoursPreferences(stops) ? resolved.category : undefined,
+    });
     const statusById = new Map<string, MessageDeliveryStatus>(rows.map((row) => [row.id, row.status]));
     for (const result of results) {
       const patch = { ...result.patch };

@@ -27,6 +27,13 @@ export type ChannelSendTarget = ChannelAddress & {
   idempotencyKey: string;
   /** その宛先へ描いた中身(経路の欄の値。{{鍵}} は差し込み済み) */
   content: Record<string, unknown>;
+  /**
+   * 配信停止の種類の鍵。好みに従う連絡(種別が transactional でなく required でもない)の時だけ入る。
+   * 入っている = 受信者が止められる連絡(メールは List-Unsubscribe を付ける)
+   */
+  category?: string;
+  /** 送る側が付ける追加のヘッダ(例 List-Unsubscribe・List-Unsubscribe-Post)。使うかは経路が決める */
+  headers?: Readonly<Record<string, string>>;
 };
 
 /** 宛先ごとの送信の結果。kind は sent か失敗の分類(ChannelErrorKind と同じ語彙) */

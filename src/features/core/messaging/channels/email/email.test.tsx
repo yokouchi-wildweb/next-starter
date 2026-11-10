@@ -102,3 +102,39 @@ test("本物の描画: Suspense の中で部品が投げると印が出て、そ
   );
   assert.ok(hasRenderFallbackMarker(html), html);
 });
+
+test("好みに従う連絡: List-Unsubscribe のヘッダを渡し、本文に停止のリンクを出す", async () => {
+  let html = "";
+  const sent: SendMailOptions[] = [];
+  const channel = createEmailChannel({
+    render: async (element) => (html = await render(element)),
+    send: async (mail) => {
+      sent.push(mail);
+      return { provider: "resend", providerMessageId: null };
+    },
+    findEmails: async () => [],
+    theme: MAIL_THEME_COLORS,
+  });
+  const headers = {
+    "List-Unsubscribe": "<https://app.example.test/api/messaging/unsubscribe?t=abc>",
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+  const [result] = await channel.send([{ ...target("a@example.test"), category: "marketing", headers }]);
+  assert.equal(result.kind, "sent");
+  assert.deepEqual(sent[0].headers, headers);
+  assert.ok(html.includes("https://app.example.test/api/messaging/unsubscribe?t=abc"));
+  assert.ok(html.includes("配信停止"));
+});
+
+test("category があるのに List-Unsubscribe が無い(鍵が無い)→ 送らず permanent unsubscribe_key_missing。取引は送る", async () => {
+  const { channel, sent } = setup();
+  const results = await channel.send([{ ...target("m@example.test"), category: "marketing" }, target("t@example.test")]);
+  assert.deepEqual(
+    results.map((r) => [r.kind, "reason" in r ? r.reason : null]),
+    [
+      ["permanent", "unsubscribe_key_missing"],
+      ["sent", null],
+    ],
+  );
+  assert.deepEqual(sent.map((m) => [m.to, m.headers]), [["t@example.test", undefined]]);
+});
