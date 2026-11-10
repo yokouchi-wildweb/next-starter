@@ -9,6 +9,8 @@ export { sendMessage, sendMessageToMany } from "./sendMessage";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 export type { MessageEndpointDto, RegisterMessageEndpointInput } from "./endpoints";
+export { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
+export type { InboxItemDto, InboxPage, InboxViewer } from "./inbox";
 export type { ContinueSendingResult, RetentionResult, SendSweepResult } from "./sweep";
 export type {
   MessageAudienceSpec,

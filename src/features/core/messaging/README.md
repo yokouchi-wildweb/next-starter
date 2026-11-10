@@ -4,7 +4,7 @@
 
 **ユーザー宛の任意メッセージは必ず `messagingService.send` / `bulkSend` を経由する**（CLAUDE.md PROHIBITED）。各呼び出し元が `lib/mail` の `send()` を直接呼ぶと、受信者単位の記録や本文の保存が漏れる（実際に過去に漏れた）。`lib/mail` を直接使ってよいのは、パスワードリセット・メール認証・登録などのシステムテンプレートメールだけ。
 
-送信の UI・API ルートは持たない（端末の帳簿の `/api/me/messaging/endpoints` だけ持つ）。送信画面や送信 API は呼び出し側（各ドメインの wrappers、fork の `_components/` など）が用意し、サーバー側からこのサービスを呼ぶ。
+送信の UI・API ルートは持たない（利用者の口 `/api/me/messaging/endpoints`・`/api/me/messaging/inbox` と受け口だけ持つ）。送信画面や送信 API は呼び出し側（各ドメインの wrappers、fork の `_components/` など）が用意し、サーバー側からこのサービスを呼ぶ。
 
 ---
 
@@ -38,6 +38,7 @@ src/features/core/messaging/
     ├── endpoints/               # 端末の帳簿（本人の宛先の登録・削除・一覧、退会の後片付け）
     ├── unsubscribe/             # ワンクリックの配信停止（署名つきトークン・停止の記録）
     ├── webhooks/                # provider の webhook の事件を記録と配達の行に当てる
+    ├── inbox/                   # 受け取り箱の利用者の service（見える行・既読）
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -297,6 +298,28 @@ D36・D44。受け口は 1 本 `POST /api/webhook/messaging/[channel]/[provider]
   - `bounced_hard`・`complained` → `message_suppressions`（reason `hard_bounce` / `complaint`、scope `'*'`、source `webhook:<provider>`）。`bounced_soft`（Resend の Transient・Undetermined、SendGrid の blocked）は停止しない。`dropped` → `failed`
   - `unsubscribed`（provider の仕組みの停止）は記録だけで好みに書かない（provider の一括停止は使わない、D35）
 - 計測の機能 `messagingTracking`（`src/featureGate/rules/messagingTracking.ts`、既定 **閉**、住所・ドメインなし）: 閉の間、`opened`・`clicked` は記録も反映もしない。開ける fork は provider 側の開封・クリックの計測も入れる（秘密を差し込む連絡は計測しない、D33）
+
+---
+
+## 受け取り箱（利用者の API /api/me/messaging/inbox）
+
+D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない = 常に開、D57）。中身は `services/server/inbox`。
+
+- `GET /api/me/messaging/inbox?cursor=&limit=&unreadOnly=` → `{ items: InboxItemDto[], nextCursor }`（公開の時刻・id の降順の keyset。`limit` 既定 20・最大 50。`unreadOnly=true|1`。`cursor` は前のページの `nextCursor`、形が正しくなければ 400）
+- `GET /api/me/messaging/inbox/unread-count` → `{ count }`
+- `POST /api/me/messaging/inbox/[id]/read` → `{ ok: true }`（見える行だけ。見えない行・無い行は 404）
+- `POST /api/me/messaging/inbox/read-all` → `{ ok: true }`
+- `InboxItemDto` = `{ id, title, body, link, image, metadata, publishedAt (ISO), read }`。回の中身（宛先・数・記録）と他人の情報は返さない。`image` は保存した値のまま（`storage://` の ref か URL）で、表示の部品が `toStorageDisplaySrc`（lib/storage）で表示用にする
+
+見える行（規則は `inbox/visibility.ts` の 1 か所。SQL と、テスト用の同じ判定）:
+
+- 公開の時刻 ≤ 今
+- 自分宛ての行（`user_id` = 見る人）か、共有の行（`user_id` null で `target_roles` が null = 全員 か 見る人のロールを含む）
+- 共有の行: 回の `show_to_later_signups` が false なら、見る人の登録（`users.created_at`）より前に公開された行は見せない（利用者の行が無ければ見せない）
+- 共有の行: 好みに従う回（種別が `transactional` でない）で、見る人が inApp か `'*'` の経路で回の `category` か `'*'` を止めていれば見せない（共有の行は書く時に好みを当てないので読む時に当てる）
+- 取り下げた回の行は消えている（`retracted_at` は回にだけ残る）
+
+既読: `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`。全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の自分の個別の既読の行を掃く（watermark が覆うので既読のまま）。
 
 ---
 
