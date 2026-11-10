@@ -130,7 +130,8 @@ function main() {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(error.message);
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
   const result = runCheck(process.cwd(), options);
   if (options.json) {
@@ -138,7 +139,7 @@ function main() {
   } else {
     console.log(print(result, options).join("\n"));
   }
-  process.exit(EXIT[result.status]);
+  process.exitCode = EXIT[result.status];
 }
 
 main();

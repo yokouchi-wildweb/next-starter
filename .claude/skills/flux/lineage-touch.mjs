@@ -58,14 +58,15 @@ function main() {
     result = lineageTouch(args);
   } catch (error) {
     console.error(`lineage-touch: ${error.stderr || error.message}`);
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
   if (args.json) console.log(JSON.stringify(result, null, 2));
   else {
     for (const t of result.touched) console.log(`touched: ${t.target} (${t.change}) | ${t.where} | before: ${t.before} | after: ${t.after ?? "-"}`);
     console.log(`result: ${result.touched.length > 0 ? "touched" : "none"}`);
   }
-  process.exit(result.touched.length > 0 ? 1 : 0);
+  process.exitCode = result.touched.length > 0 ? 1 : 0;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main();

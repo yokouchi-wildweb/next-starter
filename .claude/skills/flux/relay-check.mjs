@@ -155,14 +155,16 @@ function main() {
     args = parseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(error.message);
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
   let result;
   try {
     result = relayCheck(args);
   } catch (error) {
     console.error(`relay-check: git failed: ${error.stderr || error.message}`);
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
   if (args.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -173,7 +175,7 @@ function main() {
     for (const path of result.outside) console.log(`outside: ${path}`);
     console.log(`result: ${result.needed ? "needed" : "none"}`);
   }
-  process.exit(result.needed ? 1 : 0);
+  process.exitCode = result.needed ? 1 : 0;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main();

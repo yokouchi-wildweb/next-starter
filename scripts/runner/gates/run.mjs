@@ -132,4 +132,4 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   return code;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exit(run(process.argv.slice(2)));
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exitCode = run(process.argv.slice(2));

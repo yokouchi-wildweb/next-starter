@@ -100,4 +100,4 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
   return code;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exit(await run(process.argv.slice(2)));
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exitCode = await run(process.argv.slice(2));

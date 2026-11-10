@@ -272,4 +272,4 @@ export function run(repo, argv, log = console.log) {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exit(run(process.cwd(), process.argv.slice(2)));
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exitCode = run(process.cwd(), process.argv.slice(2));

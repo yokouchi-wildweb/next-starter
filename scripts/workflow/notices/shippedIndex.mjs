@@ -554,4 +554,4 @@ function main(argv) {
   return run(join(dirname(fileURLToPath(import.meta.url)), "../../.."), argv);
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exit(main(process.argv.slice(2)));
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exitCode = main(process.argv.slice(2));

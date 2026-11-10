@@ -112,7 +112,8 @@ function main() {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(error.message);
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
   const repoRoot = process.cwd();
   const answer = whoOwns(
@@ -121,7 +122,7 @@ function main() {
     { parent: options.parent, branch: options.branch, fetch: options.fetch },
   );
   console.log(options.json ? JSON.stringify(answer, null, 2) : print(answer).join("\n"));
-  process.exit(answer.status === "unverified" ? 2 : 0);
+  process.exitCode = answer.status === "unverified" ? 2 : 0;
 }
 
 main();

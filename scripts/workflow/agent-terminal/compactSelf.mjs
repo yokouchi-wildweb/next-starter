@@ -81,5 +81,5 @@ export function runCompactSelf(args, env = process.env, deps = defaultDeps) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exit(runCompactSelf(process.argv.slice(2)));
+  process.exitCode = runCompactSelf(process.argv.slice(2));
 }

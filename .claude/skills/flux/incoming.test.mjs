@@ -197,6 +197,22 @@ test("self-contained: only node: imports, and a copy written elsewhere runs in t
   assert.match(res.stdout, new RegExp(`区間 1 → [0-9a-f]{8} one: ${N(1)}`));
 });
 
+test("--json through a pipe: the whole output arrives and parses (process.exit used to cut it at the pipe buffer)", (t) => {
+  const up = repo(t, "up", "up");
+  const f = repo(t, "f", "f", up);
+  // 1 commit で notice を多数出して、JSON を数十 KB にする
+  const ids = Array.from({ length: 300 }, (_, k) => `20990102-${String(k).padStart(6, "0")}-bulk`);
+  const files = { ".notices/shipped/up.md": `# SHIPPED up\n\n${ids.map((id) => rowOf(id, ["checkpoint: bulk"])).join("\n")}\n` };
+  for (const id of ids) files[`.notices/${id}.md`] = notice(id, ["checkpoint: bulk"]);
+  up.commit(files);
+  f.fetch();
+  const res = spawnSync("node", [join(HERE, "incoming.mjs"), "--upstream=upstream/main", "--json"], { cwd: f.dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(res.stdout.length > 65536, `output too small to exercise the pipe: ${res.stdout.length}`);
+  const parsed = JSON.parse(res.stdout);
+  assert.equal(parsed.segments.flatMap((s) => s.notices).length, ids.length);
+});
+
 test("脇の commit の区間: 修正を壊れた地点の脇で出して merge、fork が取っていなければ offLine と mainline / 取っていれば・直線なら印なし", (t) => {
   const up = repo(t, "up", "up");
   up.ship(N(0), ["checkpoint: zero"]);

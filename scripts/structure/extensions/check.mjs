@@ -10,33 +10,46 @@ import { fileURLToPath } from "node:url";
 import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-// 動作: pnpm check extensions -- frames-move [--base <rev>] [--apply] [--json](枠の宣言の名前の移し替え、./framesMove.mjs)
-const actionArgs = process.argv.slice(2).filter((a) => a !== "--");
-if (actionArgs[0] === "frames-move") {
-  const { runFramesMove } = await import("./framesMove.mjs");
-  process.exit(runFramesMove(repoRoot, actionArgs.slice(1)));
+
+// 終了コードを返す(process.exit で抜けると、パイプ先へ書き切る前に出力が切れる)
+async function main() {
+  // 動作: pnpm check extensions -- frames-move [--base <rev>] [--apply] [--json](枠の宣言の名前の移し替え、./framesMove.mjs)
+  const actionArgs = process.argv.slice(2).filter((a) => a !== "--");
+  if (actionArgs[0] === "frames-move") {
+    const { runFramesMove } = await import("./framesMove.mjs");
+    return runFramesMove(repoRoot, actionArgs.slice(1));
+  }
+  const plan = planExtensions(repoRoot);
+  // --no-stale: 宣言・項目の問題だけを見る(一覧のずれは pnpm generate extensions で直るので見ない。forge の事前検査)
+  const noStale = process.argv.includes("--no-stale");
+  const stale = noStale || plan.problems.length > 0 ? [] : staleOutputs(repoRoot, plan.outputs);
+  // 受け口の一覧の生成区画(intake.txt)のずれ
+  if (
+    !noStale &&
+    plan.problems.length === 0 &&
+    plan.intake &&
+    readFileSync(join(repoRoot, plan.intake.path), "utf8") !== plan.intake.content
+  )
+    stale.push(plan.intake.path);
+  const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points).filter((s) => !(noStale && s.generated));
+  const all = [
+    ...plan.problems,
+    ...stale.map((path) => `${path}: 宣言・項目とずれている(pnpm generate extensions で作り直してコミット)`),
+    ...strays.map((s) =>
+      s.generated
+        ? `${s.path}: 宣言の無い古い一覧(pnpm generate extensions で消える)`
+        : `${s.path}: extensions/ は生成物の置き場(目印のヘッダが無い = 手で置いたファイル)。${s.hint}`,
+    ),
+  ];
+  for (const warning of plan.warnings) console.warn(`[check extensions] warn: ${warning}`);
+  if (all.length > 0) {
+    console.error(`[check extensions] 失敗(${all.length} 件):\n${all.map((p) => `  - ${p}`).join("\n")}`);
+    return 1;
+  }
+  console.log(
+    `[check extensions] OK(点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length} / 項目 ${[...plan.itemsByPoint.values()].reduce((n, items) => n + items.length, 0)} / スイッチ ${plan.switches.length} / override ${plan.overrides.length} / 枠の表 ${plan.frames.tables} / 枠の宣言 ${plan.frames.declarations})`,
+  );
+  return 0;
 }
-const plan = planExtensions(repoRoot);
-// --no-stale: 宣言・項目の問題だけを見る(一覧のずれは pnpm generate extensions で直るので見ない。forge の事前検査)
-const noStale = process.argv.includes("--no-stale");
-const stale = noStale || plan.problems.length > 0 ? [] : staleOutputs(repoRoot, plan.outputs);
-// 受け口の一覧の生成区画(intake.txt)のずれ
-if (!noStale && plan.problems.length === 0 && plan.intake && readFileSync(join(repoRoot, plan.intake.path), "utf8") !== plan.intake.content) stale.push(plan.intake.path);
-const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points).filter((s) => !(noStale && s.generated));
-const all = [
-  ...plan.problems,
-  ...stale.map((path) => `${path}: 宣言・項目とずれている(pnpm generate extensions で作り直してコミット)`),
-  ...strays.map((s) =>
-    s.generated
-      ? `${s.path}: 宣言の無い古い一覧(pnpm generate extensions で消える)`
-      : `${s.path}: extensions/ は生成物の置き場(目印のヘッダが無い = 手で置いたファイル)。${s.hint}`,
-  ),
-];
-for (const warning of plan.warnings) console.warn(`[check extensions] warn: ${warning}`);
-if (all.length > 0) {
-  console.error(`[check extensions] 失敗(${all.length} 件):\n${all.map((p) => `  - ${p}`).join("\n")}`);
-  process.exit(1);
-}
-console.log(
-  `[check extensions] OK(点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length} / 項目 ${[...plan.itemsByPoint.values()].reduce((n, items) => n + items.length, 0)} / スイッチ ${plan.switches.length} / override ${plan.overrides.length} / 枠の表 ${plan.frames.tables} / 枠の宣言 ${plan.frames.declarations})`,
-);
+
+process.exitCode = await main();

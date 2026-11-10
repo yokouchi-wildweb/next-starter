@@ -47,7 +47,10 @@ const STATE_ORDER = { gaps: 0, skipped: 1, closed: 2, undeclared: 3 };
 /** 表とまとめ(--list / --json の中身) */
 export function libReport(root) {
   const rows = libStates(root, { withInner: true }).sort(
-    (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || (b.innerImports ?? 0) - (a.innerImports ?? 0) || a.lib.localeCompare(b.lib),
+    (a, b) =>
+      STATE_ORDER[a.state] - STATE_ORDER[b.state] ||
+      (b.innerImports ?? 0) - (a.innerImports ?? 0) ||
+      a.lib.localeCompare(b.lib),
   );
   const count = (state) => rows.filter((r) => r.state === state).length;
   const summary = {
@@ -65,9 +68,21 @@ export function libReport(root) {
 
 function formatTable({ rows, summary }) {
   const head = ["state", "lib", "declared", "inner", "problems", "config", "merge"];
-  const body = rows.map((r) => [r.state, r.lib, r.declared, String(r.innerImports), String(r.problems.length), r.config, r.mergeHelpers.join(",") || "-"]);
+  const body = rows.map((r) => [
+    r.state,
+    r.lib,
+    r.declared,
+    String(r.innerImports),
+    String(r.problems.length),
+    r.config,
+    r.mergeHelpers.join(",") || "-",
+  ]);
   const widths = head.map((h, i) => Math.max(h.length, ...body.map((row) => row[i].length)));
-  const line = (cells) => cells.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd();
+  const line = (cells) =>
+    cells
+      .map((c, i) => c.padEnd(widths[i]))
+      .join("  ")
+      .trimEnd();
   const out = [line(head), ...body.map(line)];
   for (const r of rows) for (const p of r.problems) out.push(`  ${p.message}`);
   out.push(
@@ -84,38 +99,45 @@ export const USAGE = [
   "pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved:(ファイル)と imports:(指定子)の表",
 ].join("\n");
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// 終了コードを返す(process.exit で抜けると、パイプ先へ書き切る前に出力が切れる)
+async function main() {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
   const argv = process.argv.slice(2);
   const args = argv.filter((a) => a !== "--");
   const action = args[0] && !args[0].startsWith("-") ? args[0] : null;
   if (action === "help") {
     console.log(USAGE);
-    process.exit(0);
+    return 0;
   }
   if (action === "codemod") {
     const { runCodemod } = await import("./codemod.mjs");
-    process.exit(await runCodemod(root, args.slice(1)));
+    return runCodemod(root, args.slice(1));
   }
   if (action === "moved") {
     const { runMoved } = await import("./moved.mjs");
-    process.exit(runMoved(root, args.slice(1)));
+    return runMoved(root, args.slice(1));
   }
   const unknown = args.filter((a) => a !== "--list" && a !== "--json");
   if (unknown.length > 0) {
     console.error(`lib-package: 知らない引数 ${unknown.join(" ")}\n${USAGE}`);
-    process.exit(2);
+    return 2;
   }
   if (args.includes("--json") || args.includes("--list")) {
     const report = libReport(root);
     console.log(args.includes("--json") ? JSON.stringify(report, null, 2) : formatTable(report));
-    process.exit(report.summary.problems > 0 ? 1 : 0);
+    return report.summary.problems > 0 ? 1 : 0;
   }
   const { checked, skipped, undeclared, problems } = checkLibs(root);
-  for (const lib of skipped) console.log(`lib-package: ${lib}: package.json の形に問題があるので飛ばした(pnpm lint / src/lib/libPackage の形の検査で直す)`);
+  for (const lib of skipped)
+    console.log(
+      `lib-package: ${lib}: package.json の形に問題があるので飛ばした(pnpm lint / src/lib/libPackage の形の検査で直す)`,
+    );
   for (const p of problems) console.log(`lib-package: ${p.message}`);
   console.log(
     `lib-package: package.json を持つ lib ${checked.length + skipped.length}(検査 ${checked.length}・飛ばした ${skipped.length})・問題 ${problems.length}・宣言のない lib ${undeclared.length}(数えるだけ。一覧: pnpm check lib-package -- --list)`,
   );
-  process.exit(problems.length > 0 ? 1 : 0);
+  return problems.length > 0 ? 1 : 0;
 }
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))
+  process.exitCode = await main();
