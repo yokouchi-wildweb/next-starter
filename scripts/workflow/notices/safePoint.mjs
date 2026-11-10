@@ -13,6 +13,13 @@
 //   where [--remote=<name>] [--at=<sha>] [--id=<fork_id>]
 //                               <at>(既定 = 自分の台帳の最後の upstream:<sha>)と <remote>(既定 = 親の remote)の safe/<id>/* の関係を 1 行:
 //                               at <tag> | past <tag> (N commits unverified) | before <tag> | no safe point yet
+//   status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>]
+//                               自分の safe/<own>/* のうち HEAD の祖先で一番新しいものから、HEAD まで何 commit(--first-parent)・何日か。
+//                               値 = commits ÷ --commits + 日数 ÷ --days。1 以上(tag が無く commit が 1 つ以上も)なら 2 行目に propose。
+//                               /ship のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
+//   quickFiles                  HEAD から --first-parent でさかのぼり、`Ship: quick` の trailer がある commit が続く間(手元の自分の
+//                               safe tag の commit で止まる)を集め、1 行目に `<N> quick commits unchecked`、続けて変わったファイルを 1 行ずつ。
+//                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う
 //   exit 0 = 通った | 1 = 検査が落ちた・tag を付けられない | 2 = 回せない・確かめられない(理由を出す)
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -325,13 +332,113 @@ function runWhere(repo, argv, log) {
   }
 }
 
+export const PROPOSE_COMMITS = 80;
+export const PROPOSE_DAYS = 3;
+export const QUICK_TRAILER = "Ship: quick";
+const QUICK_WALK_LIMIT = 1000;
+
+/** セーフポイントを作る提案の値: commits ÷ perCommits + days ÷ perDays(小数 2 桁) */
+export function proposeScore(commits, days, perCommits = PROPOSE_COMMITS, perDays = PROPOSE_DAYS) {
+  return Math.round((commits / perCommits + days / perDays) * 100) / 100;
+}
+
+/** 正の数の option。無ければ fallback、数でなければ null */
+const positive = (argv, name, fallback) => {
+  const value = option(argv, name);
+  if (value === null) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+function runStatus(repo, argv, log) {
+  try {
+    const identity = readForkIdentity(repo);
+    if (!identity.own || identity.errors.length > 0) throw new Error(`fork_id が読めない: ${identity.errors.join("、")}`);
+    const remote = option(argv, "remote") ?? "origin";
+    const perCommits = positive(argv, "commits", PROPOSE_COMMITS);
+    const perDays = positive(argv, "days", PROPOSE_DAYS);
+    const now = positive(argv, "now", Date.now() / 1000);
+    if (perCommits === null || perDays === null || now === null) throw new Error("--commits / --days / --now は正の数");
+    const head = git(repo, ["rev-parse", "HEAD"]);
+    const tags = readSafeTags(repo, remote, identity.own);
+    const last = tags.filter((t) => hasCommit(repo, t.commit) && isAncestor(repo, t.commit, head)).at(-1);
+    if (!last) {
+      const commits = Number(git(repo, ["rev-list", "--count", "--first-parent", "HEAD"]));
+      log(`no safe point yet (${commits} commits)`);
+      if (commits > 0) log("propose");
+      return 0;
+    }
+    const commits = Number(git(repo, ["rev-list", "--count", "--first-parent", `${last.commit}..HEAD`]));
+    const created = Number(git(repo, ["for-each-ref", `refs/tags/${last.tag}`, "--format=%(creatordate:unix)"]));
+    const days = Math.max(0, Math.round(((now - created) / 86400) * 10) / 10);
+    if (commits === 0) {
+      log(`at ${last.tag} (${days} days)`);
+      return 0;
+    }
+    const score = proposeScore(commits, days, perCommits, perDays);
+    log(`past ${last.tag} (${commits} commits, ${days} days, score ${score})`);
+    if (score >= 1) log("propose");
+    return 0;
+  } catch (error) {
+    log(`safe-point: ${error.message}`);
+    return 2;
+  }
+}
+
+function runQuickFiles(repo, log) {
+  try {
+    const identity = readForkIdentity(repo);
+    const own = identity.own;
+    const safeCommits = new Set(
+      own
+        ? parseSafeTags(tryGit(repo, ["for-each-ref", "refs/tags/safe/", "--format=%(refname:strip=2) %(*objectname) %(objectname)"]), own).map(
+            (t) => t.commit,
+          )
+        : [],
+    );
+    const out = git(repo, ["log", "--first-parent", `-n${QUICK_WALK_LIMIT + 1}`, "--format=%H %(trailers:key=Ship,valueonly,separator=%x2C)"]);
+    const rows = out === "" ? [] : out.split("\n");
+    let count = 0;
+    let base = null;
+    for (const row of rows) {
+      const [sha, ...rest] = row.split(" ");
+      const values = rest.join(" ").split(",").map((v) => v.trim());
+      if (safeCommits.has(sha) || !values.includes("quick")) {
+        base = sha;
+        break;
+      }
+      count += 1;
+    }
+    if (count === 0) {
+      log("0 quick commits unchecked");
+      return 0;
+    }
+    if (base === null) {
+      throw new Error(
+        rows.length > QUICK_WALK_LIMIT ? `quick の commit が ${QUICK_WALK_LIMIT} を超えて続く` : "履歴の最初まで quick の commit が続く(検査済みの起点が無い)",
+      );
+    }
+    const files = git(repo, ["diff", "--name-only", base, "HEAD"]);
+    log(`${count} quick commits unchecked`);
+    for (const file of files === "" ? [] : files.split("\n")) log(file);
+    return 0;
+  } catch (error) {
+    log(`safe-point: ${error.message}`);
+    return 2;
+  }
+}
+
 /** 入口: 終了コードを返す */
 export function run(repo, argv, { log = console.log } = {}) {
   const [action, ...rest] = argv;
   if (action === "check") return runCheck(repo, rest, log);
   if (action === "tag") return runTag(repo, rest, log);
   if (action === "where") return runWhere(repo, rest, log);
-  log("使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>]");
+  if (action === "status") return runStatus(repo, rest, log);
+  if (action === "quickFiles") return runQuickFiles(repo, log);
+  log(
+    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles",
+  );
   return 2;
 }
 

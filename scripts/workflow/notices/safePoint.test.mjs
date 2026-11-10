@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { classify, deployVerdict, describe, nextTagName, parentForkId, parseSafeTags, PASS_FILE, readSafeTags, run } from "./safePoint.mjs";
+import { classify, deployVerdict, describe, nextTagName, parentForkId, parseSafeTags, PASS_FILE, proposeScore, readSafeTags, run } from "./safePoint.mjs";
 
 const dirs = [];
 after(() => {
@@ -270,4 +270,65 @@ test("tag: 記録が無い・HEAD と違う・push していないは exit 1、�
   assert.equal(again.code, 0);
   assert.match(again.lines[0], /既にある/);
   assert.doesNotMatch(remoteTags(), new RegExp(`${DATE}-3`));
+});
+
+test("proposeScore: commits ÷ 80 + 日数 ÷ 3、小数 2 桁", () => {
+  assert.equal(proposeScore(80, 0), 1);
+  assert.equal(proposeScore(40, 1.5), 1);
+  assert.equal(proposeScore(70, 1), 1.21);
+  assert.equal(proposeScore(10, 0, 20, 3), 0.5);
+});
+
+test("status: tag 無しは propose、past は commits・日数・値、1 以上で propose、HEAD ちょうどは at、変な数は exit 2", () => {
+  const r = tier1(3);
+  const status = (...args) => {
+    const l = logs();
+    return { code: run(r.dir, ["status", ...args], l), lines: l.lines };
+  };
+  assert.deepEqual(status(), { code: 0, lines: ["no safe point yet (3 commits)", "propose"] });
+
+  const tag = "safe/next-starter/20261101-1";
+  git(r.dir, "tag", "-a", tag, "-m", "s", r.shas[0]);
+  git(r.dir, "push", "-q", "origin", "--tags");
+  const created = Number(git(r.dir, "for-each-ref", `refs/tags/${tag}`, "--format=%(creatordate:unix)"));
+  const now = `--now=${created + 86400 * 1.5}`;
+  assert.deepEqual(status(now), { code: 0, lines: [`past ${tag} (2 commits, 1.5 days, score 0.53)`] });
+  assert.deepEqual(status(now, "--commits=2"), { code: 0, lines: [`past ${tag} (2 commits, 1.5 days, score 1.5)`, "propose"] });
+
+  git(r.dir, "tag", "-d", tag);
+  git(r.dir, "push", "-q", "origin", `:refs/tags/${tag}`);
+  git(r.dir, "tag", "-a", tag, "-m", "s", r.shas[2]);
+  git(r.dir, "push", "-q", "origin", "--tags");
+  const at = status(`--now=${Number(git(r.dir, "for-each-ref", `refs/tags/${tag}`, "--format=%(creatordate:unix)"))}`);
+  assert.deepEqual(at, { code: 0, lines: [`at ${tag} (0 days)`] });
+
+  const bad = status("--days=0");
+  assert.equal(bad.code, 2);
+  assert.match(bad.lines[0], /^safe-point: /);
+});
+
+test("quickFiles: Ship: quick が続く間のファイル、印の無い commit・自分の safe tag で止まる、無ければ 0、最初まで続けば exit 2", () => {
+  const r = tier1(2);
+  const quick = () => {
+    const l = logs();
+    return { code: run(r.dir, ["quickFiles"], l), lines: l.lines };
+  };
+  assert.deepEqual(quick(), { code: 0, lines: ["0 quick commits unchecked"] });
+
+  commit(r.dir, "q1\n\nShip: quick\nCo-Authored-By: t <t@example.com>", { "a.txt": "a" });
+  commit(r.dir, "q2\n\nShip: quick", { "b.txt": "b" });
+  assert.deepEqual(quick(), { code: 0, lines: ["2 quick commits unchecked", "a.txt", "b.txt", "log.txt"] });
+
+  git(r.dir, "tag", "-a", "safe/next-starter/20261101-1", "-m", "s", "HEAD~1");
+  assert.deepEqual(quick(), { code: 0, lines: ["1 quick commits unchecked", "b.txt", "log.txt"] });
+
+  commit(r.dir, "plain", { "c.txt": "c" });
+  assert.deepEqual(quick(), { code: 0, lines: ["0 quick commits unchecked"] });
+
+  const fresh = tmp();
+  init(fresh);
+  commit(fresh, "q0\n\nShip: quick");
+  const l = logs();
+  assert.equal(run(fresh, ["quickFiles"], l), 2);
+  assert.match(l.lines[0], /^safe-point: /);
 });

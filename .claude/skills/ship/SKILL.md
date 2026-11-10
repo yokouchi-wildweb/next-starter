@@ -15,9 +15,12 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have the declaration added in the same section as `fork_id:` (`pnpm workflow ownership check` is unverified too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
-- `--safe` = a safe ship: the full checks on the tip, and a safe point tag when they pass (only when asked: the human, or an order / plan sheet that says so)
-  - use it for legate / guild segment ships and the last ship of a quest | forks stop /flux at a safe point before a production deploy; `--allow-unsafe=<reason>` for emergencies
-- `--quick` = a quick ship: skips even the light checks and makes no safe point (QUICK SHIP below)
+- which kind (pick it yourself when the caller gave none):
+  - more work follows in this session → `--quick`
+  - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report may propose a safe point (step 8)
+  - asked to make a safe point (the human, or an order / plan sheet that says so) → `--safe` | legate / guild segment ships and the caravan departure of quests use it
+- `--safe` = a safe ship: the full checks on the tip, and a safe point tag when they pass | forks stop /flux at a safe point before a production deploy; `--allow-unsafe=<reason>` for emergencies
+- `--quick` = a quick ship: skips even the light checks, makes no safe point, marks the commit `Ship: quick` (QUICK SHIP below)
 
 ## STEPS (run in a row without confirmation; stop only on STOP CASES below)
 0. **check the order's owner** (only with the argument `order:<id>`): find that id in the output of `node .claude/skills/order/mailbox.mjs inbox`
@@ -37,6 +40,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
        - a file you only edited in part → confirm with `git diff HEAD -- <file>` that you did not revert that change
      - write what you carried over in the report and the commit body | partial edits keep others' changes naturally since the work tree sits on HEAD; changes get lost only on delete, move or whole rewrite
 2. **checks** (failed → fix and rerun; the fix is not obvious → STOP):
+   - plain ship: `pnpm workflow notices safePoint quickFiles` first
+     - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag)
+     - add those files to the range the checks below look at (the commit range stays yours) | another session's quick change fails a check and the fix is not obvious → STOP | exit 2 → report `quick 分の検査: 未確認(<理由>)` and go on
    - always: `pnpm check --gate=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
      - it runs every check of the generators / checkers on gate ship, in order: role, domain, registry, routes, cron, cycles, config, eslint, and the watched rules (pnpm check rules when `CLAUDE.md` / `.claude/rules/` changed), notices (pnpm check notices when `.notices/` or the ship / flux skills changed)
      - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/gates/README.md`
@@ -84,7 +90,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - pass to `git add` only paths that exist in the work tree (passing deleted / move-source paths stops with a pathspec error; stage deletions with `git rm` or include them in the commit pathspec next)
      - include deleted paths and directories in `git commit -- <paths>` (the commit pathspec picks up deletions)
      - before committing, confirm with `git diff --cached --name-only` that only the range's files are in (with a notice, `.notices/shipped/<fork_id>.md` is in too)
-   - message in the behavior.md form (subject `<area>: <summary>`, blank line, body = decision record) | with `order:<id>`, a line `order: <id>` after the body | the trailer the environment specifies at the end
+   - message in the behavior.md form (subject `<area>: <summary>`, blank line, body = decision record) | with `order:<id>`, a line `order: <id>` after the body | the trailer the environment specifies at the end | `--quick` → a trailer line `Ship: quick` in that same last paragraph (read by `safePoint quickFiles`)
    - branch follows behavior.md and the team's policy (already on a feature branch → stay)
    - the change itself was committed already and only the notice was written later → make it the commit right after the change (no other notice commit in between) | not allowed with `hotfix` (change and notice always in the same commit; separate → undo and recombine)
    - a `fixes:` notice included → after the commit, before push, **judge whether it can be picked ahead** (`.notices/README.md` section `修正(fixes)`, part `先に取れる印(pick)`): `pnpm workflow notices pickCheck <this commit>`
@@ -105,7 +111,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by step 7's tag)
      - exit 1 (a check failed): fix it in your own unpushed commit (amend; align notice and index line) and rerun | the fix is not obvious → STOP
      - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` and go on (push without a tag)
-7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies (always with `--quick`) | failed → never paper over it, report the reason
+7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason
    - then **tag the safe point** (`--safe` only, when step 6's `safePoint check` passed on this HEAD): `pnpm workflow notices safePoint tag`
      - it confirms HEAD = the pushed `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default) and HEAD = the sha the check recorded, creates the annotated tag `safe/<own fork_id>/<YYYYMMDD>-<n>` (n = the next free number for that fork_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
      - exit 1 → no tag; write the reason in the report (the push stands; the next `--safe` ship tags its own tip)
@@ -117,6 +123,8 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
+   - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | line 2 `propose` → end the report with one line `セーフポイントを作りますか(/ship --safe、<line 1 の数>)` and wait for the human | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`
+     - score = commits since the last own safe tag ÷ 80 + days ÷ 3 (`--first-parent`); ≥ 1 → propose | no safe tag yet → propose
    - came from `/inbox` → do not stop here, return to the rest of `/inbox` step 4 (RESOLUTION) | use the commit sha and push result there
 
 ## STOP CASES
@@ -129,10 +137,10 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - on stopping: show what you found and the options in plain text; STOP: wait
 
 ## QUICK SHIP (`--quick`)
-- for a run of small ships where the full checks cost more than they protect | makes no safe point | a run of quick ships is closed by a `--safe` ship (its tip gets the full checks and the tag)
+- for every ship but the last of a session | makes no safe point | a run of quick ships is closed by a plain ship (its area checks take in the unchecked quick files, step 2) or a `--safe` ship (full checks on the tip)
 - runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck / hotfixCheck and full checks, step 7's tag
-- keeps: steps 0, 1, 3-5 (notice judgment and writing), commit
-- ship route: WORKTREE ROUTE below, required (not in a linked worktree → STOP)
+- keeps: steps 0, 1, 3-5 (notice judgment and writing), commit (with the `Ship: quick` trailer), push
+- ship route: anywhere | in a linked worktree → WORKTREE ROUTE below when it applies | the main checkout → a plain `git push`
 
 ## WORKTREE ROUTE (HQ D176)
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
@@ -147,7 +155,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - keep:
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` on the unpushed index line) → commit the index change alone: `git commit -m "notices: pick marks" -- .notices/shipped/<fork_id>.md`
   - a notice in the range → `pnpm check notices`
-  - `--safe` → step 6's full checks on the tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`)
+  - `--safe` → step 6's full checks on the tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
   - steps 7 and 8 (the report lists the commits shipped)
 
 ## NOTICE COMPOSITION
