@@ -447,3 +447,4 @@
 - id:20261110-143000-frames-move-merge-head | severity:info | checkpoint:frames-move-merge-head | fixes:20261109-175947-shared-shelf-frame-override | resolves:20261110-140016-frame-override-rename-conflict-frames-move | pick:clean
 - id:20261111-051718-quest-skill-caravan-route | severity:info | checkpoint:quest-skill-caravan-route
 - id:20261111-054517-e2e-sidebar-label | severity:info | checkpoint:config-e2e-sidebar-label | fixes:20261108-102903-admin-menu-rebuild | pick:-
+- id:20261111-060737-heading-slots | severity:info | checkpoint:heading-slots
