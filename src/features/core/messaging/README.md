@@ -13,6 +13,7 @@ UI・API ルートは持たない。送信画面や送信 API は呼び出し側
 ```
 src/features/core/messaging/
 ├── index.ts                     # 定数と型のみ再エクスポート（サービスは出さない）
+├── config.ts                    # 送る口の処理の値（上書き: src/config/features/messaging.config.ts）
 ├── constants/
 │   ├── channels.ts              # MESSAGING_CHANNELS（email / inApp）
 │   ├── sources.ts               # MESSAGING_SOURCES（送信経路の識別子）
@@ -29,7 +30,8 @@ src/features/core/messaging/
 │   ├── schema.ts                # Zod（MessagingSendInputSchema / MessagingBulkSendInputSchema）
 │   └── model.ts                 # 入出力の型
 └── services/server/
-    ├── messagingService.ts      # 公開 API（send / bulkSend / findExistingIdempotencyKeys）
+    ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany + 古い send / bulkSend / findExistingIdempotencyKeys）
+    ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -169,6 +171,59 @@ const result = await messagingService.bulkSend({
 - `metadata` = `{ dispatchId, source, channels: { email, inApp } }`。`dispatchId` で message_dispatches の本文に辿れる
 - 保持期間は既定 730 日（通常の監査ログより長い）
 - `bestEffort: true` で記録する。INSERT に失敗しても送信は止めず、dead-letter に退避する
+
+---
+
+## 新しい送る口（sendMessage / sendMessageToMany）
+
+連絡の定義（`messages/<名前>.ts` の `defineMessage`）を受けて送る口。古い `send` / `bulkSend` は連絡を移し終えたら消す（新しい名前はそのまま残る）。
+
+```ts
+import { messagingService } from "@/features/messaging/services/server";
+import { message as orderShipped } from "@/features/order/messages/orderShipped";
+
+await messagingService.sendMessage(orderShipped, {
+  recipient: { userId },          // 宛先を直に渡すなら { channel: "email", address }
+  vars: { orderNo: "A-1" },       // 定義の vars の zod で検査（合わなければ 400）
+  idempotencyKey: `order-shipped:${orderId}`,
+});
+
+await messagingService.sendMessageToMany(campaign, {
+  audience: { type: "role", roles: ["user"] }, // か recipients: [{ userId }, …]
+  vars: { title: "…" },
+});
+```
+
+流れ:
+
+1. 生成の一覧（`messageRegistry`）の上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（誤りは 500、`enabled: false` は回を作らず `status: "disabled"`）
+2. 冪等の鍵を `message_dispatches` と `message_idempotency_keys` の両方で確かめる（重複は 409。INSERT の UNIQUE 違反も 409）
+3. 回（`message_dispatches`）を 1 行書く: `message_key`・`kind`・`category`・`audience`・`record`・`headings`・`channel_counts` など
+4. 小さな送信（選んだ宛先が `smallSendMaxRecipients` 人以下）: 受信者 × 経路に展開して `message_deliveries` の行を作り、最初の束（`inRequestBatchSize` 件）を経路の受け口の項目の `send(targets)` へ渡す。残りは `queued` + `next_attempt_at` のまま cron が送る
+5. 大きな送信と audience（全員・ロール・audiences）: 回の行だけを書き（`status: "processing"`）、展開と送信は cron が束ごとに行う（`expandBroadcastChunk`・`resolveAudienceChunk`）
+
+宛先:
+
+- 利用者の宛先は経路の `resolveAddresses`、無ければ端末の帳簿（`message_endpoints` の有効な行）から引く。宛先が複数なら 1 行の `targets` にまとめ、1 つでも送れたら `sent`
+- 選んだ宛先で宛先の無い受信者は `suppressed` + `reason: no_address` の行にして戻り値で返す。全員・ロールでは行を作らず `channel_counts.<経路>.skipped_no_address` に数える
+- 経路の項目が無い経路は `channel_off`。受信者の鍵は `user:<id>` か `addr:<正規化した宛先の sha256>`
+
+送信の結果（ChannelError の分類）:
+
+- `sent` → `sent` / `permanent` → `failed` / `unknown` と send が投げた例外 → `unknown`（自動で送り直さない）
+- `transient`: 非 required は `queued` のまま `next_attempt_at` を広げて cron に任せる（`transientRetry`、回数が尽きたら `failed`）
+- 経路の冪等の鍵 = 配達の行の id（宛先が複数なら `<id>:<番号>`）
+
+本文の残し方（定義の `record`、既定 `vars`）:
+
+- `meta`: 件名・題（`headings`）だけ。`vars`: + 回の vars の写しと全員同文の描画結果（`rendered`）+ 受信者ごとの値。`full`: + 受信者ごとの描いた本文（配達の `body`）
+- required の連絡と、`secretVar` の印の鍵を持つ連絡は描いた本文をどこにも残さない（`record: "full"` でも。誤りの文も理由の符号だけ）。秘密の鍵は vars の写しから落とし、件名・題にも差し込まない。required は vars の写しも残さない
+- これらの連絡はキューに置けないので、要求の中で送り切る（一時の失敗は `requiredRetry` の回数だけ短く再送して尽きたら `failed`）。audience と大きな送信には使えない（400）
+- 送り残し（queued）がある回は cron のために vars を持ち、`record: "meta"` なら送り終えた時に消す
+
+まだ効かないもの（後の指令）: 配信停止の好み・宛先の停止・間引き（throttle）、全員・ロール宛てのお知らせの共有の 1 行、再送・続きを送る cron。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
+
+処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500
 
 ---
 

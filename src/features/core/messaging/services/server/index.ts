@@ -5,6 +5,15 @@ export type { MessagingService } from "./messagingService";
 
 export { send } from "./send";
 export { bulkSend } from "./bulkSend";
+export { sendMessage, sendMessageToMany } from "./sendMessage";
+export type {
+  MessageAudienceSpec,
+  MessageDeliveryOutcome,
+  MessageRecipient,
+  SendMessageInput,
+  SendMessageResult,
+  SendMessageToManyInput,
+} from "./sendMessage";
 export { createDispatch, completeDispatch, findExistingIdempotencyKeys } from "./dispatch";
 export { recordRecipientAudits } from "./auditing";
 export {

@@ -106,13 +106,14 @@ function schemaKeys(schema: z.ZodTypeAny): string[] | null {
 /**
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
  * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は S6 の生成の一覧が渡す)
+ * - variableKeys: vars と共通の文脈の他に {{鍵}} で許す鍵(送る口が当たる enrichers の provides の鍵を渡す)
  */
 export function validateMessageDefinition<
   Vars extends z.AnyZodObject,
   C extends ChannelFieldSchemas,
 >(
   definition: MessageDefinition<Vars, C>,
-  options: { override?: MessageOverride<C>; channels?: C } = {},
+  options: { override?: MessageOverride<C>; channels?: C; variableKeys?: readonly string[] } = {},
 ): MessageDefinitionProblem[] {
   const channels = (options.channels ?? UPSTREAM_CHANNEL_FIELDS) as ChannelFieldSchemas;
   const problems: MessageDefinitionProblem[] = [];
@@ -196,6 +197,7 @@ export function validateMessageDefinition<
     ...varKeys,
     ...COMMON_CONTEXT_KEYS,
     ...(resolved.throttle ? THROTTLE_CONTEXT_KEYS : []),
+    ...(options.variableKeys ?? []),
   ]);
   const unknownVariables = new Set<string>();
   for (const text of collectStrings(content, [])) {

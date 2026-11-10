@@ -5,6 +5,7 @@
 import { bulkSend } from "./bulkSend";
 import { findExistingIdempotencyKeys } from "./dispatch";
 import { send } from "./send";
+import { sendMessage, sendMessageToMany } from "./sendMessage";
 
 /**
  * ユーザー向けメッセージ送信の集約サービス。
@@ -20,6 +21,10 @@ import { send } from "./send";
  * - 構造的にメッセージ送信は本サービス経由に統一することで、漏れを排除する
  */
 export const messagingService = {
+  /** 連絡の定義(messages/<名前>.ts)を 1 人へ送る(新しい送る口。README「新しい送る口」) */
+  sendMessage,
+  /** 連絡の定義を選んだ宛先か audience へ送る(新しい送る口) */
+  sendMessageToMany,
   send,
   bulkSend,
   /** 渡した冪等性キーのうち送信ジョブが既に存在するものを返す（バッチ送信の送信済み除外用） */
