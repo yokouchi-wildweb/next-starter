@@ -15,7 +15,7 @@ core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, sr
 - routes and libs: src/app/**/{_screen,_layout}/** of upstream routes (\<name\>.replace files beside them = fork-owned) | src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
 downstream_owned (upstream never edits after creation): root src/styles/*.css (entry global.css, palette / typography / overrides.css, gradient.css = pnpm generate styles output of config/app/gradients.config.ts), src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes, \<target\>.override.ts (cron: task.override.ts)
 - extension points: a district's extensionPoints.ts declares a receptacle, items = plain \<name\>.ts(x) there (no fork-name marker; upstream unit name = ownership unit-clash) → pnpm generate extensions → \<district\>/extensions/ (generated, a duplicate item key throws) | src/registry = generated lists, not an extension point | ref: scripts/structure/extensions/README.md, src/registry/README.md
-- 1-line switch \<name\>.ts(x) beside \<name\>.default.ts(x) (fork impl \<name\>.replace.ts(x); partial overlay = \<target\>.override.ts) | upstream ships no override | check: pnpm check extensions | ref: scripts/structure/extensions/README.md
+- 4 change types: 1 whole = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (screen _components/, frame _layout/\<Layout\>.replace) | 2 overlay = \<target\>.override.ts, declared keys | 3 add = plain name in receptacle | 4 placement = src/styles/, src/config/ | per path: pnpm workflow ownership who | upstream ships no override | table + checks: scripts/structure/extensions/README.md
 - full list of the places a fork may write in upstream files (intake points) = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm workflow ownership check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
@@ -31,7 +31,7 @@ fork_core_edit_compat (while a permit lets a fork edit a core path; upstream's o
 principle: upstream provides the mechanisms | a fork may build any look and any feature | it does not copy behavior it does not change | new features and calling public services or Factories are not copying
 - 1. a public means is enough → use it | 2. the copy brings only looks and layout (visual state incl.) → copy OK at any line count
 - 3. unchanged behavior (form state, submit, effect logic, query, route, server logic) or a guard comes along, or no means → /order + temporary permit, upstream splits the part or adds a receptacle
-detail (guards, want → means, copy mark, receptacle limits) → .claude/rules/core/extensions.md
+detail (4 change types, guards, want → means, copy mark, receptacle limits) → .claude/rules/core/extensions.md
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | reader src/lib/districtMap, list src/registry/district-map.jsonl (generated, never imported from src)
