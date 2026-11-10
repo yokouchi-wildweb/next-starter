@@ -6,6 +6,8 @@ export type { MessagingService } from "./messagingService";
 export { send } from "./send";
 export { bulkSend } from "./bulkSend";
 export { sendMessage, sendMessageToMany } from "./sendMessage";
+export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
+export type { ContinueSendingResult, RetentionResult, SendSweepResult } from "./sweep";
 export type {
   MessageAudienceSpec,
   MessageDeliveryOutcome,

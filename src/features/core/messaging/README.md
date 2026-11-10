@@ -32,6 +32,7 @@ src/features/core/messaging/
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany + 古い send / bulkSend / findExistingIdempotencyKeys）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
+    ├── sweep/                   # 送信の掃き出し・続きを送る・保持の掃除（cron messaging-send-sweep / messaging-retention）
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -219,11 +220,28 @@ await messagingService.sendMessageToMany(campaign, {
 - `meta`: 件名・題（`headings`）だけ。`vars`: + 回の vars の写しと全員同文の描画結果（`rendered`）+ 受信者ごとの値。`full`: + 受信者ごとの描いた本文（配達の `body`）
 - required の連絡と、`secretVar` の印の鍵を持つ連絡は描いた本文をどこにも残さない（`record: "full"` でも。誤りの文も理由の符号だけ）。秘密の鍵は vars の写しから落とし、件名・題にも差し込まない。required は vars の写しも残さない
 - これらの連絡はキューに置けないので、要求の中で送り切る（一時の失敗は `requiredRetry` の回数だけ短く再送して尽きたら `failed`）。audience と大きな送信には使えない（400）
-- 送り残し（queued）がある回は cron のために vars を持ち、`record: "meta"` なら送り終えた時に消す
+- 送り残し（queued）がある回は cron のために vars を持ち、`record: "meta"` なら送り終えた時（cron が回を閉じる時）に消す
 
-まだ効かないもの（後の指令）: 配信停止の好み・宛先の停止・間引き（throttle）、全員・ロール宛てのお知らせの共有の 1 行、再送・続きを送る cron。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
+まだ効かないもの（後の指令）: 配信停止の好み・宛先の停止・間引き（throttle）、全員・ロール宛てのお知らせの共有の 1 行。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
 
 処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500
+
+## cron（送信の掃き出し・保持の掃除）と続きを送る
+
+送る口が要求の中で送り切らなかった分は cron が送る。機能の門は持たない（送る口と同じく常に開）。
+
+- `messaging-send-sweep`（`* * * * *` UTC、毎分）: 1 回の実行で次を順に行う（予算 `sweep.budgetMs`）
+  1. `sending` のまま lease（`locked_until`）が切れた配達の行を `unknown` にする（落ちた処理の痕跡。自動で送り直さない）
+  2. 予約の時刻（`scheduled_at`）が来た `scheduled` の回を `processing` にする
+  3. 大きな送信・audience の回を再開の位置（`expand_cursor`）から 1 束ずつ展開する（`sweep.expandChunksPerRun` 束まで）。`expand_cursor` = null（まだ）/ keyset の印か `i:<番号>`（途中）/ `MESSAGE_EXPAND_DONE`（`"~done"`、終えた。小さな送信は最初から）
+  4. `next_attempt_at <= now` の配達の行を lease で取り（`FOR UPDATE SKIP LOCKED` で `sending` + `locked_until` + `lock_token`、並走する実行と重ならない）、回の定義（生成の一覧の `message_key`）から描き直して経路の send へ渡す。書き込みは `lock_token` が合う時だけ。`transient` は `transientRetry` の間で送り直し、尽きたら `failed`。複数の宛先は一時の失敗の宛先だけを送り直す
+  5. 展開を終え `queued` / `sending` / 送り直し待ちの行が無い回を閉じる: `channel_counts` の sent / failed を数え直し、`completed` / `completed_with_failures`、`record: "meta"` なら送るために置いた `vars` を消す
+- 定義が生成の一覧に無い・検査に落ちる回の行は `failed`（`definition_missing` / `definition_invalid`）。経路の項目が無ければ `suppressed` + `channel_off`
+- 続きを送る: `messagingService.continueSending(dispatchId)` が 1 つの回を 1 束だけ進める（展開 1 束 + 送る 1 束 + 閉じられるなら閉じる）。`processing` 以外は 409。管理の API・画面は管理の指令
+- **Vercel Hobby では cron が 1 日 1 回**（`pnpm generate cron -- --plan hobby`）。送信は遅れるだけで壊れない（最初の束は要求の中、残りは翌日か管理の「続きを送る」）。遅れの上限は保証しない。送信を使うなら毎分の cron（Pro か外のスケジューラから `pnpm task --due`）を勧める
+- `messaging-retention`（`45 18 * * *` UTC、毎日）: `retention` の日数を過ぎた行を `FOR UPDATE SKIP LOCKED` の束で消す。事件 30 日 / 配達 90 日（`queued`・`sending` は残す）/ 回 730 日（お知らせ `message_inbox_items` が参照する回と `processing`・`scheduled` の回は残す。消す前に `idempotency_key` を `message_idempotency_keys` へ移す → 送る口の重複の確かめは両方の表を見る）/ 移した鍵は `idempotencyKeyDays`（既定 null = 無期限）
+
+処理の値: `sweep` { `budgetMs` 240000・`deliveryChunkSize` 100・`expandChunksPerRun` 20・`leaseSeconds` 300 } / `retention` { `eventsDays` 30・`deliveriesDays` 90・`dispatchesDays` 730・`idempotencyKeyDays` null・`chunkSize` 1000・`budgetMs` 240000 }
 
 ---
 
@@ -231,7 +249,7 @@ await messagingService.sendMessageToMany(campaign, {
 
 新しい送る口・配達・受け取り箱のための表。今は定義と schemaRegistry への登録だけで、読み書きするサービス・API・cron はまだない（後の段で足す）。
 
-- `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
+- `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`・`expand_cursor`（展開の再開位置、cron の節）。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
 - `message_deliveries`: 受信者 × 経路 の 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease は `locked_until` + `lock_token`、送り直しは `next_attempt_at`。複数の宛先は `targets` jsonb。利用者を消すと `user_id` は null（`recipient_key` は残る）
 - `message_events`: provider の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`
 - `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）

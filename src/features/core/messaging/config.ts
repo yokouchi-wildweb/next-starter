@@ -19,6 +19,28 @@ export type MessagingConfig = {
   transientRetry: { maxAttempts: number; baseDelaySeconds: number; factor: number };
   /** 全員・ロール・audiences の展開の 1 束の人数(cron が使う) */
   expandChunkSize: number;
+  /**
+   * 送信の掃き出し(cron messaging-send-sweep)
+   * - budgetMs: 1 回の実行の予算(maxDuration 300 秒 − 1 束 − 余裕)
+   * - deliveryChunkSize: 1 束で取る配達の行の数
+   * - expandChunksPerRun: 1 回の実行で進める展開の束の上限(送信の時間を残す)
+   * - leaseSeconds: 取った行を他の処理が取らない時間(過ぎて sending のままの行は unknown)
+   */
+  sweep: { budgetMs: number; deliveryChunkSize: number; expandChunksPerRun: number; leaseSeconds: number };
+  /**
+   * 保持(cron messaging-retention)。日数を過ぎた行を消す
+   * - dispatchesDays: お知らせ(message_inbox_items)が参照する回は残す。消す時に冪等の鍵を message_idempotency_keys へ移す
+   * - idempotencyKeyDays: 移した鍵の期限(null = 無期限)
+   * - chunkSize: 1 文で消す行の数
+   */
+  retention: {
+    eventsDays: number;
+    deliveriesDays: number;
+    dispatchesDays: number;
+    idempotencyKeyDays: number | null;
+    chunkSize: number;
+    budgetMs: number;
+  };
 };
 
 const defaults: MessagingConfig = {
@@ -27,6 +49,15 @@ const defaults: MessagingConfig = {
   requiredRetry: { attempts: 3, delaysMs: [200, 1000] },
   transientRetry: { maxAttempts: 5, baseDelaySeconds: 60, factor: 4 },
   expandChunkSize: 500,
+  sweep: { budgetMs: 240_000, deliveryChunkSize: 100, expandChunksPerRun: 20, leaseSeconds: 300 },
+  retention: {
+    eventsDays: 30,
+    deliveriesDays: 90,
+    dispatchesDays: 730,
+    idempotencyKeyDays: null,
+    chunkSize: 1000,
+    budgetMs: 240_000,
+  },
 };
 
 export const messagingConfigDef = defineConfig(defaults, { label: "messaging" });

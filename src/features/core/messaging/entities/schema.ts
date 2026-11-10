@@ -33,6 +33,9 @@ export const MESSAGE_DISPATCH_STATUSES = [
   "cancelled",
 ] as const;
 
+/** message_dispatches.expand_cursor の「展開を終えた」印(keyset の印・"i:<番号>" とぶつからない値) */
+export const MESSAGE_EXPAND_DONE = "~done";
+
 /** 「全体」を表す非 null の値（message_preferences の category / channel、message_suppressions の scope） */
 export const MESSAGE_ALL = "*";
 
