@@ -108,6 +108,19 @@ export type MessageSendStore = {
     cursor: string | null,
     limit: number,
   ) => Promise<{ userIds: string[]; nextCursor: string | null }>;
+  /**
+   * 配信停止の好みの行(利用者 × (種類 か '*') × (経路 か '*'))。channel が '*' の行はそのまま '*' で返す
+   */
+  findOptOuts: (
+    userIds: readonly string[],
+    category: string,
+    channels: readonly string[],
+  ) => Promise<{ userId: string; channel: string }[]>;
+  /** 宛先の停止の行(経路 × address_hash) */
+  findSuppressions: (
+    channel: string,
+    addressHashes: readonly string[],
+  ) => Promise<{ addressHash: string; reason: string; scope: string }[]>;
   /** 端末の帳簿の有効な宛先(経路が resolveAddresses を持たない時) */
   findActiveEndpoints: (
     channel: string,
@@ -128,4 +141,9 @@ export type MessageSendDeps = {
   /** 共通の文脈の受信者に依らない値 */
   context: () => { serviceName: string; appBaseUrl: string };
   actor: () => { actorId: string | null; actorType: string | null };
+  /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
+  unsubscribe: {
+    configured: () => boolean;
+    url: (payload: { recipientKey: string; category: string; channel: string; addressHash?: string }) => string;
+  };
 };

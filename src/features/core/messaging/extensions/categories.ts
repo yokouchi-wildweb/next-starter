@@ -3,6 +3,12 @@
 
 import type { MessageCategory } from "@/lib/messaging";
 
-const categoriesList: MessageCategory[] = [];
+import { category as categories_activity } from "@/features/core/messaging/categories/activity";
+import { category as categories_marketing } from "@/features/core/messaging/categories/marketing";
+
+const categoriesList: MessageCategory[] = [
+  categories_activity,
+  categories_marketing,
+];
 export const categories: Readonly<Record<string, MessageCategory>> = Object.assign(Object.create(null), Object.fromEntries(categoriesList.map((item) => [String(item.key), item])));
 if (Object.keys(categories).length !== categoriesList.length) throw new Error("categories: key が重複している項目がある");

@@ -4,6 +4,7 @@
 // 回の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。
 // - 定義が一覧に無い・検査に落ちる → failed(reason の符号だけ)
 // - 経路の項目が無い・enabled: false → suppressed + channel_off
+// - 送る直前に配信停止を確かめ直す(好み・宛先の停止 → suppressed + reason。宛先の 1 つにもう送れた行は sent のまま)
 // - 送った後の行の受信者ごとの値は回の record に従う(meta なら消す)。full なら描いた本文を残す
 // required・秘密の連絡はキューに置かれない(送る口が要求の中で送り切る)ので、ここには来ない
 
@@ -16,6 +17,8 @@ import { resolveDefinition, type AnyResolvedMessageDefinition } from "../sendMes
 import { sendDeliveries, type DeliveryJob } from "../sendMessage/deliver";
 import { activeChannel } from "../sendMessage/expand";
 import { recordPolicyOf, type RecordPolicy } from "../sendMessage/record";
+import { stopContextOf } from "../sendMessage/sender";
+import { checkStops, honoursPreferences } from "../sendMessage/stops";
 import type { MessageSweepDeps } from "./types";
 
 export type SendStepResult = { processed: number; sent: number; failed: number; queued: number; other: number };
@@ -84,11 +87,53 @@ export async function sendClaimed(
     const userIds = [...new Set(group.flatMap((row) => (row.user_id ? [row.user_id] : [])))];
     const users = new Map((await deps.store.findUsers(userIds)).map((user) => [user.id, user]));
 
+    // 送る直前に配信停止を確かめ直す(キューに置いた後で止めた人を外す)。送り直し待ちの宛先だけを見る
+    const stops = stopContextOf(resolved);
+    const pendingOf = (row: MessageDelivery) => {
+      const targets = row.targets as MessageDeliveryTarget[] | null;
+      return targets && targets.length > 0
+        ? targets.filter((target) => target.status === "queued").map((target) => target.address)
+        : addressesOf(row);
+    };
+    const checkable = group.filter((row) => activeChannel(deps.channels, row.channel) && addressesOf(row).length > 0);
+    const verdicts = new Map(
+      (
+        await checkStops(
+          deps,
+          stops,
+          checkable.map((row) => ({
+            recipientKey: row.recipient_key,
+            userId: row.user_id,
+            channel: row.channel,
+            addresses: pendingOf(row),
+          })),
+        )
+      ).map((verdict, index) => [checkable[index].id, verdict]),
+    );
+
     const jobs: DeliveryJob[] = [];
     const bodies = new Map<string, Record<string, unknown>>();
     for (const row of group) {
       const channel = activeChannel(deps.channels, row.channel);
-      const addresses = addressesOf(row);
+      let addresses = addressesOf(row);
+      const verdict = verdicts.get(row.id);
+      if (verdict?.stopped) {
+        const alreadySent = ((row.targets as MessageDeliveryTarget[] | null) ?? []).some((t) => t.status === "sent");
+        await deps.sweepStore.updateClaimed(row.id, lockToken, {
+          ...release,
+          // 宛先の 1 つにもう送れた行は sent のまま、残りの送り直しをやめる
+          ...(alreadySent ? { status: "sent" as const } : { status: "suppressed" as const, reason: verdict.reason }),
+          next_attempt_at: null,
+          updatedAt: deps.now(),
+        });
+        count(alreadySent ? "sent" : "suppressed");
+        continue;
+      }
+      if (verdict && !verdict.stopped) {
+        // 止めた宛先を外す(送れた・失敗が決まった宛先は残す)
+        const pending = new Set(pendingOf(row));
+        addresses = addresses.filter((address) => !pending.has(address) || verdict.addresses.includes(address));
+      }
       if (!channel || addresses.length === 0) {
         await deps.sweepStore.updateClaimed(row.id, lockToken, {
           ...release,
@@ -114,6 +159,7 @@ export async function sendClaimed(
       bodies.set(row.id, content);
       jobs.push({
         deliveryId: row.id,
+        recipientKey: row.recipient_key,
         channel: row.channel,
         userId: row.user_id,
         addresses,
@@ -123,7 +169,12 @@ export async function sendClaimed(
       });
     }
 
-    const results = await sendDeliveries(deps, { jobs, policy, inRequestOnly: false });
+    const results = await sendDeliveries(deps, {
+      jobs,
+      policy,
+      inRequestOnly: false,
+      category: honoursPreferences(stops) ? (stops.category ?? undefined) : undefined,
+    });
     for (const sent of results) {
       const patch = { ...sent.patch };
       if (policy.keepRecipientBody) patch.body = bodies.get(sent.deliveryId) ?? null;

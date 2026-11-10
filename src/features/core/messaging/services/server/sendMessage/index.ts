@@ -8,6 +8,8 @@ import { getAuditContext } from "@/lib/audit";
 import { getAppBaseUrl } from "@/lib/url";
 import { messageRegistry } from "@/registry/messageRegistry";
 
+import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
+
 import { messagingConfig } from "../../../config";
 import { audiences } from "../../../extensions/audiences";
 import { channels } from "../../../extensions/channels";
@@ -31,6 +33,7 @@ export const sendMessageDeps: MessageSendDeps = {
     const ctx = getAuditContext();
     return { actorId: ctx?.actorId ?? null, actorType: ctx?.actorType ?? null };
   },
+  unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
 };
 
 const sender = createMessageSender(sendMessageDeps);

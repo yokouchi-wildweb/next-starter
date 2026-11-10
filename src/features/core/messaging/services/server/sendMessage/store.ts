@@ -2,7 +2,7 @@
 //
 // 送る口の DB の読み書き(drizzle)。送る口の処理は MessageSendStore の形だけを見る(テストは偽物を渡す)。
 
-import { and, asc, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
@@ -13,6 +13,8 @@ import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageEndpointTable } from "../../../entities/endpoint";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
+import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/preference";
+import { MESSAGE_ALL } from "../../../entities/schema";
 import { MessageIdempotencyConflict } from "./errors";
 import type { MessageSendStore } from "./types";
 
@@ -101,6 +103,38 @@ export const drizzleMessageSendStore: MessageSendStore = {
       .limit(limit);
     const userIds = rows.map((row) => row.id);
     return { userIds, nextCursor: userIds.length === limit ? userIds[userIds.length - 1] : null };
+  },
+
+  async findOptOuts(userIds, category, channels) {
+    if (userIds.length === 0) return [];
+    const rows = await db
+      .select({ userId: MessagePreferenceTable.user_id, channel: MessagePreferenceTable.channel })
+      .from(MessagePreferenceTable)
+      .where(
+        and(
+          inArray(MessagePreferenceTable.user_id, [...userIds]),
+          or(eq(MessagePreferenceTable.category, category), eq(MessagePreferenceTable.category, MESSAGE_ALL)),
+          inArray(MessagePreferenceTable.channel, [...channels, MESSAGE_ALL]),
+        ),
+      );
+    return rows;
+  },
+
+  async findSuppressions(channel, addressHashes) {
+    if (addressHashes.length === 0) return [];
+    return db
+      .select({
+        addressHash: MessageSuppressionTable.address_hash,
+        reason: MessageSuppressionTable.reason,
+        scope: MessageSuppressionTable.scope,
+      })
+      .from(MessageSuppressionTable)
+      .where(
+        and(
+          eq(MessageSuppressionTable.channel, channel),
+          inArray(MessageSuppressionTable.address_hash, [...addressHashes]),
+        ),
+      );
   },
 
   async findActiveEndpoints(channel, userIds) {

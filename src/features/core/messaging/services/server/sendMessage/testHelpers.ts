@@ -24,6 +24,8 @@ export type MemoryStore = MessageSendStore & {
   movedKeys: Set<string>;
   users: (MessageUserRow & { role?: string })[];
   endpoints: { userId: string; channel: string; address: string }[];
+  preferences: { userId: string; category: string; channel: string }[];
+  suppressions: { channel: string; addressHash: string; reason: string; scope: string }[];
 };
 
 export function createMemoryStore(): MemoryStore {
@@ -33,6 +35,23 @@ export function createMemoryStore(): MemoryStore {
     movedKeys: new Set(),
     users: [],
     endpoints: [],
+    preferences: [],
+    suppressions: [],
+    async findOptOuts(userIds, category, channels) {
+      return store.preferences
+        .filter(
+          (row) =>
+            userIds.includes(row.userId) &&
+            (row.category === category || row.category === "*") &&
+            (channels.includes(row.channel) || row.channel === "*"),
+        )
+        .map(({ userId, channel }) => ({ userId, channel }));
+    },
+    async findSuppressions(channel, hashes) {
+      return store.suppressions
+        .filter((row) => row.channel === channel && hashes.includes(row.addressHash))
+        .map(({ addressHash, reason, scope }) => ({ addressHash, reason, scope }));
+    },
     async idempotencyKeyExists(key) {
       return store.dispatches.some((row) => row.idempotency_key === key) || store.movedKeys.has(key);
     },
@@ -172,6 +191,10 @@ export function createDeps(overrides: Partial<MessageSendDeps> & { store: Memory
     },
     context: () => ({ serviceName: "テストサービス", appBaseUrl: "https://example.test" }),
     actor: () => ({ actorId: "admin-1", actorType: "admin" }),
+    unsubscribe: {
+      configured: () => true,
+      url: ({ recipientKey, category, channel }) => `https://example.test/u?r=${recipientKey}&c=${category}&ch=${channel}`,
+    },
     slept,
     ...overrides,
   };

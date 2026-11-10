@@ -15,6 +15,7 @@ src/features/core/messaging/
 ├── index.ts                     # 定数と型のみ再エクスポート（サービスは出さない）
 ├── config.ts                    # 送る口の処理の値（上書き: src/config/features/messaging.config.ts）
 ├── channels/                    # 経路の受け口の上流の項目 email / inApp / line（<名前>/index.ts(x) の export const channel）
+├── categories/                  # 配信停止の種類の受け口の上流の項目 marketing / activity
 ├── constants/
 │   ├── channels.ts              # MESSAGING_CHANNELS（email / inApp）
 │   ├── sources.ts               # MESSAGING_SOURCES（送信経路の識別子）
@@ -35,6 +36,7 @@ src/features/core/messaging/
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
     ├── sweep/                   # 送信の掃き出し・続きを送る・保持の掃除（cron messaging-send-sweep / messaging-retention）
     ├── endpoints/               # 端末の帳簿（本人の宛先の登録・削除・一覧、退会の後片付け）
+    ├── unsubscribe/             # ワンクリックの配信停止（署名つきトークン・停止の記録）
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -224,7 +226,7 @@ await messagingService.sendMessageToMany(campaign, {
 - これらの連絡はキューに置けないので、要求の中で送り切る（一時の失敗は `requiredRetry` の回数だけ短く再送して尽きたら `failed`）。audience と大きな送信には使えない（400）
 - 送り残し（queued）がある回は cron のために vars を持ち、`record: "meta"` なら送り終えた時（cron が回を閉じる時）に消す
 
-まだ効かないもの（後の指令）: 配信停止の好み・宛先の停止・間引き（throttle）、全員・ロール宛てのお知らせの共有の 1 行。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
+まだ効かないもの（後の指令）: 間引き（throttle）。配信停止は下の「配信停止」。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
 
 処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500
 
@@ -254,6 +256,29 @@ await messagingService.sendMessageToMany(campaign, {
   - 入力はどの経路も同じ形（`address` 2048 文字まで、`kind` 32 文字まで、`metadata` は平らな値で 2KB まで・秘密は入れない）。経路ごとの形は後の指令
 - client: `services/client/endpointClient.ts`、hook `useMessageEndpoints()`（`{ endpoints, register, remove, … }`）。宛先を渡して登録するだけで、通知の許可・Service Worker・ネイティブの SDK は fork が持つ
 - 退会: user の後片付けの項目 `cleanupHandlers/messagingEndpoints.ts`（required: 個人の情報なので失敗したら退会ごと戻す）が本人の行を全部消す
+
+---
+
+## 配信停止（種類・好み・宛先の停止）
+
+D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵（`categories/` の受け口。上流は `marketing`・`activity`、fork は `categories/<名前>.ts` で足す）。
+
+- 好みに従う連絡 = 種別が `transactional` でなく `required` でもない連絡。取引と required は好みを見ない
+- 好み（`message_preferences`、止めた時だけ行）: 利用者 × 種類 × 経路。種類・経路の `'*'`（`MESSAGE_ALL`）は全部に当たる
+- 宛先の停止（`message_suppressions`、正規化した宛先 = 前後の空白を外して小文字の sha256）: required でない連絡は `hard_bounce`・`complaint`・`manual` にいつも従い、`one_click` は範囲（scope）が連絡の種類か `'*'` の時だけ従う。required は `hard_bounce` だけに従う。宛先が複数なら止めた宛先だけを外す
+- 確かめる所: 小さな送信の展開・cron の展開・cron が送る直前（キューに置いた後で止めた人も外す。宛先の 1 つにもう送れた行は sent のまま送り直しをやめる）
+- 外した受信者: 選んだ宛先は `suppressed` + reason `preference` / `suppression` の行、全員・ロール・audiences は行を作らない。どちらも `channel_counts.<経路>.suppressed` に数え、どの経路でも止められた受信者は `recipient_count` から引く（D31）
+- 全員・ロール宛てのお知らせの共有の 1 行は、書く時に利用者ごとの inApp の好みを当てない。受け取り箱の利用者の API（後の指令）が、回の `category`（`dispatch_id` で引ける）と見る人の inApp の好みで共有の行を外す
+- メール（D35・D57）: 好みに従う連絡の宛先には、送る口が `category` と、署名の鍵の env があれば `List-Unsubscribe: <停止の URL>`・`List-Unsubscribe-Post: List-Unsubscribe=One-Click`（RFC 8058）を付ける（経路の宛先 `ChannelSendTarget` の `category`・`headers`）。メールの項目はヘッダを lib/mail に渡し、本文の最後に停止のリンクを出す
+  - **決まり: `category` があるのに `List-Unsubscribe` が無い = 鍵（`MESSAGING_UNSUBSCRIBE_SECRET`）が無い → そのメールは送らず permanent（reason `unsubscribe_key_missing`）**。取引・required の連絡はヘッダなしで送る
+  - provider の一括停止の機能は使わない
+
+## ワンクリックの配信停止の受け口 /api/messaging/unsubscribe（常に開・門なし）
+
+- トークン = base64url(JSON {v:1, r, c, ch, a?}) + . + HMAC-SHA256(MESSAGING_UNSUBSCRIBE_SECRET)。`services/server/unsubscribe` の signUnsubscribeToken / verifyUnsubscribeToken / buildUnsubscribeUrl（getAppBaseUrl() + /api/messaging/unsubscribe?t=）/ isUnsubscribeConfigured
+- POST（RFC 8058 のワンクリック、ログイン不要）: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
+- GET: 状態を変えず、同じ URL へ POST するボタン 1 つの確認のページ（script なし）
+- 鍵 MESSAGING_UNSUBSCRIBE_SECRET は pnpm ops setup env が乱数で作る（既にある env ファイルにも足りなければ足す）。変えると送ったメールの停止のリンクは無効になる
 
 ---
 

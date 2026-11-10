@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import type {
   ChannelSendResult,
+  ChannelSendTarget,
   MessageAudience,
   MessageCategory,
   MessageChannel,
@@ -44,6 +45,18 @@ test("経路: 宛先ごとの結果を返す", async () => {
   const wrongAddressing: MessageChannel = { ...channel, addressing: "device" };
   // @ts-expect-error 失敗の分類は sent / transient / permanent / unknown だけ
   const wrongKind: ChannelSendResult = { address: "a", kind: "retry", reason: "x" };
+  // 宛先には配信停止の種類とヘッダを任意で渡せる
+  const withStop: ChannelSendTarget = {
+    userId: "u1",
+    address: "a",
+    idempotencyKey: "d1",
+    content: {},
+    category: "marketing",
+    headers: { "List-Unsubscribe": "<https://x.test/u>" },
+  };
+  // @ts-expect-error ヘッダの値は文字列だけ
+  const badHeaders: ChannelSendTarget = { ...withStop, headers: { a: 1 } };
+  assert.ok(withStop && badHeaders);
   // 入切は任意の真偽(既定 true)
   const off: MessageChannel = { ...channel, enabled: false };
   // @ts-expect-error 入切は真偽だけ
