@@ -441,3 +441,4 @@
 - id:20261110-174703-fork-config-placement | severity:action-required | checkpoint:config-fork-placement
 - id:20261110-174550-purchase-bonus-display | severity:action-required | checkpoint:purchase-bonus-display | resolves:20261101-111956-intake-purchase-bonus-display
 - id:20261110-185533-mail-frame-no-context | severity:info | checkpoint:mail-frame-no-context | fixes:commit:d78665c50 | pick:-
+- id:20261110-185623-messaging-lib-foundation | severity:info | checkpoint:messaging-lib-foundation
