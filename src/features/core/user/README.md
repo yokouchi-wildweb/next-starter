@@ -504,6 +504,7 @@ types/mypageMenu.ts                 ← 項目・上書き・組み立ての型
   - 操作: `{ key, order, icon, title, description, action: "logout", pendingTitle?, variant? }`。`MainMenu` が `action` を `useLogout` に結び、処理中は `pendingTitle`（無ければ `title`）を出して押せなくする。結び先の無い操作の項目は描かない
 - `icon` は lucide のアイコン（`RichMenuCard` と同じ型）。`variant` は `default`・`muted`・`destructive`
 - 閉じた機能の住所（招待 = 規則 `referral`、その他の操作 = 規則 `mypageOther`）のカードは、`RichMenuCard` の棚の Link（`gate="auto"`）が描かない。項目に門番の判定は書かない
+  - 棚の Link が隠すのは門番の規則が掛かった住所だけ。規則の無い住所（外部リンク・fork の設定で出し分けるだけの画面）の fork 項目は、項目のファイルで静的な設定を読み `hidden: !<設定>` と書く（モジュールの読み込み時に決まる値に限る。フックの結果では隠せない）
 - 見え方は認可ではない（各画面と API の守りは別）
 
 **fork が項目を足す**
@@ -547,7 +548,8 @@ export const override: MypageMenuItemOverride = { order: 90, title: "サイン�
 
 - fork が自分で足した項目は override せず、項目のファイルを直接書き換える
 - 操作の種類（`action`）を足すのは上流（型 `MypageMenuAction` と `MainMenu` の結び）。要るときは `/order` で依頼する
-- 回帰: `pnpm test src/features/core/user`（`mypageMenu/buildMypageMenu.test.ts`・上流の 4 枚の `mypageMenu/upstreamMenu.test.ts`）
+- 上書きの型は `MypageMenuItemOverride`（注釈 `: MypageMenuItemOverride` でも `satisfies` でもよい）。リンクの項目に `pendingTitle` を重ねても無視される
+- 回帰: `pnpm test src/features/core/user`（`mypageMenu/buildMypageMenu.test.ts`・上流の 4 枚の `mypageMenu/upstreamMenu.test.ts`・上書きの重ね方の型の `mypageMenu/overrideSpread.test.ts`）
 
 ## 退会と削除
 

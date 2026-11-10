@@ -28,7 +28,11 @@ export type MypageMenuLinkItem = MypageMenuItemBase & {
   href: string;
   showChevron?: boolean;
   action?: never;
-  pendingTitle?: never;
+  /**
+   * リンクでは使わない(受けて無視する)。上書きの型 MypageMenuItemOverride は全部の項目に共通で、
+   * 生成の一覧が { ...項目, ...上書き } と重ねても型が通るように受ける
+   */
+  pendingTitle?: string;
 };
 
 /** 操作の項目(押すと action に結んだ処理が走る) */
