@@ -12,6 +12,7 @@ import { db } from "@/lib/drizzle";
 import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
+import { MessageInboxItemTable } from "../../../entities/inbox";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import type { MessageRetentionStore, MessageSweepStore } from "./types";
 
@@ -66,6 +67,7 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
             target: [MessageDeliveryTable.dispatch_id, MessageDeliveryTable.channel, MessageDeliveryTable.recipient_key],
           });
       }
+      if (write.inboxItem) await tx.insert(MessageInboxItemTable).values(write.inboxItem);
       await tx.update(MessageDispatchTable).set(write.patch).where(eq(MessageDispatchTable.id, dispatch.id));
       return true;
     });

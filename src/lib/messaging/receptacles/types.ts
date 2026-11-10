@@ -69,6 +69,11 @@ export type MessageChannel = {
   label: string;
   /** 宛先の決め方: user = 利用者から引く / address = 宛先を直に渡す */
   addressing: "user" | "address";
+  /**
+   * 経路の入切(既定 true)。false の経路は項目が無い経路と同じ扱い(配達の行は reason channel_off、送らない)。
+   * 値は項目が自分の設定から読む(例 line = messaging の config。fork は src/config の上書きで開ける)。門の機能ではない
+   */
+  enabled?: boolean;
   /** 経路の欄の zod(定義の content.<鍵> の形。生成の一覧で MessageContent に合成される) */
   fields: z.ZodTypeAny;
   /** 他の経路の欄から中身を作る宣言(例 push = inApp の title・body・link)。連絡ごとは定義の extras.<経路> */

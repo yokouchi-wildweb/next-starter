@@ -305,3 +305,79 @@ test("d5: 保持の日数で消し、お知らせが参照する回と送って�
   });
   assert.equal(expiring.idempotencyKeys, 1);
 });
+
+const inAppFields = {
+  test: fields.test,
+  inApp: z.object({ title: z.string(), body: z.string(), link: z.string().optional(), image: z.string().optional() }).strict(),
+};
+const defineWithInApp = createDefineMessage<typeof inAppFields>();
+
+function setupInApp(inAppBody: string) {
+  const news = defineWithInApp({
+    key: "shop.news",
+    kind: "marketing",
+    category: "news",
+    vars: z.object({ item: z.string() }),
+    defaultChannels: ["test", "inApp"],
+    content: {
+      test: { title: "{{item}}", body: "{{recipientName}} {{item}}" },
+      inApp: { title: "{{serviceName}} {{item}}", body: inAppBody, link: "/news" },
+    },
+  });
+  const world = createMemoryWorld();
+  for (let i = 1; i <= 3; i += 1) {
+    world.store.users.push({ id: `u${i}`, name: `利用者${i}`, email: null, role: i === 1 ? "admin" : "user" });
+    world.store.endpoints.push({ userId: `u${i}`, channel: "test", address: `addr-u${i}` });
+  }
+  const test = createTestChannel("test");
+  const inApp = createTestChannel("inApp");
+  inApp.fields = inAppFields.inApp;
+  inApp.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));
+  const deps = createSweepDeps(world, {
+    channels: { test, inApp },
+    registry: { "shop.news": { key: "shop.news", definition: async () => ({ message: news }) } },
+  });
+  return { world, deps, inApp, news, sender: createMessageSender(deps) };
+}
+
+test("d3(D32): 全員・ロール宛てのお知らせは回に 1 行の共有の行で、受信者ごとの inApp の行を作らない", async () => {
+  const { world, deps, inApp, news, sender } = setupInApp("{{item}} が入荷しました");
+  await sender.sendMessageToMany(news, { audience: { type: "role", roles: ["user"] }, vars: { item: "靴" } });
+  await sweep(deps);
+  const dispatch = world.store.dispatches[0];
+  assert.equal(world.inboxItems.length, 1);
+  assert.deepEqual(
+    { ...world.inboxItems[0], published_at: undefined },
+    {
+      dispatch_id: dispatch.id,
+      user_id: null,
+      target_roles: ["user"],
+      title: "テストサービス 靴",
+      body: "靴 が入荷しました",
+      link: "/news",
+      image: null,
+      published_at: undefined,
+    },
+  );
+  assert.ok(world.store.deliveries.every((row) => row.channel === "test"));
+  assert.equal(inApp.calls.length, 0);
+  assert.equal(dispatch.status, "completed");
+  assert.deepEqual(dispatch.channel_counts?.inApp, {
+    targeted: 2,
+    sent: 2,
+    failed: 0,
+    skipped_no_address: 0,
+    skipped_throttled: 0,
+    suppressed: 0,
+  });
+  assert.equal(dispatch.channel_counts?.test.sent, 2);
+});
+
+test("d3(D32): お知らせの中身が受信者に依れば、全員宛てでも受信者ごとの行", async () => {
+  const { world, deps, inApp, news, sender } = setupInApp("{{recipientName}} 様");
+  await sender.sendMessageToMany(news, { audience: { type: "all" }, vars: { item: "靴" } });
+  await sweep(deps);
+  assert.equal(world.inboxItems.length, 0);
+  assert.equal(world.store.deliveries.filter((row) => row.channel === "inApp").length, 3);
+  assert.equal(inApp.calls.flat().length, 3);
+});

@@ -151,6 +151,7 @@ export const testConfig: MessagingConfig = {
   requiredRetry: { attempts: 3, delaysMs: [1, 1] },
   transientRetry: { maxAttempts: 5, baseDelaySeconds: 60, factor: 4 },
   expandChunkSize: 2,
+  channels: { line: { enabled: false } },
   sweep: { budgetMs: 60_000, deliveryChunkSize: 2, expandChunksPerRun: 5, leaseSeconds: 300 },
   retention: { eventsDays: 30, deliveriesDays: 90, dispatchesDays: 730, idempotencyKeyDays: null, chunkSize: 2, budgetMs: 60_000 },
 };

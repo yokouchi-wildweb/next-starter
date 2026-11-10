@@ -11,6 +11,7 @@ import { ChannelError, type ChannelSendResult, type ChannelSendTarget } from "@/
 
 import type { MessageDeliveryInsert, MessageDeliveryStatus } from "../../../entities/model";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
+import { activeChannel } from "./expand";
 import { errorText, type RecordPolicy } from "./record";
 import type { MessageSendDeps } from "./types";
 
@@ -47,7 +48,7 @@ async function callSend(
   channelKey: string,
   targets: ChannelSendTarget[],
 ): Promise<ChannelSendResult[]> {
-  const channel = deps.channels[channelKey];
+  const channel = activeChannel(deps.channels, channelKey);
   if (!channel || targets.length === 0) return [];
   try {
     return await channel.send(targets);

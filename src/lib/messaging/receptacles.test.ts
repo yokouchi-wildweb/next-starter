@@ -44,6 +44,11 @@ test("経路: 宛先ごとの結果を返す", async () => {
   const wrongAddressing: MessageChannel = { ...channel, addressing: "device" };
   // @ts-expect-error 失敗の分類は sent / transient / permanent / unknown だけ
   const wrongKind: ChannelSendResult = { address: "a", kind: "retry", reason: "x" };
+  // 入切は任意の真偽(既定 true)
+  const off: MessageChannel = { ...channel, enabled: false };
+  // @ts-expect-error 入切は真偽だけ
+  const wrongEnabled: MessageChannel = { ...channel, enabled: "off" };
+  assert.ok(off && wrongEnabled);
   // @ts-expect-error send は必須
   const noSend: MessageChannel = { key: "x", label: "x", addressing: "user", fields: z.object({}) };
   assert.ok(wrongAddressing && wrongKind && noSend);

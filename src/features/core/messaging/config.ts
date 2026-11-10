@@ -17,6 +17,11 @@ export type MessagingConfig = {
   requiredRetry: { attempts: number; delaysMs: readonly number[] };
   /** 非 required の一時の失敗の再送(cron が next_attempt_at で拾う)。maxAttempts = 初回を含む回数 */
   transientRetry: { maxAttempts: number; baseDelaySeconds: number; factor: number };
+  /**
+   * 上流の経路の項目の入切(経路の項目の enabled が読む。門の機能ではない)
+   * - line: LINE push(既定 切。開ける時は LINE の Messaging API の env と userLineProfile の機能も要る)
+   */
+  channels: { line: { enabled: boolean } };
   /** 全員・ロール・audiences の展開の 1 束の人数(cron が使う) */
   expandChunkSize: number;
   /**
@@ -49,6 +54,7 @@ const defaults: MessagingConfig = {
   requiredRetry: { attempts: 3, delaysMs: [200, 1000] },
   transientRetry: { maxAttempts: 5, baseDelaySeconds: 60, factor: 4 },
   expandChunkSize: 500,
+  channels: { line: { enabled: false } },
   sweep: { budgetMs: 240_000, deliveryChunkSize: 100, expandChunksPerRun: 20, leaseSeconds: 300 },
   retention: {
     eventsDays: 30,
