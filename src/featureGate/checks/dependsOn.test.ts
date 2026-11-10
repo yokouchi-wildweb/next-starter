@@ -180,6 +180,10 @@ test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled) && 
   const wallet = generated.find((r) => r.name === "wallet")!;
   const savedDefault = wallet.defaultEnabled;
   const savedEnabled = wallet.enabled;
+  // fork が switches.config.ts に wallet を書いていればその値を外して始め、最後に戻す
+  const hadWallet = Object.hasOwn(values, "wallet");
+  const savedWallet = values.wallet;
+  delete values.wallet;
   try {
     wallet.defaultEnabled = true;
     assert.equal(ownEnabled("wallet"), true, "既定だけ");
@@ -199,25 +203,32 @@ test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled) && 
     assert.equal(ownEnabled("wallet"), false, "既定が閉で fork の値も条件も無ければ閉");
   } finally {
     delete values.wallet;
+    if (hadWallet) values.wallet = savedWallet;
     wallet.defaultEnabled = savedDefault;
     wallet.enabled = savedEnabled;
   }
 });
 
-test("fork の入切の値の検査: 未知の名前・真偽でない値を並べる(読み込みで throw)。上流の switches.config.ts は空", async () => {
+test("fork の入切の値の検査: 未知の名前・真偽でない値を並べる(読み込みで throw)。上流の switches.config.ts は空(Tier1 だけ)", async () => {
   const { switchProblems } = await import("@/featureGate/ruleList");
   const { default: switches } = await import("@/config/featureGate/switches.config");
+  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
   const known = new Set(["wallet", "coupon"]);
   assert.deepEqual(switchProblems({ wallet: false }, known), []);
   assert.deepEqual(switchProblems({ walet: false, coupon: "no" }, known), ['未知の機能の名前 "walet"(src/featureGate/rules/<名前>.ts が無い)', '"coupon" の値が true|false でない']);
-  assert.deepEqual(switches, {});
+  // 上流は空で出荷する。fork は pnpm ops features set で自分の値を書く(読み込みの検査は fork の値でも走る)
+  if (readForkIdentity(process.cwd()).isTier1) assert.deepEqual(switches, {});
 });
 
 test("テストの道具 overrideSwitches: fork の入切の値を一時的に差し替え(省けば全部外す)、戻す関数で元に戻る", async () => {
   const { default: switches } = await import("@/config/featureGate/switches.config");
   const { overrideSwitches, ownEnabled } = await import("@/featureGate/ruleList");
   const values = switches as Record<string, boolean | undefined>;
+  // fork の値が入っていてもよい: 始める前の中身と比べ、coupon は元の値に戻す
+  const hadCoupon = Object.hasOwn(values, "coupon");
+  const savedCoupon = values.coupon;
   values.coupon = false;
+  const before = { ...values };
   try {
     const restore = overrideSwitches();
     assert.equal(ownEnabled("coupon"), true, "外した間は規則の既定");
@@ -227,8 +238,9 @@ test("テストの道具 overrideSwitches: fork の入切の値を一時的に�
     assert.equal(ownEnabled("wallet"), false);
     assert.equal(ownEnabled("coupon"), true);
     restoreWallet();
-    assert.deepEqual({ ...values }, { coupon: false });
+    assert.deepEqual({ ...values }, before);
   } finally {
     delete values.coupon;
+    if (hadCoupon) values.coupon = savedCoupon;
   }
 });

@@ -413,3 +413,4 @@
 - id:20261110-101020-gate-client-test-fork-menu | severity:info | checkpoint:gate-client-test-fork-menu | resolves:20261108-092937-gate-client-test-fork-menu
 - id:20261110-101356-analytics-exclusion-test-fork-items | severity:info | checkpoint:analytics-exclusion-test-fork-items | resolves:20261108-101254-analytics-exclusion-test-fork-items
 - id:20261110-121312-viewport-fit-caveat | severity:info | checkpoint:config-viewport-fit-caveat | fixes:20261108-202604-business-home | resolves:20261110-100046-viewport-fit-notice-caveat | pick:clean
+- id:20261110-121337-featuregate-switches-write | severity:action-required | checkpoint:featuregate-switches-write | fixes:20261109-171458-feature-gate-foundation | resolves:20261110-104442-features-set-writes-comment, 20261110-104750-featuregate-tests-fork-switches | pick:clean

@@ -286,6 +286,20 @@ test("pnpm ops features set の計画(fork): switches.config.ts の 1 行を足�
   assert.ok(same.kind === "write" && !same.changed, "同じ値なら書き換えない(消さない)");
 });
 
+test("pnpm ops features set の計画(fork): 上流の頭のコメントの例(export default { … })には書かず、本物の default export に書く", async () => {
+  const { readFileSync } = await import("node:fs");
+  // 上流が出荷するテンプレートの頭のコメントと同じ形(fork の今の値に依らないよう、本物の行は空にして使う)
+  const header = readFileSync(join(process.cwd(), "src/config/featureGate/switches.config.ts"), "utf8").split("\n").filter((line) => line.startsWith("//")).join("\n");
+  assert.match(header, /export default \{/, "頭のコメントに export default の例がある前提");
+  const template = `${header}\n${SWITCHES_EMPTY}`;
+  const on = plan({ name: "deviceFingerprint", switchesText: template, value: true });
+  assert.ok(on.kind === "write" && on.changed);
+  assert.equal(on.after, `${header}\n${SWITCHES_EMPTY.replace("export default {}", "export default { deviceFingerprint: true }")}`);
+  const multi = `${header}\nexport default {\n  wallet: false,\n} satisfies FeatureSwitches;\n`;
+  const added = plan({ name: "shop", switchesText: multi, value: true });
+  assert.ok(added.kind === "write" && added.after === `${header}\nexport default {\n  shop: true,\n  wallet: false,\n} satisfies FeatureSwitches;\n`);
+});
+
 test("pnpm ops features set の計画(Tier1): 規則のファイルの defaultEnabled を足す・書き換える", () => {
   const off = plan({ tier1: true });
   assert.ok(off.kind === "write");

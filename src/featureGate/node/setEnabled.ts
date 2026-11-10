@@ -91,9 +91,12 @@ export function rewriteTopLevelBoolean(text: string, open: number, key: string, 
   return text.slice(0, open + 1) + insert + text.slice(open + 1);
 }
 
-/** switches.config.ts の本文の `<名前>: value` を書いた本文。default export がオブジェクトのリテラルでなければ null */
+/**
+ * switches.config.ts の本文の `<名前>: value` を書いた本文。default export がオブジェクトのリテラルでなければ null。
+ * default export は行の頭のものだけを見る(上流の頭のコメントの例 `// 例: \`export default { … }\`` に書かない)
+ */
 export function rewriteSwitch(switchesText: string, name: string, value: boolean): string | null {
-  const head = /export\s+default\s*\{/.exec(switchesText);
+  const head = /^[ \t]*export\s+default\s*\{/m.exec(switchesText);
   if (!head) return null;
   return rewriteTopLevelBoolean(switchesText, head.index + head[0].length - 1, name, value);
 }
