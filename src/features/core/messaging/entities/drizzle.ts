@@ -128,6 +128,12 @@ export const MessageDispatchTable = pgTable(
       .default(false),
     /** 取り下げた時刻（取り下げても status は送った結果のまま） */
     retracted_at: timestamp("retracted_at", { withTimezone: true }),
+    /**
+     * 展開の再開位置(cron が大きな送信・audience を束ごとに展開する)。
+     * null = まだ展開していない / keyset の印か "i:<番号>"(選んだ宛先の一覧) = 途中 /
+     * MESSAGE_EXPAND_DONE("~done") = 展開を終えた(小さな送信は要求の中で終えるので最初から DONE)
+     */
+    expand_cursor: text("expand_cursor"),
     /** テスト送信の回か */
     is_test: boolean("is_test").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

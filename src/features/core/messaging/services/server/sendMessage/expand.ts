@@ -11,7 +11,7 @@ import { createHash } from "node:crypto";
 import type { MessageAudienceCursor, MessageChannel } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import type { MessageDeliveryReason } from "../../../entities/model";
+import type { MessageDeliveryInsert, MessageDeliveryReason } from "../../../entities/model";
 import type { MessageAudienceSpec, MessageRecipient, MessageSendDeps, MessageUserRow } from "./types";
 
 /** 配達の行の計画 1 つ */
@@ -180,4 +180,37 @@ export async function resolveAudienceChunk(
   const args = audience.args.safeParse(spec.args);
   if (!args.success) throw new DomainError(`宛先の集め方 ${spec.key} の引数が合いません`, { status: 400 });
   return audience.resolveUserIds(args.data, cursor);
+}
+
+/**
+ * 計画 → 配達の行の INSERT の値。queued の行は next_attempt_at = now(cron がすぐ拾う)。
+ * 宛先が複数なら targets に宛先ごとの状態を置く
+ */
+export function toDeliveryInsert(
+  plan: PlannedDelivery,
+  params: { dispatchId: string; now: Date; vars: Record<string, unknown> | null },
+): MessageDeliveryInsert {
+  const queued = plan.status === "queued";
+  return {
+    dispatch_id: params.dispatchId,
+    recipient_key: plan.recipientKey,
+    user_id: plan.userId,
+    address: plan.addresses[0] ?? null,
+    channel: plan.channel,
+    status: plan.status,
+    reason: plan.reason,
+    vars: queued ? params.vars : null,
+    next_attempt_at: queued ? params.now : null,
+    targets:
+      plan.addresses.length > 1
+        ? plan.addresses.map((address) => ({
+            address,
+            status: "queued" as const,
+            attempts: 0,
+            next_attempt_at: null,
+            provider_message_id: null,
+            last_error: null,
+          }))
+        : null,
+  };
 }

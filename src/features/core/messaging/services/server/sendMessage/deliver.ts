@@ -23,6 +23,8 @@ export type DeliveryJob = {
   /** これまでの試行の回数 */
   attempts: number;
   content: Record<string, unknown>;
+  /** 前の試行の宛先ごとの状態(cron の送り直し)。queued の宛先だけを送る(D45) */
+  targets?: readonly MessageDeliveryTarget[] | null;
 };
 
 /** 送った後の行の状態 */
@@ -80,16 +82,22 @@ export async function sendDeliveries(
   const attempts = new Map<string, number>();
 
   for (const job of jobs) {
+    const previous = new Map((job.targets ?? []).map((target) => [target.address, target]));
     states.set(
       job.deliveryId,
-      job.addresses.map((address) => ({
-        address,
-        status: "queued",
-        attempts: job.attempts,
-        next_attempt_at: null,
-        provider_message_id: null,
-        last_error: null,
-      })),
+      job.addresses.map((address) => {
+        const before = previous.get(address);
+        return before
+          ? { ...before }
+          : {
+              address,
+              status: "queued" as const,
+              attempts: job.attempts,
+              next_attempt_at: null,
+              provider_message_id: null,
+              last_error: null,
+            };
+      }),
     );
     attempts.set(job.deliveryId, job.attempts);
   }
@@ -159,9 +167,10 @@ export async function sendDeliveries(
     const count = attempts.get(job.deliveryId) ?? job.attempts;
     let status = rowStatus(list);
     let nextAttemptAt: Date | null = null;
-    if (status === "transient") {
+    // 一時の失敗の宛先が残る(行が sent でも、送れた宛先とは別に送り直す: D45)
+    if (list.some((state) => state.status === "queued")) {
       if (inRequestOnly || count >= maxAttempts) {
-        status = "failed";
+        if (status === "transient") status = "failed";
         for (const state of list) if (state.status === "queued") state.status = "failed";
       } else {
         nextAttemptAt = new Date(now().getTime() + baseDelaySeconds * factor ** (count - 1) * 1000);
@@ -176,9 +185,12 @@ export async function sendDeliveries(
       attempts: count,
       next_attempt_at: nextAttemptAt,
       last_error: finalStatus === "sent" ? null : (errors.get(job.deliveryId) ?? null),
-      provider: provider?.provider ?? null,
-      provider_message_id: provider?.providerMessageId ?? null,
+      // provider の id はこの試行で得た時だけ書く(送り直しで前の値を消さない)
+      ...(provider ? { provider: provider.provider, provider_message_id: provider.providerMessageId } : {}),
       targets: list.length > 1 ? list : null,
+      // lease を外す(cron が取った行)
+      locked_until: null,
+      lock_token: null,
       updatedAt: at,
     };
     if (finalStatus === "sent") patch.sent_at = at;

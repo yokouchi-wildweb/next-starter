@@ -15,7 +15,7 @@ import type {
   MessageDeliveryStatus,
   MessageDispatchStatus,
 } from "../../../entities/model";
-import type { MessageChannelCounts } from "../../../entities/schema";
+import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import {
   buildRecipientValues,
   channelContent,
@@ -133,9 +133,17 @@ export function createMessageSender(deps: MessageSendDeps) {
   async function insertDispatch(
     resolved: AnyResolvedMessageDefinition,
     input: SendMessageToManyInput,
-    values: { channels: string[]; vars: Record<string, unknown>; policy: RecordPolicy; recipientCount: number; queueVars: boolean },
+    values: {
+      channels: string[];
+      vars: Record<string, unknown>;
+      policy: RecordPolicy;
+      recipientCount: number;
+      queueVars: boolean;
+      /** 要求の中で展開を終える(小さな送信) */
+      expanded: boolean;
+    },
   ): Promise<string> {
-    const { channels, vars, policy, recipientCount, queueVars } = values;
+    const { channels, vars, policy, recipientCount, queueVars, expanded } = values;
     const actor = deps.actor();
     const audience = input.audience
       ? { ...input.audience }
@@ -166,6 +174,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         record: policy.record,
         show_to_later_signups: input.showToLaterSignups ?? false,
         is_test: input.isTest ?? false,
+        expand_cursor: expanded ? MESSAGE_EXPAND_DONE : null,
       });
       return id;
     } catch (error) {
@@ -203,6 +212,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         policy,
         recipientCount: input.audience ? 0 : uniqueCount,
         queueVars: true,
+        expanded: false,
       });
       return { dispatchId, status: "processing", deliveries: [], queuedCount: 0, channelCounts: emptyChannelCounts(channels) };
     }
@@ -220,6 +230,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       policy,
       recipientCount: targetCount,
       queueVars: queueRest,
+      expanded: true,
     });
 
     const recipientVarsOf = (key: string) => input.recipientVars?.[key];

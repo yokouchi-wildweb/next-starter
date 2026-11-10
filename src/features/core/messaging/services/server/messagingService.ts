@@ -6,6 +6,7 @@ import { bulkSend } from "./bulkSend";
 import { findExistingIdempotencyKeys } from "./dispatch";
 import { send } from "./send";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
+import { continueSending } from "./sweep";
 
 /**
  * ユーザー向けメッセージ送信の集約サービス。
@@ -25,6 +26,8 @@ export const messagingService = {
   sendMessage,
   /** 連絡の定義を選んだ宛先か audience へ送る(新しい送る口) */
   sendMessageToMany,
+  /** 1 つの回を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */
+  continueSending,
   send,
   bulkSend,
   /** 渡した冪等性キーのうち送信ジョブが既に存在するものを返す（バッチ送信の送信済み除外用） */

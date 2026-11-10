@@ -16,7 +16,8 @@ import { createMessageSender } from "./sender";
 import { drizzleMessageSendStore } from "./store";
 import type { MessageSendDeps } from "./types";
 
-const deps: MessageSendDeps = {
+/** 送る口の本物の部品(掃き出しの cron も同じ部品を使う) */
+export const sendMessageDeps: MessageSendDeps = {
   store: drizzleMessageSendStore,
   channels,
   enrichers,
@@ -32,7 +33,7 @@ const deps: MessageSendDeps = {
   },
 };
 
-const sender = createMessageSender(deps);
+const sender = createMessageSender(sendMessageDeps);
 
 export const sendMessage = sender.sendMessage;
 export const sendMessageToMany = sender.sendMessageToMany;
