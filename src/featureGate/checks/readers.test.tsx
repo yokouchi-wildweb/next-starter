@@ -15,6 +15,8 @@ import { derivedPaths, rules } from "@/featureGate/node";
 import { coveredPatternsOf, overrideSwitches } from "@/featureGate/ruleList";
 import type { DerivedPath } from "@/featureGate/ruleList";
 import { menuItems } from "@/features/core/admin/extensions/menuItems";
+import { buildAdminMenu } from "@/features/core/admin/menu/buildAdminMenu";
+import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 import { adminSidebar, adminSidebarHrefs } from "./adminSidebar";
@@ -42,6 +44,10 @@ function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T
   }
 }
 
+// 上流のメニューの形(sample の行・「リクエスト管理」の中身)を前提にする確かめは Tier1 だけ。fork の管理メニューは fork の値(CLAUDE.md core_ui)
+const isTier1 = readForkIdentity(process.cwd()).isTier1 === true;
+const UPSTREAM_MENU_ONLY = "上流の管理メニューの形の検査（Tier1 だけ。fork のメニューは fork の値。仕組みは作り物のメニューのテストで確かめる）";
+
 // 規則を閉じれば閉じる住所 = 自分の住所 + ドメインの導出の住所 + 依存元の住所(coveredPatternsOf)
 const closedBy = (rule: GatedFeatureRule, href: string) => coveredPatternsOf(rule).some((p) => matchesPath(href.split(/[?#]/)[0], p));
 
@@ -57,7 +63,38 @@ test("サイドバー: 規則を 1 つずつ閉じ、その住所の行が無く
   }
 });
 
-test("サイドバー: sampleDomain を閉じると sample の行が無く、行の無くなった「データ管理」も描かない", () => {
+test("サイドバー(作り物のメニュー): sampleDomain を閉じるとその住所の行が無く、行の無くなったカテゴリーは描かず、他の行が残るカテゴリーは残る", () => {
+  const sample = rules.find((r) => r.name === "sampleDomain");
+  assert.ok(sample);
+  const sampleHref = sample.pathPatterns.find((p) => p.startsWith("/admin/"));
+  assert.ok(sampleHref, "sampleDomain は管理の住所を持つ前提");
+  // どの規則も持たない住所(門番の外 = 開いたまま)
+  const openHref = "/admin/__readers-test-open";
+  const build = () =>
+    buildAdminMenu({
+      categories: {
+        only: { key: "only", label: "サンプルだけ", order: 100 },
+        mixed: { key: "mixed", label: "混ざる", order: 200 },
+      },
+      items: {
+        onlySample: { key: "onlySample", category: "only", order: 10, label: "S1", href: sampleHref },
+        mixedSample: { key: "mixedSample", category: "mixed", order: 10, label: "S2", href: sampleHref },
+        mixedOpen: { key: "mixedOpen", category: "mixed", order: 20, label: "O", href: openHref },
+      },
+      domains: {},
+      sources: { dataMenu: [], settingSections: [] },
+      role: "admin",
+      isClosed: (href) => !gate.path(href).open,
+    }).categories.map((c) => [c.key, c.rows.map((r) => r.href)]);
+  assert.deepEqual(withRules({}, build), [["only", [sampleHref]], ["mixed", [sampleHref, openHref]]]);
+  assert.deepEqual(withRules({ sampleDomain: false }, build), [["mixed", [openHref]]]);
+});
+
+test("サイドバー: sampleDomain を閉じると sample の行が無く、行の無くなった「データ管理」も描かない", (t) => {
+  if (!isTier1) {
+    t.skip(UPSTREAM_MENU_ONLY);
+    return;
+  }
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
   const isSample = (href: string) => coveredPatternsOf(sample).some((p) => matchesPath(href, p));
@@ -68,7 +105,11 @@ test("サイドバー: sampleDomain を閉じると sample の行が無く、行
   });
 });
 
-test("サイドバー: 銀行振込レビューを閉じると「リクエスト管理」のカテゴリーごと描かない", () => {
+test("サイドバー: 銀行振込レビューを閉じると「リクエスト管理」のカテゴリーごと描かない", (t) => {
+  if (!isTier1) {
+    t.skip(UPSTREAM_MENU_ONLY);
+    return;
+  }
   assert.ok(Object.values(menuItems).some((item) => item.category === "requests"), "上流の項目に requests がある前提");
   withRules({ bankTransferReview: false }, () => {
     assert.equal(adminSidebar().some((c) => c.key === "requests"), false);

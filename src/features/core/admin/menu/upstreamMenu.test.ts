@@ -12,6 +12,7 @@ import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { rules } from "@/featureGate/extensions/rules";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 import { adminDomains } from "@/registry/adminDomains";
+import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 
 import { buildAdminMenu } from "./buildAdminMenu";
 import { adminMenuSources } from "./sources";
@@ -26,10 +27,22 @@ const input = (isClosed: (href: string) => boolean): BuildAdminMenuInput => ({
   isClosed,
 });
 
+// このファイルは上流のメニューの中身そのものの回帰 = Tier1 だけ。fork の生成の一覧には fork のカテゴリー・項目・override が入る
+// (組み立ての仕組みは buildAdminMenu.test.ts が作り物でどの段でも確かめる)
+const isTier1 = readForkIdentity(process.cwd()).isTier1 === true;
+const upstreamTest = (name: string, fn: () => void) =>
+  test(name, (t) => {
+    if (!isTier1) {
+      t.skip("上流の管理メニューの中身の検査（Tier1 だけ。fork の一覧は fork のカテゴリー・項目・override を含む）");
+      return;
+    }
+    fn();
+  });
+
 const shape = (menu: ReturnType<typeof buildAdminMenu>) =>
   menu.categories.map((c) => [c.label, c.rows.map((r) => r.label)]);
 
-test("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
+upstreamTest("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
   const menu = buildAdminMenu(input(() => false));
   assert.deepEqual(shape(menu), [
     ["マーケティング", ["お知らせ", "通知テンプレート", "クーポン"]],
@@ -62,7 +75,7 @@ test("全部開いた admin: マーケティング → リクエスト管理 →
     assert.equal(category.allowRoles, undefined, `上流のカテゴリー ${category.key} に allowRoles`);
 });
 
-test("門番の規則を全部閉じた admin: 規則の無い住所の行だけが残る", () => {
+upstreamTest("門番の規則を全部閉じた admin: 規則の無い住所の行だけが残る", () => {
   const closedPatterns = rules.flatMap((rule) => rule.pathPatterns);
   const menu = buildAdminMenu(input((href) => closedPatterns.some((pattern) => matchesPath(href, pattern))));
   assert.deepEqual(shape(menu), [
@@ -71,7 +84,7 @@ test("門番の規則を全部閉じた admin: 規則の無い住所の行だけ
   ]);
 });
 
-test("管理者でない(ロール user): ロールの絞りの無い行だけ", () => {
+upstreamTest("管理者でない(ロール user): ロールの絞りの無い行だけ", () => {
   const menu = buildAdminMenu({ ...input(() => false), role: "user" });
   assert.deepEqual(shape(menu), [
     ["マーケティング", ["お知らせ", "通知テンプレート", "クーポン"]],

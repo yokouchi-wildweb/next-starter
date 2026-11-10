@@ -12,8 +12,21 @@ import { rules } from "@/featureGate/node";
 import type { AdminMenuBuiltCategory } from "@/features/core/admin/menu/types";
 import { AuthSessionContext } from "@/features/core/auth/components/AuthSessionContext";
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 
 import { useAdminMenu } from "./useAdminMenu";
+
+// 上流のメニューの中身(カテゴリーと行の並び)の回帰 = Tier1 だけ。fork の生成の一覧には fork のカテゴリー・項目・override が入る
+// (閉じた住所の行・空カテゴリーの除去はどのメニューでも src/featureGate/checks/readers.test.tsx が確かめる)
+const isTier1 = readForkIdentity(process.cwd()).isTier1 === true;
+const upstreamTest = (name: string, fn: () => void) =>
+  test(name, (t) => {
+    if (!isTier1) {
+      t.skip("上流の管理メニューの中身の検査（Tier1 だけ。fork の一覧は fork のカテゴリー・項目・override を含む）");
+      return;
+    }
+    fn();
+  });
 
 function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T): T {
   const saved = new Map<GatedFeatureRule, GatedFeatureRule["enabled"]>();
@@ -50,7 +63,7 @@ function menuFor(role: string | null): AdminMenuBuiltCategory[] {
 
 const shape = (menu: AdminMenuBuiltCategory[]) => menu.map((c) => [c.key, c.rows.map((r) => r.itemKey)]);
 
-test("全部開いた admin: 上流の 6 カテゴリーと行", () => {
+upstreamTest("全部開いた admin: 上流の 6 カテゴリーと行", () => {
   assert.deepEqual(withRules({}, () => shape(menuFor("admin"))), [
     ["marketing", ["notifications", "notificationTemplates", "coupons"]],
     ["requests", ["bankTransferReviews"]],
@@ -61,7 +74,7 @@ test("全部開いた admin: 上流の 6 カテゴリーと行", () => {
   ]);
 });
 
-test("閉じた規則の住所の行は描かず、行の無いカテゴリーも描かない", () => {
+upstreamTest("閉じた規則の住所の行は描かず、行の無いカテゴリーも描かない", () => {
   const menu = withRules({ bankTransferReview: false, notificationBroadcast: false, adminChatRooms: false }, () => shape(menuFor("admin")));
   assert.deepEqual(menu, [
     ["marketing", ["notificationTemplates", "coupons"]],
@@ -71,7 +84,7 @@ test("閉じた規則の住所の行は描かず、行の無いカテゴリー�
   ]);
 });
 
-test("ログインしていない・admin でない: ロールの絞りのある行は描かない", () => {
+upstreamTest("ログインしていない・admin でない: ロールの絞りのある行は描かない", () => {
   const expected = [
     ["marketing", ["notifications", "notificationTemplates", "coupons"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],

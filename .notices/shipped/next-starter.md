@@ -410,3 +410,4 @@
 - id:20261110-101132-use-in-view-reset | severity:info | checkpoint:use-in-view-reset | resolves:20261108-130357-use-in-view-reset-on-unobserve
 - id:20261110-101206-gate-check-all-required | severity:info | checkpoint:gate-check-all-required | resolves:20261108-093103-gate-check-all-honor-required, 20261108-170500-gate-route-check-required
 - id:20261110-100112-tier1-only-test-assertions | severity:info | checkpoint:tier1-only-test-assertions | resolves:20261108-165447-tier1-only-test-assertions-in-forks
+- id:20261110-101020-gate-client-test-fork-menu | severity:info | checkpoint:gate-client-test-fork-menu | resolves:20261108-092937-gate-client-test-fork-menu
