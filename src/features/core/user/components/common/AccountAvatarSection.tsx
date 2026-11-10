@@ -1,5 +1,5 @@
 // src/features/core/user/components/common/AccountAvatarSection.tsx
-// 自己完結した部品(アバターの変更・削除)。HTTP は useAvatarUpload / useUpdateMyProfile 経由(client service を直接呼ばない)
+// 自己完結した部品(アバターの変更・削除)。流れは useAvatarChange(HTTP は useAvatarUpload / useUpdateMyProfile 経由、client service を直接呼ばない)
 
 "use client";
 
@@ -8,9 +8,11 @@ import { CameraIcon, ImageIcon, LoaderIcon, Trash2Icon, UserIcon } from "lucide-
 
 import { Stack } from "@/components/Layout/Stack";
 import { AppImage } from "@/components/Media/AppImage";
-import { STRIP_IMAGE_TYPES } from "@/lib/storage";
-import { useAvatarUpload } from "@/features/core/user/hooks/useAvatarUpload";
-import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
+import {
+  DEFAULT_AVATAR_ACCEPT_TYPES,
+  DEFAULT_AVATAR_MAX_FILE_SIZE,
+  useAvatarChange,
+} from "@/features/core/user/hooks/useAvatarChange";
 import type { User } from "@/features/core/user/entities";
 
 // --- 型定義 ---
@@ -102,30 +104,25 @@ function AvatarMenu({ onChangeImage, onRemoveImage, onClose }: AvatarMenuProps) 
 // --- メインコンポーネント ---
 
 const DEFAULT_SIZE = 80;
-// user.avatar（strip）で受け付ける画像の型（STRIP_IMAGE_TYPES）。具体型の列挙なので iOS は HEIC を JPEG にして渡す
-const DEFAULT_ACCEPT = STRIP_IMAGE_TYPES.join(",");
-const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function AccountAvatarSection({
   user,
   size = DEFAULT_SIZE,
-  acceptTypes = DEFAULT_ACCEPT,
-  maxFileSize = DEFAULT_MAX_FILE_SIZE,
+  acceptTypes = DEFAULT_AVATAR_ACCEPT_TYPES,
+  maxFileSize = DEFAULT_AVATAR_MAX_FILE_SIZE,
   onAvatarUpdated,
   renderFallback,
 }: AccountAvatarSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  // ローカルの error はファイル検証・アップロード失敗用。API 失敗は hook の error を併せて表示する
-  const [error, setError] = useState<string | null>(null);
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user.avatarUrl);
-  const { updateProfile, error: updateError, reset: resetUpdateError } = useUpdateMyProfile();
-  const { upload, discard } = useAvatarUpload();
-
-  const lockRef = useRef(false);
-  const isBusy = isUploading || isRemoving;
+  // 変更・削除の流れ(検査・アップロード・保存・取り消し・鍵・エラー)は hook が持つ
+  const {
+    avatarUrl: currentAvatarUrl,
+    change,
+    remove,
+    isBusy,
+    error,
+  } = useAvatarChange({ user, acceptTypes, maxFileSize, onAvatarUpdated });
 
   const openFileSelector = useCallback(() => {
     fileInputRef.current?.click();
@@ -143,28 +140,9 @@ export function AccountAvatarSection({
     }
   }, [isBusy, currentAvatarUrl, openFileSelector]);
 
-  const handleRemoveImage = useCallback(async () => {
-    if (lockRef.current) return;
-    lockRef.current = true;
-    setError(null);
-    resetUpdateError();
-    setIsRemoving(true);
-
-    try {
-      // 失敗時は null が返り、hook の error にメッセージが入る
-      const updatedUser = await updateProfile({
-        name: user.name ?? "",
-        avatarUrl: null,
-      });
-      if (updatedUser) {
-        setCurrentAvatarUrl(null);
-        onAvatarUpdated?.(updatedUser);
-      }
-    } finally {
-      lockRef.current = false;
-      setIsRemoving(false);
-    }
-  }, [user.name, onAvatarUpdated, updateProfile, resetUpdateError]);
+  const handleRemoveImage = useCallback(() => {
+    void remove();
+  }, [remove]);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,43 +152,9 @@ export function AccountAvatarSection({
       // input をリセット（同じファイルを再選択可能にする）
       e.target.value = "";
 
-      // バリデーション
-      if (!acceptTypes.split(",").some((type) => file.type === type.trim())) {
-        setError("対応していないファイル形式です");
-        return;
-      }
-      if (file.size > maxFileSize) {
-        const maxMB = Math.round(maxFileSize / 1024 / 1024);
-        setError(`ファイルサイズは${maxMB}MB以下にしてください`);
-        return;
-      }
-
-      setError(null);
-      resetUpdateError();
-      setIsUploading(true);
-
-      void (async () => {
-        try {
-          const uploaded = await upload(file);
-          // 失敗時は null が返り、hook の error にメッセージが入る
-          const updatedUser = await updateProfile({
-            name: user.name ?? "",
-            avatarUrl: uploaded.ref,
-          });
-          if (updatedUser) {
-            setCurrentAvatarUrl(uploaded.ref);
-            onAvatarUpdated?.(updatedUser);
-          } else {
-            await discard(uploaded.objectId);
-          }
-        } catch (err) {
-          setError((err instanceof Error && err.message) || "アップロードに失敗しました");
-        } finally {
-          setIsUploading(false);
-        }
-      })();
+      void change(file);
     },
-    [acceptTypes, maxFileSize, user.name, onAvatarUpdated, updateProfile, resetUpdateError, upload, discard],
+    [change],
   );
 
   return (
@@ -266,8 +210,8 @@ export function AccountAvatarSection({
         </p>
 
         {/* エラー表示 */}
-        {(error ?? updateError) && (
-          <p className="text-xs text-destructive-text">{error ?? updateError}</p>
+        {error && (
+          <p className="text-xs text-destructive-text">{error}</p>
         )}
       </div>
 

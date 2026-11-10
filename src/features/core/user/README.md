@@ -551,6 +551,54 @@ export const override: MypageMenuItemOverride = { order: 90, title: "サイン�
 - 上書きの型は `MypageMenuItemOverride`（注釈 `: MypageMenuItemOverride` でも `satisfies` でもよい）。リンクの項目に `pendingTitle` を重ねても無視される
 - 回帰: `pnpm test src/features/core/user`（`mypageMenu/buildMypageMenu.test.ts`・上流の 4 枚の `mypageMenu/upstreamMenu.test.ts`・上書きの重ね方の型の `mypageMenu/overrideSpread.test.ts`）
 
+## アバターの変更（useAvatarChange）
+
+自分のアバターの変更・削除の流れを持つ公開の hook（`hooks/useAvatarChange.ts`）。見た目を持たない。マイページのアカウントの部品 `components/common/AccountAvatarSection` はこれを呼んで描いており、fork が自前の見た目（カード・別の配置）でアバターを変えるときも、流れをコピーせずにこれを呼ぶ。
+
+流れ: 検査（型・サイズ）→ `useAvatarUpload().upload`（用途 `user.avatar`）→ `useUpdateMyProfile().updateProfile({ name, avatarUrl: ref })`（サーバーの storage binding が保存と同じ TX で台帳に紐付ける）→ 保存が失敗（null）なら `discard(objectId)` でアップロードしたファイルを取り消す。削除は `avatarUrl: null` で保存する。
+
+| 引数 | 既定 | 中身 |
+|------|------|------|
+| `user` | 必須 | 今の利用者。`avatarUrl` の初期値と、保存に送る `name` |
+| `acceptTypes` | `DEFAULT_AVATAR_ACCEPT_TYPES`（`STRIP_IMAGE_TYPES` をカンマで連結） | 受け付ける MIME 型。file input の `accept` にもそのまま渡せる |
+| `maxFileSize` | `DEFAULT_AVATAR_MAX_FILE_SIZE`（5MB） | 最大ファイルサイズ（バイト） |
+| `onAvatarUpdated` | なし | 変更・削除の保存が済んだ後に保存後の利用者で呼ぶ |
+
+戻り値:
+
+- `avatarUrl`: 今のアバターの ref（保存が済むと変わる。未設定 = null）
+- `validate(file)`: 検査だけ（状態を変えない）。だめなら文言（`対応していないファイル形式です` / `ファイルサイズは<n>MB以下にしてください`）、良ければ null。選んだ時点の先回りの表示に使う
+- `change(file)`: 検査 → アップロード → 保存。保存まで済めば true。検査の失敗・アップロードの失敗・保存の失敗は false で `error` に文言が入る
+- `remove()`: アバターを外して保存。済めば true
+- `isUploading` / `isRemoving` / `isBusy`: 処理中（`isBusy` = どちらか）
+- `error`: 検査・アップロードの失敗の文言、無ければ保存の失敗の文言（`string | null`）。`clearError()` で両方消す
+- `acceptTypes` / `maxFileSize`: 実際に使っている値（input の `accept` と案内の表示用）
+- 変更と削除は 1 つの鍵を共有する。処理中の `change` / `remove` は何もせず false（ボタンを `isBusy` で無効にするのとは別に、二重の呼び出しを止める）
+
+画像のメタデータ: 用途 `user.avatar` は常に strip（サーバーが再エンコードして GPS / EXIF などを消す。CLAUDE.md FEATURES storage_metadata）。受け付ける型は strip できる型 `STRIP_IMAGE_TYPES`（具体型の列挙なので iOS は HEIC を JPEG にして渡す）。`acceptTypes` を広げても strip できない型はサーバーが拒む。用途は変えない。
+
+fork が自前の見た目で使う（例: `src/app/(user)/(protected)/mypage/_components/ProfileCard.tsx`）:
+
+```tsx
+"use client";
+
+import { useRef } from "react";
+
+import { useAvatarChange } from "@/features/core/user/hooks/useAvatarChange";
+import type { User } from "@/features/core/user/entities";
+
+export function ProfileCard({ user }: { user: User }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { avatarUrl, change, isBusy, error, acceptTypes } = useAvatarChange({ user });
+  // 見た目は自由: avatarUrl を描き、押したら inputRef.current?.click()、選んだら change(file)
+  // <input ref={inputRef} type="file" accept={acceptTypes} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void change(f); }} />
+  // error を出し、isBusy の間は押せなくする
+}
+```
+
+- 低い層の `useAvatarUpload`（`upload` / `discard`）と `useUpdateMyProfile` はそのまま公開（戻り値の形は変えない）。自前の前処理（縮小など）を挟む流れは低い層を使ってよい
+- 回帰: `pnpm test src/features/core/user`（`hooks/useAvatarChange.test.tsx`・`components/common/AccountAvatarSection.test.tsx`）
+
 ## 退会と削除
 
 ### 2 段階削除（ソフトデリート → 物理削除）
