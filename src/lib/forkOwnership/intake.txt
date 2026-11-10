@@ -48,6 +48,7 @@ edit src/app/(user)/(auth)/signup/verify/page.tsx  # 画面の 1 行スイッチ
 edit src/app/(user)/(legal)/privacy-policy/page.tsx  # 画面の 1 行スイッチ
 edit src/app/(user)/(legal)/terms/page.tsx  # 画面の 1 行スイッチ
 edit src/app/(user)/(legal)/tradelaw/page.tsx  # 画面の 1 行スイッチ
+edit src/app/(user)/(protected)/messages/page.tsx  # 画面の 1 行スイッチ
 edit src/app/(user)/(protected)/mypage/account/email/page.tsx  # 画面の 1 行スイッチ
 edit src/app/(user)/(protected)/mypage/account/page.tsx  # 画面の 1 行スイッチ
 edit src/app/(user)/(protected)/mypage/account/password/page.tsx  # 画面の 1 行スイッチ

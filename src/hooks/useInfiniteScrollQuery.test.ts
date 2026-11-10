@@ -2,7 +2,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { computeHasMore, computeNextFetchPosition } from "./useInfiniteScrollQuery";
+import {
+  computeCursorHasMore,
+  computeHasMore,
+  computeInitialState,
+  computeNextFetchPosition,
+} from "./useInfiniteScrollQuery";
 
 test("削除なしなら lastFetchedPage + 1 を先頭から取る", () => {
   assert.deepEqual(computeNextFetchPosition(0, 20, 0), { page: 1, skip: 0 });
@@ -68,4 +73,30 @@ test("removeItems の後の読み込みで、詰まった行を読み飛ばさ�
   const expected = Array.from({ length: 33 }, (_, i) => i).filter((row) => !removed.has(row));
   assert.deepEqual(items, expected);
   assert.deepEqual(items, server.slice(0, items.length));
+});
+
+// ---- カーソルのモード ----
+
+test("カーソルのモードの終端: nextCursor が null か 0 件で終わる", () => {
+  assert.equal(computeCursorHasMore("c1", 20), true);
+  assert.equal(computeCursorHasMore(null, 20), false);
+  assert.equal(computeCursorHasMore("c1", 0), false, "0 件の応答は cursor があっても終端(無限に取らない)");
+});
+
+test("カーソルのモードの初期化: initialData は先頭の 1 回分", () => {
+  const none = computeInitialState<string>(undefined, true, 20, 1);
+  assert.deepEqual(none, { hasInitialData: false, items: [], total: 0, lastFetchedPage: 0, hasMore: true, nextCursor: null });
+
+  const more = computeInitialState({ items: ["a", "b"], nextCursor: "c2" }, true, 2, 1);
+  assert.deepEqual(more, { hasInitialData: true, items: ["a", "b"], total: 2, lastFetchedPage: 1, hasMore: true, nextCursor: "c2" });
+
+  const end = computeInitialState({ items: ["a"], nextCursor: null }, true, 2, 1);
+  assert.equal(end.hasMore, false);
+  assert.equal(end.total, 1, "total は読み込み済みの件数");
+});
+
+test("offset のモードの初期化は従来どおり", () => {
+  const state = computeInitialState({ items: ["a", "b"], total: 5 }, false, 2, 1);
+  assert.deepEqual(state, { hasInitialData: true, items: ["a", "b"], total: 5, lastFetchedPage: 1, hasMore: true, nextCursor: null });
+  assert.equal(computeInitialState({ items: ["a"], total: 5 }, false, 2, 1).hasMore, false, "端数 = 終端");
 });
