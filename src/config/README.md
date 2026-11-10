@@ -73,3 +73,10 @@ export const featureRequirements = [
 ## 移行中のもの
 
 `app/`・`ui/` と直下の `business.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻。法務の文書は `features/legal.config.ts`(持ち主 `src/features/core/legal`)へ移った。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。
+
+fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
+
+- 画面・API を開け閉めする入切 → fork の門番の規則(`src/featureGate/rules/<名前>.ts` の `defaultEnabled`、住所 `pathPatterns`)と `featureGate/switches.config.ts`(設定 D92)。env で決まる入切(資格情報の有無など)は規則の `enabled()` に書く
+- fork の業務の値 → その業務ドメインの `config.ts`(上書き `features/<ドメイン>.config.ts`)。持ち主が 1 つに決まらない値は表なしの fork のドメインを作ってそこへ
+- 上流の持ち主に fork が足す鍵 → その上書きの `Extra`(上の「Extra」)。枠の値は `layout/<枠>.config.ts` の `Extra`、枠の部品を出さないのは slot の `null`(枠の 1 行スイッチの先)
+- 上流の機能の一部を消す・隠すだけの鍵 → 機能を閉じる(`pnpm ops features set <名前> off`)か、上流の上書きの既存の鍵

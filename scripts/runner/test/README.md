@@ -17,6 +17,7 @@ pnpm test --list                # 選んだファイルを出すだけ
 - exit 0 = 全部通る(0 本も)/ 1 = 落ちた / 2 = 引数・フラグの誤り
 - build はテストを回さない
 - テストの中で子の `node --test` / `tsx --test` を起動する時は、環境変数から `NODE_TEST_CONTEXT` を外す(親の node --test の印。残ると子は結果を親向けに流し、子が落ちても exit 0 になる。例 `src/utils/date.test.ts`)
+- 門番の全開スイッチ `FEATURE_GATE_OPEN` は子に渡さない(上流の開発の env の `all` をシェルで export していても、テストの答えは規則の値と `overrideSwitches` で決まる)。スイッチそのものを試すテストは自分で env を置く
 - 1 本・1 フォルダだけ回す: `pnpm test <パス>`(環境変数の要る物は前に付ける: `FEATURE_GATE_CHECK=all pnpm test scripts/structure/proxies/featureGate.test.mjs`)
 - テスト: `pnpm test scripts/runner/test`(`testEntry.test.mjs`)
 

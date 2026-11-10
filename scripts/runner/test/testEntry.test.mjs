@@ -85,8 +85,17 @@ test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)と�
   const calls = [];
   const flags = { "scripts/x/x.test.mts": { flags: ["--a"] } };
   const deps = { repo: "/r", files: FILES, changed: noRange, log: () => {}, readFlags: (_r, f) => flags[f] ?? { flags: [] } };
-  const code = await run(["--db"], { ...deps, spawn: (args, env) => (calls.push({ args, app: env.ENV_FILE }), args.includes("src/a/b.db.test.ts") ? 1 : 0) });
+  const savedOpen = process.env.FEATURE_GATE_OPEN;
+  process.env.FEATURE_GATE_OPEN = "all";
+  let code;
+  try {
+    code = await run(["--db"], { ...deps, spawn: (args, env) => (calls.push({ args, app: env.ENV_FILE, open: env.FEATURE_GATE_OPEN }), args.includes("src/a/b.db.test.ts") ? 1 : 0) });
+  } finally {
+    if (savedOpen === undefined) delete process.env.FEATURE_GATE_OPEN;
+    else process.env.FEATURE_GATE_OPEN = savedOpen;
+  }
   assert.equal(code, 1);
+  assert.ok(calls.every((c) => c.open === undefined), "門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない");
   assert.deepEqual(calls.map((c) => [c.args.slice(BASE_ARGS.length), c.app === ".env.development"]), [
     [["--test", "src/a/a.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts"], process.env.ENV_FILE === ".env.development"],
     [["--test", "src/a/b.db.test.ts"], true],

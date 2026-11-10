@@ -6,7 +6,7 @@
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
 //   --list: 選んだファイルを出すだけ(起動しない)。
 //   起動: npx tsx --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
-//   (node --test と同じく 1 ファイル 1 プロセス)。db の群は env ENV_FILE=.env.development(未設定なら)。
+//   (node --test と同じく 1 ファイル 1 プロセス)。db の群は env ENV_FILE=.env.development(未設定なら)。門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない。
 //   exit 0 = 全部通る(0 本も含む)| 1 = 落ちた | 2 = 引数・フラグの誤り
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -93,6 +93,9 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
   let code = 0;
   for (const b of batches.values()) {
     const env = { ...process.env };
+    // 門番の全開スイッチは子に渡さない: テストは規則の値か overrideSwitches で開閉を作る(上流の開発の env の FEATURE_GATE_OPEN=all を
+    // シェルで export していても答えが揺れない)。スイッチそのものを試すテストは自分で env を置く(scripts/structure/proxies/openSwitch.test.ts の withEnv)
+    delete env.FEATURE_GATE_OPEN;
     if (b.db && !env.ENV_FILE) env.ENV_FILE = ".env.development";
     log(`test: ${b.files.length} 本${b.db ? "(db)" : ""}${b.flags.length ? ` ${b.flags.join(" ")}` : ""}`);
     if (spawn([...BASE_ARGS, ...b.flags, "--test", ...b.files], env, repo) !== 0) code = 1;

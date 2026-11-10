@@ -438,3 +438,4 @@
 - id:20261110-171921-gate-open-baseline | severity:info | checkpoint:config-gate-open-baseline
 - id:20261110-171242-avatar-change-hook | severity:info | checkpoint:avatar-change-hook | resolves:20261101-180140-avatar-change-flow-hook
 - id:20261110-173039-tier1-close-addons | severity:breaking | checkpoint:config-tier1-close
+- id:20261110-174703-fork-config-placement | severity:action-required | checkpoint:config-fork-placement
