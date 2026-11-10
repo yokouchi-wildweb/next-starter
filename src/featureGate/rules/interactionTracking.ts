@@ -12,5 +12,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/interactionTracking",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

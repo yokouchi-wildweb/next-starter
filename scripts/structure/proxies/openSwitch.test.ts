@@ -138,12 +138,14 @@ test("段階と Tier: development は fork でも効き、staging・production�
 
 const generatedOf = (name: string) => generatedRules.find((rule) => rule.name === name)!;
 
-/** 生成一覧の規則の dependsOn と enabled を一時的に差し替えて fn を走らせる(withEnv の中で使う。終われば戻す) */
+/** 生成一覧の規則の dependsOn と enabled を一時的に差し替えて fn を走らせる(withEnv の中で使う。終われば戻す)。
+ *  名前を書いた規則の入切の既定(defaultEnabled)は開にそろえ、開閉は enabled の差し替えだけで決める(上流は付け足しの機能を既定で閉じる、D115) */
 function withDeps(deps: Record<string, string[]>, open: Record<string, boolean | undefined>, fn: () => void) {
-  const saved = new Map<GeneratedFeatureRule, Pick<GeneratedFeatureRule, "dependsOn" | "enabled">>();
+  const saved = new Map<GeneratedFeatureRule, Pick<GeneratedFeatureRule, "dependsOn" | "enabled" | "defaultEnabled">>();
   for (const name of new Set([...Object.keys(deps), ...Object.keys(open)])) {
     const rule = generatedOf(name);
-    saved.set(rule, { dependsOn: rule.dependsOn, enabled: rule.enabled });
+    saved.set(rule, { dependsOn: rule.dependsOn, enabled: rule.enabled, defaultEnabled: rule.defaultEnabled });
+    rule.defaultEnabled = true;
     if (deps[name]) rule.dependsOn = deps[name] as GeneratedFeatureRule["dependsOn"];
     if (name in open) {
       const value = open[name];

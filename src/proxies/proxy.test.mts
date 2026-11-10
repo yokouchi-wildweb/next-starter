@@ -151,13 +151,26 @@ test("maintenance: メンテ中は bypass ロールだけ通す(停止中の管�
   maintenanceActive = true;
 });
 
-test("demoMode: 有効時はデモ利用者だけ通す、許可パスは利用者を見ない", async () => {
-  assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(user("user", { isDemo: true })).ctx)), "pass");
-  assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(user("admin")).ctx)), "/demo");
-  assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(null).ctx)), "/demo");
-  const allowed = ctxOf(null);
-  assert.equal(location(await demoModeProxy(req("/demo"), allowed.ctx)), "pass");
-  assert.equal(allowed.calls.count, 0);
+test("demoMode: 有効時はデモ利用者だけ通す、許可パスは利用者を見ない(デモのページの機能 demoPages が開のとき。閉なら無効と同じ)", async () => {
+  // 上流の既定は demoPages 閉(付け足しの機能は閉じて出荷、D115): 開けた間に確かめ、閉では転送しない
+  const { overrideSwitches } = await import("@/featureGate/ruleList");
+  const restore = overrideSwitches({ demoPages: true });
+  try {
+    assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(user("user", { isDemo: true })).ctx)), "pass");
+    assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(user("admin")).ctx)), "/demo");
+    assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(null).ctx)), "/demo");
+    const allowed = ctxOf(null);
+    assert.equal(location(await demoModeProxy(req("/demo"), allowed.ctx)), "pass");
+    assert.equal(allowed.calls.count, 0);
+  } finally {
+    restore();
+  }
+  const closed = overrideSwitches({ demoPages: false });
+  try {
+    assert.equal(location(await demoModeProxy(req("/mypage"), ctxOf(null).ctx)), "pass");
+  } finally {
+    closed();
+  }
 });
 
 test("redirect: guestOnly・authedOnly・allowRoles の判定、規則に当たらない住所では利用者を見ない", async () => {

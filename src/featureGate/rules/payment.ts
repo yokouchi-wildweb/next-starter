@@ -21,5 +21,5 @@ export const rule: FeatureGateRule = {
     "core/bankTransferReview",
     "core/purchaseQuota",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

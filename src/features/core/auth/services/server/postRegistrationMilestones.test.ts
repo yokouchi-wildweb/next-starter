@@ -6,7 +6,7 @@
 // - 評価・tx の失敗は throw しない(登録を止めない)
 // 実行: pnpm test src/features/core/auth/services/server/postRegistrationMilestones.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
-import { before, beforeEach, mock, test } from "node:test";
+import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
 const evaluateCalls: unknown[][] = [];
@@ -42,9 +42,17 @@ mock.module("@/lib/drizzle", {
 });
 
 let runPostRegistrationMilestones: typeof import("./postRegistrationMilestones").runPostRegistrationMilestones;
+let restoreSwitches: () => void = () => {};
+let overrideSwitches: typeof import("@/featureGate/ruleList").overrideSwitches;
+
 before(async () => {
   ({ runPostRegistrationMilestones } = await import("./postRegistrationMilestones"));
+  ({ overrideSwitches } = await import("@/featureGate/ruleList"));
+  // 発火はマイルストーンの機能 milestone が開のときだけ。上流の既定は閉(付け足しの機能は閉じて出荷、D115)なので開けて確かめる
+  restoreSwitches = overrideSwitches({ milestone: true });
 });
+
+after(() => restoreSwitches());
 
 const user = { id: "u1", role: "user", status: "active" } as never;
 const payload = { user, role: "user", providerType: "email", inviteCode: { applied: true } as const };
@@ -81,4 +89,15 @@ test("評価や tx の失敗は throw しない(登録を止めない)", async (
   evaluateThrows = false;
   txThrows = true;
   await assert.doesNotReject(runPostRegistrationMilestones(payload));
+});
+
+test("マイルストーンの機能が閉なら評価も tx もしない", async () => {
+  const closed = overrideSwitches({ milestone: false });
+  try {
+    await runPostRegistrationMilestones(payload);
+    assert.equal(evaluateCalls.length, 0);
+    assert.equal(txOpened, 0);
+  } finally {
+    closed();
+  }
 });

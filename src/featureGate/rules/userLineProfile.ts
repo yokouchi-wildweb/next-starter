@@ -12,5 +12,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/userLineProfile",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

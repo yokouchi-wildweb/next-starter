@@ -8,5 +8,5 @@ export const rule: FeatureGateRule = {
     "/demo",
     "/api/demo",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

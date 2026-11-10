@@ -10,5 +10,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/userAcquisition",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

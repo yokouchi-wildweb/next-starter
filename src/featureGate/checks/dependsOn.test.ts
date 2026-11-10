@@ -227,16 +227,17 @@ test("テストの道具 overrideSwitches: fork の入切の値を一時的に�
   // fork の値が入っていてもよい: 始める前の中身と比べ、coupon は元の値に戻す
   const hadCoupon = Object.hasOwn(values, "coupon");
   const savedCoupon = values.coupon;
-  values.coupon = false;
+  // coupon の規則の既定は閉(上流は付け足しの機能を閉じて出荷、D115)。fork が開けた値と見分ける
+  values.coupon = true;
   const before = { ...values };
   try {
     const restore = overrideSwitches();
-    assert.equal(ownEnabled("coupon"), true, "外した間は規則の既定");
+    assert.equal(ownEnabled("coupon"), false, "外した間は規則の既定");
     restore();
-    assert.equal(ownEnabled("coupon"), false, "戻せば fork の値");
-    const restoreWallet = overrideSwitches({ wallet: false });
-    assert.equal(ownEnabled("wallet"), false);
-    assert.equal(ownEnabled("coupon"), true);
+    assert.equal(ownEnabled("coupon"), true, "戻せば fork の値");
+    const restoreWallet = overrideSwitches({ wallet: true });
+    assert.equal(ownEnabled("wallet"), true);
+    assert.equal(ownEnabled("coupon"), false);
     restoreWallet();
     assert.deepEqual({ ...values }, before);
   } finally {

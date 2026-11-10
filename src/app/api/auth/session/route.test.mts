@@ -147,9 +147,22 @@ test("再発行トークンとレスポンスは旧トークンのクレーム�
   assert.equal(new Date(body.session.expiresAt).getTime(), verified.expiresAt.getTime());
 });
 
-test("デモユーザーは短いセッション時間のまま再発行される", async () => {
+test("デモユーザーは短いセッション時間のまま再発行される(デモのログインの機能 demoLogin が開のとき。閉なら通常の長さ)", async () => {
+  const { overrideSwitches } = await import("@/featureGate/ruleList");
   dbUser = { ...baseUser(), isDemo: true };
-  const res = await call(await tokenFor({ isDemo: true }));
-  assert.equal(res.status, 200);
-  assert.equal(sessionCookieOf(res).maxAge, demoConfig.session.maxAgeSeconds);
+  // 上流の既定は demoLogin 閉(付け足しの機能は閉じて出荷、D115): 開けた間だけ短い時間
+  const restore = overrideSwitches({ demoLogin: true });
+  try {
+    const res = await call(await tokenFor({ isDemo: true }));
+    assert.equal(res.status, 200);
+    assert.equal(sessionCookieOf(res).maxAge, demoConfig.session.maxAgeSeconds);
+  } finally {
+    restore();
+  }
+  const closed = overrideSwitches({ demoLogin: false });
+  try {
+    assert.equal(sessionCookieOf(await call(await tokenFor({ isDemo: true }))).maxAge, SESSION_DEFAULT_MAX_AGE_SECONDS);
+  } finally {
+    closed();
+  }
 });

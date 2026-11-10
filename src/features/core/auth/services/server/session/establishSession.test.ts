@@ -95,7 +95,20 @@ test("issueSessionToken: クレームは DB の値、maxAge の既定は isDemo 
     providerUid: "U123",
     name: "たろう",
   });
-  assert.equal((await m.issueSessionToken(user("active", true))).maxAge, demoMaxAge);
+  // デモの短い時間はデモのログインの機能 demoLogin が開のときだけ(上流の既定は閉、D115)。閉なら通常の長さ
+  const { overrideSwitches } = await import("@/featureGate/ruleList");
+  const restore = overrideSwitches({ demoLogin: true });
+  try {
+    assert.equal((await m.issueSessionToken(user("active", true))).maxAge, demoMaxAge);
+  } finally {
+    restore();
+  }
+  const closed = overrideSwitches({ demoLogin: false });
+  try {
+    assert.equal((await m.issueSessionToken(user("active", true))).maxAge, 1000);
+  } finally {
+    closed();
+  }
   assert.equal((await m.issueSessionToken(user("active", true), { maxAge: 1000 })).maxAge, 1000);
 });
 

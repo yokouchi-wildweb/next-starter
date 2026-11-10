@@ -5,5 +5,5 @@ import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
   pathPatterns: ["=/entry"],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

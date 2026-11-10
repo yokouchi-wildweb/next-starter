@@ -15,5 +15,5 @@ export const rule: FeatureGateRule = {
     "core/referral",
     "core/referralReward",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

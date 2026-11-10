@@ -13,5 +13,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/analytics",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

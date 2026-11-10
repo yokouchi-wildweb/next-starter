@@ -11,5 +11,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/userXProfile",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

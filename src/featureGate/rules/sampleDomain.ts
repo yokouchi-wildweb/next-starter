@@ -17,5 +17,5 @@ export const rule: FeatureGateRule = {
     "sampleTag",
     "sampleImage",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

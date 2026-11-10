@@ -12,5 +12,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/chatRoom",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

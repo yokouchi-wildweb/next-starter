@@ -15,5 +15,5 @@ export const rule: FeatureGateRule = {
     "core/notification",
     "core/notificationTemplate",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

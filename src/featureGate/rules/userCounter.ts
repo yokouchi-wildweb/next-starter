@@ -9,5 +9,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/userCounter",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

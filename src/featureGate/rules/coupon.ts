@@ -14,5 +14,5 @@ export const rule: FeatureGateRule = {
     "core/couponHistory",
     "core/couponIssuerGrant",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

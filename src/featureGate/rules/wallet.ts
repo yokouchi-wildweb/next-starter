@@ -13,5 +13,5 @@ export const rule: FeatureGateRule = {
     "core/wallet",
     "core/walletHistory",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

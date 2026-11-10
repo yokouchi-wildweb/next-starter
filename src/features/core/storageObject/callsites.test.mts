@@ -50,6 +50,10 @@ mock.module("@/features/core/bankTransferReview/services/server/wrappers/findHel
   namedExports: { findByPurchaseRequest: async () => null, findActiveByUser: async () => null },
 });
 
+// core 用途の配線そのものを見るので、全部の機能を開ける(上流は付け足しの機能 wallet・chatRoom などを既定で閉じて出荷する、D115。
+// 閉じた機能の用途は issue が 403 で断る)。テストは 1 ファイル 1 プロセスなので戻さない
+const { overrideSwitches, configRules } = await import("@/featureGate/ruleList");
+overrideSwitches(Object.fromEntries(configRules.map((rule) => [rule.name, true])));
 const { UserSelfUpdateSchema, UserUpdateByAdminSchema } = await import("@/features/core/user/entities/schema");
 const { baseOptions: userBaseOptions } = await import("@/features/core/user/services/server/drizzleBase");
 const { storageBinding: bankTransferReviewBinding } = await import(

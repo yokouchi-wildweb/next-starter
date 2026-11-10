@@ -7,5 +7,5 @@ export const rule: FeatureGateRule = {
   pathPatterns: [
     "/api/account-lifecycle/withdraw",
   ],
-  defaultEnabled: false,
+  defaultEnabled: true,
 };

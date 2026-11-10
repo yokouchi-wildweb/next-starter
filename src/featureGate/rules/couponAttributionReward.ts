@@ -13,5 +13,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/couponAttributionReward",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

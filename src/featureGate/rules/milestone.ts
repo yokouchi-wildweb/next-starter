@@ -9,5 +9,5 @@ export const rule: FeatureGateRule = {
   domains: [
     "core/milestone",
   ],
-  defaultEnabled: true,
+  defaultEnabled: false,
 };

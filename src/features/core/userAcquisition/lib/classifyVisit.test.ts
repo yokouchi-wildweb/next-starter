@@ -8,10 +8,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { appendInviteLinkParam, readInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
-import { rules as gateRules } from "@/featureGate/extensions/rules";
+import { overrideSwitches } from "@/featureGate/ruleList";
 import { resolveLinkCampaign } from "@/lib/googleTag";
 
 import { classifyVisit, getChannelDefinitions } from "./classifyVisit";
+
+// 招待の行は紹介の機能 referral(依存先 coupon)が開のときだけ。上流の既定は閉(付け足しの機能は閉じて出荷、D115)なので、
+// このファイルでは開けて表を確かめ、閉の場合は下のテストで閉じる(テストは 1 ファイル 1 プロセス)
+overrideSwitches({ coupon: true, referral: true });
 
 const NOW = new Date("2026-11-07T00:00:00Z");
 const T = Math.floor(NOW.getTime() / 1000);
@@ -156,10 +160,8 @@ test("招待パラメータの読み書き(referral の名前 invite)", () => {
 });
 
 test("紹介の機能が閉じている間は招待の行を出さず、invite は流入の印にならない", () => {
-  // 紹介の機能の入切の既定(門番の規則の defaultEnabled)を一時的に閉に
-  const referral = gateRules.find((rule) => rule.name === "referral")!;
-  const saved = referral.defaultEnabled;
-  referral.defaultEnabled = false;
+  // 紹介の機能を一時的に閉に(fork の入切の値で)
+  const restore = overrideSwitches({ coupon: true, referral: false });
   try {
     const definitions = getChannelDefinitions();
     assert.equal(definitions.some((d) => d.param === "invite"), false);
@@ -167,7 +169,7 @@ test("紹介の機能が閉じている間は招待の行を出さず、invite �
     assert.equal(classifyVisit({ url: new URL("https://example.com/lp?invite=ABC"), referrer: null, now: NOW }), null);
     assert.equal(resolveLinkCampaign("?invite=ABC", definitions), null);
   } finally {
-    referral.defaultEnabled = saved;
+    restore();
   }
   assert.equal(getChannelDefinitions().some((d) => d.param === "invite"), true);
 });
