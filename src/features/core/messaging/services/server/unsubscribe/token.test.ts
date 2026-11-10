@@ -1,0 +1,85 @@
+// ワンクリックの配信停止のトークンの検査
+// - 作って確かめると中身が戻る(宛先の hash つきも)
+// - 中身・署名の改ざん、版の違い、形の誤り、鍵の違い、鍵が無い → null
+// - URL は getAppBaseUrl() の起点 + /api/messaging/unsubscribe?t=
+// 実行: pnpm test src/features/core/messaging/services/server/unsubscribe
+import { afterEach, beforeEach, test } from "node:test";
+import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
+
+import {
+  UNSUBSCRIBE_SECRET_ENV,
+  buildUnsubscribeUrl,
+  isUnsubscribeConfigured,
+  signUnsubscribeToken,
+  verifyUnsubscribeToken,
+} from "./token";
+
+const USER = "user:3f1c2b9a-1d2e-4f50-8a9b-0c1d2e3f4a5b";
+const HASH = "a".repeat(64);
+const saved = { secret: process.env[UNSUBSCRIBE_SECRET_ENV], base: process.env.APP_BASE_URL };
+
+beforeEach(() => {
+  process.env[UNSUBSCRIBE_SECRET_ENV] = "test-secret";
+  process.env.APP_BASE_URL = "https://app.example.test";
+});
+afterEach(() => {
+  for (const [key, value] of [[UNSUBSCRIBE_SECRET_ENV, saved.secret], ["APP_BASE_URL", saved.base]] as const) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+});
+
+const forge = (wire: unknown, secret = "test-secret") => {
+  const body = Buffer.from(JSON.stringify(wire)).toString("base64url");
+  return `${body}.${createHmac("sha256", secret).update(body).digest("base64url")}`;
+};
+
+test("作って確かめると中身が戻る", () => {
+  const payload = { recipientKey: USER, category: "marketing", channel: "email" };
+  assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(payload)), payload);
+  const address = { recipientKey: `addr:${HASH}`, category: "activity", channel: "email", addressHash: HASH };
+  assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(address)), address);
+});
+
+test("改ざん・版の違い・形の誤り・別の鍵は通さない", () => {
+  const token = signUnsubscribeToken({ recipientKey: USER, category: "marketing", channel: "email" });
+  const [body, signature] = token.split(".");
+  const otherBody = Buffer.from(JSON.stringify({ v: 1, r: USER, c: "activity", ch: "email" })).toString("base64url");
+  assert.equal(verifyUnsubscribeToken(`${otherBody}.${signature}`), null);
+  assert.equal(verifyUnsubscribeToken(`${body}.${signature.slice(0, -2)}AA`), null);
+  assert.equal(verifyUnsubscribeToken(`${body}.`), null);
+  assert.equal(verifyUnsubscribeToken(body), null);
+  assert.equal(verifyUnsubscribeToken(`${token}.x`), null);
+  assert.equal(verifyUnsubscribeToken(""), null);
+  assert.equal(verifyUnsubscribeToken(null), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 2, r: USER, c: "marketing", ch: "email" })), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: "user:not-an-id", c: "marketing", ch: "email" })), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "", ch: "email" })), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email", a: 5 })), null);
+  assert.equal(verifyUnsubscribeToken(forge("not an object")), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email" }, "other-secret")), null);
+  assert.ok(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email" })));
+});
+
+test("鍵が無い時は作れず、届いたトークンも通さない", () => {
+  const token = signUnsubscribeToken({ recipientKey: USER, category: "marketing", channel: "email" });
+  delete process.env[UNSUBSCRIBE_SECRET_ENV];
+  assert.equal(isUnsubscribeConfigured(), false);
+  assert.equal(verifyUnsubscribeToken(token), null);
+  assert.throws(() => signUnsubscribeToken({ recipientKey: USER, category: "marketing", channel: "email" }));
+  process.env[UNSUBSCRIBE_SECRET_ENV] = "  ";
+  assert.equal(isUnsubscribeConfigured(), false);
+});
+
+test("中身の形が合わなければ作らない", () => {
+  assert.throws(() => signUnsubscribeToken({ recipientKey: "user:x", category: "marketing", channel: "email" }));
+  assert.throws(() => signUnsubscribeToken({ recipientKey: USER, category: "a b", channel: "email" }));
+});
+
+test("URL はアプリの起点 + /api/messaging/unsubscribe?t=", () => {
+  const url = new URL(buildUnsubscribeUrl({ recipientKey: USER, category: "marketing", channel: "email" }));
+  assert.equal(url.origin, "https://app.example.test");
+  assert.equal(url.pathname, "/api/messaging/unsubscribe");
+  assert.ok(verifyUnsubscribeToken(url.searchParams.get("t")));
+});

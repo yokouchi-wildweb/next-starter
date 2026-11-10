@@ -1,7 +1,8 @@
 // scripts/operations/setup/env.ts
 //
 // env ファイルの初期生成 (pnpm ops setup env [ファイル名])。引数なし = .env.development と .env.production の 2 つ(env の規則)。
-// 冪等: 対象ファイルが既に存在すれば何もせず終了する (上書きしない)。
+// 冪等: 対象ファイルが既に存在すれば上書きしない。作った秘密の鍵 (下の 3) のうち、無いか空の鍵だけを足す
+//       (値の入った鍵・APP_BASE_URL・ほかの行は触らない。新しい鍵が増えた後の取り込みで打てば足りない鍵が入る)。
 //
 // やること:
 //   1. .env.example → .env.development と .env.production (引数で 1 つに絞れる) のコピー
@@ -10,6 +11,7 @@
 //      - APP_BASE_URL     = http://localhost:3000 (開発だけ。本番は人が書く)
 //      - AUTH_JWT_SECRET  = ランダム 32 バイト (base64)
 //      - ENCRYPTION_KEY   = ランダム 32 バイト (hex 64 文字)
+//      - MESSAGING_UNSUBSCRIBE_SECRET = ランダム 32 バイト (base64url。ワンクリックの配信停止の署名)
 //      .env.example 側で既に値が入っている行は触らない (空の行だけ埋める)
 //   4. 残りの任意設定 (Firebase / DB 等) のチェックリスト表示
 //
@@ -40,7 +42,12 @@ if (!existsSync(path.join(repoRoot, ".env.example"))) {
 for (const name of names) {
   const result = createEnvFile(repoRoot, name);
   if (!result.created) {
-    console.log(`✓ ${name} は既に存在するため何もしません (再生成する場合は削除してから実行)`);
+    if (result.added.length === 0) {
+      console.log(`✓ ${name} は既に存在します (足りない鍵なし。再生成する場合は削除してから実行)`);
+    } else {
+      console.log(`✓ ${name} は既に存在するので、足りない鍵だけ足しました (値の入った鍵は触らない)`);
+      for (const key of result.added) console.log(`  ${key.padEnd(16)} 生成値を追加`);
+    }
     continue;
   }
   console.log(`✓ ${name} を作成しました`);

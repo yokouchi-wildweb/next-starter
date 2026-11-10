@@ -46,7 +46,7 @@ pnpm live | live:app | live:room | live:all      # デプロイ(本番は確認�
 ## 書く入口の守りと env
 
 - DB・外部に書く道具は全部、先頭で共通の守りを通る: 向き先の既定は開発(`.env.development`)、本番は `--env production` と確認(非対話は `--confirm=production`)、env ファイルの段階の印 `APP_ENV` と接続先を照らし合わせ、開発と本番が同じ DB なら止める
-- env ファイルは `.env.development` と `.env.production` の 2 つ(どちらにも `APP_ENV=<段階>` の 1 行、別の DB)。無ければ `pnpm ops setup env` が両方を作る(上書きしない)。個人の上書き・秘密は `.env.<段階>.local`
+- env ファイルは `.env.development` と `.env.production` の 2 つ(どちらにも `APP_ENV=<段階>` の 1 行、別の DB)。無ければ `pnpm ops setup env` が両方を作る(上書きしない。既にあるファイルには乱数で作る秘密の鍵のうち無いか空の鍵だけを足す)。個人の上書き・秘密は `.env.<段階>.local`
 - 詳細: [runner/guard/README.md](./runner/guard/README.md)・[src/lib/appEnv/README.md](../src/lib/appEnv/README.md)「env ファイルの規則」
 
 ## よく使う操作
