@@ -61,3 +61,20 @@ export type UserAdminBulkActionItem = import("@/lib/tableSuite").BulkActionItem<
   /** この機能(門番の規則の名前)が閉なら出さない(useGate、useUserAdminBulkActions が見る。機能の入切は門番の持ち物、D35) */
   feature?: import("@/featureGate").FeatureName;
 };
+
+// マイページのメニューの項目の型(受け口 mypageMenu。書き方: README.md「マイページのメニュー」)
+export type {
+  MypageMenuAction,
+  MypageMenuVariant,
+  MypageMenuLinkItem,
+  MypageMenuActionItem,
+  MypageMenuItem,
+  MypageMenuItemOverride,
+  MypageMenuActionBinding,
+  MypageMenuBuiltLinkRow,
+  MypageMenuBuiltActionRow,
+  MypageMenuBuiltRow,
+  MypageMenuHiddenEntry,
+  BuildMypageMenuInput,
+  BuiltMypageMenu,
+} from "./mypageMenu";

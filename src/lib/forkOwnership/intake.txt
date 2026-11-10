@@ -196,6 +196,8 @@ add src/features/core/user/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkAct
 add src/features/core/user/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
 add src/features/core/user/cleanupHandlers/*.{ts,tsx}  # 受け口 cleanupHandlers
 add src/features/core/user/cleanupHandlers/*/**  # 受け口 cleanupHandlers(フォルダ形)
+add src/features/core/user/mypageMenu/items/*.{ts,tsx}  # 受け口 mypageMenu
+add src/features/core/user/mypageMenu/items/*/**  # 受け口 mypageMenu(フォルダ形)
 add src/features/core/user/reservedNames/*.{ts,tsx}  # 受け口 reservedNames
 add src/features/core/user/reservedNames/*/**  # 受け口 reservedNames(フォルダ形)
 add src/features/core/userAcquisition/channels/*.{ts,tsx}  # 受け口 channels

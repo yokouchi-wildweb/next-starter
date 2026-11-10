@@ -486,6 +486,69 @@ const result = await userClient.searchWithProfile("contributor", {
   - 管理者が番号を変えると `phoneVerifiedAt` が今の時刻になる（`wrappers/update.ts`。既存の挙動）
 - アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
 
+## マイページのメニュー（拡張点 mypageMenu）
+
+マイページのトップのカード（`components/MainMenu`）は受け口 `mypageMenu` の項目から描く。`MainMenu` は props なし。
+
+```
+mypageMenu/items/<key>.ts           ← 項目（export const item: MypageMenuItem）
+mypageMenu/items/<key>.override.ts  ← 上の Tier の項目の一部の上書き（fork が置く）
+extensions/mypageMenu.ts            ← 一覧（生成物、pnpm generate extensions）
+mypageMenu/buildMypageMenu.ts       ← 組み立て器（純関数: hidden を除く → 操作を結ぶ → order・key 順）
+types/mypageMenu.ts                 ← 項目・上書き・組み立ての型
+```
+
+- 上流の項目: `invite`（10）・`account`（20）・`logout`（30）・`other`（40）。order は 10 刻み、同じ値は key 順
+- 項目は 2 形
+  - リンク: `{ key, order, icon, title, description, href, showChevron?, variant? }`
+  - 操作: `{ key, order, icon, title, description, action: "logout", pendingTitle?, variant? }`。`MainMenu` が `action` を `useLogout` に結び、処理中は `pendingTitle`（無ければ `title`）を出して押せなくする。結び先の無い操作の項目は描かない
+- `icon` は lucide のアイコン（`RichMenuCard` と同じ型）。`variant` は `default`・`muted`・`destructive`
+- 閉じた機能の住所（招待 = 規則 `referral`、その他の操作 = 規則 `mypageOther`）のカードは、`RichMenuCard` の棚の Link（`gate="auto"`）が描かない。項目に門番の判定は書かない
+- 見え方は認可ではない（各画面と API の守りは別）
+
+**fork が項目を足す**
+
+`src/features/core/user/mypageMenu/items/<key>.ts` に置き `pnpm generate extensions`（名前は印なし、key = ファイル名）。並べたい位置の order を選ぶ（例: 招待とアカウントの間 = 15）。
+
+```typescript
+// src/features/core/user/mypageMenu/items/coins.ts
+import { CoinsIcon } from "lucide-react";
+
+import type { MypageMenuItem } from "@/features/core/user/types";
+
+export const item: MypageMenuItem = {
+  key: "coins",
+  order: 25,
+  icon: CoinsIcon,
+  title: "コイン履歴",
+  description: "コインの購入と利用の履歴",
+  href: "/mypage/coins",
+  showChevron: true,
+};
+```
+
+**上流の項目を変える・隠す・並べ替える**
+
+上流の項目の隣に `<key>.override.ts` を置き `pnpm generate extensions`。書ける鍵は `hidden`・`order`・`title`・`description`・`icon`・`variant`・`pendingTitle` だけ（それ以外・対象の無い override は `pnpm check extensions` が止める。上流は override を出荷しない）。
+
+```typescript
+// src/features/core/user/mypageMenu/items/invite.override.ts — 招待のカードを隠す
+import type { MypageMenuItemOverride } from "@/features/core/user/types";
+
+export const override: MypageMenuItemOverride = { hidden: true };
+```
+
+```typescript
+// src/features/core/user/mypageMenu/items/logout.override.ts — ログアウトを最後にして文言を変える
+import type { MypageMenuItemOverride } from "@/features/core/user/types";
+
+export const override: MypageMenuItemOverride = { order: 90, title: "サインアウト", pendingTitle: "サインアウト中..." };
+```
+
+- fork が自分で足した項目は override せず、項目のファイルを直接書き換える
+- 操作の種類（`action`）を足すのは上流（型 `MypageMenuAction` と `MainMenu` の結び）。要るときは `/order` で依頼する
+- 回帰: `pnpm test src/features/core/user`（`mypageMenu/buildMypageMenu.test.ts`・上流の 4 枚の `mypageMenu/upstreamMenu.test.ts`）
+
 ## 退会と削除
 
 ### 2 段階削除（ソフトデリート → 物理削除）

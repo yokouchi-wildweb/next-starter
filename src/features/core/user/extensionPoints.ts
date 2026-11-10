@@ -44,4 +44,14 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["enabled", "order"],
   },
+  // マイページのメニュー: mypageMenu/items/<key>.ts の export const item(リンク / 操作の 2 形、上流は 10 刻みの order)。
+  // fork は項目を足す・上流の項目は隣の <key>.override.ts で変える(書き方: README.md「マイページのメニュー」)
+  mypageMenu: {
+    dir: "mypageMenu/items",
+    export: "item",
+    type: { from: "@/features/core/user/types", name: "MypageMenuItem" },
+    side: "client",
+    key: "key",
+    overrideOf: ["hidden", "order", "title", "description", "icon", "variant", "pendingTitle"],
+  },
 } as const;
