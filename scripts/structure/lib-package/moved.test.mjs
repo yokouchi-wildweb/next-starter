@@ -120,6 +120,55 @@ test("moved: 出力は notice に貼れる moved: と imports: の 2 つの塊(-
   });
 });
 
+test("moved: <base> で既に閉じていた lib の中を読む古い書き方は行にしない(<base>..<head> の変更だけ)", () => {
+  withGitRepo((ctx) => {
+    write(ctx.root, {
+      "tsconfig.json": TSCONFIG,
+      // c は <base> の前から閉じている lib。a.ts の @/lib/c/inner は <base> の時点で既に中を読む書き方
+      "src/lib/c/package.json": { exports: { ".": "./index.ts" } },
+      "src/lib/c/index.ts": `export { c } from "./inner";\n`,
+      "src/lib/c/inner.ts": "export const c = 1;\n",
+      "src/lib/k/index.ts": `export { k } from "./inner";\n`,
+      "src/lib/k/inner.ts": "export const k = 1;\n",
+      "src/app/a.ts": `import { c } from "@/lib/c/inner";\nimport { k } from "@/lib/k/inner";\nexport const all = [c, k];\n`,
+    });
+    const base = ctx.commit("base");
+    // 範囲の中: k を閉じる。c の中のファイルを変えても(改名でも package.json でもない)行にしない
+    write(ctx.root, {
+      "src/lib/k/package.json": { exports: { ".": "./index.ts" } },
+      "src/lib/c/inner.ts": "export const c = 2;\n",
+    });
+    ctx.commit("head");
+    clearLibPackageCache();
+    const rows = movedRows(ctx.root, { base });
+    assert.deepEqual(rows.imports, [{ from: "@/lib/k/inner", to: "@/lib/k", files: 1 }]);
+    assert.deepEqual(rows.unresolved, []);
+  });
+});
+
+test("moved: 印のファイル(入口を re-export するだけのファイル)を通る行は re-export を辿って入口に解く", () => {
+  withGitRepo((ctx) => {
+    write(ctx.root, {
+      "tsconfig.json": TSCONFIG,
+      "src/lib/d/index.ts": `export { tx } from "./transaction";\nexport const d = 1;\n`,
+      "src/lib/d/transaction.ts": "export const tx = 1;\nexport type Tx = number;\n",
+      "src/app/a.ts": `import { tx, type Tx } from "@/lib/d/transaction";\nexport const v: Tx = tx;\n`,
+    });
+    const base = ctx.commit("base");
+    // 中身を入口へ移し、transaction.ts は入口の名前を re-export する印として残して閉じる
+    write(ctx.root, {
+      "src/lib/d/package.json": { exports: { ".": "./index.ts" } },
+      "src/lib/d/index.ts": "export const tx = 1;\nexport type Tx = number;\nexport const d = 1;\n",
+      "src/lib/d/transaction.ts": `export { tx, type Tx } from "./index";\n`,
+    });
+    ctx.commit("head");
+    clearLibPackageCache();
+    const rows = movedRows(ctx.root, { base });
+    assert.deepEqual(rows.imports, [{ from: "@/lib/d/transaction", to: "@/lib/d", files: 1 }]);
+    assert.deepEqual(rows.unresolved, []);
+  });
+});
+
 test("moved: 引数の誤り(--base 無し・知らない引数・commit でない rev)は exit 2", () => {
   withGitRepo((ctx) => {
     fixture(ctx);
