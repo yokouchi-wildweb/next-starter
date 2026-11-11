@@ -32,6 +32,27 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+/**
+ * 渡した冪等の鍵のうち、既に使われたもの(message_dispatches か message_idempotency_keys にある)を返す。
+ * 一括の送り手(財布の失効の知らせなど)がページごとに送信済みを除くためのもの。2 回の問い合わせ(表ごとに 1 回)。
+ * 存在だけを見る(鍵の行は送る前に入るので、送れなかった回も「ある」側に入る)
+ */
+export async function existingIdempotencyKeys(keys: readonly string[]): Promise<Set<string>> {
+  const unique = [...new Set(keys)];
+  if (unique.length === 0) return new Set();
+  const [dispatches, moved] = await Promise.all([
+    db
+      .select({ key: MessageDispatchTable.idempotency_key })
+      .from(MessageDispatchTable)
+      .where(inArray(MessageDispatchTable.idempotency_key, unique)),
+    db
+      .select({ key: MessageIdempotencyKeyTable.idempotency_key })
+      .from(MessageIdempotencyKeyTable)
+      .where(inArray(MessageIdempotencyKeyTable.idempotency_key, unique)),
+  ]);
+  return new Set([...dispatches, ...moved].flatMap((row) => (row.key ? [row.key] : [])));
+}
+
 export const drizzleMessageSendStore: MessageSendStore = {
   async idempotencyKeyExists(key) {
     const [dispatch] = await db

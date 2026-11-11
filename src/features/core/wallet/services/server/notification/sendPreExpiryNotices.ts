@@ -15,6 +15,7 @@ import { runBudgetedBatches } from "@/lib/cron";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { advanceCheckpoint, findCheckpoint } from "@/features/core/cronCheckpoint/services/server";
 import { MESSAGING_SOURCES } from "@/features/core/messaging/constants/sources";
+import { message as expiringNoticeMessage } from "@/features/core/wallet/messages/expiringNotice";
 import { getPreExpiryNoticeStages } from "@/features/core/wallet/utils/expiration";
 import {
   endOfLocalDayAfter,
@@ -104,7 +105,7 @@ export async function sendPreExpiryNotices(options: {
                   toLocalDateKey(item.earliestExpiresAt, dateTimeZone),
                 ].join(":"),
                 channels: stage.channels,
-                copy: stage.copy,
+                message: expiringNoticeMessage,
                 vars: {
                   currencyLabel: label,
                   amount: formatAmount(item.totalExpiring, walletType),

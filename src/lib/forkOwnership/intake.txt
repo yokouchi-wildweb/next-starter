@@ -252,7 +252,8 @@ edit src/features/core/demo/services/server/onDemoUserCreated.ts  # 1 行スイ�
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/user/messages/views/earlyRegistrationComplete.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/user/messages/views/registrationComplete.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/features/core/wallet/messages/views/expiredNotice.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/features/core/wallet/messages/views/expiringNotice.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 1 行スイッチ src/app/_providers/ForkProviders.tsx の丸ごと置き換え
 add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え
 add src/features/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
@@ -266,7 +267,8 @@ add src/features/core/demo/services/server/onDemoUserCreated.replace.{ts,tsx}  #
 add src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 1 行スイッチ src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts の丸ごと置き換え
 add src/features/core/user/messages/views/earlyRegistrationComplete.replace.{ts,tsx}  # 1 行スイッチ src/features/core/user/messages/views/earlyRegistrationComplete.tsx の丸ごと置き換え
 add src/features/core/user/messages/views/registrationComplete.replace.{ts,tsx}  # 1 行スイッチ src/features/core/user/messages/views/registrationComplete.tsx の丸ごと置き換え
-add src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts の丸ごと置き換え
+add src/features/core/wallet/messages/views/expiredNotice.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/messages/views/expiredNotice.tsx の丸ごと置き換え
+add src/features/core/wallet/messages/views/expiringNotice.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/messages/views/expiringNotice.tsx の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
 edit src/features/**/messages/*.override.ts  # 上書き messages(content・extras・defaultChannels・enabled・adminEditable・category・record・throttle)
 edit src/features/**/services/server/domainEntry.override.ts  # 上書き domainEntries(access)

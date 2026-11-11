@@ -123,12 +123,8 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   const plan = planExtensions(ROOT);
   // 上流のスイッチは全部 .default を指す(今と同じ振る舞い)。AdminHeader.default は管理のヘッダーの行の既定の部品
   // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
-  // 連絡の描き方(messages/views/<名前>.tsx → <名前>.default、auth 5・user 2)も 1 行スイッチ。
-  // 財布の残高調整の通知のスイッチ(adjustmentNotificationTemplate)は連絡へ移して消える途中なので数えない(あっても無くても通る)
-  const targets = plan.switches
-    .map((s: { target: string }) => s.target)
-    .filter((target: string) => target !== "adjustmentNotificationTemplate.default")
-    .sort();
+  // 連絡の描き方(messages/views/<名前>.tsx → <名前>.default、auth 5・user 2・wallet 2)も 1 行スイッチ
+  const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
     "ForkProviders.default",
@@ -137,6 +133,8 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
     "earlyRegistration.default",
     "earlyRegistrationComplete.default",
     "emailChange.default",
+    "expiredNotice.default",
+    "expiringNotice.default",
     "onDemoUserCreated.default",
     "passwordReset.default",
     "programConfig.default",
