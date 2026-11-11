@@ -12,10 +12,13 @@ import { pushMessage, textMessage } from "@/lib/line";
 import { UserLineProfileTable } from "@/features/core/userLineProfile/entities/drizzle";
 
 import { messagingConfig } from "../../config";
+import { MESSAGE_PREFERENCES_PAGE_PATH } from "../../constants/preferences";
 import { createLineChannel } from "./createLineChannel";
 
 export const channel = createLineChannel({
   enabled: messagingConfig.channels.line.enabled,
+  // LINE の連携の入口(連携の後は好みのページへ戻る)
+  connectHref: `/api/auth/line/login?redirect_after=${encodeURIComponent(MESSAGE_PREFERENCES_PAGE_PATH)}`,
   async findLineUserIds(userIds) {
     if (userIds.length === 0 || !gate.enabled("userLineProfile")) return [];
     const rows = await db

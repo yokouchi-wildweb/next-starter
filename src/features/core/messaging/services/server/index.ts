@@ -8,6 +8,15 @@ export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 export type { MessageEndpointDto, RegisterMessageEndpointInput } from "./endpoints";
 export { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
+export { deletePreferencesOfUser, getMessagePreferences, setMessagePreference } from "./preferences";
+export type {
+  MessagePreferenceCategoryDto,
+  MessagePreferenceCellDto,
+  MessagePreferenceChannelDto,
+  MessagePreferencesDto,
+  MessagePreferenceVia,
+  SetMessagePreferenceInput,
+} from "./preferences";
 /** storage の照合(cron storage-sweep)へ渡すお知らせの画像の紐付け先の有無 */
 export { existingDispatchIds } from "./inbox/dispatchRecords";
 export { INBOX_IMAGE_RECORD_TYPE } from "./inbox/imageBinding";

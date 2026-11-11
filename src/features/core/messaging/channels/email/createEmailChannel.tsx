@@ -10,6 +10,8 @@
 // - webhook(D36・D44): resend / sendgrid の verify(鍵は env、無ければ WebhookNotConfiguredError)+ normalize(lib/mail/webhooks)
 // - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(marketing・activity)。
 //   List-Unsubscribe のヘッダもあれば、ヘッダを lib/mail に渡し本文の最後に停止のリンクを出す。
+//   本文のリンクの先 = 好みのページ(門 messagingPreferences が開 = deps.preferencesPageUrl() が値を返す時)、閉ならワンクリックの URL。
+//   ヘッダ(List-Unsubscribe・List-Unsubscribe-Post)は門に関わらずワンクリックの URL のまま
 //   category があるのに List-Unsubscribe が無い = 送る側に署名の鍵(MESSAGING_UNSUBSCRIBE_SECRET)が無い →
 //   送らず permanent(reason unsubscribe_key_missing)。category の無い連絡(取引・required)はヘッダなしで送る
 
@@ -50,6 +52,8 @@ export type EmailChannelDeps = {
   send: (options: SendMailOptions) => Promise<SendMailResult>;
   findEmails: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
   theme: MailTheme;
+  /** 好みのページの URL(門 messagingPreferences が開の時だけ値。null = 本文のリンクもワンクリックの URL) */
+  preferencesPageUrl?: () => string | null;
   /** provider の webhook の鍵(env。無ければ null → 受け口は 503) */
   webhookKeys: { resendSecret: () => string | null; sendgridPublicKey: () => string | null };
 };
@@ -119,7 +123,10 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
           results.push({ address: target.address, kind: "permanent", reason: "unsubscribe_key_missing" });
           continue;
         }
-        const unsubscribeUrl = listUnsubscribe ? listUnsubscribe.replace(/^<|>$/g, "") : undefined;
+        // 本文のリンク: 好みのページが開いていればそちら、無ければワンクリックの URL(ヘッダは変えない)
+        const unsubscribeUrl = listUnsubscribe
+          ? (deps.preferencesPageUrl?.() ?? listUnsubscribe.replace(/^<|>$/g, ""))
+          : undefined;
         let html: string;
         try {
           const View = (await viewOf(target.messageKey)) ?? EmailView;

@@ -757,7 +757,7 @@ services/server/executeCleanup.ts             ← 呼び手の入口
 
 | 種類 | 失敗時の挙動 | 上流の登録 |
 |------|-------------|-----------|
-| `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録） |
+| `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録）・`messagingEndpoints`（端末の帳簿の本人の行を消す）・`messagingPreferences`（連絡の好みの本人の行を消す） |
 | `optionalHandlers` | `console.error` に記録して続行 | `cancelPendingPurchaseRequests`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
 
 `required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は必須、`pnpm test src/featureGate scripts/structure/proxies`）。

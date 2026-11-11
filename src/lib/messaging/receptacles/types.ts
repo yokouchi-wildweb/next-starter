@@ -97,6 +97,11 @@ export type MessageChannel = {
    * 無ければ汎用の形(1〜2048 文字)だけを見る
    */
   endpoint?: { address: z.ZodType<string, z.ZodTypeDef, unknown> };
+  /**
+   * 宛先の無い利用者を案内する先(サイト内のパスか URL。例 LINE の連携の入口)。好みの表で宛先の無い経路に出す。
+   * 連携の画面が無い経路は持たない
+   */
+  connectHref?: string;
   /** 未送信の宛先の束を送る。宛先ごとの結果を返す(投げると束の全部を unknown として扱う) */
   send: (targets: readonly ChannelSendTarget[]) => Promise<ChannelSendResult[]>;
   /** provider → webhook の検証と正規化 */
