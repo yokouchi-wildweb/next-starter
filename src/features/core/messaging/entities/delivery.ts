@@ -89,7 +89,12 @@ export const MessageDeliveryTable = pgTable(
       table.provider,
       table.provider_message_id,
     ),
-    index("idx_message_deliveries_user").on(table.user_id),
+    // 利用者ごとの履歴(新しい順の keyset)。user_id だけの検索(利用者の削除の set null)もこの先頭で引く
+    index("idx_message_deliveries_user_created").on(
+      table.user_id,
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
     index("idx_message_deliveries_created_at").on(table.createdAt),
   ],
 );
