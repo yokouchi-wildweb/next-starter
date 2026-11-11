@@ -3,6 +3,10 @@
 
 import type { MessageEnricher } from "@/lib/messaging";
 
-const enrichersList: MessageEnricher[] = [];
+import { enricher as enrichers_displayName } from "@/features/core/messaging/enrichers/displayName";
+
+const enrichersList: MessageEnricher[] = [
+  enrichers_displayName,
+];
 export const enrichers: Readonly<Record<string, MessageEnricher>> = Object.assign(Object.create(null), Object.fromEntries(enrichersList.map((item) => [String(item.key), item])));
 if (Object.keys(enrichers).length !== enrichersList.length) throw new Error("enrichers: key が重複している項目がある");

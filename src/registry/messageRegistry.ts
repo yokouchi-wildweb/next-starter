@@ -33,6 +33,11 @@ export const messageRegistry: MessageRegistry = {
     definition: () => import("@/features/core/auth/messages/verification"),
     view: () => import("@/features/core/auth/messages/views/verification"),
   },
+  "messaging.adminMessage": {
+    key: "messaging.adminMessage",
+    definition: () => import("@/features/core/messaging/messages/adminMessage"),
+    view: () => import("@/features/core/messaging/messages/views/adminMessage"),
+  },
   "user.earlyRegistrationComplete": {
     key: "user.earlyRegistrationComplete",
     definition: () => import("@/features/core/user/messages/earlyRegistrationComplete"),

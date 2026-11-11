@@ -173,6 +173,8 @@ add src/features/core/interactionTracking/targetRules/*.{ts,tsx}  # 受け口 ta
 add src/features/core/interactionTracking/targetRules/*/**  # 受け口 targetRules(フォルダ形)
 add src/features/core/messaging/audiences/*.{ts,tsx}  # 受け口 audiences
 add src/features/core/messaging/audiences/*/**  # 受け口 audiences(フォルダ形)
+add src/features/core/messaging/bulkSendTargets/*.{ts,tsx}  # 受け口 bulkSendTargets
+add src/features/core/messaging/bulkSendTargets/*/**  # 受け口 bulkSendTargets(フォルダ形)
 add src/features/core/messaging/categories/*.{ts,tsx}  # 受け口 categories
 add src/features/core/messaging/categories/*/**  # 受け口 categories(フォルダ形)
 add src/features/core/messaging/channels/*.{ts,tsx}  # 受け口 channels
@@ -249,6 +251,7 @@ edit src/features/core/auth/messages/views/passwordReset.tsx  # 1 行スイッ�
 edit src/features/core/auth/messages/views/verification.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/demo/services/server/onDemoUserCreated.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/features/core/messaging/messages/views/adminMessage.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/user/messages/views/earlyRegistrationComplete.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/user/messages/views/registrationComplete.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
@@ -264,6 +267,7 @@ add src/features/core/auth/messages/views/passwordReset.replace.{ts,tsx}  # 1 �
 add src/features/core/auth/messages/views/verification.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/messages/views/verification.tsx の丸ごと置き換え
 add src/features/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 1 行スイッチ src/features/core/couponIssuerGrant/services/server/programConfig.ts の丸ごと置き換え
 add src/features/core/demo/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/features/core/demo/services/server/onDemoUserCreated.ts の丸ごと置き換え
+add src/features/core/messaging/messages/views/adminMessage.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/messages/views/adminMessage.tsx の丸ごと置き換え
 add src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 1 行スイッチ src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts の丸ごと置き換え
 add src/features/core/user/messages/views/earlyRegistrationComplete.replace.{ts,tsx}  # 1 行スイッチ src/features/core/user/messages/views/earlyRegistrationComplete.tsx の丸ごと置き換え
 add src/features/core/user/messages/views/registrationComplete.replace.{ts,tsx}  # 1 行スイッチ src/features/core/user/messages/views/registrationComplete.tsx の丸ごと置き換え

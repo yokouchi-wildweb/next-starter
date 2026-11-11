@@ -26,3 +26,17 @@ export {
   sendEmailViaTemplate,
   sendInAppNotification,
 } from "./channels";
+export type {
+  AdminBulkSendCounts,
+  AdminBulkSendInput,
+  AdminBulkSendResult,
+  AdminDeliveryRow,
+  AdminDispatchDetail,
+  AdminDispatchSummary,
+  AdminMessageChannel,
+  AdminMessageContent,
+  AdminPage,
+  ListDeliveriesQuery,
+  ListDispatchesQuery,
+  MessageBulkSendTarget,
+} from "./admin";
