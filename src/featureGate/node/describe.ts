@@ -12,6 +12,7 @@ import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
 import { sharedDomainsOpen } from "../checks/integrity.mjs";
+import { dependencyExceptions } from "../extensions/dependencyExceptions";
 import {
   configEnabled,
   isOpenedBySwitch,
@@ -167,11 +168,14 @@ export async function readRequired(root: string): Promise<Record<string, string>
   return result;
 }
 
-/** repo を読んで説明を作る(pnpm ops features list の入口) */
+/**
+ * repo を読んで説明を作る(pnpm ops features list の入口)。
+ * exceptionFiles の省略 = 受け口 dependencyExceptions/ の項目(依存の検査と同じ例外で数える。渡すのは試験で差し替えるときだけ)
+ */
 export async function readFeatureReport(
   root: string,
   rules: readonly GatedFeatureRule[],
-  exceptionFiles: readonly string[] = [],
+  exceptionFiles: readonly string[] = dependencyExceptions.map((e) => e.file),
 ): Promise<FeatureDescription[]> {
   const required = await readRequired(root);
   const dependencies = scanDependencies({
