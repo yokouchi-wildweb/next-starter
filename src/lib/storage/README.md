@@ -25,7 +25,7 @@
 4. commit: サーバーが HEAD で size・申告 MIME・generation を照合し、ready にする
    - keep の用途・画像以外の型は、照合だけで中身は検査しない
    - strip の用途の画像は、照合した世代を読んで描き直し（メタデータ全除去）、処理済みの物だけを本来の位置に書いて、受け取った原本を消す
-5. 業務行の列に `storage://` の ref を保存する。台帳との紐付けは業務保存と同じトランザクションで行う
+5. 業務行の列に `storage://` の ref を保存する。台帳との紐付けは業務保存と同じトランザクションで行う（1 つのファイルは 1 つの業務行にだけ結ぶ。多くの行が同じ画像を指す時は持ち主の行を 1 つ決める。例: お知らせの画像は回が持つ、[storageObject README](../../features/core/storageObject/README.md)「規則」）
 6. 業務行の物理削除に連動して実物を削除する。紐付かなかったもの、DB の cascade などアプリを通らずに業務行が消えたもの（照合）は、掃除 cron が消す
    - 公開の用途の実物は 1 年の immutable で配信するので、消してもブラウザ・CDN のキャッシュには残りうる（[storageObject README](../../features/core/storageObject/README.md)「規則」の「公開の用途の実物とキャッシュ」）
 

@@ -14,6 +14,9 @@ import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
 import { MessageInboxItemTable } from "../../../entities/inbox";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { boundInboxImageRefs } from "../inbox/imageBinding";
+import { cleanupDetachedInboxImages, detachInboxImages, storageInboxImageLedger } from "../inbox/imageBindingLedger";
+import { bindExpansionImage } from "./expandImage";
 import type { MessageRetentionStore, MessageSweepStore } from "./types";
 
 const IN_FLIGHT = ["queued", "sending"] as const;
@@ -58,7 +61,8 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
         .limit(1)
         .for("update", { skipLocked: true });
       if (!dispatch) return false;
-      const write = await step(dispatch);
+      // 共有のお知らせの行の画像は回に結ぶ(回の行を排他で持ったこの取引の中で)
+      const write = await bindExpansionImage(storageInboxImageLedger, tx, dispatch, await step(dispatch));
       if (write.rows.length > 0) {
         await tx
           .insert(MessageDeliveryTable)
@@ -197,30 +201,46 @@ export const drizzleMessageRetentionStore: MessageRetentionStore = {
   },
 
   async deleteDispatchesBefore(cutoff, limit) {
-    // 冪等の鍵を移してから消す(同じ文。鍵がもう移っていれば飛ばす)
-    const result = await db.execute(sql`
-      WITH expired AS (
-        SELECT d.id, d.idempotency_key FROM message_dispatches d
-        WHERE d.created_at < ${cutoff}
-          AND d.status NOT IN ('processing', 'scheduled')
-          AND NOT EXISTS (SELECT 1 FROM message_inbox_items i WHERE i.dispatch_id = d.id)
-        ORDER BY d.created_at
-        LIMIT ${limit}
-        FOR UPDATE OF d SKIP LOCKED
-      ),
-      moved AS (
-        INSERT INTO message_idempotency_keys (idempotency_key, dispatch_id)
-        SELECT idempotency_key, id FROM expired WHERE idempotency_key IS NOT NULL
-        ON CONFLICT (idempotency_key) DO NOTHING
-        RETURNING idempotency_key
-      ),
-      deleted AS (
-        DELETE FROM message_dispatches WHERE id IN (SELECT id FROM expired) RETURNING id
-      )
-      SELECT (SELECT count(*) FROM deleted)::int AS deleted, (SELECT count(*) FROM moved)::int AS moved
-    `);
-    const [row] = rowsOf<{ deleted: number | string; moved: number | string }>(result);
-    return { deleted: Number(row?.deleted ?? 0), movedKeys: Number(row?.moved ?? 0) };
+    // 1 つの取引: 消す回を排他で取る → 回に結んだお知らせの画像を台帳から外す(record_removed)→ 冪等の鍵を移す → 消す。
+    // 外した画像の実物は commit の後に消す(失敗は storage の掃除が拾う)
+    const detachedIds: string[] = [];
+    const out = await db.transaction(async (tx) => {
+      const expired = rowsOf<{ id: string; metadata: Record<string, unknown> | null }>(
+        await tx.execute(sql`
+          SELECT d.id, d.metadata FROM message_dispatches d
+          WHERE d.created_at < ${cutoff}
+            AND d.status NOT IN ('processing', 'scheduled')
+            AND NOT EXISTS (SELECT 1 FROM message_inbox_items i WHERE i.dispatch_id = d.id)
+          ORDER BY d.created_at
+          LIMIT ${limit}
+          FOR UPDATE OF d SKIP LOCKED
+        `),
+      );
+      if (expired.length === 0) return { deleted: 0, movedKeys: 0, detachedImages: 0 };
+      for (const row of expired) {
+        detachedIds.push(...(await detachInboxImages(tx, row.id, boundInboxImageRefs(row.metadata))));
+      }
+      const ids = sql.join(
+        expired.map((row) => sql`${row.id}::uuid`),
+        sql`, `,
+      );
+      const result = await tx.execute(sql`
+        WITH moved AS (
+          INSERT INTO message_idempotency_keys (idempotency_key, dispatch_id)
+          SELECT idempotency_key, id FROM message_dispatches WHERE id IN (${ids}) AND idempotency_key IS NOT NULL
+          ON CONFLICT (idempotency_key) DO NOTHING
+          RETURNING idempotency_key
+        ),
+        deleted AS (
+          DELETE FROM message_dispatches WHERE id IN (${ids}) RETURNING id
+        )
+        SELECT (SELECT count(*) FROM deleted)::int AS deleted, (SELECT count(*) FROM moved)::int AS moved
+      `);
+      const [row] = rowsOf<{ deleted: number | string; moved: number | string }>(result);
+      return { deleted: Number(row?.deleted ?? 0), movedKeys: Number(row?.moved ?? 0), detachedImages: detachedIds.length };
+    });
+    await cleanupDetachedInboxImages(detachedIds);
+    return out;
   },
 
   async deleteIdempotencyKeysBefore(cutoff, limit) {

@@ -103,6 +103,9 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - 行が ready で、ref の purpose が一致し、いまの紐付け先が移す元の行のときだけ成功する（scopeId を指定した場合はそれも一致）
   - 満たさなければ DomainError 400 を投げ、業務の TX ごと巻き戻す
 - **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
+- **お知らせの画像（messaging の受け取り箱）**: 持ち主の業務行は受け取り箱の行ではなく回（`record_type` `messaging.dispatch` / `record_id` = 回の id / `record_field` `inApp.image`、用途 `notification.image`）
+  - 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消え、messaging は serviceRegistry に無いので照合はこの種類を `unregistered` で飛ばす。受け取り箱の行は回より長生きしない
+  - 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する（照合に頼らない）。詳細 [messaging README](../messaging/README.md)「受け取り箱の画像と保存の台帳」
 - **サーバー内の書き込み**: putFromServer / copy の所有者は呼び出し側が渡す
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者
@@ -169,7 +172,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 | reason | 意味 | 確かめ方・直し方 |
 |---|---|---|
-| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める |
+| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める。`messaging.dispatch`（お知らせの画像）は意図して登録表に無い（messaging が回を消す時に自分で外す） |
 | `load_failed` | サービスの読み込みが失敗した | detail（例外のメッセージ）とサーバーのログ |
 | `unsupported` | サービスが searchWithDeleted を持たない（Firestore 版など） | 照合の対象外。必要ならそのドメインの削除の流れで detach する |
 | `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `storageObjectConfig.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |

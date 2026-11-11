@@ -262,7 +262,7 @@ test("d4: 続きを送るは 1 つの回を 1 束だけ進める", async () => {
   await assert.rejects(continueDispatch(deps, second.id), (error: unknown) => error instanceof DomainError && error.status === 409);
 });
 
-test("d5: 保持の日数で消し、お知らせが参照する回と送っている途中の回は残し、冪等の鍵を移す", async () => {
+test("d5: 保持の日数で消し、お知らせが参照する回と送っている途中の回は残し、冪等の鍵を移し、消す回に結んだ画像を外す", async () => {
   const { world, deps, sender } = setup();
   const day = 24 * 60 * 60 * 1000;
   const now = new Date("2030-01-01T00:00:00.000Z");
@@ -273,6 +273,10 @@ test("d5: 保持の日数で消し、お知らせが参照する回と送って�
   await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "d" }, idempotencyKey: "recent-key" });
   const [old, inbox, oldInFlight, recent] = world.store.dispatches;
   for (const d of [old, inbox, oldInFlight]) Object.assign(d, { createdAt: ago(731) });
+  // 回に結んだお知らせの画像(metadata.inboxImages の値)は、消す回からだけ外す
+  const IMG = (n: number) => `storage://pub/notification.image/0190a3b2-0000-7000-8000-00000000000${n}.png`;
+  Object.assign(old, { metadata: { inboxImages: { [IMG(1)]: IMG(2), "https://example.test/x.png": "https://example.test/x.png" } } });
+  Object.assign(inbox, { metadata: { inboxImages: { [IMG(3)]: IMG(3) } } });
   Object.assign(oldInFlight, { status: "processing" });
   Object.assign(recent, { createdAt: ago(100) });
   world.inboxDispatchIds.add(inbox.id);
@@ -290,6 +294,8 @@ test("d5: 保持の日数で消し、お知らせが参照する回と送って�
   assert.equal(result.deliveries, 3);
   assert.equal(result.dispatches, 1);
   assert.equal(result.movedKeys, 1);
+  assert.equal(result.detachedImages, 1);
+  assert.deepEqual(world.detachedImageRefs, [IMG(2)]);
   assert.deepEqual(world.store.dispatches.map((d) => d.id), [inbox.id, oldInFlight.id, recent.id]);
   assert.deepEqual([...world.store.movedKeys], ["old-key-1"]);
   // 移した鍵は送る口の重複の確かめに効く

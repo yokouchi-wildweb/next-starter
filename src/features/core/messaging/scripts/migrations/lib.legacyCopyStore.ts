@@ -8,6 +8,7 @@
 
 import { and, asc, eq, gt, inArray, isNull, notExists, or, sql, type SQL } from "drizzle-orm";
 
+import { StorageObjectTable } from "@/features/core/storageObject/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
 
@@ -16,6 +17,7 @@ import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTabl
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../entities/template";
 import { NotificationReadStateTable, NotificationReadTable, NotificationTable } from "../../legacy/notification";
 import { NotificationTemplateTable } from "../../legacy/notificationTemplate";
+import { INBOX_IMAGE_RECORD_FIELD, INBOX_IMAGE_RECORD_TYPE } from "../../services/server/inbox/imageBinding";
 import type { LegacyCopyCounts, LegacyCopyStore } from "./lib.legacyCopy";
 import { LEGACY_DISPATCH_SOURCE, LEGACY_TEMPLATE_KEY_PREFIX } from "./lib.legacyCopyMap";
 
@@ -29,6 +31,11 @@ const R = MessageInboxReadTable;
 const S = MessageInboxReadStateTable;
 const T = MessageTemplateTable;
 const V = MessageTemplateVersionTable;
+const SO = StorageObjectTable;
+
+/** 前のお知らせの画像の台帳の紐付け(notification のドメインの storageBindingFor("notification", [{ name: "image" }])) */
+const LEGACY_IMAGE_RECORD_TYPE = "notification";
+const LEGACY_IMAGE_RECORD_FIELD = "image";
 
 /** 1 つの INSERT に載せる行の上限(個人宛ての多い回で文が大きくなりすぎないように) */
 const INSERT_SLICE = 1000;
@@ -115,6 +122,41 @@ export const drizzleLegacyCopyStore: LegacyCopyStore = {
         await tx.insert(I).values(part).onConflictDoNothing();
       }
     });
+  },
+
+  async nextImageBindings(after, limit) {
+    return db
+      .select({ id: SO.id })
+      .from(SO)
+      .where(
+        and(
+          after ? gt(SO.id, after) : undefined,
+          eq(SO.status, "ready"),
+          eq(SO.recordType, LEGACY_IMAGE_RECORD_TYPE),
+          eq(SO.recordField, LEGACY_IMAGE_RECORD_FIELD),
+          sql`EXISTS (SELECT 1 FROM ${D} WHERE ${D.id}::text = ${SO.recordId} AND ${D.source} = ${LEGACY_DISPATCH_SOURCE})`,
+        ),
+      )
+      .orderBy(asc(SO.id))
+      .limit(limit);
+  },
+
+  async writeImageBindings(ids) {
+    if (ids.length === 0) return;
+    // 1 回きりの移行の付け替え: storageObjectService.rebind は種類(record_type)を変えないので、移行の中で条件つきの UPDATE を打つ
+    // (1 回の移しのために storage のサービスの口を広げない)。record_id は同じ(写した回の id = お知らせの id)。
+    // 条件(ready・古い種類と欄)が合う行だけ動くので何度打っても同じ。照合の images の行が数える
+    await db
+      .update(SO)
+      .set({ recordType: INBOX_IMAGE_RECORD_TYPE, recordField: INBOX_IMAGE_RECORD_FIELD })
+      .where(
+        and(
+          inArray(SO.id, [...ids]),
+          eq(SO.status, "ready"),
+          eq(SO.recordType, LEGACY_IMAGE_RECORD_TYPE),
+          eq(SO.recordField, LEGACY_IMAGE_RECORD_FIELD),
+        ),
+      );
   },
 
   async nextReads(after, limit) {
@@ -233,6 +275,7 @@ export const drizzleLegacyCopyStore: LegacyCopyStore = {
       items: line("items_source", "items_expected", "items_copied", "items_skipped"),
       reads: line("reads_source", "reads_expected", "reads_copied", "reads_skipped"),
       readStates: line("read_states_source", "read_states_source", "read_states_copied"),
+      images: line("images_source", "images_source", "images_copied"),
       dispatchFill: line("fill_expected", "fill_expected", "fill_copied"),
     };
     return counts;
@@ -250,6 +293,7 @@ function unfilledDispatchSql(): SQL {
  * - reads = 行き先のお知らせの行が写し先にある既読。skipped = 行き先の無い既読
  * - read_states = 全部。copied = 写し先の watermark が写し元以上の行
  * - fill = 古い送る口の回。copied = channel_counts を埋めた行
+ * - images = 古いお知らせの行に結ばれたままの ready の画像 + 写した回へ付け替えた ready の画像。copied = 付け替えた行
  */
 const COUNTS_SQL = sql`
 WITH recipients AS (
@@ -288,6 +332,12 @@ SELECT
   (SELECT count(*) FROM ${NS}) AS read_states_source,
   (SELECT count(*) FROM ${NS} s JOIN ${S} ns ON ns.user_id = s.user_id
      AND (s.read_watermark_at IS NULL OR ns.read_watermark_at >= s.read_watermark_at)) AS read_states_copied,
+  (SELECT count(*) FROM ${SO} so WHERE so.status = 'ready' AND so.record_type = ${LEGACY_IMAGE_RECORD_TYPE} AND so.record_field = ${LEGACY_IMAGE_RECORD_FIELD}
+     AND EXISTS (SELECT 1 FROM ${N} n WHERE n.id::text = so.record_id))
+  + (SELECT count(*) FROM ${SO} so WHERE so.status = 'ready' AND so.record_type = ${INBOX_IMAGE_RECORD_TYPE} AND so.record_field = ${INBOX_IMAGE_RECORD_FIELD}
+     AND EXISTS (SELECT 1 FROM legacy_dispatches d WHERE d.id::text = so.record_id)) AS images_source,
+  (SELECT count(*) FROM ${SO} so WHERE so.status = 'ready' AND so.record_type = ${INBOX_IMAGE_RECORD_TYPE} AND so.record_field = ${INBOX_IMAGE_RECORD_FIELD}
+     AND EXISTS (SELECT 1 FROM legacy_dispatches d WHERE d.id::text = so.record_id)) AS images_copied,
   (SELECT count(*) FROM ${D} WHERE message_key IS NULL AND source <> ${LEGACY_DISPATCH_SOURCE}) AS fill_expected,
   (SELECT count(*) FROM ${D} WHERE message_key IS NULL AND source <> ${LEGACY_DISPATCH_SOURCE} AND channel_counts IS NOT NULL) AS fill_copied
 `;

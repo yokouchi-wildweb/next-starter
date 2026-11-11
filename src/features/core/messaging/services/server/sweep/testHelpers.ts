@@ -5,6 +5,7 @@
 import type { MessageDispatch, MessageDeliveryInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import { createDeps, createMemoryStore, type MemoryStore } from "../sendMessage/testHelpers";
+import { boundInboxImageRefs } from "../inbox/imageBinding";
 import type { MessageSendDeps } from "../sendMessage/types";
 import type { MessageRetentionStore, MessageSweepDeps, MessageSweepStore } from "./types";
 
@@ -16,6 +17,8 @@ export type MemoryWorld = {
   movedKeyRows: { idempotency_key: string; dispatch_id: string; createdAt: Date }[];
   events: { id: string; createdAt: Date }[];
   inboxItems: MessageInboxItemInsert[];
+  /** 保持の掃除が回から外した画像の参照(本物は storageObjectService.detach) */
+  detachedImageRefs: string[];
 };
 
 const time = (value: Date | null | undefined) => (value ? value.getTime() : null);
@@ -26,6 +29,7 @@ export function createMemoryWorld(): MemoryWorld {
   const movedKeyRows: MemoryWorld["movedKeyRows"] = [];
   const events: MemoryWorld["events"] = [];
   const inboxItems: MessageInboxItemInsert[] = [];
+  const detachedImageRefs: string[] = [];
   const dispatches = () => store.dispatches as unknown as MessageDispatch[];
 
   const sweepStore: MessageSweepStore = {
@@ -135,7 +139,11 @@ export function createMemoryWorld(): MemoryWorld {
         limit,
       );
       let movedKeys = 0;
+      let detachedImages = 0;
       for (const d of gone) {
+        const refs = boundInboxImageRefs(d.metadata);
+        detachedImageRefs.push(...refs);
+        detachedImages += refs.length;
         if (d.idempotency_key && !store.movedKeys.has(d.idempotency_key)) {
           store.movedKeys.add(d.idempotency_key);
           movedKeyRows.push({ idempotency_key: d.idempotency_key, dispatch_id: d.id, createdAt: cutoff });
@@ -146,7 +154,7 @@ export function createMemoryWorld(): MemoryWorld {
       store.dispatches = store.dispatches.filter((d) => !ids.has(d.id));
       // 回を消すと配達の行も消える(FK CASCADE)
       store.deliveries = store.deliveries.filter((row) => !ids.has(row.dispatch_id));
-      return { deleted: gone.length, movedKeys };
+      return { deleted: gone.length, movedKeys, detachedImages };
     },
     async deleteIdempotencyKeysBefore(cutoff, limit) {
       const gone = take(movedKeyRows.filter((row) => row.createdAt < cutoff), limit);
@@ -158,7 +166,7 @@ export function createMemoryWorld(): MemoryWorld {
     },
   };
 
-  return { store, sweepStore, retentionStore, inboxDispatchIds, movedKeyRows, events, inboxItems };
+  return { store, sweepStore, retentionStore, inboxDispatchIds, movedKeyRows, events, inboxItems, detachedImageRefs };
 }
 
 export function createSweepDeps(
