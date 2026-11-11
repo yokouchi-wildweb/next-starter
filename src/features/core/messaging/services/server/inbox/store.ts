@@ -6,6 +6,7 @@ import { db } from "@/lib/drizzle";
 
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTable } from "../../../entities/inbox";
+import { inboxBeforeSql } from "./cursorSql";
 import { inboxReadSql, inboxSilentSql } from "./readState";
 import type { InboxStore } from "./types";
 import { inboxVisibilitySql } from "./visibility";
@@ -18,8 +19,7 @@ export const drizzleInboxStore: InboxStore = {
     const read = inboxReadSql(viewer.userId);
     const conditions = [inboxVisibilitySql(viewer)];
     if (before) {
-      // 生の SQL に Date を渡さない(ISO の文字列で渡す)
-      conditions.push(sql`(${I.published_at}, ${I.id}) < (${before.publishedAt.toISOString()}::timestamptz, ${before.id}::uuid)`);
+      conditions.push(inboxBeforeSql(before));
     }
     // 未読だけ(未読のモーダル)は静かな行を除く。ふつうの一覧には出す
     if (unreadOnly) conditions.push(not(read), not(inboxSilentSql()));
