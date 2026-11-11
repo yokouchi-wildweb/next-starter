@@ -1,7 +1,7 @@
 // scripts/workflow/dev-tab/dev-tab.test.ts
 //
-// 純粋な部品の単体テストと、tmux があるときだけ動く通しのテスト
-// (専用の tmux サーバー -L devtab-test-<pid> の上で、小さな HTTP サーバーを dev スクリプトとして立てて止める)。
+// 純粋な部品の単体テストと、通しのテスト(小さな HTTP サーバーを dev スクリプトとして立てて止める):
+// 裏のプロセス(AGENT_TERMINAL=none・--background)はいつも、タブは tmux があるときだけ(専用の tmux サーバー -L devtab-test-<pid>)。
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -14,15 +14,63 @@ import {
   DEV_COMMAND_PATTERN,
   ancestorPids,
   buildDevCommand,
+  decideMode,
   detectPackageManager,
   hasTmux,
+  isGroupAlive,
   isPortAnswering,
   isUnder,
+  liveState,
   pickPort,
+  procStartOf,
   readState,
   sessionSlug,
   socketFromTmuxEnv,
+  writeState,
+  type DevTabBackgroundState,
 } from "./lib";
+
+test("decideMode: --background・none・tmux が無い → 裏、名指し(--session / --socket)と tmux → タブ、--background と名指しは誤り", () => {
+  const base = { background: false, session: null, socket: null, terminal: "tmux", hasTmux: true };
+  assert.equal(decideMode(base), "tab");
+  assert.equal(decideMode({ ...base, terminal: "none" }), "background");
+  assert.equal(decideMode({ ...base, hasTmux: false }), "background");
+  assert.equal(decideMode({ ...base, background: true }), "background");
+  assert.equal(decideMode({ ...base, background: true, terminal: "none" }), "background");
+  // チームツールの呼び方(tmux の行き先の名指し)は AGENT_TERMINAL=none でもタブ
+  assert.equal(decideMode({ ...base, terminal: "none", socket: "team", session: "council-1" }), "tab");
+  assert.equal(decideMode({ ...base, terminal: "none", session: "s1" }), "tab");
+  assert.equal(decideMode({ ...base, background: true, session: "s1" }), null);
+  assert.equal(decideMode({ ...base, background: true, socket: "x" }), null);
+});
+
+test("liveState(裏): pid の開始時刻の印が記録と同じ時だけ生きている。違えば(pid の使い回し)・無ければ記録を消す", () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "devtab-live-")));
+  try {
+    const state: DevTabBackgroundState = {
+      mode: "background",
+      dir: root,
+      port: 3999,
+      pid: 4242,
+      pgid: 4242,
+      procStart: "1000",
+      log: ".agent/dev-tab.log",
+      command: "x",
+      startedAt: "2026-11-11T00:00:00Z",
+    };
+    writeState(root, state);
+    assert.deepEqual(liveState(root, () => "1000"), state);
+    assert.equal(liveState(root, () => "2000"), null);
+    assert.equal(existsSync(path.join(root, ".agent/dev-tab.json")), false);
+    writeState(root, state);
+    assert.equal(liveState(root, () => null), null);
+    assert.equal(readState(root), null);
+    // 自分のプロセスの印は読める(Linux / ps)
+    assert.ok(procStartOf(process.pid));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("pickPort: 使われていない最初のポートを返し、全部使われていれば null", async () => {
   const used = new Set([3000, 3001]);
@@ -113,7 +161,7 @@ test("通し: tmux の外から立てる → もう一度は立てない → sta
 
   const runner = path.join(import.meta.dirname, "run.ts");
   const tsx = path.resolve(import.meta.dirname, "../../../node_modules/.bin/tsx");
-  const env: NodeJS.ProcessEnv = { ...process.env, DEV_TAB_WAIT: "20" };
+  const env: NodeJS.ProcessEnv = { ...process.env, AGENT_TERMINAL: "tmux", DEV_TAB_WAIT: "20" };
   delete env.INIT_CWD;
   delete env.TMUX;
   delete env.TMUX_PANE;
@@ -162,7 +210,7 @@ test("通し: tmux の中から呼ぶと、今のセッションにタブ Dev �
 
   const tsx = path.resolve(import.meta.dirname, "../../../node_modules/.bin/tsx");
   const runner = path.join(import.meta.dirname, "run.ts");
-  const env: NodeJS.ProcessEnv = { ...process.env, DEV_TAB_WAIT: "20", TMUX: `${socketPath},1,0`, TMUX_PANE: paneId };
+  const env: NodeJS.ProcessEnv = { ...process.env, AGENT_TERMINAL: "tmux", DEV_TAB_WAIT: "20", TMUX: `${socketPath},1,0`, TMUX_PANE: paneId };
   delete env.INIT_CWD;
   const run = (...args: string[]) => spawnSync(tsx, [runner, ...args], { cwd: host, env, encoding: "utf8" });
   try {
@@ -176,4 +224,99 @@ test("通し: tmux の中から呼ぶと、今のセッションにタブ Dev �
   } finally {
     rmSync(host, { recursive: true, force: true });
   }
+});
+
+/** 裏の通し用の小さなリポ(dev = node server.js) */
+const makeServerRepo = (prefix: string): string => {
+  const repo = realpathSync(mkdtempSync(path.join(tmpdir(), prefix)));
+  writeFileSync(
+    path.join(repo, "server.js"),
+    'require("http").createServer((q, s) => s.end(process.env.APP_BASE_URL)).listen(Number(process.env.PORT));\n',
+  );
+  writeFileSync(path.join(repo, "package.json"), JSON.stringify({ name: "devtab-bg", private: true, scripts: { dev: "node server.js" } }));
+  writeFileSync(path.join(repo, "package-lock.json"), "{}\n");
+  return repo;
+};
+
+const bgRepos: string[] = [];
+after(() => {
+  for (const repo of bgRepos) {
+    const state = readState(repo);
+    if (state && state.mode === "background") {
+      try {
+        process.kill(-state.pgid, "SIGKILL");
+      } catch {
+        // もう終わっている
+      }
+    }
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+const runIn = (repo: string, env: NodeJS.ProcessEnv, ...args: string[]) =>
+  spawnSync(path.resolve(import.meta.dirname, "../../../node_modules/.bin/tsx"), [path.join(import.meta.dirname, "run.ts"), ...args], {
+    cwd: repo,
+    env,
+    encoding: "utf8",
+  });
+
+test("通し(裏): AGENT_TERMINAL=none → 裏で立てる → もう一度は立てない → status → stop(グループもポートも残らない)", async () => {
+  const repo = makeServerRepo("devtab-bg-");
+  bgRepos.push(repo);
+  const env: NodeJS.ProcessEnv = { ...process.env, AGENT_TERMINAL: "none", DEV_TAB_WAIT: "20" };
+  delete env.INIT_CWD;
+  const first = runIn(repo, env);
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /開発サーバーを立てました: http:\/\/localhost:\d+ — .*、裏のプロセス \d+\(ログ \.agent\/dev-tab\.log\)/);
+  const state = readState(repo);
+  assert.ok(state && state.mode === "background");
+  assert.equal(state.pgid, state.pid);
+  assert.equal(await isPortAnswering(state.port), true);
+  assert.equal(await fetch(`http://localhost:${state.port}/`).then((r) => r.text()), `http://localhost:${state.port}`);
+  assert.ok(existsSync(path.join(repo, ".agent/dev-tab.log")));
+
+  const again = runIn(repo, env);
+  assert.equal(again.status, 0, again.stderr);
+  assert.match(again.stdout, /もう動いています/);
+  assert.equal(readState(repo)?.mode === "background" && (readState(repo) as DevTabBackgroundState).pid, state.pid);
+
+  assert.match(runIn(repo, env, "status").stdout, /裏のプロセス \d+.*応答あり/);
+
+  const stopped = runIn(repo, env, "stop");
+  assert.equal(stopped.status, 0, stopped.stderr);
+  assert.match(stopped.stdout, /開発サーバーを止めました/);
+  assert.equal(existsSync(path.join(repo, ".agent/dev-tab.json")), false);
+  assert.equal(isGroupAlive(state.pgid), false);
+  assert.equal(await isPortAnswering(state.port), false);
+  assert.match(runIn(repo, env, "status").stdout, /動いている開発サーバーはありません/);
+});
+
+test("通し(裏): AGENT_TERMINAL=tmux でも --background なら裏。--background と --session は誤り(exit 1)", async () => {
+  const repo = makeServerRepo("devtab-bg2-");
+  bgRepos.push(repo);
+  const env: NodeJS.ProcessEnv = { ...process.env, AGENT_TERMINAL: "tmux", DEV_TAB_WAIT: "20" };
+  delete env.INIT_CWD;
+  const bad = runIn(repo, env, "--background", "--session=s1");
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /一緒に使えません/);
+  const first = runIn(repo, env, "--background");
+  assert.equal(first.status, 0, first.stderr);
+  const state = readState(repo);
+  assert.ok(state && state.mode === "background");
+  const stopped = runIn(repo, env, "stop");
+  assert.equal(stopped.status, 0, stopped.stderr);
+  assert.equal(isGroupAlive(state.pgid), false);
+});
+
+test("通し(裏): 応答する前に終わる dev は失敗(exit 1)で、記録を残さずログの終わりを見せる", () => {
+  const repo = realpathSync(mkdtempSync(path.join(tmpdir(), "devtab-bg3-")));
+  bgRepos.push(repo);
+  writeFileSync(path.join(repo, "package.json"), JSON.stringify({ name: "devtab-bg3", private: true, scripts: { dev: "node -e \"console.log('boom'); process.exit(4)\"" } }));
+  writeFileSync(path.join(repo, "package-lock.json"), "{}\n");
+  const env: NodeJS.ProcessEnv = { ...process.env, AGENT_TERMINAL: "none", DEV_TAB_WAIT: "20" };
+  delete env.INIT_CWD;
+  const r = runIn(repo, env);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /起動の途中で終わりました[\s\S]*boom/);
+  assert.equal(existsSync(path.join(repo, ".agent/dev-tab.json")), false);
 });

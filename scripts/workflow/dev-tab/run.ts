@@ -1,21 +1,26 @@
 // scripts/workflow/dev-tab/run.ts
 //
-// pnpm workflow dev-tab run [start] [--port=<n>] [--session=<name>] [--socket=<name>]
+// pnpm workflow dev-tab run [start] [--port=<n>] [--background | --session=<name> | --socket=<name>]
 // pnpm workflow dev-tab run stop
 // pnpm workflow dev-tab run status
 //
-// 終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗 / 2 = tmux が無い / 3 = 立てなかった(この道具の外で動いているサーバーがある)
+// どこで動かすか: lib.ts decideMode(--background・AGENT_TERMINAL=none・tmux が無い → 裏のプロセス、ほかはタブ)
+// 終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗 / 3 = 立てなかった(この道具の外で動いているサーバーがある)
 // 規則と使い方: scripts/workflow/dev-tab/README.md
 
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { closeSync, existsSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
+import { readAgentTerminal } from "../agent-terminal/lib.mjs";
 import {
   LAUNCH_FILE,
+  LOG_FILE,
   WINDOW_NAME,
   buildDevCommand,
   checkoutRoot,
+  decideMode,
   describeCheckout,
   describeState,
   detectPackageManager,
@@ -23,27 +28,33 @@ import {
   hasTmux,
   invocationDir,
   isPortAnswering,
+  isBackground,
+  isGroupAlive,
   isPortBound,
   liveState,
   pickPort,
+  procStartOf,
   processTree,
   removeState,
   sessionSlug,
   sleep,
   socketFromTmuxEnv,
+  stopGroup,
   tmux,
   tmuxTry,
   writeState,
-  type DevTabState,
+  type DevTabBackgroundState,
+  type DevTabTabState,
 } from "./lib";
 
 const USAGE =
-  "使い方: pnpm workflow dev-tab run [start] [--port=<n>] [--session=<name>] [--socket=<name>] | pnpm workflow dev-tab run stop | pnpm workflow dev-tab run status";
+  "使い方: pnpm workflow dev-tab run [start] [--port=<n>] [--background | --session=<name> | --socket=<name>] | pnpm workflow dev-tab run stop | pnpm workflow dev-tab run status";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     port: { type: "string" },
+    background: { type: "boolean" },
     session: { type: "string" },
     socket: { type: "string" },
   },
@@ -74,12 +85,14 @@ const socketPathOf = (name: string): string => {
 };
 
 const start = async () => {
-  if (!hasTmux()) {
-    fail(
-      "pnpm workflow dev-tab run: tmux がありません。入れてからもう一度(Debian/Ubuntu/WSL: sudo apt install tmux、macOS: brew install tmux)",
-      2,
-    );
-  }
+  const mode = decideMode({
+    background: Boolean(values.background),
+    session: values.session ?? null,
+    socket: values.socket ?? null,
+    terminal: String(readAgentTerminal(process.env)),
+    hasTmux: hasTmux(),
+  });
+  if (mode === null) fail(`pnpm workflow dev-tab run: --background と --session / --socket は一緒に使えません\n${USAGE}`);
 
   const running = liveState(root);
   if (running) {
@@ -123,6 +136,10 @@ const start = async () => {
   const launch = path.join(root, LAUNCH_FILE);
   mkdirSync(path.dirname(launch), { recursive: true });
   const quoted = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
+  if (mode === "background") {
+    await startBackground(port, command, launch, quoted);
+    return;
+  }
   writeFileSync(
     launch,
     [
@@ -167,7 +184,8 @@ const start = async () => {
   if (!socketPath || !sessionName || !windowId || !windowIndex) {
     fail(`pnpm workflow dev-tab run: tmux がタブの情報を返しませんでした(socket: ${socket ?? "既定"})。タブは開いていない可能性があります`);
   }
-  const state: DevTabState = {
+  const state: DevTabTabState = {
+    mode: "tab",
     dir: root,
     port,
     socket: socketPath,
@@ -191,6 +209,64 @@ const start = async () => {
   else console.log(`開発サーバーを起動中です(${wait} 秒で応答なし。タブを見てください): ${describeState(state)}${attachHint}`);
 };
 
+/** 裏のプロセスで立てる: 切り離したプロセスグループで起動スクリプトを動かし、出力はログへ。記録を書いて起動を待つ */
+const startBackground = async (port: number, command: string, launch: string, quoted: (s: string) => string) => {
+  writeFileSync(
+    launch,
+    [
+      "#!/usr/bin/env bash",
+      "# pnpm workflow dev-tab run が書いた起動スクリプト(裏のプロセス、scripts/workflow/dev-tab)。止めるのは pnpm workflow dev-tab run stop",
+      `cd ${quoted(root)} || exit 1`,
+      `printf '開発サーバー(裏のプロセス): %s\\n  http://localhost:%s\\n  %s\\n\\n' ${quoted(describeCheckout(root))} ${port} ${quoted(command)}`,
+      command,
+      "rc=$?",
+      `printf '\\n開発サーバーが止まりました(終了コード %s)\\n' "$rc"`,
+      "exit $rc",
+      "",
+    ].join("\n"),
+  );
+  const logPath = path.join(root, LOG_FILE);
+  const out = openSync(logPath, "w");
+  let pid: number | undefined;
+  try {
+    // detached = 新しいセッション・プロセスグループ(pgid = pid)。この道具が終わっても動き続け、止めるときはグループごと
+    const child = spawn("bash", [launch], { cwd: root, detached: true, stdio: ["ignore", out, out], env: process.env });
+    pid = child.pid;
+    child.unref();
+  } finally {
+    closeSync(out);
+  }
+  const procStart = pid ? procStartOf(pid) : null;
+  if (!pid || !procStart) fail(`pnpm workflow dev-tab run: 裏のプロセスを立てられませんでした(ログ: ${LOG_FILE})`);
+  const state: DevTabBackgroundState = {
+    mode: "background",
+    dir: root,
+    port,
+    pid: pid as number,
+    pgid: pid as number,
+    procStart: procStart as string,
+    log: LOG_FILE,
+    command,
+    startedAt: new Date().toISOString(),
+  };
+  writeState(root, state);
+
+  const wait = Number(process.env.DEV_TAB_WAIT ?? 60);
+  let up = false;
+  for (let t = 0; t < wait && !up; t += 1) {
+    up = await isPortAnswering(port);
+    if (!up && !isGroupAlive(state.pgid)) {
+      // 応答する前に終わった: 記録を消し、ログの終わりを見せて失敗にする
+      removeState(root);
+      const tail = existsSync(logPath) ? readFileSync(logPath, "utf8").trim().split("\n").slice(-5).join("\n") : "";
+      fail(`pnpm workflow dev-tab run: 開発サーバーが起動の途中で終わりました(ログ ${LOG_FILE} の終わり):\n${tail}`);
+    }
+    if (!up) await sleep(1000);
+  }
+  if (up) console.log(`開発サーバーを立てました: ${describeState(state)}`);
+  else console.log(`開発サーバーを起動中です(${wait} 秒で応答なし。ログを見てください): ${describeState(state)}`);
+};
+
 const stop = async () => {
   const state = liveState(root);
   if (!state) {
@@ -198,6 +274,14 @@ const stop = async () => {
     return;
   }
   const line = describeState(state);
+  if (isBackground(state)) {
+    const gone = await stopGroup(state.pgid, state.port, Number(process.env.DEV_TAB_STOP_WAIT ?? 10));
+    if (!gone) fail(`pnpm workflow dev-tab run: 裏のプロセスグループ ${state.pgid} が止まりませんでした(記録は残します): ${line}`);
+    if (findDevProcesses(root).length === 0) rmSync(path.join(root, ".next/dev/lock"), { force: true });
+    removeState(root);
+    console.log(`開発サーバーを止めました: ${line}`);
+    return;
+  }
   const panePid = Number(tmuxTry(state.socket, ["display-message", "-p", "-t", state.windowId, "#{pane_pid}"]));
   tmuxTry(state.socket, ["send-keys", "-t", state.windowId, "C-c"]);
   const wait = Number(process.env.DEV_TAB_STOP_WAIT ?? 10);
@@ -221,7 +305,7 @@ const status = async () => {
   const state = liveState(root);
   if (state) {
     const answering = await isPortAnswering(state.port);
-    console.log(`${describeState(state)}(${answering ? "応答あり" : "応答なし・タブを見る"})`);
+    console.log(`${describeState(state)}(${answering ? "応答あり" : isBackground(state) ? "応答なし・ログを見る" : "応答なし・タブを見る"})`);
     return;
   }
   const outside = findDevProcesses(root);

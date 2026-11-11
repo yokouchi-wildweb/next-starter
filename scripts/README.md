@@ -59,7 +59,7 @@ pnpm ops db clear [--all]                           # データを消す(閉じ�
 pnpm ops data export|import|update|delete <domain>  # 全ドメイン共通のデータ操作(operations/data/README.md)
 pnpm ops features list | set <規則名> on|off        # 機能を閉じる規則の一覧と入切
 pnpm workflow worktree new <branch> | sync | remove <path>
-pnpm workflow dev-tab run [stop|status]             # 開発サーバーを tmux のタブで
+pnpm workflow dev-tab run [stop|status]             # 開発サーバーを tmux のタブか裏のプロセスで
 pnpm workflow dev-admin run                         # 確認用の管理者を開発用 DB に用意する
 pnpm ops room init | deploy | secret | check | dev  # リアルタイムルーム(servers/room/README.md)
 pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を作る
