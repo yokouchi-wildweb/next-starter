@@ -671,6 +671,19 @@ export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Prom
 
 > optional でも、ハンドラ内の SQL が失敗すると PostgreSQL のトランザクション自体が aborted 状態になり、後続の処理（監査ログ記録等）も失敗して結局ロールバックされる（`executeCleanup` は SAVEPOINT を張らない）。DB 書き込みの失敗まで許容したい optional ハンドラは、内部の DB 操作を `tx.transaction(...)`（ネストトランザクション = SAVEPOINT）で囲むこと。
 
+## システムの連絡（登録の完了のメール）
+
+本登録の後（`registration/registerFromAuth.ts` → `sendRegistrationCompleteMail.ts`）に、`userConfig.signupMode` で連絡を選んで送る口 `messagingService.sendMessage` でメールアドレスへ送る。失敗しても登録は続く（呼び手が受けてログに出す）。一時の失敗で cron の送り直し待ち（`queued`）になったものは失敗にしない。仕組み: src/features/core/messaging/README.md「新しい送る口」。
+
+| 鍵 | 選ぶ条件 | vars |
+| --- | --- | --- |
+| `user.registrationComplete` | `signupMode` が `earlyRegistration` 以外 | `displayName`・`serviceNameShort`・`siteUrl`（`business.url`、ボタンの行き先） |
+| `user.earlyRegistrationComplete` | `signupMode` が `earlyRegistration` | `displayName`・`serviceNameShort`（ボタンなし） |
+
+- 取引の連絡（好みを見ない）。定義 `messages/<名前>.ts`、描き方 `messages/views/<名前>.tsx`（1 行スイッチ → `<名前>.default.tsx`、fork の丸ごとの差し替えは `.replace`）、共通の部品 `messages/parts/WelcomeMailView.tsx`
+- 段落の位置の約束（文言を override で直すときもこの並びを保つ。段落が欠けても描き方は落ちない）: ロゴ（事業の設定）と `paragraphs[0]` 見出しの札 → `heading` お祝いの行 → [1] お礼 → 区切り → [2] 案内 → ボタン（`cta` があれば）→ 区切り → `footer`。段落の改行はそのまま出す
+- 件名と見える文面は前のテンプレートと同じ（`pnpm test src/features/core/user/messages`）
+
 ## 外部の認証の身元から作る口（createFromProvider）
 
 新しい認証手段（fork の LINE ログインなど）で、外部の身元 `(providerType, providerUid)` から有効な利用者を引く・作る公開の口。
