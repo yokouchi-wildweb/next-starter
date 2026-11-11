@@ -451,3 +451,4 @@
 - id:20261111-072306-ship-kinds-safe-point-proposal | severity:info | checkpoint:ship-kinds-safe-point-proposal
 - id:20261111-073037-picked-notice-without-index-row | severity:action-required | checkpoint:picked-notice-without-index-row | fixes:20261105-081445-pick-ignores-shipped-index | pick:-
 - id:20261111-111325-primitives-radix | severity:action-required | checkpoint:primitives-radix
+- id:20261111-122356-district-map-requires-test-core-only | severity:info | checkpoint:district-map-requires-test-core-only | fixes:20261108-152849-config-district-map | resolves:20261110-135029-district-map-requires-test-fork-domains
