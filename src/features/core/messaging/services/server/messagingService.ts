@@ -2,6 +2,7 @@
 //
 // messaging ドメインの公開 API。本ファイルから import して使うのが基本（個別ファイル直接 import は避ける）。
 
+import { adminBulkSend, adminContinueSending, findDispatch, listDeliveries, listDispatches } from "./admin";
 import { bulkSend } from "./bulkSend";
 import { findExistingIdempotencyKeys } from "./dispatch";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
@@ -33,6 +34,14 @@ export const messagingService = {
   existingIdempotencyKeys,
   /** 1 つの回を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */
   continueSending,
+  /** 管理の一括送信(連絡 messaging.adminMessage、/api/admin/messaging/bulk-send が呼ぶ。service でも管理者を確かめる) */
+  adminBulkSend,
+  /** 管理の「続きを送る」(監査ログに 1 行) */
+  adminContinueSending,
+  /** 回の読む口(管理。D37 の DTO): 一覧・1 件・配達 */
+  listDispatches,
+  findDispatch,
+  listDeliveries,
   /** 端末の帳簿: 本人の宛先の登録・削除・一覧(/api/me/messaging/endpoints が呼ぶ) */
   registerEndpoint,
   removeEndpoint,

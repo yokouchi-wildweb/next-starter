@@ -16,6 +16,9 @@ src/features/core/messaging/
 ├── config.ts                    # 送る口の処理の値（上書き: src/config/features/messaging.config.ts）
 ├── channels/                    # 経路の受け口の上流の項目 email / inApp / line（<名前>/index.ts(x) の export const channel）
 ├── categories/                  # 配信停止の種類の受け口の上流の項目 marketing / activity
+├── enrichers/                   # 値の受け口の上流の項目 displayName（管理者の連絡の宛名）
+├── bulkSendTargets/             # 管理の一括送信の対象の受け口の上流の項目 bankTransferReview
+├── messages/                    # 連絡の定義 adminMessage（管理者の連絡）、views/ = 描き方の 1 行スイッチ、parts/ = 描き方の部品
 ├── constants/
 │   ├── channels.ts              # MESSAGING_CHANNELS（email / inApp）
 │   ├── sources.ts               # MESSAGING_SOURCES（送信経路の識別子）
@@ -47,6 +50,7 @@ src/features/core/messaging/
     ├── unsubscribe/             # ワンクリックの配信停止（署名つきトークン・停止の記録）
     ├── webhooks/                # provider の webhook の事件を記録と配達の行に当てる
     ├── inbox/                   # 受け取り箱の利用者の service（見える行・既読）
+    ├── admin/                   # 管理の一括送信・回の読む口（DTO）・続きを送る（管理者の再検査・監査）
     ├── send.ts                  # 単発送信
     ├── bulkSend.ts              # 一括送信
     ├── dispatch.ts              # message_dispatches の INSERT / UPDATE
@@ -346,6 +350,34 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 門: 規則 `messagingInbox`（`src/featureGate/rules/messagingInbox.ts`、住所 `/messages`、既定 閉）。API と表は常に開（domains は持たない）。開ける fork は `src/config/featureGate/switches.config.ts`
 
 ---
+
+## 管理の送信と回の読む口（/api/admin/messaging/**）
+
+管理者だけ（API の access `roleCategories: ["admin"]` と service の `assertAdmin` の両方。service は監査の文脈の操作者の役割の分類を引き、runAsSystem の system も通す）。機能の門は無い（常に開）。操作は監査ログに 1 行。
+
+### 管理者の連絡（連絡の定義 `messages/adminMessage.ts`、鍵 `messaging.adminMessage`）
+
+- 管理者が送るたびに書く中身を vars で渡す: `subject`・`body`（メール）・`inAppTitle`・`inAppBody`（お知らせ）・`serviceNameShort`。宛名 `{{displayName}}` は `enrichers/displayName.ts`（名前が無ければ「お客様」）。管理者の文面の中の `{{鍵}}` はまだ差し込まない（保存テンプレートの指令で）
+- 見た目は前の管理者のお知らせのメールと同じ（`views/adminMessage.tsx` → `.default.tsx`、部品 `messages/parts/AnnouncementMailView.tsx`）。段落の位置の約束: `paragraphs` [0]「… からのお知らせ」（ロゴの下）→ [1]「… 様」→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。fork は `adminMessage.replace.tsx` で管理者の連絡の見た目をまとめて替える
+- 種別の既定は marketing（種類 marketing、受信者の好みに従う）。選んだ利用者宛て（一括送信は常にそう）に限り、要求で `kind: "transactional"` を明示すると好みで止めずに送る（定義の写しの kind だけを替える。種類は marketing のまま）
+
+### `POST /api/admin/messaging/bulk-send`（一括送信）
+
+- 入力（`AdminBulkSendInputSchema`）: 宛先は `{ userIds }` か `{ target, recordIds }` のどちらか 1 つ（1 回 10,000 人まで）・`kind?`（`marketing` 既定 | `transactional`）・`channels`（`email` / `inApp` の 1 つ以上）・`email?: { subject, body }`（email を送るなら必須）・`inApp?: { title, body }`（inApp を送るなら必須）・`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`
+- 結果: `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`。大きな送信の続きは cron が送る
+- 受け口 `bulkSendTargets/<名前>.ts`（`export const bulkSendTarget: MessageBulkSendTarget`、型 `services/server/admin/types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`（選んだ記録 → 利用者 id）・`afterSend?({ recordIds, dispatchId, counts, content })`（送信の受け付けの直後に 1 回。投げても送信は戻らず結果と監査に失敗を残す）。上流の項目 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
+- 監査: `messaging.dispatch.bulkSent`（対象 = 回、metadata = 送り元・種別・経路・数・状態・対象の鍵・afterSend）
+
+### 回の読む口（D37。汎用 CRUD の search に乗せない）
+
+- `GET /api/admin/messaging/dispatches`: 条件 `from`・`to`（作った時刻）・`messageKey`・`kind`・`channel`・`status`・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）
+- `GET /api/admin/messaging/dispatches/[id]` → `AdminDispatchDetail`
+- `GET /api/admin/messaging/dispatches/[id]/deliveries`: 条件 `status`・`channel`・`cursor`・`limit` → `{ items: AdminDeliveryRow[], nextCursor }`（古い順）
+- 返す項目は `services/server/admin/dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元・状態・経路・件名 / 題（headings）・数・送った人・時刻・テストかは常に、回の本文（rendered）と vars は記録の段が vars / full のとき、配達の vars は vars / full、配達の本文は full のときだけ、宛先は出す、provider の生の値（provider_message_id・事件の payload）と last_error の文は出さない（状態と reason の符号で見る）。前の送る口の回（message_key が null）は件名・題・本文を前の列から
+
+### `POST /api/admin/messaging/dispatches/[id]/continue`（続きを送る）
+
+- `continueSending`（1 束だけ進める。processing の回だけ、他は 409）→ `{ expanded, claimed, sent, failed, completed }`。監査 `messaging.dispatch.continued`
 
 ## cron（送信の掃き出し・保持の掃除）と続きを送る
 

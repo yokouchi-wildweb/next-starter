@@ -44,6 +44,14 @@ export const extensionPoints = {
     side: "server",
     key: "key",
   },
+  // 管理の一括送信の対象: bulkSendTargets/<名前>.ts の export const bulkSendTarget(鍵・表示名・選んだ記録 → 利用者 id・送った後の処理。D42)
+  bulkSendTargets: {
+    dir: "bulkSendTargets",
+    export: "bulkSendTarget",
+    type: { from: "@/features/core/messaging/services/server/admin/types", name: "MessageBulkSendTarget" },
+    side: "server",
+    key: "key",
+  },
   // 送った後の購読: subscribers/<名前>.ts の export const subscriber(鍵・受ける事件・絞り・事件の束の処理)
   subscribers: {
     dir: "subscribers",
