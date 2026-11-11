@@ -1,6 +1,6 @@
 // usePurchaseBonuses の検査(jsdom の上でフックを動かす。生成の一覧は偽物):
 // 使う提供元の useSource が描画ごとに 1 回ずつ並びの順に呼ばれ(enabled false は呼ばない)、値が forPackage / forPurchase に届く
-// 実行: pnpm test src/features/core/wallet/hooks/usePurchaseBonuses.test.tsx
+// 実行: pnpm test src/features/core/wallet/hooks/usePurchaseBonuses.render.test.tsx
 // (tsx + node:test のモジュールモック + jsdom。type: module が無いので tsx は CJS = top-level await 不可 → before() で import)
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";

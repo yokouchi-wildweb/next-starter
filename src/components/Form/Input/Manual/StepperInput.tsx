@@ -5,23 +5,24 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { MinusIcon, PlusIcon } from "lucide-react";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
+import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { createOverridableVariants, type StepperInputSize } from "@/lib/variantOverrides";
 
-const containerVariants = cva(
+// 見た目の上書き口: src/config/ui/variants.config.ts の stepperInput({ base, size }、外枠)。既定のクラスはここ
+const CONTAINER_SIZE = {
+  xs: "h-7 text-xs",
+  s: "h-9 text-sm",
+  m: "h-10 text-base",
+  l: "h-12 text-base",
+} satisfies Record<StepperInputSize, string>;
+
+const containerVariants = createOverridableVariants(
   "inline-flex w-fit items-stretch overflow-hidden rounded-md border",
-  {
-    variants: {
-      size: {
-        xs: "h-7 text-xs",
-        s: "h-9 text-sm",
-        m: "h-10 text-base",
-        l: "h-12 text-base",
-      },
-    },
-    defaultVariants: { size: "s" },
-  },
+  { variants: { size: CONTAINER_SIZE }, defaultVariants: { size: "s" } },
+  VARIANT_OVERRIDES.stepperInput,
 );
 
 type Size = VariantProps<typeof containerVariants>["size"];

@@ -1,1 +1,1 @@
-{ "check": "check.mjs", "gates": ["ship"], "watch": ["CLAUDE.md", ".claude/rules/**", "scripts/workflow/rules/**", "src/lib/forkOwnership/lineage.mjs", "src/lib/forkOwnership/forkIds.mjs"] }
+{ "check": "check.mjs", "gates": ["ship"], "watch": ["CLAUDE.md", ".claude/rules/**", "scripts/workflow/rules/**", "src/lib/forkOwnership/lineage.mjs", "src/lib/forkOwnership/forkIds.mjs", "src/**", "scripts/**", "eslint-rules/**"] }

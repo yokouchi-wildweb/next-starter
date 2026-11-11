@@ -252,7 +252,7 @@ next/font の制約: ローダーはモジュールのトップレベルで、�
 
 ### バリアントの上書き(variants.config.ts)
 
-Button / Badge の形(角丸・影・枠線・寸法)は、core を編集せずに `src/config/ui/variants.config.ts` で差し替える。書いたクラスが cva の出力の後ろに結合され、同じプロパティは tailwind-merge で後勝ちする。各要素の `className` はさらにその後ろなので、個別指定は勝つ。
+Button / Badge・入力部品(真偽のチェック・ラジオ・カード型チェック・ステッパー・スイッチ)・TextBlocks(PageTitle / Para / SecTitle / Span)の形(角丸・影・枠線・寸法・文字)は、core を編集せずに `src/config/ui/variants.config.ts` で差し替える。書いたクラスが cva の出力の後ろに結合され、同じプロパティは tailwind-merge で後勝ちする。各要素の `className` はさらにその後ろなので、個別指定は勝つ。
 
 ```ts
 // src/config/ui/variants.config.ts
@@ -273,12 +273,18 @@ export const VARIANT_OVERRIDES = defineVariantOverrides({
 | `tabletButton` | `TabletButton` | `src/components/Form/Button/tablet-button-variants.ts` |
 | `badge.size` | `SolidBadge` / `SoftBadge` / `BookmarkTagBadge` 共通のサイズ | `src/components/Badge/badge-variants.ts` |
 | `badge.solid` / `badge.soft` / `badge.bookmarkTag` | 各バッジの `base` / `variant` | 同上 |
+| `booleanCheckbox` | `BooleanCheckboxInput` のチェックボックス(`base` / `size`) | 値の名前 = `@/lib/variantOverrides` の型(`CheckControlSize`)、既定のクラス = `src/components/Form/Input/Manual/BooleanCheckboxInput.tsx` |
+| `booleanRadioGroup` | `BooleanRadioGroupInput` の各ラジオ(`base` / `size`) | `CheckControlSize`、`BooleanRadioGroupInput.tsx` |
+| `singleCardCheckbox` | `SingleCardCheckbox` のカード(`base` / `size` / `color`。`color` は今の色 = チェック時 `checkedVariant`・未チェック時 `uncheckedVariant` のときだけ) | `CheckControlSize`・`SingleCardCheckboxColor`、`SingleCardCheckbox.tsx` |
+| `stepperInput` | `StepperInput` の外枠(`base` / `size`) | `StepperInputSize`、`StepperInput.tsx` |
+| `switchInput.track` / `switchInput.indicator` | `SwitchInput` の台(`base` / `size` / `activeColor` はオンの間・`inactiveColor` はオフの間)と丸(`base` / `size`) | `CheckControlSize`・`SwitchInputColor`、`SwitchInput.tsx` |
+| `pageTitle` / `para` / `secTitle` / `span` | 各 TextBlocks(`base` / `tone` / `size` / `weight` / `align`。`srOnly` は上書きしない) | `TextTone`・`TextSize`・`TextWeight`・`TextAlign`、`src/components/TextBlocks/textVariants.ts` |
 
-- 結合順: cva 出力 → `base` → `variant[v]` → `size[s]` → 要素の `className`
+- 結合順: cva 出力 → `base` → 軸ごと(`variant[v]` → `size[s]`、入力部品・TextBlocks は表の軸の順)→ 要素の `className`
 - 置き換えたいクラスと同じ修飾子を付ける(`hover:bg-primary/90` を変えるなら `hover:bg-primary/80`。`dark:` / `focus-visible:` も同様)
 - 色はここではなく `palette.css` のトークンで変える(トークンなら全部品に効く)。ここは形の差し替え用
-- キーと variant / size 名は upstream が維持する契約。削除・改名時は `.notices` で通知する。upstream がキーを増やしても fork の設定は追記不要
-- 仕組み: `@/lib/variantOverrides` の `createOverridableVariants(base, cvaConfig, override)`(cva と同じ引数・同じ返り値型)。新しい部品にも同じ 1 関数で配線する
+- キーと軸の値の名前は upstream が維持する契約(入力部品・TextBlocks の値の名前は `@/lib/variantOverrides` の型が持ち、部品の既定のクラスの表はそれに `satisfies` で揃える)。削除・改名時は `.notices` で通知する。upstream がキーを増やしても fork の設定は追記不要
+- 仕組み: `@/lib/variantOverrides` の `createOverridableVariants(base, cvaConfig, override)`(cva と同じ引数・同じ返り値型。cva の variants の全ての軸を解決する)。状態で効き方が変わる軸(スイッチの色・カードの色)は部品が `variantOverrideClasses(override, { 軸: 値 })` で足す。cva を持つ棚の部品は全部この口を通す(D112)
 
 ### 生パレット色の禁止(ESLint)
 
