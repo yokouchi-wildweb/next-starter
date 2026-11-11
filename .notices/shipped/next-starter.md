@@ -459,3 +459,4 @@
 - id:20261111-125200-lib-close-wave3-c | severity:action-required | checkpoint:lib-close-wave3-c
 - id:20261111-132004-lib-close-stage2-b | severity:action-required | checkpoint:lib-close-stage2-b
 - id:20261111-132214-lib-close-stage2-a | severity:action-required | checkpoint:lib-close-stage2-a | moved:src/config/app/ai-agent.config.ts -> src/lib/dbAgent/config.ts
+- id:20261111-122421-primitives-slot-wins | severity:action-required | checkpoint:primitives-slot-wins | fixes:20261111-111325-primitives-radix
