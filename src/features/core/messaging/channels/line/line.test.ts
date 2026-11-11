@@ -31,7 +31,7 @@ test("宛先へテキストを push し、誤りを分類する", async () => {
   });
   assert.deepEqual(await channel.resolveAddresses!(["u1"]), [{ userId: "u1", address: "L-u1" }]);
   const results = await channel.send(
-    ["L-u1", "L-429", "L-400", "L-net"].map((address) => ({ userId: "u1", address, idempotencyKey: "d1", content: { text: "こんにちは" } })),
+    ["L-u1", "L-429", "L-400", "L-net"].map((address) => ({ userId: "u1", address, messageKey: "shop.notice", idempotencyKey: "d1", content: { text: "こんにちは" } })),
   );
   assert.deepEqual(results.map((r) => r.kind), ["sent", "transient", "permanent", "unknown"]);
   assert.deepEqual(pushed, [["L-u1", "こんにちは"]]);

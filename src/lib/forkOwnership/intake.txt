@@ -278,7 +278,7 @@ generated src/registry/district-map.jsonl  # 生成器 district-map の出力
 generated src/wiring/dbAgent.ts  # 生成器 extensions の出力
 generated src/**/extensions/**  # 生成器 extensions の出力
 generated src/app/route-map.jsonl  # 生成器 routes の出力
-generated src/features/core/mail/constants/colors.ts  # 生成器 styles の出力
+generated src/lib/mail/generated/themeColors.ts  # 生成器 styles の出力
 # === AUTO-GENERATED intake END ===
 
 # 登録(fork entries の対の中だけ)

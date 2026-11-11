@@ -28,8 +28,8 @@ const content = { title: "題", body: "本文", link: "/x", image: "storage://im
 test("受信者ごとにお知らせの行を書き、sent を返す", async () => {
   const { channel, inserted, now } = setup();
   const results = await channel.send([
-    { userId: "u1", address: "u1", idempotencyKey: "d1", content },
-    { userId: "u2", address: "u2", idempotencyKey: "d2", content },
+    { userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content },
+    { userId: "u2", address: "u2", messageKey: "shop.notice", idempotencyKey: "d2", content },
   ]);
   assert.deepEqual(results.map((r) => r.kind), ["sent", "sent"]);
   assert.deepEqual(inserted, [
@@ -41,13 +41,13 @@ test("受信者ごとにお知らせの行を書き、sent を返す", async () 
 
 test("同じ回 × 利用者の行が既にあれば書かずに sent", async () => {
   const { channel, inserted } = setup(["dispatch-1|u1"]);
-  const results = await channel.send([{ userId: "u1", address: "u1", idempotencyKey: "d1", content }]);
+  const results = await channel.send([{ userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content }]);
   assert.equal(results[0].kind, "sent");
   assert.equal(inserted.length, 0);
 });
 
 test("配達の行が見つからない宛先は permanent", async () => {
   const { channel } = setup();
-  const [result] = await channel.send([{ userId: "u1", address: "u1", idempotencyKey: "missing", content }]);
+  const [result] = await channel.send([{ userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "missing", content }]);
   assert.equal(result.kind, "permanent");
 });

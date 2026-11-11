@@ -2,7 +2,9 @@
 //
 // メールの経路の項目を部品から作る(本物の部品は index.tsx、テストは偽物を渡す)。
 // - 宛先: users.email(自前の帳簿。端末の帳簿は使わない)
-// - 送信: 宛先ごとに既定の描き方で描き、React のフォールバックの印があれば送らず permanent(L2.1)、
+// - 描き方: 宛先の連絡の鍵で生成の一覧の messages/views/<名前>.tsx を引き、あればその EmailView、無ければ既定の描き方(view.tsx)。
+//   描き方が読めない・EmailView が無い = コードの誤り → 送らず permanent(reason render_failed)
+// - 送信: 宛先ごとに描き、React のフォールバックの印があれば送らず permanent(L2.1)、
 //   無ければ lib/mail send()(冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
 // - webhook(D36・D44): resend / sendgrid の verify(鍵は env、無ければ WebhookNotConfiguredError)+ normalize(lib/mail/webhooks)
@@ -20,6 +22,7 @@ import {
   type ChannelWebhook,
   type ChannelWebhookEvent,
   type MessageChannel,
+  type MessageKey,
 } from "@/lib/messaging";
 import {
   MailSendError,
@@ -38,9 +41,11 @@ import {
 import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
 
 import { hasRenderFallbackMarker } from "./fallback";
-import { EmailView, type EmailViewContent } from "./view";
+import { EmailView, type EmailViewComponent, type EmailViewContent } from "./view";
 
 export type EmailChannelDeps = {
+  /** 連絡の鍵 → その連絡の描き方(無ければ null = 既定の描き方)。読めない・形が違えば投げる */
+  loadView: (messageKey: MessageKey) => Promise<EmailViewComponent | null>;
   render: (element: ReactElement) => Promise<string>;
   send: (options: SendMailOptions) => Promise<SendMailResult>;
   findEmails: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
@@ -100,6 +105,12 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     webhooks: emailWebhooks(deps),
     async send(targets) {
       const results: ChannelSendResult[] = [];
+      // 束の中では連絡ごとに 1 回だけ読む
+      const views = new Map<MessageKey, Promise<EmailViewComponent | null>>();
+      const viewOf = (messageKey: MessageKey) => {
+        if (!views.has(messageKey)) views.set(messageKey, deps.loadView(messageKey));
+        return views.get(messageKey)!;
+      };
       for (const target of targets) {
         const content = target.content as EmailViewContent;
         const listUnsubscribe = target.headers?.["List-Unsubscribe"];
@@ -109,9 +120,11 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
           continue;
         }
         const unsubscribeUrl = listUnsubscribe ? listUnsubscribe.replace(/^<|>$/g, "") : undefined;
-        const element = <EmailView content={content} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
+        let element: ReactElement;
         let html: string;
         try {
+          const View = (await viewOf(target.messageKey)) ?? EmailView;
+          element = <View content={content} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
           html = await deps.render(element);
         } catch (error) {
           results.push({

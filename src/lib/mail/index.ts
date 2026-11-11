@@ -15,3 +15,5 @@ export {
 export { MailSendError, type MailSendErrorKind } from "./errors";
 export * from "./webhooks";
 export * from "./frame";
+// 色の生成物(pnpm generate styles が src/styles の palette から書く。生成区画 ./generated/)
+export { MAIL_THEME_COLORS } from "./generated/themeColors";

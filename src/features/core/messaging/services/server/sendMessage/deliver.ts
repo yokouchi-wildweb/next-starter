@@ -7,7 +7,7 @@
 //   それ以外は queued のまま next_attempt_at を広げて cron に任せ、回数が尽きたら failed
 // - 行の状態は宛先の 1 つでも sent なら sent
 
-import { ChannelError, type ChannelSendResult, type ChannelSendTarget } from "@/lib/messaging";
+import { ChannelError, type ChannelSendResult, type ChannelSendTarget, type MessageKey } from "@/lib/messaging";
 
 import type { MessageDeliveryInsert, MessageDeliveryStatus } from "../../../entities/model";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
@@ -101,6 +101,8 @@ function rowStatus(states: readonly AddressState[]): MessageDeliveryStatus | "tr
 export async function sendDeliveries(
   deps: MessageSendDeps,
   params: {
+    /** 連絡の鍵(宛先に載せる。メールの経路は連絡ごとの描き方を引く) */
+    messageKey: MessageKey;
     jobs: readonly DeliveryJob[];
     policy: RecordPolicy;
     inRequestOnly: boolean;
@@ -108,7 +110,7 @@ export async function sendDeliveries(
     category?: string;
   },
 ): Promise<DeliveryResult[]> {
-  const { jobs, policy, inRequestOnly, category } = params;
+  const { messageKey, jobs, policy, inRequestOnly, category } = params;
   const stopOf = (job: DeliveryJob, address: string) => stopFields(deps, job, address, category);
   const now = deps.now;
   const states = new Map<string, AddressState[]>();
@@ -157,6 +159,7 @@ export async function sendDeliveries(
           target: {
             userId: job.userId,
             address: state.address,
+            messageKey,
             idempotencyKey: targetKey(job, index),
             content: job.content,
             ...stopOf(job, state.address),

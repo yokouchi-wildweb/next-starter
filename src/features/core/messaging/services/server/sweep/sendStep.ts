@@ -170,6 +170,7 @@ export async function sendClaimed(
     }
 
     const results = await sendDeliveries(deps, {
+      messageKey: resolved.key,
       jobs,
       policy,
       inRequestOnly: false,

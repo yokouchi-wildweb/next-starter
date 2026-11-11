@@ -211,7 +211,7 @@ await messagingService.sendMessageToMany(campaign, {
 
 流れ:
 
-1. 生成の一覧（`messageRegistry`）の上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（誤りは 500、`enabled: false` は回を作らず `status: "disabled"`）
+1. 生成の一覧（`messageRegistry`）の上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（誤りは 500、`enabled: false` は回を作らず `status: "disabled"`）。同じ検査を一覧の全件に出荷前にかけるのが `sendMessage/messageRegistry.test.ts`（L2.2、`checkMessageRegistry`。上書きを重ねた後の定義・鍵の一致・描き方の `EmailView`）
 2. 冪等の鍵を `message_dispatches` と `message_idempotency_keys` の両方で確かめる（重複は 409。INSERT の UNIQUE 違反も 409）
 3. 回（`message_dispatches`）を 1 行書く: `message_key`・`kind`・`category`・`audience`・`record`・`headings`・`channel_counts` など
 4. 小さな送信（選んだ宛先が `smallSendMaxRecipients` 人以下）: 受信者 × 経路に展開して `message_deliveries` の行を作り、最初の束（`inRequestBatchSize` 件）を経路の受け口の項目の `send(targets)` へ渡す。残りは `queued` + `next_attempt_at` のまま cron が送る
@@ -244,9 +244,11 @@ await messagingService.sendMessageToMany(campaign, {
 
 経路の受け口（`extensionPoints.ts` の `channels`）に上流が出す 3 本。fork の経路（push・SMS など）も同じ形で `channels/<名前>.ts` に足す。項目の形: `src/lib/messaging/README.md`「受け口の項目」。
 
-- `email`（`channels/email/`）: 宛先 = `users.email`（削除済みを除く）。既定の描き方（`view.tsx`: 欄 subject・preheader・heading・paragraphs・cta・footer を lib/mail の枠と部品で、色は `MAIL_THEME_COLORS`）で描き、`lib/mail` の `send()` へ（冪等の鍵 = 配達の id）。`MailSendError` の分類（transient / permanent / unknown）をそのまま結果にし、それ以外の例外は unknown
+- `email`（`channels/email/`）: 宛先 = `users.email`（削除済みを除く）。既定の描き方（`view.tsx`: 欄 subject・preheader・heading・paragraphs・cta・footer を lib/mail の枠と部品で）で描き、`lib/mail` の `send()` へ（冪等の鍵 = 配達の id）。`MailSendError` の分類（transient / permanent / unknown）をそのまま結果にし、それ以外の例外は unknown
   - 描画結果に React の「クライアントで描き直す」印（`<!--$!-->`・`$RX`）があれば送らず permanent（`render_fallback`）。部品が描画中に投げると `@react-email/render` は投げずにほぼ空のメールを返すため（L2.1、`fallback.ts`）
-  - 連絡ごとの描き方の切り替え（`messages/views/<名前>.tsx`）はまだ届かない（経路の項目に連絡の鍵が渡らない）。連絡を移す指令で足す
+  - 連絡ごとの描き方: 送る口と cron は宛先に連絡の鍵（`messageKey`）を載せる。メールの項目はその鍵で生成の一覧（`messageRegistry`）の `view`（`messages/views/<名前>.tsx`）を引き（`loadView.ts`、束の中では連絡ごとに 1 回）、あればその `EmailView`、無ければ既定の `view.tsx` で描く。読めない・`EmailView` が無い = コードの誤り → 送らず permanent（`render_failed`）
+  - `messages/views/<名前>.tsx` の形 = 1 行スイッチ（`export { EmailView } from "./<名前>.default"`、fork の丸ごとの差し替えは `.replace`）。`EmailView` は既定と同じ props（`content` = `{{鍵}}` を差し込んだ後のメールの欄・`theme` = `MailTheme`・`unsubscribeUrl?`）を受ける（型 `EmailViewProps`、`channels/email/view.tsx`）。変数（vars）は渡さない（秘密の変数を経路に出さない。文言は欄にあるので管理画面と override で直せる）
+  - 色は `@/lib/mail` の `MAIL_THEME_COLORS`（生成物 `src/lib/mail/generated/themeColors.ts`）
 - `inApp`（`channels/inApp/`）: お知らせ = `message_inbox_items`。宛先 = 利用者の id。選んだ宛先の送信と中身が受信者に依る送信は受信者ごとの行（同じ回 × 利用者の行が既にあれば書かない）
   - 全員・ロール宛てで、お知らせの中身が受信者に依る鍵（`recipientName`・`recipientEmail`・enrichers の鍵など）を使わない送信は、cron の展開の最初の束で回に 1 行の共有の行（`user_id` null、`target_roles` = ロールか null）を書き、受信者ごとの inApp の配達の行は作らない（D32）。数は束ごとに `channel_counts.inApp` の targeted・sent へ足す
   - 受け取り箱の利用者の API・既読・画面は受け取り箱の指令

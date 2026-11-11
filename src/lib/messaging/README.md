@@ -98,6 +98,9 @@ export const messageOverride = {
 - 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/features/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
 - 項目 `MessageRegistryEntry` = `{ key, definition, override?, view? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`、`view` = `messages/views/<名前>.tsx` の 1 行スイッチ)
 - 定義の無い `views/<名前>.tsx` は止まる。ファイル名は英小文字始まりの camelCase(点や印は付けない)
+- `views/<名前>.tsx` の形 = `MessageEmailViewModule`(`export { EmailView }` の 1 行スイッチ)。`EmailView` の props = `MessageEmailViewProps<色の型>`(`content` = `{{鍵}}` を差し込んだ後のメールの欄 `EmailFields`・`theme`・`unsubscribeUrl?`)。変数(vars)は渡さない。色の型はメールの部品の lib が決める(この lib は React とメールの部品に依らない)。一覧の型がこの形を求めるので、形の合わない描き方は tsc で止まる
+- メールの経路は宛先 `ChannelSendTarget` の `messageKey` で一覧の `view` を引く(無ければ経路の既定の描き方)
+- 全件の検査(L2.2): `src/features/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致と描き方の `EmailView` を確かめる(`checkMessageRegistry`)
 - 生成は字面だけを読み、定義を実行しない。欄・`{{鍵}}` などの値は送る口が `validateMessageDefinition` で見る
 
 ## 定義の読み手の検査(validateMessageDefinition)
@@ -116,7 +119,7 @@ export const messageOverride = {
 
 ドメイン messaging の受け口(`src/features/core/messaging/extensionPoints.ts`、表は `src/features/core/messaging/README.md`「受け口」)に置く項目の型。
 
-- `MessageChannel`(経路): `key`・`label`・`addressing`(`user` = 利用者から引く / `address` = 宛先を直に)・`enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。門の機能ではない)・`fields`(経路の欄の zod)・`contentFrom?`(他の経路の欄から中身を作る宣言)・`resolveAddresses?`(既定は端末の帳簿)・`send(宛先の束)`(宛先 `ChannelSendTarget` = `userId`・`address`・`idempotencyKey`・`content`、好みに従う連絡だけ `category`(配信停止の種類)と送る側が付ける `headers`(List-Unsubscribe など))→ 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)・`webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ + 送る時にタグで渡した配達の id `deliveryId?`)
+- `MessageChannel`(経路): `key`・`label`・`addressing`(`user` = 利用者から引く / `address` = 宛先を直に)・`enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。門の機能ではない)・`fields`(経路の欄の zod)・`contentFrom?`(他の経路の欄から中身を作る宣言)・`resolveAddresses?`(既定は端末の帳簿)・`send(宛先の束)`(宛先 `ChannelSendTarget` = `userId`・`address`・`messageKey`(連絡の鍵。メールの経路は連絡ごとの描き方を引く)・`idempotencyKey`・`content`、好みに従う連絡だけ `category`(配信停止の種類)と送る側が付ける `headers`(List-Unsubscribe など))→ 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)・`webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ + 送る時にタグで渡した配達の id `deliveryId?`)
 - `MessageEnricher`(値): `key`・`messages`(`"*"` か連絡の鍵の配列)・`provides`(足す変数の zod)・`resolve(文脈)`
 - `MessageCategory`(配信停止の種類): `key`・`label`・`description?`・`kind`(`marketing` | `activity`。取引は好みを見ないので種類を持たない)
 - `MessageAudience`(宛先の集め方): `key`・`label`・`args`(zod)・`resolveUserIds(args, cursor)` → `{ userIds, nextCursor }`(keyset、`null` で終わり)

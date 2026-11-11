@@ -23,6 +23,8 @@ export type ChannelAddress = {
 
 /** 経路へ渡す 1 宛先分の送信 */
 export type ChannelSendTarget = ChannelAddress & {
+  /** 連絡の鍵(<ドメイン>.<名前>)。メールの経路はこれで生成の一覧の描き方(messages/views)を引く */
+  messageKey: MessageKey;
   /** 宛先まで含む冪等の鍵(provider の冪等の鍵に渡す) */
   idempotencyKey: string;
   /** その宛先へ描いた中身(経路の欄の値。{{鍵}} は差し込み済み) */

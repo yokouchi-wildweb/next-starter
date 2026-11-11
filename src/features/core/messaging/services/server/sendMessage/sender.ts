@@ -309,6 +309,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     }
 
     const results = await sendDeliveries(deps, {
+      messageKey: resolved.key,
       jobs,
       policy,
       inRequestOnly: policy.noBody,

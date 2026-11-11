@@ -11,6 +11,7 @@ export {
   type UpstreamChannelFields,
 } from "./definition/channels";
 export { createDefineMessage, defineMessage } from "./definition/defineMessage";
+export type { EmailFields, MessageEmailViewModule, MessageEmailViewProps } from "./definition/emailView";
 export { isSecretVar, listSecretVarKeys, secretVar } from "./definition/secret";
 export { extensionPoints } from "./extensionPoints";
 export {

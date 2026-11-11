@@ -12,10 +12,8 @@ import {
 } from "@react-email/components";
 
 import { business } from "@/business";
-import { createMailTemplate } from "@/lib/mail";
+import { MAIL_THEME_COLORS, createMailTemplate } from "@/lib/mail";
 import { logoPath } from "@/utils/assets";
-
-import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
 
 export type RegistrationCompleteEmailProps = {
   displayName: string;

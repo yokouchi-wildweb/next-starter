@@ -6,6 +6,7 @@
 import type { z } from "zod";
 
 import type { ChannelFieldSchemas } from "./channels";
+import type { MessageEmailViewModule } from "./emailView";
 import type { MessageDefinition, MessageKey, MessageOverride } from "./types";
 
 /** 定義のモジュール(messages/<名前>.ts の export const message) */
@@ -24,8 +25,8 @@ export type MessageRegistryEntry = {
   definition: () => Promise<MessageDefinitionModule>;
   /** 隣の <名前>.override.ts(fork が置いたときだけ) */
   override?: () => Promise<MessageOverrideModule>;
-  /** messages/views/<名前>.tsx(メールの描き方の 1 行スイッチ。形は送る口が決める) */
-  view?: () => Promise<Record<string, unknown>>;
+  /** messages/views/<名前>.tsx(メールの描き方の 1 行スイッチ。形 = MessageEmailViewModule: export する EmailView) */
+  view?: () => Promise<MessageEmailViewModule>;
 };
 
 /** 連絡の一覧(鍵 → 項目) */
