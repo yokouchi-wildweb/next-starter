@@ -42,7 +42,7 @@ export const RegistrationSchema = z.object({
   name: UserNameSchema,
   idToken: IdTokenSchema,
   password: PasswordSchema.optional(),
-  /** ロール（指定がない場合は app-features.config の defaultRole を使用） */
+  /** ロール（指定がない場合は authConfig の defaultRole を使用） */
   role: z.string().optional(),
   /** ロール別プロフィールデータ（hasProfile: true のロールの場合） */
   profileData: z.record(z.unknown()).optional(),

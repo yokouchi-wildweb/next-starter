@@ -78,7 +78,7 @@ export const featureRequirements = [
 
 | ファイル | 読み手 |
 |---|---|
-| `app/app-features.config.ts` | auth・user の `config.ts`、`lib/dataMigration`・`lib/routeFactory`(reCAPTCHA の閾値)、`src/proxies/inviteLink.ts` |
+| `app/app-features.config.ts` | `lib/routeFactory`(reCAPTCHA の閾値)・`lib/dataMigration`(maxRecordLimit) |
 | `app/gradients.config.ts` | `lib/gradient`、`pnpm generate styles`(`src/styles/gradient.css`) |
 | `app/screens.config.ts` | `lib/screens` の構造の検査(fork 所有の除外 `FORK_SCAN_EXCLUDES`) |
 | `app/storage.config.ts` | `lib/storage`、`storageObject` |

@@ -1,7 +1,6 @@
 import { isDevelopment } from "@/lib/appEnv";
 import type { NextRequest, NextResponse } from 'next/server';
 
-import { APP_FEATURES } from '@/config/app/app-features.config';
 import {
   INVITE_LINK_COOKIE_MAX_AGE_DAYS,
   INVITE_LINK_COOKIE_NAME,

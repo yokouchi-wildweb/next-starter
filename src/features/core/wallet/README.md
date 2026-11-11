@@ -182,8 +182,8 @@ const result = await walletService.adjustBalance(
 管理画面からの残高変更（`POST /api/admin/wallet/[userId]/adjust`）時と一括付与（`pnpm task wallet:bulk-grant` の notify）時に、ユーザーの受け取り箱へ知らせ（連絡 `wallet.adjustmentNotice`、お知らせ = inApp）を送れる。管理画面の操作は操作タイプ別にフラグで制御:
 
 ```typescript
-// app-features.config.ts
-wallet: {
+// src/features/core/wallet/config.ts の既定(fork は src/config/features/wallet.config.ts で上書き)
+{
   notifyOnAdjust: {
     increment: false,  // 増加時に通知
     decrement: false,  // 減少時に通知

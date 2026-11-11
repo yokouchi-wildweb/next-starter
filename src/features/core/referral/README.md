@@ -4,7 +4,7 @@
 
 招待コードの発行・使用は **coupon ドメイン**（type=invite）を利用し、本ドメインは紹介「関係」の管理に特化する。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/referral.ts`、`APP_FEATURES.marketing.referral.enabled`)。表 `referrals`・`referral_rewards` も閉じる(features)。前提 `requires: ["coupon"]`。閉じたときの呼び手: 招待コードのカテゴリをクーポンに登録しない(`registerReferralCouponHandler`)・登録画面の招待コードの欄を描かない・紹介の集計(analytics)は 0・招待クーポンの管理画面 `/admin/coupons/invite` は 404。
+閉じられる機能(門番の規則 `src/featureGate/rules/referral.ts`、上流の既定は閉。fork が開けるのは `pnpm ops features set referral on`)。表 `referrals`・`referral_rewards` も閉じる(features)。前提 `requires: ["coupon"]`。閉じたときの呼び手: 招待コードのカテゴリをクーポンに登録しない(`registerReferralCouponHandler`)・登録画面の招待コードの欄を描かない・紹介の集計(analytics)は 0・招待クーポンの管理画面 `/admin/coupons/invite` は 404。
 
 ---
 
@@ -82,7 +82,7 @@
 ## サインアップフロー統合
 
 - `RegistrationSchema` に `inviteCode`（optional）を追加
-- Email / OAuth 両登録フォームに招待コード入力欄（`APP_FEATURES.marketing.referral.enabled` で表示制御）。
+- Email / OAuth 両登録フォームに招待コード入力欄（機能 `referral` の入切で表示制御）。
   実体は auth `components/Registration/InviteCodeField.tsx`（共用部品）
 - **「適用」ボタンによる明示的検証**（購入ページのクーポン欄 wallet `CouponInput` と同じ操作モデル。入力中の自動通信はしない）:
   入力欄 + 「適用」（Enter でも可）→ `POST /api/referral/validate-invite-code` → 有効なら緑の枠に「コード + 有効な招待コードです」と「取り消す」、
@@ -97,7 +97,7 @@
   last-touch 優先で上書き）にコードが保持され、登録フォームの招待コード欄へプリフィルされる。
   フォーム未指定（undefined）なら本登録時にフォールバック適用、プリフィルを消して送信したら
   明示的拒否（`""`）として適用しない（手入力が常に優先）。登録完了時に cookie は削除される。
-  ゲートは `APP_FEATURES.marketing.referral.enabled` のみ（流入経路解析の記録の opt-in とは独立。
+  ゲートは機能 `referral` の入切のみ（流入経路解析の記録の opt-in とは独立。
   解析も有効なら紹介流入が獲得チャンネルとしても集計される）。
   パラメータ名 `INVITE_LINK_PARAM`（`"invite"`、`lib/inviteLinkCookie.ts`）は本ドメインの物。userAcquisition は
   その名前を判別表の行（`userAcquisition/channels/invite.ts`、紹介が閉じている間は出ない）として分類と GA4 に使うだけ。
@@ -119,7 +119,7 @@
 
 ## フィーチャーフラグ
 
-`APP_FEATURES.marketing.referral.enabled`（デフォルト: `false`）
+門番の規則 `referral`（上流の既定: 閉、依存先 `coupon`）。fork の値は `src/config/featureGate/switches.config.ts`
 
 制御対象:
 - 登録フォームの招待コード入力欄表示
@@ -148,4 +148,4 @@
 - クライアント: `services/client/*`, `hooks/*`
 - UI: `components/InviteCode/*`, `components/AdminInviteList/*`
 - ページ: `app/(user)/(protected)/mypage/invite/page.tsx`, `app/admin/(protected)/coupons/invite/page.tsx`
-- 設定: `config/app/app-features.config.ts`（marketing.referral.enabled）
+- 入切: 門番の規則 `src/featureGate/rules/referral.ts`（住所と表も一緒に閉じる）

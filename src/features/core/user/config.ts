@@ -1,7 +1,7 @@
 // src/features/core/user/config.ts
 // 利用者の設定(既定 + 上書き)。上書きは src/config/features/user.config.ts(このファイルだけが読む)。
 // 置き方: src/config/README.md。合成: @/lib/defineConfig。fork 独自の鍵は上書きで `export type Extra = { <鍵>: <型> }` を宣言して値を書く
-// 休会・退会・ユーザータグの入切は src/config/app/app-features.config.ts(門番の議会が移す)
+// 休会・退会の入切は門番の規則 pause・withdraw(処理は core/accountLifecycle)。ユーザータグは常に開(規則も切り替えも無い、設定 D64)
 
 import override, { type Extra } from "@/config/features/user.config";
 import { defineConfig, type OverrideOf, type WithExtra } from "@/lib/defineConfig";
