@@ -3,7 +3,7 @@
 // 1. README の data-slot の一覧 = 管理の枠の部品(admin/_layout・(protected)/_layout)の要素に付く data-slot(両方向)。
 //    一覧 = 部位の一覧(src/app/_layout/frame/parts.mjs の管理の枠)、shadcn の部品の data-slot と衝突しない、data-frame-part は残っていない
 // 2. 外枠(AdminLayout)は管理の表を共通の読み手 useFrameAttributes に渡し、当たった行の属性が初回の静的描画に入る
-// 3. fill の的: 本文の直接の親 [data-admin-main-wrapper] が (protected) にある
+// 3. fill の的: 本文の直接の親 [data-slot="admin-main"] が (protected) にある
 // 読み手の行の選び方は src/app/_layout/frame/useFrameAttributes.test.tsx、frame.css の規則と部位の一覧は src/app/_layout/frame のテスト
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
@@ -105,12 +105,11 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景�
   ] as const) {
     assert.equal(count(file), n, `${file} の admin-sidebar`);
   }
-  // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない。
-  // id はサイドバーを差し替えた fork 向けの橋渡し
+  // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない
   for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx"]) {
     const toggle = /<div data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/div>/.exec(read(file));
     assert.ok(toggle, `${file}: 開閉ボタンが admin-sidebar の包みの直下に無い`);
-    assert.ok(toggle[1].includes('id="admin-sidebar-toggle"'), `${file} の開閉ボタンの id`);
+    assert.equal(toggle[1].includes("id="), false, `${file}: 開閉ボタンに見た目のための id が残っている(狙う先は包みの data-slot)`);
     assert.equal(toggle[1].includes("data-slot"), false, `${file}: Button の data-slot を上書きしている`);
   }
 });
@@ -150,7 +149,7 @@ test("上流は管理の枠の宣言を持たない(表は空。Tier1 だけ: fo
 
 test("AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) にある", () => {
   assert.equal(read("src/app/admin/_layout/AdminPage.tsx").includes("fill?:"), false);
-  assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper'));
+  assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('<div data-slot="admin-main" className="flex-1">'));
 });
 
 // ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 17) ----

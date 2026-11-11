@@ -42,10 +42,9 @@ export function AdminProtectedLayout({ children, sidebar, footer }: AdminProtect
       </ResizableArea>
       {sidebar === null ? null : (
         // SP の開閉ボタン。Form/Button は自分の data-slot(button)を持つので上書きせず、箱を作らない(display: contents)包みに
-        // 部位の印 admin-sidebar を付ける(frame.css が隠す)。id はサイドバーを差し替えた fork 向けの橋渡し(frame.css)
+        // 部位の印 admin-sidebar を付ける(frame.css が隠す)
         <div data-slot="admin-sidebar" className="contents">
           <Button
-            id="admin-sidebar-toggle"
             type="button"
             variant="accent"
             size="icon"

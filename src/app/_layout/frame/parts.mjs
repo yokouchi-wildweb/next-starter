@@ -4,7 +4,7 @@
 // 名前 = 枠の部位に付ける data-slot の値(余白の議会 D12・D20 の一覧、31 名)。部位の印は data-slot だけ(隠す CSS src/styles/core/frame.css も
 // [data-slot="<部位>"] を読む)。利用者の枠は接頭辞なし、管理の枠は admin-。
 // 隠せる部位(hideable)だけが frame.ts の hide に書ける。hideSlots = その部位を隠す data-slot の名前(隠す CSS src/styles/core/frame.css は
-// これだけで隠せる。今は全部が部位の名前 1 つ: 包み(display: contents)やスペーサーも同じ名前を持つ)。CSS の id は一時の橋(frame.css の説明)。
+// これだけで隠せる。今は全部が部位の名前 1 つ: 包み(display: contents)やスペーサーも同じ名前を持つ)。枠の部品は見た目のための id を持たない(狙う先は data-slot だけ)。
 // 宣言のキー = 名前から枠の接頭辞を除いた camelCase(admin の header → admin-header)。
 // 見出しの名前(area "heading")は見出しの部品が付ける(source = その印を描く部品のファイル。描いた印と一覧の照合は
 // src/components/TextBlocks/headingSlots.test.tsx、枠の中の source は各枠の照合にも入る)。見出しの印も約束: 消す・名前を変えるのは notice。書式と仕組み: ./README.md

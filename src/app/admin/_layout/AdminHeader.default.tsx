@@ -8,7 +8,6 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 import { Link } from "@/components/Navigation";
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
-import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { AppImage } from "@/components/Media/AppImage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { business } from "@/business";
@@ -45,7 +44,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
   const { isAuthenticated } = useAuthSession();
 
   return (
-    <header id={APP_HEADER_ELEMENT_ID} data-slot="admin-header" className={cn(headerContainer(), className)}>
+    <header data-slot="admin-header" className={cn(headerContainer(), className)}>
       {/* 左側: ロゴ */}
       <Link href="/admin" className="block shrink-0 p-1 sm:p-2" prefetch={isAuthenticated}>
         {/* 箱の大きさは画像の読み込みの前から決める(高さ h-6 / sm:h-12 + 上流のロゴ素材の縦横比 300:61 → SP 24×118 / PC 48×236)。

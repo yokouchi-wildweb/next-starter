@@ -2,7 +2,6 @@
 
 import { cva } from "class-variance-authority";
 
-import { APP_FOOTER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { cn } from "@/lib/cn";
 import { business } from "@/business";
 
@@ -15,7 +14,7 @@ export function Footer() {
   const footerText = `© ${year} ${business.serviceName}`;
 
   return (
-    <footer id={APP_FOOTER_ELEMENT_ID} data-slot="admin-footer" className={cn(footerContainer())}>
+    <footer data-slot="admin-footer" className={cn(footerContainer())}>
       {footerText}
     </footer>
   );

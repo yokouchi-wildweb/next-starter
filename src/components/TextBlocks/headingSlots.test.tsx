@@ -43,7 +43,8 @@ test("描いた見出しの印の集まり = 部位の一覧の見出し 5 つ",
 
 test("UserPageTitle: 外側の header に user-page-title、中の h1 に page-title。srOnly では外側が無く page-title だけ", () => {
   const html = render(createElement(UserPageTitle, null, "題"));
-  assert.match(html, /^<header[^>]*data-slot="user-page-title"[^>]*id="page-title"|^<header[^>]*id="page-title"[^>]*data-slot="user-page-title"/);
+  assert.match(html, /^<header[^>]*data-slot="user-page-title"/);
+  assert.equal(html.includes('id="page-title"'), false, "見た目のための id は外した(指令 08。狙う先は data-slot)");
   assert.deepEqual(slotsOf(html), ["user-page-title", "page-title"]);
   const sr = render(createElement(UserPageTitle, { srOnly: true }, "題"));
   assert.deepEqual(slotsOf(sr), ["page-title"]);

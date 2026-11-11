@@ -33,7 +33,6 @@ src/app/admin/(protected)/_layout/      # admin/(protected)/layout.tsx の枠
 まだ `src/components/AppFrames/` に残っている物(後の区切りで扱う):
 
 - `Admin/Elements/`(ListTop・SearchBox・SortSelect・SecTitle・SelectFilter・ItemNavigator): features の画面部品から使われるので、共有部品の棚を決める区切りで一緒に動かす(ダッシュボードだけが使う DeveloperMotivationChart は `src/features/core/admin/dashboard/components/parts/` へ移動済み)
-- `AppFrames/constants.ts`(ヘッダー・フッターの要素 ID と受け口の ID): useHeaderHeight の汎用化と一緒に後で動かす
 
 ## 所有
 
@@ -48,7 +47,7 @@ src/app/admin/(protected)/_layout/      # admin/(protected)/layout.tsx の枠
 
 - AdminLayout はヘッダーを描かない器(props は children・className だけ。`className`: 外枠に足すクラス名)。ヘッダーの行は各ページの AdminPage が描く
 - ヘッダーの行を丸ごと差し替える口 = 1 行スイッチ(既存の `.default` / `.replace` の仕組み、新しい仕組みは作らない D171): 上流は `AdminHeader.default.tsx`(部品)と、それを指す re-export 1 文の `AdminHeader.tsx` を出す。fork は隣に `AdminHeader.replace.tsx` を置き、`AdminHeader.tsx` の 1 行をそちらへ向ける(検査: `pnpm check extensions`・`pnpm test src/lib/screens/screens.test.mjs`)
-- 差し替えの約束: 名前 `AdminHeader`、props `{ title?, center?, actions?, className? }`(className = AdminPage が渡す置き方のクラス。`<header>` に付ける)。部位の印は `data-slot`(下の一覧)と `id="header"`(高さの測定・枠の宣言の橋)を残す
+- 差し替えの約束: 名前 `AdminHeader`、props `{ title?, center?, actions?, className? }`(className = AdminPage が渡す置き方のクラス。`<header>` に付ける)。部位の印は `data-slot`(下の一覧。高さの測定 useHeaderHeight と枠の宣言の隠す CSS もこの印で読む)を残す
 - fork が `admin/layout.tsx` を丸ごと置き換えるときは `_layout/AdminLayout.replace.tsx` へ向ける(器の作りを変えたいとき)
 
 ```tsx
@@ -57,7 +56,7 @@ src/app/admin/(protected)/_layout/      # admin/(protected)/layout.tsx の枠
 import type { AdminHeaderProps } from "./AdminHeader.default";
 
 export function AdminHeader({ title, center, actions, className }: AdminHeaderProps) {
-  return <header id="header" data-slot="admin-header" className={className}>{/* ロゴ・title・center・actions … */}</header>;
+  return <header data-slot="admin-header" className={className}>{/* ロゴ・title・center・actions … */}</header>;
 }
 // src/app/admin/_layout/AdminHeader.tsx: export { AdminHeader, type AdminHeaderProps } from "./AdminHeader.replace";
 ```
@@ -86,23 +85,23 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 
 - ページ・ルートの隣の枠の宣言(ルートを作ったリポ = 隣の `frame.ts` の `frame` / 下のリポ = `frame.override.ts` の `override`、型 `AdminFrameDeclaration`)に、隠す部位(`header`・`sidebar`・`footer` × `sp` / `pc`)と `fill` を書く。書式・重ねる順・生成する表: [src/app/_layout/frame/README.md](../../_layout/frame/README.md)
 - 仕組み: `pnpm generate extensions` が `extensions/frameTable.ts` を作り、AdminLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠の属性 `data-frame-root` + `data-frame-hide="admin-<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書き、`:has()` なし)がその属性で部位を `display: none` にする。部品はアンマウントしない
-- 部位の印 = 要素の `data-slot`(下の「data-slot の一覧」)。frame.css は `[data-slot="admin-<部位>"]` と id(`#header`・`#footer`・`#admin-sidebar-toggle`。部品を差し替えた fork 向けの一時の橋渡し)を狙う。ヘッダー・フッターを差し替えるときは id を残すか同じ data-slot を付ける
-- fill: 外枠は前から確定高さ。`[data-admin-main-wrapper]`(ResizableArea の本文の直接の親)を flex-col + min-height:0 の束縛モードにし、直下のページの本文 `#main`(AdminPage の Main)を flex-1 min-h-0 の flex-col + 余白トークン(`--admin-page-padding-inline` / `--admin-page-padding-block`)にする。前の `<AdminPage fill>` と同じ見た目。fill の子は `h-full min-h-0 overflow-y-auto` で内部スクロールする
+- 部位の印 = 要素の `data-slot`(下の「data-slot の一覧」)。frame.css は `[data-slot="admin-<部位>"]` だけを狙う(id では狙わない)。ヘッダー・フッターを差し替えるときは同じ data-slot を付ける
+- fill: 外枠は前から確定高さ。`[data-slot="admin-main"]`(ResizableArea の本文の直接の親)を flex-col + min-height:0 の束縛モードにし、直下のページの本文 `[data-slot="main"]`(AdminPage の Main)を flex-1 min-h-0 の flex-col + 余白トークン(`--admin-page-padding-inline` / `--admin-page-padding-block`)にする。前の `<AdminPage fill>` と同じ見た目。fill の子は `h-full min-h-0 overflow-y-auto` で内部スクロールする
 - 上流の管理のページは宣言を持たない(表は空)。端末の境界は 40rem(枠の宣言の約束。サイドバーの PC / SP の切り替えは md だが、隠すのは印の付いた物の全部)
 - 以前: `<AdminPage fill>` が本文に `data-admin-fill` を出し、`config.css` の `[data-admin-main-wrapper]:has([data-admin-fill])` が親を切り替えていた。共有の棚の評議会(計画書 02)で子から親を変える `:has()` をやめ、利用者の枠と同じ宣言 + 外枠の属性にした
 
 ## data-slot の一覧
 
-管理の枠の部位に付ける `data-slot`(余白の議会の一覧の管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)と、この枠の部品が描く見出しの印 `admin-page-title`(一覧の見出しのうち source がこのフォルダのもの)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。今の id(`#header`・`#footer`)と `data-admin-main-wrapper` は今どおり残す(ヘッダーの題・中央・右の位置に id は無い)。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
+管理の枠の部位に付ける `data-slot`(余白の議会の一覧の管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)と、この枠の部品が描く見出しの印 `admin-page-title`(一覧の見出しのうち source がこのフォルダのもの)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。枠の部品は見た目のための id・`data-admin-main-wrapper` を持たない(狙う先は data-slot だけ)。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
 
 - `admin-app-container` — AdminLayout の外枠(枠の根 `data-frame-root`)
-- `admin-header` — AdminHeader(AdminPage の行)の `<header id="header">`
+- `admin-header` — AdminHeader(AdminPage の行)の `<header>`
 - `admin-header-title` — AdminHeader のタイトルの位置(ロゴの右隣)
 - `admin-header-center` — AdminHeader の中央の位置
 - `admin-header-right` — AdminHeader の右の位置(明暗の切り替えの前)
-- `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ・SP の開閉ボタンの包み(AdminProtectedLayout)。開閉ボタンは Form/Button が自分の `data-slot="button"` を持つので上書きせず、箱を作らない包み(`display: contents`)が印を持つ。ボタンの `id="admin-sidebar-toggle"` はサイドバーを差し替えた fork 向けの一時の橋渡し(frame.css)
-- `admin-main` — ResizableArea の本文の親 `[data-admin-main-wrapper]`
-- `admin-footer` — (protected) の Footer の `<footer id="footer">`
+- `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景・ResizableArea のリサイズのつまみ・SP の開閉ボタンの包み(AdminProtectedLayout)。開閉ボタンは Form/Button が自分の `data-slot="button"` を持つので上書きせず、箱を作らない包み(`display: contents`)が印を持つ。ボタンは id を持たない
+- `admin-main` — ResizableArea の本文の親(管理の fill の的)
+- `admin-footer` — (protected) の Footer の `<footer>`
 - `admin-page-title` — AdminPageTitle.tsx のページの題の h1(AdminPageTitleHeading、AdminPage の title の本文側 AdminPageTitleBody)。TextBlocks/PageTitle に `slot="admin-page-title"` を渡して付ける(照合はその字面と `src/components/TextBlocks/headingSlots.test.tsx` の描画)。sm 以上の `sm:sr-only` でも印は残る。ヘッダーの圧縮の題 AdminPageTitleCompact には付けない(見出しではない飾りの文字)。消す・名前を変えるのは notice
 
 ## store

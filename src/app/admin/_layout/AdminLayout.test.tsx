@@ -106,6 +106,14 @@ const BEFORE_PAGE = `<main data-component="Main" id="main" class="max-w-screen o
 /** `<PageTitle>T</PageTitle>`(当時の既定 = page)/ `<PageTitle placement="header">T</PageTitle>`(SSR では AdminHeaderPortal は何も描かない) */
 const BEFORE_TITLE_PAGE = `<h1 class="tracking-tight text-2xl font-normal text-left relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] mb-8 sm:text-3xl">T</h1>`;
 const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text-left relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] mb-8 sm:text-3xl sm:hidden">T</h1>`;
+/**
+ * 古い目印を外す区切り(余白の議会 N4、指令 08)で既定の DOM から消えた属性: 行の id="header"・フッターの id="footer"・
+ * 本文の親の data-admin-main-wrapper(fill の的は data-slot="admin-main")・Main の id="main" と data-component="Main"。class・並びは不変
+ */
+const withoutLegacyMarks = (html: string) =>
+  html.replace(/ id="(?:header|footer|main)"/g, "").replace(/ data-component="Main"/g, "").replace(/ data-admin-main-wrapper="true"/g, "");
+const PROTECTED = withoutLegacyMarks(BEFORE_PROTECTED);
+const PAGE_MAIN = withoutLegacyMarks(BEFORE_PAGE);
 
 // ---- AdminLayout(外枠)と AdminHeader(行の部品・1 行スイッチ) ----
 
@@ -118,7 +126,7 @@ const CONTAINER_OUTER = BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "")
  * 今の AdminHeader の行 = 前の Header の DOM から受け口の id 3 つを除き、行の高さを決まった値(--admin-header-row-height)に固定し
  * (はみ出しは切る)、ロゴの箱の大きさを読み込みの前から決めた物(高さ + 縦横比。仕上がりの大きさは前と同じ)
  */
-const HEADER = BEFORE_HEADER.replace(/ id="admin-header-(?:title|center|right)-slot"/g, "")
+const HEADER = withoutLegacyMarks(BEFORE_HEADER).replace(/ id="admin-header-(?:title|center|right)-slot"/g, "")
   .replace('class="flex items-center justify-between gap-3 px-4 ', 'class="flex h-[var(--admin-header-row-height)] items-center justify-between gap-3 overflow-clip px-4 ')
   .replace('class="block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"', 'class="block aspect-[300/61] h-6 w-auto dark:hidden sm:h-12"')
   .replace('class="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"', 'class="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"')
@@ -153,13 +161,14 @@ test("className は外枠に足される(slot 化の前と同じ)", () => {
 // ---- (protected) の sidebar / footer ----
 
 test("props なしの AdminProtectedLayout は slot 化の前と同じ DOM を描く", () => {
-  assert.equal(render(<AdminProtectedLayout>CHILD</AdminProtectedLayout>), BEFORE_PROTECTED);
+  assert.notEqual(PROTECTED, BEFORE_PROTECTED);
+  assert.equal(render(<AdminProtectedLayout>CHILD</AdminProtectedLayout>), PROTECTED);
 });
 
 test("sidebar slot に要素を渡すと PC の列と SP のドロワーの両方の殻の中に既定の代わりに描く", () => {
   assert.equal(
     render(<AdminProtectedLayout sidebar={<nav id="s" />}>CHILD</AdminProtectedLayout>),
-    BEFORE_PROTECTED.replace('<x-basesidebar data-nav=""></x-basesidebar>', '<nav id="s"></nav>').replace("<x-basesidebar></x-basesidebar>", '<nav id="s"></nav>'),
+    PROTECTED.replace('<x-basesidebar data-nav=""></x-basesidebar>', '<nav id="s"></nav>').replace("<x-basesidebar></x-basesidebar>", '<nav id="s"></nav>'),
   );
 });
 
@@ -184,9 +193,9 @@ test("sidebar の中身は useAdminSidebarFrame() で殻の placement / width �
 });
 
 test("footer slot: (protected) は要素で置き換え / null で描かない", () => {
-  const footer = BEFORE_PROTECTED.match(/<footer id="footer"[^>]*>[^<]*<\/footer>/)![0];
-  assert.equal(render(<AdminProtectedLayout footer={<i id="f" />}>CHILD</AdminProtectedLayout>), BEFORE_PROTECTED.replace(footer, '<i id="f"></i>'));
-  assert.equal(render(<AdminProtectedLayout footer={null}>CHILD</AdminProtectedLayout>), BEFORE_PROTECTED.replace(footer, ""));
+  const footer = PROTECTED.match(/<footer data-slot="admin-footer"[^>]*>[^<]*<\/footer>/)![0];
+  assert.equal(render(<AdminProtectedLayout footer={<i id="f" />}>CHILD</AdminProtectedLayout>), PROTECTED.replace(footer, '<i id="f"></i>'));
+  assert.equal(render(<AdminProtectedLayout footer={null}>CHILD</AdminProtectedLayout>), PROTECTED.replace(footer, ""));
 });
 
 // ---- AdminPage(ヘッダーの行)・PageTitle ----
@@ -195,10 +204,10 @@ test("footer slot: (protected) は要素で置き換え / null で描かない",
 const page = (node: ReactNode) => render(node).replace(/ data-slot="main(?:-layout|-container)?"/g, "");
 
 test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM + 固定の置き方)+ 前と同じ Main。tabs は本文の前に mb-6", () => {
-  assert.equal(page(<AdminPage>CHILD</AdminPage>), BEFORE_LOGO_PRELOAD + PAGE_HEADER + BEFORE_PAGE);
+  assert.equal(page(<AdminPage>CHILD</AdminPage>), BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN);
   assert.equal(
     page(<AdminPage tabs={<i id="t" />}>CHILD</AdminPage>),
-    BEFORE_LOGO_PRELOAD + PAGE_HEADER + BEFORE_PAGE.replace(">CHILD<", '><div class="mb-6"><i id="t"></i></div>CHILD<'),
+    BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN.replace(">CHILD<", '><div class="mb-6"><i id="t"></i></div>CHILD<'),
   );
   assert.ok(!BEFORE_PAGE.includes("data-admin-fill"));
 });
@@ -212,7 +221,7 @@ test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は�
   const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1, "h1 は 1 つ");
   assert.ok(html.includes(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
-  assert.ok(html.includes(`<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
+  assert.ok(html.includes(`<main class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
   // 見た目の元: 前の PageTitle placement="header" の本文側(sm:hidden)と同じクラスに、PC で消す手段だけ sm:sr-only に替えた物
   assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden").replace(' data-slot="admin-page-title"', ""), BEFORE_TITLE_HEADER);
 });
@@ -226,7 +235,7 @@ test("AdminPage の center / actions は行の中央・右の位置(data-slot ad
   assert.ok(html.includes('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"><b id="pc"></b></div>'));
   assert.ok(html.includes('<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"><b id="pa"></b></div><x-darkmode class="shrink-0"></x-darkmode>'));
   const withoutProps = html.replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
-  assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + BEFORE_PAGE, "props の中身のほかは props なしと同じ DOM");
+  assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN, "props の中身のほかは props なしと同じ DOM");
 });
 
 test("main={false} + title: ヘッダーの題に加え、本文の大見出しは children の前(login・setup の自分のスクロール領域の上)", () => {

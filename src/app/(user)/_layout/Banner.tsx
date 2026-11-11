@@ -4,9 +4,6 @@ import { type ReactNode, useEffect } from "react";
 
 import { useElementSize } from "@/hooks/useElementSize";
 
-/** banner slot の帯の要素 id */
-export const APP_BANNER_ELEMENT_ID = "app-banner" as const;
-
 type BannerProps = {
   readonly children: ReactNode;
   /** 帯の実測の高さ(px)が変わるたびに呼ぶ。UserLayout が --app-banner-height に書く */
@@ -26,7 +23,7 @@ export function Banner({ children, onHeightChange }: BannerProps) {
   }, [height, onHeightChange]);
 
   return (
-    <div id={APP_BANNER_ELEMENT_ID} data-slot="app-banner" ref={ref} className="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">
+    <div data-slot="app-banner" ref={ref} className="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">
       {children}
     </div>
   );

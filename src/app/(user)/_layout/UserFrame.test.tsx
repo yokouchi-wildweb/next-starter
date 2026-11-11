@@ -64,13 +64,10 @@ test("shadcn の部品の data-slot と名前が衝突せず、data-frame-part �
   for (const file of [...sourcesUnder(LAYOUT), MAIN]) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);
 });
 
-test("frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある", () => {
-  const all = sourcesUnder(LAYOUT).map(read).join("\n") + read("src/components/AppFrames/constants.ts");
+test("frame.css の利用者の規則は id を狙わず、外枠に data-frame-root がある", () => {
   const css = read("src/styles/core/frame.css").replace(/\/\*[\s\S]*?\*\//g, "");
   const userRules = css.split("\n").filter((line) => /data-frame-hide~="(?!admin-)/.test(line)).join("\n");
-  for (const id of new Set([...userRules.matchAll(/#([a-z-]+)/g)].map((m) => m[1]))) {
-    assert.ok(all.includes(`"${id}"`), `#${id} の部品が無い`);
-  }
+  assert.equal(/#[a-z]/.test(userRules), false, "利用者の規則が id を狙っている(狙う先は data-slot だけ)");
   assert.ok(read(`${LAYOUT}/UserLayout.tsx`).includes('data-frame-root=""'));
 });
 
@@ -102,6 +99,6 @@ test("SP の開閉ボタンは display: contents の包みが部位の印 header
   const wrapper = html.match(/^<[a-z]+[^>]*>/)?.[0] ?? "";
   assert.ok(wrapper.includes('data-slot="header-nav"'), html);
   assert.match(wrapper, /class="[^"]*\bcontents\b/);
-  const button = html.match(/<button[^>]*id="header-sp-menu-toggle"[^>]*>/)?.[0] ?? "";
+  const button = html.match(/<button[^>]*>/)?.[0] ?? "";
   assert.ok(button.includes('data-slot="button"'), "ボタンの data-slot が button でない");
 });
