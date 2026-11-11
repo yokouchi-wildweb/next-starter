@@ -130,6 +130,25 @@ if (lineProfile) {
 }
 ```
 
+#### 失敗の型と再試行の鍵（X-Line-Retry-Key）
+
+- 送信の失敗は `LineApiError`（`status`: HTTP の状態、応答なしは `null` / `retryable`: 429・5xx・応答なし = `true`、他の 4xx = `false` / `body`: LINE の誤りの本文）。`message` は前と同じ文（`LINE Messaging API エラー: <status> <body>`）。push・reply・multicast・broadcast とも同じ
+- `pushMessage(to, messages, { retryKey })` で `X-Line-Retry-Key` を付ける。鍵は UUID の形が要るので `lineRetryKey(呼び手の鍵)` で作る（固定の名前空間の UUID v5。同じ鍵 → 同じ UUID）。呼び手の鍵は送り直しの間で変わらない値（例: 配達の id）
+- 鍵を付けた push の 409（同じ鍵の要求を LINE が受付済み）は成功として、その応答の本文（`sentMessages`）を返す。鍵の無い 409 は `LineApiError`
+- LINE が鍵を覚えるのは **24 時間**。送り直しはその内に行う（過ぎると同じ鍵でも新しい送信になる）。鍵があれば応答なしの失敗も送り直して二重にならない
+
+```ts
+import { lineRetryKey, LineApiError, pushMessage, textMessage } from "@/lib/line";
+
+try {
+  await pushMessage(lineUserId, [textMessage("お知らせ")], { retryKey: lineRetryKey(deliveryId) });
+} catch (error) {
+  if (error instanceof LineApiError && error.retryable) {
+    // 時間を置いて同じ鍵で送り直す
+  }
+}
+```
+
 ```ts
 import { multicast, textMessage } from "@/lib/line";
 
@@ -253,6 +272,8 @@ import {
   multicast,    // 500件超は自動バッチ分割
   broadcast,
   textMessage,
+  lineRetryKey,  // X-Line-Retry-Key の UUID を呼び手の鍵から作る
+  LineApiError,  // 送信の失敗（status・retryable・body）
 
   // Webhook
   parseWebhookRequest,

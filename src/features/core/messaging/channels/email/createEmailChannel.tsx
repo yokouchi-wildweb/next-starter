@@ -5,7 +5,7 @@
 // - 描き方: 宛先の連絡の鍵で生成の一覧の messages/views/<名前>.tsx を引き、あればその EmailView、無ければ既定の描き方(view.tsx)。
 //   描き方が読めない・EmailView が無い = コードの誤り → 送らず permanent(reason render_failed)
 // - 送信: 宛先ごとに描き、React のフォールバックの印があれば送らず permanent(L2.1)、
-//   無ければ lib/mail send()(冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
+//   無ければ描いた html を lib/mail send() に渡す(描くのは 1 回。冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
 // - webhook(D36・D44): resend / sendgrid の verify(鍵は env、無ければ WebhookNotConfiguredError)+ normalize(lib/mail/webhooks)
 // - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(marketing・activity)。
@@ -120,12 +120,10 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
           continue;
         }
         const unsubscribeUrl = listUnsubscribe ? listUnsubscribe.replace(/^<|>$/g, "") : undefined;
-        let element: ReactElement;
         let html: string;
         try {
           const View = (await viewOf(target.messageKey)) ?? EmailView;
-          element = <View content={content} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
-          html = await deps.render(element);
+          html = await deps.render(<View content={content} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />);
         } catch (error) {
           results.push({
             address: target.address,
@@ -144,7 +142,8 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
           const sent = await deps.send({
             to: target.address,
             subject: content.subject,
-            react: element,
+            // 描いた html をそのまま渡す(lib/mail の側でもう一度描かない)
+            html,
             idempotencyKey: target.idempotencyKey,
             // 配達の id(冪等の鍵の ":" より前)を provider のタグで渡し、webhook の事件で配達を引けるようにする(D36)
             tags: { [DELIVERY_ID_TAG]: target.idempotencyKey.split(":")[0] },

@@ -4,6 +4,8 @@ export {
   send,
   type MailProvider,
   type SendMailOptions,
+  type SendMailReactOptions,
+  type SendMailHtmlOptions,
   type SendMailResult,
 } from "./send";
 export { MailSendError, type MailSendErrorKind } from "./errors";

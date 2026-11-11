@@ -1,5 +1,6 @@
 // メールの経路の項目の検査(描画・送信は偽物、フォールバックの印は本物の描画でも確かめる)
 // - 冪等の鍵・件名・宛先を lib/mail の send に渡し、provider の id を返す
+// - 描くのは宛先ごとに 1 回。描いた html をそのまま send に渡す(react は渡さない)
 // - MailSendError の 3 分類をそのまま写す。それ以外の例外は unknown
 // - 描画結果に React のフォールバックの印があれば送らず permanent(L2.1)
 // - 宛先の連絡の鍵で生成の一覧の描き方(messages/views の EmailView)を使う。無ければ既定、読めなければ permanent
@@ -60,6 +61,29 @@ test("宛先・件名・冪等の鍵を lib/mail の send に渡し、provider �
   assert.equal(results[0].kind === "sent" && results[0].providerMessageId, "pm-a@example.test");
   assert.deepEqual(await channel.resolveAddresses!(["u1"]), [{ userId: "u1", address: "u1@example.test" }]);
   assert.equal(channel.key, "email");
+});
+
+test("描くのは宛先ごとに 1 回で、描いた html をそのまま send に渡す", async () => {
+  let renders = 0;
+  const sent: SendMailOptions[] = [];
+  const channel = createEmailChannel({
+    render: async (element) => {
+      renders += 1;
+      return `<p>${renders}</p>${await render(element)}`;
+    },
+    send: async (mail) => {
+      sent.push(mail);
+      return { provider: "resend", providerMessageId: null };
+    },
+    findEmails: async () => [],
+    theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
+    loadView: noView,
+  });
+  await channel.send([target("a@example.test"), target("b@example.test")]);
+  assert.equal(renders, 2);
+  assert.ok(sent[0].html?.startsWith("<p>1</p>") && sent[1].html?.startsWith("<p>2</p>"));
+  assert.ok(sent.every((mail) => mail.react === undefined));
 });
 
 test("既定の描き方は欄を描く(見出し・本文・ボタン)", async () => {

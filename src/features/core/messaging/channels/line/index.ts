@@ -24,5 +24,5 @@ export const channel = createLineChannel({
       .where(inArray(UserLineProfileTable.userId, [...userIds]));
     return rows;
   },
-  push: (to, text) => pushMessage(to, [textMessage(text)]),
+  push: (to, text, options) => pushMessage(to, [textMessage(text)], { retryKey: options.retryKey }),
 });

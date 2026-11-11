@@ -470,3 +470,4 @@
 - id:20261111-161255-config-closing2 | severity:breaking | checkpoint:config-closing2 | moved:src/lib/forkOwnership/declarations.mjs -> src/lib/districtMap/declarations.mjs; src/lib/forkOwnership/dottedNames.mjs -> src/lib/districtMap/dottedNames.mjs
 - id:20261111-160028-bottom-nav-menu-slot | severity:info | checkpoint:bottom-nav-menu-slot
 - id:20261111-170853-messaging-drop-legacy | severity:action-required | checkpoint:messaging-drop-legacy
+- id:20261111-183951-messaging-s2-fixes | severity:info | checkpoint:messaging-s2-fixes
