@@ -13,16 +13,25 @@ import { composeSiteThemeConfig, normalizeAreaPrefix } from "./compose.ts";
 import { resolveSiteTheme, matchesAreaPrefix, getSiteThemeAreaByKey } from "./resolve.ts";
 import { buildSiteThemeBootstrapScript } from "./bootstrapScript.ts";
 
+/** @typedef {import("./types.ts").SiteThemeConfig} SiteThemeConfig */
+/** @typedef {import("./types.ts").SiteThemeResolveInput} SiteThemeResolveInput */
+/** @typedef {{ isDark: boolean, area: string | undefined }} BootstrapResult */
+/** ケースの入力。stored は localStorage の生の値(不正な値のケースもある) @typedef {{ pathname: string, stored: string | null, systemPrefersDark: boolean }} CaseInput */
+
 /**
  * bootstrap script を疑似 DOM で実行し、最終的な html の状態を返す。
  * options.noMatchMedia: window.matchMedia 未定義の環境を再現
  * options.storageThrows: localStorage.getItem が throw する環境を再現
+ * @param {SiteThemeConfig} config
+ * @param {CaseInput} input
+ * @param {{ noMatchMedia?: boolean, storageThrows?: boolean }} [options]
+ * @returns {BootstrapResult}
  */
 function runBootstrap(config, { pathname, stored, systemPrefersDark }, options = {}) {
   const classes = new Set();
   const attrs = new Map();
   const localStorage = {
-    getItem: (key) => {
+    getItem: (/** @type {string} */ key) => {
       if (options.storageThrows) throw new Error("denied");
       return key === config.storageKey ? stored : null;
     },
@@ -30,17 +39,17 @@ function runBootstrap(config, { pathname, stored, systemPrefersDark }, options =
   const window = options.noMatchMedia
     ? {}
     : {
-        matchMedia: (query) => ({
+        matchMedia: (/** @type {string} */ query) => ({
           matches: query === "(prefers-color-scheme: dark)" ? systemPrefersDark : false,
         }),
       };
   const document = {
     documentElement: {
       classList: {
-        add: (c) => classes.add(c),
-        remove: (c) => classes.delete(c),
+        add: (/** @type {string} */ c) => classes.add(c),
+        remove: (/** @type {string} */ c) => classes.delete(c),
       },
-      setAttribute: (k, v) => attrs.set(k, v),
+      setAttribute: (/** @type {string} */ k, /** @type {string} */ v) => attrs.set(k, v),
     },
   };
   const script = buildSiteThemeBootstrapScript(config);
@@ -79,7 +88,7 @@ const GHOST_AREA = composeSiteThemeConfig({
 
 const CUSTOM_KEY = composeSiteThemeConfig({ storageKey: "theme-v2" });
 
-/** [config, input, expected] */
+/** [config, input, expected] @type {[SiteThemeConfig, CaseInput, BootstrapResult][]} */
 const CASES = [
   // 既定値: 従来挙動
   [DEFAULT, { pathname: "/", stored: null, systemPrefersDark: true }, { isDark: false, area: "user" }],
@@ -141,8 +150,8 @@ test("composeSiteThemeConfig は key 一致で部分更新し、未知の key �
 });
 
 test("composeSiteThemeConfig は不正な mode を fallback / areas の両方で拒否する", () => {
-  assert.throws(() => composeSiteThemeConfig({ fallback: { mode: "sepia" } }), /light \| dark \| system/);
-  assert.throws(() => composeSiteThemeConfig({ areas: [{ key: "admin", mode: "sepia" }] }), /light \| dark \| system/);
+  assert.throws(() => composeSiteThemeConfig(/** @type {any} 実行時の誤りを見るため型を外す */ ({ fallback: { mode: "sepia" } })), /light \| dark \| system/);
+  assert.throws(() => composeSiteThemeConfig(/** @type {any} 実行時の誤りを見るため型を外す */ ({ areas: [{ key: "admin", mode: "sepia" }] })), /light \| dark \| system/);
 });
 
 test("normalizeAreaPrefix: 先頭 / 付与、末尾 / 除去、空文字は拒否(catch-all への暗黙変換を防ぐ)", () => {
@@ -170,7 +179,8 @@ test("getSiteThemeAreaByKey は key で引き、未知の key は fallback を�
 
 test("resolveSiteTheme: ケース集", () => {
   for (const [config, input, expected] of CASES) {
-    const result = resolveSiteTheme(config, input);
+    // 生の保存値をそのまま渡す(resolve が不正な値を未保存として扱うことも見る)
+    const result = resolveSiteTheme(config, /** @type {SiteThemeResolveInput} */ (input));
     assert.deepEqual(
       { isDark: result.isDark, area: result.area.key },
       expected,
@@ -203,6 +213,7 @@ test("bootstrap script は </script> を含まない(インライン埋め込み
 
 test("bootstrap script は localStorage が throw しても判定を続行して DOM を更新する", () => {
   const script = buildSiteThemeBootstrapScript(DEFAULT);
+  /** @type {string[]} */
   const calls = [];
   const document = {
     documentElement: {
