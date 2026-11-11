@@ -38,11 +38,13 @@ function listDomainConfigs() {
   return result;
 }
 
-test("用途の合成: ID の重複は例外。用途キーのドメインの段は serviceRegistry のキー(demo.media は持ち主が無いので除く、D61 U5)", async () => {
+test("用途の合成: ID の重複は例外。用途キーのドメインの段は serviceRegistry のキー(demo.media は持ち主が無いので、notification.image は改名できない前の名前なので除く、D61 U5)", async () => {
   assert.throws(() => mergeStoragePurposes([{ "a.b": {} }, { "a.b": {} }]), /a\.b/);
   const { serviceRegistry } = await import("../../../src/registry/serviceRegistry.ts");
   const unknown = Object.keys(storagePurposeRegistry)
     .filter((id) => id !== "demo.media")
+    // notification.image: 前のお知らせ(notification のドメイン、S2 で消した)の用途 ID。ref とオブジェクトのパスに入るので改名できない。持ち主は messaging
+    .filter((id) => id !== "notification.image")
     .filter((id) => !(id.split(".")[0] in serviceRegistry));
   assert.deepEqual(unknown, [], "用途 ID の先頭がドメインのキーでない");
 });

@@ -174,7 +174,6 @@ test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答�
       mypageOther: ["pageMypage"],
       mypagePause: ["pageMypage", "pause"],
       mypageWithdraw: ["pageMypage", "withdraw"],
-      notificationBroadcast: ["notification"],
       payment: ["wallet"],
       paymentAnalytics: ["analytics", "payment"],
       referral: ["coupon"],

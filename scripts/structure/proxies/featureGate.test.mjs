@@ -287,7 +287,6 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
     fingerprintChallenge: ["/api/fingerprintChallenge"],
     interactionTracking: ["/api/interactionEvent"],
     milestone: ["/api/milestone"],
-    notification: ["/api/notification", "/api/notificationTemplate"],
     pairedDevice: ["/api/pairedDevice"],
     payment: ["/api/purchaseRequest", "/api/bankTransferReview"],
     referral: ["/api/referral", "/api/referralReward"],
