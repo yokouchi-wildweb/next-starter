@@ -15,9 +15,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { REALTIME_ROOM_CONFIG } from "@/config/app/realtime-room.config";
-import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
-import type { RoomActionBase, RoomServerMessage, RoomStateBase } from "@/lib/realtimeRoom/protocol";
+import { realtimeRoomConfig } from "../config";
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION } from "../protocol";
+import type { RoomActionBase, RoomServerMessage, RoomStateBase } from "../protocol";
 
 import { roomSessionClient } from "./roomSessionClient";
 
@@ -50,7 +50,7 @@ export const useRoomState = <
   roomId: string | null,
   options?: UseRoomStateOptions,
 ): UseRoomStateResult<S, A> => {
-  const enabled = REALTIME_ROOM_CONFIG.enabled;
+  const enabled = realtimeRoomConfig.enabled;
   const active = options?.active ?? true;
 
   const [state, setState] = useState<S | null>(null);
@@ -139,8 +139,8 @@ export const useRoomState = <
         }
         // 指数バックオフで再接続 (トークンは短命のため毎回取り直す)
         const delay = Math.min(
-          REALTIME_ROOM_CONFIG.reconnectBaseDelayMs * 2 ** retryCountRef.current,
-          REALTIME_ROOM_CONFIG.reconnectMaxDelayMs,
+          realtimeRoomConfig.reconnectBaseDelayMs * 2 ** retryCountRef.current,
+          realtimeRoomConfig.reconnectMaxDelayMs,
         );
         retryCountRef.current += 1;
         reconnectTimer = setTimeout(connect, delay);

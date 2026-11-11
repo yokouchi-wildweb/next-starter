@@ -9,12 +9,19 @@ const secTitleVariants = createTextVariants("");
 
 type HeadingElement = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
-type BaseHeadingProps = Omit<HTMLAttributes<HTMLHeadingElement>, "children"> & {
+type BaseHeadingProps = Omit<HTMLAttributes<HTMLHeadingElement>, "children" | "slot"> & {
   children: ReactNode;
 };
 
+/** 見出しの印(data-slot)。admin-sec-title は上流の管理の SecTitle が渡す(fork は名前を変えずに印を狙う) */
+export type SecTitleSlot = "sec-title" | "admin-sec-title";
+
 export type SecTitleProps = BaseHeadingProps &
-  VariantProps<typeof secTitleVariants> & { as?: HeadingElement };
+  VariantProps<typeof secTitleVariants> & {
+    as?: HeadingElement;
+    /** 印の名前(上流の包む部品だけが使う。既定 sec-title)。props の data-slot はこれに負ける */
+    slot?: SecTitleSlot;
+  };
 
 export function SecTitle({
   as,
@@ -25,6 +32,7 @@ export function SecTitle({
   srOnly = false,
   className,
   children,
+  slot = "sec-title",
   ...props
 }: SecTitleProps) {
   const Component = (as ?? "h2") as HeadingElement;
@@ -35,6 +43,7 @@ export function SecTitle({
         className,
       )}
       {...props}
+      data-slot={slot}
     >
       {children}
     </Component>

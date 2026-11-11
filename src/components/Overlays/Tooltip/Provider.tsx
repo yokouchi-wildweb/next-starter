@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { TooltipPrimitive } from "@/components/Primitives/Tooltip";
 
 // 共有Provider配下かどうかを子のTooltipへ伝えるフラグ
 const SharedTooltipContext = React.createContext(false);

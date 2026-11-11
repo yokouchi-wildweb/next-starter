@@ -3,7 +3,7 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 import { Label } from "@/components/Form/Label";
-import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
+import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import { cva, type VariantProps } from "class-variance-authority";
 
 type BooleanLike = boolean | "true" | "false";

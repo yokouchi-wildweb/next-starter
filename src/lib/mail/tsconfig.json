@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/messaging": ["../messaging"],
+      "@/lib/messaging/*": ["../messaging/*"],
+      "@/lib/structuredDocument": ["../structuredDocument"],
+      "@/lib/structuredDocument/*": ["../structuredDocument/*"],
+      "@lib-config/mail": ["../../config/lib/mail.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

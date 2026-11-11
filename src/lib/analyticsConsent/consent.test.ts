@@ -1,55 +1,24 @@
 // src/lib/analyticsConsent/consent.test.ts
 //
-// アクセス解析の送信の門の検査（Firebase 不要）。
-// 1. 設定と同意の組み合わせ（decideAnalyticsAllowed）
+// アクセス解析の送信の門の検査（計測サービス不要）。
+// 1. 設定と同意の組み合わせ（decideAnalyticsAllowed）と、読み込んだ設定での isAnalyticsAllowed
 // 2. 同意の状態の購読
-// 3. Firebase Analytics は許可が出るまで初期化(initializeAnalytics)せず、page_view / trackEvent を送らない。取り消しで収集を止める
-// 4. 初期化は send_page_view: false(gtag の自動の page_view を止め、page_view は <FirebaseAnalytics /> の 1 回だけ)
+// Firebase Analytics が門に従うことの検査は src/lib/firebase/client/analytics.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
-import { before, beforeEach, mock, test } from "node:test";
+import { before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
-import { pathToFileURL } from "node:url";
-
-const sdk = {
-  initialized: 0,
-  initOptions: [] as unknown[],
-  events: [] as string[],
-  collection: [] as boolean[],
-};
-mock.module(pathToFileURL(require.resolve("firebase/analytics")).href, {
-  namedExports: {
-    initializeAnalytics: (_app: unknown, options: unknown) => {
-      sdk.initialized += 1;
-      sdk.initOptions.push(options);
-      return { app: "mock" };
-    },
-    logEvent: (_instance: unknown, name: string) => void sdk.events.push(name),
-    setAnalyticsCollectionEnabled: (_instance: unknown, enabled: boolean) => void sdk.collection.push(enabled),
-  },
-});
-mock.module("@/lib/firebase/client/app", {
-  namedExports: { app: {}, isFirebaseClientConfigured: () => true },
-});
 
 let consent: typeof import("./consent");
-let firebase: typeof import("@/lib/firebase/client/analytics");
-let config: typeof import("@/config/app/analytics.config").ANALYTICS_CONFIG;
+let config: typeof import("./config").analyticsConsentConfig;
 before(async () => {
-  // analytics.ts はブラウザでだけ動く。window と document の最小限を置く
-  (globalThis as { window?: unknown }).window = globalThis;
-  (globalThis as { document?: unknown }).document = { title: "t" };
-  process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = "G-TEST";
   consent = await import("./consent");
-  firebase = await import("@/lib/firebase/client/analytics");
-  ({ ANALYTICS_CONFIG: config } = await import("@/config/app/analytics.config"));
+  ({ analyticsConsentConfig: config } = await import("./config"));
 });
 
 beforeEach(() => {
   consent.setAnalyticsConsent("unknown");
   config.enabled = false;
   config.consent = "required";
-  sdk.events.length = 0;
-  sdk.collection.length = 0;
 });
 
 test("decideAnalyticsAllowed: 無効なら同意があっても送らない、有効なら同意の扱いに従う", () => {
@@ -64,18 +33,12 @@ test("decideAnalyticsAllowed: 無効なら同意があっても送らない、�
   assert.equal(decideAnalyticsAllowed({ enabled: true, consent: "required" }, "unknown"), false);
 });
 
-// 上流の既定の値の検査は Tier1 だけ。fork は notice 20261105-070608 の手順どおり値を変えてよい（src/config/app = fork の取り込み口）
-test("既定の設定は無効・同意が必要（ソースの値。実行中の値は beforeEach が書き換える。Tier1 だけ）", async (t) => {
-  const { resolve } = await import("node:path");
-  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
-  if (!readForkIdentity(resolve(__dirname, "../../..")).isTier1) {
-    t.skip("上流の既定の値の検査（Tier1 だけ）");
-    return;
-  }
-  const { readFileSync } = await import("node:fs");
-  const source = readFileSync(require.resolve("@/config/app/analytics.config"), "utf8");
-  assert.match(source, /enabled: false,/);
-  assert.match(source, /consent: "required" as/);
+// 上流の既定は compose({}) で見る(読み込んだ設定は fork が src/config/lib/analyticsConsent.config.ts に書いた値で変わる)
+test("既定の設定は無効・同意が必要、上書きの値が効く", async () => {
+  const { analyticsConsentConfigDef } = await import("./config");
+  assert.deepEqual(analyticsConsentConfigDef.compose({}), { enabled: false, consent: "required" });
+  assert.deepEqual(analyticsConsentConfigDef.compose({ enabled: true }), { enabled: true, consent: "required" });
+  assert.equal(analyticsConsentConfigDef.compose({ consent: "notRequired" }).consent, "notRequired");
 });
 
 test("setAnalyticsConsent は変わったときだけ購読者に知らせ、解除後は知らせない", () => {
@@ -90,37 +53,14 @@ test("setAnalyticsConsent は変わったときだけ購読者に知らせ、解
   assert.equal(consent.getAnalyticsConsent(), "granted");
 });
 
-test("無効の間は初期化せず、page_view も trackEvent も送らない", () => {
-  consent.setAnalyticsConsent("granted");
-  firebase.trackPageView("/a");
-  firebase.trackEvent("click");
-  assert.equal(firebase.getFirebaseAnalytics(), null);
-  assert.equal(sdk.initialized, 0);
-  assert.deepEqual(sdk.events, []);
-});
-
-test("有効でも同意が出るまで送らず、同意で送り、取り消しで収集を止める", () => {
+test("isAnalyticsAllowed は読み込んだ設定と今の同意で答える", () => {
+  assert.equal(consent.isAnalyticsAllowed(), false, "無効なら送らない");
   config.enabled = true;
-  firebase.trackPageView("/a");
-  assert.equal(sdk.initialized, 0);
-  assert.deepEqual(sdk.events, []);
-
+  assert.equal(consent.isAnalyticsAllowed(), false, "同意が必要で未回答なら送らない");
   consent.setAnalyticsConsent("granted");
-  firebase.trackPageView("/a");
-  firebase.trackEvent("click");
-  assert.equal(sdk.initialized, 1);
-  assert.deepEqual(sdk.initOptions, [{ config: { send_page_view: false } }], "初期化で自動の page_view を送らない");
-  assert.deepEqual(sdk.events, ["page_view", "click"]);
-
+  assert.equal(consent.isAnalyticsAllowed(), true);
   consent.setAnalyticsConsent("denied");
-  firebase.trackEvent("after-deny");
-  assert.deepEqual(sdk.events, ["page_view", "click"]);
-  assert.deepEqual(sdk.collection, [false]);
-});
-
-test("consent: notRequired なら同意を待たずに送る", () => {
-  config.enabled = true;
+  assert.equal(consent.isAnalyticsAllowed(), false);
   config.consent = "notRequired";
-  firebase.trackEvent("now");
-  assert.ok(sdk.events.includes("now"));
+  assert.equal(consent.isAnalyticsAllowed(), true, "notRequired なら同意を待たない");
 });

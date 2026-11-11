@@ -353,3 +353,37 @@ test("backfill / repair: 親から先に pick した notice(from: が自分の o
   writeFileSync(join(fork, ".notices/shipped/up.md"), `# SHIPPED up\n\n${rowS}\n`);
   assert.deepEqual(checkRows({ indexes: [{ owner: "up", file: ".notices/shipped/up.md", rows: parseIndex(readFileSync(join(fork, ".notices/shipped/up.md"), "utf8")) }, { owner: "child", file: ".notices/shipped/child.md", rows: parseIndex(readFileSync(join(fork, ".notices/shipped/child.md"), "utf8")) }], notices: new Map(), own: "child" }).filter((p) => p.includes("2 本")), []);
 });
+
+test("先に取った物(台帳に picked:)は親の索引に行がまだ無くても通り、手で足した行が消えても追記だけの検査で止めない。取っていない物は今どおり止める", (t) => {
+  const { fork, g, S } = pickShaped(t);
+  // pick した木: S の本文はあるが、親の索引 up.md に S の行は無い(/flux は衝突した索引を fork 側のまま採る)
+  const parentRow = "- id:20990101-000000-old | severity:info | checkpoint:old";
+  mkdirSync(join(fork, ".notices/shipped"), { recursive: true });
+  writeFileSync(join(fork, ".notices/shipped/up.md"), `# SHIPPED up\n\n${parentRow}\n`);
+  writeFileSync(join(fork, ".notices/shipped/child.md"), "# SHIPPED child\n");
+  g("add", "-A");
+  g("commit", "-qm", "indexes");
+  const pushed = g("rev-parse", "HEAD");
+  assert.deepEqual(checkAll(fork, { ref: pushed }).problems.filter((p) => p.includes(S)), [], "行が無くても通る");
+  // 前に手で足した行(一時許可)を、上流側を採った merge が落とす → 追記だけの検査で止めない
+  const rowS = formatRow(rowFieldsFromNotice(noticeFrom(S, UP, ["checkpoint: s", "hotfix: yes"])));
+  writeFileSync(join(fork, ".notices/shipped/up.md"), `# SHIPPED up\n\n${parentRow}\n${rowS}\n`);
+  g("add", "-A");
+  g("commit", "-qm", "hand-added row");
+  const withRow = g("rev-parse", "HEAD");
+  writeFileSync(join(fork, ".notices/shipped/up.md"), `# SHIPPED up\n\n${parentRow}\n- id:20990101-000009-next | severity:info | checkpoint:n\n`);
+  g("add", "-A");
+  g("commit", "-qm", "merge took upstream's index");
+  assert.deepEqual(checkAll(fork, { ref: withRow }).problems.filter((p) => p.includes("push 済み")), [], "先に取った物の行は消えてよい");
+  // 先に取っていない親の行が消えたら今どおり止める
+  writeFileSync(join(fork, ".notices/shipped/up.md"), `# SHIPPED up\n\n- id:20990101-000009-next | severity:info | checkpoint:n\n`);
+  g("add", "-A");
+  g("commit", "-qm", "dropped a row");
+  assert.match(checkAll(fork, { ref: withRow }).problems.join("\n"), /000000-old: push 済みの行が変わった・消えた/);
+  // 台帳に picked: の無い本文は、行が無ければ今どおり止める
+  const other = "20990101-000004-other";
+  writeFileSync(join(fork, `.notices/${other}.md`), noticeFrom(other, UP, ["checkpoint: x"]));
+  g("add", "-A");
+  g("commit", "-qm", "unpicked body");
+  assert.match(checkAll(fork, { ref: pushed }).problems.join("\n"), new RegExp(`${other}: 本文があるのに索引に行が無い`));
+});

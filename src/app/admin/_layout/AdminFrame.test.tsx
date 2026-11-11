@@ -3,7 +3,7 @@
 // 1. README の data-slot の一覧 = 管理の枠の部品(admin/_layout・(protected)/_layout)の要素に付く data-slot(両方向)。
 //    一覧 = 部位の一覧(src/app/_layout/frame/parts.mjs の管理の枠)、shadcn の部品の data-slot と衝突しない、data-frame-part は残っていない
 // 2. 外枠(AdminLayout)は管理の表を共通の読み手 useFrameAttributes に渡し、当たった行の属性が初回の静的描画に入る
-// 3. fill の的: 本文の直接の親 [data-admin-main-wrapper] が (protected) にある
+// 3. fill の的: 本文の直接の親 [data-slot="admin-main"] が (protected) にある
 // 読み手の行の選び方は src/app/_layout/frame/useFrameAttributes.test.tsx、frame.css の規則と部位の一覧は src/app/_layout/frame のテスト
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
@@ -35,12 +35,14 @@ const read = (path: string) => readFileSync(join(repo, path), "utf8");
 let render: (node: ReactNode) => string;
 let AdminLayout: typeof import("./AdminLayout").AdminLayout;
 let parts: typeof import("@/app/_layout/frame");
+let primitiveSlots: typeof import("@/components/Primitives/slots.mjs");
 let AdminPage: typeof import("./AdminPage").default;
 let ItemNavigator: typeof import("@/components/AppFrames/Admin/Elements/ItemNavigator").ItemNavigator;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
   parts = await import("@/app/_layout/frame");
+  primitiveSlots = await import("@/components/Primitives/slots.mjs");
   AdminPage = (await import("./AdminPage")).default;
   ({ ItemNavigator } = await import("@/components/AppFrames/Admin/Elements/ItemNavigator"));
 });
@@ -55,13 +57,22 @@ const sourcesOf = (dir: string): string[] =>
   });
 const FRAME_FILES = FRAME_DIRS.flatMap(sourcesOf);
 
-/** ソースの要素に付く data-slot="<名前>"(名前 → 付いているファイル) */
+/** 見出しの印のうち、source(印を描く部品のファイル)が管理の枠の中にあるもの(admin-page-title) */
+const headingSlotsInFrame = () => parts.FRAME_SLOTS.filter((s) => s.area === "heading" && s.source !== undefined && FRAME_FILES.includes(s.source));
+
+/**
+ * ソースの要素に付く data-slot="<名前>"(名前 → 付いているファイル)。見出しの印は下の部品に slot="<名前>" で渡すので、
+ * source のファイルにその字面があれば付いているとみなす(描画との照合は src/components/TextBlocks/headingSlots.test.tsx)
+ */
 const slotsInSources = () => {
   const found = new Map<string, string[]>();
   for (const file of FRAME_FILES) {
     for (const m of read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)) {
       found.set(m[1], [...(found.get(m[1]) ?? []), relative("src/app/admin", file)]);
     }
+  }
+  for (const slot of headingSlotsInFrame()) {
+    if (read(slot.source as string).includes(`slot="${slot.name}"`)) found.set(slot.name, [...(found.get(slot.name) ?? []), relative("src/app/admin", slot.source as string)]);
   }
   return found;
 };
@@ -79,7 +90,7 @@ test("README の data-slot の一覧 = 管理の枠の部品の要素の data-sl
   const found = slotsInSources();
   assert.deepEqual([...listed].sort(), [...found.keys()].sort(), `README ${listed.join(",")} / 要素 ${[...found.keys()].join(",")}`);
   assert.equal(new Set(listed).size, listed.length, "README の一覧に重複");
-  const adminSlots = parts.FRAME_SLOTS.filter((s) => s.area === "admin").map((s) => s.name);
+  const adminSlots = [...parts.FRAME_SLOTS.filter((s) => s.area === "admin"), ...headingSlotsInFrame()].map((s) => s.name);
   assert.deepEqual([...listed].sort(), [...adminSlots].sort(), "部位の一覧(parts.mjs)の管理の枠と一致しない");
   for (const { slot } of parts.hideableParts("admin")) assert.ok(found.has(slot), `隠せる部位 ${slot} の要素が無い`);
 });
@@ -94,21 +105,21 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景�
   ] as const) {
     assert.equal(count(file), n, `${file} の admin-sidebar`);
   }
-  // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない。
-  // id はサイドバーを差し替えた fork 向けの橋渡し
+  // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない
   for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx"]) {
     const toggle = /<div data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/div>/.exec(read(file));
     assert.ok(toggle, `${file}: 開閉ボタンが admin-sidebar の包みの直下に無い`);
-    assert.ok(toggle[1].includes('id="admin-sidebar-toggle"'), `${file} の開閉ボタンの id`);
+    assert.equal(toggle[1].includes("id="), false, `${file}: 開閉ボタンに見た目のための id が残っている(狙う先は包みの data-slot)`);
     assert.equal(toggle[1].includes("data-slot"), false, `${file}: Button の data-slot を上書きしている`);
   }
 });
 
 test("管理の枠の data-slot は shadcn の部品の data-slot と衝突せず、部位の印 data-frame-part は残っていない", () => {
-  const shadcnDir = "src/components/_shadcn";
-  const shadcn = new Set(
-    sourcesOf(shadcnDir).flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
-  );
+  // shadcn 由来の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)+ _shadcn に残る物の字面
+  const shadcn = new Set([
+    ...primitiveSlots.allPrimitiveSlots(repo),
+    ...sourcesOf("src/components/_shadcn").flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
+  ]);
   assert.ok(shadcn.has("button"), "shadcn の data-slot を読めていない");
   for (const name of slotsInSources().keys()) assert.equal(shadcn.has(name), false, `${name} は shadcn と衝突`);
   for (const file of FRAME_FILES) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);
@@ -138,7 +149,7 @@ test("上流は管理の枠の宣言を持たない(表は空。Tier1 だけ: fo
 
 test("AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) にある", () => {
   assert.equal(read("src/app/admin/_layout/AdminPage.tsx").includes("fill?:"), false);
-  assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('data-slot="admin-main" data-admin-main-wrapper'));
+  assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('<div data-slot="admin-main" className="flex-1">'));
 });
 
 // ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 17) ----

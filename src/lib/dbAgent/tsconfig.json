@@ -1,0 +1,19 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/ai": ["../ai"],
+      "@/lib/ai/*": ["../ai/*"],
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
+      "@/lib/audit": ["../audit"],
+      "@/lib/audit/*": ["../audit/*"],
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/errors": ["../errors"],
+      "@/lib/errors/*": ["../errors/*"],
+      "@lib-config/dbAgent": ["../../config/lib/dbAgent.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

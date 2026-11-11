@@ -1,6 +1,7 @@
 // 利用者の枠の部位の印(data-slot)と表の結線の検査。実行: pnpm test src/app/(user)/_layout/UserFrame.test.tsx
 //
 // 1. README の「data-slot の一覧」= 利用者の枠の部品と Main(src/components/Layout/Main.tsx)の要素の data-slot(片方にしか無い名前は失敗)
+//    見出しの印は source が枠の中のもの(user-page-title)も入る。見出しの印と描画の照合は src/components/TextBlocks/headingSlots.test.tsx
 //    = 部位の一覧(src/app/_layout/frame/parts.mjs)の利用者の枠と Main。隠せる部位 ⊂ 一覧。shadcn の部品の data-slot と衝突しない。data-frame-part は残らない
 // 2. frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある(規則と部位の一覧の一致は parts.test.mjs)
 // 3. 根の結線: UserLayout が共通の読み手 useFrameAttributes に自分の表を渡す。上流の宣言の解決結果(Tier1 だけ: 生成の表は fork の frame.override.ts を含む)
@@ -17,9 +18,11 @@ const LAYOUT = "src/app/(user)/_layout";
 const MAIN = "src/components/Layout/Main.tsx";
 
 let parts: typeof import("@/app/_layout/frame");
+let primitiveSlots: typeof import("@/components/Primitives/slots.mjs");
 let frameTable: typeof import("./extensions/frameTable").frameTable;
 before(async () => {
   parts = await import("@/app/_layout/frame");
+  primitiveSlots = await import("@/components/Primitives/slots.mjs");
   ({ frameTable } = await import("./extensions/frameTable"));
 });
 
@@ -45,25 +48,26 @@ test("README の data-slot の一覧 = 枠の部品と Main の要素の data-sl
   assert.equal(new Set(listed).size, listed.length, "一覧に重なり");
   const used = new Set([...sourcesUnder(LAYOUT), MAIN].flatMap((file) => slotsIn(read(file))));
   assert.deepEqual([...used].sort(), [...listed].sort(), "README の一覧と要素の data-slot が合わない");
-  const expected = parts.FRAME_SLOTS.filter((s) => s.area === "user" || s.area === "main").map((s) => s.name);
+  // 見出しの印は source(印を描く部品のファイル)が枠の中にあるものだけ(user-page-title)
+  const expected = parts.FRAME_SLOTS.filter(
+    (s) => s.area === "user" || s.area === "main" || (s.area === "heading" && s.source?.startsWith(`${LAYOUT}/`)),
+  ).map((s) => s.name);
   assert.deepEqual([...listed].sort(), [...expected].sort(), "部位の一覧(parts.mjs)と合わない");
   for (const { slot } of parts.hideableParts("user")) assert.ok(listed.includes(slot), `隠せる部位 ${slot} が一覧に無い`);
 });
 
 test("shadcn の部品の data-slot と名前が衝突せず、data-frame-part は残っていない", () => {
-  const shadcn = new Set(sourcesUnder("src/components/_shadcn").flatMap((file) => slotsIn(read(file))));
+  // shadcn 由来の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)+ _shadcn に残る物の字面
+  const shadcn = new Set([...primitiveSlots.allPrimitiveSlots(repo), ...sourcesUnder("src/components/_shadcn").flatMap((file) => slotsIn(read(file)))]);
   assert.ok(shadcn.has("button"), "shadcn の data-slot が読めていない");
   for (const name of readmeSlots()) assert.equal(shadcn.has(name), false, `${name} は shadcn の data-slot と同じ`);
   for (const file of [...sourcesUnder(LAYOUT), MAIN]) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);
 });
 
-test("frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある", () => {
-  const all = sourcesUnder(LAYOUT).map(read).join("\n") + read("src/components/AppFrames/constants.ts");
+test("frame.css の利用者の規則は id を狙わず、外枠に data-frame-root がある", () => {
   const css = read("src/styles/core/frame.css").replace(/\/\*[\s\S]*?\*\//g, "");
   const userRules = css.split("\n").filter((line) => /data-frame-hide~="(?!admin-)/.test(line)).join("\n");
-  for (const id of new Set([...userRules.matchAll(/#([a-z-]+)/g)].map((m) => m[1]))) {
-    assert.ok(all.includes(`"${id}"`), `#${id} の部品が無い`);
-  }
+  assert.equal(/#[a-z]/.test(userRules), false, "利用者の規則が id を狙っている(狙う先は data-slot だけ)");
   assert.ok(read(`${LAYOUT}/UserLayout.tsx`).includes('data-frame-root=""'));
 });
 
@@ -95,6 +99,6 @@ test("SP の開閉ボタンは display: contents の包みが部位の印 header
   const wrapper = html.match(/^<[a-z]+[^>]*>/)?.[0] ?? "";
   assert.ok(wrapper.includes('data-slot="header-nav"'), html);
   assert.match(wrapper, /class="[^"]*\bcontents\b/);
-  const button = html.match(/<button[^>]*id="header-sp-menu-toggle"[^>]*>/)?.[0] ?? "";
+  const button = html.match(/<button[^>]*>/)?.[0] ?? "";
   assert.ok(button.includes('data-slot="button"'), "ボタンの data-slot が button でない");
 });

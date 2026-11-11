@@ -47,9 +47,9 @@ mock.module("./sendgrid", {
   },
 });
 
-mock.module("@/config/business.config", {
+mock.module("./config", {
   namedExports: {
-    businessConfig: { mail: { defaultFrom: "from@example.com", defaultFromName: "差出人" } },
+    mailConfig: { defaultFrom: "from@example.com", defaultFromName: "差出人" },
   },
 });
 

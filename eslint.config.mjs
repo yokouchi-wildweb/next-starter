@@ -25,6 +25,8 @@ import forkConfig from "./eslint.config.fork.mjs";
 // origin が無い・目録が読めないときは自分の所有なし = 全部 error(安全側)。
 const libOwnership = loadCatalogOwnership({ repoRoot: import.meta.dirname, folder: "src/lib" });
 const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((path) => `${path}/**/*.{ts,tsx}`);
+/** 部品の棚 Primitives へ移した旧パスの削除の区切り(deprecated-imports の until) */
+const PRIMITIVES_REMOVED = "checkpoint primitives-radix で削除済み";
 
 const config = [
   ...nextConfig,
@@ -141,6 +143,8 @@ const config = [
       "import-boundaries/link-via-shelf": libOwnership.isRoot ? "error" : ["warn", { closableOnly: true }],
       // router-via-guard: next/navigation の useRouter は守り付きの router(@/lib/unsavedGuard)へ。上流 error / fork warn、例外は守りの lib の中だけ
       "import-boundaries/router-via-guard": libOwnership.isRoot ? "error" : "warn",
+      // radix-unified: Radix は統合版の radix-ui から読む(@radix-ui/* の個別パッケージは依存から外した)。上流 error / fork warn
+      "import-boundaries/radix-unified": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // - client-no-domain-json: client のコードは domain.json を import しない(写しを読む。判定はプラグインの中)
@@ -241,7 +245,8 @@ const config = [
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。
   // upstream が改名したとき、旧パスには再 export の shim が 1 checkpoint だけ残る。warn の間に新パスへ直す
   // (次の checkpoint で shim が消えると tsc が止める)。下流が自分の改名で使ってもよい(paths に足す)。
-  // 現在の一覧 = なし(枠の移動の shim と一覧は checkpoint old-entry-removal で削除した)。
+  // 現在の一覧 = 部品の棚 Primitives へ移した物(計画書 02、checkpoint primitives-radix で旧パスは shim なしで削除済み。
+  // 旧パスの import は tsc も止めるので、ここは置き換え先の案内だけ)。
   // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次" }
   {
     files: ["src/**/*.{ts,tsx}"],
@@ -250,7 +255,28 @@ const config = [
       "deprecated-imports/no-deprecated-path": [
         "warn",
         {
-          paths: [],
+          paths: [
+            { from: "@/components/_shadcn/checkbox", to: "@/components/Primitives/Checkbox", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/radio-group", to: "@/components/Primitives/RadioGroup", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/select", to: "@/components/Primitives/Select", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/label", to: "@/components/Primitives/Label", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/input", to: "@/components/Primitives/Input", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/textarea", to: "@/components/Primitives/Input", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/button", to: "@/components/Primitives/Button", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/badge", to: "@/components/Primitives/Badge", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/tabs", to: "@/components/Primitives/Tabs", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/skeleton", to: "@/components/Primitives/Skeleton", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/calendar", to: "@/components/Primitives/Calendar", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/carousel", to: "@/components/Primitives/Carousel", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/dialog", to: "@/components/Primitives/Dialog", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/command", to: "@/components/Primitives/Command", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/popover", to: "@/components/Primitives/Popover", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/tooltip", to: "@/components/Primitives/Tooltip", until: PRIMITIVES_REMOVED },
+            { from: "@/components/Overlays/DialogPrimitives", to: "@/components/Primitives/Dialog", until: PRIMITIVES_REMOVED },
+            { from: "@/components/Overlays/CommandPrimitives", to: "@/components/Primitives/Command", until: PRIMITIVES_REMOVED },
+            { from: "@/components/Overlays/Popover/PopoverPrimitives", to: "@/components/Primitives/Popover", until: PRIMITIVES_REMOVED },
+            { from: "@/components/Badge/BadgeCore", to: "@/components/Primitives/Badge", until: PRIMITIVES_REMOVED },
+          ],
         },
       ],
     },

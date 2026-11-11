@@ -86,7 +86,7 @@ UPDATE users SET name = 'x' WHERE false;
 | 層 | 実装 | 内容 |
 |---|---|---|
 | 1. SQL静的検証 | `safety/validateSelect.ts` | 単文 SELECT / WITH のみ。INSERT/UPDATE/DDL/SET/COPY/INTO 等の禁止キーワード拒否。複文禁止。リテラル・コメント除去後の構造部分で判定 |
-| 2. 行数上限 | `tools/runQuery.ts` | cursor で `DB_AGENT_CONFIG.maxRows` (既定200) 行まで読んだら打ち切り (転送量も抑制) |
+| 2. 行数上限 | `tools/runQuery.ts` | cursor で 設定 `maxRows` (既定200) 行まで読んだら打ち切り (転送量も抑制) |
 | 3. 列マスク | `safety/columnMask.ts` | password / token / secret 等 (`@/lib/audit` の共有 denylist) の値を `***MASKED***` へ。モデルコンテキスト = 外部送信のため |
 | 4. DB層 (最終防衛線) | `readonlyDb.ts` | 読取専用ロール + `default_transaction_read_only=on` + `statement_timeout` (既定10s) |
 
@@ -114,11 +114,16 @@ downstream がツールを追加する際はこの境界を壊さないこと (�
 
 管理画面での閲覧: `/admin/audit-logs` で `admin.db_agent.*` を検索。
 
+## 入口
+
+- `@/lib/dbAgent` — クライアント安全な物: `streamDbAgentChat`・監査の定数・拡張点の型 (`DbAgentPromptFragment` / `DbAgentSystemSuffixProvider`)・設定 (`dbAgentConfig` / `DbAgentOverride`)
+- `@/lib/dbAgent/server` — サーバー専用: `runDbAgent`・`isDbAgentEnabled`・`getReadonlyDb`・`buildDbAgentSystemPrompt`
+- 中のファイルは外から読めない (lint `lib-entry`)
+
 ## 設定
 
-`src/config/app/ai-agent.config.ts`:
-- `AI_AGENT_CONFIG` — model (既定 claude-opus-4-8) / maxIterations / maxTokensPerStep
-- `DB_AGENT_CONFIG` — maxRows / statementTimeoutMs / maxResultChars / maxQueryChars
+- AI 基盤の設定 — model (既定 claude-opus-4-8) / maxIterations / maxTokensPerStep: 上書き `src/config/lib/ai.config.ts` (`@lib-config/ai`、src/lib/ai/README.md)
+- DB 調査エージェントの設定 — maxRows / statementTimeoutMs / maxResultChars / maxQueryChars / maxSystemSuffixChars: 既定 `src/lib/dbAgent/config.ts`、上書き `src/config/lib/dbAgent.config.ts` (`@lib-config/dbAgent`)。合成済みの値は入口 `@/lib/dbAgent` の `dbAgentConfig`
 
 必要な env (どちらもシークレット):
 - `ANTHROPIC_API_KEY`
@@ -145,7 +150,7 @@ downstream がツールを追加する際はこの境界を壊さないこと (�
 - **キャッシュ特性**: 動的テキストを末尾に限定しているため、安定プレフィックスの
   プロンプトキャッシュは維持される。サフィックス変更 (= 管理者が設定を編集した時)
   のみキャッシュが無効化される。日付等の毎リクエスト変わる値を返さないこと
-- **上限**: `DB_AGENT_CONFIG.maxSystemSuffixChars` (既定4000字) で切り詰め。空白のみは無視
+- **上限**: 設定 `maxSystemSuffixChars` (既定4000字) で切り詰め。空白のみは無視
 - **失敗時**: プロバイダの throw はログの上スキップ (追加指示の欠落は機能停止より軽微)
 - **直接呼び出し用**: `runDbAgent({ systemSuffix })` でも渡せる (プロバイダ分の後ろに結合)
 
@@ -247,4 +252,4 @@ export function useDbAgentChat() {
 - モデル呼び出しコストは1質問あたり数円〜数十円オーダー (Opus 4.8)。
   コスト重視なら config で claude-sonnet-5 に差し替え可
 - `@anthropic-ai/sdk` の型が adaptive thinking 未対応の古さのためランタイム内で
-  キャストしている (`@/lib/ai/agent/runtime.ts`)。SDK 更新時に外すこと
+  キャストしている (`src/lib/ai/agent/runtime.ts`)。SDK 更新時に外すこと

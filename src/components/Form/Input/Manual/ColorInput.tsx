@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/cn";
-import { Input as ShadcnInput } from "@/components/_shadcn/input";
+import { Input as ShadcnInput } from "@/components/Primitives/Input";
 
 export type ColorInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,

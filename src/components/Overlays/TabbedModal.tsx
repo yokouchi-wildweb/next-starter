@@ -4,7 +4,7 @@
 
 import { type ReactNode, useCallback, useRef, useState } from "react";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/_shadcn/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/Primitives/Tabs";
 import { cn } from "@/lib/cn";
 
 import Modal, { type ModalProps } from "./Modal";

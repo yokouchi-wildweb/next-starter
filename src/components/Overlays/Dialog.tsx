@@ -13,7 +13,7 @@ import {
   FALLBACK_DIALOG_TITLE,
   type DialogContentLayer,
   type DialogOverlayLayer,
-} from "@/components/Overlays/DialogPrimitives";
+} from "@/components/Primitives/Dialog";
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 import { cn } from "@/lib/cn";

@@ -19,7 +19,7 @@ import {
   PopoverBody,
   PopoverFooter,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 export type PromptPopoverProps = {
   /** ポップオーバーを開くトリガー要素 */

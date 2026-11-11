@@ -36,6 +36,7 @@ export default function SecTitle({
       size={resolvedSize}
       className={cn(adminSecTitleVariants({ variant }), responsiveSizeClass, className)}
       {...props}
+      slot="admin-sec-title"
     />
   );
 }

@@ -23,7 +23,7 @@
 - `frame.override.ts`(`export const override`)= その下のリポ(fork・中間 Tier)の宣言。相手はそのルート。ルートを作ったリポの `frame.ts` の上に重なる(それが無ければ空の上)。`layout:` / `page:` は隣にある範囲だけ
 - `frame.default.ts` はどの Tier でも失敗(旧い名前)。ほかの名前(`frame.<何か>.ts`・`frame.tsx`)も失敗。上流(Tier1)が `frame.override.ts` を持つのも失敗(`pnpm check extensions`)
 - 親のルート(基準の page / layout / 枠の宣言のあるフォルダ)の隣に fork が印なしの `frame.ts` を足す = `pnpm workflow ownership check` の `frame-plain`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く。ルートの無いフォルダの `frame.override.ts` は `override-own`
-- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き)。親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`。上流の木(基準の版・取り込み中の MERGE_HEAD・親との分岐点)にあるファイルは動かさず挙げない(台帳の行を書く前に回しても上流の改名を取り違えない)。行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる(notice shared-shelf-frame-override-1 / shared-shelf-frame-override)
+- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き)。親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`。上流の木(基準の版・親の remote のブランチ・親との分岐点、取り込み中の MERGE_HEAD は親のブランチの祖先のときだけ)にあるファイルは動かさず挙げない(台帳の行を書く前に回しても上流の改名を取り違えず、fork のコミットを取り込んでいる間もその木の fork 自身のルートを上流と数えない)。行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる(notice shared-shelf-frame-override-1 / shared-shelf-frame-override)
 - 空(空白とコメントだけ)のファイルは不在と同じ
 
 ## 書き方
@@ -79,8 +79,9 @@ export const frameTable = [
 - 利用者の枠: `app-container`・`app-banner`・`header`・`header-shell`・`header-left`・`header-center`・`header-right`・`header-brand`・`header-brand-logo`・`header-brand-text`・`header-nav`・`header-sp-nav-panel`・`footer`・`bottom-nav`・`bottom-nav-item`
 - 管理の枠: `admin-app-container`・`admin-header`・`admin-header-title`・`admin-header-center`・`admin-header-right`・`admin-sidebar`・`admin-main`・`admin-footer`
 - Main: `main`・`main-layout`・`main-container`
-- 見出し(一覧に載せるだけ): `user-page-title`・`page-title`・`admin-page-title`・`sec-title`・`admin-sec-title`
+- 見出し(area `heading`、`source` = 印を描く部品のファイル): `user-page-title`(`(user)/_layout/PageTitle.tsx` の外側の header、srOnly の時は無い)・`page-title`(`TextBlocks/PageTitle` の h1)・`admin-page-title`(`admin/_layout/AdminPageTitle.tsx` のページの h1。ヘッダーの圧縮の題には付けない)・`sec-title`(`TextBlocks/SecTitle`)・`admin-sec-title`(`AppFrames/Admin/Elements/SecTitle`)
+  - 見出しの印も約束(fork の CSS が狙ってよい)。消す・名前を変えるのは notice。srOnly でも h1・見出しの印は残る。部品自身の印が呼び手の props の `data-slot` に勝つ(包む上流の部品は TextBlocks に型つきの `slot` を渡す)
 - 隠せる部位(`hideable: true`): 利用者 `header`・`header-nav`・`footer`・`bottom-nav`、管理 `admin-header`・`admin-sidebar`・`admin-footer`
 - 部位の印は要素の `data-slot` だけ。隠せる部位は `hideSlots`(その部位を隠す data-slot の名前。今は全部が部位の名前 1 つ)を持ち、隠す CSS(`src/styles/core/frame.css`)はそれだけで隠せる。shadcn の Button のように自分の data-slot を持つ部品は `display: contents` の包みが名前を持つ。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
-- frame.css の `:is()` に残る既定部品の id は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に一緒に外す
-- テスト: 一覧の名前と隠せる部位、型のキーの union = 隠せる部位、frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末で hideSlots の data-slot を狙う、id で狙う既定部品も自分か祖先が hideSlots の data-slot を持つ(`parts.test.mjs`)。各枠の README の data-slot の一覧と要素の data-slot の照合は `(user)/_layout/UserFrame.test.tsx`(利用者・Main)・`admin/_layout/AdminFrame.test.tsx`(管理)
+- frame.css は id で狙わない(枠の部品は見た目のための id を持たない)
+- テスト: 一覧の名前と隠せる部位、見出しの source のファイルが名前を持つ、型のキーの union = 隠せる部位、frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末で hideSlots の data-slot だけを狙う(id なし)、隠せる部位ごとに既定部品の要素が hideSlots の data-slot を持つ(`parts.test.mjs`)。各枠の README の data-slot の一覧と要素の data-slot の照合は `(user)/_layout/UserFrame.test.tsx`(利用者・Main・source が枠の中の見出し)・`admin/_layout/AdminFrame.test.tsx`(管理・source が枠の中の見出し)。見出し 5 つの描画(srOnly あり・なし、呼び手の data-slot に負けない)と一覧の照合は `src/components/TextBlocks/headingSlots.test.tsx`

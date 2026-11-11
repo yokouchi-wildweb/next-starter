@@ -7,7 +7,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/_shadcn/tabs"
+} from "@/components/Primitives/Tabs"
 import { Flex } from "@/components/Layout/Flex"
 import { Span } from "@/components/TextBlocks/Span"
 import { cn } from "@/lib/cn"

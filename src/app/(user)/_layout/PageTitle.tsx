@@ -14,8 +14,9 @@ export function UserPageTitle({ children, srOnly, ...props }: UserPageTitleProps
     );
   }
 
+  // 外側の header に印 user-page-title(srOnly の時は外側が無いので付かない。中の h1 は page-title)
   return (
-    <Section as="header" id="page-title" className="py-4">
+    <Section as="header" data-slot="user-page-title" className="py-4">
       <BasePageTitle align="center" {...props}>{children}</BasePageTitle>
     </Section>
   );

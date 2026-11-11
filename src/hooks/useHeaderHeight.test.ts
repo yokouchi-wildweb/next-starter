@@ -1,5 +1,5 @@
 // src/hooks/useHeaderHeight.test.ts — pnpm test src/hooks/useHeaderHeight.test.ts
-// ヘッダーの探し方(data-slot が先、id は最後の一時の橋)と、差し替わった要素を探し直して測ることを、DOM の道具なしの偽物で確かめる
+// ヘッダーの探し方(data-slot だけ。id では探さない)と、差し替わった要素を探し直して測ることを、DOM の道具なしの偽物で確かめる
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -53,15 +53,14 @@ function fakeEnv(doc: ReturnType<typeof fakeDoc>) {
   };
 }
 
-test("探す順: data-slot header → admin-header → id(一時の橋)", () => {
+test("探す順: data-slot header → admin-header。id では探さない", () => {
   const user = element(56);
   const admin = element(60);
   const byId = element(40);
   assert.deepEqual([...HEADER_SLOT_SELECTORS], ['[data-slot="header"]', '[data-slot="admin-header"]']);
   assert.equal(findHeaderElement(fakeDoc({ header: user }, { header: byId }) as never), user);
   assert.equal(findHeaderElement(fakeDoc({ "admin-header": admin }, { header: byId }) as never), admin);
-  assert.equal(findHeaderElement(fakeDoc({}, { header: byId }) as never), byId, "data-slot が無い差し替え部品は id で");
-  assert.equal(findHeaderElement(fakeDoc({}, { mine: byId }) as never, "mine"), byId);
+  assert.equal(findHeaderElement(fakeDoc({}, { header: byId }) as never), null, "data-slot が無い要素は id があっても測らない");
   assert.equal(findHeaderElement(fakeDoc() as never), null);
 });
 
@@ -69,7 +68,7 @@ test("id を外して data-slot だけ残したヘッダーも測る(既定の�
   const header = element(56);
   const fake = fakeEnv(fakeDoc({ header }));
   const heights: (number | null)[] = [];
-  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  trackHeaderHeight((h) => heights.push(h), fake.env);
   assert.deepEqual(heights, [56]);
   header.height = 0;
   fake.observers[0].callback();
@@ -80,7 +79,7 @@ test("見つかるまでフレームごとに探し、見つけたら測って R
   const doc = fakeDoc();
   const fake = fakeEnv(doc);
   const heights: (number | null)[] = [];
-  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  trackHeaderHeight((h) => heights.push(h), fake.env);
   assert.deepEqual(heights, [], "見つかるまで何も返さない(hook は null のまま)");
   fake.flush();
   doc.slots["admin-header"] = element(60);
@@ -96,7 +95,7 @@ test("測っている要素が DOM から外れたら null(まだ測れていな
   const doc = fakeDoc({ "admin-header": first });
   const fake = fakeEnv(doc);
   const heights: (number | null)[] = [];
-  const stop = trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  const stop = trackHeaderHeight((h) => heights.push(h), fake.env);
   const second = element(72);
   first.isConnected = false;
   doc.slots["admin-header"] = second;
@@ -116,7 +115,7 @@ test("外れた後に見つからなければ null のまま、フレームご�
   const doc = fakeDoc({ "admin-header": first });
   const fake = fakeEnv(doc);
   const heights: (number | null)[] = [];
-  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  trackHeaderHeight((h) => heights.push(h), fake.env);
   first.isConnected = false;
   delete doc.slots["admin-header"];
   fake.observers[0].callback();
@@ -132,7 +131,7 @@ test("戻る / 進むの付け直し: 古いヘッダーが高さ 0 になって
   const doc = fakeDoc({ "admin-header": first });
   const fake = fakeEnv(doc);
   const heights: (number | null)[] = [];
-  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  trackHeaderHeight((h) => heights.push(h), fake.env);
   first.height = 0;
   fake.observers[0].callback();
   const second = element(52);
@@ -147,7 +146,7 @@ test("見つけた直後でまだ高さ 0 の新しいヘッダーは null、高
   const doc = fakeDoc();
   const fake = fakeEnv(doc);
   const heights: (number | null)[] = [];
-  trackHeaderHeight((h) => heights.push(h), "header", fake.env);
+  trackHeaderHeight((h) => heights.push(h), fake.env);
   const header = element(0);
   doc.slots.header = header;
   fake.flush();

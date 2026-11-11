@@ -83,7 +83,7 @@ console.log(`
 4. servers/room/wrangler.toml の [vars] APP_BASE_URL にアプリの正式オリジンを設定
    (callback effect = PG 永続化エスケープハッチを使う場合のみ)
 
-5. src/config/app/realtime-room.config.ts の enabled を true にする
+5. src/config/lib/realtimeRoom.config.ts に enabled: true を書く
 
 6. デプロイ:
      pnpm live:all                # アプリ + Worker の統合デプロイ (手動運用の標準)

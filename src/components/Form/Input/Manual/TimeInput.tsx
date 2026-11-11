@@ -34,7 +34,7 @@ import {
   PopoverRoot,
   PopoverTrigger,
   PopoverContent,
-} from "@/components/Overlays/Popover/PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 import { Input } from "./Input";
 import { TimeFields } from "./TimeFields";

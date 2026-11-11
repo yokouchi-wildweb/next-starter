@@ -442,3 +442,23 @@
 - id:20261110-174550-purchase-bonus-display | severity:action-required | checkpoint:purchase-bonus-display | resolves:20261101-111956-intake-purchase-bonus-display
 - id:20261110-185533-mail-frame-no-context | severity:info | checkpoint:mail-frame-no-context | fixes:commit:d78665c50 | pick:-
 - id:20261110-185623-messaging-lib-foundation | severity:info | checkpoint:messaging-lib-foundation
+- id:20261110-200011-flow-copies-split | severity:info | checkpoint:flow-copies-split | resolves:20261108-193324-remaining-flow-copies-split
+- id:20261110-213606-ship-safe-points | severity:info | checkpoint:ship-safe-points | hotfix:yes
+- id:20261110-143000-frames-move-merge-head | severity:info | checkpoint:frames-move-merge-head | fixes:20261109-175947-shared-shelf-frame-override | resolves:20261110-140016-frame-override-rename-conflict-frames-move | pick:clean
+- id:20261111-051718-quest-skill-caravan-route | severity:info | checkpoint:quest-skill-caravan-route
+- id:20261111-054517-e2e-sidebar-label | severity:info | checkpoint:config-e2e-sidebar-label | fixes:20261108-102903-admin-menu-rebuild | pick:-
+- id:20261111-060737-heading-slots | severity:info | checkpoint:heading-slots
+- id:20261111-072306-ship-kinds-safe-point-proposal | severity:info | checkpoint:ship-kinds-safe-point-proposal
+- id:20261111-073037-picked-notice-without-index-row | severity:action-required | checkpoint:picked-notice-without-index-row | fixes:20261105-081445-pick-ignores-shipped-index | pick:-
+- id:20261111-111325-primitives-radix | severity:action-required | checkpoint:primitives-radix
+- id:20261111-122356-district-map-requires-test-core-only | severity:info | checkpoint:district-map-requires-test-core-only | fixes:20261108-152849-config-district-map | resolves:20261110-135029-district-map-requires-test-fork-domains | pick:-
+- id:20261111-122519-withdraw-description-config | severity:action-required | checkpoint:withdraw-description-config | resolves:20261101-111956-intake-withdraw-early-reg-mail
+- id:20261111-122528-feature-report-dependency-exceptions | severity:info | checkpoint:feature-report-dependency-exceptions | fixes:20261105-112509-feature-gate-automation | resolves:20261110-142113-feature-report-dependency-exceptions | pick:-
+- id:20261111-123916-lib-close-wave3-a | severity:action-required | checkpoint:lib-close-wave3-a | moved:src/config/app/realtime-room.config.ts -> src/lib/realtimeRoom/config.ts
+- id:20261111-124359-lib-close-wave3-b | severity:action-required | checkpoint:lib-close-wave3-b | moved:src/config/app/analytics.config.ts -> src/lib/analyticsConsent/config.ts
+- id:20261111-125200-lib-close-wave3-c | severity:action-required | checkpoint:lib-close-wave3-c
+- id:20261111-132004-lib-close-stage2-b | severity:action-required | checkpoint:lib-close-stage2-b
+- id:20261111-132214-lib-close-stage2-a | severity:action-required | checkpoint:lib-close-stage2-a | moved:src/config/app/ai-agent.config.ts -> src/lib/dbAgent/config.ts
+- id:20261111-122421-primitives-slot-wins | severity:action-required | checkpoint:primitives-slot-wins | fixes:20261111-111325-primitives-radix
+- id:20261111-140528-data-slot-only | severity:breaking | checkpoint:data-slot-only
+- id:20261111-141433-acquisition-config-home | severity:breaking | checkpoint:config-acquisition-home | moved:src/config/app/acquisition.config.ts -> src/features/core/userAcquisition/config.ts

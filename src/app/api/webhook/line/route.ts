@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { webhookHandlers } from "@/features/core/userLineProfile/extensions/webhookHandlers";
 import { dispatchWebhookEvents } from "@/features/core/userLineProfile/services/server/dispatchWebhookEvents";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseWebhookRequest } from "@/lib/line/webhook";
+import { parseWebhookRequest } from "@/lib/line";
 
 /**
  * LINE Webhook 受信エンドポイント。

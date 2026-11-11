@@ -57,7 +57,7 @@ const ItemContent = ({ item }: BottomNavItemProps) => {
           </span>
         )}
       </div>
-      <span id={`bottom-nav-label-${item.key}`} className="text-[10px] font-medium leading-tight">{item.label}</span>
+      <span className="text-[10px] font-medium leading-tight">{item.label}</span>
     </>
   );
 };
@@ -68,7 +68,6 @@ const BottomNavLinkEntry = ({ item }: { readonly item: BottomNavLinkItem }) => {
 
   return (
     <Link
-      id={`bottom-nav-item-${item.key}`}
       data-slot="bottom-nav-item"
       href={item.href}
       aria-current={isActive ? "page" : undefined}
@@ -84,6 +83,7 @@ const BottomNavMenuEntry = ({ item }: { readonly item: BottomNavMenuItem }) => (
   <BottomNavMenu
     item={item}
     trigger={
+      // id = メニュー項目の目印。Form/Button が自分の data-slot(button)を付けるので bottom-nav-item の印を持てず、狙う先がこれしか無いため残す
       <Button
         id={`bottom-nav-item-${item.key}`}
         type="button"

@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/_shadcn/select";
+} from "@/components/Primitives/Select";
 import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/utils";
 import { cn } from "@/lib/cn";
 import { POPUP_ATTR, CLEAR_VALUE } from "../constants";

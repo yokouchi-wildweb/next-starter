@@ -12,7 +12,7 @@
 - `resend`（既定）: `RESEND_API_KEY` が要る
 - `sendgrid`: `SENDGRID_API_KEY` が要る
 
-送信元は `from` / `fromName` で渡す。省略時は `businessConfig.mail.defaultFrom` / `defaultFromName`。
+送信元は `from` / `fromName` で渡す。省略時は設定の `defaultFrom` / `defaultFromName`（既定 `config.ts`、上書き `src/config/lib/mail.config.ts` = `@lib-config/mail`。上流の上書きは `@/business` の `mail` を写す）。
 
 ## セットアップ（Resend）
 

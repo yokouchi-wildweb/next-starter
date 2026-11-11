@@ -1,0 +1,38 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/browserStorage": [
+        "../browserStorage"
+      ],
+      "@/lib/browserStorage/*": [
+        "../browserStorage/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ],
+      "@lib-config/transitionGuard": [
+        "../../config/lib/transitionGuard.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

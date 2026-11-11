@@ -12,7 +12,7 @@
 
 import { z } from "zod";
 
-import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
+import { dbAgentConfig } from "../config";
 import type { AgentToolDefinition } from "@/lib/ai";
 
 import {
@@ -38,7 +38,7 @@ export function createRunQueryTool(
   return {
     name: "run_query",
     label: "SQL の実行",
-    description: `読取専用の SELECT 文を1文だけ実行する。結果は最大 ${DB_AGENT_CONFIG.maxRows} 行 (超過分は切り捨て)。集計・件数確認は必ず GROUP BY / COUNT 等で DB 側に寄せ、大量の生データを取得しないこと。書き込み・DDL は実行できない。`,
+    description: `読取専用の SELECT 文を1文だけ実行する。結果は最大 ${dbAgentConfig.maxRows} 行 (超過分は切り捨て)。集計・件数確認は必ず GROUP BY / COUNT 等で DB 側に寄せ、大量の生データを取得しないこと。書き込み・DDL は実行できない。`,
     inputSchema: {
       type: "object",
       properties: {
@@ -78,7 +78,7 @@ export function createRunQueryTool(
           .unsafe(validated.query)
           .cursor(CURSOR_BATCH_SIZE)) {
           for (const row of batch) {
-            if (rows.length >= DB_AGENT_CONFIG.maxRows) {
+            if (rows.length >= dbAgentConfig.maxRows) {
               truncatedByRowCap = true;
               break;
             }

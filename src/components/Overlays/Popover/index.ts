@@ -1,6 +1,6 @@
 // src/components/Overlays/Popover/index.ts
 
-// Primitives
+// Primitives(低レベル部品。本体は @/components/Primitives/Popover)
 export {
   PopoverRoot,
   PopoverTrigger,
@@ -16,7 +16,7 @@ export {
   type PopoverLayer,
   type PopoverSize,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 // High-level components
 export { Popover, type PopoverProps } from "./Popover";

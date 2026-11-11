@@ -129,7 +129,7 @@ export function ManualFieldGroup({
   // ラベル要素
   const labelElement = label && (
     <Label
-      data-slot="form-label"
+      slot="form-label"
       data-error={hasErrors}
       className={cn(
         hideLabel && "sr-only",

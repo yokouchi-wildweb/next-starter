@@ -14,15 +14,34 @@ type PollingState = {
   isPolling: boolean;
 };
 
-type UsePurchaseStatusPollingParams = {
+export type UsePurchaseStatusPollingParams = {
   /** 購入リクエストID */
   requestId: string | null;
-  /** URLスラッグ（リダイレクト先のパス用） */
+  /** URLスラッグ（既定のリダイレクト先のパス用） */
   slug: string;
+  /** 完了時のリダイレクト先のパス（省略 = /wallet/<slug>/purchase/complete）。request_id を付けて移る */
+  completePath?: string;
+  /** 失敗・期限切れ・タイムアウト時のリダイレクト先のパス（省略 = /wallet/<slug>/purchase/failed）。request_id と error_code / reason を付けて移る */
+  failedPath?: string;
 };
 
 /**
+ * リダイレクト先の URL を組み立てる（純関数）。
+ * クエリは request_id → error_code → reason の順（値のあるものだけ）。パスに ? があれば & で続ける
+ */
+export function buildPurchaseResultUrl(
+  path: string,
+  query: { requestId: string; errorCode?: string; reason?: string },
+): string {
+  const searchParams = new URLSearchParams({ request_id: query.requestId });
+  if (query.errorCode) searchParams.set("error_code", query.errorCode);
+  if (query.reason) searchParams.set("reason", query.reason);
+  return `${path}${path.includes("?") ? "&" : "?"}${searchParams.toString()}`;
+}
+
+/**
  * 購入ステータスをポーリングし、結果に応じてリダイレクトするフック
+ * 移り先は completePath / failedPath で変えられる（値だけ。fork が自前の購入の結果画面を持つとき。README「3.2」）
  *
  * @param params パラメータ
  * @returns ポーリング状態
@@ -30,6 +49,8 @@ type UsePurchaseStatusPollingParams = {
 export function usePurchaseStatusPolling({
   requestId,
   slug,
+  completePath,
+  failedPath,
 }: UsePurchaseStatusPollingParams): PollingState {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -39,21 +60,21 @@ export function usePurchaseStatusPolling({
   const isPollingRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  const completeTarget = completePath ?? `/wallet/${slug}/purchase/complete`;
+  const failedTarget = failedPath ?? `/wallet/${slug}/purchase/failed`;
+
   const redirectToComplete = useCallback(
     (id: string) => {
-      router.replace(`/wallet/${slug}/purchase/complete?request_id=${id}`);
+      router.replace(buildPurchaseResultUrl(completeTarget, { requestId: id }));
     },
-    [router, slug]
+    [router, completeTarget]
   );
 
   const redirectToFailed = useCallback(
     (id: string, params: { errorCode?: string; reason?: string }) => {
-      const searchParams = new URLSearchParams({ request_id: id });
-      if (params.errorCode) searchParams.set("error_code", params.errorCode);
-      if (params.reason) searchParams.set("reason", params.reason);
-      router.replace(`/wallet/${slug}/purchase/failed?${searchParams.toString()}`);
+      router.replace(buildPurchaseResultUrl(failedTarget, { requestId: id, ...params }));
     },
-    [router, slug]
+    [router, failedTarget]
   );
 
   useEffect(() => {

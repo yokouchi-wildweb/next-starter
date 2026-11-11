@@ -2,7 +2,7 @@
 // 実行: pnpm test src/app/(user)/_layout/UserLayout.test.tsx(tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // 重い部品(既定の Header / Footer、BottomNav、未読モーダル)と useHeaderHeight は目印の要素にモックし、
-// 枠そのもの(BackgroundLayer・#user-app-container・#stretch-wrapper・並び順・表示制御の Provider)は本物を描く。
+// 枠そのもの(BackgroundLayer・外枠 app-container・本文の包み・並び順・表示制御の Provider)は本物を描く。
 // 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さ)はその場の config から、外枠の隠す印は枠の表
 // (extensions/frameTable.ts。静的描画は app router の外なので segments = [] = 枠の根の宣言の行)から組み立てるので、
 // config や枠の宣言を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
@@ -115,7 +115,13 @@ const withSlotsAndSafeArea = (html: string) =>
  * --app-header-height を書かない(styles/core/frame.css の初期値 = 今の行の高さが効く)。測った値は書く(下の test)
  */
 const withoutHeaderVar = (html: string) => html.replace("--app-header-height:0px;", "").replace(' style="--app-header-height:0px"', "");
-const frameDims = () => withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH))));
+/**
+ * 古い目印を外す区切り(余白の議会 N4、指令 08)で既定の DOM から消えた属性: 外枠の id="user-app-container"・data-user-app-container、
+ * 本文の包みの id="stretch-wrapper"(狙う先は data-slot だけ。class・並びは不変)
+ */
+const withoutLegacyMarks = (html: string) =>
+  html.replace('id="user-app-container" data-user-app-container="" ', "").replace('<div id="stretch-wrapper" class=', "<div class=");
+const frameDims = () => withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)))));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -131,18 +137,20 @@ const configBackground = () =>
 /** props なしの UserLayout の期待値 */
 const defaultLayout = () => configBackground() + frameDims();
 
-/** id の要素の開始タグ(属性の並びに依らず印・属性を見る) */
-const tagOf = (html: string, id: string) => html.match(new RegExp(`<[a-z][^>]*\\sid="${id}"[^>]*>`))?.[0] ?? "";
+/** data-slot の要素の開始タグ(属性の並びに依らず印・属性を見る) */
+const tagOf = (html: string, slot: string) => html.match(new RegExp(`<[a-z][^>]*\\sdata-slot="${slot}"[^>]*>`))?.[0] ?? "";
+/** 本文の包み(印なし。class で探す) */
+const BODY_WRAPPER = 'class="flex flex-1 min-h-0 flex-col';
 
 test("props なしの UserLayout は外枠の属性・高さ変数・部品の並びを持つ(ボトムナビの値は config から、隠す印は枠の表から)", () => {
   const html = render(<UserLayout>CHILD</UserLayout>);
-  const root = tagOf(html, "user-app-container");
+  const root = tagOf(html, "app-container");
   assert.ok(root.includes('data-frame-root=""'), "外枠に data-frame-root が無い");
   assert.ok(root.includes(`--app-bottom-nav-height:${bottomNavValue()}`));
   assert.ok(root.includes(rootHideAttr()), "外枠に枠の表の隠す印が無い");
   assert.equal(html.includes("<span hidden"), false, "Hide* の印が残っている");
   assert.ok(html.includes(configBackground()), "config の値で描いた背景が無い");
-  const order = ['id="user-app-container"', "<x-header>", 'id="stretch-wrapper"', "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
+  const order = ['data-slot="app-container"', "<x-header>", BODY_WRAPPER, "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
@@ -178,7 +186,7 @@ test("slot に要素を渡すと既定の代わりにそれを同じ位置に描
     assert.equal(html.includes(`<x-${name}>`), false, `既定の ${name} が残っている`);
   }
   assert.equal(html.includes("100lvh"), false, "既定の BackgroundLayer が残っている");
-  const order = ['<i id="bg">', 'id="user-app-container"', '<header id="h">', 'id="stretch-wrapper"', '<footer id="f">', '<nav id="b">', "<x-modal>"];
+  const order = ['<i id="bg">', 'data-slot="app-container"', '<header id="h">', BODY_WRAPPER, '<footer id="f">', '<nav id="b">', "<x-modal>"];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
@@ -198,7 +206,7 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
   assert.ok(html.includes("<x-modal></x-modal></div>"), "未読のモーダルは slot ではないので残る(外枠の末尾)");
   assert.equal(html.includes("100lvh"), false, "背景が残っている");
   assert.equal(html.includes("--app-bottom-nav-height"), false);
-  assert.ok(tagOf(html, "user-app-container").includes('data-frame-root=""'));
+  assert.ok(tagOf(html, "app-container").includes('data-frame-root=""'));
   assert.ok(html.includes("CHILD"));
 });
 
@@ -206,15 +214,15 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
   assert.equal(
     render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
-      'id="user-app-container" data-user-app-container="" data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
-      '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div><x-modal></x-modal></div>',
+      'data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
+      '<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div><x-modal></x-modal></div>',
   );
 });
 
 test("bottomNav に要素を渡しても --app-bottom-nav-height は 枠の設定の bottomMenu.height で、外枠の隠す印も同じ(差し替えも枠の宣言に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
-  assert.ok(tagOf(html, "user-app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
-  assert.ok(tagOf(html, "user-app-container").includes(rootHideAttr()));
+  assert.ok(tagOf(html, "app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
+  assert.ok(tagOf(html, "app-container").includes(rootHideAttr()));
 });
 
 test("banner の省略と null は同じ(既定なし): 帯・スペーサー・--app-banner-height を描かない", () => {
@@ -224,14 +232,14 @@ test("banner の省略と null は同じ(既定なし): 帯・スペーサー・
 
 // banner の殻: data-slot="app-banner" と、上と左右の切り欠きの padding(切り欠きの無い画面では 0)
 const BANNER_TAG =
-  '<div id="app-banner" data-slot="app-banner" class="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"><p id="promo">PROMO</p></div>';
+  '<div data-slot="app-banner" class="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"><p id="promo">PROMO</p></div>';
 const BANNER_SPACER_TAG = '<div aria-hidden="true" class="shrink-0 h-[var(--app-banner-height,0px)]"></div>';
 
 test("banner に要素を渡すとヘッダーより前の固定の帯に描き、本文の前にその高さのスペーサーを置く", () => {
   const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);
   // 静的描画では実測前なので 0px(ブラウザでは ResizeObserver の実測値)
-  assert.ok(tagOf(html, "user-app-container").includes("--app-banner-height:0px"), "外枠に --app-banner-height が無い");
-  const order = ['id="user-app-container"', 'id="app-banner"', '<p id="promo">', "<x-header>", "h-[var(--app-banner-height,0px)]", 'id="stretch-wrapper"'];
+  assert.ok(tagOf(html, "app-container").includes("--app-banner-height:0px"), "外枠に --app-banner-height が無い");
+  const order = ['data-slot="app-container"', 'data-slot="app-banner"', '<p id="promo">', "<x-header>", "h-[var(--app-banner-height,0px)]", BODY_WRAPPER];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が違う");
@@ -255,15 +263,15 @@ test("未読のモーダル(受け取り箱の部品)は門を見ずに外枠の
 
 test("測る前(useHeaderHeight が null = SSR の最初の HTML)は外枠に --app-header-height を書かず、CSS の初期値に任せる", () => {
   headerHeight.current = null;
-  assert.equal(tagOf(render(<UserLayout>CHILD</UserLayout>), "user-app-container").includes("--app-header-height"), false);
+  assert.equal(tagOf(render(<UserLayout>CHILD</UserLayout>), "app-container").includes("--app-header-height"), false);
 });
 
 test("測った値は外枠の inline の --app-header-height に書く(ヘッダーを隠して測った 0 も書く = 初期値を上書きする)", () => {
   try {
     headerHeight.current = 56;
-    assert.ok(tagOf(render(<UserLayout>CHILD</UserLayout>), "user-app-container").includes("--app-header-height:56px"));
+    assert.ok(tagOf(render(<UserLayout>CHILD</UserLayout>), "app-container").includes("--app-header-height:56px"));
     headerHeight.current = 0;
-    assert.ok(tagOf(render(<UserLayout>CHILD</UserLayout>), "user-app-container").includes("--app-header-height:0px"));
+    assert.ok(tagOf(render(<UserLayout>CHILD</UserLayout>), "app-container").includes("--app-header-height:0px"));
   } finally {
     headerHeight.current = null;
   }

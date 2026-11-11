@@ -370,6 +370,36 @@ test("config: link-via-shelf は Tier1 で error、fork で warn(テストは対
   assert.deepEqual(await lintAt("src/app/foo/_components/Part.test.tsx", RAW), []);
 });
 
+test("rule radix-unified: 個別の @radix-ui/* は値・型・副作用・dynamic・require・再輸出のどれも止め、統合版の radix-ui は通す", () => {
+  const file = at("src/components/Primitives/Dialog/Dialog.tsx");
+  const err = (source) => [{ messageId: "scopedRadix", data: { source } }];
+  ruleTester.run("radix-unified", plugin.rules["radix-unified"], {
+    valid: [
+      { code: `import { Dialog as DialogPrimitive } from "radix-ui";`, filename: file },
+      { code: `import type { Checkbox } from "radix-ui";`, filename: file },
+      { code: `export { Slot } from "radix-ui";`, filename: file },
+      { code: `import { Command } from "cmdk";`, filename: file },
+    ],
+    invalid: [
+      { code: `import * as DialogPrimitive from "@radix-ui/react-dialog";`, filename: file, errors: err("@radix-ui/react-dialog") },
+      { code: `import type { CheckedState } from "@radix-ui/react-checkbox";`, filename: file, errors: err("@radix-ui/react-checkbox") },
+      { code: `import "@radix-ui/react-tooltip";`, filename: file, errors: err("@radix-ui/react-tooltip") },
+      { code: `export { Slot } from "@radix-ui/react-slot";`, filename: file, errors: err("@radix-ui/react-slot") },
+      { code: `const m = import("@radix-ui/react-popover");`, filename: file, errors: err("@radix-ui/react-popover") },
+      { code: `const m = require("@radix-ui/primitive");`, filename: file, errors: err("@radix-ui/primitive") },
+    ],
+  });
+});
+
+test("config: radix-unified は src の全部(テストも)で Tier1 は error、fork は warn", async () => {
+  const RAW = `import * as LabelPrimitive from "@radix-ui/react-label";\nexport const x = LabelPrimitive;\n`;
+  const severity = readForkIdentity(repoRoot).isTier1 ? 2 : 1;
+  for (const file of ["src/components/Primitives/Label/Label.tsx", "src/app/foo/_components/Part.tsx", "src/features/core/user/components/X.tsx"]) {
+    assert.deepEqual(await lintAt(file, RAW), [`import-boundaries/radix-unified:${severity}`], file);
+  }
+  assert.deepEqual(await lintAt("src/components/Primitives/Label/Label.tsx", `import { Label } from "radix-ui";\nexport const x = Label;\n`), []);
+});
+
 test("rule router-via-guard: next/navigation の useRouter を止め(別名・ほかの名前と一緒でも)、守りの lib の中・型だけ・ほかの名前は通す", () => {
   ruleTester.run("router-via-guard", plugin.rules["router-via-guard"], {
     valid: [

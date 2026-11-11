@@ -6,7 +6,7 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/Button/RoundedButton";
 import { Label } from "@/components/Form/Label";
-import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
+import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import { cn } from "@/lib/cn";
 import { type Options } from "@/components/Form/types";
 

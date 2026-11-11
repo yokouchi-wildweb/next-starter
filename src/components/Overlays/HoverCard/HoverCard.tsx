@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
+import { HoverCardArrow, HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from "@/components/Primitives/HoverCard";
 
 import { cn } from "@/lib/cn";
 
@@ -102,18 +102,18 @@ export function HoverCard({
   defaultOpen,
 }: HoverCardProps) {
   return (
-    <HoverCardPrimitive.Root
+    <HoverCardRoot
       open={open}
       onOpenChange={onOpenChange}
       defaultOpen={defaultOpen}
       openDelay={openDelay}
       closeDelay={closeDelay}
     >
-      <HoverCardPrimitive.Trigger asChild={asChild}>
+      <HoverCardTrigger asChild={asChild}>
         {trigger}
-      </HoverCardPrimitive.Trigger>
-      <HoverCardPrimitive.Portal>
-        <HoverCardPrimitive.Content
+      </HoverCardTrigger>
+      <HoverCardPortal>
+        <HoverCardContent
           side={side}
           align={align}
           sideOffset={sideOffset}
@@ -139,11 +139,11 @@ export function HoverCard({
         >
           <div className="min-h-0 overflow-y-auto">{children}</div>
           {showArrow && (
-            <HoverCardPrimitive.Arrow className="fill-popover" />
+            <HoverCardArrow className="fill-popover" />
           )}
-        </HoverCardPrimitive.Content>
-      </HoverCardPrimitive.Portal>
-    </HoverCardPrimitive.Root>
+        </HoverCardContent>
+      </HoverCardPortal>
+    </HoverCardRoot>
   );
 }
 

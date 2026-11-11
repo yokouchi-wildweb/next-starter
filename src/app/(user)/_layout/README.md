@@ -26,7 +26,6 @@ src/app/(user)/_layout/
 
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
 
-- `src/components/AppFrames/constants.ts`(ヘッダー・フッターの要素 ID): useHeaderHeight の汎用化と一緒に後で動かす
 
 説明は [src/components/AppFrames/User/README.md](../../../components/AppFrames/User/README.md)。
 
@@ -48,20 +47,20 @@ src/app/(user)/_layout/
 | slot | 既定(省略時) | 位置 |
 |------|----------------|------|
 | `background` | `BackgroundLayer`(値は枠の設定 `layout.background`、`./config.ts`) | 最背面(枠の外側の兄弟) |
-| `banner` | なし(省略と `null` は同じ) | `#user-app-container` の先頭、header の前。`#app-banner`(fixed・top-0)の中に描く |
-| `header` | `UserNavigation`(`./Header`、upstream では既定 Header) | `#user-app-container` の先頭 |
-| `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | `#stretch-wrapper` の後 |
+| `banner` | なし(省略と `null` は同じ) | 外枠(`app-container`)の先頭、header の前。帯(`app-banner`、fixed・top-0)の中に描く |
+| `header` | `UserNavigation`(`./Header`、upstream では既定 Header) | 外枠(`app-container`)の先頭 |
+| `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | 本文の包みの後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
 
 - 未読のお知らせのモーダルは slot ではない: 外枠の末尾にいつも messaging の `InboxUnreadModal`(`@/features/core/messaging/components/InboxUnreadModal`)を置く。出すかは `messagingConfig.inbox.showUnreadModal`(既定 切)、出す住所は `inbox.unreadModalPaths`(上書き `src/config/features/messaging.config.ts`)。門は見ない。自前のモーダルを使う fork は config で切り、`UserLayout.replace` に置く
 - slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は 1 行スイッチ化の前と同じ(test で固定。寸法変数の区切りで入った差分 2 か所は下の「寸法の CSS 変数」)
-- banner を渡すと、帯の実測の高さを外枠の `--app-banner-height` に書き、ヘッダーの top と本文(`#stretch-wrapper` の前のスペーサー)をその分押し下げる。SP メニューもヘッダーの下から開く。差し替えたヘッダーは `top-0` の代わりに `top-[var(--app-banner-height,0px)]` を使う(使わないと帯に被る)
+- banner を渡すと、帯の実測の高さを外枠の `--app-banner-height` に書き、ヘッダーの top と本文(本文の包みの前のスペーサー)をその分押し下げる。SP メニューもヘッダーの下から開く。差し替えたヘッダーは `top-0` の代わりに `top-[var(--app-banner-height,0px)]` を使う(使わないと帯に被る)
 
 ### 寸法の CSS 変数
 
 | 変数 | 値 | 書く所 |
 |------|----|--------|
-| `--app-header-height` | ヘッダー(`[data-slot="header"]` / `[data-slot="admin-header"]`、id は一時の橋)の高さ。初期値 = 今の行の高さ(外枠ごと・端末ごと、測る前の最初の表示とページを移る間に使う)、測った値が上書きする。枠の宣言で隠している端末は 0px | 初期値と隠す間の 0 は `src/styles/core/frame.css`、測った値は UserLayout・AdminLayout の外枠の inline(`useHeaderHeight()` が値を返した時だけ) |
+| `--app-header-height` | ヘッダー(`[data-slot="header"]` / `[data-slot="admin-header"]`。差し替えたヘッダーもこの印で測られる)の高さ。初期値 = 今の行の高さ(外枠ごと・端末ごと、測る前の最初の表示とページを移る間に使う)、測った値が上書きする。枠の宣言で隠している端末は 0px | 初期値と隠す間の 0 は `src/styles/core/frame.css`、測った値は UserLayout・AdminLayout の外枠の inline(`useHeaderHeight()` が値を返した時だけ) |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
 | `--app-bottom-nav-height` | `calc(bottomMenu.height px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`bottomMenu.height` は枠の設定 `./config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
 | `--app-safe-area-top/right/bottom/left` | 端末の切り欠き(CSS の env() の safe-area-inset-*、無ければ 0px)。env() を直接書くのはこの定義だけ | `src/styles/core/config.css` の `:root` |
@@ -72,7 +71,7 @@ src/app/(user)/_layout/
 - BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav 本体の高さ(`style` の height)も同じ計算(`calc(<px> + var(--app-safe-area-bottom))`、safe-area は padding-bottom で避ける)。変数が safe-area を含むので、使う側で safe-area を足さない
 - body 直下へ portal する部品(GlobalToast・fork の BodyPortal の部品)は外枠の変数を継げない(:root の 0px になる) → `useFrameDimsStyle()`(`@/lib/frameDims`。変数の名前と外枠の印は `src/config/lib/frameDims.config.ts` で上書き)の style を portal した一番外の要素に付け、中は外枠の中と同じく `var(--app-bottom-nav-height)` などで書く。値は外枠 `[data-frame-root]` の計算値(header / banner / bottom-nav。隠している間・出さないデバイスでは 0)で、表示中の切り替えと画面幅の変化にも追随する。外枠を自分で読まない。GlobalToast もこれを使う
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:calc(64px + var(--app-safe-area-bottom))`(safe-area の無い端末では 64px と同じ)。banner が無い時の Header の計算値・見た目は同じ
-- 端の避け方(viewport-fit=cover が既定、root の枠の設定 `src/app/_layout/config.ts`(上書き `src/config/layout/root.config.ts`)): 枠の部品が `--app-safe-area-*` で端末の切り欠きを避ける。ヘッダー = 上(banner がある時は banner が上を避け、ヘッダーは `max(0, 上 − banner の高さ)`)と左右、banner = 上と左右、本文 `#stretch-wrapper`・フッター = 左右、ボトムナビ = 下と左右。切り欠きの無い画面では全部 0 で見た目は同じ。ページ側で同じ辺を足さない(UserPage の `safeArea` は枠の部位を隠したページ用)
+- 端の避け方(viewport-fit=cover が既定、root の枠の設定 `src/app/_layout/config.ts`(上書き `src/config/layout/root.config.ts`)): 枠の部品が `--app-safe-area-*` で端末の切り欠きを避ける。ヘッダー = 上(banner がある時は banner が上を避け、ヘッダーは `max(0, 上 − banner の高さ)`)と左右、banner = 上と左右、本文の包み・フッター = 左右、ボトムナビ = 下と左右。切り欠きの無い画面では全部 0 で見た目は同じ。ページ側で同じ辺を足さない(UserPage の `safeArea` は枠の部位を隠したページ用)
 - header / footer の決め方は「slot → 既定(`./Header` の UserNavigation・`./Footer` の UserFooter)」。config は値だけを持ち、部品を export しない
 
 ### fork の差し替え手順
@@ -119,33 +118,33 @@ export const frame = {
 - 仕組み: `pnpm generate extensions` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。`src/styles/core/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。部品はアンマウントしない
 - 効く時点: 属性は外枠そのものに付くので初回の HTML に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
 - 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)だけで全部隠せる。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
-- frame.css の `:is()` に残る既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)は、部品を差し替えて id だけ残した fork のための一時の橋。余白の議会 D12 で枠の部品の id を外す時に一緒に外す
 - 寸法変数: ボトムナビを隠している間、外枠の `--app-bottom-nav-height` は 0px
 - 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test src/app/_layout/frame/`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test 'src/app/(user)/_layout/'`)
 - フッターの基本の表示は枠の設定 `footer.visibility` の固定の class のまま
 
 ## data-slot の一覧
 
-利用者の枠の部位と Main に付ける `data-slot`(余白の議会の一覧の利用者の枠 15 名と Main 3 名 = `src/app/_layout/frame/parts.mjs` の利用者の枠と Main)。fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。今の id と `data-component`(Main)、外枠の `data-user-app-container` は今どおり残す。見出しの名前(`user-page-title` など)はまだ付けない。一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
+利用者の枠の部位と Main に付ける `data-slot`(余白の議会の一覧の利用者の枠 15 名と Main 3 名 = `src/app/_layout/frame/parts.mjs` の利用者の枠と Main)と、この枠の部品が描く見出しの印 `user-page-title`(一覧の見出しのうち source がこのフォルダのもの)。fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。枠の部品と Main は見た目のための id・`data-component` を持たない(狙う先は data-slot だけ。残る id は下の一覧の注記)。ほかの見出しの印(`page-title`・`sec-title` など)は TextBlocks の部品が付ける(`src/components/TextBlocks/README.md`)。一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
 
-- `app-container` — UserLayout の外枠 `#user-app-container`(枠の根 `data-frame-root`)
+- `app-container` — UserLayout の外枠(枠の根 `data-frame-root`)
 - `app-banner` — Banner の `#app-banner`
-- `header` — Header の `<header id="header">`
-- `header-shell` — HeaderShell の `#header-shell`
-- `header-left` — HeaderShell の `#header-left`
-- `header-center` — HeaderShell の `#header-center`
-- `header-right` — HeaderShell の `#header-right`
-- `header-brand` — Brand の `#header-brand`(ロゴのリンク)
-- `header-brand-logo` — Brand の `#header-brand-logo`(画像)
-- `header-brand-text` — Brand の `#header-brand-text`(ロゴ画像が無い時の名前)
-- `header-nav` — PcNavigation の `#header-pc-nav`、SpNavigation の `#header-sp-nav`、SP の開閉ボタン `#header-sp-menu-toggle` の包み(SpNavSwitch。ボタンは shadcn の Button で自分の `data-slot="button"` を持つので、`display: contents` の包みが名前を持つ)
-- `header-sp-nav-panel` — SpNavPanel の `#header-sp-nav-panel`
-- `footer` — Footer の `<footer id="footer">`
-- `bottom-nav` — BottomNav の `<nav id="bottom-nav">` とスペーサー `#bottom-nav-spacer`(同じ部位なので同じ名前。fork の CSS で本体だけを狙うときは `nav[data-slot="bottom-nav"]`)
-- `bottom-nav-item` — BottomNavItem のリンクの項目 `#bottom-nav-item-<key>`。メニューの項目は shadcn の Button なので付けない
-- `main` — Main(`src/components/Layout/Main.tsx`、両方の枠)の `<main id="main">`
-- `main-layout` — Main の `#main-layout`(`data-component="Main:layout"`)
-- `main-container` — Main の `#main-container`(`data-component="Main:container"`)
+- `header` — Header の `<header>`
+- `header-shell` — HeaderShell の行の箱
+- `header-left` — HeaderShell の左(ブランド)
+- `header-center` — HeaderShell の中央(PC のナビ)
+- `header-right` — HeaderShell の右(CTA・SP の開閉ボタン)
+- `header-brand` — Brand のロゴのリンク
+- `header-brand-logo` — Brand の画像
+- `header-brand-text` — Brand の名前(ロゴ画像が無い時)
+- `header-nav` — PcNavigation の `<nav>`、SpNavigation の開いたメニュー、SP の開閉ボタンの包み(SpNavSwitch。ボタンは shadcn の Button で自分の `data-slot="button"` を持つので、`display: contents` の包みが名前を持つ)
+- `header-sp-nav-panel` — SpNavPanel のパネル
+- `footer` — Footer の `<footer>`
+- `bottom-nav` — BottomNav の `<nav>` とスペーサー(BottomNavSpacer。同じ部位なので同じ名前。fork の CSS で本体だけを狙うときは `nav[data-slot="bottom-nav"]`)
+- `bottom-nav-item` — BottomNavItem のリンクの項目。メニューの項目は shadcn の Button で自分の `data-slot="button"` を持つので付かず、目印に `id="bottom-nav-item-<key>"` だけを残す(狙えるのはこれだけ。印の付け方は共有の棚の担当)
+- `main` — Main(`src/components/Layout/Main.tsx`、両方の枠)の `<main>`
+- `main-layout` — Main の内側の段(`plain`・`fullscreen` 以外)
+- `main-container` — Main の外側の段(`plain`・`fullscreen` 以外)
+- `user-page-title` — UserPageTitle(`PageTitle.tsx`)の外側の `<header>`(中の h1 は `page-title`)。`srOnly` の時は外側を描かないので付かない(h1 の `page-title` は残る)。消す・名前を変えるのは notice
 
 ---
 
@@ -231,9 +230,9 @@ const {
 
 | prop | 既定 | 描く位置 |
 |------|------|---------|
-| `leading` | なし | `#header-left` の先頭(ブランドの前)。例: 戻るボタン |
-| `actions` | PC だけに出る「お問い合わせ」 | `#header-right`(SP メニューの開閉ボタンの前)。要素はそのまま描くので SP のヘッダーにも出る。PC だけにするなら要素側で `hidden sm:flex` 等 |
-| `menuActions` | 幅いっぱいの「お問い合わせ」 | SP メニューのパネル下部(`#header-sp-nav-footer`)。`null` で下部の領域ごと描かない |
+| `leading` | なし | `header-left` の先頭(ブランドの前)。例: 戻るボタン |
+| `actions` | PC だけに出る「お問い合わせ」 | `header-right`(SP メニューの開閉ボタンの前)。要素はそのまま描くので SP のヘッダーにも出る。PC だけにするなら要素側で `hidden sm:flex` 等 |
+| `menuActions` | 幅いっぱいの「お問い合わせ」 | SP メニューのパネル下部。`null` で下部の領域ごと描かない |
 
 fork は `UserLayout.replace.tsx` で header slot に渡す(戻るボタン・通知ベル・設定リンク等を Header のファイルを編集せずに足せる):
 
@@ -336,7 +335,7 @@ menu 型の項目を独自の型・判別で実装していた場合は、`type:
 
 BottomNavは固定表示のため、フッターなど下部コンテンツが隠れないよう`BottomNavSpacer`が自動でスペースを確保します。
 
-- 高さは `var(--app-bottom-nav-height)`(1 要素 `#bottom-nav-spacer`)。枠の宣言で隠している端末・ページでは変数が 0 になり、要素も `src/styles/core/frame.css` で隠れる
+- 高さは `var(--app-bottom-nav-height)`(1 要素 BottomNavSpacer)。枠の宣言で隠している端末・ページでは変数が 0 になり、要素も `src/styles/core/frame.css` で隠れる
 
 ---
 
@@ -373,7 +372,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 | フッター / ボトムナビ | フロー内に残るので fill と高さを分け合う。隠せば広がる（スペーサーも自動で 0） |
 | SSR | `--viewport-height` 設定前は `100dvh` にフォールバック |
 
-- 仕組み: 外枠 `[data-user-app-container]` は既定 `min-h` で中身ぶん伸びるが、`data-frame-fill` が付くと `src/styles/core/frame.css` の規則で確定高さ + `overflow-clip` に切り替わる
+- 仕組み: 外枠 `[data-slot="app-container"]` は既定 `min-h` で中身ぶん伸びるが、`data-frame-fill` が付くと `src/styles/core/frame.css` の規則で確定高さ + `overflow-clip` に切り替わる
 - 没入(ヘッダー・フッター・ボトムナビを全部隠す)は枠の宣言の `hide` に 3 つを書く。枠が全部要らないページは枠の外のルートグループに置く
 - `safeArea` を付けると `var(--app-safe-area-*)` ぶんのパディングを付与（横向きスマホのノッチ対策）。枠の部位を隠したページ用(部位が出ている辺は枠が避けるので、出したまま付けると二重になる)
 
@@ -419,7 +418,7 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - 報告書 §2(D1・D7)の slot 一覧の banner(ヘッダーより上の帯、押し下げ、既定なし、高さは寸法変数)と、寸法の CSS 変数 header / bottomNav / banner / safe-area
 - fork はヘッダーより上の帯を root layout から fixed で出したり、ボトムナビを避ける位置を `bottom-[72px]` のような px で書いたりしていた。upstream がヘッダーやボトムナビの高さを変えると黙ってずれる
 - 帯は fixed で出して自分の高さを測る(Banner.tsx)。測り方は useElementSize(ResizeObserver)。useHeaderHeight は要素が見つかるまで requestAnimationFrame を回し続けるので、banner の無い画面で回りっぱなしになるため使わない。Banner は banner がある時だけ描くので、測定もその時だけ
-- 本文はスペーサー(`h-[var(--app-banner-height,0px)]`)で押し下げる。`#stretch-wrapper` の padding-top(ヘッダー分)の class を変えずに済み、fill の高さの連鎖にもそのまま乗る(BottomNavSpacer と同じ考え方)
+- 本文はスペーサー(`h-[var(--app-banner-height,0px)]`)で押し下げる。本文の包みの padding-top(ヘッダー分)の class を変えずに済み、fill の高さの連鎖にもそのまま乗る(BottomNavSpacer と同じ考え方)
 - bottomNav の高さは TS の config の値なので、CSS の :root では持てない(写すと二重になり、fork が config を変えても追随しない)。外枠の inline に書く
 
 ## 印の経緯(notice frame-marks)
@@ -473,9 +472,9 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 - banner を flow に置くだけ: スクロールで帯が流れ、固定ヘッダーとの間に隙間ができる
 - banner と header を一つの fixed の箱に入れる: header が fixed をやめることになり、既定の DOM が大きく変わる。差し替えたヘッダーも作り直しになる
-- Header の class を変えず、config.css に `[data-user-app-container] #header { top: … }` を書く: core の CSS が部品の位置を裏から上書きする形になり、部品を読んでも気づけない
+- Header の class を変えず、config.css に外枠からヘッダーの top を上書きする規則を書く: core の CSS が部品の位置を裏から上書きする形になり、部品を読んでも気づけない
 - `--app-bottom-nav-height` を :root に 64px で持つ: config の BOTTOM_NAV_HEIGHT と二重になる
-- `#stretch-wrapper` の padding-top を header + banner の calc にする: 既定の class が変わる。スペーサーなら banner が無い時の DOM が変わらない
+- 本文の包みの padding-top を header + banner の calc にする: 既定の class が変わる。スペーサーなら banner が無い時の DOM が変わらない
 - AdminLayout にも同じ変数を inline で書く: Admin には banner も bottomNav も無く、:root の 0px と同じ値を書くだけ(既定の DOM が変わる)
 - Admin の banner slot: 要る例が無い(報告書の banner は User の slot)
 - BottomNav・UserPage を同時に変数へ寄せる: 既定の DOM が変わる。部品の非表示で 0 にする扱いと一緒に後の区切りで

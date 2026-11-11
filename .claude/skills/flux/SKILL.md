@@ -14,7 +14,7 @@ the following files in this folder hold rules needed only by forks / segments th
   - any notice in the tree (applied ones included) or incoming has `covers:`
   - own `downstream:` is `yes` (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
   - mode is `status --chain` or `relay`
-- **`railroad.md`** (the railroad team tool): mode is `intake` or `apply` → read it before step 1
+- **`railroad.md`** (the railroad team tool): mode is `intake`, or the cue `apply J<k>` / `fix J<k>` → read it before step 1
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
 - notice id mode (no reconnaissance, no segment building): judge the same conditions for the target notice and this fork; when they hit, read before step 5
 
@@ -148,6 +148,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
 - **execute** (do steps 6-8 as follows):
   1. `git cherry-pick -x <元の commit>`
      - a conflict only in `.notices/shipped/` → take the fork side and continue (`git checkout --ours -- <path>`; files the fork lacks `git rm -q -- <path>` → `git cherry-pick --continue --no-edit`) | upstream's index arrives with a later merge and the unapplied judgment reads the upstream tip's index, so the pick does not need it (`.notices/README.md` `先に取れる印`)
+       - `pnpm check notices` accepts the picked body without its row (ledger `picked:`): never add the row by hand
      - any other conflict → `git cherry-pick --abort` back, stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
   2. the notice's required_actions, the segment checks (the same 3 as step 6; the picked tree lacks `scripts/runner/gates/` → skip the entry and write it in the report) and verify
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
@@ -225,7 +226,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - **`status`**: state report only | list fetch + unmerged commit count + overview of all segments (one line each, as in step 2) + the results of inherited / ledger matching, then end | **never merge or apply anything** (no detailed plan either)
 - **`status --chain`**: report only the relay state per grandparent notice (no merge, no application) | output form → relay.md
 - **`relay`**: a middle Tier drafts relay notices bundling the unjudged old notices it applied before relay judgment existed (no merge, no application) | steps → relay.md RELAY MODE
-- **`intake [<n> | all] [to <位置>]`** / **`apply <area> to <checkpoint>`**: only inside the railroad team tool (its runtime header) | intake = merge ahead without application, apply = one area's follow-up up to a station | steps → railroad.md
+- **`intake [<n> | all] [to <位置>]`** / **`apply J<k>`** (and `fix J<k>`): only inside the railroad team tool (its runtime header) | intake = merge ahead without application, apply = one chunk's follow-up (a run of laid segments, whole fork) on its own branch | steps → railroad.md
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
 ## INCOMING TOOL (incoming.mjs)
@@ -362,6 +363,8 @@ merge and porting carry the fork's edits as they are | when the destination is u
    c. resolve conflicts yourself (judge how to reconcile upstream's intent with this fork's changes; confirm with the user only those where the judgment is really split) | how to take per-project files:
       - `.claude/rules/project.md` and `behavior.md`: take the fork side; take in upstream's additions only when they apply to this fork
       - `.claude/rules/shortcuts.md` and `term-aliases.md`: above the `fork entries below` marker from the upstream side, below from the fork side
+      - an ancestor's shipped index `.notices/shipped/<ancestor fork_id>.md`: take the upstream side (`git checkout --theirs -- <path>`), never add or keep a row by hand
+        - a row of a notice this fork picked ahead (ledger `picked:`) may be missing until upstream's index reaches it: `pnpm check notices` accepts that, and a row once hand-added may disappear | your own index `.notices/shipped/<own fork_id>.md` is written only by this fork and never conflicts
       - generated `src/app/route-map.jsonl` (route map; delete the old `route-map.txt` if it remains): never fix by hand even on conflict
         - take either version, resolve the other conflicts first, finally rebuild with `pnpm generate routes` and `git add` | even without a conflict, rebuild the same way when the segment's upstream diff has this file (the rows of fork-own pages are not in upstream's generated result) | a change inside 5d's allowed set
       - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/features/feature-map.txt` if it remains)
@@ -421,6 +424,9 @@ merge and porting carry the fork's edits as they are | when the destination is u
    d. push | the segment's merge commit, if unpushed, is pushed with it | push failed → never paper over it, report, and reflect it honestly in the ledger `notes:`
 8. **report** (Japanese; at every stop and the final report): read `.claude/skills/fmt/flux-stop.md` and write in that format | chat keeps only the format's sections; script, identifiers, `aligned:` `kept_old:` and resume info go to the work memo (above) | mapping onto the format's sections:
    - `位置`: add the known unfixed one (the report of FIXES above; only when it applies) here
+     - at every segment end and in the final report, one safe point line: `pnpm workflow notices safePoint where --remote=<upstream> --at=<the upstream: sha of that segment's ledger line>` → write `セーフポイント: <その出力>`
+       - it prints `at safe/<parent>/<tag>` / `past safe/<parent>/<tag> (N commits unverified)` / `before safe/<parent>/<tag>` / `no safe point yet` (it fetches the direct parent's tags and looks only at `safe/<parent fork_id>/*`)
+     - exit 2 → `セーフポイント: 未確認(<理由>)` | the tool is missing from the tree → `セーフポイント: 確かめる道具なし(この区間の版には無い)` | a production deploy of the fork needs `at`
    - `区間の結果`: one line whether intake, application and checks (verify / check entry / typecheck / lint / ownership check) went fine and it was pushed | add lines only for exceptions: kept by the human's policy (the content of `kept_old:` by role), our own mistakes, etc.
    - `中継` (forks with downstream, → relay.md): `あり` / `なし` + what downstream must do + why, by role | decision grounds and ids in the work memo
    - `止まった理由` (stop conditions): what was found, grounds, the paths to choose | "how to stop" above

@@ -12,6 +12,7 @@ accountLifecycle/
 │   ├── server/reactivate.ts   # inactive → active(self_reactivate)
 │   └── client/{pause,withdraw,reactivate}.ts   # POST /api/account-lifecycle/<name> を呼ぶ ClientService
 ├── hooks/{usePause,useWithdraw,useReactivate}.ts
+├── config.ts                  # 設定(退会の説明文)。上書き src/config/features/accountLifecycle.config.ts
 └── components/
     ├── Pause/(PauseDescription)       # /mypage/pause
     ├── Withdraw/(WithdrawDescription) # /mypage/withdraw
@@ -26,6 +27,13 @@ accountLifecycle/
 
 - 門番の規則 `pause`(`/api/account-lifecycle/pause`)・`withdraw`(`/api/account-lifecycle/withdraw`)と、マイページとの交わりの規則 `mypagePause`・`mypageWithdraw`・`mypageOther` が住所を閉じる
 - このフォルダはどの規則の `domains` にも載らない基盤(D125): 表・汎用 API・cron を持たず、閉じる物は住所だけ。休会を閉じても、休会中の人の復帰(`/reactivate` の画面と `/api/account-lifecycle/reactivate`)は塞がない(`/reactivate` の loader は `pause` が閉なら notFound)
+
+## 設定(`config.ts`)
+
+持ち主 `src/features/core/accountLifecycle/config.ts`(既定・型 `AccountLifecycleOverride`・合成 `accountLifecycleConfig`)、上書き `src/config/features/accountLifecycle.config.ts`(値はリテラル。置き方: `src/config/README.md`)。
+
+- `withdraw.description: string`: 退会の画面(`/mypage/withdraw`)の説明文。`WithdrawDescription` が 1 つの段落で出し、`\n` は改行になる。既定は 2 文(データにアクセスできなくなる・再利用は新規登録)。画面を写さずに文だけ変える受け口
+- 機能の入切はここに置かない(門番の規則 `withdraw`・`mypageWithdraw` などが持つ)
 
 ## ほかのドメインに残すもの
 

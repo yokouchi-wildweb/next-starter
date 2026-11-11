@@ -2,27 +2,25 @@
 
 import { useEffect, useState } from "react";
 
-import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
-
 const FALLBACK_INTERVAL_MS = 250;
 
 /**
- * ヘッダーを探す順: 枠の部位の印 data-slot(利用者の枠 header → 管理の枠 admin-header)を先に、id を最後に。
- * id は部品を差し替えて id だけ残した fork のための一時の橋(余白の議会 D12 で枠の部品の id を外す時に一緒に外す)。
+ * ヘッダーを探す印: 枠の部位の data-slot(利用者の枠 header → 管理の枠 admin-header の順)。id では探さない。
+ * ヘッダーを差し替えた部品は外側の要素に data-slot="header"(管理は admin-header)を付ければ測られる。
  * 部位の名前: src/app/_layout/frame/parts.mjs
  */
 export const HEADER_SLOT_SELECTORS = ['[data-slot="header"]', '[data-slot="admin-header"]'] as const;
 
-type HeaderLookup = Pick<Document, "querySelector" | "getElementById">;
+type HeaderLookup = Pick<Document, "querySelector">;
 type MeasuredElement = Pick<HTMLElement, "getBoundingClientRect" | "isConnected">;
 
-/** ヘッダーの要素(data-slot → id の順)。無ければ null */
-export function findHeaderElement(doc: HeaderLookup, elementId: string = APP_HEADER_ELEMENT_ID): MeasuredElement | null {
+/** ヘッダーの要素(data-slot の順)。無ければ null */
+export function findHeaderElement(doc: HeaderLookup): MeasuredElement | null {
   for (const selector of HEADER_SLOT_SELECTORS) {
     const element = doc.querySelector(selector);
     if (element) return element as unknown as MeasuredElement;
   }
-  return doc.getElementById(elementId);
+  return null;
 }
 
 type TrackEnv = {
@@ -40,7 +38,7 @@ type TrackEnv = {
  * null = まだ測れていない(呼び手は inline の値を書かず、styles/core/frame.css の初期値が効く)。枠の宣言で隠したヘッダーの 0 は
  * frame.css の hide の規則(!important)が受け持つので、測った値で 0 を書く必要は無い(fork が自前の CSS で隠すのは対象外: 隠すのは frame.ts)。
  */
-export function trackHeaderHeight(onHeight: (height: number | null) => void, elementId: string, { doc, win, createResizeObserver }: TrackEnv): () => void {
+export function trackHeaderHeight(onHeight: (height: number | null) => void, { doc, win, createResizeObserver }: TrackEnv): () => void {
   let element: MeasuredElement | null = null;
   let resizeObserver: Pick<ResizeObserver, "observe" | "disconnect"> | null = null;
   let intervalId: number | null = null;
@@ -85,7 +83,7 @@ export function trackHeaderHeight(onHeight: (height: number | null) => void, ele
 
   function ensure() {
     animationFrameId = null;
-    const found = findHeaderElement(doc, elementId);
+    const found = findHeaderElement(doc);
     if (found) attach(found);
     else animationFrameId = win.requestAnimationFrame(ensure);
   }
@@ -104,9 +102,9 @@ export function trackHeaderHeight(onHeight: (height: number | null) => void, ele
  * ヘッダーの実測の高さ(px)。測る前・探し直している間・高さ 0 の間は null(0 は返さない)。
  * UserLayout は値があるときだけ外枠の inline の --app-header-height に書く(null の間は styles/core/frame.css の
  * 外枠ごと・端末ごとの初期値 = 今の行の高さが効き、測る前の最初の表示とページを移る間も本文がヘッダーに重ならない)。
- * elementId = data-slot で見つからない時に探す id(一時の橋、上の HEADER_SLOT_SELECTORS)
+ * 探す印は上の HEADER_SLOT_SELECTORS
  */
-export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID): number | null => {
+export const useHeaderHeight = (): number | null => {
   const [height, setHeight] = useState<number | null>(null);
 
   useEffect(() => {
@@ -115,14 +113,13 @@ export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID): numb
     }
     return trackHeaderHeight(
       (nextHeight) => setHeight((prev) => (prev !== null && nextHeight !== null && Math.abs(prev - nextHeight) < 0.5 ? prev : nextHeight)),
-      elementId,
       {
         doc: document,
         win: window,
         createResizeObserver: typeof ResizeObserver !== "undefined" ? (callback) => new ResizeObserver(callback) : null,
       },
     );
-  }, [elementId]);
+  }, []);
 
   return height;
 };
