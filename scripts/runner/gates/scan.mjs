@@ -5,6 +5,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { normalizeGateOutputs } from "../../../src/lib/districtMap/domainOutputs.mjs";
+
 export const KINDS = ["structure", "workflow"];
 export const KEYS = ["check", "generate", "gates", "after", "watch", "features", "outputs", "regions"];
 
@@ -30,7 +32,9 @@ export function validate(decl, dir, gateNames) {
     if (typeof decl[k] !== "string" || /[/\\]/.test(decl[k])) errs.push(`${k} はこのフォルダの中のファイル名(${JSON.stringify(decl[k])})`);
     else if (!existsSync(join(dir, decl[k]))) errs.push(`${k} のファイル ${decl[k]} が無い`);
   }
-  for (const k of ["gates", "after", "watch", "features", "outputs", "regions"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
+  for (const k of ["gates", "after", "watch", "features", "regions"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
+  // outputs: 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(生成器が出力を宣言する唯一の場所。読み方は src/lib/districtMap/domainOutputs.mjs)
+  errs.push(...normalizeGateOutputs(decl.outputs).problems);
   for (const g of decl.gates ?? []) if (!gateNames.includes(g)) errs.push(`知らない門 ${g}(門は ${gateNames.join(", ")})`);
   return errs;
 }

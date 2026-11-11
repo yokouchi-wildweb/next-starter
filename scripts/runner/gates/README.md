@@ -36,7 +36,7 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 - `after`: 先に回る対象のフォルダ名。順序 = after を満たす順。同じ段では上流(名簿にある物)が先で名前順、名簿に無い fork のフォルダは上流の全部の後に名前順。上流の対象が fork の対象の後を求める宣言と循環は止める
 - `watch`: 変更を見るパスの glob(リポジトリ直下からの相対、`**` = 何段でも・`*` = 1 段の中・`?` = 1 文字)。watch の門で選んだ時に使う(下)
 - `features`: 機能名(src/featureGate の規則名)。どれかが閉じていれば飛ばし、「機能 <名前> が閉じているので飛ばした」を必ず出す。知らない機能名は止める
-- `outputs`: この生成器が丸ごと書くファイルの glob(リポジトリ直下からの相対)。受け口の一覧(src/lib/forkOwnership/intake.txt)の `generated` の行になる(`pnpm generate extensions` が書く)
+- `outputs`: この生成器が書くファイルの宣言(生成器が出力を宣言する唯一の場所)。1 行 = glob の文字列(リポジトリ直下からの相対、= `every-run`)か `{ glob, kind?, source? }`(`kind` = `every-run` 毎回書き直す(省略時)/ `write-once` 無いときだけ書く、`source` = 変えたいときに直す物)。`every-run` の行は受け口の一覧(src/lib/forkOwnership/intake.txt)の `generated` の行になる(`pnpm generate extensions` が書く。`{dir}` などドメインの置き換えを持つ glob は除く: scripts/structure/domain/README.md)
 - `regions`: この生成器が書き直しても fork の区画(fork entries の対)を残すファイルの glob。受け口の一覧の `region` の行になる
 - 知らない欄は止める
 

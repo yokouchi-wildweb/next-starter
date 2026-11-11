@@ -9,6 +9,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { collectPoints } from "../../../src/lib/districtMap/declarations.mjs";
+import { intakeOutputGlobs } from "../../../src/lib/districtMap/domainOutputs.mjs";
 import { OVERRIDE_ROOT } from "../../../src/lib/districtMap/kinds.mjs";
 import { INTAKE_BLOCK_END, INTAKE_BLOCK_START, INTAKE_FILE, matchIntake, parseIntake } from "../../../src/lib/forkOwnership/intake.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
@@ -34,7 +35,7 @@ function derivedRows() {
   for (const point of points.filter((p) => p.spec.placement !== undefined)) rows.push(`${point.spec.kind} ${point.spec.placement}`);
   for (const t of scanTargets(join(repoRoot, "scripts"), loadGates(join(repoRoot, "scripts")))) {
     for (const glob of t.decl.regions ?? []) rows.push(`region ${glob}`);
-    for (const glob of t.decl.outputs ?? []) rows.push(`generated ${glob}`);
+    for (const glob of intakeOutputGlobs(t.decl.outputs)) rows.push(`generated ${glob}`);
   }
   for (const point of points.filter((p) => p.spec.overrides !== undefined)) {
     rows.push(`edit ${overrideGlobOf(point.spec.overrides)}`);

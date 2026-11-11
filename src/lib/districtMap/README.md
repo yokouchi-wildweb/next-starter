@@ -40,7 +40,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 - 4 種と見つけ方の定数は `kinds.mjs`
 - 受け口の宣言(`extensionPoints.ts`)の唯一の読み手 `declarations.mjs` もここにある(`collectPoints`・`pointsFromFiles`(ファイルの一覧と読み方を渡す形。git の版の木を読む `pnpm workflow ownership who` が使う)・`readDeclaration`・`literalOf`。生成器・所有の検査の単位名・配線のテストが読む)。古い置き場 `src/lib/forkOwnership/declarations.mjs` は再 export だけで、予告の後に消す
 - 拡張の名前の決まり `extensionNames.mjs` もここにある: 1 行スイッチ(`<名前>.default` ↔ 素の名前 ↔ `<名前>.replace`)・ほかの仕組みが名乗る `.default`・`<対象>.override.ts` ↔ 対象・枠の宣言の `frame.ts` / `frame.override.ts` の唯一の元。`scripts/structure/extensions` の検査と `pnpm workflow ownership who` が読む(who は scripts を読めない)
-- ドメインの名前の決まり `domainNames.mjs`(単数 → 複数・管理画面のルートのフォルダ。`pnpm generate domain` が再 export して使う)と、`pnpm generate domain` の出力の種類のデータ(`scripts/structure/domain/outputs.json`)をパスに当てる `domainOutputs.mjs` もここにある
+- ドメインの名前の決まり `domainNames.mjs`(単数 → 複数・管理画面のルートのフォルダ。`pnpm generate domain` が再 export して使う)と、`pnpm generate domain` の出力の種類のデータ(`scripts/structure/domain/gate.json` の `outputs`)をパスに当てる `domainOutputs.mjs` もここにある
 - 地区を見つけるだけの `discoverDistricts`(欄を読まない)と config の置き場 `configSlotsOf` は `read.mjs` にある(who が型 4 の置き場を引く)
 - 点つきの名前の分類 `dottedNames.mjs` もここにある: 受け口のファイル名の点つきの形の唯一の分類。印なし `<名前>` / 既定 `<名前>.default` / 丸ごと置き換え `<名前>.replace` / 一部の上書き `<対象>.override`(`<対象>` は `user.role` のように `.` を含んでよい)/ client の口 `<名前>.client` / テスト `.test`・`.spec`・`.d` / それ以外 = 旧い fork の名前の印。生成器・タスク・常時実行の例外・`src/wiring` の目録・screens の検査・所有の検査が使い、旧い印は止めて共有の棚の印の移行の notice を案内する(`oldMarkerProblem`)。古い置き場 `src/lib/forkOwnership/dottedNames.mjs` は再 export だけで、予告の後に消す
 - import の向き: forkOwnership → districtMap の一方向。この lib の下(テストを含む)は `src/lib/forkOwnership` を import しない(`districtMap.test.mjs` が縛る)

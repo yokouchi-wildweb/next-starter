@@ -190,7 +190,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ### 型(fork がこのパスを変えたいときにすること、`explain.mjs`)
 
-答えに `type`・`keys`・`write`・`source`(と `how`、none のとき `order`)が加わる。判定に使う木は持ち主と同じ(Tier1 は HEAD、fork は直接の親との基準)で、読むのは宣言(`extensionPoints.ts`)・地区の見つけ方・ルート・名前の決まり(`src/lib/districtMap/extensionNames.mjs`)・受け口の一覧の kind・生成器の `gate.json`・`pnpm generate domain` の出力の種類(`scripts/structure/domain/outputs.json`)。受け口の一覧の行の注記の文言は読まない。ownership check の合否は変えない(答えは案内)。
+答えに `type`・`keys`・`write`・`source`(と `how`、none のとき `order`)が加わる。判定に使う木は持ち主と同じ(Tier1 は HEAD、fork は直接の親との基準)で、読むのは宣言(`extensionPoints.ts`)・地区の見つけ方・ルート・名前の決まり(`src/lib/districtMap/extensionNames.mjs`)・受け口の一覧の kind・生成器の `gate.json`・`pnpm generate domain` の出力の種類(`scripts/structure/domain/gate.json` の `outputs`)。受け口の一覧の行の注記の文言は読まない。ownership check の合否は変えない(答えは案内)。
 
 - 判定の順: generated → own → 1 → 2 / 3 → 4 → none(足してよい新しいパスは own)
   - `generated`: 受け口の一覧の generated / region の行(`source` = `pnpm generate <名前>`)、または `pnpm generate domain` が毎回書くファイル(`generate: false` のドメインを除く。`write` = 直す元: `domain.json`・`wrappers/`・受け口。最後の手段は `"generate": false`)。own より先に見る

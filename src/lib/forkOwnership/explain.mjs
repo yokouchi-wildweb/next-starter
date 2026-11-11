@@ -2,13 +2,13 @@
 // 型: 1 丸ごと(1 行スイッチ・画面の page.tsx / 枠の layout.tsx)/ 2 重ね(<対象>.override.ts・frame.override.ts、鍵 = 宣言の overrideOf)/
 //     3 足す(受け口)/ 4 置き場(地区の config の上書き・placement の点)/ generated(生成器で作り直す)/ own(この fork の物)/ none(/order <直接の親>)。
 // 判定の順: generated → own → 1 → 2 / 3 → 4 → (own | none)。読むのは宣言(extensionPoints.ts)・地区の見つけ方・ルート・1 行スイッチの名前の決まり・
-// 受け口の一覧の kind・生成器の gate.json・pnpm generate domain の出力の種類(scripts/structure/domain/outputs.json)。受け口の一覧の行の注記の文言は読まない。
+// 受け口の一覧の kind・生成器の gate.json(pnpm generate domain の出力の種類も scripts/structure/domain/gate.json の outputs)。受け口の一覧の行の注記の文言は読まない。
 // 仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
 
 import { matchesGlob } from "node:path";
 
 import { pointsFromFiles, isListPoint } from "../districtMap/declarations.mjs";
-import { DOMAIN_OUTPUTS_FILE, matchDomainOutput, parseDomainOutputs } from "../districtMap/domainOutputs.mjs";
+import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, parseDomainOutputs } from "../districtMap/domainOutputs.mjs";
 import { FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf } from "../districtMap/extensionNames.mjs";
 import { configSlotsOf, discoverDistricts } from "../districtMap/read.mjs";
 import { parseSwitchLayout } from "../screens/checks.mjs";
@@ -70,7 +70,7 @@ export function explainView({ files, read, intake }) {
         list.flatMap((path) => {
           const match = GATE_FILE.exec(path);
           const decl = match ? parseJson(read(path) ?? "") : null;
-          return decl ? [{ name: match[1], globs: [...(decl.outputs ?? []), ...(decl.regions ?? [])] }] : [];
+          return decl ? [{ name: match[1], globs: [...intakeOutputGlobs(decl.outputs), ...(decl.regions ?? [])] }] : [];
         }),
       ),
     domainOutputs: () =>
