@@ -104,11 +104,6 @@ edit src/app/admin/(protected)/coupons/new/page.tsx  # 画面の 1 行スイッ�
 edit src/app/admin/(protected)/coupons/official/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/messaging/[[]id[]]/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/messaging/page.tsx  # 画面の 1 行スイッチ
-edit src/app/admin/(protected)/notification-templates/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
-edit src/app/admin/(protected)/notification-templates/new/page.tsx  # 画面の 1 行スイッチ
-edit src/app/admin/(protected)/notification-templates/page.tsx  # 画面の 1 行スイッチ
-edit src/app/admin/(protected)/notifications/page.tsx  # 画面の 1 行スイッチ
-edit src/app/admin/(protected)/notifications/send/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/sample-categories/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/sample-categories/new/page.tsx  # 画面の 1 行スイッチ
