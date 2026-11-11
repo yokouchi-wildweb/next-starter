@@ -116,9 +116,8 @@ downstream がツールを追加する際はこの境界を壊さないこと (�
 
 ## 設定
 
-`src/config/app/ai-agent.config.ts`:
-- `AI_AGENT_CONFIG` — model (既定 claude-opus-4-8) / maxIterations / maxTokensPerStep
-- `DB_AGENT_CONFIG` — maxRows / statementTimeoutMs / maxResultChars / maxQueryChars
+- AI 基盤の設定 — model (既定 claude-opus-4-8) / maxIterations / maxTokensPerStep: 上書き `src/config/lib/ai.config.ts` (`@lib-config/ai`、src/lib/ai/README.md)
+- `src/config/app/ai-agent.config.ts` の `DB_AGENT_CONFIG` — maxRows / statementTimeoutMs / maxResultChars / maxQueryChars
 
 必要な env (どちらもシークレット):
 - `ANTHROPIC_API_KEY`
@@ -247,4 +246,4 @@ export function useDbAgentChat() {
 - モデル呼び出しコストは1質問あたり数円〜数十円オーダー (Opus 4.8)。
   コスト重視なら config で claude-sonnet-5 に差し替え可
 - `@anthropic-ai/sdk` の型が adaptive thinking 未対応の古さのためランタイム内で
-  キャストしている (`@/lib/ai/agent/runtime.ts`)。SDK 更新時に外すこと
+  キャストしている (`src/lib/ai/agent/runtime.ts`)。SDK 更新時に外すこと

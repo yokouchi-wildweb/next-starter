@@ -7,7 +7,7 @@
 import "server-only";
 
 import type { AgentChatMessage, AgentEvent, AgentToolDefinition } from "@/lib/ai";
-import { runAgent } from "@/lib/ai/agent/runtime";
+import { runAgent } from "@/lib/ai/server";
 
 import {
   DB_AGENT_AUDIT_ACTIONS,

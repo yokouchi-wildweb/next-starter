@@ -454,3 +454,4 @@
 - id:20261111-122356-district-map-requires-test-core-only | severity:info | checkpoint:district-map-requires-test-core-only | fixes:20261108-152849-config-district-map | resolves:20261110-135029-district-map-requires-test-fork-domains | pick:-
 - id:20261111-122519-withdraw-description-config | severity:action-required | checkpoint:withdraw-description-config | resolves:20261101-111956-intake-withdraw-early-reg-mail
 - id:20261111-122528-feature-report-dependency-exceptions | severity:info | checkpoint:feature-report-dependency-exceptions | fixes:20261105-112509-feature-gate-automation | resolves:20261110-142113-feature-report-dependency-exceptions | pick:-
+- id:20261111-123916-lib-close-wave3-a | severity:action-required | checkpoint:lib-close-wave3-a | moved:src/config/app/realtime-room.config.ts -> src/lib/realtimeRoom/config.ts

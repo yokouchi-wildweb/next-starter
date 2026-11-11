@@ -55,7 +55,7 @@ Next.js アプリ (Vercel) ── ServerService → createRoomClient / verifyRoo
 | HTTP dispatch/getState | `room_server` (短命、Next サーバーが署名) | サーバーのみが持てる |
 | callback (Worker→アプリ) | `room_callback` (短命、Worker が署名) | `verifyRoomCallback` で検証必須 |
 
-**WebSocket の寿命 = 接続トークンの期限** (取り消しが購読者に届くまでの上限。既定 60 秒 = `REALTIME_ROOM_CONFIG.clientTokenTtlSeconds`):
+**WebSocket の寿命 = 接続トークンの期限** (取り消しが購読者に届くまでの上限。既定 60 秒 = realtimeRoom の設定 `clientTokenTtlSeconds`(`src/lib/realtimeRoom/config.ts`)):
 
 - 接続時にトークンの `exp` を attachment に保存する (hibernation を跨いで残る)。`exp` の無いトークンは 401
 - 期限後は**状態もイベントも 1 通も届かず、操作も通らない**: ルームは受信と配信のたびに期限を見て、期限切れのソケットには送らずに
@@ -99,7 +99,7 @@ pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェ�
    この時点で Worker URL は `https://<Worker名>.<サブドメイン>.workers.dev` と機械的に確定する。
    初回デプロイの対話プロンプトに任せないこと (CI では対話できず失敗する / env を先に揃えられる)
 4. Next 側 env に `REALTIME_ROOM_URL` を登録 (公開情報なので通常の env でよい)
-5. `src/config/app/realtime-room.config.ts` の `enabled: true`
+5. `src/config/lib/realtimeRoom.config.ts`(`@lib-config/realtimeRoom`)に `enabled: true`
 6. デプロイ (下記)
 7. **共有鍵の生成と登録 (必ず初回デプロイの後に)**: `pnpm ops room secret`
    — 鍵生成 → `wrangler secret bulk` で Worker へ非対話登録 → Next 側 env に貼る

@@ -5,10 +5,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { sanitizeRedirectPath } from "@/lib/url";
 import { exchangeXCodeForToken } from "@/lib/x";
-import {
-  X_OAUTH_STATE_COOKIE,
-  X_OAUTH_CODE_VERIFIER_COOKIE,
-} from "@/lib/x/constants";
+import { X_OAUTH_STATE_COOKIE, X_OAUTH_CODE_VERIFIER_COOKIE } from "@/lib/x";
 import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
 
 /**

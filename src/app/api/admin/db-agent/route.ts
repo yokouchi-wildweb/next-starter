@@ -15,7 +15,7 @@ import { z } from "zod";
 
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { createAgentSSEResponse } from "@/lib/ai/agent/sse";
+import { createAgentSSEResponse } from "@/lib/ai/server";
 import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/service";
 import { extraTools, promptFragments, suffixProviders } from "@/wiring/dbAgent";
 

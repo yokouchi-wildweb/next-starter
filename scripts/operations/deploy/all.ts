@@ -10,7 +10,7 @@
 //   先に Worker を最新化してからアプリを出すことでスキュー窓を最小にする。
 //
 // 冪等分岐 (room 部分は scripts/operations/room/deploy.ts と同一):
-//   - realtime-room.config enabled=false → Worker は skip してアプリのみデプロイ
+//   - realtimeRoom の設定 enabled=false → Worker は skip してアプリのみデプロイ
 //     (使わないフォークでもこのコマンド 1 つで従来通り運用できる)
 //   - enabled=true で未初期化 → 明示エラー (アプリのデプロイにも進まない)
 //

@@ -21,8 +21,8 @@ import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
-import { AI_AGENT_CONFIG } from "@/config/app/ai-agent.config";
-import { getAnthropicClient } from "@/lib/ai/client";
+import { getAnthropicClient } from "../client";
+import { aiConfig } from "../config";
 
 import {
   PRESENT_RESULT_TOOL_NAME,
@@ -91,10 +91,10 @@ const PRESENT_RESULT_API_TOOL: Anthropic.Tool = {
 export async function* runAgent(
   options: RunAgentOptions,
 ): AsyncGenerator<AgentEvent, void, undefined> {
-  const model = options.model ?? AI_AGENT_CONFIG.model;
-  const maxIterations = options.maxIterations ?? AI_AGENT_CONFIG.maxIterations;
+  const model = options.model ?? aiConfig.model;
+  const maxIterations = options.maxIterations ?? aiConfig.maxIterations;
   const maxTokensPerStep =
-    options.maxTokensPerStep ?? AI_AGENT_CONFIG.maxTokensPerStep;
+    options.maxTokensPerStep ?? aiConfig.maxTokensPerStep;
 
   const client = getAnthropicClient();
   const toolByName = new Map(options.tools.map((t) => [t.name, t]));

@@ -6,12 +6,12 @@ import assert from "node:assert/strict";
 
 import { SignJWT } from "jose";
 
-// protocol の index は `export *` だけで、ESM(servers/room)から tsx で読むとアプリ側の CJS の再 export の名前が見えない
-// → 定数のファイルを直接読み、index はその値で差し替える(型は消えるので値だけでよい。Worker のビルドは wrangler が束ねるので関係しない)
-import * as protocolConstants from "@/lib/realtimeRoom/protocol/constants";
-import { ROOM_CLOSE_CODES, ROOM_TOKEN_KINDS } from "@/lib/realtimeRoom/protocol/constants";
+// protocol の入口は下の before で定数の値だけの物に差し替える(型は消えるので値だけでよい。Worker のビルドは wrangler が束ねるので関係しない)
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/protocol";
 
 import { isSocketExpired } from "./socketExpiry";
+
+const protocolConstants = { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM };
 
 const SECRET = "test-secret-for-room";
 const encoder = new TextEncoder();

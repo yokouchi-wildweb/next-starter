@@ -10,7 +10,7 @@
 import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";
 
-import { REALTIME_ROOM_CONFIG } from "../../../src/config/app/realtime-room.config";
+import { realtimeRoomConfig } from "@/lib/realtimeRoom";
 import { deployVerdict } from "../../workflow/notices/safePoint.mjs";
 
 export const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -72,8 +72,8 @@ export function isProductionVercel(vercelArgs: readonly string[]): boolean {
   return target === "production";
 }
 
-/** ルームサーバーを実際にデプロイするか(realtime-room.config enabled=false なら skip。デプロイ = 本番の Worker) */
-export const roomWillDeploy = (): boolean => REALTIME_ROOM_CONFIG.enabled;
+/** ルームサーバーを実際にデプロイするか(realtimeRoom の設定 enabled=false なら skip。デプロイ = 本番の Worker) */
+export const roomWillDeploy = (): boolean => realtimeRoomConfig.enabled;
 
 /** pnpm live -- <引数> の先頭の "--" を落とす(pnpm が素通しする場合がある) */
 export function argsOf(argv: string[]): string[] {

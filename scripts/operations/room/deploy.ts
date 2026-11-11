@@ -12,7 +12,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { REALTIME_ROOM_CONFIG } from "../../../src/config/app/realtime-room.config";
+import { realtimeRoomConfig } from "@/lib/realtimeRoom";
 import { guardDeploy } from "../../runner/guard";
 import { guardSafePoint, takeAllowUnsafe } from "../deploy/lib";
 
@@ -22,8 +22,8 @@ const roomDir = path.join(repoRoot, "servers/room");
 console.log("=== realtime room: deploy ===\n");
 const allowUnsafe = takeAllowUnsafe();
 
-if (!REALTIME_ROOM_CONFIG.enabled) {
-  console.log("room: skipped (realtime-room.config enabled=false)");
+if (!realtimeRoomConfig.enabled) {
+  console.log("room: skipped (realtimeRoom の設定 enabled=false)");
   console.log("有効化するには pnpm ops room init を実行し、README の手順に従ってください");
   process.exit(0);
 }

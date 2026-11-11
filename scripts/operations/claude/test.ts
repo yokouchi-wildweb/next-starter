@@ -1,12 +1,12 @@
 /**
  * Claude API 接続確認スクリプト(読むだけ。1 回の短い問い合わせ)
  * 実行: pnpm ops claude test
- * モデル = アプリの AI エージェントの設定(src/config/app/ai-agent.config.ts の AI_AGENT_CONFIG.model)。
+ * モデル = アプリの AI エージェントの設定(@/lib/ai の aiConfig.model、上書き src/config/lib/ai.config.ts)。
  *   アプリが使うモデルに届くかを確かめる(fork が設定を差し替えればそれを見る)
  */
 import Anthropic from '@anthropic-ai/sdk';
 
-import { AI_AGENT_CONFIG } from '@/config/app/ai-agent.config';
+import { aiConfig } from '@/lib/ai';
 
 import { guardEntry } from '../../runner/guard';
 
@@ -22,7 +22,7 @@ async function testConnection() {
   }
 
   const client = new Anthropic();
-  const model = AI_AGENT_CONFIG.model;
+  const model = aiConfig.model;
 
   try {
     const message = await client.messages.create({

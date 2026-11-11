@@ -1,6 +1,6 @@
 // src/lib/crud/utils/paths.ts
 
-import { sanitizeRedirectPath } from "@/lib/url/sanitizeRedirectPath";
+import { sanitizeRedirectPath } from "@/lib/url";
 import { toKebabCase } from "@/utils/stringCase.mjs";
 
 /**

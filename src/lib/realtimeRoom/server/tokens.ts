@@ -8,9 +8,9 @@ import "server-only";
 
 import { SignJWT, jwtVerify } from "jose";
 
-import { REALTIME_ROOM_CONFIG } from "@/config/app/realtime-room.config";
+import { realtimeRoomConfig } from "../config";
 import { DomainError } from "@/lib/errors";
-import { ROOM_TOKEN_KINDS } from "@/lib/realtimeRoom/protocol";
+import { ROOM_TOKEN_KINDS } from "../protocol";
 
 import { getRealtimeRoomEnv } from "./env";
 
@@ -27,7 +27,7 @@ export const signRoomClientToken = async (params: {
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(params.userId)
     .setIssuedAt()
-    .setExpirationTime(`${REALTIME_ROOM_CONFIG.clientTokenTtlSeconds}s`)
+    .setExpirationTime(`${realtimeRoomConfig.clientTokenTtlSeconds}s`)
     .sign(encoder.encode(secret));
 };
 
@@ -37,7 +37,7 @@ export const signRoomServerToken = async (): Promise<string> => {
   return new SignJWT({ kind: ROOM_TOKEN_KINDS.server })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
-    .setExpirationTime(`${REALTIME_ROOM_CONFIG.serviceTokenTtlSeconds}s`)
+    .setExpirationTime(`${realtimeRoomConfig.serviceTokenTtlSeconds}s`)
     .sign(encoder.encode(secret));
 };
 

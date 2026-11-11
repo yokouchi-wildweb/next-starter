@@ -45,9 +45,9 @@ const sockets: FakeSocket[] = [];
 g.WebSocket = FakeSocket;
 
 let sessions = 0;
-mock.module("@/config/app/realtime-room.config", {
+mock.module("../config", {
   namedExports: {
-    REALTIME_ROOM_CONFIG: { enabled: true, clientTokenTtlSeconds: 60, serviceTokenTtlSeconds: 60, reconnectBaseDelayMs: 1_000, reconnectMaxDelayMs: 15_000 },
+    realtimeRoomConfig: { enabled: true, clientTokenTtlSeconds: 60, serviceTokenTtlSeconds: 60, reconnectBaseDelayMs: 1_000, reconnectMaxDelayMs: 15_000 },
   },
 });
 mock.module("./roomSessionClient", {
@@ -64,12 +64,12 @@ mock.module("./roomSessionClient", {
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let useRoomState: typeof import("./useRoomState").useRoomState;
-let ROOM_CLOSE_CODES: typeof import("@/lib/realtimeRoom/protocol").ROOM_CLOSE_CODES;
+let ROOM_CLOSE_CODES: typeof import("../protocol").ROOM_CLOSE_CODES;
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
   ({ useRoomState } = await import("./useRoomState"));
-  ({ ROOM_CLOSE_CODES } = await import("@/lib/realtimeRoom/protocol"));
+  ({ ROOM_CLOSE_CODES } = await import("../protocol"));
 });
 after(() => dom.window.close());
 beforeEach(() => {

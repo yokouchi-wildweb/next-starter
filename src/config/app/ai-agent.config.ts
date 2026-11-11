@@ -1,28 +1,7 @@
 // src/config/app/ai-agent.config.ts
 
-/**
- * AIエージェント基盤 (@/lib/ai) の実行設定
- *
- * ここはモデル・上限値などの「値」のみを置く。ロジックは @/lib/ai 側に置くこと。
- * downstream はこのファイルの値を書き換えることで挙動を調整できる。
- *
- * 注意:
- * - model は Claude の正確なモデルIDを指定する (エイリアス可)。
- *   Opus 4.7 以降は temperature / top_p / top_k が使えない (400) ため、
- *   ランタイム側でもサンプリングパラメータは一切送っていない。
- * - maxIterations は「1ターン内のAPI往復回数」の上限 (ツール実行ループの暴走防止)。
- * - maxTokensPerStep は「1往復あたり」の出力上限 (thinking + text + tool呼び出しを含む)。
- */
-export const AI_AGENT_CONFIG = {
-  /** 使用モデル (既定: Opus 4.8。コスト重視なら "claude-sonnet-5" 等に差し替え可) */
-  model: "claude-opus-4-8",
-
-  /** 1ターン内のツール実行ループの最大往復回数 */
-  maxIterations: 12,
-
-  /** 1往復あたりの最大出力トークン数 */
-  maxTokensPerStep: 16000,
-} as const;
+// AI エージェント基盤 (@/lib/ai) の model / maxIterations / maxTokensPerStep は lib の設定へ移った:
+// 既定 src/lib/ai/config.ts、上書き src/config/lib/ai.config.ts(@lib-config/ai)
 
 /**
  * DB調査エージェント (@/lib/dbAgent) 固有の設定
