@@ -4,7 +4,7 @@
 // token = base64url(JSON {v:1, r: recipient_key, c: category, ch: channel, a?: address_hash}) + "." + base64url(HMAC-SHA256(鍵, 前半))
 // 鍵 = env MESSAGING_UNSUBSCRIBE_SECRET(pnpm ops setup env が乱数で作る)。鍵が無い時は作れない(送る口が marketing・activity の
 // メールを明示の失敗にする)し、届いたトークンも通さない。
-// URL = getAppBaseUrl() + /api/messaging/unsubscribe?t=<token>(businessConfig.url は使わない)
+// URL = getAppBaseUrl() + /api/messaging/unsubscribe?t=<token>(事業の素性の url(@/business)は使わない)
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 

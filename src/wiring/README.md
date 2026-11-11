@@ -40,7 +40,7 @@ wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wirin
 
 - `src/app/**`（API ルート・Screen・loader）、`src/proxies/**`、`src/proxy.ts`
 - cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` と、1 行の `route.ts` からの `cronRoute.ts` だけ（fork 所有の `task.override.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domainRegistry")`）
-- `business.ts` だけは例外: `@/business` の名前で features・app・proxies・scripts(`await import`)と、上書きファイル・古い殻 `src/config/business.config.ts` から読む(データに届かず、`src/business` と `lib/business` だけを読む。lib と utils は読まず値を引数で受ける、設定の議会 D88 K2)
+- `business.ts` だけは例外: `@/business` の名前で features・app・proxies・scripts(`await import`)と、上書きファイル(`src/config/lib/{mail,url,metadata}.config.ts` ほか)から読む(データに届かず、`src/business` と `lib/business` だけを読む。lib と utils は読まず値を引数で受ける、設定の議会 D88 K2)
 - features / lib / components / registry からは import しない（`domainConfig.ts` も同じ。features の server は自分の domain.json、client は写し entities/display.ts を読む）。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
 
 「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。src/app の中で import してよい場所は限る（D73 K6。UI の場所はデータを取らない）:

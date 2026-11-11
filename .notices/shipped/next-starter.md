@@ -467,3 +467,4 @@
 - id:20261111-135501-generator-outputs-one-place | severity:info | checkpoint:generator-outputs-one-place | moved:scripts/structure/domain/outputs.json -> scripts/structure/domain/gate.json
 - id:20261111-152809-lib-close-mjs | severity:action-required | checkpoint:lib-close-mjs
 - id:20261111-153332-dev-tab-background | severity:info | checkpoint:dev-tab-background
+- id:20261111-161255-config-closing2 | severity:breaking | checkpoint:config-closing2 | moved:src/lib/forkOwnership/declarations.mjs -> src/lib/districtMap/declarations.mjs; src/lib/forkOwnership/dottedNames.mjs -> src/lib/districtMap/dottedNames.mjs

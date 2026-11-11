@@ -18,7 +18,7 @@
 
 1. [Resend](https://resend.com) でアカウントを作り、API キーを発行する（`RESEND_API_KEY`、.env.development / .env.production）
 2. Resend のコンソールで送信元のドメインを足し、表示される DNS レコード（DKIM・SPF など）をドメインの DNS に足して「Verify」で認証する
-3. 送信元のアドレスと名前は `src/config/business.config.ts` の `mail.defaultFrom` / `defaultFromName`（環境変数は API キーだけ）
+3. 送信元のアドレスと名前は `src/config/lib/mail.config.ts` の `defaultFrom` / `defaultFromName`（上流は `@/business` の `mail` を写す。環境変数は API キーだけ）
 
 届かないとき: コンソールでドメインが Verified か・迷惑メールのフォルダ・コンソールの Emails の誤りを見る。DNS の伝播は 24〜48 時間かかることがあり、直後は Verified と Pending を行き来する。
 

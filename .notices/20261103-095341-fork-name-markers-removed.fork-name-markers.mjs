@@ -5,7 +5,7 @@
 //   既定は dry-run(変更の一覧と止める一覧を出すだけ)。--apply で改名・import の書き換え・常時実行の例外の分割をし、
 //   最後に pnpm extensions:generate を走らせる(--no-generate で省く)。手順: 下の「fork の手順」
 //
-// 印 = 点つきの名前のうち .default / .replace / .override / .client / .test 以外の語(src/lib/forkOwnership/dottedNames.mjs)。
+// 印 = 点つきの名前のうち .default / .replace / .override / .client / .test 以外の語(src/lib/districtMap/dottedNames.mjs)。
 // 自分の fork_id でも親の名前でも食い違った語(.bodolist)でも拾う。触るのは受け口の場所だけ:
 // - 宣言の受け口のフォルダの直下の項目(ファイル・フォルダ形)→ 印を外す
 // - <名前>.default の隣の <名前>.<印>(1 行スイッチの fork の実装)→ <名前>.replace(スイッチの行は import の書き換えで追従)
@@ -46,8 +46,8 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
-import { DECLARATION_NAME, findDeclarationFiles, literalOf } from "../src/lib/forkOwnership/declarations.mjs";
-import { classifyDottedName } from "../src/lib/forkOwnership/dottedNames.mjs";
+import { DECLARATION_NAME, findDeclarationFiles, literalOf } from "../src/lib/districtMap/declarations.mjs";
+import { classifyDottedName } from "../src/lib/districtMap/dottedNames.mjs";
 import { unitName } from "../src/lib/forkOwnership/unitNames.mjs";
 
 const KEEP = new Set(["default", "replace", "client"]);

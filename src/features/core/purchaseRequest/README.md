@@ -185,7 +185,7 @@ export function DirectSaleCallback() {
 - 金額はサーバー権威: パッケージ照合（戦略の `validateInitiation`）、割引後 `<= 0` の拒否、Webhook の `paidAmount` 照合
 - `paymentMethod` は `isPaymentMethodSelectable` を通ったものだけ受け付ける（`coming_soon` / `disabled` の悪用防止）
 - 冪等キー検索は必ず `user_id` でスコープ
-- コールバック URL のオリジンは `getAppBaseUrl()`（`businessConfig.url` の直接参照・Host ヘッダ由来は禁止）
+- コールバック URL のオリジンは `getAppBaseUrl()`（事業の素性の `url`（`@/business`）の直接参照・Host ヘッダ由来は禁止）
 - `dummy` プロバイダは段階が development(`@/lib/appEnv`)のときだけ使え、それ以外では `getPaymentProvider` が throw
 - PII を含むペイロード全量ログは `purchaseRequestConfig.payment.debugLog`（本番 false）
 

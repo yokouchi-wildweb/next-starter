@@ -228,7 +228,7 @@ const { token } = await axios.post("/api/admin/fingerprint-challenges", {
 
 // 2. フォーム URL を組み立ててユーザーへ案内（メール等）
 const url = `${getAppBaseUrl()}/verify/${token}`;
-// getAppBaseUrl は @/lib/url（businessConfig.url 直参照は禁止）
+// getAppBaseUrl は @/lib/url（事業の素性の url(@/business)を実行時のオリジンにしない）
 ```
 
 > ページの守り: `/verify/[token]` は **`(user)/(protected)` の外** に置き、専用の範囲の guard.ts
