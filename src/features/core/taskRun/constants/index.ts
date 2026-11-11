@@ -8,8 +8,9 @@ export type TaskRunKind = (typeof TASK_RUN_KINDS)[number];
  * 結果: running = 走っている(終わりの行が書かれずに残れば、落ちたか走っているか分からない = 結果不明と同じに扱う)
  * succeeded / failed = 終わった(failed は書き込み前に止まった物、または止める鍵の無いタスクの失敗)
  * unknown = 止める鍵のあるタスクが走り出してから落ちた(どこまで書いたか分からない。人が確かめて resolve する)
+ * incomplete = 予算(時間)で区切りよく止まった(書いた所までは確か。鍵を持たないので同じ命令をもう一度打って続ける)
  */
-export const TASK_RUN_STATUSES = ["running", "succeeded", "failed", "unknown"] as const;
+export const TASK_RUN_STATUSES = ["running", "succeeded", "failed", "unknown", "incomplete"] as const;
 export type TaskRunStatus = (typeof TASK_RUN_STATUSES)[number];
 
 /** 止める鍵を持っている状態(dry-run でない行のうち) */

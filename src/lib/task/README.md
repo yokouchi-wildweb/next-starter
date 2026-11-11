@@ -3,7 +3,7 @@
 `pnpm task <ドメイン>:<名前>` で走らせるドメインのタスク(繰り返しの運用コマンド・機能を有効にするたびの導入コマンド)と移行(notice が名指す 1 回きり)の定義の型。
 
 - 入口: `src/lib/task/index.ts` だけ(中を外から読ませない)
-- 公開: `type OneShotTask = { name, notice?, stopKeys?, run }`(`run` は重い依存を中で動的 import する)・`class TaskNotStartedError`(書き込み前に止まった印)
+- 公開: `type OneShotTask = { name, notice?, stopKeys?, run }`(`run` は重い依存を中で動的 import する)・`class TaskNotStartedError`(書き込み前に止まった印)・`taskIncomplete(result)` / `isTaskIncomplete`(予算で止まった印)・`class TaskRerunnableError`(書いた後だが打ち直してよい失敗)
 - 依存: なし(features・棚・`@/wiring` を読まない)
 - 使う側: タスクの定義 `src/features/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts`、ランナー `scripts/runner/task/`(走査 `scan.mjs`・読み込み `discover.ts`・下準備 `prepare.ts`・実行の流れ `execute.ts`・記録の値 `record.ts`・記録の置き場 `store.ts`)
 - 定期タスクの型は `src/lib/cron`(`CronTaskDefinition`)。定期タスクは `src/app/api/cron/<name>/task.ts` で平らな名前のまま
@@ -52,6 +52,8 @@ export const task: OneShotTask = {
 - 走らせるのは `runAsSystem({ requestId: <行の id> })` の中(タスクは自分で runAsSystem を呼ばない。監査の行と記録が突き合わさる)
 - 止める鍵: 移行は常に `migration:<notice の id>:<名前>`。タスクは `stopKeys(args)` を宣言した物だけ(例 `wallet:lots-init` と `wallet:lots-init-from-history` は通貨ごとに同じ `wallet-lots:<通貨>`)。同じ鍵の成功・結果不明・実行中の行があれば拒否して、その行を出す
 - 結果不明: 止める鍵のある実行が走り出してから落ちた = `unknown`(自動では二度と走らない)。`TaskNotStartedError` は `failed`(打ち直せる)。確かめたら `pnpm task --resolve <runId> succeeded|failed`
+- 予算で止まった: 大きな写しなどを `runBudgetedBatches`(`@/lib/cron`)で束ごとに進め、締切で止まった時は `return taskIncomplete({ ...途中の数 })`。記録は `incomplete`(鍵を取らない = 移行でも同じ命令をもう一度打てる)、終了コード 2(続きがある)。打ち直して続きから進むタスク(写した行を写し先で見分けられる冪等な物)だけが使う
+- 打ち直してよい失敗: 冪等なタスクが自分で確かめて失敗とした時(例: 写しの後の照合が合わない)は `throw new TaskRerunnableError(message, result)`。記録は `failed`(鍵を取らない)で `result` も残る。冪等でないタスクは使わない(落ちれば結果不明にする)
 - dry-run(引数 `--dry-run`)は記録に印を付け、鍵を取らず、鍵に止められない
 - 立ち上げの例外: `task_runs` を作る最初の `pnpm db:push` と DB の無い初期化は記録なし(`pnpm task` を通らない)
 

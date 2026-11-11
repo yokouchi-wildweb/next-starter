@@ -6,7 +6,7 @@ import { db } from "@/lib/drizzle";
 
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTable } from "../../../entities/inbox";
-import { inboxReadSql } from "./readState";
+import { inboxReadSql, inboxSilentSql } from "./readState";
 import type { InboxStore } from "./types";
 import { inboxVisibilitySql } from "./visibility";
 
@@ -21,7 +21,8 @@ export const drizzleInboxStore: InboxStore = {
       // 生の SQL に Date を渡さない(ISO の文字列で渡す)
       conditions.push(sql`(${I.published_at}, ${I.id}) < (${before.publishedAt.toISOString()}::timestamptz, ${before.id}::uuid)`);
     }
-    if (unreadOnly) conditions.push(not(read));
+    // 未読だけ(未読のモーダル)は静かな行を除く。ふつうの一覧には出す
+    if (unreadOnly) conditions.push(not(read), not(inboxSilentSql()));
     const rows = await db
       .select({
         id: I.id,
@@ -46,7 +47,7 @@ export const drizzleInboxStore: InboxStore = {
       .select({ value: count() })
       .from(I)
       .innerJoin(D, eq(D.id, I.dispatch_id))
-      .where(and(inboxVisibilitySql(viewer), not(inboxReadSql(viewer.userId))));
+      .where(and(inboxVisibilitySql(viewer), not(inboxReadSql(viewer.userId)), not(inboxSilentSql())));
     return Number(row?.value ?? 0);
   },
 

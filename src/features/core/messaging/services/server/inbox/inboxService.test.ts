@@ -1,6 +1,7 @@
 // 受け取り箱の service の検査(メモリの store は見える行・既読の規則の写しを使う)
 // - 一覧は公開の時刻・id の降順の keyset、unreadOnly、limit の上限
 // - 既読は 1 件(見える行だけ、他は 404)と全部(watermark + 自分の個別の既読の行を掃く)
+// - 静かな行(metadata.silent)は一覧に出し、未読の数と unreadOnly(未読のモーダル)から除く
 // 実行: pnpm test src/features/core/messaging/services/server/inbox
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -8,14 +9,14 @@ import assert from "node:assert/strict";
 import { DomainError } from "@/lib/errors";
 
 import { createInboxService, INBOX_MAX_LIMIT } from "./inboxService";
-import { isRead } from "./readState";
+import { isRead, isSilent } from "./readState";
 import type { InboxStore } from "./types";
 import { isVisible, type InboxViewer } from "./visibility";
 
 const NOW = new Date("2026-11-11T12:00:00Z");
 const at = (day: number) => new Date(`2026-11-${String(day).padStart(2, "0")}T00:00:00Z`);
 
-type Item = { id: string; userId: string | null; targetRoles: string[] | null; publishedAt: Date };
+type Item = { id: string; userId: string | null; targetRoles: string[] | null; publishedAt: Date; metadata?: Record<string, unknown> | null };
 
 function setup(items: Item[]) {
   const reads = new Set<string>();
@@ -40,12 +41,12 @@ function setup(items: Item[]) {
             item.publishedAt < before.publishedAt ||
             (item.publishedAt.getTime() === before.publishedAt.getTime() && item.id < before.id),
         )
-        .map((item) => ({ ...item, title: item.id, body: "", link: null, image: null, metadata: null, read: readOf(viewer.userId, item) }))
-        .filter((row) => !unreadOnly || !row.read)
+        .map((item) => ({ ...item, title: item.id, body: "", link: null, image: null, metadata: item.metadata ?? null, read: readOf(viewer.userId, item) }))
+        .filter((row) => !unreadOnly || (!row.read && !isSilent(row.metadata)))
         .slice(0, limit);
     },
     async countUnread(viewer) {
-      return items.filter((item) => visibleTo(viewer, item) && !readOf(viewer.userId, item)).length;
+      return items.filter((item) => visibleTo(viewer, item) && !readOf(viewer.userId, item) && !isSilent(item.metadata ?? null)).length;
     },
     async isVisible(viewer, id) {
       const item = items.find((row) => row.id === id);
@@ -109,4 +110,17 @@ test("全部既読: watermark で全部既読になり、自分の個別の既�
   assert.equal(await service.inboxUnreadCount(viewer), 0);
   assert.deepEqual([...reads], ["u2|c"]);
   assert.ok((await service.listInbox(viewer)).items.every((i) => i.read));
+});
+
+test("静かな行(metadata.silent): 一覧には出し、未読の数と unreadOnly からは除く", async () => {
+  const { service } = setup([...items, { id: "s", userId: "u1", targetRoles: null, publishedAt: at(11), metadata: { silent: true } }]);
+  assert.deepEqual((await service.listInbox(viewer)).items.map((i) => i.id), ["s", "a", "b", "e"]);
+  assert.equal(await service.inboxUnreadCount(viewer), 3);
+  assert.deepEqual((await service.listInbox(viewer, { unreadOnly: true })).items.map((i) => i.id), ["a", "b", "e"]);
+});
+
+test("isSilent: silent が true の時だけ", () => {
+  assert.equal(isSilent({ silent: true }), true);
+  assert.equal(isSilent({ silent: "true" }), false);
+  assert.equal(isSilent(null), false);
 });

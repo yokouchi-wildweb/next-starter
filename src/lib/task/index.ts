@@ -31,3 +31,32 @@ export class TaskNotStartedError extends Error {
     this.name = "TaskNotStartedError";
   }
 }
+
+/**
+ * 書き込んだ後の失敗だが、打ち直してよい印(冪等なタスクが自分で確かめて失敗とした時。例: 写しの後の照合が合わない)。
+ * 記録は failed(止める鍵を取らない = 直してすぐ打ち直せる)、result も残す。冪等でないタスクは使わない(結果不明にする)
+ */
+export class TaskRerunnableError extends Error {
+  readonly result: Record<string, unknown> | undefined;
+  constructor(message: string, result?: Record<string, unknown>) {
+    super(message);
+    this.name = "TaskRerunnableError";
+    this.result = result;
+  }
+}
+
+/** 予算(時間)で区切りよく止まった結果の印。ランナーはこの値を incomplete と記録する(鍵を取らない) */
+export type TaskIncompleteResult = Record<string, unknown> & { incomplete: true };
+
+/**
+ * 予算で止まった時に run が返す値(続きは同じ命令をもう一度打つ)。書いた所までが確かで、打ち直すと続きから進むタスクだけが使う。
+ * 記録は incomplete(止める鍵を取らない。移行でも同じ移行をもう一度走らせられる)、result はそのまま残す
+ */
+export function taskIncomplete(result: Record<string, unknown> = {}): TaskIncompleteResult {
+  return { ...result, incomplete: true };
+}
+
+/** run の返り値が予算で止まった印か(ランナーが読む) */
+export function isTaskIncomplete(result: Record<string, unknown> | undefined | null): boolean {
+  return result?.incomplete === true;
+}

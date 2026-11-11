@@ -21,7 +21,8 @@ src/features/core/messaging/
 ├── messages/                    # 連絡の定義 adminMessage（管理者の連絡）、views/ = 描き方の 1 行スイッチ、parts/ = 描き方の部品
 ├── constants/
 │   └── sources.ts               # MESSAGING_SOURCES（送り元の識別子。wallet の失効の知らせが使う）
-├── legacy/                      # 前のお知らせの表の定義だけ（読み手なし。写しの task のため push に残す。README あり）
+├── legacy/                      # 前のお知らせの表の定義だけ（読み手は写しの task だけ。写しのため push に残す。README あり）
+├── scripts/migrations/          # 写しの task copy-legacy-notifications（下の「旧お知らせの写し」）
 ├── entities/
 │   ├── drizzle.ts               # message_dispatches テーブル
 │   ├── delivery.ts              # message_deliveries / message_events
@@ -212,6 +213,8 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 既読: `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`。全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の自分の個別の既読の行を掃く（watermark が覆うので既読のまま）。
 
+静かな行: `metadata.silent = true` の行（前のお知らせの `is_silent` を写した行）は、未読の数（`unread-count`）と未読だけの一覧（`unreadOnly`、未読のモーダル）に入れない。ふつうの一覧には出す（規則は `inbox/readState.ts` の `inboxSilentSql` / `isSilent`）。
+
 ### 受け取り箱の画面（client・部品・ページ /messages）
 
 - client: `services/client/inboxClient.ts`（axios + `normalizeHttpError`）。一覧の応答は `@/hooks/cursorPage` の `CursorPage` と同じ形
@@ -318,6 +321,41 @@ export const bulkAction = bulkMessageAction(
 - `message_idempotency_keys`: 保持の cron が回を消す時に冪等の鍵を移す先（回の行は消えるので FK なし）
 
 値の一覧（状態・理由）と jsonb の zod は `entities/schema.ts`、行の型は `entities/model.ts`。
+
+---
+
+## 旧お知らせの写し（`pnpm task messaging:copy-legacy-notifications`）
+
+前のお知らせの表（`legacy/`: `notifications`・`notification_reads`・`notification_read_states`・`notification_templates`）の中身を新しい表へ写し、前の送る口の回（`message_dispatches` の `message_key` が null の行）の古い列を同じ行の新しい列へ写す 1 回きりの移行（D52・D55）。ファイルは `scripts/migrations/copy-legacy-notifications.ts`（流れ `lib.legacyCopy.ts`・列の対応 `lib.legacyCopyMap.ts`・DB の置き場 `lib.legacyCopyStore.ts`・テスト `copy-legacy-notifications.test.ts`）。
+
+手順（notice の required_actions の順）:
+
+1. 古いアプリの書き込みを止める → merge・再生成 → `pnpm db:push`（新しい表と列を作る。古い表は残る）
+2. `pnpm task messaging:copy-legacy-notifications -- --dry-run`（書かずに照合の数だけ出す。写す前は copied が 0）
+3. `pnpm task messaging:copy-legacy-notifications`（本番は `--env production --confirm=production`）
+   - 予算（既定 240 秒、`-- --budget-ms=<ms>`）で止まると status `incomplete`・終了コード 2・`stoppedAt`（止まった段）を返す。止める鍵を取らないので、同じ命令をもう一度打てば続きから写す
+   - 全段を終えると照合する。合えば `succeeded`（止める鍵 `migration:<notice の id>:messaging:copy-legacy-notifications` を取る = 二度目は拒否）、合わなければ `failed`（鍵を取らない。結果に数を残す。直してそのまま打ち直せる）
+4. 済みの印 = `task_runs` の `succeeded` の行で `result.reconciliation.ok = true`。S3 の古い表の DROP はこの行を見る（`pnpm ops db inspect query "select status, result->'reconciliation' from task_runs where name = 'messaging:copy-legacy-notifications' order by started_at desc limit 1"`）
+
+続きから写せる理由（checkpoint の行は持たない）:
+
+- 新しい行の id を写し元の id から決める: 回 = お知らせの id、共有の行 = お知らせの id、個人宛ての行 = `md5(<お知らせの id>::text || ':' || <利用者の id>::text)::uuid`、テンプレート = 古い id
+- 書き込みは `ON CONFLICT DO NOTHING`（watermark だけは大きい方を残す `GREATEST`）。何度打っても同じ結果
+- 各段は「写し先の主キーにまだ無い行」だけを `NOT EXISTS` で取り、`runBudgetedBatches` で束（500 行）ごとに写す。回とお知らせの行は 1 つの取引で書くので、回があればお知らせの行もある
+- 段の順: テンプレート → お知らせ（回 + お知らせの行）→ 既読 → watermark → 前の送る口の回の新しい列
+
+列の対応:
+
+- お知らせ 1 行 = 回 1 つ（`status` completed・`expand_cursor` `'~done'`・`source` `legacy.notification`・`tags` `['legacy']`・`channels` `['inApp']`・`metadata.legacyNotificationId`・`actor_type` = `sender_type`・`actor_id` = `created_by_id`・`template_id`・`completed_at` = 公開の時刻・`show_to_later_signups` false = 前の規則）。新しい cron は拾わない（`message_key` が null で `'~done'`）
+- お知らせの行: 全員・ロール宛ては共有の 1 行（`target_roles`）、個人宛ては今いる利用者ごとの行（重なりは 1 行。消えた利用者・uuid の形でない値は写さず `skipped` に数える）。`metadata` = 元の metadata + `legacyNotificationId`、`is_silent` は `silent: true`（受け取り箱の「静かな行」）。`image` の ref はそのまま（用途 `notification.image`）
+- 公開の時刻が未来のお知らせ（予約）: 回は completed のまま、お知らせの行の `published_at` を未来のまま写す（受け取り箱の「公開の時刻 ≤ 今」が時刻まで隠す）
+- 既読 → 行き着くお知らせの行（個人宛ては読んだ人の行。行が無い既読 = 宛先に入っていない人の既読は写さず `skipped`）。watermark はそのまま（写し先に新しい値があれば大きい方）
+- テンプレート: `key` `legacy-<古い id>`・`category` marketing・`status` draft（管理の画面で見えて送る画面には出ない。S3 のテンプレートの管理で見直して公開する）・`channels` `['inApp']`・内容は `{ inApp: { title, body } }`・版 1 を `message_template_versions` に 1 行。`variables` は新しい形に合う時だけ写し、合わなければ `[]` にして元の値を `description` に残す（古い category system / manual も `description` に）
+- 前の送る口の回（同じ行）: `headings` = `{ email: email_subject, inApp: notification_title }`、`rendered` = `{ email: { subject, paragraphs: [email_body] }, inApp: { title, body } }`、`channel_counts` = email `{ targeted: recipient_count, sent: email_success_count, failed: email_failed_count }`・inApp（`notification_created` が true なら targeted = sent = recipient_count）。`status`・`expand_cursor` は触らない。古い列は S3 の push で落とす
+
+照合（`result.counts`、項目ごとに `{ source, expected, copied, skipped? }`。全部 `expected = copied` で ok）: テンプレート・版・回・お知らせの行（共有 + 今いる宛先）・既読（行き先のある既読）・watermark（写し先が写し元以上）・前の送る口の回（埋めた行）。写さない物（消えた利用者の宛先・行き先の無い既読）は expected の外に数え、`skipped` に出す。
+
+集計の注意: 前の送る口で送ったお知らせは前の回の行（`message_key` null）も残るので、写した回（`source` `legacy.notification`、`tags` `legacy`）と同じお知らせが 2 つの回に出る。analytics（S3）は `source` `legacy.notification` の回を受け取り箱の既読の数だけに使い、送信・到達の数には入れない。
 
 ---
 

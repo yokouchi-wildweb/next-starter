@@ -3,7 +3,8 @@
 //
 // 流れ: 止める鍵を求める(使い方の誤り = failed の行を書いて終わり)→ dry-run でなければ鍵を持つ行を探す(あれば拒否、行は書かない)
 //   → running の行を書く(書けなければ走らせない)→ runAsSystem({ requestId: 行の id }) の中で走らせる → 結果を書く。
-// 結果: 成功 = succeeded | TaskNotStartedError = failed(鍵を取らない)| ほかの失敗 = 鍵があれば unknown、無ければ failed | dry-run の失敗 = failed。
+// 結果: 成功 = succeeded | 予算で止まった(返り値 incomplete: true = @/lib/task の taskIncomplete)= incomplete(鍵を取らない。同じ命令をもう一度打って続ける)
+//   | TaskNotStartedError・TaskRerunnableError = failed(鍵を取らない。後者は result も残す)| ほかの失敗 = 鍵があれば unknown、無ければ failed | dry-run の失敗 = failed。
 // dry-run(引数 --dry-run)は鍵を取らず、鍵に止められない。
 // git に入れない移行(local): 本実行は同じ名前・同じ中身(file_hash)の成功した dry-run があることが条件(無ければ needs-dry-run)。
 //   中身の全文を dry-run も本実行も行の source に残す。
@@ -11,6 +12,8 @@
 
 import type { TaskRunKind, TaskRunStatus } from "@/features/taskRun/constants";
 import type { TaskRun, TaskRunFinishInput, TaskRunStartInput } from "@/features/taskRun/entities/model";
+
+import { isTaskIncomplete } from "@/lib/task";
 
 import type { RunMeta } from "./record";
 
@@ -48,6 +51,9 @@ export const isDryRun = (args: readonly string[]): boolean => args.includes("--d
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 /** 書き込み前に止まった印(@/lib/task の TaskNotStartedError。読み込みの経路が違っても名前で分かる) */
 const notStarted = (error: unknown): boolean => error instanceof Error && error.name === "TaskNotStartedError";
+/** 書き込んだ後だが打ち直してよい失敗(@/lib/task の TaskRerunnableError。名前で分かる)。持っていれば result も返す */
+const rerunnable = (error: unknown): error is Error & { result?: Record<string, unknown> } =>
+  error instanceof Error && error.name === "TaskRerunnableError";
 
 /** 1 回の実行。記録の行が書けなければ走らせない(not-recorded) */
 export async function executeTask(input: ExecuteInput): Promise<ExecuteOutcome> {
@@ -88,12 +94,14 @@ export async function executeTask(input: ExecuteInput): Promise<ExecuteOutcome> 
 
   try {
     const result = await input.asSystem(runId, input.run);
-    const recordWritten = await finishSafely(store, runId, { status: "succeeded", result });
-    return { kind: "ran", runId, status: "succeeded", result, recordWritten };
+    const status: "succeeded" | "incomplete" = isTaskIncomplete(result) ? "incomplete" : "succeeded";
+    const recordWritten = await finishSafely(store, runId, { status, result });
+    return { kind: "ran", runId, status, result, recordWritten };
   } catch (error) {
-    const status: "failed" | "unknown" = notStarted(error) || dryRun || keys.length === 0 ? "failed" : "unknown";
-    const recordWritten = await finishSafely(store, runId, { status, error: messageOf(error) });
-    return { kind: "ran", runId, status, error: messageOf(error), recordWritten };
+    const status: "failed" | "unknown" = notStarted(error) || rerunnable(error) || dryRun || keys.length === 0 ? "failed" : "unknown";
+    const result = rerunnable(error) ? error.result : undefined;
+    const recordWritten = await finishSafely(store, runId, { status, error: messageOf(error), ...(result ? { result } : {}) });
+    return { kind: "ran", runId, status, error: messageOf(error), ...(result ? { result } : {}), recordWritten };
   }
 }
 
