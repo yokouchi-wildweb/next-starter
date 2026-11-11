@@ -3,27 +3,16 @@
 // messaging ドメインの公開 API。本ファイルから import して使うのが基本（個別ファイル直接 import は避ける）。
 
 import { adminBulkSend, adminContinueSending, findDispatch, listDeliveries, listDispatches } from "./admin";
-import { bulkSend } from "./bulkSend";
-import { findExistingIdempotencyKeys } from "./dispatch";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
-import { send } from "./send";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
 import { continueSending } from "./sweep";
 
 /**
- * ユーザー向けメッセージ送信の集約サービス。
- *
- * ## 用途
- * - 管理者が「ユーザーに向けて」配信する任意のメッセージ（メール / サービス内通知）を扱う
- * - lib/mail.send() の直接呼び出しはシステムメール（PWリセット等）に限定し、
- *   ユーザー向け配信は必ずこのサービスを経由する
- *
- * ## なぜここに集約するか
- * - 受信者単位の audit_logs 記録 + 本文を保持する message_dispatches 行を、
- *   各呼び出し元が個別に実装すると確実に記録漏れが発生する（実際過去に発生済み）
- * - 構造的にメッセージ送信は本サービス経由に統一することで、漏れを排除する
+ * 連絡(メール・お知らせ・fork の経路)の送信・管理・受け取り箱の公開 API。
+ * 利用者向けの送信は必ず連絡の定義(messages/<名前>.ts)+ sendMessage / sendMessageToMany を通す
+ * (回・配達の記録と配信停止・本文の残し方を 1 か所で守る)。lib/mail の send() を直に呼ぶのはメールの経路の項目だけ。
  */
 export const messagingService = {
   /** 連絡の定義(messages/<名前>.ts)を 1 人へ送る(新しい送る口。README「新しい送る口」) */
@@ -51,10 +40,6 @@ export const messagingService = {
   inboxUnreadCount,
   markInboxRead,
   markAllInboxRead,
-  send,
-  bulkSend,
-  /** 渡した冪等性キーのうち送信ジョブが既に存在するものを返す（バッチ送信の送信済み除外用） */
-  findExistingIdempotencyKeys,
 } as const;
 
 export type MessagingService = typeof messagingService;

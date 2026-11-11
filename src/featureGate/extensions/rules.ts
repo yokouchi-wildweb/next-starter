@@ -25,8 +25,6 @@ import { rule as rules_mypageInvite } from "@/featureGate/rules/mypageInvite";
 import { rule as rules_mypageOther } from "@/featureGate/rules/mypageOther";
 import { rule as rules_mypagePause } from "@/featureGate/rules/mypagePause";
 import { rule as rules_mypageWithdraw } from "@/featureGate/rules/mypageWithdraw";
-import { rule as rules_notification } from "@/featureGate/rules/notification";
-import { rule as rules_notificationBroadcast } from "@/featureGate/rules/notificationBroadcast";
 import { rule as rules_pageEntry } from "@/featureGate/rules/pageEntry";
 import { rule as rules_pageMypage } from "@/featureGate/rules/pageMypage";
 import { rule as rules_pagePrivacyPolicy } from "@/featureGate/rules/pagePrivacyPolicy";
@@ -49,7 +47,7 @@ import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingDispatches" | "messagingInbox" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "notification" | "notificationBroadcast" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingDispatches" | "messagingInbox" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -75,8 +73,6 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_mypageOther, name: "mypageOther", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: ["pause", "withdraw"] },
   { ...rules_mypagePause, name: "mypagePause", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "pause"], anyOf: [] },
   { ...rules_mypageWithdraw, name: "mypageWithdraw", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "withdraw"], anyOf: [] },
-  { ...rules_notification, name: "notification", tables: ["notifications", "notification_reads", "notification_read_states", "notification_templates"], domainApiPaths: ["/api/notification", "/api/notificationTemplate"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
-  { ...rules_notificationBroadcast, name: "notificationBroadcast", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["notification"], anyOf: [] },
   { ...rules_pageEntry, name: "pageEntry", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_pageMypage, name: "pageMypage", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_pagePrivacyPolicy, name: "pagePrivacyPolicy", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
@@ -113,8 +109,6 @@ export const domains: GatedDomain[] = [
   { folder: "core/fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], apiPaths: ["/api/fingerprintChallenge"], features: ["fingerprintChallenge"] },
   { folder: "core/interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], apiPaths: ["/api/interactionEvent"], features: ["interactionTracking"] },
   { folder: "core/milestone", tables: ["milestones"], apiPaths: ["/api/milestone"], features: ["milestone"] },
-  { folder: "core/notification", tables: ["notifications", "notification_reads", "notification_read_states"], apiPaths: ["/api/notification"], features: ["notification"] },
-  { folder: "core/notificationTemplate", tables: ["notification_templates"], apiPaths: ["/api/notificationTemplate"], features: ["notification"] },
   { folder: "core/pairedDevice", tables: ["paired_devices", "device_pairings"], apiPaths: ["/api/pairedDevice"], features: ["pairedDevice"] },
   { folder: "core/phoneVerification", tables: [], apiPaths: [], features: ["phoneVerification"] },
   { folder: "core/purchaseQuota", tables: ["purchase_quota_ledger"], apiPaths: [], features: ["payment"] },

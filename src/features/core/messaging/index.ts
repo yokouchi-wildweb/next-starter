@@ -1,17 +1,6 @@
-// src/features/messaging/index.ts
+// src/features/core/messaging/index.ts
 //
-// messaging ドメインの公開 API 集約点。
-// サーバーロジック本体は services/server から個別 import すること
-// （Hook / コンポーネントから直接 messagingService.send() を呼ばないため、
-//  ここではあえて再エクスポートしない）。
+// messaging ドメインの公開の定数と型。サーバーの処理は services/server(messagingService)から import する。
 
 export * from "./constants";
-export type {
-  MessageDispatch,
-  MessagingBulkSendInput,
-  MessagingBulkSendResult,
-  MessagingChannelResult,
-  MessagingRecipientResult,
-  MessagingSendInput,
-  MessagingSendResult,
-} from "./entities/model";
+export type { MessageDispatch } from "./entities/model";
