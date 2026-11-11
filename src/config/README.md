@@ -72,7 +72,20 @@ export const featureRequirements = [
 
 ## 移行中のもの
 
-`app/`・`ui/` と直下の `business.config.ts` は古い置き場です(`business.config.ts` は `@/business` を写す殻。法務の文書は `features/legal.config.ts`(持ち主 `src/features/core/legal`)へ移った。事業の素性の正本は [src/lib/business/README.md](../lib/business/README.md))。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。
+`app/`・`ui/` は古い置き場です。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
+
+残っているのは読み手のある 8 本だけです(締め 2 の後。移すのは読み手の lib の整理の後):
+
+| ファイル | 読み手 |
+|---|---|
+| `app/app-features.config.ts` | `lib/routeFactory`(reCAPTCHA の閾値)・`lib/dataMigration`(maxRecordLimit) |
+| `app/gradients.config.ts` | `lib/gradient`、`pnpm generate styles`(`src/styles/gradient.css`) |
+| `app/screens.config.ts` | `lib/screens` の構造の検査(fork 所有の除外 `FORK_SCAN_EXCLUDES`) |
+| `app/storage.config.ts` | `lib/storage`、`storageObject` |
+| `ui/fonts.config.ts` | `lib/fonts`、`src/app/layout.tsx` |
+| `ui/site-theme.config.ts` | `lib/siteTheme`、`src/app/layout.tsx`・管理のヘッダー・ダークモードの切り替え |
+| `ui/unsaved-guard.config.ts` | 枠の `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx` |
+| `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button の variants |
 
 fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
 

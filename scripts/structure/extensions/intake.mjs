@@ -13,6 +13,7 @@ import { APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/
 
 import { isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
 import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/intake.mjs";
+import { intakeOutputGlobs } from "../../../src/lib/districtMap/domainOutputs.mjs";
 
 /** 宣言に依らない受け口(route の隣の丸ごと置き換え・枠の宣言)。ドメインのタスクは fork 自身のドメインに置くので受け口の行は無い */
 const FIXED_ROWS = [
@@ -91,13 +92,16 @@ function readScreens(repoRoot) {
   return { pages, frameSwitches };
 }
 
-/** gate.json の outputs・regions(門の一覧の無い fixture は空)。並びは門の順(after を満たす順) */
+/**
+ * gate.json の outputs・regions(門の一覧の無い fixture は空)。並びは門の順(after を満たす順)。
+ * outputs は generated の行になる物だけ(every-run で、ドメインの置き換えを持たない glob。src/lib/districtMap/domainOutputs.mjs intakeOutputGlobs)
+ */
 function readGenerators(repoRoot) {
   const scriptsDir = join(repoRoot, "scripts");
   if (!existsSync(join(scriptsDir, "runner/gates/gates.json"))) return [];
   return scanTargets(scriptsDir, loadGates(scriptsDir))
-    .filter((t) => t.decl.outputs || t.decl.regions)
-    .map((t) => ({ name: t.name, outputs: t.decl.outputs, regions: t.decl.regions }));
+    .map((t) => ({ name: t.name, outputs: intakeOutputGlobs(t.decl.outputs), regions: t.decl.regions }))
+    .filter((g) => g.outputs.length > 0 || g.regions);
 }
 
 /**

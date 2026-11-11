@@ -217,9 +217,11 @@ test("type: \"menu\" の項目はボタン(メニューを開くトリガー)で
   const html = render(<UserBottomNav />);
   navItems.current = LINK_ITEMS;
   assertLinkItems(html);
-  // メニュー項目のボタンは Form/Button の data-slot(button)なので bottom-nav-item の印を持てず、id を目印に残す(指令 08)
+  // メニュー項目のボタンもリンクの項目と同じ印 bottom-nav-item(Button の型つきの slot で渡す)。項目ごとの目印の id も残る
   const create = tagWith(html, 'id="bottom-nav-item-create"');
   assert.ok(create.startsWith("<button"), "メニュー項目はボタン");
+  assert.ok(create.includes('data-slot="bottom-nav-item"'), `メニュー項目に印 bottom-nav-item: ${create}`);
+  assert.equal(create.includes('data-slot="button"'), false, "Button の既定の印 button に置き換わらない");
   assert.ok(create.includes('type="button"') && create.includes('aria-label="作成する"'));
   assertInOrder(html, ['href="/items"', 'id="bottom-nav-item-create"', "作成"]);
   assert.equal(hasClass(create, `text-${ACTIVE_COLOR_TYPE}`), false, "メニュー項目はカレント色にならない");

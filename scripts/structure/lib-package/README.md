@@ -71,7 +71,11 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 }
 ```
 
-- `extends` = ルートの tsconfig.json(コンパイラの設定はそこから引き継ぐ。compilerOptions に書くのは paths だけ)
+- `extends` = ルートの tsconfig.json(コンパイラの設定はそこから引き継ぐ。compilerOptions に書くのは paths だけ。JS を持つ lib は下の 3 つも)
+- JS(`.mjs` / `.js`。テストも含む)のファイルを持つ lib は、compilerOptions に `"allowJs": true, "allowImportingTsExtensions": true, "checkJs": true`、include に `"**/*.mjs", "**/*.js"` を足す(`.ts` だけの lib の形は上のまま)
+  - JS も飛ばさず型検査する(tsx を通さない Node の道具から読む `.mjs` の lib でも、宣言の外を読めば止める)。型は JSDoc で書く(strict はルートから引き継ぐ)
+  - `allowImportingTsExtensions` = node で走る `.mjs`(テストなど)は `.ts` を拡張子つきで読む(`import { x } from "./x.ts"`)。ルートの `noEmit` の下で有効
+  - 見本: `src/lib/pathPattern`・`src/lib/libPackage`(`.mjs` だけの lib)、`src/lib/cn`(`.ts` の lib + `.mjs` のテスト)
 - `paths` はルートの paths を丸ごと置き換える(`@/*` を引き継がない)。だから宣言していない lib・棚(`@/hooks/*` など)を読むと解決できずに落ちる
 - `@/lib/<dep>` と `@/lib/<dep>/*` = package.json の `libs` を辿った閉包(依存の package.json の libs・peers も足す)。package.json に書くのは直接の依存だけで、tsconfig.json には閉包を書く。依存が依存を増やすと、こちらの検査が足す行を出す
 - `@/<peer>/*` = `peers` の棚(今は `components` → `src/components`)。閉包の peers も含む

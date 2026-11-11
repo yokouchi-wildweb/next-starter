@@ -1,4 +1,4 @@
-// 出力の種類のデータ(../outputs.json)と生成器の実際の書き込みが同じかの検査(種類の唯一の元はデータ。pnpm workflow ownership who が読む)。
+// 出力の種類のデータ(../gate.json の outputs)と生成器の実際の書き込みが同じかの検査(種類の唯一の元はデータ。pnpm workflow ownership who が読む)。
 // このリポの全ドメイン(generate: false を除く。sample 系が全カテゴリ・関係・並べ替え・画像の集まりを持つ)を、全カテゴリを on にして組み立て(何も書かない)、
 // file の Output は every-run の 1 行に、writeOnce は write-once の 1 行に当たり、データのどの行もどれかの出力に当たることを見る。
 // 実行: pnpm test scripts/structure/domain/tests/outputs.test.mjs
@@ -37,7 +37,7 @@ function plannedWrites(root) {
   return writes;
 }
 
-test("outputs.json の書式", () => {
+test("gate.json の outputs の書式", () => {
   assert.deepEqual(problems, []);
   assert.ok(outputs.length > 0);
 });

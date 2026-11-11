@@ -1,6 +1,6 @@
 ---
 name: fork-init
-description: Run a new project's fork setup to the end with one approval, in a repo just cloned from upstream (next-starter etc.) - GitHub repo creation, remote reshuffle, pnpm install, rewriting the fork's own files (project.md, ledger, package name, business.config, vercel.json, .env.development), initial commit and push | Right after cloning upstream for a new project
+description: Run a new project's fork setup to the end with one approval, in a repo just cloned from upstream (next-starter etc.) - GitHub repo creation, remote reshuffle, pnpm install, rewriting the fork's own files (project.md, ledger, package name, src/business/business.ts, vercel.json, .env.development), initial commit and push | Right after cloning upstream for a new project
 argument-hint: "<name> [github-owner]  例: 88-base yokouchi-wildweb"
 disable-model-invocation: true
 ---
@@ -57,7 +57,10 @@ present the following as bullets; STOP: one approval:
       - ledger `.notices/applied/<名前>.md` = header `# APPLIED LEDGER fork:<origin url>` + one line `- id:fork-init | date:<ISO8601> | commit:- | upstream:<full sha of the fork source version> | notes:fork start` (`pnpm workflow ownership check` walks the Tier1 version from here; missing → exit 2)
       - an empty section `## <名前>` at the end of `src/lib/CATALOG.md` (add one line here when you add your own lib)
    c. `package.json`: `name` → `<name>`
-   d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` based on `<name>` | `domain` / `url` / `mail.defaultFrom`: fixed → set them; undecided → placeholders without upstream's name (`example.com` etc.)
+   d. `src/business/business.ts` (the fork's business identity, read as `@/business`; shape: src/lib/business/README.md):
+      - `pnpm ops business from-example` (source own, copies the example values)
+      - then `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` based on `<name>`
+      - `domain` / `url` / `mail.defaultFrom`: fixed → set them; undecided → placeholders without upstream's name (`example.com` etc.)
    e. `vercel.json`: generate with `pnpm generate cron -- --plan <hobby|pro>`, confirm `pnpm check cron` passes (every task of `src/app/api/cron/*/task.ts` becomes an entry; never edit by hand)
    f. `README.md`: **never touch** (shared by every repo; own info = project.md and the GitHub description field)
    g. `.env.development`: generate with `pnpm ops setup env` (a copy of `.env.example` with `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` set automatically; exists → nothing) | confirm with `git status` it is gitignored, **never include it in the commit**

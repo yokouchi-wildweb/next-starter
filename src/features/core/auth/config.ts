@@ -1,7 +1,8 @@
 // src/features/core/auth/config.ts
 // 認証の設定(既定 + 上書き)。上書きは src/config/features/auth.config.ts(このファイルだけが読む)。
 // 置き方: src/config/README.md。合成: @/lib/defineConfig。fork 独自の鍵は上書きで `export type Extra = { <鍵>: <型> }` を宣言して値を書く(authConfig.<鍵> で読める)
-// サインアップの入切と mode・セッション Cookie・reCAPTCHA・メールチェックはまだ src/config/app/app-features.config.ts(門番の議会・棚の議会のクエストが移す)
+// ほかの置き場: サインアップの入切 = 門番の規則 signup・mode = user/config.ts の signupMode・セッション Cookie = lib/jwt・メールチェック = lib/spamGuard・
+// reCAPTCHA の閾値 = 今は src/config/app/app-features.config.ts(lib/routeFactory が読む、棚の議会が lib へ移す)
 
 import override, { type Extra } from "@/config/features/auth.config";
 import { defineConfig, type OverrideOf, type WithExtra } from "@/lib/defineConfig";

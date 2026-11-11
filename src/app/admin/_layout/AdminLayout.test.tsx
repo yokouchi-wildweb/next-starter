@@ -4,7 +4,7 @@
 //
 // 重い部品(BaseSidebar・DarkModeSwitch・Button)と useHeaderHeight・useAuthSession は目印にモックし、
 // 枠そのもの(外枠・Header・受け口・サイドバーの殻・リサイズのつまみ・Footer・並び順)は本物を描く。
-// サイドバー幅の調整は有効(APP_FEATURES をモック)= fork の設定値に左右されない。
+// サイドバー幅の調整は有効 = fork の設定値に左右されない。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";

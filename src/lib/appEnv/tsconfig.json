@@ -1,6 +1,9 @@
 {
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
     "paths": {
       "@lib-config/appEnv": [
         "../../config/lib/appEnv.config.ts"
@@ -9,6 +12,8 @@
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "**/*.mjs",
+    "**/*.js"
   ]
 }

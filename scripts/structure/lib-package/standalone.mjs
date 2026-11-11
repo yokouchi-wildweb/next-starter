@@ -5,9 +5,11 @@
 // - paths は package.json の libs・peers を辿った閉包 + @lib-config/<自分>。ルートの "@/*" は引き継がない
 //   (extends は paths を丸ごと置き換える)ので、宣言していない lib・棚を読むと解決できずに落ちる
 // - 相対パスで lib の外へ出る import は paths では止まらないので、自分のファイルの import を解いて別に見る
+// - JS(.mjs / .js)のファイルを持つ lib は allowJs + checkJs で JS も型検査する(include に **/*.mjs・**/*.js を足す)。
+//   node で走る .mjs が .ts を拡張子つきで読めるよう allowImportingTsExtensions も足す。飛ばさないのは、tsx を通さない Node の道具から読む .mjs の lib でも宣言の外を読めば止めるため。TS だけの lib の形は変わらない
 // - 数えるのは自分のファイルの診断だけ。依存の lib・棚・設定のファイルの診断は数えない(依存はその lib の検査が見る)
 
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 import ts from "typescript";
@@ -18,6 +20,10 @@ import { LIB_DIR, PEER_DIRS, readLibPackage } from "../../../src/lib/libPackage/
 export const LIB_CONFIG_PATH = "src/config/lib/<self>.config.ts";
 /** 単体用 tsconfig の include(lib の中の全部の ts / tsx。テストも含む) */
 export const STANDALONE_INCLUDE = Object.freeze(["**/*.ts", "**/*.tsx"]);
+/** JS のファイルを持つ lib の単体用 tsconfig の include に足す物 */
+export const STANDALONE_JS_INCLUDE = Object.freeze(["**/*.mjs", "**/*.js"]);
+/** JS のファイルを持つ lib の単体用 tsconfig の compilerOptions に足す物(JS も型検査する。node で走る .mjs は .ts を拡張子つきで読むので allowImportingTsExtensions。ルートの noEmit の下で有効) */
+export const STANDALONE_JS_OPTIONS = Object.freeze({ allowJs: true, allowImportingTsExtensions: true, checkJs: true });
 /** lib の中から見たルートの tsconfig.json */
 export const STANDALONE_EXTENDS = "../../../tsconfig.json";
 
@@ -64,9 +70,31 @@ export function expectedPaths(root, lib) {
   return Object.fromEntries(Object.entries(paths).sort(([a], [b]) => a.localeCompare(b)));
 }
 
-/** その lib が持つべき tsconfig.json の中身 */
+const JS_FILE_RE = /\.(mjs|js)$/;
+
+/** lib の中に JS のファイル(.mjs / .js。テストも含む)があるか */
+export function hasJsFiles(root, lib) {
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    return entries.some((e) => (e.isDirectory() ? e.name !== "node_modules" && walk(path.join(dir, e.name)) : JS_FILE_RE.test(e.name)));
+  };
+  return walk(path.join(root, LIB_DIR, lib));
+}
+
+/** その lib が持つべき tsconfig.json の中身(JS のファイルを持つ lib は allowJs・checkJs と JS の include を足す) */
 export function expectedTsconfig(root, lib) {
-  return { extends: STANDALONE_EXTENDS, compilerOptions: { paths: expectedPaths(root, lib) }, include: [...STANDALONE_INCLUDE] };
+  const paths = expectedPaths(root, lib);
+  if (!hasJsFiles(root, lib)) return { extends: STANDALONE_EXTENDS, compilerOptions: { paths }, include: [...STANDALONE_INCLUDE] };
+  return {
+    extends: STANDALONE_EXTENDS,
+    compilerOptions: { ...STANDALONE_JS_OPTIONS, paths },
+    include: [...STANDALONE_INCLUDE, ...STANDALONE_JS_INCLUDE],
+  };
 }
 
 const json = (value) => JSON.stringify(value);
@@ -92,8 +120,13 @@ export function compareTsconfig(root, lib) {
   if (actual.extends !== expected.extends) out.push(problem("tsconfigExtends", `"extends" は ${json(expected.extends)} にします`));
   if (json(actual.include) !== json(expected.include)) out.push(problem("tsconfigInclude", `"include" は ${json(expected.include)} にします`));
   const options = actual.compilerOptions ?? {};
+  const expectedOptions = expected.compilerOptions;
   for (const key of Object.keys(options)) {
-    if (key !== "paths") out.push(problem("tsconfigOption", `compilerOptions の "${key}" は書きません(ルートの tsconfig.json から引き継ぎます)`));
+    if (!Object.hasOwn(expectedOptions, key)) out.push(problem("tsconfigOption", `compilerOptions の "${key}" は書きません(ルートの tsconfig.json から引き継ぎます)`));
+  }
+  for (const [key, value] of Object.entries(expectedOptions)) {
+    if (key === "paths") continue;
+    if (options[key] !== value) out.push(problem("tsconfigOption", `compilerOptions の "${key}" は ${json(value)} にします(lib に JS のファイルがあるので JS も型検査します)`));
   }
   const actualPaths = options.paths ?? {};
   for (const [key, value] of Object.entries(expected.compilerOptions.paths)) {

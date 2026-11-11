@@ -1,6 +1,7 @@
-// pnpm generate domain の出力の種類のデータ(scripts/structure/domain/outputs.json)をパスに当てる純関数の .mjs。
+// 生成器の gate.json の outputs(生成器が出力を宣言する唯一の場所)を読み、pnpm generate domain の出力の種類をパスに当てる純関数の .mjs。
+// outputs の 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(kind 省略 = every-run)。
 // データは JSON(src から scripts を import しない: 読み手が本文を渡す)。生成器の実際の書き込みとの照合は scripts/structure/domain/tests/outputs.test.mjs、
-// パスの答えは pnpm workflow ownership who(src/lib/forkOwnership/explain.mjs)。
+// パスの答えは pnpm workflow ownership who(src/lib/forkOwnership/explain.mjs)、受け口の一覧の generated の行は scripts/structure/extensions/intake.mjs。
 // glob の置き換え: {dir} = ドメインのフォルダ・{camel} = フォルダ名・{Pascal} = その PascalCase・{route} = 管理画面のルートのフォルダ。
 // [ と ] は字そのもの([id] のルート。glob の文字の組には使わない)、* と ** は glob。
 
@@ -11,12 +12,54 @@ import { adminRouteFolderOf } from "./domainNames.mjs";
 
 /** 出力の種類(毎回書き直す / 無いときだけ書く) */
 export const OUTPUT_KINDS = ["every-run", "write-once"];
-/** データの置き場(リポジトリ直下からの相対) */
-export const DOMAIN_OUTPUTS_FILE = "scripts/structure/domain/outputs.json";
+/** pnpm generate domain の出力の宣言の置き場(リポジトリ直下からの相対) */
+export const DOMAIN_OUTPUTS_FILE = "scripts/structure/domain/gate.json";
 
 /**
- * データの本文を読む
- * @param {string} text outputs.json の本文
+ * gate.json の outputs を { glob, kind, source? } の並びにそろえる(文字列 = every-run)
+ * @param {unknown} outputs gate.json の outputs(undefined = 宣言なし)
+ * @returns {{ entries: { glob: string, kind: "every-run" | "write-once", source?: string }[], problems: string[] }} problems は「outputs ...」で始まる理由
+ */
+export function normalizeGateOutputs(outputs) {
+  if (outputs === undefined) return { entries: [], problems: [] };
+  if (!Array.isArray(outputs)) return { entries: [], problems: ["outputs は配列(1 行 = glob の文字列か { glob, kind?, source? })"] };
+  const problems = [];
+  const entries = outputs.map((entry, index) => {
+    if (typeof entry === "string") {
+      if (entry === "") problems.push(`outputs[${index}] の glob が空`);
+      return { glob: entry, kind: "every-run" };
+    }
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      problems.push(`outputs[${index}] は glob の文字列か { glob, kind?, source? }`);
+      return null;
+    }
+    for (const key of Object.keys(entry)) if (!["glob", "kind", "source"].includes(key)) problems.push(`outputs[${index}] の知らない欄 ${key}`);
+    if (typeof entry.glob !== "string" || entry.glob === "") problems.push(`outputs[${index}] の glob が無い`);
+    if (entry.kind !== undefined && !OUTPUT_KINDS.includes(entry.kind)) problems.push(`outputs[${index}] の kind は ${OUTPUT_KINDS.join(" | ")}`);
+    if (entry.source !== undefined && typeof entry.source !== "string") problems.push(`outputs[${index}] の source は文字列`);
+    return { ...entry, kind: entry.kind ?? "every-run" };
+  });
+  return { entries: problems.length > 0 ? [] : entries, problems };
+}
+
+/** ドメインごとの置き換え({dir} など)を持つ glob か(ドメインに当てて初めてパスになる) */
+export const isDomainTemplateGlob = (glob) => /\{(dir|camel|Pascal|route)\}/.test(glob);
+
+/**
+ * 受け口の一覧の generated の行になる glob: every-run で、ドメインの置き換えを持たない物(write-once は持ち主の手書き、
+ * 置き換えを持つ物はドメインに当てて pnpm workflow ownership who が答える)
+ * @param {unknown} outputs gate.json の outputs
+ * @returns {string[]}
+ */
+export function intakeOutputGlobs(outputs) {
+  return normalizeGateOutputs(outputs)
+    .entries.filter((entry) => entry.kind === "every-run" && !isDomainTemplateGlob(entry.glob))
+    .map((entry) => entry.glob);
+}
+
+/**
+ * pnpm generate domain の gate.json の本文から出力の宣言を読む
+ * @param {string} text scripts/structure/domain/gate.json の本文
  * @returns {{ outputs: { glob: string, kind: "every-run" | "write-once", source?: string }[], problems: string[] }}
  */
 export function parseDomainOutputs(text) {
@@ -26,15 +69,9 @@ export function parseDomainOutputs(text) {
   } catch (error) {
     return { outputs: [], problems: [`${DOMAIN_OUTPUTS_FILE}: JSON でない(${error.message})`] };
   }
-  const outputs = Array.isArray(data?.outputs) ? data.outputs : [];
-  const problems = [];
-  if (!Array.isArray(data?.outputs)) problems.push(`${DOMAIN_OUTPUTS_FILE}: outputs は配列`);
-  outputs.forEach((entry, index) => {
-    if (typeof entry?.glob !== "string" || entry.glob === "") problems.push(`${DOMAIN_OUTPUTS_FILE}: outputs[${index}] の glob が無い`);
-    if (!OUTPUT_KINDS.includes(entry?.kind)) problems.push(`${DOMAIN_OUTPUTS_FILE}: outputs[${index}] の kind は ${OUTPUT_KINDS.join(" | ")}`);
-    if (entry?.source !== undefined && typeof entry.source !== "string") problems.push(`${DOMAIN_OUTPUTS_FILE}: outputs[${index}] の source は文字列`);
-  });
-  return { outputs: problems.length > 0 ? [] : outputs, problems };
+  if (!Array.isArray(data?.outputs)) return { outputs: [], problems: [`${DOMAIN_OUTPUTS_FILE}: outputs は配列`] };
+  const { entries, problems } = normalizeGateOutputs(data.outputs);
+  return { outputs: entries, problems: problems.map((problem) => `${DOMAIN_OUTPUTS_FILE}: ${problem}`) };
 }
 
 /**

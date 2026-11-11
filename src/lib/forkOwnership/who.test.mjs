@@ -245,7 +245,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       "",
     ].join("\n"),
     "scripts/structure/district-map/gate.json": JSON.stringify({ generate: "generate.mjs", outputs: ["src/registry/district-map.jsonl"] }),
-    "scripts/structure/domain/outputs.json": real("scripts/structure/domain/outputs.json"),
+    "scripts/structure/domain/gate.json": real("scripts/structure/domain/gate.json"),
     "src/registry/district-map.jsonl": "{}\n",
     // 1 行スイッチ
     "src/features/core/demo/services/server/onDemoUserCreated.default.ts": "export const onDemoUserCreated = 1;\n",

@@ -61,7 +61,7 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 ```tsx
 // src/features/core/user/adminBulkActions/userTags.tsx（上流の既定の項目）
 export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
-  { key: "userTags", lists: ["general"], enabled: () => APP_FEATURES.user.enableUserTag, order: 10 },
+  { key: "userTags", lists: ["general"], order: 10 },
   { domain: userDisplay, relation: "userTag", mode: "replace", icon: Tags, label: "タグ設定" },
 );
 

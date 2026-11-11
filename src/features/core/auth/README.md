@@ -56,7 +56,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 
 登録まわりの関連仕様（ここでは再説明しない）:
 
-- **サインアップの有効/モード**: `APP_FEATURES.auth.signup`。`enabled=false` で画面・API とも `/signup-closed` へ（Feature Gate: 規則 `src/featureGate/rules/signup.ts`、詳細 `src/featureGate/README.md`）。`mode="earlyRegistration"`（事前登録）では `/signup` → `/entry` にリダイレクトされ、`POST /api/auth/send-early-registration-link` を使う（`src/proxies/redirect.ts`）
+- **サインアップの有効/モード**: 入切は門番の規則 `src/featureGate/rules/signup.ts`（閉で画面・API とも `/signup-closed` へ、詳細 `src/featureGate/README.md`）、mode は `user/config.ts` の `signupMode`。`mode="earlyRegistration"`（事前登録）では `/signup` → `/entry` にリダイレクトされ、`POST /api/auth/send-early-registration-link` を使う（`src/proxies/redirect.ts`）
 - **招待コード**: `register` の `inviteCode` は「非空=その値を使う / `""`=明示的に辞退（cookie フォールバックしない）/ undefined=招待リンク cookie にフォールバック」。消し込みは `INVITE_CODE_REDEEM_SCOPE`（invite 種別のみ）で、失敗しても登録はブロックしない → [referral README](../referral/README.md#サインアップフロー統合)。サインイン用・事前登録用のメールのリンクに招待のパラメータを付けるのは紹介が開いているとき（`gate.enabled("referral")`）だけ（route とサービスの両方で確かめる）
 - **流入経路**: 本登録時に attribution cookie から `recordSignupAcquisition`（bestEffort）→ [userAcquisition README](../userAcquisition/README.md)
 - **登録の後の処理**（登録ボーナスなど）: 本登録の守りの後に milestone のトリガー `user_registered` が 1 回発火する。fork は route や `registration.ts` を編集せず、マイルストーン定義を置く（1 人 1 回・付与と記録は同じ tx・失敗しても登録は止めない）→ [milestone README](../milestone/README.md#user_registered)
@@ -65,7 +65,7 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 ## セッション
 
 - **JWT のみのセッション**。セッションテーブルは持たない。Cookie 名は `__session`（`src/lib/jwt/config.ts` の `cookieName`、上書き `src/config/lib/jwt.config.ts`。もともと Firebase Hosting が転送する唯一の Cookie 名に合わせたもの）。`SameSite=Lax` / `HttpOnly` / `Secure` / `path=/`（`constants/session.ts`）
-- 有効期限は既定 7 日、デモユーザー 10 分（`APP_FEATURES.auth.session`）。`GET /api/auth/session` で再発行するローリングセッション。再発行も `resolveSessionUser`（DB 照合・強制失効チェック）を通し、新トークンは DB の現在値から `refreshSessionCookie` で署名する（失効済み / ユーザー不在 → 401 + Cookie 削除）。旧トークンのクレームで再署名しないこと（失効済みトークンを有効トークンへ洗浄できてしまう）
+- 有効期限は既定 7 日（`lib/jwt` の設定）、デモユーザー 10 分（`demo` の設定の `session.maxAgeSeconds`、デモのログインの機能が開のとき）。`GET /api/auth/session` で再発行するローリングセッション。再発行も `resolveSessionUser`（DB 照合・強制失効チェック）を通し、新トークンは DB の現在値から `refreshSessionCookie` で署名する（失効済み / ユーザー不在 → 401 + Cookie 削除）。旧トークンのクレームで再署名しないこと（失効済みトークンを有効トークンへ洗浄できてしまう）
 - **JWT は身元証明（userId）だけに使い、status / role / name 等の権威は DB**。`resolveSessionUser`（`services/server/session/token.ts`）が JWT 検証後に DB から現在値を引いて `SessionUser` を組み立てる。管理画面でのステータス・ロール変更は次のリクエストで反映される。DB 障害時は null（安全側）
 - **強制失効あり**: `invalidateSessionsForUser`（`services/server/sessionInvalidation.ts`）が `users.sessions_invalidated_at` を更新し、それより前に発行された JWT（`iat < sessions_invalidated_at`）を `resolveSessionUser` が拒否する。Firebase の ID トークンをセッションに替えるとき(`createFirebaseSession`・`register`)も、`auth_time`(その Firebase のセッションの認証時刻)が境目より前なら 401(Firebase の取り消しが失敗していても止まる。比較は `services/server/session/invalidationBoundary.ts` の 1 か所、検査 `pnpm test src/features/core/auth/services/server`)。Firebase のリフレッシュトークンも best-effort で revoke し、監査ログ `auth.session.invalidated` を残す。発火元はパスワード変更・`banned` / `security_locked` への遷移（user の update / changeStatus wrapper、ログインロックアウト）
 - `getTokenOnlySession` は JWT クレームのみ（DB を引かない stale な値）。監査ログの actor 抽出やデモ判定など、**認可と無関係な高頻度処理専用**。認可には使わない

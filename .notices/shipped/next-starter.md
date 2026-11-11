@@ -464,4 +464,9 @@
 - id:20261111-141433-acquisition-config-home | severity:breaking | checkpoint:config-acquisition-home | moved:src/config/app/acquisition.config.ts -> src/features/core/userAcquisition/config.ts
 - id:20261111-150933-guard-inherited | severity:info | checkpoint:guard-inherited | fixes:20261108-134025-domain-tasks-seeds-guard | pick:-
 - id:20261111-143012-messaging-switch | severity:breaking | checkpoint:messaging-switch | moved:src/features/core/mail/constants/colors.ts -> src/lib/mail/generated/themeColors.ts; src/features/core/storageObject/purposes/notification.ts -> src/features/core/storageObject/purposes/messaging.ts; src/features/core/notificationTemplate/entities/drizzle.ts -> src/features/core/messaging/legacy/notificationTemplate.ts; src/features/core/notification/entities/drizzle.ts -> src/features/core/messaging/legacy/notification.ts | uses:.notices/20261111-143012-messaging-switch.messaging-switch.mjs, src/features/core/messaging/scripts/migrations/copy-legacy-notifications.ts
+- id:20261111-135501-generator-outputs-one-place | severity:info | checkpoint:generator-outputs-one-place | moved:scripts/structure/domain/outputs.json -> scripts/structure/domain/gate.json
+- id:20261111-152809-lib-close-mjs | severity:action-required | checkpoint:lib-close-mjs
+- id:20261111-153332-dev-tab-background | severity:info | checkpoint:dev-tab-background
+- id:20261111-161255-config-closing2 | severity:breaking | checkpoint:config-closing2 | moved:src/lib/forkOwnership/declarations.mjs -> src/lib/districtMap/declarations.mjs; src/lib/forkOwnership/dottedNames.mjs -> src/lib/districtMap/dottedNames.mjs
+- id:20261111-160028-bottom-nav-menu-slot | severity:info | checkpoint:bottom-nav-menu-slot
 - id:20261111-170853-messaging-drop-legacy | severity:action-required | checkpoint:messaging-drop-legacy

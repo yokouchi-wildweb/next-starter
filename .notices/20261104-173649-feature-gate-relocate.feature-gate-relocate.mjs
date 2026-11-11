@@ -26,7 +26,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { classifyDottedName } from "../src/lib/forkOwnership/dottedNames.mjs";
+import { classifyDottedName } from "../src/lib/districtMap/dottedNames.mjs";
 
 const OLD_RULES = "src/proxies/featureGateRules";
 const NEW_RULES = "src/featureGate/rules";

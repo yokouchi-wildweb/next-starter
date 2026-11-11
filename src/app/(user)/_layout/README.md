@@ -140,7 +140,7 @@ export const frame = {
 - `header-sp-nav-panel` — SpNavPanel のパネル
 - `footer` — Footer の `<footer>`
 - `bottom-nav` — BottomNav の `<nav>` とスペーサー(BottomNavSpacer。同じ部位なので同じ名前。fork の CSS で本体だけを狙うときは `nav[data-slot="bottom-nav"]`)
-- `bottom-nav-item` — BottomNavItem のリンクの項目。メニューの項目は shadcn の Button で自分の `data-slot="button"` を持つので付かず、目印に `id="bottom-nav-item-<key>"` だけを残す(狙えるのはこれだけ。印の付け方は共有の棚の担当)
+- `bottom-nav-item` — BottomNavItem の項目(リンクもメニューも)。メニューの項目は Button に型つきの `slot` で渡す。`id="bottom-nav-item-<key>"` も残る(項目ごとに狙うとき)
 - `main` — Main(`src/components/Layout/Main.tsx`、両方の枠)の `<main>`
 - `main-layout` — Main の内側の段(`plain`・`fullscreen` 以外)
 - `main-container` — Main の外側の段(`plain`・`fullscreen` 以外)

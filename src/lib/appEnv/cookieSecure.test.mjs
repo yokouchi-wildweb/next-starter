@@ -16,10 +16,13 @@ const SRC = join(ROOT, "src");
 
 const ALWAYS = "always"; // SESSION_COOKIE_BASE_OPTIONS(secure: true)
 const NOT_DEV = "notDev"; // secure: !isDevelopment()
-const VIA = (file) => ({ via: file }); // 判定は別のファイル(その行も一覧にある)
+const VIA = (/** @type {string} */ file) => ({ via: file }); // 判定は別のファイル(その行も一覧にある)
 const CLEAR = "clientClear"; // ブラウザ側で消すだけ(max-age=0、値を書かない)
 
-/** cookie を書く場所 → 判定。新しい場所はここに足す */
+/**
+ * cookie を書く場所 → 判定。新しい場所はここに足す
+ * @type {Record<string, string | { via: string }>}
+ */
 const COOKIE_WRITERS = {
   "src/features/core/auth/services/server/session/issueSessionCookie.ts": ALWAYS, // ログインのセッション
   "src/features/core/auth/services/server/session/clearSessionCookie.ts": ALWAYS,
@@ -35,6 +38,11 @@ const COOKIE_WRITERS = {
 
 const WRITES = /cookies\.set\(|document\.cookie\s*=|nonceCookie:|Set-Cookie/;
 
+/**
+ * @param {string} dir
+ * @param {string[]} [out]
+ * @returns {string[]}
+ */
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -49,7 +57,7 @@ const writers = () =>
     .filter((file) => WRITES.test(readFileSync(file, "utf8").replace(/^\s*(\/\/|\*).*$/gm, "")))
     .map((file) => relative(ROOT, file));
 
-const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
+const read = (/** @type {string} */ rel) => readFileSync(join(ROOT, rel), "utf8");
 
 test("一覧の場所は今も cookie を書いている(消えた・移った場所を一覧に残さない)", () => {
   const found = new Set(writers());
@@ -75,6 +83,7 @@ test("判定の形: 常に secure(セッションの共通オプション)か !i
       assert.match(text, /import \{[^}]*\bisDevelopment\b[^}]*\} from "@\/lib\/appEnv"/, rel);
       assert.doesNotMatch(text, /secure: (true|false)\b/, rel);
     } else if (judgment === CLEAR) assert.match(text, /document\.cookie = `[^`]*max-age=0`/, rel);
-    else assert.ok(COOKIE_WRITERS[judgment.via] === NOT_DEV || COOKIE_WRITERS[judgment.via] === ALWAYS, rel);
+    else if (typeof judgment === "object") assert.ok(COOKIE_WRITERS[judgment.via] === NOT_DEV || COOKIE_WRITERS[judgment.via] === ALWAYS, rel);
+    else assert.fail(`${rel}: 知らない判定 ${judgment}`);
   }
 });

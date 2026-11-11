@@ -7,6 +7,8 @@ import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { readFileSync } from "node:fs";
+
 import { allPrimitiveSlots, attributeSlotsOf, marksBeforeSpreadOf, readmeSlotsOf, readUnitSlots, typedSlotsOf } from "./slots.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -54,4 +56,20 @@ test("部品の印が勝つ: どの部品も印を呼び手の props の広げ�
   for (const { unit, beforeSpread } of readUnitSlots(repoRoot)) {
     assert.deepEqual(beforeSpread, [], `${unit}: 呼び手の props より前に置いた印 ${beforeSpread.join(", ")}`);
   }
+});
+
+test("Button が枠に貸す名前(export しない FrameButtonSlot)は枠の README の一覧にあり、Primitives の一覧に無い", () => {
+  const source = readFileSync(resolve(repoRoot, "src/components/Primitives/Button/Button.tsx"), "utf8");
+  const m = /^type FrameButtonSlot\s*=\s*([^;]+);/m.exec(source);
+  assert.ok(m, "Button.tsx に FrameButtonSlot が無い");
+  const lent = [...m[1].matchAll(/"([a-z0-9-]+)"/g)].map((n) => n[1]);
+  assert.deepEqual(lent, ["bottom-nav-item"]);
+  assert.match(source, /export type ButtonSlot\s*=[^;]*\bFrameButtonSlot\b/, "ButtonSlot に FrameButtonSlot が入っていない");
+  const frame = readmeSlotsOf(readFileSync(resolve(repoRoot, "src/app/(user)/_layout/README.md"), "utf8")) ?? [];
+  const primitives = allPrimitiveSlots(repoRoot);
+  for (const name of lent) {
+    assert.ok(frame.includes(name), `${name} が枠の README の一覧に無い`);
+    assert.equal(primitives.includes(name), false, `${name} が Primitives の一覧にある(持ち主は枠)`);
+  }
+  assert.deepEqual(typedSlotsOf(source), ["button"], "export しない型の名前は Button の印に数えない");
 });

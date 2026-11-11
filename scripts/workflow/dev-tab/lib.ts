@@ -1,8 +1,10 @@
 // scripts/workflow/dev-tab/lib.ts
 //
-// pnpm workflow dev-tab run の共通処理。開発サーバーを tmux のタブ(window)で動かし、止め、様子を出す。
-// - tmux の中から呼ぶと、今の tmux セッションにタブ「Dev」を足す($TMUX の socket に従うので、どの tmux サーバーでも同じ)
-// - tmux の外から呼ぶと、裏で tmux セッション dev-<フォルダ名> を作ってそこで動かす
+// pnpm workflow dev-tab run の共通処理。開発サーバーを tmux のタブ(window)か裏のプロセスで動かし、止め、様子を出す。
+// - どこで動かすか = decideMode: --background・AGENT_TERMINAL=none・tmux が無い → 裏のプロセス(切り離したプロセスグループ、
+//   ログ .agent/dev-tab.log)。--session / --socket(tmux の行き先の名指し)・AGENT_TERMINAL=tmux → タブ
+// - タブ: tmux の中から呼ぶと、今の tmux セッションにタブ「Dev」を足す($TMUX の socket に従うので、どの tmux サーバーでも同じ)。
+//   tmux の外から呼ぶと、裏で tmux セッション dev-<フォルダ名> を作ってそこで動かす
 // - 記録は 1 チェックアウトに 1 つ(<チェックアウト>/.agent/dev-tab.json)。ワークツリーごとに別になる
 // 規則と使い方: scripts/workflow/dev-tab/README.md
 
@@ -14,6 +16,7 @@ import path from "node:path";
 export const WINDOW_NAME = "Dev";
 export const STATE_FILE = ".agent/dev-tab.json";
 export const LAUNCH_FILE = ".agent/dev-tab-launch.sh";
+export const LOG_FILE = ".agent/dev-tab.log";
 export const DEFAULT_FIRST_PORT = 3000;
 export const DEFAULT_PORT_TRIES = 20;
 
@@ -24,7 +27,9 @@ export const DEFAULT_PORT_TRIES = 20;
 export const DEV_COMMAND_PATTERN =
   /next dev|next-server|next\/dist\/bin\/next|vite|nuxt dev|astro dev|remix dev|webpack serve|(pnpm|npm|yarn|bun)( run)? dev(\s|$)/;
 
-export type DevTabState = {
+/** タブで動かした記録(mode の無い古い記録もこれ) */
+export type DevTabTabState = {
+  mode?: "tab";
   dir: string;
   port: number;
   /** tmux の socket のパス(どの tmux サーバーか) */
@@ -35,6 +40,44 @@ export type DevTabState = {
   windowIndex: string;
   command: string;
   startedAt: string;
+};
+
+/** 裏のプロセスで動かした記録。pid の使い回しで別のプロセスを止めないよう、開始時刻の印 procStart も持つ */
+export type DevTabBackgroundState = {
+  mode: "background";
+  dir: string;
+  port: number;
+  pid: number;
+  /** プロセスグループ(切り離して立てたので pid と同じ)。止めるときはグループごと */
+  pgid: number;
+  procStart: string;
+  /** ログのパス(チェックアウトからの相対) */
+  log: string;
+  command: string;
+  startedAt: string;
+};
+
+export type DevTabState = DevTabTabState | DevTabBackgroundState;
+
+export const isBackground = (state: DevTabState): state is DevTabBackgroundState => state.mode === "background";
+
+export type DevTabMode = "tab" | "background";
+
+/**
+ * どこで動かすか。--background と tmux の行き先の名指し(--session / --socket)は両立しない(null = 使い方の誤り)。
+ * 名指しは AGENT_TERMINAL より強い(チームツールは名指しで呼ぶ)。AGENT_TERMINAL=tmux でも tmux が無ければ裏
+ */
+export const decideMode = (opts: {
+  background: boolean;
+  session: string | null;
+  socket: string | null;
+  terminal: string;
+  hasTmux: boolean;
+}): DevTabMode | null => {
+  const named = Boolean(opts.session || opts.socket);
+  if (opts.background) return named ? null : "background";
+  if (named) return "tab";
+  return opts.terminal === "tmux" && opts.hasTmux ? "tab" : "background";
 };
 
 // ---- 純粋な部品(テスト対象) ------------------------------------------------------------
@@ -166,7 +209,7 @@ export const tmuxTry = (socket: string | null, args: string[]): string | null =>
 };
 
 /** 記録のタブがまだあるか(window id で引き、名前が Dev のままか) */
-export const isTabAlive = (state: DevTabState): boolean =>
+export const isTabAlive = (state: DevTabTabState): boolean =>
   tmuxTry(state.socket, ["display-message", "-p", "-t", state.windowId, "#{window_name}"]) === WINDOW_NAME;
 
 export const readState = (root: string): DevTabState | null => {
@@ -188,13 +231,73 @@ export const removeState = (root: string): void => {
   rmSync(path.join(root, STATE_FILE), { force: true });
 };
 
-/** 生きている記録(タブが消えていれば記録を消して null) */
-export const liveState = (root: string): DevTabState | null => {
+/**
+ * プロセスの開始時刻の印(pid の使い回しを見分ける)。Linux は /proc/<pid>/stat の starttime、ほかは ps の lstart。
+ * プロセスが無ければ null
+ */
+export const procStartOf = (pid: number): string | null => {
+  if (existsSync("/proc/self/stat")) {
+    try {
+      const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+      // comm は空白や括弧を含みうるので、最後の ')' の後から数える(starttime = 22 番目の欄)
+      const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+      return fields[19] ?? null;
+    } catch {
+      return null;
+    }
+  }
+  const ps = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8" });
+  const out = (ps.stdout ?? "").trim();
+  return ps.status === 0 && out ? out : null;
+};
+
+/** 裏のプロセスがまだ同じもので生きているか(pid があり、開始時刻の印が記録と同じ) */
+export const isBackgroundAlive = (state: DevTabBackgroundState, startOf: (pid: number) => string | null = procStartOf): boolean =>
+  startOf(state.pid) === state.procStart;
+
+/** 生きている記録(タブが消えた・裏のプロセスが終わった・pid が別のプロセスになっていれば記録を消して null) */
+export const liveState = (root: string, startOf: (pid: number) => string | null = procStartOf): DevTabState | null => {
   const state = readState(root);
   if (!state) return null;
-  if (isTabAlive(state)) return state;
+  if (isBackground(state) ? isBackgroundAlive(state, startOf) : isTabAlive(state)) return state;
   removeState(root);
   return null;
+};
+
+/** プロセスグループがまだあるか(シグナル 0 を送れるか) */
+export const isGroupAlive = (pgid: number): boolean => {
+  try {
+    process.kill(-pgid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+};
+
+const signalGroup = (pgid: number, signal: NodeJS.Signals): void => {
+  try {
+    process.kill(-pgid, signal);
+  } catch {
+    // もう終わっている
+  }
+};
+
+/**
+ * 裏のプロセスグループを止める: SIGINT(Ctrl-C と同じ)→ ポートが閉じるまで最大 waitSec 秒 → 残っていれば SIGTERM →
+ * 最大 2 秒 → まだ残っていれば SIGKILL。グループが残らなければ true
+ */
+export const stopGroup = async (pgid: number, port: number, waitSec: number): Promise<boolean> => {
+  signalGroup(pgid, "SIGINT");
+  for (let t = 0; t < waitSec && isGroupAlive(pgid) && (await isPortAnswering(port)); t += 1) await sleep(1000);
+  if (isGroupAlive(pgid)) {
+    signalGroup(pgid, "SIGTERM");
+    for (let t = 0; t < 20 && isGroupAlive(pgid); t += 1) await sleep(100);
+  }
+  if (isGroupAlive(pgid)) {
+    signalGroup(pgid, "SIGKILL");
+    for (let t = 0; t < 20 && isGroupAlive(pgid); t += 1) await sleep(100);
+  }
+  return !isGroupAlive(pgid);
 };
 
 export type DevProcess = { pid: number; command: string };
@@ -269,6 +372,11 @@ export const processTree = (rootPid: number): number[] => {
   return result;
 };
 
-/** 1 行の案内: 「http://localhost:<port> — <どこ>、タブ <番号>(セッション <名前>)」 */
+/**
+ * 1 行の案内: タブ 「http://localhost:<port> — <どこ>、タブ <番号>(セッション <名前>)」 /
+ * 裏 「http://localhost:<port> — <どこ>、裏のプロセス <pid>(ログ <log>)」
+ */
 export const describeState = (state: DevTabState): string =>
-  `http://localhost:${state.port} — ${describeCheckout(state.dir)}、タブ ${state.windowIndex}(セッション ${state.session})`;
+  isBackground(state)
+    ? `http://localhost:${state.port} — ${describeCheckout(state.dir)}、裏のプロセス ${state.pid}(ログ ${state.log})`
+    : `http://localhost:${state.port} — ${describeCheckout(state.dir)}、タブ ${state.windowIndex}(セッション ${state.session})`;

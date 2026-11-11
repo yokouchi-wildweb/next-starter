@@ -100,7 +100,7 @@ referral の招待リンクのパラメータ（`INVITE_LINK_PARAM` = `invite`�
 - **解析（本ドメイン、機能 `userAcquisition` の入切でゲート。判別表の招待の行は紹介の機能が開いている間だけ出る）**: タッチとして記録され、
   紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。コード自体は extras（`extras.invite`）に
   残るため「どの紹介者経由のサインアップか」まで追える
-- **機能（referral ドメイン、`APP_FEATURES.marketing.referral.enabled` でゲート）**: コードが
+- **機能（referral ドメイン、機能 `referral` の入切でゲート）**: コードが
   referral 専用 cookie（`pending_invite`、last-touch 優先で上書き・30日）に保持され、
   サインアップフォームへのプリフィルと本登録時の自動適用が動く。
   **解析が無効でも招待リンクは機能する**。実装は `referral/lib/inviteLinkCookie.ts` /

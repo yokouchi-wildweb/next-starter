@@ -23,13 +23,22 @@ import {
 const root = mkdtempSync(path.join(tmpdir(), "lib-package-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
+/**
+ * @param {string} rel
+ * @param {unknown} content 文字列はそのまま、他は JSON
+ */
 function write(rel, content) {
   const file = path.join(root, rel);
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, typeof content === "string" ? content : JSON.stringify(content, null, 2));
 }
 
-/** lib を 1 本作る(pkg = package.json の中身、undefined なら置かない。文字列ならそのまま) */
+/**
+ * lib を 1 本作る(pkg = package.json の中身、undefined なら置かない。文字列ならそのまま)
+ * @param {string} name
+ * @param {unknown} pkg
+ * @param {string[]} [files]
+ */
 function lib(name, pkg, files = ["index.ts"]) {
   for (const file of files) write(`src/lib/${name}/${file}`, "export {};\n");
   if (pkg !== undefined) write(`src/lib/${name}/package.json`, pkg);
@@ -62,7 +71,7 @@ lib("badpeers", { exports: { ".": "./index.ts" }, peers: ["hooks"] });
 lib("sidetrue", { exports: { ".": "./index.ts" }, sideEffects: true });
 write("src/lib/README.md", "# lib\n");
 
-const codesOf = (name) => checkLibPackage(root, name).map((p) => p.code);
+const codesOf = (/** @type {string} */ name) => checkLibPackage(root, name).map((p) => p.code);
 
 test("listLibs / hasLibPackage / listDeclaredLibs: src/lib 直下のフォルダだけ、宣言は package.json の有無", () => {
   assert.ok(listLibs(root).includes("plain"));
@@ -74,8 +83,9 @@ test("listLibs / hasLibPackage / listDeclaredLibs: src/lib 直下のフォルダ
 });
 
 test("listLibsFrom: 注入した listDir の src/lib 直下のフォルダだけを名前順に(listLibs と同じ結果)", () => {
+  /** @type {string[]} */
   const seen = [];
-  const listDir = (rel) => {
+  const listDir = (/** @type {string} */ rel) => {
     seen.push(rel);
     return [
       { name: "zeta", isDir: true },
@@ -92,6 +102,7 @@ test("listLibsFrom: 注入した listDir の src/lib 直下のフォルダだけ
 test("readLibPackage: 宣言の無い lib は null、正しい形は問題 0 で一覧を返す", () => {
   assert.equal(readLibPackage(root, "plain"), null);
   const pkg = readLibPackage(root, "ok");
+  assert.ok(pkg);
   assert.deepEqual(pkg.problems, []);
   assert.equal(pkg.dir, "src/lib/ok");
   assert.deepEqual(
@@ -105,7 +116,7 @@ test("readLibPackage: 宣言の無い lib は null、正しい形は問題 0 で
   assert.deepEqual(pkg.libs, ["cn"]);
   assert.deepEqual(pkg.peers, ["components"]);
   assert.equal(pkg.sideEffects, false);
-  assert.deepEqual(readLibPackage(root, "sidefx").sideEffects, ["./register.ts"]);
+  assert.deepEqual(readLibPackage(root, "sidefx")?.sideEffects, ["./register.ts"]);
   assert.deepEqual(codesOf("sidefx"), []);
 });
 
@@ -131,13 +142,14 @@ test("形の検査: 負例はそれぞれの問題の名前で止まる", () => 
 
 test("問題のある exports の行は入口に入れず、正しい行は残す", () => {
   const pkg = readLibPackage(root, "missing");
+  assert.ok(pkg);
   assert.deepEqual(pkg.exports.map((e) => e.key), ["."]);
 });
 
 test("checkAllLibPackages: 宣言済みの lib ごとの報告と問題の数", () => {
   const report = checkAllLibPackages(root);
   assert.equal(report.declared, listDeclaredLibs(root).length);
-  assert.deepEqual(report.libs.find((item) => item.lib === "ok").problems, []);
+  assert.deepEqual(report.libs.find((item) => item.lib === "ok")?.problems, []);
   assert.ok(report.problemCount >= 16);
 });
 
@@ -179,5 +191,5 @@ test("clearLibPackageCache: 書き換えた後に読み直す", () => {
   write("src/lib/later/package.json", { exports: { ".": "./index.ts" } });
   assert.equal(readLibPackage(root, "later"), null, "覚えた結果のまま");
   clearLibPackageCache();
-  assert.deepEqual(readLibPackage(root, "later").problems, []);
+  assert.deepEqual(readLibPackage(root, "later")?.problems, []);
 });

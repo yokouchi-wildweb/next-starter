@@ -36,9 +36,7 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       className={cn(
-        // _shadcn から移した既定の幕の色をそのまま残す(描画を変えない移動。トークン化は部品の整理の後の区切りで)
-        // eslint-disable-next-line style-tokens/no-raw-palette
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 bg-black/50",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 bg-overlay/50",
         layerClassName,
         className,
       )}
