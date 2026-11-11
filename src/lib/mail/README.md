@@ -1,9 +1,9 @@
 # lib/mail
 
-メールの送信（Resend / SendGrid）と React Email のテンプレートの入口。
+メールの送信（Resend / SendGrid）と、メールの見た目の部品（React Email）の入口。
 
-- 入口: `@/lib/mail`（`send`・`createMailTemplate`・`MailSendError`・色の生成物 `MAIL_THEME_COLORS` と型）
-- 管理者から利用者への連絡は `messagingService.send` / `bulkSend` を使う（受信者ごとの記録が残る）。`send()` を直に呼ぶのはシステムのテンプレートのメール（パスワードの再設定・確認・登録）だけ（CLAUDE.md PROHIBITED）
+- 入口: `@/lib/mail`（`send`・`MailSendError`・webhook・枠と部品・色の生成物 `MAIL_THEME_COLORS` と型）
+- 利用者へのメールは連絡の定義（`messages/<名前>.ts` + `views/<名前>.tsx`）を送る口 `messagingService.sendMessage` / `sendMessageToMany` で送る（回・配達の記録・配信停止）。`send()` を直に呼ぶのはメールの経路の項目（src/features/core/messaging/channels/email）だけ。書き方: src/lib/messaging/README.md
 
 ## プロバイダーの切り替え
 
@@ -22,7 +22,7 @@
 
 届かないとき: コンソールでドメインが Verified か・迷惑メールのフォルダ・コンソールの Emails の誤りを見る。DNS の伝播は 24〜48 時間かかることがあり、直後は Verified と Pending を行き来する。
 
-テスト送信: `pnpm ops mail test-send`（対話式。`src/features/**/mail/*Email.tsx` の `createMailTemplate()` のテンプレートを選んで送る）
+テスト送信: `pnpm ops mail test-send`（対話式。接続確認のメールか、連絡の一覧 messageRegistry のメールの欄を持つ連絡を見本の値で描いて送る。対話なし: `-- --to=<アドレス> --message=<連絡の鍵 | simple>`。送る口は通さない）
 
 ## send()
 
@@ -151,7 +151,7 @@ const m = createMailParts(mailTheme); // 色を束ねた部品(theme を部品�
   - `MailDivider`（区切り線）・`MailHeader`（ロゴ + 文。ロゴは絶対 URL）・`MailInfoBox`（ラベルと値の箱）
 - style の既定値は上流のテンプレート（auth のメール）の値。細かい違いは各部品の `style`（既定に重ねる）で合わせる
 - 色: 枠と各部品の `theme`（`MailTheme`、src/styles の palette と同じ鍵）で渡す。部品ごとに渡す手間は `createMailParts(theme)` で省ける（下）。色の値は下の「色の生成物」の `MAIL_THEME_COLORS` を呼び手が渡す
-- React の context は使わない: メールはサーバーで描き、`@/lib/mail` はサーバーの module（管理のページ → サービス → テンプレート）から読まれる。lib に `createContext` を置くと Next の build が落ちる（frame.test.tsx が固定）
+- React の context は使わない: メールはサーバーで描き、`@/lib/mail` はサーバーの module（送る口 → メールの経路 → 描き方）から読まれる。lib に `createContext` を置くと Next の build が落ちる（frame.test.tsx が固定）
 - react-email の `render` は描画の誤りを投げず、誤りの印（`server rendering errored`）だけの HTML を返す。部品の誤り（`theme` の渡し忘れなど）は空のメールになりうるので、型検査で止める（`theme` は必須の props）
 
 ### 色の生成物（生成区画 lib/mail/generated/）
@@ -161,10 +161,6 @@ const m = createMailParts(mailTheme); // 色を束ねた部品(theme を部品�
 - メールはダークモードもエリアも持たないので `.dark` / `[data-area]` は読まない。メールにも効かせたい色は `palette.css` の `:root` に書く
 - 色を変えたら `pnpm generate styles` を回して生成物をコミットする（build では作り直さない）。書き手 scripts/structure/styles/generate-mail-colors.ts、所有の規則は src/styles/README.md
 - 鍵: primary・primaryForeground・secondary・secondaryForeground・muted・mutedForeground・accent・accentForeground・destructive・background・foreground・border（それぞれ `--<名前>` の CSS 変数）
-
-## createMailTemplate
-
-件名・テンプレートの部品・テスト用の props をまとめ、`Template.send(to, props, options?)` で送る。戻り値は返さない（`Promise<void>`）。
 
 ## テスト
 

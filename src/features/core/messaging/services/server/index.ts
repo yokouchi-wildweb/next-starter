@@ -3,8 +3,6 @@
 export { messagingService } from "./messagingService";
 export type { MessagingService } from "./messagingService";
 
-export { send } from "./send";
-export { bulkSend } from "./bulkSend";
 export { sendMessage, sendMessageToMany } from "./sendMessage";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
@@ -20,12 +18,6 @@ export type {
   SendMessageResult,
   SendMessageToManyInput,
 } from "./sendMessage";
-export { createDispatch, completeDispatch, findExistingIdempotencyKeys } from "./dispatch";
-export { recordRecipientAudits } from "./auditing";
-export {
-  sendEmailViaTemplate,
-  sendInAppNotification,
-} from "./channels";
 export type {
   AdminBulkSendCounts,
   AdminBulkSendInput,

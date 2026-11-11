@@ -141,7 +141,7 @@ test("useImportExport: false の core は import だけ閉じ、export / truncat
   const setting = defaults.setting.access;
   for (const [operation, kind] of [["get", "read"], ["list", "read"], ["update", "write"], ["create", "write"], ["remove", "write"], ["truncateAll", "write"], ["import", "write"]]) assert.equal(resolveAccessRule(setting, operation, kind), "none", `setting: ${operation}`);
   assert.deepEqual(resolveAccessRule(setting, "export", "write"), ADMIN_RULE);
-  for (const key of ["wallet", "walletHistory", "purchaseRequest", "couponHistory", "userCounter", "interactionEvent", "notification", "notificationTemplate", "chatRoom", "deviceFingerprint", "fingerprintChallenge", "couponAttributionReward", "couponIssuerGrant"]) {
+  for (const key of ["wallet", "walletHistory", "purchaseRequest", "couponHistory", "userCounter", "interactionEvent", "chatRoom", "deviceFingerprint", "fingerprintChallenge", "couponAttributionReward", "couponIssuerGrant"]) {
     for (const operation of DOMAIN_DATA_OPERATIONS) {
       assert.deepEqual(resolveAccessRule(defaults[key].access, operation, "write"), ADMIN_RULE, `${key}: ${operation}`);
     }

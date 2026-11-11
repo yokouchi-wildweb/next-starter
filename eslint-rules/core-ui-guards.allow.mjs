@@ -17,9 +17,6 @@ export const CORE_UI_GUARDS_ALLOW = [
   "src/features/core/chatRoom/components/common/EditChatRoomForm.tsx",
   "src/features/core/coupon/components/common/CreateCouponForm.tsx",
   "src/features/core/coupon/components/common/EditCouponForm.tsx",
-  "src/features/core/notification/components/AdminNotificationSend/index.tsx",
-  "src/features/core/notificationTemplate/components/common/CreateNotificationTemplateForm.tsx",
-  "src/features/core/notificationTemplate/components/common/EditNotificationTemplateForm.tsx",
   // purchaseRequest: 購入完了(コンバージョン計測 useGoogleAdsConversion。検出を広げた時に当たった。棚の段 3 で分割)
   "src/features/core/purchaseRequest/components/PurchaseComplete/index.tsx",
   "src/features/core/user/components/EditProfile.tsx",

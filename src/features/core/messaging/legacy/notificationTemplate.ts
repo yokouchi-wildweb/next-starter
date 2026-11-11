@@ -1,4 +1,7 @@
-// src/features/notificationTemplate/entities/drizzle.ts
+// src/features/core/messaging/legacy/notificationTemplate.ts
+//
+// 前のお知らせのテンプレートの表(notification_templates)の定義だけ。サービスも読み手も無い(どこからも import しない)。
+// 表を push が消さないよう schemaRegistry に載せておく(D55)。写しの task が使い、S3 の初めに消す。README: ./README.md
 
 import { jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 

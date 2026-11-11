@@ -22,8 +22,6 @@ import { domainEntries as deviceFingerprintEntries } from "@/features/core/devic
 import { domainEntries as fingerprintChallengeEntries } from "@/features/core/fingerprintChallenge/services/server/domainEntry";
 import { domainEntries as interactionTrackingEntries } from "@/features/core/interactionTracking/services/server/domainEntry";
 import { domainEntries as milestoneEntries } from "@/features/core/milestone/services/server/domainEntry";
-import { domainEntries as notificationEntries } from "@/features/core/notification/services/server/domainEntry";
-import { domainEntries as notificationTemplateEntries } from "@/features/core/notificationTemplate/services/server/domainEntry";
 import { domainEntries as pairedDeviceEntries } from "@/features/core/pairedDevice/services/server/domainEntry";
 import { domainEntries as purchaseRequestEntries } from "@/features/core/purchaseRequest/services/server/domainEntry";
 import { domainEntries as referralEntries } from "@/features/core/referral/services/server/domainEntry";
@@ -56,8 +54,6 @@ export const serviceRegistry: DomainRegistry = {
   fingerprintChallenge: fingerprintChallengeEntries.fingerprintChallenge,
   interactionEvent: interactionTrackingEntries.interactionEvent,
   milestone: milestoneEntries.milestone,
-  notification: notificationEntries.notification,
-  notificationTemplate: notificationTemplateEntries.notificationTemplate,
   pairedDevice: pairedDeviceEntries.pairedDevice,
   purchaseRequest: purchaseRequestEntries.purchaseRequest,
   referral: referralEntries.referral,

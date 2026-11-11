@@ -1,25 +1,17 @@
 // scripts/operations/mail/test-send.ts
-// メールテンプレートのテスト送信スクリプト
+// メールのテスト送信スクリプト(接続確認と、連絡の一覧 messageRegistry のメールの見た目の確認)
 //
 // 使い方:
-//   pnpm ops mail test-send
+//   pnpm ops mail test-send                                          (対話: 送信先と連絡を選ぶ)
+//   pnpm ops mail test-send -- --to=<アドレス> --message=<連絡の鍵>     (対話なし。--message=simple は接続確認のメール)
 //
-// テンプレートの追加方法:
-//   送る側のドメインの mail/ に <名前>Email.tsx を作成し(例 src/features/core/auth/mail/)、
-//   createMailTemplate() で作成したオブジェクトをエクスポートしてください。
-//
-// 例:
-//   export const WelcomeMail = createMailTemplate({
-//     subject: "ようこそ！",
-//     component: WelcomeComponent,
-//     testProps: { username: "テスト" },
-//     testDescription: "ウェルカムメール",
-//   });
+// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうちメールの欄を持つ連絡を、上書き(<名前>.override.ts)を重ね、
+// 見本の値を差し込んで描き方(messages/views/<名前>.tsx、無ければメールの経路の既定の描き方)で描いて送る。
+// 見本の値: 定義の vars・共通の文脈・当たる enrichers の鍵ごとに、URL の欄は https://example.com/sample/<鍵>、他は「<鍵>の見本」。
+// 送る口(回・配達の記録)は通さない(見た目の確認だけ)。連絡の書き方: src/lib/messaging/README.md
 
 import { render } from "@react-email/render";
 import inquirer from "inquirer";
-import * as fs from "fs";
-import * as path from "path";
 import { createElement } from "react";
 
 import { guardEntry } from "../../runner/guard";
@@ -34,44 +26,81 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
 // メールの差出人は事業の素性(@/business)から読む。@/business は src/wiring の結びなので道具からは import() で読む(lint scripts-no-static-wiring)
 
-// テンプレートの置き場: src/features/**/mail/*Email.tsx
-const FEATURES_DIR = "src/features";
-
-/** src/features の下の mail/*Email.tsx を path 順に返す */
-function findTemplateFiles(): string[] {
-  const entries = fs.readdirSync(path.resolve(process.cwd(), FEATURES_DIR), { recursive: true, encoding: "utf8" });
-  return entries
-    .map((entry) => entry.split(path.sep).join("/"))
-    .filter((entry) => /(^|\/)mail\/[^/]*Email\.tsx$/.test(entry))
-    .sort()
-    .map((entry) => path.resolve(process.cwd(), FEATURES_DIR, entry));
-}
-
 // テンプレート定義
 type TemplateConfig = {
+  /** 対話なしで選ぶ鍵(--message=<鍵>) */
+  key: string;
   name: string;
   description: string;
   render: () => Promise<{ html: string; subject: string }>;
 };
 
-// MailTemplate の型チェック用
-type MailTemplateShape = {
-  subject: string;
-  component: React.ComponentType<unknown>;
-  testProps: unknown;
-  testDescription?: string;
-};
+type ZodLike = { _def?: { typeName?: string; checks?: { kind: string }[]; innerType?: ZodLike; schema?: ZodLike } };
 
-function isMailTemplate(obj: unknown): obj is MailTemplateShape {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    "subject" in obj &&
-    "component" in obj &&
-    "testProps" in obj &&
-    typeof (obj as MailTemplateShape).subject === "string" &&
-    typeof (obj as MailTemplateShape).component === "function"
+/** zod の値が URL の検査を持つか(optional などの包みの内側も見る) */
+function isUrlSchema(schema: ZodLike | undefined): boolean {
+  let current = schema;
+  for (let depth = 0; current?._def && depth < 10; depth += 1) {
+    if (current._def.checks?.some((check) => check.kind === "url")) return true;
+    current = current._def.innerType ?? current._def.schema;
+  }
+  return false;
+}
+
+/** 見本の値(鍵 → 文字列) */
+function sampleValues(keys: Iterable<string>, shape: Record<string, ZodLike>): Record<string, string> {
+  return Object.fromEntries(
+    [...keys].map((key) => [key, isUrlSchema(shape[key]) ? `https://example.com/sample/${key}` : `${key}の見本`]),
   );
+}
+
+/** 欄の値の {{鍵}} を差し込む(知らない鍵はそのまま) */
+function fillValue(value: unknown, values: Record<string, string>): unknown {
+  if (typeof value === "string") return value.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (all, key: string) => values[key] ?? all);
+  if (Array.isArray(value)) return value.map((item) => fillValue(item, values));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, fillValue(v, values)]));
+  return value;
+}
+
+/** 生成の一覧のメールの欄を持つ連絡(鍵の順) */
+async function messageTemplates(): Promise<TemplateConfig[]> {
+  const { messageRegistry } = await import("@/registry/messageRegistry");
+  const { applyMessageOverride, COMMON_CONTEXT_KEYS } = await import("@/lib/messaging");
+  const { MAIL_THEME_COLORS } = await import("@/lib/mail");
+  const { enrichers } = await import("@/features/core/messaging/extensions/enrichers");
+  const { EmailView: DefaultView } = await import("@/features/core/messaging/channels/email/view");
+
+  const templates: TemplateConfig[] = [];
+  for (const entry of Object.values(messageRegistry).sort((a, b) => a.key.localeCompare(b.key))) {
+    const { message } = await entry.definition();
+    const override = entry.override ? (await entry.override()).messageOverride : undefined;
+    const resolved = applyMessageOverride(message, override);
+    const email = (resolved.content as Record<string, unknown>).email;
+    if (!email) continue;
+    templates.push({
+      key: entry.key,
+      name: entry.key,
+      description: `連絡のメール(${entry.view ? "描き方 views" : "既定の描き方"})`,
+      render: async () => {
+        const shape = resolved.vars.shape as Record<string, ZodLike>;
+        const enricherShape = Object.assign(
+          {},
+          ...Object.values(enrichers)
+            .filter((enricher) => enricher.messages === "*" || enricher.messages.some((key) => key === entry.key))
+            .map((enricher) => enricher.provides.shape as Record<string, ZodLike>),
+        ) as Record<string, ZodLike>;
+        const values = sampleValues(
+          new Set([...Object.keys(shape), ...Object.keys(enricherShape), ...COMMON_CONTEXT_KEYS]),
+          { ...enricherShape, ...shape },
+        );
+        const content = fillValue(email, values) as { subject: string };
+        const View = entry.view ? (await entry.view()).EmailView : DefaultView;
+        const html = await render(createElement(View as never, { content, theme: MAIL_THEME_COLORS }));
+        return { html, subject: content.subject };
+      },
+    });
+  }
+  return templates;
 }
 
 /**
@@ -97,51 +126,18 @@ async function renderSimpleTestEmail(): Promise<{ html: string; subject: string 
 }
 
 /**
- * 各ドメインの mail/ から自動検出してテンプレート一覧を取得
+ * 接続確認のメール + 連絡の一覧のメール
  */
 async function getTemplateConfigs(): Promise<TemplateConfig[]> {
-  const templates: TemplateConfig[] = [
+  return [
     {
+      key: "simple",
       name: "シンプルテストメール",
       description: `${MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend"}接続確認用のシンプルなテストメール`,
       render: renderSimpleTestEmail,
     },
+    ...(await messageTemplates()),
   ];
-
-  for (const templatePath of findTemplateFiles()) {
-    const file = path.basename(templatePath);
-    const templateName = file.replace(".tsx", "");
-
-    try {
-      // テンプレートを動的インポート
-      const templateModule = await import(templatePath);
-
-      // createMailTemplate で作成されたオブジェクトを探す
-      for (const [exportName, exportValue] of Object.entries(templateModule)) {
-        if (!isMailTemplate(exportValue)) {
-          continue;
-        }
-
-        const mailTemplate = exportValue;
-        const displayName = exportName !== "default" ? exportName : templateName;
-
-        templates.push({
-          name: displayName,
-          description: mailTemplate.testDescription || displayName,
-          render: async () => {
-            const html = await render(
-              createElement(mailTemplate.component, mailTemplate.testProps as object),
-            );
-            return { html, subject: mailTemplate.subject };
-          },
-        });
-      }
-    } catch (err) {
-      console.warn(`警告: ${file} の読み込みに失敗しました:`, err);
-    }
-  }
-
-  return templates;
 }
 
 /**
@@ -220,9 +216,15 @@ async function sendEmail(
   }
 }
 
+/** --<名前>=<値> の引数 */
+function flag(name: string): string | undefined {
+  const prefix = `--${name}=`;
+  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
+}
+
 async function main() {
   console.log("");
-  console.log("📧 メールテンプレート テスト送信");
+  console.log("📧 メール テスト送信");
   console.log("");
 
   // 環境変数チェック
@@ -242,10 +244,29 @@ async function main() {
   }
 
   // テンプレート一覧を取得（自動検出）
-  console.log("テンプレートを検出中...");
+  console.log("連絡の一覧を読み込み中...");
   const templates = await getTemplateConfigs();
-  console.log(`${templates.length} 件のテンプレートが見つかりました`);
+  console.log(`${templates.length} 件(接続確認 + メールの欄を持つ連絡)`);
   console.log("");
+
+  // 対話なし: --to と --message の両方があれば選ばずに送る
+  const flagTo = flag("to");
+  const flagMessage = flag("message");
+  if (flagTo || flagMessage) {
+    if (!flagTo?.includes("@") || !flagMessage) {
+      console.error("エラー: 対話なしで送るときは --to=<アドレス> と --message=<連絡の鍵 | simple> の両方を渡してください");
+      process.exit(1);
+    }
+    const chosen = templates.find((t) => t.key === flagMessage);
+    if (!chosen) {
+      console.error(`エラー: 連絡 ${flagMessage} が見つかりません(メールの欄を持つ連絡: ${templates.map((t) => t.key).join(", ")})`);
+      process.exit(1);
+    }
+    const rendered = await chosen.render();
+    await sendEmail(flagTo, rendered.subject, rendered.html);
+    console.log(`✅ 送信完了! (${chosen.key} → ${flagTo})`);
+    return;
+  }
 
   // 送信先アドレスを入力
   const { toEmail } = await inquirer.prompt<{ toEmail: string }>([

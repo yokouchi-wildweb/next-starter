@@ -11,8 +11,6 @@ import chatRoomConfig from "@/features/core/chatRoom/domain.json";
 import couponConfig from "@/features/core/coupon/domain.json";
 import couponHistoryConfig from "@/features/core/couponHistory/domain.json";
 import milestoneConfig from "@/features/core/milestone/domain.json";
-import notificationConfig from "@/features/core/notification/domain.json";
-import notificationTemplateConfig from "@/features/core/notificationTemplate/domain.json";
 import purchaseQuotaConfig from "@/features/core/purchaseQuota/domain.json";
 import rateLimitConfig from "@/features/core/rateLimit/domain.json";
 import referralConfig from "@/features/core/referral/domain.json";
@@ -30,8 +28,6 @@ export const domainConfigMap = {
   coupon: couponConfig,
   coupon_history: couponHistoryConfig,
   milestone: milestoneConfig,
-  notification: notificationConfig,
-  notification_template: notificationTemplateConfig,
   purchase_quota: purchaseQuotaConfig,
   rate_limit: rateLimitConfig,
   referral: referralConfig,

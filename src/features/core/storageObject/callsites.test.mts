@@ -59,7 +59,6 @@ const { baseOptions: userBaseOptions } = await import("@/features/core/user/serv
 const { storageBinding: bankTransferReviewBinding } = await import(
   "@/features/core/bankTransferReview/services/server/drizzleBase"
 );
-const { storageBinding: notificationBinding } = await import("@/features/core/notification/services/server/drizzleBase");
 const { runWithAuditContext } = await import("@/lib/audit");
 const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
 const { purposes: PURPOSE_ITEMS } = await import("@/features/core/storageObject/extensions/purposes");
@@ -242,24 +241,6 @@ describe("core の保存が新 ref の検査を迂回しない（実際の bindi
     // 紐付いた後は本人と admin が読める
     assert.equal(await read(h, forA.objectId, alice), "redirect");
     assert.equal(await read(h, forA.objectId, admin), "redirect");
-  });
-
-  test("お知らせの image は送信した admin の未紐付けの ref だけ（sendDirect も同じ binding を通る）", async () => {
-    const fields = notificationBinding.fields;
-    assert.deepEqual(fields.map((f) => [f.name, f.purpose]), [["image", "notification.image"]]);
-
-    const h = setup();
-    const binding = bindingOf(h, "notification", fields);
-    const otherAdmin = user("44444444-4444-4444-8444-444444444444", "admin");
-    const mine = await readyRef(h, admin, "notification.image");
-    const theirs = await readyRef(h, otherAdmin, "notification.image");
-    await assert.rejects(as(admin, () => binding.afterWrite(TX, null, { id: "n-1", image: theirs.ref })), rejects400);
-    await assert.rejects(
-      as(admin, () => binding.afterWrite(TX, null, { id: "n-1", image: "https://storage.googleapis.com/old/n.png" })),
-      rejects400,
-    );
-    await as(admin, () => binding.afterWrite(TX, null, { id: "n-1", image: null }));
-    await as(admin, () => binding.afterWrite(TX, null, { id: "n-2", image: mine.ref }));
   });
 });
 

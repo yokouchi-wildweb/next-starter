@@ -186,8 +186,6 @@ add src/features/core/milestone/components/renderers/*.{ts,tsx}  # 受け口 ren
 add src/features/core/milestone/components/renderers/*/**  # 受け口 renderers(フォルダ形)
 add src/features/core/milestone/services/server/definitions/*.{ts,tsx}  # 受け口 definitions
 add src/features/core/milestone/services/server/definitions/*/**  # 受け口 definitions(フォルダ形)
-add src/features/core/notification/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/features/core/notification/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
 add src/features/core/pairedDevice/kinds/*.{ts,tsx}  # 受け口 kinds
 add src/features/core/pairedDevice/kinds/*/**  # 受け口 kinds(フォルダ形)
 add src/features/core/purchaseRequest/services/server/completion/strategies/*.{ts,tsx}  # 受け口 completionStrategies
