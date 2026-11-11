@@ -173,12 +173,21 @@ D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵�
 
 D35・D45。本人が 種類 × 経路 の好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
 
-- 門: 規則 `messagingPreferences`（`src/featureGate/rules/messagingPreferences.ts`、住所 `/api/me/messaging/preferences`（ページ `/mypage/account/notifications` の住所はページと一緒に足す）、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表 `message_preferences` とワンクリックの受け口は門に関わらず開（domains は持たない）。住所の定数は `constants/preferences.ts`
+- 門: 規則 `messagingPreferences`（`src/featureGate/rules/messagingPreferences.ts`、住所 ページ `/mypage/account/notifications` と API `/api/me/messaging/preferences`、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表 `message_preferences` とワンクリックの受け口は門に関わらず開（domains は持たない）。住所の定数は `constants/preferences.ts`
 - 表 = 種類の受け口（marketing・activity。取引・required の連絡は種類を持たないので出ない）× 有効な経路の受け口（`enabled: false` の経路は出ない）
 - マスの `optedOut` は送る側（`checkStops` = `findOptOuts`）と同じ判定: そのマス・種類の `'*'`・経路の `'*'`・全体 `'*' '*'` のどれかの行で止まる。`via`（`cell` / `category` / `channel` / `all` / null）はどの行で止まっているか
 - 経路ごとに `hasAddress`（経路の自前の引き方 `resolveAddresses`、無ければ端末の帳簿の有効な行 = 送る側の展開と同じ）と `connectHref`（経路の項目の宣言。サイト内の住所は門で閉じていれば null）。上流は line だけが持つ（LINE の連携の入口 `/api/auth/line/login?redirect_after=<好みのページ>`）。email・inApp は連携の画面が無いので持たない
 - `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, channels[], categories[{ …, cells[] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` → 変えた後の表。全体は `category` と `channel` のどちらも `'*'`（片方だけの `'*'` は 400）。止める = 行を足す（source `user`、既にあれば何もしない）、再開 = そのマスの行だけ消す（広い行で止まるマスは止まったまま、`via` で分かる）。知らない種類・有効でない経路は 400
 - 退会: user の後片付けの項目 `cleanupHandlers/messagingPreferences.ts`（required）が本人の行を全部消す（D38。利用者の削除は FK の cascade でも消える）
+
+### 通知の設定のページ（`/mypage/account/notifications`）
+
+- client: `services/client/preferenceClient.ts`（`getMessagePreferences` / `setMessagePreference`、axios + `normalizeHttpError`）
+- hook `useMessagePreferences({ enabled? })` → `{ preferences, isLoading, error, retry, setCell(category, channel, receive), setAll(stopAll), pendingKey }`。変更の応答（変えた後の表）を SWR のキャッシュに書く（取り直さない）。`pendingKey` = 変えている最中のマス `<種類>:<経路>`（全体は `*:*`）
+- 部品（core_ui、入口だけを import）: `components/common/PreferenceChannelToggle`（1 マスの切り替え。入 = 受け取る。広い行で止まるマスは切・押せない・理由、宛先の無い経路は「宛先が登録されていません」+ `connectHref` の連携の案内）・`components/common/PreferenceCategoryRow`（種類の題・説明 + 経路ごとの切り替え）・入れ物 `components/MessagePreferences`（`emptyText?`。上に「すべての連絡を止める」、下に種類の行）
+- 種類ごと・経路ごとの `'*'` の行（`via` category / channel）はこのページから戻せない（API は 1 マスと全体だけ）。上流は書かない（ワンクリックの配信停止も 1 マスの行）ので、出るのは fork か手作業で足した時だけ。そのマスは「まとめて止める設定で止まっています」と出して押せなくする
+- ページ: `page.tsx` の 1 行スイッチ → `_screen/MyPageAccountNotificationsScreen.tsx`（題「通知の設定」+ `MessagePreferences`、mypage の layout が UserPage を巻く）+ `_screen/loader.ts`（access authenticated、門が閉なら notFound）
+- マイページのカード: `src/features/core/user/mypageMenu/items/notifications.ts`（order 25「通知の設定」）。門が閉の間は棚の Link が描かない
 
 ## ワンクリックの配信停止の受け口 /api/messaging/unsubscribe（常に開・門なし）
 
