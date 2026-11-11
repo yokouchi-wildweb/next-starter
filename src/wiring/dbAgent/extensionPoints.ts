@@ -15,7 +15,7 @@ export const extensionPoints = {
   promptFragments: {
     dir: "promptFragments",
     export: "fragment",
-    type: { from: "@/lib/dbAgent/prompt", name: "DbAgentPromptFragment" },
+    type: { from: "@/lib/dbAgent", name: "DbAgentPromptFragment" },
     side: "server",
     target: "wiring",
   },
@@ -23,7 +23,7 @@ export const extensionPoints = {
   suffixProviders: {
     dir: "suffixProviders",
     export: "provider",
-    type: { from: "@/lib/dbAgent/prompt", name: "DbAgentSystemSuffixProvider" },
+    type: { from: "@/lib/dbAgent", name: "DbAgentSystemSuffixProvider" },
     side: "server",
     target: "wiring",
   },

@@ -8,7 +8,7 @@
 //  - 複文実行の禁止
 // を目的とし、完璧な SQL パースは目指さない (拒否しすぎない範囲で保守的に)。
 
-import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
+import { dbAgentConfig } from "../config";
 
 export type ValidateSelectResult =
   | { ok: true; query: string }
@@ -149,10 +149,10 @@ export function validateSelect(rawQuery: string): ValidateSelectResult {
   if (!query) {
     return { ok: false, reason: "SQL が空です。" };
   }
-  if (query.length > DB_AGENT_CONFIG.maxQueryChars) {
+  if (query.length > dbAgentConfig.maxQueryChars) {
     return {
       ok: false,
-      reason: `SQL が長すぎます (最大 ${DB_AGENT_CONFIG.maxQueryChars} 文字)。`,
+      reason: `SQL が長すぎます (最大 ${dbAgentConfig.maxQueryChars} 文字)。`,
     };
   }
 

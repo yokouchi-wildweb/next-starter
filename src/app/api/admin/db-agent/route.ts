@@ -16,7 +16,7 @@ import { z } from "zod";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { createAgentSSEResponse } from "@/lib/ai/server";
-import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/service";
+import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/server";
 import { extraTools, promptFragments, suffixProviders } from "@/wiring/dbAgent";
 
 // Vercel 等のサーバーレス環境ではストリーミング中も関数実行時間にカウントされる。

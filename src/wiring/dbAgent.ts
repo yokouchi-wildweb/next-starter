@@ -4,7 +4,7 @@
 // suffixProviders: src/wiring/dbAgent/suffixProviders/<名前>.ts(x) か <名前>/index.ts(x) の export const provider(並びはファイル名の順)
 
 import type { AgentToolDefinition } from "@/lib/ai";
-import type { DbAgentPromptFragment, DbAgentSystemSuffixProvider } from "@/lib/dbAgent/prompt";
+import type { DbAgentPromptFragment, DbAgentSystemSuffixProvider } from "@/lib/dbAgent";
 
 export const extraTools: AgentToolDefinition[] = [];
 

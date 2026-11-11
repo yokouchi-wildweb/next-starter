@@ -1,6 +1,6 @@
 // src/features/core/userLineProfile/services/server/dispatchWebhookEvents.ts
 
-import type { LineWebhookEvent } from "@/lib/line/types";
+import type { LineWebhookEvent } from "@/lib/line";
 
 import type { LineWebhookEventHandler } from "../../types/webhook";
 

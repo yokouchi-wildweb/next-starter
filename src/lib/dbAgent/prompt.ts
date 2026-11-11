@@ -8,7 +8,7 @@
 // (安定プレフィックスのキャッシュを壊さないため。サフィックスの変更時
 // = 管理者が設定を編集した時のみキャッシュが無効化される)。
 
-import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
+import { dbAgentConfig } from "./config";
 
 /**
  * 実行時システムプロンプトサフィックスのプロバイダ契約。
@@ -75,8 +75,8 @@ export function buildDbAgentSystemPrompt(suffix?: string, fragments: readonly Db
   const trimmedSuffix = suffix?.trim();
   if (trimmedSuffix) {
     const capped =
-      trimmedSuffix.length > DB_AGENT_CONFIG.maxSystemSuffixChars
-        ? trimmedSuffix.slice(0, DB_AGENT_CONFIG.maxSystemSuffixChars)
+      trimmedSuffix.length > dbAgentConfig.maxSystemSuffixChars
+        ? trimmedSuffix.slice(0, dbAgentConfig.maxSystemSuffixChars)
         : trimmedSuffix;
     parts.push("## 運営からの追加指示", capped);
   }

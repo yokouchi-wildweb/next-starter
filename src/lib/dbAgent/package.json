@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.ts",
+    "./server": "./server.ts"
+  },
+  "libs": ["ai", "audit", "defineConfig", "errors"]
+}
