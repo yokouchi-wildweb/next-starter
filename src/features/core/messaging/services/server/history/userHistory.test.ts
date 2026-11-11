@@ -1,5 +1,5 @@
 // 利用者ごとの履歴の検査(DB は偽物)
-// - DTO: 決めた項目だけ(本文・宛先・provider の値・誤りの文は出ない)、前の送る口の回の件名・題
+// - DTO: 決めた項目だけ(本文・宛先・provider の値・誤りの文は出ない)、前の送る口の回(message_key null)
 // - 新しい順の keyset: 印で続きを読み、最後は nextCursor null
 // - 不正な利用者 id・cursor・limit は 400
 // 実行: pnpm test src/features/core/messaging/services/server/history
@@ -13,7 +13,7 @@ import { listUserMessageHistory, type UserHistoryRow, type UserHistoryStore } fr
 
 const USER = "00000000-0000-4000-8000-000000000001";
 
-function row(n: number, overrides: { legacy?: boolean } = {}): UserHistoryRow {
+function row(n: number, overrides: { oldSend?: boolean } = {}): UserHistoryRow {
   return {
     delivery: {
       id: `00000000-0000-4000-8000-0000000001${String(n).padStart(2, "0")}`,
@@ -24,12 +24,10 @@ function row(n: number, overrides: { legacy?: boolean } = {}): UserHistoryRow {
     },
     dispatch: {
       id: `00000000-0000-4000-8000-0000000002${String(n).padStart(2, "0")}`,
-      message_key: overrides.legacy ? null : "user.welcome",
-      kind: overrides.legacy ? null : "transactional",
+      message_key: overrides.oldSend ? null : "user.welcome",
+      kind: overrides.oldSend ? null : "transactional",
       source: "test",
-      headings: overrides.legacy ? null : { email: `件名${n}` },
-      email_subject: overrides.legacy ? "古い件名" : null,
-      notification_title: overrides.legacy ? "古い題" : null,
+      headings: overrides.oldSend ? { email: "写した件名" } : { email: `件名${n}` },
     },
   };
 }
@@ -74,10 +72,10 @@ test("DTO: 決めた項目だけを返す(本文・宛先・provider の値は�
   assert.equal(store.calls[0].limit, 51);
 });
 
-test("DTO: 前の送る口の回は email_subject / notification_title を件名・題にする", async () => {
-  const page = await listUserMessageHistory({ store: fakeStore([row(1, { legacy: true })]) }, USER);
+test("DTO: 前の送る口の回は message_key null、件名・題は写しが移した headings", async () => {
+  const page = await listUserMessageHistory({ store: fakeStore([row(1, { oldSend: true })]) }, USER);
   assert.equal(page.items[0].messageKey, null);
-  assert.deepEqual(page.items[0].headings, { email: "古い件名", inApp: "古い題" });
+  assert.deepEqual(page.items[0].headings, { email: "写した件名" });
 });
 
 test("新しい順の keyset: 印で続きを読み、最後は nextCursor null", async () => {

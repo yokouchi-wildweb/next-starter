@@ -134,14 +134,7 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     status: "completed",
     idempotency_key: null,
     channels: ["email"],
-    email_subject: null,
-    email_body: null,
-    notification_title: null,
-    notification_body: null,
     recipient_count: 2,
-    email_success_count: 0,
-    email_failed_count: 0,
-    notification_created: null,
     source: "messaging.adminBulk",
     actor_id: "admin1",
     actor_type: "admin",
@@ -201,15 +194,16 @@ const deliveryRow = (over: Partial<MessageDelivery> = {}): MessageDelivery =>
     ...over,
   }) as MessageDelivery;
 
-test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回は前の列から", () => {
+test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回は段に依らず rendered", () => {
   assert.equal(toDispatchDetail(dispatchRow()).body, null);
   assert.equal(toDispatchDetail(dispatchRow()).vars, null);
   assert.deepEqual(toDispatchDetail(dispatchRow({ record: "vars" })).body, { email: { subject: "件名" } });
-  const legacy = toDispatchDetail(
-    dispatchRow({ message_key: null, headings: null, record: null, email_subject: "旧件名", email_body: "旧本文", notification_title: "旧題" }),
+  const oldSend = toDispatchDetail(
+    dispatchRow({ message_key: null, record: null, headings: { email: "旧件名" }, rendered: { email: { subject: "旧件名", paragraphs: ["旧本文"] } } }),
   );
-  assert.deepEqual(legacy.headings, { email: "旧件名", inApp: "旧題" });
-  assert.deepEqual(legacy.body, { email: { subject: "旧件名", body: "旧本文" }, inApp: { title: "旧題", body: null } });
+  assert.deepEqual(oldSend.headings, { email: "旧件名" });
+  assert.deepEqual(oldSend.body, { email: { subject: "旧件名", paragraphs: ["旧本文"] } });
+  assert.deepEqual(toDispatchSummary(dispatchRow({ headings: null })).headings, {});
   assert.equal(toDispatchSummary(dispatchRow()).createdAt, "2026-11-01T00:00:00.000Z");
 
   const meta = toDeliveryRow(deliveryRow(), "meta");

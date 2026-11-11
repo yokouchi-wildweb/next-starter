@@ -28,8 +28,6 @@ export const drizzleUserHistoryStore: UserHistoryStore = {
           kind: m.kind,
           source: m.source,
           headings: m.headings,
-          email_subject: m.email_subject,
-          notification_title: m.notification_title,
         },
       })
       .from(d)

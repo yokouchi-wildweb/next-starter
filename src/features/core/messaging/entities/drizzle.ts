@@ -49,30 +49,8 @@ export const MessageDispatchTable = pgTable(
     /** 使用したチャネル: 'email' | 'inApp'. 1 件以上 */
     channels: text("channels").array().notNull(),
 
-    /** メール件名（channels に email が含まれる場合のみ） */
-    email_subject: text("email_subject"),
-    /** メール本文（channels に email が含まれる場合のみ） */
-    email_body: text("email_body"),
-
-    /** 通知タイトル（channels に inApp が含まれる場合のみ） */
-    notification_title: text("notification_title"),
-    /** 通知本文（channels に inApp が含まれる場合のみ） */
-    notification_body: text("notification_body"),
-
     /** 重複排除後の対象ユーザー数 */
     recipient_count: integer("recipient_count").notNull(),
-
-    /** メール送信成功数 */
-    email_success_count: integer("email_success_count").notNull().default(0),
-    /** メール送信失敗数 */
-    email_failed_count: integer("email_failed_count").notNull().default(0),
-    /**
-     * 通知レコードが作成されたか。
-     * - null: 通知チャネルを使っていない（試行していない）
-     * - true: 通知レコードが作成された（全対象ユーザーに配信される）
-     * - false: 試行したが失敗
-     */
-    notification_created: boolean("notification_created"),
 
     /** 送信元 source 識別子（'userHub.detail.send' / 'shippingRequest.bulk' 等） */
     source: text("source").notNull(),
