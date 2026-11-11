@@ -12,7 +12,6 @@ import {
 import {
   classifyVisit,
   getAttributionCookieMaxAgeSeconds,
-  isAcquisitionRecordingEnabled,
 } from '@/features/core/userAcquisition/lib/classifyVisit';
 import type { ProxyResponseDecorator } from './types';
 
@@ -33,9 +32,8 @@ export const attributionDecorator: ProxyResponseDecorator = (
   request: NextRequest,
   response: NextResponse,
 ) => {
-  // 閉じる値(門番の規則 userAcquisition)と記録の opt-in は別。どちらかが閉なら何もしない(L1.8)
+  // 記録するかは門番の規則 userAcquisition の入切だけ(設定 L1.56)。閉なら何もしない
   if (!gate.enabled("userAcquisition")) return;
-  if (!isAcquisitionRecordingEnabled()) return;
   if (request.method !== 'GET') return;
   if (!isPageNavigation(request)) return;
 

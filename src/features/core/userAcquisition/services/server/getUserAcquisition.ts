@@ -29,7 +29,7 @@ export async function getUserAcquisition(userId: string): Promise<UserAcquisitio
 
 /**
  * ユーザーの流入タッチ明細を時系列昇順で取得する。
- * タッチ数は cookie 由来で最大でも ACQUISITION_CONFIG.maxTouches 件のため全件取得で問題ない。
+ * タッチ数は cookie 由来で最大でも userAcquisitionConfig.maxTouches 件のため全件取得で問題ない。
  */
 export async function getUserAcquisitionTouches(
   userId: string,
