@@ -20,9 +20,25 @@ export const ALLOWED_KEYS = Object.freeze(["exports", "libs", "peers", "sideEffe
 /** exports の値に使える拡張子 */
 export const ENTRY_EXTENSIONS = Object.freeze(["ts", "tsx", "mts", "mjs", "js"]);
 
+/**
+ * @typedef {{ lib: string, code: string, message: string }} LibPackageProblem 形の問題 1 つ
+ * @typedef {{ key: string, target: string, keyPath: string, targetPath: string }} LibPackageExport exports の 1 行(keyPath = 拡張子と /index を落とした鍵、targetPath = ./ を落とした値)
+ * @typedef {{
+ *   lib: string,
+ *   dir: string,
+ *   file: string,
+ *   exports: LibPackageExport[],
+ *   libs: string[],
+ *   peers: string[],
+ *   sideEffects: false | string[] | undefined,
+ *   problems: LibPackageProblem[],
+ * }} LibPackage 読んだ package.json
+ */
+
 const EXT_RE = new RegExp(`\\.(${ENTRY_EXTENSIONS.join("|")})$`);
 const cache = new Map();
 
+/** @param {string} p */
 const toPosix = (p) => p.split(path.sep).join("/");
 
 /**
@@ -38,7 +54,11 @@ export function listLibsFrom(listDir) {
     .sort();
 }
 
-/** src/lib 直下の lib の名前の一覧(フォルダだけ、名前順)。今の木を node:fs で読む */
+/**
+ * src/lib 直下の lib の名前の一覧(フォルダだけ、名前順)。今の木を node:fs で読む
+ * @param {string} root
+ * @returns {string[]}
+ */
 export function listLibs(root) {
   return listLibsFrom((rel) => {
     const dir = path.join(root, rel);
@@ -47,17 +67,30 @@ export function listLibs(root) {
   });
 }
 
-/** その lib が package.json を持つか */
+/**
+ * その lib が package.json を持つか
+ * @param {string} root
+ * @param {string} lib
+ * @returns {boolean}
+ */
 export function hasLibPackage(root, lib) {
   return existsSync(path.join(root, LIB_DIR, lib, "package.json"));
 }
 
-/** package.json を持つ lib の名前の一覧 */
+/**
+ * package.json を持つ lib の名前の一覧
+ * @param {string} root
+ * @returns {string[]}
+ */
 export function listDeclaredLibs(root) {
   return listLibs(root).filter((lib) => hasLibPackage(root, lib));
 }
 
-/** repo 相対のパスがどの lib の中か(src/lib/<name>/… → name)。lib の外なら null */
+/**
+ * repo 相対のパスがどの lib の中か(src/lib/<name>/… → name)。lib の外なら null
+ * @param {string | null | undefined} relPath
+ * @returns {string | null}
+ */
 export function libOfPath(relPath) {
   if (!relPath) return null;
   const parts = toPosix(relPath).split("/");
@@ -67,7 +100,11 @@ export function libOfPath(relPath) {
   return parts[2];
 }
 
-/** 拡張子と末尾の /index を落とした形(入口の照合用。"" = lib の根) */
+/**
+ * 拡張子と末尾の /index を落とした形(入口の照合用。"" = lib の根)
+ * @param {string} relInsideLib
+ * @returns {string}
+ */
 function entryPathOf(relInsideLib) {
   let p = relInsideLib.replace(/^\.\/?/, "").replace(EXT_RE, "");
   if (p === "index") return "";
@@ -75,11 +112,24 @@ function entryPathOf(relInsideLib) {
   return p;
 }
 
+/**
+ * @param {string} lib
+ * @param {string} code
+ * @param {string} message
+ * @returns {LibPackageProblem}
+ */
 function problem(lib, code, message) {
   return { lib, code, message };
 }
 
-/** exports の 1 行を確かめる。問題の一覧を返す */
+/**
+ * exports の 1 行を確かめる。問題の一覧を返す
+ * @param {string} root
+ * @param {string} lib
+ * @param {string} key
+ * @param {unknown} target
+ * @returns {LibPackageProblem[]}
+ */
 function checkExport(root, lib, key, target) {
   const out = [];
   if (key.includes("*")) out.push(problem(lib, "pattern", `exports の鍵 "${key}" にパターン * は使えません(入口を 1 つずつ書きます)`));
@@ -111,9 +161,15 @@ function checkExport(root, lib, key, target) {
   return out;
 }
 
+/**
+ * @param {string} root
+ * @param {string} lib
+ * @returns {LibPackage | null}
+ */
 function readUncached(root, lib) {
   const file = path.join(root, LIB_DIR, lib, "package.json");
   if (!existsSync(file)) return null;
+  /** @type {LibPackage} */
   const pkg = {
     lib,
     dir: `${LIB_DIR}/${lib}`,
@@ -128,7 +184,8 @@ function readUncached(root, lib) {
   try {
     json = JSON.parse(readFileSync(file, "utf8"));
   } catch (error) {
-    pkg.problems.push(problem(lib, "json", `package.json を JSON として読めません: ${error.message}`));
+    const reason = error instanceof Error ? error.message : String(error);
+    pkg.problems.push(problem(lib, "json", `package.json を JSON として読めません: ${reason}`));
     return pkg;
   }
   if (json === null || typeof json !== "object" || Array.isArray(json)) {
@@ -153,6 +210,7 @@ function readUncached(root, lib) {
       const found = checkExport(root, lib, key, target);
       pkg.problems.push(...found);
       if (found.length === 0) {
+        if (typeof target !== "string") continue; // 問題 0 = 文字列(checkExport が確かめた)
         pkg.exports.push({ key, target, keyPath: entryPathOf(key === "." ? "" : key), targetPath: target.replace(/^\.\//, "") });
       }
     }
@@ -160,7 +218,7 @@ function readUncached(root, lib) {
 
   // libs
   if (json.libs !== undefined) {
-    if (!Array.isArray(json.libs) || json.libs.some((item) => typeof item !== "string")) {
+    if (!Array.isArray(json.libs) || json.libs.some((/** @type {unknown} */ item) => typeof item !== "string")) {
       pkg.problems.push(problem(lib, "libsShape", '"libs" は lib の名前の配列です'));
     } else {
       const known = new Set(listLibs(root));
@@ -177,7 +235,7 @@ function readUncached(root, lib) {
 
   // peers
   if (json.peers !== undefined) {
-    if (!Array.isArray(json.peers) || json.peers.some((item) => typeof item !== "string")) {
+    if (!Array.isArray(json.peers) || json.peers.some((/** @type {unknown} */ item) => typeof item !== "string")) {
       pkg.problems.push(problem(lib, "peersShape", '"peers" は棚の名前の配列です'));
     } else {
       const seen = new Set();
@@ -204,6 +262,9 @@ function readUncached(root, lib) {
 /**
  * lib の package.json を読む。無ければ null。形の問題は problems に入れる(問題のある exports の行は exports に入れない)
  * 結果は root + lib ごとに覚える(1 プロセスの間。clearLibPackageCache で消す)
+ * @param {string} root
+ * @param {string} lib
+ * @returns {LibPackage | null}
  */
 export function readLibPackage(root, lib) {
   const key = `${root}\0${lib}`;
@@ -216,12 +277,21 @@ export function clearLibPackageCache() {
   cache.clear();
 }
 
-/** その lib の package.json の形の問題の一覧(package.json が無ければ空) */
+/**
+ * その lib の package.json の形の問題の一覧(package.json が無ければ空)
+ * @param {string} root
+ * @param {string} lib
+ * @returns {LibPackageProblem[]}
+ */
 export function checkLibPackage(root, lib) {
   return readLibPackage(root, lib)?.problems ?? [];
 }
 
-/** package.json を持つ lib ごとの報告 */
+/**
+ * package.json を持つ lib ごとの報告
+ * @param {string} root
+ * @returns {{ libs: { lib: string, problems: LibPackageProblem[] }[], declared: number, problemCount: number }}
+ */
 export function checkAllLibPackages(root) {
   const libs = listDeclaredLibs(root).map((lib) => ({ lib, problems: checkLibPackage(root, lib) }));
   return { libs, declared: libs.length, problemCount: libs.reduce((sum, item) => sum + item.problems.length, 0) };
@@ -230,6 +300,9 @@ export function checkAllLibPackages(root) {
 /**
  * repo 相対の解いたパス(resolve-import.mjs の resolveImport の結果。拡張子・index は有っても無くても可)が、
  * その lib の入口(exports の 1 行)に当たるか。当たればその行、当たらなければ null
+ * @param {LibPackage | null | undefined} pkg
+ * @param {string | null | undefined} resolvedRelPath
+ * @returns {LibPackageExport | null}
  */
 export function findEntry(pkg, resolvedRelPath) {
   if (!pkg || !resolvedRelPath) return null;

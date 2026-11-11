@@ -135,6 +135,43 @@ test("d3: 閉包: a → b → c なら a の tsconfig.json にも c の行が要
   });
 });
 
+test("JS(.mjs)を持つ lib: tsconfig に allowJs・allowImportingTsExtensions・checkJs と JS の include。.mjs も型検査し、.ts だけの lib の形は変わらない", () => {
+  const files = {
+    ...B,
+    "src/lib/j/package.json": { exports: { ".": "./index.mjs" } },
+    "src/lib/j/index.mjs": "/** @param {string} s */\nexport const up = (s) => s.toUpperCase();\n",
+    // node で走る .mjs のテストは .ts を拡張子つきで読む
+    "src/lib/j/helper.ts": "export const h: number = 1;\n",
+    "src/lib/j/j.test.mjs": `import { h } from "./helper.ts";\nimport { up } from "./index.mjs";\nexport const v = [up("a"), h];\n`,
+  };
+  withRepo(files, { tsconfig: ["b", "j"] }, (root) => {
+    assert.deepEqual(expectedTsconfig(root, "b"), {
+      extends: "../../../tsconfig.json",
+      compilerOptions: { paths: { "@lib-config/b": ["../../config/lib/b.config.ts"] } },
+      include: ["**/*.ts", "**/*.tsx"],
+    });
+    const j = expectedTsconfig(root, "j");
+    assert.deepEqual(j.compilerOptions, { allowJs: true, allowImportingTsExtensions: true, checkJs: true, paths: { "@lib-config/j": ["../../config/lib/j.config.ts"] } });
+    assert.deepEqual(j.include, ["**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.js"]);
+    assert.deepEqual(checkLibs(root).problems, []);
+  });
+  // checkJs が効く: .mjs の型の誤り(暗黙の any)で落ちる
+  withRepo({ ...files, "src/lib/j/index.mjs": "export const up = (s) => s.toUpperCase();\n" }, { tsconfig: ["b", "j"] }, (root) => {
+    assert.match(messages(checkLibs(root)), /src\/lib\/j\/index\.mjs:1:\d+ TS7006/);
+  });
+  // JS の設定が無い tsconfig(.ts だけの形のまま)は直す行を名指しする
+  withRepo(files, { tsconfig: ["b"] }, (root) => {
+    writeFileSync(
+      path.join(root, "src/lib/j/tsconfig.json"),
+      JSON.stringify({ extends: "../../../tsconfig.json", compilerOptions: { paths: { "@lib-config/j": ["../../config/lib/j.config.ts"] } }, include: ["**/*.ts", "**/*.tsx"] }),
+    );
+    const text = messages(checkLibs(root));
+    assert.match(text, /"include" は \["\*\*\/\*\.ts","\*\*\/\*\.tsx","\*\*\/\*\.mjs","\*\*\/\*\.js"\] にします/);
+    assert.match(text, /compilerOptions の "checkJs" は true にします/);
+    assert.match(text, /compilerOptions の "allowImportingTsExtensions" は true にします/);
+  });
+});
+
 test("d3: @lib-config/<自分> は設定のファイルがあれば読め、無ければ読んだ時だけ落ちる", () => {
   const code = `import { config } from "@lib-config/a";\nexport const a = config;\n`;
   withRepo({ ...B, ...libA(code), "src/config/lib/a.config.ts": "export const config = 1;\n" }, { tsconfig: ["a", "b"] }, (root) => {

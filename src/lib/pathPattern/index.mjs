@@ -5,9 +5,14 @@
 // - "/demo"   = セグメント境界の前方一致("/demo" と "/demo/**"。"/demo-login" は含まない)。末尾スラッシュは同義
 // - "=/mypage" = そのパスちょうど。fork が同じ URL の下に足したページ("/mypage/<fork のページ>")を巻き込まない
 
-/** パターンが完全一致の書き方か */
+/**
+ * パターンが完全一致の書き方か
+ * @param {string} pattern
+ * @returns {boolean}
+ */
 export const isExactPattern = (pattern) => pattern.startsWith("=");
 
+/** @param {string} pattern */
 const normalize = (pattern) => {
   const body = isExactPattern(pattern) ? pattern.slice(1) : pattern;
   return body.length > 1 && body.endsWith("/") ? body.slice(0, -1) : body;
@@ -16,12 +21,19 @@ const normalize = (pattern) => {
 /**
  * パターンの細かさ(大きいほど細かい)。同じ住所に当たる 2 つのパターンでは、長い住所の方が細かく、同じ長さなら完全一致(=)が細かい。
  * 門番は当たった閉じた住所のうち一番細かい物を答えにする(src/featureGate/evaluate.ts)
+ * @param {string} pattern
+ * @returns {number}
  */
 export function patternSpecificity(pattern) {
   return normalize(pattern).length * 2 + (isExactPattern(pattern) ? 1 : 0);
 }
 
-/** リクエストのパスがパターンに一致するか */
+/**
+ * リクエストのパスがパターンに一致するか
+ * @param {string} pathname
+ * @param {string} pattern
+ * @returns {boolean}
+ */
 export function matchesPath(pathname, pattern) {
   const path = normalize(pattern);
   if (isExactPattern(pattern)) return pathname === path;
@@ -31,6 +43,9 @@ export function matchesPath(pathname, pattern) {
 /**
  * パターンがルート(src/app の URL のセグメント。動的セグメント "[x]" を含みうる)を覆うか。
  * 動的セグメントはどの値にも一致しうるとみなす。完全一致のパターンは長さも同じときだけ覆う。
+ * @param {string} pattern
+ * @param {readonly string[]} routeSegments
+ * @returns {boolean}
  */
 export function patternCoversRoute(pattern, routeSegments) {
   const patternSegments = normalize(pattern).split("/").filter(Boolean);
