@@ -4,6 +4,7 @@
 
 import { adminBulkSend, adminContinueSending, findDispatch, listDeliveries, listDispatches } from "./admin";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
+import { listUserMessageHistory } from "./history";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
@@ -31,6 +32,8 @@ export const messagingService = {
   listDispatches,
   findDispatch,
   listDeliveries,
+  /** 利用者ごとの履歴(D37。配達を回と結び新しい順、本文・宛先なし)。server だけ・route なし: 読める人は呼び手の route が決める(管理者を確かめない) */
+  listUserMessageHistory,
   /** 端末の帳簿: 本人の宛先の登録・削除・一覧(/api/me/messaging/endpoints が呼ぶ) */
   registerEndpoint,
   removeEndpoint,

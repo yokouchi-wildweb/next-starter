@@ -80,7 +80,10 @@ function isLegacy(row: MessageDispatch): boolean {
   return row.message_key === null;
 }
 
-function headingsOf(row: MessageDispatch): MessageChannelTextMap {
+/** 経路ごとの件名・題(前の送る口の回は email_subject / notification_title から) */
+export function headingsOf(
+  row: Pick<MessageDispatch, "headings" | "email_subject" | "notification_title">,
+): MessageChannelTextMap {
   if (row.headings) return row.headings;
   const legacy: MessageChannelTextMap = {};
   if (row.email_subject) legacy.email = row.email_subject;
