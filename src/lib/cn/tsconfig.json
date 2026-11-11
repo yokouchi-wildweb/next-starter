@@ -3,12 +3,7 @@
   "compilerOptions": {
     "allowJs": true,
     "allowImportingTsExtensions": true,
-    "checkJs": true,
-    "paths": {
-      "@lib-config/cn": [
-        "../../config/lib/cn.config.ts"
-      ]
-    }
+    "checkJs": true
   },
   "include": [
     "**/*.ts",

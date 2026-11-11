@@ -3,12 +3,7 @@
   "compilerOptions": {
     "allowJs": true,
     "allowImportingTsExtensions": true,
-    "checkJs": true,
-    "paths": {
-      "@lib-config/appEnv": [
-        "../../config/lib/appEnv.config.ts"
-      ]
-    }
+    "checkJs": true
   },
   "include": [
     "**/*.ts",

@@ -1,9 +1,4 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@lib-config/task": ["../../config/lib/task.config.ts"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

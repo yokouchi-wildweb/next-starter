@@ -13,9 +13,6 @@
       ],
       "@/lib/errors/*": [
         "../errors/*"
-      ],
-      "@lib-config/browserStorage": [
-        "../../config/lib/browserStorage.config.ts"
       ]
     }
   },

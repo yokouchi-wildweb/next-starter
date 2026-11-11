@@ -28,9 +28,6 @@
       ],
       "@/lib/unsavedGuard/*": [
         "../unsavedGuard/*"
-      ],
-      "@lib-config/transitionGuard": [
-        "../../config/lib/transitionGuard.config.ts"
       ]
     }
   },

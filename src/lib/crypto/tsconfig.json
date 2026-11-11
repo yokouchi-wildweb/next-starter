@@ -1,9 +1,4 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@lib-config/crypto": ["../../config/lib/crypto.config.ts"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

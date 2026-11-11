@@ -2,7 +2,7 @@
 //
 // 宣言した lib(package.json を持つ lib)の単体用 tsconfig.json を確かめ、その tsconfig で型検査する。
 // - tsconfig.json は lib の中に手で書く(道具は lib の中に書かない)。形 = expectedTsconfig(下)、説明 = README.md
-// - paths は package.json の libs・peers を辿った閉包 + @lib-config/<自分>。ルートの "@/*" は引き継がない
+// - paths は package.json の libs・peers を辿った閉包 + @lib-config/<自分>(設定 config.ts を持つ lib だけ。無い lib に無いファイルへの行を書かない)。ルートの "@/*" は引き継がない
 //   (extends は paths を丸ごと置き換える)ので、宣言していない lib・棚を読むと解決できずに落ちる
 // - 相対パスで lib の外へ出る import は paths では止まらないので、自分のファイルの import を解いて別に見る
 // - JS(.mjs / .js)のファイルを持つ lib は allowJs + checkJs で JS も型検査する(include に **/*.mjs・**/*.js を足す)。
@@ -29,6 +29,12 @@ export const STANDALONE_EXTENDS = "../../../tsconfig.json";
 
 const toPosix = (p) => p.split(path.sep).join("/");
 const configPathOf = (lib) => LIB_CONFIG_PATH.replace("<self>", lib);
+
+/** lib が設定(config.ts / config.tsx)を持つか。持つ lib だけが @lib-config/<自分> を読む(src/lib/README.md「設定の届け方」) */
+export function hasLibConfig(root, lib) {
+  const dir = path.join(root, LIB_DIR, lib);
+  return ["config.ts", "config.tsx"].some((f) => existsSync(path.join(dir, f)));
+}
 
 /**
  * 宣言の閉包: 自分の libs を辿り、辿った先の package.json の libs・peers も足す(package.json の無い lib は先へ辿らない)
@@ -66,7 +72,7 @@ export function expectedPaths(root, lib) {
     const peerDir = PEER_DIRS[peer];
     paths[`@/${peer}/*`] = [`${toPosix(path.relative(`${LIB_DIR}/${lib}`, peerDir))}/*`];
   }
-  paths[`@lib-config/${lib}`] = [toPosix(path.relative(`${LIB_DIR}/${lib}`, configPathOf(lib)))];
+  if (hasLibConfig(root, lib)) paths[`@lib-config/${lib}`] = [toPosix(path.relative(`${LIB_DIR}/${lib}`, configPathOf(lib)))];
   return Object.fromEntries(Object.entries(paths).sort(([a], [b]) => a.localeCompare(b)));
 }
 
@@ -89,11 +95,13 @@ export function hasJsFiles(root, lib) {
 /** その lib が持つべき tsconfig.json の中身(JS のファイルを持つ lib は allowJs・checkJs と JS の include を足す) */
 export function expectedTsconfig(root, lib) {
   const paths = expectedPaths(root, lib);
-  if (!hasJsFiles(root, lib)) return { extends: STANDALONE_EXTENDS, compilerOptions: { paths }, include: [...STANDALONE_INCLUDE] };
+  const js = hasJsFiles(root, lib);
+  // 行の無い paths・空の compilerOptions は書かない(依存も設定も無い lib)
+  const compilerOptions = { ...(js ? STANDALONE_JS_OPTIONS : {}), ...(Object.keys(paths).length > 0 ? { paths } : {}) };
   return {
     extends: STANDALONE_EXTENDS,
-    compilerOptions: { ...STANDALONE_JS_OPTIONS, paths },
-    include: [...STANDALONE_INCLUDE, ...STANDALONE_JS_INCLUDE],
+    ...(Object.keys(compilerOptions).length > 0 ? { compilerOptions } : {}),
+    include: js ? [...STANDALONE_INCLUDE, ...STANDALONE_JS_INCLUDE] : [...STANDALONE_INCLUDE],
   };
 }
 
@@ -115,27 +123,31 @@ export function compareTsconfig(root, lib) {
   const actual = read.config ?? {};
   const out = [];
   for (const key of Object.keys(actual)) {
-    if (!Object.hasOwn(expected, key)) out.push(problem("tsconfigKey", `"${key}" は書きません(書くのは extends / compilerOptions.paths / include だけ)`));
+    // compilerOptions は中身を下で見る(期待に無い = 中の行を全部消す)
+    if (key !== "compilerOptions" && !Object.hasOwn(expected, key)) out.push(problem("tsconfigKey", `"${key}" は書きません(書くのは extends / compilerOptions.paths / include だけ)`));
   }
   if (actual.extends !== expected.extends) out.push(problem("tsconfigExtends", `"extends" は ${json(expected.extends)} にします`));
   if (json(actual.include) !== json(expected.include)) out.push(problem("tsconfigInclude", `"include" は ${json(expected.include)} にします`));
   const options = actual.compilerOptions ?? {};
-  const expectedOptions = expected.compilerOptions;
+  const expectedOptions = expected.compilerOptions ?? {};
   for (const key of Object.keys(options)) {
-    if (!Object.hasOwn(expectedOptions, key)) out.push(problem("tsconfigOption", `compilerOptions の "${key}" は書きません(ルートの tsconfig.json から引き継ぎます)`));
+    // paths の行は下の pathsExtra が名指しする
+    if (key !== "paths" && !Object.hasOwn(expectedOptions, key)) out.push(problem("tsconfigOption", `compilerOptions の "${key}" は書きません(ルートの tsconfig.json から引き継ぎます)`));
   }
   for (const [key, value] of Object.entries(expectedOptions)) {
     if (key === "paths") continue;
     if (options[key] !== value) out.push(problem("tsconfigOption", `compilerOptions の "${key}" は ${json(value)} にします(lib に JS のファイルがあるので JS も型検査します)`));
   }
   const actualPaths = options.paths ?? {};
-  for (const [key, value] of Object.entries(expected.compilerOptions.paths)) {
+  const expectedPathMap = expectedOptions.paths ?? {};
+  for (const [key, value] of Object.entries(expectedPathMap)) {
     if (!Object.hasOwn(actualPaths, key)) out.push(problem("pathsMissing", `paths に ${json(key)}: ${json(value)} を足します`));
     else if (json(actualPaths[key]) !== json(value)) out.push(problem("pathsValue", `paths の ${json(key)} は ${json(value)} にします`));
   }
   for (const key of Object.keys(actualPaths)) {
-    if (!Object.hasOwn(expected.compilerOptions.paths, key)) {
-      out.push(problem("pathsExtra", `paths の ${json(key)} を消します(package.json の libs・peers に無い)`));
+    if (!Object.hasOwn(expectedPathMap, key)) {
+      const why = key.startsWith("@lib-config/") ? "lib に設定 config.ts が無い" : "package.json の libs・peers に無い";
+      out.push(problem("pathsExtra", `paths の ${json(key)} を消します(${why})`));
     }
   }
   return out;

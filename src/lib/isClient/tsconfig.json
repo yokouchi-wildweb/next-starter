@@ -1,9 +1,4 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@lib-config/isClient": ["../../config/lib/isClient.config.ts"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

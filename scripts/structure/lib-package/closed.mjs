@@ -15,7 +15,7 @@ import ts from "typescript";
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 import { LIB_DIR, findEntry, libOfPath, listLibs, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
 import { checkSideEffects } from "./sideEffects.mjs";
-import { LIB_CONFIG_PATH, compareTsconfig, typecheckLib } from "./standalone.mjs";
+import { LIB_CONFIG_PATH, compareTsconfig, hasLibConfig, typecheckLib } from "./standalone.mjs";
 
 /** 設定の合成器そのものの lib(契約 api.defineconfig が名指す lib)。自前の合成の判定は掛けない */
 export const COMPOSER_LIB = "defineConfig";
@@ -122,8 +122,7 @@ export function mergeHelpersOf(root, lib) {
 
 /** 設定: config.ts が無ければ "none"、あって上書きがあれば "ok"、上書きが無ければ "overrideMissing" */
 export function configStateOf(root, lib) {
-  const dir = path.join(root, LIB_DIR, lib);
-  if (!["config.ts", "config.tsx"].some((f) => existsSync(path.join(dir, f)))) return "none";
+  if (!hasLibConfig(root, lib)) return "none";
   return existsSync(path.join(root, LIB_CONFIG_PATH.replace("<self>", lib))) ? "ok" : "overrideMissing";
 }
 

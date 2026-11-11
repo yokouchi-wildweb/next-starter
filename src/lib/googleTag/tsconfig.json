@@ -1,9 +1,4 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@lib-config/googleTag": ["../../config/lib/googleTag.config.ts"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

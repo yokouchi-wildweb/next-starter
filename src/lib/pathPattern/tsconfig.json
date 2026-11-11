@@ -3,10 +3,7 @@
   "compilerOptions": {
     "allowJs": true,
     "allowImportingTsExtensions": true,
-    "checkJs": true,
-    "paths": {
-      "@lib-config/pathPattern": ["../../config/lib/pathPattern.config.ts"]
-    }
+    "checkJs": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.js"]
 }
