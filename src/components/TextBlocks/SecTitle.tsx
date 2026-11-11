@@ -1,11 +1,13 @@
 import { type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes, ReactNode } from "react";
 
+import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
 import { cn } from "@/lib/cn";
 
 import { createTextVariants } from "./textVariants";
 
-const secTitleVariants = createTextVariants("");
+// 見た目の上書き口: src/config/ui/variants.config.ts の secTitle({ base, tone, size, weight, align })
+const secTitleVariants = createTextVariants("", VARIANT_OVERRIDES.secTitle);
 
 type HeadingElement = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 

@@ -3,6 +3,12 @@
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
+import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrideClasses, type CheckControlSize, type SwitchInputColor } from "@/lib/variantOverrides";
+
+// 見た目の上書き口: src/config/ui/variants.config.ts の switchInput.track({ base, size, activeColor, inactiveColor })と
+// switchInput.indicator({ base, size })。activeColor はオンの間だけ、inactiveColor はオフの間だけ足す
+// (下の compoundVariants の既定の色と同じ効き方)。既定のクラスはここ
 
 const trackVariants = cva(
   "relative inline-flex shrink-0 items-center rounded-full px-0.5 transition-colors duration-200 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
@@ -20,7 +26,7 @@ const trackVariants = cva(
         sm: "h-5 w-9",
         md: "h-6 w-11",
         lg: "h-7 w-14",
-      },
+      } satisfies Record<CheckControlSize, string>,
       activeColor: {
         primary: "",
         secondary: "",
@@ -29,7 +35,7 @@ const trackVariants = cva(
         muted: "",
         success: "",
         warning: "",
-      },
+      } satisfies Record<SwitchInputColor, string>,
       inactiveColor: {
         primary: "",
         secondary: "",
@@ -38,7 +44,7 @@ const trackVariants = cva(
         muted: "",
         success: "",
         warning: "",
-      },
+      } satisfies Record<SwitchInputColor, string>,
     },
     defaultVariants: {
       interactive: true,
@@ -79,7 +85,7 @@ const indicatorVariants = cva(
         sm: "size-4",
         md: "size-5",
         lg: "size-6",
-      },
+      } satisfies Record<CheckControlSize, string>,
     },
     defaultVariants: {
       size: "md",
@@ -116,29 +122,15 @@ export type SwitchInputProps<T = boolean> = {
   /**
    * スイッチ全体の大きさ
    */
-  size?: "sm" | "md" | "lg";
+  size?: CheckControlSize;
   /**
    * スイッチがオンのときの背景色(テーマトークン)
    */
-  activeColor?:
-    | "primary"
-    | "secondary"
-    | "accent"
-    | "destructive"
-    | "muted"
-    | "success"
-    | "warning";
+  activeColor?: SwitchInputColor;
   /**
    * スイッチがオフのときの背景色(テーマトークン)
    */
-  inactiveColor?:
-    | "primary"
-    | "secondary"
-    | "accent"
-    | "destructive"
-    | "muted"
-    | "success"
-    | "warning";
+  inactiveColor?: SwitchInputColor;
 } & Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange" | "size" | "name"
@@ -203,9 +195,21 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
       <label
         htmlFor={inputId}
         aria-hidden="true"
-        className={cn(trackVariants({ checked, interactive: !disabled, size, activeColor, inactiveColor }))}
+        className={cn(
+          trackVariants({ checked, interactive: !disabled, size, activeColor, inactiveColor }),
+          ...variantOverrideClasses(VARIANT_OVERRIDES.switchInput.track, {
+            size: size ?? "md",
+            activeColor: checked ? (activeColor ?? "primary") : null,
+            inactiveColor: checked ? null : (inactiveColor ?? "muted"),
+          }),
+        )}
       >
-        <span className={indicatorVariants({ checked, size })} />
+        <span
+          className={cn(
+            indicatorVariants({ checked, size }),
+            ...variantOverrideClasses(VARIANT_OVERRIDES.switchInput.indicator, { size: size ?? "md" }),
+          )}
+        />
       </label>
 
       {(label || description) && (

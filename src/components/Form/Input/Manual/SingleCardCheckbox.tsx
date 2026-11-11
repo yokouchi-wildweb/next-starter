@@ -2,9 +2,18 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
+import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import {
+  createOverridableVariants,
+  type CheckControlSize,
+  type SingleCardCheckboxColor,
+} from "@/lib/variantOverrides";
+
+// 見た目の上書き口: src/config/ui/variants.config.ts の singleCardCheckbox({ base, size, color })。
+// color は今使っている色(チェック時 checkedVariant、未チェック時 uncheckedVariant)のときだけ足す。既定のクラスはここ
 
 /**
  * カラーバリアント
@@ -17,25 +26,24 @@ const colorVariants = {
   destructive: "bg-destructive/20 border-destructive",
   muted: "bg-muted/50 border-border",
   outline: "bg-background border-border",
-} as const;
+} as const satisfies Record<SingleCardCheckboxColor, string>;
 
 type ColorVariant = keyof typeof colorVariants;
 
 /**
  * サイズバリアント
  */
-const sizeVariants = cva("", {
-  variants: {
-    size: {
-      sm: "px-3 py-2 text-sm",
-      md: "px-4 py-3 text-sm",
-      lg: "px-5 py-4 text-base",
-    },
-  },
-  defaultVariants: {
-    size: "md",
-  },
-});
+const SIZE = {
+  sm: "px-3 py-2 text-sm",
+  md: "px-4 py-3 text-sm",
+  lg: "px-5 py-4 text-base",
+} satisfies Record<CheckControlSize, string>;
+
+const sizeVariants = createOverridableVariants(
+  "",
+  { variants: { size: SIZE }, defaultVariants: { size: "md" } },
+  VARIANT_OVERRIDES.singleCardCheckbox,
+);
 
 type SizeVariant = VariantProps<typeof sizeVariants>["size"];
 
@@ -89,6 +97,7 @@ export function SingleCardCheckbox({
         "flex cursor-pointer items-center gap-2 rounded-md border transition-colors",
         sizeVariants({ size }),
         colorVariants[currentVariant],
+        VARIANT_OVERRIDES.singleCardCheckbox.color?.[currentVariant],
         fullWidth && "w-full",
         centered && "justify-center",
         disabled && "cursor-not-allowed opacity-50",

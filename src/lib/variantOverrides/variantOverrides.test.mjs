@@ -29,9 +29,23 @@ test("defineVariantOverrides は未指定キーを空オブジェクトで埋め
     button: {},
     tabletButton: {},
     badge: { size: {}, solid: {}, soft: {}, bookmarkTag: {} },
+    booleanCheckbox: {},
+    booleanRadioGroup: {},
+    singleCardCheckbox: {},
+    stepperInput: {},
+    switchInput: { track: {}, indicator: {} },
+    pageTitle: {},
+    para: {},
+    secTitle: {},
+    span: {},
   });
   assert.deepEqual(defineVariantOverrides(), defineVariantOverrides({}));
-  const partial = defineVariantOverrides({ button: { base: "rounded-full" }, badge: { soft: { base: "uppercase" } } });
+  const partial = defineVariantOverrides({
+    button: { base: "rounded-full" },
+    badge: { soft: { base: "uppercase" } },
+    switchInput: { track: { base: "T" } },
+  });
+  assert.deepEqual(partial.switchInput, { track: { base: "T" }, indicator: {} });
   assert.equal(partial.button.base, "rounded-full");
   assert.deepEqual(partial.badge, { size: {}, solid: {}, soft: { base: "uppercase" }, bookmarkTag: {} });
 });
@@ -42,6 +56,27 @@ test("variantOverrideClasses は base → variant → size の順で、該当す
   assert.deepEqual(variantOverrideClasses(ov, { variant: "default", size: "sm" }), ["B", undefined, undefined]);
   assert.deepEqual(variantOverrideClasses(ov, { variant: null, size: undefined }), ["B", undefined, undefined]);
   assert.deepEqual(variantOverrideClasses(undefined, { variant: "outline" }), []);
+});
+
+test("variantOverrideClasses は variant / size 以外の軸も、渡した順に返す", () => {
+  const ov = { base: "B", tone: { muted: "T" }, size: { lg: "S" }, weight: { bold: "W" } };
+  assert.deepEqual(variantOverrideClasses(ov, { tone: "muted", size: "lg", weight: "bold" }), ["B", "T", "S", "W"]);
+  assert.deepEqual(variantOverrideClasses(ov, { weight: "bold", tone: "muted" }), ["B", "W", "T"]);
+  assert.deepEqual(variantOverrideClasses(ov, { tone: null, align: "left" }), ["B", undefined, undefined]);
+});
+
+test("createOverridableVariants は cva の variants の全ての軸を解決して上書きを足す(variants の順)", () => {
+  const fn = createOverridableVariants(
+    "p",
+    {
+      variants: { tone: { a: "text-red-500", b: "text-blue-500" }, size: { s: "text-sm", l: "text-lg" }, flag: { true: "sr-only", false: "" } },
+      defaultVariants: { size: "s" },
+    },
+    { base: "OB", tone: { b: "OT" }, size: { s: "OS" } },
+  );
+  assert.equal(fn({ tone: "b" }), "p text-blue-500 text-sm OB OT OS");
+  assert.equal(fn({ tone: "a", size: "l", flag: true }), "p text-red-500 text-lg sr-only OB");
+  assert.equal(fn({ tone: "b", className: "x" }), "p text-blue-500 text-sm OB OT OS x");
 });
 
 test("オーバーライド無しなら cn(cva(...)) と同じ出力(見た目不変の契約)", () => {

@@ -22,6 +22,8 @@
 
 `textVariants.ts` の `tone` / `size` / `weight` / `align` / `srOnly`。
 
+- 見た目の上書き口: `src/config/ui/variants.config.ts` の `pageTitle` / `para` / `secTitle` / `span`（`base` / `tone` / `size` / `weight` / `align`、`srOnly` は上書きしない）。既定のクラスの後ろ・呼び手の `className` の前に足す。値の名前は `@/lib/variantOverrides` の型、キーの一覧: `src/styles/README.md`「バリアントの上書き」。照合: `pnpm test src/components/TextBlocks/variantOverrides.test.tsx`
+
 - `tone`: 文字色。意味色は本文用トークン（`text-x-text`）に解決する。`inherit` は `text-inherit`
 - `size`: `xs`〜`xxxl`、流体サイズ `fluidXs`〜`fluidXxxl`（キオスク向け）、`inherit`
 - `weight`: `thin`〜`black`、`inherit`
