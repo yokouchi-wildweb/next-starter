@@ -1,8 +1,8 @@
 // usePurchaseStatusPolling の検査(jsdom の上でフックを動かす。状態の取得・router・タイマーは偽物):
 // 既定のパス(/wallet/<slug>/purchase/...)と指定のパス(completePath / failedPath)で、
 // completed → 完了へ、failed → error_code(無ければ UNKNOWN)、expired → reason=expired、30 回 pending → reason=timeout。
-// 行き先を両方渡すときは slug を省ける(片方だけで slug 無しが型の誤りなのは隣の .test.ts。同じ名前の .ts があるとこの .tsx は tsc が読まない)
-// 実行: pnpm test src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.test.tsx
+// 行き先を両方渡すときは slug を省ける(片方だけで slug 無しが型の誤りなのは隣の usePurchaseStatusPolling.test.ts)
+// 実行: pnpm test src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.render.test.tsx
 // (tsx + node:test のモジュールモック + jsdom。type: module が無いので tsx は CJS = top-level await 不可 → before() で import)
 import { after, afterEach, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";

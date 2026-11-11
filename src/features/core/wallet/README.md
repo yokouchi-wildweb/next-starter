@@ -1067,7 +1067,7 @@ export const provider: PurchaseBonusProvider = {
 ```
 
 - 置いたら `pnpm generate extensions`。上の Tier の提供元を止める・並べ替えるのは隣に `<key>.override.ts`（`export const override: PurchaseBonusProviderOverride = { enabled: false }`）
-- 回帰: `pnpm test src/features/core/wallet`（`hooks/usePurchaseBonuses.test.ts(x)`・`components/WalletBalance/purchaseBonusParts.test.tsx`）
+- 回帰: `pnpm test src/features/core/wallet`（`hooks/usePurchaseBonuses.test.ts`・`hooks/usePurchaseBonuses.render.test.tsx`・`components/WalletBalance/purchaseBonusParts.test.tsx`）
 
 ## 管理機能
 

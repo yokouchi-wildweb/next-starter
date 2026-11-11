@@ -1,6 +1,6 @@
 // src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.test.ts
 // リダイレクト先の URL の組み立て(純関数)の回帰: 既定の形・指定のパス・クエリつきのパス・error_code / reason の順。
-// 引数の型の形(slug は行き先を省くときだけ要る)も pnpm typecheck がここで見る(隣の .test.tsx は同じ名前の .ts があるので tsc が読まない)
+// 引数の型の形(slug は行き先を省くときだけ要る)も pnpm typecheck がここで見る(描画の検査は隣の usePurchaseStatusPolling.render.test.tsx)
 // 実行: pnpm test src/features/core/purchaseRequest
 
 import assert from "node:assert/strict";

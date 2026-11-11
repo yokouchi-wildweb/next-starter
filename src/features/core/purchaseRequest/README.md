@@ -131,7 +131,7 @@ export function DirectSaleCallback() {
 }
 ```
 
-- 回帰: `pnpm test src/features/core/purchaseRequest`（`hooks/usePurchaseStatusPolling.test.ts(x)`: URL の組み立て、既定・指定のパスで completed / failed / expired / timeout）
+- 回帰: `pnpm test src/features/core/purchaseRequest`（`hooks/usePurchaseStatusPolling.test.ts`・`hooks/usePurchaseStatusPolling.render.test.tsx`: URL の組み立て、既定・指定のパスで completed / failed / expired / timeout）
 - コールバック URL の決定順: `params.successUrl/cancelUrl` → `strategy.buildCallbackUrls()` → wallet 既定（`/api/wallet/purchase/callback?request_id=…&wallet_type=<slug>`、cancel は `&reason=cancelled`）
 
 画面: `/wallet/[slug]`（数量選択）→ `/wallet/[slug]/purchase`（確認・クーポン・支払い方法）→ `/purchase/callback` → `/purchase/complete` | `/purchase/failed`。銀行振込は `/purchase/bank-transfer/[requestId]`・`/purchase/awaiting-review`。
