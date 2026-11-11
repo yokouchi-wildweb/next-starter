@@ -115,7 +115,7 @@ test("効く種類(最後に当たった行)は生成区画へ移す前と同じ
     "src/app/route-map.jsonl": "generated",
     "vercel.json": "generated",
     "src/wiring/dbAgent.ts": "generated",
-    "src/features/core/mail/constants/colors.ts": "generated",
+    "src/lib/mail/generated/themeColors.ts": "generated",
     "src/features/core/user/entities/display.ts": "generated",
     // 指令 31 の意図した変化(Q1): ForkProviders は 1 行スイッチ(.replace を足せる)、生成器の雛形のページはルートでないので edit でない
     "src/app/_providers/ForkProviders.tsx": "edit",

@@ -57,6 +57,8 @@ test("d1: 上書きを重ねて送る(生成の一覧の override)", async () =>
   const { sender, channel, store } = setup({ registry });
   await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "靴" } });
   assert.equal(channel.calls[0][0].content.title, "上書き 靴");
+  // 宛先に連絡の鍵が載る(メールの経路が連絡ごとの描き方を引く)
+  assert.equal(channel.calls[0][0].messageKey, "shop.notice");
   assert.deepEqual(store.dispatches[0].headings, { test: "上書き 靴" });
 });
 

@@ -39,7 +39,6 @@
       "@/features/demo/*": ["./src/features/core/demo/*"],
       "@/features/legal/*": ["./src/features/core/legal/*"],
       "@/features/phoneVerification/*": ["./src/features/core/phoneVerification/*"],
-      "@/features/mail/*": ["./src/features/core/mail/*"],
       "@/features/milestone/*": ["./src/features/core/milestone/*"],
       "@/features/notification/*": ["./src/features/core/notification/*"],
       "@/features/notificationTemplate/*": ["./src/features/core/notificationTemplate/*"],

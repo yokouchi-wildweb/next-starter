@@ -62,6 +62,7 @@ test("d2: 小さな送信の残りを lease で取って送り、回を閉じる
   assert.equal(result.sent, 3);
   assert.ok(world.store.deliveries.every((row) => row.status === "sent" && row.lock_token === null && row.locked_until === null));
   assert.equal(channel.calls.length, 1 + 2); // 要求の中の 1 束 + 掃き出しの 2 束(deliveryChunkSize 2)
+  assert.ok(channel.calls.flat().every((target) => target.messageKey === notice.key));
   const dispatch = world.store.dispatches[0];
   assert.equal(dispatch.status, "completed");
   assert.equal(dispatch.channel_counts?.test.sent, 5);

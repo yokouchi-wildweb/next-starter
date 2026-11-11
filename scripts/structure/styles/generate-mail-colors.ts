@@ -9,7 +9,7 @@
 //   pnpm generate styles
 //
 // 出力先:
-//   src/features/core/mail/constants/colors.ts
+//   src/lib/mail/generated/themeColors.ts(lib/mail の生成区画。呼び手は @/lib/mail の MAIL_THEME_COLORS で読む)
 //
 // 必要な変数が 1 つでも欠けていれば、ファイルを書き出す前に失敗する(壊れた定数を出荷しない)。
 
@@ -22,7 +22,7 @@ const INPUT_CSS_PATHS = [
   "src/styles/core/palette.css", // 上流既定値(必須)
   "src/styles/palette.css", // 下流の上書き(無ければ無視)
 ] as const;
-const OUTPUT_PATH = "src/features/core/mail/constants/colors.ts";
+const OUTPUT_PATH = "src/lib/mail/generated/themeColors.ts";
 
 // 抽出対象のCSS変数名（メールで使用するもののみ）
 const TARGET_VARIABLES = [
@@ -93,7 +93,7 @@ function extractRootVariables(css: string): Map<string, string> {
  */
 function generateColorsFile(colors: Map<string, string>): string {
   const lines: string[] = [
-    "// src/features/core/mail/constants/colors.ts",
+    "// src/lib/mail/generated/themeColors.ts",
     "// このファイルは自動生成されます。直接編集しないでください。",
     `// 生成元: ${INPUT_CSS_PATHS.join(" + ")} (後者が前者を上書き)`,
     "// 生成コマンド: pnpm generate styles",
@@ -172,6 +172,7 @@ async function main() {
   // ファイルを生成
   const outputPath = path.resolve(process.cwd(), OUTPUT_PATH);
   const content = generateColorsFile(colors);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, content, "utf-8");
 
   console.log("");

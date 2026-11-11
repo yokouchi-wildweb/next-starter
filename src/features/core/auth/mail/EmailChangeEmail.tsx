@@ -13,9 +13,7 @@ import {
   Text,
 } from "@react-email/components";
 
-import { createMailTemplate } from "@/lib/mail";
-
-import { MAIL_THEME_COLORS } from "@/features/core/mail/constants/colors";
+import { MAIL_THEME_COLORS, createMailTemplate } from "@/lib/mail";
 
 export type EmailChangeEmailProps = {
   /** 認証用URL */

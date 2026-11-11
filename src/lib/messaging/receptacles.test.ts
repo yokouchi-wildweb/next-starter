@@ -36,8 +36,8 @@ test("経路: 宛先ごとの結果を返す", async () => {
     },
   };
   const results = await channel.send([
-    { userId: "u1", address: "ok", idempotencyKey: "d1:ok", content: { title: "t", body: "b" } },
-    { userId: "u1", address: "bad", idempotencyKey: "d1:bad", content: { title: "t", body: "b" } },
+    { userId: "u1", address: "ok", messageKey: "auth.verification", idempotencyKey: "d1:ok", content: { title: "t", body: "b" } },
+    { userId: "u1", address: "bad", messageKey: "auth.verification", idempotencyKey: "d1:bad", content: { title: "t", body: "b" } },
   ]);
   assert.deepEqual(results.map((r) => r.kind), ["sent", "permanent"]);
 
@@ -49,6 +49,7 @@ test("経路: 宛先ごとの結果を返す", async () => {
   const withStop: ChannelSendTarget = {
     userId: "u1",
     address: "a",
+    messageKey: "auth.verification",
     idempotencyKey: "d1",
     content: {},
     category: "marketing",
@@ -56,7 +57,9 @@ test("経路: 宛先ごとの結果を返す", async () => {
   };
   // @ts-expect-error ヘッダの値は文字列だけ
   const badHeaders: ChannelSendTarget = { ...withStop, headers: { a: 1 } };
-  assert.ok(withStop && badHeaders);
+  // @ts-expect-error 連絡の鍵は必須
+  const noKey: ChannelSendTarget = { userId: "u1", address: "a", idempotencyKey: "d1", content: {} };
+  assert.ok(withStop && badHeaders && noKey);
   // 入切は任意の真偽(既定 true)
   const off: MessageChannel = { ...channel, enabled: false };
   // @ts-expect-error 入切は真偽だけ

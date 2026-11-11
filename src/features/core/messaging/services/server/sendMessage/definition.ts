@@ -93,3 +93,35 @@ export function resolveChannels(
   }
   return list;
 }
+
+/**
+ * 生成の一覧の全件を確かめる(L2.2。テストと出荷前の検査が呼ぶ):
+ * 鍵が合う・上書きを重ねた定義が validateMessageDefinition を通る・描き方は EmailView を export している。
+ * @returns 誤りの文(空 = 全件よい)
+ */
+export async function checkMessageRegistry(
+  registry: MessageRegistry,
+  channels: Readonly<Record<string, MessageChannel>>,
+  enrichers: Readonly<Record<string, MessageEnricher>>,
+): Promise<string[]> {
+  const problems: string[] = [];
+  for (const [key, entry] of Object.entries(registry)) {
+    try {
+      if (entry.key !== key) problems.push(`${key}: 項目の key が ${entry.key}`);
+      const { message } = await entry.definition();
+      if (!message) {
+        problems.push(`${key}: 定義のモジュールに export const message が無い`);
+        continue;
+      }
+      if (message.key !== key) problems.push(`${key}: 定義の鍵が ${message.key}`);
+      await resolveDefinition(message, registry, channels, enrichers);
+      if (entry.view) {
+        const view = await entry.view();
+        if (typeof view.EmailView !== "function") problems.push(`${key}: 描き方が EmailView を export していない`);
+      }
+    } catch (error) {
+      problems.push(`${key}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return problems;
+}
