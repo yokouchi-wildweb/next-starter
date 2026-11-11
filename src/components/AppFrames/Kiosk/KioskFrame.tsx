@@ -26,7 +26,7 @@ export type KioskFrameProps = ComponentPropsWithoutRef<"div"> & {
  * 非スクロールのページ枠。卓上タブレット端末、サイネージ、チェックイン端末など
  * 「どの解像度・比率でも 1 画面に収まり、絶対にスクロールしない」画面の土台。
  *
- * - 高さは `--viewport-height`（ViewportHeightWatcher が root layout で更新する
+ * - 高さは `--viewport-height`（@/lib/viewport の ViewportHeightWatcher が root layout で更新する
  *   実寸）に固定し、フォールバックは 100dvh。min-h ではなく h なので中身に
  *   押し広げられず、body はスクロールしない
  * - overflow-clip（scroll container 化しないので focus 駆動の勝手なスクロールも

@@ -2,9 +2,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDisableScroll } from "@/hooks/useDisableScroll";
-import { useViewportSizeStore } from "@/stores/viewportSize";
 import { cn } from "@/lib/cn";
 
 const LAYER_CLASS_MAP = {
@@ -43,9 +42,8 @@ type Props = {
 /**
  * FullScreen は、モバイルブラウザでのアドレスバーの影響を回避しつつ
  * 画面の幅・高さいっぱいに要素を表示するためのコンポーネント
- * - `height`: 初期は CSS の `100dvh` を使用し、`visualViewport.height` もしくは
- *   `window.innerHeight` が取得でき次第それに置き換え
- *   → これにより、各種モバイルブラウザでのアドレスバーによる高さのズレを防ぐ
+ * - `height`: `var(--viewport-height, 100dvh)` を読むだけ。値を書くのは root layout の
+ *   ViewportHeightWatcher(@/lib/viewport)だけで、FullScreen 自身は計測しない
  * - `width`: 常に `100vw` を指定。幅についてはアドレスバーの影響を受けにくいため
  * - `disableScroll()`: フルスクリーン表示中にスクロールを無効化
  */
@@ -56,7 +54,6 @@ export default function FullScreen({
   disableScroll: shouldDisableScroll = true,
 }: Props) {
   const { disableScroll, enableScroll } = useDisableScroll(true);
-  const { setSize: setViewportSize } = useViewportSizeStore();
 
   // スクロールロックはマウント後に実行
   useEffect(() => {
@@ -65,34 +62,11 @@ export default function FullScreen({
     }
 
     disableScroll();
-    const width = window.visualViewport?.width ?? window.innerWidth;
-    const height = window.visualViewport?.height ?? window.innerHeight;
-    setViewportSize(width, height);
 
     return () => {
       enableScroll();
     };
-  }, [disableScroll, enableScroll, setViewportSize, shouldDisableScroll]);
-
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      const width = window.visualViewport?.width ?? window.innerWidth;
-      const height = window.visualViewport?.height ?? window.innerHeight;
-      setViewportHeight(height);
-      setViewportSize(width, height);
-      document.documentElement.style.setProperty("--viewport-height", `${height}px`);
-    };
-
-    updateHeight();
-    window.addEventListener("resize", updateHeight);
-    window.visualViewport?.addEventListener("resize", updateHeight);
-    return () => {
-      window.removeEventListener("resize", updateHeight);
-      window.visualViewport?.removeEventListener("resize", updateHeight);
-    };
-  }, [setViewportSize]);
+  }, [disableScroll, enableScroll, shouldDisableScroll]);
 
   return (
     <div
@@ -103,7 +77,7 @@ export default function FullScreen({
         className,
       )}
       style={{
-        height: viewportHeight ? `${viewportHeight}px` : "var(--viewport-height, 100dvh)",
+        height: "var(--viewport-height, 100dvh)",
         width: "100vw",
         overflow: "hidden",
       }}

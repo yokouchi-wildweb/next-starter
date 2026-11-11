@@ -1,9 +1,9 @@
-// src/hooks/useViewportOrientation.ts
+// src/lib/viewport/useViewportOrientation.ts
 
 "use client";
 
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useViewportSizeStore } from "@/stores/viewportSize";
+import { useMediaQuery } from "./useMediaQuery";
+import { useViewportSize } from "./useViewportSize";
 
 /**
  * 「高さが足りない」と判定する max-height 閾値 (px)。
@@ -26,7 +26,7 @@ export type ViewportOrientationState = {
   orientation: ViewportOrientation;
   /** 高さが shortHeightMax 以下 (= 圧縮レイアウトに切り替えるべき状態) */
   isShortHeight: boolean;
-  /** 実寸 (visualViewport 由来、viewportSize ストア。計測前は 0) */
+  /** 実寸 (visualViewport 由来、useViewportSize と同じ。計測前は 0) */
   width: number;
   height: number;
   /** 幅と高さの短い方 (計測前は 0) */
@@ -40,7 +40,7 @@ export type ViewportOrientationState = {
  * - `orientation` / `isShortHeight` は matchMedia 由来 (レイアウトビューポート基準)。
  *   CSS の `landscape:` / `short:` バリアントと必ず同じ判定になり、
  *   ソフトキーボード表示で visualViewport が縮んでも反転しない
- * - `width` / `height` / `shortSide` は実寸が必要な計算用。viewportSize ストア
+ * - `width` / `height` / `shortSide` は実寸が必要な計算用。useViewportSize
  *   (ViewportHeightWatcher が root layout で更新) から読むため FullScreen /
  *   --viewport-height と同じ値になる
  * - SSR / hydration 中は portrait + isShortHeight=false + 実寸 0 で固定
@@ -57,7 +57,7 @@ export function useViewportOrientation(
 
   const isLandscape = useMediaQuery("(orientation: landscape)");
   const isShortHeight = useMediaQuery(`(max-height: ${shortHeightMax}px)`);
-  const { width, height } = useViewportSizeStore();
+  const { width, height } = useViewportSize();
 
   return {
     orientation: isLandscape ? "landscape" : "portrait",

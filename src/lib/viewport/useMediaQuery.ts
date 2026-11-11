@@ -1,4 +1,4 @@
-// src/hooks/useMediaQuery.ts
+// src/lib/viewport/useMediaQuery.ts
 
 "use client";
 

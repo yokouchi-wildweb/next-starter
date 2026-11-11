@@ -1,4 +1,4 @@
-// stores/viewportSize/internalStore.ts
+// src/lib/viewport/stores/internalStore.ts
 
 "use client";
 
@@ -10,6 +10,7 @@ export type ViewportSizeState = {
   setSize: (width: number, height: number) => void;
 };
 
+// 書くのは ViewportHeightWatcher だけ(書き手は 1 つ)。lib の外へは出さない
 export const internalStore = create<ViewportSizeState>((set) => ({
   width: 0,
   height: 0,

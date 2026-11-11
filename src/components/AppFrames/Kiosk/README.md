@@ -38,7 +38,7 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 
 ### 仕組みと子の契約
 
-- 高さは `h-[var(--viewport-height,100dvh)]` に**固定**（`min-h` ではない）。`--viewport-height` は root layout の `ViewportHeightWatcher` が更新する実寸で、モバイルブラウザのアドレスバーを考慮済み。この変数が高さの単一ソースであり、KioskFrame 自身は計測しない
+- 高さは `h-[var(--viewport-height,100dvh)]` に**固定**（`min-h` ではない）。`--viewport-height` は root layout の `ViewportHeightWatcher`（`@/lib/viewport`、書き手はこれだけ）が更新する実寸で、モバイルブラウザのアドレスバーを考慮済み。この変数が高さの単一ソースであり、KioskFrame 自身は計測しない
 - `overflow-clip`（scroll container にならないので focus 駆動の勝手なスクロールが起きない）+ `overscroll-none`（引っ張り更新・バウンス抑止）
 - `flex flex-col`。**子は `flex-1 min-h-0` だけで残り高さを得る**。`calc(100dvh - Nrem)` やマジックナンバーは書かない
 - スクロールさせたい領域は子側で `overflow-y-auto` を付ける（枠はスクロールしない。内部ペインだけが独自スクロール）
@@ -98,7 +98,7 @@ export function FullscreenToggle() {
 
 - **文字**: 固定 px（`text-5xl` 等）ではなく `text-fluid-xs` 〜 `text-fluid-5xl`。`clamp(下限, N vmin, 上限)` なので短辺に比例して縮み、縦横どちらでも破綻しない（`src/styles/core/theme.css`）。TextBlocks（Span / Para / SecTitle / PageTitle）は `size="fluidMd"` 等の variant でも指定できる（`fluidXs` 〜 `fluidXxxl`、4xl / 5xl は className）
   - `text-fluid-*` は `src/lib/cn` で tailwind-merge の font-size グループに登録済み。`cn("text-primary-foreground text-fluid-base")` のように文字色と並べても両方残り、`text-base` 等の固定サイズとは後勝ちで置き換わる。**theme.css に新しい `--text-*` トークンを足す時は `src/lib/cn` の `FLUID_TEXT_SIZES` にも登録する**（未登録の `text-*` は文字色扱いになり、同じ要素の文字色を消してしまう。`pnpm test src/lib/cn/cn.test.mjs` がドリフトを検出）
-- **向き**: Tailwind 組み込みの `portrait:` / `landscape:`（カスタムバリアント不要）。`landscape:grid-cols-2 portrait:grid-cols-1` のように書く。JS 側で同じ判定が必要なら `useViewportOrientation()`（matchMedia 由来なので CSS と一致する）
+- **向き**: Tailwind 組み込みの `portrait:` / `landscape:`（カスタムバリアント不要）。`landscape:grid-cols-2 portrait:grid-cols-1` のように書く。JS 側で同じ判定が必要なら `@/lib/viewport` の `useViewportOrientation()`（matchMedia 由来なので CSS と一致する）
 - **高さ不足**: `short:`（max-height 500px、theme.css）で余白・文字を圧縮
 - **余白**: 共通スケールは固定していない。任意値で `p-[clamp(1rem,3vmin,2rem)]` / `gap-[clamp(0.5rem,2vmin,1.5rem)]` と書く
 - **固定サイズが必要な要素**（QR コード等）: `size-[clamp(120px,25vmin,240px)]` のように clamp で範囲を持たせる

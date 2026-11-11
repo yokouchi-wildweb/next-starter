@@ -1,4 +1,4 @@
-// stores/viewportSize/index.ts
+// src/lib/viewport/stores/index.ts
 
 export { useViewportSizeStore } from "./useStore";
 export type { ViewportSizeState } from "./internalStore";

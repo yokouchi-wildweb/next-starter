@@ -1,10 +1,10 @@
-// src/components/Layout/ViewportHeightWatcher.tsx
+// src/lib/viewport/ViewportHeightWatcher.tsx
 
 "use client";
 
 import { useEffect } from "react";
 
-import { useViewportSizeStore } from "@/stores/viewportSize";
+import { useViewportSizeStore } from "./stores";
 
 /**
  * ビューポートの幅・高さを監視して CSS 変数 `--viewport-height` に反映する

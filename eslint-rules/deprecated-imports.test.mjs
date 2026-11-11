@@ -110,3 +110,23 @@ test("config: 部品の棚 Primitives へ移した旧パス(_shadcn・Overlays �
   });
   assert.equal(kept.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path").length, 0);
 });
+
+test("config: stores の廃止で閉じた lib へ移した旧パス(viewport)は @/lib/viewport を出して warn", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  const olds = [
+    "@/stores/viewportSize",
+    "@/hooks/useViewportOrientation",
+    "@/hooks/useMediaQuery",
+    "@/components/Fanctional/ViewportHeightWatcher",
+  ];
+  for (const from of olds) {
+    const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
+      filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
+    });
+    const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+    assert.equal(hits.length, 1, from);
+    assert.equal(hits[0].severity, 1, from);
+    assert.ok(hits[0].message.includes('"@/lib/viewport"'), hits[0].message);
+  }
+});

@@ -13,7 +13,7 @@ import {
 } from "@/lib/siteTheme";
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
-import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
+import { ViewportHeightWatcher } from "@/lib/viewport";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity";
 import { GoogleTag } from "@/wiring/GoogleTag";
