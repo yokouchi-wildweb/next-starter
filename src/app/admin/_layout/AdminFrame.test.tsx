@@ -167,7 +167,7 @@ const screenOf = (pagePath: string) => {
 
 test("AdminPage を使わない管理のページは無い(settings の入口も AdminPage を返す。止める検査に例外を作らない)", () => {
   const pages = adminPages();
-  assert.ok(pages.length > 40, `管理のページを読めていない(${pages.length})`);
+  assert.ok(pages.length > 30, `管理のページを読めていない(${pages.length})`);
   const without = pages.filter((page) => !/\bAdminPage\b/.test(screenOf(page).source)).map((page) => relative("src/app/admin", page));
   assert.deepEqual(without, []);
 });
@@ -302,12 +302,11 @@ test("ItemNavigator の長い項目名: 閉じた値はどの画面幅でも …
   assert.match(source, /\[&_\[data-slot=select-item\]\]:whitespace-normal/);
 });
 
-test("上流の編集画面(core 3・サンプル 3・管理の _template)は AdminPage actions に AdminEditItemNavigator を置き", () => {
+test("上流の編集画面(core 2・サンプル 3・管理の _template)は AdminPage actions に AdminEditItemNavigator を置き", () => {
   const screens = [
     "src/app/admin/_template/__domains__/[id]/edit/_screen/Admin__Domain__EditScreen.tsx",
     "src/app/admin/(protected)/user-tags/[id]/edit/_screen/AdminUserTagEditScreen.tsx",
     "src/app/admin/(protected)/chat-rooms/[id]/edit/_screen/AdminChatRoomEditScreen.tsx",
-    "src/app/admin/(protected)/notification-templates/[id]/edit/_screen/AdminNotificationTemplateEditScreen.tsx",
     "src/app/admin/(protected)/samples/[id]/edit/_screen/AdminSampleEditScreen.tsx",
     "src/app/admin/(protected)/sample-categories/[id]/edit/_screen/AdminSampleCategoryEditScreen.tsx",
     "src/app/admin/(protected)/sample-tags/[id]/edit/_screen/AdminSampleTagEditScreen.tsx",

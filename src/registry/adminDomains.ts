@@ -6,8 +6,6 @@
 
 export const adminDomains = {
   chatRoom: { label: "チャットルーム", href: "/admin/chat-rooms", addToAdminDataMenu: false },
-  notification: { label: "お知らせ", href: "/admin/notifications", addToAdminDataMenu: false },
-  notificationTemplate: { label: "お知らせテンプレート", href: "/admin/notification-templates", addToAdminDataMenu: false },
   userTag: { label: "ユーザータグ", href: "/admin/user-tags", addToAdminDataMenu: false },
   sample: { label: "サンプル", href: "/admin/samples", addToAdminDataMenu: true },
   sampleCategory: { label: "サンプルカテゴリ", href: "/admin/sample-categories", addToAdminDataMenu: true },
