@@ -1,11 +1,11 @@
 // src/features/core/user/mypageMenu/upstreamMenu.test.ts
-// 上流のマイページのメニュー(items/ の生成の一覧)を組み立て器に通した形の回帰: 4 枚のカードの並び・文言・住所・見た目
+// 上流のマイページのメニュー(items/ の生成の一覧)を組み立て器に通した形の回帰: 5 枚のカードの並び・文言・住所・見た目
 // 実行: pnpm test src/features/core/user
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { EllipsisIcon, GiftIcon, LogOutIcon, UserCircleIcon } from "lucide-react";
+import { BellIcon, EllipsisIcon, GiftIcon, LogOutIcon, UserCircleIcon } from "lucide-react";
 
 import { mypageMenu } from "@/features/core/user/extensions/mypageMenu";
 
@@ -24,10 +24,11 @@ const view = (pending: boolean) =>
     disabled: row.kind === "action" ? row.disabled : undefined,
   }));
 
-test("上流の 4 枚: 招待・アカウント・ログアウト・その他の順と文言", () => {
+test("上流の 5 枚: 招待・アカウント・通知の設定・ログアウト・その他の順と文言", () => {
   assert.deepEqual(view(false), [
     { key: "invite", kind: "link", icon: GiftIcon, title: "招待コードを取得", description: "お友だちを招待して特典を獲得", variant: undefined, href: "/mypage/invite", showChevron: true, disabled: undefined },
     { key: "account", kind: "link", icon: UserCircleIcon, title: "アカウント基本情報", description: "ユーザー名、メールアドレスを確認・編集", variant: undefined, href: "/mypage/account", showChevron: true, disabled: undefined },
+    { key: "notifications", kind: "link", icon: BellIcon, title: "通知の設定", description: "受け取るお知らせ・メールを選ぶ", variant: undefined, href: "/mypage/account/notifications", showChevron: true, disabled: undefined },
     { key: "logout", kind: "action", icon: LogOutIcon, title: "ログアウト", description: "このアカウントからログアウト", variant: undefined, href: undefined, showChevron: undefined, disabled: false },
     { key: "other", kind: "link", icon: EllipsisIcon, title: "その他の操作", description: "アカウントに関するその他の操作", variant: "muted", href: "/mypage/other", showChevron: true, disabled: undefined },
   ]);
