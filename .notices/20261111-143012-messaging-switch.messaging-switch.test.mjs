@@ -157,9 +157,9 @@ test("手直し: 送る口・定数・テンプレート・BulkSendEmail・古�
     ["const c: MessagingChannel = \"email\";", "defaultChannels"],
     ["export const RankUpEmail = createMailTemplate({});", "messages/views"],
     ['import { BulkSendEmailButton } from "@/components/BulkSendEmail";', "AdminBulkSend"],
-    ["db.select().from(NotificationTable);", "listDispatches"],
+    ["db.select().from(NotificationTable);", "idempotencyKey"],
     ['const url = "/api/notification/my/page";', "/api/me/messaging/inbox"],
-    ['  "messaging.message.sent": "メッセージ送信",', "message_dispatches"],
+    ['  "messaging.message.sent": "メッセージ送信",', "listUserMessageHistory"],
     ["const copy: WalletExpirationNoticeCopy = x;", "expiringNotice.override.ts"],
     ["const img = resolveNotificationImage(x);", "inApp.image"],
   ];

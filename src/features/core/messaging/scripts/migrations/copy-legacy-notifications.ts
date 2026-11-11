@@ -11,10 +11,10 @@
 import { type OneShotTask, TaskNotStartedError } from "@/lib/task";
 
 /**
- * 案内する notice の id(仮の id。形だけ notice の id に合わせてある。この写しを出す notice の指令が本当の id に書き換える)。
+ * 案内する notice の id(.notices/20261111-143012-messaging-switch.md)。
  * 止める鍵 migration:<この id>:messaging:copy-legacy-notifications は照合が ok の成功で取る(incomplete・failed は取らない)
  */
-export const LEGACY_COPY_NOTICE_ID = "20261111-000000-messaging-legacy-copy";
+export const LEGACY_COPY_NOTICE_ID = "20261111-143012-messaging-switch";
 
 export const task: OneShotTask = {
   name: "messaging:copy-legacy-notifications",
