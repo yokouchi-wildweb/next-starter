@@ -320,12 +320,13 @@ async function openDraftCell(page: Page): Promise<string> {
 
 async function expectDraftKept(page: Page, value: string) {
   await expect(page).toHaveURL(DEMO_TABLES);
+  // 確認が閉じ切るまで待つ(開いている間・閉じる動きの間は表の側が aria-hidden になり、見出しの役割で探す表が見つからない)
+  await expect(page.getByRole("dialog")).toHaveCount(0, { timeout: 15_000 });
+  const cell = textCell(page);
+  await expect(cell).toBeVisible();
+  // 書きかけのまま(入力欄の値)でも、確定して表示に戻った後(セルの文字)でもよい
   await expect
-    .poll(async () => {
-      const editor = cellEditor(page);
-      if ((await editor.count()) > 0) return editor.inputValue();
-      return textCell(page).innerText();
-    })
+    .poll(() => cell.evaluate((td) => (td.querySelector("input, textarea") as HTMLInputElement | null)?.value ?? td.textContent ?? ""))
     .toContain(value);
 }
 
