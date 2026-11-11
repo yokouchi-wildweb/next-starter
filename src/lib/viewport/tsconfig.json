@@ -2,7 +2,6 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@lib-config/viewport": ["../../config/lib/viewport.config.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]

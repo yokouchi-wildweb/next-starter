@@ -5,8 +5,7 @@
       "@/lib/cn": ["../cn"],
       "@/lib/cn/*": ["../cn/*"],
       "@/lib/isClient": ["../isClient"],
-      "@/lib/isClient/*": ["../isClient/*"],
-      "@lib-config/globalLoader": ["../../config/lib/globalLoader.config.ts"]
+      "@/lib/isClient/*": ["../isClient/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]
