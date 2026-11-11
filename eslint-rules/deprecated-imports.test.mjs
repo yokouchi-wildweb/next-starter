@@ -150,3 +150,18 @@ test("config: stores の廃止で閉じた lib へ移した旧パス(siteTheme)�
     assert.ok(hits[0].message.includes('"@/lib/siteTheme"'), hits[0].message);
   }
 });
+
+test("config: stores の廃止で閉じた lib へ移した旧パス(globalLoader)は @/lib/globalLoader を出して warn", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  const olds = ["@/stores/globalLoader", "@/hooks/useGlobalLoader", "@/components/Overlays/Loading/GlobalScreenLoader"];
+  for (const from of olds) {
+    const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
+      filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
+    });
+    const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+    assert.equal(hits.length, 1, from);
+    assert.equal(hits[0].severity, 1, from);
+    assert.ok(hits[0].message.includes('"@/lib/globalLoader"'), hits[0].message);
+  }
+});

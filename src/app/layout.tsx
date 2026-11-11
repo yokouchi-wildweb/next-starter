@@ -11,7 +11,7 @@ import {
   siteThemeConfig,
   SiteThemeSync,
 } from "@/lib/siteTheme";
-import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
+import { GlobalScreenLoader } from "@/lib/globalLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/lib/viewport";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";

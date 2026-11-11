@@ -1,4 +1,4 @@
-// stores/globalLoader/index.ts
+// src/lib/globalLoader/stores/index.ts
 
 export { useGlobalLoaderStore } from "./useStore";
 export type { LoaderOptions } from "./internalStore";

@@ -1,9 +1,9 @@
-// src/hooks/useGlobalLoader.ts
+// src/lib/globalLoader/useGlobalLoader.ts
 
 "use client";
 
 import { useCallback } from "react";
-import { useGlobalLoaderStore, type LoaderOptions } from "@/stores/globalLoader";
+import { useGlobalLoaderStore, type LoaderOptions } from "./stores";
 
 /**
  * グローバルローダーを制御するフック。

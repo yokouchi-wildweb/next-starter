@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/cn": ["../cn"],
+      "@/lib/cn/*": ["../cn/*"],
+      "@/lib/isClient": ["../isClient"],
+      "@/lib/isClient/*": ["../isClient/*"],
+      "@lib-config/globalLoader": ["../../config/lib/globalLoader.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

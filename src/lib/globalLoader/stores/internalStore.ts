@@ -1,14 +1,14 @@
-// stores/globalLoader/internalStore.ts
+// src/lib/globalLoader/stores/internalStore.ts
 
 "use client";
 
 import { create } from "zustand";
 import type { ReactNode } from "react";
-import type { SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
+import type { LoaderSpinnerVariant } from "../spinner";
 
 export type LoaderOptions = {
   message?: ReactNode;
-  spinnerVariant?: SpinnerVariant;
+  spinnerVariant?: LoaderSpinnerVariant;
   spinnerClassName?: string;
   messageClassName?: string;
   className?: string;

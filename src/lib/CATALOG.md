@@ -36,6 +36,7 @@
 - src/lib/forkOwnership — fork の所有の検査 pnpm workflow ownership check(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)
 - src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
 - src/lib/frameDims — body 直下へ portal する部品に外枠の寸法変数(ヘッダー・バナー・下のナビの高さ)を写す useFrameDimsStyle(変数の名前と外枠の印は @lib-config で上書き)
+- src/lib/globalLoader — 画面全体のローダー(root layout の GlobalScreenLoader・出し入れの useGlobalLoader)。描画は棚の ScreenLoader fullscreen と同じ形を自前で持つ
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
 - src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル
 - src/lib/httpDefaults — client の HTTP の既定。既定の axios に、自分のタイムアウトを持たない呼び出しだけへ既定のタイムアウトを付ける interceptor(設定 @lib-config/httpDefaults の timeoutMs、既定 null = 付けない。外す印 defaultTimeout: false)

@@ -1,4 +1,5 @@
-// stores/globalLoader/useStore.ts
+// src/lib/globalLoader/stores/useStore.ts
+// lib の中だけで使う(入口から出さない。外からは useGlobalLoader の showLoader / hideLoader で動かす)
 
 "use client";
 
