@@ -289,6 +289,13 @@ export const bulkAction = bulkMessageAction(
 - 書く欄の状態と送信は hook `useAdminBulkSendForm`（部品は描くだけ、CLAUDE.md core_ui_guards）。見た目を替える fork は部品を写して hook を呼ぶ
 - 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`（target `bankTransferReview`、既定の種別 transactional）
 
+### 利用者ごとの履歴（`messagingService.listUserMessageHistory`）
+
+- `messagingService.listUserMessageHistory(userId, { cursor, limit })` → `{ items, nextCursor }`。その利用者の配達（1 行 = 1 経路）を回と結び新しい順
+- 項目は `dispatchId`・`messageKey`・`kind`・`source`・`channel`・`status`・`headings`・`createdAt`・`sentAt`（本文・宛先・provider の値は出さない）
+- server だけ・route なし・管理者を確かめない: 呼び手（fork の管理の service / route）が読める人を決める
+- 出ない物: 全員・ロール宛ての受け取り箱の共有行、配達を持たない前の送る口の回、消した利用者の配達
+
 ### 送った回の管理画面（`/admin/messaging`、門 `messagingDispatches`、既定 開）
 
 - `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・定義の鍵・種別・経路・状態）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
