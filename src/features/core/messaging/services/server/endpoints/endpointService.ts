@@ -3,6 +3,7 @@
 // 端末の帳簿(message_endpoints: 利用者 × 経路 × 宛先)の本人の登録・削除・一覧と、退会の後片付け(D43・D45)。
 // - 受け付ける経路: 経路の受け口に項目があり、enabled で、自前の宛先の引き方(resolveAddresses)を持たない経路
 //   (= 帳簿を読む経路。上流の email・inApp・line は自前の帳簿なので受け付けない。push・SMS などは fork が足す)
+// - 宛先の形: 経路の項目の宣言(MessageChannel.endpoint.address の zod)があればそれで検査し、無ければ汎用の形だけ
 // - 登録: 本人の (channel, address) があれば更新して有効に戻す。他人の (channel, address) は付け替えない(409)
 // - 返すのは安全な DTO(宛先は末尾 6 文字、metadata は返さない)
 
@@ -42,6 +43,20 @@ export function isLedgerChannel(channels: Readonly<Record<string, MessageChannel
   return Boolean(channel && channel.enabled !== false && !channel.resolveAddresses);
 }
 
+/**
+ * 経路の項目が宣言した宛先の形(MessageChannel.endpoint)で検査する。宣言が無ければ汎用の形を通った値のまま。
+ * @throws DomainError(400) 宣言の形に合わない
+ */
+function parseAddress(channel: MessageChannel, address: string): string {
+  if (!channel.endpoint) return address;
+  const parsed = channel.endpoint.address.safeParse(address);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]?.message;
+    throw new DomainError(`経路 ${channel.key} の宛先の形が正しくありません${issue ? `(${issue})` : ""}`, { status: 400 });
+  }
+  return parsed.data;
+}
+
 export function createEndpointService(deps: EndpointServiceDeps) {
   return {
     /**
@@ -53,10 +68,11 @@ export function createEndpointService(deps: EndpointServiceDeps) {
       if (!parsed.success) {
         throw new DomainError("端末の登録の入力が正しくありません", { status: 400 });
       }
-      const { channel, address, kind, metadata } = parsed.data;
+      const { channel, kind, metadata } = parsed.data;
       if (!isLedgerChannel(deps.channels, channel)) {
         throw new DomainError(`経路 ${channel} は端末の登録を受け付けません(帳簿を読む経路だけ)`, { status: 400 });
       }
+      const address = parseAddress(deps.channels[channel], parsed.data.address);
       const now = deps.now();
       const existing = await deps.store.findByChannelAddress(channel, address);
       if (existing && existing.user_id !== userId) {

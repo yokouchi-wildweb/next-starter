@@ -145,7 +145,9 @@ await messagingService.sendMessageToMany(campaign, {
 - API `/api/me/messaging/endpoints`（`createMeRoute`、本人に束ねる。機能の門は持たない = 送る口と同じく常に開）
   - `GET` 本人の一覧 / `POST` 登録 `{ channel, address, kind?, metadata? }`（本人の同じ宛先は更新して有効に戻す。**他人が登録した宛先は付け替えず 409**）/ `DELETE ?id=` 本人の行を消す（他人の id は 404）
   - 返すのは安全な DTO（`id`・`channel`・`kind`・`addressHint` = 宛先の末尾 6 文字・`isActive`・`lastUsedAt`・`createdAt`）。宛先の全体と `metadata` は返さない
-  - 入力はどの経路も同じ形（`address` 2048 文字まで、`kind` 32 文字まで、`metadata` は平らな値で 2KB まで・秘密は入れない）。経路ごとの形は後の指令
+  - 入力の汎用の形: `address` 2048 文字まで、`kind` 32 文字まで、`metadata` は平らな値で 2KB まで・秘密は入れない
+  - 経路ごとの宛先の形: 経路の項目が `endpoint: { address: <zod> }` を宣言すると、登録の口がそれで検査し（合わなければ 400）、通った値（変換の後）を残す。宣言の無い経路は汎用の形だけ。上流の email・inApp・line は帳簿を読まないので宣言しない。例（fork の SMS の経路）: `endpoint: { address: z.string().transform((v) => v.replace(/-/g, "")).pipe(z.string().regex(/^\+[1-9]\d{6,14}$/)) }`（E.164）
+- 最後に使った時刻: 送る口（要求の中と cron）が、帳簿を読む経路で送れた（`sent`）宛先の `last_used_at` を経路ごとに 1 回の UPDATE で記録する。送れなかった宛先は記録しない。記録が失敗しても送信の結果は変えない（警告だけ）
 - client: `services/client/endpointClient.ts`、hook `useMessageEndpoints()`（`{ endpoints, register, remove, … }`）。宛先を渡して登録するだけで、通知の許可・Service Worker・ネイティブの SDK は fork が持つ
 - 退会: user の後片付けの項目 `cleanupHandlers/messagingEndpoints.ts`（required: 個人の情報なので失敗したら退会ごと戻す）が本人の行を全部消す
 
@@ -213,12 +215,12 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 受け取り箱の画像と保存の台帳（`inbox/imageBinding.ts`・台帳の口 `inbox/imageBindingLedger.ts`）:
 
-- 持ち主は回: 台帳の紐付け = `messaging.dispatch` / 回の id / `inApp.image`（用途 `notification.image`）。受け取り箱の行ではない理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指す（行ごとに持たせると宛先の数だけ複製と strip の描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消え、messaging は serviceRegistry に無いので storage の照合はこの種類を飛ばす（`unregistered`）。受け取り箱の行は回より長生きしない（FK cascade。保持の掃除はお知らせの行の無い回だけを消す）ので、回を消す時に外せば全部の道を覆う
+- 持ち主は回: 台帳の紐付け = `messaging.dispatch` / 回の id / `inApp.image`（用途 `notification.image`）。受け取り箱の行ではない理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指す（行ごとに持たせると宛先の数だけ複製と strip の描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は回より長生きしない（FK cascade。保持の掃除はお知らせの行の無い回だけを消す）ので、回を消す時に外せば全部の道を覆う
 - 結ぶ: お知らせの行を書く前、回の行を排他で持った取引の中で（共有の行 = 展開の `store.expandOne`、宛先ごとの行 = inApp の経路の `bindImages`）。`storage://` でない値（固定の URL）は結ばない
   - 回の actor が上げた未紐付けの `notification.image` の画像 → そのまま回に attach
   - 別の人が上げた・他の業務行に結ばれた・用途の違う画像 → 回ごとに 1 回 copy（持ち主なし）して複製を attach（coupon の `issueCodeForOwner` と同じ。元と ref を共有しない）。複製の失敗は投げる（黙って画像なしにしない）
   - 対応 `{ <元の参照>: <結んだ参照> }` を回の `metadata.inboxImages` に残し、束・送り直しは同じファイルを使う
-- 外す: 保持の掃除が回を消す取引の中で `metadata.inboxImages` の値を detach（`record_removed`）。取り下げ（S3、行を消して回は残す）は画像を回に結んだまま残し、保持の掃除が回を消す時に外れる
+- 外す: 保持の掃除が回を消す取引の中で `metadata.inboxImages` の値を detach（`record_removed`）。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、storage の照合（cron storage-sweep）が有無の関数 `existingDispatchIds`（`inbox/dispatchRecords.ts`。回の行がある = 残す、無い = 外す）で外す（task.ts が `recordResolvers` に渡す）。取り下げ（S3、行を消して回は残す）は画像を回に結んだまま残し、保持の掃除が回を消す時に外れる
 - 写した前のお知らせ: S2 の写しが古い紐付けを写した回（`messaging.dispatch` / 同じ id / `inApp.image`）へ付け替え済み（下の「写した前のお知らせ」）
 
 静かな行: `metadata.silent = true` の行（前のお知らせの `is_silent` を写した行）は、未読の数（`unread-count`）と未読だけの一覧（`unreadOnly`、未読のモーダル）に入れない。ふつうの一覧には出す（規則は `inbox/readState.ts` の `inboxSilentSql` / `isSilent`）。

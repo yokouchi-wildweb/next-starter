@@ -16,7 +16,12 @@ import { createMemoryLedger, type MemoryLedger } from "./services/server/ledger/
 import type { StorageLedger } from "./services/server/ledger/types";
 import { uuidLowerBoundAt, uuidv7Time, type ReconcileCursor } from "./services/server/reconcileCursor";
 import { createStorageObjectService, type StorageObjectService } from "./services/server/storageObjectService";
-import { createStorageSweep, type StorageSweepOptions, type StorageSweepServiceLookup } from "./services/server/sweep";
+import {
+  createStorageSweep,
+  type StorageRecordResolver,
+  type StorageSweepOptions,
+  type StorageSweepServiceLookup,
+} from "./services/server/sweep";
 
 const MiB = 1024 * 1024;
 const HOUR = 60 * 60 * 1000;
@@ -55,6 +60,10 @@ type Harness = {
   /** searchWithDeleted に渡った limit */
   searchLimits: Array<number | undefined>;
   cursor: { afterId: string | null; resets: number };
+  /** 登録表に無い record_type の有無の関数（照合へ recordResolvers として渡す） */
+  recordResolvers: Record<string, StorageRecordResolver>;
+  /** lookupService に渡った record_type */
+  lookupKeys: string[];
   sweep: (options?: StorageSweepOptions, ledgerOverride?: StorageLedger) => ReturnType<ReturnType<typeof createStorageSweep>["run"]>;
 };
 
@@ -98,7 +107,10 @@ function setup(): Harness {
     }
     return rowEdits.get(recordType)?.(row) ?? row;
   };
+  const recordResolvers: Record<string, StorageRecordResolver> = {};
+  const lookupKeys: string[] = [];
   const lookupService: StorageSweepServiceLookup = async (key) => {
+    lookupKeys.push(key);
     const failure = lookupFailures.get(key);
     if (failure) return failure;
     const existing = records.get(key);
@@ -138,11 +150,12 @@ function setup(): Harness {
       now: () => clock.now,
       lookupService,
       reconcileCursor,
+      recordResolvers,
     }).run({
       budgetMs: 60_000,
       ...options,
     });
-  return { service, ledger, fake, clock, calls, records, lookupFailures, rowEdits, searchLimits, cursor, sweep };
+  return { service, ledger, fake, clock, calls, records, lookupFailures, rowEdits, searchLimits, cursor, recordResolvers, lookupKeys, sweep };
 }
 
 const later = (h: Harness, ms: number) => {
@@ -385,6 +398,40 @@ describe("照合（紐付け先の行が消えた ready）", () => {
       result.reconcile.skipped.map((s) => [s.recordType, s.reason]).sort(),
       [["broken", "load_failed"], ["ghost", "unregistered"], ["legacy", "unsupported"]],
     );
+    assert.equal(result.reconcile.detached, 0);
+  });
+
+  test("登録表に無い record_type は有無の関数で照合する: ある = 残す、無い = detach（record_removed）。lookupService は引かず、値は見ない", async () => {
+    const h = setup();
+    const kept = await boundRow(h, "messaging.dispatch", "d-alive");
+    const gone = await boundRow(h, "messaging.dispatch", "d-gone");
+    const asked: string[][] = [];
+    h.recordResolvers["messaging.dispatch"] = async (ids) => {
+      asked.push([...ids].sort());
+      return new Set(ids.filter((id) => id === "d-alive"));
+    };
+    // 値の検査が走れば列 photo が無い行として外れるが、有無の関数の種類は値を見ない
+    const result = await h.sweep({ valueCheck: "detach" });
+    assert.deepEqual(asked, [["d-alive", "d-gone"]]);
+    assert.equal(h.ledger.rows.get(kept)?.status, "ready");
+    assert.equal(h.ledger.rows.get(gone)?.status, "deleted");
+    assert.equal(h.ledger.rows.get(gone)?.reason, "record_removed");
+    assert.equal(h.fake.objects.has(objectKey(h, gone)), false);
+    assert.equal(h.lookupKeys.includes("messaging.dispatch"), false);
+    assert.equal(result.reconcile.detached, 1);
+    assert.deepEqual(result.reconcile.skipped, []);
+    assert.deepEqual(result.reconcile.unreferenced, []);
+  });
+
+  test("有無の関数が投げたら、その record_type は消さずに load_failed で飛ばす", async () => {
+    const h = setup();
+    const row = await boundRow(h, "messaging.dispatch", "d-1");
+    h.recordResolvers["messaging.dispatch"] = async () => {
+      throw new Error("db down");
+    };
+    const result = await h.sweep();
+    assert.equal(h.ledger.rows.get(row)?.status, "ready");
+    assert.deepEqual(result.reconcile.skipped, [{ recordType: "messaging.dispatch", reason: "load_failed", detail: "db down" }]);
     assert.equal(result.reconcile.detached, 0);
   });
 

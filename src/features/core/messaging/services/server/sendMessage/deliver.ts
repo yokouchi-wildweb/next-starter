@@ -6,6 +6,7 @@
 // - transient: inRequestOnly(required・秘密)は要求の中で短く再送し、尽きたら failed。
 //   それ以外は queued のまま next_attempt_at を広げて cron に任せ、回数が尽きたら failed
 // - 行の状態は宛先の 1 つでも sent なら sent
+// - 帳簿を読む経路(resolveAddresses を持たない)で送れた宛先は、端末の帳簿の last_used_at を記録する(経路ごとに 1 回、失敗しても結果は変えない)
 
 import { ChannelError, type ChannelSendResult, type ChannelSendTarget, type MessageKey } from "@/lib/messaging";
 
@@ -95,6 +96,22 @@ function rowStatus(states: readonly AddressState[]): MessageDeliveryStatus | "tr
   return "failed";
 }
 
+/** 帳簿を読む経路で送れた宛先の last_used_at を記録する(経路ごとに 1 回。失敗は警告だけ) */
+async function touchLedgerEndpoints(
+  deps: MessageSendDeps,
+  sentNow: ReadonlyMap<string, readonly { userId: string; address: string }[]>,
+): Promise<void> {
+  for (const [channelKey, entries] of sentNow) {
+    const channel = activeChannel(deps.channels, channelKey);
+    if (!channel || channel.resolveAddresses || entries.length === 0) continue;
+    try {
+      await deps.store.touchEndpoints(channelKey, entries, deps.now());
+    } catch (error) {
+      console.warn(`[messaging] 端末の帳簿の last_used_at を記録できませんでした(経路 ${channelKey})`, error);
+    }
+  }
+}
+
 /**
  * 配達の行の束を送る(経路ごとに 1 回の send、transient は inRequestOnly なら短く再送)。
  */
@@ -117,6 +134,8 @@ export async function sendDeliveries(
   const errors = new Map<string, string>();
   const providers = new Map<string, { provider: string | null; providerMessageId: string | null }>();
   const attempts = new Map<string, number>();
+  /** この呼び出しで送れた宛先(経路 → 利用者と宛先)。帳簿の last_used_at に使う */
+  const sentNow = new Map<string, { userId: string; address: string }[]>();
 
   for (const job of jobs) {
     const previous = new Map((job.targets ?? []).map((target) => [target.address, target]));
@@ -184,6 +203,11 @@ export async function sendDeliveries(
         }
         if (result.kind === "sent") {
           state.status = "sent";
+          if (entry.job.userId) {
+            const list = sentNow.get(channelKey) ?? [];
+            list.push({ userId: entry.job.userId, address: entry.target.address });
+            sentNow.set(channelKey, list);
+          }
           state.provider_message_id = result.providerMessageId ?? null;
           state.last_error = null;
           providers.set(entry.job.deliveryId, {
@@ -204,6 +228,8 @@ export async function sendDeliveries(
       });
     }
   }
+
+  await touchLedgerEndpoints(deps, sentNow);
 
   const { maxAttempts, baseDelaySeconds, factor } = deps.config.transientRetry;
   return jobs.map((job) => {

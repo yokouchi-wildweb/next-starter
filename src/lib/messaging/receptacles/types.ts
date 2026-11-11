@@ -91,6 +91,12 @@ export type MessageChannel = {
   contentFrom?: { channel: string; map: Record<string, string> };
   /** 宛先の解決(既定は端末の帳簿 message_endpoints。email・line は自前の帳簿) */
   resolveAddresses?: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
+  /**
+   * 端末の帳簿(message_endpoints)に登録できる宛先の形(帳簿を読む経路 = resolveAddresses を持たない経路だけが使う)。
+   * address の zod(例 push のトークン・E.164 の電話番号)。登録の口が検査し、通った値(trim などの変換後)を残す。
+   * 無ければ汎用の形(1〜2048 文字)だけを見る
+   */
+  endpoint?: { address: z.ZodType<string, z.ZodTypeDef, unknown> };
   /** 未送信の宛先の束を送る。宛先ごとの結果を返す(投げると束の全部を unknown として扱う) */
   send: (targets: readonly ChannelSendTarget[]) => Promise<ChannelSendResult[]>;
   /** provider → webhook の検証と正規化 */

@@ -11,6 +11,8 @@
 //    record_type から lookupService で業務行のサービスを引き、searchWithDeleted で行の有無を調べ、
 //    無い行の紐付けを detach（reason record_removed）して実物を消す。論理削除済みの行は「ある」と数える。
 //    引けない record_type（未登録・読み込み失敗・searchWithDeleted が無い）は消さずに警告する。
+//    登録表に無い record_type（例 messaging.dispatch）は、cron の task.ts が渡す有無の関数（recordResolvers）で引く。
+//    有無の関数の型は行を返さないので、値の検査（valueCheck）はしない。関数が投げたら load_failed で飛ばす。
 //    大量一致（storageObjectConfig.sweep.reconcile.massMissingMin）と 1 回の上限（maxDetachPerRun）で止まる。
 //    行がある紐付けは、その列（record_field）の値にまだ ref が入っているかも見る（valueCheck）。
 //    列の削除・生 SQL や移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
@@ -46,6 +48,12 @@ export type StorageSweepServiceLookup = (
   options?: { require?: ReadonlyArray<keyof DomainService> },
 ) => Promise<DomainServiceLookup>;
 
+/**
+ * 登録表に無い record_type の有無の関数（照合用）。渡した ID のうち、まだ業務行がある ID を返す。
+ * 論理削除のある表は、論理削除済みも「ある」に入れる。cron の task.ts が record_type ごとに渡す
+ */
+export type StorageRecordResolver = (recordIds: readonly string[]) => Promise<ReadonlySet<string>>;
+
 export type StorageSweepDeps = {
   ledger: StorageLedger;
   service: Pick<StorageObjectService, "cleanupDeletedObject">;
@@ -55,6 +63,8 @@ export type StorageSweepDeps = {
   lookupService: StorageSweepServiceLookup;
   /** 照合の再開位置 */
   reconcileCursor: ReconcileCursor;
+  /** 登録表に無い record_type の有無の関数（record_type → 関数）。ここにある種類は lookupService を引かない */
+  recordResolvers?: Readonly<Record<string, StorageRecordResolver>>;
 };
 
 export type StorageSweepOptions = {
@@ -109,6 +119,7 @@ function holdsLedgerRef(value: unknown, ledgerId: string): boolean {
 
 export function createStorageSweep(deps: StorageSweepDeps) {
   const { ledger, service, purposes, now, lookupService, reconcileCursor } = deps;
+  const recordResolvers = deps.recordResolvers ?? {};
 
   /** 1 行を採用できない状態にする（条件付き UPDATE）。他の要求が先に進めていれば false */
   async function claim(target: SweepTarget, id: string, at: Date, readyBefore: Date): Promise<boolean> {
@@ -180,17 +191,40 @@ export function createStorageSweep(deps: StorageSweepDeps) {
       return null;
     }
 
-    /** 1 つの record_type の束を照合する。全部を処理できたら true（上限で止まったら false） */
-    async function reconcileType(recordType: string, refs: AttachedObjectRef[]): Promise<boolean> {
+    /**
+     * 束の ID のうち業務行がある ID（rows = 値の検査に使う行。有無の関数の種類は null）。引けなければ null（skip 済み）
+     */
+    async function existingOf(
+      recordType: string,
+      recordIds: string[],
+    ): Promise<{ ids: ReadonlySet<string>; rows: Map<string, Record<string, unknown>> | null } | null> {
+      const resolver = Object.hasOwn(recordResolvers, recordType) ? recordResolvers[recordType] : undefined;
+      if (resolver) {
+        if (skipped.has(recordType)) return null;
+        try {
+          return { ids: await resolver(recordIds), rows: null };
+        } catch (error) {
+          skip(recordType, "load_failed", String(error instanceof Error ? error.message : error));
+          return null;
+        }
+      }
       const domainService = await serviceFor(recordType);
-      if (!domainService?.searchWithDeleted) return true;
-      const recordIds = [...new Set(refs.map((r) => r.recordId))];
+      if (!domainService?.searchWithDeleted) return null;
       // 既定の limit（100）で取りこぼさないよう、束の ID 数を渡す
       const found = (await domainService.searchWithDeleted({
         where: { field: CRUD_ID_FIELD, op: "in", value: recordIds },
         limit: recordIds.length,
       })) as { results: Array<Record<string, unknown>> };
-      const existing = new Map(found.results.map((row) => [String(row[CRUD_ID_FIELD]), row]));
+      const rows = new Map(found.results.map((row) => [String(row[CRUD_ID_FIELD]), row]));
+      return { ids: new Set(rows.keys()), rows };
+    }
+
+    /** 1 つの record_type の束を照合する。全部を処理できたら true（上限で止まったら false） */
+    async function reconcileType(recordType: string, refs: AttachedObjectRef[]): Promise<boolean> {
+      const recordIds = [...new Set(refs.map((r) => r.recordId))];
+      const resolved = await existingOf(recordType, recordIds);
+      if (!resolved) return true;
+      const existing = resolved.ids;
       const missing = recordIds.filter((id) => !existing.has(id));
       if (missing.length > 0 && existing.size === 0 && recordIds.length >= limits.massMissingMin) {
         skip(recordType, "mass_missing", `${recordIds.length} 件の ID が 1 件も見つかりません`);
@@ -206,8 +240,8 @@ export function createStorageSweep(deps: StorageSweepDeps) {
           detached += 1;
         }
       }
-      if (limits.valueCheck === "off") return true;
-      return checkValues(recordType, refs, existing);
+      if (limits.valueCheck === "off" || !resolved.rows) return true;
+      return checkValues(recordType, refs, resolved.rows);
     }
 
     /** 行がある紐付けの値の検査。列ごとに、値に ref が無いものを報告するか外す。全部を処理できたら true */
@@ -375,7 +409,7 @@ export const defaultStorageSweepDeps: Omit<StorageSweepDeps, "lookupService"> = 
 
 /** cron storage-sweep から呼ぶ（lookupService = src/wiring/domainRegistry.ts の lookupDomainService） */
 export function runStorageSweep(
-  deps: Pick<StorageSweepDeps, "lookupService">,
+  deps: Pick<StorageSweepDeps, "lookupService" | "recordResolvers">,
   options?: StorageSweepOptions,
 ): Promise<StorageSweepResult> {
   return createStorageSweep({ ...defaultStorageSweepDeps, ...deps }).run(options);

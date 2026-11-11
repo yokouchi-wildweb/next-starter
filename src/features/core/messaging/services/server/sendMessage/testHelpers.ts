@@ -24,6 +24,8 @@ export type MemoryStore = MessageSendStore & {
   movedKeys: Set<string>;
   users: (MessageUserRow & { role?: string })[];
   endpoints: { userId: string; channel: string; address: string }[];
+  /** touchEndpoints の呼び出し(経路・宛先・時刻) */
+  endpointTouches: { channel: string; entries: { userId: string; address: string }[]; at: Date }[];
   preferences: { userId: string; category: string; channel: string }[];
   suppressions: { channel: string; addressHash: string; reason: string; scope: string }[];
 };
@@ -35,6 +37,7 @@ export function createMemoryStore(): MemoryStore {
     movedKeys: new Set(),
     users: [],
     endpoints: [],
+    endpointTouches: [],
     preferences: [],
     suppressions: [],
     async findOptOuts(userIds, category, channels) {
@@ -123,6 +126,9 @@ export function createMemoryStore(): MemoryStore {
         .filter((id) => !cursor || id > cursor);
       const userIds = all.slice(0, limit);
       return { userIds, nextCursor: all.length > limit ? userIds[userIds.length - 1] : null };
+    },
+    async touchEndpoints(channel, entries, at) {
+      store.endpointTouches.push({ channel, entries: [...entries], at });
     },
     async findActiveEndpoints(channel, userIds) {
       return store.endpoints
