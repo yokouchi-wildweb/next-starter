@@ -32,7 +32,7 @@ const softVariantStyles: BadgeVariantStyles = {
   ghost: "bg-transparent border-transparent text-foreground",
 };
 
-export type SoftBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
+export type SoftBadgeProps = Omit<React.ComponentPropsWithoutRef<"span">, "slot"> & {
   variant?: BadgeVariant;
   size?: BadgeSize;
   asChild?: boolean;

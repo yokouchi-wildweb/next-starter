@@ -123,8 +123,8 @@ function Carousel({
         className={cn("relative", className)}
         role="region"
         aria-roledescription="carousel"
-        data-slot="carousel"
         {...props}
+        data-slot="carousel"
       >
         {children}
       </div>
@@ -160,16 +160,19 @@ function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
     <div
       role="group"
       aria-roledescription="slide"
-      data-slot="carousel-item"
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full",
         orientation === "horizontal" ? "pl-4" : "pt-4",
         className
       )}
       {...props}
+      data-slot="carousel-item"
     />
   )
 }
+
+/** 前後のボタンの印(Button に slot で渡す。Button の印が呼び手の data-slot に勝つため) */
+export type CarouselButtonSlot = "carousel-previous" | "carousel-next";
 
 function CarouselPrevious({
   className,
@@ -179,7 +182,6 @@ function CarouselPrevious({
 
   return (
     <Button
-      data-slot="carousel-previous"
       className={cn(
         "absolute size-8 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         orientation === "horizontal"
@@ -190,6 +192,7 @@ function CarouselPrevious({
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       {...props}
+      slot="carousel-previous"
     >
       <ArrowLeft />
       <span className="sr-only">Previous slide</span>
@@ -205,7 +208,6 @@ function CarouselNext({
 
   return (
     <Button
-      data-slot="carousel-next"
       className={cn(
         "absolute size-8 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         orientation === "horizontal"
@@ -216,6 +218,7 @@ function CarouselNext({
       disabled={!canScrollNext}
       onClick={scrollNext}
       {...props}
+      slot="carousel-next"
     >
       <ArrowRight />
       <span className="sr-only">Next slide</span>

@@ -1,2 +1,2 @@
 // Skeleton の素体。読むのはこの入口だけ
-export { Skeleton } from "./Skeleton";
+export { Skeleton, type SkeletonSlot } from "./Skeleton";

@@ -80,12 +80,12 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function FormLabel({ className, ...props }: Omit<React.ComponentProps<typeof LabelPrimitive.Root>, "slot">) {
   const { error, formItemId } = useFormField();
 
   return (
     <Label
-      data-slot="form-label"
+      slot="form-label"
       data-error={!!error}
       className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}

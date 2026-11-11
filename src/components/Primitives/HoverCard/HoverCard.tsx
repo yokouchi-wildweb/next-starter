@@ -12,7 +12,7 @@ export function HoverCardRoot(props: ComponentProps<typeof HoverCardPrimitive.Ro
 }
 
 export function HoverCardTrigger(props: ComponentProps<typeof HoverCardPrimitive.Trigger>) {
-  return <HoverCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />;
+  return <HoverCardPrimitive.Trigger {...props} data-slot="hover-card-trigger" />;
 }
 
 export function HoverCardPortal(props: ComponentProps<typeof HoverCardPrimitive.Portal>) {
@@ -20,9 +20,9 @@ export function HoverCardPortal(props: ComponentProps<typeof HoverCardPrimitive.
 }
 
 export function HoverCardContent(props: ComponentProps<typeof HoverCardPrimitive.Content>) {
-  return <HoverCardPrimitive.Content data-slot="hover-card-content" {...props} />;
+  return <HoverCardPrimitive.Content {...props} data-slot="hover-card-content" />;
 }
 
 export function HoverCardArrow(props: ComponentProps<typeof HoverCardPrimitive.Arrow>) {
-  return <HoverCardPrimitive.Arrow data-slot="hover-card-arrow" {...props} />;
+  return <HoverCardPrimitive.Arrow {...props} data-slot="hover-card-arrow" />;
 }

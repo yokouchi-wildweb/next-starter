@@ -104,7 +104,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
             <div data-slot="image-viewer-content" className="relative inline-block mx-auto">
               {showSkeleton ? (
                 <BaseSkeleton
-                  data-slot="image-viewer-skeleton"
+                  slot="image-viewer-skeleton"
                   className="rounded-lg"
                   style={skeletonStyle}
                 />

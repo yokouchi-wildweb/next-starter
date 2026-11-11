@@ -4,8 +4,13 @@ import * as React from "react";
 import { Slot } from "radix-ui";
 import type { LucideIcon } from "lucide-react";
 
-export type BadgeCoreProps = React.ComponentPropsWithoutRef<"span"> & {
+/** 根の印(data-slot)。badge 以外は上流の包む部品(SolidBadge・BookmarkTagBadge)が渡す。fork は名前を変えずに印を狙う */
+export type BadgeCoreSlot = "badge" | "solid-badge" | "bookmark-tag-badge";
+
+export type BadgeCoreProps = Omit<React.ComponentPropsWithoutRef<"span">, "slot"> & {
   asChild?: boolean;
+  /** 印の名前(上流の包む部品だけが使う。既定 badge)。props の data-slot はこれに負ける */
+  slot?: BadgeCoreSlot;
   /** アイコンコンポーネント（Lucideアイコンなど） */
   icon?: LucideIcon;
 };
@@ -22,11 +27,11 @@ export type BadgeCoreProps = React.ComponentPropsWithoutRef<"span"> & {
  * 制約: asChild 時の children は単一のReact要素であること（Slotの仕様）
  */
 export const BadgeCore = React.forwardRef<HTMLSpanElement, BadgeCoreProps>(
-  ({ asChild = false, icon: Icon, children, ...props }, ref) => {
+  ({ asChild = false, icon: Icon, children, slot = "badge", ...props }, ref) => {
     const Comp = asChild ? Slot.Root : "span";
 
     return (
-      <Comp ref={ref} data-slot="badge" {...props}>
+      <Comp ref={ref} {...props} data-slot={slot}>
         {Icon && <Icon />}
         <Slot.Slottable>{children}</Slot.Slottable>
       </Comp>

@@ -23,7 +23,6 @@ function Calendar({
 }: CalendarProps) {
   return (
     <DayPicker
-      data-slot="calendar"
       showOutsideDays={showOutsideDays}
       // relative: v9 では Nav ボタンがキャプションの外に描画されるため、
       // absolute 配置の基準をカレンダー自身に固定する
@@ -86,6 +85,7 @@ function Calendar({
         ...components,
       }}
       {...props}
+      data-slot="calendar"
     />
   );
 }

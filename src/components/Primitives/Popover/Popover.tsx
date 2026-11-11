@@ -43,7 +43,7 @@ const SIZE_CLASS: Record<PopoverSize, string> = {
 function PopoverRoot({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+  return <PopoverPrimitive.Root {...props} data-slot="popover" />;
 }
 
 // Popover Trigger
@@ -53,9 +53,9 @@ function PopoverTrigger({
 }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
   return (
     <PopoverPrimitive.Trigger
-      data-slot="popover-trigger"
       className={cn("cursor-pointer", className)}
       {...props}
+      data-slot="popover-trigger"
     />
   );
 }
@@ -64,7 +64,7 @@ function PopoverTrigger({
 function PopoverAnchor({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
-  return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />;
+  return <PopoverPrimitive.Anchor {...props} data-slot="popover-anchor" />;
 }
 
 // Popover Arrow
@@ -74,11 +74,11 @@ function PopoverArrow({
 }: React.ComponentProps<typeof PopoverPrimitive.Arrow>) {
   return (
     <PopoverPrimitive.Arrow
-      data-slot="popover-arrow"
       className={cn("fill-popover", className)}
       width={12}
       height={6}
       {...props}
+      data-slot="popover-arrow"
     />
   );
 }
@@ -90,7 +90,6 @@ function PopoverClose({
 }: React.ComponentProps<typeof PopoverPrimitive.Close>) {
   return (
     <PopoverPrimitive.Close
-      data-slot="popover-close"
       className={cn(
         "absolute right-2 top-2 rounded-sm opacity-70 ring-offset-background transition-opacity",
         "hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -98,6 +97,7 @@ function PopoverClose({
         className
       )}
       {...props}
+      data-slot="popover-close"
     >
       <X className="size-4" />
       <span className="sr-only">閉じる</span>
@@ -263,7 +263,6 @@ function PopoverContent({
 
   const content = (
     <PopoverPrimitive.Content
-      data-slot="popover-content"
       align={align}
       sideOffset={sideOffset}
       collisionPadding={collisionPadding}
@@ -295,6 +294,7 @@ function PopoverContent({
         className
       )}
       {...props}
+      data-slot="popover-content"
     >
       {showClose && <PopoverClose />}
       <div data-slot="popover-scroll" className="min-h-0 overflow-y-auto">
@@ -318,9 +318,9 @@ function PopoverHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      data-slot="popover-header"
       className={cn("mb-3 flex flex-col gap-1", className)}
       {...props}
+      data-slot="popover-header"
     />
   );
 }
@@ -332,9 +332,9 @@ function PopoverTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      data-slot="popover-title"
       className={cn("font-semibold leading-none tracking-tight", className)}
       {...props}
+      data-slot="popover-title"
     />
   );
 }
@@ -346,9 +346,9 @@ function PopoverDescription({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      data-slot="popover-description"
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
+      data-slot="popover-description"
     />
   );
 }
@@ -359,7 +359,7 @@ function PopoverBody({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div data-slot="popover-body" className={cn("text-sm", className)} {...props} />
+    <div className={cn("text-sm", className)} {...props} data-slot="popover-body" />
   );
 }
 
@@ -370,9 +370,9 @@ function PopoverFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      data-slot="popover-footer"
       className={cn("mt-4 flex justify-end gap-2", className)}
       {...props}
+      data-slot="popover-footer"
     />
   );
 }

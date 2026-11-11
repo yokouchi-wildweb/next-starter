@@ -16,7 +16,7 @@ export function TooltipRoot(props: ComponentProps<typeof TooltipPrimitive.Root>)
 }
 
 export function TooltipTrigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+  return <TooltipPrimitive.Trigger {...props} data-slot="tooltip-trigger" />;
 }
 
 export function TooltipPortal(props: ComponentProps<typeof TooltipPrimitive.Portal>) {
@@ -24,9 +24,9 @@ export function TooltipPortal(props: ComponentProps<typeof TooltipPrimitive.Port
 }
 
 export function TooltipContent(props: ComponentProps<typeof TooltipPrimitive.Content>) {
-  return <TooltipPrimitive.Content data-slot="tooltip-content" {...props} />;
+  return <TooltipPrimitive.Content {...props} data-slot="tooltip-content" />;
 }
 
 export function TooltipArrow(props: ComponentProps<typeof TooltipPrimitive.Arrow>) {
-  return <TooltipPrimitive.Arrow data-slot="tooltip-arrow" {...props} />;
+  return <TooltipPrimitive.Arrow {...props} data-slot="tooltip-arrow" />;
 }
