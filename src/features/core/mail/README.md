@@ -25,9 +25,9 @@ RESEND_API_KEY=re_xxxxxxxxxxxxx
 
 APIキーのみ環境変数で管理します。
 
-#### ビジネス設定（src/config/business.config.ts）
+#### 既定の差出人（src/business/business.ts）
 
-送信元アドレスと送信者名は `businessConfig` で管理します：
+送信元アドレスと送信者名の既定は lib/mail の設定 `defaultFrom` / `defaultFromName` です。上流の上書き `src/config/lib/mail.config.ts`（`@lib-config/mail`）が事業の素性の `mail` を写すので、ふつうは `src/business/business.ts` の `mail` を変えます：
 
 ```ts
 mail: {
@@ -91,7 +91,7 @@ export const WelcomeEmail = createMailTemplate({
     dashboardUrl: "https://example.com/dashboard",
   },
   testDescription: "新規ユーザー向けウェルカムメール",
-  // 送信元を指定（省略時は businessConfig.mail.defaultFrom）
+  // 送信元を指定（省略時は lib/mail の設定 defaultFrom）
   from: "support@example.com",
   fromName: "サポートチーム",
 });
@@ -127,14 +127,14 @@ await WelcomeEmail.send(
 | `component` | ✅ | テンプレートコンポーネント |
 | `testProps` | ✅ | テスト送信時に使用するprops |
 | `testDescription` | - | テンプレート選択画面に表示する説明 |
-| `from` | - | 送信元アドレス（省略時は `businessConfig.mail.defaultFrom`） |
-| `fromName` | - | 送信者名（省略時は `businessConfig.mail.defaultFromName`） |
+| `from` | - | 送信元アドレス（省略時は lib/mail の設定 `defaultFrom`） |
+| `fromName` | - | 送信者名（省略時は lib/mail の設定 `defaultFromName`） |
 
 ### 送信元の優先順位
 
 1. `send()` の第3引数（最優先）
 2. `createMailTemplate()` の設定
-3. `businessConfig.mail.defaultFrom` / `defaultFromName`（フォールバック）
+3. lib/mail の設定 `defaultFrom` / `defaultFromName`（フォールバック。上流は `business.mail` を写す）
 
 ## テスト送信
 
@@ -274,4 +274,4 @@ const styles = {
 ### 環境変数が読み込まれない
 
 - `RESEND_API_KEY` のみ環境変数で管理
-- 送信元アドレス等は `businessConfig` で設定
+- 送信元アドレス等の既定は `src/business/business.ts` の `mail`（lib/mail の上書き `src/config/lib/mail.config.ts` が写す）

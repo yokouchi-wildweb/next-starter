@@ -10,3 +10,4 @@ export {
   subscribeAnalyticsConsent,
 } from "./consent";
 export { useAnalyticsConsent } from "./useAnalyticsConsent";
+export type { AnalyticsConsentOverride } from "./config";

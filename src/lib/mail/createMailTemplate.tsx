@@ -8,9 +8,9 @@ import { send } from "./send";
  * メール送信オプション
  */
 export type MailSendOptions = {
-  /** 送信元アドレス（省略時は businessConfig.mail.defaultFrom） */
+  /** 送信元アドレス（省略時は 設定の defaultFrom） */
   from?: string;
-  /** 送信者名（省略時は businessConfig.mail.defaultFromName） */
+  /** 送信者名（省略時は 設定の defaultFromName） */
   fromName?: string;
 };
 

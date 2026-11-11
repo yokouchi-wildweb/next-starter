@@ -4,7 +4,7 @@
 // 状態はこのタブのメモリにだけ持つ。選択の保存は同意バナー / CMP の持ち物で、読み込み時とクリック時に
 // setAnalyticsConsent で渡してもらう。
 
-import { ANALYTICS_CONFIG } from "@/config/app/analytics.config";
+import { analyticsConsentConfig } from "./config";
 
 /** 同意の状態。unknown = まだ回答が無い（送らない側として扱う） */
 export type AnalyticsConsent = "granted" | "denied" | "unknown";
@@ -58,5 +58,5 @@ export function decideAnalyticsAllowed(
  * 計測サービスの実装（page_view・trackEvent・初期化）は、送る前に必ずこれを確かめる。
  */
 export function isAnalyticsAllowed(): boolean {
-  return decideAnalyticsAllowed(ANALYTICS_CONFIG, current);
+  return decideAnalyticsAllowed(analyticsConsentConfig, current);
 }

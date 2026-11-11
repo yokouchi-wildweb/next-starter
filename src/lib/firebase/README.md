@@ -86,7 +86,7 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
 
 #### 3. 送信を有効にし、同意の扱いを決める
 
-Measurement ID を入れただけでは何も送りません。`src/config/app/analytics.config.ts` の `ANALYTICS_CONFIG` で有効にします（門の仕様は [src/lib/analyticsConsent/README.md](../analyticsConsent/README.md)）。
+Measurement ID を入れただけでは何も送りません。analyticsConsent の上書き `src/config/lib/analyticsConsent.config.ts` に `enabled: true` を書いて有効にします（門の仕様は [src/lib/analyticsConsent/README.md](../analyticsConsent/README.md)）。
 
 - `enabled: true` + `consent: "required"`（既定）: 同意バナー / CMP が `setAnalyticsConsent("granted")` を呼ぶまで、初期化（gtag の読み込み）も page_view も trackEvent もしない
 - `enabled: true` + `consent: "notRequired"`: 同意を待たずに送る（同意の取得を求めない運用）

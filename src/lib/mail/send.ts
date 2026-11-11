@@ -4,14 +4,13 @@ import type { ReactElement } from "react";
 
 import { render } from "@react-email/render";
 
-import { businessConfig } from "@/config/business.config";
-
 import {
   MailSendError,
   classifyNetworkError,
   classifyStatus,
   type MailSendErrorKind,
 } from "./errors";
+import { mailConfig } from "./config";
 import { getMailProvider, type MailProvider } from "./provider";
 import { getResendClient } from "./resend";
 import { getSendGridClient } from "./sendgrid";
@@ -25,9 +24,9 @@ export type SendMailOptions = {
   subject: string;
   /** React Emailコンポーネント */
   react: ReactElement;
-  /** 送信元メールアドレス（省略時は businessConfig.mail.defaultFrom） */
+  /** 送信元メールアドレス（省略時は 設定の defaultFrom。上流は business.mail を写す） */
   from?: string;
-  /** 送信者名（省略時は businessConfig.mail.defaultFromName） */
+  /** 送信者名（省略時は 設定の defaultFromName。上流は business.mail を写す） */
   fromName?: string;
   /** 追加のメールヘッダ（List-Unsubscribe など） */
   headers?: Record<string, string>;
@@ -181,8 +180,8 @@ export async function send(options: SendMailOptions): Promise<SendMailResult> {
   const { to, subject, react, from, fromName, headers, idempotencyKey } =
     options;
 
-  const fromAddress = from ?? businessConfig.mail.defaultFrom;
-  const senderName = fromName ?? businessConfig.mail.defaultFromName;
+  const fromAddress = from ?? mailConfig.defaultFrom;
+  const senderName = fromName ?? mailConfig.defaultFromName;
 
   const params: ProviderSendParams = {
     to,

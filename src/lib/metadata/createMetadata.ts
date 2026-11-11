@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { businessConfig } from "@/config/business.config";
+import { metadataConfig } from "./config";
 
-// SEO の既定は古い殻 business.config の seo(lib は @/business を直に読まない。lib を閉じるときに @lib-config/metadata の上書きが写す、設定の議会 D88 K3)
-const seoConfig = businessConfig.seo;
+// SEO の既定は設定(上流の上書き src/config/lib/metadata.config.ts が @/business の値を写す、設定の議会 D88 K3)
+const seoConfig = metadataConfig;
 
 /**
  * createMetadataの引数

@@ -15,3 +15,4 @@ export {
 export { MailSendError, type MailSendErrorKind } from "./errors";
 export * from "./webhooks";
 export * from "./frame";
+export type { MailOverride } from "./config";
