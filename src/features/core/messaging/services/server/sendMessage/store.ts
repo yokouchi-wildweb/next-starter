@@ -158,6 +158,21 @@ export const drizzleMessageSendStore: MessageSendStore = {
       );
   },
 
+  async touchEndpoints(channel, entries, at) {
+    if (entries.length === 0) return;
+    // (channel, address) は UNIQUE。user_id も条件に入れて、他人の行には触らない
+    await db
+      .update(MessageEndpointTable)
+      .set({ last_used_at: at })
+      .where(
+        and(
+          eq(MessageEndpointTable.channel, channel),
+          inArray(MessageEndpointTable.address, [...new Set(entries.map((entry) => entry.address))]),
+          inArray(MessageEndpointTable.user_id, [...new Set(entries.map((entry) => entry.userId))]),
+        ),
+      );
+  },
+
   async findActiveEndpoints(channel, userIds) {
     if (userIds.length === 0) return [];
     const rows = await db

@@ -126,6 +126,11 @@ export type MessageSendStore = {
     channel: string,
     userIds: readonly string[],
   ) => Promise<{ userId: string; address: string }[]>;
+  /**
+   * 送れた宛先の端末の帳簿の last_used_at を at にする(経路ごとに 1 回。帳簿に無い宛先は何もしない)。
+   * 送る口は失敗しても送信の結果を変えない
+   */
+  touchEndpoints: (channel: string, entries: readonly { userId: string; address: string }[], at: Date) => Promise<void>;
 };
 
 /** 送る口が使う部品 */

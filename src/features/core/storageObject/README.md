@@ -104,8 +104,8 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - 満たさなければ DomainError 400 を投げ、業務の TX ごと巻き戻す
 - **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
 - **お知らせの画像（messaging の受け取り箱）**: 持ち主の業務行は受け取り箱の行ではなく回（`record_type` `messaging.dispatch` / `record_id` = 回の id / `record_field` `inApp.image`、用途 `notification.image`）
-  - 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消え、messaging は serviceRegistry に無いので照合はこの種類を `unregistered` で飛ばす。受け取り箱の行は回より長生きしない
-  - 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する（照合に頼らない）。詳細 [messaging README](../messaging/README.md)「受け取り箱の画像と保存の台帳」
+  - 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は回より長生きしない
+  - 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、回の行がある = 残す・無い = 外す）で外す。詳細 [messaging README](../messaging/README.md)「受け取り箱の画像と保存の台帳」
 - **サーバー内の書き込み**: putFromServer / copy の所有者は呼び出し側が渡す
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者
@@ -131,7 +131,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## 掃除（cron `storage-sweep`）
 
-`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(storageObjectConfig.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う。
+`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(storageObjectConfig.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う。登録表に無い `record_type` は、task.ts が渡す有無の関数 `recordResolvers`（`record_type` → `(ids) => まだ業務行がある id の Set`。今は `messaging.dispatch` だけ）で引く: 行を返さないので値の照合はしない、関数が投げたらその種類を `load_failed` で飛ばす。上限・大量一致の決まりは同じ。fork が登録表に無い種類を足すときは上流へ依頼する（task.override.ts は時刻と入切だけで、この表は持たない）
 
 | 種類 | 対象 | 処理 |
 |---|---|---|

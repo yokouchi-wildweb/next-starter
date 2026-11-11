@@ -5,6 +5,7 @@
 // - record meta / vars / full、required と秘密を差し込む連絡は描いた本文をどこにも残さない
 // - ChannelError の分類 → 行の状態、required は要求の中で短く再送して尽きたら failed、非 required の一時は queued + next_attempt_at
 // - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・audience は回の行だけ
+// - 帳簿を読む経路で送れた宛先は端末の帳簿の last_used_at を経路ごとに 1 回記録する(自前の引き方の経路・送れなかった宛先は記録しない、記録の失敗は送信を変えない)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -495,4 +496,44 @@ test("配信停止(D57): 鍵が無い時は category だけ付き headers は付
   await createMessageSender(deps).sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
   assert.equal(channel.calls[0][0].category, "news");
   assert.equal(channel.calls[0][0].headers, undefined);
+});
+
+test("d4: 帳簿を読む経路で送れた宛先だけ last_used_at を経路ごとに 1 回記録する", async () => {
+  const channel = createTestChannel("test", (target) =>
+    target.address === "addr-u1"
+      ? { address: target.address, kind: "permanent", reason: "provider_error" }
+      : { address: target.address, kind: "sent", provider: "fake" },
+  );
+  const { sender, store } = setup({ channel });
+  await sender.sendMessageToMany(notice, { recipients: [{ userId: "u1" }, { userId: "u2" }], vars: { item: "x" } });
+  assert.equal(store.endpointTouches.length, 1);
+  assert.deepEqual(store.endpointTouches[0], { channel: "test", entries: [{ userId: "u2", address: "addr-u2" }], at: FIXED_NOW });
+
+  // 送れた宛先が無ければ呼ばない
+  const failing = setup({ channel: createTestChannel("test", (target) => ({ address: target.address, kind: "permanent", reason: "provider_error" })) });
+  await failing.sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  assert.equal(failing.store.endpointTouches.length, 0);
+});
+
+test("d4: 自前の宛先の引き方を持つ経路は帳簿に記録しない、記録が失敗しても送信は sent のまま", async () => {
+  const own = { ...createTestChannel("test"), resolveAddresses: async (ids: readonly string[]) => ids.map((userId) => ({ userId, address: `own-${userId}` })) };
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });
+  const deps = createDeps({ store, channels: { test: own } });
+  await createMessageSender(deps).sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  assert.equal(store.deliveries[0].status, "sent");
+  assert.equal(store.endpointTouches.length, 0);
+
+  const broken = setup();
+  broken.store.touchEndpoints = async () => {
+    throw new Error("db down");
+  };
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    await broken.sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  } finally {
+    console.warn = warn;
+  }
+  assert.equal(broken.store.deliveries[0].status, "sent");
 });
