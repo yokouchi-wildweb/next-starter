@@ -120,6 +120,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - `20261106-094557-shared-shelf-admin-header-band.admin-header` — 管理のヘッダーの題・クーポンのタブを AdminPage の props へ移し、ほかの差し込みを止める一覧に出す
 - `20261106-094557-shared-shelf-admin-header-band.guarded-router` — next/navigation の `useRouter` を守り付きの router(`@/lib/unsavedGuard`、棚は `useShelfRouter`)へ
 - `20261109-171458-feature-gate-foundation.feature-gate-l3` — 門番の規則の features: → domains:・fork の規則の入れ子の dependsOn・入切の値を switches.config.ts へ・domain.json の closable の撤去・required/couponAttributionReward(取り込みのコミットの前に走らせる)
+- `20261111-143012-messaging-switch.messaging-switch` — 旧 notification・古い送る口・core/mail・BulkSendEmail の撤去: 形が同じ名前(受け取り箱の client の関数・未読のモーダル・existingIdempotencyKeys・MAIL_THEME_COLORS の import 先)と未読のモーダルの値(notification.config.ts → messaging.config.ts の inbox)・notificationModal={null}・管理メニューの上書き・消えた門の値を機械で直し、形の違う名前は対応つきで手直しに出す(取り込みのコミットの前に走らせる)
 
 共有の棚の道具の順番(notice の区切りごとに、その区切りの道具を取り込みの後に走らせる。前の区切りの道具を先に):
 
