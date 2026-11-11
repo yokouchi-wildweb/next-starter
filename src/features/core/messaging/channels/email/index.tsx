@@ -6,12 +6,15 @@
 import { render } from "@react-email/render";
 import { and, inArray, isNotNull, isNull } from "drizzle-orm";
 
+import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 import { MAIL_THEME_COLORS, send } from "@/lib/mail";
+import { getAppBaseUrl } from "@/lib/url";
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { messageRegistry } from "@/registry/messageRegistry";
 
+import { MESSAGE_PREFERENCES_PAGE_PATH } from "../../constants/preferences";
 import { createEmailChannel } from "./createEmailChannel";
 import { loadRegistryView } from "./loadView";
 
@@ -20,6 +23,9 @@ export const channel = createEmailChannel({
   send,
   theme: MAIL_THEME_COLORS,
   loadView: (messageKey) => loadRegistryView(messageRegistry, messageKey),
+  // 門 messagingPreferences が開なら本文の停止のリンクを好みのページへ(閉 = ワンクリックの URL のまま)
+  preferencesPageUrl: () =>
+    gate.enabled("messagingPreferences") ? `${getAppBaseUrl()}${MESSAGE_PREFERENCES_PAGE_PATH}` : null,
   webhookKeys: {
     resendSecret: () => process.env.RESEND_WEBHOOK_SECRET?.trim() || null,
     sendgridPublicKey: () => process.env.SENDGRID_WEBHOOK_PUBLIC_KEY?.trim() || null,

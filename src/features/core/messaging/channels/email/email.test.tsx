@@ -3,6 +3,7 @@
 // - 描くのは宛先ごとに 1 回。描いた html をそのまま send に渡す(react は渡さない)
 // - MailSendError の 3 分類をそのまま写す。それ以外の例外は unknown
 // - 描画結果に React のフォールバックの印があれば送らず permanent(L2.1)
+// - 本文の停止のリンク: 好みのページが開(preferencesPageUrl が値)ならそこ、閉ならワンクリックの URL。ヘッダは同じ
 // - 宛先の連絡の鍵で生成の一覧の描き方(messages/views の EmailView)を使う。無ければ既定、読めなければ permanent
 // 実行: pnpm test src/features/core/messaging/channels/email
 import { test } from "node:test";
@@ -166,6 +167,51 @@ test("好みに従う連絡: List-Unsubscribe のヘッダを渡し、本文に�
   assert.deepEqual(sent[0].headers, headers);
   assert.ok(html.includes("https://app.example.test/api/messaging/unsubscribe?t=abc"));
   assert.ok(html.includes("配信停止"));
+});
+
+test("好みのページが開: 本文のリンクは好みのページ、ヘッダはワンクリックのまま。閉ならワンクリック", async () => {
+  const oneClick = "https://app.example.test/api/messaging/unsubscribe?t=abc";
+  const headers = { "List-Unsubscribe": `<${oneClick}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" };
+  for (const page of ["https://app.example.test/mypage/account/notifications", null]) {
+    let html = "";
+    const sent: SendMailOptions[] = [];
+    const channel = createEmailChannel({
+      render: async (element) => (html = await render(element)),
+      send: async (mail) => {
+        sent.push(mail);
+        return { provider: "resend", providerMessageId: null };
+      },
+      findEmails: async () => [],
+      theme: MAIL_THEME_COLORS,
+      webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
+      loadView: noView,
+      preferencesPageUrl: () => page,
+    });
+    const [result] = await channel.send([{ ...target("a@example.test"), category: "marketing", headers }]);
+    assert.equal(result.kind, "sent");
+    assert.deepEqual(sent[0].headers, headers);
+    if (page) {
+      assert.ok(html.includes(page));
+      assert.ok(!html.includes(oneClick));
+    } else {
+      assert.ok(html.includes(oneClick));
+    }
+  }
+});
+
+test("取引の連絡(ヘッダなし)は好みのページが開でも本文にリンクを出さない", async () => {
+  let html = "";
+  const channel = createEmailChannel({
+    render: async (element) => (html = await render(element)),
+    send: async () => ({ provider: "resend", providerMessageId: null }),
+    findEmails: async () => [],
+    theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
+    loadView: noView,
+    preferencesPageUrl: () => "https://app.example.test/mypage/account/notifications",
+  });
+  await channel.send([target("t@example.test")]);
+  assert.ok(!html.includes("/mypage/account/notifications"));
 });
 
 test("category があるのに List-Unsubscribe が無い(鍵が無い)→ 送らず permanent unsubscribe_key_missing。取引は送る", async () => {

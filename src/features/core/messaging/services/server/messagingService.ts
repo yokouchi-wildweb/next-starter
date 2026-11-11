@@ -6,6 +6,7 @@ import { adminBulkSend, adminContinueSending, findDispatch, listDeliveries, list
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { listUserMessageHistory } from "./history";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
+import { getMessagePreferences, setMessagePreference } from "./preferences";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
 import { continueSending } from "./sweep";
@@ -43,6 +44,9 @@ export const messagingService = {
   inboxUnreadCount,
   markInboxRead,
   markAllInboxRead,
+  /** 好み: 本人の 種類 × 経路 の表と、1 マス / 全体の停止・再開(/api/me/messaging/preferences が呼ぶ) */
+  getMessagePreferences,
+  setMessagePreference,
 } as const;
 
 export type MessagingService = typeof messagingService;

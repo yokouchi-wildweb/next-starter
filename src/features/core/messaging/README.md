@@ -20,7 +20,8 @@ src/features/core/messaging/
 ├── bulkSendTargets/             # 管理の一括送信の対象の受け口の上流の項目 bankTransferReview
 ├── messages/                    # 連絡の定義 adminMessage（管理者の連絡）、views/ = 描き方の 1 行スイッチ、parts/ = 描き方の部品
 ├── constants/
-│   └── sources.ts               # MESSAGING_SOURCES（送り元の識別子。wallet の失効の知らせが使う）
+│   ├── sources.ts               # MESSAGING_SOURCES（送り元の識別子。wallet の失効の知らせが使う）
+│   └── preferences.ts           # 好みのページと API の住所（門 messagingPreferences の pathPatterns と同じ値）
 ├── entities/
 │   ├── drizzle.ts               # message_dispatches テーブル
 │   ├── delivery.ts              # message_deliveries / message_events
@@ -165,7 +166,19 @@ D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵�
 - 全員・ロール宛てのお知らせの共有の 1 行は、書く時に利用者ごとの inApp の好みを当てない。受け取り箱の利用者の API（後の指令）が、回の `category`（`dispatch_id` で引ける）と見る人の inApp の好みで共有の行を外す
 - メール（D35・D57）: 好みに従う連絡の宛先には、送る口が `category` と、署名の鍵の env があれば `List-Unsubscribe: <停止の URL>`・`List-Unsubscribe-Post: List-Unsubscribe=One-Click`（RFC 8058）を付ける（経路の宛先 `ChannelSendTarget` の `category`・`headers`）。メールの項目はヘッダを lib/mail に渡し、本文の最後に停止のリンクを出す
   - **決まり: `category` があるのに `List-Unsubscribe` が無い = 鍵（`MESSAGING_UNSUBSCRIBE_SECRET`）が無い → そのメールは送らず permanent（reason `unsubscribe_key_missing`）**。取引・required の連絡はヘッダなしで送る
+  - 本文の停止のリンクの先: 門 `messagingPreferences` が開なら好みのページ（`getAppBaseUrl()` + `/mypage/account/notifications`）、閉ならワンクリックの URL（ヘッダと同じ）。ヘッダ（`List-Unsubscribe`・`List-Unsubscribe-Post`）は門に関わらずワンクリックの URL のまま（メールの項目の `preferencesPageUrl`、`channels/email/index.tsx`）
   - provider の一括停止の機能は使わない
+
+## 好みの読み書き（利用者の API /api/me/messaging/preferences）
+
+D35・D45。本人が 種類 × 経路 の好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
+
+- 門: 規則 `messagingPreferences`（`src/featureGate/rules/messagingPreferences.ts`、住所 `/api/me/messaging/preferences`（ページ `/mypage/account/notifications` の住所はページと一緒に足す）、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表 `message_preferences` とワンクリックの受け口は門に関わらず開（domains は持たない）。住所の定数は `constants/preferences.ts`
+- 表 = 種類の受け口（marketing・activity。取引・required の連絡は種類を持たないので出ない）× 有効な経路の受け口（`enabled: false` の経路は出ない）
+- マスの `optedOut` は送る側（`checkStops` = `findOptOuts`）と同じ判定: そのマス・種類の `'*'`・経路の `'*'`・全体 `'*' '*'` のどれかの行で止まる。`via`（`cell` / `category` / `channel` / `all` / null）はどの行で止まっているか
+- 経路ごとに `hasAddress`（経路の自前の引き方 `resolveAddresses`、無ければ端末の帳簿の有効な行 = 送る側の展開と同じ）と `connectHref`（経路の項目の宣言。サイト内の住所は門で閉じていれば null）。上流は line だけが持つ（LINE の連携の入口 `/api/auth/line/login?redirect_after=<好みのページ>`）。email・inApp は連携の画面が無いので持たない
+- `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, channels[], categories[{ …, cells[] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` → 変えた後の表。全体は `category` と `channel` のどちらも `'*'`（片方だけの `'*'` は 400）。止める = 行を足す（source `user`、既にあれば何もしない）、再開 = そのマスの行だけ消す（広い行で止まるマスは止まったまま、`via` で分かる）。知らない種類・有効でない経路は 400
+- 退会: user の後片付けの項目 `cleanupHandlers/messagingPreferences.ts`（required）が本人の行を全部消す（D38。利用者の削除は FK の cascade でも消える）
 
 ## ワンクリックの配信停止の受け口 /api/messaging/unsubscribe（常に開・門なし）
 
