@@ -1,0 +1,10 @@
+{
+  "server": "auto",
+  "browser": "auto",
+  "login": "auto",
+  "db-write": "auto",
+  "db-delete": "auto",
+  "env-add": "auto",
+  "test": "auto",
+  "check": "auto"
+}
