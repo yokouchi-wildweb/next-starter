@@ -18,8 +18,10 @@ auth/
 │   │   ├── sessionInvalidation.ts # invalidateSessionsForUser (全セッション強制失効)
 │   │   ├── preRegistration.ts / registration.ts   # 仮登録 / 本登録
 │   │   ├── localLogin.ts / firebaseSession.ts / loginAudit.ts(デモのログインは core/demo)
-│   │   └── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
+│   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
+│   │   └── sendMailMessage.ts   # 認証のメール(messages/)を 1 アドレスへ送り、送れなければ投げる
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
+├── messages/            # システムの連絡(下の「システムの連絡(メール)」)。<名前>.ts = 定義、views/ = 描き方(1 行スイッチ → .default)、parts/ = 描き方の共通の部品
 ├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow / useEmailChangeVerification / useAutoLogout / useSignupComplete (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など
 ├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin 等(SMS 認証の部品は core/phoneVerification)
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
@@ -163,6 +165,24 @@ URL ルール              ロール + ステータス + 行き先(親子 AND)  
 - 限界: 直接の import だけを見る。仕様の本文と判定は `eslint-rules/page-authz.mjs`、テストは `pnpm test eslint-rules/page-authz.test.mjs`
 
 API ルート側の認可はファクトリーが構造的に強制する（`createDomainRoute` は serviceRegistry の `access`、`createApiRoute` は `access` 必須（public / authenticated / { roles, roleCategories } + allowStatuses）、本人データは `createMeRoute`）→ [routeFactory README](../../../lib/routeFactory/README.md)。主体はリクエストごとに 1 回だけ DB 同期の `getSessionUser` で解き（`apiRouteUserDeps`）、ハンドラには `ctx.user` で渡す。セッションの確認と再発行（`GET /api/auth/session`）は `session/refreshSessionResponse.ts`。
+
+## システムの連絡（メール）
+
+認証のメールは連絡の定義（`messages/<名前>.ts`、鍵 `auth.<名前>`）で、送る口 `messagingService.sendMessage` が送る（仕組み: src/features/core/messaging/README.md「新しい送る口」・src/lib/messaging/README.md）。
+
+| 鍵 | 送り手 | 宛先 | 扱い |
+| --- | --- | --- | --- |
+| `auth.verification` | `sendSignInLink`（`POST /api/auth/send-email-link`） | 入力のアドレス | required・リンクは `secretVar` |
+| `auth.earlyRegistration` | `sendEarlyRegistrationLink`（`POST /api/auth/send-early-registration-link`） | 入力のアドレス | required・リンクは `secretVar` |
+| `auth.passwordReset` | `sendPasswordResetLink`（`POST /api/auth/forgot-password`。Firebase に無いアドレスは送らずに返す） | 入力のアドレス | required・リンクは `secretVar` |
+| `auth.emailChange` | `sendEmailChangeLink`（`POST /api/me/email/send-verification`） | 新しいアドレス | required・リンクは `secretVar` |
+| `auth.accountLocked` | `localLogin`（永続ロックの時。送りっぱなし、失敗は warn だけ） | 利用者（`users.email`） | 取引の連絡・`record: "meta"`（IP を残さない） |
+
+- required の 4 本は要求の中で短く送り直し、メールの配達が `sent` でなければ（失敗・不明・宛先の停止）今までどおり DomainError(500)「…の送信に失敗しました: <理由>」（`sendMailMessage.ts`）
+- 描き方は `messages/views/<名前>.tsx`（1 行スイッチ → `<名前>.default.tsx`、fork の丸ごとの差し替えは `.replace`）。受け取るのは差し込んだ後のメールの欄だけなので、欄の外の並びは段落の位置で決まる。文言を override で直すときはこの位置を保つ（段落が欠けても描き方は落ちない）
+  - リンクの 4 本（`parts/LinkMailView.tsx`）: `paragraphs` [0] 受付の文 [1] ボタンの案内 → ボタン（`cta`）→ [2] URL の案内 → `cta.url` をそのまま出す
+  - `accountLocked`: [0] 説明 → 情報の箱 [1] 発生時刻の値・[2] アクセス元 IP の値（空なら行を出さない。ラベルは描き方が持つ）→ [3] 心当たりがない場合・[4] 心当たりがある場合（最初の行を太字）
+- 件名と見える文面は前のテンプレートと同じ（`pnpm test src/features/core/auth/messages`）
 
 ## クライアント側
 

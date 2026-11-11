@@ -3,7 +3,8 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { PasswordResetEmail } from "@/features/core/auth/mail/PasswordResetEmail";
+import { message as passwordResetMessage } from "@/features/core/auth/messages/passwordReset";
+import { sendMailMessage } from "@/features/core/auth/services/server/sendMailMessage";
 import { DomainError } from "@/lib/errors";
 
 export type SendPasswordResetLinkParams = {
@@ -28,7 +29,7 @@ function extractOobCode(firebaseUrl: string): string {
 }
 
 /**
- * Firebase Admin SDK でパスワードリセットリンクを生成し、Resend でメールを送信します。
+ * Firebase Admin SDK でパスワードリセットリンクを生成し、連絡 auth.passwordReset を送る口(messagingService.sendMessage)で送ります。
  * Firebase のデフォルトアクションページ（英語）をスキップし、アプリのページに直接飛ばします。
  */
 export async function sendPasswordResetLink({
@@ -73,9 +74,7 @@ export async function sendPasswordResetLink({
   const resetUrl = `${baseOrigin}/password/reset?oobCode=${encodeURIComponent(oobCode)}`;
 
   try {
-    await PasswordResetEmail.send(email, {
-      resetUrl,
-    });
+    await sendMailMessage(passwordResetMessage, email, { resetUrl });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new DomainError(

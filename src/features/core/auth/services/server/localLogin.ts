@@ -5,7 +5,8 @@ import { z } from "zod";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/features/core/user/services/server/userService";
-import { AccountLockedEmail } from "@/features/core/auth/mail/AccountLockedEmail";
+import { message as accountLockedMessage } from "@/features/core/auth/messages/accountLocked";
+import { messagingService } from "@/features/core/messaging/services/server";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { recordLoginFailure } from "./loginAudit";
 import { invalidateSessionsForUser } from "./sessionInvalidation";
@@ -137,13 +138,22 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
       });
       // 永続ロック通知メールを fire-and-forget で送信。
       // メール送信失敗で認証フローを止めない (失敗は warn ログのみ)。
+      // 宛先は利用者(メールの経路が users.email を引く)。記録が利用者に結び付く
       if (user.email) {
-        AccountLockedEmail.send(user.email, {
-          occurredAt: new Date().toLocaleString("ja-JP"),
-          ip: ip ?? null,
-        }).catch((err) => {
-          console.warn("[lockout] failed to send account-locked notification", err);
-        });
+        messagingService
+          .sendMessage(accountLockedMessage, {
+            recipient: { userId: user.id },
+            vars: { occurredAt: new Date().toLocaleString("ja-JP"), ip: ip ?? "" },
+          })
+          .then((result) => {
+            const delivery = result.deliveries.find((item) => item.channel === "email");
+            if (delivery && delivery.status !== "sent") {
+              console.warn("[lockout] failed to send account-locked notification", delivery.status, delivery.reason);
+            }
+          })
+          .catch((err) => {
+            console.warn("[lockout] failed to send account-locked notification", err);
+          });
       }
       throw new DomainError(PERMANENT_LOCK_MESSAGE, { status: 403 });
     }

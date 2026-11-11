@@ -3,7 +3,8 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { EmailChangeEmail } from "@/features/core/auth/mail/EmailChangeEmail";
+import { message as emailChangeMessage } from "@/features/core/auth/messages/emailChange";
+import { sendMailMessage } from "@/features/core/auth/services/server/sendMailMessage";
 import { DomainError } from "@/lib/errors";
 
 export type SendEmailChangeLinkParams = {
@@ -30,7 +31,7 @@ function extractOobCode(firebaseUrl: string): string {
 }
 
 /**
- * Firebase Admin SDK でメールアドレス変更リンクを生成し、Resend でメールを送信します。
+ * Firebase Admin SDK でメールアドレス変更リンクを生成し、連絡 auth.emailChange を送る口(messagingService.sendMessage)で新しいアドレスへ送ります。
  * Firebase のデフォルトアクションページ（英語）をスキップし、アプリのページに直接飛ばします。
  */
 export async function sendEmailChangeLink({
@@ -79,10 +80,7 @@ export async function sendEmailChangeLink({
 
   try {
     // 新しいメールアドレス宛に送信
-    await EmailChangeEmail.send(newEmail, {
-      verificationUrl,
-      newEmail,
-    });
+    await sendMailMessage(emailChangeMessage, newEmail, { verificationUrl, newEmail });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new DomainError(

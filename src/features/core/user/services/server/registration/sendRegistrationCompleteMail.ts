@@ -1,8 +1,10 @@
 // src/features/core/user/services/server/registration/sendRegistrationCompleteMail.ts
 
+import { business } from "@/business";
 import { userConfig } from "@/features/user/config";
-import { EarlyRegistrationCompleteEmail } from "@/features/core/user/mail/EarlyRegistrationCompleteEmail";
-import { RegistrationCompleteEmail } from "@/features/core/user/mail/RegistrationCompleteEmail";
+import { messagingService } from "@/features/core/messaging/services/server";
+import { message as earlyRegistrationCompleteMessage } from "@/features/core/user/messages/earlyRegistrationComplete";
+import { message as registrationCompleteMessage } from "@/features/core/user/messages/registrationComplete";
 import { DomainError } from "@/lib/errors";
 
 export type SendRegistrationCompleteMailParams = {
@@ -12,7 +14,9 @@ export type SendRegistrationCompleteMailParams = {
 
 /**
  * 登録完了メールを送信します。
- * サインアップモードに応じて適切なテンプレートを使用します。
+ * サインアップモードに応じて連絡(user.earlyRegistrationComplete / user.registrationComplete)を選び、
+ * 送る口(messagingService.sendMessage)でメールアドレスへ送ります。送れなければ DomainError(500)。
+ * 一時の失敗で queued に残った配達は cron が送り直すので、失敗にしない。
  */
 export async function sendRegistrationCompleteMail({
   email,
@@ -21,10 +25,19 @@ export async function sendRegistrationCompleteMail({
   const mode = userConfig.signupMode;
 
   try {
-    if (mode === "earlyRegistration") {
-      await EarlyRegistrationCompleteEmail.send(email, { displayName });
-    } else {
-      await RegistrationCompleteEmail.send(email, { displayName });
+    const result =
+      mode === "earlyRegistration"
+        ? await messagingService.sendMessage(earlyRegistrationCompleteMessage, {
+            recipient: { channel: "email", address: email },
+            vars: { displayName, serviceNameShort: business.serviceNameShort },
+          })
+        : await messagingService.sendMessage(registrationCompleteMessage, {
+            recipient: { channel: "email", address: email },
+            vars: { displayName, serviceNameShort: business.serviceNameShort, siteUrl: business.url },
+          });
+    const delivery = result.deliveries.find((item) => item.channel === "email");
+    if (delivery?.status !== "sent" && delivery?.status !== "queued") {
+      throw new Error(delivery ? [delivery.status, delivery.reason].filter(Boolean).join(": ") : `dispatch ${result.status}`);
     }
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);

@@ -8,7 +8,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -30,7 +30,6 @@ import { categories } from "@/app/_layout/adminCommand/extensions/categories";
 import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
 import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
-import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { chatRoomConfig } from "@/features/chatRoom/config";
 import { loadForAdmin } from "@/features/core/adminCommand/base/loadForAdmin";
 import { navigationItems } from "@/features/core/adminCommand/definitions/navigation/items";
@@ -38,9 +37,9 @@ import { validateChatFile } from "@/features/core/chatRoom/utils/validation";
 import { renderers } from "@/features/core/milestone/extensions/renderers";
 import { buildStrategyMap } from "@/features/core/purchaseRequest/services/server/completion/strategyRegistry";
 import { buildRewardHandlerMap } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
-import { buildBody, buildTitle } from "@/features/core/wallet/services/server/notification/adjustmentNotificationTemplate";
 import { ROOT_LAYOUT_CONFIG } from "@/app/_layout/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
+import { messageRegistry } from "@/registry/messageRegistry";
 import { configEnabled } from "@/featureGate/node";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
@@ -124,7 +123,27 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   const plan = planExtensions(ROOT);
   // 上流のスイッチは全部 .default を指す(今と同じ振る舞い)。AdminHeader.default は管理のヘッダーの行の既定の部品
   // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
-  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["AdminHeader.default", "ForkProviders.default", "RateLimitWarningContent.default", "adjustmentNotificationTemplate.default", "onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
+  // 連絡の描き方(messages/views/<名前>.tsx → <名前>.default、auth 5・user 2)も 1 行スイッチ。
+  // 財布の残高調整の通知のスイッチ(adjustmentNotificationTemplate)は連絡へ移して消える途中なので数えない(あっても無くても通る)
+  const targets = plan.switches
+    .map((s: { target: string }) => s.target)
+    .filter((target: string) => target !== "adjustmentNotificationTemplate.default")
+    .sort();
+  assert.deepEqual(targets, [
+    "AdminHeader.default",
+    "ForkProviders.default",
+    "RateLimitWarningContent.default",
+    "accountLocked.default",
+    "earlyRegistration.default",
+    "earlyRegistrationComplete.default",
+    "emailChange.default",
+    "onDemoUserCreated.default",
+    "passwordReset.default",
+    "programConfig.default",
+    "registrationComplete.default",
+    "sessionEnricher.default",
+    "verification.default",
+  ]);
 });
 
 test("config へ移した値の読み手: 既定の表示と未定義のときのフォールバックは今までと同じ", tier1Only, () => {
@@ -198,10 +217,18 @@ test("タスクの走査: 上流のドメインのタスク・移行 12 本、�
   for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
 });
 
-test("メール: テンプレートは送る側のドメインの mail/ にある", () => {
-  for (const path of ["auth/mail/VerificationEmail.tsx", "user/mail/RegistrationCompleteEmail.tsx", "messaging/mail/AdminAnnouncementEmail.tsx"]) {
-    assert.equal(existsSync(join(ROOT, "src/features/core", path)), true, path);
-  }
+test("システムの連絡: 上流の auth・user の連絡は生成の一覧にあり、描き方を持つ", () => {
+  const keys = Object.keys(messageRegistry).filter((key) => key.startsWith("auth.") || key.startsWith("user."));
+  assertUpstreamItems(keys, [
+    "auth.accountLocked",
+    "auth.earlyRegistration",
+    "auth.emailChange",
+    "auth.passwordReset",
+    "auth.verification",
+    "user.earlyRegistrationComplete",
+    "user.registrationComplete",
+  ]);
+  for (const key of keys) assert.ok(messageRegistry[key].view, key);
 });
 
 test("管理者コマンド: 非管理者は読み込まない、管理者は上流の 3 カテゴリを今の順で、プラグイン 0", async () => {
@@ -262,17 +289,6 @@ test("同じ鍵: 購入完了の strategy と紹介報酬の rewardHandler は�
   const handler = (rewardKey: string) => ({ rewardKey, handler: async () => ({}) });
   assert.equal(buildRewardHandlerMap([handler("a"), handler("b")]).size, 2);
   assert.throws(() => buildRewardHandlerMap([handler("a"), handler("a")]), /複数あります/);
-});
-
-test("残高調整の通知: 既定の組み立ては今までと同じ形", tier1Only, () => {
-  const walletType = Object.keys(walletConfig.currency)[0] as WalletType;
-  const { label, unit } = walletConfig.currency[walletType];
-  const params = { walletType, changeMethod: "INCREMENT", amount: 1000, balanceBefore: 0, balanceAfter: 1000, reason: "r" };
-  assert.ok(buildTitle(params).startsWith(label));
-  const lines = buildBody(params).split("\n");
-  assert.equal(lines.length, 4);
-  assert.ok(lines[1].endsWith(`+1,000 ${unit}`));
-  assert.ok(lines[3].endsWith(": r"));
 });
 
 test("root の lang・viewport の既定: 例の lang は ja で OGP の locale と揃う、viewport は root の枠の既定", tier1Only, () => {

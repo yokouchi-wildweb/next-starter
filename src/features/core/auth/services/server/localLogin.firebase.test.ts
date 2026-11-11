@@ -50,7 +50,7 @@ mock.module("@/features/core/user/services/server/userService", {
 mock.module("@/features/core/user/constants", { namedExports: { getRoleCategory: (role: string) => (role === "admin" ? "admin" : "user") } });
 mock.module("@/features/core/auth/utils/password", { namedExports: { verifyPassword: async () => true } });
 mock.module("@/features/core/auditLog/services/server", { namedExports: { auditLogger: { record: async () => {} } } });
-mock.module("@/features/core/auth/mail/AccountLockedEmail", { namedExports: { AccountLockedEmail: { send: async () => {} } } });
+mock.module("@/features/core/messaging/services/server", { namedExports: { messagingService: { sendMessage: async () => ({ deliveries: [] }) } } });
 mock.module("./loginAudit", { namedExports: { recordLoginFailure: async () => {} } });
 mock.module("./sessionInvalidation", { namedExports: { invalidateSessionsForUser: async () => {} } });
 mock.module("./session/sessionToken", {
