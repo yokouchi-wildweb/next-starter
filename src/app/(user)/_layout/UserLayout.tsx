@@ -3,9 +3,8 @@
 import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
-import { useGate } from "@/featureGate/client";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
-import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
+import { InboxUnreadModal } from "@/features/core/messaging/components/InboxUnreadModal";
 
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
@@ -24,7 +23,7 @@ type LayoutStyle = CSSProperties & {
 };
 
 /**
- * slot の約束(6 つ共通): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く。
+ * slot の約束(5 つ共通): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く。
  * fork は layout.tsx を丸ごと置き換え `UserLayout.replace.tsx` へ向け、そこで既定の UserLayout に slot を渡す。
  * 経緯と手順: ./README.md
  */
@@ -43,8 +42,6 @@ export type UserLayoutProps = {
   readonly bottomNav?: ReactNode;
   /** 最背面の背景。既定 = BackgroundLayer(枠の設定 layout.background の 3 値、./config.ts) */
   readonly background?: ReactNode;
-  /** 未読お知らせのモーダル。既定 = UnreadNotificationModal(お知らせの機能が閉じていれば描かない。差し替えた物はそのまま描く) */
-  readonly notificationModal?: ReactNode;
 };
 
 /** ユーザー側の枠の既定の組み立て。src/app/(user)/layout.tsx が 1 行スイッチで default に束ねる */
@@ -55,13 +52,10 @@ export function UserLayout({
   footer,
   bottomNav,
   background,
-  notificationModal,
 }: UserLayoutProps) {
   const frame = useFrameAttributes(frameTable);
   const headerHeight = useHeaderHeight();
   const [bannerHeight, setBannerHeight] = useState(0);
-  // 既定の未読お知らせのモーダルは、お知らせの機能が開いているときだけ(閉なら未読数も取りに行かない)
-  const notificationOpen = useGate().enabled("notification");
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
   // bottomNav={null} の時は書かない(:root の 0px)。
@@ -119,7 +113,9 @@ export function UserLayout({
         ) : (
           bottomNav
         )}
-        {notificationModal === undefined ? notificationOpen && <UnreadNotificationModal /> : notificationModal}
+        {/* 未読のお知らせのモーダル(slot ではない)。出すかは messagingConfig.inbox.showUnreadModal(既定 切)、
+            出す住所は inbox.unreadModalPaths。門は見ない(受け取り箱の API は常に開)。自前のモーダルは UserLayout.replace で */}
+        <InboxUnreadModal />
       </Flex>
     </>
   );

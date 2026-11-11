@@ -61,6 +61,7 @@
 ### どのフックを使うか
 
 - **ユーザーに紐づく・件数が増えるデータの一覧** → `useInfiniteScrollQuery` を包んだ派生フック + `InfiniteScrollList`（下記）。`use<Domain>List` で全件取得しない（CLAUDE.md PROHIBITED: unpaginated full-fetch）
+  - 増え続ける一覧(お知らせ・ログ・履歴)は `useInfiniteScrollQuery` のカーソルのモード(`cursorFetcher` → `CursorPage { items, nextCursor }`、`@/hooks/cursorPage`)。総数を数えず、読み込みの間に行が足されても続きの位置がずれない(例: `src/features/core/messaging/hooks/useInboxItems.ts`)
 - **件数の上限が見えている小さなマスタ**（カテゴリの選択肢など） → `use<Domain>List`。サーバー側の既定 `limit` は 100 で、超えた分は黙って欠ける
 - **条件付き・ページ単位の取得** → `useSearch<Domain>`
 - **件数だけ** → `useCount<Domain>`（レコードを取らない）

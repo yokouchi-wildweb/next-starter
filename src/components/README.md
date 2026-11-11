@@ -20,7 +20,6 @@
 | `AppFrames/` | 解体中の旧フォルダ。残りは管理画面の共有部品（`Admin/Elements`: ListTop・SearchBox・ItemNavigator 等。ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ、データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く。管理ヘッダーの中身はページが AdminPage の props で渡す）、ページ単位で枠の部位を隠す `User/controls`（Hide*）、キオスク用のビューポート固定枠、要素 ID の `constants.ts`（行き先の棚は後の議題で決める）。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
 | `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
 | `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
-| `BulkSendEmail/` | 選択ユーザーへの一括メール送信モーダル | - |
 | `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch` / `SiteThemeSync`（サイトテーマ、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
 | `Form/` | フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md) |
 | `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
