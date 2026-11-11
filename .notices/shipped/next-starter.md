@@ -450,3 +450,4 @@
 - id:20261111-060737-heading-slots | severity:info | checkpoint:heading-slots
 - id:20261111-072306-ship-kinds-safe-point-proposal | severity:info | checkpoint:ship-kinds-safe-point-proposal
 - id:20261111-073037-picked-notice-without-index-row | severity:action-required | checkpoint:picked-notice-without-index-row | fixes:20261105-081445-pick-ignores-shipped-index | pick:-
+- id:20261111-111325-primitives-radix | severity:action-required | checkpoint:primitives-radix
