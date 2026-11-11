@@ -5,6 +5,8 @@
 // 読むファイル = ENV_FILE ?? .env.<段階>(+ あれば .env.<段階>.local を上に重ねる、個人の上書き・秘密)。
 // 止める: ファイルが無い / 段階の印 APP_ENV が無い・知らない値 / 印とファイル名の段階が違う / 本番と開発が同じ DB(host と DB 名)/
 //   本番の DB に書くのに本番の DATABASE_URL が空(リリース前 = 未設定)。.env.production が無いことは本番を指した時だけ止める。
+//   シェルから継いだ DATABASE_URL が向き先のファイルの DATABASE_URL と別の DB(host と DB 名)を指す(値は上書きしないので、
+//   止めないと検査はファイルの DB、実際の接続は継いだ DB になる)。
 // ホストの env(本番ホストで env ファイルを置かず環境変数を直接渡す): ファイルが無く、環境変数の APP_ENV が向き先と同じ時だけ、その値で進む
 //   (本番は --env production の明示と確認が要る。例 Vercel 以外のスケジューラ = pnpm task --due --env production --confirm=production)。
 // 本番に書く: 手で打つ(TTY)なら「production」と打たせる。非対話(TTY なし・CI・エージェント)は --confirm=production が無ければ拒否。
@@ -62,6 +64,18 @@ export function dbIdentity(url: string | undefined): string | null {
     return url.trim();
   }
 }
+
+/** 止める文に出す DB の名(host と DB 名だけ。読めない値は資格情報を含みうるので出さない) */
+const shownDb = (url: string | undefined): string => {
+  if (!url || url.trim() === "") return "空";
+  try {
+    const u = new URL(url);
+    // host の無い形(例 "user:pass" は scheme "user:" と読まれる)は資格情報を含みうる
+    return u.hostname ? `${u.hostname}${u.pathname}` : "読めない値";
+  } catch {
+    return "読めない値";
+  }
+};
 
 export type GuardIO = {
   cwd: string;
@@ -127,6 +141,13 @@ export function resolveTarget(argv: readonly string[], options: ResolveOptions, 
   const values: Record<string, string> = hostMode ? {} : { ...base, ...(local ?? {}) };
   const dbUrl = hostMode ? io.env.DATABASE_URL : values.DATABASE_URL;
   if (io.env.APP_ENV && io.env.APP_ENV !== stage) throw new GuardError(`環境変数 APP_ENV=${io.env.APP_ENV} が向き先の ${stage} と違います(シェルの APP_ENV を外す)`);
+  // 継いだ DATABASE_URL はファイルの値より勝つ(guardEntry は上書きしない)。検査した DB と繋ぐ DB をそろえる(ホストの env は継いだ値そのもの)
+  const inheritedDb = io.env.DATABASE_URL;
+  if (!hostMode && inheritedDb && inheritedDb.trim() !== "" && dbIdentity(inheritedDb) !== dbIdentity(values.DATABASE_URL)) {
+    throw new GuardError(
+      `環境変数 DATABASE_URL(${shownDb(inheritedDb)})が向き先 ${envFile} の DATABASE_URL(${shownDb(values.DATABASE_URL)})と違います(シェルの DATABASE_URL を外す)`,
+    );
+  }
 
   if (stage === "production") {
     const prodDb = dbIdentity(dbUrl);
