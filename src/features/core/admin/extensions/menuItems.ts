@@ -7,6 +7,7 @@ import { item as menuItems_bankTransferReviews } from "@/features/core/admin/men
 import { item as menuItems_chatRooms } from "@/features/core/admin/menu/items/chatRooms";
 import { item as menuItems_coupons } from "@/features/core/admin/menu/items/coupons";
 import { item as menuItems_dataMenu } from "@/features/core/admin/menu/items/dataMenu";
+import { item as menuItems_messagingDispatches } from "@/features/core/admin/menu/items/messagingDispatches";
 import { item as menuItems_notificationTemplates } from "@/features/core/admin/menu/items/notificationTemplates";
 import { item as menuItems_notifications } from "@/features/core/admin/menu/items/notifications";
 import { item as menuItems_settingSections } from "@/features/core/admin/menu/items/settingSections";
@@ -20,6 +21,7 @@ const menuItemsList: AdminMenuItemDefinition[] = [
   menuItems_chatRooms,
   menuItems_coupons,
   menuItems_dataMenu,
+  menuItems_messagingDispatches,
   menuItems_notificationTemplates,
   menuItems_notifications,
   menuItems_settingSections,

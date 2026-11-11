@@ -12,7 +12,6 @@ import { escalateToInvestigating } from "./wrappers/escalateToInvestigating";
 import { updateAdminMemo } from "./wrappers/updateAdminMemo";
 import { countByStatus } from "./wrappers/countByStatus";
 import { bulkImportFromCsv } from "./wrappers/bulkImportFromCsv";
-import { bulkSendEmail } from "./wrappers/bulkSendEmail";
 import {
   findActiveByUser,
   findByPurchaseRequest,
@@ -31,7 +30,6 @@ export const bankTransferReviewService = {
   updateAdminMemo,
   countByStatus,
   bulkImportFromCsv,
-  bulkSendEmail,
   findActiveByUser,
   findByPurchaseRequest,
   findActiveBankTransfer,
@@ -78,8 +76,3 @@ export {
   BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH,
   BANK_TRANSFER_REVIEW_IMPORT_MAX_ROWS,
 } from "./wrappers/bulkImportFromCsv";
-export type {
-  BulkSendEmailParams,
-  BulkSendEmailFailure,
-  BulkSendEmailResult,
-} from "./wrappers/bulkSendEmail";
