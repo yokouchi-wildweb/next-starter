@@ -1,4 +1,4 @@
-role: **caravan** (load the commits quests made onto one line, the caravan; depart it to main once for many orders: the checks, the push, the answers; a safe point only when asked) | read by the quest caravan, or a session the user tells to load / depart quest work
+role: **caravan** (load the commits quests made onto one line, the caravan; depart it to main once for many orders: the checks, the push, the answers; never a safe point) | read by the quest caravan, or a session the user tells to load / depart quest work
 where: a linked worktree on the caravan's own branch | never the main checkout, never its local `main` ref (HQ D176; `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`, else STOP)
 words: load = put an order's commits on the caravan | depart = ship the caravan to main
 
@@ -16,10 +16,10 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the caravan (short sha)
 
-## DEPART (`depart [safe]`: only on the human's word; `safe` = the human asked for a safe departure)
+## DEPART (`depart`: only on the human's word; always a plain ship, never `--safe`: HQ D204)
 1. note the orders on the caravan: the `order: <id>` lines of `git log --format=%B origin/main..HEAD`
 2. `git fetch origin main` → `git rebase origin/main` | a conflict → CONFLICT RULES → `git rebase --continue`
-3. `/ship` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; the area checks of what the caravan carries, the worktree push route) | `safe` → `/ship --safe` instead (the full checks on the tip, the safe point tag)
+3. `/ship` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; the area checks of what the caravan carries, the worktree push route)
 4. a check failed:
    - find the orders behind it: `git log --format='%h %s' origin/main..HEAD -- <files in the failure>` and their `order:` lines
    - where two orders' work meets (a type both changed, an import one removed) → fix it on the caravan as its own commit (`caravan: <the joint fix>`), back to 3
@@ -34,4 +34,4 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
    - a draft whose first line is `also_of: <a departed order id> | status:<s> | why:<…>` (the departed order asked for it) → answer that order too, right after:
      - the rest of the draft as `--body`, `--status=<s>`, `--force="<departed order id> の依頼の指示: <why>"` (it is someone else's order)
      - its file already in done/ → leave it | `also_of:` names an order that did not depart → leave it for that order's departure
-7. report (Japanese): `safe` → the safe point tag (or `セーフポイントなし: <理由>`), the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
+7. report (Japanese): the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
