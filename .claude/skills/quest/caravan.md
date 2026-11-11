@@ -31,5 +31,7 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
    - its draft: `$(git rev-parse --git-common-dir)/quest/<id>.resolution.md` (or the path the caller gives) | missing → leave the order open, report it
    - `node .claude/skills/order/mailbox.mjs resolve <the order file> --status=done --pushed=yes --commit=<sha> --body=<draft>` (council orders that stopped short: `--status=partial`) | leave the draft: the caller removes it (never `rm` it here)
    - an order with no commit (an investigation) the caller names → the same with `--commit=- --pushed=-`
-   - a draft whose first line is `also_of: <a departed order id> | status:<s> | why:<…>` (the departed order asked for it) → answer that order too, right after: the rest of the draft as `--body`, `--status=<s>`, `--force="<departed order id> の依頼の指示: <why>"` (it is someone else's order) | its file already in done/ → leave it | an `also_of:` naming an order that did not depart → leave it for that order's departure
+   - a draft whose first line is `also_of: <a departed order id> | status:<s> | why:<…>` (the departed order asked for it) → answer that order too, right after:
+     - the rest of the draft as `--body`, `--status=<s>`, `--force="<departed order id> の依頼の指示: <why>"` (it is someone else's order)
+     - its file already in done/ → leave it | `also_of:` names an order that did not depart → leave it for that order's departure
 7. report (Japanese): `safe` → the safe point tag (or `セーフポイントなし: <理由>`), the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
