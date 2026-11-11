@@ -6,7 +6,7 @@
 // - 種類(kind): grant = 付与の種類 admin_adjustment、compensation = compensation(お詫び・補填)。区分はどちらも admin_adjustment
 //   (発行には数えない。AMENDMENT 1 = c)、reason_key で見分ける
 // - 飛ばす(書かない): 知らない id・削除済みのユーザー。先に止める: 額が正の整数でない・重なり・空・上限 MAX_BULK_GRANT_USERS 超え・知らない通貨・理由なし
-// - notify: commit の後に 1 人ずつ sendAdjustmentNotification(お知らせの機能が閉じていれば送らない。失敗は付与を戻さず notifyFailed に並べる)
+// - notify: commit の後に 1 人ずつ sendAdjustmentNotification(連絡 wallet.adjustmentNotice を受け取り箱へ。送り手は失敗を投げずにログに出す。投げた分は付与を戻さず notifyFailed に並べる)
 // - 取り消し: walletService.reverseHistory({ requestBatchId })(pnpm task wallet:reverse-history -- --batch <requestBatchId>)
 // 呼び手: 運用コマンド pnpm task wallet:bulk-grant。後で管理画面からも同じ関数を呼ぶ(L1.34)
 

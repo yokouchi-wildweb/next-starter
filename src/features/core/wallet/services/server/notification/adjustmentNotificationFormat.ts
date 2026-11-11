@@ -1,5 +1,5 @@
 // src/features/core/wallet/services/server/notification/adjustmentNotificationFormat.ts
-// 残高の通知で共通に使う型・ラベル・金額の整形
+// 残高の通知(連絡 wallet.adjustmentNotice・失効の知らせ)で差し込む値の整形
 
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 
@@ -7,8 +7,11 @@ import { walletConfig, type WalletType } from "@/features/wallet/config";
 // ラベル定義
 // ---------------------------------------------------------------------------
 
-/** 操作方法の表示ラベル */
+/** 操作方法の表示ラベル(連絡 wallet.adjustmentNotice の {{methodLabel}}) */
 export const CHANGE_METHOD_LABELS = walletConfig.adjustmentNotification.changeMethodLabels;
+
+/** 理由の行の見出し(連絡 wallet.adjustmentNotice の {{reasonLine}} = 「\n理由: <理由>」。理由が無ければ行ごと出さない) */
+export const REASON_LABEL = "理由";
 
 // ---------------------------------------------------------------------------
 // フォーマッタ
@@ -38,16 +41,3 @@ export function formatDelta(
       return formatted;
   }
 }
-
-// ---------------------------------------------------------------------------
-// 型
-// ---------------------------------------------------------------------------
-
-export type AdjustmentNotificationParams = {
-  walletType: WalletType;
-  changeMethod: string;
-  amount: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  reason?: string | null;
-};

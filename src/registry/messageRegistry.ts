@@ -43,4 +43,18 @@ export const messageRegistry: MessageRegistry = {
     definition: () => import("@/features/core/user/messages/registrationComplete"),
     view: () => import("@/features/core/user/messages/views/registrationComplete"),
   },
+  "wallet.adjustmentNotice": {
+    key: "wallet.adjustmentNotice",
+    definition: () => import("@/features/core/wallet/messages/adjustmentNotice"),
+  },
+  "wallet.expiredNotice": {
+    key: "wallet.expiredNotice",
+    definition: () => import("@/features/core/wallet/messages/expiredNotice"),
+    view: () => import("@/features/core/wallet/messages/views/expiredNotice"),
+  },
+  "wallet.expiringNotice": {
+    key: "wallet.expiringNotice",
+    definition: () => import("@/features/core/wallet/messages/expiringNotice"),
+    view: () => import("@/features/core/wallet/messages/views/expiringNotice"),
+  },
 };

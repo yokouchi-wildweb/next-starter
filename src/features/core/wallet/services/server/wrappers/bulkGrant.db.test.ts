@@ -29,7 +29,6 @@ let makeUser: (over?: Record<string, unknown>) => Promise<string>;
 let balanceOf: (userId: string) => Promise<number>;
 let historiesOfBatch: (batch: string) => Promise<HistoryRow[]>;
 let noticesOf: (userId: string) => Promise<number>;
-let notificationOpen: boolean;
 let cleanup: () => Promise<void>;
 
 describe("bulkGrant(実 DB)", { skip }, () => {
@@ -38,15 +37,15 @@ describe("bulkGrant(実 DB)", { skip }, () => {
     reverse = (await import("./reverseHistory")).reverseHistory;
     const { runAsSystem } = await import("@/lib/audit");
     asSystem = (fn) => runAsSystem(fn);
-    const { gate } = await import("@/featureGate");
-    notificationOpen = gate.enabled("notification");
     const { db } = await import("@/lib/drizzle");
-    const { and, eq, inArray, like, sql } = await import("drizzle-orm");
+    const { and, eq, inArray, like } = await import("drizzle-orm");
     const { UserTable } = await import("@/features/core/user/entities/drizzle");
     const { USER_PROVIDER_TYPES } = await import("@/features/core/user/constants");
     const { WalletTable } = await import("@/features/core/wallet/entities/drizzle");
     const { WalletHistoryTable } = await import("@/features/core/walletHistory/entities/drizzle");
-    const { NotificationTable } = await import("@/features/core/notification/entities/drizzle");
+    const { MessageInboxItemTable } = await import("@/features/core/messaging/entities/inbox");
+    const { MessageDeliveryTable } = await import("@/features/core/messaging/entities/delivery");
+    const { MessageDispatchTable } = await import("@/features/core/messaging/entities/drizzle");
     makeUser = async (over = {}) => {
       const [row] = await db
         .insert(UserTable)
@@ -58,12 +57,17 @@ describe("bulkGrant(実 DB)", { skip }, () => {
       (await db.select().from(WalletTable).where(and(eq(WalletTable.user_id, userId), eq(WalletTable.type, WALLET))))[0]?.balance ?? 0;
     historiesOfBatch = async (batch) =>
       (await db.select().from(WalletHistoryTable).where(eq(WalletHistoryTable.request_batch_id, batch))) as unknown as HistoryRow[];
+    // 残高の変更の知らせ(連絡 wallet.adjustmentNotice)は受け取り箱の行(利用者ごと)
     noticesOf = async (userId) =>
-      (await db.select({ id: NotificationTable.id }).from(NotificationTable).where(sql`${userId} = ANY(${NotificationTable.target_user_ids})`)).length;
+      (await db.select({ id: MessageInboxItemTable.id }).from(MessageInboxItemTable).where(eq(MessageInboxItemTable.user_id, userId))).length;
     cleanup = async () => {
       const ids = (await db.select({ id: UserTable.id }).from(UserTable).where(like(UserTable.providerUid, `${TAG}:%`))).map((r) => r.id);
       if (ids.length > 0) {
-        for (const id of ids) await db.delete(NotificationTable).where(sql`${id} = ANY(${NotificationTable.target_user_ids})`);
+        // 知らせの回(配達・受け取り箱の行は回と一緒に消える)
+        const dispatchIds = (
+          await db.select({ id: MessageDeliveryTable.dispatch_id }).from(MessageDeliveryTable).where(inArray(MessageDeliveryTable.user_id, ids))
+        ).map((r) => r.id);
+        if (dispatchIds.length > 0) await db.delete(MessageDispatchTable).where(inArray(MessageDispatchTable.id, [...new Set(dispatchIds)]));
         await db.delete(WalletHistoryTable).where(inArray(WalletHistoryTable.user_id, ids));
         await db.delete(UserTable).where(inArray(UserTable.id, ids));
       }
@@ -102,14 +106,14 @@ describe("bulkGrant(実 DB)", { skip }, () => {
     assert.deepEqual([await balanceOf(a), await balanceOf(b)], [0, 0]);
   });
 
-  test("grant = 付与の種類 admin_adjustment。notify はお知らせを 1 人 1 通(お知らせの機能が閉じていれば 0)", async () => {
+  test("grant = 付与の種類 admin_adjustment。notify は受け取り箱の知らせを 1 人 1 通", async () => {
     const a = await makeUser();
     const done = await asSystem(() => mod.bulkGrant({ walletType: WALLET, kind: "grant", reason: "キャンペーン", grants: [{ userId: a, amount: 5 }], notify: true }));
     const [row] = await historiesOfBatch(done.requestBatchId!);
     assert.deepEqual([row.reason_category, row.reason_key], ["admin_adjustment", "admin_adjustment"]);
-    // notified = 送る処理を通った人数(お知らせの機能が閉じていれば送らずに戻るので、どちらでも 1)。実際に届いたかは表で見る
+    // notified = 送る処理を通った人数。実際に届いたかは受け取り箱の表で見る
     assert.deepEqual([done.notified, done.notifyFailed], [1, []]);
-    assert.equal(await noticesOf(a), notificationOpen ? 1 : 0);
+    assert.equal(await noticesOf(a), 1);
   });
 
   test("先に止める(何も書かない): 知らない通貨・知らない種類・理由なし・空・重なり・額の誤り・上限超え", async () => {

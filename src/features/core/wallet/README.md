@@ -179,7 +179,7 @@ const result = await walletService.adjustBalance(
 
 ##### 管理者操作時のユーザー通知
 
-管理画面からの残高変更（`POST /api/admin/wallet/[userId]/adjust`）時に、ユーザーへ通知を送信できる。操作タイプ別にフィーチャーフラグで制御:
+管理画面からの残高変更（`POST /api/admin/wallet/[userId]/adjust`）時と一括付与（`pnpm task wallet:bulk-grant` の notify）時に、ユーザーの受け取り箱へ知らせ（連絡 `wallet.adjustmentNotice`、お知らせ = inApp）を送れる。管理画面の操作は操作タイプ別にフラグで制御:
 
 ```typescript
 // app-features.config.ts
@@ -192,7 +192,9 @@ wallet: {
 }
 ```
 
-通知の文言は `src/features/core/wallet/config.ts` の `adjustmentNotification`。組み立てごと変える fork は `adjustmentNotificationTemplate.replace.ts`(`buildTitle`・`buildBody` を export)を作り、1 行スイッチ `adjustmentNotificationTemplate.ts` の向きを書き換える。
+- 文面は連絡の定義 `messages/adjustmentNotice.ts`（題「{{currencyLabel}}残高が変更されました」、本文「操作 / 金額 / 残高」の行 + `{{reasonLine}}`）。変える fork は隣に `adjustmentNotice.override.ts` を置く（[messaging README](../messaging/README.md)・src/lib/messaging/README.md）
+- 差し込む値は送り手 `services/server/notification/sendAdjustmentNotification.ts` の `adjustmentNoticeVars` が組む: `currencyLabel`（通貨の label）・`methodLabel`（`config.ts` の `adjustmentNotification.changeMethodLabels`、知らない操作はそのまま）・`delta`（符号付きの額）・`balance`（変更後の残高）・`reasonLine`（理由があれば「改行 + 理由: <理由>」、無ければ空）
+- 送信の失敗は残高の変更に影響しない（送り手は投げずにログに出す）。取引の連絡なので受信者の好みでは止まらない
 
 #### reserveBalance
 
@@ -392,7 +394,7 @@ Extra に書いた型は、既定の型と深く合成されてそのまま残�
 - 足した欄やリテラル型を後で型で読む通貨は、その型ごと書く。例: チケット通貨 `export type Extra = { currency: { premium_ticket: CurrencyConfig & { isTicket: true } } };` → fork のコードの `(typeof walletConfig.currency)[K] extends { isTicket: true }` が効く(`CurrencyConfig` だけで書くと `isTicket` が消え、チケットの種別の型が never になる)
 - 古い設定から移すときは、通貨のキーを手で数えずにコマンドで書き出し、全部を Extra と値に写す。移した後の確かめ: `npx tsx -e 'import("./src/features/core/wallet/config.ts").then((m) => console.log(Object.keys(m.walletConfig.currency).join("\n")))'`
 
-古い定数名との対応(設定の議会 D95): `CURRENCY_CONFIG` → `walletConfig.currency`・`WALLET_EXPIRATION_CONFIG` → `.expiration`・`WALLET_EXPIRATION_NOTICE_SETTINGS` → `.expirationNoticeSettings`・`WALLET_LOT_PRUNE_RETENTION_DAYS` → `.lotPruneRetentionDays`・`WALLET_PRE_EXPIRY_NOTICE_COPY` → `.preExpiryNoticeCopy`・`WALLET_EXPIRED_NOTICE_COPY` → `.expiredNoticeCopy`・`WALLET_ADJUSTMENT_NOTIFICATION` → `.adjustmentNotification`・`APP_FEATURES.wallet.{enableAdminBalanceAdjust,purchaseRestriction,purchaseSuspension,notifyOnAdjust}` → `walletConfig.<同じ鍵>`・`CURRENCY_ICONS` → `walletUiConfig.currencyIcons`(`config.ui.ts`)。機能の入切 `wallet.enabled` は門番の規則の持ち物で、ここには無い。
+古い定数名との対応(設定の議会 D95): `CURRENCY_CONFIG` → `walletConfig.currency`・`WALLET_EXPIRATION_CONFIG` → `.expiration`・`WALLET_EXPIRATION_NOTICE_SETTINGS` → `.expirationNoticeSettings`・`WALLET_LOT_PRUNE_RETENTION_DAYS` → `.lotPruneRetentionDays`・`WALLET_PRE_EXPIRY_NOTICE_COPY` / `WALLET_EXPIRED_NOTICE_COPY` → 連絡の定義 `messages/expiringNotice.ts` / `expiredNotice.ts`・`WALLET_ADJUSTMENT_NOTIFICATION` → 文言は `messages/adjustmentNotice.ts`、操作の表示だけ `.adjustmentNotification.changeMethodLabels`・`APP_FEATURES.wallet.{enableAdminBalanceAdjust,purchaseRestriction,purchaseSuspension,notifyOnAdjust}` → `walletConfig.<同じ鍵>`・`CURRENCY_ICONS` → `walletUiConfig.currencyIcons`(`config.ui.ts`)。機能の入切 `wallet.enabled` は門番の規則の持ち物で、ここには無い。
 
 購入の制限 `purchaseRestriction`(`"none"` | `"phoneVerified"`、上流の既定 `"none"`、設定 D107・D109): `"phoneVerified"` は SMS 認証済みの利用者だけが購入できる。SMS 認証の機能 `phoneVerification` を要するので、config.ts の `featureRequirements` で宣言し、機能が閉のままなら門 build の `pnpm check proxies` が失敗する(直し方: `pnpm ops features set phoneVerification on` か上書きに `"none"`)。サーバーでも強制する(D111): 財布に入金する購入(purchaseRequest の type 設定 `requiresWalletType`)の開始・再利用・再開で `initiatePurchase` が `assertWalletPurchaseAllowed`(`services/server/wrappers/purchaseRestriction.ts`)を呼び、必須で未認証なら 403。財布を通らない購入(direct_sale 等)は止めない。画面(`WalletBalance`)は表示のためだけに同じ値を読む
 
@@ -840,7 +842,7 @@ UI レシピ例（ダウンストリームで実装）:
 #### 設定(上書き `src/config/features/wallet.config.ts` の `expiration`。既定は `src/features/core/wallet/config.ts`)
 
 ```typescript
-// 上書きは値がリテラルだけなので、文面(copy)は定数を参照せず文字列を直に書く(既定の文面は walletConfig.preExpiryNoticeCopy / expiredNoticeCopy)
+// config は段と経路だけ。文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)
 expiration: {
   regular_coin: {
     expirationDays: 180,
@@ -848,10 +850,10 @@ expiration: {
     notice: {
       // 失効予告: 段の配列。空配列 = 予告なし
       preExpiry: [
-        { daysBefore: 30, channels: ["email"], copy: { emailSubject: "…", emailBody: "…", notificationTitle: "…", notificationBody: "…" } },
+        { daysBefore: 30, channels: ["email"] },
       ],
       // 失効時の本通知: null = 本通知なし
-      expired: { channels: ["inApp"], copy: { emailSubject: "…", emailBody: "…", notificationTitle: "…", notificationBody: "…" } },
+      expired: { channels: ["inApp"] },
     },
   },
 },
@@ -859,9 +861,11 @@ expiration: {
 
 - `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
 - `channels`: `"email"` / `"inApp"` のどちらか、または両方。段ごと・通知ごとに選べる
-- **文言の編集**: 既定の文面は `config.ts` の `preExpiryNoticeCopy` / `expiredNoticeCopy`(上書きで同じ鍵を書けば変わる)。
-  `{{currencyLabel}}` などのプレースホルダが送信時に差し込まれる（使える名前は `config.ts` のコメント参照。書式は lib/structuredDocument の差し込み 1 本: 名前は英数字と _、知らない名前はそのまま残る）。
-  段ごと・通貨ごとに文面を変えたい場合は、その段の `copy` に文字列を直に書く
+- **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。メールの件名・本文とお知らせの題・本文を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
+  - 差し込む名前: 共通 `{{currencyLabel}}`・`{{amount}}`・`{{displayName}}`（宛名、名前が無ければ「お客様」）・`{{serviceNameShort}}` / 予告 `{{expiresOn}}`・`{{daysBefore}}` / 本通知 `{{expiredOn}}`・`{{balanceAfter}}`
+  - メールの見た目: `messages/views/<名前>.tsx`（1 行スイッチ → `.default.tsx`、共通の部品 `messages/parts/NoticeMailView.tsx`）。段落の位置の約束: `paragraphs` [0] 見出しの札（「… からのお知らせ」、ロゴの下）→ [1] 宛名（「… 様」）→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。override で文言を直すときもこの並びを保つ（段落が欠けても描き方は落ちない）
+  - お知らせ（inApp）は受け取り箱（`message_inbox_items`）に入る
+- 送り方: 送る口 `messagingService.sendMessage`（取引の連絡、受信者の好みでは止まらない）。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（回の表と鍵の移し先の表の両方）
 - 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
 - スケジュール登録は不要: `wallet-expiration-notice` は配線済みで、`notice` を設定した時点から毎時動く（Vercel Hobby では 1 日 1 回）。
@@ -962,7 +966,7 @@ const { items, nextCursor } = await walletService.listExpirationResults({
   取りこぼすのを防ぐ安全ラグ）。`requestBatchId` 指定時はラグなし
   （`sweepExpiredWalletLots` の戻り値 `requestBatchId` でその実行分だけを読む用途）
 - cursor はどちらも不透明な文字列として扱う（中身を組み立てない）
-- 進捗は `cron_checkpoints`、二重送信防止は `messagingService.send` の `idempotencyKey` で足りる。
+- 進捗は `cron_checkpoints`、二重送信防止は `messagingService.sendMessage` の `idempotencyKey` で足りる（ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`）。
   実装例は組み込みの通知（`services/server/notification/sendExpiredNotices.ts` / `sendPreExpiryNotices.ts`）を参照
 - 予告と本通知を別々の cron に分けたい場合も、上記2つの関数をそれぞれ呼ぶルートを自前で用意すればよい
 - ユーザー向け送信は必ず `messagingService` 経由（`lib/mail` 直呼び禁止）。新しい cron は OPS_TASKS の4点配線に従う
@@ -977,7 +981,8 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 - 初期化の対象通貨の決定: `utils/expiration.ts` の `resolveWalletLotsInitTypes`（テスト: `pnpm test src/features/core/wallet/utils/expiration.test.ts`）
 - 照会: `services/server/lots/getExpiringLots.ts`
 - 失効通知の cron 本体: `services/server/notification/sendWalletExpirationNotices.ts`
-  （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`）
+  （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`、テスト `expirationNoticeSender.test.ts`）
+- 文面: `messages/expiringNotice.ts`・`expiredNotice.ts`・`adjustmentNotice.ts`（テスト: `pnpm test src/features/core/wallet/messages`）
 - 通知用の対象抽出: `services/server/lots/findUsersWithExpiringLots.ts`
 - 通知用のスイープ結果照会: `services/server/lots/listExpirationResults.ts`
 - 消費済みロットの prune: `services/server/lots/pruneConsumedLots.ts`
@@ -1107,6 +1112,7 @@ src/features/core/wallet/
 │   ├── form.ts               # フォーム型
 │   └── drizzle.ts            # Drizzleテーブル定義
 │
+├── messages/             # 連絡の定義(expiringNotice・expiredNotice・adjustmentNotice)、views/ = メールの描き方の 1 行スイッチ、parts/ = 描き方の部品
 ├── services/
 │   ├── types.ts              # パラメータ・オプション型
 │   ├── client/               # クライアントサービス
@@ -1115,8 +1121,8 @@ src/features/core/wallet/
 │       ├── walletService.ts  # メインサービス
 │       ├── drizzleBase.ts    # ベースCRUD
 │       ├── notification/
-│       │   ├── adjustmentNotificationTemplate.ts  # 通知の組み立ての 1 行スイッチ（既定 .default.ts、共通の整形 adjustmentNotificationFormat.ts）
-│       │   └── sendAdjustmentNotification.ts      # 残高変更通知の送信
+│       │   ├── adjustmentNotificationFormat.ts    # 差し込む値の整形（額・符号・操作の表示）
+│       │   └── sendAdjustmentNotification.ts      # 残高変更の知らせ（連絡 wallet.adjustmentNotice）の送信
 │       └── wrappers/
 │           ├── utils.ts      # ユーティリティ（getOrCreateWallet等）
 │           ├── adjustBalance.ts

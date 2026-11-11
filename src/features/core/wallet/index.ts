@@ -39,7 +39,6 @@ export type {
   WalletExpirationConfig,
   WalletExpirationNoticeConfig,
   WalletExpirationNoticeChannel,
-  WalletExpirationNoticeCopy,
   WalletPreExpiryNoticeStage,
   WalletExpiredNotice,
 } from './config';

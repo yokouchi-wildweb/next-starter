@@ -11,6 +11,7 @@ import { runBudgetedBatches } from "@/lib/cron";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { advanceCheckpoint, findCheckpoint } from "@/features/core/cronCheckpoint/services/server";
 import { MESSAGING_SOURCES } from "@/features/core/messaging/constants/sources";
+import { message as expiredNoticeMessage } from "@/features/core/wallet/messages/expiredNotice";
 import { getExpiredNotice } from "@/features/core/wallet/utils/expiration";
 import { formatLocalDate } from "@/features/core/wallet/utils/expirationNoticeDate";
 import { listExpirationResults } from "../lots/listExpirationResults";
@@ -94,7 +95,7 @@ export async function sendExpiredNotices(options: {
               userId: item.userId,
               idempotencyKey: `wallet-expired:${item.historyId}`,
               channels: notice.channels,
-              copy: notice.copy,
+              message: expiredNoticeMessage,
               vars: {
                 currencyLabel: label,
                 amount: formatAmount(item.expiredAmount, walletType),

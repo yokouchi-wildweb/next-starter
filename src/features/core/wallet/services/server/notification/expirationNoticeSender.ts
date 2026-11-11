@@ -2,16 +2,19 @@
 // 失効通知（予告・本通知）共通の送信処理
 //
 // 1ページ分の送信ジョブを受け取り、送信済みの除外 → 送信対象の絞り込み → 送信 を行う。
-// 文面は wallet の config.ts の expiration の copy（プレースホルダ付き文字列）を差し込んで作る。
+// 文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)、送る口は messagingService.sendMessage。
+// ジョブは定義に差し込む値(vars)を持ち、宛名(displayName)とサービスの短い名前はここで足す。
 
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { isDomainError } from "@/lib/errors";
-import { replaceVariables } from "@/lib/structuredDocument/shared";
+import { business } from "@/business";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { messagingService } from "@/features/core/messaging/services/server/messagingService";
 import type { MessagingSource } from "@/features/core/messaging/constants/sources";
-import { walletConfig, type WalletExpirationNoticeChannel, type WalletExpirationNoticeCopy } from "@/features/wallet/config";
+import { walletConfig, type WalletExpirationNoticeChannel } from "@/features/wallet/config";
+import type { message as expiringNoticeMessage } from "@/features/core/wallet/messages/expiringNotice";
+import type { message as expiredNoticeMessage } from "@/features/core/wallet/messages/expiredNotice";
 
 /**
  * 連続でこの件数失敗したら、その実行を打ち切る。
@@ -25,8 +28,9 @@ export type ExpirationNoticeJob = {
   /** 二重送信防止キー（同じ通知対象には常に同じ値になること） */
   idempotencyKey: string;
   channels: WalletExpirationNoticeChannel[];
-  copy: WalletExpirationNoticeCopy;
-  /** copy のプレースホルダに差し込む値 */
+  /** 送る連絡の定義(失効の予告か本通知) */
+  message: typeof expiringNoticeMessage | typeof expiredNoticeMessage;
+  /** 定義の vars のうち宛名・サービスの短い名前を除いた値(送る時に足す) */
   vars: Record<string, string>;
   source: MessagingSource;
 };
@@ -44,7 +48,7 @@ export type ExpirationNoticeCounts = {
   skippedNoChannel: number;
   /** ユーザーが存在しない、または削除済み（deleted_at あり）だった件数 */
   skippedUserMissing: number;
-  /** 送信に失敗した件数（再実行しても再送されない。message_dispatches で確認する） */
+  /** 送信に失敗した件数（再実行しても再送されない。message_dispatches・message_deliveries で確認する） */
   failed: number;
 };
 
@@ -85,31 +89,23 @@ export class ExpirationNoticeStopError extends Error {
   }
 }
 
-/**
- * copy のプレースホルダ {{name}} を差し込む。未定義の名前はそのまま残す。
- * 書式は lib/structuredDocument の差し込み 1 本(replaceVariables)に任せる
- */
-export function renderNoticeText(template: string, vars: Record<string, string>): string {
-  return replaceVariables(template, vars);
-}
-
 async function sendOne(
   job: ExpirationNoticeJob,
   channels: WalletExpirationNoticeChannel[],
+  displayName: string,
 ): Promise<"sent" | "alreadySent" | "failed"> {
   try {
-    const result = await messagingService.send({
-      recipient: { id: job.userId },
+    const result = await messagingService.sendMessage(job.message, {
+      recipient: { userId: job.userId },
       channels,
-      emailSubject: renderNoticeText(job.copy.emailSubject, job.vars),
-      emailBody: renderNoticeText(job.copy.emailBody, job.vars),
-      notificationTitle: renderNoticeText(job.copy.notificationTitle, job.vars),
-      notificationBody: renderNoticeText(job.copy.notificationBody, job.vars),
+      vars: { ...job.vars, displayName, serviceNameShort: business.serviceNameShort },
       source: job.source,
       idempotencyKey: job.idempotencyKey,
     });
-    const { email, inApp } = result.recipient;
-    return email.succeeded || inApp.succeeded ? "sent" : "failed";
+    // 1 つ以上の経路で送れた(sent)か、一時の失敗で送り直し待ち(queued、cron が送る)なら送った扱い
+    return result.deliveries.some((delivery) => delivery.status === "sent" || delivery.status === "queued")
+      ? "sent"
+      : "failed";
   } catch (error) {
     // 並走した別の実行が先に送った場合
     if (isDomainError(error) && error.status === 409) return "alreadySent";
@@ -140,9 +136,7 @@ export async function sendExpirationNoticeJobs(
   if (jobs.length === 0) return;
 
   // 1. 送信済みを除外（再実行で同じ対象を読み直したときに send() を空振りさせない）
-  const existingKeys = await messagingService.findExistingIdempotencyKeys(
-    jobs.map((job) => job.idempotencyKey),
-  );
+  const existingKeys = await messagingService.existingIdempotencyKeys(jobs.map((job) => job.idempotencyKey));
   const pending = jobs.filter((job) => !existingKeys.has(job.idempotencyKey));
   counts.alreadySent += jobs.length - pending.length;
   if (pending.length === 0) return;
@@ -152,6 +146,7 @@ export async function sendExpirationNoticeJobs(
     .select({
       id: UserTable.id,
       status: UserTable.status,
+      name: UserTable.name,
       email: UserTable.email,
       isDemo: UserTable.isDemo,
       deletedAt: UserTable.deletedAt,
@@ -161,7 +156,7 @@ export async function sendExpirationNoticeJobs(
   const userById = new Map(users.map((user) => [user.id, user]));
   const targetStatuses = walletConfig.expirationNoticeSettings.targetStatuses;
 
-  const sendable: { job: ExpirationNoticeJob; channels: WalletExpirationNoticeChannel[] }[] = [];
+  const sendable: { job: ExpirationNoticeJob; channels: WalletExpirationNoticeChannel[]; displayName: string }[] = [];
   for (const job of pending) {
     const user = userById.get(job.userId);
     // 汎用の remove は deleted_at を入れるだけで status を変えないため、ステータスとは別に見る
@@ -183,7 +178,8 @@ export async function sendExpirationNoticeJobs(
       counts.skippedNoChannel += 1;
       continue;
     }
-    sendable.push({ job, channels });
+    // 宛名は前のお知らせのメールと同じ(名前が無ければ「お客様」)
+    sendable.push({ job, channels, displayName: user.name ?? "お客様" });
   }
 
   // 3. 送信（sendConcurrency 件ずつ）
@@ -191,7 +187,7 @@ export async function sendExpirationNoticeJobs(
   for (let i = 0; i < sendable.length; i += concurrency) {
     if (Date.now() >= deadline.getTime()) throw new ExpirationNoticeStopError("deadline");
     const slice = sendable.slice(i, i + concurrency);
-    const outcomes = await Promise.all(slice.map(({ job, channels }) => sendOne(job, channels)));
+    const outcomes = await Promise.all(slice.map(({ job, channels, displayName }) => sendOne(job, channels, displayName)));
     for (const outcome of outcomes) {
       if (outcome === "failed") {
         counts.failed += 1;

@@ -22,28 +22,19 @@ export type WalletPurchaseRestriction = "none" | "phoneVerified";
 export type WalletExpirationNoticeChannel = "email" | "inApp";
 
 /**
- * 通知の文面。{{名前}} のプレースホルダが送信時に差し込まれる。
- * channels に含めないチャネルの文面は使われない。
+ * 失効予告の1段（「何日前に・どのチャネルで」送るか）。
+ * 文面は連絡の定義 src/features/core/wallet/messages/expiringNotice.ts(変えるなら隣に expiringNotice.override.ts。
+ * 段ごとに変えたいときは {{daysBefore}} を使う)
  */
-export type WalletExpirationNoticeCopy = {
-  emailSubject: string;
-  emailBody: string;
-  notificationTitle: string;
-  notificationBody: string;
-};
-
-/** 失効予告の1段（「何日前に・どのチャネルで・どの文面を」送るか） */
 export type WalletPreExpiryNoticeStage = {
   /** 失効の何日前に送るか（1以上の整数。同一通貨内で重複不可） */
   daysBefore: number;
   channels: WalletExpirationNoticeChannel[];
-  copy: WalletExpirationNoticeCopy;
 };
 
-/** 失効時の本通知 */
+/** 失効時の本通知(文面は連絡の定義 messages/expiredNotice.ts) */
 export type WalletExpiredNotice = {
   channels: WalletExpirationNoticeChannel[];
-  copy: WalletExpirationNoticeCopy;
 };
 
 export type WalletExpirationNoticeConfig = {
@@ -91,40 +82,6 @@ export type WalletExpirationConfig = {
    * 送信は wallet-expiration-notice cron が行う（スケジューラ登録が必要）。
    */
   notice?: WalletExpirationNoticeConfig;
-};
-
-// ---------------------------------------------------------------------------
-// 通知の文面（ダウンストリームで編集対象）
-// ---------------------------------------------------------------------------
-// 共通プレースホルダ:
-//   {{currencyLabel}} 通貨名（currency.config の label）
-//   {{amount}}        対象額（単位付き。例: "1,000 コイン"）
-// 失効予告のみ:
-//   {{expiresOn}}     失効日（例: "2026年10月1日"。対象が複数ロットなら最も早い失効日）
-//   {{daysBefore}}    その段の daysBefore
-// 本通知のみ:
-//   {{expiredOn}}     失効処理日
-//   {{balanceAfter}}  失効後の残高（単位付き）
-//
-// 段ごと・通貨ごとに文面を変えたい場合は、同じ形の定数を増やして copy に指定する。
-// 文面は上書きの中では定数を参照できない(値はリテラル)ので、変える段の copy に文字列を直に書く。
-
-/** 失効予告の文面（最小限。ダウンストリームで調整する） */
-const preExpiryNoticeCopy: WalletExpirationNoticeCopy = {
-  emailSubject: "{{currencyLabel}}の有効期限が近づいています",
-  emailBody:
-    "{{amount}} が {{expiresOn}} に有効期限を迎えます。\n期限を過ぎた分は失効しますので、お早めにご利用ください。",
-  notificationTitle: "{{currencyLabel}}の有効期限が近づいています",
-  notificationBody: "{{amount}} が {{expiresOn}} に失効します。",
-};
-
-/** 失効時の本通知の文面（最小限。ダウンストリームで調整する） */
-const expiredNoticeCopy: WalletExpirationNoticeCopy = {
-  emailSubject: "{{currencyLabel}}が失効しました",
-  emailBody:
-    "有効期限切れにより {{amount}} が失効しました。\n失効後の残高: {{balanceAfter}}",
-  notificationTitle: "{{currencyLabel}}が失効しました",
-  notificationBody: "有効期限切れにより {{amount}} が失効しました。（残高: {{balanceAfter}}）",
 };
 
 /**
@@ -236,18 +193,13 @@ export type WalletConfig = {
   expirationNoticeSettings: { targetStatuses: readonly string[]; sendConcurrency: number; dateTimeZone: string };
   /** 消費し尽くしたロット（remaining = 0）を物理削除するまでの保持日数 */
   lotPruneRetentionDays: number;
-  /** 失効予告の既定の文面 */
-  preExpiryNoticeCopy: WalletExpirationNoticeCopy;
-  /** 失効時の本通知の既定の文面 */
-  expiredNoticeCopy: WalletExpirationNoticeCopy;
-  /** 管理者による残高変更通知の文言(組み立て: services/server/notification/adjustmentNotificationTemplate.default.ts) */
+  /**
+   * 管理者による残高変更通知の値の表示(文面は連絡の定義 messages/adjustmentNotice.ts。
+   * 送り手: services/server/notification/sendAdjustmentNotification.ts)
+   */
   adjustmentNotification: {
-    /** タイトルの「<通貨名>」の後ろ */
-    titleSuffix: string;
-    /** 操作方法の表示ラベル */
+    /** 操作方法の表示ラベル(文面の {{methodLabel}}) */
     changeMethodLabels: Readonly<Record<string, string>>;
-    /** 本文の各行の見出し */
-    bodyLabels: { method: string; amount: string; balance: string; reason: string };
   };
 };
 
@@ -281,12 +233,13 @@ const defaults: WalletConfig = {
    *     sweepEnabled: true,
    *     notice: {
    *       preExpiry: [
-   *         { daysBefore: 30, channels: ["email"], copy: WALLET_PRE_EXPIRY_NOTICE_COPY },
-   *         { daysBefore: 7, channels: ["email", "inApp"], copy: WALLET_PRE_EXPIRY_NOTICE_COPY },
+   *         { daysBefore: 30, channels: ["email"] },
+   *         { daysBefore: 7, channels: ["email", "inApp"] },
    *       ],
-   *       expired: { channels: ["email", "inApp"], copy: WALLET_EXPIRED_NOTICE_COPY },
+   *       expired: { channels: ["email", "inApp"] },
    *     },
    *   },
+   *   (文面は連絡の定義 messages/expiringNotice.ts・expiredNotice.ts。変えるなら隣の <名前>.override.ts)
    */
   expiration: {
     regular_coin: { expirationDays: null, sweepEnabled: false },
@@ -318,24 +271,13 @@ const defaults: WalletConfig = {
    * wallet-lots-prune cron（日次推奨）とセットで運用する。
    */
   lotPruneRetentionDays: 30,
-  preExpiryNoticeCopy,
-  expiredNoticeCopy,
   adjustmentNotification: {
-    /** タイトルの「<通貨名>」の後ろ */
-    titleSuffix: "残高が変更されました",
-    /** 操作方法の表示ラベル */
+    /** 操作方法の表示ラベル(文面の {{methodLabel}}) */
     changeMethodLabels: {
       INCREMENT: "増加",
       DECREMENT: "減少",
       SET: "残高設定",
     } as Readonly<Record<string, string>>,
-    /** 本文の各行の見出し */
-    bodyLabels: {
-      method: "操作",
-      amount: "金額",
-      balance: "残高",
-      reason: "理由",
-    },
   },
 };
 
