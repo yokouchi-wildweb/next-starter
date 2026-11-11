@@ -4,7 +4,7 @@
 
 import * as React from "react";
 
-import { Button as ShadcnButton } from "@/components/Primitives/Button";
+import { Button as ShadcnButton, type ButtonSlot } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
 import { buttonVariants, type ButtonStyleProps } from "./button-variants";
@@ -13,6 +13,8 @@ export type ButtonProps = React.ComponentPropsWithoutRef<typeof ShadcnButton> &
   ButtonStyleProps & {
     /** クリックイベントを親要素に伝播させるか @default false */
     propagateClick?: boolean;
+    /** 印(data-slot)の名前。上流の包む部品だけが使う(既定 button)。props の data-slot はこれに負ける */
+    slot?: ButtonSlot;
   };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

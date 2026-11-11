@@ -83,8 +83,10 @@ const BottomNavMenuEntry = ({ item }: { readonly item: BottomNavMenuItem }) => (
   <BottomNavMenu
     item={item}
     trigger={
-      // id = メニュー項目の目印。Form/Button が自分の data-slot(button)を付けるので bottom-nav-item の印を持てず、狙う先がこれしか無いため残す
+      // 印 bottom-nav-item はリンクの項目と同じ。Button の data-slot は型つきの slot で渡す(props の data-slot は負ける)。
+      // id は項目ごとに狙う目印(key つき)として残す
       <Button
+        slot="bottom-nav-item"
         id={`bottom-nav-item-${item.key}`}
         type="button"
         variant="none"
