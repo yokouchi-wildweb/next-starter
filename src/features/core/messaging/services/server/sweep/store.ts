@@ -17,6 +17,7 @@ import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import { boundInboxImageRefs } from "../inbox/imageBinding";
 import { cleanupDetachedInboxImages, detachInboxImages, storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { bindExpansionImage } from "./expandImage";
+import { expiredDeliveriesDeleteSql, expiredDispatchesSelectSql, expiredEventsDeleteSql } from "./retentionSql";
 import type { MessageRetentionStore, MessageSweepStore } from "./types";
 
 const IN_FLIGHT = ["queued", "sending"] as const;
@@ -172,32 +173,11 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
 
 export const drizzleMessageRetentionStore: MessageRetentionStore = {
   async deleteEventsBefore(cutoff, limit) {
-    const result = await db.execute(sql`
-      WITH expired AS (
-        SELECT id FROM message_events
-        WHERE created_at < ${cutoff}
-        ORDER BY created_at
-        LIMIT ${limit}
-        FOR UPDATE SKIP LOCKED
-      )
-      DELETE FROM message_events WHERE id IN (SELECT id FROM expired) RETURNING id
-    `);
-    return rowsOf(result).length;
+    return rowsOf(await db.execute(expiredEventsDeleteSql(cutoff, limit))).length;
   },
 
   async deleteDeliveriesBefore(cutoff, limit) {
-    // 送っている途中の行(queued・sending)は消さない
-    const result = await db.execute(sql`
-      WITH expired AS (
-        SELECT id FROM message_deliveries
-        WHERE created_at < ${cutoff} AND status NOT IN ('queued', 'sending')
-        ORDER BY created_at
-        LIMIT ${limit}
-        FOR UPDATE SKIP LOCKED
-      )
-      DELETE FROM message_deliveries WHERE id IN (SELECT id FROM expired) RETURNING id
-    `);
-    return rowsOf(result).length;
+    return rowsOf(await db.execute(expiredDeliveriesDeleteSql(cutoff, limit))).length;
   },
 
   async deleteDispatchesBefore(cutoff, limit) {
@@ -206,15 +186,7 @@ export const drizzleMessageRetentionStore: MessageRetentionStore = {
     const detachedIds: string[] = [];
     const out = await db.transaction(async (tx) => {
       const expired = rowsOf<{ id: string; metadata: Record<string, unknown> | null }>(
-        await tx.execute(sql`
-          SELECT d.id, d.metadata FROM message_dispatches d
-          WHERE d.created_at < ${cutoff}
-            AND d.status NOT IN ('processing', 'scheduled')
-            AND NOT EXISTS (SELECT 1 FROM message_inbox_items i WHERE i.dispatch_id = d.id)
-          ORDER BY d.created_at
-          LIMIT ${limit}
-          FOR UPDATE OF d SKIP LOCKED
-        `),
+        await tx.execute(expiredDispatchesSelectSql(cutoff, limit)),
       );
       if (expired.length === 0) return { deleted: 0, movedKeys: 0, detachedImages: 0 };
       for (const row of expired) {
