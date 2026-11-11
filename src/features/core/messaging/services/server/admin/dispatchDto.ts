@@ -6,7 +6,8 @@
 //   (秘密の連絡は送る口が本文を残さないので、ここにも出ない)
 // - 宛先(address): 管理 API だけが使うので出す
 // - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文(失敗は状態と reason の符号で見る)
-// - 前の送る口の回(message_key が null): 件名・題は email_subject / notification_title、本文は email_body / notification_body
+// - 前の送る口の回(message_key が null): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
+//   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
 import type { MessageRecord } from "@/lib/messaging";
 
@@ -75,20 +76,14 @@ export type AdminDeliveryRow = {
 
 const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
-/** 前の送る口の回か(新しい列を持たない) */
-function isLegacy(row: MessageDispatch): boolean {
+/** 前の送る口の回か(定義の鍵と記録の段を持たない) */
+function isOldSend(row: MessageDispatch): boolean {
   return row.message_key === null;
 }
 
-/** 経路ごとの件名・題(前の送る口の回は email_subject / notification_title から) */
-export function headingsOf(
-  row: Pick<MessageDispatch, "headings" | "email_subject" | "notification_title">,
-): MessageChannelTextMap {
-  if (row.headings) return row.headings;
-  const legacy: MessageChannelTextMap = {};
-  if (row.email_subject) legacy.email = row.email_subject;
-  if (row.notification_title) legacy.inApp = row.notification_title;
-  return legacy;
+/** 経路ごとの件名・題 */
+export function headingsOf(row: Pick<MessageDispatch, "headings">): MessageChannelTextMap {
+  return row.headings ?? {};
 }
 
 export function toDispatchSummary(row: MessageDispatch): AdminDispatchSummary {
@@ -118,14 +113,6 @@ export function keepsDispatchBody(record: MessageRecord | null): boolean {
 }
 
 export function toDispatchDetail(row: MessageDispatch): AdminDispatchDetail {
-  const legacyBody = isLegacy(row)
-    ? {
-        ...(row.email_subject || row.email_body ? { email: { subject: row.email_subject, body: row.email_body } } : {}),
-        ...(row.notification_title || row.notification_body
-          ? { inApp: { title: row.notification_title, body: row.notification_body } }
-          : {}),
-      }
-    : null;
   const keep = keepsDispatchBody(row.record);
   return {
     ...toDispatchSummary(row),
@@ -136,7 +123,8 @@ export function toDispatchDetail(row: MessageDispatch): AdminDispatchDetail {
     metadata: row.metadata,
     templateId: row.template_id,
     templateVersion: row.template_version,
-    body: legacyBody && Object.keys(legacyBody).length > 0 ? legacyBody : keep ? row.rendered : null,
+    // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
+    body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
   };
 }

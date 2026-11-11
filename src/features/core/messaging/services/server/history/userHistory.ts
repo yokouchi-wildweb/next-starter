@@ -16,10 +16,7 @@ import { toUserHistoryItem, type UserMessageHistoryItem } from "./dto";
 /** 店が返す 1 行(DTO に要る列だけを選ぶ) */
 export type UserHistoryRow = {
   delivery: Pick<MessageDelivery, "id" | "channel" | "status" | "sent_at" | "createdAt">;
-  dispatch: Pick<
-    MessageDispatch,
-    "id" | "message_key" | "kind" | "source" | "headings" | "email_subject" | "notification_title"
-  >;
+  dispatch: Pick<MessageDispatch, "id" | "message_key" | "kind" | "source" | "headings">;
 };
 
 /** 読む口の DB(テストは偽物を渡す)。after より古い行を新しい順に limit 件 */

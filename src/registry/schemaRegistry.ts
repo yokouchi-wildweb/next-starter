@@ -23,8 +23,6 @@ export * from "@/features/core/messaging/entities/idempotencyKey";
 export * from "@/features/core/messaging/entities/inbox";
 export * from "@/features/core/messaging/entities/preference";
 export * from "@/features/core/messaging/entities/template";
-export * from "@/features/core/messaging/legacy/notification";
-export * from "@/features/core/messaging/legacy/notificationTemplate";
 export * from "@/features/core/milestone/entities/drizzle";
 export * from "@/features/core/pairedDevice/entities/drizzle";
 export * from "@/features/core/purchaseQuota/entities/drizzle";
