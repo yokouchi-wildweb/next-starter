@@ -7,7 +7,10 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 
 import { MessageDeliveryTable } from "../../entities/delivery";
+import { MessageDispatchTable } from "../../entities/drizzle";
 import { MessageInboxItemTable } from "../../entities/inbox";
+import { bindInboxImages } from "../../services/server/inbox/imageBinding";
+import { storageInboxImageLedger } from "../../services/server/inbox/imageBindingLedger";
 import { createInAppChannel } from "./createInAppChannel";
 
 export const channel = createInAppChannel({
@@ -36,5 +39,19 @@ export const channel = createInAppChannel({
   },
   async insertItems(rows) {
     await db.insert(MessageInboxItemTable).values([...rows]);
+  },
+  async bindImages(dispatchId, refs) {
+    // 回の行を排他で持って結ぶ(並ぶ束・送り直しは対応 metadata.inboxImages を読んで同じファイルを使う)
+    return db.transaction(async (tx) => {
+      const [dispatch] = await tx
+        .select({ id: MessageDispatchTable.id, actor_id: MessageDispatchTable.actor_id, metadata: MessageDispatchTable.metadata })
+        .from(MessageDispatchTable)
+        .where(eq(MessageDispatchTable.id, dispatchId))
+        .for("update");
+      if (!dispatch) return new Map(refs.map((ref) => [ref, ref]));
+      const { map, metadata } = await bindInboxImages(storageInboxImageLedger, tx, { ...dispatch, metadata: dispatch.metadata ?? null }, refs);
+      if (metadata) await tx.update(MessageDispatchTable).set({ metadata }).where(eq(MessageDispatchTable.id, dispatchId));
+      return map;
+    });
   },
 });

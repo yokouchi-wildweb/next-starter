@@ -3,11 +3,15 @@
 // 旧お知らせの写し(copy-legacy-notifications)の列の対応。DB に触らない純粋な関数だけ(本物の置き場もテストの置き場もこれで写す)。
 // - 新しい行の id は写し元の id から決める(回 = お知らせの id、共有の行 = お知らせの id、宛先ごとの行 = md5(お知らせの id:利用者の id)、
 //   テンプレート = 古い id)。だから INSERT … ON CONFLICT DO NOTHING で何度写しても同じ結果になり、写した行は写し元に結び付く
+// - 画像の台帳の行は回(messaging.dispatch / 回の id = お知らせの id / inApp.image)へ付け替える(lib.legacyCopyStore の images の段)
 // - 対応の決まり: ../../README.md「旧お知らせの写し」
 
 import { createHash } from "node:crypto";
 
+import { isStorageRef } from "@/lib/storage";
+
 import { MESSAGE_EXPAND_DONE, MessageTemplateVariablesSchema, type MessageChannelCount, type MessageTemplateVariable } from "../../entities/schema";
+import { INBOX_IMAGES_METADATA_KEY } from "../../services/server/inbox/imageBinding";
 
 /** 写した回の source(analytics は受け取り箱の既読の数だけに使う) */
 export const LEGACY_DISPATCH_SOURCE = "legacy.notification";
@@ -254,7 +258,11 @@ export function mapNotification(
       source: LEGACY_DISPATCH_SOURCE,
       actor_id: row.createdById,
       actor_type: row.senderType,
-      metadata: { legacyNotificationId: row.id },
+      // 画像(storage://)の台帳の行は images の段が古いお知らせの行からこの回へ付け替える(同じ id)。保持の掃除が外せるよう対応を残す
+      metadata: {
+        legacyNotificationId: row.id,
+        ...(isStorageRef(row.image) ? { [INBOX_IMAGES_METADATA_KEY]: { [row.image]: row.image } } : {}),
+      },
       createdAt,
       completed_at: row.publishedAt,
       template_id: row.notificationTemplateId,

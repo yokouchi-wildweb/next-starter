@@ -2,6 +2,7 @@
 // - 受信者ごとに message_inbox_items の行を書く(回の id は配達の行から引く)
 // - 同じ回 × 利用者の行が既にあれば書かない(送り直しで重ねない)
 // - 配達の行が見つからない宛先は permanent
+// - 画像は回ごとに 1 回 bindImages で結び、結んだ参照を書く
 // 実行: pnpm test src/features/core/messaging/channels/inApp
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -11,6 +12,7 @@ import { createInAppChannel } from "./createInAppChannel";
 
 function setup(existing: string[] = []) {
   const inserted: MessageInboxItemInsert[] = [];
+  const bindCalls: { dispatchId: string; refs: string[] }[] = [];
   const now = new Date("2026-11-11T00:00:00.000Z");
   const channel = createInAppChannel({
     now: () => now,
@@ -19,23 +21,28 @@ function setup(existing: string[] = []) {
     insertItems: async (rows) => {
       inserted.push(...rows);
     },
+    bindImages: async (dispatchId, refs) => {
+      bindCalls.push({ dispatchId, refs: [...refs] });
+      return new Map(refs.map((ref) => [ref, `${ref}#bound`]));
+    },
   });
-  return { channel, inserted, now };
+  return { channel, inserted, now, bindCalls };
 }
 
 const content = { title: "題", body: "本文", link: "/x", image: "storage://img" };
 
 test("受信者ごとにお知らせの行を書き、sent を返す", async () => {
-  const { channel, inserted, now } = setup();
+  const { channel, inserted, now, bindCalls } = setup();
   const results = await channel.send([
     { userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content },
     { userId: "u2", address: "u2", messageKey: "shop.notice", idempotencyKey: "d2", content },
   ]);
   assert.deepEqual(results.map((r) => r.kind), ["sent", "sent"]);
   assert.deepEqual(inserted, [
-    { dispatch_id: "dispatch-1", user_id: "u1", title: "題", body: "本文", link: "/x", image: "storage://img", published_at: now },
-    { dispatch_id: "dispatch-1", user_id: "u2", title: "題", body: "本文", link: "/x", image: "storage://img", published_at: now },
+    { dispatch_id: "dispatch-1", user_id: "u1", title: "題", body: "本文", link: "/x", image: "storage://img#bound", published_at: now },
+    { dispatch_id: "dispatch-1", user_id: "u2", title: "題", body: "本文", link: "/x", image: "storage://img#bound", published_at: now },
   ]);
+  assert.deepEqual(bindCalls, [{ dispatchId: "dispatch-1", refs: ["storage://img"] }], "回ごとに 1 回");
   assert.deepEqual(await channel.resolveAddresses!(["u1"]), [{ userId: "u1", address: "u1" }]);
 });
 
@@ -50,4 +57,11 @@ test("配達の行が見つからない宛先は permanent", async () => {
   const { channel } = setup();
   const [result] = await channel.send([{ userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "missing", content }]);
   assert.equal(result.kind, "permanent");
+});
+
+test("画像の無い行は結ばない", async () => {
+  const { channel, inserted, bindCalls } = setup();
+  await channel.send([{ userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content: { title: "題", body: "本文" } }]);
+  assert.equal(inserted[0]!.image, null);
+  assert.equal(bindCalls.length, 0);
 });

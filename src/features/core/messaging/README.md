@@ -53,7 +53,7 @@ src/features/core/messaging/
     ├── endpoints/               # 端末の帳簿（本人の宛先の登録・削除・一覧、退会の後片付け）
     ├── unsubscribe/             # ワンクリックの配信停止（署名つきトークン・停止の記録）
     ├── webhooks/                # provider の webhook の事件を記録と配達の行に当てる
-    ├── inbox/                   # 受け取り箱の利用者の service（見える行・既読）
+    ├── inbox/                   # 受け取り箱の利用者の service（見える行・既読）と画像を回に結ぶ部品（imageBinding）
     └── admin/                   # 管理の一括送信・回の読む口（DTO）・続きを送る（管理者の再検査・監査）
 ```
 
@@ -213,6 +213,16 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 既読: `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`。全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の自分の個別の既読の行を掃く（watermark が覆うので既読のまま）。
 
+受け取り箱の画像と保存の台帳（`inbox/imageBinding.ts`・台帳の口 `inbox/imageBindingLedger.ts`）:
+
+- 持ち主は回: 台帳の紐付け = `messaging.dispatch` / 回の id / `inApp.image`（用途 `notification.image`）。受け取り箱の行ではない理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指す（行ごとに持たせると宛先の数だけ複製と strip の描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消え、messaging は serviceRegistry に無いので storage の照合はこの種類を飛ばす（`unregistered`）。受け取り箱の行は回より長生きしない（FK cascade。保持の掃除はお知らせの行の無い回だけを消す）ので、回を消す時に外せば全部の道を覆う
+- 結ぶ: お知らせの行を書く前、回の行を排他で持った取引の中で（共有の行 = 展開の `store.expandOne`、宛先ごとの行 = inApp の経路の `bindImages`）。`storage://` でない値（固定の URL）は結ばない
+  - 回の actor が上げた未紐付けの `notification.image` の画像 → そのまま回に attach
+  - 別の人が上げた・他の業務行に結ばれた・用途の違う画像 → 回ごとに 1 回 copy（持ち主なし）して複製を attach（coupon の `issueCodeForOwner` と同じ。元と ref を共有しない）。複製の失敗は投げる（黙って画像なしにしない）
+  - 対応 `{ <元の参照>: <結んだ参照> }` を回の `metadata.inboxImages` に残し、束・送り直しは同じファイルを使う
+- 外す: 保持の掃除が回を消す取引の中で `metadata.inboxImages` の値を detach（`record_removed`）。取り下げ（S3、行を消して回は残す）は画像を回に結んだまま残し、保持の掃除が回を消す時に外れる
+- 写した前のお知らせ: 写しの task の images の段が、古い紐付け（`notification` / お知らせの id / `image`）を写した回（同じ id）へ付け替える（下の「旧お知らせの写し」）
+
 静かな行: `metadata.silent = true` の行（前のお知らせの `is_silent` を写した行）は、未読の数（`unread-count`）と未読だけの一覧（`unreadOnly`、未読のモーダル）に入れない。ふつうの一覧には出す（規則は `inbox/readState.ts` の `inboxSilentSql` / `isSilent`）。
 
 ### 受け取り箱の画面（client・部品・ページ /messages）
@@ -299,7 +309,7 @@ export const bulkAction = bulkMessageAction(
 - 定義が生成の一覧に無い・検査に落ちる回の行は `failed`（`definition_missing` / `definition_invalid`）。経路の項目が無ければ `suppressed` + `channel_off`
 - 続きを送る: `messagingService.continueSending(dispatchId)` が 1 つの回を 1 束だけ進める（展開 1 束 + 送る 1 束 + 閉じられるなら閉じる）。`processing` 以外は 409。管理の API・画面は管理の指令
 - **Vercel Hobby では cron が 1 日 1 回**（`pnpm generate cron -- --plan hobby`）。送信は遅れるだけで壊れない（最初の束は要求の中、残りは翌日か管理の「続きを送る」）。遅れの上限は保証しない。送信を使うなら毎分の cron（Pro か外のスケジューラから `pnpm task --due`）を勧める
-- `messaging-retention`（`45 18 * * *` UTC、毎日）: `retention` の日数を過ぎた行を `FOR UPDATE SKIP LOCKED` の束で消す。事件 30 日 / 配達 90 日（`queued`・`sending` は残す）/ 回 730 日（お知らせ `message_inbox_items` が参照する回と `processing`・`scheduled` の回は残す。消す前に `idempotency_key` を `message_idempotency_keys` へ移す → 送る口の重複の確かめは両方の表を見る）/ 移した鍵は `idempotencyKeyDays`（既定 null = 無期限）
+- `messaging-retention`（`45 18 * * *` UTC、毎日）: `retention` の日数を過ぎた行を `FOR UPDATE SKIP LOCKED` の束で消す。事件 30 日 / 配達 90 日（`queued`・`sending` は残す）/ 回 730 日（お知らせ `message_inbox_items` が参照する回と `processing`・`scheduled` の回は残す。消す前に `idempotency_key` を `message_idempotency_keys` へ移し、回に結んだお知らせの画像を台帳から外す（同じ取引、結果の `detachedImages`。実物は commit の後に消す）→ 送る口の重複の確かめは両方の表を見る）/ 移した鍵は `idempotencyKeyDays`（既定 null = 無期限）
 
 処理の値: `sweep` { `budgetMs` 240000・`deliveryChunkSize` 100・`expandChunksPerRun` 20・`leaseSeconds` 300 } / `retention` { `eventsDays` 30・`deliveriesDays` 90・`dispatchesDays` 730・`idempotencyKeyDays` null・`chunkSize` 1000・`budgetMs` 240000 }
 
@@ -342,18 +352,19 @@ export const bulkAction = bulkMessageAction(
 - 新しい行の id を写し元の id から決める: 回 = お知らせの id、共有の行 = お知らせの id、個人宛ての行 = `md5(<お知らせの id>::text || ':' || <利用者の id>::text)::uuid`、テンプレート = 古い id
 - 書き込みは `ON CONFLICT DO NOTHING`（watermark だけは大きい方を残す `GREATEST`）。何度打っても同じ結果
 - 各段は「写し先の主キーにまだ無い行」だけを `NOT EXISTS` で取り、`runBudgetedBatches` で束（500 行）ごとに写す。回とお知らせの行は 1 つの取引で書くので、回があればお知らせの行もある
-- 段の順: テンプレート → お知らせ（回 + お知らせの行）→ 既読 → watermark → 前の送る口の回の新しい列
+- 段の順: テンプレート → お知らせ（回 + お知らせの行）→ 画像の台帳の付け替え → 既読 → watermark → 前の送る口の回の新しい列
 
 列の対応:
 
 - お知らせ 1 行 = 回 1 つ（`status` completed・`expand_cursor` `'~done'`・`source` `legacy.notification`・`tags` `['legacy']`・`channels` `['inApp']`・`metadata.legacyNotificationId`・`actor_type` = `sender_type`・`actor_id` = `created_by_id`・`template_id`・`completed_at` = 公開の時刻・`show_to_later_signups` false = 前の規則）。新しい cron は拾わない（`message_key` が null で `'~done'`）
-- お知らせの行: 全員・ロール宛ては共有の 1 行（`target_roles`）、個人宛ては今いる利用者ごとの行（重なりは 1 行。消えた利用者・uuid の形でない値は写さず `skipped` に数える）。`metadata` = 元の metadata + `legacyNotificationId`、`is_silent` は `silent: true`（受け取り箱の「静かな行」）。`image` の ref はそのまま（用途 `notification.image`）
+- お知らせの行: 全員・ロール宛ては共有の 1 行（`target_roles`）、個人宛ては今いる利用者ごとの行（重なりは 1 行。消えた利用者・uuid の形でない値は写さず `skipped` に数える）。`metadata` = 元の metadata + `legacyNotificationId`、`is_silent` は `silent: true`（受け取り箱の「静かな行」）。`image` の ref はそのまま（用途 `notification.image`。台帳の紐付けは images の段が回へ付け替える）
+- 画像の台帳: 古いお知らせの行に結ばれた ready の行（`notification` / お知らせの id / `image`）を、写した回（`messaging.dispatch` / 同じ id / `inApp.image`）へ付け替える。`storageObjectService.rebind` は種類を変えないので、1 回きりの移しのために storage のサービスの口を広げず、移行の中で条件つきの UPDATE を打つ（条件が合う行だけ動くので何度でも同じ）。写した回の `metadata.inboxImages` に `{ ref: ref }` を残す（保持の掃除が外せる）
 - 公開の時刻が未来のお知らせ（予約）: 回は completed のまま、お知らせの行の `published_at` を未来のまま写す（受け取り箱の「公開の時刻 ≤ 今」が時刻まで隠す）
 - 既読 → 行き着くお知らせの行（個人宛ては読んだ人の行。行が無い既読 = 宛先に入っていない人の既読は写さず `skipped`）。watermark はそのまま（写し先に新しい値があれば大きい方）
 - テンプレート: `key` `legacy-<古い id>`・`category` marketing・`status` draft（管理の画面で見えて送る画面には出ない。S3 のテンプレートの管理で見直して公開する）・`channels` `['inApp']`・内容は `{ inApp: { title, body } }`・版 1 を `message_template_versions` に 1 行。`variables` は新しい形に合う時だけ写し、合わなければ `[]` にして元の値を `description` に残す（古い category system / manual も `description` に）
 - 前の送る口の回（同じ行）: `headings` = `{ email: email_subject, inApp: notification_title }`、`rendered` = `{ email: { subject, paragraphs: [email_body] }, inApp: { title, body } }`、`channel_counts` = email `{ targeted: recipient_count, sent: email_success_count, failed: email_failed_count }`・inApp（`notification_created` が true なら targeted = sent = recipient_count）。`status`・`expand_cursor` は触らない。古い列は S3 の push で落とす
 
-照合（`result.counts`、項目ごとに `{ source, expected, copied, skipped? }`。全部 `expected = copied` で ok）: テンプレート・版・回・お知らせの行（共有 + 今いる宛先）・既読（行き先のある既読）・watermark（写し先が写し元以上）・前の送る口の回（埋めた行）。写さない物（消えた利用者の宛先・行き先の無い既読）は expected の外に数え、`skipped` に出す。
+照合（`result.counts`、項目ごとに `{ source, expected, copied, skipped? }`。全部 `expected = copied` で ok）: テンプレート・版・回・お知らせの行（共有 + 今いる宛先）・既読（行き先のある既読）・watermark（写し先が写し元以上）・画像の台帳（古いお知らせの行に残る ready の行が 0）・前の送る口の回（埋めた行）。写さない物（消えた利用者の宛先・行き先の無い既読）は expected の外に数え、`skipped` に出す。
 
 集計の注意: 前の送る口で送ったお知らせは前の回の行（`message_key` null）も残るので、写した回（`source` `legacy.notification`、`tags` `legacy`）と同じお知らせが 2 つの回に出る。analytics（S3）は `source` `legacy.notification` の回を受け取り箱の既読の数だけに使い、送信・到達の数には入れない。
 

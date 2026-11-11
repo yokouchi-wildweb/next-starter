@@ -3,7 +3,7 @@
 // 旧お知らせの写し(copy-legacy-notifications)の流れ。DB の読み書きは置き場(LegacyCopyStore)で受ける
 // (本物は lib.legacyCopyStore.ts、テストはメモリの偽物)。列の対応は lib.legacyCopyMap.ts。
 //
-// 段: テンプレート → お知らせ(回 + お知らせの行)→ 既読 → 全部既読の watermark → 古い送る口の回の新しい列。
+// 段: テンプレート → お知らせ(回 + お知らせの行)→ 画像の台帳の付け替え → 既読 → 全部既読の watermark → 古い送る口の回の新しい列。
 // - 各段は runBudgetedBatches で束ごとに写す(締切は 1 つを全段で共有)。締切で止まれば incomplete を返す(ランナーは鍵を取らない)
 // - 続きから: 置き場の next は「まだ写していない行」だけを返す(写し先の主キーを NOT EXISTS で見る)。checkpoint の行は持たない
 //   (新しい行の id は写し元の id から決まるので、写した行は写し先にあるかどうかで分かる)。1 回の中は keyset(after)で進む
@@ -34,7 +34,7 @@ import {
 } from "./lib.legacyCopyMap";
 
 /** 写しの段(この順に回す。テンプレートは回の template_id の FK より先) */
-export const LEGACY_COPY_PHASES = ["templates", "notifications", "reads", "readStates", "dispatchFill"] as const;
+export const LEGACY_COPY_PHASES = ["templates", "notifications", "images", "reads", "readStates", "dispatchFill"] as const;
 export type LegacyCopyPhase = (typeof LEGACY_COPY_PHASES)[number];
 
 /** 1 回の実行の既定の時間予算(pnpm task の 1 回。--budget-ms= で変える) */
@@ -54,6 +54,11 @@ export type LegacyCopyCounts = {
   /** skipped = 行き先のお知らせの行が無い既読(個人宛ての宛先に入っていない人の既読) */
   reads: ReconcileLine;
   readStates: ReconcileLine;
+  /**
+   * 画像の台帳の行: source = expected = 古いお知らせの行に結ばれたまま + 写した回へ付け替えた行、copied = 付け替えた行
+   * (古いお知らせの行に残る ready の行があれば食い違い)
+   */
+  images: ReconcileLine;
   /** 古い送る口の回: expected = 埋める行、copied = 埋めた行(残り = expected − copied) */
   dispatchFill: ReconcileLine;
 };
@@ -69,6 +74,10 @@ export type LegacyCopyStore = {
   existingUserIds(ids: readonly string[]): Promise<Set<string>>;
   /** 回とお知らせの行を 1 つの取引で(回があればお知らせの行もある = 続きの判定が回だけで済む) */
   writeNotifications(rows: { dispatch: DispatchInsert; items: ItemInsert[] }[]): Promise<void>;
+  /** 写した回の id(= お知らせの id)に結ばれたままの古いお知らせの画像の台帳の行の id(ready・record notification / image) */
+  nextImageBindings(after: string | null, limit: number): Promise<{ id: string }[]>;
+  /** 台帳の行を回(messaging.dispatch / 同じ id / inApp.image)へ付け替える(条件つき。何度でも同じ) */
+  writeImageBindings(ids: readonly string[]): Promise<void>;
   nextReads(after: { notificationId: string; userId: string } | null, limit: number): Promise<LegacyReadRow[]>;
   existingItemIds(ids: readonly string[]): Promise<Set<string>>;
   writeReads(rows: ReadInsert[]): Promise<void>;
@@ -117,7 +126,7 @@ export async function runLegacyCopy(store: LegacyCopyStore, options: LegacyCopyO
   }
 
   const deadline = createDeadline(options.budgetMs);
-  const copied: Record<LegacyCopyPhase, number> = { templates: 0, notifications: 0, reads: 0, readStates: 0, dispatchFill: 0 };
+  const copied: Record<LegacyCopyPhase, number> = { templates: 0, notifications: 0, images: 0, reads: 0, readStates: 0, dispatchFill: 0 };
   const skipped = { recipients: 0, reads: 0 };
 
   type Phase<TRow, TCursor> = {
@@ -164,6 +173,13 @@ export async function runLegacyCopy(store: LegacyCopyStore, options: LegacyCopyO
           skipped.recipients += mapped.reduce((sum, row) => sum + row.skippedRecipients, 0);
           await store.writeNotifications(mapped.map(({ dispatch, items }) => ({ dispatch, items })));
         },
+      }),
+    () =>
+      run<{ id: string }, string>({
+        phase: "images",
+        next: (after, limit) => store.nextImageBindings(after, limit),
+        cursorOf: (row) => row.id,
+        write: (rows) => store.writeImageBindings(rows.map((row) => row.id)),
       }),
     () =>
       run<LegacyReadRow, { notificationId: string; userId: string }>({

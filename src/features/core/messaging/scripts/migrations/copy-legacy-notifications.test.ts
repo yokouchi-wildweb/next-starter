@@ -1,6 +1,7 @@
 // 旧お知らせの写し(messaging:copy-legacy-notifications)の検査。DB には触らない(メモリの置き場 = 本物の SQL の規則の写し)
 // - 列の対応(全員・ロールは共有の 1 行、個人宛ては宛先ごと、消えた利用者・形の崩れた id は写さず数える、既読は行き着く行へ、
 //   watermark、テンプレートの key・状態・版、未来の公開の時刻、silent、回の status・expand_cursor・source・tags)
+// - 画像の台帳の行を古いお知らせの行から写した回へ付け替える(回の metadata.inboxImages、照合の images)
 // - 冪等(二度目は何も増えない)、予算で止まれば incomplete、続きから終わる、照合の食い違いは打ち直せる失敗
 // 実行: pnpm test src/features/core/messaging/scripts/migrations
 import { test } from "node:test";
@@ -155,6 +156,8 @@ type World = {
   reads: { notificationId: string; userId: string; readAt: Date }[];
   readStates: LegacyReadStateRow[];
   oldDispatches: (LegacyDispatchRow & { filled: DispatchFill | null })[];
+  /** 保存の台帳の行(紐付けの列だけ) */
+  ledger: { id: string; status: string; recordType: string | null; recordId: string | null; recordField: string | null }[];
 };
 
 function memoryStore(world: World, delayMs = 0) {
@@ -194,6 +197,28 @@ function memoryStore(world: World, delayMs = 0) {
       for (const { dispatch, items: rowItems } of rows) {
         if (!dispatches.has(dispatch.id)) dispatches.set(dispatch.id, dispatch);
         for (const item of rowItems) if (!items.has(item.id)) items.set(item.id, item);
+      }
+    },
+    async nextImageBindings(after, limit) {
+      return [...world.ledger]
+        .sort((a, b) => (a.id < b.id ? -1 : 1))
+        .filter(
+          (row) =>
+            (!after || row.id > after) &&
+            row.status === "ready" &&
+            row.recordType === "notification" &&
+            row.recordField === "image" &&
+            dispatches.get(row.recordId ?? "")?.source === LEGACY_DISPATCH_SOURCE,
+        )
+        .map((row) => ({ id: row.id }))
+        .slice(0, limit);
+    },
+    async writeImageBindings(ids) {
+      await wait();
+      for (const row of world.ledger) {
+        if (ids.includes(row.id) && row.status === "ready" && row.recordType === "notification" && row.recordField === "image") {
+          Object.assign(row, { recordType: "messaging.dispatch", recordField: "inApp.image" });
+        }
       }
     },
     async nextReads(after, limit) {
@@ -253,6 +278,8 @@ function memoryStore(world: World, delayMs = 0) {
       const readTargets = world.reads.map((r) => ({ userId: r.userId, itemId: legacyReadItemId(r.notificationId, targetOf(r.notificationId), r.userId) }));
       const legacyItems = [...items.values()].filter((i) => dispatches.get(i.dispatch_id)?.source === LEGACY_DISPATCH_SOURCE);
       const withItem = readTargets.filter((r) => items.has(r.itemId));
+      const remainingImages = world.ledger.filter((r) => r.status === "ready" && r.recordType === "notification" && r.recordField === "image" && world.notifications.some((n) => n.id === r.recordId)).length;
+      const movedImages = world.ledger.filter((r) => r.status === "ready" && r.recordType === "messaging.dispatch" && r.recordField === "inApp.image" && dispatches.get(r.recordId ?? "")?.source === LEGACY_DISPATCH_SOURCE).length;
       return {
         templates: { source: world.templates.length, expected: world.templates.length, copied: world.templates.filter((t) => newTemplates.get(t.id)?.key === `legacy-${t.id}`).length },
         templateVersions: { source: world.templates.length, expected: world.templates.length, copied: world.templates.filter((t) => newVersions.has(`${t.id}|1`)).length },
@@ -264,12 +291,16 @@ function memoryStore(world: World, delayMs = 0) {
           expected: world.readStates.length,
           copied: world.readStates.filter((s) => states.has(s.userId) && (s.readWatermarkAt === null || (states.get(s.userId) ?? new Date(0)) >= s.readWatermarkAt)).length,
         },
+        images: { source: remainingImages + movedImages, expected: remainingImages + movedImages, copied: movedImages },
         dispatchFill: { source: world.oldDispatches.length, expected: world.oldDispatches.length, copied: world.oldDispatches.filter((d) => d.filled !== null).length },
       };
     },
   };
   return { store, newTemplates, dispatches, items, reads, states };
 }
+
+const IMAGE_LEDGER_ID = "0190a3b2-0000-7000-8000-000000000001";
+const IMAGE = `storage://pub/notification.image/${IMAGE_LEDGER_ID}.png`;
 
 function world(): World {
   return {
@@ -279,7 +310,7 @@ function world(): World {
       notification({ id: nid(1), notificationTemplateId: tid(1) }),
       notification({ id: nid(2), targetType: "role", targetRoles: ["user"] }),
       notification({ id: nid(3), targetType: "individual", targetUserIds: [uid(1), uid(2), uid(8), "x"] }),
-      notification({ id: nid(4), isSilent: true, publishedAt: new Date("2027-01-01T00:00:00Z") }),
+      notification({ id: nid(4), isSilent: true, publishedAt: new Date("2027-01-01T00:00:00Z"), image: IMAGE }),
     ],
     reads: [
       { notificationId: nid(1), userId: uid(1), readAt: NOW },
@@ -292,6 +323,10 @@ function world(): World {
     ],
     oldDispatches: [
       { id: "d1", channels: ["email"], emailSubject: "s", emailBody: "b", notificationTitle: null, notificationBody: null, recipientCount: 2, emailSuccessCount: 2, emailFailedCount: 0, notificationCreated: null, filled: null },
+    ],
+    ledger: [
+      { id: IMAGE_LEDGER_ID, status: "ready", recordType: "notification", recordId: nid(4), recordField: "image" },
+      { id: "0190a3b2-0000-7000-8000-000000000099", status: "ready", recordType: "coupon", recordId: "c1", recordField: "image_url" },
     ],
   };
 }
@@ -312,8 +347,16 @@ test("全部写して照合が合う。二度目は何も増えない(冪等)", 
   assert.ok(mem.reads.has(`${nid(1)}|${uid(1)}`));
   assert.ok(mem.reads.has(`${legacyRecipientItemId(nid(3), uid(2))}|${uid(2)}`));
   assert.equal(w.oldDispatches[0]!.filled?.headings.email, "s");
+  // 画像の台帳の行は写した回へ付け替わり、回の metadata に対応が残る(ほかの種類の行は触らない)
+  assert.deepEqual(w.ledger.map((r) => [r.recordType, r.recordId, r.recordField]), [
+    ["messaging.dispatch", nid(4), "inApp.image"],
+    ["coupon", "c1", "image_url"],
+  ]);
+  assert.deepEqual(mem.dispatches.get(nid(4))?.metadata, { legacyNotificationId: nid(4), inboxImages: { [IMAGE]: IMAGE } });
+  assert.deepEqual(mem.dispatches.get(nid(1))?.metadata, { legacyNotificationId: nid(1) });
+  assert.deepEqual((first.counts as LegacyCopyCounts).images, { source: 1, expected: 1, copied: 1 });
   const second = await runLegacyCopy(mem.store, { dryRun: false, budgetMs: 60_000, now: () => NOW });
-  assert.deepEqual(second.copied, { templates: 0, notifications: 0, reads: 1, readStates: 0, dispatchFill: 0 }, "行き先の無い既読だけをもう一度見る");
+  assert.deepEqual(second.copied, { templates: 0, notifications: 0, images: 0, reads: 1, readStates: 0, dispatchFill: 0 }, "行き先の無い既読だけをもう一度見る");
   assert.deepEqual([mem.dispatches.size, mem.items.size, mem.reads.size], [4, 5, 2]);
   assert.deepEqual(second.reconciliation, { ok: true, mismatched: [] });
 });
@@ -368,7 +411,17 @@ test("照合が合わなければ TaskRerunnableError(failed・鍵を取らな�
 
 test("reconcile: expected と copied が全部等しい時だけ ok", () => {
   const line = { source: 1, expected: 1, copied: 1 };
-  const all = { templates: line, templateVersions: line, dispatches: line, items: line, reads: line, readStates: line, dispatchFill: line };
+  const all = { templates: line, templateVersions: line, dispatches: line, items: line, reads: line, readStates: line, images: line, dispatchFill: line };
   assert.deepEqual(reconcile(all), { ok: true, mismatched: [] });
   assert.deepEqual(reconcile({ ...all, reads: { source: 2, expected: 1, copied: 0 } }), { ok: false, mismatched: ["reads"] });
+});
+
+test("画像の付け替えが残れば照合は images で食い違う", async () => {
+  const w = world();
+  const mem = memoryStore(w);
+  mem.store.writeImageBindings = async () => {};
+  await assert.rejects(runLegacyCopy(mem.store, { dryRun: false, budgetMs: 60_000, now: () => NOW }), (error: unknown) => {
+    assert.match((error as Error).message, /images/);
+    return true;
+  });
 });

@@ -55,12 +55,15 @@ export type MessageSweepStore = {
   updateDispatch: (id: string, patch: Partial<MessageDispatchInsert>) => Promise<void>;
 };
 
-/** 保持の掃除の DB の読み書き(1 呼び出し = 1 文・最大 limit 行) */
+/** 保持の掃除の DB の読み書き(1 呼び出し = 1 文・最大 limit 行。回だけは画像を外すので 1 取引) */
 export type MessageRetentionStore = {
   deleteEventsBefore: (cutoff: Date, limit: number) => Promise<number>;
   deleteDeliveriesBefore: (cutoff: Date, limit: number) => Promise<number>;
-  /** お知らせが参照せず、processing / scheduled でない回を消す。消す前に冪等の鍵を移す */
-  deleteDispatchesBefore: (cutoff: Date, limit: number) => Promise<{ deleted: number; movedKeys: number }>;
+  /**
+   * お知らせが参照せず、processing / scheduled でない回を消す。消す前に冪等の鍵を移し、回に結んだお知らせの画像
+   * (metadata.inboxImages の値)を台帳から外す(同じ取引。detachedImages = 外した数)
+   */
+  deleteDispatchesBefore: (cutoff: Date, limit: number) => Promise<{ deleted: number; movedKeys: number; detachedImages: number }>;
   deleteIdempotencyKeysBefore: (cutoff: Date, limit: number) => Promise<number>;
 };
 
