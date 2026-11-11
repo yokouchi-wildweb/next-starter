@@ -130,3 +130,23 @@ test("config: stores の廃止で閉じた lib へ移した旧パス(viewport)�
     assert.ok(hits[0].message.includes('"@/lib/viewport"'), hits[0].message);
   }
 });
+
+test("config: stores の廃止で閉じた lib へ移した旧パス(siteTheme)は @/lib/siteTheme を出して warn", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  const olds = [
+    "@/stores/siteTheme",
+    "@/utils/siteTheme",
+    "@/components/Fanctional/SiteThemeSync",
+    "@/config/ui/site-theme.config",
+  ];
+  for (const from of olds) {
+    const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
+      filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
+    });
+    const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+    assert.equal(hits.length, 1, from);
+    assert.equal(hits[0].severity, 1, from);
+    assert.ok(hits[0].message.includes('"@/lib/siteTheme"'), hits[0].message);
+  }
+});

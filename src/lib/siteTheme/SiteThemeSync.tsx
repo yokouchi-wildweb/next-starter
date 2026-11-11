@@ -1,8 +1,8 @@
-// src/components/Fanctional/SiteThemeSync.tsx
+// src/lib/siteTheme/SiteThemeSync.tsx
 
 "use client";
 
-import { useSiteThemeSync } from "@/stores/siteTheme";
+import { useSiteThemeSync } from "./stores";
 
 /**
  * サイトテーマを <html> と同期する常駐コンポーネント。root layout に 1 つだけ置く。

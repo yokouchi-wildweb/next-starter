@@ -1,4 +1,4 @@
-// stores/siteTheme/internalStore.ts
+// src/lib/siteTheme/stores/internalStore.ts
 
 "use client";
 

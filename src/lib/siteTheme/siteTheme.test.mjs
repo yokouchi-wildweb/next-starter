@@ -2,14 +2,14 @@
 // 実行: pnpm test src/lib/siteTheme/siteTheme.test.mjs (node:test + tsx。.ts の拡張子無し import を解決するため tsx ランナーを使う)
 //
 // 検証すること:
-// 1. defineSiteThemeConfig の既定値が従来挙動(全エリアライト、管理のみ切替可)を再現する
+// 1. composeSiteThemeConfig の既定値が従来挙動(全エリアライト、管理のみ切替可)を再現する
 // 2. エリア一致はセグメント境界(/admin は /administer に一致しない)
 // 3. switchable=false のエリアは保存値を無視する(管理→ユーザーの漏れ防止)
 // 4. bootstrap script(手書き JS)と resolve.ts が同一ケース集で同じ結果を返す
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { defineSiteThemeConfig, normalizeAreaPrefix } from "./defineConfig.ts";
+import { composeSiteThemeConfig, normalizeAreaPrefix } from "./compose.ts";
 import { resolveSiteTheme, matchesAreaPrefix, getSiteThemeAreaByKey } from "./resolve.ts";
 import { buildSiteThemeBootstrapScript } from "./bootstrapScript.ts";
 
@@ -54,30 +54,30 @@ function runBootstrap(config, { pathname, stored, systemPrefersDark }, options =
   return { isDark: classes.has("dark"), area: attrs.get("data-area") };
 }
 
-const DEFAULT = defineSiteThemeConfig({});
+const DEFAULT = composeSiteThemeConfig({});
 
-const DARK_FIRST = defineSiteThemeConfig({
+const DARK_FIRST = composeSiteThemeConfig({
   fallback: { mode: "dark" },
 });
 
-const SYSTEM_USER = defineSiteThemeConfig({
+const SYSTEM_USER = composeSiteThemeConfig({
   fallback: { mode: "system", switchable: true },
   areas: [{ key: "admin", switchable: false, mode: "dark" }],
 });
 
-const WITH_EXTRA_AREA = defineSiteThemeConfig({
+const WITH_EXTRA_AREA = composeSiteThemeConfig({
   areas: [{ key: "kiosk", match: ["/kiosk/"], mode: "dark" }],
 });
 
-const CATCH_ALL = defineSiteThemeConfig({
+const CATCH_ALL = composeSiteThemeConfig({
   areas: [{ key: "all", match: ["/"], mode: "dark" }],
 });
 
-const GHOST_AREA = defineSiteThemeConfig({
+const GHOST_AREA = composeSiteThemeConfig({
   areas: [{ key: "ghost", mode: "dark" }], // match 未指定 = どこにも一致しない
 });
 
-const CUSTOM_KEY = defineSiteThemeConfig({ storageKey: "theme-v2" });
+const CUSTOM_KEY = composeSiteThemeConfig({ storageKey: "theme-v2" });
 
 /** [config, input, expected] */
 const CASES = [
@@ -121,7 +121,7 @@ test("既定値は従来挙動を再現する(全エリアライト、管理の�
   ]);
 });
 
-test("defineSiteThemeConfig は key 一致で部分更新し、未知の key は末尾に追加する", () => {
+test("composeSiteThemeConfig は key 一致で部分更新し、未知の key は末尾に追加する", () => {
   assert.deepEqual(SYSTEM_USER.areas, [
     { key: "admin", match: ["/admin", "/debug"], mode: "dark", switchable: false },
   ]);
@@ -129,7 +129,7 @@ test("defineSiteThemeConfig は key 一致で部分更新し、未知の key は
   assert.deepEqual(WITH_EXTRA_AREA.areas[1].match, ["/kiosk"]);
   assert.deepEqual(GHOST_AREA.areas[1], { key: "ghost", match: [], mode: "dark", switchable: false });
   // 同じ key を複数回 patch → 後勝ち、位置維持
-  const twice = defineSiteThemeConfig({
+  const twice = composeSiteThemeConfig({
     areas: [
       { key: "admin", mode: "dark" },
       { key: "kiosk", match: ["/k"] },
@@ -140,9 +140,9 @@ test("defineSiteThemeConfig は key 一致で部分更新し、未知の key は
   assert.deepEqual(twice.areas[0], { key: "admin", match: ["/admin", "/debug"], mode: "dark", switchable: false });
 });
 
-test("defineSiteThemeConfig は不正な mode を fallback / areas の両方で拒否する", () => {
-  assert.throws(() => defineSiteThemeConfig({ fallback: { mode: "sepia" } }), /light \| dark \| system/);
-  assert.throws(() => defineSiteThemeConfig({ areas: [{ key: "admin", mode: "sepia" }] }), /light \| dark \| system/);
+test("composeSiteThemeConfig は不正な mode を fallback / areas の両方で拒否する", () => {
+  assert.throws(() => composeSiteThemeConfig({ fallback: { mode: "sepia" } }), /light \| dark \| system/);
+  assert.throws(() => composeSiteThemeConfig({ areas: [{ key: "admin", mode: "sepia" }] }), /light \| dark \| system/);
 });
 
 test("normalizeAreaPrefix: 先頭 / 付与、末尾 / 除去、空文字は拒否(catch-all への暗黙変換を防ぐ)", () => {
@@ -151,7 +151,7 @@ test("normalizeAreaPrefix: 先頭 / 付与、末尾 / 除去、空文字は拒�
   assert.equal(normalizeAreaPrefix("/admin//"), "/admin");
   assert.equal(normalizeAreaPrefix("/"), "/");
   assert.throws(() => normalizeAreaPrefix(""), /空文字/);
-  assert.throws(() => defineSiteThemeConfig({ areas: [{ key: "x", match: [""] }] }), /空文字/);
+  assert.throws(() => composeSiteThemeConfig({ areas: [{ key: "x", match: [""] }] }), /空文字/);
 });
 
 test("matchesAreaPrefix はセグメント境界で判定し、/ は全パスに一致する", () => {
@@ -196,7 +196,7 @@ test("bootstrap script: system モードで matchMedia が無ければ light、l
 });
 
 test("bootstrap script は </script> を含まない(インライン埋め込みの安全性)", () => {
-  const config = defineSiteThemeConfig({ areas: [{ key: "x</script><script>alert(1)</script>", match: ["/x"] }] });
+  const config = composeSiteThemeConfig({ areas: [{ key: "x</script><script>alert(1)</script>", match: ["/x"] }] });
   const script = buildSiteThemeBootstrapScript(config);
   assert.equal(script.includes("</script>"), false);
 });

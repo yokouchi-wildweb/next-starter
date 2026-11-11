@@ -92,7 +92,7 @@ function libSources(root, lib) {
 }
 
 /**
- * 自前の合成: @/lib/defineConfig を読まず、define<名前>Config を export する(defineFontsConfig・defineSiteThemeConfig)か、
+ * 自前の合成: @/lib/defineConfig を読まず、define<名前>Config を export する(defineFontsConfig)か、
  * defineConfig.<ext> というファイルで define<名前> を export する(defineVariantOverrides)lib。名前の一覧(無ければ空)
  * crud の defineHiddenColumns のような設定の合成でない define は当たらない
  */

@@ -164,6 +164,6 @@ test("d1: 今の repo: 宣言した lib はどれも閉じていて不備 0、�
   assert.equal(summary.problems, 0);
   assert.equal(summary.innerImportsDeclared, 0);
   assert.equal(summary.undeclared, listLibs(repo).length - declared.length);
-  // 自前の合成が残る 3 本(L1.23: 閉じる波で defineConfig に寄せる)
-  assert.deepEqual(rows.filter((r) => r.mergeHelpers.length > 0).map((r) => r.lib).sort(), ["fonts", "siteTheme", "variantOverrides"]);
+  // 自前の合成が残る 2 本(L1.23: 閉じる波で defineConfig に寄せる。siteTheme は寄せ済み)
+  assert.deepEqual(rows.filter((r) => r.mergeHelpers.length > 0).map((r) => r.lib).sort(), ["fonts", "variantOverrides"]);
 });

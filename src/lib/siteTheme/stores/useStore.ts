@@ -1,4 +1,4 @@
-// stores/siteTheme/useStore.ts
+// src/lib/siteTheme/stores/useStore.ts
 
 "use client";
 
@@ -6,15 +6,15 @@ import { isDevelopment } from "@/lib/appEnv";
 import { useCallback, useEffect, useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 
-import { SITE_THEME_CONFIG } from "@/config/ui/site-theme.config";
-import { getSiteThemeAreaByKey } from "@/lib/siteTheme";
+import { siteThemeConfig } from "../config";
 import {
   applyThemeToDom,
   persistThemePreference,
   readThemeFromDom,
   resolveCurrentSiteTheme,
   subscribeSystemPrefersDark,
-} from "@/utils/siteTheme";
+} from "../dom";
+import { getSiteThemeAreaByKey } from "../resolve";
 
 import { internalStore } from "./internalStore";
 
@@ -29,7 +29,7 @@ export function useSiteThemeStore() {
   const areaKey = internalStore((s) => s.areaKey);
   const setDarkState = internalStore((s) => s.setDark);
 
-  const switchable = getSiteThemeAreaByKey(SITE_THEME_CONFIG, areaKey).switchable;
+  const switchable = getSiteThemeAreaByKey(siteThemeConfig, areaKey).switchable;
 
   const setDark = useCallback(
     (next: boolean) => {

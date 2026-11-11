@@ -7,9 +7,7 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
-import { SITE_THEME_CONFIG } from "@/config/ui/site-theme.config";
-import { resolveSiteThemeArea } from "@/lib/siteTheme";
-import { useSiteThemeStore } from "@/stores/siteTheme";
+import { resolveSiteThemeArea, siteThemeConfig, useSiteThemeStore } from "@/lib/siteTheme";
 
 /**
  * ライト / ダーク切替ボタン。
@@ -22,7 +20,7 @@ export function DarkModeSwitch({ className }: { className?: string }) {
   const { isDark, toggle } = useSiteThemeStore();
 
   const switchable = useMemo(
-    () => resolveSiteThemeArea(SITE_THEME_CONFIG, pathname ?? "/").switchable,
+    () => resolveSiteThemeArea(siteThemeConfig, pathname ?? "/").switchable,
     [pathname],
   );
 

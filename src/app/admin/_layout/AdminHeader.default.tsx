@@ -80,7 +80,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
       </div>
 
       {/* 右: ページの操作 + ダークモードスイッチ(エリアが switchable のときだけ描画される。
-          切替可否は src/config/ui/site-theme.config.ts の areas.admin.switchable) */}
+          切替可否は src/config/lib/siteTheme.config.ts の areas の admin の switchable) */}
       <div className="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink">
         <div data-slot="admin-header-right" className="flex min-w-0 items-center gap-3">
           {actions}

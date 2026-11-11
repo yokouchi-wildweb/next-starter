@@ -57,7 +57,7 @@
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(pnpm generate routes)
 - src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)
-- src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(defineSiteThemeConfig)
+- src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(設定 @lib-config/siteTheme、<html> を書く唯一の SiteThemeSync、切替の useSiteThemeStore)
 - src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI
 - src/lib/spamGuard — 使い捨てメール / Hide My Email 等の検出とガード
 - src/lib/storage — ファイル保存の基盤(storage:// ref と表示解決、inline/attachment 配信規則、StoragePort と GCS 実装、保存先の解決、strip 用途の画像のメタデータ除去(サーバーの描き直し)、クライアントの uploadToStorage)

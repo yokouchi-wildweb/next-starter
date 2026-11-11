@@ -41,7 +41,7 @@
 | 書体(Web フォント) | `src/config/ui/fonts.config.ts` | `defineFontsConfig({ sans })` | 全画面 |
 | 書体(system の並び)・流体文字サイズ | `typography.css` | `:root { --font-geist-sans: ...; }` | 全画面 |
 | ボタン・バッジの形(角丸・枠線・寸法) | `src/config/ui/variants.config.ts` | `button: { base: "rounded-full" }` | その部品の全部 |
-| ライト / ダークの既定・切替 | `src/config/ui/site-theme.config.ts` | `fallback: { mode: "dark" }` | エリアごと |
+| ライト / ダークの既定・切替 | `src/config/lib/siteTheme.config.ts` | `fallback: { mode: "dark" }` | エリアごと |
 | 枠の中身(メニュー・リンク・幅・背景) | 枠の設定の上書き `src/config/layout/<枠>.config.ts`・`<枠>.ui.config.ts` | (各上書きファイルの冒頭) | その枠 |
 | 枠そのもの | 枠の差し替え | (user)/_layout・admin/_layout・(marketing)/_layout の README | その枠の全ページ |
 | LP に共通の枠(既定は枠なし) | `src/app/(marketing)/_layout/MarketingLayout.replace.tsx` | (marketing)/_layout の README | (marketing) の全ページ |
@@ -157,7 +157,7 @@ shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { 
 ```
 
 - 変数名と既定値の一覧は `core/palette.css`
-- `data-area` は `<html>` に付く(root layout が SSR 付与)。値は `site-theme.config.ts` のエリア key(既定: `user` / `admin`)
+- `data-area` は `<html>` に付く(root layout が SSR 付与)。値は `src/config/lib/siteTheme.config.ts` で決まるエリア key(既定: `user` / `admin`)
 - Dialog / Toast / Popover は body 直下にポータル描画されるが、`<html>` 属性なので自動で継承される
 
 #### 意味色は 3 変数で 1 組(塗り / 塗りの上の文字 / 素の背景の文字)
@@ -302,43 +302,44 @@ upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/
 |---|---|---|
 | SSR | `src/app/layout.tsx` | `x-pathname`(proxy.ts 付与)からエリアを判定し `<html class="dark" data-area="...">` を出力。初回描画がエリアの既定で確定する |
 | bootstrap | 同 layout の `<head>` 内 inline script | localStorage の保存値と OS 設定を body 描画前に反映(フラッシュ防止)。`@/lib/siteTheme/bootstrapScript.ts` が設定を埋め込んで生成 |
-| クライアント | `SiteThemeSync`(`src/components/Fanctional`、root layout に常駐) | クライアント遷移・切替操作・OS 設定変化のたびに再解決して `<html>` を更新する唯一の書き手 |
+| クライアント | `SiteThemeSync`(`@/lib/siteTheme`、root layout に常駐) | クライアント遷移・切替操作・OS 設定変化のたびに再解決して `<html>` を更新する唯一の書き手 |
 | 判定ロジック | `@/lib/siteTheme`(純関数) | 上の 3 箇所が同じ判定を共有する。bootstrap script は手書き JS だが `pnpm test src/lib/siteTheme/siteTheme.test.mjs` が同一ケース集で一致を検証 |
-| 設定 | `src/config/ui/site-theme.config.ts`(下流所有) | `defineSiteThemeConfig({ ...差分 })`。既定値は `@/lib/siteTheme/defaults.ts` |
+| 設定 | `src/config/lib/siteTheme.config.ts`(`@lib-config/siteTheme`、下流所有) | `export default { ...差分 } satisfies SiteThemeOverride`(リテラルだけ)。既定値は `@/lib/siteTheme/defaults.ts`、合成は `@/lib/defineConfig`。合成済みの値は入口の `siteThemeConfig` |
 
 ### 設定の意味
 
 ```ts
-defineSiteThemeConfig({
+export default {
   storageKey: "theme",                                    // 保存キー(全エリア共通、既定 "theme")
   areas: [                                                // 先頭一致順。key 一致は部分更新、新規 key は末尾追加
     { key: "admin", match: ["/admin", "/debug"], mode: "light", switchable: true },
   ],
   fallback: { key: "user", mode: "light", switchable: false },   // どのエリアにも一致しないパス
-});
+} satisfies SiteThemeOverride;
 ```
 
 - `mode`: `light` | `dark` | `system`(OS 設定に追従)
 - `switchable: true` のエリアだけ保存値を参照し、`DarkModeSwitch` が描画される
 - `switchable: false` のエリアは保存値を一切見ない。管理画面でダークを選んでもユーザー側に漏れない
 - 一致判定はセグメント境界(`/admin` は `/administer` に一致しない)
+- 追加したエリアの書かなかった欄は `match: []`・`mode: "light"`・`switchable: false`。`{ key: "admin", $delete: true }` で既定のエリアを消せる(`@/lib/defineConfig` の配列の規則)
 
 よくある設定:
 
 ```ts
-defineSiteThemeConfig({ fallback: { mode: "dark" } });                      // ユーザー側ダーク固定
-defineSiteThemeConfig({ fallback: { mode: "system", switchable: true } });  // OS 追従 + 利用者が切替可
-defineSiteThemeConfig({ areas: [{ key: "admin", switchable: false }] });    // 管理画面のスイッチを消す
-defineSiteThemeConfig({ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" }] });  // エリア追加
+{ fallback: { mode: "dark" } }                      // ユーザー側ダーク固定
+{ fallback: { mode: "system", switchable: true } }  // OS 追従 + 利用者が切替可
+{ areas: [{ key: "admin", switchable: false }] }    // 管理画面のスイッチを消す
+{ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" }] }  // エリア追加
 ```
 
 ### 表示と保存の分離
 
-`src/utils/siteTheme.ts` は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者が `DarkModeSwitch` を押したときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
+lib の中の `src/lib/siteTheme/dom.ts`(入口から出さない)は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者が `DarkModeSwitch` を押したときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
 
 ### 独自の切替 UI を作るとき
 
-`useSiteThemeStore()`(`@/stores/siteTheme`)の `isDark` / `switchable` / `toggle` / `setDark` を使う。表示可否は `resolveSiteThemeArea(SITE_THEME_CONFIG, usePathname()).switchable` で判定する(`DarkModeSwitch` の実装がそのまま手本。SSR とクライアントで一致させるため usePathname ベース)。ロックされたエリアでは `setDark` / `toggle` は何もしない(開発時は console.warn)。`<html>` を直接触らない。
+`useSiteThemeStore()`(`@/lib/siteTheme`)の `isDark` / `switchable` / `toggle` / `setDark` を使う。表示可否は `resolveSiteThemeArea(siteThemeConfig, usePathname()).switchable`(どちらも `@/lib/siteTheme`) で判定する(`DarkModeSwitch` の実装がそのまま手本。SSR とクライアントで一致させるため usePathname ベース)。ロックされたエリアでは `setDark` / `toggle` は何もしない(開発時は console.warn)。`<html>` を直接触らない。
 
 ## デプロイ後の確認(Vercel ビルドキャッシュ)
 

@@ -8,7 +8,7 @@
  *
  * ダークモードは <html class="dark">(root layout が SSR で付与、bootstrap script と
  * SiteThemeSync が補正)で切り替わります。エリアは <html data-area="...">。
- * 設定: src/config/ui/site-theme.config.ts / 詳細: src/styles/README.md
+ * 設定: src/config/lib/siteTheme.config.ts(@/lib/siteTheme)/ 詳細: src/styles/README.md
  */
 
 /* 目印(styles:check-build がビルド出力にこのファイルがあるかをこの名前で確かめる) */

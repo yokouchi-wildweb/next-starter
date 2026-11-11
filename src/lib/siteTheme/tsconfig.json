@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@lib-config/siteTheme": ["../../config/lib/siteTheme.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

@@ -1,21 +1,17 @@
-// src/utils/siteTheme.ts
+// src/lib/siteTheme/dom.ts
 //
 // サイトテーマのブラウザ側実装(DOM への適用・保存値の読み書き)。
-// 判定ロジックは @/lib/siteTheme の純関数に委ね、ここは副作用だけを持つ。
+// 判定ロジックは ./resolve.ts の純関数に委ね、ここは副作用だけを持つ。lib の中だけで使う(入口から出さない)。
 //
 // 「表示(DOM)」と「保存(localStorage)」は分離している:
 // - applyThemeToDom: <html> のクラスと data-area を更新するだけ。保存しない
 // - persistThemePreference: 利用者が切替操作をしたときだけ呼ぶ
 // 固定エリアの適用や OS 設定への追従で保存値を汚さないため。
 
-import { SITE_THEME_CONFIG } from "@/config/ui/site-theme.config";
-import {
-  normalizeStoredPreference,
-  resolveSiteTheme,
-  SITE_THEME_AREA_ATTRIBUTE,
-  type ResolvedSiteTheme,
-  type StoredThemePreference,
-} from "@/lib/siteTheme";
+import { SITE_THEME_AREA_ATTRIBUTE } from "./bootstrapScript";
+import { siteThemeConfig } from "./config";
+import { normalizeStoredPreference, resolveSiteTheme } from "./resolve";
+import type { ResolvedSiteTheme, StoredThemePreference } from "./types";
 
 const DARK_CLASS = "dark";
 const SYSTEM_DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -26,7 +22,7 @@ const isBrowser = () => typeof window !== "undefined" && typeof document !== "un
 export const readStoredThemePreference = (): StoredThemePreference => {
   if (!isBrowser()) return null;
   try {
-    return normalizeStoredPreference(window.localStorage.getItem(SITE_THEME_CONFIG.storageKey));
+    return normalizeStoredPreference(window.localStorage.getItem(siteThemeConfig.storageKey));
   } catch {
     return null;
   }
@@ -53,7 +49,7 @@ export const subscribeSystemPrefersDark = (listener: (prefersDark: boolean) => v
  */
 export const resolveCurrentSiteTheme = (pathname?: string): ResolvedSiteTheme => {
   const path = pathname ?? (isBrowser() ? window.location.pathname : "/");
-  return resolveSiteTheme(SITE_THEME_CONFIG, {
+  return resolveSiteTheme(siteThemeConfig, {
     pathname: path,
     stored: readStoredThemePreference(),
     systemPrefersDark: readSystemPrefersDark(),
@@ -78,7 +74,7 @@ export const readThemeFromDom = (): boolean => {
 export const persistThemePreference = (isDark: boolean): void => {
   if (!isBrowser()) return;
   try {
-    window.localStorage.setItem(SITE_THEME_CONFIG.storageKey, isDark ? "dark" : "light");
+    window.localStorage.setItem(siteThemeConfig.storageKey, isDark ? "dark" : "light");
   } catch {
     // プライベートモード等で保存できなくても表示は維持する
   }
