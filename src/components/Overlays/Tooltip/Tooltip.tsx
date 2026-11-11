@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { TooltipPrimitive } from "@/components/Primitives/Tooltip";
+import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRoot, TooltipTrigger } from "@/components/Primitives/Tooltip";
 
 import { cn } from "@/lib/cn";
 
@@ -98,17 +98,17 @@ export function Tooltip({
   const useLocalProvider = !isInsideProvider || skipDelayDuration !== undefined;
 
   const root = (
-      <TooltipPrimitive.Root
+      <TooltipRoot
         open={open}
         onOpenChange={onOpenChange}
         defaultOpen={defaultOpen}
         delayDuration={useLocalProvider ? undefined : delayDuration}
       >
-        <TooltipPrimitive.Trigger asChild={asChild}>
+        <TooltipTrigger asChild={asChild}>
           {children}
-        </TooltipPrimitive.Trigger>
-        <TooltipPrimitive.Portal>
-          <TooltipPrimitive.Content
+        </TooltipTrigger>
+        <TooltipPortal>
+          <TooltipContent
             side={side}
             align={align}
             sideOffset={sideOffset}
@@ -129,24 +129,24 @@ export function Tooltip({
           >
             {content}
             {showArrow && (
-              <TooltipPrimitive.Arrow
+              <TooltipArrow
                 className="fill-foreground size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]"
               />
             )}
-          </TooltipPrimitive.Content>
-        </TooltipPrimitive.Portal>
-      </TooltipPrimitive.Root>
+          </TooltipContent>
+        </TooltipPortal>
+      </TooltipRoot>
   );
 
   if (!useLocalProvider) return root;
 
   return (
-    <TooltipPrimitive.Provider
+    <TooltipProvider
       delayDuration={delayDuration}
       skipDelayDuration={skipDelayDuration ?? 300}
     >
       {root}
-    </TooltipPrimitive.Provider>
+    </TooltipProvider>
   );
 }
 

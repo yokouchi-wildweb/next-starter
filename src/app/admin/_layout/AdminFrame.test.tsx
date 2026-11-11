@@ -35,12 +35,14 @@ const read = (path: string) => readFileSync(join(repo, path), "utf8");
 let render: (node: ReactNode) => string;
 let AdminLayout: typeof import("./AdminLayout").AdminLayout;
 let parts: typeof import("@/app/_layout/frame");
+let primitiveSlots: typeof import("@/components/Primitives/slots.mjs");
 let AdminPage: typeof import("./AdminPage").default;
 let ItemNavigator: typeof import("@/components/AppFrames/Admin/Elements/ItemNavigator").ItemNavigator;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
   parts = await import("@/app/_layout/frame");
+  primitiveSlots = await import("@/components/Primitives/slots.mjs");
   AdminPage = (await import("./AdminPage")).default;
   ({ ItemNavigator } = await import("@/components/AppFrames/Admin/Elements/ItemNavigator"));
 });
@@ -114,10 +116,11 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景�
 });
 
 test("管理の枠の data-slot は shadcn の部品の data-slot と衝突せず、部位の印 data-frame-part は残っていない", () => {
-  // shadcn 由来の部品は _shadcn と Primitives(移した物)にある
-  const shadcn = new Set(
-    ["src/components/_shadcn", "src/components/Primitives"].flatMap(sourcesOf).flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
-  );
+  // shadcn 由来の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)+ _shadcn に残る物の字面
+  const shadcn = new Set([
+    ...primitiveSlots.allPrimitiveSlots(repo),
+    ...sourcesOf("src/components/_shadcn").flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
+  ]);
   assert.ok(shadcn.has("button"), "shadcn の data-slot を読めていない");
   for (const name of slotsInSources().keys()) assert.equal(shadcn.has(name), false, `${name} は shadcn と衝突`);
   for (const file of FRAME_FILES) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);

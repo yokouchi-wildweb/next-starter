@@ -26,7 +26,7 @@ export const BadgeCore = React.forwardRef<HTMLSpanElement, BadgeCoreProps>(
     const Comp = asChild ? Slot.Root : "span";
 
     return (
-      <Comp ref={ref} {...props}>
+      <Comp ref={ref} data-slot="badge" {...props}>
         {Icon && <Icon />}
         <Slot.Slottable>{children}</Slot.Slottable>
       </Comp>
