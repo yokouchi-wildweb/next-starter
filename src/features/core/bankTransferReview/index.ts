@@ -51,7 +51,6 @@ export {
   adminGetBankTransferReviewStatusCounts,
   adminUpdateBankTransferReviewAdminMemo,
   adminBulkImportBankTransferReviewCsv,
-  adminBulkSendBankTransferReviewEmail,
   BANK_TRANSFER_REVIEW_IMPORT_HEADERS,
   type ActiveBankTransferResponse,
   type SubmitBankTransferProofParams,

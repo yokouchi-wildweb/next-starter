@@ -398,7 +398,7 @@
 
 一覧の表の一括操作は受け口 `src/features/core/bankTransferReview/adminBulkActions/<名前>.tsx` の `export const bulkAction`(型 `BankTransferReviewAdminBulkActionItem` = `BulkActionItem<AdminBankTransferReviewListItem, AdminBulkActionAccess>`)。表は `useBankTransferReviewAdminBulkActions()` の項目を `BulkActionItems` で描くだけ。作り方は `src/lib/tableSuite/README.md`「一括操作の受け口」。
 
-- 上流の既定の項目: `sendEmail`(order 100)= 選んだレビューの申告者へのメール一斉送信(`adminBulkSendBankTransferReviewEmail`、送付履歴は管理者メモへ追記)。送り方・文面・記録は連絡の議会の結論まで今のまま
+- 上流の既定の項目: `sendEmail`(order 100)= 選んだレビューの申告者への連絡の一括送信。連絡の作成関数 `bulkMessageAction`(`@/features/core/messaging/components/AdminBulkSend`)の上に置き、送り先は管理 API `POST /api/admin/messaging/bulk-send` の `target: "bankTransferReview"`。レビュー → 申告者の解決と送付履歴の管理者メモへの追記はサーバーの受け口の項目 `src/features/core/messaging/bulkSendTargets/bankTransferReview.ts`。既定の種別は transactional(振込の確認は業務の連絡)。送った回は `/admin/messaging` で見る
 - fork: 項目を足す(例: 一括承認・一括拒否 = fork の route と hook を呼ぶ部品)、上流の項目を `sendEmail.override.ts` で外す・並べ替える(書けるのは `enabled`・`order`)
 - 時機: 管理者が表で行を選んだ後に押す。選択は表示中のページ内だけ(ページ・タブ・検索語が変わると空になる)
 - トランザクション: 受け口は持たない。1 回の操作の中身(API・サービスの tx)は項目が呼ぶ API の側

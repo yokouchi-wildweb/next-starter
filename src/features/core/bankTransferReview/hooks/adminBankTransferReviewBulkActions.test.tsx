@@ -1,24 +1,21 @@
 // 振込レビューの管理一覧の受け口 adminBulkActions の検査。
 // - 生成の一覧(extensions/adminBulkActions)に上流の既定の項目 sendEmail がある
 // - override で enabled: false にした形(生成器が重ねる)は出ない / fork の項目は order で並ぶ(selectBulkActions の上で)
-// - sendEmail の部品は今の一斉送信のボタンを、選んだ id・今の文言・onDone で描く(ボタンは偽物)
+// - sendEmail は連絡の作成関数 bulkMessageAction の項目で、ボタンを target・選んだ id・今の文言・onDone で描く(ボタンは偽物)
 // 実行: pnpm test src/features/core/bankTransferReview/hooks/adminBankTransferReviewBulkActions.test.tsx
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 
 const buttonProps: Record<string, unknown>[] = [];
-mock.module("@/components/BulkSendEmail", {
+// 作成関数の中の部品(AdminBulkSendButton)を偽物にして、渡す props を見る
+mock.module("@/features/core/messaging/components/AdminBulkSend/AdminBulkSendButton", {
   namedExports: {
-    BulkSendEmailButton: (props: Record<string, unknown>) => {
+    AdminBulkSendButton: (props: Record<string, unknown>) => {
       buttonProps.push(props);
       return null;
     },
   },
-});
-const sendEmail = async () => ({ sent: 0 });
-mock.module("@/features/core/bankTransferReview/services/client/bankTransferReviewClient", {
-  namedExports: { adminBulkSendBankTransferReviewEmail: sendEmail },
 });
 
 let adminBulkActions: typeof import("../extensions/adminBulkActions").adminBulkActions;
@@ -53,7 +50,7 @@ test("受け口: override で enabled: false の既定は出ず、fork の項目
   );
 });
 
-test("sendEmail: 今の一斉送信のボタンを選んだ id・今の文言・onDone で描く", () => {
+test("sendEmail: 連絡の一括送信のボタンを target bankTransferReview・選んだ id・今の文言・onDone で描く", () => {
   const onDone = () => {};
   const { Component } = adminBulkActions.sendEmail;
   renderToStaticMarkup(
@@ -64,13 +61,26 @@ test("sendEmail: 今の一斉送信のボタンを選んだ id・今の文言・
   );
   const props = buttonProps.at(-1);
   assert.deepEqual(props?.ids, ["r1", "r2"]);
-  assert.equal(props?.onSend, sendEmail);
+  assert.equal(props?.target, "bankTransferReview");
   assert.equal(props?.onSuccess, onDone);
+  assert.equal(props?.disabled, false);
   assert.equal(props?.recordNoun, "振込レビュー");
-  assert.equal(props?.defaultNotificationTitle, "お振込に関するお知らせ");
-  assert.equal(
-    props?.defaultNotificationBody,
-    "お振込のご確認に関する重要なお知らせをメールにて送付しております。\nお手数をおかけいたしますが、ご確認のほどお願いいたします。",
-  );
+  assert.equal(props?.defaultKind, "transactional");
+  assert.deepEqual(props?.defaults, {
+    inAppTitle: "お振込に関するお知らせ",
+    inAppBody:
+      "お振込のご確認に関する重要なお知らせをメールにて送付しております。\nお手数をおかけいたしますが、ご確認のほどお願いいたします。",
+  });
   assert.equal(props?.subjectPlaceholder, "例: お振込内容の確認のお願い");
+});
+
+test("sendEmail: 選択が 0 件ならボタンは押せない", () => {
+  const { Component } = adminBulkActions.sendEmail;
+  renderToStaticMarkup(
+    createElement(Component, {
+      selection: { selectedIds: [], selectedRows: [], count: 0, clear: () => {} },
+      onDone: () => {},
+    } as never),
+  );
+  assert.equal(buttonProps.at(-1)?.disabled, true);
 });

@@ -4,7 +4,7 @@
 
 **ユーザー宛の任意メッセージは必ず `messagingService.send` / `bulkSend` を経由する**（CLAUDE.md PROHIBITED）。各呼び出し元が `lib/mail` の `send()` を直接呼ぶと、受信者単位の記録や本文の保存が漏れる（実際に過去に漏れた）。`lib/mail` を直接使ってよいのは、パスワードリセット・メール認証・登録などのシステムテンプレートメールだけ。
 
-送信の UI・API ルートは持たない（利用者の口 `/api/me/messaging/endpoints`・`/api/me/messaging/inbox` と受け口だけ持つ）。送信画面や送信 API は呼び出し側（各ドメインの wrappers、fork の `_components/` など）が用意し、サーバー側からこのサービスを呼ぶ。
+利用者の口（`/api/me/messaging/endpoints`・`/api/me/messaging/inbox`）・管理の口（`/api/admin/messaging/**`、管理一覧の一括送信の作成関数、送った回の管理画面 `/admin/messaging`）と受け口を持つ。それ以外の送信画面や送信 API は呼び出し側（各ドメインの wrappers、fork の `_components/` など）が用意し、サーバー側からこのサービスを呼ぶ。
 
 ---
 
@@ -36,12 +36,17 @@ src/features/core/messaging/
 │   └── model.ts                 # 入出力の型
 ├── services/client/
 │   ├── endpointClient.ts        # 本人の端末の帳簿の API
-│   └── inboxClient.ts           # 本人の受け取り箱の API（一覧はカーソル）
+│   ├── inboxClient.ts           # 本人の受け取り箱の API（一覧はカーソル）
+│   └── adminMessagingClient.ts  # 管理の一括送信・回の読む口・続きを送る（一覧と配達はカーソル）
 ├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
+│                                # 管理: useAdminBulkSend / useAdminBulkSendForm / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
 ├── components/
 │   ├── InboxList/               # 入れ物: 受け取り箱の一覧（詳細・既読・すべて既読）
 │   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。枠には置いていない）
-│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark
+│   ├── AdminBulkSend/           # 管理一覧の一括操作の作成関数 bulkMessageAction と部品 AdminBulkSendButton
+│   ├── AdminDispatchList/       # 入れ物: 送った回の一覧（絞り込み + カーソル）
+│   ├── AdminDispatchDetail/     # 入れ物: 回 1 件・配達（カーソル）・続きを送る
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany + 古い send / bulkSend / findExistingIdempotencyKeys）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -353,7 +358,7 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 ## 管理の送信と回の読む口（/api/admin/messaging/**）
 
-管理者だけ（API の access `roleCategories: ["admin"]` と service の `assertAdmin` の両方。service は監査の文脈の操作者の役割の分類を引き、runAsSystem の system も通す）。機能の門は無い（常に開）。操作は監査ログに 1 行。
+管理者だけ（API の access `roleCategories: ["admin"]` と service の `assertAdmin` の両方。service は監査の文脈の操作者の役割の分類を引き、runAsSystem の system も通す）。操作は監査ログに 1 行。機能の門 `messagingDispatches`（既定 開）が回の読む口・続きを送る（`/api/admin/messaging/dispatches`）と管理画面 `/admin/messaging` を持つ。一括送信 `bulk-send` は門に入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）。
 
 ### 管理者の連絡（連絡の定義 `messages/adminMessage.ts`、鍵 `messaging.adminMessage`）
 
@@ -378,6 +383,33 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 ### `POST /api/admin/messaging/dispatches/[id]/continue`（続きを送る）
 
 - `continueSending`（1 束だけ進める。processing の回だけ、他は 409）→ `{ expanded, claimed, sent, failed, completed }`。監査 `messaging.dispatch.continued`
+
+### 管理一覧の一括送信の作成関数（`components/AdminBulkSend`）
+
+管理一覧の一括操作の受け口 `adminBulkActions` の項目を数行で作る（`@/lib/crud/components` の `bulk*Action` と同じ形。lib は features を読めないので messaging に置く）。対にサーバーの受け口 `bulkSendTargets/<名前>.ts` が要る（記録 → 利用者 id と afterSend はサーバーの項目だけが持つ。画面は鍵 `target` と選んだ id を送るだけ）。
+
+```tsx
+// src/features/<domain>/adminBulkActions/notify.tsx
+import { bulkMessageAction } from "@/features/core/messaging/components/AdminBulkSend";
+
+export const bulkAction = bulkMessageAction(
+  { key: "notify", order: 100 },
+  { target: "<bulkSendTargets の key>", recordNoun: "発送リクエスト", defaultKind: "transactional" },
+);
+```
+
+- options（`BulkMessageActionOptions`）: `target`・`recordNoun`（文に入る名詞）・`defaults?`（`emailSubject`・`emailBody`・`inAppTitle`・`inAppBody` の初期値）・`defaultKind?`（既定 marketing）・`kindSelectable?`（既定 true）・`defaultEmail?` / `defaultInApp?`（最初に送る側にする経路、既定どちらも true）・`subjectPlaceholder?`・`label?`（既定「一括送信」）・`source?`・`disabled?`・`onSent?(result)`（送った結果。サーバーの afterSend とは別の画面の側の後処理）
+- 流れ: ボタン → 書く（Modal。経路・種別・件名 / 本文・題 / 本文）→ 確かめる（Dialog、送る間 loading）→ 結果（数・経路ごとの数・afterSend の成否・回の詳細へのリンク）。成功で `onDone`（選択を外し一覧を取り直す）
+- 二重送信: フォームを開くたびに `idempotencyKey` を 1 つ発行し、同じフォームの再試行は同じ鍵を送る
+- 書く欄の状態と送信は hook `useAdminBulkSendForm`（部品は描くだけ、CLAUDE.md core_ui_guards）。見た目を替える fork は部品を写して hook を呼ぶ
+- 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`（target `bankTransferReview`、既定の種別 transactional）
+
+### 送った回の管理画面（`/admin/messaging`、門 `messagingDispatches`、既定 開）
+
+- `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・定義の鍵・種別・経路・状態）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
+- `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）
+- loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatches`・`useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch`）
+- 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
 
 ## cron（送信の掃き出し・保持の掃除）と続きを送る
 
@@ -431,7 +463,6 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 既存の呼び出し例:
 
-- `src/features/core/bankTransferReview/services/server/wrappers/bulkSendEmail.tsx` … 管理画面のバルクアクションから `bulkSend`
 - `src/features/core/wallet/services/server/notification/` … cron から `send`（`runAsSystem` + 冪等性キー）
 
 ---

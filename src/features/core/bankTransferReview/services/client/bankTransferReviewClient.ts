@@ -16,10 +16,6 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
-import type {
-  BulkSendEmailInput,
-  BulkSendEmailResult,
-} from "@/components/BulkSendEmail/types";
 
 // ============================================================================
 // 共通型（API レスポンスを忠実に表現）
@@ -494,31 +490,5 @@ export async function adminUpdateBankTransferReviewAdminMemo(
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "管理者メモの更新に失敗しました。");
-  }
-}
-
-// ============================================================================
-// バルクアクション「メール一斉送信」
-// ============================================================================
-
-/**
- * 振込レビュー一覧のバルクアクション「メール一斉送信」。
- * 選択されたレビューに紐づくユーザーへメールを一斉送信し、
- * 任意でサービス内お知らせ通知も発行する。
- *
- * 入力／結果の型は共通コンポーネント BulkSendEmailButton と共有する
- * （@/components/BulkSendEmail/types）。
- */
-export async function adminBulkSendBankTransferReviewEmail(
-  input: BulkSendEmailInput,
-): Promise<BulkSendEmailResult> {
-  try {
-    const res = await axios.post<BulkSendEmailResult>(
-      "/api/admin/bank-transfer-reviews/bulk/send-email",
-      input,
-    );
-    return res.data;
-  } catch (error) {
-    throw normalizeHttpError(error, "メールの一斉送信に失敗しました。");
   }
 }

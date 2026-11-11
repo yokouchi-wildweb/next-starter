@@ -164,7 +164,7 @@ test("l2 指令 22 で hook 化した既定 Screen の部品は許可一覧に�
 test("まとめの再 export: services/client から再 export する値の名前だけを集める(型・他のフォルダの名前は入らない)", () => {
   const names = barrelClientNames("src/features/core/bankTransferReview", root);
   assert.ok(names.has("adminListBankTransferReviews"));
-  assert.ok(names.has("adminBulkSendBankTransferReviewEmail"));
+  assert.ok(names.has("adminUpdateBankTransferReviewAdminMemo"));
   assert.ok(names.has("BANK_TRANSFER_REVIEW_IMPORT_HEADERS"), "services/client の値の定数も client の側");
   assert.ok(!names.has("AdminBankTransferReviewListResponse"), "型は入らない");
   assert.ok(!names.has("formatJpyAmount"), "presenters は入らない");
