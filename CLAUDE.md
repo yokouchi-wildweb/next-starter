@@ -153,7 +153,7 @@ scope: each line = a rule that applies even when you are not editing that featur
 
 ## STYLE_OWNERSHIP (upstream = structure, downstream = values)
 ownership: see CORE_FILES | color source of truth = CSS | config, cn class groups → .claude/rules/core/style.md (loaded with any .tsx) | before changing tokens, variants, fonts or theme → read src/styles/README.md
-semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill | `text-x-foreground` = text on the fill | `text-x-text` = text on a plain background | NEVER `text-x` | scrim `bg-overlay/NN` | no raw white/black (background / foreground / card tokens) | lint style-tokens/no-raw-palette (exception = reasoned eslint-disable)
+semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill | `text-x-foreground` = text on the fill | `text-x-text` = text on a plain background | NEVER `text-x` (lint style-tokens/no-bare-semantic-text) | scrim `bg-overlay/NN` | no raw white/black (background / foreground / card tokens) | lint style-tokens/no-raw-palette (exception = reasoned eslint-disable, both rules)
 
 ## COMPONENTS
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | ref: src/components/README.md

@@ -183,6 +183,7 @@ const config = [
     },
   },
   // 生パレット色(bg-slate-900 / text-white / bg-[#fff] 等)の禁止。色はテーマトークンで書く
+  // 同じ範囲で意味色の素の文字 text-success / text-info / text-warning / text-destructive も禁止(no-bare-semantic-text。CLAUDE.md semantic_colors)。
   // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
   // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(features/<business>, app/)は対象外
   // (下流が同じ規律を敷きたい場合は files にパスを足す)。
@@ -207,6 +208,7 @@ const config = [
     plugins: { "style-tokens": styleTokensPlugin },
     rules: {
       "style-tokens/no-raw-palette": "error",
+      "style-tokens/no-bare-semantic-text": "error",
       "style-tokens/span-in-heading": "error",
     },
   },
@@ -217,6 +219,7 @@ const config = [
           files: forkOwnedLibFiles,
           rules: {
             "style-tokens/no-raw-palette": "warn",
+            "style-tokens/no-bare-semantic-text": "warn",
             "style-tokens/span-in-heading": "warn",
           },
         },
