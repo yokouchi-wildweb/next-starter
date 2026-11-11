@@ -1,5 +1,5 @@
 // scripts/runner/guard/guard.test.ts — pnpm test scripts/runner/guard
-// 書く入口の共通の守り: 向き先の選び方・段階の印・同じ DB・本番の確認・ホストの env・旗の外し方、入口の一覧(全部が守りを呼ぶ)、
+// 書く入口の共通の守り: 向き先の選び方・段階の印・同じ DB・継いだ DATABASE_URL・本番の確認・ホストの env・旗の外し方、入口の一覧(全部が守りを呼ぶ)、
 // デプロイ(指令 45 の事故の形: 非対話の pnpm live:all)が何も打たずに拒否されること(偽の vercel で確かめる。本物は呼ばない)。
 
 import assert from "node:assert/strict";
@@ -81,6 +81,45 @@ test("本番に書く: 非対話は --confirm=production が無ければ拒否�
   assert.throws(() => resolveTarget(["--confirm=production"], W, io(files)), /--confirm=production は向き先\(development\)と違います/);
 });
 
+test("継いだ DATABASE_URL: 向き先のファイルと同じ DB(host と DB 名)なら通り、別の DB・ファイルが空なら止める(資格情報は出さない)", () => {
+  const files = { ".env.development": DEV, ".env.production": PROD };
+  const inherit = (url: string, extra: Record<string, string> = {}) => ({ env: { DATABASE_URL: url, ...extra } });
+  assert.doesNotThrow(() => resolveTarget([], W, io(files)));
+  assert.doesNotThrow(() => resolveTarget([], W, io(files, inherit("postgres://u:p@dev.example/app"))));
+  assert.doesNotThrow(() => resolveTarget([], W, io(files, inherit("postgres://other:pw@dev.example/app?sslmode=require"))));
+  assert.doesNotThrow(() => resolveTarget([], W, io(files, inherit(""))));
+  assert.throws(
+    () => resolveTarget([], W, io(files, inherit("postgres://u:secret@prod.example/app"))),
+    (e: Error) =>
+      /環境変数 DATABASE_URL\(prod\.example\/app\)が向き先 \.env\.development の DATABASE_URL\(dev\.example\/app\)と違います/.test(e.message) && !e.message.includes("secret"),
+  );
+  assert.throws(
+    () => resolveTarget(["--env", "production", "--confirm=production"], W, io(files, inherit("postgres://u:p@dev.example/app"))),
+    /環境変数 DATABASE_URL\(dev\.example\/app\)が向き先 \.env\.production の DATABASE_URL\(prod\.example\/app\)と違います/,
+  );
+  // 本番でも確認より先に止まる(TTY で production と打たせない)
+  const tty = io(files, { isTTY: true, prompt: () => "production", env: { DATABASE_URL: "postgres://u:p@dev.example/app" } });
+  assert.throws(() => resolveTarget(["--env", "production"], W, tty), /環境変数 DATABASE_URL/);
+  assert.deepEqual(tty.prompts, []);
+  // ファイルに無い・空の DATABASE_URL に、継いだ値がある = 止める
+  assert.throws(() => resolveTarget([], W, io({ ".env.development": "APP_ENV=development\n" }, inherit("postgres://u:p@prod.example/app"))), /DATABASE_URL\(空\)と違います/);
+  // 読めない値は資格情報を含みうるので出さない
+  assert.throws(() => resolveTarget([], W, io(files, inherit("u:secret-pw"))), (e: Error) => e.message.includes("読めない値") && !e.message.includes("secret"));
+  // .local の上書きの後の値と比べる
+  const local = { ...files, ".env.development.local": "DATABASE_URL=postgres://me@local/app\n" };
+  assert.doesNotThrow(() => resolveTarget([], W, io(local, inherit("postgres://me@local/app"))));
+  assert.throws(() => resolveTarget([], W, io(local, inherit("postgres://u:p@dev.example/app"))), /DATABASE_URL\(local\/app\)と違います/);
+});
+
+test("継いだ ENV_FILE はそのまま読むファイル(段階は --env と一致が要る)。新しい止め方は無い", () => {
+  const files = { ".env.development": DEV, ".env.production": PROD, ".env.production.other": PROD };
+  const t = resolveTarget(["--env", "production", "--confirm=production"], W, io(files, { env: { ENV_FILE: ".env.production.other" } }));
+  assert.deepEqual([t.stage, t.envFile, t.values.DATABASE_URL], ["production", ".env.production.other", "postgres://u:p@prod.example/app"]);
+  const noFlag = resolveTarget(["--confirm=production"], W, io(files, { env: { ENV_FILE: ".env.production" } }));
+  assert.deepEqual([noFlag.stage, noFlag.envFile], ["production", ".env.production"]);
+  assert.throws(() => resolveTarget(["--env", "development"], W, io(files, { env: { ENV_FILE: ".env.production" } })), /と --env development が違います/);
+});
+
 test(".env.<段階>.local を上に重ねる(印が違えば止める)", () => {
   const t = resolveTarget([], W, io({ ".env.development": DEV, ".env.development.local": "DATABASE_URL=postgres://me@local/app\n" }));
   assert.equal(t.values.DATABASE_URL, "postgres://me@local/app");
@@ -93,6 +132,7 @@ test("ホストの env: ファイルが無く環境変数の APP_ENV が向き�
   assert.throws(() => resolveTarget(["--env", "production"], W, io({}, host)), /非対話では --confirm=production/);
   const t = resolveTarget(["--env", "production", "--confirm=production"], W, io({}, host));
   assert.deepEqual([t.stage, t.envFile, t.values], ["production", "(ホストの env)", {}]);
+  // ホストの env の DATABASE_URL は継いだ値そのもの(比べる相手のファイルが無い)= 継いだ DATABASE_URL の検査は掛けない
 });
 
 test("デプロイの確認(confirmProduction): 非対話は拒否、--confirm=production で通る、違う値は止める", () => {
