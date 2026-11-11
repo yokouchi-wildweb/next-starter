@@ -3,30 +3,63 @@
 import { LINE_API_BASE } from "./endpoints";
 import { getLineMessagingConfig } from "./env";
 import { LINE_MULTICAST_MAX_RECIPIENTS } from "./constants";
+import { LineApiError } from "./errors";
 import type { LineMessage, LineSendMessageResponse, LineTextMessage } from "./types";
+
+/** push の追加の指定 */
+export type PushMessageOptions = {
+  /**
+   * X-Line-Retry-Key(UUID の形。lineRetryKey(呼び手の鍵) で作る)。送り直しで同じ鍵を付けると、
+   * LINE が受付済みの要求は 409 で返し二重に送らない(この lib は 409 を成功として返す)。LINE が鍵を覚えるのは 24 時間
+   */
+  retryKey?: string;
+};
+
+function parseResponseBody(text: string): LineSendMessageResponse {
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as LineSendMessageResponse;
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Messaging API の共通リクエスト送信。
  * レスポンスボディを型付きで返す。
+ * @throws LineApiError 応答が 2xx でない(status, retryable, body)・応答なし(status null, retryable true)
  */
 async function sendRequest(
   path: string,
   body: Record<string, unknown>,
+  options: { retryKey?: string } = {},
 ): Promise<LineSendMessageResponse> {
   const { channelAccessToken } = getLineMessagingConfig();
 
-  const response = await fetch(`${LINE_API_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${channelAccessToken}`,
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${LINE_API_BASE}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${channelAccessToken}`,
+        ...(options.retryKey ? { "X-Line-Retry-Key": options.retryKey } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    // 応答が無い(接続の失敗・中断)。再試行の鍵があれば送り直しても二重にならない
+    throw new LineApiError({ status: null, body: null, cause: error });
+  }
+
+  if (response.status === 409 && options.retryKey) {
+    // 同じ再試行の鍵の要求を LINE が受付済み = 前の送信が届いている。本文は前の送信の sentMessages
+    return parseResponseBody(await response.text());
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`LINE Messaging API エラー: ${response.status} ${errorBody}`);
+    throw new LineApiError({ status: response.status, body: errorBody });
   }
 
   // 200 でボディが空の場合（broadcast 等）は空オブジェクトを返す
@@ -48,12 +81,14 @@ export function textMessage(text: string): LineTextMessage {
  *
  * @param to - LINE userId
  * @param messages - 送信するメッセージ（最大5件）
+ * @param options - retryKey = X-Line-Retry-Key(受付済みの 409 は成功として返す)
  */
 export async function pushMessage(
   to: string,
   messages: LineMessage[],
+  options: PushMessageOptions = {},
 ): Promise<LineSendMessageResponse> {
-  return sendRequest("/v2/bot/message/push", { to, messages });
+  return sendRequest("/v2/bot/message/push", { to, messages }, { retryKey: options.retryKey });
 }
 
 /**

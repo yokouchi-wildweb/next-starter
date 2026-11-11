@@ -38,6 +38,16 @@ const { provider, providerMessageId } = await send({
 });
 ```
 
+### 本文の渡し方（react か html のどちらか片方）
+
+- `react: ReactElement`: React Email の部品。provider の側で html に描く（Resend は SDK が、SendGrid は `send()` が `@react-email/render` で描く）
+- `html: string`（+ 任意の `text: string`）: 描き終えた本文。そのまま送り、もう一度描かない。呼び手が描いた結果を検査してから送るとき（メールの経路の項目は描いた html に React のフォールバックの印が無いか見てから、その html を渡す）
+- 片方必須は型で表す（`SendMailOptions = SendMailReactOptions | SendMailHtmlOptions`、もう片方の欄は `never`）。`text` は html の時だけ。react の時の text は送らない（今までどおり）
+
+```ts
+await send({ to, subject, html, text }); // 描き終えた html を渡す
+```
+
 ### 戻り値
 
 `{ provider, providerMessageId }`

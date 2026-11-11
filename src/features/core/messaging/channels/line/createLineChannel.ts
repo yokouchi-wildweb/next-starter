@@ -3,27 +3,26 @@
 // LINE の経路の項目を部品から作る(本物の部品は index.ts、テストは偽物を渡す)。
 // - 入切: enabled(messaging の config channels.line.enabled、既定 切)。切の時は送る口が channel_off にする
 // - 宛先: user_line_profiles.line_user_id(LINE の連携の機能 userLineProfile が閉じていれば宛先なし)
-// - 送信: lib/line の push(テキスト)。lib/line は状態を誤りの文にしか載せないので文から読む:
-//   429・5xx → transient / その他の 4xx → permanent / 応答なし → unknown。provider の冪等の鍵(X-Line-Retry-Key)はまだ送れない
+// - 送信: lib/line の push(テキスト)に X-Line-Retry-Key を付ける(鍵 = lineRetryKey(冪等の鍵)。
+//   冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号> → 宛先ごとに送り直しの間で変わらない鍵。LINE が受付済みなら 409 = 成功)
+// - 失敗の分類: lib/line の LineApiError の retryable → transient(429・5xx・応答なし。鍵があるので応答なしも送り直して二重にならない)/
+//   それ以外 → permanent。LineApiError でない例外 → unknown
 
+import { LineApiError, lineRetryKey } from "@/lib/line";
 import { lineFieldsSchema, type ChannelAddress, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
 export type LineChannelDeps = {
   enabled: boolean;
   findLineUserIds: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
-  push: (to: string, text: string) => Promise<unknown>;
+  /** テキストを push する。options.retryKey = X-Line-Retry-Key に付ける鍵(UUID) */
+  push: (to: string, text: string, options: { retryKey: string }) => Promise<unknown>;
 };
-
-const STATUS_PATTERN = /LINE Messaging API エラー: (\d{3})/;
 
 /** lib/line の誤りから失敗の分類を決める */
 export function classifyLineError(error: unknown): { kind: "transient" | "permanent" | "unknown"; reason: string } {
-  const message = error instanceof Error ? error.message : String(error);
-  const match = STATUS_PATTERN.exec(message);
-  if (!match) return { kind: "unknown", reason: "line_no_response" };
-  const status = Number(match[1]);
-  if (status === 429 || status >= 500) return { kind: "transient", reason: `http_${status}` };
-  return { kind: "permanent", reason: `http_${status}` };
+  if (!(error instanceof LineApiError)) return { kind: "unknown", reason: "send_threw" };
+  const reason = error.status === null ? "line_no_response" : `http_${error.status}`;
+  return { kind: error.retryable ? "transient" : "permanent", reason };
 }
 
 export function createLineChannel(deps: LineChannelDeps): MessageChannel {
@@ -39,7 +38,7 @@ export function createLineChannel(deps: LineChannelDeps): MessageChannel {
       for (const target of targets) {
         const text = String((target.content as { text?: unknown }).text ?? "");
         try {
-          await deps.push(target.address, text);
+          await deps.push(target.address, text, { retryKey: lineRetryKey(target.idempotencyKey) });
           results.push({ address: target.address, kind: "sent", provider: "line", providerMessageId: null });
         } catch (error) {
           const { kind, reason } = classifyLineError(error);

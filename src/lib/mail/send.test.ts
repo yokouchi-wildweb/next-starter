@@ -2,6 +2,7 @@
 //
 // lib/mail の send() の検査(外部通信なし。Resend / SendGrid の client を偽物に差し替える)。
 // - 戻り値 { provider, providerMessageId }・headers と idempotencyKey の渡し方・失敗の分類(一時 / 恒久 / 受付不明)
+// - 本文の 2 つの渡し方(react / 描き終えた html + text)
 // 実行: pnpm test src/lib/mail/send.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { afterEach, before, mock, test } from "node:test";
@@ -247,4 +248,25 @@ test("tags: Resend は tags([{ name, value }])、SendGrid は customArgs で渡�
   } finally {
     delete process.env.MAIL_PROVIDER;
   }
+});
+
+// --- 描き終えた html を渡す口 ---
+
+test("html: Resend は html と text をそのまま渡し、react を渡さない", async () => {
+  await send({ to: "to@example.com", subject: "件名", html: "<p>描いた本文</p>", text: "描いた本文" });
+  assert.equal(resendCalls[0].payload.html, "<p>描いた本文</p>");
+  assert.equal(resendCalls[0].payload.text, "描いた本文");
+  assert.equal("react" in resendCalls[0].payload, false);
+  await send({ to: "to@example.com", subject: "件名", html: "<p>x</p>" });
+  assert.equal("text" in resendCalls[1].payload, false);
+});
+
+test("html: SendGrid は描かずに html(と text)を送る。react の時は今どおり描く", async () => {
+  process.env.MAIL_PROVIDER = "sendgrid";
+  await send({ to: "to@example.com", subject: "件名", html: "<p>描いた本文</p>", text: "描いた本文" });
+  assert.equal(sendgridCalls[0].html, "<p>描いた本文</p>");
+  assert.equal(sendgridCalls[0].text, "描いた本文");
+  await send(base);
+  assert.match(String(sendgridCalls[1].html), /<p>本文<\/p>/);
+  assert.equal("text" in sendgridCalls[1], false);
 });

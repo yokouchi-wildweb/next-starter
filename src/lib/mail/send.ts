@@ -17,13 +17,12 @@ import { getSendGridClient } from "./sendgrid";
 
 export type { MailProvider } from "./provider";
 
-export type SendMailOptions = {
+/** 送信の共通の欄(本文の渡し方は SendMailReactOptions / SendMailHtmlOptions のどちらか) */
+type SendMailBaseOptions = {
   /** 宛先メールアドレス */
   to: string;
   /** 件名 */
   subject: string;
-  /** React Emailコンポーネント */
-  react: ReactElement;
   /** 送信元メールアドレス（省略時は 設定の defaultFrom。上流は business.mail を写す） */
   from?: string;
   /** 送信者名（省略時は 設定の defaultFromName。上流は business.mail を写す） */
@@ -42,6 +41,26 @@ export type SendMailOptions = {
   tags?: Record<string, string>;
 };
 
+/** 本文 = React Email の部品(送る側の provider の道具で html に描く) */
+export type SendMailReactOptions = SendMailBaseOptions & {
+  /** React Emailコンポーネント */
+  react: ReactElement;
+  html?: never;
+  text?: never;
+};
+
+/** 本文 = 描き終えた html(と任意の text)。呼び手が既に描いたときに渡し、もう一度描かない */
+export type SendMailHtmlOptions = SendMailBaseOptions & {
+  /** 描き終えた html */
+  html: string;
+  /** プレーンテキストの本文(省略時は送らない) */
+  text?: string;
+  react?: never;
+};
+
+/** 送信の引数。本文は react か html のどちらか片方(型で片方必須) */
+export type SendMailOptions = SendMailReactOptions | SendMailHtmlOptions;
+
 /**
  * 送信の結果
  * - provider: 送ったプロバイダー
@@ -52,10 +71,13 @@ export type SendMailResult = {
   providerMessageId: string | null;
 };
 
+/** provider に渡す本文: react(provider の側で描く)か、描き終えた html(+ text) */
+type ProviderBody = { react: ReactElement } | { html: string; text?: string };
+
 type ProviderSendParams = {
   to: string;
   subject: string;
-  react: ReactElement;
+  body: ProviderBody;
   fromAddress: string;
   fromName?: string;
   headers?: Record<string, string>;
@@ -72,7 +94,7 @@ const RESEND_TRANSIENT_ERROR_NAMES = new Set(["concurrent_idempotent_requests"])
 async function sendWithResend(
   params: ProviderSendParams,
 ): Promise<SendMailResult> {
-  const { to, subject, react, fromAddress, fromName, headers, idempotencyKey, tags } =
+  const { to, subject, body, fromAddress, fromName, headers, idempotencyKey, tags } =
     params;
   const resend = getResendClient();
   const fromField = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
@@ -82,7 +104,9 @@ async function sendWithResend(
       from: fromField,
       to,
       subject,
-      react,
+      ...("react" in body
+        ? { react: body.react }
+        : { html: body.html, ...(body.text !== undefined ? { text: body.text } : {}) }),
       ...(headers ? { headers } : {}),
       ...(tags && Object.keys(tags).length > 0
         ? { tags: Object.entries(tags).map(([name, value]) => ({ name, value })) }
@@ -121,9 +145,11 @@ async function sendWithResend(
 async function sendWithSendGrid(
   params: ProviderSendParams,
 ): Promise<SendMailResult> {
-  const { to, subject, react, fromAddress, fromName, headers, tags } = params;
+  const { to, subject, body, fromAddress, fromName, headers, tags } = params;
   const sgMail = getSendGridClient();
-  const html = await render(react);
+  // 描き終えた html があればそのまま送る(もう一度描かない)
+  const html = "react" in body ? await render(body.react) : body.html;
+  const text = "react" in body ? undefined : body.text;
 
   try {
     const [response] = await sgMail.send({
@@ -131,6 +157,7 @@ async function sendWithSendGrid(
       from: fromName ? { email: fromAddress, name: fromName } : fromAddress,
       subject,
       html,
+      ...(text !== undefined ? { text } : {}),
       ...(headers ? { headers } : {}),
       ...(tags && Object.keys(tags).length > 0 ? { customArgs: tags } : {}),
     });
@@ -184,11 +211,16 @@ function readHeader(headers: unknown, name: string): string | null {
  *   subject: "メールアドレスの確認",
  *   react: <SomeEmail url={verificationUrl} />, // React Email の部品(lib/mail/frame で組む)
  * });
+ * // 既に描いた html を渡す(もう一度描かない。react とはどちらか片方)
+ * await send({ to, subject, html, text });
  * ```
  */
 export async function send(options: SendMailOptions): Promise<SendMailResult> {
-  const { to, subject, react, from, fromName, headers, idempotencyKey, tags } =
-    options;
+  const { to, subject, from, fromName, headers, idempotencyKey, tags } = options;
+  const body: ProviderBody =
+    options.react !== undefined
+      ? { react: options.react }
+      : { html: options.html, ...(options.text !== undefined ? { text: options.text } : {}) };
 
   const fromAddress = from ?? mailConfig.defaultFrom;
   const senderName = fromName ?? mailConfig.defaultFromName;
@@ -196,7 +228,7 @@ export async function send(options: SendMailOptions): Promise<SendMailResult> {
   const params: ProviderSendParams = {
     to,
     subject,
-    react,
+    body,
     fromAddress,
     fromName: senderName,
     headers,

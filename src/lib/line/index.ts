@@ -34,7 +34,12 @@ export {
   replyMessage,
   multicast,
   broadcast,
+  type PushMessageOptions,
 } from "./messagingApi";
+
+// Messaging API の失敗の型と再試行の鍵
+export { LineApiError, isRetryableLineStatus, type LineApiErrorInit } from "./errors";
+export { lineRetryKey } from "./retryKey";
 
 // Webhook
 export {
