@@ -20,7 +20,7 @@ export const TaskRunTable = pgTable(
     /** pnpm task <名前> の後ろの引数 */
     args: jsonb("args").$type<string[]>().notNull(),
     dryRun: boolean("dry_run").notNull(),
-    /** running | succeeded | failed | unknown(TASK_RUN_STATUSES) */
+    /** running | succeeded | failed | unknown | incomplete(TASK_RUN_STATUSES) */
     status: text("status").notNull(),
     stopKeys: text("stop_keys").array().default([]).notNull(),
     result: jsonb("result"),

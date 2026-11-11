@@ -1,11 +1,11 @@
 // scripts/runner/task/execute.test.ts — pnpm test scripts/runner/task/execute.test.ts
 // 1 回の実行の流れ(execute.ts)を記憶の中の置き場で確かめる(DB には触らない。本物の task_runs は taskRunStore.db.test.ts)。
-// 記録の行・止める鍵・結果不明・書き込み前の失敗・dry-run・requestId・記録が書けない時に走らせないこと。
+// 記録の行・止める鍵・結果不明・書き込み前の失敗・dry-run・requestId・記録が書けない時に走らせないこと・予算で止まった回(incomplete)・打ち直せる失敗。
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { TaskNotStartedError } from "@/lib/task";
+import { TaskNotStartedError, TaskRerunnableError, taskIncomplete } from "@/lib/task";
 import type { TaskRun } from "@/features/taskRun/entities/model";
 
 import { type ExecuteInput, executeTask, type TaskRunStore } from "./execute";
@@ -162,4 +162,25 @@ test("ふつうのタスクの行の source は null", async () => {
   const store = memoryStore();
   await executeTask(input(store));
   assert.equal(store.rows[0].source, null);
+});
+
+test("予算で止まった(taskIncomplete): incomplete と結果を書き、鍵を取らない(同じ移行をもう一度走らせられる)", async () => {
+  const store = memoryStore();
+  const migration = { name: "messaging:copy", kind: "migration" as const, stopKeys: () => ["migration:n1:messaging:copy"] };
+  const first = await executeTask(input(store, { ...migration, run: async () => taskIncomplete({ copied: 3 }) }));
+  assert.equal(first.kind, "ran");
+  assert.deepEqual([store.rows[0].status, store.rows[0].result], ["incomplete", { copied: 3, incomplete: true }]);
+  const second = await executeTask(input(store, { ...migration, run: async () => ({ copied: 1 }) }));
+  assert.equal(second.kind, "ran");
+  assert.equal(store.rows[1].status, "succeeded");
+  const third = await executeTask(input(store, migration));
+  assert.equal(third.kind, "refused", "成功した後は鍵を持つ");
+});
+
+test("TaskRerunnableError: 書いた後でも failed(鍵を取らない)、result も残す", async () => {
+  const store = memoryStore();
+  const out = await executeTask(input(store, { run: async () => { throw new TaskRerunnableError("照合が合わない", { ok: false, items: 2 }); } }));
+  assert.equal(out.kind, "ran");
+  assert.deepEqual([store.rows[0].status, store.rows[0].error, store.rows[0].result], ["failed", "照合が合わない", { ok: false, items: 2 }]);
+  assert.equal((await executeTask(input(store))).kind, "ran", "鍵を取っていないので打ち直せる");
 });

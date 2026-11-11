@@ -219,7 +219,12 @@ function report(name: string, outcome: ExecuteOutcome, durationMs: number): numb
   }
   const ok = outcome.status === "succeeded";
   const note = outcome.recordWritten ? {} : { recordNote: "結果を task_runs に書けませんでした(行は running のまま = 結果不明と同じに扱われる)" };
-  log(ok ? "info" : "error", { task: name, ok, status: outcome.status, runId: outcome.runId, durationMs, ...(ok ? outcome.result : { error: outcome.error }), ...note });
+  if (outcome.status === "incomplete") {
+    // 予算で区切りよく止まった: 書いた所までは確か。鍵を取らないので同じ命令をもう一度打てば続きから進む(終了コード 2 = まだ終わっていない)
+    log("error", { task: name, ok: false, status: "incomplete", runId: outcome.runId, durationMs, ...outcome.result, next: `続きがあります。同じ命令(pnpm task ${name})をもう一度打ちます`, ...note });
+    return 2;
+  }
+  log(ok ? "info" : "error", { task: name, ok, status: outcome.status, runId: outcome.runId, durationMs, ...(ok ? outcome.result : { error: outcome.error, ...(outcome.result ? { result: outcome.result } : {}) }), ...note });
   return ok ? 0 : 1;
 }
 

@@ -12,9 +12,10 @@ table: `task_runs`(1 実行 = 1 行)
 - `id uuid` … 実行の id。`runAsSystem` の `requestId` にも渡す(監査の行の `context.request_id` と突き合わせる)
 - `name` … `<ドメイン>:<名前>`(定期タスクは平らな名前、データ操作は `data:<command>:<domain>`) | `kind` … `task` / `migration` / `cron` / `data`(`pnpm ops data` の import / update / delete、`scripts/operations/data/README.md`)
 - `args jsonb` … `pnpm task <名前>` の後ろの引数 | `dry_run` … 引数に `--dry-run` があったか
-- `status` … `running` → `succeeded` / `failed` / `unknown`
+- `status` … `running` → `succeeded` / `failed` / `unknown` / `incomplete`
   - `failed` = 書き込みの前に止まった(`TaskNotStartedError`)、または止める鍵の無い実行の失敗、dry-run の失敗
   - `unknown` = 止める鍵のある実行が走り出してから落ちた(どこまで書いたか分からない)
+  - `incomplete` = 予算(時間)で区切りよく止まった(タスクが `taskIncomplete` で返した。鍵を持たないので同じ命令をもう一度打って続ける)
   - `running` のまま残った行(落ちた・殺された)は結果不明と同じに鍵を持つ
 - `stop_keys text[]` … 止める鍵。dry-run でない `running` / `succeeded` / `unknown` の行が持つ鍵と同じ鍵の実行は拒否される
 - `result jsonb` / `error` … タスクの返り値・失敗の文
