@@ -21,7 +21,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 import { Input } from "@/components/Form/Input/Manual/Input";
 import { SwitchInput } from "@/components/Form/Input/Manual/SwitchInput";
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { Checkbox } from "@/components/Primitives/Checkbox";
 
 import {
   PopoverRoot,
@@ -32,7 +32,7 @@ import {
   PopoverDescription,
   PopoverFooter,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 export type ChecklistOption = {
   /** 値（一意） */

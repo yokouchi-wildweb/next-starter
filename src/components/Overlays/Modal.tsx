@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   FALLBACK_DIALOG_TITLE,
-} from "@/components/Overlays/DialogPrimitives";
+} from "@/components/Primitives/Dialog";
 import Dialog from "@/components/Overlays/Dialog";
 import { cn } from "@/lib/cn";
 

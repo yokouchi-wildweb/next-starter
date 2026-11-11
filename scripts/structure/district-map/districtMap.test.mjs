@@ -12,6 +12,7 @@ import { configRules } from "../../../src/featureGate/node.ts";
 import { DISTRICT_MAP_FILE } from "../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { collectPoints } from "../../../src/lib/districtMap/declarations.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { scanFeatureTables } from "../registry/tableScan.mjs";
 import { ENTRIES_EXPORT, listDomainDirs, readObjectKeys } from "../registry/serviceRegistry/discover.mjs";
 import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } from "./map.mjs";
@@ -59,11 +60,14 @@ test("tables = schemaRegistry の元の表の全部を features の地区に 1 �
   assert.equal(new Set(mapped).size, mapped.length);
 });
 
-test("requires = domainEntry の requires(今の上流は 4 ドメイン)", () => {
-  assert.deepEqual(
-    features.filter((d) => d.requires.length > 0).map((d) => `${d.name}:${d.requires.join(",")}`),
-    ["couponAttributionReward:wallet", "fingerprintChallenge:deviceFingerprint", "purchaseRequest:wallet,walletHistory", "referral:coupon"],
-  );
+test("requires = domainEntry の requires(上流の core は 4 ドメイン。fork が自分のドメインに足す requires は照合しない)", () => {
+  const listed = (core) => features.filter((d) => d.core === core && d.requires.length > 0).map((d) => `${d.name}:${d.requires.join(",")}`);
+  // core のドメインは上流の持ち物(fork は編集しない)→ どの層でも同じ並び
+  assert.deepEqual(listed(true), ["couponAttributionReward:wallet", "fingerprintChallenge:deviceFingerprint", "purchaseRequest:wallet,walletHistory", "referral:coupon"]);
+  // business のドメインの requires は持ち主の層のもの(外部キーの検査に合わせて fork が足す)→ Tier1 だけ空を確かめる
+  const identity = readForkIdentity(repoRoot);
+  assert.deepEqual(identity.errors, [], identity.errors.join("\n"));
+  if (identity.isTier1) assert.deepEqual(listed(false), []);
 });
 
 test("gates = 門の規則の domains の逆引き", () => {

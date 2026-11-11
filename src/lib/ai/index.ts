@@ -1,10 +1,7 @@
 // src/lib/ai/index.ts
 //
-// クライアント安全なエクスポートのみをまとめるバレル。
-// サーバー専用モジュールは直接 import すること:
-//   - @/lib/ai/client         (getAnthropicClient)
-//   - @/lib/ai/agent/runtime  (runAgent)
-//   - @/lib/ai/agent/sse      (createAgentSSEResponse)
+// クライアント安全なエクスポートのみをまとめる入口(@/lib/ai)。
+// サーバー専用(getAnthropicClient・runAgent・createAgentSSEResponse)は入口 @/lib/ai/server(server.ts)。
 
 export {
   AGENT_PROTOCOL_VERSION,
@@ -26,3 +23,6 @@ export {
 } from "./agent/blocks";
 
 export { parseAgentEventStream } from "./agent/sseClient";
+
+export { aiConfig } from "./config";
+export type { AiConfig, AiOverride } from "./config";

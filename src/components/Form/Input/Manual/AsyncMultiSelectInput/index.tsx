@@ -24,12 +24,12 @@ import {
   useState,
 } from "react";
 
-import { Command, CommandInput } from "@/components/_shadcn/command";
+import { Command, CommandInput } from "@/components/Primitives/Command";
 import {
   PopoverContent,
   PopoverRoot,
   PopoverTrigger,
-} from "@/components/Overlays/Popover/PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 import { Button } from "@/components/Form/Button/Button";
 import {
   normalizeOptionValues,

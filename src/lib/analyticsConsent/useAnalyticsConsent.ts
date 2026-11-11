@@ -4,7 +4,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { ANALYTICS_CONFIG } from "@/config/app/analytics.config";
+import { analyticsConsentConfig } from "./config";
 
 import {
   type AnalyticsConsent,
@@ -24,5 +24,5 @@ export function useAnalyticsConsent(): { consent: AnalyticsConsent; allowed: boo
     getAnalyticsConsent,
     () => "unknown" as const,
   );
-  return { consent, allowed: decideAnalyticsAllowed(ANALYTICS_CONFIG, consent) };
+  return { consent, allowed: decideAnalyticsAllowed(analyticsConsentConfig, consent) };
 }

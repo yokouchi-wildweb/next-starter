@@ -19,7 +19,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { Command, CommandInput } from "@/components/_shadcn/command";
+import { Command, CommandInput } from "@/components/Primitives/Command";
 import { Button } from "@/components/Form/Button/Button";
 import {
   AsyncOptionInitialState,

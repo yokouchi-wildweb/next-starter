@@ -117,7 +117,7 @@ redirect 型の 1〜6 に加えて以下を行う。
 
 1. `APP_BASE_URL`（明示上書き）
 2. `VERCEL_ENV=preview` のとき `https://${VERCEL_URL}`
-3. `businessConfig.url`（プレースホルダー `https://example.com` のままなら throw）
+3. url の設定の `baseUrl`（上流の上書き `src/config/lib/url.config.ts` が `business.url` を写す。プレースホルダー `https://example.com` のままなら throw）
 
 ローカルは 1 を使う。`pnpm ops setup env` が `.env.development` に `APP_BASE_URL=http://localhost:3000` を入れる（ポートは実際の dev サーバーに合わせる）。これでプロバイダからの戻り（success / cancel）はローカルに着地する。
 

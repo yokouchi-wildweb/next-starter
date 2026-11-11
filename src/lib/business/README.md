@@ -12,7 +12,7 @@
 | 受付係(結び) | `src/wiring/business.ts`。tsconfig.json の `"@/business"` がここを指す | 上流 |
 
 - 読み手(features・app の枠・route・scripts・fork のコード)は `import { business } from "@/business"` だけを読む。scripts は `@/wiring` と同じく `await import("@/business")`(lint scripts-no-static-wiring)
-- lib と utils は `@/business` を読まず、値を引数で受ける(例 `logoPath(business.logo, "dark")`)。lib/mail・lib/url・lib/metadata は今は殻を読み、lib を閉じるときに自分の設定の上書きが `@/business` から写す(上書きファイルが `@/business` を読むのは lint `config-overrides/literal-only` の例外)
+- lib と utils は `@/business` を読まず、値を引数で受ける(例 `logoPath(business.logo, "dark")`)。lib/mail・lib/metadata・lib/url は自分の設定の上書き(`src/config/lib/<名前>.config.ts`)が `@/business` から写す(上書きファイルが `@/business` を読むのは lint `config-overrides/literal-only` の例外)
 - SEO のサイト名・URL・説明は `serviceNameShort`・`url`・`description` から作る(別の鍵を持たない)。viewport は事業の素性でなく root の枠の設定(`src/app/_layout/config.ts`)
 - `resolveBusiness(file, examples?)` の 2 つ目で例の値を差し替えられる(この lib を他のプロジェクトに組み込むとき)
 - 公式の URL(`business.url`)はメール・SEO 用。実行時の origin は `@/lib/url` の `getAppBaseUrl()`(Host ヘッダーから作らない)

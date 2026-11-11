@@ -1,9 +1,9 @@
 // src/lib/url/getAppBaseUrl.ts
 
-import { businessConfig } from "@/config/business.config";
+import { urlConfig } from "./config";
 
 /**
- * businessConfig.url のプレースホルダー値。
+ * 本番のベース URL(設定の baseUrl)のプレースホルダー値。
  * fork 直後の未設定状態を検出するために使用する。
  */
 const PLACEHOLDER_URL = "https://example.com";
@@ -19,7 +19,7 @@ const PLACEHOLDER_URL = "https://example.com";
  * 優先順位:
  *   1. process.env.APP_BASE_URL                   — 明示的上書き（dev / staging / ngrok 等）
  *   2. Vercel preview デプロイの自動検出 (VERCEL_URL) — PR プレビューが無設定で動くようにするため
- *   3. businessConfig.url                          — 本番環境のフォールバック
+ *   3. 設定の baseUrl(上流の上書きは business.url) — 本番環境のフォールバック
  *
  * リクエストヘッダ (Host / X-Forwarded-Host) からは決して導出しない。
  * → Host Header Injection 対策（決済コールバックURL改竄防止）
@@ -37,7 +37,7 @@ export function getAppBaseUrl(): string {
   }
 
   // 2. Vercel preview / branch デプロイの自動検出
-  //    VERCEL_ENV === "production" の場合は custom domain を使うため businessConfig.url にフォールバック。
+  //    VERCEL_ENV === "production" の場合は custom domain を使うため設定の baseUrl にフォールバック。
   //    preview の場合のみ Vercel 提供の VERCEL_URL を採用する。
   //    これにより PR プレビューが env 未設定でも正しいオリジンで動作する。
   if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
@@ -45,7 +45,7 @@ export function getAppBaseUrl(): string {
   }
 
   // 3. 本番設定値へのフォールバック
-  return validateAndNormalize(businessConfig.url);
+  return validateAndNormalize(urlConfig.baseUrl);
 }
 
 /**
@@ -56,7 +56,7 @@ function validateAndNormalize(raw: string): string {
   if (raw === PLACEHOLDER_URL) {
     throw new Error(
       "アプリのベースURLがプレースホルダー (https://example.com) のままです。" +
-        "businessConfig.url を実環境のURLに更新するか、APP_BASE_URL 環境変数で上書きしてください。",
+        "事業の素性の url(src/business/business.ts)を実環境のURLに更新するか、APP_BASE_URL 環境変数で上書きしてください。",
     );
   }
 

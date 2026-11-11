@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 
-import { Input as ShadcnInput } from "@/components/_shadcn/input";
+import { Input as ShadcnInput } from "@/components/Primitives/Input";
 
 export type FileInputProps = Omit<ComponentPropsWithoutRef<typeof ShadcnInput>, "type" | "value"> & {
   resetKey?: number;

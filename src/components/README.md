@@ -26,13 +26,14 @@
 | `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |
 | `Media/` | 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替） | [Media/AppImage/README.md](./Media/AppImage/README.md) |
 | `Navigation/` | ナビゲーション（`Link`（next/link の包み。リンクは全部これを使い next/link を直接 import しない: lint `link-via-shelf`。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能の住所を隠す判定を差し込む）、`PageTab`、`StateTabs`、`Pagination`） | [Navigation/Link/README.md](./Navigation/Link/README.md) |
-| `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
+| `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）の完成品。低レベル部品は `Primitives/`（`Dialog` / `Command` / `Popover` / `Tooltip` / `HoverCard`）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
+| `Primitives/` | 部品の棚の低レベル部品（shadcn・Radix 由来の生の部品）。1 部品 = 1 フォルダ、読むのは入口 `@/components/Primitives/<部品>`（`Primitives/index.ts` は無い）。部品: `Badge`（`BadgeCore`）・`Button`・`Calendar`・`Carousel`・`Checkbox`・`Command`・`Dialog`・`HoverCard`・`Input`（`Input` / `Textarea`）・`Label`・`Popover`・`RadioGroup`・`Select`・`Skeleton`・`Slot`・`Tabs`・`Tooltip`。Radix は統合版の `radix-ui` からだけ読む（`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う | - |
 | `Providers/` | 外部サービスの Provider（`RecaptchaProvider` など） | - |
 | `Skeleton/` | `BaseSkeleton` を基盤としたローディングプレースホルダー | [Skeleton/README.md](./Skeleton/README.md) |
 | `TextBlocks/` | 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替 | - |
 | `Three/` | three.js を利用した 3D 表現 | - |
 | `Widgets/` | 完成品ウィジェット（`FadeSlider`、`ScrollSlider`、`InfiniteScrollList` など） | [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md)・[Widgets/InfiniteScrollList/README.md](./Widgets/InfiniteScrollList/README.md) |
-| `_shadcn/` | shadcn/ui からインストールした原本。**直接インポート禁止**（ラッパー経由で使用） | [_shadcn/README.md](./_shadcn/README.md) |
+| `_shadcn/` | shadcn/ui からインストールした原本のうち、まだ `Primitives/` へ移していない物（accordion・card・form・scroll-area・table）。**直接インポート禁止**（ラッパー経由で使用） | [_shadcn/README.md](./_shadcn/README.md) |
 
 ## 共通ルール
 

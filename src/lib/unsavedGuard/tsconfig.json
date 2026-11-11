@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@lib-config/unsavedGuard": ["../../config/lib/unsavedGuard.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

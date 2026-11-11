@@ -13,7 +13,6 @@ export type NavigationToggleButtonProps = {
 export const SpNavSwitch = ({ isMenuOpen, onToggle }: NavigationToggleButtonProps) => (
   <Block data-slot="header-nav" className="contents">
     <Button
-      id="header-sp-menu-toggle"
       type="button"
       variant="outline"
       size="icon"
@@ -23,9 +22,9 @@ export const SpNavSwitch = ({ isMenuOpen, onToggle }: NavigationToggleButtonProp
       onClick={onToggle}
     >
       {isMenuOpen ? (
-        <X id="header-sp-menu-close-icon" className="h-5 w-5" aria-hidden />
+        <X className="h-5 w-5" aria-hidden />
       ) : (
-        <Menu id="header-sp-menu-open-icon" className="h-5 w-5" aria-hidden />
+        <Menu className="h-5 w-5" aria-hidden />
       )}
     </Button>
   </Block>

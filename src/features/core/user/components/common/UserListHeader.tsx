@@ -9,6 +9,8 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import SortSelect from "@/components/AppFrames/Admin/Elements/SortSelect";
 import { CreateButton } from "@/lib/crud/components/Buttons";
 
+export type UserListSortOption = { label: string; value: string };
+
 type Props = {
   title?: string;
   listPath: string;
@@ -17,13 +19,17 @@ type Props = {
   total: number;
   searchPlaceholder?: string;
   sortBy?: string;
+  /** 並び替えの候補(既定 = DEFAULT_USER_LIST_SORT_OPTIONS: 登録日順・更新日順)。fork は値を足して渡す */
+  sortOptions?: UserListSortOption[];
+  /** sortBy が無いときに選ばれている値(既定 "createdAt")。loader の既定の並びと揃える */
+  defaultSort?: string;
 };
 
 const DEFAULT_TITLE = "登録済みユーザーの一覧";
 const DEFAULT_PLACEHOLDER = "ユーザー名などで検索";
 const DEFAULT_SORT = "createdAt";
 
-const SORT_OPTIONS = [
+export const DEFAULT_USER_LIST_SORT_OPTIONS: UserListSortOption[] = [
   { label: "登録日順", value: "createdAt" },
   { label: "更新日順", value: "updatedAt" },
 ];
@@ -41,15 +47,17 @@ export default function UserListHeader({
   total,
   searchPlaceholder = DEFAULT_PLACEHOLDER,
   sortBy,
+  sortOptions = DEFAULT_USER_LIST_SORT_OPTIONS,
+  defaultSort = DEFAULT_SORT,
 }: Props) {
   const params = useSearchParams();
 
   return (
     <ListTop title={title}>
       <SortSelect
-        options={SORT_OPTIONS}
+        options={sortOptions}
         selected={sortBy}
-        defaultValue={DEFAULT_SORT}
+        defaultValue={defaultSort}
         makeHref={(searchParams) => createHref(listPath, searchParams)}
       />
       <SearchBox

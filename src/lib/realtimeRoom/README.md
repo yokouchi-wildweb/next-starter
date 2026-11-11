@@ -3,7 +3,7 @@
 `servers/room` (ルーム権威サーバー) に接続するための SDK。
 基盤の全体像・セットアップ・棲み分け基準は **`servers/room/README.md`** (一次ドキュメント) を参照。
 
-**オプトイン (既定: 無効)**。`REALTIME_ROOM_CONFIG.enabled` + env が揃うまで全経路 fail-closed。
+**オプトイン (既定: 無効)**。設定の `enabled`(上書き `src/config/lib/realtimeRoom.config.ts`) + env が揃うまで全経路 fail-closed。
 
 ## 構成
 
@@ -11,15 +11,21 @@
 protocol/   共有プロトコル (型・バージョン・トークン語彙)。servers/room と両方から参照される唯一の接点
 server/     ServerService 用: createRoomClient / verifyRoomCallback / トークン署名
 client/     ブラウザ用: useRoomState フック + roomSessionClient (ClientService)
+config.ts   設定 (既定 + 上書き @lib-config/realtimeRoom)。入口 index.ts から出す
 ```
 
-ルート index は無い。**必ずサブパスで import する** ("use client" とサーバー専用コードの混在防止):
+入口は package.json の exports の 4 つ(閉じた lib。中のファイルは読まない)。機能は**必ずサブパスで import する** ("use client" とサーバー専用コードの混在防止)。ルートの入口 `@/lib/realtimeRoom` は設定(`realtimeRoomConfig`・`RealtimeRoomOverride`)だけ:
 
 ```ts
 import { createRoomClient, verifyRoomCallback } from "@/lib/realtimeRoom/server";
 import { useRoomState } from "@/lib/realtimeRoom/client";
 import type { RoomDefinition } from "@/lib/realtimeRoom/protocol";
+import { realtimeRoomConfig } from "@/lib/realtimeRoom";
 ```
+
+## 設定
+
+`enabled`(既定 false)・`clientTokenTtlSeconds`・`serviceTokenTtlSeconds`(既定 60 秒)・`reconnectBaseDelayMs`(1 秒)・`reconnectMaxDelayMs`(15 秒)は `config.ts` が既定を持ち、fork は上書き `src/config/lib/realtimeRoom.config.ts`(`@lib-config/realtimeRoom`)に書く。読み手(server・client・`pnpm ops room deploy`)は合成済みの `realtimeRoomConfig` を読む。
 
 ## サーバーから dispatch する (権威アクションの正規経路)
 

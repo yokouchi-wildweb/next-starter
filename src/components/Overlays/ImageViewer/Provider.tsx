@@ -4,7 +4,7 @@
 
 import { useState, useCallback, useMemo, type ReactNode, type CSSProperties } from "react";
 import { XIcon } from "lucide-react";
-import { DialogPrimitives, DialogClose, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
+import { DialogPrimitives, DialogClose, DialogContent, DialogTitle } from "@/components/Primitives/Dialog";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 import { toStorageDisplaySrc } from "@/lib/storage/ref";
 import { ImageViewerContext, type ImageViewerContextValue, type ImageViewerOptions } from "./context";
@@ -104,7 +104,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
             <div data-slot="image-viewer-content" className="relative inline-block mx-auto">
               {showSkeleton ? (
                 <BaseSkeleton
-                  data-slot="image-viewer-skeleton"
+                  slot="image-viewer-skeleton"
                   className="rounded-lg"
                   style={skeletonStyle}
                 />

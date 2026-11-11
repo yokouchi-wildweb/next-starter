@@ -15,7 +15,7 @@ import {
   PopoverTitle,
   PopoverBody,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 export type InfoPopoverProps = {
   /** タイトル */

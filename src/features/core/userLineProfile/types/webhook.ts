@@ -1,6 +1,6 @@
 // src/features/core/userLineProfile/types/webhook.ts
 
-import type { LineWebhookEvent } from "@/lib/line/types";
+import type { LineWebhookEvent } from "@/lib/line";
 
 /** LINE Webhook のイベント処理の項目。eventType が一致するイベントごとに、一覧の順(ファイル名の順)に呼ばれる */
 export type LineWebhookEventHandler = {

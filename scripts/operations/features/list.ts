@@ -3,7 +3,7 @@
 // --json は configEnabled / ownEnabled / openedBySwitch / dependsOn / anyOf / dependsOnAll / dependedOnBy / closedBy / switchMissing / sharedDomainsOpen)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
 // 中身は門番の道具 @/featureGate/node の readFeatureReport。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
-import { dependencyExceptions, readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";
+import { readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";
 
 const ALLOWED_LABEL: Record<string, string> = {
   sameRule: "同じ規則",
@@ -55,7 +55,7 @@ async function main() {
   const args = process.argv.slice(2);
   const nameIndex = args.indexOf("--name");
   const name = nameIndex >= 0 ? args[nameIndex + 1] : undefined;
-  const report = await readFeatureReport(process.cwd(), rules, dependencyExceptions.map((e) => e.file));
+  const report = await readFeatureReport(process.cwd(), rules);
   const picked = name ? report.filter((d) => d.name === name) : report;
   if (name && picked.length === 0) {
     console.error(`規則 ${name} がありません(src/featureGate/rules/<名前>.ts)`);

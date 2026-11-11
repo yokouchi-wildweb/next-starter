@@ -11,7 +11,7 @@
 - src/lib/ai — Claude API を使う汎用エージェント基盤(runAgent のツール実行ループ、型付きイベント、SSE)
 - src/lib/aiVision — Claude Vision による画像の事前判定ユーティリティ
 - src/lib/appEnv — 段階(APP_ENV: development / staging / production、無い・知らない値は production)の唯一の読み手。NODE_ENV は読まない(lint app-env/single-reader)
-- src/lib/analyticsConsent — アクセス解析の送信の門(ANALYTICS_CONFIG の有効化 + 同意の状態。計測サービスに依存しない、同意バナー / CMP の差し込み口)
+- src/lib/analyticsConsent — アクセス解析の送信の門(設定 enabled・consent(@lib-config/analyticsConsent)+ 同意の状態。計測サービスに依存しない、同意バナー / CMP の差し込み口)
 - src/lib/audit — 監査ログ基盤(ALS コンテキスト・diff・denylist)
 - src/lib/business — 事業の素性(サービス名・会社・ロゴ・メールの差出人)の型・例の値(examples/)・受付係の判定 resolveBusiness・本番の検査(sample のまま本番のビルドを止める)。読み手は @/business(src/wiring/business.ts が src/business/business.ts と結ぶ)
 - src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
@@ -69,7 +69,7 @@
 - src/lib/toast — トースト通知(GlobalToast / useToast)
 - src/lib/transitionGuard — ページ遷移ガード(フロー離脱時に最初からやり直させる)
 - src/lib/unsavedGuard — 未保存の編集の守り(編集済みの間の移動・戻る進む・再読み込みに確認、守り付きの useRouter)
-- src/lib/url — 実行環境のオリジン取得(getAppBaseUrl)、リダイレクト先の同一オリジン検証(sanitizeRedirectPath)
+- src/lib/url — 実行環境のオリジン取得(getAppBaseUrl、本番の URL = 設定 baseUrl、上流の上書きが business.url を写す)、リダイレクト先の同一オリジン検証(sanitizeRedirectPath)
 - src/lib/userDirty — コミット後の再計算回収口(ALS で対象 user_id を集め post-commit で flush)
 - src/lib/variantOverrides — cva 互換のバリアント上書き(下流が形状だけを上書きする defineVariantOverrides)
 - src/lib/webAudio — Web Audio の共有エンジン(効果音・ループ SE・BGM・デコードキャッシュ)

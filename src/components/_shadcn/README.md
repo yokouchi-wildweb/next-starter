@@ -17,26 +17,12 @@
 
 | _shadcn | 使うべきラッパー |
 |---|---|
-| `button.tsx` | `Form/Button`(`Button` / `LinkButton` / `PseudoButton` / `TabletButton` / `RoundedButton` / `BookmarkTag`) |
-| `badge.tsx` | `Badge/`(`SolidBadge` / `SoftBadge` / `BookmarkTagBadge`)。_shadcn/badge は未使用 |
-| `input.tsx` | `Form/Input/Manual/*`(`Input` / `NumberInput` / `PasswordInput` / `FileInput` / `ColorInput` 等)または `Form/Input/Controlled/*` |
-| `textarea.tsx` | `Form/Input/Manual/Textarea` / `Controlled/Textarea` |
-| `select.tsx` | `Form/Input/Manual/Select`(`SelectInput`、ツールバー用は `size="sm"`)/ `Controlled/SelectInput` |
-| `checkbox.tsx` | `Form/Input/Manual/BooleanCheckboxInput`(単独のチェックボックスもこれ。`value` / `onChange(boolean)`)/ `SingleCardCheckbox` / `CheckGroupInput`、一覧の選択は `Overlays/Popover/ChecklistPopover` |
-| `radio-group.tsx` | `Form/Input/Manual/RadioGroupInput` / `BooleanRadioGroupInput`、ポップオーバー内は `Overlays/Popover/SelectPopover` |
-| `command.tsx` | 検索付き選択は `Form/Input/Manual/ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput` / `AsyncMultiSelectInput`、大量マスタからの選択は `Overlays/AsyncPickerModal`。コマンドパレットなど自前で組む場合は `Overlays/CommandPrimitives` |
-| `dialog.tsx` | `Overlays/`(`Dialog` / `Modal` / `TabbedModal` / `DetailModal` / `AsyncPickerModal`、低レベルは `DialogPrimitives`) |
-| `popover.tsx` | `Overlays/Popover`(radix 直接。_shadcn/popover は未使用) |
-| `tooltip.tsx` | `Overlays/Tooltip`(`Tooltip` / `HelpTip`。_shadcn/tooltip は未使用)、ホバーカードは `Overlays/HoverCard` |
-| `tabs.tsx` | `Navigation/PageTab`(`SolidTabs` / `UnderlineTabs`)/ `Navigation/StateTabs` / `Overlays/TabbedModal` |
 | `table.tsx` | `@/lib/tableSuite`(`DataTable` / `EditableGridTable` / `RecordSelectionTable`) |
-| `skeleton.tsx` | `Skeleton/BaseSkeleton`(`FormSkeleton` / `DetailModalSkeleton` 等) |
-| `label.tsx` | `Form/Label` |
 | `form.tsx` | `Form/Field/*`(`ControlledField` / `ConfiguredField` / `FieldRenderer`)。フォーム全体は `Form/AppForm`、Provider だけ要る場合は react-hook-form の `FormProvider`(_shadcn の `Form` はその別名) |
-| `calendar.tsx` | `Overlays/Calendar` |
-| `carousel.tsx` | `Widgets/ScrollSlider` |
 | `card.tsx` | ラッパー無し。`Layout/Block` 等の `appearance`(`surface` / `raised` / `outlined` ...)を使う |
 | `accordion.tsx` / `scroll-area.tsx` | 未使用。必要になったら `Overlays/` または `Layout/` にラッパーを作る |
+
+button・badge・input・textarea・select・checkbox・radio-group・label・tabs・skeleton・calendar・carousel・dialog・command・popover・tooltip は `src/components/Primitives/<部品>` へ移した(入口 `@/components/Primitives/<部品>`、画面からは今までどおり `Form/`・`Overlays/`・`Badge/`・`Navigation/`・`Skeleton/`・`Widgets/` の完成品を使う。一覧: `src/components/README.md`)。旧パスの import は lint `deprecated-imports` が置き換え先を出す。Radix は統合版の `radix-ui` から読む(`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める)
 
 ### 機械的な強制(ESLint)
 
@@ -48,4 +34,4 @@
 
 ### このディレクトリの色について
 
-_shadcn 内には shadcn 由来の生パレット色(`text-white` / `bg-black/50` 等)が残っていますが、見た目はラッパー側のクラスが tailwind-merge で上書きします。ESLint の `style-tokens/no-raw-palette` はこのディレクトリを対象外にしています(vendored。shadcn 更新時に差分を小さく保つため)。
+_shadcn 内には shadcn 由来の生パレット色(`text-white` 等)が残っていますが、見た目はラッパー側のクラスが tailwind-merge で上書きします。ESLint の `style-tokens/no-raw-palette` はこのディレクトリを対象外にしています(vendored。shadcn 更新時に差分を小さく保つため)。`Primitives/` へ移した物は対象に入る(残った生の色は理由付き eslint-disable で明示している)。

@@ -29,8 +29,9 @@ DB・外部に書く入口すべてが先頭で通す守り(向き先の明示�
 `pnpm live` / `live:app` / `live:room` / `live:all`・`pnpm ops room deploy` / `secret` は env ファイルを読まない(ホスティング側の env で動く)。本番に出す時だけ同じ確認(`guardDeploy`)を、何かを打つ前に通す。
 
 - プレビュー(`pnpm live -- --target=preview` など、`--prod` でない vercel)は確認なし
-- ルームの Worker は常に本番(`realtime-room.config` の enabled=false なら出さないので確認も無い)
+- ルームの Worker は常に本番(realtimeRoom の設定 `enabled` が false なら出さないので確認も無い)
 - `live:all` は確認を 1 回だけ取り、子の `pnpm ops room deploy` に `--confirm=production` を渡す
+- 本番に出す時は、確認の後にセーフポイントを確かめる(`pnpm live`・`live:all`・`live:room`・`pnpm ops room deploy` の全部。`scripts/operations/deploy/lib.ts` の `guardSafePoint`。仕様 = `.notices/README.md`「区切り(checkpoint)と区間適用」のセーフポイント): fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の fork_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の fork_id>/*` tag ちょうど。違えば止める。`--allow-unsafe=<理由>` で通す(確認は要る。理由を出す。vercel・wrangler には渡さない。`live:all`・`live:room` は子の `pnpm ops room deploy` に同じ `--allow-unsafe=<理由>` を渡す)
 
 ## 使う側
 

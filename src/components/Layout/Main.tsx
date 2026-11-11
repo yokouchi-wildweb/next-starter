@@ -34,7 +34,7 @@ export type MainProps = ComponentProps<"main"> &
     /** 二重コンテナ構造時の内側コンテナのクラス名 */
     innerClassName?: string;
     /**
-     * コンテンツの縦位置(Main:layout を持つ型 = plain・fullscreen 以外で効く)。
+     * コンテンツの縦位置(main-layout の段を持つ型 = plain・fullscreen 以外で効く)。
      * - "center"(既定): 余白があれば縦中央寄せ(ログイン・エラー等の短いページ向け、従来の挙動)
      * - "start": 上揃え(縦に長いコンテンツのページ向け。中央寄せ由来の上の余白を出さない)
      */
@@ -55,7 +55,6 @@ export function Main({
   fullscreenLayer,
   innerClassName,
   verticalAlign = "center",
-  id = "main",
   ...props
 }: MainProps) {
 
@@ -67,9 +66,7 @@ export function Main({
   if (effectiveContainerType === "plain") {
     return (
       <main
-        data-component="Main"
         data-slot="main"
-        id={id}
         className={cn(
           "max-w-screen overflow-hidden",
           mainLayoutVariants({
@@ -94,9 +91,7 @@ export function Main({
     return (
       <FullScreen layer={fullscreenLayer}>
         <main
-          data-component="Main"
           data-slot="main"
-          id={id}
           className={cn(
             mainLayoutVariants({
               appearance,
@@ -119,11 +114,9 @@ export function Main({
 
   if (effectiveContainerType === "surfaceDisplay") {
     return (
-      <div data-component="Main:container" data-slot="main-container" id={`${id}-container`} className="flex flex-1 flex-col">
+      <div data-slot="main-container" className="flex flex-1 flex-col">
         <div
-          data-component="Main:layout"
           data-slot="main-layout"
-          id={`${id}-layout`}
           className={cn(
             verticalAlignClass,
             "mx-auto w-full max-w-screen overflow-clip bg-surface",
@@ -141,9 +134,7 @@ export function Main({
           style={{ maxWidth: layoutMaxWidths.contentShell }}
         >
           <main
-            data-component="Main"
             data-slot="main"
-            id={id}
             className={cn("mx-auto w-full", innerClassName)}
             style={{ maxWidth: layoutMaxWidths.narrowStack }}
             {...props}
@@ -156,11 +147,9 @@ export function Main({
   }
 
   return (
-    <div data-component="Main:container" data-slot="main-container" id={`${id}-container`} className="flex flex-1 flex-col">
+    <div data-slot="main-container" className="flex flex-1 flex-col">
       <div
-        data-component="Main:layout"
         data-slot="main-layout"
-        id={`${id}-layout`}
         className={cn(verticalAlignClass, "mx-auto w-full max-w-screen overflow-clip")}
         style={
           layoutMaxWidths[effectiveContainerType]
@@ -169,9 +158,7 @@ export function Main({
         }
       >
         <main
-          data-component="Main"
           data-slot="main"
-          id={id}
           className={cn(
             mainLayoutVariants({
               appearance,

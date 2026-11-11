@@ -1,12 +1,13 @@
 // src/features/core/userAcquisition/lib/classifyVisit.ts
 //
 // 流入経路の公開の口(edge-safe)。判別表と分類はこのドメインが持ち、外(proxy・本登録の route・
-// src/wiring 経由の lib/googleTag)はここの関数だけを使う。acquisition.config.ts を読むのはこのドメインの中だけ。
+// src/wiring 経由の lib/googleTag)はここの関数だけを使う。設定(../config.ts)を読むのはこのドメインの中だけ。
+// 記録するか(蓄積・確定保存・判別表を渡す)は呼ぶ側が門番の規則 userAcquisition の入切で確かめる(設定 L1.56)。
 //
 // proxy(蓄積側)・/api/auth/register(確定保存側)・root layout(GA4 へ判別表を渡す)から import されるため、
 // このファイルは drizzle / postgres 等のサーバー専用モジュールを import しないこと。
 
-import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
+import { userAcquisitionConfig } from "@/features/core/userAcquisition/config";
 import { REFERRAL_MEDIUM } from "@/features/core/userAcquisition/constants";
 import type { AttributionCookieTouch } from "@/features/core/userAcquisition/entities/schema";
 import { channels } from "@/features/core/userAcquisition/extensions/channels";
@@ -21,20 +22,10 @@ const UTM_PRIMARY_PARAMS = ["utm_source", "utm_medium", "utm_campaign"] as const
 const UTM_EXTRA_PARAMS = ["utm_term", "utm_content"] as const;
 
 /**
- * 流入経路の記録の opt-in(既定 false)。閉じる値(門番の規則 userAcquisition)とは別(L1.8):
- * 呼ぶ側が `gate.enabled("userAcquisition") && isAcquisitionRecordingEnabled()` と両方を確かめる
- * (依存の検査は読む側のファイルの gate.enabled の字面を見る)。cookie の蓄積(proxy)と本登録の確定保存(register)は
- * どちらかが閉の間は何もしない。
- */
-export function isAcquisitionRecordingEnabled(): boolean {
-  return ACQUISITION_CONFIG.enabled;
-}
-
-/**
  * タッチ履歴 cookie の maxAge(秒)。追記のたびにリフレッシュする = 最終タッチからこの期間有効。
  */
 export function getAttributionCookieMaxAgeSeconds(): number {
-  return ACQUISITION_CONFIG.cookieMaxAgeDays * 24 * 60 * 60;
+  return userAcquisitionConfig.cookieMaxAgeDays * 24 * 60 * 60;
 }
 
 /**
@@ -44,7 +35,7 @@ export function getAttributionCookieMaxAgeSeconds(): number {
  * 同じ param が config と項目の両方にあれば例外(どちらが勝つかを黙って決めない)。
  */
 export function getChannelDefinitions(): AcquisitionChannelDefinition[] {
-  const rows: AcquisitionChannelDefinition[] = Object.entries(ACQUISITION_CONFIG.clickIdParams).map(
+  const rows: AcquisitionChannelDefinition[] = Object.entries(userAcquisitionConfig.clickIdParams).map(
     ([param, channel]) => ({ param, kind: "clickId", channel: channel ? { ...channel } : null }),
   );
   for (const item of Object.values(channels)) {

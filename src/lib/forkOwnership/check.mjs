@@ -33,7 +33,7 @@ const show = (repoRoot, rev, path) => tryGit(repoRoot, ["show", `${rev}:${path}`
 const unverified = (reason, extra = {}) => ({ status: "unverified", reason, ...extra });
 
 /** 親の remote(/flux の「FINDING THE UPSTREAM」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
-function resolveParentRemote(repoRoot, requested) {
+export function resolveParentRemote(repoRoot, requested) {
   const remotes = (tryGit(repoRoot, ["remote"]) ?? "").split("\n").filter(Boolean);
   const wanted = requested ?? process.env[PARENT_ENV] ?? null;
   if (wanted) return remotes.includes(wanted) ? { remote: wanted } : { error: `remote ${wanted} が無い` };
@@ -43,7 +43,7 @@ function resolveParentRemote(repoRoot, requested) {
   return { error: `親の remote が決まらない(${others.join(", ")})。--parent か ${PARENT_ENV} で指定する` };
 }
 
-function resolveParentBranch(repoRoot, remote, requested) {
+export function resolveParentBranch(repoRoot, remote, requested) {
   if (requested) return requested;
   const out = tryGit(repoRoot, ["ls-remote", "--symref", remote, "HEAD"]);
   const match = out && /^ref: refs\/heads\/(\S+)\s+HEAD/m.exec(out);
@@ -255,7 +255,8 @@ function resolveParentBase(repoRoot, ownerId, { parent, branch, fetch }) {
  * Tier1 は git に触れず空の一覧を返す(全部が上流の物)。基準が求められなければ unverified(合格にしない)
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false = 取得済みの ref で判定する(テストの中など)
- * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, added: Set<string> } | { status: "unverified", reason: string }}
+ * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, parentRef: string, added: Set<string> } | { status: "unverified", reason: string }}
+ *   parentRef = 親の remote のブランチ(<remote>/<branch>、取得済みの ref)
  */
 export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) {
   const identity = readForkIdentity(repoRoot);
@@ -266,7 +267,7 @@ export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) 
   const where = resolveParentBase(repoRoot, identity.own, { parent, branch, fetch });
   if (where.status === "unverified") return where;
   const added = (tryGit(repoRoot, ["diff", "--name-only", "--no-renames", "--diff-filter=A", "-z", where.base, "HEAD"]) ?? "").split("\0").filter(Boolean);
-  return { status: "ok", base: where.base, added: new Set(added) };
+  return { status: "ok", base: where.base, parentRef: where.parentRef, added: new Set(added) };
 }
 
 /**

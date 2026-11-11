@@ -1,0 +1,32 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ],
+      "@lib-config/sortableList": [
+        "../../config/lib/sortableList.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

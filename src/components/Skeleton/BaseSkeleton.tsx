@@ -1,6 +1,6 @@
 // src/components/Feedback/Skeleton/BaseSkeleton.tsx
 
-import { Skeleton as ShadcnSkeleton } from "@/components/_shadcn/skeleton";
+import { Skeleton as ShadcnSkeleton } from "@/components/Primitives/Skeleton";
 import { cn } from "@/lib/cn";
 import type { ComponentProps, CSSProperties } from "react";
 

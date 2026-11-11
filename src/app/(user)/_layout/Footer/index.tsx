@@ -2,7 +2,6 @@
 
 import { Link } from "@/components/Navigation";
 
-import { APP_FOOTER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { cn } from "@/lib/cn";
 import { useFooterData } from "../hooks";
 
@@ -26,7 +25,6 @@ export function UserFooter() {
 
   return (
     <footer
-      id={APP_FOOTER_ELEMENT_ID}
       data-slot="footer"
       className={cn(
         "flex-col items-center justify-center gap-4 bg-footer pl-[calc(var(--spacing)*6_+_var(--app-safe-area-left))] pr-[calc(var(--spacing)*6_+_var(--app-safe-area-right))] py-6 text-footer-foreground shadow-inner",
@@ -35,10 +33,9 @@ export function UserFooter() {
     >
       {/* SNSリンク */}
       {snsEnabled && socialLinks.length > 0 && (
-        <div id="footer-sns-links" className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-4">
           {socialLinks.map((item) => (
             <Link
-              id={`footer-sns-link-${item.key}`}
               key={item.key}
               href={item.href}
               target="_blank"
@@ -54,18 +51,17 @@ export function UserFooter() {
 
       {/* フッターリンク */}
       {linksEnabled && footerLinks.length > 0 && (
-        <div id="footer-links" className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
           {footerLinks.map((item, index) => (
-            <span key={item.key} id={`footer-link-wrapper-${item.key}`} className="flex items-center gap-2">
+            <span key={item.key} className="flex items-center gap-2">
               <Link
-                id={`footer-link-${item.key}`}
                 href={item.href}
                 className="text-muted-foreground transition-colors hover:text-foreground hover:underline"
               >
                 {item.label}
               </Link>
               {index < footerLinks.length - 1 && (
-                <span id={`footer-link-separator-${index}`} className="text-muted-foreground/50">{linkSeparator}</span>
+                <span className="text-muted-foreground/50">{linkSeparator}</span>
               )}
             </span>
           ))}
@@ -74,7 +70,7 @@ export function UserFooter() {
 
       {/* コピーライト */}
       {copyrightEnabled && (
-        <p id="footer-copyright" className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground">
           {copyrightText}
         </p>
       )}

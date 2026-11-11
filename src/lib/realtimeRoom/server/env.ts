@@ -5,7 +5,7 @@
 
 import "server-only";
 
-import { REALTIME_ROOM_CONFIG } from "@/config/app/realtime-room.config";
+import { realtimeRoomConfig } from "../config";
 import { DomainError } from "@/lib/errors";
 
 export type RealtimeRoomEnv = {
@@ -17,7 +17,7 @@ export type RealtimeRoomEnv = {
 
 /** 有効化されているか (config + env の両方が揃っているか) */
 export const isRealtimeRoomEnabled = (): boolean => {
-  if (!REALTIME_ROOM_CONFIG.enabled) return false;
+  if (!realtimeRoomConfig.enabled) return false;
   const url = process.env.REALTIME_ROOM_URL;
   const secret = process.env.REALTIME_ROOM_AUTH_SECRET;
   return Boolean(url && url.trim().length > 0 && secret && secret.trim().length > 0);
@@ -27,8 +27,8 @@ export const isRealtimeRoomEnabled = (): boolean => {
  * 接続情報を取得する。無効時は DomainError(503) (fail-closed、dbAgent と同方式)。
  */
 export const getRealtimeRoomEnv = (): RealtimeRoomEnv => {
-  if (!REALTIME_ROOM_CONFIG.enabled) {
-    throw new DomainError("リアルタイムルーム基盤は無効です (realtime-room.config)", { status: 503 });
+  if (!realtimeRoomConfig.enabled) {
+    throw new DomainError("リアルタイムルーム基盤は無効です (realtimeRoom の設定 enabled)", { status: 503 });
   }
   const baseUrl = process.env.REALTIME_ROOM_URL?.trim();
   const secret = process.env.REALTIME_ROOM_AUTH_SECRET?.trim();

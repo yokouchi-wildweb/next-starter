@@ -1,0 +1,6 @@
+{
+  "exports": {
+    ".": "./index.ts"
+  },
+  "libs": ["browserStorage", "unsavedGuard"]
+}

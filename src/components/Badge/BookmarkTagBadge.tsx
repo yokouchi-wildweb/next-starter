@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
-import { BadgeCore } from "./BadgeCore";
+import { BadgeCore } from "@/components/Primitives/Badge";
 import {
   badgeOverrideClasses,
   badgeSizeStyles,
@@ -32,7 +32,7 @@ const bookmarkTagVariantStyles: BadgeVariantStyles = {
   ghost: "bg-transparent text-foreground border-transparent",
 };
 
-export type BookmarkTagBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
+export type BookmarkTagBadgeProps = Omit<React.ComponentPropsWithoutRef<"span">, "slot"> & {
   variant?: BadgeVariant;
   size?: BadgeSize;
   asChild?: boolean;
@@ -67,7 +67,7 @@ export const BookmarkTagBadge = React.forwardRef<
     return (
       <BadgeCore
         ref={ref}
-        data-slot="bookmark-tag-badge"
+        slot="bookmark-tag-badge"
         className={cn(
           BOOKMARK_TAG_BASE,
           bookmarkTagVariantStyles[effectiveVariant],

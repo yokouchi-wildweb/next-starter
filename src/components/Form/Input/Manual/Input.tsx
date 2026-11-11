@@ -4,7 +4,7 @@ import * as React from "react";
 import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { Input as ShadcnInput } from "@/components/_shadcn/input";
+import { Input as ShadcnInput } from "@/components/Primitives/Input";
 import { Button } from "@/components/Form/Button/Button";
 
 export type InputProps = React.ComponentProps<typeof ShadcnInput> & {

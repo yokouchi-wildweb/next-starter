@@ -65,6 +65,9 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
    - `title:` = a short Japanese title humans read in lists (team launch screens, `mailbox.mjs inbox`) | a noun phrase of about 20 chars saying what is done (e.g. `チャットルームの UID 不一致を直す`) | the list shows title and id side by side → no id or date in the title
    - `kind: quest` = the mark of a quest (an order finished in one `quest <id>` tab) | this field is the only source of the mark: never put a mark like `【★クエスト】` in the title (lists, quest's launch screen and candidate picking read this field)
      - when a quest answers and the sender is a council / guild / quest lead, the team tools notify it automatically (the sender need not write "notify me" in notes)
+     - write a quest so a session without this conversation finishes it with no questions: `done_when:` = a result it can check | `constraints:` starts with `unchanged: <default behavior / outputs that must stay as they are>` (MANDATORY on a quest) | text of docs, skills or rules to change → old → new word for word | code → the result + unchanged is enough, no line-by-line spec
+     - a point that needs a design choice → decide it in the order, or write in `notes:` `ask <issuer> by msg if a design choice comes up (stop, do not invent)`
+     - file a quest when only small judgement is left | overlap with other open quests is fine (the quest team merges them)
    - `status:` = `open` at filing | afterwards only mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, unroute → open, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); never by hand)
 4. **write the file without asking first** (create the inbox folder if missing) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
    - path: `<target box>/<ts>-<slug>.md`

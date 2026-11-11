@@ -12,8 +12,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/Overlays/CommandPrimitives";
-import { DialogPrimitives, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
+} from "@/components/Primitives/Command";
+import { DialogPrimitives, DialogContent, DialogTitle } from "@/components/Primitives/Dialog";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { filterSearchInput } from "../utils";

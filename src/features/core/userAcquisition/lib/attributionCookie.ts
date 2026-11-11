@@ -7,7 +7,7 @@
 // （edge runtime バンドルに含まれる）。
 // 訪問の分類（URL・リファラー → タッチ）は ./classifyVisit.ts の classifyVisit。
 
-import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
+import { userAcquisitionConfig } from "@/features/core/userAcquisition/config";
 import {
   ACQUISITION_COOKIE_MAX_BYTES,
   ACQUISITION_COOKIE_VERSION,
@@ -68,7 +68,7 @@ export function appendTouch(
   if (last && isSameChannel(last, touch)) return null;
 
   const next = [...touches, touch];
-  while (next.length > ACQUISITION_CONFIG.maxTouches) {
+  while (next.length > userAcquisitionConfig.maxTouches) {
     next.splice(1, 1);
   }
 

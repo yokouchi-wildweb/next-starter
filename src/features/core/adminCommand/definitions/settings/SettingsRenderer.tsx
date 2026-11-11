@@ -13,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/Overlays/CommandPrimitives";
+} from "@/components/Primitives/Command";
 import { useSetting } from "@/features/setting/hooks/useSetting";
 import { useUpdateSetting } from "@/features/setting/hooks/useUpdateSetting";
 import type { Setting } from "@/features/setting/entities";

@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/errors": ["../errors"],
+      "@/lib/errors/*": ["../errors/*"],
+      "@lib-config/realtimeRoom": ["../../config/lib/realtimeRoom.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

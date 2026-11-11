@@ -12,7 +12,7 @@
 import { ja } from "react-day-picker/locale";
 import { type ComponentProps } from "react";
 
-import { Calendar as ShadcnCalendar } from "@/components/_shadcn/calendar";
+import { Calendar as ShadcnCalendar } from "@/components/Primitives/Calendar";
 
 export type CalendarProps = ComponentProps<typeof ShadcnCalendar>;
 

@@ -2,7 +2,7 @@
 
 ブラウザのアクセス解析（ページビュー・カスタムイベント）を**送ってよいか**を決める門。計測サービスには依存しない。
 
-- 送ってよい = `ANALYTICS_CONFIG.enabled`（`src/config/app/analytics.config.ts`）が true、かつ同意の条件を満たす
+- 送ってよい = 設定の `enabled`（既定 `src/lib/analyticsConsent/config.ts`、fork は上書き `src/config/lib/analyticsConsent.config.ts` = `@lib-config/analyticsConsent`）が true、かつ同意の条件を満たす
 - 同意の条件 = `consent: "notRequired"`、または同意の状態が `"granted"`
 - 既定は `enabled: false` / `consent: "required"`（何も送らない。計測はオプトイン）
 - どの計測サービスに送るかは env で決まる（今は Firebase Analytics = `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`。`src/lib/firebase/README.md`「Firebase Analytics」）
@@ -56,4 +56,4 @@ export function AnalyticsConsentBanner() {
 
 ## テスト
 
-`pnpm test src/lib/analyticsConsent/consent.test.ts`（判定の組み合わせ・購読・Firebase Analytics が許可まで初期化しないこと）
+`pnpm test src/lib/analyticsConsent`（判定の組み合わせ・購読・上書きの値）。Firebase Analytics が許可まで初期化しないことは `src/lib/firebase/client/analytics.test.ts`

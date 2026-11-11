@@ -106,6 +106,32 @@ wrappers/
 - Webhook はサーバー間・リトライ付きで確実性を、callback + ポーリングはユーザーへの即時フィードバックと Webhook 遅延の吸収を担う。両方必要
 - ポーリング: 2 秒間隔・最大 30 回（60 秒）。completed → `/wallet/[slug]/purchase/complete`、failed / expired / タイムアウト → `/wallet/[slug]/purchase/failed`（`reason=expired|timeout` 等）
 - ポーリング経路は `paidAmount` を渡さないため、金額照合は Webhook / 確定 API 経路でのみ効く
+- 移り先を変える: `usePurchaseStatusPolling({ requestId, slug, completePath?, failedPath? })`（`hooks/usePurchaseStatusPolling.ts`）。値だけ渡す（関数・部品は渡さない）
+  - `completePath`: 完了時の移り先のパス（省略 = `/wallet/<slug>/purchase/complete`）。`?request_id=<id>` を付けて移る
+  - `failedPath`: 失敗・期限切れ・タイムアウト時の移り先のパス（省略 = `/wallet/<slug>/purchase/failed`）。`request_id` に続けて `error_code`（failed、無ければ `UNKNOWN`）か `reason`（`expired` / `timeout`）を付ける
+  - パスに `?` があれば `&` で続ける（組み立ては純関数 `buildPurchaseResultUrl`）。戻り値 `{ error, isPolling }` は同じ。core の `PurchaseCallback` は省略して呼ぶ（wallet の既定のまま）
+  - fork が自前の購入の流れ（例: 直販 `/direct-sale/purchase/...`）を持つとき、自分の callback 画面（`_components/`）からパスを渡して呼ぶ。待ち表示は自前で描く:
+
+```tsx
+// src/app/(user)/(protected)/direct-sale/purchase/callback/_components/DirectSaleCallback.tsx（fork）
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { usePurchaseStatusPolling } from "@/features/core/purchaseRequest/hooks/usePurchaseStatusPolling";
+
+export function DirectSaleCallback() {
+  const requestId = useSearchParams().get("request_id");
+  const { error, isPolling } = usePurchaseStatusPolling({
+    requestId,
+    slug: "coin", // パスを両方渡すと移り先には使われない
+    completePath: "/direct-sale/purchase/complete",
+    failedPath: "/direct-sale/purchase/failed",
+  });
+  // error / isPolling で待ち表示・エラーを描く
+}
+```
+
+- 回帰: `pnpm test src/features/core/purchaseRequest`（`hooks/usePurchaseStatusPolling.test.ts(x)`: URL の組み立て、既定・指定のパスで completed / failed / expired / timeout）
 - コールバック URL の決定順: `params.successUrl/cancelUrl` → `strategy.buildCallbackUrls()` → wallet 既定（`/api/wallet/purchase/callback?request_id=…&wallet_type=<slug>`、cancel は `&reason=cancelled`）
 
 画面: `/wallet/[slug]`（数量選択）→ `/wallet/[slug]/purchase`（確認・クーポン・支払い方法）→ `/purchase/callback` → `/purchase/complete` | `/purchase/failed`。銀行振込は `/purchase/bank-transfer/[requestId]`・`/purchase/awaiting-review`。

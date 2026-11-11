@@ -11,12 +11,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/_shadcn/command";
+} from "@/components/Primitives/Command";
 import {
   PopoverContent,
   PopoverRoot,
   PopoverTrigger,
-} from "@/components/Overlays/Popover/PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 import { Button } from "@/components/Form/Button/Button";
 import {
   resolveOptionItemIdentity,

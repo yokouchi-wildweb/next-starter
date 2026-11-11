@@ -14,7 +14,6 @@ import {
   parseAttributionCookie,
   toAcquisitionTouch,
 } from "@/features/core/userAcquisition/lib/attributionCookie";
-import { isAcquisitionRecordingEnabled } from "@/features/core/userAcquisition/lib/classifyVisit";
 import { getClientIp } from "@/lib/request";
 
 export const POST = createApiRoute(
@@ -33,9 +32,9 @@ export const POST = createApiRoute(
 
     // 流入経路: proxy が蓄積したタッチ履歴 cookie をサーバーサイドで復元して渡す
     // (クライアント申告値ではないため RegistrationSchema には含めない)
-    // enabled=false 時は蓄積側(proxy)と揃えて確定保存も行わない (期限切れ前の残存 cookie 対策)。
-    // 流入経路の機能が閉じているときも読まない(閉じる値 gate と記録の opt-in は別、L1.8)
-    const cookieTouches = gate.enabled("userAcquisition") && isAcquisitionRecordingEnabled()
+    // 流入経路の機能(門番の規則 userAcquisition)が閉じている間は蓄積側(proxy)と揃えて確定保存もしない
+    // (期限切れ前の残存 cookie 対策、設定 L1.56)
+    const cookieTouches = gate.enabled("userAcquisition")
       ? parseAttributionCookie(req.cookies.get(ACQUISITION_COOKIE_NAME)?.value)
       : [];
     const gaClientId = extractGaClientId(req.cookies.get("_ga")?.value);

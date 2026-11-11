@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/_shadcn/select";
+} from "@/components/Primitives/Select";
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";

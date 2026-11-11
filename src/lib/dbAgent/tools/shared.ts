@@ -2,7 +2,7 @@
 //
 // dbAgent ツール共通のユーティリティ。
 
-import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
+import { dbAgentConfig } from "../config";
 
 /**
  * クエリ結果をモデルへ返すための JSON 文字列化。
@@ -22,11 +22,11 @@ export function clampResultText(text: string): {
   text: string;
   truncated: boolean;
 } {
-  if (text.length <= DB_AGENT_CONFIG.maxResultChars) {
+  if (text.length <= dbAgentConfig.maxResultChars) {
     return { text, truncated: false };
   }
   return {
-    text: `${text.slice(0, DB_AGENT_CONFIG.maxResultChars)}\n…(結果が長すぎるため切り詰めました。集計やLIMITで絞り込んでください)`,
+    text: `${text.slice(0, dbAgentConfig.maxResultChars)}\n…(結果が長すぎるため切り詰めました。集計やLIMITで絞り込んでください)`,
     truncated: true,
   };
 }

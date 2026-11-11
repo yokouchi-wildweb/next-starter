@@ -11,7 +11,6 @@ export const UserBottomNav = () => {
   // 隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする
   return (
     <nav
-      id="bottom-nav"
       aria-label="メインメニュー"
       data-slot="bottom-nav"
       className={cn(

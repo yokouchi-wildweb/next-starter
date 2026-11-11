@@ -7,7 +7,7 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/Button/RoundedButton";
 import { Label } from "@/components/Form/Label";
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { Checkbox } from "@/components/Primitives/Checkbox";
 import {
   includesOptionValue,
   serializeOptionValue,

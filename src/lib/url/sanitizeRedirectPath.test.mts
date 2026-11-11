@@ -1,12 +1,11 @@
 // src/lib/url/sanitizeRedirectPath.test.mts
-// オープンリダイレクト対策（sanitizeRedirectPath / resolveReturnTo）の回帰テスト
+// オープンリダイレクト対策（sanitizeRedirectPath）の回帰テスト。resolveReturnTo の検査は src/lib/crud/utils/paths.test.mts
 // 実行: pnpm test src/lib/url/sanitizeRedirectPath.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { sanitizeRedirectPath } from "./sanitizeRedirectPath.ts";
-import { resolveReturnTo } from "../crud/utils/paths.ts";
 
 test("同一オリジンの相対パスはクエリ・ハッシュごと通す", () => {
   assert.equal(sanitizeRedirectPath("/"), "/");
@@ -39,11 +38,4 @@ test("外部へ出る値・不正な値は fallback になる", () => {
   assert.equal(sanitizeRedirectPath(123), "/");
   assert.equal(sanitizeRedirectPath("//evil.example", "/home"), "/home");
   assert.equal(sanitizeRedirectPath("//evil.example", ""), "");
-});
-
-test("resolveReturnTo も同じ判定を使う（/\\ 始まりを通さない）", () => {
-  assert.equal(resolveReturnTo("/admin/users?page=2", "/admin"), "/admin/users?page=2");
-  assert.equal(resolveReturnTo("/\\evil.example", "/admin"), "/admin");
-  assert.equal(resolveReturnTo("//evil.example", "/admin"), "/admin");
-  assert.equal(resolveReturnTo(undefined, "/admin"), "/admin");
 });

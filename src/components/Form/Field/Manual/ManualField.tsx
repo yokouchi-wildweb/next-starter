@@ -93,7 +93,7 @@ export function ManualField({
   // ラベル要素
   const labelElement = label && (
     <Label
-      data-slot="form-label"
+      slot="form-label"
       data-error={hasError}
       className={cn(
         hideLabel && "sr-only",

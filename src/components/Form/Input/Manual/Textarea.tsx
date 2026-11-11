@@ -1,7 +1,7 @@
 import { forwardRef, type ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
-import { Textarea as ShadcnTextarea } from "@/components/_shadcn/textarea";
+import { Textarea as ShadcnTextarea } from "@/components/Primitives/Input";
 
 export type TextareaProps = ComponentProps<typeof ShadcnTextarea>;
 

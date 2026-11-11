@@ -14,7 +14,7 @@ import {
   PopoverHeader,
   PopoverTitle,
   type PopoverContentProps,
-} from "./PopoverPrimitives";
+} from "@/components/Primitives/Popover";
 
 // アクションアイテムの定義
 export type ActionItem = {

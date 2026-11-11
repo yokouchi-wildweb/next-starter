@@ -17,9 +17,13 @@ DB調査エージェント (`@/lib/dbAgent`) はこの基盤の最初の搭載�
 | `agent/blocks.ts` | 共用 | `present_result` ツール (最終回答のブロック提出) + zod 検証 |
 | `agent/sse.ts` | server | `createAgentSSEResponse()` — ジェネレータ → SSE レスポンス変換 |
 | `agent/sseClient.ts` | client | `parseAgentEventStream()` — SSE レスポンス → `AgentEvent` パーサー |
-| `index.ts` | client | クライアント安全なエクスポートのみのバレル |
+| `config.ts` | 共用 | 設定 (既定 + 上書き `@lib-config/ai`)。合成済みの `aiConfig` を入口から出す |
+| `index.ts` | client | 入口 `@/lib/ai`: クライアント安全な物と設定 |
+| `server.ts` | server | 入口 `@/lib/ai/server`: `getAnthropicClient` / `runAgent` / `createAgentSSEResponse` |
 
-設定は `src/config/app/ai-agent.config.ts` (`AI_AGENT_CONFIG`: model / maxIterations / maxTokensPerStep)。
+閉じた lib: 外からは入口 `@/lib/ai`・`@/lib/ai/server` だけを読む (中のファイルは読まない)。
+
+設定 (model / maxIterations / maxTokensPerStep) は `config.ts` が既定を持ち、fork は上書き `src/config/lib/ai.config.ts` (`@lib-config/ai`) に書く。読み手は合成済みの `aiConfig` (`@/lib/ai`) を読む。`runAgent` の options は呼び出しごとにこの値より優先する。
 
 ## 型契約とバージョニング
 

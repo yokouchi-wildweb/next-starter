@@ -31,7 +31,7 @@ export type UserLayoutProps = {
   readonly children: ReactNode;
   /**
    * ヘッダーより上に固定で出す帯。既定 = なし(省略と null は同じ)。
-   * 実測の高さを --app-banner-height に書き、ヘッダーの top と本文(#stretch-wrapper の前のスペーサー)をその分押し下げる
+   * 実測の高さを --app-banner-height に書き、ヘッダーの top と本文(本文の包みの前のスペーサー)をその分押し下げる
    */
   readonly banner?: ReactNode;
   /** ヘッダー。既定 = ./Header の UserNavigation */
@@ -85,8 +85,6 @@ export function UserLayout({
           data-frame-hide の部位を隠し、data-frame-fill の間は確定高さ + overflow-clip に切り替わる
           (既定は min-h で伸びる通常ページ)。規則は styles/core/frame.css */}
       <Flex
-        id="user-app-container"
-        data-user-app-container=""
         data-slot="app-container"
         data-frame-root=""
         {...frame}
@@ -96,10 +94,9 @@ export function UserLayout({
       >
         {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
         {header === undefined ? <UserNavigation /> : header}
-        {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}
+        {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は下の本文の包みの padding-top) */}
         {hasBanner && <div aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
         <div
-          id="stretch-wrapper"
           className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"
         >
           {children}

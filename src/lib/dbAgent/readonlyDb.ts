@@ -15,7 +15,7 @@ import "server-only";
 
 import postgres from "postgres";
 
-import { DB_AGENT_CONFIG } from "@/config/app/ai-agent.config";
+import { dbAgentConfig } from "./config";
 import { DomainError } from "@/lib/errors";
 
 const globalForDbAgent = globalThis as unknown as {
@@ -47,7 +47,7 @@ export function getReadonlyDb(): ReturnType<typeof postgres> {
       prepare: false,
       max: 2,
       connection: {
-        statement_timeout: DB_AGENT_CONFIG.statementTimeoutMs,
+        statement_timeout: dbAgentConfig.statementTimeoutMs,
         // 読取専用ロール前提だが、セッションレベルでも二重に read only を強制する
         default_transaction_read_only: true,
       },

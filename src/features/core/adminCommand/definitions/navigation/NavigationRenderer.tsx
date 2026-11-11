@@ -13,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/Overlays/CommandPrimitives";
+} from "@/components/Primitives/Command";
 import { cn } from "@/lib/cn";
 import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
 import { useAdminCommand } from "@/features/core/adminCommand/base/context";

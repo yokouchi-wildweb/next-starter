@@ -11,6 +11,13 @@
 
 画面の h1 は `src/app/(user)/_layout/PageTitle`（`UserPageTitle`）など、フレーム側のタイトル部品を使う。
 
+## 見出しの印（data-slot）
+
+- `PageTitle` の h1 は `data-slot="page-title"`、`SecTitle` の見出しは `data-slot="sec-title"` を持つ。fork の CSS はこの印で狙う（`[data-slot="page-title"]`。約束の一覧 = `src/app/_layout/frame/parts.mjs` の見出し、`src/styles/README.md`「data-slot の付け方」）
+- 部品自身の印が勝つ: 呼び手が props で渡した `data-slot` は上書きされる。`srOnly` でも印は残る
+- `slot` prop（`PageTitle`: `"page-title" | "admin-page-title"`、`SecTitle`: `"sec-title" | "admin-sec-title"`）は、同じ要素を描く上流の包む部品（管理の `AdminPageTitleHeading`・`AppFrames/Admin/Elements/SecTitle`）が自分の名前を付けるためだけのもの。fork は名前を変えず、印を狙って見た目を変える
+- 印を消す・名前を変えるのは notice。照合: `pnpm test src/components/TextBlocks/headingSlots.test.tsx`
+
 ## バリアント
 
 `textVariants.ts` の `tone` / `size` / `weight` / `align` / `srOnly`。

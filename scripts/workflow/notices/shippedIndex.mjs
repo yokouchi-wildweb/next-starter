@@ -2,6 +2,7 @@
 // 出荷した notice の消えない索引 .notices/shipped/<fork_id>.md(1 notice = 1 行、追記だけ)を、notice 本文から機械で作る。
 // 行は手で書かない。書くのは索引の持ち主のリポだけ(台帳 .notices/applied/<fork_id>.md と同じ理由: 多段の merge で追記が重ならない)。
 // 仕様: .notices/README.md
+// 先に取った物(台帳の picked:): 親の索引にまだ行が無くてよく、手で足した行が消えても追記だけの検査で落とさない(checkRows / appendOnlyProblems)
 //
 // 実行: node scripts/workflow/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | repair | verify>
 //   add <notice>...  自分の索引の末尾に、その notice の行を 1 本ずつ足す(/ship が notice を出荷する commit の前に)
@@ -378,6 +379,8 @@ export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
     own = null;
   }
   const foreign = own ? foreignNoticeIds(repo, own) : new Set();
+  // 親の索引: 先に取った物の行は消えてよい(前に手で足した行を、上流側を採った merge が落とす。行は後の merge で上流の位置に届く)
+  const picked = own ? pickedNoticeIds(repo, own) : new Set();
   for (const ix of readIndexes(repo)) {
     let prev = "";
     try {
@@ -385,7 +388,7 @@ export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
     } catch {
       prev = ""; // まだ push していない(分かれ目の版に無い)ファイル
     }
-    problems.push(...checkAppendOnly(prev, ix.text, ix.file, ix.owner === own ? foreign : new Set()));
+    problems.push(...checkAppendOnly(prev, ix.text, ix.file, ix.owner === own ? foreign : picked));
   }
   return { problems };
 }
@@ -405,8 +408,13 @@ export function addCommits(repo) {
   return out;
 }
 
-/** 行と本文: 本文 1 本に全索引でちょうど 1 行・欄が一致(pick: は行だけでよい)、まだ commit していない notice は自分の索引に。[理由] */
-export function checkRows({ indexes, notices, own, pending = new Set() }) {
+/**
+ * 行と本文: 本文 1 本に全索引でちょうど 1 行・欄が一致(pick: は行だけでよい)、まだ commit していない notice は自分の索引に。[理由]
+ * picked = 台帳に picked: のある id(親から先に取った緊急修正・修正)。その行は親の索引にまだ無くてよい: 索引は上流の帳簿で
+ * pick の外(/flux は衝突した索引を fork 側のまま採る)、行は後の区間の merge で届く。fork が行を手で足すと親の索引を書き換えた
+ * ことになり(所有の検査の一時許可)、後の merge でまた衝突した(railroad Horizon F3)
+ */
+export function checkRows({ indexes, notices, own, pending = new Set(), picked = new Set() }) {
   const problems = [];
   const where = new Map();
   for (const ix of indexes) {
@@ -418,6 +426,7 @@ export function checkRows({ indexes, notices, own, pending = new Set() }) {
   for (const [id, text] of notices) {
     const at = where.get(id);
     if (!at) {
+      if (picked.has(id) && !pending.has(id)) continue; // 先に取った物: 行は後の merge で親の索引と一緒に届く
       problems.push(`${id}: 本文があるのに索引に行が無い(出荷する notice は node scripts/workflow/notices/shippedIndex.mjs add <notice>)`);
       continue;
     }
@@ -486,7 +495,7 @@ export function checkAll(repo, { ref } = {}) {
   const own = ownForkId(repo);
   const indexes = readIndexes(repo);
   const pending = pendingNoticeIds(repo);
-  const problems = checkRows({ indexes, notices: noticeTexts(repo), own, pending });
+  const problems = checkRows({ indexes, notices: noticeTexts(repo), own, pending, picked: pickedNoticeIds(repo, own) });
   const rows = indexes.flatMap((ix) => ix.rows);
   const rowsById = new Map(rows.map((r) => [r.id, r]));
   const adds = addCommits(repo);

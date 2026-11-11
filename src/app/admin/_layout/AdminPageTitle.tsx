@@ -34,7 +34,7 @@ export const adminPageTitleVariants = cva(
 
 export type AdminPageTitleHeadingProps = PageTitleProps & VariantProps<typeof adminPageTitleVariants>;
 
-/** 題の大見出し(h1)。size を省くと xxl + sm 以上で text-3xl */
+/** 題の大見出し(h1、印 data-slot="admin-page-title")。size を省くと xxl + sm 以上で text-3xl */
 export function AdminPageTitleHeading({ variant, marginBottom, className, size, children, ...props }: AdminPageTitleHeadingProps) {
   return (
     <DefaultPageTitle
@@ -42,6 +42,7 @@ export function AdminPageTitleHeading({ variant, marginBottom, className, size, 
       size={size ?? "xxl"}
       className={cn(adminPageTitleVariants({ variant, marginBottom }), size ? undefined : "sm:text-3xl", className)}
       {...props}
+      slot="admin-page-title"
     >
       {children}
     </DefaultPageTitle>

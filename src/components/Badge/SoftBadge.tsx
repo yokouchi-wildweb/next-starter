@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
-import { BadgeCore } from "./BadgeCore";
+import { BadgeCore } from "@/components/Primitives/Badge";
 import {
   badgeOverrideClasses,
   badgeSizeStyles,
@@ -32,7 +32,7 @@ const softVariantStyles: BadgeVariantStyles = {
   ghost: "bg-transparent border-transparent text-foreground",
 };
 
-export type SoftBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
+export type SoftBadgeProps = Omit<React.ComponentPropsWithoutRef<"span">, "slot"> & {
   variant?: BadgeVariant;
   size?: BadgeSize;
   asChild?: boolean;

@@ -3,9 +3,9 @@
 ユーザーがサインアップ完了するまでの流入タッチ（UTM パラメータ / 広告クリック ID / 外部リファラー）を
 サービス側 DB に保存する core ドメイン。GA に依存せず first-touch / last-touch / パス分析を自前データで行える。
 
-閉じられる機能(門番の規則 `src/featureGate/rules/userAcquisition.ts`、今は常に開)。閉じる値と処理の値は別: `acquisition.config.ts` の `enabled` は記録の opt-in(既定 false)で、規則は読まない。流入経路の proxy・本登録の route・本登録の保存は両方(`gate.enabled("userAcquisition")` と公開の口 `isAcquisitionRecordingEnabled()`)が開のときだけ動く。閉じると表も push から外れ、GA4 へ判別表も渡さない。
+閉じられる機能(門番の規則 `src/featureGate/rules/userAcquisition.ts`、上流の既定は閉、設定 D115)。記録するかは規則の入切だけで決まる(記録の opt-in `enabled` は規則に一本化した、設定 L1.56): 流入経路の proxy・本登録の route・本登録の保存は `gate.enabled("userAcquisition")` が開のときだけ動く。閉じると表も push から外れ、GA4 へ判別表も渡さない。
 
-**デフォルト無効（オプトイン）。** 必要になった downstream が `acquisition.config.ts` の `enabled: true` で有効化する。
+**デフォルト無効（オプトイン）。** 必要になった downstream が機能を開ける（`pnpm ops features set userAcquisition on` → `src/config/featureGate/switches.config.ts`）。
 有効化した時点以降のサインアップから蓄積される（過去のサインアップには遡及できない）。
 集計 UI は core に同梱しない — 各プロジェクトが下記の読み取り API と集計レシピを使って管理画面等に自作する。
 
@@ -25,7 +25,7 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
 - **cookie コーデック**: `lib/attributionCookie.ts`（edge-safe。drizzle を import しないこと）
 - **確定保存**: `services/server/recordSignupAcquisition.ts`（bestEffort — 失敗しても登録をブロックしない）
 - **訪問の分類と判別表**: `lib/classifyVisit.ts`（edge-safe。下の「公開の口」）
-- **設定**: `src/config/app/acquisition.config.ts`（enabled / cookieMaxAgeDays=30 / maxTouches=15 / referralParam の source・medium / clickIdParams）。**読むのはこのドメインの中だけ**。外は下の公開の口を使う
+- **設定**: `config.ts`（`userAcquisitionConfig`: cookieMaxAgeDays=30 / maxTouches=15 / referralParam の source・medium / clickIdParams、上書き `src/config/features/userAcquisition.config.ts`、型 `UserAcquisitionOverride`）。**読むのはこのドメインの中だけ**。外は下の公開の口を使う
 
 ## 公開の口（edge-safe、`@/features/core/userAcquisition/lib/classifyVisit`）
 
@@ -33,7 +33,6 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
 | --- | --- | --- |
 | `classifyVisit({ url, referrer, now }, definitions?)` | 流入タッチ（cookie の圧縮表現）か null | `src/proxies/attribution.ts` |
 | `getChannelDefinitions()` | 判別表 `AcquisitionChannelDefinition[]`（シリアライズできる値） | `src/wiring/GoogleTag.tsx`（GA4 へ） |
-| `isAcquisitionRecordingEnabled()` | 記録の opt-in（`enabled`）。閉じる値 `gate.enabled("userAcquisition")` は呼ぶ側が一緒に確かめる | proxy・`/api/auth/register` |
 | `getAttributionCookieMaxAgeSeconds()` | タッチ cookie の maxAge（秒） | proxy |
 
 cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionCookie.ts`、cookie 名は `constants`。
@@ -98,7 +97,7 @@ import {
 referral の招待リンクのパラメータ（`INVITE_LINK_PARAM` = `invite`）付きの URL を踏んだときの扱いは、
 **解析と機能で系統が分かれており、それぞれ独立にオンオフできる**:
 
-- **解析（本ドメイン、記録の opt-in `enabled` でゲート。判別表の招待の行は紹介の機能が開いている間だけ出る）**: タッチとして記録され、
+- **解析（本ドメイン、機能 `userAcquisition` の入切でゲート。判別表の招待の行は紹介の機能が開いている間だけ出る）**: タッチとして記録され、
   紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。コード自体は extras（`extras.invite`）に
   残るため「どの紹介者経由のサインアップか」まで追える
 - **機能（referral ドメイン、`APP_FEATURES.marketing.referral.enabled` でゲート）**: コードが
@@ -182,4 +181,4 @@ SSR ページまたは管理 API から呼び出して downstream 側で描画�
   ブラウザで invite タッチが復元され、紹介チャンネルの解析は維持される（referral README 参照）
 - redirect 等のインターセプト系 proxy が応答したリクエストではタッチを拾えない（リダイレクト後の着地 URL に UTM を残す運用を推奨）
 - `_ga` cookie が存在すれば client_id をサマリー extras（`gaClientId`）に保存する — GA 側データとの突合用
-- 無効化: `acquisition.config.ts` の `enabled: false`（cookie 蓄積・保存とも停止。既存データはそのまま）
+- 無効化: 機能を閉じる（`pnpm ops features set userAcquisition off`。cookie 蓄積・保存とも停止。既存データはそのまま）

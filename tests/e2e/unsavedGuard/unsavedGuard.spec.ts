@@ -17,6 +17,8 @@ import { type BrowserContext, chromium, expect, type Page, test as base } from "
 import { config as loadEnv } from "dotenv";
 
 import { DEV_ADMIN_EMAIL, devAdminPassword } from "../../../scripts/workflow/dev-admin/lib";
+import { ADMIN_HOME_LINK } from "@/app/admin/(protected)/_layout/Sidebar/frameValues";
+
 import { skipWhileClosed } from "../featureGate";
 
 // パスワードは AUTH_JWT_SECRET から決まる(dev-admin と同じ式)。env ファイルの場所は ENV_FILE(既定 .env.development)
@@ -131,11 +133,11 @@ const stayButton = (page: Page) => page.getByRole("button", { name: "留まる" 
 const clickInApp = (locator: ReturnType<Page["locator"]>) => locator.evaluate((el) => (el as HTMLElement).click());
 
 /**
- * サイドバーの棚の Link「ダッシュボード」(/admin。SP と PC の 2 つのうち見えている方)。
+ * サイドバーの棚の Link = 枠の先頭の行(ADMIN_HOME_LINK の文言と住所。SP と PC の 2 つのうち見えている方)。文言はサイドバーの値から読み、直書きしない
  * ほかの行(サンプル・サンプルタグなど)はホバーで開く小さなメニューの中にあり、そのままでは押せないので最上段の行を使う
  */
-const DASHBOARD = /\/admin$/;
-const sidebarLink = (page: Page) => page.locator('aside a[href="/admin"]:visible', { hasText: "ダッシュボード" }).first();
+const ADMIN_HOME = new RegExp(`${ADMIN_HOME_LINK.href}$`);
+const sidebarLink = (page: Page) => page.locator(`aside a[href="${ADMIN_HOME_LINK.href}"]:visible`, { hasText: ADMIN_HOME_LINK.label }).first();
 
 // firefox は page.reload() で beforeunload を出さないので、ページの中から location.reload() を呼ぶ(全ブラウザで同じ手順)。
 // firefox は 1 つのページで 2 回目の確認を出さないことがあるので、留まると移るを別のテストにする
@@ -187,7 +189,7 @@ async function pickOtherItem(page: Page) {
 }
 
 const FORM_PATHS: { name: string; trigger: (page: Page) => Promise<void>; leaveTo: (form: DirtyForm) => RegExp | string }[] = [
-  { name: "棚の Link(サイドバー)", trigger: (page) => sidebarLink(page).click(), leaveTo: () => DASHBOARD },
+  { name: "棚の Link(サイドバー)", trigger: (page) => sidebarLink(page).click(), leaveTo: () => ADMIN_HOME },
   { name: "router.push(前後の項目へ移る)", trigger: pickOtherItem, leaveTo: (form) => new RegExp(`/admin/sample-tags/(?!${form.editUrl.split("/").at(-2)})[^/]+/edit`) },
   { name: "ブラウザの戻る", trigger: async (page) => void (await page.goBack({ waitUntil: "commit" }).catch(() => null)), leaveTo: () => new RegExp(`${TAG_LIST}$`) },
 ];
@@ -217,7 +219,7 @@ test("フォーム ブラウザの進む: 編集済みの間は進む履歴が�
   await page.waitForURL(/\/admin\/sample-tags\/[^/]+\/edit/);
   const editUrl = page.url();
   await sidebarLink(page).click();
-  await expect(page).toHaveURL(DASHBOARD);
+  await expect(page).toHaveURL(ADMIN_HOME);
   await page.goBack();
   await expect(page).toHaveURL(editUrl);
   const field = page.locator("main form").getByRole("textbox").first();
@@ -270,7 +272,7 @@ test("フォーム 送信: 保存は聞かずに一覧へ進み、編集して�
   await expect(page).toHaveURL(new RegExp(`${TAG_LIST}$`), { timeout: 30_000 });
   await expect(stayButton(page)).toHaveCount(0);
   await sidebarLink(page).click();
-  await expect(page).toHaveURL(DASHBOARD);
+  await expect(page).toHaveURL(ADMIN_HOME);
   await expect(stayButton(page)).toHaveCount(0);
 });
 
@@ -318,12 +320,13 @@ async function openDraftCell(page: Page): Promise<string> {
 
 async function expectDraftKept(page: Page, value: string) {
   await expect(page).toHaveURL(DEMO_TABLES);
+  // 確認が閉じ切るまで待つ(開いている間・閉じる動きの間は表の側が aria-hidden になり、見出しの役割で探す表が見つからない)
+  await expect(page.getByRole("dialog")).toHaveCount(0, { timeout: 15_000 });
+  const cell = textCell(page);
+  await expect(cell).toBeVisible();
+  // 書きかけのまま(入力欄の値)でも、確定して表示に戻った後(セルの文字)でもよい
   await expect
-    .poll(async () => {
-      const editor = cellEditor(page);
-      if ((await editor.count()) > 0) return editor.inputValue();
-      return textCell(page).innerText();
-    })
+    .poll(() => cell.evaluate((td) => (td.querySelector("input, textarea") as HTMLInputElement | null)?.value ?? td.textContent ?? ""))
     .toContain(value);
 }
 
@@ -435,6 +438,6 @@ test("並び替え: 保存待ちの間は棚の Link に確認、保存が終わ
   release();
   await page.waitForResponse("**/api/sample/*/reorder");
   await sidebarLink(page).click();
-  await expect(page).toHaveURL(DASHBOARD);
+  await expect(page).toHaveURL(ADMIN_HOME);
   await expect(stayButton(page)).toHaveCount(0);
 });
