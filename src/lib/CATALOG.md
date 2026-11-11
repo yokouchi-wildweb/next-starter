@@ -52,7 +52,7 @@
 - src/lib/pageGuard — ページの守りの汎用版(範囲の guard()・createLoader・extend、親子 AND。利用者の解き方と access の評価を差し込む。値 import は src/wiring だけ、guard.ts は @/wiring/pageGuard)
 - src/lib/pathPattern — 住所のパターン照合(セグメント境界の前方一致と = の完全一致、ルートを覆うか)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
-- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策
+- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)
 - src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)

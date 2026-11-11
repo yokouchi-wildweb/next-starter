@@ -165,3 +165,15 @@ test("config: stores の廃止で閉じた lib へ移した旧パス(globalLoade
     assert.ok(hits[0].message.includes('"@/lib/globalLoader"'), hits[0].message);
   }
 });
+
+test("config: 持ち主の lib へ移した Provider(RecaptchaProvider)は @/lib/recaptcha を出して warn", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  const [result] = await eslint.lintText(`import { RecaptchaProvider } from "@/components/Providers/RecaptchaProvider";\nexport const y = RecaptchaProvider;\n`, {
+    filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
+  });
+  const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].severity, 1);
+  assert.ok(hits[0].message.includes('"@/lib/recaptcha"'), hits[0].message);
+});

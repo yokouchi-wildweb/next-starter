@@ -1,4 +1,4 @@
-// src/components/Providers/RecaptchaProvider.tsx
+// src/lib/recaptcha/components/RecaptchaProvider.tsx
 
 "use client";
 
@@ -8,8 +8,8 @@ import {
 } from "react-google-recaptcha-v3";
 import type { ReactNode } from "react";
 
-import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
-import { RecaptchaContext } from "@/lib/recaptcha/hooks/useRecaptcha";
+import { RECAPTCHA_V3_INTERNALS } from "../constants";
+import { RecaptchaContext } from "../hooks/useRecaptcha";
 
 type RecaptchaProviderProps = {
   children: ReactNode;

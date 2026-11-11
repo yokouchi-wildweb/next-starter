@@ -106,8 +106,8 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 
 ## store
 
-- `stores/adminLayout/`(useAdminLayoutStore): 外枠に足すクラス名(extraClassName)を持つ。AdminLayout が読む(書き手だった insane モードは消した。上流に書き手は無く、fork の枠の部品が書ける)。使うのは管理画面の枠だけなので、app 全体の `src/stores/` でなく枠のそばに置く(CLAUDE.md STORES: one-frame-only → `_layout/stores/`)
-- 構成は src/stores と同じ(index.ts・internalStore.ts・useStore.ts、internalStore は useStore からだけ使う)
+- `stores/adminLayout/`(useAdminLayoutStore): 外枠に足すクラス名(extraClassName)を持つ。AdminLayout が読む(書き手だった insane モードは消した。上流に書き手は無く、fork の枠の部品が書ける)。使うのは管理画面の枠だけなので枠のそばに置く(CLAUDE.md STORES: one-frame-only → `_layout/stores/`)
+- 構成は CLAUDE.md STORES の形(index.ts・internalStore.ts・useStore.ts、internalStore は useStore からだけ使う)
 
 ---
 
@@ -123,7 +123,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 ## 採らなかった案
 
 - MenuButton を `(protected)/_layout/` に置く: 当時は insane のサイドバーも使い、insane → (protected) の横向きの参照になるので祖先 `admin/_layout/` に置いた(insane は後に消した)
-- store を `src/stores/` に残す: src/stores は app 全体の store の棚で、この store を使うのは管理画面の枠の 2 部品だけ。枠と一緒に置けば持ち主がパスで分かる
+- store を `src/stores/` に残す(当時。src/stores は後に廃止): src/stores は app 全体の store の棚だったが、この store を使うのは管理画面の枠の 2 部品だけ。枠と一緒に置けば持ち主がパスで分かる
 - サイドバーの slot を Pc / Sp の殻ごと差し替える: 幅・開閉・SP の開閉ボタンとの連動を差し替え側が作り直すことになる。殻は枠が持ち、中身だけを受けて状態は useAdminSidebarFrame で渡す
 - サイドバーを描画関数(render prop)で受ける: slot はすべて ReactNode という User 側の約束から外れる(User の「slot をコンポーネント型で受ける」不採用と同じ)
 - ガード付きの layout.tsx をスイッチにしてガードを `_layout/` へ移す: ガードは提供者所有の layout.tsx に残す(報告書 §7。形は F2 で guard.ts と一緒に決める)

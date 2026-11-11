@@ -293,6 +293,7 @@ const config = [
             { from: "@/stores/globalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/hooks/useGlobalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/components/Overlays/Loading/GlobalScreenLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
+            { from: "@/components/Providers/RecaptchaProvider", to: "@/lib/recaptcha", until: STORES_REMOVED },
           ],
         },
       ],

@@ -28,7 +28,7 @@ v3とv2は別々のサイトキーが必要（同じキーは使えない）。
 
 ### 2. Providerの設置（設定済み）
 
-`src/app/layout.tsx` で `RecaptchaProvider` がルートに設置済み。
+`RecaptchaProvider`(この lib の入口 `@/lib/recaptcha` から出す)は `src/wiring/AppProviders.tsx` がアプリ全体に設置済み(root layout の AppProviders の中)。
 バッジは自動的に非表示になる（Google公式で許可された方法）。
 
 ## 使用方法
