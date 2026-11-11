@@ -23,12 +23,20 @@ const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 /** useHeaderHeight の値(null = 測る前 = SSR の最初の HTML。test ごとに書き換えて戻す) */
 const headerHeight: { current: number | null } = { current: null };
 mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => headerHeight.current } });
-// 門番の client の口: 静的描画は GateProvider の外なので、開閉をテストで決める(既定 = 全部開)
-let notificationOpen = true;
+// 門番の client の口: 枠は門を読まない(読んだら throw して落とす。静的描画は GateProvider の外)
+const gateReads: string[] = [];
 mock.module("@/featureGate/client", {
-  namedExports: { useGate: () => ({ enabled: (name: string) => (name === "notification" ? notificationOpen : true) }) },
+  namedExports: {
+    useGate: () => ({
+      enabled: (name: string) => {
+        gateReads.push(name);
+        return true;
+      },
+    }),
+  },
 });
-mock.module("@/features/notification/components/common/UnreadNotificationModal", { defaultExport: marker("modal") });
+// 未読のお知らせのモーダル(messaging の受け取り箱の部品。出すかは部品が config で決める)
+mock.module("@/features/core/messaging/components/InboxUnreadModal", { namedExports: { InboxUnreadModal: marker("modal") } });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
 mock.module(here("./Header/index.tsx"), { namedExports: { UserNavigation: marker("header") } });
@@ -162,32 +170,32 @@ test("slot に要素を渡すと既定の代わりにそれを同じ位置に描
       footer={<footer id="f" />}
       bottomNav={<nav id="b" />}
       background={<i id="bg" />}
-      notificationModal={<dialog id="m" />}
     >
       CHILD
     </UserLayout>,
   );
-  for (const name of ["header", "footer", "spacer", "bottomnav", "modal"]) {
+  for (const name of ["header", "footer", "spacer", "bottomnav"]) {
     assert.equal(html.includes(`<x-${name}>`), false, `既定の ${name} が残っている`);
   }
   assert.equal(html.includes("100lvh"), false, "既定の BackgroundLayer が残っている");
-  const order = ['<i id="bg">', 'id="user-app-container"', '<header id="h">', 'id="stretch-wrapper"', '<footer id="f">', '<nav id="b">', '<dialog id="m">'];
+  const order = ['<i id="bg">', 'id="user-app-container"', '<header id="h">', 'id="stretch-wrapper"', '<footer id="f">', '<nav id="b">', "<x-modal>"];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
 });
 
 const allNull = () => (
-  <UserLayout banner={null} header={null} footer={null} bottomNav={null} background={null} notificationModal={null}>
+  <UserLayout banner={null} header={null} footer={null} bottomNav={null} background={null}>
     CHILD
   </UserLayout>
 );
 
 test("slot に null を渡すとその部品を描かない(bottomNav はスペーサーごと、--app-bottom-nav-height も書かない)", () => {
   const html = render(allNull());
-  for (const name of ["header", "footer", "spacer", "bottomnav", "modal"]) {
+  for (const name of ["header", "footer", "spacer", "bottomnav"]) {
     assert.equal(html.includes(`<x-${name}>`), false, `${name} が残っている`);
   }
+  assert.ok(html.includes("<x-modal></x-modal></div>"), "未読のモーダルは slot ではないので残る(外枠の末尾)");
   assert.equal(html.includes("100lvh"), false, "背景が残っている");
   assert.equal(html.includes("--app-bottom-nav-height"), false);
   assert.ok(tagOf(html, "user-app-container").includes('data-frame-root=""'));
@@ -199,7 +207,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
     render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
       'id="user-app-container" data-user-app-container="" data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
-      '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div></div>',
+      '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div><x-modal></x-modal></div>',
   );
 });
 
@@ -238,14 +246,11 @@ test("banner なしの HTML に帯とスペーサーと変数を足しただけ(
   );
 });
 
-test("お知らせの機能が閉じていれば既定の未読のモーダルを描かない(差し替えたモーダルはそのまま描く)", () => {
-  notificationOpen = false;
-  try {
-    assert.equal(render(<UserLayout>CHILD</UserLayout>).includes("<x-modal>"), false, "閉なのに既定のモーダルが残っている");
-    assert.ok(render(<UserLayout notificationModal={<dialog id="m" />}>CHILD</UserLayout>).includes('<dialog id="m">'));
-  } finally {
-    notificationOpen = true;
-  }
+test("未読のモーダル(受け取り箱の部品)は門を見ずに外枠の末尾に置く", () => {
+  gateReads.length = 0;
+  const html = render(<UserLayout>CHILD</UserLayout>);
+  assert.ok(html.includes("<x-bottomnav></x-bottomnav><x-modal></x-modal></div>"));
+  assert.deepEqual(gateReads, [], "枠は門を読まない");
 });
 
 test("測る前(useHeaderHeight が null = SSR の最初の HTML)は外枠に --app-header-height を書かず、CSS の初期値に任せる", () => {

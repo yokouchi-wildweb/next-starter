@@ -52,8 +52,8 @@ src/app/(user)/_layout/
 | `header` | `UserNavigation`(`./Header`、upstream では既定 Header) | `#user-app-container` の先頭 |
 | `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | `#stretch-wrapper` の後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
-| `notificationModal` | `UnreadNotificationModal` | 末尾 |
 
+- 未読のお知らせのモーダルは slot ではない: 外枠の末尾にいつも messaging の `InboxUnreadModal`(`@/features/core/messaging/components/InboxUnreadModal`)を置く。出すかは `messagingConfig.inbox.showUnreadModal`(既定 切)、出す住所は `inbox.unreadModalPaths`(上書き `src/config/features/messaging.config.ts`)。門は見ない。自前のモーダルを使う fork は config で切り、`UserLayout.replace` に置く
 - slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は 1 行スイッチ化の前と同じ(test で固定。寸法変数の区切りで入った差分 2 か所は下の「寸法の CSS 変数」)
 - banner を渡すと、帯の実測の高さを外枠の `--app-banner-height` に書き、ヘッダーの top と本文(`#stretch-wrapper` の前のスペーサー)をその分押し下げる。SP メニューもヘッダーの下から開く。差し替えたヘッダーは `top-0` の代わりに `top-[var(--app-banner-height,0px)]` を使う(使わないと帯に被る)
 
