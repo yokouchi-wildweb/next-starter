@@ -58,6 +58,7 @@
 
 #### FullScreen
 モバイルブラウザのアドレスバーを考慮した真のフルスクリーン表示。`layer` propでz-index層を指定。
+高さは `var(--viewport-height, 100dvh)` を読むだけで、自分では計測しない(書き手は root layout の `ViewportHeightWatcher`、[src/lib/viewport](../../lib/viewport/README.md))。
 
 #### ScaledStage
 `logicalWidth` × `logicalHeight` の論理 px で組んだ子を、コンテナに収まる倍率で transform:scale する（`useFitScale` を内蔵、"use client"）。`fit`: `contain`（既定、レターボックス）/ `width` / `height`、`minScale` / `maxScale`、`align`、`overflow`。サイネージ・キオスク・固定比率の盤面など「カンプ忠実」が優先される画面向け。流体レイアウトとの使い分けと詳細は [AppFrames/Kiosk/README.md](../AppFrames/Kiosk/README.md)。

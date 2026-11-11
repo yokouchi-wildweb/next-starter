@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
+    "paths": {
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@lib-config/siteTheme": ["../../config/lib/siteTheme.config.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.js"]
+}

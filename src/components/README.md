@@ -20,7 +20,7 @@
 | `AppFrames/` | 解体中の旧フォルダ。残りは管理画面の共有部品（`Admin/Elements`: ListTop・SearchBox・ItemNavigator 等。ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ、データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く。管理ヘッダーの中身はページが AdminPage の props で渡す）、ページ単位で枠の部位を隠す `User/controls`（Hide*）、キオスク用のビューポート固定枠、要素 ID の `constants.ts`（行き先の棚は後の議題で決める）。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
 | `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
 | `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
-| `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch` / `SiteThemeSync`（サイトテーマ、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
+| `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
 | `Form/` | フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md) |
 | `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
 | `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |
@@ -28,7 +28,6 @@
 | `Navigation/` | ナビゲーション（`Link`（next/link の包み。リンクは全部これを使い next/link を直接 import しない: lint `link-via-shelf`。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能の住所を隠す判定を差し込む）、`PageTab`、`StateTabs`、`Pagination`） | [Navigation/Link/README.md](./Navigation/Link/README.md) |
 | `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）の完成品。低レベル部品は `Primitives/`（`Dialog` / `Command` / `Popover` / `Tooltip` / `HoverCard`）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
 | `Primitives/` | 部品の棚の低レベル部品（shadcn・Radix 由来の生の部品）。1 部品 = 1 フォルダ、読むのは入口 `@/components/Primitives/<部品>`（`Primitives/index.ts` は無い）。部品: `Badge`（`BadgeCore`）・`Button`・`Calendar`・`Carousel`・`Checkbox`・`Command`・`Dialog`・`HoverCard`・`Input`（`Input` / `Textarea`）・`Label`・`Popover`・`RadioGroup`・`Select`・`Skeleton`・`Slot`・`Tabs`・`Tooltip`。Radix は統合版の `radix-ui` からだけ読む（`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う | - |
-| `Providers/` | 外部サービスの Provider（`RecaptchaProvider` など） | - |
 | `Skeleton/` | `BaseSkeleton` を基盤としたローディングプレースホルダー | [Skeleton/README.md](./Skeleton/README.md) |
 | `TextBlocks/` | 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替 | - |
 | `Three/` | three.js を利用した 3D 表現 | - |

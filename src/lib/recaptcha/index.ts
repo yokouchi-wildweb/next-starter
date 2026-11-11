@@ -3,6 +3,7 @@
 // クライアント用エクスポート
 export { getRecaptchaToken } from "./client/executeRecaptcha";
 export { RecaptchaBadge } from "./components/RecaptchaBadge";
+export { RecaptchaProvider } from "./components/RecaptchaProvider";
 export { RecaptchaV2Challenge } from "./components/RecaptchaV2Challenge";
 export { useRecaptcha } from "./hooks/useRecaptcha";
 export {

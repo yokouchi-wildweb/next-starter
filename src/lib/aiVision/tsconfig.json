@@ -5,8 +5,7 @@
       "@/lib/ai": ["../ai"],
       "@/lib/ai/*": ["../ai/*"],
       "@/lib/defineConfig": ["../defineConfig"],
-      "@/lib/defineConfig/*": ["../defineConfig/*"],
-      "@lib-config/aiVision": ["../../config/lib/aiVision.config.ts"]
+      "@/lib/defineConfig/*": ["../defineConfig/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]

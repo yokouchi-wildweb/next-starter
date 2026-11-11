@@ -3,8 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@/lib/structuredDocument": ["../structuredDocument"],
-      "@/lib/structuredDocument/*": ["../structuredDocument/*"],
-      "@lib-config/messaging": ["../../config/lib/messaging.config.ts"]
+      "@/lib/structuredDocument/*": ["../structuredDocument/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]

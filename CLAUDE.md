@@ -86,11 +86,11 @@ feature_gate (MANDATORY): feature = human-toggled unit = rule src/featureGate/ru
 
 ## DIRECTORY_STRUCTURE
 features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
-shared_src: components (index: src/components/README.md), hooks, utils, stores, lib, config, registry, proxies, featureGate | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
+shared_src: components (index: src/components/README.md), hooks, utils, lib, config, registry, proxies, featureGate | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
 src_root_bases: src/ directly holds only mechanisms that cut across the set of domains (featureGate, registry, wiring) | what follows them (maintenance, demoMode, cron tasks) never goes there | forks never add one (need → /order; fork mechanisms → lib, business → features) | domain-driven base = featureGate (what closes) + src/lib/districtMap (what exists and holds what)
 code_generation: generated files (no edit) / registry / write-once / hand-owned lists → .claude/rules/core/code-generation.md | list: src/registry/district-map.jsonl (pnpm generate district-map) | ref: scripts/structure/domain/README.md
 - domain.json `generate` (default true) = forge / pnpm generate domain rewrites the whole domain, hand logic lives in wrappers/ + write-once files and is re-applied on top | re-applying gets costly or a generated file must be hand-edited → `"generate": false` (the generator writes nothing for it)
-stores (zustand): app-wide → src/stores/ | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts} | state only (logic in services), internalStore accessed only from useStore.ts | rest → .claude/rules/core/stores.md
+stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, via its entry; no src/stores) | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts} | state only (logic in services), internalStore accessed only from useStore.ts | rest → .claude/rules/core/stores.md
 
 ## DOMAINS
 core: src/features/core/ = domains shipped by Tier1 (upstream-owned: forks never add or edit there, only receptacle items + overrides) | business: all a fork or mid tier adds = src/features/\<domain\>/ | promotion to core = Tier1's call | hand-written vs generated is not part of the definition | index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
@@ -153,7 +153,7 @@ scope: each line = a rule that applies even when you are not editing that featur
 
 ## STYLE_OWNERSHIP (upstream = structure, downstream = values)
 ownership: see CORE_FILES | color source of truth = CSS | config, cn class groups → .claude/rules/core/style.md (loaded with any .tsx) | before changing tokens, variants, fonts or theme → read src/styles/README.md
-semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill | `text-x-foreground` = text on the fill | `text-x-text` = text on a plain background | NEVER `text-x` | scrim `bg-overlay/NN` | no raw white/black (background / foreground / card tokens) | lint style-tokens/no-raw-palette (exception = reasoned eslint-disable)
+semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill | `text-x-foreground` = text on the fill | `text-x-text` = text on a plain background | NEVER `text-x` (lint style-tokens/no-bare-semantic-text) | scrim `bg-overlay/NN` | no raw white/black (background / foreground / card tokens) | lint style-tokens/no-raw-palette (exception = reasoned eslint-disable, both rules)
 
 ## COMPONENTS
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | ref: src/components/README.md

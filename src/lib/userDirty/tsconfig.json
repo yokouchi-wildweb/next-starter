@@ -7,9 +7,6 @@
       ],
       "@/lib/appEnv/*": [
         "../appEnv/*"
-      ],
-      "@lib-config/userDirty": [
-        "../../config/lib/userDirty.config.ts"
       ]
     }
   },

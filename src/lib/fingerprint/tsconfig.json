@@ -1,9 +1,4 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@lib-config/fingerprint": ["../../config/lib/fingerprint.config.ts"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

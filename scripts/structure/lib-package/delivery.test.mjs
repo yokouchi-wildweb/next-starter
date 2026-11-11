@@ -33,7 +33,8 @@ function withRepo(override, fn) {
       compilerOptions: { target: "ES2020", module: "esnext", moduleResolution: "bundler", strict: true, noEmit: true, skipLibCheck: true, types: [], paths: { [KEY]: realLine() } },
       include: ["src/**/*.ts", "scripts/run.ts"],
     }),
-    "src/lib/x/index.ts": `import override from "@lib-config/x";\nexport const config = { ...override };\n`,
+    "src/lib/x/config.ts": `import override from "@lib-config/x";\nexport const config = { ...override };\n`,
+    "src/lib/x/index.ts": `export { config } from "./config";\n`,
     "scripts/run.ts": `import { config } from "../src/lib/x/index";\nconsole.log("loaded", JSON.stringify(config));\n`,
     "scripts/x.test.ts": `import { test } from "node:test";\nimport { config } from "../src/lib/x/index";\ntest("reads", () => { if (typeof config !== "object") throw new Error("no config"); });\n`,
   };

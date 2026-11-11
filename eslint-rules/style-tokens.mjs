@@ -71,6 +71,59 @@ const noRawPaletteRule = {
   },
 };
 
+// ---- no-bare-semantic-text ----
+// 意味色の素の文字クラス text-success / text-info / text-warning / text-destructive を禁止する(CLAUDE.md semantic_colors: NEVER text-x)。
+// 意味色は 3 トークン: 塗り bg-x(枠 border-x)/ 塗りの上の文字 text-x-foreground / 素の背景の文字 text-x-text。
+// text-x は塗りの色そのものを文字に使うので、背景との対比がテーマで保証されない。
+// 対象: 文字列リテラル・テンプレートリテラルの中の空白区切りトークン(no-raw-palette と同じ)。修飾子(sm: / data-[...]: / dark: 等)・
+//   important(! の接頭・接尾)・透過率(/50、/[0.5])付きも検出。text-x-foreground / text-x-text / bg-x / border-x は通す。
+// 既知の誤検出: クラス名ではない文字列(placeholder="例: text-destructive" など)。理由付き eslint-disable で明示する。
+
+const SEMANTIC_NAMES = "(?:success|info|warning|destructive)";
+
+/** 1 トークンが素の意味色の文字クラスか。先頭または修飾子 `:` / important 接頭辞 `!` の直後から判定する */
+const BARE_SEMANTIC_TEXT_TOKEN = new RegExp(`(?:^|[:!])text-${SEMANTIC_NAMES}${OPACITY_SUFFIX}!?$`);
+
+export function findBareSemanticTextTokens(text) {
+  const found = [];
+  for (const token of text.split(/\s+/)) {
+    if (token && BARE_SEMANTIC_TEXT_TOKEN.test(token)) found.push(token);
+  }
+  return found;
+}
+
+const noBareSemanticTextRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "意味色の素の文字クラス(text-success / text-info / text-warning / text-destructive)を禁止し、text-x-text / text-x-foreground を使わせる",
+    },
+    messages: {
+      bareSemanticText:
+        '"{{token}}" は使いません。素の背景の文字は text-{{name}}-text、塗り(bg-{{name}})の上の文字は text-{{name}}-foreground で書いてください(CLAUDE.md semantic_colors)。例外は理由付き eslint-disable で明示する',
+    },
+    schema: [],
+  },
+  create(context) {
+    const report = (node, text) => {
+      for (const token of findBareSemanticTextTokens(text)) {
+        const name = /text-(success|info|warning|destructive)/.exec(token)?.[1] ?? "x";
+        context.report({ node, messageId: "bareSemanticText", data: { token, name } });
+      }
+    };
+    return {
+      Literal(node) {
+        if (typeof node.value !== "string") return;
+        if (node.parent?.type === "ImportDeclaration" || node.parent?.type === "ImportExpression") return;
+        report(node, node.value);
+      },
+      TemplateElement(node) {
+        report(node, node.value.cooked ?? node.value.raw);
+      },
+    };
+  },
+};
+
 // ---- span-in-heading ----
 // 見出し(PageTitle / UserPageTitle / SecTitle 等、および生の h1〜h6)の直下に置いた <Span> が
 // size / weight を書いていないと、Span の既定(text-base font-normal leading-relaxed)が見出しの
@@ -138,6 +191,7 @@ const plugin = {
   },
   rules: {
     "no-raw-palette": noRawPaletteRule,
+    "no-bare-semantic-text": noBareSemanticTextRule,
     "span-in-heading": spanInHeadingRule,
   },
 };

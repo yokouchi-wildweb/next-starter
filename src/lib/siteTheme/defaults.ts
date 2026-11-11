@@ -1,7 +1,7 @@
 // src/lib/siteTheme/defaults.ts
 //
 // サイトテーマ設定の上流既定値。下流はこのファイルを編集せず、
-// src/config/ui/site-theme.config.ts に差分だけを書く。
+// src/config/lib/siteTheme.config.ts(@lib-config/siteTheme)に差分だけを書く(合成: ./compose.ts)。
 //
 // 既定値は従来挙動の再現: 全エリアがライト既定、管理画面(/admin, /debug)のみ切替可、
 // ユーザー側は切替不可(= 管理画面でダークを選んでもユーザー側に漏れない)。

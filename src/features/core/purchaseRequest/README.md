@@ -106,7 +106,7 @@ wrappers/
 - Webhook はサーバー間・リトライ付きで確実性を、callback + ポーリングはユーザーへの即時フィードバックと Webhook 遅延の吸収を担う。両方必要
 - ポーリング: 2 秒間隔・最大 30 回（60 秒）。completed → `/wallet/[slug]/purchase/complete`、failed / expired / タイムアウト → `/wallet/[slug]/purchase/failed`（`reason=expired|timeout` 等）
 - ポーリング経路は `paidAmount` を渡さないため、金額照合は Webhook / 確定 API 経路でのみ効く
-- 移り先を変える: `usePurchaseStatusPolling({ requestId, slug, completePath?, failedPath? })`（`hooks/usePurchaseStatusPolling.ts`）。値だけ渡す（関数・部品は渡さない）
+- 移り先を変える: `usePurchaseStatusPolling({ requestId, slug, completePath?, failedPath? })`（`hooks/usePurchaseStatusPolling.ts`）。値だけ渡す（関数・部品は渡さない）。両方の行き先を渡すときは slug を省ける
   - `completePath`: 完了時の移り先のパス（省略 = `/wallet/<slug>/purchase/complete`）。`?request_id=<id>` を付けて移る
   - `failedPath`: 失敗・期限切れ・タイムアウト時の移り先のパス（省略 = `/wallet/<slug>/purchase/failed`）。`request_id` に続けて `error_code`（failed、無ければ `UNKNOWN`）か `reason`（`expired` / `timeout`）を付ける
   - パスに `?` があれば `&` で続ける（組み立ては純関数 `buildPurchaseResultUrl`）。戻り値 `{ error, isPolling }` は同じ。core の `PurchaseCallback` は省略して呼ぶ（wallet の既定のまま）

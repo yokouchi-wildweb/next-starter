@@ -79,7 +79,8 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 - `paths` はルートの paths を丸ごと置き換える(`@/*` を引き継がない)。だから宣言していない lib・棚(`@/hooks/*` など)を読むと解決できずに落ちる
 - `@/lib/<dep>` と `@/lib/<dep>/*` = package.json の `libs` を辿った閉包(依存の package.json の libs・peers も足す)。package.json に書くのは直接の依存だけで、tsconfig.json には閉包を書く。依存が依存を増やすと、こちらの検査が足す行を出す
 - `@/<peer>/*` = `peers` の棚(今は `components` → `src/components`)。閉包の peers も含む
-- `@lib-config/<自分>` = 常に書く。先(`src/config/lib/<自分>.config.ts`)が無い時は、読んだ時だけ型検査で落ちる(既定値で黙って通さない)。置き場の決まりは指令 24
+- `@lib-config/<自分>` = 設定 `config.ts`(か `config.tsx`)を持つ lib だけが書く(無い lib に、無いファイルへの行を残さない。残っていれば検査が消す行を名指しする)。先(`src/config/lib/<自分>.config.ts`)が無い時は、読んだ時だけ型検査で落ちる(既定値で黙って通さない)。config.ts の無い lib が `@lib-config` を読むと行が無いので TS2307 で落ちる。置き場の決まりは指令 24
+- 依存も設定も無い lib は paths を書かず、compilerOptions も書かない(JS を持つ lib は下の 3 つだけ)
 - 外部のパッケージはルートの node_modules から今までどおり解決する
 
 ### @lib-config(設定の届け方の行)
@@ -116,7 +117,7 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 
 閉じた lib は設定の合成を `@/lib/defineConfig` の defineConfig で行います。lib ごとの一覧は持たず、形で見ます。
 
-- 自前の合成 = `@/lib/defineConfig` を読まない lib が、`define<名前>Config` を export する(defineFontsConfig・defineSiteThemeConfig)か、合成器と同じ名前のファイル `defineConfig.<ext>` で `define<名前>` を export する(defineVariantOverrides)
+- 自前の合成 = `@/lib/defineConfig` を読まない lib が、`define<名前>Config` を export する(defineFontsConfig)か、合成器と同じ名前のファイル `defineConfig.<ext>` で `define<名前>` を export する(defineVariantOverrides)
 - defineConfig を読んで作る薄い包み(`define<名前>Config = () => defineConfig(…)`)は自前の合成ではない
 - 合成器そのもの(契約 api.defineconfig が名指す lib `defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)

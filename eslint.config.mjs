@@ -27,6 +27,8 @@ const libOwnership = loadCatalogOwnership({ repoRoot: import.meta.dirname, folde
 const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((path) => `${path}/**/*.{ts,tsx}`);
 /** 部品の棚 Primitives へ移した旧パスの削除の区切り(deprecated-imports の until) */
 const PRIMITIVES_REMOVED = "checkpoint primitives-radix で削除済み";
+/** stores の廃止で閉じた lib へ移した旧パスの削除の区切り(deprecated-imports の until) */
+const STORES_REMOVED = "checkpoint stores-removal で削除済み";
 
 const config = [
   ...nextConfig,
@@ -183,6 +185,7 @@ const config = [
     },
   },
   // 生パレット色(bg-slate-900 / text-white / bg-[#fff] 等)の禁止。色はテーマトークンで書く
+  // 同じ範囲で意味色の素の文字 text-success / text-info / text-warning / text-destructive も禁止(no-bare-semantic-text。CLAUDE.md semantic_colors)。
   // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
   // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(features/<business>, app/)は対象外
   // (下流が同じ規律を敷きたい場合は files にパスを足す)。
@@ -207,6 +210,7 @@ const config = [
     plugins: { "style-tokens": styleTokensPlugin },
     rules: {
       "style-tokens/no-raw-palette": "error",
+      "style-tokens/no-bare-semantic-text": "error",
       "style-tokens/span-in-heading": "error",
     },
   },
@@ -217,6 +221,7 @@ const config = [
           files: forkOwnedLibFiles,
           rules: {
             "style-tokens/no-raw-palette": "warn",
+            "style-tokens/no-bare-semantic-text": "warn",
             "style-tokens/span-in-heading": "warn",
           },
         },
@@ -245,7 +250,8 @@ const config = [
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。
   // upstream が改名したとき、旧パスには再 export の shim が 1 checkpoint だけ残る。warn の間に新パスへ直す
   // (次の checkpoint で shim が消えると tsc が止める)。下流が自分の改名で使ってもよい(paths に足す)。
-  // 現在の一覧 = 部品の棚 Primitives へ移した物(計画書 02、checkpoint primitives-radix で旧パスは shim なしで削除済み。
+  // 現在の一覧 = 部品の棚 Primitives へ移した物(計画書 02、checkpoint primitives-radix で旧パスは shim なしで削除済み)と、
+  // stores の廃止で閉じた lib へ移した物(checkpoint stores-removal、同じく shim なし。
   // 旧パスの import は tsc も止めるので、ここは置き換え先の案内だけ)。
   // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次" }
   {
@@ -276,6 +282,18 @@ const config = [
             { from: "@/components/Overlays/CommandPrimitives", to: "@/components/Primitives/Command", until: PRIMITIVES_REMOVED },
             { from: "@/components/Overlays/Popover/PopoverPrimitives", to: "@/components/Primitives/Popover", until: PRIMITIVES_REMOVED },
             { from: "@/components/Badge/BadgeCore", to: "@/components/Primitives/Badge", until: PRIMITIVES_REMOVED },
+            { from: "@/stores/viewportSize", to: "@/lib/viewport", until: STORES_REMOVED },
+            { from: "@/hooks/useViewportOrientation", to: "@/lib/viewport", until: STORES_REMOVED },
+            { from: "@/hooks/useMediaQuery", to: "@/lib/viewport", until: STORES_REMOVED },
+            { from: "@/components/Fanctional/ViewportHeightWatcher", to: "@/lib/viewport", until: STORES_REMOVED },
+            { from: "@/stores/siteTheme", to: "@/lib/siteTheme", until: STORES_REMOVED },
+            { from: "@/utils/siteTheme", to: "@/lib/siteTheme", until: STORES_REMOVED },
+            { from: "@/components/Fanctional/SiteThemeSync", to: "@/lib/siteTheme", until: STORES_REMOVED },
+            { from: "@/config/ui/site-theme.config", to: "@/lib/siteTheme", until: STORES_REMOVED },
+            { from: "@/stores/globalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
+            { from: "@/hooks/useGlobalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
+            { from: "@/components/Overlays/Loading/GlobalScreenLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
+            { from: "@/components/Providers/RecaptchaProvider", to: "@/lib/recaptcha", until: STORES_REMOVED },
           ],
         },
       ],

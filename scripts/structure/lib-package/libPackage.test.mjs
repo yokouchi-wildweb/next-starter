@@ -102,9 +102,9 @@ test("d3: peers の components は読める(宣言しなければ落ちる)", ()
 });
 
 test("d3: tsconfig.json が無い・行が足りない・余る・他の設定がある → 直す行を名指しで出す(型検査はしない)", () => {
-  withRepo({ ...B, ...libA(`export const a = 1;\n`) }, { tsconfig: ["b"] }, (root) => {
+  withRepo({ ...B, ...libA(`export const a = 1;\n`), "src/lib/a/config.ts": "export {};\n" }, { tsconfig: ["b"] }, (root) => {
     const result = checkLibs(root);
-    assert.deepEqual(codes(result), ["tsconfigMissing"]);
+    assert.deepEqual(codes(result), ["tsconfigMissing", "overrideMissing"]);
     assert.match(messages(result), /src\/lib\/a\/tsconfig\.json: ありません。次の中身で置きます/);
     assert.match(messages(result), /"@lib-config\/a": \[\s*"\.\.\/\.\.\/config\/lib\/a\.config\.ts"/);
   });
@@ -130,7 +130,7 @@ test("d3: 閉包: a → b → c なら a の tsconfig.json にも c の行が要
     ...libA(`import { b } from "@/lib/b";\nexport const a = b;\n`),
   };
   withRepo(files, { tsconfig: ["a", "b", "c"] }, (root) => {
-    assert.deepEqual(Object.keys(expectedTsconfig(root, "a").compilerOptions.paths), ["@/lib/b", "@/lib/b/*", "@/lib/c", "@/lib/c/*", "@lib-config/a"]);
+    assert.deepEqual(Object.keys(expectedTsconfig(root, "a").compilerOptions.paths), ["@/lib/b", "@/lib/b/*", "@/lib/c", "@/lib/c/*"]);
     assert.deepEqual(checkLibs(root).problems, []);
   });
 });
@@ -145,13 +145,9 @@ test("JS(.mjs)を持つ lib: tsconfig に allowJs・allowImportingTsExtensions�
     "src/lib/j/j.test.mjs": `import { h } from "./helper.ts";\nimport { up } from "./index.mjs";\nexport const v = [up("a"), h];\n`,
   };
   withRepo(files, { tsconfig: ["b", "j"] }, (root) => {
-    assert.deepEqual(expectedTsconfig(root, "b"), {
-      extends: "../../../tsconfig.json",
-      compilerOptions: { paths: { "@lib-config/b": ["../../config/lib/b.config.ts"] } },
-      include: ["**/*.ts", "**/*.tsx"],
-    });
+    assert.deepEqual(expectedTsconfig(root, "b"), { extends: "../../../tsconfig.json", include: ["**/*.ts", "**/*.tsx"] });
     const j = expectedTsconfig(root, "j");
-    assert.deepEqual(j.compilerOptions, { allowJs: true, allowImportingTsExtensions: true, checkJs: true, paths: { "@lib-config/j": ["../../config/lib/j.config.ts"] } });
+    assert.deepEqual(j.compilerOptions, { allowJs: true, allowImportingTsExtensions: true, checkJs: true });
     assert.deepEqual(j.include, ["**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.js"]);
     assert.deepEqual(checkLibs(root).problems, []);
   });
@@ -173,11 +169,34 @@ test("JS(.mjs)を持つ lib: tsconfig に allowJs・allowImportingTsExtensions�
 });
 
 test("d3: @lib-config/<自分> は設定のファイルがあれば読め、無ければ読んだ時だけ落ちる", () => {
-  const code = `import { config } from "@lib-config/a";\nexport const a = config;\n`;
-  withRepo({ ...B, ...libA(code), "src/config/lib/a.config.ts": "export const config = 1;\n" }, { tsconfig: ["a", "b"] }, (root) => {
+  const files = { ...B, ...libA(`export { a } from "./config";\n`), "src/lib/a/config.ts": `import { config } from "@lib-config/a";\nexport const a = config;\n` };
+  withRepo({ ...files, "src/config/lib/a.config.ts": "export const config = 1;\n" }, { tsconfig: ["a", "b"] }, (root) => {
     assert.deepEqual(checkLibs(root).problems, []);
   });
-  withRepo({ ...B, ...libA(code) }, { tsconfig: ["a", "b"] }, (root) => {
+  withRepo(files, { tsconfig: ["a", "b"] }, (root) => {
+    assert.match(messages(checkLibs(root)), /TS2307/);
+  });
+});
+
+test("@lib-config/<自分> の行は設定 config.ts を持つ lib だけ。無い lib に行があれば消す行を名指しし、無い lib が読めば TS2307", () => {
+  withRepo({ ...B, ...libA(`export const a = 1;\n`) }, { tsconfig: ["a", "b"] }, (root) => {
+    assert.equal(expectedTsconfig(root, "a").compilerOptions?.paths?.["@lib-config/a"], undefined);
+    assert.deepEqual(checkLibs(root).problems, []);
+    const stale = expectedTsconfig(root, "a");
+    stale.compilerOptions.paths["@lib-config/a"] = ["../../config/lib/a.config.ts"];
+    writeFileSync(path.join(root, "src/lib/a/tsconfig.json"), JSON.stringify(stale));
+    const result = checkLibs(root);
+    assert.deepEqual(codes(result), ["pathsExtra"]);
+    assert.match(messages(result), /paths の "@lib-config\/a" を消します\(lib に設定 config\.ts が無い\)/);
+  });
+  // 依存も設定も無い lib: compilerOptions を書かない。空の compilerOptions / paths が残っていても問題にしない
+  withRepo(B, { tsconfig: ["b"] }, (root) => {
+    assert.equal(expectedTsconfig(root, "b").compilerOptions, undefined);
+    writeFileSync(path.join(root, "src/lib/b/tsconfig.json"), JSON.stringify({ extends: "../../../tsconfig.json", compilerOptions: { paths: {} }, include: ["**/*.ts", "**/*.tsx"] }));
+    assert.deepEqual(checkLibs(root).problems, []);
+  });
+  // config.ts の無い lib が @lib-config を読むと、行が無いので解決できずに落ちる(黙って通らない)
+  withRepo({ ...B, ...libA(`import { config } from "@lib-config/a";\nexport const a = config;\n`), "src/config/lib/a.config.ts": "export const config = 1;\n" }, { tsconfig: ["a", "b"] }, (root) => {
     assert.match(messages(checkLibs(root)), /TS2307/);
   });
 });

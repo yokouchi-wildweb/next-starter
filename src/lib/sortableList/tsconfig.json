@@ -19,9 +19,6 @@
       ],
       "@/lib/unsavedGuard/*": [
         "../unsavedGuard/*"
-      ],
-      "@lib-config/sortableList": [
-        "../../config/lib/sortableList.config.ts"
       ]
     }
   },

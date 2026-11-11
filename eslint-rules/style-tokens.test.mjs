@@ -1,10 +1,10 @@
 // eslint-rules/style-tokens.test.mjs
-// 生パレット色検出規則の契約テスト。実行: pnpm test eslint-rules/style-tokens.test.mjs (node:test)
+// 生パレット色検出規則・意味色の素の文字の検出規則の契約テスト。実行: pnpm test eslint-rules/style-tokens.test.mjs (node:test)
 import { describe, it, test } from "node:test";
 import assert from "node:assert/strict";
 import { RuleTester } from "eslint";
 
-import plugin, { findRawPaletteTokens } from "./style-tokens.mjs";
+import plugin, { findBareSemanticTextTokens, findRawPaletteTokens } from "./style-tokens.mjs";
 
 test("検出対象: 数値付きパレット・white/black・任意値 hex、修飾子・透過率付きも含む", () => {
   const hits = findRawPaletteTokens(
@@ -99,6 +99,77 @@ ruleTester.run("no-raw-palette", plugin.rules["no-raw-palette"], {
     {
       code: '// eslint の無効化コメントが無ければ検出される\nconst d = { class: "hover:bg-black/90" };',
       errors: [{ messageId: "rawPalette", data: { token: "hover:bg-black/90" } }],
+    },
+  ],
+});
+
+test("意味色の素の文字: text-success / info / warning / destructive を修飾子・important・透過率付きも含めて検出", () => {
+  const hits = findBareSemanticTextTokens(
+    [
+      "text-success",
+      "text-info",
+      "text-warning",
+      "text-destructive",
+      "sm:text-destructive",
+      "data-[error=true]:text-destructive",
+      "hover:text-warning",
+      "!text-info",
+      "text-success!",
+      "text-destructive/80",
+      "dark:text-info/[0.6]",
+    ].join(" "),
+  );
+  assert.equal(hits.length, 11, `検出漏れ: ${hits.join(", ")}`);
+});
+
+test("意味色の素の文字: 3 トークン(text-x-foreground / text-x-text / bg-x・border-x)と他の文字クラスは通す", () => {
+  const hits = findBareSemanticTextTokens(
+    [
+      "text-success-foreground",
+      "text-info-text",
+      "text-warning-foreground",
+      "text-destructive-text",
+      "hover:text-destructive-text",
+      "bg-success",
+      "bg-destructive/10",
+      "border-warning",
+      "border-info/50",
+      "text-primary",
+      "text-muted-foreground",
+      "text-sm",
+      "text-successful",
+      "destructive",
+    ].join(" "),
+  );
+  assert.deepEqual(hits, []);
+});
+
+ruleTester.run("no-bare-semantic-text", plugin.rules["no-bare-semantic-text"], {
+  valid: [
+    'const a = cn("bg-destructive text-destructive-foreground", isError && "text-destructive-text");',
+    'const b = <p className="text-success-text border-success bg-success/10" />;',
+    "const c = `text-sm ${x} text-warning-foreground`;",
+    'import x from "./text-destructive";',
+  ],
+  invalid: [
+    {
+      code: 'const a = <p className="text-destructive text-sm" />;',
+      errors: [{ messageId: "bareSemanticText", data: { token: "text-destructive", name: "destructive" } }],
+    },
+    {
+      code: 'const b = cn("data-[error=true]:text-destructive", "sm:text-success");',
+      errors: [
+        { messageId: "bareSemanticText", data: { token: "data-[error=true]:text-destructive", name: "destructive" } },
+        { messageId: "bareSemanticText", data: { token: "sm:text-success", name: "success" } },
+      ],
+    },
+    {
+      code: "const c = `p-2 ${x} text-warning/80`;",
+      errors: [{ messageId: "bareSemanticText", data: { token: "text-warning/80", name: "warning" } }],
+    },
+    {
+      code: 'const d = { class: "!text-info" };',
+      errors: [{ messageId: "bareSemanticText", data: { token: "!text-info", name: "info" } }],
     },
   ],
 });

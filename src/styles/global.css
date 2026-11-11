@@ -1,22 +1,4 @@
-/*
- * src/styles/global.css — スタイルの入口(fork 所有)
- *
- * 最初に upstream の既定(core/index.css: Tailwind・プラグイン・upstream の CSS)を読み込み、
- * その後に fork の上書きを読む。後勝ちなので、書いた値だけが upstream の既定を上書きする。
- * upstream はこのファイルと直下の palette.css / typography.css / overrides.css / gradient.css を初回作成後に編集しない。
- *
- *   palette.css     色(--primary 等)。エリア別は [data-area="user"] { ... }
- *   typography.css  書体・文字サイズ系
- *   overrides.css   ユーティリティが触らない領域(要素既定・scrollbar・selection・keyframes 等)
- *   gradient.css    このリポのグラデーション(pnpm generate styles が src/config/app/gradients.config.ts から生成。手で書かない)
- *
- * fork のファイルを足すときは、この直下(または好きな所)に置き、下に @import を足す(例: brand.css)。
- * Tier2 → Tier3 のように fork が多段のときは、@import の順序がそのまま優先順位。
- * core/index.css の @import は必ず最初に置く(upstream の既定より先に fork の値を読むと上書きにならない)。
- * このファイルには @import 以外の CSS を書かない。
- *
- * 詳細と注意点(cva 基底クラスを CSS で上書きしない等): src/styles/README.md
- */
+/* src/styles/global.css — スタイルの入口(fork 所有、@import だけ・順序 = 優先順位)。書き方: src/styles/README.md の早見表と「ファイルと所有権」 */
 
 @import "./core/index.css";
 

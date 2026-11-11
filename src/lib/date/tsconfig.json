@@ -1,9 +1,4 @@
 {
   "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@lib-config/date": ["../../config/lib/date.config.ts"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

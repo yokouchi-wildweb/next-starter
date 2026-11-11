@@ -36,6 +36,7 @@
 - src/lib/forkOwnership — fork の所有の検査 pnpm workflow ownership check(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)
 - src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
 - src/lib/frameDims — body 直下へ portal する部品に外枠の寸法変数(ヘッダー・バナー・下のナビの高さ)を写す useFrameDimsStyle(変数の名前と外枠の印は @lib-config で上書き)
+- src/lib/globalLoader — 画面全体のローダー(root layout の GlobalScreenLoader・出し入れの useGlobalLoader)。描画は棚の ScreenLoader fullscreen と同じ形を自前で持つ
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
 - src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル
 - src/lib/httpDefaults — client の HTTP の既定。既定の axios に、自分のタイムアウトを持たない呼び出しだけへ既定のタイムアウトを付ける interceptor(設定 @lib-config/httpDefaults の timeoutMs、既定 null = 付けない。外す印 defaultTimeout: false)
@@ -51,13 +52,13 @@
 - src/lib/pageGuard — ページの守りの汎用版(範囲の guard()・createLoader・extend、親子 AND。利用者の解き方と access の評価を差し込む。値 import は src/wiring だけ、guard.ts は @/wiring/pageGuard)
 - src/lib/pathPattern — 住所のパターン照合(セグメント境界の前方一致と = の完全一致、ルートを覆うか)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
-- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策
+- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)
 - src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(pnpm generate routes)
 - src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)
-- src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(defineSiteThemeConfig)
+- src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(設定 @lib-config/siteTheme、<html> を書く唯一の SiteThemeSync、切替の useSiteThemeStore)
 - src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI
 - src/lib/spamGuard — 使い捨てメール / Hide My Email 等の検出とガード
 - src/lib/storage — ファイル保存の基盤(storage:// ref と表示解決、inline/attachment 配信規則、StoragePort と GCS 実装、保存先の解決、strip 用途の画像のメタデータ除去(サーバーの描き直し)、クライアントの uploadToStorage)
@@ -72,5 +73,6 @@
 - src/lib/url — 実行環境のオリジン取得(getAppBaseUrl、本番の URL = 設定 baseUrl、上流の上書きが business.url を写す)、リダイレクト先の同一オリジン検証(sanitizeRedirectPath)
 - src/lib/userDirty — コミット後の再計算回収口(ALS で対象 user_id を集め post-commit で flush)
 - src/lib/variantOverrides — cva 互換のバリアント上書き(下流が形状だけを上書きする defineVariantOverrides)
+- src/lib/viewport — ビューポートの実寸(useViewportSize)・向きと高さ不足(useViewportOrientation)・メディアクエリ(useMediaQuery)、実寸と --viewport-height を書く唯一の ViewportHeightWatcher(root layout)
 - src/lib/webAudio — Web Audio の共有エンジン(効果音・ループ SE・BGM・デコードキャッシュ)
 - src/lib/x — X(Twitter)API(認証・投稿・メディア・Webhook 検証)

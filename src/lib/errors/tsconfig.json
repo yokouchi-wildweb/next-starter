@@ -7,9 +7,6 @@
       ],
       "@/lib/appEnv/*": [
         "../appEnv/*"
-      ],
-      "@lib-config/errors": [
-        "../../config/lib/errors.config.ts"
       ]
     }
   },

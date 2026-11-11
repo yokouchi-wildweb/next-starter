@@ -1,7 +1,7 @@
 // src/lib/siteTheme/types.ts
 //
 // サイトテーマ(ライト / ダーク)の既定値とエリア別ロックを表す型。
-// 値の正は src/config/ui/site-theme.config.ts(下流所有)、既定値は ./defaults.ts(上流所有)。
+// 上書きは src/config/lib/siteTheme.config.ts(型 SiteThemeOverride、./compose.ts)、既定値は ./defaults.ts(上流所有)。
 
 /** エリアの既定モード。system は OS の配色設定(prefers-color-scheme)に追従する */
 export type SiteThemeMode = "light" | "dark" | "system";
@@ -38,17 +38,6 @@ export type SiteThemeConfig = {
   /** 先頭から順に照合し、最初に一致したエリアを採用する */
   areas: readonly SiteThemeArea[];
   fallback: SiteThemeFallback;
-};
-
-/**
- * 下流が書く差分。書いた項目だけ既定値を上書きする。
- * - areas: key が既定に存在すればその項目を部分更新(位置は維持)、無ければ末尾に追加
- * - fallback: 部分更新
- */
-export type SiteThemeConfigInput = {
-  storageKey?: string;
-  areas?: readonly (Partial<SiteThemeArea> & { key: string })[];
-  fallback?: Partial<SiteThemeFallback>;
 };
 
 /** パスから解決されたエリア(match は不要なので落とす) */
