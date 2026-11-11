@@ -2,11 +2,12 @@
 
 import { Para } from "@/components/TextBlocks";
 
+import { accountLifecycleConfig } from "../../config";
+
 export function WithdrawDescription() {
   return (
-    <Para tone="muted" size="sm" className="mt-0">
-      退会すると、アカウントに関連するデータにアクセスできなくなります。
-      退会後に再度サービスを利用する場合は、新規登録が必要です。
+    <Para tone="muted" size="sm" className="mt-0 whitespace-pre-line">
+      {accountLifecycleConfig.withdraw.description}
     </Para>
   );
 }
