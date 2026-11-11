@@ -472,3 +472,4 @@
 - id:20261111-170853-messaging-drop-legacy | severity:action-required | checkpoint:messaging-drop-legacy
 - id:20261111-174919-global-css-header-comment | severity:info | checkpoint:global-css-header-comment
 - id:20261111-175102-text-x-lint | severity:info | checkpoint:text-x-lint
+- id:20261111-175956-purchase-polling-slug-optional | severity:info | checkpoint:purchase-polling-slug-optional

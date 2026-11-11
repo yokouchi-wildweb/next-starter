@@ -14,16 +14,33 @@ type PollingState = {
   isPolling: boolean;
 };
 
-export type UsePurchaseStatusPollingParams = {
+type PollingTarget = {
   /** 購入リクエストID */
   requestId: string | null;
-  /** URLスラッグ（既定のリダイレクト先のパス用） */
+};
+
+/** slug と、省いてよい行き先(省いた方は /wallet/<slug>/purchase/... になる) */
+type PollingWithSlug = PollingTarget & {
+  /** URLスラッグ（既定のリダイレクト先のパス用。completePath か failedPath を省くときだけ要る） */
   slug: string;
   /** 完了時のリダイレクト先のパス（省略 = /wallet/<slug>/purchase/complete）。request_id を付けて移る */
   completePath?: string;
   /** 失敗・期限切れ・タイムアウト時のリダイレクト先のパス（省略 = /wallet/<slug>/purchase/failed）。request_id と error_code / reason を付けて移る */
   failedPath?: string;
 };
+
+/** 行き先を両方渡す形(slug は使われないので省ける) */
+type PollingWithPaths = PollingTarget & {
+  /** URLスラッグ（completePath か failedPath を省くときだけ要る。両方渡すときは使われない） */
+  slug?: string;
+  /** 完了時のリダイレクト先のパス。request_id を付けて移る */
+  completePath: string;
+  /** 失敗・期限切れ・タイムアウト時のリダイレクト先のパス。request_id と error_code / reason を付けて移る */
+  failedPath: string;
+};
+
+/** slug は既定のパスを使うときだけ要る(行き先を両方渡すときは省ける) */
+export type UsePurchaseStatusPollingParams = PollingWithSlug | PollingWithPaths;
 
 /**
  * リダイレクト先の URL を組み立てる（純関数）。
@@ -60,6 +77,7 @@ export function usePurchaseStatusPolling({
   const isPollingRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  // slug を読むのはパスが無いときだけ(パスを省くときは型が slug を求める)
   const completeTarget = completePath ?? `/wallet/${slug}/purchase/complete`;
   const failedTarget = failedPath ?? `/wallet/${slug}/purchase/failed`;
 

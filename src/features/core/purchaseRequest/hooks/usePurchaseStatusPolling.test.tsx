@@ -1,6 +1,7 @@
 // usePurchaseStatusPolling の検査(jsdom の上でフックを動かす。状態の取得・router・タイマーは偽物):
 // 既定のパス(/wallet/<slug>/purchase/...)と指定のパス(completePath / failedPath)で、
-// completed → 完了へ、failed → error_code(無ければ UNKNOWN)、expired → reason=expired、30 回 pending → reason=timeout
+// completed → 完了へ、failed → error_code(無ければ UNKNOWN)、expired → reason=expired、30 回 pending → reason=timeout。
+// 行き先を両方渡すときは slug を省ける(片方だけで slug 無しが型の誤りなのは隣の .test.ts。同じ名前の .ts があるとこの .tsx は tsc が読まない)
 // 実行: pnpm test src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.test.tsx
 // (tsx + node:test のモジュールモック + jsdom。type: module が無いので tsx は CJS = top-level await 不可 → before() で import)
 import { after, afterEach, before, beforeEach, mock, test } from "node:test";
@@ -8,6 +9,8 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 import { createElement } from "react";
 import { JSDOM } from "jsdom";
+
+import type { UsePurchaseStatusPollingParams } from "./usePurchaseStatusPolling";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { url: "http://localhost/" });
 const g = globalThis as Record<string, unknown>;
@@ -52,10 +55,10 @@ afterEach(() => mock.timers.reset());
 
 type Paths = { completePath?: string; failedPath?: string };
 
-/** フックを描き、最初の取得まで進める */
-async function mount(paths: Paths = {}) {
+/** フックを描き、最初の取得まで進める(params を渡すとそのまま使う: slug 無しの形) */
+async function mount(paths: Paths = {}, params?: UsePurchaseStatusPollingParams) {
   function Probe() {
-    usePurchaseStatusPolling({ requestId: "r1", slug: "coin", ...paths });
+    usePurchaseStatusPolling(params ?? { requestId: "r1", slug: "coin", ...paths });
     return null;
   }
   const root = createRoot(document.createElement("div"));
@@ -114,3 +117,17 @@ for (const [name, paths, base] of [
     await unmount();
   });
 }
+
+const bothPaths: UsePurchaseStatusPollingParams = { requestId: "r1", completePath: "/direct-sale/purchase/complete", failedPath: "/direct-sale/purchase/failed" };
+
+test("行き先を両方渡せば slug を省ける: 渡したパスへ移る", async () => {
+  statuses = [{ status: "completed" }];
+  let unmount = await mount({}, bothPaths);
+  assert.deepEqual(replaced, ["/direct-sale/purchase/complete?request_id=r1"]);
+  await unmount();
+  replaced.length = 0;
+  statuses = [{ status: "expired" }];
+  unmount = await mount({}, bothPaths);
+  assert.deepEqual(replaced, ["/direct-sale/purchase/failed?request_id=r1&reason=expired"]);
+  await unmount();
+});
