@@ -10,6 +10,7 @@ import { DomainError } from "@/lib/errors";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../entities/schema";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
+import { operationFlags, type DispatchPolicy } from "./operations";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary, type AdminDeliveryRow, type AdminDispatchDetail, type AdminDispatchSummary } from "./dispatchDto";
 
 /** keyset の印(時刻 + id。中身は組み立てずに次の呼び出しへそのまま渡す) */
@@ -66,7 +67,11 @@ export type AdminDispatchStore = {
   ) => Promise<MessageDelivery[]>;
 };
 
-export type AdminReadDeps = AdminCheckDeps & { dispatchStore: AdminDispatchStore };
+export type AdminReadDeps = AdminCheckDeps & {
+  dispatchStore: AdminDispatchStore;
+  /** 回の操作の判定に要る値(連絡の性質と失敗の数) */
+  operationInputs: (row: MessageDispatch) => Promise<{ policy: DispatchPolicy; counts: { failed: number; unknown: number } }>;
+};
 
 export type AdminPage<T> = { items: T[]; nextCursor: string | null };
 
@@ -94,7 +99,8 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   await assertAdminActor(deps);
   const row = await deps.dispatchStore.findDispatch(id);
   if (!row) throw new DomainError("送信記録が見つかりません", { status: 404 });
-  return toDispatchDetail(row);
+  const { policy, counts } = await deps.operationInputs(row);
+  return toDispatchDetail(row, operationFlags(row, policy, counts));
 }
 
 /** 回の配達(古い順)。@throws DomainError(404) 回が無い */

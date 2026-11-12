@@ -14,15 +14,32 @@ import { ALL_ROLES, getRoleCategory } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
 import { messagingConfig } from "../../../config";
+import type { MessageDispatch } from "../../../entities/model";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
 import { audiences } from "../../../extensions/audiences";
 import { bulkSendTargets } from "../../../extensions/bulkSendTargets";
 import { channels } from "../../../extensions/channels";
-import { estimateRecipients, previewMessage, sendMessageToMany, sendTemplate } from "../sendMessage";
+import {
+  definitionOfDispatch,
+  estimateRecipients,
+  previewMessage,
+  sendMessageDeps,
+  sendMessageToMany,
+  sendResolved,
+  sendTemplate,
+} from "../sendMessage";
 import { continueSending } from "../sweep";
 import type { AdminCheckDeps } from "./assertAdmin";
 import { adminBulkSend as adminBulkSendWith, type AdminBulkSendInput } from "./bulkSend";
 import { adminContinueSending as adminContinueSendingWith } from "./continueSending";
+import {
+  adminCancelScheduled as adminCancelScheduledWith,
+  adminResendFailed as adminResendFailedWith,
+  adminRetract as adminRetractWith,
+  policyOf,
+  type AdminOperationsDeps,
+} from "./operations";
+import { drizzleMessageOperationsStore } from "./operationsStore";
 import {
   adminSend as adminSendWith,
   adminSendEstimate as adminSendEstimateWith,
@@ -63,6 +80,44 @@ export function adminBulkSend(input: AdminBulkSendInput) {
     input,
   );
 }
+
+/** 回の定義(読めない・誤りなら null。テンプレートの回は固定した版) */
+async function definitionOf(row: Parameters<typeof definitionOfDispatch>[1]) {
+  try {
+    const loaded = await definitionOfDispatch(sendMessageDeps, row);
+    return "error" in loaded ? null : loaded.resolved;
+  } catch {
+    return null;
+  }
+}
+
+/** 回の操作(取り消し・取り下げ・再送)の部品 */
+const operationsDeps: AdminOperationsDeps<Parameters<Parameters<typeof drizzleMessageOperationsStore.withLockedDispatch>[1]>[0]> = {
+  ...adminCheck,
+  store: drizzleMessageOperationsStore,
+  now: () => new Date(),
+  definitionOf,
+  sendResolved,
+  continueSending,
+  recordAudit,
+};
+
+/** 予約の取り消し */
+export const adminCancelScheduled = (dispatchId: string) => adminCancelScheduledWith(operationsDeps, dispatchId);
+/** 取り下げ */
+export const adminRetract = (dispatchId: string) => adminRetractWith(operationsDeps, dispatchId);
+/** 失敗の再送({ includeUnknown? }) */
+export const adminResendFailed = (dispatchId: string, input?: unknown) => adminResendFailedWith(operationsDeps, dispatchId, input);
+
+/** 回の読む口の部品(1 件は操作ができるかも返す) */
+const readDeps = {
+  ...adminCheck,
+  dispatchStore: drizzleAdminDispatchStore,
+  async operationInputs(row: MessageDispatch) {
+    const [resolved, counts] = await Promise.all([definitionOf(row), drizzleMessageOperationsStore.countFailed(null, row.id)]);
+    return { policy: policyOf(resolved, row), counts };
+  },
+};
 
 /** 管理の送信の部品 */
 const sendDeps: AdminSendDeps = {
@@ -116,17 +171,17 @@ export const adminSendOptions = () => adminSendOptionsWith(sendDeps);
 
 /** 回の一覧 */
 export function listDispatches(query?: ListDispatchesQuery) {
-  return listDispatchesWith({ ...adminCheck, dispatchStore: drizzleAdminDispatchStore }, query);
+  return listDispatchesWith(readDeps, query);
 }
 
 /** 回 1 件 */
 export function findDispatch(id: string) {
-  return findDispatchWith({ ...adminCheck, dispatchStore: drizzleAdminDispatchStore }, id);
+  return findDispatchWith(readDeps, id);
 }
 
 /** 回の配達 */
 export function listDeliveries(dispatchId: string, query?: ListDeliveriesQuery) {
-  return listDeliveriesWith({ ...adminCheck, dispatchStore: drizzleAdminDispatchStore }, dispatchId, query);
+  return listDeliveriesWith(readDeps, dispatchId, query);
 }
 
 /** 管理の「続きを送る」 */
@@ -138,6 +193,15 @@ export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulk
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
 export type { AdminBulkSendInput, AdminBulkSendResult } from "./bulkSend";
 export { ADMIN_SEND_MAX_USERS, assertAdminSendKind } from "./send";
+export { AdminResendInputSchema } from "./operations";
+export type {
+  AdminCancelResult,
+  AdminResendResult,
+  AdminRetractResult,
+  DispatchOperationFlag,
+  DispatchOperationFlags,
+  DispatchOperationReason,
+} from "./operations";
 export type {
   AdminSendEstimateInput,
   AdminSendInput,

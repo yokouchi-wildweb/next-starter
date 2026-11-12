@@ -16,6 +16,7 @@ import { assertAdminActor } from "./assertAdmin";
 import { adminBulkSend, type AdminBulkSendDeps } from "./bulkSend";
 import { adminContinueSending } from "./continueSending";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary } from "./dispatchDto";
+import { operationFlags } from "./operations";
 import { decodeCursor, encodeCursor, findDispatch, listDeliveries, listDispatches, type AdminDispatchStore } from "./readDispatches";
 import type { MessageBulkSendTarget } from "./types";
 
@@ -194,12 +195,18 @@ const deliveryRow = (over: Partial<MessageDelivery> = {}): MessageDelivery =>
     ...over,
   }) as MessageDelivery;
 
+const FLAGS = operationFlags({ status: "completed", expand_cursor: null, retracted_at: null, record: "meta", vars: null }, null, {
+  failed: 0,
+  unknown: 0,
+});
+
 test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回は段に依らず rendered", () => {
-  assert.equal(toDispatchDetail(dispatchRow()).body, null);
-  assert.equal(toDispatchDetail(dispatchRow()).vars, null);
-  assert.deepEqual(toDispatchDetail(dispatchRow({ record: "vars" })).body, { email: { subject: "件名" } });
+  assert.equal(toDispatchDetail(dispatchRow(), FLAGS).body, null);
+  assert.equal(toDispatchDetail(dispatchRow(), FLAGS).vars, null);
+  assert.deepEqual(toDispatchDetail(dispatchRow({ record: "vars" }), FLAGS).body, { email: { subject: "件名" } });
   const oldSend = toDispatchDetail(
     dispatchRow({ message_key: null, record: null, headings: { email: "旧件名" }, rendered: { email: { subject: "旧件名", paragraphs: ["旧本文"] } } }),
+    FLAGS,
   );
   assert.deepEqual(oldSend.headings, { email: "旧件名" });
   assert.deepEqual(oldSend.body, { email: { subject: "旧件名", paragraphs: ["旧本文"] } });
@@ -237,7 +244,8 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
       return [deliveryRow()];
     },
   };
-  const deps = { ...check(ctx("admin1")), dispatchStore: store };
+  const operationInputs = async () => ({ policy: null, counts: { failed: 0, unknown: 0 } });
+  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs };
   const first = await listDispatches(deps, { limit: "2", kind: "marketing", channel: "email" } as never);
   assert.deepEqual(first.items.map((item) => item.id), ["d3", "d2"]);
   assert.ok(first.nextCursor);
@@ -251,7 +259,8 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   assert.equal(deliveries.nextCursor, null);
   await assert.rejects(findDispatch(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   await assert.rejects(listDeliveries(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
-  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store }));
+  assert.equal((await findDispatch(deps, "d1")).operations.retract.allowed, true);
+  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs }));
 });
 
 test("続きを送る: 進めて監査 1 行、管理者でなければ 403", async () => {

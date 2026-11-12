@@ -55,6 +55,8 @@ export const sendMessageToMany = sender.sendMessageToMany;
 export const sendTemplate = sender.sendTemplate;
 export const previewMessage = sender.previewMessage;
 export const estimateRecipients = sender.estimateRecipients;
+export const sendResolved = sender.sendResolved;
+export { definitionOfDispatch } from "./dispatchDefinition";
 
 export { createMessageSender, ESTIMATE_CAP, type MessagePreview, type MessageSender, type RecipientEstimate } from "./sender";
 export { MessageIdempotencyConflict } from "./errors";

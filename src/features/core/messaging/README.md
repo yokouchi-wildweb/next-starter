@@ -336,6 +336,19 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 見た目は前の管理者のお知らせのメールと同じ（`views/adminMessage.tsx` → `.default.tsx`、部品 `messages/parts/AnnouncementMailView.tsx`）。段落の位置の約束: `paragraphs` [0]「… からのお知らせ」（ロゴの下）→ [1]「… 様」→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。fork は `adminMessage.replace.tsx` で管理者の連絡の見た目をまとめて替える
 - 種別の既定は marketing（種類 marketing、受信者の好みに従う）。選んだ利用者宛て（一括送信は常にそう）に限り、要求で `kind: "transactional"` を明示すると好みで止めずに送る（定義の写しの kind だけを替える。種類は marketing のまま）
 
+### 回の操作 `/api/admin/messaging/dispatches/[id]/{cancel, retract, resend}`（門 `messagingDispatches`）
+
+D39・D42。service: `services/server/admin/operations.ts`（`messagingService.adminCancelScheduled` / `adminRetract` / `adminResendFailed`。service でも管理者を確かめる）。どの操作も回の行を `FOR UPDATE` で持った 1 つの取引（`admin/operationsStore.ts`）。できない操作は 409 と理由の符号（DomainError の `code`）
+
+- `POST /cancel`（予約の取り消し）: 予約（`scheduled`）でまだ展開していない回だけ `cancelled`。他は 409（`not_scheduled` / `already_started`）。監査 `messaging.dispatch.cancelled`
+- `POST /retract`（取り下げ）: 回のお知らせの行（全員・ロール宛ての共有の 1 行と受信者ごとの行）を消し、未送信の配達（`queued`）を `canceled`、宛先ごとの送り直しの予定も止め、回の展開も止めて（`expand_cursor` を終わりに）`retracted_at` を書く。**回の status は変えない**。送ったメールは取り戻せない（受け取り箱だけ）。お知らせの画像は保持の掃除と同じく台帳から外す。2 回目は 409（`retracted`）、予約のままの回は 409（`scheduled_use_cancel` = 取り消しを使う）、取り消した回は 409。戻す操作は無い。監査 `messaging.dispatch.retracted`（消した行・止めた配達・外した画像の数）
+- `POST /resend` `{ includeUnknown? }`（失敗の再送）: required でない回の `failed` の配達だけ。`unknown`（送れたか分からない）は `includeUnknown: true` の時だけ含め、回の `metadata.possibleDuplicate` に二重の可能性を残す。履歴は `metadata.resends`
+  - 本文を残す連絡（record `vars` / `full`）: 同じ回のまま配達の行を `queued` に戻す（attempts 0、冪等の鍵 = 配達の id のまま）。回は `processing` に戻り、最初の 1 束を続きを送るで送り、残りは cron。lease 中（`sending`）の行は触らないので cron と再送が同じ宛先を二重に送らない
+  - record `meta` の連絡: 同じ回では送り直さず、回の vars（元の入力の写し、回に 1 組の値だけ）で失敗の宛先へ**新しい回**として送る（`metadata.resendOf`、テンプレートの回は同じ版）。送った配達の id は `metadata.resentDeliveryIds` に残して二度送らない。写しがもう無い（回を閉じた後）= 409（`no_input_copy`）
+  - 409: 秘密を差し込む連絡（`secret`、秘密の値は残さないので送り手のコードからもう一度送る）・required（`required`）・定義を読めない（`definition_missing`）・取り下げ / 取り消し済み・予約のまま（`scheduled`）・失敗の宛先が無い（`no_failed`）
+  - 監査 `messaging.dispatch.resent`（mode・failed / unknown の数・includeUnknown・新しい回の id）
+- 回の 1 件（`GET /dispatches/[id]`）の `operations`: `cancel` / `retract` / `resend` ごとに `{ allowed, reason }`（resend は `mode`・`failed`・`unknown` も）。画面のボタンと service は同じ判定（`operationFlags`）
+
 ### 管理の送信 `/api/admin/messaging/send/**`（門 `messagingBroadcast`）
 
 - 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/send` と API `/api/admin/messaging/send`）。閉の間 画面と API は 404。送る口と cron の予約の拾いは門に関わらず動く
