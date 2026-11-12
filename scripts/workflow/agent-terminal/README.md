@@ -21,13 +21,26 @@
 - 人ごとに切る: シェルの設定で `export AGENT_TERMINAL=none`(hook とスクリプトは Next の `.env*` を読まない)
 - 別の端末に対応するときは値を 1 つ足す(on/off ではなく端末の名前)
 
+## 値の約束(端末を持つ別の道具が渡す)
+
+エージェントの端末を別の道具(会話を束ねて動かす道具など)が持つとき、その道具はこの値をセッションの環境変数に入れる。鍵にどの道具の名前も入れない。呼ばれるたびに読む。
+
+| 鍵 | 値 | 意味 |
+|---|---|---|
+| `AGENT_TERMINAL` | `none` | 端末は別の道具が持つ。hook は記録も案内もせず、ここからは何も打たない(人が切る時と同じ値) |
+| `AGENT_COMPACT_CMD` | `<実行ファイル> [引数…]`(空白で区切る。引用符は使えない) | `compactSelf` の頼み先。残すことを env `AGENT_COMPACT_FOCUS` に入れて呼ぶ。出力はそのままエージェントに見せる。exit 0 以外 = 渡せなかった |
+
+- 値が無い = 単体(`AGENT_TERMINAL` は default.conf、頼み先なし)
+- `AGENT_COMPACT_CMD` は `AGENT_TERMINAL` と独立に効く(tmux の中でも頼み先が先)
+- 古い形の値(切り替えで消す): 値を書く側がまだ上の値を書かない間だけ、`lib.mjs` の `legacyHandoff` 1 か所が古い環境変数を読み、同じ 2 つ(端末は別の道具が持つ・頼み先)に読み替える。ほかの場所は古い名前を持たない
+
 ## `pnpm workflow agent-terminal compactSelf "<残すこと>"`
 
 - 打てるとき(`AGENT_TERMINAL=tmux`・tmux の中・下の hook がこのペインで動いている): 裏に待つ役を残し「予約しました…ここで返答を終えてください」と出す。返答が終わると `/compact <残すこと>` が Enter 付きで入力される
-- チームの道具のタブ(環境変数 `TK_TEAM` / `TK_INSTANCE` / `TK_TAB` がそろう): 自分では打たない。`<TK_TEAM> compact <TK_INSTANCE> <TK_TAB>` を、残すことを env `TK_COMPACT_FOCUS` に入れて呼び、その出力をそのまま出す
-  - 打ち込むのはそのタブを動かすチームの道具だけ(道具の通知・合図の打ち込みとぶつからない)。統括のタブなら道具が残すことを focus ファイルに書き、返答の終わりに `/compact` を打つ。手下のタブは道具が断る(手下の圧縮は統括が決める)
-  - チームの道具は next-starter の仲間のリポと必ず一緒に使う追加の道具(`~/.team/_bin/README.md`)。どのタブでもエージェントが覚えるのはこのコマンド 1 つ
-  - 呼べない・渡し先の分からない古い形のタブ(`LOUNGE_ROLE` など): 代わりの 1 行を出す
+- 頼み先があるとき(`AGENT_COMPACT_CMD`、下の「値の約束」): 自分では打たない。そのコマンドを、残すことを env `AGENT_COMPACT_FOCUS` に入れて呼び、その出力をそのまま出す
+  - 打ち込むのは端末を持つ道具だけ(その道具の通知・合図の打ち込みとぶつからない)。断るかどうか・いつ打つかもその道具が決める
+  - 呼べない・失敗(exit 0 以外): 下の代わりの 1 行を出す
+- 端末は別の道具が持つ(`AGENT_TERMINAL=none`)で頼み先が無い: 打たず、下の代わりの 1 行を出す
 - 打てないとき: 「次の 1 行をユーザーに打ってもらってください: /compact <残すこと>」と出す(exit 0。エラーにしない)
 - 残すこと = 圧縮の後に何も読み直さなくても要ること(作業中のファイルのパス、未完了の手順など)を 1〜3 行。改行は空白に直す
 - 省略語 coffee-break(`.claude/rules/shortcuts.md`)はこのコマンドを使う
@@ -41,7 +54,7 @@
 - 記録するもの(ペインごと): 今そのペインにいる会話の id、返答の始まりと終わりの時刻、圧縮の起こり方(手で打った / 自動)
 - 手で打った圧縮の後(SessionStart の source が compact で、直前の PreCompact が manual)だけ、続きの待つ役を残す。返答の途中で起きる自動の圧縮はそのまま続くので打たない
 - 標準出力に出すのは、`AGENT_TERMINAL=tmux` で tmux の中のときの SessionStart(どの source でも。圧縮の後も入れ直す)の案内 `AGENT_TERMINAL.tmux.md` だけ。ほかの hook・ほかの場合は何も出さない(UserPromptSubmit / SessionStart の出力は文脈に入るため)。標準エラーにも出さず、失敗しても黙って exit 0
-- 何もしないとき: `AGENT_TERMINAL` が `tmux` でない / tmux の外 / 別の道具が動かすタブ(手元のチームツールのタブ: 環境変数 `TK_TEAM` など。圧縮や打ち込みはそちらの仕組みが受け持つ)
+- 何もしないとき: `AGENT_TERMINAL` が `tmux` でない(`none` = 端末は別の道具が持つ・人が切った)/ tmux の外 / 古い形の値(下)
 
 ## 案内のファイル `AGENT_TERMINAL.<値>.md`
 
@@ -63,4 +76,4 @@
 
 ## テスト
 
-`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の 3 つの道、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)
+`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の道(頼み先・失敗・古い形の値・待つ役・代わりの 1 行)、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)

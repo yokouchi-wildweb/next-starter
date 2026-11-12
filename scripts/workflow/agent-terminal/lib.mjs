@@ -42,12 +42,38 @@ export function readAgentTerminal(env = process.env, file = DEFAULT_FILE) {
   return TERMINALS.includes(value) ? value : "none";
 }
 
+/** 圧縮の頼み先のコマンド(空白で区切った実行ファイルと引数)と、残すことを渡す環境変数 */
+export const COMPACT_CMD_ENV = "AGENT_COMPACT_CMD";
+export const COMPACT_FOCUS_ENV = "AGENT_COMPACT_FOCUS";
+
 /**
- * 別の統括が動かしているタブ(手元のチームツールのタブ)。圧縮も打ち込みもそちらの仕組みが受け持つので、ここでは何もしない。
- * チームツールはタブの環境変数でそれと分かる(TK_TEAM、ラウンジは LOUNGE_ROLE、古い形は <TEAM>_ROLE)
+ * 圧縮の頼み先(AGENT_COMPACT_CMD)。{ cmd, args, env: <渡す環境変数の追加> } か null
+ * @returns {{ cmd: string, args: string[], env: Record<string, string> } | null}
+ */
+export function compactHandoff(env = process.env, focus = "") {
+  const words = (env[COMPACT_CMD_ENV] ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length > 0) return { cmd: words[0], args: words.slice(1), env: { [COMPACT_FOCUS_ENV]: focus } };
+  return legacyHandoff(env, focus).compact;
+}
+
+/**
+ * 古い形の値(切り替えで消す)。値を書く側がまだ一般の値(AGENT_TERMINAL=none・AGENT_COMPACT_CMD)を書かない間だけ、
+ * その古い環境変数を読む。古い名前はこの関数の中だけに置く。
+ * driven = 端末は別の道具が持つ / compact = 古い形の頼み先(そろう時だけ)
+ * @returns {{ driven: boolean, compact: { cmd: string, args: string[], env: Record<string, string> } | null }}
+ */
+export function legacyHandoff(env = process.env, focus = "") {
+  const driven = ["TK_TEAM", "LOUNGE_ROLE", "GUILD_ROLE", "FLEET_ROLE", "COUNCIL_ROLE"].some((k) => (env[k] ?? "") !== "");
+  const [tool, instance, tab] = ["TK_TEAM", "TK_INSTANCE", "TK_TAB"].map((k) => (env[k] ?? "").trim());
+  const compact = tool && instance && tab ? { cmd: tool, args: ["compact", instance, tab], env: { TK_COMPACT_FOCUS: focus } } : null;
+  return { driven, compact };
+}
+
+/**
+ * 端末は別の道具が持つ(AGENT_TERMINAL=none、または古い形の値)。圧縮も打ち込みもそちらが受け持つので、ここでは何もしない
  */
 export function isDrivenByAnotherTool(env = process.env) {
-  return ["TK_TEAM", "LOUNGE_ROLE", "GUILD_ROLE", "FLEET_ROLE", "COUNCIL_ROLE"].some((k) => (env[k] ?? "") !== "");
+  return readAgentTerminal(env) === "none" || legacyHandoff(env).driven;
 }
 
 /** 端末ごとの案内(SessionStart で文脈に入れる)。値ごとに 1 ファイル、none には無い */

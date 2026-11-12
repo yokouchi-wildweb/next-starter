@@ -483,3 +483,4 @@
 - id:20261112-104620-messaging-overrides | severity:action-required | checkpoint:messaging-overrides
 - id:20261112-114709-messaging-templates | severity:info | checkpoint:messaging-templates
 - id:20261112-122606-devcheck-grant | severity:info | checkpoint:devcheck-grant
+- id:20261112-124043-agent-terminal-values | severity:info | checkpoint:agent-terminal-values
