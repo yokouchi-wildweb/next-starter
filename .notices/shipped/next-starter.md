@@ -489,3 +489,4 @@
 - id:20261112-193931-messaging-subscribers | severity:action-required | checkpoint:messaging-subscribers
 - id:20261112-202759-messaging-throttle | severity:action-required | checkpoint:messaging-throttle
 - id:20261112-224615-messaging-analytics | severity:action-required | checkpoint:messaging-analytics
+- id:20261112-233616-messaging-scaffold | severity:action-required | checkpoint:messaging-scaffold

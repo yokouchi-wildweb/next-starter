@@ -50,8 +50,11 @@ export type MessageDefinition<
 > = {
   key: MessageKey;
   kind: MessageKind;
-  /** 種類(配信停止の好みの表の行。例 "account"・"news") */
-  category: string;
+  /**
+   * 種類(配信停止の好みの表の行) = categories の受け口の鍵(上流 marketing・activity と fork の項目)。
+   * marketing・activity は必須、取引(transactional)は省ける(好みを見ない)。受け口に無い鍵は検査で落ちる
+   */
+  category?: string;
   /** 呼び手が渡す値 */
   vars: Vars;
   /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditable・throttle を付けられない */

@@ -13,7 +13,6 @@ import { defineMessage } from "@/lib/messaging";
 export const message = defineMessage({
   key: "wallet.expiringNotice",
   kind: "transactional",
-  category: "wallet",
   vars: z.object({
     /** 通貨名(currency の label) */
     currencyLabel: z.string(),

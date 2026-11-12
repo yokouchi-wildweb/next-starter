@@ -45,5 +45,5 @@ export async function definitionOfDispatch(
   const entry = dispatch.message_key ? deps.registry[dispatch.message_key] : undefined;
   if (!entry) return { error: "definition_missing" };
   const { message } = await entry.definition();
-  return { resolved: await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides) };
+  return { resolved: await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides, deps.categories) };
 }

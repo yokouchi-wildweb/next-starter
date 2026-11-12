@@ -10,7 +10,6 @@ import { defineMessage } from "@/lib/messaging";
 export const message = defineMessage({
   key: "user.registrationComplete",
   kind: "transactional",
-  category: "account",
   vars: z.object({
     /** 表示名(無ければ空) */
     displayName: z.string(),

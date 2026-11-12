@@ -3,6 +3,7 @@
 // 連絡の定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。
 // - 正しい定義が通る / 止める物(required の守り・欄・adminEditable・{{鍵}}・throttle・鍵の形)が止まる
 // - 上書きを重ねた結果も同じ関数で検査する / 型の絞りは @ts-expect-error で固定
+// - category は categories を渡した時だけ受け口と照らす(取引は省ける)
 // 実行: pnpm test src/lib/messaging/definition.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -177,6 +178,23 @@ test("throttle の検査と鍵の形", () => {
     "invalid_throttle",
     "invalid_throttle",
   ]);
+});
+
+test("category の検査(categories を渡した時だけ): 受け口の鍵か、取引だけ省ける。上書きの category も照らす", () => {
+  const codes = (definition: Parameters<typeof validateMessageDefinition>[0], override?: MessageOverride) =>
+    validateMessageDefinition(definition, { categories: ["marketing", "activity"], ...(override ? { override } : {}) }).map((p) => p.code);
+  const { category: _omit, ...withoutCategory } = verification;
+  void _omit;
+  // 取引は省ける・鍵があれば受け口の鍵に限る
+  assert.deepEqual(codes(withoutCategory), []);
+  assert.deepEqual(codes(verification), ["unknown_category"]);
+  assert.deepEqual(codes({ ...withoutCategory, kind: "marketing", required: false }), ["missing_category"]);
+  assert.deepEqual(codes({ ...verification, kind: "marketing", required: false, category: "marketing" }), []);
+  // 上書きの category も同じ
+  assert.deepEqual(codes(withoutCategory, { category: "news" }), ["unknown_category"]);
+  assert.deepEqual(codes(withoutCategory, { category: "activity" }), []);
+  // 渡さなければ照らさない(今までどおり)
+  assert.deepEqual(validateMessageDefinition(verification).map((p) => p.code), []);
 });
 
 test("fork の経路を足した束(createDefineMessage と channels)", () => {

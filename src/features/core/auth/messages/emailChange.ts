@@ -10,7 +10,6 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 export const message = defineMessage({
   key: "auth.emailChange",
   kind: "transactional",
-  category: "account",
   required: true,
   record: "meta",
   vars: z.object({

@@ -144,7 +144,8 @@ export type RecipientEstimate = { count: number; capped: boolean; fixedAtSend: t
 export type MessagePreview = {
   messageKey: string;
   kind: string;
-  category: string;
+  /** 種類(取引の連絡は無い = null) */
+  category: string | null;
   /** テンプレートなら今の公開版(送る時に固定する版) */
   template: { id: string; version: number } | null;
   channels: { key: string; label: string; fields: unknown; html?: string; text?: string }[];
@@ -152,7 +153,7 @@ export type MessagePreview = {
 
 /** 停止の確かめに要る連絡の性質 */
 export function stopContextOf(resolved: AnyResolvedMessageDefinition): StopContext {
-  return { kind: resolved.kind, required: Boolean(resolved.required), category: resolved.category };
+  return { kind: resolved.kind, required: Boolean(resolved.required), category: resolved.category ?? null };
 }
 
 export function createMessageSender(deps: MessageSendDeps) {
@@ -173,7 +174,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     checkSchedule(input.scheduledAt);
     const resolved =
       options.resolved ??
-      (await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides));
+      (await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides, deps.categories));
     if (!resolved.enabled) return null;
     const channels = resolveChannels(resolved, input.channels, deps.channels);
     const vars = parseVars(resolved, input.vars);
@@ -517,7 +518,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       let resolved: AnyResolvedMessageDefinition;
       let template: { id: string; version: number } | null = null;
       if ("definition" in source) {
-        resolved = await resolveDefinition(source.definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
+        resolved = await resolveDefinition(source.definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides, deps.categories);
       } else {
         const version = await currentTemplateVersion(source.templateId);
         resolved = resolveTemplateDefinition(version, source.kind ?? "marketing", deps.channels, deps.enrichers);
@@ -536,7 +537,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         const drawn = channel?.preview ? await channel.preview({ messageKey: resolved.key, content: fields, category }) : {};
         items.push({ key, label: channel?.label ?? key, fields, ...drawn });
       }
-      return { messageKey: resolved.key, kind: resolved.kind, category: resolved.category, template, channels: items };
+      return { messageKey: resolved.key, kind: resolved.kind, category: resolved.category ?? null, template, channels: items };
     },
 
     /**

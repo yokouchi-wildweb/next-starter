@@ -44,7 +44,9 @@ export type MessageDefinitionProblemCode =
   | "unknown_admin_editable"
   | "unknown_variable"
   | "invalid_throttle"
-  | "override_forbidden_key";
+  | "override_forbidden_key"
+  | "unknown_category"
+  | "missing_category";
 
 export type MessageDefinitionProblem = {
   code: MessageDefinitionProblemCode;
@@ -107,13 +109,19 @@ function schemaKeys(schema: z.ZodTypeAny): string[] | null {
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
  * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は S6 の生成の一覧が渡す)
  * - variableKeys: vars と共通の文脈の他に {{鍵}} で許す鍵(送る口が当たる enrichers の provides の鍵を渡す)
+ * - categories: categories の受け口の鍵。渡すと category を照らす(あれば鍵のどれか・無いのは取引だけ)。渡さなければ照らさない
  */
 export function validateMessageDefinition<
   Vars extends z.AnyZodObject,
   C extends ChannelFieldSchemas,
 >(
   definition: MessageDefinition<Vars, C>,
-  options: { override?: MessageOverride<C>; channels?: C; variableKeys?: readonly string[] } = {},
+  options: {
+    override?: MessageOverride<C>;
+    channels?: C;
+    variableKeys?: readonly string[];
+    categories?: readonly string[];
+  } = {},
 ): MessageDefinitionProblem[] {
   const channels = (options.channels ?? UPSTREAM_CHANNEL_FIELDS) as ChannelFieldSchemas;
   const problems: MessageDefinitionProblem[] = [];
@@ -137,6 +145,21 @@ export function validateMessageDefinition<
   }
 
   const resolved = applyMessageOverride(definition, options.override);
+
+  if (options.categories) {
+    // 配信停止の好みと停止の単位が黙って効かなくなるのを防ぐ(D35)
+    const category = resolved.category;
+    if (category === undefined || category === "") {
+      if (resolved.kind !== "transactional") {
+        add("missing_category", `${label}: ${resolved.kind} の連絡は category(categories の受け口の鍵)が要る`);
+      }
+    } else if (!options.categories.includes(category)) {
+      add(
+        "unknown_category",
+        `${label}: category ${category} は categories の受け口に無い(${options.categories.join(" / ") || "項目なし"})。項目を足すか、取引の連絡なら外す`,
+      );
+    }
+  }
 
   if (definition.required) {
     if (!resolved.defaultChannels.includes("email" as never)) {
