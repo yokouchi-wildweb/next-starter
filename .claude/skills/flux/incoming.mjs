@@ -15,7 +15,7 @@
 //   区切り = 行の checkpoint がラベルか欄なし。ただし先端のどれかの行の skip_checkpoint: <id> に名指された物は - とみなす
 //   区間 0 = 区切り点が HEAD の祖先。以降は区切り点の履歴順に、区切りの直後で閉じる。最後の区切り以降 + 残りの commit = 末尾区間
 //   offLine = 前の位置(HEAD と先端の merge-base / 前の区間の merge 先)が merge 先の祖先でない区間(脇の commit。mainline = 本線でそれを含む最初の commit)
-//   exit 0 = 出した | 2 = 止まる(浅い clone・行があるのに足した commit が無い・区切り点が先端の祖先でない・fork_id が無い)| 3 = 先端に索引が無い(今の手順で進める)
+//   exit 0 = 出した | 2 = 止まる(浅い clone・行があるのに足した commit が無い・区切り点が先端の祖先でない・repo_id が無い)| 3 = 先端に索引が無い(今の手順で進める)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -133,12 +133,25 @@ function addCommits(g, ref) {
   return out;
 }
 
-function forkIdOf(text) {
-  const lines = (text ?? "").split("\n").filter((l) => /^fork_id:/.test(l));
+// 1 つの版の名前: repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:(forkIds.mjs の forkIdOfTexts と同じ規則。
+// このファイルは自己完結なので写しを持つ)
+const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+function forkIdOf(repoJson, projectMd) {
+  if (repoJson !== null && repoJson !== undefined) {
+    try {
+      const v = JSON.parse(repoJson)?.repo_id;
+      return typeof v === "string" && NAME_RE.test(v) ? v : null;
+    } catch {
+      return null;
+    }
+  }
+  const lines = (projectMd ?? "").split("\n").filter((l) => /^fork_id:/.test(l));
   if (lines.length !== 1) return null;
   const v = lines[0].slice("fork_id:".length).trim().split(/\s+/)[0];
-  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v ?? "") ? v : null;
+  return NAME_RE.test(v ?? "") ? v : null;
 }
+
+const readOrNull = (file) => (existsSync(file) ? readFileSync(file, "utf8") : null);
 
 function remoteUrl(g, remote) {
   return remote ? normalizeUrl(g.tryGit(["remote", "get-url", remote]) ?? "") : "";
@@ -151,10 +164,10 @@ export function incoming(repo, { upstream, from = "index" }) {
   if (g.git(["rev-parse", "--is-shallow-repository"]).trim() === "true") throw new Stop("浅い clone: 履歴を辿れない(git fetch --unshallow <upstream> の後にもう一度)");
   const tip = g.tryGit(["rev-parse", "--verify", "-q", `${upstream}^{commit}`])?.trim();
   if (!tip) throw new Stop(`${upstream} が無い(fetch の後にもう一度)`);
-  const projectPath = join(repo, ".claude/rules/project.md");
-  const own = forkIdOf(existsSync(projectPath) ? readFileSync(projectPath, "utf8") : "");
-  if (!own) throw new Stop(".claude/rules/project.md の fork_id: が読めない");
-  const mid = forkIdOf(g.tryGit(["show", `${tip}:.claude/rules/project.md`]));
+  const own = forkIdOf(readOrNull(join(repo, "repo.json")), readOrNull(join(repo, ".claude/rules/project.md")));
+  if (!own) throw new Stop("repo.json の repo_id が読めない(古い形なら .claude/rules/project.md の fork_id:)");
+  // 上流の先端の版の名前(repo.json を先に、無ければ古い形の project.md)
+  const mid = forkIdOf(g.tryGit(["show", `${tip}:repo.json`]), g.tryGit(["show", `${tip}:.claude/rules/project.md`]));
   const midIsTier = Boolean(mid && g.tryGit(["cat-file", "-e", `${tip}:.notices/applied/${mid}.md`]) !== null);
   const warnings = [];
 

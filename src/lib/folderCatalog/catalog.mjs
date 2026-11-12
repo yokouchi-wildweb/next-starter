@@ -7,7 +7,7 @@
 //   ## next-starter
 //   - src/lib/ai — 汎用 AI エージェント基盤
 //
-// 所有者 ID = 各リポの fork の名前(.claude/rules/project.md の fork_id:、読み手は forkOwnership/forkIds.mjs。D27)。
+// 所有者 ID = 各リポの fork の名前(repo.json の repo_id、読み手は forkOwnership/forkIds.mjs。D27)。
 // origin の URL からは導かない。
 // テスト(pnpm test src/lib/folderCatalog/catalog.test.mjs)と eslint.config.mjs(所有に応じた error / warn の振り分け)から使う。
 // Node 組み込みだけで動くこと(eslint 設定の読み込み時に実行される)。
@@ -37,7 +37,7 @@ export function parseCatalog(text) {
     if (section) {
       const owner = section[1];
       if (!OWNER_ID.test(owner)) {
-        errors.push(`${lineNo} 行目: 節の見出し "${owner}" が fork の名前の形(小文字・数字・ハイフン。project.md の fork_id:)ではありません`);
+        errors.push(`${lineNo} 行目: 節の見出し "${owner}" が fork の名前の形(小文字・数字・ハイフン。repo.json の repo_id)ではありません`);
       }
       current = { owner, line: lineNo, entries: [] };
       sections.push(current);

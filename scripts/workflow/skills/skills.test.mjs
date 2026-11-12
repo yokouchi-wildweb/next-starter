@@ -86,7 +86,7 @@ function forkRepo(t, { ledger }) {
   const root = mkdtempSync(join(tmpdir(), "skills-check-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, ".claude/rules"), { recursive: true });
-  writeFileSync(join(root, ".claude/rules/project.md"), "# project\nfork_id: my-fork\ndownstream: none\n");
+  writeFileSync(join(root, "repo.json"), '{"repo_id": "my-fork", "tier": "leaf"}\n');
   if (ledger) {
     mkdirSync(join(root, ".notices/applied"), { recursive: true });
     writeFileSync(join(root, ".notices/applied/my-fork.md"), ledger);

@@ -3,7 +3,7 @@ where: a linked worktree on the caravan's own branch | never the main checkout, 
 words: load = put an order's commits on the caravan | depart = ship the caravan to main
 
 ## CONFLICT RULES (load and depart alike)
-- `.notices/shipped/<fork_id>.md` (append-only index) → keep both sides' lines, the line already on the caravan first | never edit a line's text
+- `.notices/shipped/<repo_id>.md` (append-only index) → keep both sides' lines, the line already on the caravan first | never edit a line's text
 - generated files (`src/app/route-map.jsonl`, `src/registry/**` written by `pnpm generate registry`, `src/registry/district-map.jsonl`, `extensions/` folders, `vercel.json` crons) → take either side, then rerun its generator (`pnpm generate routes | registry | district-map | extensions | cron`) and add the result
 - `pnpm-lock.yaml` → take the caravan's side, then `pnpm install` and add the lockfile it writes
 - anything else → read both orders (need / why) and both notices, resolve it so both intents hold | needs a judgment → abort (`git cherry-pick --abort` / `git rebase --abort`); STOP: the question, the options and your recommendation

@@ -314,6 +314,7 @@ edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker 
 # 規則(PER_PROJECT)
 edit .claude/rules/project.md  # CLAUDE.md PER_PROJECT
 edit .claude/rules/behavior.md  # CLAUDE.md PER_PROJECT
+edit repo.json  # リポの名前と段・方針(forkIds.mjs、各リポの版)
 marker .claude/rules/shortcuts.md  # 印より下が fork
 marker .claude/rules/term-aliases.md  # 印より下が fork
 append .claude/rules/lineage.md  # 中間層の節を末尾に足すだけ(lineage.md の前置き)

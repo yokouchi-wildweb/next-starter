@@ -1,6 +1,6 @@
 // scripts/workflow/notices/safePoint.mjs
 // セーフポイント = 全部の検査(pnpm test 全体・pnpm check・pnpm typecheck・pnpm lint・pnpm build)が通って push された先端に付ける
-// 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの .claude/rules/project.md の fork_id:、n = その fork_id と日の次の空き番号)。
+// 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの repo.json の repo_id、n = その fork_id と日の次の空き番号)。
 // 名前に fork_id が入るので親子の tag は重ならず、見るのは直接の親の `safe/<親の fork_id>/*` だけ。
 // 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /ship --safe(check → push → tag)、/flux の区間の報告(where)、
 // 本番のデプロイの止め(deployVerdict。scripts/operations/deploy/lib.ts の guardSafePoint)。
@@ -27,7 +27,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { lastUpstreamSha, resolveParentBranch, resolveParentRemote } from "../../../src/lib/forkOwnership/check.mjs";
 
 export const SAFE_NAME = /^safe\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(\d{8})-([1-9]\d*)$/;
@@ -87,14 +87,15 @@ export function readSafeTags(repo, remote, forkId) {
   return parseSafeTags(git(repo, ["for-each-ref", "refs/tags/safe/", "--format=%(refname:strip=2) %(*objectname) %(objectname)"]), forkId);
 }
 
-/** 直接の親の fork_id(<remote>/<既定のブランチ> の .claude/rules/project.md の fork_id:)。読めなければ throw */
+/** 直接の親の名前(<remote>/<既定のブランチ> の repo.json の repo_id、古い形は project.md の fork_id:)。読めなければ throw */
 export function parentForkId(repo, remote) {
   const branch = resolveParentBranch(repo, remote);
   if (!branch) throw new Error(`${remote} の既定のブランチが分からない`);
-  const text = tryGit(repo, ["show", `${remote}/${branch}:${PROJECT_RULES_FILE}`]);
-  if (text === null) throw new Error(`${remote}/${branch} に project.md が無い`);
-  const { forkId, error } = parseForkIdDeclaration(text);
-  if (!forkId) throw new Error(`親の fork_id が読めない: ${error}`);
+  const { forkId, error } = forkIdOfTexts({
+    repoJson: tryGit(repo, ["show", `${remote}/${branch}:${REPO_JSON_FILE}`]),
+    projectMd: tryGit(repo, ["show", `${remote}/${branch}:${PROJECT_RULES_FILE}`]),
+  });
+  if (!forkId) throw new Error(`親の名前が読めない(${remote}/${branch}): ${error}`);
   return forkId;
 }
 
@@ -248,7 +249,7 @@ function parseDate(value) {
 function runTag(repo, argv, log) {
   const identity = readForkIdentity(repo);
   if (!identity.own || identity.errors.length > 0) {
-    log(`safe-point: fork_id が読めない: ${identity.errors.join("、")}`);
+    log(`safe-point: repo_id が読めない: ${identity.errors.join("、")}`);
     return 2;
   }
   const forkId = identity.own;
@@ -319,7 +320,7 @@ function runWhere(repo, argv, log) {
     let at = option(argv, "at");
     if (at === null) {
       const own = readForkIdentity(repo).own;
-      if (!own) throw new Error("fork_id が読めない");
+      if (!own) throw new Error("repo_id が読めない");
       const ledgerPath = join(repo, ".notices/applied", `${own}.md`);
       at = existsSync(ledgerPath) ? lastUpstreamSha(readFileSync(ledgerPath, "utf8")) : null;
       if (!at) throw new Error(`台帳 .notices/applied/${own}.md に upstream:<sha> が無い`);
@@ -376,7 +377,7 @@ const positive = (argv, name, fallback) => {
 function runStatus(repo, argv, log) {
   try {
     const identity = readForkIdentity(repo);
-    if (!identity.own || identity.errors.length > 0) throw new Error(`fork_id が読めない: ${identity.errors.join("、")}`);
+    if (!identity.own || identity.errors.length > 0) throw new Error(`repo_id が読めない: ${identity.errors.join("、")}`);
     const remote = option(argv, "remote") ?? "origin";
     const perCommits = positive(argv, "commits", PROPOSE_COMMITS);
     const perDays = positive(argv, "days", PROPOSE_DAYS);

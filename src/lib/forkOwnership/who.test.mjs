@@ -44,7 +44,8 @@ const actions = (result) => result.allowed.map((item) => item.action);
 const INTAKE = [
   "edit src/config/**  # 値",
   "append src/lib/CATALOG.md  # 目録",
-  "edit .claude/rules/project.md  # fork の名前の宣言",
+  "edit .claude/rules/project.md  # 概要",
+  "edit repo.json  # 名前と段",
   "add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え",
   "edit src/features/**/services/server/domainEntry.override.ts  # access の上書き",
   "generated src/registry/district-map.jsonl  # pnpm generate district-map",
@@ -60,7 +61,7 @@ function makeTier1() {
   mkdirSync(root);
   git(root, "init", "-q", "-b", "main");
   write(root, "src/lib/CATALOG.md", `# 目録\n\n## ${TIER1_ID}\n- src/lib/crud — CRUD\n`);
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${TIER1_ID}\n`);
+  write(root, "repo.json", `{\n  "repo_id": "${TIER1_ID}",\n  "tier": "root"\n}\n`);
   write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
   write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
   write(root, "src/config/ui.config.ts", "export const ui = 1;\n");
@@ -80,7 +81,7 @@ function makeFork(parent, forkId) {
   const root = join(tmp, `${forkId}-${(counter += 1)}`);
   git(tmp, "clone", "-q", parent, root);
   git(root, "remote", "rename", "origin", "upstream");
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${forkId}\n`);
+  write(root, "repo.json", `{\n  "repo_id": "${forkId}",\n  "tier": "middle"\n}\n`);
   write(root, `.notices/applied/${forkId}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
   commitAll(root, "fork start");
   return root;

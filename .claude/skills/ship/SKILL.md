@@ -10,9 +10,9 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
 - the user tells you to commit, push or ship (`コミットして`, `プッシュして`, `出荷して`) | no instruction → never use it (behavior.md: never commit without an instruction)
 - from `/inbox` step 4 (`対応完了`) | the argument `order:<id>` comes with it
 - from `/quest` (`--quick no-push order:<id>`: commit only) and its `caravan.md` departure (a plain ship of commits already made, `--safe` only when the human said so: COMMITTED RANGE below)
-- also in repos without downstream (leaf forks) | whether downstream exists = the one line `downstream: yes|none` of `.claude/rules/project.md` (only reader: `src/lib/forkOwnership/forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
+- also in repos without downstream (leaf forks) | whether downstream exists = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader: `src/lib/forkOwnership/forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
   - `none` → skip steps 3-5 (notice)
-  - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have the declaration added in the same section as `fork_id:` (`pnpm workflow ownership check` is unverified too)
+  - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have `tier` declared in `repo.json` (`pnpm workflow repo-json set tier <root|middle|leaf>`; `pnpm workflow ownership check` is unverified too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
 - which kind (pick it yourself when the caller gave none):
@@ -65,9 +65,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - behavior or permissions change silently
    - the rules / README of the changed area ask for a notice (conditions in CLAUDE.md, `.claude/rules/core/` or a colocated README saying `→ notice` / `ship .notices`; read those of the changed area to confirm)
    - a fix to something shipped earlier (step 4)
-   - you changed your own section of `.claude/rules/lineage.md` (`## <own fork_id>`): a change of rules that act downstream → always a notice
+   - you changed your own section of `.claude/rules/lineage.md` (`## <own repo_id>`): a change of rules that act downstream → always a notice
      - wording-only change = `severity: info` + `required_actions: none`
-     - deleting / renaming a `(default)` key, dropping `(default)`, or a contract change that needs downstream work → in `required_actions`, write how downstream repos that wrote an override (`overrides: <own fork_id>.<key> = …`) fix it (rewrite to the key's new name, delete the override, etc.; downstream `/flux` stops at a segment that touches an overridden key)
+     - deleting / renaming a `(default)` key, dropping `(default)`, or a contract change that needs downstream work → in `required_actions`, write how downstream repos that wrote an override (`overrides: <own repo_id>.<key> = …`) fix it (rewrite to the key's new name, delete the override, etc.; downstream `/flux` stops at a segment that touches an overridden key)
    - resolving an order from a downstream fork: the argument `order:<id>` is given and the order's sender is a repo other than this one (judged by `requester` of `node .claude/skills/order/mailbox.mjs`; the head of the order's `from:` is a repo origin URL different from this repo)
      - write `resolves: <id>` in the notice | even when no other notice is needed, ship a notice with `severity: info` + `required_actions: none` + `checkpoint:` (used to expire downstream temporary permits; `.notices/README.md` section `解決(resolves)`) | also for orders closed by rejecting or withdrawing
      - never tell forks to keep a temporary permit that cites the resolved id (it expires as expired-resolved when the fork takes the notice)
@@ -82,14 +82,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - together with the context (bug report, the order's need), a fix of a bug of an earlier shipment → a `fixes:` candidate | the origin has a notice → its id; none → `commit:<短 sha>`
      - even when this fix needs no fork follow-up, ship a notice to carry `fixes:` (`severity: info`, `required_actions: none`)
 5. **write the notice** (only when needed; write it out without asking first; NOTICE COMPOSITION below)
-   - then **add the index line**: `node scripts/workflow/notices/shippedIndex.mjs add .notices/<id>.md` (one line from the body at the end of your index `.notices/shipped/<fork_id>.md`; never by hand, never edit existing lines; `.notices/README.md` section `出荷索引と本文の読み方`)
+   - then **add the index line**: `node scripts/workflow/notices/shippedIndex.mjs add .notices/<id>.md` (one line from the body at the end of your index `.notices/shipped/<repo_id>.md`; never by hand, never edit existing lines; `.notices/README.md` section `出荷索引と本文の読み方`)
    - a repo without its own index yet but with its own notices already (a fork that shipped notices before the index existed) → first `node scripts/workflow/notices/shippedIndex.mjs backfill` (skips notices in the parent's index)
    - then pass step 2's `pnpm check notices` (includes the index check)
 6. **commit**:
    - put in only your own files (never sweep in other sessions' staging) | the notice goes in the same commit as the change itself:
      - pass to `git add` only paths that exist in the work tree (passing deleted / move-source paths stops with a pathspec error; stage deletions with `git rm` or include them in the commit pathspec next)
      - include deleted paths and directories in `git commit -- <paths>` (the commit pathspec picks up deletions)
-     - before committing, confirm with `git diff --cached --name-only` that only the range's files are in (with a notice, `.notices/shipped/<fork_id>.md` is in too)
+     - before committing, confirm with `git diff --cached --name-only` that only the range's files are in (with a notice, `.notices/shipped/<repo_id>.md` is in too)
    - message in the behavior.md form (subject `<area>: <summary>`, blank line, body = decision record) | with `order:<id>`, a line `order: <id>` after the body | the trailer the environment specifies at the end | `--quick` → a trailer line `Ship: quick` in that same last paragraph (read by `safePoint quickFiles`)
    - branch follows behavior.md and the team's policy (already on a feature branch → stay)
    - the change itself was committed already and only the notice was written later → make it the commit right after the change (no other notice commit in between) | not allowed with `hotfix` (change and notice always in the same commit; separate → undo and recombine)
@@ -98,7 +98,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
        - one commit, no lock / route-map, steps naming no later notice, no cherry-pick conflict, `pnpm typecheck`, `pnpm test scripts/structure/config/moduleLoad.test.mjs`, `pnpm check registry`, the prerequisite check
        - the index lines this commit added are dropped when putting it on; index-only conflicts do not count
      - it writes `pick:clean` or `pick:-` on **that notice's index line** (never in the body; humans never write or rewrite it; no line → it writes nothing and exits 2 = you forgot step 5's add)
-     - exit 0 / 1 (clean / -): put the written index in the same commit: `git commit --amend --no-edit -- .notices/shipped/<fork_id>.md` (only your own commit before push; `pick:` does not affect the judgment) → `pnpm check notices` | with `-` too, ship without stopping (the fork receives it by the current fixes behavior) | write the failed conditions in the report
+     - exit 0 / 1 (clean / -): put the written index in the same commit: `git commit --amend --no-edit -- .notices/shipped/<repo_id>.md` (only your own commit before push; `pick:` does not affect the judgment) → `pnpm check notices` | with `-` too, ship without stopping (the fork receives it by the current fixes behavior) | write the failed conditions in the report
      - exit 2 (cannot judge: origin not in history, dependencies cannot be installed): ship without the field (no field = same as `-`), report `pick 未確認: <理由>`
      - `未実行: <検査>` (the base tree has no script for it) → write in the report
    - with `hotfix`, after the commit, before push, **check that it can be picked** (`.notices/README.md` section `緊急修正(hotfix)`): pass `pnpm check notices` again
@@ -113,9 +113,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` and go on (push without a tag)
 7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason
    - then **tag the safe point** (`--safe` only, when step 6's `safePoint check` passed on this HEAD): `pnpm workflow notices safePoint tag`
-     - it confirms HEAD = the pushed `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default) and HEAD = the sha the check recorded, creates the annotated tag `safe/<own fork_id>/<YYYYMMDD>-<n>` (n = the next free number for that fork_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
+     - it confirms HEAD = the pushed `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default) and HEAD = the sha the check recorded, creates the annotated tag `safe/<own repo_id>/<YYYYMMDD>-<n>` (n = the next free number for that repo_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
      - exit 1 → no tag; write the reason in the report (the push stands; the next `--safe` ship tags its own tip)
-     - a middle tier (`downstream: yes`) tags its own repo the same way (same /ship, same tool, its own fork_id in the tag name)
+     - a middle tier (`tier` middle) tags its own repo the same way (same /ship, same tool, its own repo_id in the tag name)
 8. **report** (Japanese):
    - first line = downstream intake verdict (measured): `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen | no downstream → omit
@@ -165,7 +165,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. quests' `--quick no-push`, loaded by a caravan): their notices and index lines are in them
 - skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
 - keep:
-  - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` on the unpushed index line) → commit the index change alone: `git commit -m "notices: pick marks" -- .notices/shipped/<fork_id>.md`
+  - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` on the unpushed index line) → commit the index change alone: `git commit -m "notices: pick marks" -- .notices/shipped/<repo_id>.md`
   - a notice in the range → `pnpm check notices`
   - `--safe` → step 6's full checks on the tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
   - steps 7 and 8 (the report lists the commits shipped)
@@ -199,7 +199,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - never write `pick:` in the body (step 6's pick-check writes it on the index line) | no ` | ` inside values (the index line's separator; `shippedIndex.mjs add` stops)
    - **`uses:`**: list the migrations (`src/features/<domain>/scripts/migrations/`) and codemods (`.notices/<id>.<名前>.mjs`) required_actions run, and put them in the same commit | a notice with `uses:` makes `checkpoint:` a label (`-` not allowed) | `pnpm check notices` checks they exist and the checkpoint (`.notices/README.md` section `使う移行・codemod の欄`)
    - **`skip_checkpoint:`**: only when the `fixes:` origin's checkpoint does not work (the fork's checks fail there) and step 6's pick-check gives `-` → write the origin's id (each id must be in `fixes:`; the fix notice itself is a labeled checkpoint) | the origin has `uses:` → cannot be skipped
-     - added to the body after the pick-check → rebuild the pre-push line from the body: `node scripts/workflow/notices/shippedIndex.mjs refresh .notices/<id>.md` (keeps the line's `pick:`; refuses pushed lines; never by hand) → `git commit --amend --no-edit -- .notices/<id>.md .notices/shipped/<fork_id>.md` → `pnpm check notices` (`.notices/README.md` section `区切りを外す欄`)
+     - added to the body after the pick-check → rebuild the pre-push line from the body: `node scripts/workflow/notices/shippedIndex.mjs refresh .notices/<id>.md` (keeps the line's `pick:`; refuses pushed lines; never by hand) → `git commit --amend --no-edit -- .notices/<id>.md .notices/shipped/<repo_id>.md` → `pnpm check notices` (`.notices/README.md` section `区切りを外す欄`)
    - required_actions, verify and refs of a `fixes:` notice never name paths / scripts missing from the broken point's tree (tools added later etc.) (the fork takes it right after the broken point, so the pick-check's prerequisite check makes it `-`) | to mention later tools, write them in notes (the prerequisite check does not read notes)
    - required_actions of a `hotfix:` notice are written without assuming the changes in between or later notices (the fork applies it skipping them) | never include `pnpm-lock.yaml` or `src/app/route-map.jsonl` in the commit (contents differ per fork; `pnpm check notices` checks)
    - **required_actions = "concrete enough for downstream Claude to run without stopping after one approval"**

@@ -11,7 +11,7 @@ function notice(id, extra = []) {
   return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "date: x", "severity: info", ...extra, "change: c", "why: w", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
 }
 
-/** 小さなリポ(fork_id: up)。commit(files, msg) → sha */
+/** 小さなリポ(repo_id up)。commit(files, msg) → sha */
 function repo(t) {
   const dir = mkdtempSync(join(tmpdir(), "shipped-test-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -31,7 +31,7 @@ function repo(t) {
     g("commit", "-qm", msg);
     return g("rev-parse", "HEAD");
   };
-  commit({ ".claude/rules/project.md": "fork_id: up\n" }, "base");
+  commit({ "repo.json": '{"repo_id": "up", "tier": "root"}\n' }, "base");
   return { dir, g, put, commit };
 }
 
@@ -75,9 +75,9 @@ test("add: appends to the own fork's index, a second row for the same id is refu
   assert.equal(existsSync(join(r.dir, ".notices/shipped")) && execFileSync("ls", [join(r.dir, ".notices/shipped")], { encoding: "utf8" }).trim(), "up.md");
 });
 
-test("add: no fork_id → refused, nothing written", (t) => {
+test("add: no repo_id → refused, nothing written", (t) => {
   const r = repo(t);
-  r.put({ ".claude/rules/project.md": "# no id\n", ".notices/20990101-000001-a.md": notice("20990101-000001-a") });
+  r.put({ "repo.json": '{"tier": "leaf"}\n', ".notices/20990101-000001-a.md": notice("20990101-000001-a") });
   assert.equal(run(r.dir, ["add", ".notices/20990101-000001-a.md"], quiet), 2);
   assert.equal(existsSync(join(r.dir, ".notices/shipped")), false);
 });
@@ -174,7 +174,7 @@ test("append only, a tree behind the pushed ref: compared at merge-base(HEAD, re
   assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000002-b: push 済みの行が変わった・消えた/);
   // 分かれ目が求まらない(つながらない履歴)→ ref と比べる(強い側)
   r.g("checkout", "-q", "--orphan", "lone");
-  r.commit({ ".claude/rules/project.md": "fork_id: up\n", ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n` });
+  r.commit({ "repo.json": '{"repo_id": "up", "tier": "root"}\n', ".notices/shipped/up.md": `# SHIPPED up\n\n${A}\n` });
   assert.equal(appendOnlyBase(r.dir, pushed), pushed);
   assert.match(checkAll(r.dir, { ref: pushed }).problems.join("\n"), /000002-b: push 済みの行が変わった・消えた/);
   // push した版が分からない → 未確認(今までどおり)
@@ -296,7 +296,7 @@ function pickShaped(t) {
   g("fetch", "-q", "upstream");
   g("reset", "-q", "--hard", `${sha}~1`);
   g("remote", "add", "origin", "git@github.com:acme/child.git");
-  writeFileSync(join(fork, ".claude/rules/project.md"), "fork_id: child\n");
+  writeFileSync(join(fork, "repo.json"), '{"repo_id": "child", "tier": "leaf"}\n');
   g("add", "-A");
   g("commit", "-qm", "fork start");
   g("cherry-pick", "-x", sha);

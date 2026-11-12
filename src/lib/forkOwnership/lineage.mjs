@@ -142,7 +142,7 @@ export function checkLineageStructure({ parsed, ancestorsOldestFirst, own, downs
     }
   }
   if (downstream === "none" && parsed.sections.some((section) => section.name === own)) {
-    failures.push(`downstream: none なのに自分の節 ${own} がある(下流に渡す規則を持つなら downstream: yes)`);
+    failures.push(`tier leaf(下流なし)なのに自分の節 ${own} がある(下流に渡す規則を持つなら repo.json の tier を middle に)`);
   }
   return failures;
 }

@@ -22,7 +22,7 @@ export function readBaseFiles(root, base) {
     const { own } = readForkIdentity(root);
     const ledger = own ? join(root, ".notices/applied", `${own}.md`) : null;
     rev = ledger && existsSync(ledger) ? lastUpstreamSha(readFileSync(ledger, "utf8")) : null;
-    if (!rev) return { problem: "基準の版が決まらない(.claude/rules/project.md の fork_id: と台帳の upstream:<sha> を確かめるか --base <rev> を渡す)" };
+    if (!rev) return { problem: "基準の版が決まらない(repo.json の repo_id と台帳の upstream:<sha> を確かめるか --base <rev> を渡す)" };
   }
   try {
     const out = execFileSync("git", ["ls-tree", "-r", "--name-only", rev], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });

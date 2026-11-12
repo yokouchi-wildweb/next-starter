@@ -18,7 +18,7 @@ const PASS = `node -e "process.exit(0)"`;
 const FAIL = `node -e "process.exit(1)"`;
 const MARK = `node -e "require('fs').writeFileSync('ran.txt','1')"`;
 const DATE = "20261110";
-const TIER1_RULES = "# project\nfork_id: next-starter\ndownstream: yes\n";
+const TIER1_REPO = '{"repo_id": "next-starter", "tier": "root"}\n';
 
 const tmp = () => {
   const d = mkdtempSync(join(tmpdir(), "safe-point-"));
@@ -61,7 +61,7 @@ function tier1(count = 1) {
   git(dir, "remote", "add", "origin", origin);
   const shas = [];
   for (let i = 0; i < count; i++) {
-    shas.push(commit(dir, `c${i}`, i === 0 ? { ".claude/rules/project.md": TIER1_RULES, "src/lib/CATALOG.md": "# CATALOG\n\n## next-starter\n" } : {}));
+    shas.push(commit(dir, `c${i}`, i === 0 ? { "repo.json": TIER1_REPO, "src/lib/CATALOG.md": "# CATALOG\n\n## next-starter\n" } : {}));
   }
   git(dir, "push", "-q", "origin", "main");
   return { dir, origin, shas };
@@ -135,7 +135,7 @@ test("where: 4 つの形を 1 行で出す、知らない remote は exit 2", ()
   assert.match(unknown.lines[0], /^safe-point: /);
 });
 
-/** 親(upstream = bare、fork_id: next-starter、p1-p2-p3、p2 に tag)と fork(fork_id: fork-a、remote upstream) */
+/** 親(upstream = bare、repo_id next-starter、p1-p2-p3、p2 に tag)と fork(repo_id fork-a、remote upstream) */
 function forkFixture() {
   const parent = tier1(3);
   const [p1, p2, p3] = parent.shas;
@@ -146,7 +146,7 @@ function forkFixture() {
   git(dir, "remote", "add", "upstream", parent.origin);
   git(dir, "fetch", "-q", "upstream");
   git(dir, "reset", "-q", "--hard", "upstream/main");
-  commit(dir, "fork", { ".claude/rules/project.md": "# project\nfork_id: fork-a\ndownstream: none\n" });
+  commit(dir, "fork", { "repo.json": '{"repo_id": "fork-a", "tier": "leaf"}\n' });
   const ledger = (sha) => {
     mkdirSync(join(dir, ".notices/applied"), { recursive: true });
     writeFileSync(join(dir, ".notices/applied/fork-a.md"), sha ? `# ledger\n- id:x | date:- | commit:- | upstream:${sha} | notes:-\n` : "# ledger\n");
@@ -154,7 +154,7 @@ function forkFixture() {
   return { dir, p1, p2, p3, ledger };
 }
 
-test("parentForkId: 親のブランチの project.md の fork_id:、無ければ throw", () => {
+test("parentForkId: 親のブランチの repo.json の repo_id(古い形は project.md の fork_id:)、無ければ throw", () => {
   const f = forkFixture();
   assert.equal(parentForkId(f.dir, "upstream"), "next-starter");
   const other = tmp();
@@ -165,7 +165,17 @@ test("parentForkId: 親のブランチの project.md の fork_id:、無ければ
   git(other, "push", "-q", "origin", "main");
   git(f.dir, "remote", "add", "broken", otherOrigin);
   git(f.dir, "fetch", "-q", "broken");
-  assert.throws(() => parentForkId(f.dir, "broken"), /親の fork_id が読めない/);
+  assert.throws(() => parentForkId(f.dir, "broken"), /親の名前が読めない/);
+  // 古い形の親(repo.json が無く project.md の fork_id:)
+  const old = tmp();
+  init(old);
+  const oldOrigin = bare();
+  git(old, "remote", "add", "origin", oldOrigin);
+  commit(old, "x", { ".claude/rules/project.md": "# project\nfork_id: old-parent\n" });
+  git(old, "push", "-q", "origin", "main");
+  git(f.dir, "remote", "add", "oldp", oldOrigin);
+  git(f.dir, "fetch", "-q", "oldp");
+  assert.equal(parentForkId(f.dir, "oldp"), "old-parent");
 });
 
 test("deployVerdict Tier1: HEAD が自分の safe tag ちょうどなら ok、他の fork_id の tag・一つ先は止める", () => {

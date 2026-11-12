@@ -9,7 +9,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 ## MAILBOX LAYOUT
 - place: `~/.team/orders/` (shared folder on this machine; outside git; real place = `root:` of `mailbox.mjs self`)
 - **one inbox per repo**: `<root>/<fork-id>/` (unhandled) and `<fork-id>/done/` (handled)
-  - fork-id = `fork_id: <short name>` of that repo's `.claude/rules/project.md` (lowercase, digits, hyphens)
+  - fork-id = `repo_id` of that repo's `repo.json` (old form: `fork_id:` of `.claude/rules/project.md`; lowercase, digits, hyphens)
   - undeclared repos (no line / old `-`) use the old name only during migration (origin URL from the host on, `.git` removed, `/` → `--`, lowercase; no origin → `local--<directory name>`)
   - a declared repo's inbox moves from the old-name box when mailbox.mjs reads the name; the old name stays as a link to the new box
 - the inbox holds one-off orders only | serial / grouped orders are handled inside a council legate
@@ -20,7 +20,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | unroute | resolve>` (run at the repo root)
   - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
   - `route <order> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = route | `take <order> [--as=]` = take | `release <order>` = let go | `unroute <order>` = take a route back (routed → open; the owner it was routed to or the one who routed it, else `--force=<reason>`)
-  - `name-check` = may this name become this repo's fork_id: (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
+  - `name-check` = may this name become this repo's repo_id (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
   - `resolve` = answer an order: append the RESOLUTION and move to done/ | env `ORDER_RESOLVED_HOOK` (path of an executable) set → after answering it is called with the done/ order's path (unset → nothing; team tabs use it to notify the sender)
   - `inbox --quest` = quests (`kind: quest`) only | steps: `.claude/skills/inbox/SKILL.md` step 4
   - `check <add | file | attach | run | result | show>` = the check sheet (BROWSER CHECK ORDER below; options: mailbox.mjs head comment)

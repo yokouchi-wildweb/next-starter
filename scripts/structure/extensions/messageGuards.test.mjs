@@ -28,7 +28,7 @@ function fixture(files) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  put(".claude/rules/project.md", "fork_id: acme\n");
+  put("repo.json", '{"repo_id": "acme", "tier": "leaf"}\n');
   put(".notices/applied/parent.md", "");
   put("src/lib/CATALOG.md", "## next-starter\n\n## parent\n\n## acme\n");
   put("src/lib/messaging/extensionPoints.ts", DECLARATION);

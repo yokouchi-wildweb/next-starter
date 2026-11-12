@@ -27,7 +27,8 @@ function setup() {
     return run("rev-parse", "HEAD");
   };
   run("init", "-q");
-  write(".claude/rules/project.md", "## TIER\nfork_id: leaf\ndownstream: none\noverrides: mid.tone = casual | why: 若年層向け\n");
+  write("repo.json", '{"repo_id": "leaf", "tier": "leaf"}\n');
+  write(".claude/rules/project.md", "## TIER\noverrides: mid.tone = casual | why: 若年層向け\n");
   return { dir, write, commit, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 

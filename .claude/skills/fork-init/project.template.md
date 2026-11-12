@@ -16,10 +16,7 @@
 
 ## TIER (multi-tier hierarchy)
 this_repo: Tier<N> (direct fork of <upstream name> = Tier<N-1>). <no Tier<N+1> downstream planned for now | downstream forks: ...>
-fork_id: <fork-id>
-downstream: <yes | none>
-- fork_id = this repo's short name (lowercase letters, digits, hyphens; never the same as an ancestor's). The same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, this repo's src/lib/CATALOG.md section heading, the order inbox (never file names: ownership = git merge-base) | reader: src/lib/forkOwnership/forkIds.mjs
-- downstream = whether this repo has (or plans) downstream forks: `yes` | `none` (one line in this section) | read by /ship and /flux (notice / relay) and the .claude/rules/lineage.md check | missing / other value → pnpm workflow ownership check unverified (exit 2) | reader: src/lib/forkOwnership/forkIds.mjs
+- name and tier: repo.json at the repo root (`repo_id`, `tier` root | middle | leaf), written by `pnpm workflow repo-json set` | the same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, this repo's src/lib/CATALOG.md section heading, the order inbox (never file names: ownership = git merge-base) | reader: src/lib/forkOwnership/forkIds.mjs
 rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /order <Tier1 repo> instead. <domain> code lives HERE
 request_protocol (shared mailbox: ~/.team/orders/, one inbox per receiving repo):
 - file a one-off order into any repo's inbox, or into this repo as a next task, with /order <self|repo>. generic → Tier1, <domain>-specific → the tier that owns it
