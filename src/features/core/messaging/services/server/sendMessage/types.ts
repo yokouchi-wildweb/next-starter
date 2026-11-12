@@ -248,7 +248,15 @@ export type MessageSendDeps = {
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
   unsubscribe: {
     configured: () => boolean;
-    url: (payload: { recipientKey: string; category: string; channel: string; addressHash?: string }) => string;
+    /** messageKey / dispatchId = 停止を連絡・回に結ぶ値(トークンの mk / d) */
+    url: (payload: {
+      recipientKey: string;
+      category: string;
+      channel: string;
+      addressHash?: string;
+      messageKey?: string;
+      dispatchId?: string;
+    }) => string;
   };
 };
 

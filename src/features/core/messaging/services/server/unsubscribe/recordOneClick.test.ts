@@ -10,17 +10,20 @@ import { recordOneClickUnsubscribe, type OneClickStore } from "./recordOneClick"
 function memory(users: string[]) {
   const preferences = new Set<string>();
   const suppressions = new Set<string>();
+  const origins: { sourceMessageKey: string | null; sourceDispatchId: string | null }[] = [];
   const store: OneClickStore = {
-    async addPreference({ userId, category, channel, source }) {
+    async addPreference({ userId, category, channel, source, sourceMessageKey, sourceDispatchId }) {
       if (!users.includes(userId)) return false;
       preferences.add(`${userId}|${category}|${channel}|${source}`);
+      origins.push({ sourceMessageKey, sourceDispatchId });
       return true;
     },
-    async addSuppression({ channel, addressHash, scope, source }) {
+    async addSuppression({ channel, addressHash, scope, source, sourceMessageKey, sourceDispatchId }) {
       suppressions.add(`${channel}|${addressHash}|${scope}|${source}`);
+      origins.push({ sourceMessageKey, sourceDispatchId });
     },
   };
-  return { store, preferences, suppressions };
+  return { store, preferences, suppressions, origins };
 }
 
 test("利用者は好みの行を 1 つ(何度届いても同じ)", async () => {
@@ -45,4 +48,18 @@ test("宛先だけの受信者は宛先の停止(scope = 種類)", async () => {
   const hash = "b".repeat(64);
   await recordOneClickUnsubscribe(store, { recipientKey: `addr:${hash}`, category: "activity", channel: "email", addressHash: hash });
   assert.deepEqual([...suppressions], [`email|${hash}|activity|one_click`]);
+});
+
+test("停止の行に連絡の鍵と回の id を残す(前のトークンは null)", async () => {
+  const { store, origins } = memory(["u-1"]);
+  const dispatchId = "0b8e2c1d-3f4a-4b5c-9d6e-7f8a9b0c1d2e";
+  await recordOneClickUnsubscribe(store, { recipientKey: "user:u-1", category: "marketing", channel: "email", messageKey: "shop.notice", dispatchId });
+  const hash = "c".repeat(64);
+  await recordOneClickUnsubscribe(store, { recipientKey: `addr:${hash}`, category: "activity", channel: "email", addressHash: hash, messageKey: "shop.notice", dispatchId });
+  await recordOneClickUnsubscribe(store, { recipientKey: "user:u-1", category: "news", channel: "email" });
+  assert.deepEqual(origins, [
+    { sourceMessageKey: "shop.notice", sourceDispatchId: dispatchId },
+    { sourceMessageKey: "shop.notice", sourceDispatchId: dispatchId },
+    { sourceMessageKey: null, sourceDispatchId: null },
+  ]);
 });

@@ -22,6 +22,8 @@ export type DeliveryJob = {
   deliveryId: string;
   /** 受信者の鍵(配信停止の URL に入れる) */
   recipientKey: string;
+  /** 回の id(配信停止の URL に入れる。停止を回に結ぶ) */
+  dispatchId?: string;
   channel: string;
   userId: string | null;
   addresses: string[];
@@ -73,6 +75,7 @@ function stopFields(
   job: DeliveryJob,
   address: string,
   category: string | undefined,
+  messageKey: MessageKey,
 ): Pick<ChannelSendTarget, "category" | "headers"> {
   if (!category) return {};
   if (!deps.unsubscribe.configured()) return { category };
@@ -80,6 +83,8 @@ function stopFields(
     recipientKey: job.recipientKey,
     category,
     channel: job.channel,
+    messageKey,
+    ...(job.dispatchId ? { dispatchId: job.dispatchId } : {}),
     ...(job.recipientKey.startsWith("addr:") ? { addressHash: hashAddress(address) } : {}),
   });
   return {
@@ -128,7 +133,7 @@ export async function sendDeliveries(
   },
 ): Promise<DeliveryResult[]> {
   const { messageKey, jobs, policy, inRequestOnly, category } = params;
-  const stopOf = (job: DeliveryJob, address: string) => stopFields(deps, job, address, category);
+  const stopOf = (job: DeliveryJob, address: string) => stopFields(deps, job, address, category, messageKey);
   const now = deps.now;
   const states = new Map<string, AddressState[]>();
   const errors = new Map<string, string>();

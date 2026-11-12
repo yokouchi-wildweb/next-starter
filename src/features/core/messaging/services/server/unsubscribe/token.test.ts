@@ -1,5 +1,5 @@
 // ワンクリックの配信停止のトークンの検査
-// - 作って確かめると中身が戻る(宛先の hash つきも)
+// - 作って確かめると中身が戻る(宛先の hash・連絡の鍵・回の id つきも。mk / d の無い前のトークンも通る)
 // - 中身・署名の改ざん、版の違い、形の誤り、鍵の違い、鍵が無い → null
 // - URL は getAppBaseUrl() の起点 + /api/messaging/unsubscribe?t=
 // 実行: pnpm test src/features/core/messaging/services/server/unsubscribe
@@ -17,6 +17,7 @@ import {
 
 const USER = "user:3f1c2b9a-1d2e-4f50-8a9b-0c1d2e3f4a5b";
 const HASH = "a".repeat(64);
+const DISPATCH = "0b8e2c1d-3f4a-4b5c-9d6e-7f8a9b0c1d2e";
 const saved = { secret: process.env[UNSUBSCRIBE_SECRET_ENV], base: process.env.APP_BASE_URL };
 
 beforeEach(() => {
@@ -40,6 +41,19 @@ test("作って確かめると中身が戻る", () => {
   assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(payload)), payload);
   const address = { recipientKey: `addr:${HASH}`, category: "activity", channel: "email", addressHash: HASH };
   assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(address)), address);
+});
+
+test("連絡の鍵と回の id を載せられ、前に作った(載っていない)トークンも通る", () => {
+  const linked = { recipientKey: USER, category: "marketing", channel: "email", messageKey: "shop.notice", dispatchId: DISPATCH };
+  assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(linked)), linked);
+  // 前の形(mk / d なし)= 同じ版のまま通り、結び付きは無い
+  const old = verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email" }));
+  assert.deepEqual(old, { recipientKey: USER, category: "marketing", channel: "email" });
+  // 形の誤りは通さない・作らない
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email", mk: 5 })), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email", d: "not-a-uuid" })), null);
+  assert.equal(verifyUnsubscribeToken(forge({ v: 1, r: USER, c: "marketing", ch: "email", mk: "nodot" })), null);
+  assert.throws(() => signUnsubscribeToken({ ...linked, dispatchId: "x" }));
 });
 
 test("改ざん・版の違い・形の誤り・別の鍵は通さない", () => {

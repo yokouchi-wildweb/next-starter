@@ -1,7 +1,8 @@
 // src/features/core/messaging/services/server/unsubscribe/token.ts
 //
 // ワンクリックの配信停止の署名つきトークン(D35、ログイン不要の URL)。
-// token = base64url(JSON {v:1, r: recipient_key, c: category, ch: channel, a?: address_hash}) + "." + base64url(HMAC-SHA256(鍵, 前半))
+// token = base64url(JSON {v:1, r: recipient_key, c: category, ch: channel, a?: address_hash, mk?: message_key, d?: dispatch_id}) + "." + base64url(HMAC-SHA256(鍵, 前半))
+// mk / d = 停止を連絡・回に結ぶ値(集計の軸)。後から足したので無いトークン(前に送ったメール)も同じ版で通る(無い = null)
 // 鍵 = env MESSAGING_UNSUBSCRIBE_SECRET(pnpm ops setup env が乱数で作る)。鍵が無い時は作れない(送る口が marketing・activity の
 // メールを明示の失敗にする)し、届いたトークンも通さない。
 // URL = getAppBaseUrl() + /api/messaging/unsubscribe?t=<token>(事業の素性の url(@/business)は使わない)
@@ -24,13 +25,19 @@ export type UnsubscribeTokenPayload = {
   channel: string;
   /** 宛先の hash(宛先だけの受信者の停止に使う) */
   addressHash?: string;
+  /** 送った連絡の鍵(前に作ったトークンには無い) */
+  messageKey?: string;
+  /** 送った回の id(前に作ったトークンには無い) */
+  dispatchId?: string;
 };
 
-type WirePayload = { v: number; r: string; c: string; ch: string; a?: string };
+type WirePayload = { v: number; r: string; c: string; ch: string; a?: string; mk?: string; d?: string };
 
 const RECIPIENT_KEY_PATTERN = /^(user:[0-9a-f-]{36}|addr:[0-9a-f]{64})$/;
 const KEY_PATTERN = /^[A-Za-z0-9_.*-]{1,64}$/;
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
+const MESSAGE_KEY_PATTERN = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)+$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function secret(): string | null {
   const value = process.env[UNSUBSCRIBE_SECRET_ENV]?.trim();
@@ -51,7 +58,9 @@ function isValidPayload(payload: UnsubscribeTokenPayload): boolean {
     RECIPIENT_KEY_PATTERN.test(payload.recipientKey) &&
     KEY_PATTERN.test(payload.category) &&
     KEY_PATTERN.test(payload.channel) &&
-    (payload.addressHash === undefined || HASH_PATTERN.test(payload.addressHash))
+    (payload.addressHash === undefined || HASH_PATTERN.test(payload.addressHash)) &&
+    (payload.messageKey === undefined || (payload.messageKey.length <= 128 && MESSAGE_KEY_PATTERN.test(payload.messageKey))) &&
+    (payload.dispatchId === undefined || UUID_PATTERN.test(payload.dispatchId))
   );
 }
 
@@ -69,6 +78,8 @@ export function signUnsubscribeToken(payload: UnsubscribeTokenPayload): string {
     c: payload.category,
     ch: payload.channel,
     ...(payload.addressHash ? { a: payload.addressHash } : {}),
+    ...(payload.messageKey ? { mk: payload.messageKey } : {}),
+    ...(payload.dispatchId ? { d: payload.dispatchId } : {}),
   };
   const body = Buffer.from(JSON.stringify(wire), "utf8").toString("base64url");
   return `${body}.${sign(key, body).toString("base64url")}`;
@@ -92,10 +103,18 @@ export function verifyUnsubscribeToken(token: string | null | undefined): Unsubs
     return null;
   }
   if (!wire || typeof wire !== "object") return null;
-  const { v, r, c, ch, a } = wire as Partial<WirePayload>;
+  const { v, r, c, ch, a, mk, d } = wire as Partial<WirePayload>;
   if (v !== TOKEN_VERSION || typeof r !== "string" || typeof c !== "string" || typeof ch !== "string") return null;
   if (a !== undefined && typeof a !== "string") return null;
-  const payload: UnsubscribeTokenPayload = { recipientKey: r, category: c, channel: ch, ...(a ? { addressHash: a } : {}) };
+  if ((mk !== undefined && typeof mk !== "string") || (d !== undefined && typeof d !== "string")) return null;
+  const payload: UnsubscribeTokenPayload = {
+    recipientKey: r,
+    category: c,
+    channel: ch,
+    ...(a ? { addressHash: a } : {}),
+    ...(mk ? { messageKey: mk } : {}),
+    ...(d ? { dispatchId: d } : {}),
+  };
   return isValidPayload(payload) ? payload : null;
 }
 

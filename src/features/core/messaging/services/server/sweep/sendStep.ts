@@ -185,6 +185,7 @@ export async function sendClaimed(
         job: {
           deliveryId: row.id,
           recipientKey: row.recipient_key,
+          dispatchId: row.dispatch_id,
           channel: row.channel,
           userId: row.user_id,
           addresses,

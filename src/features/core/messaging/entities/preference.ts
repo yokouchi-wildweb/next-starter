@@ -32,6 +32,10 @@ export const MessagePreferenceTable = pgTable(
       .defaultNow(),
     /** 止めた入口（好みの画面 / ワンクリック など） */
     source: text("source").notNull(),
+    /** 停止を結ぶ連絡の鍵(ワンクリックだけ。好みのページ・前に作ったトークンは null) */
+    source_message_key: text("source_message_key"),
+    /** 停止を結ぶ回(ワンクリックだけ)。FK なし: 回は保持の掃除で消えるが、停止の行は残す */
+    source_dispatch_id: uuid("source_dispatch_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -59,6 +63,10 @@ export const MessageSuppressionTable = pgTable(
     scope: text("scope").notNull().default("*"),
     source: text("source"),
     provider_event_id: text("provider_event_id"),
+    /** 停止を結ぶ連絡の鍵(ワンクリックだけ。好みのページ・前に作ったトークンは null) */
+    source_message_key: text("source_message_key"),
+    /** 停止を結ぶ回(ワンクリックだけ)。FK なし: 回は保持の掃除で消えるが、停止の行は残す */
+    source_dispatch_id: uuid("source_dispatch_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

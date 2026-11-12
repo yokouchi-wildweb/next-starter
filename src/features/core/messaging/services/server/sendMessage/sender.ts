@@ -375,6 +375,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         job: {
           deliveryId: row.id,
           recipientKey: row.recipient_key,
+          dispatchId,
           channel: row.channel,
           userId: row.user_id,
           addresses: plan.addresses,
