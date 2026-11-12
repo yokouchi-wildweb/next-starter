@@ -485,3 +485,4 @@
 - id:20261112-122606-devcheck-grant | severity:info | checkpoint:devcheck-grant
 - id:20261112-124043-agent-terminal-values | severity:info | checkpoint:agent-terminal-values
 - id:20261112-124043-messaging-broadcast | severity:info | checkpoint:messaging-broadcast
+- id:20261112-131926-messaging-admin-operations | severity:info | checkpoint:messaging-admin-operations

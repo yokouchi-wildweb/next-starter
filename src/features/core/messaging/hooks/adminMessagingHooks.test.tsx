@@ -2,6 +2,7 @@
 // - useAdminDispatches: 絞り込みを毎回渡し、先頭は cursor なし、続きは前の nextCursor、null で終端
 // - useAdminDispatchDeliveries: 回の id と絞り込みを渡す
 // - useContinueDispatch: client を呼び、回 1 件(useAdminDispatch)を取り直す
+// - useCancelDispatch / useRetractDispatch / useResendDispatch: client を呼び、回 1 件を取り直す
 // - useAdminBulkSendForm: 選んだ経路だけの中身・target・recordIds・種別・開くたびの鍵で送り、onSent → onSuccess
 // 実行: pnpm test src/features/core/messaging/hooks/adminMessagingHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -28,6 +29,7 @@ const deliveryCalls: { id: string; params: Record<string, unknown> }[] = [];
 const sends: Record<string, unknown>[] = [];
 let detailCalls = 0;
 let continues = 0;
+const operations: unknown[][] = [];
 mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
     listAdminDispatches: async (params: Record<string, unknown>) => {
@@ -46,6 +48,18 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     continueAdminDispatch: async () => {
       continues += 1;
       return { expanded: false, claimed: 1, sent: 1, failed: 0, completed: false };
+    },
+    cancelAdminDispatch: async (id: string) => {
+      operations.push(["cancel", id]);
+      return { dispatchId: id, status: "cancelled" };
+    },
+    retractAdminDispatch: async (id: string) => {
+      operations.push(["retract", id]);
+      return { dispatchId: id, deletedInboxItems: 1, canceledDeliveries: 2, detachedImages: 0 };
+    },
+    resendAdminDispatch: async (id: string, input: unknown) => {
+      operations.push(["resend", id, input]);
+      return { dispatchId: id, mode: "requeue", failed: 1, unknown: 0, newDispatchId: null };
     },
     adminBulkSend: async (input: Record<string, unknown>) => {
       sends.push(input);
@@ -72,6 +86,7 @@ beforeEach(() => {
   sends.length = 0;
   detailCalls = 0;
   continues = 0;
+  operations.length = 0;
 });
 
 const mount = async <T,>(useHook: () => T) => {
@@ -167,5 +182,31 @@ test("useAdminBulkSendForm: 選んだ経路だけの中身で送り、onSent →
   await act(async () => view.value().fields.setUseEmail(false));
   assert.deepEqual(view.value().buildInput().channels, ["inApp"]);
   assert.equal(view.value().buildInput().email, undefined);
+  await view.unmount();
+});
+
+test("取り消し・取り下げ・再送の hook: client を呼び、回 1 件を取り直す", async () => {
+  const view = await mount(() => ({
+    one: hooks.useAdminDispatch("disp-1"),
+    cancel: hooks.useCancelDispatch("disp-1"),
+    retract: hooks.useRetractDispatch("disp-1"),
+    resend: hooks.useResendDispatch("disp-1"),
+  }));
+  const before = detailCalls;
+  await act(async () => {
+    await view.value().cancel.trigger();
+  });
+  const afterCancel = detailCalls;
+  assert.ok(afterCancel > before, "取り消しの後に回を取り直す");
+  await act(async () => {
+    await view.value().retract.trigger();
+    await view.value().resend.trigger({ includeUnknown: true });
+  });
+  assert.deepEqual(operations, [
+    ["cancel", "disp-1"],
+    ["retract", "disp-1"],
+    ["resend", "disp-1", { includeUnknown: true }],
+  ]);
+  assert.ok(detailCalls > afterCancel, "取り下げ・再送の後も回を取り直す");
   await view.unmount();
 });

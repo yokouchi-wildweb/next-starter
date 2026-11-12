@@ -19,11 +19,26 @@ import type {
   AdminDispatchDetail,
   AdminDispatchSummary,
 } from "@/features/core/messaging/services/server/admin/dispatchDto";
+import type {
+  AdminCancelResult,
+  AdminResendResult,
+  AdminRetractResult,
+} from "@/features/core/messaging/services/server/admin/operations";
 import type { ContinueSendingResult } from "@/features/core/messaging/services/server/sweep/sweep";
 
 const BASE = "/api/admin/messaging";
 
-export type { AdminBulkSendInput, AdminBulkSendResult, AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSummary, ContinueSendingResult };
+export type {
+  AdminBulkSendInput,
+  AdminBulkSendResult,
+  AdminCancelResult,
+  AdminDeliveryRow,
+  AdminDispatchDetail,
+  AdminDispatchSummary,
+  AdminResendResult,
+  AdminRetractResult,
+  ContinueSendingResult,
+};
 
 /** カーソルで取る 1 回分(CursorPage と同じ形) */
 export type AdminCursorPage<T> = { items: T[]; nextCursor: string | null };
@@ -115,5 +130,35 @@ export async function continueAdminDispatch(id: string): Promise<ContinueSending
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "続きを送れませんでした");
+  }
+}
+
+/** 予約の取り消し(予約でまだ展開していない回だけ。他は 409) */
+export async function cancelAdminDispatch(id: string): Promise<AdminCancelResult> {
+  try {
+    const res = await axios.post<AdminCancelResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/cancel`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "予約を取り消せませんでした");
+  }
+}
+
+/** 取り下げ(お知らせの行を消し、未送信の配達を止める。戻せない。送ったメールは取り戻せない) */
+export async function retractAdminDispatch(id: string): Promise<AdminRetractResult> {
+  try {
+    const res = await axios.post<AdminRetractResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/retract`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "取り下げられませんでした");
+  }
+}
+
+/** 失敗の再送(includeUnknown = 送れたか分からない宛先も含める。二重の可能性を回に残す) */
+export async function resendAdminDispatch(id: string, input: { includeUnknown?: boolean } = {}): Promise<AdminResendResult> {
+  try {
+    const res = await axios.post<AdminResendResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/resend`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "送り直せませんでした");
   }
 }
