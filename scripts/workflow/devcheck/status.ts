@@ -8,7 +8,8 @@
 import { formatState } from "./lib";
 import { gatherFacts, runAction } from "./lib.facts";
 
-runAction(async (json) => {
+runAction(async (args) => {
+  const json = args.includes("--json");
   const facts = await gatherFacts();
   console.log(json ? JSON.stringify({ context: facts.context, state: facts.state }, null, 2) : formatState(facts.state, facts.context).join("\n"));
 });

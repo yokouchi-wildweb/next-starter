@@ -60,7 +60,7 @@ pnpm ops data export|import|update|delete <domain>  # 全ドメイン共通の�
 pnpm ops features list | set <規則名> on|off        # 機能を閉じる規則の一覧と入切
 pnpm workflow worktree new <branch> | sync | remove <path>
 pnpm workflow dev-tab run [stop|status]             # 開発サーバーを tmux のタブか裏のプロセスで
-pnpm workflow devcheck plan|status [--json]        # 開発中の確かめの事実と候補(読むだけ)
+pnpm workflow devcheck plan|status|run|cleanup     # 開発中の確かめの事実と候補・実行・片付け
 pnpm workflow dev-admin run                         # 確認用の管理者を開発用 DB に用意する
 pnpm ops room init | deploy | secret | check | dev  # リアルタイムルーム(servers/room/README.md)
 pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を作る

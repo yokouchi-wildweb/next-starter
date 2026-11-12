@@ -233,7 +233,22 @@ export const countLiveServers = (paths: string[], read: (root: string) => DevTab
   }).length;
 
 export type ServerFact = { line: string; answering: boolean } | null;
-export type State = { server: ServerFact; liveServers: number; admin: "unchecked" };
+/** 管理者の有無(pnpm workflow dev-admin run --check の答え。読むだけ) */
+export type AdminFact = { present: boolean } | { unknown: string };
+export type State = { server: ServerFact; liveServers: number; admin: AdminFact };
+
+/** dev-admin run --check の答え(JSON 1 行、成功は stdout・失敗は stderr)を事実にする */
+export const parseAdminCheck = (code: number, stdout: string, stderr: string): AdminFact => {
+  const last = (text: string) => text.trim().split("\n").filter(Boolean).at(-1) ?? "";
+  try {
+    const data = JSON.parse(last(code === 0 ? stdout : stderr));
+    if (code === 0 && typeof data.present === "boolean") return { present: data.present };
+    if (typeof data.error === "string") return { unknown: data.error };
+  } catch {
+    // 下で
+  }
+  return { unknown: last(stderr) || last(stdout) || `終了コード ${code}` };
+};
 
 // ---- 計画 ---------------------------------------------------------------------------------
 
@@ -305,5 +320,5 @@ export const formatPlan = (plan: Plan): string => {
 export const formatState = (state: State, ctx: Context): string[] => [
   `サーバー: ${state.server ? `${state.server.line}(${state.server.answering ? "応答あり" : "応答なし"})` : "この作業場所には無い"}`,
   `動いている dev-tab: ${state.liveServers}${ctx.devMax !== null ? ` / 上限 ${ctx.devMax}` : ""}`,
-  "管理者: 未確認(確認の口は次の版で足す)",
+  `管理者: ${"present" in state.admin ? (state.admin.present ? "いる" : "いない(login で作る)") : `分からない(${state.admin.unknown})`}`,
 ];

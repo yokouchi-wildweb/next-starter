@@ -129,7 +129,7 @@ test("計画: 上流の種類 + fork の項目、最後はいつも片付け。�
     policy: { ...ALL_AUTO, "env-add": "off" as const, "db-write": "manual" as const },
     items: [{ name: "orders-test", kind: "test" as const, command: "pnpm test src/features/order", what: "", file: "a.json" }],
     rejected: [{ file: "e.json", reason: "シェルの記号" }],
-    state: { server: null, liveServers: 1, admin: "unchecked" as const },
+    state: { server: null, liveServers: 1, admin: { present: false } },
   };
   const plan = buildPlan(facts);
   assert.deepEqual(plan.candidates.at(-1), CLEANUP);

@@ -8,7 +8,8 @@
 import { buildPlan, formatPlan } from "./lib";
 import { gatherFacts, runAction } from "./lib.facts";
 
-runAction(async (json) => {
+runAction(async (args) => {
+  const json = args.includes("--json");
   const plan = buildPlan(await gatherFacts());
   console.log(json ? JSON.stringify(plan, null, 2) : formatPlan(plan));
 });
