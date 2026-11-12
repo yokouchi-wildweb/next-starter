@@ -137,7 +137,22 @@ await messagingService.sendMessageToMany(campaign, {
 - これらの連絡はキューに置けないので、要求の中で送り切る（一時の失敗は `requiredRetry` の回数だけ短く再送して尽きたら `failed`）。audience と大きな送信には使えない（400）
 - 送り残し（queued）がある回は cron のために vars を持ち、`record: "meta"` なら送り終えた時（cron が回を閉じる時）に消す
 
-まだ効かないもの（後の指令）: 間引き（throttle）。配信停止は下の「配信停止」。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
+配信停止は下の「配信停止」、会話の間引きは下の「会話の間引き（throttle）」。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
+
+### 会話の間引き（throttle）
+
+定義（か override）の `throttle: { by, mode, seconds }` を持つ連絡は、経路の send の前に受信者ごとに間引く（`services/server/sendMessage/throttle.ts`。要求の中の送りも cron の送りも同じ処理を通る）。上流の定義は throttle を宣言しない（fork の定義・override で付ける）。
+
+- 間引きの鍵 = 受信者の鍵 × `message_key` × `by` の値（回の vars）の sha256。配達の行と受信者ごとのお知らせの `throttle_key` に入る
+- `untilRead`（経路に inApp がある）: 同じ鍵の未読のお知らせがあれば置き換える（中身を最新に、`collapsed_count` + 1、前の回を `collapsed_dispatch_ids` に足し `dispatch_id` は今の回、`published_at` = 今 = 未読のまま一覧の上に出る）。inApp の配達は `sent` + `reason: throttled`、他の経路は送らず `suppressed` + `throttled`（回の `skipped_throttled`）
+- `window`（と inApp が経路に無い `untilRead`）: 同じ鍵の前の送り（他の回の `reason` なしの行が `seconds` 以内に sent、か送る途中）があれば間引く。inApp は未読があれば置き換え、既読なら新しいお知らせ（回数 1）。間引いた行（`reason: throttled`）は window の起点にしないので、会話が続いても window は延びない
+- 最初の 1 通・window の後・既読の後はふつうに送る（鍵つきのお知らせ、回数 1）
+- `{{collapsedCount}}`: ふつうの送りは 1、置き換えたお知らせはその回数（throttle のある連絡だけで使える鍵）
+- 排他: 判定は鍵の `pg_advisory_xact_lock` を持った取引の中で、回 × 受信者の配達の行を読み直してから 1 度だけ行い、その受信者の全部の行に書く（`throttle_key` の入った行 = 決めた行）。同じ鍵の要求の中の送りと cron の送りが重なっても 2 通にならない。lock は経路（provider）の呼び出しの間は持たない
+- お知らせの行は、throttle のある連絡では inApp の経路の send ではなくこの取引の中で書く（行の形は `channels/inApp` の `inAppItemRow`、画像は同じ取引で回に結ぶ）
+- 間引くのは受信者ごとの行だけ: 全員・ロール宛ての回（共有の 1 行）はどの経路も間引かない。audiences の項目と選んだ宛先の回は間引く
+- `collapsed_dispatch_ids` は FK を持たない（保持の掃除で消えた回の id も残る）。取り下げ・保持・画像はお知らせの今の `dispatch_id`（最新の回）に従う
+- **会話の既読とお知らせの既読は別物**: `untilRead` が見るのは受け取り箱のお知らせの既読（`message_inbox_reads` / 全部既読の watermark）だけ。チャットの画面で会話を読んだことは messaging は知らない。会話の既読でお知らせも既読にしたいなら、その機能が受け取り箱の既読の API（`POST /api/me/messaging/inbox/[id]/read`）か messagingService の既読を呼ぶ
 
 処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500 / `schedule.maxDaysAhead` 90（予約できる日数）
 
@@ -467,9 +482,9 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 新しい送る口・配達・受け取り箱のための表。今は定義と schemaRegistry への登録だけで、読み書きするサービス・API・cron はまだない（後の段で足す）。
 
 - `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`・`expand_cursor`（展開の再開位置、cron の節）。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
-- `message_deliveries`: 受信者 × 経路 の 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease は `locked_until` + `lock_token`、送り直しは `next_attempt_at`。複数の宛先は `targets` jsonb。利用者を消すと `user_id` は null（`recipient_key` は残る）
+- `message_deliveries`: 受信者 × 経路 の 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease は `locked_until` + `lock_token`、送り直しは `next_attempt_at`。複数の宛先は `targets` jsonb。利用者を消すと `user_id` は null（`recipient_key` は残る）。`throttle_key`（間引きの鍵、索引 `(throttle_key, sent_at)`）
 - `message_events`: provider の事件と内部の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`。`seq`（入った順）・`dispatch_id`（回を消すと一緒に消える）・`message_key`・`channel`（購読の節）
-- `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）
+- `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）。間引きの `throttle_key`・`collapsed_count`（既定 1）・`collapsed_dispatch_ids`（索引 `(user_id, throttle_key)`）
 - `message_inbox_reads` / `message_inbox_read_states`: 個別の既読と全既読のウォーターマーク（notification_reads / notification_read_states と同じ形）
 - `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`。読み書きは「保存されたテンプレート」の節）
 - `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）。`UNIQUE(user_id, category, channel)`

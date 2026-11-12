@@ -104,10 +104,10 @@ export function createMemoryWorld(): MemoryWorld {
         .map((d) => ({ ...d }));
     },
     async aggregateDeliveries(dispatchId) {
-      const counts = new Map<string, { channel: string; status: string; count: number }>();
+      const counts = new Map<string, { channel: string; status: string; reason: string | null; count: number }>();
       for (const row of store.deliveries.filter((item) => item.dispatch_id === dispatchId)) {
-        const key = `${row.channel}|${row.status}`;
-        const entry = counts.get(key) ?? { channel: row.channel, status: row.status, count: 0 };
+        const key = `${row.channel}|${row.status}|${row.reason ?? ""}`;
+        const entry = counts.get(key) ?? { channel: row.channel, status: row.status, reason: row.reason ?? null, count: 0 };
         entry.count += 1;
         counts.set(key, entry);
       }

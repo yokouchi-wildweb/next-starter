@@ -487,3 +487,4 @@
 - id:20261112-124043-messaging-broadcast | severity:info | checkpoint:messaging-broadcast
 - id:20261112-131926-messaging-admin-operations | severity:info | checkpoint:messaging-admin-operations
 - id:20261112-193931-messaging-subscribers | severity:action-required | checkpoint:messaging-subscribers
+- id:20261112-202759-messaging-throttle | severity:action-required | checkpoint:messaging-throttle

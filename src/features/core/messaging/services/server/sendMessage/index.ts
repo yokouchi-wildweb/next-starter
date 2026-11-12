@@ -21,6 +21,7 @@ import { subscribers } from "../../../extensions/subscribers";
 import { subscribedEventTypes } from "../events/internalEvents";
 import { createMessageSender } from "./sender";
 import { drizzleMessageSendStore } from "./store";
+import { drizzleMessageThrottleStore } from "./throttleStore";
 import type { MessageSendDeps } from "./types";
 
 /** 送る口の本物の部品(掃き出しの cron も同じ部品を使う) */
@@ -41,6 +42,8 @@ export const sendMessageDeps: MessageSendDeps = {
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
   // 管理画面の文言(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む)
   templates: drizzleMessageTemplateSource,
+  // 会話の間引き(throttle のある連絡だけ、鍵ごとの advisory lock)
+  throttle: drizzleMessageThrottleStore,
   // 内部の事件は登録した購読が聞いている種類だけ書く
   eventTypes: subscribedEventTypes(Object.values(subscribers)),
   adminOverrides: {

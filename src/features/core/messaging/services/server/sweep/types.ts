@@ -22,8 +22,8 @@ export type ExpansionWrite = {
   inboxItem?: MessageInboxItemInsert;
 };
 
-/** 経路ごと・状態ごとの配達の行の数 */
-export type DeliveryAggregate = { channel: string; status: string; count: number }[];
+/** 経路ごと・状態ごと・理由ごとの配達の行の数 */
+export type DeliveryAggregate = { channel: string; status: string; reason: string | null; count: number }[];
 
 export type MessageSweepStore = {
   /** 予約の時刻が来た回を processing にする(返値 = 動かした数) */

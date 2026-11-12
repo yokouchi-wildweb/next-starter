@@ -2,12 +2,14 @@
 //
 // サービス内のお知らせ（受け取り箱）。
 // - message_inbox_items: 中身が受信者に依らない全員・ロール宛ては 1 行を皆で読む（user_id null）、
-//   差し込み・個人宛ては受信者ごとの行（同じ表）。回（dispatch）を消すと一緒に消える
+//   差し込み・個人宛ては受信者ごとの行（同じ表）。回（dispatch）を消すと一緒に消える。
+//   間引き（throttle）の行は未読の間、新しい回の中身に置き換わる（dispatch_id = 最新の回、前の回は collapsed_dispatch_ids）
 // - message_inbox_reads: 個別の既読
 // - message_inbox_read_states: 全既読のウォーターマーク（この時刻以前に公開された行は既読）
 
 import {
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -40,6 +42,12 @@ export const MessageInboxItemTable = pgTable(
     image: text("image"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     published_at: timestamp("published_at", { withTimezone: true }).notNull(),
+    /** 間引きの鍵(throttle のある連絡の受信者ごとの行だけ。共有の行は null) */
+    throttle_key: text("throttle_key"),
+    /** まとめた回数(置き換えるたびに + 1) */
+    collapsed_count: integer("collapsed_count").notNull().default(1),
+    /** この行にまとめた前の回(dispatch_id は最新の回。FK なし: 保持の掃除で消えた回も残る) */
+    collapsed_dispatch_ids: uuid("collapsed_dispatch_ids").array(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -55,6 +63,11 @@ export const MessageInboxItemTable = pgTable(
       table.id,
     ),
     index("idx_message_inbox_items_dispatch").on(table.dispatch_id),
+    // 間引き: 同じ鍵の未読の行を引く
+    index("idx_message_inbox_items_user_throttle").on(
+      table.user_id,
+      table.throttle_key,
+    ),
   ],
 );
 

@@ -3,6 +3,7 @@
 // 配達（受信者 × 経路）と、provider から届いた事件（追記だけ）。
 // - message_deliveries: 1 行 = 1 受信者 × 1 経路。複数の宛先は targets に持つ。
 //   行の更新は排他（lease: locked_until + lock_token）。cron は next_attempt_at <= now で拾う
+// - throttle_key: 会話の間引きの鍵(services/server/sendMessage/throttle.ts)
 // - message_events: 事件(webhook の事件と内部の事件 dispatch.completed / delivery.*、追記だけ)。UNIQUE(provider, provider_event_id) で重複を捨てる。
 //   seq = 入った順の番号(購読の cron が印から順に読む)、dispatch_id / message_key / channel = 購読の絞りと MessageEvent の値
 
@@ -73,6 +74,11 @@ export const MessageDeliveryTable = pgTable(
     opened_at: timestamp("opened_at", { withTimezone: true }),
     clicked_at: timestamp("clicked_at", { withTimezone: true }),
     complained_at: timestamp("complained_at", { withTimezone: true }),
+    /**
+     * 間引きの鍵(throttle のある連絡で、受信者の送り方を決めた行だけ。受信者 × message_key × by の値の hash)。
+     * window の起点 = この鍵の sent の行(reason throttled の行は起点にしない)
+     */
+    throttle_key: text("throttle_key"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -99,6 +105,8 @@ export const MessageDeliveryTable = pgTable(
       table.id.desc(),
     ),
     index("idx_message_deliveries_created_at").on(table.createdAt),
+    // 間引きの window の起点(同じ鍵の最後の送り)
+    index("idx_message_deliveries_throttle_sent").on(table.throttle_key, table.sent_at),
   ],
 );
 

@@ -169,11 +169,16 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
 
   async aggregateDeliveries(dispatchId) {
     const rows = await db
-      .select({ channel: MessageDeliveryTable.channel, status: MessageDeliveryTable.status, count: count() })
+      .select({
+        channel: MessageDeliveryTable.channel,
+        status: MessageDeliveryTable.status,
+        reason: MessageDeliveryTable.reason,
+        count: count(),
+      })
       .from(MessageDeliveryTable)
       .where(eq(MessageDeliveryTable.dispatch_id, dispatchId))
-      .groupBy(MessageDeliveryTable.channel, MessageDeliveryTable.status);
-    return rows.map((row) => ({ channel: row.channel, status: row.status, count: Number(row.count) }));
+      .groupBy(MessageDeliveryTable.channel, MessageDeliveryTable.status, MessageDeliveryTable.reason);
+    return rows.map((row) => ({ channel: row.channel, status: row.status, reason: row.reason ?? null, count: Number(row.count) }));
   },
 
   async updateDispatch(id, patch, events) {
