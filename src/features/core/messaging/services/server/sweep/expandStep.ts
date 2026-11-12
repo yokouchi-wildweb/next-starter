@@ -60,7 +60,7 @@ async function sharedInAppContent(
   if (!entry) return null;
   try {
     const { message } = await entry.definition();
-    const resolved = await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers);
+    const resolved = await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
     const content = channelContent(resolved, IN_APP, deps.channels[IN_APP]);
     const vars = (dispatch.vars ?? {}) as Record<string, unknown>;
     const allowed = new Set([...Object.keys(vars), ...RECIPIENT_INDEPENDENT_CONTEXT]);

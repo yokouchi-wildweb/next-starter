@@ -6,6 +6,7 @@ export * from "./endpoint";
 export * from "./idempotencyKey";
 export * from "./inbox";
 export * from "./model";
+export * from "./override";
 export * from "./preference";
 export * from "./schema";
 export * from "./template";

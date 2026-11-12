@@ -115,6 +115,16 @@ export const messageOverride = {
 - `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
 - `override_forbidden_key`: 上書きが key・kind・vars・required を持つ
 
+## 管理画面の欄の値(adminFields.ts)
+
+管理画面で直した欄の値(D21・D24・D28)を、保存する口と送る口が同じ純粋な関数で検査する。
+
+- `checkAdminFieldValue(resolved, fieldPath, value, { channels?, variableKeys? })` → 問題(null = 通る)。`resolved` = 上書きを重ねた後の定義
+  - `not_editable`: 今の `adminEditable` に無い欄 / `invalid_value`: 欄の zod を通らない / `length_mismatch`: コードの値が配列なのに長さが違う(描き方が段落を位置で読むため) / `unknown_variable`: 使えない `{{鍵}}`
+- `adminFieldAllowedKeys(resolved, variableKeys)`: 使ってよい鍵 = vars(`secretVar` の鍵を除く)・共通の文脈・throttle の鍵・`variableKeys`(当たる enrichers の provides)
+- `applyAdminFieldValues(resolved, values, options)` → `{ resolved, rejected }`: 通る欄だけ差し替え、通らない欄はコードの値のまま `rejected` に返す(空で送らない)
+- `adminFieldCodeValue(resolved, fieldPath)`: 欄のコードの値
+
 ## 受け口の項目(receptacles/types.ts)
 
 ドメイン messaging の受け口(`src/features/core/messaging/extensionPoints.ts`、表は `src/features/core/messaging/README.md`「受け口」)に置く項目の型。

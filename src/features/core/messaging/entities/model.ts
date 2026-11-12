@@ -4,6 +4,7 @@ import type { MessageDeliveryTable, MessageEventTable } from "./delivery";
 import { MessageDispatchTable } from "./drizzle";
 import type { MessageEndpointTable } from "./endpoint";
 import type { MessageIdempotencyKeyTable } from "./idempotencyKey";
+import type { MessageOverrideTable } from "./override";
 import type {
   MessageInboxItemTable,
   MessageInboxReadStateTable,
@@ -68,3 +69,6 @@ export type MessageIdempotencyKey =
   typeof MessageIdempotencyKeyTable.$inferSelect;
 export type MessageIdempotencyKeyInsert =
   typeof MessageIdempotencyKeyTable.$inferInsert;
+
+export type MessageOverrideRow = typeof MessageOverrideTable.$inferSelect;
+export type MessageOverrideInsert = typeof MessageOverrideTable.$inferInsert;

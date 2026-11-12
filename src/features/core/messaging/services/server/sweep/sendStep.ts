@@ -37,7 +37,7 @@ async function loadDefinition(
   if (!entry) return { error: "definition_missing" };
   try {
     const { message } = await entry.definition();
-    const resolved = await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers);
+    const resolved = await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
     // 本文の残し方は送った時の回に固定した値(後の上書きで変えない)
     const policy = recordPolicyOf({ ...resolved, record: dispatch.record ?? resolved.record });
     return { resolved, policy };

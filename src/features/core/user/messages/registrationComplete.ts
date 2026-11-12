@@ -19,6 +19,8 @@ export const message = defineMessage({
     /** サイトの URL(business.url。メールの本文の正式な URL) */
     siteUrl: z.string(),
   }),
+  // 管理画面で直せる文言の欄(門 messagingOverrides。URL を持つ cta・preheader・footer はコードだけ)
+  adminEditable: ["email.subject", "email.heading", "email.paragraphs"],
   defaultChannels: ["email"],
   content: {
     email: {

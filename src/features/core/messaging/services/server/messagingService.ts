@@ -6,6 +6,7 @@ import { adminBulkSend, adminContinueSending, findDispatch, listDeliveries, list
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { listUserMessageHistory } from "./history";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
+import { getMessageOverrides, listMessageOverrides, resetMessageOverride, saveMessageOverride } from "./overrides";
 import { getMessagePreferences, setMessagePreference } from "./preferences";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
@@ -47,6 +48,11 @@ export const messagingService = {
   /** 好み: 本人の 種類 × 経路 の表と、1 マス / 全体の停止・再開(/api/me/messaging/preferences が呼ぶ) */
   getMessagePreferences,
   setMessagePreference,
+  /** 管理画面の文言の上書き(/api/admin/messaging/overrides が呼ぶ。service でも管理者を確かめる): 一覧・1 件・欄の保存・既定に戻す */
+  listMessageOverrides,
+  getMessageOverrides,
+  saveMessageOverride,
+  resetMessageOverride,
 } as const;
 
 export type MessagingService = typeof messagingService;
