@@ -196,7 +196,7 @@ function buildDayContext(
 
 export type RunDailyRollupOptions = {
   /**
-   * 昨日から遡って再計算する日数（既定 3）。
+   * 昨日から遡って再計算する日数（既定 3）。メトリクスの lookbackDays が長ければそちら（metricLookbackDays）。
    * 冪等なので毎回直近N日を無条件に再計算し、遅延到着データと
    * cron の実行漏れ（ギャップ）を同時に自己修復する。
    */
@@ -227,7 +227,7 @@ export async function runDailyRollup(
   const errors: string[] = [];
 
   for (const config of configs) {
-    const days = dailyTargetDays(config, lookbackDays);
+    const days = dailyTargetDays(config, metricLookbackDays(config, lookbackDays));
     try {
       let rows = 0;
       // snapshot の previous 参照が正しく連鎖するよう必ず古い日から順に計算する
@@ -251,6 +251,15 @@ export async function runDailyRollup(
   }
 
   return { metrics };
+}
+
+/**
+ * メトリクスを遡る日数 = max(メトリクスの lookbackDays, 実行の日数)。
+ * メトリクスの値が正の整数でなければ実行の日数（設定の誤りで cron 全体を止めない）
+ */
+export function metricLookbackDays(config: Pick<RollupMetricConfig, "lookbackDays">, runLookbackDays: number): number {
+  const own = config.lookbackDays;
+  return own !== undefined && Number.isInteger(own) && own > 0 ? Math.max(own, runLookbackDays) : runLookbackDays;
 }
 
 /** 昨日から lookbackDays 日分（古い順）。backfillFrom より前へは遡らない */

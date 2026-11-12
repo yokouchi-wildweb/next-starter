@@ -24,7 +24,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const to = new Date();
 const from = new Date(to.getTime() - 30 * DAY_MS);
 const previous = { from: new Date(from.getTime() - 30 * DAY_MS), to: new Date(from.getTime() - 1) };
-const GROUPS: Scope["groupBy"][] = ["none", "date", "channel", "message", "category", "template", "tag"];
+const GROUPS: Scope["groupBy"][] = ["none", "date", "channel", "message", "category", "template", "tag", "rollup"];
 
 describe("messagingAnalytics の SQL(実 DB、読むだけ)", { skip }, () => {
   before(async () => {

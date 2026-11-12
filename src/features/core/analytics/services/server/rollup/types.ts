@@ -70,6 +70,11 @@ export type RollupMetricConfig = {
    * 日次 cron のルックバックもこの日より前へは遡らない。
    */
   backfillFrom?: string;
+  /**
+   * 日次 cron が昨日から遡って計算し直す日数（省略 = cron の既定 3 日）。遅れて来るデータ（開封・既読など）を
+   * 後から数え直すメトリクスだけ長くする。実際の日数 = max(この値, cron の実行の lookbackDays)
+   */
+  lookbackDays?: number;
   /** バケット境界のタイムゾーン（省略時 DEFAULT_TIMEZONE） */
   timezone?: string;
   /**

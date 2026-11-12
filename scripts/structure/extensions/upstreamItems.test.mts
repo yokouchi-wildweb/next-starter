@@ -107,7 +107,10 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   const names = (owner: string, point: string) => itemsOf(plan, owner, point).map((i: { name: string }) => i.name);
   assertUpstreamItems(names("src/features/core/user", "cleanupHandlers"), ["messagingEndpoints", "messagingPreferences", "purchaseRequest", "wallet"]);
   assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
-  assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), []);
+  assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), [
+    "messagingBounced", "messagingClicked", "messagingComplained", "messagingDelivered", "messagingFailed", "messagingOpened",
+    "messagingRead", "messagingSent", "messagingSuppressed", "messagingTargeted", "messagingUnsubscribed",
+  ]);
   assertUpstreamItems(names("src/features/core/analytics", "exclusionProviders"), []);
   assertUpstreamItems(names("src/features/core/walletHistory", "reasonKeys"), ["adminAdjustment", "compensation", "couponAttributionReward"]);
   assertUpstreamItems(names("src/features/core/user", "reservedNames"), []);
