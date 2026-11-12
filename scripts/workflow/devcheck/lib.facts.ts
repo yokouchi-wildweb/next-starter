@@ -32,10 +32,10 @@ const HERE = import.meta.dirname;
 export type Setup = { root: string; context: Context; policy: Policy; items: Item[]; rejected: Plan["rejected"] };
 
 /** 方針・項目・文脈(呼ばれるたびに読む) */
-export const loadSetup = (): Setup => {
+export const loadSetup = async (): Promise<Setup> => {
   const root = checkoutRoot(invocationDir());
   const context = loadContext(process.env);
-  const policy = loadPolicy(HERE);
+  const policy = await loadPolicy(HERE);
   const scripts: Record<string, string> = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts ?? {};
   const { items, rejected } = scanItems(path.join(HERE, "items"), root, scripts);
   return { root, context, policy, items, rejected };
@@ -59,7 +59,7 @@ export const adminFact = (root: string): AdminFact => {
 
 /** 方針・項目・文脈・状態を集める(計画の候補は lib.ts の buildPlan が組む) */
 export const gatherFacts = async (): Promise<Omit<Plan, "candidates">> => {
-  const { root, context, policy, items, rejected } = loadSetup();
+  const { root, context, policy, items, rejected } = await loadSetup();
   const record = readState(root);
   const live = record !== null && isRecordAlive(record);
   const server = live ? { line: describeState(record), answering: await isPortAnswering(record.port) } : null;

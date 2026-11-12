@@ -479,3 +479,4 @@
 - id:20261111-190657-variant-overrides-inputs | severity:info | checkpoint:variant-overrides-inputs
 - id:20261111-195401-messaging-preferences | severity:info | checkpoint:messaging-preferences
 - id:20261112-104626-devcheck | severity:info | checkpoint:devcheck
+- id:20261112-105826-devcheck-policy-name | severity:action-required | checkpoint:devcheck-policy-name | moved:scripts/workflow/devcheck/policy.default.json -> scripts/workflow/devcheck/policy.json | fixes:20261112-104626-devcheck | pick:clean

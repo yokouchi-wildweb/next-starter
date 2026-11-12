@@ -9,4 +9,4 @@
 import { execRun } from "./lib.exec";
 import { loadSetup, realDeps, runAction } from "./lib.facts";
 
-runAction(async (args) => (await execRun(args, realDeps(loadSetup()))).code, (a) => a === "--manual-go");
+runAction(async (args) => (await execRun(args, realDeps(await loadSetup()))).code, (a) => a === "--manual-go");
