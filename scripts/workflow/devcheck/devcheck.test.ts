@@ -16,6 +16,7 @@ import {
   DevcheckError,
   KINDS,
   KIND_NAMES,
+  POLICY_KEYS,
   STANDALONE,
   buildPlan,
   countLiveServers,
@@ -38,7 +39,7 @@ after(() => {
   for (const d of dirs) rmSync(d, { recursive: true, force: true });
 });
 
-const ALL_AUTO = Object.fromEntries(KIND_NAMES.map((k) => [k, "auto"])) as Policy;
+const ALL_AUTO = Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])) as Policy;
 
 test("種類の表: スキーマの push・本番の指定・確認の埋め込みは、どの種類の打つコマンドにも無い。書く種類は guard を通る入口", () => {
   for (const [name, kind] of Object.entries(KINDS)) {
@@ -85,7 +86,7 @@ test("方針のファイル: policy.json(実体)+ policy.override.ts の export 
   await assert.rejects(loadPolicy(orphan), /隣に実体 policy\.json が無い/);
   // 上流の実体の名前は印なし(.default は丸ごと替えるスイッチの既定だけ)
   const upstream = path.join(import.meta.dirname);
-  assert.deepEqual(Object.keys(await loadPolicy(upstream)).sort(), [...KIND_NAMES].sort());
+  assert.deepEqual(Object.keys(await loadPolicy(upstream)).sort(), [...POLICY_KEYS].sort());
 });
 
 test("fork の項目: このリポの入口だけを候補にし、知らない種類・外のコマンド・シェルの記号・本番の指定は理由つきで断る", () => {

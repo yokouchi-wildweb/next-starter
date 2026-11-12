@@ -88,7 +88,7 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - 知らせの 1 行 = 送り元の名前とリポ・連絡 id・about・`pnpm workflow peer read <id>`。本文と送り手のモードは文脈に入れない(読むのはコマンドで、人に伝えるかはその後)
 - 印の `pid` = フックの先祖をたどって最初に見つかる claude のプロセス。見つからなければ印を書かない(相手からは「印が無い」に見え、受け箱に置くだけになる)
 - tmux への打ち込みは使わない(知らせはこの呼び鈴 1 本)
-- `.claude/settings.json` の `permissions.allow` に peer の 6 動作(send・reply・inbox・read・ack・who)を入れてある。呼び鈴で起きるたびに読む許可を聞かれないため(`read --keep` は read の行に入る)
+- peer の 6 動作(send・reply・inbox・read・ack・who)は `permissions.allow` の行に置かない。許可のフック(`scripts/workflow/devcheck/hook.mjs`、種類 peer)が、手元の印 `DEVCHECK_GRANT=on` があり方針 peer が off でない時だけ確認なしで通す(呼び鈴で起きるたびに読む許可を聞かれないため。印が無ければ普段どおり聞かれる)。説明: `scripts/workflow/devcheck/README.md`「許可の層」
 
 ## /peer スキルと、人ごとに切る
 

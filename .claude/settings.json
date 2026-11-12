@@ -2,16 +2,22 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:*)",
-      "WebSearch",
-      "Bash(pnpm workflow peer send:*)",
-      "Bash(pnpm workflow peer reply:*)",
-      "Bash(pnpm workflow peer inbox:*)",
-      "Bash(pnpm workflow peer read:*)",
-      "Bash(pnpm workflow peer ack:*)",
-      "Bash(pnpm workflow peer who:*)"
+      "WebSearch"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__playwright__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/workflow/devcheck/hook.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

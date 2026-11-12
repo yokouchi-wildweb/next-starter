@@ -6,7 +6,7 @@
 // - bell: 自分の受け箱への add だけ stderr に知らせの 1 行(本文・送り手のモードは入れない)+ exit 2、ほかは黙って 0
 // - 門が閉じている(tmux でない・tmux の外・id なし)= どれも出さず書かず 0。チームの道具のタブでは動く。実際の hook.mjs も同じ
 // - PEER_BOXES: 受け持つ箱も見張り、印に書き、そこへの add でも鳴る。渡されなかったセッションは箱を持たない
-// - .claude/settings.json の行(SessionStart・UserPromptSubmit・FileChanged + asyncRewake・CwdChanged)と peer の 6 動作の allow
+// - .claude/settings.json の行(SessionStart・UserPromptSubmit・FileChanged + asyncRewake・CwdChanged)。peer の 6 動作は allow の行に無い(許可のフックで通す)
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -180,7 +180,10 @@ test(".claude/settings.json: peer のフックの行と 5 動作の allow", () =
     s.hooks.FileChanged.find((g) => g.hooks.includes(bell)).matcher,
     undefined,
   );
-  for (const a of ["send", "reply", "inbox", "read", "ack", "who"]) assert.ok(s.permissions.allow.includes(`Bash(pnpm workflow peer ${a}:*)`), a);
+  // peer の 6 動作は allow の行に置かず、許可のフック(devcheck の種類 peer、印と方針)で通す
+  for (const rule of s.permissions?.allow ?? []) assert.doesNotMatch(rule, /pnpm workflow peer/, rule);
+  const grant = s.hooks.PreToolUse.flatMap((g) => g.hooks).find((h) => h.command.includes("scripts/workflow/devcheck/hook.mjs"));
+  assert.ok(grant, "PreToolUse に許可のフック");
 });
 
 test("PEER_BOXES: start は受け持つ箱も作って見張り、印に書く。prompt も保つ。使えない値は 1 行", () => {
