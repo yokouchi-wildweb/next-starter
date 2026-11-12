@@ -53,7 +53,7 @@ src/features/core/messaging/
 │   ├── AdminMessageTemplateList/   # 入れ物: 保存されたテンプレートの一覧（カーソル）
 │   ├── AdminMessageTemplateEditor/ # 入れ物: テンプレートを作る・直す・公開・取り下げ・版の履歴
 │   ├── AdminMessageComposer/       # 入れ物: 連絡を送る（テンプレート / ここで書く・宛先・予約・プレビュー・テスト送信）
-│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge / MessagePreview
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DispatchOperations / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge / MessagePreview
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany・existingIdempotencyKeys・端末・受け取り箱・管理）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -348,6 +348,7 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
   - 409: 秘密を差し込む連絡（`secret`、秘密の値は残さないので送り手のコードからもう一度送る）・required（`required`）・定義を読めない（`definition_missing`）・取り下げ / 取り消し済み・予約のまま（`scheduled`）・失敗の宛先が無い（`no_failed`）
   - 監査 `messaging.dispatch.resent`（mode・failed / unknown の数・includeUnknown・新しい回の id）
 - 回の 1 件（`GET /dispatches/[id]`）の `operations`: `cancel` / `retract` / `resend` ごとに `{ allowed, reason }`（resend は `mode`・`failed`・`unknown` も）。画面のボタンと service は同じ判定（`operationFlags`）
+- 理由の符号と文は `constants/dispatchOperations.ts`（`DISPATCH_OPERATION_REASONS` / `DISPATCH_OPERATION_REASON_TEXT`）の 1 か所。service の 409 の文と画面の理由の行が同じ物を読む。画面は 409 の本文を読まず `operations` の `reason` を出す
 
 ### 管理の送信 `/api/admin/messaging/send/**`（門 `messagingBroadcast`）
 
@@ -419,6 +420,7 @@ export const bulkAction = bulkMessageAction(
 - `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）
 - loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatches`・`useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch`）
 - 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
+- 回の操作（部品 `common/DispatchOperations`、props だけ）: 予約を取り消す・取り下げる・失敗分を再送 のボタン。できない操作は押せず `operations` の理由を出す。押すと確認の Dialog（取り下げは戻せない・送ったメールは取り戻せない、再送は 同じ回で / 新しい回として と失敗・不明の数、不明がある時だけ「不明も含める」= 二重に届くおそれ）。入れ物 `AdminDispatchDetail` が hook `useCancelDispatch` / `useRetractDispatch` / `useResendDispatch`（成功で回と一覧を取り直し、配達の一覧も取り直す）をつなぐ
 
 ## cron（送信の掃き出し・保持の掃除）と続きを送る
 

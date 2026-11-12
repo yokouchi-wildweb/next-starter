@@ -50,3 +50,6 @@ export {
   type ComposerKind,
   type ComposerSource,
 } from "./useAdminSendComposer";
+export { useCancelDispatch } from "./useCancelDispatch";
+export { useRetractDispatch } from "./useRetractDispatch";
+export { useResendDispatch } from "./useResendDispatch";
