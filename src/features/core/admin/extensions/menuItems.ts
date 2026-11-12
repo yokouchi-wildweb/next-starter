@@ -9,6 +9,7 @@ import { item as menuItems_coupons } from "@/features/core/admin/menu/items/coup
 import { item as menuItems_dataMenu } from "@/features/core/admin/menu/items/dataMenu";
 import { item as menuItems_messagingDispatches } from "@/features/core/admin/menu/items/messagingDispatches";
 import { item as menuItems_messagingOverrides } from "@/features/core/admin/menu/items/messagingOverrides";
+import { item as menuItems_messagingSend } from "@/features/core/admin/menu/items/messagingSend";
 import { item as menuItems_messagingTemplates } from "@/features/core/admin/menu/items/messagingTemplates";
 import { item as menuItems_settingSections } from "@/features/core/admin/menu/items/settingSections";
 import { item as menuItems_userTags } from "@/features/core/admin/menu/items/userTags";
@@ -23,6 +24,7 @@ const menuItemsList: AdminMenuItemDefinition[] = [
   menuItems_dataMenu,
   menuItems_messagingDispatches,
   menuItems_messagingOverrides,
+  menuItems_messagingSend,
   menuItems_messagingTemplates,
   menuItems_settingSections,
   menuItems_userTags,

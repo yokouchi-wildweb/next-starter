@@ -38,7 +38,8 @@ src/features/core/messaging/
 │   ├── inboxClient.ts           # 本人の受け取り箱の API（一覧はカーソル）
 │   ├── adminMessagingClient.ts  # 管理の一括送信・回の読む口・続きを送る（一覧と配達はカーソル）
 │   ├── overrideClient.ts        # 管理画面の文言の上書き
-│   └── templateClient.ts        # 保存されたテンプレート（一覧はカーソル・選択肢・版）
+│   ├── templateClient.ts        # 保存されたテンプレート（一覧はカーソル・選択肢・版）
+│   └── sendClient.ts            # 管理の送る画面（送る・プレビュー・見込み・テスト送信・選択肢）
 ├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
 │                                # 管理: useAdminBulkSend / useAdminBulkSendForm / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
 ├── components/
@@ -51,7 +52,8 @@ src/features/core/messaging/
 │   ├── AdminMessageOverrideEditor/ # 入れ物: 1 連絡の文言の上書き（欄ごとの保存・既定に戻す）
 │   ├── AdminMessageTemplateList/   # 入れ物: 保存されたテンプレートの一覧（カーソル）
 │   ├── AdminMessageTemplateEditor/ # 入れ物: テンプレートを作る・直す・公開・取り下げ・版の履歴
-│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge
+│   ├── AdminMessageComposer/       # 入れ物: 連絡を送る（テンプレート / ここで書く・宛先・予約・プレビュー・テスト送信）
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge / MessagePreview
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany・existingIdempotencyKeys・端末・受け取り箱・管理）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -336,7 +338,7 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 ### 管理の送信 `/api/admin/messaging/send/**`（門 `messagingBroadcast`）
 
-- 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は今は API だけ。管理の画面の住所は画面と一緒に足す）。閉の間 API は 404。送る口と cron の予約の拾いは門に関わらず動く
+- 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/send` と API `/api/admin/messaging/send`）。閉の間 画面と API は 404。送る口と cron の予約の拾いは門に関わらず動く
 - service: `services/server/admin/send.ts`（`messagingService.adminSend` / `adminSendPreview` / `adminSendEstimate` / `adminSendTest` / `adminSendOptions`）
 - `POST /send`（`AdminSendInputSchema`）: `message` = `{ type: "template", templateId, vars }`（保存されたテンプレートの今の公開版、`sendTemplate`）か `{ type: "adhoc", email?, inApp? }`（その場で書く管理者の連絡、経路は email・inApp）・`channels?`（テンプレートは省略 = 版の経路）・`audience` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "audience", key, args? }`（audiences の受け口の項目）/ `{ type: "users", userIds }`（10,000 人まで）・`kind`（既定 marketing）・`scheduledAt?`（ISO 8601、予約）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。送り元 `messaging.adminSend`
   - **取引（transactional）は選んだ利用者宛て（`users`）だけ**。全員・ロール・audiences では選べない（API の入口 `assertAdminSendKind` と service の両方で 400、D40）
@@ -345,6 +347,13 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作（操作者なし）は 400
 - `GET /send/options`: 有効な経路（`adhoc` = その場で書ける経路）・ロール・audiences の項目・公開したテンプレート（今の版の種類・経路・変数）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.testSent`（対象 `message_dispatch`、本文の値は残さない）
+
+### 送る画面（`/admin/messaging/send`、門 `messagingBroadcast`）
+
+- 入れ物 `AdminMessageComposer`（`dispatchBasePath?`）: 中身（公開中のテンプレート + 回の変数の値 / ここで書く email・inApp）・経路（テンプレートは版の経路が初め）・宛先（全員・ロール・宛先の集め方・選んだ利用者 = `UserAsyncMultiSelect`）・種別（**業務の連絡は選んだ利用者宛ての時だけ選べる**、宛先を変えると お知らせ に戻る）・送る時刻（今 / 予約。注記「予約の粒度は cron の周期（Vercel Hobby では 1 日 1 回で遅れる）」と予約できる日数）・プレビュー・自分にテスト送信・送る（確認に宛先数の見込み（送る時に確定し直す）・予約の時刻・固定する版）。結果から送った回の画面へ
+- 部品 `common/MessagePreview`（props だけ）: 経路ごとのプレビュー。email は描いた HTML を `sandbox=""` の iframe（`srcDoc`。スクリプト・同じ origin を止める。棚に iframe の包みが無いので部品の中に置く）、HTML が無ければ欄から組む / inApp はカード / それ以外は text か欄。テンプレートの版の表示（`TemplateVersionList`）も欄からこれで描く（前の版の HTML は描かない: プレビューの API は今の公開版だけを描く）
+- hook: `useAdminSendOptions()`（SWR）・`useAdminSendComposer(options)`（書く欄・`buildInput`・`contentError` / `audienceError` / `scheduleError`・`canSend`・`transactionalAllowed`・`runPreview` / `runEstimate` / `sendTest` / `send`（送った後に二重送信を防ぐ鍵を作り直す）・`reset`。書きかけの間は `@/lib/unsavedGuard`）・純粋な関数 `templateVarsForInput` / `scheduleErrorOf`。client は `services/client/sendClient.ts`
+- loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingSend.ts`（マーケティング > 連絡を送る、送信の履歴の前。門が閉なら隠れる）
 
 ### `POST /api/admin/messaging/bulk-send`（一括送信）
 
