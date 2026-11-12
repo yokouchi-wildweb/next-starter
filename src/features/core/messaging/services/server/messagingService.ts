@@ -8,6 +8,16 @@ import { listUserMessageHistory } from "./history";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
 import { getMessageOverrides, listMessageOverrides, resetMessageOverride, saveMessageOverride } from "./overrides";
 import { getMessagePreferences, setMessagePreference } from "./preferences";
+import {
+  archiveMessageTemplate,
+  createMessageTemplate,
+  getMessageTemplate,
+  getMessageTemplateVersion,
+  listMessageTemplates,
+  listMessageTemplateVersions,
+  publishMessageTemplate,
+  updateMessageTemplate,
+} from "./templates";
 import { sendMessage, sendMessageToMany } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
 import { continueSending } from "./sweep";
@@ -53,6 +63,15 @@ export const messagingService = {
   getMessageOverrides,
   saveMessageOverride,
   resetMessageOverride,
+  /** 保存されたテンプレート(/api/admin/messaging/templates が呼ぶ。service でも管理者を確かめる) */
+  listMessageTemplates,
+  getMessageTemplate,
+  createMessageTemplate,
+  updateMessageTemplate,
+  publishMessageTemplate,
+  archiveMessageTemplate,
+  listMessageTemplateVersions,
+  getMessageTemplateVersion,
 } as const;
 
 export type MessagingService = typeof messagingService;
