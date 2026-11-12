@@ -17,6 +17,7 @@ import { rule as rules_demoSampleDomain } from "@/featureGate/rules/demoSampleDo
 import { rule as rules_deviceFingerprint } from "@/featureGate/rules/deviceFingerprint";
 import { rule as rules_fingerprintChallenge } from "@/featureGate/rules/fingerprintChallenge";
 import { rule as rules_interactionTracking } from "@/featureGate/rules/interactionTracking";
+import { rule as rules_messagingAnalytics } from "@/featureGate/rules/messagingAnalytics";
 import { rule as rules_messagingBroadcast } from "@/featureGate/rules/messagingBroadcast";
 import { rule as rules_messagingDispatches } from "@/featureGate/rules/messagingDispatches";
 import { rule as rules_messagingInbox } from "@/featureGate/rules/messagingInbox";
@@ -51,7 +52,7 @@ import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingBroadcast" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingAnalytics" | "messagingBroadcast" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -69,6 +70,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_deviceFingerprint, name: "deviceFingerprint", tables: ["device_fingerprints"], domainApiPaths: ["/api/deviceFingerprint"], settingPaths: [], cronPaths: ["/api/cron/device-fingerprint-prune"], dependsOn: [], anyOf: [] },
   { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], cronPaths: ["/api/cron/fingerprint-challenge-access-prune"], dependsOn: ["deviceFingerprint"], anyOf: [] },
   { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: ["/api/cron/interaction-event-prune"], dependsOn: [], anyOf: [] },
+  { ...rules_messagingAnalytics, name: "messagingAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics"], anyOf: [] },
   { ...rules_messagingBroadcast, name: "messagingBroadcast", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["messagingDispatches"], anyOf: [] },
   { ...rules_messagingDispatches, name: "messagingDispatches", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_messagingInbox, name: "messagingInbox", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
