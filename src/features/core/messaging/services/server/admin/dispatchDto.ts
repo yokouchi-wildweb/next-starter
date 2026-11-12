@@ -13,6 +13,7 @@ import type { MessageRecord } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageChannelCounts, MessageChannelTextMap } from "../../../entities/schema";
+import type { DispatchOperationFlags } from "./operations";
 
 export type AdminDispatchSummary = {
   id: string;
@@ -46,6 +47,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   body: Record<string, unknown> | null;
   /** 共通の vars の写し(記録の段が vars / full のときだけ) */
   vars: Record<string, unknown> | null;
+  /** 管理の操作ができるか(取り消し・取り下げ・再送、できない時は理由の符号)。一覧には無い */
+  operations: DispatchOperationFlags;
 };
 
 export type AdminDeliveryRow = {
@@ -112,7 +115,7 @@ export function keepsDispatchBody(record: MessageRecord | null): boolean {
   return record === "vars" || record === "full";
 }
 
-export function toDispatchDetail(row: MessageDispatch): AdminDispatchDetail {
+export function toDispatchDetail(row: MessageDispatch, operations: DispatchOperationFlags): AdminDispatchDetail {
   const keep = keepsDispatchBody(row.record);
   return {
     ...toDispatchSummary(row),
@@ -126,6 +129,7 @@ export function toDispatchDetail(row: MessageDispatch): AdminDispatchDetail {
     // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
+    operations,
   };
 }
 

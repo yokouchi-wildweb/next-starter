@@ -448,6 +448,15 @@ export function createMessageSender(deps: MessageSendDeps) {
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
     /**
+     * 組み済みの定義で送る(管理の再送が新しい回として送る時。上書きを重ね直さない。テンプレートは同じ版を固定する)
+     */
+    sendResolved: (
+      resolved: AnyResolvedMessageDefinition,
+      input: SendMessageToManyInput,
+      template?: { id: string; version: number },
+    ) => sendToMany(resolved as AnyMessageDefinition, input, { resolved, template }),
+
+    /**
      * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、経路ごとに欄と(経路が描けるなら)HTML を返す。
      * テンプレートは今の公開版(送る時に固定する版と同じ規則)
      * @throws DomainError 送る時と同じ検査(vars・経路・テンプレートの状態)

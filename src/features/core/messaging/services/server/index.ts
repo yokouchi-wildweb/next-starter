@@ -60,6 +60,14 @@ export type {
 } from "./admin";
 export type { MessagePreview, RecipientEstimate, SendTemplateInput } from "./sendMessage";
 export type {
+  AdminCancelResult,
+  AdminResendResult,
+  AdminRetractResult,
+  DispatchOperationFlag,
+  DispatchOperationFlags,
+  DispatchOperationReason,
+} from "./admin";
+export type {
   AdminBulkSendCounts,
   AdminBulkSendInput,
   AdminBulkSendResult,

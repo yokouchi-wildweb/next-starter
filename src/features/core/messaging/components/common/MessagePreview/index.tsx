@@ -125,8 +125,11 @@ export function MessagePreview({ channels, emailHeight = 480 }: MessagePreviewPr
           </Span>
           {channel.key === "email" ? (
             channel.html ? (
-              // 棚(src/components)に iframe の包みが無い。描いたメールの HTML を画面の DOM と分けるため、
-              // sandbox を空にした iframe(スクリプト・同じ origin・フォーム・移動を全部止める)に srcDoc で入れる(指令 28 の答え)
+              // 生の HTML の要素の決まりの例外(.claude/rules/core/components.md「wrappers (raw HTML NG)」): ここだけ生の <iframe> を使う。
+              // 理由: 描いたメールの HTML を画面の DOM と分けるため、sandbox を空にした iframe(スクリプト・同じ origin・フォーム・移動を
+              // 全部止める)に srcDoc で入れる(指令 28 の答え)。棚(src/components)に iframe の包みは無く、使い手は messaging だけ
+              // なので包みは作らない(議長の答え m46)。2 つ目の使い手が出たら src/components に包みを作って移す。
+              // lint の規則は <iframe> を見ていないので eslint-disable は付けない(付けると使われていない指示の警告になる)
               <iframe
                 title={`${channel.label ?? "メール"}のプレビュー`}
                 sandbox=""

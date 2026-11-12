@@ -4,7 +4,10 @@
 
 import {
   adminBulkSend,
+  adminCancelScheduled,
   adminContinueSending,
+  adminResendFailed,
+  adminRetract,
   adminSend,
   adminSendEstimate,
   adminSendOptions,
@@ -57,6 +60,10 @@ export const messagingService = {
   adminSendEstimate,
   adminSendTest,
   adminSendOptions,
+  /** 管理の回の操作(/api/admin/messaging/dispatches/[id]/{cancel, retract, resend}): 予約の取り消し・取り下げ・失敗の再送 */
+  adminCancelScheduled,
+  adminRetract,
+  adminResendFailed,
   /** 管理の「続きを送る」(監査ログに 1 行) */
   adminContinueSending,
   /** 回の読む口(管理。D37 の DTO): 一覧・1 件・配達 */
