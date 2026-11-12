@@ -5,7 +5,7 @@
 // - 種別: 既定 marketing(好みに従う)。transactional は要求で明示したときだけ(選んだ利用者宛てに限る = ここは常にそう)。
 //   定義の写しの kind だけを替える(種類 category は定義のまま)
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
-// - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulkSent)
+// - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
 // - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す
 
 import { z } from "zod";
@@ -145,7 +145,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
   await deps.recordAudit({
     targetType: "message_dispatch",
     targetId: result.dispatchId ?? "disabled",
-    action: "messaging.dispatch.bulkSent",
+    action: "messaging.dispatch.bulk_sent",
     metadata: {
       source,
       kind: input.kind,

@@ -377,7 +377,7 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 - `POST /send/estimate` `{ audience }` → `{ count, capped, fixedAtSend: true }`: 全員・ロールは数、audiences の項目は `count?(args)`、無ければ `resolveUserIds` を 10,000 まで数える（`capped`）、選んだ利用者は居る人の数。送る時に展開で数え直す（停止・宛先なしは引く前の数）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作（操作者なし）は 400
 - `GET /send/options`: 有効な経路（`adhoc` = その場で書ける経路）・ロール・audiences の項目・公開したテンプレート（今の版の種類・経路・変数）・`maxScheduleDays`
-- 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.testSent`（対象 `message_dispatch`、本文の値は残さない）
+- 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.test_sent`（対象 `message_dispatch`、本文の値は残さない）
 
 ### 送る画面（`/admin/messaging/send`、門 `messagingBroadcast`）
 
@@ -391,14 +391,14 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 - 入力（`AdminBulkSendInputSchema`）: 宛先は `{ userIds }` か `{ target, recordIds }` のどちらか 1 つ（1 回 10,000 人まで）・`kind?`（`marketing` 既定 | `transactional`）・`channels`（`email` / `inApp` の 1 つ以上）・`email?: { subject, body }`（email を送るなら必須）・`inApp?: { title, body }`（inApp を送るなら必須）・`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`
 - 結果: `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`。大きな送信の続きは cron が送る
 - 受け口 `bulkSendTargets/<名前>.ts`（`export const bulkSendTarget: MessageBulkSendTarget`、型 `services/server/admin/types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`（選んだ記録 → 利用者 id）・`afterSend?({ recordIds, dispatchId, counts, content })`（送信の受け付けの直後に 1 回。投げても送信は戻らず結果と監査に失敗を残す）。上流の項目 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
-- 監査: `messaging.dispatch.bulkSent`（対象 = 回、metadata = 送り元・種別・経路・数・状態・対象の鍵・afterSend）
+- 監査: `messaging.dispatch.bulk_sent`（対象 = 回、metadata = 送り元・種別・経路・数・状態・対象の鍵・afterSend）
 
 ### 回の読む口（D37。汎用 CRUD の search に乗せない）
 
 - `GET /api/admin/messaging/dispatches`: 条件 `from`・`to`（作った時刻）・`messageKey`・`kind`・`channel`・`status`・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）
 - `GET /api/admin/messaging/dispatches/[id]` → `AdminDispatchDetail`
 - `GET /api/admin/messaging/dispatches/[id]/deliveries`: 条件 `status`・`channel`・`cursor`・`limit` → `{ items: AdminDeliveryRow[], nextCursor }`（古い順）
-- 返す項目は `services/server/admin/dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元・状態・経路・件名 / 題（headings）・数・送った人・時刻・テストかは常に、回の本文（rendered）と vars は記録の段が vars / full のとき、配達の vars は vars / full、配達の本文は full のときだけ、宛先は出す、provider の生の値（provider_message_id・事件の payload）と last_error の文は出さない（状態と reason の符号で見る）。前の送る口の回（message_key が null）は件名・題・本文を前の列から
+- 返す項目は `services/server/admin/dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元・状態・経路・件名 / 題（headings）・数・送った人・時刻・テストかは常に、回の本文（rendered）と vars は記録の段が vars / full のとき、配達の vars は vars / full、配達の本文は full のときだけ、宛先は出す、provider の生の値（provider_message_id・事件の payload）と last_error の文は出さない（状態と reason の符号、失敗は last_error の符号の部分 `errorCode` で見る。文は `constants/deliveryErrors.ts`、画面の配達の行が「失敗の理由」に出す。例 `unsubscribe_key_missing` = 配信停止の鍵の env が無い）。前の送る口の回（message_key が null）は件名・題・本文を前の列から
 
 ### `POST /api/admin/messaging/dispatches/[id]/continue`（続きを送る）
 

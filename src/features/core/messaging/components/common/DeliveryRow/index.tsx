@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/DeliveryRow/index.tsx
-// 部品(props だけ): 回の配達の 1 行(状態・経路・宛先・利用者・理由・試した回数・時刻)。
+// 部品(props だけ): 回の配達の 1 行(状態・経路・宛先・利用者・理由・失敗の理由の符号の文・試した回数・時刻)。
 // provider の生の値と誤りの文は DTO が返さない(D37)
 
 "use client";
@@ -10,6 +10,7 @@ import { Span } from "@/components/TextBlocks/Span";
 
 import type { AdminDeliveryRow } from "@/features/core/messaging/services/client/adminMessagingClient";
 
+import { DELIVERY_ERROR_TEXT } from "@/features/core/messaging/constants/deliveryErrors";
 import { DELIVERY_REASON_LABELS, DeliveryStatusBadge } from "../DeliveryStatusBadge";
 import { formatAdminDateTime } from "../DispatchRow";
 
@@ -43,6 +44,11 @@ export function DeliveryRow({ delivery }: DeliveryRowProps) {
         {delivery.reason ? (
           <Span size="xs" tone="muted">
             理由: {DELIVERY_REASON_LABELS[delivery.reason] ?? delivery.reason}
+          </Span>
+        ) : null}
+        {delivery.errorCode ? (
+          <Span size="xs" tone="muted">
+            失敗の理由: {DELIVERY_ERROR_TEXT[delivery.errorCode] ?? delivery.errorCode}
           </Span>
         ) : null}
         <Span size="xs" tone="muted">

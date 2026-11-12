@@ -7,7 +7,7 @@
 // - プレビュー: 操作した管理者を見本の受信者にして経路ごとに描く(メールは送る時と同じ描き方の HTML)
 // - 見込み: 宛先の数(送る時に展開で数え直す = fixedAtSend)
 // - テスト送信: 宛先 = 操作した管理者だけ、is_test(集計と分母から外す)
-// - service でも管理者を確かめ、監査 messaging.dispatch.{sent, scheduled, testSent}
+// - service でも管理者を確かめ、監査 messaging.dispatch.{sent, scheduled, test_sent}
 
 import { z } from "zod";
 
@@ -302,7 +302,7 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
   await deps.recordAudit({
     targetType: "message_dispatch",
     targetId: result.dispatchId ?? "disabled",
-    action: "messaging.dispatch.testSent",
+    action: "messaging.dispatch.test_sent",
     metadata: {
       source: input.message.type === "template" ? "template" : "adhoc",
       ...(input.message.type === "template" ? { templateId: input.message.templateId } : {}),
