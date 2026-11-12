@@ -1,0 +1,1 @@
+{ "generate": "generate.mjs", "gates": [], "outputs": [{ "glob": "src/features/**/messages/*.ts", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)" }, { "glob": "src/features/**/messages/views/*.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)" }] }

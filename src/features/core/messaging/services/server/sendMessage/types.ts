@@ -241,6 +241,8 @@ export type MessageSendDeps = {
   adminOverrides?: MessageAdminOverrideSource;
   /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
   eventTypes?: ReadonlySet<string>;
+  /** categories の受け口の鍵(定義の category を照らす)。無ければ照らさない(テスト) */
+  categories?: readonly string[];
   /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
   throttle?: MessageThrottleStore;
   /** 保存されたテンプレート(sendTemplate と cron の版の引き直し)。無ければテンプレートでは送れない */

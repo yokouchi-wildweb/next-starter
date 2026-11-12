@@ -3,6 +3,9 @@
 // - required: true の定義: defaultChannels に "email" がある・adminEditable が空・throttle が無い
 // - その上書き: enabled: false にしない・defaultChannels(書くなら)に "email" がある・adminEditable(書くなら)は空・throttle(書くなら)は null だけ
 // - 守りに関わる値(定義の required・defaultChannels・adminEditable、上書きの enabled・defaultChannels・adminEditable)はリテラルで書く
+// - category(全部の定義と上書き): 書くならリテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
+//   定義で省けるのは kind "transactional" だけ(好みと配信停止の単位が黙って効かなくなるのを防ぐ、D35)。
+//   categories の点が宣言されていない木(messaging の無い木)では照らさない
 // 上書きの鍵(宣言の overrideOf の中か)は ../overrideKeys.mjs、欄・{{鍵}} など値の検査は lib/messaging の validateMessageDefinition(実行時・生成時)。
 // 点 = lib/messaging の extensionPoints.ts の messages(宣言の overrides の glob の対象)。pnpm check extensions(門 build)が回す
 
@@ -16,6 +19,8 @@ import { isOverridePath, overrideGlobOf } from "../../../../src/lib/districtMap/
 
 /** 守りを当てる点(持ち主のフォルダ・点の名前) */
 export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };
+/** 配信停止の種類の点(項目の鍵 = category に書ける値) */
+export const CATEGORY_POINT = { owner: "src/features/core/messaging", name: "categories" };
 /** 定義の export の名前(export const message = defineMessage({ … })) */
 export const MESSAGE_EXPORT = "message";
 
@@ -70,6 +75,46 @@ function readPresence(object, key) {
 const isStringArray = (v) => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /**
+ * categories の受け口の項目の鍵(項目 = <dir>/<名前>.ts(x) か <名前>/index.ts(x) の export const <export> = { key: "…" } を字面で読む)。
+ * 点が宣言されていなければ null(照らさない)
+ * @param {{ owner: string, name: string, spec: { dir?: string, export?: string } }[]} points
+ * @param {string[]} files
+ */
+export function readCategoryKeys(repoRoot, points, files) {
+  const point = points.find((p) => p.owner === CATEGORY_POINT.owner && p.name === CATEGORY_POINT.name);
+  if (!point?.spec?.dir || !point.spec.export) return null;
+  const base = `${point.owner}/${point.spec.dir}/`;
+  const items = files.filter((f) => {
+    if (!f.startsWith(base) || /\.test\.[cm]?tsx?$/.test(f)) return false;
+    const rest = f.slice(base.length);
+    return /^[^/.]+\.tsx?$/.test(rest) || /^[^/.]+\/index\.tsx?$/.test(rest);
+  });
+  const keys = [];
+  for (const path of items) {
+    const object = exportedObject(path, readFileSync(join(repoRoot, path), "utf8"), point.spec.export);
+    const key = object ? readLiteralProperty(object, "key") : { present: false };
+    if (key.present && typeof key.value === "string") keys.push(key.value);
+  }
+  return keys.sort();
+}
+
+/** category の問題(定義は kind と合わせて、上書きは書いた時だけ) */
+function categoryProblems(path, object, keys, { isOverride }) {
+  const category = readLiteralProperty(object, "category");
+  if (category.problem) return [`${path}: ${category.problem}(category を categories の受け口と字面で照らすため)`];
+  const list = keys.join(" / ") || "項目なし";
+  if (category.present) {
+    return typeof category.value === "string" && keys.includes(category.value)
+      ? []
+      : [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。項目を足すか、取引の連絡なら外す`];
+  }
+  if (isOverride) return [];
+  const kind = readLiteralProperty(object, "kind");
+  if (kind.problem) return [`${path}: ${kind.problem}(category を省けるのは取引だけなので kind を字面で読む)`];
+  return kind.value === "transactional" ? [] : [`${path}: ${String(kind.value)} の連絡は category(${list})を書く(省けるのは取引だけ)`];
+}
+
+/**
  * @param {string} repoRoot
  * @param {{ owner: string, name: string, declaredIn: string, spec: { overrides: string, export: string } }[]} points 宣言の点(全部。messages の点だけを見る)
  * @param {string[]} files src の下の全ファイル(リポジトリ直下からのパス)
@@ -83,12 +128,22 @@ export function checkMessageGuards(repoRoot, points, files) {
   const overrideGlob = overrideGlobOf(point.spec.overrides);
   const definitions = files.filter((f) => matchesGlob(f, point.spec.overrides) && !isOverridePath(f) && !/\.test\.[cm]?tsx?$/.test(f));
 
+  const categoryKeys = readCategoryKeys(repoRoot, points, files);
+
   for (const path of definitions) {
     const text = readFileSync(join(repoRoot, path), "utf8");
     const definition = exportedObject(path, text, MESSAGE_EXPORT);
     if (!definition) {
       problems.push(`${path}: 連絡の定義は export const ${MESSAGE_EXPORT} = defineMessage({ … }) の形で書く(点 ${point.name}、${point.declaredIn})`);
       continue;
+    }
+    if (categoryKeys) {
+      problems.push(...categoryProblems(path, definition, categoryKeys, { isOverride: false }));
+      const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
+      if (files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob)) {
+        const object = exportedObject(ownOverride, readFileSync(join(repoRoot, ownOverride), "utf8"), overrideExport);
+        if (object) problems.push(...categoryProblems(ownOverride, object, categoryKeys, { isOverride: true }));
+      }
     }
     const required = readLiteralProperty(definition, "required");
     const defaultChannels = readLiteralProperty(definition, "defaultChannels");

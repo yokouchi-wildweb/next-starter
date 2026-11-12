@@ -6,6 +6,7 @@
 // - required への上書き: enabled:false・email の除外・adminEditable・throttle を止める(throttle: null は通す)
 // - 守りに関わる値がリテラルでない・定義の形が違う(export const message が無い)を止める
 // - 宣言に無い鍵(key・required)の上書きは既存の overrideKeys が止める / views/ の下は対象外
+// - category: categories の点の項目の鍵か(取引だけ省ける)、上書きも(点の宣言が無い木では照らさない)
 // 実行: pnpm test scripts/structure/extensions/messageGuards.test.mjs
 
 import assert from "node:assert/strict";
@@ -109,4 +110,36 @@ test("宣言に無い鍵の上書きは止まり、views/ の下は対象外", (
   assert.equal(problems.length, 1, problems.join(" / "));
   assert.match(problems[0], /required・key は上書きできない/);
   assert.deepEqual(problemsOf({ [`${M}verification.ts`]: REQUIRED, [`${M}views/verification.tsx`]: "export const x = 1;\n" }), []);
+});
+
+// category の検査: messaging の点 categories の項目の鍵と照らす(点の宣言が無い木では照らさない = 上の fixture)
+const MESSAGING_DECLARATION = readFileSync(join(repoRoot, "src/features/core/messaging/extensionPoints.ts"), "utf8");
+const categoryItem = (key, kind) =>
+  `import type { MessageCategory } from "@/lib/messaging";\n\nexport const category: MessageCategory = { key: "${key}", label: "${key}", kind: "${kind}" };\n`;
+const withCategories = (files) => ({
+  "src/features/core/messaging/extensionPoints.ts": MESSAGING_DECLARATION,
+  "src/features/core/messaging/categories/marketing.ts": categoryItem("marketing", "marketing"),
+  "src/features/core/messaging/categories/activity.ts": categoryItem("activity", "activity"),
+  ...files,
+});
+const categoryProblemsOf = (files) => problemsOf(withCategories(files)).filter((p) => p.includes("category"));
+const plain = (kind, category) =>
+  definition(`defaultChannels: ["email"],`).replace('kind: "transactional",\n  category: "account",', `kind: "${kind}",${category ? `\n  category: ${category},` : ""}`);
+
+test("category: 受け口の鍵か、取引だけ省ける。上書きも照らす", () => {
+  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("transactional") }), []);
+  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("marketing", '"marketing"') }), []);
+  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("transactional", '"activity"') }), []);
+  const unknown = categoryProblemsOf({ [`${M}a.ts`]: plain("transactional", '"account"') });
+  assert.equal(unknown.length, 1, unknown.join(" / "));
+  assert.match(unknown[0], /category "account" は categories の受け口に無い\(activity \/ marketing\)/);
+  const missing = categoryProblemsOf({ [`${M}a.ts`]: plain("activity") });
+  assert.equal(missing.length, 1, missing.join(" / "));
+  assert.match(missing[0], /activity の連絡は category/);
+  const notLiteral = categoryProblemsOf({ [`${M}a.ts`]: plain("marketing", "CATEGORY") });
+  assert.match(notLiteral[0], /category はリテラル/);
+  const overridden = categoryProblemsOf({ [`${M}a.ts`]: plain("transactional"), [`${M}a.override.ts`]: override('category: "news"') });
+  assert.equal(overridden.length, 1, overridden.join(" / "));
+  assert.ok(overridden[0].startsWith(`${M}a.override.ts`), overridden[0]);
+  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("transactional"), [`${M}a.override.ts`]: override('category: "marketing"') }), []);
 });

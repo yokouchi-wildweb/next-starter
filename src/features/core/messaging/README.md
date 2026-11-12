@@ -510,7 +510,8 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 
 ## 連絡を足すとき
 
-1. 送る側のドメインに連絡の定義 `messages/<名前>.ts`（鍵 = `<ドメインのフォルダ名>.<名前>`）と、メールの見た目を変えるなら `messages/views/<名前>.tsx`（1 行スイッチ → `.default.tsx`）を置き、`pnpm generate registry`。書き方: src/lib/messaging/README.md
+1. 書き出し: `pnpm generate message -- <domain> <name> [--kind marketing|activity|transactional] [--category <key>] [--channels email,inApp] [--core]`。送る側のドメインに連絡の定義 `messages/<名前>.ts`（鍵 = `<ドメインのフォルダ名>.<名前>`）と、メールがあれば `messages/views/<名前>.tsx`（1 行スイッチ）・`.default.tsx`（既定の描き方）を無い時だけ書き、`src/registry/messageRegistry.ts` と拡張点の一覧を作り直す。既定 = 取引・email + inApp。fork は自分のドメインに足す（core のドメインは `--core` = 上流だけ）。使い方: `scripts/structure/message/README.md`、定義の書き方: src/lib/messaging/README.md
+   - category: `marketing` / `activity` の連絡は categories の受け口の鍵（上流 `marketing`・`activity`、無ければ先に `categories/<名前>.ts` を足す）。取引の連絡は省ける（上流の取引の連絡 10 本は持たない = 集計の種類の軸では category null）
 2. 送り手は定義を import して `messagingService.sendMessage` / `sendMessageToMany` を呼ぶ（このドメインに汎用の送信 API は無い。管理者の一括送信だけ `/api/admin/messaging/bulk-send`）。送り元 `source` の既定は定義の鍵
 3. cron・CLI から呼ぶときは `runAsSystem`（`@/lib/audit`）で包む
 4. 新しい送信の画面・バッチでは `idempotencyKey` を必ず渡す

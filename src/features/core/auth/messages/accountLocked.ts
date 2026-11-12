@@ -12,7 +12,6 @@ import { defineMessage } from "@/lib/messaging";
 export const message = defineMessage({
   key: "auth.accountLocked",
   kind: "transactional",
-  category: "account",
   record: "meta",
   vars: z.object({
     /** 発生時刻(表示用の文字列) */

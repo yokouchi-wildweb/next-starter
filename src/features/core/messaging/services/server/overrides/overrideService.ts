@@ -86,7 +86,7 @@ export function createOverrideService(deps: OverrideServiceDeps) {
     return {
       key: resolved.key,
       kind: resolved.kind,
-      category: resolved.category,
+      category: resolved.category ?? null,
       allowedKeys: adminFieldAllowedKeys(resolved, check.variableKeys),
       fields: buildFields(resolved, check, rows),
     };
@@ -107,7 +107,7 @@ export function createOverrideService(deps: OverrideServiceDeps) {
         summaries.push({
           key,
           kind: loaded.resolved.kind,
-          category: loaded.resolved.category,
+          category: loaded.resolved.category ?? null,
           editableCount: fields.filter((field) => field.editable).length,
           editedCount: fields.filter((field) => field.edited).length,
           orphanCount: fields.filter((field) => field.orphan).length,

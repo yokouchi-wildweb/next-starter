@@ -17,7 +17,6 @@ import { defineMessage } from "@/lib/messaging";
 export const message = defineMessage({
   key: "auth.verification",
   kind: "transactional",
-  category: "account",
   vars: z.object({ verificationUrl: z.string().url() }),
   required: true,
   record: "meta",
@@ -38,7 +37,7 @@ export const message = defineMessage({
 
 - `key`: `<domain>.<name>`(英数字の camelCase)
 - `kind`: `transactional`(取引・認証。配信停止の好みを見ない)| `marketing` | `activity`
-- `category`: 種類(配信停止の好みの表の行)
+- `category`: 種類(配信停止の好みの表の行) = categories の受け口の鍵(上流 `marketing`・`activity` と fork の項目)。`marketing`・`activity` は必須、`transactional` は省ける(好みを見ない。上流の取引の連絡は持たない)。受け口に無い鍵・取引でないのに無い category は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(送る口が受け口の鍵を渡す、`unknown_category` / `missing_category`)。上書きの category も同じに照らす
 - `vars`: 呼び手が渡す値の zod
   - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditable`・`throttle` を付けられない

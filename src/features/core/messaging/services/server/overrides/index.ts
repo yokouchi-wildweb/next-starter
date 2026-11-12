@@ -13,6 +13,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
+import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
 import { channelFieldSchemas, enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
@@ -34,7 +35,7 @@ const service = createOverrideService({
       const { message } = await entry.definition();
       if (!message) return null;
       // 管理画面の値は重ねない(コードの値 = 上流 + fork の override)
-      const resolved = await resolveDefinition(message, messageRegistry, channels, enrichers);
+      const resolved = await resolveDefinition(message, messageRegistry, channels, enrichers, undefined, Object.keys(categories));
       return {
         resolved,
         check: { channels: channelFieldSchemas(channels), variableKeys: enricherKeysFor(messageKey, enrichers) },

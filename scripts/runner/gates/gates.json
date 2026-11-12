@@ -47,7 +47,8 @@
       "lib-package",
       "config-overrides",
       "business",
-      "legal"
+      "legal",
+      "message"
     ],
     "workflow": [
       "worktree",

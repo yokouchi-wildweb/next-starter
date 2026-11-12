@@ -47,6 +47,7 @@ export function enricherKeysFor(
 /**
  * 上書きを重ねて検査した定義を返す。上書きは生成の一覧(messageRegistry)の項目から読む。
  * adminOverrides があり門が開なら、管理画面の文言を 1 回読んで重ねる(通らない欄はコードの値のまま、警告だけ)。
+ * categories(categories の受け口の鍵)を渡すと category を照らす(受け口に無い鍵・取引でないのに無い → 誤り)。渡さなければ照らさない(テスト)
  * @throws DomainError(500) 定義か上書きに誤りがある(呼び手の入力ではなくコードの誤り)
  */
 export async function resolveDefinition(
@@ -55,6 +56,7 @@ export async function resolveDefinition(
   channels: Readonly<Record<string, MessageChannel>>,
   enrichers: Readonly<Record<string, MessageEnricher>>,
   adminOverrides?: MessageAdminOverrideSource,
+  categories?: readonly string[],
 ): Promise<AnyResolvedMessageDefinition> {
   const entry = registry[definition.key];
   const override: MessageOverride<ChannelFieldSchemas> | undefined = entry?.override
@@ -65,6 +67,7 @@ export async function resolveDefinition(
     override,
     channels: channelFieldSchemas(channels),
     variableKeys: enricherKeysFor(definition.key, enrichers),
+    ...(categories ? { categories } : {}),
   });
   if (problems.length > 0) {
     throw new DomainError(
@@ -115,13 +118,14 @@ export function resolveChannels(
 
 /**
  * 生成の一覧の全件を確かめる(L2.2。テストと出荷前の検査が呼ぶ):
- * 鍵が合う・上書きを重ねた定義が validateMessageDefinition を通る・描き方は EmailView を export している。
+ * 鍵が合う・上書きを重ねた定義が validateMessageDefinition を通る(categories を渡せば category も)・描き方は EmailView を export している。
  * @returns 誤りの文(空 = 全件よい)
  */
 export async function checkMessageRegistry(
   registry: MessageRegistry,
   channels: Readonly<Record<string, MessageChannel>>,
   enrichers: Readonly<Record<string, MessageEnricher>>,
+  categories?: readonly string[],
 ): Promise<string[]> {
   const problems: string[] = [];
   for (const [key, entry] of Object.entries(registry)) {
@@ -133,7 +137,7 @@ export async function checkMessageRegistry(
         continue;
       }
       if (message.key !== key) problems.push(`${key}: 定義の鍵が ${message.key}`);
-      await resolveDefinition(message, registry, channels, enrichers);
+      await resolveDefinition(message, registry, channels, enrichers, undefined, categories);
       if (entry.view) {
         const view = await entry.view();
         if (typeof view.EmailView !== "function") problems.push(`${key}: 描き方が EmailView を export していない`);

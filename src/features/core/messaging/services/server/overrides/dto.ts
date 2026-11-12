@@ -6,7 +6,8 @@
 export type AdminOverrideMessageSummary = {
   key: string;
   kind: string;
-  category: string;
+  /** 種類(取引の連絡は無い = null) */
+  category: string | null;
   /** 直せる欄の数 */
   editableCount: number;
   /** 直した欄の数(孤立も含む) */
@@ -43,7 +44,8 @@ export type AdminOverrideField = {
 export type AdminOverrideMessageDetail = {
   key: string;
   kind: string;
-  category: string;
+  /** 種類(取引の連絡は無い = null) */
+  category: string | null;
   /** 使ってよい {{鍵}}(vars は秘密を除く・共通の文脈・provides) */
   allowedKeys: string[];
   fields: AdminOverrideField[];
