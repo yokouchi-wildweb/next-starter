@@ -48,9 +48,9 @@ pnpm workflow dev-tab run status     # どこで動いているか・応答す�
 
 ## エージェントの使い方
 
-- 動いているアプリでの確認が要る → 承認を 1 回取って `pnpm workflow dev-tab run` → 出た URL を Playwright で開く → 済んだら `pnpm workflow dev-tab run stop`
-- ログインが要る → `pnpm workflow dev-admin run`(テスト用の管理者。`scripts/workflow/dev-admin/README.md`)
-- 決まりそのもの(いつ立てるか・承認の取り方)は各リポの `.claude/rules/behavior.md`(fork が変えてよい)
+- 動いているアプリでの確かめは確かめの入口 `/devcheck` から(`pnpm workflow devcheck run server` がこの道具を呼び、この命令が立てた物だけを `cleanup` で止める。`scripts/workflow/devcheck/README.md`)
+- 直接使ってもよい: `pnpm workflow dev-tab run` → 出た URL を Playwright で開く → 済んだら `pnpm workflow dev-tab run stop`
+- 決まりそのもの(いつ確かめるか・承認の取り方)は各リポの `.claude/rules/behavior.md`(fork が変えてよい)
 
 ## 対応環境
 

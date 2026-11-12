@@ -79,13 +79,13 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
      宛先リポで `/inbox` を実行すると受け取れます。このセッションで `/wen` を打つと状況を確かめられます。宛先や内容を直すときはこのファイルを編集・移動します(言ってください)
      ```
 
-## BROWSER CHECK ORDER (the `check` argument: things to see in the running app, run later by `/browser-check` in the target repo)
+## BROWSER CHECK ORDER (the `check` argument: things to see in the running app, run later by `/patrol` in the target repo)
 - one item = one page + one expectation (`page:` path, `as:` guest | user | admin, `needs:` data or switches it stands on, `steps:`, `expect:`, `widths:` default 375,1280) | a long flow → several items
 - an item says what to see, never how the code works | write it so a session without this conversation can run it
 1. steps 1-2 above (provenance, target)
 2. collect the items from the conversation into a temp sheet (never inside a repo): per item `node .claude/skills/order/mailbox.mjs check add --sheet=<tmp>.md --page=/<path> --as=<who> --step=<step> [--step=…] --expect=<what is seen> [--needs=] [--source=<where it came from>]`
 3. `node .claude/skills/order/mailbox.mjs check file --sheet=<tmp>.md --to=<target fork-id> --title=<日本語の短い題> --why=<the situation>` → writes the order (`kind: browser-check`, `check_sheet:`) and its sheet into the target's inbox
-4. report as step 5 (the order's path) + the item count | the receiver runs it with `/browser-check <order id>`
+4. report as step 5 (the order's path) + the item count | the receiver runs it with `/patrol <order id>`
 - a sheet on an ordinary order (e.g. a fix order whose done_when is "these items pass"): write the order by steps 1-4 above, then `node .claude/skills/order/mailbox.mjs check attach <order file> --sheet=<sheet> [--only=C<n>,…]` (`--only` = copy those items only, results cleared, the old result kept in `was:`)
 - tools (a team at its end) file sheets they collected with the same `check file` (no Claude session needed)
 

@@ -113,14 +113,17 @@ test("server: 文脈が裏なら --background。立てた時だけ記録し、cl
   assert.match(nothing.lines[0], /片付けるものなし/);
 });
 
-test("server の上限: dev_max 以上なら 5 秒ごとに数え直し、空けば立てる・待ちきれなければ exit 3 で立てない", async () => {
+test("server の上限: dev_max 以上なら 5 秒ごとに数え直し、空けば立てる・待ちきれなければ exit 5 で立てない(3 は dev-tab の外のサーバー)", async () => {
   const ctx: Context = { ...STANDALONE, file: "/ctx", devMax: 2 };
   let n = 3;
   const freed = fake({ context: ctx, countLiveServers: () => n-- }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
   assert.equal((await execRun(["server"], freed)).code, 0);
   assert.equal(freed.slept, 10000);
   const full = fake({ context: ctx, countLiveServers: () => 2, waitSec: 10 });
-  assert.equal((await execRun(["server"], full)).code, 3);
+  assert.equal((await execRun(["server"], full)).code, 5);
+  const outside = fake({}, () => ({ code: 3, stdout: "", stderr: "この道具の外で開発サーバーが動いています" }));
+  assert.equal((await execRun(["server"], outside)).code, 3);
+  assert.equal(outside.record, null);
   assert.deepEqual(full.typed, []);
   assert.equal(await waitForSlot(null, () => 99, async () => {}, 0), true);
 });

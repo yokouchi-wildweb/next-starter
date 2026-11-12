@@ -575,7 +575,7 @@ export function fileCheckOrder({ box, to, from, src, title, why, only, slug = "b
     "status: open",
     "kind: browser-check",
     `title: ${title}`,
-    `need: run the browser checks of ${id}.check.md (${n} items) with /browser-check`,
+    `need: run the browser checks of ${id}.check.md (${n} items) with /patrol`,
     `why: ${why || `items collected by ${sources.join(", ") || "the sender"}; they need the running app, which the sender did not start`}`,
     "done_when: every item of the sheet has a result (ok | ng | skip); ng items handed on as fix orders, each with a sheet of its ng items",
     "constraints: -",

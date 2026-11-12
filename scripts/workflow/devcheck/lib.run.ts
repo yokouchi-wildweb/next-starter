@@ -17,9 +17,9 @@ export type RunResult = { code: number; stdout: string; stderr: string };
 /** コマンドを打つ物(シェルを通さない)。input = 標準入力に渡す文字列 */
 export type Runner = (argv: string[], options?: { input?: string }) => RunResult;
 
-/** 方針で止める時の終了コード(使い方の誤り 1・待ちきれない 3 と分ける) */
+/** 方針で止める時の終了コード / サーバーの上限で待ちきれない時の終了コード(dev-tab の 3 = 外のサーバー、とは分ける) */
 export const EXIT_POLICY = 4;
-export const EXIT_WAIT = 3;
+export const EXIT_WAIT = 5;
 
 // ---- 何を実行するか -------------------------------------------------------------------------
 

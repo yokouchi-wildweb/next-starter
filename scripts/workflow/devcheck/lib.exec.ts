@@ -74,7 +74,7 @@ export const execRun = async (args: string[], deps: Deps): Promise<ExecResult> =
     case "server": {
       const ok = await waitForSlot(deps.context.devMax, deps.countLiveServers, deps.sleep, deps.waitSec);
       if (!ok) {
-        deps.out(`server: 動いている開発サーバーが上限 ${deps.context.devMax} のまま ${deps.waitSec} 秒たった(立てていない)`);
+        deps.out(`server: 動いている開発サーバーが上限 ${deps.context.devMax} のまま ${deps.waitSec} 秒たった(立てていない、exit ${EXIT_WAIT})`);
         return { code: EXIT_WAIT };
       }
       const result = deps.runner(serverArgv(deps.context));
