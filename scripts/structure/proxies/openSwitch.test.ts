@@ -172,6 +172,7 @@ test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答�
       fingerprintChallenge: ["deviceFingerprint"],
       messagingOverrides: ["messagingDispatches"],
       messagingPreferences: ["pageMypage"],
+      messagingTemplates: ["messagingDispatches"],
       mypageInvite: ["pageMypage", "referral"],
       mypageOther: ["pageMypage"],
       mypagePause: ["pageMypage", "pause"],

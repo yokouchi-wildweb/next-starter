@@ -26,6 +26,17 @@ export type {
 /** storage の照合(cron storage-sweep)へ渡すお知らせの画像の紐付け先の有無 */
 export { existingDispatchIds } from "./inbox/dispatchRecords";
 export { INBOX_IMAGE_RECORD_TYPE } from "./inbox/imageBinding";
+/** storage の照合へ渡すテンプレートの画像の紐付け先の有無 */
+export { existingTemplateIds, TEMPLATE_IMAGE_RECORD_TYPE } from "./templates";
+export type {
+  AdminTemplateDetail,
+  AdminTemplatePage,
+  AdminTemplateSummary,
+  AdminTemplateVersion,
+  CreateMessageTemplateInput,
+  ListMessageTemplatesQuery,
+  UpdateMessageTemplateInput,
+} from "./templates";
 export type { InboxItemDto, InboxPage, InboxViewer } from "./inbox";
 export type { UserMessageHistoryItem, UserMessageHistoryPage, UserMessageHistoryQuery } from "./history";
 export type { ContinueSendingResult, RetentionResult, SendSweepResult } from "./sweep";

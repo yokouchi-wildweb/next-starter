@@ -12,11 +12,16 @@ export const cronTask: CronTaskDefinition = {
     const { runStorageSweep } = await import("@/features/core/storageObject/services/server/sweep");
     // 照合で台帳の record_type から業務行のサービスを引く口は、登録表を結んだ wiring から渡す（features は登録表を直接引かない）
     const { lookupDomainService } = await import("@/wiring/domainRegistry");
-    // 登録表に無い record_type の有無の関数(お知らせの画像 = 回の行があるか)
-    const { existingDispatchIds, INBOX_IMAGE_RECORD_TYPE } = await import("@/features/core/messaging/services/server");
+    // 登録表に無い record_type の有無の関数(お知らせの画像 = 回の行があるか・テンプレートの画像 = テンプレートの行があるか)
+    const { existingDispatchIds, existingTemplateIds, INBOX_IMAGE_RECORD_TYPE, TEMPLATE_IMAGE_RECORD_TYPE } = await import(
+      "@/features/core/messaging/services/server"
+    );
     return await runStorageSweep({
       lookupService: lookupDomainService,
-      recordResolvers: { [INBOX_IMAGE_RECORD_TYPE]: existingDispatchIds },
+      recordResolvers: {
+        [INBOX_IMAGE_RECORD_TYPE]: existingDispatchIds,
+        [TEMPLATE_IMAGE_RECORD_TYPE]: existingTemplateIds,
+      },
     });
   },
 };

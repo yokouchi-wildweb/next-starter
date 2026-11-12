@@ -21,6 +21,7 @@ import { rule as rules_messagingDispatches } from "@/featureGate/rules/messaging
 import { rule as rules_messagingInbox } from "@/featureGate/rules/messagingInbox";
 import { rule as rules_messagingOverrides } from "@/featureGate/rules/messagingOverrides";
 import { rule as rules_messagingPreferences } from "@/featureGate/rules/messagingPreferences";
+import { rule as rules_messagingTemplates } from "@/featureGate/rules/messagingTemplates";
 import { rule as rules_messagingTracking } from "@/featureGate/rules/messagingTracking";
 import { rule as rules_milestone } from "@/featureGate/rules/milestone";
 import { rule as rules_mypageInvite } from "@/featureGate/rules/mypageInvite";
@@ -49,7 +50,7 @@ import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -71,6 +72,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_messagingInbox, name: "messagingInbox", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_messagingOverrides, name: "messagingOverrides", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["messagingDispatches"], anyOf: [] },
   { ...rules_messagingPreferences, name: "messagingPreferences", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage"], anyOf: [] },
+  { ...rules_messagingTemplates, name: "messagingTemplates", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["messagingDispatches"], anyOf: [] },
   { ...rules_messagingTracking, name: "messagingTracking", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_milestone, name: "milestone", tables: ["milestones"], domainApiPaths: ["/api/milestone"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_mypageInvite, name: "mypageInvite", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["pageMypage", "referral"], anyOf: [] },

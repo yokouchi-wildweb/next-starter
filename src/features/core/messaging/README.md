@@ -196,6 +196,19 @@ D21・D24・D28。定義が `adminEditable` で宣言した欄だけを、管理
 - hook: `useMessageOverrides`（一覧、SWR）・`useMessageOverride(key)`（1 件、SWR）・`useMessageOverrideEditor(key)`（欄ごとの下書き・`unknownKeys`・`save` / `reset` / `discard`。保存と戻すは 1 件と一覧を取り直す。下書きがある間は `@/lib/unsavedGuard` で離れる前に確かめる）・純粋な関数 `unknownKeysOf` / `toEditable`。client は `services/client/overrideClient.ts`
 - loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingOverrides.ts`（マーケティング > 文言の上書き、門が閉なら隠れる）
 
+## 保存されたテンプレート（/api/admin/messaging/templates）
+
+D40・D41。管理者が画面で書く連絡の中身と、その版の履歴（`services/server/templates`、`messagingService.*MessageTemplate*`。service でも管理者を確かめる）。テンプレートで送る口（版の固定・予約・プレビュー・テスト送信）は次の段。
+
+- 門: 規則 `messagingTemplates`（`src/featureGate/rules/messagingTemplates.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は今は API だけ。管理の画面の住所は画面と一緒に足す）。閉の間 API は 404
+- 状態: `draft`（まだ公開していない）→ `published`（版がある）→ `archived`（取り下げ。直せない・公開できない、版は残る）
+- 行 = 今の中身（下書き）。公開 = 今の中身を `message_template_versions` に版として追記し `current_version` を進める。**公開した版は書き換えない**（公開済みを直すと行だけが変わり、`hasUnpublishedChanges` が立つ。次の公開で新しい版）。版は中身・変数・種類・経路を持つ（回は送る時に版を固定し、最新を引き直さない）。前の版から変更の無い公開は 409
+- 保存時の検査（作る・直す・公開の前、`templates/checks.ts`）: 経路は受け口にあり有効、`content` の経路 = `channels` で各経路の欄の zod を通る / 種類は種類の受け口にある / 変数は `MessageTemplateVariableSchema` の並びで鍵は一意・`{{鍵}}` に書ける形 / 本文の `{{鍵}}` は 共通の文脈 ∪ adminMessage に当たる provides ∪ 宣言した変数 の中だけ（`allowedKeys` で返す）
+  - **秘密はテンプレートを通さない**: 型 `secret` の変数と、共通の文脈・throttle・provides と同じ鍵の変数は宣言できない（秘密の値はコードの定義の `secretVar` に置く）
+- 画像: 中身の `storage://` の参照（`inApp.image` など）は保存の時に台帳でテンプレートの行に結ぶ（record `messaging.template` / テンプレートの id / `content`、用途 `notification.image`）。自分が上げた未紐付けの画像は attach、他の業務行に結ばれた・別の人の画像は複製して参照を書き換える。下書きから画像を外しても台帳からは外さない（公開した版が使う）。storage の照合（cron storage-sweep の `recordResolvers`）はテンプレートの行があれば残し、無ければ外す。送る時は回が自分の写しを持つ（次の段）
+- API（admin のみ）: `GET /` 一覧（`status`・`cursor`・`limit`）/ `POST /` 作る / `GET・PATCH /[id]` / `POST /[id]/publish` / `POST /[id]/archive` / `GET /[id]/versions`（新しい順）/ `GET /[id]/versions/[version]`。返す形は `services/server/templates/dto.ts`
+- 監査: `messaging.template.created` / `updated` / `published`（版の番号）/ `archived`（対象 `message_template`）
+
 ## 好みの読み書き（利用者の API /api/me/messaging/preferences）
 
 D35・D45。本人が 種類 × 経路 の好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
@@ -382,7 +395,7 @@ export const bulkAction = bulkMessageAction(
 - `message_events`: provider の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`
 - `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）
 - `message_inbox_reads` / `message_inbox_read_states`: 個別の既読と全既読のウォーターマーク（notification_reads / notification_read_states と同じ形）
-- `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`）
+- `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`。読み書きは「保存されたテンプレート」の節）
 - `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）。`UNIQUE(user_id, category, channel)`
 - `message_suppressions`: 宛先の停止（`address_hash` = 正規化した宛先の sha256）。`UNIQUE(channel, address_hash, scope)`、`scope` `'*'` = 全種類
 - `message_endpoints`: 端末の帳簿（利用者 × 経路 × 宛先）。`UNIQUE(channel, address)`
