@@ -8,6 +8,8 @@ guardEntry({ write: process.argv[2] === "query", db: true, what: `pnpm ops db in
 
 import postgres from "postgres";
 
+import { rowsAsJson, splitJsonFlag } from "./lib.inspect";
+
 const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
 
 type Command = "query" | "tables" | "describe" | "count";
@@ -54,10 +56,12 @@ function printTable(rows: Record<string, unknown>[]) {
   console.log(`\n(${rows.length} rows)`);
 }
 
-async function runQuery(query: string) {
+async function runQuery(query: string, json: boolean) {
   try {
     const result = await sql.unsafe(query);
-    printTable(result as Record<string, unknown>[]);
+    // --json = 行を JSON の配列 1 つで(機械が読む形。pnpm workflow devcheck が書いた行の id を受け取る)
+    if (json) console.log(rowsAsJson(result as unknown as Record<string, unknown>[]));
+    else printTable(result as Record<string, unknown>[]);
   } catch (error) {
     console.error("クエリエラー:", (error as Error).message);
     process.exit(1);
@@ -135,7 +139,7 @@ async function countRows(tableName?: string) {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
+  const { args, json } = splitJsonFlag(process.argv.slice(2));
   const command = args[0] as Command;
   const param = args.slice(1).join(" ");
 
@@ -145,7 +149,7 @@ async function main() {
         console.error("使用法: pnpm ops db inspect query \"SELECT * FROM table_name\"");
         process.exit(1);
       }
-      await runQuery(param);
+      await runQuery(param, json);
       break;
 
     case "tables":
@@ -169,7 +173,7 @@ async function main() {
 データベースCLIツール
 
 使用法:
-  pnpm ops db inspect query "SQL文"     SQLクエリを実行
+  pnpm ops db inspect query "SQL文" [--json]  SQLクエリを実行(--json = 行を JSON の配列で)
   pnpm ops db inspect tables            テーブル一覧を表示
   pnpm ops db inspect describe <table>  テーブル構造を表示
   pnpm ops db inspect count [table]     行数を表示（テーブル省略で全テーブル）

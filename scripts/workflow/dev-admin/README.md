@@ -6,9 +6,10 @@
 
 ```bash
 pnpm workflow dev-admin run
+pnpm workflow dev-admin run --check   # 読むだけ: 管理者がいるか(作らない・直さない)
 ```
 
-出力は JSON 1 行(`action`・`email`・`password`・`loginUrl`)。終了コード: 0 = できた / 1 = 止まった(理由は `error`)
+出力は JSON 1 行(`action`・`email`・`password`・`loginUrl`。`--check` は `action: "check"`・`present`・`email`、パスワードは出さない)。終了コード: 0 = できた / 1 = 止まった(理由は `error`)
 
 ## 中身
 

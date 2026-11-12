@@ -30,3 +30,10 @@ export const notDevelopmentReason = (env: NodeJS.ProcessEnv): string | null => {
   if (!env.AUTH_JWT_SECRET) return "AUTH_JWT_SECRET がありません(pnpm ops setup env)";
   return null;
 };
+
+/** --check の答え(読むだけ): 論理削除済み・無い = いない。パスワードは出さない */
+export const checkResult = (existing: { deletedAt?: unknown } | null | undefined): { action: "check"; present: boolean; email: string } => ({
+  action: "check",
+  present: Boolean(existing && !existing.deletedAt),
+  email: DEV_ADMIN_EMAIL,
+});

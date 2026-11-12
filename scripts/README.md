@@ -9,7 +9,7 @@ scripts/ は、アプリの外からこのフレームワークを作り・確�
 | 分類 | 置く物 | 呼び方 | 今の対象 |
 |---|---|---|---|
 | `structure/` | 生成器と検査器。全部どこかの門(gate.json)に乗る | `pnpm generate <対象>` / `pnpm check <対象>` | admin-menu・bundle・business・config・config-overrides・cron・cycles・district-map・domain・eslint・extensions・forge・legal・proxies・registry・role・routes・styles |
-| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice とスキルの書式の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者・普通のセッション同士の連絡) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・dev-admin・dev-tab・local-migrations・notices・ownership・peer・rules・skills・tmux-launch・worktree |
+| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice とスキルの書式の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者・開発中の確かめの入口・普通のセッション同士の連絡) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・dev-admin・dev-tab・devcheck・local-migrations・notices・ownership・peer・rules・skills・tmux-launch・worktree |
 | `runner/` | 入口と、テスト・運用コマンド・シードを動かすランナー、書く入口の守り | `pnpm test` / `pnpm task` / `pnpm check` / `pnpm ops db seed` の中身 | entries・gates・guard・preload・seed・task・test |
 | `operations/` | 手で行う操作と閲覧(DB・Firestore・データ・デプロイ・初期化・storage・ルーム・メール・機能の入切・Claude API) | `pnpm ops <対象> <動作>` | business・claude・data・db・deploy・features・firestore・legal・mail・room・setup・storage |
 
@@ -60,6 +60,7 @@ pnpm ops data export|import|update|delete <domain>  # 全ドメイン共通の�
 pnpm ops features list | set <規則名> on|off        # 機能を閉じる規則の一覧と入切
 pnpm workflow worktree new <branch> | sync | remove <path>
 pnpm workflow dev-tab run [stop|status]             # 開発サーバーを tmux のタブか裏のプロセスで
+pnpm workflow devcheck plan|status|run|cleanup     # 開発中の確かめの事実と候補・実行・片付け
 pnpm workflow dev-admin run                         # 確認用の管理者を開発用 DB に用意する
 pnpm ops room init | deploy | secret | check | dev  # リアルタイムルーム(servers/room/README.md)
 pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を作る

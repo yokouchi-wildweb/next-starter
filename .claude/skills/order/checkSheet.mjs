@@ -1,5 +1,5 @@
-// ブラウザ確認のシート（<指令>.check.md）の読み書き。mailbox.mjs の `check` サブコマンドと /browser-check が使う
-// 書式（機械向け。人が読むのは title: と /browser-check の報告だけ）:
+// ブラウザ確認のシート（<指令>.check.md）の読み書き。mailbox.mjs の `check` サブコマンドと /patrol が使う
+// 書式（機械向け。人が読むのは title: と /patrol の報告だけ）:
 //   # CHECK SHEET order:<指令 id | ->  repo:<fork-id | ->
 //   title: <日本語の短い題 | ->
 //   created: <ISO8601>  updated: <ISO8601>

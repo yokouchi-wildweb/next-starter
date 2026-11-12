@@ -478,4 +478,5 @@
 - id:20261111-191238-same-basename-ts-tsx | severity:info | checkpoint:same-basename-ts-tsx | moved:src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.test.tsx -> src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.render.test.tsx; src/features/core/wallet/hooks/usePurchaseBonuses.test.tsx -> src/features/core/wallet/hooks/usePurchaseBonuses.render.test.tsx
 - id:20261111-190657-variant-overrides-inputs | severity:info | checkpoint:variant-overrides-inputs
 - id:20261111-195401-messaging-preferences | severity:info | checkpoint:messaging-preferences
+- id:20261112-104626-devcheck | severity:info | checkpoint:devcheck
 - id:20261112-104620-messaging-overrides | severity:action-required | checkpoint:messaging-overrides

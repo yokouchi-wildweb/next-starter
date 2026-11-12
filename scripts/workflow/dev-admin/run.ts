@@ -1,12 +1,23 @@
 // scripts/workflow/dev-admin/run.ts
 //
 // pnpm workflow dev-admin run — 開発用 DB にエージェントの確認用の管理者を用意し、ログイン情報を JSON 1 行で出す。
+// pnpm workflow dev-admin run --check — 読むだけ: 管理者がいるかを JSON 1 行で出す(作らない・直さない。守りは読む入口)。
 // 開発の進め方の道具(業務の操作ではないので user ドメインのタスクにしない、L1.30)。何をするか・止まる条件は lib.ts の先頭。
 // 下準備(env ファイルの読み込み・DB 未設定の止め・監査の system 文脈)はタスクのランナーの部品 scripts/runner/task/prepare.ts を使う。
 // server-only の下駄は pnpm workflow が .ts に付ける。利用者を作る処理は userService を動的 import で呼ぶ(DB は直接書かない)。
 
+import { guardEntry } from "../../runner/guard";
 import { asSystem, loadEnvFile, requireDatabase } from "../../runner/task/prepare";
-import { DEV_ADMIN_EMAIL, DEV_ADMIN_NAME, devAdminPassword, notDevelopmentReason } from "./lib";
+import { DEV_ADMIN_EMAIL, DEV_ADMIN_NAME, checkResult, devAdminPassword, notDevelopmentReason } from "./lib";
+
+/** 読むだけ: 管理者がいるか(論理削除済みはいない扱い) */
+async function checkDevAdmin(): Promise<Record<string, unknown>> {
+  const reason = notDevelopmentReason(process.env);
+  if (reason) throw new Error(`dev-admin: ${reason}`);
+  await requireDatabase("dev-admin");
+  const { userService } = await import("@/features/core/user/services/server/userService");
+  return checkResult(await userService.findByLocalEmail(DEV_ADMIN_EMAIL));
+}
 
 async function ensureDevAdmin(): Promise<Record<string, unknown>> {
   const reason = notDevelopmentReason(process.env);
@@ -48,13 +59,16 @@ async function ensureDevAdmin(): Promise<Record<string, unknown>> {
   };
 }
 
-loadEnvFile("pnpm workflow dev-admin run");
-ensureDevAdmin()
+const checkOnly = process.argv.slice(2).includes("--check");
+if (checkOnly) guardEntry({ write: false, db: true, what: "pnpm workflow dev-admin run --check" });
+else loadEnvFile("pnpm workflow dev-admin run");
+(checkOnly ? checkDevAdmin() : ensureDevAdmin())
   .then((result) => {
     console.log(JSON.stringify({ level: "info", scope: "dev-admin", ok: true, ...result }));
     process.exit(0);
   })
   .catch((error: unknown) => {
-    console.error(JSON.stringify({ level: "error", scope: "dev-admin", ok: false, error: error instanceof Error ? error.message : String(error) }));
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(JSON.stringify({ level: "error", scope: "dev-admin", ok: false, ...(checkOnly ? { action: "check" } : {}), error: message }));
     process.exit(1);
   });
