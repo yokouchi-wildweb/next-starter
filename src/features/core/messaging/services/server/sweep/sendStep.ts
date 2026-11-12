@@ -6,6 +6,7 @@
 // - 経路の項目が無い・enabled: false → suppressed + channel_off
 // - 送る直前に配信停止を確かめ直す(好み・宛先の停止 → suppressed + reason。宛先の 1 つにもう送れた行は sent のまま)
 // - 送った後の行の受信者ごとの値は回の record に従う(meta なら消す)。full なら描いた本文を残す
+// - throttle のある連絡は経路の send の前に間引きを当てる(sendMessage/throttle.ts)
 // required・秘密の連絡はキューに置かれない(送る口が要求の中で送り切る)ので、ここには来ない
 
 import { DomainError } from "@/lib/errors";
@@ -20,6 +21,7 @@ import { activeChannel } from "../sendMessage/expand";
 import { recordPolicyOf, type RecordPolicy } from "../sendMessage/record";
 import { stopContextOf } from "../sendMessage/sender";
 import { checkStops, honoursPreferences } from "../sendMessage/stops";
+import { applyThrottle, type ThrottleJob } from "../sendMessage/throttle";
 import { deliveryEvents } from "../events/internalEvents";
 import type { MessageSweepDeps } from "./types";
 
@@ -127,7 +129,7 @@ export async function sendClaimed(
       ).map((verdict, index) => [checkable[index].id, verdict]),
     );
 
-    const jobs: DeliveryJob[] = [];
+    const prepared: ThrottleJob[] = [];
     const bodies = new Map<string, Record<string, unknown>>();
     for (const row of group) {
       const channel = activeChannel(deps.channels, row.channel);
@@ -178,17 +180,34 @@ export async function sendClaimed(
         unknown
       >;
       bodies.set(row.id, content);
-      jobs.push({
-        deliveryId: row.id,
-        recipientKey: row.recipient_key,
-        channel: row.channel,
-        userId: row.user_id,
-        addresses,
-        attempts: row.attempts,
-        content,
-        targets: row.targets as MessageDeliveryTarget[] | null,
+      prepared.push({
+        values,
+        job: {
+          deliveryId: row.id,
+          recipientKey: row.recipient_key,
+          channel: row.channel,
+          userId: row.user_id,
+          addresses,
+          attempts: row.attempts,
+          content,
+          targets: row.targets as MessageDeliveryTarget[] | null,
+        },
       });
     }
+
+    // 会話の間引き(鍵の lock の中で受信者の行を読み直して決める。決めた行は間引きが lease ごと書いたので数えるだけ)
+    const throttled = await applyThrottle(deps, {
+      dispatchId: dispatch!.id,
+      audienceType: (dispatch!.audience as { type?: string } | null)?.type ?? null,
+      resolved,
+      vars,
+      policy,
+      jobs: prepared,
+    });
+    for (const decided of throttled.decided) {
+      if (rowsById.has(decided.deliveryId)) count(decided.status);
+    }
+    const jobs: DeliveryJob[] = throttled.jobs;
 
     const results = await sendDeliveries(deps, {
       messageKey: resolved.key,

@@ -7,6 +7,7 @@
 // - 回の id は配達の行(冪等の鍵 = 配達の id)から引く。同じ回 × 利用者の行が既にあれば書かない(送り直しで重ねない)
 // - 画像(storage:// の参照)は書く前に回へ結び(bindImages、services/server/inbox/imageBinding.ts)、結んだ参照を行に書く。
 //   台帳の持ち主は回(宛先ごとの行は同じ 1 つのファイルを指す)
+// - throttle のある連絡の行は、この send ではなく間引きの処理(services/server/sendMessage/throttle.ts)が inAppItemRow の形で書く
 
 import { inAppFieldsSchema, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
@@ -24,6 +25,26 @@ export type InAppChannelDeps = {
 };
 
 type InAppContent = { title?: string; body?: string; image?: string; link?: string };
+
+/**
+ * 描いた中身から受信者ごとのお知らせの行を作る(この経路の send と、間引きの処理が鍵の lock の取引の中で書く行の共通の形)。
+ * image は結ぶ前の参照(呼び手が bindImages で結んだ参照に替える)
+ */
+export function inAppItemRow(
+  content: Readonly<Record<string, unknown>>,
+  params: { dispatchId: string; userId: string; now: Date },
+): MessageInboxItemInsert {
+  const fields = content as InAppContent;
+  return {
+    dispatch_id: params.dispatchId,
+    user_id: params.userId,
+    title: typeof fields.title === "string" ? fields.title : null,
+    body: typeof fields.body === "string" ? fields.body : "",
+    link: typeof fields.link === "string" ? fields.link : null,
+    image: typeof fields.image === "string" ? fields.image : null,
+    published_at: params.now,
+  };
+}
 
 export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
   return {
@@ -53,16 +74,7 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
         }
         const pair = `${dispatchId}|${userId}`;
         if (!existing.has(pair)) {
-          const content = target.content as InAppContent;
-          rows.push({
-            dispatch_id: dispatchId,
-            user_id: userId,
-            title: content.title ?? null,
-            body: content.body ?? "",
-            link: content.link ?? null,
-            image: content.image ?? null,
-            published_at: now,
-          });
+          rows.push(inAppItemRow(target.content, { dispatchId, userId, now }));
           existing.add(pair);
         }
         results.push({ address: target.address, kind: "sent", provider: "inApp", providerMessageId: null });

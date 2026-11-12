@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/sweep/complete.ts
 //
-// 展開と送信を終えた回を閉じる: 経路ごとの sent / failed を配達の行から数え直し、
+// 展開と送信を終えた回を閉じる: 経路ごとの sent / failed / skipped_throttled を配達の行から数え直し、
 // status を completed / completed_with_failures、completed_at を埋め、record meta なら送るために置いた vars を消す。
 
 import type { MessageChannelCounts } from "../../../entities/schema";
@@ -29,14 +29,16 @@ export async function completeDispatches(
       };
       // 配達の行のある経路だけ数え直す(全員・ロール宛てのお知らせの共有の行は展開の時に数えた値のまま)
       const hasRows = aggregate.some((entry) => entry.channel === key);
-      counts[key] = hasRows ? { ...base, sent: 0, failed: 0 } : { ...base };
+      counts[key] = hasRows ? { ...base, sent: 0, failed: 0, skipped_throttled: 0 } : { ...base };
     }
     let anyFailed = false;
-    for (const { channel, status, count } of aggregate) {
+    for (const { channel, status, reason, count } of aggregate) {
       if (FAILED.includes(status)) anyFailed = true;
       if (!counts[channel]) continue;
       if (status === "sent" || status === "delivered") counts[channel].sent += count;
       if (status === "failed" || status === "bounced") counts[channel].failed += count;
+      // 間引いた行(お知らせの置き換えは sent に数える)
+      if (status === "suppressed" && reason === "throttled") counts[channel].skipped_throttled += count;
     }
     const now = deps.now();
     const status = anyFailed ? "completed_with_failures" : "completed";

@@ -18,6 +18,7 @@ import type {
   MessageDispatchInsert,
   MessageDispatchStatus,
   MessageEventRowInsert,
+  MessageInboxItemInsert,
 } from "../../../entities/model";
 import type { MessageChannelCounts } from "../../../entities/schema";
 
@@ -180,6 +181,46 @@ export type MessageSendStore = {
   touchEndpoints: (channel: string, entries: readonly { userId: string; address: string }[], at: Date) => Promise<void>;
 };
 
+/** 間引きの判定が読む受信者の配達の行(鍵の lock の中で読み直す) */
+export type ThrottleDeliveryRow = {
+  id: string;
+  dispatch_id: string;
+  channel: string;
+  status: MessageDeliveryStatus;
+  reason: MessageDeliveryReason | null;
+  throttle_key: string | null;
+  attempts: number;
+};
+
+/** 置き換えられる未読の受信者ごとのお知らせ */
+export type ThrottleInboxItem = {
+  id: string;
+  dispatch_id: string;
+  collapsed_count: number;
+  collapsed_dispatch_ids: string[] | null;
+};
+
+/** 鍵の lock を持った取引の中の読み書き */
+export type MessageThrottleTx = {
+  /** 回 × 受信者の配達の行(全部の経路) */
+  recipientRows: (dispatchId: string, recipientKey: string) => Promise<ThrottleDeliveryRow[]>;
+  /** 利用者の同じ鍵の未読の行(新しい順の最初) */
+  findUnreadItem: (userId: string, throttleKey: string) => Promise<ThrottleInboxItem | null>;
+  /** window の起点があるか: 同じ鍵・他の回・reason なしの行で、since より後に sent / delivered か、送り方を決めて送る途中(queued / sending) */
+  hasWindowAnchor: (throttleKey: string, excludeDispatchId: string, since: Date) => Promise<boolean>;
+  /** お知らせの行を書く(画像は回に結んでから) */
+  insertItem: (row: MessageInboxItemInsert) => Promise<void>;
+  /** 未読の行を最新の中身に置き換える(画像は回に結んでから) */
+  replaceItem: (id: string, patch: Partial<MessageInboxItemInsert>) => Promise<void>;
+  /** 配達の行を書く。events = 同じ取引で書く内部の事件 */
+  updateDelivery: (id: string, patch: Partial<MessageDeliveryInsert>, events?: readonly MessageEventRowInsert[]) => Promise<void>;
+};
+
+/** 会話の間引きの DB(鍵ごとの排他。本物は pg_advisory_xact_lock、テストはメモリの mutex) */
+export type MessageThrottleStore = {
+  withKey: <T>(throttleKey: string, fn: (tx: MessageThrottleTx) => Promise<T>) => Promise<T>;
+};
+
 /** 送る口が使う部品 */
 export type MessageSendDeps = {
   store: MessageSendStore;
@@ -200,6 +241,8 @@ export type MessageSendDeps = {
   adminOverrides?: MessageAdminOverrideSource;
   /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
   eventTypes?: ReadonlySet<string>;
+  /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
+  throttle?: MessageThrottleStore;
   /** 保存されたテンプレート(sendTemplate と cron の版の引き直し)。無ければテンプレートでは送れない */
   templates?: MessageTemplateSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */

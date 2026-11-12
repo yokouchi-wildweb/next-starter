@@ -101,6 +101,8 @@ export async function buildRecipientValues(params: {
     recipientEmail: user?.email ?? "",
     serviceName,
     appBaseUrl,
+    // まとめた回数(throttle のある連絡だけ。普通の送りは 1、間引きがお知らせを置き換える時はその回数で描き直す)
+    ...(resolved.throttle ? { collapsedCount: 1 } : {}),
   };
 }
 

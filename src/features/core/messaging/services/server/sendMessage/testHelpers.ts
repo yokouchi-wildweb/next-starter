@@ -19,9 +19,16 @@ import type {
   MessageDeliveryInsert,
   MessageDispatchInsert,
   MessageEventRowInsert,
+  MessageInboxItemInsert,
 } from "../../../entities/model";
 import { MessageIdempotencyConflict } from "./errors";
-import type { MessageSendDeps, MessageSendStore, MessageUserRow } from "./types";
+import type {
+  MessageSendDeps,
+  MessageSendStore,
+  MessageThrottleStore,
+  MessageUserRow,
+  ThrottleDeliveryRow,
+} from "./types";
 
 export type MemoryStore = MessageSendStore & {
   dispatches: (MessageDispatchInsert & { id: string })[];
@@ -111,6 +118,7 @@ export function createMemoryStore(): MemoryStore {
           opened_at: null,
           clicked_at: null,
           complained_at: null,
+          throttle_key: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           ...values,
@@ -220,5 +228,84 @@ export function createDeps(overrides: Partial<MessageSendDeps> & { store: Memory
     },
     slept,
     ...overrides,
+  };
+}
+
+/** メモリのお知らせの行(間引きのテスト) */
+export type MemoryInboxItem = MessageInboxItemInsert & { id: string; read: boolean };
+
+/**
+ * メモリの間引きの store(鍵ごとの mutex: 同じ鍵の withKey は前の呼び出しが終わるまで待つ)。
+ * 配達の行は送る口のメモリの store(deliveries)を読み書きする。既読は item.read
+ */
+export function createMemoryThrottleStore(store: MemoryStore): MessageThrottleStore & { items: MemoryInboxItem[] } {
+  const items: MemoryInboxItem[] = [];
+  const tails = new Map<string, Promise<unknown>>();
+  const toRow = (row: MessageDelivery): ThrottleDeliveryRow => ({
+    id: row.id,
+    dispatch_id: row.dispatch_id,
+    channel: row.channel,
+    status: row.status,
+    reason: row.reason ?? null,
+    throttle_key: row.throttle_key ?? null,
+    attempts: row.attempts,
+  });
+  return {
+    items,
+    async withKey(throttleKey, fn) {
+      const before = tails.get(throttleKey) ?? Promise.resolve();
+      let release!: () => void;
+      const mine = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      tails.set(throttleKey, before.then(() => mine));
+      await before;
+      try {
+        return await fn({
+          async recipientRows(dispatchId, recipientKey) {
+            // 取引の中の読みの間に他の処理が動ける(並走のテストで lock が要ることを確かめる)
+            await new Promise((resolve) => setImmediate(resolve));
+            return store.deliveries
+              .filter((row) => row.dispatch_id === dispatchId && row.recipient_key === recipientKey)
+              .map(toRow);
+          },
+          async findUnreadItem(userId, key) {
+            const found = items
+              .filter((item) => item.user_id === userId && item.throttle_key === key && !item.read)
+              .sort((a, b) => b.published_at.getTime() - a.published_at.getTime())[0];
+            return found
+              ? {
+                  id: found.id,
+                  dispatch_id: found.dispatch_id,
+                  collapsed_count: found.collapsed_count ?? 1,
+                  collapsed_dispatch_ids: found.collapsed_dispatch_ids ?? null,
+                }
+              : null;
+          },
+          async hasWindowAnchor(key, excludeDispatchId, since) {
+            return store.deliveries.some(
+              (row) =>
+                row.throttle_key === key &&
+                row.dispatch_id !== excludeDispatchId &&
+                row.reason === null &&
+                ((["sent", "delivered"].includes(row.status) && row.sent_at !== null && row.sent_at > since) ||
+                  ["queued", "sending"].includes(row.status)),
+            );
+          },
+          async insertItem(row) {
+            items.push({ collapsed_count: 1, collapsed_dispatch_ids: null, ...row, id: randomUUID(), read: false });
+          },
+          async replaceItem(id, patch) {
+            const item = items.find((entry) => entry.id === id);
+            if (item) Object.assign(item, patch);
+          },
+          async updateDelivery(id, patch, events) {
+            await store.updateDelivery(id, patch, events);
+          },
+        });
+      } finally {
+        release();
+      }
+    },
   };
 }

@@ -64,10 +64,12 @@ async function sharedInAppContent(
     const { resolved } = loaded;
     const content = channelContent(resolved, IN_APP, deps.channels[IN_APP]);
     const vars = (dispatch.vars ?? {}) as Record<string, unknown>;
-    const allowed = new Set([...Object.keys(vars), ...RECIPIENT_INDEPENDENT_CONTEXT]);
+    // throttle のある連絡の {{collapsedCount}} は共有の行では 1(全員・ロール宛ては間引かない)
+    const throttleValues = resolved.throttle ? { collapsedCount: 1 } : {};
+    const allowed = new Set([...Object.keys(vars), ...RECIPIENT_INDEPENDENT_CONTEXT, ...Object.keys(throttleValues)]);
     const keys = collectStrings(content).flatMap((text) => listVariables(text));
     if (keys.some((key) => !allowed.has(key))) return null;
-    return renderValue(content, toVariableMap({ ...vars, ...deps.context() })) as Record<string, unknown>;
+    return renderValue(content, toVariableMap({ ...vars, ...deps.context(), ...throttleValues })) as Record<string, unknown>;
   } catch {
     return null;
   }

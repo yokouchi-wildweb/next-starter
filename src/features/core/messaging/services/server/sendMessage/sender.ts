@@ -7,6 +7,7 @@
 //   大きな送信・audience: 回の行だけ(status processing)。展開と送信は cron(次の指令)
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
 // 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の audience に置く)。cron の activateScheduled が時刻に processing にして展開する
+// 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
 // テンプレート(sendTemplate): 今の公開版から定義を組み、回に template_id + template_version を固定する(cron も同じ版から組み直す)
 
 import { DomainError } from "@/lib/errors";
@@ -39,6 +40,7 @@ import { recipientVariablesWithoutDefault, resolveTemplateDefinition, templateDe
 import { expandExplicit, recipientKeyOf, type ExpansionCounts, type PlannedDelivery } from "./expand";
 import { omitKeys, recordPolicyOf, type RecordPolicy } from "./record";
 import { honoursPreferences, type StopContext } from "./stops";
+import { applyThrottle, type ThrottleJob } from "./throttle";
 import { MessageIdempotencyConflict } from "./errors";
 import type {
   MessageDeliveryOutcome,
@@ -68,7 +70,7 @@ function emptyChannelCounts(channels: readonly string[]): MessageChannelCounts {
 function toChannelCounts(
   channels: readonly string[],
   expansion: ExpansionCounts,
-  statuses: readonly { channel: string; status: string }[],
+  statuses: readonly { channel: string; status: string; reason?: string | null }[],
 ): MessageChannelCounts {
   const counts = emptyChannelCounts(channels);
   for (const key of channels) {
@@ -76,10 +78,12 @@ function toChannelCounts(
     counts[key].skipped_no_address = expansion[key]?.skippedNoAddress ?? 0;
     counts[key].suppressed = expansion[key]?.suppressed ?? 0;
   }
-  for (const { channel, status } of statuses) {
+  for (const { channel, status, reason } of statuses) {
     if (!counts[channel]) continue;
     if (status === "sent" || status === "delivered") counts[channel].sent += 1;
     if (status === "failed" || status === "bounced") counts[channel].failed += 1;
+    // 間引いた行(お知らせの置き換えは sent に数える)
+    if (status === "suppressed" && reason === "throttled") counts[channel].skipped_throttled += 1;
   }
   return counts;
 }
@@ -349,7 +353,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     // 最初の束(noBody は全部)を送る
     const queuedRows = rows.filter((row) => row.status === "queued");
     const batch = policy.noBody ? queuedRows : queuedRows.slice(0, deps.config.inRequestBatchSize);
-    const jobs: DeliveryJob[] = [];
+    const throttleJobs: ThrottleJob[] = [];
     const bodies = new Map<string, Record<string, unknown>>();
     for (const row of batch) {
       const plan = planByKey.get(`${row.channel}|${row.recipient_key}`)!;
@@ -366,15 +370,35 @@ export function createMessageSender(deps: MessageSendDeps) {
         toVariableMap(values),
       ) as Record<string, unknown>;
       bodies.set(row.id, content);
-      jobs.push({
-        deliveryId: row.id,
-        recipientKey: row.recipient_key,
-        channel: row.channel,
-        userId: row.user_id,
-        addresses: plan.addresses,
-        attempts: row.attempts,
-        content,
+      throttleJobs.push({
+        values,
+        job: {
+          deliveryId: row.id,
+          recipientKey: row.recipient_key,
+          channel: row.channel,
+          userId: row.user_id,
+          addresses: plan.addresses,
+          attempts: row.attempts,
+          content,
+        },
       });
+    }
+
+    // 会話の間引き(throttle のある連絡だけ。決めた行は間引きが書いたので、ここでは状態だけ写す)
+    const throttled = await applyThrottle(deps, {
+      dispatchId,
+      audienceType: input.audience?.type ?? null,
+      resolved,
+      vars,
+      policy,
+      jobs: throttleJobs,
+    });
+    const jobs: DeliveryJob[] = throttled.jobs;
+    const statusById = new Map<string, MessageDeliveryStatus>(rows.map((row) => [row.id, row.status]));
+    const reasonById = new Map<string, string | null>(rows.map((row) => [row.id, row.reason ?? null]));
+    for (const decided of throttled.decided) {
+      statusById.set(decided.deliveryId, decided.status);
+      reasonById.set(decided.deliveryId, decided.reason);
     }
 
     const results = await sendDeliveries(deps, {
@@ -384,7 +408,6 @@ export function createMessageSender(deps: MessageSendDeps) {
       inRequestOnly: policy.noBody,
       category: honoursPreferences(stops) ? resolved.category : undefined,
     });
-    const statusById = new Map<string, MessageDeliveryStatus>(rows.map((row) => [row.id, row.status]));
     for (const result of results) {
       const patch = { ...result.patch };
       if (policy.keepRecipientBody) patch.body = bodies.get(result.deliveryId) ?? null;
@@ -399,7 +422,11 @@ export function createMessageSender(deps: MessageSendDeps) {
       statusById.set(result.deliveryId, result.status);
     }
 
-    const finalRows = rows.map((row) => ({ ...row, status: statusById.get(row.id) ?? row.status }));
+    const finalRows = rows.map((row) => ({
+      ...row,
+      status: statusById.get(row.id) ?? row.status,
+      reason: (reasonById.get(row.id) ?? null) as MessageDelivery["reason"],
+    }));
     const queuedCount = finalRows.filter((row) => row.status === "queued").length;
     const statuses = finalRows.map((row) => row.status);
     const channelCounts = toChannelCounts(channels, expansion.counts, finalRows);
