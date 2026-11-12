@@ -4,10 +4,12 @@
 // 呼び手は messagingService.sendMessage / sendMessageToMany を使う。
 
 import { business } from "@/business";
+import { gate } from "@/featureGate";
 import { getAuditContext } from "@/lib/audit";
 import { getAppBaseUrl } from "@/lib/url";
 import { messageRegistry } from "@/registry/messageRegistry";
 
+import { drizzleMessageOverrideStore } from "../overrides/store";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
 
 import { messagingConfig } from "../../../config";
@@ -34,6 +36,14 @@ export const sendMessageDeps: MessageSendDeps = {
     return { actorId: ctx?.actorId ?? null, actorType: ctx?.actorType ?? null };
   },
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
+  // 管理画面の文言(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む)
+  adminOverrides: {
+    enabled: () => gate.enabled("messagingOverrides"),
+    async load(messageKey) {
+      const rows = await drizzleMessageOverrideStore.listByMessage(messageKey);
+      return rows.map((row) => ({ fieldPath: row.fieldPath, value: row.value }));
+    },
+  },
 };
 
 const sender = createMessageSender(sendMessageDeps);

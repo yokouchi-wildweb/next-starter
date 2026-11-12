@@ -8,6 +8,12 @@ export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 export type { MessageEndpointDto, RegisterMessageEndpointInput } from "./endpoints";
 export { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
+export type {
+  AdminOverrideField,
+  AdminOverrideMessageDetail,
+  AdminOverrideMessageSummary,
+  SaveMessageOverrideInput,
+} from "./overrides";
 export { deletePreferencesOfUser, getMessagePreferences, setMessagePreference } from "./preferences";
 export type {
   MessagePreferenceCategoryDto,

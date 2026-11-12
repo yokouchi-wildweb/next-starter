@@ -146,9 +146,20 @@ export type MessageSendDeps = {
   /** 共通の文脈の受信者に依らない値 */
   context: () => { serviceName: string; appBaseUrl: string };
   actor: () => { actorId: string | null; actorType: string | null };
+  /**
+   * 管理画面の文言の上書き(message_overrides)。enabled() = 門 messagingOverrides が開か、load = その連絡の直した欄。
+   * 無ければ(テスト・cron の補い)コードの値だけで送る
+   */
+  adminOverrides?: MessageAdminOverrideSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
   unsubscribe: {
     configured: () => boolean;
     url: (payload: { recipientKey: string; category: string; channel: string; addressHash?: string }) => string;
   };
+};
+
+/** 管理画面の文言の上書きの読み口(resolveDefinition が定義ごとに 1 回読む) */
+export type MessageAdminOverrideSource = {
+  enabled: () => boolean;
+  load: (messageKey: string) => Promise<{ fieldPath: string; value: unknown }[]>;
 };

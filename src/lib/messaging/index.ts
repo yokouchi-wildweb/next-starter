@@ -42,6 +42,16 @@ export {
   type MessageDefinitionProblem,
   type MessageDefinitionProblemCode,
 } from "./definition/validate";
+export {
+  adminFieldAllowedKeys,
+  adminFieldCodeValue,
+  applyAdminFieldValues,
+  checkAdminFieldValue,
+  type AdminFieldCheckOptions,
+  type AdminFieldProblem,
+  type AdminFieldProblemCode,
+  type AdminFieldValue,
+} from "./definition/adminFields";
 export type {
   ChannelAddress,
   ChannelSendResult,

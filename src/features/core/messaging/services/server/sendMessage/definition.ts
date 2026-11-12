@@ -1,11 +1,14 @@
 // src/features/core/messaging/services/server/sendMessage/definition.ts
 //
 // 定義を送れる形にする: 生成の一覧の上書きを重ね(applyMessageOverride)、検査(validateMessageDefinition)を通す。
+// 門 messagingOverrides が開なら、その後に管理画面の文言(message_overrides)を重ねる(D21: 管理画面 > fork の override > 上流)。
+// 管理画面の欄が検査を通らない(もう直せない欄・型が違う・使えない {{鍵}}・並びの数が違う)なら、その欄だけコードの値(D28)
 
 import type { z } from "zod";
 
 import {
   UPSTREAM_CHANNEL_FIELDS,
+  applyAdminFieldValues,
   applyMessageOverride,
   validateMessageDefinition,
   type ChannelFieldSchemas,
@@ -17,6 +20,8 @@ import {
   type ResolvedMessageDefinition,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
+
+import type { MessageAdminOverrideSource } from "./types";
 
 /** 送る口が受ける定義(経路の束は問わない) */
 export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
@@ -41,6 +46,7 @@ export function enricherKeysFor(
 
 /**
  * 上書きを重ねて検査した定義を返す。上書きは生成の一覧(messageRegistry)の項目から読む。
+ * adminOverrides があり門が開なら、管理画面の文言を 1 回読んで重ねる(通らない欄はコードの値のまま、警告だけ)。
  * @throws DomainError(500) 定義か上書きに誤りがある(呼び手の入力ではなくコードの誤り)
  */
 export async function resolveDefinition(
@@ -48,6 +54,7 @@ export async function resolveDefinition(
   registry: MessageRegistry,
   channels: Readonly<Record<string, MessageChannel>>,
   enrichers: Readonly<Record<string, MessageEnricher>>,
+  adminOverrides?: MessageAdminOverrideSource,
 ): Promise<AnyResolvedMessageDefinition> {
   const entry = registry[definition.key];
   const override: MessageOverride<ChannelFieldSchemas> | undefined = entry?.override
@@ -65,7 +72,19 @@ export async function resolveDefinition(
       { status: 500 },
     );
   }
-  return applyMessageOverride(definition, override);
+  const resolved = applyMessageOverride(definition, override);
+  if (!adminOverrides || !resolved.adminEditable?.length || !adminOverrides.enabled()) return resolved;
+
+  const values = await adminOverrides.load(definition.key);
+  if (values.length === 0) return resolved;
+  const merged = applyAdminFieldValues(resolved, values, {
+    channels: channelFieldSchemas(channels),
+    variableKeys: enricherKeysFor(definition.key, enrichers),
+  });
+  for (const { fieldPath, problem } of merged.rejected) {
+    console.warn(`[messaging] 管理画面の文言を使わずコードの値で送ります(${definition.key} ${fieldPath}): ${problem.message}`);
+  }
+  return merged.resolved;
 }
 
 /**

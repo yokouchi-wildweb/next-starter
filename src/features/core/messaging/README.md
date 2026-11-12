@@ -30,6 +30,7 @@ src/features/core/messaging/
 │   ├── preference.ts            # message_preferences / message_suppressions
 │   ├── endpoint.ts              # message_endpoints
 │   ├── idempotencyKey.ts        # message_idempotency_keys
+│   ├── override.ts              # message_overrides（管理画面の文言の上書き）
 │   ├── schema.ts                # 値の一覧（状態・理由）と jsonb の Zod
 │   └── model.ts                 # 入出力の型
 ├── services/client/
@@ -168,6 +169,21 @@ D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵�
   - **決まり: `category` があるのに `List-Unsubscribe` が無い = 鍵（`MESSAGING_UNSUBSCRIBE_SECRET`）が無い → そのメールは送らず permanent（reason `unsubscribe_key_missing`）**。取引・required の連絡はヘッダなしで送る
   - 本文の停止のリンクの先: 門 `messagingPreferences` が開なら好みのページ（`getAppBaseUrl()` + `/mypage/account/notifications`）、閉ならワンクリックの URL（ヘッダと同じ）。ヘッダ（`List-Unsubscribe`・`List-Unsubscribe-Post`）は門に関わらずワンクリックの URL のまま（メールの項目の `preferencesPageUrl`、`channels/email/index.tsx`）
   - provider の一括停止の機能は使わない
+
+## 管理画面の文言の上書き（message_overrides・/api/admin/messaging/overrides）
+
+D21・D24・D28。定義が `adminEditable` で宣言した欄だけを、管理者が管理画面で直せる（デザインと変数はコードの層のまま）。
+
+- 門: 規則 `messagingOverrides`（`src/featureGate/rules/messagingOverrides.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は今は API `/api/admin/messaging/overrides` だけ。管理の画面の住所は画面と一緒に足す）。閉の間 API は 404 で、送る口は DB の値を使わない。表は門に関わらず残る
+- 表 `message_overrides`: 直した欄だけ行（`message_key`・`field_path` = `<経路>.<欄>`・`value`・`code_value` = 直した時のコードの値・`updated_by`、UNIQUE(message_key, field_path)）。既定に戻す = 行を消す
+- 重なる順（門が開の時）: 管理画面の値 > fork の override > 上流の既定（欄ごと）。重ねる所は `resolveDefinition` の 1 か所（小さい送り・cron の展開・cron の送り）で、定義ごとに 1 回だけ読む（宛先ごとには読まない）
+- 送る時の検査は保存と同じ（lib/messaging `checkAdminFieldValue`）: 今も `adminEditable` にある・欄の型・配列はコードと同じ長さ・`{{鍵}}` は vars（秘密を除く）∪ 共通の文脈 ∪ provides。通らない欄（孤立）はその欄だけコードの値で送り、警告を出す
+- 管理の service（`services/server/overrides`、`messagingService.listMessageOverrides` / `getMessageOverrides` / `saveMessageOverride` / `resetMessageOverride`。service でも管理者を確かめる）
+  - 一覧: fork の override を重ねた後に `adminEditable` がある（か行が残る）連絡と数（直した・孤立・コードが変わった）
+  - 1 件: 欄ごとに `codeValue`・`value`・`effective`（送る時の値）・`edited`・`codeChanged`（直した時のコードの値と今のコードの値が違う）・`orphan` + `problem`、直せなくなった欄の行（`editable: false`、戻すだけ）、使ってよい鍵 `allowedKeys`
+  - 保存 `PUT /[key]` `{ fieldPath, value }`（誤りは 400）/ 戻す `DELETE /[key]?field=<経路.欄>`（行が無ければ 404）。監査 `messaging.override.updated` / `messaging.override.reset`（対象 `message_override`、`<鍵>:<欄>`。値は残さない）
+- 上流で直せる連絡: `user.registrationComplete` / `user.earlyRegistrationComplete`（email の subject・heading・paragraphs）、`wallet.expiringNotice` / `wallet.expiredNotice`（email の subject・paragraphs、inApp の title・body）、`wallet.adjustmentNotice`（inApp の title・body）。URL を持つ cta・preheader・footer はコードだけ。認証の連絡・required・adminMessage は直せない
+- fork の連絡も定義か `.override.ts` で `adminEditable` を宣言できる（required は不可）。欄の名前の変更・削除で行は孤立し、コードの値で送られる（付け替えの task は無い）
 
 ## 好みの読み書き（利用者の API /api/me/messaging/preferences）
 

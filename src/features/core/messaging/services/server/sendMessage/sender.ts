@@ -123,7 +123,7 @@ export function stopContextOf(resolved: AnyResolvedMessageDefinition): StopConte
 
 export function createMessageSender(deps: MessageSendDeps) {
   async function prepare(definition: AnyMessageDefinition, input: SendMessageToManyInput) {
-    const resolved = await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers);
+    const resolved = await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
     if (!resolved.enabled) return null;
     const channels = resolveChannels(resolved, input.channels, deps.channels);
     const vars = parseVars(resolved, input.vars);

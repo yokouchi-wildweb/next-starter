@@ -25,6 +25,8 @@ export const message = defineMessage({
     /** 理由の行(先頭の改行込み。理由が無ければ空) */
     reasonLine: z.string(),
   }),
+  // 管理画面で直せる文言の欄(門 messagingOverrides。URL を持つ cta・preheader・footer はコードだけ)
+  adminEditable: ["inApp.title", "inApp.body"],
   defaultChannels: ["inApp"],
   content: {
     inApp: {
