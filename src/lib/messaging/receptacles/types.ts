@@ -211,7 +211,8 @@ export type MessageEvent = {
   id: string;
   type: MessageEventType;
   messageKey: MessageKey | null;
-  dispatchId: string;
+  /** 事件の回(照合できなかった provider の事件は null) */
+  dispatchId: string | null;
   deliveryId: string | null;
   channel: string | null;
   occurredAt: Date;
@@ -219,7 +220,8 @@ export type MessageEvent = {
 };
 
 /**
- * 購読の項目(messaging/subscribers/<名前>.ts の export const subscriber)。cron が少なくとも 1 回渡す
+ * 購読の項目(messaging/subscribers/<名前>.ts の export const subscriber)。cron(messaging-subscribers)が入った順に少なくとも 1 回渡す。
+ * handle は事件の id で冪等にする(同じ事件が 2 回渡ることがある)。投げると印を進めず、同じ事件が上限の回数失敗すると隔離して先へ進む
  */
 export type MessageSubscriber = {
   key: string;

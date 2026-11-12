@@ -7,6 +7,7 @@ import type {
   MessageDeliveryInsert,
   MessageDispatch,
   MessageDispatchInsert,
+  MessageEventRowInsert,
   MessageInboxItemInsert,
 } from "../../../entities/model";
 import type { MessageSendDeps } from "../sendMessage/types";
@@ -15,6 +16,8 @@ import type { MessageSendDeps } from "../sendMessage/types";
 export type ExpansionWrite = {
   rows: MessageDeliveryInsert[];
   patch: Partial<MessageDispatchInsert>;
+  /** 入った配達の行から同じ取引で書く内部の事件(delivery.suppressed など) */
+  eventsFor?: (created: readonly MessageDelivery[]) => MessageEventRowInsert[];
   /** 全員・ロール宛てのお知らせの共有の 1 行(回の最初の束で 1 度だけ、D32) */
   inboxItem?: MessageInboxItemInsert;
 };
@@ -45,19 +48,26 @@ export type MessageSweepStore = {
     dispatchId?: string;
   }) => Promise<MessageDelivery[]>;
   /** lock_token が合う時だけ行を書く(lease を失った処理の書き込みを捨てる) */
-  updateClaimed: (id: string, lockToken: string, patch: Partial<MessageDeliveryInsert>) => Promise<void>;
+  /** lock_token が合う時だけ書く。events = その時だけ同じ取引で書く内部の事件 */
+  updateClaimed: (
+    id: string,
+    lockToken: string,
+    patch: Partial<MessageDeliveryInsert>,
+    events?: readonly MessageEventRowInsert[],
+  ) => Promise<void>;
   /** sending のまま lease が切れた行を unknown にする(自動で送り直さない) */
   markStaleSending: (now: Date, limit: number) => Promise<number>;
   findDispatches: (ids: readonly string[]) => Promise<MessageDispatch[]>;
   /** 終えられる回(processing・展開済み・queued / sending の行が無い) */
   findCompletable: (limit: number, dispatchId?: string) => Promise<MessageDispatch[]>;
   aggregateDeliveries: (dispatchId: string) => Promise<DeliveryAggregate>;
-  updateDispatch: (id: string, patch: Partial<MessageDispatchInsert>) => Promise<void>;
+  updateDispatch: (id: string, patch: Partial<MessageDispatchInsert>, events?: readonly MessageEventRowInsert[]) => Promise<void>;
 };
 
 /** 保持の掃除の DB の読み書き(1 呼び出し = 1 文・最大 limit 行。回だけは画像を外すので 1 取引) */
 export type MessageRetentionStore = {
-  deleteEventsBefore: (cutoff: Date, limit: number) => Promise<number>;
+  /** maxSeq = 購読の一番遅い印(null = 購読なし)。それより新しい事件は消さない */
+  deleteEventsBefore: (cutoff: Date, limit: number, maxSeq: number | null) => Promise<number>;
   deleteDeliveriesBefore: (cutoff: Date, limit: number) => Promise<number>;
   /**
    * お知らせが参照せず、processing / scheduled でない回を消す。消す前に冪等の鍵を移し、回に結んだお知らせの画像

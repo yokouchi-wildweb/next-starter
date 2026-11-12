@@ -7,6 +7,9 @@ export { sendMessage, sendMessageToMany, sendTemplate } from "./sendMessage";
 /** 管理の送信の API の入口の守り(取引は選んだ利用者宛てだけ) */
 export { assertAdminSendKind } from "./admin";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
+/** 購読(cron messaging-subscribers と運用の再処理) */
+export { reprocessQuarantinedEvents, runMessageSubscribers } from "./subscribers";
+export type { ReprocessResult, SubscriberRunResult } from "./subscribers";
 export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 export type { MessageEndpointDto, RegisterMessageEndpointInput } from "./endpoints";
 export { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";

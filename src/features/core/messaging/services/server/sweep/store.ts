@@ -9,7 +9,7 @@ import { and, asc, count, eq, inArray, isNotNull, isNull, lt, lte, ne, notExists
 
 import { db } from "@/lib/drizzle";
 
-import { MessageDeliveryTable } from "../../../entities/delivery";
+import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
 import { MessageInboxItemTable } from "../../../entities/inbox";
@@ -65,12 +65,16 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
       // 共有のお知らせの行の画像は回に結ぶ(回の行を排他で持ったこの取引の中で)
       const write = await bindExpansionImage(storageInboxImageLedger, tx, dispatch, await step(dispatch));
       if (write.rows.length > 0) {
-        await tx
+        const created = await tx
           .insert(MessageDeliveryTable)
           .values(write.rows)
           .onConflictDoNothing({
             target: [MessageDeliveryTable.dispatch_id, MessageDeliveryTable.channel, MessageDeliveryTable.recipient_key],
-          });
+          })
+          .returning();
+        // 内部の事件(止めた行など)は配達の行と同じ取引で
+        const events = write.eventsFor?.(created) ?? [];
+        if (events.length > 0) await tx.insert(MessageEventTable).values(events);
       }
       if (write.inboxItem) await tx.insert(MessageInboxItemTable).values(write.inboxItem);
       await tx.update(MessageDispatchTable).set(write.patch).where(eq(MessageDispatchTable.id, dispatch.id));
@@ -99,11 +103,17 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
       .returning();
   },
 
-  async updateClaimed(id, lockToken, patch) {
-    await db
-      .update(MessageDeliveryTable)
-      .set(patch)
-      .where(and(eq(MessageDeliveryTable.id, id), eq(MessageDeliveryTable.lock_token, lockToken)));
+  async updateClaimed(id, lockToken, patch, events) {
+    const where = and(eq(MessageDeliveryTable.id, id), eq(MessageDeliveryTable.lock_token, lockToken));
+    if (!events?.length) {
+      await db.update(MessageDeliveryTable).set(patch).where(where);
+      return;
+    }
+    await db.transaction(async (tx) => {
+      const updated = await tx.update(MessageDeliveryTable).set(patch).where(where).returning({ id: MessageDeliveryTable.id });
+      // lease を失った処理(lock_token が合わない)は行も事件も書かない
+      if (updated.length > 0) await tx.insert(MessageEventTable).values([...events]);
+    });
   },
 
   async markStaleSending(now, limit) {
@@ -166,14 +176,21 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
     return rows.map((row) => ({ channel: row.channel, status: row.status, count: Number(row.count) }));
   },
 
-  async updateDispatch(id, patch) {
-    await db.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
+  async updateDispatch(id, patch, events) {
+    if (!events?.length) {
+      await db.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
+      await tx.insert(MessageEventTable).values([...events]);
+    });
   },
 };
 
 export const drizzleMessageRetentionStore: MessageRetentionStore = {
-  async deleteEventsBefore(cutoff, limit) {
-    return rowsOf(await db.execute(expiredEventsDeleteSql(cutoff, limit))).length;
+  async deleteEventsBefore(cutoff, limit, maxSeq) {
+    return rowsOf(await db.execute(expiredEventsDeleteSql(cutoff, limit, maxSeq))).length;
   },
 
   async deleteDeliveriesBefore(cutoff, limit) {

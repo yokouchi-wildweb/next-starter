@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/sweep/retention.ts
 //
 // 保持の掃除(cron messaging-retention)。messaging の config の日数を過ぎた行を予算の中で消す(D33):
-// events → deliveries → dispatches(お知らせが参照する回・processing / scheduled の回は残す。消す前に冪等の鍵を
+// events(購読がある時は一番遅い印より新しい事件を残す、D47)→ deliveries → dispatches(お知らせが参照する回・processing / scheduled の回は残す。消す前に冪等の鍵を
 // message_idempotency_keys へ移し、回に結んだお知らせの画像を保存の台帳から外す)→ 移した鍵(idempotencyKeyDays が null なら消さない)
 
 import type { MessagingConfig } from "../../../config";
@@ -22,7 +22,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function pruneMessaging(
   store: MessageRetentionStore,
-  params: { config: MessagingConfig; now: Date; deadline: Date },
+  params: {
+    config: MessagingConfig;
+    now: Date;
+    deadline: Date;
+    /** 購読の一番遅い印(null = 購読なし = 日数だけで消す) */
+    slowestSubscriberMark?: number | null;
+  },
 ): Promise<RetentionResult> {
   const { retention } = params.config;
   const limit = retention.chunkSize;
@@ -42,7 +48,8 @@ export async function pruneMessaging(
     return total;
   };
 
-  result.events = await drain(() => store.deleteEventsBefore(before(retention.eventsDays), limit));
+  const maxSeq = params.slowestSubscriberMark ?? null;
+  result.events = await drain(() => store.deleteEventsBefore(before(retention.eventsDays), limit, maxSeq));
   result.deliveries = await drain(() => store.deleteDeliveriesBefore(before(retention.deliveriesDays), limit));
   result.dispatches = await drain(async () => {
     const { deleted, movedKeys, detachedImages } = await store.deleteDispatchesBefore(before(retention.dispatchesDays), limit);

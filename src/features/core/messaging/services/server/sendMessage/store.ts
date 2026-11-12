@@ -9,7 +9,7 @@ import { db } from "@/lib/drizzle";
 import { USER_AVAILABLE_STATUSES } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
-import { MessageDeliveryTable } from "../../../entities/delivery";
+import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageEndpointTable } from "../../../entities/endpoint";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
@@ -82,23 +82,45 @@ export const drizzleMessageSendStore: MessageSendStore = {
     }
   },
 
-  async updateDispatch(id, patch) {
-    await db.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
+  async updateDispatch(id, patch, events) {
+    if (!events?.length) {
+      await db.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
+      await tx.insert(MessageEventTable).values([...events]);
+    });
   },
 
-  async insertDeliveries(rows) {
+  async insertDeliveries(rows, eventsFor) {
     if (rows.length === 0) return [];
-    return db
-      .insert(MessageDeliveryTable)
-      .values([...rows])
-      .onConflictDoNothing({
-        target: [MessageDeliveryTable.dispatch_id, MessageDeliveryTable.channel, MessageDeliveryTable.recipient_key],
-      })
-      .returning();
+    const insert = (client: Pick<typeof db, "insert">) =>
+      client
+        .insert(MessageDeliveryTable)
+        .values([...rows])
+        .onConflictDoNothing({
+          target: [MessageDeliveryTable.dispatch_id, MessageDeliveryTable.channel, MessageDeliveryTable.recipient_key],
+        })
+        .returning();
+    if (!eventsFor) return insert(db);
+    return db.transaction(async (tx) => {
+      const created = await insert(tx);
+      const events = eventsFor(created);
+      if (events.length > 0) await tx.insert(MessageEventTable).values(events);
+      return created;
+    });
   },
 
-  async updateDelivery(id, patch) {
-    await db.update(MessageDeliveryTable).set(patch).where(eq(MessageDeliveryTable.id, id));
+  async updateDelivery(id, patch, events) {
+    if (!events?.length) {
+      await db.update(MessageDeliveryTable).set(patch).where(eq(MessageDeliveryTable.id, id));
+      return;
+    }
+    await db.transaction(async (tx) => {
+      await tx.update(MessageDeliveryTable).set(patch).where(eq(MessageDeliveryTable.id, id));
+      await tx.insert(MessageEventTable).values([...events]);
+    });
   },
 
   async findUsers(ids) {

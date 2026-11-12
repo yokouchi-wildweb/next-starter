@@ -20,6 +20,7 @@ import { activeChannel } from "../sendMessage/expand";
 import { recordPolicyOf, type RecordPolicy } from "../sendMessage/record";
 import { stopContextOf } from "../sendMessage/sender";
 import { checkStops, honoursPreferences } from "../sendMessage/stops";
+import { deliveryEvents } from "../events/internalEvents";
 import type { MessageSweepDeps } from "./types";
 
 export type SendStepResult = { processed: number; sent: number; failed: number; queued: number; other: number };
@@ -62,6 +63,10 @@ export async function sendClaimed(
     else result.other += 1;
   };
   const release = { locked_until: null, lock_token: null };
+  const types = deps.eventTypes ?? new Set<string>();
+  /** 行の状態が変わった時の内部の事件(購読が聞いている種類だけ、行の更新と同じ取引で書く) */
+  const eventsOf = (row: MessageDelivery, status: string, reason: string | null, messageKey: string | null) =>
+    deliveryEvents(types, [{ id: row.id, dispatch_id: row.dispatch_id, channel: row.channel, status, reason }], messageKey, deps.now());
   const byDispatch = new Map<string, MessageDelivery[]>();
   for (const row of rows) byDispatch.set(row.dispatch_id, [...(byDispatch.get(row.dispatch_id) ?? []), row]);
   const dispatches = new Map((await deps.sweepStore.findDispatches([...byDispatch.keys()])).map((d) => [d.id, d]));
@@ -71,19 +76,29 @@ export async function sendClaimed(
     const loaded = dispatch ? await loadDefinition(deps, dispatch) : { error: "dispatch_missing" };
     if ("error" in loaded) {
       for (const row of group) {
-        await deps.sweepStore.updateClaimed(row.id, lockToken, {
-          ...release,
-          status: "failed",
-          last_error: loaded.error,
-          next_attempt_at: null,
-          failed_at: deps.now(),
-          updatedAt: deps.now(),
-        });
+        await deps.sweepStore.updateClaimed(
+          row.id,
+          lockToken,
+          {
+            ...release,
+            status: "failed",
+            last_error: loaded.error,
+            next_attempt_at: null,
+            failed_at: deps.now(),
+            updatedAt: deps.now(),
+          },
+          eventsOf(row, "failed", loaded.error, dispatch?.message_key ?? null),
+        );
         count("failed");
       }
       continue;
     }
     const { resolved, policy } = loaded;
+    const messageKey = dispatch!.message_key ?? null;
+    /** 前の実行で宛先の 1 つにもう送れた行(delivery.sent は書いた後) */
+    const sentBefore = (row: MessageDelivery) =>
+      ((row.targets as MessageDeliveryTarget[] | null) ?? []).some((target) => target.status === "sent");
+    const rowsById = new Map(group.map((row) => [row.id, row]));
     const vars = (dispatch!.vars ?? {}) as Record<string, unknown>;
     const userIds = [...new Set(group.flatMap((row) => (row.user_id ? [row.user_id] : [])))];
     const users = new Map((await deps.store.findUsers(userIds)).map((user) => [user.id, user]));
@@ -119,14 +134,19 @@ export async function sendClaimed(
       let addresses = addressesOf(row);
       const verdict = verdicts.get(row.id);
       if (verdict?.stopped) {
-        const alreadySent = ((row.targets as MessageDeliveryTarget[] | null) ?? []).some((t) => t.status === "sent");
-        await deps.sweepStore.updateClaimed(row.id, lockToken, {
-          ...release,
-          // 宛先の 1 つにもう送れた行は sent のまま、残りの送り直しをやめる
-          ...(alreadySent ? { status: "sent" as const } : { status: "suppressed" as const, reason: verdict.reason }),
-          next_attempt_at: null,
-          updatedAt: deps.now(),
-        });
+        const alreadySent = sentBefore(row);
+        await deps.sweepStore.updateClaimed(
+          row.id,
+          lockToken,
+          {
+            ...release,
+            // 宛先の 1 つにもう送れた行は sent のまま、残りの送り直しをやめる
+            ...(alreadySent ? { status: "sent" as const } : { status: "suppressed" as const, reason: verdict.reason }),
+            next_attempt_at: null,
+            updatedAt: deps.now(),
+          },
+          alreadySent ? [] : eventsOf(row, "suppressed", verdict.reason, messageKey),
+        );
         count(alreadySent ? "sent" : "suppressed");
         continue;
       }
@@ -136,13 +156,13 @@ export async function sendClaimed(
         addresses = addresses.filter((address) => !pending.has(address) || verdict.addresses.includes(address));
       }
       if (!channel || addresses.length === 0) {
-        await deps.sweepStore.updateClaimed(row.id, lockToken, {
-          ...release,
-          status: "suppressed",
-          reason: channel ? "no_address" : "channel_off",
-          next_attempt_at: null,
-          updatedAt: deps.now(),
-        });
+        const reason = channel ? "no_address" : "channel_off";
+        await deps.sweepStore.updateClaimed(
+          row.id,
+          lockToken,
+          { ...release, status: "suppressed", reason, next_attempt_at: null, updatedAt: deps.now() },
+          eventsOf(row, "suppressed", reason, messageKey),
+        );
         count("suppressed");
         continue;
       }
@@ -181,7 +201,10 @@ export async function sendClaimed(
       const patch = { ...sent.patch };
       if (policy.keepRecipientBody) patch.body = bodies.get(sent.deliveryId) ?? null;
       if (sent.status !== "queued" && !policy.keepVars) patch.vars = null;
-      await deps.sweepStore.updateClaimed(sent.deliveryId, lockToken, patch);
+      const row = rowsById.get(sent.deliveryId)!;
+      // 宛先が複数で前の実行で sent になった行は、もう一度 delivery.sent を書かない
+      const events = sent.status === "sent" && sentBefore(row) ? [] : eventsOf(row, sent.status, null, messageKey);
+      await deps.sweepStore.updateClaimed(sent.deliveryId, lockToken, patch, events);
       count(sent.status);
     }
   }

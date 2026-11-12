@@ -4,6 +4,7 @@
 // status を completed / completed_with_failures、completed_at を埋め、record meta なら送るために置いた vars を消す。
 
 import type { MessageChannelCounts } from "../../../entities/schema";
+import { dispatchCompletedEvent } from "../events/internalEvents";
 import type { MessageSweepDeps } from "./types";
 
 const FAILED = ["failed", "bounced", "unknown"];
@@ -38,13 +39,20 @@ export async function completeDispatches(
       if (status === "failed" || status === "bounced") counts[channel].failed += count;
     }
     const now = deps.now();
-    await deps.sweepStore.updateDispatch(dispatch.id, {
-      status: anyFailed ? "completed_with_failures" : "completed",
-      channel_counts: counts,
-      completed_at: now,
-      updatedAt: now,
-      ...(dispatch.record === "meta" ? { vars: null } : {}),
-    });
+    const status = anyFailed ? "completed_with_failures" : "completed";
+    // 回を閉じた事件(購読が聞いていれば、回の更新と同じ取引で)
+    const event = dispatchCompletedEvent(deps.eventTypes ?? new Set(), dispatch, status, now, { isTest: dispatch.is_test ?? false });
+    await deps.sweepStore.updateDispatch(
+      dispatch.id,
+      {
+        status,
+        channel_counts: counts,
+        completed_at: now,
+        updatedAt: now,
+        ...(dispatch.record === "meta" ? { vars: null } : {}),
+      },
+      event ? [event] : [],
+    );
   }
   return dispatches.length;
 }

@@ -5,12 +5,16 @@
 
 import { sql, type SQL } from "drizzle-orm";
 
-/** 古い事件を最大 limit 行消す(SKIP LOCKED の CTE、RETURNING id) */
-export function expiredEventsDeleteSql(cutoff: Date, limit: number): SQL {
+/**
+ * 古い事件を最大 limit 行消す(SKIP LOCKED の CTE、RETURNING id)。
+ * maxSeq = 購読の一番遅い印(購読がある時)。それより新しい事件は日数を過ぎても消さない(まだ渡していない、D47)
+ */
+export function expiredEventsDeleteSql(cutoff: Date, limit: number, maxSeq: number | null = null): SQL {
+  const unread = maxSeq === null ? sql`` : sql` AND seq <= ${maxSeq}`;
   return sql`
     WITH expired AS (
       SELECT id FROM message_events
-      WHERE created_at < ${cutoff.toISOString()}::timestamptz
+      WHERE created_at < ${cutoff.toISOString()}::timestamptz${unread}
       ORDER BY created_at
       LIMIT ${limit}
       FOR UPDATE SKIP LOCKED

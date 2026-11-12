@@ -15,6 +15,7 @@ import type { MessageDispatch, MessageInboxItemInsert } from "../../../entities/
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import { channelContent, renderValue, toVariableMap } from "../sendMessage/context";
 import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
+import { deliveryEvents } from "../events/internalEvents";
 import type { StopContext } from "../sendMessage/stops";
 import {
   activeChannel,
@@ -177,6 +178,10 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
       }),
     ),
     inboxItem,
+    // 止めた行(選んだ宛先の宛先なし・好み・宛先の停止)は delivery.suppressed(配達の行と同じ取引で)
+    ...(deps.eventTypes && deps.eventTypes.size > 0
+      ? { eventsFor: (created) => deliveryEvents(deps.eventTypes!, created, dispatch.message_key, now) }
+      : {}),
     patch: {
       expand_cursor: nextCursor,
       channel_counts: channelCounts,

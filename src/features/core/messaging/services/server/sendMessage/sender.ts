@@ -34,6 +34,7 @@ import {
   type AnyResolvedMessageDefinition,
 } from "./definition";
 import { sendDeliveries, type DeliveryJob } from "./deliver";
+import { deliveryEvents, dispatchCompletedEvent } from "../events/internalEvents";
 import { recipientVariablesWithoutDefault, resolveTemplateDefinition, templateDefinitionOf } from "./templateDefinition";
 import { expandExplicit, recipientKeyOf, type ExpansionCounts, type PlannedDelivery } from "./expand";
 import { omitKeys, recordPolicyOf, type RecordPolicy } from "./record";
@@ -306,6 +307,8 @@ export function createMessageSender(deps: MessageSendDeps) {
     });
 
     const recipientVarsOf = (key: string) => input.recipientVars?.[key];
+    // 内部の事件(購読が聞いている種類だけ、行の書き込みと同じ取引で)
+    const types = deps.eventTypes ?? new Set<string>();
     const rows = await deps.store.insertDeliveries(
       expansion.planned.map((plan): MessageDeliveryInsert => {
         const recipientVars = recipientVarsOf(plan.recipientKey);
@@ -336,6 +339,8 @@ export function createMessageSender(deps: MessageSendDeps) {
               : null,
         };
       }),
+      // 止めた行(宛先なし・経路が切・好み・宛先の停止)は delivery.suppressed
+      types.size > 0 ? (created) => deliveryEvents(types, created, resolved.key, deps.now()) : undefined,
     );
     const planByKey = new Map<string, PlannedDelivery>(
       expansion.planned.map((plan) => [`${plan.channel}|${plan.recipientKey}`, plan]),
@@ -385,7 +390,12 @@ export function createMessageSender(deps: MessageSendDeps) {
       if (policy.keepRecipientBody) patch.body = bodies.get(result.deliveryId) ?? null;
       // 送り終えた行の受信者ごとの値は record に従う(meta なら残さない)
       if (result.status !== "queued" && !policy.keepVars) patch.vars = null;
-      await deps.store.updateDelivery(result.deliveryId, patch);
+      const row = rows.find((item) => item.id === result.deliveryId)!;
+      await deps.store.updateDelivery(
+        result.deliveryId,
+        patch,
+        deliveryEvents(types, [{ ...row, status: result.status }], resolved.key, deps.now()),
+      );
       statusById.set(result.deliveryId, result.status);
     }
 
@@ -394,14 +404,25 @@ export function createMessageSender(deps: MessageSendDeps) {
     const statuses = finalRows.map((row) => row.status);
     const channelCounts = toChannelCounts(channels, expansion.counts, finalRows);
     const status = finalDispatchStatus(statuses, queuedCount);
-    await deps.store.updateDispatch(dispatchId, {
-      status,
-      channel_counts: channelCounts,
-      completed_at: status === "processing" ? null : deps.now(),
-      updatedAt: deps.now(),
-      // cron に渡す残りが無ければ、送るためだけに置いた vars を record に従って消す
-      ...(queuedCount === 0 && !policy.keepVars ? { vars: null } : {}),
-    });
+    // 要求の中で閉じた回は dispatch.completed(processing のままなら cron が閉じる時に書く)
+    const completed =
+      status === "processing"
+        ? null
+        : dispatchCompletedEvent(types, { id: dispatchId, message_key: resolved.key }, status, deps.now(), {
+            isTest: input.isTest ?? false,
+          });
+    await deps.store.updateDispatch(
+      dispatchId,
+      {
+        status,
+        channel_counts: channelCounts,
+        completed_at: status === "processing" ? null : deps.now(),
+        updatedAt: deps.now(),
+        // cron に渡す残りが無ければ、送るためだけに置いた vars を record に従って消す
+        ...(queuedCount === 0 && !policy.keepVars ? { vars: null } : {}),
+      },
+      completed ? [completed] : [],
+    );
 
     return {
       dispatchId,
