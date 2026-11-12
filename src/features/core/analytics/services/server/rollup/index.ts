@@ -7,6 +7,7 @@ export {
   computeRollupValues,
   getRollupMetricConfig,
   listRollupMetricConfigs,
+  metricLookbackDays,
   rollupTimezone,
   runDailyRollup,
   shiftDateKey,

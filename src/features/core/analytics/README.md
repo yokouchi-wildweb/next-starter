@@ -219,7 +219,7 @@ export async function getWalletSummary(params: DateRangeParams & WalletTypeFilte
 **サービス運用年数に比例して重くなる集計**（特にランニングバランス系のベースライン全履歴スキャン）を構造的に解消する。
 
 役割分担: **フレームワーク（保存・cron・マージ読み）= upstream、メトリクス定義（compute）= downstream**。
-upstream は組み込みメトリクスを登録しない。
+upstream が登録する組み込みメトリクスは連絡の日まとめ（`messaging.*`、下の「連絡の日まとめ」）だけ。他は downstream が登録する。
 
 ### 採用判断
 
@@ -285,9 +285,19 @@ export const metric: RollupMetricConfig = {
 ディメンション分割が必要な場合は `compute` が `[{ value, dims: { walletType: "coin" } }, ...]` のように複数行を返す
 （dims はフラットなオブジェクトのみ。同一日内で dims の重複は不可）。
 
+### 連絡の日まとめ（`messaging.*`、上流の組み込み）
+
+- 鍵 = 1 指標 1 つ: `messaging.targeted` / `sent` / `failed` / `suppressed` / `delivered` / `bounced` / `complained` / `opened` / `clicked` / `read` / `unsubscribed`（kind flow）。`skipped_no_address` / `skipped_throttled` は日まとめにしない（集計の口 `/api/admin/analytics/messaging/**` だけ）
+- dims = `{ channel, messageKey, category }`（配信停止の結び付きの無い行は `messageKey` null）。数え方は集計の口と同じ（回を送った日の cohort、配信停止は止めた日）。項目 = `rollupMetrics/messaging<Measure>.ts`（1 行、中身は `services/server/messagingAnalytics/rollup.ts`）
+- `lookbackDays`: 回の数・配信停止 = 既定（3）、到達・bounce・苦情 7、開封・クリック 14、既読 30（送った日に遅れて足される。配達の行の保持 90 日より短い）
+- enabled: 規則 `messagingAnalytics` が開の時（集計の口と同じ）。`opened` / `clicked` は計測 `messagingTracking` も開の時だけ。条件は受け口の項目が値に書く（常時実行の入口の検査が項目の値を見る）
+- 1 日分の読み込み（4 つの問い合わせ）は同じ日を計算する指標で共有する（短い memo）
+- 読み方: `readRolledDailySeries({ metricKey: "messaging.sent", range, dims? })`。dims は完全一致なので、経路 × 定義 × 種類の 1 組を指すか、省略して日ごとに合算する（定義だけで絞る読み口は無い。要るなら fork が行を読んで足す）。配達の行が保持で消えた後も日まとめの値は残る
+- 新しく開いた時の過去分: `pnpm task analytics:rollup-backfill -- messaging.<measure> --from YYYY-MM-DD`（配達の行の残る 90 日以内が意味のある範囲）
+
 ### 運用（cron / バックフィル）
 
-- 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm generate cron` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日を冪等に再計算し、遅延到着データと実行漏れを自己修復する
+- 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm generate cron` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日（メトリクスの `lookbackDays` が長ければその日数 = max(`lookbackDays`, 実行の日数)）を冪等に再計算し、遅延到着データと実行漏れを自己修復する。遅れて足されるデータ（開封・既読など）を持つメトリクスだけ `lookbackDays` を長くする
 - 新規メトリクス登録時・遡及修正時: `pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]`（from 省略時 = `backfillFrom`、to 省略時 = 昨日）
 - **集計除外の遡及適用**: 専用機構はない。compute が除外を織り込んでいる前提で、該当期間のバックフィルを再実行すれば整合する（書き込みは日単位 delete → insert の冪等 upsert）
 - 書き込み後は同一インスタンスの `withAnalyticsCache` キャッシュを自動 invalidate する（他インスタンスは TTL 満了で追随）

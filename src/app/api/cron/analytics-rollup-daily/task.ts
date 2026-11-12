@@ -6,7 +6,7 @@ import type { CronTaskDefinition } from "@/lib/cron";
 
 export const cronTask: CronTaskDefinition = {
   name: "analytics-rollup-daily",
-  description: "登録済みメトリクスの日次ロールアップを直近数日ぶん冪等に再計算する",
+  description: "登録済みメトリクスの日次ロールアップを直近数日ぶん(メトリクスの lookbackDays が長ければその日数)冪等に再計算する",
   schedule: "0 18 * * *", // 毎日 03:00 JST
   run: async () => {
     const { runDailyRollup } = await import("@/features/core/analytics/services/server/rollup");

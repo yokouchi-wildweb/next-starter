@@ -109,6 +109,8 @@ function dispatchGroupExpr(scope: MessagingQueryScope): SQL {
       return sql`tag_axis.tag`;
     case "dispatch":
       return sql`${D.id}::text`;
+    case "rollup":
+      return sql`json_build_array(${D.message_key}, ${D.category})::text`;
     default:
       return sql`NULL::text`;
   }
@@ -241,6 +243,8 @@ function unsubscribeGroupExpr(
       return sql`(SELECT ${D.template_id}::text FROM ${D} WHERE ${D.id} = ${columns.dispatchId})`;
     case "tag":
       return sql`tag_axis.tag`;
+    case "rollup":
+      return sql`json_build_array(${columns.messageKey}, ${columns.category})::text`;
     default:
       return sql`NULL::text`;
   }

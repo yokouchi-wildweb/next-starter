@@ -160,8 +160,9 @@ export type MessagingQueryScope = {
   current: { from: Date; to: Date };
   /** 前の期間(無い = 当期だけ) */
   previous?: { from: Date; to: Date };
-  /** 分け方: none = 期間だけ、date = 粒度のバケット、軸、dispatch = 回 */
-  groupBy: "none" | "date" | MessagingBreakdownAxis | "dispatch";
+  /** 分け方: none = 期間だけ、date = 粒度のバケット、軸、dispatch = 回、rollup = 日まとめの dims */
+  /** rollup = 日まとめの dims(group = JSON [message_key, category]、経路は行の channel) */
+  groupBy: "none" | "date" | MessagingBreakdownAxis | "dispatch" | "rollup";
   granularity: Granularity;
   timezone: string;
   filter: MessagingAnalyticsFilter;
