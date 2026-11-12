@@ -4,7 +4,7 @@
 // tsx なしの node で毎回動く)の両方がここを読む。別の対応表を作らない。
 // - KINDS: やることの種類と打つコマンドの形(上流のコード。スキーマ push・本番は種類に無い)
 // - HOOK_KINDS: 許可のフックだけが使う種類(devcheck の候補には出ない)。peer = pnpm workflow peer の送る・読む口
-// - 方針: policy.json(上流の実体、全部 auto)に policy.override.ts(fork、上流は出さない)の宣言した鍵(POLICY_KEYS)だけを重ねる
+// - 方針: policy.json(上流の実体、全部 auto)に policy.override.ts(fork、上流は出さない)の宣言した鍵(POLICY_KEYS と全体のスイッチ enabled)だけを重ねる
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
 import { existsSync, readFileSync } from "node:fs";
@@ -45,6 +45,9 @@ export const POLICY_KEYS = [...KIND_NAMES, ...HOOK_KINDS];
 
 export const POLICY_VALUES = ["auto", "manual", "off"];
 
+/** 方針の全体のスイッチ(D103)。false = 全部の種類(peer も)を off とみなす(種類ごとの値より強い)。無い = true */
+export const POLICY_SWITCH = "enabled";
+
 /** 方針の実体(印なし)と、その一部を重ねる上書き(<対象>.override.ts、export const override = { … }) */
 export const POLICY_FILE = "policy.json";
 export const POLICY_OVERRIDE_FILE = "policy.override.ts";
@@ -52,10 +55,15 @@ export const POLICY_OVERRIDE_FILE = "policy.override.ts";
 /** @param {unknown} data @param {string} file */
 const checkPolicyObject = (data, file) => {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new DevcheckError(`${file}: 種類 → auto | manual | off の JSON オブジェクトにする`);
-  /** @type {Record<string, string>} */
+  /** @type {Record<string, string | boolean>} */
   const out = {};
   for (const [key, value] of Object.entries(data)) {
-    if (!POLICY_KEYS.includes(key)) throw new DevcheckError(`${file}: 宣言に無い鍵 ${key}(重ねてよい鍵 = 種類 ${POLICY_KEYS.join(" / ")})`);
+    if (key === POLICY_SWITCH) {
+      if (typeof value !== "boolean") throw new DevcheckError(`${file}: ${POLICY_SWITCH} の値 ${JSON.stringify(value)} は true / false のどちらか`);
+      out[key] = value;
+      continue;
+    }
+    if (!POLICY_KEYS.includes(key)) throw new DevcheckError(`${file}: 宣言に無い鍵 ${key}(重ねてよい鍵 = ${POLICY_SWITCH} と種類 ${POLICY_KEYS.join(" / ")})`);
     if (!POLICY_VALUES.includes(/** @type {string} */ (value))) throw new DevcheckError(`${file}: ${key} の値 ${JSON.stringify(value)} は auto / manual / off のどれか`);
     out[key] = /** @type {string} */ (value);
   }
@@ -63,7 +71,8 @@ const checkPolicyObject = (data, file) => {
 };
 
 /**
- * 実体に fork の上書きの宣言した鍵だけを重ねる(上書きは無くてよい)。宣言に無い鍵・値の誤りは DevcheckError
+ * 実体に fork の上書きの宣言した鍵だけを重ねる(上書きは無くてよい)。宣言に無い鍵・値の誤りは DevcheckError。
+ * 返すのは効いている種類ごとの値: 全体のスイッチ enabled が false なら全部 off(種類ごとの値より強い)
  * @param {unknown} defaults @param {unknown | null} override
  * @returns {Record<string, string>}
  */
@@ -71,7 +80,9 @@ export const mergePolicy = (defaults, override) => {
   const base = checkPolicyObject(defaults, POLICY_FILE);
   for (const key of POLICY_KEYS) if (!base[key]) throw new DevcheckError(`${POLICY_FILE}: ${key} がありません`);
   const over = override === null ? {} : checkPolicyObject(override, POLICY_OVERRIDE_FILE);
-  return { ...base, ...over };
+  const merged = { ...base, ...over };
+  const enabled = merged[POLICY_SWITCH] !== false;
+  return Object.fromEntries(POLICY_KEYS.map((key) => [key, enabled ? /** @type {string} */ (merged[key]) : "off"]));
 };
 
 /** @param {string} file */

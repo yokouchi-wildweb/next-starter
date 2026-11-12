@@ -189,9 +189,9 @@ test("方針 off → 何も返さない(deny にしない)/ manual → devcheck 
   const manual = fakeDeps({ policy: () => ({ ...ALL_AUTO, "db-write": "manual" }) });
   assert.equal(verdict(bash('pnpm workflow devcheck run db-write "INSERT INTO t (a) VALUES (1) RETURNING id" --manual-go'), manual), "allow");
   assert.equal(verdict(bash("pnpm workflow devcheck run seed-shop --manual-go"), manual), "allow");
-  // devcheck の入口(plan / status / cleanup)は方針を見ない
-  const allOff = fakeDeps({ policy: () => Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])) });
-  assert.equal(verdict(bash("pnpm workflow devcheck cleanup"), allOff), "allow");
+  // devcheck の入口(plan / status / cleanup)は種類の方針を見ない(どれかが off でなければ通す)
+  const mostlyOff = fakeDeps({ policy: () => ({ ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])), test: "manual" }) });
+  assert.equal(verdict(bash("pnpm workflow devcheck cleanup"), mostlyOff), "allow");
 });
 
 test("許可しない形 → 何も返さない", () => {
@@ -282,6 +282,14 @@ test("browser: dev-tab の記録が無い・印なし・方針 off → 何も返
   assert.equal(localOrigin("http://127.0.0.1:3005/x"), "http://localhost:3005");
 });
 
+test("方針の全体のスイッチ enabled:false(D103): 印があっても allow の形は全部何も返さず、止めはそのまま", () => {
+  const off = fakeDeps({ policy: () => Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])) });
+  for (const [command, kind] of ALLOWS) if (kind) assert.equal(verdict(bash(command), off), "none", command);
+  for (const command of STOPS) assert.equal(verdict(bash(command), off), "deny", command);
+  for (const command of ["pnpm workflow devcheck plan", "pnpm workflow devcheck status --json", "pnpm workflow devcheck cleanup"]) assert.equal(verdict(bash(command), off), "none", command);
+  assert.equal(verdict(pw("navigate", { url: DEV }), off), "none");
+});
+
 // ---- 壊れた時・入力の変換・方針 ------------------------------------------------------------------
 
 test("壊れた時は何も返さない: 方針が読めない(例外)でも止めは方針に依らない", () => {
@@ -370,6 +378,13 @@ test("hook.mjs: 壊れた方針(上書きの誤り)は何も返さず、止め�
     writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { peer: "off" };\n');
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.match(run("pnpm test x").stdout, /"permissionDecision":"allow"/);
+    // 全体のスイッチ: false → allow の形は全部何も返さない(devcheck の入口の種類も)、止めは効く / 真偽値でない = 壊れた方針
+    writeFileSync(path.join(dir, "policy.override.ts"), "export const override = { enabled: false };\n");
+    for (const command of ["pnpm test x", "pnpm workflow peer who", "pnpm workflow devcheck run server"]) assert.equal(run(command).stdout, "", command);
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
+    writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { enabled: "no" };\n');
+    assert.equal(run("pnpm test x").stdout, "");
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -39,6 +39,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
   - 形: `export const override = { "db-write": "off" };`(空のファイルは不在と同じ)
   - 宣言に無い鍵・値の誤り・`override` の export が無い・隣に実体の無い上書きは止める(exit 2)
 - `auto` = go 1 回の中で実行 | `manual` = その項目だけ別に go を取り、`--manual-go` を付けた時だけ実行 | `off` = この命令は実行しない(計画で「手で」、run は exit 4)
+- 全体のスイッチ `enabled`(真偽値、上流の実体は `true`、無い = `true`): fork が `export const override = { enabled: false };` と書くと、全部の種類(peer も)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)。真偽値でない値は止める(exit 2、フックは壊れた方針として何も返さない)
 
 ## 許可の層(PreToolUse のフック 1 本)
 
@@ -54,7 +55,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
    - 外への送信・履歴を壊す git・秘密の表示は止めも許可もしない(普段どおり聞かれる)。`permissions.deny` には書かない(止めはここ 1 か所)
 2. **allow**: 手元の印 `DEVCHECK_GRANT=on`(`.claude/settings.local.json` の env。整えるスキルが書く)があり、その種類の方針が `off` でなく、許可してよい形の時だけ
    - 形はシェルの記号の無い 1 つのコマンドだけ(引用符の外の `; & | < > $ ( ) { } * ? # ! ~ [ ]`・`\`・改行は不可。`'…'` の中は文字、`"…"` の中は `$` と `` ` `` だけを見る)
-   - `pnpm workflow devcheck plan|status [--json]`・`cleanup`(方針を見ない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針。`manual` は `--manual-go` の時だけ)
+   - `pnpm workflow devcheck plan|status [--json]`・`cleanup`(種類の方針は見ない。全部の種類が `off`(`enabled: false` を含む)の時は通さない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針。`manual` は `--manual-go` の時だけ)
    - 種類の命令: server = `pnpm workflow dev-tab run [start|status|stop] [--background] [--port <n>]` / login = `pnpm workflow dev-admin run [--check]` / test = `pnpm test …`(`--db` は除く)/ check = `pnpm check …`
    - db-write・db-delete は `devcheck run` だけ(生の `pnpm ops db inspect query` は返さない = 文の検査と片付けの記録を通す)
    - peer(フックだけの種類): `pnpm workflow peer send|reply|inbox|read|ack|who …`

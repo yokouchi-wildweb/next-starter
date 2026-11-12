@@ -470,8 +470,11 @@ export const decide = (req, deps) => {
   if (req.tool === "Bash" && typeof req.command === "string") match = classifyBash(req.command, deps.itemKind);
   else if (req.tool.startsWith(BROWSER_PREFIX)) match = classifyBrowser(req, deps);
   if (!match) return null;
-  if (match.always) return { decision: "allow", reason: "devcheck の許可: 印あり・devcheck の入口" };
-  const value = deps.policy()[match.kind];
+  const policy = deps.policy();
+  // devcheck の入口(plan / status / cleanup)は種類を持たない: どれかの種類が off でない間だけ通す
+  // (全体のスイッチ enabled:false = 全部 off → 印の道では何も通さない、D103)
+  if (match.always) return Object.values(policy).some((v) => v !== "off") ? { decision: "allow", reason: "devcheck の許可: 印あり・devcheck の入口" } : null;
+  const value = policy[match.kind];
   if (value === "auto" || (value === "manual" && match.manualGo)) return { decision: "allow", reason: `devcheck の許可: 印あり・方針 ${match.kind}=${value}` };
   return null;
 };

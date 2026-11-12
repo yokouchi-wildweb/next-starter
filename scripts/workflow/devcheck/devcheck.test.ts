@@ -28,6 +28,7 @@ import {
   scanItems,
   type Policy,
 } from "./lib";
+import { policyRefusal } from "./lib.run";
 
 const dirs: string[] = [];
 const temp = (prefix: string) => {
@@ -141,7 +142,32 @@ test("文脈: 変数が無い = 単体。版つき key=value を読み、無い�
   assert.throws(() => parseContext("v=1\nnot a pair\n", file), /2 行目が key=value でない/);
 });
 
-test("生きている dev-tab の数: 記録があり生きている作業場所だけ数える(読むだけ)", () => {
+test("方針の全体のスイッチ enabled(D103): false = 全部の種類(peer も)が off、無い = true、真偽値でなければ止める", async () => {
+  const allOff = mergePolicy({ ...ALL_AUTO, enabled: true }, { enabled: false, test: "auto" });
+  for (const key of POLICY_KEYS) assert.equal(allOff[key], "off", key);
+  assert.deepEqual(mergePolicy(ALL_AUTO, null), ALL_AUTO);
+  assert.deepEqual(mergePolicy({ ...ALL_AUTO, enabled: true }, { "db-write": "manual" })["db-write"], "manual");
+  assert.throws(() => mergePolicy(ALL_AUTO, { enabled: "no" }), /enabled の値 "no" は true \/ false/);
+  assert.throws(() => mergePolicy({ ...ALL_AUTO, enabled: 0 }, null), /policy\.json: enabled の値 0/);
+  // 計画では全部『手で』、run は断る
+  const plan = buildPlan({
+    checkout: "/repo",
+    context: STANDALONE,
+    policy: allOff,
+    items: [],
+    rejected: [],
+    state: { server: null, liveServers: 0, admin: { present: false } },
+  });
+  for (const c of plan.candidates.filter((c) => c.kind !== "cleanup")) assert.equal(c.policy, "off", c.name);
+  assert.match(policyRefusal(allOff.server, true, "server") ?? "", /方針で off/);
+  // ファイルから: 上書きの enabled:false
+  const dir = temp("devcheck-policy-switch-");
+  writeFileSync(path.join(dir, "policy.json"), JSON.stringify({ ...ALL_AUTO, enabled: true }));
+  writeFileSync(path.join(dir, "policy.override.ts"), "export const override = { enabled: false };\n");
+  assert.equal((await loadPolicy(dir)).peer, "off");
+});
+
+test("生きている dev-tab の数:記録があり生きている作業場所だけ数える(読むだけ)", () => {
   const records: Record<string, DevTabState | null> = {
     "/a": { mode: "background", dir: "/a", port: 3000, pid: 1, pgid: 1, procStart: "x", log: "l", command: "c", startedAt: "t" },
     "/b": { mode: "background", dir: "/b", port: 3001, pid: 2, pgid: 2, procStart: "y", log: "l", command: "c", startedAt: "t" },

@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "server": "auto",
   "browser": "auto",
   "login": "auto",
