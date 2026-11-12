@@ -35,9 +35,10 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 ## 方針(policy)
 
-- `policy.default.json`(上流、全部 `auto`)に `policy.override.json`(fork が足す。上流は出さない、受け口)を種類ごとに重ねる
+- 実体 `policy.json`(上流、全部 `auto`)に、fork の上書き `policy.override.ts` の宣言した鍵(= 種類。宣言は道具の中の種類の一覧)だけを重ねる。上流は上書きを出さない(受け口 add)
+  - 形: `export const override = { "db-write": "off" };`(空のファイルは不在と同じ)
+  - 宣言に無い鍵・値の誤り・`override` の export が無い・隣に実体の無い上書きは止める(exit 2)
 - `auto` = go 1 回の中で実行 | `manual` = その項目だけ別に go を取り、`--manual-go` を付けた時だけ実行 | `off` = この命令は実行しない(計画で「手で」、run は exit 4)
-- 知らない種類・値は止める(exit 2)
 
 ## fork の項目
 

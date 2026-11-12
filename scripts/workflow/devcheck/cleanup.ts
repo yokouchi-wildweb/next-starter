@@ -8,4 +8,4 @@
 import { execCleanup } from "./lib.exec";
 import { loadSetup, realDeps, runAction } from "./lib.facts";
 
-runAction(async () => execCleanup(realDeps(loadSetup())).code, () => false);
+runAction(async () => execCleanup(realDeps(await loadSetup())).code, () => false);

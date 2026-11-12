@@ -21,6 +21,7 @@ import {
   countLiveServers,
   formatPlan,
   loadContext,
+  loadPolicy,
   mergePolicy,
   parseContext,
   scanItems,
@@ -48,17 +49,43 @@ test("種類の表: スキーマの push・本番の指定・確認の埋め込�
   assert.deepEqual(KIND_NAMES, ["server", "browser", "login", "db-write", "db-delete", "env-add", "test", "check"]);
 });
 
-test("方針: 上流の既定に fork の上書きを種類ごとに重ねる。知らない種類・値・欠けた既定は止める", () => {
+test("方針: 実体に上書きの宣言した鍵(種類)だけを重ねる。宣言に無い鍵・値の誤り・欠けた実体の鍵は止める", () => {
   assert.deepEqual(mergePolicy(ALL_AUTO, null), ALL_AUTO);
   const merged = mergePolicy(ALL_AUTO, { "db-write": "manual", "env-add": "off" });
   assert.equal(merged["db-write"], "manual");
   assert.equal(merged["env-add"], "off");
   assert.equal(merged.server, "auto");
-  assert.throws(() => mergePolicy(ALL_AUTO, { deploy: "auto" }), /policy\.override\.json: 知らない種類 deploy/);
+  assert.throws(() => mergePolicy(ALL_AUTO, { deploy: "auto" }), /policy\.override\.ts: 宣言に無い鍵 deploy/);
   assert.throws(() => mergePolicy(ALL_AUTO, { server: "yes" }), /server の値 "yes" は auto \/ manual \/ off/);
   assert.throws(() => mergePolicy(ALL_AUTO, ["server"]), DevcheckError);
   const { check: _omit, ...partial } = ALL_AUTO;
-  assert.throws(() => mergePolicy(partial, null), /policy\.default\.json: check がありません/);
+  assert.throws(() => mergePolicy(partial, null), /policy\.json: check がありません/);
+});
+
+test("方針のファイル: policy.json(実体)+ policy.override.ts の export const override。空は不在、実体の無い上書き・export の無い上書きは止める", async () => {
+  const dir = temp("devcheck-policy-");
+  writeFileSync(path.join(dir, "policy.json"), JSON.stringify(ALL_AUTO));
+  assert.deepEqual(await loadPolicy(dir), ALL_AUTO);
+  writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { "db-write": "off" };\n');
+  assert.equal((await loadPolicy(dir))["db-write"], "off");
+  const blank = temp("devcheck-policy-blank-");
+  writeFileSync(path.join(blank, "policy.json"), JSON.stringify(ALL_AUTO));
+  writeFileSync(path.join(blank, "policy.override.ts"), "// まだ何も重ねない\n");
+  assert.deepEqual(await loadPolicy(blank), ALL_AUTO);
+  const undeclared = temp("devcheck-policy-key-");
+  writeFileSync(path.join(undeclared, "policy.json"), JSON.stringify(ALL_AUTO));
+  writeFileSync(path.join(undeclared, "policy.override.ts"), 'export const override = { deploy: "auto" };\n');
+  await assert.rejects(loadPolicy(undeclared), /宣言に無い鍵 deploy/);
+  const noExport = temp("devcheck-policy-noexport-");
+  writeFileSync(path.join(noExport, "policy.json"), JSON.stringify(ALL_AUTO));
+  writeFileSync(path.join(noExport, "policy.override.ts"), 'export const policy = { test: "off" };\n');
+  await assert.rejects(loadPolicy(noExport), /export const override/);
+  const orphan = temp("devcheck-policy-orphan-");
+  writeFileSync(path.join(orphan, "policy.override.ts"), 'export const override = { test: "off" };\n');
+  await assert.rejects(loadPolicy(orphan), /隣に実体 policy\.json が無い/);
+  // 上流の実体の名前は印なし(.default は丸ごと替えるスイッチの既定だけ)
+  const upstream = path.join(import.meta.dirname);
+  assert.deepEqual(Object.keys(await loadPolicy(upstream)).sort(), [...KIND_NAMES].sort());
 });
 
 test("fork の項目: このリポの入口だけを候補にし、知らない種類・外のコマンド・シェルの記号・本番の指定は理由つきで断る", () => {
