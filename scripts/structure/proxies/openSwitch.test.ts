@@ -170,6 +170,7 @@ test("依存: 上流の規則の dependsOn(組み直しの結果。連鎖の答�
       demoPayment: ["demoPages", "payment"],
       demoSampleDomain: ["demoPages", "sampleDomain"],
       fingerprintChallenge: ["deviceFingerprint"],
+      messagingBroadcast: ["messagingDispatches"],
       messagingOverrides: ["messagingDispatches"],
       messagingPreferences: ["pageMypage"],
       messagingTemplates: ["messagingDispatches"],

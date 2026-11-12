@@ -6,6 +6,8 @@
 //   小さな送信: 展開 → 配達の行 → 最初の束を経路の send へ → 行と回の数を記録
 //   大きな送信・audience: 回の行だけ(status processing)。展開と送信は cron(次の指令)
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
+// 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の audience に置く)。cron の activateScheduled が時刻に processing にして展開する
+// テンプレート(sendTemplate): 今の公開版から定義を組み、回に template_id + template_version を固定する(cron も同じ版から組み直す)
 
 import { DomainError } from "@/lib/errors";
 
@@ -32,6 +34,7 @@ import {
   type AnyResolvedMessageDefinition,
 } from "./definition";
 import { sendDeliveries, type DeliveryJob } from "./deliver";
+import { recipientVariablesWithoutDefault, resolveTemplateDefinition, templateDefinitionOf } from "./templateDefinition";
 import { expandExplicit, recipientKeyOf, type ExpansionCounts, type PlannedDelivery } from "./expand";
 import { omitKeys, recordPolicyOf, type RecordPolicy } from "./record";
 import { honoursPreferences, type StopContext } from "./stops";
@@ -44,6 +47,9 @@ import type {
   SendMessageInput,
   SendMessageResult,
   SendMessageToManyInput,
+  SendTemplateInput,
+  MessageAudienceSpec,
+  MessageTemplateVersionSource,
 } from "./types";
 
 const DUPLICATE_MESSAGE =
@@ -114,7 +120,30 @@ function finalDispatchStatus(statuses: readonly string[], queuedCount: number): 
     : "completed";
 }
 
-type ManyOptions = { single?: boolean };
+type ManyOptions = {
+  single?: boolean;
+  /** 組み済みの定義(テンプレート。生成の一覧の上書きを重ねない) */
+  resolved?: AnyResolvedMessageDefinition;
+  /** 回に固定するテンプレートの版 */
+  template?: { id: string; version: number };
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** audiences の項目に count が無い時に数える上限 */
+export const ESTIMATE_CAP = 10_000;
+
+/** 宛先数の見込み(送る時に展開で数え直す) */
+export type RecipientEstimate = { count: number; capped: boolean; fixedAtSend: true };
+
+/** 描いたプレビュー */
+export type MessagePreview = {
+  messageKey: string;
+  kind: string;
+  category: string;
+  /** テンプレートなら今の公開版(送る時に固定する版) */
+  template: { id: string; version: number } | null;
+  channels: { key: string; label: string; fields: unknown; html?: string; text?: string }[];
+};
 
 /** 停止の確かめに要る連絡の性質 */
 export function stopContextOf(resolved: AnyResolvedMessageDefinition): StopContext {
@@ -122,8 +151,24 @@ export function stopContextOf(resolved: AnyResolvedMessageDefinition): StopConte
 }
 
 export function createMessageSender(deps: MessageSendDeps) {
-  async function prepare(definition: AnyMessageDefinition, input: SendMessageToManyInput) {
-    const resolved = await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
+  /** @throws DomainError(400) 過ぎた時刻・遠すぎる時刻 */
+  function checkSchedule(scheduledAt: Date | undefined): void {
+    if (scheduledAt === undefined) return;
+    const now = deps.now().getTime();
+    const at = scheduledAt instanceof Date ? scheduledAt.getTime() : Number.NaN;
+    if (Number.isNaN(at)) throw new DomainError("予約の時刻が正しくありません", { status: 400 });
+    if (at <= now) throw new DomainError("予約の時刻が過ぎています", { status: 400 });
+    const maxDays = deps.config.schedule.maxDaysAhead;
+    if (at > now + maxDays * DAY_MS) {
+      throw new DomainError(`予約は ${maxDays} 日先までです`, { status: 400 });
+    }
+  }
+
+  async function prepare(definition: AnyMessageDefinition, input: SendMessageToManyInput, options: ManyOptions = {}) {
+    checkSchedule(input.scheduledAt);
+    const resolved =
+      options.resolved ??
+      (await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides));
     if (!resolved.enabled) return null;
     const channels = resolveChannels(resolved, input.channels, deps.channels);
     const vars = parseVars(resolved, input.vars);
@@ -147,18 +192,24 @@ export function createMessageSender(deps: MessageSendDeps) {
       queueVars: boolean;
       /** 要求の中で展開を終える(小さな送信) */
       expanded: boolean;
+      template?: { id: string; version: number };
     },
   ): Promise<string> {
-    const { channels, vars, policy, recipientCount, queueVars, expanded } = values;
+    const { channels, vars, policy, recipientCount, queueVars, expanded, template } = values;
     const actor = deps.actor();
+    const scheduled = input.scheduledAt !== undefined;
+    // cron が展開する回(大きな送信・予約)は宛先の一覧を回に置く
     const audience = input.audience
       ? { ...input.audience }
-      : recipientCount > deps.config.smallSendMaxRecipients
+      : scheduled || recipientCount > deps.config.smallSendMaxRecipients
         ? { type: "recipients", recipients: input.recipients, recipientVars: input.recipientVars ?? null }
         : { type: "recipients", count: recipientCount };
     try {
       const { id } = await deps.store.insertDispatch({
-        status: "processing",
+        status: scheduled ? "scheduled" : "processing",
+        scheduled_at: input.scheduledAt ?? null,
+        template_id: template?.id ?? null,
+        template_version: template?.version ?? null,
         idempotency_key: input.idempotencyKey ?? null,
         channels,
         recipient_count: recipientCount,
@@ -194,15 +245,19 @@ export function createMessageSender(deps: MessageSendDeps) {
     input: SendMessageToManyInput,
     options: ManyOptions = {},
   ): Promise<SendMessageResult> {
-    const prepared = await prepare(definition, input);
+    const prepared = await prepare(definition, input, options);
     if (!prepared) {
       return { dispatchId: null, status: "disabled", deliveries: [], queuedCount: 0, channelCounts: {} };
     }
     const { resolved, channels, vars, policy } = prepared;
     const recipients: readonly MessageRecipient[] = input.recipients ?? [];
     const uniqueCount = new Set(recipients.map(recipientKeyOf)).size;
+    const scheduled = input.scheduledAt !== undefined;
     const large = Boolean(input.audience) || uniqueCount > deps.config.smallSendMaxRecipients;
 
+    if (scheduled && policy.noBody) {
+      throw new DomainError(`止められない連絡と秘密を差し込む連絡は予約できません(${resolved.key})`, { status: 400 });
+    }
     if (large && policy.noBody) {
       // required・秘密の連絡はキューに置けない(cron に vars を渡せない)ので、小さな選んだ宛先だけ
       throw new DomainError(
@@ -211,16 +266,24 @@ export function createMessageSender(deps: MessageSendDeps) {
       );
     }
 
-    if (large) {
+    if (large || scheduled) {
+      // 回の行だけ。展開は cron(予約は時刻に processing になってから)。宛先の数は展開の時に数え直す
       const dispatchId = await insertDispatch(resolved, input, {
         channels,
         vars,
         policy,
-        recipientCount: input.audience ? 0 : uniqueCount,
+        recipientCount: input.audience ? 0 : large ? uniqueCount : 0,
         queueVars: true,
         expanded: false,
+        template: options.template,
       });
-      return { dispatchId, status: "processing", deliveries: [], queuedCount: 0, channelCounts: emptyChannelCounts(channels) };
+      return {
+        dispatchId,
+        status: scheduled ? "scheduled" : "processing",
+        deliveries: [],
+        queuedCount: 0,
+        channelCounts: emptyChannelCounts(channels),
+      };
     }
 
     // 小さな送信: 展開してから回を書く(見つからない利用者を先に知る)
@@ -239,6 +302,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       recipientCount: targetCount,
       queueVars: queueRest,
       expanded: true,
+      template: options.template,
     });
 
     const recipientVarsOf = (key: string) => input.recipientVars?.[key];
@@ -348,6 +412,24 @@ export function createMessageSender(deps: MessageSendDeps) {
     };
   }
 
+  /**
+   * テンプレートの今の公開版(送れる版)。
+   * @throws DomainError(404) 無い / (409) 取り下げ済み・未公開 / (400) 受信者ごとの変数に既定値が無い
+   */
+  async function currentTemplateVersion(templateId: string): Promise<MessageTemplateVersionSource> {
+    if (!deps.templates) throw new DomainError("テンプレートの読み口がありません", { status: 500 });
+    const current = await deps.templates.loadCurrent(templateId);
+    if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
+    if (current.status === "archived") throw new DomainError("取り下げたテンプレートでは送れません", { status: 409 });
+    const version = current.version;
+    if (!version) throw new DomainError("まだ公開していないテンプレートでは送れません", { status: 409 });
+    const missing = recipientVariablesWithoutDefault(version);
+    if (missing.length > 0) {
+      throw new DomainError(`受信者ごとの変数 ${missing.join(", ")} に既定値が無いので送れません`, { status: 400 });
+    }
+    return version;
+  }
+
   return {
     /** 1 通(1 人)を送る */
     async sendMessage(definition: AnyMessageDefinition, input: SendMessageInput): Promise<SendMessageResult> {
@@ -365,6 +447,83 @@ export function createMessageSender(deps: MessageSendDeps) {
     /** 一括で送る(選んだ宛先か audience) */
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
+    /**
+     * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、経路ごとに欄と(経路が描けるなら)HTML を返す。
+     * テンプレートは今の公開版(送る時に固定する版と同じ規則)
+     * @throws DomainError 送る時と同じ検査(vars・経路・テンプレートの状態)
+     */
+    async previewMessage(
+      source: { definition: AnyMessageDefinition } | { templateId: string; kind?: "marketing" | "transactional" },
+      input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
+    ): Promise<MessagePreview> {
+      let resolved: AnyResolvedMessageDefinition;
+      let template: { id: string; version: number } | null = null;
+      if ("definition" in source) {
+        resolved = await resolveDefinition(source.definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
+      } else {
+        const version = await currentTemplateVersion(source.templateId);
+        resolved = resolveTemplateDefinition(version, source.kind ?? "marketing", deps.channels, deps.enrichers);
+        template = { id: version.templateId, version: version.version };
+      }
+      const channels = resolveChannels(resolved, input.channels ?? (template ? resolved.defaultChannels : undefined), deps.channels);
+      const vars = parseVars(resolved, input.vars);
+      const [user] = input.userId ? await deps.store.findUsers([input.userId]) : [];
+      const values = await buildRecipientValues({ deps, resolved, vars, recipientVars: undefined, user: user ?? null });
+      const map = toVariableMap(values);
+      const category = honoursPreferences(stopContextOf(resolved)) ? resolved.category : undefined;
+      const items: MessagePreview["channels"] = [];
+      for (const key of channels) {
+        const channel = deps.channels[key];
+        const fields = renderValue(channelContent(resolved, key, channel), map);
+        const drawn = channel?.preview ? await channel.preview({ messageKey: resolved.key, content: fields, category }) : {};
+        items.push({ key, label: channel?.label ?? key, fields, ...drawn });
+      }
+      return { messageKey: resolved.key, kind: resolved.kind, category: resolved.category, template, channels: items };
+    },
+
+    /**
+     * 宛先数の見込み(送る時に数え直す)。全員・ロールは数、audiences は項目の count か上限まで数える、選んだ利用者は居る人の数
+     */
+    async estimateRecipients(
+      target: { audience: MessageAudienceSpec } | { userIds: readonly string[] },
+    ): Promise<RecipientEstimate> {
+      if ("userIds" in target) {
+        const users = await deps.store.findUsers([...new Set(target.userIds)]);
+        return { count: users.length, capped: false, fixedAtSend: true };
+      }
+      const spec = target.audience;
+      if (spec.type === "all") return { count: await deps.store.countUserIds({}), capped: false, fixedAtSend: true };
+      if (spec.type === "role") {
+        return { count: await deps.store.countUserIds({ roles: spec.roles }), capped: false, fixedAtSend: true };
+      }
+      const audience = deps.audiences[spec.key];
+      if (!audience) throw new DomainError(`宛先の集め方 ${spec.key} がありません`, { status: 400 });
+      const args = audience.args.safeParse(spec.args);
+      if (!args.success) throw new DomainError(`宛先の集め方 ${spec.key} の引数が合いません`, { status: 400 });
+      if (audience.count) return { count: await audience.count(args.data), capped: false, fixedAtSend: true };
+      let total = 0;
+      let cursor: string | null = null;
+      do {
+        const page: { userIds: string[]; nextCursor: string | null } = await audience.resolveUserIds(args.data, cursor);
+        total += page.userIds.length;
+        cursor = page.nextCursor;
+      } while (cursor !== null && total < ESTIMATE_CAP);
+      return { count: Math.min(total, ESTIMATE_CAP), capped: cursor !== null || total > ESTIMATE_CAP, fixedAtSend: true };
+    },
+
+    /**
+     * 保存されたテンプレートの今の公開版で送る(版を回に固定)。
+     * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開 / (400) 値・受信者ごとの変数の既定値
+     */
+    async sendTemplate(input: SendTemplateInput): Promise<SendMessageResult> {
+      const { templateId, kind, ...rest } = input;
+      const version = await currentTemplateVersion(templateId);
+      const resolved = resolveTemplateDefinition(version, kind ?? "marketing", deps.channels, deps.enrichers);
+      return sendToMany(templateDefinitionOf(version, kind ?? "marketing"), { ...rest, channels: rest.channels ?? version.channels } as SendMessageToManyInput, {
+        resolved,
+        template: { id: version.templateId, version: version.version },
+      });
+    },
   };
 }
 

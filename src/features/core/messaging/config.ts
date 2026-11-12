@@ -52,6 +52,11 @@ export type MessagingConfig = {
    * - unreadModalPaths: モーダルを出す住所(完全一致。末尾 * で前方一致)
    */
   inbox: { showUnreadModal: boolean; unreadModalPaths: readonly string[] };
+  /**
+   * 予約(送る口の scheduledAt)
+   * - maxDaysAhead: 今から何日先まで予約できるか(過ぎた時刻と、これより先は 400)。拾うのは cron の周期(Hobby は 1 日 1 回)
+   */
+  schedule: { maxDaysAhead: number };
 };
 
 const defaults: MessagingConfig = {
@@ -71,6 +76,7 @@ const defaults: MessagingConfig = {
     budgetMs: 240_000,
   },
   inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
+  schedule: { maxDaysAhead: 90 },
 };
 
 export const messagingConfigDef = defineConfig(defaults, { label: "messaging" });

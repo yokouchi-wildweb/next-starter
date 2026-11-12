@@ -2,7 +2,18 @@
 //
 // messaging ドメインの公開 API。本ファイルから import して使うのが基本（個別ファイル直接 import は避ける）。
 
-import { adminBulkSend, adminContinueSending, findDispatch, listDeliveries, listDispatches } from "./admin";
+import {
+  adminBulkSend,
+  adminContinueSending,
+  adminSend,
+  adminSendEstimate,
+  adminSendOptions,
+  adminSendPreview,
+  adminSendTest,
+  findDispatch,
+  listDeliveries,
+  listDispatches,
+} from "./admin";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { listUserMessageHistory } from "./history";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
@@ -18,7 +29,7 @@ import {
   publishMessageTemplate,
   updateMessageTemplate,
 } from "./templates";
-import { sendMessage, sendMessageToMany } from "./sendMessage";
+import { sendMessage, sendMessageToMany, sendTemplate } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
 import { continueSending } from "./sweep";
 
@@ -32,12 +43,20 @@ export const messagingService = {
   sendMessage,
   /** 連絡の定義を選んだ宛先か audience へ送る(新しい送る口) */
   sendMessageToMany,
+  /** 保存されたテンプレートの今の公開版で送る(版を回に固定、予約もできる) */
+  sendTemplate,
   /** 渡した冪等の鍵のうち使われたもの(回の表と鍵の移し先の表の両方を見る。一括の送り手がページごとに送信済みを除く) */
   existingIdempotencyKeys,
   /** 1 つの回を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */
   continueSending,
   /** 管理の一括送信(連絡 messaging.adminMessage、/api/admin/messaging/bulk-send が呼ぶ。service でも管理者を確かめる) */
   adminBulkSend,
+  /** 管理の送信(/api/admin/messaging/send/**): 送る(今か予約)・プレビュー・見込み・自分へのテスト・選択肢 */
+  adminSend,
+  adminSendPreview,
+  adminSendEstimate,
+  adminSendTest,
+  adminSendOptions,
   /** 管理の「続きを送る」(監査ログに 1 行) */
   adminContinueSending,
   /** 回の読む口(管理。D37 の DTO): 一覧・1 件・配達 */

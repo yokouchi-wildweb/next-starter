@@ -7,6 +7,7 @@
 // - 送信: 宛先ごとに描き、React のフォールバックの印があれば送らず permanent(L2.1)、
 //   無ければ描いた html を lib/mail send() に渡す(描くのは 1 回。冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
+// - preview: 管理の送信のプレビュー。送る時と同じ描き方で HTML を返す(停止のリンクは好みのページか見本の URL)
 // - webhook(D36・D44): resend / sendgrid の verify(鍵は env、無ければ WebhookNotConfiguredError)+ normalize(lib/mail/webhooks)
 // - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(marketing・activity)。
 //   List-Unsubscribe のヘッダもあれば、ヘッダを lib/mail に渡し本文の最後に停止のリンクを出す。
@@ -58,6 +59,9 @@ export type EmailChannelDeps = {
   webhookKeys: { resendSecret: () => string | null; sendgridPublicKey: () => string | null };
 };
 
+/** プレビューで出す停止のリンクの見本(好みのページが閉の時) */
+export const PREVIEW_UNSUBSCRIBE_URL = "#unsubscribe";
+
 /** 送る時に provider のタグで渡す配達の id の名前(webhook の事件で読み戻す) */
 export const DELIVERY_ID_TAG = "delivery_id";
 
@@ -107,6 +111,18 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     fields: emailFieldsSchema,
     resolveAddresses: (userIds) => deps.findEmails(userIds),
     webhooks: emailWebhooks(deps),
+    // プレビュー: 送る時と同じ描き方(連絡の鍵の view、無ければ既定)で HTML を描く。停止のリンクは見本の URL
+    async preview({ messageKey, content, category }) {
+      const View = (await deps.loadView(messageKey)) ?? EmailView;
+      const html = await deps.render(
+        <View
+          content={content as EmailViewContent}
+          theme={deps.theme}
+          unsubscribeUrl={category ? (deps.preferencesPageUrl?.() ?? PREVIEW_UNSUBSCRIBE_URL) : undefined}
+        />,
+      );
+      return { html };
+    },
     async send(targets) {
       const results: ChannelSendResult[] = [];
       // 束の中では連絡ごとに 1 回だけ読む
