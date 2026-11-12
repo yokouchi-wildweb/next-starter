@@ -14,7 +14,12 @@ import type {
 } from "@/lib/messaging";
 
 import type { MessagingConfig } from "../../../config";
-import type { MessageDelivery, MessageDeliveryInsert, MessageDispatchInsert } from "../../../entities/model";
+import type {
+  MessageDelivery,
+  MessageDeliveryInsert,
+  MessageDispatchInsert,
+  MessageEventRowInsert,
+} from "../../../entities/model";
 import { MessageIdempotencyConflict } from "./errors";
 import type { MessageSendDeps, MessageSendStore, MessageUserRow } from "./types";
 
@@ -28,6 +33,8 @@ export type MemoryStore = MessageSendStore & {
   endpointTouches: { channel: string; entries: { userId: string; address: string }[]; at: Date }[];
   preferences: { userId: string; category: string; channel: string }[];
   suppressions: { channel: string; addressHash: string; reason: string; scope: string }[];
+  /** 書かれた内部の事件(本物は同じ取引で message_events へ) */
+  events: MessageEventRowInsert[];
 };
 
 export function createMemoryStore(): MemoryStore {
@@ -40,6 +47,7 @@ export function createMemoryStore(): MemoryStore {
     endpointTouches: [],
     preferences: [],
     suppressions: [],
+    events: [],
     async findOptOuts(userIds, category, channels) {
       return store.preferences
         .filter(
@@ -66,11 +74,12 @@ export function createMemoryStore(): MemoryStore {
       store.dispatches.push(row);
       return { id: row.id };
     },
-    async updateDispatch(id, patch) {
+    async updateDispatch(id, patch, events) {
       const row = store.dispatches.find((item) => item.id === id);
       if (row) Object.assign(row, patch);
+      if (events) store.events.push(...events);
     },
-    async insertDeliveries(rows: readonly MessageDeliveryInsert[]) {
+    async insertDeliveries(rows: readonly MessageDeliveryInsert[], eventsFor) {
       const created: MessageDelivery[] = [];
       for (const values of rows) {
         const duplicate = store.deliveries.some(
@@ -109,11 +118,13 @@ export function createMemoryStore(): MemoryStore {
         store.deliveries.push(row);
         created.push({ ...row });
       }
+      if (eventsFor) store.events.push(...eventsFor(created));
       return created;
     },
-    async updateDelivery(id, patch) {
+    async updateDelivery(id, patch, events) {
       const row = store.deliveries.find((item) => item.id === id);
       if (row) Object.assign(row, patch);
+      if (events) store.events.push(...events);
     },
     async findUsers(ids) {
       return store.users.filter((user) => ids.includes(user.id)).map(({ id, name, email }) => ({ id, name, email }));
@@ -184,6 +195,7 @@ export const testConfig: MessagingConfig = {
   retention: { eventsDays: 30, deliveriesDays: 90, dispatchesDays: 730, idempotencyKeyDays: null, chunkSize: 2, budgetMs: 60_000 },
   inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
   schedule: { maxDaysAhead: 30 },
+  subscribers: { lagSeconds: 120, maxAttempts: 3, batchSize: 2, budgetMs: 60_000 },
 };
 
 export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");

@@ -57,6 +57,14 @@ export type MessagingConfig = {
    * - maxDaysAhead: 今から何日先まで予約できるか(過ぎた時刻と、これより先は 400)。拾うのは cron の周期(Hobby は 1 日 1 回)
    */
   schedule: { maxDaysAhead: number };
+  /**
+   * 購読(cron messaging-subscribers、D47)
+   * - lagSeconds: これより新しい事件は読まない(seq は insert の順で commit の順ではないため、遅れて commit した取引を飛ばさない余白)
+   * - maxAttempts: 同じ事件がこの回数失敗したら隔離して印を進める
+   * - batchSize: 1 回に handle へ渡す事件の数
+   * - budgetMs: 1 回の実行の予算
+   */
+  subscribers: { lagSeconds: number; maxAttempts: number; batchSize: number; budgetMs: number };
 };
 
 const defaults: MessagingConfig = {
@@ -77,6 +85,7 @@ const defaults: MessagingConfig = {
   },
   inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
   schedule: { maxDaysAhead: 90 },
+  subscribers: { lagSeconds: 120, maxAttempts: 5, batchSize: 100, budgetMs: 240_000 },
 };
 
 export const messagingConfigDef = defineConfig(defaults, { label: "messaging" });

@@ -5,6 +5,8 @@
 import { randomUUID } from "node:crypto";
 
 import { runAsSystem } from "@/lib/audit";
+
+import { slowestSubscriberMark } from "../subscribers";
 import { createDeadline } from "@/lib/cron";
 
 import { messagingConfig } from "../../../config";
@@ -28,11 +30,13 @@ export function continueSending(dispatchId: string): Promise<ContinueSendingResu
 
 /** 保持の掃除(cron messaging-retention) */
 export function pruneMessagingRecords(): Promise<RetentionResult> {
-  return runAsSystem(() =>
+  return runAsSystem(async () =>
     pruneMessaging(drizzleMessageRetentionStore, {
       config: messagingConfig,
       now: new Date(),
       deadline: createDeadline(messagingConfig.retention.budgetMs),
+      // 購読がまだ渡していない事件は日数を過ぎても消さない
+      slowestSubscriberMark: await slowestSubscriberMark(),
     }),
   );
 }

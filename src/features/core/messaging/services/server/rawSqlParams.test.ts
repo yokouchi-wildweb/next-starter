@@ -20,6 +20,7 @@ const USER = "00000000-0000-4000-8000-000000000001";
 
 const CASES: [string, () => SQL][] = [
   ["retention: 事件", () => expiredEventsDeleteSql(CUTOFF, 1000)],
+  ["retention: 事件(購読の一番遅い印より新しい事件は残す)", () => expiredEventsDeleteSql(CUTOFF, 1000, 42)],
   ["retention: 配達", () => expiredDeliveriesDeleteSql(CUTOFF, 1000)],
   ["retention: 回", () => expiredDispatchesSelectSql(CUTOFF, 1000)],
   ["inbox: keyset", () => inboxBeforeSql({ publishedAt: CUTOFF, id: USER })],

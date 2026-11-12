@@ -9,4 +9,5 @@ export * from "./model";
 export * from "./override";
 export * from "./preference";
 export * from "./schema";
+export * from "./subscriber";
 export * from "./template";

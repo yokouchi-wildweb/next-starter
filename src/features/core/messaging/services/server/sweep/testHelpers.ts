@@ -15,7 +15,7 @@ export type MemoryWorld = {
   retentionStore: MessageRetentionStore;
   inboxDispatchIds: Set<string>;
   movedKeyRows: { idempotency_key: string; dispatch_id: string; createdAt: Date }[];
-  events: { id: string; createdAt: Date }[];
+  events: { id: string; createdAt: Date; seq?: number }[];
   inboxItems: MessageInboxItemInsert[];
   /** 保持の掃除が回から外した画像の参照(本物は storageObjectService.detach) */
   detachedImageRefs: string[];
@@ -50,7 +50,7 @@ export function createMemoryWorld(): MemoryWorld {
       );
       if (!target) return false;
       const write = await step({ ...target });
-      await store.insertDeliveries(write.rows as MessageDeliveryInsert[]);
+      await store.insertDeliveries(write.rows as MessageDeliveryInsert[], write.eventsFor);
       if (write.inboxItem) inboxItems.push(write.inboxItem);
       Object.assign(target, write.patch);
       return true;
@@ -70,9 +70,12 @@ export function createMemoryWorld(): MemoryWorld {
       for (const row of due) Object.assign(row, { status: "sending", locked_until: leaseUntil, lock_token: lockToken });
       return due.map((row) => ({ ...row }));
     },
-    async updateClaimed(id, lockToken, patch) {
+    async updateClaimed(id, lockToken, patch, events) {
       const row = store.deliveries.find((item) => item.id === id && item.lock_token === lockToken);
-      if (row) Object.assign(row, patch);
+      if (row) {
+        Object.assign(row, patch);
+        if (events) store.events.push(...events);
+      }
     },
     async markStaleSending(now) {
       const stale = store.deliveries.filter((row) => row.status === "sending" && row.locked_until && row.locked_until < now);
@@ -110,15 +113,15 @@ export function createMemoryWorld(): MemoryWorld {
       }
       return [...counts.values()];
     },
-    async updateDispatch(id, patch) {
-      await store.updateDispatch(id, patch);
+    async updateDispatch(id, patch, events) {
+      await store.updateDispatch(id, patch, events);
     },
   };
 
   const take = <T>(rows: T[], limit: number) => rows.slice(0, limit);
   const retentionStore: MessageRetentionStore = {
-    async deleteEventsBefore(cutoff, limit) {
-      const gone = take(events.filter((e) => e.createdAt < cutoff), limit);
+    async deleteEventsBefore(cutoff, limit, maxSeq) {
+      const gone = take(events.filter((e) => e.createdAt < cutoff && (maxSeq === null || (e.seq ?? 0) <= maxSeq)), limit);
       for (const e of gone) events.splice(events.indexOf(e), 1);
       return gone.length;
     },

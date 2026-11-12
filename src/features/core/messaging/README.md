@@ -24,7 +24,8 @@ src/features/core/messaging/
 │   └── preferences.ts           # 好みのページと API の住所（門 messagingPreferences の pathPatterns と同じ値）
 ├── entities/
 │   ├── drizzle.ts               # message_dispatches テーブル
-│   ├── delivery.ts              # message_deliveries / message_events
+│   ├── delivery.ts              # message_deliveries / message_events（事件。seq・dispatch_id・message_key・channel）
+│   ├── subscriber.ts            # message_subscriber_cursors / message_subscriber_failures（購読の印と失敗）
 │   ├── inbox.ts                 # message_inbox_items / _reads / _read_states
 │   ├── template.ts              # message_templates / message_template_versions
 │   ├── preference.ts            # message_preferences / message_suppressions
@@ -422,6 +423,24 @@ export const bulkAction = bulkMessageAction(
 - 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
 - 回の操作（部品 `common/DispatchOperations`、props だけ）: 予約を取り消す・取り下げる・失敗分を再送 のボタン。できない操作は押せず `operations` の理由を出す。押すと確認の Dialog（取り下げは戻せない・送ったメールは取り戻せない、再送は 同じ回で / 新しい回として と失敗・不明の数、不明がある時だけ「不明も含める」= 二重に届くおそれ）。入れ物 `AdminDispatchDetail` が hook `useCancelDispatch` / `useRetractDispatch` / `useResendDispatch`（成功で回と一覧を取り直し、配達の一覧も取り直す）をつなぐ
 
+## 購読（subscribers・cron messaging-subscribers）
+
+D47。送った後の事件を fork のコードが受ける口（events = outbox）。管理の一括送信の `afterSend`（送信の直後に 1 回）とは別。
+
+- 項目: `messaging/subscribers/<名前>.ts` に `export const subscriber: MessageSubscriber = { key, on, filter?, handle }` → `pnpm generate extensions`。上流の項目は無い（受け口だけ）
+  - `on`: 受ける事件の種類。内部の事件 `dispatch.completed`・`delivery.sent`・`delivery.failed`・`delivery.suppressed` と、webhook の事件の種類（`delivered`・`bounced_hard`・`opened` など、経路の正規化した語彙）
+  - `filter?`: `{ messages?: 連絡の鍵[], channels?: 経路[] }`
+  - `handle(events)`: 事件の束（`MessageEvent` = `id`・`type`・`messageKey`・`dispatchId`（照合できなかった webhook は null）・`deliveryId`・`channel`・`occurredAt`・`payload`）。**少なくとも 1 回**渡るので、事件の `id` と購読の鍵で冪等にする。投げると印を進めず次の実行でもう一度渡る
+- 内部の事件: 元の状態の更新（配達の行・回の行）と同じ取引で `message_events` に書く（provider `internal`、`provider_event_id` は事件ごとの uuid）。**書くのは登録した購読のどれかが聞いている種類だけ**（購読が 0 なら何も書かない）。書く所: 小さな送信（止めた行 = suppressed、送った結果、要求の中で閉じた回）・cron の展開（止めた行）・送信（sent / failed / 送る直前に止めた行）・回を閉じる（`dispatch.completed`、payload `{ status, isTest }`）。宛先が複数で前の実行で sent になった行はもう一度 `delivery.sent` を書かない。lease を失った処理は行も事件も書かない
+- webhook の事件にも配達から `dispatch_id`・`message_key`・`channel` を写す
+- cron `messaging-subscribers`（5 分ごと、`services/server/subscribers`）: 購読ごとの印（`message_subscriber_cursors.last_seq`、前進は GREATEST で単調）から `seq` 順に、`created_at` が now − `subscribers.lagSeconds`（既定 120 秒）より前の事件だけを読み、`on` と `filter` に合う事件を `batchSize`（既定 100）ずつ `handle` へ。成功で印を進める。`runBudgetedBatches` + 締切（`budgetMs`）
+  - lag の訳: `seq` は insert の順で commit の順ではない。lag より長く commit が遅れた取引の事件は飛ぶことがある（普通の取引は数秒）
+  - 束が失敗したら 1 件ずつ渡し直し、それより前の事件は済み、失敗した事件で印を止める（`message_subscriber_failures.attempts`++、`last_error`）。同じ事件が `maxAttempts`（既定 5）回失敗したら隔離（`quarantined_at`）して印を進める
+  - 合う事件を読み切ったら、合わなかった事件も含め上限（lag より前の一番大きい seq）まで印を進める（保持の掃除を止めない）
+  - 隔離した事件の渡し直し（運用）: `reprocessQuarantinedEvents(購読の鍵, 事件の id?)`（成功で失敗の行を消す、失敗は隔離のまま数える）。隔離の行を見る画面は無い
+- 保持: 事件の保持（`retention.eventsDays` 30 日）は、購読がある時、一番遅い購読の印より新しい事件を消さない（印の行がまだ無い購読 = 0）。隔離の行は事件と一緒に消える（FK cascade）
+- 値（`config.ts` の `subscribers`）: `lagSeconds` 120 / `maxAttempts` 5 / `batchSize` 100 / `budgetMs` 240000
+
 ## cron（送信の掃き出し・保持の掃除）と続きを送る
 
 送る口が要求の中で送り切らなかった分は cron が送る。機能の門は持たない（送る口と同じく常に開）。
@@ -449,7 +468,7 @@ export const bulkAction = bulkMessageAction(
 
 - `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`・`expand_cursor`（展開の再開位置、cron の節）。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
 - `message_deliveries`: 受信者 × 経路 の 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease は `locked_until` + `lock_token`、送り直しは `next_attempt_at`。複数の宛先は `targets` jsonb。利用者を消すと `user_id` は null（`recipient_key` は残る）
-- `message_events`: provider の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`
+- `message_events`: provider の事件と内部の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`。`seq`（入った順）・`dispatch_id`（回を消すと一緒に消える）・`message_key`・`channel`（購読の節）
 - `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）
 - `message_inbox_reads` / `message_inbox_read_states`: 個別の既読と全既読のウォーターマーク（notification_reads / notification_read_states と同じ形）
 - `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`。読み書きは「保存されたテンプレート」の節）

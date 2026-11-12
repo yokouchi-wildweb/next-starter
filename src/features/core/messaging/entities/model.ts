@@ -5,6 +5,7 @@ import { MessageDispatchTable } from "./drizzle";
 import type { MessageEndpointTable } from "./endpoint";
 import type { MessageIdempotencyKeyTable } from "./idempotencyKey";
 import type { MessageOverrideTable } from "./override";
+import type { MessageSubscriberCursorTable, MessageSubscriberFailureTable } from "./subscriber";
 import type {
   MessageInboxItemTable,
   MessageInboxReadStateTable,
@@ -72,3 +73,7 @@ export type MessageIdempotencyKeyInsert =
 
 export type MessageOverrideRow = typeof MessageOverrideTable.$inferSelect;
 export type MessageOverrideInsert = typeof MessageOverrideTable.$inferInsert;
+
+export type MessageSubscriberCursor = typeof MessageSubscriberCursorTable.$inferSelect;
+export type MessageSubscriberFailure = typeof MessageSubscriberFailureTable.$inferSelect;
+export type MessageSubscriberFailureInsert = typeof MessageSubscriberFailureTable.$inferInsert;

@@ -17,6 +17,7 @@ import type {
   MessageDeliveryStatus,
   MessageDispatchInsert,
   MessageDispatchStatus,
+  MessageEventRowInsert,
 } from "../../../entities/model";
 import type { MessageChannelCounts } from "../../../entities/schema";
 
@@ -133,10 +134,18 @@ export type MessageSendStore = {
   idempotencyKeyExists: (key: string) => Promise<boolean>;
   /** 回を 1 行入れる。鍵の UNIQUE 違反は MessageIdempotencyConflict を投げる */
   insertDispatch: (values: MessageDispatchInsert) => Promise<{ id: string }>;
-  updateDispatch: (id: string, patch: Partial<MessageDispatchInsert>) => Promise<void>;
-  /** 配達の行を入れる(UNIQUE(dispatch_id, channel, recipient_key) の重複は飛ばす) */
-  insertDeliveries: (rows: readonly MessageDeliveryInsert[]) => Promise<MessageDelivery[]>;
-  updateDelivery: (id: string, patch: Partial<MessageDeliveryInsert>) => Promise<void>;
+  /** 回を更新する。events = 同じ取引で書く内部の事件(D47) */
+  updateDispatch: (id: string, patch: Partial<MessageDispatchInsert>, events?: readonly MessageEventRowInsert[]) => Promise<void>;
+  /**
+   * 配達の行を入れる(UNIQUE(dispatch_id, channel, recipient_key) の重複は飛ばす)。
+   * eventsFor = 入った行から同じ取引で書く内部の事件を作る
+   */
+  insertDeliveries: (
+    rows: readonly MessageDeliveryInsert[],
+    eventsFor?: (created: readonly MessageDelivery[]) => MessageEventRowInsert[],
+  ) => Promise<MessageDelivery[]>;
+  /** 配達の行を更新する。events = 同じ取引で書く内部の事件 */
+  updateDelivery: (id: string, patch: Partial<MessageDeliveryInsert>, events?: readonly MessageEventRowInsert[]) => Promise<void>;
   findUsers: (ids: readonly string[]) => Promise<MessageUserRow[]>;
   /** 全員・ロールの利用者 id を keyset で引く(id の昇順、利用できる利用者だけ) */
   listUserIds: (
@@ -189,6 +198,8 @@ export type MessageSendDeps = {
    * 無ければ(テスト・cron の補い)コードの値だけで送る
    */
   adminOverrides?: MessageAdminOverrideSource;
+  /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
+  eventTypes?: ReadonlySet<string>;
   /** 保存されたテンプレート(sendTemplate と cron の版の引き直し)。無ければテンプレートでは送れない */
   templates?: MessageTemplateSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */

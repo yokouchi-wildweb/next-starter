@@ -17,6 +17,8 @@ import { messagingConfig } from "../../../config";
 import { audiences } from "../../../extensions/audiences";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { subscribers } from "../../../extensions/subscribers";
+import { subscribedEventTypes } from "../events/internalEvents";
 import { createMessageSender } from "./sender";
 import { drizzleMessageSendStore } from "./store";
 import type { MessageSendDeps } from "./types";
@@ -39,6 +41,8 @@ export const sendMessageDeps: MessageSendDeps = {
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
   // 管理画面の文言(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む)
   templates: drizzleMessageTemplateSource,
+  // 内部の事件は登録した購読が聞いている種類だけ書く
+  eventTypes: subscribedEventTypes(Object.values(subscribers)),
   adminOverrides: {
     enabled: () => gate.enabled("messagingOverrides"),
     async load(messageKey) {

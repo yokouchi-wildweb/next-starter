@@ -3,9 +3,12 @@
 // 配達（受信者 × 経路）と、provider から届いた事件（追記だけ）。
 // - message_deliveries: 1 行 = 1 受信者 × 1 経路。複数の宛先は targets に持つ。
 //   行の更新は排他（lease: locked_until + lock_token）。cron は next_attempt_at <= now で拾う
-// - message_events: webhook の事件。UNIQUE(provider, provider_event_id) で重複を捨てる
+// - message_events: 事件(webhook の事件と内部の事件 dispatch.completed / delivery.*、追記だけ)。UNIQUE(provider, provider_event_id) で重複を捨てる。
+//   seq = 入った順の番号(購読の cron が印から順に読む)、dispatch_id / message_key / channel = 購読の絞りと MessageEvent の値
 
 import {
+  bigint,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -107,6 +110,14 @@ export const MessageEventTable = pgTable(
     delivery_id: uuid("delivery_id").references(() => MessageDeliveryTable.id, {
       onDelete: "cascade",
     }),
+    /** 入った順の番号(購読の印。insert の時に決まり commit の順とは限らないので、cron は数分前までの行だけ読む) */
+    seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity(),
+    /** 事件の回(照合できなかった webhook の事件は null)。回を消すと一緒に消える */
+    dispatch_id: uuid("dispatch_id"),
+    /** 回の連絡の鍵(購読の絞り) */
+    message_key: text("message_key"),
+    /** 経路(回の事件は null) */
+    channel: text("channel"),
     provider: text("provider").notNull(),
     /** 事件の種類（delivered / bounced / opened / clicked / complained など） */
     type: text("type").notNull(),
@@ -125,5 +136,12 @@ export const MessageEventTable = pgTable(
     ),
     index("idx_message_events_delivery").on(table.delivery_id),
     index("idx_message_events_created_at").on(table.createdAt),
+    index("idx_message_events_seq").on(table.seq),
+    index("idx_message_events_dispatch").on(table.dispatch_id),
+    foreignKey({
+      name: "message_events_dispatch_fk",
+      columns: [table.dispatch_id],
+      foreignColumns: [MessageDispatchTable.id],
+    }).onDelete("cascade"),
   ],
 );
