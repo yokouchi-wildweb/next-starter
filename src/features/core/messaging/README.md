@@ -36,7 +36,8 @@ src/features/core/messaging/
 ├── services/client/
 │   ├── endpointClient.ts        # 本人の端末の帳簿の API
 │   ├── inboxClient.ts           # 本人の受け取り箱の API（一覧はカーソル）
-│   └── adminMessagingClient.ts  # 管理の一括送信・回の読む口・続きを送る（一覧と配達はカーソル）
+│   ├── adminMessagingClient.ts  # 管理の一括送信・回の読む口・続きを送る（一覧と配達はカーソル）
+│   └── overrideClient.ts        # 管理画面の文言の上書き
 ├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
 │                                # 管理: useAdminBulkSend / useAdminBulkSendForm / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
 ├── components/
@@ -45,7 +46,9 @@ src/features/core/messaging/
 │   ├── AdminBulkSend/           # 管理一覧の一括操作の作成関数 bulkMessageAction と部品 AdminBulkSendButton
 │   ├── AdminDispatchList/       # 入れ物: 送った回の一覧（絞り込み + カーソル）
 │   ├── AdminDispatchDetail/     # 入れ物: 回 1 件・配達（カーソル）・続きを送る
-│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge
+│   ├── AdminMessageOverrideList/   # 入れ物: 文言を直せる連絡の一覧
+│   ├── AdminMessageOverrideEditor/ # 入れ物: 1 連絡の文言の上書き（欄ごとの保存・既定に戻す）
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany・existingIdempotencyKeys・端末・受け取り箱・管理）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -174,7 +177,7 @@ D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵�
 
 D21・D24・D28。定義が `adminEditable` で宣言した欄だけを、管理者が管理画面で直せる（デザインと変数はコードの層のまま）。
 
-- 門: 規則 `messagingOverrides`（`src/featureGate/rules/messagingOverrides.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は今は API `/api/admin/messaging/overrides` だけ。管理の画面の住所は画面と一緒に足す）。閉の間 API は 404 で、送る口は DB の値を使わない。表は門に関わらず残る
+- 門: 規則 `messagingOverrides`（`src/featureGate/rules/messagingOverrides.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/overrides` と API `/api/admin/messaging/overrides`）。閉の間 画面と API は 404 で、送る口は DB の値を使わない。表は門に関わらず残る
 - 表 `message_overrides`: 直した欄だけ行（`message_key`・`field_path` = `<経路>.<欄>`・`value`・`code_value` = 直した時のコードの値・`updated_by`、UNIQUE(message_key, field_path)）。既定に戻す = 行を消す
 - 重なる順（門が開の時）: 管理画面の値 > fork の override > 上流の既定（欄ごと）。重ねる所は `resolveDefinition` の 1 か所（小さい送り・cron の展開・cron の送り）で、定義ごとに 1 回だけ読む（宛先ごとには読まない）
 - 送る時の検査は保存と同じ（lib/messaging `checkAdminFieldValue`）: 今も `adminEditable` にある・欄の型・配列はコードと同じ長さ・`{{鍵}}` は vars（秘密を除く）∪ 共通の文脈 ∪ provides。通らない欄（孤立）はその欄だけコードの値で送り、警告を出す
@@ -184,6 +187,14 @@ D21・D24・D28。定義が `adminEditable` で宣言した欄だけを、管理
   - 保存 `PUT /[key]` `{ fieldPath, value }`（誤りは 400）/ 戻す `DELETE /[key]?field=<経路.欄>`（行が無ければ 404）。監査 `messaging.override.updated` / `messaging.override.reset`（対象 `message_override`、`<鍵>:<欄>`。値は残さない）
 - 上流で直せる連絡: `user.registrationComplete` / `user.earlyRegistrationComplete`（email の subject・heading・paragraphs）、`wallet.expiringNotice` / `wallet.expiredNotice`（email の subject・paragraphs、inApp の title・body）、`wallet.adjustmentNotice`（inApp の title・body）。URL を持つ cta・preheader・footer はコードだけ。認証の連絡・required・adminMessage は直せない
 - fork の連絡も定義か `.override.ts` で `adminEditable` を宣言できる（required は不可）。欄の名前の変更・削除で行は孤立し、コードの値で送られる（付け替えの task は無い）
+
+### 文言の上書きの管理画面（`/admin/messaging/overrides`、門 `messagingOverrides`）
+
+- `/admin/messaging/overrides`: 入れ物 `AdminMessageOverrideList`（`basePath?`）= 直せる連絡の行（鍵・種別 / 種類・直せる欄の数・直した / 孤立 / コードが変わったの数）→ 1 件へ
+- `/admin/messaging/overrides/[key]`: 入れ物 `AdminMessageOverrideEditor`（`messageKey`）= 使える `{{鍵}}` の案内 + 欄ごとの編集。文字の欄 = Textarea 1 つ、段落（配列）= 段落ごとの Textarea（数はコードのまま）。保存・既定に戻すは欄 1 つずつ（API が欄 1 つずつ）。直した欄にはコードの値も出す。直せなくなった欄は既定に戻すだけ
+- 部品（props だけ、`components/common/`）: `OverrideFieldEditor`（欄 1 つ。`overrideFieldLabel(path)` = 経路 / 欄の表示名）・`OverrideFieldMarks`（直した・コードが変わった・孤立・直せなくなった・未保存）・`AllowedKeysHint`（使える鍵と、文の中の使えない鍵）
+- hook: `useMessageOverrides`（一覧、SWR）・`useMessageOverride(key)`（1 件、SWR）・`useMessageOverrideEditor(key)`（欄ごとの下書き・`unknownKeys`・`save` / `reset` / `discard`。保存と戻すは 1 件と一覧を取り直す。下書きがある間は `@/lib/unsavedGuard` で離れる前に確かめる）・純粋な関数 `unknownKeysOf` / `toEditable`。client は `services/client/overrideClient.ts`
+- loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingOverrides.ts`（マーケティング > 文言の上書き、門が閉なら隠れる）
 
 ## 好みの読み書き（利用者の API /api/me/messaging/preferences）
 
