@@ -481,3 +481,4 @@
 - id:20261112-104626-devcheck | severity:info | checkpoint:devcheck
 - id:20261112-105826-devcheck-policy-name | severity:action-required | checkpoint:devcheck-policy-name | moved:scripts/workflow/devcheck/policy.default.json -> scripts/workflow/devcheck/policy.json | fixes:20261112-104626-devcheck | pick:clean
 - id:20261112-104620-messaging-overrides | severity:action-required | checkpoint:messaging-overrides
+- id:20261112-114709-messaging-templates | severity:info | checkpoint:messaging-templates

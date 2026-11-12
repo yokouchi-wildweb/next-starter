@@ -42,6 +42,7 @@ export const publishMessageTemplate = service.publishTemplate;
 export const archiveMessageTemplate = service.archiveTemplate;
 export const listMessageTemplateVersions = service.listTemplateVersions;
 export const getMessageTemplateVersion = service.getTemplateVersion;
+export const getMessageTemplateOptions = service.templateOptions;
 
 export { existingTemplateIds } from "./templateRecords";
 export { TEMPLATE_IMAGE_RECORD_TYPE } from "./imageBinding";

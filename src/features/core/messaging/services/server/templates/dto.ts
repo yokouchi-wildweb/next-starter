@@ -43,3 +43,13 @@ export type AdminTemplateVersion = {
 };
 
 export type AdminTemplatePage = { items: AdminTemplateSummary[]; nextCursor: string | null };
+
+/** 画面の選択肢(作る・直す画面が最初に読む) */
+export type AdminTemplateOptions = {
+  /** 使える経路(受け口にあり enabled: false でない物) */
+  channels: { key: string; label: string }[];
+  /** 種類 */
+  categories: { key: string; label: string; description: string | null }[];
+  /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ adminMessage の provides) */
+  baseAllowedKeys: string[];
+};

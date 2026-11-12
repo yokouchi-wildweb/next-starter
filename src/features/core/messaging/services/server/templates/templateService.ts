@@ -6,6 +6,7 @@
 //   公開した版は書き換えない(公開済みのテンプレートを直すと行だけが変わり、次の公開で新しい版になる)
 // - 版は 中身・変数・種類・経路 を持つ(回は送る時に版を固定する。送る口は指令 28)
 // - 保存の検査は checks.ts(D41)、画像の結び付けは imageBinding.ts
+// - 画面の選択肢 templateOptions(使える経路・種類・変数の前から使える {{鍵}})
 // - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, published, archived}
 
 import { isDeepStrictEqual } from "node:util";
@@ -16,7 +17,13 @@ import { DomainError } from "@/lib/errors";
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
 import { checkTemplateFields, templateAllowedKeys, type TemplateCheckDeps } from "./checks";
-import type { AdminTemplateDetail, AdminTemplatePage, AdminTemplateSummary, AdminTemplateVersion } from "./dto";
+import type {
+  AdminTemplateDetail,
+  AdminTemplateOptions,
+  AdminTemplatePage,
+  AdminTemplateSummary,
+  AdminTemplateVersion,
+} from "./dto";
 import { bindTemplateImages, type TemplateImageLedger } from "./imageBinding";
 import {
   CreateMessageTemplateInputSchema,
@@ -270,6 +277,23 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const row = await deps.store.findVersion(id, version);
       if (!row) throw new DomainError("その版はありません", { status: 404 });
       return toVersion(row);
+    },
+
+    /** 画面の選択肢: 使える経路・種類・変数の前から使える {{鍵}}(fork の経路・種類も受け口から入る) */
+    async templateOptions(): Promise<AdminTemplateOptions> {
+      await assertAdminActor(deps);
+      const check = deps.check();
+      return {
+        channels: Object.values(check.channels)
+          .filter((channel) => channel.enabled !== false)
+          .map((channel) => ({ key: channel.key, label: channel.label })),
+        categories: Object.values(check.categories).map((category) => ({
+          key: category.key,
+          label: category.label,
+          description: category.description ?? null,
+        })),
+        baseAllowedKeys: templateAllowedKeys(check, []),
+      };
     },
   };
 }
