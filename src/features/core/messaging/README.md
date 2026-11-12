@@ -37,7 +37,8 @@ src/features/core/messaging/
 │   ├── endpointClient.ts        # 本人の端末の帳簿の API
 │   ├── inboxClient.ts           # 本人の受け取り箱の API（一覧はカーソル）
 │   ├── adminMessagingClient.ts  # 管理の一括送信・回の読む口・続きを送る（一覧と配達はカーソル）
-│   └── overrideClient.ts        # 管理画面の文言の上書き
+│   ├── overrideClient.ts        # 管理画面の文言の上書き
+│   └── templateClient.ts        # 保存されたテンプレート（一覧はカーソル・選択肢・版）
 ├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
 │                                # 管理: useAdminBulkSend / useAdminBulkSendForm / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
 ├── components/
@@ -48,7 +49,9 @@ src/features/core/messaging/
 │   ├── AdminDispatchDetail/     # 入れ物: 回 1 件・配達（カーソル）・続きを送る
 │   ├── AdminMessageOverrideList/   # 入れ物: 文言を直せる連絡の一覧
 │   ├── AdminMessageOverrideEditor/ # 入れ物: 1 連絡の文言の上書き（欄ごとの保存・既定に戻す）
-│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint
+│   ├── AdminMessageTemplateList/   # 入れ物: 保存されたテンプレートの一覧（カーソル）
+│   ├── AdminMessageTemplateEditor/ # 入れ物: テンプレートを作る・直す・公開・取り下げ・版の履歴
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany・existingIdempotencyKeys・端末・受け取り箱・管理）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -200,14 +203,22 @@ D21・D24・D28。定義が `adminEditable` で宣言した欄だけを、管理
 
 D40・D41。管理者が画面で書く連絡の中身と、その版の履歴（`services/server/templates`、`messagingService.*MessageTemplate*`。service でも管理者を確かめる）。テンプレートで送る口（版の固定・予約・プレビュー・テスト送信）は次の段。
 
-- 門: 規則 `messagingTemplates`（`src/featureGate/rules/messagingTemplates.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は今は API だけ。管理の画面の住所は画面と一緒に足す）。閉の間 API は 404
+- 門: 規則 `messagingTemplates`（`src/featureGate/rules/messagingTemplates.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/templates` と API `/api/admin/messaging/templates`）。閉の間 画面と API は 404
 - 状態: `draft`（まだ公開していない）→ `published`（版がある）→ `archived`（取り下げ。直せない・公開できない、版は残る）
 - 行 = 今の中身（下書き）。公開 = 今の中身を `message_template_versions` に版として追記し `current_version` を進める。**公開した版は書き換えない**（公開済みを直すと行だけが変わり、`hasUnpublishedChanges` が立つ。次の公開で新しい版）。版は中身・変数・種類・経路を持つ（回は送る時に版を固定し、最新を引き直さない）。前の版から変更の無い公開は 409
 - 保存時の検査（作る・直す・公開の前、`templates/checks.ts`）: 経路は受け口にあり有効、`content` の経路 = `channels` で各経路の欄の zod を通る / 種類は種類の受け口にある / 変数は `MessageTemplateVariableSchema` の並びで鍵は一意・`{{鍵}}` に書ける形 / 本文の `{{鍵}}` は 共通の文脈 ∪ adminMessage に当たる provides ∪ 宣言した変数 の中だけ（`allowedKeys` で返す）
   - **秘密はテンプレートを通さない**: 型 `secret` の変数と、共通の文脈・throttle・provides と同じ鍵の変数は宣言できない（秘密の値はコードの定義の `secretVar` に置く）
 - 画像: 中身の `storage://` の参照（`inApp.image` など）は保存の時に台帳でテンプレートの行に結ぶ（record `messaging.template` / テンプレートの id / `content`、用途 `notification.image`）。自分が上げた未紐付けの画像は attach、他の業務行に結ばれた・別の人の画像は複製して参照を書き換える。下書きから画像を外しても台帳からは外さない（公開した版が使う）。storage の照合（cron storage-sweep の `recordResolvers`）はテンプレートの行があれば残し、無ければ外す。送る時は回が自分の写しを持つ（次の段）
-- API（admin のみ）: `GET /` 一覧（`status`・`cursor`・`limit`）/ `POST /` 作る / `GET・PATCH /[id]` / `POST /[id]/publish` / `POST /[id]/archive` / `GET /[id]/versions`（新しい順）/ `GET /[id]/versions/[version]`。返す形は `services/server/templates/dto.ts`
+- API（admin のみ）: `GET /` 一覧（`status`・`cursor`・`limit`）/ `POST /` 作る / `GET・PATCH /[id]` / `POST /[id]/publish` / `POST /[id]/archive` / `GET /[id]/versions`（新しい順）/ `GET /[id]/versions/[version]` / `GET /options`（画面の選択肢: 有効な経路 `{key, label}`・種類 `{key, label, description}`・変数の前から使える鍵 `baseAllowedKeys`。経路と種類は受け口なので fork の物も入る）。返す形は `services/server/templates/dto.ts`
 - 監査: `messaging.template.created` / `updated` / `published`（版の番号）/ `archived`（対象 `message_template`）
+
+### 保存されたテンプレートの管理画面（`/admin/messaging/templates`、門 `messagingTemplates`）
+
+- `/admin/messaging/templates`: 入れ物 `AdminMessageTemplateList`（`basePath?`）= 状態で絞る + 行（状態と版・名前・鍵・種類・経路・更新）の無限スクロール（カーソル）。ヘッダーに「新しく作る」
+- `/admin/messaging/templates/new` と `/[id]`: 入れ物 `AdminMessageTemplateEditor`（`templateId?`・`basePath?`。無ければ作る）= 鍵（作る時だけ）・名前・説明・種類・経路（`GET /options` の有効な経路）・経路ごとの中身・変数の宣言・使える `{{鍵}}` の案内（`AllowedKeysHint`）・保存 / 公開 / 取り下げ（確認つき。公開は保存済みで公開していない変更がある時だけ）・版の履歴。作った後はその 1 件へ移る。取り下げたテンプレートは読むだけ
+- 部品（props だけ、`components/common/`）: `TemplateChannelFields`（email = 件名・プレヘッダー・見出し・段落（空行で区切る 1 つの欄）・ボタン・フッター / inApp = 題・本文・画像（`ManualMediaUploader`、用途 `notification.image`。保存の時にサーバーがテンプレートに結ぶ）・行き先 / line = 本文 / それ以外の経路 = 欄の JSON）・`TemplateVariablesEditor`（鍵・表示名・型 string / number / date / url・由来・既定値・必須）・`TemplateVersionList`（版の一覧と 1 版の中身、読むだけ）・`TemplateStatusBadge`（下書き・公開中 v<n>・取り下げ・未公開の変更）
+- hook: `useMessageTemplates`（カーソル）・`useMessageTemplate(id)` / `useMessageTemplateOptions()`（SWR）・`useMessageTemplateVersions(id)`・`useMessageTemplateForm({ template, options })`（書く欄・`dirty`（離れる前の確認 `@/lib/unsavedGuard`）・`allowedKeys` = `baseAllowedKeys` ∪ 変数・`unknownKeys`・`save` / `publish` / `archive`・`canPublish`・`createdId`）・純粋な関数 `contentForInput` / `emptyChannelContent`。client は `services/client/templateClient.ts`
+- loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingTemplates.ts`（マーケティング > テンプレート、門が閉なら隠れる）
 
 ## 好みの読み書き（利用者の API /api/me/messaging/preferences）
 

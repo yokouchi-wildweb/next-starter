@@ -1,6 +1,7 @@
 // 保存されたテンプレートの service の検査(DB・台帳・監査は偽物)
 // - 作る(draft)・下書きの更新・公開(版を追記、版は不変、current_version を進める)・取り下げ・版の一覧と 1 版・監査
 // - 保存時の検査: 経路の欄・種類・変数の宣言(一意・予約の鍵・secret の型)・{{鍵}} は共通の文脈 ∪ provides ∪ 変数だけ
+// - 画面の選択肢(有効な経路・種類・基本の鍵)
 // - 変更の無い公開・取り下げ済みの操作は 409、同じ鍵は 409、管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/templates
 import { test } from "node:test";
@@ -212,8 +213,22 @@ test("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤�
   await rejectsWith(service.getTemplateVersion(a.id, 9), 404);
 });
 
+test("画面の選択肢: 有効な経路だけ・種類・変数の前から使える鍵", async () => {
+  const { service } = setup();
+  const options = await service.templateOptions();
+  assert.deepEqual(options.channels, [
+    { key: "email", label: "メール" },
+    { key: "inApp", label: "お知らせ" },
+  ]);
+  assert.deepEqual(options.categories, [{ key: "marketing", label: "お知らせ", description: null }]);
+  assert.ok(options.baseAllowedKeys.includes("serviceName"));
+  assert.ok(options.baseAllowedKeys.includes("displayName"));
+  assert.ok(!options.baseAllowedKeys.includes("discount"));
+});
+
 test("管理者でなければ 403", async () => {
   const { service } = setup({ role: "user" });
+  await rejectsWith(service.templateOptions(), 403);
   await rejectsWith(service.listTemplates(), 403);
   await rejectsWith(service.createTemplate(input()), 403);
 });

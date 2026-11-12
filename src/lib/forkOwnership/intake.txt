@@ -111,6 +111,9 @@ edit src/app/admin/(protected)/messaging/[[]id[]]/page.tsx  # 画面の 1 行ス
 edit src/app/admin/(protected)/messaging/overrides/[[]key[]]/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/messaging/overrides/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/messaging/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/messaging/templates/[[]id[]]/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/messaging/templates/new/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/messaging/templates/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/sample-categories/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/sample-categories/new/page.tsx  # 画面の 1 行スイッチ

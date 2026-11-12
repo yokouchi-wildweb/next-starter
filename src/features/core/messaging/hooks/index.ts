@@ -28,3 +28,15 @@ export {
   unknownKeysOf,
   type OverrideFieldValue,
 } from "./useMessageOverrideEditor";
+export { MESSAGE_TEMPLATES_KEY, MESSAGE_TEMPLATE_OPTIONS_KEY, messageTemplateKey, messageTemplateVersionsKey } from "./templateKeys";
+export { useMessageTemplates, type UseMessageTemplatesOptions } from "./useMessageTemplates";
+export { useMessageTemplate, useMessageTemplateOptions } from "./useMessageTemplate";
+export { useMessageTemplateVersions } from "./useMessageTemplateVersions";
+export {
+  useMessageTemplateForm,
+  emptyChannelContent,
+  contentForInput,
+  type UseMessageTemplateFormOptions,
+  type TemplateVariableDraft,
+  type TemplateContentDraft,
+} from "./useMessageTemplateForm";
