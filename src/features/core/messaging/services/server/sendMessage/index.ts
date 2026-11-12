@@ -10,6 +10,7 @@ import { getAppBaseUrl } from "@/lib/url";
 import { messageRegistry } from "@/registry/messageRegistry";
 
 import { drizzleMessageOverrideStore } from "../overrides/store";
+import { drizzleMessageTemplateSource } from "../templates/source";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
 
 import { messagingConfig } from "../../../config";
@@ -37,6 +38,7 @@ export const sendMessageDeps: MessageSendDeps = {
   },
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
   // 管理画面の文言(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む)
+  templates: drizzleMessageTemplateSource,
   adminOverrides: {
     enabled: () => gate.enabled("messagingOverrides"),
     async load(messageKey) {
@@ -50,8 +52,11 @@ const sender = createMessageSender(sendMessageDeps);
 
 export const sendMessage = sender.sendMessage;
 export const sendMessageToMany = sender.sendMessageToMany;
+export const sendTemplate = sender.sendTemplate;
+export const previewMessage = sender.previewMessage;
+export const estimateRecipients = sender.estimateRecipients;
 
-export { createMessageSender, type MessageSender } from "./sender";
+export { createMessageSender, ESTIMATE_CAP, type MessagePreview, type MessageSender, type RecipientEstimate } from "./sender";
 export { MessageIdempotencyConflict } from "./errors";
 export { drizzleMessageSendStore } from "./store";
 export {

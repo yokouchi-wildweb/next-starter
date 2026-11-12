@@ -13,7 +13,8 @@ import { DomainError } from "@/lib/errors";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
 import { buildRecipientValues, channelContent, renderValue, toVariableMap } from "../sendMessage/context";
-import { resolveDefinition, type AnyResolvedMessageDefinition } from "../sendMessage/definition";
+import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
+import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
 import { sendDeliveries, type DeliveryJob } from "../sendMessage/deliver";
 import { activeChannel } from "../sendMessage/expand";
 import { recordPolicyOf, type RecordPolicy } from "../sendMessage/record";
@@ -33,11 +34,11 @@ async function loadDefinition(
   deps: MessageSweepDeps,
   dispatch: MessageDispatch,
 ): Promise<{ resolved: AnyResolvedMessageDefinition; policy: RecordPolicy } | { error: string }> {
-  const entry = dispatch.message_key ? deps.registry[dispatch.message_key] : undefined;
-  if (!entry) return { error: "definition_missing" };
   try {
-    const { message } = await entry.definition();
-    const resolved = await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
+    // テンプレートの回は固定した版から(値の再検査で合わなければ送らずに止める)、それ以外は生成の一覧の定義から
+    const loaded = await definitionOfDispatch(deps, dispatch);
+    if ("error" in loaded) return loaded;
+    const { resolved } = loaded;
     // 本文の残し方は送った時の回に固定した値(後の上書きで変えない)
     const policy = recordPolicyOf({ ...resolved, record: dispatch.record ?? resolved.record });
     return { resolved, policy };

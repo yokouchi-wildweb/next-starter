@@ -14,7 +14,7 @@ import { listVariables } from "@/lib/structuredDocument/shared";
 import type { MessageDispatch, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import { channelContent, renderValue, toVariableMap } from "../sendMessage/context";
-import { resolveDefinition } from "../sendMessage/definition";
+import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
 import type { StopContext } from "../sendMessage/stops";
 import {
   activeChannel,
@@ -56,11 +56,11 @@ async function sharedInAppContent(
   deps: MessageSendDeps,
   dispatch: MessageDispatch,
 ): Promise<Record<string, unknown> | null> {
-  const entry = dispatch.message_key ? deps.registry[dispatch.message_key] : undefined;
-  if (!entry) return null;
   try {
-    const { message } = await entry.definition();
-    const resolved = await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides);
+    // テンプレートの回は固定した版から(読めなければ受信者ごとの行にする。送る時に止まる)
+    const loaded = await definitionOfDispatch(deps, dispatch);
+    if ("error" in loaded) return null;
+    const { resolved } = loaded;
     const content = channelContent(resolved, IN_APP, deps.channels[IN_APP]);
     const vars = (dispatch.vars ?? {}) as Record<string, unknown>;
     const allowed = new Set([...Object.keys(vars), ...RECIPIENT_INDEPENDENT_CONTEXT]);

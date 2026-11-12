@@ -127,6 +127,9 @@ export function createMemoryStore(): MemoryStore {
       const userIds = all.slice(0, limit);
       return { userIds, nextCursor: all.length > limit ? userIds[userIds.length - 1] : null };
     },
+    async countUserIds(filter) {
+      return store.users.filter((user) => !filter.roles || filter.roles.includes(user.role ?? "user")).length;
+    },
     async touchEndpoints(channel, entries, at) {
       store.endpointTouches.push({ channel, entries: [...entries], at });
     },
@@ -180,6 +183,7 @@ export const testConfig: MessagingConfig = {
   sweep: { budgetMs: 60_000, deliveryChunkSize: 2, expandChunksPerRun: 5, leaseSeconds: 300 },
   retention: { eventsDays: 30, deliveriesDays: 90, dispatchesDays: 730, idempotencyKeyDays: null, chunkSize: 2, budgetMs: 60_000 },
   inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
+  schedule: { maxDaysAhead: 30 },
 };
 
 export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");

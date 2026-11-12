@@ -2,7 +2,7 @@
 //
 // 送る口の DB の読み書き(drizzle)。送る口の処理は MessageSendStore の形だけを見る(テストは偽物を渡す)。
 
-import { and, asc, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
@@ -124,6 +124,15 @@ export const drizzleMessageSendStore: MessageSendStore = {
       .limit(limit);
     const userIds = rows.map((row) => row.id);
     return { userIds, nextCursor: userIds.length === limit ? userIds[userIds.length - 1] : null };
+  },
+
+  async countUserIds(filter) {
+    const conditions = [isNull(UserTable.deletedAt), inArray(UserTable.status, [...USER_AVAILABLE_STATUSES])];
+    if (filter.roles) {
+      conditions.push(inArray(UserTable.role, [...filter.roles] as (typeof UserTable.role.enumValues)[number][]));
+    }
+    const [row] = await db.select({ value: count() }).from(UserTable).where(and(...conditions));
+    return Number(row?.value ?? 0);
   },
 
   async findOptOuts(userIds, category, channels) {

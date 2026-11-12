@@ -3,7 +3,9 @@
 export { messagingService } from "./messagingService";
 export type { MessagingService } from "./messagingService";
 
-export { sendMessage, sendMessageToMany } from "./sendMessage";
+export { sendMessage, sendMessageToMany, sendTemplate } from "./sendMessage";
+/** 管理の送信の API の入口の守り(取引は選んだ利用者宛てだけ) */
+export { assertAdminSendKind } from "./admin";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 export { deleteEndpointsOfUser, listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 export type { MessageEndpointDto, RegisterMessageEndpointInput } from "./endpoints";
@@ -48,6 +50,15 @@ export type {
   SendMessageResult,
   SendMessageToManyInput,
 } from "./sendMessage";
+export type {
+  AdminSendEstimateInput,
+  AdminSendInput,
+  AdminSendOptions,
+  AdminSendPreviewInput,
+  AdminSendResult,
+  AdminSendTestInput,
+} from "./admin";
+export type { MessagePreview, RecipientEstimate, SendTemplateInput } from "./sendMessage";
 export type {
   AdminBulkSendCounts,
   AdminBulkSendInput,

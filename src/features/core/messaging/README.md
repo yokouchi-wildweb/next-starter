@@ -104,6 +104,16 @@ await messagingService.sendMessageToMany(campaign, {
 3. 回（`message_dispatches`）を 1 行書く: `message_key`・`kind`・`category`・`audience`・`record`・`headings`・`channel_counts` など
 4. 小さな送信（選んだ宛先が `smallSendMaxRecipients` 人以下）: 受信者 × 経路に展開して `message_deliveries` の行を作り、最初の束（`inRequestBatchSize` 件）を経路の受け口の項目の `send(targets)` へ渡す。残りは `queued` + `next_attempt_at` のまま cron が送る
 5. 大きな送信と audience（全員・ロール・audiences）: 回の行だけを書き（`status: "processing"`）、展開と送信は cron が束ごとに行う（`expandBroadcastChunk`・`resolveAudienceChunk`）
+6. 予約（入力の `scheduledAt`）: 回の行だけを `status: "scheduled"` + `scheduled_at` で書く（選んだ宛先の一覧も回の `audience` に置く）。展開も送信もしない。cron の `activateScheduled` が時刻に `processing` にして 5 と同じく展開・送信する。過ぎた時刻と `config.schedule.maxDaysAhead`（既定 90 日）より先は 400、required・秘密を差し込む連絡は予約できない（400）。予約の粒度は cron の周期（Vercel Hobby では 1 日 1 回で遅れる）
+
+保存されたテンプレートで送る（`sendTemplate({ templateId, kind?, vars, recipients | audience, channels?, scheduledAt?, … })`、D40・D41）:
+
+- 送る時（予約なら予約の時）の今の公開版を回の `template_id`・`template_version` に固定する。後でテンプレートを直しても回はその版で送る（cron も固定した版から組み直し、最新を引き直さない。`sendMessage/dispatchDefinition.ts`）。取り下げ済み・未公開は 409、無いテンプレートは 404
+- 定義は版から組む（`sendMessage/templateDefinition.ts`）: 鍵 `messaging.adminMessage`（メールの描き方と宛名 `{{displayName}}` を使う）・中身・種類・経路は版から、種別は呼び手（既定 marketing）。生成の一覧の上書き（fork の override）と管理画面の文言は重ねない
+- 変数の値（`vars`、回に 1 組）は版の変数で検査する: 必須で値が無い・型（number / boolean）が合わない → 400。値は文字列にして差し込む。cron は送る時に回の vars をもう一度検査し、合わなければ送らずに止める（配達の行は `failed`、`last_error: template_vars_invalid`。版が消えた = `template_missing`）
+- 受信者ごとの変数（`source: recipient`）は送る口から受信者ごとに渡す口が無いので、既定値を全員に使う（既定値が無いテンプレートは 400、変数の名前を出す）
+- テンプレートの画像（台帳の持ち主 = テンプレート）は、お知らせの画像の結び方（`inbox/imageBinding.ts`）で回ごとに複製して回が持つ（テンプレートを消しても送った物は残る）
+- プレビュー（`previewMessage`）と宛先数の見込み（`estimateRecipients`）も送る口にある（管理の送信が使う）
 
 宛先:
 
@@ -126,7 +136,7 @@ await messagingService.sendMessageToMany(campaign, {
 
 まだ効かないもの（後の指令）: 間引き（throttle）。配信停止は下の「配信停止」。受信者ごとの監査ログは書かない（管理者の操作の監査は管理の指令）。
 
-処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500
+処理の値（`config.ts`、上書き `src/config/features/messaging.config.ts`）: `smallSendMaxRecipients` 100 / `inRequestBatchSize` 50 / `requiredRetry` 3 回（待ち 200ms・1000ms）/ `transientRetry` 初回を含め 5 回・60 秒 × 4 の累乗 / `expandChunkSize` 500 / `schedule.maxDaysAhead` 90（予約できる日数）
 
 ## 上流の経路の項目（channels/）
 
@@ -323,6 +333,18 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 管理者が送るたびに書く中身を vars で渡す: `subject`・`body`（メール）・`inAppTitle`・`inAppBody`（お知らせ）・`serviceNameShort`。宛名 `{{displayName}}` は `enrichers/displayName.ts`（名前が無ければ「お客様」）。管理者の文面の中の `{{鍵}}` はまだ差し込まない（保存テンプレートの指令で）
 - 見た目は前の管理者のお知らせのメールと同じ（`views/adminMessage.tsx` → `.default.tsx`、部品 `messages/parts/AnnouncementMailView.tsx`）。段落の位置の約束: `paragraphs` [0]「… からのお知らせ」（ロゴの下）→ [1]「… 様」→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。fork は `adminMessage.replace.tsx` で管理者の連絡の見た目をまとめて替える
 - 種別の既定は marketing（種類 marketing、受信者の好みに従う）。選んだ利用者宛て（一括送信は常にそう）に限り、要求で `kind: "transactional"` を明示すると好みで止めずに送る（定義の写しの kind だけを替える。種類は marketing のまま）
+
+### 管理の送信 `/api/admin/messaging/send/**`（門 `messagingBroadcast`）
+
+- 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は今は API だけ。管理の画面の住所は画面と一緒に足す）。閉の間 API は 404。送る口と cron の予約の拾いは門に関わらず動く
+- service: `services/server/admin/send.ts`（`messagingService.adminSend` / `adminSendPreview` / `adminSendEstimate` / `adminSendTest` / `adminSendOptions`）
+- `POST /send`（`AdminSendInputSchema`）: `message` = `{ type: "template", templateId, vars }`（保存されたテンプレートの今の公開版、`sendTemplate`）か `{ type: "adhoc", email?, inApp? }`（その場で書く管理者の連絡、経路は email・inApp）・`channels?`（テンプレートは省略 = 版の経路）・`audience` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "audience", key, args? }`（audiences の受け口の項目）/ `{ type: "users", userIds }`（10,000 人まで）・`kind`（既定 marketing）・`scheduledAt?`（ISO 8601、予約）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。送り元 `messaging.adminSend`
+  - **取引（transactional）は選んだ利用者宛て（`users`）だけ**。全員・ロール・audiences では選べない（API の入口 `assertAdminSendKind` と service の両方で 400、D40）
+- `POST /send/preview`: 経路ごとに差し込みを済ませた欄と、経路の `preview` があれば描いた結果（メールは送る時と同じ描き方の HTML）。見本の受信者 = 操作した管理者。テンプレートは今の公開版（送る時に固定する版）
+- `POST /send/estimate` `{ audience }` → `{ count, capped, fixedAtSend: true }`: 全員・ロールは数、audiences の項目は `count?(args)`、無ければ `resolveUserIds` を 10,000 まで数える（`capped`）、選んだ利用者は居る人の数。送る時に展開で数え直す（停止・宛先なしは引く前の数）
+- `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作（操作者なし）は 400
+- `GET /send/options`: 有効な経路（`adhoc` = その場で書ける経路）・ロール・audiences の項目・公開したテンプレート（今の版の種類・経路・変数）・`maxScheduleDays`
+- 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.testSent`（対象 `message_dispatch`、本文の値は残さない）
 
 ### `POST /api/admin/messaging/bulk-send`（一括送信）
 

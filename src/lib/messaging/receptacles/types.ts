@@ -102,6 +102,16 @@ export type MessageChannel = {
    * 連携の画面が無い経路は持たない
    */
   connectHref?: string;
+  /**
+   * 描いたプレビュー(管理の送信の確認)。content = 差し込みを済ませた経路の欄。送る時と同じ描き方で描く(例 email = HTML)。
+   * 無い経路はプレビューで欄をそのまま見せる
+   */
+  preview?: (input: {
+    messageKey: MessageKey;
+    content: unknown;
+    /** 好みに従う連絡の種類(あれば停止のリンクの見本を出す) */
+    category?: string;
+  }) => Promise<{ html?: string; text?: string }>;
   /** 未送信の宛先の束を送る。宛先ごとの結果を返す(投げると束の全部を unknown として扱う) */
   send: (targets: readonly ChannelSendTarget[]) => Promise<ChannelSendResult[]>;
   /** provider → webhook の検証と正規化 */
@@ -162,6 +172,8 @@ export type MessageAudience = {
   label: string;
   /** 管理画面で選ぶ引数 */
   args: z.ZodTypeAny;
+  /** 宛先の数(管理の送信の見込み。無ければ resolveUserIds を上限まで数える)。送る時に数え直す */
+  count?: (args: unknown) => Promise<number>;
   /** 利用者 id の束を keyset で返す(nextCursor = null で終わり) */
   resolveUserIds: (
     args: unknown,

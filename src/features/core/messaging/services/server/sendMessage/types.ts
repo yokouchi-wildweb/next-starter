@@ -44,6 +44,11 @@ type CommonSendInput = {
   metadata?: Record<string, unknown>;
   tags?: readonly string[];
   isTest?: boolean;
+  /**
+   * 予約の時刻(省略 = 今送る)。回を status scheduled で作り、展開も送信もしない(cron が時刻に拾う)。
+   * 過ぎた時刻と config.schedule.maxDaysAhead より先は 400。required・秘密の連絡は予約できない
+   */
+  scheduledAt?: Date;
 };
 
 /** 1 通(1 人)の送信 */
@@ -64,6 +69,37 @@ export type SendMessageToManyInput = CommonSendInput &
     /** 後から登録した利用者にもお知らせを見せるか(既定 false) */
     showToLaterSignups?: boolean;
   };
+
+/**
+ * 保存されたテンプレートで送る(sendTemplate)。送る時の公開版を回に固定する(予約なら予約の時の版)。
+ * vars = テンプレートの変数の値(回に 1 組)。受信者ごとの変数は既定値を全員に使う(既定値が無ければ 400)
+ */
+export type SendTemplateInput = Omit<SendMessageToManyInput, "recipientVars"> & {
+  templateId: string;
+  /** 種別(既定 marketing)。取引にするかは呼び手が決める(管理の送信は選んだ利用者宛てだけ) */
+  kind?: "marketing" | "transactional";
+};
+
+/** テンプレートの公開した版(送る口が読む形) */
+export type MessageTemplateVersionSource = {
+  templateId: string;
+  templateKey: string;
+  version: number;
+  category: string;
+  channels: string[];
+  content: Record<string, unknown>;
+  variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: "dispatch" | "recipient" }[];
+};
+
+/** テンプレートの読み口(送る口と cron) */
+export type MessageTemplateSource = {
+  /** 今の公開版(無い = null、取り下げ済み・未公開は status で返す) */
+  loadCurrent: (
+    templateId: string,
+  ) => Promise<{ status: string; version: MessageTemplateVersionSource | null } | null>;
+  /** 固定した版(cron が回から引き直す) */
+  loadVersion: (templateId: string, version: number) => Promise<MessageTemplateVersionSource | null>;
+};
 
 /** 配達の行 1 つの結果(呼び手に返す) */
 export type MessageDeliveryOutcome = {
@@ -108,6 +144,8 @@ export type MessageSendStore = {
     cursor: string | null,
     limit: number,
   ) => Promise<{ userIds: string[]; nextCursor: string | null }>;
+  /** 全員・ロールの利用者の数(listUserIds と同じ条件。管理の送信の見込み) */
+  countUserIds: (filter: { roles?: readonly string[] }) => Promise<number>;
   /**
    * 配信停止の好みの行(利用者 × (種類 か '*') × (経路 か '*'))。channel が '*' の行はそのまま '*' で返す
    */
@@ -151,6 +189,8 @@ export type MessageSendDeps = {
    * 無ければ(テスト・cron の補い)コードの値だけで送る
    */
   adminOverrides?: MessageAdminOverrideSource;
+  /** 保存されたテンプレート(sendTemplate と cron の版の引き直し)。無ければテンプレートでは送れない */
+  templates?: MessageTemplateSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
   unsubscribe: {
     configured: () => boolean;

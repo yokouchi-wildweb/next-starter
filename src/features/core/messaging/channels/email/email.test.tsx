@@ -348,3 +348,12 @@ test("描き方が読めない・EmailView が無い → 送らず permanent ren
   );
   assert.equal(sent.length, 0);
 });
+
+test("プレビュー: 送る時と同じ描き方で HTML を返し、種類があれば停止のリンクの見本を出す", async () => {
+  const { channel } = setup();
+  const plain = await channel.preview!({ messageKey: "shop.notice", content });
+  assert.ok(plain.html?.includes("見出し") && plain.html.includes("https://x.test"));
+  assert.ok(!plain.html?.includes("#unsubscribe"));
+  const marketing = await channel.preview!({ messageKey: "shop.notice", content, category: "marketing" });
+  assert.ok(marketing.html?.includes("#unsubscribe"));
+});
