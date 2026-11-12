@@ -1,5 +1,5 @@
 // 管理の回の操作の検査(DB・定義・送る口・監査は偽物。store の規則は operationsStore.ts と同じ)
-// - d1 取り消し: 予約で展開の前だけ cancelled、他は 409、監査 cancelled
+// - d1 取り消し: 予約で展開の前だけ cancelled、他は 409(取り消し済みは理由 cancelled)、監査 cancelled
 // - d2 取り下げ: お知らせの行を消し、未送信を canceled、展開を止め retracted_at、status はそのまま、画像を外す、2 回目・予約は 409
 // - d3 再送: 本文を残す連絡は failed を queued に戻す(lease 中の行は触らない、unknown は明示の時だけ・二重の可能性を残す)、
 //   record meta は回の vars で新しい回として送る(写しが無ければ 409)、秘密・required・取り下げ・予約は 409、監査 resent
@@ -143,7 +143,8 @@ test("d1 取り消し: 予約で展開の前だけ cancelled、他は 409", asyn
   assert.deepEqual(await adminCancelScheduled(scheduled.deps, "d1"), { dispatchId: "d1", status: "cancelled" });
   assert.equal(scheduled.dispatch.status, "cancelled");
   assert.equal(scheduled.audits[0].action, "messaging.dispatch.cancelled");
-  await rejectsWith(adminCancelScheduled(scheduled.deps, "d1"), 409, "not_scheduled");
+  // 取り消した回をもう一度取り消す = 「取り消した回です」(予約の回ではありません、ではない)
+  await rejectsWith(adminCancelScheduled(scheduled.deps, "d1"), 409, "cancelled");
 
   await rejectsWith(adminCancelScheduled(setup({ status: "scheduled", expand_cursor: "i:2" }).deps, "d1"), 409, "already_started");
   await rejectsWith(adminCancelScheduled(setup().deps, "d1"), 409, "not_scheduled");
@@ -236,4 +237,5 @@ test("判定の印: 画面のボタンと service は同じ判定", () => {
   assert.equal(operationFlags(base, policy, { failed: 0, unknown: 0 }).resend.reason, "no_failed");
   assert.equal(operationFlags({ ...base, record: "meta", vars: null }, { ...policy, record: "meta" }, { failed: 1, unknown: 0 }).resend.reason, "no_input_copy");
   assert.equal(operationFlags({ ...base, retracted_at: NOW }, policy, { failed: 1, unknown: 0 }).resend.reason, "retracted");
+  assert.deepEqual(operationFlags({ ...base, status: "cancelled" }, policy, { failed: 0, unknown: 0 }).cancel, { allowed: false, reason: "cancelled" });
 });

@@ -1,5 +1,5 @@
 // 管理の送信の service の検査(送る口・監査は偽物)
-// - テンプレート / その場で書く連絡、宛先(全員・ロール・audiences・選んだ利用者)、予約、監査(sent / scheduled / testSent)
+// - テンプレート / その場で書く連絡、宛先(全員・ロール・audiences・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
 // - 取引の種類は選んだ利用者宛てだけ(AMENDMENT 1)
 // - プレビュー・テスト送信の宛先は操作した管理者、見込みは送る時に数え直す印つき、選択肢
 // - 管理者でなければ 403
@@ -136,7 +136,7 @@ test("入力の誤りは 400(経路・中身・予約の形)", async () => {
   for (const input of cases) await rejectsWith(adminSend(deps, input), 400);
 });
 
-test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 testSent", async () => {
+test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
   await adminSendPreview(deps, { message: { type: "template", templateId: TEMPLATE, vars: { a: 1 } }, kind: "marketing" });
   assert.deepEqual(calls[0].args, [{ templateId: TEMPLATE, kind: "marketing" }, { vars: { a: 1 }, channels: undefined, userId: ADMIN }]);
@@ -149,7 +149,7 @@ test("プレビューとテスト送信は操作した管理者、テストは i
   assert.deepEqual(input.recipients, [{ userId: ADMIN }]);
   assert.equal(input.isTest, true);
   assert.equal(input.source, "messaging.adminSend.test");
-  assert.equal(audits.at(-1)?.action, "messaging.dispatch.testSent");
+  assert.equal(audits.at(-1)?.action, "messaging.dispatch.test_sent");
 
   const system = setup({ actorId: null, role: "admin" });
   system.deps.context = () => ({ actorId: null, actorType: "system" }) as never;

@@ -5,7 +5,8 @@
 // - 本文: 回の記録の段が vars / full のときだけ(回の描いた結果 rendered と共通の vars)。配達の本文は full のときだけ、配達の vars は vars / full
 //   (秘密の連絡は送る口が本文を残さないので、ここにも出ない)
 // - 宛先(address): 管理 API だけが使うので出す
-// - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文(失敗は状態と reason の符号で見る)
+// - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文。失敗は状態・reason と、last_error の符号の部分
+//   (errorCode、文は constants/deliveryErrors.ts)で見る
 // - 前の送る口の回(message_key が null): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
 //   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
@@ -59,6 +60,8 @@ export type AdminDeliveryRow = {
   channel: string;
   status: string;
   reason: string | null;
+  /** 失敗の理由の符号(last_error の「符号: 文」の符号だけ。文は constants/deliveryErrors.ts、無い・形の違う値は null) */
+  errorCode: string | null;
   attempts: number;
   provider: string | null;
   /** 宛先が複数の経路の宛先ごとの状態(provider の値と誤りの文は落とす) */
@@ -133,6 +136,15 @@ export function toDispatchDetail(row: MessageDispatch, operations: DispatchOpera
   };
 }
 
+const ERROR_CODE = /^[a-z][a-z0-9_]{0,63}$/;
+
+/** last_error から符号の部分だけ(provider の文は落とす)。送れた行は null */
+export function deliveryErrorCode(row: Pick<MessageDelivery, "status" | "last_error">): string | null {
+  if (row.status === "sent" || row.status === "delivered" || !row.last_error) return null;
+  const code = row.last_error.split(":")[0]!.trim();
+  return ERROR_CODE.test(code) ? code : null;
+}
+
 export function toDeliveryRow(row: MessageDelivery, record: MessageRecord | null): AdminDeliveryRow {
   return {
     id: row.id,
@@ -142,6 +154,7 @@ export function toDeliveryRow(row: MessageDelivery, record: MessageRecord | null
     channel: row.channel,
     status: row.status,
     reason: row.reason,
+    errorCode: deliveryErrorCode(row),
     attempts: row.attempts,
     provider: row.provider,
     targets: row.targets ? row.targets.map((t) => ({ address: t.address, status: t.status, attempts: t.attempts })) : null,

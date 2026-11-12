@@ -61,7 +61,14 @@ export function operationFlags(
   options: { includeUnknown?: boolean } = {},
 ): DispatchOperationFlags {
   const scheduled = dispatch.status === "scheduled";
-  const cancel = !scheduled ? no("not_scheduled") : dispatch.expand_cursor !== null ? no("already_started") : ok;
+  const cancel =
+    dispatch.status === "cancelled"
+      ? no("cancelled")
+      : !scheduled
+        ? no("not_scheduled")
+        : dispatch.expand_cursor !== null
+          ? no("already_started")
+          : ok;
 
   const retract = dispatch.retracted_at
     ? no("retracted")

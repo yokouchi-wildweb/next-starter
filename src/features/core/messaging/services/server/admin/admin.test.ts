@@ -78,7 +78,7 @@ test("一括送信(userIds): 重複を除き adminMessage を marketing で送�
   assert.equal(sent[0].input.source, "messaging.adminBulk");
   assert.deepEqual(result, { dispatchId: "d1", status: "processing", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, afterSend: null });
   assert.equal(audits.length, 1);
-  assert.equal(audits[0].action, "messaging.dispatch.bulkSent");
+  assert.equal(audits[0].action, "messaging.dispatch.bulk_sent");
   assert.equal(audits[0].targetId, "d1");
 });
 
@@ -222,6 +222,15 @@ test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は
   assert.deepEqual(toDeliveryRow(deliveryRow(), "vars").vars, { item: "靴" });
   assert.equal(toDeliveryRow(deliveryRow(), "vars").body, null);
   assert.deepEqual(toDeliveryRow(deliveryRow(), "full").body, { email: { subject: "s" } });
+
+  // 失敗の理由の符号: last_error の符号の部分だけ(provider の文は出さない)。形の違う文・送れた行は null
+  assert.equal(meta.errorCode, null);
+  const keyMissing = toDeliveryRow(deliveryRow({ status: "failed", last_error: "unsubscribe_key_missing: 鍵がありません" }), "meta");
+  assert.equal(keyMissing.errorCode, "unsubscribe_key_missing");
+  assert.ok(!JSON.stringify(keyMissing).includes("鍵がありません"));
+  assert.equal(toDeliveryRow(deliveryRow({ status: "failed", last_error: "send_threw" }), "meta").errorCode, "send_threw");
+  assert.equal(toDeliveryRow(deliveryRow({ status: "sent", last_error: "send_threw" }), "meta").errorCode, null);
+  assert.equal(toDeliveryRow(deliveryRow({ status: "failed", last_error: null }), "meta").errorCode, null);
 });
 
 test("keyset の印は往復し、壊れた印は 400", () => {
