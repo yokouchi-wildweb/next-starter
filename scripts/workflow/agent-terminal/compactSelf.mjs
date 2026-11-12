@@ -3,9 +3,9 @@
 // エージェントが自分の会話の圧縮を頼むコマンド。どこで打っても使える(エージェントから見た約束は 1 つ):
 //   - 自分のペインに打てる(AGENT_TERMINAL=tmux・tmux の中・hook が動いている)→ この返答が終わったら `/compact <残すこと>`
 //     を打つ待つ役(lib.waiter.mjs)を残し、「予約した。ここで返答を終える」と出す
-//   - チームの道具のタブ(TK_TEAM など)→ 打ち込みはその道具だけが受け持つ。`<チーム> compact <インスタンス> <タブ>` に
-//     残すことを env TK_COMPACT_FOCUS で渡し、その出力を出す(統括のタブなら道具が focus ファイルに書いて返答の終わりに打つ。
-//     手下のタブは道具が断る: 手下の圧縮は統括が決める)
+//   - 頼み先がある(AGENT_COMPACT_CMD)→ 自分では打たない。そのコマンドを、残すことを env AGENT_COMPACT_FOCUS に入れて呼び、
+//     その出力を出す(打ち込むのは端末を持つ道具だけ)。呼べない・失敗 → 下の 1 行
+//   - 端末は別の道具が持つ(AGENT_TERMINAL=none)で頼み先が無い → 下の 1 行(打たない)
 //   - 打てない → `/compact <残すこと>` をユーザーに打ってもらう 1 行を出す(エラーにしない)
 // 終了コード: 0(どちらも)/ 1 = 残すことが空。説明: scripts/workflow/agent-terminal/README.md
 
@@ -13,21 +13,12 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { HERE, currentPane, isDrivenByAnotherTool, marks, oneLine, paneDir } from "./lib.mjs";
+import { HERE, compactHandoff, currentPane, marks, oneLine, paneDir } from "./lib.mjs";
 
-/**
- * チームの道具のタブ(手元のチームツール。next-starter の仲間のリポと必ず一緒に使う)。
- * 渡し先が分かる(TK_TEAM / TK_INSTANCE / TK_TAB がそろう)ときだけ { team, instance, tab }、ほかは null
- */
-export function teamTab(env = process.env) {
-  const [team, instance, tab] = ["TK_TEAM", "TK_INSTANCE", "TK_TAB"].map((k) => (env[k] ?? "").trim());
-  return team && instance && tab ? { team, instance, tab } : null;
-}
-
-/** 予約できるか。{ mode: "team", team, instance, tab } | { mode: "queue", pane, prevIdle } | { mode: "fallback" } */
-export function planCompactSelf(env = process.env) {
-  const team = teamTab(env);
-  if (team) return { mode: "team", ...team };
+/** 予約できるか。{ mode: "handoff", cmd, args, env } | { mode: "queue", pane, prevIdle } | { mode: "fallback" } */
+export function planCompactSelf(env = process.env, focus = "") {
+  const handoff = compactHandoff(env, focus);
+  if (handoff) return { mode: "handoff", ...handoff };
   const pane = currentPane(env);
   if (!pane) return { mode: "fallback" };
   const m = marks(paneDir(pane, env));
@@ -39,7 +30,7 @@ export function planCompactSelf(env = process.env) {
 const defaultDeps = {
   spawn,
   print: console.log,
-  // チームの道具を呼ぶ(コマンド名 = TK_TEAM。~/.local/bin にある)
+  // 圧縮の頼み先を呼ぶ(AGENT_COMPACT_CMD)
   run: (cmd, args, env) => spawnSync(cmd, args, { env, encoding: "utf8" }),
 };
 
@@ -50,20 +41,16 @@ export function runCompactSelf(args, env = process.env, deps = defaultDeps) {
     deps.print('使い方: pnpm workflow agent-terminal compactSelf "<圧縮の後も残すこと(1〜3 行)>"');
     return 1;
   }
-  const plan = planCompactSelf(env);
-  if (plan.mode === "team") {
-    const r = deps.run(plan.team, ["compact", plan.instance, plan.tab], { ...env, TK_COMPACT_FOCUS: focus });
+  const plan = planCompactSelf(env, focus);
+  if (plan.mode === "handoff") {
+    const name = [plan.cmd, ...plan.args].join(" ");
+    const r = deps.run(plan.cmd, plan.args, { ...env, ...plan.env });
     const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
     if (r.error || r.status !== 0) {
-      deps.print(`チームの道具(${plan.team} compact)に渡せませんでした${out ? `: ${out}` : ""}。次の 1 行をユーザーに打ってもらってください: /compact ${focus}`);
+      deps.print(`圧縮の頼み先(${name})に渡せませんでした${out ? `: ${out}` : ""}。次の 1 行をユーザーに打ってもらってください: /compact ${focus}`);
     } else {
-      deps.print(out || `${plan.team} compact に渡しました。ここで返答を終えてください。`);
+      deps.print(out || `圧縮の頼み先(${name})に渡しました。ここで返答を終えてください。`);
     }
-    return 0;
-  }
-  if (isDrivenByAnotherTool(env)) {
-    // 渡し先の分からない古い形のチームのタブ(LOUNGE_ROLE など)
-    deps.print(`このタブはチームの道具が動かしています。統括に圧縮を頼むか、次の 1 行をユーザーに打ってもらってください: /compact ${focus}`);
     return 0;
   }
   if (plan.mode === "queue") {

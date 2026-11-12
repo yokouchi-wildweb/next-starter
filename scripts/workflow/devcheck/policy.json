@@ -1,4 +1,5 @@
 {
+  "enabled": true,
   "server": "auto",
   "browser": "auto",
   "login": "auto",
@@ -6,5 +7,6 @@
   "db-delete": "auto",
   "env-add": "auto",
   "test": "auto",
-  "check": "auto"
+  "check": "auto",
+  "peer": "auto"
 }

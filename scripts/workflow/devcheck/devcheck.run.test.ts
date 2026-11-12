@@ -6,11 +6,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { KIND_NAMES, STANDALONE, parseAdminCheck, type Context, type Item, type Policy } from "./lib";
+import { POLICY_KEYS, STANDALONE, parseAdminCheck, type Context, type Item, type Policy } from "./lib";
 import { execCleanup, execRun, type Deps } from "./lib.exec";
 import { appendEnv, checkStatement, deleteSql, devTabStarted, waitForSlot, type DevcheckRecord, type RunResult } from "./lib.run";
 
-const ALL_AUTO = Object.fromEntries(KIND_NAMES.map((k) => [k, "auto"])) as Policy;
+const ALL_AUTO = Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])) as Policy;
 
 type Fake = Deps & { typed: string[][]; lines: string[]; record: DevcheckRecord | null; env: string; slept: number };
 

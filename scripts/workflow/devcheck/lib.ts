@@ -1,8 +1,8 @@
 // scripts/workflow/devcheck/lib.ts
 //
 // pnpm workflow devcheck の部品(読むだけの層)。開発中の確かめの入口が、事実と候補を出すための物。
-// - KINDS: やることの種類と打つコマンドの形(上流のコード。スキーマ push・本番は種類に無い)
-// - 方針: policy.json(上流の実体、全部 auto)に policy.override.ts(fork、上流は出さない)の宣言した鍵(KIND_NAMES)だけを重ねる。auto | manual | off
+// - KINDS・方針の実体は lib.kinds.mjs(許可のフックも読む唯一の置き場)。ここは型を付けて出し直す
+// - 方針: policy.json(上流の実体、全部 auto)に policy.override.ts(fork、上流は出さない)の宣言した鍵(POLICY_KEYS = 種類 + peer)だけを重ねる。auto | manual | off
 // - fork の項目: items/<名前>.json = { name, kind, command, what }。command はこのリポの入口(pnpm <script> / pnpm workflow / pnpm ops)だけ
 // - 文脈: 環境変数 DEVCHECK_CONTEXT=<絶対パス> の版つき key=value のファイル。無い = 単体、あるのに読めない・知らない版 = 止める
 // - 計画: 事実(方針・項目・文脈・今の状態)と候補。最後はいつも片付け
@@ -11,16 +11,20 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
+import {
+  DevcheckError,
+  HOOK_KINDS as HOOK_KINDS_DATA,
+  KIND_NAMES as KIND_NAMES_DATA,
+  KINDS as KINDS_DATA,
+  POLICY_KEYS as POLICY_KEYS_DATA,
+  POLICY_VALUES as POLICY_VALUES_DATA,
+  loadPolicy as loadPolicyData,
+  mergePolicy as mergePolicyData,
+} from "./lib.kinds.mjs";
 import { isBackground, isBackgroundAlive, isTabAlive, readState, type DevTabState } from "../dev-tab/lib";
 
-export class DevcheckError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "DevcheckError";
-  }
-}
+export { DevcheckError } from "./lib.kinds.mjs";
 
 // ---- 種類 ---------------------------------------------------------------------------------
 
@@ -35,23 +39,16 @@ export type Kind = {
   writes: boolean;
 };
 
-/**
- * やることの種類と打つコマンドの形。スキーマの push(db:push)・本番(--env production / --confirm)は種類に無い(D51・D58)。
- * DB に書く種類は guard を通る入口(pnpm ops db inspect query: 書く入口として guard を通り、既定は開発、本番は確認が要る)を
- * --env を付けずに使う
- */
-export const KINDS: Record<KindName, Kind> = {
-  server: { what: "開発サーバーを立てる(動いていれば使う)", command: "pnpm workflow dev-tab run", writes: true },
-  browser: { what: "動いているアプリをブラウザで見る(Playwright MCP、エージェントが行う)", command: null, writes: false },
-  login: { what: "確認用の管理者を用意してログイン情報を得る", command: "pnpm workflow dev-admin run", writes: true },
-  "db-write": { what: "開発の DB に行を書く(作った行は片付けで消す)", command: 'pnpm ops db inspect query "<SQL>"', writes: true },
-  "db-delete": { what: "開発の DB の行を消す", command: 'pnpm ops db inspect query "<SQL>"', writes: true },
-  "env-add": { what: "開発の env(.env.development)に値を足す(値は表示しない)", command: null, writes: true },
-  test: { what: "テストを走らせる", command: "pnpm test <path>", writes: false },
-  check: { what: "検査を走らせる", command: "pnpm check <target>", writes: false },
-};
+/** やることの種類と打つコマンドの形(実体は lib.kinds.mjs、許可のフックと同じ物) */
+export const KINDS = KINDS_DATA as Record<KindName, Kind>;
 
-export const KIND_NAMES = Object.keys(KINDS) as KindName[];
+export const KIND_NAMES = KIND_NAMES_DATA as KindName[];
+
+/** 許可のフックだけの種類(計画の候補には出ない)と、方針の鍵(種類 + フックだけの種類) */
+export type HookKindName = "peer";
+export const HOOK_KINDS = HOOK_KINDS_DATA as HookKindName[];
+export type PolicyKey = KindName | HookKindName;
+export const POLICY_KEYS = POLICY_KEYS_DATA as PolicyKey[];
 
 /** サーバーの種類の打つコマンド(文脈が裏を求めれば --background) */
 export const serverCommand = (server: ContextServer): string =>
@@ -60,67 +57,17 @@ export const serverCommand = (server: ContextServer): string =>
 // ---- 方針 ---------------------------------------------------------------------------------
 
 export type PolicyValue = "auto" | "manual" | "off";
-export const POLICY_VALUES: readonly PolicyValue[] = ["auto", "manual", "off"];
-export type Policy = Record<KindName, PolicyValue>;
+export const POLICY_VALUES = POLICY_VALUES_DATA as readonly PolicyValue[];
+export type Policy = Record<PolicyKey, PolicyValue>;
 
-/** 方針の実体(印なし)と、その一部を重ねる上書き(<対象>.override.ts、export const override = { … }) */
-export const POLICY_FILE = "policy.json";
-export const POLICY_OVERRIDE_FILE = "policy.override.ts";
-
-const checkPolicyObject = (data: unknown, file: string): Partial<Policy> => {
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new DevcheckError(`${file}: 種類 → auto | manual | off の JSON オブジェクトにする`);
-  const out: Partial<Policy> = {};
-  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-    if (!(KIND_NAMES as string[]).includes(key)) throw new DevcheckError(`${file}: 宣言に無い鍵 ${key}(重ねてよい鍵 = 種類 ${KIND_NAMES.join(" / ")})`);
-    if (!(POLICY_VALUES as readonly unknown[]).includes(value)) throw new DevcheckError(`${file}: ${key} の値 ${JSON.stringify(value)} は auto / manual / off のどれか`);
-    out[key as KindName] = value as PolicyValue;
-  }
-  return out;
-};
+/** 方針の実体(印なし)と、その一部を重ねる上書き(<対象>.override.ts、export const override = { … })。読み方は lib.kinds.mjs */
+export { POLICY_FILE, POLICY_OVERRIDE_FILE, readOverride } from "./lib.kinds.mjs";
 
 /** 実体に fork の上書きの宣言した鍵だけを重ねる(上書きは無くてよい)。宣言に無い鍵・値の誤りは DevcheckError */
-export const mergePolicy = (defaults: unknown, override: unknown | null): Policy => {
-  const base = checkPolicyObject(defaults, POLICY_FILE);
-  for (const kind of KIND_NAMES) if (!base[kind]) throw new DevcheckError(`${POLICY_FILE}: ${kind} がありません`);
-  const over = override === null ? {} : checkPolicyObject(override, POLICY_OVERRIDE_FILE);
-  return { ...(base as Policy), ...over };
-};
-
-const readJson = (file: string): unknown => {
-  try {
-    return JSON.parse(readFileSync(file, "utf8"));
-  } catch (error) {
-    throw new DevcheckError(`${path.basename(file)} が読めません: ${(error as Error).message}`);
-  }
-};
-
-/**
- * 上書きのファイル(policy.override.ts)の `override` を読む。無い・空(空白とコメントだけ)= 不在(null)。
- * 隣に実体(policy.json)が無い上書きは孤立 = DevcheckError。export が無い・オブジェクトでない = DevcheckError
- */
-export const readOverride = async (dir: string): Promise<unknown | null> => {
-  const file = path.join(dir, POLICY_OVERRIDE_FILE);
-  if (!existsSync(file)) return null;
-  const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "").trim();
-  if (text === "") return null;
-  if (!existsSync(path.join(dir, POLICY_FILE))) throw new DevcheckError(`${POLICY_OVERRIDE_FILE}: 隣に実体 ${POLICY_FILE} が無い(重ねる相手が無い上書き)`);
-  let mod: Record<string, unknown>;
-  try {
-    mod = await import(pathToFileURL(file).href);
-  } catch (error) {
-    throw new DevcheckError(`${POLICY_OVERRIDE_FILE} が読めません: ${(error as Error).message}`);
-  }
-  if (!("override" in mod)) throw new DevcheckError(`${POLICY_OVERRIDE_FILE}: export const override = { 種類: "auto" | "manual" | "off" } の形にする`);
-  return mod.override;
-};
+export const mergePolicy = (defaults: unknown, override: unknown | null): Policy => mergePolicyData(defaults, override) as Policy;
 
 /** この道具のフォルダから方針を読む: 実体(policy.json)+ 上書き(policy.override.ts)の宣言した鍵だけ */
-export const loadPolicy = async (dir: string): Promise<Policy> => {
-  const override = await readOverride(dir);
-  const body = path.join(dir, POLICY_FILE);
-  if (!existsSync(body)) throw new DevcheckError(`${POLICY_FILE} が無い`);
-  return mergePolicy(readJson(body), override);
-};
+export const loadPolicy = async (dir: string): Promise<Policy> => (await loadPolicyData(dir)) as Policy;
 
 // ---- fork の項目 --------------------------------------------------------------------------
 
