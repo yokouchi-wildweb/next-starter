@@ -486,6 +486,26 @@ test("配信停止(D35): 好みに従う連絡の宛先に category と List-Uns
   assert.equal(tx.channel.calls[0][0].headers, undefined);
 });
 
+test("配信停止: 停止の URL の中身に連絡の鍵と回の id が載る(停止を連絡・回に結ぶ)", async () => {
+  const { store, channel } = setup();
+  const payloads: Record<string, unknown>[] = [];
+  const deps = createDeps({
+    store,
+    channels: { test: channel },
+    unsubscribe: {
+      configured: () => true,
+      url: (payload) => {
+        payloads.push(payload);
+        return "https://example.test/u";
+      },
+    },
+  });
+  const result = await createMessageSender(deps).sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  assert.deepEqual(payloads, [
+    { recipientKey: "user:u2", category: "news", channel: "test", messageKey: "shop.notice", dispatchId: result.dispatchId },
+  ]);
+});
+
 test("配信停止(D57): 鍵が無い時は category だけ付き headers は付かない(経路が鍵の無い印として扱う)", async () => {
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: null });

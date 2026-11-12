@@ -270,8 +270,9 @@ D35・D45。本人が 種類 × 経路 の好みを見て切り替える口（`s
 
 ## ワンクリックの配信停止の受け口 /api/messaging/unsubscribe（常に開・門なし）
 
-- トークン = base64url(JSON {v:1, r, c, ch, a?}) + . + HMAC-SHA256(MESSAGING_UNSUBSCRIBE_SECRET)。`services/server/unsubscribe` の signUnsubscribeToken / verifyUnsubscribeToken / buildUnsubscribeUrl（getAppBaseUrl() + /api/messaging/unsubscribe?t=）/ isUnsubscribeConfigured
+- トークン = base64url(JSON {v:1, r, c, ch, a?, mk?, d?}) + . + HMAC-SHA256(MESSAGING_UNSUBSCRIBE_SECRET)。`mk` = 送った連絡の鍵・`d` = 送った回の id（送る口が宛先ごとに入れる。後から足したので、無い前のトークンも同じ版で通り、結び付きは null）。`services/server/unsubscribe` の signUnsubscribeToken / verifyUnsubscribeToken / buildUnsubscribeUrl（getAppBaseUrl() + /api/messaging/unsubscribe?t=）/ isUnsubscribeConfigured
 - POST（RFC 8058 のワンクリック、ログイン不要）: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
+- 停止を連絡・回に結ぶ: どちらの行にも `source_message_key`・`source_dispatch_id`（トークンの mk / d）を書く。好みのページからの停止・前のトークン・バウンスなどの停止は null（集計の「結び付き無し」）。同じ行が既にあれば書き換えない（最初の停止の出どころが残る）。`source_dispatch_id` は FK を持たない（回は保持の掃除で消えるが、停止の行は残す）
 - GET: 状態を変えず、同じ URL へ POST するボタン 1 つの確認のページ（script なし）
 - 鍵 MESSAGING_UNSUBSCRIBE_SECRET は pnpm ops setup env が乱数で作る（既にある env ファイルにも足りなければ足す）。変えると送ったメールの停止のリンクは無効になる
 
