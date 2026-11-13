@@ -96,7 +96,7 @@ purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `wall
 - `targeted` / `sent` / `failed` / `skippedNoAddress` / `suppressed`（止めで飛ばした）/ `skippedThrottled`: 回の `channel_counts`（全員・ロール宛ての行の無い数と共有のお知らせも入る）
 - `delivered` / `bounced` / `complained` / `opened` / `clicked`: 配達の行
 - `read`: お知らせの既読（受信者ごとの行 = 既読の行か全部既読の watermark、共有の行 = 見られる利用者のうち既読の人）。`inAppSent` = その分母
-- `unsubscribed`: 配信停止の行（`message_preferences` の行 + `message_suppressions` の one_click の行）
+- `unsubscribed`: 配信停止の行（`message_preferences` の行 + `message_suppressions` の one_click の行）。種別まるごとの停止の行（`kind` あり）も数え、種類の軸の値は `'*'`。会員登録で宣伝に同意しなかった行（source `signup`、messaging `PREFERENCE_SIGNUP_SOURCE`）は配信停止ではないので数えない
 - 率（`rates`）は同じ送りの組: ÷ `sent` = delivered / bounce / complaint / open / click / unsubscribe、÷ `targeted` = failed / suppressed、÷ `inAppSent` = read。分母 0・分子 null は null
 
 送りの組:

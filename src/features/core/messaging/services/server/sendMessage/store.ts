@@ -157,7 +157,7 @@ export const drizzleMessageSendStore: MessageSendStore = {
     return Number(row?.value ?? 0);
   },
 
-  async findOptOuts(userIds, category, channels) {
+  async findOptOuts(userIds, category, kind, channels) {
     if (userIds.length === 0) return [];
     const rows = await db
       .select({ userId: MessagePreferenceTable.user_id, channel: MessagePreferenceTable.channel })
@@ -167,6 +167,10 @@ export const drizzleMessageSendStore: MessageSendStore = {
           inArray(MessagePreferenceTable.user_id, [...userIds]),
           or(eq(MessagePreferenceTable.category, category), eq(MessagePreferenceTable.category, MESSAGE_ALL)),
           inArray(MessagePreferenceTable.channel, [...channels, MESSAGE_ALL]),
+          // kind の行(種別まるごと)は連絡の種別が同じ時だけ当たる。kind null の行は今までどおり
+          kind
+            ? or(isNull(MessagePreferenceTable.kind), eq(MessagePreferenceTable.kind, kind))
+            : isNull(MessagePreferenceTable.kind),
         ),
       );
     return rows;

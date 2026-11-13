@@ -1,6 +1,6 @@
 // src/app/api/me/messaging/preferences/route.test.mts
 // /api/me/messaging/preferences の検査(Factory・門・messaging の service は偽物)。
-// - 本人(ctx.user.userId)の行だけを読み書きする(body の userId は使わない)
+// - 本人(ctx.user.userId)の行だけを読み書きする(body の userId は使わない)。source は本文から受けない(3 つ目の引数を渡さない)
 // - 門 messagingPreferences が閉なら 404、本人が無ければ 401(Factory の偽物で createMeRoute の契約を写す)
 // 実行: pnpm test src/app/api/me/messaging/preferences/route.test.mts
 
@@ -38,8 +38,8 @@ mock.module("@/featureGate", {
   },
 });
 
-const calls: { fn: string; userId: string; input?: unknown }[] = [];
-const grid = { allOptedOut: false, channels: [], categories: [] };
+const calls: { fn: string; userId: string; input?: unknown; options?: unknown }[] = [];
+const grid = { allOptedOut: false, kinds: [], channels: [] };
 mock.module("@/features/core/messaging/services/server", {
   namedExports: {
     messagingService: {
@@ -47,8 +47,8 @@ mock.module("@/features/core/messaging/services/server", {
         calls.push({ fn: "get", userId });
         return grid;
       },
-      setMessagePreference: async (userId: string, input: unknown) => {
-        calls.push({ fn: "set", userId, input });
+      setMessagePreference: async (userId: string, input: unknown, ...rest: unknown[]) => {
+        calls.push({ fn: "set", userId, input, ...(rest.length > 0 ? { options: rest[0] } : {}) });
         return { ...grid, allOptedOut: true };
       },
     },
@@ -75,7 +75,7 @@ test("GET: 本人の表を返す", async () => {
 });
 
 test("PATCH: body を本人の変更として渡し、変えた後の表を返す(body の userId は使わない)", async () => {
-  const body = { category: "marketing", channel: "email", optedOut: true, userId: "other" };
+  const body = { category: "marketing", channel: "email", optedOut: true, userId: "other", source: "signup" };
   const res = await PATCH(
     new NextRequest(URL_, { method: "PATCH", headers: { "x-test-user": "u1" }, body: JSON.stringify(body) }),
     ctx,

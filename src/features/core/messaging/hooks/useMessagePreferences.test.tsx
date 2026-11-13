@@ -1,5 +1,5 @@
 // useMessagePreferences の検査(jsdom の上で描く。client service は偽物)。
-// - 表を読む / 1 マスと全体の変更は client を呼び、応答の表を SWR のキャッシュに書く(取り直さない)/ 変えている間の pendingKey
+// - 表を読む(categoryRows = 入れ子から種類ごとの行)/ 1 マス・全体・種別まるごとの変更は client を呼び、応答の表を SWR のキャッシュに書く(取り直さない)/ 変えている間の pendingKey
 // 実行: pnpm test src/features/core/messaging/hooks/useMessagePreferences.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -15,11 +15,16 @@ g.HTMLElement = dom.window.HTMLElement;
 g.Node = dom.window.Node;
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
-type Input = { category: string; channel: string; optedOut: boolean };
-const table = (optedOut: boolean, allOptedOut = false) => ({
+type Input = { category: string; channel: string; optedOut: boolean } | { kind: string; optedOut: boolean };
+const leaf = (optedOut: boolean, via: string | null) => ({ key: "marketing", label: "お得な情報", description: null, optedOut, via });
+const frame = (optedOut: boolean, via: string | null) => [{ kind: "marketing", groups: [{ key: null, label: null, categories: [leaf(optedOut, via)] }] }];
+const table = (optedOut: boolean, allOptedOut = false, kindOptedOut = false) => ({
   allOptedOut,
-  channels: [{ key: "email", label: "メール", hasAddress: true, connectHref: null }],
-  categories: [{ key: "marketing", label: "お得な情報", description: null, kind: "marketing", cells: [{ channel: "email", optedOut, via: optedOut ? "cell" : null }] }],
+  kinds: [{ kind: "marketing", optedOut: kindOptedOut }],
+  channels: [
+    { key: "email", label: "メール", hasAddress: true, connectHref: null, kinds: frame(optedOut, optedOut ? "cell" : null) },
+    { key: "inApp", label: "お知らせ", hasAddress: true, connectHref: null, kinds: frame(kindOptedOut, kindOptedOut ? "kind" : null) },
+  ],
 });
 
 let gets = 0;
@@ -34,6 +39,7 @@ mock.module("@/features/core/messaging/services/client/preferenceClient", {
     setMessagePreference: async (input: Input) => {
       sets.push(input);
       await new Promise<void>((resolve) => (release = resolve));
+      if ("kind" in input) return table(input.optedOut, false, input.optedOut);
       return input.category === "*" ? table(true, input.optedOut) : table(input.optedOut);
     },
   },
@@ -72,7 +78,18 @@ const mount = async () => {
 test("表を読む", async () => {
   const view = await mount();
   assert.equal(gets, 1);
-  assert.equal(view.hook().preferences?.categories[0].cells[0].optedOut, false);
+  assert.deepEqual(view.hook().categoryRows, [
+    {
+      key: "marketing",
+      label: "お得な情報",
+      description: null,
+      kind: "marketing",
+      cells: [
+        { channel: "email", optedOut: false, via: null },
+        { channel: "inApp", optedOut: false, via: null },
+      ],
+    },
+  ]);
   await view.unmount();
 });
 
@@ -90,7 +107,7 @@ test("1 マスを止める: client に optedOut true、変えている間は pen
   });
   assert.deepEqual(sets, [{ category: "marketing", channel: "email", optedOut: true }]);
   assert.equal(view.hook().pendingKey, null);
-  assert.equal(view.hook().preferences?.categories[0].cells[0].optedOut, true);
+  assert.equal(view.hook().categoryRows[0].cells[0].optedOut, true);
   assert.equal(gets, getsBefore, "取り直さない");
   await view.unmount();
 });
@@ -108,5 +125,22 @@ test("全体: '*' '*' を送り、allOptedOut が応答の値になる", async (
   });
   assert.deepEqual(sets, [{ category: "*", channel: "*", optedOut: true }]);
   assert.equal(view.hook().preferences?.allOptedOut, true);
+  await view.unmount();
+});
+
+test("種別まるごと: { kind, optedOut } を送り、pendingKey は kind:<種別>", async () => {
+  const view = await mount();
+  let done: Promise<unknown> = Promise.resolve();
+  await act(async () => {
+    done = view.hook().setKind("marketing", true);
+  });
+  assert.equal(view.hook().pendingKey, "kind:marketing");
+  await act(async () => {
+    release?.();
+    await done;
+  });
+  assert.deepEqual(sets, [{ kind: "marketing", optedOut: true }]);
+  assert.equal(view.hook().preferences?.kinds[0].optedOut, true);
+  assert.deepEqual(view.hook().categoryRows[0].cells[1], { channel: "inApp", optedOut: true, via: "kind" });
   await view.unmount();
 });

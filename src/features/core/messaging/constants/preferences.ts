@@ -8,3 +8,6 @@ export const MESSAGE_PREFERENCES_PAGE_PATH = "/mypage/account/notifications";
 
 /** 好みの読み書きの API(本人の行だけ) */
 export const MESSAGE_PREFERENCES_API_PATH = "/api/me/messaging/preferences";
+
+/** 会員登録で宣伝に同意しなかった人の種別まるごとの停止の行の source(配信停止の数には数えない。D66) */
+export const PREFERENCE_SIGNUP_SOURCE = "signup";

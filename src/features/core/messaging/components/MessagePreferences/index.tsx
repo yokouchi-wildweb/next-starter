@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/MessagePreferences/index.tsx
-// セクションコンテナ(本人の通知の設定): 種類 × 経路の切り替えと「すべての連絡を止める」。
+// セクションコンテナ(本人の通知の設定): 種類 × 経路の切り替えと「すべての連絡を止める」(種類が先の並び。hook の categoryRows を読む)。
 // hook useMessagePreferences で読み書きし、部品(PreferenceCategoryRow / PreferenceChannelToggle)で描く。
 // 取引の連絡(パスワードの再設定など)はここに出ず、止められない。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
@@ -31,7 +31,7 @@ export type MessagePreferencesProps = {
 
 export function MessagePreferences({ emptyText = "設定できる通知はありません" }: MessagePreferencesProps) {
   const { showToast } = useToast();
-  const { preferences, isLoading, error, retry, setCell, setAll, pendingKey } = useMessagePreferences();
+  const { preferences, categoryRows, isLoading, error, retry, setCell, setAll, pendingKey } = useMessagePreferences();
   const allKey = preferenceCellKey(MESSAGE_PREFERENCE_ALL, MESSAGE_PREFERENCE_ALL);
 
   const handleCell = useCallback(
@@ -84,12 +84,12 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
           />
         </Flex>
       </Block>
-      {preferences.categories.length === 0 ? (
+      {categoryRows.length === 0 ? (
         <Para tone="muted" align="center">
           {emptyText}
         </Para>
       ) : (
-        preferences.categories.map((category) => (
+        categoryRows.map((category) => (
           <PreferenceCategoryRow
             key={category.key}
             category={category}
