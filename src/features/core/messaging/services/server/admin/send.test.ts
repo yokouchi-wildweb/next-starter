@@ -84,6 +84,8 @@ async function rejectsWith(run: Promise<unknown>, status: number, message?: RegE
   });
 }
 
+const TEXT = { email: { subject: "春 {{discount}}" }, inApp: { title: "春", body: "本文" } };
+const tpl = (extra: Record<string, unknown> = {}) => ({ type: "template", templateId: TEMPLATE, version: 3, content: TEXT, ...extra });
 const adhoc = { type: "adhoc", email: { subject: "件名", body: "本文" }, inApp: { title: "題", body: "本文" } };
 
 test("その場で書く連絡を全員へ今送る: カテゴリーの種別の定義をそのカテゴリーで、監査 sent", async () => {
@@ -109,7 +111,7 @@ test("その場で書く連絡を全員へ今送る: カテゴリーの種別の
 test("テンプレートを audiences の項目へ予約: sendTemplate に選んだカテゴリー、監査 scheduled", async () => {
   const { deps, calls, audits } = setup();
   await adminSend(deps, {
-    message: { type: "template", templateId: TEMPLATE, vars: { discount: 10 } },
+    message: tpl({ vars: { discount: 10 } }),
     category: "marketing",
     audience: { type: "audience", key: "buyers", args: { days: 30 } },
     scheduledAt: "2026-12-01T09:00:00+09:00",
@@ -117,6 +119,9 @@ test("テンプレートを audiences の項目へ予約: sendTemplate に選ん
   const [input] = calls[0].args as [Record<string, unknown>];
   assert.equal(calls[0].fn, "template");
   assert.equal(input.templateId, TEMPLATE);
+  // 読み込んだ版と送る文言(直した文面)をそのまま送る口へ(D85)
+  assert.equal(input.version, 3);
+  assert.deepEqual(input.content, TEXT);
   assert.deepEqual(input.vars, { discount: 10 });
   assert.equal(input.category, "marketing");
   assert.deepEqual(input.audience, { type: "audience", key: "buyers", args: { days: 30 } });
@@ -137,7 +142,7 @@ test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送�
   await rejectsWith(adminSend(deps, { message: adhoc, channels: ["email"], audience: { type: "all" } }), 400);
   assert.equal(calls.length, 0);
   // テンプレートは版の経路なので email・inApp の外のカテゴリーでも送る口に渡す
-  await adminSend(deps, { message: { type: "template", templateId: TEMPLATE }, category: "promoPush", audience: { type: "all" } });
+  await adminSend(deps, { message: tpl(), category: "promoPush", audience: { type: "all" } });
   await adminSend(deps, { message: adhoc, category: "operatorDirect", channels: ["email"], audience: { type: "users", userIds: ["u1", "u1", "u2"] } });
   const [definition, input] = calls[1].args as [{ key: string; category: string }, Record<string, unknown>];
   assert.deepEqual([definition.key, definition.category], ["messaging.adminDirect", "operatorDirect"]);
@@ -152,7 +157,10 @@ test("入力の誤りは 400(経路・中身・予約の形)", async () => {
     { ...c, message: adhoc, channels: ["push"], audience: { type: "all" } },
     { ...c, message: { type: "adhoc", inApp: { title: "t", body: "b" } }, channels: ["email"], audience: { type: "all" } },
     { ...c, message: adhoc, channels: ["email"], audience: { type: "all" }, scheduledAt: "あした" },
-    { ...c, message: { type: "template", templateId: "not-uuid" }, audience: { type: "all" } },
+    { ...c, message: tpl({ templateId: "not-uuid" }), audience: { type: "all" } },
+    // 版と文言は必須(読み込んだ版の文言を送る)
+    { ...c, message: { type: "template", templateId: TEMPLATE, content: TEXT }, audience: { type: "all" } },
+    { ...c, message: { type: "template", templateId: TEMPLATE, version: 3 }, audience: { type: "all" } },
     { ...c, message: adhoc, channels: ["email"], audience: { type: "users", userIds: [] } },
     { ...c, message: adhoc, channels: ["email"], audience: { type: "all" }, kind: "marketing" },
   ];
@@ -161,8 +169,11 @@ test("入力の誤りは 400(経路・中身・予約の形)", async () => {
 
 test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
-  await adminSendPreview(deps, { message: { type: "template", templateId: TEMPLATE, vars: { a: 1 } }, category: "marketing" });
-  assert.deepEqual(calls[0].args, [{ templateId: TEMPLATE, category: "marketing" }, { vars: { a: 1 }, channels: undefined, userId: ADMIN }]);
+  await adminSendPreview(deps, { message: tpl({ vars: { a: 1 } }), category: "marketing" });
+  assert.deepEqual(calls[0].args, [
+    { templateId: TEMPLATE, version: 3, content: TEXT, category: "marketing" },
+    { vars: { a: 1 }, channels: undefined, userId: ADMIN },
+  ]);
   await adminSendPreview(deps, { message: adhoc, category: "announcement", channels: ["email"] });
   assert.equal((calls[1].args[1] as { userId: string }).userId, ADMIN);
 

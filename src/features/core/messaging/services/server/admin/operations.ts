@@ -22,7 +22,7 @@ import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { boundInboxImageRefs, INBOX_IMAGES_METADATA_KEY } from "../inbox/imageBinding";
 import { recordPolicyOf } from "../sendMessage/record";
-import type { MessageRecipient, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
+import type { MessageDispatchTemplate, MessageRecipient, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import type { MessageOperationsStore } from "./operationsTypes";
 import {
@@ -114,7 +114,7 @@ export type AdminOperationsDeps<Tx> = AdminCheckDeps & {
   sendResolved: (
     resolved: AnyResolvedMessageDefinition,
     input: SendMessageToManyInput,
-    template?: { id: string; version: number },
+    template?: MessageDispatchTemplate,
   ) => Promise<SendMessageResult>;
   /** 戻した行を 1 束だけ送る(失敗しても再送は成り立つ。残りは cron) */
   continueSending: (dispatchId: string) => Promise<unknown>;
@@ -254,7 +254,12 @@ export async function adminResendFailed<Tx>(
         isTest: dispatch.is_test ?? false,
       } as SendMessageToManyInput,
       dispatch.template_id && dispatch.template_version
-        ? { id: dispatch.template_id, version: dispatch.template_version }
+        ? {
+            id: dispatch.template_id,
+            version: dispatch.template_version,
+            // 直して送った回の再送は同じ直した文言(定義も回の文言から組んである)
+            editedContent: dispatch.template_edited ? (dispatch.template_content ?? null) : null,
+          }
         : undefined,
     );
     const failed = rows.filter((row) => row.status === "failed").length;

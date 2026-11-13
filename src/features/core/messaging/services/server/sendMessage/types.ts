@@ -82,8 +82,20 @@ export type SendMessageToManyInput = CommonSendInput &
  */
 export type SendTemplateInput = Omit<SendMessageToManyInput, "recipientVars"> & {
   templateId: string;
-  /** 送る時の種類(既定 = 版の種類)。種別と経路はこの種類から。管理の送信の「取引」の選択は operatorDirect(指令 37 までの仮) */
+  /** 送る版(省略 = 今の公開版。今の公開版でなければ 409) */
+  version?: number;
+  /** 送る文言(省略 = 版の文言。版と違えば回に template_edited と直した文言を残す。版に無い画像は 400) */
+  content?: Record<string, unknown>;
+  /** 送る時の種類(既定 = 版の種類)。種別と経路はこの種類から(種別は announcement・direct・marketing) */
   category?: string;
+};
+
+/** 回に残すテンプレートの出どころ(版の固定と、直した文言) */
+export type MessageDispatchTemplate = {
+  id: string;
+  version: number;
+  /** 直した文言(版のままなら null) */
+  editedContent: Record<string, unknown> | null;
 };
 
 /** テンプレートの公開した版(送る口が読む形) */
@@ -92,7 +104,7 @@ export type MessageTemplateVersionSource = {
   templateKey: string;
   version: number;
   category: string;
-  channels: string[];
+  /** 経路ごとの文言(鍵 = 文言のある経路) */
   content: Record<string, unknown>;
   variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: "dispatch" | "recipient" }[];
 };

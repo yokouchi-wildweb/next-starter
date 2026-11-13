@@ -46,6 +46,10 @@ const messageSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("template"),
       templateId: z.string().uuid(),
+      /** 読み込んだ版(今の公開版でなければ 409) */
+      version: z.number().int().min(1),
+      /** 送る文言(版の文言を読み込んで直した物。版と違えば回に template_edited、D85) */
+      content: z.record(z.string(), z.unknown()),
       /** テンプレートの変数の値(回に 1 組) */
       vars: z.record(z.string(), z.unknown()).default({}),
     })
@@ -70,7 +74,7 @@ const contentFields = {
   message: messageSchema,
   /** 送るカテゴリー(種別 announcement・direct・marketing) */
   category: z.string().trim().min(1).max(100),
-  /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部、テンプレートは版の経路) */
+  /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
   channels: z.array(z.string().min(1)).min(1).max(20).optional(),
 };
 
@@ -132,8 +136,9 @@ export type AdminSendOptions = {
     key: string;
     name: string;
     category: string;
-    channels: string[];
     currentVersion: number;
+    /** 今の公開版の文言(鍵 = 文言のある経路。送る画面が読み込んで送る) */
+    content: Record<string, unknown>;
     variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: string }[];
   }[];
   /** 送れるカテゴリー(種別 announcement・direct・marketing、宛先の種類で絞る。adhoc = その場で書く連絡に使える) */
@@ -146,7 +151,9 @@ export type AdminSendDeps = AdminCheckDeps & {
   sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) => Promise<SendMessageResult>;
   sendTemplate: (input: SendTemplateInput) => Promise<SendMessageResult>;
   previewMessage: (
-    source: { definition: AnyMessageDefinition } | { templateId: string; category?: string },
+    source:
+      | { definition: AnyMessageDefinition }
+      | { templateId: string; version?: number; content?: Record<string, unknown>; category?: string },
     input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
   ) => Promise<MessagePreview>;
   estimateRecipients: (target: { audience: MessageAudienceSpec } | { userIds: readonly string[] }) => Promise<RecipientEstimate>;
@@ -214,6 +221,8 @@ async function dispatch(
     return deps.sendTemplate({
       ...(rest as SendTemplateInput),
       templateId: content.message.templateId,
+      version: content.message.version,
+      content: content.message.content,
       vars: content.message.vars,
       category: category.key,
       ...(content.channels ? { channels: content.channels } : {}),
@@ -249,7 +258,7 @@ export async function adminSend(deps: AdminSendDeps, rawInput: unknown): Promise
     action: scheduledAt ? "messaging.dispatch.scheduled" : "messaging.dispatch.sent",
     metadata: {
       source: input.message.type === "template" ? "template" : "adhoc",
-      ...(input.message.type === "template" ? { templateId: input.message.templateId } : {}),
+      ...(input.message.type === "template" ? { templateId: input.message.templateId, templateVersion: input.message.version } : {}),
       category: category.key,
       kind: category.kind,
       channels: input.channels ?? null,
@@ -270,7 +279,12 @@ export async function adminSendPreview(deps: AdminSendDeps, rawInput: unknown): 
   const category = categoryOf(deps, input, null);
   if (input.message.type === "template") {
     return deps.previewMessage(
-      { templateId: input.message.templateId, category: category.key },
+      {
+        templateId: input.message.templateId,
+        version: input.message.version,
+        content: input.message.content,
+        category: category.key,
+      },
       { vars: input.message.vars, channels: input.channels, userId },
     );
   }
@@ -309,7 +323,7 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
     action: "messaging.dispatch.test_sent",
     metadata: {
       source: input.message.type === "template" ? "template" : "adhoc",
-      ...(input.message.type === "template" ? { templateId: input.message.templateId } : {}),
+      ...(input.message.type === "template" ? { templateId: input.message.templateId, templateVersion: input.message.version } : {}),
       category: category.key,
       kind: category.kind,
       channels: input.channels ?? null,

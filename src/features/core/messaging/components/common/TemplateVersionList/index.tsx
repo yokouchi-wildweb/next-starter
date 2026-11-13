@@ -50,7 +50,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
               {when(version.createdAt)}
             </Span>
             <Span size="sm" tone="muted">
-              {version.category} / {version.channels.join(" / ")}
+              {version.category} / {Object.keys(version.content).join(" / ")}
             </Span>
           </Flex>
           <Button
@@ -69,7 +69,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
             v{shown.version} の中身
           </Span>
           <MessagePreview
-            channels={shown.channels.map((key) => ({ key, fields: shown.content[key] ?? {} }))}
+            channels={Object.keys(shown.content).map((key) => ({ key, fields: shown.content[key] ?? {} }))}
           />
           {shown.variables.length > 0 ? (
             <Stack space={1}>

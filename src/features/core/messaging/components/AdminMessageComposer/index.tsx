@@ -135,7 +135,8 @@ function Composer({ options, dispatchBasePath = "/admin/messaging" }: AdminMessa
   }
 
   const adhocChannels = options.channels.filter((channel) => channel.adhoc);
-  const templateChannels = template ? options.channels.filter((channel) => template.channels.includes(channel.key)) : [];
+  // テンプレートの経路の候補 = 選んだカテゴリーの経路(文言の無い経路を選ぶと送る前に止める)
+  const templateChannels = template ? options.channels.filter((channel) => composer.categoryChannels.includes(channel.key)) : [];
   const channelChoices = fields.source === "template" ? templateChannels : adhocChannels;
   const scheduleNote = `予約の粒度は cron の周期です(Vercel Hobby では 1 日 1 回なので、時刻より遅れて送られます)。${options.maxScheduleDays} 日先まで予約できます。`;
 

@@ -16,7 +16,6 @@ function toSource(key: string, row: MessageTemplateVersion): MessageTemplateVers
     templateKey: key,
     version: row.version,
     category: row.category,
-    channels: [...row.channels],
     content: row.content as Record<string, unknown>,
     variables: row.variables,
   };

@@ -29,7 +29,6 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   name: "春",
   description: null,
   category: "marketing",
-  channels: ["email"],
   status: "published",
   currentVersion: 1,
   createdBy: null,
@@ -168,9 +167,12 @@ test("useMessageTemplateForm(作る): 鍵つきで POST し、作った id を�
   await act(async () => {
     form().fields.setKey("spring");
     form().fields.setName("春");
-    form().fields.toggleChannel("email", true);
   });
+  // 経路は選ばない: 文言を書いた経路がテンプレートの経路(D85)
+  assert.deepEqual(form().fields.channels, []);
   await act(async () => form().fields.setChannelContent("email", { subject: "{{coupon}} {{displayName}}" }));
+  await act(async () => form().fields.setChannelContent("inApp", { title: "", body: "" }));
+  assert.deepEqual(form().fields.channels, ["email"], "空の経路は経路にしない");
   assert.equal(form().dirty, true);
   assert.equal(guarded.at(-1), true);
   assert.deepEqual(form().unknownKeys, ["coupon"]);
@@ -187,7 +189,6 @@ test("useMessageTemplateForm(作る): 鍵つきで POST し、作った id を�
     name: "春",
     description: null,
     category: "marketing",
-    channels: ["email"],
     content: { email: { subject: "{{coupon}} {{displayName}}" } },
     variables: [{ key: "coupon", label: "クーポン", type: "string", required: false, source: "dispatch" }],
   });
@@ -217,7 +218,6 @@ test("useMessageTemplateForm(直す): PATCH・公開・取り下げは 1 件と�
       name: "春の",
       description: null,
       category: "marketing",
-      channels: ["email"],
       content: { email: { subject: "{{discount}} 割引" } },
       variables: [{ key: "discount", label: "割引", type: "string", required: true, source: "dispatch" }],
     },

@@ -3,6 +3,8 @@
 // - 変数の値が無い・型が合わない → 400(送る口)/ cron で回の値が版に合わない → 送らずに止める(template_vars_invalid)
 // - 取り下げ済み・未公開は 409、受信者ごとの変数に既定値が無ければ 400
 // - 回の鍵 = 送るカテゴリーの種別の管理の定義の鍵(adminMarketing・adminDirect)。種別が announcement・direct・marketing でないカテゴリーは 400
+// - 直した文言(content)で送る: 回に template_edited と直した文言、cron はその文言で組み直す。版は今の公開版だけ(違えば 409)
+// - 経路 = 種類の経路 ∩ 絞り。その中に文言の無い経路があれば 400(AMENDMENT 1)。直した文言に版に無い画像は 400
 // - テンプレートの画像(台帳の持ち主 = テンプレート)は回が複製を持つ(お知らせの画像の結び方)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/templateSend.test.ts
 import { test } from "node:test";
@@ -42,7 +44,6 @@ function version(n: number, title: string, variables: MessageTemplateVersionSour
     templateKey: "spring",
     version: n,
     category: "news",
-    channels: ["test"],
     content: { test: { title, body: "{{displayName}}" } },
     variables,
   };
@@ -176,4 +177,52 @@ test("テンプレートの画像は回が複製を持つ(持ち主がテンプ�
   assert.deepEqual(copied, [ref]);
   assert.deepEqual(attached, [`${ref}#copy`]);
   assert.equal(map.get(ref), `${ref}#copy`);
+});
+
+test("直した文言で送る: 回に template_edited と文言、予約の後に版を直しても cron は回の文言で送る", async () => {
+  const { world, deps, channel, versions, state, sender } = setup();
+  const edited = { test: { title: "直した {{discount}}", body: "{{displayName}}" } };
+  await sender.sendTemplate({ templateId: "tpl-1", version: 1, content: edited, recipients: [{ userId: "u1" }], vars: { discount: 3 }, scheduledAt: later(60) });
+  const dispatch = world.store.dispatches[0];
+  assert.equal(dispatch.template_version, 1);
+  assert.equal(dispatch.template_edited, true);
+  assert.deepEqual(dispatch.template_content, edited);
+  versions.push(version(2, "v2"));
+  state.current = 2;
+  deps.setNow(later(60));
+  await sweepMessages(deps, deadline());
+  assert.deepEqual(channel.calls.flat()[0].content, { title: "直した 3", body: "名前u1" });
+
+  // 版のままの文言を渡したら直していない(template_edited false、文言は残さない)
+  await sender.sendTemplate({ templateId: "tpl-1", version: 2, content: versions[1].content, recipients: [{ userId: "u2" }], vars: { discount: 1 } });
+  assert.equal(world.store.dispatches[1].template_edited, false);
+  assert.equal(world.store.dispatches[1].template_content, null);
+});
+
+test("版は今の公開版だけ(違えば 409)。文言の無い経路・絞りの外・版に無い画像は 400", async () => {
+  const { sender, versions, state } = setup();
+  const base = { templateId: "tpl-1", recipients: [{ userId: "u1" }], vars: { discount: 1 } };
+  versions.push(version(2, "v2"));
+  state.current = 2;
+  await rejectsWith(sender.sendTemplate({ ...base, version: 1 }), 409, /今の公開版/);
+  // 種類 newsInApp の経路は test・inApp: inApp の文言が無いまま全部の経路で送ると 400、test だけに絞れば送れる
+  await rejectsWith(sender.sendTemplate({ ...base, category: "newsInApp" }), 400, /inApp の文言がありません/);
+  await rejectsWith(sender.sendTemplate({ ...base, category: "news", channels: ["inApp"] }), 400, /中の絞り/);
+  const ok = await sender.sendTemplate({ ...base, category: "newsInApp", channels: ["test"] });
+  assert.equal(ok.status, "completed");
+  await rejectsWith(
+    sender.sendTemplate({ ...base, content: { test: { title: "storage://pub/notification.image/x.png" } } }),
+    400,
+    /版に無い画像/,
+  );
+});
+
+test("プレビューも直した文言と版で組む", async () => {
+  const { sender } = setup();
+  const preview = await sender.previewMessage(
+    { templateId: "tpl-1", version: 1, content: { test: { title: "見本 {{discount}}" } } },
+    { vars: { discount: 7 }, userId: "u1" },
+  );
+  assert.deepEqual(preview.channels[0].fields, { title: "見本 7" });
+  assert.deepEqual(preview.template, { id: "tpl-1", version: 1 });
 });

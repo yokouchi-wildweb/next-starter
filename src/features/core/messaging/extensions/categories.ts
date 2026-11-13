@@ -4,7 +4,6 @@
 import type { MessageCategory } from "@/lib/messaging";
 
 import { category as categories_accountLocked } from "@/features/core/messaging/categories/accountLocked";
-import { category as categories_activity } from "@/features/core/messaging/categories/activity";
 import { category as categories_announcement } from "@/features/core/messaging/categories/announcement";
 import { category as categories_earlyRegistration } from "@/features/core/messaging/categories/earlyRegistration";
 import { category as categories_emailChange } from "@/features/core/messaging/categories/emailChange";
@@ -19,7 +18,6 @@ import { category as categories_walletExpiring } from "@/features/core/messaging
 
 const categoriesList: MessageCategory[] = [
   categories_accountLocked,
-  categories_activity,
   categories_announcement,
   categories_earlyRegistration,
   categories_emailChange,

@@ -80,6 +80,13 @@ export const MessageDispatchTable = pgTable(
     }),
     /** 予約時に固定したテンプレートの版（送る直前に最新版を引き直さない） */
     template_version: integer("template_version"),
+    /** テンプレートの版の文言から直して送ったか（D85。直していない回は版から組み直す） */
+    template_edited: boolean("template_edited").notNull().default(false),
+    /**
+     * 直して送った文言（template_edited の回だけ、ほかは null）。cron の組み直し・再送は版の変数の宣言とこの文言で組む。
+     * 管理の自由文の定義の vars では欄（見出し・段落・cta・画像・ほかの経路）を表せないので列に置く
+     */
+    template_content: jsonb("template_content").$type<Record<string, unknown>>(),
     /** 種別（transactional / marketing / activity） */
     kind: text("kind").$type<MessageKind>(),
     /** 種類の鍵（配信停止の単位。messaging/categories の鍵） */
