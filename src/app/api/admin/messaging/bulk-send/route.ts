@@ -1,9 +1,11 @@
 // src/app/api/admin/messaging/bulk-send/route.ts
 //
-// 管理者向け: 管理者がその場で書く連絡の一括送信。宛先は { userIds } か { target, recordIds }(受け口 bulkSendTargets)、カテゴリー category は必須。
-// 管理者は access と service の両方で確かめる。入力の形・結果: src/features/core/messaging/README.md「管理の送信と回の読む口」
+// 管理者向け: 一括送信。宛先は { userIds } か { target, recordIds }(受け口 bulkSendTargets)、中身は送る画面と同じ形
+// { message: テンプレート { templateId, version, content, vars } | その場で書く { type: "adhoc", email?, inApp? }, category, channels? }。予約は無い。
+// 管理者は access と service の両方で確かめる。門 messagingBroadcast には入れない(プレビュー・テストも ./preview・./test)。
+// 入力の形・結果: src/features/core/messaging/README.md「管理の送信と回の読む口」
 //
-// GET  /api/admin/messaging/bulk-send   選択肢(一覧の一括で送れるカテゴリー)
+// GET  /api/admin/messaging/bulk-send   選択肢(一覧の一括で送れるカテゴリーと、門 messagingTemplates が開の時だけ公開中のテンプレート)
 // POST /api/admin/messaging/bulk-send
 
 import { NextResponse } from "next/server";

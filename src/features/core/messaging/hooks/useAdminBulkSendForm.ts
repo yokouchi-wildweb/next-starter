@@ -113,16 +113,20 @@ export function useAdminBulkSendForm({
 
   /** 送る入力(確認の前に組む形と同じ。テストが見る) */
   const buildInput = useCallback((): AdminBulkSendInput => {
-    const channels: AdminBulkSendInput["channels"] = [];
+    const channels: string[] = [];
     if (useEmail) channels.push("email");
     if (useInApp) channels.push("inApp");
+    // 中身は送る画面と同じ形(その場で書く連絡)。テンプレート・プレビュー・テスト送信は送るモーダル(指令 40)
     return {
       target,
       recordIds: ids,
       category,
       channels,
-      email: useEmail ? { subject: emailSubject.trim(), body: emailBody.trim() } : undefined,
-      inApp: useInApp ? { title: inAppTitle.trim(), body: inAppBody.trim() } : undefined,
+      message: {
+        type: "adhoc",
+        ...(useEmail ? { email: { subject: emailSubject.trim(), body: emailBody.trim() } } : {}),
+        ...(useInApp ? { inApp: { title: inAppTitle.trim(), body: inAppBody.trim() } } : {}),
+      },
       idempotencyKey: idempotencyKey ?? undefined,
       source,
     };

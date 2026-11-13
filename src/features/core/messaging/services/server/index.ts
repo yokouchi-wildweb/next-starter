@@ -79,6 +79,7 @@ export type {
   AdminBulkSendInput,
   AdminBulkSendOptions,
   AdminBulkSendResult,
+  AdminBulkSendTemplate,
   AdminFreeTextCategoryOption,
   AdminFreeTextKind,
   AdminDeliveryRow,

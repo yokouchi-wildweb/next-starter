@@ -5,6 +5,8 @@
 import {
   adminBulkSend,
   adminBulkSendOptions,
+  adminBulkSendPreview,
+  adminBulkSendTest,
   adminCancelScheduled,
   adminContinueSending,
   adminResendFailed,
@@ -55,8 +57,11 @@ export const messagingService = {
   continueSending,
   /** 管理の一括送信(選んだカテゴリーの種別の定義、/api/admin/messaging/bulk-send が呼ぶ。service でも管理者を確かめる) */
   adminBulkSend,
-  /** 一括送信の選択肢(一覧の一括で送れるカテゴリー、GET /api/admin/messaging/bulk-send) */
+  /** 一括送信の選択肢(一覧の一括で送れるカテゴリーと、門 messagingTemplates が開の時だけ公開中のテンプレート、GET /api/admin/messaging/bulk-send) */
   adminBulkSendOptions,
+  /** 一括送信のプレビュー・自分へのテスト送信(POST /api/admin/messaging/bulk-send/{preview, test}、門 messagingBroadcast に入れない) */
+  adminBulkSendPreview,
+  adminBulkSendTest,
   /** 管理の送信(/api/admin/messaging/send/**): 送る(今か予約)・プレビュー・見込み・自分へのテスト・選択肢 */
   adminSend,
   adminSendPreview,

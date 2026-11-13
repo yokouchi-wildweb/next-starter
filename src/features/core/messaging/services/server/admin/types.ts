@@ -13,6 +13,9 @@ export type AdminMessageContent = {
   inApp?: { title: string; body: string };
 };
 
+/** 一括送信をテンプレートで送った時の出どころ(afterSend に渡す) */
+export type AdminBulkSendTemplate = { id: string; version: number; edited: boolean };
+
 /** 一括送信の数(呼び手と afterSend に返す) */
 export type AdminBulkSendCounts = {
   /** 重複を除いた利用者の数 */
@@ -44,6 +47,9 @@ export type MessageBulkSendTarget = {
     recordIds: readonly string[];
     dispatchId: string | null;
     counts: AdminBulkSendCounts;
+    /** その場で書く連絡は書いた中身、テンプレートは送った文言の件名・題(差し込む前の字、本文は空) */
     content: AdminMessageContent;
+    /** テンプレートで送った時の出どころ(その場で書く連絡は null) */
+    template: AdminBulkSendTemplate | null;
   }) => Promise<void>;
 };

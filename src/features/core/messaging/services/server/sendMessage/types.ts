@@ -140,6 +140,8 @@ export type SendMessageResult = {
   /** queued のまま cron に任せた配達の行の数 */
   queuedCount: number;
   channelCounts: MessageChannelCounts;
+  /** テンプレートで送った時の出どころ(sendTemplate だけ。edited = 版の文言から直したか) */
+  template?: { id: string; version: number; edited: boolean };
 };
 
 /** 送る口が読む利用者 */

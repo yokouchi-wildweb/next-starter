@@ -15,7 +15,7 @@ import type { SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor } from "./assertAdmin";
 import type { MessageCategory } from "@/lib/messaging";
 
-import { adminBulkSend, adminBulkSendOptions, type AdminBulkSendDeps } from "./bulkSend";
+import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSendTest, type AdminBulkSendDeps } from "./bulkSend";
 import { adminContinueSending } from "./continueSending";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary } from "./dispatchDto";
 import { operationFlags } from "./operations";
@@ -49,8 +49,13 @@ const bulkCategories: Record<string, MessageCategory> = {
   promoPush: { key: "promoPush", label: "プッシュ", kind: "marketing", channels: ["email", "push"] },
 };
 
-function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: boolean } = {}) {
+const TEMPLATE = "11111111-1111-4111-8111-111111111111";
+const TEMPLATE_TEXT = { email: { subject: "{{name}} 様へ", paragraphs: ["本文"] }, inApp: { title: "お知らせ", body: "本文" } };
+const tplRow = { id: TEMPLATE, key: "t", name: "T", category: "marketing", currentVersion: 2, content: TEMPLATE_TEXT, variables: [] };
+
+function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: boolean; templatesOpen?: boolean } = {}) {
   const sent: { key: string; category: string; input: SendMessageToManyInput }[] = [];
+  const calls: { fn: string; args: unknown[] }[] = [];
   const audits: AuditRecordInput[] = [];
   const after: unknown[] = [];
   const target: MessageBulkSendTarget = {
@@ -70,13 +75,23 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
       sent.push({ key: definition.key, category: definition.category, input });
       return { dispatchId: "d1", status: "processing", deliveries: [], queuedCount: 3, channelCounts: {} };
     },
+    sendTemplate: async (...args) => {
+      calls.push({ fn: "template", args });
+      return { dispatchId: "d2", status: "processing", deliveries: [], queuedCount: 1, channelCounts: {}, template: { id: TEMPLATE, version: 2, edited: true } };
+    },
+    previewMessage: async (...args) => {
+      calls.push({ fn: "preview", args });
+      return { messageKey: "messaging.adminMarketing", kind: "marketing", category: "marketing", template: null, channels: [] };
+    },
     recordAudit: async (input) => audits.push(input),
     serviceNameShort: () => "short",
+    listPublishedTemplates: async () => [tplRow],
+    templatesOpen: () => options.templatesOpen ?? true,
   };
-  return { deps, sent, audits, after };
+  return { deps, sent, audits, after, calls };
 }
 
-const mail = { category: "marketing", channels: ["email"] as ("email" | "inApp")[], email: { subject: "件名", body: "本文" } };
+const mail = { category: "marketing", channels: ["email"], message: { type: "adhoc" as const, email: { subject: "件名", body: "本文" } } };
 
 test("一括送信(userIds): 重複を除き選んだカテゴリーの種別の定義で送り、監査 1 行", async () => {
   const { deps, sent, audits } = bulkSetup();
@@ -100,8 +115,7 @@ test("一括送信(target): 記録 → 利用者、運営からのご連絡(dire
     recordIds: ["x1", "x2", "y1"],
     category: "operatorDirect",
     channels: ["email", "inApp"],
-    email: { subject: "件名", body: "本文" },
-    inApp: { title: "題", body: "お知らせ" },
+    message: { type: "adhoc", email: { subject: "件名", body: "本文" }, inApp: { title: "題", body: "お知らせ" } },
   });
   assert.deepEqual([sent[0].key, sent[0].category], ["messaging.adminDirect", "operatorDirect"]);
   assert.deepEqual(sent[0].input.recipients, [{ userId: "u-x" }, { userId: "u-y" }]);
@@ -112,6 +126,7 @@ test("一括送信(target): 記録 → 利用者、運営からのご連絡(dire
       dispatchId: "d1",
       counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 },
       content: { email: { subject: "件名", body: "本文" }, inApp: { title: "題", body: "お知らせ" } },
+      template: null,
     },
   ]);
   assert.deepEqual(result.afterSend, { ok: true });
@@ -131,8 +146,11 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
     assert.rejects(adminBulkSend(deps, input as never), (e: unknown) => e instanceof DomainError && e.status === 400);
   await bad({ ...mail });
   await bad({ userIds: ["a"], target: "review", recordIds: ["x"], ...mail });
-  await bad({ userIds: ["a"], channels: ["email"] });
-  await bad({ userIds: ["a"], channels: ["inApp"], email: mail.email });
+  await bad({ userIds: ["a"], category: "marketing", channels: ["email"] });
+  await bad({ userIds: ["a"], ...mail, channels: ["inApp"] });
+  // 前の形(email・inApp を上に)と予約は 400
+  await bad({ userIds: ["a"], category: "marketing", channels: ["email"], email: { subject: "s", body: "b" } });
+  await bad({ userIds: ["a"], ...mail, scheduledAt: "2026-12-01T00:00:00Z" });
   await bad({ target: "nope", recordIds: ["x"], ...mail });
   await bad({ target: "off", recordIds: ["x"], ...mail });
   await bad({ userIds: ["a"], ...mail, kind: "marketing" });
@@ -145,9 +163,50 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   await rejects403(adminBulkSend(bulkSetup({ context: ctx("user1", "user") }).deps, { userIds: ["a"], ...mail }));
 });
 
-test("一括送信の選択肢: bulk で送れてその場で書けるカテゴリーだけ、管理者でなければ 403", async () => {
+test("一括送信(テンプレート): 送る画面と同じ形で sendTemplate へ、afterSend に件名・題と出どころ", async () => {
+  const { deps, calls, after, audits, sent } = bulkSetup();
+  const message = { type: "template" as const, templateId: TEMPLATE, version: 2, content: TEMPLATE_TEXT, vars: { a: 1 } };
+  const result = await adminBulkSend(deps, { target: "review", recordIds: ["x1"], category: "promoPush", message });
+  assert.equal(sent.length, 0);
+  const [input] = calls[0].args as [Record<string, unknown>];
+  assert.equal(calls[0].fn, "template");
+  assert.deepEqual(
+    [input.templateId, input.version, input.content, input.vars, input.category, input.recipients, input.source],
+    [TEMPLATE, 2, TEMPLATE_TEXT, { a: 1 }, "promoPush", [{ userId: "u-x" }], "review.bulk"],
+  );
+  assert.equal("scheduledAt" in input, false);
+  assert.equal(result.dispatchId, "d2");
+  assert.deepEqual((after[0] as Record<string, unknown>).content, { email: { subject: "{{name}} 様へ", body: "" }, inApp: { title: "お知らせ", body: "" } });
+  assert.deepEqual((after[0] as Record<string, unknown>).template, { id: TEMPLATE, version: 2, edited: true });
+  assert.deepEqual([audits[0].metadata?.message, audits[0].metadata?.templateVersion], ["template", 2]);
+});
+
+test("一括送信のプレビュー・テスト送信: bulk で送れるカテゴリー、テストは操作した管理者へ is_test", async () => {
+  const { deps, calls, sent, audits } = bulkSetup();
+  await adminBulkSendPreview(deps, { message: mail.message, category: "marketing", channels: ["email"] });
+  assert.equal(calls[0].fn, "preview");
+  assert.equal((calls[0].args[1] as { userId: string }).userId, "admin1");
+  await adminBulkSendTest(deps, { message: mail.message, category: "operatorDirect", channels: ["email"] });
+  assert.deepEqual(sent[0].input.recipients, [{ userId: "admin1" }]);
+  assert.equal(sent[0].input.isTest, true);
+  assert.equal(sent[0].input.source, "messaging.adminBulk.test");
+  assert.equal(audits.at(-1)?.action, "messaging.dispatch.test_sent");
+  // announcement は一括で送れないのでプレビュー・テストも 400
+  for (const run of [
+    adminBulkSendPreview(deps, { message: mail.message, category: "announcement" }),
+    adminBulkSendTest(deps, { message: mail.message, category: "announcement" }),
+  ]) {
+    await assert.rejects(run, (e: unknown) => e instanceof DomainError && e.status === 400);
+  }
+  await rejects403(adminBulkSendPreview(bulkSetup({ context: ctx("user1", "user") }).deps, { message: mail.message, category: "marketing" }));
+});
+
+test("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
   const { deps } = bulkSetup();
-  assert.deepEqual((await adminBulkSendOptions(deps)).categories.map((o) => o.key), ["operatorDirect", "marketing"]);
+  const options = await adminBulkSendOptions(deps);
+  assert.deepEqual(options.categories.map((o) => [o.key, o.adhoc]), [["operatorDirect", true], ["marketing", true], ["promoPush", false]]);
+  assert.deepEqual(options.templates, [tplRow]);
+  assert.deepEqual((await adminBulkSendOptions(bulkSetup({ templatesOpen: false }).deps)).templates, []);
   await rejects403(adminBulkSendOptions(bulkSetup({ context: ctx("user1", "user") }).deps));
 });
 
