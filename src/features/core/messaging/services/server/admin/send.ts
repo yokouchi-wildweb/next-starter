@@ -41,7 +41,8 @@ export const ADMIN_SEND_MAX_USERS = 10_000;
 const ADHOC_CHANNELS = ADMIN_FREE_TEXT_CHANNELS;
 const SEND_SOURCE = "messaging.adminSend";
 
-const messageSchema = z.discriminatedUnion("type", [
+/** 送る中身(テンプレートかその場で書く連絡)。/send と一括送信 bulk-send が同じ形を受ける */
+export const AdminMessageSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("template"),
@@ -71,15 +72,15 @@ const audienceSchema = z.discriminatedUnion("type", [
 ]);
 
 const contentFields = {
-  message: messageSchema,
+  message: AdminMessageSchema,
   /** 送るカテゴリー(種別 announcement・direct・marketing) */
   category: z.string().trim().min(1).max(100),
   /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
   channels: z.array(z.string().min(1)).min(1).max(20).optional(),
 };
 
-function checkContent(
-  value: { message: z.infer<typeof messageSchema>; channels?: string[] },
+export function checkAdminContent(
+  value: { message: z.infer<typeof AdminMessageSchema>; channels?: string[] },
   ctx: z.RefinementCtx,
 ): void {
   if (value.message.type !== "adhoc") return;
@@ -100,17 +101,17 @@ export const AdminSendInputSchema = z
     reason: z.string().trim().max(500).optional(),
   })
   .strict()
-  .superRefine((value, ctx) => checkContent(value, ctx));
+  .superRefine((value, ctx) => checkAdminContent(value, ctx));
 
 export const AdminSendPreviewInputSchema = z
   .object({ ...contentFields })
   .strict()
-  .superRefine((value, ctx) => checkContent(value, ctx));
+  .superRefine((value, ctx) => checkAdminContent(value, ctx));
 
 export const AdminSendTestInputSchema = z
   .object({ ...contentFields, idempotencyKey: z.string().trim().min(8).max(128).optional() })
   .strict()
-  .superRefine((value, ctx) => checkContent(value, ctx));
+  .superRefine((value, ctx) => checkAdminContent(value, ctx));
 
 export const AdminSendEstimateInputSchema = z.object({ audience: audienceSchema }).strict();
 
@@ -167,19 +168,27 @@ export type AdminSendDeps = AdminCheckDeps & {
   maxScheduleDays: () => number;
 };
 
-function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input: unknown): T {
+/** 中身・カテゴリーを組んで送る口へ渡すのに要る部品(/send と一括送信で共通) */
+export type AdminContentDeps = Pick<
+  AdminSendDeps,
+  "context" | "roleCategoryOf" | "sendMessageToMany" | "sendTemplate" | "previewMessage" | "recordAudit" | "serviceNameShort" | "categories"
+>;
+
+export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input: unknown): T {
   const parsed = schema.safeParse(input);
   if (!parsed.success) throw new DomainError(parsed.error.issues[0]?.message ?? "入力値が不正です", { status: 400 });
   return parsed.data;
 }
 
-type Content = { message: z.infer<typeof messageSchema>; channels?: string[]; category: string };
+/** 送る中身・カテゴリー・経路の絞り */
+export type AdminContent = { message: z.infer<typeof AdminMessageSchema>; channels?: string[]; category: string };
+type Content = AdminContent;
 
 /**
  * 選んだカテゴリーを確かめ、その場で書く連絡なら使う経路の文面がそろっているかも見る。
  * @throws DomainError(400)
  */
-function categoryOf(deps: AdminSendDeps, content: Content, audience: MessageAdminAudience | null): MessageCategory {
+export function adminContentCategory(deps: AdminContentDeps, content: Content, audience: MessageAdminAudience | null): MessageCategory {
   const adhoc = content.message.type === "adhoc";
   const category = adminFreeTextCategoryOf(deps.categories, content.category, { audience, adhoc });
   if (content.message.type === "adhoc") {
@@ -191,7 +200,7 @@ function categoryOf(deps: AdminSendDeps, content: Content, audience: MessageAdmi
 }
 
 /** その場で書く連絡の定義(選んだカテゴリーの種別の定義)と vars */
-function adhocOf(deps: AdminSendDeps, content: Content & { message: { type: "adhoc" } }, category: MessageCategory) {
+function adhocOf(deps: AdminContentDeps, content: Content & { message: { type: "adhoc" } }, category: MessageCategory) {
   const definition = adminFreeTextDefinitionOf(category);
   const vars = {
     subject: content.message.email?.subject ?? "",
@@ -210,8 +219,8 @@ function targetOf(audience: z.infer<typeof audienceSchema>): { audience: Message
   return { audience: { type: "all" } };
 }
 
-async function dispatch(
-  deps: AdminSendDeps,
+export async function dispatchAdminContent(
+  deps: AdminContentDeps,
   content: Content,
   category: MessageCategory,
   rest: Omit<SendMessageToManyInput, "vars" | "channels" | "recipients" | "audience" | "recipientVars"> &
@@ -232,7 +241,7 @@ async function dispatch(
   return deps.sendMessageToMany(definition, { ...rest, vars, channels: content.channels } as SendMessageToManyInput);
 }
 
-function resultOf(result: SendMessageResult): AdminSendResult {
+export function resultOf(result: SendMessageResult): AdminSendResult {
   return { dispatchId: result.dispatchId, status: result.status, queuedCount: result.queuedCount, channelCounts: result.channelCounts };
 }
 
@@ -244,8 +253,8 @@ export async function adminSend(deps: AdminSendDeps, rawInput: unknown): Promise
   await assertAdminActor(deps);
   const input = parseOr400(AdminSendInputSchema, rawInput);
   const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : undefined;
-  const category = categoryOf(deps, input, input.audience.type);
-  const result = await dispatch(deps, input, category, {
+  const category = adminContentCategory(deps, input, input.audience.type);
+  const result = await dispatchAdminContent(deps, input, category, {
     ...targetOf(input.audience),
     scheduledAt,
     idempotencyKey: input.idempotencyKey,
@@ -271,12 +280,18 @@ export async function adminSend(deps: AdminSendDeps, rawInput: unknown): Promise
   return resultOf(result);
 }
 
-/** 描いたプレビュー(見本の受信者 = 操作した管理者) */
-export async function adminSendPreview(deps: AdminSendDeps, rawInput: unknown): Promise<MessagePreview> {
+/**
+ * 描いたプレビュー(見本の受信者 = 操作した管理者)。audience = カテゴリーを確かめる宛先の種類(null = 見ない、一括送信は "bulk")
+ */
+export async function previewAdminContent(
+  deps: AdminContentDeps,
+  rawInput: unknown,
+  audience: MessageAdminAudience | null,
+): Promise<MessagePreview> {
   await assertAdminActor(deps);
   const input = parseOr400(AdminSendPreviewInputSchema, rawInput);
   const userId = deps.context()?.actorId ?? null;
-  const category = categoryOf(deps, input, null);
+  const category = adminContentCategory(deps, input, audience);
   if (input.message.type === "template") {
     return deps.previewMessage(
       {
@@ -292,6 +307,11 @@ export async function adminSendPreview(deps: AdminSendDeps, rawInput: unknown): 
   return deps.previewMessage({ definition }, { vars, channels: input.channels, userId });
 }
 
+/** 描いたプレビュー(送る画面) */
+export async function adminSendPreview(deps: AdminSendDeps, rawInput: unknown): Promise<MessagePreview> {
+  return previewAdminContent(deps, rawInput, null);
+}
+
 /** 宛先数の見込み(送る時に数え直す) */
 export async function adminSendEstimate(deps: AdminSendDeps, rawInput: unknown): Promise<RecipientEstimate> {
   await assertAdminActor(deps);
@@ -301,21 +321,24 @@ export async function adminSendEstimate(deps: AdminSendDeps, rawInput: unknown):
 }
 
 /**
- * 自分へのテスト送信(宛先 = 操作した管理者だけ、is_test)。
+ * 自分へのテスト送信(宛先 = 操作した管理者だけ、is_test)。audience = カテゴリーを確かめる宛先の種類(送る画面 "users"・一括送信 "bulk")
  * @throws DomainError(400) 操作した利用者が無い(システムの操作)
  */
-export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Promise<AdminSendResult> {
+export async function testAdminContent(
+  deps: AdminContentDeps,
+  rawInput: unknown,
+  options: { audience: MessageAdminAudience; source: string },
+): Promise<AdminSendResult> {
   await assertAdminActor(deps);
   const input = parseOr400(AdminSendTestInputSchema, rawInput);
   const actorId = deps.context()?.actorId;
   if (!actorId) throw new DomainError("テスト送信の宛先(操作した管理者)がありません", { status: 400 });
-  // テスト送信の宛先は選んだ利用者(操作した管理者)と同じ扱い
-  const category = categoryOf(deps, input, "users");
-  const result = await dispatch(deps, input, category, {
+  const category = adminContentCategory(deps, input, options.audience);
+  const result = await dispatchAdminContent(deps, input, category, {
     recipients: [{ userId: actorId }],
     isTest: true,
     idempotencyKey: input.idempotencyKey,
-    source: `${SEND_SOURCE}.test`,
+    source: options.source,
   });
   await deps.recordAudit({
     targetType: "message_dispatch",
@@ -331,6 +354,11 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
     },
   });
   return resultOf(result);
+}
+
+/** 自分へのテスト送信(送る画面。宛先は選んだ利用者(操作した管理者)と同じ扱い) */
+export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Promise<AdminSendResult> {
+  return testAdminContent(deps, rawInput, { audience: "users", source: `${SEND_SOURCE}.test` });
 }
 
 /** 送る画面の選択肢 */

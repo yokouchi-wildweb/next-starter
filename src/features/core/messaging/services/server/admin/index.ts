@@ -6,6 +6,7 @@
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 
 import { business } from "@/business";
+import { gate } from "@/featureGate";
 import { getAuditContext } from "@/lib/audit";
 import { db } from "@/lib/drizzle";
 
@@ -31,7 +32,14 @@ import {
 } from "../sendMessage";
 import { continueSending } from "../sweep";
 import type { AdminCheckDeps } from "./assertAdmin";
-import { adminBulkSend as adminBulkSendWith, adminBulkSendOptions as adminBulkSendOptionsWith, type AdminBulkSendInput } from "./bulkSend";
+import {
+  adminBulkSend as adminBulkSendWith,
+  adminBulkSendOptions as adminBulkSendOptionsWith,
+  adminBulkSendPreview as adminBulkSendPreviewWith,
+  adminBulkSendTest as adminBulkSendTestWith,
+  type AdminBulkSendDeps,
+  type AdminBulkSendInput,
+} from "./bulkSend";
 import { adminContinueSending as adminContinueSendingWith } from "./continueSending";
 import {
   adminCancelScheduled as adminCancelScheduledWith,
@@ -68,24 +76,31 @@ const adminCheck: AdminCheckDeps = {
 
 const recordAudit = (input: Parameters<typeof auditLogger.record>[0]) => auditLogger.record(input);
 
-/** 管理の一括送信(選んだカテゴリーの種別の定義 messages/admin<Kind>.ts) */
+/** 一括送信の部品(送る画面の部品を使う。門 messagingBroadcast には入れない、テンプレートの選択肢だけ門 messagingTemplates を見る) */
+const bulkDeps = (): AdminBulkSendDeps => ({
+  ...sendDeps,
+  targets: bulkSendTargets,
+  templatesOpen: () => gate.enabled("messagingTemplates"),
+});
+
+/** 管理の一括送信(中身は送る画面と同じ形、選んだ利用者へ) */
 export function adminBulkSend(input: AdminBulkSendInput) {
-  return adminBulkSendWith(
-    {
-      ...adminCheck,
-      targets: bulkSendTargets,
-      categories,
-      sendMessageToMany,
-      recordAudit,
-      serviceNameShort: () => business.serviceNameShort,
-    },
-    input,
-  );
+  return adminBulkSendWith(bulkDeps(), input);
 }
 
-/** 一括送信の選択肢(一覧の一括で送れるカテゴリー) */
+/** 一括送信のプレビュー(見本 = 操作した管理者) */
+export function adminBulkSendPreview(input: unknown) {
+  return adminBulkSendPreviewWith(bulkDeps(), input);
+}
+
+/** 一括送信の自分へのテスト送信 */
+export function adminBulkSendTest(input: unknown) {
+  return adminBulkSendTestWith(bulkDeps(), input);
+}
+
+/** 一括送信の選択肢(一覧の一括で送れるカテゴリーと、門 messagingTemplates が開の時だけ公開中のテンプレート) */
 export function adminBulkSendOptions() {
-  return adminBulkSendOptionsWith({ ...adminCheck, categories });
+  return adminBulkSendOptionsWith(bulkDeps());
 }
 
 /** 回の定義(読めない・誤りなら null。テンプレートの回は固定した版) */
@@ -200,6 +215,7 @@ export function adminContinueSending(dispatchId: string) {
 export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
 export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
+export type { AdminBulkSendTemplate } from "./types";
 export { ADMIN_SEND_MAX_USERS } from "./send";
 export {
   ADMIN_FREE_TEXT_DEFINITIONS,

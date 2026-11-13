@@ -180,8 +180,7 @@ test("useAdminBulkSendForm: 選んだ経路だけの中身とカテゴリーで�
   assert.equal(input.category, "operatorDirect");
   assert.equal("kind" in input, false);
   assert.deepEqual(input.channels, ["email", "inApp"]);
-  assert.deepEqual(input.email, { subject: "件名", body: "本文です" });
-  assert.deepEqual(input.inApp, { title: "題", body: "本文" });
+  assert.deepEqual(input.message, { type: "adhoc", email: { subject: "件名", body: "本文です" }, inApp: { title: "題", body: "本文" } });
   assert.equal(typeof input.idempotencyKey, "string");
   assert.deepEqual(events, ["sent:disp-1", "success"]);
   assert.equal(view.value().result?.dispatchId, "disp-1");
@@ -191,7 +190,7 @@ test("useAdminBulkSendForm: 選んだ経路だけの中身とカテゴリーで�
   await act(async () => view.value().closeResult());
   await act(async () => view.value().fields.setUseEmail(false));
   assert.deepEqual(view.value().buildInput().channels, ["inApp"]);
-  assert.equal(view.value().buildInput().email, undefined);
+  assert.equal((view.value().buildInput().message as { email?: unknown }).email, undefined);
   await view.unmount();
 });
 

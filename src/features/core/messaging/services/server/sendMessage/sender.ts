@@ -609,7 +609,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       const version = await currentTemplateVersion(templateId, pinned);
       const resolved = resolveTemplateDefinition(version, deps, { category, channels: rest.channels, content });
       const edited = templateContentEdited(version, content);
-      return sendToMany(
+      const result = await sendToMany(
         templateDefinitionOf(version, resolved.category, resolved.key, resolved.content as Record<string, unknown>),
         rest as SendMessageToManyInput,
         {
@@ -617,6 +617,7 @@ export function createMessageSender(deps: MessageSendDeps) {
           template: { id: version.templateId, version: version.version, editedContent: edited ? content! : null },
         },
       );
+      return { ...result, template: { id: version.templateId, version: version.version, edited } };
     },
   };
 }
