@@ -48,5 +48,7 @@ export const RegistrationSchema = z.object({
   profileData: z.record(z.unknown()).optional(),
   /** 招待コード（任意） */
   inviteCode: z.string().trim().optional(),
+  /** 宣伝の同意（任意。false = 宣伝の種別まるごとの停止を書く、省略 = 何もしない。上流の画面は送らない、D88） */
+  marketingConsent: z.boolean().optional(),
 });
 

@@ -23,6 +23,8 @@ import { couponService } from "@/features/core/coupon/services/server/couponServ
 import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
 import { INVITE_CODE_REDEEM_SCOPE } from "@/features/core/referral/constants/inviteCodeScope";
 import { recordSignupAcquisition } from "@/features/core/userAcquisition/services/server";
+import { messagingService } from "@/features/core/messaging/services/server";
+import { recordSignupMarketingConsent } from "./marketingConsent";
 import { runPostRegistrationMilestones } from "./postRegistrationMilestones";
 import type {
   AcquisitionExtras,
@@ -78,6 +80,7 @@ export async function register(
     role: requestedRole,
     profileData,
     inviteCode,
+    marketingConsent,
   } = parsedResult.data;
 
   // ロールの決定（指定がない場合はデフォルトを使用）
@@ -146,6 +149,12 @@ export async function register(
       throw new DomainError("パスワードの設定に失敗しました", { status: 500 });
     }
   }
+
+  // 宣伝の同意（./marketingConsent.ts）: 有効化の前に仮登録の id で書く（activate は id を変えない）。
+  // 書けなければ投げる = 有効化していないので登録はやり直せる（同意しない人が宣伝を受け取る形を残さない）
+  await recordSignupMarketingConsent(existingUser.id, marketingConsent, {
+    setPreference: messagingService.setMessagePreference,
+  });
 
   // ユーザー登録処理を user ドメインに委譲
   const { user } = await registerFromAuth({

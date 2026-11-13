@@ -32,6 +32,8 @@ export const FormSchema = z
     profileData: z.record(z.unknown()).optional(),
     inviteCode: z.string().trim().optional(),
     agreeToTerms: agreeToTermsSchema,
+    /** 宣伝の同意（上流の画面に項目は無く既定の値も無い = 送らない。チェックを足す fork の値を zod が落とさないための口、D88） */
+    marketingConsent: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     // profileData バリデーション
@@ -45,6 +47,7 @@ export type FormValues = {
   profileData?: Record<string, unknown>;
   inviteCode?: string;
   agreeToTerms: boolean;
+  marketingConsent?: boolean;
 };
 
 export const DefaultValues: FormValues = {
