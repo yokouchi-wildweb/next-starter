@@ -494,3 +494,4 @@
 - id:20261113-140750-repo-json | severity:action-required | checkpoint:repo-json
 - id:20261113-141350-messaging-kinds | severity:breaking | checkpoint:messaging-kinds
 - id:20261113-155039-messaging-prefs-kind | severity:action-required | checkpoint:messaging-prefs-kind
+- id:20261113-171713-messaging-prefs-page | severity:info | checkpoint:messaging-prefs-page

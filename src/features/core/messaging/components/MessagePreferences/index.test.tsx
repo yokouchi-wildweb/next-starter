@@ -1,6 +1,8 @@
-// MessagePreferences の検査(jsdom の上で描く。hook と toast は偽物)。
-// - 種類と経路の切り替えを描き、押すと setCell / setAll を呼ぶ
-// - 広い行で止まっているマスは押せず理由を出す(種別まるごとは押せる)/ 宛先の無い経路は連携の案内(connectHref)
+// MessagePreferences の検査(jsdom の上で描く。hook と toast と棚の Link は偽物)。
+// - 並び: 経路 > 種別の枠(見出しだけ、スイッチなし)> グループ(グループの無い種類が先・見出しなし)> 種類の行
+// - 止め方 4 つ: 1 マス(setCell)・種類まるごと(最初の経路の行に 1 回だけ、setCategoryWide)・経路まるごと(setChannelWide)・全部(setAll)
+// - 種別まるごとに止められた種類は切で、押すと setCell(サーバーが書き分ける)。全部の停止の下は押せない
+// - 宛先の無い経路は連携の案内
 // 実行: pnpm test src/features/core/messaging/components/MessagePreferences/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -18,32 +20,25 @@ g.Node = dom.window.Node;
 g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
-const cells: { category: string; channel: string; receive: boolean }[] = [];
-const alls: boolean[] = [];
+const calls: unknown[][] = [];
 let preferences: unknown = null;
-let categoryRows: unknown[] = [];
 mock.module("@/features/core/messaging/hooks/useMessagePreferences", {
   namedExports: {
-    MESSAGE_PREFERENCE_ALL: "*",
-    preferenceCellKey: (a: string, b: string) => `${a}:${b}`,
     useMessagePreferences: () => ({
       preferences,
-      categoryRows,
       isLoading: false,
       error: null,
       retry: () => {},
       pendingKey: null,
-      setCell: async (category: string, channel: string, receive: boolean) => {
-        cells.push({ category, channel, receive });
-      },
-      setAll: async (stopAll: boolean) => {
-        alls.push(stopAll);
-      },
+      setCell: async (...args: unknown[]) => void calls.push(["cell", ...args]),
+      setCategoryWide: async (...args: unknown[]) => void calls.push(["category", ...args]),
+      setChannelWide: async (...args: unknown[]) => void calls.push(["channel", ...args]),
+      setAll: async (...args: unknown[]) => void calls.push(["all", ...args]),
+      setKind: async () => {},
     }),
   },
 });
 mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }) } });
-// 棚の Link は Next の router を要らない a に
 mock.module("@/components/Navigation", {
   namedExports: { Link: ({ href, children, className }: { href: string; children: unknown; className?: string }) => createElement("a", { href, className }, children as never) },
 });
@@ -57,25 +52,34 @@ before(async () => {
   ({ MessagePreferences } = await import("./index"));
 });
 after(() => dom.window.close());
+
+const cat = (key: string, label: string, optedOut = false, via: string | null = null) => ({ key, label, description: null, optedOut, via });
 beforeEach(() => {
-  cells.length = 0;
-  alls.length = 0;
+  calls.length = 0;
   preferences = {
     allOptedOut: false,
-    kinds: [{ kind: "marketing", optedOut: false }],
+    categories: [
+      { key: "campaign", optedOut: false },
+      { key: "likes", optedOut: false },
+    ],
+    kinds: [{ kind: "marketing", optedOut: true }],
     channels: [
-      { key: "email", label: "メール", hasAddress: true, connectHref: null, kinds: [] },
-      { key: "line", label: "LINE", hasAddress: false, connectHref: "/api/auth/line/login", kinds: [] },
-      { key: "inApp", label: "お知らせ", hasAddress: true, connectHref: null, kinds: [] },
+      {
+        key: "email", label: "メール", hasAddress: true, connectHref: null, optedOut: false,
+        kinds: [
+          { kind: "activity", groups: [
+            { key: null, label: null, categories: [cat("likes", "いいね")] },
+            { key: "social", label: "つながり", categories: [cat("follows", "フォロー")] },
+          ] },
+          { kind: "marketing", groups: [{ key: null, label: null, categories: [cat("campaign", "キャンペーン", true, "kind")] }] },
+        ],
+      },
+      {
+        key: "line", label: "LINE", hasAddress: false, connectHref: "/api/auth/line/login", optedOut: false,
+        kinds: [{ kind: "marketing", groups: [{ key: null, label: null, categories: [cat("campaign", "キャンペーン")] }] }],
+      },
     ],
   };
-  categoryRows = [
-    { key: "marketing", label: "お得な情報", description: "キャンペーンのお知らせ", kind: "marketing", cells: [
-      { channel: "email", optedOut: false, via: null },
-      { channel: "line", optedOut: true, via: "category" },
-      { channel: "inApp", optedOut: true, via: "kind" },
-    ] },
-  ];
 });
 
 const mount = async () => {
@@ -85,51 +89,74 @@ const mount = async () => {
   await act(async () => root.render(createElement(MessagePreferences)));
   return { container, unmount: () => act(async () => root.unmount()) };
 };
-const switchOf = (container: HTMLElement, label: string) =>
-  container.querySelector(`[aria-label="${label}"]`) as HTMLInputElement | null;
+const byLabel = (c: HTMLElement, label: string) => c.querySelector(`[aria-label="${label}"]`) as HTMLInputElement | null;
+const text = (c: HTMLElement) => c.textContent ?? "";
+const order = (c: HTMLElement, parts: string[]) => {
+  const t = text(c);
+  const at = parts.map((p) => t.indexOf(p));
+  assert.ok(at.every((i) => i >= 0), `見つからない: ${parts.filter((_, i) => at[i] < 0).join(", ")}`);
+  assert.deepEqual([...at].sort((a, b) => a - b), at, `並びが違う: ${parts.join(" > ")}`);
+};
 
-test("種類・説明・経路を描き、受け取るマスを押すと止める(setCell receive false)", async () => {
+test("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
   const view = await mount();
-  const text = view.container.textContent ?? "";
-  assert.match(text, /お得な情報/);
-  assert.match(text, /キャンペーンのお知らせ/);
-  const email = switchOf(view.container, "メールで受け取る");
-  assert.ok(email, "メールの切り替え");
-  await act(async () => email.click());
-  assert.deepEqual(cells, [{ category: "marketing", channel: "email", receive: false }]);
+  order(view.container, ["すべての連絡を止める", "メール", "ご利用に伴うお知らせ", "いいね", "つながり", "フォロー", "キャンペーン情報", "キャンペーン", "LINE"]);
+  assert.equal(byLabel(view.container, "キャンペーン情報"), null, "種別のスイッチは無い");
   await view.unmount();
 });
 
-test("広い行で止まっているマスは押せず理由を出す。宛先の無い経路は連携の案内", async () => {
+test("1 マス: 押すと setCell。種別まるごとで止まった種類は切で理由が出て、押すと setCell(再開)", async () => {
   const view = await mount();
-  const line = switchOf(view.container, "LINEで受け取る");
-  assert.ok(line?.disabled, "押せない");
-  assert.match(view.container.textContent ?? "", /まとめて止める設定で止まっています/);
-  assert.match(view.container.textContent ?? "", /宛先が登録されていません/);
+  await act(async () => byLabel(view.container, "いいねをメールで受け取る")!.click());
+  const campaign = byLabel(view.container, "キャンペーンをメールで受け取る")!;
+  assert.equal(campaign.disabled, false);
+  assert.match(text(view.container), /まとめて止める設定で止まっています/);
+  await act(async () => campaign.click());
+  assert.deepEqual(calls, [
+    ["cell", "likes", "email", false],
+    ["cell", "campaign", "email", true],
+  ]);
+  await view.unmount();
+});
+
+test("種類まるごとは種類が最初に出る経路の行に 1 回だけ。押すと setCategoryWide", async () => {
+  const view = await mount();
+  const toggles = view.container.querySelectorAll('[aria-label$="をすべての経路で止める"]');
+  assert.equal(toggles.length, 2, "campaign と likes に 1 つずつ(LINE の campaign・categories に無い follows には出ない)");
+  assert.match(text(view.container), /このカテゴリーをすべての経路で止める/);
+  await act(async () => byLabel(view.container, "いいねをすべての経路で止める")!.click());
+  assert.deepEqual(calls[0], ["category", "likes", true]);
+  await view.unmount();
+});
+
+test("経路まるごと: 経路の枠の切り替え → setChannelWide。宛先の無い経路は連携の案内", async () => {
+  const view = await mount();
+  await act(async () => byLabel(view.container, "メールで受け取る")!.click());
+  assert.deepEqual(calls, [["channel", "email", true]]);
+  assert.match(text(view.container), /宛先が登録されていません/);
   assert.equal(view.container.querySelector('a[href="/api/auth/line/login"]')?.textContent, "連携する");
   await view.unmount();
 });
 
-test("種別まるごとで止まっているマスは押せて、入にすると setCell receive true", async () => {
+test("全部: setAll。全部の停止の間は経路・種類まるごと・全部の下のマスは押せない", async () => {
   const view = await mount();
-  const inApp = switchOf(view.container, "お知らせで受け取る");
-  assert.equal(inApp?.disabled, false);
-  await act(async () => inApp!.click());
-  assert.deepEqual(cells, [{ category: "marketing", channel: "inApp", receive: true }]);
+  await act(async () => byLabel(view.container, "すべての連絡を止める")!.click());
+  assert.deepEqual(calls, [["all", true]]);
   await view.unmount();
+
+  const p = preferences as { allOptedOut: boolean; channels: { kinds: { groups: { categories: { optedOut: boolean; via: string | null }[] }[] }[] }[] };
+  p.allOptedOut = true;
+  for (const ch of p.channels) for (const f of ch.kinds) for (const gr of f.groups) for (const c of gr.categories) Object.assign(c, { optedOut: true, via: "all" });
+  const locked = await mount();
+  assert.ok(byLabel(locked.container, "メールで受け取る")!.disabled);
+  assert.ok(byLabel(locked.container, "いいねをメールで受け取る")!.disabled);
+  assert.match(text(locked.container), /すべての連絡を止めています/);
+  await locked.unmount();
 });
 
-test("すべての連絡を止める → setAll(true)", async () => {
+test("経路が無ければ文言", async () => {
+  preferences = { allOptedOut: false, categories: [], kinds: [], channels: [] };
   const view = await mount();
-  await act(async () => switchOf(view.container, "すべての連絡を止める")!.click());
-  assert.deepEqual(alls, [true]);
-  await view.unmount();
-});
-
-test("種類が無ければ文言", async () => {
-  preferences = { allOptedOut: false, kinds: [], channels: [] };
-  categoryRows = [];
-  const view = await mount();
-  assert.match(view.container.textContent ?? "", /設定できる通知はありません/);
+  assert.match(text(view.container), /設定できる通知はありません/);
   await view.unmount();
 });

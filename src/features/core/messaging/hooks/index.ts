@@ -17,6 +17,7 @@ export {
   MESSAGE_PREFERENCE_ALL,
   MESSAGE_PREFERENCES_KEY,
   preferenceCellKey,
+  preferenceKindKey,
   useMessagePreferences,
 } from "./useMessagePreferences";
 export { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
