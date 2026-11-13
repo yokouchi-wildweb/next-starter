@@ -21,6 +21,5 @@ export const bulkAction: BankTransferReviewAdminBulkActionItem = bulkMessageActi
     label: "メール一斉送信",
     defaultCategory: "operatorDirect",
     defaults: { inAppTitle: "お振込に関するお知らせ", inAppBody: DEFAULT_IN_APP_BODY },
-    subjectPlaceholder: "例: お振込内容の確認のお願い",
   },
 );

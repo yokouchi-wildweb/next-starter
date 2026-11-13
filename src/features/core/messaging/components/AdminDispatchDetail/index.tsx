@@ -1,7 +1,8 @@
 // src/features/core/messaging/components/AdminDispatchDetail/index.tsx
 // セクションコンテナ(管理: 送った回 1 件)。回の中身(状態・件名 / 題・数・送った人・時刻・本文は記録の段しだい)と、
 // 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と「続きを送る」(送信中の回だけ。1 束だけ進める)と
-// 回の操作(予約を取り消す・取り下げる・失敗分を再送。できるかと理由は回の operations、部品 DispatchOperations)。
+// 回の操作(予約を取り消す・取り下げる・失敗分を再送。できるかと理由は回の operations、部品 DispatchOperations)と
+// 「同じ内容で送る」(送るモーダル。文面・カテゴリー・宛先の形を写す。門 messagingBroadcast が閉なら出さない)。
 // 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -27,6 +28,9 @@ import {
 } from "@/features/core/messaging/components/common/DeliveryStatusBadge";
 import { DeliveryRow } from "@/features/core/messaging/components/common/DeliveryRow";
 import { dispatchHeading, formatAdminDateTime } from "@/features/core/messaging/components/common/DispatchRow";
+import { useGate } from "@/featureGate/client";
+
+import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { DispatchStatusBadge } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { useAdminDispatch } from "@/features/core/messaging/hooks/useAdminDispatch";
@@ -52,6 +56,7 @@ const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([va
 
 export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   const { showToast } = useToast();
+  const canSend = useGate().enabled("messagingBroadcast");
   const { dispatch, error, isLoading } = useAdminDispatch(dispatchId);
   const [deliveryStatus, setDeliveryStatus] = useState("");
   const [deliveryChannel, setDeliveryChannel] = useState("");
@@ -131,6 +136,12 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   return (
     <Stack space={6}>
       <DispatchSummary dispatch={dispatch} />
+
+      {canSend ? (
+        <Flex justify="end">
+          <MessageSendModal mode={{ type: "sameAs", dispatch }} />
+        </Flex>
+      ) : null}
 
       <DispatchOperations
         operations={dispatch.operations}

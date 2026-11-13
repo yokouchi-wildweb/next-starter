@@ -40,21 +40,21 @@ src/features/core/messaging/
 │   ├── adminMessagingClient.ts  # 管理の一括送信・回の読む口・続きを送る（一覧と配達はカーソル）
 │   ├── overrideClient.ts        # 管理画面の文言の上書き
 │   ├── templateClient.ts        # 保存されたテンプレート（一覧はカーソル・選択肢・版）
-│   └── sendClient.ts            # 管理の送る画面（送る・プレビュー・見込み・テスト送信・選択肢）
+│   └── sendClient.ts            # 管理の送るモーダル（送る・プレビュー・見込み・テスト送信・選択肢）
 ├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
-│                                # 管理: useAdminBulkSend / useAdminBulkSendForm / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
+│                                # 管理: useMessageSendModal / useAdminSendOptions / useAdminBulkSend / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
 ├── components/
 │   ├── InboxList/               # 入れ物: 受け取り箱の一覧（詳細・既読・すべて既読）
 │   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。枠には置いていない）
-│   ├── AdminBulkSend/           # 管理一覧の一括操作の作成関数 bulkMessageAction と部品 AdminBulkSendButton
+│   ├── AdminBulkSend/           # 管理一覧の一括操作の作成関数 bulkMessageAction(送るモーダルの bulk)
+│   ├── MessageSendModal/        # 入れ物: 送るモーダル(new / sameAs / bulk、テンプレートの呼び出し・宛先・予約・プレビュー・テスト送信・確認)
 │   ├── AdminDispatchList/       # 入れ物: 送った回の一覧（絞り込み + カーソル）
 │   ├── AdminDispatchDetail/     # 入れ物: 回 1 件・配達（カーソル）・続きを送る
 │   ├── AdminMessageOverrideList/   # 入れ物: 文言を直せる連絡の一覧
 │   ├── AdminMessageOverrideEditor/ # 入れ物: 1 連絡の文言の上書き（欄ごとの保存・既定に戻す）
 │   ├── AdminMessageTemplateList/   # 入れ物: 保存されたテンプレートの一覧（カーソル）
 │   ├── AdminMessageTemplateEditor/ # 入れ物: テンプレートを作る・直す・公開・取り下げ・版の履歴
-│   ├── AdminMessageComposer/       # 入れ物: 連絡を送る（テンプレート / ここで書く・宛先・予約・プレビュー・テスト送信）
-│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DispatchOperations / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge / MessagePreview
+│   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DispatchOperations / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge / MessagePreview / SendTemplatePicker / SendContentFields / SendAudiencePicker / SendCategoryChannels / SendSchedule / SendConfirmView
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany・existingIdempotencyKeys・端末・受け取り箱・管理）
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
@@ -381,7 +381,7 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 
 ### 管理の送信 `/api/admin/messaging/send/**`（門 `messagingBroadcast`）
 
-- 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/send` と API `/api/admin/messaging/send`）。閉の間 画面と API は 404。送る口と cron の予約の拾いは門に関わらず動く
+- 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は API `/api/admin/messaging/send`、送るモーダルの口（回の一覧「新しく送る」・回の詳細「同じ内容で送る」）は部品が `useGate` で出し分ける）。閉の間 API は 404、口は出ない。一括送信（`/bulk-send/**`）はこの門の外。送る口と cron の予約の拾いは門に関わらず動く
 - service: `services/server/admin/send.ts`（`messagingService.adminSend` / `adminSendPreview` / `adminSendEstimate` / `adminSendTest` / `adminSendOptions`）
 - `POST /send`（`AdminSendInputSchema`）: `message` = `{ type: "template", templateId, version, content, vars }`（読み込んだ今の公開版と、その文言を直した文面。中身はその場で書く連絡と同じに組み、版と違えば `template_edited`、`sendTemplate`）か `{ type: "adhoc", email?, inApp? }`（その場で書く管理者の連絡、経路は email・inApp）・`category`（必須、種別 announcement・direct・marketing のカテゴリーの鍵）・`channels?`（カテゴリーの経路の中の絞り、省略 = 全部。その中に文言の無い経路があれば 400）・`audience` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "audience", key, args? }`（audiences の受け口の項目）/ `{ type: "users", userIds }`（10,000 人まで）・`scheduledAt?`（ISO 8601、予約）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。送り元 `messaging.adminSend`
   - **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**（例: 運営からのご連絡 `operatorDirect` = direct は選んだ利用者宛てだけ）。誤りは service で 400（`admin/freeText.ts`、D80）。プレビューは宛先を見ない、テスト送信は選んだ利用者と同じ扱い
@@ -392,20 +392,25 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 - `GET /send/options`: 有効な経路（`adhoc` = その場で書ける経路）・ロール・audiences の項目・公開したテンプレート（今の版の番号・種類・文言・変数）・`categories`（送れるカテゴリー `{ key, label, kind, channels, audiences, adhoc }`、`adhoc` = その場で書く連絡に使える）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.test_sent`（対象 `message_dispatch`、本文の値は残さない）
 
-### 送る画面（`/admin/messaging/send`、門 `messagingBroadcast`）
+### 送るモーダル（`components/MessageSendModal`、D85・D87）
 
-- 入れ物 `AdminMessageComposer`（`dispatchBasePath?`）: 中身（公開中のテンプレート + 回の変数の値 / ここで書く email・inApp）・経路（テンプレートは版の経路が初め）・宛先（全員・ロール・宛先の集め方・選んだ利用者 = `UserAsyncMultiSelect`）・カテゴリー（宛先の種類と中身で選べる物に絞る。選んだ物が外れたら最初の物）・送る時刻（今 / 予約。注記「予約の粒度は cron の周期（Vercel Hobby では 1 日 1 回で遅れる）」と予約できる日数）・プレビュー・自分にテスト送信・送る（確認に宛先数の見込み（送る時に確定し直す）・予約の時刻・固定する版）。結果から送った回の画面へ
-- 部品 `common/MessagePreview`（props だけ）: 経路ごとのプレビュー。email は描いた HTML を `sandbox=""` の iframe（`srcDoc`。スクリプト・同じ origin を止める。棚に iframe の包みが無いので部品の中に置く）、HTML が無ければ欄から組む / inApp はカード / それ以外は text か欄。テンプレートの版の表示（`TemplateVersionList`）も欄からこれで描く（前の版の HTML は描かない: プレビューの API は今の公開版だけを描く）
-- hook: `useAdminSendOptions()`（SWR）・`useAdminSendComposer(options)`（書く欄・`buildInput`・`contentError` / `audienceError` / `scheduleError`・`canSend`・`allowedCategories`・`runPreview` / `runEstimate` / `sendTest` / `send`（送った後に二重送信を防ぐ鍵を作り直す）・`reset`。書きかけの間は `@/lib/unsavedGuard`）・純粋な関数 `templateVarsForInput` / `scheduleErrorOf`。client は `services/client/sendClient.ts`
-- loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingSend.ts`（マーケティング > 連絡を送る、送信の履歴の前。門が閉なら隠れる）
+送る画面のページは無い（`/admin/messaging/send` はモーダルにたたんだ）。1 つの入れ物が 3 つの開き方で同じ hook を通る。fork は自分の画面（例 発送リクエストの一覧）にもそのまま置ける（公開の入れ物・部品・hook）。
+
+- 入れ物 `MessageSendModal`（`mode`・`label?`・`triggerVariant?`・`disabled?`・`icon?`・`onSent?(result)`・`dispatchBasePath?`）: 開くボタンとモーダル（`Modal` の `confirmOnClose` = 書きかけのまま閉じる前に確かめる）。hook を呼んで部品を並べるだけ
+  - `mode`: `{ type: "new" }`（回の一覧の「新しく送る」）/ `{ type: "sameAs", dispatch }`（回の詳細の「同じ内容で送る」。文面・カテゴリー・宛先の形を写す。本文を残さない回は件名・題だけで本文は空、テンプレートの回はそのテンプレートを今の公開版で呼び出す）/ `{ type: "bulk", target, recordIds, recordNoun, defaults?, defaultCategory?, source? }`（管理一覧の一括操作、`bulkMessageAction` が描く）
+  - new・sameAs の口は門 `messagingBroadcast` が開の時だけ（置き場の入れ物 `AdminDispatchList` / `AdminDispatchDetail` が出し分ける）。bulk は門の外
+- 流れ: テンプレートを呼び出す（門 `messagingTemplates` が開で公開中の物がある時だけ）→ 今の公開版の文言が書く欄に写る → 直す → 宛先（全員・ロール・宛先の集め方・選んだ利用者 / bulk は選んだ記録）→ カテゴリー（宛先の種類で選べる物、D80）→ 経路の絞り（カテゴリーの経路の中、既定は全部オン）→ 文言の無い経路は空欄で見せて送る前に止める（サーバーの 400 と同じ線）→ 送る時刻（今 / 予約。予約の粒度の注記。bulk は予約なし）→ プレビュー・自分にテスト送信 → 確認へ（見込み = 宛先数、送る時に数え直す。bulk は選んだ記録の数）→ 送る → 結果（状態・回へのリンク・bulk は afterSend の成否）
+- 部品（props だけ、`components/common/`）: `SendTemplatePicker`（選んで呼び出す・呼び出し中の名前と版）・`SendContentFields`（その場で書く件名 / 題と本文、テンプレートは経路の欄 `TemplateChannelFields`、文言なしの印、変数の値）・`SendAudiencePicker`（`kind: "select"` の宛先の選び / `kind: "bulk"` の選んだ記録の数）・`SendCategoryChannels`（カテゴリーと経路の切り替え）・`SendSchedule`（今 / 予約・注記・誤り）・`SendConfirmView` / `SendResultView`（確認と結果）・`MessagePreview`
+- hook `useMessageSendModal({ mode, onSent? })`: 開閉・段（edit → confirm → done）・中身（`draft`: その場で書く / 呼び出したテンプレートの欄の写し）・宛先・カテゴリー・経路・予約・プレビュー・テスト送信・見込み → 確認・送る（new / sameAs = `POST /send`、bulk = `POST /bulk-send`、プレビューとテストも bulk は `/bulk-send/preview`・`/bulk-send/test`）・二重送信を防ぐ鍵（開くたびに 1 つ、送った後に作り直す）・`dirty`（`@/lib/unsavedGuard` でページの移動を確かめ、`closeConfirm` を Modal へ）。まだ触っていない欄の初めの値（sameAs の写し・bulk の既定）は state に入れず mode と選択肢から導く。選択肢は開いている間だけ取る（new / sameAs = `useAdminSendOptions`、bulk = `useAdminBulkSendOptions`）。純粋な関数 `scheduleErrorOf` / `templateVarsForInput` / `isBlankChannel` / `draftFromTemplate` / `initialDraftOf` / `initialAudienceOf`
 
 ### `/api/admin/messaging/bulk-send`（一括送信）
 
-- `GET`: 選択肢 `{ categories }`（一覧の一括 bulk で送れて、その場で書ける email・inApp のカテゴリー。上流は operatorDirect・marketing。`messagingService.adminBulkSendOptions`）
+- `GET`: 選択肢 `{ categories, templates }`（categories = 一覧の一括 bulk で送れる種別のカテゴリー、`adhoc` = その場で書く連絡に使える / templates = 門 `messagingTemplates` が開の時だけ公開中のテンプレート、閉なら空）
 
-- 入力（`AdminBulkSendInputSchema`）: 宛先は `{ userIds }` か `{ target, recordIds }` のどちらか 1 つ（1 回 10,000 人まで）・`category`（必須、種別の性質 `adminFreeText` に bulk がある種別のカテゴリー）・`channels`（`email` / `inApp` の 1 つ以上）・`email?: { subject, body }`（email を送るなら必須）・`inApp?: { title, body }`（inApp を送るなら必須）・`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`（知らない鍵は 400）
+- `POST`: 宛先は `{ userIds }` か `{ target, recordIds }`（1 回 10,000 人まで）、中身は送る画面と同じ `message`（テンプレート `{ type: "template", templateId, version, content, vars }` か その場で書く `{ type: "adhoc", email?, inApp? }`）・`category`（必須、bulk で送れる種別）・`channels?`（カテゴリーの経路の中の絞り、文言の無い経路は 400）・`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400。検査は送る画面と同じ部品（`admin/send.ts`）
+- `POST /preview`・`POST /test`: 送る画面のプレビュー・自分へのテスト送信と同じ（カテゴリーは bulk で送れる物、テストの送り元 `messaging.adminBulk.test`）。門 `messagingBroadcast` には入れない（一括送信と同じく管理一覧の一括操作から使う）
 - 結果: `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`。大きな送信の続きは cron が送る
-- 受け口 `bulkSendTargets/<名前>.ts`（`export const bulkSendTarget: MessageBulkSendTarget`、型 `services/server/admin/types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`（選んだ記録 → 利用者 id）・`afterSend?({ recordIds, dispatchId, counts, content })`（送信の受け付けの直後に 1 回。投げても送信は戻らず結果と監査に失敗を残す）。上流の項目 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
+- 受け口 `bulkSendTargets/<名前>.ts`（`export const bulkSendTarget: MessageBulkSendTarget`、型 `services/server/admin/types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`（選んだ記録 → 利用者 id）・`afterSend?({ recordIds, dispatchId, counts, content, template })`（送信の受け付けの直後に 1 回。その場で書く連絡は書いた中身、テンプレートは送った文言の件名・題（差し込む前、本文は空）と `template { id, version, edited }`（その場で書く連絡は null）。投げても送信は戻らず結果と監査に失敗を残す）。上流の項目 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
 - 監査: `messaging.dispatch.bulk_sent`（対象 = 回、metadata = 送り元・種別・経路・数・状態・対象の鍵・afterSend）
 
 ### 回の読む口（D37。汎用 CRUD の search に乗せない）
@@ -421,7 +426,7 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 
 ### 管理一覧の一括送信の作成関数（`components/AdminBulkSend`）
 
-管理一覧の一括操作の受け口 `adminBulkActions` の項目を数行で作る（`@/lib/crud/components` の `bulk*Action` と同じ形。lib は features を読めないので messaging に置く）。対にサーバーの受け口 `bulkSendTargets/<名前>.ts` が要る（記録 → 利用者 id と afterSend はサーバーの項目だけが持つ。画面は鍵 `target` と選んだ id を送るだけ）。
+管理一覧の一括操作の受け口 `adminBulkActions` の項目を数行で作る（`@/lib/crud/components` の `bulk*Action` と同じ形。lib は features を読めないので messaging に置く）。項目の部品は送るモーダル `MessageSendModal` の bulk（門 `messagingBroadcast` の外）。対にサーバーの受け口 `bulkSendTargets/<名前>.ts` が要る（記録 → 利用者 id と afterSend はサーバーの項目だけが持つ。画面は鍵 `target` と選んだ id を送るだけ）。
 
 ```tsx
 // src/features/<domain>/adminBulkActions/notify.tsx
@@ -433,10 +438,8 @@ export const bulkAction = bulkMessageAction(
 );
 ```
 
-- options（`BulkMessageActionOptions`）: `target`・`recordNoun`（文に入る名詞）・`defaults?`（`emailSubject`・`emailBody`・`inAppTitle`・`inAppBody` の初期値）・`defaultCategory?`（既定 `operatorDirect` = 運営からのご連絡、一覧の一括操作の既定は direct、D81。選択肢に無ければ最初の物）・`categorySelectable?`（既定 true）・`defaultEmail?` / `defaultInApp?`（最初に送る側にする経路、既定どちらも true）・`subjectPlaceholder?`・`label?`（既定「一括送信」）・`source?`・`disabled?`・`onSent?(result)`（送った結果。サーバーの afterSend とは別の画面の側の後処理）
-- 流れ: ボタン → 書く（Modal。カテゴリー（開いている間に選択肢を取る `useAdminBulkSendOptions`）・経路・件名 / 本文・題 / 本文）→ 確かめる（Dialog、送る間 loading）→ 結果（数・経路ごとの数・afterSend の成否・回の詳細へのリンク）。成功で `onDone`（選択を外し一覧を取り直す）
-- 二重送信: フォームを開くたびに `idempotencyKey` を 1 つ発行し、同じフォームの再試行は同じ鍵を送る
-- 書く欄の状態と送信は hook `useAdminBulkSendForm`（部品は描くだけ、CLAUDE.md core_ui_guards）。見た目を替える fork は部品を写して hook を呼ぶ
+- options（`BulkMessageActionOptions`）: `target`・`recordNoun`（文に入る名詞）・`label?`（既定「一括送信」）・`defaults?`（`emailSubject`・`emailBody`・`inAppTitle`・`inAppBody` の初期値）・`defaultCategory?`（既定 `operatorDirect` = 運営からのご連絡、D81。選べなければ最初の物）・`source?`・`disabled?`・`onSent?(result)`（一括の結果。サーバーの afterSend とは別の画面の側の後処理）
+- 流れは送るモーダルと同じ（テンプレートの呼び出し・プレビュー・自分へのテスト送信が使える、予約は無い）。送った後に `onSent` → `onDone`（選択を外し一覧を取り直す）
 - 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`（target `bankTransferReview`、既定のカテゴリー operatorDirect）
 
 ### 利用者ごとの履歴（`messagingService.listUserMessageHistory`）
@@ -452,6 +455,7 @@ export const bulkAction = bulkMessageAction(
 - `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）
 - loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatches`・`useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch`）
 - 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
+- 送るモーダルの口: 一覧の上に「新しく送る」、1 件に「同じ内容で送る」（`MessageSendModal`、門 `messagingBroadcast` が開の時だけ）
 - 回の操作（部品 `common/DispatchOperations`、props だけ）: 予約を取り消す・取り下げる・失敗分を再送 のボタン。できない操作は押せず `operations` の理由を出す。押すと確認の Dialog（取り下げは戻せない・送ったメールは取り戻せない、再送は 同じ回で / 新しい回として と失敗・不明の数、不明がある時だけ「不明も含める」= 二重に届くおそれ）。入れ物 `AdminDispatchDetail` が hook `useCancelDispatch` / `useRetractDispatch` / `useResendDispatch`（成功で回と一覧を取り直し、配達の一覧も取り直す）をつなぐ
 
 ## 購読（subscribers・cron messaging-subscribers）

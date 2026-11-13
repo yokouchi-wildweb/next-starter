@@ -3,7 +3,7 @@
 // - useAdminDispatchDeliveries: 回の id と絞り込みを渡す
 // - useContinueDispatch: client を呼び、回 1 件(useAdminDispatch)を取り直す
 // - useCancelDispatch / useRetractDispatch / useResendDispatch: client を呼び、回 1 件を取り直す
-// - useAdminBulkSendForm: 選んだ経路だけの中身・target・recordIds・種別・開くたびの鍵で送り、onSent → onSuccess
+// - 一括送信の流れは送るモーダルの hook(sendModalHooks.test.tsx)
 // 実行: pnpm test src/features/core/messaging/hooks/adminMessagingHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -146,51 +146,6 @@ test("useContinueDispatch: client を呼び、回 1 件を取り直す", async (
   });
   assert.equal(continues, 1);
   assert.ok(detailCalls > beforeCalls, "続きを送った後に回を取り直す");
-  await view.unmount();
-});
-
-test("useAdminBulkSendForm: 選んだ経路だけの中身とカテゴリーで送り、onSent → onSuccess", async () => {
-  const events: string[] = [];
-  const view = await mount(() =>
-    hooks.useAdminBulkSendForm({
-      ids: ["r1", "r2"],
-      target: "bankTransferReview",
-      defaults: { inAppTitle: "題", inAppBody: "本文" },
-      onSent: (res) => events.push(`sent:${res.dispatchId}`),
-      onSuccess: () => events.push("success"),
-    }),
-  );
-  assert.equal(view.value().isValid, false, "メールの件名・本文が空の間は送れない");
-  await act(async () => view.value().setOpen(true));
-  // 開いている間に選択肢を取る。既定は operatorDirect(D81)
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
-  assert.deepEqual(view.value().fields.categories.map((c) => c.key), ["operatorDirect", "marketing"]);
-  assert.equal(view.value().fields.category, "operatorDirect");
-  await act(async () => {
-    view.value().fields.setEmailSubject(" 件名 ");
-    view.value().fields.setEmailBody("本文です");
-  });
-  assert.equal(view.value().isValid, true);
-  await act(async () => {
-    await view.value().submit();
-  });
-  const input = sends[0];
-  assert.equal(input.target, "bankTransferReview");
-  assert.deepEqual(input.recordIds, ["r1", "r2"]);
-  assert.equal(input.category, "operatorDirect");
-  assert.equal("kind" in input, false);
-  assert.deepEqual(input.channels, ["email", "inApp"]);
-  assert.deepEqual(input.message, { type: "adhoc", email: { subject: "件名", body: "本文です" }, inApp: { title: "題", body: "本文" } });
-  assert.equal(typeof input.idempotencyKey, "string");
-  assert.deepEqual(events, ["sent:disp-1", "success"]);
-  assert.equal(view.value().result?.dispatchId, "disp-1");
-  assert.equal(view.value().formOpen, false);
-
-  // メールを外すと email を送らない
-  await act(async () => view.value().closeResult());
-  await act(async () => view.value().fields.setUseEmail(false));
-  assert.deepEqual(view.value().buildInput().channels, ["inApp"]);
-  assert.equal((view.value().buildInput().message as { email?: unknown }).email, undefined);
   await view.unmount();
 });
 
