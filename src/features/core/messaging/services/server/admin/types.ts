@@ -4,7 +4,7 @@
 
 import type { MessageChannelCounts } from "../../../entities/schema";
 
-/** 管理の一括送信で送れる経路(連絡 messaging.adminMessage が中身を持つ経路) */
+/** 管理の一括送信で送れる経路(その場で書く連絡 3 本が中身を持つ経路) */
 export type AdminMessageChannel = "email" | "inApp";
 
 /** 管理者が書く中身 */

@@ -10,7 +10,9 @@
 // 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
 // テンプレート(sendTemplate): 今の公開版から定義を組み、回に template_id + template_version を固定する(cron も同じ版から組み直す)
 // 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
+// 口の中ですぐ送る種別(性質 sendInEntry = security、D72・D80): 予約・audience は 400、宛先が多くても後回しにせず展開して最初の束を口の中で送る
 
+import { kindTraits } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type {
@@ -260,7 +262,14 @@ export function createMessageSender(deps: MessageSendDeps) {
     const recipients: readonly MessageRecipient[] = input.recipients ?? [];
     const uniqueCount = new Set(recipients.map(recipientKeyOf)).size;
     const scheduled = input.scheduledAt !== undefined;
-    const large = Boolean(input.audience) || uniqueCount > deps.config.smallSendMaxRecipients;
+    const inEntry = Boolean(kindTraits(resolved.kind)?.sendInEntry);
+    if (inEntry && (scheduled || input.audience)) {
+      throw new DomainError(`種別 ${resolved.kind} の連絡は予約・宛先の集め方では送れません(選んだ宛先に今すぐ送る、${resolved.key})`, {
+        status: 400,
+      });
+    }
+    // 口の中ですぐ送る種別は宛先が多くても展開して最初の束を口の中で送る(残りは cron)
+    const large = !inEntry && (Boolean(input.audience) || uniqueCount > deps.config.smallSendMaxRecipients);
 
     if (scheduled && policy.noBody) {
       throw new DomainError(`止められない連絡と秘密を差し込む連絡は予約できません(${resolved.key})`, { status: 400 });
@@ -580,7 +589,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       const { templateId, category, ...rest } = input;
       const version = await currentTemplateVersion(templateId);
       const resolved = resolveTemplateDefinition(version, deps, { category });
-      return sendToMany(templateDefinitionOf(version, resolved.category), rest as SendMessageToManyInput, {
+      return sendToMany(templateDefinitionOf(version, resolved.category, resolved.key), rest as SendMessageToManyInput, {
         resolved,
         template: { id: version.templateId, version: version.version },
       });

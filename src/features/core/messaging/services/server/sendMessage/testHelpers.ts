@@ -223,6 +223,8 @@ export const TEST_CATEGORIES: Readonly<Record<string, MessageCategory>> = {
   shopEmail: { key: "shopEmail", label: "ショップ(メール)", kind: "transactional", channels: ["email"] },
   marketing: { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"] },
   operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
+  directTest: { key: "directTest", label: "個別の連絡(テストの経路)", kind: "direct", channels: ["test"] },
+  alert: { key: "alert", label: "セキュリティの警告", kind: "security", channels: ["test"] },
 };
 
 export function createDeps(overrides: Partial<MessageSendDeps> & { store: MemoryStore }): MessageSendDeps & { slept: number[] } {

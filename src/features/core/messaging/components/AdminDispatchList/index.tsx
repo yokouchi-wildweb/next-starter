@@ -109,7 +109,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             id="dispatch-filter-key"
             value={messageKey}
             onChange={(e) => setMessageKey(e.target.value)}
-            placeholder="例: messaging.adminMessage"
+            placeholder="例: messaging.adminAnnouncement"
           />
         </Stack>
         <Stack space={1}>

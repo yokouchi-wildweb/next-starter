@@ -3,9 +3,9 @@
 // 保存されたテンプレートの保存時の検査(D41)。作る・下書きの更新・公開の前に同じ検査を通す。
 // - 経路: 経路の受け口にあり有効(enabled: false でない)。content の経路は channels と同じ組で、各経路の欄の zod を通る
 // - 種類: 種類の受け口(categories)にある
-// - 変数: MessageTemplateVariableSchema の並び、鍵は一意で {{鍵}} に使える形。共通の文脈・throttle の鍵・adminMessage に当たる
+// - 変数: MessageTemplateVariableSchema の並び、鍵は一意で {{鍵}} に使える形。共通の文脈・throttle の鍵・管理の定義 3 本(admin/freeText.ts)に当たる
 //   provides と同じ鍵は不可。型 "secret" は不可(秘密はテンプレートを通さない: コードの定義の secretVar に置く)
-// - 本文の {{鍵}} は 共通の文脈 ∪ adminMessage に当たる provides ∪ 宣言した変数 の中だけ
+// - 本文の {{鍵}} は 共通の文脈 ∪ 管理の定義 3 本(admin/freeText.ts)に当たる provides ∪ 宣言した変数 の中だけ
 
 import { COMMON_CONTEXT_KEYS, THROTTLE_CONTEXT_KEYS, type MessageCategory, type MessageChannel } from "@/lib/messaging";
 import { listVariables } from "@/lib/structuredDocument/shared";
@@ -20,7 +20,7 @@ const VARIABLE_KEY = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 export type TemplateCheckDeps = {
   channels: Readonly<Record<string, MessageChannel>>;
   categories: Readonly<Record<string, MessageCategory>>;
-  /** adminMessage に当たる enrichers の provides の鍵 */
+  /** 管理の定義 3 本(admin/freeText.ts)に当たる enrichers の provides の鍵 */
   providedKeys: readonly string[];
 };
 

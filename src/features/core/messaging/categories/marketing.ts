@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/marketing.ts
-// 上流の種類: 宣伝(D35・D69 の表示名)。messaging.adminMessage(管理の送信の宣伝)
+// 上流の種類: 宣伝(D35・D69 の表示名)。管理者がその場で書く宣伝 messaging.adminMarketing の既定のカテゴリー
 
 import type { MessageCategory } from "@/lib/messaging";
 

@@ -38,6 +38,11 @@ const OPTIONS = {
   roles: [{ id: "user", label: "利用者" }],
   audiences: [],
   templates: [template],
+  categories: [
+    { key: "announcement", label: "運営からのお知らせ", kind: "announcement", channels: ["email", "inApp"], audiences: ["all", "role", "audience", "users"], adhoc: true },
+    { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"], adhoc: true },
+    { key: "promoPush", label: "プッシュの宣伝", kind: "marketing", channels: ["email", "push"], audiences: ["all", "role", "audience", "users", "bulk"], adhoc: false },
+  ],
   maxScheduleDays: 90,
 };
 
@@ -50,7 +55,7 @@ mock.module("@/features/core/messaging/services/client/sendClient", {
     },
     previewAdminMessage: async (input: unknown) => {
       calls.push(["preview", input]);
-      return { messageKey: "messaging.adminMessage", kind: "marketing", category: "marketing", template: null, channels: [] };
+      return { messageKey: "messaging.adminAnnouncement", kind: "announcement", category: "announcement", template: null, channels: [] };
     },
     estimateAdminRecipients: async (input: unknown) => {
       calls.push(["estimate", input]);
@@ -131,7 +136,9 @@ test("テンプレートで送る: 入力の形・必須の変数・見込み・
   const sent = calls[1][1] as Record<string, unknown>;
   assert.deepEqual(sent.message, { type: "template", templateId: TEMPLATE_ID, vars: { discount: 20 } });
   assert.deepEqual(sent.channels, ["email", "inApp"]);
-  assert.equal(sent.kind, "marketing");
+  // 全員宛て + テンプレート = 宛先で選べる最初のカテゴリー
+  assert.equal(sent.category, "announcement");
+  assert.equal("kind" in sent, false);
   assert.equal(sent.scheduledAt, undefined);
   assert.equal(c().sent?.dispatchId, "d1");
   assert.notEqual(c().buildInput().idempotencyKey, firstKey, "送った後は鍵を作り直す");
@@ -139,7 +146,7 @@ test("テンプレートで送る: 入力の形・必須の変数・見込み・
   await view.unmount();
 });
 
-test("その場で書く: 経路の中身、取引は選んだ利用者宛てだけ、予約の時刻の検査、プレビュー・テスト送信", async () => {
+test("その場で書く: 経路の中身、カテゴリーは宛先と中身で絞る、予約の時刻の検査、プレビュー・テスト送信", async () => {
   const view = await mount(() => hooks.useAdminSendComposer(OPTIONS as never));
   const c = () => view.value();
   await act(async () => c().fields.setSource("adhoc"));
@@ -151,20 +158,22 @@ test("その場で書く: 経路の中身、取引は選んだ利用者宛てだ
   });
   assert.equal(c().contentError, null);
 
-  // 全員宛ては取引を選べない
-  await act(async () => c().fields.setKind("transactional"));
-  assert.equal(c().fields.kind, "marketing");
+  // 全員宛ては運営からのご連絡(direct)を選べない、その場で書けない経路のカテゴリーも出ない
+  assert.deepEqual(c().allowedCategories.map((o) => o.key), ["announcement"]);
+  await act(async () => c().fields.setCategory("operatorDirect"));
+  assert.equal(c().fields.category, "announcement");
   await act(async () => c().fields.setAudienceType("users"));
   assert.equal(c().audienceError, "利用者を選んでください");
+  assert.deepEqual(c().allowedCategories.map((o) => o.key), ["announcement", "operatorDirect"]);
   await act(async () => {
     c().fields.setUserIds(["u1", "u2"]);
-    c().fields.setKind("transactional");
+    c().fields.setCategory("operatorDirect");
   });
-  assert.equal(c().fields.kind, "transactional");
+  assert.equal(c().fields.category, "operatorDirect");
   assert.deepEqual(c().buildAudience(), { type: "users", userIds: ["u1", "u2"] });
-  // 宛先を変えたら marketing に戻る
+  // 宛先を変えて選べなくなったら最初のカテゴリーに戻る
   await act(async () => c().fields.setAudienceType("role"));
-  assert.equal(c().fields.kind, "marketing");
+  assert.equal(c().fields.category, "announcement");
   await act(async () => c().fields.setRoles(["user"]));
   assert.deepEqual(c().buildAudience(), { type: "role", roles: ["user"] });
 
@@ -183,7 +192,7 @@ test("その場で書く: 経路の中身、取引は選んだ利用者宛てだ
     await c().runPreview();
     await c().sendTest();
   });
-  assert.deepEqual(calls[0], ["preview", { message: { type: "adhoc", email: { subject: "件名", body: "本文" } }, channels: ["email"], kind: "marketing" }]);
+  assert.deepEqual(calls[0], ["preview", { message: { type: "adhoc", email: { subject: "件名", body: "本文" } }, channels: ["email"], category: "announcement" }]);
   assert.equal(calls[1][0], "test");
   assert.equal(typeof (calls[1][1] as { idempotencyKey: string }).idempotencyKey, "string");
   assert.ok(c().preview);

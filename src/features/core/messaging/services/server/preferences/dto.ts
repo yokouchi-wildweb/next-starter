@@ -68,22 +68,6 @@ export type MessagePreferencesDto = {
   channels: MessagePreferenceChannelDto[];
 };
 
-/** 種類が先の画面のためのマス(入れ子から組み直す。client の hook の categoryRowsOf) */
-export type MessagePreferenceCellDto = {
-  channel: string;
-  optedOut: boolean;
-  via: MessagePreferenceVia | null;
-};
-
-/** 種類が先の画面のための行(入れ子から組み直す。マスは経路の並び) */
-export type MessagePreferenceCategoryRowDto = {
-  key: string;
-  label: string;
-  description: string | null;
-  kind: MessageKind;
-  cells: MessagePreferenceCellDto[];
-};
-
 /**
  * 1 つの変更:
  * - 1 マス(種類・経路)・種類まるごと(channel '*')・経路まるごと(category '*')・全体(どちらも '*')を止める / 再開する

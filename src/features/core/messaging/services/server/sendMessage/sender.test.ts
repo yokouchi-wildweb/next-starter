@@ -604,3 +604,35 @@ test("種別の性質(D80): 記録の既定は種別から、security は苦情�
   assert.equal(dispatch.vars, null);
   assert.equal(email.calls.flat().length, 1);
 });
+
+const securityAlert = defineTestMessage({
+  key: "auth.alert",
+  category: "alert",
+  vars: z.object({ item: z.string() }),
+  content: { test: { title: "警告 {{item}}" } },
+});
+
+test("security(性質 sendInEntry): 予約と audience は 400、宛先が多くても口の中で展開して最初の束を送る", async () => {
+  const { sender, store, channel } = setup({ users: 7 });
+  await assertDomainError(
+    sender.sendMessageToMany(securityAlert, { recipients: [{ userId: "u1" }], vars: { item: "x" }, scheduledAt: new Date(FIXED_NOW.getTime() + 60_000) }),
+    400,
+  );
+  await assertDomainError(sender.sendMessageToMany(securityAlert, { audience: { type: "all" }, vars: { item: "x" } }), 400);
+  assert.equal(store.dispatches.length, 0);
+  // smallSendMaxRecipients(5)を越える 7 人: 回の行だけにせず展開し、最初の束(inRequestBatchSize 2)を口の中で送る
+  const recipients = Array.from({ length: 7 }, (_, i) => ({ userId: `u${i + 1}` }));
+  const result = await sender.sendMessageToMany(securityAlert, { recipients, vars: { item: "x" } });
+  assert.equal(store.deliveries.length, 7);
+  assert.equal(channel.calls.flat().length, 2);
+  assert.equal(result.queuedCount, 5);
+  assert.equal(store.dispatches[0].kind, "security");
+});
+
+test("security: 旧い住所({ channel, address }、利用者なし)へ送れる", async () => {
+  const { sender, store, channel } = setup();
+  const result = await sender.sendMessage(securityAlert, { recipient: { channel: "test", address: "old@example.test" }, vars: { item: "x" } });
+  assert.equal(result.status, "completed");
+  assert.equal(channel.calls.flat()[0].address, "old@example.test");
+  assert.equal(store.deliveries[0].user_id, null);
+});

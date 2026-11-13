@@ -4,19 +4,24 @@
 //
 // 管理の一括送信の書く欄・開閉・送信の流れ(部品 AdminBulkSendButton はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
 // - 開く: 二重送信を防ぐ鍵を 1 つ発行(同じフォームの再試行は同じ鍵。サーバーは同じ鍵の 2 回目を送らない)
-// - 送る: { target, recordIds } + 経路 + 中身 + 種別を useAdminBulkSend へ。成功 = 結果を持ち、onSent → onSuccess
+// - 送る: { target, recordIds } + 経路 + 中身 + カテゴリーを useAdminBulkSend へ。成功 = 結果を持ち、onSent → onSuccess
+// - カテゴリー: 開いている間に選択肢(useAdminBulkSendOptions、一覧の一括で送れるカテゴリー)を取る。既定 operatorDirect(運営からのご連絡、D81)
 
 import { useCallback, useMemo, useState } from "react";
 
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
-import type { AdminBulkSendInput, AdminBulkSendResult } from "../services/client/adminMessagingClient";
+import type {
+  AdminBulkSendInput,
+  AdminBulkSendResult,
+  AdminFreeTextCategoryOption,
+} from "../services/client/adminMessagingClient";
 
-import { useAdminBulkSend } from "./useAdminBulkSend";
+import { useAdminBulkSend, useAdminBulkSendOptions } from "./useAdminBulkSend";
 
-/** 種別(marketing = 受け取りの設定に従う / transactional = 設定で止めない業務の連絡) */
-export type AdminBulkSendKind = "marketing" | "transactional";
+/** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
+export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
 
 /** 書く欄の初期値 */
 export type AdminBulkSendDefaults = {
@@ -32,8 +37,8 @@ export type UseAdminBulkSendFormOptions = {
   /** 受け口 bulkSendTargets の項目の鍵 */
   target: string;
   defaults?: AdminBulkSendDefaults;
-  /** 既定 "marketing" */
-  defaultKind?: AdminBulkSendKind;
+  /** 送るカテゴリーの既定(既定 operatorDirect。選択肢に無ければ最初の選択肢) */
+  defaultCategory?: string;
   /** 最初にメールを送る側にするか(既定 true) */
   defaultEmail?: boolean;
   /** 最初にサービス内のお知らせも送る側にするか(既定 true) */
@@ -48,7 +53,7 @@ export function useAdminBulkSendForm({
   ids,
   target,
   defaults = {},
-  defaultKind = "marketing",
+  defaultCategory = ADMIN_BULK_SEND_DEFAULT_CATEGORY,
   defaultEmail = true,
   defaultInApp = true,
   source,
@@ -63,7 +68,14 @@ export function useAdminBulkSendForm({
   const [result, setResult] = useState<AdminBulkSendResult | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
-  const [kind, setKind] = useState<AdminBulkSendKind>(defaultKind);
+  const [chosenCategory, setCategory] = useState<string>(defaultCategory);
+  const { options } = useAdminBulkSendOptions(formOpen);
+  const categories: AdminFreeTextCategoryOption[] = useMemo(() => options?.categories ?? [], [options]);
+  // 選んだカテゴリーが選択肢に無い(読み込み後)= 最初の選択肢
+  const category =
+    categories.length === 0 || categories.some((option) => option.key === chosenCategory)
+      ? chosenCategory
+      : categories[0].key;
   const [useEmail, setUseEmail] = useState(defaultEmail);
   const [useInApp, setUseInApp] = useState(defaultInApp);
   const [emailSubject, setEmailSubject] = useState(defaults.emailSubject ?? "");
@@ -80,14 +92,14 @@ export function useAdminBulkSendForm({
 
   const { emailSubject: dSubject, emailBody: dBody, inAppTitle: dTitle, inAppBody: dInAppBody } = defaults;
   const reset = useCallback(() => {
-    setKind(defaultKind);
+    setCategory(defaultCategory);
     setUseEmail(defaultEmail);
     setUseInApp(defaultInApp);
     setEmailSubject(dSubject ?? "");
     setEmailBody(dBody ?? "");
     setInAppTitle(dTitle ?? "");
     setInAppBody(dInAppBody ?? "");
-  }, [defaultKind, defaultEmail, defaultInApp, dSubject, dBody, dTitle, dInAppBody]);
+  }, [defaultCategory, defaultEmail, defaultInApp, dSubject, dBody, dTitle, dInAppBody]);
 
   const setOpen = useCallback(
     (open: boolean) => {
@@ -107,14 +119,14 @@ export function useAdminBulkSendForm({
     return {
       target,
       recordIds: ids,
-      kind,
+      category,
       channels,
       email: useEmail ? { subject: emailSubject.trim(), body: emailBody.trim() } : undefined,
       inApp: useInApp ? { title: inAppTitle.trim(), body: inAppBody.trim() } : undefined,
       idempotencyKey: idempotencyKey ?? undefined,
       source,
     };
-  }, [useEmail, useInApp, target, ids, kind, emailSubject, emailBody, inAppTitle, inAppBody, idempotencyKey, source]);
+  }, [useEmail, useInApp, target, ids, category, emailSubject, emailBody, inAppTitle, inAppBody, idempotencyKey, source]);
 
   /** 確認の「送信する」(Dialog が Promise の間 loading を出す) */
   const submit = useCallback(async () => {
@@ -148,8 +160,9 @@ export function useAdminBulkSendForm({
     buildInput,
     submit,
     fields: {
-      kind,
-      setKind,
+      category,
+      setCategory,
+      categories,
       useEmail,
       setUseEmail,
       useInApp,

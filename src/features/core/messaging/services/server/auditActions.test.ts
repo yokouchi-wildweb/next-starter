@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { AuditLogCreateSchema } from "@/features/core/auditLog/entities/schema";
 
 const domainDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-/** 3 段の messaging.<entity>.<verb>(2 段の連絡の鍵 messaging.adminMessage は当たらない) */
+/** 3 段の messaging.<entity>.<verb>(2 段の連絡の鍵 messaging.adminMarketing などは当たらない) */
 const ACTION_LITERAL = /["'`](messaging\.[A-Za-z0-9_]+\.[A-Za-z0-9_]+)["'`]/g;
 
 function codeFiles(dir: string): string[] {

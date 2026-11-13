@@ -1,6 +1,6 @@
 // 管理の送信と読む口の検査(DB・送る口・監査は偽物)
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
-// - 一括送信: userIds / target + recordIds、重複を除く、種別(既定 marketing、transactional は明示)、送り元、afterSend(失敗しても送信は戻さない)、監査 1 行
+// - 一括送信: userIds / target + recordIds、重複を除く、カテゴリー(必須、bulk で送れる種別 direct・marketing だけ)、送り元、afterSend(失敗しても送信は戻さない)、監査 1 行、選択肢
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回)
 // - 続きを送る: 監査 1 行
 // 実行: pnpm test src/features/core/messaging/services/server/admin
@@ -13,7 +13,9 @@ import { DomainError } from "@/lib/errors";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor } from "./assertAdmin";
-import { adminBulkSend, type AdminBulkSendDeps } from "./bulkSend";
+import type { MessageCategory } from "@/lib/messaging";
+
+import { adminBulkSend, adminBulkSendOptions, type AdminBulkSendDeps } from "./bulkSend";
 import { adminContinueSending } from "./continueSending";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary } from "./dispatchDto";
 import { operationFlags } from "./operations";
@@ -40,8 +42,15 @@ test("管理者の再検査: admin の利用者と system は通り、利用者�
   await rejects403(assertAdminActor(check(null)));
 });
 
+const bulkCategories: Record<string, MessageCategory> = {
+  announcement: { key: "announcement", label: "運営からのお知らせ", kind: "announcement", channels: ["email", "inApp"] },
+  operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
+  marketing: { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"] },
+  promoPush: { key: "promoPush", label: "プッシュ", kind: "marketing", channels: ["email", "push"] },
+};
+
 function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: boolean } = {}) {
-  const sent: { category: string; input: SendMessageToManyInput }[] = [];
+  const sent: { key: string; category: string; input: SendMessageToManyInput }[] = [];
   const audits: AuditRecordInput[] = [];
   const after: unknown[] = [];
   const target: MessageBulkSendTarget = {
@@ -56,8 +65,9 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
   const deps: AdminBulkSendDeps = {
     ...check(options.context === undefined ? ctx("admin1") : options.context),
     targets: { review: target, off: { ...target, key: "off", enabled: () => false } },
+    categories: bulkCategories,
     sendMessageToMany: async (definition, input) => {
-      sent.push({ category: definition.category, input });
+      sent.push({ key: definition.key, category: definition.category, input });
       return { dispatchId: "d1", status: "processing", deliveries: [], queuedCount: 3, channelCounts: {} };
     },
     recordAudit: async (input) => audits.push(input),
@@ -66,13 +76,13 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
   return { deps, sent, audits, after };
 }
 
-const mail = { channels: ["email"] as ("email" | "inApp")[], email: { subject: "件名", body: "本文" } };
+const mail = { category: "marketing", channels: ["email"] as ("email" | "inApp")[], email: { subject: "件名", body: "本文" } };
 
-test("一括送信(userIds): 重複を除き adminMessage を marketing で送り、監査 1 行", async () => {
+test("一括送信(userIds): 重複を除き選んだカテゴリーの種別の定義で送り、監査 1 行", async () => {
   const { deps, sent, audits } = bulkSetup();
   const result = await adminBulkSend(deps, { userIds: ["a", "b", "a"], ...mail });
   assert.equal(sent.length, 1);
-  assert.equal(sent[0].category, "marketing");
+  assert.deepEqual([sent[0].key, sent[0].category], ["messaging.adminMarketing", "marketing"]);
   assert.deepEqual(sent[0].input.recipients, [{ userId: "a" }, { userId: "b" }]);
   assert.deepEqual(sent[0].input.vars, { subject: "件名", body: "本文", inAppTitle: "", inAppBody: "", serviceNameShort: "short" });
   assert.equal(sent[0].input.source, "messaging.adminBulk");
@@ -80,20 +90,20 @@ test("一括送信(userIds): 重複を除き adminMessage を marketing で送�
   assert.equal(audits.length, 1);
   assert.equal(audits[0].action, "messaging.dispatch.bulk_sent");
   assert.equal(audits[0].targetId, "d1");
+  assert.deepEqual([audits[0].metadata?.category, audits[0].metadata?.kind], ["marketing", "marketing"]);
 });
 
-test("一括送信(target): 記録 → 利用者、transactional は明示で、afterSend に記録・回・数・中身", async () => {
+test("一括送信(target): 記録 → 利用者、運営からのご連絡(direct)で、afterSend に記録・回・数・中身", async () => {
   const { deps, sent, after, audits } = bulkSetup();
   const result = await adminBulkSend(deps, {
     target: "review",
     recordIds: ["x1", "x2", "y1"],
-    kind: "transactional",
+    category: "operatorDirect",
     channels: ["email", "inApp"],
     email: { subject: "件名", body: "本文" },
     inApp: { title: "題", body: "お知らせ" },
   });
-  // 取引の選択 = 種類 operatorDirect(種別 direct、指令 37 までの仮)
-  assert.equal(sent[0].category, "operatorDirect");
+  assert.deepEqual([sent[0].key, sent[0].category], ["messaging.adminDirect", "operatorDirect"]);
   assert.deepEqual(sent[0].input.recipients, [{ userId: "u-x" }, { userId: "u-y" }]);
   assert.equal(sent[0].input.source, "review.bulk");
   assert.deepEqual(after, [
@@ -125,9 +135,20 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   await bad({ userIds: ["a"], channels: ["inApp"], email: mail.email });
   await bad({ target: "nope", recordIds: ["x"], ...mail });
   await bad({ target: "off", recordIds: ["x"], ...mail });
-  await bad({ userIds: ["a"], ...mail, kind: "activity" });
+  await bad({ userIds: ["a"], ...mail, kind: "marketing" });
+  await bad({ userIds: ["a"], ...mail, category: undefined });
+  // announcement は一覧の一括(bulk)で送れない、その場で書けない経路のカテゴリーも 400
+  await bad({ userIds: ["a"], ...mail, category: "announcement" });
+  await bad({ userIds: ["a"], ...mail, category: "promoPush" });
+  await bad({ userIds: ["a"], ...mail, category: "nope" });
   assert.equal(sent.length, 0);
   await rejects403(adminBulkSend(bulkSetup({ context: ctx("user1", "user") }).deps, { userIds: ["a"], ...mail }));
+});
+
+test("一括送信の選択肢: bulk で送れてその場で書けるカテゴリーだけ、管理者でなければ 403", async () => {
+  const { deps } = bulkSetup();
+  assert.deepEqual((await adminBulkSendOptions(deps)).categories.map((o) => o.key), ["operatorDirect", "marketing"]);
+  await rejects403(adminBulkSendOptions(bulkSetup({ context: ctx("user1", "user") }).deps));
 });
 
 const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>

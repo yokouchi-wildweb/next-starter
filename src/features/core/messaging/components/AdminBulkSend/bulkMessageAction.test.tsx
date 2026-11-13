@@ -43,14 +43,14 @@ test("部品は選んだ id・options・onDone でボタンを描く", () => {
   const onDone = () => {};
   const item = bulkMessageAction(
     { key: "notify" },
-    { target: "shippingRequest", recordNoun: "発送リクエスト", defaultKind: "transactional", label: "連絡" },
+    { target: "shippingRequest", recordNoun: "発送リクエスト", defaultCategory: "operatorDirect", label: "連絡" },
   );
   renderToStaticMarkup(createElement(item.Component, { selection: selection(["a", "b"]), onDone } as never));
   const props = buttonProps.at(-1);
   assert.deepEqual(props?.ids, ["a", "b"]);
   assert.equal(props?.target, "shippingRequest");
   assert.equal(props?.recordNoun, "発送リクエスト");
-  assert.equal(props?.defaultKind, "transactional");
+  assert.equal(props?.defaultCategory, "operatorDirect");
   assert.equal(props?.label, "連絡");
   assert.equal(props?.onSuccess, onDone);
   assert.equal(props?.disabled, false);

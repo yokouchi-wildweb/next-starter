@@ -18,6 +18,7 @@ import type { MessageDispatch } from "../../../entities/model";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
 import { audiences } from "../../../extensions/audiences";
 import { bulkSendTargets } from "../../../extensions/bulkSendTargets";
+import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import {
   definitionOfDispatch,
@@ -30,7 +31,7 @@ import {
 } from "../sendMessage";
 import { continueSending } from "../sweep";
 import type { AdminCheckDeps } from "./assertAdmin";
-import { adminBulkSend as adminBulkSendWith, type AdminBulkSendInput } from "./bulkSend";
+import { adminBulkSend as adminBulkSendWith, adminBulkSendOptions as adminBulkSendOptionsWith, type AdminBulkSendInput } from "./bulkSend";
 import { adminContinueSending as adminContinueSendingWith } from "./continueSending";
 import {
   adminCancelScheduled as adminCancelScheduledWith,
@@ -67,18 +68,24 @@ const adminCheck: AdminCheckDeps = {
 
 const recordAudit = (input: Parameters<typeof auditLogger.record>[0]) => auditLogger.record(input);
 
-/** 管理の一括送信(連絡 messaging.adminMessage) */
+/** 管理の一括送信(選んだカテゴリーの種別の定義 messages/admin<Kind>.ts) */
 export function adminBulkSend(input: AdminBulkSendInput) {
   return adminBulkSendWith(
     {
       ...adminCheck,
       targets: bulkSendTargets,
+      categories,
       sendMessageToMany,
       recordAudit,
       serviceNameShort: () => business.serviceNameShort,
     },
     input,
   );
+}
+
+/** 一括送信の選択肢(一覧の一括で送れるカテゴリー) */
+export function adminBulkSendOptions() {
+  return adminBulkSendOptionsWith({ ...adminCheck, categories });
 }
 
 /** 回の定義(読めない・誤りなら null。テンプレートの回は固定した版) */
@@ -129,6 +136,7 @@ const sendDeps: AdminSendDeps = {
   recordAudit,
   serviceNameShort: () => business.serviceNameShort,
   channels,
+  categories,
   audiences,
   roles: () => ALL_ROLES.map((role) => ({ id: role.id, label: role.label })),
   async listPublishedTemplates() {
@@ -191,8 +199,15 @@ export function adminContinueSending(dispatchId: string) {
 
 export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
-export type { AdminBulkSendInput, AdminBulkSendResult } from "./bulkSend";
-export { ADMIN_SEND_MAX_USERS, assertAdminSendKind } from "./send";
+export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
+export { ADMIN_SEND_MAX_USERS } from "./send";
+export {
+  ADMIN_FREE_TEXT_DEFINITIONS,
+  ADMIN_FREE_TEXT_KINDS,
+  ADMIN_FREE_TEXT_MESSAGE_KEYS,
+  adminFreeTextMessageKeyOf,
+} from "./freeText";
+export type { AdminFreeTextCategoryOption, AdminFreeTextKind } from "./freeText";
 export { AdminResendInputSchema } from "./operations";
 export type {
   AdminCancelResult,
