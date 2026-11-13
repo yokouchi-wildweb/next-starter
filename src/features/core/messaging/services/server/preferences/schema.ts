@@ -1,12 +1,11 @@
 // src/features/core/messaging/services/server/preferences/schema.ts
 //
 // 好みを変える入力の zod。
-// - マス / 全体: { category, channel, optedOut }。全体は category と channel のどちらも '*'。片方だけの '*' は受けない
+// - { category, channel, optedOut }: 1 マス / 種類まるごと(channel '*')/ 経路まるごと(category '*')/ 全体(どちらも '*')。
+//   種類が利用者の止められる種類か・経路が開いているかは service が見る
 // - 種別まるごと: { kind, optedOut }(種別が利用者の止められる種別かは service が見る)
 
 import { z } from "zod";
-
-import { MESSAGE_ALL } from "../../../entities/schema";
 
 const CellInputSchema = z
   .object({
@@ -14,10 +13,7 @@ const CellInputSchema = z
     channel: z.string().min(1).max(100),
     optedOut: z.boolean(),
   })
-  .strict()
-  .refine((value) => (value.category === MESSAGE_ALL) === (value.channel === MESSAGE_ALL), {
-    message: "全体の停止は category と channel のどちらも '*' にします",
-  });
+  .strict();
 
 const KindInputSchema = z
   .object({

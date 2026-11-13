@@ -6,6 +6,7 @@
 //   種類が経路に出る = 種類の経路にその経路がある(列 = 種類の経路 ∩ 開いている経路、D86)
 // - optedOut = 送る側(checkStops)が止めるか。via = どの行で止まっているか
 //   (cell = そのマスの行 / category = 種類の全経路 '*' / kind = 種別まるごと / channel = 経路の全種類 '*' / all = 全体 '*' '*' / null = 受け取る)
+// - 広い停止の状態: 種類まるごと = categories(種類ごとに 1 つ)、経路まるごと = channels[].optedOut、全体 = allOptedOut
 // - 種別まるごとの停止の状態は kinds(上流の既定の画面はスイッチを出さない、D62・D71。fork は部品を置ける)
 
 import type { MessageKind } from "@/lib/messaging";
@@ -41,6 +42,8 @@ export type MessagePreferenceChannelDto = {
   hasAddress: boolean;
   /** 宛先の無い利用者を案内する先(経路の項目の connectHref。門で閉じた住所は null) */
   connectHref: string | null;
+  /** 経路まるごとの停止('*', この経路 の行)がある */
+  optedOut: boolean;
   kinds: MessagePreferenceKindFrameDto[];
 };
 
@@ -50,9 +53,17 @@ export type MessagePreferenceKindDto = {
   optedOut: boolean;
 };
 
+/** 種類まるごとの停止の状態(利用者が止められる種別の種類ごとに 1 つ) */
+export type MessagePreferenceCategoryStopDto = {
+  key: string;
+  /** (この種類, '*') の行がある */
+  optedOut: boolean;
+};
+
 export type MessagePreferencesDto = {
   /** 全体の停止('*' '*' の行)がある */
   allOptedOut: boolean;
+  categories: MessagePreferenceCategoryStopDto[];
   kinds: MessagePreferenceKindDto[];
   channels: MessagePreferenceChannelDto[];
 };
@@ -75,7 +86,7 @@ export type MessagePreferenceCategoryRowDto = {
 
 /**
  * 1 つの変更:
- * - 1 マス(種類・経路)か全体(どちらも '*')を止める / 再開する
+ * - 1 マス(種類・経路)・種類まるごと(channel '*')・経路まるごと(category '*')・全体(どちらも '*')を止める / 再開する
  * - 種別まるごと(kind)を止める / 再開する(利用者が止められる種別だけ)
  */
 export type SetMessagePreferenceInput =
