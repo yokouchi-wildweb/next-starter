@@ -194,7 +194,7 @@ await messagingService.sendMessageToMany(campaign, {
 D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵（`categories/` の受け口。上流は `marketing`・`activity`、fork は `categories/<名前>.ts` で足す）。
 
 - 好みに従う連絡 = 種別の性質 `userStoppable`（activity・marketing）で `required` でない連絡。ほかの種別と required は好みを見ない。住所の停止は種別の性質 `addressStop`（functional・security は hard bounce だけ、ほかは苦情・ワンクリック・手作業も）
-- 好み（`message_preferences`、止めた時だけ行）: 利用者 × 種類 × 経路。種類・経路の `'*'`（`MESSAGE_ALL`）は全部に当たる。種別まるごとの行（`kind` X、`'*'` `'*'`）は種別 X の連絡の全種類・全経路に当たる（fork が後から足す種類にも）。`kind` null の行は今までどおり、`kind` のある行は連絡の種別が同じ時だけ当たる。当たる行が 1 つでもあれば止める（和、許可の行・優先の順は無い。D71）。送る口（`findOptOuts` → `checkStops`）・受け取り箱の見え方（`inbox/visibility.ts` の SQL と `isVisible`）・好みの見え方（`preferenceVia`）の 3 か所が同じ判定
+- 好み（`message_preferences`、止めた時だけ行）: 利用者 × 種類 × 経路。種類・経路の `'*'`（`MESSAGE_ALL`）は全部に当たる。種別まるごとの行（`kind` X、`'*'` `'*'`）は種別 X の連絡の全種類・全経路に当たる（fork が後から足す種類にも）。`kind` が `'*'`（既定、種別まるごとではない）の行は今までどおり、`kind` のある行は連絡の種別が同じ時だけ当たる（service と偽物の store の行は `'*'` を null で持ち、読み替えは `preferences/store.ts` だけ）。当たる行が 1 つでもあれば止める（和、許可の行・優先の順は無い。D71）。送る口（`findOptOuts` → `checkStops`）・受け取り箱の見え方（`inbox/visibility.ts` の SQL と `isVisible`）・好みの見え方（`preferenceVia`）の 3 か所が同じ判定
 - 宛先の停止（`message_suppressions`、正規化した宛先 = 前後の空白を外して小文字の sha256）: required でない連絡は `hard_bounce`・`complaint`・`manual` にいつも従い、`one_click` は範囲（scope）が連絡の種類か `'*'` の時だけ従う。required は `hard_bounce` だけに従う。宛先が複数なら止めた宛先だけを外す
 - 確かめる所: 小さな送信の展開・cron の展開・cron が送る直前（キューに置いた後で止めた人も外す。宛先の 1 つにもう送れた行は sent のまま送り直しをやめる）
 - 外した受信者: 選んだ宛先は `suppressed` + reason `preference` / `suppression` の行、全員・ロール・audiences は行を作らない。どちらも `channel_counts.<経路>.suppressed` に数え、どの経路でも止められた受信者は `recipient_count` から引く（D31）
@@ -494,7 +494,7 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 - `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）。間引きの `throttle_key`・`collapsed_count`（既定 1）・`collapsed_dispatch_ids`（索引 `(user_id, throttle_key)`）
 - `message_inbox_reads` / `message_inbox_read_states`: 個別の既読と全既読のウォーターマーク（notification_reads / notification_read_states と同じ形）
 - `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`。読み書きは「保存されたテンプレート」の節）
-- `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）と種別まるごと（`kind`、null 可）。`UNIQUE NULLS NOT DISTINCT(user_id, category, channel, kind)`（制約 `uq_message_preferences_user_category_channel_kind`、PostgreSQL 15+。書き込みの衝突の先も 4 列 = `MESSAGE_PREFERENCE_CONFLICT_TARGET`）
+- `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）と種別まるごと（`kind`、NOT NULL 既定 `'*'` = 種別まるごとではない）。`UNIQUE(user_id, category, channel, kind)`（素の列の uniqueIndex `uq_message_preferences_user_category_channel_kind`。NULL と NULLS NOT DISTINCT は drizzle-kit の push が往復しないので使わない。書き込みの衝突の先も 4 列 = `MESSAGE_PREFERENCE_CONFLICT_TARGET`）
 - `message_suppressions`: 宛先の停止（`address_hash` = 正規化した宛先の sha256）。`UNIQUE(channel, address_hash, scope)`、`scope` `'*'` = 全種類
 - `message_endpoints`: 端末の帳簿（利用者 × 経路 × 宛先）。`UNIQUE(channel, address)`
 - `message_idempotency_keys`: 保持の cron が回を消す時に冪等の鍵を移す先（回の行は消えるので FK なし）

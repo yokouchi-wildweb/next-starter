@@ -2,15 +2,15 @@
 //
 // 配信停止の表 2 つ（users に列を足さない）。
 // - message_preferences: 利用者が止めた 種類 × 経路（止めた時だけ行。全体は MESSAGE_ALL '*'）。
-//   kind のある行 = 種別まるごとの停止(kind X、category '*'、channel '*'。D71)。kind null の行は今までどおり
-//   一意は (user_id, category, channel, kind) で NULL を同じと見る(NULLS NOT DISTINCT、PostgreSQL 15+)
+//   kind が '*' でない行 = 種別まるごとの停止(kind X、category '*'、channel '*'。D71)。kind '*' の行は種類 × 経路の行(今までどおり)
+//   一意は (user_id, category, channel, kind) の素の列の uniqueIndex(kind は NOT NULL の '*' の印。NULL と NULLS NOT DISTINCT は
+//   drizzle-kit の push が往復しないので使わない)
 // - message_suppressions: 宛先の停止（hard_bounce / complaint / one_click / manual）
 
 import {
   pgTable,
   text,
   timestamp,
-  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -30,8 +30,8 @@ export const MessagePreferenceTable = pgTable(
     category: text("category").notNull(),
     /** 経路の鍵。'*' = すべての経路 */
     channel: text("channel").notNull(),
-    /** 種別まるごとの停止の種別(利用者が止められる種別だけ)。null = 種類 × 経路の行 */
-    kind: text("kind"),
+    /** 種別まるごとの停止の種別(利用者が止められる種別だけ)。'*' = 種別まるごとではない(種類 × 経路の行) */
+    kind: text("kind").notNull().default("*"),
     opted_out_at: timestamp("opted_out_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -46,9 +46,12 @@ export const MessagePreferenceTable = pgTable(
       .defaultNow(),
   },
   (table) => [
-    unique("uq_message_preferences_user_category_channel_kind")
-      .on(table.user_id, table.category, table.channel, table.kind)
-      .nullsNotDistinct(),
+    uniqueIndex("uq_message_preferences_user_category_channel_kind").on(
+      table.user_id,
+      table.category,
+      table.channel,
+      table.kind,
+    ),
   ],
 );
 

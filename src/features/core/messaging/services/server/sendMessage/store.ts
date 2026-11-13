@@ -167,10 +167,10 @@ export const drizzleMessageSendStore: MessageSendStore = {
           inArray(MessagePreferenceTable.user_id, [...userIds]),
           or(eq(MessagePreferenceTable.category, category), eq(MessagePreferenceTable.category, MESSAGE_ALL)),
           inArray(MessagePreferenceTable.channel, [...channels, MESSAGE_ALL]),
-          // kind の行(種別まるごと)は連絡の種別が同じ時だけ当たる。kind null の行は今までどおり
+          // kind の行(種別まるごと)は連絡の種別が同じ時だけ当たる。kind '*' の行は今までどおり
           kind
-            ? or(isNull(MessagePreferenceTable.kind), eq(MessagePreferenceTable.kind, kind))
-            : isNull(MessagePreferenceTable.kind),
+            ? inArray(MessagePreferenceTable.kind, [MESSAGE_ALL, kind])
+            : eq(MessagePreferenceTable.kind, MESSAGE_ALL),
         ),
       );
     return rows;

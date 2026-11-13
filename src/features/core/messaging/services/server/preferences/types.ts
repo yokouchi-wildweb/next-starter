@@ -2,7 +2,7 @@
 
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 
-/** 好みの行(止めた時だけある)。kind のある行 = 種別まるごとの停止(category・channel は '*') */
+/** 好みの行(止めた時だけある)。kind のある行 = 種別まるごとの停止(category・channel は '*')。null = 表の '*'(store が読み替える) */
 export type MessagePreferenceRow = { category: string; channel: string; kind: string | null };
 
 /** 足す行(kind 省略 = null) */
