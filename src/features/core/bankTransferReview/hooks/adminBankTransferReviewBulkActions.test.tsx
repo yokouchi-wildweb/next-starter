@@ -1,17 +1,17 @@
 // 振込レビューの管理一覧の受け口 adminBulkActions の検査。
 // - 生成の一覧(extensions/adminBulkActions)に上流の既定の項目 sendEmail がある
 // - override で enabled: false にした形(生成器が重ねる)は出ない / fork の項目は order で並ぶ(selectBulkActions の上で)
-// - sendEmail は連絡の作成関数 bulkMessageAction の項目で、ボタンを target・選んだ id・今の文言・onDone で描く(ボタンは偽物)
+// - sendEmail は連絡の作成関数 bulkMessageAction の項目で、送るモーダルを bulk(target・選んだ id・今の文言)で描き、送った後に onDone(モーダルは偽物)
 // 実行: pnpm test src/features/core/bankTransferReview/hooks/adminBankTransferReviewBulkActions.test.tsx
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 
 const buttonProps: Record<string, unknown>[] = [];
-// 作成関数の中の部品(AdminBulkSendButton)を偽物にして、渡す props を見る
-mock.module("@/features/core/messaging/components/AdminBulkSend/AdminBulkSendButton", {
+// 作成関数の中の部品(送るモーダル MessageSendModal)を偽物にして、渡す props を見る
+mock.module("@/features/core/messaging/components/MessageSendModal", {
   namedExports: {
-    AdminBulkSendButton: (props: Record<string, unknown>) => {
+    MessageSendModal: (props: Record<string, unknown>) => {
       buttonProps.push(props);
       return null;
     },
@@ -60,18 +60,29 @@ test("sendEmail: 連絡の一括送信のボタンを target bankTransferReview�
     } as never),
   );
   const props = buttonProps.at(-1);
-  assert.deepEqual(props?.ids, ["r1", "r2"]);
-  assert.equal(props?.target, "bankTransferReview");
-  assert.equal(props?.onSuccess, onDone);
-  assert.equal(props?.disabled, false);
-  assert.equal(props?.recordNoun, "振込レビュー");
-  assert.equal(props?.defaultCategory, "operatorDirect");
-  assert.deepEqual(props?.defaults, {
+  const mode = props?.mode as Record<string, unknown>;
+  assert.equal(mode.type, "bulk");
+  assert.deepEqual(mode.recordIds, ["r1", "r2"]);
+  assert.equal(mode.target, "bankTransferReview");
+  assert.equal(mode.recordNoun, "振込レビュー");
+  assert.equal(mode.defaultCategory, "operatorDirect");
+  assert.deepEqual(mode.defaults, {
     inAppTitle: "お振込に関するお知らせ",
     inAppBody:
       "お振込のご確認に関する重要なお知らせをメールにて送付しております。\nお手数をおかけいたしますが、ご確認のほどお願いいたします。",
   });
-  assert.equal(props?.subjectPlaceholder, "例: お振込内容の確認のお願い");
+  assert.equal(props?.label, "メール一斉送信");
+  assert.equal(props?.disabled, false);
+  let done = 0;
+  const onDoneProbe = () => (done += 1);
+  renderToStaticMarkup(
+    createElement(Component, {
+      selection: { selectedIds: ["r1"], selectedRows: [], count: 1, clear: () => {} },
+      onDone: onDoneProbe,
+    } as never),
+  );
+  (buttonProps.at(-1)?.onSent as (sent: unknown) => void)({ kind: "bulk", result: { dispatchId: "b1" } });
+  assert.equal(done, 1, "送った後に onDone");
 });
 
 test("sendEmail: 選択が 0 件ならボタンは押せない", () => {

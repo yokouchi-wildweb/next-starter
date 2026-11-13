@@ -1,16 +1,17 @@
-// 作成関数 bulkMessageAction の検査(ボタンは偽物)。
+// 作成関数 bulkMessageAction の検査(送るモーダルは偽物)。
 // - meta(key・order・lists・enabled・access)はそのまま項目に載る
-// - 部品は選んだ id・options・onDone(onSuccess)でボタンを描き、選択 0 件か options.disabled で押せない
+// - 部品は送るモーダルを bulk の開き方(target・選んだ id・名詞・既定)で描き、選択 0 件か options.disabled で押せない
+// - 送った後は options.onSent(一括の結果)→ onDone(選択の解除・取り直し)
 // 実行: pnpm test src/features/core/messaging/components/AdminBulkSend/bulkMessageAction.test.tsx
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 
-const buttonProps: Record<string, unknown>[] = [];
-mock.module("@/features/core/messaging/components/AdminBulkSend/AdminBulkSendButton", {
+const modalProps: Record<string, unknown>[] = [];
+mock.module("@/features/core/messaging/components/MessageSendModal", {
   namedExports: {
-    AdminBulkSendButton: (props: Record<string, unknown>) => {
-      buttonProps.push(props);
+    MessageSendModal: (props: Record<string, unknown>) => {
+      modalProps.push(props);
       return null;
     },
   },
@@ -39,28 +40,41 @@ test("meta はそのまま項目に載り、部品の名前に key が入る", (
   assert.equal((item.Component as { displayName?: string }).displayName, "bulkMessageAction(notify)");
 });
 
-test("部品は選んだ id・options・onDone でボタンを描く", () => {
-  const onDone = () => {};
+test("送るモーダルを bulk で描き、送った後は onSent → onDone", () => {
+  const events: string[] = [];
   const item = bulkMessageAction(
     { key: "notify" },
-    { target: "shippingRequest", recordNoun: "発送リクエスト", defaultCategory: "operatorDirect", label: "連絡" },
+    {
+      target: "shippingRequest",
+      recordNoun: "発送リクエスト",
+      label: "連絡",
+      defaultCategory: "operatorDirect",
+      defaults: { inAppTitle: "題" },
+      onSent: (result) => events.push(`sent:${result.dispatchId}`),
+    },
   );
-  renderToStaticMarkup(createElement(item.Component, { selection: selection(["a", "b"]), onDone } as never));
-  const props = buttonProps.at(-1);
-  assert.deepEqual(props?.ids, ["a", "b"]);
-  assert.equal(props?.target, "shippingRequest");
-  assert.equal(props?.recordNoun, "発送リクエスト");
-  assert.equal(props?.defaultCategory, "operatorDirect");
-  assert.equal(props?.label, "連絡");
-  assert.equal(props?.onSuccess, onDone);
-  assert.equal(props?.disabled, false);
+  renderToStaticMarkup(createElement(item.Component, { selection: selection(["a", "b"]), onDone: () => events.push("done") } as never));
+  const props = modalProps.at(-1)!;
+  assert.deepEqual(props.mode, {
+    type: "bulk",
+    target: "shippingRequest",
+    recordIds: ["a", "b"],
+    recordNoun: "発送リクエスト",
+    defaults: { inAppTitle: "題" },
+    defaultCategory: "operatorDirect",
+    source: undefined,
+  });
+  assert.equal(props.label, "連絡");
+  assert.equal(props.disabled, false);
+  (props.onSent as (sent: unknown) => void)({ kind: "bulk", result: { dispatchId: "b1" } });
+  assert.deepEqual(events, ["sent:b1", "done"]);
 });
 
 test("選択 0 件か options.disabled なら押せない", () => {
   const item = bulkMessageAction({ key: "notify" }, { target: "t", recordNoun: "記録" });
   renderToStaticMarkup(createElement(item.Component, { selection: selection([]), onDone: () => {} } as never));
-  assert.equal(buttonProps.at(-1)?.disabled, true);
+  assert.equal(modalProps.at(-1)?.disabled, true);
   const off = bulkMessageAction({ key: "notify" }, { target: "t", recordNoun: "記録", disabled: true });
   renderToStaticMarkup(createElement(off.Component, { selection: selection(["a"]), onDone: () => {} } as never));
-  assert.equal(buttonProps.at(-1)?.disabled, true);
+  assert.equal(modalProps.at(-1)?.disabled, true);
 });

@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminDispatchList/index.tsx
 // セクションコンテナ(管理: 送った回の一覧)。絞り込み(期間・定義の鍵・種別・経路・状態)+ 無限スクロール(カーソル)。
-// 行を押すと /admin/messaging/<id>。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+// 行を押すと /admin/messaging/<id>。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
@@ -14,6 +14,9 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 
+import { useGate } from "@/featureGate/client";
+
+import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DISPATCH_STATUS_DISPLAY } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { DispatchRow } from "@/features/core/messaging/components/common/DispatchRow";
 import { useAdminDispatches } from "@/features/core/messaging/hooks/useAdminDispatches";
@@ -54,7 +57,10 @@ function startOf(date: string): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+const NEW_MODE = { type: "new" } as const;
+
 export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchListProps) {
+  const canSend = useGate().enabled("messagingBroadcast");
   // 入力中の値(「絞り込む」で確定)と、確定した絞り込み
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -88,6 +94,11 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
 
   return (
     <Stack space={4}>
+      {canSend ? (
+        <Flex justify="end">
+          <MessageSendModal mode={NEW_MODE} triggerVariant="primary" />
+        </Flex>
+      ) : null}
       <Flex align="end" gap="sm" wrap="wrap" className="rounded-md border border-border bg-card p-3">
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-from" className="text-xs">

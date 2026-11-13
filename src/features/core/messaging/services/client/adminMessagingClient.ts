@@ -27,6 +27,12 @@ import type {
   AdminResendResult,
   AdminRetractResult,
 } from "@/features/core/messaging/services/server/admin/operations";
+import type {
+  AdminSendPreviewInput,
+  AdminSendResult,
+  AdminSendTestInput,
+} from "@/features/core/messaging/services/server/admin/send";
+import type { MessagePreview } from "@/features/core/messaging/services/server/sendMessage/sender";
 import type { ContinueSendingResult } from "@/features/core/messaging/services/server/sweep/sweep";
 
 const BASE = "/api/admin/messaging";
@@ -90,6 +96,26 @@ export async function getAdminBulkSendOptions(): Promise<AdminBulkSendOptions> {
 }
 
 /** 管理の一括送信(選んだカテゴリーの種別の管理の定義。body の category は必須) */
+/** 一括送信のプレビュー(送る画面と同じ中身。門 messagingBroadcast の外) */
+export async function previewAdminBulkMessage(input: AdminSendPreviewInput): Promise<MessagePreview> {
+  try {
+    const res = await axios.post<MessagePreview>(`${BASE}/bulk-send/preview`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "プレビューを作れませんでした");
+  }
+}
+
+/** 一括送信の自分へのテスト送信(宛先 = 操作した管理者。門 messagingBroadcast の外) */
+export async function sendAdminBulkTestMessage(input: AdminSendTestInput): Promise<AdminSendResult> {
+  try {
+    const res = await axios.post<AdminSendResult>(`${BASE}/bulk-send/test`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "テスト送信できませんでした");
+  }
+}
+
 export async function adminBulkSend(input: AdminBulkSendInput): Promise<AdminBulkSendResult> {
   try {
     const res = await axios.post<AdminBulkSendResult>(`${BASE}/bulk-send`, input);

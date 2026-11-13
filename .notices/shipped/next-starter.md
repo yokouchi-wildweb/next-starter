@@ -497,3 +497,4 @@
 - id:20261113-171713-messaging-prefs-page | severity:info | checkpoint:messaging-prefs-page
 - id:20261113-181538-messaging-admin-free-text | severity:breaking | checkpoint:messaging-admin-free-text
 - id:20261113-184839-messaging-templates-text | severity:action-required | checkpoint:messaging-templates-text
+- id:20261113-232517-messaging-send-modal | severity:breaking | checkpoint:messaging-send-modal

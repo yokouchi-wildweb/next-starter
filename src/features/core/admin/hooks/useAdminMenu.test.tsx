@@ -65,7 +65,7 @@ const shape = (menu: AdminMenuBuiltCategory[]) => menu.map((c) => [c.key, c.rows
 
 upstreamTest("全部開いた admin: 上流の 6 カテゴリーと行", () => {
   assert.deepEqual(withRules({}, () => shape(menuFor("admin"))), [
-    ["marketing", ["messagingSend", "messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
+    ["marketing", ["messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
     ["requests", ["bankTransferReviews"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],
     ["users", ["usersGeneral", "usersSystem", "usersDemo", "userTags"]],
@@ -77,7 +77,7 @@ upstreamTest("全部開いた admin: 上流の 6 カテゴリーと行", () => {
 upstreamTest("閉じた規則の住所の行は描かず、行の無いカテゴリーも描かない", () => {
   const menu = withRules({ bankTransferReview: false, chatRoom: false }, () => shape(menuFor("admin")));
   assert.deepEqual(menu, [
-    ["marketing", ["messagingSend", "messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
+    ["marketing", ["messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],
     ["users", ["usersGeneral", "usersSystem", "usersDemo", "userTags"]],
     ["system", ["settingSections", "settingSections"]],
@@ -86,7 +86,7 @@ upstreamTest("閉じた規則の住所の行は描かず、行の無いカテゴ
 
 upstreamTest("ログインしていない・admin でない: ロールの絞りのある行は描かない", () => {
   const expected = [
-    ["marketing", ["messagingSend", "messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
+    ["marketing", ["messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],
     ["community", ["chatRooms"]],
     ["system", ["settingSections", "settingSections"]],
