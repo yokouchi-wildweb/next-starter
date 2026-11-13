@@ -8,8 +8,8 @@
 //   (広い行で止まっているマスは、そのマスを再開しても止まったまま。種別まるごとだけは下の書き分けで再開できる)
 // - 宛先の有無: 経路の自前の引き方(resolveAddresses)か、無ければ端末の帳簿の有効な行(送る側の展開と同じ)
 // - 変える: 行を足す(source = 呼び手の値、既定 "user")/ 消す(その行だけ)。知らない種類・有効でない経路・止められない種別は 400
-// - 種別まるごとの行がある人が種別 X の種類のマスを 1 つ再開する → 1 つの transaction で種別の行を消し、
-//   X のほかの種類は種類まるごとの行、その種類のほかの経路はマスの行に書き分ける(D71)
+// - 広い行(種別まるごと・種類まるごと・経路まるごと)の下でマスを 1 つ再開する → 1 つの transaction で覆う行を消し、
+//   ほかは止まったままにする行に書き分ける(D71、指令 37 の AMENDMENT 1)。全部の行は書き分けない
 // - 種類とグループの受け口は初めて使う時に validateMessageCategories で確かめる(誤りは投げる = 生成と同じ検査を実行時にも)
 
 import {
@@ -157,6 +157,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
         label: channel.label,
         hasAddress: await hasAddress(channel, userId),
         connectHref: href && deps.isHrefOpen(href) ? href : null,
+        optedOut: rows.some((row) => noKind(row) && row.category === MESSAGE_ALL && row.channel === channel.key),
         kinds: kinds.flatMap((kind) => {
           const ofKind = onChannel.filter((category) => category.kind === kind);
           return ofKind.length > 0 ? [{ kind, groups: groupsOf(ofKind, rows, channel.key) }] : [];
@@ -165,13 +166,19 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     }
     return {
       allOptedOut: rows.some((row) => noKind(row) && row.category === MESSAGE_ALL && row.channel === MESSAGE_ALL),
+      // 種類まるごと(種類, '*')の状態は種類ごとに 1 つ(経路ごとに繰り返さない)
+      categories: categories.map((category) => ({
+        key: category.key,
+        optedOut: rows.some((row) => noKind(row) && row.category === category.key && row.channel === MESSAGE_ALL),
+      })),
       kinds: kinds.map((kind) => ({ kind, optedOut: rows.some((row) => isKindRow(row, kind)) })),
       channels: channelDtos,
     };
   }
 
   /**
-   * 1 マス・全体・種別まるごとを止める / 再開する。変えた後の表を返す。
+   * 1 マス・種類まるごと(channel '*')・経路まるごと(category '*')・全体・種別まるごとを止める / 再開する。変えた後の表を返す。
+   * 広い行の下の 1 マスの再開は splitForCell で書き分ける
    * options.source = 書いた入口(既定 user。HTTP の本文からは受けない)
    * @throws DomainError(400) 入力の誤り・知らない種類・有効でない経路・利用者が止められない種別
    */
@@ -200,36 +207,67 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
 
     const { category, channel, optedOut } = value;
     const target = category === MESSAGE_ALL ? null : listedCategories().find((item) => item.key === category);
-    if (category !== MESSAGE_ALL) {
-      if (!target) throw new DomainError(`種類 ${category} はありません`, { status: 400 });
-      if (!activeChannel(deps.channels, channel)) {
-        throw new DomainError(`経路 ${channel} はありません`, { status: 400 });
-      }
+    if (category !== MESSAGE_ALL && !target) {
+      throw new DomainError(`種類 ${category} はありません`, { status: 400 });
+    }
+    if (channel !== MESSAGE_ALL && !activeChannel(deps.channels, channel)) {
+      throw new DomainError(`経路 ${channel} はありません`, { status: 400 });
     }
     if (optedOut) {
       await deps.store.write(userId, { add: [{ category, channel, source }] });
       return getPreferences(userId);
     }
+    // 広い行(カテゴリーまるごと・経路まるごと・全部)の再開はその行だけを消す
+    if (!target || channel === MESSAGE_ALL) {
+      await deps.store.write(userId, { remove: [{ category, channel }] });
+      return getPreferences(userId);
+    }
+    await deps.store.write(userId, splitForCell(await deps.store.listOwn(userId), target, channel, source));
+    return getPreferences(userId);
+  }
 
-    const remove: MessagePreferenceKey[] = [{ category, channel }];
-    const add: MessagePreferenceAdd[] = [];
-    if (target) {
-      const rows = await deps.store.listOwn(userId);
-      if (rows.some((row) => isKindRow(row, target.kind))) {
-        // 種別まるごとの行を書き分ける(D71): 再開するマスのほかは止まったまま
-        remove.push({ category: MESSAGE_ALL, channel: MESSAGE_ALL, kind: target.kind });
-        for (const other of listedCategories()) {
-          if (other.kind === target.kind && other.key !== target.key) {
-            add.push({ category: other.key, channel: MESSAGE_ALL, source });
-          }
-        }
-        for (const otherChannel of target.channels) {
-          if (otherChannel !== channel) add.push({ category: target.key, channel: otherChannel, source });
-        }
+  /**
+   * 1 マス(target × channel)を再開する書き込み(1 つの transaction)。和の判定で許可の行は無いので、そのマスを覆う広い行を消し、
+   * そのマスのほかは止まったままにする行を足す(D71 と同じ書き分け)。全部('*' '*')は書き分けない(via all で止まったまま)
+   * - 種別まるごと → 同じ種別のほかの種類の種類まるごと + この種類のほかの経路のマス
+   * - 種類まるごと(target, '*')→ この種類のほかの経路のマス
+   * - 経路まるごと('*', channel)→ この経路を持つほかの種類のマス
+   */
+  function splitForCell(
+    rows: readonly MessagePreferenceRow[],
+    target: MessageCategory,
+    channel: string,
+    source: string,
+  ): { remove: MessagePreferenceKey[]; add: MessagePreferenceAdd[] } {
+    const remove: MessagePreferenceKey[] = [{ category: target.key, channel }];
+    const adds = new Map<string, MessagePreferenceAdd>();
+    const add = (category: string, ch: string) => {
+      if (category === target.key && ch === channel) return;
+      adds.set(`${category}|${ch}`, { category, channel: ch, source });
+    };
+    const has = (category: string, ch: string) =>
+      rows.some((row) => noKind(row) && row.category === category && row.channel === ch);
+    const otherChannelsOfTarget = () => {
+      for (const ch of target.channels) add(target.key, ch);
+    };
+    if (rows.some((row) => isKindRow(row, target.kind))) {
+      remove.push({ category: MESSAGE_ALL, channel: MESSAGE_ALL, kind: target.kind });
+      for (const other of listedCategories()) {
+        if (other.kind === target.kind && other.key !== target.key) add(other.key, MESSAGE_ALL);
+      }
+      otherChannelsOfTarget();
+    }
+    if (has(target.key, MESSAGE_ALL)) {
+      remove.push({ category: target.key, channel: MESSAGE_ALL });
+      otherChannelsOfTarget();
+    }
+    if (has(MESSAGE_ALL, channel)) {
+      remove.push({ category: MESSAGE_ALL, channel });
+      for (const other of listedCategories()) {
+        if (other.key !== target.key && other.channels.includes(channel)) add(other.key, channel);
       }
     }
-    await deps.store.write(userId, { remove, add });
-    return getPreferences(userId);
+    return { remove, add: [...adds.values()] };
   }
 
   return { getPreferences, setPreference };

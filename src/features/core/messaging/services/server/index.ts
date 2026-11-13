@@ -23,6 +23,7 @@ export { deletePreferencesOfUser, getMessagePreferences, setMessagePreference } 
 export type {
   MessagePreferenceCategoryDto,
   MessagePreferenceCategoryRowDto,
+  MessagePreferenceCategoryStopDto,
   MessagePreferenceCellDto,
   MessagePreferenceChannelDto,
   MessagePreferenceGroupDto,

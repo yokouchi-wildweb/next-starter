@@ -39,7 +39,7 @@ mock.module("@/featureGate", {
 });
 
 const calls: { fn: string; userId: string; input?: unknown; options?: unknown }[] = [];
-const grid = { allOptedOut: false, kinds: [], channels: [] };
+const grid = { allOptedOut: false, categories: [], kinds: [], channels: [] };
 mock.module("@/features/core/messaging/services/server", {
   namedExports: {
     messagingService: {
@@ -83,6 +83,18 @@ test("PATCH: body を本人の変更として渡し、変えた後の表を返�
   assert.equal(res.status, 200);
   assert.equal((await res.json()).preferences.allOptedOut, true);
   assert.deepEqual(calls, [{ fn: "set", userId: "u1", input: body }]);
+});
+
+test("PATCH: 種類まるごと・経路まるごとの body もそのまま本人の変更として渡す", async () => {
+  for (const body of [{ category: "marketing", channel: "*", optedOut: true }, { category: "*", channel: "email", optedOut: false }]) {
+    calls.length = 0;
+    const res = await PATCH(
+      new NextRequest(URL_, { method: "PATCH", headers: { "x-test-user": "u1" }, body: JSON.stringify(body) }),
+      ctx,
+    );
+    assert.equal(res.status, 200);
+    assert.deepEqual(calls, [{ fn: "set", userId: "u1", input: body }]);
+  }
 });
 
 test("PATCH: 壊れた JSON は null を渡す(service が 400 にする)", async () => {
