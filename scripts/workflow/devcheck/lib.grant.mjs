@@ -14,7 +14,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { KIND_NAMES, POLICY_KEYS } from "./lib.kinds.mjs";
+import { consumePermit, PERMIT_FILE, readPermit } from "./lib.allow.mjs";
+import { DANGER_NAMES, KIND_NAMES, POLICY_KEYS, switchOf } from "./lib.kinds.mjs";
 
 export const GRANT_ENV = "DEVCHECK_GRANT";
 export const GRANT_ON = "on";
@@ -293,13 +294,15 @@ const SCRIPT_RUNNERS = [...PACKAGE_RUNNERS, "node", "tsx", "deno"];
 const isProdEnvPath = (/** @type {string} */ p) => /^\.env\.production/.test(path.basename(p.replace(/['"]/g, "")));
 /** 書く物を守るファイル: 本番の env と repo.json(方針の置き場。書くのは pnpm workflow repo-json set と /repo-policy だけ) */
 const isRepoJsonPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === "repo.json";
-const isGuardedPath = (/** @type {string} */ p) => isProdEnvPath(p) || isRepoJsonPath(p);
+/** 1 回分の許可の記録(書くのは pnpm workflow devcheck allow だけ) */
+const isPermitPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === path.basename(PERMIT_FILE);
+const isGuardedPath = (/** @type {string} */ p) => isProdEnvPath(p) || isRepoJsonPath(p) || isPermitPath(p);
 /** 守るファイルへの書き込みの止め(理由と人がすること) */
 const guardedDeny = (/** @type {string} */ p) => {
   const name = path.basename(String(p).replace(/^of=/, "").replace(/['"]/g, ""));
-  return isRepoJsonPath(name)
-    ? deny("repo.json(名前・段・方針)は直接書き換えない", "pnpm workflow repo-json set <鍵> <値> か /repo-policy")
-    : deny(`本番の env(${name})はエージェントが書かない`, `エディタで ${name} を直す`);
+  if (isRepoJsonPath(name)) return deny("repo.json(名前・段・方針)は直接書き換えない", "pnpm workflow repo-json set <鍵> <値> か /repo-policy");
+  if (isPermitPath(name)) return deny("1 回分の許可の記録は直接書き換えない", "/allow <スイッチ名>");
+  return deny(`本番の env(${name})はエージェントが書かない`, `エディタで ${name} を直す`);
 };
 
 // ---- 1. 固定の止め ------------------------------------------------------------------------
@@ -399,6 +402,8 @@ export const classifyBash = (command, itemKind) => {
   if (a === "workflow" && b === "devcheck") {
     if (["plan", "status"].includes(c) && rest.slice(3).every((w) => w === "--json")) return { kind: "devcheck", always: true };
     if (c === "cleanup" && rest.length === 3) return { kind: "devcheck", always: true };
+    // danger = 読むだけ(今その危険な種類にできること)。allow(1 回分の許可を書く)は通さない = 普段どおり聞かれる(人に見える)
+    if (c === "danger" && rest.length === 4 && /^[a-z]+$/.test(rest[3])) return { kind: "devcheck", always: true };
     if (c === "run" && rest[3]) {
       const name = rest[3];
       const manualGo = rest.slice(4).includes("--manual-go");
@@ -425,6 +430,9 @@ export const classifyBash = (command, itemKind) => {
  * @typedef {{
  *   grant: boolean;
  *   policy: () => Record<string, string>;
+ *   entries?: () => Record<string, Record<string, string>>;
+ *   permit?: () => { switches: string[] } | null;
+ *   consume?: (sw: string) => void;
  *   itemKind: (name: string) => string | null;
  *   devOrigin: () => string | null;
  *   lastPage: () => string | null;
@@ -472,7 +480,72 @@ export const classifyBrowser = (req, deps) => {
  * @param {Request} req @param {Deps} deps
  * @returns {Decision | null}
  */
+/** 打った命令(引用符を外した語を空白 1 つでつなぐ)。シェルの記号があれば null */
+const plainCommand = (/** @type {string} */ command) => {
+  if (hasShellSymbols(command)) return null;
+  const words = shellWords(command.trim());
+  return words && words.length ? words.join(" ") : null;
+};
+
+/**
+ * 危険な種類の入口の命令の形(許可の 1 回で通す形)。consumes = その形で許可を使い切るか
+ * @param {string} kind @param {Record<string, string>} entry
+ * @returns {{ command: string, consumes: boolean }[]}
+ */
+export const dangerForms = (kind, entry) => {
+  const forms = [];
+  const e = entry.entry;
+  if (e && e !== "-") {
+    forms.push({ command: e, consumes: true });
+    if (kind === "deploy" && e === "pnpm live") forms.push({ command: `${e} -- --confirm=production`, consumes: true });
+  }
+  if (kind === "deploy" && entry.db_entry && entry.db_entry !== "-") {
+    forms.push({ command: entry.db_entry, consumes: false }, { command: `${entry.db_entry} --confirm=production`, consumes: false });
+  }
+  return forms.map((f) => ({ ...f, command: (shellWords(f.command) ?? [f.command]).join(" ") }));
+};
+
+/**
+ * 1 回分の許可の道(fixedStop の前の 1 か所、D123): 方針が manual で、そのスイッチの許可がある時だけ通し、使ったら消す。
+ * 印(DEVCHECK_GRANT)は要らない(人の 1 回の言葉だから)。当たらなければ null
+ * @param {Request} req @param {Deps} deps
+ * @returns {Decision | null}
+ */
+export const permitDecision = (req, deps) => {
+  if (req.tool !== "Bash" || typeof req.command !== "string" || !deps.permit) return null;
+  const permit = deps.permit();
+  if (!permit || permit.switches.length === 0) return null;
+  const command = plainCommand(req.command);
+  if (!command) return null;
+  const policy = deps.policy();
+  const entries = deps.entries ? deps.entries() : {};
+  for (const kind of DANGER_NAMES) {
+    const sw = switchOf(kind);
+    if (policy[kind] !== "manual" || !sw || !permit.switches.includes(sw)) continue;
+    const form = dangerForms(kind, entries[kind] ?? {}).find((f) => f.command === command);
+    if (!form) continue;
+    if (form.consumes) deps.consume?.(sw);
+    return { decision: "allow", reason: `devcheck の 1 回の許可: ${sw}(${kind}=manual)` };
+  }
+  const match = classifyBash(req.command, deps.itemKind);
+  if (match && !match.always && match.manualGo && policy[match.kind] === "manual") {
+    const sw = switchOf(match.kind);
+    if (sw && permit.switches.includes(sw)) {
+      deps.consume?.(sw);
+      return { decision: "allow", reason: `devcheck の 1 回の許可: ${sw}(${match.kind}=manual)` };
+    }
+  }
+  return null;
+};
+
+/**
+ * 判定の本体。deny / allow / null(何も返さない)
+ * @param {Request} req @param {Deps} deps
+ * @returns {Decision | null}
+ */
 export const decide = (req, deps) => {
+  const permitted = permitDecision(req, deps);
+  if (permitted) return permitted;
   const stop = fixedStop(req);
   if (stop) return stop;
   if (!deps.grant) return null;
@@ -482,11 +555,11 @@ export const decide = (req, deps) => {
   else if (req.tool.startsWith(BROWSER_PREFIX)) match = classifyBrowser(req, deps);
   if (!match) return null;
   const policy = deps.policy();
-  // devcheck の入口(plan / status / cleanup)は種類を持たない: どれかの種類が off でない間だけ通す
+  // devcheck の入口(plan / status / cleanup・allow / danger)は種類を持たない: どれかの種類が off でない間だけ通す
   // (全体のスイッチ enabled:false = 全部 off → 印の道では何も通さない、D103)
   if (match.always) return POLICY_KEYS.some((k) => policy[k] !== undefined && policy[k] !== "off") ? { decision: "allow", reason: "devcheck の許可: 印あり・devcheck の入口" } : null;
-  const value = policy[match.kind];
-  if (value === "auto" || (value === "manual" && match.manualGo)) return { decision: "allow", reason: `devcheck の許可: 印あり・方針 ${match.kind}=${value}` };
+  // manual は印の道では通さない(1 回分の許可の道だけ)
+  if (policy[match.kind] === "auto") return { decision: "allow", reason: `devcheck の許可: 印あり・方針 ${match.kind}=auto` };
   return null;
 };
 
@@ -503,15 +576,18 @@ const readJsonOrNull = (file) => {
 
 /**
  * 実際の Deps。projectDir = フックの動くチェックアウト / toolDir = この道具のフォルダ(方針・項目)
- * @param {{ projectDir: string; toolDir: string; env: NodeJS.ProcessEnv; policy: Record<string, string> | null }} o
+ * @param {{ projectDir: string; toolDir: string; env: NodeJS.ProcessEnv; policy: Record<string, string> | null; entries?: Record<string, Record<string, string>> | null }} o
  * @returns {Deps}
  */
-export const realDeps = ({ projectDir, toolDir, env, policy }) => ({
+export const realDeps = ({ projectDir, toolDir, env, policy, entries = null }) => ({
   grant: env[GRANT_ENV] === GRANT_ON,
   policy: () => {
     if (!policy) throw new Error("方針が読めない");
     return policy;
   },
+  entries: () => entries ?? {},
+  permit: () => readPermit(projectDir),
+  consume: (sw) => consumePermit(projectDir, sw),
   itemKind: (name) => {
     const data = readJsonOrNull(path.join(toolDir, "items", `${name}.json`));
     return data && typeof data.kind === "string" ? data.kind : null;
@@ -542,6 +618,8 @@ export const toClaudeOutput = (decision) =>
 
 /** 方針が要る判定か(印あり・止めなし・形が当たる時だけ方針を読む = 普段のフックを軽く保つ) */
 export const needsPolicy = (/** @type {Request} */ req, /** @type {Deps} */ deps) => {
+  // 1 回分の許可がある間は Bash の判定に方針と入口が要る(許可の道は fixedStop の前)
+  if (req.tool === "Bash" && deps.permit?.()) return true;
   if (!deps.grant || fixedStop(req)) return false;
   return req.tool === "Bash" || req.tool.startsWith(BROWSER_PREFIX);
 };

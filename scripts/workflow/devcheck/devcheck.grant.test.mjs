@@ -178,7 +178,7 @@ test("印なし → 何も返さない", () => {
   for (const [command] of ALLOWS) assert.equal(verdict(bash(command), fakeDeps({ grant: false })), "none", command);
 });
 
-test("方針 off → 何も返さない(deny にしない)/ manual → devcheck run … --manual-go だけ", () => {
+test("方針 off → 何も返さない(deny にしない)/ manual → 印の道では通さない(1 回分の許可の道だけ)", () => {
   for (const [command, kind] of ALLOWS) {
     if (!kind) continue;
     const off = fakeDeps({ policy: () => ({ ...ALL_AUTO, [kind]: "off" }) });
@@ -187,8 +187,8 @@ test("方針 off → 何も返さない(deny にしない)/ manual → devcheck 
     assert.equal(verdict(bash(command), manual), "none", command);
   }
   const manual = fakeDeps({ policy: () => ({ ...ALL_AUTO, "db-write": "manual" }) });
-  assert.equal(verdict(bash('pnpm workflow devcheck run db-write "INSERT INTO t (a) VALUES (1) RETURNING id" --manual-go'), manual), "allow");
-  assert.equal(verdict(bash("pnpm workflow devcheck run seed-shop --manual-go"), manual), "allow");
+  assert.equal(verdict(bash('pnpm workflow devcheck run db-write "INSERT INTO t (a) VALUES (1) RETURNING id" --manual-go'), manual), "none");
+  assert.equal(verdict(bash("pnpm workflow devcheck run seed-shop --manual-go"), manual), "none");
   // devcheck の入口(plan / status / cleanup)は種類の方針を見ない(どれかが off でなければ通す)
   const mostlyOff = fakeDeps({ policy: () => ({ ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])), test: "manual" }) });
   assert.equal(verdict(bash("pnpm workflow devcheck cleanup"), mostlyOff), "allow");
@@ -288,6 +288,75 @@ test("方針の全体のスイッチ enabled:false(D103): 印があっても all
   for (const command of STOPS) assert.equal(verdict(bash(command), off), "deny", command);
   for (const command of ["pnpm workflow devcheck plan", "pnpm workflow devcheck status --json", "pnpm workflow devcheck cleanup"]) assert.equal(verdict(bash(command), off), "none", command);
   assert.equal(verdict(pw("navigate", { url: DEV }), off), "none");
+});
+
+// ---- 1 回分の許可(/allow) --------------------------------------------------------------------------
+
+const ENTRIES = { db_push: { entry: "pnpm db:push" }, env_production: { entry: "-" }, deploy: { entry: "pnpm live", db_entry: "pnpm db:push -- --env production" } };
+/** 1 回分の許可を持つ偽の Deps(consume でスイッチが消える) */
+const permitDeps = (switches, policyOver = {}, over = {}) => {
+  let held = [...switches];
+  return fakeDeps({
+    grant: false,
+    policy: () => ({ ...ALL_AUTO, db_push: "off", env_production: "off", deploy: "off", ...policyOver }),
+    entries: () => ENTRIES,
+    permit: () => (held.length ? { switches: held } : null),
+    consume: (sw) => {
+      held = held.filter((s) => s !== sw);
+    },
+    held: () => held,
+    ...over,
+  });
+};
+
+test("1 回分の許可: 危険な種類は manual + そのスイッチの許可がある時だけ入口を通し、使ったら消える。印は要らない", () => {
+  const deps = permitDeps(["dbp"], { db_push: "manual" });
+  assert.equal(verdict(bash("pnpm db:push"), deps), "allow");
+  assert.deepEqual(deps.held(), []);
+  assert.equal(verdict(bash("pnpm db:push"), deps), "deny"); // 2 回目は固定の止め
+  // 許可が無い・別のスイッチ・方針 off / auto(auto は危険な種類では off)
+  assert.equal(verdict(bash("pnpm db:push"), permitDeps([], { db_push: "manual" })), "deny");
+  assert.equal(verdict(bash("pnpm db:push"), permitDeps(["dep"], { db_push: "manual", deploy: "manual" })), "deny");
+  assert.equal(verdict(bash("pnpm db:push"), permitDeps(["dbp"], { db_push: "off" })), "deny");
+  // 入口と違う形(つなぐ・余計な引数・本番の指定)は通さない
+  for (const command of ["pnpm db:push && echo x", "pnpm db:push --force", "pnpm db:push -- --env production", "FOO=1 pnpm db:push"]) {
+    assert.equal(verdict(bash(command), permitDeps(["dbp"], { db_push: "manual" })), "deny", command);
+  }
+});
+
+test("1 回分の許可: deploy は本番の DB の反映(db_entry、許可は残る)→ pnpm live(--confirm=production つき、許可を使い切る)", () => {
+  const deps = permitDeps(["dep"], { deploy: "manual" });
+  assert.equal(verdict(bash("pnpm db:push -- --env production --confirm=production"), deps), "allow");
+  assert.deepEqual(deps.held(), ["dep"]);
+  assert.equal(verdict(bash("pnpm live -- --confirm=production"), deps), "allow");
+  assert.deepEqual(deps.held(), []);
+  assert.equal(verdict(bash("pnpm live -- --confirm=production"), deps), "deny");
+  // dbp の許可で本番の DB は通らない(db_push は開発の DB だけ)
+  assert.equal(verdict(bash("pnpm db:push -- --env production --confirm=production"), permitDeps(["dbp"], { db_push: "manual" })), "deny");
+  // fork の入口に差し替え(88-base・TriQ の自前のデプロイ)
+  const custom = permitDeps(["dep"], { deploy: "manual" }, { entries: () => ({ ...ENTRIES, deploy: { entry: "pnpm deploy:vercel", db_entry: "-" } }) });
+  assert.equal(verdict(bash("pnpm live -- --confirm=production"), custom), "deny"); // 上流の形は差し替えた fork では固定の止めのまま
+  assert.equal(verdict(bash("pnpm deploy:vercel"), custom), "allow");
+  // env_production は上流の入口なし = 何も通らない、fork の入口なら通る
+  const envFork = permitDeps(["evp"], { env_production: "manual" }, { entries: () => ({ ...ENTRIES, env_production: { entry: "pnpm ops env push-production" } }) });
+  assert.equal(verdict(bash("pnpm ops env push-production"), envFork), "allow");
+});
+
+test("1 回分の許可: 通常の manual の種類は devcheck run <種類> … --manual-go を許可の時だけ(使ったら消える)", () => {
+  const deps = permitDeps(["dw"], { "db-write": "manual" });
+  const run = 'pnpm workflow devcheck run db-write "INSERT INTO t (a) VALUES (1) RETURNING id" --manual-go';
+  assert.equal(verdict(bash(run), deps), "allow");
+  assert.equal(verdict(bash(run), deps), "none");
+  assert.equal(verdict(bash(run.replace(" --manual-go", "")), permitDeps(["dw"], { "db-write": "manual" })), "none");
+  assert.equal(verdict(bash("pnpm workflow devcheck run seed-shop --manual-go"), permitDeps(["dw"], { "db-write": "manual" })), "allow");
+});
+
+test("1 回分の許可の記録の直接の書き換えは止め、devcheck allow は通さない(普段どおり聞かれる)、danger は読むだけで通す", () => {
+  assert.equal(verdict({ tool: "Write", file: "/repo/.agent/devcheck-allow.json" }, fakeDeps({ grant: false })), "deny");
+  assert.equal(fixedStop(bash(`echo '{"switches":["dbp"]}' > .agent/devcheck-allow.json`))?.decision, "deny");
+  assert.equal(verdict(bash("pnpm workflow devcheck allow dbp")), "none");
+  assert.equal(verdict(bash("pnpm workflow devcheck danger dbp")), "allow");
+  assert.equal(fixedStop(bash("cat .agent/devcheck-allow.json")), null);
 });
 
 // ---- 壊れた時・入力の変換・方針 ------------------------------------------------------------------
@@ -411,8 +480,17 @@ test("hook.mjs: 方針はプロジェクトの repo.json の agent.*。壊れた
     repo({ "agent.enabled": "no" });
     assert.equal(run("pnpm test x").stdout, "");
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
-    // 危険な 3 つを manual にしても、この指令ではフックは止めたまま(1 回分の許可は後の指令)
+    // 危険な 3 つを manual にしても、許可が無ければ止めたまま。許可があれば 1 回だけ通り、prompt(人の入力)で消える
     repo({ "agent.db_push": "manual" });
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
+    mkdirSync(path.join(dir, ".agent"), { recursive: true });
+    writeFileSync(path.join(dir, ".agent/devcheck-allow.json"), JSON.stringify({ v: 1, switches: ["dbp"], words: "", at: "x" }));
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"allow"/);
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
+    writeFileSync(path.join(dir, ".agent/devcheck-allow.json"), JSON.stringify({ v: 1, switches: ["dbp"], words: "", at: "x" }));
+    const prompt = spawnSync(process.execPath, [HOOK, "prompt"], { input: JSON.stringify({ prompt: "次へ" }), encoding: "utf8", env: { PATH: process.env.PATH, CLAUDE_PROJECT_DIR: dir } });
+    assert.equal(prompt.status, 0);
+    assert.equal(prompt.stdout, "");
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

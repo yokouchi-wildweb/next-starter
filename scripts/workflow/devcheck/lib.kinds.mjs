@@ -57,6 +57,26 @@ export const DANGER_KINDS = {
 export const DANGER_NAMES = Object.keys(DANGER_KINDS);
 export const DANGER_VALUES = ["off", "manual"];
 
+/**
+ * 打つための呼び名(スイッチ名、D126)。/allow <スイッチ名…> と devcheck allow / danger が使う。種類 ↔ repo.json の鍵は policyKeyOf
+ */
+export const SWITCHES = {
+  sv: "server",
+  br: "browser",
+  lg: "login",
+  dw: "db-write",
+  dd: "db-delete",
+  ea: "env-add",
+  ts: "test",
+  ck: "check",
+  pr: "peer",
+  dbp: "db_push",
+  evp: "env_production",
+  dep: "deploy",
+};
+/** 種類 → スイッチ名 */
+export const switchOf = (kind) => Object.keys(SWITCHES).find((sw) => SWITCHES[sw] === kind) ?? null;
+
 /** 方針の全体のスイッチ(D103)。false = 全部の種類(peer・危険な 3 つも)を off とみなす(種類ごとの値より強い)。無い = true */
 export const POLICY_SWITCH = "enabled";
 
@@ -133,3 +153,16 @@ export const readAgentPolicy = async (root) => {
  * @returns {Promise<Record<string, string>>}
  */
 export const loadPolicy = async (root) => (await readAgentPolicy(root)).policy;
+
+/** 種類の人が打つ命令(off の 1 行に出す)。危険な 3 つは入口、ほかは KINDS の形 */
+export const humanCommandOf = (kind, entries) => {
+  if (DANGER_NAMES.includes(kind)) {
+    const e = entries?.[kind]?.entry ?? DANGER_KINDS[kind].entries.entry;
+    return e === "-" ? "(上流の入口なし。人が手で行う)" : kind === "deploy" ? `${e}(本番の DB の反映が要るなら先に ${entries?.deploy?.db_entry ?? DANGER_KINDS.deploy.entries.db_entry})` : e;
+  }
+  return KINDS[kind]?.command ?? "(エージェントの道具で行う種類)";
+};
+
+/** off の時の 1 行(D125): 実行せず人に頼む */
+export const offLine = (kind, entries) =>
+  `${kind} は方針で off: 人が打つなら ${humanCommandOf(kind, entries)}、任せるなら /repo-policy で ${policyKeyOf(kind)} を manual に`;

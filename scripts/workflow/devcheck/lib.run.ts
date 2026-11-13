@@ -10,6 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { offLine, switchOf } from "./lib.kinds.mjs";
 import { DevcheckError, KIND_NAMES, serverCommand, type Context, type Item, type KindName, type Policy, type PolicyValue } from "./lib";
 
 /** 打つコマンド 1 つの結果 */
@@ -36,9 +37,9 @@ export const resolveRunTarget = (name: string, items: Item[]): Target => {
 };
 
 /** 方針で通すか: off = 手で(この命令はしない)、manual = 別の go の印 --manual-go が要る。通らなければ理由 */
-export const policyRefusal = (policy: PolicyValue, manualGo: boolean, name: string): string | null => {
-  if (policy === "off") return `${name}: 方針で off — この命令はしない(手で)`;
-  if (policy === "manual" && !manualGo) return `${name}: 方針で manual — この項目だけ別に go を取ってから --manual-go を付ける`;
+export const policyRefusal = (policy: PolicyValue, manualGo: boolean, name: string, kind: string = name): string | null => {
+  if (policy === "off") return `${name}: ${offLine(kind, {})}`;
+  if (policy === "manual" && !manualGo) return `${name}: 方針で manual — 人の /allow ${switchOf(kind) ?? "<スイッチ名>"}(か言葉の許可)の後に --manual-go を付ける`;
   return null;
 };
 
