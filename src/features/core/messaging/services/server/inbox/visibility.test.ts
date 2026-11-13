@@ -54,6 +54,15 @@ test("共有の行は見る人の inApp の好みで隠す('*' を含む)。取�
   assert.equal(visible((f) => { stop("news", "inApp")(f); f.item.userId = "u1"; }), true);
 });
 
+test("種別まるごとの行(kind、'*' '*')は同じ種別の共有の行だけを隠す。kind の無い前の回には当たらない", () => {
+  const kindStop = (kind: string) => (f: VisibilityFacts) => (f.viewer.optOuts = [{ category: "*", channel: "*", kind }]);
+  assert.equal(visible(kindStop("marketing")), false);
+  assert.equal(visible(kindStop("activity")), true);
+  assert.equal(visible((f) => { kindStop("marketing")(f); f.dispatch.kind = null; }), true);
+  // kind の無い '*' '*' は今までどおり全部を隠す
+  assert.equal(visible((f) => { f.viewer.optOuts = [{ category: "*", channel: "*", kind: null }]; f.dispatch.kind = "activity"; }), false);
+});
+
 test("既読 = 個別の既読の行 か 公開の時刻 ≤ watermark", () => {
   const publishedAt = new Date("2026-11-10T00:00:00Z");
   assert.equal(isRead({ hasReadRow: true, publishedAt, watermark: null }), true);

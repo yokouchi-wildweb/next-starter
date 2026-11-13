@@ -161,11 +161,13 @@ export type MessageSendStore = {
   /** 全員・ロールの利用者の数(listUserIds と同じ条件。管理の送信の見込み) */
   countUserIds: (filter: { roles?: readonly string[] }) => Promise<number>;
   /**
-   * 配信停止の好みの行(利用者 × (種類 か '*') × (経路 か '*'))。channel が '*' の行はそのまま '*' で返す
+   * 配信停止の好みの行(利用者 × (種類 か '*') × (経路 か '*')、kind は null か連絡の種別)。channel が '*' の行はそのまま '*' で返す
+   * (種別まるごとの行 = kind X・'*'・'*' は種別 X の連絡の全経路に当たる)
    */
   findOptOuts: (
     userIds: readonly string[],
     category: string,
+    kind: string | null,
     channels: readonly string[],
   ) => Promise<{ userId: string; channel: string }[]>;
   /** 宛先の停止の行(経路 × address_hash) */

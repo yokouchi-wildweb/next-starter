@@ -39,7 +39,8 @@ export type MemoryStore = MessageSendStore & {
   endpoints: { userId: string; channel: string; address: string }[];
   /** touchEndpoints の呼び出し(経路・宛先・時刻) */
   endpointTouches: { channel: string; entries: { userId: string; address: string }[]; at: Date }[];
-  preferences: { userId: string; category: string; channel: string }[];
+  /** kind のある行 = 種別まるごとの停止(category・channel は '*')。省略 = null */
+  preferences: { userId: string; category: string; channel: string; kind?: string | null }[];
   suppressions: { channel: string; addressHash: string; reason: string; scope: string }[];
   /** 書かれた内部の事件(本物は同じ取引で message_events へ) */
   events: MessageEventRowInsert[];
@@ -56,11 +57,12 @@ export function createMemoryStore(): MemoryStore {
     preferences: [],
     suppressions: [],
     events: [],
-    async findOptOuts(userIds, category, channels) {
+    async findOptOuts(userIds, category, kind, channels) {
       return store.preferences
         .filter(
           (row) =>
             userIds.includes(row.userId) &&
+            ((row.kind ?? null) === null || row.kind === kind) &&
             (row.category === category || row.category === "*") &&
             (channels.includes(row.channel) || row.channel === "*"),
         )

@@ -8,14 +8,15 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 import type {
-  MessagePreferenceCategoryDto,
+  MessagePreferenceCategoryRowDto,
   MessagePreferenceChannelDto,
 } from "@/features/core/messaging/services/client/preferenceClient";
 
 import { PreferenceChannelToggle } from "../PreferenceChannelToggle";
 
 export type PreferenceCategoryRowProps = {
-  category: MessagePreferenceCategoryDto;
+  /** 種類ごとの行(hook useMessagePreferences の categoryRows) */
+  category: MessagePreferenceCategoryRowDto;
   /** 経路の並び(表の列。マスは category.cells から channel で引く) */
   channels: MessagePreferenceChannelDto[];
   /** 変えている最中の経路(押せない) */

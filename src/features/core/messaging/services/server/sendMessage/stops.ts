@@ -2,7 +2,8 @@
 //
 // 配信停止(D35): 好み(message_preferences)と宛先の停止(message_suppressions)で配達の計画を外す。
 // 小さな送信の展開・cron の展開・cron が送る直前に呼ぶ。
-// - 好み: 種別の性質 userStoppable(activity・marketing)で required でない連絡だけ。利用者 × 種類 × 経路、'*' は全部に当たる
+// - 好み: 種別の性質 userStoppable(activity・marketing)で required でない連絡だけ。利用者 × 種類 × 経路、'*' は全部に当たる。
+//   種別まるごとの行(kind = 連絡の種別、'*' '*')も当たる。当たる行が 1 つでもあれば止める(和、許可の行は無い。D71)
 // - 宛先の停止(正規化した宛先の sha256): 種別の性質 addressStop が all の連絡は hard_bounce・complaint・manual にいつも従い、
 //   one_click は範囲(scope)が連絡の種類か '*' の時だけ従う。hardBounce の種別(functional・security)と required は hard_bounce だけ
 // 種別の値で分けない(lib/messaging の MESSAGE_KIND_TRAITS を引く)
@@ -62,7 +63,7 @@ export async function checkStops(
   const optedOut = new Set<string>();
   if (honoursPreferences(context)) {
     const userIds = [...new Set(targets.flatMap((target) => (target.userId ? [target.userId] : [])))];
-    for (const row of await deps.store.findOptOuts(userIds, context.category!, channels)) {
+    for (const row of await deps.store.findOptOuts(userIds, context.category!, context.kind, channels)) {
       optedOut.add(`${row.userId}|${row.channel}`);
     }
   }

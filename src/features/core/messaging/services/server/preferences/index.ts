@@ -1,11 +1,12 @@
 // src/features/core/messaging/services/server/preferences/index.ts
 //
-// 好みの service の結び(本物の部品)。/api/me/messaging/preferences と user の退会の後片付けが呼ぶ。
+// 好みの service の結び(本物の部品)。/api/me/messaging/preferences・user の退会の後片付け・サーバーの呼び手(会員登録の同意など、source を渡す)が呼ぶ。
 
 import { gate } from "@/featureGate";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 
 import { categories } from "../../../extensions/categories";
+import { categoryGroups } from "../../../extensions/categoryGroups";
 import { channels } from "../../../extensions/channels";
 import { drizzleMessageSendStore } from "../sendMessage/store";
 import { createPreferenceService } from "./preferenceService";
@@ -20,6 +21,7 @@ function isHrefOpen(href: string): boolean {
 const service = createPreferenceService({
   store: drizzleMessagePreferenceStore,
   categories,
+  groups: categoryGroups,
   channels,
   findLedgerEndpoints: (channel, userIds) => drizzleMessageSendStore.findActiveEndpoints(channel, userIds),
   isHrefOpen,
@@ -35,6 +37,7 @@ export function deletePreferencesOfUser(userId: string, tx: DbTransaction): Prom
 
 export { createPreferenceService, preferenceVia, PREFERENCE_USER_SOURCE } from "./preferenceService";
 export type { PreferenceService, PreferenceServiceDeps } from "./preferenceService";
-export { SetMessagePreferenceInputSchema } from "./schema";
+export { MessagePreferenceSourceSchema, SetMessagePreferenceInputSchema } from "./schema";
+export { MESSAGE_PREFERENCE_CONFLICT_TARGET } from "./store";
 export type * from "./dto";
-export type { MessagePreferenceRow, MessagePreferenceStore } from "./types";
+export type { MessagePreferenceAdd, MessagePreferenceKey, MessagePreferenceRow, MessagePreferenceStore } from "./types";

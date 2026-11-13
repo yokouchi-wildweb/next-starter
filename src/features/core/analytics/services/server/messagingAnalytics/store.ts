@@ -23,6 +23,7 @@ import {
 import { MessagePreferenceTable, MessageSuppressionTable } from "@/features/core/messaging/entities/preference";
 import { MessageTemplateTable } from "@/features/core/messaging/entities/template";
 import { messagingConfig } from "@/features/core/messaging/config";
+import { PREFERENCE_SIGNUP_SOURCE } from "@/features/core/messaging/constants/preferences";
 
 import { granularityDateExpr } from "../utils/dateRange";
 import type {
@@ -297,7 +298,8 @@ async function unsubscribeCounts(scope: MessagingQueryScope): Promise<Unsubscrib
       category: sql`${P.category}`,
       messageKey: sql`${P.source_message_key}`,
       dispatchId: sql`${P.source_dispatch_id}`,
-      extraWhere: null,
+      // 種別まるごとの行(kind あり、category '*')も数える。登録時の同意なし(source signup)は配信停止ではないので数えない
+      extraWhere: sql`${P.source} <> ${PREFERENCE_SIGNUP_SOURCE}`,
     }),
     unsubscribeRows(scope, {
       table: sql`${Q}`,

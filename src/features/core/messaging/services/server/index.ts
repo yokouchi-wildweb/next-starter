@@ -22,11 +22,16 @@ export type {
 export { deletePreferencesOfUser, getMessagePreferences, setMessagePreference } from "./preferences";
 export type {
   MessagePreferenceCategoryDto,
+  MessagePreferenceCategoryRowDto,
   MessagePreferenceCellDto,
   MessagePreferenceChannelDto,
+  MessagePreferenceGroupDto,
+  MessagePreferenceKindDto,
+  MessagePreferenceKindFrameDto,
   MessagePreferencesDto,
   MessagePreferenceVia,
   SetMessagePreferenceInput,
+  SetMessagePreferenceOptions,
 } from "./preferences";
 /** storage の照合(cron storage-sweep)へ渡すお知らせの画像の紐付け先の有無 */
 export { existingDispatchIds } from "./inbox/dispatchRecords";

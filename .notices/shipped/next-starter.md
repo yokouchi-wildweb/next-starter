@@ -493,3 +493,4 @@
 - id:20261113-005401-messaging-screens | severity:info | checkpoint:messaging-screens | fixes:20261111-143012-messaging-switch, 20261112-124043-messaging-broadcast
 - id:20261113-140750-repo-json | severity:action-required | checkpoint:repo-json
 - id:20261113-141350-messaging-kinds | severity:breaking | checkpoint:messaging-kinds
+- id:20261113-155039-messaging-prefs-kind | severity:action-required | checkpoint:messaging-prefs-kind

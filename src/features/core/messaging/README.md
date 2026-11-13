@@ -194,7 +194,7 @@ await messagingService.sendMessageToMany(campaign, {
 D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵（`categories/` の受け口。上流は `marketing`・`activity`、fork は `categories/<名前>.ts` で足す）。
 
 - 好みに従う連絡 = 種別の性質 `userStoppable`（activity・marketing）で `required` でない連絡。ほかの種別と required は好みを見ない。住所の停止は種別の性質 `addressStop`（functional・security は hard bounce だけ、ほかは苦情・ワンクリック・手作業も）
-- 好み（`message_preferences`、止めた時だけ行）: 利用者 × 種類 × 経路。種類・経路の `'*'`（`MESSAGE_ALL`）は全部に当たる
+- 好み（`message_preferences`、止めた時だけ行）: 利用者 × 種類 × 経路。種類・経路の `'*'`（`MESSAGE_ALL`）は全部に当たる。種別まるごとの行（`kind` X、`'*'` `'*'`）は種別 X の連絡の全種類・全経路に当たる（fork が後から足す種類にも）。`kind` null の行は今までどおり、`kind` のある行は連絡の種別が同じ時だけ当たる。当たる行が 1 つでもあれば止める（和、許可の行・優先の順は無い。D71）。送る口（`findOptOuts` → `checkStops`）・受け取り箱の見え方（`inbox/visibility.ts` の SQL と `isVisible`）・好みの見え方（`preferenceVia`）の 3 か所が同じ判定
 - 宛先の停止（`message_suppressions`、正規化した宛先 = 前後の空白を外して小文字の sha256）: required でない連絡は `hard_bounce`・`complaint`・`manual` にいつも従い、`one_click` は範囲（scope）が連絡の種類か `'*'` の時だけ従う。required は `hard_bounce` だけに従う。宛先が複数なら止めた宛先だけを外す
 - 確かめる所: 小さな送信の展開・cron の展開・cron が送る直前（キューに置いた後で止めた人も外す。宛先の 1 つにもう送れた行は sent のまま送り直しをやめる）
 - 外した受信者: 選んだ宛先は `suppressed` + reason `preference` / `suppression` の行、全員・ロール・audiences は行を作らない。どちらも `channel_counts.<経路>.suppressed` に数え、どの経路でも止められた受信者は `recipient_count` から引く（D31）
@@ -250,20 +250,25 @@ D40・D41。管理者が画面で書く連絡の中身と、その版の履歴�
 
 ## 好みの読み書き（利用者の API /api/me/messaging/preferences）
 
-D35・D45。本人が 種類 × 経路 の好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
+D35・D45・D71。本人が好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
+
+- 止め方は 5 つ: 1 マス（種類 × 経路）・種類まるごと（経路 `'*'`）・種別まるごと（`kind`、`'*'` `'*'`）・経路まるごと（種類 `'*'`）・全部（`'*'` `'*'`）
+- `setMessagePreference(userId, input, { source? })`: `source` = 書いた入口（既定 `user`、会員登録の同意なしは `signup` = `constants/preferences.ts` の `PREFERENCE_SIGNUP_SOURCE`）。サーバーの呼び手だけが渡す（API の本文からは受けない）
 
 - 門: 規則 `messagingPreferences`（`src/featureGate/rules/messagingPreferences.ts`、住所 ページ `/mypage/account/notifications` と API `/api/me/messaging/preferences`、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表 `message_preferences` とワンクリックの受け口は門に関わらず開（domains は持たない）。住所の定数は `constants/preferences.ts`
-- 表 = 種類の受け口のうち利用者が止められる種別（性質 `userStoppable` = activity・marketing）の種類 × 有効な経路の受け口（`enabled: false` の経路は出ない）。マスは開いている経路 ∩ その種類の経路（D86）
-- マスの `optedOut` は送る側（`checkStops` = `findOptOuts`）と同じ判定: そのマス・種類の `'*'`・経路の `'*'`・全体 `'*' '*'` のどれかの行で止まる。`via`（`cell` / `category` / `channel` / `all` / null）はどの行で止まっているか
+- 形 = 経路（有効な経路の受け口、`enabled: false` は出ない）> 種別の枠（利用者が止められる種別 = 性質 `userStoppable` の activity・marketing、`MESSAGE_KINDS` の順）> グループ（受け口 `categoryGroups`、グループの無い種類は `key` null の 1 つで見出しのグループより先、見出しは `order` の順。D82）> 種類（D60・D62）。経路に出る種類 = 種類の経路にその経路がある（列 = 種類の経路 ∩ 開いている経路、D86）。種類の無い経路は `kinds` が空
+- 種類とグループの受け口は初めて使う時に `validateMessageCategories` で確かめる（誤りは投げる。生成の時の `pnpm check extensions` と同じ検査）
+- 種類ごとの `optedOut` は送る側（`checkStops` = `findOptOuts`）と同じ判定: そのマス・種類の `'*'`・種別まるごと・経路の `'*'`・全体 `'*' '*'` のどれかの行で止まる。`via`（`cell` / `category` / `kind` / `channel` / `all` / null）はどの行で止まっているか（この順で先に当たった物）
 - 経路ごとに `hasAddress`（経路の自前の引き方 `resolveAddresses`、無ければ端末の帳簿の有効な行 = 送る側の展開と同じ）と `connectHref`（経路の項目の宣言。サイト内の住所は門で閉じていれば null）。上流は line だけが持つ（LINE の連携の入口 `/api/auth/line/login?redirect_after=<好みのページ>`）。email・inApp は連携の画面が無いので持たない
-- `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, channels[], categories[{ …, cells[] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` → 変えた後の表。全体は `category` と `channel` のどちらも `'*'`（片方だけの `'*'` は 400）。止める = 行を足す（source `user`、既にあれば何もしない）、再開 = そのマスの行だけ消す（広い行で止まるマスは止まったまま、`via` で分かる）。知らない種類・有効でない経路は 400
+- `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, kinds[{ kind, optedOut }], channels[{ key, label, hasAddress, connectHref, kinds[{ kind, groups[{ key, label, categories[{ key, label, description, optedOut, via }] }] }] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` か `{ kind, optedOut }` → 変えた後の表。全体は `category` と `channel` のどちらも `'*'`（片方だけの `'*'` は 400）。止める = 行を足す（既にあれば何もしない）、再開 = その行だけ消す（広い行で止まるマスは止まったまま、`via` で分かる）。知らない種類・有効でない経路・利用者が止められない種別は 400
+- 種別まるごと（`kinds`、`{ kind, optedOut }`）: 上流の既定の画面はスイッチを出さない（D62）。fork は hook の `setKind` で部品を置ける。種別まるごとの行がある人が種別 X の種類の 1 マスを再開すると、1 つの transaction で種別の行を消し、X のほかの種類は種類まるごとの行、その種類のほかの経路（種類の経路の全部）はマスの行に書き分ける（D71）
 - 退会: user の後片付けの項目 `cleanupHandlers/messagingPreferences.ts`（required）が本人の行を全部消す（D38。利用者の削除は FK の cascade でも消える）
 
 ### 通知の設定のページ（`/mypage/account/notifications`）
 
 - client: `services/client/preferenceClient.ts`（`getMessagePreferences` / `setMessagePreference`、axios + `normalizeHttpError`）
-- hook `useMessagePreferences({ enabled? })` → `{ preferences, isLoading, error, retry, setCell(category, channel, receive), setAll(stopAll), pendingKey }`。変更の応答（変えた後の表）を SWR のキャッシュに書く（取り直さない）。`pendingKey` = 変えている最中のマス `<種類>:<経路>`（全体は `*:*`）
-- 部品（core_ui、入口だけを import）: `components/common/PreferenceChannelToggle`（1 マスの切り替え。入 = 受け取る。広い行で止まるマスは切・押せない・理由、宛先の無い経路は「宛先が登録されていません」+ `connectHref` の連携の案内）・`components/common/PreferenceCategoryRow`（種類の題・説明 + 経路ごとの切り替え）・入れ物 `components/MessagePreferences`（`emptyText?`。上に「すべての連絡を止める」、下に種類の行）
+- hook `useMessagePreferences({ enabled? })` → `{ preferences, categoryRows, isLoading, error, retry, setCell(category, channel, receive), setAll(stopAll), setKind(kind, stop), pendingKey }`。変更の応答（変えた後の表）を SWR のキャッシュに書く（取り直さない）。`pendingKey` = 変えている最中のマス `<種類>:<経路>`（全体は `*:*`、種別まるごとは `kind:<種別>`）。`categoryRows` = 入れ子から組み直した種類ごとの行（`categoryRowsOf`、マスは経路の並び。今の既定の画面が読む）
+- 部品（core_ui、入口だけを import）: `components/common/PreferenceChannelToggle`（1 マスの切り替え。入 = 受け取る。広い行で止まるマスは切・押せない・理由（種別まるごと `via` kind は押せて、入にすると書き分け）、宛先の無い経路は「宛先が登録されていません」+ `connectHref` の連携の案内）・`components/common/PreferenceCategoryRow`（種類の題・説明 + 経路ごとの切り替え）・入れ物 `components/MessagePreferences`（`emptyText?`。上に「すべての連絡を止める」、下に種類の行）
 - 種類ごと・経路ごとの `'*'` の行（`via` category / channel）はこのページから戻せない（API は 1 マスと全体だけ）。上流は書かない（ワンクリックの配信停止も 1 マスの行）ので、出るのは fork か手作業で足した時だけ。そのマスは「まとめて止める設定で止まっています」と出して押せなくする
 - ページ: `page.tsx` の 1 行スイッチ → `_screen/MyPageAccountNotificationsScreen.tsx`（題「通知の設定」+ `MessagePreferences`、mypage の layout が UserPage を巻く）+ `_screen/loader.ts`（access authenticated、門が閉なら notFound）
 - マイページのカード: `src/features/core/user/mypageMenu/items/notifications.ts`（order 25「通知の設定」）。門が閉の間は棚の Link が描かない
@@ -489,7 +494,7 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 - `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）。間引きの `throttle_key`・`collapsed_count`（既定 1）・`collapsed_dispatch_ids`（索引 `(user_id, throttle_key)`）
 - `message_inbox_reads` / `message_inbox_read_states`: 個別の既読と全既読のウォーターマーク（notification_reads / notification_read_states と同じ形）
 - `message_templates` / `message_template_versions`: 保存されたテンプレートと版（版は追記だけ、`UNIQUE(template_id, version)`。読み書きは「保存されたテンプレート」の節）
-- `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）。`UNIQUE(user_id, category, channel)`
+- `message_preferences`: 利用者が止めた 種類 × 経路（止めた時だけ行、全体は `'*'`）と種別まるごと（`kind`、null 可）。`UNIQUE NULLS NOT DISTINCT(user_id, category, channel, kind)`（制約 `uq_message_preferences_user_category_channel_kind`、PostgreSQL 15+。書き込みの衝突の先も 4 列 = `MESSAGE_PREFERENCE_CONFLICT_TARGET`）
 - `message_suppressions`: 宛先の停止（`address_hash` = 正規化した宛先の sha256）。`UNIQUE(channel, address_hash, scope)`、`scope` `'*'` = 全種類
 - `message_endpoints`: 端末の帳簿（利用者 × 経路 × 宛先）。`UNIQUE(channel, address)`
 - `message_idempotency_keys`: 保持の cron が回を消す時に冪等の鍵を移す先（回の行は消えるので FK なし）

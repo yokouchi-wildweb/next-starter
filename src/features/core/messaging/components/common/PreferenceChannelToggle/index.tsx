@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/PreferenceChannelToggle/index.tsx
 // 部品(props だけ): 1 つの種類 × 1 つの経路の切り替え(SwitchInput、入 = 受け取る)。
-// 広い行(全体・種類ごと・経路ごと)で止まっているマスは切 + 押せない + 理由。宛先の無い経路は「宛先がありません」+ 連携の案内(connectHref)
+// 広い行(全体・種類ごと・経路ごと)で止まっているマスは切 + 押せない + 理由(種別まるごとは押せる、入にすると書き分ける)。宛先の無い経路は「宛先がありません」+ 連携の案内(connectHref)
 
 "use client";
 
@@ -30,6 +30,8 @@ export type PreferenceChannelToggleProps = {
 export function preferenceLockReason(cell: MessagePreferenceCellDto): string | null {
   if (cell.via === "all") return "すべての連絡を止めています";
   if (cell.via === "category" || cell.via === "channel") return "まとめて止める設定で止まっています";
+  // 種別まるごと: このマスを入にすると上流の処理が書き分ける(D71)ので押せる
+  if (cell.via === "kind") return null;
   return null;
 }
 

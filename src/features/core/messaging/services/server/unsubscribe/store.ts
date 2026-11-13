@@ -7,6 +7,7 @@ import { db } from "@/lib/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
 import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/preference";
+import { MESSAGE_PREFERENCE_CONFLICT_TARGET } from "../preferences/store";
 import type { OneClickStore } from "./recordOneClick";
 
 export const drizzleOneClickStore: OneClickStore = {
@@ -22,10 +23,10 @@ export const drizzleOneClickStore: OneClickStore = {
         source,
         source_message_key: sourceMessageKey,
         source_dispatch_id: sourceDispatchId,
+        // ワンクリックは種類 × 経路の行(kind null)
+        kind: null,
       })
-      .onConflictDoNothing({
-        target: [MessagePreferenceTable.user_id, MessagePreferenceTable.category, MessagePreferenceTable.channel],
-      });
+      .onConflictDoNothing({ target: MESSAGE_PREFERENCE_CONFLICT_TARGET });
     return true;
   },
   async addSuppression({ channel, addressHash, scope, source, sourceMessageKey, sourceDispatchId }) {

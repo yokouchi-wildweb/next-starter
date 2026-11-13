@@ -1,6 +1,6 @@
 // MessagePreferences の検査(jsdom の上で描く。hook と toast は偽物)。
 // - 種類と経路の切り替えを描き、押すと setCell / setAll を呼ぶ
-// - 広い行で止まっているマスは押せず理由を出す / 宛先の無い経路は連携の案内(connectHref)
+// - 広い行で止まっているマスは押せず理由を出す(種別まるごとは押せる)/ 宛先の無い経路は連携の案内(connectHref)
 // 実行: pnpm test src/features/core/messaging/components/MessagePreferences/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -21,12 +21,14 @@ g.IS_REACT_ACT_ENVIRONMENT = true;
 const cells: { category: string; channel: string; receive: boolean }[] = [];
 const alls: boolean[] = [];
 let preferences: unknown = null;
+let categoryRows: unknown[] = [];
 mock.module("@/features/core/messaging/hooks/useMessagePreferences", {
   namedExports: {
     MESSAGE_PREFERENCE_ALL: "*",
     preferenceCellKey: (a: string, b: string) => `${a}:${b}`,
     useMessagePreferences: () => ({
       preferences,
+      categoryRows,
       isLoading: false,
       error: null,
       retry: () => {},
@@ -60,17 +62,20 @@ beforeEach(() => {
   alls.length = 0;
   preferences = {
     allOptedOut: false,
+    kinds: [{ kind: "marketing", optedOut: false }],
     channels: [
-      { key: "email", label: "メール", hasAddress: true, connectHref: null },
-      { key: "line", label: "LINE", hasAddress: false, connectHref: "/api/auth/line/login" },
-    ],
-    categories: [
-      { key: "marketing", label: "お得な情報", description: "キャンペーンのお知らせ", kind: "marketing", cells: [
-        { channel: "email", optedOut: false, via: null },
-        { channel: "line", optedOut: true, via: "category" },
-      ] },
+      { key: "email", label: "メール", hasAddress: true, connectHref: null, kinds: [] },
+      { key: "line", label: "LINE", hasAddress: false, connectHref: "/api/auth/line/login", kinds: [] },
+      { key: "inApp", label: "お知らせ", hasAddress: true, connectHref: null, kinds: [] },
     ],
   };
+  categoryRows = [
+    { key: "marketing", label: "お得な情報", description: "キャンペーンのお知らせ", kind: "marketing", cells: [
+      { channel: "email", optedOut: false, via: null },
+      { channel: "line", optedOut: true, via: "category" },
+      { channel: "inApp", optedOut: true, via: "kind" },
+    ] },
+  ];
 });
 
 const mount = async () => {
@@ -105,6 +110,15 @@ test("広い行で止まっているマスは押せず理由を出す。宛先�
   await view.unmount();
 });
 
+test("種別まるごとで止まっているマスは押せて、入にすると setCell receive true", async () => {
+  const view = await mount();
+  const inApp = switchOf(view.container, "お知らせで受け取る");
+  assert.equal(inApp?.disabled, false);
+  await act(async () => inApp!.click());
+  assert.deepEqual(cells, [{ category: "marketing", channel: "inApp", receive: true }]);
+  await view.unmount();
+});
+
 test("すべての連絡を止める → setAll(true)", async () => {
   const view = await mount();
   await act(async () => switchOf(view.container, "すべての連絡を止める")!.click());
@@ -113,7 +127,8 @@ test("すべての連絡を止める → setAll(true)", async () => {
 });
 
 test("種類が無ければ文言", async () => {
-  preferences = { allOptedOut: false, channels: [], categories: [] };
+  preferences = { allOptedOut: false, kinds: [], channels: [] };
+  categoryRows = [];
   const view = await mount();
   assert.match(view.container.textContent ?? "", /設定できる通知はありません/);
   await view.unmount();

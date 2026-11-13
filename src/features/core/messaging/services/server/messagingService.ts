@@ -81,7 +81,10 @@ export const messagingService = {
   inboxUnreadCount,
   markInboxRead,
   markAllInboxRead,
-  /** 好み: 本人の 種類 × 経路 の表と、1 マス / 全体の停止・再開(/api/me/messaging/preferences が呼ぶ) */
+  /**
+   * 好み: 本人の表(経路 > 種別の枠 > グループ > 種類)と、1 マス / 全体 / 種別まるごと({ kind, optedOut })の停止・再開
+   * (/api/me/messaging/preferences が呼ぶ)。setMessagePreference(userId, input, { source? }) の source は既定 user(会員登録は signup など)
+   */
   getMessagePreferences,
   setMessagePreference,
   /** 管理画面の文言の上書き(/api/admin/messaging/overrides が呼ぶ。service でも管理者を確かめる): 一覧・1 件・欄の保存・既定に戻す */
