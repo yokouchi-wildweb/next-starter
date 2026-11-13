@@ -4,7 +4,7 @@
 // - 止め方は 5 つ: 1 マス(種類 × 経路)・種類まるごと(経路 '*')・種別まるごと(kind X、'*' '*')・経路まるごと(種類 '*')・全部('*' '*')
 // - 表に出す種類 = 利用者が止められる種別(性質 userStoppable)の種類だけ。形は経路 > 種別の枠 > グループ > 種類(dto.ts)
 // - マスの止まり方は送る側(stops.ts checkStops = store.findOptOuts)と同じ: 当たる行が 1 つでもあれば止まる(和、許可の行は無い)。
-//   kind null の行は今までどおり、kind のある行は種類の種別が同じ時だけ当たる。via はどの行で止まっているか
+//   kind null の行(表の '*'。store が読み替える、'*' のままでも同じに読む)は今までどおり、kind のある行は種類の種別が同じ時だけ当たる。via はどの行で止まっているか
 //   (広い行で止まっているマスは、そのマスを再開しても止まったまま。種別まるごとだけは下の書き分けで再開できる)
 // - 宛先の有無: 経路の自前の引き方(resolveAddresses)か、無ければ端末の帳簿の有効な行(送る側の展開と同じ)
 // - 変える: 行を足す(source = 呼び手の値、既定 "user")/ 消す(その行だけ)。知らない種類・有効でない経路・止められない種別は 400
@@ -61,7 +61,7 @@ export function preferenceVia(
   channel: string,
   kind: string | null = null,
 ): MessagePreferenceVia | null {
-  const plain = (c: string, ch: string) => rows.some((row) => (row.kind ?? null) === null && row.category === c && row.channel === ch);
+  const plain = (c: string, ch: string) => rows.some((row) => noKind(row) && row.category === c && row.channel === ch);
   if (plain(category, channel)) return "cell";
   if (plain(category, MESSAGE_ALL)) return "category";
   if (
@@ -79,6 +79,9 @@ export function preferenceVia(
   if (plain(MESSAGE_ALL, MESSAGE_ALL)) return "all";
   return null;
 }
+
+/** 種別まるごとではない行(null か表の '*') */
+const noKind = (row: MessagePreferenceRow) => row.kind === null || row.kind === undefined || row.kind === MESSAGE_ALL;
 
 const isKindRow = (row: MessagePreferenceRow, kind: string) =>
   row.kind === kind && row.category === MESSAGE_ALL && row.channel === MESSAGE_ALL;
@@ -161,7 +164,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       });
     }
     return {
-      allOptedOut: rows.some((row) => (row.kind ?? null) === null && row.category === MESSAGE_ALL && row.channel === MESSAGE_ALL),
+      allOptedOut: rows.some((row) => noKind(row) && row.category === MESSAGE_ALL && row.channel === MESSAGE_ALL),
       kinds: kinds.map((kind) => ({ kind, optedOut: rows.some((row) => isKindRow(row, kind)) })),
       channels: channelDtos,
     };

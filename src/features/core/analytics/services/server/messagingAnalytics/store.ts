@@ -298,7 +298,7 @@ async function unsubscribeCounts(scope: MessagingQueryScope): Promise<Unsubscrib
       category: sql`${P.category}`,
       messageKey: sql`${P.source_message_key}`,
       dispatchId: sql`${P.source_dispatch_id}`,
-      // 種別まるごとの行(kind あり、category '*')も数える。登録時の同意なし(source signup)は配信停止ではないので数えない
+      // 種別まるごとの行(kind が '*' でない、category '*')も数える。登録時の同意なし(source signup)は配信停止ではないので数えない
       extraWhere: sql`${P.source} <> ${PREFERENCE_SIGNUP_SOURCE}`,
     }),
     unsubscribeRows(scope, {

@@ -7,7 +7,7 @@
 //   (利用者の行が無い時は見せない = fail-closed)
 // - 共有の行: 好みに従う回(種別の性質 userStoppable、kind の無い前の回も)で、見る人が inApp か '*' の経路で回の種類か '*' を止めていれば見せない
 //   (共有の行は書く時に好みを当てないので、読む時に当てる)。種別まるごとの行(kind = 回の種別、'*' '*')も当たる(和、D71)。
-//   kind のある行は kind の無い前の回には当たらない
+//   kind '*' の行 = 種別まるごとではない(isVisible の写しは null も同じ)。kind のある行は kind の無い前の回には当たらない
 // 取り下げた回の行は消えているので、ここで外す物は無い
 
 import { sql, type SQL } from "drizzle-orm";
@@ -51,7 +51,7 @@ export function inboxVisibilitySql(viewer: InboxViewer): SQL {
             WHERE ${P.user_id} = ${viewer.userId}
               AND ${P.channel} IN (${IN_APP}, ${MESSAGE_ALL})
               AND (${P.category} = ${MESSAGE_ALL} OR ${P.category} = ${D.category})
-              AND (${P.kind} IS NULL OR ${P.kind} = ${D.kind})
+              AND (${P.kind} = ${MESSAGE_ALL} OR ${P.kind} = ${D.kind})
           )
         )
       )
@@ -79,7 +79,7 @@ export function isVisible({ viewer, item, dispatch, now }: VisibilityFacts): boo
       (row) =>
         (row.channel === IN_APP || row.channel === MESSAGE_ALL) &&
         (row.category === MESSAGE_ALL || row.category === dispatch.category) &&
-        ((row.kind ?? null) === null || row.kind === dispatch.kind),
+        ((row.kind ?? MESSAGE_ALL) === MESSAGE_ALL || row.kind === dispatch.kind),
     );
     if (stopped) return false;
   }

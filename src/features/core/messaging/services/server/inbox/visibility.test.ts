@@ -59,8 +59,9 @@ test("種別まるごとの行(kind、'*' '*')は同じ種別の共有の行だ�
   assert.equal(visible(kindStop("marketing")), false);
   assert.equal(visible(kindStop("activity")), true);
   assert.equal(visible((f) => { kindStop("marketing")(f); f.dispatch.kind = null; }), true);
-  // kind の無い '*' '*' は今までどおり全部を隠す
+  // kind の無い(null・表の '*')'*' '*' は今までどおり全部を隠す
   assert.equal(visible((f) => { f.viewer.optOuts = [{ category: "*", channel: "*", kind: null }]; f.dispatch.kind = "activity"; }), false);
+  assert.equal(visible((f) => { f.viewer.optOuts = [{ category: "*", channel: "*", kind: "*" }]; f.dispatch.kind = null; }), false);
 });
 
 test("既読 = 個別の既読の行 か 公開の時刻 ≤ watermark", () => {

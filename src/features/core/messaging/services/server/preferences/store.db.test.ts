@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/preferences/store.db.test.ts
-// 好みの表の一意(user_id, category, channel, kind、NULL を同じと見る)と書き込みの衝突の先(4 列)の実 DB テスト。
+// 好みの表の一意(user_id, category, channel, kind の素の列。kind は NOT NULL、既定 '*')と書き込みの衝突の先(4 列)の実 DB テスト。
 // 1 つの transaction の中で書いて最後に戻す(開発 DB に行を残さない)。利用者が 1 人もいなければ skip。
-// DATABASE_URL が無ければ全件 skip。kind の列・一意が無ければ失敗する(先に pnpm db:push。指令 36 の push)。
+// DATABASE_URL が無ければ全件 skip。kind の列・一意が無ければ失敗する(先に pnpm db:push。指令 36 の push、J50 の形)。
 // 実行: pnpm test --db src/features/core/messaging/services/server/preferences/store.db.test.ts
 
 import { after, describe, test } from "node:test";
@@ -24,7 +24,7 @@ describe("message_preferences の一意と衝突の先(実 DB、戻す)", { skip
     await (db as unknown as { $client?: { end: () => Promise<void> } }).$client?.end();
   });
 
-  test("kind null の同じ行は 1 つ、kind のある行は別の行(4 列の衝突の先で何もしない)", async (t) => {
+  test("kind '*'(省略 = 既定)の同じ行は 1 つ、kind のある行は別の行(4 列の衝突の先で何もしない)", async (t) => {
     const { db } = await import("@/lib/drizzle");
     const { and, eq } = await import("drizzle-orm");
     const { UserTable } = await import("@/features/core/user/entities/drizzle");
@@ -38,23 +38,29 @@ describe("message_preferences の一意と衝突の先(実 DB、戻す)", { skip
     }
     const category = `__test_${Date.now()}`;
     let counted: number | null = null;
+    let kinds: string[] = [];
     await assert.rejects(
       db.transaction(async (tx) => {
-        const insert = (kind: string | null, cat = category) =>
+        const insert = (kind: string | undefined, cat = category) =>
           tx
             .insert(P)
-            .values({ user_id: user.id, category: cat, channel: "*", kind, source: "test" })
+            .values({ user_id: user.id, category: cat, channel: "*", ...(kind ? { kind } : {}), source: "test" })
             .onConflictDoNothing({ target: MESSAGE_PREFERENCE_CONFLICT_TARGET });
-        await insert(null);
-        await insert(null);
+        await insert(undefined);
+        await insert("*");
         await insert("marketing");
         await insert("marketing");
-        const found = await tx.select({ id: P.id }).from(P).where(and(eq(P.user_id, user.id), eq(P.category, category)));
+        const found = await tx
+          .select({ kind: P.kind })
+          .from(P)
+          .where(and(eq(P.user_id, user.id), eq(P.category, category)));
         counted = found.length;
+        kinds = found.map((row) => row.kind).sort();
         throw new Rollback();
       }),
       Rollback,
     );
     assert.equal(counted, 2);
+    assert.deepEqual(kinds, ["*", "marketing"]);
   });
 });
