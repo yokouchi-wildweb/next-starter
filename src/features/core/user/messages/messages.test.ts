@@ -15,6 +15,7 @@ import { message as earlyRegistrationComplete } from "./earlyRegistrationComplet
 import { message as registrationComplete } from "./registrationComplete";
 import { EmailView as EarlyRegistrationCompleteView } from "./views/earlyRegistrationComplete";
 import { EmailView as RegistrationCompleteView } from "./views/registrationComplete";
+import { categories } from "@/features/core/messaging/extensions/categories";
 
 type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
 
@@ -75,12 +76,13 @@ test("earlyRegistrationComplete: 件名と文面が前のテンプレートと�
   );
 });
 
-test("取引の連絡(好みを見ない)、秘密の値は無い", () => {
+test("種類 registrationComplete(取引、好みを見ない、メール)、秘密の値は無い", () => {
   for (const definition of [registrationComplete, earlyRegistrationComplete]) {
-    assert.equal(definition.kind, "transactional", definition.key);
+    assert.equal(definition.category, "registrationComplete", definition.key);
     assert.equal(definition.required, undefined);
-    assert.deepEqual(definition.defaultChannels, ["email"]);
   }
+  assert.equal(categories.registrationComplete.kind, "transactional");
+  assert.deepEqual(categories.registrationComplete.channels, ["email"]);
 });
 
 test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {

@@ -9,7 +9,7 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.earlyRegistration",
-  kind: "transactional",
+  category: "earlyRegistration",
   required: true,
   record: "meta",
   vars: z.object({
@@ -18,7 +18,6 @@ export const message = defineMessage({
     /** サービスの短い名前(business.serviceNameShort) */
     serviceNameShort: z.string(),
   }),
-  defaultChannels: ["email"],
   content: {
     email: {
       subject: "【{{serviceNameShort}}】事前登録のメールアドレス確認",

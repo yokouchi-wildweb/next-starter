@@ -22,17 +22,15 @@ const define = createDefineMessage<typeof fields>();
 
 const chat = define({
   key: "chat.newMessage",
-  kind: "transactional",
   category: "chat",
   vars: z.object({ roomId: z.string(), text: z.string() }),
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },
-  defaultChannels: ["inApp", "mail"],
   content: {
     inApp: { title: "新着 {{collapsedCount}} 件", body: "{{text}}" },
     mail: { title: "新着", body: "{{text}} ({{collapsedCount}})" },
   },
 });
-const mailOnly = { ...chat, key: "chat.mailOnly" as const, defaultChannels: ["mail"] as const };
+const mailOnly = { ...chat, key: "chat.mailOnly" as const, category: "chatMail" };
 const windowed = { ...chat, key: "chat.windowed" as const, throttle: { by: ["roomId"] as const, mode: "window" as const, seconds: 60 } };
 
 const registry: MessageRegistry = Object.fromEntries(

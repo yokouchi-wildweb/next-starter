@@ -147,14 +147,31 @@ export type MessageEnricher = {
 // ---------------------------------------------------------------------------
 
 /**
- * 種類の項目(messaging/categories/<名前>.ts の export const category)。配信停止の単位 = 種類 × 経路
+ * 種類の項目(messaging/categories/<名前>.ts の export const category)。
+ * 種類 = 利用者から見て 1 つの出来事(D79)。種別と経路を持ち、属する連絡は全部この経路で届く(D86)。配信停止の単位 = 種類 × 経路。
+ * fork は上流の種類の隣の <名前>.override.ts で label・description・channels・group を変えられる(key・kind は不可。
+ * functional・security の email は外せない)
  */
 export type MessageCategory = {
   key: string;
   label: string;
   description?: string;
-  /** 基の種別(取引は好みを見ないので種類を持たない) */
-  kind: Exclude<MessageKind, "transactional">;
+  /** 種別(7 つ。性質は MESSAGE_KIND_TRAITS) */
+  kind: MessageKind;
+  /** 届ける経路(経路の受け口の鍵) */
+  channels: readonly string[];
+  /** 設定画面の見出しのグループ(categoryGroups の鍵。同じ種別の種類だけ、D82) */
+  group?: string;
+};
+
+/**
+ * 種類のグループの項目(messaging/categoryGroups/<名前>.ts の export const group)。設定画面の見出しだけ(停止の単位ではない、D82)。上流は出荷しない
+ */
+export type MessageCategoryGroup = {
+  key: string;
+  label: string;
+  /** 並び順(小さいほど先) */
+  order: number;
 };
 
 // ---------------------------------------------------------------------------

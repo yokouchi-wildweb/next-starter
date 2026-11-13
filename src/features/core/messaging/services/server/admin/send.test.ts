@@ -82,10 +82,10 @@ test("その場で書く連絡を全員へ今送る: adminMessage の vars、監
   const { deps, calls, audits } = setup();
   const sent = await adminSend(deps, { message: adhoc, channels: ["email", "inApp"], audience: { type: "all" } });
   assert.equal(sent.dispatchId, "d1");
-  const [definition, input] = calls[0].args as [{ key: string; kind: string }, Record<string, unknown>];
+  const [definition, input] = calls[0].args as [{ key: string; category: string }, Record<string, unknown>];
   assert.equal(calls[0].fn, "many");
   assert.equal(definition.key, "messaging.adminMessage");
-  assert.equal(definition.kind, "marketing");
+  assert.equal(definition.category, "marketing");
   assert.deepEqual(input.audience, { type: "all" });
   assert.deepEqual(input.vars, { subject: "件名", body: "本文", inAppTitle: "題", inAppBody: "本文", serviceNameShort: "サービス" });
   assert.equal(input.source, "messaging.adminSend");
@@ -104,7 +104,8 @@ test("テンプレートを audiences の項目へ予約: sendTemplate、監査 
   assert.equal(calls[0].fn, "template");
   assert.equal(input.templateId, TEMPLATE);
   assert.deepEqual(input.vars, { discount: 10 });
-  assert.equal(input.kind, "marketing");
+  // 宣伝の選択のテンプレートは版の種類のまま(category を渡さない)
+  assert.equal("category" in input, false);
   assert.deepEqual(input.audience, { type: "audience", key: "buyers", args: { days: 30 } });
   assert.deepEqual(input.scheduledAt, new Date("2026-12-01T00:00:00Z"));
   assert.equal("channels" in input, false);
@@ -118,8 +119,9 @@ test("取引は選んだ利用者宛てだけ(全員・ロール・audiences は
   }
   assert.equal(calls.length, 0);
   await adminSend(deps, { message: adhoc, channels: ["email"], audience: { type: "users", userIds: ["u1", "u1", "u2"] }, kind: "transactional" });
-  const [definition, input] = calls[0].args as [{ kind: string }, Record<string, unknown>];
-  assert.equal(definition.kind, "transactional");
+  const [definition, input] = calls[0].args as [{ category: string }, Record<string, unknown>];
+  // 取引の選択 = 種類 operatorDirect(種別 direct、指令 37 までの仮)
+  assert.equal(definition.category, "operatorDirect");
   assert.deepEqual(input.recipients, [{ userId: "u1" }, { userId: "u2" }]);
 });
 
@@ -139,13 +141,14 @@ test("入力の誤りは 400(経路・中身・予約の形)", async () => {
 test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
   await adminSendPreview(deps, { message: { type: "template", templateId: TEMPLATE, vars: { a: 1 } }, kind: "marketing" });
-  assert.deepEqual(calls[0].args, [{ templateId: TEMPLATE, kind: "marketing" }, { vars: { a: 1 }, channels: undefined, userId: ADMIN }]);
+  // 宣伝の選択のテンプレートは版の種類のまま(category を渡さない)
+  assert.deepEqual(calls[0].args, [{ templateId: TEMPLATE }, { vars: { a: 1 }, channels: undefined, userId: ADMIN }]);
   await adminSendPreview(deps, { message: adhoc, channels: ["email"] });
   assert.equal((calls[1].args[1] as { userId: string }).userId, ADMIN);
 
   await adminSendTest(deps, { message: adhoc, channels: ["email"], kind: "transactional" });
-  const [definition, input] = calls[2].args as [{ kind: string }, Record<string, unknown>];
-  assert.equal(definition.kind, "transactional");
+  const [definition, input] = calls[2].args as [{ category: string }, Record<string, unknown>];
+  assert.equal(definition.category, "operatorDirect");
   assert.deepEqual(input.recipients, [{ userId: ADMIN }]);
   assert.equal(input.isTest, true);
   assert.equal(input.source, "messaging.adminSend.test");

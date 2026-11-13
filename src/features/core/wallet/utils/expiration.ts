@@ -95,10 +95,11 @@ export function getSweepEnabledWalletTypes(): WalletType[] {
   );
 }
 
-function assertNoticeChannels(walletType: WalletType, label: string, channels: unknown[]): void {
-  if (channels.length === 0) {
+/** 前の設定の channels が残っていれば止める(経路は連絡の種類が決める D86。段ごとに変えるなら messageKey) */
+function assertNoChannels(walletType: WalletType, label: string, notice: object): void {
+  if ("channels" in notice) {
     throw new Error(
-      `walletConfig.expiration: ${walletType} の ${label} の channels が空です（送らないなら設定自体を外してください）`,
+      `walletConfig.expiration: ${walletType} の ${label} の channels は無くなりました(経路は連絡の種類が決める。段ごとに変えるなら自分の種類の連絡を足して messageKey で向ける)`,
     );
   }
 }
@@ -107,7 +108,7 @@ function assertNoticeChannels(walletType: WalletType, label: string, channels: u
  * 指定通貨の失効予告の段を daysBefore 昇順で返す。送らない場合は空配列。
  *
  * - sweepEnabled: true の通貨でのみ返す（没収しない通貨に「失効します」と告げないため）
- * - 設定不備（daysBefore が1未満/非整数/重複、channels が空）は throw する
+ * - 設定不備（daysBefore が1未満/非整数/重複、前の設定の channels が残っている）は throw する
  *   （黙って送らないより cron を失敗させて気付けるようにする）
  */
 export function getPreExpiryNoticeStages(walletType: WalletTypeValue): WalletPreExpiryNoticeStage[] {
@@ -128,7 +129,7 @@ export function getPreExpiryNoticeStages(walletType: WalletTypeValue): WalletPre
       );
     }
     seen.add(stage.daysBefore);
-    assertNoticeChannels(type, `preExpiry(${stage.daysBefore}日前)`, stage.channels);
+    assertNoChannels(type, `preExpiry(${stage.daysBefore}日前)`, stage);
   }
   return [...stages].sort((a, b) => a.daysBefore - b.daysBefore);
 }
@@ -140,7 +141,7 @@ export function getPreExpiryNoticeStages(walletType: WalletTypeValue): WalletPre
 export function getExpiredNotice(walletType: WalletTypeValue): WalletExpiredNotice | null {
   const type = walletType as WalletType;
   const notice = walletConfig.expiration[type]?.notice?.expired ?? null;
-  if (notice) assertNoticeChannels(type, "expired", notice.channels);
+  if (notice) assertNoChannels(type, "expired", notice);
   return notice;
 }
 

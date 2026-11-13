@@ -2,8 +2,8 @@
 //
 // 管理の一括送信(D40・D42)。連絡 messaging.adminMessage を選んだ利用者へ sendMessageToMany で送る。
 // - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
-// - 種別: 既定 marketing(好みに従う)。transactional は要求で明示したときだけ(選んだ利用者宛てに限る = ここは常にそう)。
-//   定義の写しの kind だけを替える(種類 category は定義のまま)
+// - 種類: 既定 marketing(好みに従う)。transactional(取引)は要求で明示したときだけ、種類 operatorDirect(種別 direct)で送る
+//   (指令 37 で種別ごとの定義に替わるまでの仮、send.ts の ADMIN_CHOICE_CATEGORY。選んだ利用者宛て = 一括は性質の表の bulk)
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
 // - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
 // - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す
@@ -16,6 +16,7 @@ import { DomainError } from "@/lib/errors";
 import { message as adminMessage } from "../../../messages/adminMessage";
 import type { SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
+import { ADMIN_CHOICE_CATEGORY } from "./send";
 import type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";
 
 /** 1 回の一括送信の利用者の上限 */
@@ -106,7 +107,8 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     ...(input.channels.includes("email") ? { email: input.email } : {}),
     ...(input.channels.includes("inApp") ? { inApp: input.inApp } : {}),
   };
-  const definition = input.kind === "transactional" ? { ...adminMessage, kind: "transactional" as const } : adminMessage;
+  const category = ADMIN_CHOICE_CATEGORY[input.kind];
+  const definition = category ? { ...adminMessage, category } : adminMessage;
   const source = input.source ?? (target ? `${target.key}.bulk` : "messaging.adminBulk");
 
   const result = await deps.sendMessageToMany(definition as typeof adminMessage, {

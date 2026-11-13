@@ -28,7 +28,9 @@ export type MessagePreferenceCategoryDto = {
   key: string;
   label: string;
   description: string | null;
-  kind: Exclude<MessageKind, "transactional">;
+  /** 種別(利用者が止められる種別 activity・marketing だけが表に出る) */
+  kind: MessageKind;
+  /** マス = 開いている経路 ∩ 種類の経路(D86) */
   cells: MessagePreferenceCellDto[];
 };
 

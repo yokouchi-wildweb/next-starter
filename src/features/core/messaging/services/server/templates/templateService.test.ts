@@ -37,7 +37,7 @@ const channels: Record<string, MessageChannel> = {
   },
   line: { key: "line", label: "LINE", addressing: "user", enabled: false, fields: z.object({ text: z.string() }), send: async () => [] },
 };
-const categories: Record<string, MessageCategory> = { marketing: { key: "marketing", label: "お知らせ", kind: "marketing" } };
+const categories: Record<string, MessageCategory> = { marketing: { key: "marketing", label: "お知らせ", kind: "marketing", channels: ["email", "inApp"] } };
 
 function setup(options: { role?: string } = {}) {
   const templates: MessageTemplate[] = [];

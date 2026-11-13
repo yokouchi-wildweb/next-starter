@@ -1,7 +1,7 @@
 // src/features/core/auth/messages/accountLocked.ts
 //
 // アカウントの永続ロックの知らせ。送り手: services/server/localLogin.ts(送りっぱなし。失敗はログだけ)
-// 取引の連絡(好みを見ない)。IP は個人の情報なので本文と vars を記録に残さない(record meta)。
+// 種類 accountLocked(種別 security、利用者は止められない)。IP は個人の情報なので本文と vars を記録に残さない(record meta)。
 // 描き方: views/accountLocked.tsx(段落の並び: [0] 説明 [1] 発生時刻の値 [2] アクセス元 IP の値(空なら行を出さない)
 //   [3] 心当たりがない場合 [4] 心当たりがある場合(最初の行を太字)。ラベル「発生時刻」「アクセス元 IP」は描き方が持つ)
 
@@ -11,7 +11,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.accountLocked",
-  kind: "transactional",
+  category: "accountLocked",
   record: "meta",
   vars: z.object({
     /** 発生時刻(表示用の文字列) */
@@ -19,7 +19,6 @@ export const message = defineMessage({
     /** アクセス元 IP(分からなければ空) */
     ip: z.string(),
   }),
-  defaultChannels: ["email"],
   content: {
     email: {
       subject: "【重要】アカウントがセキュリティロックされました",

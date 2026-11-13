@@ -6,6 +6,7 @@
 import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
+import { MESSAGE_KINDS } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../entities/schema";
@@ -35,7 +36,7 @@ export const ListDispatchesQuerySchema = z.object({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
   messageKey: z.string().trim().min(1).optional(),
-  kind: z.enum(["transactional", "marketing", "activity"]).optional(),
+  kind: z.enum(MESSAGE_KINDS).optional(),
   channel: z.string().trim().min(1).optional(),
   status: z.enum(MESSAGE_DISPATCH_STATUSES).optional(),
   cursor: z.string().min(1).optional(),

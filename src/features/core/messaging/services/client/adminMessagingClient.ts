@@ -9,6 +9,7 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
+import type { MessageKind } from "@/lib/messaging";
 
 import type {
   AdminBulkSendInput,
@@ -50,7 +51,8 @@ export type AdminDispatchFilters = {
   /** 作った時刻の上限(未満) */
   to?: string;
   messageKey?: string;
-  kind?: "transactional" | "marketing" | "activity";
+  /** 種別(7 つ、lib/messaging の MESSAGE_KINDS) */
+  kind?: MessageKind;
   channel?: string;
   status?: string;
 };

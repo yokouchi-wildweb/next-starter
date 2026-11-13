@@ -20,11 +20,22 @@ export const extensionPoints = {
     side: "server",
     key: "key",
   },
-  // 配信停止の種類: categories/<名前>.ts の export const category(鍵・表示名・説明・基の種別)
+  // 種類(利用者から見て 1 つの出来事、D79): categories/<名前>.ts の export const category(鍵・表示名・説明・種別・経路・グループ)。
+  // fork は上流の種類の隣の <名前>.override.ts で label・description・channels・group を変えられる(鍵・種別は不可 D70 D74、
+  // functional・security の email は外せない D86 = pnpm check extensions の messageGuards)
   categories: {
     dir: "categories",
     export: "category",
     type: { from: "@/lib/messaging", name: "MessageCategory" },
+    side: "server",
+    key: "key",
+    overrideOf: ["label", "description", "channels", "group"],
+  },
+  // 種類のグループ(設定画面の見出しだけ、同じ種別の種類だけ D82): categoryGroups/<名前>.ts の export const group(鍵・表示名・並び順)。上流は出荷しない
+  categoryGroups: {
+    dir: "categoryGroups",
+    export: "group",
+    type: { from: "@/lib/messaging", name: "MessageCategoryGroup" },
     side: "server",
     key: "key",
   },

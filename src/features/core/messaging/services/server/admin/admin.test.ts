@@ -41,7 +41,7 @@ test("管理者の再検査: admin の利用者と system は通り、利用者�
 });
 
 function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: boolean } = {}) {
-  const sent: { kind: string; input: SendMessageToManyInput }[] = [];
+  const sent: { category: string; input: SendMessageToManyInput }[] = [];
   const audits: AuditRecordInput[] = [];
   const after: unknown[] = [];
   const target: MessageBulkSendTarget = {
@@ -57,7 +57,7 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
     ...check(options.context === undefined ? ctx("admin1") : options.context),
     targets: { review: target, off: { ...target, key: "off", enabled: () => false } },
     sendMessageToMany: async (definition, input) => {
-      sent.push({ kind: definition.kind, input });
+      sent.push({ category: definition.category, input });
       return { dispatchId: "d1", status: "processing", deliveries: [], queuedCount: 3, channelCounts: {} };
     },
     recordAudit: async (input) => audits.push(input),
@@ -72,7 +72,7 @@ test("一括送信(userIds): 重複を除き adminMessage を marketing で送�
   const { deps, sent, audits } = bulkSetup();
   const result = await adminBulkSend(deps, { userIds: ["a", "b", "a"], ...mail });
   assert.equal(sent.length, 1);
-  assert.equal(sent[0].kind, "marketing");
+  assert.equal(sent[0].category, "marketing");
   assert.deepEqual(sent[0].input.recipients, [{ userId: "a" }, { userId: "b" }]);
   assert.deepEqual(sent[0].input.vars, { subject: "件名", body: "本文", inAppTitle: "", inAppBody: "", serviceNameShort: "short" });
   assert.equal(sent[0].input.source, "messaging.adminBulk");
@@ -92,7 +92,8 @@ test("一括送信(target): 記録 → 利用者、transactional は明示で、
     email: { subject: "件名", body: "本文" },
     inApp: { title: "題", body: "お知らせ" },
   });
-  assert.equal(sent[0].kind, "transactional");
+  // 取引の選択 = 種類 operatorDirect(種別 direct、指令 37 までの仮)
+  assert.equal(sent[0].category, "operatorDirect");
   assert.deepEqual(sent[0].input.recipients, [{ userId: "u-x" }, { userId: "u-y" }]);
   assert.equal(sent[0].input.source, "review.bulk");
   assert.deepEqual(after, [
@@ -146,7 +147,6 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     message_key: "messaging.adminMessage",
     template_id: null,
     template_version: null,
-    kind: "marketing",
     category: "marketing",
     audience: null,
     tags: null,

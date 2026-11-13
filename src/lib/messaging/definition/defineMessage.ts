@@ -24,11 +24,9 @@ export function createDefineMessage<C extends ChannelFieldSchemas>() {
  * // messages/verification.ts(定義は export const message。pnpm check extensions が字面で読む)
  * export const message = defineMessage({
  *   key: "auth.verification",
- *   kind: "transactional",
- *   category: "account",
+ *   category: "emailVerification", // 種別と経路は種類(categories/<名前>.ts)から引く
  *   vars: z.object({ verificationUrl: z.string().url() }),
  *   required: true,
- *   defaultChannels: ["email"],
  *   content: {
  *     email: {
  *       subject: "メールアドレスの確認",

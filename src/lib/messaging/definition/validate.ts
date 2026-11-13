@@ -2,11 +2,15 @@
 //
 // 連絡の定義の読み手の検査。定義(と上書きを重ねた結果)の誤りを問題の一覧で返す。
 // 送る口が実行時に、registry の生成が生成時に呼ぶ(呼ぶ側は S2 / S6)。
+// 種別と経路は定義に無く、属する種類(category)から引く(D81・D86): 文面は種類の経路の分だけ必須、種別の性質(MESSAGE_KIND_TRAITS)で
+// 管理画面の文言の上書き・間引きを止める。
 
 import { listVariables } from "@/lib/structuredDocument/shared";
 import type { z } from "zod";
 
+import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
 import { UPSTREAM_CHANNEL_FIELDS, type ChannelFieldSchemas } from "./channels";
+import { MESSAGE_KIND_TRAITS, isMessageKind } from "./kinds";
 import type {
   MessageDefinition,
   MessageOverride,
@@ -29,8 +33,8 @@ export const COMMON_CONTEXT_KEYS = [
 /** throttle のある連絡だけで差し込める鍵(まとめた回数) */
 export const THROTTLE_CONTEXT_KEYS = ["collapsedCount"] as const;
 
-/** 上書きで変えられない項目 */
-const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "required"] as const;
+/** 上書きで変えられない項目(category は付け替えない D74、kind・defaultChannels は定義に無い) */
+const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "required", "category", "defaultChannels"] as const;
 
 export type MessageDefinitionProblemCode =
   | "invalid_key"
@@ -46,7 +50,8 @@ export type MessageDefinitionProblemCode =
   | "invalid_throttle"
   | "override_forbidden_key"
   | "unknown_category"
-  | "missing_category";
+  | "kind_admin_editable"
+  | "kind_throttle";
 
 export type MessageDefinitionProblem = {
   code: MessageDefinitionProblemCode;
@@ -55,14 +60,19 @@ export type MessageDefinitionProblem = {
 
 const KEY_PATTERN = /^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$/;
 
+/** 上書きを重ねた定義(種類から引く種別・経路はまだ付けない) */
+export type OverriddenMessageDefinition<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas> = MessageDefinition<Vars, C> & {
+  enabled: boolean;
+};
+
 /**
- * 定義に上書きを重ねる。content は経路ごとに欄を重ね、throttle: null は外す。
+ * 定義に上書きを重ねる。content は経路ごとに欄を重ね、throttle: null は外す。種別と経路は resolveMessageDefinition が種類から付ける
  */
 export function applyMessageOverride<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas>(
   definition: MessageDefinition<Vars, C>,
   override?: MessageOverride<C>,
-): ResolvedMessageDefinition<Vars, C> {
-  const resolved: ResolvedMessageDefinition<Vars, C> = { ...definition, enabled: true };
+): OverriddenMessageDefinition<Vars, C> {
+  const resolved: OverriddenMessageDefinition<Vars, C> = { ...definition, enabled: true };
   if (!override) return resolved;
 
   if (override.content) {
@@ -72,20 +82,31 @@ export function applyMessageOverride<Vars extends z.AnyZodObject, C extends Chan
       const base = (content[channel] ?? {}) as Record<string, unknown>;
       content[channel] = { ...base, ...(fields as Record<string, unknown>) };
     }
-    resolved.content = content as ResolvedMessageDefinition<Vars, C>["content"];
+    resolved.content = content as MessageDefinition<Vars, C>["content"];
   }
   if (override.extras) resolved.extras = { ...definition.extras, ...override.extras };
-  if (override.defaultChannels) resolved.defaultChannels = override.defaultChannels;
   if (override.enabled !== undefined) resolved.enabled = override.enabled;
   if (override.adminEditable) resolved.adminEditable = override.adminEditable;
-  if (override.category !== undefined) resolved.category = override.category;
   if (override.record !== undefined) resolved.record = override.record;
   if (override.throttle === null) {
     delete resolved.throttle;
   } else if (override.throttle !== undefined) {
-    resolved.throttle = override.throttle as ResolvedMessageDefinition<Vars, C>["throttle"];
+    resolved.throttle = override.throttle as MessageDefinition<Vars, C>["throttle"];
   }
   return resolved;
+}
+
+/** 上書きを重ね、属する種類(category)から種別と経路を付ける(D81・D86) */
+export function resolveMessageDefinition<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas>(
+  definition: MessageDefinition<Vars, C>,
+  override: MessageOverride<C> | undefined,
+  category: Pick<MessageCategory, "kind" | "channels">,
+): ResolvedMessageDefinition<Vars, C> {
+  return {
+    ...applyMessageOverride(definition, override),
+    kind: category.kind,
+    channels: [...category.channels] as ResolvedMessageDefinition<Vars, C>["channels"],
+  };
 }
 
 /** 欄の値の中の文字列を全部集める(入れ子の object・配列も) */
@@ -107,9 +128,9 @@ function schemaKeys(schema: z.ZodTypeAny): string[] | null {
 
 /**
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
- * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は S6 の生成の一覧が渡す)
+ * - categories: categories の受け口(鍵 → 項目、fork の種類の override を重ねた後)。定義の category を照らし、種別と経路を引く
+ * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)
  * - variableKeys: vars と共通の文脈の他に {{鍵}} で許す鍵(送る口が当たる enrichers の provides の鍵を渡す)
- * - categories: categories の受け口の鍵。渡すと category を照らす(あれば鍵のどれか・無いのは取引だけ)。渡さなければ照らさない
  */
 export function validateMessageDefinition<
   Vars extends z.AnyZodObject,
@@ -117,11 +138,11 @@ export function validateMessageDefinition<
 >(
   definition: MessageDefinition<Vars, C>,
   options: {
+    categories: Readonly<Record<string, Pick<MessageCategory, "kind" | "channels">>>;
     override?: MessageOverride<C>;
     channels?: C;
     variableKeys?: readonly string[];
-    categories?: readonly string[];
-  } = {},
+  },
 ): MessageDefinitionProblem[] {
   const channels = (options.channels ?? UPSTREAM_CHANNEL_FIELDS) as ChannelFieldSchemas;
   const problems: MessageDefinitionProblem[] = [];
@@ -144,26 +165,23 @@ export function validateMessageDefinition<
     }
   }
 
-  const resolved = applyMessageOverride(definition, options.override);
-
-  if (options.categories) {
-    // 配信停止の好みと停止の単位が黙って効かなくなるのを防ぐ(D35)
-    const category = resolved.category;
-    if (category === undefined || category === "") {
-      if (resolved.kind !== "transactional") {
-        add("missing_category", `${label}: ${resolved.kind} の連絡は category(categories の受け口の鍵)が要る`);
-      }
-    } else if (!options.categories.includes(category)) {
-      add(
-        "unknown_category",
-        `${label}: category ${category} は categories の受け口に無い(${options.categories.join(" / ") || "項目なし"})。項目を足すか、取引の連絡なら外す`,
-      );
-    }
+  // 種類(全部の連絡に必須、D81): 受け口に無い鍵は誤り。種別と経路は種類から引く
+  const category = typeof definition.category === "string" ? options.categories[definition.category] : undefined;
+  if (!category) {
+    const keys = Object.keys(options.categories);
+    add(
+      "unknown_category",
+      `${label}: category ${String(definition.category)} は categories の受け口に無い(${keys.join(" / ") || "項目なし"})。先に categories/<名前>.ts を足す`,
+    );
+    return problems;
   }
 
+  const resolved = resolveMessageDefinition(definition, options.override, category);
+  const traits = MESSAGE_KIND_TRAITS[resolved.kind];
+
   if (definition.required) {
-    if (!resolved.defaultChannels.includes("email" as never)) {
-      add("required_without_email", `${label}: required の連絡から email は外せない`);
+    if (!resolved.channels.includes("email" as never)) {
+      add("required_without_email", `${label}: required の連絡の種類の経路に email が要る`);
     }
     if (resolved.adminEditable && resolved.adminEditable.length > 0) {
       add("required_admin_editable", `${label}: required の連絡に adminEditable は付けられない`);
@@ -171,6 +189,12 @@ export function validateMessageDefinition<
     if (resolved.throttle) {
       add("required_throttle", `${label}: required の連絡に throttle は付けられない`);
     }
+  }
+  if (!traits.adminTextOverride && resolved.adminEditable && resolved.adminEditable.length > 0) {
+    add("kind_admin_editable", `${label}: 種別 ${resolved.kind} の連絡は管理画面で文言を直せない(adminEditable を付けない)`);
+  }
+  if (!traits.throttle && resolved.throttle) {
+    add("kind_throttle", `${label}: 種別 ${resolved.kind} の連絡は間引けない(throttle を付けない)`);
   }
 
   const content = resolved.content as Record<string, unknown>;
@@ -188,11 +212,12 @@ export function validateMessageDefinition<
       add("invalid_content", `${label}: ${channel} の欄が正しくない(${detail})`);
     }
   }
-  for (const channel of resolved.defaultChannels) {
+  // 文面は種類の経路の分だけ必須(D86)
+  for (const channel of resolved.channels) {
     if (!channels[channel]) {
-      add("unknown_channel", `${label}: 経路 ${channel} は登録されていない`);
+      add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
     } else if (content[channel] === undefined) {
-      add("missing_content", `${label}: defaultChannels の ${channel} に欄が無い`);
+      add("missing_content", `${label}: 種類 ${definition.category} の経路 ${channel} に欄が無い`);
     }
   }
 
@@ -232,5 +257,39 @@ export function validateMessageDefinition<
     add("unknown_variable", `${label}: {{${key}}} は vars にも共通の文脈にも無い`);
   }
 
+  return problems;
+}
+
+export type MessageCategoryProblem = { code: "unknown_kind" | "empty_channels" | "unknown_group" | "group_kind_mismatch"; message: string };
+
+/**
+ * 種類の受け口の検査(種類の override を重ねた後): 種別は 7 つのどれか・経路が 1 つ以上・group はグループの受け口の鍵で、
+ * 1 つのグループの種類は同じ種別(D82)
+ */
+export function validateMessageCategories(
+  categories: Readonly<Record<string, MessageCategory>>,
+  groups: Readonly<Record<string, MessageCategoryGroup>> = {},
+): MessageCategoryProblem[] {
+  const problems: MessageCategoryProblem[] = [];
+  const kindOfGroup = new Map<string, { kind: string; category: string }>();
+  for (const [key, category] of Object.entries(categories)) {
+    if (!isMessageKind(category.kind)) problems.push({ code: "unknown_kind", message: `種類 ${key}: 種別 ${String(category.kind)} は無い` });
+    if (!Array.isArray(category.channels) || category.channels.length === 0) {
+      problems.push({ code: "empty_channels", message: `種類 ${key}: 経路が無い(channels に 1 つ以上)` });
+    }
+    if (category.group === undefined) continue;
+    if (!groups[category.group]) {
+      problems.push({ code: "unknown_group", message: `種類 ${key}: group ${category.group} は categoryGroups の受け口に無い` });
+      continue;
+    }
+    const seen = kindOfGroup.get(category.group);
+    if (!seen) kindOfGroup.set(category.group, { kind: category.kind, category: key });
+    else if (seen.kind !== category.kind) {
+      problems.push({
+        code: "group_kind_mismatch",
+        message: `種類 ${key}: グループ ${category.group} には種別 ${seen.kind} の種類(${seen.category})があり、種別 ${category.kind} は入れられない`,
+      });
+    }
+  }
   return problems;
 }

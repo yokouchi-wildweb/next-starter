@@ -18,8 +18,8 @@ const CHANNEL_CONTENT = {
   line: ["    line: {", '      text: "{{summary}}",', "    },"],
 };
 
-/** @param {{ path: string, key: string, kind: string, category: string | null, channels: string[] }} params */
-export function definitionTemplate({ path, key, kind, category, channels }) {
+/** @param {{ path: string, key: string, category: string, kind: string | null, channels: string[] }} params 種類の種別・経路(書かずに注記だけ) */
+export function definitionTemplate({ path, key, category, kind, channels }) {
   const content = channels.flatMap((channel) =>
     CHANNEL_CONTENT[channel] ?? [`    // ${channel}: 経路 ${channel} の欄(経路の fields の zod)に合わせて書く`, `    ${channel}: {},`],
   );
@@ -30,6 +30,7 @@ export function definitionTemplate({ path, key, kind, category, channels }) {
     "// (この連絡が何を知らせるかを 1 行で)。送り手: (呼ぶ場所)",
     `// 送り方: messagingService.sendMessage(message, { recipient: { userId }, vars: { summary } })(@/features/messaging/services/server)`,
     `// ${view}`,
+    `// 種類 ${category}(種別 ${kind ?? "?"}・経路 ${channels.join(" / ")})。種別と経路は種類から引く(定義には書かない)。文面は種類の経路の分だけ要る`,
     "",
     'import { z } from "zod";',
     "",
@@ -37,8 +38,7 @@ export function definitionTemplate({ path, key, kind, category, channels }) {
     "",
     "export const message = defineMessage({",
     `  key: "${key}",`,
-    `  kind: "${kind}",`,
-    ...(category ? [`  category: "${category}",`] : []),
+    `  category: "${category}",`,
     "  vars: z.object({",
     "    /** 例の値(この連絡が受ける値に置き換える) */",
     "    summary: z.string(),",
@@ -47,7 +47,6 @@ export function definitionTemplate({ path, key, kind, category, channels }) {
     '  // 管理画面で直せる欄(門 messagingOverrides): adminEditable: ["email.subject", "inApp.title"],',
     '  // 会話の間引き(同じ受信者 × by の値で続けて送らない): throttle: { by: ["summary"], mode: "untilRead", seconds: 600 },',
     '  // 本文の残し方(既定 "vars"): record: "meta",',
-    `  defaultChannels: [${channels.map((channel) => `"${channel}"`).join(", ")}],`,
     "  content: {",
     ...content,
     "  },",

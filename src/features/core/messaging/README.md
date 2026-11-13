@@ -109,10 +109,10 @@ await messagingService.sendMessageToMany(campaign, {
 5. 大きな送信と audience（全員・ロール・audiences）: 回の行だけを書き（`status: "processing"`）、展開と送信は cron が束ごとに行う（`expandBroadcastChunk`・`resolveAudienceChunk`）
 6. 予約（入力の `scheduledAt`）: 回の行だけを `status: "scheduled"` + `scheduled_at` で書く（選んだ宛先の一覧も回の `audience` に置く）。展開も送信もしない。cron の `activateScheduled` が時刻に `processing` にして 5 と同じく展開・送信する。過ぎた時刻と `config.schedule.maxDaysAhead`（既定 90 日）より先は 400、required・秘密を差し込む連絡は予約できない（400）。予約の粒度は cron の周期（Vercel Hobby では 1 日 1 回で遅れる）
 
-保存されたテンプレートで送る（`sendTemplate({ templateId, kind?, vars, recipients | audience, channels?, scheduledAt?, … })`、D40・D41）:
+保存されたテンプレートで送る（`sendTemplate({ templateId, category?, vars, recipients | audience, channels?, scheduledAt?, … })`、D40・D41）:
 
 - 送る時（予約なら予約の時）の今の公開版を回の `template_id`・`template_version` に固定する。後でテンプレートを直しても回はその版で送る（cron も固定した版から組み直し、最新を引き直さない。`sendMessage/dispatchDefinition.ts`）。取り下げ済み・未公開は 409、無いテンプレートは 404
-- 定義は版から組む（`sendMessage/templateDefinition.ts`）: 鍵 `messaging.adminMessage`（メールの描き方と宛名 `{{displayName}}` を使う）・中身・種類・経路は版から、種別は呼び手（既定 marketing）。生成の一覧の上書き（fork の override）と管理画面の文言は重ねない
+- 定義は版から組む（`sendMessage/templateDefinition.ts`）: 鍵 `messaging.adminMessage`（メールの描き方と宛名 `{{displayName}}` を使う）・中身は版から、種類は版の種類（呼び手が `category` で替えられる = 管理の送信の仮の取引 `operatorDirect`）、種別と経路はその種類から。版の経路は種類の経路の中の絞り（種類の外の経路があれば 400）。生成の一覧の上書き（fork の override）と管理画面の文言は重ねない
 - 変数の値（`vars`、回に 1 組）は版の変数で検査する: 必須で値が無い・型（number / boolean）が合わない → 400。値は文字列にして差し込む。cron は送る時に回の vars をもう一度検査し、合わなければ送らずに止める（配達の行は `failed`、`last_error: template_vars_invalid`。版が消えた = `template_missing`）
 - 受信者ごとの変数（`source: recipient`）は送る口から受信者ごとに渡す口が無いので、既定値を全員に使う（既定値が無いテンプレートは 400、変数の名前を出す）
 - テンプレートの画像（台帳の持ち主 = テンプレート）は、お知らせの画像の結び方（`inbox/imageBinding.ts`）で回ごとに複製して回が持つ（テンプレートを消しても送った物は残る）
@@ -193,14 +193,14 @@ await messagingService.sendMessageToMany(campaign, {
 
 D35。単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵（`categories/` の受け口。上流は `marketing`・`activity`、fork は `categories/<名前>.ts` で足す）。
 
-- 好みに従う連絡 = 種別が `transactional` でなく `required` でもない連絡。取引と required は好みを見ない
+- 好みに従う連絡 = 種別の性質 `userStoppable`（activity・marketing）で `required` でない連絡。ほかの種別と required は好みを見ない。住所の停止は種別の性質 `addressStop`（functional・security は hard bounce だけ、ほかは苦情・ワンクリック・手作業も）
 - 好み（`message_preferences`、止めた時だけ行）: 利用者 × 種類 × 経路。種類・経路の `'*'`（`MESSAGE_ALL`）は全部に当たる
 - 宛先の停止（`message_suppressions`、正規化した宛先 = 前後の空白を外して小文字の sha256）: required でない連絡は `hard_bounce`・`complaint`・`manual` にいつも従い、`one_click` は範囲（scope）が連絡の種類か `'*'` の時だけ従う。required は `hard_bounce` だけに従う。宛先が複数なら止めた宛先だけを外す
 - 確かめる所: 小さな送信の展開・cron の展開・cron が送る直前（キューに置いた後で止めた人も外す。宛先の 1 つにもう送れた行は sent のまま送り直しをやめる）
 - 外した受信者: 選んだ宛先は `suppressed` + reason `preference` / `suppression` の行、全員・ロール・audiences は行を作らない。どちらも `channel_counts.<経路>.suppressed` に数え、どの経路でも止められた受信者は `recipient_count` から引く（D31）
 - 全員・ロール宛てのお知らせの共有の 1 行は、書く時に利用者ごとの inApp の好みを当てない。受け取り箱の利用者の API（後の指令）が、回の `category`（`dispatch_id` で引ける）と見る人の inApp の好みで共有の行を外す
 - メール（D35・D57）: 好みに従う連絡の宛先には、送る口が `category` と、署名の鍵の env があれば `List-Unsubscribe: <停止の URL>`・`List-Unsubscribe-Post: List-Unsubscribe=One-Click`（RFC 8058）を付ける（経路の宛先 `ChannelSendTarget` の `category`・`headers`）。メールの項目はヘッダを lib/mail に渡し、本文の最後に停止のリンクを出す
-  - **決まり: `category` があるのに `List-Unsubscribe` が無い = 鍵（`MESSAGING_UNSUBSCRIBE_SECRET`）が無い → そのメールは送らず permanent（reason `unsubscribe_key_missing`）**。取引・required の連絡はヘッダなしで送る
+  - **決まり: `category` があるのに `List-Unsubscribe` が無い = 鍵（`MESSAGING_UNSUBSCRIBE_SECRET`）が無い → そのメールは送らず permanent（reason `unsubscribe_key_missing`）**。好みに従わない連絡（activity・marketing 以外・required）はヘッダなしで送る
   - 本文の停止のリンクの先: 門 `messagingPreferences` が開なら好みのページ（`getAppBaseUrl()` + `/mypage/account/notifications`）、閉ならワンクリックの URL（ヘッダと同じ）。ヘッダ（`List-Unsubscribe`・`List-Unsubscribe-Post`）は門に関わらずワンクリックの URL のまま（メールの項目の `preferencesPageUrl`、`channels/email/index.tsx`）
   - provider の一括停止の機能は使わない
 
@@ -253,7 +253,7 @@ D40・D41。管理者が画面で書く連絡の中身と、その版の履歴�
 D35・D45。本人が 種類 × 経路 の好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
 
 - 門: 規則 `messagingPreferences`（`src/featureGate/rules/messagingPreferences.ts`、住所 ページ `/mypage/account/notifications` と API `/api/me/messaging/preferences`、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表 `message_preferences` とワンクリックの受け口は門に関わらず開（domains は持たない）。住所の定数は `constants/preferences.ts`
-- 表 = 種類の受け口（marketing・activity。取引・required の連絡は種類を持たないので出ない）× 有効な経路の受け口（`enabled: false` の経路は出ない）
+- 表 = 種類の受け口のうち利用者が止められる種別（性質 `userStoppable` = activity・marketing）の種類 × 有効な経路の受け口（`enabled: false` の経路は出ない）。マスは開いている経路 ∩ その種類の経路（D86）
 - マスの `optedOut` は送る側（`checkStops` = `findOptOuts`）と同じ判定: そのマス・種類の `'*'`・経路の `'*'`・全体 `'*' '*'` のどれかの行で止まる。`via`（`cell` / `category` / `channel` / `all` / null）はどの行で止まっているか
 - 経路ごとに `hasAddress`（経路の自前の引き方 `resolveAddresses`、無ければ端末の帳簿の有効な行 = 送る側の展開と同じ）と `connectHref`（経路の項目の宣言。サイト内の住所は門で閉じていれば null）。上流は line だけが持つ（LINE の連携の入口 `/api/auth/line/login?redirect_after=<好みのページ>`）。email・inApp は連携の画面が無いので持たない
 - `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, channels[], categories[{ …, cells[] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` → 変えた後の表。全体は `category` と `channel` のどちらも `'*'`（片方だけの `'*'` は 400）。止める = 行を足す（source `user`、既にあれば何もしない）、再開 = そのマスの行だけ消す（広い行で止まるマスは止まったまま、`via` で分かる）。知らない種類・有効でない経路は 400
@@ -310,7 +310,7 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 公開の時刻 ≤ 今
 - 自分宛ての行（`user_id` = 見る人）か、共有の行（`user_id` null で `target_roles` が null = 全員 か 見る人のロールを含む）
 - 共有の行: 回の `show_to_later_signups` が false なら、見る人の登録（`users.created_at`）より前に公開された行は見せない（利用者の行が無ければ見せない）
-- 共有の行: 好みに従う回（種別が `transactional` でない）で、見る人が inApp か `'*'` の経路で回の `category` か `'*'` を止めていれば見せない（共有の行は書く時に好みを当てないので読む時に当てる）
+- 共有の行: 好みに従う回（種別の性質 `userStoppable`、kind の無い前の回も）で、見る人が inApp か `'*'` の経路で回の `category` か `'*'` を止めていれば見せない（共有の行は書く時に好みを当てないので読む時に当てる）
 - 取り下げた回の行は消えている（`retracted_at` は回にだけ残る）
 
 既読: `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`。全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の自分の個別の既読の行を掃く（watermark が覆うので既読のまま）。
@@ -351,7 +351,7 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 - 管理者が送るたびに書く中身を vars で渡す: `subject`・`body`（メール）・`inAppTitle`・`inAppBody`（お知らせ）・`serviceNameShort`。宛名 `{{displayName}}` は `enrichers/displayName.ts`（名前が無ければ「お客様」）。管理者の文面の中の `{{鍵}}` はまだ差し込まない（保存テンプレートの指令で）
 - 見た目は前の管理者のお知らせのメールと同じ（`views/adminMessage.tsx` → `.default.tsx`、部品 `messages/parts/AnnouncementMailView.tsx`）。段落の位置の約束: `paragraphs` [0]「… からのお知らせ」（ロゴの下）→ [1]「… 様」→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。fork は `adminMessage.replace.tsx` で管理者の連絡の見た目をまとめて替える
-- 種別の既定は marketing（種類 marketing、受信者の好みに従う）。選んだ利用者宛て（一括送信は常にそう）に限り、要求で `kind: "transactional"` を明示すると好みで止めずに送る（定義の写しの kind だけを替える。種類は marketing のまま）
+- 既定は種類 marketing（受信者の好みに従う）。選んだ利用者宛て（一括送信は常にそう）に限り、要求で `kind: "transactional"` を明示すると種類 `operatorDirect`（種別 direct、好みを見ない）で送る（定義の写しの category を替える。指令 37 で種別ごとの定義 3 本に替わるまでの仮、`admin/send.ts` の `ADMIN_CHOICE_CATEGORY`）
 
 ### 回の操作 `/api/admin/messaging/dispatches/[id]/{cancel, retract, resend}`（門 `messagingDispatches`）
 
@@ -372,7 +372,8 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 - 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/send` と API `/api/admin/messaging/send`）。閉の間 画面と API は 404。送る口と cron の予約の拾いは門に関わらず動く
 - service: `services/server/admin/send.ts`（`messagingService.adminSend` / `adminSendPreview` / `adminSendEstimate` / `adminSendTest` / `adminSendOptions`）
 - `POST /send`（`AdminSendInputSchema`）: `message` = `{ type: "template", templateId, vars }`（保存されたテンプレートの今の公開版、`sendTemplate`）か `{ type: "adhoc", email?, inApp? }`（その場で書く管理者の連絡、経路は email・inApp）・`channels?`（テンプレートは省略 = 版の経路）・`audience` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "audience", key, args? }`（audiences の受け口の項目）/ `{ type: "users", userIds }`（10,000 人まで）・`kind`（既定 marketing）・`scheduledAt?`（ISO 8601、予約）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。送り元 `messaging.adminSend`
-  - **取引（transactional）は選んだ利用者宛て（`users`）だけ**。全員・ロール・audiences では選べない（API の入口 `assertAdminSendKind` と service の両方で 400、D40）
+  - **取引（transactional = 種類 operatorDirect）は選んだ利用者宛て（`users`）だけ**。宛先の制限は種別の性質の表 `adminFreeText`（direct = 選んだ利用者・一括）。全員・ロール・audiences では選べない（API の入口 `assertAdminSendKind` と service の両方で 400、D40・D80）
+  - `channels?` は種類の経路の中の絞り（種類の外・空は 400、D86）
 - `POST /send/preview`: 経路ごとに差し込みを済ませた欄と、経路の `preview` があれば描いた結果（メールは送る時と同じ描き方の HTML）。見本の受信者 = 操作した管理者。テンプレートは今の公開版（送る時に固定する版）
 - `POST /send/estimate` `{ audience }` → `{ count, capped, fixedAtSend: true }`: 全員・ロールは数、audiences の項目は `count?(args)`、無ければ `resolveUserIds` を 10,000 まで数える（`capped`）、選んだ利用者は居る人の数。送る時に展開で数え直す（停止・宛先なしは引く前の数）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作（操作者なし）は 400
@@ -510,8 +511,10 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 
 ## 連絡を足すとき
 
-1. 書き出し: `pnpm generate message -- <domain> <name> [--kind marketing|activity|transactional] [--category <key>] [--channels email,inApp] [--core]`。送る側のドメインに連絡の定義 `messages/<名前>.ts`（鍵 = `<ドメインのフォルダ名>.<名前>`）と、メールがあれば `messages/views/<名前>.tsx`（1 行スイッチ）・`.default.tsx`（既定の描き方）を無い時だけ書き、`src/registry/messageRegistry.ts` と拡張点の一覧を作り直す。既定 = 取引・email + inApp。fork は自分のドメインに足す（core のドメインは `--core` = 上流だけ）。使い方: `scripts/structure/message/README.md`、定義の書き方: src/lib/messaging/README.md
-   - category: `marketing` / `activity` の連絡は categories の受け口の鍵（上流 `marketing`・`activity`、無ければ先に `categories/<名前>.ts` を足す）。取引の連絡は省ける（上流の取引の連絡 10 本は持たない = 集計の種類の軸では category null）
+1. 書き出し: `pnpm generate message -- <domain> <name> --category <key> [--core]`。送る側のドメインに連絡の定義 `messages/<名前>.ts`（鍵 = `<ドメインのフォルダ名>.<名前>`）と、種類の経路にメールがあれば `messages/views/<名前>.tsx`（1 行スイッチ）・`.default.tsx`（既定の描き方）を無い時だけ書き、`src/registry/messageRegistry.ts` と拡張点の一覧を作り直す。fork は自分のドメインに足す（core のドメインは `--core` = 上流だけ）。使い方: `scripts/structure/message/README.md`、定義の書き方: src/lib/messaging/README.md
+   - 種類（category、全部の連絡に必須）: 利用者から見て 1 つの出来事（「〜した時」、D79。例 likeReceived・itemSold・passwordReset）で、種別（7 つ）と経路を持つ。無ければ先に `categories/<名前>.ts` を足す。連絡は種別も経路も書かない（D81・D86）
+   - 経路: 属する連絡は全部その種類の経路で届く。コードから自動で送る連絡はその回の経路を変えない（`channels` を渡さない。1 本だけ変えたいなら別の種類）。管理者が手で送る時だけ、種類の経路の中で絞れる（足せない）。回にはその回に使った経路が残る
+   - 上流の種類: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security・email）/ registrationComplete（transactional・email、会員登録の完了 2 本）/ walletExpiring（activity・email + inApp、失効の予告 = 利用者が止められる D67）/ walletExpired・walletAdjusted（transactional）/ marketing（キャンペーン情報）/ operatorDirect（direct、管理の送信の仮）/ activity（汎用、上流の連絡は使わない）。鍵と表示名は仮
 2. 送り手は定義を import して `messagingService.sendMessage` / `sendMessageToMany` を呼ぶ（このドメインに汎用の送信 API は無い。管理者の一括送信だけ `/api/admin/messaging/bulk-send`）。送り元 `source` の既定は定義の鍵
 3. cron・CLI から呼ぶときは `runAsSystem`（`@/lib/audit`）で包む
 4. 新しい送信の画面・バッチでは `idempotencyKey` を必ず渡す
@@ -530,7 +533,8 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 |---|---|---|---|
 | `channels/` | `channel` | `MessageChannel` | 経路(プッシュ・SMS など。宛先の決め方・欄の zod・送る関数・webhook の表) |
 | `enrichers/` | `enricher` | `MessageEnricher` | 上流の連絡に足す値(当てる連絡・足す変数の zod・値を返す関数) |
-| `categories/` | `category` | `MessageCategory` | 配信停止の種類(基の種別 marketing / activity) |
+| `categories/` | `category` | `MessageCategory` | 種類(1 つの出来事、D79。種別 7 つのどれか・経路・グループ。上流の種類の `<名前>.override.ts` で label・description・channels・group) |
+| `categoryGroups/` | `group` | `MessageCategoryGroup` | 種類のグループ(設定画面の見出しだけ、同じ種別の種類だけ。上流は出荷しない) |
 | `audiences/` | `audience` | `MessageAudience` | 管理の送信の宛先の集め方(引数の zod・keyset で利用者 id) |
 | `sources/` | `source` | `MessageSource` | 送り元の表示名 |
 | `bulkSendTargets/` | `bulkSendTarget` | `MessageBulkSendTarget`(`services/server/admin/types.ts`) | 管理の一括送信の対象(選んだ記録 → 利用者 id・送った後の処理) |

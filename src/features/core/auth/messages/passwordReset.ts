@@ -9,14 +9,13 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.passwordReset",
-  kind: "transactional",
+  category: "passwordReset",
   required: true,
   record: "meta",
   vars: z.object({
     /** 再設定のリンク(oobCode 入り) */
     resetUrl: secretVar(z.string().url()),
   }),
-  defaultChannels: ["email"],
   content: {
     email: {
       subject: "パスワードのリセット",

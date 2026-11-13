@@ -4,6 +4,7 @@
 // 1ページ分の送信ジョブを受け取り、送信済みの除外 → 送信対象の絞り込み → 送信 を行う。
 // 文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)、送る口は messagingService.sendMessage。
 // ジョブは定義に差し込む値(vars)を持ち、宛名(displayName)とサービスの短い名前はここで足す。
+// 経路は連絡の種類が決める(D86)ので渡さない。メール未登録の人はメールの行が宛先なし(no_address)になり、ほかの経路で届く。
 
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
@@ -12,9 +13,9 @@ import { business } from "@/business";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { messagingService } from "@/features/core/messaging/services/server/messagingService";
 import type { MessagingSource } from "@/features/core/messaging/constants/sources";
-import { walletConfig, type WalletExpirationNoticeChannel } from "@/features/wallet/config";
-import type { message as expiringNoticeMessage } from "@/features/core/wallet/messages/expiringNotice";
-import type { message as expiredNoticeMessage } from "@/features/core/wallet/messages/expiredNotice";
+import type { MessageDefinition } from "@/lib/messaging";
+import { messageRegistry } from "@/registry/messageRegistry";
+import { walletConfig } from "@/features/wallet/config";
 
 /**
  * 連続でこの件数失敗したら、その実行を打ち切る。
@@ -27,13 +28,24 @@ export type ExpirationNoticeJob = {
   userId: string;
   /** 二重送信防止キー（同じ通知対象には常に同じ値になること） */
   idempotencyKey: string;
-  channels: WalletExpirationNoticeChannel[];
-  /** 送る連絡の定義(失効の予告か本通知) */
-  message: typeof expiringNoticeMessage | typeof expiredNoticeMessage;
+  /** 送る連絡の定義(失効の予告か本通知、config の messageKey で fork の連絡にも向く) */
+  message: MessageDefinition;
   /** 定義の vars のうち宛名・サービスの短い名前を除いた値(送る時に足す) */
   vars: Record<string, string>;
   source: MessagingSource;
 };
+
+/**
+ * config の messageKey から送る連絡の定義を引く(省略・上流の鍵 = 上流の定義)。
+ * @throws Error 生成の一覧に無い鍵(config の誤り。送らずに止める)
+ */
+export async function noticeMessageOf(messageKey: string | undefined, upstream: MessageDefinition): Promise<MessageDefinition> {
+  if (!messageKey || messageKey === upstream.key) return upstream;
+  const entry = (messageRegistry as Record<string, { definition: () => Promise<{ message?: MessageDefinition }> } | undefined>)[messageKey];
+  const message = entry ? (await entry.definition()).message : undefined;
+  if (!message) throw new Error(`walletConfig の失効通知の messageKey ${messageKey} は連絡の一覧(src/registry/messageRegistry.ts)に無い`);
+  return message;
+}
 
 export type ExpirationNoticeCounts = {
   /** 送信できた件数（指定チャネルのうち1つ以上が成功） */
@@ -44,8 +56,6 @@ export type ExpirationNoticeCounts = {
   skippedStatus: number;
   /** demo ユーザーのためスキップした件数 */
   skippedDemo: number;
-  /** 送れるチャネルが無かった件数（メールのみ指定でメール未登録 等） */
-  skippedNoChannel: number;
   /** ユーザーが存在しない、または削除済み（deleted_at あり）だった件数 */
   skippedUserMissing: number;
   /** 送信に失敗した件数（再実行しても再送されない。message_dispatches・message_deliveries で確認する） */
@@ -58,7 +68,6 @@ export function createExpirationNoticeCounts(): ExpirationNoticeCounts {
     alreadySent: 0,
     skippedStatus: 0,
     skippedDemo: 0,
-    skippedNoChannel: 0,
     skippedUserMissing: 0,
     failed: 0,
   };
@@ -89,15 +98,10 @@ export class ExpirationNoticeStopError extends Error {
   }
 }
 
-async function sendOne(
-  job: ExpirationNoticeJob,
-  channels: WalletExpirationNoticeChannel[],
-  displayName: string,
-): Promise<"sent" | "alreadySent" | "failed"> {
+async function sendOne(job: ExpirationNoticeJob, displayName: string): Promise<"sent" | "alreadySent" | "failed"> {
   try {
     const result = await messagingService.sendMessage(job.message, {
       recipient: { userId: job.userId },
-      channels,
       vars: { ...job.vars, displayName, serviceNameShort: business.serviceNameShort },
       source: job.source,
       idempotencyKey: job.idempotencyKey,
@@ -156,7 +160,7 @@ export async function sendExpirationNoticeJobs(
   const userById = new Map(users.map((user) => [user.id, user]));
   const targetStatuses = walletConfig.expirationNoticeSettings.targetStatuses;
 
-  const sendable: { job: ExpirationNoticeJob; channels: WalletExpirationNoticeChannel[]; displayName: string }[] = [];
+  const sendable: { job: ExpirationNoticeJob; displayName: string }[] = [];
   for (const job of pending) {
     const user = userById.get(job.userId);
     // 汎用の remove は deleted_at を入れるだけで status を変えないため、ステータスとは別に見る
@@ -172,14 +176,8 @@ export async function sendExpirationNoticeJobs(
       counts.skippedStatus += 1;
       continue;
     }
-    // メール未登録のユーザーはメールを外す（サービス内通知が指定されていればそれだけ送る）
-    const channels = job.channels.filter((channel) => channel !== "email" || Boolean(user.email));
-    if (channels.length === 0) {
-      counts.skippedNoChannel += 1;
-      continue;
-    }
-    // 宛名は前のお知らせのメールと同じ(名前が無ければ「お客様」)
-    sendable.push({ job, channels, displayName: user.name ?? "お客様" });
+    // 宛名は前のお知らせのメールと同じ(名前が無ければ「お客様」)。メール未登録ならメールの行は no_address(送る口が決める)
+    sendable.push({ job, displayName: user.name ?? "お客様" });
   }
 
   // 3. 送信（sendConcurrency 件ずつ）
@@ -187,7 +185,7 @@ export async function sendExpirationNoticeJobs(
   for (let i = 0; i < sendable.length; i += concurrency) {
     if (Date.now() >= deadline.getTime()) throw new ExpirationNoticeStopError("deadline");
     const slice = sendable.slice(i, i + concurrency);
-    const outcomes = await Promise.all(slice.map(({ job, channels, displayName }) => sendOne(job, channels, displayName)));
+    const outcomes = await Promise.all(slice.map(({ job, displayName }) => sendOne(job, displayName)));
     for (const outcome of outcomes) {
       if (outcome === "failed") {
         counts.failed += 1;

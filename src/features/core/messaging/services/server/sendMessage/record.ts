@@ -6,7 +6,7 @@
 // - required: vars の写しも残さない。秘密の印の鍵は record に依らず写しから落とす
 // - 件名・題(headings)は常に残す(秘密の鍵は差し込まない)
 
-import type { MessageRecord } from "@/lib/messaging";
+import { MESSAGE_KIND_TRAITS, type MessageRecord } from "@/lib/messaging";
 
 import { secretKeysOf } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
@@ -26,7 +26,8 @@ export type RecordPolicy = {
 };
 
 export function recordPolicyOf(resolved: AnyResolvedMessageDefinition): RecordPolicy {
-  const record = resolved.record ?? "vars";
+  // 既定 = 種別の性質の recordDefault(functional・security は meta、announcement・direct は full、ほかは vars)
+  const record = resolved.record ?? MESSAGE_KIND_TRAITS[resolved.kind].recordDefault;
   const secretKeys = secretKeysOf(resolved);
   const noBody = Boolean(resolved.required) || secretKeys.length > 0;
   return {

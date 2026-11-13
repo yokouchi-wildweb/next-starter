@@ -82,9 +82,12 @@ test("値・種類・宛先の集め方・送り元・購読", async () => {
     { rankName: "ゴールド" },
   );
 
-  const category: MessageCategory = { key: "campaign", label: "キャンペーン", kind: "marketing" };
-  // @ts-expect-error 取引の種別は種類を持たない(好みを見ない)
-  const transactional: MessageCategory = { key: "x", label: "x", kind: "transactional" };
+  const category: MessageCategory = { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email"] };
+  // 種類は 7 つの種別のどれでも持てる(取引の種類もある、D81)。経路は必須
+  const transactional: MessageCategory = { key: "x", label: "x", kind: "transactional", channels: ["email"] };
+  // @ts-expect-error 経路の無い種類は書けない
+  const noChannels: MessageCategory = { key: "y", label: "y", kind: "activity" };
+  void noChannels;
 
   const audience: MessageAudience = {
     key: "activeUsers",

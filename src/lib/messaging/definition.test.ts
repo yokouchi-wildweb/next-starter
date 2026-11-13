@@ -12,23 +12,28 @@ import { z } from "zod";
 import {
   CHANNEL_ERROR_KINDS,
   ChannelError,
+  MESSAGE_KINDS,
+  MESSAGE_KIND_TRAITS,
   applyMessageOverride,
   createDefineMessage,
   defineMessage,
   extensionPoints,
+  kindTraits,
+  kindsWhere,
+  resolveMessageDefinition,
+  validateMessageCategories,
   validateMessageDefinition,
+  type MessageCategory,
   type MessageContent,
   type MessageOverride,
 } from "./index";
 
 const verification = defineMessage({
   key: "auth.verification",
-  kind: "transactional",
   category: "account",
   vars: z.object({ verificationUrl: z.string().url() }),
   required: true,
   record: "meta",
-  defaultChannels: ["email"],
   content: {
     email: {
       subject: "メールアドレスの確認",
@@ -42,12 +47,10 @@ const verification = defineMessage({
 
 const reply = defineMessage({
   key: "chat.reply",
-  kind: "activity",
   category: "chat",
   vars: z.object({ roomId: z.string(), senderName: z.string() }),
   adminEditable: ["inApp.title", "email.subject"],
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },
-  defaultChannels: ["inApp", "email"],
   content: {
     inApp: { title: "{{senderName}} さんから返信", body: "ほか {{collapsedCount}} 件", link: "{{appBaseUrl}}/rooms/{{roomId}}" },
     email: { subject: "{{senderName}} さんから返信がありました" },
@@ -57,20 +60,33 @@ const reply = defineMessage({
 
 const codes = (problems: { code: string }[]) => problems.map((p) => p.code).sort();
 
+/** テストの種類(種別と経路は種類から引く) */
+const CATEGORIES: Record<string, MessageCategory> = {
+  account: { key: "account", label: "アカウント", kind: "functional", channels: ["email"] },
+  accountInApp: { key: "accountInApp", label: "アカウント(お知らせ)", kind: "transactional", channels: ["inApp"] },
+  chat: { key: "chat", label: "チャット", kind: "activity", channels: ["inApp", "email"] },
+  chatLine: { key: "chatLine", label: "チャット(LINE も)", kind: "activity", channels: ["inApp", "email", "line"] },
+  push: { key: "push", label: "プッシュ", kind: "activity", channels: ["push"] },
+  order: { key: "order", label: "注文", kind: "transactional", channels: ["push"] },
+  alert: { key: "alert", label: "警告", kind: "security", channels: ["email"] },
+};
+const validate = (definition: Parameters<typeof validateMessageDefinition>[0], options: Partial<Parameters<typeof validateMessageDefinition>[1]> = {}) =>
+  validateMessageDefinition(definition, { categories: CATEGORIES, ...options });
+
 test("正しい定義は問題なし", () => {
-  assert.deepEqual(validateMessageDefinition(verification), []);
-  assert.deepEqual(validateMessageDefinition(reply), []);
+  assert.deepEqual(validate(verification), []);
+  assert.deepEqual(validate(reply), []);
 });
 
 test("required の守り: email の除外・adminEditable・throttle を止める", () => {
   const def = defineMessage({
     ...verification,
-    adminEditable: ["email.subject"],
+    category: "accountInApp",
+    adminEditable: ["inApp.title"],
     throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 },
-    defaultChannels: ["inApp"],
     content: { ...verification.content, inApp: { title: "確認", body: "" } },
   });
-  assert.deepEqual(codes(validateMessageDefinition(def)), [
+  assert.deepEqual(codes(validate(def)), [
     "required_admin_editable",
     "required_throttle",
     "required_without_email",
@@ -80,20 +96,22 @@ test("required の守り: email の除外・adminEditable・throttle を止め�
 test("上書きを重ねた結果を検査: required への enabled:false・email の除外・adminEditable の付与を止める", () => {
   const override: MessageOverride = {
     enabled: false,
-    defaultChannels: ["inApp"],
     adminEditable: ["email.subject"],
     content: { inApp: { title: "確認", body: "" } },
   };
-  assert.deepEqual(codes(validateMessageDefinition(verification, { override })), [
+  // 経路は種類が決めるので上書きで email を外せない(required_without_email は種類の経路で見る)。functional の種類は文言の上書きも不可
+  assert.deepEqual(codes(validate(verification, { override })), [
+    "kind_admin_editable",
     "required_admin_editable",
     "required_disabled",
-    "required_without_email",
   ]);
 });
 
-test("上書きで key・kind・vars・required は変えられない", () => {
-  const override = { required: false, key: "auth.other" } as never;
-  assert.deepEqual(codes(validateMessageDefinition(verification, { override })), [
+test("上書きで key・kind・vars・required・category・defaultChannels は変えられない", () => {
+  const override = { required: false, key: "auth.other", category: "chat", defaultChannels: ["email"] } as never;
+  assert.deepEqual(codes(validate(verification, { override })), [
+    "override_forbidden_key",
+    "override_forbidden_key",
     "override_forbidden_key",
     "override_forbidden_key",
   ]);
@@ -114,7 +132,7 @@ test("上書きの重ね方: 欄は経路ごとに重ね、throttle: null で外
   assert.equal(reply.content.email?.subject, "{{senderName}} さんから返信がありました");
   assert.ok(reply.throttle);
   // throttle を外すと {{collapsedCount}} は差し込めない
-  assert.deepEqual(codes(validateMessageDefinition(reply, { override: { throttle: null } })), [
+  assert.deepEqual(codes(validate(reply, { override: { throttle: null } })), [
     "unknown_variable",
   ]);
 });
@@ -129,7 +147,7 @@ test("欄の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCoun
       },
     },
   });
-  const problems = validateMessageDefinition(def);
+  const problems = validate(def);
   assert.deepEqual(codes(problems), ["unknown_variable", "unknown_variable"]);
   assert.ok(problems.some((p) => p.message.includes("{{unknownKey}}")));
   assert.ok(problems.some((p) => p.message.includes("{{collapsedCount}}")));
@@ -140,61 +158,96 @@ test("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す"
     ...verification,
     content: { email: { subject: "{{points}} {{unknownKey}}" } },
   });
-  assert.deepEqual(codes(validateMessageDefinition(def)), ["unknown_variable", "unknown_variable"]);
-  const problems = validateMessageDefinition(def, { variableKeys: ["points"] });
+  assert.deepEqual(codes(validate(def)), ["unknown_variable", "unknown_variable"]);
+  const problems = validate(def, { variableKeys: ["points"] });
   assert.deepEqual(codes(problems), ["unknown_variable"]);
   assert.ok(problems[0].message.includes("{{unknownKey}}"));
 });
 
-test("欄の検査: 欄の zod に合わない・defaultChannels に欄が無い・知らない経路・定義に無い adminEditable", () => {
+test("欄の検査: 欄の zod に合わない・種類の経路に欄が無い・知らない経路・定義に無い adminEditable", () => {
   const def = defineMessage({
     ...reply,
-    defaultChannels: ["inApp", "email", "line"],
+    category: "chatLine",
     adminEditable: ["inApp.title", "email.subject"],
     content: {
       inApp: { title: "", body: "本文" },
       email: { subject: "件名" },
     },
   });
-  assert.deepEqual(codes(validateMessageDefinition(def)), ["invalid_content", "missing_content"]);
+  assert.deepEqual(codes(validate(def)), ["invalid_content", "missing_content"]);
 
-  const unknownChannel = { ...reply, adminEditable: [], defaultChannels: ["push"], content: { push: { text: "x" } } } as never;
-  assert.deepEqual(codes(validateMessageDefinition(unknownChannel)), ["unknown_channel", "unknown_channel"]);
+  const unknownChannel = { ...reply, category: "push", adminEditable: [], content: { push: { text: "x" } } } as never;
+  assert.deepEqual(codes(validate(unknownChannel)), ["unknown_channel", "unknown_channel"]);
 
   const unknownField = { ...reply, adminEditable: ["email.subjectLine", "line.text"], content: { inApp: reply.content.inApp, email: reply.content.email } } as never;
-  assert.deepEqual(codes(validateMessageDefinition(unknownField)), [
+  assert.deepEqual(codes(validate(unknownField)), [
     "unknown_admin_editable",
     "unknown_admin_editable",
   ]);
 
   const extraField = { ...reply, content: { ...reply.content, email: { subject: "件名", title: "欄の名前は変えられない" } } } as never;
-  assert.deepEqual(codes(validateMessageDefinition(extraField)), ["invalid_content"]);
+  assert.deepEqual(codes(validate(extraField)), ["invalid_content"]);
 });
 
 test("throttle の検査と鍵の形", () => {
   const def = { ...reply, key: "ChatReply", throttle: { by: ["nope"], mode: "window", seconds: 0 } } as never;
-  assert.deepEqual(codes(validateMessageDefinition(def)), [
+  assert.deepEqual(codes(validate(def)), [
     "invalid_key",
     "invalid_throttle",
     "invalid_throttle",
   ]);
 });
 
-test("category の検査(categories を渡した時だけ): 受け口の鍵か、取引だけ省ける。上書きの category も照らす", () => {
-  const codes = (definition: Parameters<typeof validateMessageDefinition>[0], override?: MessageOverride) =>
-    validateMessageDefinition(definition, { categories: ["marketing", "activity"], ...(override ? { override } : {}) }).map((p) => p.code);
-  const { category: _omit, ...withoutCategory } = verification;
-  void _omit;
-  // 取引は省ける・鍵があれば受け口の鍵に限る
-  assert.deepEqual(codes(withoutCategory), []);
-  assert.deepEqual(codes(verification), ["unknown_category"]);
-  assert.deepEqual(codes({ ...withoutCategory, kind: "marketing", required: false }), ["missing_category"]);
-  assert.deepEqual(codes({ ...verification, kind: "marketing", required: false, category: "marketing" }), []);
-  // 上書きの category も同じ
-  assert.deepEqual(codes(withoutCategory, { category: "news" }), ["unknown_category"]);
-  assert.deepEqual(codes(withoutCategory, { category: "activity" }), []);
-  // 渡さなければ照らさない(今までどおり)
-  assert.deepEqual(validateMessageDefinition(verification).map((p) => p.code), []);
+test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言の上書き・間引きを止める", () => {
+  assert.deepEqual(codes(validate({ ...verification, category: "nope" })), ["unknown_category"]);
+  // security は間引けない、functional は文言を直せない(required でなくても)
+  const alert = defineMessage({ ...verification, category: "alert", required: false, throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 } });
+  assert.deepEqual(codes(validate(alert)), ["kind_throttle"]);
+  const functional = defineMessage({ ...verification, required: false, adminEditable: ["email.subject"] });
+  assert.deepEqual(codes(validate(functional)), ["kind_admin_editable"]);
+  // 種別と経路は種類から付く
+  const resolved = resolveMessageDefinition(reply, undefined, CATEGORIES.chat);
+  assert.equal(resolved.kind, "activity");
+  assert.deepEqual(resolved.channels, ["inApp", "email"]);
+});
+
+test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
+  const groups = { social: { key: "social", label: "交流", order: 1 } };
+  assert.deepEqual(
+    validateMessageCategories(
+      {
+        like: { key: "like", label: "いいね", kind: "activity", channels: ["inApp"], group: "social" },
+        follow: { key: "follow", label: "フォロー", kind: "activity", channels: ["inApp"], group: "social" },
+      },
+      groups,
+    ),
+    [],
+  );
+  const problems = validateMessageCategories(
+    {
+      like: { key: "like", label: "いいね", kind: "activity", channels: ["inApp"], group: "social" },
+      promo: { key: "promo", label: "宣伝", kind: "marketing", channels: ["email"], group: "social" },
+      lost: { key: "lost", label: "迷子", kind: "activity", channels: [], group: "nope" },
+      odd: { key: "odd", label: "変", kind: "weird" as never, channels: ["email"] },
+    },
+    groups,
+  );
+  assert.deepEqual(problems.map((p) => p.code).sort(), ["empty_channels", "group_kind_mismatch", "unknown_group", "unknown_kind"]);
+});
+
+test("種別の性質の表(D80)", () => {
+  assert.deepEqual([...MESSAGE_KINDS], ["functional", "transactional", "security", "announcement", "direct", "activity", "marketing"]);
+  assert.deepEqual(kindsWhere((t) => t.userStoppable), ["activity", "marketing"]);
+  assert.deepEqual(kindsWhere((t) => !t.upstreamDisable), ["functional"]);
+  assert.deepEqual(kindsWhere((t) => t.addressStop === "hardBounce"), ["functional", "security"]);
+  assert.deepEqual(kindsWhere((t) => t.adminFreeText.length > 0), ["announcement", "direct", "marketing"]);
+  assert.deepEqual(kindsWhere((t) => !t.throttle), ["functional", "security"]);
+  assert.deepEqual(kindsWhere((t) => !t.adminTextOverride), ["functional"]);
+  assert.deepEqual(kindsWhere((t) => t.emailFixed), ["functional", "security"]);
+  assert.equal(MESSAGE_KIND_TRAITS.direct.recordDefault, "full");
+  assert.equal(MESSAGE_KIND_TRAITS.security.recordDefault, "meta");
+  assert.equal(kindTraits("transactional")?.recordDefault, "vars");
+  assert.equal(kindTraits("nope"), null);
 });
 
 test("fork の経路を足した束(createDefineMessage と channels)", () => {
@@ -205,16 +258,14 @@ test("fork の経路を足した束(createDefineMessage と channels)", () => {
   const define = createDefineMessage<typeof channels>();
   const def = define({
     key: "shop.orderShipped",
-    kind: "transactional",
     category: "order",
     vars: z.object({ orderId: z.string() }),
     adminEditable: ["push.title"],
-    defaultChannels: ["push"],
     content: { push: { title: "発送しました", body: "注文 {{orderId}}" } },
   });
-  assert.deepEqual(validateMessageDefinition(def, { channels }), []);
+  assert.deepEqual(validate(def, { channels }), []);
   // 上流の束で読むと push は知らない経路
-  assert.ok(codes(validateMessageDefinition(def as never)).includes("unknown_channel"));
+  assert.ok(codes(validate(def as never)).includes("unknown_channel"));
 });
 
 test("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
@@ -231,40 +282,32 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
   defineMessage({
     // @ts-expect-error 鍵は <domain>.<name>
     key: "noDot",
-    kind: "activity",
     category: "x",
     vars,
-    defaultChannels: ["email"],
     content: { email: { subject: "s" } },
   });
   defineMessage({
     key: "x.y",
-    kind: "activity",
     category: "x",
     vars,
     // @ts-expect-error 欄の名前は <経路>.<欄>
     adminEditable: ["email.title"],
-    defaultChannels: ["email"],
     content: { email: { subject: "s" } },
   });
   defineMessage({
     key: "x.y",
-    kind: "activity",
     category: "x",
     vars,
     // @ts-expect-error throttle.by は vars の鍵
     throttle: { by: ["b"], mode: "window", seconds: 1 },
-    defaultChannels: ["email"],
     content: { email: { subject: "s" } },
   });
   defineMessage({
     key: "x.y",
-    kind: "activity",
     category: "x",
     vars,
     // @ts-expect-error 登録されていない経路
-    defaultChannels: ["push"],
-    content: { email: { subject: "s" } },
+    content: { push: { text: "s" } },
   });
   const content: MessageContent = { line: { text: "t" } };
   assert.ok(content);
@@ -279,9 +322,7 @@ test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
   assert.equal(overrideKeysMatch, true);
   assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
     "adminEditable",
-    "category",
     "content",
-    "defaultChannels",
     "enabled",
     "extras",
     "record",

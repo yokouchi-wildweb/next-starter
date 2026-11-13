@@ -1,15 +1,19 @@
 // scripts/structure/extensions/derive/messageGuards.mjs
 // 止められない連絡(required)の守り。連絡の定義 messages/<名前>.ts と隣の上書き <名前>.override.ts を字面で読み(実行しない)、
-// - required: true の定義: defaultChannels に "email" がある・adminEditable が空・throttle が無い
-// - その上書き: enabled: false にしない・defaultChannels(書くなら)に "email" がある・adminEditable(書くなら)は空・throttle(書くなら)は null だけ
-// - 守りに関わる値(定義の required・defaultChannels・adminEditable、上書きの enabled・defaultChannels・adminEditable)はリテラルで書く
-// - category(全部の定義と上書き): 書くならリテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
-//   定義で省けるのは kind "transactional" だけ(好みと配信停止の単位が黙って効かなくなるのを防ぐ、D35)。
-//   categories の点が宣言されていない木(messaging の無い木)では照らさない
+// - required の上書き: enabled: false にしない・adminEditable(書くなら)は空・throttle(書くなら)は null だけ
+// - 守りに関わる値(定義の required・category・adminEditable、上書きの enabled・adminEditable、種類の kind・channels・group)はリテラルで書く
+// - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
+//   文面(content)は種類の経路の分だけ要る(D86)。上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
+// - required の定義: 種類の経路に "email" がある・adminEditable が空・throttle が無い
+// - 上流(src/features/core)の functional の種類の連絡: 上書きで enabled: false にしない(D68)
+// - 種類の上書き(categories/<名前>.override.ts): functional・security の種類の channels から "email" を外さない(D86)。
+//   group は categoryGroups の受け口の鍵で、1 つのグループの種類は同じ種別(D82)
+// 種別の性質(emailFixed・upstreamDisable)は src/lib/messaging/definition/kinds.ts の MESSAGE_KIND_TRAITS を字面で読む(表は 1 か所)。
+// categories の点が宣言されていない木(messaging の無い木)では種類の検査をしない
 // 上書きの鍵(宣言の overrideOf の中か)は ../overrideKeys.mjs、欄・{{鍵}} など値の検査は lib/messaging の validateMessageDefinition(実行時・生成時)。
 // 点 = lib/messaging の extensionPoints.ts の messages(宣言の overrides の glob の対象)。pnpm check extensions(門 build)が回す
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 
 import ts from "typescript";
@@ -19,8 +23,11 @@ import { isOverridePath, overrideGlobOf } from "../../../../src/lib/districtMap/
 
 /** 守りを当てる点(持ち主のフォルダ・点の名前) */
 export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };
-/** 配信停止の種類の点(項目の鍵 = category に書ける値) */
+/** 配信停止の種類の点(項目の鍵 = category に書ける値)とグループの点 */
 export const CATEGORY_POINT = { owner: "src/features/core/messaging", name: "categories" };
+export const CATEGORY_GROUP_POINT = { owner: "src/features/core/messaging", name: "categoryGroups" };
+/** 種別の性質の表 */
+const KIND_TRAITS_FILE = "src/lib/messaging/definition/kinds.ts";
 /** 定義の export の名前(export const message = defineMessage({ … })) */
 export const MESSAGE_EXPORT = "message";
 
@@ -74,44 +81,145 @@ function readPresence(object, key) {
 
 const isStringArray = (v) => Array.isArray(v) && v.every((x) => typeof x === "string");
 
-/**
- * categories の受け口の項目の鍵(項目 = <dir>/<名前>.ts(x) か <名前>/index.ts(x) の export const <export> = { key: "…" } を字面で読む)。
- * 点が宣言されていなければ null(照らさない)
- * @param {{ owner: string, name: string, spec: { dir?: string, export?: string } }[]} points
- * @param {string[]} files
- */
-export function readCategoryKeys(repoRoot, points, files) {
-  const point = points.find((p) => p.owner === CATEGORY_POINT.owner && p.name === CATEGORY_POINT.name);
-  if (!point?.spec?.dir || !point.spec.export) return null;
+/** 受け口の項目のファイル(<dir>/<名前>.ts(x) か <名前>/index.ts(x)、.override・.test は除く) */
+function itemFiles(point, files) {
   const base = `${point.owner}/${point.spec.dir}/`;
-  const items = files.filter((f) => {
-    if (!f.startsWith(base) || /\.test\.[cm]?tsx?$/.test(f)) return false;
+  return files.filter((f) => {
+    if (!f.startsWith(base) || /\.test\.[cm]?tsx?$/.test(f) || isOverridePath(f)) return false;
     const rest = f.slice(base.length);
     return /^[^/.]+\.tsx?$/.test(rest) || /^[^/.]+\/index\.tsx?$/.test(rest);
   });
-  const keys = [];
-  for (const path of items) {
-    const object = exportedObject(path, readFileSync(join(repoRoot, path), "utf8"), point.spec.export);
-    const key = object ? readLiteralProperty(object, "key") : { present: false };
-    if (key.present && typeof key.value === "string") keys.push(key.value);
-  }
-  return keys.sort();
 }
 
-/** category の問題(定義は kind と合わせて、上書きは書いた時だけ) */
-function categoryProblems(path, object, keys, { isOverride }) {
+/**
+ * categories の受け口の項目(鍵 → { kind, channels, group, path })。字面で読む。点が宣言されていなければ null(照らさない)
+ * @param {{ owner: string, name: string, spec: { dir?: string, export?: string } }[]} points
+ * @param {string[]} files
+ */
+export function readCategories(repoRoot, points, files) {
+  const point = points.find((p) => p.owner === CATEGORY_POINT.owner && p.name === CATEGORY_POINT.name);
+  if (!point?.spec?.dir || !point.spec.export) return null;
+  const categories = new Map();
+  for (const path of itemFiles(point, files)) {
+    const object = exportedObject(path, readFileSync(join(repoRoot, path), "utf8"), point.spec.export);
+    if (!object) continue;
+    const key = readLiteralProperty(object, "key");
+    if (!key.present || typeof key.value !== "string") continue;
+    const kind = readLiteralProperty(object, "kind");
+    const channels = readLiteralProperty(object, "channels");
+    const group = readLiteralProperty(object, "group");
+    categories.set(key.value, {
+      path,
+      kind: typeof kind.value === "string" ? kind.value : null,
+      channels: isStringArray(channels.value) ? channels.value : null,
+      group: typeof group.value === "string" ? group.value : null,
+    });
+  }
+  return categories;
+}
+
+/** categories の受け口の項目の鍵(書き出しのコマンドが使う) */
+export function readCategoryKeys(repoRoot, points, files) {
+  const categories = readCategories(repoRoot, points, files);
+  return categories ? [...categories.keys()].sort() : null;
+}
+
+/** 種類のグループの鍵(点が無ければ空) */
+function readGroupKeys(repoRoot, points, files) {
+  const point = points.find((p) => p.owner === CATEGORY_GROUP_POINT.owner && p.name === CATEGORY_GROUP_POINT.name);
+  if (!point?.spec?.dir || !point.spec.export) return new Set();
+  const keys = new Set();
+  for (const path of itemFiles(point, files)) {
+    const object = exportedObject(path, readFileSync(join(repoRoot, path), "utf8"), point.spec.export);
+    const key = object ? readLiteralProperty(object, "key") : { present: false };
+    if (key.present && typeof key.value === "string") keys.add(key.value);
+  }
+  return keys;
+}
+
+/**
+ * 種別の性質の表(MESSAGE_KIND_TRAITS)から、email を外せない種別と上流の物を止められない種別を字面で読む。
+ * 各種別の行の `emailFixed: true` / `upstreamDisable: false`(…BASE の既定 = false / true)。表が無ければ空
+ */
+export function readKindTraits(repoRoot) {
+  const traits = { emailFixed: new Set(), noUpstreamDisable: new Set() };
+  const abs = join(repoRoot, KIND_TRAITS_FILE);
+  if (!existsSync(abs)) return traits;
+  const table = exportedObject(KIND_TRAITS_FILE, readFileSync(abs, "utf8"), "MESSAGE_KIND_TRAITS");
+  if (!table) return traits;
+  for (const row of table.properties) {
+    if (!ts.isPropertyAssignment(row) || !(ts.isIdentifier(row.name) || ts.isStringLiteral(row.name))) continue;
+    const value = unwrap(row.initializer);
+    if (!ts.isObjectLiteralExpression(value)) continue;
+    if (readLiteralProperty(value, "emailFixed").value === true) traits.emailFixed.add(row.name.text);
+    if (readLiteralProperty(value, "upstreamDisable").value === false) traits.noUpstreamDisable.add(row.name.text);
+  }
+  return traits;
+}
+
+/** content の経路の名前(字面) */
+function contentKeys(object) {
+  for (const p of object.properties) {
+    if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) || p.name.text !== "content") continue;
+    const node = unwrap(p.initializer);
+    if (!ts.isObjectLiteralExpression(node)) return null;
+    return node.properties.flatMap((q) => (q.name && (ts.isIdentifier(q.name) || ts.isStringLiteral(q.name)) ? [q.name.text] : []));
+  }
+  return [];
+}
+
+/** 定義の category の問題(全部の連絡に必須・受け口の鍵・文面は種類の経路の分だけ) */
+function categoryProblems(path, object, categories) {
   const category = readLiteralProperty(object, "category");
   if (category.problem) return [`${path}: ${category.problem}(category を categories の受け口と字面で照らすため)`];
-  const list = keys.join(" / ") || "項目なし";
-  if (category.present) {
-    return typeof category.value === "string" && keys.includes(category.value)
-      ? []
-      : [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。項目を足すか、取引の連絡なら外す`];
+  const list = [...categories.keys()].sort().join(" / ") || "項目なし";
+  if (!category.present) return [`${path}: category(${list})を書く(全部の連絡に必須。種別と経路は種類から引く)`];
+  const item = typeof category.value === "string" ? categories.get(category.value) : undefined;
+  if (!item) return [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。先に categories/<名前>.ts を足す`];
+  const keys = contentKeys(object);
+  if (keys === null || !item.channels) return [];
+  const missing = item.channels.filter((channel) => !keys.includes(channel));
+  return missing.length > 0 ? [`${path}: 種類 ${category.value} の経路 ${missing.join(", ")} の文面(content.<経路>)が無い`] : [];
+}
+
+/** 種類の上書きの問題(email を外さない・グループ) */
+function categoryOverrideProblems(repoRoot, categories, files, groupKeys, traits) {
+  const problems = [];
+  const groupKind = new Map();
+  const effective = new Map();
+  for (const [key, item] of categories) {
+    const overridePath = item.path.replace(/(\/index)?\.tsx?$/, (m, index) => (index ? "/index.override.ts" : ".override.ts"));
+    let channels = item.channels;
+    let group = item.group;
+    if (files.includes(overridePath)) {
+      const override = exportedObject(overridePath, readFileSync(join(repoRoot, overridePath), "utf8"), "override");
+      if (override) {
+        const c = readLiteralProperty(override, "channels");
+        const g = readLiteralProperty(override, "group");
+        if (c.problem || g.problem) problems.push(`${overridePath}: ${c.problem ?? g.problem}(種類の経路・グループを字面で確かめるため)`);
+        if (c.present && isStringArray(c.value)) {
+          channels = c.value;
+          if (traits.emailFixed.has(item.kind) && !c.value.includes("email")) {
+            problems.push(`${overridePath}: 種別 ${item.kind} の種類 ${key} の経路から email は外せない(D86)`);
+          }
+          if (c.value.length === 0) problems.push(`${overridePath}: 種類 ${key} の経路を空にはできない`);
+        }
+        if (g.present && typeof g.value === "string") group = g.value;
+      }
+    }
+    effective.set(key, { ...item, channels, group });
+    if (!group) continue;
+    if (!groupKeys.has(group)) {
+      problems.push(`${item.path}: 種類 ${key} の group ${group} は categoryGroups の受け口に無い`);
+      continue;
+    }
+    const seen = groupKind.get(group);
+    if (!seen) groupKind.set(group, { kind: item.kind, key });
+    else if (seen.kind !== item.kind) {
+      problems.push(`${item.path}: グループ ${group} には種別 ${seen.kind} の種類 ${seen.key} があり、種別 ${item.kind} の種類 ${key} は入れられない(D82)`);
+    }
   }
-  if (isOverride) return [];
-  const kind = readLiteralProperty(object, "kind");
-  if (kind.problem) return [`${path}: ${kind.problem}(category を省けるのは取引だけなので kind を字面で読む)`];
-  return kind.value === "transactional" ? [] : [`${path}: ${String(kind.value)} の連絡は category(${list})を書く(省けるのは取引だけ)`];
+  return { problems, effective };
 }
 
 /**
@@ -128,7 +236,14 @@ export function checkMessageGuards(repoRoot, points, files) {
   const overrideGlob = overrideGlobOf(point.spec.overrides);
   const definitions = files.filter((f) => matchesGlob(f, point.spec.overrides) && !isOverridePath(f) && !/\.test\.[cm]?tsx?$/.test(f));
 
-  const categoryKeys = readCategoryKeys(repoRoot, points, files);
+  const rawCategories = readCategories(repoRoot, points, files);
+  const traits = readKindTraits(repoRoot);
+  let categories = rawCategories;
+  if (rawCategories) {
+    const checked = categoryOverrideProblems(repoRoot, rawCategories, files, readGroupKeys(repoRoot, points, files), traits);
+    problems.push(...checked.problems);
+    categories = checked.effective;
+  }
 
   for (const path of definitions) {
     const text = readFileSync(join(repoRoot, path), "utf8");
@@ -137,22 +252,27 @@ export function checkMessageGuards(repoRoot, points, files) {
       problems.push(`${path}: 連絡の定義は export const ${MESSAGE_EXPORT} = defineMessage({ … }) の形で書く(点 ${point.name}、${point.declaredIn})`);
       continue;
     }
-    if (categoryKeys) {
-      problems.push(...categoryProblems(path, definition, categoryKeys, { isOverride: false }));
-      const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
-      if (files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob)) {
-        const object = exportedObject(ownOverride, readFileSync(join(repoRoot, ownOverride), "utf8"), overrideExport);
-        if (object) problems.push(...categoryProblems(ownOverride, object, categoryKeys, { isOverride: true }));
+    if (categories) problems.push(...categoryProblems(path, definition, categories));
+    const categoryItem = categories?.get(readLiteralProperty(definition, "category").value);
+    const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
+    const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);
+    // 上流の functional の連絡は止められない(fork の自分の連絡は自由、D68)。required の連絡は下の守りが言う
+    const isRequired = readLiteralProperty(definition, "required").value === true;
+    if (!isRequired && hasOverride && categoryItem && traits.noUpstreamDisable.has(categoryItem.kind) && path.startsWith("src/features/core/")) {
+      const object = exportedObject(ownOverride, readFileSync(join(repoRoot, ownOverride), "utf8"), overrideExport);
+      const enabled = object ? readLiteralProperty(object, "enabled") : { present: false };
+      if (enabled.problem) problems.push(`${ownOverride}: ${enabled.problem}(上流の ${categoryItem.kind} の連絡のため)`);
+      else if (enabled.present && enabled.value !== true) {
+        problems.push(`${ownOverride}: 上流の種別 ${categoryItem.kind} の連絡は止められない(enabled: false にしない。止めたいなら機能を閉じる、D68)`);
       }
     }
     const required = readLiteralProperty(definition, "required");
-    const defaultChannels = readLiteralProperty(definition, "defaultChannels");
     const adminEditable = readLiteralProperty(definition, "adminEditable");
-    for (const r of [required, defaultChannels, adminEditable]) if (r.problem) problems.push(`${path}: ${r.problem}(required の守りを字面で確かめるため)`);
+    for (const r of [required, adminEditable]) if (r.problem) problems.push(`${path}: ${r.problem}(required の守りを字面で確かめるため)`);
     if (required.problem || required.value !== true) continue;
 
-    if (!defaultChannels.problem && !(isStringArray(defaultChannels.value) && defaultChannels.value.includes("email"))) {
-      problems.push(`${path}: required の連絡は defaultChannels に "email" を含める`);
+    if (categoryItem?.channels && !categoryItem.channels.includes("email")) {
+      problems.push(`${path}: required の連絡の種類(${categoryItem.path})の経路に "email" を含める`);
     }
     if (!adminEditable.problem && adminEditable.present && !(Array.isArray(adminEditable.value) && adminEditable.value.length === 0)) {
       problems.push(`${path}: required の連絡に adminEditable は付けられない`);
@@ -164,13 +284,9 @@ export function checkMessageGuards(repoRoot, points, files) {
     const override = exportedObject(overridePath, readFileSync(join(repoRoot, overridePath), "utf8"), overrideExport);
     if (!override) continue; // 形の違い・空は ../overrideKeys.mjs と ../orphans.mjs が言う
     const enabled = readLiteralProperty(override, "enabled");
-    const oChannels = readLiteralProperty(override, "defaultChannels");
     const oEditable = readLiteralProperty(override, "adminEditable");
-    for (const r of [enabled, oChannels, oEditable]) if (r.problem) problems.push(`${overridePath}: ${r.problem}(上書きの先が required の連絡のため)`);
+    for (const r of [enabled, oEditable]) if (r.problem) problems.push(`${overridePath}: ${r.problem}(上書きの先が required の連絡のため)`);
     if (!enabled.problem && enabled.present && enabled.value !== true) problems.push(`${overridePath}: required の連絡は止められない(enabled: false にしない)`);
-    if (!oChannels.problem && oChannels.present && !(isStringArray(oChannels.value) && oChannels.value.includes("email"))) {
-      problems.push(`${overridePath}: required の連絡から email は外せない(defaultChannels に "email" を含める)`);
-    }
     if (!oEditable.problem && oEditable.present && !(Array.isArray(oEditable.value) && oEditable.value.length === 0)) {
       problems.push(`${overridePath}: required の連絡に adminEditable は付けられない`);
     }

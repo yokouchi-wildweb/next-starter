@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 
 import { z } from "zod";
 
-import { applyMessageOverride } from "./validate";
+import { resolveMessageDefinition } from "./validate";
 import { defineMessage } from "./defineMessage";
 import { secretVar } from "./secret";
 import {
@@ -17,19 +17,19 @@ import {
   checkAdminFieldValue,
 } from "./adminFields";
 
-const resolved = applyMessageOverride(
+const resolved = resolveMessageDefinition(
   defineMessage({
     key: "shop.notice",
-    kind: "transactional",
     category: "shop",
     vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
     adminEditable: ["email.subject", "email.paragraphs", "inApp.body"],
-    defaultChannels: ["email", "inApp"],
     content: {
       email: { subject: "{{name}} 様へ", paragraphs: ["一", "二"], cta: { label: "開く", url: "{{token}}" } },
       inApp: { title: "題", body: "本文" },
     },
   }),
+  undefined,
+  { kind: "transactional", channels: ["email", "inApp"] },
 );
 
 test("使ってよい鍵: vars(秘密を除く)・共通の文脈・provides", () => {

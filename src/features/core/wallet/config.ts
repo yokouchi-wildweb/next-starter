@@ -18,23 +18,26 @@ import type { CurrencyConfig } from "./types/currency";
  */
 export type WalletPurchaseRestriction = "none" | "phoneVerified";
 
-/** 通知チャネル（語彙は messaging ドメインの MessagingChannel と同じ） */
-export type WalletExpirationNoticeChannel = "email" | "inApp";
-
 /**
- * 失効予告の1段（「何日前に・どのチャネルで」送るか）。
+ * 失効予告の1段（「何日前に」送るか）。経路は連絡の種類が決める(D86。上流 = 種類 walletExpiring の email・inApp、
+ * 変えるなら種類の override src/features/core/messaging/categories/walletExpiring.override.ts の channels)。
  * 文面は連絡の定義 src/features/core/wallet/messages/expiringNotice.ts(変えるなら隣に expiringNotice.override.ts。
  * 段ごとに変えたいときは {{daysBefore}} を使う)
  */
 export type WalletPreExpiryNoticeStage = {
   /** 失効の何日前に送るか（1以上の整数。同一通貨内で重複不可） */
   daysBefore: number;
-  channels: WalletExpirationNoticeChannel[];
+  /**
+   * 送る連絡の鍵(省略 = 上流の wallet.expiringNotice)。通貨・段ごとに経路を変えたい fork は、自分の種類(= 自分の経路)の
+   * 連絡を足してここで向ける(vars は wallet.expiringNotice と同じ物を受けること)
+   */
+  messageKey?: string;
 };
 
-/** 失効時の本通知(文面は連絡の定義 messages/expiredNotice.ts) */
+/** 失効時の本通知(文面は連絡の定義 messages/expiredNotice.ts、経路は種類 walletExpired) */
 export type WalletExpiredNotice = {
-  channels: WalletExpirationNoticeChannel[];
+  /** 送る連絡の鍵(省略 = 上流の wallet.expiredNotice。vars は同じ物を受けること) */
+  messageKey?: string;
 };
 
 export type WalletExpirationNoticeConfig = {
@@ -227,18 +230,17 @@ const defaults: WalletConfig = {
    * 「最後の残高変更から180日」で数える例:
    *   regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnabled: true },
    *
-   * 通知も送る例（30日前はメールのみ、7日前と失効時は両方）:
+   * 通知も送る例（30日前と7日前と失効時。経路は連絡の種類 walletExpiring・walletExpired が決める）:
    *   regular_coin: {
    *     expirationDays: 180,
    *     sweepEnabled: true,
    *     notice: {
-   *       preExpiry: [
-   *         { daysBefore: 30, channels: ["email"] },
-   *         { daysBefore: 7, channels: ["email", "inApp"] },
-   *       ],
-   *       expired: { channels: ["email", "inApp"] },
+   *       preExpiry: [{ daysBefore: 30 }, { daysBefore: 7 }],
+   *       expired: {},
    *     },
    *   },
+   *   30日前だけメールにしたいなど段ごとに経路を変えるなら、その経路の種類と連絡を fork が足して
+   *   { daysBefore: 30, messageKey: "<自分のドメイン>.<名前>" } と向ける
    *   (文面は連絡の定義 messages/expiringNotice.ts・expiredNotice.ts。変えるなら隣の <名前>.override.ts)
    */
   expiration: {

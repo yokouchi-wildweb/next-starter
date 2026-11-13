@@ -9,13 +9,9 @@ import type {
   UpstreamChannelFields,
 } from "./channels";
 
-/**
- * 種別(配信停止の単位)
- * - transactional: 取引・認証の連絡(好みの表を見ない)
- * - marketing: 宣伝・お知らせの配信
- * - activity: 利用者の動きから起こる連絡(いいね・返信など)
- */
-export type MessageKind = "transactional" | "marketing" | "activity";
+import type { MessageKind } from "./kinds";
+
+export type { MessageKind } from "./kinds";
 
 /**
  * 本文の残し方
@@ -49,47 +45,48 @@ export type MessageDefinition<
   C extends ChannelFieldSchemas = UpstreamChannelFields,
 > = {
   key: MessageKey;
-  kind: MessageKind;
   /**
-   * 種類(配信停止の好みの表の行) = categories の受け口の鍵(上流 marketing・activity と fork の項目)。
-   * marketing・activity は必須、取引(transactional)は省ける(好みを見ない)。受け口に無い鍵は検査で落ちる
+   * 種類 = categories の受け口の鍵(全部の連絡に必須、D81)。種別(kind)と経路(channels)は種類から引く(D86)。
+   * 受け口に無い鍵は検査で落ちる。override で付け替えられない(D74)
    */
-  category?: string;
+  category: string;
   /** 呼び手が渡す値 */
   vars: Vars;
   /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditable・throttle を付けられない */
   required?: boolean;
   /** 管理画面で直せる欄の名前(`<経路>.<欄>`)。required の連絡は空 */
   adminEditable?: readonly MessageFieldPath<C>[];
-  /** 本文の残し方(既定 vars) */
+  /** 本文の残し方(既定 = 種別の性質の recordDefault) */
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
-  /** 既定で送る経路(content を持つ経路だけ) */
-  defaultChannels: readonly (keyof C & string)[];
-  /** 経路ごとの欄 */
+  /** 経路ごとの欄(種類の経路の分だけ必須) */
   content: MessageContent<C>;
   /** fork が足す欄の入れ物(描き方の .replace が読む) */
   extras?: Record<string, unknown>;
 };
 
 /**
- * 一部の上書き(messages/<名前>.override.ts、データだけ)。key・kind・vars・required は変えられない。
- * content は経路ごとに欄を重ねる(欄の名前は変えられない)。throttle: null で外す。
+ * 一部の上書き(messages/<名前>.override.ts、データだけ)。key・vars・required・category は変えられない(種類の付け替えは D74 で無し。
+ * 経路は種類の override で変える)。content は経路ごとに欄を重ねる(欄の名前は変えられない)。throttle: null で外す。
  */
 export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelFields> = {
   content?: { [K in keyof MessageContent<C>]?: Partial<NonNullable<MessageContent<C>[K]>> };
   extras?: Record<string, unknown>;
-  defaultChannels?: readonly (keyof C & string)[];
-  /** 連絡 1 本の入切(既定 true) */
+  /** 連絡 1 本の入切(既定 true)。上流の functional の連絡は止められない(D68) */
   enabled?: boolean;
   adminEditable?: readonly MessageFieldPath<C>[];
-  category?: string;
   record?: MessageRecord;
   throttle?: MessageThrottle | null;
 };
 
-/** 上書きを重ねた後の定義(enabled を持つ) */
+/** 上書きを重ねた後の定義(enabled と、種類から引いた種別・経路を持つ) */
 export type ResolvedMessageDefinition<
   Vars extends z.AnyZodObject = z.AnyZodObject,
   C extends ChannelFieldSchemas = UpstreamChannelFields,
-> = MessageDefinition<Vars, C> & { enabled: boolean };
+> = MessageDefinition<Vars, C> & {
+  enabled: boolean;
+  /** 種類の種別 */
+  kind: MessageKind;
+  /** 種類の経路(fork の種類の override を重ねた後) */
+  channels: readonly (keyof C & string)[];
+};
