@@ -311,6 +311,10 @@ const permitDeps = (switches, policyOver = {}, over = {}) => {
 
 test("1 回分の許可: 危険な種類は manual + そのスイッチの許可がある時だけ入口を通し、使ったら消える。印は要らない", () => {
   const deps = permitDeps(["dbp"], { db_push: "manual" });
+  // danger(読むだけ)は印が無くても許可のスイッチなら通り、許可は使わない
+  assert.equal(verdict(bash("pnpm workflow devcheck danger dbp"), deps), "allow");
+  assert.equal(verdict(bash("pnpm workflow devcheck danger dep"), deps), "none");
+  assert.deepEqual(deps.held(), ["dbp"]);
   assert.equal(verdict(bash("pnpm db:push"), deps), "allow");
   assert.deepEqual(deps.held(), []);
   assert.equal(verdict(bash("pnpm db:push"), deps), "deny"); // 2 回目は固定の止め

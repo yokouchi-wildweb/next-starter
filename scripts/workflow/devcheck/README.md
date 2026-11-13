@@ -80,7 +80,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
    - repo.json(名前・段・方針)の直接の書き換え: Edit / Write / MultiEdit / NotebookEdit の書く先・上と同じシェルの書き込みの形(`pnpm workflow repo-json set` と `/repo-policy` を案内。読むだけ・`git` の操作は止めない)
    - 読み方(`parseCommands`): 引用符の外のつなぐ・流す記号で命令に切り、引用符の中は文字として扱う(コミットの文・`grep db:push`・`cat .env.production` では止めない)。動く物は中まで読む: `$( … )`・`` ` … ` ``(`"…"` の中も)・`bash -c` の引数・`eval`・シェルに渡す heredoc の本文・引用符の無い区切りの heredoc の中の置き換え
    - 外への送信・履歴を壊す git・秘密の表示は止めも許可もしない(普段どおり聞かれる)。`permissions.deny` には書かない(止めはここ 1 か所)
-0. **1 回分の許可の道**(固定の止めより前、印は要らない): Bash の 1 つのコマンドが危険な種類の入口の形と同じで方針が manual でそのスイッチの許可がある、か、manual の通常の種類の `devcheck run <種類> … --manual-go` でそのスイッチの許可がある → allow して許可を消す(上の「1 回分の許可」)
+0. **1 回分の許可の道**(固定の止めより前、印は要らない): Bash の 1 つのコマンドが危険な種類の入口の形と同じで方針が manual でそのスイッチの許可がある、か、manual の通常の種類の `devcheck run <種類> … --manual-go` でそのスイッチの許可がある → allow して許可を消す(上の「1 回分の許可」)。許可のあるスイッチの `pnpm workflow devcheck danger <スイッチ名>`(読むだけ)も印なしで通す(許可は使わない)
 2. **allow**: 手元の印 `DEVCHECK_GRANT=on`(`.claude/settings.local.json` の env。整えるスキルが書く)があり、その種類の方針が `off` でなく、許可してよい形の時だけ
    - 形はシェルの記号の無い 1 つのコマンドだけ(引用符の外の `; & | < > $ ( ) { } * ? # ! ~ [ ]`・`\`・改行は不可。`'…'` の中は文字、`"…"` の中は `$` と `` ` `` だけを見る)
    - `pnpm workflow devcheck plan|status [--json]`・`cleanup`・`danger <スイッチ名>`(種類の方針は見ない。全部の種類が `off`(`enabled: false` を含む)の時は通さない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針が `auto` の時だけ。`manual` は印の道では通さず、1 回分の許可の道だけ)

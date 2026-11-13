@@ -519,6 +519,9 @@ export const permitDecision = (req, deps) => {
   if (!command) return null;
   const policy = deps.policy();
   const entries = deps.entries ? deps.entries() : {};
+  // 許可のある危険な種類の danger(読むだけ、許可は使わない)は印が無くても通す(/allow の流れの途中で止まらないように)
+  const dangerRead = /^pnpm (?:-s )?workflow devcheck danger ([a-z]+)$/.exec(command);
+  if (dangerRead && permit.switches.includes(dangerRead[1])) return { decision: "allow", reason: `devcheck の 1 回の許可: ${dangerRead[1]} の danger(読むだけ)` };
   for (const kind of DANGER_NAMES) {
     const sw = switchOf(kind);
     if (policy[kind] !== "manual" || !sw || !permit.switches.includes(sw)) continue;

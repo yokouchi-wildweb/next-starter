@@ -189,7 +189,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    why: <why downstream must follow up>
    required_actions:
    1. <step executable by downstream Claude as-is: target files, commands, order>
-   2. [user-run] <interactive command Claude cannot run (e.g. pnpm db:push) — /flux asks the user to run it in-session via `!` prefix, then continues>
+   2. [user-run] <a step the fork's policy may keep for the human (e.g. pnpm db:push) — /flux follows repo.json: off → the user runs it in-session via `!`, manual → /allow, then continues>
    verify: <how downstream Claude verifies the result itself: query / curl / test command>
    manual_steps: <steps outside Claude's reach (Vercel env vars, external dashboards) | - if none>
    refs: <upstream files / commits / docs / related order id>
@@ -203,7 +203,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - required_actions, verify and refs of a `fixes:` notice never name paths / scripts missing from the broken point's tree (tools added later etc.) (the fork takes it right after the broken point, so the pick-check's prerequisite check makes it `-`) | to mention later tools, write them in notes (the prerequisite check does not read notes)
    - required_actions of a `hotfix:` notice are written without assuming the changes in between or later notices (the fork applies it skipping them) | never include `pnpm-lock.yaml` or `src/app/route-map.jsonl` in the commit (contents differ per fork; `pnpm check notices` checks)
    - **required_actions = "concrete enough for downstream Claude to run without stopping after one approval"**
-     - DB migrations, backfills, regeneration and data migrations all go here | only commands that show an interactive prompt (db push etc.) get `[user-run]`
+     - DB migrations, backfills, regeneration and data migrations all go here | only steps the fork's policy may keep for the human (db push, interactive prompts) get `[user-run]`
      - regenerate a domain with `pnpm generate domain -- <Domain>` (no prompts by default; no `[user-run]`), naming only the needed categories with `--only` | the fork-side bulk rebuild after adding settings = `pnpm forge`
    - a change that makes forks' existing code drift from the new spec → write markers to find the fork's target code (grep patterns etc.) and the steps to align it to the new spec | never leave compat for forks to sit on
    - split only what cannot be automated into `manual_steps` (fail-auto)
