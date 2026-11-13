@@ -29,7 +29,14 @@ export type RegistrationFormValuesBase = {
   role: string;
   profileData?: Record<string, unknown>;
   inviteCode?: string;
+  /** 宣伝の同意（上流のフォームには無い。チェックを足した fork のフォームだけが持つ。D88） */
+  marketingConsent?: boolean;
 };
+
+/** 宣伝の同意はフォームに項目がある時だけ送る（無ければ登録の処理は何も書かない） */
+function marketingConsentPayload(values: RegistrationFormValuesBase): { marketingConsent?: boolean } {
+  return typeof values.marketingConsent === "boolean" ? { marketingConsent: values.marketingConsent } : {};
+}
 
 type PayloadFields = Omit<RegistrationInput, "providerType" | "providerUid" | "idToken" | "inviteCode">;
 
@@ -160,6 +167,7 @@ export async function submitRegistration<TValues extends RegistrationFormValuesB
       idToken,
       ...variant.toPayloadFields(values),
       inviteCode: deps.resolveInviteCodePayload(values.inviteCode),
+      ...marketingConsentPayload(values),
     };
 
     await deps.register(payload, { recaptchaToken });
@@ -189,6 +197,7 @@ async function buildPendingPayload<TValues extends RegistrationFormValuesBase>(
     idToken,
     ...variant.toPayloadFields(values),
     inviteCode: deps.resolveInviteCodePayload(values.inviteCode),
+    ...marketingConsentPayload(values),
   };
 }
 

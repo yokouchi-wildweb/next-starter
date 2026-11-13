@@ -60,6 +60,8 @@ API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`（
 - **招待コード**: `register` の `inviteCode` は「非空=その値を使う / `""`=明示的に辞退（cookie フォールバックしない）/ undefined=招待リンク cookie にフォールバック」。消し込みは `INVITE_CODE_REDEEM_SCOPE`（invite 種別のみ）で、失敗しても登録はブロックしない → [referral README](../referral/README.md#サインアップフロー統合)。サインイン用・事前登録用のメールのリンクに招待のパラメータを付けるのは紹介が開いているとき（`gate.enabled("referral")`）だけ（route とサービスの両方で確かめる）
 - **流入経路**: 本登録時に attribution cookie から `recordSignupAcquisition`（bestEffort）→ [userAcquisition README](../userAcquisition/README.md)
 - **登録の後の処理**（登録ボーナスなど）: 本登録の守りの後に milestone のトリガー `user_registered` が 1 回発火する。fork は route や `registration.ts` を編集せず、マイルストーン定義を置く（1 人 1 回・付与と記録は同じ tx・失敗しても登録は止めない）→ [milestone README](../milestone/README.md#user_registered)
+- **宣伝の同意**（D88・D71）: `register` の `marketingConsent`（省略可の boolean）。`false` = 宣伝の種別まるごとの停止の行（kind `marketing`、`'*'` `'*'`）を source `signup` で書く（fork が後から足す宣伝の種類にも効く）/ `true` = 同じ登録の前の失敗した試みが残したその行を消す（有効化の前の利用者にほかの好みの行は無い）/ 省略 = 何もしない。書くのは有効化（`registerFromAuth`）の前に仮登録の id で、書けなければ投げる（有効化していないので登録はやり直せる。同意しない人に宣伝が届く形を残さない）。中身は `services/server/marketingConsent.ts` → messaging の `setMessagePreference(userId, { kind, optedOut }, { source })`
+  - 上流は登録画面にチェックを出さず、auth の config にも既定や表示の値を持たない（宣伝を送らない fork も多い、D89）。チェックが要る fork: 自分の登録の Screen（`_components/`）の form に `marketingConsent` のチェック（例 `SingleCardCheckbox`、既定の値は fork が決める。事前の同意を求める国ではオフ）を足すだけ。form の zod（`hooks/registration/*FormEntities.ts`）は `marketingConsent` を省略可で受け、送信の流れ（`submitFlow.ts`）は項目がある時だけ payload に入れる（v2 の再送の payload にも）
 - **表示名の検証・一意性**: `UserNameSchema` と `withUserNameGuard`（本登録の `activate` で適用）→ [user README 表示名節](../user/README.md#表示名--ユーザー名バリデーションと一意性)
 
 ## セッション
@@ -203,8 +205,8 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 
 | hook | 引数 | form の項目名 |
 | --- | --- | --- |
-| `useEmailRegistrationForm()` | なし | `email`（localStorage の認証済みメール、読み取り専用）・`name`・`password`・`passwordConfirmation`（double モードのみ）・`role`・`profileData`・`inviteCode`・`agreeToTerms` |
-| `useOAuthRegistrationForm()` | なし | `email`・`name`（provider のプロフィールで初期化）・`role`・`profileData`・`inviteCode`・`agreeToTerms` |
+| `useEmailRegistrationForm()` | なし | `email`（localStorage の認証済みメール、読み取り専用）・`name`・`password`・`passwordConfirmation`（double モードのみ）・`role`・`profileData`・`inviteCode`・`agreeToTerms`・`marketingConsent?`（上流の画面には無い） |
+| `useOAuthRegistrationForm()` | なし | `email`・`name`（provider のプロフィールで初期化）・`role`・`profileData`・`inviteCode`・`agreeToTerms`・`marketingConsent?`（上流の画面には無い） |
 
 戻り値（2 本共通。Email は `passwordConfirmationRequired` が加わる）:
 

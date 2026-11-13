@@ -104,6 +104,23 @@ describe("submitRegistration (email)", () => {
     });
   });
 
+  it("宣伝の同意: フォームに項目がある時だけ送る(false も送る、保留 payload にも入る)", async () => {
+    const values = { ...emailValues, marketingConsent: false };
+    const { deps, registered } = makeDeps(values, {
+      registerImpl: async () => {
+        throw V2_ERROR;
+      },
+    });
+    const outcome = await submitRegistration(values, emailRegistrationVariant, deps);
+    assert.equal(registered[0].payload.marketingConsent, false);
+    const pending = (outcome as { pendingPayload: RegistrationInput | null }).pendingPayload;
+    assert.equal(pending?.marketingConsent, false);
+    // 項目の無い上流のフォームは鍵ごと送らない
+    const plain = makeDeps(emailValues);
+    await submitRegistration(emailValues, emailRegistrationVariant, plain.deps);
+    assert.ok(!("marketingConsent" in plain.registered[0].payload));
+  });
+
   it("セッション無し = 401 の文言で root エラー、送信しない", async () => {
     const { deps, calls } = makeDeps(emailValues, { user: null });
     const outcome = await submitRegistration(emailValues, emailRegistrationVariant, deps);
