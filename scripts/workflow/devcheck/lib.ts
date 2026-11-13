@@ -2,7 +2,7 @@
 //
 // pnpm workflow devcheck の部品(読むだけの層)。開発中の確かめの入口が、事実と候補を出すための物。
 // - KINDS・方針の実体は lib.kinds.mjs(許可のフックも読む唯一の置き場)。ここは型を付けて出し直す
-// - 方針: policy.json(上流の実体、全部 auto)に policy.override.ts(fork、上流は出さない)の宣言した鍵(POLICY_KEYS = 種類 + peer)だけを重ねる。auto | manual | off
+// - 方針: リポ直下の repo.json の agent.* の鍵(種類・peer・enabled・危険な 3 つと入口、既定は lib.kinds.mjs)。auto | manual | off
 // - fork の項目: items/<名前>.json = { name, kind, command, what }。command はこのリポの入口(pnpm <script> / pnpm workflow / pnpm ops)だけ
 // - 文脈: 環境変数 DEVCHECK_CONTEXT=<絶対パス> の版つき key=value のファイル。無い = 単体、あるのに読めない・知らない版 = 止める
 // - 計画: 事実(方針・項目・文脈・今の状態)と候補。最後はいつも片付け
@@ -19,8 +19,9 @@ import {
   KINDS as KINDS_DATA,
   POLICY_KEYS as POLICY_KEYS_DATA,
   POLICY_VALUES as POLICY_VALUES_DATA,
+  DANGER_NAMES as DANGER_NAMES_DATA,
+  agentPolicyOf as agentPolicyOfData,
   loadPolicy as loadPolicyData,
-  mergePolicy as mergePolicyData,
 } from "./lib.kinds.mjs";
 import { isBackground, isBackgroundAlive, isTabAlive, readState, type DevTabState } from "../dev-tab/lib";
 
@@ -47,7 +48,10 @@ export const KIND_NAMES = KIND_NAMES_DATA as KindName[];
 /** 許可のフックだけの種類(計画の候補には出ない)と、方針の鍵(種類 + フックだけの種類) */
 export type HookKindName = "peer";
 export const HOOK_KINDS = HOOK_KINDS_DATA as HookKindName[];
-export type PolicyKey = KindName | HookKindName;
+/** 危険な 3 つ(off | manual だけ、既定 off) */
+export type DangerName = "db_push" | "env_production" | "deploy";
+export const DANGER_NAMES = DANGER_NAMES_DATA as DangerName[];
+export type PolicyKey = KindName | HookKindName | DangerName;
 export const POLICY_KEYS = POLICY_KEYS_DATA as PolicyKey[];
 
 /** サーバーの種類の打つコマンド(文脈が裏を求めれば --background) */
@@ -60,14 +64,14 @@ export type PolicyValue = "auto" | "manual" | "off";
 export const POLICY_VALUES = POLICY_VALUES_DATA as readonly PolicyValue[];
 export type Policy = Record<PolicyKey, PolicyValue>;
 
-/** 方針の実体(印なし)と、その一部を重ねる上書き(<対象>.override.ts、export const override = { … })。読み方は lib.kinds.mjs */
-export { POLICY_FILE, POLICY_OVERRIDE_FILE, readOverride } from "./lib.kinds.mjs";
+/** 方針の置き場(repo.json の agent.*)と鍵の名前。読み方は lib.kinds.mjs */
+export { AGENT_PREFIX, POLICY_FILE, declaredAgentKeys, policyKeyOf, readAgentPolicy } from "./lib.kinds.mjs";
 
-/** 実体に fork の上書きの宣言した鍵だけを重ねる(上書きは無くてよい)。宣言に無い鍵・値の誤りは DevcheckError */
-export const mergePolicy = (defaults: unknown, override: unknown | null): Policy => mergePolicyData(defaults, override) as Policy;
+/** repo.json の値 → 効いている方針(既定・enabled・危険な 3 つの読み替えを含む)。誤りは DevcheckError */
+export const policyOfValues = (values: Record<string, string | boolean>): Policy => agentPolicyOfData(values).policy as Policy;
 
-/** この道具のフォルダから方針を読む: 実体(policy.json)+ 上書き(policy.override.ts)の宣言した鍵だけ */
-export const loadPolicy = async (dir: string): Promise<Policy> => (await loadPolicyData(dir)) as Policy;
+/** チェックアウトの repo.json から方針を読む(無い = 全部既定) */
+export const loadPolicy = async (root: string): Promise<Policy> => (await loadPolicyData(root)) as Policy;
 
 // ---- fork の項目 --------------------------------------------------------------------------
 
@@ -276,7 +280,7 @@ export const formatPlan = (plan: Plan): string => {
     `devcheck plan — ${plan.checkout}`,
     `文脈: ${ctx.file ? `${ctx.file}(approval=${ctx.approval}、server=${ctx.server}、dev_max=${ctx.devMax ?? "-"}、作業場所 ${ctx.workdirs.length})` : "単体(毎回 go を取る・サーバーは自分で立てる)"}`,
     ...formatState(plan.state, ctx).map((l) => l),
-    `方針: ${KIND_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")}`,
+    `方針: ${KIND_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")} | 危険: ${DANGER_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")}`,
   ];
   if (plan.rejected.length > 0) lines.push(`断った fork の項目: ${plan.rejected.map((r) => `${r.file}(${r.reason})`).join("、")}`);
   lines.push("候補:");

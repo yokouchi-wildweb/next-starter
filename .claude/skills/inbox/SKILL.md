@@ -9,7 +9,7 @@ role: handle the **ORDERs** addressed to this repo (one-off orders filed by `/or
 - every order: think whether to accept it against this repo's role before acting
 
 mailbox: `~/.team/orders/` (shared folder; real place = `root:` of `mailbox.mjs self`; outside git; layout explained in `.claude/skills/order/SKILL.md`)
-- **own inbox** = `<root>/<own fork-id>/` (fork-id = `fork_id:` of `.claude/rules/project.md`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
+- **own inbox** = `<root>/<own fork-id>/` (fork-id = `repo_id` of `repo.json`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
 - unhandled = `*.md` directly in the inbox | handled = moved to the inbox's `done/`
 - **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a council / guild / legate plan (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)
   - transitions stay in the order's trailing `## STATUS_LOG` | never edit the state by hand → `mailbox.mjs route | take | release | unroute | resolve`
@@ -62,7 +62,7 @@ target: $ARGUMENTS
      - criterion ③ (this repo has downstream forks): does it narrow every fork's freedom (data, logic, security boundary = upstream; screens, wording, design = downstream), can it be backed out without a breaking change | core UI returns fine-grained parts and default containers, never a prop for swapping (CLAUDE.md core_ui)
      - an API / implementation idea written by the sender = a proposal to critique, not a spec
      - this repo is Tier1: an existing means passes every check with the same URL and the same result → return that means and close (a per-process copy is not a means) | an order whose premise differs from the current CLAUDE.md → send back (`.claude/rules/core/extensions.md`)
-   - **this repo has downstream forks** (`downstream: yes` in `.claude/rules/project.md`; read it like `/ship`, `downstream` of `readForkIdentity` in `src/lib/forkOwnership/forkIds.mjs`; `none` = none; declaration missing / wrong → do not guess, STOP: have it declared) → put the downstream intake verdict (estimate) as one line at the head of the proposal:
+   - **this repo has downstream forks** (`tier` root / middle in `repo.json`; read it like `/ship`, `downstream` of `readForkIdentity` in `src/lib/forkOwnership/forkIds.mjs`; `none` = none; declaration missing / wrong → do not guess, STOP: have it declared) → put the downstream intake verdict (estimate) as one line at the head of the proposal:
      - `取り込み判定（見込み）: 安全 | 要注意（理由）| 危険（理由）`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side (db:push, env, external resources …) / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen
      - a step held with `output: commit` → judge as "when the fork receives it at shipping" | no downstream → omit

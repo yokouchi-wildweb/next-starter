@@ -12,7 +12,7 @@ the following files in this folder hold rules needed only by forks / segments th
 - **`relay.md`** (relay, 3 or more Tiers): read before building segments when any of these hits:
   - the direct upstream is a middle Tier (OWN FORK IDENTITY AND LEDGER 5 below)
   - any notice in the tree (applied ones included) or incoming has `covers:`
-  - own `downstream:` is `yes` (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
+  - own `tier` is root or middle (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
   - mode is `status --chain` or `relay`
 - **`railroad.md`** (the railroad team tool): mode is `intake`, or the cue `apply J<k>` / `fix J<k>` → read it before step 1
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
@@ -48,7 +48,7 @@ the `/flux` version a fork merged can be many segments older than upstream's, an
   - only 3 kinds may be kept: within a check's scope → a temporary permit with an order id (`open: <項目> | order:<id>`) | outside checks → the human's decision with a reason (`open: <項目> | human:<理由>`) | a migration the human split into another order (`open: <項目> | migration:<自分の受信箱の依頼の id>`, SPLIT A MIGRATION INTO ANOTHER ORDER below)
   - write them in the ledger `notes:`, list them in the next `/flux`'s first report | once settled, delete that `open:` | whether the next segment may start = CONDITIONS TO MOVE ON below
 - **never close a segment that fails the ownership check**: a segment whose base has `src/lib/forkOwnership/intake.txt` → after the commit, no push until `pnpm workflow ownership check` gives 0 (step 7c) | settle violations on the spot: move to an intake point / revert / temporary permit (no grace period)
-- **approval of the application plan = explicit instruction to run every step, DB operations included** | while this skill runs, this rule wins over general rules like "ask the user for DB operations" | only commands that show an interactive prompt (marked `[user-run]`, db push etc.) cannot be run by Claude → joined by the in-session user run below
+- **approval of the application plan = explicit instruction to run every step, DB operations included** | while this skill runs, this rule wins over general rules like "ask the user for DB operations" | `[user-run]` steps (db push etc.) follow repo.json's policy: off → the in-session user run below | manual → ask for `/allow <switch>` and run it once after it (the /allow skill)
 - **chat is for humans; scripts and identifiers go to the work memo**: every stop's report is written in the format of `.claude/skills/fmt/flux-stop.md` (step 8) | file names, shas, notice ids, application steps and decision grounds are never put in chat; they go to WORK MEMO below
 
 ## CONDITIONS TO MOVE ON (never move to the next segment until all hold)
@@ -186,14 +186,14 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
 - the ledger `notes:` holds deviations only; findings go to the report side (the ledger is the fork's record, not addressed upstream)
 
 ## OWN FORK IDENTITY AND LEDGER
-1. own name = `fork_id: <名前>` of `.claude/rules/project.md` (every repo declares it in one line; form = lowercase, digits, hyphens; reader and rules: `src/lib/forkOwnership/forkIds.mjs`)
+1. own name = `repo_id` of `repo.json` at the repo root (every repo declares it; form = lowercase, digits, hyphens; reader and rules: `src/lib/forkOwnership/forkIds.mjs`; old form `fork_id:` in project.md → `pnpm workflow repo-json migrate`)
    - never derive the name from the origin URL | no line / `-` / wrong form → STOP: have the user decide and declare a name (default candidate = the repo directory name lowercased; names equal to an ancestor's ledger name or a section heading of `src/lib/CATALOG.md` not allowed)
 2. own fork ledger = `.notices/applied/<名前>.md`, temporary permits = `.fork-ownership/<名前>.permits.txt`, own section heading in `src/lib/CATALOG.md` = the same name
    - no ledger → treat as a record of zero applied (created at the first application)
    - a ledger, permits or section heading of an old origin-derived name (`<owner>--<repo>`) remains → rename with `git mv` by the steps of the naming notice
 3. other names' files in `.notices/applied/` are ledgers of middle Tiers or other forks (came in by merge) | **never mix them with own state** | reading them as reference is fine
-4. **middle Tier's name** = `fork_id:` of `.claude/rules/project.md` in the direct upstream's version (`<upstream>/<branch>`) | that version has `.notices/applied/<middle Tier name>.md` → the direct Tier is a middle Tier that itself follows its upstream as a downstream (→ relay.md) | none → the direct upstream is the top (Tier1) and grandparent notices do not exist
-5. **downstream presence** = `downstream: yes|none` of `.claude/rules/project.md` (one line in the same section as `fork_id:`; only reader `forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
+4. **middle Tier's name** = `repo_id` of `repo.json` in the direct upstream's version (`<upstream>/<branch>`; old versions: `fork_id:` of project.md) | that version has `.notices/applied/<middle Tier name>.md` → the direct Tier is a middle Tier that itself follows its upstream as a downstream (→ relay.md) | none → the direct upstream is the top (Tier1) and grandparent notices do not exist
+5. **downstream presence** = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader `forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
    - `yes` = has downstream (judge relay → relay.md) | `none` = leaf
    - anything else (declaration missing / wrong) → never guess from the text; STOP: have the user add the declaration (`pnpm workflow ownership check` stops as unverified too)
 
@@ -241,7 +241,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
     脇の commit の区間(本線では `mainline` の commit)
     ```
 - always read the body (required_actions etc.) with `git show <body>` (the adding commit's version; never substitute the segment's merge target or the upstream tip's version)
-- exit 2 = stop (shallow clone, an index line whose adding commit is missing, a checkpoint point not an ancestor of the upstream tip, no fork_id) | pass the reason on as is; never go on as zero unapplied
+- exit 2 = stop (shallow clone, an index line whose adding commit is missing, a checkpoint point not an ancestor of the upstream tip, no repo_id) | pass the reason on as is; never go on as zero unapplied
 - exit 3 (no index at the upstream tip) / the tool cannot be obtained with `git show` (upstream from before this tool): proceed by the manual steps of UNAPPLIED JUDGMENT and BUILDING SEGMENTS below (those steps also explain the same rules as the tool)
 
 ## UNAPPLIED JUDGMENT (the same rules for in-tree and incoming; with the tool, its output is authoritative)
@@ -363,8 +363,8 @@ merge and porting carry the fork's edits as they are | when the destination is u
    c. resolve conflicts yourself (judge how to reconcile upstream's intent with this fork's changes; confirm with the user only those where the judgment is really split) | how to take per-project files:
       - `.claude/rules/project.md` and `behavior.md`: take the fork side; take in upstream's additions only when they apply to this fork
       - `.claude/rules/shortcuts.md` and `term-aliases.md`: above the `fork entries below` marker from the upstream side, below from the fork side
-      - an ancestor's shipped index `.notices/shipped/<ancestor fork_id>.md`: take the upstream side (`git checkout --theirs -- <path>`), never add or keep a row by hand
-        - a row of a notice this fork picked ahead (ledger `picked:`) may be missing until upstream's index reaches it: `pnpm check notices` accepts that, and a row once hand-added may disappear | your own index `.notices/shipped/<own fork_id>.md` is written only by this fork and never conflicts
+      - an ancestor's shipped index `.notices/shipped/<ancestor repo_id>.md`: take the upstream side (`git checkout --theirs -- <path>`), never add or keep a row by hand
+        - a row of a notice this fork picked ahead (ledger `picked:`) may be missing until upstream's index reaches it: `pnpm check notices` accepts that, and a row once hand-added may disappear | your own index `.notices/shipped/<own repo_id>.md` is written only by this fork and never conflicts
       - generated `src/app/route-map.jsonl` (route map; delete the old `route-map.txt` if it remains): never fix by hand even on conflict
         - take either version, resolve the other conflicts first, finally rebuild with `pnpm generate routes` and `git add` | even without a conflict, rebuild the same way when the segment's upstream diff has this file (the rows of fork-own pages are not in upstream's generated result) | a change inside 5d's allowed set
       - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/features/feature-map.txt` if it remains)
@@ -413,19 +413,19 @@ merge and porting carry the fork's edits as they are | when the destination is u
       - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | upstream:<区間の merge 先の完全な sha> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
       ```
       - every fork writes `upstream:` on every line (the upstream version taken in by that segment; never rewrite past lines)
-      - `pnpm workflow ownership check` decides the Tier1 version by this field: from the `upstream:` version of the last line of your ledger, to the last `upstream:` of that version's ledger (named by that version repo's `fork_id:`) … until a version without `.notices/applied/` (Tier1) (independent of the number of tiers; multi-tier ownership judgment, `src/lib/forkOwnership/README.md`)
-      - align ledger names with `fork_id:` (a ledger with another name at an intermediate version cannot be walked → exit 2)
+      - `pnpm workflow ownership check` decides the Tier1 version by this field: from the `upstream:` version of the last line of your ledger, to the last `upstream:` of that version's ledger (named by that version repo's `repo_id`) … until a version without `.notices/applied/` (Tier1) (independent of the number of tiers; multi-tier ownership judgment, `src/lib/forkOwnership/README.md`)
+      - align ledger names with `repo_id` (a ledger with another name at an intermediate version cannot be walked → exit 2)
       - the `relay:` field is written only by forks with downstream; leaf forks omit the whole field | covered-id lines and `relay:` values when recording a covers-side notice → relay.md LEDGER ADDITIONS
    b. commit the diff (application + ledger + relay notices drafted in this segment) (no push yet) | message: a one-line summary + blank line + `downstream-notice: <id>` (every id of the segment, one per line) + the Co-Authored-By trailer the environment specifies | branch handling follows this repo's policy
    c. **ownership check** (only when that segment's merge target has `src/lib/forkOwnership/intake.txt`; none → skip): `pnpm workflow ownership check` | it looks only at the committed HEAD (ledger, temporary permits and cleanup are read from HEAD too), so run it after b's commit, before push | middle Tiers with downstream too
       - 0 → d
       - 1 (violation) → stop condition | no push; show the violation list and settle it (move to an intake point / revert / temporary permit; how: `src/lib/forkOwnership/README.md` section `導入の段階` and required_actions of the cleanup notice `fork-ownership-cleanup`) | stack the cleanup in extra commits, rerun the check, go to d once it gives 0 | never push and close the segment with violations left
-      - 2 (unverified) → stop condition | no push; fix the reason (a notice not in the ledger = a missing ledger append / no ledger / no `upstream:` line in the ledger = append it to this segment's line / that sha cannot be walked / no `fork_id:` in the parent's version / a naming declaration problem / no parent remote, cannot fetch it / shallow) | after fixing, commit and rerun the check
+      - 2 (unverified) → stop condition | no push; fix the reason (a notice not in the ledger = a missing ledger append / no ledger / no `upstream:` line in the ledger = append it to this segment's line / that sha cannot be walked / no `repo_id` in the parent's version / a naming declaration problem / no parent remote, cannot fetch it / shallow) | after fixing, commit and rerun the check
    d. push | the segment's merge commit, if unpushed, is pushed with it | push failed → never paper over it, report, and reflect it honestly in the ledger `notes:`
 8. **report** (Japanese; at every stop and the final report): read `.claude/skills/fmt/flux-stop.md` and write in that format | chat keeps only the format's sections; script, identifiers, `aligned:` `kept_old:` and resume info go to the work memo (above) | mapping onto the format's sections:
    - `位置`: add the known unfixed one (the report of FIXES above; only when it applies) here
      - at every segment end and in the final report, one safe point line: `pnpm workflow notices safePoint where --remote=<upstream> --at=<the upstream: sha of that segment's ledger line>` → write `セーフポイント: <その出力>`
-       - it prints `at safe/<parent>/<tag>` / `past safe/<parent>/<tag> (N commits unverified)` / `before safe/<parent>/<tag>` / `no safe point yet` (it fetches the direct parent's tags and looks only at `safe/<parent fork_id>/*`)
+       - it prints `at safe/<parent>/<tag>` / `past safe/<parent>/<tag> (N commits unverified)` / `before safe/<parent>/<tag>` / `no safe point yet` (it fetches the direct parent's tags and looks only at `safe/<parent repo_id>/*`)
      - exit 2 → `セーフポイント: 未確認(<理由>)` | the tool is missing from the tree → `セーフポイント: 確かめる道具なし(この区間の版には無い)` | a production deploy of the fork needs `at`
    - `区間の結果`: one line whether intake, application and checks (verify / check entry / typecheck / lint / ownership check) went fine and it was pushed | add lines only for exceptions: kept by the human's policy (the content of `kept_old:` by role), our own mistakes, etc.
    - `中継` (forks with downstream, → relay.md): `あり` / `なし` + what downstream must do + why, by role | decision grounds and ids in the work memo

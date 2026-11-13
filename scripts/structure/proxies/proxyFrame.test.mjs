@@ -32,7 +32,7 @@ const GATE_RULES = "src/featureGate/extensions/rules.ts";
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "proxy-frame-"));
   mkdirSync(join(root, ".claude/rules"), { recursive: true });
-  writeFileSync(join(root, ".claude/rules/project.md"), "fork_id: acme\n");
+  writeFileSync(join(root, "repo.json"), '{"repo_id": "acme", "tier": "leaf"}\n');
   mkdirSync(join(root, ".notices/applied"), { recursive: true });
   writeFileSync(join(root, ".notices/applied/parent.md"), "");
   const dir = join(root, "src/proxies");

@@ -35,7 +35,7 @@ export type Setup = { root: string; context: Context; policy: Policy; items: Ite
 export const loadSetup = async (): Promise<Setup> => {
   const root = checkoutRoot(invocationDir());
   const context = loadContext(process.env);
-  const policy = await loadPolicy(HERE);
+  const policy = await loadPolicy(root);
   const scripts: Record<string, string> = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts ?? {};
   const { items, rejected } = scanItems(path.join(HERE, "items"), root, scripts);
   return { root, context, policy, items, rejected };

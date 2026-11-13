@@ -344,12 +344,12 @@ test("CLI: take / route と inbox の状態・担当・(you)", () => {
   assert.match(cli(GUILD_ENV, "unroute", file), /^unroute: routed → open /);
 });
 
-// リポの名前 = project.md の fork_id:（~/.team/_bin の tk_fork_id_of と同じ規則）。未宣言は移行中だけ旧い導き方
+// リポの名前 = repo.json の repo_id（~/.team/_bin の tk_fork_id_of と同じ規則）。未宣言は移行中だけ旧い導き方
 function checkout(forkId) {
   const top = mkdtempSync(join(tmpdir(), "mailbox-fid-"));
   if (forkId !== undefined) {
     mkdirSync(join(top, ".claude", "rules"), { recursive: true });
-    writeFileSync(join(top, ".claude", "rules", "project.md"), `# project\nfork_id: ${forkId}\n`);
+    writeFileSync(join(top, "repo.json"), `{"repo_id": "${forkId}", "tier": "leaf"}\n`);
   }
   return top;
 }

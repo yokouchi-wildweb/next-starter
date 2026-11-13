@@ -80,7 +80,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - upstream の負債の箇所(debt)。受け口ができた notice で外す
   - 削除・rename(D/R): 付ける依頼は「止める受け口(feature-gate 等)を用意してほしい」に限る。受け口ができたら、止めてから復元する
   - 祖先 lib への追加: 付ける依頼は「その lib に入れてほしい / 受け口がほしい」に限る(ふつうは自分の lib に置いて re-export する)
-- 置き場: `.fork-ownership/<名前>.permits.txt`(名前 = 自分の `fork_id:`。`.notices/applied/` の台帳名と同じ)。fork が足すファイルなので fork の物。多段の Tier では親の許可ファイルも基準に入るが、読むのは自分の fork-id のファイルだけ(親の許可を子が借りない)
+- 置き場: `.fork-ownership/<名前>.permits.txt`(名前 = 自分の `repo_id`(repo.json)。`.notices/applied/` の台帳名と同じ)。fork が足すファイルなので fork の物。多段の Tier では親の許可ファイルも基準に入るが、読むのは自分の fork-id のファイルだけ(親の許可を子が借りない)
 - 書式: 1 ファイル 1 行
   ```
   <path> upreq:<id>[,<id>…] base:<指紋|-> head:<指紋|->  # 理由
@@ -158,7 +158,7 @@ pnpm workflow ownership check --parent=upstream --branch=main
 - 一時許可の依頼の出し方は `/order`「一時許可の依頼」、依頼の状況は `/wen permits`、放置と project.md の食い違いは `/flux` の最終報告(上流への所見 (e)(f))に出る
 - 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<名前>.permits.txt` に貼り、commit してから検査し直す
 - 手順(`check.mjs` の `runCheck`)
-  1. 名前と Tier1 の判定: `forkIds.mjs` の `readForkIdentity`(project.md の `fork_id:`。宣言なし・形違い・祖先と同名は未検証 = exit 2)。自分の名前が `src/lib/CATALOG.md` の先頭の節の見出しなら Tier1 で対象外。remote の有無・origin の URL では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
+  1. 名前と Tier1 の判定: `forkIds.mjs` の `readForkIdentity`(repo.json の `repo_id`。宣言なし・形違い・祖先と同名は未検証 = exit 2)。自分の名前が `src/lib/CATALOG.md` の先頭の節の見出しなら Tier1 で対象外。remote の有無・origin の URL では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
   2. 親の remote: `--parent` > 環境変数 `FORK_OWNERSHIP_PARENT` > origin 以外の remote が 1 つならそれ(`/flux` の「FINDING THE UPSTREAM」と同じ)。ブランチ = `git ls-remote --symref <remote> HEAD`(`--branch` で上書き)
   3. 鮮度(下の節)
   4. Tier1 の版(下の「多段の Tier」)を台帳からたどる
@@ -176,7 +176,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 - 判定の規則は持たない: 前提(名前・基準・受け口の一覧・鮮度・Tier1 の版)は `pnpm workflow ownership check` と同じ `resolveForkContext`、今の差分は同じ `judgeFork`(judge → 中間 Tier の付け替え → pick → 一時許可)、「足したら」の答えは同じ `judge` に仮の A を渡して出す(`check.mjs`)
 - 持ち主(`owner.kind`)
-  - `tier1` = Tier1 の版にある / `middle` = 基準にあるが Tier1 の版に無い(`owner.forkId` = その版を持つ、Tier1 に最も近い中間 Tier の `fork_id:`。台帳の鎖でたどれなければ基準の project.md の `fork_id:`)/ `fork` = 基準に無く HEAD にある(この fork が足した)/ `generated` = 受け口の一覧の generated の行に当たる(`owner.tier` に元の持ち主)/ `missing` = 基準にも HEAD にも無い
+  - `tier1` = Tier1 の版にある / `middle` = 基準にあるが Tier1 の版に無い(`owner.forkId` = その版を持つ、Tier1 に最も近い中間 Tier の `repo_id`。台帳の鎖でたどれなければ基準の版の名前)/ `fork` = 基準に無く HEAD にある(この fork が足した)/ `generated` = 受け口の一覧の generated の行に当たる(`owner.tier` に元の持ち主)/ `missing` = 基準にも HEAD にも無い
 - できること(`allowed`、無ければ `none`)
   - `edit`: Tier1 の物は受け口の kind ごと(edit = 書き換え可 / region = fork の区画の中だけ / marker = 印より下だけ / append = 追記だけ / generated = 生成器で作り直す)。中間 Tier の物・fork の物は書き換え・削除・rename 可
   - `add`: 無いパス。judge が `added`(中間 Tier の lib なら `middle-tier`)なら可、違反の reason は `blocked` に出る(`ancestor-lib-add`・`core-add`・`gate-add`・`unit-clash` など)
@@ -236,8 +236,8 @@ src/lib/cron/config.ts
 ## 多段の Tier(D29・D34)
 
 - 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は付け替えない(どの段でも止める)
-- Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
-- 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に `fork_id:` か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
+- Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の repo.json の `repo_id`、古い版は project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
+- 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に名前(`repo_id` / 古い `fork_id:`)か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
 - override: Tier1 は override(`<対象>.override.ts`。cron は `src/app/api/cron/<name>/task.override.ts`)を出荷しない(`pnpm check extensions` が検査、`scripts/structure/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
 - 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`(`src/app/_providers/ForkProviders.replace.tsx` も))だけで、並べ替えの仕組みは無い。中間 Tier の業務ドメイン・`_components`・route の扱いは運用に任せる
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す(`.claude/skills/flux/SKILL.md`)
@@ -247,21 +247,31 @@ src/lib/cron/config.ts
 
 中間 Tier が下流へ渡す規則の置き場 `.claude/rules/lineage.md`(仕様 = その前置き)の検査。git に触れない純関数だけで、git を読むのは呼び手。
 
-- 構造(`checkLineageStructure`): 前置き → `<!-- end preamble -->` → `## <fork_id>` の節を古い祖先から順(自分は在れば最後)、各節は `<!-- end <fork_id> -->` で閉じる。`downstream: none` のリポが自分の節を持つ = 失敗
+- 構造(`checkLineageStructure`): 前置き → `<!-- end preamble -->` → `## <fork_id>` の節を古い祖先から順(自分は在れば最後)、各節は `<!-- end <fork_id> -->` で閉じる。`tier` leaf のリポが自分の節を持つ = 失敗
 - 打ち消し(`checkOverrides`): `overrides: <fork_id>.<key> = <value> | why: <理由>` は project.md(そのリポだけ)と自分の節(下流にも)に書く。名指せるのは祖先の節の `(default)` の鍵だけ。鍵が無い・`(default)` でない・同じ project.md か同じ節で同じ対象を 2 回 = 失敗。祖先の鍵と同じ名前の鍵が project.md に overrides の行なしである = 警告
 - 接触(`touchedOverrides`): `/flux` が取り込む前後の lineage.md を比べ、自分の打ち消しが名指す鍵が変わったら止める(`.claude/skills/flux/lineage-touch.mjs`)
 - `runCheck` の `lineage` 欄 = `{ checked, failures, warnings }`(lineage.md の無い版は `checked: false` で検査しない)。failures は違反と同じく exit 1、件数は reason `lineage`。祖先の部分が基準どおりかは受け口 `append .claude/rules/lineage.md` の判定が見る
 - 書式(`formatProblems`): `pnpm check rules` が全リポで同じ parser を使って見る(前置きの終わりの印・節の閉じ・節の中の鍵の重複)
 
-## fork の名前の宣言
+## リポの名前と段(repo.json)
 
-各リポの名前の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test src/lib/forkOwnership/`)。名前を使うのは台帳・一時許可・`src/lib/CATALOG.md` の節の見出し・受信箱だけで、受け口のファイル名には使わない(D137。fork の物の見分けは git の分岐点)。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
+各リポの名前と段の唯一の読み手は `forkIds.mjs`(テスト: `pnpm test src/lib/forkOwnership/`)。名前を使うのは台帳・一時許可・`src/lib/CATALOG.md` の節の見出し・受信箱だけで、受け口のファイル名には使わない(D137。fork の物の見分けは git の分岐点)。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)。
 
-- 自分の名前: `.claude/rules/project.md` の `fork_id: <名前>` の 1 行。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前(`-` の印は廃止)
-- 親(上の Tier)の名前: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれる)。fork が書くのは自分の `fork_id:` の 1 行だけ
-- 使える形: 小文字・数字・ハイフン(台帳・一時許可のファイル名になるので `.` は不可)。宣言なし・2 行以上・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(pnpm workflow ownership check は exit 2)
-- 下流の有無: 同じ `project.md` の `fork_id:` と同じ節に `downstream: yes|none` の 1 行(yes = 下流の fork を持つ・持つ予定)。読み手は `forkIds.mjs` だけで、`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う。欠落・2 行以上・yes / none 以外・`fork_id:` と別の節は `downstreamError`(名前の誤りの `errors` とは別の欄)。止めるのは pnpm workflow ownership check(未検証 = exit 2)と lineage.md の検査だけで、`pnpm check extensions`(`pnpm build`)は止めない。散文で下流を説明する行は別の鍵名(Tier1 は `downstream_users:`)
-- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, downstream, downstreamError, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseForkIdDeclaration(text)` / `parseDownstreamDeclaration(text)`
+- 置き場: リポ直下の `repo.json`(機械用の値のファイル、指示書の議会 D44)。平らな鍵を 1 鍵 1 行(リポの外の sh も grep で読める)、値は文字列か真偽値だけ(入れ子・配列・数は誤り)。どのリポも自分の版を持つ(受け口の一覧に `edit repo.json`)
+  ```json
+  {
+    "repo_id": "next-starter",
+    "tier": "root"
+  }
+  ```
+- `repo_id` = 自分の名前。全リポ(Tier1 も、Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出しも同じ名前。無い・不正な形・祖先と同名(Tier1 の名前を名乗る fork、CATALOG の途中の節の名前)は検査が止める(pnpm workflow ownership check は exit 2)。使える形: 小文字・数字・ハイフン(台帳・一時許可のファイル名になるので `.` は不可)
+- `tier` = `root`(Tier1)| `middle`(下流の fork を持つ・持つ予定)| `leaf`(末端)。無い = `leaf`。下流の有無はここから導く(root・middle = yes、leaf = none)。`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う
+  - 見張り: `root` ⇔ 自分の名前が `src/lib/CATALOG.md` の先頭の節(両向き)。食い違い・知らない値は `downstreamError`(名前の誤りの `errors` とは別の欄)。止めるのは pnpm workflow ownership check(未検証 = exit 2)と lineage.md の検査だけで、`pnpm check extensions`(`pnpm build`)は止めない
+- `agent.<種類>` = エージェントに任せる方針の鍵(読むのは devcheck)。ほかの鍵は `errors`
+- 親(上の Tier)の名前: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれる)
+- 書くのは `pnpm workflow repo-json set <鍵> <値>`(と `/fork-init`)。古い形からの移しは `pnpm workflow repo-json migrate`(`scripts/workflow/repo-json/README.md`)
+- 古い形: `.claude/rules/project.md` の `fork_id:` / `downstream:` の行。読むのは過去の版を読む所(`forkIdOfTexts`: repo.json を先に、無ければ古い形。多段の台帳の鎖・`ownership who` の中間 Tier・safe point の親の名前)と移しの命令だけ
+- API: `readForkIdentity(repoRoot)` → `{ own, ancestors, isTier1, tier, downstream, downstreamError, errors }` / `readDeclaredForkIds(repoRoot)` → `{ own, inherited, all, errors }` / `parseRepoJson(text)` / `parseRepoIdentity(text)` / `formatRepoJson(values)` / `forkIdOfTexts({ repoJson, projectMd })` / 古い形 `parseForkIdDeclaration(text)` / `parseDownstreamDeclaration(text)`
 - origin の URL から導く実装は持たない(D27)
 
 ## 点つきの名前の分類

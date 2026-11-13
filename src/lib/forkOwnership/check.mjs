@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
+import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
 import { checkLineageStructure, checkOverrides, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
@@ -217,13 +217,13 @@ function resolveTier1Version(repoRoot, ownerId) {
     seen.add(sha);
     const applied = tryGit(repoRoot, ["ls-tree", "--name-only", sha, ".notices/applied/"]) ?? "";
     if (applied.trim() === "") return { sha, chain };
-    const name = parseForkIdDeclaration(show(repoRoot, sha, PROJECT_RULES_FILE) ?? "").forkId;
-    if (!name) return { error: `${sha.slice(0, 10)} の版(中間 Tier)に ${PROJECT_RULES_FILE} の fork_id: が無い(その Tier が名前の宣言を含む版を出していない)` };
+    const name = forkIdAt(repoRoot, sha);
+    if (!name) return { error: `${sha.slice(0, 10)} の版(中間 Tier)に ${REPO_JSON_FILE} の repo_id(古い形は ${PROJECT_RULES_FILE} の fork_id:)が無い(その Tier が名前の宣言を含む版を出していない)` };
     chain.push({ sha, name });
     from = sha.slice(0, 10);
     ledgerPath = `.notices/applied/${name}.md`;
     ledgerText = show(repoRoot, sha, ledgerPath);
-    if (ledgerText === null) return { error: `${from} の版(${name})に ${ledgerPath} が無い(台帳の名前を fork_id: にそろえる)` };
+    if (ledgerText === null) return { error: `${from} の版(${name})に ${ledgerPath} が無い(台帳の名前を repo_id にそろえる)` };
   }
   return { error: `台帳を ${TIER1_WALK_LIMIT} 段たどっても Tier1 の版(.notices/applied/ の無い版)に着かない` };
 }
@@ -498,5 +498,5 @@ export const existsAt = (repoRoot, rev, path) => tryGit(repoRoot, ["cat-file", "
 export const filesUnder = (repoRoot, rev, dir) =>
   (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", rev, "--", `${dir.replace(/\/+$/, "")}/`]) ?? "").split("\n").filter(Boolean);
 
-/** rev の版の project.md の fork_id:(無ければ null) */
-export const forkIdAt = (repoRoot, rev) => parseForkIdDeclaration(show(repoRoot, rev, PROJECT_RULES_FILE) ?? "").forkId ?? null;
+/** rev の版の名前(repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:。無ければ null) */
+export const forkIdAt = (repoRoot, rev) => forkIdOfTexts({ repoJson: show(repoRoot, rev, REPO_JSON_FILE), projectMd: show(repoRoot, rev, PROJECT_RULES_FILE) }).forkId ?? null;

@@ -184,7 +184,7 @@ test("parseFixes: id と commit", () => {
   assert.deepEqual(parseFixes("a-b, commit:07924f6c"), [{ id: "a-b" }, { commit: "07924f6c" }]);
 });
 
-const PROJECT = { ".claude/rules/project.md": "fork_id: up\n" };
+const PROJECT = { "repo.json": '{"repo_id": "up", "tier": "root"}\n' };
 const IDX = ".notices/shipped/up.md";
 const index = (...ids) => `# SHIPPED up\n\n${ids.map(([id, opts]) => `${rowFromNotice(notice(id, opts))}\n`).join("")}`;
 

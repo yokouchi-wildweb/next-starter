@@ -25,7 +25,7 @@ function repo() {
 test("readBaseFiles: 台帳の最後の upstream:<sha> の版のファイル一覧", () => {
   const { root, sha } = repo();
   mkdirSync(join(root, ".claude/rules"), { recursive: true });
-  writeFileSync(join(root, ".claude/rules/project.md"), "## TIER\nfork_id: acme\ndownstream: none\n");
+  writeFileSync(join(root, "repo.json"), '{\n  "repo_id": "acme",\n  "tier": "leaf"\n}\n');
   mkdirSync(join(root, ".notices/applied"), { recursive: true });
   writeFileSync(join(root, ".notices/applied/acme.md"), `- id:x | upstream:0000000\n- id:y | upstream:${sha}\n`);
   writeFileSync(join(root, "src/b.ts"), "export const b = 1;\n");

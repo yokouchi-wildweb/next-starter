@@ -15,21 +15,21 @@ source_of_truth: `docs/setup/新規プロジェクトの立ち上げ_フォー�
 
 ## PRE-CHECK (before presenting the plan)
 1. check `git remote -v` | expected: origin points to upstream (the fork source), no `upstream` remote yet
-   - an `upstream` remote already exists, or `.claude/rules/project.md` has its own `fork_id:` (a name other than the fork source's) and `.notices/applied/<that name>.md` exists → already initialized; say so and end (never break it by rerunning)
+   - an `upstream` remote already exists, or `repo.json` has its own `repo_id` (a name other than the fork source's) and `.notices/applied/<that name>.md` exists → already initialized; say so and end (never break it by rerunning)
    - no origin → ask the user for the fork source URL; STOP: wait for it
 2. take `<name>` and `[github-owner]` from `$ARGUMENTS` | owner omitted → `gh api user --jq .login`
 3. check login with `gh auth status` | not logged in → ask for `! gh auth login`; STOP: wait (the browser code entry = the terminal's one-time code)
 4. check the repo with `gh repo view <owner>/<name>` | exists → skip creation; not empty (`isEmpty` false) → STOP: confirm it is safe as the push target
 5. fix the following from the conversation | missing ones → one question for all (asked once step 6's overlap check is done):
    - the service's one-line description (Japanese OK; written in English into project.md)
-   - the fork's name (`fork_id:`): default = `<name>` lowercased (present it after the overlap check of step 6)
+   - the fork's name (`repo_id`): default = `<name>` lowercased (present it after the overlap check of step 6)
    - Tier: default "fork source's Tier + 1, no downstream"
-   - whether it plans downstream forks (`downstream:`; default `none`; has / plans → `yes`; may change later)
+   - whether it plans downstream forks (`tier`: default `leaf`; has / plans → `middle`; may change later)
    - backends: set up Firebase / Neon now, or start unconfigured (default: unconfigured)
    - planned domain, direction (none → `TBD` is fine)
    - Vercel plan: hobby / pro (default: hobby; hobby makes every cron once a day; can be regenerated later)
-6. fix the fork's name (`fork_id:`): default = the new repo name `<name>` lowercased (confirmed in the question of 5) | form = lowercase, digits, hyphens (`FORK_ID_PATTERN` of `src/lib/forkOwnership/forkIds.mjs`) | never derived from the origin URL | same name as any of these → STOP: ask for another name (D30 K3):
-   - the fork source's `fork_id:` in `.claude/rules/project.md`, ledger names in `.notices/applied/`, section headings of `src/lib/CATALOG.md` (ancestors' names)
+6. fix the fork's name (`repo_id`): default = the new repo name `<name>` lowercased (confirmed in the question of 5) | form = lowercase, digits, hyphens (`FORK_ID_PATTERN` of `src/lib/forkOwnership/forkIds.mjs`) | never derived from the origin URL | same name as any of these → STOP: ask for another name (D30 K3):
+   - the fork source's `repo_id` in `repo.json`, ledger names in `.notices/applied/`, section headings of `src/lib/CATALOG.md` (ancestors' names)
    - names in `~/.team/fleet.conf` (compared case-insensitively), inbox folder names in `~/.team/orders/` (skip each when missing)
    - name decided → call `node .claude/skills/order/mailbox.mjs name-check <名前>` | an overlap reported → STOP: confirm another name with the human
    - then ask the question of 5; STOP: wait for the answers
@@ -39,7 +39,7 @@ source_of_truth: `docs/setup/新規プロジェクトの立ち上げ_フォー�
 present the following as bullets; STOP: one approval:
 - the repo to create (`<owner>/<name>` private) / or that creation is skipped
 - remotes: origin = new repo, upstream = current origin
-- the fork's name (`fork_id:`, result of the overlap check) and what gets the same name (project.md line, ledger, CATALOG section)
+- the fork's name (`repo_id`, result of the overlap check) and what gets the same name (repo.json, ledger, CATALOG section)
 - list of files to rewrite (same items as the doc's step 4 checklist; README is not touched)
 - the Vercel plan of `vercel.json` (hobby / pro)
 - initial commit subject: `chore: <name> フォーク初期設定`
@@ -53,7 +53,7 @@ present the following as bullets; STOP: one approval:
 4. rewrite the fork's own files (in the doc's step 4 order):
    a. `.claude/rules/project.md`: copy `project.template.md` in this folder (shipped with this skill), fill `<...>` with what the pre-check got, replace the file | never add or remove sections (undecided sections = `TBD`) | delete the leading comment block | English, bullets
    b. align the name (same value):
-      - `fork_id: <名前>` in the TIER section of `.claude/rules/project.md`, and the next line `downstream: <yes|none>` (template line; answer of pre-check 5; missing → `pnpm workflow ownership check` unverified = exit 2, `/ship` stops too)
+      - `repo.json` through the command (never by hand): `pnpm workflow repo-json set repo_id <名前>` and `pnpm workflow repo-json set tier <leaf|middle>` (answer of pre-check 5; it replaces the fork source's values; missing → `pnpm workflow ownership check` unverified = exit 2, `/ship` stops too)
       - ledger `.notices/applied/<名前>.md` = header `# APPLIED LEDGER fork:<origin url>` + one line `- id:fork-init | date:<ISO8601> | commit:- | upstream:<full sha of the fork source version> | notes:fork start` (`pnpm workflow ownership check` walks the Tier1 version from here; missing → exit 2)
       - an empty section `## <名前>` at the end of `src/lib/CATALOG.md` (add one line here when you add your own lib)
    c. `package.json`: `name` → `<name>`

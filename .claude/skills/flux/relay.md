@@ -42,7 +42,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 
 ## RELAY JUDGMENT (forks with downstream only)
 as a middle Tier, decide mechanically **by git diffs only** whether applied upstream notices must be relayed downstream (never judge by interpreting the text)
-- **target forks**: forks with `downstream: yes` in `.claude/rules/project.md` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `downstream: none` = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
+- **target forks**: forks with `tier` root / middle in `repo.json` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `tier` leaf = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
 - **target notices**: notices applied in the segment that are not lines of your own index (upstream without an index: `from:` is not your origin; grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
 - **judgment** (after verify of the segment's step 6, before step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
   - reference points:
@@ -94,7 +94,7 @@ composition:
 - the first 2 lines of `required_actions:` are **always** the following (compat for old /flux that does not know `covers:`; a no-op for new /flux):
   ```
   1. Merge <自分の repo> up to THIS notice's commit in ONE segment; do NOT stop at the covered notices' commits (<covered 側の上流 commit 短 sha 列>) — they are raw <上流> commits without <自分>'s conflict resolutions.
-  2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your fork_id: name>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<名前>.md.
+  2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your repo_id>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<名前>.md.
   ```
   then the work of the upstream notice's required_actions that also remains downstream, rewritten for this fork's state (port destinations, your own paths)
 - `verify:` = the covered side's verify items meaningful downstream + this fork's verification results (only numbers actually taken)

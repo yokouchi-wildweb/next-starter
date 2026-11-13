@@ -51,6 +51,9 @@ export function closeTmp() {
   rmSync(tmp, { recursive: true, force: true });
 }
 
+/** repo.json の中身(1 鍵 1 行) */
+export const repoJson = (id, tier) => `{\n  "repo_id": "${id}",\n  "tier": "${tier}"\n}\n`;
+
 export const LINEAGE_PREAMBLE = "# lineage\n> **ROLE**: 中間層の規則\n<!-- end preamble -->\n";
 
 /** 親(Tier1 役)を作る。withIntake: false = この検査を含まない版、withLineage = 前置きだけの lineage.md と append の受け口 */
@@ -60,7 +63,7 @@ export function makeParent({ withIntake = true, withLineage = false } = {}) {
   git(root, "init", "-q", "-b", "main");
   git(root, "remote", "add", "origin", `git@github.com:acme/parent.git`);
   write(root, "src/lib/CATALOG.md", `# 目録\n\n## ${PARENT_ID}\n- src/lib/crud — CRUD\n`);
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${PARENT_ID}\ndownstream: yes\n`);
+  write(root, "repo.json", repoJson(PARENT_ID, "root"));
   write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
   write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
   write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
@@ -70,7 +73,7 @@ export function makeParent({ withIntake = true, withLineage = false } = {}) {
     write(
       root,
       "src/lib/forkOwnership/intake.txt",
-      `edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\n${withLineage ? "append .claude/rules/lineage.md  # 中間層の節\n" : ""}`,
+      `edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # 概要\nedit repo.json  # 名前と段\n${withLineage ? "append .claude/rules/lineage.md  # 中間層の節\n" : ""}`,
     );
   }
   if (withLineage) write(root, ".claude/rules/lineage.md", LINEAGE_PREAMBLE);
@@ -78,14 +81,14 @@ export function makeParent({ withIntake = true, withLineage = false } = {}) {
   return root;
 }
 
-/** 親を clone して fork を作る(親の remote = upstream、origin = acme/child、名前は project.md の fork_id: child) */
+/** 親を clone して fork を作る(親の remote = upstream、origin = acme/child、名前は repo.json の repo_id child) */
 export function makeFork(parent) {
   const root = join(tmp, `fork-${(counter += 1)}`);
   git(tmp, "clone", "-q", parent, root);
   git(root, "remote", "rename", "origin", "upstream");
   git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
   write(root, "src/features/game/game.ts", "export const game = 1;\n");
-  write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\ndownstream: yes\n`);
+  write(root, "repo.json", repoJson(FORK_ID, "middle"));
   // 台帳の初めの行: 取り込んだ上流(Tier1)の版を upstream: に(D29)
   write(root, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
   commitAll(root, "fork start");

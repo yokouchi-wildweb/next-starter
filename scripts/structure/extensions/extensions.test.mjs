@@ -34,7 +34,7 @@ function fixture(files) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  put(".claude/rules/project.md", "fork_id: acme\n");
+  put("repo.json", '{"repo_id": "acme", "tier": "leaf"}\n');
   put(".notices/applied/parent.md", "");
   put("src/lib/CATALOG.md", "## next-starter\n\n## parent\n\n## acme\n");
   for (const [path, text] of Object.entries(files)) put(path, text);
@@ -411,7 +411,7 @@ test("files の点: 1 段下の決まった名前のファイルが項目、fold
     writeFileSync(join(root, path), text);
   };
   try {
-    put(".claude/rules/project.md", "fork_id: next-starter\n");
+    put("repo.json", '{"repo_id": "next-starter", "tier": "root"}\n');
     put("src/lib/CATALOG.md", "## next-starter\n");
     put("src/app/demo/extensionPoints.ts", 'export const extensionPoints = { pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" } };\n');
     put("src/app/demo/b-page/_demo.ts", "export const demo = {};\n");
@@ -437,7 +437,7 @@ test("key の一覧: constructor・__proto__ で引いても何も当たらず�
     writeFileSync(join(root, path), text);
   };
   try {
-    put(".claude/rules/project.md", "fork_id: next-starter\n");
+    put("repo.json", '{"repo_id": "next-starter", "tier": "root"}\n');
     put("src/lib/CATALOG.md", "## next-starter\n");
     put("src/features/x/extensionPoints.ts", 'export const extensionPoints = { rules: { dir: "rules", export: "rule", type: { from: "@/t", name: "T" }, side: "server", key: "k" } };\n');
     put("src/features/x/rules/a.ts", 'export const rule = { k: "a" };\n');

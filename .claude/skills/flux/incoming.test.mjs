@@ -61,8 +61,8 @@ function repo(t, name, forkId, from) {
       g("fetch", "-q", "upstream");
     },
   };
-  if (!from) r.commit({ ".claude/rules/project.md": `fork_id: ${forkId}\n` }, "base");
-  else r.commit({ ".claude/rules/project.md": `fork_id: ${forkId}\n`, [`.notices/applied/${forkId}.md`]: "" }, "fork: own name");
+  if (!from) r.commit({ "repo.json": `{"repo_id": "${forkId}", "tier": "root"}\n` }, "base");
+  else r.commit({ "repo.json": `{"repo_id": "${forkId}", "tier": "middle"}\n`, [`.notices/applied/${forkId}.md`]: "" }, "fork: own name");
   return r;
 }
 

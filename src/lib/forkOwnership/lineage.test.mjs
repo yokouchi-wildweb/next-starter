@@ -47,7 +47,7 @@ test("checkLineageStructure: 祖先の古い順 + 自分は最後。知らない
   assert.match(structure(PREAMBLE + section("stranger"), tier3).join(), /祖先でも自分でもない/);
   assert.match(structure(PREAMBLE + section("oripa-do", "- a: 1", "- a (default): 2")).join(), /鍵 a が重複/);
   assert.deepEqual(structure(PREAMBLE + section("oripa-do", "- a: 1", "overrides: x.a = 1 | why: r", "overrides: x.a = 1 | why: r")), [], "overrides 行は鍵に数えない");
-  assert.match(structure(PREAMBLE + section("pandora", "- a: 1"), { downstream: "none" }).join(), /downstream: none/);
+  assert.match(structure(PREAMBLE + section("pandora", "- a: 1"), { downstream: "none" }).join(), /tier leaf/);
   assert.deepEqual(structure(PREAMBLE + section("oripa-do", "- a: 1"), { downstream: "none" }), [], "none でも祖先の節は在ってよい");
 });
 

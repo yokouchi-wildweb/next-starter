@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { PROJECT_RULES_FILE, readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { LINEAGE_FILE, touchedOverrides } from "../../../src/lib/forkOwnership/lineage.mjs";
 
 /** <ref> の lineage.md(無ければ null。ref が無いのは throw) */
@@ -29,7 +29,7 @@ function showLineage(cwd, ref) {
  */
 export function lineageTouch({ cwd = process.cwd(), before, after }) {
   const { own } = readForkIdentity(cwd);
-  if (!own) throw new Error(`${PROJECT_RULES_FILE} の fork_id: が読めない`);
+  if (!own) throw new Error(`${REPO_JSON_FILE} の repo_id が読めない`);
   const projectPath = join(cwd, PROJECT_RULES_FILE);
   const projectText = existsSync(projectPath) ? readFileSync(projectPath, "utf8") : "";
   return { own, touched: touchedOverrides({ before: showLineage(cwd, before), after: showLineage(cwd, after), projectText, own }) };

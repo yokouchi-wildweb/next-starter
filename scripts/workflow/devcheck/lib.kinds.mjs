@@ -4,12 +4,11 @@
 // tsx なしの node で毎回動く)の両方がここを読む。別の対応表を作らない。
 // - KINDS: やることの種類と打つコマンドの形(上流のコード。スキーマ push・本番は種類に無い)
 // - HOOK_KINDS: 許可のフックだけが使う種類(devcheck の候補には出ない)。peer = pnpm workflow peer の送る・読む口
-// - 方針: policy.json(上流の実体、全部 auto)に policy.override.ts(fork、上流は出さない)の宣言した鍵(POLICY_KEYS と全体のスイッチ enabled)だけを重ねる
+// - 方針: リポ直下の repo.json の agent.* の鍵(種類・peer・全体のスイッチ enabled・危険な 3 つと入口)。種類と既定値はこのファイル(上流のコード)
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 export class DevcheckError extends Error {
   /** @param {string} message */
@@ -45,87 +44,125 @@ export const POLICY_KEYS = [...KIND_NAMES, ...HOOK_KINDS];
 
 export const POLICY_VALUES = ["auto", "manual", "off"];
 
-/** 方針の全体のスイッチ(D103)。false = 全部の種類(peer も)を off とみなす(種類ごとの値より強い)。無い = true */
+/**
+ * 危険な 3 つ(D115・D116)。値は off | manual だけ(auto・知らない値は off とみなす)、既定 off。
+ * 入口の命令(agent.<種類>.entry)は fork が差し替えられる。"-" = 上流の入口なし(fork が自分の命令を書く)
+ * - db_push = 開発の DB の反映だけ / env_production = 本番の env を書く / deploy = 本番へ出す(本番の DB の反映も、agent.deploy.db_entry)
+ */
+export const DANGER_KINDS = {
+  db_push: { what: "開発の DB にスキーマを反映する", entries: { entry: "pnpm db:push" } },
+  env_production: { what: "本番の env(.env.production)を書く", entries: { entry: "-" } },
+  deploy: { what: "本番へ出す(本番の DB の反映を含む)", entries: { entry: "pnpm live", db_entry: "pnpm db:push -- --env production" } },
+};
+export const DANGER_NAMES = Object.keys(DANGER_KINDS);
+export const DANGER_VALUES = ["off", "manual"];
+
+/**
+ * 打つための呼び名(スイッチ名、D126)。/allow <スイッチ名…> と devcheck allow / danger が使う。種類 ↔ repo.json の鍵は policyKeyOf
+ */
+export const SWITCHES = {
+  sv: "server",
+  br: "browser",
+  lg: "login",
+  dw: "db-write",
+  dd: "db-delete",
+  ea: "env-add",
+  ts: "test",
+  ck: "check",
+  pr: "peer",
+  dbp: "db_push",
+  evp: "env_production",
+  dep: "deploy",
+};
+/** 種類 → スイッチ名 */
+export const switchOf = (kind) => Object.keys(SWITCHES).find((sw) => SWITCHES[sw] === kind) ?? null;
+
+/** 方針の全体のスイッチ(D103)。false = 全部の種類(peer・危険な 3 つも)を off とみなす(種類ごとの値より強い)。無い = true */
 export const POLICY_SWITCH = "enabled";
 
-/** 方針の実体(印なし)と、その一部を重ねる上書き(<対象>.override.ts、export const override = { … }) */
-export const POLICY_FILE = "policy.json";
-export const POLICY_OVERRIDE_FILE = "policy.override.ts";
+/** 方針の置き場: リポ直下の repo.json の agent.* の鍵(読み手は src/lib/forkOwnership/forkIds.mjs の parseRepoJson) */
+export const POLICY_FILE = "repo.json";
+export const AGENT_PREFIX = "agent.";
 
-/** @param {unknown} data @param {string} file */
-const checkPolicyObject = (data, file) => {
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new DevcheckError(`${file}: 種類 → auto | manual | off の JSON オブジェクトにする`);
-  /** @type {Record<string, string | boolean>} */
-  const out = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (key === POLICY_SWITCH) {
-      if (typeof value !== "boolean") throw new DevcheckError(`${file}: ${POLICY_SWITCH} の値 ${JSON.stringify(value)} は true / false のどちらか`);
-      out[key] = value;
-      continue;
+/** 種類の名前 → repo.json の鍵(db-write → agent.db_write) */
+export const policyKeyOf = (kind) => `${AGENT_PREFIX}${kind.replace(/-/g, "_")}`;
+
+/** 宣言した鍵の全部(種類・peer・全体のスイッチ・危険な 3 つと入口) */
+export const declaredAgentKeys = () => [
+  ...POLICY_KEYS.map(policyKeyOf),
+  `${AGENT_PREFIX}${POLICY_SWITCH}`,
+  ...DANGER_NAMES.flatMap((d) => [policyKeyOf(d), ...Object.keys(DANGER_KINDS[d].entries).map((e) => `${policyKeyOf(d)}.${e}`)]),
+];
+
+/**
+ * repo.json の値 → 効いている方針。通常の種類は auto | manual | off(既定 auto、誤りは DevcheckError)、
+ * enabled は真偽値(既定 true、誤りは DevcheckError)、危険な 3 つは off | manual(既定 off、ほかは off)、入口は文字列(既定は上流の命令)。
+ * 宣言に無い agent.* の鍵は DevcheckError
+ * @param {Record<string, string | boolean>} values
+ * @returns {{ policy: Record<string, string>, entries: Record<string, Record<string, string>>, enabled: boolean }}
+ */
+export const agentPolicyOf = (values) => {
+  const declared = declaredAgentKeys();
+  for (const key of Object.keys(values)) {
+    if (key.startsWith(AGENT_PREFIX) && !declared.includes(key)) throw new DevcheckError(`${POLICY_FILE}: 宣言に無い鍵 ${key}(使える鍵 = ${declared.join(" / ")})`);
+  }
+  const enabledRaw = values[`${AGENT_PREFIX}${POLICY_SWITCH}`];
+  if (enabledRaw !== undefined && typeof enabledRaw !== "boolean") throw new DevcheckError(`${POLICY_FILE}: ${AGENT_PREFIX}${POLICY_SWITCH} の値 ${JSON.stringify(enabledRaw)} は true / false のどちらか`);
+  const enabled = enabledRaw !== false;
+  /** @type {Record<string, string>} */
+  const policy = {};
+  for (const kind of POLICY_KEYS) {
+    const key = policyKeyOf(kind);
+    const raw = values[key] ?? "auto";
+    if (!POLICY_VALUES.includes(/** @type {string} */ (raw))) throw new DevcheckError(`${POLICY_FILE}: ${key} の値 ${JSON.stringify(raw)} は auto / manual / off のどれか`);
+    policy[kind] = enabled ? /** @type {string} */ (raw) : "off";
+  }
+  /** @type {Record<string, Record<string, string>>} */
+  const entries = {};
+  for (const d of DANGER_NAMES) {
+    const raw = values[policyKeyOf(d)];
+    policy[d] = enabled && raw === "manual" ? "manual" : "off";
+    entries[d] = {};
+    for (const [e, def] of Object.entries(DANGER_KINDS[d].entries)) {
+      const key = `${policyKeyOf(d)}.${e}`;
+      const v = values[key] ?? def;
+      if (typeof v !== "string" || v.trim() === "") throw new DevcheckError(`${POLICY_FILE}: ${key} は命令の文字列(上流の入口なしは "-")`);
+      entries[d][e] = v.trim();
     }
-    if (!POLICY_KEYS.includes(key)) throw new DevcheckError(`${file}: 宣言に無い鍵 ${key}(重ねてよい鍵 = ${POLICY_SWITCH} と種類 ${POLICY_KEYS.join(" / ")})`);
-    if (!POLICY_VALUES.includes(/** @type {string} */ (value))) throw new DevcheckError(`${file}: ${key} の値 ${JSON.stringify(value)} は auto / manual / off のどれか`);
-    out[key] = /** @type {string} */ (value);
   }
-  return out;
+  return { policy, entries, enabled };
 };
 
 /**
- * 実体に fork の上書きの宣言した鍵だけを重ねる(上書きは無くてよい)。宣言に無い鍵・値の誤りは DevcheckError。
- * 返すのは効いている種類ごとの値: 全体のスイッチ enabled が false なら全部 off(種類ごとの値より強い)
- * @param {unknown} defaults @param {unknown | null} override
- * @returns {Record<string, string>}
+ * チェックアウトの repo.json から方針を読む(無い = 全部既定)。repo.json が読めない・形の誤りは DevcheckError
+ * @param {string} root
+ * @returns {Promise<{ policy: Record<string, string>, entries: Record<string, Record<string, string>>, enabled: boolean }>}
  */
-export const mergePolicy = (defaults, override) => {
-  const base = checkPolicyObject(defaults, POLICY_FILE);
-  for (const key of POLICY_KEYS) if (!base[key]) throw new DevcheckError(`${POLICY_FILE}: ${key} がありません`);
-  const over = override === null ? {} : checkPolicyObject(override, POLICY_OVERRIDE_FILE);
-  const merged = { ...base, ...over };
-  const enabled = merged[POLICY_SWITCH] !== false;
-  return Object.fromEntries(POLICY_KEYS.map((key) => [key, enabled ? /** @type {string} */ (merged[key]) : "off"]));
-};
-
-/** @param {string} file */
-const readJson = (file) => {
-  try {
-    return JSON.parse(readFileSync(file, "utf8"));
-  } catch (error) {
-    throw new DevcheckError(`${path.basename(file)} が読めません: ${/** @type {Error} */ (error).message}`);
-  }
+export const readAgentPolicy = async (root) => {
+  const file = path.join(root, POLICY_FILE);
+  if (!existsSync(file)) return agentPolicyOf({});
+  const { parseRepoJson } = await import("../../../src/lib/forkOwnership/forkIds.mjs");
+  const { values, errors } = parseRepoJson(readFileSync(file, "utf8"));
+  if (errors.length) throw new DevcheckError(`${POLICY_FILE}: ${errors.join(" / ")}`);
+  return agentPolicyOf(values);
 };
 
 /**
- * 上書きのファイル(policy.override.ts)の `override` を読む。無い・空(空白とコメントだけ)= 不在(null)。
- * 隣に実体(policy.json)が無い上書きは孤立 = DevcheckError。export が無い・オブジェクトでない = DevcheckError。
- * tsx の下でも素の node(型を外して読む)でも読める
- * @param {string} dir
- * @returns {Promise<unknown | null>}
- */
-export const readOverride = async (dir) => {
-  const file = path.join(dir, POLICY_OVERRIDE_FILE);
-  if (!existsSync(file)) return null;
-  const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "").trim();
-  if (text === "") return null;
-  if (!existsSync(path.join(dir, POLICY_FILE))) throw new DevcheckError(`${POLICY_OVERRIDE_FILE}: 隣に実体 ${POLICY_FILE} が無い(重ねる相手が無い上書き)`);
-  /** @type {Record<string, unknown>} */
-  let mod;
-  try {
-    mod = await import(pathToFileURL(file).href);
-  } catch (error) {
-    throw new DevcheckError(`${POLICY_OVERRIDE_FILE} が読めません: ${/** @type {Error} */ (error).message}`);
-  }
-  if (!("override" in mod)) throw new DevcheckError(`${POLICY_OVERRIDE_FILE}: export const override = { 種類: "auto" | "manual" | "off" } の形にする`);
-  return mod.override;
-};
-
-/**
- * この道具のフォルダから方針を読む: 実体(policy.json)+ 上書き(policy.override.ts)の宣言した鍵だけ
- * @param {string} dir
+ * 効いている方針(種類 → auto | manual | off、危険な 3 つも)
+ * @param {string} root チェックアウトの直下
  * @returns {Promise<Record<string, string>>}
  */
-export const loadPolicy = async (dir) => {
-  const override = await readOverride(dir);
-  const body = path.join(dir, POLICY_FILE);
-  if (!existsSync(body)) throw new DevcheckError(`${POLICY_FILE} が無い`);
-  return mergePolicy(readJson(body), override);
+export const loadPolicy = async (root) => (await readAgentPolicy(root)).policy;
+
+/** 種類の人が打つ命令(off の 1 行に出す)。危険な 3 つは入口、ほかは KINDS の形 */
+export const humanCommandOf = (kind, entries) => {
+  if (DANGER_NAMES.includes(kind)) {
+    const e = entries?.[kind]?.entry ?? DANGER_KINDS[kind].entries.entry;
+    return e === "-" ? "(上流の入口なし。人が手で行う)" : kind === "deploy" ? `${e}(本番の DB の反映が要るなら先に ${entries?.deploy?.db_entry ?? DANGER_KINDS.deploy.entries.db_entry})` : e;
+  }
+  return KINDS[kind]?.command ?? "(エージェントの道具で行う種類)";
 };
+
+/** off の時の 1 行(D125): 実行せず人に頼む */
+export const offLine = (kind, entries) =>
+  `${kind} は方針で off: 人が打つなら ${humanCommandOf(kind, entries)}、任せるなら /repo-policy で ${policyKeyOf(kind)} を manual に`;

@@ -16,11 +16,10 @@ downstream_users: many derivative projects depend on this as their base
 
 ## TIER (multi-tier hierarchy)
 this_repo: Tier1 (canonical upstream). Hierarchy: Tier1 → Tier2 → Tier3.
-fork_id: next-starter
-downstream: yes
-- fork_id = this repo's short name, declared by every repo (Tier1 = next-starter; the old `-` mark is gone) | form: lowercase letters, digits, hyphens | the same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, its src/lib/CATALOG.md section heading, the order inbox | missing / malformed / same as an ancestor → checks fail (exit 2) | Tier1 = own name equals the first CATALOG.md section | reader: src/lib/forkOwnership/forkIds.mjs (never derived from the origin URL)
-- downstream = whether this repo has (or plans) downstream forks: `yes` | `none`, one line in the same section as fork_id: | read by /ship and /flux (notice / relay) and the lineage.md check | missing / other value → pnpm workflow ownership check unverified (exit 2) | reader: src/lib/forkOwnership/forkIds.mjs
-note: downstream forks maintain their OWN project.md and overwrite this declaration per-fork.
+- name and tier: repo.json at the repo root (`repo_id`: this repo's short name, `tier`: root | middle | leaf; Tier1 = next-starter, root) | written by `pnpm workflow repo-json set|migrate` | ref: src/lib/forkOwnership/README.md
+- repo_id: declared by every repo | form: lowercase letters, digits, hyphens | the same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, its src/lib/CATALOG.md section heading, the order inbox | missing / malformed / same as an ancestor → checks fail (exit 2) | reader: src/lib/forkOwnership/forkIds.mjs (never derived from the origin URL)
+- tier: downstream forks exist (or are planned) = root / middle, none = leaf | read by /ship and /flux (notice / relay) and the lineage.md check | root ⇔ own name is the first CATALOG.md section, else pnpm workflow ownership check unverified (exit 2)
+note: downstream forks maintain their OWN project.md and repo.json.
 rule: generic/foundational capabilities live HERE (Tier1); downstream must not hardcode them locally — escalate instead.
 request_protocol (shared mailbox: ~/.team/orders/ — never under ~/.claude/: Claude Code always prompts for Write/Edit there, allow rules cannot suppress it):
 - inbox per receiving repo: ~/.team/orders/<repo-id>/ (+ done/) | skills ship in .claude/skills/{order,inbox,wen}, layout: .claude/skills/order/SKILL.md

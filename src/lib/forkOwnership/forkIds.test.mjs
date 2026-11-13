@@ -1,11 +1,11 @@
-// fork ID の宣言の読み取りのテスト。実行: pnpm test src/lib/forkOwnership/forkIds.test.mjs (node:test)
+// リポの名前と段(repo.json)・古い形(project.md)の読み取りのテスト。実行: pnpm test src/lib/forkOwnership/forkIds.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseDownstreamDeclaration, parseForkIdDeclaration, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
+import { formatRepoJson, forkIdOfTexts, parseDownstreamDeclaration, parseForkIdDeclaration, parseRepoIdentity, parseRepoJson, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
 
 test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大文字・_・. ・-- の連続)は error", () => {
   assert.deepEqual(parseForkIdDeclaration("## TIER\nfork_id: oripa-do\n"), { forkId: "oripa-do", error: null });
@@ -18,13 +18,14 @@ test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大�
   assert.match(parseForkIdDeclaration("fork_id: a\nfork_id: b\n").error, /2 つ以上/);
 });
 
-/** project.md・台帳・CATALOG.md を置いた一時リポ */
-function repo({ forkId, downstream = "yes", ledgers = [], sections = [] }) {
+/** repo.json・台帳・CATALOG.md を置いた一時リポ(tier: undefined = 段に合わせる / null = 書かない) */
+function repo({ forkId, tier, ledgers = [], sections = [], raw }) {
   const root = mkdtempSync(join(tmpdir(), "fork-ids-"));
-  mkdirSync(join(root, ".claude/rules"), { recursive: true });
   mkdirSync(join(root, ".notices/applied"), { recursive: true });
   mkdirSync(join(root, "src/lib"), { recursive: true });
-  if (forkId !== undefined) writeFileSync(join(root, ".claude/rules/project.md"), `## TIER\nfork_id: ${forkId}\n${downstream === null ? "" : `downstream: ${downstream}\n`}`);
+  const t = tier === undefined ? (sections[0] === forkId ? "root" : "middle") : tier;
+  if (raw !== undefined) writeFileSync(join(root, "repo.json"), raw);
+  else if (forkId !== undefined) writeFileSync(join(root, "repo.json"), formatRepoJson({ repo_id: forkId, ...(t === null ? {} : { tier: t }) }));
   for (const name of ledgers) writeFileSync(join(root, `.notices/applied/${name}.md`), "");
   writeFileSync(join(root, "src/lib/CATALOG.md"), `# 目録\n\n${sections.map((n) => `## ${n}\n- src/lib/x — x\n`).join("\n")}`);
   return root;
@@ -35,14 +36,16 @@ test("readForkIdentity: 自分の名前・祖先(台帳名から自分を除く)
     own: "next-starter",
     ancestors: [],
     isTier1: true,
+    tier: "root",
     downstream: "yes",
     downstreamError: null,
     errors: [],
   });
-  assert.deepEqual(readForkIdentity(repo({ forkId: "pandora", downstream: "none", ledgers: ["oripa-do", "pandora"], sections: ["next-starter", "oripa-do", "pandora"] })), {
+  assert.deepEqual(readForkIdentity(repo({ forkId: "pandora", tier: "leaf", ledgers: ["oripa-do", "pandora"], sections: ["next-starter", "oripa-do", "pandora"] })), {
     own: "pandora",
     ancestors: ["oripa-do"],
     isTier1: false,
+    tier: "leaf",
     downstream: "none",
     downstreamError: null,
     errors: [],
@@ -78,12 +81,44 @@ test("parseDownstreamDeclaration: yes / none(行末コメント可)、欠落・2
   assert.deepEqual(parseDownstreamDeclaration("## ROLE\ndownstream_users: many\n## TIER\nfork_id: a\ndownstream: yes\n"), { downstream: "yes", error: null });
 });
 
-test("readForkIdentity: downstream: の欠落・未知値は downstreamError(errors には入れない = ビルドは止めない)", () => {
-  const missing = readForkIdentity(repo({ forkId: "acme", downstream: null, sections: ["next-starter"] }));
-  assert.equal(missing.downstream, null);
-  assert.match(missing.downstreamError, /downstream: の行が無い/);
-  assert.deepEqual(missing.errors, []);
-  const bad = readForkIdentity(repo({ forkId: "acme", downstream: "maybe", sections: ["next-starter"] }));
+test("readForkIdentity: tier の欠落 = leaf、知らない値・root と CATALOG の食い違い(両向き)は downstreamError(errors には入れない = ビルドは止めない)", () => {
+  const missing = readForkIdentity(repo({ forkId: "acme", tier: null, sections: ["next-starter"] }));
+  assert.equal(missing.tier, "leaf");
+  assert.equal(missing.downstream, "none");
+  assert.equal(missing.downstreamError, null);
+  const bad = readForkIdentity(repo({ forkId: "acme", tier: "many", sections: ["next-starter"] }));
+  assert.equal(bad.downstream, null);
   assert.match(bad.downstreamError, /使えない値/);
   assert.deepEqual(bad.errors, []);
+  const fakeRoot = readForkIdentity(repo({ forkId: "acme", tier: "root", sections: ["next-starter"] }));
+  assert.match(fakeRoot.downstreamError, /tier root なのに/);
+  assert.deepEqual(fakeRoot.errors, []);
+  const tier1Leaf = readForkIdentity(repo({ forkId: "next-starter", tier: "leaf", sections: ["next-starter"] }));
+  assert.match(tier1Leaf.downstreamError, /Tier1 は root/);
+});
+
+test("repo.json の形: 平らな鍵・文字列か真偽値だけ・知っている鍵だけ、1 鍵 1 行で書く", () => {
+  assert.deepEqual(parseRepoJson('{"repo_id":"a","tier":"leaf","agent.server":"auto","agent.enabled":false}'), {
+    values: { repo_id: "a", tier: "leaf", "agent.server": "auto", "agent.enabled": false },
+    errors: [],
+  });
+  assert.match(parseRepoJson('{"repo_id":"a","x":1}').errors.join(), /知らない鍵 x/);
+  assert.match(parseRepoJson('{"repo_id":"a","agent.server":{"v":1}}').errors.join(), /文字列か真偽値だけ/);
+  assert.match(parseRepoJson('{"repo_id":"a","agent.list":["a"]}').errors.join(), /文字列か真偽値だけ/);
+  assert.match(parseRepoJson('{"repo_id":"a","tier":3}').errors.join(), /文字列か真偽値だけ/);
+  assert.match(parseRepoJson("[1]").errors.join(), /オブジェクトでない/);
+  assert.match(parseRepoJson("{nope").errors.join(), /JSON として読めない/);
+  assert.match(parseRepoIdentity('{"tier":"leaf"}').error, /repo_id が無い/);
+  assert.match(parseRepoIdentity('{"repo_id":"Bad_Name"}').error, /使えない形/);
+  assert.equal(formatRepoJson({ "agent.b": true, tier: "leaf", repo_id: "x", "agent.a": "off" }), '{\n  "repo_id": "x",\n  "tier": "leaf",\n  "agent.a": "off",\n  "agent.b": true\n}\n');
+  // repo.json が読めない・無い = errors
+  assert.match(readForkIdentity(repo({ raw: "{bad", sections: ["next-starter"] })).errors.join(), /JSON として読めない/);
+  assert.match(readForkIdentity(repo({ sections: ["next-starter"] })).errors.join(), /repo\.json が無い/);
+});
+
+test("forkIdOfTexts: 過去の版は repo.json を先に、無ければ古い形の project.md", () => {
+  assert.deepEqual(forkIdOfTexts({ repoJson: '{"repo_id":"mid"}', projectMd: "fork_id: old\n" }), { forkId: "mid", error: null, source: "repo.json" });
+  assert.deepEqual(forkIdOfTexts({ repoJson: null, projectMd: "## TIER\nfork_id: old\n" }), { forkId: "old", error: null, source: "project.md" });
+  assert.match(forkIdOfTexts({ repoJson: null, projectMd: null }).error, /どちらも|も無い/);
+  assert.equal(forkIdOfTexts({ repoJson: '{"tier":"leaf"}', projectMd: "fork_id: old\n" }).forkId, null);
 });

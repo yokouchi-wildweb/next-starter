@@ -22,8 +22,12 @@ import {
   countLiveServers,
   formatPlan,
   loadContext,
+  DANGER_NAMES,
+  declaredAgentKeys,
   loadPolicy,
-  mergePolicy,
+  policyKeyOf,
+  policyOfValues,
+  readAgentPolicy,
   parseContext,
   scanItems,
   type Policy,
@@ -40,7 +44,7 @@ after(() => {
   for (const d of dirs) rmSync(d, { recursive: true, force: true });
 });
 
-const ALL_AUTO = Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])) as Policy;
+const ALL_AUTO = { ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])), db_push: "off", env_production: "off", deploy: "off" } as Policy;
 
 test("種類の表: スキーマの push・本番の指定・確認の埋め込みは、どの種類の打つコマンドにも無い。書く種類は guard を通る入口", () => {
   for (const [name, kind] of Object.entries(KINDS)) {
@@ -51,43 +55,44 @@ test("種類の表: スキーマの push・本番の指定・確認の埋め込�
   assert.deepEqual(KIND_NAMES, ["server", "browser", "login", "db-write", "db-delete", "env-add", "test", "check"]);
 });
 
-test("方針: 実体に上書きの宣言した鍵(種類)だけを重ねる。宣言に無い鍵・値の誤り・欠けた実体の鍵は止める", () => {
-  assert.deepEqual(mergePolicy(ALL_AUTO, null), ALL_AUTO);
-  const merged = mergePolicy(ALL_AUTO, { "db-write": "manual", "env-add": "off" });
-  assert.equal(merged["db-write"], "manual");
-  assert.equal(merged["env-add"], "off");
-  assert.equal(merged.server, "auto");
-  assert.throws(() => mergePolicy(ALL_AUTO, { deploy: "auto" }), /policy\.override\.ts: 宣言に無い鍵 deploy/);
-  assert.throws(() => mergePolicy(ALL_AUTO, { server: "yes" }), /server の値 "yes" は auto \/ manual \/ off/);
-  assert.throws(() => mergePolicy(ALL_AUTO, ["server"]), DevcheckError);
-  const { check: _omit, ...partial } = ALL_AUTO;
-  assert.throws(() => mergePolicy(partial, null), /policy\.json: check がありません/);
+test("方針: repo.json の agent.* から。無い鍵は既定(通常 auto・危険な 3 つ off)、値の誤り・宣言に無い鍵は止める", () => {
+  const defaults = policyOfValues({});
+  for (const k of KIND_NAMES) assert.equal(defaults[k], "auto", k);
+  assert.equal(defaults.peer, "auto");
+  for (const d of DANGER_NAMES) assert.equal(defaults[d], "off", d);
+  const p = policyOfValues({ repo_id: "x", "agent.db_write": "manual", "agent.env_add": "off" });
+  assert.equal(p["db-write"], "manual");
+  assert.equal(p["env-add"], "off");
+  assert.equal(p.server, "auto");
+  assert.throws(() => policyOfValues({ "agent.deployment": "auto" }), /宣言に無い鍵 agent\.deployment/);
+  assert.throws(() => policyOfValues({ "agent.server": "yes" }), /agent\.server の値 "yes" は auto \/ manual \/ off/);
+  // 危険な 3 つ: off | manual だけ、auto・知らない値は off
+  assert.equal(policyOfValues({ "agent.db_push": "manual" }).db_push, "manual");
+  assert.equal(policyOfValues({ "agent.db_push": "auto" }).db_push, "off");
+  assert.equal(policyOfValues({ "agent.deploy": "yes" }).deploy, "off");
 });
 
-test("方針のファイル: policy.json(実体)+ policy.override.ts の export const override。空は不在、実体の無い上書き・export の無い上書きは止める", async () => {
+test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push、deploy = pnpm live と本番の DB の反映、env_production = なし)、fork が差し替える", async () => {
   const dir = temp("devcheck-policy-");
-  writeFileSync(path.join(dir, "policy.json"), JSON.stringify(ALL_AUTO));
-  assert.deepEqual(await loadPolicy(dir), ALL_AUTO);
-  writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { "db-write": "off" };\n');
-  assert.equal((await loadPolicy(dir))["db-write"], "off");
-  const blank = temp("devcheck-policy-blank-");
-  writeFileSync(path.join(blank, "policy.json"), JSON.stringify(ALL_AUTO));
-  writeFileSync(path.join(blank, "policy.override.ts"), "// まだ何も重ねない\n");
-  assert.deepEqual(await loadPolicy(blank), ALL_AUTO);
-  const undeclared = temp("devcheck-policy-key-");
-  writeFileSync(path.join(undeclared, "policy.json"), JSON.stringify(ALL_AUTO));
-  writeFileSync(path.join(undeclared, "policy.override.ts"), 'export const override = { deploy: "auto" };\n');
-  await assert.rejects(loadPolicy(undeclared), /宣言に無い鍵 deploy/);
-  const noExport = temp("devcheck-policy-noexport-");
-  writeFileSync(path.join(noExport, "policy.json"), JSON.stringify(ALL_AUTO));
-  writeFileSync(path.join(noExport, "policy.override.ts"), 'export const policy = { test: "off" };\n');
-  await assert.rejects(loadPolicy(noExport), /export const override/);
-  const orphan = temp("devcheck-policy-orphan-");
-  writeFileSync(path.join(orphan, "policy.override.ts"), 'export const override = { test: "off" };\n');
-  await assert.rejects(loadPolicy(orphan), /隣に実体 policy\.json が無い/);
-  // 上流の実体の名前は印なし(.default は丸ごと替えるスイッチの既定だけ)
-  const upstream = path.join(import.meta.dirname);
-  assert.deepEqual(Object.keys(await loadPolicy(upstream)).sort(), [...POLICY_KEYS].sort());
+  assert.deepEqual(await loadPolicy(dir), policyOfValues({}));
+  const { entries } = await readAgentPolicy(dir);
+  assert.deepEqual(entries, {
+    db_push: { entry: "pnpm db:push" },
+    env_production: { entry: "-" },
+    deploy: { entry: "pnpm live", db_entry: "pnpm db:push -- --env production" },
+  });
+  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent.deploy": "manual", "agent.deploy.entry": "pnpm deploy:vercel"}\n');
+  const custom = await readAgentPolicy(dir);
+  assert.equal(custom.policy.deploy, "manual");
+  assert.equal(custom.entries.deploy.entry, "pnpm deploy:vercel");
+  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent.deploy.entry": ""}\n');
+  await assert.rejects(readAgentPolicy(dir), /agent\.deploy\.entry は命令の文字列/);
+  writeFileSync(path.join(dir, "repo.json"), "{nope");
+  await assert.rejects(loadPolicy(dir), /repo\.json: JSON として読めない/);
+  // このリポの repo.json(agent.* なし)= 既定
+  assert.deepEqual(await loadPolicy(path.join(import.meta.dirname, "../../..")), policyOfValues({}));
+  assert.ok(declaredAgentKeys().includes("agent.deploy.db_entry"));
+  assert.equal(policyKeyOf("db-write"), "agent.db_write");
 });
 
 test("fork の項目: このリポの入口だけを候補にし、知らない種類・外のコマンド・シェルの記号・本番の指定は理由つきで断る", () => {
@@ -142,13 +147,12 @@ test("文脈: 変数が無い = 単体。版つき key=value を読み、無い�
   assert.throws(() => parseContext("v=1\nnot a pair\n", file), /2 行目が key=value でない/);
 });
 
-test("方針の全体のスイッチ enabled(D103): false = 全部の種類(peer も)が off、無い = true、真偽値でなければ止める", async () => {
-  const allOff = mergePolicy({ ...ALL_AUTO, enabled: true }, { enabled: false, test: "auto" });
+test("方針の全体のスイッチ agent.enabled(D103): false = 全部の種類(peer・危険な 3 つも)が off、無い = true、真偽値でなければ止める", async () => {
+  const allOff = policyOfValues({ "agent.enabled": false, "agent.test": "auto", "agent.db_push": "manual" });
   for (const key of POLICY_KEYS) assert.equal(allOff[key], "off", key);
-  assert.deepEqual(mergePolicy(ALL_AUTO, null), ALL_AUTO);
-  assert.deepEqual(mergePolicy({ ...ALL_AUTO, enabled: true }, { "db-write": "manual" })["db-write"], "manual");
-  assert.throws(() => mergePolicy(ALL_AUTO, { enabled: "no" }), /enabled の値 "no" は true \/ false/);
-  assert.throws(() => mergePolicy({ ...ALL_AUTO, enabled: 0 }, null), /policy\.json: enabled の値 0/);
+  for (const d of DANGER_NAMES) assert.equal(allOff[d], "off", d);
+  assert.equal(policyOfValues({ "agent.enabled": true, "agent.db_write": "manual" })["db-write"], "manual");
+  assert.throws(() => policyOfValues({ "agent.enabled": "no" }), /agent\.enabled の値 "no" は true \/ false/);
   // 計画では全部『手で』、run は断る
   const plan = buildPlan({
     checkout: "/repo",
@@ -160,10 +164,9 @@ test("方針の全体のスイッチ enabled(D103): false = 全部の種類(peer
   });
   for (const c of plan.candidates.filter((c) => c.kind !== "cleanup")) assert.equal(c.policy, "off", c.name);
   assert.match(policyRefusal(allOff.server, true, "server") ?? "", /方針で off/);
-  // ファイルから: 上書きの enabled:false
+  assert.match(formatPlan(plan), /危険: db_push=off env_production=off deploy=off/);
   const dir = temp("devcheck-policy-switch-");
-  writeFileSync(path.join(dir, "policy.json"), JSON.stringify({ ...ALL_AUTO, enabled: true }));
-  writeFileSync(path.join(dir, "policy.override.ts"), "export const override = { enabled: false };\n");
+  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent.enabled": false}\n');
   assert.equal((await loadPolicy(dir)).peer, "off");
 });
 

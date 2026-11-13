@@ -10,7 +10,7 @@ import { POLICY_KEYS, STANDALONE, parseAdminCheck, type Context, type Item, type
 import { execCleanup, execRun, type Deps } from "./lib.exec";
 import { appendEnv, checkStatement, deleteSql, devTabStarted, waitForSlot, type DevcheckRecord, type RunResult } from "./lib.run";
 
-const ALL_AUTO = Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])) as Policy;
+const ALL_AUTO = { ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])), db_push: "off", env_production: "off", deploy: "off" } as Policy;
 
 type Fake = Deps & { typed: string[][]; lines: string[]; record: DevcheckRecord | null; env: string; slept: number };
 
@@ -58,7 +58,7 @@ test("方針: off は打たずに断る(exit 4・手で)、manual は --manual-g
   const off = fake({ policy: { ...ALL_AUTO, test: "off" } });
   assert.equal((await execRun(["test", "src/x"], off)).code, 4);
   assert.deepEqual(off.typed, []);
-  assert.match(off.lines[0], /方針で off — この命令はしない\(手で\)/);
+  assert.match(off.lines[0], /方針で off: 人が打つなら .+、任せるなら \/repo-policy で agent\.\S+ を manual に/);
   const manual = fake({ policy: { ...ALL_AUTO, check: "manual" } });
   assert.equal((await execRun(["check", "rules"], manual)).code, 4);
   assert.equal((await execRun(["check", "rules", "--manual-go"], manual)).code, 0);

@@ -58,7 +58,7 @@ export const execRun = async (args: string[], deps: Deps): Promise<ExecResult> =
   const [name, ...rest] = args.filter((a) => a !== "--manual-go");
   if (!name) throw new DevcheckError("run <候補の名前> [引数…](候補は pnpm workflow devcheck plan)");
   const target = resolveRunTarget(name, deps.items);
-  const refusal = policyRefusal(deps.policy[target.kind], manualGo, name);
+  const refusal = policyRefusal(deps.policy[target.kind], manualGo, name, target.kind);
   if (refusal) {
     deps.out(refusal);
     return { code: EXIT_POLICY };

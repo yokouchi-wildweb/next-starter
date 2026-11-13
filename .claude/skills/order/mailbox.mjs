@@ -3,7 +3,7 @@
 // 置き場: $TEAM_ORDERS（既定 ~/.team/orders）
 //   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<fork-id>/done/*.md = 対応済み
-//   fork-id = 各 checkout の .claude/rules/project.md の `fork_id: <短い名前>`（小文字・数字・ハイフン。下記 forkIdOf）
+//   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。小文字・数字・ハイフン。下記 forkIdOf）
 //   council の legate は council 自身のフォルダ（~/.team/_council/legates/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
 // 使い方:
 //   node mailbox.mjs self    自リポの fork-id と受信箱
@@ -66,24 +66,34 @@ export function forkIdFromUrl(url) {
 
 export const FORK_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-// 宣言された fork_id: の値（行が無ければ ""。旧い `-` もそのまま返す）
+// 宣言された名前: repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:（宣言が無ければ ""。旧い `-` もそのまま返す）。
+// 手元のほかのリポ（まだ移していないリポ）も読むので、古い形も読む（~/.team/_bin の tk_fork_id_declared と同じ順）
 export function declaredForkId(top) {
+  const repoJson = join(top, "repo.json");
+  if (existsSync(repoJson)) {
+    try {
+      const v = JSON.parse(readFileSync(repoJson, "utf8"))?.repo_id;
+      return typeof v === "string" ? v : "";
+    } catch {
+      return "";
+    }
+  }
   const file = join(top, ".claude", "rules", "project.md");
   if (!existsSync(file)) return "";
   const m = readFileSync(file, "utf8").match(/^fork_id:[ \t]*(\S*)/m);
   return m ? m[1] : "";
 }
 
-// リポの名前（受信箱の名前）= project.md の fork_id:（council 20261030-104205 D27。~/.team/_bin の tk_fork_id_of と同じ規則）。
+// リポの名前（受信箱の名前）= repo.json の repo_id（古い形は project.md の fork_id:。council 20261030-104205 D27。~/.team/_bin の tk_fork_id_of と同じ規則）。
 // 形が違えば throw。未宣言（行なし・旧い `-`）は移行中だけ旧い導き方に戻る（declared: false）。
 // env TK_FORK_ID_STRICT=1 なら未宣言も throw（移行の終わり）
 export function forkIdOf(top, origin, env = process.env) {
   const v = declaredForkId(top);
   if (v && v !== "-") {
-    if (!FORK_ID_RE.test(v)) throw new Error(`fork_id: の形が違います（${v}: 小文字・数字・ハイフン）: ${top}/.claude/rules/project.md`);
+    if (!FORK_ID_RE.test(v)) throw new Error(`repo_id の形が違います（${v}: 小文字・数字・ハイフン）: ${top}/repo.json`);
     return { id: v, declared: true };
   }
-  if (env.TK_FORK_ID_STRICT === "1") throw new Error(`fork_id: が宣言されていません: ${top}/.claude/rules/project.md`);
+  if (env.TK_FORK_ID_STRICT === "1") throw new Error(`repo_id が宣言されていません: ${top}/repo.json`);
   return { id: origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`, declared: false };
 }
 
@@ -720,7 +730,7 @@ function main() {
     process.exit(1);
   }
   const cmd = process.argv[2];
-  if (!self.declared && cmd !== "name-check") console.error(`注意: このリポは fork_id: が未宣言です（移行中は旧い名前 ${self.repoId} を使う）`);
+  if (!self.declared && cmd !== "name-check") console.error(`注意: このリポは repo_id が未宣言です（移行中は旧い名前 ${self.repoId} を使う）`);
 
   if (cmd === "self") {
     console.log(`self: ${self.repoId}\ndeclared: ${self.declared ? "yes" : "no (old name)"}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);

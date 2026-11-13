@@ -491,4 +491,5 @@
 - id:20261112-224615-messaging-analytics | severity:action-required | checkpoint:messaging-analytics
 - id:20261112-233616-messaging-scaffold | severity:action-required | checkpoint:messaging-scaffold
 - id:20261113-005401-messaging-screens | severity:info | checkpoint:messaging-screens | fixes:20261111-143012-messaging-switch, 20261112-124043-messaging-broadcast
+- id:20261113-140750-repo-json | severity:action-required | checkpoint:repo-json
 - id:20261113-141350-messaging-kinds | severity:breaking | checkpoint:messaging-kinds

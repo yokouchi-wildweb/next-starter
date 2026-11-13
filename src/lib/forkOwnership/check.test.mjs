@@ -6,7 +6,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { forkAddedFiles, runCheck } from "./check.mjs";
-import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, makeParent, nextId, openTmp, PARENT_ID, recordLedger, tmpRoot, write } from "./testRepos.mjs";
+import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, makeParent, nextId, openTmp, PARENT_ID, recordLedger, repoJson, tmpRoot, write } from "./testRepos.mjs";
 
 const CLI = resolve(import.meta.dirname, "cli.mjs");
 const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
@@ -94,10 +94,10 @@ describe("pnpm workflow ownership check", () => {
     assert.equal(forkAddedFiles(fork, { fetch: false }).status, "unverified");
   });
 
-  test("名前の宣言が無い・- ・形違い → 未検証(2)。Tier1 は origin でなく fork_id: と CATALOG の先頭の節で決まる", () => {
+  test("名前の宣言が無い・形違い → 未検証(2)。Tier1 は origin でなく repo_id と CATALOG の先頭の節で決まる", () => {
     const fork = makeFork(makeParent());
-    write(fork, ".claude/rules/project.md", "## TIER\nfork_id: -\n");
-    commitAll(fork, "old mark");
+    write(fork, "repo.json", '{\n  "repo_id": "Bad_Name",\n  "tier": "middle"\n}\n');
+    commitAll(fork, "bad name");
     const old = runCheck(fork);
     assert.equal(old.status, "unverified");
     assert.match(old.reason, /fork の名前/);
@@ -105,22 +105,27 @@ describe("pnpm workflow ownership check", () => {
 
     // origin が親と同じでも、名前が CATALOG の先頭の節と違えば Tier1 扱いにしない
     const parent = makeParent();
-    write(parent, ".claude/rules/project.md", "## TIER\nfork_id: someone-else\ndownstream: yes\n");
+    write(parent, "repo.json", repoJson("someone-else", "root"));
     commitAll(parent, "rename");
     assert.notEqual(runCheck(parent).status, "tier1");
   });
 
-  test("downstream: の宣言が無い・yes / none 以外 → 未検証(2)", () => {
+  test("tier の誤り(知らない値・fork が root を名乗る)→ 未検証(2)。repo.json が無い → 未検証(2)", () => {
     const fork = makeFork(makeParent());
-    write(fork, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\n`);
-    commitAll(fork, "no downstream");
-    const missing = runCheck(fork);
-    assert.equal(missing.status, "unverified");
-    assert.match(missing.reason, /downstream: の行が無い/);
+    write(fork, "repo.json", repoJson(FORK_ID, "maybe"));
+    commitAll(fork, "bad tier");
+    const bad = runCheck(fork);
+    assert.equal(bad.status, "unverified");
+    assert.match(bad.reason, /使えない値/);
     assert.equal(cli(fork).status, 2);
-    write(fork, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\ndownstream: maybe\n`);
-    commitAll(fork, "bad downstream");
-    assert.match(runCheck(fork).reason, /使えない値/);
+    write(fork, "repo.json", repoJson(FORK_ID, "root"));
+    commitAll(fork, "fake root");
+    assert.match(runCheck(fork).reason, /tier root なのに/);
+    git(fork, "rm", "-q", "repo.json");
+    commitAll(fork, "no repo.json");
+    const none = runCheck(fork);
+    assert.equal(none.status, "unverified");
+    assert.match(JSON.stringify(none), /repo\.json が無い/);
   });
 
   describe("単位名の同名(unit-clash)と自分の項目への override(override-own)", () => {
@@ -279,7 +284,7 @@ describe("pnpm workflow ownership check", () => {
   test("門番への受け口の外の追加は gate-add で違反(中間 Tier の物にしない)、受け口の項目は合格", () => {
     const parent = makeParent();
     write(parent, "src/featureGate/index.ts", "export const gate = {};\n");
-    write(parent, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # fork の名前の宣言\nadd src/featureGate/rules/*.{ts,tsx}  # 受け口 rules\n");
+    write(parent, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # 概要\nedit repo.json  # 名前と段\nadd src/featureGate/rules/*.{ts,tsx}  # 受け口 rules\n");
     commitAll(parent, "gate");
     const fork = makeFork(parent);
     write(fork, "src/featureGate/mine.ts", "export const mine = 1;\n");
@@ -383,7 +388,7 @@ describe("pnpm workflow ownership check", () => {
     git(tmpRoot(), "clone", "-q", upper, root);
     git(root, "remote", "rename", "origin", "upstream");
     git(root, "remote", "add", "origin", `git@github.com:acme/${name}.git`);
-    write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${name}\ndownstream: yes\n`);
+    write(root, "repo.json", repoJson(name, "middle"));
     write(root, `.notices/applied/${name}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
     commitAll(root, `${name} start`);
     return root;
@@ -425,7 +430,7 @@ describe("pnpm workflow ownership check", () => {
     assert.equal(tier2Result.lineage.checked, true);
 
     const tier3 = makeTier(tier2, "grandchild");
-    const project = `## TIER\nfork_id: grandchild\ndownstream: yes\n`;
+    const project = `## TIER\n`;
     write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.tone = casual | why: 若年層向け\n`);
     commitAll(tier3, "override default");
     const ok = runCheck(tier3);
@@ -449,13 +454,13 @@ describe("pnpm workflow ownership check", () => {
     commitAll(tier3, "bad order");
     assert.match(runCheck(tier3).lineage.failures.join(), /並びが違う/);
 
-    // 末端(downstream: none)なのに自分の節
+    // 末端(tier leaf)なのに自分の節
     write(tier3, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n## grandchild\n- own: 1\n<!-- end grandchild -->\n`);
-    write(tier3, ".claude/rules/project.md", `## TIER\nfork_id: grandchild\ndownstream: none\n`);
+    write(tier3, "repo.json", repoJson("grandchild", "leaf"));
     commitAll(tier3, "leaf with section");
     const leaf = runCheck(tier3);
     assert.equal(leaf.status, "fail");
-    assert.match(leaf.lineage.failures.join(), /downstream: none/);
+    assert.match(leaf.lineage.failures.join(), /tier leaf/);
   });
 
   test("lineage.md の無い fork(取り込む前)は lineage を検査しない", () => {
@@ -501,7 +506,7 @@ describe("pnpm workflow ownership check", () => {
     assert.equal(result.middleTier.length, 2);
   });
 
-  test("多段: upstream: が無い・その sha が辿れない・途中の版に fork_id: / 台帳が無い → 未検証(2)", () => {
+  test("多段: upstream: が無い・その sha が辿れない・途中の版に名前 / 台帳が無い → 未検証(2)。古い形の中間 Tier の版は読める", () => {
     const parent = makeParent();
     const fork = makeFork(parent);
     write(fork, `.notices/applied/${FORK_ID}.md`, "# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | notes:-\n");
@@ -513,19 +518,27 @@ describe("pnpm workflow ownership check", () => {
     commitAll(fork, "bad sha");
     assert.match(runCheck(fork).reason, /履歴に無い/);
 
-    // 中間 Tier の版に fork_id: が無い
+    // 中間 Tier の版に名前が無い
     const tier2 = makeFork(makeParent());
-    write(tier2, ".claude/rules/project.md", "## TIER\n");
+    write(tier2, "repo.json", '{\n  "tier": "middle"\n}\n');
     commitAll(tier2, "drop name");
     const tier3 = makeTier(tier2, "grandchild");
-    assert.match(runCheck(tier3).reason, /fork_id: が無い/);
+    assert.match(runCheck(tier3).reason, /repo_id\(古い形は .claude\/rules\/project.md の fork_id:\)が無い/);
+
+    // 古い形の中間 Tier の版(repo.json が無く project.md の fork_id:)は読める
+    const tier2old = makeFork(makeParent());
+    git(tier2old, "rm", "-q", "repo.json");
+    write(tier2old, ".claude/rules/project.md", `## TIER\nfork_id: ${FORK_ID}\ndownstream: yes\n`);
+    commitAll(tier2old, "old form");
+    const tier3old = makeTier(tier2old, "grandchild");
+    assert.notEqual(runCheck(tier3old).status, "unverified", JSON.stringify(runCheck(tier3old)));
 
     // 中間 Tier の版の台帳が fork_id: の名前でない(改名前の名前のまま)
     const tier2b = makeFork(makeParent());
     git(tier2b, "mv", `.notices/applied/${FORK_ID}.md`, ".notices/applied/old-child.md");
     commitAll(tier2b, "old ledger name");
     const tier3b = makeTier(tier2b, "grandchild");
-    assert.match(runCheck(tier3b).reason, /が無い\(台帳の名前を fork_id: にそろえる\)/);
+    assert.match(runCheck(tier3b).reason, /が無い\(台帳の名前を repo_id にそろえる\)/);
   });
 
   test("--json は結果のオブジェクトをそのまま出す", () => {

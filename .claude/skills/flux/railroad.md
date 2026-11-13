@@ -40,7 +40,7 @@ what changes from FULL FLOW:
    - a failure your chunk causes is yours to fix before done (a stale generated file such as the route map is typical) | never merge the junction into your branch
 5. data: none here | the dev DB stays at main's schema while the line runs (every DB step runs after the departure) | never run db:push / a migration | a backfill / migration a notice asks for → a `db:` line in the record | a check that needs the new schema → say so in `notes:` instead of running it
 6. keep only the 3 allowed kinds (`order:` / `human:` / `migration:`), same as "segment done" | a judgment you cannot make → state question with the options and your recommendation; the Director asks the human
-7. commit on the chunk's branch → `job check` passes → write the record (RECORDS) → `railroad job done <instance> J<k>` (checks the form and the check) | relay judgment (a fork with `downstream: yes`, relay.md RELAY JUDGMENT): every notice of the range, in the record
+7. commit on the chunk's branch → `job check` passes → write the record (RECORDS) → `railroad job done <instance> J<k>` (checks the form and the check) | relay judgment (a fork with tier root / middle, relay.md RELAY JUDGMENT): every notice of the range, in the record
 - nothing to do in the range (the merge alone is enough) → record with `result:none`, no commit, `job done` at once; do not search for work
 - cue `fix J<m>` = the chunk came back (the Yardmaster could not join it, or the Inspector found it unsafe): `job start - J<m>` (same branch), read the file the sheet names for why it came back, fix on the branch, commit, write the record for J<m> (same form, only the lines for what you changed now), `job check`, `job done`
 
@@ -48,7 +48,7 @@ what changes from FULL FLOW:
 - Ganger record `<records_dir>/J<k>.md`: first line `# GANGER RECORD job:J<k> ganger:<tab> range:#<a>-#<b> commit:<branch head sha> result:<done|none> submitted:<ISO8601>`
   - one line per notice of the range, history order: `- notice:<id> | aligned:<what moved in the fork> | why:<why it had to, in the fork's terms> | kept_old:<… | order:<id> | -> | notes:<deviations | ->`
   - `why:` thick enough that the Yardmaster can resolve a conflict with another chunk from the record alone
-  - then `open: <item> | order:<id>` (or `| human:<reason>` / `| migration:<id>`; 0 or more), `db: <notice id>: <step>` (0 or more), `screens: <route or screen users see change>` (0 or more; the Inspector reads them), `relay: <notice id>: <none | relay notice id>` (a fork with `downstream: yes`: every notice of the range)
+  - then `open: <item> | order:<id>` (or `| human:<reason>` / `| migration:<id>`; 0 or more), `db: <notice id>: <step>` (0 or more), `screens: <route or screen users see change>` (0 or more; the Inspector reads them), `relay: <notice id>: <none | relay notice id>` (a fork with tier root / middle: every notice of the range)
 - provisional patch: `<provisional_dir>/<checkpoint>.<n>.diff` + `.md` (one line: `file: <path> | area: <area> | intent: <what the fork's edit did>`)
 
 ## JUNCTION (what the tool and the Yardmaster do, so apply leaves it joinable)

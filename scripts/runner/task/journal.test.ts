@@ -28,7 +28,7 @@ test("日付は日本時間、owner は fork_id、同じ名前があれば -2 �
   const root = mkdtempSync(path.join(tmpdir(), "journal-"));
   try {
     mkdirSync(path.join(root, ".claude/rules"), { recursive: true });
-    writeFileSync(path.join(root, ".claude/rules/project.md"), "fork_id: shop\ndownstream: none\n");
+    writeFileSync(path.join(root, "repo.json"), '{"repo_id": "shop", "tier": "leaf"}\n');
     assert.equal(journalDate(RUN.startedAt), "2026-11-09");
     const first = writeJournalDraft(root, RUN);
     assert.equal(first, "docs/journal/2026-11-09--shop--local-migration-wallet-fix-rows.md");
