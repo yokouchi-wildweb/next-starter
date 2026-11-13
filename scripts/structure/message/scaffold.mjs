@@ -1,10 +1,9 @@
 // scripts/structure/message/scaffold.mjs
 // 新しい連絡の 3 本(定義 messages/<名前>.ts・描き方 views/<名前>.tsx と views/<名前>.default.tsx)を無い時だけ書く(pnpm generate message の中身)。
-// 引数: <domain> <name> [--kind marketing|activity|transactional] [--category <key>] [--channels a,b] [--core]
+// 引数: <domain> <name> --category <key> [--core](種別と経路は種類から引く D81・D86。種類 = 利用者から見て 1 つの出来事 D79)
 // - 引数なし = 何もしない(pnpm generate の一括でも回る)。質問はしない
 // - exit 2(書かない): 知らない引数・domain が features の地区(src/features の下のフォルダ、地区の地図の読み手で読む)に無い・名前が camelCase でない・
-//   core のドメインに --core が無い(fork の持ち場の外)・知らない kind・category が受け口に無い・marketing / activity に category が無い・
-//   知らない経路(経路の受け口の項目に無い)
+//   core のドメインに --core が無い(fork の持ち場の外)・--category が無い・category が受け口に無い・種類の経路が経路の受け口に無い
 // - 既にあるファイルは触らない(理由を出す)。書いた時だけ呼び手が src/registry を作り直す
 // 雛形: ./templates.mjs
 
@@ -12,14 +11,16 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
-import { CATEGORY_POINT, readCategoryKeys } from "../extensions/derive/messageGuards.mjs";
+import { CATEGORY_POINT, readCategories } from "../extensions/derive/messageGuards.mjs";
 import { definitionTemplate, viewDefaultTemplate, viewSwitchTemplate } from "./templates.mjs";
 
 const NAME = /^[a-z][A-Za-z0-9]*$/;
-const KINDS = ["transactional", "marketing", "activity"];
-const DEFAULT_CHANNELS = ["email", "inApp"];
 const MESSAGING_DIR = "src/features/core/messaging";
-const USAGE = "使い方: pnpm generate message -- <domain> <name> [--kind marketing|activity|transactional] [--category <key>] [--channels email,inApp] [--core]";
+const USAGE = "使い方: pnpm generate message -- <domain> <name> --category <key> [--core]";
+/** 種類の名前の付け方の案内(D79) */
+const NAMING =
+  "種類 = 利用者から見て 1 つの出来事(「〜した時」と言える単位: 例 likeReceived・itemSold・passwordReset・pointExpiring)。" +
+  "ドメイン・機能の単位(shop・account・wallet)にはしない。無ければ先に src/features/core/messaging/categories/<名前>.ts を足す(種別と経路を持つ)";
 
 /** 受け口の項目の名前(<dir>/<名前>.ts(x) か <名前>/index.ts(x)) */
 function receptacleItemNames(repoRoot, dir) {
@@ -35,31 +36,31 @@ function receptacleItemNames(repoRoot, dir) {
   });
 }
 
-/** categories の受け口の項目の鍵(字面) */
-function categoryKeysOf(repoRoot) {
+/** categories の受け口の項目(字面。鍵 → { kind, channels }) */
+function categoriesOf(repoRoot) {
   const dir = `${MESSAGING_DIR}/categories`;
   const files = receptacleItemNames(repoRoot, dir).flatMap((name) =>
     [`${dir}/${name}.ts`, `${dir}/${name}.tsx`, `${dir}/${name}/index.ts`, `${dir}/${name}/index.tsx`].filter((path) => existsSync(join(repoRoot, path))),
   );
-  return readCategoryKeys(repoRoot, [{ ...CATEGORY_POINT, spec: { dir: "categories", export: "category" } }], files) ?? [];
+  return readCategories(repoRoot, [{ ...CATEGORY_POINT, spec: { dir: "categories", export: "category" } }], files) ?? new Map();
 }
 
-/** @returns {{ ok: true, value: { domain, name, kind, category, channels, core } } | { ok: false, reason: string } | null} null = 引数なし */
+/** @returns {{ ok: true, value: { domain, name, category, core } } | { ok: false, reason: string } | null} null = 引数なし */
 export function parseArgs(argv) {
   const args = argv.filter((arg) => arg !== "--");
   if (args.length === 0) return null;
   const positional = [];
-  const options = { kind: "transactional", category: null, channels: DEFAULT_CHANNELS, core: false };
+  const options = { category: null, core: false };
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === "--core") options.core = true;
-    else if (arg === "--kind" || arg === "--category" || arg === "--channels") {
+    else if (arg === "--category") {
       const value = args[i + 1];
       if (!value || value.startsWith("--")) return { ok: false, reason: `${arg} に値が要ります` };
       i += 1;
-      if (arg === "--kind") options.kind = value;
-      if (arg === "--category") options.category = value;
-      if (arg === "--channels") options.channels = [...new Set(value.split(",").map((s) => s.trim()).filter(Boolean))];
+      options.category = value;
+    } else if (arg === "--kind" || arg === "--channels") {
+      return { ok: false, reason: `${arg} は無くなりました(種別と経路は種類 --category から引く)` };
     } else if (arg.startsWith("-")) return { ok: false, reason: `知らない引数です: ${arg}` };
     else positional.push(arg);
   }
@@ -77,7 +78,7 @@ export function runMessageScaffold(repoRoot, argv) {
   if (parsed === null) return { code: 0, lines: [`[generate message] 引数が無いので何もしません(${USAGE})`], written: [] };
   const fail = (reason) => ({ code: 2, lines: [`✗ ${reason}`, USAGE], written: [] });
   if (!parsed.ok) return fail(parsed.reason);
-  const { domain, name, kind, category, channels, core } = parsed.value;
+  const { domain, name, category, core } = parsed.value;
 
   if (!NAME.test(name)) return fail(`名前 ${name} は英小文字始まりの camelCase で書く(連絡の鍵 <domain>.<name> の後ろ)`);
   const district = readDistrictMapAt(repoRoot).districts.find((d) => d.kind === "features" && d.dir.split("/").at(-1) === domain);
@@ -87,21 +88,21 @@ export function runMessageScaffold(repoRoot, argv) {
   if (district.dir.startsWith("src/features/core/") && !core) {
     return fail(`${district.dir} は core のドメイン(fork は足せない: pnpm workflow ownership check が落ちる)。上流が足す時だけ --core`);
   }
-  if (!KINDS.includes(kind)) return fail(`kind ${kind} は ${KINDS.join(" / ")} のどれか`);
-  const categories = categoryKeysOf(repoRoot);
-  if (category !== null && !categories.includes(category)) {
-    return fail(`category ${category} は categories の受け口に無い(${categories.join(" / ") || "項目なし"})。先に ${MESSAGING_DIR}/categories/<名前>.ts を足す`);
-  }
-  if (category === null && kind !== "transactional") return fail(`${kind} の連絡は --category が要る(${categories.join(" / ") || "項目なし"})`);
+  const categories = categoriesOf(repoRoot);
+  const keys = [...categories.keys()].sort().join(" / ") || "項目なし";
+  if (category === null) return fail(`--category が要る(${keys})。${NAMING}`);
+  const item = categories.get(category);
+  if (!item) return fail(`category ${category} は categories の受け口に無い(${keys})。${NAMING}`);
+  const channels = item.channels ?? [];
   const known = receptacleItemNames(repoRoot, `${MESSAGING_DIR}/channels`);
   const unknown = channels.filter((channel) => !known.includes(channel));
   if (channels.length === 0 || unknown.length > 0) {
-    return fail(`経路 ${unknown.join(", ") || "(空)"} は経路の受け口に無い(${known.join(" / ")})`);
+    return fail(`種類 ${category} の経路 ${unknown.join(", ") || "(空)"} は経路の受け口に無い(${known.join(" / ")})`);
   }
 
   const key = `${domain}.${name}`;
   const dir = `${district.dir}/messages`;
-  const files = [{ path: `${dir}/${name}.ts`, content: (path) => definitionTemplate({ path, key, kind, category, channels }) }];
+  const files = [{ path: `${dir}/${name}.ts`, content: (path) => definitionTemplate({ path, key, category, kind: item.kind, channels }) }];
   if (channels.includes("email")) {
     files.push(
       { path: `${dir}/views/${name}.tsx`, content: () => viewSwitchTemplate({ key, name }) },

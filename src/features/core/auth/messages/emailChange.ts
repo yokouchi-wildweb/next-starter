@@ -9,7 +9,7 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.emailChange",
-  kind: "transactional",
+  category: "emailChange",
   required: true,
   record: "meta",
   vars: z.object({
@@ -18,7 +18,6 @@ export const message = defineMessage({
     /** 変更の確認のリンク(oobCode 入り) */
     verificationUrl: secretVar(z.string().url()),
   }),
-  defaultChannels: ["email"],
   content: {
     email: {
       subject: "メールアドレス変更の確認",

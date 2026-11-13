@@ -1,8 +1,8 @@
 // scripts/structure/message/scaffold.test.ts
 // 連絡の書き出し(pnpm generate message の中身 ./scaffold.mjs)の検査。一時の木(地区の地図・種類と経路の受け口の項目)で回す。
 // - 引数なし = 何もしない / 書く 3 本(メールが無ければ定義だけ)/ 2 回目は何もしない(既にあるファイルは触らない)
-// - exit 2: 知らない引数・地図に無いドメイン・camelCase でない名前・core に --core なし・知らない kind・受け口に無い category・
-//   marketing / activity の category なし・知らない経路(fork の経路の項目は通る)
+// - exit 2: 知らない引数(--kind・--channels は無くなった)・地図に無いドメイン・camelCase でない名前・core に --core なし・
+//   --category なし・受け口に無い category(名前の付け方を案内する)。経路は種類から(fork の経路の項目は通る)
 // - 書いた定義は validateMessageDefinition(category の照らしも)と messageGuards の字面の検査を通る
 // 実行: pnpm test scripts/structure/message/scaffold.test.ts
 import { test } from "node:test";
@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { validateMessageDefinition, UPSTREAM_CHANNEL_FIELDS, type MessageDefinition } from "@/lib/messaging";
+import { validateMessageDefinition, UPSTREAM_CHANNEL_FIELDS, type MessageCategory, type MessageDefinition } from "@/lib/messaging";
 import { z } from "zod";
 
 import { checkMessageGuards } from "../extensions/derive/messageGuards.mjs";
@@ -20,7 +20,12 @@ import { planExtensions } from "../extensions/extensions.mjs";
 import { runMessageScaffold } from "./scaffold.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const CATEGORIES = ["activity", "marketing"];
+/** 一時の木の種類(種別と経路を持つ) */
+const CATEGORIES: Record<string, MessageCategory> = {
+  orderShipped: { key: "orderShipped", label: "発送した時", kind: "transactional", channels: ["email", "inApp"] },
+  weeklyPromo: { key: "weeklyPromo", label: "週の宣伝", kind: "marketing", channels: ["inApp", "line"] },
+  pushNotice: { key: "pushNotice", label: "プッシュ", kind: "activity", channels: ["push"] },
+};
 
 function tree() {
   const root = mkdtempSync(join(tmpdir(), "message-scaffold-"));
@@ -33,8 +38,8 @@ function tree() {
   // features の地区 = src/features の下のフォルダ(業務 shop と core の wallet)
   put("src/features/shop/README.md", "# shop\n");
   put("src/features/core/wallet/README.md", "# wallet\n");
-  for (const key of CATEGORIES) {
-    put(`src/features/core/messaging/categories/${key}.ts`, `export const category = { key: "${key}", label: "${key}", kind: "${key}" };\n`);
+  for (const item of Object.values(CATEGORIES)) {
+    put(`src/features/core/messaging/categories/${item.key}.ts`, `export const category = ${JSON.stringify(item)};\n`);
   }
   for (const channel of ["email/index.tsx", "inApp/index.ts", "line/index.ts", "push.ts"]) {
     put(`src/features/core/messaging/channels/${channel}`, "export const channel = {};\n");
@@ -54,7 +59,7 @@ async function problemsOf(root: string, path: string, channels: Record<string, z
 function guardsOf(root: string, files: string[]) {
   type Point = Parameters<typeof checkMessageGuards>[1][number];
   const points = (planExtensions(repoRoot) as { points: Point[] }).points;
-  const categoryFiles = CATEGORIES.map((key) => `src/features/core/messaging/categories/${key}.ts`);
+  const categoryFiles = Object.keys(CATEGORIES).map((key) => `src/features/core/messaging/categories/${key}.ts`);
   return checkMessageGuards(root, points, [...files, ...categoryFiles]);
 }
 
@@ -66,9 +71,9 @@ test("引数なしは何もしない(exit 0)", () => {
   assert.equal(runMessageScaffold(root, ["--"]).code, 0);
 });
 
-test("既定(取引・email + inApp)で 3 本を書き、2 回目は触らない", async () => {
+test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない", async () => {
   const root = tree();
-  const result = run(root, "shop", "orderShipped");
+  const result = run(root, "shop", "orderShipped", "--category", "orderShipped");
   assert.equal(result.code, 0, result.lines.join("\n"));
   assert.deepEqual(result.written, [
     "src/features/shop/messages/orderShipped.ts",
@@ -77,8 +82,9 @@ test("既定(取引・email + inApp)で 3 本を書き、2 回目は触らない
   ]);
   const definition = readFileSync(join(root, result.written[0]), "utf8");
   assert.match(definition, /key: "shop\.orderShipped"/);
-  assert.match(definition, /kind: "transactional"/);
-  assert.doesNotMatch(definition, /^\s*category:/m);
+  assert.match(definition, /category: "orderShipped"/);
+  assert.doesNotMatch(definition, /^\s*(kind|defaultChannels):/m);
+  assert.match(definition, /種別 transactional・経路 email \/ inApp/);
   assert.match(definition, /secretVar/);
   assert.match(definition, /\/\/ 管理画面で直せる欄/);
   assert.match(definition, /\/\/ 会話の間引き/);
@@ -89,23 +95,23 @@ test("既定(取引・email + inApp)で 3 本を書き、2 回目は触らない
   assert.deepEqual(guardsOf(root, result.written), []);
 
   writeFileSync(join(root, result.written[0]), "// 手で直した\n" + definition);
-  const again = run(root, "shop", "orderShipped");
+  const again = run(root, "shop", "orderShipped", "--category", "orderShipped");
   assert.equal(again.code, 0);
   assert.deepEqual(again.written, []);
   assert.ok(again.lines.every((line) => line.includes("残しました")));
   assert.match(readFileSync(join(root, result.written[0]), "utf8"), /^\/\/ 手で直した/);
 });
 
-test("marketing は category つき、メールの無い連絡は定義だけ、fork の経路は空の欄 + 注記", async () => {
+test("メールの無い種類は定義だけ、fork の経路は空の欄 + 注記", async () => {
   const root = tree();
-  const promo = run(root, "shop", "weeklyPromo", "--kind", "marketing", "--category", "marketing", "--channels", "inApp,line");
+  const promo = run(root, "shop", "weeklyPromo", "--category", "weeklyPromo");
   assert.equal(promo.code, 0, promo.lines.join("\n"));
   assert.deepEqual(promo.written, ["src/features/shop/messages/weeklyPromo.ts"]);
-  assert.match(readFileSync(join(root, promo.written[0]), "utf8"), /category: "marketing"/);
+  assert.match(readFileSync(join(root, promo.written[0]), "utf8"), /category: "weeklyPromo"/);
   assert.deepEqual(await problemsOf(root, promo.written[0]), []);
   assert.deepEqual(guardsOf(root, promo.written), []);
 
-  const push = run(root, "shop", "pushOnly", "--channels", "push");
+  const push = run(root, "shop", "pushOnly", "--category", "pushNotice");
   assert.equal(push.code, 0, push.lines.join("\n"));
   const text = readFileSync(join(root, push.written[0]), "utf8");
   assert.match(text, /push: \{\},/);
@@ -115,11 +121,11 @@ test("marketing は category つき、メールの無い連絡は定義だけ、
 
 test("core のドメインは --core の時だけ書く", () => {
   const root = tree();
-  const refused = run(root, "wallet", "bonusNotice");
+  const refused = run(root, "wallet", "bonusNotice", "--category", "orderShipped");
   assert.equal(refused.code, 2);
   assert.match(refused.lines[0], /core のドメイン/);
   assert.equal(existsSync(join(root, "src/features/core/wallet/messages/bonusNotice.ts")), false);
-  const allowed = run(root, "wallet", "bonusNotice", "--core");
+  const allowed = run(root, "wallet", "bonusNotice", "--category", "orderShipped", "--core");
   assert.equal(allowed.code, 0);
   assert.ok(existsSync(join(root, "src/features/core/wallet/messages/bonusNotice.ts")));
 });
@@ -127,16 +133,16 @@ test("core のドメインは --core の時だけ書く", () => {
 test("exit 2 と理由(何も書かない)", () => {
   const root = tree();
   const cases: [string[], RegExp][] = [
-    [["shop", "x", "--dry"], /知らない引数/],
+    [["shop", "x", "--category", "orderShipped", "--dry"], /知らない引数/],
+    [["shop", "x", "--kind", "marketing"], /--kind は無くなりました/],
+    [["shop", "x", "--channels", "email"], /--channels は無くなりました/],
     [["shop"], /<domain> と <name>/],
-    [["nope", "hello"], /features の地区/],
-    [["shop", "Hello"], /camelCase/],
-    [["shop", "hello.world"], /camelCase/],
-    [["shop", "hello", "--kind", "news"], /kind news/],
-    [["shop", "hello", "--category", "account"], /category account は categories の受け口に無い/],
-    [["shop", "hello", "--kind", "activity"], /activity の連絡は --category/],
-    [["shop", "hello", "--channels", "email,fax"], /経路 fax/],
-    [["shop", "hello", "--kind"], /--kind に値/],
+    [["nope", "hello", "--category", "orderShipped"], /features の地区/],
+    [["shop", "Hello", "--category", "orderShipped"], /camelCase/],
+    [["shop", "hello.world", "--category", "orderShipped"], /camelCase/],
+    [["shop", "hello"], /--category が要る.*1 つの出来事/],
+    [["shop", "hello", "--category", "account"], /category account は categories の受け口に無い.*ドメイン・機能の単位/],
+    [["shop", "hello", "--category"], /--category に値/],
   ];
   for (const [args, pattern] of cases) {
     const result = run(root, ...args);

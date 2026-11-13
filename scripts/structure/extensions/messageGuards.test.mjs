@@ -1,12 +1,12 @@
 // scripts/structure/extensions/messageGuards.test.mjs
-// 止められない連絡(required)の守り(./derive/messageGuards.mjs)と、連絡の上書きの点(lib/messaging の extensionPoints.ts の messages)。
-// 一時ディレクトリの fork(acme、祖先 parent)の木で planExtensions を回す。
+// 連絡の字面の守り(./derive/messageGuards.mjs)と、連絡の上書きの点(lib/messaging の extensionPoints.ts の messages)。
+// 一時ディレクトリの fork(acme、祖先 parent)の木で planExtensions を回す。種類の点(messaging の categories)・種別の性質の表は本物を写す。
 // - 定義だけ・正しい上書き・項目 0 は通る
-// - required の定義: email の無い defaultChannels・adminEditable・throttle を止める
-// - required への上書き: enabled:false・email の除外・adminEditable・throttle を止める(throttle: null は通す)
-// - 守りに関わる値がリテラルでない・定義の形が違う(export const message が無い)を止める
-// - 宣言に無い鍵(key・required)の上書きは既存の overrideKeys が止める / views/ の下は対象外
-// - category: categories の点の項目の鍵か(取引だけ省ける)、上書きも(点の宣言が無い木では照らさない)
+// - category: 全部の定義に必須・受け口の鍵・文面は種類の経路の分だけ(上書きでは変えられない)
+// - required の定義: 種類の経路に email・adminEditable が空・throttle が無い / required への上書き: enabled:false・adminEditable・throttle を止める
+// - 上流の functional の連絡は上書きで止められない(fork の木の core の定義)
+// - 種類の上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ
+// - 守りに関わる値がリテラルでない・定義の形が違う(export const message が無い)を止める / views/ の下は対象外
 // 実行: pnpm test scripts/structure/extensions/messageGuards.test.mjs
 
 import assert from "node:assert/strict";
@@ -19,8 +19,14 @@ import { fileURLToPath } from "node:url";
 import { planExtensions } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-// 宣言は本物を使う(点の glob・export・overrideOf を写さない)
+// 宣言と性質の表は本物を使う(点の glob・export・overrideOf・種別の性質を写さない)
 const DECLARATION = readFileSync(join(repoRoot, "src/lib/messaging/extensionPoints.ts"), "utf8");
+const MESSAGING_DECLARATION = readFileSync(join(repoRoot, "src/features/core/messaging/extensionPoints.ts"), "utf8");
+const KINDS = readFileSync(join(repoRoot, "src/lib/messaging/definition/kinds.ts"), "utf8");
+
+const categoryItem = (key, kind, channels) =>
+  `import type { MessageCategory } from "@/lib/messaging";\n\nexport const category: MessageCategory = { key: "${key}", label: "${key}", kind: "${kind}", channels: ${JSON.stringify(channels)} };\n`;
+const C = "src/features/core/messaging/categories/";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "message-guards-"));
@@ -32,28 +38,35 @@ function fixture(files) {
   put(".notices/applied/parent.md", "");
   put("src/lib/CATALOG.md", "## next-starter\n\n## parent\n\n## acme\n");
   put("src/lib/messaging/extensionPoints.ts", DECLARATION);
+  put("src/lib/messaging/definition/kinds.ts", KINDS);
+  put("src/features/core/messaging/extensionPoints.ts", MESSAGING_DECLARATION);
+  put(`${C}account.ts`, categoryItem("account", "functional", ["email"]));
+  put(`${C}notice.ts`, categoryItem("notice", "transactional", ["email", "inApp"]));
+  put(`${C}alert.ts`, categoryItem("alert", "security", ["email"]));
+  put(`${C}inAppOnly.ts`, categoryItem("inAppOnly", "transactional", ["inApp"]));
   for (const [path, text] of Object.entries(files)) put(path, text);
   return root;
 }
 
 const M = "src/features/core/auth/messages/";
-const definition = (props) => `import { z } from "zod";
+const definition = (props, category = "account") => `import { z } from "zod";
 import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.verification",
-  kind: "transactional",
-  category: "account",
+  category: ${category.startsWith("@") ? category.slice(1) : `"${category}"`},
   vars: z.object({ verificationUrl: z.string() }),
   ${props}
   content: { email: { subject: "確認" }, inApp: { title: "確認", body: "" } },
 });
 `;
-const REQUIRED = definition('required: true,\n  defaultChannels: ["email"],');
-const OPTIONAL = definition('defaultChannels: ["email", "inApp"],\n  adminEditable: ["email.subject"],');
+const REQUIRED = definition("required: true,");
+const OPTIONAL = definition('adminEditable: ["email.subject"],', "notice");
 const override = (props) => `import type { MessageOverride } from "@/lib/messaging";\n\nexport const messageOverride = { ${props} } satisfies MessageOverride;\n`;
+const categoryOverride = (props) => `export const override = { ${props} };\n`;
 
-const problemsOf = (files) => planExtensions(fixture(files)).problems.filter((p) => p.includes("/messages/"));
+const problemsOf = (files) =>
+  planExtensions(fixture(files)).problems.filter((p) => p.includes("/messages/") || p.includes("/categories/"));
 const expectOne = (files, path, pattern) => {
   const problems = problemsOf(files);
   assert.equal(problems.length, 1, problems.join(" / "));
@@ -62,41 +75,86 @@ const expectOne = (files, path, pattern) => {
 };
 
 test("項目 0・定義だけ・正しい上書きは通る", () => {
-  assert.deepEqual(planExtensions(fixture({})).problems, []);
+  assert.deepEqual(problemsOf({}), []);
   assert.deepEqual(problemsOf({ [`${M}verification.ts`]: REQUIRED, [`${M}welcome.ts`]: OPTIONAL }), []);
   assert.deepEqual(
     problemsOf({
       [`${M}verification.ts`]: REQUIRED,
-      [`${M}verification.override.ts`]: override('content: { email: { subject: "新しい件名" } }, enabled: true, defaultChannels: ["email", "inApp"], adminEditable: [], throttle: null'),
+      [`${M}verification.override.ts`]: override('content: { email: { subject: "新しい件名" } }, enabled: true, adminEditable: [], throttle: null'),
       [`${M}welcome.ts`]: OPTIONAL,
-      [`${M}welcome.override.ts`]: override('enabled: false, defaultChannels: ["inApp"], adminEditable: ["inApp.title"]'),
+      [`${M}welcome.override.ts`]: override('enabled: false, adminEditable: ["inApp.title"]'),
     }),
     [],
   );
 });
 
-test("required の定義: email の無い defaultChannels・adminEditable・throttle を止める", () => {
-  expectOne({ [`${M}a.ts`]: definition('required: true,\n  defaultChannels: ["inApp"],') }, `${M}a.ts`, /"email" を含める/);
-  expectOne({ [`${M}a.ts`]: definition('required: true,\n  defaultChannels: ["email"],\n  adminEditable: ["email.subject"],') }, `${M}a.ts`, /adminEditable は付けられない/);
+test("category: 全部の定義に必須・受け口の鍵・文面は種類の経路の分だけ。上書きでは変えられない", () => {
+  expectOne({ [`${M}a.ts`]: definition("", "nope") }, `${M}a.ts`, /category "nope" は categories の受け口に無い\(account \/ alert \/ inAppOnly \/ notice\)/);
+  expectOne({ [`${M}a.ts`]: definition("").replace('  category: "account",\n', "") }, `${M}a.ts`, /category\(.*\)を書く/);
+  expectOne({ [`${M}a.ts`]: definition("", "@CATEGORY") }, `${M}a.ts`, /category はリテラル/);
+  // 種類 notice の経路は email・inApp → inApp の文面が無いと止まる
   expectOne(
-    { [`${M}a.ts`]: definition('required: true,\n  defaultChannels: ["email"],\n  throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 },') },
+    { [`${M}a.ts`]: definition("", "notice").replace(', inApp: { title: "確認", body: "" }', "") },
+    `${M}a.ts`,
+    /種類 notice の経路 inApp の文面/,
+  );
+  const problems = problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('category: "account"') });
+  assert.equal(problems.length, 1, problems.join(" / "));
+  assert.match(problems[0], /category は上書きできない/);
+});
+
+test("required の定義: 種類の経路に email・adminEditable・throttle を止める", () => {
+  expectOne({ [`${M}a.ts`]: definition("required: true,", "inAppOnly") }, `${M}a.ts`, /"email" を含める/);
+  expectOne({ [`${M}a.ts`]: definition('required: true,\n  adminEditable: ["email.subject"],') }, `${M}a.ts`, /adminEditable は付けられない/);
+  expectOne(
+    { [`${M}a.ts`]: definition('required: true,\n  throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 },') },
     `${M}a.ts`,
     /throttle は付けられない/,
   );
 });
 
-test("required への上書き: enabled:false・email の除外・adminEditable・throttle を止める", () => {
+test("required への上書き: enabled:false・adminEditable・throttle を止める", () => {
   const base = { [`${M}verification.ts`]: REQUIRED };
   const path = `${M}verification.override.ts`;
-  expectOne({ ...base, [path]: override("enabled: false") }, path, /止められない/);
-  expectOne({ ...base, [path]: override('defaultChannels: ["inApp"]') }, path, /email は外せない/);
+  expectOne({ ...base, [path]: override("enabled: false") }, path, /required の連絡は止められない/);
   expectOne({ ...base, [path]: override('adminEditable: ["email.subject"]') }, path, /adminEditable は付けられない/);
   expectOne({ ...base, [path]: override('throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 }') }, path, /throttle は付けられない/);
 });
 
+test("上流の functional の連絡は止められない(required でなくても)、fork の自分の連絡と他の種別は止められる", () => {
+  const plainFunctional = definition("");
+  expectOne({ [`${M}a.ts`]: plainFunctional, [`${M}a.override.ts`]: override("enabled: false") }, `${M}a.override.ts`, /上流の種別 functional の連絡は止められない/);
+  const F = "src/features/shop/messages/";
+  assert.deepEqual(problemsOf({ [`${F}a.ts`]: plainFunctional.replace("auth.verification", "shop.a") }), []);
+  assert.deepEqual(problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override("enabled: false") }), []);
+});
+
+test("種類の上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ", () => {
+  expectOne({ [`${C}account.override.ts`]: categoryOverride('channels: ["inApp"]') }, `${C}account.override.ts`, /email は外せない/);
+  expectOne({ [`${C}alert.override.ts`]: categoryOverride('channels: ["inApp"]') }, `${C}alert.override.ts`, /email は外せない/);
+  assert.deepEqual(problemsOf({ [`${C}notice.override.ts`]: categoryOverride('channels: ["inApp"], label: "知らせ"') }), []);
+  const G = "src/features/core/messaging/categoryGroups/";
+  const group = `export const group = { key: "social", label: "交流", order: 1 };\n`;
+  expectOne({ [`${C}notice.override.ts`]: categoryOverride('group: "nope"') }, `${C}notice.ts`, /group nope は categoryGroups の受け口に無い/);
+  assert.deepEqual(
+    problemsOf({
+      [`${G}social.ts`]: group,
+      [`${C}notice.override.ts`]: categoryOverride('group: "social"'),
+      [`${C}inAppOnly.override.ts`]: categoryOverride('group: "social"'),
+    }),
+    [],
+  );
+  const mixed = problemsOf({
+    [`${G}social.ts`]: group,
+    [`${C}notice.override.ts`]: categoryOverride('group: "social"'),
+    [`${C}alert.override.ts`]: categoryOverride('group: "social"'),
+  });
+  assert.equal(mixed.length, 1, mixed.join(" / "));
+  assert.match(mixed[0], /入れられない\(D82\)/);
+});
+
 test("守りに関わる値がリテラルでない・定義の形が違うと止める", () => {
-  expectOne({ [`${M}a.ts`]: definition("required: REQUIRED,\n  defaultChannels: [\"email\"],") }, `${M}a.ts`, /required はリテラル/);
-  expectOne({ [`${M}a.ts`]: definition("required: true,\n  defaultChannels: CHANNELS,") }, `${M}a.ts`, /defaultChannels はリテラル/);
+  expectOne({ [`${M}a.ts`]: definition("required: REQUIRED,") }, `${M}a.ts`, /required はリテラル/);
   expectOne(
     { [`${M}verification.ts`]: REQUIRED, [`${M}verification.override.ts`]: override("enabled: isOn") },
     `${M}verification.override.ts`,
@@ -110,36 +168,4 @@ test("宣言に無い鍵の上書きは止まり、views/ の下は対象外", (
   assert.equal(problems.length, 1, problems.join(" / "));
   assert.match(problems[0], /required・key は上書きできない/);
   assert.deepEqual(problemsOf({ [`${M}verification.ts`]: REQUIRED, [`${M}views/verification.tsx`]: "export const x = 1;\n" }), []);
-});
-
-// category の検査: messaging の点 categories の項目の鍵と照らす(点の宣言が無い木では照らさない = 上の fixture)
-const MESSAGING_DECLARATION = readFileSync(join(repoRoot, "src/features/core/messaging/extensionPoints.ts"), "utf8");
-const categoryItem = (key, kind) =>
-  `import type { MessageCategory } from "@/lib/messaging";\n\nexport const category: MessageCategory = { key: "${key}", label: "${key}", kind: "${kind}" };\n`;
-const withCategories = (files) => ({
-  "src/features/core/messaging/extensionPoints.ts": MESSAGING_DECLARATION,
-  "src/features/core/messaging/categories/marketing.ts": categoryItem("marketing", "marketing"),
-  "src/features/core/messaging/categories/activity.ts": categoryItem("activity", "activity"),
-  ...files,
-});
-const categoryProblemsOf = (files) => problemsOf(withCategories(files)).filter((p) => p.includes("category"));
-const plain = (kind, category) =>
-  definition(`defaultChannels: ["email"],`).replace('kind: "transactional",\n  category: "account",', `kind: "${kind}",${category ? `\n  category: ${category},` : ""}`);
-
-test("category: 受け口の鍵か、取引だけ省ける。上書きも照らす", () => {
-  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("transactional") }), []);
-  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("marketing", '"marketing"') }), []);
-  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("transactional", '"activity"') }), []);
-  const unknown = categoryProblemsOf({ [`${M}a.ts`]: plain("transactional", '"account"') });
-  assert.equal(unknown.length, 1, unknown.join(" / "));
-  assert.match(unknown[0], /category "account" は categories の受け口に無い\(activity \/ marketing\)/);
-  const missing = categoryProblemsOf({ [`${M}a.ts`]: plain("activity") });
-  assert.equal(missing.length, 1, missing.join(" / "));
-  assert.match(missing[0], /activity の連絡は category/);
-  const notLiteral = categoryProblemsOf({ [`${M}a.ts`]: plain("marketing", "CATEGORY") });
-  assert.match(notLiteral[0], /category はリテラル/);
-  const overridden = categoryProblemsOf({ [`${M}a.ts`]: plain("transactional"), [`${M}a.override.ts`]: override('category: "news"') });
-  assert.equal(overridden.length, 1, overridden.join(" / "));
-  assert.ok(overridden[0].startsWith(`${M}a.override.ts`), overridden[0]);
-  assert.deepEqual(categoryProblemsOf({ [`${M}a.ts`]: plain("transactional"), [`${M}a.override.ts`]: override('category: "marketing"') }), []);
 });

@@ -11,14 +11,15 @@ import { z } from "zod";
 import { defineMessage, secretVar, type MessageEnricher, type MessageRegistry } from "@/lib/messaging";
 
 import { resolveDefinition } from "./definition";
+import { TEST_CATEGORIES } from "./testHelpers";
+
+const categories = TEST_CATEGORIES;
 
 const definition = defineMessage({
   key: "shop.notice",
-  kind: "transactional",
   category: "shop",
   vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
   adminEditable: ["email.subject", "email.heading", "email.paragraphs", "inApp.body"],
-  defaultChannels: ["email", "inApp"],
   content: {
     email: { subject: "上流の件名", heading: "上流の見出し", paragraphs: ["一", "二"], cta: { label: "開く", url: "{{token}}" } },
     inApp: { title: "題", body: "上流の本文" },
@@ -64,7 +65,7 @@ test("門が開: 管理画面 > fork の override > 上流、1 回だけ読む",
     { fieldPath: "email.subject", value: "管理の件名 {{displayName}}" },
     { fieldPath: "inApp.body", value: "管理の本文 {{name}}" },
   ]);
-  const resolved = await resolveDefinition(definition, registry, {}, enrichers, adminOverrides);
+  const resolved = await resolveDefinition(definition, { registry: registry, channels: {}, enrichers: enrichers, categories, adminOverrides: adminOverrides });
   assert.equal(emailOf(resolved).subject, "管理の件名 {{displayName}}");
   assert.equal(emailOf(resolved).heading, "fork の見出し");
   assert.deepEqual(emailOf(resolved).paragraphs, ["一", "二"]);
@@ -74,23 +75,21 @@ test("門が開: 管理画面 > fork の override > 上流、1 回だけ読む",
 
 test("門が閉・読み口なし: DB の値を使わない(読まない)", async () => {
   const closed = source(false, [{ fieldPath: "email.subject", value: "管理の件名" }]);
-  const resolved = await resolveDefinition(definition, registry, {}, enrichers, closed.adminOverrides);
+  const resolved = await resolveDefinition(definition, { registry: registry, channels: {}, enrichers: enrichers, categories, adminOverrides: closed.adminOverrides });
   assert.equal(emailOf(resolved).subject, "fork の件名");
   assert.deepEqual(closed.loads, []);
-  assert.equal(emailOf(await resolveDefinition(definition, registry, {}, enrichers)).subject, "fork の件名");
+  assert.equal(emailOf(await resolveDefinition(definition, { registry: registry, channels: {}, enrichers: enrichers, categories })).subject, "fork の件名");
 });
 
 test("adminEditable の無い連絡は読まない", async () => {
   const plain = defineMessage({
     key: "shop.plain",
-    kind: "transactional",
-    category: "shop",
+    category: "shopEmail",
     vars: z.object({}),
-    defaultChannels: ["email"],
     content: { email: { subject: "件名" } },
   });
   const { loads, adminOverrides } = source(true, [{ fieldPath: "email.subject", value: "x" }]);
-  const resolved = await resolveDefinition(plain, {} as MessageRegistry, {}, {}, adminOverrides);
+  const resolved = await resolveDefinition(plain, { registry: {} as MessageRegistry, channels: {}, enrichers: {}, categories, adminOverrides: adminOverrides });
   assert.equal(emailOf(resolved).subject, "件名");
   assert.deepEqual(loads, []);
 });
@@ -108,7 +107,7 @@ test("通らない欄はその欄だけコードの値(空で送らない)", asy
       { fieldPath: "inApp.body", value: "{{unknownKey}}" },
       { fieldPath: "email.cta", value: { label: "x", url: "https://evil.test" } },
     ]);
-    const resolved = await resolveDefinition(definition, registry, {}, enrichers, adminOverrides);
+    const resolved = await resolveDefinition(definition, { registry: registry, channels: {}, enrichers: enrichers, categories, adminOverrides: adminOverrides });
     assert.equal(emailOf(resolved).subject, "fork の件名");
     assert.equal(emailOf(resolved).heading, "fork の見出し");
     assert.deepEqual(emailOf(resolved).paragraphs, ["一", "二"]);

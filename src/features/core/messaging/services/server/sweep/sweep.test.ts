@@ -24,10 +24,8 @@ const fields = { test: z.object({ title: z.string(), body: z.string().optional()
 const defineTestMessage = createDefineMessage<typeof fields>();
 const notice = defineTestMessage({
   key: "shop.notice",
-  kind: "marketing",
   category: "news",
   vars: z.object({ item: z.string() }),
-  defaultChannels: ["test"],
   content: { test: { title: "{{item}}", body: "{{recipientName}} {{item}}" } },
 });
 const registry: MessageRegistry = {
@@ -322,10 +320,8 @@ const defineWithInApp = createDefineMessage<typeof inAppFields>();
 function setupInApp(inAppBody: string) {
   const news = defineWithInApp({
     key: "shop.news",
-    kind: "marketing",
-    category: "news",
+    category: "newsInApp",
     vars: z.object({ item: z.string() }),
-    defaultChannels: ["test", "inApp"],
     content: {
       test: { title: "{{item}}", body: "{{recipientName}} {{item}}" },
       inApp: { title: "{{serviceName}} {{item}}", body: inAppBody, link: "/news" },

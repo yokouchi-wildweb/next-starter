@@ -7,7 +7,7 @@
 // - 宛先の有無: 経路の自前の引き方(resolveAddresses)か、無ければ端末の帳簿の有効な行(送る側の展開と同じ)
 // - 変える: 1 マスか全体('*' '*')の行を足す(source "user")/ 消す(そのマスの行だけ)。知らない種類・有効でない経路は 400
 
-import type { ChannelAddress, MessageCategory, MessageChannel } from "@/lib/messaging";
+import { kindTraits, type ChannelAddress, type MessageCategory, type MessageChannel } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import { MESSAGE_ALL } from "../../../entities/schema";
@@ -54,8 +54,8 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       const channel = activeChannel(deps.channels, key);
       return channel ? [channel] : [];
     });
-  // 種類の受け口の項目は marketing・activity だけ(型で transactional を持たない)
-  const listedCategories = () => Object.values(deps.categories);
+  // 表に出す種類 = 利用者が止められる種別(性質 userStoppable: activity・marketing)の種類だけ
+  const listedCategories = () => Object.values(deps.categories).filter((category) => kindTraits(category.kind)?.userStoppable);
 
   async function hasAddress(channel: MessageChannel, userId: string): Promise<boolean> {
     const found = channel.resolveAddresses
@@ -82,7 +82,8 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       label: category.label,
       description: category.description ?? null,
       kind: category.kind,
-      cells: channels.map((channel) => {
+      // 列は開いている経路 ∩ 種類の経路(D86 の D59 の直し)
+      cells: channels.filter((channel) => category.channels.includes(channel.key)).map((channel) => {
         const via = preferenceVia(rows, category.key, channel.key);
         return { channel: channel.key, optedOut: via !== null, via };
       }),

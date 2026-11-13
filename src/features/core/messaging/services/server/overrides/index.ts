@@ -35,7 +35,7 @@ const service = createOverrideService({
       const { message } = await entry.definition();
       if (!message) return null;
       // 管理画面の値は重ねない(コードの値 = 上流 + fork の override)
-      const resolved = await resolveDefinition(message, messageRegistry, channels, enrichers, undefined, Object.keys(categories));
+      const resolved = await resolveDefinition(message, { registry: messageRegistry, channels, enrichers, categories });
       return {
         resolved,
         check: { channels: channelFieldSchemas(channels), variableKeys: enricherKeysFor(messageKey, enrichers) },

@@ -43,8 +43,8 @@ export const sendMessageDeps: MessageSendDeps = {
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
   // 管理画面の文言(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む)
   templates: drizzleMessageTemplateSource,
-  // 定義の category は受け口の鍵か(取引は省ける)を送る時に照らす
-  categories: Object.keys(categories),
+  // 種類(fork の override を重ねた後): 定義の category を照らし、種別と経路を引く
+  categories,
   // 会話の間引き(throttle のある連絡だけ、鍵ごとの advisory lock)
   throttle: drizzleMessageThrottleStore,
   // 内部の事件は登録した購読が聞いている種類だけ書く

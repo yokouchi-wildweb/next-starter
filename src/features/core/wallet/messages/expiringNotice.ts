@@ -3,7 +3,7 @@
 // 失効の予告(残高の有効期限が近い)。送り手: services/server/notification/sendPreExpiryNotices.ts(cron wallet-expiration-notice)
 // 送る段(何日前)と経路は wallet の config(expiration[<通貨>].notice.preExpiry[].channels)、文面はここ。
 // 段ごとに文面を変えたいときは override で {{daysBefore}} を使う(段ごとの文面の設定は無い)。
-// 取引の連絡(好みを見ない)。二重送信の鍵: wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>
+// 種類 walletExpiring(種別 activity = 利用者が止められる失効の予告、D67。経路は種類から)。二重送信の鍵: wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>
 // メールの描き方: views/expiringNotice.tsx(段落の並びは parts/NoticeMailView.tsx)
 
 import { z } from "zod";
@@ -12,7 +12,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "wallet.expiringNotice",
-  kind: "transactional",
+  category: "walletExpiring",
   vars: z.object({
     /** 通貨名(currency の label) */
     currencyLabel: z.string(),
@@ -29,7 +29,6 @@ export const message = defineMessage({
   }),
   // 管理画面で直せる文言の欄(門 messagingOverrides。URL を持つ cta・preheader・footer はコードだけ)
   adminEditable: ["email.subject", "email.paragraphs", "inApp.title", "inApp.body"],
-  defaultChannels: ["email", "inApp"],
   content: {
     email: {
       subject: "{{currencyLabel}}の有効期限が近づいています",

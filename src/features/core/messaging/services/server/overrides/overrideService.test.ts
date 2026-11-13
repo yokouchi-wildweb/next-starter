@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 
 import { z } from "zod";
 
-import { applyMessageOverride, defineMessage, secretVar } from "@/lib/messaging";
+import { resolveMessageDefinition, defineMessage, secretVar } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
@@ -19,27 +19,27 @@ import type { MessageOverrideRecord } from "./types";
 
 const ADMIN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
-const editable = applyMessageOverride(
+const editable = resolveMessageDefinition(
   defineMessage({
     key: "shop.notice",
-    kind: "transactional",
     category: "shop",
     vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
     adminEditable: ["email.subject", "email.paragraphs"],
-    defaultChannels: ["email"],
     content: { email: { subject: "{{name}} 様へ", paragraphs: ["一", "二"], cta: { label: "開く", url: "{{token}}" } } },
   }),
+  undefined,
+  { kind: "transactional", channels: ["email"] },
 ) as unknown as AnyResolvedMessageDefinition;
 
-const plain = applyMessageOverride(
+const plain = resolveMessageDefinition(
   defineMessage({
     key: "shop.plain",
-    kind: "transactional",
     category: "shop",
     vars: z.object({}),
-    defaultChannels: ["email"],
     content: { email: { subject: "件名" } },
   }),
+  undefined,
+  { kind: "transactional", channels: ["email"] },
 ) as unknown as AnyResolvedMessageDefinition;
 
 function setup(options: { actorId?: string | null; role?: string; rows?: MessageOverrideRecord[] } = {}) {

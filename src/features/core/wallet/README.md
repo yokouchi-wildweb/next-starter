@@ -842,7 +842,7 @@ UI レシピ例（ダウンストリームで実装）:
 #### 設定(上書き `src/config/features/wallet.config.ts` の `expiration`。既定は `src/features/core/wallet/config.ts`)
 
 ```typescript
-// config は段と経路だけ。文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)
+// config は段だけ。経路は連絡の種類(walletExpiring・walletExpired)、文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)
 expiration: {
   regular_coin: {
     expirationDays: 180,
@@ -850,22 +850,25 @@ expiration: {
     notice: {
       // 失効予告: 段の配列。空配列 = 予告なし
       preExpiry: [
-        { daysBefore: 30, channels: ["email"] },
+        { daysBefore: 30 },
+        { daysBefore: 7, messageKey: "shop.pointExpiringSoon" }, // 段ごとに経路を変えるなら自分の種類の連絡へ向ける
       ],
       // 失効時の本通知: null = 本通知なし
-      expired: { channels: ["inApp"] },
+      expired: {},
     },
   },
 },
 ```
 
 - `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
-- `channels`: `"email"` / `"inApp"` のどちらか、または両方。段ごと・通知ごとに選べる
+- 経路は連絡の種類が決める(D86): 予告 = 種類 `walletExpiring`(種別 activity = 利用者が好みで止められる、D67。email・inApp)、本通知 = 種類 `walletExpired`(取引、email・inApp)。全部の通貨・段で変えるなら種類の上書き `src/features/core/messaging/categories/<種類>.override.ts` の `channels`
+- `messageKey`(段・本通知ごとに任意): 送る連絡の鍵(省略 = 上流の `wallet.expiringNotice` / `wallet.expiredNotice`)。通貨・段ごとに経路を変えたい fork は、その経路の種類と、同じ vars を受ける連絡を自分のドメインに足して向ける(生成の一覧に無い鍵は cron が止まる)。前の設定の `channels` は無くなった(残っていると cron が止まって知らせる)
+- メールの無い利用者: メールの行が宛先なし(no_address)になり、ほかの経路で届く
 - **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。メールの件名・本文とお知らせの題・本文を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
   - 差し込む名前: 共通 `{{currencyLabel}}`・`{{amount}}`・`{{displayName}}`（宛名、名前が無ければ「お客様」）・`{{serviceNameShort}}` / 予告 `{{expiresOn}}`・`{{daysBefore}}` / 本通知 `{{expiredOn}}`・`{{balanceAfter}}`
   - メールの見た目: `messages/views/<名前>.tsx`（1 行スイッチ → `.default.tsx`、共通の部品 `messages/parts/NoticeMailView.tsx`）。段落の位置の約束: `paragraphs` [0] 見出しの札（「… からのお知らせ」、ロゴの下）→ [1] 宛名（「… 様」）→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。override で文言を直すときもこの並びを保つ（段落が欠けても描き方は落ちない）
   - お知らせ（inApp）は受け取り箱（`message_inbox_items`）に入る
-- 送り方: 送る口 `messagingService.sendMessage`（取引の連絡、受信者の好みでは止まらない）。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（回の表と鍵の移し先の表の両方）
+- 送り方: 送る口 `messagingService.sendMessage`(経路を渡さない。予告は種別 activity なので受信者の好みで止まる、本通知は取引で止まらない)。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（回の表と鍵の移し先の表の両方）
 - 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
 - スケジュール登録は不要: `wallet-expiration-notice` は配線済みで、`notice` を設定した時点から毎時動く（Vercel Hobby では 1 日 1 回）。

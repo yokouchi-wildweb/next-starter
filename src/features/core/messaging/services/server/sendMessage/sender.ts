@@ -9,6 +9,7 @@
 // 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の audience に置く)。cron の activateScheduled が時刻に processing にして展開する
 // 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
 // テンプレート(sendTemplate): 今の公開版から定義を組み、回に template_id + template_version を固定する(cron も同じ版から組み直す)
+// 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
 
 import { DomainError } from "@/lib/errors";
 
@@ -174,7 +175,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     checkSchedule(input.scheduledAt);
     const resolved =
       options.resolved ??
-      (await resolveDefinition(definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides, deps.categories));
+      (await resolveDefinition(definition, deps));
     if (!resolved.enabled) return null;
     const channels = resolveChannels(resolved, input.channels, deps.channels);
     const vars = parseVars(resolved, input.vars);
@@ -512,19 +513,20 @@ export function createMessageSender(deps: MessageSendDeps) {
      * @throws DomainError 送る時と同じ検査(vars・経路・テンプレートの状態)
      */
     async previewMessage(
-      source: { definition: AnyMessageDefinition } | { templateId: string; kind?: "marketing" | "transactional" },
+      source: { definition: AnyMessageDefinition } | { templateId: string; category?: string },
       input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
     ): Promise<MessagePreview> {
       let resolved: AnyResolvedMessageDefinition;
       let template: { id: string; version: number } | null = null;
       if ("definition" in source) {
-        resolved = await resolveDefinition(source.definition, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides, deps.categories);
+        resolved = await resolveDefinition(source.definition, deps);
       } else {
         const version = await currentTemplateVersion(source.templateId);
-        resolved = resolveTemplateDefinition(version, source.kind ?? "marketing", deps.channels, deps.enrichers);
+        resolved = resolveTemplateDefinition(version, deps, { category: source.category });
         template = { id: version.templateId, version: version.version };
       }
-      const channels = resolveChannels(resolved, input.channels ?? (template ? resolved.defaultChannels : undefined), deps.channels);
+      // 経路 = 種類の経路(テンプレートは ∩ 版の経路)、input.channels はその中の絞り
+      const channels = resolveChannels(resolved, input.channels, deps.channels);
       const vars = parseVars(resolved, input.vars);
       const [user] = input.userId ? await deps.store.findUsers([input.userId]) : [];
       const values = await buildRecipientValues({ deps, resolved, vars, recipientVars: undefined, user: user ?? null });
@@ -575,10 +577,10 @@ export function createMessageSender(deps: MessageSendDeps) {
      * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開 / (400) 値・受信者ごとの変数の既定値
      */
     async sendTemplate(input: SendTemplateInput): Promise<SendMessageResult> {
-      const { templateId, kind, ...rest } = input;
+      const { templateId, category, ...rest } = input;
       const version = await currentTemplateVersion(templateId);
-      const resolved = resolveTemplateDefinition(version, kind ?? "marketing", deps.channels, deps.enrichers);
-      return sendToMany(templateDefinitionOf(version, kind ?? "marketing"), { ...rest, channels: rest.channels ?? version.channels } as SendMessageToManyInput, {
+      const resolved = resolveTemplateDefinition(version, deps, { category });
+      return sendToMany(templateDefinitionOf(version, resolved.category), rest as SendMessageToManyInput, {
         resolved,
         template: { id: version.templateId, version: version.version },
       });

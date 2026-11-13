@@ -34,12 +34,10 @@ const definitionOf = (extra: Record<string, unknown> = {}) =>
   applyMessageOverride(
     defineMessage({
       key: "shop.notice",
-      kind: "marketing",
       category: "marketing",
       vars: z.object({ item: z.string(), ...(extra.secret ? { token: secretVar(z.string()) } : {}) }),
       ...(extra.required ? { required: true } : {}),
       record: (extra.record as "meta" | "vars" | undefined) ?? "vars",
-      defaultChannels: ["email"],
       content: { email: { subject: "{{item}}" } },
     }),
   ) as unknown as AnyResolvedMessageDefinition;

@@ -19,6 +19,7 @@ import { formatAmount } from "./adjustmentNotificationFormat";
 import {
   ExpirationNoticeStopError,
   createExpirationNoticeCounts,
+  noticeMessageOf,
   sendExpirationNoticeJobs,
   type ExpirationNoticeCounts,
   type ExpirationNoticeJob,
@@ -76,6 +77,8 @@ export async function sendExpiredNotices(options: {
     if (createdUntil.getTime() <= createdFrom.getTime()) continue;
 
     const { label } = walletConfig.currency[walletType];
+    // 本通知の連絡(省略 = 上流 wallet.expiredNotice。経路はその連絡の種類が決める)
+    const message = await noticeMessageOf(notice.messageKey, expiredNoticeMessage);
 
     try {
       const result = await runBudgetedBatches<ExpirationNoticeJob, PageCursor>({
@@ -94,8 +97,7 @@ export async function sendExpiredNotices(options: {
             items: page.items.map((item) => ({
               userId: item.userId,
               idempotencyKey: `wallet-expired:${item.historyId}`,
-              channels: notice.channels,
-              message: expiredNoticeMessage,
+              message,
               vars: {
                 currencyLabel: label,
                 amount: formatAmount(item.expiredAmount, walletType),

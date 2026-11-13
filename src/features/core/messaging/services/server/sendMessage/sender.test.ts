@@ -25,10 +25,8 @@ const defineTestMessage = createDefineMessage<typeof fields>();
 
 const notice = defineTestMessage({
   key: "shop.notice",
-  kind: "marketing",
   category: "news",
   vars: z.object({ item: z.string() }),
-  defaultChannels: ["test"],
   content: { test: { title: "{{serviceName}}: {{item}}", body: "{{recipientName}} 様 {{item}}" } },
 });
 
@@ -159,7 +157,7 @@ test("d2: 単発で見つからない利用者は 404", async () => {
 
 test("d2: 経路の項目が無い経路は channel_off の行", async () => {
   const { sender } = setup();
-  const twoChannels = defineTestMessage({ ...notice, defaultChannels: ["test"] });
+  const twoChannels = defineTestMessage({ ...notice });
   const result = await sender.sendMessageToMany(
     { ...twoChannels, content: { ...twoChannels.content, ghost: { title: "x" } } } as unknown as typeof notice,
     { recipients: [{ userId: "u2" }], vars: { item: "x" }, channels: ["test", "ghost"] },
@@ -217,11 +215,9 @@ test("d4: record meta は vars も描画結果も残さない、full は受信�
 test("d4: 秘密を差し込む連絡は record full でも描いた本文を残さず、vars の写しから秘密の鍵を落とす", async () => {
   const secret = defineTestMessage({
     key: "auth.reset",
-    kind: "transactional",
     category: "account",
     record: "full",
     vars: z.object({ resetUrl: secretVar(z.string()), item: z.string() }),
-    defaultChannels: ["test"],
     content: { test: { title: "再設定 {{item}} {{resetUrl}}", body: "{{resetUrl}}" } },
   });
   const failing = createTestChannel("test", (target) => ({
@@ -242,7 +238,7 @@ test("d4: 秘密を差し込む連絡は record full でも描いた本文を残
 });
 
 test("d4: required は vars の写しも本文も残さない", async () => {
-  const required = defineTestMessage({ ...notice, key: "auth.verify", kind: "transactional", required: true });
+  const required = defineTestMessage({ ...notice, key: "auth.verify", category: "accountEmail", required: true });
   // required は email を外せないので、テストの経路を email の鍵で置く
   const email = createTestChannel("email");
   const store = createMemoryStore();
@@ -251,7 +247,6 @@ test("d4: required は vars の写しも本文も残さない", async () => {
   const deps = createDeps({ store, channels: { email: { ...email, fields: z.object({ subject: z.string(), paragraphs: z.array(z.string()).optional() }).strict() } } });
   const requiredEmail = {
     ...required,
-    defaultChannels: ["email"],
     content: { email: { subject: "確認 {{item}}", paragraphs: ["{{item}} です"] } },
   } as unknown as typeof notice;
   await createMessageSender(deps).sendMessage(requiredEmail, { recipient: { userId: "u2" }, vars: { item: "靴" } });
@@ -481,7 +476,7 @@ test("配信停止(D35): 好みに従う連絡の宛先に category と List-Uns
   });
 
   const tx = setup();
-  await tx.sender.sendMessage({ ...notice, kind: "transactional" }, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  await tx.sender.sendMessage({ ...notice, category: "account" }, { recipient: { userId: "u2" }, vars: { item: "x" } });
   assert.equal(tx.channel.calls[0][0].category, undefined);
   assert.equal(tx.channel.calls[0][0].headers, undefined);
 });
@@ -556,4 +551,56 @@ test("d4: 自前の宛先の引き方を持つ経路は帳簿に記録しない�
     console.warn = warn;
   }
   assert.equal(broken.store.deliveries[0].status, "sent");
+});
+
+test("経路は種類から(D86): channels はその回の絞りだけ、種類の外と空は 400、回に使った経路が残る", async () => {
+  const fields2 = {
+    test: z.object({ title: z.string(), body: z.string().optional() }).strict(),
+    inApp: z.object({ title: z.string(), body: z.string() }).strict(),
+  };
+  const define2 = createDefineMessage<typeof fields2>();
+  const both = define2({
+    key: "shop.both",
+    category: "newsInApp",
+    vars: z.object({ item: z.string() }),
+    content: { test: { title: "{{item}}" }, inApp: { title: "{{item}}", body: "{{item}}" } },
+  });
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: null });
+  store.endpoints.push({ userId: "u2", channel: "test", address: "addr-u2" });
+  const inApp = createTestChannel("inApp");
+  inApp.fields = fields2.inApp;
+  inApp.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));
+  const deps = createDeps({ store, channels: { test: createTestChannel(), inApp } });
+  const sender = createMessageSender(deps);
+  // 省略 = 種類の経路の全部
+  await sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "a" } });
+  assert.deepEqual(store.dispatches[0].channels, ["test", "inApp"]);
+  // 絞る(その回に使った経路だけが回に残る)
+  await sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "b" }, channels: ["inApp"] });
+  assert.deepEqual(store.dispatches[1].channels, ["inApp"]);
+  // 種類の外は足せない・空は拒む
+  await assertDomainError(sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "c" }, channels: ["test", "line"] }), 400);
+  await assertDomainError(sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "d" }, channels: [] }), 400);
+  assert.equal(store.dispatches.length, 2);
+});
+
+test("種別の性質(D80): 記録の既定は種別から、security は苦情の停止を越えて届き好みを見ない", async () => {
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });
+  // 種類 accountEmail は functional → 記録の既定 meta(vars を残さない)
+  const fields3 = { email: z.object({ subject: z.string() }).strict() };
+  const define3 = createDefineMessage<typeof fields3>();
+  const alert = define3({ key: "auth.alert", category: "accountEmail", vars: z.object({ item: z.string() }), content: { email: { subject: "{{item}}" } } });
+  const email = createTestChannel("email");
+  const deps = createDeps({ store, channels: { email: { ...email, fields: fields3.email } } });
+  store.endpoints.push({ userId: "u2", channel: "email", address: "u2@example.test" });
+  store.suppressions.push({ channel: "email", addressHash: hashAddress("u2@example.test"), reason: "complaint", scope: "*" });
+  store.preferences.push({ userId: "u2", category: "*", channel: "*" });
+  await createMessageSender(deps).sendMessage(alert, { recipient: { userId: "u2" }, vars: { item: "x" } });
+  const dispatch = store.dispatches.at(-1)!;
+  assert.equal(dispatch.kind, "functional");
+  assert.equal(dispatch.record, "meta");
+  assert.equal(dispatch.vars, null);
+  assert.equal(email.calls.flat().length, 1);
 });

@@ -15,6 +15,7 @@ import type { EmailFields } from "@/lib/messaging";
 import { enricher as displayNameEnricher } from "../enrichers/displayName";
 import { message as adminMessage } from "./adminMessage";
 import { EmailView as AdminMessageView } from "./views/adminMessage";
+import { categories } from "@/features/core/messaging/extensions/categories";
 
 type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
 
@@ -78,10 +79,11 @@ test("お知らせ: 題と本文は書いた値。宛名は名前が無ければ
   assert.deepEqual(displayNameEnricher.messages, ["messaging.adminMessage"]);
 });
 
-test("種別の既定は marketing(好みに従う)、経路はメールとお知らせ", () => {
-  assert.equal(adminMessage.kind, "marketing");
+test("種類 marketing(好みに従う、表示名 キャンペーン情報)、経路はメールとお知らせ", () => {
   assert.equal(adminMessage.category, "marketing");
-  assert.deepEqual(adminMessage.defaultChannels, ["email", "inApp"]);
+  assert.equal(categories.marketing.kind, "marketing");
+  assert.equal(categories.marketing.label, "キャンペーン情報");
+  assert.deepEqual(categories.marketing.channels, ["email", "inApp"]);
 });
 
 test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {

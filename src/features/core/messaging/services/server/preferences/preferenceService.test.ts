@@ -24,8 +24,10 @@ function channel(key: string, extra: Partial<MessageChannel> = {}): MessageChann
 }
 
 const categories: Record<string, MessageCategory> = {
-  marketing: { key: "marketing", label: "お知らせ・キャンペーン", kind: "marketing" },
-  activity: { key: "activity", label: "アクティビティ", description: "反応の通知", kind: "activity" },
+  marketing: { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp", "push", "sms", "line"] },
+  activity: { key: "activity", label: "アクティビティ", description: "反応の通知", kind: "activity", channels: ["email", "inApp"] },
+  // 利用者が止められない種別の種類は好みの表に出ない
+  registrationComplete: { key: "registrationComplete", label: "会員登録の完了", kind: "transactional", channels: ["email"] },
 };
 
 function setup(options: { rows?: MessagePreferenceRow[]; email?: boolean; openHrefs?: string[] } = {}) {
@@ -70,11 +72,13 @@ test("表: 種類 × 有効な経路、宛先の有無と connectHref(門で閉�
     { key: "sms", label: "SMS", hasAddress: false, connectHref: null },
   ]);
   assert.deepEqual(dto.categories.map((c) => [c.key, c.label, c.description, c.kind]), [
-    ["marketing", "お知らせ・キャンペーン", null, "marketing"],
+    ["marketing", "キャンペーン情報", null, "marketing"],
     ["activity", "アクティビティ", "反応の通知", "activity"],
   ]);
   assert.ok(dto.categories.every((c) => c.cells.every((cell) => !cell.optedOut && cell.via === null)));
   assert.deepEqual(dto.categories[0].cells.map((cell) => cell.channel), ["email", "inApp", "push", "sms"]);
+  // マス = 開いている経路 ∩ 種類の経路(activity は email・inApp だけ)
+  assert.deepEqual(dto.categories[1].cells.map((cell) => cell.channel), ["email", "inApp"]);
 });
 
 test("1 マスを止めて再開する(source user)、全体の行は allOptedOut と via all", async () => {

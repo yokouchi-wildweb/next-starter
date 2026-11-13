@@ -4,6 +4,7 @@
 // - テンプレートの回(template_version がある): 固定した版から組み直す(最新を引き直さない)。回の vars をもう一度版の zod に通す
 //   (D41 の送る時の再検査)。版が無い・テンプレートが消えた・値が合わない → 誤りの符号を返す(送らずに止める)
 // - それ以外: 生成の一覧の定義(message_key)に上書きを重ねる(resolveDefinition)
+// - 種類は回に残した種類(送った時の分類のまま、D81。管理の送信の仮の種類 operatorDirect もこれで保たれる)
 
 import type { MessageDispatch } from "../../../entities/model";
 import { parseVars } from "./context";
@@ -23,7 +24,7 @@ export type DispatchDefinitionError =
  */
 export async function definitionOfDispatch(
   deps: MessageSendDeps,
-  dispatch: Pick<MessageDispatch, "message_key" | "template_id" | "template_version" | "kind" | "vars">,
+  dispatch: Pick<MessageDispatch, "message_key" | "template_id" | "template_version" | "category" | "vars">,
 ): Promise<{ resolved: AnyResolvedMessageDefinition } | { error: DispatchDefinitionError }> {
   if (dispatch.template_version !== null && dispatch.template_version !== undefined) {
     if (!dispatch.template_id || !deps.templates) return { error: "template_missing" };
@@ -31,7 +32,7 @@ export async function definitionOfDispatch(
     if (!version) return { error: "template_missing" };
     let resolved: AnyResolvedMessageDefinition;
     try {
-      resolved = resolveTemplateDefinition(version, dispatch.kind ?? "marketing", deps.channels, deps.enrichers);
+      resolved = resolveTemplateDefinition(version, deps, { category: dispatch.category ?? undefined });
     } catch {
       return { error: "template_invalid" };
     }
@@ -45,5 +46,7 @@ export async function definitionOfDispatch(
   const entry = dispatch.message_key ? deps.registry[dispatch.message_key] : undefined;
   if (!entry) return { error: "definition_missing" };
   const { message } = await entry.definition();
-  return { resolved: await resolveDefinition(message, deps.registry, deps.channels, deps.enrichers, deps.adminOverrides, deps.categories) };
+  // 回の種類が今の受け口に無ければ(fork が種類を消した)定義の種類で組み直す
+  const category = dispatch.category && deps.categories[dispatch.category] ? dispatch.category : undefined;
+  return { resolved: await resolveDefinition(message, deps, category ? { category } : {}) };
 }

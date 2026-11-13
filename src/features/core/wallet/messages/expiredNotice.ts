@@ -2,7 +2,7 @@
 //
 // 失効の本通知(有効期限切れで残高を没収した後)。送り手: services/server/notification/sendExpiredNotices.ts(cron wallet-expiration-notice)
 // 経路は wallet の config(expiration[<通貨>].notice.expired.channels)、文面はここ。
-// 取引の連絡(好みを見ない)。二重送信の鍵: wallet-expired:<履歴の id>
+// 種類 walletExpired(種別 transactional)。二重送信の鍵: wallet-expired:<履歴の id>
 // メールの描き方: views/expiredNotice.tsx(段落の並びは parts/NoticeMailView.tsx)
 
 import { z } from "zod";
@@ -11,7 +11,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "wallet.expiredNotice",
-  kind: "transactional",
+  category: "walletExpired",
   vars: z.object({
     /** 通貨名(currency の label) */
     currencyLabel: z.string(),
@@ -28,7 +28,6 @@ export const message = defineMessage({
   }),
   // 管理画面で直せる文言の欄(門 messagingOverrides。URL を持つ cta・preheader・footer はコードだけ)
   adminEditable: ["email.subject", "email.paragraphs", "inApp.title", "inApp.body"],
-  defaultChannels: ["email", "inApp"],
   content: {
     email: {
       subject: "{{currencyLabel}}が失効しました",

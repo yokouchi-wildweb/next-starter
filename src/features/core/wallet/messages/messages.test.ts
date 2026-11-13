@@ -20,6 +20,7 @@ import { message as expiredNotice } from "./expiredNotice";
 import { message as expiringNotice } from "./expiringNotice";
 import { EmailView as ExpiredNoticeView } from "./views/expiredNotice";
 import { EmailView as ExpiringNoticeView } from "./views/expiringNotice";
+import { categories } from "@/features/core/messaging/extensions/categories";
 
 type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
 
@@ -114,14 +115,19 @@ test("残高の変更: 題と本文が前の組み立てと同じ(理由のあ�
   assert.equal(render({ ...base, changeMethod: "OTHER" }).body, `操作: OTHER\n金額: 1,000 ${unit}\n残高: 1,000 ${unit}`);
 });
 
-test("取引の連絡(好みを見ない)。失効の知らせはメール・お知らせ、残高の変更はお知らせだけ", () => {
-  for (const definition of [expiringNotice, expiredNotice, adjustmentNotice]) {
-    assert.equal(definition.kind, "transactional", definition.key);
-    assert.equal(definition.required, undefined);
-  }
-  assert.deepEqual(expiringNotice.defaultChannels, ["email", "inApp"]);
-  assert.deepEqual(expiredNotice.defaultChannels, ["email", "inApp"]);
-  assert.deepEqual(adjustmentNotice.defaultChannels, ["inApp"]);
+test("種類: 失効の予告は止められる activity(D67)、失効と残高の変更は取引。経路は種類から", () => {
+  for (const definition of [expiringNotice, expiredNotice, adjustmentNotice]) assert.equal(definition.required, undefined);
+  assert.deepEqual(
+    [expiringNotice, expiredNotice, adjustmentNotice].map((definition) => {
+      const category = categories[definition.category]!;
+      return [definition.category, category.kind, [...category.channels]];
+    }),
+    [
+      ["walletExpiring", "activity", ["email", "inApp"]],
+      ["walletExpired", "transactional", ["email", "inApp"]],
+      ["walletAdjusted", "transactional", ["inApp"]],
+    ],
+  );
 });
 
 test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {

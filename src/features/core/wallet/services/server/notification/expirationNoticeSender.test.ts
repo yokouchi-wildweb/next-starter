@@ -18,6 +18,11 @@ mock.module("@/lib/drizzle", {
 });
 mock.module("@/features/core/user/entities/drizzle", { namedExports: { UserTable: {} } });
 mock.module("@/business", { namedExports: { business: { serviceNameShort: "short" } } });
+// config の messageKey が指す fork の連絡(生成の一覧)
+const forkMessage = { key: "shop.pointExpiring" };
+mock.module("@/registry/messageRegistry", {
+  namedExports: { messageRegistry: { "shop.pointExpiring": { key: "shop.pointExpiring", definition: async () => ({ message: forkMessage }) } } },
+});
 mock.module("@/features/core/messaging/services/server/messagingService", {
   namedExports: {
     messagingService: {
@@ -44,10 +49,9 @@ before(async () => {
 });
 
 const message = { key: "wallet.expiringNotice" } as never;
-const job = (userId: string, channels: ("email" | "inApp")[] = ["email", "inApp"]) => ({
+const job = (userId: string) => ({
   userId,
   idempotencyKey: `k-${userId}`,
-  channels,
   message,
   vars: { currencyLabel: "コイン" },
   source: "wallet.expiration.preNotice" as never,
@@ -61,7 +65,7 @@ test("送信済みを除き、絞り込んでから送る口へ渡す", async ()
   users = [user("u1"), user("u2", { name: null, email: null }), user("u3", { isDemo: true }), user("u4", { status: "banned" }), user("u5", { deletedAt: new Date() })];
   const counts = sender.createExpirationNoticeCounts();
   await sender.sendExpirationNoticeJobs(
-    [job("u0"), job("u1"), job("u2"), job("u3"), job("u4"), job("u5"), job("u6"), job("u2b", ["email"])],
+    [job("u0"), job("u1"), job("u2"), job("u3"), job("u4"), job("u5"), job("u6"), job("u2b")],
     counts,
     { consecutiveFailures: 0 },
     future(),
@@ -69,16 +73,15 @@ test("送信済みを除き、絞り込んでから送る口へ渡す", async ()
   assert.deepEqual(calls.map((c) => c.input.recipient), [{ userId: "u1" }, { userId: "u2" }]);
   assert.deepEqual(calls[0].input, {
     recipient: { userId: "u1" },
-    channels: ["email", "inApp"],
     vars: { currencyLabel: "コイン", displayName: "名u1", serviceNameShort: "short" },
     source: "wallet.expiration.preNotice",
     idempotencyKey: "k-u1",
   });
-  // メールの無い人はメールを外し、名前が無ければ「お客様」
-  assert.deepEqual(calls[1].input.channels, ["inApp"]);
+  // 経路は渡さない(種類が決める。メールの無い人のメールの行は送る口が no_address にする)、名前が無ければ「お客様」
+  assert.equal("channels" in calls[1].input, false);
   assert.equal((calls[1].input.vars as Record<string, string>).displayName, "お客様");
   assert.equal(calls[0].message, message);
-  assert.deepEqual(counts, { sent: 2, alreadySent: 1, skippedStatus: 1, skippedDemo: 1, skippedNoChannel: 0, skippedUserMissing: 3, failed: 0 });
+  assert.deepEqual(counts, { sent: 2, alreadySent: 1, skippedStatus: 1, skippedDemo: 1, skippedUserMissing: 3, failed: 0 });
 });
 
 test("queued は sent、409 は alreadySent、送れなかった・投げたら failed", async () => {
@@ -98,4 +101,12 @@ test("queued は sent、409 は alreadySent、送れなかった・投げたら 
   await sender.sendExpirationNoticeJobs([job("a"), job("b"), job("c"), job("d")], counts, state, future());
   assert.deepEqual([counts.sent, counts.alreadySent, counts.failed], [1, 1, 2]);
   assert.equal(state.consecutiveFailures, 2);
+});
+
+test("段の messageKey: 省略・上流の鍵は上流の連絡、fork の鍵は生成の一覧から、知らない鍵は止める", async () => {
+  const upstream = { key: "wallet.expiringNotice" } as never;
+  assert.equal(await sender.noticeMessageOf(undefined, upstream), upstream);
+  assert.equal(await sender.noticeMessageOf("wallet.expiringNotice", upstream), upstream);
+  assert.equal(await sender.noticeMessageOf("shop.pointExpiring", upstream), forkMessage);
+  await assert.rejects(sender.noticeMessageOf("shop.nope", upstream), /messageKey shop\.nope は連絡の一覧/);
 });

@@ -9,6 +9,7 @@ import { z } from "zod";
 import type {
   ChannelSendResult,
   ChannelSendTarget,
+  MessageCategory,
   MessageChannel,
   MessageRegistry,
 } from "@/lib/messaging";
@@ -208,6 +209,20 @@ export const testConfig: MessagingConfig = {
 
 export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");
 
+/** テストの種類(種別と経路は種類から引く D81・D86)。テストの定義はこの鍵を category に書く */
+export const TEST_CATEGORIES: Readonly<Record<string, MessageCategory>> = {
+  news: { key: "news", label: "お知らせ", kind: "marketing", channels: ["test"] },
+  account: { key: "account", label: "アカウント", kind: "transactional", channels: ["test"] },
+  accountEmail: { key: "accountEmail", label: "アカウント(メール)", kind: "functional", channels: ["email"] },
+  newsInApp: { key: "newsInApp", label: "お知らせ(2 経路)", kind: "marketing", channels: ["test", "inApp"] },
+  chat: { key: "chat", label: "チャット", kind: "transactional", channels: ["inApp", "mail"] },
+  chatMail: { key: "chatMail", label: "チャット(メール)", kind: "transactional", channels: ["mail"] },
+  shop: { key: "shop", label: "ショップ", kind: "transactional", channels: ["email", "inApp"] },
+  shopEmail: { key: "shopEmail", label: "ショップ(メール)", kind: "transactional", channels: ["email"] },
+  marketing: { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"] },
+  operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
+};
+
 export function createDeps(overrides: Partial<MessageSendDeps> & { store: MemoryStore }): MessageSendDeps & { slept: number[] } {
   const slept: number[] = [];
   return {
@@ -215,6 +230,7 @@ export function createDeps(overrides: Partial<MessageSendDeps> & { store: Memory
     enrichers: {},
     audiences: {},
     registry: {} satisfies MessageRegistry,
+    categories: TEST_CATEGORIES,
     config: testConfig,
     now: () => FIXED_NOW,
     sleep: async (ms) => {

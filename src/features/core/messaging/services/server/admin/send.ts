@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 
-import type { MessageAudience, MessageChannel } from "@/lib/messaging";
+import { MESSAGE_KIND_TRAITS, type MessageAudience, type MessageChannel, type MessageKind } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
@@ -60,6 +60,19 @@ const audienceSchema = z.discriminatedUnion("type", [
 
 const kindSchema = z.enum(["marketing", "transactional"]).default("marketing");
 
+/**
+ * 管理の送信の種別の選択 → 送る時の種類(指令 37 で種別ごとの定義 3 本に替わるまでの仮)。
+ * 宣伝 = その場で書く連絡は種類 marketing、テンプレートは版の種類 / 取引 = 種類 operatorDirect(種別 direct)
+ */
+export const ADMIN_CHOICE_CATEGORY = { marketing: null, transactional: "operatorDirect" } as const;
+/** 選択の種別(宛先の制限を性質の表 adminFreeText で引く。上流の種類 marketing・operatorDirect の種別と同じ) */
+const ADMIN_CHOICE_KIND: Record<keyof typeof ADMIN_CHOICE_CATEGORY, MessageKind> = { marketing: "marketing", transactional: "direct" };
+
+/** 選択と宛先の種類が、性質の表で管理者がその場で送れる組か */
+function allowsAudience(choice: keyof typeof ADMIN_CHOICE_CATEGORY, audienceType: string): boolean {
+  return (MESSAGE_KIND_TRAITS[ADMIN_CHOICE_KIND[choice]].adminFreeText as readonly string[]).includes(audienceType);
+}
+
 const contentFields = {
   message: messageSchema,
   /** 送る経路(テンプレートは省略 = 版の経路) */
@@ -83,9 +96,9 @@ function checkContent(
   if (channels.includes("inApp") && !value.message.inApp) ctx.addIssue({ code: "custom", message: "お知らせの題・本文は必須です" });
 }
 
-/** 取引の連絡は選んだ利用者宛てだけ(全員・ロール・audiences では選べない、D40) */
-function checkKind(value: { kind: string; audience: { type: string } }, ctx: z.RefinementCtx): void {
-  if (value.kind === "transactional" && value.audience.type !== "users") {
+/** 取引(運営からの直接の連絡)は選んだ利用者宛てだけ(性質の表 adminFreeText、D40・D80) */
+function checkKind(value: { kind: "marketing" | "transactional"; audience: { type: string } }, ctx: z.RefinementCtx): void {
+  if (!allowsAudience(value.kind, value.audience.type)) {
     ctx.addIssue({ code: "custom", message: "取引の連絡は選んだ利用者宛てにだけ送れます(全員・ロール・宛先の集め方では選べません)" });
   }
 }
@@ -97,7 +110,8 @@ function checkKind(value: { kind: string; audience: { type: string } }, ctx: z.R
 export function assertAdminSendKind(body: unknown): void {
   if (!body || typeof body !== "object") return;
   const { kind, audience } = body as { kind?: unknown; audience?: { type?: unknown } };
-  if (kind === "transactional" && (!audience || audience.type !== "users")) {
+  if (kind !== "marketing" && kind !== "transactional") return;
+  if (!allowsAudience(kind, typeof audience?.type === "string" ? audience.type : "")) {
     throw new DomainError("取引の連絡は選んだ利用者宛てにだけ送れます(全員・ロール・宛先の集め方では選べません)", { status: 400 });
   }
 }
@@ -163,7 +177,7 @@ export type AdminSendDeps = AdminCheckDeps & {
   sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) => Promise<SendMessageResult>;
   sendTemplate: (input: SendTemplateInput) => Promise<SendMessageResult>;
   previewMessage: (
-    source: { definition: AnyMessageDefinition } | { templateId: string; kind?: "marketing" | "transactional" },
+    source: { definition: AnyMessageDefinition } | { templateId: string; category?: string },
     input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
   ) => Promise<MessagePreview>;
   estimateRecipients: (target: { audience: MessageAudienceSpec } | { userIds: readonly string[] }) => Promise<RecipientEstimate>;
@@ -186,8 +200,8 @@ type Content = { message: z.infer<typeof messageSchema>; channels?: string[]; ki
 
 /** その場で書く連絡の定義と vars */
 function adhocOf(deps: AdminSendDeps, content: Content & { message: { type: "adhoc" } }) {
-  const definition = (content.kind === "transactional" ? { ...adminMessage, kind: "transactional" as const } : adminMessage) as
-    AnyMessageDefinition;
+  const category = ADMIN_CHOICE_CATEGORY[content.kind];
+  const definition = (category ? { ...adminMessage, category } : adminMessage) as AnyMessageDefinition;
   const vars = {
     subject: content.message.email?.subject ?? "",
     body: content.message.email?.body ?? "",
@@ -216,7 +230,7 @@ async function dispatch(
       ...(rest as SendTemplateInput),
       templateId: content.message.templateId,
       vars: content.message.vars,
-      kind: content.kind,
+      ...(ADMIN_CHOICE_CATEGORY[content.kind] ? { category: ADMIN_CHOICE_CATEGORY[content.kind]! } : {}),
       ...(content.channels ? { channels: content.channels } : {}),
     });
   }
@@ -268,7 +282,10 @@ export async function adminSendPreview(deps: AdminSendDeps, rawInput: unknown): 
   const userId = deps.context()?.actorId ?? null;
   if (input.message.type === "template") {
     return deps.previewMessage(
-      { templateId: input.message.templateId, kind: input.kind },
+      {
+        templateId: input.message.templateId,
+        ...(ADMIN_CHOICE_CATEGORY[input.kind] ? { category: ADMIN_CHOICE_CATEGORY[input.kind]! } : {}),
+      },
       { vars: input.message.vars, channels: input.channels, userId },
     );
   }

@@ -22,6 +22,7 @@ import { EmailView as EarlyRegistrationView } from "./views/earlyRegistration";
 import { EmailView as EmailChangeView } from "./views/emailChange";
 import { EmailView as PasswordResetView } from "./views/passwordReset";
 import { EmailView as VerificationView } from "./views/verification";
+import { categories } from "@/features/core/messaging/extensions/categories";
 
 type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
 
@@ -110,7 +111,7 @@ test("accountLocked: 件名と文面が前のテンプレートと同じ(IP が�
   assert.equal(noIp.text, `${LOCKED_HEAD} 発生時刻 2026/11/11 9:00:00 ${LOCKED_TAIL}`);
 });
 
-test("秘密の印・required・記録: リンクの 4 本は required でリンクに secretVar、ロックの知らせは止められる取引の連絡", () => {
+test("秘密の印・required・記録・種類: リンクの 4 本は required で functional の種類、ロックの知らせは security の種類", () => {
   assert.deepEqual(listSecretVarKeys(verification.vars), ["verificationUrl"]);
   assert.deepEqual(listSecretVarKeys(earlyRegistration.vars), ["verificationUrl"]);
   assert.deepEqual(listSecretVarKeys(passwordReset.vars), ["resetUrl"]);
@@ -118,13 +119,19 @@ test("秘密の印・required・記録: リンクの 4 本は required でリン
   assert.deepEqual(listSecretVarKeys(accountLocked.vars), []);
   for (const definition of [verification, earlyRegistration, passwordReset, emailChange]) {
     assert.equal(definition.required, true, definition.key);
-    assert.deepEqual(definition.defaultChannels, ["email"]);
+    assert.equal(categories[definition.category]?.kind, "functional", definition.key);
+    assert.deepEqual(categories[definition.category]?.channels, ["email"]);
   }
   assert.equal(accountLocked.required, undefined);
   assert.equal(accountLocked.record, "meta");
-  for (const definition of [verification, earlyRegistration, passwordReset, emailChange, accountLocked]) {
-    assert.equal(definition.kind, "transactional", definition.key);
-  }
+  assert.equal(accountLocked.category, "accountLocked");
+  assert.equal(categories.accountLocked.kind, "security");
+  assert.deepEqual(categories.accountLocked.channels, ["email"]);
+  // 出来事の粒の種類(D79): 1 本ずつ別の種類
+  assert.deepEqual(
+    [verification, earlyRegistration, passwordReset, emailChange].map((definition) => definition.category),
+    ["emailVerification", "earlyRegistration", "passwordReset", "emailChange"],
+  );
 });
 
 test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {

@@ -22,10 +22,8 @@ const fields = { test: z.object({ title: z.string(), body: z.string().optional()
 const defineTestMessage = createDefineMessage<typeof fields>();
 const notice = defineTestMessage({
   key: "shop.notice",
-  kind: "marketing",
   category: "news",
   vars: z.object({ item: z.string() }),
-  defaultChannels: ["test"],
   content: { test: { title: "{{item}}" } },
 });
 const registry: MessageRegistry = { "shop.notice": { key: "shop.notice", definition: async () => ({ message: notice }) } };

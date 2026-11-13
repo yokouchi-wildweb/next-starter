@@ -40,7 +40,7 @@ function version(n: number, title: string, variables: MessageTemplateVersionSour
     templateId: "tpl-1",
     templateKey: "spring",
     version: n,
-    category: "marketing",
+    category: "news",
     channels: ["test"],
     content: { test: { title, body: "{{displayName}}" } },
     variables,
@@ -93,7 +93,7 @@ test("版を回に固定し、予約の後で直しても cron はその版で�
   assert.equal(dispatch.template_version, 1);
   assert.equal(dispatch.message_key, "messaging.adminMessage");
   assert.equal(dispatch.kind, "marketing");
-  assert.equal(dispatch.category, "marketing");
+  assert.equal(dispatch.category, "news");
   assert.deepEqual(dispatch.vars, { discount: "20" });
 
   // テンプレートを直して版 2 を公開
@@ -109,7 +109,7 @@ test("版を回に固定し、予約の後で直しても cron はその版で�
 
 test("今送る: 小さな送信は要求の中で版の中身を送る", async () => {
   const { world, channel, sender } = setup();
-  const result = await sender.sendTemplate({ templateId: "tpl-1", recipients: [{ userId: "u2" }], vars: { discount: "5" }, kind: "transactional" });
+  const result = await sender.sendTemplate({ templateId: "tpl-1", recipients: [{ userId: "u2" }], vars: { discount: "5" }, category: "account" });
   assert.equal(result.status, "completed");
   assert.equal(world.store.dispatches[0].kind, "transactional");
   assert.deepEqual(channel.calls.flat()[0].content, { title: "v1 5% 引き", body: "名前u2" });

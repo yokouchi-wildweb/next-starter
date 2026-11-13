@@ -3,7 +3,9 @@
 // 保存されたテンプレートの版 → 送る口の定義(D40・D41)。
 // - 鍵は messaging.adminMessage(メールの描き方と宛名の enricher displayName を使う)。回は template_id + template_version で版を固定し、
 //   cron もその版から組み直す(最新を引き直さない)
-// - 中身・種類・経路は版から、種別は呼び手(回の kind)から。生成の一覧の上書き(fork の override)と管理画面の文言は重ねない
+// - 中身は版から、種類は版の種類(呼び手が送る時の種類を渡せる: 管理の送信の仮の種類・回に残した種類で cron が組み直す)。
+//   種別と経路は種類から(D86)。版の経路はその種類の経路の中の絞り(種類の外の経路があれば 400、Q6)
+// - 生成の一覧の上書き(fork の override)と管理画面の文言は重ねない
 // - 変数: 版の変数の全部を vars にする(値は文字列にして差し込む)。型 number / boolean は形を確かめる、それ以外は文字列。
 //   必須で値が無い・型が合わない = vars の検査で 400(送る時の再検査 = cron が回の vars をもう一度この zod に通す)
 // - 受信者ごとの変数(source recipient)は送る口から受信者ごとに渡す口が無いので、既定値を全員に使う(既定値が無ければ 400)
@@ -11,11 +13,11 @@
 import { z } from "zod";
 
 import {
-  applyMessageOverride,
+  resolveMessageDefinition,
   validateMessageDefinition,
+  type MessageCategory,
   type MessageChannel,
   type MessageEnricher,
-  type MessageKind,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
@@ -77,7 +79,7 @@ export function recipientVariablesWithoutDefault(version: MessageTemplateVersion
 }
 
 /** 版 → 定義(検査の前) */
-export function templateDefinitionOf(version: MessageTemplateVersionSource, kind: MessageKind): AnyMessageDefinition {
+export function templateDefinitionOf(version: MessageTemplateVersionSource, category: string = version.category): AnyMessageDefinition {
   const shape = Object.fromEntries(
     version.variables.map((variable) => {
       // 受信者ごとの変数は既定値を全員に使う(値は渡させない)
@@ -87,35 +89,46 @@ export function templateDefinitionOf(version: MessageTemplateVersionSource, kind
   );
   return {
     key: TEMPLATE_MESSAGE_KEY,
-    kind,
-    category: version.category,
+    category,
     vars: z.object(shape),
     record: "vars",
-    defaultChannels: [...version.channels],
     content: version.content,
   } as unknown as AnyMessageDefinition;
 }
 
 /**
- * 版を送れる定義にする(検査を通す。上書きは重ねない)。
- * @throws DomainError(500) 版の中身が今の経路・値の束に合わない(経路が消えた・provides が変わった など)
+ * 版を送れる定義にする(検査を通す。上書きは重ねない)。経路 = 種類の経路 ∩ 版の経路。
+ * @throws DomainError(400) 版の経路が種類の経路の外 / (500) 種類が無い・版の中身が今の経路・値の束に合わない
  */
 export function resolveTemplateDefinition(
   version: MessageTemplateVersionSource,
-  kind: MessageKind,
-  channels: Readonly<Record<string, MessageChannel>>,
-  enrichers: Readonly<Record<string, MessageEnricher>>,
+  deps: {
+    channels: Readonly<Record<string, MessageChannel>>;
+    enrichers: Readonly<Record<string, MessageEnricher>>;
+    categories: Readonly<Record<string, MessageCategory>>;
+  },
+  options: { category?: string } = {},
 ): AnyResolvedMessageDefinition {
-  const definition = templateDefinitionOf(version, kind);
-  const problems = validateMessageDefinition(definition, {
-    channels: channelFieldSchemas(channels),
-    variableKeys: enricherKeysFor(TEMPLATE_MESSAGE_KEY, enrichers),
-  });
-  if (problems.length > 0) {
+  const categoryKey = options.category ?? version.category;
+  const category = deps.categories[categoryKey];
+  const label = `テンプレート ${version.templateKey} の版 ${version.version}`;
+  if (!category) throw new DomainError(`${label} の種類 ${categoryKey} がありません`, { status: 500 });
+  const outside = version.channels.filter((channel) => !category.channels.includes(channel));
+  if (outside.length > 0) {
     throw new DomainError(
-      `テンプレート ${version.templateKey} の版 ${version.version} を送れません: ${problems.map((problem) => problem.message).join(" / ")}`,
-      { status: 500 },
+      `${label} の経路 ${outside.join(", ")} は種類 ${categoryKey} の経路(${category.channels.join(" / ")})に無いので送れません`,
+      { status: 400 },
     );
   }
-  return applyMessageOverride(definition, undefined);
+  const narrowed = { ...category, channels: category.channels.filter((channel) => version.channels.includes(channel)) };
+  const definition = templateDefinitionOf(version, categoryKey);
+  const problems = validateMessageDefinition(definition, {
+    categories: { [categoryKey]: narrowed },
+    channels: channelFieldSchemas(deps.channels),
+    variableKeys: enricherKeysFor(TEMPLATE_MESSAGE_KEY, deps.enrichers),
+  });
+  if (problems.length > 0) {
+    throw new DomainError(`${label} を送れません: ${problems.map((problem) => problem.message).join(" / ")}`, { status: 500 });
+  }
+  return resolveMessageDefinition(definition, undefined, narrowed);
 }

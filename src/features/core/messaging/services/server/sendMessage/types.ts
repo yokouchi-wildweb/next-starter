@@ -4,6 +4,7 @@
 
 import type {
   MessageAudience,
+  MessageCategory,
   MessageChannel,
   MessageEnricher,
   MessageRegistry,
@@ -36,7 +37,10 @@ export type MessageAudienceSpec =
 type CommonSendInput = {
   /** 定義の vars に渡す値(定義の zod で検査する) */
   vars: Record<string, unknown>;
-  /** 送る経路(省略 = 定義の defaultChannels) */
+  /**
+   * その回だけ経路を絞る(種類の経路の中から。足せない、空と種類の外は 400、D86)。省略 = 種類の経路の全部。
+   * 管理者が手で送る時(管理の送信・一覧の一括・テンプレート)だけが渡す。コードから自動で送る連絡は渡さない
+   */
   channels?: readonly string[];
   /** 二重送信を防ぐ鍵(message_dispatches と message_idempotency_keys の両方で確かめる) */
   idempotencyKey?: string;
@@ -78,8 +82,8 @@ export type SendMessageToManyInput = CommonSendInput &
  */
 export type SendTemplateInput = Omit<SendMessageToManyInput, "recipientVars"> & {
   templateId: string;
-  /** 種別(既定 marketing)。取引にするかは呼び手が決める(管理の送信は選んだ利用者宛てだけ) */
-  kind?: "marketing" | "transactional";
+  /** 送る時の種類(既定 = 版の種類)。種別と経路はこの種類から。管理の送信の「取引」の選択は operatorDirect(指令 37 までの仮) */
+  category?: string;
 };
 
 /** テンプレートの公開した版(送る口が読む形) */
@@ -241,8 +245,8 @@ export type MessageSendDeps = {
   adminOverrides?: MessageAdminOverrideSource;
   /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
   eventTypes?: ReadonlySet<string>;
-  /** categories の受け口の鍵(定義の category を照らす)。無ければ照らさない(テスト) */
-  categories?: readonly string[];
+  /** categories の受け口(fork の種類の override を重ねた後)。定義の種類を照らし、種別と経路を引く */
+  categories: Readonly<Record<string, MessageCategory>>;
   /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
   throttle?: MessageThrottleStore;
   /** 保存されたテンプレート(sendTemplate と cron の版の引き直し)。無ければテンプレートでは送れない */

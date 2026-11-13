@@ -11,6 +11,15 @@ export {
   type UpstreamChannelFields,
 } from "./definition/channels";
 export { createDefineMessage, defineMessage } from "./definition/defineMessage";
+export {
+  MESSAGE_KINDS,
+  MESSAGE_KIND_TRAITS,
+  isMessageKind,
+  kindTraits,
+  kindsWhere,
+  type MessageAdminAudience,
+  type MessageKindTraits,
+} from "./definition/kinds";
 export type { EmailFields, MessageEmailViewModule, MessageEmailViewProps } from "./definition/emailView";
 export { isSecretVar, listSecretVarKeys, secretVar } from "./definition/secret";
 export { extensionPoints } from "./extensionPoints";
@@ -38,7 +47,11 @@ export {
   COMMON_CONTEXT_KEYS,
   THROTTLE_CONTEXT_KEYS,
   applyMessageOverride,
+  resolveMessageDefinition,
+  validateMessageCategories,
   validateMessageDefinition,
+  type MessageCategoryProblem,
+  type OverriddenMessageDefinition,
   type MessageDefinitionProblem,
   type MessageDefinitionProblemCode,
 } from "./definition/validate";
@@ -61,6 +74,7 @@ export type {
   MessageAudience,
   MessageAudienceCursor,
   MessageCategory,
+  MessageCategoryGroup,
   MessageChannel,
   MessageEnricher,
   MessageEnricherContext,
