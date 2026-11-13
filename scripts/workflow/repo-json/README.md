@@ -13,7 +13,8 @@ pnpm workflow repo-json migrate [--tier root|middle|leaf] [--dry-run]   # 古い
 
 ## 決まり
 
-- 形: 平らな鍵を 1 鍵 1 行(リポの外の sh も grep で読める)、値は文字列か真偽値だけ。鍵 = `repo_id`・`tier`・`agent.<種類>`
+- 形: 平らな鍵を 1 鍵 1 行(リポの外の sh も grep で読める)、値は文字列か真偽値だけ。鍵 = `repo_id`・`tier`・`agent.<種類>`(エージェントに任せる方針。鍵の一覧と既定は `scripts/workflow/devcheck/README.md`「方針」)
+- 直接の書き換え(Edit / Write・シェルの書き込み)は許可のフックが止める。方針を変えるのは `/repo-policy`(変える値を見せて確認の後にこの命令で書く)
 - `set` は読み手と同じ決まりで確かめてから、ファイル全体を 1 鍵 1 行の形に書き直す(鍵の並び = repo_id・tier・ほかは名前順)。誤り(知らない鍵・形違いの名前・知らない段・今のファイルが読めない)は何も書かず exit 2
 - `migrate`: `.claude/rules/project.md` の `fork_id:` / `downstream:` の行を読み、`repo.json` に書いて、その 2 行を project.md から消す
   - 段: `downstream: none` = `leaf` / `yes` = 自分の名前が `src/lib/CATALOG.md` の先頭の節なら `root`、ほかは `middle`

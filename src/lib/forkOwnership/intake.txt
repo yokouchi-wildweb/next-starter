@@ -20,7 +20,6 @@ edit firebase.json  # fork の Firebase の配備設定(firestore のルール�
 edit public/assets/imgs/logos/**  # ブランドのロゴ(logoPath で差し替える前提の素材)
 
 # 開発の道具(scripts の中、上流のフォルダに fork が足す所)
-add scripts/workflow/devcheck/policy.override.ts  # 確かめの方針 policy.json の一部の上書き(宣言した鍵 = 種類だけ。upstream には無い。scripts/workflow/devcheck/README.md)
 add scripts/workflow/devcheck/items/*.json  # 確かめの fork の項目(1 項目 1 ファイル。scripts/workflow/devcheck/items/README.md)
 
 # src の下の行は全部この生成区画(4 つの型: 画面の差し替え = ルート・1 行スイッチ / 受け口と上書き = 拡張点の宣言 / 置き場 = placement の宣言 / 生成物と区画 = 生成器の gate.json)。fork の項目は印なしの名前(D137)

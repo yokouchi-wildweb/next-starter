@@ -29,7 +29,7 @@ try {
     if (needsPolicy(req, deps)) {
       let policy = null;
       try {
-        policy = await loadPolicy(toolDir);
+        policy = await loadPolicy(projectDir);
       } catch {
         policy = null;
       }

@@ -35,11 +35,23 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 ## 方針(policy)
 
-- 実体 `policy.json`(上流、全部 `auto`)に、fork の上書き `policy.override.ts` の宣言した鍵(= 種類 + 許可のフックだけの種類 `peer`。宣言は `lib.kinds.mjs` の `POLICY_KEYS`)だけを重ねる。上流は上書きを出さない(受け口 add)
-  - 形: `export const override = { "db-write": "off" };`(空のファイルは不在と同じ)
-  - 宣言に無い鍵・値の誤り・`override` の export が無い・隣に実体の無い上書きは止める(exit 2)
-- `auto` = go 1 回の中で実行 | `manual` = その項目だけ別に go を取り、`--manual-go` を付けた時だけ実行 | `off` = この命令は実行しない(計画で「手で」、run は exit 4)
-- 全体のスイッチ `enabled`(真偽値、上流の実体は `true`、無い = `true`): fork が `export const override = { enabled: false };` と書くと、全部の種類(peer も)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)。真偽値でない値は止める(exit 2、フックは壊れた方針として何も返さない)
+置き場はリポ直下の `repo.json` の `agent.*` の鍵(平らな 1 鍵 1 行、読み手は `src/lib/forkOwnership/forkIds.mjs`)。どのリポも自分の版を持つ。種類と既定値は上流のコード(`lib.kinds.mjs`)。書くのは `pnpm workflow repo-json set <鍵> <値>` か `/repo-policy`(直接の書き換えは許可のフックが止める)。
+
+| 鍵 | 値 | 既定 |
+|---|---|---|
+| `agent.server`・`agent.browser`・`agent.login`・`agent.db_write`・`agent.db_delete`・`agent.env_add`・`agent.test`・`agent.check` | `auto` / `manual` / `off` | `auto` |
+| `agent.peer`(許可のフックだけの種類、計画の候補に出ない) | 同じ | `auto` |
+| `agent.enabled`(全体のスイッチ) | `true` / `false` | `true` |
+| `agent.db_push`(開発の DB の反映だけ)・`agent.env_production`(本番の env を書く)・`agent.deploy`(本番へ出す、本番の DB の反映を含む) | `off` / `manual`(`auto`・知らない値は `off`) | `off` |
+| `agent.db_push.entry` | 入口の命令 | `pnpm db:push` |
+| `agent.env_production.entry` | 同じ(`-` = 上流の入口なし、fork が自分の命令を書く) | `-` |
+| `agent.deploy.entry` / `agent.deploy.db_entry` | 本番へ出す命令 / 本番の DB の反映の命令 | `pnpm live` / `pnpm db:push -- --env production` |
+
+- `auto` = go 1 回の中で実行 | `manual` = その項目だけ別に許可を取り、`--manual-go` を付けた時だけ実行 | `off` = この命令は実行しない(計画で「手で」、run は exit 4)
+- `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)
+- 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定
+- 危険な 3 つの値と入口は今は読むだけ(計画の 方針 の行に出る)。固定の止めは値に依らず効く
+- 一度の命令: `db_push` は開発の DB だけ。本番の DB の反映は `deploy` の `db_entry` で扱う(D116)
 
 ## 許可の層(PreToolUse のフック 1 本)
 
@@ -51,6 +63,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
    - スキーマの反映: `pnpm` / `npm` / `npx` などで `db:push`・`db:migrate`、`drizzle-kit push|migrate|drop|up`(`db:push:check` は読むだけなので止めない)
    - 本番の確認の自動の付け足し: `pnpm` / `npm` / `npx` / `node` / `tsx` などに `--confirm=production` / `--confirm production`(本番は人が TTY で production と打つ)
    - 本番の env への書き込み: `.env.production*` へのリダイレクト(`>` `>>` `>|` `&>`)・`tee`・`cp|mv|install|ln` の行き先・`sed -i`・`perl -i`・`rm`・`truncate`・`dd of=`、Edit / Write / MultiEdit / NotebookEdit の書く先
+   - repo.json(名前・段・方針)の直接の書き換え: Edit / Write / MultiEdit / NotebookEdit の書く先・上と同じシェルの書き込みの形(`pnpm workflow repo-json set` と `/repo-policy` を案内。読むだけ・`git` の操作は止めない)
    - 読み方(`parseCommands`): 引用符の外のつなぐ・流す記号で命令に切り、引用符の中は文字として扱う(コミットの文・`grep db:push`・`cat .env.production` では止めない)。動く物は中まで読む: `$( … )`・`` ` … ` ``(`"…"` の中も)・`bash -c` の引数・`eval`・シェルに渡す heredoc の本文・引用符の無い区切りの heredoc の中の置き換え
    - 外への送信・履歴を壊す git・秘密の表示は止めも許可もしない(普段どおり聞かれる)。`permissions.deny` には書かない(止めはここ 1 か所)
 2. **allow**: 手元の印 `DEVCHECK_GRANT=on`(`.claude/settings.local.json` の env。整えるスキルが書く)があり、その種類の方針が `off` でなく、許可してよい形の時だけ

@@ -316,10 +316,35 @@ test("入力の変換(Claude Code の形)と出力", () => {
   });
 });
 
-test("方針の鍵 = 種類 + peer(計画の候補には peer を出さない)、上流の policy.json は全部 auto", async () => {
+test("方針の鍵 = 種類 + peer(計画の候補には peer を出さない)、repo.json に agent.* が無ければ通常は auto・危険な 3 つは off", async () => {
   assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer"]);
   assert.ok(!KIND_NAMES.includes("peer"));
-  assert.deepEqual(await loadPolicy(TOOL_DIR), ALL_AUTO);
+  assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "off", env_production: "off", deploy: "off" });
+});
+
+test("固定の止め: repo.json の直接の書き換え(Edit / Write とシェルの書き込み)は止め、専用の命令と読むだけは通す", () => {
+  for (const tool of ["Edit", "Write", "MultiEdit"]) {
+    const d = decide({ tool, file: "/repo/repo.json" }, fakeDeps({ grant: false }));
+    assert.equal(d?.decision, "deny", tool);
+    assert.match(d.reason, /人が手で打つ: pnpm workflow repo-json set <鍵> <値> か \/repo-policy/);
+  }
+  for (const command of [
+    "echo '{}' > repo.json",
+    "cat x >> ./repo.json",
+    "jq . a | tee repo.json",
+    "cp /tmp/r.json repo.json",
+    "mv x.json repo.json",
+    "sed -i 's/leaf/root/' repo.json",
+    "perl -pi -e 's/a/b/' repo.json",
+    "rm repo.json",
+    "truncate -s0 repo.json",
+    "node -e 1 > repo.json",
+  ]) {
+    assert.equal(fixedStop(bash(command))?.decision, "deny", command);
+  }
+  for (const command of ["cat repo.json", "pnpm workflow repo-json set agent.server manual", "pnpm workflow repo-json migrate", "grep repo_id repo.json", "cp repo.json /tmp/x", "git diff repo.json"]) {
+    assert.equal(fixedStop(bash(command)), null, command);
+  }
 });
 
 // ---- hook.mjs(素の node で動かす) ----------------------------------------------------------------
@@ -362,30 +387,35 @@ test("hook.mjs: 止め・allow・何もなし・壊れた方針、ブラウザ�
   }
 });
 
-test("hook.mjs: 壊れた方針(上書きの誤り)は何も返さず、止めは効く", () => {
-  // 道具のフォルダを写して上書きを壊す
-  const dir = mkdtempSync(path.join(os.tmpdir(), "devcheck-grant-tool-"));
+test("hook.mjs: 方針はプロジェクトの repo.json の agent.*。壊れた方針は何も返さず、止めは効く", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "devcheck-grant-project-"));
   try {
-    for (const f of ["hook.mjs", "lib.grant.mjs", "lib.kinds.mjs", "policy.json"]) writeFileSync(path.join(dir, f), readFileSync(path.join(TOOL_DIR, f)));
-    writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { deploy: "auto" };\n');
-    const hook = path.join(dir, "hook.mjs");
     const run = (command) =>
-      spawnSync(process.execPath, [hook], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }), encoding: "utf8", env: { PATH: process.env.PATH, CLAUDE_PROJECT_DIR: dir, DEVCHECK_GRANT: "on" } });
+      spawnSync(process.execPath, [HOOK], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }), encoding: "utf8", env: { PATH: process.env.PATH, CLAUDE_PROJECT_DIR: dir, DEVCHECK_GRANT: "on" } });
+    const repo = (extra) => writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ repo_id: "x", tier: "leaf", ...extra }));
+    // repo.json が無い = 既定(全部 auto)
+    assert.match(run("pnpm workflow peer who").stdout, /"permissionDecision":"allow"/);
+    // 宣言に無い鍵 = 壊れた方針 → 何も返さない、止めは効く
+    repo({ "agent.deployment": "auto" });
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.equal(run("pnpm workflow peer who").status, 0);
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
-    // fork の上書きで peer を off → 何も返さない、test は auto のまま
-    writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { peer: "off" };\n');
+    // fork の方針で peer を off → 何も返さない、test は auto のまま
+    repo({ "agent.peer": "off" });
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.match(run("pnpm test x").stdout, /"permissionDecision":"allow"/);
-    // 全体のスイッチ: false → allow の形は全部何も返さない(devcheck の入口の種類も)、止めは効く / 真偽値でない = 壊れた方針
-    writeFileSync(path.join(dir, "policy.override.ts"), "export const override = { enabled: false };\n");
-    for (const command of ["pnpm test x", "pnpm workflow peer who", "pnpm workflow devcheck run server"]) assert.equal(run(command).stdout, "", command);
+    // 全体のスイッチ: false → allow の形は全部何も返さない(devcheck の入口も)、止めは効く / 真偽値でない = 壊れた方針
+    repo({ "agent.enabled": false });
+    for (const command of ["pnpm test x", "pnpm workflow peer who", "pnpm workflow devcheck run server", "pnpm workflow devcheck plan"]) assert.equal(run(command).stdout, "", command);
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
-    writeFileSync(path.join(dir, "policy.override.ts"), 'export const override = { enabled: "no" };\n');
+    repo({ "agent.enabled": "no" });
     assert.equal(run("pnpm test x").stdout, "");
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
+    // 危険な 3 つを manual にしても、この指令ではフックは止めたまま(1 回分の許可は後の指令)
+    repo({ "agent.db_push": "manual" });
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+

@@ -3,7 +3,8 @@
 // 許可のフック(PreToolUse、hook.mjs)の判定。素の node で毎回動くので、tsx も重い import も使わない。
 // 判定の順(D66):
 //   1. 固定の止め(印・方針・モードと独立。D58・D67): スキーマの反映 / 本番の確認の自動の付け足し / 本番の env への書き込み → deny
-//      (理由と人が手で打つ形を 1 行で)。読む・探すだけ(grep など)は止めない
+//      (理由と人が手で打つ形を 1 行で)。repo.json の直接の書き換えも同じ止め方(書くのは pnpm workflow repo-json set)。
+//      読む・探すだけ(grep など)は止めない
 //   2. 印(環境変数 DEVCHECK_GRANT=on)があり、その種類の方針が off でなく(manual は devcheck run … --manual-go だけ)、
 //      許可してよい形のときだけ allow
 //   3. それ以外・壊れた時(入力・方針・記録が読めない、例外)は何も返さない(= 普段どおり聞かれる)。方針 off も何も返さない
@@ -13,7 +14,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { KIND_NAMES } from "./lib.kinds.mjs";
+import { KIND_NAMES, POLICY_KEYS } from "./lib.kinds.mjs";
 
 export const GRANT_ENV = "DEVCHECK_GRANT";
 export const GRANT_ON = "on";
@@ -290,6 +291,16 @@ const PACKAGE_RUNNERS = ["pnpm", "npm", "yarn", "bun", "npx", "pnpx"];
 const SCRIPT_RUNNERS = [...PACKAGE_RUNNERS, "node", "tsx", "deno"];
 
 const isProdEnvPath = (/** @type {string} */ p) => /^\.env\.production/.test(path.basename(p.replace(/['"]/g, "")));
+/** 書く物を守るファイル: 本番の env と repo.json(方針の置き場。書くのは pnpm workflow repo-json set と /repo-policy だけ) */
+const isRepoJsonPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === "repo.json";
+const isGuardedPath = (/** @type {string} */ p) => isProdEnvPath(p) || isRepoJsonPath(p);
+/** 守るファイルへの書き込みの止め(理由と人がすること) */
+const guardedDeny = (/** @type {string} */ p) => {
+  const name = path.basename(String(p).replace(/^of=/, "").replace(/['"]/g, ""));
+  return isRepoJsonPath(name)
+    ? deny("repo.json(名前・段・方針)は直接書き換えない", "pnpm workflow repo-json set <鍵> <値> か /repo-policy")
+    : deny(`本番の env(${name})はエージェントが書かない`, `エディタで ${name} を直す`);
+};
 
 // ---- 1. 固定の止め ------------------------------------------------------------------------
 
@@ -307,14 +318,14 @@ const deny = (reason, human) => ({ decision: "deny", reason: `devcheck の固定
  * @returns {Decision | null}
  */
 export const fixedStop = (req) => {
-  if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(req.tool) && req.file && isProdEnvPath(req.file)) {
-    return deny(`本番の env(${path.basename(req.file)})はエージェントが書かない`, `エディタで ${path.basename(req.file)} を直す`);
+  if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(req.tool) && req.file && isGuardedPath(req.file)) {
+    return guardedDeny(req.file);
   }
   if (req.tool !== "Bash" || typeof req.command !== "string") return null;
   for (const cmd of parseCommands(req.command)) {
     // 本番の env への書き込み(リダイレクト)
-    const written = cmd.writes.find(isProdEnvPath);
-    if (written) return deny(`本番の env(${path.basename(written)})はエージェントが書かない`, `エディタで ${path.basename(written)} を直す`);
+    const written = cmd.writes.find(isGuardedPath);
+    if (written) return guardedDeny(written);
     const words = stripPrefix(cmd.words);
     const head = words[0] ?? "";
     // スキーマの反映(db:push:check は読むだけなので通す)
@@ -333,12 +344,12 @@ export const fixedStop = (req) => {
     // 本番の env への書き込み(コマンド)
     const args = words.slice(1).filter((w) => !w.startsWith("-"));
     const target =
-      (head === "tee" && args.find(isProdEnvPath)) ||
-      (["cp", "mv", "install", "ln"].includes(head) && args.length > 0 && isProdEnvPath(args[args.length - 1]) && args[args.length - 1]) ||
-      (["sed", "perl"].includes(head) && words.some((w) => /^(-i|--in-place)/.test(w) || /^-[A-Za-z]*i/.test(w)) && args.find(isProdEnvPath)) ||
-      (["rm", "truncate", "shred", "unlink"].includes(head) && args.find(isProdEnvPath)) ||
-      (head === "dd" && words.find((w) => w.startsWith("of=") && isProdEnvPath(w.slice(3))));
-    if (target) return deny(`本番の env(${path.basename(String(target).replace(/^of=/, ""))})はエージェントが書かない`, `エディタで ${path.basename(String(target).replace(/^of=/, ""))} を直す`);
+      (head === "tee" && args.find(isGuardedPath)) ||
+      (["cp", "mv", "install", "ln"].includes(head) && args.length > 0 && isGuardedPath(args[args.length - 1]) && args[args.length - 1]) ||
+      (["sed", "perl"].includes(head) && words.some((w) => /^(-i|--in-place)/.test(w) || /^-[A-Za-z]*i/.test(w)) && args.find(isGuardedPath)) ||
+      (["rm", "truncate", "shred", "unlink"].includes(head) && args.find(isGuardedPath)) ||
+      (head === "dd" && words.find((w) => w.startsWith("of=") && isGuardedPath(w.slice(3))));
+    if (target) return guardedDeny(target);
   }
   return null;
 };
@@ -473,7 +484,7 @@ export const decide = (req, deps) => {
   const policy = deps.policy();
   // devcheck の入口(plan / status / cleanup)は種類を持たない: どれかの種類が off でない間だけ通す
   // (全体のスイッチ enabled:false = 全部 off → 印の道では何も通さない、D103)
-  if (match.always) return Object.values(policy).some((v) => v !== "off") ? { decision: "allow", reason: "devcheck の許可: 印あり・devcheck の入口" } : null;
+  if (match.always) return POLICY_KEYS.some((k) => policy[k] !== undefined && policy[k] !== "off") ? { decision: "allow", reason: "devcheck の許可: 印あり・devcheck の入口" } : null;
   const value = policy[match.kind];
   if (value === "auto" || (value === "manual" && match.manualGo)) return { decision: "allow", reason: `devcheck の許可: 印あり・方針 ${match.kind}=${value}` };
   return null;
