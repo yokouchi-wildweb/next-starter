@@ -22,8 +22,8 @@ const template = {
   key: "spring",
   name: "春",
   category: "marketing",
-  channels: ["email", "inApp"],
   currentVersion: 2,
+  content: { email: { subject: "{{discount}} 割引" }, inApp: { title: "春", body: "本文" } },
   variables: [
     { key: "discount", label: "割引", type: "number", required: true, source: "dispatch" },
     { key: "note", label: "メモ", type: "string", required: false, source: "dispatch" },
@@ -119,10 +119,21 @@ test("テンプレートで送る: 入力の形・必須の変数・見込み・
   assert.equal(c().contentError, "テンプレートを選んでください");
   assert.equal(guarded.at(-1), false);
   await act(async () => c().fields.setTemplateId(TEMPLATE_ID));
-  assert.deepEqual(c().fields.channels, ["email", "inApp"], "テンプレートの経路を初めの値にする");
+  assert.deepEqual(c().fields.channels, ["email", "inApp"], "版の文言のある経路を初めの値にする");
   assert.match(c().contentError ?? "", /割引/);
   await act(async () => c().fields.setVarValue("discount", "20"));
   assert.equal(c().canSend, true);
+  // カテゴリーの経路の外(push)は切り替えの候補に出ない。経路を外し切ると送れない
+  assert.deepEqual(c().categoryChannels, ["email", "inApp"]);
+  await act(async () => {
+    c().fields.toggleChannel("email", false);
+    c().fields.toggleChannel("inApp", false);
+  });
+  assert.match(c().contentError ?? "", /送る経路を選んでください/);
+  await act(async () => {
+    c().fields.toggleChannel("email", true);
+    c().fields.toggleChannel("inApp", true);
+  });
   assert.equal(guarded.at(-1), true);
 
   const est = await c().runEstimate();
@@ -134,7 +145,8 @@ test("テンプレートで送る: 入力の形・必須の変数・見込み・
   assert.deepEqual(calls.map((call) => call[0]), ["estimate", "send"]);
   assert.deepEqual(calls[0][1], { audience: { type: "all" } });
   const sent = calls[1][1] as Record<string, unknown>;
-  assert.deepEqual(sent.message, { type: "template", templateId: TEMPLATE_ID, vars: { discount: 20 } });
+  // 版と版の文言を読み込んで送る(D85、直す口は指令 40)
+  assert.deepEqual(sent.message, { type: "template", templateId: TEMPLATE_ID, version: 2, content: template.content, vars: { discount: 20 } });
   assert.deepEqual(sent.channels, ["email", "inApp"]);
   // 全員宛て + テンプレート = 宛先で選べる最初のカテゴリー
   assert.equal(sent.category, "announcement");

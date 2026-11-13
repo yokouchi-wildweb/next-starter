@@ -31,6 +31,7 @@ import {
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
+import { isAdminFreeTextKind } from "../admin/freeText";
 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
@@ -46,7 +47,6 @@ function toSummary(row: MessageTemplate): AdminTemplateSummary {
     name: row.name,
     description: row.description ?? null,
     category: row.category,
-    channels: [...row.channels],
     status: row.status,
     currentVersion: row.current_version ?? null,
     createdBy: row.created_by ?? null,
@@ -62,7 +62,6 @@ function toVersion(row: MessageTemplateVersion): AdminTemplateVersion {
     content: row.content as Record<string, unknown>,
     variables: row.variables,
     category: row.category,
-    channels: [...row.channels],
     editedBy: row.edited_by ?? null,
     createdAt: row.createdAt.toISOString(),
   };
@@ -74,8 +73,7 @@ function sameAsVersion(row: MessageTemplate, version: MessageTemplateVersion | n
   return (
     isDeepStrictEqual(row.content, version.content) &&
     isDeepStrictEqual(row.variables, version.variables) &&
-    row.category === version.category &&
-    isDeepStrictEqual([...row.channels], [...version.channels])
+    row.category === version.category
   );
 }
 
@@ -158,7 +156,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           name: parsed.name,
           description: parsed.description ?? null,
           category: parsed.category,
-          channels: checked.channels,
           content: checked.content,
           variables: checked.variables,
           status: "draft",
@@ -190,7 +187,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         if (current.status === "archived") throw new DomainError("取り下げたテンプレートは直せません", { status: 409 });
         const checked = checkTemplateFields(deps.check(), {
           category: patch.category ?? current.category,
-          channels: patch.channels ?? current.channels,
           content: patch.content ?? (current.content as Record<string, unknown>),
           variables: patch.variables ?? current.variables,
         });
@@ -199,7 +195,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           ...(patch.name !== undefined ? { name: patch.name } : {}),
           ...(patch.description !== undefined ? { description: patch.description } : {}),
           category: patch.category ?? current.category,
-          channels: checked.channels,
           content,
           variables: checked.variables,
           updated_by: actor,
@@ -222,7 +217,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         if (current.status === "archived") throw new DomainError("取り下げたテンプレートは公開できません", { status: 409 });
         const checked = checkTemplateFields(deps.check(), {
           category: current.category,
-          channels: current.channels,
           content: current.content as Record<string, unknown>,
           variables: current.variables,
         });
@@ -237,7 +231,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           content: checked.content,
           variables: checked.variables,
           category: current.category,
-          channels: checked.channels,
           edited_by: actor,
         });
         const updated = await deps.store.update(tx, id, { status: "published", current_version: next, updated_by: actor });
@@ -287,7 +280,8 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         channels: Object.values(check.channels)
           .filter((channel) => channel.enabled !== false)
           .map((channel) => ({ key: channel.key, label: channel.label })),
-        categories: Object.values(check.categories).map((category) => ({
+        // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・marketing)の種類だけ
+        categories: Object.values(check.categories).filter((category) => isAdminFreeTextKind(category.kind)).map((category) => ({
           key: category.key,
           label: category.label,
           description: category.description ?? null,

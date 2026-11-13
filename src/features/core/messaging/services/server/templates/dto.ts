@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/templates/dto.ts
 //
-// 保存されたテンプレートの管理へ返す形(型だけ。client の service も型で読む)。
+// 保存されたテンプレートの管理へ返す形(型だけ。client の service も型で読む)。経路は持たない: content の鍵 = 文言のある経路
 
 import type { MessageTemplateStatus } from "../../../entities/model";
 import type { MessageTemplateVariable } from "../../../entities/schema";
@@ -11,7 +11,6 @@ export type AdminTemplateSummary = {
   name: string;
   description: string | null;
   category: string;
-  channels: string[];
   status: MessageTemplateStatus;
   /** 最新の公開の版(null = まだ公開していない) */
   currentVersion: number | null;
@@ -37,7 +36,6 @@ export type AdminTemplateVersion = {
   content: Record<string, unknown>;
   variables: MessageTemplateVariable[];
   category: string;
-  channels: string[];
   editedBy: string | null;
   createdAt: string;
 };
@@ -48,7 +46,7 @@ export type AdminTemplatePage = { items: AdminTemplateSummary[]; nextCursor: str
 export type AdminTemplateOptions = {
   /** 使える経路(受け口にあり enabled: false でない物) */
   channels: { key: string; label: string }[];
-  /** 種類 */
+  /** 種類(種別 announcement・direct・marketing の物だけ) */
   categories: { key: string; label: string; description: string | null }[];
   /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides) */
   baseAllowedKeys: string[];

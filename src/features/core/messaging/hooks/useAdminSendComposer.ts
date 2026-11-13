@@ -3,7 +3,7 @@
 // src/features/core/messaging/hooks/useAdminSendComposer.ts
 //
 // 管理: 送る画面の書く欄と操作(部品 AdminMessageComposer はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
-// - 中身: 公開中のテンプレート(変数の値は回に 1 組)か、その場で書く(email・inApp)
+// - 中身: 公開中のテンプレート(今の公開版の文言と版を読み込んで送る。変数の値は回に 1 組)か、その場で書く(email・inApp)
 // - 宛先: 全員・ロール・宛先の集め方(audiences の受け口)・選んだ利用者
 // - カテゴリー: 選択肢 options.categories(種別 announcement・direct・marketing)を宛先の種類で絞る(その場で書く時は email・inApp の物だけ)。
 //   選んだ物が絞りから外れたら最初の物(API と service も種別の性質 adminFreeText で同じ守り)
@@ -117,7 +117,8 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
       setVarValues({});
       setPreview(null);
       const picked = options?.templates.find((item) => item.id === id);
-      setChannels(picked ? [...picked.channels] : []);
+      // 初めの経路 = 版の文言のある経路(送る時はカテゴリーの経路の中で絞る)
+      setChannels(picked ? Object.keys(picked.content) : []);
     },
     [options],
   );
@@ -133,6 +134,13 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
   const category = allowedCategories.some((option) => option.key === chosenCategory)
     ? chosenCategory
     : (allowedCategories[0]?.key ?? "");
+  /** 選んだカテゴリーの経路(送る経路はこの中の絞り、D86) */
+  const categoryChannels = useMemo(
+    () => allowedCategories.find((option) => option.key === category)?.channels ?? [],
+    [allowedCategories, category],
+  );
+  /** テンプレートの送る経路 = 選んだ経路 ∩ カテゴリーの経路 */
+  const templateChannels = useMemo(() => channels.filter((channel) => categoryChannels.includes(channel)), [channels, categoryChannels]);
   const toggleChannel = useCallback((channel: string, on: boolean) => {
     setChannels((prev) => (on ? (prev.includes(channel) ? prev : [...prev, channel]) : prev.filter((c) => c !== channel)));
     setPreview(null);
@@ -141,9 +149,16 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
   /** 中身(プレビュー・テスト送信・送るで同じ) */
   const buildContent = useCallback((): AdminSendPreviewInput => {
     if (source === "template") {
+      // 版の文言を読み込んで送る(この画面ではまだ直さない。直す口は送るモーダル、指令 40)
       return {
-        message: { type: "template", templateId, vars: templateVarsForInput(template, varValues) },
-        channels: channels.length > 0 ? channels : undefined,
+        message: {
+          type: "template",
+          templateId,
+          version: template?.currentVersion ?? 0,
+          content: template?.content ?? {},
+          vars: templateVarsForInput(template, varValues),
+        },
+        channels: templateChannels,
         category,
       };
     }
@@ -156,7 +171,7 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
       channels,
       category,
     };
-  }, [source, templateId, template, varValues, channels, category, emailSubject, emailBody, inAppTitle, inAppBody]);
+  }, [source, templateId, template, varValues, channels, templateChannels, category, emailSubject, emailBody, inAppTitle, inAppBody]);
 
   const buildAudience = useCallback((): AdminSendInput["audience"] => {
     if (audienceType === "role") return { type: "role", roles };
@@ -201,13 +216,17 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
         (variable) => variable.source === "dispatch" && variable.required && variable.default === undefined && !varValues[variable.key]?.trim(),
       );
       if (missing.length > 0) return `変数 ${missing.map((v) => v.label || v.key).join("・")} を入れてください`;
+      if (templateChannels.length === 0) return "送る経路を選んでください(カテゴリーの経路の中から)";
+      // 文言の無い経路は送れない(サーバーも 400、AMENDMENT 1)
+      const empty = templateChannels.filter((channel) => template.content[channel] === undefined);
+      if (empty.length > 0) return `テンプレートに経路 ${empty.join("・")} の文言がありません(経路を外してください)`;
       return null;
     }
     if (channels.length === 0) return "送る経路を選んでください";
     if (channels.includes("email") && (!emailSubject.trim() || !emailBody.trim())) return "メールの件名・本文を入れてください";
     if (channels.includes("inApp") && (!inAppTitle.trim() || !inAppBody.trim())) return "お知らせの題・本文を入れてください";
     return null;
-  }, [source, template, varValues, channels, emailSubject, emailBody, inAppTitle, inAppBody]);
+  }, [source, template, varValues, channels, templateChannels, emailSubject, emailBody, inAppTitle, inAppBody]);
 
   const audienceError = useMemo(() => {
     if (audienceType === "role" && roles.length === 0) return "ロールを選んでください";
@@ -283,6 +302,8 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
     canSend: !contentError && !audienceError && !scheduleError,
     /** 今の宛先の種類と中身で選べるカテゴリー */
     allowedCategories,
+    /** 選んだカテゴリーの経路(テンプレートの経路の切り替えの候補) */
+    categoryChannels,
     buildContent,
     buildAudience,
     buildInput,

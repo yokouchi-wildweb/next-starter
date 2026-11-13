@@ -3,8 +3,8 @@
 // src/features/core/messaging/hooks/useMessageTemplateForm.ts
 //
 // 管理: テンプレートを作る・直す画面の書く欄と操作(部品はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
-// - 欄: 鍵(作る時だけ)・名前・説明・種類・経路・経路ごとの中身・変数の宣言。初めの値は今の中身(下書き)
-// - 保存: 作る(POST)か直す(PATCH)。送るのは選んだ経路の中身だけで、空の任意の欄は落とす
+// - 欄: 鍵(作る時だけ)・名前・説明・種類・経路ごとの文言・変数の宣言。初めの値は今の中身(下書き)。経路は選ばない(D85)
+// - 保存: 作る(POST)か直す(PATCH)。送るのは文言を書いた経路の中身だけ(filledChannels)で、空の任意の欄は落とす
 // - 公開・取り下げ: 1 件・版の一覧を取り直す(一覧の画面は戻ったときに取り直す)
 // - 使える {{鍵}} = 選択肢の baseAllowedKeys ∪ 宣言した変数(サーバーの保存時の検査と同じ組)。知らない鍵を返す
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard)。作った後は createdId を返す(画面がその 1 件へ移る)
@@ -56,7 +56,20 @@ export function emptyChannelContent(channel: string): Record<string, unknown> {
   return {};
 }
 
-/** 送る中身: 選んだ経路だけ、空の任意の文字の欄・空の cta を落とす */
+/** 文字が 1 つでも入っているか */
+function hasText(value: unknown): boolean {
+  if (typeof value === "string") return value.trim() !== "";
+  if (Array.isArray(value)) return value.some(hasText);
+  if (value && typeof value === "object") return Object.values(value).some(hasText);
+  return false;
+}
+
+/** 文言を書いた経路(テンプレートの経路 = 文言のある経路、D85) */
+export function filledChannels(content: TemplateContentDraft): string[] {
+  return Object.keys(content).filter((channel) => hasText(content[channel]));
+}
+
+/** 送る中身: 渡した経路だけ、空の任意の文字の欄・空の cta を落とす */
 export function contentForInput(content: TemplateContentDraft, channels: readonly string[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const channel of channels) {
@@ -114,7 +127,6 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
   const [name, setName] = useState(template?.name ?? "");
   const [description, setDescription] = useState(template?.description ?? "");
   const [category, setCategory] = useState(template?.category ?? options?.categories[0]?.key ?? "");
-  const [channels, setChannels] = useState<string[]>(template?.channels ?? []);
   const [content, setContent] = useState<TemplateContentDraft>(
     (template?.content as TemplateContentDraft | undefined) ?? {},
   );
@@ -149,11 +161,10 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
       name: name.trim(),
       description: description.trim() === "" ? null : description,
       category,
-      channels,
-      content: contentForInput(content, channels),
+      content: contentForInput(content, filledChannels(content)),
       variables: variablesForInput(variables),
     }),
-    [name, description, category, channels, content, variables],
+    [name, description, category, content, variables],
   );
 
   const initialJson = useMemo(
@@ -163,8 +174,10 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
         name: template?.name ?? "",
         description: template?.description ?? null,
         category: template?.category ?? options?.categories[0]?.key ?? "",
-        channels: template?.channels ?? [],
-        content: contentForInput((template?.content as TemplateContentDraft | undefined) ?? {}, template?.channels ?? []),
+        content: contentForInput(
+          (template?.content as TemplateContentDraft | undefined) ?? {},
+          filledChannels((template?.content as TemplateContentDraft | undefined) ?? {}),
+        ),
         variables: variablesForInput(draftsOf(template)),
       }),
     [template, options],
@@ -178,16 +191,12 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
   );
   const unknownKeys = useMemo(() => {
     const found = new Set<string>();
-    for (const text of stringsOf(contentForInput(content, channels))) {
+    for (const text of stringsOf(contentForInput(content, filledChannels(content)))) {
       for (const name of listVariables(text)) if (!allowedKeys.includes(name)) found.add(name);
     }
     return [...found];
-  }, [content, channels, allowedKeys]);
+  }, [content, allowedKeys]);
 
-  const toggleChannel = useCallback((channel: string, on: boolean) => {
-    setChannels((prev) => (on ? (prev.includes(channel) ? prev : [...prev, channel]) : prev.filter((c) => c !== channel)));
-    if (on) setContent((prev) => (prev[channel] ? prev : { ...prev, [channel]: emptyChannelContent(channel) }));
-  }, []);
   const setChannelContent = useCallback(
     (channel: string, fields: Record<string, unknown>) => setContent((prev) => ({ ...prev, [channel]: fields })),
     [],
@@ -253,8 +262,8 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
       setDescription,
       category,
       setCategory,
-      channels,
-      toggleChannel,
+      /** 文言を書いた経路(保存する経路) */
+      channels: filledChannels(content),
       content,
       setChannelContent,
       variables,

@@ -89,9 +89,6 @@ export function AdminMessageTemplateList({ basePath = "/admin/messaging/template
                       {template.category}
                     </Span>
                     <Span size="sm" tone="muted">
-                      {template.channels.join(" / ")}
-                    </Span>
-                    <Span size="sm" tone="muted">
                       {when(template.updatedAt ?? template.createdAt)}
                     </Span>
                   </Flex>

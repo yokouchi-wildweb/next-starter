@@ -9,7 +9,7 @@
 import { useEffect } from "react";
 
 import { Button } from "@/components/Form/Button";
-import { Input, SelectInput, SwitchInput, Textarea } from "@/components/Form/Input/Manual";
+import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -27,7 +27,7 @@ import { TemplateStatusBadge } from "@/features/core/messaging/components/common
 import { TemplateVariablesEditor } from "@/features/core/messaging/components/common/TemplateVariablesEditor";
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
 import { useMessageTemplate, useMessageTemplateOptions } from "@/features/core/messaging/hooks/useMessageTemplate";
-import { useMessageTemplateForm } from "@/features/core/messaging/hooks/useMessageTemplateForm";
+import { emptyChannelContent, useMessageTemplateForm } from "@/features/core/messaging/hooks/useMessageTemplateForm";
 import { useMessageTemplateVersions } from "@/features/core/messaging/hooks/useMessageTemplateVersions";
 import type {
   AdminTemplateDetail,
@@ -92,7 +92,8 @@ function TemplateForm({
   }, [form.createdId, router, basePath]);
 
   const channelLabel = (key: string) => options.channels.find((channel) => channel.key === key)?.label ?? key;
-  // 受け口から消えた経路が中身に残っていれば、その経路も選んだまま見せる
+  // 経路は選ばない(D85): 使える経路の欄を全部出し、文言を書いた経路がテンプレートの経路になる。
+  // 受け口から消えた経路が中身に残っていれば、その経路の欄も見せる(保存の検査で止まる)
   const channelChoices = [
     ...options.channels,
     ...fields.channels.filter((key) => !options.channels.some((c) => c.key === key)).map((key) => ({ key, label: `${key}(使えない経路)` })),
@@ -148,35 +149,23 @@ function TemplateForm({
             onChange={(v) => fields.setCategory(v ? String(v) : "")}
           />
         </Stack>
-        <Stack space={1}>
-          <Label className="text-sm">経路</Label>
-          <Flex gap="sm" wrap="wrap">
-            {channelChoices.map((channel) => (
-              <SwitchInput
-                key={channel.key}
-                size="sm"
-                value={fields.channels.includes(channel.key)}
-                onChange={(on) => fields.toggleChannel(channel.key, on)}
-                label={channel.label}
-                disabled={locked}
-              />
-            ))}
-          </Flex>
-        </Stack>
+        <Para size="sm" tone="muted" className="my-0">
+          文言を書いた経路がテンプレートの経路になります(送る経路は送る時のカテゴリーで決まります)
+        </Para>
       </Stack>
 
       <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4">
         <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} />
       </Stack>
 
-      {fields.channels.map((channel) => (
+      {channelChoices.map(({ key: channel }) => (
         <Stack key={channel} space={3} className="rounded-md border border-border bg-card p-4">
           <SecTitle as="h2" size="lg">
             {channelLabel(channel)}
           </SecTitle>
           <TemplateChannelFields
             channel={channel}
-            value={fields.content[channel] ?? {}}
+            value={fields.content[channel] ?? emptyChannelContent(channel)}
             onChange={(value) => fields.setChannelContent(channel, value)}
             disabled={locked}
           />

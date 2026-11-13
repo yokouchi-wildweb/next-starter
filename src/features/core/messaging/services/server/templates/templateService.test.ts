@@ -1,7 +1,8 @@
 // 保存されたテンプレートの service の検査(DB・台帳・監査は偽物)
 // - 作る(draft)・下書きの更新・公開(版を追記、版は不変、current_version を進める)・取り下げ・版の一覧と 1 版・監査
-// - 保存時の検査: 経路の欄・種類・変数の宣言(一意・予約の鍵・secret の型)・{{鍵}} は共通の文脈 ∪ provides ∪ 変数だけ
-// - 画面の選択肢(有効な経路・種類・基本の鍵)
+// - 保存時の検査: 文言の鍵 = 有効な経路の鍵・少なくとも 1 つ・経路の欄・種類(種別 announcement・direct・marketing だけ)・変数の宣言
+//   (一意・予約の鍵・secret の型)・{{鍵}} は共通の文脈 ∪ provides ∪ 変数だけ。経路の組は持たない(D85)
+// - 画面の選択肢(有効な経路・3 つの種別の種類・基本の鍵)
 // - 変更の無い公開・取り下げ済みの操作は 409、同じ鍵は 409、管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/templates
 import { test } from "node:test";
@@ -37,7 +38,11 @@ const channels: Record<string, MessageChannel> = {
   },
   line: { key: "line", label: "LINE", addressing: "user", enabled: false, fields: z.object({ text: z.string() }), send: async () => [] },
 };
-const categories: Record<string, MessageCategory> = { marketing: { key: "marketing", label: "お知らせ", kind: "marketing", channels: ["email", "inApp"] } };
+const categories: Record<string, MessageCategory> = {
+  marketing: { key: "marketing", label: "お知らせ", kind: "marketing", channels: ["email", "inApp"] },
+  activity: { key: "activity", label: "反応", kind: "activity", channels: ["email", "inApp"] },
+  account: { key: "account", label: "手続き", kind: "transactional", channels: ["email"] },
+};
 
 function setup(options: { role?: string } = {}) {
   const templates: MessageTemplate[] = [];
@@ -100,7 +105,6 @@ const input = (extra: Record<string, unknown> = {}) => ({
   key: "spring-sale",
   name: "春のセール",
   category: "marketing",
-  channels: ["email", "inApp"],
   content: {
     email: { subject: "{{displayName}} 様へ {{discount}} 割引", paragraphs: ["{{serviceName}} より"] },
     inApp: { title: "セール", body: "{{discount}} 割引" },
@@ -131,7 +135,8 @@ test("作る → 公開 → 直す → 公開: 版は不変で current_version �
   assert.equal(published.status, "published");
   assert.equal(published.currentVersion, 1);
   assert.equal(published.hasUnpublishedChanges, false);
-  assert.deepEqual(versions[0].channels, ["email", "inApp"]);
+  assert.deepEqual(Object.keys(versions[0].content), ["email", "inApp"]);
+  assert.equal("channels" in versions[0], false);
   assert.equal(versions[0].category, "marketing");
   assert.equal(versions[0].variables[0].key, "discount");
 
@@ -173,8 +178,15 @@ test("保存時の検査(400)と同じ鍵(409)", async () => {
   const cases: Record<string, unknown>[] = [
     { key: "Bad Key" },
     { category: "nope" },
-    { channels: ["email", "line"] },
+    // 3 つの種別でない種類はテンプレートに使えない
+    { category: "activity" },
+    { category: "account" },
+    // 経路の組は受けない(文言の鍵で決まる)
     { channels: ["email"] },
+    // 文言の鍵は有効な経路の鍵(line は enabled: false)、少なくとも 1 つ
+    { content: { email: { subject: "s" }, line: { text: "x" } } },
+    { content: { push: { title: "x" } } },
+    { content: {} },
     { content: { email: { subject: "" }, inApp: { title: "t", body: "b" } } },
     { content: { email: { subject: "{{unknown}}" }, inApp: { title: "t", body: "b" } } },
     { variables: [{ key: "serviceName", label: "x", type: "string", required: true, source: "dispatch" }] },
@@ -194,6 +206,9 @@ test("保存時の検査(400)と同じ鍵(409)", async () => {
   await service.createTemplate(input());
   await rejectsWith(service.createTemplate(input()), 409);
   await rejectsWith(service.updateTemplate(templates[0].id, { content: { email: { subject: "{{nope}}" }, inApp: { title: "t", body: "b" } } }), 400);
+  // 文言は 1 経路だけでもよい(経路 = 文言のある経路)
+  const one = await service.createTemplate(input({ key: "one", content: { inApp: { title: "t", body: "b" } } }));
+  assert.deepEqual(Object.keys(one.content), ["inApp"]);
 });
 
 test("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤りは 400", async () => {
@@ -213,7 +228,7 @@ test("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤�
   await rejectsWith(service.getTemplateVersion(a.id, 9), 404);
 });
 
-test("画面の選択肢: 有効な経路だけ・種類・変数の前から使える鍵", async () => {
+test("画面の選択肢: 有効な経路だけ・3 つの種別の種類だけ・変数の前から使える鍵", async () => {
   const { service } = setup();
   const options = await service.templateOptions();
   assert.deepEqual(options.channels, [
