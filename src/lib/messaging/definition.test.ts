@@ -244,6 +244,7 @@ test("種別の性質の表(D80)", () => {
   assert.deepEqual(kindsWhere((t) => !t.throttle), ["functional", "security"]);
   assert.deepEqual(kindsWhere((t) => !t.adminTextOverride), ["functional"]);
   assert.deepEqual(kindsWhere((t) => t.emailFixed), ["functional", "security"]);
+  assert.deepEqual(kindsWhere((t) => t.sendInEntry), ["security"]);
   assert.equal(MESSAGE_KIND_TRAITS.direct.recordDefault, "full");
   assert.equal(MESSAGE_KIND_TRAITS.security.recordDefault, "meta");
   assert.equal(kindTraits("transactional")?.recordDefault, "vars");

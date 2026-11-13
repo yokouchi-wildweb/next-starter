@@ -51,6 +51,11 @@ export type MessageKindTraits = {
   throttle: boolean;
   /** 種類の経路の上書きで email を外せないか(functional・security のメール、D86) */
   emailFixed: boolean;
+  /**
+   * 送る口の中ですぐ送るか(security、D72・D80): 予約・宛先の集め方は 400(選んだ宛先だけ)、宛先が多くても後回しの列に入れず
+   * 展開して最初の 1 束を口の中で送る
+   */
+  sendInEntry: boolean;
 };
 
 const BASE: MessageKindTraits = {
@@ -62,6 +67,7 @@ const BASE: MessageKindTraits = {
   adminTextOverride: true,
   throttle: true,
   emailFixed: false,
+  sendInEntry: false,
 };
 
 /** 種別ごとの性質の表(D80。細部は計画書 04) */
@@ -76,7 +82,7 @@ export const MESSAGE_KIND_TRAITS: Readonly<Record<MessageKind, MessageKindTraits
     emailFixed: true,
   },
   transactional: { ...BASE },
-  security: { ...BASE, addressStop: "hardBounce", recordDefault: "meta", throttle: false, emailFixed: true },
+  security: { ...BASE, addressStop: "hardBounce", recordDefault: "meta", throttle: false, emailFixed: true, sendInEntry: true },
   announcement: { ...BASE, adminFreeText: ["all", "role", "audience", "users"], recordDefault: "full" },
   direct: { ...BASE, adminFreeText: ["users", "bulk"], recordDefault: "full" },
   activity: { ...BASE, userStoppable: true },

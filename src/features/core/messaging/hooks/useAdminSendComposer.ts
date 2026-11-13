@@ -5,7 +5,8 @@
 // 管理: 送る画面の書く欄と操作(部品 AdminMessageComposer はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
 // - 中身: 公開中のテンプレート(変数の値は回に 1 組)か、その場で書く(email・inApp)
 // - 宛先: 全員・ロール・宛先の集め方(audiences の受け口)・選んだ利用者
-// - 種別: 取引(transactional)は選んだ利用者宛ての時だけ(D40。宛先を変えたら marketing に戻す。API と service も同じ守り)
+// - カテゴリー: 選択肢 options.categories(種別 announcement・direct・marketing)を宛先の種類で絞る(その場で書く時は email・inApp の物だけ)。
+//   選んだ物が絞りから外れたら最初の物(API と service も種別の性質 adminFreeText で同じ守り)
 // - 予約: 今送る / 時刻(ISO、今より後で maxScheduleDays 日まで。粒度は cron の周期)
 // - 操作: プレビュー・見込み・自分へのテスト送信・送る。二重送信を防ぐ鍵は画面を開いたときに 1 つ(送った後に作り直す)
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard)
@@ -34,7 +35,6 @@ import { ADMIN_SEND_KEY } from "./sendKeys";
 
 export type ComposerSource = "template" | "adhoc";
 export type ComposerAudienceType = "all" | "role" | "audience" | "users";
-export type ComposerKind = "marketing" | "transactional";
 
 type TemplateOption = AdminSendOptions["templates"][number];
 
@@ -77,7 +77,7 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
   const [roles, setRoles] = useState<string[]>([]);
   const [audienceKey, setAudienceKey] = useState("");
   const [userIds, setUserIds] = useState<string[]>([]);
-  const [kind, setKindState] = useState<ComposerKind>("marketing");
+  const [chosenCategory, setCategory] = useState<string>("");
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
   const [scheduledAt, setScheduledAtState] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState(newKey);
@@ -121,15 +121,18 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
     },
     [options],
   );
-  const setAudienceType = useCallback((next: ComposerAudienceType) => {
-    setAudienceTypeState(next);
-    // 取引の連絡は選んだ利用者宛てだけ(D40)
-    if (next !== "users") setKindState("marketing");
-  }, []);
-  const setKind = useCallback(
-    (next: ComposerKind) => setKindState(next === "transactional" && audienceType !== "users" ? "marketing" : next),
-    [audienceType],
+  const setAudienceType = useCallback((next: ComposerAudienceType) => setAudienceTypeState(next), []);
+  /** 今の宛先の種類と中身で選べるカテゴリー */
+  const allowedCategories = useMemo(
+    () =>
+      (options?.categories ?? []).filter(
+        (option) => option.audiences.includes(audienceType) && (source !== "adhoc" || option.adhoc),
+      ),
+    [options, audienceType, source],
   );
+  const category = allowedCategories.some((option) => option.key === chosenCategory)
+    ? chosenCategory
+    : (allowedCategories[0]?.key ?? "");
   const toggleChannel = useCallback((channel: string, on: boolean) => {
     setChannels((prev) => (on ? (prev.includes(channel) ? prev : [...prev, channel]) : prev.filter((c) => c !== channel)));
     setPreview(null);
@@ -141,7 +144,7 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
       return {
         message: { type: "template", templateId, vars: templateVarsForInput(template, varValues) },
         channels: channels.length > 0 ? channels : undefined,
-        kind,
+        category,
       };
     }
     return {
@@ -151,9 +154,9 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
         ...(channels.includes("inApp") ? { inApp: { title: inAppTitle.trim(), body: inAppBody.trim() } } : {}),
       },
       channels,
-      kind,
+      category,
     };
-  }, [source, templateId, template, varValues, channels, kind, emailSubject, emailBody, inAppTitle, inAppBody]);
+  }, [source, templateId, template, varValues, channels, category, emailSubject, emailBody, inAppTitle, inAppBody]);
 
   const buildAudience = useCallback((): AdminSendInput["audience"] => {
     if (audienceType === "role") return { type: "role", roles };
@@ -210,8 +213,9 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
     if (audienceType === "role" && roles.length === 0) return "ロールを選んでください";
     if (audienceType === "audience" && !audienceKey) return "宛先の集め方を選んでください";
     if (audienceType === "users" && userIds.length === 0) return "利用者を選んでください";
+    if (!category) return "この宛先に送れるカテゴリーがありません";
     return null;
-  }, [audienceType, roles, audienceKey, userIds]);
+  }, [audienceType, roles, audienceKey, userIds, category]);
 
   const dirty =
     sent === null &&
@@ -277,8 +281,8 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
     scheduleError,
     /** 送れるか(誤りが無い) */
     canSend: !contentError && !audienceError && !scheduleError,
-    /** 取引を選べるか(選んだ利用者宛ての時だけ) */
-    transactionalAllowed: audienceType === "users",
+    /** 今の宛先の種類と中身で選べるカテゴリー */
+    allowedCategories,
     buildContent,
     buildAudience,
     buildInput,
@@ -312,8 +316,8 @@ export function useAdminSendComposer(options: AdminSendOptions | null) {
       setAudienceKey,
       userIds,
       setUserIds,
-      kind,
-      setKind,
+      category,
+      setCategory,
       scheduleMode,
       setScheduleMode,
       scheduledAt,

@@ -2,7 +2,7 @@
 // /api/admin/messaging/send 以下の 5 ファイルの検査(Factory・門・messaging の service は偽物。入口の守りは本物)。
 // - 宣言: 全部の口が access { roleCategories: ["admin"] }
 // - 門 messagingBroadcast が閉なら 404 で service を呼ばない
-// - 取引の連絡を全員・ロール・audiences へ送る要求は API で 400(service を呼ばない、AMENDMENT 1)
+// - カテゴリーと宛先の組の検査は service だけ(API は body をそのまま渡す。前の kind の入口の守りは無い)
 // - body をそのまま service へ渡す
 // 実行: pnpm test src/app/api/admin/messaging/send/route.test.mts
 
@@ -88,15 +88,11 @@ test("body をそのまま渡す", async () => {
   ]);
 });
 
-test("取引を全員・ロール・audiences へ: API で 400、選んだ利用者は通す", async () => {
-  for (const audience of [{ type: "all" }, { type: "role", roles: ["user"] }, { type: "audience", key: "x" }, undefined]) {
-    const res = await send.POST(post("", { kind: "transactional", audience }));
-    assert.equal(res.status, 400);
-  }
-  assert.equal(calls.length, 0);
-  const ok = await send.POST(post("", { kind: "transactional", audience: { type: "users", userIds: ["u1"] } }));
-  assert.equal(ok.status, 200);
-  assert.equal(calls.length, 1);
+test("カテゴリーの body は入口で止めずに service へ渡す(検査は service)", async () => {
+  const body = { category: "operatorDirect", audience: { type: "all" } };
+  const res = await send.POST(post("", body));
+  assert.equal(res.status, 200);
+  assert.deepEqual(calls, [["adminSend", body]]);
 });
 
 test("門が閉なら 404 で service を呼ばない", async () => {

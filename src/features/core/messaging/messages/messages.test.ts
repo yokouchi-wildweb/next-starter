@@ -1,7 +1,7 @@
-// 管理者の連絡(messaging.adminMessage)の検査:
-// - メールの件名と見える文面が前の管理者のお知らせのメール(mail/AdminAnnouncementEmail.tsx)と同じ(前のメールを描いて写した値)
+// 管理者がその場で書く連絡 3 本(messaging.adminAnnouncement・adminDirect・adminMarketing)の検査:
+// - 種別ごとの定義がその種別の上流のカテゴリーで、欄は 3 本同じ。admin/freeText.ts の表と同じ
+// - メールの件名と見える文面(経路の既定の描き方、本文の改行はそのまま)
 // - お知らせ(inApp)の題・本文は管理者が書いた値そのまま、宛名は enrichers/displayName(名前が無ければ「お客様」)
-// - 描き方は段落が欠けても落ちない
 // 実行: pnpm test src/features/core/messaging/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -13,8 +13,11 @@ import { MAIL_THEME_COLORS } from "@/lib/mail";
 import type { EmailFields } from "@/lib/messaging";
 
 import { enricher as displayNameEnricher } from "../enrichers/displayName";
-import { message as adminMessage } from "./adminMessage";
-import { EmailView as AdminMessageView } from "./views/adminMessage";
+import { EmailView } from "../channels/email/view";
+import { ADMIN_FREE_TEXT_DEFINITIONS, ADMIN_FREE_TEXT_MESSAGE_KEYS } from "../services/server/admin/freeText";
+import { message as adminAnnouncement } from "./adminAnnouncement";
+import { message as adminDirect } from "./adminDirect";
+import { message as adminMarketing } from "./adminMarketing";
 import { categories } from "@/features/core/messaging/extensions/categories";
 
 type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
@@ -55,8 +58,32 @@ async function draw(
   return { subject: content.subject, text: visibleText(html) };
 }
 
-test("メール: 件名と文面が前の管理者のお知らせのメールと同じ(本文の改行はそのまま)", async () => {
-  const drawn = await draw(adminMessage, AdminMessageView, {
+test("種別ごとの定義 3 本: その種別の上流のカテゴリー、欄は同じ、freeText の表と同じ", () => {
+  assert.deepEqual(
+    [adminAnnouncement, adminDirect, adminMarketing].map((m) => [m.key, m.category, categories[m.category].kind]),
+    [
+      ["messaging.adminAnnouncement", "announcement", "announcement"],
+      ["messaging.adminDirect", "operatorDirect", "direct"],
+      ["messaging.adminMarketing", "marketing", "marketing"],
+    ],
+  );
+  assert.deepEqual(ADMIN_FREE_TEXT_DEFINITIONS, { announcement: adminAnnouncement, direct: adminDirect, marketing: adminMarketing });
+  for (const m of [adminDirect, adminMarketing]) {
+    assert.deepEqual(m.content, adminAnnouncement.content);
+    assert.deepEqual(Object.keys(m.vars.shape), Object.keys(adminAnnouncement.vars.shape));
+  }
+  assert.deepEqual(categories.announcement, {
+    key: "announcement",
+    label: "運営からのお知らせ",
+    description: "メンテナンスや規約の改定など運営からのお知らせ",
+    kind: "announcement",
+    channels: ["email", "inApp"],
+  });
+  assert.equal(categories.marketing.label, "キャンペーン情報");
+});
+
+test("メール: 件名と見える文面(本文の改行はそのまま)", async () => {
+  const drawn = await draw(adminAnnouncement, EmailView as View, {
     subject: "件名です",
     body: "一行目\n二行目",
     inAppTitle: "",
@@ -65,28 +92,13 @@ test("メール: 件名と文面が前の管理者のお知らせのメールと
     displayName: "山田",
   } as Record<string, string>, ["displayName"]);
   assert.equal(drawn.subject, "件名です");
-  assert.equal(
-    drawn.text,
-    "【next-starter】件名です next-starter からのお知らせ 山田 様 一行目 二行目 ご不明な点がございましたら、 お気軽にお問い合わせください。",
-  );
+  assert.match(drawn.text, /next-starter からのお知らせ 山田 様 一行目 二行目 ご不明な点がございましたら、 お気軽にお問い合わせください。/);
 });
 
-test("お知らせ: 題と本文は書いた値。宛名は名前が無ければ「お客様」", async () => {
-  assert.deepEqual(fill(adminMessage.content.inApp, { inAppTitle: "題", inAppBody: "本文" }), { title: "題", body: "本文" });
-  const ctx = (name: string | null) => ({ messageKey: "messaging.adminMessage" as const, recipient: { userId: "u1", name, email: null }, vars: {} });
+test("お知らせ: 題と本文は書いた値。宛名は名前が無ければ「お客様」、enricher は 3 本に当たる", async () => {
+  assert.deepEqual(fill(adminDirect.content.inApp, { inAppTitle: "題", inAppBody: "本文" }), { title: "題", body: "本文" });
+  const ctx = (name: string | null) => ({ messageKey: "messaging.adminDirect" as const, recipient: { userId: "u1", name, email: null }, vars: {} });
   assert.deepEqual(await displayNameEnricher.resolve(ctx("山田")), { displayName: "山田" });
   assert.deepEqual(await displayNameEnricher.resolve(ctx(null)), { displayName: "お客様" });
-  assert.deepEqual(displayNameEnricher.messages, ["messaging.adminMessage"]);
-});
-
-test("種類 marketing(好みに従う、表示名 キャンペーン情報)、経路はメールとお知らせ", () => {
-  assert.equal(adminMessage.category, "marketing");
-  assert.equal(categories.marketing.kind, "marketing");
-  assert.equal(categories.marketing.label, "キャンペーン情報");
-  assert.deepEqual(categories.marketing.channels, ["email", "inApp"]);
-});
-
-test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {
-  const html = await render(createElement(AdminMessageView as never, { content: { subject: "s", paragraphs: ["一つだけ"] }, theme: MAIL_THEME_COLORS }));
-  assert.ok(visibleText(html).includes("一つだけ"));
+  assert.deepEqual(displayNameEnricher.messages, ADMIN_FREE_TEXT_MESSAGE_KEYS);
 });

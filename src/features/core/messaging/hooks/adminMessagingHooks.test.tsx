@@ -23,7 +23,7 @@ g.IntersectionObserver = class {
   disconnect() {}
 };
 
-const summary = (id: string) => ({ id, headings: {}, messageKey: "messaging.adminMessage" });
+const summary = (id: string) => ({ id, headings: {}, messageKey: "messaging.adminMarketing" });
 const listCalls: Record<string, unknown>[] = [];
 const deliveryCalls: { id: string; params: Record<string, unknown> }[] = [];
 const sends: Record<string, unknown>[] = [];
@@ -61,6 +61,12 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
       operations.push(["resend", id, input]);
       return { dispatchId: id, mode: "requeue", failed: 1, unknown: 0, newDispatchId: null };
     },
+    getAdminBulkSendOptions: async () => ({
+      categories: [
+        { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"], adhoc: true },
+        { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"], audiences: ["bulk"], adhoc: true },
+      ],
+    }),
     adminBulkSend: async (input: Record<string, unknown>) => {
       sends.push(input);
       return { dispatchId: "disp-1", status: "completed", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 0 }, afterSend: { ok: true } };
@@ -143,13 +149,12 @@ test("useContinueDispatch: client を呼び、回 1 件を取り直す", async (
   await view.unmount();
 });
 
-test("useAdminBulkSendForm: 選んだ経路だけの中身で送り、onSent → onSuccess", async () => {
+test("useAdminBulkSendForm: 選んだ経路だけの中身とカテゴリーで送り、onSent → onSuccess", async () => {
   const events: string[] = [];
   const view = await mount(() =>
     hooks.useAdminBulkSendForm({
       ids: ["r1", "r2"],
       target: "bankTransferReview",
-      defaultKind: "transactional",
       defaults: { inAppTitle: "題", inAppBody: "本文" },
       onSent: (res) => events.push(`sent:${res.dispatchId}`),
       onSuccess: () => events.push("success"),
@@ -157,6 +162,10 @@ test("useAdminBulkSendForm: 選んだ経路だけの中身で送り、onSent →
   );
   assert.equal(view.value().isValid, false, "メールの件名・本文が空の間は送れない");
   await act(async () => view.value().setOpen(true));
+  // 開いている間に選択肢を取る。既定は operatorDirect(D81)
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  assert.deepEqual(view.value().fields.categories.map((c) => c.key), ["operatorDirect", "marketing"]);
+  assert.equal(view.value().fields.category, "operatorDirect");
   await act(async () => {
     view.value().fields.setEmailSubject(" 件名 ");
     view.value().fields.setEmailBody("本文です");
@@ -168,7 +177,8 @@ test("useAdminBulkSendForm: 選んだ経路だけの中身で送り、onSent →
   const input = sends[0];
   assert.equal(input.target, "bankTransferReview");
   assert.deepEqual(input.recordIds, ["r1", "r2"]);
-  assert.equal(input.kind, "transactional");
+  assert.equal(input.category, "operatorDirect");
+  assert.equal("kind" in input, false);
   assert.deepEqual(input.channels, ["email", "inApp"]);
   assert.deepEqual(input.email, { subject: "件名", body: "本文です" });
   assert.deepEqual(input.inApp, { title: "題", body: "本文" });

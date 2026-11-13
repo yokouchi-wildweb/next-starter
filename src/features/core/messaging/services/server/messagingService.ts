@@ -4,6 +4,7 @@
 
 import {
   adminBulkSend,
+  adminBulkSendOptions,
   adminCancelScheduled,
   adminContinueSending,
   adminResendFailed,
@@ -52,8 +53,10 @@ export const messagingService = {
   existingIdempotencyKeys,
   /** 1 つの回を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */
   continueSending,
-  /** 管理の一括送信(連絡 messaging.adminMessage、/api/admin/messaging/bulk-send が呼ぶ。service でも管理者を確かめる) */
+  /** 管理の一括送信(選んだカテゴリーの種別の定義、/api/admin/messaging/bulk-send が呼ぶ。service でも管理者を確かめる) */
   adminBulkSend,
+  /** 一括送信の選択肢(一覧の一括で送れるカテゴリー、GET /api/admin/messaging/bulk-send) */
+  adminBulkSendOptions,
   /** 管理の送信(/api/admin/messaging/send/**): 送る(今か予約)・プレビュー・見込み・自分へのテスト・選択肢 */
   adminSend,
   adminSendPreview,

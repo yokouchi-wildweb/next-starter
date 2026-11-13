@@ -65,7 +65,7 @@ test("sendEmail: 連絡の一括送信のボタンを target bankTransferReview�
   assert.equal(props?.onSuccess, onDone);
   assert.equal(props?.disabled, false);
   assert.equal(props?.recordNoun, "振込レビュー");
-  assert.equal(props?.defaultKind, "transactional");
+  assert.equal(props?.defaultCategory, "operatorDirect");
   assert.deepEqual(props?.defaults, {
     inAppTitle: "お振込に関するお知らせ",
     inAppBody:

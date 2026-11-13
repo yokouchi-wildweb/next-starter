@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/AdminMessageComposer/index.tsx
-// セクションコンテナ(管理: 連絡を送る)。中身(公開中のテンプレート or その場で書く)・経路・宛先・種別・予約・
+// セクションコンテナ(管理: 連絡を送る)。中身(公開中のテンプレート or その場で書く)・経路・宛先・カテゴリー・予約・
 // プレビュー・自分へのテスト送信・送る(宛先数の見込みつきの確認)。結果から送った回の画面へ。
 // 書く欄の状態と操作は hook useAdminSendComposer。取引の連絡は選んだ利用者宛ての時だけ選べる(D40)
 
@@ -235,7 +235,7 @@ function Composer({ options, dispatchBasePath = "/admin/messaging" }: AdminMessa
         ) : null}
       </Stack>
 
-      {/* 宛先と種別 */}
+      {/* 宛先とカテゴリー */}
       <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="composer-audience">
         <SecTitle as="h2" size="lg">
           宛先
@@ -271,20 +271,17 @@ function Composer({ options, dispatchBasePath = "/admin/messaging" }: AdminMessa
           <UserAsyncMultiSelect value={fields.userIds} onChange={(v) => fields.setUserIds(v.map(String))} />
         ) : null}
         <Stack space={1}>
-          <Label htmlFor="composer-kind" className="text-sm">
-            種別
+          <Label htmlFor="composer-category" className="text-sm">
+            カテゴリー
           </Label>
           <SelectInput
-            id="composer-kind"
-            value={fields.kind}
-            options={[
-              { value: "marketing", label: "お知らせ(受け取りの設定に従う)" },
-              ...(composer.transactionalAllowed ? [{ value: "transactional", label: "業務の連絡(受け取りの設定で止めない)" }] : []),
-            ]}
-            onChange={(v) => fields.setKind(v === "transactional" ? "transactional" : "marketing")}
+            id="composer-category"
+            value={fields.category}
+            options={composer.allowedCategories.map((option) => ({ value: option.key, label: option.label }))}
+            onChange={(v) => fields.setCategory(String(v ?? ""))}
           />
           <Span size="xs" tone="muted">
-            業務の連絡は選んだ利用者宛ての時だけ選べます
+            宛先によって選べるカテゴリーが変わります(運営からの個別の連絡は選んだ利用者宛ての時だけ)
           </Span>
         </Stack>
         {composer.audienceError ? (

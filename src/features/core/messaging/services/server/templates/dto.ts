@@ -25,7 +25,7 @@ export type AdminTemplateDetail = AdminTemplateSummary & {
   /** 今の中身(下書き。公開した版は versions で読む) */
   content: Record<string, unknown>;
   variables: MessageTemplateVariable[];
-  /** 本文で使ってよい {{鍵}}(共通の文脈 ∪ adminMessage の provides ∪ 宣言した変数) */
+  /** 本文で使ってよい {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides ∪ 宣言した変数) */
   allowedKeys: string[];
   /** 今の中身が最新の版と違う(公開していない変更がある。版が無ければ true) */
   hasUnpublishedChanges: boolean;
@@ -50,6 +50,6 @@ export type AdminTemplateOptions = {
   channels: { key: string; label: string }[];
   /** 種類 */
   categories: { key: string; label: string; description: string | null }[];
-  /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ adminMessage の provides) */
+  /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides) */
   baseAllowedKeys: string[];
 };

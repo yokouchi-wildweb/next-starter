@@ -14,18 +14,22 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { ADMIN_FREE_TEXT_MESSAGE_KEYS } from "../admin/freeText";
 import { enricherKeysFor } from "../sendMessage/definition";
 import { storageTemplateImageLedger } from "./imageBindingLedger";
 import { drizzleMessageTemplateStore } from "./store";
 import { createTemplateService } from "./templateService";
 
-/** テンプレートを送る時の連絡(管理者の連絡。provides はこの鍵に当たる enrichers) */
-const TEMPLATE_MESSAGE_KEY = "messaging.adminMessage";
+/** テンプレートで使える provides = 送る時の鍵(種別ごとの管理の定義 3 本)のどれにも当たる enrichers の鍵 */
+function templateProvidedKeys(): string[] {
+  const [first, ...rest] = ADMIN_FREE_TEXT_MESSAGE_KEYS.map((key) => enricherKeysFor(key, enrichers));
+  return (first ?? []).filter((key) => rest.every((keys) => keys.includes(key)));
+}
 
 const service = createTemplateService({
   store: drizzleMessageTemplateStore,
   ledger: storageTemplateImageLedger,
-  check: () => ({ channels, categories, providedKeys: enricherKeysFor(TEMPLATE_MESSAGE_KEY, enrichers) }),
+  check: () => ({ channels, categories, providedKeys: templateProvidedKeys() }),
   context: () => getAuditContext(),
   async roleCategoryOf(userId) {
     const [row] = await db.select({ role: UserTable.role }).from(UserTable).where(eq(UserTable.id, userId)).limit(1);

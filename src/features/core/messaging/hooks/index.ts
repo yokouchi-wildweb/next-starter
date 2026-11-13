@@ -7,12 +7,17 @@ export { useInboxUnreadCount } from "./useInboxUnreadCount";
 export { useMarkInboxItemRead } from "./useMarkInboxItemRead";
 export { useMarkAllInboxRead } from "./useMarkAllInboxRead";
 export { ADMIN_MESSAGING_KEY, ADMIN_DISPATCHES_KEY, adminDispatchKey } from "./adminMessagingKeys";
-export { useAdminBulkSend } from "./useAdminBulkSend";
+export { useAdminBulkSend, useAdminBulkSendOptions } from "./useAdminBulkSend";
 export { useAdminDispatches, type UseAdminDispatchesOptions } from "./useAdminDispatches";
 export { useAdminDispatch } from "./useAdminDispatch";
 export { useAdminDispatchDeliveries, type UseAdminDispatchDeliveriesOptions } from "./useAdminDispatchDeliveries";
 export { useContinueDispatch } from "./useContinueDispatch";
-export { useAdminBulkSendForm, type UseAdminBulkSendFormOptions, type AdminBulkSendDefaults, type AdminBulkSendKind } from "./useAdminBulkSendForm";
+export {
+  ADMIN_BULK_SEND_DEFAULT_CATEGORY,
+  useAdminBulkSendForm,
+  type UseAdminBulkSendFormOptions,
+  type AdminBulkSendDefaults,
+} from "./useAdminBulkSendForm";
 export {
   MESSAGE_PREFERENCE_ALL,
   MESSAGE_PREFERENCES_KEY,
@@ -48,7 +53,6 @@ export {
   templateVarsForInput,
   scheduleErrorOf,
   type ComposerAudienceType,
-  type ComposerKind,
   type ComposerSource,
 } from "./useAdminSendComposer";
 export { useCancelDispatch } from "./useCancelDispatch";

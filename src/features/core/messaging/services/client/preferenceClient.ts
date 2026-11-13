@@ -10,9 +10,7 @@ import { normalizeHttpError } from "@/lib/errors";
 
 import type {
   MessagePreferenceCategoryDto,
-  MessagePreferenceCategoryRowDto,
   MessagePreferenceCategoryStopDto,
-  MessagePreferenceCellDto,
   MessagePreferenceChannelDto,
   MessagePreferenceGroupDto,
   MessagePreferenceKindDto,
@@ -26,9 +24,7 @@ import { MESSAGE_PREFERENCES_API_PATH } from "../../constants/preferences";
 
 export type {
   MessagePreferenceCategoryDto,
-  MessagePreferenceCategoryRowDto,
   MessagePreferenceCategoryStopDto,
-  MessagePreferenceCellDto,
   MessagePreferenceChannelDto,
   MessagePreferenceGroupDto,
   MessagePreferenceKindDto,

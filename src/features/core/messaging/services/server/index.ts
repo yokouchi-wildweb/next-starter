@@ -5,7 +5,7 @@ export type { MessagingService } from "./messagingService";
 
 export { sendMessage, sendMessageToMany, sendTemplate } from "./sendMessage";
 /** 管理の送信の API の入口の守り(取引は選んだ利用者宛てだけ) */
-export { assertAdminSendKind } from "./admin";
+export { ADMIN_FREE_TEXT_KINDS, ADMIN_FREE_TEXT_MESSAGE_KEYS, adminFreeTextMessageKeyOf } from "./admin";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 /** 購読(cron messaging-subscribers と運用の再処理) */
 export { reprocessQuarantinedEvents, runMessageSubscribers } from "./subscribers";
@@ -22,9 +22,7 @@ export type {
 export { deletePreferencesOfUser, getMessagePreferences, setMessagePreference } from "./preferences";
 export type {
   MessagePreferenceCategoryDto,
-  MessagePreferenceCategoryRowDto,
   MessagePreferenceCategoryStopDto,
-  MessagePreferenceCellDto,
   MessagePreferenceChannelDto,
   MessagePreferenceGroupDto,
   MessagePreferenceKindDto,
@@ -79,7 +77,10 @@ export type {
 export type {
   AdminBulkSendCounts,
   AdminBulkSendInput,
+  AdminBulkSendOptions,
   AdminBulkSendResult,
+  AdminFreeTextCategoryOption,
+  AdminFreeTextKind,
   AdminDeliveryRow,
   AdminDispatchDetail,
   AdminDispatchSummary,

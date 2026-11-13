@@ -2,6 +2,7 @@
 // - 送る時(予約なら予約の時)の公開版を回の template_id・template_version に固定し、後で直しても cron はその版で送る
 // - 変数の値が無い・型が合わない → 400(送る口)/ cron で回の値が版に合わない → 送らずに止める(template_vars_invalid)
 // - 取り下げ済み・未公開は 409、受信者ごとの変数に既定値が無ければ 400
+// - 回の鍵 = 送るカテゴリーの種別の管理の定義の鍵(adminMarketing・adminDirect)。種別が announcement・direct・marketing でないカテゴリーは 400
 // - テンプレートの画像(台帳の持ち主 = テンプレート)は回が複製を持つ(お知らせの画像の結び方)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/templateSend.test.ts
 import { test } from "node:test";
@@ -27,7 +28,7 @@ const deadline = () => ({ deadline: new Date(Date.now() + 60_000) });
 const enrichers: Record<string, MessageEnricher> = {
   displayName: {
     key: "displayName",
-    messages: ["messaging.adminMessage"],
+    messages: ["messaging.adminAnnouncement", "messaging.adminDirect", "messaging.adminMarketing"],
     provides: z.object({ displayName: z.string() }),
     resolve: ({ recipient }) => ({ displayName: recipient.name ?? "お客様" }),
   },
@@ -91,7 +92,7 @@ test("版を回に固定し、予約の後で直しても cron はその版で�
   const dispatch = world.store.dispatches[0];
   assert.equal(dispatch.template_id, "tpl-1");
   assert.equal(dispatch.template_version, 1);
-  assert.equal(dispatch.message_key, "messaging.adminMessage");
+  assert.equal(dispatch.message_key, "messaging.adminMarketing");
   assert.equal(dispatch.kind, "marketing");
   assert.equal(dispatch.category, "news");
   assert.deepEqual(dispatch.vars, { discount: "20" });
@@ -109,15 +110,18 @@ test("版を回に固定し、予約の後で直しても cron はその版で�
 
 test("今送る: 小さな送信は要求の中で版の中身を送る", async () => {
   const { world, channel, sender } = setup();
-  const result = await sender.sendTemplate({ templateId: "tpl-1", recipients: [{ userId: "u2" }], vars: { discount: "5" }, category: "account" });
+  const result = await sender.sendTemplate({ templateId: "tpl-1", recipients: [{ userId: "u2" }], vars: { discount: "5" }, category: "directTest" });
   assert.equal(result.status, "completed");
-  assert.equal(world.store.dispatches[0].kind, "transactional");
+  assert.equal(world.store.dispatches[0].kind, "direct");
+  assert.equal(world.store.dispatches[0].message_key, "messaging.adminDirect");
   assert.deepEqual(channel.calls.flat()[0].content, { title: "v1 5% 引き", body: "名前u2" });
 });
 
 test("送る時の検査: 値が無い・型が違う 400、取り下げ・未公開 409、無い 404、受信者ごとの変数の既定値", async () => {
   const { world, versions, state, sender } = setup();
   const base = { templateId: "tpl-1", recipients: [{ userId: "u1" }] };
+  // 3 つの種別でないカテゴリー(transactional)は 400
+  await rejectsWith(sender.sendTemplate({ ...base, vars: { discount: 1 }, category: "account" }), 400, /announcement・direct・marketing/);
   await rejectsWith(sender.sendTemplate({ ...base, vars: {} }), 400, /discount/);
   await rejectsWith(sender.sendTemplate({ ...base, vars: { discount: "たくさん" } }), 400, /discount/);
   await rejectsWith(sender.sendTemplate({ ...base, templateId: "none", vars: { discount: 1 } }), 404);

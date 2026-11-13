@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/AdminBulkSend/AdminBulkSendButton.tsx
-// 管理一覧の一括操作「一括送信」のボタン。選んだ記録 → (サーバーの bulkSendTargets の項目が)利用者 → 連絡 messaging.adminMessage。
+// 管理一覧の一括操作「一括送信」のボタン。選んだ記録 → (サーバーの bulkSendTargets の項目が)利用者 → 選んだカテゴリーの種別の管理の定義(messaging.adminDirect など)。
 // 流れ: ボタン → 書く(経路: メール / サービス内のお知らせ、種別)→ 確かめる(Dialog)→ 結果(数・後処理・回へのリンク)。
 // 記録 → 利用者の解決と送った後の業務の処理(管理メモの追記など)はサーバーの項目が持つ(D42)。画面は target の鍵だけを送る。
 // 書く欄・送信の流れは hook useAdminBulkSendForm(部品は描くだけ)
@@ -24,13 +24,13 @@ import {
 } from "@/features/core/messaging/hooks/useAdminBulkSendForm";
 import type { AdminBulkSendResult } from "@/features/core/messaging/services/client/adminMessagingClient";
 
-export type { AdminBulkSendDefaults, AdminBulkSendKind } from "@/features/core/messaging/hooks/useAdminBulkSendForm";
+export type { AdminBulkSendDefaults } from "@/features/core/messaging/hooks/useAdminBulkSendForm";
 
 export type AdminBulkSendButtonProps = UseAdminBulkSendFormOptions & {
   /** 記録の名詞(文に入る。例: "振込レビュー") */
   recordNoun: string;
-  /** 種別を画面で選べるか(既定 true) */
-  kindSelectable?: boolean;
+  /** カテゴリーを画面で選べるか(既定 true。false = defaultCategory で送る) */
+  categorySelectable?: boolean;
   /** 件名の placeholder */
   subjectPlaceholder?: string;
   /** ボタンの文言(既定「一括送信」) */
@@ -38,16 +38,11 @@ export type AdminBulkSendButtonProps = UseAdminBulkSendFormOptions & {
   disabled?: boolean;
 };
 
-const KIND_OPTIONS = [
-  { value: "marketing", label: "お知らせ(受け取りの設定に従う)" },
-  { value: "transactional", label: "業務の連絡(受け取りの設定で止めない)" },
-];
-
 const CHANNEL_LABELS: Record<string, string> = { email: "メール", inApp: "サービス内のお知らせ" };
 
 export function AdminBulkSendButton({
   recordNoun,
-  kindSelectable = true,
+  categorySelectable = true,
   subjectPlaceholder = "例: 重要なお知らせ",
   label = "一括送信",
   disabled = false,
@@ -73,16 +68,16 @@ export function AdminBulkSendButton({
             選んだ {count} 件の{recordNoun}に紐づく利用者へ送ります(同じ利用者には 1 通にまとめます)。
           </Para>
 
-          {kindSelectable ? (
+          {categorySelectable ? (
             <Stack space={2}>
-              <Label htmlFor="admin-bulk-send-kind" className="text-sm font-medium">
-                種別
+              <Label htmlFor="admin-bulk-send-category" className="text-sm font-medium">
+                カテゴリー
               </Label>
               <SelectInput
-                id="admin-bulk-send-kind"
-                value={fields.kind}
-                onChange={(value) => fields.setKind(value === "transactional" ? "transactional" : "marketing")}
-                options={KIND_OPTIONS}
+                id="admin-bulk-send-category"
+                value={fields.category}
+                onChange={(value) => fields.setCategory(String(value ?? ""))}
+                options={fields.categories.map((option) => ({ value: option.key, label: option.label }))}
               />
             </Stack>
           ) : null}

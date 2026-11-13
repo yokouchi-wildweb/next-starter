@@ -13,8 +13,10 @@ import type { MessageKind } from "@/lib/messaging";
 
 import type {
   AdminBulkSendInput,
+  AdminBulkSendOptions,
   AdminBulkSendResult,
 } from "@/features/core/messaging/services/server/admin/bulkSend";
+import type { AdminFreeTextCategoryOption } from "@/features/core/messaging/services/server/admin/freeText";
 import type {
   AdminDeliveryRow,
   AdminDispatchDetail,
@@ -31,7 +33,9 @@ const BASE = "/api/admin/messaging";
 
 export type {
   AdminBulkSendInput,
+  AdminBulkSendOptions,
   AdminBulkSendResult,
+  AdminFreeTextCategoryOption,
   AdminCancelResult,
   AdminDeliveryRow,
   AdminDispatchDetail,
@@ -75,7 +79,17 @@ function compact(params: Record<string, string | number | null | undefined>): Re
   return out;
 }
 
-/** 管理の一括送信(連絡 messaging.adminMessage) */
+/** 一括送信の選択肢(一覧の一括で送れるカテゴリー) */
+export async function getAdminBulkSendOptions(): Promise<AdminBulkSendOptions> {
+  try {
+    const res = await axios.get<AdminBulkSendOptions>(`${BASE}/bulk-send`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "一括送信の選択肢の取得に失敗しました");
+  }
+}
+
+/** 管理の一括送信(選んだカテゴリーの種別の管理の定義。body の category は必須) */
 export async function adminBulkSend(input: AdminBulkSendInput): Promise<AdminBulkSendResult> {
   try {
     const res = await axios.post<AdminBulkSendResult>(`${BASE}/bulk-send`, input);

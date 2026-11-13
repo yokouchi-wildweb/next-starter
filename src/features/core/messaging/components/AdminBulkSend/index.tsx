@@ -11,7 +11,7 @@ import type { BulkActionItem, BulkActionProps } from "@/lib/tableSuite";
 import { AdminBulkSendButton, type AdminBulkSendButtonProps } from "./AdminBulkSendButton";
 
 export { AdminBulkSendButton };
-export type { AdminBulkSendButtonProps, AdminBulkSendDefaults, AdminBulkSendKind } from "./AdminBulkSendButton";
+export type { AdminBulkSendButtonProps, AdminBulkSendDefaults } from "./AdminBulkSendButton";
 
 /** 項目の並べ方・出し分け(BulkActionItem の Component 以外) */
 type ItemMeta<Access> = Omit<BulkActionItem<unknown, Access>, "Component">;

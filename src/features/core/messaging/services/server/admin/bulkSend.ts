@@ -1,9 +1,9 @@
 // src/features/core/messaging/services/server/admin/bulkSend.ts
 //
-// 管理の一括送信(D40・D42)。連絡 messaging.adminMessage を選んだ利用者へ sendMessageToMany で送る。
+// 管理の一括送信(D40・D42・D80・D81)。選んだカテゴリーの種別の定義(messages/admin<Kind>.ts)を選んだ利用者へ sendMessageToMany で送る。
 // - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
-// - 種類: 既定 marketing(好みに従う)。transactional(取引)は要求で明示したときだけ、種類 operatorDirect(種別 direct)で送る
-//   (指令 37 で種別ごとの定義に替わるまでの仮、send.ts の ADMIN_CHOICE_CATEGORY。選んだ利用者宛て = 一括は性質の表の bulk)
+// - カテゴリー(必須): 種別の性質 adminFreeText に bulk がある種別(direct・marketing)のカテゴリーで、経路が email・inApp だけ(./freeText.ts、誤りは 400)。
+//   選択肢は adminBulkSendOptions(GET /api/admin/messaging/bulk-send)。一覧の一括操作の既定は direct のカテゴリー(operatorDirect、D81)
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
 // - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
 // - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す
@@ -13,10 +13,17 @@ import { z } from "zod";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
-import { message as adminMessage } from "../../../messages/adminMessage";
+import type { MessageCategory } from "@/lib/messaging";
+
+import type { AnyMessageDefinition } from "../sendMessage/definition";
 import type { SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
-import { ADMIN_CHOICE_CATEGORY } from "./send";
+import {
+  adminFreeTextCategoryOf,
+  adminFreeTextCategoryOptions,
+  adminFreeTextDefinitionOf,
+  type AdminFreeTextCategoryOption,
+} from "./freeText";
 import type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";
 
 /** 1 回の一括送信の利用者の上限 */
@@ -32,8 +39,8 @@ export const AdminBulkSendInputSchema = z
     /** 受け口 bulkSendTargets の鍵と、その一覧で選んだ記録の id */
     target: z.string().trim().min(1).optional(),
     recordIds: idList.optional(),
-    /** 種別(既定 marketing。transactional は明示したときだけ) */
-    kind: z.enum(["marketing", "transactional"]).default("marketing"),
+    /** 送るカテゴリー(種別 direct・marketing など adminFreeText に bulk がある種別) */
+    category: z.string().trim().min(1).max(100),
     channels: z.array(z.enum(["email", "inApp"])).min(1),
     email: z.object({ subject: z.string().trim().min(1), body: z.string().trim().min(1) }).optional(),
     inApp: z.object({ title: z.string().trim().min(1), body: z.string().trim().min(1) }).optional(),
@@ -44,6 +51,8 @@ export const AdminBulkSendInputSchema = z
     reason: z.string().trim().max(500).optional(),
     isTest: z.boolean().optional(),
   })
+  // 知らない鍵は 400(前の body の kind を黙って捨てない)
+  .strict()
   .superRefine((value, ctx) => {
     const byUsers = value.userIds !== undefined;
     const byTarget = value.target !== undefined || value.recordIds !== undefined;
@@ -70,7 +79,8 @@ export type AdminBulkSendResult = {
 
 export type AdminBulkSendDeps = AdminCheckDeps & {
   targets: Readonly<Record<string, MessageBulkSendTarget>>;
-  sendMessageToMany: (definition: typeof adminMessage, input: SendMessageToManyInput) => Promise<SendMessageResult>;
+  sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) => Promise<SendMessageResult>;
+  categories: Readonly<Record<string, MessageCategory>>;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   serviceNameShort: () => string;
 };
@@ -85,6 +95,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     throw new DomainError(parsed.error.issues[0]?.message ?? "入力値が不正です", { status: 400 });
   }
   const input = parsed.data;
+  const category = adminFreeTextCategoryOf(deps.categories, input.category, { audience: "bulk", adhoc: true });
 
   let target: MessageBulkSendTarget | null = null;
   let userIds: string[];
@@ -107,11 +118,10 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     ...(input.channels.includes("email") ? { email: input.email } : {}),
     ...(input.channels.includes("inApp") ? { inApp: input.inApp } : {}),
   };
-  const category = ADMIN_CHOICE_CATEGORY[input.kind];
-  const definition = category ? { ...adminMessage, category } : adminMessage;
+  const definition = adminFreeTextDefinitionOf(category);
   const source = input.source ?? (target ? `${target.key}.bulk` : "messaging.adminBulk");
 
-  const result = await deps.sendMessageToMany(definition as typeof adminMessage, {
+  const result = await deps.sendMessageToMany(definition, {
     recipients: userIds.map((userId) => ({ userId })),
     channels: input.channels,
     vars: {
@@ -150,7 +160,8 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     action: "messaging.dispatch.bulk_sent",
     metadata: {
       source,
-      kind: input.kind,
+      category: category.key,
+      kind: category.kind,
       channels: input.channels,
       recipientCount: counts.recipientCount,
       channelCounts: counts.channelCounts,
@@ -161,4 +172,16 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
   });
 
   return { dispatchId: result.dispatchId, status: result.status, counts, afterSend };
+}
+
+/** 一括送信の選択肢: 一覧の一括(bulk)で送れて、その場で書ける(email・inApp)カテゴリー */
+export type AdminBulkSendOptions = { categories: AdminFreeTextCategoryOption[] };
+
+export async function adminBulkSendOptions(
+  deps: AdminCheckDeps & { categories: Readonly<Record<string, MessageCategory>> },
+): Promise<AdminBulkSendOptions> {
+  await assertAdminActor(deps);
+  return {
+    categories: adminFreeTextCategoryOptions(deps.categories, (option) => option.adhoc && option.audiences.includes("bulk")),
+  };
 }
