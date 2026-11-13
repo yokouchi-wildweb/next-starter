@@ -252,7 +252,7 @@ D40・D41。管理者が画面で書く連絡の中身と、その版の履歴�
 
 D35・D45・D71。本人が好みを見て切り替える口（`services/server/preferences`、`messagingService.getMessagePreferences` / `setMessagePreference`）。
 
-- 止め方は 5 つ: 1 マス（種類 × 経路）・種類まるごと（経路 `'*'`）・種別まるごと（`kind`、`'*'` `'*'`）・経路まるごと（種類 `'*'`）・全部（`'*'` `'*'`）
+- 止め方は 5 つ: 1 マス `{ category, channel }`・種類まるごと `{ category, channel: '*' }`・経路まるごと `{ category: '*', channel }`・全部 `{ '*', '*' }`・種別まるごと `{ kind }`（種別まるごとは上流の画面に出さない）。知らない種類・利用者が止められない種類・開いていない経路は 400
 - `setMessagePreference(userId, input, { source? })`: `source` = 書いた入口（既定 `user`、会員登録の同意なしは `signup` = `constants/preferences.ts` の `PREFERENCE_SIGNUP_SOURCE`）。サーバーの呼び手だけが渡す（API の本文からは受けない）
 
 - 門: 規則 `messagingPreferences`（`src/featureGate/rules/messagingPreferences.ts`、住所 ページ `/mypage/account/notifications` と API `/api/me/messaging/preferences`、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表 `message_preferences` とワンクリックの受け口は門に関わらず開（domains は持たない）。住所の定数は `constants/preferences.ts`
@@ -260,16 +260,20 @@ D35・D45・D71。本人が好みを見て切り替える口（`services/server/
 - 種類とグループの受け口は初めて使う時に `validateMessageCategories` で確かめる（誤りは投げる。生成の時の `pnpm check extensions` と同じ検査）
 - 種類ごとの `optedOut` は送る側（`checkStops` = `findOptOuts`）と同じ判定: そのマス・種類の `'*'`・種別まるごと・経路の `'*'`・全体 `'*' '*'` のどれかの行で止まる。`via`（`cell` / `category` / `kind` / `channel` / `all` / null）はどの行で止まっているか（この順で先に当たった物）
 - 経路ごとに `hasAddress`（経路の自前の引き方 `resolveAddresses`、無ければ端末の帳簿の有効な行 = 送る側の展開と同じ）と `connectHref`（経路の項目の宣言。サイト内の住所は門で閉じていれば null）。上流は line だけが持つ（LINE の連携の入口 `/api/auth/line/login?redirect_after=<好みのページ>`）。email・inApp は連携の画面が無いので持たない
-- `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, kinds[{ kind, optedOut }], channels[{ key, label, hasAddress, connectHref, kinds[{ kind, groups[{ key, label, categories[{ key, label, description, optedOut, via }] }] }] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` か `{ kind, optedOut }` → 変えた後の表。全体は `category` と `channel` のどちらも `'*'`（片方だけの `'*'` は 400）。止める = 行を足す（既にあれば何もしない）、再開 = その行だけ消す（広い行で止まるマスは止まったまま、`via` で分かる）。知らない種類・有効でない経路・利用者が止められない種別は 400
+- `GET` 表（`MessagePreferencesDto` = `{ allOptedOut, categories[{ key, optedOut }], kinds[{ kind, optedOut }], channels[{ key, label, hasAddress, connectHref, optedOut, kinds[{ kind, groups[{ key, label, categories[{ key, label, description, optedOut, via }] }] }] }] }`、型は `services/server/preferences/dto.ts`）/ `PATCH` `{ category, channel, optedOut }` か `{ kind, optedOut }` → 変えた後の表。止める = 行を足す（既にあれば何もしない）、再開 = その行を消す
+- GET の広い停止の状態: `allOptedOut`・`categories[{ key, optedOut }]`（種類まるごと、種類ごとに 1 つ）・`channels[].optedOut`（経路まるごと）・`kinds[{ kind, optedOut }]`
+- 広い行の下で 1 マスを再開すると 1 つの transaction で書き分ける（和、許可の行は無い）: 種別まるごと → 同じ種別のほかの種類の種類まるごと + この種類のほかの経路のマス / 種類まるごと → この種類のほかの経路のマス / 経路まるごと → その経路を持つほかの種類のマス。全部の行は書き分けない（via all で止まったまま）。経路まるごと・種別まるごとの書き分けは今ある種類の行だけを書く（後から足す種類はその人に止まらない）
 - 種別まるごと（`kinds`、`{ kind, optedOut }`）: 上流の既定の画面はスイッチを出さない（D62）。fork は hook の `setKind` で部品を置ける。種別まるごとの行がある人が種別 X の種類の 1 マスを再開すると、1 つの transaction で種別の行を消し、X のほかの種類は種類まるごとの行、その種類のほかの経路（種類の経路の全部）はマスの行に書き分ける（D71）
 - 退会: user の後片付けの項目 `cleanupHandlers/messagingPreferences.ts`（required）が本人の行を全部消す（D38。利用者の削除は FK の cascade でも消える）
 
 ### 通知の設定のページ（`/mypage/account/notifications`）
 
 - client: `services/client/preferenceClient.ts`（`getMessagePreferences` / `setMessagePreference`、axios + `normalizeHttpError`）
-- hook `useMessagePreferences({ enabled? })` → `{ preferences, categoryRows, isLoading, error, retry, setCell(category, channel, receive), setAll(stopAll), setKind(kind, stop), pendingKey }`。変更の応答（変えた後の表）を SWR のキャッシュに書く（取り直さない）。`pendingKey` = 変えている最中のマス `<種類>:<経路>`（全体は `*:*`、種別まるごとは `kind:<種別>`）。`categoryRows` = 入れ子から組み直した種類ごとの行（`categoryRowsOf`、マスは経路の並び。今の既定の画面が読む）
-- 部品（core_ui、入口だけを import）: `components/common/PreferenceChannelToggle`（1 マスの切り替え。入 = 受け取る。広い行で止まるマスは切・押せない・理由（種別まるごと `via` kind は押せて、入にすると書き分け）、宛先の無い経路は「宛先が登録されていません」+ `connectHref` の連携の案内）・`components/common/PreferenceCategoryRow`（種類の題・説明 + 経路ごとの切り替え）・入れ物 `components/MessagePreferences`（`emptyText?`。上に「すべての連絡を止める」、下に種類の行）
-- 種類ごと・経路ごとの `'*'` の行（`via` category / channel）はこのページから戻せない（API は 1 マスと全体だけ）。上流は書かない（ワンクリックの配信停止も 1 マスの行）ので、出るのは fork か手作業で足した時だけ。そのマスは「まとめて止める設定で止まっています」と出して押せなくする
+- hook `useMessagePreferences({ enabled? })` → `{ preferences, isLoading, error, retry, setCell(category, channel, receive), setCategoryWide(category, stop), setChannelWide(channel, stop), setAll(stopAll), setKind(kind, stop), pendingKey }`。`preferences` は応答の入れ子のまま。変更の応答（変えた後の表）を SWR のキャッシュに書く（取り直さない）。`pendingKey` = 変えている最中の行 `<種類>:<経路>`（種類まるごと `<種類>:*`・経路まるごと `*:<経路>`・全部 `*:*`・種別まるごと `kind:<種別>`）
+- 既定の画面（入れ物 `components/MessagePreferences`、`emptyText?`）の並び: 上に「すべての連絡を止める」→ 経路の枠（経路まるごとの切り替え・宛先の無い経路は連携の案内）→ 種別の枠（見出しだけ、種別のスイッチは出さない。D62）→ グループの見出し（グループの無い種類は見出し無しで先）→ 種類の行（その経路の 1 マス）。種類まるごと（すべての経路）の切り替えは、その種類が最初に出る経路の行に 1 回だけ置く
+- 広い行で止まる種類の行は切で理由を出す。種類・種別・経路まるごとの下は押せて、入にするとサーバーが書き分ける。全部の停止の下だけ押せない（全部の間は経路・種類まるごとの切り替えも押せない）
+- 種別の枠の表示名は `constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`（仮。見直しは後の回）
+- 部品（core_ui、props だけ、入口だけを import。fork は差し替えの Screen でこれと hook を組む）: `components/common/PreferenceChannelSection`（経路の枠: 題・経路まるごと・連携の案内・children）・`PreferenceKindFrame`（種別の見出し・children）・`PreferenceGroupHeading`（グループの見出し、null は描かない）・`PreferenceCategoryRow`（1 つの経路の 1 つの種類の切り替え・理由・children に行の操作。理由の文は `preferenceViaReason`）・`PreferenceCategoryWideToggle`（種類まるごとの切り替え）。種別まるごとを出す fork は hook の `setKind` と `preferences.kinds` で自分の部品を置く
 - ページ: `page.tsx` の 1 行スイッチ → `_screen/MyPageAccountNotificationsScreen.tsx`（題「通知の設定」+ `MessagePreferences`、mypage の layout が UserPage を巻く）+ `_screen/loader.ts`（access authenticated、門が閉なら notFound）
 - マイページのカード: `src/features/core/user/mypageMenu/items/notifications.ts`（order 25「通知の設定」）。門が閉の間は棚の Link が描かない
 

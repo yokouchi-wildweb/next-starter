@@ -1,5 +1,5 @@
 // useMessagePreferences の検査(jsdom の上で描く。client service は偽物)。
-// - 表を読む(categoryRows = 入れ子から種類ごとの行)/ 1 マス・全体・種別まるごとの変更は client を呼び、応答の表を SWR のキャッシュに書く(取り直さない)/ 変えている間の pendingKey
+// - 表を読む(応答の入れ子のまま)/ 止め方 5 つ(1 マス・種類まるごと・経路まるごと・全部・種別まるごと)は client に決まった入力を送り、応答の表を SWR のキャッシュに書く(取り直さない)/ 変えている間の pendingKey
 // 実行: pnpm test src/features/core/messaging/hooks/useMessagePreferences.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -20,10 +20,11 @@ const leaf = (optedOut: boolean, via: string | null) => ({ key: "marketing", lab
 const frame = (optedOut: boolean, via: string | null) => [{ kind: "marketing", groups: [{ key: null, label: null, categories: [leaf(optedOut, via)] }] }];
 const table = (optedOut: boolean, allOptedOut = false, kindOptedOut = false) => ({
   allOptedOut,
+  categories: [{ key: "marketing", optedOut: false }],
   kinds: [{ kind: "marketing", optedOut: kindOptedOut }],
   channels: [
-    { key: "email", label: "メール", hasAddress: true, connectHref: null, kinds: frame(optedOut, optedOut ? "cell" : null) },
-    { key: "inApp", label: "お知らせ", hasAddress: true, connectHref: null, kinds: frame(kindOptedOut, kindOptedOut ? "kind" : null) },
+    { key: "email", label: "メール", hasAddress: true, connectHref: null, optedOut: false, kinds: frame(optedOut, optedOut ? "cell" : null) },
+    { key: "inApp", label: "お知らせ", hasAddress: true, connectHref: null, optedOut: false, kinds: frame(kindOptedOut, kindOptedOut ? "kind" : null) },
   ],
 });
 
@@ -75,72 +76,53 @@ const mount = async () => {
   return { hook: () => latest.current!, unmount: () => act(async () => root.unmount()) };
 };
 
-test("表を読む", async () => {
+test("表を読む(応答の入れ子のまま)", async () => {
   const view = await mount();
   assert.equal(gets, 1);
-  assert.deepEqual(view.hook().categoryRows, [
-    {
-      key: "marketing",
-      label: "お得な情報",
-      description: null,
-      kind: "marketing",
-      cells: [
-        { channel: "email", optedOut: false, via: null },
-        { channel: "inApp", optedOut: false, via: null },
-      ],
-    },
-  ]);
+  assert.equal(view.hook().preferences?.channels[0].kinds[0].groups[0].categories[0].key, "marketing");
   await view.unmount();
 });
 
-test("1 マスを止める: client に optedOut true、変えている間は pendingKey、応答の表をキャッシュに書き取り直さない", async () => {
-  const view = await mount();
+/** 1 つの変更を走らせ、変えている間の pendingKey と送った入力を返す */
+const run = async (view: Awaited<ReturnType<typeof mount>>, start: (h: Hook) => Promise<unknown>) => {
   const getsBefore = gets;
   let done: Promise<unknown> = Promise.resolve();
   await act(async () => {
-    done = view.hook().setCell("marketing", "email", false);
+    done = start(view.hook());
   });
-  assert.equal(view.hook().pendingKey, "marketing:email");
+  const pending = view.hook().pendingKey;
   await act(async () => {
     release?.();
     await done;
   });
-  assert.deepEqual(sets, [{ category: "marketing", channel: "email", optedOut: true }]);
   assert.equal(view.hook().pendingKey, null);
-  assert.equal(view.hook().categoryRows[0].cells[0].optedOut, true);
   assert.equal(gets, getsBefore, "取り直さない");
-  await view.unmount();
-});
+  return { pending, input: sets.at(-1) };
+};
 
-test("全体: '*' '*' を送り、allOptedOut が応答の値になる", async () => {
+test("止め方 5 つの入力と pendingKey", async () => {
   const view = await mount();
-  let done: Promise<unknown> = Promise.resolve();
-  await act(async () => {
-    done = view.hook().setAll(true);
+  assert.deepEqual(await run(view, (h) => h.setCell("marketing", "email", false)), {
+    pending: "marketing:email",
+    input: { category: "marketing", channel: "email", optedOut: true },
   });
-  assert.equal(view.hook().pendingKey, "*:*");
-  await act(async () => {
-    release?.();
-    await done;
+  assert.equal(view.hook().preferences?.channels[0].kinds[0].groups[0].categories[0].optedOut, true, "応答の表を書く");
+  assert.deepEqual(await run(view, (h) => h.setCategoryWide("marketing", true)), {
+    pending: "marketing:*",
+    input: { category: "marketing", channel: "*", optedOut: true },
   });
-  assert.deepEqual(sets, [{ category: "*", channel: "*", optedOut: true }]);
+  assert.deepEqual(await run(view, (h) => h.setChannelWide("email", false)), {
+    pending: "*:email",
+    input: { category: "*", channel: "email", optedOut: false },
+  });
+  assert.deepEqual(await run(view, (h) => h.setAll(true)), {
+    pending: "*:*",
+    input: { category: "*", channel: "*", optedOut: true },
+  });
   assert.equal(view.hook().preferences?.allOptedOut, true);
-  await view.unmount();
-});
-
-test("種別まるごと: { kind, optedOut } を送り、pendingKey は kind:<種別>", async () => {
-  const view = await mount();
-  let done: Promise<unknown> = Promise.resolve();
-  await act(async () => {
-    done = view.hook().setKind("marketing", true);
+  assert.deepEqual(await run(view, (h) => h.setKind("marketing", true)), {
+    pending: "kind:marketing",
+    input: { kind: "marketing", optedOut: true },
   });
-  assert.equal(view.hook().pendingKey, "kind:marketing");
-  await act(async () => {
-    release?.();
-    await done;
-  });
-  assert.deepEqual(sets, [{ kind: "marketing", optedOut: true }]);
-  assert.equal(view.hook().preferences?.kinds[0].optedOut, true);
-  assert.deepEqual(view.hook().categoryRows[0].cells[1], { channel: "inApp", optedOut: true, via: "kind" });
   await view.unmount();
 });
