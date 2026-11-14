@@ -102,7 +102,6 @@ function setup(options: { role?: string } = {}) {
 }
 
 const input = (extra: Record<string, unknown> = {}) => ({
-  key: "spring-sale",
   name: "春のセール",
   category: "marketing",
   content: {
@@ -156,7 +155,7 @@ test("作る → 公開 → 直す → 公開: 版は不変で current_version �
     "messaging.template.updated",
     "messaging.template.published",
   ]);
-  assert.deepEqual(audits[1].metadata, { key: "spring-sale", version: 1 });
+  assert.deepEqual(audits[1].metadata, { key: created.key, version: 1 });
 });
 
 test("変更の無い公開は 409、取り下げた後は直せない・公開できない(409)", async () => {
@@ -173,10 +172,11 @@ test("変更の無い公開は 409、取り下げた後は直せない・公開�
   assert.equal((await service.listTemplateVersions(created.id)).length, 1);
 });
 
-test("保存時の検査(400)と同じ鍵(409)", async () => {
+test("保存時の検査(400)、鍵はサーバーが作る(入力の key は 400)", async () => {
   const { service, templates } = setup();
   const cases: Record<string, unknown>[] = [
-    { key: "Bad Key" },
+    // 鍵は受けない(サーバーが作る、D46)
+    { key: "spring-sale" },
     { category: "nope" },
     // 3 つの種別でない種類はテンプレートに使えない
     { category: "activity" },
@@ -203,24 +203,27 @@ test("保存時の検査(400)と同じ鍵(409)", async () => {
   ];
   for (const extra of cases) await rejectsWith(service.createTemplate(input(extra)), 400);
   assert.equal(templates.length, 0);
-  await service.createTemplate(input());
-  await rejectsWith(service.createTemplate(input()), 409);
+  const first = await service.createTemplate(input());
+  const second = await service.createTemplate(input());
+  assert.match(first.key, /^tpl-[a-z0-9]{10}$/);
+  assert.notEqual(first.key, second.key, "同じ名前でも別の鍵");
   await rejectsWith(service.updateTemplate(templates[0].id, { content: { email: { subject: "{{nope}}" }, inApp: { title: "t", body: "b" } } }), 400);
   // 文言は 1 経路だけでもよい(経路 = 文言のある経路)
-  const one = await service.createTemplate(input({ key: "one", content: { inApp: { title: "t", body: "b" } } }));
+  const one = await service.createTemplate(input({ content: { inApp: { title: "t", body: "b" } } }));
   assert.deepEqual(Object.keys(one.content), ["inApp"]);
 });
 
 test("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤りは 400", async () => {
   const { service } = setup();
-  const a = await service.createTemplate(input({ key: "a" }));
-  await service.createTemplate(input({ key: "b" }));
+  const a = await service.createTemplate(input({ name: "a" }));
+  await service.createTemplate(input({ name: "b" }));
   await service.publishTemplate(a.id);
   const page = await service.listTemplates({ limit: "1" });
   assert.equal(page.items.length, 1);
-  assert.equal(page.items[0].key, "b");
+  assert.equal(page.items[0].name, "b");
+  assert.equal(page.items[0].categoryLabel, "お知らせ", "カテゴリーの表示名(受け口の label)");
   assert.ok(page.nextCursor);
-  assert.deepEqual((await service.listTemplates({ status: "published" })).items.map((t) => t.key), ["a"]);
+  assert.deepEqual((await service.listTemplates({ status: "published" })).items.map((t) => t.name), ["a"]);
   await rejectsWith(service.listTemplates({ status: "nope" }), 400);
   await rejectsWith(service.getTemplate(randomUUID()), 404);
   await rejectsWith(service.listTemplateVersions(randomUUID()), 404);

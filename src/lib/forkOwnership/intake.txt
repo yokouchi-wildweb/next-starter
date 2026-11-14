@@ -276,7 +276,7 @@ add src/features/core/user/messages/views/registrationComplete.replace.{ts,tsx} 
 add src/features/core/wallet/messages/views/expiredNotice.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/messages/views/expiredNotice.tsx の丸ごと置き換え
 add src/features/core/wallet/messages/views/expiringNotice.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/messages/views/expiringNotice.tsx の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
-edit src/features/**/messages/*.override.ts  # 上書き messages(content・extras・enabled・adminEditable・record・throttle)
+edit src/features/**/messages/*.override.ts  # 上書き messages(label・content・extras・enabled・adminEditable・record・throttle)
 edit src/features/**/services/server/domainEntry.override.ts  # 上書き domainEntries(access)
 edit src/features/core/user/coreRoles/*.role.override.ts  # 上書き coreRoleDefinitions(label・hasProfile)
 edit src/features/core/user/roles/*.role.override.ts  # 上書き roleDefinitions(label・hasProfile・enabled)

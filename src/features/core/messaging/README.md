@@ -239,6 +239,7 @@ D40・D41。管理者が画面で書く連絡の中身と、その版の履歴�
 - 門: 規則 `messagingTemplates`（`src/featureGate/rules/messagingTemplates.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は管理の画面 `/admin/messaging/templates` と API `/api/admin/messaging/templates`）。閉の間 画面と API は 404
 - 状態: `draft`（まだ公開していない）→ `published`（版がある）→ `archived`（取り下げ。直せない・公開できない、版は残る）
 - 行 = 今の中身（下書き）。公開 = 今の中身を `message_template_versions` に版として追記し `current_version` を進める。**公開した版は書き換えない**（公開済みを直すと行だけが変わり、`hasUnpublishedChanges` が立つ。次の公開で新しい版）。版は文言・変数・種類を持つ（経路は持たない: 文言の鍵 = 文言のある経路、D85。回は送る時に版を固定し、最新を引き直さない）。前の版から変更の無い公開は 409
+- 鍵: 作る時にサーバーが作る（`tpl-` + 英小文字・数字 10 字、`newTemplateKey`）。作る入力に `key` は無い（送ると 400）。運営する人は打たず見ない（D46）。前からの行は自分の鍵のまま。一覧・版の DTO は `categoryLabel`（種類の受け口の label、無ければ null）を持つ
 - 保存時の検査（作る・直す・公開の前、`templates/checks.ts`）: `content` の鍵は経路の受け口にあり有効な経路の鍵、少なくとも 1 つの経路に文言、各経路の欄の zod を通る（入力に `channels` は無い）/ 種類は種類の受け口にあり、種別が announcement・direct・marketing（それ以外は 400）/ 変数は `MessageTemplateVariableSchema` の並びで鍵は一意・`{{鍵}}` に書ける形 / 本文の `{{鍵}}` は 共通の文脈 ∪ 管理の定義 3 本のどれにも当たる provides ∪ 宣言した変数 の中だけ（`allowedKeys` で返す）
   - **秘密はテンプレートを通さない**: 型 `secret` の変数と、共通の文脈・throttle・provides と同じ鍵の変数は宣言できない（秘密の値はコードの定義の `secretVar` に置く）
 - 画像: 中身の `storage://` の参照（`inApp.image` など）は保存の時に台帳でテンプレートの行に結ぶ（record `messaging.template` / テンプレートの id / `content`、用途 `notification.image`）。自分が上げた未紐付けの画像は attach、他の業務行に結ばれた・別の人の画像は複製して参照を書き換える。下書きから画像を外しても台帳からは外さない（公開した版が使う）。storage の照合（cron storage-sweep の `recordResolvers`）はテンプレートの行があれば残し、無ければ外す。送る時は回が自分の写しを持つ（次の段）
@@ -247,7 +248,7 @@ D40・D41。管理者が画面で書く連絡の中身と、その版の履歴�
 
 ### 保存されたテンプレートの管理画面（`/admin/messaging/templates`、門 `messagingTemplates`）
 
-- `/admin/messaging/templates`: 入れ物 `AdminMessageTemplateList`（props なし）= 状態で絞る + 「新しく作る」+ 行（状態と版・名前・鍵・種類・更新）の無限スクロール（カーソル）。行を押すと直すモーダル。作る・1 件のページ（`/templates/new`・`/[id]`）は無い（D87）
+- `/admin/messaging/templates`: 入れ物 `AdminMessageTemplateList`（props なし）= 状態で絞る + 「新しく作る」+ 行（状態と版・名前・カテゴリーの表示名・更新。鍵は出さない）の無限スクロール（カーソル）。行を押すと直すモーダル。作る・1 件のページ（`/templates/new`・`/[id]`）は無い（D87）
 - モーダル: 入れ物 `AdminMessageTemplateModal`（`open`・`onOpenChange`・`templateId?`（null = 作る）・`onChanged?`。開閉は置き場が持つ。部品は公開の部品だけなので fork は自分の画面にも置ける）= `TabbedModal` のタブ 文言（鍵は作る時だけ・名前・説明・カテゴリー（`GET /options` = 種別 announcement・direct・marketing のカテゴリー）・使える `{{鍵}}` の案内（`AllowedKeysHint`）・経路ごとの文言）/ 変数 / 版の履歴（直す時だけ、下の帯なし）。下の帯 = 取り下げ・公開（`ConfirmPopover`。公開は保存済みで公開していない変更がある時だけ）・保存。作った後は同じモーダルでその 1 件を直す形に変わる（ページは移らない）。取り下げたテンプレートは読むだけ。書きかけのまま閉じる = `confirmOnClose`、ページの移動 = `@/lib/unsavedGuard`
 - 部品（props だけ、`components/common/`）: `TemplateChannelFields`（email = 件名・プレヘッダー・見出し・段落（空行で区切る 1 つの欄）・ボタン・フッター / inApp = 題・本文・画像（`ManualMediaUploader`、用途 `notification.image`。保存の時にサーバーがテンプレートに結ぶ）・行き先 / line = 本文 / それ以外の経路 = 欄の JSON）・`TemplateVariablesEditor`（鍵・表示名・型 string / number / date / url・由来・既定値・必須）・`TemplateVersionList`（版の一覧と 1 版の中身、読むだけ）・`TemplateStatusBadge`（下書き・公開中 v<n>・取り下げ・未公開の変更）
 - hook: `useMessageTemplates`（カーソル）・`useAdminMessageTemplateList({ observerOptions? })`（状態の絞り + 一覧 + モーダルの開き先 `modal.openNew()` / `modal.openTemplate(id)`）・`useMessageTemplate(id)` / `useMessageTemplateOptions(enabled?)`（SWR）・`useMessageTemplateVersions(id)`・`useMessageTemplateVersion(id, version)`（1 版、SWR。画面には置いていない）・`useMessageTemplateModal({ open, templateId?, onChanged? })`（開いている間だけ選択肢・1 件・版を取る・`state`（作った直後など 1 件がまだ無い間は loading）・タブ・`onCreated`・書く欄の key `formKey`）・`useMessageTemplateForm({ template, options, onCreated?, onChanged? })`（`onChanged(返った 1 件, "create" | "update" | "publish" | "archive")` = 一覧へ知らせる。一覧 `useAdminMessageTemplateList` の `modal.onChanged` は 作った = 先頭から取り直す・ほか = 行を置き換える・状態で絞っていて外れた行は外す。無限スクロールには SWR の再検証が届かないため・書く欄・`dirty`（離れる前の確認 `@/lib/unsavedGuard`）・`closeConfirm`・`allowedKeys` = `baseAllowedKeys` ∪ 変数・`unknownKeys`・`save` / `publish` / `archive`・`canPublish`・`createdId`）・`useModalSession(open)`（閉 → 開 の度に増える番号。開き直しで書く欄を作り直す key）・純粋な関数 `contentForInput` / `emptyChannelContent`。client は `services/client/templateClient.ts`
@@ -464,7 +465,7 @@ export const bulkAction = bulkMessageAction(
 
 - `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・種別（7 つ、`constants/kindLabels.ts` の順と表示名）・カテゴリー（種別を選んだ後だけ、その種別の物を表示名で。種別を変えると空に戻る）・経路・状態。入力と「絞り込む」での確定は hook `useAdminDispatchFilters(initialFilters)`）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
 - `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名（受け口 sources に表示名がある時だけ、DTO `sourceLabel`）・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）。流れ（配達の絞り・`includeUnknown`・取り消す / 取り下げる / 再送 / 続きを送る と知らせ）は hook `useAdminDispatchDetail(dispatchId, { limit?, observerOptions? })`
-- 運営する人に鍵を見せない（D46）: 一覧の行（`common/DispatchRow`、`categoryLabel?` は置き場が渡す）と詳細は 種別・カテゴリー・経路・送り元を表示名で出し、定義の鍵・送り元の鍵は出さない（`dispatchHeading` も鍵に落ちず「(件名なし)」）
+- 運営する人に鍵を見せない（D46）: 一覧の行（`common/DispatchRow`、`categoryLabel?` は置き場が渡す）と詳細は 種別・カテゴリー・経路・送り元を表示名で出し、定義の鍵・送り元の鍵は出さない（`dispatchHeading` も鍵に落ちず「(件名なし)」）。送った人 = DTO `actorName`（users.name、system は「システム」）、本文 = 経路ごとの欄（部品 `MessagePreview`、生の JSON は出さない）、配達の行 = DTO `userName`（利用者の id・お知らせの宛先 = 利用者 id・受信者の鍵は出さない）、表に無い失敗の符号は「送れませんでした(理由は記録にあります)」・表に無い理由は「そのほかの理由」・表に無い状態は「そのほかの状態」（符号は記録に残る）。文言の上書きの一覧・モーダルは連絡の `label` と種別・カテゴリーの表示名（DTO `label`・`categoryLabel`）
 - loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatchCategories`・`useAdminDispatches`・`useAdminDispatchFilters`・`useAdminDispatchDetail`（中で `useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch` と操作の hook））
 - 管理画面のページは 4 つ: 回の一覧 `/admin/messaging`・回の詳細 `/[id]`・テンプレートの一覧 `/templates`・文言の上書きの一覧 `/overrides`（作る・直す・送るはモーダル、D87）
 - 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
@@ -600,7 +601,7 @@ export const messageOverride = { enabled: false } satisfies MessageOverride;
 
 ## 連絡を足すとき
 
-1. 書き出し: `pnpm generate message -- <domain> <name> --category <key> [--core]`。送る側のドメインに連絡の定義 `messages/<名前>.ts`（鍵 = `<ドメインのフォルダ名>.<名前>`）と、種類の経路にメールがあれば `messages/views/<名前>.tsx`（1 行スイッチ）・`.default.tsx`（既定の描き方）を無い時だけ書き、`src/registry/messageRegistry.ts` と拡張点の一覧を作り直す。fork は自分のドメインに足す（core のドメインは `--core` = 上流だけ）。使い方: `scripts/structure/message/README.md`、定義の書き方: src/lib/messaging/README.md
+1. 書き出し: `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]`（`label` = 管理画面に出す連絡の名前、必須 D46）。送る側のドメインに連絡の定義 `messages/<名前>.ts`（鍵 = `<ドメインのフォルダ名>.<名前>`）と、種類の経路にメールがあれば `messages/views/<名前>.tsx`（1 行スイッチ）・`.default.tsx`（既定の描き方）を無い時だけ書き、`src/registry/messageRegistry.ts` と拡張点の一覧を作り直す。fork は自分のドメインに足す（core のドメインは `--core` = 上流だけ）。使い方: `scripts/structure/message/README.md`、定義の書き方: src/lib/messaging/README.md
    - 種類（category、全部の連絡に必須）: 利用者から見て 1 つの出来事（「〜した時」、D79。例 likeReceived・itemSold・passwordReset）で、種別（7 つ）と経路を持つ。無ければ先に `categories/<名前>.ts` を足す。連絡は種別も経路も書かない（D81・D86）
    - 経路: 属する連絡は全部その種類の経路で届く。コードから自動で送る連絡はその回の経路を変えない（`channels` を渡さない。1 本だけ変えたいなら別の種類）。管理者が手で送る時だけ、種類の経路の中で絞れる（足せない）。回にはその回に使った経路が残る
    - 上流の種類: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security・email）/ registrationComplete（transactional・email、会員登録の完了 2 本）/ walletExpiring（activity・email + inApp、失効の予告 = 利用者が止められる D67）/ walletExpired・walletAdjusted（transactional）/ marketing（キャンペーン情報）/ announcement（運営からのお知らせ、管理者がその場で書く告知）/ operatorDirect（direct、管理者からの個別の連絡と一覧の一括の既定）。汎用の activity は消した（D85。fork は利用に伴う知らせを自分の種類で足す）。鍵と表示名は仮
@@ -608,7 +609,7 @@ export const messageOverride = { enabled: false } satisfies MessageOverride;
 3. cron・CLI から呼ぶときは `runAsSystem`（`@/lib/audit`）で包む
 4. 新しい送信の画面・バッチでは `idempotencyKey` を必ず渡す
 
-`constants/sources.ts` の `MESSAGING_SOURCES` は送り元の識別子（wallet の失効の知らせが使う。`USER_HUB_DETAIL_SEND` / `SHIPPING_REQUEST_BULK` は fork の送り元として残している）。送り元の表示名は受け口 `sources/` の項目。
+`constants/sources.ts` の `MESSAGING_SOURCES` は送り元の識別子（wallet の失効の知らせが使う。`USER_HUB_DETAIL_SEND` / `SHIPPING_REQUEST_BULK` は fork の送り元として残している）。送り元の表示名は受け口 `sources/` の項目（上流は messaging の管理の送り元 5 つ: 管理画面から送信・テスト送信・一括送信・一括送信のテスト・前のお知らせ）。回の詳細の送り元は `sources/` → 送り元と同じ鍵の連絡の `label`（業務の送信の既定の送り元 = 定義の鍵）→ 一括の対象 `<対象>.bulk(.test)` =「<対象の label>の一括送信(のテスト)」の順に引き、無ければ行を出さない（`services/server/admin/sourceLabels.ts`）。
 
 実例: auth / user の連絡（`src/features/core/{auth,user}/messages/`）・wallet の失効の知らせ（cron、`runAsSystem` + 冪等の鍵）
 

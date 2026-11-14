@@ -35,6 +35,7 @@ export const message = defineMessage({
 項目:
 
 - `key`: `<domain>.<name>`(英数字の camelCase)
+- `label`(必須、D46): 管理画面に出す連絡の名前(日本語。例 `"パスワードの再設定"`)。運営する人は鍵を読まないので、管理画面(文言の上書き・回の送り元)は鍵でなくこれを出す。表示だけなので上書きで変えられる(種類の label と同じ)。無い・空は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition`(`missing_label`)。`pnpm generate message` は `--label` で書く
 - `category`(必須、D81): 種類 = categories の受け口の鍵。種類は利用者から見て 1 つの出来事(D79)で、種別(kind)と経路(channels)を持つ。連絡は種別も経路も書かず、種類から引く(D86)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(`unknown_category`)。種類は上書きで付け替えない(D74: 別の種類で送りたいなら上流の連絡を止めて自分の連絡を足す)
 - 種別(種類が持つ、7 つ・fork は増やせない): `functional`(機能に組み込まれた連絡)/ `transactional`(本人の手続きの知らせ)/ `security`(セキュリティの警告)/ `announcement`(運営の告知)/ `direct`(運営から特定の利用者へ)/ `activity`(利用者が止められる、利用に伴う知らせ)/ `marketing`(宣伝)。性質は `MESSAGE_KIND_TRAITS`(`definition/kinds.ts`、D80): 上流の物を止められるか(`upstreamDisable`、functional だけ不可)・利用者の停止と好み(`userStoppable`、activity・marketing)・住所の停止(`addressStop`、functional・security は hard bounce だけ)・管理者がその場で送れる宛先(`adminFreeText`、announcement・direct・marketing)・記録の既定(`recordDefault`)・文言の上書き(`adminTextOverride`、functional は不可)・間引き(`throttle`、functional・security は不可)・種類の経路から email を外せないか(`emailFixed`、functional・security)・送る口の中ですぐ送るか(`sendInEntry`、security: 予約と宛先の集め方は 400、宛先が多くても展開して最初の 1 束を口の中で送る)。種別の値で分ける読み手はこの表を引く(`kindTraits` / `kindsWhere`)
 - `vars`: 呼び手が渡す値の zod
@@ -92,7 +93,7 @@ export const message = defineMessage({
 
 ## 上書き(MessageOverride)
 
-`messages/<名前>.override.ts`(データだけ)。変えられるのは欄の文言(経路ごとに欄を重ねる)・`extras`・`enabled`・`adminEditable`・`record`・`throttle`(`null` で外す)。`key`・`vars`・`required`・`category` は変えられない(経路は種類の上書き `categories/<名前>.override.ts` の `channels` で変える。上流の functional の連絡は止められない、D68)。
+`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・欄の文言(経路ごとに欄を重ねる)・`extras`・`enabled`・`adminEditable`・`record`・`throttle`(`null` で外す)。`key`・`vars`・`required`・`category` は変えられない(経路は種類の上書き `categories/<名前>.override.ts` の `channels` で変える。上流の functional の連絡は止められない、D68)。
 
 ```ts
 // src/features/core/auth/messages/verification.override.ts(fork)
@@ -112,7 +113,7 @@ export const messageOverride = {
 
 生成の前に字面で止める(`scripts/structure/extensions/derive/messageGuards.mjs`。実行時は送る口が同じ守りを `validateMessageDefinition` で見る):
 
-- 全部の定義: `category` が無い・受け口に無い・種類の経路の文面(`content.<経路>`)が無い
+- 全部の定義: `label`(字面の空でない文字列)が無い / `category` が無い・受け口に無い・種類の経路の文面(`content.<経路>`)が無い
 - required の定義: 種類の経路に `"email"` が無い・`adminEditable` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditable`・`throttle`(`null` で外すのは通す)
 - 上流(`src/features/core`)の functional の種類の連絡: 上書きで `enabled: false`
 - 種類の上書き(`categories/<名前>.override.ts`): functional・security の種類の `channels` から `"email"` を外す・空にする。`group` が categoryGroups の受け口に無い・1 つのグループに別の種別の種類
@@ -135,6 +136,7 @@ export const messageOverride = {
 `validateMessageDefinition(definition, { categories, override?, channels?, variableKeys? })` → 問題の一覧(空 = 通る)。上書きを渡すと重ねた結果を検査する。`categories` = 種類の受け口(鍵 → 項目、fork の種類の上書きを重ねた後)。`resolveMessageDefinition(definition, override, category)` が上書きを重ね種別と経路を付けた定義を返す(`applyMessageOverride` は上書きだけ)。種類の受け口は `validateMessageCategories(categories, groups)`(種別・経路・グループ)。
 
 - `invalid_key`: 鍵の形
+- `missing_label`: 名前(label)が無い・空(上書きの label も見る)
 - `required_disabled` / `required_without_email` / `required_admin_editable` / `required_throttle`: required の守り
 - `unknown_category`: 種類が受け口に無い
 - `kind_admin_editable` / `kind_throttle`: 種別の性質で文言の上書き・間引きが無い種別(functional・security)

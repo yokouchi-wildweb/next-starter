@@ -1,6 +1,7 @@
 // scripts/structure/message/scaffold.mjs
 // 新しい連絡の 3 本(定義 messages/<名前>.ts・描き方 views/<名前>.tsx と views/<名前>.default.tsx)を無い時だけ書く(pnpm generate message の中身)。
-// 引数: <domain> <name> --category <key> [--core](種別と経路は種類から引く D81・D86。種類 = 利用者から見て 1 つの出来事 D79)
+// 引数: <domain> <name> --category <key> --label <名前> [--core](名前 = 管理画面に出す連絡の名前、必須 D46)
+//(種別と経路は種類から引く D81・D86。種類 = 利用者から見て 1 つの出来事 D79)
 // - 引数なし = 何もしない(pnpm generate の一括でも回る)。質問はしない
 // - exit 2(書かない): 知らない引数・domain が features の地区(src/features の下のフォルダ、地区の地図の読み手で読む)に無い・名前が camelCase でない・
 //   core のドメインに --core が無い(fork の持ち場の外)・--category が無い・category が受け口に無い・種類の経路が経路の受け口に無い
@@ -16,7 +17,7 @@ import { definitionTemplate, viewDefaultTemplate, viewSwitchTemplate } from "./t
 
 const NAME = /^[a-z][A-Za-z0-9]*$/;
 const MESSAGING_DIR = "src/features/core/messaging";
-const USAGE = "使い方: pnpm generate message -- <domain> <name> --category <key> [--core]";
+const USAGE = "使い方: pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]";
 /** 種類の名前の付け方の案内(D79) */
 const NAMING =
   "種類 = 利用者から見て 1 つの出来事(「〜した時」と言える単位: 例 likeReceived・itemSold・passwordReset・pointExpiring)。" +
@@ -45,20 +46,21 @@ function categoriesOf(repoRoot) {
   return readCategories(repoRoot, [{ ...CATEGORY_POINT, spec: { dir: "categories", export: "category" } }], files) ?? new Map();
 }
 
-/** @returns {{ ok: true, value: { domain, name, category, core } } | { ok: false, reason: string } | null} null = 引数なし */
+/** @returns {{ ok: true, value: { domain, name, category, label, core } } | { ok: false, reason: string } | null} null = 引数なし */
 export function parseArgs(argv) {
   const args = argv.filter((arg) => arg !== "--");
   if (args.length === 0) return null;
   const positional = [];
-  const options = { category: null, core: false };
+  const options = { category: null, label: null, core: false };
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === "--core") options.core = true;
-    else if (arg === "--category") {
+    else if (arg === "--category" || arg === "--label") {
       const value = args[i + 1];
       if (!value || value.startsWith("--")) return { ok: false, reason: `${arg} に値が要ります` };
       i += 1;
-      options.category = value;
+      if (arg === "--category") options.category = value;
+      else options.label = value;
     } else if (arg === "--kind" || arg === "--channels") {
       return { ok: false, reason: `${arg} は無くなりました(種別と経路は種類 --category から引く)` };
     } else if (arg.startsWith("-")) return { ok: false, reason: `知らない引数です: ${arg}` };
@@ -78,7 +80,7 @@ export function runMessageScaffold(repoRoot, argv) {
   if (parsed === null) return { code: 0, lines: [`[generate message] 引数が無いので何もしません(${USAGE})`], written: [] };
   const fail = (reason) => ({ code: 2, lines: [`✗ ${reason}`, USAGE], written: [] });
   if (!parsed.ok) return fail(parsed.reason);
-  const { domain, name, category, core } = parsed.value;
+  const { domain, name, category, label, core } = parsed.value;
 
   if (!NAME.test(name)) return fail(`名前 ${name} は英小文字始まりの camelCase で書く(連絡の鍵 <domain>.<name> の後ろ)`);
   const district = readDistrictMapAt(repoRoot).districts.find((d) => d.kind === "features" && d.dir.split("/").at(-1) === domain);
@@ -91,6 +93,7 @@ export function runMessageScaffold(repoRoot, argv) {
   const categories = categoriesOf(repoRoot);
   const keys = [...categories.keys()].sort().join(" / ") || "項目なし";
   if (category === null) return fail(`--category が要る(${keys})。${NAMING}`);
+  if (label === null || label.trim() === "") return fail("--label が要る(管理画面に出す連絡の名前。例 --label 注文の受付)");
   const item = categories.get(category);
   if (!item) return fail(`category ${category} は categories の受け口に無い(${keys})。${NAMING}`);
   const channels = item.channels ?? [];
@@ -102,7 +105,7 @@ export function runMessageScaffold(repoRoot, argv) {
 
   const key = `${domain}.${name}`;
   const dir = `${district.dir}/messages`;
-  const files = [{ path: `${dir}/${name}.ts`, content: (path) => definitionTemplate({ path, key, category, kind: item.kind, channels }) }];
+  const files = [{ path: `${dir}/${name}.ts`, content: (path) => definitionTemplate({ path, key, label, category, kind: item.kind, channels }) }];
   if (channels.includes("email")) {
     files.push(
       { path: `${dir}/views/${name}.tsx`, content: () => viewSwitchTemplate({ key, name }) },

@@ -3,7 +3,7 @@
 // src/features/core/messaging/hooks/useMessageTemplateForm.ts
 //
 // 管理: テンプレートを作る・直す画面の書く欄と操作(部品はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
-// - 欄: 鍵(作る時だけ)・名前・説明・種類・経路ごとの文言・変数の宣言。初めの値は今の中身(下書き)。経路は選ばない(D85)
+// - 欄: 名前・説明・カテゴリー・経路ごとの文言・変数の宣言(鍵はサーバーが作る、D46)。初めの値は今の中身(下書き)。経路は選ばない(D85)
 // - 保存: 作る(POST)か直す(PATCH)。送るのは文言を書いた経路の中身だけ(filledChannels)で、空の任意の欄は落とす
 // - 公開・取り下げ: 1 件・版の一覧を取り直す。一覧(無限スクロール)へは onChanged で返った 1 件を渡す
 // - 使える {{鍵}} = 選択肢の baseAllowedKeys ∪ 宣言した変数(サーバーの保存時の検査と同じ組)。知らない鍵を返す
@@ -131,7 +131,6 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const id = template?.id ?? null;
   const archived = template?.status === "archived";
 
-  const [key, setKey] = useState(template?.key ?? "");
   const [name, setName] = useState(template?.name ?? "");
   const [description, setDescription] = useState(template?.description ?? "");
   const [category, setCategory] = useState(template?.category ?? options?.categories[0]?.key ?? "");
@@ -147,7 +146,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     (input) => createMessageTemplate(input),
     MESSAGE_TEMPLATES_KEY,
   );
-  const updateMutation = useDomainMutation<AdminTemplateDetail, Omit<CreateMessageTemplateInput, "key">>(
+  const updateMutation = useDomainMutation<AdminTemplateDetail, CreateMessageTemplateInput>(
     `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/update`,
     (input) => updateMessageTemplate(id!, input),
     revalidateKeys,
@@ -163,7 +162,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     revalidateKeys,
   );
 
-  /** 送る入力(作る時は鍵つき) */
+  /** 送る入力(作る・直すで同じ。鍵はサーバーが作る) */
   const buildInput = useCallback(
     () => ({
       name: name.trim(),
@@ -178,7 +177,6 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const initialJson = useMemo(
     () =>
       JSON.stringify({
-        key: template?.key ?? "",
         name: template?.name ?? "",
         description: template?.description ?? null,
         category: template?.category ?? options?.categories[0]?.key ?? "",
@@ -190,7 +188,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       }),
     [template, options],
   );
-  const dirty = createdId === null && JSON.stringify({ key, ...buildInput() }) !== initialJson;
+  const dirty = createdId === null && JSON.stringify(buildInput()) !== initialJson;
   useUnsavedGuard(dirty);
 
   const allowedKeys = useMemo(
@@ -218,7 +216,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
         onChanged?.(updated, "update");
         showToast("保存しました", "success");
       } else {
-        const created = await createMutation.trigger({ key: key.trim(), ...buildInput() });
+        const created = await createMutation.trigger(buildInput());
         setCreatedId(created.id);
         onCreated?.(created.id);
         onChanged?.(created, "create");
@@ -227,7 +225,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [id, updateMutation, createMutation, key, buildInput, showToast, onCreated, onChanged]);
+  }, [id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged]);
 
   /** 公開(今の中身を新しい版に。書きかけは先に保存する) */
   const publish = useCallback(async () => {
@@ -269,8 +267,6 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
     closeConfirm: { enabled: dirty, message: "保存していない書きかけがあります。閉じてもよろしいですか？" },
     fields: {
-      key,
-      setKey,
       name,
       setName,
       description,

@@ -38,6 +38,7 @@ const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "required", "category", 
 
 export type MessageDefinitionProblemCode =
   | "invalid_key"
+  | "missing_label"
   | "required_disabled"
   | "required_without_email"
   | "required_admin_editable"
@@ -87,6 +88,7 @@ export function applyMessageOverride<Vars extends z.AnyZodObject, C extends Chan
     }
     resolved.content = content as MessageDefinition<Vars, C>["content"];
   }
+  if (override.label !== undefined) resolved.label = override.label;
   if (override.extras) resolved.extras = { ...definition.extras, ...override.extras };
   if (override.enabled !== undefined) resolved.enabled = override.enabled;
   if (override.adminEditable) resolved.adminEditable = override.adminEditable;
@@ -155,6 +157,11 @@ export function validateMessageDefinition<
 
   if (!KEY_PATTERN.test(definition.key)) {
     add("invalid_key", `${label}: 鍵は <domain>.<name>(英数字の camelCase)で書く`);
+  }
+  // 名前(管理画面の表示名、必須。運営する人は鍵を読まない D46)。上書きでも空にできない
+  const named = options.override?.label ?? definition.label;
+  if (typeof named !== "string" || named.trim() === "") {
+    add("missing_label", `${label}: label(管理画面に出す連絡の名前。例 "パスワードの再設定")を書く`);
   }
 
   if (definition.authored) {

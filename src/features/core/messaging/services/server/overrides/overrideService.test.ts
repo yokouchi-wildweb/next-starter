@@ -22,6 +22,7 @@ const ADMIN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const editable = resolveMessageDefinition(
   defineMessage({
     key: "shop.notice",
+    label: "テストの連絡",
     category: "shop",
     vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
     adminEditable: ["email.subject", "email.paragraphs"],
@@ -34,6 +35,7 @@ const editable = resolveMessageDefinition(
 const plain = resolveMessageDefinition(
   defineMessage({
     key: "shop.plain",
+    label: "テストの連絡",
     category: "shop",
     vars: z.object({}),
     content: { email: { subject: "件名" } },
@@ -50,6 +52,7 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
     context: () => ({ actorId: options.actorId === undefined ? ADMIN : options.actorId, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
     messageKeys: () => Object.keys(definitions),
+    categoryLabel: (category: string) => (category === "shopNews" ? "お店のお知らせ" : null),
     loadDefinition: async (key) => (definitions[key] ? { resolved: definitions[key], check: { variableKeys: ["displayName"] } } : null),
     store: {
       listByMessage: async (key) => rows.filter((row) => row.messageKey === key),
@@ -94,7 +97,7 @@ test("一覧: adminEditable のある連絡だけ、数を返す", async () => {
     rows: [row("email.subject", "{{nope}}", "{{name}} 様へ"), row("email.paragraphs", ["a", "b"], ["旧", "旧"])],
   });
   assert.deepEqual(await service.listMessages(), [
-    { key: "shop.notice", kind: "transactional", category: "shop", editableCount: 2, editedCount: 2, orphanCount: 1, codeChangedCount: 1 },
+    { key: "shop.notice", label: "テストの連絡", kind: "transactional", category: "shop", categoryLabel: null, editableCount: 2, editedCount: 2, orphanCount: 1, codeChangedCount: 1 },
   ]);
 });
 

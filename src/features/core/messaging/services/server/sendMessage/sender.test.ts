@@ -25,6 +25,7 @@ const defineTestMessage = createDefineMessage<typeof fields>();
 
 const notice = defineTestMessage({
   key: "shop.notice",
+  label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
   content: { test: { title: "{{serviceName}}: {{item}}", body: "{{recipientName}} 様 {{item}}" } },
@@ -215,6 +216,7 @@ test("d4: record meta は vars も描画結果も残さない、full は受信�
 test("d4: 秘密を差し込む連絡は record full でも描いた本文を残さず、vars の写しから秘密の鍵を落とす", async () => {
   const secret = defineTestMessage({
     key: "auth.reset",
+    label: "テストの連絡",
     category: "account",
     record: "full",
     vars: z.object({ resetUrl: secretVar(z.string()), item: z.string() }),
@@ -238,7 +240,7 @@ test("d4: 秘密を差し込む連絡は record full でも描いた本文を残
 });
 
 test("d4: required は vars の写しも本文も残さない", async () => {
-  const required = defineTestMessage({ ...notice, key: "auth.verify", category: "accountEmail", required: true });
+  const required = defineTestMessage({ ...notice, key: "auth.verify", label: "テストの連絡", category: "accountEmail", required: true });
   // required は email を外せないので、テストの経路を email の鍵で置く
   const email = createTestChannel("email");
   const store = createMemoryStore();
@@ -561,6 +563,7 @@ test("経路は種類から(D86): channels はその回の絞りだけ、種類�
   const define2 = createDefineMessage<typeof fields2>();
   const both = define2({
     key: "shop.both",
+    label: "テストの連絡",
     category: "newsInApp",
     vars: z.object({ item: z.string() }),
     content: { test: { title: "{{item}}" }, inApp: { title: "{{item}}", body: "{{item}}" } },
@@ -591,7 +594,7 @@ test("種別の性質(D80): 記録の既定は種別から、security は苦情�
   // 種類 accountEmail は functional → 記録の既定 meta(vars を残さない)
   const fields3 = { email: z.object({ subject: z.string() }).strict() };
   const define3 = createDefineMessage<typeof fields3>();
-  const alert = define3({ key: "auth.alert", category: "accountEmail", vars: z.object({ item: z.string() }), content: { email: { subject: "{{item}}" } } });
+  const alert = define3({ key: "auth.alert", label: "テストの連絡", category: "accountEmail", vars: z.object({ item: z.string() }), content: { email: { subject: "{{item}}" } } });
   const email = createTestChannel("email");
   const deps = createDeps({ store, channels: { email: { ...email, fields: fields3.email } } });
   store.endpoints.push({ userId: "u2", channel: "email", address: "u2@example.test" });
@@ -607,6 +610,7 @@ test("種別の性質(D80): 記録の既定は種別から、security は苦情�
 
 const securityAlert = defineTestMessage({
   key: "auth.alert",
+  label: "テストの連絡",
   category: "alert",
   vars: z.object({ item: z.string() }),
   content: { test: { title: "警告 {{item}}" } },

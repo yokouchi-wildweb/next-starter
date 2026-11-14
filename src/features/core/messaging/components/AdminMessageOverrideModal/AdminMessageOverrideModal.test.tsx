@@ -22,7 +22,7 @@ let editor: Record<string, unknown> = {};
 let editorMounts = 0;
 const FIELD = { path: "email.subject" };
 const baseEditor = () => ({
-  detail: { key: "user.welcome", kind: "transactional", category: "x", fields: [FIELD, { path: "email.body" }] },
+  detail: { key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", fields: [FIELD, { path: "email.body" }] },
   error: null,
   isLoading: false,
   allowedKeys: [],
@@ -103,6 +103,10 @@ test("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeCo
   await view.draw(createElement(AdminMessageOverrideModal, props(true, "user.welcome")));
   assert.deepEqual(parts(view.container), ["keys", "field", "field"]);
   assert.deepEqual(modalProps!.confirmOnClose, { enabled: true, message: "下書き" });
+  // 連絡の名前・種別とカテゴリーの表示名で、鍵は出さない(D46)
+  assert.equal(modalProps!.title, "文言を直す: 会員登録の完了");
+  assert.match(view.container.textContent ?? "", /お手続きのお知らせ \/ お手続き/);
+  assert.doesNotMatch(view.container.textContent ?? "", /user\.welcome|transactional/);
   await view.unmount();
 });
 
@@ -122,7 +126,7 @@ test("読み込み中 / 開き直すと中身を作り直す", async () => {
 test("一覧: 行でモーダルの開き先を変える", async () => {
   const { AdminMessageOverrideList } = await import("../AdminMessageOverrideList");
   listState = {
-    items: [{ key: "user.welcome", kind: "transactional", category: "x", editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
+    items: [{ key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
     error: null,
     isLoading: false,
     modal: { open: false, setOpen: () => {}, messageKey: null, openMessage: (key: string) => events.push(`open:${key}`) },
@@ -131,6 +135,8 @@ test("一覧: 行でモーダルの開き先を変える", async () => {
   await view.draw(createElement(AdminMessageOverrideList));
   await act(async () => (view.container.querySelector("button") as HTMLButtonElement).click());
   assert.deepEqual(events, ["open:user.welcome"]);
+  assert.match(view.container.textContent ?? "", /会員登録の完了/);
+  assert.doesNotMatch(view.container.textContent ?? "", /user\.welcome|transactional/);
   assert.equal(view.container.querySelector("a"), null);
   await view.unmount();
 });

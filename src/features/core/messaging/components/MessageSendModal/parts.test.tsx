@@ -241,9 +241,10 @@ test("SendConfirmView / SendResultView", async () => {
   assert.match(bulk.container.textContent ?? "", /選んだ 2 件の振込レビュー/);
   await bulk.unmount();
   const result = await render(
-    createElement(parts.SendResultView, { status: "queued", queuedCount: 0, dispatchHref: "/admin/messaging/d1", afterSend: { ok: false, error: "x" }, recordNoun: "振込レビュー" }),
+    createElement(parts.SendResultView, { status: "processing", queuedCount: 0, dispatchHref: "/admin/messaging/d1", afterSend: { ok: false, error: "x" }, recordNoun: "振込レビュー" }),
   );
   assert.match(result.container.textContent ?? "", /送信を受け付けました/);
+  assert.doesNotMatch(result.container.textContent ?? "", /queued/, "状態は表示名(鍵は出さない)");
   assert.match(result.container.textContent ?? "", /送った後の処理に失敗しました: x/);
   assert.ok(result.container.querySelector("a[href='/admin/messaging/d1']"));
   await result.unmount();

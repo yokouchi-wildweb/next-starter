@@ -12,6 +12,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 
+import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 import type { AdminTemplateVersion } from "@/features/core/messaging/services/client/templateClient";
 
 import { MessagePreview } from "../MessagePreview";
@@ -50,7 +51,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
               {when(version.createdAt)}
             </Span>
             <Span size="sm" tone="muted">
-              {version.category} / {Object.keys(version.content).join(" / ")}
+              {version.categoryLabel ?? "今は無いカテゴリー"} / {Object.keys(version.content).map(messageChannelLabel).join(" / ")}
             </Span>
           </Flex>
           <Button
@@ -69,7 +70,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
             v{shown.version} の中身
           </Span>
           <MessagePreview
-            channels={Object.keys(shown.content).map((key) => ({ key, fields: shown.content[key] ?? {} }))}
+            channels={Object.keys(shown.content).map((key) => ({ key, label: messageChannelLabel(key), fields: shown.content[key] ?? {} }))}
           />
           {shown.variables.length > 0 ? (
             <Stack space={1}>

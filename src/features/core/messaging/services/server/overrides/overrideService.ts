@@ -38,6 +38,8 @@ export type OverrideServiceDeps = AdminCheckDeps & {
     messageKey: string,
   ) => Promise<{ resolved: AnyResolvedMessageDefinition; check: AdminFieldCheckOptions } | null>;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
+  /** 種類の表示名(受け口の label。無ければ null) */
+  categoryLabel: (category: string) => string | null;
 };
 
 export const SaveMessageOverrideInputSchema = z
@@ -85,8 +87,10 @@ export function createOverrideService(deps: OverrideServiceDeps) {
     }
     return {
       key: resolved.key,
+      label: resolved.label,
       kind: resolved.kind,
       category: resolved.category ?? null,
+      categoryLabel: resolved.category ? deps.categoryLabel(resolved.category) : null,
       allowedKeys: adminFieldAllowedKeys(resolved, check.variableKeys),
       fields: buildFields(resolved, check, rows),
     };
@@ -106,8 +110,10 @@ export function createOverrideService(deps: OverrideServiceDeps) {
         const fields = buildFields(loaded.resolved, loaded.check, own);
         summaries.push({
           key,
+          label: loaded.resolved.label,
           kind: loaded.resolved.kind,
           category: loaded.resolved.category ?? null,
+          categoryLabel: loaded.resolved.category ? deps.categoryLabel(loaded.resolved.category) : null,
           editableCount: fields.filter((field) => field.editable).length,
           editedCount: fields.filter((field) => field.edited).length,
           orphanCount: fields.filter((field) => field.orphan).length,

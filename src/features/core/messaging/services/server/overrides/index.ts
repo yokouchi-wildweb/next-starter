@@ -46,6 +46,7 @@ const service = createOverrideService({
     }
   },
   recordAudit: (input) => auditLogger.record(input),
+  categoryLabel: (category) => categories[category]?.label ?? null,
 });
 
 export const listMessageOverrides = service.listMessages;

@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageOverrideList/index.tsx
 // セクションコンテナ(管理: 文言を直せる連絡の一覧)。adminEditable を宣言した定義だけ(数は小さく固定なので一度に取る)。
-// 行 = 鍵・種別 / 種類・直せる欄の数・直した数・印(孤立・コードが変わった)。行を押すと直すモーダル(AdminMessageOverrideModal。D87)。
+// 行 = 連絡の名前・種別 / カテゴリーの表示名(鍵は見せない、D46)・直せる欄の数・直した数・印(孤立・コードが変わった)。行を押すと直すモーダル(AdminMessageOverrideModal。D87)。
 // 流れ(一覧・モーダルの開き先)は hook useAdminMessageOverrideList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -14,6 +14,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
+import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
 import { AdminMessageOverrideModal } from "@/features/core/messaging/components/AdminMessageOverrideModal";
 import { useAdminMessageOverrideList } from "@/features/core/messaging/hooks/useAdminMessageOverrideList";
 
@@ -55,9 +56,7 @@ export function AdminMessageOverrideList() {
         >
           <Stack space={1}>
             <Flex align="center" gap="xs" wrap="wrap">
-              <Span weight="semiBold" className="font-mono">
-                {item.key}
-              </Span>
+              <Span weight="semiBold">{item.label}</Span>
               {item.editedCount > 0 ? (
                 <SoftBadge variant="info" size="sm">
                   直した {item.editedCount}
@@ -76,7 +75,7 @@ export function AdminMessageOverrideList() {
             </Flex>
             <Flex gap="sm" wrap="wrap">
               <Span size="sm" tone="muted">
-                {item.kind} / {item.category}
+                {dispatchKindLabel(item.kind) ?? "-"} / {item.categoryLabel ?? "-"}
               </Span>
               <Span size="sm" tone="muted">
                 直せる欄 {item.editableCount}

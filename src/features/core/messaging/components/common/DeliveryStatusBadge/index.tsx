@@ -35,7 +35,7 @@ export type DeliveryStatusBadgeProps = {
 };
 
 export function DeliveryStatusBadge({ status, size = "sm" }: DeliveryStatusBadgeProps) {
-  const display = DELIVERY_STATUS_DISPLAY[status] ?? { label: status, variant: "muted" as Variant };
+  const display = DELIVERY_STATUS_DISPLAY[status] ?? { label: "そのほかの状態", variant: "muted" as Variant };
   return (
     <SoftBadge variant={display.variant} size={size}>
       {display.label}

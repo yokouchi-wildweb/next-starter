@@ -17,6 +17,7 @@ const categories = TEST_CATEGORIES;
 
 const definition = defineMessage({
   key: "shop.notice",
+  label: "テストの連絡",
   category: "shop",
   vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
   adminEditable: ["email.subject", "email.heading", "email.paragraphs", "inApp.body"],
@@ -84,6 +85,7 @@ test("門が閉・読み口なし: DB の値を使わない(読まない)", asyn
 test("adminEditable の無い連絡は読まない", async () => {
   const plain = defineMessage({
     key: "shop.plain",
+    label: "テストの連絡",
     category: "shopEmail",
     vars: z.object({}),
     content: { email: { subject: "件名" } },

@@ -34,6 +34,7 @@ const definitionOf = (extra: Record<string, unknown> = {}) =>
   applyMessageOverride(
     defineMessage({
       key: "shop.notice",
+      label: "テストの連絡",
       category: "marketing",
       vars: z.object({ item: z.string(), ...(extra.secret ? { token: secretVar(z.string()) } : {}) }),
       ...(extra.required ? { required: true } : {}),

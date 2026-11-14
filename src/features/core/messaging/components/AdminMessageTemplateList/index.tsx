@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageTemplateList/index.tsx
 // セクションコンテナ(管理: 保存されたテンプレートの一覧)。状態で絞る + 無限スクロール(カーソル)。
-// 行 = 名前・鍵・状態(版)・カテゴリー・更新。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
+// 行 = 名前・状態(版)・カテゴリーの表示名・更新(鍵は見せない、D46)。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -79,13 +79,10 @@ export function AdminMessageTemplateList() {
                   <Flex align="center" gap="xs" wrap="wrap">
                     <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
                     <Span weight="semiBold">{template.name}</Span>
-                    <Span size="sm" tone="muted" className="font-mono">
-                      {template.key}
-                    </Span>
                   </Flex>
                   <Flex gap="sm" wrap="wrap">
                     <Span size="sm" tone="muted">
-                      {template.category}
+                      {template.categoryLabel ?? "今は無いカテゴリー"}
                     </Span>
                     <Span size="sm" tone="muted">
                       {when(template.updatedAt ?? template.createdAt)}

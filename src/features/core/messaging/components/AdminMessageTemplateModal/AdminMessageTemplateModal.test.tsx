@@ -168,6 +168,7 @@ test("作る: 文言・変数のタブ、帯は「下書きを作る」、confir
   assert.equal(formArgs!.onChanged, modalState.onChanged, "操作の後の知らせは一覧へ届く");
   assert.match(view.container.textContent ?? "", /カテゴリー/);
   assert.doesNotMatch(view.container.textContent ?? "", /種類/);
+  assert.equal(view.container.querySelector("#template-key"), null, "鍵は打たせない(サーバーが作る)");
   assert.deepEqual(texts(view.container), ["下書きを作る"]);
   await act(async () => (view.container.querySelector("button") as HTMLButtonElement).click());
   assert.deepEqual(events, ["save"]);
@@ -215,7 +216,7 @@ test("一覧: 「新しく作る」と行でモーダルの開き先を変える
   listState = {
     status: "",
     setStatus: () => {},
-    query: { items: [{ id: "t1", key: "spring", name: "春", status: "draft", currentVersion: null, category: "notice", createdAt: null, updatedAt: null }], isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} },
+    query: { items: [{ id: "t1", key: "tpl-abc", name: "春", status: "draft", currentVersion: null, category: "notice", categoryLabel: "お知らせ", createdAt: null, updatedAt: null }], isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} },
     modal: { open: false, setOpen: () => {}, templateId: null, openNew: () => events.push("new"), openTemplate: (id: string) => events.push(`edit:${id}`), onChanged: () => {} },
   };
   const view = await render(createElement(AdminMessageTemplateList));
@@ -224,5 +225,7 @@ test("一覧: 「新しく作る」と行でモーダルの開き先を変える
   await act(async () => buttons.find((b) => (b.textContent ?? "").includes("春"))!.click());
   assert.deepEqual(events, ["new", "edit:t1"]);
   assert.equal(view.container.querySelector("a"), null, "1 件の住所へのリンクは無い");
+  assert.match(view.container.textContent ?? "", /お知らせ/);
+  assert.doesNotMatch(view.container.textContent ?? "", /tpl-abc|notice/, "鍵・カテゴリーの鍵は出さない");
   await view.unmount();
 });

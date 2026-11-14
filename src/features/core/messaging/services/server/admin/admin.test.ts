@@ -14,6 +14,7 @@ import { DomainError } from "@/lib/errors";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { assertAdminActor } from "./assertAdmin";
 import type { MessageCategory, MessageChannel, MessageSource } from "@/lib/messaging";
+import { sourceLabelOf } from "./sourceLabels";
 
 import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSendTest, type AdminBulkSendDeps } from "./bulkSend";
 import { adminContinueSending } from "./continueSending";
@@ -336,9 +337,10 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
       return [deliveryRow()];
     },
     listDispatchUserIds: async () => [],
+    userNames: async (ids) => new Map(ids.filter((id) => id === "u1").map((id) => [id, "山田"])),
   };
   const operationInputs = async () => ({ policy: null, counts: { failed: 0, unknown: 0 } });
-  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs, sources: {} };
+  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs, sourceLabel: async () => null };
   const first = await listDispatches(deps, { limit: "2", kind: "marketing", category: "campaign", channel: "email", messageKey: "messaging.x" } as never);
   assert.deepEqual(first.items.map((item) => item.id), ["d3", "d2"]);
   assert.ok(first.nextCursor);
@@ -349,11 +351,12 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
 
   const deliveries = await listDeliveries(deps, "d1", { status: "failed" });
   assert.deepEqual(deliveries.items[0].vars, { item: "靴" });
+  assert.equal(deliveries.items[0].userName, "山田", "利用者の名前を 1 ページに 1 回引く");
   assert.equal(deliveries.nextCursor, null);
   await assert.rejects(findDispatch(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   await assert.rejects(listDeliveries(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   assert.equal((await findDispatch(deps, "d1")).operations.retract.allowed, true);
-  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sources: {} }));
+  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sourceLabel: async () => null }));
 });
 
 test("回 1 件: 書いて送った文面と、選んだ利用者に送った回の利用者 id(回の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
@@ -374,12 +377,13 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
       userIdCalls.push([id, limit]);
       return fromDeliveries;
     },
+    userNames: async (ids) => new Map(ids.filter((id) => id === "admin1").map((id) => [id, "管理者 A"])),
   };
   const deps = {
     ...check(ctx("admin1")),
     dispatchStore: store,
     operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
-    sources: { "messaging.adminBulk": { key: "messaging.adminBulk", label: "管理者の一括送信" } as MessageSource },
+    sourceLabel: async (source: string) => (source === "messaging.adminBulk" ? "管理者の一括送信" : null),
   };
   const edited = await findDispatch(deps, "edited");
   assert.deepEqual([edited.templateEdited, edited.content], [true, { email: { subject: "直した" } }]);
@@ -396,6 +400,10 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
   assert.equal((await findDispatch(deps, "role")).sourceLabel, "管理者の一括送信");
   rows.role = dispatchRow({ id: "role", source: "fork.unknown" });
   assert.equal((await findDispatch(deps, "role")).sourceLabel, null);
+  // 送った人は名前(id は返すが画面は出さない)
+  assert.equal((await findDispatch(deps, "role")).actorName, "管理者 A");
+  rows.role = dispatchRow({ id: "role", actor_id: null, actor_type: "system" });
+  assert.equal((await findDispatch(deps, "role")).actorName, null);
 });
 
 test("回の画面の絞りの選択肢: 受け口のカテゴリーの鍵・表示名・種別、管理者だけ", async () => {
@@ -408,6 +416,19 @@ test("回の画面の絞りの選択肢: 受け口のカテゴリーの鍵・表
     { key: "forkSale", label: "セール", kind: "marketing" },
   ]);
   await rejects403(dispatchCategoryOptions({ ...check(ctx("user1", "user")), categories }));
+});
+
+test("送り元の表示名: 受け口 → 同じ鍵の連絡の名前 → 一括の対象、無ければ null", async () => {
+  const deps = {
+    sources: { "messaging.adminSend": { key: "messaging.adminSend", label: "管理画面から送信" } as MessageSource },
+    messageLabel: async (key: string) => (key === "auth.passwordReset" ? "パスワードの再設定" : null),
+    bulkTargets: { bankTransferReview: { label: "振込レビュー" } },
+  };
+  assert.equal(await sourceLabelOf(deps, "messaging.adminSend"), "管理画面から送信");
+  assert.equal(await sourceLabelOf(deps, "auth.passwordReset"), "パスワードの再設定");
+  assert.equal(await sourceLabelOf(deps, "bankTransferReview.bulk"), "振込レビューの一括送信");
+  assert.equal(await sourceLabelOf(deps, "bankTransferReview.bulk.test"), "振込レビューの一括送信のテスト");
+  assert.equal(await sourceLabelOf(deps, "fork.unknown"), null);
 });
 
 test("続きを送る: 進めて監査 1 行、管理者でなければ 403", async () => {

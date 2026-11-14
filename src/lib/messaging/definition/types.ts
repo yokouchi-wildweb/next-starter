@@ -46,6 +46,11 @@ export type MessageDefinition<
 > = {
   key: MessageKey;
   /**
+   * 連絡の名前(管理画面に出す日本語の表示名。例 パスワードの再設定)。必須。運営する人は鍵を読まない(D46)。
+   * 表示だけなので上書きで変えられる(種類の label と同じ、D70)
+   */
+  label: string;
+  /**
    * 種類 = categories の受け口の鍵(全部の連絡に必須、D81)。種別(kind)と経路(channels)は種類から引く(D86)。
    * 受け口に無い鍵は検査で落ちる。override で付け替えられない(D74)
    */
@@ -71,10 +76,12 @@ export type MessageDefinition<
 };
 
 /**
- * 一部の上書き(messages/<名前>.override.ts、データだけ)。key・vars・required・category は変えられない(種類の付け替えは D74 で無し。
+ * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・required・category は変えられない(種類の付け替えは D74 で無し。
  * 経路は種類の override で変える)。content は経路ごとに欄を重ねる(欄の名前は変えられない)。throttle: null で外す。
  */
 export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelFields> = {
+  /** 連絡の名前(管理画面の表示名) */
+  label?: string;
   content?: { [K in keyof MessageContent<C>]?: Partial<NonNullable<MessageContent<C>[K]>> };
   extras?: Record<string, unknown>;
   /** 連絡 1 本の入切(既定 true)。上流の functional の連絡は止められない(D68) */

@@ -9,6 +9,7 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.earlyRegistration",
+  label: "事前登録のメールアドレスの確認",
   category: "earlyRegistration",
   required: true,
   record: "meta",

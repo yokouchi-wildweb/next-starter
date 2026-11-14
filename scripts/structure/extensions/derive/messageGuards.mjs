@@ -2,6 +2,7 @@
 // 止められない連絡(required)の守り。連絡の定義 messages/<名前>.ts と隣の上書き <名前>.override.ts を字面で読み(実行しない)、
 // - required の上書き: enabled: false にしない・adminEditable(書くなら)は空・throttle(書くなら)は null だけ
 // - 守りに関わる値(定義の required・category・adminEditable、上書きの enabled・adminEditable、種類の kind・channels・group)はリテラルで書く
+// - label(全部の定義に必須、D46): 管理画面に出す連絡の名前。字面の空でない文字列(上書きで変えられる = 表示だけ)
 // - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
 //   文面(content)は種類の経路の分だけ要る(D86)。上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
 // - required の定義: 種類の経路に "email" がある・adminEditable が空・throttle が無い
@@ -169,6 +170,16 @@ function contentKeys(object) {
   return [];
 }
 
+/** 定義の label の問題(全部の連絡に必須の名前 = 管理画面の表示名、D46。字面の文字列で、空でない) */
+function labelProblems(path, object) {
+  const label = readLiteralProperty(object, "label");
+  if (label.problem) return [`${path}: ${label.problem}(label は管理画面の連絡の名前。字面の文字列で書く)`];
+  if (!label.present || typeof label.value !== "string" || label.value.trim() === "") {
+    return [`${path}: label(管理画面に出す連絡の名前。例 "パスワードの再設定")を書く(全部の連絡に必須。運営する人は鍵を読まない)`];
+  }
+  return [];
+}
+
 /** 定義の category の問題(全部の連絡に必須・受け口の鍵・文面は種類の経路の分だけ) */
 function categoryProblems(path, object, categories) {
   const category = readLiteralProperty(object, "category");
@@ -256,6 +267,7 @@ export function checkMessageGuards(repoRoot, points, files) {
       continue;
     }
     if (categories) problems.push(...categoryProblems(path, definition, categories));
+    problems.push(...labelProblems(path, definition));
     const categoryItem = categories?.get(readLiteralProperty(definition, "category").value);
     const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
     const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);

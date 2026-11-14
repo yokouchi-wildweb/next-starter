@@ -6,9 +6,6 @@ import { z } from "zod";
 
 import { MESSAGE_TEMPLATE_STATUSES } from "../../../entities/schema";
 
-/** テンプレートの鍵(英小文字・数字・- _、先頭は英字) */
-const TEMPLATE_KEY = /^[a-z][a-z0-9_-]{0,63}$/;
-
 const templateFields = {
   name: z.string().trim().min(1).max(200),
   description: z.string().max(2000).nullable().optional(),
@@ -18,9 +15,8 @@ const templateFields = {
   variables: z.array(z.unknown()).max(100).default([]),
 };
 
-export const CreateMessageTemplateInputSchema = z
-  .object({ key: z.string().regex(TEMPLATE_KEY, "鍵は英小文字で始まる英小文字・数字・- _(64 文字まで)"), ...templateFields })
-  .strict();
+/** 作る入力。鍵は受けない(サーバーが作る、D46: 運営する人に鍵を打たせない。strict なので key を送ると 400) */
+export const CreateMessageTemplateInputSchema = z.object({ ...templateFields }).strict();
 
 export const UpdateMessageTemplateInputSchema = z
   .object({

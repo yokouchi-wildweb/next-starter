@@ -1,8 +1,9 @@
 // src/features/core/messaging/components/AdminMessageTemplateModal/index.tsx
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
-// タブ: 文言(鍵は作る時だけ・名前・説明・カテゴリー・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
+// タブ: 文言(名前・説明・カテゴリー・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
 // カテゴリーの選択肢は API の options(種別 announcement・direct・marketing の物だけ。保存の検査はサーバー)。
 // 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った直後・1 件を取る間は読み込み中を出す。
+// 鍵はサーバーが作る(運営する人に打たせない、D46)。
 // 操作(下の帯): 取り下げ・公開(ConfirmPopover)・保存。作った後は同じモーダルでその 1 件を直す形に変わる(ページは移らない)。
 // 流れは hook useMessageTemplateModal(取る物・タブ・作った後)と useMessageTemplateForm(書く欄・操作)。部品は公開の部品だけなので、
 // fork は自分の画面にも同じモーダルを置ける。書きかけのまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard
@@ -167,14 +168,6 @@ function TemplateModalBody({
       ) : null}
 
       <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="template-meta">
-        {template ? null : (
-          <Stack space={1}>
-            <Label htmlFor="template-key" className="text-sm">
-              鍵(英小文字で始まる英小文字・数字・- _。作った後は変えられない)
-            </Label>
-            <Input id="template-key" className="font-mono" value={fields.key} onChange={(e) => fields.setKey(e.target.value)} placeholder="例: spring-sale" />
-          </Stack>
-        )}
         <Stack space={1}>
           <Label htmlFor="template-name" className="text-sm">
             名前

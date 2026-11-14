@@ -2,7 +2,8 @@
 // 部品(props だけ): 連絡の経路ごとのプレビュー。
 // - email: 描いた HTML があればそれを sandbox の iframe に出す。無ければ欄(件名・見出し・段落・ボタン・フッター)から組む
 // - inApp: お知らせのカード(画像・題・本文・行き先)
-// - それ以外の経路: text があればそれ、無ければ欄の一覧
+// - それ以外の経路: text があればそれ、無ければ欄の値の一覧(欄の名前は見せない、D46)
+// 経路の見出しは label(呼び手が経路の表示名を渡す。無ければ経路の鍵)
 // 使い手: 送る画面(POST /send/preview の結果)とテンプレートの版の表示(版の欄だけ。HTML は無い)
 
 "use client";
@@ -11,6 +12,8 @@ import { AppImage } from "@/components/Media/AppImage";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
+
+import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 
 /** プレビューの経路 1 つ(POST /send/preview の channels の要素と同じ形) */
 export type MessagePreviewChannel = {
@@ -96,12 +99,16 @@ function OtherFields({ channel }: { channel: MessagePreviewChannel }) {
       </Para>
     );
   }
+  // fork の経路の欄: 欄の名前(鍵)は見せず、値だけを「そのほかの欄」として並べる(D46)
   const fields = record(channel.fields);
   return (
     <Stack space={1} className="rounded-md border border-border p-3">
+      <Span size="xs" tone="muted">
+        そのほかの欄
+      </Span>
       {Object.entries(fields).map(([name, value]) => (
         <Span key={name} size="sm" className="whitespace-pre-wrap">
-          {name}: {typeof value === "string" ? value : JSON.stringify(value)}
+          {typeof value === "string" ? value : JSON.stringify(value)}
         </Span>
       ))}
     </Stack>
@@ -121,7 +128,7 @@ export function MessagePreview({ channels, emailHeight = 480 }: MessagePreviewPr
       {channels.map((channel) => (
         <Stack key={channel.key} space={2}>
           <Span size="sm" weight="semiBold">
-            {channel.label ?? channel.key}
+            {channel.label ?? messageChannelLabel(channel.key)}
           </Span>
           {channel.key === "email" ? (
             channel.html ? (

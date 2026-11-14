@@ -3,9 +3,11 @@
 // 回の読む口の DB(drizzle)。keyset: 回は (created_at, id) の降順、配達は昇順。
 // 回の宛先の利用者 = 配達の user_id の重なりを除いた並び(「同じ内容で送る」の写し。経路ごとの行を 1 人にまとめる)
 
-import { and, arrayContains, asc, desc, eq, gt, gte, isNotNull, lt, or, type SQL } from "drizzle-orm";
+import { and, arrayContains, asc, desc, eq, gt, gte, inArray, isNotNull, lt, or, type SQL } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
+
+import { UserTable } from "@/features/core/user/entities/drizzle";
 
 import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
@@ -63,5 +65,11 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
       .orderBy(asc(t.user_id))
       .limit(limit);
     return rows.flatMap((row) => (row.userId ? [row.userId] : []));
+  },
+
+  async userNames(userIds) {
+    if (userIds.length === 0) return new Map();
+    const rows = await db.select({ id: UserTable.id, name: UserTable.name }).from(UserTable).where(inArray(UserTable.id, [...userIds]));
+    return new Map(rows.flatMap((row) => (row.name && row.name.trim() !== "" ? [[row.id, row.name] as [string, string]] : [])));
   },
 };

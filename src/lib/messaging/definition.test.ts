@@ -31,6 +31,7 @@ import {
 
 const verification = defineMessage({
   key: "auth.verification",
+  label: "テストの連絡",
   category: "account",
   vars: z.object({ verificationUrl: z.string().url() }),
   required: true,
@@ -48,6 +49,7 @@ const verification = defineMessage({
 
 const reply = defineMessage({
   key: "chat.reply",
+  label: "テストの連絡",
   category: "chat",
   vars: z.object({ roomId: z.string(), senderName: z.string() }),
   adminEditable: ["inApp.title", "email.subject"],
@@ -77,6 +79,15 @@ const validate = (definition: Parameters<typeof validateMessageDefinition>[0], o
 test("正しい定義は問題なし", () => {
   assert.deepEqual(validate(verification), []);
   assert.deepEqual(validate(reply), []);
+});
+
+test("label(管理画面の連絡の名前)は必須で空にできない、上書きで変えられる(表示だけ)", () => {
+  const codes = (problems: { code: string }[]) => problems.map((p) => p.code);
+  assert.ok(codes(validate({ ...verification, label: "" })).includes("missing_label"));
+  assert.ok(codes(validate({ ...verification, label: undefined } as never)).includes("missing_label"));
+  assert.ok(codes(validate(verification, { override: { label: " " } })).includes("missing_label"));
+  assert.deepEqual(validate(verification, { override: { label: "メールの確認(別の言い方)" } }), []);
+  assert.equal(applyMessageOverride(verification, { label: "別の名前" }).label, "別の名前");
 });
 
 test("required の守り: email の除外・adminEditable・throttle を止める", () => {
@@ -109,7 +120,7 @@ test("上書きを重ねた結果を検査: required への enabled:false・emai
 });
 
 test("上書きで key・kind・vars・required・category・defaultChannels は変えられない", () => {
-  const override = { required: false, key: "auth.other", category: "chat", defaultChannels: ["email"] } as never;
+  const override = { required: false, key: "auth.other", label: "テストの連絡", category: "chat", defaultChannels: ["email"] } as never;
   assert.deepEqual(codes(validate(verification, { override })), [
     "override_forbidden_key",
     "override_forbidden_key",
@@ -213,7 +224,7 @@ test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言
 });
 
 test("authored(文面を送るたびに受け取る): 空の content は通り、文面・adminEditable・throttle・上書きは止める", () => {
-  const authored = defineMessage({ key: "admin.free", category: "chat", authored: true, vars: z.object({}), content: {} });
+  const authored = defineMessage({ key: "admin.free", label: "テストの連絡", category: "chat", authored: true, vars: z.object({}), content: {} });
   assert.deepEqual(validate(authored), [], "種類の経路の文面が無くても通る");
   assert.deepEqual(codes(validate({ ...authored, content: { inApp: { title: "t", body: "b" } } })), ["authored_content"]);
   assert.deepEqual(codes(validate({ ...authored, adminEditable: ["inApp.title"] } as typeof authored)), ["authored_field", "unknown_admin_editable"]);
@@ -271,6 +282,7 @@ test("fork の経路を足した束(createDefineMessage と channels)", () => {
   const define = createDefineMessage<typeof channels>();
   const def = define({
     key: "shop.orderShipped",
+    label: "テストの連絡",
     category: "order",
     vars: z.object({ orderId: z.string() }),
     adminEditable: ["push.title"],
@@ -301,6 +313,7 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
   });
   defineMessage({
     key: "x.y",
+    label: "テストの連絡",
     category: "x",
     vars,
     // @ts-expect-error 欄の名前は <経路>.<欄>
@@ -309,6 +322,7 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
   });
   defineMessage({
     key: "x.y",
+    label: "テストの連絡",
     category: "x",
     vars,
     // @ts-expect-error throttle.by は vars の鍵
@@ -317,6 +331,7 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
   });
   defineMessage({
     key: "x.y",
+    label: "テストの連絡",
     category: "x",
     vars,
     // @ts-expect-error 登録されていない経路
@@ -338,6 +353,7 @@ test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
     "content",
     "enabled",
     "extras",
+    "label",
     "record",
     "throttle",
   ]);

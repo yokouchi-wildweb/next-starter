@@ -11,6 +11,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "wallet.expiredNotice",
+  label: "残高の失効の知らせ",
   category: "walletExpired",
   vars: z.object({
     /** 通貨名(currency の label) */
