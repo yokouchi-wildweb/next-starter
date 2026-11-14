@@ -2,6 +2,7 @@
 // - 並び: 経路 > 種別の枠(見出しだけ、スイッチなし)> グループ(グループの無い種類が先・見出しなし)> 種類の行
 // - 止め方 4 つ: 1 マス(setCell)・種類まるごと(最初の経路の行に 1 回だけ、setCategoryWide)・経路まるごと(setChannelWide)・全部(setAll)
 // - 種別まるごとに止められた種類は切で、押すと setCell(サーバーが書き分ける)。全部の停止の下は押せない
+// - 全部の停止の間は経路まるごと(切)・種類まるごと(入)も全部に従って見せる。全部を戻すと各行の値に戻る(C17)
 // - 宛先の無い経路は連携の案内
 // 実行: pnpm test src/features/core/messaging/components/MessagePreferences/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
@@ -151,7 +152,21 @@ test("全部: setAll。全部の停止の間は経路・種類まるごと・全
   assert.ok(byLabel(locked.container, "メールで受け取る")!.disabled);
   assert.ok(byLabel(locked.container, "いいねをメールで受け取る")!.disabled);
   assert.match(text(locked.container), /すべての連絡を止めています/);
+  // C17: 経路の行は止めていないが、全部に従って切で見せる。種類まるごとは入(止まっている)
+  assert.equal(byLabel(locked.container, "メールで受け取る")!.checked, false);
+  assert.equal(byLabel(locked.container, "LINEで受け取る")!.checked, false);
+  assert.equal(byLabel(locked.container, "いいねをすべての経路で止める")!.checked, true);
+  assert.ok(byLabel(locked.container, "いいねをすべての経路で止める")!.disabled);
   await locked.unmount();
+
+  // 全部を戻すと経路の行の値に戻る
+  p.allOptedOut = false;
+  for (const ch of p.channels) for (const f of ch.kinds) for (const gr of f.groups) for (const c of gr.categories) Object.assign(c, { optedOut: false, via: null });
+  const back = await mount();
+  assert.equal(byLabel(back.container, "メールで受け取る")!.checked, true);
+  assert.equal(byLabel(back.container, "メールで受け取る")!.disabled, false);
+  assert.equal(byLabel(back.container, "いいねをすべての経路で止める")!.checked, false);
+  await back.unmount();
 });
 
 test("経路が無ければ文言", async () => {

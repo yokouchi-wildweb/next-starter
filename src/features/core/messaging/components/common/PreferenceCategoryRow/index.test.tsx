@@ -90,6 +90,20 @@ test("PreferenceChannelSection: 題・経路まるごと(入 = 受け取る)・�
   await view.unmount();
 });
 
+test("PreferenceChannelSection: 全部の停止の間(stoppedByAll)は経路の行によらず切・押せない・理由を出す", async () => {
+  const channel = { key: "email", label: "メール", hasAddress: true, connectHref: null, optedOut: false };
+  const free = await render(createElement(parts.section.PreferenceChannelSection, { channel, onChannelWideChange: () => {} }));
+  assert.equal(input(free.container, "メールで受け取る").checked, true);
+  assert.equal(input(free.container, "メールで受け取る").disabled, false);
+  assert.doesNotMatch(free.container.textContent ?? "", /すべての連絡を止めています/);
+  await free.unmount();
+  const all = await render(createElement(parts.section.PreferenceChannelSection, { channel, stoppedByAll: true, onChannelWideChange: () => {} }));
+  assert.equal(input(all.container, "メールで受け取る").checked, false);
+  assert.equal(input(all.container, "メールで受け取る").disabled, true);
+  assert.match(all.container.textContent ?? "", /すべての連絡を止めています/);
+  await all.unmount();
+});
+
 test("PreferenceKindFrame は見出しだけ(スイッチ無し)、PreferenceGroupHeading は null で何も描かない", async () => {
   const frame = await render(createElement(parts.frame.PreferenceKindFrame, { label: "キャンペーン情報" }, createElement("p", null, "ROWS")));
   assert.match(frame.container.textContent ?? "", /キャンペーン情報ROWS/);
@@ -109,5 +123,12 @@ test("PreferenceCategoryWideToggle: 入 = 止めている、押すと onChange(!
   assert.match(view.container.textContent ?? "", /このカテゴリーをすべての経路で止める/);
   await act(async () => input(view.container, "いいねをすべての経路で止める").click());
   assert.deepEqual(stops, [true]);
+  await view.unmount();
+});
+
+test("PreferenceCategoryWideToggle: 全部の停止の間(stoppedByAll)は種類まるごとの行によらず入(止まっている)・押せない", async () => {
+  const view = await render(createElement(parts.wide.PreferenceCategoryWideToggle, { categoryLabel: "いいね", stopped: false, stoppedByAll: true, onChange: () => {} }));
+  assert.equal(input(view.container, "いいねをすべての経路で止める").checked, true);
+  assert.equal(input(view.container, "いいねをすべての経路で止める").disabled, true);
   await view.unmount();
 });
