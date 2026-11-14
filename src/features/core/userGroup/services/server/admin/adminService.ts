@@ -4,10 +4,11 @@
 // - 作る・直す(名前・説明・種類・条件の定義の木・定期計算の間隔)・保管。種類の付け替えは動的 ⇄ 定期計算だけ(静的との間は 409)
 // - 見込みと試しの一覧(その場の定義か保存したグループ。id と表示名だけ、時間の上限で 503)
 // - 例外の人(足す人・外す人 = 持ち主付きの静的グループ、定義を包む。exceptions.ts)
-// - 静的グループ: 選んだ利用者・別のグループの今の一員・タグの今の持ち主から作る・置き換える(予算つき、終わらなければ incomplete)、足す
+// - 静的グループ: 選んだ利用者・別のグループの今の一員・タグの今の持ち主から作る・置き換える(予算つき、終わらなければ incomplete)、足す・外す
+// - 一員の一覧(静的)と例外の人の一覧(足す人・外す人)。利用者 id の順の keyset、id と表示名だけ、消した利用者は出さない
 // - 条件の部品の一覧(表示名・欄・重さと、ロール・状態・タグ・静的グループの選択肢)
 // - service でも管理者を確かめる。監査 user_group.group.{created, updated, archived}・user_group.exceptions.updated・
-//   user_group.members.{replaced, added}(操作した管理者が actor。利用者 id は監査に入れない)
+//   user_group.members.{replaced, added, removed}(操作した管理者が actor。利用者 id は監査に入れない)
 
 import { and, asc, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { z } from "zod";
@@ -40,7 +41,9 @@ import {
   type AdminUserGroupCount,
   type AdminUserGroupCriteriaCatalog,
   type AdminUserGroupDetail,
+  type AdminStaticMembersRemoved,
   type AdminUserGroupEstimate,
+  type AdminUserGroupMemberPage,
   type AdminUserGroupOption,
   type AdminUserGroupPage,
   type AdminUserGroupRecompute,
@@ -51,6 +54,8 @@ import {
   CreateStaticUserGroupInputSchema,
   CreateUserGroupInputSchema,
   EstimateUserGroupInputSchema,
+  ListExceptionMembersQuerySchema,
+  ListStaticMembersQuerySchema,
   ListUserGroupsQuerySchema,
   UpdateStaticMembersInputSchema,
   UpdateUserGroupExceptionsInputSchema,
@@ -84,6 +89,18 @@ function decodeCursor(cursor: string | undefined): Cursor | null {
   const createdAt = new Date(time ?? "");
   if (!id || Number.isNaN(createdAt.getTime())) throw new DomainError("cursor が正しくありません", { status: 400 });
   return { createdAt, id };
+}
+
+/** 一員の一覧の cursor = 最後の利用者 id(base64url) */
+function encodeMemberCursor(userId: string): string {
+  return Buffer.from(userId, "utf8").toString("base64url");
+}
+
+function decodeMemberCursor(cursor: string | undefined): string | null {
+  if (!cursor) return null;
+  const id = Buffer.from(cursor, "base64url").toString("utf8");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new DomainError("cursor が正しくありません", { status: 400 });
+  return id;
 }
 
 function parseOr400<S extends z.ZodTypeAny>(schema: S, value: unknown, message: string): z.output<S> {
@@ -146,6 +163,28 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       .innerJoin(UserTable, eq(UserTable.id, UserGroupMemberTable.user_id))
       .where(and(eq(UserGroupMemberTable.group_id, groupId), isNull(UserTable.deletedAt)));
     return Number(row?.value ?? 0);
+  }
+
+  /** 静的グループ(例外の持ち主付きも)の今の一員の 1 頁(利用者 id の順、消した利用者は出さない) */
+  async function memberPageOf(groupId: string, cursor: string | undefined, limit: number): Promise<AdminUserGroupMemberPage> {
+    const after = decodeMemberCursor(cursor);
+    const M = UserGroupMemberTable;
+    const rows = await deps.db
+      .select({ id: M.user_id, name: UserTable.name })
+      .from(M)
+      .innerJoin(UserTable, eq(UserTable.id, M.user_id))
+      .where(and(eq(M.group_id, groupId), isNull(UserTable.deletedAt), after ? gt(M.user_id, after) : undefined))
+      .orderBy(asc(M.user_id))
+      .limit(limit + 1);
+    const page = rows.slice(0, limit);
+    return {
+      items: page.map((row) => ({ id: row.id, name: row.name ?? null })),
+      nextCursor: rows.length > limit ? encodeMemberCursor(page[page.length - 1]!.id) : null,
+    };
+  }
+
+  function assertStatic(group: UserGroup): void {
+    if (group.kind !== "static") throw new DomainError(`グループ「${group.name}」は静的グループではありません`, { status: 409 });
   }
 
   async function recomputeOf(group: UserGroup): Promise<AdminUserGroupRecompute> {
@@ -523,18 +562,58 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
     },
 
     /**
-     * 静的グループの一員: { mode: "add", userIds } で足す / { mode: "replace", from } で置き換える(続きもこれ)
+     * 静的グループの一員: { mode: "add", userIds } で足す / { mode: "replace", from } で置き換える(続きもこれ)/
+     * { mode: "remove", userIds } で外す(一員でない id は何もしない。返すのは外した後の人数だけ)
      * @throws DomainError(409) 静的でない・しまった・人数の上限 / (404) 無い
      */
-    async updateStaticMembers(id: string, input: unknown): Promise<AdminStaticGroupResult> {
+    async updateStaticMembers(id: string, input: unknown): Promise<AdminStaticGroupResult | AdminStaticMembersRemoved> {
       await assertUserGroupAdmin(deps);
       const parsed = parseOr400(UpdateStaticMembersInputSchema, input, "一員の入力が正しくありません");
       const group = await loadGroup(id);
-      if (group.kind !== "static") throw new DomainError(`グループ「${group.name}」は静的グループではありません`, { status: 409 });
+      assertStatic(group);
       if (parsed.mode === "replace") return { group: await detailOf(group), members: await replaceFrom(group, parsed.from) };
+      if (parsed.mode === "remove") {
+        const removed = await deps.writer.removeMembers(group.id, parsed.userIds);
+        if (removed.removed > 0) {
+          await audit(group, "user_group.members.removed", { removed: removed.removed, memberCount: removed.memberCount });
+        }
+        return { memberCount: removed.memberCount };
+      }
       const added = await deps.writer.addMembers(group.id, parsed.userIds);
       if (added.added > 0) await audit(group, "user_group.members.added", { added: added.added, memberCount: added.memberCount });
       return { group: await detailOf(group), members: { status: "added", ...added } };
+    },
+
+    /**
+     * 静的グループの今の一員(利用者 id の順の keyset、id と表示名だけ)。しまったグループも読める
+     * @throws DomainError(409) 静的でない / (404) 無い / (400) 条件・cursor
+     */
+    async listStaticMembers(id: string, query: unknown = {}): Promise<AdminUserGroupMemberPage> {
+      await assertUserGroupAdmin(deps);
+      const { cursor, limit } = parseOr400(ListStaticMembersQuerySchema, query, "一員の一覧の条件が正しくありません");
+      const group = await loadGroup(id);
+      assertStatic(group);
+      return memberPageOf(group.id, cursor, limit);
+    },
+
+    /**
+     * 例外の人(side = include 足す人 / exclude 外す人)の一覧(利用者 id の順の keyset、id と表示名だけ)。例外が無ければ空
+     * @throws DomainError(409) 静的 / (404) 無い / (400) 条件・cursor
+     */
+    async listExceptionMembers(id: string, query: unknown = {}): Promise<AdminUserGroupMemberPage> {
+      await assertUserGroupAdmin(deps);
+      const { side, cursor, limit } = parseOr400(ListExceptionMembersQuerySchema, query, "例外の人の一覧の条件が正しくありません");
+      const group = await loadGroup(id);
+      if (group.kind === "static") {
+        throw new DomainError("静的グループに例外はありません(一員を直接足す・外してください)", { status: 409 });
+      }
+      const definition = await definitionOf(group.id);
+      const exceptions = definition ? unwrapExceptions(definition.tree, await ownerGroupIds(group.id)).exceptions : null;
+      if (!exceptions) {
+        decodeMemberCursor(cursor);
+        return { items: [], nextCursor: null };
+      }
+      return memberPageOf(side === "include" ? exceptions.includeId : exceptions.excludeId, cursor, limit);
     },
 
     /** 条件の部品の一覧と選択肢(画面は label を出し、key は定義の木の値としてだけ使う) */

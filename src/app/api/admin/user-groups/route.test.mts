@@ -1,5 +1,5 @@
 // src/app/api/admin/user-groups/route.test.mts
-// /api/admin/user-groups 以下の 8 ファイルの検査(Factory・門・userGroup の管理の service は偽物)。
+// /api/admin/user-groups 以下の 8 ファイル(12 の口)の検査(Factory・門・userGroup の管理の service は偽物)。
 // - 宣言: 全部の口が access { roleCategories: ["admin"] }、静的グループへ書く 2 つは maxDuration 60
 // - 門 userGroups が閉なら 404 で service を呼ばない
 // - 一覧の条件・body・id をそのまま service へ渡す
@@ -51,6 +51,8 @@ const NAMES = [
   "createStaticGroup",
   "estimate",
   "criteriaCatalog",
+  "listStaticMembers",
+  "listExceptionMembers",
 ];
 mock.module("@/features/core/userGroup/services/server/admin", {
   namedExports: {
@@ -85,8 +87,8 @@ beforeEach(() => {
   calls.length = 0;
 });
 
-test("宣言: 10 の口が全部管理者だけ、静的グループへ書く 2 つは maxDuration 60", () => {
-  assert.equal(declared.length, 10);
+test("宣言: 12 の口が全部管理者だけ、静的グループへ書く 2 つは maxDuration 60", () => {
+  assert.equal(declared.length, 12);
   for (const entry of declared) assert.deepEqual(entry.access, { roleCategories: ["admin"] }, entry.operation);
   assert.equal(members.maxDuration, 60);
   assert.equal(staticGroup.maxDuration, 60);
@@ -105,6 +107,9 @@ test("引数をそのまま渡す", async () => {
   await estimate.POST(post(`${BASE}/estimate`, { definition }), ctx());
   const catalog = await criteria.GET(new NextRequest(`${BASE}/criteria`), ctx());
   assert.deepEqual(await catalog.json(), { ok: "criteriaCatalog" });
+  await members.POST(post(`${BASE}/${ID}/members`, { mode: "remove", userIds: [ID] }), ctx({ id: ID }));
+  await members.GET(new NextRequest(`${BASE}/${ID}/members?cursor=abc&limit=10`), ctx({ id: ID }));
+  await exceptions.GET(new NextRequest(`${BASE}/${ID}/exceptions?side=exclude&limit=5`), ctx({ id: ID }));
   assert.deepEqual(calls, [
     ["listGroups", { kind: "dynamic", limit: "5" }],
     ["createGroup", { name: "n", kind: "dynamic", definition }],
@@ -116,6 +121,9 @@ test("引数をそのまま渡す", async () => {
     ["createStaticGroup", { name: "s", from: { type: "tag", tagId: ID } }],
     ["estimate", { definition }],
     ["criteriaCatalog"],
+    ["updateStaticMembers", ID, { mode: "remove", userIds: [ID] }],
+    ["listStaticMembers", ID, { cursor: "abc", limit: "10" }],
+    ["listExceptionMembers", ID, { side: "exclude", limit: "5" }],
   ]);
 });
 
@@ -132,6 +140,8 @@ test("門が閉なら 404 で service を呼ばない", async () => {
     await staticGroup.POST(post(`${BASE}/static`, {}), ctx()),
     await estimate.POST(post(`${BASE}/estimate`, {}), ctx()),
     await criteria.GET(new NextRequest(`${BASE}/criteria`), ctx()),
+    await members.GET(new NextRequest(`${BASE}/${ID}/members`), ctx({ id: ID })),
+    await exceptions.GET(new NextRequest(`${BASE}/${ID}/exceptions?side=include`), ctx({ id: ID })),
   ];
   for (const response of responses) assert.equal(response.status, 404);
   assert.deepEqual(calls, []);

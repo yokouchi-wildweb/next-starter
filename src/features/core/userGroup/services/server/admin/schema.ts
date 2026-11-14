@@ -67,6 +67,18 @@ export const CreateStaticUserGroupInputSchema = z
 export const UpdateStaticMembersInputSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("add"), userIds }).strict(),
   z.object({ mode: z.literal("replace"), from: StaticMemberSourceSchema }).strict(),
+  z.object({ mode: z.literal("remove"), userIds }).strict(),
 ]);
+
+const memberPage = {
+  cursor: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+};
+
+/** 静的グループの今の一員の一覧(keyset) */
+export const ListStaticMembersQuerySchema = z.object(memberPage);
+
+/** 例外の人の一覧: side = include(足す人)| exclude(外す人) */
+export const ListExceptionMembersQuerySchema = z.object({ side: z.enum(["include", "exclude"]), ...memberPage });
 
 export type StaticMemberSource = z.infer<typeof StaticMemberSourceSchema>;
