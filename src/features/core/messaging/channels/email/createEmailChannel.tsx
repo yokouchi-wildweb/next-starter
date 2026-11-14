@@ -41,6 +41,7 @@ import {
   type VerifiedResendWebhook,
 } from "@/lib/mail";
 
+import { unsubscribePageUrlOf } from "../../services/server/unsubscribe/token";
 import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
 
 import { hasRenderFallbackMarker } from "./fallback";
@@ -139,9 +140,9 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
           results.push({ address: target.address, kind: "permanent", reason: "unsubscribe_key_missing" });
           continue;
         }
-        // 本文のリンク: 好みのページが開いていればそちら、無ければワンクリックの URL(ヘッダは変えない)
+        // 本文のリンク(人が開く): 好みのページが開いていればそちら、無ければ同じトークンの確認のページ /unsubscribe(ヘッダは One-Click の API のまま)
         const unsubscribeUrl = listUnsubscribe
-          ? (deps.preferencesPageUrl?.() ?? listUnsubscribe.replace(/^<|>$/g, ""))
+          ? (deps.preferencesPageUrl?.() ?? unsubscribePageUrlOf(listUnsubscribe) ?? listUnsubscribe.replace(/^<|>$/g, ""))
           : undefined;
         let html: string;
         try {

@@ -41,12 +41,15 @@ src/features/core/messaging/
 │   ├── overrideClient.ts        # 管理画面の文言の上書き
 │   ├── templateClient.ts        # 保存されたテンプレート（一覧はカーソル・選択肢・版）
 │   └── sendClient.ts            # 管理の送るモーダル（送る・プレビュー・見込み・テスト送信・選択肢）
-├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
+├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxList / useInboxUnreadModal / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead / useUnsubscribe
 │                                # 管理: useMessageSendModal / useAdminSendOptions / useAdminBulkSend / useAdminDispatches / useAdminDispatchFilters / useAdminDispatch / useAdminDispatchDetail / useAdminDispatchDeliveries / useContinueDispatch
 │                                #       useAdminMessageTemplateList / useMessageTemplateModal / useMessageTemplateForm / useMessageTemplateVersion(s) / useAdminMessageOverrideList / useMessageOverrideEditor / useModalSession
 ├── components/
 │   ├── InboxList/               # 入れ物: 受け取り箱の一覧（詳細・既読・すべて既読）
-│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。置く場所は利用者の枠が決める）
+│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。上流の枠は置かない、fork が自分の枠に置く）
+│   ├── Unsubscribe/             # 入れ物: 配信停止の確認のページの中身（確認 → 止める → 結果）
+│   ├── UnsubscribeConfirm/      # 部品: 配信停止の確認（止める種類と経路・ボタン）
+│   ├── UnsubscribeResult/       # 部品: 配信停止の結果（止めた / リンクが正しくない）
 │   ├── AdminBulkSend/           # 管理一覧の一括操作の作成関数 bulkMessageAction(送るモーダルの bulk)
 │   ├── MessageSendModal/        # 入れ物: 送るモーダル(new / sameAs / bulk、テンプレートの呼び出し・宛先・予約・プレビュー・テスト送信・確認)
 │   ├── AdminDispatchList/       # 入れ物: 送った回の一覧（絞り込み + カーソル）
@@ -61,7 +64,7 @@ src/features/core/messaging/
     ├── sendMessage/             # 新しい送る口（定義 → 回 → 展開 → 配達 → 経路の send → 記録）
     ├── sweep/                   # 送信の掃き出し・続きを送る・保持の掃除（cron messaging-send-sweep / messaging-retention）
     ├── endpoints/               # 端末の帳簿（本人の宛先の登録・削除・一覧、退会の後片付け）
-    ├── unsubscribe/             # ワンクリックの配信停止（署名つきトークン・停止の記録）
+    ├── unsubscribe/             # 配信停止（署名つきトークン・住所 2 つ・停止の記録・確認のページの中身）
     ├── webhooks/                # provider の webhook の事件を記録と配達の行に当てる
     ├── inbox/                   # 受け取り箱の利用者の service（見える行・既読）と画像を回に結ぶ部品（imageBinding）
     └── admin/                   # 管理の一括送信・回の読む口（DTO）・続きを送る（管理者の再検査・監査）
@@ -279,12 +282,14 @@ D35・D45・D71。本人が好みを見て切り替える口（`services/server/
 - ページ: `page.tsx` の 1 行スイッチ → `_screen/MyPageAccountNotificationsScreen.tsx`（題「通知の設定」+ `MessagePreferences`、mypage の layout が UserPage を巻く）+ `_screen/loader.ts`（access authenticated、門が閉なら notFound）
 - マイページのカード: `src/features/core/user/mypageMenu/items/notifications.ts`（order 25「通知の設定」）。門が閉の間は棚の Link が描かない
 
-## ワンクリックの配信停止の受け口 /api/messaging/unsubscribe（常に開・門なし）
+## 配信停止の受け口 /api/messaging/unsubscribe と確認のページ /unsubscribe（常に開・門なし）
 
-- トークン = base64url(JSON {v:1, r, c, ch, a?, mk?, d?}) + . + HMAC-SHA256(MESSAGING_UNSUBSCRIBE_SECRET)。`mk` = 送った連絡の鍵・`d` = 送った回の id（送る口が宛先ごとに入れる。後から足したので、無い前のトークンも同じ版で通り、結び付きは null）。`services/server/unsubscribe` の signUnsubscribeToken / verifyUnsubscribeToken / buildUnsubscribeUrl（getAppBaseUrl() + /api/messaging/unsubscribe?t=）/ isUnsubscribeConfigured
-- POST（RFC 8058 のワンクリック、ログイン不要）: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
+- トークン = base64url(JSON {v:1, r, c, ch, a?, mk?, d?}) + . + HMAC-SHA256(MESSAGING_UNSUBSCRIBE_SECRET)。`mk` = 送った連絡の鍵・`d` = 送った回の id（送る口が宛先ごとに入れる。後から足したので、無い前のトークンも同じ版で通り、結び付きは null）。`services/server/unsubscribe` の signUnsubscribeToken / verifyUnsubscribeToken / isUnsubscribeConfigured。引数の名前は `token`（API とページで同じ、`UNSUBSCRIBE_TOKEN_PARAM`）
+- 住所は 2 つ: One-Click の POST の先 = `buildUnsubscribeUrl`（getAppBaseUrl() + /api/messaging/unsubscribe?token=、List-Unsubscribe のヘッダ。RFC 8058 のメールソフトはここへ POST する）/ 人が開く確認のページ = `buildUnsubscribePageUrl`（getAppBaseUrl() + /unsubscribe?token=、メールの本文のリンク）。メールの項目はヘッダの URL から `unsubscribePageUrlOf` で同じトークンのページの URL を作る（好みのページが開いていれば本文のリンクはそちら）
+- API は POST だけ（RFC 8058 のワンクリックと確認のページのボタン、ログイン不要）。JSON を返す（`{ ok: true }`、トークンの誤りは 400 `{ ok: false, error: "invalid_token" }`）。HTML も GET も無い。止める行: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
 - 停止を連絡・回に結ぶ: どちらの行にも `source_message_key`・`source_dispatch_id`（トークンの mk / d）を書く。好みのページからの停止・前のトークン・バウンスなどの停止は null（集計の「結び付き無し」）。同じ行が既にあれば書き換えない（最初の停止の出どころが残る）。`source_dispatch_id` は FK を持たない（回は保持の掃除で消えるが、停止の行は残す）
-- GET: 状態を変えず、同じ URL へ POST するボタン 1 つの確認のページ（script なし）
+- 確認のページ `/unsubscribe`（`src/app/(user)/(public)/unsubscribe/`、`page.tsx` の 1 行スイッチ → `_screen/UnsubscribeScreen.tsx` + `_screen/loader.ts`、access public、門の外で常に開く D90）: loader がトークンを確かめ（`describeUnsubscribeToken` = 止める種類と経路の表示名、書き込みなし）、入れ物 `components/Unsubscribe` が確認（部品 `UnsubscribeConfirm`）→ hook `useUnsubscribe(token)` の `submit`（client `postUnsubscribe` = API の POST）→ 結果（部品 `UnsubscribeResult`: 止めた + 通知の設定への案内（門で閉じていれば棚の Link が描かない）/ リンクが正しくない）。見た目は fork が `_components/` の Screen で差し替える
+- 古い `GET /api/messaging/unsubscribe?t=…` のリンクを新しいページへ移す口は作らない（D42。引数の名前も `t` から `token` に変わった）
 - 鍵 MESSAGING_UNSUBSCRIBE_SECRET は pnpm ops setup env が乱数で作る（既にある env ファイルにも足りなければ足す）。変えると送ったメールの停止のリンクは無効になる
 
 ---
@@ -348,7 +353,8 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 部品（core_ui、入口だけを import）:
   - `components/common/InboxItemRow`（1 行。押すと `onOpen(item)`）・`InboxItemDetail`（1 件の中身。題は包む Modal が持つ）・`InboxUnreadMark`（未読の点）
   - 入れ物 `components/InboxList`（`unreadOnly?`・`limit?`・`emptyText?`）と `components/InboxUnreadModal`
-- 未読のモーダル: 旧 `UnreadNotificationModal` と同じふるまい（指定の住所へ来たら未読を古い順に 1 件ずつ、見せた行は既読、次へ / スキップ = 全部既読 / 確認完了、確かめた id は sessionStorage）。値は `config.ts` の `inbox.showUnreadModal`（既定 false）・`inbox.unreadModalPaths`（既定 `["/"]`、末尾 `*` で前方一致）、上書きは `src/config/features/messaging.config.ts`。置く場所は利用者の枠（`src/app/(user)/_layout`）が決める
+- 一覧の流れ: hook `useInboxList(options)` → `{ query, unreadCount, opened, open, close, markAll, isMarkingAll }`（開く → 既読 → `updateItems`、全部既読 → `updateItems` + 知らせ）。入れ物 `InboxList` はこれと部品を並べるだけ
+- 未読のモーダル: 入れ物 `InboxUnreadModal`（部品を並べるだけ）+ 流れの hook `useInboxUnreadModal({ enabled?, paths? })`（config・住所 `isInboxModalPath`（末尾 `*` で前方一致）・ログイン・確かめた印（sessionStorage）・古い順・見せたら既読・`next` / `skip`（全部既読）/ `close`）。上流の枠には置かない: 使う fork は自分の枠（`UserLayout.replace`）に `<InboxUnreadModal />` を置く。`config.ts` の `inbox.showUnreadModal`（既定 false）= 置いた部品が出るか、`inbox.unreadModalPaths`（既定 `["/"]`）、上書きは `src/config/features/messaging.config.ts`
 - ページ `/messages`（`src/app/(user)/(protected)/messages/`）: `page.tsx` の 1 行スイッチ → `_screen/MessagesScreen.tsx`（題「お知らせ」+ `InboxList`）+ `_screen/loader.ts`（access authenticated、閉なら notFound）。初めの一覧もサーバーでは取らない（入れ物が hook で取る）
 - 門: 規則 `messagingInbox`（`src/featureGate/rules/messagingInbox.ts`、住所 `/messages`、既定 閉）。API と表は常に開（domains は持たない）。開ける fork は `src/config/featureGate/switches.config.ts`
 

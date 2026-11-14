@@ -94,3 +94,4 @@ export {
   useInboxUnreadModal,
   type UseInboxUnreadModalOptions,
 } from "./useInboxUnreadModal";
+export { useUnsubscribe, type UnsubscribeStatus } from "./useUnsubscribe";
