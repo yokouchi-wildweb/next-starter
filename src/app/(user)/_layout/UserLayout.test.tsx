@@ -35,8 +35,6 @@ mock.module("@/featureGate/client", {
     }),
   },
 });
-// 未読のお知らせのモーダル(messaging の受け取り箱の部品。出すかは部品が config で決める)
-mock.module("@/features/core/messaging/components/InboxUnreadModal", { namedExports: { InboxUnreadModal: marker("modal") } });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
 mock.module(here("./Header/index.tsx"), { namedExports: { UserNavigation: marker("header") } });
@@ -78,7 +76,7 @@ const BEFORE_SWITCH =
   'id="user-app-container" data-user-app-container="" style="--app-header-height:0px">' +
   "<x-header></x-header>" +
   '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div>' +
-  "<x-footer></x-footer><x-spacer></x-spacer><x-bottomnav></x-bottomnav><x-modal></x-modal></div>";
+  "<x-footer></x-footer><x-spacer></x-spacer><x-bottomnav></x-bottomnav></div>";
 
 /**
  * 外枠の inline style の --app-bottom-nav-height(枠の設定の bottomMenu.height + 下の safe-area)。
@@ -150,7 +148,7 @@ test("props なしの UserLayout は外枠の属性・高さ変数・部品の�
   assert.ok(root.includes(rootHideAttr()), "外枠に枠の表の隠す印が無い");
   assert.equal(html.includes("<span hidden"), false, "Hide* の印が残っている");
   assert.ok(html.includes(configBackground()), "config の値で描いた背景が無い");
-  const order = ['data-slot="app-container"', "<x-header>", BODY_WRAPPER, "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
+  const order = ['data-slot="app-container"', "<x-header>", BODY_WRAPPER, "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>"];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
@@ -186,7 +184,7 @@ test("slot に要素を渡すと既定の代わりにそれを同じ位置に描
     assert.equal(html.includes(`<x-${name}>`), false, `既定の ${name} が残っている`);
   }
   assert.equal(html.includes("100lvh"), false, "既定の BackgroundLayer が残っている");
-  const order = ['<i id="bg">', 'data-slot="app-container"', '<header id="h">', BODY_WRAPPER, '<footer id="f">', '<nav id="b">', "<x-modal>"];
+  const order = ['<i id="bg">', 'data-slot="app-container"', '<header id="h">', BODY_WRAPPER, '<footer id="f">', '<nav id="b">'];
   const positions = order.map((part) => html.indexOf(part));
   assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
@@ -203,7 +201,6 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
   for (const name of ["header", "footer", "spacer", "bottomnav"]) {
     assert.equal(html.includes(`<x-${name}>`), false, `${name} が残っている`);
   }
-  assert.ok(html.includes("<x-modal></x-modal></div>"), "未読のモーダルは slot ではないので残る(外枠の末尾)");
   assert.equal(html.includes("100lvh"), false, "背景が残っている");
   assert.equal(html.includes("--app-bottom-nav-height"), false);
   assert.ok(tagOf(html, "app-container").includes('data-frame-root=""'));
@@ -215,7 +212,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
     render(allNull()),
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
       'data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
-      '<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div><x-modal></x-modal></div>',
+      '<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div></div>',
   );
 });
 
@@ -254,10 +251,11 @@ test("banner なしの HTML に帯とスペーサーと変数を足しただけ(
   );
 });
 
-test("未読のモーダル(受け取り箱の部品)は門を見ずに外枠の末尾に置く", () => {
+test("枠は未読のお知らせのモーダルを置かず(置くのは fork の枠)、門も読まない", () => {
   gateReads.length = 0;
   const html = render(<UserLayout>CHILD</UserLayout>);
-  assert.ok(html.includes("<x-bottomnav></x-bottomnav><x-modal></x-modal></div>"));
+  assert.ok(html.endsWith("<x-bottomnav></x-bottomnav></div>"), "外枠の末尾はボトムナビ");
+  assert.equal(html.includes("modal"), false);
   assert.deepEqual(gateReads, [], "枠は門を読まない");
 });
 

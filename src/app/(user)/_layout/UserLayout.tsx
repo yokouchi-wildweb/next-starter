@@ -4,7 +4,6 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
-import { InboxUnreadModal } from "@/features/core/messaging/components/InboxUnreadModal";
 
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
@@ -110,9 +109,6 @@ export function UserLayout({
         ) : (
           bottomNav
         )}
-        {/* 未読のお知らせのモーダル(slot ではない)。出すかは messagingConfig.inbox.showUnreadModal(既定 切)、
-            出す住所は inbox.unreadModalPaths。門は見ない(受け取り箱の API は常に開)。自前のモーダルは UserLayout.replace で */}
-        <InboxUnreadModal />
       </Flex>
     </>
   );
