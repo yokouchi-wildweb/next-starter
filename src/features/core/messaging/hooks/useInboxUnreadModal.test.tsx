@@ -1,5 +1,5 @@
 // useInboxUnreadModal の検査(jsdom の上で描く。住所・ログイン・受け取り箱の hook は偽物)。
-// - config 切 / 住所の外 / 未ログインは取らず開かない
+// - 門 messagingInbox 閉(enabled を渡しても)/ config 切 / 住所の外 / 未ログインは取らず開かない。既定(config 既定 入)は開く
 // - 確かめていない未読を古い順に開き、見せた行に確かめた印(sessionStorage)を付けて既読にする
 // - 確かめた行は次に開かない / next / skip(全部既読 + 全部に印 + 閉じる)/ isInboxModalPath
 // 実行: pnpm test src/features/core/messaging/hooks/useInboxUnreadModal.test.tsx
@@ -28,6 +28,11 @@ let items: Item[] = [];
 const fetchEnabled: boolean[] = [];
 const reads: string[] = [];
 let readAlls = 0;
+let inboxOpen = true;
+const gateReads: string[] = [];
+mock.module("@/featureGate/client", {
+  namedExports: { useGate: () => ({ enabled: (name: string) => (gateReads.push(name), inboxOpen) }) },
+});
 mock.module(pathToFileURL(require.resolve("next/navigation")).href, { namedExports: { usePathname: () => pathname } });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ user }) } });
 mock.module("@/features/core/messaging/hooks/useInboxItems", {
@@ -61,6 +66,8 @@ beforeEach(() => {
   fetchEnabled.length = 0;
   reads.length = 0;
   readAlls = 0;
+  inboxOpen = true;
+  gateReads.length = 0;
   sessionStorage.clear();
 });
 
@@ -98,6 +105,21 @@ test("config 切・住所の外・未ログインは取らず開かない", asyn
     pathname = "/";
     user = { userId: "u1" };
   }
+});
+
+test("門 messagingInbox が閉なら enabled: true でも取らず開かない", async () => {
+  inboxOpen = false;
+  const view = await mount({ enabled: true, paths: ["/"] });
+  assert.ok(gateReads.includes("messagingInbox"));
+  assert.ok(fetchEnabled.length > 0 && fetchEnabled.every((e) => !e), "取らない");
+  assert.equal(view.hook().open, false);
+  await view.unmount();
+});
+
+test("引数なし = config の既定(showUnreadModal 入・住所 [\"/\"])で開く", async () => {
+  const view = await mount({});
+  assert.equal(view.hook().open, true);
+  await view.unmount();
 });
 
 test("古い順に開き、見せた行に印を付けて既読。next で次へ", async () => {

@@ -3,7 +3,8 @@
 // src/features/core/messaging/hooks/useInboxUnreadModal.ts
 //
 // 未読のお知らせを 1 件ずつ見せるモーダルの流れ(入れ物 InboxUnreadModal と、自前のモーダルを組む fork が呼ぶ):
-// - messagingConfig.inbox.showUnreadModal が false なら何もしない(取りに行かない、open は false)
+// - お知らせの機能(門 messagingInbox)が閉、または messagingConfig.inbox.showUnreadModal が false なら何もしない
+//   (取りに行かない、open は false。門は enabled を渡しても効く)
 // - ログイン中に inbox.unreadModalPaths の住所(完全一致・末尾 * で前方一致)にいる間だけ未読を取る。
 //   モーダルを出す住所どうしを移ったら取り直す(最初の 1 回は useInboxItems の初回の取得)
 // - このタブで確かめていない未読があれば古い順に並べて開く。確かめた id は sessionStorage(タブの間だけ)
@@ -13,6 +14,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useGate } from "@/featureGate/client";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 
 import { messagingConfig } from "../config";
@@ -52,7 +54,7 @@ export function isInboxModalPath(pathname: string, paths: readonly string[]): bo
 }
 
 export type UseInboxUnreadModalOptions = {
-  /** 既定 messagingConfig.inbox.showUnreadModal */
+  /** 既定 messagingConfig.inbox.showUnreadModal(門 messagingInbox が閉なら true でも何もしない) */
   enabled?: boolean;
   /** 既定 messagingConfig.inbox.unreadModalPaths */
   paths?: readonly string[];
@@ -62,7 +64,8 @@ export function useInboxUnreadModal(options: UseInboxUnreadModalOptions = {}) {
   const { enabled = messagingConfig.inbox.showUnreadModal, paths = messagingConfig.inbox.unreadModalPaths } = options;
   const pathname = usePathname();
   const { user } = useAuthSession();
-  const active = enabled && Boolean(user) && isInboxModalPath(pathname, paths);
+  const inboxOpen = useGate().enabled("messagingInbox");
+  const active = inboxOpen && enabled && Boolean(user) && isInboxModalPath(pathname, paths);
   const { items, isLoading, revalidate } = useInboxItems({ unreadOnly: true, limit: UNREAD_FETCH_LIMIT, enabled: active });
   const { markRead } = useMarkInboxItemRead();
   const { markAllRead } = useMarkAllInboxRead();
