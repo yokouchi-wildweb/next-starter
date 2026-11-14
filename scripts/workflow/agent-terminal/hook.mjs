@@ -2,7 +2,8 @@
 //
 // ペインごとに、今どの会話がいるか・返答の始まりと終わり・圧縮の起こり方を記録する(待つ役 lib.waiter.mjs が読む)。
 //   start (SessionStart)      — そのペインの会話の id と、端末の案内(AGENT_TERMINAL.<値>.md)を標準出力へ(= 文脈に入る)。手で打った /compact の後(source=compact、直前の PreCompact が manual)
-//                               なら、入力欄が空いたら「続けてください」を打つ待つ役を残す
+//                               なら、入力欄が空いたら続きの 1 行を打つ待つ役を残す。1 行は印 after(compactSelf の --then を待つ役が書く)
+//                               で選ぶ: wait = 読み返して待つ / ほか = 読み返して続ける。印はどの start でも消す
 //   busy (UserPromptSubmit)   — 返答の始まりの時刻
 //   stop (Stop)               — 返答の終わりの時刻
 //   precompact (PreCompact)   — 圧縮の起こり方(manual | auto)。auto は返答の途中で起きてそのまま続くので、続きは打たない
@@ -15,7 +16,11 @@ import path from "node:path";
 
 import { HERE, currentPane, guideFile, paneDir, readAgentTerminal, readMark, writeMark } from "./lib.mjs";
 
-const CONTINUE_TEXT = "続けてください";
+// 圧縮の後に打つ 1 行(印 after の値ごと。無い・知らない値 = continue)
+const AFTER_TEXT = {
+  continue: "必要な情報を読み返して作業を続行。",
+  wait: "必要な情報を読み返して待機。",
+};
 
 const readStdin = async () => {
   if (process.stdin.isTTY) return {};
@@ -44,9 +49,11 @@ try {
       // この端末でできることの案内(どの source でも。圧縮の後も入れ直す)
       process.stdout.write(readFileSync(guideFile(readAgentTerminal()), "utf8"));
       const manual = readMark(dir, "precompact") === "manual";
+      const text = AFTER_TEXT[readMark(dir, "after")] ?? AFTER_TEXT.continue;
       writeMark(dir, "precompact", "");
+      writeMark(dir, "after", "");
       if (input.source === "compact" && manual && session) {
-        const child = spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "continue", CONTINUE_TEXT], {
+        const child = spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "continue", text], {
           detached: true,
           stdio: "ignore",
           env: process.env,

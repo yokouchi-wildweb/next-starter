@@ -1,4 +1,4 @@
-// scripts/workflow/agent-terminal/compactSelf.mjs — pnpm workflow agent-terminal compactSelf "<残すこと>"
+// scripts/workflow/agent-terminal/compactSelf.mjs — pnpm workflow agent-terminal compactSelf [--then continue|wait] "<残すこと>"
 //
 // エージェントが自分の会話の圧縮を頼むコマンド。どこで打っても使える(エージェントから見た約束は 1 つ):
 //   - 自分のペインに打てる(AGENT_TERMINAL=tmux・tmux の中・hook が動いている)→ この返答が終わったら `/compact <残すこと>`
@@ -7,7 +7,9 @@
 //     その出力を出す(打ち込むのは端末を持つ道具だけ)。呼べない・失敗 → 下の 1 行
 //   - 端末は別の道具が持つ(AGENT_TERMINAL=none)で頼み先が無い → 下の 1 行(打たない)
 //   - 打てない → `/compact <残すこと>` をユーザーに打ってもらう 1 行を出す(エラーにしない)
-// 終了コード: 0(どちらも)/ 1 = 残すことが空。説明: scripts/workflow/agent-terminal/README.md
+// --then = 圧縮の後に打つ 1 行の種類(continue = 読み返して続ける(既定)/ wait = 読み返して待つ)。待つ役が /compact を打つときに
+// ペインの印 after に書き、hook.mjs の SessionStart が読む。頼み先があるとき・打てないときは使わない(後は頼み先の仕組み・既定の続き)
+// 終了コード: 0(どちらも)/ 1 = 残すことが空・--then の値が違う。説明: scripts/workflow/agent-terminal/README.md
 
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
@@ -34,11 +36,28 @@ const defaultDeps = {
   run: (cmd, args, env) => spawnSync(cmd, args, { env, encoding: "utf8" }),
 };
 
+/** 圧縮の後に打つ 1 行の種類 */
+export const AFTER_COMPACT = ["continue", "wait"];
+
+/** 引数から --then <値> / --then=<値> を抜く。{ then, rest } | null(値が無い・知らない値) */
+export function parseThen(args) {
+  const rest = [];
+  let then = "continue";
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--then") then = args[++i] ?? "";
+    else if (a.startsWith("--then=")) then = a.slice("--then=".length);
+    else rest.push(a);
+  }
+  return AFTER_COMPACT.includes(then) ? { then, rest } : null;
+}
+
 export function runCompactSelf(args, env = process.env, deps = defaultDeps) {
   deps = { ...defaultDeps, ...deps };
-  const focus = oneLine(args.join(" "));
+  const parsed = parseThen(args);
+  const focus = parsed ? oneLine(parsed.rest.join(" ")) : "";
   if (!focus) {
-    deps.print('使い方: pnpm workflow agent-terminal compactSelf "<圧縮の後も残すこと(1〜3 行)>"');
+    deps.print('使い方: pnpm workflow agent-terminal compactSelf [--then continue|wait] "<圧縮の後も残すこと(1〜3 行)>"');
     return 1;
   }
   const plan = planCompactSelf(env, focus);
@@ -54,7 +73,7 @@ export function runCompactSelf(args, env = process.env, deps = defaultDeps) {
     return 0;
   }
   if (plan.mode === "queue") {
-    const child = deps.spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "compact", `/compact ${focus}`, plan.prevIdle], {
+    const child = deps.spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "compact", `/compact ${focus}`, plan.prevIdle, parsed.then], {
       detached: true,
       stdio: "ignore",
       env,

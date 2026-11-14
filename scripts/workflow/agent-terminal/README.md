@@ -2,8 +2,10 @@
 
 エージェントが自分の会話の端末(今は tmux)に 1 行打ち込む道具。今あるのは 2 つ:
 
-- `pnpm workflow agent-terminal compactSelf "<残すこと>"` — エージェントが自分の会話の圧縮を頼む。今の返答が終わったら `/compact <残すこと>` が入力される
-- 圧縮の後の続き — 人が手で打った `/compact`(上の予約も含む)が終わったら、入力欄に「続けてください」が入力され、会話はその時の文脈で続く(人が「続けて」と言ったのと同じ。承認の扱いは変わらない)
+- `pnpm workflow agent-terminal compactSelf [--then continue|wait] "<残すこと>"` — エージェントが自分の会話の圧縮を頼む。今の返答が終わったら `/compact <残すこと>` が入力される
+- 圧縮の後の続き — 手で打った `/compact`(上の予約も含む)が終わったら、入力欄に 1 行が入力される(人がそう言ったのと同じ。承認の扱いは変わらない)
+  - `continue`(既定。人が手で打った `/compact` も): 「必要な情報を読み返して作業を続行。」
+  - `wait`(予約で `--then wait` を付けたときだけ): 「必要な情報を読み返して待機。」
 
 端末による分かれ道はこのフォルダの中だけに置く。ルール・CLAUDE.md には端末のことを書かない(エージェントはコマンドの名前だけを知り、使えない端末ではコマンドが代わりの 1 行を出す)。その端末でできることは、その端末で動いているときだけ SessionStart の hook が案内のファイル(`AGENT_TERMINAL.<値>.md`)を文脈に入れる。
 
@@ -34,7 +36,7 @@
 - `AGENT_COMPACT_CMD` は `AGENT_TERMINAL` と独立に効く(tmux の中でも頼み先が先)
 - 古い形の値(切り替えで消す): 値を書く側がまだ上の値を書かない間だけ、`lib.mjs` の `legacyHandoff` 1 か所が古い環境変数を読み、同じ 2 つ(端末は別の道具が持つ・頼み先)に読み替える。ほかの場所は古い名前を持たない
 
-## `pnpm workflow agent-terminal compactSelf "<残すこと>"`
+## `pnpm workflow agent-terminal compactSelf [--then continue|wait] "<残すこと>"`
 
 - 打てるとき(`AGENT_TERMINAL=tmux`・tmux の中・下の hook がこのペインで動いている): 裏に待つ役を残し「予約しました…ここで返答を終えてください」と出す。返答が終わると `/compact <残すこと>` が Enter 付きで入力される
 - 頼み先があるとき(`AGENT_COMPACT_CMD`、下の「値の約束」): 自分では打たない。そのコマンドを、残すことを env `AGENT_COMPACT_FOCUS` に入れて呼び、その出力をそのまま出す
@@ -42,6 +44,9 @@
   - 呼べない・失敗(exit 0 以外): 下の代わりの 1 行を出す
 - 端末は別の道具が持つ(`AGENT_TERMINAL=none`)で頼み先が無い: 打たず、下の代わりの 1 行を出す
 - 打てないとき: 「次の 1 行をユーザーに打ってもらってください: /compact <残すこと>」と出す(exit 0。エラーにしない)
+- `--then` = 圧縮の後に打つ 1 行の種類。`continue`(既定)= 読み返して続ける / `wait` = 読み返して待つ(区切りで止めて人の指示を待つとき)。ほかの値・値なしは使い方を出して exit 1
+  - 待つ役が `/compact` を打てたときだけペインの印 `after` に書く(打たずにやめた予約の印が、後で人が打つ `/compact` の続きを変えないように)。SessionStart の hook がそれを読み、どの start でも消す
+  - 頼み先があるとき・打てないときは使わない(後は頼み先の仕組み・既定の続き)
 - 残すこと = 圧縮の後に何も読み直さなくても要ること(作業中のファイルのパス、未完了の手順など)を 1〜3 行。改行は空白に直す
 - 省略語 coffee-break(`.claude/rules/shortcuts.md`)はこのコマンドを使う
 
@@ -52,7 +57,7 @@
 `hook.mjs` は hook が呼ぶ入口(手で打たない)。`pnpm workflow agent-terminal` の一覧には動作として出るが、`pnpm workflow agent-terminal hook` で打つ物ではない。
 
 - 記録するもの(ペインごと): 今そのペインにいる会話の id、返答の始まりと終わりの時刻、圧縮の起こり方(手で打った / 自動)
-- 手で打った圧縮の後(SessionStart の source が compact で、直前の PreCompact が manual)だけ、続きの待つ役を残す。返答の途中で起きる自動の圧縮はそのまま続くので打たない
+- 手で打った圧縮の後(SessionStart の source が compact で、直前の PreCompact が manual)だけ、続きの待つ役を残す(打つ 1 行は印 `after` で選ぶ。上の `--then`)。返答の途中で起きる自動の圧縮はそのまま続くので打たない
 - 標準出力に出すのは、`AGENT_TERMINAL=tmux` で tmux の中のときの SessionStart(どの source でも。圧縮の後も入れ直す)の案内 `AGENT_TERMINAL.tmux.md` だけ。ほかの hook・ほかの場合は何も出さない(UserPromptSubmit / SessionStart の出力は文脈に入るため)。標準エラーにも出さず、失敗しても黙って exit 0
 - 何もしないとき: `AGENT_TERMINAL` が `tmux` でない(`none` = 端末は別の道具が持つ・人が切った)/ tmux の外 / 古い形の値(下)
 
@@ -72,8 +77,8 @@
 
 `${XDG_STATE_HOME:-~/.local/state}/next-starter/agent-terminal/panes/<socket のハッシュ>_<ペイン番号>/`(リポの外。本体とワークツリーで共通。ペインの記録なのでどのチェックアウトから打っても同じ所を見る)
 
-- `session` / `busy` / `idle` / `precompact` = hook の印、`lock.<種類>` = 動いている待つ役、`typein.log` = 打ち込みの記録
+- `session` / `busy` / `idle` / `precompact` = hook の印、`after` = 圧縮の後の続きの種類(待つ役が書き、hook が消す)、`lock.<種類>` = 動いている待つ役、`typein.log` = 打ち込みの記録
 
 ## テスト
 
-`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の道(頼み先・失敗・古い形の値・待つ役・代わりの 1 行)、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)
+`pnpm test scripts/workflow/agent-terminal/agentTerminal.test.mjs`(値の読み方、`pnpm workflow agent-terminal compactSelf` の道(頼み先・失敗・古い形の値・待つ役・代わりの 1 行)と `--then`、圧縮の後の続行 / 待機の打ち分け、hook の出力(案内は tmux の中の SessionStart だけ)、案内のファイルが値ごとにあること、入力欄の読み取り、tmux があれば一時の tmux サーバーで偽の入力欄に打ち込む通し)
