@@ -36,6 +36,15 @@ export type UserGroupConfig = {
    * - defaultIntervalMinutes: グループの間隔(recompute_interval_minutes)が null の時の間隔。cron は毎時なので、細かい値は次の毎時に丸まる
    */
   recompute: { budgetMs: number; batchSize: number; defaultIntervalMinutes: number };
+  /**
+   * 管理の API(/api/admin/user-groups)
+   * - listCountTimeoutMs: 一覧で動的グループの人数を数える 1 件の時間の上限。超えると「未計算」の印
+   * - listCountBudgetMs: 一覧の 1 ページで動的グループの人数を数える合計の時間。尽きたら残りは「未計算」
+   * - freezeBudgetMs: 静的グループを作る・置き換える 1 回の要求の時間(route の maxDuration 60 秒の内側)。
+   *   終わらなければ incomplete を返し、画面が同じ要求を送り直すと続きから書く
+   * - optionsLimit: 条件の部品の選択肢(タグ・静的グループ)の件数の上限
+   */
+  admin: { listCountTimeoutMs: number; listCountBudgetMs: number; freezeBudgetMs: number; optionsLimit: number };
 };
 
 const defaults: UserGroupConfig = {
@@ -44,6 +53,7 @@ const defaults: UserGroupConfig = {
   evaluation: { timeoutMs: 10_000, listLimitMax: 1000, sampleLimit: 20 },
   write: { batchSize: 1000 },
   recompute: { budgetMs: 240_000, batchSize: 1000, defaultIntervalMinutes: 1440 },
+  admin: { listCountTimeoutMs: 1000, listCountBudgetMs: 3000, freezeBudgetMs: 50_000, optionsLimit: 500 },
 };
 
 export const userGroupConfigDef = defineConfig(defaults, { label: "userGroup" });

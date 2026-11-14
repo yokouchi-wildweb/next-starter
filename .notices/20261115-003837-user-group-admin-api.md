@@ -1,0 +1,12 @@
+# DOWNSTREAM NOTICE id:20261115-003837-user-group-admin-api
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-15T00:38:37+09:00
+severity: info
+checkpoint: user-group-admin-api
+change: (1) Admin API for user groups /api/admin/user-groups/** (createApiRoute admin only + gate userGroups; service userGroupAdmin in src/features/core/userGroup/services/server/admin re-checks the admin): list (kind / status filter, cursor, counts with state counted / estimated / not_computed / none, scheduled last computed and failure, owner-bound exception groups hidden), get (base definition, heavy, notices, exception counts), create / update (definition checked, has_heavy stored, inStaticGroup only to active non-owner static groups; kind dynamic <-> scheduled only, static <-> others 409), archive, estimate ({ definition } | { groupId } → count + sample of id and name), exceptions (two owner-bound static groups, stored tree (base or include) and not exclude), static groups from selected users / another group's current members / a tag's current members and add (request budget admin.freezeBudgetMs 50 s, incomplete → re-post the same from to continue), criteria catalog (labels, field meta, weight, options for roles / statuses / tags / static groups). Audit rows user_group.group.created / updated / archived, user_group.exceptions.updated, user_group.members.replaced / added. (2) Recompute due rule: a scheduled group whose definition (exceptions included) changed after its latest version is due on the next cron run (a stale computing version is discarded). (3) Static writes: each replace call writes at least one batch even past its deadline. (4) Config userGroup.admin { listCountTimeoutMs 1000, listCountBudgetMs 3000, freezeBudgetMs 50000, optionsLimit 500 }.
+why: The admin screen of the next notice reads these routes; forks that build their own group screens can use the same API and DTOs.
+required_actions: none
+verify: pnpm typecheck, pnpm test, pnpm check pass; pnpm test --db src/features/core/userGroup passes
+manual_steps: -
+refs: src/features/core/userGroup/README.md (管理の API, 定期計算), council 20261108-120538-system-messaging-templates (legate l2, order 48)
+notes: No DB change. The gate userGroups stays closed by default, so the routes answer 404 until a fork opens it. Audit action names are new; a fork that lists audit action labels may add labels for user_group.* (not required).
