@@ -2,16 +2,16 @@
 //
 // 管理の一括送信(D40・D42・D80・D81、指令 40 の AMENDMENT 2)。中身は送る画面(/send)と同じ形で、選んだ利用者へ送る。
 // - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
-// - 中身: message = テンプレート { templateId, version, content, vars }(読み込んだ今の公開版と直した文言)か、その場で書く連絡 { email?, inApp? }。
-//   カテゴリー(必須)・経路の絞り(channels?)と一緒に、検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、
-//   その場で書く連絡は email・inApp の文言、テンプレートは古い版 409・文言の無い経路 400)。予約は無い(scheduledAt は 400)
+// - 中身: 送る画面(/send)と同じ { content(経路ごとの文面), template?(呼び出したテンプレート), vars?, category, channels? }(D92)。
+//   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、文面の無い経路 400・古い版 409)。
+//   予約は無い(scheduledAt は 400)
 // - プレビュー・テスト送信: adminBulkSendPreview / adminBulkSendTest(送る画面と同じ。カテゴリーは bulk で送れる物)。門 messagingBroadcast に入れない
 // - 選択肢: adminBulkSendOptions(GET /api/admin/messaging/bulk-send)= bulk で送れるカテゴリーと、門 messagingTemplates が開の時だけ公開中のテンプレート。
 //   一覧の一括操作の既定は direct のカテゴリー(operatorDirect、D81)
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
 // - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
 // - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す。
-//   content はその場で書く連絡なら書いた中身、テンプレートなら送った文言の件名・題(差し込む前の字、本文は空)、template はテンプレートの出どころ
+//   content = 送った文面(経路ごとの欄、差し込む前の字)、template = テンプレートの出どころ(その場で書いた文面は null)
 
 import { z } from "zod";
 
@@ -22,8 +22,9 @@ import type { SendMessageResult } from "../sendMessage/types";
 import { assertAdminActor } from "./assertAdmin";
 import { adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
 import {
-  AdminMessageSchema,
+  adminContentFields,
   adminContentCategory,
+  auditContentOf,
   checkAdminContent,
   dispatchAdminContent,
   parseOr400,
@@ -35,7 +36,7 @@ import {
   type AdminSendOptions,
   type AdminSendResult,
 } from "./send";
-import type { AdminBulkSendCounts, AdminBulkSendTemplate, AdminMessageContent, MessageBulkSendTarget } from "./types";
+import type { AdminBulkSendCounts, AdminBulkSendTemplate, MessageBulkSendTarget } from "./types";
 
 /** 1 回の一括送信の利用者の上限 */
 export const ADMIN_BULK_SEND_MAX_RECIPIENTS = 10_000;
@@ -52,12 +53,8 @@ export const AdminBulkSendInputSchema = z
     /** 受け口 bulkSendTargets の鍵と、その一覧で選んだ記録の id */
     target: z.string().trim().min(1).optional(),
     recordIds: idList.optional(),
-    /** 送る中身(テンプレートかその場で書く連絡) */
-    message: AdminMessageSchema,
-    /** 送るカテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・marketing) */
-    category: z.string().trim().min(1).max(100),
-    /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
-    channels: z.array(z.string().min(1)).min(1).max(20).optional(),
+    /** 送る中身・カテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・marketing)・経路の絞り(送る画面と同じ) */
+    ...adminContentFields,
     /** 二重送信を防ぐ鍵(クライアント発行) */
     idempotencyKey: z.string().trim().min(8).max(128).optional(),
     /** 送り元(省略 = "<target>.bulk"、userIds なら "messaging.adminBulk") */
@@ -65,7 +62,7 @@ export const AdminBulkSendInputSchema = z
     reason: z.string().trim().max(500).optional(),
     isTest: z.boolean().optional(),
   })
-  // 知らない鍵は 400(前の body の kind・email・inApp、予約の scheduledAt を黙って捨てない)
+  // 知らない鍵は 400(前の body の message・kind・email・inApp、予約の scheduledAt を黙って捨てない)
   .strict()
   .superRefine((value, ctx) => {
     const byUsers = value.userIds !== undefined;
@@ -94,31 +91,6 @@ export type AdminBulkSendDeps = AdminContentDeps &
   /** 門 messagingTemplates が開か */
   templatesOpen: () => boolean;
 };
-
-/** afterSend に渡す中身(項目の形)とテンプレートの出どころ */
-function afterSendContentOf(
-  message: z.infer<typeof AdminMessageSchema>,
-  sent: SendMessageResult["template"],
-): {
-  content: AdminMessageContent;
-  template: AdminBulkSendTemplate | null;
-} {
-  if (message.type === "adhoc") {
-    return {
-      content: { ...(message.email ? { email: message.email } : {}), ...(message.inApp ? { inApp: message.inApp } : {}) },
-      template: null,
-    };
-  }
-  const email = message.content.email as { subject?: unknown } | undefined;
-  const inApp = message.content.inApp as { title?: unknown } | undefined;
-  return {
-    content: {
-      ...(typeof email?.subject === "string" ? { email: { subject: email.subject, body: "" } } : {}),
-      ...(typeof inApp?.title === "string" ? { inApp: { title: inApp.title, body: "" } } : {}),
-    },
-    template: { id: message.templateId, version: message.version, edited: sent?.edited ?? false },
-  };
-}
 
 /**
  * @throws DomainError(400) 入力・送る口の検査・知らない target・宛先が 0 人 / (403) 管理者でない / (404・409) テンプレートの状態
@@ -160,7 +132,10 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     channelCounts: result.channelCounts,
     queuedCount: result.queuedCount,
   };
-  const { content, template } = afterSendContentOf(input.message, result.template);
+  const template: AdminBulkSendTemplate | null = input.template
+    ? { id: input.template.templateId, version: input.template.version, edited: result.template?.edited ?? false }
+    : null;
+  const content = input.content;
 
   let afterSend: AdminBulkSendResult["afterSend"] = null;
   if (target?.afterSend) {
@@ -178,8 +153,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     action: "messaging.dispatch.bulk_sent",
     metadata: {
       source,
-      message: input.message.type === "template" ? "template" : "adhoc",
-      ...(input.message.type === "template" ? { templateId: input.message.templateId, templateVersion: input.message.version } : {}),
+      ...auditContentOf(input),
       category: category.key,
       kind: category.kind,
       channels: input.channels ?? null,

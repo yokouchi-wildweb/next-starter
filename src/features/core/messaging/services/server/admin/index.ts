@@ -26,9 +26,8 @@ import {
   estimateRecipients,
   previewMessage,
   sendMessageDeps,
-  sendMessageToMany,
+  sendAuthored,
   sendResolved,
-  sendTemplate,
 } from "../sendMessage";
 import { continueSending } from "../sweep";
 import type { AdminCheckDeps } from "./assertAdmin";
@@ -144,12 +143,10 @@ const readDeps = {
 /** 管理の送信の部品 */
 const sendDeps: AdminSendDeps = {
   ...adminCheck,
-  sendMessageToMany,
-  sendTemplate,
+  sendAuthored,
   previewMessage,
   estimateRecipients,
   recordAudit,
-  serviceNameShort: () => business.serviceNameShort,
   channels,
   categories,
   audiences,
@@ -243,4 +240,4 @@ export type {
 } from "./send";
 export type { AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
 export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSummary } from "./dispatchDto";
-export type { AdminBulkSendCounts, AdminMessageContent, AdminMessageChannel, MessageBulkSendTarget } from "./types";
+export type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";

@@ -501,3 +501,4 @@
 - id:20261114-091232-messaging-admin-modals | severity:breaking | checkpoint:messaging-admin-modals
 - id:20261114-100638-messaging-user-side | severity:breaking | checkpoint:messaging-user-side
 - id:20261114-105945-messaging-finish | severity:breaking | checkpoint:messaging-finish | fixes:20261114-100638-messaging-user-side
+- id:20261114-134752-messaging-send-fields | severity:breaking | checkpoint:messaging-send-fields

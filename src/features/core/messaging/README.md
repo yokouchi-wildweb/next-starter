@@ -113,12 +113,12 @@ await messagingService.sendMessageToMany(campaign, {
 5. 大きな送信と audience（全員・ロール・audiences）: 回の行だけを書き（`status: "processing"`）、展開と送信は cron が束ごとに行う（`expandBroadcastChunk`・`resolveAudienceChunk`）
 6. 予約（入力の `scheduledAt`）: 回の行だけを `status: "scheduled"` + `scheduled_at` で書く（選んだ宛先の一覧も回の `audience` に置く）。展開も送信もしない。cron の `activateScheduled` が時刻に `processing` にして 5 と同じく展開・送信する。過ぎた時刻と `config.schedule.maxDaysAhead`（既定 90 日）より先は 400、required・秘密を差し込む連絡は予約できない（400）。予約の粒度は cron の周期（Vercel Hobby では 1 日 1 回で遅れる）
 
-保存されたテンプレートで送る（`sendTemplate({ templateId, version?, content?, category?, vars, recipients | audience, channels?, scheduledAt?, … })`、D40・D41・D85）:
+管理者が書いた文面で送る（`sendAuthored({ content, category, template?: { templateId, version }, vars?, recipients | audience, channels?, scheduledAt?, … })`、D40・D41・D85・D92）。その場で書く連絡もテンプレートを呼び出して直した文面も同じ口で、`template` の有無だけが違う:
 
-- 送る時（予約なら予約の時）の今の公開版を回の `template_id`・`template_version` に固定する。`version` を渡すなら今の公開版でなければ 409（読み込んだ後に公開し直された）。後でテンプレートを直しても回はその版で送る（cron も固定した版から組み直し、最新を引き直さない。`sendMessage/dispatchDefinition.ts`）。取り下げ済み・未公開は 409、無いテンプレートは 404
-- 文言（`content`、省略 = 版の文言）: 版の文言を読み込んで直した文面を送れる。版と違えば回に `template_edited: true` と直した文言 `template_content` を残し、cron の組み直し・再送はその文言と版の変数の宣言で組む（直していない回は版から）。直した文言に版に無い画像（`storage://`）は 400（画像を足す口は送るモーダル）
-- 定義は版から組む（`sendMessage/templateDefinition.ts`）: 鍵 = 送るカテゴリーの種別の管理の定義の鍵（`messaging.adminAnnouncement` / `adminDirect` / `adminMarketing`、宛名 `{{displayName}}` もこの鍵に当たる）。種別が announcement・direct・marketing でないカテゴリーは 400（`sendTemplate` も cron の組み直しも）・中身は版か直した文言から、種類は版の種類（呼び手が `category` で替えられる = 管理の送信で選んだカテゴリー）、種別と経路はその種類から。**経路 = 種類の経路 ∩ その回の絞り（`channels`）で、その中に文言の無い経路が 1 つでもあれば 400**（黙って落とさない。絞りが種類の外・空も 400）。生成の一覧の上書き（fork の override）と管理画面の文言は重ねない
-- 変数の値（`vars`、回に 1 組）は版の変数で検査する: 必須で値が無い・型（number / boolean）が合わない → 400。値は文字列にして差し込む。cron は送る時に回の vars をもう一度検査し、合わなければ送らずに止める（配達の行は `failed`、`last_error: template_vars_invalid`。版が消えた = `template_missing`）
+- テンプレートを呼び出した時（`template`）: 今の公開版を回の `template_id`・`template_version` に固定する。今の公開版でなければ 409（読み込んだ後に公開し直された）。取り下げ済み・未公開は 409、無いテンプレートは 404。版の文面から直したかを回の `template_edited` に残す（テンプレートを呼び出していない回は false）
+- 文面（`content`、経路ごとの欄）は回の `authored_content` に残し、予約・cron の組み直し・再送はその文面で組む（後でテンプレートを直しても送った文面のまま。`sendMessage/dispatchDefinition.ts`）。画像（`storage://`）は自由に入れられる（版に無い画像も。お知らせの行を書く時に回へ結ぶ: 操作した管理者が上げた未紐付けの `notification.image` は attach、ほかは複製）
+- 定義は書いた文面から組む（`sendMessage/authoredDefinition.ts`）: 鍵 = 送るカテゴリーの種別の authored の定義の鍵（`messaging.adminAnnouncement` / `adminDirect` / `adminMarketing`、宛名 `{{displayName}}` もこの鍵に当たる）。種別が announcement・direct・marketing でないカテゴリーは 400（送る時も cron の組み直しも）・種別と経路はその種類から。**経路 = 種類の経路 ∩ その回の絞り（`channels`）で、その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない。絞りが種類の外・空も 400）。経路ごとの欄は経路の受け口の zod で検査する（LINE・fork の経路も）。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400。生成の一覧の上書きと管理画面の文言は重ねない（authored の定義は上書きを持てない）
+- 変数の値（`vars`、回に 1 組。`template` がある時だけ、無いのに渡すと 400）は版の変数で検査する: 必須で値が無い・型（number / boolean）が合わない → 400。値は文字列にして差し込む。cron は送る時に回の vars をもう一度検査し、合わなければ送らずに止める（配達の行は `failed`、`last_error: template_vars_invalid`。版が消えた = `template_missing`）。`authored_content` の列より前のその場で書いた回（文面を持たない authored の回）は組めず `authored_missing` で止まる
 - 受信者ごとの変数（`source: recipient`）は送る口から受信者ごとに渡す口が無いので、既定値を全員に使う（既定値が無いテンプレートは 400、変数の名前を出す）
 - テンプレートの画像（台帳の持ち主 = テンプレート）は、お知らせの画像の結び方（`inbox/imageBinding.ts`）で回ごとに複製して回が持つ（テンプレートを消しても送った物は残る）
 - プレビュー（`previewMessage`）と宛先数の見込み（`estimateRecipients`）も送る口にある（管理の送信が使う）
@@ -365,12 +365,12 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 
 管理者だけ（API の access `roleCategories: ["admin"]` と service の `assertAdmin` の両方。service は監査の文脈の操作者の役割の分類を引き、runAsSystem の system も通す）。操作は監査ログに 1 行。機能の門 `messagingDispatches`（既定 開）が回の読む口・続きを送る（`/api/admin/messaging/dispatches`）と管理画面 `/admin/messaging` を持つ。一括送信 `bulk-send` は門に入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）。
 
-### 管理者がその場で書く連絡（種別ごとの定義 3 本、D65・D80・D85）
+### 管理者が書いて送る連絡（種別ごとの authored の定義 3 本、D65・D80・D85・D92）
 
-- 定義: `messages/adminAnnouncement.ts`（`messaging.adminAnnouncement`、カテゴリー `announcement`）・`messages/adminDirect.ts`（`messaging.adminDirect`、`operatorDirect`）・`messages/adminMarketing.ts`（`messaging.adminMarketing`、`marketing`）。欄は 3 本同じ。種別 → 定義の表と選んだカテゴリーの検査は `services/server/admin/freeText.ts`（`ADMIN_FREE_TEXT_DEFINITIONS`・`adminFreeTextCategoryOf`）
-- 送る時は選んだカテゴリーの種別の定義を、定義の写しの category をそのカテゴリーに替えて送る。カテゴリーの種別が announcement・direct・marketing でなければ 400、宛先の種類（all・role・audience・users・bulk）は種別の性質 `adminFreeText` で確かめる（announcement = 全員・ロール・宛先の集め方・選んだ利用者 / direct = 選んだ利用者・一括 / marketing = 全部）。その場で書く連絡は email・inApp の文面だけなので、それ以外の経路を持つカテゴリーは使えない（400、テンプレートは版の経路）
-- 管理者が送るたびに書く中身を vars で渡す: `subject`・`body`（メール）・`inAppTitle`・`inAppBody`（お知らせ）・`serviceNameShort`。宛名 `{{displayName}}` は `enrichers/displayName.ts`（名前が無ければ「お客様」、3 本に当たる）。管理者の文面の中の `{{鍵}}` は差し込まない
-- 描き方はメールの経路の既定（段落は改行をそのまま）。段落の位置: `paragraphs` [0]「… からのお知らせ」→ [1]「… 様」→ [2] 本文 → `footer`。fork は鍵ごとに `views/<名前>.tsx` を置いて替えられる
+- 定義: `messages/adminAnnouncement.ts`（`messaging.adminAnnouncement`、カテゴリー `announcement`）・`messages/adminDirect.ts`（`messaging.adminDirect`、`operatorDirect`）・`messages/adminMarketing.ts`（`messaging.adminMarketing`、`marketing`）。`authored: true`（文面を送るたびに受け取る。定義は鍵と種類だけ、文面・vars は空、上書きのファイルは置けない）。種別 → 定義の表と選んだカテゴリーの検査は `services/server/admin/freeText.ts`（`ADMIN_FREE_TEXT_DEFINITIONS`・`adminFreeTextCategoryOf`）
+- 送る時は選んだカテゴリーの種別の定義の鍵で、受けた文面を組む（`sendAuthored`。その場で書く連絡もテンプレートも同じ）。カテゴリーの種別が announcement・direct・marketing でなければ 400、宛先の種類（all・role・audience・users・bulk）は種別の性質 `adminFreeText` で確かめる（announcement = 全員・ロール・宛先の集め方・選んだ利用者 / direct = 選んだ利用者・一括 / marketing = 全部）。経路の制限は無い（カテゴリーの経路のどれにも文面を書けば LINE・fork の経路も送れる）
+- 文面は経路ごとの欄の全部（メール = 件名・preheader・見出し・段落・ボタン・足元、お知らせ = 題・本文・画像・行き先、LINE = 文、fork の経路 = その欄）。**決まった挨拶・足元の文は無い**（前の「〜からのお知らせ」「〜様」・問い合わせの足元は無くなった。要るなら管理者が書く）。宛名 `{{displayName}}` は `enrichers/displayName.ts`（名前が無ければ「お客様」、3 本に当たる）。文面の `{{鍵}}` はテンプレートと同じく差し込む（知らない鍵は 400）
+- 描き方はメールの経路の既定（段落は改行をそのまま）。fork は鍵ごとに `views/<名前>.tsx` を置いて替えられる
 - これまでの回（`messaging.adminMessage`、定義は消した）は当時の鍵・種別・カテゴリーのまま一覧・詳細・集計で読める。再送は「回の連絡の定義を読めません」（`definition_missing`）で止まる
 
 ### 回の操作 `/api/admin/messaging/dispatches/[id]/{cancel, retract, resend}`（門 `messagingDispatches`）
@@ -391,13 +391,13 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 
 - 門: 規則 `messagingBroadcast`（`src/featureGate/rules/messagingBroadcast.ts`、`dependsOn: ["messagingDispatches"]`、既定 閉、住所は API `/api/admin/messaging/send`、送るモーダルの口（回の一覧「新しく送る」・回の詳細「同じ内容で送る」）は部品が `useGate` で出し分ける）。閉の間 API は 404、口は出ない。一括送信（`/bulk-send/**`）はこの門の外。送る口と cron の予約の拾いは門に関わらず動く
 - service: `services/server/admin/send.ts`（`messagingService.adminSend` / `adminSendPreview` / `adminSendEstimate` / `adminSendTest` / `adminSendOptions`）
-- `POST /send`（`AdminSendInputSchema`）: `message` = `{ type: "template", templateId, version, content, vars }`（読み込んだ今の公開版と、その文言を直した文面。中身はその場で書く連絡と同じに組み、版と違えば `template_edited`、`sendTemplate`）か `{ type: "adhoc", email?, inApp? }`（その場で書く管理者の連絡、経路は email・inApp）・`category`（必須、種別 announcement・direct・marketing のカテゴリーの鍵）・`channels?`（カテゴリーの経路の中の絞り、省略 = 全部。その中に文言の無い経路があれば 400）・`audience` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "audience", key, args? }`（audiences の受け口の項目）/ `{ type: "users", userIds }`（10,000 人まで）・`scheduledAt?`（ISO 8601、予約）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。送り元 `messaging.adminSend`
+- `POST /send`（`AdminSendInputSchema`）: 中身 = `content`（経路ごとの文面）・`template?` = `{ templateId, version }`（呼び出したテンプレート、読み込んだ今の公開版）・`vars?`（テンプレートの変数の値、`template` がある時だけ）。その場で書く連絡とテンプレートは `template` の有無だけが違う（D92、`sendAuthored`）・`category`（必須、種別 announcement・direct・marketing のカテゴリーの鍵）・`channels?`（カテゴリーの経路の中の絞り、省略 = 全部。その中に文面の無い経路があれば 400）・`audience` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "audience", key, args? }`（audiences の受け口の項目）/ `{ type: "users", userIds }`（10,000 人まで）・`scheduledAt?`（ISO 8601、予約）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
   - **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**（例: 運営からのご連絡 `operatorDirect` = direct は選んだ利用者宛てだけ）。誤りは service で 400（`admin/freeText.ts`、D80）。プレビューは宛先を見ない、テスト送信は選んだ利用者と同じ扱い
   - `channels?` は種類の経路の中の絞り（種類の外・空は 400、D86）
 - `POST /send/preview`: 経路ごとに差し込みを済ませた欄と、経路の `preview` があれば描いた結果（メールは送る時と同じ描き方の HTML）。見本の受信者 = 操作した管理者。テンプレートは今の公開版（送る時に固定する版）
 - `POST /send/estimate` `{ audience }` → `{ count, capped, fixedAtSend: true }`: 全員・ロールは数、audiences の項目は `count?(args)`、無ければ `resolveUserIds` を 10,000 まで数える（`capped`）、選んだ利用者は居る人の数。送る時に展開で数え直す（停止・宛先なしは引く前の数）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作（操作者なし）は 400
-- `GET /send/options`: 有効な経路（`adhoc` = その場で書ける経路）・ロール・audiences の項目・公開したテンプレート（今の版の番号・種類・文言・変数）・`categories`（送れるカテゴリー `{ key, label, kind, channels, audiences, adhoc }`、`adhoc` = その場で書く連絡に使える）・`maxScheduleDays`
+- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・audiences の項目・公開したテンプレート（今の版の番号・種類・文言・変数）・`categories`（送れるカテゴリー `{ key, label, kind, channels, audiences }`）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.test_sent`（対象 `message_dispatch`、本文の値は残さない）
 
 ### 送るモーダル（`components/MessageSendModal`、D85・D87）
@@ -415,12 +415,12 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 
 ### `/api/admin/messaging/bulk-send`（一括送信）
 
-- `GET`: 選択肢 `{ channels, categories, templates }`（channels = 送る画面の選択肢と同じ経路 `{ key, label, adhoc }`、表示名は経路の受け口の label / categories = 一覧の一括 bulk で送れる種別のカテゴリー、`adhoc` = その場で書く連絡に使える / templates = 門 `messagingTemplates` が開の時だけ公開中のテンプレート、閉なら空）
+- `GET`: 選択肢 `{ channels, categories, templates }`（channels = 送る画面の選択肢と同じ経路 `{ key, label }`、表示名は経路の受け口の label / categories = 一覧の一括 bulk で送れる種別のカテゴリー / templates = 門 `messagingTemplates` が開の時だけ公開中のテンプレート、閉なら空）
 
-- `POST`: 宛先は `{ userIds }` か `{ target, recordIds }`（1 回 10,000 人まで）、中身は送る画面と同じ `message`（テンプレート `{ type: "template", templateId, version, content, vars }` か その場で書く `{ type: "adhoc", email?, inApp? }`）・`category`（必須、bulk で送れる種別）・`channels?`（カテゴリーの経路の中の絞り、文言の無い経路は 400）・`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400。検査は送る画面と同じ部品（`admin/send.ts`）
+- `POST`: 宛先は `{ userIds }` か `{ target, recordIds }`（1 回 10,000 人まで）、中身は送る画面と同じ `content`・`template?`・`vars?`・`category`（必須、bulk で送れる種別）・`channels?`（カテゴリーの経路の中の絞り、文面の無い経路は 400）・`idempotencyKey?`（8〜128 文字）・`source?`（送り元、既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400（前の形の `message` も）。検査は送る画面と同じ部品（`admin/send.ts`）
 - `POST /preview`・`POST /test`: 送る画面のプレビュー・自分へのテスト送信と同じ（カテゴリーは bulk で送れる物、テストの送り元 `messaging.adminBulk.test`）。門 `messagingBroadcast` には入れない（一括送信と同じく管理一覧の一括操作から使う）
 - 結果: `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`。大きな送信の続きは cron が送る
-- 受け口 `bulkSendTargets/<名前>.ts`（`export const bulkSendTarget: MessageBulkSendTarget`、型 `services/server/admin/types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`（選んだ記録 → 利用者 id）・`afterSend?({ recordIds, dispatchId, counts, content, template })`（送信の受け付けの直後に 1 回。その場で書く連絡は書いた中身、テンプレートは送った文言の件名・題（差し込む前、本文は空）と `template { id, version, edited }`（その場で書く連絡は null）。投げても送信は戻らず結果と監査に失敗を残す）。上流の項目 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
+- 受け口 `bulkSendTargets/<名前>.ts`（`export const bulkSendTarget: MessageBulkSendTarget`、型 `services/server/admin/types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`（選んだ記録 → 利用者 id）・`afterSend?({ recordIds, dispatchId, counts, content, template })`（送信の受け付けの直後に 1 回。`content` = 送った文面（経路ごとの欄、差し込む前の字。メールの件名は `content.email?.subject`）、`template` = `{ id, version, edited }`（その場で書いた文面は null）。投げても送信は戻らず結果と監査に失敗を残す）。上流の項目 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
 - 監査: `messaging.dispatch.bulk_sent`（対象 = 回、metadata = 送り元・種別・経路・数・状態・対象の鍵・afterSend）
 
 ### 回の読む口（D37。汎用 CRUD の search に乗せない）
@@ -512,7 +512,7 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 
 新しい送る口・配達・受け取り箱のための表。今は定義と schemaRegistry への登録だけで、読み書きするサービス・API・cron はまだない（後の段で足す）。
 
-- `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`template_edited`（既定 false、版の文言から直したか）/ `template_content` jsonb（直した文言、直した回だけ）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`・`expand_cursor`（展開の再開位置、cron の節）。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
+- `message_dispatches`（同じ表に列を追加）: `message_key`・`template_id` / `template_version`（版の固定）・`template_edited`（既定 false、テンプレートを呼び出した回で版の文面から直したか）/ `authored_content` jsonb（管理者が書いて送った文面、書いた文面の回だけ）・`kind` / `category`・`audience` jsonb・`tags`・`scheduled_at`・`channel_counts` jsonb（`{<経路>: {targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed}}`）・`headings` / `vars` / `rendered` jsonb（経路が受け口なので経路を鍵にする）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`retracted_at`・`is_test`（既定 false）・`updated_at`・`expand_cursor`（展開の再開位置、cron の節）。古い列はそのまま（次の段で落とす）。`status` の値は `scheduled / processing / completed / completed_with_failures / cancelled` に広げた（列は同じ）
 - `message_deliveries`: 受信者 × 経路 の 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease は `locked_until` + `lock_token`、送り直しは `next_attempt_at`。複数の宛先は `targets` jsonb。利用者を消すと `user_id` は null（`recipient_key` は残る）。`throttle_key`（間引きの鍵、索引 `(throttle_key, sent_at)`）
 - `message_events`: provider の事件と内部の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`。`seq`（入った順）・`dispatch_id`（回を消すと一緒に消える）・`message_key`・`channel`（購読の節）
 - `message_inbox_items`: お知らせ。全員・ロール宛ては `user_id` null の共有の 1 行（`target_roles` null = 全員）、個人宛ては受信者ごとの行。回を消すと一緒に消える（取り下げはこの行を消す）。間引きの `throttle_key`・`collapsed_count`（既定 1）・`collapsed_dispatch_ids`（索引 `(user_id, throttle_key)`）

@@ -28,7 +28,9 @@ export const bulkSendTarget: MessageBulkSendTarget = {
     return rows.map((row) => row.userId);
   },
   async afterSend({ recordIds, content }) {
-    const subject = content.email?.subject;
+    // 送った文面のメールの件名(差し込む前の字)
+    const email = content.email as { subject?: unknown } | undefined;
+    const subject = typeof email?.subject === "string" ? email.subject : undefined;
     if (!subject || recordIds.length === 0) return;
     const today = formatDateJa(new Date(), { format: "YYYY/MM/DD" }) ?? "";
     const memoLine = `${today}「${subject}」メール送付`;

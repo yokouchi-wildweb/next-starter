@@ -59,7 +59,12 @@ export type MessageDefinition<
   /** 本文の残し方(既定 = 種別の性質の recordDefault) */
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
-  /** 経路ごとの欄(種類の経路の分だけ必須) */
+  /**
+   * 文面を送るたびに受け取る連絡(管理者がその場で書く・テンプレートの文面を送る、D92)。定義は鍵・種類・記録の段だけを持ち、
+   * content は空 {}・vars は空の z.object({}) で書く(送る口が受けた文面で埋めてから検査する)。adminEditable・throttle・上書きは付けられない
+   */
+  authored?: true;
+  /** 経路ごとの欄(種類の経路の分だけ必須。authored の定義は空 {}) */
   content: MessageContent<C>;
   /** fork が足す欄の入れ物(描き方の .replace が読む) */
   extras?: Record<string, unknown>;

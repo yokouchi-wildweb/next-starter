@@ -5,7 +5,7 @@
 // - 本文: 回の記録の段が vars / full のときだけ(回の描いた結果 rendered と共通の vars)。配達の本文は full のときだけ、配達の vars は vars / full
 //   (秘密の連絡は送る口が本文を残さないので、ここにも出ない)
 // - 宛先(address): 管理 API だけが使うので出す
-// - 直して送った文言(template_content)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)
+// - 管理者が書いて送った文面(authored_content)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)
 // - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文。失敗は状態・reason と、last_error の符号の部分
 //   (errorCode、文は constants/deliveryErrors.ts)で見る
 // - 前の送る口の回(message_key が null): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
@@ -47,8 +47,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   templateVersion: number | null;
   /** 版の文言を直して送った回か(D85) */
   templateEdited: boolean;
-  /** 直して送った文言(templateEdited の回だけ、ほかは null。経路ごとの欄) */
-  templateContent: Record<string, unknown> | null;
+  /** 管理者が書いて送った文面(書いた文面の回だけ、ほかは null。経路ごとの欄、差し込む前の字) */
+  content: Record<string, unknown> | null;
   /** 選んだ利用者に送った回の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる回は null */
   audienceUserIds: string[] | null;
   /** 本文(記録の段が vars / full のときだけ。経路ごとの欄) */
@@ -141,7 +141,7 @@ export function toDispatchDetail(
     templateId: row.template_id,
     templateVersion: row.template_version,
     templateEdited: row.template_edited,
-    templateContent: row.template_edited ? ((row.template_content as Record<string, unknown> | null) ?? null) : null,
+    content: (row.authored_content as Record<string, unknown> | null) ?? null,
     audienceUserIds,
     // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,

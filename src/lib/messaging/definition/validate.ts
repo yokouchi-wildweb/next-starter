@@ -51,7 +51,10 @@ export type MessageDefinitionProblemCode =
   | "override_forbidden_key"
   | "unknown_category"
   | "kind_admin_editable"
-  | "kind_throttle";
+  | "kind_throttle"
+  | "authored_content"
+  | "authored_field"
+  | "authored_override";
 
 export type MessageDefinitionProblem = {
   code: MessageDefinitionProblemCode;
@@ -154,6 +157,17 @@ export function validateMessageDefinition<
     add("invalid_key", `${label}: 鍵は <domain>.<name>(英数字の camelCase)で書く`);
   }
 
+  if (definition.authored) {
+    // 文面を送るたびに受け取る定義: 文面・管理画面の欄・間引きを持たず、上書きも当たらない(送った文面に重ねる物が無い)
+    if (Object.keys(definition.content ?? {}).length > 0) {
+      add("authored_content", `${label}: authored の連絡は content を空 {} にする(文面は送る時に受け取る)`);
+    }
+    if ((definition.adminEditable?.length ?? 0) > 0 || definition.throttle) {
+      add("authored_field", `${label}: authored の連絡に adminEditable・throttle は付けられない`);
+    }
+    if (options.override) add("authored_override", `${label}: authored の連絡は上書きできない`);
+  }
+
   if (options.override) {
     for (const key of OVERRIDE_FORBIDDEN_KEYS) {
       if (key in options.override) {
@@ -212,11 +226,11 @@ export function validateMessageDefinition<
       add("invalid_content", `${label}: ${channel} の欄が正しくない(${detail})`);
     }
   }
-  // 文面は種類の経路の分だけ必須(D86)
+  // 文面は種類の経路の分だけ必須(D86)。authored の定義は送る口が受けた文面で埋めてから検査する
   for (const channel of resolved.channels) {
     if (!channels[channel]) {
       add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
-    } else if (content[channel] === undefined) {
+    } else if (!definition.authored && content[channel] === undefined) {
       add("missing_content", `${label}: 種類 ${definition.category} の経路 ${channel} に欄が無い`);
     }
   }

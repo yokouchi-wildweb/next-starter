@@ -5,6 +5,7 @@
 // - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
 //   文面(content)は種類の経路の分だけ要る(D86)。上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
 // - required の定義: 種類の経路に "email" がある・adminEditable が空・throttle が無い
+// - authored: true の定義(文面を送るたびに受け取る、D92): 文面(content)の経路を見ない・上書きのファイルを置けない
 // - 上流(src/features/core)の functional の種類の連絡: 上書きで enabled: false にしない(D68)
 // - 種類の上書き(categories/<名前>.override.ts): functional・security の種類の channels から "email" を外さない(D86)。
 //   group は categoryGroups の受け口の鍵で、1 つのグループの種類は同じ種別(D82)
@@ -176,6 +177,8 @@ function categoryProblems(path, object, categories) {
   if (!category.present) return [`${path}: category(${list})を書く(全部の連絡に必須。種別と経路は種類から引く)`];
   const item = typeof category.value === "string" ? categories.get(category.value) : undefined;
   if (!item) return [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。先に categories/<名前>.ts を足す`];
+  // 文面を送るたびに受け取る定義は content を空で書く(送る口が受けた文面で検査する)
+  if (readLiteralProperty(object, "authored").value === true) return [];
   const keys = contentKeys(object);
   if (keys === null || !item.channels) return [];
   const missing = item.channels.filter((channel) => !keys.includes(channel));
@@ -256,6 +259,11 @@ export function checkMessageGuards(repoRoot, points, files) {
     const categoryItem = categories?.get(readLiteralProperty(definition, "category").value);
     const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
     const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);
+    const authored = readLiteralProperty(definition, "authored");
+    if (authored.problem) problems.push(`${path}: ${authored.problem}(authored の守りを字面で確かめるため)`);
+    if (authored.value === true && hasOverride) {
+      problems.push(`${ownOverride}: authored の連絡(文面を送るたびに受け取る)は上書きできない(送った文面に重ねる物が無い)`);
+    }
     // 上流の functional の連絡は止められない(fork の自分の連絡は自由、D68)。required の連絡は下の守りが言う
     const isRequired = readLiteralProperty(definition, "required").value === true;
     if (!isRequired && hasOverride && categoryItem && traits.noUpstreamDisable.has(categoryItem.kind) && path.startsWith("src/features/core/")) {

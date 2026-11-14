@@ -73,7 +73,7 @@ test("宣言: 5 つの口が全部管理者だけ", () => {
 });
 
 test("body をそのまま渡す", async () => {
-  const body = { message: { type: "adhoc" }, audience: { type: "all" } };
+  const body = { content: { inApp: { title: "t", body: "b" } }, category: "announcement", audience: { type: "all" } };
   await send.POST(post("", body));
   await preview.POST(post("/preview", body));
   await estimate.POST(post("/estimate", { audience: { type: "all" } }));
