@@ -177,6 +177,8 @@ export function MessageSendModal({
         </Block>
         <Block title="文言">
           <SendContentFields
+            // 呼び出し・やめるで中身が入れ替わったら欄を作り直す(fork の経路の JSON の欄は書いている文を自分で持つ)
+            key={`${m.draft.source}:${m.draft.template?.id ?? ""}`}
             source={m.draft.source}
             channels={onChannels}
             content={m.draft.content}

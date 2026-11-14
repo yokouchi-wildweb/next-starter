@@ -67,9 +67,12 @@ test("sendEmail: 連絡の一括送信のボタンを target bankTransferReview�
   assert.equal(mode.recordNoun, "振込レビュー");
   assert.equal(mode.defaultCategory, "operatorDirect");
   assert.deepEqual(mode.defaults, {
-    inAppTitle: "お振込に関するお知らせ",
-    inAppBody:
-      "お振込のご確認に関する重要なお知らせをメールにて送付しております。\nお手数をおかけいたしますが、ご確認のほどお願いいたします。",
+    content: {
+      inApp: {
+        title: "お振込に関するお知らせ",
+        body: "お振込のご確認に関する重要なお知らせをメールにて送付しております。\nお手数をおかけいたしますが、ご確認のほどお願いいたします。",
+      },
+    },
   });
   assert.equal(props?.label, "メール一斉送信");
   assert.equal(props?.disabled, false);

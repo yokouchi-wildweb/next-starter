@@ -1,6 +1,6 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
 // - SendTemplatePicker: 選んで「呼び出す」/ 呼び出し中は名前・版と「やめて…」
-// - SendContentFields: その場で書く欄・テンプレートの欄の部品・文言なしの印・変数の欄
+// - SendContentFields: その場で書く時もテンプレートの時も経路の欄の部品・文言なしの印・変数の欄(テンプレートの時だけ)
 // - SendAudiencePicker: bulk は選んだ記録の数だけ / select は種類の選び
 // - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印
 // - SendSchedule: 予約の時だけ時刻・注記・誤り
@@ -123,14 +123,21 @@ test("SendContentFields: その場で書く欄 / テンプレートの欄 / 文�
       channels: [
         { key: "email", label: "メール", blank: false },
         { key: "inApp", label: "お知らせ", blank: true },
+        { key: "line", label: "LINE", blank: false },
+        { key: "fax", label: "fax", blank: false },
       ],
-      content: { email: { subject: "件", body: "本" }, inApp: { title: "", body: "" } },
+      content: { email: { subject: "件", paragraphs: ["本"] }, inApp: { title: "", body: "" }, line: { text: "文" }, fax: { number: "03" } },
       onChange: () => {},
+      variables: [{ key: "discount", label: "割引", type: "number", required: true }],
     }),
   );
-  assert.ok(adhoc.container.querySelector("#send-email-subject"));
-  assert.ok(adhoc.container.querySelector("#send-inApp-title"));
+  // その場で書く時も経路ごとに経路の欄の部品(メールの全部の欄・お知らせの画像・LINE・fork の JSON はその部品が描く)
+  assert.deepEqual(
+    [...adhoc.container.querySelectorAll("[data-template-fields]")].map((el) => el.getAttribute("data-template-fields")),
+    ["email", "inApp", "line", "fax"],
+  );
   assert.equal(adhoc.container.textContent?.match(/文言がありません/g)?.length, 1);
+  assert.equal(adhoc.container.querySelector("#send-var-discount"), null, "変数はテンプレートの時だけ");
   await adhoc.unmount();
 
   const tpl = await render(

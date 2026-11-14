@@ -50,16 +50,14 @@ import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys"
 import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
+import { contentForInput } from "./useMessageTemplateForm";
 
 /** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
 export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
 
-/** 書く欄の初期値(bulk) */
+/** 書く欄の初期値(bulk)。content = 送る中身と同じ形(経路の鍵 → 経路の欄。例 { inApp: { title, body } }) */
 export type MessageSendDefaults = {
-  emailSubject?: string;
-  emailBody?: string;
-  inAppTitle?: string;
-  inAppBody?: string;
+  content?: Record<string, Record<string, unknown>>;
 };
 
 export type MessageSendMode =
@@ -89,7 +87,7 @@ export type MessageSendDraft = {
   source: "adhoc" | "template";
   /** 呼び出したテンプレート(source template の時) */
   template: { id: string; version: number } | null;
-  /** 経路ごとの欄。adhoc = { email: { subject, body }, inApp: { title, body } } / template = 版の欄の写し */
+  /** 経路ごとの欄(経路の欄の形。その場で書く時もテンプレートの時も同じ。例 email { subject, preheader?, heading?, paragraphs, cta?, footer? }) */
   content: Record<string, Record<string, unknown>>;
   /** テンプレートの変数の値(回に 1 組、入力は文字) */
   vars: Record<string, string>;
@@ -105,8 +103,6 @@ export type MessageSendResult =
 export type MessageSendChannel = { key: string; label: string; on: boolean; blank: boolean };
 
 /** その場で書く欄の今の部品が書ける経路(欄の作り直しは画面の指令。サーバーは全部の経路の文面を受ける) */
-const ADHOC_CHANNELS = ["email", "inApp"];
-
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const str = (value: unknown) => (typeof value === "string" ? value : "");
@@ -137,32 +133,21 @@ export function templateVarsForInput(template: MessageSendTemplate | null, value
   return out;
 }
 
-/** 経路の欄が空か(送れない) */
+/** 経路の欄が空か(送れない。要る欄 = email 件名・inApp 題・line 本文、fork の経路は欄が 1 つでもあるか。その場で書く時もテンプレートの時も同じ) */
 export function isBlankChannel(draft: MessageSendDraft, channel: string): boolean {
   const fields = draft.content[channel];
   if (!fields) return true;
-  if (draft.source === "adhoc") {
-    if (channel === "email") return !str(fields.subject).trim() || !str(fields.body).trim();
-    if (channel === "inApp") return !str(fields.title).trim() || !str(fields.body).trim();
-    return true;
-  }
   if (channel === "email") return !str(fields.subject).trim();
   if (channel === "inApp") return !str(fields.title).trim();
   if (channel === "line") return !str(fields.text).trim();
   return Object.keys(fields).length === 0;
 }
 
-/** その場で書く中身の空の欄 */
+const clone = (content: Record<string, unknown>) => JSON.parse(JSON.stringify(content)) as MessageSendDraft["content"];
+
+/** その場で書く中身の初め(欄は経路ごとに書いた時にできる。bulk は既定の中身の写し) */
 function emptyAdhoc(defaults: MessageSendDefaults = {}): MessageSendDraft {
-  return {
-    source: "adhoc",
-    template: null,
-    content: {
-      email: { subject: defaults.emailSubject ?? "", body: defaults.emailBody ?? "" },
-      inApp: { title: defaults.inAppTitle ?? "", body: defaults.inAppBody ?? "" },
-    },
-    vars: {},
-  };
+  return { source: "adhoc", template: null, content: clone(defaults.content ?? {}), vars: {} };
 }
 
 /** 回の本文の欄から文を取る(段落は空行で結ぶ) */
@@ -180,24 +165,15 @@ export function draftFromTemplate(template: MessageSendTemplate): MessageSendDra
   return {
     source: "template",
     template: { id: template.id, version: template.currentVersion },
-    content: JSON.parse(JSON.stringify(template.content ?? {})) as Record<string, Record<string, unknown>>,
+    // 版の欄をそのまま写す(画像の storage:// の参照も。欄で替える・外せる)
+    content: clone(template.content ?? {}),
     vars: {},
   };
 }
 
-/** 写す文言(経路ごとの欄)をその場で書く欄(email 件名・本文 / inApp 題・本文)へ。件名・題は回の headings を先に見る */
-function adhocFromContent(content: Record<string, unknown>, headings: Record<string, string | undefined> = {}): MessageSendDraft {
-  const email = record(content.email);
-  const inApp = record(content.inApp);
-  return {
-    source: "adhoc",
-    template: null,
-    content: {
-      email: { subject: headings.email ?? textOf(email, "subject"), body: textOf(email, "body", "paragraphs") },
-      inApp: { title: headings.inApp ?? textOf(inApp, "title"), body: textOf(inApp, "body") },
-    },
-    vars: {},
-  };
+/** 写す文面(経路ごとの欄)をその場で書く中身へ(欄の形はそのまま) */
+function adhocFromContent(content: Record<string, unknown>): MessageSendDraft {
+  return { source: "adhoc", template: null, content: clone(content), vars: {} };
 }
 
 /**
@@ -205,7 +181,7 @@ function adhocFromContent(content: Record<string, unknown>, headings: Record<str
  * - テンプレートの回で、そのテンプレートが今も公開中: 呼び出しの形。直して送った回(templateEdited)は直した文言、ほかは今の版の文言
  *   (送る口は今の公開中の版だけを受けるので、版はいつも今の版。直した文言はサーバーがその版に対する template_edited として残す)
  * - 公開中でない(取り下げ・門 messagingTemplates が閉): その場で書く形。直した文言があればそれを、無ければ回の本文を欄へ写す
- * - その場で書いた回: 回の本文(記録の段が vars / full の時だけ DTO に載る)。無ければ件名・題だけ写し、本文は空(書くまで送れない)
+ * - その場で書いた回: 回が持つ書いた文面(content、欄の形のまま)。無い回(前の送る口)は件名・題と記録の段の本文だけ
  */
 export function initialDraftOf(mode: MessageSendMode, templates: readonly MessageSendTemplate[]): MessageSendDraft {
   if (mode.type === "bulk") return emptyAdhoc(mode.defaults);
@@ -213,7 +189,7 @@ export function initialDraftOf(mode: MessageSendMode, templates: readonly Messag
   const { dispatch } = mode;
   // 書いて送った文面(テンプレートの回は版から直した時だけ写す。ほかは今の版の文面)
   const edited = dispatch.content && (!dispatch.templateId || dispatch.templateEdited) ? dispatch.content : null;
-  if (!dispatch.templateId && edited) return adhocFromContent(edited, dispatch.headings);
+  if (!dispatch.templateId && edited) return adhocFromContent(edited);
   if (dispatch.templateId) {
     const template = templates.find((item) => item.id === dispatch.templateId);
     if (template) {
@@ -222,18 +198,25 @@ export function initialDraftOf(mode: MessageSendMode, templates: readonly Messag
     }
     if (edited) return adhocFromContent(edited);
   }
+  // 書いた文面を持たない回: 件名・題(headings)と、記録の段が vars / full の時だけ載る本文
   const body = record(dispatch.body);
   const email = record(body.email);
   const inApp = record(body.inApp);
-  return {
-    source: "adhoc",
-    template: null,
-    content: {
-      email: { subject: dispatch.headings.email ?? textOf(email, "subject"), body: textOf(email, "body", "paragraphs") },
-      inApp: { title: dispatch.headings.inApp ?? textOf(inApp, "title"), body: textOf(inApp, "body") },
-    },
-    vars: {},
-  };
+  const emailText = textOf(email, "paragraphs", "body");
+  const content: MessageSendDraft["content"] = {};
+  const subject = dispatch.headings.email ?? textOf(email, "subject");
+  if (subject || emailText) content.email = { subject, paragraphs: splitParagraphs(emailText) };
+  const title = dispatch.headings.inApp ?? textOf(inApp, "title");
+  if (title || textOf(inApp, "body")) content.inApp = { title, body: textOf(inApp, "body") };
+  return { source: "adhoc", template: null, content, vars: {} };
+}
+
+/** 空行で区切った文 → 段落の並び */
+function splitParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph !== "");
 }
 
 /**
@@ -243,7 +226,9 @@ export function initialDraftOf(mode: MessageSendMode, templates: readonly Messag
 export function sameAsNoteOf(mode: MessageSendMode, templates: readonly MessageSendTemplate[], draft: MessageSendDraft): string | null {
   if (mode.type !== "sameAs" || !mode.dispatch.templateId) return null;
   if (templates.some((item) => item.id === mode.dispatch.templateId)) return null;
-  const copied = ADHOC_CHANNELS.some((channel) => Object.values(record(draft.content[channel])).some((v) => str(v).trim() !== ""));
+  const hasText = (value: unknown): boolean =>
+    typeof value === "string" ? value.trim() !== "" : Array.isArray(value) ? value.some(hasText) : value && typeof value === "object" ? Object.values(value).some(hasText) : false;
+  const copied = Object.values(draft.content).some(hasText);
   return copied
     ? "この回のテンプレートは今は公開されていないため、文言をその場で書く欄へ写しました"
     : "この回のテンプレートは今は公開されていないため、その場で書く欄で書き直してください(写せる文言がありませんでした)";
@@ -325,10 +310,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     () =>
       allCategories.filter(
         (option) =>
-          option.audiences.includes(isBulk ? "bulk" : audience.type) &&
-          (draft.source !== "adhoc" || option.channels.every((key) => ADHOC_CHANNELS.includes(key))),
+          option.audiences.includes(isBulk ? "bulk" : audience.type),
       ),
-    [allCategories, isBulk, audience.type, draft.source],
+    [allCategories, isBulk, audience.type],
   );
   const preferredCategory =
     chosenCategory ??
@@ -337,11 +321,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     ? (preferredCategory as string)
     : (allowedCategories[0]?.key ?? "");
   const categoryOption = allowedCategories.find((option) => option.key === category) ?? null;
-  /** 選んだカテゴリーの経路(その場で書く時は email・inApp だけ) */
-  const categoryChannels = useMemo(
-    () => (categoryOption?.channels ?? []).filter((key) => draft.source !== "adhoc" || ADHOC_CHANNELS.includes(key)),
-    [categoryOption, draft.source],
-  );
+  /** 選んだカテゴリーの経路(その場で書く時もテンプレートの時も全部。LINE・fork の経路も文面があれば送れる) */
+  const categoryChannels = useMemo(() => categoryOption?.channels ?? [], [categoryOption]);
   /** 送る経路 = カテゴリーの経路 − 外した経路(既定は全部オン) */
   const sendChannels = useMemo(() => categoryChannels.filter((key) => !channelsOff.includes(key)), [categoryChannels, channelsOff]);
   const channels: MessageSendChannel[] = useMemo(
@@ -414,27 +395,20 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   );
 
   // ---- 入力を組む ----
+  // 送る中身 = 送る経路の欄(その場で書く時もテンプレートの時も同じ形)。空の任意の欄は落とす(テンプレートの保存と同じ contentForInput)。
+  // 送る・プレビュー・テスト送信・見込み・一括送信がこの 1 つを使う
   const buildContent = useCallback((): AdminSendPreviewInput => {
+    const content = contentForInput(draft.content, sendChannels) as AdminSendPreviewInput["content"];
     if (draft.source === "template" && draft.template) {
       return {
-        content: draft.content,
+        content,
         template: { templateId: draft.template.id, version: draft.template.version },
         vars: templateVarsForInput(calledTemplate, draft.vars),
         category,
         channels: sendChannels,
       };
     }
-    // その場で書く欄(件名 / 題と本文)を経路の欄の形へ(メールの本文は段落 1 つ、改行はそのまま)
-    const email = draft.content.email ?? {};
-    const inApp = draft.content.inApp ?? {};
-    return {
-      content: {
-        ...(sendChannels.includes("email") ? { email: { subject: str(email.subject).trim(), paragraphs: [str(email.body).trim()] } } : {}),
-        ...(sendChannels.includes("inApp") ? { inApp: { title: str(inApp.title).trim(), body: str(inApp.body).trim() } } : {}),
-      },
-      category,
-      channels: sendChannels,
-    };
+    return { content, category, channels: sendChannels };
   }, [draft, calledTemplate, category, sendChannels]);
 
   const buildAudience = useCallback((): AdminSendInput["audience"] => {
