@@ -9,7 +9,7 @@
 //   選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
 //   古い版は 409)。直して送った回は直した文言を写す。公開中でないテンプレートはその場で書く形にして sameAsNote で知らせる
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
-// 流れ: テンプレートを呼び出す(門 messagingTemplates が開の時だけ)→ 文言が書く欄に写る → 直す → 宛先 → カテゴリー(宛先で選べる物、D80)
+// 流れ(D47): 宛先 → テンプレートから読み込む(任意、門 messagingTemplates が開の時だけ。カテゴリー・経路・欄・画像が写り、全部直せる)→ カテゴリー(宛先で選べる物、D80)
 // → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 文言の無い経路は空欄で見せ、送る前に止める(D85、サーバーの 400 と同じ線)
 // → 予約(bulk 以外)→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
 // - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
@@ -258,6 +258,12 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [open, setOpenState] = useState(false);
   const [step, setStep] = useState<MessageSendStep>("edit");
   const [draftState, setDraftState] = useState<MessageSendDraft | null>(null);
+  /** 開いた後・直前の読み込みの後に手で直したか(読み込みの上書きを確かめるのはこの時だけ) */
+  const [handEdited, setHandEdited] = useState(false);
+  /** 上書きを確かめている読み込み(テンプレートの id) */
+  const [pendingLoad, setPendingLoad] = useState<string | null>(null);
+  /** 読み込みの知らせ(テンプレートのカテゴリーがこの宛先で使えない時) */
+  const [loadNote, setLoadNote] = useState<string | null>(null);
   const [audienceState, setAudienceState] = useState<MessageSendAudience | null>(null);
   const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   const [channelsOff, setChannelsOff] = useState<string[]>([]);
@@ -300,7 +306,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   );
   const initialAudience = useMemo(() => initialAudienceOf(mode), [mode]);
   const audience = audienceState ?? initialAudience;
-  const calledTemplate = useMemo(
+  const loadedTemplate = useMemo(
     () => (draft.template ? (templates.find((item) => item.id === draft.template!.id) ?? null) : null),
     [draft.template, templates],
   );
@@ -339,6 +345,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- 欄の操作 ----
   const editDraft = useCallback((next: (current: MessageSendDraft) => MessageSendDraft) => {
     setDraftState((prev) => next(prev ?? initialDraft));
+    setHandEdited(true);
     setPreview(null);
   }, [initialDraft]);
   const setChannelFields = useCallback(
@@ -349,23 +356,50 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     (key: string, value: string) => editDraft((current) => ({ ...current, vars: { ...current.vars, [key]: value } })),
     [editDraft],
   );
-  /** テンプレートを呼び出す(文言を書く欄に写す。前に書いた物は置き換わる) */
-  const callTemplate = useCallback(
+  /**
+   * テンプレートを読み込む(D47)。版の欄と画像を全部書く欄に写し、カテゴリーをテンプレートの物に(この宛先で使えなければ今のまま + loadNote)、
+   * 経路はカテゴリーの経路のうちテンプレートに文がある物だけをオン(ほかはオフ、オンにすれば空欄で出る)。読み込んだ後も全部直せる
+   */
+  const applyLoad = useCallback(
     (templateId: string) => {
       const template = templates.find((item) => item.id === templateId);
+      setPendingLoad(null);
       if (!template) return;
-      setDraftState(draftFromTemplate(template));
-      setChannelsOff([]);
+      const next = draftFromTemplate(template);
+      const allowed = allowedCategories.find((option) => option.key === template.category) ?? null;
+      const target = allowed ?? categoryOption;
+      if (allowed) {
+        setChosenCategory(allowed.key);
+        setLoadNote(null);
+      } else {
+        const label = allCategories.find((option) => option.key === template.category)?.label ?? "(今は無いカテゴリー)";
+        setLoadNote(`テンプレートのカテゴリー「${label}」はこの宛先では選べないため、カテゴリーは今のままです`);
+      }
+      setDraftState(next);
+      setChannelsOff((target?.channels ?? []).filter((key) => isBlankChannel(next, key)));
+      setHandEdited(false);
       setPreview(null);
     },
-    [templates],
+    [templates, allowedCategories, categoryOption, allCategories],
   );
-  /** 呼び出しをやめて、その場で書く */
-  const clearTemplate = useCallback(() => {
-    setDraftState(emptyAdhoc(mode.type === "bulk" ? mode.defaults : undefined));
-    setChannelsOff([]);
+  /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
+  const loadTemplate = useCallback(
+    (templateId: string) => {
+      if (handEdited) setPendingLoad(templateId);
+      else applyLoad(templateId);
+    },
+    [handEdited, applyLoad],
+  );
+  const confirmLoad = useCallback(() => {
+    if (pendingLoad) applyLoad(pendingLoad);
+  }, [pendingLoad, applyLoad]);
+  const cancelLoad = useCallback(() => setPendingLoad(null), []);
+  /** テンプレートを外す: 今の文はその場で書いた文として残す(変数の値は捨てる) */
+  const unloadTemplate = useCallback(() => {
+    setDraftState({ source: "adhoc", template: null, content: draft.content, vars: {} });
+    setLoadNote(null);
     setPreview(null);
-  }, [mode]);
+  }, [draft.content]);
   const setAudience = useCallback(
     (patch: Partial<MessageSendAudience>) => setAudienceState((prev) => ({ ...(prev ?? initialAudience), ...patch })),
     [initialAudience],
@@ -403,13 +437,13 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       return {
         content,
         template: { templateId: draft.template.id, version: draft.template.version },
-        vars: templateVarsForInput(calledTemplate, draft.vars),
+        vars: templateVarsForInput(loadedTemplate, draft.vars),
         category,
         channels: sendChannels,
       };
     }
     return { content, category, channels: sendChannels };
-  }, [draft, calledTemplate, category, sendChannels]);
+  }, [draft, loadedTemplate, category, sendChannels]);
 
   const buildAudience = useCallback((): AdminSendInput["audience"] => {
     if (audience.type === "role") return { type: "role", roles: audience.roles };
@@ -442,7 +476,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- 誤り ----
   const contentError = useMemo(() => {
     if (draft.source === "template") {
-      const missing = (calledTemplate?.variables ?? []).filter(
+      const missing = (loadedTemplate?.variables ?? []).filter(
         (variable) => variable.source === "dispatch" && variable.required && variable.default === undefined && !draft.vars[variable.key]?.trim(),
       );
       if (missing.length > 0) return `変数 ${missing.map((v) => v.label || v.key).join("・")} を入れてください`;
@@ -451,7 +485,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     const blank = sendChannels.filter((key) => isBlankChannel(draft, key));
     if (blank.length > 0) return `経路 ${blank.map((key) => channelLabels[key] ?? key).join("・")} の文言がありません(書くか経路を外してください)`;
     return null;
-  }, [draft, calledTemplate, sendChannels, channelLabels]);
+  }, [draft, loadedTemplate, sendChannels, channelLabels]);
 
   const audienceError = useMemo(() => {
     if (!isBulk) {
@@ -539,6 +573,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const reset = useCallback(() => {
     setStep("edit");
     setDraftState(null);
+    setHandEdited(false);
+    setPendingLoad(null);
+    setLoadNote(null);
     setAudienceState(null);
     setChosenCategory(null);
     setChannelsOff([]);
@@ -576,7 +613,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     /** テンプレートを呼び出せるか(門 messagingTemplates が開で公開中のテンプレートがある) */
     templatesAvailable: templates.length > 0,
     templates,
-    calledTemplate,
+    loadedTemplate,
     draft,
     audience,
     roles: sendOptions.options?.roles ?? [],
@@ -602,8 +639,14 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     buildContent,
     buildSendInput,
     buildBulkInput,
-    callTemplate,
-    clearTemplate,
+    loadTemplate,
+    unloadTemplate,
+    /** 上書きを確かめている読み込み(入れ物が確かめの Dialog を出す) */
+    pendingLoad,
+    confirmLoad,
+    cancelLoad,
+    /** 読み込みの知らせ(カテゴリーをそのままにした理由) */
+    loadNote,
     setChannelFields,
     setVar,
     setAudience,

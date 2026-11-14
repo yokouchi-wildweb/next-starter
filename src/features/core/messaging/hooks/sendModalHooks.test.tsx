@@ -176,9 +176,13 @@ test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → �
   assert.deepEqual(m().allowedCategories.map((c) => c.key), ["notice", "campaign"]);
   assert.equal(m().dirty, false);
 
-  await act(async () => m().callTemplate(TEMPLATE_ID));
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
   assert.equal(m().draft.source, "template");
   assert.deepEqual(m().draft.content.email, { subject: "{{discount}} 割引", paragraphs: ["本文"] });
+  // 読み込み(D47): カテゴリーはテンプレートの物、経路はテンプレートに文がある物だけオン
+  assert.equal(m().category, "campaign");
+  assert.deepEqual(m().sendChannels, ["email"], "文の無い inApp はオフ");
+  assert.equal(m().pendingLoad, null, "手で直していなければ確かめない");
   assert.equal(m().dirty, true);
   assert.equal(guarded.at(-1), true);
   await act(async () => m().setCategory("campaign"));
@@ -391,4 +395,44 @@ test("その場で書く: 経路の欄の形で全部の経路、空の任意の
   });
   assert.deepEqual((calls.find((c) => c[0] === "send")![1] as Record<string, unknown>).content, expected);
   await view.unmount();
+});
+
+test("読み込み: 宛先で選べないカテゴリーは今のまま + 知らせ / 手で直した後は確かめる / 外しても文は残る / bulk も同じ", async () => {
+  const view = await mount(() => hooks.useMessageSendModal({ mode: NEW }));
+  const m = () => view.value();
+  await act(async () => m().setOpen(true));
+  // 宛先 ロール → campaign(all / users / bulk)は選べない
+  await act(async () => m().setAudience({ type: "role", roles: ["user"] }));
+  const before = m().category;
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
+  assert.equal(m().category, before, "選べないカテゴリーは今のまま");
+  assert.match(m().loadNote ?? "", /「キャンペーン」はこの宛先では選べない/);
+  assert.equal(m().draft.source, "template");
+
+  // 手で直した後の読み込みは確かめる → やめる(書きかけはそのまま)→ 確かめて読み込む
+  await act(async () => m().setChannelFields("email", { subject: "手で書いた件名" }));
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
+  assert.equal(m().pendingLoad, TEMPLATE_ID);
+  assert.equal((m().draft.content.email as { subject: string }).subject, "手で書いた件名");
+  await act(async () => m().cancelLoad());
+  assert.equal(m().pendingLoad, null);
+  assert.equal((m().draft.content.email as { subject: string }).subject, "手で書いた件名");
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
+  await act(async () => m().confirmLoad());
+  assert.equal((m().draft.content.email as { subject: string }).subject, "{{discount}} 割引");
+
+  // 外す: 今の文はその場で書いた文として残る
+  await act(async () => m().unloadTemplate());
+  assert.equal(m().draft.source, "adhoc");
+  assert.equal(m().draft.template, null);
+  assert.deepEqual(m().draft.content.email, { subject: "{{discount}} 割引", paragraphs: ["本文"] });
+  assert.equal(m().loadNote, null);
+  await view.unmount();
+
+  const bulk = await mount(() => hooks.useMessageSendModal({ mode: { type: "bulk", target: "t", recordIds: ["r1"], recordNoun: "記録" } }));
+  await act(async () => bulk.value().setOpen(true));
+  await act(async () => bulk.value().loadTemplate(TEMPLATE_ID));
+  assert.equal(bulk.value().category, "campaign", "bulk でもテンプレートのカテゴリー(bulk で選べる)");
+  assert.deepEqual(bulk.value().sendChannels, ["email"]);
+  await bulk.unmount();
 });

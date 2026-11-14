@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/TemplateChannelFields/index.tsx
 // 部品(props だけ): テンプレートの経路 1 つの中身の欄。
-// - email: 件名・プレヘッダー・見出し・段落(1 つの欄に書き、空行で区切る)・ボタン(文言・URL)・フッター
+// - email: 件名・プレヘッダー・本文の見出し(任意)・本文(1 つの欄に複数行で書き、空行で段落を分ける)・ボタン(文言・URL)・フッター(D47 の名前)
 // - inApp: 題・本文・画像(アップロード。用途 notification.image、保存の時にサーバーがテンプレートに結ぶ)・行き先
 // - line: 本文
 // - それ以外(fork の経路): 欄の JSON をそのまま書く(サーバーが経路の欄の zod で検査する)
@@ -117,10 +117,10 @@ export function TemplateChannelFields(props: TemplateChannelFieldsProps) {
       <Stack space={3} data-slot="template-channel-fields">
         <TextField id={id("subject")} label="件名" value={str(value.subject)} onChange={(v) => set("subject", v)} disabled={disabled} />
         <TextField id={id("preheader")} label="プレヘッダー(任意)" value={str(value.preheader)} onChange={(v) => set("preheader", v)} disabled={disabled} />
-        <TextField id={id("heading")} label="見出し(任意)" value={str(value.heading)} onChange={(v) => set("heading", v)} disabled={disabled} />
+        <TextField id={id("heading")} label="本文の見出し(任意)" value={str(value.heading)} onChange={(v) => set("heading", v)} disabled={disabled} />
         <TextField
           id={id("paragraphs")}
-          label="段落(空行で区切る)"
+          label="本文(空行で段落を分けます)"
           value={paragraphsToText(value.paragraphs)}
           onChange={(v) => set("paragraphs", textToParagraphs(v))}
           rows={8}
