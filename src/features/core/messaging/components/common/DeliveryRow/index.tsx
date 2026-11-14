@@ -12,9 +12,10 @@ import type { AdminDeliveryRow } from "@/features/core/messaging/services/client
 
 import { DELIVERY_ERROR_TEXT } from "@/features/core/messaging/constants/deliveryErrors";
 import { DELIVERY_REASON_LABELS, DeliveryStatusBadge } from "../DeliveryStatusBadge";
+import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
+
 import { formatAdminDateTime } from "../DispatchRow";
 
-const CHANNEL_LABELS: Record<string, string> = { email: "メール", inApp: "お知らせ" };
 
 export type DeliveryRowProps = {
   delivery: AdminDeliveryRow;
@@ -30,7 +31,7 @@ export function DeliveryRow({ delivery }: DeliveryRowProps) {
     <Stack space={1} className="border-b border-border px-1 py-2" data-slot="delivery-row">
       <Flex align="center" gap="xs" wrap="wrap">
         <DeliveryStatusBadge status={delivery.status} />
-        <Span size="sm">{CHANNEL_LABELS[delivery.channel] ?? delivery.channel}</Span>
+        <Span size="sm">{messageChannelLabel(delivery.channel)}</Span>
         <Span size="sm" className="font-mono">
           {delivery.address ?? delivery.recipientKey}
         </Span>

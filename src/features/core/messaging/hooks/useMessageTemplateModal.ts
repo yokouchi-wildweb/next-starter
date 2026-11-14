@@ -10,6 +10,9 @@
 
 import { useCallback, useState } from "react";
 
+import type { AdminTemplateDetail } from "../services/client/templateClient";
+import type { MessageTemplateAction } from "./useMessageTemplateForm";
+
 import { useMessageTemplate, useMessageTemplateOptions } from "./useMessageTemplate";
 import { useMessageTemplateVersions } from "./useMessageTemplateVersions";
 import { useModalSession } from "./useModalSession";
@@ -21,9 +24,11 @@ export type UseMessageTemplateModalOptions = {
   open: boolean;
   /** 直す 1 件(null・省略 = 作る) */
   templateId?: string | null;
+  /** 作る・保存・公開・取り下げの後(一覧が行を足す・置き換える。useMessageTemplateForm へそのまま渡す) */
+  onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
-export function useMessageTemplateModal({ open, templateId = null }: UseMessageTemplateModalOptions) {
+export function useMessageTemplateModal({ open, templateId = null, onChanged }: UseMessageTemplateModalOptions) {
   const session = useModalSession(open);
   const [created, setCreated] = useState<{ session: number; id: string } | null>(null);
   const [tabState, setTabState] = useState<{ session: number; tab: MessageTemplateModalTab } | null>(null);
@@ -33,20 +38,21 @@ export function useMessageTemplateModal({ open, templateId = null }: UseMessageT
   const currentId = createdId ?? templateId;
 
   const { options, error: optionsError } = useMessageTemplateOptions(open);
-  const { template, error: templateError, isLoading: templateLoading } = useMessageTemplate(open ? currentId : null);
+  const { template, error: templateError } = useMessageTemplate(open ? currentId : null);
   const { versions } = useMessageTemplateVersions(open ? currentId : null);
 
   const setTab = useCallback((next: string) => setTabState({ session, tab: next as MessageTemplateModalTab }), [session]);
   const onCreated = useCallback((id: string) => setCreated({ session, id }), [session]);
 
-  const state: "loading" | "error" | "missing" | "ready" = optionsError
+  // 1 件が要る(直す・作った直後)のにまだ無い間は、取り出しの印に依らず読み込み中(作った直後に空の中身を出さない)
+  const state: "loading" | "error" | "ready" = optionsError
     ? "error"
-    : !options || (currentId && templateLoading && !template)
+    : !options
       ? "loading"
       : currentId && !template
         ? templateError
           ? "error"
-          : "missing"
+          : "loading"
         : "ready";
 
   return {
@@ -60,6 +66,7 @@ export function useMessageTemplateModal({ open, templateId = null }: UseMessageT
     tab,
     setTab,
     onCreated,
+    onChanged,
     formKey: template && currentId
       ? `${session}:${template.id}:${template.updatedAt ?? ""}:${template.currentVersion ?? ""}:${template.status}`
       : `${session}:new`,

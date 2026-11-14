@@ -16,10 +16,11 @@ import { Span } from "@/components/TextBlocks/Span";
 import type { OverrideFieldValue } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
 import type { AdminOverrideField } from "@/features/core/messaging/services/client/overrideClient";
 
+import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
+
 import { AllowedKeysHint } from "../AllowedKeysHint";
 import { OverrideFieldMarks } from "../OverrideFieldMarks";
 
-const CHANNEL_LABELS: Record<string, string> = { email: "メール", inApp: "サービス内のお知らせ" };
 const FIELD_LABELS: Record<string, string> = {
   subject: "件名",
   heading: "見出し",
@@ -34,7 +35,7 @@ export function overrideFieldLabel(path: string): string {
   const [channel, ...rest] = path.split(".");
   const name = rest.join(".");
   if (!name) return path;
-  return `${CHANNEL_LABELS[channel] ?? channel} / ${FIELD_LABELS[name] ?? name}`;
+  return `${messageChannelLabel(channel)} / ${FIELD_LABELS[name] ?? name}`;
 }
 
 /** 値を読む形に(段落は空行で区切る) */

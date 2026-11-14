@@ -2,7 +2,7 @@
 // - タブ: 作る = 文言・変数 / 直す = 文言・変数・版の履歴(版の履歴は下の帯を出さない)。タブは hook が持つ(value / onValueChange)
 // - confirmOnClose に form の closeConfirm、作った後は form に onCreated を渡す
 // - 下の帯: 作る = 「下書きを作る」だけ / 直す = 取り下げ・公開(ConfirmPopover)・保存 / 取り下げた = 帯の操作なし
-// - 読み込み中・見つからない時は普通の Modal
+// - 読み込み中・取れない時は普通の Modal / 欄の名前は「カテゴリー」(送るモーダルと同じ)/ onChanged を form へ
 // - 一覧: 「新しく作る」と行でモーダルの開き先を変える
 // 実行: pnpm test src/features/core/messaging/components/AdminMessageTemplateModal/AdminMessageTemplateModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -40,6 +40,7 @@ const baseModal = () => ({
   tab: "text",
   setTab: (v: string) => events.push(`tab:${v}`),
   onCreated: () => {},
+  onChanged: () => {},
   formKey: "1:new",
 });
 const baseForm = () => ({
@@ -164,6 +165,9 @@ test("作る: 文言・変数のタブ、帯は「下書きを作る」、confir
   assert.deepEqual(tabbed!.confirmOnClose, { enabled: true, message: "書きかけ" });
   assert.equal(tabbed!.value, "text");
   assert.equal(formArgs!.onCreated, modalState.onCreated);
+  assert.equal(formArgs!.onChanged, modalState.onChanged, "操作の後の知らせは一覧へ届く");
+  assert.match(view.container.textContent ?? "", /カテゴリー/);
+  assert.doesNotMatch(view.container.textContent ?? "", /種類/);
   assert.deepEqual(texts(view.container), ["下書きを作る"]);
   await act(async () => (view.container.querySelector("button") as HTMLButtonElement).click());
   assert.deepEqual(events, ["save"]);
@@ -200,10 +204,10 @@ test("取り下げた: 帯の操作なし / 読み込み中・見つからない
   assert.equal(loading.container.querySelector("[data-testid=tabbed]"), null);
   await loading.unmount();
 
-  modalState = { ...baseModal(), state: "missing" };
-  const missing = await render(createElement(AdminMessageTemplateModal, { ...open, templateId: "t1" }));
-  assert.match(missing.container.textContent ?? "", /見つかりません/);
-  await missing.unmount();
+  modalState = { ...baseModal(), state: "error", error: new Error("見つかりません") };
+  const failed = await render(createElement(AdminMessageTemplateModal, { ...open, templateId: "t1" }));
+  assert.match(failed.container.textContent ?? "", /見つかりません/);
+  await failed.unmount();
 });
 
 test("一覧: 「新しく作る」と行でモーダルの開き先を変える", async () => {
@@ -212,7 +216,7 @@ test("一覧: 「新しく作る」と行でモーダルの開き先を変える
     status: "",
     setStatus: () => {},
     query: { items: [{ id: "t1", key: "spring", name: "春", status: "draft", currentVersion: null, category: "notice", createdAt: null, updatedAt: null }], isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} },
-    modal: { open: false, setOpen: () => {}, templateId: null, openNew: () => events.push("new"), openTemplate: (id: string) => events.push(`edit:${id}`) },
+    modal: { open: false, setOpen: () => {}, templateId: null, openNew: () => events.push("new"), openTemplate: (id: string) => events.push(`edit:${id}`), onChanged: () => {} },
   };
   const view = await render(createElement(AdminMessageTemplateList));
   const buttons = [...view.container.querySelectorAll("button")];

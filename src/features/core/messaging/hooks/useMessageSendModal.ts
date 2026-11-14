@@ -5,8 +5,9 @@
 // 管理: 送るモーダルの流れ(1 つの hook。入れ物 MessageSendModal はこれを呼んで部品を並べるだけ、CLAUDE.md core_ui)。
 // 開き方(mode):
 // - new: 回の一覧の「新しく送る」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
-// - sameAs: 回の詳細の「同じ内容で送る」。その回の文面・カテゴリー・宛先の形を写す(本文を残さない回は件名・題だけ)。
-//   テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、古い版は 409 になるため)
+// - sameAs: 回の詳細の「同じ内容で送る」。その回の文面・カテゴリー・宛先の形を写す(本文を残さない回は件名・題だけ。
+//   選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
+//   古い版は 409)。直して送った回は直した文言を写す。公開中でないテンプレートはその場で書く形にして sameAsNote で知らせる
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
 // 流れ: テンプレートを呼び出す(門 messagingTemplates が開の時だけ)→ 文言が書く欄に写る → 直す → 宛先 → カテゴリー(宛先で選べる物、D80)
 // → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 文言の無い経路は空欄で見せ、送る前に止める(D85、サーバーの 400 と同じ線)
@@ -42,6 +43,8 @@ import {
   type MessagePreview,
   type RecipientEstimate,
 } from "../services/client/sendClient";
+
+import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
 
 import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
 import { ADMIN_SEND_KEY } from "./sendKeys";
@@ -181,16 +184,41 @@ export function draftFromTemplate(template: MessageSendTemplate): MessageSendDra
   };
 }
 
-/** mode から導く初めの中身(sameAs の写し・bulk の既定) */
+/** 写す文言(経路ごとの欄)をその場で書く欄(email 件名・本文 / inApp 題・本文)へ。件名・題は回の headings を先に見る */
+function adhocFromContent(content: Record<string, unknown>, headings: Record<string, string | undefined> = {}): MessageSendDraft {
+  const email = record(content.email);
+  const inApp = record(content.inApp);
+  return {
+    source: "adhoc",
+    template: null,
+    content: {
+      email: { subject: headings.email ?? textOf(email, "subject"), body: textOf(email, "body", "paragraphs") },
+      inApp: { title: headings.inApp ?? textOf(inApp, "title"), body: textOf(inApp, "body") },
+    },
+    vars: {},
+  };
+}
+
+/**
+ * mode から導く初めの中身(sameAs の写し・bulk の既定)。sameAs:
+ * - テンプレートの回で、そのテンプレートが今も公開中: 呼び出しの形。直して送った回(templateEdited)は直した文言、ほかは今の版の文言
+ *   (送る口は今の公開中の版だけを受けるので、版はいつも今の版。直した文言はサーバーがその版に対する template_edited として残す)
+ * - 公開中でない(取り下げ・門 messagingTemplates が閉): その場で書く形。直した文言があればそれを、無ければ回の本文を欄へ写す
+ * - その場で書いた回: 回の本文(記録の段が vars / full の時だけ DTO に載る)。無ければ件名・題だけ写し、本文は空(書くまで送れない)
+ */
 export function initialDraftOf(mode: MessageSendMode, templates: readonly MessageSendTemplate[]): MessageSendDraft {
   if (mode.type === "bulk") return emptyAdhoc(mode.defaults);
   if (mode.type === "new") return emptyAdhoc();
   const { dispatch } = mode;
+  const edited = dispatch.templateEdited && dispatch.templateContent ? dispatch.templateContent : null;
   if (dispatch.templateId) {
     const template = templates.find((item) => item.id === dispatch.templateId);
-    if (template) return draftFromTemplate(template);
+    if (template) {
+      const called = draftFromTemplate(template);
+      return edited ? { ...called, content: JSON.parse(JSON.stringify(edited)) as MessageSendDraft["content"] } : called;
+    }
+    if (edited) return adhocFromContent(edited);
   }
-  // 本文は記録の段が vars / full の時だけ DTO に載る。無ければ件名・題だけ写し、本文は空(書くまで送れない)
   const body = record(dispatch.body);
   const email = record(body.email);
   const inApp = record(body.inApp);
@@ -205,7 +233,20 @@ export function initialDraftOf(mode: MessageSendMode, templates: readonly Messag
   };
 }
 
-/** mode から導く初めの宛先(sameAs = 回の宛先の形。選んだ利用者は写さない) */
+/**
+ * sameAs でテンプレートを呼び出しの形にできない時の知らせ(テンプレートの回で、そのテンプレートが公開中の選択肢に無い)。
+ * 写した文言が書く欄に入らなかった時(メール・お知らせの欄が空)はそれも言う。ほかは null
+ */
+export function sameAsNoteOf(mode: MessageSendMode, templates: readonly MessageSendTemplate[], draft: MessageSendDraft): string | null {
+  if (mode.type !== "sameAs" || !mode.dispatch.templateId) return null;
+  if (templates.some((item) => item.id === mode.dispatch.templateId)) return null;
+  const copied = ADHOC_CHANNELS.some((channel) => Object.values(record(draft.content[channel])).some((v) => str(v).trim() !== ""));
+  return copied
+    ? "この回のテンプレートは今は公開されていないため、文言をその場で書く欄へ写しました"
+    : "この回のテンプレートは今は公開されていないため、その場で書く欄で書き直してください(写せる文言がありませんでした)";
+}
+
+/** mode から導く初めの宛先(sameAs = 回の宛先の形。選んだ利用者に送った回は同じ利用者を選んだ形) */
 export function initialAudienceOf(mode: MessageSendMode): MessageSendAudience {
   const blank: MessageSendAudience = { type: "all", roles: [], audienceKey: "", userIds: [] };
   if (mode.type !== "sameAs") return blank;
@@ -213,8 +254,8 @@ export function initialAudienceOf(mode: MessageSendMode): MessageSendAudience {
   if (audience.type === "role" && Array.isArray(audience.roles)) return { ...blank, type: "role", roles: audience.roles.map(String) };
   if (audience.type === "audience" && typeof audience.key === "string") return { ...blank, type: "audience", audienceKey: audience.key };
   if (audience.type === "all") return blank;
-  // 全員・ロール・集め方でない回(選んだ利用者・一覧の一括)= 選んだ利用者の形(宛先は選び直す)
-  return mode.dispatch.audience ? blank : { ...blank, type: "users" };
+  // 全員・ロール・集め方でない回(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は回の詳細が返す時だけ写す(多すぎる回は選び直し)
+  return { ...blank, type: "users", userIds: [...(mode.dispatch.audienceUserIds ?? [])] };
 }
 
 export type UseMessageSendModalOptions = {
@@ -255,15 +296,20 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     () => (isBulk ? bulkOptions.options?.categories : sendOptions.options?.categories) ?? [],
     [isBulk, bulkOptions.options, sendOptions.options],
   );
+  // 経路の表示名 = 選択肢の経路(受け口の label、送る・一括送信で同じ)。取れる前は constants の控え
   const channelLabels = useMemo(() => {
-    const labels: Record<string, string> = { email: "メール", inApp: "サービス内のお知らせ", line: "LINE" };
-    for (const channel of sendOptions.options?.channels ?? []) labels[channel.key] = channel.label;
+    const labels: Record<string, string> = { ...MESSAGE_CHANNEL_LABELS };
+    for (const channel of (isBulk ? bulkOptions.options?.channels : sendOptions.options?.channels) ?? []) labels[channel.key] = channel.label;
     return labels;
-  }, [sendOptions.options]);
+  }, [isBulk, bulkOptions.options, sendOptions.options]);
   const maxDays = sendOptions.options?.maxScheduleDays ?? 90;
 
   const initialDraft = useMemo(() => initialDraftOf(mode, templates), [mode, templates]);
   const draft = draftState ?? initialDraft;
+  const sameAsNote = useMemo(
+    () => (optionsLoaded ? sameAsNoteOf(mode, templates, initialDraft) : null),
+    [optionsLoaded, mode, templates, initialDraft],
+  );
   const initialAudience = useMemo(() => initialAudienceOf(mode), [mode]);
   const audience = audienceState ?? initialAudience;
   const calledTemplate = useMemo(
@@ -545,6 +591,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setOpen,
     step,
     optionsLoaded,
+    /** sameAs でテンプレートを呼び出しの形にできなかった時の知らせ(書く段の上に出す) */
+    sameAsNote,
     optionsError,
     /** 書きかけ(閉じる・離れる前に確かめる) */
     dirty,

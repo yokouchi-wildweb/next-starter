@@ -13,7 +13,7 @@ import { DomainError } from "@/lib/errors";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor } from "./assertAdmin";
-import type { MessageCategory } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel } from "@/lib/messaging";
 
 import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSendTest, type AdminBulkSendDeps } from "./bulkSend";
 import { adminContinueSending } from "./continueSending";
@@ -70,6 +70,11 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
   const deps: AdminBulkSendDeps = {
     ...check(options.context === undefined ? ctx("admin1") : options.context),
     targets: { review: target, off: { ...target, key: "off", enabled: () => false } },
+    channels: {
+      email: { key: "email", label: "メール" } as unknown as MessageChannel,
+      inApp: { key: "inApp", label: "お知らせ" } as unknown as MessageChannel,
+      line: { key: "line", label: "LINE", enabled: false } as unknown as MessageChannel,
+    },
     categories: bulkCategories,
     sendMessageToMany: async (definition, input) => {
       sent.push({ key: definition.key, category: definition.category, input });
@@ -204,6 +209,11 @@ test("一括送信のプレビュー・テスト送信: bulk で送れるカテ�
 test("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
   const { deps } = bulkSetup();
   const options = await adminBulkSendOptions(deps);
+  // 経路は送るモーダルと同じ形(受け口の label、閉じた経路は出さない)
+  assert.deepEqual(options.channels, [
+    { key: "email", label: "メール", adhoc: true },
+    { key: "inApp", label: "お知らせ", adhoc: true },
+  ]);
   assert.deepEqual(options.categories.map((o) => [o.key, o.adhoc]), [["operatorDirect", true], ["marketing", true], ["promoPush", false]]);
   assert.deepEqual(options.templates, [tplRow]);
   assert.deepEqual((await adminBulkSendOptions(bulkSetup({ templatesOpen: false }).deps)).templates, []);
@@ -227,6 +237,8 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     message_key: "messaging.adminMessage",
     template_id: null,
     template_version: null,
+    template_edited: false,
+    template_content: null,
     category: "marketing",
     audience: null,
     tags: null,
@@ -332,6 +344,7 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
       seen.push({ filter, after, limit });
       return [deliveryRow()];
     },
+    listDispatchUserIds: async () => [],
   };
   const operationInputs = async () => ({ policy: null, counts: { failed: 0, unknown: 0 } });
   const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs };
@@ -350,6 +363,39 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await assert.rejects(listDeliveries(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   assert.equal((await findDispatch(deps, "d1")).operations.retract.allowed, true);
   await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs }));
+});
+
+test("回 1 件: 直した文言と、選んだ利用者に送った回の利用者 id(回の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
+  const userIdCalls: unknown[] = [];
+  let fromDeliveries: string[] = ["u1", "u2"];
+  const rows: Record<string, MessageDispatch> = {
+    edited: dispatchRow({ id: "edited", template_id: "t1", template_version: 2, template_edited: true, template_content: { email: { subject: "直した" } } } as never),
+    plain: dispatchRow({ id: "plain", template_id: "t1", template_version: 2, template_edited: false, template_content: null } as never),
+    listed: dispatchRow({ id: "listed", audience: { type: "recipients", recipients: [{ userId: "a" }, { userId: "b" }, { userId: "a" }] } as never }),
+    counted: dispatchRow({ id: "counted", audience: { type: "recipients", count: 2 } as never }),
+    role: dispatchRow({ id: "role", audience: { type: "role", roles: ["user"] } as never }),
+  };
+  const store: AdminDispatchStore = {
+    listDispatches: async () => [],
+    findDispatch: async (id) => rows[id] ?? null,
+    listDeliveries: async () => [],
+    listDispatchUserIds: async (id, limit) => {
+      userIdCalls.push([id, limit]);
+      return fromDeliveries;
+    },
+  };
+  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }) };
+  const edited = await findDispatch(deps, "edited");
+  assert.deepEqual([edited.templateEdited, edited.templateContent], [true, { email: { subject: "直した" } }]);
+  const plain = await findDispatch(deps, "plain");
+  assert.deepEqual([plain.templateEdited, plain.templateContent, plain.audienceUserIds], [false, null, null]);
+  assert.deepEqual((await findDispatch(deps, "listed")).audienceUserIds, ["a", "b"]);
+  assert.deepEqual(userIdCalls, [], "一覧を持つ回は配達を引かない");
+  assert.deepEqual((await findDispatch(deps, "counted")).audienceUserIds, ["u1", "u2"]);
+  assert.deepEqual(userIdCalls, [["counted", 10_001]]);
+  fromDeliveries = Array.from({ length: 10_001 }, (_, i) => `u${i}`);
+  assert.equal((await findDispatch(deps, "counted")).audienceUserIds, null, "上限を超える回は選び直し");
+  assert.equal((await findDispatch(deps, "role")).audienceUserIds, null);
 });
 
 test("続きを送る: 進めて監査 1 行、管理者でなければ 403", async () => {

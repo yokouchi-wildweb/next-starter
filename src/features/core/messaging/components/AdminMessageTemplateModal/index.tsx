@@ -1,7 +1,8 @@
 // src/features/core/messaging/components/AdminMessageTemplateModal/index.tsx
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
-// タブ: 文言(鍵は作る時だけ・名前・説明・種類・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
-// 種類の選択肢は API の options(announcement・direct・marketing の種類だけ。保存の検査はサーバー)。
+// タブ: 文言(鍵は作る時だけ・名前・説明・カテゴリー・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
+// カテゴリーの選択肢は API の options(種別 announcement・direct・marketing の物だけ。保存の検査はサーバー)。
+// 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った直後・1 件を取る間は読み込み中を出す。
 // 操作(下の帯): 取り下げ・公開(ConfirmPopover)・保存。作った後は同じモーダルでその 1 件を直す形に変わる(ページは移らない)。
 // 流れは hook useMessageTemplateModal(取る物・タブ・作った後)と useMessageTemplateForm(書く欄・操作)。部品は公開の部品だけなので、
 // fork は自分の画面にも同じモーダルを置ける。書きかけのまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard
@@ -27,31 +28,38 @@ import { TemplateChannelFields } from "@/features/core/messaging/components/comm
 import { TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { TemplateVariablesEditor } from "@/features/core/messaging/components/common/TemplateVariablesEditor";
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
-import { emptyChannelContent, useMessageTemplateForm } from "@/features/core/messaging/hooks/useMessageTemplateForm";
+import {
+  emptyChannelContent,
+  useMessageTemplateForm,
+  type MessageTemplateAction,
+} from "@/features/core/messaging/hooks/useMessageTemplateForm";
 import { useMessageTemplateModal } from "@/features/core/messaging/hooks/useMessageTemplateModal";
+import type { AdminTemplateDetail } from "@/features/core/messaging/services/client/templateClient";
 
 export type AdminMessageTemplateModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** 直す 1 件の id(null・省略 = 作る) */
   templateId?: string | null;
+  /** 作る・保存・公開・取り下げの後(返った 1 件と操作。一覧の取り直し・行の置き換えに使う) */
+  onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
 const MODAL_WIDTH = "880px";
 
-export function AdminMessageTemplateModal({ open, onOpenChange, templateId = null }: AdminMessageTemplateModalProps) {
-  const m = useMessageTemplateModal({ open, templateId });
+export function AdminMessageTemplateModal({ open, onOpenChange, templateId = null, onChanged }: AdminMessageTemplateModalProps) {
+  const m = useMessageTemplateModal({ open, templateId, onChanged });
 
   if (m.state !== "ready" || !m.options) {
     return (
-      <Modal open={open} onOpenChange={onOpenChange} title={templateId ? "テンプレートを直す" : "テンプレートを作る"} maxWidth={MODAL_WIDTH}>
+      <Modal open={open} onOpenChange={onOpenChange} title={templateId || m.mode === "edit" ? "テンプレートを直す" : "テンプレートを作る"} maxWidth={MODAL_WIDTH}>
         {m.state === "loading" ? (
           <Flex justify="center" className="py-8">
             <Spinner className="size-6" />
           </Flex>
         ) : (
-          <Para tone={m.state === "error" ? "destructive" : "muted"} align="center">
-            {m.state === "error" ? err(m.error, "テンプレートを取得できませんでした") : "テンプレートが見つかりません"}
+          <Para tone="destructive" align="center">
+            {err(m.error, "テンプレートを取得できませんでした")}
           </Para>
         )}
       </Modal>
@@ -76,7 +84,7 @@ function TemplateModalBody({
   onOpenChange: (open: boolean) => void;
 }) {
   const { template, versions } = modal;
-  const form = useMessageTemplateForm({ template, options, onCreated: modal.onCreated });
+  const form = useMessageTemplateForm({ template, options, onCreated: modal.onCreated, onChanged: modal.onChanged });
   const { fields } = form;
   const { execute: save, isExecuting: isSaving } = useAsyncAction(form.save);
   const locked = form.archived;
@@ -181,7 +189,7 @@ function TemplateModalBody({
         </Stack>
         <Stack space={1}>
           <Label htmlFor="template-category" className="text-sm">
-            種類
+            カテゴリー
           </Label>
           <SelectInput
             id="template-category"

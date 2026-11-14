@@ -5,6 +5,8 @@
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
 // - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る / useModalSession: 開く度に増える
 // - closeConfirm: テンプレートの書く欄・文言の上書きの下書き
+// - C9: モーダルの操作の後の一覧(作った = 取り直す・公開 / 取り下げ = 行を置き換える・絞りから外れた行は外す)、onChanged は form から
+// - 作った直後に 1 件がまだ無い間は読み込み中(空の中身を出さない)
 // 実行: pnpm test src/features/core/messaging/hooks/adminModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -48,6 +50,8 @@ const OPTIONS = {
 };
 
 const calls: unknown[][] = [];
+/** 作った直後の 1 件の取り出しを止めておく(読み込み中の検査) */
+let slowTemplate = Promise.withResolvers<void>();
 let failNext = false;
 const maybeFail = () => {
   if (failNext) {
@@ -67,6 +71,7 @@ mock.module("@/features/core/messaging/services/client/templateClient", {
     },
     getMessageTemplate: async (id: string) => {
       calls.push(["template", id]);
+      if (id === "slow-id") await slowTemplate.promise;
       return detail({ id });
     },
     listMessageTemplateVersions: async (id: string) => {
@@ -337,5 +342,59 @@ test("useMessageTemplateVersion: id と版がそろった時だけ取る", async
   await settle();
   assert.deepEqual(calls, [["version", ID, 2]]);
   assert.equal(view.value().version?.version, 2);
+  await view.unmount();
+});
+
+test("useAdminMessageTemplateList.onChanged: 作った = 取り直す、公開 = 行を置き換える、絞りから外れた行は外す", async () => {
+  const view = await mount(() => hooks.useAdminMessageTemplateList(), {});
+  const l = () => view.value();
+  await settle();
+  const listCalls = () => calls.filter((c) => c[0] === "listTemplates").length;
+  const before = listCalls();
+  await act(async () => l().modal.onChanged(detail({ id: "other" }) as never, "create"));
+  await settle();
+  assert.equal(listCalls(), before + 1, "作った → 先頭から取り直す");
+  await act(async () => l().modal.onChanged(detail({ status: "published", currentVersion: 1, name: "春(公開)" }) as never, "publish"));
+  assert.deepEqual([l().query.items[0].status, l().query.items[0].name, l().query.items[0].currentVersion], ["published", "春(公開)", 1]);
+  assert.equal(listCalls(), before + 1, "置き換えは取り直さない");
+  await act(async () => l().setStatus("published"));
+  await settle();
+  await act(async () => l().modal.onChanged(detail({ status: "archived" }) as never, "archive"));
+  assert.equal(l().query.items.length, 0, "公開中で絞っている時に取り下げた行は外す");
+  await view.unmount();
+});
+
+test("useMessageTemplateForm: 作る・保存・公開・取り下げの後に onChanged(返った 1 件と操作)", async () => {
+  const changed: string[] = [];
+  const onChanged = (template: { id: string }, action: string) => void changed.push(`${action}:${template.id}`);
+  const create = await mount(() => hooks.useMessageTemplateForm({ template: null, options: OPTIONS as never, onChanged }), {});
+  await act(async () => {
+    create.value().fields.setKey("autumn");
+    create.value().fields.setName("秋");
+    create.value().fields.setChannelContent("email", { subject: "件名" });
+  });
+  await act(async () => create.value().save());
+  await create.unmount();
+  const edit = await mount(() => hooks.useMessageTemplateForm({ template: detail() as never, options: OPTIONS as never, onChanged }), {});
+  await act(async () => edit.value().fields.setName("春2"));
+  await act(async () => edit.value().save());
+  await act(async () => edit.value().publish());
+  await act(async () => edit.value().archive());
+  assert.deepEqual(changed, ["create:new-id", `update:${ID}`, `publish:${ID}`, `archive:${ID}`]);
+  await edit.unmount();
+});
+
+test("useMessageTemplateModal: 作った直後に 1 件がまだ無い間は読み込み中", async () => {
+  slowTemplate = Promise.withResolvers<void>();
+  const view = await mount((p: { open: boolean }) => hooks.useMessageTemplateModal({ open: p.open }), { open: true });
+  await settle();
+  assert.equal(view.value().state, "ready");
+  await act(async () => view.value().onCreated("slow-id"));
+  assert.equal(view.value().state, "loading", "空の中身を出さない");
+  assert.equal(view.value().mode, "edit");
+  await act(async () => slowTemplate.resolve());
+  await settle();
+  assert.equal(view.value().state, "ready");
+  assert.equal(view.value().template?.id, "slow-id");
   await view.unmount();
 });

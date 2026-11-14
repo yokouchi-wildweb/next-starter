@@ -1,8 +1,9 @@
 // src/features/core/messaging/services/server/admin/store.ts
 //
-// 回の読む口の DB(drizzle)。keyset: 回は (created_at, id) の降順、配達は昇順
+// 回の読む口の DB(drizzle)。keyset: 回は (created_at, id) の降順、配達は昇順。
+// 回の宛先の利用者 = 配達の user_id の重なりを除いた並び(「同じ内容で送る」の写し。経路ごとの行を 1 人にまとめる)
 
-import { and, arrayContains, asc, desc, eq, gt, gte, lt, or, type SQL } from "drizzle-orm";
+import { and, arrayContains, asc, desc, eq, gt, gte, isNotNull, lt, or, type SQL } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
@@ -51,5 +52,16 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
       .where(and(...conditions))
       .orderBy(asc(t.createdAt), asc(t.id))
       .limit(limit);
+  },
+
+  async listDispatchUserIds(dispatchId, limit) {
+    const t = MessageDeliveryTable;
+    const rows = await db
+      .selectDistinct({ userId: t.user_id })
+      .from(t)
+      .where(and(eq(t.dispatch_id, dispatchId), isNotNull(t.user_id)))
+      .orderBy(asc(t.user_id))
+      .limit(limit);
+    return rows.flatMap((row) => (row.userId ? [row.userId] : []));
   },
 };

@@ -3,7 +3,9 @@
 // - new: テンプレートを呼び出す → 文言が写る → 直す → カテゴリー(宛先で絞る)→ 経路の絞り(既定は全部オン)→ 文言の無い経路は止める
 //   → 予約の検査 → プレビュー・テスト送信 → 見込み → 確認 → 送る(鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 門 messagingTemplates が閉ならテンプレートを出さない
-// - sameAs: 文面・カテゴリー・宛先の形を写す / テンプレートの回は呼び出しの形
+// - sameAs: 文面・カテゴリー・宛先の形を写す / テンプレートの回は呼び出しの形 / 選んだ利用者の回は同じ利用者 /
+//   直して送った回は直した文言(今の公開版で)/ 公開中でないテンプレートはその場で書く形 + 知らせ
+// - 経路の表示名は送る・一括送信とも選択肢の label(お知らせ)
 // - bulk: 選んだ記録が宛先、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
 // 実行: pnpm test src/features/core/messaging/hooks/sendModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -70,7 +72,11 @@ mock.module("@/features/core/messaging/services/client/sendClient", {
 });
 mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
-    getAdminBulkSendOptions: async () => ({ categories: categories.filter((c) => c.audiences.includes("bulk")), templates: [template] }),
+    getAdminBulkSendOptions: async () => ({
+      channels: SEND_OPTIONS.channels,
+      categories: categories.filter((c) => c.audiences.includes("bulk")),
+      templates: [template],
+    }),
     adminBulkSend: async (input: unknown) => {
       calls.push(["bulk", input]);
       return { dispatchId: "b1", status: "queued", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 0 }, afterSend: { ok: true } };
@@ -148,6 +154,14 @@ test("純粋な関数", () => {
     userIds: [],
   });
   assert.equal(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: null } as never }).type, "users");
+  // 選んだ利用者に送った回(recipients)= 同じ利用者を選んだ形。id が無い(多すぎる)回は選び直し
+  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: { type: "recipients", count: 2 }, audienceUserIds: ["u1", "u2"] } as never }), {
+    type: "users",
+    roles: [],
+    audienceKey: "",
+    userIds: ["u1", "u2"],
+  });
+  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: { type: "recipients", count: 20_000 }, audienceUserIds: null } as never }).userIds, []);
 });
 
 test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → 空の経路で止まる → 予約 → プレビュー・テスト → 見込み → 確認 → 送る", async () => {
@@ -257,7 +271,44 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   await act(async () => fromTemplate.value().setOpen(true));
   assert.equal(fromTemplate.value().draft.source, "template");
   assert.equal(fromTemplate.value().draft.template?.version, 3, "今の公開版を呼び出す");
+  assert.equal(fromTemplate.value().sameAsNote, null);
   await fromTemplate.unmount();
+
+  // 直して送った回: 直した文言を今の公開版で
+  const editedContent = { email: { subject: "直した件名", paragraphs: ["直した本文"] } };
+  const edited = await mount(() =>
+    hooks.useMessageSendModal({
+      mode: {
+        type: "sameAs",
+        dispatch: { ...dispatch, category: "campaign", audience: { type: "recipients", count: 1 }, audienceUserIds: ["u9"], templateId: TEMPLATE_ID, templateVersion: 2, templateEdited: true, templateContent: editedContent } as never,
+      },
+    }),
+  );
+  await act(async () => edited.value().setOpen(true));
+  assert.equal(edited.value().draft.source, "template");
+  assert.equal(edited.value().draft.template?.version, 3);
+  assert.deepEqual(edited.value().draft.content, editedContent);
+  assert.deepEqual([edited.value().audience.type, edited.value().audience.userIds], ["users", ["u9"]]);
+  await edited.unmount();
+
+  // 公開中でないテンプレート: その場で書く形へ写し、知らせを出す
+  const gone = await mount(() =>
+    hooks.useMessageSendModal({
+      mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: true, templateContent: { email: { subject: "件名X", paragraphs: ["段1", "段2"] } }, headings: {} } as never },
+    }),
+  );
+  await act(async () => gone.value().setOpen(true));
+  assert.equal(gone.value().draft.source, "adhoc");
+  assert.deepEqual(gone.value().draft.content.email, { subject: "件名X", body: "段1\n\n段2" });
+  assert.match(gone.value().sameAsNote ?? "", /写しました/);
+  await gone.unmount();
+
+  const nothing = await mount(() =>
+    hooks.useMessageSendModal({ mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: false, templateContent: null, headings: {} } as never } }),
+  );
+  await act(async () => nothing.value().setOpen(true));
+  assert.match(nothing.value().sameAsNote ?? "", /書き直してください/);
+  await nothing.unmount();
 });
 
 test("bulk: 選んだ記録が宛先、bulk の API、予約は無い、見込みは取らない、onSent", async () => {
@@ -272,6 +323,7 @@ test("bulk: 選んだ記録が宛先、bulk の API、予約は無い、見込�
   await act(async () => m().setOpen(true));
   assert.equal(m().showSchedule, false);
   assert.equal(m().category, "operatorDirect", "既定のカテゴリー");
+  assert.equal(m().channels.find((channel) => channel.key === "inApp")?.label, "お知らせ", "経路の名前は送るモーダルと同じ");
   assert.equal(m().templatesAvailable, true);
   await act(async () => m().toggleChannel("email", false));
   assert.equal(m().contentError, null);
