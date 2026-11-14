@@ -5,6 +5,7 @@
 // - 種別の枠(PreferenceKindFrame)は見出しだけ(種別のスイッチは出さない、D62。表示名は constants の MESSAGE_KIND_LABELS = 仮)
 // - グループの見出し(PreferenceGroupHeading、グループの無い種類は見出し無しで先)→ 種類の行(PreferenceCategoryRow = その経路の 1 マス)
 // - 種類まるごと(すべての経路)の切り替え(PreferenceCategoryWideToggle)は、その種類が最初に出る経路の行に 1 回だけ置く
+// - 全部を止めている間は広い切り替え(経路まるごと・種類まるごと)も止まった状態で見せて押せない(stoppedByAll)
 // 読み書きは hook useMessagePreferences だけ。取引の連絡(パスワードの再設定など)はここに出ず、止められない。
 // 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
@@ -102,6 +103,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
             key={channel.key}
             channel={channel}
             disabled={locked}
+            stoppedByAll={preferences.allOptedOut}
             onChannelWideChange={(stop) => guard(() => setChannelWide(channel.key, stop))}
           >
             {channel.kinds.map((frame) => (
@@ -125,6 +127,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
                               categoryLabel={category.label}
                               stopped={categoryWide.get(category.key) ?? false}
                               disabled={locked}
+                              stoppedByAll={preferences.allOptedOut}
                               onChange={(stop) => guard(() => setCategoryWide(category.key, stop))}
                             />
                           ) : null}

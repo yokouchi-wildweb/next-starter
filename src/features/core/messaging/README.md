@@ -278,7 +278,7 @@ D35・D45・D71。本人が好みを見て切り替える口（`services/server/
 - 既定の画面（入れ物 `components/MessagePreferences`、`emptyText?`）の並び: 上に「すべての連絡を止める」→ 経路の枠（経路まるごとの切り替え・宛先の無い経路は連携の案内）→ 種別の枠（見出しだけ、種別のスイッチは出さない。D62）→ グループの見出し（グループの無い種類は見出し無しで先）→ 種類の行（その経路の 1 マス）。種類まるごと（すべての経路）の切り替えは、その種類が最初に出る経路の行に 1 回だけ置く
 - 広い行で止まる種類の行は切で理由を出す。種類・種別・経路まるごとの下は押せて、入にするとサーバーが書き分ける。全部の停止の下だけ押せない（全部の間は経路・種類まるごとの切り替えも押せない）
 - 種別の枠の表示名は `constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`（仮。見直しは後の回）
-- 部品（core_ui、props だけ、入口だけを import。fork は差し替えの Screen でこれと hook を組む）: `components/common/PreferenceChannelSection`（経路の枠: 題・経路まるごと・連携の案内・children）・`PreferenceKindFrame`（種別の見出し・children）・`PreferenceGroupHeading`（グループの見出し、null は描かない）・`PreferenceCategoryRow`（1 つの経路の 1 つの種類の切り替え・理由・children に行の操作。理由の文は `preferenceViaReason`）・`PreferenceCategoryWideToggle`（種類まるごとの切り替え）。種別まるごとを出す fork は hook の `setKind` と `preferences.kinds` で自分の部品を置く
+- 部品（core_ui、props だけ、入口だけを import。fork は差し替えの Screen でこれと hook を組む）: `components/common/PreferenceChannelSection`（経路の枠: 題・経路まるごと・連携の案内・children）・`PreferenceKindFrame`（種別の見出し・children）・`PreferenceGroupHeading`（グループの見出し、null は描かない）・`PreferenceCategoryRow`（1 つの経路の 1 つの種類の切り替え・理由・children に行の操作。理由の文は `preferenceViaReason`）・`PreferenceCategoryWideToggle`（種類まるごとの切り替え）。経路の枠と種類まるごとは `stoppedByAll?`（応答の `allOptedOut` を渡す）で、全部を止めている間は行の値によらず止まった状態で見せて押せなくする（全部を戻すと行の値に戻る）。種別まるごとを出す fork は hook の `setKind` と `preferences.kinds` で自分の部品を置く
 - ページ: `page.tsx` の 1 行スイッチ → `_screen/MyPageAccountNotificationsScreen.tsx`（題「通知の設定」+ `MessagePreferences`、mypage の layout が UserPage を巻く）+ `_screen/loader.ts`（access authenticated、門が閉なら notFound）
 - マイページのカード: `src/features/core/user/mypageMenu/items/notifications.ts`（order 25「通知の設定」）。門が閉の間は棚の Link が描かない
 
