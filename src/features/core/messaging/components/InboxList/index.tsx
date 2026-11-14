@@ -39,7 +39,7 @@ export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせ
 
   return (
     <Stack space={3}>
-      <Flex justify="end">
+      <Flex justify="center">
         <Button
           type="button"
           variant="outline"
