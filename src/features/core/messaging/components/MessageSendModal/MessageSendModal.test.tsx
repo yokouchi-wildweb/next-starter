@@ -34,7 +34,9 @@ const baseState = () => ({
   closeConfirm: { enabled: true, message: "書きかけ" },
   templatesAvailable: true,
   templates: [{ id: "t1", name: "春", currentVersion: 2 }],
-  calledTemplate: null,
+  loadedTemplate: null,
+  pendingLoad: null as string | null,
+  loadNote: null as string | null,
   draft: { source: "adhoc", template: null, content: {}, vars: {} },
   audience: { type: "all", roles: [], audienceKey: "", userIds: [] },
   roles: [],
@@ -56,8 +58,10 @@ const baseState = () => ({
   isPreviewing: false,
   isTesting: false,
   isSending: false,
-  callTemplate: () => {},
-  clearTemplate: () => {},
+  loadTemplate: () => {},
+  unloadTemplate: () => {},
+  confirmLoad: () => events.push("confirmLoad"),
+  cancelLoad: () => events.push("cancelLoad"),
   setChannelFields: () => {},
   setVar: () => {},
   setAudience: () => {},
@@ -81,6 +85,13 @@ mock.module("@/components/Overlays/Modal", {
   defaultExport: ({ open, title, children, footer, confirmOnClose }: Record<string, unknown>) => {
     modalConfirm = confirmOnClose;
     return open ? createElement("section", { "data-testid": "modal" }, title as never, children as never, footer as never) : null;
+  },
+});
+let dialogProps: Record<string, unknown> | null = null;
+mock.module("@/components/Overlays/Dialog", {
+  defaultExport: (props: Record<string, unknown>) => {
+    dialogProps = props;
+    return props.open ? createElement("aside", { "data-testid": "dialog" }, props.title as never) : null;
   },
 });
 mock.module("@/components/Form/Button", {
@@ -152,7 +163,9 @@ const parts = (container: HTMLElement) => [...container.querySelectorAll("[data-
 
 test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
   const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
-  assert.deepEqual(parts(view.container), ["template", "audience", "category", "content", "schedule"]);
+  // 並び(D47): 宛先 → テンプレートから読み込む → カテゴリーと経路 → 文言 → 送る時刻
+  assert.deepEqual(parts(view.container), ["audience", "template", "category", "content", "schedule"]);
+  assert.equal(dialogProps!.open, false, "上書きの確かめは読み込みを待つ時だけ");
   assert.deepEqual(modalConfirm, { enabled: true, message: "書きかけ" });
   await act(async () => button(view.container, "新しく送る")!.click());
   await act(async () => button(view.container, "プレビュー")!.click());
@@ -197,4 +210,16 @@ test("開く口: 回の一覧の「新しく送る」は門 messagingBroadcast �
   const closed = await render(createElement(AdminDispatchList));
   assert.equal(button(closed.container, "新しく送る"), undefined);
   await closed.unmount();
+});
+
+test("手で直した書きかけの上に読み込む時は Dialog で確かめ、読み込みの知らせを出す", async () => {
+  state = { ...baseState(), pendingLoad: "t1", loadNote: "テンプレートのカテゴリー「春」はこの宛先では選べないため、カテゴリーは今のままです" };
+  const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
+  assert.equal(dialogProps!.open, true);
+  assert.equal(dialogProps!.confirmLabel, "置き換えて読み込む");
+  await act(async () => (dialogProps!.onConfirm as () => void)());
+  await act(async () => (dialogProps!.onOpenChange as (v: boolean) => void)(false));
+  assert.deepEqual(events, ["confirmLoad", "cancelLoad"]);
+  assert.match(view.container.textContent ?? "", /この宛先では選べない/);
+  await view.unmount();
 });

@@ -1,5 +1,5 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
-// - SendTemplatePicker: 選んで「呼び出す」/ 呼び出し中は名前・版と「やめて…」
+// - SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前・版・別の読み込み・「テンプレートを外す」
 // - SendContentFields: その場で書く時もテンプレートの時も経路の欄の部品・文言なしの印・変数の欄(テンプレートの時だけ)
 // - SendAudiencePicker: bulk は選んだ記録の数だけ / select は種類の選び
 // - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印
@@ -46,6 +46,21 @@ mock.module("@/components/Form/Button", {
     LinkButton: (props: { href: string; children?: unknown }) => createElement("a", { href: props.href }, props.children as never),
   },
 });
+// テンプレートを選ぶ小窓は偽物: 引き金と、選択肢ごとに「読む:<名前>」のボタン(押すと onConfirm)
+let popoverProps: Record<string, unknown> | null = null;
+mock.module("@/components/Overlays/Popover", {
+  namedExports: {
+    SelectPopover: (props: { trigger: unknown; options: { value: string; label: string }[]; onConfirm: (v: string) => void }) => {
+      popoverProps = props as never;
+      return createElement(
+        "div",
+        null,
+        props.trigger as never,
+        ...props.options.map((o) => createElement("button", { key: o.value, type: "button", onClick: () => props.onConfirm(o.value) }, `読む:${o.label}`)),
+      );
+    },
+  },
+});
 mock.module("@/features/core/user/components/common/UserAsyncMultiSelect", {
   namedExports: { UserAsyncMultiSelect: () => createElement("span", { "data-users": "1" }) },
 });
@@ -90,29 +105,36 @@ const render = async (element: ReturnType<typeof createElement>) => {
 const button = (container: HTMLElement, text: string) =>
   [...container.querySelectorAll("button")].find((b) => (b.textContent ?? "").includes(text)) as HTMLButtonElement | undefined;
 
-test("SendTemplatePicker: 選んで呼び出す / 呼び出し中は名前と版とやめる", async () => {
-  const called: string[] = [];
-  let cleared = 0;
+test("SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前と版・別の読み込み・外す", async () => {
+  const loaded: string[] = [];
+  let unloaded = 0;
   const view = await render(
     createElement(parts.SendTemplatePicker, {
       templates: [{ id: "t1", name: "春", currentVersion: 2 }],
-      called: null,
-      onCall: (id: string) => called.push(id),
-      onClear: () => (cleared += 1),
+      loaded: null,
+      onLoad: (id: string) => loaded.push(id),
+      onUnload: () => (unloaded += 1),
     }),
   );
-  assert.equal(button(view.container, "呼び出す")!.disabled, true, "選ぶまで押せない");
-  await act(async () => selects.at(-1)!.onChange("t1"));
-  await act(async () => button(view.container, "呼び出す")!.click());
-  assert.deepEqual(called, ["t1"]);
+  assert.ok(button(view.container, "テンプレートから読み込む"));
+  assert.equal(button(view.container, "呼び出す"), undefined, "呼び出すの段は無い");
+  assert.equal((popoverProps as { confirmLabel?: string }).confirmLabel, "読み込む");
+  await act(async () => button(view.container, "読む:春")!.click());
+  assert.deepEqual(loaded, ["t1"]);
   await view.unmount();
 
   const on = await render(
-    createElement(parts.SendTemplatePicker, { templates: [], called: { id: "t1", name: "春", version: 2 }, onCall: () => {}, onClear: () => (cleared += 1) }),
+    createElement(parts.SendTemplatePicker, {
+      templates: [{ id: "t1", name: "春", currentVersion: 2 }],
+      loaded: { id: "t1", name: "春", version: 2 },
+      onLoad: () => {},
+      onUnload: () => (unloaded += 1),
+    }),
   );
   assert.match(on.container.textContent ?? "", /春\(v2\)/);
-  await act(async () => button(on.container, "やめて")!.click());
-  assert.equal(cleared, 1);
+  assert.ok(button(on.container, "別のテンプレートを読み込む"));
+  await act(async () => button(on.container, "テンプレートを外す")!.click());
+  assert.equal(unloaded, 1);
   await on.unmount();
 });
 

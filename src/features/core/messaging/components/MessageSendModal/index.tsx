@@ -3,6 +3,7 @@
 // 開き方 mode: new(回の一覧「新しく送る」)/ sameAs(回の詳細「同じ内容で送る」)/ bulk(管理一覧の一括操作、bulkMessageAction)。
 // new / sameAs の口を門 messagingBroadcast で出し分けるのは置き場の入れ物(AdminDispatchList / AdminDispatchDetail)。bulk は門の外。
 // fork は自分の画面(例 発送リクエストの一覧)にもこの入れ物をそのまま置ける(公開の部品と hook)。
+// 並び(D47): 宛先 → テンプレートから読み込む(任意) → カテゴリーと経路 → 文言 → 送る時刻。手で直した書きかけの上に読み込む時は Dialog で確かめる。
 // 書きかけのまま閉じる = Modal の confirmOnClose で確かめる。ページの移動は hook の中の @/lib/unsavedGuard
 
 "use client";
@@ -13,6 +14,7 @@ import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import Dialog from "@/components/Overlays/Dialog";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
@@ -150,14 +152,6 @@ export function MessageSendModal({
             {m.sameAsNote}
           </Para>
         ) : null}
-        {m.templatesAvailable ? (
-          <SendTemplatePicker
-            templates={m.templates}
-            called={m.calledTemplate && m.draft.template ? { id: m.calledTemplate.id, name: m.calledTemplate.name, version: m.draft.template.version } : null}
-            onCall={m.callTemplate}
-            onClear={m.clearTemplate}
-          />
-        ) : null}
         <Block title="宛先">
           {bulk ? (
             <SendAudiencePicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
@@ -165,6 +159,21 @@ export function MessageSendModal({
             <SendAudiencePicker kind="select" value={m.audience} onChange={m.setAudience} roles={m.roles} audiences={m.audiences} />
           )}
         </Block>
+        {m.templatesAvailable ? (
+          <Stack space={1}>
+            <SendTemplatePicker
+              templates={m.templates}
+              loaded={m.loadedTemplate && m.draft.template ? { id: m.loadedTemplate.id, name: m.loadedTemplate.name, version: m.draft.template.version } : null}
+              onLoad={m.loadTemplate}
+              onUnload={m.unloadTemplate}
+            />
+            {m.loadNote ? (
+              <Para size="sm" tone="muted" className="my-0" data-slot="send-load-note">
+                {m.loadNote}
+              </Para>
+            ) : null}
+          </Stack>
+        ) : null}
         <Block title="カテゴリーと経路">
           <SendCategoryChannels
             categories={m.allowedCategories}
@@ -183,7 +192,7 @@ export function MessageSendModal({
             channels={onChannels}
             content={m.draft.content}
             onChange={m.setChannelFields}
-            variables={(m.calledTemplate?.variables ?? []).filter((variable) => variable.source === "dispatch")}
+            variables={(m.loadedTemplate?.variables ?? []).filter((variable) => variable.source === "dispatch")}
             vars={m.draft.vars}
             onVarChange={m.setVar}
           />
@@ -274,6 +283,17 @@ export function MessageSendModal({
       >
         {body()}
       </Modal>
+      <Dialog
+        open={m.pendingLoad !== null}
+        onOpenChange={(next) => {
+          if (!next) m.cancelLoad();
+        }}
+        title="テンプレートを読み込みますか"
+        description="今書いている文言は、テンプレートの文言で置き換わります。"
+        confirmLabel="置き換えて読み込む"
+        cancelLabel="やめる"
+        onConfirm={m.confirmLoad}
+      />
     </>
   );
 }
