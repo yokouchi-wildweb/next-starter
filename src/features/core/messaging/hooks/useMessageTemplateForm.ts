@@ -7,7 +7,8 @@
 // - 保存: 作る(POST)か直す(PATCH)。送るのは文言を書いた経路の中身だけ(filledChannels)で、空の任意の欄は落とす
 // - 公開・取り下げ: 1 件・版の一覧を取り直す(一覧の画面は戻ったときに取り直す)
 // - 使える {{鍵}} = 選択肢の baseAllowedKeys ∪ 宣言した変数(サーバーの保存時の検査と同じ組)。知らない鍵を返す
-// - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard)。作った後は createdId を返す(画面がその 1 件へ移る)
+// - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard。モーダルを閉じる前の確かめは closeConfirm)
+// - 作った後は onCreated(id) を呼び、createdId を返す(モーダルがその 1 件を直す形に変わる。ページは移らない)
 
 import { useCallback, useMemo, useState } from "react";
 
@@ -46,6 +47,8 @@ export type UseMessageTemplateFormOptions = {
   /** 直す 1 件(省略 = 作る) */
   template?: AdminTemplateDetail | null;
   options: AdminTemplateOptions | null;
+  /** 作った後(下書きの id)。モーダルはこれで同じ 1 件を直す形に変わる */
+  onCreated?: (id: string) => void;
 };
 
 /** 経路を足したときの初めの中身 */
@@ -118,7 +121,7 @@ function stringsOf(value: unknown, out: string[] = []): string[] {
   return out;
 }
 
-export function useMessageTemplateForm({ template, options }: UseMessageTemplateFormOptions) {
+export function useMessageTemplateForm({ template, options, onCreated }: UseMessageTemplateFormOptions) {
   const { showToast } = useToast();
   const id = template?.id ?? null;
   const archived = template?.status === "archived";
@@ -211,12 +214,13 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
       } else {
         const created = await createMutation.trigger({ key: key.trim(), ...buildInput() });
         setCreatedId(created.id);
+        onCreated?.(created.id);
         showToast("下書きを作りました", "success");
       }
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [id, updateMutation, createMutation, key, buildInput, showToast]);
+  }, [id, updateMutation, createMutation, key, buildInput, showToast, onCreated]);
 
   /** 公開(今の中身を新しい版に。書きかけは先に保存する) */
   const publish = useCallback(async () => {
@@ -253,6 +257,8 @@ export function useMessageTemplateForm({ template, options }: UseMessageTemplate
     archive,
     /** 公開できるか(保存済み・書きかけ無し・取り下げていない・公開していない変更がある) */
     canPublish: Boolean(id) && !dirty && !archived && Boolean(template?.hasUnpublishedChanges),
+    /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
+    closeConfirm: { enabled: dirty, message: "保存していない書きかけがあります。閉じてもよろしいですか？" },
     fields: {
       key,
       setKey,

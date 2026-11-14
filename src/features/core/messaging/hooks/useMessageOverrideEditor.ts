@@ -2,10 +2,10 @@
 
 // src/features/core/messaging/hooks/useMessageOverrideEditor.ts
 //
-// 管理: 1 連絡の文言の編集(部品 AdminMessageOverrideEditor はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
+// 管理: 1 連絡の文言の編集(入れ物 AdminMessageOverrideModal はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui_guards)。
 // - 欄ごとの下書き(文字 = string、段落 = string[]。長さはコードの値のまま)。初めは送る時の値(effective)
 // - 保存(PUT)・既定に戻す(DELETE)は欄 1 つずつ。成功したらその欄の下書きを捨て、1 連絡と一覧を取り直す
-// - 下書きが 1 つでもあれば、ページを離れる前に確かめる(@/lib/unsavedGuard)
+// - 下書きが 1 つでもあれば、ページを離れる前に確かめる(@/lib/unsavedGuard)。モーダルを閉じる前の確かめは closeConfirm
 // - 下書きの中の知らない {{鍵}}(使ってよい鍵の外)を欄ごとに返す(保存はサーバーが同じ検査で止める)
 
 import { useCallback, useMemo, useState } from "react";
@@ -136,6 +136,8 @@ export function useMessageOverrideEditor(messageKey: string) {
     setDraft,
     isDirty,
     hasDrafts,
+    /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
+    closeConfirm: { enabled: hasDrafts, message: "保存していない欄があります。閉じてもよろしいですか？" },
     unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys),
     save,
     reset,

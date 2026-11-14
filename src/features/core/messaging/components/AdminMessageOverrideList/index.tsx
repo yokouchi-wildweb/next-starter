@@ -1,27 +1,24 @@
 // src/features/core/messaging/components/AdminMessageOverrideList/index.tsx
 // セクションコンテナ(管理: 文言を直せる連絡の一覧)。adminEditable を宣言した定義だけ(数は小さく固定なので一度に取る)。
-// 行 = 鍵・種別 / 種類・直せる欄の数・直した数・印(孤立・コードが変わった)→ /admin/messaging/overrides/<鍵>
+// 行 = 鍵・種別 / 種類・直せる欄の数・直した数・印(孤立・コードが変わった)。行を押すと直すモーダル(AdminMessageOverrideModal。D87)。
+// 流れ(一覧・モーダルの開き先)は hook useAdminMessageOverrideList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
 import { SoftBadge } from "@/components/Badge";
+import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Link } from "@/components/Navigation/Link";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
-import { useMessageOverrides } from "@/features/core/messaging/hooks/useMessageOverrides";
+import { AdminMessageOverrideModal } from "@/features/core/messaging/components/AdminMessageOverrideModal";
+import { useAdminMessageOverrideList } from "@/features/core/messaging/hooks/useAdminMessageOverrideList";
 
-export type AdminMessageOverrideListProps = {
-  /** 行の住所の頭(既定 /admin/messaging/overrides) */
-  basePath?: string;
-};
-
-export function AdminMessageOverrideList({ basePath = "/admin/messaging/overrides" }: AdminMessageOverrideListProps) {
-  const { items, error, isLoading } = useMessageOverrides();
+export function AdminMessageOverrideList() {
+  const { items, error, isLoading, modal } = useAdminMessageOverrideList();
 
   if (isLoading && items.length === 0) {
     return (
@@ -48,10 +45,12 @@ export function AdminMessageOverrideList({ basePath = "/admin/messaging/override
   return (
     <Stack space={2}>
       {items.map((item) => (
-        <Link
+        <Button
           key={item.key}
-          href={`${basePath}/${encodeURIComponent(item.key)}`}
-          className="block rounded-md border border-border bg-card px-4 py-3 hover:bg-muted/40"
+          type="button"
+          variant="none"
+          onClick={() => modal.openMessage(item.key)}
+          className="block h-auto w-full whitespace-normal rounded-md border border-border bg-card px-4 py-3 text-left hover:bg-muted/40"
           data-slot="override-message-row"
         >
           <Stack space={1}>
@@ -84,8 +83,9 @@ export function AdminMessageOverrideList({ basePath = "/admin/messaging/override
               </Span>
             </Flex>
           </Stack>
-        </Link>
+        </Button>
       ))}
+      <AdminMessageOverrideModal open={modal.open} onOpenChange={modal.setOpen} messageKey={modal.messageKey} />
     </Stack>
   );
 }

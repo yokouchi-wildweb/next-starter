@@ -9,3 +9,5 @@ export const MESSAGE_TEMPLATE_OPTIONS_KEY = `${MESSAGE_TEMPLATES_KEY}/options`;
 export const messageTemplateKey = (id: string) => `${MESSAGE_TEMPLATES_KEY}/${id}`;
 /** 版の一覧のキー */
 export const messageTemplateVersionsKey = (id: string) => `${messageTemplateKey(id)}/versions`;
+/** 版 1 つのキー */
+export const messageTemplateVersionKey = (id: string, version: number) => `${messageTemplateVersionsKey(id)}/${version}`;

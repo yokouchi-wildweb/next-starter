@@ -48,7 +48,7 @@ export type MessagingConfig = {
   };
   /**
    * 受け取り箱の画面の値
-   * - showUnreadModal: 未読のお知らせのモーダル(InboxUnreadModal)を出す(既定 切)。部品を枠に置くのは別(今は置いていない)
+   * - showUnreadModal: 未読のお知らせのモーダル(InboxUnreadModal)を出す(既定 切)。部品をどこに置くかは利用者の枠(src/app/(user)/_layout)が決める
    * - unreadModalPaths: モーダルを出す住所(完全一致。末尾 * で前方一致)
    */
   inbox: { showUnreadModal: boolean; unreadModalPaths: readonly string[] };

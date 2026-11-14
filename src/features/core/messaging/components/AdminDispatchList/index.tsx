@@ -1,10 +1,9 @@
 // src/features/core/messaging/components/AdminDispatchList/index.tsx
 // セクションコンテナ(管理: 送った回の一覧)。絞り込み(期間・定義の鍵・種別・経路・状態)+ 無限スクロール(カーソル)。
-// 行を押すと /admin/messaging/<id>。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+// 行を押すと /admin/messaging/<id>。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。
+// 絞り込みの入力と確定は hook useAdminDispatchFilters。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
-
-import { useState } from "react";
 
 import { Button } from "@/components/Form/Button";
 import { DateInput, Input, SelectInput } from "@/components/Form/Input/Manual";
@@ -19,6 +18,7 @@ import { useGate } from "@/featureGate/client";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DISPATCH_STATUS_DISPLAY } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { DispatchRow } from "@/features/core/messaging/components/common/DispatchRow";
+import { useAdminDispatchFilters } from "@/features/core/messaging/hooks/useAdminDispatchFilters";
 import { useAdminDispatches } from "@/features/core/messaging/hooks/useAdminDispatches";
 import type { AdminDispatchFilters } from "@/features/core/messaging/services/client/adminMessagingClient";
 
@@ -42,55 +42,12 @@ const CHANNEL_OPTIONS = [
 ];
 const STATUS_OPTIONS = Object.entries(DISPATCH_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
-/** 日付の入力(YYYY-MM-DD)の翌日 = 期間の上限(未満)。空は undefined */
-function nextDay(date: string): string | undefined {
-  if (!date) return undefined;
-  const d = new Date(`${date}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return undefined;
-  d.setDate(d.getDate() + 1);
-  return d.toISOString();
-}
-
-function startOf(date: string): string | undefined {
-  if (!date) return undefined;
-  const d = new Date(`${date}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
 const NEW_MODE = { type: "new" } as const;
 
 export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchListProps) {
   const canSend = useGate().enabled("messagingBroadcast");
-  // 入力中の値(「絞り込む」で確定)と、確定した絞り込み
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [messageKey, setMessageKey] = useState(initialFilters.messageKey ?? "");
-  const [kind, setKind] = useState<string>(initialFilters.kind ?? "");
-  const [channel, setChannel] = useState<string>(initialFilters.channel ?? "");
-  const [status, setStatus] = useState<string>(initialFilters.status ?? "");
-  const [filters, setFilters] = useState<AdminDispatchFilters>(initialFilters);
-
+  const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
   const query = useAdminDispatches({ filters, limit, observerOptions: OBSERVER_OPTIONS });
-
-  const apply = () =>
-    setFilters({
-      from: startOf(fromDate),
-      to: nextDay(toDate),
-      messageKey: messageKey.trim() || undefined,
-      kind: (kind || undefined) as AdminDispatchFilters["kind"],
-      channel: channel || undefined,
-      status: status || undefined,
-    });
-
-  const clear = () => {
-    setFromDate("");
-    setToDate("");
-    setMessageKey("");
-    setKind("");
-    setChannel("");
-    setStatus("");
-    setFilters({});
-  };
 
   return (
     <Stack space={4}>
@@ -104,13 +61,13 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
           <Label htmlFor="dispatch-filter-from" className="text-xs">
             期間(から)
           </Label>
-          <DateInput id="dispatch-filter-from" value={fromDate} onValueChange={setFromDate} />
+          <DateInput id="dispatch-filter-from" value={fields.fromDate} onValueChange={fields.setFromDate} />
         </Stack>
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-to" className="text-xs">
             期間(まで)
           </Label>
-          <DateInput id="dispatch-filter-to" value={toDate} onValueChange={setToDate} />
+          <DateInput id="dispatch-filter-to" value={fields.toDate} onValueChange={fields.setToDate} />
         </Stack>
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-key" className="text-xs">
@@ -118,8 +75,8 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
           </Label>
           <Input
             id="dispatch-filter-key"
-            value={messageKey}
-            onChange={(e) => setMessageKey(e.target.value)}
+            value={fields.messageKey}
+            onChange={(e) => fields.setMessageKey(e.target.value)}
             placeholder="例: messaging.adminAnnouncement"
           />
         </Stack>
@@ -129,8 +86,8 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
           </Label>
           <SelectInput
             id="dispatch-filter-kind"
-            value={kind}
-            onChange={(v) => setKind(v ? String(v) : "")}
+            value={fields.kind}
+            onChange={(v) => fields.setKind(v ? String(v) : "")}
             options={KIND_OPTIONS}
             placeholder="すべて"
           />
@@ -141,8 +98,8 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
           </Label>
           <SelectInput
             id="dispatch-filter-channel"
-            value={channel}
-            onChange={(v) => setChannel(v ? String(v) : "")}
+            value={fields.channel}
+            onChange={(v) => fields.setChannel(v ? String(v) : "")}
             options={CHANNEL_OPTIONS}
             placeholder="すべて"
           />
@@ -153,8 +110,8 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
           </Label>
           <SelectInput
             id="dispatch-filter-status"
-            value={status}
-            onChange={(v) => setStatus(v ? String(v) : "")}
+            value={fields.status}
+            onChange={(v) => fields.setStatus(v ? String(v) : "")}
             options={STATUS_OPTIONS}
             placeholder="すべて"
           />
