@@ -1,6 +1,5 @@
-// /admin/messaging/overrides と /admin/messaging/overrides/[key] の loader の検査(挙動の固定。guard・next/navigation・featureGate は偽物)。
-// - 門の機能 messagingOverrides が閉 → notFound / 開 → 一覧は何もしない、1 件は連絡の鍵を返す(URL の符号は戻す)
-// - [key] の loader もここで見る(node --test はファイルの引数の [] を glob に読み、[key] の下のテストを拾わないため)
+// /admin/messaging/overrides の loader の検査(挙動の固定。guard・next/navigation・featureGate は偽物)。
+// - 門の機能 messagingOverrides が閉 → notFound / 開 → 何もしない(1 連絡の編集は一覧のモーダル。/[key] の住所は無い)
 // 実行: pnpm test "src/app/admin/(protected)/messaging/overrides/_screen/loader.test.ts"
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -58,10 +57,8 @@ mock.module("@/featureGate", {
 });
 
 let load: typeof import("./loader").loadAdminMessagingOverrideListScreen;
-let loadOne: typeof import("../[key]/_screen/loader").loadAdminMessagingOverrideScreen;
 before(async () => {
   ({ loadAdminMessagingOverrideListScreen: load } = await import("./loader"));
-  ({ loadAdminMessagingOverrideScreen: loadOne } = await import("../[key]/_screen/loader"));
 });
 beforeEach(() => {
   currentUser = { userId: "a1", role: "admin" };
@@ -80,16 +77,3 @@ test("一覧: 開 → 何もしない", async () => {
   assert.deepEqual(await run(), { value: undefined });
 });
 
-const runOne = (key: string) =>
-  outcome(() => loadOne({ params: Promise.resolve({ key }), searchParams: Promise.resolve({}) } as never));
-
-test("1 件: messagingOverrides が閉 → notFound", async () => {
-  enabled = false;
-  assert.deepEqual(await runOne("user.registrationComplete"), { notFound: true });
-  assert.deepEqual(asked, ["messagingOverrides"]);
-});
-
-test("1 件: 開 → 連絡の鍵を返す", async () => {
-  assert.deepEqual(await runOne("user.registrationComplete"), { value: { messageKey: "user.registrationComplete" } });
-  assert.deepEqual(await runOne("wallet%2EexpiredNotice"), { value: { messageKey: "wallet.expiredNotice" } });
-});

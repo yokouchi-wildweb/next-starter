@@ -3,11 +3,9 @@
 // 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と「続きを送る」(送信中の回だけ。1 束だけ進める)と
 // 回の操作(予約を取り消す・取り下げる・失敗分を再送。できるかと理由は回の operations、部品 DispatchOperations)と
 // 「同じ内容で送る」(送るモーダル。文面・カテゴリー・宛先の形を写す。門 messagingBroadcast が閉なら出さない)。
-// 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+// 流れ(配達の絞り・includeUnknown・操作と知らせ)は hook useAdminDispatchDetail。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
-
-import { useState } from "react";
 
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Button } from "@/components/Form/Button";
@@ -21,7 +19,6 @@ import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { err } from "@/lib/errors";
-import { useToast } from "@/lib/toast";
 
 import {
   DELIVERY_STATUS_DISPLAY,
@@ -33,12 +30,7 @@ import { useGate } from "@/featureGate/client";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { DispatchStatusBadge } from "@/features/core/messaging/components/common/DispatchStatusBadge";
-import { useAdminDispatch } from "@/features/core/messaging/hooks/useAdminDispatch";
-import { useAdminDispatchDeliveries } from "@/features/core/messaging/hooks/useAdminDispatchDeliveries";
-import { useCancelDispatch } from "@/features/core/messaging/hooks/useCancelDispatch";
-import { useContinueDispatch } from "@/features/core/messaging/hooks/useContinueDispatch";
-import { useResendDispatch } from "@/features/core/messaging/hooks/useResendDispatch";
-import { useRetractDispatch } from "@/features/core/messaging/hooks/useRetractDispatch";
+import { useAdminDispatchDetail } from "@/features/core/messaging/hooks/useAdminDispatchDetail";
 import type { AdminDispatchDetail as AdminDispatchDetailDto } from "@/features/core/messaging/services/client/adminMessagingClient";
 
 export type AdminDispatchDetailProps = {
@@ -55,68 +47,9 @@ const CHANNEL_OPTIONS = [
 const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
 export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
-  const { showToast } = useToast();
   const canSend = useGate().enabled("messagingBroadcast");
-  const { dispatch, error, isLoading } = useAdminDispatch(dispatchId);
-  const [deliveryStatus, setDeliveryStatus] = useState("");
-  const [deliveryChannel, setDeliveryChannel] = useState("");
-  const deliveries = useAdminDispatchDeliveries(dispatchId, {
-    filters: { status: deliveryStatus || undefined, channel: deliveryChannel || undefined },
-    observerOptions: OBSERVER_OPTIONS,
-  });
-  const { continueSending } = useContinueDispatch(dispatchId);
-  const { revalidate: revalidateDeliveries } = deliveries;
-  const cancel = useCancelDispatch(dispatchId);
-  const retract = useRetractDispatch(dispatchId);
-  const resend = useResendDispatch(dispatchId);
-  const [includeUnknown, setIncludeUnknown] = useState(false);
-
-  const handleCancel = async () => {
-    try {
-      await cancel.trigger();
-      revalidateDeliveries();
-      showToast("予約を取り消しました", "success");
-    } catch (e) {
-      showToast(err(e, "予約を取り消せませんでした"), "error");
-    }
-  };
-  const handleRetract = async () => {
-    try {
-      const res = await retract.trigger();
-      revalidateDeliveries();
-      showToast(`取り下げました(お知らせ ${res.deletedInboxItems} 件を消し、配達 ${res.canceledDeliveries} 件を止めました)`, "success");
-    } catch (e) {
-      showToast(err(e, "取り下げられませんでした"), "error");
-    }
-  };
-  const handleResend = async () => {
-    try {
-      const res = await resend.trigger({ includeUnknown });
-      revalidateDeliveries();
-      setIncludeUnknown(false);
-      showToast(
-        res.mode === "new_dispatch"
-          ? `新しい回として ${res.failed + res.unknown} 件を送りました(回の一覧から見られます)`
-          : `${res.failed + res.unknown} 件を送り直しました`,
-        "success",
-      );
-    } catch (e) {
-      showToast(err(e, "送り直せませんでした"), "error");
-    }
-  };
-
-  const handleContinue = async () => {
-    try {
-      const res = await continueSending();
-      revalidateDeliveries();
-      showToast(
-        res.completed ? "送信を終えました" : `続きを送りました(送信 ${res.sent} / 失敗 ${res.failed})`,
-        "success",
-      );
-    } catch (e) {
-      showToast(err(e, "続きを送れませんでした"), "error");
-    }
-  };
+  const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, cancel, retract, resend, continueDispatch } =
+    useAdminDispatchDetail(dispatchId, { observerOptions: OBSERVER_OPTIONS });
 
   if (isLoading && !dispatch) {
     return (
@@ -147,9 +80,9 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
         operations={dispatch.operations}
         includeUnknown={includeUnknown}
         onIncludeUnknownChange={setIncludeUnknown}
-        onCancel={handleCancel}
-        onRetract={handleRetract}
-        onResend={handleResend}
+        onCancel={cancel}
+        onRetract={retract}
+        onResend={resend}
       />
 
       {dispatch.status === "processing" ? (
@@ -163,7 +96,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
             title="続きを送る"
             description="この回を 1 束だけ進めます(残りは cron も送ります)。"
             confirmLabel="送る"
-            onConfirm={handleContinue}
+            onConfirm={continueDispatch}
           />
         </Flex>
       ) : null}
@@ -179,8 +112,8 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
             </Label>
             <SelectInput
               id="delivery-filter-status"
-              value={deliveryStatus}
-              onChange={(v) => setDeliveryStatus(v ? String(v) : "")}
+              value={deliveryFilters.status}
+              onChange={(v) => deliveryFilters.setStatus(v ? String(v) : "")}
               options={DELIVERY_STATUS_OPTIONS}
               placeholder="すべて"
             />
@@ -191,8 +124,8 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
             </Label>
             <SelectInput
               id="delivery-filter-channel"
-              value={deliveryChannel}
-              onChange={(v) => setDeliveryChannel(v ? String(v) : "")}
+              value={deliveryFilters.channel}
+              onChange={(v) => deliveryFilters.setChannel(v ? String(v) : "")}
               options={CHANNEL_OPTIONS}
               placeholder="すべて"
             />

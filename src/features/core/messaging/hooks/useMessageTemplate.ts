@@ -22,9 +22,9 @@ export function useMessageTemplate(id: string | null | undefined) {
   return { template: data ?? null, error, isLoading, revalidate: () => mutate() };
 }
 
-/** 画面の選択肢(使える経路・種類・変数の前から使える {{鍵}}) */
-export function useMessageTemplateOptions() {
-  const { data, error, isLoading } = useSWR<AdminTemplateOptions>(MESSAGE_TEMPLATE_OPTIONS_KEY, () =>
+/** 画面の選択肢(使える経路・種類・変数の前から使える {{鍵}})。enabled = false の間は取らない(閉じたモーダル) */
+export function useMessageTemplateOptions(enabled = true) {
+  const { data, error, isLoading } = useSWR<AdminTemplateOptions>(enabled ? MESSAGE_TEMPLATE_OPTIONS_KEY : null, () =>
     getMessageTemplateOptions(),
   );
   return { options: data ?? null, error, isLoading };

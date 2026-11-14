@@ -42,18 +42,19 @@ src/features/core/messaging/
 │   ├── templateClient.ts        # 保存されたテンプレート（一覧はカーソル・選択肢・版）
 │   └── sendClient.ts            # 管理の送るモーダル（送る・プレビュー・見込み・テスト送信・選択肢）
 ├── hooks/                       # useMessageEndpoints / useInboxItems / useInboxUnreadCount / useMarkInboxItemRead / useMarkAllInboxRead
-│                                # 管理: useMessageSendModal / useAdminSendOptions / useAdminBulkSend / useAdminDispatches / useAdminDispatch / useAdminDispatchDeliveries / useContinueDispatch
+│                                # 管理: useMessageSendModal / useAdminSendOptions / useAdminBulkSend / useAdminDispatches / useAdminDispatchFilters / useAdminDispatch / useAdminDispatchDetail / useAdminDispatchDeliveries / useContinueDispatch
+│                                #       useAdminMessageTemplateList / useMessageTemplateModal / useMessageTemplateForm / useMessageTemplateVersion(s) / useAdminMessageOverrideList / useMessageOverrideEditor / useModalSession
 ├── components/
 │   ├── InboxList/               # 入れ物: 受け取り箱の一覧（詳細・既読・すべて既読）
-│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。枠には置いていない）
+│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。置く場所は利用者の枠が決める）
 │   ├── AdminBulkSend/           # 管理一覧の一括操作の作成関数 bulkMessageAction(送るモーダルの bulk)
 │   ├── MessageSendModal/        # 入れ物: 送るモーダル(new / sameAs / bulk、テンプレートの呼び出し・宛先・予約・プレビュー・テスト送信・確認)
 │   ├── AdminDispatchList/       # 入れ物: 送った回の一覧（絞り込み + カーソル）
 │   ├── AdminDispatchDetail/     # 入れ物: 回 1 件・配達（カーソル）・続きを送る
-│   ├── AdminMessageOverrideList/   # 入れ物: 文言を直せる連絡の一覧
-│   ├── AdminMessageOverrideEditor/ # 入れ物: 1 連絡の文言の上書き（欄ごとの保存・既定に戻す）
-│   ├── AdminMessageTemplateList/   # 入れ物: 保存されたテンプレートの一覧（カーソル）
-│   ├── AdminMessageTemplateEditor/ # 入れ物: テンプレートを作る・直す・公開・取り下げ・版の履歴
+│   ├── AdminMessageOverrideList/   # 入れ物: 文言を直せる連絡の一覧（行で直すモーダルを開く）
+│   ├── AdminMessageOverrideModal/  # 入れ物: 1 連絡の文言の上書きのモーダル（欄ごとの保存・既定に戻す）
+│   ├── AdminMessageTemplateList/   # 入れ物: 保存されたテンプレートの一覧（カーソル。「新しく作る」・行で作る / 直すモーダルを開く）
+│   ├── AdminMessageTemplateModal/  # 入れ物: テンプレートを作る・直すモーダル（TabbedModal: 文言・変数・版の履歴。公開・取り下げ）
 │   └── common/                  # 部品（props だけ）: InboxItemRow / InboxItemDetail / InboxUnreadMark / DispatchRow / DispatchStatusBadge / DispatchOperations / DeliveryRow / DeliveryStatusBadge / OverrideFieldEditor / OverrideFieldMarks / AllowedKeysHint / TemplateChannelFields / TemplateVariablesEditor / TemplateVersionList / TemplateStatusBadge / MessagePreview / SendTemplatePicker / SendContentFields / SendAudiencePicker / SendCategoryChannels / SendSchedule / SendConfirmView
 └── services/server/
     ├── messagingService.ts      # 公開 API（sendMessage / sendMessageToMany・existingIdempotencyKeys・端末・受け取り箱・管理）
@@ -222,10 +223,10 @@ D21・D24・D28。定義が `adminEditable` で宣言した欄だけを、管理
 
 ### 文言の上書きの管理画面（`/admin/messaging/overrides`、門 `messagingOverrides`）
 
-- `/admin/messaging/overrides`: 入れ物 `AdminMessageOverrideList`（`basePath?`）= 直せる連絡の行（鍵・種別 / 種類・直せる欄の数・直した / 孤立 / コードが変わったの数）→ 1 件へ
-- `/admin/messaging/overrides/[key]`: 入れ物 `AdminMessageOverrideEditor`（`messageKey`）= 使える `{{鍵}}` の案内 + 欄ごとの編集。文字の欄 = Textarea 1 つ、段落（配列）= 段落ごとの Textarea（数はコードのまま）。保存・既定に戻すは欄 1 つずつ（API が欄 1 つずつ）。直した欄にはコードの値も出す。直せなくなった欄は既定に戻すだけ
+- `/admin/messaging/overrides`: 入れ物 `AdminMessageOverrideList`（props なし）= 直せる連絡の行（鍵・種別 / 種類・直せる欄の数・直した / 孤立 / コードが変わったの数）。行を押すと直すモーダル。1 件のページ（`/overrides/[key]`）は無い（D87）
+- モーダル: 入れ物 `AdminMessageOverrideModal`（`open`・`onOpenChange`・`messageKey | null`。開閉は置き場が持つ。fork は自分の画面にも置ける）= 使える `{{鍵}}` の案内 + 欄ごとの編集。保存していない欄があるまま閉じる = `confirmOnClose`、ページの移動 = `@/lib/unsavedGuard`、開き直すたびに下書きを捨てる。文字の欄 = Textarea 1 つ、段落（配列）= 段落ごとの Textarea（数はコードのまま）。保存・既定に戻すは欄 1 つずつ（API が欄 1 つずつ）。直した欄にはコードの値も出す。直せなくなった欄は既定に戻すだけ
 - 部品（props だけ、`components/common/`）: `OverrideFieldEditor`（欄 1 つ。`overrideFieldLabel(path)` = 経路 / 欄の表示名）・`OverrideFieldMarks`（直した・コードが変わった・孤立・直せなくなった・未保存）・`AllowedKeysHint`（使える鍵と、文の中の使えない鍵）
-- hook: `useMessageOverrides`（一覧、SWR）・`useMessageOverride(key)`（1 件、SWR）・`useMessageOverrideEditor(key)`（欄ごとの下書き・`unknownKeys`・`save` / `reset` / `discard`。保存と戻すは 1 件と一覧を取り直す。下書きがある間は `@/lib/unsavedGuard` で離れる前に確かめる）・純粋な関数 `unknownKeysOf` / `toEditable`。client は `services/client/overrideClient.ts`
+- hook: `useMessageOverrides`（一覧、SWR）・`useAdminMessageOverrideList()`（一覧 + モーダルの開き先 `modal.openMessage(key)`）・`useMessageOverride(key)`（1 件、SWR）・`useMessageOverrideEditor(key)`（欄ごとの下書き・`unknownKeys`・`save` / `reset` / `discard`・`closeConfirm`。保存と戻すは 1 件と一覧を取り直す。下書きがある間は `@/lib/unsavedGuard` で離れる前に確かめる）・純粋な関数 `unknownKeysOf` / `toEditable`。client は `services/client/overrideClient.ts`
 - loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingOverrides.ts`（マーケティング > 文言の上書き、門が閉なら隠れる）
 
 ## 保存されたテンプレート（/api/admin/messaging/templates）
@@ -243,10 +244,10 @@ D40・D41。管理者が画面で書く連絡の中身と、その版の履歴�
 
 ### 保存されたテンプレートの管理画面（`/admin/messaging/templates`、門 `messagingTemplates`）
 
-- `/admin/messaging/templates`: 入れ物 `AdminMessageTemplateList`（`basePath?`）= 状態で絞る + 行（状態と版・名前・鍵・種類・経路・更新）の無限スクロール（カーソル）。ヘッダーに「新しく作る」
-- `/admin/messaging/templates/new` と `/[id]`: 入れ物 `AdminMessageTemplateEditor`（`templateId?`・`basePath?`。無ければ作る）= 鍵（作る時だけ）・名前・説明・種類・経路（`GET /options` の有効な経路）・経路ごとの中身・変数の宣言・使える `{{鍵}}` の案内（`AllowedKeysHint`）・保存 / 公開 / 取り下げ（確認つき。公開は保存済みで公開していない変更がある時だけ）・版の履歴。作った後はその 1 件へ移る。取り下げたテンプレートは読むだけ
+- `/admin/messaging/templates`: 入れ物 `AdminMessageTemplateList`（props なし）= 状態で絞る + 「新しく作る」+ 行（状態と版・名前・鍵・種類・更新）の無限スクロール（カーソル）。行を押すと直すモーダル。作る・1 件のページ（`/templates/new`・`/[id]`）は無い（D87）
+- モーダル: 入れ物 `AdminMessageTemplateModal`（`open`・`onOpenChange`・`templateId?`（null = 作る）。開閉は置き場が持つ。部品は公開の部品だけなので fork は自分の画面にも置ける）= `TabbedModal` のタブ 文言（鍵は作る時だけ・名前・説明・種類（`GET /options` = announcement・direct・marketing の種類）・使える `{{鍵}}` の案内（`AllowedKeysHint`）・経路ごとの文言）/ 変数 / 版の履歴（直す時だけ、下の帯なし）。下の帯 = 取り下げ・公開（`ConfirmPopover`。公開は保存済みで公開していない変更がある時だけ）・保存。作った後は同じモーダルでその 1 件を直す形に変わる（ページは移らない）。取り下げたテンプレートは読むだけ。書きかけのまま閉じる = `confirmOnClose`、ページの移動 = `@/lib/unsavedGuard`
 - 部品（props だけ、`components/common/`）: `TemplateChannelFields`（email = 件名・プレヘッダー・見出し・段落（空行で区切る 1 つの欄）・ボタン・フッター / inApp = 題・本文・画像（`ManualMediaUploader`、用途 `notification.image`。保存の時にサーバーがテンプレートに結ぶ）・行き先 / line = 本文 / それ以外の経路 = 欄の JSON）・`TemplateVariablesEditor`（鍵・表示名・型 string / number / date / url・由来・既定値・必須）・`TemplateVersionList`（版の一覧と 1 版の中身、読むだけ）・`TemplateStatusBadge`（下書き・公開中 v<n>・取り下げ・未公開の変更）
-- hook: `useMessageTemplates`（カーソル）・`useMessageTemplate(id)` / `useMessageTemplateOptions()`（SWR）・`useMessageTemplateVersions(id)`・`useMessageTemplateForm({ template, options })`（書く欄・`dirty`（離れる前の確認 `@/lib/unsavedGuard`）・`allowedKeys` = `baseAllowedKeys` ∪ 変数・`unknownKeys`・`save` / `publish` / `archive`・`canPublish`・`createdId`）・純粋な関数 `contentForInput` / `emptyChannelContent`。client は `services/client/templateClient.ts`
+- hook: `useMessageTemplates`（カーソル）・`useAdminMessageTemplateList({ observerOptions? })`（状態の絞り + 一覧 + モーダルの開き先 `modal.openNew()` / `modal.openTemplate(id)`）・`useMessageTemplate(id)` / `useMessageTemplateOptions(enabled?)`（SWR）・`useMessageTemplateVersions(id)`・`useMessageTemplateVersion(id, version)`（1 版、SWR。画面には置いていない）・`useMessageTemplateModal({ open, templateId? })`（開いている間だけ選択肢・1 件・版を取る・`state`・タブ・`onCreated`・書く欄の key `formKey`）・`useMessageTemplateForm({ template, options, onCreated? })`（書く欄・`dirty`（離れる前の確認 `@/lib/unsavedGuard`）・`closeConfirm`・`allowedKeys` = `baseAllowedKeys` ∪ 変数・`unknownKeys`・`save` / `publish` / `archive`・`canPublish`・`createdId`）・`useModalSession(open)`（閉 → 開 の度に増える番号。開き直しで書く欄を作り直す key）・純粋な関数 `contentForInput` / `emptyChannelContent`。client は `services/client/templateClient.ts`
 - loader は認可（`roleCategories: ["admin"]`）と門（閉なら notFound）だけ。管理メニュー: `src/features/core/admin/menu/items/messagingTemplates.ts`（マーケティング > テンプレート、門が閉なら隠れる）
 
 ## 好みの読み書き（利用者の API /api/me/messaging/preferences）
@@ -347,7 +348,7 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
 - 部品（core_ui、入口だけを import）:
   - `components/common/InboxItemRow`（1 行。押すと `onOpen(item)`）・`InboxItemDetail`（1 件の中身。題は包む Modal が持つ）・`InboxUnreadMark`（未読の点）
   - 入れ物 `components/InboxList`（`unreadOnly?`・`limit?`・`emptyText?`）と `components/InboxUnreadModal`
-- 未読のモーダル: 旧 `UnreadNotificationModal` と同じふるまい（指定の住所へ来たら未読を古い順に 1 件ずつ、見せた行は既読、次へ / スキップ = 全部既読 / 確認完了、確かめた id は sessionStorage）。値は `config.ts` の `inbox.showUnreadModal`（既定 false）・`inbox.unreadModalPaths`（既定 `["/"]`、末尾 `*` で前方一致）、上書きは `src/config/features/messaging.config.ts`。利用者の枠（UserLayout）には置いていない（旧部品の削除の指令で付け替える）
+- 未読のモーダル: 旧 `UnreadNotificationModal` と同じふるまい（指定の住所へ来たら未読を古い順に 1 件ずつ、見せた行は既読、次へ / スキップ = 全部既読 / 確認完了、確かめた id は sessionStorage）。値は `config.ts` の `inbox.showUnreadModal`（既定 false）・`inbox.unreadModalPaths`（既定 `["/"]`、末尾 `*` で前方一致）、上書きは `src/config/features/messaging.config.ts`。置く場所は利用者の枠（`src/app/(user)/_layout`）が決める
 - ページ `/messages`（`src/app/(user)/(protected)/messages/`）: `page.tsx` の 1 行スイッチ → `_screen/MessagesScreen.tsx`（題「お知らせ」+ `InboxList`）+ `_screen/loader.ts`（access authenticated、閉なら notFound）。初めの一覧もサーバーでは取らない（入れ物が hook で取る）
 - 門: 規則 `messagingInbox`（`src/featureGate/rules/messagingInbox.ts`、住所 `/messages`、既定 閉）。API と表は常に開（domains は持たない）。開ける fork は `src/config/featureGate/switches.config.ts`
 
@@ -451,9 +452,10 @@ export const bulkAction = bulkMessageAction(
 
 ### 送った回の管理画面（`/admin/messaging`、門 `messagingDispatches`、既定 開）
 
-- `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・定義の鍵・種別・経路・状態）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
-- `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）
-- loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatches`・`useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch`）
+- `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・定義の鍵・種別・経路・状態。入力と「絞り込む」での確定は hook `useAdminDispatchFilters(initialFilters)`）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
+- `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）。流れ（配達の絞り・`includeUnknown`・取り消す / 取り下げる / 再送 / 続きを送る と知らせ）は hook `useAdminDispatchDetail(dispatchId, { limit?, observerOptions? })`
+- loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatches`・`useAdminDispatchFilters`・`useAdminDispatchDetail`（中で `useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch` と操作の hook））
+- 管理画面のページは 4 つ: 回の一覧 `/admin/messaging`・回の詳細 `/[id]`・テンプレートの一覧 `/templates`・文言の上書きの一覧 `/overrides`（作る・直す・送るはモーダル、D87）
 - 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
 - 送るモーダルの口: 一覧の上に「新しく送る」、1 件に「同じ内容で送る」（`MessageSendModal`、門 `messagingBroadcast` が開の時だけ）
 - 回の操作（部品 `common/DispatchOperations`、props だけ）: 予約を取り消す・取り下げる・失敗分を再送 のボタン。できない操作は押せず `operations` の理由を出す。押すと確認の Dialog（取り下げは戻せない・送ったメールは取り戻せない、再送は 同じ回で / 新しい回として と失敗・不明の数、不明がある時だけ「不明も含める」= 二重に届くおそれ）。入れ物 `AdminDispatchDetail` が hook `useCancelDispatch` / `useRetractDispatch` / `useResendDispatch`（成功で回と一覧を取り直し、配達の一覧も取り直す）をつなぐ
