@@ -46,13 +46,14 @@ import { rule as rules_sampleDomain } from "@/featureGate/rules/sampleDomain";
 import { rule as rules_signup } from "@/featureGate/rules/signup";
 import { rule as rules_userAcquisition } from "@/featureGate/rules/userAcquisition";
 import { rule as rules_userCounter } from "@/featureGate/rules/userCounter";
+import { rule as rules_userGroups } from "@/featureGate/rules/userGroups";
 import { rule as rules_userLineProfile } from "@/featureGate/rules/userLineProfile";
 import { rule as rules_userXProfile } from "@/featureGate/rules/userXProfile";
 import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingAnalytics" | "messagingBroadcast" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingAnalytics" | "messagingBroadcast" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userGroups" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -99,6 +100,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_signup, name: "signup", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_userAcquisition, name: "userAcquisition", tables: ["user_acquisitions", "user_acquisition_touches"], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_userCounter, name: "userCounter", tables: ["user_counters", "user_daily_counters"], domainApiPaths: ["/api/userCounter"], settingPaths: [], cronPaths: ["/api/cron/user-daily-counter-prune"], dependsOn: [], anyOf: [] },
+  { ...rules_userGroups, name: "userGroups", tables: ["user_groups", "user_group_definitions", "user_group_members", "user_group_versions", "user_group_version_members"], domainApiPaths: ["/api/userGroup"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_userLineProfile, name: "userLineProfile", tables: ["user_line_profiles"], domainApiPaths: ["/api/userLineProfile"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_userXProfile, name: "userXProfile", tables: ["user_x_profiles"], domainApiPaths: ["/api/userXProfile"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [] },
   { ...rules_wallet, name: "wallet", tables: ["wallets", "wallet_lots", "wallet_histories"], domainApiPaths: ["/api/wallet", "/api/walletHistory"], settingPaths: [], cronPaths: ["/api/cron/wallet-expiration-notice", "/api/cron/wallet-expire-lots", "/api/cron/wallet-lots-prune"], dependsOn: [], anyOf: [] },
@@ -127,6 +129,7 @@ export const domains: GatedDomain[] = [
   { folder: "core/referralReward", tables: ["referral_rewards"], apiPaths: ["/api/referralReward"], features: ["referral"] },
   { folder: "core/userAcquisition", tables: ["user_acquisitions", "user_acquisition_touches"], apiPaths: [], features: ["userAcquisition"] },
   { folder: "core/userCounter", tables: ["user_counters", "user_daily_counters"], apiPaths: ["/api/userCounter"], features: ["userCounter"] },
+  { folder: "core/userGroup", tables: ["user_groups", "user_group_definitions", "user_group_members", "user_group_versions", "user_group_version_members"], apiPaths: ["/api/userGroup"], features: ["userGroups"] },
   { folder: "core/userLineProfile", tables: ["user_line_profiles"], apiPaths: ["/api/userLineProfile"], features: ["userLineProfile"] },
   { folder: "core/userXProfile", tables: ["user_x_profiles"], apiPaths: ["/api/userXProfile"], features: ["userXProfile"] },
   { folder: "core/wallet", tables: ["wallets", "wallet_lots"], apiPaths: ["/api/wallet"], features: ["wallet"] },

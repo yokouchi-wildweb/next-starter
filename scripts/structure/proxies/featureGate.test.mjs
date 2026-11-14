@@ -292,6 +292,7 @@ test("上流の規則の汎用 API の住所(導出の固定。domainEntry の�
     referral: ["/api/referral", "/api/referralReward"],
     sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
     userCounter: ["/api/userCounter"],
+    userGroups: ["/api/userGroup"],
     userLineProfile: ["/api/userLineProfile"],
     userXProfile: ["/api/userXProfile"],
     wallet: ["/api/wallet", "/api/walletHistory"],

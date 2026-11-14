@@ -502,3 +502,4 @@
 - id:20261114-100638-messaging-user-side | severity:breaking | checkpoint:messaging-user-side
 - id:20261114-105945-messaging-finish | severity:breaking | checkpoint:messaging-finish | fixes:20261114-100638-messaging-user-side
 - id:20261114-134752-messaging-send-fields | severity:breaking | checkpoint:messaging-send-fields
+- id:20261114-203349-user-group-foundation | severity:action-required | checkpoint:user-group-foundation
