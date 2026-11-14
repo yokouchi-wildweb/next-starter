@@ -38,6 +38,7 @@ export * from "@/features/core/taskRun/entities/drizzle";
 export * from "@/features/core/user/entities/drizzle";
 export * from "@/features/core/userAcquisition/entities/drizzle";
 export * from "@/features/core/userCounter/entities/drizzle";
+export * from "@/features/core/userGroup/entities/drizzle";
 export * from "@/features/core/userLineProfile/entities/drizzle";
 export * from "@/features/core/userLoginEvent/entities/drizzle";
 export * from "@/features/core/userProfile/entities/profiles/contributor/drizzle";

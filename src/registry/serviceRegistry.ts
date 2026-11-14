@@ -30,6 +30,7 @@ import { domainEntries as settingEntries } from "@/features/core/setting/service
 import { domainEntries as taskRunEntries } from "@/features/core/taskRun/services/server/domainEntry";
 import { domainEntries as userEntries } from "@/features/core/user/services/server/domainEntry";
 import { domainEntries as userCounterEntries } from "@/features/core/userCounter/services/server/domainEntry";
+import { domainEntries as userGroupEntries } from "@/features/core/userGroup/services/server/domainEntry";
 import { domainEntries as userLineProfileEntries } from "@/features/core/userLineProfile/services/server/domainEntry";
 import { domainEntries as userLoginEventEntries } from "@/features/core/userLoginEvent/services/server/domainEntry";
 import { domainEntries as userTagEntries } from "@/features/core/userTag/services/server/domainEntry";
@@ -62,6 +63,7 @@ export const serviceRegistry: DomainRegistry = {
   taskRun: taskRunEntries.taskRun,
   user: userEntries.user,
   userCounter: userCounterEntries.userCounter,
+  userGroup: userGroupEntries.userGroup,
   userLineProfile: userLineProfileEntries.userLineProfile,
   userLoginEvent: userLoginEventEntries.userLoginEvent,
   userTag: userTagEntries.userTag,

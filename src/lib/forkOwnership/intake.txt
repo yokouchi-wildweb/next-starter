@@ -221,6 +221,8 @@ add src/features/core/user/reservedNames/*.{ts,tsx}  # 受け口 reservedNames
 add src/features/core/user/reservedNames/*/**  # 受け口 reservedNames(フォルダ形)
 add src/features/core/userAcquisition/channels/*.{ts,tsx}  # 受け口 channels
 add src/features/core/userAcquisition/channels/*/**  # 受け口 channels(フォルダ形)
+add src/features/core/userGroup/criteria/*.{ts,tsx}  # 受け口 criteria
+add src/features/core/userGroup/criteria/*/**  # 受け口 criteria(フォルダ形)
 add src/features/core/userLineProfile/webhookHandlers/*.{ts,tsx}  # 受け口 webhookHandlers
 add src/features/core/userLineProfile/webhookHandlers/*/**  # 受け口 webhookHandlers(フォルダ形)
 add src/features/core/wallet/purchaseBonuses/*.{ts,tsx}  # 受け口 purchaseBonuses
