@@ -26,5 +26,6 @@ export type UserGroupCriterion<Args extends z.ZodTypeAny = z.ZodTypeAny> = {
   args: Args;
   fields: readonly FieldConfig[];
   weight: "cheap" | "heavy";
-  where: (args: z.infer<Args>, ctx: UserGroupCriterionContext) => SQL;
+  // メソッドの書き方(引数の型が項目ごとに違っても一覧 Record<string, UserGroupCriterion> に入る)
+  where(args: z.infer<Args>, ctx: UserGroupCriterionContext): SQL;
 };

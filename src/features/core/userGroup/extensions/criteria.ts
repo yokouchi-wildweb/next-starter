@@ -3,6 +3,20 @@
 
 import type { UserGroupCriterion } from "@/features/userGroup/types";
 
-const criteriaList: UserGroupCriterion[] = [];
+import { criterion as criteria_hasTag } from "@/features/core/userGroup/criteria/hasTag";
+import { criterion as criteria_inStaticGroup } from "@/features/core/userGroup/criteria/inStaticGroup";
+import { criterion as criteria_lastLoginPeriod } from "@/features/core/userGroup/criteria/lastLoginPeriod";
+import { criterion as criteria_role } from "@/features/core/userGroup/criteria/role";
+import { criterion as criteria_signupPeriod } from "@/features/core/userGroup/criteria/signupPeriod";
+import { criterion as criteria_status } from "@/features/core/userGroup/criteria/status";
+
+const criteriaList: UserGroupCriterion[] = [
+  criteria_hasTag,
+  criteria_inStaticGroup,
+  criteria_lastLoginPeriod,
+  criteria_role,
+  criteria_signupPeriod,
+  criteria_status,
+];
 export const criteria: Readonly<Record<string, UserGroupCriterion>> = Object.assign(Object.create(null), Object.fromEntries(criteriaList.map((item) => [String(item.key), item])));
 if (Object.keys(criteria).length !== criteriaList.length) throw new Error("criteria: key が重複している項目がある");

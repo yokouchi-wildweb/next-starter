@@ -2,6 +2,7 @@
 // ユーザーグループの公開の型(受け口の項目の型もここ。extensionPoints.ts の type が指す)
 
 export type { UserGroupCriterion, UserGroupCriterionContext } from "./criterion";
+export type { UserGroupCount, UserGroupEvaluation, UserGroupMemberPage, UserGroupTarget } from "./evaluation";
 export type {
   UserGroupDefinitionNode,
   UserGroupKind,
