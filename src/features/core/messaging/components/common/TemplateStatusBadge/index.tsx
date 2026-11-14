@@ -24,7 +24,7 @@ export type TemplateStatusBadgeProps = {
 };
 
 export function TemplateStatusBadge({ status, currentVersion, hasUnpublishedChanges, size = "sm" }: TemplateStatusBadgeProps) {
-  const display = TEMPLATE_STATUS_DISPLAY[status] ?? { label: status, variant: "muted" as Variant };
+  const display = TEMPLATE_STATUS_DISPLAY[status] ?? { label: "そのほかの状態", variant: "muted" as Variant };
   return (
     <>
       <SoftBadge variant={display.variant} size={size}>

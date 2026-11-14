@@ -20,6 +20,7 @@ import {
 const resolved = resolveMessageDefinition(
   defineMessage({
     key: "shop.notice",
+    label: "テストの連絡",
     category: "shop",
     vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
     adminEditable: ["email.subject", "email.paragraphs", "inApp.body"],

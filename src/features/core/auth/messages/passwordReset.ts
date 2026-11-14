@@ -9,6 +9,7 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.passwordReset",
+  label: "パスワードの再設定",
   category: "passwordReset",
   required: true,
   record: "meta",

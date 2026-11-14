@@ -9,6 +9,7 @@
 // - 画面の選択肢 templateOptions(使える経路・種類・変数の前から使える {{鍵}})
 // - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, published, archived}
 
+import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
@@ -40,13 +41,23 @@ export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
 };
 
-function toSummary(row: MessageTemplate): AdminTemplateSummary {
+/** 種類の表示名(受け口の label。無ければ null) */
+type CategoryLabelOf = (category: string) => string | null;
+
+/** 作るテンプレートの鍵(運営する人は打たない、D46)。tpl- + 英小文字・数字 10 字 */
+export function newTemplateKey(): string {
+  const bytes = randomBytes(10);
+  return `tpl-${Array.from(bytes, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
+}
+
+function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminTemplateSummary {
   return {
     id: row.id,
     key: row.key,
     name: row.name,
     description: row.description ?? null,
     category: row.category,
+    categoryLabel: categoryLabel(row.category),
     status: row.status,
     currentVersion: row.current_version ?? null,
     createdBy: row.created_by ?? null,
@@ -56,12 +67,13 @@ function toSummary(row: MessageTemplate): AdminTemplateSummary {
   };
 }
 
-function toVersion(row: MessageTemplateVersion): AdminTemplateVersion {
+function toVersion(row: MessageTemplateVersion, categoryLabel: CategoryLabelOf): AdminTemplateVersion {
   return {
     version: row.version,
     content: row.content as Record<string, unknown>,
     variables: row.variables,
     category: row.category,
+    categoryLabel: categoryLabel(row.category),
     editedBy: row.edited_by ?? null,
     createdAt: row.createdAt.toISOString(),
   };
@@ -95,12 +107,13 @@ function parseOr400<T>(result: { success: true; data: T } | { success: false }, 
 }
 
 export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
+  const categoryLabel: CategoryLabelOf = (category) => deps.check().categories[category]?.label ?? null;
   const actorId = () => deps.context()?.actorId ?? null;
 
   async function detailOf(row: MessageTemplate): Promise<AdminTemplateDetail> {
     const latest = await deps.store.latestVersion(row.id);
     return {
-      ...toSummary(row),
+      ...toSummary(row, categoryLabel),
       content: row.content as Record<string, unknown>,
       variables: row.variables,
       allowedKeys: templateAllowedKeys(deps.check(), row.variables),
@@ -130,7 +143,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { status, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
       const rows = await deps.store.list({ status: status ?? null, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      return { items: page.map(toSummary), nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null };
+      return { items: page.map((row) => toSummary(row, categoryLabel)), nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null };
     },
 
     async getTemplate(id: string): Promise<AdminTemplateDetail> {
@@ -140,19 +153,20 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
 
     /**
      * 下書きを作る。
-     * @throws DomainError(400) 入力・中身の検査 / (409) 同じ鍵がある
+     * 鍵はサーバーが作る(入力に key は無い。送ると 400)。
+     * @throws DomainError(400) 入力・中身の検査
      */
     async createTemplate(input: unknown): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
       const parsed = parseOr400(CreateMessageTemplateInputSchema.safeParse(input), "テンプレートの入力が正しくありません");
       const checked = checkTemplateFields(deps.check(), parsed);
-      if (await deps.store.findByKey(parsed.key)) {
-        throw new DomainError(`鍵 ${parsed.key} のテンプレートは既にあります`, { status: 409 });
-      }
+      // 鍵はサーバーが作る(運営する人は打たない、D46)。重なれば作り直す(10 字の 36 進なので実際にはまず重ならない)
+      let key = newTemplateKey();
+      for (let attempt = 0; (await deps.store.findByKey(key)) && attempt < 5; attempt += 1) key = newTemplateKey();
       const actor = actorId();
       const row = await deps.store.transaction(async (tx) => {
         const inserted = await deps.store.insert(tx, {
-          key: parsed.key,
+          key,
           name: parsed.name,
           description: parsed.description ?? null,
           category: parsed.category,
@@ -260,7 +274,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     async listTemplateVersions(id: string): Promise<AdminTemplateVersion[]> {
       await assertAdminActor(deps);
       await requireRow(id);
-      return (await deps.store.listVersions(id)).map(toVersion);
+      return (await deps.store.listVersions(id)).map((row) => toVersion(row, categoryLabel));
     },
 
     /** 版 1 つ */
@@ -269,7 +283,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       if (!Number.isInteger(version) || version < 1) throw new DomainError("版の番号が正しくありません", { status: 400 });
       const row = await deps.store.findVersion(id, version);
       if (!row) throw new DomainError("その版はありません", { status: 404 });
-      return toVersion(row);
+      return toVersion(row, categoryLabel);
     },
 
     /** 画面の選択肢: 使える経路・種類・変数の前から使える {{鍵}}(fork の経路・種類も受け口から入る) */

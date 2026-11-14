@@ -47,7 +47,8 @@ function tree() {
   return root;
 }
 
-const run = (root: string, ...args: string[]) => runMessageScaffold(root, args);
+/** 名前(--label、必須)は既定で付ける。名前の無い場合は runMessageScaffold を直に呼ぶ */
+const run = (root: string, ...args: string[]) => runMessageScaffold(root, args.length > 1 ? [...args, "--label", "連絡の名前"] : args);
 
 /** 書いた定義を読み込んで検査する(@/lib/messaging は本物) */
 async function problemsOf(root: string, path: string, channels: Record<string, z.ZodTypeAny> = UPSTREAM_CHANNEL_FIELDS) {
@@ -83,6 +84,7 @@ test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない
   const definition = readFileSync(join(root, result.written[0]), "utf8");
   assert.match(definition, /key: "shop\.orderShipped"/);
   assert.match(definition, /category: "orderShipped"/);
+  assert.match(definition, /label: "連絡の名前"/);
   assert.doesNotMatch(definition, /^\s*(kind|defaultChannels):/m);
   assert.match(definition, /種別 transactional・経路 email \/ inApp/);
   assert.match(definition, /secretVar/);
@@ -130,6 +132,18 @@ test("core のドメインは --core の時だけ書く", () => {
   assert.ok(existsSync(join(root, "src/features/core/wallet/messages/bonusNotice.ts")));
 });
 
+test("exit 2: --label が無い・値が無い(管理画面の連絡の名前は必須)", () => {
+  const root = tree();
+  const missing = runMessageScaffold(root, ["shop", "hello", "--category", "orderShipped"]);
+  assert.equal(missing.code, 2);
+  assert.match(missing.lines[0], /--label が要る/);
+  const empty = runMessageScaffold(root, ["shop", "hello", "--category", "orderShipped", "--label"]);
+  assert.equal(empty.code, 2);
+  assert.match(empty.lines[0], /--label に値/);
+  const noCategoryValue = runMessageScaffold(root, ["shop", "hello", "--category"]);
+  assert.match(noCategoryValue.lines[0], /--category に値/);
+});
+
 test("exit 2 と理由(何も書かない)", () => {
   const root = tree();
   const cases: [string[], RegExp][] = [
@@ -142,7 +156,6 @@ test("exit 2 と理由(何も書かない)", () => {
     [["shop", "hello.world", "--category", "orderShipped"], /camelCase/],
     [["shop", "hello"], /--category が要る.*1 つの出来事/],
     [["shop", "hello", "--category", "account"], /category account は categories の受け口に無い.*ドメイン・機能の単位/],
-    [["shop", "hello", "--category"], /--category に値/],
   ];
   for (const [args, pattern] of cases) {
     const result = run(root, ...args);

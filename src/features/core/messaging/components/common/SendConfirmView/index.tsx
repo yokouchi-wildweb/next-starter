@@ -11,6 +11,8 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 
+import { DISPATCH_STATUS_DISPLAY } from "../DispatchStatusBadge";
+
 export type SendConfirmViewProps = {
   /** 見込み(bulk は null で、選んだ記録の数を出す) */
   estimate: { count: number; capped: boolean } | null;
@@ -63,7 +65,7 @@ export function SendResultView({ status, queuedCount, dispatchHref, afterSend, r
   return (
     <Stack space={3} data-slot="send-result-view">
       <Para size="sm" className="my-0">
-        {status === "scheduled" ? "予約しました" : "送信を受け付けました"}(状態: {status}
+        {status === "scheduled" ? "予約しました" : "送信を受け付けました"}(状態: {DISPATCH_STATUS_DISPLAY[status]?.label ?? "受け付け済み"}
         {queuedCount > 0 ? ` / 順に送る配達 ${queuedCount} 件` : ""})
       </Para>
       {afterSend ? (

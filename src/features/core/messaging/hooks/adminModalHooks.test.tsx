@@ -330,7 +330,6 @@ test("useMessageTemplateForm: onCreated に作った id、closeConfirm は書き
   const f = () => view.value();
   assert.equal(f().closeConfirm.enabled, false);
   await act(async () => {
-    f().fields.setKey("autumn");
     f().fields.setName("秋");
     f().fields.setChannelContent("email", { subject: "件名" });
   });
@@ -387,7 +386,6 @@ test("useMessageTemplateForm: 作る・保存・公開・取り下げの後に o
   const onChanged = (template: { id: string }, action: string) => void changed.push(`${action}:${template.id}`);
   const create = await mount(() => hooks.useMessageTemplateForm({ template: null, options: OPTIONS as never, onChanged }), {});
   await act(async () => {
-    create.value().fields.setKey("autumn");
     create.value().fields.setName("秋");
     create.value().fields.setChannelContent("email", { subject: "件名" });
   });

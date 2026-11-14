@@ -31,6 +31,7 @@ import { useGate } from "@/featureGate/client";
 import { ADMIN_CHANNEL_FILTER_OPTIONS, messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
+import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { DispatchStatusBadge } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { useAdminDispatchDetail } from "@/features/core/messaging/hooks/useAdminDispatchDetail";
@@ -180,7 +181,7 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
         {dispatch.sourceLabel ? <Field label="送り元" value={dispatch.sourceLabel} /> : null}
         <Field label="経路" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
         <Field label="宛先の数" value={`${dispatch.recipientCount} 名`} />
-        <Field label="送った人" value={dispatch.actor.id ? `${dispatch.actor.type ?? ""} ${dispatch.actor.id}` : (dispatch.actor.type ?? "-")} />
+        <Field label="送った人" value={dispatch.actorName ?? (dispatch.actor.id ? "(名前の無い利用者)" : "システム")} />
         <Field label="作った日時" value={formatAdminDateTime(dispatch.createdAt)} />
         {dispatch.scheduledAt ? <Field label="予約の日時" value={formatAdminDateTime(dispatch.scheduledAt)} /> : null}
         <Field label="終えた日時" value={formatAdminDateTime(dispatch.completedAt)} />
@@ -209,16 +210,27 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
 
       {body.length > 0 ? (
         <Stack space={2}>
-          {body.map(([channel, value]) => (
-            <Stack key={channel} space={1}>
-              <Span size="sm" tone="muted">
-                本文({messageChannelLabel(channel)})
-              </Span>
-              <Para size="sm" className="my-0 whitespace-pre-wrap rounded bg-muted/40 p-2">
-                {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-              </Para>
-            </Stack>
-          ))}
+          <Span size="sm" tone="muted">
+            本文
+          </Span>
+          {/* 経路ごとの欄で見せる(生の JSON は出さない、D46)。前の送る口の回の文だけの本文はそのまま */}
+          {body
+            .filter(([, value]) => typeof value === "string")
+            .map(([channel, value]) => (
+              <Stack key={channel} space={1}>
+                <Span size="sm" tone="muted">
+                  {messageChannelLabel(channel)}
+                </Span>
+                <Para size="sm" className="my-0 whitespace-pre-wrap rounded bg-muted/40 p-2">
+                  {value as string}
+                </Para>
+              </Stack>
+            ))}
+          <MessagePreview
+            channels={body
+              .filter(([, value]) => typeof value !== "string")
+              .map(([channel, value]) => ({ key: channel, label: messageChannelLabel(channel), fields: value }))}
+          />
         </Stack>
       ) : (
         <Span size="sm" tone="muted">

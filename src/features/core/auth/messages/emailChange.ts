@@ -9,6 +9,7 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.emailChange",
+  label: "メールアドレスの変更の確認",
   category: "emailChange",
   required: true,
   record: "meta",

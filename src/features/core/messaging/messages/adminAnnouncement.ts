@@ -12,6 +12,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "messaging.adminAnnouncement",
+  label: "管理者が書いたお知らせ",
   category: "announcement",
   authored: true,
   vars: z.object({}),

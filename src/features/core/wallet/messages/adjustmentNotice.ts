@@ -11,6 +11,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "wallet.adjustmentNotice",
+  label: "残高の変更の知らせ",
   category: "walletAdjusted",
   vars: z.object({
     /** 通貨名(currency の label) */

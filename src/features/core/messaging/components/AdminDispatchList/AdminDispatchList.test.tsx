@@ -56,6 +56,7 @@ const DISPATCH = {
   recipientCount: 2,
   channelCounts: { email: { targeted: 1, sent: 1, failed: 0, suppressed: 0, skipped_no_address: 0, skipped_throttled: 0 } },
   actor: { id: "a1", type: "admin" },
+  actorName: "管理者 A" as string | null,
   isTest: false,
   createdAt: "2026-11-01T00:00:00.000Z",
   completedAt: null,
@@ -110,13 +111,14 @@ mock.module("@/features/core/messaging/hooks/useAdminDispatchCategories", {
   },
 });
 let detail: Record<string, unknown> = {};
+let deliveryItems: Record<string, unknown>[] = [];
 mock.module("@/features/core/messaging/hooks/useAdminDispatchDetail", {
   namedExports: {
     useAdminDispatchDetail: () => ({
       dispatch: detail,
       error: null,
       isLoading: false,
-      deliveries: { items: [], isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} },
+      deliveries: { items: deliveryItems, isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} },
       deliveryFilters: { status: "", setStatus: () => {}, channel: "", setChannel: () => {} },
       includeUnknown: false,
       setIncludeUnknown: () => {},
@@ -144,6 +146,7 @@ beforeEach(() => {
   kind = "";
   setCalls.length = 0;
   detail = { ...DISPATCH };
+  deliveryItems = [];
 });
 
 const render = async (element: ReturnType<typeof createElement>) => {
@@ -190,4 +193,36 @@ test("詳細: 種別・カテゴリーの表示名、送り元は表示名があ
   assert.match(labeled.container.textContent ?? "", /送り元管理者の一括送信/);
   assert.match(labeled.container.textContent ?? "", /今は無いカテゴリー/);
   await labeled.unmount();
+});
+
+test("詳細: 送った人は名前、本文は経路の欄(生の JSON なし)、配達は利用者の名前・表に無い符号は決まった文", async () => {
+  const UID = "60ce3c85-1111-4111-8111-111111111111";
+  detail = {
+    ...DISPATCH,
+    record: "vars",
+    body: { email: { subject: "春のセール", paragraphs: ["本文の段落"] }, inApp: { title: "春", body: "お知らせの本文" } },
+  };
+  deliveryItems = [
+    { id: "v1", recipientKey: `user:${UID}`, userId: UID, userName: "山田", address: UID, channel: "inApp", status: "failed", reason: "weird_reason", errorCode: "http_403", attempts: 1, createdAt: "2026-11-01T00:00:00.000Z", failedAt: null, deliveredAt: null, sentAt: null, openedAt: null },
+    { id: "v2", recipientKey: "user:x", userId: "x", userName: null, address: "a@example.test", channel: "email", status: "sent", reason: null, errorCode: null, attempts: 1, createdAt: "2026-11-01T00:00:00.000Z", failedAt: null, deliveredAt: null, sentAt: null, openedAt: null },
+  ];
+  const view = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
+  const text = view.container.textContent ?? "";
+  assert.match(text, /送った人管理者 A/);
+  assert.match(text, /本文の段落/);
+  assert.match(text, /お知らせの本文/);
+  assert.doesNotMatch(text, /\{"/, "生の JSON は出さない");
+  assert.match(text, /利用者 山田/);
+  assert.match(text, /利用者 \(名前の無い利用者\)/);
+  assert.match(text, /a@example\.test/, "メールの宛先は出す");
+  assert.doesNotMatch(text, new RegExp(UID), "利用者の id・お知らせの宛先は出さない");
+  assert.match(text, /送れませんでした\(理由は記録にあります\)/);
+  assert.doesNotMatch(text, /http_403|weird_reason/);
+  assert.match(text, /そのほかの理由/);
+  await view.unmount();
+
+  detail = { ...DISPATCH, actorName: null, actor: { id: null, type: "system" } };
+  const system = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
+  assert.match(system.container.textContent ?? "", /送った人システム/);
+  await system.unmount();
 });

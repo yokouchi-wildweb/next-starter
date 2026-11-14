@@ -10,6 +10,7 @@ import { defineMessage, secretVar } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.verification",
+  label: "会員登録のメールアドレスの確認",
   category: "emailVerification",
   required: true,
   record: "meta",

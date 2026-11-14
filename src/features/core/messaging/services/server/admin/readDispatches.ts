@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
-import { MESSAGE_KINDS, type MessageCategory, type MessageKind, type MessageSource } from "@/lib/messaging";
+import { MESSAGE_KINDS, type MessageCategory, type MessageKind } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../entities/schema";
@@ -64,6 +64,8 @@ export type AdminDispatchStore = {
   findDispatch: (id: string) => Promise<MessageDispatch | null>;
   /** 回の配達の利用者 id(重なりなし、limit まで) */
   listDispatchUserIds: (dispatchId: string, limit: number) => Promise<string[]>;
+  /** 利用者の名前(users.name。id → 名前、名前の無い・消えた利用者は入らない) */
+  userNames: (userIds: readonly string[]) => Promise<Map<string, string>>;
   listDeliveries: (
     dispatchId: string,
     filter: { status?: string; channel?: string },
@@ -74,8 +76,8 @@ export type AdminDispatchStore = {
 
 export type AdminReadDeps = AdminCheckDeps & {
   dispatchStore: AdminDispatchStore;
-  /** 送り元の受け口(表示名。回の詳細は鍵を見せず表示名だけ、D46) */
-  sources: Readonly<Record<string, MessageSource>>;
+  /** 送り元の表示名(受け口 sources → 同じ鍵の連絡の名前 → 一括の対象の「…の一括送信」、無ければ null。回の詳細は鍵を見せない、D46) */
+  sourceLabel: (source: string) => Promise<string | null>;
   /** 回の操作の判定に要る値(連絡の性質と失敗の数) */
   operationInputs: (row: MessageDispatch) => Promise<{ policy: DispatchPolicy; counts: { failed: number; unknown: number } }>;
 };
@@ -107,7 +109,16 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   const row = await deps.dispatchStore.findDispatch(id);
   if (!row) throw new DomainError("送信記録が見つかりません", { status: 404 });
   const { policy, counts } = await deps.operationInputs(row);
-  return toDispatchDetail(row, operationFlags(row, policy, counts), await audienceUserIdsOf(deps, row), deps.sources[row.source]?.label ?? null);
+  const [audienceUserIds, sourceLabel, names] = await Promise.all([
+    audienceUserIdsOf(deps, row),
+    deps.sourceLabel(row.source),
+    row.actor_id ? deps.dispatchStore.userNames([row.actor_id]) : Promise.resolve(new Map<string, string>()),
+  ]);
+  return toDispatchDetail(row, operationFlags(row, policy, counts), {
+    audienceUserIds,
+    sourceLabel,
+    actorName: row.actor_id ? (names.get(row.actor_id) ?? null) : null,
+  });
 }
 
 /** 回の画面の絞りの選択肢: カテゴリー(受け口の全部、fork の物も)の鍵・表示名・種別。画面は種別ごとに並べる */
@@ -154,5 +165,8 @@ export async function listDeliveries(
   const dispatch = await deps.dispatchStore.findDispatch(dispatchId);
   if (!dispatch) throw new DomainError("送信記録が見つかりません", { status: 404 });
   const rows = await deps.dispatchStore.listDeliveries(dispatchId, filter, cursor ? decodeCursor(cursor) : null, limit + 1);
-  return page(rows, limit, (row) => toDeliveryRow(row, dispatch.record));
+  // 利用者の名前は 1 ページに 1 回だけ引く(id は見せない、D46)
+  const ids = [...new Set(rows.slice(0, limit).flatMap((row) => (row.user_id ? [row.user_id] : [])))];
+  const names = ids.length > 0 ? await deps.dispatchStore.userNames(ids) : new Map<string, string>();
+  return page(rows, limit, (row) => toDeliveryRow(row, dispatch.record, row.user_id ? (names.get(row.user_id) ?? null) : null));
 }

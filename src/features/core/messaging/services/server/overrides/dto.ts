@@ -5,9 +5,13 @@
 /** 編集できる連絡の一覧の 1 行 */
 export type AdminOverrideMessageSummary = {
   key: string;
+  /** 連絡の名前(定義の label、fork の上書きの後。画面は鍵でなくこれを出す、D46) */
+  label: string;
   kind: string;
   /** 種類(取引の連絡は無い = null) */
   category: string | null;
+  /** 種類の表示名(受け口の label。受け口に無ければ null) */
+  categoryLabel: string | null;
   /** 直せる欄の数 */
   editableCount: number;
   /** 直した欄の数(孤立も含む) */
@@ -43,9 +47,13 @@ export type AdminOverrideField = {
 
 export type AdminOverrideMessageDetail = {
   key: string;
+  /** 連絡の名前(定義の label、fork の上書きの後。画面は鍵でなくこれを出す、D46) */
+  label: string;
   kind: string;
   /** 種類(取引の連絡は無い = null) */
   category: string | null;
+  /** 種類の表示名(受け口の label。受け口に無ければ null) */
+  categoryLabel: string | null;
   /** 使ってよい {{鍵}}(vars は秘密を除く・共通の文脈・provides) */
   allowedKeys: string[];
   fields: AdminOverrideField[];

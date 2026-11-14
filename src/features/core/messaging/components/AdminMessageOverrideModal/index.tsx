@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageOverrideModal/index.tsx
 // セクションコンテナ(管理: 1 連絡の文言の上書きを直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・messageKey)。
-// 中身 = 鍵・種別 / 種類・使える {{鍵}} の案内 + 欄ごとの編集(保存・既定に戻すは欄 1 つずつ。部品 OverrideFieldEditor)。
+// 中身 = 連絡の名前・種別 / カテゴリーの表示名(連絡の鍵は見せない、D46)・使える {{鍵}} の案内 + 欄ごとの編集(保存・既定に戻すは欄 1 つずつ。部品 OverrideFieldEditor)。
 // 流れは hook useMessageOverrideEditor。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
 // 保存していない欄があるまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard。開き直すたびに下書きを捨てる
 
@@ -15,6 +15,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
 import { AllowedKeysHint } from "@/features/core/messaging/components/common/AllowedKeysHint";
+import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
 import { useMessageOverrideEditor } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
 import { useModalSession } from "@/features/core/messaging/hooks/useModalSession";
@@ -42,7 +43,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={`文言を直す: ${messageKey}`}
+      title={detail ? `文言を直す: ${detail.label}` : "文言を直す"}
       maxWidth={MODAL_WIDTH}
       confirmOnClose={editor.closeConfirm}
     >
@@ -58,11 +59,11 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
         <Stack space={5}>
           <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4">
             <Flex gap="sm" wrap="wrap">
-              <Span size="sm" className="font-mono">
-                {detail.key}
+              <Span size="sm" weight="semiBold">
+                {detail.label}
               </Span>
               <Span size="sm" tone="muted">
-                {detail.kind} / {detail.category}
+                {dispatchKindLabel(detail.kind) ?? "-"} / {detail.categoryLabel ?? "-"}
               </Span>
             </Flex>
             <Para size="sm" tone="muted" className="my-0">

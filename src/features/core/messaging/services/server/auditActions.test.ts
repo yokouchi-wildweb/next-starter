@@ -18,7 +18,8 @@ const ACTION_LITERAL = /["'`](messaging\.[A-Za-z0-9_]+\.[A-Za-z0-9_]+)["'`]/g;
 function codeFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : codeFiles(path);
+    // sources/ の項目の鍵(送り元 messaging.adminSend.test など)は監査の action でない
+    if (entry.isDirectory()) return entry.name === "node_modules" || entry.name === "sources" ? [] : codeFiles(path);
     return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : [];
   });
 }

@@ -22,6 +22,7 @@ const fields = { test: z.object({ title: z.string(), body: z.string().optional()
 const defineTestMessage = createDefineMessage<typeof fields>();
 const notice = defineTestMessage({
   key: "shop.notice",
+  label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
   content: { test: { title: "{{item}}" } },

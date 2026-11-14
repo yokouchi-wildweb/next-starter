@@ -53,6 +53,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   audienceUserIds: string[] | null;
   /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
   sourceLabel: string | null;
+  /** 送った人の名前(利用者なら users.name、system なら null。画面は id でなくこれを出す、D46) */
+  actorName: string | null;
   /** 本文(記録の段が vars / full のときだけ。経路ごとの欄) */
   body: Record<string, unknown> | null;
   /** 共通の vars の写し(記録の段が vars / full のときだけ) */
@@ -65,6 +67,8 @@ export type AdminDeliveryRow = {
   id: string;
   recipientKey: string;
   userId: string | null;
+  /** 利用者の名前(users.name。無い・消えた利用者は null。画面は id でなくこれを出す、D46) */
+  userName: string | null;
   address: string | null;
   channel: string;
   status: string;
@@ -130,9 +134,9 @@ export function keepsDispatchBody(record: MessageRecord | null): boolean {
 export function toDispatchDetail(
   row: MessageDispatch,
   operations: DispatchOperationFlags,
-  audienceUserIds: string[] | null = null,
-  sourceLabel: string | null = null,
+  extras: { audienceUserIds?: string[] | null; sourceLabel?: string | null; actorName?: string | null } = {},
 ): AdminDispatchDetail {
+  const { audienceUserIds = null, sourceLabel = null, actorName = null } = extras;
   const keep = keepsDispatchBody(row.record);
   return {
     ...toDispatchSummary(row),
@@ -147,6 +151,7 @@ export function toDispatchDetail(
     content: (row.authored_content as Record<string, unknown> | null) ?? null,
     audienceUserIds,
     sourceLabel,
+    actorName,
     // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
@@ -163,11 +168,12 @@ export function deliveryErrorCode(row: Pick<MessageDelivery, "status" | "last_er
   return ERROR_CODE.test(code) ? code : null;
 }
 
-export function toDeliveryRow(row: MessageDelivery, record: MessageRecord | null): AdminDeliveryRow {
+export function toDeliveryRow(row: MessageDelivery, record: MessageRecord | null, userName: string | null = null): AdminDeliveryRow {
   return {
     id: row.id,
     recipientKey: row.recipient_key,
     userId: row.user_id,
+    userName,
     address: row.address,
     channel: row.channel,
     status: row.status,

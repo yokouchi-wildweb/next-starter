@@ -9,6 +9,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "user.registrationComplete",
+  label: "会員登録の完了",
   category: "registrationComplete",
   vars: z.object({
     /** 表示名(無ければ空) */

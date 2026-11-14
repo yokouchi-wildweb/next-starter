@@ -158,14 +158,13 @@ test("useMessageTemplates: 状態を渡し、cursor で続きを取る", async (
   await view.unmount();
 });
 
-test("useMessageTemplateForm(作る): 鍵つきで POST し、作った id を返す。知らない鍵を数える", async () => {
+test("useMessageTemplateForm(作る): 鍵なしで POST し(鍵はサーバーが作る)、作った id を返す。知らない鍵を数える", async () => {
   const view = await mount(() => hooks.useMessageTemplateForm({ template: null, options: OPTIONS }));
   const form = () => view.value();
   assert.equal(form().mode, "create");
   assert.equal(form().fields.category, "marketing");
   assert.equal(form().dirty, false);
   await act(async () => {
-    form().fields.setKey("spring");
     form().fields.setName("春");
   });
   // 経路は選ばない: 文言を書いた経路がテンプレートの経路(D85)
@@ -185,7 +184,6 @@ test("useMessageTemplateForm(作る): 鍵つきで POST し、作った id を�
   });
   assert.equal(calls[0][0], "create");
   assert.deepEqual(calls[0][1], {
-    key: "spring",
     name: "春",
     description: null,
     category: "marketing",

@@ -19,6 +19,8 @@ import type { MessageDispatch } from "../../../entities/model";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
 import { audiences } from "../../../extensions/audiences";
 import { bulkSendTargets } from "../../../extensions/bulkSendTargets";
+import { messageRegistry } from "@/registry/messageRegistry";
+
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { sources } from "../../../extensions/sources";
@@ -65,6 +67,7 @@ import {
   type ListDeliveriesQuery,
   type ListDispatchesQuery,
 } from "./readDispatches";
+import { sourceLabelOf } from "./sourceLabels";
 import { drizzleAdminDispatchStore } from "./store";
 
 const adminCheck: AdminCheckDeps = {
@@ -133,10 +136,26 @@ export const adminRetract = (dispatchId: string) => adminRetractWith(operationsD
 export const adminResendFailed = (dispatchId: string, input?: unknown) => adminResendFailedWith(operationsDeps, dispatchId, input);
 
 /** 回の読む口の部品(1 件は操作ができるかも返す) */
+/** 連絡の名前(定義の label、上書きの後)。鍵ごとに 1 度だけ読む */
+const messageLabels = new Map<string, Promise<string | null>>();
+function messageLabel(messageKey: string): Promise<string | null> {
+  const entry = messageRegistry[messageKey];
+  if (!entry) return Promise.resolve(null);
+  let label = messageLabels.get(messageKey);
+  if (!label) {
+    label = (async () => {
+      const [{ message }, override] = await Promise.all([entry.definition(), entry.override ? entry.override() : Promise.resolve(null)]);
+      return override?.messageOverride?.label ?? message.label ?? null;
+    })().catch(() => null);
+    messageLabels.set(messageKey, label);
+  }
+  return label;
+}
+
 const readDeps = {
   ...adminCheck,
   dispatchStore: drizzleAdminDispatchStore,
-  sources,
+  sourceLabel: (source: string) => sourceLabelOf({ sources, messageLabel, bulkTargets: bulkSendTargets }, source),
   async operationInputs(row: MessageDispatch) {
     const [resolved, counts] = await Promise.all([definitionOf(row), drizzleMessageOperationsStore.countFailed(null, row.id)]);
     return { policy: policyOf(resolved, row), counts };

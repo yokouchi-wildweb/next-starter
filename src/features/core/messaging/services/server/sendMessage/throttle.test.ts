@@ -22,6 +22,7 @@ const define = createDefineMessage<typeof fields>();
 
 const chat = define({
   key: "chat.newMessage",
+  label: "テストの連絡",
   category: "chat",
   vars: z.object({ roomId: z.string(), text: z.string() }),
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },

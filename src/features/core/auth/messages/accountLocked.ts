@@ -11,6 +11,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.accountLocked",
+  label: "アカウントのロック",
   category: "accountLocked",
   record: "meta",
   vars: z.object({

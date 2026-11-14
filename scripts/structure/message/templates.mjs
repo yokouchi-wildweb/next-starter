@@ -18,8 +18,8 @@ const CHANNEL_CONTENT = {
   line: ["    line: {", '      text: "{{summary}}",', "    },"],
 };
 
-/** @param {{ path: string, key: string, category: string, kind: string | null, channels: string[] }} params 種類の種別・経路(書かずに注記だけ) */
-export function definitionTemplate({ path, key, category, kind, channels }) {
+/** @param {{ path: string, key: string, label: string, category: string, kind: string | null, channels: string[] }} params 種類の種別・経路(書かずに注記だけ) */
+export function definitionTemplate({ path, key, label, category, kind, channels }) {
   const content = channels.flatMap((channel) =>
     CHANNEL_CONTENT[channel] ?? [`    // ${channel}: 経路 ${channel} の欄(経路の fields の zod)に合わせて書く`, `    ${channel}: {},`],
   );
@@ -38,6 +38,7 @@ export function definitionTemplate({ path, key, category, kind, channels }) {
     "",
     "export const message = defineMessage({",
     `  key: "${key}",`,
+    `  label: ${JSON.stringify(label)},`,
     `  category: "${category}",`,
     "  vars: z.object({",
     "    /** 例の値(この連絡が受ける値に置き換える) */",

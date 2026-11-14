@@ -54,6 +54,7 @@ import { defineMessage } from "@/lib/messaging";
 
 export const message = defineMessage({
   key: "auth.verification",
+  label: "テストの連絡",
   category: ${category.startsWith("@") ? category.slice(1) : `"${category}"`},
   vars: z.object({ verificationUrl: z.string() }),
   ${props}
@@ -88,6 +89,13 @@ test("項目 0・定義だけ・正しい上書きは通る", () => {
   );
 });
 
+test("label: 全部の定義に必須(管理画面の連絡の名前、D46)・字面の空でない文字列。上書きでは変えられる", () => {
+  expectOne({ [`${M}a.ts`]: definition("").replace('  label: "テストの連絡",\n', "") }, `${M}a.ts`, /label\(管理画面に出す連絡の名前/);
+  expectOne({ [`${M}a.ts`]: definition("").replace('label: "テストの連絡"', 'label: ""') }, `${M}a.ts`, /label\(管理画面に出す連絡の名前/);
+  expectOne({ [`${M}a.ts`]: definition("").replace('label: "テストの連絡"', "label: LABEL") }, `${M}a.ts`, /label は管理画面の連絡の名前/);
+  assert.deepEqual(problemsOf({ [`${M}welcome.ts`]: OPTIONAL, [`${M}welcome.override.ts`]: override('label: "ようこそ"') }), []);
+});
+
 test("category: 全部の定義に必須・受け口の鍵・文面は種類の経路の分だけ。上書きでは変えられない", () => {
   expectOne({ [`${M}a.ts`]: definition("", "nope") }, `${M}a.ts`, /category "nope" は categories の受け口に無い\(account \/ alert \/ inAppOnly \/ notice\)/);
   expectOne({ [`${M}a.ts`]: definition("").replace('  category: "account",\n', "") }, `${M}a.ts`, /category\(.*\)を書く/);
@@ -107,7 +115,7 @@ test("authored の定義: 文面の経路を見ない・上書きのファイル
   const authored = `import { z } from "zod";
 import { defineMessage } from "@/lib/messaging";
 
-export const message = defineMessage({ key: "messaging.adminNotice", category: "notice", authored: true, vars: z.object({}), content: {} });
+export const message = defineMessage({ key: "messaging.adminNotice", label: "テストの連絡", category: "notice", authored: true, vars: z.object({}), content: {} });
 `;
   const A = "src/features/core/messaging/messages/";
   assert.deepEqual(problemsOf({ [`${A}adminNotice.ts`]: authored }), []);

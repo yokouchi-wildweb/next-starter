@@ -28,6 +28,7 @@ test("誤りを見つける: 鍵の食い違い・上書きの誤り・EmailView
   const defineTestMessage = createDefineMessage<typeof fields>();
   const good = defineTestMessage({
     key: "shop.good",
+    label: "テストの連絡",
     category: "account",
     vars: z.object({ item: z.string() }),
     content: { test: { title: "{{item}}" } },
@@ -58,9 +59,9 @@ test("category: 受け口に無い鍵は誤り、文面は種類の経路の分�
   const defineTestMessage = createDefineMessage<typeof fields>();
   const base = { vars: z.object({ item: z.string() }), content: { test: { title: "{{item}}" } } };
   const entries = {
-    "shop.news": defineTestMessage({ ...base, key: "shop.news", category: "news" }),
-    "shop.unknown": defineTestMessage({ ...base, key: "shop.unknown", category: "nope" }),
-    "shop.short": defineTestMessage({ ...base, key: "shop.short", category: "newsInApp" }),
+    "shop.news": defineTestMessage({ ...base, key: "shop.news", label: "テストの連絡", category: "news" }),
+    "shop.unknown": defineTestMessage({ ...base, key: "shop.unknown", label: "テストの連絡", category: "nope" }),
+    "shop.short": defineTestMessage({ ...base, key: "shop.short", label: "テストの連絡", category: "newsInApp" }),
   };
   const registry: MessageRegistry = Object.fromEntries(
     Object.entries(entries).map(([key, message]) => [key, { key: message.key, definition: async () => ({ message }) }]),

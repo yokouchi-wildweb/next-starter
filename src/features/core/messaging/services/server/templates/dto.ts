@@ -11,6 +11,8 @@ export type AdminTemplateSummary = {
   name: string;
   description: string | null;
   category: string;
+  /** 種類の表示名(受け口の label。受け口に無ければ null。画面は鍵でなくこれを出す、D46) */
+  categoryLabel: string | null;
   status: MessageTemplateStatus;
   /** 最新の公開の版(null = まだ公開していない) */
   currentVersion: number | null;
@@ -36,6 +38,8 @@ export type AdminTemplateVersion = {
   content: Record<string, unknown>;
   variables: MessageTemplateVariable[];
   category: string;
+  /** 種類の表示名(受け口の label。無ければ null) */
+  categoryLabel: string | null;
   editedBy: string | null;
   createdAt: string;
 };

@@ -24,6 +24,7 @@ const fields = { test: z.object({ title: z.string(), body: z.string().optional()
 const defineTestMessage = createDefineMessage<typeof fields>();
 const notice = defineTestMessage({
   key: "shop.notice",
+  label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
   content: { test: { title: "{{item}}", body: "{{recipientName}} {{item}}" } },
@@ -320,6 +321,7 @@ const defineWithInApp = createDefineMessage<typeof inAppFields>();
 function setupInApp(inAppBody: string) {
   const news = defineWithInApp({
     key: "shop.news",
+    label: "テストの連絡",
     category: "newsInApp",
     vars: z.object({ item: z.string() }),
     content: {
