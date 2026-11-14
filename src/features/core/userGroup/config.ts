@@ -17,11 +17,19 @@ export type UserGroupConfig = {
    * - maxDepth: 深さ(根 = 1)。管理画面は 2 段まで組め、それより深い定義は読むだけ
    */
   definition: { maxNodes: number; maxDepth: number };
+  /**
+   * 評価の口(count・isMember・listMemberIds・evaluate)
+   * - timeoutMs: 数え・見込み・動的の列挙の 1 文の時間の上限(statement_timeout)。超えると 503(条件を絞るか定期計算に)
+   * - listLimitMax: listMemberIds の 1 回の件数の上限
+   * - sampleLimit: evaluate が返す試しの一覧の件数
+   */
+  evaluation: { timeoutMs: number; listLimitMax: number; sampleLimit: number };
 };
 
 const defaults: UserGroupConfig = {
   memberLimit: 100_000,
   definition: { maxNodes: 50, maxDepth: 6 },
+  evaluation: { timeoutMs: 10_000, listLimitMax: 1000, sampleLimit: 20 },
 };
 
 export const userGroupConfigDef = defineConfig(defaults, { label: "userGroup" });

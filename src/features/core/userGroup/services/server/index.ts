@@ -8,3 +8,10 @@ export {
   type UserGroupDefinitionLimits,
 } from "./definition/checkDefinition";
 export { criteria as userGroupCriteria } from "../../extensions/criteria";
+export {
+  compileUserGroupDefinition,
+  createUserGroupEvaluator,
+  userGroupEvaluator,
+  type UserGroupEvaluator,
+  type UserGroupEvaluatorDeps,
+} from "./evaluation";

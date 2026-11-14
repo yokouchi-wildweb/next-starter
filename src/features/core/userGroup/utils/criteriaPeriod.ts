@@ -1,0 +1,56 @@
+// src/features/core/userGroup/utils/criteriaPeriod.ts
+// 期間の部品(登録の時期・最後のログインの時期)の共通の部分: 引数の zod と、列への述語。
+// Date は drizzle の演算子に渡す(raw の sql に JS の Date を埋めない、CLAUDE.md raw_sql)
+
+import { and, gte, isNull, lt, lte, or, type AnyColumn, type SQL } from "drizzle-orm";
+import { z } from "zod";
+
+import type { FieldConfig } from "@/components/Form/Field/types";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const periodShape = {
+  /** この時刻以後(ISO 8601) */
+  from: z.string().datetime({ offset: true }).optional(),
+  /** この時刻以前(ISO 8601) */
+  to: z.string().datetime({ offset: true }).optional(),
+  /** 評価の時刻から N 日以内 */
+  withinDays: z.number().int().min(1).max(3650).optional(),
+};
+
+/** 期間の引数(どれか 1 つは要る) */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- 足す鍵が無い時の既定(空の形)
+export function periodArgs<E extends z.ZodRawShape = {}>(extra: E = {} as E) {
+  return z
+    .object({ ...periodShape, ...extra })
+    .strict()
+    .refine((value) => Object.values(value).some((item) => item !== undefined), { message: "期間をどれか 1 つ指定してください" })
+    .refine((value) => !(value.from && value.to) || value.from <= value.to, { message: "from は to より前にしてください" });
+}
+
+/** 期間の欄(name = 引数の鍵) */
+export const PERIOD_FIELDS: readonly FieldConfig[] = [
+  { name: "from", label: "この日時以後", formInput: "datetimeInput" },
+  { name: "to", label: "この日時以前", formInput: "datetimeInput" },
+  { name: "withinDays", label: "直近の日数", formInput: "numberInput", helperText: "評価する時点から何日以内か" },
+];
+
+/** 列の期間の述語(from 以後・to 以前・now から withinDays 日以内の and) */
+export function periodWhere(
+  column: AnyColumn,
+  args: { from?: string; to?: string; withinDays?: number },
+  now: Date,
+): SQL[] {
+  const conditions: SQL[] = [];
+  if (args.from) conditions.push(gte(column, new Date(args.from)));
+  if (args.to) conditions.push(lte(column, new Date(args.to)));
+  if (args.withinDays !== undefined) conditions.push(gte(column, new Date(now.getTime() - args.withinDays * DAY_MS)));
+  return conditions;
+}
+
+/** now から N 日以内に無い(列が null = 一度も無いも含む) */
+export function notWithinDaysWhere(column: AnyColumn, days: number, now: Date): SQL {
+  return or(isNull(column), lt(column, new Date(now.getTime() - days * DAY_MS)))!;
+}
+
+export const andAll = (conditions: SQL[]): SQL => and(...conditions)!;
