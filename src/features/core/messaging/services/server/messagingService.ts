@@ -35,7 +35,7 @@ import {
   publishMessageTemplate,
   updateMessageTemplate,
 } from "./templates";
-import { sendMessage, sendMessageToMany, sendTemplate } from "./sendMessage";
+import { sendMessage, sendMessageToMany, sendAuthored } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
 import { continueSending } from "./sweep";
 
@@ -49,8 +49,8 @@ export const messagingService = {
   sendMessage,
   /** 連絡の定義を選んだ宛先か audience へ送る(新しい送る口) */
   sendMessageToMany,
-  /** 保存されたテンプレートの今の公開版で送る(版を回に固定、予約もできる) */
-  sendTemplate,
+  /** 管理者が書いた文面で送る(その場で書く連絡とテンプレートを呼び出した文面。テンプレートは版を回に固定、予約もできる) */
+  sendAuthored,
   /** 渡した冪等の鍵のうち使われたもの(回の表と鍵の移し先の表の両方を見る。一括の送り手がページごとに送信済みを除く) */
   existingIdempotencyKeys,
   /** 1 つの回を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */

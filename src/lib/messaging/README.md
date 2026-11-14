@@ -46,6 +46,7 @@ export const message = defineMessage({
 - `content`: 経路ごとの欄。種類の経路の分だけ必須(`missing_content`)
 - `content`: 経路ごとの名前付きの欄(下)
 - `extras`: fork が足す欄の入れ物(メールの描き方の .replace が読む)
+- `authored: true`(文面を送るたびに受け取る連絡、D92): 管理者が書いて送る連絡(上流は messaging の `messaging.adminAnnouncement`・`adminDirect`・`adminMarketing`)。定義は `key`・`category` だけを持ち、`content: {}`・`vars: z.object({})` で書く。送る口が受けた文面で埋めてから同じ検査を通す(種類の経路の文面・経路の欄の zod・`{{鍵}}`)。`adminEditable`・`throttle` は付けられず(`authored_field`)、文面を空にしないと `authored_content`、上書きのファイルは置けない(`authored_override`、`pnpm check extensions` も止める)
 
 ## 定義で間違えやすい線(D77)
 

@@ -85,8 +85,8 @@ test("宣言: 4 つの口は全部 admin", () => {
 });
 
 test("門 messagingBroadcast を見ずに body をそのまま service へ渡す", async () => {
-  const body = { userIds: ["u1"], category: "marketing", message: { type: "adhoc", email: { subject: "s", body: "b" } } };
-  const content = { category: "marketing", message: body.message };
+  const body = { userIds: ["u1"], category: "marketing", content: { email: { subject: "s", paragraphs: ["b"] } } };
+  const content = { category: "marketing", content: body.content };
   for (const res of [
     await bulk.POST(post("", body), ctx),
     await preview.POST(post("/preview", content), ctx),

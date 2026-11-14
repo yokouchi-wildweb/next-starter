@@ -32,14 +32,14 @@ const template = {
   variables: [{ key: "discount", label: "割引", type: "number", required: true, source: "dispatch" }],
 };
 const categories = [
-  { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], audiences: ["all", "role", "audience"], adhoc: true },
-  { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"], adhoc: true },
-  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], audiences: ["all", "users", "bulk"], adhoc: true },
+  { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], audiences: ["all", "role", "audience"] },
+  { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"] },
+  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], audiences: ["all", "users", "bulk"] },
 ];
 const SEND_OPTIONS = {
   channels: [
-    { key: "email", label: "メール", adhoc: true },
-    { key: "inApp", label: "お知らせ", adhoc: true },
+    { key: "email", label: "メール" },
+    { key: "inApp", label: "お知らせ" },
   ],
   roles: [{ id: "user", label: "利用者" }],
   audiences: [],
@@ -201,7 +201,9 @@ test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → �
   });
   const content = calls[0][1] as Record<string, unknown>;
   assert.deepEqual(content, {
-    message: { type: "template", templateId: TEMPLATE_ID, version: 3, content: { email: { subject: "{{discount}} 割引!", paragraphs: ["直した"] } }, vars: { discount: 20 } },
+    content: { email: { subject: "{{discount}} 割引!", paragraphs: ["直した"] } },
+    template: { templateId: TEMPLATE_ID, version: 3 },
+    vars: { discount: 20 },
     category: "campaign",
     channels: ["email"],
   });
@@ -280,7 +282,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
     hooks.useMessageSendModal({
       mode: {
         type: "sameAs",
-        dispatch: { ...dispatch, category: "campaign", audience: { type: "recipients", count: 1 }, audienceUserIds: ["u9"], templateId: TEMPLATE_ID, templateVersion: 2, templateEdited: true, templateContent: editedContent } as never,
+        dispatch: { ...dispatch, category: "campaign", audience: { type: "recipients", count: 1 }, audienceUserIds: ["u9"], templateId: TEMPLATE_ID, templateVersion: 2, templateEdited: true, content: editedContent } as never,
       },
     }),
   );
@@ -294,7 +296,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   // 公開中でないテンプレート: その場で書く形へ写し、知らせを出す
   const gone = await mount(() =>
     hooks.useMessageSendModal({
-      mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: true, templateContent: { email: { subject: "件名X", paragraphs: ["段1", "段2"] } }, headings: {} } as never },
+      mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: true, content: { email: { subject: "件名X", paragraphs: ["段1", "段2"] } }, headings: {} } as never },
     }),
   );
   await act(async () => gone.value().setOpen(true));
@@ -304,7 +306,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   await gone.unmount();
 
   const nothing = await mount(() =>
-    hooks.useMessageSendModal({ mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: false, templateContent: null, headings: {} } as never } }),
+    hooks.useMessageSendModal({ mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: false, content: null, headings: {} } as never } }),
   );
   await act(async () => nothing.value().setOpen(true));
   assert.match(nothing.value().sameAsNote ?? "", /書き直してください/);
@@ -341,7 +343,9 @@ test("bulk: 選んだ記録が宛先、bulk の API、予約は無い、見込�
   assert.equal(calls[2][0], "bulk");
   assert.equal(input.target, "bankTransferReview");
   assert.deepEqual(input.recordIds, ["r1", "r2"]);
-  assert.deepEqual(input.message, { type: "adhoc", inApp: { title: "題", body: "本文" } });
+  // その場で書く欄は経路の欄の形で送る(T66 で欄を作り直す)
+  assert.deepEqual(input.content, { inApp: { title: "題", body: "本文" } });
+  assert.equal("template" in input, false);
   assert.equal(input.category, "operatorDirect");
   assert.equal("scheduledAt" in input, false);
   assert.equal(sentResults.length, 1);

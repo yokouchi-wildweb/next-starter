@@ -104,6 +104,7 @@ export type MessageSendResult =
 /** 送り先の経路 1 つ(カテゴリーの経路) */
 export type MessageSendChannel = { key: string; label: string; on: boolean; blank: boolean };
 
+/** その場で書く欄の今の部品が書ける経路(欄の作り直しは画面の指令。サーバーは全部の経路の文面を受ける) */
 const ADHOC_CHANNELS = ["email", "inApp"];
 
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -210,7 +211,9 @@ export function initialDraftOf(mode: MessageSendMode, templates: readonly Messag
   if (mode.type === "bulk") return emptyAdhoc(mode.defaults);
   if (mode.type === "new") return emptyAdhoc();
   const { dispatch } = mode;
-  const edited = dispatch.templateEdited && dispatch.templateContent ? dispatch.templateContent : null;
+  // 書いて送った文面(テンプレートの回は版から直した時だけ写す。ほかは今の版の文面)
+  const edited = dispatch.content && (!dispatch.templateId || dispatch.templateEdited) ? dispatch.content : null;
+  if (!dispatch.templateId && edited) return adhocFromContent(edited, dispatch.headings);
   if (dispatch.templateId) {
     const template = templates.find((item) => item.id === dispatch.templateId);
     if (template) {
@@ -321,7 +324,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const allowedCategories = useMemo(
     () =>
       allCategories.filter(
-        (option) => option.audiences.includes(isBulk ? "bulk" : audience.type) && (draft.source !== "adhoc" || option.adhoc),
+        (option) =>
+          option.audiences.includes(isBulk ? "bulk" : audience.type) &&
+          (draft.source !== "adhoc" || option.channels.every((key) => ADHOC_CHANNELS.includes(key))),
       ),
     [allCategories, isBulk, audience.type, draft.source],
   );
@@ -412,23 +417,19 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const buildContent = useCallback((): AdminSendPreviewInput => {
     if (draft.source === "template" && draft.template) {
       return {
-        message: {
-          type: "template",
-          templateId: draft.template.id,
-          version: draft.template.version,
-          content: draft.content,
-          vars: templateVarsForInput(calledTemplate, draft.vars),
-        },
+        content: draft.content,
+        template: { templateId: draft.template.id, version: draft.template.version },
+        vars: templateVarsForInput(calledTemplate, draft.vars),
         category,
         channels: sendChannels,
       };
     }
+    // その場で書く欄(件名 / 題と本文)を経路の欄の形へ(メールの本文は段落 1 つ、改行はそのまま)
     const email = draft.content.email ?? {};
     const inApp = draft.content.inApp ?? {};
     return {
-      message: {
-        type: "adhoc",
-        ...(sendChannels.includes("email") ? { email: { subject: str(email.subject).trim(), body: str(email.body).trim() } } : {}),
+      content: {
+        ...(sendChannels.includes("email") ? { email: { subject: str(email.subject).trim(), paragraphs: [str(email.body).trim()] } } : {}),
         ...(sendChannels.includes("inApp") ? { inApp: { title: str(inApp.title).trim(), body: str(inApp.body).trim() } } : {}),
       },
       category,

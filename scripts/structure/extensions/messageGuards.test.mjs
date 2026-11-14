@@ -103,6 +103,21 @@ test("category: 全部の定義に必須・受け口の鍵・文面は種類の�
   assert.match(problems[0], /category は上書きできない/);
 });
 
+test("authored の定義: 文面の経路を見ない・上書きのファイルは止める", () => {
+  const authored = `import { z } from "zod";
+import { defineMessage } from "@/lib/messaging";
+
+export const message = defineMessage({ key: "messaging.adminNotice", category: "notice", authored: true, vars: z.object({}), content: {} });
+`;
+  const A = "src/features/core/messaging/messages/";
+  assert.deepEqual(problemsOf({ [`${A}adminNotice.ts`]: authored }), []);
+  expectOne(
+    { [`${A}adminNotice.ts`]: authored, [`${A}adminNotice.override.ts`]: override("enabled: false") },
+    `${A}adminNotice.override.ts`,
+    /authored の連絡.*上書きできない/,
+  );
+});
+
 test("required の定義: 種類の経路に email・adminEditable・throttle を止める", () => {
   expectOne({ [`${M}a.ts`]: definition("required: true,", "inAppOnly") }, `${M}a.ts`, /"email" を含める/);
   expectOne({ [`${M}a.ts`]: definition('required: true,\n  adminEditable: ["email.subject"],') }, `${M}a.ts`, /adminEditable は付けられない/);

@@ -4,14 +4,8 @@
 
 import type { MessageChannelCounts } from "../../../entities/schema";
 
-/** 管理の一括送信で送れる経路(その場で書く連絡 3 本が中身を持つ経路) */
-export type AdminMessageChannel = "email" | "inApp";
-
-/** 管理者が書く中身 */
-export type AdminMessageContent = {
-  email?: { subject: string; body: string };
-  inApp?: { title: string; body: string };
-};
+/** 管理者が書いて送った文面(経路ごとの欄、差し込む前の字) */
+export type AdminMessageContent = Record<string, unknown>;
 
 /** 一括送信をテンプレートで送った時の出どころ(afterSend に渡す) */
 export type AdminBulkSendTemplate = { id: string; version: number; edited: boolean };
@@ -47,7 +41,7 @@ export type MessageBulkSendTarget = {
     recordIds: readonly string[];
     dispatchId: string | null;
     counts: AdminBulkSendCounts;
-    /** その場で書く連絡は書いた中身、テンプレートは送った文言の件名・題(差し込む前の字、本文は空) */
+    /** 送った文面(経路ごとの欄、差し込む前の字。メールの件名は content.email?.subject) */
     content: AdminMessageContent;
     /** テンプレートで送った時の出どころ(その場で書く連絡は null) */
     template: AdminBulkSendTemplate | null;

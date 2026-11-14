@@ -62,7 +62,7 @@ const sender = createMessageSender(sendMessageDeps);
 
 export const sendMessage = sender.sendMessage;
 export const sendMessageToMany = sender.sendMessageToMany;
-export const sendTemplate = sender.sendTemplate;
+export const sendAuthored = sender.sendAuthored;
 export const previewMessage = sender.previewMessage;
 export const estimateRecipients = sender.estimateRecipients;
 export const sendResolved = sender.sendResolved;

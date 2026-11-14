@@ -77,25 +77,24 @@ export type SendMessageToManyInput = CommonSendInput &
   };
 
 /**
- * 保存されたテンプレートで送る(sendTemplate)。送る時の公開版を回に固定する(予約なら予約の時の版)。
- * vars = テンプレートの変数の値(回に 1 組)。受信者ごとの変数は既定値を全員に使う(既定値が無ければ 400)
+ * 管理者が書いた文面で送る(sendAuthored、D92)。その場で書く連絡もテンプレートを呼び出して直した文面も同じ形で、template の有無だけが違う。
+ * テンプレートは送る時の公開版を回に固定する(予約なら予約の時の版)。受信者ごとの変数は既定値を全員に使う(既定値が無ければ 400)
  */
-export type SendTemplateInput = Omit<SendMessageToManyInput, "recipientVars"> & {
-  templateId: string;
-  /** 送る版(省略 = 今の公開版。今の公開版でなければ 409) */
-  version?: number;
-  /** 送る文言(省略 = 版の文言。版と違えば回に template_edited と直した文言を残す。版に無い画像は 400) */
-  content?: Record<string, unknown>;
-  /** 送る時の種類(既定 = 版の種類)。種別と経路はこの種類から(種別は announcement・direct・marketing) */
-  category?: string;
+export type SendAuthoredInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
+  /** 送る文面(経路ごとの欄。経路の受け口の zod で検査し、{{鍵}} を差し込む) */
+  content: Record<string, unknown>;
+  /** 送るカテゴリー(種別 announcement・direct・marketing)。種別と経路はこの種類から */
+  category: string;
+  /** 呼び出したテンプレート(今の公開版でなければ 409)。版の変数の宣言で vars を検査し、回に版を固定する */
+  template?: { templateId: string; version: number };
+  /** テンプレートの変数の値(回に 1 組。template が無い時は渡さない) */
+  vars?: Record<string, unknown>;
 };
 
-/** 回に残すテンプレートの出どころ(版の固定と、直した文言) */
-export type MessageDispatchTemplate = {
-  id: string;
-  version: number;
-  /** 直した文言(版のままなら null) */
-  editedContent: Record<string, unknown> | null;
+/** 回に残す書いた文面と、テンプレートの出どころ(版の固定・版の文面から直したか) */
+export type MessageDispatchAuthored = {
+  content: Record<string, unknown>;
+  template: { id: string; version: number; edited: boolean } | null;
 };
 
 /** テンプレートの公開した版(送る口が読む形) */
@@ -140,7 +139,7 @@ export type SendMessageResult = {
   /** queued のまま cron に任せた配達の行の数 */
   queuedCount: number;
   channelCounts: MessageChannelCounts;
-  /** テンプレートで送った時の出どころ(sendTemplate だけ。edited = 版の文言から直したか) */
+  /** テンプレートを呼び出して送った時の出どころ(sendAuthored だけ。edited = 版の文面から直したか) */
   template?: { id: string; version: number; edited: boolean };
 };
 
@@ -265,7 +264,7 @@ export type MessageSendDeps = {
   categories: Readonly<Record<string, MessageCategory>>;
   /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
   throttle?: MessageThrottleStore;
-  /** 保存されたテンプレート(sendTemplate と cron の版の引き直し)。無ければテンプレートでは送れない */
+  /** 保存されたテンプレート(sendAuthored の版の固定と cron の版の引き直し)。無ければテンプレートを呼び出して送れない */
   templates?: MessageTemplateSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
   unsubscribe: {

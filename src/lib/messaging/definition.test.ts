@@ -4,6 +4,7 @@
 // - 正しい定義が通る / 止める物(required の守り・欄・adminEditable・{{鍵}}・throttle・鍵の形)が止まる
 // - 上書きを重ねた結果も同じ関数で検査する / 型の絞りは @ts-expect-error で固定
 // - category は categories を渡した時だけ受け口と照らす(取引は省ける)
+// - authored の定義(文面を送るたびに受け取る)の守り
 // 実行: pnpm test src/lib/messaging/definition.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -209,6 +210,17 @@ test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言
   const resolved = resolveMessageDefinition(reply, undefined, CATEGORIES.chat);
   assert.equal(resolved.kind, "activity");
   assert.deepEqual(resolved.channels, ["inApp", "email"]);
+});
+
+test("authored(文面を送るたびに受け取る): 空の content は通り、文面・adminEditable・throttle・上書きは止める", () => {
+  const authored = defineMessage({ key: "admin.free", category: "chat", authored: true, vars: z.object({}), content: {} });
+  assert.deepEqual(validate(authored), [], "種類の経路の文面が無くても通る");
+  assert.deepEqual(codes(validate({ ...authored, content: { inApp: { title: "t", body: "b" } } })), ["authored_content"]);
+  assert.deepEqual(codes(validate({ ...authored, adminEditable: ["inApp.title"] } as typeof authored)), ["authored_field", "unknown_admin_editable"]);
+  assert.deepEqual(codes(validate(authored, { override: { extras: { x: 1 } } })), ["authored_override"]);
+  // 送る口が受けた文面で埋めた定義(authored を外す)は普通に検査する: 種類の経路の文面が要る
+  const filled = { ...authored, authored: undefined, content: { inApp: { title: "{{displayName}}", body: "b" } } };
+  assert.deepEqual(codes(validate(filled, { variableKeys: ["displayName"] })), ["missing_content"]);
 });
 
 test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {

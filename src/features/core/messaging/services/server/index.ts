@@ -3,7 +3,7 @@
 export { messagingService } from "./messagingService";
 export type { MessagingService } from "./messagingService";
 
-export { sendMessage, sendMessageToMany, sendTemplate } from "./sendMessage";
+export { sendMessage, sendMessageToMany, sendAuthored } from "./sendMessage";
 /** 管理の送信の API の入口の守り(取引は選んだ利用者宛てだけ) */
 export { ADMIN_FREE_TEXT_KINDS, ADMIN_FREE_TEXT_MESSAGE_KEYS, adminFreeTextMessageKeyOf } from "./admin";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
@@ -65,7 +65,7 @@ export type {
   AdminSendResult,
   AdminSendTestInput,
 } from "./admin";
-export type { MessagePreview, RecipientEstimate, SendTemplateInput } from "./sendMessage";
+export type { MessagePreview, RecipientEstimate, SendAuthoredInput } from "./sendMessage";
 export type {
   AdminCancelResult,
   AdminResendResult,
@@ -85,7 +85,6 @@ export type {
   AdminDeliveryRow,
   AdminDispatchDetail,
   AdminDispatchSummary,
-  AdminMessageChannel,
   AdminMessageContent,
   AdminPage,
   ListDeliveriesQuery,
