@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageTemplateList/index.tsx
 // セクションコンテナ(管理: 保存されたテンプレートの一覧)。状態で絞る + 無限スクロール(カーソル)。
-// 行 = 名前・鍵・状態(版)・種類・更新。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
+// 行 = 名前・鍵・状態(版)・カテゴリー・更新。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -97,7 +97,7 @@ export function AdminMessageTemplateList() {
           </Stack>
         )}
       </InfiniteScrollList>
-      <AdminMessageTemplateModal open={modal.open} onOpenChange={modal.setOpen} templateId={modal.templateId} />
+      <AdminMessageTemplateModal open={modal.open} onOpenChange={modal.setOpen} templateId={modal.templateId} onChanged={modal.onChanged} />
     </Stack>
   );
 }

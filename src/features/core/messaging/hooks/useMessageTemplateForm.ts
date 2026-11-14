@@ -5,7 +5,7 @@
 // 管理: テンプレートを作る・直す画面の書く欄と操作(部品はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
 // - 欄: 鍵(作る時だけ)・名前・説明・種類・経路ごとの文言・変数の宣言。初めの値は今の中身(下書き)。経路は選ばない(D85)
 // - 保存: 作る(POST)か直す(PATCH)。送るのは文言を書いた経路の中身だけ(filledChannels)で、空の任意の欄は落とす
-// - 公開・取り下げ: 1 件・版の一覧を取り直す(一覧の画面は戻ったときに取り直す)
+// - 公開・取り下げ: 1 件・版の一覧を取り直す。一覧(無限スクロール)へは onChanged で返った 1 件を渡す
 // - 使える {{鍵}} = 選択肢の baseAllowedKeys ∪ 宣言した変数(サーバーの保存時の検査と同じ組)。知らない鍵を返す
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard。モーダルを閉じる前の確かめは closeConfirm)
 // - 作った後は onCreated(id) を呼び、createdId を返す(モーダルがその 1 件を直す形に変わる。ページは移らない)
@@ -49,7 +49,12 @@ export type UseMessageTemplateFormOptions = {
   options: AdminTemplateOptions | null;
   /** 作った後(下書きの id)。モーダルはこれで同じ 1 件を直す形に変わる */
   onCreated?: (id: string) => void;
+  /** 作る・保存・公開・取り下げが通った後(返った 1 件と操作)。一覧はこれで行を足す・置き換える(無限スクロールは SWR の再検証が届かない) */
+  onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
+
+/** テンプレートの操作 */
+export type MessageTemplateAction = "create" | "update" | "publish" | "archive";
 
 /** 経路を足したときの初めの中身 */
 export function emptyChannelContent(channel: string): Record<string, unknown> {
@@ -121,7 +126,7 @@ function stringsOf(value: unknown, out: string[] = []): string[] {
   return out;
 }
 
-export function useMessageTemplateForm({ template, options, onCreated }: UseMessageTemplateFormOptions) {
+export function useMessageTemplateForm({ template, options, onCreated, onChanged }: UseMessageTemplateFormOptions) {
   const { showToast } = useToast();
   const id = template?.id ?? null;
   const archived = template?.status === "archived";
@@ -209,40 +214,44 @@ export function useMessageTemplateForm({ template, options, onCreated }: UseMess
   const save = useCallback(async () => {
     try {
       if (id) {
-        await updateMutation.trigger(buildInput());
+        const updated = await updateMutation.trigger(buildInput());
+        onChanged?.(updated, "update");
         showToast("保存しました", "success");
       } else {
         const created = await createMutation.trigger({ key: key.trim(), ...buildInput() });
         setCreatedId(created.id);
         onCreated?.(created.id);
+        onChanged?.(created, "create");
         showToast("下書きを作りました", "success");
       }
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [id, updateMutation, createMutation, key, buildInput, showToast, onCreated]);
+  }, [id, updateMutation, createMutation, key, buildInput, showToast, onCreated, onChanged]);
 
   /** 公開(今の中身を新しい版に。書きかけは先に保存する) */
   const publish = useCallback(async () => {
     if (!id) return;
     try {
-      await publishMutation.trigger();
+      const published = await publishMutation.trigger();
+      onChanged?.(published, "publish");
       showToast("公開しました", "success");
     } catch (e) {
       showToast(err(e, "公開できませんでした"), "error");
     }
-  }, [id, publishMutation, showToast]);
+  }, [id, publishMutation, showToast, onChanged]);
 
   /** 取り下げ */
   const archive = useCallback(async () => {
     if (!id) return;
     try {
-      await archiveMutation.trigger();
+      const archived = await archiveMutation.trigger();
+      onChanged?.(archived, "archive");
       showToast("取り下げました", "success");
     } catch (e) {
       showToast(err(e, "取り下げられませんでした"), "error");
     }
-  }, [id, archiveMutation, showToast]);
+  }, [id, archiveMutation, showToast, onChanged]);
 
   return {
     mode: id ? ("edit" as const) : ("create" as const),

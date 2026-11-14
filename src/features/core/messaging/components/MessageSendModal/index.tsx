@@ -145,6 +145,11 @@ export function MessageSendModal({
     }
     return (
       <Stack space={4}>
+        {m.sameAsNote ? (
+          <Para size="sm" tone="muted" className="my-0" data-slot="send-same-as-note">
+            {m.sameAsNote}
+          </Para>
+        ) : null}
         {m.templatesAvailable ? (
           <SendTemplatePicker
             templates={m.templates}

@@ -29,7 +29,9 @@ import {
   parseOr400,
   previewAdminContent,
   testAdminContent,
+  adminChannelOptions,
   type AdminContentDeps,
+  type AdminSendDeps,
   type AdminSendOptions,
   type AdminSendResult,
 } from "./send";
@@ -84,7 +86,8 @@ export type AdminBulkSendResult = {
   afterSend: { ok: true } | { ok: false; error: string } | null;
 };
 
-export type AdminBulkSendDeps = AdminContentDeps & {
+export type AdminBulkSendDeps = AdminContentDeps &
+  Pick<AdminSendDeps, "channels"> & {
   targets: Readonly<Record<string, MessageBulkSendTarget>>;
   /** 公開中のテンプレート(選択肢。門 messagingTemplates が開の時だけ読む) */
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
@@ -201,17 +204,19 @@ export function adminBulkSendTest(deps: AdminContentDeps, rawInput: unknown): Pr
   return testAdminContent(deps, rawInput, { audience: "bulk", source: `${BULK_SOURCE}.test` });
 }
 
-/** 一括送信の選択肢: bulk で送れるカテゴリー(adhoc = その場で書く連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
+/** 一括送信の選択肢: 経路(表示名は受け口の label、送るモーダルと同じ)・bulk で送れるカテゴリー(adhoc = その場で書く連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
 export type AdminBulkSendOptions = {
+  channels: AdminSendOptions["channels"];
   categories: AdminFreeTextCategoryOption[];
   templates: AdminSendOptions["templates"];
 };
 
 export async function adminBulkSendOptions(
-  deps: Pick<AdminBulkSendDeps, "context" | "roleCategoryOf" | "categories" | "listPublishedTemplates" | "templatesOpen">,
+  deps: Pick<AdminBulkSendDeps, "context" | "roleCategoryOf" | "channels" | "categories" | "listPublishedTemplates" | "templatesOpen">,
 ): Promise<AdminBulkSendOptions> {
   await assertAdminActor(deps);
   return {
+    channels: adminChannelOptions(deps.channels),
     categories: adminFreeTextCategoryOptions(deps.categories, (option) => option.audiences.includes("bulk")),
     templates: deps.templatesOpen() ? await deps.listPublishedTemplates() : [],
   };

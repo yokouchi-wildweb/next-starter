@@ -361,15 +361,19 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
   return testAdminContent(deps, rawInput, { audience: "users", source: `${SEND_SOURCE}.test` });
 }
 
+/** 選択肢の経路(有効な受け口の経路・表示名は受け口の label・その場で書く欄があるか)。送る・一括送信の両方の選択肢が使う */
+export function adminChannelOptions(channels: Readonly<Record<string, MessageChannel>>): AdminSendOptions["channels"] {
+  return Object.keys(channels).flatMap((key) => {
+    const channel = activeChannel(channels, key);
+    return channel ? [{ key, label: channel.label, adhoc: (ADHOC_CHANNELS as readonly string[]).includes(key) }] : [];
+  });
+}
+
 /** 送る画面の選択肢 */
 export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOptions> {
   await assertAdminActor(deps);
-  const channels = Object.keys(deps.channels).flatMap((key) => {
-    const channel = activeChannel(deps.channels, key);
-    return channel ? [{ key, label: channel.label, adhoc: (ADHOC_CHANNELS as readonly string[]).includes(key) }] : [];
-  });
   return {
-    channels,
+    channels: adminChannelOptions(deps.channels),
     roles: deps.roles(),
     audiences: Object.values(deps.audiences).map((audience) => ({ key: audience.key, label: audience.label })),
     templates: await deps.listPublishedTemplates(),

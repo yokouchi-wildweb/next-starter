@@ -15,6 +15,8 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 
 import { useGate } from "@/featureGate/client";
 
+import { ADMIN_CHANNEL_FILTER_OPTIONS } from "@/features/core/messaging/constants/channelLabels";
+import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DISPATCH_STATUS_DISPLAY } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { DispatchRow } from "@/features/core/messaging/components/common/DispatchRow";
@@ -31,15 +33,8 @@ export type AdminDispatchListProps = {
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
-const KIND_OPTIONS = [
-  { value: "transactional", label: "業務の連絡" },
-  { value: "marketing", label: "お知らせ" },
-  { value: "activity", label: "活動の知らせ" },
-];
-const CHANNEL_OPTIONS = [
-  { value: "email", label: "メール" },
-  { value: "inApp", label: "サービス内のお知らせ" },
-];
+// 種別は 7 つ(constants/kindLabels.ts の表 = lib の MESSAGE_KINDS の順。lib の入口は client に持ち込まない)
+const KIND_OPTIONS = Object.entries(MESSAGE_KIND_LABELS).map(([value, label]) => ({ value, label }));
 const STATUS_OPTIONS = Object.entries(DISPATCH_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
 const NEW_MODE = { type: "new" } as const;
@@ -100,7 +95,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             id="dispatch-filter-channel"
             value={fields.channel}
             onChange={(v) => fields.setChannel(v ? String(v) : "")}
-            options={CHANNEL_OPTIONS}
+            options={ADMIN_CHANNEL_FILTER_OPTIONS}
             placeholder="すべて"
           />
         </Stack>

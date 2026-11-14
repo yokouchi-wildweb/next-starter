@@ -27,6 +27,7 @@ import { DeliveryRow } from "@/features/core/messaging/components/common/Deliver
 import { dispatchHeading, formatAdminDateTime } from "@/features/core/messaging/components/common/DispatchRow";
 import { useGate } from "@/featureGate/client";
 
+import { ADMIN_CHANNEL_FILTER_OPTIONS } from "@/features/core/messaging/constants/channelLabels";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { DispatchStatusBadge } from "@/features/core/messaging/components/common/DispatchStatusBadge";
@@ -40,10 +41,6 @@ export type AdminDispatchDetailProps = {
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
-const CHANNEL_OPTIONS = [
-  { value: "email", label: "メール" },
-  { value: "inApp", label: "サービス内のお知らせ" },
-];
 const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
 export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
@@ -126,7 +123,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
               id="delivery-filter-channel"
               value={deliveryFilters.channel}
               onChange={(v) => deliveryFilters.setChannel(v ? String(v) : "")}
-              options={CHANNEL_OPTIONS}
+              options={ADMIN_CHANNEL_FILTER_OPTIONS}
               placeholder="すべて"
             />
           </Stack>
