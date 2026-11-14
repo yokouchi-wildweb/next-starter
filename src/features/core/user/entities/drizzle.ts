@@ -53,6 +53,11 @@ export const UserTable = pgTable(
     // Analytics ユーザーフィルタ用（roles ホワイトリスト + デモ除外サブクエリ）
     roleIdx: index("users_role_idx").on(table.role),
     isDemoIdx: index("users_is_demo_idx").on(table.isDemo),
+    // 「利用できる利用者」の述語(services/server/availableUsers.ts)とユーザーグループの条件の部品
+    statusIdx: index("users_status_idx").on(table.status),
+    deletedAtIdx: index("users_deleted_at_idx").on(table.deletedAt),
+    // 最後のログインの時刻の条件(ユーザーグループの部品)
+    lastAuthenticatedAtIdx: index("users_last_authenticated_at_idx").on(table.lastAuthenticatedAt),
     // 登録日の期間集計と、管理画面の一覧の既定の並び
     createdAtIdx: index("users_created_at_idx").on(table.createdAt),
     // 管理画面の一覧の更新日順と、差分リフレッシュ（createIncrementalRefresh）の走査
@@ -110,7 +115,11 @@ export const UserToUserTagTable = pgTable(
       .references(() => UserTagTable.id, { onDelete: "cascade" }),
   },
   (table) => {
-    return { pk: primaryKey({ columns: [table.userId, table.userTagId] }) };
+    return {
+      pk: primaryKey({ columns: [table.userId, table.userTagId] }),
+      // タグから利用者を引く(主キーは user_id が先なので tag だけの絞りに効かない。ユーザーグループのタグの部品)
+      userTagIdx: index("user_to_user_tag_tag_idx").on(table.userTagId),
+    };
   },
 );
 

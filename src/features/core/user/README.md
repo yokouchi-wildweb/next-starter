@@ -208,6 +208,16 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 
 ステータス遷移の記録は [ステータス遷移履歴](#ステータス遷移履歴user_status_histories)、操作の監査は audit_logs（`user.withdrew` / `user.status.changed` 等）が担う。
 
+### 利用できる利用者の述語（`services/server/availableUsers.ts`）
+
+サーバーの読み手が「利用できる利用者」で users の行を絞る 1 か所（D103）。`availableUserWhere({ includeDemo? })` → SQL の述語（where にそのまま渡し、他の条件とは and で組む）:
+
+- 削除されていない（`deleted_at IS NULL`）・状態が `USER_AVAILABLE_STATUSES`（今は `active`）・デモの利用者（`is_demo`）は既定で外す（`includeDemo: true` で含める）
+- 読み手: messaging の全員・ロール宛ての展開と数え（`messaging/services/server/sendMessage/store.ts` の `listUserIds` / `countUserIds`。選んだ利用者宛ては対象外）、ユーザーグループの母集団
+- 入口の index は無いのでファイルのパスで読む（`@/features/core/user/services/server/availableUsers`）
+- 今は別の状態の並びを持つ所（まだこの述語を読まない）: API・ページの守り（routeFactory の `availableStatuses` と route ごとの `allowStatuses`）・共有端末（`pairedDevice` の principalUserRule）・client の `useStatusChecker`（`isAvailable`）
+- 索引: `users_status_idx`・`users_deleted_at_idx`・`users_last_authenticated_at_idx`（最後のログインの条件）と `user_to_user_tag_tag_idx`（タグから利用者を引く。主キーは user_id が先）。素の列だけ（push の round-trip）
+
 ### ステータスの一括変更
 
 運用者が複数のユーザーの状態をまとめて変える(規約違反の一斉の処分保留・誤ロックの一斉の解除など)。

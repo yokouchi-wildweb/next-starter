@@ -6,8 +6,8 @@ import { and, asc, count, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { USER_AVAILABLE_STATUSES } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import { availableUserWhere } from "@/features/core/user/services/server/availableUsers";
 
 import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
@@ -132,8 +132,8 @@ export const drizzleMessageSendStore: MessageSendStore = {
   },
 
   async listUserIds(filter, cursor, limit) {
-    // 全員・ロール宛ては利用できる利用者(USER_AVAILABLE_STATUSES)だけ
-    const conditions = [isNull(UserTable.deletedAt), inArray(UserTable.status, [...USER_AVAILABLE_STATUSES])];
+    // 全員・ロール宛ては利用できる利用者だけ(user の公開の述語: 削除されていない・利用できる状態・デモでない)
+    const conditions = [availableUserWhere()];
     if (filter.roles) {
       conditions.push(inArray(UserTable.role, [...filter.roles] as (typeof UserTable.role.enumValues)[number][]));
     }
@@ -149,7 +149,7 @@ export const drizzleMessageSendStore: MessageSendStore = {
   },
 
   async countUserIds(filter) {
-    const conditions = [isNull(UserTable.deletedAt), inArray(UserTable.status, [...USER_AVAILABLE_STATUSES])];
+    const conditions = [availableUserWhere()];
     if (filter.roles) {
       conditions.push(inArray(UserTable.role, [...filter.roles] as (typeof UserTable.role.enumValues)[number][]));
     }
