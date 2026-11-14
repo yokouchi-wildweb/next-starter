@@ -1,13 +1,15 @@
 // ワンクリックの配信停止のトークンの検査
 // - 作って確かめると中身が戻る(宛先の hash・連絡の鍵・回の id つきも。mk / d の無い前のトークンも通る)
 // - 中身・署名の改ざん、版の違い、形の誤り、鍵の違い、鍵が無い → null
-// - URL は getAppBaseUrl() の起点 + /api/messaging/unsubscribe?t=
+// - URL は getAppBaseUrl() の起点 + /api/messaging/unsubscribe?token=(One-Click)/ /unsubscribe?token=(人が開くページ)
 // 実行: pnpm test src/features/core/messaging/services/server/unsubscribe
 import { afterEach, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 
 import {
+  buildUnsubscribePageUrl,
+  unsubscribePageUrlOf,
   UNSUBSCRIBE_SECRET_ENV,
   buildUnsubscribeUrl,
   isUnsubscribeConfigured,
@@ -91,9 +93,24 @@ test("中身の形が合わなければ作らない", () => {
   assert.throws(() => signUnsubscribeToken({ recipientKey: USER, category: "a b", channel: "email" }));
 });
 
-test("URL はアプリの起点 + /api/messaging/unsubscribe?t=", () => {
+test("One-Click の URL はアプリの起点 + /api/messaging/unsubscribe?token=", () => {
   const url = new URL(buildUnsubscribeUrl({ recipientKey: USER, category: "marketing", channel: "email" }));
   assert.equal(url.origin, "https://app.example.test");
   assert.equal(url.pathname, "/api/messaging/unsubscribe");
-  assert.ok(verifyUnsubscribeToken(url.searchParams.get("t")));
+  assert.equal(url.searchParams.get("t"), null, "古い引数の名前 t は使わない");
+  assert.ok(verifyUnsubscribeToken(url.searchParams.get("token")));
+});
+
+test("ページの URL はアプリの起点 + /unsubscribe?token=、One-Click の URL から同じトークンで作れる", () => {
+  const payload = { recipientKey: USER, category: "marketing", channel: "email" };
+  const page = new URL(buildUnsubscribePageUrl(payload));
+  assert.equal(page.origin, "https://app.example.test");
+  assert.equal(page.pathname, "/unsubscribe");
+  assert.ok(verifyUnsubscribeToken(page.searchParams.get("token")));
+  const oneClick = buildUnsubscribeUrl(payload);
+  const fromHeader = new URL(unsubscribePageUrlOf(`<${oneClick}>`)!);
+  assert.equal(fromHeader.pathname, "/unsubscribe");
+  assert.equal(fromHeader.searchParams.get("token"), new URL(oneClick).searchParams.get("token"));
+  assert.equal(unsubscribePageUrlOf("not a url"), null);
+  assert.equal(unsubscribePageUrlOf("https://app.example.test/api/messaging/unsubscribe"), null, "トークンが無い");
 });

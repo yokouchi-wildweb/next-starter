@@ -5,14 +5,21 @@
 // mk / d = 停止を連絡・回に結ぶ値(集計の軸)。後から足したので無いトークン(前に送ったメール)も同じ版で通る(無い = null)
 // 鍵 = env MESSAGING_UNSUBSCRIBE_SECRET(pnpm ops setup env が乱数で作る)。鍵が無い時は作れない(送る口が marketing・activity の
 // メールを明示の失敗にする)し、届いたトークンも通さない。
-// URL = getAppBaseUrl() + /api/messaging/unsubscribe?t=<token>(事業の素性の url(@/business)は使わない)
+// URL(事業の素性の url(@/business)は使わない。どちらも getAppBaseUrl() + 住所 + ?token=<token>):
+// - One-Click の POST の先 = /api/messaging/unsubscribe(List-Unsubscribe のヘッダ。RFC 8058 のメールソフトがここへ POST する)
+// - 人が開く住所 = /unsubscribe(確認のページ。メールの本文のリンク)
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { getAppBaseUrl } from "@/lib/url";
 
 export const UNSUBSCRIBE_SECRET_ENV = "MESSAGING_UNSUBSCRIBE_SECRET";
+/** One-Click の POST の先(API) */
 export const UNSUBSCRIBE_PATH = "/api/messaging/unsubscribe";
+/** 人が開く確認のページ */
+export const UNSUBSCRIBE_PAGE_PATH = "/unsubscribe";
+/** トークンを渡す引数の名前(API とページで同じ) */
+export const UNSUBSCRIBE_TOKEN_PARAM = "token";
 const TOKEN_VERSION = 1;
 
 /** トークンの中身 */
@@ -118,9 +125,33 @@ export function verifyUnsubscribeToken(token: string | null | undefined): Unsubs
   return isValidPayload(payload) ? payload : null;
 }
 
-/** 停止の URL(メールの List-Unsubscribe と本文のリンク) */
+/** One-Click の POST の先の URL(List-Unsubscribe のヘッダ) */
 export function buildUnsubscribeUrl(payload: UnsubscribeTokenPayload): string {
   const url = new URL(UNSUBSCRIBE_PATH, getAppBaseUrl());
-  url.searchParams.set("t", signUnsubscribeToken(payload));
+  url.searchParams.set(UNSUBSCRIBE_TOKEN_PARAM, signUnsubscribeToken(payload));
   return url.toString();
+}
+
+/** 人が開く確認のページの URL(メールの本文のリンク) */
+export function buildUnsubscribePageUrl(payload: UnsubscribeTokenPayload): string {
+  const url = new URL(UNSUBSCRIBE_PAGE_PATH, getAppBaseUrl());
+  url.searchParams.set(UNSUBSCRIBE_TOKEN_PARAM, signUnsubscribeToken(payload));
+  return url.toString();
+}
+
+/**
+ * One-Click の URL(ヘッダの値、<> 付きでもよい)を同じトークンの確認のページの URL にする。
+ * メールの項目が本文のリンクを作る時に使う(ヘッダの URL しか持たないため)。読めなければ null
+ */
+export function unsubscribePageUrlOf(oneClickUrl: string): string | null {
+  try {
+    const url = new URL(oneClickUrl.replace(/^<|>$/g, ""));
+    const token = url.searchParams.get(UNSUBSCRIBE_TOKEN_PARAM);
+    if (!token) return null;
+    const page = new URL(UNSUBSCRIBE_PAGE_PATH, url.origin);
+    page.searchParams.set(UNSUBSCRIBE_TOKEN_PARAM, token);
+    return page.toString();
+  } catch {
+    return null;
+  }
 }

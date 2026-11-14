@@ -1,6 +1,7 @@
 // src/features/core/messaging/services/server/unsubscribe/index.ts
 //
-// ワンクリックの配信停止(トークン・記録)。受け口 /api/messaging/unsubscribe と送る口(停止の URL)が読む。
+// ワンクリックの配信停止(トークン・記録・確認のページの中身)。受け口 /api/messaging/unsubscribe・確認のページ /unsubscribe の loader・
+// 送る口(停止の URL)が読む。
 
 import { recordOneClickUnsubscribe, type OneClickResult } from "./recordOneClick";
 import { drizzleOneClickStore } from "./store";
@@ -12,12 +13,17 @@ export function recordUnsubscribe(payload: UnsubscribeTokenPayload): Promise<One
 }
 
 export {
+  UNSUBSCRIBE_PAGE_PATH,
   UNSUBSCRIBE_PATH,
   UNSUBSCRIBE_SECRET_ENV,
+  UNSUBSCRIBE_TOKEN_PARAM,
+  buildUnsubscribePageUrl,
   buildUnsubscribeUrl,
+  unsubscribePageUrlOf,
   isUnsubscribeConfigured,
   signUnsubscribeToken,
   verifyUnsubscribeToken,
   type UnsubscribeTokenPayload,
 } from "./token";
 export { recordOneClickUnsubscribe, type OneClickResult, type OneClickStore } from "./recordOneClick";
+export { describeUnsubscribeToken, describeUnsubscribeTokenWith, type UnsubscribeTokenDescription } from "./describe";

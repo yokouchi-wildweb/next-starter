@@ -159,18 +159,19 @@ test("好みに従う連絡: List-Unsubscribe のヘッダを渡し、本文に�
     loadView: noView,
   });
   const headers = {
-    "List-Unsubscribe": "<https://app.example.test/api/messaging/unsubscribe?t=abc>",
+    "List-Unsubscribe": "<https://app.example.test/api/messaging/unsubscribe?token=abc>",
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
   };
   const [result] = await channel.send([{ ...target("a@example.test"), category: "marketing", headers }]);
   assert.equal(result.kind, "sent");
   assert.deepEqual(sent[0].headers, headers);
-  assert.ok(html.includes("https://app.example.test/api/messaging/unsubscribe?t=abc"));
+  assert.ok(html.includes("https://app.example.test/unsubscribe?token=abc"), "本文のリンクは同じトークンの確認のページ");
+  assert.ok(!html.includes("/api/messaging/unsubscribe"), "本文に One-Click の API は出さない");
   assert.ok(html.includes("配信停止"));
 });
 
-test("好みのページが開: 本文のリンクは好みのページ、ヘッダはワンクリックのまま。閉ならワンクリック", async () => {
-  const oneClick = "https://app.example.test/api/messaging/unsubscribe?t=abc";
+test("好みのページが開: 本文のリンクは好みのページ、ヘッダはワンクリックのまま。閉なら確認のページ", async () => {
+  const oneClick = "https://app.example.test/api/messaging/unsubscribe?token=abc";
   const headers = { "List-Unsubscribe": `<${oneClick}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" };
   for (const page of ["https://app.example.test/mypage/account/notifications", null]) {
     let html = "";
@@ -194,7 +195,8 @@ test("好みのページが開: 本文のリンクは好みのページ、ヘッ
       assert.ok(html.includes(page));
       assert.ok(!html.includes(oneClick));
     } else {
-      assert.ok(html.includes(oneClick));
+      assert.ok(html.includes("https://app.example.test/unsubscribe?token=abc"));
+      assert.ok(!html.includes(oneClick));
     }
   }
 });
