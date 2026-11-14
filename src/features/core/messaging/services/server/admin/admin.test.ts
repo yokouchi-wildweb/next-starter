@@ -13,13 +13,13 @@ import { DomainError } from "@/lib/errors";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { assertAdminActor } from "./assertAdmin";
-import type { MessageCategory, MessageChannel } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageSource } from "@/lib/messaging";
 
 import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSendTest, type AdminBulkSendDeps } from "./bulkSend";
 import { adminContinueSending } from "./continueSending";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary } from "./dispatchDto";
 import { operationFlags } from "./operations";
-import { decodeCursor, encodeCursor, findDispatch, listDeliveries, listDispatches, type AdminDispatchStore } from "./readDispatches";
+import { decodeCursor, dispatchCategoryOptions, encodeCursor, findDispatch, listDeliveries, listDispatches, type AdminDispatchStore } from "./readDispatches";
 import type { MessageBulkSendTarget } from "./types";
 
 const ctx = (actorId: string | null, actorType: AuditContext["actorType"] = "admin") =>
@@ -338,11 +338,11 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
     listDispatchUserIds: async () => [],
   };
   const operationInputs = async () => ({ policy: null, counts: { failed: 0, unknown: 0 } });
-  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs };
-  const first = await listDispatches(deps, { limit: "2", kind: "marketing", channel: "email" } as never);
+  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs, sources: {} };
+  const first = await listDispatches(deps, { limit: "2", kind: "marketing", category: "campaign", channel: "email", messageKey: "messaging.x" } as never);
   assert.deepEqual(first.items.map((item) => item.id), ["d3", "d2"]);
   assert.ok(first.nextCursor);
-  assert.deepEqual(seen[0], { filter: { kind: "marketing", channel: "email" }, after: null, limit: 3 });
+  assert.deepEqual(seen[0], { filter: { kind: "marketing", category: "campaign", channel: "email" }, after: null, limit: 3 }, "定義の鍵では絞らない(落とす)");
   await listDispatches(deps, { cursor: first.nextCursor! });
   assert.deepEqual((seen[1] as { after: unknown }).after, { createdAt: rows[1].createdAt, id: "d2" });
   await assert.rejects(listDispatches(deps, { status: "nope" } as never), (e: unknown) => e instanceof DomainError && e.status === 400);
@@ -353,7 +353,7 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await assert.rejects(findDispatch(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   await assert.rejects(listDeliveries(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   assert.equal((await findDispatch(deps, "d1")).operations.retract.allowed, true);
-  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs }));
+  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sources: {} }));
 });
 
 test("回 1 件: 書いて送った文面と、選んだ利用者に送った回の利用者 id(回の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
@@ -375,7 +375,12 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
       return fromDeliveries;
     },
   };
-  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }) };
+  const deps = {
+    ...check(ctx("admin1")),
+    dispatchStore: store,
+    operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
+    sources: { "messaging.adminBulk": { key: "messaging.adminBulk", label: "管理者の一括送信" } as MessageSource },
+  };
   const edited = await findDispatch(deps, "edited");
   assert.deepEqual([edited.templateEdited, edited.content], [true, { email: { subject: "直した" } }]);
   const plain = await findDispatch(deps, "plain");
@@ -387,6 +392,22 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
   fromDeliveries = Array.from({ length: 10_001 }, (_, i) => `u${i}`);
   assert.equal((await findDispatch(deps, "counted")).audienceUserIds, null, "上限を超える回は選び直し");
   assert.equal((await findDispatch(deps, "role")).audienceUserIds, null);
+  // 送り元は受け口に表示名がある時だけ表示名、無ければ null(鍵は返さない)
+  assert.equal((await findDispatch(deps, "role")).sourceLabel, "管理者の一括送信");
+  rows.role = dispatchRow({ id: "role", source: "fork.unknown" });
+  assert.equal((await findDispatch(deps, "role")).sourceLabel, null);
+});
+
+test("回の画面の絞りの選択肢: 受け口のカテゴリーの鍵・表示名・種別、管理者だけ", async () => {
+  const categories = {
+    notice: { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email"] },
+    forkSale: { key: "forkSale", label: "セール", kind: "marketing", channels: ["inApp"] },
+  } as unknown as Record<string, MessageCategory>;
+  assert.deepEqual(await dispatchCategoryOptions({ ...check(ctx("admin1")), categories }), [
+    { key: "notice", label: "お知らせ", kind: "announcement" },
+    { key: "forkSale", label: "セール", kind: "marketing" },
+  ]);
+  await rejects403(dispatchCategoryOptions({ ...check(ctx("user1", "user")), categories }));
 });
 
 test("続きを送る: 進めて監査 1 行、管理者でなければ 403", async () => {

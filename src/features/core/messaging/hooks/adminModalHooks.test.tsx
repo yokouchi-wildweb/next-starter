@@ -1,5 +1,6 @@
 // 管理のモーダルと一覧・回の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
-// - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・clear
+// - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clear
+// - useAdminDispatchCategories: 種別ごとの選択肢・表示名(鍵は出さない)
 // - useAdminDispatchDetail: 配達の絞り / 取り消す・取り下げる・再送(includeUnknown を渡して戻す)・続きを送る → 知らせ、失敗も知らせ
 // - useAdminMessageTemplateList / useAdminMessageOverrideList: 絞り・モーダルの開き先
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
@@ -95,6 +96,11 @@ const DISPATCH = { id: "d1", status: "processing", operations: {} };
 mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
     getAdminDispatch: async () => DISPATCH,
+    getAdminDispatchCategories: async () => [
+      { key: "campaign", label: "キャンペーン", kind: "marketing" },
+      { key: "spring", label: "春の案内", kind: "marketing" },
+      { key: "operatorDirect", label: "運営からのご連絡", kind: "direct" },
+    ],
     listAdminDispatches: async () => ({ items: [], nextCursor: null }),
     listAdminDispatchDeliveries: async (_id: string, params: Record<string, unknown>) => {
       calls.push(["deliveries", params.status ?? null, params.channel ?? null]);
@@ -187,19 +193,31 @@ test("useAdminDispatchFilters: 入力は「絞り込む」で確定、期間は�
   await act(async () => {
     f().fields.setFromDate("2026-11-01");
     f().fields.setToDate("2026-11-03");
-    f().fields.setMessageKey("  messaging.x  ");
+    f().fields.setCategory("campaign");
     f().fields.setStatus("completed");
   });
   assert.deepEqual(f().filters, { kind: "marketing" }, "入力だけでは変わらない");
   await act(async () => f().apply());
   assert.equal(f().filters.from, new Date("2026-11-01T00:00:00").toISOString());
   assert.equal(f().filters.to, new Date("2026-11-04T00:00:00").toISOString());
-  assert.equal(f().filters.messageKey, "messaging.x");
+  assert.equal(f().filters.category, "campaign");
+  assert.equal("messageKey" in f().filters, false, "定義の鍵では絞らない");
   assert.equal(f().filters.status, "completed");
   assert.equal(f().filters.channel, undefined);
   await act(async () => f().clear());
   assert.deepEqual(f().filters, {});
   assert.equal(f().fields.fromDate, "");
+  // 種別を変えるとカテゴリーは空に戻る / 種別が無ければカテゴリーは送らない
+  await act(async () => f().fields.setKind("marketing"));
+  await act(async () => f().fields.setCategory("campaign"));
+  await act(async () => f().fields.setKind("direct"));
+  assert.equal(f().fields.category, "");
+  await act(async () => {
+    f().fields.setKind("");
+    f().fields.setCategory("orphan");
+  });
+  await act(async () => f().apply());
+  assert.equal(f().filters.category, undefined);
   assert.equal(hooks.dispatchFilterStartOf(""), undefined);
   assert.equal(hooks.dispatchFilterNextDay("x"), undefined);
   await view.unmount();
@@ -396,5 +414,21 @@ test("useMessageTemplateModal: 作った直後に 1 件がまだ無い間は読�
   await settle();
   assert.equal(view.value().state, "ready");
   assert.equal(view.value().template?.id, "slow-id");
+  await view.unmount();
+});
+
+test("useAdminDispatchCategories: 種別ごとの選択肢(表示名)と表示名の引き、種別が無ければ空", async () => {
+  const view = await mount(() => hooks.useAdminDispatchCategories(), {});
+  await settle();
+  const c = () => view.value();
+  assert.equal(c().loaded, true);
+  assert.deepEqual(c().optionsOf("marketing"), [
+    { value: "campaign", label: "キャンペーン" },
+    { value: "spring", label: "春の案内" },
+  ]);
+  assert.deepEqual(c().optionsOf(""), []);
+  assert.equal(c().labelOf("operatorDirect"), "運営からのご連絡");
+  assert.equal(c().labelOf("gone"), null);
+  assert.equal(c().labelOf(null), null);
   await view.unmount();
 });

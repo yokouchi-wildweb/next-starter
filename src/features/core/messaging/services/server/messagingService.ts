@@ -16,6 +16,7 @@ import {
   adminSendOptions,
   adminSendPreview,
   adminSendTest,
+  dispatchCategoryOptions,
   findDispatch,
   listDeliveries,
   listDispatches,
@@ -78,6 +79,8 @@ export const messagingService = {
   listDispatches,
   findDispatch,
   listDeliveries,
+  /** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別。管理) */
+  dispatchCategoryOptions,
   /** 利用者ごとの履歴(D37。配達を回と結び新しい順、本文・宛先なし)。server だけ・route なし: 読める人は呼び手の route が決める(管理者を確かめない) */
   listUserMessageHistory,
   /** 端末の帳簿: 本人の宛先の登録・削除・一覧(/api/me/messaging/endpoints が呼ぶ) */

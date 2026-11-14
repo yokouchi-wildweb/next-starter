@@ -425,7 +425,8 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
 
 ### 回の読む口（D37。汎用 CRUD の search に乗せない）
 
-- `GET /api/admin/messaging/dispatches`: 条件 `from`・`to`（作った時刻）・`messageKey`・`kind`・`channel`・`status`・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）
+- `GET /api/admin/messaging/dispatches/categories`: 回の画面の絞りの選択肢 `{ items: { key, label, kind }[] }`（カテゴリーの受け口の全部、fork の物も。門 `messagingDispatches`）。hook `useAdminDispatchCategories()`（`optionsOf(kind)` = その種別のカテゴリーを表示名で・`labelOf(key)` = 表示名、無ければ null）
+- `GET /api/admin/messaging/dispatches`: 条件 `from`・`to`（作った時刻）・`kind`・`category`・`channel`・`status`・`cursor`・`limit`（定義の鍵 `messageKey` では絞らない、D46）（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）
 - `GET /api/admin/messaging/dispatches/[id]` → `AdminDispatchDetail`（「同じ内容で送る」が写す `templateEdited`・`templateContent`（直して送った回の文言、ほかは null）・`audienceUserIds`（選んだ利用者に送った回の利用者 id。回が宛先の一覧を持てばそこから、数だけの回は配達の行から。10,000 人を超える回・ほかの宛先の形は null）を含む）
 - `GET /api/admin/messaging/dispatches/[id]/deliveries`: 条件 `status`・`channel`・`cursor`・`limit` → `{ items: AdminDeliveryRow[], nextCursor }`（古い順）
 - 返す項目は `services/server/admin/dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元・状態・経路・件名 / 題（headings）・数・送った人・時刻・テストかは常に、回の本文（rendered）と vars は記録の段が vars / full のとき、配達の vars は vars / full、配達の本文は full のときだけ、宛先は出す、provider の生の値（provider_message_id・事件の payload）と last_error の文は出さない（状態と reason の符号、失敗は last_error の符号の部分 `errorCode` で見る。文は `constants/deliveryErrors.ts`、画面の配達の行が「失敗の理由」に出す。例 `unsubscribe_key_missing` = 配信停止の鍵の env が無い）。前の送る口の回（message_key が null）は件名・題・本文を前の列から
@@ -461,9 +462,10 @@ export const bulkAction = bulkMessageAction(
 
 ### 送った回の管理画面（`/admin/messaging`、門 `messagingDispatches`、既定 開）
 
-- `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・定義の鍵・種別（7 つ、`constants/kindLabels.ts` の順と表示名）・経路・状態。入力と「絞り込む」での確定は hook `useAdminDispatchFilters(initialFilters)`）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
-- `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）。流れ（配達の絞り・`includeUnknown`・取り消す / 取り下げる / 再送 / 続きを送る と知らせ）は hook `useAdminDispatchDetail(dispatchId, { limit?, observerOptions? })`
-- loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatches`・`useAdminDispatchFilters`・`useAdminDispatchDetail`（中で `useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch` と操作の hook））
+- `/admin/messaging`: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・種別（7 つ、`constants/kindLabels.ts` の順と表示名）・カテゴリー（種別を選んだ後だけ、その種別の物を表示名で。種別を変えると空に戻る）・経路・状態。入力と「絞り込む」での確定は hook `useAdminDispatchFilters(initialFilters)`）+ 回の行（`common/DispatchRow`）の無限スクロール（カーソル）
+- `/admin/messaging/[id]`: 入れ物 `AdminDispatchDetail`（`dispatchId`）= 回の中身（状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名（受け口 sources に表示名がある時だけ、DTO `sourceLabel`）・経路ごとの数・送った人・時刻・本文は記録の段しだい）+ 「続きを送る」（状態 processing の回だけ、ConfirmPopover）+ 配達（状態・経路で絞る、カーソル、`common/DeliveryRow`）。流れ（配達の絞り・`includeUnknown`・取り消す / 取り下げる / 再送 / 続きを送る と知らせ）は hook `useAdminDispatchDetail(dispatchId, { limit?, observerOptions? })`
+- 運営する人に鍵を見せない（D46）: 一覧の行（`common/DispatchRow`、`categoryLabel?` は置き場が渡す）と詳細は 種別・カテゴリー・経路・送り元を表示名で出し、定義の鍵・送り元の鍵は出さない（`dispatchHeading` も鍵に落ちず「(件名なし)」）
+- loader は認可だけ（`roleCategories: ["admin"]`）。データは hook（`useAdminDispatchCategories`・`useAdminDispatches`・`useAdminDispatchFilters`・`useAdminDispatchDetail`（中で `useAdminDispatch`・`useAdminDispatchDeliveries`・`useContinueDispatch` と操作の hook））
 - 管理画面のページは 4 つ: 回の一覧 `/admin/messaging`・回の詳細 `/[id]`・テンプレートの一覧 `/templates`・文言の上書きの一覧 `/overrides`（作る・直す・送るはモーダル、D87）
 - 管理メニュー: `src/features/core/admin/menu/items/messagingDispatches.ts`（マーケティング > 送信の履歴）
 - 送るモーダルの口: 一覧の上に「新しく送る」、1 件に「同じ内容で送る」（`MessageSendModal`、門 `messagingBroadcast` が開の時だけ）

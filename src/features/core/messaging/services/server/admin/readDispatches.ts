@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
-import { MESSAGE_KINDS } from "@/lib/messaging";
+import { MESSAGE_KINDS, type MessageCategory, type MessageKind, type MessageSource } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../entities/schema";
@@ -36,8 +36,9 @@ export const ListDispatchesQuerySchema = z.object({
   /** 期間(作った時刻、from 以上 to 未満) */
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
-  messageKey: z.string().trim().min(1).optional(),
   kind: z.enum(MESSAGE_KINDS).optional(),
+  /** カテゴリーの鍵(画面は種別を選んだ後にその種別のカテゴリーから選ぶ。定義の鍵では絞らない、D46) */
+  category: z.string().trim().min(1).max(100).optional(),
   channel: z.string().trim().min(1).optional(),
   status: z.enum(MESSAGE_DISPATCH_STATUSES).optional(),
   cursor: z.string().min(1).optional(),
@@ -73,6 +74,8 @@ export type AdminDispatchStore = {
 
 export type AdminReadDeps = AdminCheckDeps & {
   dispatchStore: AdminDispatchStore;
+  /** 送り元の受け口(表示名。回の詳細は鍵を見せず表示名だけ、D46) */
+  sources: Readonly<Record<string, MessageSource>>;
   /** 回の操作の判定に要る値(連絡の性質と失敗の数) */
   operationInputs: (row: MessageDispatch) => Promise<{ policy: DispatchPolicy; counts: { failed: number; unknown: number } }>;
 };
@@ -104,7 +107,17 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   const row = await deps.dispatchStore.findDispatch(id);
   if (!row) throw new DomainError("送信記録が見つかりません", { status: 404 });
   const { policy, counts } = await deps.operationInputs(row);
-  return toDispatchDetail(row, operationFlags(row, policy, counts), await audienceUserIdsOf(deps, row));
+  return toDispatchDetail(row, operationFlags(row, policy, counts), await audienceUserIdsOf(deps, row), deps.sources[row.source]?.label ?? null);
+}
+
+/** 回の画面の絞りの選択肢: カテゴリー(受け口の全部、fork の物も)の鍵・表示名・種別。画面は種別ごとに並べる */
+export type AdminDispatchCategoryOption = { key: string; label: string; kind: MessageKind };
+
+export async function dispatchCategoryOptions(
+  deps: AdminCheckDeps & { categories: Readonly<Record<string, MessageCategory>> },
+): Promise<AdminDispatchCategoryOption[]> {
+  await assertAdminActor(deps);
+  return Object.values(deps.categories).map((category) => ({ key: category.key, label: category.label, kind: category.kind }));
 }
 
 /**

@@ -51,6 +51,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   content: Record<string, unknown> | null;
   /** 選んだ利用者に送った回の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる回は null */
   audienceUserIds: string[] | null;
+  /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
+  sourceLabel: string | null;
   /** 本文(記録の段が vars / full のときだけ。経路ごとの欄) */
   body: Record<string, unknown> | null;
   /** 共通の vars の写し(記録の段が vars / full のときだけ) */
@@ -129,6 +131,7 @@ export function toDispatchDetail(
   row: MessageDispatch,
   operations: DispatchOperationFlags,
   audienceUserIds: string[] | null = null,
+  sourceLabel: string | null = null,
 ): AdminDispatchDetail {
   const keep = keepsDispatchBody(row.record);
   return {
@@ -143,6 +146,7 @@ export function toDispatchDetail(
     templateEdited: row.template_edited,
     content: (row.authored_content as Record<string, unknown> | null) ?? null,
     audienceUserIds,
+    sourceLabel,
     // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
