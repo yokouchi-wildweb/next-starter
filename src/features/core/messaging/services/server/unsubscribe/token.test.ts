@@ -2,6 +2,7 @@
 // - 作って確かめると中身が戻る(宛先の hash・連絡の鍵・回の id つきも。mk / d の無い前のトークンも通る)
 // - 中身・署名の改ざん、版の違い、形の誤り、鍵の違い、鍵が無い → null
 // - URL は getAppBaseUrl() の起点 + /api/messaging/unsubscribe?token=(One-Click)/ /unsubscribe?token=(人が開くページ)
+// - unsubscribePageUrlForToken: 受け取ったトークンの字のままページの URL(無ければ /unsubscribe だけ)
 // 実行: pnpm test src/features/core/messaging/services/server/unsubscribe
 import { afterEach, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,6 +11,7 @@ import { createHmac } from "node:crypto";
 import {
   buildUnsubscribePageUrl,
   unsubscribePageUrlOf,
+  unsubscribePageUrlForToken,
   UNSUBSCRIBE_SECRET_ENV,
   buildUnsubscribeUrl,
   isUnsubscribeConfigured,
@@ -113,4 +115,16 @@ test("ページの URL はアプリの起点 + /unsubscribe?token=、One-Click �
   assert.equal(fromHeader.searchParams.get("token"), new URL(oneClick).searchParams.get("token"));
   assert.equal(unsubscribePageUrlOf("not a url"), null);
   assert.equal(unsubscribePageUrlOf("https://app.example.test/api/messaging/unsubscribe"), null, "トークンが無い");
+});
+
+test("unsubscribePageUrlForToken: 字のままのトークンでページの URL、無ければ /unsubscribe だけ", () => {
+  const page = new URL(unsubscribePageUrlForToken("abc.def"));
+  assert.equal(page.origin, "https://app.example.test");
+  assert.equal(page.pathname, "/unsubscribe");
+  assert.equal(page.searchParams.get("token"), "abc.def");
+  for (const token of [null, undefined, ""]) {
+    const bare = new URL(unsubscribePageUrlForToken(token));
+    assert.equal(bare.pathname, "/unsubscribe");
+    assert.equal(bare.search, "");
+  }
 });

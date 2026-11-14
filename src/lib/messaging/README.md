@@ -47,6 +47,32 @@ export const message = defineMessage({
 - `content`: 経路ごとの名前付きの欄(下)
 - `extras`: fork が足す欄の入れ物(メールの描き方の .replace が読む)
 
+## 定義で間違えやすい線(D77)
+
+定義の側の線。運用の側(その回は絞るだけ・種別まるごとの停止はデータだけ・グループは見出しだけ・法の義務の告知はメールを含める)は src/features/core/messaging/README.md の「運用で間違えやすい線」。
+
+### 種別と経路は種類(category)が持つ
+
+- 設計の意図: 配信停止の単位は種類 × 経路、止められるかなどの性質は種別。連絡ごとに書けると、同じ種類の中で経路や性質がばらけ、利用者の切ったマスと届く物がずれる(D81・D86)
+- どう書くか: 定義は `category` だけを書く(`kind`・`channels` は書けない)。経路は種類の `channels`、種別は種類の `kind`。種別の一覧と性質は上の項目の `MESSAGE_KIND_TRAITS`
+
+### 種類の粒 = 利用者から見て 1 つの出来事(D79)
+
+- 設計の意図: 種類は停止の単位で、集計と絞り込みの物差し。粒が種別ごと・ドメインごとにばらけると、止める単位も数える単位も揃わない。止められない種別の種類も同じ粒にする
+- どう書くか: 「〜した時」と言える単位で切る。属する連絡はその出来事の文言・条件の違い。ドメイン・機能の単位(auth・account・wallet-expiry など)にはしない
+  - 例: いいねをされた時(likeReceived)・フォローされた時・出品した物が売れた時(itemSold)・投稿にコメントが付いた時・メールアドレスの確認(emailVerification)・パスワードの再設定(passwordReset)・アカウントのロック(accountLocked)・会員登録が完了した時(registrationComplete)・ポイントの失効が近づいた時(walletExpiring)・ポイントが失効した時(walletExpired)
+  - 上流の種類の一覧: src/features/core/messaging/README.md「連絡を足すとき」
+
+### 種類と種別は付け替えない(止めて足す)
+
+- 設計の意図: 上書きで種類・種別を変えると、止めた行・集計・上流の検査が知らないうちに変わる(D74)
+- どう書くか: 連絡の上書きは `category` を変えられず、種類の上書きは `key`・`kind` を変えられない(`label`・`description`・`channels`・`group` だけ)。別の種類で送りたい = 上流の連絡を `enabled: false` で止め、自分の種類と連絡を足す(例は messaging の README)
+
+### 機能の連絡(functional)は止められない
+
+- 設計の意図: 止めると機能が壊れる(D68)。性質 `upstreamDisable: false`・`adminTextOverride: false`・`throttle: false`・`emailFixed: true`
+- どう書くか: 上書きの `enabled: false`・種類の上書きで email を外すことは `pnpm check extensions`(messageGuards)で、管理画面の文言の欄(`adminEditable`)・間引きは実行時の `validateMessageDefinition`(`kind_admin_editable` / `kind_throttle`)でも止まる。文面は上書きの `content` かメールの描き方の `.replace` で変える
+
 ## 経路ごとの欄(MessageContent)
 
 `MessageContent` = 経路の鍵の Record。欄の値は文字列で `{{鍵}}` を差し込める。上流の経路:

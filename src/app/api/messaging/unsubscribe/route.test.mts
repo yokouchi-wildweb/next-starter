@@ -2,7 +2,7 @@
 // /api/messaging/unsubscribe の検査(Factory と記録の service は偽物、トークンの検査は本物)。
 // - POST ?token=: 正しければ記録して JSON { ok: true }(メールソフトのワンクリックの本文 List-Unsubscribe=One-Click でも同じ)
 // - 無い・壊れたトークンは 400 JSON。古い引数の名前 ?t= は受けない。HTML は返さない(Accept: text/html でも JSON)
-// - GET は無い(export しない)
+// - GET ?token=: 止めずに同じトークンのまま確認のページ /unsubscribe?token= へ 303(誤った・無いトークンもページへ。?t= は運ばない)
 // 実行: pnpm test src/app/api/messaging/unsubscribe/route.test.mts
 
 import assert from "node:assert/strict";
@@ -19,6 +19,7 @@ mock.module("@/features/core/messaging/services/server/unsubscribe", {
   namedExports: {
     UNSUBSCRIBE_TOKEN_PARAM: tokenModule.UNSUBSCRIBE_TOKEN_PARAM,
     verifyUnsubscribeToken: tokenModule.verifyUnsubscribeToken,
+    unsubscribePageUrlForToken: tokenModule.unsubscribePageUrlForToken,
     recordUnsubscribe: async (payload: unknown) => {
       recorded.push(payload);
       return { recorded: true };
@@ -27,6 +28,7 @@ mock.module("@/features/core/messaging/services/server/unsubscribe", {
 });
 
 process.env[tokenModule.UNSUBSCRIBE_SECRET_ENV] = "test-secret";
+process.env.APP_BASE_URL = "https://app.example.test";
 const route = await import("./route.ts");
 const USER = "user:3f1c2b9a-1d2e-4f50-8a9b-0c1d2e3f4a5b";
 const token = tokenModule.signUnsubscribeToken({ recipientKey: USER, category: "marketing", channel: "email" });
@@ -64,6 +66,29 @@ test("無い・壊れた・古い引数 t のトークンは 400 JSON で記録�
   assert.equal(recorded.length, 0);
 });
 
-test("GET は無い", () => {
-  assert.equal("GET" in route, false);
+const get = (query: string) =>
+  route.GET(new NextRequest(`http://localhost/api/messaging/unsubscribe${query}`, { method: "GET" }));
+
+test("GET は止めずに同じトークンのまま確認のページへ 303", async () => {
+  const res = await get(`?token=${encodeURIComponent(token)}`);
+  assert.equal(res.status, 303);
+  const location = new URL(res.headers.get("location") ?? "");
+  assert.equal(location.origin, "https://app.example.test", "起点は getAppBaseUrl()(リクエストの Host ではない)");
+  assert.equal(location.pathname, "/unsubscribe");
+  assert.equal(location.searchParams.get("token"), token);
+  assert.equal(recorded.length, 0);
+});
+
+test("GET の誤った・無いトークン・古い引数 t もページへ 303(ページが誤りを見せる)", async () => {
+  const bad = new URL((await get("?token=x.y")).headers.get("location") ?? "");
+  assert.equal(bad.pathname, "/unsubscribe");
+  assert.equal(bad.searchParams.get("token"), "x.y");
+  for (const query of ["", `?t=${encodeURIComponent(token)}`]) {
+    const res = await get(query);
+    assert.equal(res.status, 303, query);
+    const location = new URL(res.headers.get("location") ?? "");
+    assert.equal(location.pathname, "/unsubscribe");
+    assert.equal(location.search, "", query);
+  }
+  assert.equal(recorded.length, 0);
 });
