@@ -1,13 +1,13 @@
 // src/features/core/messaging/components/common/SendContentFields/index.tsx
-// 部品(props だけ): 送るモーダルの文言の欄(送る経路ごと)。
-// - その場で書く: メール = 件名・本文 / お知らせ = 題・本文
-// - テンプレートを呼び出した時: 版の欄の写しを経路の欄の部品 TemplateChannelFields で直す。変数の値も入れる
-// - 文言の無い経路は空欄で見せ、「文言がありません」の印(送る前に止まる)
+// 部品(props だけ): 送るモーダルの文言の欄(送る経路ごと)。その場で書く時もテンプレートを呼び出した時も経路の欄の部品
+// TemplateChannelFields(メール = 件名・プレヘッダー・見出し・段落・ボタン・フッター / お知らせ = 題・本文・画像(上げる・替える・外す)・行き先 /
+// LINE = 本文 / fork の経路 = 欄の JSON)。テンプレートの時は変数の値も入れる(source が決めるのはそれだけ)。
+// 文言の無い経路は空欄で見せ、「文言がありません」の印(送る前に止まる)
 
 "use client";
 
 import { SoftBadge } from "@/components/Badge";
-import { Input, Textarea } from "@/components/Form/Input/Manual";
+import { Input } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -27,14 +27,11 @@ export type SendContentFieldsProps = {
   onVarChange?: (key: string, value: string) => void;
 };
 
-const str = (value: unknown) => (typeof value === "string" ? value : "");
-
 export function SendContentFields({ source, channels, content, onChange, variables = [], vars = {}, onVarChange }: SendContentFieldsProps) {
   return (
     <Stack space={4} data-slot="send-content-fields">
       {channels.map((channel) => {
         const fields = content[channel.key] ?? {};
-        const set = (name: string, value: string) => onChange(channel.key, { ...fields, [name]: value });
         return (
           <Stack key={channel.key} space={2}>
             <Flex align="center" gap="xs">
@@ -47,31 +44,7 @@ export function SendContentFields({ source, channels, content, onChange, variabl
                 </SoftBadge>
               ) : null}
             </Flex>
-            {source === "template" ? (
-              <TemplateChannelFields channel={channel.key} value={fields} onChange={(next) => onChange(channel.key, next)} />
-            ) : channel.key === "email" ? (
-              <>
-                <Label htmlFor="send-email-subject" className="text-sm">
-                  件名
-                </Label>
-                <Input id="send-email-subject" value={str(fields.subject)} onChange={(e) => set("subject", e.target.value)} />
-                <Label htmlFor="send-email-body" className="text-sm">
-                  本文
-                </Label>
-                <Textarea id="send-email-body" value={str(fields.body)} rows={8} onChange={(e) => set("body", e.target.value)} />
-              </>
-            ) : (
-              <>
-                <Label htmlFor={`send-${channel.key}-title`} className="text-sm">
-                  題
-                </Label>
-                <Input id={`send-${channel.key}-title`} value={str(fields.title)} onChange={(e) => set("title", e.target.value)} />
-                <Label htmlFor={`send-${channel.key}-body`} className="text-sm">
-                  本文
-                </Label>
-                <Textarea id={`send-${channel.key}-body`} value={str(fields.body)} rows={4} onChange={(e) => set("body", e.target.value)} />
-              </>
-            )}
+            <TemplateChannelFields channel={channel.key} value={fields} onChange={(next) => onChange(channel.key, next)} />
           </Stack>
         );
       })}

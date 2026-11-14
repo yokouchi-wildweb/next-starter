@@ -20,6 +20,6 @@ export const bulkAction: BankTransferReviewAdminBulkActionItem = bulkMessageActi
     recordNoun: "振込レビュー",
     label: "メール一斉送信",
     defaultCategory: "operatorDirect",
-    defaults: { inAppTitle: "お振込に関するお知らせ", inAppBody: DEFAULT_IN_APP_BODY },
+    defaults: { content: { inApp: { title: "お振込に関するお知らせ", body: DEFAULT_IN_APP_BODY } } },
   },
 );

@@ -6,6 +6,7 @@
 // - sameAs: 文面・カテゴリー・宛先の形を写す / テンプレートの回は呼び出しの形 / 選んだ利用者の回は同じ利用者 /
 //   直して送った回は直した文言(今の公開版で)/ 公開中でないテンプレートはその場で書く形 + 知らせ
 // - 経路の表示名は送る・一括送信とも選択肢の label(お知らせ)
+// - その場で書く時も経路の欄の形(メールの全部の欄・お知らせの画像・LINE・fork の経路)。空の任意の欄は落とし、プレビュー・テスト・送るは同じ中身
 // - bulk: 選んだ記録が宛先、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
 // 実行: pnpm test src/features/core/messaging/hooks/sendModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -33,6 +34,7 @@ const template = {
 };
 const categories = [
   { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], audiences: ["all", "role", "audience"] },
+  { key: "lineNotice", label: "LINE のお知らせ", kind: "announcement", channels: ["email", "inApp", "line", "fax"], audiences: ["role"] },
   { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"] },
   { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], audiences: ["all", "users", "bulk"] },
 ];
@@ -144,7 +146,7 @@ test("純粋な関数", () => {
   assert.equal(hooks.scheduleErrorOf("at", new Date(now - 1000).toISOString(), 90, now), "予約の時刻は今より後にしてください");
   assert.match(hooks.scheduleErrorOf("at", new Date(now + 91 * 86_400_000).toISOString(), 90, now) ?? "", /90 日先まで/);
   assert.deepEqual(hooks.templateVarsForInput(template as never, { discount: "15" }), { discount: 15 });
-  const adhoc = hooks.initialDraftOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { inAppTitle: "題" } }, []);
+  const adhoc = hooks.initialDraftOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { content: { inApp: { title: "題" } } } }, []);
   assert.equal(hooks.isBlankChannel(adhoc, "email"), true);
   assert.equal(hooks.isBlankChannel({ ...adhoc, content: { ...adhoc.content, inApp: { title: "題", body: "本文" } } }, "inApp"), false);
   assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: { type: "role", roles: ["user"] } } as never }), {
@@ -263,8 +265,8 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   await act(async () => m().setOpen(true));
   assert.equal(m().category, "notice");
   assert.deepEqual(m().audience.roles, ["user"]);
-  assert.deepEqual(m().draft.content.email, { subject: "元の件名", body: "" }, "本文を残さない回は件名だけ");
-  assert.match(m().contentError ?? "", /文言がありません/);
+  assert.deepEqual(m().draft.content.email, { subject: "元の件名", paragraphs: [] }, "本文を残さない回は件名だけ");
+  assert.equal(m().contentError, null, "件名・題があれば送れる(段落・本文は任意、経路の zod と同じ線)");
   await view.unmount();
 
   const fromTemplate = await mount(() =>
@@ -301,7 +303,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   );
   await act(async () => gone.value().setOpen(true));
   assert.equal(gone.value().draft.source, "adhoc");
-  assert.deepEqual(gone.value().draft.content.email, { subject: "件名X", body: "段1\n\n段2" });
+  assert.deepEqual(gone.value().draft.content.email, { subject: "件名X", paragraphs: ["段1", "段2"] }, "欄の形のまま写す");
   assert.match(gone.value().sameAsNote ?? "", /写しました/);
   await gone.unmount();
 
@@ -317,7 +319,7 @@ test("bulk: 選んだ記録が宛先、bulk の API、予約は無い、見込�
   const sentResults: unknown[] = [];
   const view = await mount(() =>
     hooks.useMessageSendModal({
-      mode: { type: "bulk", target: "bankTransferReview", recordIds: ["r1", "r2"], recordNoun: "振込レビュー", defaults: { inAppTitle: "題", inAppBody: "本文" } },
+      mode: { type: "bulk", target: "bankTransferReview", recordIds: ["r1", "r2"], recordNoun: "振込レビュー", defaults: { content: { inApp: { title: "題", body: "本文" } } } },
       onSent: (r) => sentResults.push(r),
     }),
   );
@@ -349,5 +351,44 @@ test("bulk: 選んだ記録が宛先、bulk の API、予約は無い、見込�
   assert.equal(input.category, "operatorDirect");
   assert.equal("scheduledAt" in input, false);
   assert.equal(sentResults.length, 1);
+  await view.unmount();
+});
+
+test("その場で書く: 経路の欄の形で全部の経路、空の任意の欄は落とし、プレビュー・テスト・送るは同じ中身", async () => {
+  const view = await mount(() => hooks.useMessageSendModal({ mode: NEW }));
+  const m = () => view.value();
+  await act(async () => m().setOpen(true));
+  await act(async () => m().setAudience({ type: "role", roles: ["user"] }));
+  await act(async () => m().setCategory("lineNotice"));
+  assert.deepEqual(m().channels.map((c) => c.key), ["email", "inApp", "line", "fax"], "LINE と fork の経路も出る");
+  assert.match(m().contentError ?? "", /文言がありません/);
+  await act(async () => {
+    m().setChannelFields("email", { subject: "件名", preheader: "", heading: "見出し", paragraphs: ["段1", "段2"], cta: { label: "", url: "" }, footer: "足元" });
+    m().setChannelFields("inApp", { title: "題", body: "本文", image: "storage://notification.image/a.png", link: "" });
+    m().setChannelFields("line", { text: "LINE の文" });
+  });
+  assert.equal(m().channels.find((c) => c.key === "fax")?.blank, true, "fork の経路は欄が無ければ空");
+  await act(async () => m().setChannelFields("fax", { number: "03" }));
+  assert.equal(m().contentError, null);
+  await act(async () => {
+    await m().runPreview();
+    await m().sendTest();
+    await m().requestConfirm();
+  });
+  const expected = {
+    email: { subject: "件名", heading: "見出し", paragraphs: ["段1", "段2"], footer: "足元" },
+    inApp: { title: "題", body: "本文", image: "storage://notification.image/a.png" },
+    line: { text: "LINE の文" },
+    fax: { number: "03" },
+  };
+  const previewInput = calls.find((c) => c[0] === "preview")![1] as Record<string, unknown>;
+  const testInput = calls.find((c) => c[0] === "test")![1] as Record<string, unknown>;
+  assert.deepEqual(previewInput.content, expected);
+  assert.deepEqual(testInput.content, expected);
+  assert.equal("template" in previewInput, false);
+  await act(async () => {
+    await m().confirmSend();
+  });
+  assert.deepEqual((calls.find((c) => c[0] === "send")![1] as Record<string, unknown>).content, expected);
   await view.unmount();
 });
