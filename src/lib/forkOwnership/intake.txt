@@ -124,6 +124,7 @@ edit src/app/admin/(protected)/samples/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/samples/sort/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/settings/[[]section[]]/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/settings/page.tsx  # 画面の 1 行スイッチ
+edit src/app/admin/(protected)/user-groups/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/user-tags/[[]id[]]/edit/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/user-tags/new/page.tsx  # 画面の 1 行スイッチ
 edit src/app/admin/(protected)/user-tags/page.tsx  # 画面の 1 行スイッチ

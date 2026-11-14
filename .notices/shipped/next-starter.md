@@ -506,3 +506,4 @@
 - id:20261114-224029-user-group-evaluation | severity:action-required | checkpoint:user-group-evaluation
 - id:20261114-234356-user-group-writes | severity:action-required | checkpoint:user-group-writes
 - id:20261115-003837-user-group-admin-api | severity:info | checkpoint:user-group-admin-api
+- id:20261115-013345-user-group-admin-screens | severity:info | checkpoint:user-group-admin-screens

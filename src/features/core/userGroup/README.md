@@ -2,7 +2,7 @@
 
 利用者の集まり（グループ）を名前つきで持つ core ドメイン（評議会の決定 D96〜D104）。連絡の宛先・限定ページ・ガチャの参加資格など、送ること以外にも多くのドメインが使う。呼び方は「ユーザーグループ」に揃え、「オーディエンス（audience）」の語は使わない（D100）。
 
-今あるもの: 表・条件の部品の受け口と上流の部品 6 つ・条件の定義の木の検査・評価の口（count・isMember・listMemberIds・evaluate）・静的グループへ書く口（replaceMembers・addMembers・removeMembers）・定期計算の cron（user-group-recompute）・管理の API（`/api/admin/user-groups/**`）・門・設定。管理画面は次の指令で足す。
+今あるもの: 表・条件の部品の受け口と上流の部品 6 つ・条件の定義の木の検査・評価の口（count・isMember・listMemberIds・evaluate）・静的グループへ書く口（replaceMembers・addMembers・removeMembers）・定期計算の cron（user-group-recompute）・管理の API（`/api/admin/user-groups/**`）・管理画面（`/admin/user-groups`）・門・設定。
 
 ## 線（どこまでがグループか）
 
@@ -130,8 +130,27 @@ if (result.status === "incomplete") return { ok: true, pending: true }; // 次�
   - `from` = `{ type: "users", userIds }`（選んだ利用者）| `{ type: "group", groupId }`（別のグループの今の一員、どの種類でも）| `{ type: "tag", tagId }`（タグの今の持ち主）
   - 1 回の要求の予算は `admin.freezeBudgetMs`（50 秒、route の `maxDuration` 60 秒の内側）。終わらなければ `members.status: "incomplete"`（前の一員のまま。作ったばかりなら空）を返すので、**画面が `[id]/members { mode: "replace", from }` を同じ `from` で送り直す**と置き換えの下書きの続きから書く（呼ぶたびに少なくとも 1 束は進む。サーバーは元を覚えない）
   - 人数の上限は 409（置き換えは下書きを消す、足すは書かない）
+- 一員と例外の人の一覧・一員を外す（静的グループの一員の画面・例外の人を外す操作が使う）
+  - `GET /api/admin/user-groups/[id]/members?cursor&limit` 静的グループの一員 → `{ items: [{ id, name }], nextCursor }`（表示名、利用者 id の順のカーソル、`limit` 1〜100 既定 50。静的でないグループは 409）
+  - `POST /api/admin/user-groups/[id]/members { mode: "remove", userIds }` → `{ memberCount }`（静的でないグループは 409）
+  - `GET /api/admin/user-groups/[id]/exceptions?side=include|exclude&cursor&limit` 例外の人 → `{ items: [{ id, name }], nextCursor }`（`limit` 1〜100 既定 50、例外がまだ無ければ空。静的グループは 409）
 - `GET /api/admin/user-groups/criteria` 条件の部品の一覧 `{ criteria: [{ key, label, description, weight, weightLabel, fields }], options: { roles, statuses, tags, staticGroups }, kinds }`。`key` は定義の木の値としてだけ使い、画面は `label` を出す。選択肢を画面に任せていた欄（`hasTag` の `tagIds`・`inStaticGroup` の `groupId`）は `fields` にも選択肢を入れて返す（タグと静的グループは `admin.optionsLimit` 500 件まで、例外の持ち主付きは出さない）
 - 監査（`auditLogger.record`、`targetType` `user_group`、操作した管理者が actor）: `user_group.group.created` / `updated` / `archived`・`user_group.exceptions.updated`・`user_group.members.replaced`（置き換え終えた時）/ `added`。metadata は名前・種類・数（利用者 id は入れない）。fork の system の task が静的グループへ書く口を直に呼んでも監査の行は書かない
+
+## 管理画面（`/admin/user-groups`）
+
+- 住所: `src/app/admin/(protected)/user-groups/page.tsx`（1 行スイッチ）→ `_screen/AdminUserGroupListScreen.tsx` + `_screen/loader.ts`（access 管理者カテゴリ、門 `userGroups` が閉なら notFound）。メニューの行 `admin/menu/items/userGroups.ts`（利用者の分類、門が閉なら住所ごと隠れる）
+- 一覧（`components/AdminUserGroupList`、hook `useAdminUserGroupList`）: 種類・状態（既定 使用中。保管は選んだ時だけ）で絞る無限スクロール（カーソル）。行（`common/UserGroupRow`）= 名前・種類の表示名・人数（`counted` 人 / `estimated` 約 N 人 / `not_computed` 数えていない / `none` まだ無い）・定期計算の間隔と最後の計算と失敗（`common/UserGroupRecomputeStatus`）。「新しく作る」と行で作る・直すモーダル
+- 作る・直すモーダル（`components/AdminUserGroupModal`、hook `useUserGroupModal` + `useUserGroupForm`。TabbedModal、書きかけ・固定の途中で閉じる時は `confirmOnClose`、ページの移動は `useUnsavedGuard`）
+  - 基本: 名前・説明・種類（作る = 動的・定期計算・固定、直す = 動的 ⇄ 定期計算だけ）・定期計算の間隔（既定 / 1 時間〜7 日）と最後の計算・失敗の理由・サーバーの `notices`。固定を作る時は一員の元（`common/UserGroupStaticSourceFields`: 選んだ人 / タグを持つ今の人 / 固定のグループの今の一員）
+  - 条件（動的・定期計算）: 条件の組み立て（`common/UserGroupConditionBuilder`、hook `useUserGroupConditionBuilder`）・重い条件の注意（動的で heavy を含む = 1 人ずつの確かめに使えない、定期計算をすすめる）・人数の見込みと試し（`common/UserGroupEstimateView`、hook `useUserGroupEstimate`: 押した時だけ保存しない定義を数え、時間の上限などの理由はサーバーの言葉のまま）
+  - 一員（固定）: 一員の一覧（表示名、カーソル）と、利用者を選ぶ部品（user の `UserAsyncMultiSelect`）で足す・1 人ずつ外す（`common/UserGroupMemberList`、hook `useUserGroupStaticMembers`）
+  - 例外の人（動的・定期計算）: 入れる人・外す人の 2 つの一覧と足す・外す（`common/UserGroupExceptionsEditor`、hook `useUserGroupExceptions`）と「今の人で固定」（今の一員で新しい固定のグループを作る。元のグループは残る、D51）
+  - 下の帯: 保管（ConfirmPopover）・保存（直す = 変えた欄だけ PATCH。読むだけの条件は作り直さない限り送らない）。作った後は同じモーダルでその 1 件を直す形に変わる
+- 条件の組み立て（2 段まで）: 根の組（すべて満たす and / どれか 1 つを満たす or）の中に条件と組、組の中は条件だけ。どの条件・組にも「当てはまらない人」（not）。条件は部品の `label` で選び、引数の欄は部品の `fields` を FieldRenderer で描く（`common/UserGroupCriterionFields` + hook `useUserGroupCriterionArgs`: 日時は ISO の文字、空の欄は落とす。選択肢は条件の部品の一覧の API の label）。画面で組めない深い定義（3 段以上・not の重なり）は読むだけで出し、「作り直す」で空の組から組む
+- 固定の流れ（hook `useUserGroupFreeze`、モーダルの hook が持つ）: `POST static` の後、`members.status` が `incomplete` の間は同じ `from` で `[id]/members { mode: "replace" }` を自動で送り直し、進み具合（書いた人数）を出す（`common/UserGroupFreezeProgress`）。閉じると止める（グループは残り、同じ元で入れ替えれば続きから）
+- 部品と hook は公開（hook の入口 `hooks/index.ts`、部品は `components/<Name>` / `components/common/<Part>`）。入れ物は hook を呼んで部品を並べるだけ。fork は自分の画面に同じ部品・モーダルを置ける。内部の鍵・id は画面に出さない（D94）
+- client service: `services/client/userGroupAdminClient.ts`（axios + normalizeHttpError、型は server の DTO と入力の zod を型だけ読む）
 
 ## 設定（`config.ts`、上書き `src/config/features/userGroup.config.ts`）
 
