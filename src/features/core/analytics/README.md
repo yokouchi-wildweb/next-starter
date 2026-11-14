@@ -90,6 +90,10 @@ purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `wall
 - 住所: 規則 `messagingAnalytics`（`dependsOn: ["analytics"]`、既定 開 = analytics が開なら開。paymentAnalytics / walletAnalytics と同じ形）。route は管理者だけ
 - 関数が測る物の開閉を自分で確かめる: 開封・クリックは計測 `messagingTracking` が閉なら `null`（0 と区別、`trackingEnabled: false`）、回ごとのビューは回の管理 `messagingDispatches` が閉なら空（`dispatchesEnabled: false`）
 - 絞り（共通）: `channel` / `messageKey` / `category`（期間は共通クエリパラメータ）
+- クライアント / フック（画面は置かない。fork の画面がそのまま使う）: `services/client/messagingAnalyticsClient.ts`（fetchMessagingSummary / fetchMessagingSeries / fetchMessagingBreakdown(axis, params) / fetchMessagingDispatches）+ 1 本 1 ファイルのフック（入口の index は無い。ファイルの path で読む）
+  - `hooks/useMessagingAnalyticsSummary.ts` / `useMessagingAnalyticsSeries.ts`: SWR（`(params, { enabled?, config? })`、鍵 = 期間と絞りの値）
+  - `hooks/useMessagingAnalyticsBreakdown.ts`: SWR（`(axis, params, options)`、axis が null なら取らない）
+  - `hooks/useMessagingAnalyticsDispatches.ts`: 回ごとは増え続ける一覧なので `useInfiniteScrollQuery` のカーソルのモード（`{ params, limit?（既定 20）, enabled? }`、期間・絞りが変われば先頭から。`InfiniteScrollList` に渡す）。結果の横に直近の応答の `dispatchesEnabled` / `trackingEnabled`（まだ無ければ null）
 
 指標（`MessagingCounts`）と出どころ:
 
