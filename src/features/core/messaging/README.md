@@ -46,7 +46,7 @@ src/features/core/messaging/
 │                                #       useAdminMessageTemplateList / useMessageTemplateModal / useMessageTemplateForm / useMessageTemplateVersion(s) / useAdminMessageOverrideList / useMessageOverrideEditor / useModalSession
 ├── components/
 │   ├── InboxList/               # 入れ物: 受け取り箱の一覧（詳細・既読・すべて既読）
-│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（config で出す。上流の枠は置かない、fork が自分の枠に置く）
+│   ├── InboxUnreadModal/        # 入れ物: 未読を 1 件ずつ見せるモーダル（上流の利用者の枠が置く。門 messagingInbox と config で出す）
 │   ├── Unsubscribe/             # 入れ物: 配信停止の確認のページの中身（確認 → 止める → 結果）
 │   ├── UnsubscribeConfirm/      # 部品: 配信停止の確認（止める種類と経路・ボタン）
 │   ├── UnsubscribeResult/       # 部品: 配信停止の結果（止めた / リンクが正しくない）
@@ -355,9 +355,9 @@ D18・D32。`createMeRoute`（本人に束ねる。機能の門は持たない =
   - `components/common/InboxItemRow`（1 行。押すと `onOpen(item)`）・`InboxItemDetail`（1 件の中身。題は包む Modal が持つ）・`InboxUnreadMark`（未読の点）
   - 入れ物 `components/InboxList`（`unreadOnly?`・`limit?`・`emptyText?`）と `components/InboxUnreadModal`
 - 一覧の流れ: hook `useInboxList(options)` → `{ query, unreadCount, opened, open, close, markAll, isMarkingAll }`（開く → 既読 → `updateItems`、全部既読 → `updateItems` + 知らせ）。入れ物 `InboxList` はこれと部品を並べるだけ
-- 未読のモーダル: 入れ物 `InboxUnreadModal`（部品を並べるだけ）+ 流れの hook `useInboxUnreadModal({ enabled?, paths? })`（config・住所 `isInboxModalPath`（末尾 `*` で前方一致）・ログイン・確かめた印（sessionStorage）・古い順・見せたら既読・`next` / `skip`（全部既読）/ `close`）。上流の枠には置かない: 使う fork は自分の枠（`UserLayout.replace`）に `<InboxUnreadModal />` を置く。`config.ts` の `inbox.showUnreadModal`（既定 false）= 置いた部品が出るか、`inbox.unreadModalPaths`（既定 `["/"]`）、上書きは `src/config/features/messaging.config.ts`
+- 未読のモーダル: 入れ物 `InboxUnreadModal`（部品を並べるだけ）+ 流れの hook `useInboxUnreadModal({ enabled?, paths? })`（config・住所 `isInboxModalPath`（末尾 `*` で前方一致）・ログイン・確かめた印（sessionStorage）・古い順・見せたら既読・`next` / `skip`（全部既読）/ `close`）。上流の利用者の枠（`src/app/(user)/_layout/UserLayout.tsx`）が外枠の末尾に置く（fork の `UserLayout.replace` は既定の `UserLayout` を描けば付く。もう 1 つ置くと 2 重）。お知らせの機能（門 `messagingInbox`）が閉なら hook は何もしない（取りに行かない、`enabled` を渡しても）。`config.ts` の `inbox.showUnreadModal`（既定 true）= 門が開の間に出すか、`inbox.unreadModalPaths`（既定 `["/"]`）、上書きは `src/config/features/messaging.config.ts`
 - ページ `/messages`（`src/app/(user)/(protected)/messages/`）: `page.tsx` の 1 行スイッチ → `_screen/MessagesScreen.tsx`（題「お知らせ」+ `InboxList`）+ `_screen/loader.ts`（access authenticated、閉なら notFound）。初めの一覧もサーバーでは取らない（入れ物が hook で取る）
-- 門: 規則 `messagingInbox`（`src/featureGate/rules/messagingInbox.ts`、住所 `/messages`、既定 閉）。API と表は常に開（domains は持たない）。開ける fork は `src/config/featureGate/switches.config.ts`
+- 門: 規則 `messagingInbox`（`src/featureGate/rules/messagingInbox.ts`、住所 `/messages`、既定 閉）。API と表は常に開（domains は持たない）。閉の間は枠の未読のモーダルも出ない。開ける fork は `src/config/featureGate/switches.config.ts`
 
 ---
 

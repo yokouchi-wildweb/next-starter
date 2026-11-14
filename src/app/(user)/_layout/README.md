@@ -52,7 +52,7 @@ src/app/(user)/_layout/
 | `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | 本文の包みの後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
 
-- 未読のお知らせのモーダルは枠に置かない（上流の枠は描かない）。使う fork は自分の枠（`UserLayout.replace`）に messaging の公開の部品 `InboxUnreadModal`（`@/features/core/messaging/components/InboxUnreadModal`）を置く。出すかは `messagingConfig.inbox.showUnreadModal`（既定 切）、出す住所は `inbox.unreadModalPaths`（上書き `src/config/features/messaging.config.ts`）。流れは hook `useInboxUnreadModal`（自前のモーダルを組む時もこれを呼ぶ）
+- 未読のお知らせのモーダル: 既定の `UserLayout` が外枠の末尾（ボトムナビの後）に messaging の公開の部品 `InboxUnreadModal`（`@/features/core/messaging/components/InboxUnreadModal`）を置く（slot ではない）。お知らせの機能（門 `messagingInbox`）が閉、または `messagingConfig.inbox.showUnreadModal`（既定 入）が切なら何も描かず取りに行かない。出す住所は `inbox.unreadModalPaths`（既定 `["/"]`、上書き `src/config/features/messaging.config.ts`）。`UserLayout.replace` は既定の `UserLayout` を描けばそのまま付く（自分の枠にもう 1 つ置くと 2 重に出る）。流れは hook `useInboxUnreadModal`（自前のモーダルを組む時もこれを呼ぶ。門と config もここで見る）
 - slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は 1 行スイッチ化の前と同じ(test で固定。寸法変数の区切りで入った差分 2 か所は下の「寸法の CSS 変数」)
 - banner を渡すと、帯の実測の高さを外枠の `--app-banner-height` に書き、ヘッダーの top と本文(本文の包みの前のスペーサー)をその分押し下げる。SP メニューもヘッダーの下から開く。差し替えたヘッダーは `top-0` の代わりに `top-[var(--app-banner-height,0px)]` を使う(使わないと帯に被る)
 
