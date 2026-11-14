@@ -500,3 +500,4 @@
 - id:20261113-232517-messaging-send-modal | severity:breaking | checkpoint:messaging-send-modal
 - id:20261114-091232-messaging-admin-modals | severity:breaking | checkpoint:messaging-admin-modals
 - id:20261114-100638-messaging-user-side | severity:breaking | checkpoint:messaging-user-side
+- id:20261114-105945-messaging-finish | severity:info | checkpoint:messaging-finish

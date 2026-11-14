@@ -286,10 +286,11 @@ D35・D45・D71。本人が好みを見て切り替える口（`services/server/
 
 - トークン = base64url(JSON {v:1, r, c, ch, a?, mk?, d?}) + . + HMAC-SHA256(MESSAGING_UNSUBSCRIBE_SECRET)。`mk` = 送った連絡の鍵・`d` = 送った回の id（送る口が宛先ごとに入れる。後から足したので、無い前のトークンも同じ版で通り、結び付きは null）。`services/server/unsubscribe` の signUnsubscribeToken / verifyUnsubscribeToken / isUnsubscribeConfigured。引数の名前は `token`（API とページで同じ、`UNSUBSCRIBE_TOKEN_PARAM`）
 - 住所は 2 つ: One-Click の POST の先 = `buildUnsubscribeUrl`（getAppBaseUrl() + /api/messaging/unsubscribe?token=、List-Unsubscribe のヘッダ。RFC 8058 のメールソフトはここへ POST する）/ 人が開く確認のページ = `buildUnsubscribePageUrl`（getAppBaseUrl() + /unsubscribe?token=、メールの本文のリンク）。メールの項目はヘッダの URL から `unsubscribePageUrlOf` で同じトークンのページの URL を作る（好みのページが開いていれば本文のリンクはそちら）
-- API は POST だけ（RFC 8058 のワンクリックと確認のページのボタン、ログイン不要）。JSON を返す（`{ ok: true }`、トークンの誤りは 400 `{ ok: false, error: "invalid_token" }`）。HTML も GET も無い。止める行: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
+- 止めるのは POST だけ（RFC 8058 のワンクリックと確認のページのボタン、ログイン不要）。JSON を返す（`{ ok: true }`、トークンの誤りは 400 `{ ok: false, error: "invalid_token" }`）。HTML は返さない（GET は下の 303 だけ）。止める行: user:<id> → message_preferences（種類 × 経路、source one_click）、addr:<hash> → message_suppressions（reason one_click、scope = 種類）。何度届いても同じ。トークンの誤りは 400
 - 停止を連絡・回に結ぶ: どちらの行にも `source_message_key`・`source_dispatch_id`（トークンの mk / d）を書く。好みのページからの停止・前のトークン・バウンスなどの停止は null（集計の「結び付き無し」）。同じ行が既にあれば書き換えない（最初の停止の出どころが残る）。`source_dispatch_id` は FK を持たない（回は保持の掃除で消えるが、停止の行は残す）
 - 確認のページ `/unsubscribe`（`src/app/(user)/(public)/unsubscribe/`、`page.tsx` の 1 行スイッチ → `_screen/UnsubscribeScreen.tsx` + `_screen/loader.ts`、access public、門の外で常に開く D90）: loader がトークンを確かめ（`describeUnsubscribeToken` = 止める種類と経路の表示名、書き込みなし）、入れ物 `components/Unsubscribe` が確認（部品 `UnsubscribeConfirm`）→ hook `useUnsubscribe(token)` の `submit`（client `postUnsubscribe` = API の POST）→ 結果（部品 `UnsubscribeResult`: 止めた + 通知の設定への案内（門で閉じていれば棚の Link が描かない）/ リンクが正しくない）。見た目は fork が `_components/` の Screen で差し替える
-- 古い `GET /api/messaging/unsubscribe?t=…` のリンクを新しいページへ移す口は作らない（D42。引数の名前も `t` から `token` に変わった）
+- `GET /api/messaging/unsubscribe?token=…`（List-Unsubscribe のヘッダの URL を人が開いた時、One-Click に対応しないメールソフト）: 止めずに同じトークンのまま確認のページ `/unsubscribe?token=…` へ 303（`unsubscribePageUrlForToken`、起点は `getAppBaseUrl()`）。トークンは確かめない（誤りはページが見せる）。止めるのは POST だけ
+- 古い `GET /api/messaging/unsubscribe?t=…` のリンクを新しいページへ移す口は作らない（GET は `?t=` を運ばない）（D42。引数の名前も `t` から `token` に変わった）
 - 鍵 MESSAGING_UNSUBSCRIBE_SECRET は pnpm ops setup env が乱数で作る（既にある env ファイルにも足りなければ足す）。変えると送ったメールの停止のリンクは無効になる
 
 ---
@@ -407,7 +408,7 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
   - `mode`: `{ type: "new" }`（回の一覧の「新しく送る」）/ `{ type: "sameAs", dispatch }`（回の詳細の「同じ内容で送る」。文面・カテゴリー・宛先の形を写す。本文を残さない回は件名・題だけで本文は空、テンプレートの回はそのテンプレートを今の公開版で呼び出す）/ `{ type: "bulk", target, recordIds, recordNoun, defaults?, defaultCategory?, source? }`（管理一覧の一括操作、`bulkMessageAction` が描く）
   - new・sameAs の口は門 `messagingBroadcast` が開の時だけ（置き場の入れ物 `AdminDispatchList` / `AdminDispatchDetail` が出し分ける）。bulk は門の外
 - 流れ: テンプレートを呼び出す（門 `messagingTemplates` が開で公開中の物がある時だけ）→ 今の公開版の文言が書く欄に写る → 直す → 宛先（全員・ロール・宛先の集め方・選んだ利用者 / bulk は選んだ記録）→ カテゴリー（宛先の種類で選べる物、D80）→ 経路の絞り（カテゴリーの経路の中、既定は全部オン）→ 文言の無い経路は空欄で見せて送る前に止める（サーバーの 400 と同じ線）→ 送る時刻（今 / 予約。予約の粒度の注記。bulk は予約なし）→ プレビュー・自分にテスト送信 → 確認へ（見込み = 宛先数、送る時に数え直す。bulk は選んだ記録の数）→ 送る → 結果（状態・回へのリンク・bulk は afterSend の成否）
-- 部品（props だけ、`components/common/`）: `SendTemplatePicker`（選んで呼び出す・呼び出し中の名前と版）・`SendContentFields`（その場で書く件名 / 題と本文、テンプレートは経路の欄 `TemplateChannelFields`、文言なしの印、変数の値）・`SendAudiencePicker`（`kind: "select"` の宛先の選び / `kind: "bulk"` の選んだ記録の数）・`SendCategoryChannels`（カテゴリーと経路の切り替え）・`SendSchedule`（今 / 予約・注記・誤り）・`SendConfirmView` / `SendResultView`（確認と結果）・`MessagePreview`
+- 部品（props だけ、`components/common/`）: `SendTemplatePicker`（選んで呼び出す・呼び出し中の名前と版）・`SendContentFields`（その場で書く件名 / 題と本文、テンプレートは経路の欄 `TemplateChannelFields`、文言なしの印、変数の値）・`SendAudiencePicker`（`kind: "select"` の宛先の選び / `kind: "bulk"` の選んだ記録の数）・`SendCategoryChannels`（カテゴリーと経路の切り替え）・`SendLegalNotice`（法の義務の告知はメールを経路に含める注意、D83。いつも出し、メールがオフなら警告の色。送るのは止めない）・`SendSchedule`（今 / 予約・注記・誤り）・`SendConfirmView` / `SendResultView`（確認と結果）・`MessagePreview`
 - hook `useMessageSendModal({ mode, onSent? })`: 開閉・段（edit → confirm → done）・中身（`draft`: その場で書く / 呼び出したテンプレートの欄の写し）・宛先・カテゴリー・経路・予約・プレビュー・テスト送信・見込み → 確認・送る（new / sameAs = `POST /send`、bulk = `POST /bulk-send`、プレビューとテストも bulk は `/bulk-send/preview`・`/bulk-send/test`）・二重送信を防ぐ鍵（開くたびに 1 つ、送った後に作り直す）・`dirty`（`@/lib/unsavedGuard` でページの移動を確かめ、`closeConfirm` を Modal へ）。まだ触っていない欄の初めの値（sameAs の写し・bulk の既定）は state に入れず mode と選択肢から導く。選択肢は開いている間だけ取る（new / sameAs = `useAdminSendOptions`、bulk = `useAdminBulkSendOptions`）。純粋な関数 `scheduleErrorOf` / `templateVarsForInput` / `isBlankChannel` / `draftFromTemplate` / `initialDraftOf` / `initialAudienceOf`
 
 ### `/api/admin/messaging/bulk-send`（一括送信）
@@ -534,6 +535,64 @@ D47。送った後の事件を fork のコードが受ける口（events = outbo
 - 集計の注意: 前の送る口で送ったお知らせは前の回の行（`message_key` null）も残るので、写した回と同じお知らせが 2 つの回に出る。analytics は `source` `legacy.notification` の回を受け取り箱の既読の数だけに使い、送信・到達の数には入れない
 
 ---
+
+## 運用で間違えやすい線（D77）
+
+仕組みが線を引いた所。どれも「できない」ではなく「別の書き方で表す」。定義の側の書き方（種類が種別と経路を持つ・付け替えない・粒）は src/lib/messaging/README.md の同じ名前の節。
+
+### 経路はカテゴリー（種類）が決める
+
+- 設計の意図: 配信停止の単位は種類 × 経路（D35）。経路が回ごと・連絡ごとに変わると、利用者が切ったマスと実際に届く経路がずれ、好みのページの表が嘘になる。だから経路は種類 1 か所が持ち、属する連絡は全部その経路で届く（D86）
+- どう書くか: 経路を変えたい = 種類の経路を変える（上流の種類なら `categories/<名前>.override.ts` の `channels`、functional・security は email を外せない `emailFixed`）。1 本の連絡だけ別の経路で届けたい = 別の種類を足し、その連絡をそちらに属させる
+
+```ts
+// src/features/<domain>/categories/itemSoldInApp.ts(fork、お知らせだけで届けたい「出品した物が売れた時」)
+import type { MessageCategory } from "@/lib/messaging";
+
+export const category: MessageCategory = {
+  key: "itemSoldInApp",
+  label: "出品した物が売れた時(お知らせ)",
+  kind: "activity",
+  channels: ["inApp"],
+};
+```
+
+### その回は経路を絞るだけ
+
+- 設計の意図: コードから自動で送る連絡は経路を選ばない（`channels` を渡さない）。管理者が手で送る時だけ、種類の経路の中で絞れる（足せない、外は 400）。回にはその回に使った経路が残る
+- どう書くか: 送る口の `channels?` は管理の送信（`/send`・`/bulk-send`）と送るモーダルの経路のスイッチだけ。経路の組ごとに送り分けたいなら、組ごとに種類を作る（例 `campaignMail` = email だけ、`campaign` = email + inApp）
+
+### 種別とカテゴリーは付け替えず、止めて足す
+
+- 設計の意図: 種別（7 つ）は止められるか・好み・住所の停止・記録の既定の性質を決め（`MESSAGE_KIND_TRAITS`）、種類は停止の単位と集計の軸。上書きで付け替えると、利用者が止めた行・集計の物差し・上流の検査（required・emailFixed）が知らないうちに変わる。だから上書きは `category` を変えられず、種類の上書きは `key`・`kind` を変えられない（D74）
+- どう書くか: 上流の連絡を別の種類（別の種別）で送りたい = 上流の連絡を `messages/<名前>.override.ts` の `enabled: false` で止め、自分のドメインに自分の種類（`categories/<名前>.ts`）と自分の連絡（`messages/<名前>.ts`、`pnpm generate message`）を足し、送り手からそれを呼ぶ
+
+```ts
+// src/features/core/wallet/messages/expiredNotice.override.ts(fork: 上流の連絡を止める。上流の functional は止められない)
+import type { MessageOverride } from "@/lib/messaging";
+
+export const messageOverride = { enabled: false } satisfies MessageOverride;
+```
+
+### 機能の連絡（functional）は上書きで止められない
+
+- 設計の意図: functional は機能に組み込まれた連絡（メールアドレスの確認・パスワードの再設定など）。止めると機能が壊れる（届かない確認のリンクで登録が終わらない）。だから種別の性質 `upstreamDisable` が false で、上書きの `enabled: false`・文言の上書き（`adminTextOverride`）・間引き・email を外すことは検査で止まる（D68）
+- どう書くか: 文面を変えたい = `messages/views/<名前>.replace.tsx`（メールの描き方）か上書きの文言の欄（`content`、functional は管理画面の上書きは不可だが fork のファイルの上書きは可）。流れごと替えたい = 送り手（auth など）の側の口を替える（その時は上流の連絡は呼ばれない）
+
+### 種別まるごとの停止はデータだけ
+
+- 設計の意図: 種別まるごとの行（`message_preferences` の `kind` X、`'*'` `'*'`）は fork が後から足す種類にも当たる広い停止。上流の既定の画面はスイッチを出さない（どの種別を利用者に見せるかは fork の判断、D62）が、送る口・受け取り箱・好みの見え方は同じ判定でこの行を見る（D71）。会員登録で宣伝に同意しなかった人は marketing の種別まるごとの行（source `signup`）
+- どう書くか: 見せたい fork は hook `useMessagePreferences` の `setKind(kind, stop)` と `preferences.kinds` で自分の部品を置く。サーバーから書くなら `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
+
+### グループは見出しだけ
+
+- 設計の意図: グループ（`categoryGroups/`）は好みのページで種類を束ねる見出し。止める単位ではない（D82）。グループで止められると、後から種類を足した時に止めた人に届くかが決まらない
+- どう書くか: 種類の上書き・自分の種類で `group` を付ける（同じ種別の種類だけ）。まとめて止めさせたいなら、まとめる物を 1 つの種類にする（粒の線は src/lib/messaging/README.md）
+
+### 法の義務の告知はメールを経路に含める（D83）
+
+- 設計の意図: 届かなかった人の一覧は専用の口を作らず、回の配達を状態で絞って出す。全員・ロール宛てのお知らせ（inApp）は共有の 1 行で配達の行を持たないので、誰に届かなかったかを数えられない
+- どう書くか: 法の義務で必ず届ける告知（規約の変更など）は email を含む種類で送る（送るモーダルも経路の下に注意を出す、部品 `SendLegalNotice`）。届かなかった人は回の配達 `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`（`bounced`・`suppressed`・`unknown` も）で取り、行の `reason`・`errorCode` で理由を見る
 
 ## 連絡を足すとき
 

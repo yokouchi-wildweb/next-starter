@@ -1,0 +1,14 @@
+# DOWNSTREAM NOTICE id:20261114-105945-messaging-finish
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-11-14T10:59:45+09:00
+severity: info
+checkpoint: messaging-finish
+change: (1) src/features/core/messaging/README.md gains 「運用で間違えやすい線（D77）」 and src/lib/messaging/README.md 「定義で間違えやすい線(D77)」: for each line the design intent and how to express it (channels come from the category, a send only narrows, kinds and categories are never reassigned = stop the upstream message and add your own, functional messages cannot be stopped, whole-kind stops are data only, groups are headings only, category grain = one event seen by the user with examples (D79), legal notices must include email (D83)). (2) The send modal shows a new props-only part SendLegalNotice (@/features/core/messaging/components/common/SendLegalNotice, prop emailOn) under the category and channels: always shown, warning tone when email is off; it never blocks sending. (3) GET /api/messaging/unsubscribe?token=… (a person opening the List-Unsubscribe header URL) now answers 303 to /unsubscribe?token=… with the same token (origin getAppBaseUrl(), the token is not checked: the page shows an invalid one). Stopping stays POST only; ?t= is not carried. New server helper unsubscribePageUrlForToken in services/server/unsubscribe.
+why: The lines the mechanism draws were not written down with their intent and the way to express a need instead, so forks misused them or built detours (D77). Inbox-only broadcasts keep no delivery rows, so a legal notice without email cannot be checked for failed deliveries (D83). Mail clients without RFC 8058 open the header URL with GET, which used to answer 405.
+required_actions:
+1. Merge upstream up to this checkpoint.
+2. A fork that replaced the send modal container (copied MessageSendModal into its own _components/) and wants the legal-notice note: place <SendLegalNotice emailOn={…} /> under its channel switches. Find: git grep -n "SendCategoryChannels" -- src ':!src/features/core'
+verify: pnpm typecheck, pnpm lint, pnpm test, pnpm check pass; curl -i "<origin>/api/messaging/unsubscribe?token=abc" answers 303 with Location <app base url>/unsubscribe?token=abc and records nothing
+manual_steps: -
+refs: src/features/core/messaging/README.md (運用で間違えやすい線, 配信停止の受け口と確認のページ, 送るモーダル), src/lib/messaging/README.md (定義で間違えやすい線), council 20261108-120538-system-messaging-templates (legate l2, order 43)
+notes: No DB change. Screen fixes and look adjustments of the messaging-finish segment may follow in later commits of the same segment.

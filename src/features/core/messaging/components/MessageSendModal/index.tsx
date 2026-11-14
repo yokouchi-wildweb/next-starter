@@ -25,6 +25,7 @@ import { SendAudiencePicker } from "@/features/core/messaging/components/common/
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
 import { SendContentFields } from "@/features/core/messaging/components/common/SendContentFields";
+import { SendLegalNotice } from "@/features/core/messaging/components/common/SendLegalNotice";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
 import { SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
 import {
@@ -167,6 +168,7 @@ export function MessageSendModal({
             channels={m.channels}
             onToggleChannel={m.toggleChannel}
           />
+          <SendLegalNotice emailOn={onChannels.some((channel) => channel.key === "email")} />
         </Block>
         <Block title="文言">
           <SendContentFields

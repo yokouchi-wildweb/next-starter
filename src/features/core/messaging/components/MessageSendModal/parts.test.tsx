@@ -4,6 +4,7 @@
 // - SendAudiencePicker: bulk は選んだ記録の数だけ / select は種類の選び
 // - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印
 // - SendSchedule: 予約の時だけ時刻・注記・誤り
+// - SendLegalNotice: 法の義務の告知の注意(D83)をいつも出し、メールがオフなら警告の色
 // - SendConfirmView / SendResultView: 見込み・一括の数・予約・版 / 状態・後処理・回へのリンク
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/parts.test.tsx
 import { after, before, mock, test } from "node:test";
@@ -60,6 +61,7 @@ let parts: {
   SendAudiencePicker: typeof import("../common/SendAudiencePicker").SendAudiencePicker;
   SendCategoryChannels: typeof import("../common/SendCategoryChannels").SendCategoryChannels;
   SendSchedule: typeof import("../common/SendSchedule").SendSchedule;
+  SendLegalNotice: typeof import("../common/SendLegalNotice").SendLegalNotice;
   SendConfirmView: typeof import("../common/SendConfirmView").SendConfirmView;
   SendResultView: typeof import("../common/SendConfirmView").SendResultView;
 };
@@ -72,6 +74,7 @@ before(async () => {
     ...(await import("../common/SendAudiencePicker")),
     ...(await import("../common/SendCategoryChannels")),
     ...(await import("../common/SendSchedule")),
+    ...(await import("../common/SendLegalNotice")),
     ...(await import("../common/SendConfirmView")),
   };
 });
@@ -237,4 +240,17 @@ test("SendConfirmView / SendResultView", async () => {
   assert.match(result.container.textContent ?? "", /送った後の処理に失敗しました: x/);
   assert.ok(result.container.querySelector("a[href='/admin/messaging/d1']"));
   await result.unmount();
+});
+
+test("SendLegalNotice: 注意をいつも出し、メールがオフなら警告の色", async () => {
+  const on = await render(createElement(parts.SendLegalNotice, { emailOn: true }));
+  const onNote = on.container.querySelector("p");
+  assert.ok(onNote?.textContent?.includes("経路にメールを含めてください"));
+  assert.ok(onNote?.className.includes("text-muted-foreground"));
+  await on.unmount();
+  const off = await render(createElement(parts.SendLegalNotice, { emailOn: false }));
+  const offNote = off.container.querySelector("p");
+  assert.ok(offNote?.textContent?.includes("経路にメールを含めてください"));
+  assert.ok(offNote?.className.includes("text-warning-text"));
+  await off.unmount();
 });

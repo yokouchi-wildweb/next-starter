@@ -20,6 +20,7 @@ export {
   buildUnsubscribePageUrl,
   buildUnsubscribeUrl,
   unsubscribePageUrlOf,
+  unsubscribePageUrlForToken,
   isUnsubscribeConfigured,
   signUnsubscribeToken,
   verifyUnsubscribeToken,

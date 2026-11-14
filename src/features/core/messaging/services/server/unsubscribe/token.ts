@@ -140,6 +140,16 @@ export function buildUnsubscribePageUrl(payload: UnsubscribeTokenPayload): strin
 }
 
 /**
+ * 受け取ったトークン(確かめていない字のまま)の確認のページの URL。無い・空 = /unsubscribe だけ(ページが誤りを見せる)。
+ * API の GET(List-Unsubscribe のヘッダの URL を人が開いた時)の 303 の先。起点は getAppBaseUrl()(Host の値では作らない)
+ */
+export function unsubscribePageUrlForToken(token: string | null | undefined): string {
+  const url = new URL(UNSUBSCRIBE_PAGE_PATH, getAppBaseUrl());
+  if (token) url.searchParams.set(UNSUBSCRIBE_TOKEN_PARAM, token);
+  return url.toString();
+}
+
+/**
  * One-Click の URL(ヘッダの値、<> 付きでもよい)を同じトークンの確認のページの URL にする。
  * メールの項目が本文のリンクを作る時に使う(ヘッダの URL しか持たないため)。読めなければ null
  */
