@@ -24,12 +24,26 @@ export type UserGroupConfig = {
    * - sampleLimit: evaluate が返す試しの一覧の件数
    */
   evaluation: { timeoutMs: number; listLimitMax: number; sampleLimit: number };
+  /**
+   * 静的グループへ書く口(replaceMembers・addMembers・removeMembers)
+   * - batchSize: 1 つの束で書く利用者の数(置き換えの下書き・足す・外すの 1 文)
+   */
+  write: { batchSize: number };
+  /**
+   * 定期計算(cron user-group-recompute)
+   * - budgetMs: 1 回の実行の時間の予算(createDeadline)。尽きたら次の回に版の再開の位置から続ける
+   * - batchSize: 1 つの束で版に書く利用者の数
+   * - defaultIntervalMinutes: グループの間隔(recompute_interval_minutes)が null の時の間隔。cron は毎時なので、細かい値は次の毎時に丸まる
+   */
+  recompute: { budgetMs: number; batchSize: number; defaultIntervalMinutes: number };
 };
 
 const defaults: UserGroupConfig = {
   memberLimit: 100_000,
   definition: { maxNodes: 50, maxDepth: 6 },
   evaluation: { timeoutMs: 10_000, listLimitMax: 1000, sampleLimit: 20 },
+  write: { batchSize: 1000 },
+  recompute: { budgetMs: 240_000, batchSize: 1000, defaultIntervalMinutes: 1440 },
 };
 
 export const userGroupConfigDef = defineConfig(defaults, { label: "userGroup" });

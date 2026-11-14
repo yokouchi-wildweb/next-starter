@@ -504,3 +504,4 @@
 - id:20261114-134752-messaging-send-fields | severity:breaking | checkpoint:messaging-send-fields
 - id:20261114-203349-user-group-foundation | severity:action-required | checkpoint:user-group-foundation
 - id:20261114-224029-user-group-evaluation | severity:action-required | checkpoint:user-group-evaluation
+- id:20261114-234356-user-group-writes | severity:action-required | checkpoint:user-group-writes

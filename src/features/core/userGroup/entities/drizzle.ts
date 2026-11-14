@@ -3,7 +3,8 @@
 // - user_groups: グループ 1 つ(種類・状態・例外の静的グループの持ち主・定期計算の今の版)
 // - user_group_definitions: 動的・定期計算の条件の定義の木(グループに 1 つ)
 // - user_group_members: 静的グループの一員(グループ × 利用者で一意)
-// - user_group_versions: 定期計算の版(計算の時刻・失敗・人数)。今の版は user_groups.current_version
+// - user_group_versions: 定期計算の版(計算の時刻・失敗・人数)。今の版は user_groups.current_version。
+//   静的グループの置き換えの下書きもこの表の computing の行に書き、書き終えたら一員へ入れ替えて消す
 // - user_group_version_members: 定期計算の版ごとの一員(計算し終えた版を一度に切り替える)
 // FK の名前は短く付ける(drizzle の自動の名前は 63 字を超えて切られる)
 
@@ -28,6 +29,8 @@ export const UserGroupTable = pgTable(
     status: text("status").$type<UserGroupStatus>().notNull().default("active"),
     /** 定期計算の今の版(user_group_versions.version、null = まだ計算し終えた版が無い)。scheduled だけ */
     current_version: integer("current_version"),
+    /** 定期計算の間隔(分。scheduled だけ。null = 設定の既定 recompute.defaultIntervalMinutes)。最後の版の計算の開始からこの間隔で期限が来る */
+    recompute_interval_minutes: integer("recompute_interval_minutes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -80,6 +83,11 @@ export const UserGroupVersionTable = pgTable(
     /** 失敗の理由(status failed の時) */
     error: text("error"),
     member_count: integer("member_count"),
+    /**
+     * 書きかけの版の再開の位置(書き終えた最後の利用者 id。利用者 id の昇順で書く)。null = まだ書いていない。
+     * 定期計算の版と、静的グループの置き換えの下書き(静的グループの computing の版)が使う
+     */
+    resume_after: uuid("resume_after"),
   },
   (table) => [
     foreignKey({ name: "user_group_versions_group_fk", columns: [table.group_id], foreignColumns: [UserGroupTable.id] }).onDelete("cascade"),

@@ -2,7 +2,7 @@
 
 利用者の集まり（グループ）を名前つきで持つ core ドメイン（評議会の決定 D96〜D104）。連絡の宛先・限定ページ・ガチャの参加資格など、送ること以外にも多くのドメインが使う。呼び方は「ユーザーグループ」に揃え、「オーディエンス（audience）」の語は使わない（D100）。
 
-今あるもの: 表・条件の部品の受け口と上流の部品 6 つ・条件の定義の木の検査・評価の口（count・isMember・listMemberIds・evaluate）・門・設定。静的グループへ書く口・定期計算の cron・管理画面は次の指令で足す。
+今あるもの: 表・条件の部品の受け口と上流の部品 6 つ・条件の定義の木の検査・評価の口（count・isMember・listMemberIds・evaluate）・静的グループへ書く口（replaceMembers・addMembers・removeMembers）・定期計算の cron（user-group-recompute）・門・設定。管理画面は次の指令で足す。
 
 ## 線（どこまでがグループか）
 
@@ -20,10 +20,10 @@
 
 ## 表
 
-- `user_groups`: id（uuid）・name・description・kind・owner_group_id・status・current_version・created_at・updated_at
+- `user_groups`: id（uuid）・name・description・kind・owner_group_id・status・current_version・recompute_interval_minutes（定期計算の間隔の分、null = 設定の既定）・created_at・updated_at
 - `user_group_definitions`: group_id（主キー）・tree（jsonb、条件の定義の木）・has_heavy・updated_at
 - `user_group_members`: group_id × user_id（主キー）・created_at（利用者を消すと cascade）
-- `user_group_versions`: id・group_id × version（一意）・status（computing / ready / failed）・started_at・computed_at・error・member_count
+- `user_group_versions`: id・group_id × version（一意）・status（computing / ready / failed）・started_at・computed_at・error・member_count・resume_after（書きかけの版の再開の位置 = 書き終えた最後の利用者 id）。静的グループの置き換えの下書きもこの表の computing の行（書き終えたら消える）
 - `user_group_version_members`: version_id × user_id（主キー）
 
 ## 条件の部品（受け口 `criteria`）
@@ -83,11 +83,40 @@ export const criterion: UserGroupCriterion<typeof args> = {
 - 誤り（DomainError）: 門が閉 404（黙って false・全員に置き換えない）・無いグループ 404・グループの id の形 400・しまった（archived）409・壊れた条件（部品が無い・引数が今の zod に合わない）409・その場の定義の誤り 400・時間の上限 503
 - 部品は db・部品の一覧・設定・門・時刻を受けて作る（`createUserGroupEvaluator`）。`--db` のテストは戻す取引を渡す
 
+## 静的グループへ書く口（`userGroupService` / `staticMemberWriter`、`services/server/writes`）
+
+- `replaceMembers(groupId, source, { deadline?, maxChunks?, restart? })` → `{ status: "replaced", memberCount, added, removed, skipped }` か `{ status: "incomplete", staged, skipped }`
+  - `source` = 利用者 id の配列か、keyset の供給 `(after, limit) => after より大きい id を昇順で limit 件`（空 = 終わり。`UserIdSupplier`）
+  - 新しい一員を静的グループの下書き（`user_group_versions` の computing の行 + `user_group_version_members`）へ利用者 id の昇順に束ごと（`write.batchSize`）に書き、書き終えたら 1 つの取引で `user_group_members` と入れ替える。読む側（評価の口・`inStaticGroup` の部品）は入れ替えの commit まで前の一員を見る。残る一員の `created_at` は変わらない
+  - 締切（既定 = 今 + `recompute.budgetMs`）で止まれば `incomplete`（前の一員のまま）。同じ供給でもう一度呼ぶと `resume_after` から続ける。`restart: true` は下書きを捨てて最初から
+  - 無い・削除された利用者は書かずに `skipped` に数える
+- `addMembers(groupId, userIds)` → `{ added, skipped, memberCount }` / `removeMembers(groupId, userIds)` → `{ removed, memberCount }`: 1 つの取引（グループの行を FOR UPDATE、入れ替えと重ならない）
+- 人数の上限（`memberLimit`）: 置き換えは下書きが超えた束で止めて下書きを消し 409（理由つき、前の一員のまま）、足すは書かずに 409。黙って途中で切らない
+- 誤り: 門が閉 404・id の形 400・無いグループ 404・しまった 409・静的でない（動的・定期計算）409
+- 監査の行は書かない: 管理者の操作は管理の API（次の指令）が記録する。fork の system の task はここで書かない
+- fork の使い方: SQL で書けない条件（外のサービスの値・重い集計）は fork の task / cron（`runAsSystem` の中）で利用者を選び、keyset の供給で `replaceMembers` へ渡す。`incomplete` が返れば次の実行で同じ呼び出しを繰り返す。動的グループからは `inStaticGroup` の部品で使う
+
+```ts
+const result = await userGroupService.replaceMembers(groupId, async (after, limit) => myVipUserIds({ after, limit }));
+if (result.status === "incomplete") return { ok: true, pending: true }; // 次の実行で続き
+```
+
+## 定期計算（cron `user-group-recompute`、`services/server/recompute`）
+
+- 毎時 55 分（UTC）。**Vercel Hobby（`pnpm generate cron -- --plan hobby`）では 1 日 1 回**になり、グループの間隔が 1 日より短くても 1 日 1 回しか計算しない。門 `userGroups` が閉なら門番が飛ばす（task.ts が userGroup を import するので、生成の一覧の cronTasks に載る）
+- 期限: 使える（active）定期計算のグループのうち、書きかけの版がある（続きを書く）か、最後の版の計算の開始から間隔（`recompute_interval_minutes`、null = `recompute.defaultIntervalMinutes` 既定 1440 = 24 時間）が過ぎたもの。版が無ければすぐ。cron は毎時なので、細かい間隔は次の毎時に丸まる
+- 計算: 保存した条件の木を SQL にし（heavy の部品も使える）、削除されていない利用者を id の昇順に束ごと（`recompute.batchSize`）に新しい版へ書く。条件の時刻の基準は版の計算の開始（何回に分けて書いても 1 つの時点の一員）。締切（`recompute.budgetMs`）で止まれば次の回に `resume_after` から続ける。版の行を `FOR UPDATE SKIP LOCKED` で取るので並走する実行と重ならない
+- 切り替え: 書き終えたら 1 つの取引で版を ready（`computed_at`・`member_count`）にし、`current_version` を切り替え、今の版と 1 つ前の版を残して他の版を消す。読む側は切り替えの commit まで前の版を読む
+- 失敗: 条件が壊れた・人数の上限を超えた・書く途中の誤り = 版を failed（理由を `error`）、今の版はそのまま。失敗の版は一番新しい 1 つだけ残す。次の期限でもう一度計算する
+- 結果: `{ checked, due, switched, failed, incomplete, budgetExhausted }`（`task_runs` に残る）
+
 ## 設定（`config.ts`、上書き `src/config/features/userGroup.config.ts`）
 
 - `memberLimit`（既定 100,000、D102）: グループ宛ての送信が送り始めに書き出す人数と、静的グループに入れる人数の上限。超える時は送る前・作る前に理由つきで止める（黙って途中で切らない）
 - `definition.maxNodes`（既定 50）・`definition.maxDepth`（既定 6、根 = 1）
 - `evaluation.timeoutMs`（既定 10,000）・`evaluation.listLimitMax`（既定 1,000）・`evaluation.sampleLimit`（既定 20）
+- `write.batchSize`（既定 1,000）: 静的グループへ書く口の 1 つの束の人数
+- `recompute.budgetMs`（既定 240,000）・`recompute.batchSize`（既定 1,000）・`recompute.defaultIntervalMinutes`（既定 1,440）
 
 ## 門 `userGroups`（`src/featureGate/rules/userGroups.ts`、既定 閉）
 
@@ -98,4 +127,4 @@ export const criterion: UserGroupCriterion<typeof args> = {
 ## 登録
 
 - `services/server/domainEntry.ts`（手書き）: `userGroup` = 表 `user_groups`、access `INTERNAL_ONLY`（汎用 API に出さない。管理の API は専用の口）
-- 表は `pnpm generate registry` が schemaRegistry に入れる。新しい表なので `pnpm db:push` の後に `pnpm db:push:check` = 0
+- 表は `pnpm generate registry` が schemaRegistry に入れる。表・列を足したら `pnpm db:push` の後に `pnpm db:push:check` = 0

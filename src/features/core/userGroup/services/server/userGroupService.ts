@@ -1,9 +1,10 @@
 // src/features/core/userGroup/services/server/userGroupService.ts
-// ユーザーグループの service: CRUD の土台 + 評価の口(count・isMember・listMemberIds・evaluate、./evaluation)。
-// 作る・直す・静的グループへ書く口・定期計算は次の指令
+// ユーザーグループの service: CRUD の土台 + 評価の口(count・isMember・listMemberIds・evaluate、./evaluation)
+// + 静的グループへ書く口(replaceMembers・addMembers・removeMembers、./writes)。定期計算は cron(./recompute)。作る・直す口は次の指令
 
 import { userGroupBase } from "./drizzleBase";
 import { userGroupEvaluator } from "./evaluation";
+import { staticMemberWriter } from "./writes";
 
 export const userGroupService = {
   ...userGroupBase,
@@ -11,4 +12,7 @@ export const userGroupService = {
   isMember: userGroupEvaluator.isMember,
   listMemberIds: userGroupEvaluator.listMemberIds,
   evaluate: userGroupEvaluator.evaluate,
+  replaceMembers: staticMemberWriter.replaceMembers,
+  addMembers: staticMemberWriter.addMembers,
+  removeMembers: staticMemberWriter.removeMembers,
 };
