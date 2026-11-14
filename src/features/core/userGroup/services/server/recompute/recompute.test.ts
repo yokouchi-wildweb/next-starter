@@ -27,3 +27,10 @@ test("配列の供給: 重複と形の誤りを落とし、昇順に after の�
   assert.deepEqual(await supply(b, 2), [c]);
   assert.deepEqual(await supply(c, 2), []);
 });
+
+test("期限: 条件の定義を最後の版の開始より後に直したらすぐ(前なら間隔どおり)", () => {
+  const latest = { status: "ready" as const, startedAt: ago(10) };
+  assert.equal(isRecomputeDue({ recompute_interval_minutes: null }, latest, NOW, 1440, ago(5)), true);
+  assert.equal(isRecomputeDue({ recompute_interval_minutes: null }, latest, NOW, 1440, ago(15)), false);
+  assert.equal(isRecomputeDue({ recompute_interval_minutes: null }, latest, NOW, 1440, null), false);
+});

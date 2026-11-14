@@ -1,7 +1,8 @@
 // src/features/core/userGroup/services/server/recompute/recompute.ts
 // 定期計算(D103、cron user-group-recompute の本体)。部品(db・部品の一覧・設定・時刻)を受けて作る(--db のテストは戻す取引を渡す)。
 // - 期限: 使える(active)定期計算のグループのうち、書きかけの版がある(続きを書く)か、最後の版の計算の開始から
-//   間隔(user_groups.recompute_interval_minutes、null = 設定の recompute.defaultIntervalMinutes)が過ぎたもの。版が無ければすぐ
+//   間隔(user_groups.recompute_interval_minutes、null = 設定の recompute.defaultIntervalMinutes)が過ぎたもの。版が無ければすぐ。
+//   条件の定義(例外の人の変更を含む)を最後の版の計算の開始より後に直したグループもすぐ(書きかけの版は捨てて新しい版から)
 // - 計算: 保存した条件の木を SQL にして(heavy の部品も使える)、削除されていない利用者を id の昇順に束ごとに版へ書く。
 //   条件の時刻の基準は版の計算の開始(started_at)= 何回に分けて書いても 1 つの時点の一員になる。
 //   締切で止まったら次の回に版の resume_after から続ける
@@ -53,9 +54,12 @@ export function isRecomputeDue(
   latest: Pick<UserGroupVersion, "status" | "startedAt"> | null,
   now: Date,
   defaultIntervalMinutes: number,
+  /** 条件の定義を最後に直した時刻(例外の人の変更を含む)。最後の版の開始より後なら期限が来ている */
+  definitionUpdatedAt: Date | null = null,
 ): boolean {
   if (!latest) return true;
   if (latest.status === "computing") return true;
+  if (definitionUpdatedAt && definitionUpdatedAt.getTime() > latest.startedAt.getTime()) return true;
   const minutes = group.recompute_interval_minutes ?? defaultIntervalMinutes;
   return latest.startedAt.getTime() + Math.max(0, minutes) * MINUTE <= now.getTime();
 }
@@ -71,6 +75,15 @@ export function createUserGroupRecompute(deps: UserGroupRecomputeDeps) {
   async function latestVersion(groupId: string): Promise<UserGroupVersion | null> {
     const [row] = await deps.db.select().from(V).where(eq(V.group_id, groupId)).orderBy(desc(V.version)).limit(1);
     return row ?? null;
+  }
+
+  async function definitionUpdatedAtOf(groupId: string): Promise<Date | null> {
+    const [row] = await deps.db
+      .select({ updatedAt: UserGroupDefinitionTable.updatedAt })
+      .from(UserGroupDefinitionTable)
+      .where(eq(UserGroupDefinitionTable.group_id, groupId))
+      .limit(1);
+    return row?.updatedAt ?? null;
   }
 
   /** 版を failed にし、他の失敗の版を消す(今の版と 1 つ前は残る: ready の版は消さない) */
@@ -134,19 +147,25 @@ export function createUserGroupRecompute(deps: UserGroupRecomputeDeps) {
         .orderBy(asc(UserGroupTable.id));
       result.checked = groups.length;
       const now = deps.now();
-      const due: { group: UserGroup; latest: UserGroupVersion | null }[] = [];
+      const due: { group: UserGroup; latest: UserGroupVersion | null; definitionUpdatedAt: Date | null }[] = [];
       for (const group of groups) {
         const latest = await latestVersion(group.id);
-        if (isRecomputeDue(group, latest, now, deps.config.recompute.defaultIntervalMinutes)) due.push({ group, latest });
+        const definitionUpdatedAt = await definitionUpdatedAtOf(group.id);
+        if (isRecomputeDue(group, latest, now, deps.config.recompute.defaultIntervalMinutes, definitionUpdatedAt)) {
+          due.push({ group, latest, definitionUpdatedAt });
+        }
       }
       result.due = due.length;
 
-      for (const { group, latest } of due) {
+      for (const { group, latest, definitionUpdatedAt } of due) {
         if (Date.now() >= options.deadline.getTime()) {
           result.budgetExhausted = true;
           break;
         }
-        const version = latest?.status === "computing" ? latest : await createComputingVersion(deps.db, group.id);
+        // 書きかけの版の後に定義を直していれば、その版は古い条件なので捨てて新しい版から書く
+        const stale = latest?.status === "computing" && definitionUpdatedAt !== null && definitionUpdatedAt > latest.startedAt;
+        if (stale) await deps.db.delete(V).where(eq(V.id, latest.id));
+        const version = latest?.status === "computing" && !stale ? latest : await createComputingVersion(deps.db, group.id);
         try {
           const supplier = await supplierOf(group, version);
           const written = await writeVersionUntil(deps.db, version.id, supplier, {

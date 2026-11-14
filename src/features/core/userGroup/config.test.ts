@@ -14,6 +14,7 @@ test("上流の空の上書きでは既定のまま(人数の上限 10 万、節
     evaluation: { timeoutMs: 10_000, listLimitMax: 1000, sampleLimit: 20 },
     write: { batchSize: 1000 },
     recompute: { budgetMs: 240_000, batchSize: 1000, defaultIntervalMinutes: 1440 },
+    admin: { listCountTimeoutMs: 1000, listCountBudgetMs: 3000, freezeBudgetMs: 50_000, optionsLimit: 500 },
   });
 });
 

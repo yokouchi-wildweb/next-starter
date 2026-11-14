@@ -34,3 +34,9 @@ export {
   type UserGroupRecomputeDeps,
   type UserGroupRecomputeResult,
 } from "./recompute";
+export {
+  createUserGroupAdminService,
+  userGroupAdmin,
+  type UserGroupAdminDeps,
+  type UserGroupAdminService,
+} from "./admin";

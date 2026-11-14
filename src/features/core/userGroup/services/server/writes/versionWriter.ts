@@ -154,7 +154,8 @@ export type VersionWriteOutcome = {
 };
 
 /**
- * 書きかけの版を締切まで束ごとに書く(runBudgetedBatches)。人数が memberLimit を超えた束で止める(over_limit)
+ * 書きかけの版を締切まで束ごとに書く(runBudgetedBatches)。人数が memberLimit を超えた束で止める(over_limit)。
+ * 締切が過ぎていても最初の 1 束は書く(呼ぶたびに必ず進む = 続きの呼び出しを繰り返せば終わる)
  */
 export async function writeVersionUntil(
   db: Executor,
@@ -167,28 +168,35 @@ export async function writeVersionUntil(
   let written = 0;
   let skipped = 0;
   let batches = 0;
+  /** 1 束を書いて続けるか(false = 終わり・取れない・上限) */
+  const step = async (): Promise<VersionBatchResult | null> => {
+    const result = await writeVersionBatch(db, versionId, supplier, options.batchSize);
+    if (!result) {
+      outcome = "locked";
+      return null;
+    }
+    memberCount = result.memberCount;
+    written += result.written;
+    skipped += result.skipped;
+    if (result.done) {
+      outcome = "done";
+      return null;
+    }
+    batches += 1;
+    if (result.memberCount > options.memberLimit) {
+      outcome = "over_limit";
+      return null;
+    }
+    return result;
+  };
+  if (!(await step())) return { outcome, memberCount, written, skipped };
+  if (options.maxChunks !== undefined && batches >= options.maxChunks) return { outcome, memberCount, written, skipped };
   await runBudgetedBatches<VersionBatchResult, number>({
     deadline: options.deadline,
-    maxChunks: options.maxChunks,
+    maxChunks: options.maxChunks === undefined ? undefined : options.maxChunks - batches,
     fetchNext: async () => {
-      const result = await writeVersionBatch(db, versionId, supplier, options.batchSize);
-      if (!result) {
-        outcome = "locked";
-        return null;
-      }
-      memberCount = result.memberCount;
-      written += result.written;
-      skipped += result.skipped;
-      if (result.done) {
-        outcome = "done";
-        return null;
-      }
-      batches += 1;
-      if (result.memberCount > options.memberLimit) {
-        outcome = "over_limit";
-        return { items: [result], cursor: batches, done: true };
-      }
-      return { items: [result], cursor: batches };
+      const result = await step();
+      return result ? { items: [result], cursor: batches } : null;
     },
     processChunk: async () => {},
   });
