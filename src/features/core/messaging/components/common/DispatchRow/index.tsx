@@ -1,5 +1,6 @@
 // src/features/core/messaging/components/common/DispatchRow/index.tsx
-// 部品(props だけ): 管理の回の一覧の 1 行(件名・題、状態、定義の鍵・種別・送り元、宛先の数、作った日時)。詳細へのリンク
+// 部品(props だけ): 管理の回の一覧の 1 行(件名・題、状態、種別・カテゴリーの表示名、経路、宛先の数、作った日時)。詳細へのリンク。
+// 定義の鍵・送り元の鍵は見せない(D46: 運営する人は鍵を読まない)。カテゴリーの表示名は置き場が渡す(useAdminDispatchCategories の labelOf)
 
 "use client";
 
@@ -8,6 +9,8 @@ import { Stack } from "@/components/Layout/Stack";
 import { Link } from "@/components/Navigation/Link";
 import { Span } from "@/components/TextBlocks/Span";
 
+import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
+import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
 import type { AdminDispatchSummary } from "@/features/core/messaging/services/client/adminMessagingClient";
 
 import { DispatchStatusBadge } from "../DispatchStatusBadge";
@@ -19,19 +22,27 @@ export function formatAdminDateTime(iso: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString("ja-JP");
 }
 
-/** 回の見出し(経路ごとの件名・題の最初。無ければ定義の鍵 → 「(件名なし)」) */
-export function dispatchHeading(dispatch: Pick<AdminDispatchSummary, "headings" | "messageKey">): string {
+/** 回の見出し(経路ごとの件名・題の最初。無ければ「(件名なし)」。定義の鍵は出さない) */
+export function dispatchHeading(dispatch: Pick<AdminDispatchSummary, "headings">): string {
   const first = Object.values(dispatch.headings ?? {}).find((text) => text.trim() !== "");
-  return first ?? dispatch.messageKey ?? "(件名なし)";
+  return first ?? "(件名なし)";
+}
+
+/** 種別の表示名(知らない値・null は null) */
+export function dispatchKindLabel(kind: string | null | undefined): string | null {
+  return kind ? ((MESSAGE_KIND_LABELS as Record<string, string>)[kind] ?? null) : null;
 }
 
 export type DispatchRowProps = {
   dispatch: AdminDispatchSummary;
   /** 詳細の住所(既定 /admin/messaging/<id>) */
   href?: string;
+  /** カテゴリーの表示名(取れない時は出さない) */
+  categoryLabel?: string | null;
 };
 
-export function DispatchRow({ dispatch, href }: DispatchRowProps) {
+export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRowProps) {
+  const kindLabel = dispatchKindLabel(dispatch.kind);
   return (
     <Link
       href={href ?? `/admin/messaging/${encodeURIComponent(dispatch.id)}`}
@@ -45,15 +56,10 @@ export function DispatchRow({ dispatch, href }: DispatchRowProps) {
           <Span weight="semiBold">{dispatchHeading(dispatch)}</Span>
         </Flex>
         <Flex align="center" gap="sm" wrap="wrap">
+          {kindLabel ? <Span size="sm" tone="muted">{kindLabel}</Span> : null}
+          {categoryLabel ? <Span size="sm" tone="muted">{categoryLabel}</Span> : null}
           <Span size="sm" tone="muted">
-            {dispatch.messageKey ?? "(前の送る口)"}
-          </Span>
-          {dispatch.kind ? <Span size="sm" tone="muted">{dispatch.kind}</Span> : null}
-          <Span size="sm" tone="muted">
-            {dispatch.source}
-          </Span>
-          <Span size="sm" tone="muted">
-            {dispatch.channels.join(" / ")}
+            {dispatch.channels.map(messageChannelLabel).join(" / ")}
           </Span>
           <Span size="sm" tone="muted">
             宛先 {dispatch.recipientCount} 名

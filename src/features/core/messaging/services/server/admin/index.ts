@@ -21,6 +21,7 @@ import { audiences } from "../../../extensions/audiences";
 import { bulkSendTargets } from "../../../extensions/bulkSendTargets";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
+import { sources } from "../../../extensions/sources";
 import {
   definitionOfDispatch,
   estimateRecipients,
@@ -57,6 +58,7 @@ import {
   type AdminSendDeps,
 } from "./send";
 import {
+  dispatchCategoryOptions as dispatchCategoryOptionsWith,
   findDispatch as findDispatchWith,
   listDeliveries as listDeliveriesWith,
   listDispatches as listDispatchesWith,
@@ -134,6 +136,7 @@ export const adminResendFailed = (dispatchId: string, input?: unknown) => adminR
 const readDeps = {
   ...adminCheck,
   dispatchStore: drizzleAdminDispatchStore,
+  sources,
   async operationInputs(row: MessageDispatch) {
     const [resolved, counts] = await Promise.all([definitionOf(row), drizzleMessageOperationsStore.countFailed(null, row.id)]);
     return { policy: policyOf(resolved, row), counts };
@@ -199,6 +202,11 @@ export function findDispatch(id: string) {
   return findDispatchWith(readDeps, id);
 }
 
+/** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
+export function dispatchCategoryOptions() {
+  return dispatchCategoryOptionsWith({ ...adminCheck, categories });
+}
+
 /** 回の配達 */
 export function listDeliveries(dispatchId: string, query?: ListDeliveriesQuery) {
   return listDeliveriesWith(readDeps, dispatchId, query);
@@ -238,6 +246,6 @@ export type {
   AdminSendResult,
   AdminSendTestInput,
 } from "./send";
-export type { AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
+export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
 export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSummary } from "./dispatchDto";
 export type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";

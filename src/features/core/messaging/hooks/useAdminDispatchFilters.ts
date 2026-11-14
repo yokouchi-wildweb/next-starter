@@ -3,7 +3,8 @@
 // src/features/core/messaging/hooks/useAdminDispatchFilters.ts
 //
 // 管理: 回の一覧の絞り込み(AdminDispatchList はこれを呼んで欄を並べるだけ。CLAUDE.md core_ui)。
-// - 入力中の値(期間から・まで・定義の鍵・種別・経路・状態)と、「絞り込む」で確定した filters を分けて持つ
+// - 入力中の値(期間から・まで・種別・カテゴリー・経路・状態)と、「絞り込む」で確定した filters を分けて持つ
+// - カテゴリーは種別を選んだ後だけ(種別を変えると空に戻す)。定義の鍵では絞らない(D46: 画面は鍵を打たせない)
 // - 期間は日付(YYYY-MM-DD)の入力 → from = その日の 0 時、to = 「まで」の翌日の 0 時(未満)
 // - clear = 入力も確定も空に戻す
 
@@ -30,30 +31,36 @@ export function dispatchFilterNextDay(date: string): string | undefined {
 export function useAdminDispatchFilters(initialFilters: AdminDispatchFilters = {}) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [messageKey, setMessageKey] = useState(initialFilters.messageKey ?? "");
-  const [kind, setKind] = useState<string>(initialFilters.kind ?? "");
+  const [kind, setKindState] = useState<string>(initialFilters.kind ?? "");
+  const [category, setCategory] = useState<string>(initialFilters.kind ? (initialFilters.category ?? "") : "");
   const [channel, setChannel] = useState<string>(initialFilters.channel ?? "");
   const [status, setStatus] = useState<string>(initialFilters.status ?? "");
   const [filters, setFilters] = useState<AdminDispatchFilters>(initialFilters);
+
+  /** 種別を変える(選んでいたカテゴリーは空に戻す: カテゴリーは種別ごと) */
+  const setKind = useCallback((next: string) => {
+    setKindState(next);
+    setCategory("");
+  }, []);
 
   const apply = useCallback(
     () =>
       setFilters({
         from: dispatchFilterStartOf(fromDate),
         to: dispatchFilterNextDay(toDate),
-        messageKey: messageKey.trim() || undefined,
         kind: (kind || undefined) as AdminDispatchFilters["kind"],
+        category: (kind && category) || undefined,
         channel: channel || undefined,
         status: status || undefined,
       }),
-    [fromDate, toDate, messageKey, kind, channel, status],
+    [fromDate, toDate, kind, category, channel, status],
   );
 
   const clear = useCallback(() => {
     setFromDate("");
     setToDate("");
-    setMessageKey("");
-    setKind("");
+    setKindState("");
+    setCategory("");
     setChannel("");
     setStatus("");
     setFilters({});
@@ -69,10 +76,11 @@ export function useAdminDispatchFilters(initialFilters: AdminDispatchFilters = {
       setFromDate,
       toDate,
       setToDate,
-      messageKey,
-      setMessageKey,
       kind,
       setKind,
+      /** カテゴリー(種別を選んだ後だけ選べる) */
+      category,
+      setCategory,
       channel,
       setChannel,
       status,

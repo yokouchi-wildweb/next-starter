@@ -32,6 +32,7 @@ import type {
   AdminSendResult,
   AdminSendTestInput,
 } from "@/features/core/messaging/services/server/admin/send";
+import type { AdminDispatchCategoryOption } from "@/features/core/messaging/services/server/admin/readDispatches";
 import type { MessagePreview } from "@/features/core/messaging/services/server/sendMessage/sender";
 import type { ContinueSendingResult } from "@/features/core/messaging/services/server/sweep/sweep";
 
@@ -44,6 +45,7 @@ export type {
   AdminFreeTextCategoryOption,
   AdminCancelResult,
   AdminDeliveryRow,
+  AdminDispatchCategoryOption,
   AdminDispatchDetail,
   AdminDispatchSummary,
   AdminResendResult,
@@ -60,9 +62,10 @@ export type AdminDispatchFilters = {
   from?: string;
   /** 作った時刻の上限(未満) */
   to?: string;
-  messageKey?: string;
   /** 種別(7 つ、lib/messaging の MESSAGE_KINDS) */
   kind?: MessageKind;
+  /** カテゴリーの鍵(選択肢は getAdminDispatchCategories。定義の鍵では絞らない、D46) */
+  category?: string;
   channel?: string;
   status?: string;
 };
@@ -136,6 +139,16 @@ export async function listAdminDispatches(
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "送信の一覧の取得に失敗しました");
+  }
+}
+
+/** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
+export async function getAdminDispatchCategories(): Promise<AdminDispatchCategoryOption[]> {
+  try {
+    const res = await axios.get<{ items: AdminDispatchCategoryOption[] }>(`${BASE}/dispatches/categories`);
+    return res.data.items;
+  } catch (error) {
+    throw normalizeHttpError(error, "カテゴリーの一覧の取得に失敗しました");
   }
 }
 

@@ -18,7 +18,7 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
     const conditions: SQL[] = [];
     if (filter.from) conditions.push(gte(t.createdAt, filter.from));
     if (filter.to) conditions.push(lt(t.createdAt, filter.to));
-    if (filter.messageKey) conditions.push(eq(t.message_key, filter.messageKey));
+    if (filter.category) conditions.push(eq(t.category, filter.category));
     if (filter.kind) conditions.push(eq(t.kind, filter.kind));
     if (filter.channel) conditions.push(arrayContains(t.channels, [filter.channel]));
     if (filter.status) conditions.push(eq(t.status, filter.status));

@@ -1,5 +1,6 @@
 // src/features/core/messaging/components/AdminDispatchDetail/index.tsx
-// セクションコンテナ(管理: 送った回 1 件)。回の中身(状態・件名 / 題・数・送った人・時刻・本文は記録の段しだい)と、
+// セクションコンテナ(管理: 送った回 1 件)。回の中身(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・数・送った人・時刻・
+// 本文は記録の段しだい。定義の鍵・送り元の鍵は見せない、D46)と、
 // 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と「続きを送る」(送信中の回だけ。1 束だけ進める)と
 // 回の操作(予約を取り消す・取り下げる・失敗分を再送。できるかと理由は回の operations、部品 DispatchOperations)と
 // 「同じ内容で送る」(送るモーダル。文面・カテゴリー・宛先の形を写す。門 messagingBroadcast が閉なら出さない)。
@@ -24,10 +25,11 @@ import {
   DELIVERY_STATUS_DISPLAY,
 } from "@/features/core/messaging/components/common/DeliveryStatusBadge";
 import { DeliveryRow } from "@/features/core/messaging/components/common/DeliveryRow";
-import { dispatchHeading, formatAdminDateTime } from "@/features/core/messaging/components/common/DispatchRow";
+import { dispatchHeading, dispatchKindLabel, formatAdminDateTime } from "@/features/core/messaging/components/common/DispatchRow";
 import { useGate } from "@/featureGate/client";
 
-import { ADMIN_CHANNEL_FILTER_OPTIONS } from "@/features/core/messaging/constants/channelLabels";
+import { ADMIN_CHANNEL_FILTER_OPTIONS, messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
+import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { DispatchStatusBadge } from "@/features/core/messaging/components/common/DispatchStatusBadge";
@@ -47,6 +49,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, cancel, retract, resend, continueDispatch } =
     useAdminDispatchDetail(dispatchId, { observerOptions: OBSERVER_OPTIONS });
+  const categories = useAdminDispatchCategories();
 
   if (isLoading && !dispatch) {
     return (
@@ -65,7 +68,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 
   return (
     <Stack space={6}>
-      <DispatchSummary dispatch={dispatch} />
+      <DispatchSummary dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
 
       {canSend ? (
         <Flex justify="end">
@@ -157,7 +160,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 }
 
 /** 回の中身(数・時刻・本文) */
-function DispatchSummary({ dispatch }: { dispatch: AdminDispatchDetailDto }) {
+function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchDetailDto; categoryLabel: string | null }) {
   const headings = Object.entries(dispatch.headings ?? {});
   const counts = Object.entries(dispatch.channelCounts ?? {});
   const body = dispatch.body ? Object.entries(dispatch.body) : [];
@@ -172,10 +175,10 @@ function DispatchSummary({ dispatch }: { dispatch: AdminDispatchDetailDto }) {
       </Flex>
 
       <Stack space={1}>
-        <Field label="定義の鍵" value={dispatch.messageKey ?? "(前の送る口)"} />
-        <Field label="種別 / 種類" value={`${dispatch.kind ?? "-"} / ${dispatch.category ?? "-"}`} />
-        <Field label="送り元" value={dispatch.source} />
-        <Field label="経路" value={dispatch.channels.join(" / ")} />
+        <Field label="種別" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
+        <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "今は無いカテゴリー" : "-")} />
+        {dispatch.sourceLabel ? <Field label="送り元" value={dispatch.sourceLabel} /> : null}
+        <Field label="経路" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
         <Field label="宛先の数" value={`${dispatch.recipientCount} 名`} />
         <Field label="送った人" value={dispatch.actor.id ? `${dispatch.actor.type ?? ""} ${dispatch.actor.id}` : (dispatch.actor.type ?? "-")} />
         <Field label="作った日時" value={formatAdminDateTime(dispatch.createdAt)} />
@@ -187,7 +190,7 @@ function DispatchSummary({ dispatch }: { dispatch: AdminDispatchDetailDto }) {
       {headings.length > 0 ? (
         <Stack space={1}>
           {headings.map(([channel, text]) => (
-            <Field key={channel} label={`件名・題(${channel})`} value={text} />
+            <Field key={channel} label={`件名・題(${messageChannelLabel(channel)})`} value={text} />
           ))}
         </Stack>
       ) : null}
@@ -197,7 +200,7 @@ function DispatchSummary({ dispatch }: { dispatch: AdminDispatchDetailDto }) {
           {counts.map(([channel, c]) => (
             <Field
               key={channel}
-              label={`数(${channel})`}
+              label={`数(${messageChannelLabel(channel)})`}
               value={`対象 ${c.targeted} / 送信 ${c.sent} / 失敗 ${c.failed} / 停止中 ${c.suppressed} / 宛先なし ${c.skipped_no_address} / 抑え ${c.skipped_throttled}`}
             />
           ))}
@@ -209,7 +212,7 @@ function DispatchSummary({ dispatch }: { dispatch: AdminDispatchDetailDto }) {
           {body.map(([channel, value]) => (
             <Stack key={channel} space={1}>
               <Span size="sm" tone="muted">
-                本文({channel})
+                本文({messageChannelLabel(channel)})
               </Span>
               <Para size="sm" className="my-0 whitespace-pre-wrap rounded bg-muted/40 p-2">
                 {typeof value === "string" ? value : JSON.stringify(value, null, 2)}

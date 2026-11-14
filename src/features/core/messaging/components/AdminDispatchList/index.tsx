@@ -1,5 +1,6 @@
 // src/features/core/messaging/components/AdminDispatchList/index.tsx
-// セクションコンテナ(管理: 送った回の一覧)。絞り込み(期間・定義の鍵・種別・経路・状態)+ 無限スクロール(カーソル)。
+// セクションコンテナ(管理: 送った回の一覧)。絞り込み(期間・種別 → カテゴリー・経路・状態)+ 無限スクロール(カーソル)。
+// カテゴリーは種別を選んだ後にその種別の物を表示名で(useAdminDispatchCategories)。定義の鍵は打たせず見せない(D46)。
 // 行を押すと /admin/messaging/<id>。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。
 // 絞り込みの入力と確定は hook useAdminDispatchFilters。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
@@ -20,6 +21,7 @@ import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLab
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DISPATCH_STATUS_DISPLAY } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { DispatchRow } from "@/features/core/messaging/components/common/DispatchRow";
+import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { useAdminDispatchFilters } from "@/features/core/messaging/hooks/useAdminDispatchFilters";
 import { useAdminDispatches } from "@/features/core/messaging/hooks/useAdminDispatches";
 import type { AdminDispatchFilters } from "@/features/core/messaging/services/client/adminMessagingClient";
@@ -42,6 +44,7 @@ const NEW_MODE = { type: "new" } as const;
 export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchListProps) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
+  const categories = useAdminDispatchCategories();
   const query = useAdminDispatches({ filters, limit, observerOptions: OBSERVER_OPTIONS });
 
   return (
@@ -65,17 +68,6 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
           <DateInput id="dispatch-filter-to" value={fields.toDate} onValueChange={fields.setToDate} />
         </Stack>
         <Stack space={1}>
-          <Label htmlFor="dispatch-filter-key" className="text-xs">
-            定義の鍵
-          </Label>
-          <Input
-            id="dispatch-filter-key"
-            value={fields.messageKey}
-            onChange={(e) => fields.setMessageKey(e.target.value)}
-            placeholder="例: messaging.adminAnnouncement"
-          />
-        </Stack>
-        <Stack space={1}>
           <Label htmlFor="dispatch-filter-kind" className="text-xs">
             種別
           </Label>
@@ -85,6 +77,19 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             onChange={(v) => fields.setKind(v ? String(v) : "")}
             options={KIND_OPTIONS}
             placeholder="すべて"
+          />
+        </Stack>
+        <Stack space={1}>
+          <Label htmlFor="dispatch-filter-category" className="text-xs">
+            カテゴリー
+          </Label>
+          <SelectInput
+            id="dispatch-filter-category"
+            value={fields.category}
+            onChange={(v) => fields.setCategory(v ? String(v) : "")}
+            options={categories.optionsOf(fields.kind)}
+            disabled={!fields.kind}
+            placeholder={fields.kind ? "すべて" : "種別を先に選ぶ"}
           />
         </Stack>
         <Stack space={1}>
@@ -139,7 +144,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
         {(items) => (
           <Stack space={2}>
             {items.map((dispatch) => (
-              <DispatchRow key={dispatch.id} dispatch={dispatch} />
+              <DispatchRow key={dispatch.id} dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
             ))}
           </Stack>
         )}
