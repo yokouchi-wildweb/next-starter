@@ -1,7 +1,7 @@
-// InboxList の検査(jsdom の上で描く。hook と toast は偽物)。
+// InboxList と流れの hook useInboxList の検査(jsdom の上で描く。useInboxList の下の hook と toast は偽物 = 入れ物 + useInboxList を本物で通す)。
 // - 行・未読の印・0 件の文言
 // - 未読の行を押すと既読にして一覧の印を変える(updateItems)。既読の行は呼ばない
-// - 「すべて既読にする」は全部既読にして未読の行の印を変える
+// - 「すべて既読にする」は全部既読にして未読の行の印を変え、知らせる
 // 実行: pnpm test src/features/core/messaging/components/InboxList/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -73,7 +73,8 @@ mock.module("@/components/Overlays/Modal", {
   defaultExport: ({ open, title, children }: { open: boolean; title?: unknown; children?: unknown }) =>
     open ? createElement("section", { "data-testid": "modal" }, title as never, children as never) : null,
 });
-mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }) } });
+const toasts: string[] = [];
+mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: (message: string, kind: string) => void toasts.push(`${kind}:${message}`) }) } });
 
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
@@ -135,5 +136,6 @@ test("すべて既読にする → API を呼び、未読の行の印を変え�
   await act(async () => button(view.container, "すべて既読にする")!.click());
   assert.equal(readAlls, 1);
   assert.deepEqual(updates, [{ matched: ["a", "c"] }]);
+  assert.deepEqual(toasts.at(-1), "success:すべて既読にしました");
   await view.unmount();
 });

@@ -87,3 +87,10 @@ export {
 export { useCancelDispatch } from "./useCancelDispatch";
 export { useRetractDispatch } from "./useRetractDispatch";
 export { useResendDispatch } from "./useResendDispatch";
+export { useInboxList, type UseInboxListOptions } from "./useInboxList";
+export {
+  INBOX_MODAL_CONFIRMED_IDS_KEY,
+  isInboxModalPath,
+  useInboxUnreadModal,
+  type UseInboxUnreadModalOptions,
+} from "./useInboxUnreadModal";
