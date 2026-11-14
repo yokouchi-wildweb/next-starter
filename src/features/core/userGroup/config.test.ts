@@ -6,12 +6,14 @@ import assert from "node:assert/strict";
 import { userGroupConfig, userGroupConfigDef } from "./config";
 
 // 上流の既定は compose({}) で見る(読み込んだ設定は fork が src/config/features/userGroup.config.ts に書いた値で変わる)
-test("上流の空の上書きでは既定のまま(人数の上限 10 万、節 50・深さ 6、評価の時間 10 秒)", () => {
+test("上流の空の上書きでは既定のまま(人数の上限 10 万、節 50・深さ 6、評価の時間 10 秒、書く束 1000、定期計算 240 秒・束 1000・間隔 24 時間)", () => {
   assert.deepEqual(Object.keys(userGroupConfig).sort(), Object.keys(userGroupConfigDef.compose({})).sort());
   assert.deepEqual(userGroupConfigDef.compose({}), {
     memberLimit: 100_000,
     definition: { maxNodes: 50, maxDepth: 6 },
     evaluation: { timeoutMs: 10_000, listLimitMax: 1000, sampleLimit: 20 },
+    write: { batchSize: 1000 },
+    recompute: { budgetMs: 240_000, batchSize: 1000, defaultIntervalMinutes: 1440 },
   });
 });
 
@@ -19,4 +21,10 @@ test("上書きの値が効き、上書きの無いキーは既定のまま", ()
   const config = userGroupConfigDef.compose({ memberLimit: 300_000, definition: { maxDepth: 4 } });
   assert.equal(config.memberLimit, 300_000);
   assert.deepEqual(config.definition, { maxNodes: 50, maxDepth: 4 });
+});
+
+test("定期計算の値も上書きでき、予算・束・間隔は別々に変わる", () => {
+  const config = userGroupConfigDef.compose({ recompute: { defaultIntervalMinutes: 60 }, write: { batchSize: 200 } });
+  assert.deepEqual(config.recompute, { budgetMs: 240_000, batchSize: 1000, defaultIntervalMinutes: 60 });
+  assert.deepEqual(config.write, { batchSize: 200 });
 });
