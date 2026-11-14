@@ -11,6 +11,7 @@ import { item as menuItems_messagingDispatches } from "@/features/core/admin/men
 import { item as menuItems_messagingOverrides } from "@/features/core/admin/menu/items/messagingOverrides";
 import { item as menuItems_messagingTemplates } from "@/features/core/admin/menu/items/messagingTemplates";
 import { item as menuItems_settingSections } from "@/features/core/admin/menu/items/settingSections";
+import { item as menuItems_userGroups } from "@/features/core/admin/menu/items/userGroups";
 import { item as menuItems_userTags } from "@/features/core/admin/menu/items/userTags";
 import { item as menuItems_usersDemo } from "@/features/core/admin/menu/items/usersDemo";
 import { item as menuItems_usersGeneral } from "@/features/core/admin/menu/items/usersGeneral";
@@ -25,6 +26,7 @@ const menuItemsList: AdminMenuItemDefinition[] = [
   menuItems_messagingOverrides,
   menuItems_messagingTemplates,
   menuItems_settingSections,
+  menuItems_userGroups,
   menuItems_userTags,
   menuItems_usersDemo,
   menuItems_usersGeneral,

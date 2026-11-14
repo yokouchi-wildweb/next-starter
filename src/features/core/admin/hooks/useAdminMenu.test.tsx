@@ -68,7 +68,7 @@ upstreamTest("全部開いた admin: 上流の 6 カテゴリーと行", () => {
     ["marketing", ["messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
     ["requests", ["bankTransferReviews"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],
-    ["users", ["usersGeneral", "usersSystem", "usersDemo", "userTags"]],
+    ["users", ["usersGeneral", "usersSystem", "usersDemo", "userTags", "userGroups"]],
     ["community", ["chatRooms"]],
     ["system", ["settingSections", "settingSections"]],
   ]);
@@ -79,7 +79,7 @@ upstreamTest("閉じた規則の住所の行は描かず、行の無いカテゴ
   assert.deepEqual(menu, [
     ["marketing", ["messagingDispatches", "messagingOverrides", "messagingTemplates", "coupons"]],
     ["data", ["dataMenu", "dataMenu", "dataMenu"]],
-    ["users", ["usersGeneral", "usersSystem", "usersDemo", "userTags"]],
+    ["users", ["usersGeneral", "usersSystem", "usersDemo", "userTags", "userGroups"]],
     ["system", ["settingSections", "settingSections"]],
   ]);
 });
