@@ -66,6 +66,15 @@ export type AdminUserGroupPage = { items: AdminUserGroupSummary[]; nextCursor: s
 /** 試しの一覧の 1 人(id と表示名だけ。メールは返さない) */
 export type AdminUserGroupSampleUser = { id: string; name: string | null };
 
+/** 一員・例外の人の一覧の 1 人(id と表示名だけ) */
+export type AdminUserGroupMember = { id: string; name: string | null };
+
+/** 一員・例外の人の一覧(利用者 id の順の keyset。nextCursor = 次の頁、null = 終わり) */
+export type AdminUserGroupMemberPage = { items: AdminUserGroupMember[]; nextCursor: string | null };
+
+/** 静的グループから外した後の人数 */
+export type AdminStaticMembersRemoved = { memberCount: number };
+
 export type AdminUserGroupEstimate = {
   count: number;
   memberLimit: number;

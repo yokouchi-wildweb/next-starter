@@ -5,7 +5,8 @@
 // - 一覧(種類・状態で絞る、keyset、人数の印、例外の持ち主付きは出さない)と 1 件(元の定義・例外の人数)
 // - 見込み(その場の定義・保存したグループ、試しは id と表示名だけ)
 // - 例外: 持ち主付きの静的グループ 2 つ、包んだ木、足す人・外す人が人数に効く、持ち主を消すと一緒に消える
-// - 静的: 選んだ利用者・別のグループ・タグから作る、incomplete から続き、足す、人数の上限 409
+// - 静的: 選んだ利用者・別のグループ・タグから作る、incomplete から続き、足す・外す、人数の上限 409
+// - 一員の一覧(静的、keyset、id と表示名、消した利用者は出さない)と例外の人の一覧(足す人・外す人、例外が無ければ空)、種類違いは 409
 // - 監査の名前(user_group.*)、管理者でなければ 403
 // 実行: pnpm test --db src/features/core/userGroup/services/server/admin/adminService.db.test.ts
 
@@ -44,6 +45,9 @@ describe("ユーザーグループの管理の service(実 DB、戻す)", { skip
 
     const code = (error: unknown, status: number) => error instanceof DomainError && error.status === status;
     const sorted = (ids: string[]) => [...ids].sort();
+    // updateStaticMembers は mode remove だけ { memberCount } を返す(add / replace は group と members)
+    type StaticResult = import("./dto").AdminStaticGroupResult;
+    const written = (result: StaticResult | import("./dto").AdminStaticMembersRemoved) => result as StaticResult;
 
     await assert.rejects(
       db.transaction(async (tx) => {
@@ -161,6 +165,21 @@ describe("ユーザーグループの管理の service(実 DB、戻す)", { skip
         assert.deepEqual(sorted((await s.estimate({ groupId: dynamic.id })).sample.map((u) => u.id)), sorted([b, c]), "a と outsider は外す人");
         // 静的に例外は 409
         await assert.rejects(s.updateExceptions(fixed.group.id, { include: { add: [c] } }), (error) => code(error, 409));
+        // 例外の人の一覧: 足す人は空、外す人は a と outsider(id の順、1 頁 1 人で続く)、id と表示名だけ
+        assert.deepEqual(await s.listExceptionMembers(dynamic.id, { side: "include" }), { items: [], nextCursor: null });
+        const excludeFirst = await s.listExceptionMembers(dynamic.id, { side: "exclude", limit: "1" });
+        assert.equal(excludeFirst.items.length, 1);
+        assert.deepEqual(Object.keys(excludeFirst.items[0]!).sort(), ["id", "name"]);
+        assert.ok(excludeFirst.nextCursor);
+        const excludeRest = await s.listExceptionMembers(dynamic.id, { side: "exclude", limit: "1", cursor: excludeFirst.nextCursor! });
+        assert.equal(excludeRest.nextCursor, null);
+        assert.deepEqual([...excludeFirst.items, ...excludeRest.items].map((u) => u.id), sorted([a, outsider]));
+        // 例外がまだ無いグループは空、静的は 409、side が無ければ 400、cursor が壊れていれば 400
+        assert.deepEqual(await s.listExceptionMembers(scheduled.id, { side: "exclude" }), { items: [], nextCursor: null });
+        await assert.rejects(s.listExceptionMembers(fixed.group.id, { side: "include" }), (error) => code(error, 409));
+        await assert.rejects(s.listExceptionMembers(dynamic.id, {}), (error) => code(error, 400));
+        await assert.rejects(s.listExceptionMembers(dynamic.id, { side: "include", cursor: "xx" }), (error) => code(error, 400));
+        await assert.rejects(s.listExceptionMembers(owners[0]!.id, { side: "include" }), (error) => code(error, 404));
 
         // 一覧: 例外の持ち主付きは出ない、種類で絞る、keyset
         const statics = await s.listGroups({ kind: "static", limit: 50 });
@@ -197,16 +216,42 @@ describe("ユーザーグループの管理の service(実 DB、戻す)", { skip
         assert.equal(pending.group.count.value, 0, "書き終えるまで一員は空のまま");
         let resumed: { status: string } = pending.members;
         for (let i = 0; i < 10 && resumed.status === "incomplete"; i += 1) {
-          resumed = (await slow.updateStaticMembers(pending.group.id, { mode: "replace", from: { type: "tag", tagId: tag!.id } })).members;
+          resumed = written(await slow.updateStaticMembers(pending.group.id, { mode: "replace", from: { type: "tag", tagId: tag!.id } })).members;
         }
         assert.equal(resumed.status, "replaced");
 
         // 足す・人数の上限
-        const added = await s.updateStaticMembers(fixed.group.id, { mode: "add", userIds: [c] });
+        const added = written(await s.updateStaticMembers(fixed.group.id, { mode: "add", userIds: [c] }));
         assert.equal(added.members.status, "added");
         assert.equal(added.group.count.value, 3);
         await assert.rejects(service({ memberLimit: 3 }).updateStaticMembers(fixed.group.id, { mode: "add", userIds: [outsider] }), (error) => code(error, 409));
         await assert.rejects(service({ memberLimit: 2 }).createStaticGroup({ name: "x", from: { type: "users", userIds: [a, b, c] } }), (error) => code(error, 409));
+
+        // 一員の一覧: a・b・c を 2 人ずつ(id の順)、id と表示名だけ。動的は 409、limit の外は 400
+        const page1 = await s.listStaticMembers(fixed.group.id, { limit: "2" });
+        assert.equal(page1.items.length, 2);
+        assert.equal(page1.items[0]!.name, `${stamp}-name`);
+        assert.ok(page1.nextCursor);
+        const page2 = await s.listStaticMembers(fixed.group.id, { limit: "2", cursor: page1.nextCursor! });
+        assert.equal(page2.nextCursor, null);
+        assert.deepEqual([...page1.items, ...page2.items].map((u) => u.id), sorted([a, b, c]));
+        await assert.rejects(s.listStaticMembers(dynamic.id), (error) => code(error, 409));
+        await assert.rejects(s.listStaticMembers(fixed.group.id, { limit: "101" }), (error) => code(error, 400));
+        await assert.rejects(service({ actorId: a }).listStaticMembers(fixed.group.id), (error) => code(error, 403));
+
+        // 外す: 一員でない outsider は何もしない、返すのは人数だけ。動的は 409
+        const removedResult = await s.updateStaticMembers(fixed.group.id, { mode: "remove", userIds: [c, outsider] });
+        assert.deepEqual(removedResult, { memberCount: 2 });
+        const removedAudit = audits.filter((row) => row.action === "user_group.members.removed");
+        assert.equal(removedAudit.length, 1);
+        assert.deepEqual({ removed: removedAudit[0]!.metadata?.removed, memberCount: removedAudit[0]!.metadata?.memberCount }, { removed: 1, memberCount: 2 });
+        assert.deepEqual(await s.updateStaticMembers(fixed.group.id, { mode: "remove", userIds: [c] }), { memberCount: 2 });
+        assert.equal(audits.filter((row) => row.action === "user_group.members.removed").length, 1, "外した人がいなければ監査しない");
+        await assert.rejects(s.updateStaticMembers(dynamic.id, { mode: "remove", userIds: [a] }), (error) => code(error, 409));
+        // 消した利用者は一覧に出ない
+        await tx.update(UserTable).set({ deletedAt: new Date() }).where(eq(UserTable.id, b));
+        assert.deepEqual((await s.listStaticMembers(fixed.group.id)).items.map((u) => u.id), [a]);
+        await tx.update(UserTable).set({ deletedAt: null }).where(eq(UserTable.id, b));
 
         // しまう
         const archived = await s.archiveGroup(viaStatic.id);
@@ -233,6 +278,7 @@ describe("ユーザーグループの管理の service(実 DB、戻す)", { skip
           "user_group.exceptions.updated",
           "user_group.members.replaced",
           "user_group.members.added",
+          "user_group.members.removed",
         ]) {
           assert.ok(actions.has(action), action);
         }
