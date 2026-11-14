@@ -2,7 +2,8 @@
 //
 // - AGENT_TERMINAL の読み方(環境変数 → default.conf、無い・知らない値 = none)
 // - pnpm workflow agent-terminal compactSelf の 3 つの道(打てない → 代わりの 1 行・待つ役なし / tmux + hook の印あり → 待つ役を残す /
-//   頼み先(AGENT_COMPACT_CMD)→ そのコマンドに渡す。古い形の値(切り替えで消す)は legacyHandoff の 1 か所)
+//   頼み先(AGENT_COMPACT_CMD)→ そのコマンドに渡す。古い形の値(切り替えで消す)は legacyHandoff の 1 か所)と --then(continue | wait)の読み方
+// - 圧縮の後の 1 行: 印 after(待つ役が /compact を打てたときだけ書く)で続行 / 待機を打ち分け、どの start でも消す
 // - hook の標準出力: tmux の値 + tmux の中の SessionStart だけ端末の案内、ほかは空。記録と、手で打った圧縮の後だけ続きの待つ役を残すこと
 // - 入力欄の読み取り(空・下書き・薄い案内・確認の画面)
 
@@ -14,7 +15,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { planCompactSelf, runCompactSelf } from "./compactSelf.mjs";
+import { parseThen, planCompactSelf, runCompactSelf } from "./compactSelf.mjs";
 import {
   TERMINALS,
   boxText,
@@ -113,7 +114,24 @@ test("pnpm workflow agent-terminal compactSelf 打てるとき: 返答の終わ�
   assert.equal(purpose, "compact");
   assert.equal(text, "/compact 残す こと 2 行目");
   assert.equal(prevIdle, "100");
+  assert.equal(calls.spawned[0][4], "continue");
   assert.match(calls.printed[0], /予約しました/);
+
+  const wait = recorder();
+  assert.equal(runCompactSelf(["--then", "wait", "残す"], env, wait.deps), 0);
+  assert.deepEqual(wait.calls.spawned[0].slice(1), ["compact", "/compact 残す", "100", "wait"]);
+});
+
+test("pnpm workflow agent-terminal compactSelf --then: continue(既定)| wait、ほかの値・値なしは使い方を出して exit 1", () => {
+  assert.deepEqual(parseThen(["a", "b"]), { then: "continue", rest: ["a", "b"] });
+  assert.deepEqual(parseThen(["--then", "wait", "a"]), { then: "wait", rest: ["a"] });
+  assert.deepEqual(parseThen(["a", "--then=continue"]), { then: "continue", rest: ["a"] });
+  assert.equal(parseThen(["--then", "stop", "a"]), null);
+  assert.equal(parseThen(["a", "--then"]), null);
+  const { calls, deps } = recorder();
+  assert.equal(runCompactSelf(["--then", "later", "x"], tmuxEnv(), deps), 1);
+  assert.deepEqual(calls.spawned, []);
+  assert.match(calls.printed[0], /--then continue\|wait/);
 });
 
 test("pnpm workflow agent-terminal compactSelf 頼み先(AGENT_COMPACT_CMD): 自分では打たず、残すことを AGENT_COMPACT_FOCUS で渡す", () => {
@@ -236,22 +254,33 @@ test("hook: tmux のときだけペインに印を書く。手で打った圧縮
   runHook("precompact", env, { trigger: "auto" });
   runHook("start", env, { session_id: "s-1", source: "compact" });
   // 手で打った圧縮: 待つ役が残る。この試験の socket は無いので「ペインが無い」でやめた記録が残る
-  runHook("precompact", env, { trigger: "manual" });
-  runHook("start", env, { session_id: "s-1", source: "compact" });
-  const deadline = Date.now() + 5000;
-  let log = "";
-  while (Date.now() < deadline) {
-    try {
-      log = readFileSync(path.join(dir, "typein.log"), "utf8");
-    } catch {
-      log = "";
+  const logFile = path.join(dir, "typein.log");
+  const manualCompact = () => {
+    rmSync(logFile, { force: true });
+    runHook("precompact", env, { trigger: "manual" });
+    runHook("start", env, { session_id: "s-1", source: "compact" });
+    const deadline = Date.now() + 5000;
+    let log = "";
+    while (Date.now() < deadline) {
+      log = existsSync(logFile) ? readFileSync(logFile, "utf8") : "";
+      if (log) break;
+      spawnSync("sleep", ["0.1"]);
     }
-    if (log) break;
-    spawnSync("sleep", ["0.1"]);
-  }
-  const lines = log.trim().split("\n");
-  assert.equal(lines.length, 1, log);
-  assert.match(lines[0], /\tcontinue\tskip: the pane is gone: 続けてください$/);
+    const lines = log.trim().split("\n");
+    assert.equal(lines.length, 1, log);
+    return lines[0];
+  };
+  // 印 after が無い(人が手で打った /compact)= 続行
+  assert.match(manualCompact(), /\tcontinue\tskip: the pane is gone: 必要な情報を読み返して作業を続行。$/);
+  // 待つ役が --then wait の /compact を打った = 待機。印は start で消える
+  writeMark(dir, "after", "wait");
+  assert.match(manualCompact(), /\tcontinue\tskip: the pane is gone: 必要な情報を読み返して待機。$/);
+  assert.equal(read("after"), "");
+  // 自動の圧縮の start でも印は消える(次の手の /compact に持ち越さない)
+  writeMark(dir, "after", "wait");
+  runHook("precompact", env, { trigger: "auto" });
+  runHook("start", env, { session_id: "s-1", source: "compact" });
+  assert.equal(read("after"), "");
 
   // none のときは何も書かない
   const other = tmuxEnv({ AGENT_TERMINAL_STATE_DIR: env.AGENT_TERMINAL_STATE_DIR, TMUX_PANE: "%8" });
@@ -294,17 +323,19 @@ test("waiter(本物の tmux): 予約した返答が終わってから、空の�
       env,
       timeout: 1000,
     });
-    // 返答はまだ終わっていない(idle が予約時のまま)→ 1 秒待っても打たない
+    // 返答はまだ終わっていない(idle が予約時のまま)→ 1 秒待っても打たない。打っていないので印 after も書かない
     assert.equal(waiter.error?.code, "ETIMEDOUT");
     assert.throws(() => readFileSync(got));
+    assert.equal(existsSync(path.join(pdir, "after")), false);
 
     const { spawn } = await import("node:child_process");
-    const child = spawn(process.execPath, [path.join(here, "lib.waiter.mjs"), "compact", "/compact 残す", "0"], { env, stdio: "ignore" });
+    const child = spawn(process.execPath, [path.join(here, "lib.waiter.mjs"), "compact", "/compact 残す", "0", "wait"], { env, stdio: "ignore" });
     await new Promise((r) => setTimeout(r, 300));
     writeMark(pdir, "idle", "2"); // 返答が終わった
     await new Promise((r) => child.on("exit", r));
     assert.equal(readFileSync(got, "utf8"), "/compact 残す");
     assert.match(readFileSync(path.join(pdir, "typein.log"), "utf8"), /\tcompact\ttyped: \/compact 残す\n$/);
+    assert.equal(readFileSync(path.join(pdir, "after"), "utf8").trim(), "wait");
   } finally {
     t("kill-server");
   }

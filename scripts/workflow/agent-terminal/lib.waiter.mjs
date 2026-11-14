@@ -1,8 +1,10 @@
-// scripts/workflow/agent-terminal/lib.waiter.mjs <compact|continue> <text> [prev idle] — 裏で待って、自分のペインの入力欄に 1 行打つ役
+// scripts/workflow/agent-terminal/lib.waiter.mjs <compact|continue> <text> [prev idle] [then] — 裏で待って、自分のペインの入力欄に 1 行打つ役
 //
 // hook.mjs(continue)と compactSelf.mjs(compact)が detached で残す。打つのは次がそろったときだけ:
 //   - compact: 予約したときの返答が終わった(Stop の印 idle が予約時の値 <prev idle> から変わった)
 //   - 入力欄が画面にあって空(人の下書き・確認の画面・作業中の表示には打たない。lib.mjs boxText)
+// compact の [then](continue | wait)は、/compact を打てたときだけ印 after に書く(圧縮の後に hook.mjs が読む。
+// 打たずにやめた予約の印が残って、後で人が打つ /compact の続きを変えないように)
 // 打たずにやめるとき(どれも typein.log に 1 行):
 //   - そのペインの会話が変わった(/clear・別の claude。SessionStart の印 session が予約時と違う)
 //   - ペインが無くなった / 同じ purpose の新しい予約に代わった
@@ -13,9 +15,9 @@
 import { readFileSync, writeFileSync, rmSync } from "node:fs";
 import path from "node:path";
 
-import { boxText, currentPane, log, marks, oneLine, paneDir, tmux } from "./lib.mjs";
+import { boxText, currentPane, log, marks, oneLine, paneDir, tmux, writeMark } from "./lib.mjs";
 
-const [purpose = "", rawText = "", prevIdle = ""] = process.argv.slice(2);
+const [purpose = "", rawText = "", prevIdle = "", then = ""] = process.argv.slice(2);
 const text = oneLine(rawText);
 const STEP_MS = Number(process.env.AGENT_TERMINAL_STEP_MS) || 1000;
 const BOX_WAIT_MS = (Number(process.env.AGENT_TERMINAL_WAIT) || 600) * 1000;
@@ -84,6 +86,7 @@ for (;;) {
   await sleep(STEP_MS);
 }
 if (tmux(pane, ["send-keys", "-t", pane.pane, "-l", "--", text]).status !== 0) done("skip: send failed");
+if (purpose === "compact" && then) writeMark(dir, "after", then);
 await sleep(500);
 tmux(pane, ["send-keys", "-t", pane.pane, "Enter"]);
 done("typed");

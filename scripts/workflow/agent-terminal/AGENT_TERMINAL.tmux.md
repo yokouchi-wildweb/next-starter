@@ -1,5 +1,5 @@
 # terminal features (this session runs in a tmux pane)
-- own compact: `pnpm workflow agent-terminal compactSelf "<what must survive, 1-3 lines>"` → /compact is typed when this turn ends → end the turn right after | after any manual compact the session is told to continue: resume from context, approval rules unchanged
+- own compact: `pnpm workflow agent-terminal compactSelf [--then continue|wait] "<what must survive, 1-3 lines>"` → /compact is typed when this turn ends → end the turn right after | after it the session is told to re-read and continue (default, also after a human's /compact) or, with `--then wait`, to re-read and wait for the user | approval rules unchanged
 - running app: /devcheck (the checks as short bullets, one go, cleanup last; the server through `pnpm workflow devcheck run server`) | ref: scripts/workflow/devcheck/README.md
 - good uses: long work → propose a compact at a step boundary, run pnpm workflow agent-terminal compactSelf on the user's ok | verify UI changes in the running app yourself
 - ref: scripts/workflow/agent-terminal/README.md
