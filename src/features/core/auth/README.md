@@ -170,7 +170,7 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 
 ## システムの連絡（メール）
 
-認証のメールは連絡の定義（`messages/<名前>.ts`、鍵 `auth.<名前>`）で、送る口 `messagingService.sendMessage` が送る（仕組み: src/features/core/messaging/README.md「新しい送る口」・src/lib/messaging/README.md）。
+認証のメールは連絡の定義（`messages/<名前>.ts`、鍵 `auth.<名前>`）で、送る口 `messagingService.sendMessage` が送る（仕組み: src/features/core/messaging/services/server/sendMessage/README.md・src/lib/messaging/README.md）。
 
 | 鍵 | 送り手 | 宛先 | 扱い |
 | --- | --- | --- | --- |

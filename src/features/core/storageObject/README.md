@@ -105,7 +105,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
 - **お知らせの画像（messaging の受け取り箱）**: 持ち主の業務行は受け取り箱の行ではなく回（`record_type` `messaging.dispatch` / `record_id` = 回の id / `record_field` `inApp.image`、用途 `notification.image`）
   - 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は回より長生きしない
-  - 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、回の行がある = 残す・無い = 外す）で外す。詳細 [messaging README](../messaging/README.md)「受け取り箱の画像と保存の台帳」
+  - 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、回の行がある = 残す・無い = 外す）で外す。詳細 [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)「画像」
 - **サーバー内の書き込み**: putFromServer / copy の所有者は呼び出し側が渡す
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者

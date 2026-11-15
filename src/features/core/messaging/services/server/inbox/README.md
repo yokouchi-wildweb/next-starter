@@ -1,0 +1,42 @@
+# inbox（受け取り箱）
+
+## Overview
+
+お知らせ（`message_inbox_items`、経路 inApp の宛先）を本人が読む口。`createMeRoute`（本人に束ねる）で機能の門は持たない = 常に開（fork が自前の一覧・ベルを持つため）。門 `messagingInbox` が閉じるのはページ `/messages` と未読のモーダルだけ。画面は ../../../components/README.md。
+
+## API
+
+- `GET /api/me/messaging/inbox?cursor=&limit=&unreadOnly=` → `{ items: InboxItemDto[], nextCursor }`（公開の時刻・id の降順の keyset。`limit` 既定 20・最大 50。`unreadOnly=true|1`。形の誤った `cursor` は 400）
+- `GET /api/me/messaging/inbox/unread-count` → `{ count }`
+- `POST /api/me/messaging/inbox/[id]/read` → `{ ok: true }`（見える行だけ、見えない・無い行は 404）
+- `POST /api/me/messaging/inbox/read-all` → `{ ok: true }`
+- `InboxItemDto` = `{ id, title, body, link, image, metadata, publishedAt (ISO), read }`。回の中身（宛先・数・記録）と他人の情報は返さない。`image` は保存した値のまま（`storage://` の ref か URL）で、表示の部品（`AppImage`）が解決する
+
+## Internals
+
+### 見える行（visibility.ts の 1 か所。SQL とテスト用の同じ判定）
+
+- 公開の時刻 ≤ 今
+- 自分宛ての行（`user_id` = 見る人）か、共有の行（`user_id` null で `target_roles` が null = 全員 か 見る人のロールを含む）。グループ宛てと選んだ宛先は受信者ごとの行
+- 共有の行: 回の `show_to_later_signups` が false なら、見る人の登録より前に公開された行は見せない
+- 共有の行: 好みに従う回（`userStoppable`、kind の無い前の回も）で、見る人が inApp か `"*"` の経路で回の `category` か `"*"` を止めていれば見せない（共有の行は書く時に好みを当てないので読む時に当てる）
+- 取り下げた回の行は消えている（`retracted_at` は回にだけ残る）
+
+### 既読（readState.ts）
+
+- 既読 = `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`
+- 全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の個別の既読の行を掃く
+- 静かな行（`metadata.silent = true`）は未読の数と `unreadOnly`（未読のモーダル）に入れない。ふつうの一覧には出す（`inboxSilentSql` / `isSilent`）
+
+### 画像（imageBinding.ts・imageBindingLedger.ts）
+
+- 持ち主は回: 台帳の紐付け = `messaging.dispatch` / 回の id / `inApp.image`（用途 `notification.image`）。台帳の 1 ファイルは 1 業務行にしか結べず、受信者ごとの行は同じ画像を指すため。お知らせの行は回より長生きしない（FK cascade）
+- 結ぶ: お知らせの行を書く前、回の行を排他で持った取引の中で（共有の行 = 展開、受信者ごとの行 = inApp の経路の `bindImages`）。`storage://` でない値は結ばない
+  - 回の actor が上げた未紐付けの `notification.image` → そのまま attach
+  - 別の人の・ほかの業務行に結ばれた・用途の違う画像 → 回ごとに 1 回 copy して複製を attach（元と ref を共有しない）。複製の失敗は投げる
+  - 対応 `{ <元の参照>: <結んだ参照> }` を回の `metadata.inboxImages` に残し、束・送り直しは同じファイルを使う
+- 外す: 保持の掃除が回を消す取引の中で detach（`record_removed`）。保持の掃除を通らずに回が消えた画像は storage の照合（cron storage-sweep）が `existingDispatchIds`（`dispatchRecords.ts`）で外す。取り下げは画像を回に結んだまま残す
+
+## Verification
+
+- `pnpm test src/features/core/messaging/services/server/inbox`（`visibility` / `inboxService` / `imageBinding`）
