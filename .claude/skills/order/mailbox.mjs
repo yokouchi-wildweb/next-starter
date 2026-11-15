@@ -23,6 +23,12 @@
 //                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す。
 //                            他人の taken・別の振り分け先の routed は断る（--force で通すと RESOLUTION に forced: が残る）
 //                            （/inbox 手順 4 と guild close の共通の書き手）。隣にブラウザ確認のシートがあれば一緒に done/ へ移す
+//   node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<日本語の短い題> --need=<1 行> [--kind=quest|browser-check]
+//                            [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]
+//                            指令を 1 件、宛先の受信箱に書く（指令ファイルのただ 1 つの書き手。/order 手順 4 と道具が呼ぶ）:
+//                            <box>/<ts>-<slug>.md を /order の形（先頭 id / from / to / date / status:open / [kind] / title / need / why /
+//                            done_when / constraints / refs / notes / [tried]、--body があればその後に本文）で、一時ファイル経由で書き、パスを出す。
+//                            箱が無ければ作る。同じ秒の衝突は -2… | from = from の値（--from で上書き）| 省いた欄は `-`
 //   node mailbox.mjs check <add | file | attach | run | result | show> …   ブラウザ確認のシート（<指令>.check.md。書式は checkSheet.mjs）
 //                            add --sheet=<path> --page=/<パス> --as=guest|user|admin --step=<手順>（繰り返す）--expect=<期待>
 //                                [--needs=] [--widths=375,1280] [--source=] [--title=] [--base=]   項目を足す（無ければ作る。同じ項目はまとめる）
@@ -32,7 +38,7 @@
 //                            run <sheet>   1 回の確認の始まり（runs +1）| result <sheet> C<n> ok|ng|skip [--evidence=]   結果を書き戻す
 //                            show <sheet>  数と、まだ結果のない項目・スクリーンショットの置き場
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { addItem, copySheet, isSheetFile, readSheet, setResult, sheetPathFor, shotsDirOf, startRun, summarize, writeSheet } from "./checkSheet.mjs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -564,6 +570,71 @@ export function tsId(d = new Date()) {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
+export const ORDER_KINDS = ["quest", "browser-check"];
+
+// 先頭の 1 行の欄に入れる値（改行は空白に。空・未指定は `-`）
+function oneLine(v) {
+  const t = v === undefined || v === null ? "" : String(v).replace(/\s*\r?\n\s*/g, " ").trim();
+  return t || "-";
+}
+
+// need から slug（英小文字の kebab、5 語まで）。英字が無ければ "order"
+export function slugOf(text) {
+  const words = String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean).slice(0, 5);
+  return words.join("-") || "order";
+}
+
+// 指令ファイルのただ 1 つの書き手: 宛先の受信箱 box に /order の形で 1 件書き、パスを返す。
+// to = 宛先の `<origin> | box:<fork-id>`、from = 発行元の行。title / need は要る、ほかは省けば `-`（kind / tried は省けば行なし）。
+// need は id を名指したい呼び手のために (id) => 文字列 でもよい（道具の check file）。body = 先頭の後に続ける本文（任意）。一時ファイルに書いてから、まだ無い名前へ link で置く（同じ秒の衝突は -2…、上書きしない）
+export function fileOrder({ box, to, from, title, need, kind, why, doneWhen, constraints, refs, notes, tried, body, slug, now = new Date() }) {
+  if (!title) throw new Error("--title=<日本語の短い題> が要ります");
+  if (!need) throw new Error("--need=<1 行> が要ります");
+  if (kind && !ORDER_KINDS.includes(kind)) throw new Error(`--kind は ${ORDER_KINDS.join(" | ")} のどれかです（${kind}）`);
+  const s = slug ? String(slug) : slugOf(typeof need === "function" ? "" : need);
+  if (/[/\\\s]/.test(s) || s.startsWith(".")) throw new Error(`--slug にはパスの区切り・空白・先頭の . を使えません（${s}）`);
+  mkdirSync(box, { recursive: true });
+  const ts = tsId(now);
+  const head = (id) => [
+    `# ORDER id:${id}`,
+    `from: ${oneLine(from)}`,
+    `to: ${oneLine(to)}`,
+    `date: ${isoNow(now)}`,
+    "status: open",
+    ...(kind ? [`kind: ${kind}`] : []),
+    `title: ${oneLine(title)}`,
+    `need: ${oneLine(typeof need === "function" ? need(id) : need)}`,
+    `why: ${oneLine(why)}`,
+    `done_when: ${oneLine(doneWhen)}`,
+    `constraints: ${oneLine(constraints)}`,
+    `refs: ${oneLine(refs)}`,
+    `notes: ${oneLine(notes)}`,
+    ...(tried ? [`tried: ${oneLine(tried)}`] : []),
+    "",
+  ].join("\n");
+  const rest = body && body.trim() ? `\n${body.replace(/^\n+/, "").replace(/\n*$/, "\n")}` : "";
+  const tmp = join(box, `.order.tmp.${process.pid}.${Date.now()}`);
+  for (let i = 1; ; i++) {
+    const id = i === 1 ? `${ts}-${s}` : `${ts}-${s}-${i}`;
+    const path = join(box, `${id}.md`);
+    if (existsSync(path)) continue;
+    writeFileSync(tmp, head(id) + rest);
+    try {
+      linkSync(tmp, path);   // まだ無い名前にだけ置く（別の書き手が同じ名前を先に取れば次の番号へ）
+    } catch (e) {
+      if (e.code === "EEXIST") continue;
+      throw e;
+    } finally {
+      try {
+        unlinkSync(tmp);
+      } catch {
+        // 消せなくても指令は書けている
+      }
+    }
+    return path;
+  }
+}
+
 // 道具の入口: 宛先の受信箱 box にブラウザ確認の指令（kind: browser-check）を書き、src のシートを隣に付ける（src は残す）。
 // to = 宛先の `<origin> | box:<fork-id>`、from = 発行元の行。戻り値 { order, sheet }
 export function fileCheckOrder({ box, to, from, src, title, why, only, slug = "browser-check", now = new Date() }) {
@@ -571,29 +642,16 @@ export function fileCheckOrder({ box, to, from, src, title, why, only, slug = "b
   const sheet = readSheet(src);
   const n = only && only.length ? only.length : sheet.items.length;
   if (!n) throw new Error(`シートに項目がありません: ${src}`);
-  mkdirSync(box, { recursive: true });
-  let id = `${tsId(now)}-${slug}`;
-  for (let i = 2; existsSync(join(box, `${id}.md`)); i++) id = `${tsId(now)}-${slug}-${i}`;
   const sources = [...new Set(sheet.items.flatMap((it) => it.source).filter((s) => s && s !== "-").map((s) => s.split(" ")[0]))];
-  const orderPath = join(box, `${id}.md`);
-  const iso = isoNow(now);
-  writeFileSync(orderPath, [
-    `# ORDER id:${id}`,
-    `from: ${from}`,
-    `to: ${to}`,
-    `date: ${iso}`,
-    "status: open",
-    "kind: browser-check",
-    `title: ${title}`,
-    `need: run the browser checks of ${id}.check.md (${n} items) with /patrol`,
-    `why: ${why || `items collected by ${sources.join(", ") || "the sender"}; they need the running app, which the sender did not start`}`,
-    "done_when: every item of the sheet has a result (ok | ng | skip); ng items handed on as fix orders, each with a sheet of its ng items",
-    "constraints: -",
-    `refs: ${src}`,
-    "notes: -",
-    "",
-  ].join("\n"));
-  const dest = attachSheet(orderPath, { src, only, now: iso, title });
+  const orderPath = fileOrder({
+    box, to, from, title, now, slug,
+    kind: "browser-check",
+    need: (id) => `run the browser checks of ${id}.check.md (${n} items) with /patrol`,
+    why: why || `items collected by ${sources.join(", ") || "the sender"}; they need the running app, which the sender did not start`,
+    doneWhen: "every item of the sheet has a result (ok | ng | skip); ng items handed on as fix orders, each with a sheet of its ng items",
+    refs: src,
+  });
+  const dest = attachSheet(orderPath, { src, only, now: isoNow(now), title });
   return { order: orderPath, sheet: dest };
 }
 
@@ -807,6 +865,35 @@ function main() {
       console.error(`resolve: ${e.message}`);
       process.exit(1);
     }
+  } else if (cmd === "file") {
+    const args = process.argv.slice(3);
+    try {
+      const to = opt(args, "to");
+      if (!to || !opt(args, "title") || !opt(args, "need")) throw new Error("usage: node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<題> --need=<1 行> [--kind=quest|browser-check] [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]");
+      const t = to === "self" ? { box: boxOf(self.repoId), to: `${self.origin || "-"} | box:${self.repoId}` } : targetOf(self, to);
+      const from = opt(args, "from") || fromLine(process.env, { origin: self.origin, repoId: self.repoId, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]), cwd: process.cwd() });
+      const bodyFile = home(opt(args, "body"));
+      const path = fileOrder({
+        box: t.box,
+        to: t.to,
+        from,
+        title: opt(args, "title"),
+        need: opt(args, "need"),
+        kind: opt(args, "kind"),
+        why: opt(args, "why"),
+        doneWhen: opt(args, "done-when"),
+        constraints: opt(args, "constraints"),
+        refs: opt(args, "refs"),
+        notes: opt(args, "notes"),
+        tried: opt(args, "tried"),
+        slug: opt(args, "slug"),
+        body: bodyFile ? readFileSync(bodyFile, "utf8") : undefined,
+      });
+      console.log(path);
+    } catch (e) {
+      console.error(`file: ${e.message}`);
+      process.exit(1);
+    }
   } else if (cmd === "check") {
     try {
       checkCli(self, process.argv.slice(3));
@@ -815,7 +902,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | unroute <指令> | resolve <指令ファイル> --status=… --body=<ファイル> | check <add | file | attach | run | result | show> …");
+    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | file --to=<self|fork-id|path> --title=<題> --need=<1 行> … | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | unroute <指令> | resolve <指令ファイル> --status=… --body=<ファイル> | check <add | file | attach | run | result | show> …");
     process.exit(1);
   }
 }
