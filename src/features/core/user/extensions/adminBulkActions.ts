@@ -3,9 +3,13 @@
 
 import type { UserAdminBulkActionItem } from "@/features/core/user/types";
 
+import { bulkAction as adminBulkActions_userGroupAdd } from "@/features/core/user/adminBulkActions/userGroupAdd";
+import { bulkAction as adminBulkActions_userGroupCreate } from "@/features/core/user/adminBulkActions/userGroupCreate";
 import { bulkAction as adminBulkActions_userTags } from "@/features/core/user/adminBulkActions/userTags";
 
 const adminBulkActionsList: UserAdminBulkActionItem[] = [
+  adminBulkActions_userGroupAdd,
+  adminBulkActions_userGroupCreate,
   adminBulkActions_userTags,
 ];
 export const adminBulkActions: Readonly<Record<string, UserAdminBulkActionItem>> = Object.assign(Object.create(null), Object.fromEntries(adminBulkActionsList.map((item) => [String(item.key), item])));

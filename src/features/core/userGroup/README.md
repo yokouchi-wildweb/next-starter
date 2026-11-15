@@ -149,6 +149,7 @@ if (result.status === "incomplete") return { ok: true, pending: true }; // 次�
   - 下の帯: 保管（ConfirmPopover）・保存（直す = 変えた欄だけ PATCH。読むだけの条件は作り直さない限り送らない）。作った後は同じモーダルでその 1 件を直す形に変わる
 - 条件の組み立て（2 段まで）: 根の組（すべて満たす and / どれか 1 つを満たす or）の中に条件と組、組の中は条件だけ。どの条件・組にも「当てはまらない人」（not）。条件は部品の `label` で選び、引数の欄は部品の `fields` を FieldRenderer で描く（`common/UserGroupCriterionFields` + hook `useUserGroupCriterionArgs`: 日時は ISO の文字、空の欄は落とす。選択肢は条件の部品の一覧の API の label）。画面で組めない深い定義（3 段以上・not の重なり）は読むだけで出し、「作り直す」で空の組から組む
 - 固定の流れ（hook `useUserGroupFreeze`、モーダルの hook が持つ）: `POST static` の後、`members.status` が `incomplete` の間は同じ `from` で `[id]/members { mode: "replace" }` を自動で送り直し、進み具合（書いた人数）を出す（`common/UserGroupFreezeProgress`）。閉じると止める（グループは残り、同じ元で入れ替えれば続きから）
+- 利用者一覧の一括操作（user の受け口 `adminBulkActions` の項目 `userGroupCreate` / `userGroupAdd`、一般の一覧、門 `userGroups` が閉なら出ない）: 作成関数 `bulkCreateUserGroupAction`（選んだ人で固定のグループを作る、名前・説明、送り直しは固定の流れ）・`bulkAddToUserGroupAction`（使用中の固定のグループを名前で選んで足す、hook `useAddToUserGroup`）は `components/AdminUserGroupBulkActions`。どのドメインの一覧の項目からも使える（選んだ記録の id = 利用者 id の一覧）。断られた理由（人数の上限など）はサーバーの言葉のまま
 - 部品と hook は公開（hook の入口 `hooks/index.ts`、部品は `components/<Name>` / `components/common/<Part>`）。入れ物は hook を呼んで部品を並べるだけ。fork は自分の画面に同じ部品・モーダルを置ける。内部の鍵・id は画面に出さない（D94）
 - client service: `services/client/userGroupAdminClient.ts`（axios + normalizeHttpError、型は server の DTO と入力の zod を型だけ読む）
 
