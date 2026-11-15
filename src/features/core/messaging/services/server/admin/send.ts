@@ -3,13 +3,16 @@
 // 管理の送信(D34・D40・D41・D42・D65・D80・D85・D92)。管理者が書いた文面を送る(その場で書く連絡も、テンプレートを呼び出して直した文面も同じ形)。
 // - 中身: content = 経路ごとの文面(経路の受け口の zod で検査、{{鍵}} を差し込む)・template? = 呼び出したテンプレート { templateId, version }
 //   (今の公開版でなければ 409)・vars? = テンプレートの変数の値(template がある時だけ)。組み方は sendMessage/authoredDefinition.ts
-// - 宛先: 全員 / ロール / audiences の受け口の項目(+ 引数)/ 選んだ利用者(userIds)
+// - 宛先: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
+//   audiences の受け口の項目(+ 引数)/ 選んだ利用者(userIds)
 // - カテゴリー(必須): 種別 announcement・direct・marketing のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
 //   (./freeText.ts。誤りは 400)。鍵はその種別の authored の定義(messages/admin<Kind>.ts)
 // - 経路: カテゴリーの経路の中の絞り(省略 = 全部、D86)。使う経路はどれも文面が要る(無ければ 400)。LINE・fork の経路も送れる
 // - 予約: scheduledAt(ISO 8601)。過ぎた・遠すぎる時刻は送る口が 400。拾うのは cron の周期(Hobby は 1 日 1 回)
 // - プレビュー: 操作した管理者を見本の受信者にして経路ごとに描く(メールは送る時と同じ描き方の HTML)
-// - 見込み: 宛先の数(送る時に展開で数え直す = fixedAtSend)
+// - 見込み: 宛先の数(送る時に展開で数え直す = fixedAtSend)。グループは一員の数と上限(memberLimit・overLimit)。
+//   一員の数は利用できない利用者・送り始めより後の登録を外す前の数なので、送る時の数は少ないことがある
+// - 選択肢のグループ: 使用中のグループを名前の順に(id は値としてだけ、D94)。門 userGroups が閉なら空
 // - テスト送信: 宛先 = 操作した管理者だけ、is_test(集計と分母から外す)
 // - service でも管理者を確かめ、監査 messaging.dispatch.{sent, scheduled, test_sent}
 
@@ -38,6 +41,7 @@ export const AdminMessageTemplateSchema = z
 const audienceSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("all") }).strict(),
   z.object({ type: z.literal("role"), roles: z.array(z.string().min(1)).min(1).max(50) }).strict(),
+  z.object({ type: z.literal("group"), groupId: z.string().uuid() }).strict(),
   z.object({ type: z.literal("audience"), key: z.string().min(1), args: z.unknown().optional() }).strict(),
   z.object({ type: z.literal("users"), userIds: z.array(z.string().trim().min(1)).min(1).max(ADMIN_SEND_MAX_USERS) }).strict(),
 ]);
@@ -98,10 +102,15 @@ export type AdminSendResult = {
   channelCounts: SendMessageResult["channelCounts"];
 };
 
+/** 送る画面のグループの選択肢(label = グループ名、kindLabel = 種類の表示名) */
+export type AdminSendGroupOption = { id: string; label: string; kindLabel: string };
+
 /** 送る画面の選択肢 */
 export type AdminSendOptions = {
   channels: { key: string; label: string }[];
   roles: { id: string; label: string }[];
+  /** 使用中のユーザーグループ(名前の順、id は値としてだけ。門 userGroups が閉なら空) */
+  groups: AdminSendGroupOption[];
   audiences: { key: string; label: string }[];
   templates: {
     id: string;
@@ -133,6 +142,8 @@ export type AdminSendDeps = AdminCheckDeps & {
   categories: Readonly<Record<string, MessageCategory>>;
   audiences: Readonly<Record<string, MessageAudience>>;
   roles: () => { id: string; label: string }[];
+  /** 使用中のユーザーグループ(門 userGroups が閉なら空) */
+  groupOptions: () => Promise<AdminSendGroupOption[]>;
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
   maxScheduleDays: () => number;
 };
@@ -177,6 +188,7 @@ export function auditContentOf(content: Content): Record<string, unknown> {
 function targetOf(audience: z.infer<typeof audienceSchema>): { audience: MessageAudienceSpec } | { recipients: { userId: string }[] } {
   if (audience.type === "users") return { recipients: [...new Set(audience.userIds)].map((userId) => ({ userId })) };
   if (audience.type === "role") return { audience: { type: "role", roles: audience.roles } };
+  if (audience.type === "group") return { audience: { type: "group", groupId: audience.groupId } };
   if (audience.type === "audience") return { audience: { type: "audience", key: audience.key, args: audience.args } };
   return { audience: { type: "all" } };
 }
@@ -327,6 +339,7 @@ export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOp
   return {
     channels: adminChannelOptions(deps.channels),
     roles: deps.roles(),
+    groups: await deps.groupOptions(),
     audiences: Object.values(deps.audiences).map((audience) => ({ key: audience.key, label: audience.label })),
     templates: await deps.listPublishedTemplates(),
     // 送る画面の宛先(全員・ロール・宛先の集め方・選んだ利用者)のどれかに送れるカテゴリー

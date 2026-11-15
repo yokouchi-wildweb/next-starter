@@ -8,6 +8,8 @@
 // - 管理者が書いて送った文面(authored_content)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)
 // - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文。失敗は状態・reason と、last_error の符号の部分
 //   (errorCode、文は constants/deliveryErrors.ts)で見る
+// - グループ宛ての回: targetGroup { id, name }(id は「同じ内容で送る」が開き直す値としてだけ、画面に出さない、D94・D60)。
+//   名前は読む時のグループ名(しまったグループも)、門 userGroups が閉・消えたグループは null。detail.audience は { type: "group" } だけ
 // - 前の送る口の回(message_key が null): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
 //   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
@@ -35,7 +37,11 @@ export type AdminDispatchSummary = {
   completedAt: string | null;
   scheduledAt: string | null;
   retractedAt: string | null;
+  /** グループ宛ての回の宛先のグループ(id は値としてだけ。名前が引けなければ null)。ほかの宛先は null */
+  targetGroup: AdminDispatchTargetGroup | null;
 };
+
+export type AdminDispatchTargetGroup = { id: string; name: string | null };
 
 export type AdminDispatchDetail = AdminDispatchSummary & {
   record: MessageRecord | null;
@@ -105,7 +111,15 @@ export function headingsOf(row: Pick<MessageDispatch, "headings">): MessageChann
   return row.headings ?? {};
 }
 
-export function toDispatchSummary(row: MessageDispatch): AdminDispatchSummary {
+/** グループ宛ての回のグループ id(ほかは null) */
+export function targetGroupIdOf(row: Pick<MessageDispatch, "audience">): string | null {
+  const audience = row.audience as { type?: unknown; groupId?: unknown } | null;
+  return audience?.type === "group" && typeof audience.groupId === "string" ? audience.groupId : null;
+}
+
+/** groupNames = グループ id → 名前(引けた物だけ) */
+export function toDispatchSummary(row: MessageDispatch, groupNames: ReadonlyMap<string, string> = new Map()): AdminDispatchSummary {
+  const groupId = targetGroupIdOf(row);
   return {
     id: row.id,
     messageKey: row.message_key,
@@ -123,6 +137,7 @@ export function toDispatchSummary(row: MessageDispatch): AdminDispatchSummary {
     completedAt: iso(row.completed_at),
     scheduledAt: iso(row.scheduled_at),
     retractedAt: iso(row.retracted_at),
+    targetGroup: groupId ? { id: groupId, name: groupNames.get(groupId) ?? null } : null,
   };
 }
 
@@ -134,14 +149,20 @@ export function keepsDispatchBody(record: MessageRecord | null): boolean {
 export function toDispatchDetail(
   row: MessageDispatch,
   operations: DispatchOperationFlags,
-  extras: { audienceUserIds?: string[] | null; sourceLabel?: string | null; actorName?: string | null } = {},
+  extras: {
+    audienceUserIds?: string[] | null;
+    sourceLabel?: string | null;
+    actorName?: string | null;
+    groupNames?: ReadonlyMap<string, string>;
+  } = {},
 ): AdminDispatchDetail {
-  const { audienceUserIds = null, sourceLabel = null, actorName = null } = extras;
+  const { audienceUserIds = null, sourceLabel = null, actorName = null, groupNames } = extras;
   const keep = keepsDispatchBody(row.record);
   return {
-    ...toDispatchSummary(row),
+    ...toDispatchSummary(row, groupNames),
     record: row.record,
-    audience: row.audience,
+    // グループ宛ては宛先の形だけ(id は targetGroup に値として、固定した版は出さない)
+    audience: targetGroupIdOf(row) ? { type: "group" } : row.audience,
     tags: row.tags ?? [],
     reason: row.reason,
     metadata: row.metadata,

@@ -3,7 +3,7 @@
 // 管理の送信と読む口(本物の部品を結ぶ)。呼び手は messagingService の admin* / listDispatches など。
 // 管理 API: src/app/api/admin/messaging/**(README「管理の送信と回の読む口」)
 
-import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import { business } from "@/business";
 import { gate } from "@/featureGate";
@@ -13,6 +13,8 @@ import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { ALL_ROLES, getRoleCategory } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import { UserGroupTable } from "@/features/core/userGroup/entities/drizzle";
+import { USER_GROUP_KIND_LABELS } from "@/features/core/userGroup/services/server/admin/dto";
 
 import { messagingConfig } from "../../../config";
 import type { MessageDispatch } from "../../../entities/model";
@@ -58,6 +60,7 @@ import {
   adminSendPreview as adminSendPreviewWith,
   adminSendTest as adminSendTestWith,
   type AdminSendDeps,
+  type AdminSendGroupOption,
 } from "./send";
 import {
   dispatchCategoryOptions as dispatchCategoryOptionsWith,
@@ -152,8 +155,34 @@ function messageLabel(messageKey: string): Promise<string | null> {
   return label;
 }
 
+/** 送る画面のグループの選択肢の数(名前の順) */
+const GROUP_OPTIONS_LIMIT = 200;
+
+/** 使用中のユーザーグループ(例外の持ち主付きは出さない)。門 userGroups が閉なら空(D99) */
+async function groupOptions(): Promise<AdminSendGroupOption[]> {
+  if (!gate.enabled("userGroups")) return [];
+  const rows = await db
+    .select({ id: UserGroupTable.id, name: UserGroupTable.name, kind: UserGroupTable.kind })
+    .from(UserGroupTable)
+    .where(and(eq(UserGroupTable.status, "active"), isNull(UserGroupTable.owner_group_id)))
+    .orderBy(asc(UserGroupTable.name), asc(UserGroupTable.id))
+    .limit(GROUP_OPTIONS_LIMIT);
+  return rows.map((row) => ({ id: row.id, label: row.name, kindLabel: USER_GROUP_KIND_LABELS[row.kind] ?? row.kind }));
+}
+
+/** 回の宛先のグループの名前(しまったグループも)。門 userGroups が閉なら空(表が閉じていることがある) */
+async function groupNames(groupIds: readonly string[]): Promise<Map<string, string>> {
+  if (!gate.enabled("userGroups") || groupIds.length === 0) return new Map();
+  const rows = await db
+    .select({ id: UserGroupTable.id, name: UserGroupTable.name })
+    .from(UserGroupTable)
+    .where(inArray(UserGroupTable.id, [...groupIds]));
+  return new Map(rows.map((row) => [row.id, row.name]));
+}
+
 const readDeps = {
   ...adminCheck,
+  groupNames,
   dispatchStore: drizzleAdminDispatchStore,
   sourceLabel: (source: string) => sourceLabelOf({ sources, messageLabel, bulkTargets: bulkSendTargets }, source),
   async operationInputs(row: MessageDispatch) {
@@ -173,6 +202,7 @@ const sendDeps: AdminSendDeps = {
   categories,
   audiences,
   roles: () => ALL_ROLES.map((role) => ({ id: role.id, label: role.label })),
+  groupOptions,
   async listPublishedTemplates() {
     const rows = await db
       .select({
@@ -259,6 +289,7 @@ export type {
 } from "./operations";
 export type {
   AdminSendEstimateInput,
+  AdminSendGroupOption,
   AdminSendInput,
   AdminSendOptions,
   AdminSendPreviewInput,
@@ -266,5 +297,5 @@ export type {
   AdminSendTestInput,
 } from "./send";
 export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
-export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSummary } from "./dispatchDto";
+export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
 export type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";

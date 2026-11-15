@@ -95,6 +95,17 @@ test("カテゴリーの body は入口で止めずに service へ渡す(検査�
   assert.deepEqual(calls, [["adminSend", body]]);
 });
 
+test("グループ宛ての body と見込みもそのまま service へ渡す(検査は service と送る口)", async () => {
+  const audience = { type: "group", groupId: "22222222-2222-4222-8222-222222222222" };
+  const body = { content: { inApp: { title: "t", body: "b" } }, category: "announcement", audience };
+  await send.POST(post("", body));
+  await estimate.POST(post("/estimate", { audience }));
+  assert.deepEqual(calls, [
+    ["adminSend", body],
+    ["adminSendEstimate", { audience }],
+  ]);
+});
+
 test("門が閉なら 404 で service を呼ばない", async () => {
   gateOpen = false;
   for (const res of [
