@@ -5,10 +5,13 @@
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
 //   --list: 選んだファイルを出すだけ(起動しない)。
-//   起動: npx tsx --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
-//   (node --test と同じく 1 ファイル 1 プロセス)。db の群は env ENV_FILE=.env.development(未設定なら)。門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない。
+//   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
+//   (node --test と同じく 1 ファイル 1 プロセス)。--test の後のファイルは node が glob として読むので、[ ] { } * ? は 1 文字の組 [x] で
+//   そのものに戻して渡す(globLiteral。src/app/**/[id]/ の下のテストが 0 本になって黙って通るのを防ぐ)。npx は通さない: npx は
+//   コマンドを shell に渡し、shell の glob が [[]id[]] を [id] に戻してしまう(tsx の cli を node で直に起動する)。db の群は env ENV_FILE=.env.development(未設定なら)。門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない。
 //   exit 0 = 全部通る(0 本も含む)| 1 = 落ちた | 2 = 引数・フラグの誤り
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, globToRegExp } from "../gates/changed.mjs";
@@ -58,7 +61,14 @@ export async function select(opts, { repo, files, changed = changedFiles, tree =
   return { files: picked, notes };
 }
 
-const defaultSpawn = (args, env, repo) => spawnSync("npx", args, { cwd: repo, env, stdio: "inherit" }).status ?? 1;
+/** node --test の引数は glob: パスの [ ] { } * ? を [x](その 1 文字だけの組)にして、そのファイルだけを指す形にする */
+export const globLiteral = (file) => file.replace(/[[\]{}*?]/g, (c) => `[${c}]`);
+
+// args[0] = 起動するもの(tsx)。その cli を node で直に起動する(shell を通さないので、パスの [ ] が shell の glob に読まれない)
+const defaultSpawn = ([bin, ...rest], env, repo) => {
+  const cli = createRequire(join(repo, "package.json")).resolve(`${bin}/cli`);
+  return spawnSync(process.execPath, [cli, ...rest], { cwd: repo, env, stdio: "inherit" }).status ?? 1;
+};
 
 /** 本体: 終了コード(テストは repo・log・spawn・files・changed・tree を渡す) */
 export async function run(argv, { repo = join(HERE, "../../.."), log = console.log, spawn = defaultSpawn, ...deps } = {}) {
@@ -98,7 +108,7 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
     delete env.FEATURE_GATE_OPEN;
     if (b.db && !env.ENV_FILE) env.ENV_FILE = ".env.development";
     log(`test: ${b.files.length} 本${b.db ? "(db)" : ""}${b.flags.length ? ` ${b.flags.join(" ")}` : ""}`);
-    if (spawn([...BASE_ARGS, ...b.flags, "--test", ...b.files], env, repo) !== 0) code = 1;
+    if (spawn([...BASE_ARGS, ...b.flags, "--test", ...b.files.map(globLiteral)], env, repo) !== 0) code = 1;
   }
   return code;
 }

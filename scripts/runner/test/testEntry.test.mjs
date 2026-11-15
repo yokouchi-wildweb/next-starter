@@ -1,9 +1,13 @@
 // scripts/runner/test/testEntry.test.mjs — pnpm test の入口(走査・群・test-flags・--changed・起動の束ね方)。実行: pnpm test scripts/runner/test
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { reachable, selectChanged } from "./changed.mjs";
-import { BASE_ARGS, parseArgs, run, select } from "./run.mjs";
+import { BASE_ARGS, globLiteral, parseArgs, run, select } from "./run.mjs";
 import { EXCLUDED, flagsOf, groupOf, NAMED_ONLY, TEST_FILE } from "./scan.mjs";
 
 const FILES = ["src/a/a.test.ts", "src/a/b.db.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts", "scripts/x/x.test.mts"];
@@ -107,4 +111,28 @@ test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)と�
   assert.equal(bad, 2);
   assert.equal(spawned, 0);
   assert.equal(await run(["--list"], { ...deps, spawn: () => { throw new Error("起動しない"); } }), 0);
+});
+
+test("[param] の下: パスの絞り込みで選び、--test には glob にならない形で渡して node が実際に 1 本回す(0 本で黙って通らない)", async () => {
+  const file = "src/app/admin/users/[id]/_screen/loader.test.ts";
+  const files = [...FILES, file];
+  const pick = async (argv) => (await select(parseArgs(argv), { repo: "/r", files, changed: noRange })).files;
+  assert.ok((await pick([])).includes(file));
+  assert.deepEqual(await pick([file]), [file]);
+  assert.deepEqual(await pick(["src/app/admin/users/[id]"]), [file]);
+  assert.equal(globLiteral(file), "src/app/admin/users/[[]id[]]/_screen/loader.test.ts");
+  assert.equal(globLiteral("src/app/[...slug]/a.test.ts"), "src/app/[[]...slug[]]/a.test.ts");
+  assert.equal(globLiteral("src/app/(user)/a.test.ts"), "src/app/(user)/a.test.ts");
+  const calls = [];
+  await run([file], { repo: "/r", files, changed: noRange, log: () => {}, readFlags: () => ({ flags: [] }), spawn: (args) => (calls.push(args), 0) });
+  assert.deepEqual(calls.map((a) => a.slice(BASE_ARGS.length)), [["--test", globLiteral(file)]]);
+  // 実物: [id] の下の置き物を node --test に渡すと 1 本回る(そのままのパスだと node は [id] を i か d の 1 文字と読み 0 本)
+  const dir = mkdtempSync(join(tmpdir(), "runner-bracket-"));
+  mkdirSync(join(dir, "[id]"));
+  writeFileSync(join(dir, "[id]", "a.test.mjs"), 'import { test } from "node:test";\ntest("bracket", () => {});\n');
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;   // 外側の node --test の子として報告を親に回さず、自分で数を出させる
+  const r = spawnSync(process.execPath, ["--test", globLiteral("[id]/a.test.mjs")], { cwd: dir, encoding: "utf8", env });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /tests 1\b/);
 });
