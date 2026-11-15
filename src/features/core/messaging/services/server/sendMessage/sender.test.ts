@@ -411,7 +411,6 @@ test("グループ宛て(D58): 送り始めに確かめ、回の行だけ書き(
   // 見込み: 数と上限(超えても投げない)
   assert.deepEqual(await sender.estimateRecipients({ target: { type: "group", groupId: "big" } }), {
     count: 11,
-    capped: false,
     fixedAtSend: true,
     memberLimit: 10,
     overLimit: true,

@@ -61,7 +61,7 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
     },
     estimateRecipients: async (...args) => {
       calls.push({ fn: "estimate", args });
-      return { count: 7, capped: false, fixedAtSend: true };
+      return { count: 7, fixedAtSend: true };
     },
     recordAudit: async (input) => audits.push(input),
     channels: { email: channel("email"), inApp: channel("inApp"), line: channel("line", { enabled: false }), push: channel("push") },
@@ -195,7 +195,6 @@ test("見込みは送る口の数(送る時に数え直す印)、選択肢は有
   const { deps, calls } = setup();
   assert.deepEqual(await adminSendEstimate(deps, { target: { type: "users", userIds: ["u1", "u2"] } }), {
     count: 7,
-    capped: false,
     fixedAtSend: true,
   });
   assert.deepEqual(calls[0].args, [{ userIds: ["u1", "u2"] }]);

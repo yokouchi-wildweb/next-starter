@@ -238,7 +238,7 @@ test("SendSchedule: 予約の時だけ時刻・注記・誤り", async () => {
 test("SendConfirmView / SendResultView", async () => {
   const confirm = await render(
     createElement(parts.SendConfirmView, {
-      estimate: { count: 12, capped: false },
+      estimate: { count: 12 },
       scheduledAt: null,
       templateVersion: 3,
       channels: ["メール"],

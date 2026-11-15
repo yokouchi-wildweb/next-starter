@@ -396,7 +396,7 @@ D39・D42。service: `services/server/admin/operations.ts`（`messagingService.a
   - **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**（例: 運営からのご連絡 `operatorDirect` = direct は選んだ利用者宛てだけ）。誤りは service で 400（`admin/freeText.ts`、D80）。プレビューは宛先を見ない、テスト送信は選んだ利用者と同じ扱い
   - `channels?` は種類の経路の中の絞り（種類の外・空は 400、D86）
 - `POST /send/preview`: 経路ごとに差し込みを済ませた欄と、経路の `preview` があれば描いた結果（メールは送る時と同じ描き方の HTML）。見本の受信者 = 操作した管理者。テンプレートは今の公開版（送る時に固定する版）
-- `POST /send/estimate` `{ target }` → `{ count, capped, fixedAtSend: true, memberLimit?, overLimit? }`: 全員・ロールは数、グループは一員の数と人数の上限（`memberLimit`・`overLimit`、利用できない人を外す前の数）、選んだ利用者は居る人の数。送る時に展開で数え直す（停止・宛先なしは引く前の数）
+- `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`: 全員・ロールは数、グループは一員の数と人数の上限（`memberLimit`・`overLimit`、利用できない人を外す前の数）、選んだ利用者は居る人の数。送る時に展開で数え直す（停止・宛先なしは引く前の数）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作（操作者なし）は 400
 - `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }`、名前の順に 200 件、門 `userGroups` が閉なら空）・公開したテンプレート（今の版の番号・種類・文言・変数）・`categories`（送れるカテゴリー `{ key, label, kind, channels, targets }`）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent`（今送る）/ `messaging.dispatch.scheduled`（予約）/ `messaging.dispatch.test_sent`（対象 `message_dispatch`、本文の値は残さない）
