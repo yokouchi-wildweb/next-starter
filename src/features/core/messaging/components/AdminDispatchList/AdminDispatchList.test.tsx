@@ -1,6 +1,7 @@
 // 回の一覧と回の詳細の入れ物の検査(jsdom の上で描く。hook・入力・部品の一部は偽物)。D46: 運営する人に鍵を打たせず見せない
 // - 一覧: 定義の鍵の欄が無い / カテゴリーの選びは種別を選ぶまで押せず、選ぶとその種別のカテゴリー(表示名)/ 行に種別・カテゴリーの表示名
 // - 詳細: 種別・カテゴリーの表示名、送り元は表示名がある時だけ、定義の鍵・送り元の鍵・経路の鍵は出ない
+// - グループ宛ての回: 一覧の行と詳細にグループの名前(名前が無ければ「グループ」)、id は出さない
 // 実行: pnpm test src/features/core/messaging/components/AdminDispatchList/AdminDispatchList.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -54,6 +55,7 @@ const DISPATCH = {
   channels: ["email", "inApp"],
   headings: { email: "春のセール" },
   recipientCount: 2,
+  targetGroup: null as { id: string; name: string | null } | null,
   channelCounts: { email: { targeted: 1, sent: 1, failed: 0, suppressed: 0, skipped_no_address: 0, skipped_throttled: 0 } },
   actor: { id: "a1", type: "admin" },
   actorName: "管理者 A" as string | null,
@@ -67,6 +69,7 @@ const DISPATCH = {
   operations: {},
 };
 let kind = "";
+let listItems: Record<string, unknown>[] = [DISPATCH];
 const setCalls: string[] = [];
 mock.module("@/features/core/messaging/hooks/useAdminDispatchFilters", {
   namedExports: {
@@ -93,7 +96,7 @@ mock.module("@/features/core/messaging/hooks/useAdminDispatchFilters", {
 });
 mock.module("@/features/core/messaging/hooks/useAdminDispatches", {
   namedExports: {
-    useAdminDispatches: () => ({ items: [DISPATCH], isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} }),
+    useAdminDispatches: () => ({ items: listItems, isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} }),
   },
 });
 const CATS = [
@@ -147,6 +150,7 @@ beforeEach(() => {
   setCalls.length = 0;
   detail = { ...DISPATCH };
   deliveryItems = [];
+  listItems = [DISPATCH];
 });
 
 const render = async (element: ReturnType<typeof createElement>) => {
@@ -225,4 +229,30 @@ test("詳細: 送った人は名前、本文は経路の欄(生の JSON なし)�
   const system = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
   assert.match(system.container.textContent ?? "", /送った人システム/);
   await system.unmount();
+});
+
+test("グループ宛ての回: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
+  const GROUP_ID = "44444444-4444-4444-8444-444444444444";
+  const named = { ...DISPATCH, id: "d2", targetGroup: { id: GROUP_ID, name: "常連" } };
+  const unnamed = { ...DISPATCH, id: "d3", targetGroup: { id: GROUP_ID, name: null } };
+  listItems = [named, unnamed, DISPATCH];
+  const list = await render(createElement(AdminDispatchList));
+  const targets = [...list.container.querySelectorAll('[data-slot="dispatch-target"]')].map((el) => el.textContent);
+  assert.deepEqual(targets, ["宛先: グループ「常連」 2 名", "宛先: グループ 2 名", "宛先 2 名"]);
+  assert.doesNotMatch(list.container.textContent ?? "", new RegExp(GROUP_ID));
+  await list.unmount();
+
+  detail = named;
+  const shown = await render(createElement(AdminDispatchDetail, { dispatchId: "d2" }));
+  assert.match(shown.container.textContent ?? "", /宛先グループ「常連」/);
+  assert.doesNotMatch(shown.container.textContent ?? "", new RegExp(GROUP_ID));
+  await shown.unmount();
+  detail = unnamed;
+  const bare = await render(createElement(AdminDispatchDetail, { dispatchId: "d3" }));
+  assert.match(bare.container.textContent ?? "", /宛先グループ宛先の数/);
+  await bare.unmount();
+  detail = { ...DISPATCH };
+  const plain = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
+  assert.doesNotMatch(plain.container.textContent ?? "", /宛先グループ/);
+  await plain.unmount();
 });

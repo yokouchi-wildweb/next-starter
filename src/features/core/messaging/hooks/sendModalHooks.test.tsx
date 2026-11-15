@@ -3,6 +3,7 @@
 // - new: テンプレートを呼び出す → 文言が写る → 直す → カテゴリー(宛先で絞る)→ 経路の絞り(既定は全部オン)→ 文言の無い経路は止める
 //   → 予約の検査 → プレビュー・テスト送信 → 見込み → 確認 → 送る(鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 門 messagingTemplates が閉ならテンプレートを出さない
+// - sameAs の経路: 元の回の経路だけオン(今のカテゴリーの中で)、触るまで書きかけにしない
 // - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
 // - sameAs: 文面・カテゴリー・宛先の形を写す / テンプレートの回は呼び出しの形 / 選んだ利用者の回は同じ利用者 /
 //   直して送った回は直した文言(今の公開版で)/ 公開中でないテンプレートはその場で書く形 + 知らせ
@@ -487,4 +488,27 @@ test("sameAs のグループ: 今も選べれば同じグループ、選べな�
   assert.equal(gone.value().targetError, "グループを選んでください");
   assert.equal(gone.value().canSend, false);
   await gone.unmount();
+});
+
+test("sameAs の経路: 元の回の経路だけオン(お知らせだけの回はお知らせだけ)、触るまで書きかけにしない、戻せる", async () => {
+  const inAppOnly = { ...SAME_AS, dispatch: { ...SAME_AS.dispatch, channels: ["inApp"] } };
+  const view = await mount(() => hooks.useMessageSendModal({ mode: inAppOnly as never }));
+  const m = () => view.value();
+  await act(async () => m().setOpen(true));
+  assert.deepEqual(m().sendChannels, ["inApp"]);
+  assert.deepEqual(m().channels.map((c) => [c.key, c.on]), [["email", false], ["inApp", true]]);
+  assert.equal(m().dirty, false, "写しただけでは書きかけにしない");
+  await act(async () => m().toggleChannel("email", true));
+  assert.deepEqual(m().sendChannels, ["email", "inApp"]);
+  assert.equal(m().dirty, true);
+  await act(async () => m().toggleChannel("email", false));
+  assert.equal(m().dirty, false, "元に戻せば書きかけでない");
+  await view.unmount();
+
+  // 今のカテゴリーに無い経路しか使っていない回 = 全部外さず全部オン(送れない形にしない)
+  const lineOnly = { ...SAME_AS, dispatch: { ...SAME_AS.dispatch, channels: ["line"] } };
+  const other = await mount(() => hooks.useMessageSendModal({ mode: lineOnly as never }));
+  await act(async () => other.value().setOpen(true));
+  assert.deepEqual(other.value().sendChannels, ["email", "inApp"]);
+  await other.unmount();
 });

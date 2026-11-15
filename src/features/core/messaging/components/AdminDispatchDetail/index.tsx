@@ -25,7 +25,12 @@ import {
   DELIVERY_STATUS_DISPLAY,
 } from "@/features/core/messaging/components/common/DeliveryStatusBadge";
 import { DeliveryRow } from "@/features/core/messaging/components/common/DeliveryRow";
-import { dispatchHeading, dispatchKindLabel, formatAdminDateTime } from "@/features/core/messaging/components/common/DispatchRow";
+import {
+  dispatchHeading,
+  dispatchKindLabel,
+  dispatchTargetGroupLabel,
+  formatAdminDateTime,
+} from "@/features/core/messaging/components/common/DispatchRow";
 import { useGate } from "@/featureGate/client";
 
 import { ADMIN_CHANNEL_FILTER_OPTIONS, messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
@@ -180,6 +185,7 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
         <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "今は無いカテゴリー" : "-")} />
         {dispatch.sourceLabel ? <Field label="送り元" value={dispatch.sourceLabel} /> : null}
         <Field label="経路" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
+        {dispatch.targetGroup ? <Field label="宛先" value={dispatchTargetGroupLabel(dispatch) ?? "グループ"} /> : null}
         <Field label="宛先の数" value={`${dispatch.recipientCount} 名`} />
         <Field label="送った人" value={dispatch.actorName ?? (dispatch.actor.id ? "(名前の無い利用者)" : "システム")} />
         <Field label="作った日時" value={formatAdminDateTime(dispatch.createdAt)} />
