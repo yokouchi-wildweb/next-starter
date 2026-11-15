@@ -5,7 +5,7 @@
 // 管理: ユーザーグループを作る・直すモーダルの流れ(AdminUserGroupModal はこれと useUserGroupForm などを呼んで部品を並べるだけ)。
 // - 開いている間だけ部品の一覧(catalog)と 1 件を取る
 // - 作った後(動的・定期計算の保存 / 固定の 1 回目の送信)は、同じモーダルのままその 1 件を直す形に変わる(ページは移らない)
-// - 固定の流れ(useUserGroupFreeze)はここが持つ: 書く欄を作り直しても送り直しが続く。「今の人で固定」(動的・定期計算の今の一員から
+// - 固定の流れ(useUserGroupFreeze)はここが持つ: 書く欄を作り直しても送り直しが続く。進み具合は始めた開いた回だけに出す。「今の人で固定」(動的・定期計算の今の一員から
 //   新しい固定のグループ、D51)もこれ。閉じたら送り直しを止める(閉じる前に確かめる)
 // - 一員・例外の操作の後は 1 件を取り直し、一覧へ onChanged で渡す
 // - formKey = 開いた回 + 1 件の id と更新(保存の後は書く欄をサーバーの値で作り直す)
@@ -44,7 +44,7 @@ export function useUserGroupModal({ open, groupId = null, onChanged }: UseUserGr
   const setTab = useCallback((next: string) => setTabState({ session, tab: next as UserGroupModalTab }), [session]);
   const onCreated = useCallback((id: string) => setCreated({ session, id }), [session]);
 
-  const freeze = useUserGroupFreeze({
+  const rawFreeze = useUserGroupFreeze({
     onStarted: useCallback(
       (started: AdminUserGroupDetail) => {
         onCreated(started.id);
@@ -60,7 +60,23 @@ export function useUserGroupModal({ open, groupId = null, onChanged }: UseUserGr
       [revalidate, onChanged],
     ),
   });
-  const { cancel: cancelFreeze } = freeze;
+  // 固定の進み具合は始めた開いた回の物(閉じて開き直した「新しく作る」に前の回の「書きました」を出さない)
+  const [freezeSession, setFreezeSession] = useState<number | null>(null);
+  const { start: startFreeze, cancel: cancelFreeze } = rawFreeze;
+  const ownFreeze = freezeSession === session;
+  const start = useCallback(
+    (input: Parameters<typeof startFreeze>[0]) => {
+      setFreezeSession(session);
+      return startFreeze(input);
+    },
+    [session, startFreeze],
+  );
+  const freeze = {
+    ...rawFreeze,
+    start,
+    progress: ownFreeze ? rawFreeze.progress : ({ status: "idle" } as const),
+    running: ownFreeze && rawFreeze.running,
+  };
   // 閉じたら送り直しを止める(閉じる前の確かめは closeConfirm)
   useEffect(() => {
     if (!open) cancelFreeze();
@@ -80,9 +96,9 @@ export function useUserGroupModal({ open, groupId = null, onChanged }: UseUserGr
   const freezeCurrent = useCallback(
     (name: string) => {
       if (!group) return Promise.resolve(null);
-      return freeze.start({ name, description: null, from: { type: "group", groupId: group.id } });
+      return start({ name, description: null, from: { type: "group", groupId: group.id } });
     },
-    [group, freeze],
+    [group, start],
   );
 
   const state: "loading" | "error" | "ready" = catalogError

@@ -52,6 +52,8 @@ export type AdminUserGroupModalProps = {
 };
 
 const MODAL_WIDTH = "880px";
+/** 定期計算の間隔の「既定」の選択肢の値(null = 設定の既定) */
+export const INTERVAL_DEFAULT = "default";
 
 export function AdminUserGroupModal({ open, onOpenChange, groupId = null, onChanged }: AdminUserGroupModalProps) {
   const m = useUserGroupModal({ open, groupId, onChanged });
@@ -115,8 +117,9 @@ function UserGroupModalBody({
   });
 
   const closeConfirm = freeze.running ? modal.freezeCloseConfirm : form.closeConfirm;
+  // 既定の間隔は空でない印で持つ(選択肢の値に空の文字は使えない: Radix の Select.Item が実行時に拒む)
   const intervalOptions = [
-    { value: "", label: fields.defaultIntervalMinutes ? `既定(${intervalLabel(fields.defaultIntervalMinutes)})` : "既定の間隔" },
+    { value: INTERVAL_DEFAULT, label: fields.defaultIntervalMinutes ? `既定(${intervalLabel(fields.defaultIntervalMinutes)})` : "既定の間隔" },
     ...fields.intervalChoices.map((minutes) => ({ value: String(minutes), label: intervalLabel(minutes) })),
   ];
 
@@ -192,6 +195,7 @@ function UserGroupModalBody({
             id="user-group-kind"
             value={fields.kind}
             disabled={fields.kindLocked}
+            showPlaceholderOption={false}
             options={fields.kindOptions.map((option) => ({ value: option.value, label: option.label }))}
             onChange={(v) => v && fields.setKind(String(v))}
           />
@@ -208,10 +212,11 @@ function UserGroupModalBody({
             </Label>
             <SelectInput
               id="user-group-interval"
-              value={fields.intervalMinutes === null ? "" : String(fields.intervalMinutes)}
+              value={fields.intervalMinutes === null ? INTERVAL_DEFAULT : String(fields.intervalMinutes)}
               disabled={locked}
               options={intervalOptions}
-              onChange={(v) => fields.setIntervalMinutes(v ? Number(v) : null)}
+              showPlaceholderOption={false}
+              onChange={(v) => fields.setIntervalMinutes(!v || v === INTERVAL_DEFAULT ? null : Number(v))}
             />
             {group?.recompute ? <UserGroupRecomputeStatus recompute={group.recompute} showReason /> : null}
           </Stack>
