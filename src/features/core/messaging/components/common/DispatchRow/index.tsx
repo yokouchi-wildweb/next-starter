@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/DispatchRow/index.tsx
-// 部品(props だけ): 管理の回の一覧の 1 行(件名・題、状態、種別・カテゴリーの表示名、経路、宛先の数、作った日時)。詳細へのリンク。
+// 部品(props だけ): 管理の回の一覧の 1 行(件名・題、状態、種別・カテゴリーの表示名、経路、宛先(グループ宛てはグループ名)と数、作った日時)。詳細へのリンク。
 // 定義の鍵・送り元の鍵は見せない(D46: 運営する人は鍵を読まない)。カテゴリーの表示名は置き場が渡す(useAdminDispatchCategories の labelOf)
 
 "use client";
@@ -26,6 +26,18 @@ export function formatAdminDateTime(iso: string | null | undefined): string {
 export function dispatchHeading(dispatch: Pick<AdminDispatchSummary, "headings">): string {
   const first = Object.values(dispatch.headings ?? {}).find((text) => text.trim() !== "");
   return first ?? "(件名なし)";
+}
+
+/** 宛先のグループの表示(グループ宛ての回だけ。名前が取れない = 門 userGroups が閉・消えた → 「グループ」。id は出さない、D94) */
+export function dispatchTargetGroupLabel(dispatch: Pick<AdminDispatchSummary, "targetGroup">): string | null {
+  if (!dispatch.targetGroup) return null;
+  return dispatch.targetGroup.name ? `グループ「${dispatch.targetGroup.name}」` : "グループ";
+}
+
+/** 一覧の行の宛先(グループ宛て = 「宛先: グループ「名前」 N 名」、ほか = 「宛先 N 名」) */
+export function dispatchTargetText(dispatch: Pick<AdminDispatchSummary, "targetGroup" | "recipientCount">): string {
+  const group = dispatchTargetGroupLabel(dispatch);
+  return group ? `宛先: ${group} ${dispatch.recipientCount} 名` : `宛先 ${dispatch.recipientCount} 名`;
 }
 
 /** 種別の表示名(知らない値・null は null) */
@@ -61,8 +73,8 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
           <Span size="sm" tone="muted">
             {dispatch.channels.map(messageChannelLabel).join(" / ")}
           </Span>
-          <Span size="sm" tone="muted">
-            宛先 {dispatch.recipientCount} 名
+          <Span size="sm" tone="muted" data-slot="dispatch-target">
+            {dispatchTargetText(dispatch)}
           </Span>
           <Span size="sm" tone="muted">
             {formatAdminDateTime(dispatch.createdAt)}

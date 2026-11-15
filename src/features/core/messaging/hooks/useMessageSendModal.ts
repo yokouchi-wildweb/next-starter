@@ -5,7 +5,7 @@
 // 管理: 送るモーダルの流れ(1 つの hook。入れ物 MessageSendModal はこれを呼んで部品を並べるだけ、CLAUDE.md core_ui)。
 // 開き方(mode):
 // - new: 回の一覧の「新しく送る」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
-// - sameAs: 回の詳細の「同じ内容で送る」。その回の文面・カテゴリー・宛先の形を写す(本文を残さない回は件名・題だけ。
+// - sameAs: 回の詳細の「同じ内容で送る」。その回の文面・カテゴリー・経路・宛先の形を写す(本文を残さない回は件名・題だけ。
 //   グループ宛ての回は同じグループ(今は選べなければ選び直し、全員に広げない)・選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
 //   古い版は 409)。直して送った回は直した文言を写す。公開中でないテンプレートはその場で書く形にして sameAsNote で知らせる
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
@@ -276,7 +276,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [loadNote, setLoadNote] = useState<string | null>(null);
   const [targetState, setTargetState] = useState<MessageSendTarget | null>(null);
   const [chosenCategory, setChosenCategory] = useState<string | null>(null);
-  const [channelsOff, setChannelsOff] = useState<string[]>([]);
+  /** 外した経路(null = まだ触っていない = mode から導く。sameAs は元の回が使わなかった経路を外した形) */
+  const [channelsOffState, setChannelsOff] = useState<string[] | null>(null);
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
   const [scheduledAt, setScheduledAtState] = useState("");
   const [scheduleError, setScheduleError] = useState<string | null>(null);
@@ -347,7 +348,16 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const categoryOption = allowedCategories.find((option) => option.key === category) ?? null;
   /** 選んだカテゴリーの経路(その場で書く時もテンプレートの時も全部。LINE・fork の経路も文面があれば送れる) */
   const categoryChannels = useMemo(() => categoryOption?.channels ?? [], [categoryOption]);
-  /** 送る経路 = カテゴリーの経路 − 外した経路(既定は全部オン) */
+  // sameAs で経路をまだ触っていない = 元の回の経路だけオン(今のカテゴリーの経路の中で。全部外れてしまう時は全部オン)。
+  // カテゴリーを選び直した後は全部オンから(setCategory)
+  const initialChannelsOff = useMemo(() => {
+    if (mode.type !== "sameAs" || chosenCategory !== null) return [];
+    const used = mode.dispatch.channels ?? [];
+    const off = categoryChannels.filter((key) => !used.includes(key));
+    return off.length === categoryChannels.length ? [] : off;
+  }, [mode, chosenCategory, categoryChannels]);
+  const channelsOff = channelsOffState ?? initialChannelsOff;
+  /** 送る経路 = カテゴリーの経路 − 外した経路(既定は全部オン、sameAs は元の回の経路) */
   const sendChannels = useMemo(() => categoryChannels.filter((key) => !channelsOff.includes(key)), [categoryChannels, channelsOff]);
   const channels: MessageSendChannel[] = useMemo(
     () =>
@@ -427,10 +437,16 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setChannelsOff([]);
     setPreview(null);
   }, []);
-  const toggleChannel = useCallback((channel: string, on: boolean) => {
-    setChannelsOff((prev) => (on ? prev.filter((key) => key !== channel) : prev.includes(channel) ? prev : [...prev, channel]));
-    setPreview(null);
-  }, []);
+  const toggleChannel = useCallback(
+    (channel: string, on: boolean) => {
+      setChannelsOff((prev) => {
+        const base = prev ?? initialChannelsOff;
+        return on ? base.filter((key) => key !== channel) : base.includes(channel) ? base : [...base, channel];
+      });
+      setPreview(null);
+    },
+    [initialChannelsOff],
+  );
   const setScheduleMode = useCallback(
     (next: "now" | "at") => {
       setScheduleModeState(next);
@@ -519,7 +535,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
 
   const canSend = optionsLoaded && !contentError && !targetError && !scheduleError;
   const dirty =
-    open && step !== "done" && (draftState !== null || targetState !== null || chosenCategory !== null || channelsOff.length > 0 || scheduledAt !== "");
+    open && step !== "done" && (draftState !== null || targetState !== null || chosenCategory !== null || (channelsOffState !== null && [...channelsOffState].sort().join() !== [...initialChannelsOff].sort().join()) || scheduledAt !== "");
   useUnsavedGuard(dirty);
 
   // ---- 操作 ----
@@ -597,7 +613,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setLoadNote(null);
     setTargetState(null);
     setChosenCategory(null);
-    setChannelsOff([]);
+    setChannelsOff(null);
     setScheduleModeState("now");
     setScheduledAtState("");
     setScheduleError(null);
