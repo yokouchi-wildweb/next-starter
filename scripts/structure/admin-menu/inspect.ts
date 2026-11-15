@@ -1,7 +1,7 @@
 // scripts/structure/admin-menu/inspect.ts
-// 管理メニューの点検と表示の中身(純関数。ファイルを読まない: 集めるのは ./collect.ts)。
+// 管理メニューと管理ダッシュボードの受け口の点検と、メニューの表示の中身(純関数。ファイルを読まない: 集めるのは ./collect.ts)。
 // 点検(pnpm check admin-menu): 知らないカテゴリー・知らないドメイン・相手の無い上書き・allowRoles を広げる上書き・
-//   route-map に無い住所・定義の key とファイル名の食い違い
+//   route-map に無い住所・定義の key とファイル名の食い違い。ダッシュボードのセクションは後ろの 3 つと定義の形(checkAdminDashboard)
 // 表示(pnpm check admin-menu -- show): ロールごとの木(行ごとに当たる規則か 常時)・重複・隠した物と理由
 // 仕組み: src/features/core/admin/menu/README.md
 
@@ -13,6 +13,7 @@ import type {
   AdminMenuRow,
   BuiltAdminMenu,
 } from "@/features/core/admin/menu/types";
+import type { AdminDashboardSectionDefinition } from "@/features/core/admin/dashboard/types";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 /** 受け口の 1 項目(ファイル名 = 名前、定義、隣の上書き) */
@@ -28,6 +29,11 @@ export type OrphanOverride = { file: string; target: string };
 export type MenuSnapshot = {
   categories: MenuEntry<AdminMenuCategoryDefinition>[];
   items: MenuEntry<AdminMenuItemDefinition>[];
+  orphans: OrphanOverride[];
+};
+
+export type DashboardSnapshot = {
+  sections: MenuEntry<AdminDashboardSectionDefinition>[];
   orphans: OrphanOverride[];
 };
 
@@ -72,21 +78,12 @@ const widens = (upstream: readonly string[] | undefined, override: unknown): boo
   return override.length === 0 || override.some((role) => !upstream.includes(role));
 };
 
-/** 点検(空 = 通る)。1 件 1 行 */
-export function checkAdminMenu(
-  snapshot: MenuSnapshot,
-  domains: Readonly<Record<string, AdminMenuDomainEntry>>,
-  routePaths: readonly string[],
-): string[] {
+/** 受け口の項目の共通の点検: 読めない定義・key とファイル名の食い違い・allowRoles を広げる上書き */
+function checkEntries(entries: MenuEntry<{ key: string; allowRoles?: readonly string[] }>[], exportNames: string): string[] {
   const problems: string[] = [];
-  for (const orphan of snapshot.orphans) problems.push(`${orphan.file}: 相手の ${orphan.target} が受け口に無い上書き`);
-  const entries = [...snapshot.categories, ...snapshot.items] as MenuEntry<{
-    key: string;
-    allowRoles?: readonly string[];
-  }>[];
   for (const entry of entries) {
     if (entry.definition === null) {
-      problems.push(`${entry.file}: 定義(export const category / item)を読めない`);
+      problems.push(`${entry.file}: 定義(${exportNames})を読めない`);
       continue;
     }
     if (entry.definition.key !== entry.name)
@@ -99,6 +96,33 @@ export function checkAdminMenu(
       );
     }
   }
+  return problems;
+}
+
+/** 管理ダッシュボードの点検(空 = 通る): 相手の無い上書き・読めない定義・key とファイル名・allowRoles を広げる上書き・描画の無い定義 */
+export function checkAdminDashboard(snapshot: DashboardSnapshot): string[] {
+  const problems = snapshot.orphans.map((orphan) => `${orphan.file}: 相手の ${orphan.target} が受け口に無い上書き`);
+  problems.push(...checkEntries(snapshot.sections, "export const section"));
+  for (const entry of snapshot.sections) {
+    if (entry.definition !== null && typeof entry.definition.Section !== "function")
+      problems.push(`${entry.file}: Section(描画の部品)が無い`);
+  }
+  return problems;
+}
+
+/** 点検(空 = 通る)。1 件 1 行 */
+export function checkAdminMenu(
+  snapshot: MenuSnapshot,
+  domains: Readonly<Record<string, AdminMenuDomainEntry>>,
+  routePaths: readonly string[],
+): string[] {
+  const problems: string[] = [];
+  for (const orphan of snapshot.orphans) problems.push(`${orphan.file}: 相手の ${orphan.target} が受け口に無い上書き`);
+  const entries = [...snapshot.categories, ...snapshot.items] as MenuEntry<{
+    key: string;
+    allowRoles?: readonly string[];
+  }>[];
+  problems.push(...checkEntries(entries, "export const category / item"));
   const categoryKeys = new Set(snapshot.categories.map((c) => merged(c)?.key).filter(Boolean));
   for (const entry of snapshot.items) {
     const item = merged(entry);

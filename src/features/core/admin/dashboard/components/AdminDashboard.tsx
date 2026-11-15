@@ -1,27 +1,30 @@
 // src/features/core/admin/dashboard/components/AdminDashboard.tsx
 
-import { adminDashboardSections } from "../registry";
+import { dashboardSections } from "@/features/core/admin/extensions/dashboardSections";
+
 import type { AdminDashboardData } from "../types";
 
 type AdminDashboardProps = {
-  /** セクション id → load の結果(AdminHome の loader が services/server/sectionLoads.ts の取得を実行して渡す) */
+  /** 描くセクションの key → load の結果(AdminHome の loader が services/server/sectionLoads.ts の loadAdminDashboardData で作って渡す) */
   data: AdminDashboardData;
 };
 
 /**
- * 管理ダッシュボード本体。
+ * 管理ダッシュボード本体(server)。
  *
- * `registry.ts` に登録されたセクションを順に描画し、同じ id の取得結果を data で渡すだけのシンコンポーネント。
- *
- * - セクションの追加・削除・並べ替えは全て `registry.ts`(と取得は `services/server/sectionLoads.ts`)で完結する
- * - 本ファイルはセクションの存在を一切知らないため、セクション増減でも変更不要
+ * data のキー(loader が組み立て器で hidden・ロール・門番の規則で絞り、order・key 順に並べた残り)の順に、
+ * 受け口 sections/ の生成の一覧から同じ key のセクションを描き、取得結果を data で渡すだけ。
+ * セクションの増減・並べ替え・隠すは受け口と override で完結し、本ファイルは変わらない。
  */
 export function AdminDashboard({ data }: AdminDashboardProps) {
   return (
     <>
-      {adminDashboardSections.map(({ id, Component }) => (
-        <Component key={id} data={data[id]} />
-      ))}
+      {Object.keys(data).map((key) => {
+        const section = dashboardSections[key];
+        if (!section) return null;
+        const { Section } = section;
+        return <Section key={key} data={data[key]} />;
+      })}
     </>
   );
 }

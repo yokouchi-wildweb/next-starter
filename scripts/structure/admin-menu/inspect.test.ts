@@ -1,5 +1,5 @@
 // scripts/structure/admin-menu/inspect.test.ts
-// 点検(checkAdminMenu)の失敗の種類ごと・ルート地図の照合・覆う規則・受け口の読み取り(相手の無い上書き)・実リポが通ること
+// 点検(checkAdminMenu・checkAdminDashboard)の失敗の種類ごと・ルート地図の照合・覆う規則・受け口の読み取り(相手の無い上書き)・実リポが通ること
 // 実行: pnpm test scripts/structure/admin-menu
 
 import assert from "node:assert/strict";
@@ -10,8 +10,8 @@ import { test } from "node:test";
 
 import { adminDomains } from "@/registry/adminDomains";
 
-import { readMenuSnapshot, readRoutePaths } from "./collect";
-import { checkAdminMenu, coveringRule, routeExists, type MenuSnapshot } from "./inspect";
+import { readDashboardSnapshot, readMenuSnapshot, readRoutePaths } from "./collect";
+import { checkAdminDashboard, checkAdminMenu, coveringRule, routeExists, type DashboardSnapshot, type MenuSnapshot } from "./inspect";
 
 const routes = [
   "/admin",
@@ -187,6 +187,59 @@ test("受け口の読み取り: 上書きを相手に結び、相手の無い上
   ]);
 });
 
+test("ダッシュボード: key とファイル名・allowRoles を広げる上書き・描画の無い定義・読めない定義・相手の無い上書き", () => {
+  const Section = () => null;
+  const dashboard = (over: Partial<DashboardSnapshot> = {}): DashboardSnapshot => ({ sections: [], orphans: [], ...over });
+  const entry = (definition: Record<string, unknown> | null, override?: Record<string, unknown>) => ({
+    name: "metrics",
+    file: "s/metrics.ts",
+    definition: definition as never,
+    ...(override ? { override: { file: "s/metrics.override.ts", value: override } } : {}),
+  });
+  assert.deepEqual(checkAdminDashboard(dashboard({ sections: [entry({ key: "metrics", order: 100, Section })] })), []);
+  assert.deepEqual(checkAdminDashboard(dashboard({ sections: [entry({ key: "other", order: 100, Section })] })), [
+    's/metrics.ts: key "other" がファイル名 metrics と違う(key = ファイル名 = 上書きの相手の名前)',
+  ]);
+  assert.deepEqual(
+    checkAdminDashboard(
+      dashboard({ sections: [entry({ key: "metrics", order: 100, Section, allowRoles: ["admin"] }, { allowRoles: ["admin", "user"] })] }),
+    ),
+    ["s/metrics.override.ts: allowRoles を広げている(上流 [admin] の中だけに絞る)"],
+  );
+  assert.deepEqual(
+    checkAdminDashboard(dashboard({ sections: [entry({ key: "metrics", order: 100, Section }, { allowRoles: ["admin"], hidden: true })] })),
+    [],
+  );
+  assert.deepEqual(checkAdminDashboard(dashboard({ sections: [entry({ key: "metrics", order: 100 })] })), [
+    "s/metrics.ts: Section(描画の部品)が無い",
+  ]);
+  assert.deepEqual(checkAdminDashboard(dashboard({ sections: [entry(null)] })), [
+    "s/metrics.ts: 定義(export const section)を読めない",
+  ]);
+  assert.deepEqual(checkAdminDashboard(dashboard({ orphans: [{ file: "s/ghost.override.ts", target: "ghost" }] })), [
+    "s/ghost.override.ts: 相手の ghost が受け口に無い上書き",
+  ]);
+});
+
+test("ダッシュボードの受け口の読み取り: 上書きを相手に結び、相手の無い上書きを拾う", async () => {
+  const root = mkdtempSync(join(tmpdir(), "admin-dashboard-"));
+  const put = (path: string, text: string) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  const base = "src/features/core/admin/dashboard/sections";
+  put(`${base}/metrics.ts`, 'export const section = { key: "metrics", order: 100, Section: () => null };\n');
+  put(`${base}/metrics.override.ts`, "export const override = { order: 50 };\n");
+  put(`${base}/ghost.override.ts`, "export const override = { hidden: true };\n");
+  const snap = await readDashboardSnapshot(root);
+  assert.deepEqual(
+    snap.sections.map((s) => [s.name, s.override?.value]),
+    [["metrics", { order: 50 }]],
+  );
+  assert.deepEqual(snap.orphans, [{ file: `${base}/ghost.override.ts`, target: "ghost" }]);
+});
+
 test("実リポ: 点検が通る(pnpm check admin-menu と同じ)", async () => {
   assert.deepEqual(checkAdminMenu(await readMenuSnapshot(), adminDomains, readRoutePaths()), []);
+  assert.deepEqual(checkAdminDashboard(await readDashboardSnapshot()), []);
 });

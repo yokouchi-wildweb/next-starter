@@ -509,3 +509,4 @@
 - id:20261115-013345-user-group-admin-screens | severity:info | checkpoint:user-group-admin-screens
 - id:20261115-122000-audit-action-lint-injected | severity:action-required | checkpoint:audit-action-lint-injected
 - id:20261115-120500-raw-sql-date-lint | severity:action-required | checkpoint:raw-sql-date-lint
+- id:20261115-115409-admin-dashboard-receptacle | severity:action-required | checkpoint:admin-dashboard-receptacle
