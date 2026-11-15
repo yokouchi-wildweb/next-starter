@@ -45,4 +45,5 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "core-ui-entry/no-inner-import", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   { rule: "realtime-room/purity", files: ["src/features/example/room/reducer.ts"], example: true },
   { rule: "hidden-columns/no-raw-select", files: ["src/features/core/auth/services/server/registration.ts"] },
+  { rule: "raw-sql-date/no-date-param", files: ["src/features/core/messaging/services/server/sweep/retentionSql.ts", "scripts/runner/task/run.ts"] },
 ];
