@@ -798,7 +798,7 @@ export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Prom
 
 ## システムの連絡（登録の完了のメール）
 
-本登録の後（`registration/registerFromAuth.ts` → `sendRegistrationCompleteMail.ts`）に、`userConfig.signupMode` で連絡を選んで送る口 `messagingService.sendMessage` でメールアドレスへ送る。失敗しても登録は続く（呼び手が受けてログに出す）。一時の失敗で cron の送り直し待ち（`queued`）になったものは失敗にしない。仕組み: src/features/core/messaging/README.md「新しい送る口」。
+本登録の後（`registration/registerFromAuth.ts` → `sendRegistrationCompleteMail.ts`）に、`userConfig.signupMode` で連絡を選んで送る口 `messagingService.sendMessage` でメールアドレスへ送る。失敗しても登録は続く（呼び手が受けてログに出す）。一時の失敗で cron の送り直し待ち（`queued`）になったものは失敗にしない。仕組み: src/features/core/messaging/services/server/sendMessage/README.md。
 
 | 鍵 | 選ぶ条件 | vars |
 | --- | --- | --- |

@@ -63,7 +63,7 @@ export const message = defineMessage({
 - 設計の意図: 種類は停止の単位で、集計と絞り込みの物差し。粒が種別ごと・ドメインごとにばらけると、止める単位も数える単位も揃わない。止められない種別の種類も同じ粒にする
 - どう書くか: 「〜した時」と言える単位で切る。属する連絡はその出来事の文言・条件の違い。ドメイン・機能の単位(auth・account・wallet-expiry など)にはしない
   - 例: いいねをされた時(likeReceived)・フォローされた時・出品した物が売れた時(itemSold)・投稿にコメントが付いた時・メールアドレスの確認(emailVerification)・パスワードの再設定(passwordReset)・アカウントのロック(accountLocked)・会員登録が完了した時(registrationComplete)・ポイントの失効が近づいた時(walletExpiring)・ポイントが失効した時(walletExpired)
-  - 上流の種類の一覧: src/features/core/messaging/README.md「連絡を足すとき」
+  - 上流の種類の一覧: src/features/core/messaging/README.md「連絡を足す」
 
 ### 種類と種別は付け替えない(止めて足す)
 
