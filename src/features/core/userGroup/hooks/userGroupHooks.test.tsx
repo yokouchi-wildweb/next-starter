@@ -4,6 +4,7 @@
 // - 一覧: 種類・状態を渡す / onChanged(作った = 取り直し、保管 = 外す、ほか = 置き換え)
 // - 書く欄: 作る(動的の POST・固定は startStatic)/ 直す(変えた欄だけ PATCH)/ 種類の選択肢 / 重い条件の注意
 // - 固定: incomplete の間は同じ元で送り直し、進み具合と終わり / 見込み: 理由・古い見込み / 一員・例外: 足す・外す
+// - 既存の固定のグループに足す(一括操作): mode add の結果、断られた理由
 // 実行: pnpm test src/features/core/userGroup/hooks/userGroupHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -102,6 +103,7 @@ mock.module("@/features/core/userGroup/services/client/userGroupAdminClient", {
     updateStaticMembers: async (id: string, input: Record<string, unknown>) => {
       calls.push(["members", id, input]);
       if (input.mode === "remove") return { memberCount: 1 };
+      if (input.mode === "add" && (input.userIds as string[]).includes("over")) throw new Error("人数の上限を超えます");
       if (input.mode === "add") return { group: detail({ id, kind: "static" }), members: { status: "added", added: 1, skipped: 0, memberCount: 2 } };
       return { group: detail({ id, kind: "static", name: "固定" }), members: staticRounds.shift() };
     },
@@ -417,5 +419,24 @@ test("useUserGroupExceptions: 側ごとの一覧、足すと両方を取り直�
   assert.deepEqual(calls.filter((c) => c[0] === "listExceptions").map((c) => c[2]).sort(), ["exclude", "include"]);
   await act(async () => view.value().exclude.remove("u9"));
   assert.deepEqual(calls.at(-1), ["exceptions", ID, { exclude: { remove: ["u9"] } }]);
+  await view.unmount();
+});
+
+test("useAddToUserGroup: mode add で足し結果を返す、断られたらサーバーの理由", async () => {
+  const view = await mount(() => hooks.useAddToUserGroup());
+  let done: unknown = null;
+  await act(async () => {
+    done = await view.value().add("s1", ["u1", "u2"]);
+  });
+  assert.deepEqual(calls.at(-1), ["members", "s1", { mode: "add", userIds: ["u1", "u2"] }]);
+  assert.deepEqual((done as { added: number; memberCount: number } | null) && { added: (done as { added: number }).added, memberCount: (done as { memberCount: number }).memberCount }, { added: 1, memberCount: 2 });
+  assert.equal(view.value().reason, null);
+  await act(async () => {
+    done = await view.value().add("s1", ["over"]);
+  });
+  assert.equal(done, null);
+  assert.equal(view.value().reason, "人数の上限を超えます");
+  await act(async () => view.value().clear());
+  assert.equal(view.value().reason, null);
   await view.unmount();
 });
