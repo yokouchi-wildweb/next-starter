@@ -156,6 +156,8 @@ add src/featureGate/required/*.{ts,tsx}  # 受け口 required
 add src/featureGate/required/*/**  # 受け口 required(フォルダ形)
 add src/featureGate/rules/*.{ts,tsx}  # 受け口 rules
 add src/featureGate/rules/*/**  # 受け口 rules(フォルダ形)
+add src/features/core/admin/dashboard/sections/*.{ts,tsx}  # 受け口 dashboardSections
+add src/features/core/admin/dashboard/sections/*/**  # 受け口 dashboardSections(フォルダ形)
 add src/features/core/admin/menu/categories/*.{ts,tsx}  # 受け口 menuCategories
 add src/features/core/admin/menu/categories/*/**  # 受け口 menuCategories(フォルダ形)
 add src/features/core/admin/menu/items/*.{ts,tsx}  # 受け口 menuItems

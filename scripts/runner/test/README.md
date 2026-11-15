@@ -11,7 +11,9 @@ pnpm test --list                # 選んだファイルを出すだけ
 
 - 走査: 毎回、git の追跡 + 未追跡(無視されない物)の `*.test.{ts,tsx,mts,mjs,js,cjs}`。一覧ファイルは無い。除く物: `tests/e2e/`(動いているアプリを外から見る物、playwright = `pnpm e2e`)・`*.types.test.*`(型のテスト = `pnpm typecheck` が見る)。`servers/`(別のプログラム)は引数のパス・glob がそこを名指しした時(`pnpm test servers/room`)と、`--changed` の範囲に `servers/` の下の変更がある時だけ(/ship が変えた時に回す)
 - 群(ファイル名で決まる): `db` = `*.db.test.*` / `fork` = `tests/` の下(fork が足すテスト)/ `unit` = それ以外
-- 起動: `npx tsx --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks --test <files>`(1 ファイル 1 プロセス)。下駄と module mocks は入口が常に付けるのでテストに書かない
+- 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks --test <files>`(1 ファイル 1 プロセス)。下駄と module mocks は入口が常に付けるのでテストに書かない
+  - `--test` の後のファイルを node は glob として読む → 入口はパスの `[ ] { } * ?` を `[x]` の形にして渡す(`[id]/` の下は `[[]id[]]/`)。そのまま渡すと `src/app/**/[id]/` の下のテストが 0 本になり、黙って通る
+  - `npx` は通さない: コマンドを shell に渡すので、shell の glob が `[[]id[]]` を `[id]` に戻してしまう(tsx の cli を node で直に起動する)
 - ほかの node のフラグ: ファイルの先頭行に `// test-flags: <flags>`。入口の許可の一覧(`scan.mjs` の `ALLOWED_FLAGS`、今は空)の物だけ渡し、ほかは止める(exit 2)。足すのは上流
 - `--changed`: 範囲(門の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/gates/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
 - exit 0 = 全部通る(0 本も)/ 1 = 落ちた / 2 = 引数・フラグの誤り

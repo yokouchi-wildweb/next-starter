@@ -190,6 +190,9 @@ await auditLogger.recordMany(
 - 規約: `<domain>.<entity>.<verb_past>`（例: `user.email.changed`）。正規表現 `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$` = 小文字・数字・`_`、ドット区切り 2 セグメント以上
 - NG 例: `User.Created`（大文字）/ `user-registered`（ハイフン）/ `userRegistered`（区切りなし）
 - 静的検査: ESLint `audit/action-naming`（error）。`record` / `recordDiff` の action と `audit.actionPrefix` が文字列リテラルかつパターン一致であることを要求
+  - 注入された記録関数（`deps.recordAudit({ ... })` 等、auditLogger を直に呼ばない経路）も見る: `action` と `targetType` を持つオブジェクトリテラル = 監査の入力とみなし、呼び先の名前によらず照合する（`recordMany` の配列の要素・変数に置いた入力も同じ）
+  - 照合するのは値が分かる形だけ: 文字列リテラル・式のないテンプレート・その三項、囲む関数の引数をそのまま渡す形（`function audit(group, action) { recordAudit({ ..., action }) }`）なら同じファイルの中の呼び出しの実引数。それ以外の動的な値は報告しない（実行時検査が最後に投げる）
+  - ドメインごとの名前の一覧や登録は要らない。テスト: `pnpm test eslint-rules/audit-action-naming.test.mjs`
 - 実行時検査: `validateActionName` が throw（`src/lib/audit/validation.ts`）
 - 動的に組み立てる正当なケースは個別 `eslint-disable` で許可する
 

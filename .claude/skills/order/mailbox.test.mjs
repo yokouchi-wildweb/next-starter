@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { addItem, parseSheet, readSheet, renderSheet, setResult, shotsDirOf, startRun, summarize } from "./checkSheet.mjs";
-import { actorOf, attachSheet, fileCheckOrder, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, takeOrder, unrouteOrder } from "./mailbox.mjs";
+import { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, slugOf, takeOrder, unrouteOrder } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -462,6 +462,49 @@ test("指令とシート: file は kind: browser-check の指令とシートを�
   assert.equal(existsSync(join(dir, "done", "20260102-030405-browser-check.check", "C1-375.png")), true);
   assert.equal(existsSync(r.sheet), false);
   assert.match(dest, /done/);
+});
+
+test("fileOrder: /order の形で 1 件書く（省いた欄は -、kind / tried は指定した時だけ、本文は先頭の後）。同じ秒は -2、箱が無ければ作る", () => {
+  const dir = join(mkdtempSync(join(tmpdir(), "mailbox-")), "acme--app");
+  const now = new Date(2026, 0, 2, 3, 4, 5);
+  const p = fileOrder({ box: dir, to: "git@x:Acme/App.git | box:acme--app", from: "git@x:Me.git | branch:main | cwd:/w", title: "題", need: "Fix the login\nbutton", kind: "quest", constraints: "unchanged: x", tried: "t", body: "\n## DETAIL\nmore", now });
+  assert.equal(p, join(dir, "20260102-030405-fix-the-login-button.md"));
+  const text = readFileSync(p, "utf8");
+  assert.match(text, /^# ORDER id:20260102-030405-fix-the-login-button\nfrom: git@x:Me\.git \| branch:main \| cwd:\/w\nto: git@x:Acme\/App\.git \| box:acme--app\ndate: 2026-01-02T03:04:05[+-]\d\d:\d\d\nstatus: open\nkind: quest\ntitle: 題\nneed: Fix the login button\nwhy: -\ndone_when: -\nconstraints: unchanged: x\nrefs: -\nnotes: -\ntried: t\n\n## DETAIL\nmore\n$/);
+  assert.equal(orderStatus(text), "open");
+  assert.equal(isQuest(text), true);
+  const again = fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "Fix the login button", now });
+  assert.equal(again, join(dir, "20260102-030405-fix-the-login-button-2.md"));
+  assert.doesNotMatch(readFileSync(again, "utf8"), /\nkind:|\ntried:/);
+  assert.deepEqual(readdirSync(dir).filter((f) => !f.endsWith(".md")), []);
+  assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "x", kind: "other" }), /--kind/);
+  assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", need: "x" }), /--title/);
+  assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題" }), /--need/);
+  assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "x", slug: "../x" }), /--slug/);
+  assert.equal(slugOf("ログインを直す"), "order");
+});
+
+test("CLI: file は self / checkout のパスの受信箱に書いてパスだけを出す。from は from の値、--from で上書き、--body の本文を後に付ける", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
+  run("init", "-q", "-b", "main");
+  run("remote", "add", "origin", "git@github.com:Acme/App.git");
+  writeFileSync(join(repo, "repo.json"), JSON.stringify({ repo_id: "acme-app", tier: "leaf" }));
+  run("add", "repo.json");
+  run("commit", "-q", "-m", "x");
+  const root = mkdtempSync(join(tmpdir(), "mailbox-root-"));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const cli = (...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: root } });
+  const bodyFile = join(root, "body.txt");
+  writeFileSync(bodyFile, "## DETAIL\nx\n");
+  const out = cli("file", "--to=self", "--title=題", "--need=do the thing", "--slug=do-it", `--body=${bodyFile}`).trim();
+  assert.match(out, new RegExp(`^${join(root, "acme-app")}/\\d{8}-\\d{6}-do-it\\.md$`));
+  const text = readFileSync(out, "utf8");
+  assert.match(text, new RegExp(`\nfrom: git@github\\.com:Acme/App\\.git \\| branch:main \\| cwd:${repo}\nto: git@github\\.com:Acme/App\\.git \\| box:acme-app\n`));
+  assert.match(text, /\nnotes: -\n\n## DETAIL\nx\n$/);
+  const out2 = cli("file", `--to=${repo}`, "--title=題", "--need=other", "--kind=quest", "--from=council c1 | role:Chair").trim();
+  assert.match(readFileSync(out2, "utf8"), /\nfrom: council c1 \| role:Chair\n[\s\S]*\nkind: quest\n/);
+  assert.throws(() => execFileSync("node", [SCRIPT, "file", "--to=self", "--title=題"], { cwd: repo, encoding: "utf8", stdio: "pipe", env: { ...clean, TEAM_ORDERS: root } }), /usage/);
 });
 
 test("指令とシート: attach --only は ng の項目だけを C1.. に写し、結果を消して was: に前の結果を残す。題は指令の題", () => {

@@ -9,7 +9,7 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
 ## WHEN TO USE
 - the user tells you to commit, push or ship (`コミットして`, `プッシュして`, `出荷して`) | no instruction → never use it (behavior.md: never commit without an instruction)
 - from `/inbox` step 4 (`対応完了`) | the argument `order:<id>` comes with it
-- from `/quest` (`--quick no-push order:<id>`: commit only) and its `caravan.md` departure (a plain ship of commits already made, `--safe` only when the human said so: COMMITTED RANGE below)
+- from `/quest` (`--quick no-push order:<id>`: commit only) and its `caravan.md` departure (a plain ship of commits already made: COMMITTED RANGE below)
 - also in repos without downstream (leaf forks) | whether downstream exists = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader: `src/lib/forkOwnership/forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
   - `none` → skip steps 3-5 (notice)
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have `tier` declared in `repo.json` (`pnpm workflow repo-json set tier <root|middle|leaf>`; `pnpm workflow ownership check` is unverified too)
@@ -18,7 +18,6 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - which kind (pick it yourself when the caller gave none):
   - more work follows in this session → `--quick`
   - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report may propose a safe point (step 8)
-  - asked to make a safe point (the human, or an order / plan sheet that says so) → `--safe` | legate / guild segment ships use it | a quest caravan's departure is always a plain ship (HQ D204)
 - `--safe` = a safe ship: the full checks on the tip, and a safe point tag when they pass | forks stop /flux at a safe point before a production deploy; `--allow-unsafe=<reason>` for emergencies
 - `--quick` = a quick ship: skips even the light checks, makes no safe point, marks the commit `Ship: quick` (QUICK SHIP below)
 

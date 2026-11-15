@@ -13,6 +13,7 @@ import appEnvPlugin from "./eslint-rules/app-env.mjs";
 import configOverridesPlugin from "./eslint-rules/config-overrides.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
+import rawSqlDatePlugin from "./eslint-rules/raw-sql-date.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import importBoundariesPlugin from "./eslint-rules/import-boundaries.mjs";
 import routeHttpExportPlugin from "./eslint-rules/route-http-export.mjs";
@@ -362,6 +363,16 @@ const config = [
     plugins: { "app-env": appEnvPlugin },
     rules: {
       "app-env/single-reader": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  // 生の sql`` に JS の Date を埋め込まない(CLAUDE.md CRUD_SERVICE raw_sql。Postgres が読めずクエリの時に落ちる)。
+  // .toISOString() で渡すか Drizzle の演算子を使う。クエリが落ちるのを止める守りなので upstream・下流とも error(fork 分岐なし)。
+  // 詳細: eslint-rules/raw-sql-date.mjs, src/lib/crud/README.md「落とし穴」
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
+    plugins: { "raw-sql-date": rawSqlDatePlugin },
+    rules: {
+      "raw-sql-date/no-date-param": "error",
     },
   },
   // 秘匿カラム (defineHiddenColumns) を生 drizzle の select / returning で取り出さない。

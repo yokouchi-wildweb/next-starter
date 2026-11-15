@@ -16,7 +16,7 @@ words: load = put an order's commits on the caravan | depart = ship the caravan 
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the caravan (short sha)
 
-## DEPART (`depart`: only on the human's word; always a plain ship, never `--safe`: HQ D204)
+## DEPART (`depart`: only on the human's word)
 1. note the orders on the caravan: the `order: <id>` lines of `git log --format=%B origin/main..HEAD`
 2. `git fetch origin main` → `git rebase origin/main` | a conflict → CONFLICT RULES → `git rebase --continue`
 3. `/ship` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; the area checks of what the caravan carries, the worktree push route)

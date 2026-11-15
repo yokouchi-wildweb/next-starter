@@ -1,23 +1,31 @@
 // src/features/core/admin/dashboard/services/server/sectionLoads.ts
-//
-// 管理ダッシュボードのセクションのデータ取得の登録表(loader 側)。表示の対応表 registry.ts と同じ id で 1 行。
-// UI(セクション)はサーバーのデータを自分で取らず、AdminHome の loader(範囲の守りを通った後)がここを実行し、
-// 結果を AdminDashboard の data で各セクションへ渡す。データの要らないセクションは載せない。
+// 管理ダッシュボードのデータの取得(loader 側)。受け口 sections/ の生成の一覧を組み立て器で絞り(hidden・ロール・門番の規則)、
+// 描くセクションの load を並列に実行する。UI(セクション)はサーバーのデータを自分で取らず、AdminHome の loader
+// (範囲の守りを通った後)がここを呼び、結果を AdminDashboard の data で各セクションへ渡す。
 
 import "server-only";
 
-import type { AdminDashboardData, AdminDashboardSectionLoad } from "../../types";
+import { gate } from "@/featureGate";
+import { dashboardSections } from "@/features/core/admin/extensions/dashboardSections";
 
-import { loadMainMetrics } from "./mainMetrics";
+import { buildAdminDashboard } from "../../buildAdminDashboard";
+import type { AdminDashboardData } from "../../types";
 
-export const adminDashboardSectionLoads: Record<string, AdminDashboardSectionLoad> = {
-  "main-metrics": loadMainMetrics,
-};
+/** 見る人(loader の ctx.user。省略 = ロール指定のあるセクションは描かない) */
+export type AdminDashboardViewer = { role?: string | null };
 
-/** 登録された取得を並列に実行し、セクション id → 結果を返す */
-export async function loadAdminDashboardData(): Promise<AdminDashboardData> {
+/**
+ * 描くセクションを決め、その取得を並列に実行して key → 結果を返す。
+ * 返り値のキー = 描くセクション(load の無いセクションも undefined の値で入る)
+ */
+export async function loadAdminDashboardData(viewer: AdminDashboardViewer = {}): Promise<AdminDashboardData> {
+  const { sections } = buildAdminDashboard({
+    sections: dashboardSections,
+    role: viewer.role ?? undefined,
+    isEnabled: (feature) => gate.enabled(feature),
+  });
   const entries = await Promise.all(
-    Object.entries(adminDashboardSectionLoads).map(async ([id, load]) => [id, await load()] as const),
+    sections.map(async (section) => [section.key, section.load ? await section.load() : undefined] as const),
   );
   return Object.fromEntries(entries);
 }

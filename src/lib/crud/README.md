@@ -901,7 +901,10 @@ await service.search({
 
 #### 落とし穴: `sql` テンプレートに Date を直接渡さない
 
-`extraWhere` / `extraOrderBy` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（lint ガードなし、過去に複数回発生）。
+`extraWhere` / `extraOrderBy` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（過去に複数回発生）。
+
+- lint `raw-sql-date/no-date-param`（全 Tier error、詳細: eslint-rules/raw-sql-date.mjs）が `new Date()`・Date で初期化した const・型注記が Date の変数と引数を止める。`range.dateFrom` のようなメンバーは型情報が要るので見ない → 書くときに自分で守り、生の SQL の組み立て関数にはテストで押さえる（例: messaging の rawSqlParams.test.ts）
+- Date を受ける独自の変換を通す等の正当な例外は理由付きの eslint-disable で外す
 
 - 症状: JS の `Date` を `${...}` に直接埋め込むと PostgreSQL 側でパースに失敗し 500 エラー
 - 原因: `sql` 内のパラメータは `Date.toString()` 相当（`"Sun Mar 01 2026 23:59:59 GMT+0900 (...)"`）で渡り、`::timestamptz` キャストを付けても解析できない

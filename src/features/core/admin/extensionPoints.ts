@@ -20,4 +20,14 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["hidden", "label", "icon", "allowRoles", "order", "category"],
   },
+  // 管理ダッシュボードのセクション: dashboard/sections/<key>.ts(x) の export const section(描画 Section と取得 load を 1 つの定義に)。
+  // 取得(server)を含むので一覧は server で読む。上流の物は隣の <key>.override.ts で変える(allowRoles は絞るだけ)
+  dashboardSections: {
+    dir: "dashboard/sections",
+    export: "section",
+    type: { from: "@/features/core/admin/dashboard/types", name: "AdminDashboardSectionDefinition" },
+    side: "server",
+    key: "key",
+    overrideOf: ["hidden", "allowRoles", "order"],
+  },
 };

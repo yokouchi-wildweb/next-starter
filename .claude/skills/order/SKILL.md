@@ -17,7 +17,8 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
 - **order state** (head `status:`, one value): `open` → `routed` (routed to a council / guild / legate plan; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
   - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
-- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | route | take | release | unroute | resolve>` (run at the repo root)
+- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | file | route | take | release | unroute | resolve>` (run at the repo root)
+  - `file` = write one order into a repo's inbox (the single writer of order files: /order step 4 and the tools call it; options: mailbox.mjs head comment)
   - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
   - `route <order> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = route | `take <order> [--as=]` = take | `release <order>` = let go | `unroute <order>` = take a route back (routed → open; the owner it was routed to or the one who routed it, else `--force=<reason>`)
   - `name-check` = may this name become this repo's repo_id (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
@@ -69,8 +70,9 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
      - a point that needs a design choice → decide it in the order, or write in `notes:` `ask <issuer> by msg if a design choice comes up (stop, do not invent)`
      - file a quest when only small judgement is left | overlap with other open quests is fine (the quest team merges them)
    - `status:` = `open` at filing | afterwards only mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, unroute → open, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); never by hand)
-4. **write the file without asking first** (create the inbox folder if missing) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
-   - path: `<target box>/<ts>-<slug>.md`
+4. **write the file without asking first** with `node .claude/skills/order/mailbox.mjs file` (never a hand Write) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
+   - options = the fields of step 3: `--to=<self | target fork-id> --title=<title> --need=<need> [--kind=quest] --why=<why> --done-when=<done_when> --constraints=<constraints> --refs=<refs> --notes=<notes> [--tried=<tried>] --slug=<slug>`
+   - it fills `id` / `from:` / `to:` / `date:` / `status: open`, creates the inbox folder if missing, writes `<target box>/<ts>-<slug>.md` (a clash in the same second gets `-2`) and prints the path
 5. after writing, report in Japanese:
    - **line 1 = the target**: `宛先: <宛先リポ名>(<理由を短く>)`
    - summary of need / done_when (1-3 lines) + **the saved path (full path; /wen checks the state by this path)**
